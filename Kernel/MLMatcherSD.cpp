@@ -34,6 +34,7 @@
 
 namespace {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
@@ -81,8 +82,6 @@ private:
  */
 void createLiteralBindings(Literal* baseLit, LiteralList const* const alts, Clause* instCl, unsigned*& boundVarData, TermList**& altBindingPtrs, TermList*& altBindingData)
 {
-  CALL("createLiteralBindings");
-
   static UUMap variablePositions;
   static BinaryHeap<unsigned,Int> varNums;
   variablePositions.reset();
@@ -325,7 +324,6 @@ struct MatchingData final {
    */
   pair<int,int>* getIntersectInfo(unsigned b1, unsigned b2)
   {
-    CALL("MatchingData::getIntersectInfo");
     ASS(isInitialized(b1));
     ASS(isInitialized(b2));
 
@@ -406,8 +404,6 @@ struct MatchingData final {
   bool compatible(unsigned b1Index, TermList* i1Bindings,
                   unsigned b2Index, unsigned i2AltIndex)
   {
-    CALL("MatchingData::compatible");
-
     TermList* i2Bindings=altBindings[b2Index][i2AltIndex];
 
     // Iterate over variables common to bases[b1Index] and bases[b2Index].
@@ -434,7 +430,6 @@ struct MatchingData final {
    */
   bool bindAlt(unsigned bIndex, unsigned altIndex)
   {
-    CALL("MatchingData::bindAlt");
     ASS_EQ(bIndex, currBLit);
     ASS_NEQ(bIndex, eqLitForDemodulation);
 
@@ -512,7 +507,6 @@ struct MatchingData final {
    */
   bool selectForDemodulation(unsigned bIndex)
   {
-    CALL("MatchingData::selectForDemodulation");
     ASS_EQ(bIndex, currBLit);
     ASS(bases[bIndex]->isEquality());
     ASS(bases[bIndex]->isPositive());
@@ -559,7 +553,6 @@ struct MatchingData final {
    */
   InitResult ensureInit(unsigned bIndex)
   {
-    CALL("MatchingData::ensureInit");
     ASS_EQ(bIndex, currBLit);
 
     if(!isInitialized(bIndex)) {
@@ -708,7 +701,6 @@ using namespace Lib;
 class MLMatcherSD::Impl final
 {
   public:
-    CLASS_NAME(MLMatcherSD::Impl);
     USE_ALLOCATOR(MLMatcherSD::Impl);
 
     Impl();
@@ -772,8 +764,6 @@ MLMatcherSD::Impl::Impl()
 
 void MLMatcherSD::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, Clause* instance, LiteralList const* const* alts)
 {
-  CALL("MLMatcherSD::Impl::initMatchingData");
-
   s_baseLits.initFromArray(baseLen,baseLits0);
   s_altsArr.initFromArray(baseLen,alts);
 
@@ -887,8 +877,6 @@ void MLMatcherSD::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, 
 
 void MLMatcherSD::Impl::init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const* alts)
 {
-  CALL("MLMatcherSD::Impl::init");
-
 #if MLMATCHERSD_DEBUG_OUTPUT
     std::cerr << "\n\n\nMLMatcherSD::init:" << std::endl;
     for (unsigned i = 0; i < baseLen; ++i) {
@@ -908,7 +896,6 @@ void MLMatcherSD::Impl::init(Literal** baseLits, unsigned baseLen, Clause* insta
 
 bool MLMatcherSD::Impl::nextMatch()
 {
-  CALL("MLMatcherSD::Impl::nextMatch");
   MatchingData* const md = &s_matchingData;
 
   // General Remarks

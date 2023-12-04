@@ -17,6 +17,8 @@
 #define __Timer__
 
 #include <atomic>
+#include <csignal>
+
 #include "Debug/Assertion.hpp"
 #include "Allocator.hpp"
 #include "VString.hpp"
@@ -34,7 +36,6 @@ class Timer
   ~Timer() { deinitializeTimer(); }
  
 public:
-  CLASS_NAME(Timer);
   USE_ALLOCATOR(Timer);
 
   static Timer* instance();
@@ -95,6 +96,10 @@ public:
   static bool instructionLimitingInPlace();
   static unsigned elapsedMegaInstructions();
   static void resetInstructionMeasuring();
+  static void updateInstructionCount();
+
+  // called when a limit is reached
+  [[noreturn]] static void limitReached(unsigned char whichLimit);
 
   static std::atomic<bool> s_limitEnforcement;
 private:
@@ -134,8 +139,22 @@ private:
  *      (unless we are in the scope of another TimeoutProtector higher up on stack)
  */
 struct TimeoutProtector {
-  TimeoutProtector();
-  ~TimeoutProtector();
+  TimeoutProtector() { protectingTimeout++; }
+
+  ~TimeoutProtector() {
+    protectingTimeout--;
+    if (!protectingTimeout && callLimitReachedLater) {
+      unsigned howToCall = callLimitReachedLater;
+      callLimitReachedLater = 0; // to prevent recursion (should limitReached itself reach TimeoutProtector)
+      Timer::limitReached(howToCall);
+    }
+  }
+
+  /* NB: must be signal-safe, check usage in timer_sigalrm_handler before modification */
+  // non-zero if we are protecting against a timeout
+  static volatile std::sig_atomic_t protectingTimeout;
+  // 1 for a timelimit, 2 for an instruction limit
+  static volatile std::sig_atomic_t callLimitReachedLater;
 }; // struct TimeoutProtector
 
 } // namespace Lib

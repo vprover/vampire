@@ -31,7 +31,6 @@ using namespace Kernel;
 class ManCSPassiveClauseContainer : public PassiveClauseContainer
 {
 public:
-  CLASS_NAME(ManCSPassiveClauseContainer);
   USE_ALLOCATOR(ManCSPassiveClauseContainer);
 
   ManCSPassiveClauseContainer(bool isOutermost, const Shell::Options& opt) : PassiveClauseContainer(isOutermost, opt) {}

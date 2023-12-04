@@ -19,7 +19,7 @@
 #include "Signature.hpp"
 #include "Lib/Deque.hpp"
 #include "Lib/BiMap.hpp"
-#include "Kernel/BottomUpEvaluation/TypedTermList.hpp"
+#include "TypedTermList.hpp"
 
 using namespace Kernel;
 using namespace Shell;

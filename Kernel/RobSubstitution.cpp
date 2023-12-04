@@ -19,6 +19,8 @@
 #include "Debug/Output.hpp"
 #include "Debug/Tracer.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
+#include "Kernel/Term.hpp"
+#include "Lib/Backtrackable.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/DHMap.hpp"
@@ -31,141 +33,22 @@
 namespace Kernel
 {
 
+using namespace std;
 using namespace Lib;
 
 std::ostream& operator<<(std::ostream& out, TermSpec const& self)
-{ return self._self.match([&](CompositeTermSpec const& self) -> decltype(auto) { return out << env.signature->getFunction(self.functor)->name() << "(" << commaSep(self.argsIter()) << ")"; },
-                          [&](AtomicTermSpec    const& self) -> decltype(auto) { return out << self.term << "/" << self.index; }); }
+{ return out << self.term << "/" << self.index; }
 
-
-bool TermSpec::isOutputVar() const
-{ return _self.match([](CompositeTermSpec const&) { return false; },
-                     [](AtomicTermSpec const& self) { ASS(self.index != RobSubstitution::UNBOUND_INDEX || self.term.isVar()); return  self.index == RobSubstitution::UNBOUND_INDEX; }); }
-
-
-TermList::Top TermSpec::top() const
-{ return _self.match([](CompositeTermSpec const& a) { return TermList::Top::functor(a.functor); },
-                     [](AtomicTermSpec const& old) { return old.term.top(); }); }
-
-TermSpec const& TermSpec::deref(RobSubstitution const* s) const&
- { return s->derefBound(*this); };
-
-bool TermSpec::definitelyGround() const
-{ return _self.match([](CompositeTermSpec const& a) { return iterTraits(a.argsIter()).all([](auto& x) { return x.definitelyGround(); }); },
-                     [](AtomicTermSpec const& t) { return t.term.isTerm() && t.term.term()->shared() && t.term.term()->ground(); }); }
-
-unsigned TermSpec::weight() const
-{ 
-  ASS(definitelyGround())
-  return _self.match([](CompositeTermSpec const& a) { return iterTraits(a.argsIter()).map([](auto& x) { return x.weight(); }).sum(); },
-                     [](AtomicTermSpec const& t) { return t.term.term()->weight(); }); }
-
-const int RobSubstitution::SPECIAL_INDEX=-2;
-const int RobSubstitution::UNBOUND_INDEX=-1;
-
-bool TermSpec::sameTermContent(TermSpec const& other) const
-{
-  if (top() != other.top()) return false;
-  if (isVar()) {
-    ASS(other.isVar())
-    return (isSpecialVar() && other.isSpecialVar()) || varSpec().index == other.varSpec().index;
-  } else {
-    ASS(isTerm())
-    ASS(other.isTerm())
-    auto t1 =       _self.as<AtomicTermSpec>();
-    auto t2 = other._self.as<AtomicTermSpec>();
-    if (t1.isSome() && t2.isSome()) {
-      return t1->term == t2->term && (
-           (t1->index == t2->index)
-        || (t1->term.term()->shared() && t1->term.term()->ground())
-        || (t1->term.term()->arity() == 0)
-        );
-    } else {
-      return allArgs().zip(other.allArgs())
-       .all([](auto pair) { return pair.first.sameTermContent(pair.second); });
-    }
-  }
-}
-
-bool TermSpec::isSpecialVar() const 
-{ return _self.match([](CompositeTermSpec const&)             { return false; },
-                     [](AtomicTermSpec const& self) { return self.term.isSpecialVar(); }); }
-
-bool TermSpec::isVar() const 
-{ return _self.match([](CompositeTermSpec const&)             { return false; },
-                     [](AtomicTermSpec const& self) { return self.term.isVar(); }); }
-
-bool TermSpec::isTerm() const 
-{ return _self.match([](CompositeTermSpec const&)             { return true; },
-                     [](AtomicTermSpec const& self) { return self.term.isTerm(); }); }
-
-bool TermSpec::isLiteral() const 
-{ return _self.match([](CompositeTermSpec const&)             { return false; },
-                     [](AtomicTermSpec const& self) { return self.term.isTerm() && self.term.term()->isLiteral(); }); }
-
-bool TermSpec::isSort() const 
-{ return _self.match([](CompositeTermSpec const& a)           { return a.isSort(); },
-                     [](AtomicTermSpec const& self) { return self.term.term()->isSort(); }); }
-
-
-VarSpec TermSpec::varSpec() const 
-{ 
-  auto s = _self.as<AtomicTermSpec>();
-  return VarSpec(s->term.var(), s->term.isSpecialVar() ? RobSubstitution::SPECIAL_INDEX : s->index);
-}
-
-unsigned TermSpec::functor() const
-{ return _self.match([](CompositeTermSpec const& a)           { return a.functor; },
-                     [](AtomicTermSpec const& self) { return self.term.term()->functor(); }); }
-
-
-unsigned TermSpec::nTypeArgs() const 
-{ return _self.match([](CompositeTermSpec const& a)           { return env.signature->getFunction(a.functor)->numTypeArguments(); },
-                     [](AtomicTermSpec const& self) { return self.term.term()->numTermArguments(); }); }
-
-unsigned TermSpec::nTermArgs() const 
-{ return _self.match([](CompositeTermSpec const& a)           { return env.signature->getFunction(a.functor)->numTermArguments(); },
-                     [](AtomicTermSpec const& self) { return self.term.term()->numTermArguments(); }); }
-
-unsigned TermSpec::nAllArgs() const
-{ return _self.match([](CompositeTermSpec const& a)           { return a.args.map([](auto& x) { return x->size(); }).unwrapOr(0); },
-                     [](AtomicTermSpec const& self) { return self.term.term()->arity(); }); }
-
-
-TermSpec TermSpec::termArg(unsigned i) const
-{ return _self.match([&](CompositeTermSpec const& a)           { return a.arg(i + nTypeArgs()).clone(); },
-                     [&](AtomicTermSpec const& self) { return TermSpec(self.term.term()->termArg(i), self.index); }); }
-
-TermSpec TermSpec::typeArg(unsigned i) const
-{ return _self.match([&](CompositeTermSpec const& a)           { return a.arg(i).clone(); },
-                     [&](AtomicTermSpec const& self) { return TermSpec(self.term.term()->typeArg(i), self.index); }); }
-
-TermSpec TermSpec::anyArg(unsigned i) const
-{ return _self.match([&](CompositeTermSpec const& a)           { return a.arg(i).clone(); },
-                     [&](AtomicTermSpec const& self) { return TermSpec(*self.term.term()->nthArgument(i), self.index); }); }
 
 
 TermList TermSpec::toTerm(RobSubstitution& s) const
-{ return _self.match([&](CompositeTermSpec const& a)           { return TermList(Term::createFromIter(a.functor, iterTraits(a.argsIter()).map([&](auto& t) { return t.toTerm(s); }))); },
-                     [&](AtomicTermSpec const& self) { return s.apply(self.term, self.index); }); }
-
-TermSpec TermSpec::sort() const
-{ return _self.match([&](CompositeTermSpec const& a)           -> TermSpec { 
-                        auto f = env.signature->getFunction(a.functor)->fnType();
-                        ASS_REP(f->numTypeArguments() == 0, "TODO: tricky because of polymorphism...")
-                        return TermSpec(f->result(), {});
-                     },
-                     [&](AtomicTermSpec const& self) -> TermSpec { return TermSpec(SortHelper::getResultSort(self.term.term()), self.index); }); }
-
+{ return s.apply(this->term, this->index); }
 
 /**
  * Unify @b t1 and @b t2, and return true iff it was successful.
  */
 bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2)
-{
-  CALL("RobSubstitution::unify/4");
-  return unify(TermSpec(t1,index1), TermSpec(t2,index2));
-}
+{ return unify(TermSpec(t1,index1), TermSpec(t2,index2)); }
 
 /**
  * Unify arguments of @b t1 and @b t2, and return true iff it was successful.
@@ -174,19 +57,13 @@ bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2)
  */
 bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2)
 {
-  CALL("RobSubstitution::unifyArgs");
   ASS_EQ(t1->functor(),t2->functor());
-
-  TermList t1TL(t1);
-  TermList t2TL(t2);
-
-  return unify(TermSpec(t1TL,index1), TermSpec(t2TL,index2));
+  return unify(TermSpec(TermList(t1),index1), TermSpec(TermList(t2),index2));
 }
 
 bool RobSubstitution::match(TermList base,int baseIndex,
 	TermList instance, int instanceIndex)
 {
-  CALL("RobSubstitution::match(TermList...)");
   return match(TermSpec(base,baseIndex), TermSpec(instance,instanceIndex));
 }
 /**
@@ -197,7 +74,6 @@ bool RobSubstitution::match(TermList base,int baseIndex,
 bool RobSubstitution::matchArgs(Term* base,int baseIndex,
 	Term* instance, int instanceIndex)
 {
-  CALL("RobSubstitution::match(Literal*...)");
   ASS_EQ(base->functor(),instance->functor());
 
   TermList baseTL(base);
@@ -216,24 +92,21 @@ bool RobSubstitution::matchArgs(Term* base,int baseIndex,
  */
 void RobSubstitution::denormalize(const Renaming& normalizer, int normalIndex, int denormalizedIndex)
 {
-  CALL("RobSubstitution::denormalize");
-
   VirtualIterator<Renaming::Item> nit=normalizer.items();
   while(nit.hasNext()) {
     Renaming::Item itm=nit.next();
     VarSpec normal(itm.second, normalIndex);
     VarSpec denormalized(itm.first, denormalizedIndex);
-    ASS(!_bank.find(denormalized));
+    ASS(!_bindings.find(denormalized));
     bindVar(denormalized,normal);
   }
 }
 
 bool RobSubstitution::isUnbound(VarSpec v) const
 {
-  CALL("RobSubstitution::isUnbound");
   for(;;) {
-    auto binding = _bank.find(v);
-    if(binding.isNone() || binding->isOutputVar()) {
+    auto binding = _bindings.find(v);
+    if(binding.isNone()) {
       return true;
     } else if(binding->isTerm()) {
       return false;
@@ -251,8 +124,8 @@ TermList::Top RobSubstitution::getSpecialVarTop(unsigned specialVar) const
 {
   VarSpec v(specialVar, SPECIAL_INDEX);
   for(;;) {
-    auto binding = _bank.find(v);
-    if(binding.isNone() || binding->isOutputVar()) {
+    auto binding = _bindings.find(v);
+    if(binding.isNone()) {
       static TermList auxVarTerm(1,false);
       return auxVarTerm.top();
     } else if(binding->isTerm()) {
@@ -261,7 +134,6 @@ TermList::Top RobSubstitution::getSpecialVarTop(unsigned specialVar) const
     v = binding->varSpec();
   }
 }
-
 /**
  * If @b t is a non-variable, return @b t. Else, if @b t is a variable bound to
  * a non-variable term, return the term. Otherwise, return the root variable
@@ -269,14 +141,13 @@ TermList::Top RobSubstitution::getSpecialVarTop(unsigned specialVar) const
  */
 TermSpec const& RobSubstitution::derefBound(TermSpec const& t_) const
 {
-  CALL("RobSubstitution::derefBound");
   TermSpec const* t = &t_;
   for(;;) {
-    if (t->isTerm() || t->isOutputVar()) {
+    if (t->isTerm()) {
       return *t;
     } else {
-      auto binding = _bank.find(t->varSpec());
-      if (!binding || binding->isOutputVar()) {
+      auto binding = _bindings.find(t->varSpec());
+      if (!binding) {
         return *t;
       } else {
         t = &binding.unwrap();
@@ -285,99 +156,107 @@ TermSpec const& RobSubstitution::derefBound(TermSpec const& t_) const
   }
 }
 
-/**
- * If @b v is a bound variable then return the term or root variable
- * it is bound to. Otherwise, return the next unbound variable in the
- * UNBOUND_INDEX. This effectively names unbound variables apart from
- * any variables in the range of bound variables.
- */
-TermSpec const& RobSubstitution::deref(VarSpec v) const
+template<class T, class H1, class H2>
+void RobSubstitution::bind(DHMap<VarSpec, T, H1, H2>& map, const VarSpec& v, T b)
 {
-  CALL("RobSubstitution::deref");
-  for(;;) {
-    auto binding = _bank.find(v);
-    if(binding.isNone()) {
-      const_cast<RobSubstitution&>(*this).bindVar(v,VarSpec(_nextUnboundAvailable++, UNBOUND_INDEX));
-      return _bank.get(v);
-    } else if(binding->isOutputVar() || binding->isTerm()) {
-      return binding.unwrap();
-    }
-    v = binding->varSpec();
+  if(bdIsRecording()) {
+    ASS(map.find(v).isNone());
+    bdAdd(BacktrackObject::fromClosure([this, v, &map](){
+      map.remove(v);
+      _applyMemo.reset();
+    }));
   }
+  map.set(v,std::move(b));
+  _applyMemo.reset();
+}
+
+
+unsigned RobSubstitution::findOrIntroduceOutputVariable(VarSpec v) const
+{
+  if (!_startedBindingOutputVars) {
+    _startedBindingOutputVars = true;
+    ASS_EQ(_nextUnboundAvailable, 0)
+    auto& thisMut = const_cast<RobSubstitution&>(*this);
+    if (thisMut.bdIsRecording()) {
+      thisMut.bdAdd(BacktrackObject::fromClosure([this](){
+        _outputVarBindings.reset();
+        _nextUnboundAvailable = 0;
+        _startedBindingOutputVars = false;
+        _applyMemo.reset();
+      }));
+    }
+  }
+  ASS(_bindings.find(v).isNone());
+  auto found = _outputVarBindings.find(v);
+  if (found.isSome()) {
+    return *found;
+  } else {
+    auto newVar = _nextUnboundAvailable++;
+    _outputVarBindings.set(v, newVar);
+    _applyMemo.reset();
+    return newVar;
+  }
+}
+
+VarSpec RobSubstitution::introGlueVar(TermSpec forTerm)
+{
+  auto v = VarSpec(_nextGlueAvailable++, GLUE_INDEX);
+  if (bdIsRecording()) {
+    bdAdd(BacktrackObject::fromClosure([this](){
+      _nextGlueAvailable--;
+    }));
+  }
+  bind(v, forTerm);
+  return v;
 }
 
 void RobSubstitution::bind(const VarSpec& v, TermSpec b)
 {
-  CALL("RobSubstitution::bind");
   //Aux terms don't contain special variables, ergo
   //should be shared.
   //ASS(!b.term.isTerm() || b.index!=AUX_INDEX || b.term.term()->shared());
   ASS_NEQ(v.index, UNBOUND_INDEX);
 
-  if(bdIsRecording()) {
-    bdAdd(new BindingBacktrackObject(this, v));
-  }
-  _bank.set(v,std::move(b));
+  bind(_bindings, v, std::move(b));
 }
 
 void RobSubstitution::bindVar(const VarSpec& var, const VarSpec& to)
 {
-  CALL("RobSubstitution::bindVar");
   ASS_NEQ(var,to);
 
   bind(var,TermSpec(to));
 }
 
-VarSpec RobSubstitution::root(VarSpec v) const
+bool RobSubstitution::occurs(VarSpec const& toFind, TermSpec const& ts) 
 {
-  CALL("RobSubstitution::root");
-  for(;;) {
-    auto binding = _bank.find(v);
-    if(binding.isNone() || binding->isOutputVar() || binding->isTerm()) {
-      return v;
-    }
-    v = binding->varSpec();
-  }
-}
 
-bool RobSubstitution::occurs(VarSpec const& toFind_, TermSpec const& ts_)
-{
-  VarSpec toFind = root(toFind_);
-  TermSpec ts = derefBound(ts_).clone();
-  if(ts.isVar()) {
-    return false;
-  }
-  typedef DHSet<VarSpec, VarSpec::Hash1, VarSpec::Hash2> EncounterStore;
-  Recycled<EncounterStore> encountered;
-  Recycled<Stack<TermSpec>> todo;
-  todo->push(std::move(ts));
+   Recycled<DHSet<TermSpec>> encountered;
+   Recycled<Stack<TermSpec>> todo;
+   todo->push(std::move(ts));
 
-  while (todo->isNonEmpty()){
-    auto ts = todo->pop();
-    if (ts.isVar()) {
-      VarSpec tvar = root(ts.varSpec());
-      if(tvar == toFind) {
-        return true;
+   while (todo->isNonEmpty()){
+     auto ts = todo->pop();
+     auto dt = derefBound(ts);
+     if (!encountered->find(dt)) {
+       encountered->insert(dt);
+       if (dt.isVar()) {
+         if(dt.varSpec() == toFind) {
+           return true;
+         } else {
+           /* nothing to do */
+         }
+ 
+       } else {
+         todo->loadFromIterator(dt.allArgs());
+       }
+     }
+   }
 
-      } else if(!encountered->find(tvar)) {
-        TermSpec dtvar = derefBound(TermSpec(tvar)).clone();
-        if(!dtvar.isVar()) {
-          encountered->insert(tvar);
-          todo->push(std::move(dtvar));
-        }
-      }
-
-    } else {
-      todo->loadFromIterator(ts.allArgs());
-    }
-  }
-
-  return false;
+   return false;
 }
 
 bool RobSubstitution::unify(TermSpec s, TermSpec t)
 {
-  CALL("RobSubstitution::unify/2");
 #define DEBUG_UNIFY(lvl, ...) if (lvl < 0) DBG("unify: ", __VA_ARGS__)
   DEBUG_UNIFY(0, *this, ".unify(", s, ",", t, ")")
 
@@ -389,13 +268,16 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t)
   BacktrackData localBD;
   bdRecord(localBD);
 
-  static Stack<UnificationConstraint> toDo(64);
+  static Stack<pair<TermSpec, TermSpec>> toDo(64);
   ASS(toDo.isEmpty());
-  toDo.push(UnificationConstraint(std::move(s), std::move(t)));
+  toDo.push(make_pair(std::move(s), std::move(t)));
 
   // Save encountered unification pairs to avoid
   // recomputing their unification
-  Recycled<DHSet<UnificationConstraint>> encountered;
+  static DHSet<pair<TermSpec, TermSpec>> encountered_;
+  auto encountered = &encountered_;
+  encountered->reset();
+  
 
   auto pushTodo = [&](auto pair) {
       // we unify each subterm pair at most once, to avoid worst-case exponential runtimes
@@ -403,11 +285,11 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t)
       // (Note by joe:  didn't make this decision, but just keeping the implemenntation 
       // working as before. i.e. as described in the paper "Comparing Unification 
       // Algorithms in First-Order Theorem Proving", by Krystof and Andrei)
-      if (pair.lhs().isVar() && isUnbound(pair.lhs().varSpec()) &&
-          pair.rhs().isVar() && isUnbound(pair.rhs().varSpec())) {
+      if (pair.first.isVar() && isUnbound(pair.first.varSpec()) &&
+          pair.second.isVar() && isUnbound(pair.second.varSpec())) {
         toDo.push(std::move(pair));
       } else if (!encountered->find(pair)) {
-        encountered->insert(pair.clone());
+        encountered->insert(pair);
         toDo.push(std::move(pair));
       }
   };
@@ -418,8 +300,8 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t)
   // version in dt1 and dt2
   while (toDo.isNonEmpty()) {
     auto x = toDo.pop();
-    TermSpec const& dt1 = derefBound(x.lhs());
-    TermSpec const& dt2 = derefBound(x.rhs());
+    TermSpec dt1 = derefBound(x.first);
+    TermSpec dt2 = derefBound(x.second);
     DEBUG_UNIFY(1, "next pair: ", tie(dt1, dt2))
     // If they have the same content then skip
     // (note that sameTermContent is best-effort)
@@ -428,16 +310,16 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t)
     // Do an occurs-check and note that the variable 
     // cannot be currently bound as we already dereferenced
     } else if(dt1.isVar() && !occurs(dt1.varSpec(), dt2)) {
-      bind(dt1.varSpec(), dt2.clone());
+      bind(dt1.varSpec(), dt2);
 
     } else if(dt2.isVar() && !occurs(dt2.varSpec(), dt1)) {
-      bind(dt2.varSpec(), dt1.clone());
+      bind(dt2.varSpec(), dt1);
 
     } else if(dt1.isTerm() && dt2.isTerm() 
            && dt1.functor() == dt2.functor()) {
 
       for (auto c : dt1.allArgs().zip(dt2.allArgs())) {
-        pushTodo(UnificationConstraint(std::move(c.first), std::move(c.second)));
+        pushTodo(make_pair(std::move(c.first), std::move(c.second)));
       }
 
     } else {
@@ -478,8 +360,6 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t)
  */
 bool RobSubstitution::match(TermSpec base, TermSpec instance)
 {
-  CALL("RobSubstitution::match(TermSpec...)");
-
   if(base.sameTermContent(instance)) {
     return true;
   }
@@ -491,62 +371,62 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
   static Stack<TermList*> subterms(64);
   ASS(subterms.isEmpty());
 
-  auto obase     = base.old();
-  auto oinstance = instance.old();
+  auto obase     = base;
+  auto oinstance = instance;
   TermList* bt=&obase.term;
   TermList* it=&oinstance.term;
 
-  AtomicTermSpec binding1;
-  AtomicTermSpec binding2;
+  TermSpec binding1;
+  TermSpec binding2;
 
   for (;;) {
-    TermSpec bts(*bt,base.old().index);
-    TermSpec its(*it,instance.old().index);
+    TermSpec bts(*bt,base.index);
+    TermSpec its(*it,instance.index);
 
-    if (!bts.sameTermContent(its) && TermList::sameTopFunctor(bts.old().term,its.old().term)) {
-      Term* s = bts.old().term.term();
-      Term* t = its.old().term.term();
+    if (!bts.sameTermContent(its) && TermList::sameTopFunctor(bts.term,its.term)) {
+      Term* s = bts.term.term();
+      Term* t = its.term.term();
       ASS(s->arity() > 0);
 
       bt = s->args();
       it = t->args();
     } else {
-      if (! TermList::sameTopFunctor(bts.old().term,its.old().term)) {
-	if(bts.old().term.isSpecialVar()) {
-	  VarSpec bvs(bts.old().term.var(), SPECIAL_INDEX);
-          auto binding = _bank.find(bvs);
+      if (! TermList::sameTopFunctor(bts.term,its.term)) {
+	if(bts.term.isSpecialVar()) {
+	  VarSpec bvs(bts.term.var(), SPECIAL_INDEX);
+	  auto binding = _bindings.find(bvs);
 	  if(binding) {
-            binding1 = binding->old();
-	    ASS_EQ(binding1.index, base.old().index);
+            binding1 = *binding;
+	    ASS_EQ(binding1.index, base.index);
 	    bt=&binding1.term;
 	    continue;
 	  } else {
-	    bind(bvs,its.clone());
+	    bind(bvs,its);
 	  }
-	} else if(its.old().term.isSpecialVar()) {
-	  VarSpec ivs(its.old().term.var(), SPECIAL_INDEX);
-          auto binding = _bank.find(ivs);
+	} else if(its.term.isSpecialVar()) {
+	  VarSpec ivs(its.term.var(), SPECIAL_INDEX);
+	  auto binding = _bindings.find(ivs);
 	  if(binding) {
-            binding2 = binding->old();
-	    ASS_EQ(binding2.index, instance.old().index);
+      binding2 = *binding;
+	    ASS_EQ(binding2.index, instance.index);
 	    it=&binding2.term;
 	    continue;
 	  } else {
-	    bind(ivs,bts.clone());
+	    bind(ivs,bts);
 	  }
-	} else if(bts.old().term.isOrdinaryVar()) {
-	  VarSpec bvs(bts.old().term.var(), bts.old().index);
-          auto binding = _bank.find(bvs);
+	} else if(bts.term.isOrdinaryVar()) {
+	  VarSpec bvs(bts.term.var(), bts.index);
+	  auto binding = _bindings.find(bvs);
 	  if(binding) {
-            binding1 = binding->old();
-	    ASS_EQ(binding1.index, instance.old().index);
-	    if(!TermList::equals(binding1.term, its.old().term))
+      binding1 = *binding;
+	    ASS_EQ(binding1.index, instance.index);
+	    if(!TermList::equals(binding1.term, its.term))
 	    {
 	      mismatch=true;
 	      break;
 	    }
 	  } else {
-	    bind(bvs,its.clone());
+	    bind(bvs,its);
 	  }
 	} else {
 	  mismatch=true;
@@ -586,7 +466,6 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
 
 Stack<Literal*> RobSubstitution::apply(Stack<Literal*> cl, int index) const
 {
-  CALL("RobSubstitution::apply(Clause*...)");
   for (unsigned i = 0; i < cl.size(); i++) {
     cl[i] = apply(cl[i], index);
   }
@@ -595,7 +474,6 @@ Stack<Literal*> RobSubstitution::apply(Stack<Literal*> cl, int index) const
 
 Literal* RobSubstitution::apply(Literal* lit, int index) const
 {
-  CALL("RobSubstitution::apply(Literal*...)");
   static DArray<TermList> ts(32);
 
   if (lit->ground()) {
@@ -618,107 +496,23 @@ Literal* RobSubstitution::apply(Literal* lit, int index) const
 
 TermList RobSubstitution::apply(TermList trm, int index) const
 {
-  CALL("RobSubstitution::apply(TermList...)");
-  // DBG(*this, ".apply(", TermSpec(trm, index), ")")
-  
-  auto out = evalBottomUp<TermList>(AutoDerefTermSpec(TermSpec(trm, index), this), 
-      [&](auto& orig, TermList* args) -> TermList {
+  return BottomUpEvaluation<AutoDerefTermSpec, TermList>()
+    .function([&](auto const& orig, TermList* args) -> TermList {
         TermList tout;
         if (orig.term.isVar()) {
-          ASS(!orig.term.isOutputVar())
-          tout = TermList::var(deref(orig.term.varSpec()).varSpec().var);
+          tout = TermList::var(findOrIntroduceOutputVariable(orig.term.varSpec()));
+
         } else {
           tout = TermList(orig.term.isSort() ? AtomicSort::create(orig.term.functor(), orig.term.nAllArgs(), args)
-                                              : Term::create(orig.term.functor(), orig.term.nAllArgs(), args));
+                                             : Term::create(orig.term.functor(), orig.term.nAllArgs(), args));
         }
         return tout;
-      });
-  return out;
-
-  // TODO check the use of nilVS & memorization
-  // static Stack<TermList*> toDo(8);
-  // static Stack<int> toDoIndex(8);
-  // static Stack<Term*> terms(8);
-  // static Stack<VarSpec> termRefVars(8);
-  // static Stack<TermList> args(8);
-  // static DHMap<VarSpec, TermList, VarSpec::Hash1, VarSpec::Hash2> known;
-  //
-  // //is inserted into termRefVars, if respective
-  // //term in terms isn't referenced by any variable
-  // const VarSpec nilVS(-1,0);
-  //
-  // toDo.push(&trm);
-  // toDoIndex.push(index);
-  //
-  // while(!toDo.isEmpty()) {
-  //   TermList* tt=toDo.pop();
-  //   index=toDoIndex.pop();
-  //   if(tt->isEmpty()) {
-  //     Term* orig=terms.pop();
-  //     //here we assume, that stack is an array with
-  //     //second topmost element as &top()-1, third at
-  //     //&top()-2, etc...
-  //     TermList* argLst=&args.top() - (orig->arity()-1);
-  //     args.truncate(args.length() - orig->arity());
-  //     TermList constructed;
-  //     if(orig->isSort()){
-  //       constructed.setTerm(AtomicSort::create(static_cast<AtomicSort*>(orig),argLst));                
-  //     } else {
-  //       constructed.setTerm(Term::create(orig,argLst));        
-  //     }
-  //     args.push(constructed);
-  //
-  //     VarSpec ref=termRefVars.pop();
-  //     if(ref!=nilVS) {
-  //       ALWAYS(known.insert(ref,constructed));
-  //     }
-  //     continue;
-  //   } else {
-  //     //if tt==&trm, we're dealing with the top
-  //     //term, for which the next() is undefined
-  //     if(tt!=&trm) {
-  //       toDo.push(tt->next());
-  //       toDoIndex.push(index);
-  //     }
-  //   }
-  //
-  //   TermSpec ts(*tt,index);
-  //
-  //   VarSpec vs;
-  //   if(ts.isVar()) {
-  //     vs=root(ts.varSpec() );
-  //
-  //     TermList found;
-  //     if(known.find(vs, found)) {
-  //       args.push(found);
-  //       continue;
-  //     }
-  //
-  //     ts=deref(vs);
-  //     if(ts.isVar()) {
-  //       ASS(ts.isOutputVar());
-  //       args.push(ts.term);
-  //       continue;
-  //     }
-  //   } else {
-  //     vs=nilVS;
-  //   }
-  //   Term* t = ts.term.term();
-  //   if(t->shared() && t->ground()) {
-  //     args.push(TermList(t));
-  //     continue;
-  //   }
-  //   terms.push(t);
-  //   termRefVars.push(vs);
-  //
-  //   toDo.push(t->args());
-  //   toDoIndex.push(ts.index);
-  // }
-  // ASS(toDo.isEmpty() && toDoIndex.isEmpty() && terms.isEmpty() && args.length()==1);
-  // known.reset();
-  //
-  //
-  // return args.pop();
+    })
+    .evNonRec([](auto& t) { return someIf(t.term.definitelyGround(), 
+                                          [&]() { return t.term.term; }); })
+    .memo<decltype(_applyMemo)&>(_applyMemo)
+    .context(AutoDerefTermSpec::Context { .subs = this, })
+    .apply(AutoDerefTermSpec(TermSpec(trm, index), this));
 }
 
 TermList RobSubstitution::apply(TermSpec t) 
@@ -726,19 +520,23 @@ TermList RobSubstitution::apply(TermSpec t)
 
 size_t RobSubstitution::getApplicationResultWeight(TermList trm, int index) const
 {
-  CALL("RobSubstitution::getApplicationResultWeight");
-
-  return evalBottomUp<size_t>(AutoDerefTermSpec(TermSpec(trm, index), this), 
-      [](auto& orig, size_t* sizes) 
-      { return orig.term.isVar() ? 1 
-                                 : (1 + range(0, orig.term.nAllArgs())
-                                           .map([&](auto i) { return sizes[i]; })
-                                           .sum()); });
+  return BottomUpEvaluation<AutoDerefTermSpec, size_t>()
+    .function(
+      [](auto const& orig, size_t* sizes) 
+      { return !orig.term.isTerm() ? 1 
+                                   : (1 + range(0, orig.term.nAllArgs())
+                                                      .map([&](auto i) { return sizes[i]; })
+                                                      .sum()); })
+    .evNonRec([](auto& t) { return someIf(t.term.definitelyGround(), 
+                                          [&]() -> size_t { return t.term.groundWeight(); }); })
+    // .memo<decltype(_applyMemo)&>(_applyMemo)
+    .context(AutoDerefTermSpec::Context { .subs = this, })
+    .apply(AutoDerefTermSpec(TermSpec(trm, index), this))
+    ;
 }
 
 size_t RobSubstitution::getApplicationResultWeight(Literal* lit, int index) const
 {
-  CALL("RobSubstitution::getApplicationResultWeight");
   static DArray<TermList> ts(32);
 
   if (lit->ground()) {
@@ -784,8 +582,6 @@ template<class Fn>
 SubstIterator RobSubstitution::getAssocIterator(RobSubstitution* subst,
 	  Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary)
 {
-  CALL("RobSubstitution::getAssocIterator");
-
   if( !Literal::headersMatch(l1,l2,complementary) ) {
     return SubstIterator::getEmpty();
   }
@@ -871,7 +667,6 @@ public:
     ASS_EQ(_l1->arity(), 2);
   }
   ~AssocIterator() {
-    CALL("RobSubstitution::AssocIterator::~AssocIterator");
     if (_state != FINISHED && _state != FIRST) {
       backtrack(_bdataMain);
       backtrack(_bdataEqAssoc);
@@ -880,8 +675,6 @@ public:
     ASS(_bdataEqAssoc.isEmpty());
   }
   bool hasNext() {
-    CALL("RobSubstitution::AssocIterator::hasNext");
-
     if (_state == FINISHED) {
       return false;
     }
@@ -945,8 +738,6 @@ public:
   }
 private:
   void backtrack(BacktrackData &_bdata) {
-    CALL("RobSubstitution::AssocIterator::backtrack");
-
     ASS_EQ(&_bdata, &_subst->bdGet());
     _subst->bdDone();
     _bdata.backtrack();
@@ -1021,36 +812,6 @@ struct RobSubstitution::UnificationFn {
   { return subst->unify(t1,t1Index,t2,t2Index); }
 };
 
-bool operator==(TermSpec const& lhs, TermSpec const& rhs)
-{ return TermSpec::compare(lhs, rhs, [](auto& t) -> decltype(auto) { return t; }) == 0; }
-
-bool operator<(TermSpec const& lhs, TermSpec const& rhs)
-{ return TermSpec::compare(lhs, rhs, [](auto& t) -> decltype(auto) { return t; }) < 0; }
-
-template<class HashFn>
-unsigned __hash(HashFn hashFn, TermSpec const& t) {
-  Recycled<Stack<TermSpec>> todo;
-  todo->push(t.clone());
-  unsigned hash = 0;
-  while (todo->isNonEmpty()) {
-    auto t = todo->pop();
-    if (t.isTerm()) {
-      hash = HashUtils::combine(hash, hashFn(t.functor()));
-      todo->loadFromIterator(t.allArgs());
-    } else {
-      hash = HashUtils::combine(hash, t.varNumber(), t.varSpec().index);
-    }
-  }
-  return 0;
-}
-
-
-unsigned TermSpec::defaultHash() const
-{ return __hash([](auto const& x) { return DefaultHash::hash(x); }, *this); }
-
-unsigned TermSpec::defaultHash2() const
-{ return __hash([](auto const& x) { return DefaultHash2::hash(x); }, *this); }
-
 std::ostream& operator<<(std::ostream& out, AutoDerefTermSpec const& self)
-{ return out << self.term << "@" << *self.subs; }
+{ return out << self.term; }
 } // namespace Kernel

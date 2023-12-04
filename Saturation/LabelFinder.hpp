@@ -32,7 +32,6 @@ using namespace Inferences;
 
 class LabelFinder {
 public:
-  CLASS_NAME(LabelFinder);
   USE_ALLOCATOR(LabelFinder);
   
   ~LabelFinder();

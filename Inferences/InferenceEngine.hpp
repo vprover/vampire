@@ -52,7 +52,6 @@ using namespace Shell;
 class InferenceEngine
 {
 public:
-  CLASS_NAME(InferenceEngine);
   USE_ALLOCATOR(InferenceEngine);
 
   InferenceEngine() : _salg(0) {}
@@ -63,13 +62,11 @@ public:
   }
   virtual void attach(SaturationAlgorithm* salg)
   {
-    CALL("InferenceEngine::attach");
     ASS(!_salg);
     _salg=salg;
   }
   virtual void detach()
   {
-    CALL("InferenceEngine::detach");
     ASS(_salg);
     _salg=0;
   }
@@ -313,7 +310,6 @@ class DummyGIE
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(DummyGIE);
   USE_ALLOCATOR(DummyGIE);
 
   ClauseIterator generateClauses(Clause* premise)
@@ -327,7 +323,6 @@ class DummyFSE
 : public ForwardSimplificationEngine
 {
 public:
-  CLASS_NAME(DummyFSE);
   USE_ALLOCATOR(DummyFSE);
 
   void perform(Clause* cl, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises)
@@ -342,7 +337,6 @@ class DummyBSE
 : public BackwardSimplificationEngine
 {
 public:
-  CLASS_NAME(DummyBSE);
   USE_ALLOCATOR(DummyBSE);
 
   void perform(Clause* premise, BwSimplificationRecordIterator& simplifications)
@@ -356,7 +350,6 @@ class CompositeISE
 : public ImmediateSimplificationEngine
 {
 public:
-  CLASS_NAME(CompositeISE);
   USE_ALLOCATOR(CompositeISE);
 
   CompositeISE() : _inners(0), _innersMany(0) {}
@@ -392,7 +385,6 @@ class CompositeGIE
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(CompositeGIE);
   USE_ALLOCATOR(CompositeGIE);
 
   CompositeGIE() : _inners(0) {}
@@ -411,7 +403,6 @@ class CompositeSGI
 : public SimplifyingGeneratingInference
 {
 public:
-  CLASS_NAME(CompositieSGI);
   USE_ALLOCATOR(CompositeSGI);
 
   CompositeSGI() : _simplifiers(), _generators() {}
@@ -431,7 +422,6 @@ class ChoiceDefinitionISE
 : public ImmediateSimplificationEngine
 {
 public:
-  CLASS_NAME(ChoiceDefinitionISE);
   USE_ALLOCATOR(ChoiceDefinitionISE);
 
   Clause* simplify(Clause* cl);
@@ -446,7 +436,6 @@ class DuplicateLiteralRemovalISE
 : public ImmediateSimplificationEngine
 {
 public:
-  CLASS_NAME(DuplicateLiteralRemovalISE);
   USE_ALLOCATOR(DuplicateLiteralRemovalISE);
 
   Clause* simplify(Clause* cl);
@@ -456,7 +445,6 @@ class TautologyDeletionISE2
 : public ImmediateSimplificationEngine
 {
 public:
-  CLASS_NAME(TautologyDeletionISE2);
   USE_ALLOCATOR(TautologyDeletionISE2);
 
   Clause* simplify(Clause* cl);

@@ -29,7 +29,6 @@ namespace Kernel
 {
 
 Formula* FormulaTransformer::transform(Formula* f) {
-  CALL("FormulaTransformer::transform");
   Formula* res = apply(f);
   return res;
 }
@@ -37,8 +36,6 @@ Formula* FormulaTransformer::transform(Formula* f) {
 
 Formula* FormulaTransformer::apply(Formula* f)
 {
-  CALL("FormulaTransformer::apply(Formula*)");
-
   if(!preApply(f)) {
     return f;
   }
@@ -89,8 +86,6 @@ Formula* FormulaTransformer::apply(Formula* f)
 }
 
 TermList FormulaTransformer::apply(TermList ts) {
-  CALL("FormulaTransformer::apply(TermList)");
-
   if (ts.isVar()) {
     return ts;
   }
@@ -99,34 +94,36 @@ TermList FormulaTransformer::apply(TermList ts) {
 
   if (term->isSpecial()) {
     Term::SpecialTermData *sd = ts.term()->getSpecialData();
-    switch (sd->getType()) {
-      case Term::SF_ITE:
+    switch (sd->specialFunctor()) {
+      case Term::SpecialFunctor::ITE:
         return TermList(Term::createITE(apply(sd->getCondition()),
                                         apply(*term->nthArgument(0)),
                                         apply(*term->nthArgument(1)),
                                         sd->getSort()));
 
-      case Term::SF_FORMULA:
+      case Term::SpecialFunctor::FORMULA:
         return TermList(Term::createFormula(apply(sd->getFormula())));
 
-      case Term::SF_LET:
+      case Term::SpecialFunctor::LET:
         return TermList(Term::createLet(sd->getFunctor(),
                                         sd->getVariables(),
                                         apply(sd->getBinding()),
                                         apply(*term->nthArgument(0)),
                                         sd->getSort()));
 
-      case Term::SF_LET_TUPLE:
+      case Term::SpecialFunctor::LET_TUPLE:
         return TermList(Term::createTupleLet(sd->getFunctor(),
                                              sd->getTupleSymbols(),
                                              apply(sd->getBinding()),
                                              apply(*term->nthArgument(0)),
                                              sd->getSort()));
 
-      case Term::SF_TUPLE:
+      case Term::SpecialFunctor::TUPLE:
         return TermList(Term::createTuple(apply(TermList(sd->getTupleTerm())).term()));
 
-      case Term::SF_MATCH: {
+      case Term::SpecialFunctor::LAMBDA:
+        NOT_IMPLEMENTED;
+      case Term::SpecialFunctor::MATCH: {
         DArray<TermList> terms(term->arity());
         for (unsigned i = 0; i < term->arity(); i++) {
           terms[i] = apply(*term->nthArgument(i));
@@ -134,9 +131,8 @@ TermList FormulaTransformer::apply(TermList ts) {
         return TermList(Term::createMatch(sd->getSort(), sd->getMatchedSort(), term->arity(), terms.begin()));
       }
 
-      default:
-        ASSERTION_VIOLATION_REP(ts.toString());
     }
+    ASSERTION_VIOLATION_REP(ts.toString());
   }
 
   if (term->shared()) {
@@ -154,8 +150,6 @@ TermList FormulaTransformer::apply(TermList ts) {
 
 Formula* FormulaTransformer::applyJunction(Formula* f)
 {
-  CALL("FormulaTransformer::applyJunction");
-
   Connective con = f->connective();
 
   FormulaList* resArgs = 0;
@@ -186,8 +180,6 @@ Formula* FormulaTransformer::applyJunction(Formula* f)
 
 Formula* FormulaTransformer::applyNot(Formula* f)
 {
-  CALL("FormulaTransformer::applyNot");
-
   Formula* newArg = apply(f->uarg());
   if(newArg==f->uarg()) {
     return f;
@@ -200,8 +192,6 @@ Formula* FormulaTransformer::applyNot(Formula* f)
 
 Formula* FormulaTransformer::applyBinary(Formula* f)
 {
-  CALL("FormulaTransformer::applyBinary");
-
   Formula* newLeft = apply(f->left());
   Formula* newRight = apply(f->right());
   if(newLeft==f->left() && newRight==f->right()) {
@@ -212,8 +202,6 @@ Formula* FormulaTransformer::applyBinary(Formula* f)
 
 Formula* FormulaTransformer::applyQuantified(Formula* f)
 {
-  CALL("FormulaTransformer::applyQuantified");
-
   Formula* newArg = apply(f->qarg());
   if(newArg==f->qarg()) {
     return f;
@@ -228,8 +216,6 @@ Formula* FormulaTransformer::applyQuantified(Formula* f)
 
 Formula* TermTransformingFormulaTransformer::applyLiteral(Formula* f)
 {
-  CALL("TermTransformingFormulaTransformer::applyLiteral");
-
   Literal* lit = f->literal();
   Literal* res = _termTransformer.transform(lit);
   if(lit==res) { return f; }
@@ -242,8 +228,6 @@ Formula* TermTransformingFormulaTransformer::applyLiteral(Formula* f)
 
 Formula* BottomUpTermTransformerFormulaTransformer::applyLiteral(Formula* f)
 {
-  CALL("TermTransformingFormulaTransformer::applyLiteral");
-
   Literal* lit = f->literal();
   Literal* res = _termTransformer.transform(lit);
   if(lit==res) { return f; }
@@ -256,14 +240,11 @@ Formula* BottomUpTermTransformerFormulaTransformer::applyLiteral(Formula* f)
 
 TermList PolarityAwareFormulaTransformer::getVarSort(unsigned var) const
 {
-  CALL("PolarityAwareFormulaTransformer::getVarSort");
-
   return _varSorts->get(var, AtomicSort::defaultSort());
 }
 
 Formula* PolarityAwareFormulaTransformer::transformWithPolarity(Formula* f, int polarity)
 {
-  CALL("PolarityAwareFormulaTransformer::transform");
   ASS_REP(polarity==0 || polarity==1 || polarity==-1, polarity);
 
   _varSorts->reset();
@@ -275,15 +256,12 @@ Formula* PolarityAwareFormulaTransformer::transformWithPolarity(Formula* f, int 
 
 Formula* PolarityAwareFormulaTransformer::applyNot(Formula* f)
 {
-  CALL("PolarityAwareFormulaTransformer::applyNot");
-
   ScopedLet<int> plet(_polarity, -_polarity);
   return FormulaTransformer::applyNot(f);
 }
 
 Formula* PolarityAwareFormulaTransformer::applyImp(Formula* f)
 {
-  CALL("PolarityAwareFormulaTransformer::applyImp");
   ASS_EQ(f->connective(),IMP);
 
   Formula* newLeft;
@@ -304,7 +282,6 @@ Formula* PolarityAwareFormulaTransformer::applyImp(Formula* f)
  */
 Formula* PolarityAwareFormulaTransformer::applyBinary(Formula* f)
 {
-  CALL("PolarityAwareFormulaTransformer::applyBinary");
   ASS(f->connective()==IFF || f->connective()==XOR);
 
   ScopedLet<int> plet(_polarity, 0);
@@ -317,8 +294,6 @@ Formula* PolarityAwareFormulaTransformer::applyBinary(Formula* f)
 
 void FormulaUnitTransformer::transform(UnitList*& units)
 {
-  CALL("FormulaUnitTransformer::transform(UnitList*&)");
-
   UnitList::DelIterator uit(units);
   while(uit.hasNext()) {
     Unit* u = uit.next();
@@ -345,8 +320,6 @@ void FormulaUnitTransformer::transform(UnitList*& units)
 
 FormulaUnit* LocalFormulaUnitTransformer::transform(FormulaUnit* unit)
 {
-  CALL("LocalFormulaUnitTransformer::transform(FormulaUnit*)");
-
   Formula* f = unit->formula();
   Formula* newForm = transform(f);
   if(f==newForm) {
@@ -362,8 +335,6 @@ FormulaUnit* LocalFormulaUnitTransformer::transform(FormulaUnit* unit)
 
 void ScanAndApplyFormulaUnitTransformer::apply(Problem& prb)
 {
-  CALL("ScanAndApplyFormulaUnitTransformer::apply(Problem&)");
-
   if(apply(prb.units())) {
     updateModifiedProblem(prb);
   }
@@ -371,8 +342,6 @@ void ScanAndApplyFormulaUnitTransformer::apply(Problem& prb)
 
 bool ScanAndApplyFormulaUnitTransformer::apply(UnitList*& units)
 {
-  CALL("ScanAndApplyFormulaUnitTransformer::apply(UnitList*&)");
-
   scan(units);
 
   bool modified = false;
@@ -405,8 +374,6 @@ bool ScanAndApplyFormulaUnitTransformer::apply(UnitList*& units)
 
 bool ScanAndApplyFormulaUnitTransformer::apply(Unit* u, Unit*& res)
 {
-  CALL("ScanAndApplyFormulaUnitTransformer::apply(Unit*,Unit*&)");
-
   if(u->isClause()) {
     Clause* cl = static_cast<Clause*>(u);
     return apply(cl, res);
@@ -419,8 +386,6 @@ bool ScanAndApplyFormulaUnitTransformer::apply(Unit* u, Unit*& res)
 
 void ScanAndApplyFormulaUnitTransformer::updateModifiedProblem(Problem& prb)
 {
-  CALL("ScanAndApplyFormulaUnitTransformer::updateModifiedProblem");
-
   prb.invalidateEverything();
 }
 

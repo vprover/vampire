@@ -13,8 +13,9 @@
 
 #include <functional>
 #include "Lib/Map.hpp"
-#include "Debug/Tracer.hpp"
 #include "Lib/Coproduct.hpp"
+#include "Lib/Reflection.hpp"
+#include "Lib/Sort.hpp"
 
 namespace Lib {
 
@@ -81,25 +82,13 @@ public:
   friend struct PerfectPtrComparison;
   friend struct PerfectIdComparison;
 
-  template<class U, class C> 
-  friend bool operator<(const Lib::Perfect<U, C> & lhs, const Lib::Perfect<U, C>& rhs);
+  Lib::Comparison compare(Perfect const& rhs) const 
+  { return DfltComparison::compare(*this, rhs); }
+  IMPL_COMPARISONS_FROM_COMPARE(Perfect);
+  IMPL_EQ_FROM_COMPARE(Perfect);
 
 }; // class Perfect
 
-
-template<class U, class C> 
-bool operator<(const Lib::Perfect<U, C> & lhs, const Lib::Perfect<U, C>& rhs) 
-{ return std::less<Lib::Perfect<U, C>>{}(lhs,rhs); }
-
-template<class U, class C> 
-bool operator<=(const Lib::Perfect<U, C> & lhs, const Lib::Perfect<U, C>& rhs) 
-{ return lhs < rhs || lhs == rhs; }
-
-template<class U, class C> bool operator==(Perfect<U, C> const& l, Perfect<U, C> const& r)
-{ return C::equals(l,r); }
-
-template<class U, class C> bool operator!=(Perfect<U, C> const& l, Perfect<U, C> const& r)
-{ return !(l == r); }
 
 /** instantiating the cache */
 template<class T, class Cmp> typename Perfect<T, Cmp>::IdMap Perfect<T, Cmp>::_ids;
@@ -107,12 +96,12 @@ template<class T, class Cmp> typename Perfect<T, Cmp>::IdMap Perfect<T, Cmp>::_i
 struct PerfectPtrComparison 
 {
   template<class T, class Cmp>
-  bool operator()(const Perfect<T, Cmp>& lhs, const Perfect<T, Cmp>& rhs) const
-  { return lhs._ptr < rhs._ptr; }
+  static Lib::Comparison compare(const Perfect<T, Cmp>& lhs, const Perfect<T, Cmp>& rhs)
+  { return DefaultComparator::compare((size_t)lhs._ptr, (size_t)rhs._ptr); }
 
   template<class T, class Cmp>
   static bool equals(const Perfect<T, Cmp>& lhs, const Perfect<T, Cmp>& rhs) 
-  { return lhs._ptr == rhs._ptr; }
+  { return compare(lhs, rhs) == Comparison::EQUAL; }
 
   template<class T, class Cmp>
   static size_t hash(Lib::Perfect<T, Cmp> const& self) 
@@ -122,13 +111,14 @@ struct PerfectPtrComparison
 
 struct PerfectIdComparison 
 {
+
   template<class T, class Cmp>
-  bool operator()(const Perfect<T, Cmp>& lhs, const Perfect<T, Cmp>& rhs) const
-  { return lhs._id < rhs._id; }
+  static Lib::Comparison compare(const Perfect<T, Cmp>& lhs, const Perfect<T, Cmp>& rhs)
+  { return DefaultComparator::compare(lhs._id, rhs._id); }
 
   template<class T, class Cmp>
   static bool equals(const Perfect<T, Cmp>& lhs, const Perfect<T, Cmp>& rhs) 
-  { return lhs._id == rhs._id; }
+  { return compare(lhs, rhs) == Comparison::EQUAL; }
 
   template<class T, class Cmp>
   static size_t hash(Lib::Perfect<T, Cmp> const& self) 

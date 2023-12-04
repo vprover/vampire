@@ -25,6 +25,7 @@
 #include "Debug/TimeProfiling.hpp"
 #include "Lib/VString.hpp"
 #include "Lib/Timer.hpp"
+#include "Lib/Allocator.hpp"
 
 #include "Kernel/InferenceStore.hpp"
 #include "Kernel/Problem.hpp"
@@ -44,6 +45,8 @@
 #include "TPTPPrinter.hpp"
 #include "UIHelper.hpp"
 
+#include "SAT/Z3Interfacing.hpp"
+
 #include "Lib/List.hpp"
 #include "Lib/ScopedPtr.hpp"
 
@@ -57,14 +60,16 @@ using namespace std;
 bool outputAllowed(bool debug)
 {
 #if VDEBUG
-  if(debug){ return true; }
+  if (debug) { return true; }
 #endif
 
   // spider and smtcomp output modes are generally silent
-  return !Lib::env.options || (Lib::env.options->outputMode()!=Shell::Options::Output::SPIDER
-                               && Lib::env.options->outputMode()!=Shell::Options::Output::SMTCOMP 
-                               && Lib::env.options->outputMode()!=Shell::Options::Output::UCORE
-                              );
+  return !Lib::env.options ||
+    (
+     Lib::env.options->outputMode() != Shell::Options::Output::SPIDER
+     && Lib::env.options->outputMode() != Shell::Options::Output::SMTCOMP 
+     && Lib::env.options->outputMode() != Shell::Options::Output::UCORE
+     );
 }
 
 void reportSpiderFail()
@@ -74,16 +79,41 @@ void reportSpiderFail()
 
 void reportSpiderStatus(char status)
 {
-  using namespace Lib;
-
-  if(Lib::env.options && Lib::env.options->outputMode() == Shell::Options::Output::SPIDER) {
-    env.beginOutput();
-    env.out() << status << " "
-      << (Lib::env.options ? Lib::env.options->problemName() : "unknown") << " "
-      << (Lib::env.timer ? Lib::env.timer->elapsedDeciseconds() : 0) << " "
-      << (Lib::env.options ? Lib::env.options->testId() : "unknown") << "\n";
-    env.endOutput();
+#if VZ3
+  if (UIHelper::spiderOutputDone) {
+    return;
   }
+  if (Lib::env.options && Lib::env.options->outputMode() != Shell::Options::Output::SPIDER) {
+    return;
+  }
+
+  UIHelper::spiderOutputDone = true;
+
+  // compute Vampire Z3 version and commit
+  vstring version = VERSION_STRING;
+  size_t versionPosition = version.find("commit ") + strlen("commit ");
+  size_t afterVersionPosition = version.find(" ",versionPosition + 1);
+  vstring commitNumber = version.substr(versionPosition,afterVersionPosition - versionPosition);
+  vstring z3Version = Z3Interfacing::z3_full_version();
+  size_t spacePosition = z3Version.find(" ");
+  if (spacePosition != string::npos) {
+    z3Version = z3Version.substr(0,spacePosition);
+  }
+
+  vstring problemName = Lib::env.options->problemName();
+  Timer* timer = Lib::env.timer;
+
+  env.beginOutput();
+  env.out()
+    << status << " "
+    << (problemName.length() == 0 ? "unknown" : problemName) << " "
+    << (timer ? timer->elapsedDeciseconds() : 0) << " "
+    << (timer ? timer->elapsedMegaInstructions() : 0) << " "
+    << Lib::getUsedMemory()/1048576 << " "
+    << (Lib::env.options ? Lib::env.options->testId() : "unknown") << " "
+    << commitNumber << ':' << z3Version << endl;
+  env.endOutput();
+#endif
 }
 
 bool szsOutputMode() {
@@ -110,10 +140,10 @@ bool UIHelper::s_expecting_unsat=false;
 bool UIHelper::portfolioParent=false;
 bool UIHelper::satisfiableStatusWasAlreadyOutput=false;
 
+bool UIHelper::spiderOutputDone = false;
+  
 void UIHelper::outputAllPremises(ostream& out, UnitList* units, vstring prefix)
 {
-  CALL("UIHelper::outputAllPremises");
-
 #if 1
   InferenceStore::instance()->outputProof(cerr, units);
 #else
@@ -154,8 +184,6 @@ void UIHelper::outputAllPremises(ostream& out, UnitList* units, vstring prefix)
 
 void UIHelper::outputSaturatedSet(ostream& out, UnitIterator uit)
 {
-  CALL("UIHelper::outputSaturatedSet");
-
   addCommentSignForSZS(out);
   out << "# SZS output start Saturation." << endl;
 
@@ -170,45 +198,45 @@ void UIHelper::outputSaturatedSet(ostream& out, UnitIterator uit)
 
 // String utility function that probably belongs elsewhere
 static bool hasEnding (vstring const &fullString, vstring const &ending) {
-    if (fullString.length() >= ending.length()) {
-        return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
-    } else {
-        return false;
-    }
+  if (fullString.length() >= ending.length()) {
+      return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
+  } else {
+      return false;
+  }
 }
 
 UnitList* UIHelper::tryParseTPTP(istream* input)
 {
-      Parse::TPTP parser(*input);
-      try{
-        parser.parse();
-      }
-      catch (UserErrorException& exception) {
-        vstring msg = exception.msg();
-        throw Parse::TPTP::ParseErrorException(msg,parser.lineNumber());
-      }
-      s_haveConjecture=parser.containsConjecture();
-      return parser.units();
+  Parse::TPTP parser(*input);
+  try{
+    parser.parse();
+  }
+  catch (UserErrorException& exception) {
+    vstring msg = exception.msg();
+    throw Parse::TPTP::ParseErrorException(msg,parser.lineNumber());
+  }
+  s_haveConjecture=parser.containsConjecture();
+  return parser.units();
 }
 
 UnitList* UIHelper::tryParseSMTLIB2(const Options& opts,istream* input,SMTLIBLogic& smtLibLogic)
 {
-          Parse::SMTLIB2 parser(opts);
-          parser.parse(*input);
-          Unit::onParsingEnd();
+  Parse::SMTLIB2 parser(opts);
+  parser.parse(*input);
+  Unit::onParsingEnd();
 
-          smtLibLogic = parser.getLogic();
-          s_haveConjecture=false;
+  smtLibLogic = parser.getLogic();
+  s_haveConjecture=false;
 
 #if VDEBUG
-          const vstring& expected_status = parser.getStatus();
-          if (expected_status == "sat") {
-            s_expecting_sat = true;
-          } else if (expected_status == "unsat") {
-            s_expecting_unsat = true;
-          }
+  const vstring& expected_status = parser.getStatus();
+  if (expected_status == "sat") {
+    s_expecting_sat = true;
+  } else if (expected_status == "unsat") {
+    s_expecting_unsat = true;
+  }
 #endif
-          return parser.getFormulas();
+  return parser.getFormulas();
 }
 
 // Call this function to report a parsing attempt has failed and to reset the input
@@ -226,7 +254,6 @@ void resetParsing(T exception, vstring inputFile, istream*& input,vstring nowtry
     env.endOutput();
   }
 
-  BYPASSING_ALLOCATOR;
   delete static_cast<ifstream*>(input);
   input=new ifstream(inputFile.c_str());
 }
@@ -239,22 +266,27 @@ void resetParsing(T exception, vstring inputFile, istream*& input,vstring nowtry
  */
 Problem* UIHelper::getInputProblem(const Options& opts)
 {
-  CALL("UIHelper::getInputProblem");
-    
   TIME_TRACE(TimeTrace::PARSING);
   env.statistics->phase = Statistics::PARSING;
 
   SMTLIBLogic smtLibLogic = SMT_UNDEFINED;
 
   vstring inputFile = opts.inputFile();
+  auto inputSyntax = opts.inputSyntax();
 
   istream* input;
   if (inputFile=="") {
     input=&cin;
+
+    if (inputSyntax == Options::InputSyntax::AUTO) {
+      env.beginOutput();
+      addCommentSignForSZS(env.out());
+      env.out() << "input_syntax=auto not supported for standard input parsing, switching to tptp.\n";
+      env.endOutput();
+
+      inputSyntax = Options::InputSyntax::TPTP;
+    }
   } else {
-    // CAREFUL: this might not be enough if the ifstream (re)allocates while being operated
-    BYPASSING_ALLOCATOR; 
-    
     input=new ifstream(inputFile.c_str());
     if (input->fail()) {
       USER_ERROR("Cannot open problem file: "+inputFile);
@@ -262,14 +294,15 @@ Problem* UIHelper::getInputProblem(const Options& opts)
   }
 
   UnitList* units = nullptr;
-  switch (opts.inputSyntax()) {
+  switch (inputSyntax) {
   case Options::InputSyntax::AUTO:
     {
        // First lets pick a place to start based on the input file name
        bool smtlib = hasEnding(inputFile,"smt") || hasEnding(inputFile,"smt2");
-
-       if(smtlib){
-         if (env.options->mode()!=Options::Mode::SPIDER) {
+       Options::Mode mode = env.options->mode();
+       
+       if (smtlib){
+         if (mode != Options::Mode::SPIDER && mode != Options::Mode::PROFILE) {
            env.beginOutput();
            addCommentSignForSZS(env.out());
            env.out() << "Running in auto input_syntax mode. Trying SMTLIB2\n";
@@ -292,8 +325,8 @@ Problem* UIHelper::getInputProblem(const Options& opts)
          }
 
        }
-       else{
-         if (env.options->mode()!=Options::Mode::SPIDER) {
+       else {
+         if (mode != Options::Mode::SPIDER && mode != Options::Mode::PROFILE) {
            env.beginOutput();
            addCommentSignForSZS(env.out());
            env.out() << "Running in auto input_syntax mode. Trying TPTP\n";
@@ -318,16 +351,14 @@ Problem* UIHelper::getInputProblem(const Options& opts)
     break;
   }
   if (inputFile!="") {
-    BYPASSING_ALLOCATOR;
-    
     delete static_cast<ifstream*>(input);
     input=0;
   }
 
   Problem* res = new Problem(units);
   res->setSMTLIBLogic(smtLibLogic);
-
   env.statistics->phase=Statistics::UNKNOWN_PHASE;
+  env.setMainProblem(res);
   return res;
 }
 
@@ -341,8 +372,6 @@ Problem* UIHelper::getInputProblem(const Options& opts)
  */
 void UIHelper::outputResult(ostream& out)
 {
-  CALL("UIHelper::outputResult");
-
   switch (env.statistics->terminationReason) {
   case Statistics::REFUTATION:
     if(env.options->outputMode() == Options::Output::SMTCOMP){ 
@@ -406,7 +435,6 @@ void UIHelper::outputResult(ostream& out)
     }
 
     if (env.options->latexOutput() != "off") {
-      BYPASSING_ALLOCATOR; // for ofstream 
       ofstream latexOut(env.options->latexOutput().c_str());
 
       LaTeX formatter;
@@ -429,9 +457,6 @@ void UIHelper::outputResult(ostream& out)
       out << "unknown" << endl;
       return;
     }
-#if VDEBUG
-    Allocator::reportUsageByClasses();
-#endif
     addCommentSignForSZS(out);
     out << "Memory limit exceeded!\n";
     break;
@@ -491,8 +516,6 @@ void UIHelper::outputResult(ostream& out)
 
 void UIHelper::outputSatisfiableResult(ostream& out)
 {
-  CALL("UIHelper::outputSatisfiableResult");
-
   //out << "Satisfiable!\n";
   if (szsOutputMode() && !satisfiableStatusWasAlreadyOutput) {
     out << "% SZS status " << ( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
@@ -524,8 +547,6 @@ void UIHelper::outputSatisfiableResult(ostream& out)
  */
 void UIHelper::outputSymbolDeclarations(ostream& out)
 {
-  CALL("UIHelper::outputSymbolDeclarations");
-
   Signature& sig = *env.signature;
 
   unsigned typeCons = sig.typeCons();
@@ -555,8 +576,6 @@ void UIHelper::outputSymbolDeclarations(ostream& out)
  */
 void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, bool typeCon, unsigned symNumber)
 {
-  CALL("UIHelper::outputSymbolTypeDeclarationIfNeeded");
-
   Signature::Symbol* sym;
 
   if(function){
@@ -609,42 +628,22 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   //out << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ", type, "
   //    << sym->name() << ": ";
 
+  vstring symName = sym->name();
+  if(typeCon && env.signature->isBoolCon(symNumber)){
+    ASS(env.options->showFOOL());
+    symName = "$bool";
+  }
+
   //don't output type of app. It is an internal Vampire thing
   if(!(function && env.signature->isAppFun(symNumber))){
-    out << (env.property->higherOrder() ? "thf(" : "tff(")
+    out << (env.getMainProblem()->isHigherOrder() ? "thf(" : "tff(")
         << (function ? "func" : (typeCon ?  "type" : "pred")) 
         << "_def_" << symNumber << ", type, "
-        << sym->name() << ": ";
+        << symName << ": ";
     out << type->toString();
     out << ")." << endl;
   }
   //out << ")." << endl;
 }
-
-/**
- * Output to @b out all sort declarations for the current signature.
- * Built-in sorts and structures sorts will not be output.
- * @author Evgeny Kotelnikov
- * @since 04/09/2015 Gothneburg
- */
-/*void UIHelper::outputSortDeclarations(ostream& out)
-{
-  CALL("UIHelper::outputSortDeclarations");
-
-  if(env.statistics->higherOrder){
-    return;
-  }
-
-  unsigned sorts = env.sorts->count();
-  for (unsigned sort = 1; sort < sorts; ++sort) {
-    if (sort < Sorts::FIRST_USER_SORT && ((sort != 1) || !env.options->showFOOL())) {
-      continue;
-    }
-    if (SortHelper::isStructuredSort(sort)) {
-      continue;
-    }
-    out << "tff(type_def_" << sort << ", type, " << env.sorts->sortName(sort) << ": $tType)." << endl;
-  }
-}*/ // UIHelper::outputSortDeclarations
 
 } // namespace Shell

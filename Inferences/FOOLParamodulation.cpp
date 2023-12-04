@@ -32,8 +32,6 @@
 namespace Inferences {
 
 ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
-  CALL("FOOLParamodulation::generateClauses");
-
   /**
    * We are going to implement the following inference rule, taken from the paper:
    *
@@ -69,7 +67,7 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
   TermList booleanTerm;
   unsigned literalPosition = 0;
 
-  ArrayishObjectIterator<Clause> literals = premise->getSelectedLiteralIterator();
+  auto literals = premise->getSelectedLiteralIterator();
   while (literals.hasNext()) {
     Literal* literal = literals.next();
 

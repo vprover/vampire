@@ -43,7 +43,6 @@ using namespace Kernel;
 class Statistics
 {
 public:
-  CLASS_NAME(Statistics);
   USE_ALLOCATOR(Statistics);
 
   Statistics();
@@ -60,12 +59,8 @@ public:
   // Preprocessing
   /** number of formula names introduced during preprocessing */
   unsigned formulaNames;
-  /** number of formula names re-used during preprocessing */
-  unsigned reusedFormulaNames;
   /** number of skolem functions (also predicates in FOOL) introduced during skolemization */
   unsigned skolemFunctions;
-  /** number of formula names re-used during preprocessing */
-  unsigned reusedSkolemFunctions;
   /** number of initial clauses */
   unsigned initialClauses;
   /** number of inequality splittings performed */
@@ -281,11 +276,6 @@ public:
 
   unsigned smtFallbacks;
 
-  unsigned instGenGeneratedClauses;
-  unsigned instGenRedundantClauses;
-  unsigned instGenKeptClauses;
-  unsigned instGenIterations;
-
   /** Number of pure variables eliminated by SAT solver */
   unsigned satPureVarsEliminated;
 
@@ -354,6 +344,7 @@ public:
     UNUSED_PREDICATE_DEFINITION_REMOVAL,
     BLOCKED_CLAUSE_ELIMINATION,
     TWEE,
+    ANSWER_LITERAL,
     PREPROCESS_2,
     NEW_CNF,
     NAMING,

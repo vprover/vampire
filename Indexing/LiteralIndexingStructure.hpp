@@ -18,7 +18,7 @@
 
 #include "Forwards.hpp"
 #include "Index.hpp"
-#include "Kernel/MismatchHandler.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Shell/Options.hpp"
 
@@ -43,7 +43,6 @@ public:
 
   virtual size_t getUnificationCount(Literal* lit, bool complementary)
   {
-    CALL("LiteralIndexingStructure::getUnificationCount");
     return countIteratorElements(getUnifications(lit, complementary, false));
   }
 

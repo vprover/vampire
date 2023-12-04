@@ -28,7 +28,6 @@
 
 namespace SAT {
 
-using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
@@ -41,9 +40,7 @@ class SATClause
 public:
   DECL_ELEMENT_TYPE(SATLiteral);
 
-  typedef ArrayishObjectIterator<SATClause> Iterator;
-
-  DECL_ITERATOR_TYPE(Iterator);
+  auto iter() const { return arrayIter(*this); }
 
   /** New clause */
   SATClause(unsigned length);

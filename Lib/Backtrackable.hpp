@@ -68,7 +68,6 @@ class BacktrackClosure : public BacktrackObject
 {
   F _fun;
 public:
-  CLASS_NAME(BacktrackClosure);
   USE_ALLOCATOR(BacktrackClosure);
   BacktrackClosure(BacktrackClosure&&) = default;
   BacktrackClosure& operator=(BacktrackClosure&&) = default;
@@ -106,8 +105,6 @@ public:
    */
   void backtrack()
   {
-    CALL("BacktrackData::backtrack");
-
     BacktrackObject* curr=_boList;
     BacktrackObject* next;
     while(curr) {
@@ -126,8 +123,6 @@ public:
    */
   void drop()
   {
-    CALL("BacktrackData::drop");
-
     BacktrackObject* curr=_boList;
     BacktrackObject* next;
     while(curr) {
@@ -145,8 +140,6 @@ public:
    */
   void addBacktrackObject(BacktrackObject* bo)
   {
-    CALL("BacktrackData::addBacktrackObject");
-
     ASS_EQ(bo->_next,0);
     bo->_next=_boList;
     _boList=bo;
@@ -162,8 +155,6 @@ public:
    */
   void commitTo(BacktrackData& bd)
   {
-    CALL("BacktrackData::commitTo");
-
     if(!_boList) {
       return;
     }
@@ -192,8 +183,6 @@ public:
   template<typename T>
   void backtrackableSet(T* ptr, T val)
   {
-    CALL("BacktrackData::backtrackableSet");
-
     addBacktrackObject(new SetValueBacktrackObject<T>(ptr,*ptr));
     *ptr=val;
   }
@@ -201,8 +190,6 @@ public:
 #if VDEBUG
   vstring toString()
   {
-    CALL("BacktrackData::toString");
-
     vstring res;
     unsigned cnt=0;
     BacktrackObject* bobj=_boList;
@@ -323,7 +310,6 @@ public:
    */
   void bdCommit(BacktrackData& bd)
   {
-    CALL("Backtrackable::bdCommit");
     ASS(!bdIsRecording() || &bd!=&bdGet());
 
     if(bdIsRecording()) {
@@ -357,7 +343,6 @@ protected:
    */
   void bdAdd(BacktrackObject* bo)
   {
-    CALL("Backtrackable::bdAdd");
     ASS(bdIsRecording());
 
     bdGet().addBacktrackObject(bo);
@@ -369,7 +354,6 @@ protected:
    */
   BacktrackData& bdGet()
   {
-    CALL("Backtrackable::bdGet");
     ASS(bdIsRecording());
 
     return *_bdStack.top();
@@ -384,13 +368,6 @@ private:
    */
   Stack<BacktrackData*> _bdStack;
 };
-
-template<class C>
-void backtrackablePush(Stack<C>& s, C v, BacktrackData& bd)
-{
-  s.push(std::move(v));
-  bd.addClosure([&](){ s.pop(); });
-}
 
 };
 

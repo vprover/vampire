@@ -18,7 +18,7 @@
 
 
 #include "Forwards.hpp"
-#include "Kernel/MismatchHandler.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
 #include "Kernel/Renaming.hpp"
 #include "Kernel/TypedTermList.hpp"
 #include "Lib/SkipList.hpp"
@@ -48,8 +48,6 @@ class TermSubstitutionTree
   using Node                        = typename SubstitutionTree::Node;
   using FastInstancesIterator       = typename SubstitutionTree::FastInstancesIterator;
   using FastGeneralizationsIterator = typename SubstitutionTree::FastGeneralizationsIterator;
-  template<class Algo>
-  using UnificationsIterator        = typename SubstitutionTree::template UnificationsIterator<Algo>;
   using LDIterator                  = typename SubstitutionTree::LDIterator;
   using Leaf                        = typename SubstitutionTree::Leaf;
   using LeafIterator                = typename SubstitutionTree::LeafIterator;
@@ -57,8 +55,6 @@ class TermSubstitutionTree
   Indexing::SubstitutionTree<LeafData_> _inner;
 public:
   using LeafData = LeafData_;
-  CLASS_NAME(TermSubstitutionTree);
-  USE_ALLOCATOR(TermSubstitutionTree);
   
   TermSubstitutionTree()
     : _inner(/* reservedSpecialVars */ 2 /* S0 -> term, S1 -> sort */ )
@@ -66,7 +62,6 @@ public:
 
   void handle(LeafData d, bool insert) final override
   { _inner.handle(std::move(d), insert); }
-
 
 private:
 
@@ -91,17 +86,6 @@ private:
   friend std::ostream& operator<<(std::ostream& out, OutputMultiline<TermSubstitutionTree> const& self)
   { return out << multiline(self.self._inner, self.indent); }
 
-  template<class Algo>
-  using UwaIter = typename Indexing::SubstitutionTree<LeafData_>::template UnificationsIterator<Algo>;
-
-  auto nopostproUwa(TypedTermList t, Options::UnificationWithAbstraction uwa)
-  { return getResultIterator<UwaIter<UnificationAlgorithms::UnificationWithAbstraction>>(t, /* retrieveSubstitutions */ true, MismatchHandler(uwa)); }
-
-  auto postproUwa(TypedTermList t, Options::UnificationWithAbstraction uwa)
-  { return iterTraits(getResultIterator<UwaIter<UnificationAlgorithms::UnificationWithAbstractionWithPostprocessing>>(t, /* retrieveSubstitutions */ true, MismatchHandler(uwa)))
-    .filterMap([](auto r)
-        { return r.unifier.fixedPointIteration().map([&](AbstractingUnifier* unif) { return queryRes(unif, r.data); }); }); }
-
 public:
   VirtualIterator<Indexing::QueryRes<ResultSubstitutionSP, LeafData_>> getInstances(TypedTermList t, bool retrieveSubstitutions) final override
   { return pvi(getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions)); }
@@ -109,16 +93,12 @@ public:
   VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions) final override
   { return pvi(getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions)); }
 
+
   VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) final override
-  { return fixedPointIteration ? pvi(  postproUwa(t, uwa))
-                               : pvi(nopostproUwa(t, uwa)); }
+  { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction>>(t, /* retrieveSubstitutions */ true, AbstractionOracle(uwa), fixedPointIteration)); }
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getUnifications(TypedTermList t, bool retrieveSubstitutions) override
-  { return pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification>>(t, retrieveSubstitutions)); }
-
-  VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getUnificationsUsingSorts(TypedTermList tt, bool retrieveSubstitutions) final override
-  { return pvi(getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification>>(tt, retrieveSubstitutions)); }
-
+  { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::RobUnification>>(t, retrieveSubstitutions)); }
 };
 
 } // namespace Indexing

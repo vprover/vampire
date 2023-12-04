@@ -51,8 +51,6 @@ using namespace Saturation;
 
 void GlobalSubsumption::attach(SaturationAlgorithm* salg)
 {
-  CALL("GlobalSubsumption::attach");
-
   ASS(!_index);
 
   ForwardSimplificationEngine::attach(salg);
@@ -68,8 +66,6 @@ void GlobalSubsumption::attach(SaturationAlgorithm* salg)
 
 void GlobalSubsumption::detach()
 {
-  CALL("GlobalSubsumption::detach");
-
   _index=0;
   _salg->getIndexManager()->release(GLOBAL_SUBSUMPTION_INDEX);
   ForwardSimplificationEngine::detach();
@@ -83,8 +79,6 @@ void GlobalSubsumption::detach()
  */
 Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
 {
-  CALL("GlobalSubsumption::perform/2");
-
   TIME_TRACE("global subsumption");
 
   if(cl->color()==COLOR_LEFT) {
@@ -126,7 +120,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
   if (cl->splits() && cl->splits()->size()!=0) {
     ASS(_splittingAssumps);
     
-    SplitSet::Iterator sit(*cl->splits());
+    auto sit = cl->splits()->iter();
     while(sit.hasNext()) {
       SplitLevel l = sit.next();      
       unsigned var = splitLevelToVar(l);
@@ -274,8 +268,6 @@ struct GlobalSubsumption::Unit2ClFn
 
 bool GlobalSubsumption::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
-  CALL("GlobalSubsumption::perform/3");
-
   static Stack<Unit*> prems;
   
   Clause* newCl = perform(cl,prems);

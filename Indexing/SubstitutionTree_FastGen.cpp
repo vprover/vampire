@@ -81,7 +81,6 @@ private:
 template<class LeafData_>
 struct SubstitutionTree<LeafData_>::GenMatcher::Applicator
 {
-  CLASS_NAME(SubstitutionTree::GenMatcher::Applicator);
   USE_ALLOCATOR(SubstitutionTree::GenMatcher::Applicator); 
 
   inline
@@ -109,7 +108,6 @@ class SubstitutionTree<LeafData_>::GenMatcher::Substitution
 : public ResultSubstitution
 {
 public:
-  CLASS_NAME(SubstitutionTree::GenMatcher::Substitution);
   USE_ALLOCATOR(SubstitutionTree::GenMatcher::Substitution);
   
   Substitution(GenMatcher* parent, Renaming* resultNormalizer)
@@ -151,14 +149,11 @@ private:
 template<class LeafData_>
 bool SubstitutionTree<LeafData_>::GenMatcher::matchNext(unsigned specVar, TermList nodeTerm, bool separate)
 {
-  CALL("SubstitutionTree::GenMatcher::matchNext");
-
   if(separate) {
     _boundVars->push(BACKTRACK_SEPARATOR);
   }
 
   TermList queryTerm=(*_specVars)[specVar];
-  ASSERT_VALID(queryTerm);
 
   return matchNextAux(queryTerm, nodeTerm, separate);
 }
@@ -174,8 +169,6 @@ bool SubstitutionTree<LeafData_>::GenMatcher::matchNext(unsigned specVar, TermLi
 template<class LeafData_>
 bool SubstitutionTree<LeafData_>::GenMatcher::matchNextAux(TermList queryTerm, TermList nodeTerm, bool separate)
 {
-  CALL("SubstitutionTree::GenMatcher::matchNextAux");
-
   bool success;
   if(nodeTerm.isTerm()) {
     Term* nt=nodeTerm.term();
@@ -222,8 +215,6 @@ bool SubstitutionTree<LeafData_>::GenMatcher::matchNextAux(TermList queryTerm, T
 template<class LeafData_>
 void SubstitutionTree<LeafData_>::GenMatcher::backtrack()
 {
-  CALL("SubstitutionTree::GenMatcher::backtrack");
-
   for(;;) {
     unsigned boundVar = _boundVars->pop();
     if(boundVar==BACKTRACK_SEPARATOR) {
@@ -231,28 +222,6 @@ void SubstitutionTree<LeafData_>::GenMatcher::backtrack()
     }
     _bindings->remove(boundVar);
   }
-}
-
-/**
- * Try to undo one call to the @b matchNext method with separate param
- * set to @b true and all other @b matchNext calls that were joined to it.
- * Return true iff successful. (The failure can be due to the fact there
- * is no separated @b matchNext call to be undone. In this case every binding
- * on the @b _boundVars stack would be undone.)
- */
-template<class LeafData_>
-bool SubstitutionTree<LeafData_>::GenMatcher::tryBacktrack()
-{
-  CALL("SubstitutionTree::GenMatcher::tryBacktrack");
-
-  while(_boundVars->isNonEmpty()) {
-    unsigned boundVar = _boundVars->pop();
-    if(boundVar==BACKTRACK_SEPARATOR) {
-      return true;
-    }
-    _bindings->remove(boundVar);
-  }
-  return false;
 }
 
 
@@ -269,17 +238,13 @@ ResultSubstitutionSP SubstitutionTree<LeafData_>::GenMatcher::getSubstitution(
 template<class LeafData_>
 bool SubstitutionTree<LeafData_>::FastGeneralizationsIterator::hasNext()
 {
-  CALL("SubstitutionTree::FastGeneralizationsIterator::hasNext");
-
   while(!_ldIterator.hasNext() && findNextLeaf()) {}
   return _ldIterator.hasNext();
 }
 
 template<class LeafData_>
-typename SubstitutionTree<LeafData_>::RSQueryResult SubstitutionTree<LeafData_>::FastGeneralizationsIterator::next()
+typename SubstitutionTree<LeafData_>::template QueryResult<ResultSubstitutionSP> SubstitutionTree<LeafData_>::FastGeneralizationsIterator::next()
 {
-  CALL("SubstitutionTree::FastGeneralizationsIterator::next");
-
   while(!_ldIterator.hasNext() && findNextLeaf()) {}
   ASS(_ldIterator.hasNext());
   auto ld = _ldIterator.next();
@@ -301,8 +266,6 @@ typename SubstitutionTree<LeafData_>::RSQueryResult SubstitutionTree<LeafData_>:
 template<class LeafData_>
 bool SubstitutionTree<LeafData_>::FastGeneralizationsIterator::findNextLeaf()
 {
-  CALL("SubstitutionTree::FastGeneralizationsIterator::findNextLeaf");
-
   Node* curr;
   bool sibilingsRemain = false;
   if(_inLeaf) {
@@ -353,11 +316,11 @@ main_loop_start:
       //on _alternatives stack (as we always enter them first)
       if(parentType==UNSORTED_LIST) {
 	Node** alts=static_cast<Node**>(currAlt);
-	while(*alts && !(*alts)->term.isVar()) {
+	while(*alts && !(*alts)->term().isVar()) {
 	  alts++;
 	}
 	curr=*(alts++);
-	while(*alts && !(*alts)->term.isVar()) {
+	while(*alts && !(*alts)->term().isVar()) {
 	  alts++;
 	}
 	if(*alts) {
@@ -369,9 +332,9 @@ main_loop_start:
       } else {
 	ASS_EQ(parentType,SKIP_LIST)
 	auto alts = static_cast<typename SListIntermediateNode::NodeSkipList::Node *>(currAlt);
-	if(alts->head()->term.isVar()) {
+	if(alts->head()->term().isVar()) {
 	  curr=alts->head();
-	  if(alts->tail() && alts->tail()->head()->term.isVar()) {
+	  if(alts->tail() && alts->tail()->head()->term().isVar()) {
 	    _alternatives->push(alts->tail());
 	    sibilingsRemain=true;
 	  } else {
@@ -394,7 +357,7 @@ main_loop_start:
       //there are no other alternatives
       return false;
     }
-    if(!_subst.matchNext(currSpecVar, curr->term, sibilingsRemain)) {	//[1]
+    if(!_subst.matchNext(currSpecVar, curr->term(), sibilingsRemain)) {	//[1]
       //match unsuccessful, try next alternative
       curr=0;
       if(!sibilingsRemain && _alternatives->isNonEmpty()) {
@@ -407,8 +370,7 @@ main_loop_start:
       unsigned specVar=static_cast<UArrIntermediateNode*>(curr)->childVar;
       curr=static_cast<UArrIntermediateNode*>(curr)->_nodes[0];
       ASS(curr);
-      ASSERT_VALID(*curr);
-      if(!_subst.matchNext(specVar, curr->term, false)) {
+      if(!_subst.matchNext(specVar, curr->term(), false)) {
 	//matching failed, let's go back to the node, that had multiple children
 	//_subst->backtrack();
 	if(sibilingsRemain || _alternatives->isNonEmpty()) {
@@ -463,9 +425,9 @@ bool SubstitutionTree<LeafData_>::FastGeneralizationsIterator::enterNode(Node*& 
     if(binding.isTerm()) {
       unsigned bindingFunctor=binding.term()->functor();
       //let's first skip proper term nodes at the beginning...
-      while(*nl && (*nl)->term.isTerm()) {
+      while(*nl && (*nl)->term().isTerm()) {
         //...and have the one that interests us, if we encounter it.
-        if(!curr && (*nl)->term.term()->functor()==bindingFunctor) {
+        if(!curr && (*nl)->term().term()->functor()==bindingFunctor) {
           curr=*nl;
         }
         nl++;
@@ -475,7 +437,7 @@ bool SubstitutionTree<LeafData_>::FastGeneralizationsIterator::enterNode(Node*& 
         //the one proper term node, that interests us, isn't here
         Node** nl2=nl+1;
         while(*nl2) {
-          if((*nl2)->term.isTerm() && (*nl2)->term.term()->functor()==bindingFunctor) {
+          if((*nl2)->term().isTerm() && (*nl2)->term().term()->functor()==bindingFunctor) {
             curr=*nl2;
             break;
           }
@@ -484,13 +446,13 @@ bool SubstitutionTree<LeafData_>::FastGeneralizationsIterator::enterNode(Node*& 
       }
     } else {
       //let's first skip proper term nodes at the beginning
-      while(*nl && (*nl)->term.isTerm()) {
+      while(*nl && (*nl)->term().isTerm()) {
         nl++;
       }
     }
     if(!curr && *nl) {
       curr=*(nl++);
-      while(*nl && (*nl)->term.isTerm()) {
+      while(*nl && (*nl)->term().isTerm()) {
 	nl++;
       }
     }
@@ -511,13 +473,13 @@ bool SubstitutionTree<LeafData_>::FastGeneralizationsIterator::enterNode(Node*& 
 	curr=*byTop;
       }
     }
-    if(!curr && nl->head()->term.isVar()) {
+    if(!curr && nl->head()->term().isVar()) {
       curr=nl->head();
       nl=nl->tail();
     }
     //in SkipList nodes variables are only at the beginning
     //(so if there aren't any, there aren't any at all)
-    if(nl && nl->head()->term.isTerm()) {
+    if(nl && nl->head()->term().isTerm()) {
       nl=0;
     }
     if(curr) {

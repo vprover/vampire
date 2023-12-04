@@ -32,7 +32,6 @@ using namespace Shell;
 using namespace Lib;
 
 struct SortedSignature{
-    CLASS_NAME(SortedSignature);
     USE_ALLOCATOR(SortedSignature);
 
     unsigned sorts;
@@ -78,7 +77,6 @@ struct SortedSignature{
 
 class SortInference {
 public:
-  CLASS_NAME(SortInference);
   USE_ALLOCATOR(SortInference);    
   
   SortInference(ClauseList* clauses,

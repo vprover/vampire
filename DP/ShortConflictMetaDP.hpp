@@ -34,7 +34,6 @@ using namespace SAT;
 
 class ShortConflictMetaDP : public DecisionProcedure {
 public:
-  CLASS_NAME(ShortConflictMetaDP);
   USE_ALLOCATOR(ShortConflictMetaDP);
 
   /**
@@ -44,12 +43,10 @@ public:
   : _inner(inner), _sat2fo(sat2fo), _solver(solver) {}
 
   virtual void addLiterals(LiteralIterator lits, bool onlyEqualites) override {
-    CALL("ShortConflictMetaDP::addLiterals");
     _inner->addLiterals(lits, onlyEqualites);
   }
 
   virtual void reset() override {
-    CALL("ShortConflictMetaDP::reset");
     _inner->reset();
     _unsatCores.reset();
   }

@@ -24,8 +24,7 @@
 #include "Lib/VirtualIterator.hpp"
 #include "Saturation/ClauseContainer.hpp"
 #include "ResultSubstitution.hpp"
-#include "Kernel/SortHelper.hpp"
-#include "Lib/Reflection.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -38,7 +37,6 @@ using namespace Saturation;
 
 struct LiteralClause 
 {
-  CLASS_NAME(LiteralClause);
 
   LiteralClause() {}
   using Key = Literal*;
@@ -55,7 +53,7 @@ struct LiteralClause
 
 private:
   auto asTuple() const
-  { return make_tuple(
+  { return std::make_tuple(
       clause == nullptr, 
       clause == nullptr ? 0 : clause->number(), 
       literal == nullptr,
@@ -76,13 +74,13 @@ public:
 
 };
 
+// TODO: is this used?
 template<class Value>
 class TermIndexData {
   TypedTermList _key;
   // TODO rename to _extra (?)
   Value _value;
 public:
-  CLASS_NAME(TermIndexData);
 
   TermIndexData() {}
 
@@ -114,7 +112,6 @@ public:
 
 struct ClauseLiteralPair 
 {
-  CLASS_NAME(ClauseLiteralPair);
 
   ClauseLiteralPair() {}
 
@@ -123,7 +120,7 @@ struct ClauseLiteralPair
 
 protected:
   auto  asTuple() const
-  { return make_tuple(
+  { return std::make_tuple(
       clause == nullptr, 
       clause == nullptr ? 0 : clause->number(), 
       literal == nullptr,
@@ -150,7 +147,6 @@ public:
 
 struct TermLiteralClause 
 {
-  CLASS_NAME(TermLiteralClause);
 
   Clause* clause;
   Literal* literal;
@@ -172,7 +168,7 @@ struct TermLiteralClause
 
 private:
   auto  asTuple() const
-  { return make_tuple(
+  { return std::make_tuple(
       clause  == nullptr, clause  == nullptr ? 0 : clause->number(), 
       literal == nullptr, literal == nullptr ? 0 : literal->getId(), 
       term); }
@@ -188,7 +184,6 @@ public:
                << ")"; }
 
 };
-
 
 /**
  * Class of objects which contain results of term queries.
@@ -243,7 +238,7 @@ struct FormulaQueryResult
   ResultSubstitutionSP substitution;
 };
 
-using TermQueryResult = QueryRes<ResultSubstitutionSP ,   TermLiteralClause>;
+using TermQueryResult = QueryRes<ResultSubstitutionSP, TermLiteralClause>;
 using SLQueryResult   = QueryRes<ResultSubstitutionSP, LiteralClause>;
 
 using TermQueryResultIterator = VirtualIterator<TermQueryResult>;
@@ -254,7 +249,6 @@ typedef VirtualIterator<FormulaQueryResult> FormulaQueryResultIterator;
 class Index
 {
 public:
-  CLASS_NAME(Index);
 
   virtual ~Index();
 
@@ -282,7 +276,6 @@ class ClauseSubsumptionIndex
 : public Index
 {
 public:
-  CLASS_NAME(ClauseSubsumptionIndex);
 
   virtual ClauseSResResultIterator getSubsumingOrSResolvingClauses(Clause* c, 
     bool subsumptionResolution)

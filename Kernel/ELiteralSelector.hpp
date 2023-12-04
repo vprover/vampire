@@ -32,7 +32,6 @@ class ELiteralSelector
 : public LiteralSelector
 {
 public:
-  CLASS_NAME(ELiteralSelector);
   USE_ALLOCATOR(ELiteralSelector);
 
   enum Values {

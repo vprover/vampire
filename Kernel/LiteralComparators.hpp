@@ -40,8 +40,6 @@ public:
 
   virtual void attachSelector(LiteralSelector* selector)
   {
-    CALL("LiteralComparator::attachSelector");
-
     _selector = selector;
   }
 protected:
@@ -60,8 +58,6 @@ public:
 
   virtual void attachSelector(LiteralSelector* selector)
   {
-    CALL("LiteralComparators::Composite::attachSelector");
-
     LiteralComparator::attachSelector(selector);
     _c1.attachSelector(selector);
     _c2.attachSelector(selector);
@@ -82,8 +78,6 @@ public:
 
   virtual void attachSelector(LiteralSelector* selector)
   {
-    CALL("LiteralComparators::Inverse::attachSelector");
-
     LiteralComparator::attachSelector(selector);
     _c.attachSelector(selector);
   }
@@ -109,8 +103,6 @@ struct NoPositiveEquality : public LiteralComparator
 {
   Comparison compare(Literal* l1, Literal* l2)
   {
-    CALL("LiteralComparators::NoPositiveEquality::compare");
-
     bool l1PE=l1->isEquality()&&l1->isPositive();
     bool l2PE=l2->isEquality()&&l2->isPositive();
     if( l1PE && !l2PE ) {
@@ -127,7 +119,6 @@ struct Negative : public LiteralComparator
 {
   Comparison compare(Literal* l1, Literal* l2)
   {
-    CALL("LiteralComparators::Negative::compare");
     ASS(_selector);
 
     bool l1N=_selector->isNegativeForSelection(l1);
@@ -288,7 +279,7 @@ struct NormalizedLinearComparatorByWeight : public LiteralComparator
 
     DisagreementSetIterator dsit(t1,t2,true);
     while(dsit.hasNext()) {
-      pair<TermList, TermList> dis=dsit.next();
+      std::pair<TermList, TermList> dis=dsit.next();
       if(dis.first.isTerm()) {
 	if(dis.second.isTerm()) {
 	  ASS_NEQ(dis.first.term()->functor(), dis.second.term()->functor());

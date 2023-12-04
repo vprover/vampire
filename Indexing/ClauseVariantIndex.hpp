@@ -40,9 +40,7 @@ public:
   virtual ClauseIterator retrieveVariants(Literal* const * lits, unsigned length) = 0;
   ClauseIterator retrieveVariants(Clause* cl)
   {
-    CALL("ClauseVariantIndex::retrieveVariants/1");
-
-    // cout << "retrieveVariants for " <<  cl->toString() << endl;
+    // std::cout << "retrieveVariants for " <<  cl->toString() << std::endl;
 
     return retrieveVariants(cl->literals(), cl->length());
   }
@@ -55,7 +53,6 @@ class SubstitutionTreeClauseVariantIndex : public ClauseVariantIndex
 {
   using LiteralSubstitutionTree = Indexing::LiteralSubstitutionTree<LiteralClause>;
 public:
-  CLASS_NAME(SubstitutionTreeClauseVariantIndex);
   USE_ALLOCATOR(SubstitutionTreeClauseVariantIndex);
 
   SubstitutionTreeClauseVariantIndex() : _emptyClauses(0) {}
@@ -80,7 +77,6 @@ private:
 class HashingClauseVariantIndex : public ClauseVariantIndex
 {
 public:
-  CLASS_NAME(HashingClauseVariantIndex);
   USE_ALLOCATOR(HashingClauseVariantIndex);
 
   virtual ~HashingClauseVariantIndex() override;
@@ -96,7 +92,7 @@ private:
 
   unsigned termFunctorHash(Term* t, unsigned hash_begin) {
     unsigned func = t->functor();
-    // cout << "will hash funtor " << func << endl;
+    // std::cout << "will hash funtor " << func << std::endl;
     return DefaultHash::hash(func, hash_begin);
   }
 
@@ -110,7 +106,7 @@ private:
       (*pcnt)++;
     }
 
-    // cout << "will hash variable" << endl;
+    // std::cout << "will hash variable" << std::endl;
     return DefaultHash::hash(varHash, hash_begin);
   }
 

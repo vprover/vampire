@@ -36,6 +36,7 @@
 
 namespace Inferences
 {
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
@@ -43,13 +44,10 @@ using namespace Kernel;
 InterpretedEvaluation::InterpretedEvaluation(bool doNormalize, Ordering& ordering) :
   _simpl(new InterpretedLiteralEvaluator(doNormalize))
 {
-  CALL("InterpretedEvaluation::InterpretedEvaluation");
 }
 
 InterpretedEvaluation::~InterpretedEvaluation()
 {
-  CALL("InterpretedEvaluation::~InterpretedEvaluation");
-
   delete _simpl;
 }
 
@@ -58,8 +56,6 @@ InterpretedEvaluation::~InterpretedEvaluation()
 bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
 	bool& constant, Literal*& res, bool& constantTrue,Stack<Literal*>& sideConditions)
 {
-  CALL("InterpretedEvaluation::evaluateLiteral");
-
   if(lit->numTermArguments()==0) {
     //we have no interpreted predicates of zero arity
     return false;
@@ -76,7 +72,6 @@ bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
 
 Clause* InterpretedEvaluation::simplify(Clause* cl)
 {
-  CALL("InterpretedEvaluation::perform");
   try { 
 
 

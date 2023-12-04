@@ -64,7 +64,6 @@ DHMap<vstring,Stack<vstring>*> CLTBModeLearning::stratWins;
  */
 void CLTBModeLearning::perform()
 {
-  CALL("CLTBModeLearning::perform");
   TIME_TRACE("cltb learning");
 
   if (env.options->inputFile() == "") {
@@ -129,8 +128,6 @@ void CLTBModeLearning::perform()
  */
 void CLTBModeLearning::solveBatch(istream& batchFile, bool first,vstring inputDirectory)
 {
-  CALL("CLTBModeLearning::solveBatch(istream& batchfile)");
-
   // fill the global strats up
   fillSchedule(strats);
 
@@ -272,8 +269,6 @@ void CLTBModeLearning::solveBatch(istream& batchFile, bool first,vstring inputDi
 
 void CLTBModeLearning::loadIncludes()
 {
-  CALL("CLTBModeLearning::loadIncludes");
-
   UnitList* theoryAxioms=0;
   {
     TIME_TRACE(TimeTrace::PARSING);
@@ -306,13 +301,12 @@ void CLTBModeLearning::loadIncludes()
   //ensure we scan the theory axioms for property here, so we don't need to
   //do it afterward in each problem
   _baseProblem->getProperty();
+  env.setMainProblem(_baseProblem.ptr());
   env.statistics->phase=Statistics::UNKNOWN_PHASE;
 } // CLTBModeLearning::loadIncludes
 
 void CLTBModeLearning::doTraining(int time, bool startup)
 {
-  CALL("CLTBModeLearning::doTraining");
-
   static Stack<vstring>::Iterator* prob_iter = 0;
 
   if(startup || (prob_iter && !prob_iter->hasNext())){
@@ -495,8 +489,6 @@ void CLTBModeLearning::doTraining(int time, bool startup)
  */
 int CLTBModeLearning::readInput(istream& in, bool first)
 {
-  CALL("CLTBModeLearning::readInput");
-
   vstring line, word;
 
   if(first){
@@ -796,7 +788,6 @@ void CLTBModeLearning::fillSchedule(CLTBModeLearning::Schedule& sched) {
  */
 void CLTBProblemLearning::performStrategy(int terminationTime,int timeLimit,  Shell::Property* property,Schedule& quick, bool stopOnProof)
 {
-  CALL("CLTBProblemLearning::performStrategy");
   cout << "% Hi Geoff, go and have some cold beer while I am trying to solve this very hard problem!\n";
 
    Schedule fallback;
@@ -826,8 +817,6 @@ void CLTBProblemLearning::performStrategy(int terminationTime,int timeLimit,  Sh
  */
 void CLTBProblemLearning::searchForProof(int terminationTime,int timeLimit, Schedule& strats, bool stopOnProof)
 {
-  CALL("CLTBProblemLearning::searchForProof");
-
   System::registerForSIGHUPOnParentDeath();
 
   env.options->setInputFile(problemFile);
@@ -884,8 +873,6 @@ void CLTBProblemLearning::searchForProof(int terminationTime,int timeLimit, Sche
  */
 void CLTBProblemLearning::exitOnNoSuccess()
 {
-  CALL("CLTBProblemLearning::exitOnNoSuccess");
-
   env.beginOutput();
   CLTBModeLearning::lineOutput() << "Proof not found in time " << Timer::msToSecondsString(env.timer->elapsedMilliseconds()) << endl;
   if (env.remainingTime()/100>0) {
@@ -917,8 +904,6 @@ static unsigned milliToDeci(unsigned timeInMiliseconds) {
  */
 bool CLTBProblemLearning::runSchedule(Schedule& schedule,StrategySet& used,bool fallback,int terminationTime, bool stopOnProof)
 {
-  CALL("CLTBProblemLearning::runSchedule");
-
   // compute the number of parallel processes depending on the
   // number of available cores
   int parallelProcesses;
@@ -1022,7 +1007,6 @@ bool CLTBProblemLearning::runSchedule(Schedule& schedule,StrategySet& used,bool 
  */
 void CLTBProblemLearning::waitForChildAndExitWhenProofFound(bool stopOnProof)
 {
-  CALL("CLTBProblemLearning::waitForChildAndExitWhenProofFound");
   ASS(!childIds.isEmpty());
 
   int resValue;
@@ -1063,15 +1047,12 @@ void CLTBProblemLearning::terminatingSignalHandler(int sigNum)
  */
 void CLTBProblemLearning::runSlice(vstring sliceCode, unsigned timeLimitInMilliseconds,bool printProof)
 {
-  CALL("CLTBProblemLearning::runSlice");
-
   if(!printProof){
     // We're learning, don't run again if already run
     ProbRecord* rec;
     if(parent->probRecords.find(env.options->problemName(),rec)){
       if(rec->suc.contains(sliceCode) || rec->fail.contains(sliceCode)){
         CLTBModeLearning::coutLineOutput() << " GaveUp as tried before (in learning)" << endl;
-        STOP_CHECKING_FOR_ALLOCATOR_BYPASSES;
         exit(1); // GaveUp
       }
       rec->fail.insert(sliceCode); // insert this here in child in case the same slice is in the schedule multiple times
@@ -1095,8 +1076,6 @@ void CLTBProblemLearning::runSlice(vstring sliceCode, unsigned timeLimitInMillis
  */
 void CLTBProblemLearning::runSlice(Options& strategyOpt, bool printProof)
 {
-  CALL("CLTBProblemLearning::runSlice(Option&)");
-
   System::registerForSIGHUPOnParentDeath();
   //UIHelper::cascModeChild=true;
   //UIHelper::cascMode=true;
@@ -1173,7 +1152,6 @@ void CLTBProblemLearning::runSlice(Options& strategyOpt, bool printProof)
   parent->stratSem.incp(0);
   CLTBModeLearning::lineOutput() << "sent" << endl;
 
-  STOP_CHECKING_FOR_ALLOCATOR_BYPASSES;
   exit(resultValue);
 } // CLTBProblemLearning::runSlice
 
@@ -1185,8 +1163,6 @@ void CLTBProblemLearning::runSlice(Options& strategyOpt, bool printProof)
  */
 unsigned CLTBProblemLearning::getSliceTime(vstring sliceCode,vstring& chopped)
 {
-  CALL("CASCMode::getSliceTime");
-
   unsigned pos = sliceCode.find_last_of('_');
   vstring sliceTimeStr = sliceCode.substr(pos+1);
   chopped.assign(sliceCode.substr(0,pos));
@@ -1210,7 +1186,6 @@ unsigned CLTBProblemLearning::getSliceTime(vstring sliceCode,vstring& chopped)
  */
 ostream& CLTBModeLearning::lineOutput()
 {
-  CALL("CLTBModeLearning::lineOutput");
   return env.out() << "% (" << getpid() << ',' << (env.timer->elapsedMilliseconds()/100)/10.0 << ") ";
 } // CLTBModeLearning::lineOutput
 
@@ -1222,7 +1197,6 @@ ostream& CLTBModeLearning::lineOutput()
  */
 ostream& CLTBModeLearning::coutLineOutput()
 {
-  CALL("CLTBModeLearning::lineOutput");
   return cout << "% (" << getpid() << ',' << (env.timer->elapsedMilliseconds()/100)/10.0 << ") ";
 } // CLTBModeLearning::coutLineOutput
 

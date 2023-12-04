@@ -30,7 +30,6 @@ class ForwardSubsumptionAndResolution
 : public ForwardSimplificationEngine
 {
 public:
-  CLASS_NAME(ForwardSubsumptionAndResolution);
   USE_ALLOCATOR(ForwardSubsumptionAndResolution);
 
   ForwardSubsumptionAndResolution(bool subsumptionResolution=true)

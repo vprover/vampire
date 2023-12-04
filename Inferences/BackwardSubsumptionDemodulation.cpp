@@ -63,7 +63,6 @@ BackwardSubsumptionDemodulation::BackwardSubsumptionDemodulation()
 
 void BackwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
 {
-  CALL("BackwardSubsumptionDemodulation::attach");
   BackwardSimplificationEngine::attach(salg);
 
   _index.request(salg->getIndexManager(), BACKWARD_SUBSUMPTION_SUBST_TREE);
@@ -72,7 +71,6 @@ void BackwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
 
 void BackwardSubsumptionDemodulation::detach()
 {
-  CALL("BackwardSubsumptionDemodulation::detach");
   _index.release();
   BackwardSimplificationEngine::detach();
 }
@@ -113,7 +111,6 @@ STLIterator<Iterator> getSTLIterator(Iterator begin, Iterator end)
 
 void BackwardSubsumptionDemodulation::perform(Clause* sideCl, BwSimplificationRecordIterator& simplifications)
 {
-  CALL("BackwardSubsumptionDemodulation::perform");
   ASSERT_VALID(*sideCl);
 
   TIME_TRACE("backward subsumption demodulation");
@@ -492,7 +489,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
     ASS(!env.options->combinatorySup());
     NonVariableNonTypeIterator nvi(dlit);
     while (nvi.hasNext()) {
-      TermList lhsS = TermList(nvi.next());  // named 'lhsS' because it will be matched against 'lhs'
+      TypedTermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'
 
       if (!attempted.insert(lhsS)) {
         // We have already tried to demodulate the term lhsS and did not
@@ -503,7 +500,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
         continue;
       }
 
-      TermList const lhsSSort = SortHelper::getTermSort(lhsS, dlit);
+      TermList const lhsSSort = lhsS.sort();
 
       ASS_LE(lhsVector.size(), 2);
       for (TermList lhs : lhsVector) {

@@ -40,7 +40,6 @@ struct CycleQueryResult {
     clausesTheta(c)
   {}
 
-  CLASS_NAME(CycleQueryResult);
   USE_ALLOCATOR(CycleQueryResult);
 
   unsigned totalLengthClauses();
@@ -69,7 +68,6 @@ public:
 
   CycleQueryResultsIterator queryCycles(Kernel::Literal *lit, Kernel::Clause *c);
              
-  CLASS_NAME(AcyclicityIndex);
   USE_ALLOCATOR(AcyclicityIndex);
 protected:
   void handleClause(Kernel::Clause* c, bool adding);
@@ -80,7 +78,7 @@ private:
   struct IndexEntry;
   struct CycleSearchTreeNode;
   struct CycleSearchIterator;
-  typedef pair<Kernel::Literal*, Kernel::Clause*> ULit;
+  typedef std::pair<Kernel::Literal*, Kernel::Clause*> ULit;
   typedef Lib::DHMap<ULit, IndexEntry*> SIndex;
 
   Lib::DHMap<TermList, SIndex*> _sIndexes;

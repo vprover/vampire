@@ -16,6 +16,7 @@
 #ifndef __Reflection__
 #define __Reflection__
 
+#include "Lib/Comparison.hpp"
 #include <type_traits>
 #include <initializer_list>
 
@@ -24,35 +25,57 @@
 ///@{
 
 
-#define DEFAULT_CONSTRUCTORS(Class)                                                                 \
-  Class(Class const&) = default;                                                                    \
-  Class(Class     &&) = default;                                                                    \
-  Class& operator=(Class const&) = default;                                                         \
-  Class& operator=(Class     &&) = default;                                                         \
+#define DEFAULT_CONSTRUCTORS(Class)                                                       \
+  Class(Class const&) = default;                                                          \
+  Class(Class     &&) = default;                                                          \
+  Class& operator=(Class const&) = default;                                               \
+  Class& operator=(Class     &&) = default;                                               \
 
-#define IMPL_COMPARISONS_FROM_TUPLE(Class)                                                          \
-  friend bool operator==(Class const& l, Class const& r)                                            \
-  { return l.asTuple() == r.asTuple(); }                                                            \
-                                                                                                    \
-  friend bool operator<(Class const& l, Class const& r)                                             \
-  { return l.asTuple() < r.asTuple(); }                                                             \
-                                                                                                    \
-  IMPL_COMPARISONS_FROM_LESS_AND_EQUALS(Class)                                                      \
+#define IMPL_COMPARISONS_FROM_TUPLE(Class)                                                \
+  friend bool operator==(Class const& l, Class const& r)                                  \
+  { return l.asTuple() == r.asTuple(); }                                                  \
+                                                                                          \
+  friend bool operator<(Class const& l, Class const& r)                                   \
+  { return l.asTuple() < r.asTuple(); }                                                   \
+                                                                                          \
+  IMPL_COMPARISONS_FROM_LESS_AND_EQUALS(Class)                                            \
 
-#define IMPL_COMPARISONS_FROM_LESS_AND_EQUALS(Class)                                                \
-  friend bool operator> (Class const& l, Class const& r) { return r < l; }                          \
-  friend bool operator<=(Class const& l, Class const& r) { return l == r || l < r; }                \
-  friend bool operator>=(Class const& l, Class const& r) { return l == r || l > r; }                \
-  friend bool operator!=(Class const& l, Class const& r) { return !(l == r); }                      \
+#define __IMPL_COMPARISONS_FROM_COMPARE(Class, op, ...)                                   \
+  friend bool operator op(Class const& l, Class const& r) {                               \
+    switch (DefaultComparator::compare(l,r)) {                                            \
+      __VA_ARGS__ return true;                                                            \
+      default:    return false;                                                           \
+    }                                                                                     \
+  }                                                                                       \
 
-#define IMPL_HASH_FROM_TUPLE(Class)                                                                 \
-  unsigned defaultHash() const { return DefaultHash::hash(asTuple()); }                             \
-  unsigned defaultHash2() const { return DefaultHash2::hash(asTuple()); }                           \
+#define IMPL_EQ_FROM_COMPARE(Class)                                                       \
+  friend bool operator==(Class const& l, Class const& r)                                  \
+  { return DefaultComparator::compare(l,r) == Comparison::EQUAL; }                        \
+                                                                                          \
+  friend bool operator!=(Class const& l, Class const& r)                                  \
+  { return !(l == r); }                                                                   \
+
+#define IMPL_COMPARISONS_FROM_COMPARE(Class)                                              \
+    __IMPL_COMPARISONS_FROM_COMPARE(Class, > , case GREATER:             )                \
+    __IMPL_COMPARISONS_FROM_COMPARE(Class, < , case LESS   :             )                \
+    __IMPL_COMPARISONS_FROM_COMPARE(Class, >=, case GREATER: case EQUAL: )                \
+    __IMPL_COMPARISONS_FROM_COMPARE(Class, <=, case LESS   : case EQUAL: )                \
+
+
+#define IMPL_COMPARISONS_FROM_LESS_AND_EQUALS(Class)                                      \
+  friend bool operator> (Class const& l, Class const& r) { return r < l; }                \
+  friend bool operator<=(Class const& l, Class const& r) { return l == r || l < r; }      \
+  friend bool operator>=(Class const& l, Class const& r) { return l == r || l > r; }      \
+  friend bool operator!=(Class const& l, Class const& r) { return !(l == r); }            \
+
+#define IMPL_HASH_FROM_TUPLE(Class)                                                       \
+  unsigned defaultHash() const { return DefaultHash::hash(asTuple()); }                   \
+  unsigned defaultHash2() const { return DefaultHash2::hash(asTuple()); }                 \
 
 //The obvious way to define this macro would be
 //#define DECL_ELEMENT_TYPE(T) typedef T _ElementType
 //but the preprocessor understands for example
-//M(pair<A,B>)
+//M(std::pair<A,B>)
 //as an instantiation of  macro M with two arguments --
 //pair<A is first and B> second.
 
@@ -68,7 +91,7 @@
  * Although the macro formally takes variable number of arguments, it
  * should be used only with a single argument. The variable number
  * of formal arguments is to allow for the use of template types,
- * such as pair<int,int>, since the preprocessor considers every
+ * such as std::pair<int,int>, since the preprocessor considers every
  * comma as an argument separator.
  */
 #define DECL_ELEMENT_TYPE(...) typedef __VA_ARGS__ _ElementType
@@ -109,7 +132,7 @@
  * Although the macro formally takes variable number of arguments, it
  * should be used only with a single argument. The variable number
  * of formal arguments is to allow for the use of template types,
- * such as pair<int,int>, since the preprocessor considers every
+ * such as std::pair<int,int>, since the preprocessor considers every
  * comma as an argument separator.
  */
 #define DECL_ITERATOR_TYPE(...) typedef __VA_ARGS__ _IteratorType

@@ -25,7 +25,6 @@
 
 #include <type_traits>
 
-using namespace std;
 using namespace Lib;
 
 namespace Kernel {
@@ -116,6 +115,9 @@ enum class InferenceRule : unsigned char {
   /** introduction of answer literal into the conjecture,
    * or the unit negation of answer literal used to obtain refutation */
   ANSWER_LITERAL,
+  /** introduction of answer literal into the conjecture,
+   * and skolemisation of input variables */
+  ANSWER_LITERAL_INPUT_SKOLEMISATION,
   /** claim definition, definition introduced by a claim in the input */
   CLAIM_DEFINITION,
 //     /** choice_axiom (Ax)((Ey)F(x,y) -> F(x,f(x))) */
@@ -241,8 +243,6 @@ enum class InferenceRule : unsigned char {
   TERM_ALGEBRA_DISTINCTNESS,
   /** inference rule for term algebras (injectivity of constructors)*/
   TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING,
-  /** hyper-superposition */
-  HYPER_SUPERPOSITION_SIMPLIFYING, // not used at the moment
   /** global subsumption */
   GLOBAL_SUBSUMPTION, // CEREFUL: the main premise is not necessarily the first one!
   /** distinct equality removal */
@@ -250,6 +250,8 @@ enum class InferenceRule : unsigned char {
   /** simplification eliminating variables by rewriting arithmetic equalities: e.g.: 6 = 3 x \/ L[x] => L[2] */
   GAUSSIAN_VARIABLE_ELIMINIATION,
   ARITHMETIC_SUBTERM_GENERALIZATION,
+  /* clause added after removing answer literal and saving it as a witness */
+  ANSWER_LITERAL_REMOVAL,
   /** the last simplifying inference marker --
     inferences between GENERIC_SIMPLIFYING_INFERNCE and INTERNAL_SIMPLIFYING_INFERNCE_LAST will be automatically understood simplifying
     (see also isSimplifyingInferenceRule) */
@@ -294,14 +296,10 @@ enum class InferenceRule : unsigned char {
   FOOL_PARAMODULATION,
   /** unit resulting resolution */
   UNIT_RESULTING_RESOLUTION,
-  /** hyper-superposition */
-  HYPER_SUPERPOSITION_GENERATING,
   /* Induction hyperresolution */
   INDUCTION_HYPERRESOLUTION,
   /* Generalized induction hyperresolution */
   GEN_INDUCTION_HYPERRESOLUTION,
-  /** generated as instance of its parent */
-  INSTANCE_GENERATION, // used by InstGen. Fun fact: the inference has one parent (logically) but the age is set from two parents (and +1)!
   /* Instantiation */
   INSTANTIATION, // used for theory reasoning
   /** the last generating inference marker --
@@ -395,21 +393,20 @@ enum class InferenceRule : unsigned char {
   BOOLEAN_TERM_ENCODING,
   /** Elimination of FOOL expressions that makes a formula not syntactically first-order */
   FOOL_ELIMINATION,
-  /** Elimination of $ite expressions */
-  FOOL_ITE_ELIMINATION,
-  /** Elimination of $let expressions */
-  FOOL_LET_ELIMINATION,
-  /** Elimination of $match expressions */
-  FOOL_MATCH_ELIMINATION,
+  /** Definition of $ite expressions */
+  FOOL_ITE_DEFINITION,
+  /** Definition of $let expressions */
+  FOOL_LET_DEFINITION,
+  /** Definition of formulas used as terms */
+  FOOL_FORMULA_DEFINITION,
+  /** Definition for $match expressions */
+  FOOL_MATCH_DEFINITION,
   /** result of general splitting */
   GENERAL_SPLITTING,
   /** component introduced by general splitting */
   GENERAL_SPLITTING_COMPONENT,
   /** replacing colored constants by skolem functions */
   COLOR_UNBLOCKING,
-
-  /** refutation in the SAT solver for InstGen */
-  SAT_INSTGEN_REFUTATION,
 
   /** definition introduced by AVATAR */
   AVATAR_DEFINITION,
@@ -462,6 +459,8 @@ enum class InferenceRule : unsigned char {
 
   /* the unit clause against which the Answer is extracted in the last step */
   ANSWER_LITERAL_RESOLVER,
+  /* clause with literals added from AVATAR assertions of the parent */
+  AVATAR_ASSERTION_REINTRODUCTION,
 
   /** A (first-order) tautology generated on behalf of a decision procedure,
    * whose propositional counterpart becomes a conflict clause in a sat solver */
@@ -606,7 +605,6 @@ inline bool isExternalTheoryAxiomRule(InferenceRule r) {
 inline bool isSatRefutationRule(InferenceRule r) {
   return (r == InferenceRule::AVATAR_REFUTATION) ||
          (r == InferenceRule::AVATAR_REFUTATION_SMT) ||
-         (r == InferenceRule::SAT_INSTGEN_REFUTATION) ||
          (r == InferenceRule::GLOBAL_SUBSUMPTION);
 }
 
@@ -705,6 +703,9 @@ struct NonspecificInferenceMany {
 
 struct FromSatRefutation; // defined in SATInference.hpp
 
+class Inference;
+std::ostream& operator<<(std::ostream& out, Inference const& self);
+
 /**
  * Class to represent inferences
  */
@@ -712,7 +713,6 @@ class Inference
 {
 private:
   // don't construct on the heap
-  CLASS_NAME(Inference);
   USE_ALLOCATOR(Inference);
 
   enum class Kind : unsigned char {
@@ -722,8 +722,6 @@ private:
   };
 
   void initDefault(UnitInputType inputType, InferenceRule r) {
-    CALL("Inference::initDefault");
-
     _inputType = inputType;
     _rule = r;
     _included = false;
@@ -838,7 +836,7 @@ public:
    **/
   void updateStatistics();
 
-   vstring toString() const;
+ friend std::ostream& operator<<(std::ostream& out, Inference const& self);
 
   /**
    * To implement lazy minimization of proofs coming from a SAT solver
@@ -852,6 +850,7 @@ public:
    */
   void minimizePremises();
 
+  // TODO why would we ever need this? replace it be appropriate output operator for InferenceRule
   vstring name() const { return ruleName(_rule); }
 
   /** return the input type of the unit */

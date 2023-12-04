@@ -35,6 +35,7 @@
 #include "TheoryAxioms.hpp"
 #include "Options.hpp"
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
@@ -47,8 +48,6 @@ using namespace Shell;
  */
 void TheoryAxioms::addAndOutputTheoryUnit(Unit* unit, unsigned level)
 {
-  CALL("TheoryAxioms::addAndOutputTheoryUnit");
-
   static Options::TheoryAxiomLevel opt_level = env.options->theoryAxioms();
   // if the theory axioms are some or off (want this case for some things like fool) and the axiom is not
   // a cheap one then don't add it
@@ -77,7 +76,6 @@ void TheoryAxioms::addAndOutputTheoryUnit(Unit* unit, unsigned level)
  */
 void TheoryAxioms::addTheoryClauseFromLits(std::initializer_list<Literal*> lits, InferenceRule rule, unsigned level)
 {
-  CALL("TheoryAxioms::addTheoryClauseFromLits");
   LiteralStack lit_stack;
   for (Literal* lit : lits) {
     ASS(lit);
@@ -94,7 +92,6 @@ void TheoryAxioms::addTheoryClauseFromLits(std::initializer_list<Literal*> lits,
  */
 void TheoryAxioms::addCommutativity(Interpretation op)
 {
-  CALL("TheoryAxioms::addCommutativity");
   ASS(theory->isFunction(op));
   ASS_EQ(theory->getArity(op),2);
 
@@ -115,7 +112,6 @@ void TheoryAxioms::addCommutativity(Interpretation op)
  */
 void TheoryAxioms::addAssociativity(Interpretation op)
 {
-  CALL("TheoryAxioms::addCommutativity");
   ASS(theory->isFunction(op));
   ASS_EQ(theory->getArity(op),2);
 
@@ -140,7 +136,6 @@ void TheoryAxioms::addAssociativity(Interpretation op)
  */
 void TheoryAxioms::addRightIdentity(Interpretation op, TermList e)
 {
-  CALL("TheoryAxioms::addRightIdentity");
   ASS(theory->isFunction(op));
   ASS_EQ(theory->getArity(op),2);
 
@@ -157,7 +152,6 @@ void TheoryAxioms::addRightIdentity(Interpretation op, TermList e)
  */
 void TheoryAxioms::addLeftIdentity(Interpretation op, TermList e)
 {
-  CALL("TheoryAxioms::addLeftIdentity");
   ASS(theory->isFunction(op));
   ASS_EQ(theory->getArity(op),2);
 
@@ -183,8 +177,6 @@ void TheoryAxioms::addLeftIdentity(Interpretation op, TermList e)
  */
 void TheoryAxioms::addCommutativeGroupAxioms(Interpretation op, Interpretation inverse, TermList e)
 {
-  CALL("TheoryAxioms::addCommutativeGroupAxioms");
-
   ASS(theory->isFunction(op));
   ASS_EQ(theory->getArity(op),2);
   ASS(theory->isFunction(inverse));
@@ -241,8 +233,6 @@ void TheoryAxioms::addRightInverse(Interpretation op, Interpretation inverse)
  */
 void TheoryAxioms::addNonReflexivity(Interpretation op)
 {
-  CALL("TheoryAxioms::addNonReflexivity");
-
   ASS(!theory->isFunction(op));
   ASS_EQ(theory->getArity(op),2);
 
@@ -257,7 +247,6 @@ void TheoryAxioms::addNonReflexivity(Interpretation op)
  */
 void TheoryAxioms::addTransitivity(Interpretation op)
 {
-  CALL("TheoryAxioms::addTransitivity");
   ASS(!theory->isFunction(op));
   ASS_EQ(theory->getArity(op),2);
 
@@ -278,7 +267,6 @@ void TheoryAxioms::addTransitivity(Interpretation op)
  */
 void TheoryAxioms::addOrderingTotality(Interpretation less)
 {
-  CALL("TheoryAxioms::addOrderingTotality");
   ASS(!theory->isFunction(less));
   ASS_EQ(theory->getArity(less),2);
 
@@ -300,8 +288,6 @@ void TheoryAxioms::addOrderingTotality(Interpretation less)
  */
 void TheoryAxioms::addTotalOrderAxioms(Interpretation less)
 {
-  CALL("TheoryAxioms::addTotalOrderAxioms");
-
   addNonReflexivity(less);
   addTransitivity(less);
   addOrderingTotality(less);
@@ -312,7 +298,6 @@ void TheoryAxioms::addTotalOrderAxioms(Interpretation less)
  */
 void TheoryAxioms::addMonotonicity(Interpretation less, Interpretation addition)
 {
-  CALL("TheoryAxioms::addMonotonicity");
   ASS(!theory->isFunction(less));
   ASS_EQ(theory->getArity(less),2);
   ASS(theory->isFunction(addition));
@@ -339,7 +324,6 @@ void TheoryAxioms::addMonotonicity(Interpretation less, Interpretation addition)
 void TheoryAxioms::addPlusOneGreater(Interpretation plus, TermList oneElement,
                                      Interpretation less)
 {
-  CALL("TheoryAxioms::addPlusOneGreater");
   ASS(!theory->isFunction(less));
   ASS_EQ(theory->getArity(less),2);
   ASS(theory->isFunction(plus));
@@ -360,8 +344,6 @@ void TheoryAxioms::addPlusOneGreater(Interpretation plus, TermList oneElement,
 void TheoryAxioms::addAdditionAndOrderingAxioms(Interpretation plus, Interpretation unaryMinus,
     TermList zeroElement, TermList oneElement, Interpretation less)
 {
-  CALL("TheoryAxioms::addAdditionAndOrderingAxioms");
-
   addCommutativeGroupAxioms(plus, unaryMinus, zeroElement);
   addTotalOrderAxioms(less);
   addMonotonicity(less, plus);
@@ -392,8 +374,6 @@ void TheoryAxioms::addAdditionAndOrderingAxioms(Interpretation plus, Interpretat
 void TheoryAxioms::addAdditionOrderingAndMultiplicationAxioms(Interpretation plus, Interpretation unaryMinus,
     TermList zeroElement, TermList oneElement, Interpretation less, Interpretation multiply)
 {
-  CALL("TheoryAxioms::addAdditionOrderingAndMultiplicationAxioms");
-
   TermList srt = theory->getOperationSort(plus);
   ASS_EQ(srt, theory->getOperationSort(unaryMinus));
   ASS_EQ(srt, theory->getOperationSort(less));
@@ -451,9 +431,6 @@ void TheoryAxioms::addIntegerDivisionWithModuloAxioms(Interpretation plus, Inter
                                 Interpretation modulo, Interpretation abs, TermList zeroElement,
                                 TermList oneElement)
 {
-  CALL("TheoryAxioms::addIntegerDivisionWithModuloAxioms");
-
-
   TermList srt = theory->getOperationSort(plus);
   ASS_EQ(srt, theory->getOperationSort(unaryMinus));
   ASS_EQ(srt, theory->getOperationSort(less));
@@ -506,8 +483,6 @@ void TheoryAxioms::addIntegerDivisionWithModuloAxioms(Interpretation plus, Inter
 
 void TheoryAxioms::addIntegerDividesAxioms(Interpretation divides, Interpretation multiply, TermList zero, TermList n)
 {
-  CALL("TheoryAxioms::addIntegerDividesAxioms");
-
 #if VDEBUG
   // ASSERT n>0
   ASS(theory->isInterpretedConstant(n)); 
@@ -550,8 +525,6 @@ void TheoryAxioms::addIntegerDividesAxioms(Interpretation divides, Interpretatio
 void TheoryAxioms::addIntegerAbsAxioms(Interpretation abs, Interpretation less, 
                                        Interpretation unaryMinus, TermList zeroElement)
 {
-  CALL("TheoryAxioms::addIntegerAbsAxioms");
-
   TermList srt = theory->getOperationSort(abs);
   ASS_EQ(srt, theory->getOperationSort(less));
   ASS_EQ(srt, theory->getOperationSort(unaryMinus));
@@ -585,8 +558,6 @@ void TheoryAxioms::addIntegerAbsAxioms(Interpretation abs, Interpretation less,
 void TheoryAxioms::addQuotientAxioms(Interpretation quotient, Interpretation multiply,
     TermList zeroElement, TermList oneElement, Interpretation less)
 {
-  CALL("TheoryAxioms::addQuotientAxioms");
-
   TermList srt = theory->getOperationSort(quotient);
   ASS_EQ(srt, theory->getOperationSort(multiply));
   ASS_EQ(srt, theory->getOperationSort(less));
@@ -630,8 +601,6 @@ void TheoryAxioms::addQuotientAxioms(Interpretation quotient, Interpretation mul
 void TheoryAxioms::addExtraIntegerOrderingAxiom(Interpretation plus, TermList oneElement,
                                                 Interpretation less)
 {
-  CALL("TheoryAxioms::addExtraIntegerOrderingAxiom");
-
   unsigned lessPred = env.signature->getInterpretingSymbol(less);
   unsigned plusFun = env.signature->getInterpretingSymbol(plus);
   TermList x(0,false);
@@ -650,8 +619,6 @@ void TheoryAxioms::addExtraIntegerOrderingAxiom(Interpretation plus, TermList on
 void TheoryAxioms::addFloorAxioms(Interpretation floor, Interpretation less, Interpretation unaryMinus,
      Interpretation plus, TermList oneElement)
 {
-  CALL("TheoryAxioms::addFloorAxioms");
-
   unsigned lessPred = env.signature->getInterpretingSymbol(less);
   unsigned plusFun = env.signature->getInterpretingSymbol(plus);
   unsigned umFun = env.signature->getInterpretingSymbol(unaryMinus);
@@ -679,8 +646,6 @@ void TheoryAxioms::addFloorAxioms(Interpretation floor, Interpretation less, Int
 void TheoryAxioms::addCeilingAxioms(Interpretation ceiling, Interpretation less, 
      Interpretation plus, TermList oneElement)
 {
-  CALL("TheoryAxioms::addCeilingAxioms");
-
   unsigned lessPred = env.signature->getInterpretingSymbol(less);
   unsigned plusFun = env.signature->getInterpretingSymbol(plus);
   unsigned ceilingFun = env.signature->getInterpretingSymbol(ceiling);
@@ -704,8 +669,6 @@ void TheoryAxioms::addCeilingAxioms(Interpretation ceiling, Interpretation less,
  */ 
 void TheoryAxioms::addRoundAxioms(Interpretation round, Interpretation floor, Interpretation ceiling)
 {
-  CALL("TheoryAxioms::addRoundAxioms");
-  
   //TODO... not that interesting as $round not in TPTP or translations
   // Suggested axioms:
   // round(x) = floor(x) | round(x) = ceiling(x)
@@ -734,8 +697,6 @@ void TheoryAxioms::addRoundAxioms(Interpretation round, Interpretation floor, In
 void TheoryAxioms::addTruncateAxioms(Interpretation truncate, Interpretation less, Interpretation unaryMinus,
                       Interpretation plus, TermList zeroElement, TermList oneElement)
 {
-  CALL("TheoryAxioms::addTruncateAxioms");
-
   unsigned lessPred = env.signature->getInterpretingSymbol(less);
   unsigned plusFun = env.signature->getInterpretingSymbol(plus);
   unsigned umFun = env.signature->getInterpretingSymbol(unaryMinus);
@@ -780,8 +741,6 @@ void TheoryAxioms::addTruncateAxioms(Interpretation truncate, Interpretation les
 */
 void TheoryAxioms::addArrayExtensionalityAxioms(TermList arraySort, unsigned skolemFn)
 {
-  CALL("TheoryAxioms::addArrayExtenstionalityAxioms");
-
   unsigned sel = env.signature->getInterpretingSymbol(Theory::ARRAY_SELECT,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_SELECT));
 
   TermList rangeSort = SortHelper::getInnerSort(arraySort);
@@ -807,8 +766,6 @@ void TheoryAxioms::addArrayExtensionalityAxioms(TermList arraySort, unsigned sko
  */
 void TheoryAxioms::addBooleanArrayExtensionalityAxioms(TermList arraySort, unsigned skolemFn)
 {
-  CALL("TheoryAxioms::addBooleanArrayExtenstionalityAxioms");
-
   OperatorType* selectType = Theory::getArrayOperatorType(arraySort,Theory::ARRAY_BOOL_SELECT);
 
   unsigned sel = env.signature->getInterpretingSymbol(Theory::ARRAY_BOOL_SELECT,selectType);
@@ -837,8 +794,6 @@ void TheoryAxioms::addBooleanArrayExtensionalityAxioms(TermList arraySort, unsig
 */
 void TheoryAxioms::addArrayWriteAxioms(TermList arraySort)
 {
-  CALL("TheoryAxioms::addArrayWriteAxioms");
-        
   unsigned func_select = env.signature->getInterpretingSymbol(Theory::ARRAY_SELECT,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_SELECT));
   unsigned func_store = env.signature->getInterpretingSymbol(Theory::ARRAY_STORE,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_STORE));
 
@@ -873,8 +828,6 @@ void TheoryAxioms::addArrayWriteAxioms(TermList arraySort)
 */
 void TheoryAxioms::addBooleanArrayWriteAxioms(TermList arraySort)
 {
-  CALL("TheoryAxioms::addArrayWriteAxioms");
-
   unsigned pred_select = env.signature->getInterpretingSymbol(Theory::ARRAY_BOOL_SELECT,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_BOOL_SELECT));
   unsigned func_store = env.signature->getInterpretingSymbol(Theory::ARRAY_STORE,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_STORE));
 
@@ -936,7 +889,6 @@ void TheoryAxioms::addBooleanArrayWriteAxioms(TermList arraySort)
  */
 void TheoryAxioms::apply()
 {
-  CALL("TheoryAxioms::applyProperty");
   Property* prop = _prb.getProperty();
   bool modified = false;
   bool haveIntPlus =
@@ -1135,8 +1087,6 @@ void TheoryAxioms::apply()
 } // TheoryAxioms::apply
 
 void TheoryAxioms::applyFOOL() {
-  CALL("TheoryAxioms::applyFOOL");
-
   TermList t(Term::foolTrue());
   TermList f(Term::foolFalse());
 
@@ -1171,9 +1121,13 @@ void TheoryAxioms::applyFOOL() {
  * of the exhaustiveness axiom formula depending on the value of some magic constants.
  */
 void TheoryAxioms::addExhaustivenessAxiom(TermAlgebra* ta) {
-  CALL("TheoryAxioms::addExhaustivenessAxiom");
-
   TermList x(0, false);
+  TermStack typeVars;
+  for (unsigned i = 0; i < ta->nTypeArgs(); i++) {
+    typeVars.push(TermList(i+1,false));
+  }
+  TermStack dargTerms = typeVars;
+  dargTerms.push(x);
 
   // Part 1: compute list of literals and set flag if a FOOL-destructor occurs
   Stack<Literal*> lits;
@@ -1182,16 +1136,17 @@ void TheoryAxioms::addExhaustivenessAxiom(TermAlgebra* ta) {
   Stack<TermList> argTerms;
   for (unsigned i = 0; i < ta->nConstructors(); i++) {
     TermAlgebraConstructor *c = ta->constructor(i);
-    argTerms.reset();
+    argTerms = typeVars;
 
-    for (unsigned j = 0; j < c->arity(); j++) {
+    for (unsigned j = ta->nTypeArgs(); j < c->arity(); j++) {
+      auto k = j-ta->nTypeArgs();
       if (c->argSort(j) == AtomicSort::boolSort()) {
         addsFOOL = true;
-        Literal* lit = Literal::create1(c->destructorFunctor(j), true, x);
+        Literal* lit = Literal::create(c->destructorFunctor(k), dargTerms.size(), true, false, dargTerms.begin());
         Term* t = Term::createFormula(new AtomicFormula(lit));
         argTerms.push(TermList(t));
       } else {
-        Term* t = Term::create1(c->destructorFunctor(j), x);
+        Term* t = Term::create(c->destructorFunctor(k), dargTerms.size(), dargTerms.begin());
         argTerms.push(TermList(t));
       }
     }
@@ -1232,16 +1187,18 @@ void TheoryAxioms::addExhaustivenessAxiom(TermAlgebra* ta) {
 }
 
 void TheoryAxioms::addDistinctnessAxiom(TermAlgebra* ta) {
-  CALL("TermAlgebra::addDistinctnessAxiom");
-
   Array<TermList> terms(ta->nConstructors());
 
   unsigned var = 0;
+  TermStack typeVars;
+  for (unsigned i = 0; i < ta->nTypeArgs(); i++) {
+    typeVars.push(TermList(var++,false));
+  }
   for (unsigned i = 0; i < ta->nConstructors(); i++) {
     TermAlgebraConstructor* c = ta->constructor(i);
 
-    Stack<TermList> args;
-    for (unsigned j = 0; j < c->arity(); j++) {
+    Stack<TermList> args = typeVars;
+    for (unsigned j = ta->nTypeArgs(); j < c->arity(); j++) {
       args.push(TermList(var++, false));
     }
     TermList term(Term::create(c->functor(), (unsigned)args.size(), args.begin()));
@@ -1258,15 +1215,19 @@ void TheoryAxioms::addDistinctnessAxiom(TermAlgebra* ta) {
 
 void TheoryAxioms::addInjectivityAxiom(TermAlgebra* ta)
 {
-  CALL("TheoryAxioms::addInjectivityAxiom");
+  TermStack typeVars;
+  unsigned var = 0;
+  for (unsigned i = 0; i < ta->nTypeArgs(); i++) {
+    typeVars.push(TermList(var++,false));
+  }
 
   for (unsigned i = 0; i < ta->nConstructors(); i++) {
     TermAlgebraConstructor* c = ta->constructor(i);
 
-    Stack<TermList> lhsArgs(c->arity());
-    Stack<TermList> rhsArgs(c->arity());
+    Stack<TermList> lhsArgs = typeVars;
+    Stack<TermList> rhsArgs = typeVars;
 
-    for (unsigned j = 0; j < c->arity(); j++) {
+    for (unsigned j = ta->nTypeArgs(); j < c->arity(); j++) {
       lhsArgs.push(TermList(j * 2, false));
       rhsArgs.push(TermList(j * 2 + 1, false));
     }
@@ -1275,7 +1236,7 @@ void TheoryAxioms::addInjectivityAxiom(TermAlgebra* ta)
     TermList rhs(Term::create(c->functor(), (unsigned)rhsArgs.size(), rhsArgs.begin()));
     Literal* eql = Literal::createEquality(false, lhs, rhs, ta->sort());
 
-    for (unsigned j = 0; j < c->arity(); j++) {
+    for (unsigned j = ta->nTypeArgs(); j < c->arity(); j++) {
       Literal* eqr = Literal::createEquality(true, TermList(j * 2, false), TermList(j * 2 + 1, false), c->argSort(j));
 
       addTheoryClauseFromLits({eql,eqr},InferenceRule::TERM_ALGEBRA_INJECTIVITY_AXIOM,CHEAP);
@@ -1284,14 +1245,17 @@ void TheoryAxioms::addInjectivityAxiom(TermAlgebra* ta)
 }
 
 void TheoryAxioms::addDiscriminationAxiom(TermAlgebra* ta) {
-  CALL("addDiscriminationAxiom");
-
+  TermStack args(ta->nTypeArgs());
+  unsigned v = 0;
+  for (unsigned i = 0; i < ta->nTypeArgs(); i++) {
+    args.push(TermList(v++,false));
+  }
   Array<TermList> cases(ta->nConstructors());
   for (unsigned i = 0; i < ta->nConstructors(); i++) {
     TermAlgebraConstructor* c = ta->constructor(i);
 
-    Stack<TermList> variables;
-    for (unsigned var = 0; var < c->arity(); var++) {
+    TermStack variables = args;
+    for (unsigned var = c->numTypeArguments(); var < c->arity(); var++) {
       variables.push(TermList(var, false));
     }
 
@@ -1305,7 +1269,9 @@ void TheoryAxioms::addDiscriminationAxiom(TermAlgebra* ta) {
     if (!constructor->hasDiscriminator()) continue;
 
     for (unsigned c = 0; c < cases.size(); c++) {
-      Literal* lit = Literal::create1(constructor->discriminator(), c == i, cases[c]);
+      args.push(cases[c]);
+      Literal* lit = Literal::create(constructor->discriminator(), args.size(), c == i, false, args.begin());
+      args.pop();
       addTheoryClauseFromLits({lit}, InferenceRule::TERM_ALGEBRA_DISCRIMINATION_AXIOM,CHEAP);
     }
   }
@@ -1313,8 +1279,6 @@ void TheoryAxioms::addDiscriminationAxiom(TermAlgebra* ta) {
 
 void TheoryAxioms::addAcyclicityAxiom(TermAlgebra* ta)
 {
-  CALL("TheoryAxioms::addAcyclicityAxiom");
-
   unsigned pred = ta->getSubtermPredicate();
 
   if (ta->allowsCyclicTerms()) {
@@ -1334,20 +1298,28 @@ void TheoryAxioms::addAcyclicityAxiom(TermAlgebra* ta)
     return;
   }
 
-  static TermList x(0, false);
+  TermStack args;
+  for (unsigned i = 0; i < ta->nTypeArgs(); i++) {
+    args.push(TermList(i,false));
+  }
+  args.push(TermList(ta->nTypeArgs(),false));
+  args.push(TermList(ta->nTypeArgs(),false));
 
-  Literal* sub = Literal::create2(pred, false, x, x);
+  Literal* sub = Literal::create(pred, ta->nTypeArgs()+2, false, false, args.begin());
   addTheoryClauseFromLits({sub}, InferenceRule::TERM_ALGEBRA_ACYCLICITY_AXIOM,CHEAP);
 }
 
 bool TheoryAxioms::addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraConstructor* c)
 {
-  CALL("TheoryAxioms::addSubtermDefinitions");
-
   TermList z(c->arity(), false);
 
-  Stack<TermList> args;
-  for (unsigned i = 0; i < c->arity(); i++) {
+  TermStack typeVars;
+  for (unsigned i = 0; i < c->numTypeArguments(); i++) {
+    typeVars.push(TermList(i,false));
+  }
+
+  Stack<TermList> args = typeVars;
+  for (unsigned i = c->numTypeArguments(); i < c->arity(); i++) {
     args.push(TermList(i, false));
   }
   TermList right(Term::create(c->functor(), (unsigned)args.size(), args.begin()));
@@ -1359,12 +1331,21 @@ bool TheoryAxioms::addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraC
     TermList y(i, false);
 
     // Direct subterms are subterms: Sub(y, c(x1, ... y ..., xn))
-    Literal* sub = Literal::create2(subtermPredicate, true, y, right);
+    TermStack subargs = typeVars;
+    subargs.push(y);
+    subargs.push(right);
+    Literal* sub = Literal::create(subtermPredicate, c->numTypeArguments()+2, true, false, subargs.begin());
     addTheoryClauseFromLits({sub}, InferenceRule::TERM_ALGEBRA_DIRECT_SUBTERMS_AXIOM,CHEAP);
 
     // Transitivity of the subterm relation: Sub(z, y) -> Sub(z, c(x1, ... y , xn))
-    Literal* trans1 = Literal::create2(subtermPredicate, false, z, y);
-    Literal* trans2 = Literal::create2(subtermPredicate, true,  z, right);
+    TermStack trans1args = typeVars;
+    trans1args.push(z);
+    trans1args.push(y);
+    Literal* trans1 = Literal::create(subtermPredicate, c->numTypeArguments()+2, false, false, trans1args.begin());
+    TermStack trans2args = typeVars;
+    trans2args.push(z);
+    trans2args.push(right);
+    Literal* trans2 = Literal::create(subtermPredicate, c->numTypeArguments()+2, true, false, trans2args.begin());
     addTheoryClauseFromLits({trans1,trans2}, InferenceRule::TERM_ALGEBRA_SUBTERMS_TRANSITIVE_AXIOM,CHEAP);
 
     added = true;

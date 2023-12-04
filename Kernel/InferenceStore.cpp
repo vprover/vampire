@@ -55,8 +55,6 @@ using namespace Shell;
 
 void InferenceStore::FullInference::increasePremiseRefCounters()
 {
-  CALL("InferenceStore::FullInference::increasePremiseRefCounters");
-
   for(unsigned i=0;i<premCnt;i++) {
     if (premises[i]->isClause()) {
       premises[i]->incRefCnt();
@@ -72,8 +70,6 @@ InferenceStore::InferenceStore()
 
 vstring InferenceStore::getUnitIdStr(Unit* cs)
 {
-  CALL("InferenceStore::getUnitIdStr");
-
   if (!cs->isClause()) {
     return Int::toString(cs->number());
   }
@@ -85,8 +81,6 @@ vstring InferenceStore::getUnitIdStr(Unit* cs)
  */
 void InferenceStore::recordSplittingNameLiteral(Unit* us, Literal* lit)
 {
-  CALL("InferenceStore::recordSplittingNameLiteral");
-
   //each clause is result of a splitting only once
   ALWAYS(_splittingNameLiterals.insert(us, lit));
 }
@@ -95,13 +89,11 @@ void InferenceStore::recordSplittingNameLiteral(Unit* us, Literal* lit)
 /**
  * Record the introduction of a new symbol
  */
-void InferenceStore::recordIntroducedSymbol(Unit* u, bool func, unsigned number)
+void InferenceStore::recordIntroducedSymbol(Unit* u, SymbolType st, unsigned number)
 {
-  CALL("InferenceStore::recordIntroducedSymbol");
-
   SymbolStack* pStack;
   _introducedSymbols.getValuePtr(u->number(),pStack);
-  pStack->push(SymbolId(func,number));
+  pStack->push(SymbolId(st,number));
 }
 
 /**
@@ -109,7 +101,6 @@ void InferenceStore::recordIntroducedSymbol(Unit* u, bool func, unsigned number)
  */
 void InferenceStore::recordIntroducedSplitName(Unit* u, vstring name)
 {
-  CALL("InferenceStore::recordIntroducedSplitName");
   ALWAYS(_introducedSplitNames.insert(u->number(),name));
 }
 
@@ -121,7 +112,6 @@ void InferenceStore::recordIntroducedSplitName(Unit* u, vstring name)
  */
 UnitIterator InferenceStore::getParents(Unit* us, InferenceRule& rule)
 {
-  CALL("InferenceStore::getParents/2");
   ASS_NEQ(us,0);
 
   // The unit itself stores the inference
@@ -148,8 +138,6 @@ UnitIterator InferenceStore::getParents(Unit* us, InferenceRule& rule)
  */
 UnitIterator InferenceStore::getParents(Unit* us)
 {
-  CALL("InferenceStore::getParents/1");
-
   InferenceRule aux;
   return getParents(us, aux);
 }
@@ -161,8 +149,6 @@ UnitIterator InferenceStore::getParents(Unit* us)
  */
 template<typename VarContainer>
 vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned,TermList>& t_map, bool innerParentheses=true){
-  CALL("getQuantifiedStr(VarContainer, vstring, map)");
-
   VirtualIterator<unsigned> vit=pvi( getContentIterator(vars) );
   vstring varStr;
   bool first=true;
@@ -171,7 +157,7 @@ vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned
     vstring ty="";
     TermList t;
 
-    if(t_map.find(var,t) && env.property->hasNonDefaultSorts()){
+    if(t_map.find(var,t) && env.getMainProblem()->hasNonDefaultSorts()){
       //hasNonDefaultSorts is true if the problem contains a sort
       //that is not $i and not a variable
       ty=" : " + t.toString();
@@ -207,7 +193,6 @@ vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned
 template<typename VarContainer>
 vstring getQuantifiedStr(const VarContainer& vars, vstring inner, bool innerParentheses=true)
 {
-  CALL("getQuantifiedStr(VarContainer, vstring)");
   static DHMap<unsigned,TermList> d;
   return getQuantifiedStr(vars,inner,d,innerParentheses);
 }
@@ -217,8 +202,6 @@ vstring getQuantifiedStr(const VarContainer& vars, vstring inner, bool innerPare
  */
 vstring getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
 {
-  CALL("getQuantifiedStr(Unit*...)");
-
   Set<unsigned> vars;
   vstring res;
   DHMap<unsigned,TermList> t_map;
@@ -263,22 +246,17 @@ struct UnitNumberComparator
 
 struct InferenceStore::ProofPrinter
 {
-  CLASS_NAME(InferenceStore::ProofPrinter);
   USE_ALLOCATOR(InferenceStore::ProofPrinter);
   
   ProofPrinter(ostream& out, InferenceStore* is)
   : _is(is), out(out)
   {
-    CALL("InferenceStore::ProofPrinter::ProofPrinter");
-
     outputAxiomNames=env.options->outputAxiomNames();
     delayPrinting=true;
   }
 
   void scheduleForPrinting(Unit* us)
   {
-    CALL("InferenceStore::ProofPrinter::scheduleForPrinting");
-
     outKernel.push(us);
     handledKernel.insert(us);
   }
@@ -287,8 +265,6 @@ struct InferenceStore::ProofPrinter
 
   virtual void print()
   {
-    CALL("InferenceStore::ProofPrinter::print");
-
     while(outKernel.isNonEmpty()) {
       Unit* cs=outKernel.pop();
       handleStep(cs);
@@ -313,8 +289,6 @@ protected:
 
   virtual void printStep(Unit* cs)
   {
-    CALL("InferenceStore::ProofPrinter::printStep");
-
     InferenceRule rule;
     UnitIterator parents=_is->getParents(cs, rule);
 
@@ -409,7 +383,6 @@ protected:
 
   void handleStep(Unit* cs)
   {
-    CALL("InferenceStore::ProofPrinter::handleStep");
     InferenceRule rule;
     UnitIterator parents=_is->getParents(cs, rule);
 
@@ -427,8 +400,6 @@ protected:
 
   void printDelayed()
   {
-    CALL("InferenceStore::ProofPrinter::printDelayed");
-
     // Sort
     sort<UnitNumberComparator>(delayed.begin(),delayed.end());
 
@@ -455,13 +426,10 @@ protected:
 struct InferenceStore::ProofPropertyPrinter
 : public InferenceStore::ProofPrinter
 {
-  CLASS_NAME(InferenceStore::ProofPropertyPrinter);
   USE_ALLOCATOR(InferenceStore::ProofPropertyPrinter);
 
   ProofPropertyPrinter(ostream& out, InferenceStore* is) : ProofPrinter(out,is)
   {
-    CALL("InferenceStore::ProofPropertyPrinter::ProofPropertyPrinter");
-
     max_theory_clause_depth = 0;
     for(unsigned i=0;i<11;i++){ buckets.push(0); }
     last_one = false;
@@ -543,7 +511,6 @@ protected:
 struct InferenceStore::TPTPProofPrinter
 : public InferenceStore::ProofPrinter
 {
-  CLASS_NAME(InferenceStore::TPTPProofPrinter);
   USE_ALLOCATOR(InferenceStore::TPTPProofPrinter);
   
   TPTPProofPrinter(ostream& out, InferenceStore* is)
@@ -603,13 +570,12 @@ protected:
 
   vstring splitsToString(SplitSet* splits)
   {
-    CALL("InferenceStore::TPTPProofPrinter::splitsToString");
     ASS_G(splits->size(),0);
 
     if (splits->size()==1) {
       return Saturation::Splitter::getFormulaStringFromName(splits->sval(),true /*negated*/);
     }
-    SplitSet::Iterator sit(*splits);
+    auto sit = splits->iter();
     vstring res("(");
     while(sit.hasNext()) {
       res+= Saturation::Splitter::getFormulaStringFromName(sit.next(),true /*negated*/);
@@ -623,8 +589,6 @@ protected:
 
   vstring quoteAxiomName(vstring n)
   {
-    CALL("InferenceStore::TPTPProofPrinter::quoteAxiomName");
-
     static vstring allowedFirst("0123456789abcdefghijklmnopqrstuvwxyz");
     const char* allowed="_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz";
 
@@ -637,11 +601,9 @@ protected:
 
   vstring getFofString(vstring id, vstring formula, vstring inference, InferenceRule rule, UnitInputType origin=UnitInputType::AXIOM)
   {
-    CALL("InferenceStore::TPTPProofPrinter::getFofString");
-
     vstring kind = "fof";
-    if(env.property->hasNonDefaultSorts()){ kind="tff"; }
-    if(env.property->higherOrder()){ kind="thf"; }
+    if(env.getMainProblem()->hasNonDefaultSorts()){ kind="tff"; }
+    if(env.getMainProblem()->isHigherOrder()){ kind="thf"; }
 
     return kind+"("+id+","+getRole(rule,origin)+",("+"\n"
 	+"  "+formula+"),\n"
@@ -650,8 +612,6 @@ protected:
 
   vstring getFormulaString(Unit* us)
   {
-    CALL("InferenceStore::TPTPProofPrinter::getFormulaString");
-
     vstring formulaStr;
     if (us->isClause()) {
       Clause* cl=us->asClause();
@@ -668,7 +628,6 @@ protected:
   }
 
   bool hasNewSymbols(Unit* u) {
-    CALL("InferenceStore::TPTPProofPrinter::hasNewSymbols");
     bool res = _is->_introducedSymbols.find(u->number());
     ASS(!res || _is->_introducedSymbols.get(u->number()).isNonEmpty());
     if(!res){
@@ -677,31 +636,28 @@ protected:
     return res;
   }
   vstring getNewSymbols(vstring origin, vstring symStr) {
-    CALL("InferenceStore::TPTPProofPrinter::getNewSymbols(vstring,vstring)");
     return "new_symbols(" + origin + ",[" +symStr + "])";
   }
   /** It is an iterator over SymbolId */
   template<class It>
   vstring getNewSymbols(vstring origin, It symIt) {
-    CALL("InferenceStore::TPTPProofPrinter::getNewSymbols(vstring,It)");
-
     vostringstream symsStr;
     while(symIt.hasNext()) {
       SymbolId sym = symIt.next();
-      if (sym.first) {
-	symsStr << env.signature->functionName(sym.second);
-      }
-      else {
-	symsStr << env.signature->predicateName(sym.second);
+      if (sym.first == SymbolType::FUNC ) {
+        symsStr << env.signature->functionName(sym.second);
+      } else if (sym.first == SymbolType::PRED){
+        symsStr << env.signature->predicateName(sym.second);
+      } else {
+        symsStr << env.signature->typeConName(sym.second);
       }
       if (symIt.hasNext()) {
-	symsStr << ',';
+        symsStr << ',';
       }
     }
     return getNewSymbols(origin, symsStr.str());
   }
   vstring getNewSymbols(vstring origin, Unit* u) {
-    CALL("InferenceStore::TPTPProofPrinter::getNewSymbols(vstring,Unit*)");
     ASS(hasNewSymbols(u));
 
     if(_is->_introducedSplitNames.find(u->number())){
@@ -714,8 +670,6 @@ protected:
 
   void printStep(Unit* us)
   {
-    CALL("InferenceStore::TPTPProofPrinter::printStep");
-
     InferenceRule rule;
     UnitIterator parents=_is->getParents(us, rule);
 
@@ -732,7 +686,6 @@ protected:
     default: ;
     }
 
-
     //get vstring representing the formula
 
     vstring formulaStr=getFormulaString(us);
@@ -743,21 +696,29 @@ protected:
     if (rule==InferenceRule::INPUT) {
       vstring fileName;
       if (env.options->inputFile()=="") {
-	fileName="unknown";
+	      fileName="unknown";
       }
       else {
-	fileName="'"+env.options->inputFile()+"'";
+	      fileName="'"+env.options->inputFile()+"'";
       }
       vstring axiomName;
       if (!outputAxiomNames || !Parse::TPTP::findAxiomName(us, axiomName)) {
-	axiomName="unknown";
+	      axiomName="unknown";
       }
       inferenceStr="file("+fileName+","+quoteAxiomName(axiomName)+")";
     }
     else if (!parents.hasNext()) {
       vstring newSymbolInfo;
       if (hasNewSymbols(us)) {
-	newSymbolInfo = getNewSymbols("naming",us);
+        vstring newSymbOrigin;
+        if (rule == InferenceRule::FUNCTION_DEFINITION ||
+          rule == InferenceRule::FOOL_ITE_DEFINITION || rule == InferenceRule::FOOL_LET_DEFINITION ||
+          rule == InferenceRule::FOOL_FORMULA_DEFINITION || rule == InferenceRule::FOOL_MATCH_DEFINITION) {
+          newSymbOrigin = "definition";
+        } else {
+          newSymbOrigin = "naming";
+        }
+	      newSymbolInfo = getNewSymbols(newSymbOrigin,us);
       }
       inferenceStr="introduced("+tptpRuleName(rule)+",["+newSymbolInfo+"])";
     }
@@ -765,7 +726,7 @@ protected:
       ASS(parents.hasNext());
       vstring statusStr;
       if (rule==InferenceRule::SKOLEMIZE) {
-	statusStr="status(esa),"+getNewSymbols("skolem",us);
+	      statusStr="status(esa),"+getNewSymbols("skolem",us);
       }
 
       inferenceStr="inference("+tptpRuleName(rule);
@@ -788,7 +749,6 @@ protected:
 
   void printSplitting(Unit* us)
   {
-    CALL("InferenceStore::TPTPProofPrinter::printSplitting");
     ASS(us->isClause());
 
     InferenceRule rule;
@@ -798,7 +758,7 @@ protected:
     vstring inferenceStr="inference("+tptpRuleName(rule)+",[],[";
 
     //here we rely on the fact that the base premise is always put as the first premise in
-    //GeneralSplitting::apply 
+    //GeneralSplitting::apply
 
     ALWAYS(parents.hasNext());
     Unit* base=parents.next();
@@ -817,7 +777,6 @@ protected:
 
   void printGeneralSplittingComponent(Unit* us)
   {
-    CALL("InferenceStore::TPTPProofPrinter::printGeneralSplittingComponent");
     ASS(us->isClause());
 
     InferenceRule rule;
@@ -829,7 +788,7 @@ protected:
     vstring defId=tptpDefId(us);
 
     out<<getFofString(tptpUnitId(us), getFormulaString(us),
-	"inference("+tptpRuleName(InferenceRule::CLAUSIFY)+",[],["+defId+"])", InferenceRule::CLAUSIFY)<<endl;
+	    "inference("+tptpRuleName(InferenceRule::CLAUSIFY)+",[],["+defId+"])", InferenceRule::CLAUSIFY)<<endl;
 
 
     List<unsigned>* nameVars=0;
@@ -842,20 +801,18 @@ protected:
 
     vstring compStr;
     List<unsigned>* compOnlyVars=0;
-    Clause::Iterator lits(*us->asClause());
     bool first=true;
     bool multiple=false;
-    while(lits.hasNext()) {
-      Literal* lit=lits.next();
+    for (Literal* lit : us->asClause()->iterLits()) {
       if (lit==nameLit) {
-	continue;
+	      continue;
       }
       if (first) {
-	first=false;
+	      first=false;
       }
       else {
-	multiple=true;
-	compStr+=" | ";
+	      multiple=true;
+	      compStr+=" | ";
       }
       compStr+=lit->toString();
 
@@ -876,7 +833,7 @@ protected:
     defStr=getQuantifiedStr(nameVars, defStr);
     List<unsigned>::destroy(nameVars);
 
-    SymbolId nameSymbol = SymbolId(false,nameLit->functor());
+    SymbolId nameSymbol = SymbolId(SymbolType::PRED,nameLit->functor());
     vostringstream originStm;
     originStm << "introduced(" << tptpRuleName(rule)
 	      << ",[" << getNewSymbols("naming",getSingletonIterator(nameSymbol))
@@ -887,7 +844,6 @@ protected:
 
   void printSplittingComponentIntroduction(Unit* us)
   {
-    CALL("InferenceStore::TPTPProofPrinter::printSplittingComponentIntroduction");
     ASS(us->isClause());
 
     Clause* cl=us->asClause();
@@ -901,7 +857,7 @@ protected:
     vstring defStr=getQuantifiedStr(cl)+" <=> ~"+splitPred;
 
     out<<getFofString(tptpUnitId(us), getFormulaString(us),
-  "inference("+tptpRuleName(InferenceRule::CLAUSIFY)+",[],["+defId+"])", InferenceRule::CLAUSIFY)<<endl;
+      "inference("+tptpRuleName(InferenceRule::CLAUSIFY)+",[],["+defId+"])", InferenceRule::CLAUSIFY)<<endl;
 
     vstringstream originStm;
     originStm << "introduced(" << tptpRuleName(rule)
@@ -916,26 +872,24 @@ protected:
 struct InferenceStore::ProofCheckPrinter
 : public InferenceStore::ProofPrinter
 {
-  CLASS_NAME(InferenceStore::ProofCheckPrinter);
   USE_ALLOCATOR(InferenceStore::ProofCheckPrinter);
-  
+
   ProofCheckPrinter(ostream& out, InferenceStore* is)
   : ProofPrinter(out, is) {}
 
 protected:
   void printStep(Unit* cs)
   {
-    CALL("InferenceStore::ProofCheckPrinter::printStep");
     InferenceRule rule;
     UnitIterator parents=_is->getParents(cs, rule);
- 
+
     //outputSymbolDeclarations also deals with sorts for now
     //UIHelper::outputSortDeclarations(out);
     UIHelper::outputSymbolDeclarations(out);
 
     vstring kind = "fof";
-    if(env.property->hasNonDefaultSorts()){ kind="tff"; } 
-    if(env.property->higherOrder()){ kind="thf"; }
+    if(env.getMainProblem()->hasNonDefaultSorts()){ kind="tff"; } 
+    if(env.getMainProblem()->isHigherOrder()){ kind="thf"; }
 
     out << kind
         << "(r"<<_is->getUnitIdStr(cs)
@@ -976,8 +930,8 @@ protected:
     case InferenceRule::AVATAR_REFUTATION:
     case InferenceRule::AVATAR_SPLIT_CLAUSE:
     case InferenceRule::AVATAR_CONTRADICTION_CLAUSE:
-    case InferenceRule::FOOL_LET_ELIMINATION:
-    case InferenceRule::FOOL_ITE_ELIMINATION:
+    case InferenceRule::FOOL_LET_DEFINITION:
+    case InferenceRule::FOOL_ITE_DEFINITION:
     case InferenceRule::FOOL_ELIMINATION:
     case InferenceRule::BOOLEAN_TERM_ENCODING:
     case InferenceRule::CHOICE_AXIOM:
@@ -997,8 +951,6 @@ protected:
 
 InferenceStore::ProofPrinter* InferenceStore::createProofPrinter(ostream& out)
 {
-  CALL("InferenceStore::createProofPrinter");
-
   switch(env.options->proof()) {
   case Options::Proof::ON:
     return new ProofPrinter(out, this);
@@ -1022,8 +974,6 @@ InferenceStore::ProofPrinter* InferenceStore::createProofPrinter(ostream& out)
  */
 void InferenceStore::outputUnsatCore(ostream& out, Unit* refutation)
 {
-  CALL("InferenceStore::outputUnsatCore(ostream&,Unit*)");
-
   out << "(" << endl;
 
   Stack<Unit*> todo;
@@ -1079,8 +1029,6 @@ void InferenceStore::outputUnsatCore(ostream& out, Unit* refutation)
  */
 void InferenceStore::outputProof(ostream& out, Unit* refutation)
 {
-  CALL("InferenceStore::outputProof(ostream&,Unit*)");
-
   ProofPrinter* p = createProofPrinter(out);
   if (!p) {
     return;
@@ -1096,8 +1044,6 @@ void InferenceStore::outputProof(ostream& out, Unit* refutation)
  */
 void InferenceStore::outputProof(ostream& out, UnitList* units)
 {
-  CALL("InferenceStore::outputProof(ostream&,UnitList*)");
-
   ProofPrinter* p = createProofPrinter(out);
   if (!p) {
     return;

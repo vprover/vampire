@@ -25,7 +25,6 @@ using Kernel::TermList;
 namespace Shell {
   class TermAlgebraConstructor {
   public:
-    CLASS_NAME(TermAlgebraConstructor);
     USE_ALLOCATOR(TermAlgebraConstructor);
 
     /* A term algebra constructor, described by its name, range,
@@ -37,6 +36,7 @@ namespace Shell {
     ~TermAlgebraConstructor() {}
 
     unsigned arity() const;
+    unsigned numTypeArguments() const;
     TermList argSort(unsigned ith) const;
     TermList rangeSort() const;
 
@@ -50,11 +50,7 @@ namespace Shell {
     unsigned destructorFunctor(unsigned ith) { return _destructors[ith]; }
 
     bool hasDiscriminator() { return _hasDiscriminator; }
-    unsigned discriminator() { ASS(_hasDiscriminator); return _discriminator; }
-    unsigned createDiscriminator();
-    void addDiscriminator(unsigned d) { ASS(!_hasDiscriminator); _hasDiscriminator = true; _discriminator = d; }
-
-    Lib::vstring discriminatorName();
+    unsigned discriminator();
  
     class IterArgSorts 
     {
@@ -78,6 +74,8 @@ namespace Shell {
    
     friend std::ostream& operator<<(std::ostream& out, TermAlgebraConstructor const& self);
   private:
+    Lib::vstring discriminatorName();
+
     Kernel::OperatorType* _type;
     unsigned _functor;
     bool _hasDiscriminator;
@@ -89,7 +87,6 @@ namespace Shell {
 
   class TermAlgebra {
   public:
-    CLASS_NAME(TermAlgebra);
     USE_ALLOCATOR(TermAlgebra);
 
 
@@ -110,6 +107,7 @@ namespace Shell {
                 bool allowsCyclicTerms = false);
     ~TermAlgebra() {}
 
+    unsigned nTypeArgs() const { return _sort.term()->arity(); }
     unsigned nConstructors() const { return _n; }
     TermList sort() const { return _sort; }
     TermAlgebraConstructor* constructor(unsigned ith) { ASS_L(ith, _n); return _constrs[ith]; }
@@ -134,17 +132,15 @@ namespace Shell {
     { return Lib::iterTraits(IterCons(*this)); }
 
 
-    /** returns all sorts contained in this term algebra, including the term algebra sort itself. 
-     * consider for example: 
-     *  intList ::= Cons(int,      intList) | Nil
-     * listList ::= Cons(intList, listList) | Nil
+    /** returns all sorts contained in the term algebra instance `sort`, including `sort` itself.
+     * consider for example:
+     *  nat      ::= S(nat)                           | Zero
+     *  atree(x) ::= Node(atree(x), x, nat, atree(x)) | Leaf
+     *  intp     ::= P(int,int)
      *
-     * then listList.subSorts() == { int, intList, listLit }
+     * then subSorts(atree(intp)) == { int, nat, intp, atree(intp) }
      */
-    Lib::Set<TermList> subSorts();
-  private:
-    void subSorts(Lib::Set<unsigned>);
-  public:
+    static Lib::Set<TermList> subSorts(TermList sort);
 
     bool allowsCyclicTerms() { return _allowsCyclicTerms; }
 
@@ -164,6 +160,7 @@ namespace Shell {
        -tac is set to "axiom"*/
     Lib::vstring getSubtermPredicateName();
     unsigned getSubtermPredicate();
+    void getTypeSub(Kernel::Term* t, Kernel::Substitution& subst);
 
     friend std::ostream& operator<<(std::ostream& out, TermAlgebra const& self);
   private:

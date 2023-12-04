@@ -37,6 +37,7 @@
 namespace Inferences
 {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
@@ -59,14 +60,12 @@ public:
   }
   VirtualIterator<pair<Literal*,RobSubstitution*> > operator() (pair<unsigned,unsigned> nums)
   {
-    CALL("Factoring::UnificationsFn::operator()");
-
     Literal* l1 = (*_cl)[nums.first];
     Literal* l2 = (*_cl)[nums.second];
 
     //we assume there are no duplicate literals
     ASS(l1!=l2);
-    ASS_EQ(_subst->size(),0);
+    ASS(_subst->isEmpty());
 
     if(l1->isEquality()) {
       //We don't perform factoring with equalities
@@ -106,8 +105,6 @@ public:
   : _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ord(ord) {}
   Clause* operator() (pair<Literal*,RobSubstitution*> arg)
   {
-    CALL("Factoring::ResultsFn::operator()");
-
     unsigned newLength = _cLen-1;
     Clause* res = new(newLength) Clause(newLength,
         GeneratingInference1(InferenceRule::FACTORING,_cl));
@@ -171,8 +168,6 @@ private:
  */
 ClauseIterator Factoring::generateClauses(Clause* premise)
 {
-  CALL("Factoring::generateClauses");
-
   if(premise->length()<=1) {
     return ClauseIterator::getEmpty();
   }

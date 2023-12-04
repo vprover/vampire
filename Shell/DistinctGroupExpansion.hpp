@@ -26,14 +26,13 @@ using namespace Kernel;
  */
 class DistinctGroupExpansion {
 public:
-  static const unsigned EXPAND_UP_TO_SIZE = 140;
-
-  DistinctGroupExpansion(){}
+  DistinctGroupExpansion(unsigned expandUpToSize) : _expandUpToSize(expandUpToSize) {}
 
   void apply(Problem& prb);
   bool apply(UnitList*& units);
   Formula* expand(Stack<unsigned>& constants);
-
+private:
+  unsigned _expandUpToSize;
 };
 
 

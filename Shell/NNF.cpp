@@ -34,7 +34,6 @@ using namespace Shell;
  */
 FormulaUnit* NNF::ennf(FormulaUnit* unit)
 {
-  CALL("NNF::ennf(Unit* u)");
   ASS(! unit->isClause());
 
   Formula* f = unit->formula();
@@ -64,7 +63,6 @@ FormulaUnit* NNF::ennf(FormulaUnit* unit)
  */
 FormulaUnit* NNF::nnf(FormulaUnit* unit)
 {
-  CALL("NNF::nnf(Unit*)");
   ASS(! unit->isClause());
 
   Formula* f = unit->formula();
@@ -94,8 +92,6 @@ FormulaUnit* NNF::nnf(FormulaUnit* unit)
  */
 Formula* NNF::ennf (Formula* f, bool polarity)
 {
-  CALL("NNF::ennf(Formula*...)");
-
   Connective c = f->connective();
   switch (c) {
   case LITERAL:
@@ -206,8 +202,6 @@ Formula* NNF::ennf (Formula* f, bool polarity)
 
 Literal* NNF::ennf(Literal* l)
 {
-  CALL("NNF::ennf(Literal*...)");
-
   if (l->shared()) {
     return l;
   }
@@ -233,8 +227,6 @@ Literal* NNF::ennf(Literal* l)
 
 TermList NNF::ennf(TermList ts, bool polarity)
 {
-  CALL("NNF::ennf(TermList...)");
-
   if (ts.isVar()) {
     return ts;
   }
@@ -255,8 +247,8 @@ TermList NNF::ennf(TermList ts, bool polarity)
 
   if (term->isSpecial()) {
     Term::SpecialTermData* sd = term->getSpecialData();
-    switch (sd->getType()) {
-      case Term::SF_FORMULA: {
+    switch (sd->specialFunctor()) {
+      case Term::SpecialFunctor::FORMULA: {
         Formula* f = sd->getFormula();
         Formula* ennfF = ennf(f, polarity);
         switch (ennfF->connective()) {
@@ -275,7 +267,7 @@ TermList NNF::ennf(TermList ts, bool polarity)
         break;
       }
 
-      case Term::SF_ITE: {
+      case Term::SpecialFunctor::ITE: {
         TermList thenBranch = *term->nthArgument(0);
         TermList elseBranch = *term->nthArgument(1);
         Formula* condition  = sd->getCondition();
@@ -294,7 +286,7 @@ TermList NNF::ennf(TermList ts, bool polarity)
         break;
       }
 
-      case Term::SF_LET: {
+      case Term::SpecialFunctor::LET: {
         TermList binding = sd->getBinding();
         TermList body = *term->nthArgument(0);
 
@@ -309,7 +301,7 @@ TermList NNF::ennf(TermList ts, bool polarity)
         break;
       }
 
-      case Term::SF_LET_TUPLE: {
+      case Term::SpecialFunctor::LET_TUPLE: {
         TermList binding = sd->getBinding();
         TermList body = *term->nthArgument(0);
 
@@ -324,7 +316,7 @@ TermList NNF::ennf(TermList ts, bool polarity)
         break;
       }
 
-      case Term::SF_TUPLE: {
+      case Term::SpecialFunctor::TUPLE: {
         TermList tupleTerm = TermList(sd->getTupleTerm());
         TermList ennfTupleTerm = ennf(tupleTerm, true);
 
@@ -337,7 +329,9 @@ TermList NNF::ennf(TermList ts, bool polarity)
         break;
       }
 
-      case Term::SF_MATCH: {
+      case Term::SpecialFunctor::LAMBDA:
+        NOT_IMPLEMENTED;
+      case Term::SpecialFunctor::MATCH: {
         DArray<TermList> terms(term->arity());
         bool unchanged = true;
         for (unsigned i = 0; i < term->arity(); i++) {
@@ -351,9 +345,8 @@ TermList NNF::ennf(TermList ts, bool polarity)
         return TermList(Term::createMatch(sd->getSort(), sd->getMatchedSort(), term->arity(), terms.begin()));
       }
 
-      default:
-        ASSERTION_VIOLATION;
     }
+    ASSERTION_VIOLATION;
   }
 
   bool changed = false;
@@ -391,8 +384,6 @@ TermList NNF::ennf(TermList ts, bool polarity)
  */
 FormulaList* NNF::ennf (FormulaList* fs, bool polarity)
 {
-  CALL("NNF::ennf(FormulaList*...)");
-
   if (FormulaList::isEmpty(fs)) {
     return fs;
   }
@@ -431,8 +422,6 @@ FormulaList* NNF::ennf (FormulaList* fs, bool polarity)
  */
 Formula* NNF::nnf (Formula* f, bool polarity)
 {
-  CALL("NNF::nnf(Formula*...)");
-
   Connective c = f->connective();
   switch (c) {
   case LITERAL:
@@ -542,8 +531,6 @@ Formula* NNF::nnf (Formula* f, bool polarity)
  */
 FormulaList* NNF::nnf (FormulaList* fs, bool polarity)
 {
-  CALL("NNF::nnf(FormulaList*...)");
-
   if (FormulaList::isEmpty(fs)) {
     return fs;
   }

@@ -32,6 +32,8 @@
 namespace Kernel
 {
 
+using namespace std;
+
 /**
  * Return true if symbol number @c functor is transparent. If @c predicate
  * is true, we assume @c functor to be predicate number, otherwise it is
@@ -39,8 +41,6 @@ namespace Kernel
  */
 bool ColorHelper::isTransparent(bool predicate, unsigned functor)
 {
-  CALL("ColorHelper::isTransparent");
-
   Signature::Symbol* sym;
   if (predicate) {
     sym = env.signature->getPredicate(functor);
@@ -53,8 +53,6 @@ bool ColorHelper::isTransparent(bool predicate, unsigned functor)
 
 bool ColorHelper::hasColoredPredicates(Clause* c)
 {
-  CALL("ColorHelper::hasColoredPredicates");
-
   unsigned clen = c->length();
   for (unsigned i=0; i<clen; i++) {
     Literal* lit = (*c)[i];
@@ -73,8 +71,6 @@ bool ColorHelper::hasColoredPredicates(Clause* c)
  */
 void ColorHelper::collectColoredConstants(Clause* c, Stack<Term*>& acc)
 {
-  CALL("ColorHelper::collectColoredConstants");
-
   unsigned clen = c->length();
   for (unsigned i=0; i<clen; i++) {
     Literal* lit = (*c)[i];
@@ -95,8 +91,6 @@ void ColorHelper::collectColoredConstants(Clause* c, Stack<Term*>& acc)
 
 Clause* ColorHelper::skolemizeColoredConstants(Clause* c)
 {
-  CALL("ColorHelper::skolemizeColoredConstants");
-
   Stack<Term*> coloredConstants;
   collectColoredConstants(c,coloredConstants);
   if (coloredConstants.isEmpty()) {
@@ -106,7 +100,7 @@ Clause* ColorHelper::skolemizeColoredConstants(Clause* c)
   unsigned clen = c->length();
   static LiteralStack resStack;
   resStack.reset();
-  resStack.loadFromIterator(Clause::Iterator(*c));
+  resStack.loadFromIterator(c->iterLits());
 
   ASS_EQ(resStack.size(), clen);
 
@@ -126,8 +120,6 @@ Clause* ColorHelper::skolemizeColoredConstants(Clause* c)
 
 void ColorHelper::ensureSkolemReplacement(Term* t, TermMap& map)
 {
-  CALL("ColorHelper::ensureSkolemReplacement");
-
   //TODO: check also for generalization, or even better, first
   //find the most general colored terms, and make skolem replacements
   //only for those
@@ -152,8 +144,6 @@ void ColorHelper::ensureSkolemReplacement(Term* t, TermMap& map)
 
 void ColorHelper::collectSkolemReplacements(Clause* c, TermMap& map)
 {
-  CALL("ColorHelper::collectSkolemReplacements");
-
   unsigned clen = c->length();
   for (unsigned i=0; i<clen; i++) {
     Literal* lit = (*c)[i];
@@ -172,8 +162,6 @@ void ColorHelper::collectSkolemReplacements(Clause* c, TermMap& map)
 
 Term* ColorHelper::applyReplacement(Term* t, TermMap& map)
 {
-  CALL("ColorHelper::applyReplacement");
-
   Renaming r;
   r.normalizeVariables(t);
   Term* norm = r.apply(t);
@@ -191,8 +179,6 @@ Term* ColorHelper::applyReplacement(Term* t, TermMap& map)
 
 Clause* ColorHelper::skolemizeColoredTerms(Clause* c)
 {
-  CALL("ColorHelper::skolemizeColoredTerms");
-
   static TermMap replMap;
   replMap.reset();
 
@@ -228,8 +214,6 @@ Clause* ColorHelper::skolemizeColoredTerms(Clause* c)
 
 void ColorHelper::tryUnblock(Clause* c, SaturationAlgorithm* salg)
 {
-  CALL("ColorHelper::tryUnblock");
-
 //  if (hasOnlyColoredConstants(c)) {
   if (!hasColoredPredicates(c)) {
 //    Clause* unblocked = skolemizeColoredConstants(c);

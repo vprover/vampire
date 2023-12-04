@@ -40,8 +40,6 @@ using namespace Lib;
 class CodeTreeTIS : public TermIndexingStructure<TermLiteralClause>
 {
 public:
-
-  CLASS_NAME(CodeTreeTIS);
   USE_ALLOCATOR(CodeTreeTIS);
 
   /* INFO: we ignore unifying the sort of the keys here */
@@ -65,28 +63,11 @@ private:
 
   TermCodeTree _ct;
 };
-/*
-class CodeTreeLIS : public LiteralIndexingStructure
-{
-public:
-  void insert(Literal* lit, Clause* cls);
-  void remove(Literal* lit, Clause* cls);
-
-  SLQueryResultIterator getGeneralizations(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions = true);
-private:
-  struct LiteralInfo;
-  class ResultIterator;
-
-  TermCodeTree _ct;
-};
-*/
 
 class CodeTreeSubsumptionIndex
 : public ClauseSubsumptionIndex
 {
 public:
-  CLASS_NAME(CodeTreeSubsumptionIndex);
   USE_ALLOCATOR(CodeTreeSubsumptionIndex);
 
   ClauseSResResultIterator getSubsumingOrSResolvingClauses(Clause* c, bool subsumptionResolution);

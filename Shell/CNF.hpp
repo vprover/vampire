@@ -43,6 +43,8 @@ public:
   void clausify (Unit*,Stack<Clause*>& stack);
 private:
   void clausify(Formula*);
+  // the original recurisive version (for documentation and reference)
+  // void clausify_rec(Formula*);
   /** The unit currently being processed */
   FormulaUnit* _unit;
   /** stack to collect the results */

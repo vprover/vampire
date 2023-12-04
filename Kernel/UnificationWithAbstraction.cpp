@@ -8,8 +8,8 @@
  * and in the source directory
  */
 /**
- * @file MismatchHandler.cpp
- * Defines class MismatchHandler.
+ * @file UnificationWithAbstraction.cpp
+ * Defines class AbstractionOracle.
  *
  */
 
@@ -24,61 +24,40 @@
 #include "Term.hpp"
 #include "RobSubstitution.hpp"
 
-#include "MismatchHandler.hpp"
+#include "UnificationWithAbstraction.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "NumTraits.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Debug/Output.hpp"
+#include "Debug/Tracer.hpp"
 #define DEBUG(...) // DBG(__VA_ARGS__)
 #define DEBUG_FINALIZE(LVL, ...) if (LVL <= 0) DBG(__VA_ARGS__)
 
 namespace Kernel
 {
 
-  
-// pair<TermList, int>& TermSpec::deref()
-// { return _deref.unwrapOrInit([&]() { 
-//     auto t = _subs->derefBound(RobSubstitution::TermSpec(_term, _index));
-//     return make_pair(t.term, t.index);
-//   }); }
-
-// TermSpec TermSpec::termArg(unsigned i)
-// { return TermSpec(*_subs, term()->termArg(i), index(i + nTypeArgs())); }
-
-// TermSpec::TermSpec(RobSubstitution& subs, TermList term, int index)
-//   : _subs(&subs)
-//   , _self(make_pair(term, index))
-// {
-// }
-
-
-// TermSpec TermSpec::typeArg(unsigned i)
-// { return TermSpec(*_subs, term()->typeArg(i), index(i)); }
-
-Shell::Options::UnificationWithAbstraction MismatchHandler::create()
+Shell::Options::UnificationWithAbstraction AbstractionOracle::create()
 {
   if (env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF) {
     return env.options->unificationWithAbstraction();
-  } else if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.property->higherOrder()) { 
-    // TODO  ask ahmed: are this the corret options for higher order abstraction
+  } else if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.getMainProblem()->getProperty()->higherOrder()) { 
     return Options::UnificationWithAbstraction::FUNC_EXT;
   } else {
     return Options::UnificationWithAbstraction::OFF;
   }
 }
 
-Shell::Options::UnificationWithAbstraction MismatchHandler::createOnlyHigherOrder()
+Shell::Options::UnificationWithAbstraction AbstractionOracle::createOnlyHigherOrder()
 {
-  if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.property->higherOrder()) { 
-    // TODO  ask ahmed: are this the corret options for higher order abstraction
+  if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.getMainProblem()->getProperty()->higherOrder()) { 
     return Options::UnificationWithAbstraction::FUNC_EXT;
   } else {
     return Options::UnificationWithAbstraction::OFF;
   }
 }
 
-bool MismatchHandler::isInterpreted(unsigned functor) const 
+bool AbstractionOracle::isInterpreted(unsigned functor) const 
 {
   auto f = env.signature->getFunction(functor);
   return f->interpreted() || f->termAlgebraCons();
@@ -90,6 +69,7 @@ class AcIter {
   Recycled<Stack<TermSpec>> _todo;
   RobSubstitution const* _subs;
 public:
+
   AcIter(unsigned function, TermSpec t, RobSubstitution const* subs) : _function(function), _todo(), _subs(subs) 
   { _todo->push(std::move(t)); }
 
@@ -100,21 +80,19 @@ public:
   TermSpec next() {
     ASS(!_todo->isEmpty());
     auto t = _todo->pop();
-    auto* dt = &t.deref(_subs);
+    auto* dt = &_subs->derefBound(t);
     while (dt->isTerm() && dt->functor() == _function) {
       ASS_EQ(dt->nTermArgs(), 2);
       _todo->push(dt->termArg(1));
       t = dt->termArg(0);
-      dt = &t.deref(_subs);
+      dt = &_subs->derefBound(t);
     }
-    return dt->clone();
+    return *dt;
   }
 };
 
-
-bool MismatchHandler::canAbstract(AbstractingUnifier* au, TermSpec const& t1, TermSpec const& t2) const 
+bool AbstractionOracle::canAbstract(AbstractingUnifier* au, TermSpec const& t1, TermSpec const& t2) const 
 {
-
   if(!(t1.isTerm() && t2.isTerm())) return false;
   if(t1.isSort() || t2.isSort()) return false;
 
@@ -145,52 +123,62 @@ bool MismatchHandler::canAbstract(AbstractingUnifier* au, TermSpec const& t1, Te
   ASSERTION_VIOLATION;
 }
 
-Option<MismatchHandler::AbstractionResult> funcExt(
+Option<AbstractionOracle::AbstractionResult> funcExt(
     AbstractingUnifier* au, 
     TermSpec const& t1, TermSpec const& t2)
 {
-  CALL("HOMismatchHandler::tryAbstract")
   ASS(t1.isTerm() || t2.isTerm())
-  ASS(!t1.isSpecialVar())
-  ASS(!t2.isSpecialVar())
+  ASS(!t1.term.isSpecialVar())
+  ASS(!t2.term.isSpecialVar())
 
   auto isApp = [](auto& t) { return env.signature->isAppFun(t.functor()); };
   if ( (t1.isTerm() && t1.isSort()) 
-    || (t2.isTerm() && t2.isSort()) ) return Option<MismatchHandler::AbstractionResult>();
+    || (t2.isTerm() && t2.isSort()) ) return Option<AbstractionOracle::AbstractionResult>();
   if (t1.isTerm() && t2.isTerm()) {
     if (isApp(t1) && isApp(t2)) {
-      auto argSort1 = t1.typeArg(0).deref(&au->subs()).clone();
-      auto argSort2 = t2.typeArg(0).deref(&au->subs()).clone();
+      auto argSort1 = au->subs().derefBound(t1.typeArg(0));
+      auto argSort2 = au->subs().derefBound(t2.typeArg(0));
       if (t1.isVar() || t2.isVar()
        || env.signature->isArrowCon(argSort1.functor())
        || env.signature->isArrowCon(argSort2.functor())
+       || env.signature->isBoolCon(argSort1.functor())
+       || env.signature->isBoolCon(argSort2.functor())
        ) {
-        return some(MismatchHandler::AbstractionResult(MismatchHandler::EqualIf()
-              .unify (UnificationConstraint(t1.termArg(0), t2.termArg(0)))
-              .constr(UnificationConstraint(t1.termArg(1), t2.termArg(1)))));
+        auto& arg1 = au->subs().derefBound(t1.termArg(1));
+        auto& arg2 = au->subs().derefBound(t2.termArg(1));
+        auto out = AbstractionOracle::EqualIf()
+              .unify (UnificationConstraint(t1.typeArg(0), t2.typeArg(0)),
+                      UnificationConstraint(t1.typeArg(1), t2.typeArg(1)),
+                      UnificationConstraint(t1.termArg(0), t2.termArg(0)));
+
+        auto argsEq = UnificationConstraint(arg1, arg2);
+        auto res = some(AbstractionOracle::AbstractionResult(
+              // if both are variables we don't want to introduce a constraint
+              arg1.isVar() && arg2.isVar()
+                ? std::move(out).unify(std::move(argsEq))
+                : std::move(out).constr(std::move(argsEq)))) ;
+        return res;
       }
     }
   }
-  return Option<MismatchHandler::AbstractionResult>();
+  return Option<AbstractionOracle::AbstractionResult>();
 }
 
 
-Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(AbstractingUnifier* au, TermSpec const& t1, TermSpec const& t2) const
+Option<AbstractionOracle::AbstractionResult> AbstractionOracle::tryAbstract(AbstractingUnifier* au, TermSpec const& t1, TermSpec const& t2) const
 {
-  CALL("MismatchHandler::checkUWA");
   using Uwa = Shell::Options::UnificationWithAbstraction;
   ASS(_mode != Uwa::OFF)
 
 
-  // TODO add parameter instead of reading from options
   if (_mode == Uwa::AC1 || _mode == Uwa::AC2) {
       if (!(t1.isTerm() && theory->isInterpretedFunction(t1.functor(), IntTraits::addI))
        || !(t2.isTerm() && theory->isInterpretedFunction(t2.functor(), IntTraits::addI))) {
         return Option<AbstractionResult>();
       }
-      auto a1 = iterTraits(AcIter(IntTraits::addF(), t1.clone(), &au->subs())).template collect<Stack>();
-      auto a2 = iterTraits(AcIter(IntTraits::addF(), t2.clone(), &au->subs())).template collect<Stack>();
-      auto cmp = [&](TermSpec const& lhs, TermSpec const& rhs) { return TermSpec::compare(lhs, rhs, [&](auto& t) -> TermSpec const& { return t.deref(&au->subs()); }); };
+      auto a1 = iterTraits(AcIter(IntTraits::addF(), t1, &au->subs())).template collect<Stack>();
+      auto a2 = iterTraits(AcIter(IntTraits::addF(), t2, &au->subs())).template collect<Stack>();
+      auto cmp = [&](TermSpec const& lhs, TermSpec const& rhs) { return TermSpec::compare(lhs, rhs, [&](auto& t) -> TermSpec const& { return au->subs().derefBound(t); }); };
       auto less = [&](TermSpec const& lhs, TermSpec const& rhs) { return cmp(lhs, rhs) < 0; };
       a1.sort(less);
       a2.sort(less);
@@ -199,13 +187,13 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(Abstract
       Recycled<Stack<TermSpec>> diff2_;
       auto& diff1 = *diff1_;
       auto& diff2 = *diff2_;
-      diff1.moveFromIterator(iterSortedDiff(arrayIter(a1), arrayIter(a2), cmp).map([](auto& x) -> TermSpec { return x.clone(); }));
-      diff2.moveFromIterator(iterSortedDiff(arrayIter(a2), arrayIter(a1), cmp).map([](auto& x) -> TermSpec { return x.clone(); }));
-      auto sum = [](auto& diff) {
+      diff1.moveFromIterator(iterSortedDiff(arrayIter(a1), arrayIter(a2), cmp));
+      diff2.moveFromIterator(iterSortedDiff(arrayIter(a2), arrayIter(a1), cmp));
+      auto sum = [&](auto& diff) {
           return arrayIter(diff)
-            .map([](auto& x) { return x.clone(); })
-            .fold([](auto l, auto r) 
-              { return TermSpec(IntTraits::addF(), std::move(l), std::move(r)); })
+            .map([](TermSpec& t) -> TermSpec { return t; })
+            .fold([&](TermSpec l, TermSpec r) -> TermSpec
+              { return au->subs().createTerm(IntTraits::addF(), l, r); })
             .unwrap(); };
       auto diffConstr = [&]() 
       { return UnificationConstraint(sum(diff1), sum(diff2)); };
@@ -245,7 +233,7 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(Abstract
     auto abs = canAbstract(au, t1, t2);
     DEBUG("canAbstract(", t1, ",", t2, ") = ", abs);
     return someIf(abs, [&](){
-        return AbstractionResult(EqualIf().constr(UnificationConstraint(t1.clone(), t2.clone())));
+        return AbstractionResult(EqualIf().constr(UnificationConstraint(t1, t2)));
     });
   }
 }
@@ -253,10 +241,9 @@ Option<MismatchHandler::AbstractionResult> MismatchHandler::tryAbstract(Abstract
 void UnificationConstraintStack::add(UnificationConstraint c, Option<BacktrackData&> bd)
 { 
   DEBUG("introduced constraint: ", c)
+  _cont.push(c);
   if (bd) {
-    backtrackablePush(_cont, std::move(c), *bd); 
-  } else {
-    _cont.push(std::move(c));
+    bd->addClosure([this]() { _cont.pop(); });
   }
 }
 
@@ -265,7 +252,7 @@ UnificationConstraint UnificationConstraintStack::pop(Option<BacktrackData&> bd)
 { 
   auto old = _cont.pop();
   if (bd) {
-    bd->addClosure([this, old = old.clone()]() mutable { _cont.push(std::move(old)); });
+    bd->addClosure([this, old]() mutable { _cont.push(std::move(old)); });
   }
   return old;
 }
@@ -293,7 +280,6 @@ Option<Literal*> UnificationConstraint::toLiteral(RobSubstitution& s)
 
 bool AbstractingUnifier::fixedPointIteration()
 {
-  CALL("AbstractionResult::fixedPointIteration");
   Recycled<Stack<UnificationConstraint>> todo;
   while (!constr().isEmpty()) { 
     todo->push(constr().pop(bd()));
@@ -304,7 +290,7 @@ bool AbstractingUnifier::fixedPointIteration()
     auto c = todo->pop();
     DEBUG_FINALIZE(2, "popped: ", c);
     bool progress;
-    auto res = unify(c.lhs().clone(), c.rhs().clone(), progress);
+    auto res = unify(c.lhs(), c.rhs(), progress);
     if (!res) {
       DEBUG_FINALIZE(1, "finalizing failed");
       return false;
@@ -320,6 +306,24 @@ bool AbstractingUnifier::fixedPointIteration()
   return true;
 }
 
+Option<Recycled<Stack<unsigned>>> AbstractingUnifier::unifiableSymbols(unsigned f)
+{
+  auto anything = []() -> Option<Recycled<Stack<unsigned>>> { return {}; };
+  auto nothing  = []() -> Option<Recycled<Stack<unsigned>>> { return some(recycledStack<unsigned>()); };
+  switch (_uwa._mode) {
+    case Options::UnificationWithAbstraction::OFF: return some(recycledStack(f));
+    case Options::UnificationWithAbstraction::INTERP_ONLY: return theory->isInterpretedFunction(f) ? anything() : some(recycledStack(f));
+    case Options::UnificationWithAbstraction::ONE_INTERP: return anything();
+    case Options::UnificationWithAbstraction::CONSTANT: return theory->isInterpretedConstant(f) ? anything() : nothing();
+    case Options::UnificationWithAbstraction::ALL: return anything();
+    case Options::UnificationWithAbstraction::GROUND: anything();
+    case Options::UnificationWithAbstraction::FUNC_EXT: anything();
+    case Options::UnificationWithAbstraction::AC1: return some(recycledStack(f));
+    case Options::UnificationWithAbstraction::AC2: return some(recycledStack(f));
+  }
+  ASSERTION_VIOLATION
+}
+
 bool AbstractingUnifier::unify(TermList term1, unsigned bank1, TermList term2, unsigned bank2)
 {
   if (_uwa._mode == Shell::Options::UnificationWithAbstraction::OFF) 
@@ -332,7 +336,6 @@ bool AbstractingUnifier::unify(TermList term1, unsigned bank1, TermList term2, u
 #define DEBUG_UNIFY(LVL, ...) if (LVL <= 0) DBG(__VA_ARGS__)
 bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
 {
-  CALL("AbstractionResult::unify");
   ASS_NEQ(_uwa._mode, Shell::Options::UnificationWithAbstraction::OFF) 
   DEBUG_UNIFY(1, *this, ".unify(", t1, ",", t2, ")")
   progress = false;
@@ -345,13 +348,13 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
   auto impl = [&]() -> bool {
 
     Recycled<Stack<UnificationConstraint>> toDo;
-    toDo->push(UnificationConstraint(t1.clone(), t2.clone()));
+    toDo->push(UnificationConstraint(t1, t2));
     
     // Save encountered unification pairs to avoid
     // recomputing their unification
     Recycled<DHSet<UnificationConstraint>> encountered;
 
-    Option<MismatchHandler::AbstractionResult> absRes;
+    Option<AbstractionOracle::AbstractionResult> absRes;
     auto doAbstract = [&](auto& l, auto& r) -> bool
     { 
       absRes = _uwa.tryAbstract(this, l, r);
@@ -373,17 +376,17 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
         //   toDo.push(pair);
         // } else 
         if (!encountered->find(pair)) {
-          encountered->insert(pair.clone());
+          encountered->insert(pair);
           toDo->push(std::move(pair));
         }
     };
 
     auto occurs = [this](auto& var, auto& term) {
       Recycled<Stack<TermSpec>> todo;
-      todo->push(term.clone());
+      todo->push(term);
       while (todo->isNonEmpty()) {
         auto t = todo->pop();
-        auto& dt = t.deref(&subs());
+        auto& dt = subs().derefBound(t);
         if (dt.isVar()) {
           if (dt == var) {
             return true;
@@ -398,29 +401,29 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
 
     while (toDo->isNonEmpty()) {
       auto cur = toDo->pop();
-      auto& dt1 = cur.lhs().deref(&subs());
-      auto& dt2 = cur.rhs().deref(&subs());
+      auto& dt1 = subs().derefBound(cur.lhs());
+      auto& dt2 = subs().derefBound(cur.rhs());
       DEBUG_UNIFY(2, "popped: ", dt1, " = ", dt2)
       if (dt1 == dt2) {
         progress = true;
 
       } else if(dt1.isVar() && !occurs(dt1, dt2)) {
         progress = true;
-        subs().bind(dt1.varSpec(), dt2.clone());
+        subs().bind(dt1.varSpec(), dt2);
 
       } else if(dt2.isVar() && !occurs(dt2, dt1)) {
         progress = true;
-        subs().bind(dt2.varSpec(), dt1.clone());
+        subs().bind(dt2.varSpec(), dt1);
 
       } else if(doAbstract(dt1, dt2)) {
 
         ASS(absRes);
-        if (absRes->is<MismatchHandler::NeverEqual>()) {
+        if (absRes->is<AbstractionOracle::NeverEqual>()) {
           return false;
 
         } else {
-          ASS(absRes->is<MismatchHandler::EqualIf>())
-          auto& conditions = absRes->unwrap<MismatchHandler::EqualIf>();
+          ASS(absRes->is<AbstractionOracle::EqualIf>())
+          auto& conditions = absRes->unwrap<AbstractionOracle::EqualIf>();
           auto eq = [](UnificationConstraint& c, TermSpec const& lhs, TermSpec const& rhs) 
           { 
             return (c.lhs() == lhs && c.rhs() == rhs) 
@@ -469,6 +472,6 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
     localBD.drop();
   }
 
-  DEBUG_UNIFY(1, *this)
+  DEBUG_UNIFY(1, *this, " (", success ? "success" : "fail", ")")
   return success;
 }

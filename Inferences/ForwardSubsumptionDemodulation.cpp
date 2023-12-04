@@ -44,7 +44,6 @@ using namespace Saturation;
 
 void ForwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
 {
-  CALL("ForwardSubsumptionDemodulation::attach");
   ForwardSimplificationEngine::attach(salg);
 
   _index.request(salg->getIndexManager(), FSD_SUBST_TREE);
@@ -60,7 +59,6 @@ void ForwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
 
 void ForwardSubsumptionDemodulation::detach()
 {
-  CALL("ForwardSubsumptionDemodulation::detach");
   _index.release();
   ForwardSimplificationEngine::detach();
 }
@@ -68,8 +66,6 @@ void ForwardSubsumptionDemodulation::detach()
 
 bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
-  CALL("ForwardSubsumptionDemodulation::perform");
-
   //                        cl
   //                 vvvvvvvvvvvvvvvv
   //     mcl       matched      /-- only look for a term to demodulate in this part!
@@ -409,7 +405,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
           ASS(!env.options->combinatorySup());
           NonVariableNonTypeIterator nvi(dlit);
           while (nvi.hasNext()) {
-            TermList lhsS = TermList(nvi.next());  // named 'lhsS' because it will be matched against 'lhs'
+            TypedTermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'
 
             if (!attempted.insert(lhsS)) {
               // We have already tried to demodulate the term lhsS and did not
@@ -420,7 +416,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
               continue;
             }
 
-            TermList const lhsSSort = SortHelper::getTermSort(lhsS, dlit);
+            auto lhsSSort = lhsS.sort();
 
             ASS_LE(lhsVector.size(), 2);
             for (TermList lhs : lhsVector) {

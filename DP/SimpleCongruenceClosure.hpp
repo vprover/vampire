@@ -48,7 +48,6 @@ using namespace Kernel;
 class SimpleCongruenceClosure : public DecisionProcedure
 {
 public:
-  CLASS_NAME(SimpleCongruenceClosure);
   USE_ALLOCATOR(SimpleCongruenceClosure);
 
   SimpleCongruenceClosure(Ordering* ord);
@@ -87,7 +86,7 @@ private:
    *
    * Is used for the shallow representation of the currifyed terms.
    */
-  typedef pair<unsigned,unsigned> CPair;
+  typedef std::pair<unsigned,unsigned> CPair;
   /** Equality between two constants */
   struct CEq
   {
@@ -140,7 +139,6 @@ private:
   * i.e. the representative for its congruence class
   */
   unsigned deref(unsigned c) const {
-    CALL("SimpleCongruenceClosure::deref");
     unsigned repr = _cInfos[c].reprConst;
     unsigned res = (repr==0) ? c : repr;
     ASS_REP2(_cInfos[res].reprConst==0, _cInfos[res].reprConst, c);
@@ -267,7 +265,7 @@ private:
   /**
    * Map from signature symbols to the local constant numbers.
    */
-  DHMap<pair<unsigned,SignatureKind>,unsigned> _sigConsts;
+  DHMap<std::pair<unsigned,SignatureKind>,unsigned> _sigConsts;
 
   typedef DHMap<CPair,unsigned> PairMap;
   /** Names of constant pairs (modulo the congruence!)*/

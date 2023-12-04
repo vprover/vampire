@@ -9,10 +9,13 @@
  */
 
 #include "PolynomialNormalizer.hpp"
+#include "Kernel/BottomUpEvaluation.hpp"
 
 #define DEBUG(...) //DBG(__VA_ARGS__)
 
 namespace Kernel {
+
+using namespace std;
 
 /** a struct that normalizes an object of type MonomFactors to a Monom */
 struct RenderMonom {
@@ -20,7 +23,6 @@ struct RenderMonom {
   template<class NumTraits>
   Monom<NumTraits> operator()(MonomFactors<NumTraits>&& x) const 
   { 
-    CALL("RenderMonom::operator()(MonomFactors<Numeral>&&)")
     using Numeral      = typename NumTraits::ConstantType;
     using Monom        = Monom       <NumTraits>;
     auto& raw = x.raw();
@@ -85,7 +87,6 @@ struct RenderPolyNf {
 
 template<class NumTraits>
 NormalizationResult normalizeAdd(NormalizationResult& lhs, NormalizationResult& rhs) {
-  CALL("normalizeAdd")
   using Polynom = Polynom<NumTraits>;
   using Monom = Monom<NumTraits>;
   using MonomFactors = MonomFactors<NumTraits>;
@@ -133,7 +134,6 @@ NormalizationResult normalizeAdd(NormalizationResult& lhs, NormalizationResult& 
 
 template<class NumTraits>
 NormalizationResult normalizeMul(NormalizationResult& lhs, NormalizationResult& rhs) {
-  CALL("normalizeMul")
   using Polynom = Polynom<NumTraits>;
   using MonomFactors = MonomFactors<NumTraits>;
   using MonomFactor = MonomFactor<NumTraits>;
@@ -254,7 +254,9 @@ Option<NormalizationResult> normalizeDiv(NormalizationResult& lhs, Normalization
   using Numeral = typename NumTraits::ConstantType;
 
   auto num = rhs.apply(TryNumeral<NumTraits>{});
-  if (num.isSome() && num.unwrap() != Numeral(0)) {
+  if (num.isSome() &&
+      num.unwrap() != Numeral(0) && // don't divide by zero
+      num.unwrap() != Numeral(numeric_limits<int>::min())) { // also don't divide by min_int, it also can't be inverted in a reasonable way!
     auto inv = wrapNumeral(Numeral(1) / num.unwrap());
     return Option<NormalizationResult>(normalizeMul<NumTraits>(inv, lhs)); 
   } else {
@@ -274,7 +276,6 @@ NormalizationResult normalizeMinus(NormalizationResult& x) {
 template<class NumTraits>
 NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts) 
 {
-  CALL("normalizeNumSort(TermList,NormalizationResult)")
   auto singletonProduct = [](PolyNf t) -> NormalizationResult {
     return NormalizationResult(MonomFactors<NumTraits>(t));
   };
@@ -309,7 +310,7 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts)
     return singletonProduct(PolyNf(perfect(FuncTerm(
         fn, 
         Stack<PolyNf>::fromIterator(
-            iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.numTermArguments()))
+            iterTraits(arrayIter(ts, fn.numTermArguments()))
             .map( [](NormalizationResult& r) -> PolyNf { return std::move(r).apply(RenderPolyNf{}); }))
       )
     )));
@@ -324,61 +325,50 @@ NormalizationResult normalizeNumSort(TermList t, NormalizationResult* ts)
 
 PolyNf normalizeTerm(TypedTermList t) 
 {
-  CALL("PolyNf::normalize")
   DEBUG("normalizing ", t)
-  Memo::None<TypedTermList,NormalizationResult> memo;
-  struct Eval 
-  {
-    using Arg    = TypedTermList;
-    using Result = NormalizationResult;
+  NormalizationResult r = BottomUpEvaluation<TypedTermList, NormalizationResult>()
+    .function(
+        [&](TypedTermList t, NormalizationResult* ts) -> NormalizationResult 
+        { 
+          auto sort = t.sort();
+          if (sort ==  IntTraits::sort()) { return normalizeNumSort< IntTraits>(t, ts); }
+          if (sort ==  RatTraits::sort()) { return normalizeNumSort< RatTraits>(t, ts); }
+          if (sort == RealTraits::sort()) { return normalizeNumSort<RealTraits>(t, ts); }
+          else {
+            if (t.isVar()) {
+              return NormalizationResult(PolyNf(Variable(t.var())));
+            } else {
+              auto fn = FuncId::symbolOf(t.term());
+              return NormalizationResult(PolyNf(perfect(FuncTerm(
+                  fn, 
+                  Stack<PolyNf>::fromIterator(
+                      iterTraits(arrayIter(ts, fn.numTermArguments()))
+                      .map( [](NormalizationResult& r) -> PolyNf { return std::move(r).apply(RenderPolyNf{}); }))
+                )
+              )));
+            }
+          }
+        })
+    .apply(t);
 
-    NormalizationResult operator()(TypedTermList t, NormalizationResult* ts) const
-    { 
-      CALL("normalizeTerm(TypedTermList)::eval::operator()")
-      auto sort = t.sort();
-      if (sort ==  IntTraits::sort()) { return normalizeNumSort< IntTraits>(t, ts); }
-      if (sort ==  RatTraits::sort()) { return normalizeNumSort< RatTraits>(t, ts); }
-      if (sort == RealTraits::sort()) { return normalizeNumSort<RealTraits>(t, ts); }
-      else {
-        if (t.isVar()) {
-          return NormalizationResult(PolyNf(Variable(t.var())));
-        } else {
-          auto fn = FuncId::symbolOf(t.term());
-          return NormalizationResult(PolyNf(perfect(FuncTerm(
-              fn, 
-              Stack<PolyNf>::fromIterator(
-                  iterTraits(getArrayishObjectIterator<mut_ref_t>(ts, fn.numTermArguments()))
-                  .map( [](NormalizationResult& r) -> PolyNf { return std::move(r).apply(RenderPolyNf{}); }))
-            )
-          )));
-        }
-      }
-
-    }
-  };
-  NormalizationResult r = evaluateBottomUp(t, Eval{}, memo);
   return std::move(r).apply(RenderPolyNf{});
 }
 
 TermList PolyNf::denormalize() const
 { 
-  CALL("PolyNf::denormalize")
   DEBUG("converting ", *this)
-  struct Eval 
-  {
-    using Arg    = PolyNf;
-    using Result = TermList;
-
-    TermList operator()(PolyNf orig, TermList* results)
-    { return orig.match(
-        [&](Perfect<FuncTerm> t) { return TermList(Term::create(t->function().id(), t->numTermArguments(), results)); },
-        [&](Variable          v) { return TermList::var(v.id()); },
-        [&](AnyPoly           p) { return p.denormalize(results); }
-        ); }
-  };
 
   static Memo::Hashed<PolyNf, TermList, StlHash> memo;
-  return evaluateBottomUp(*this, Eval{}, memo);
+  return BottomUpEvaluation<PolyNf, TermList>()
+    .function(
+        [&](PolyNf orig, TermList* results) -> TermList
+        { return orig.match(
+            [&](Perfect<FuncTerm> t) { return TermList(Term::create(t->function().id(), t->numTermArguments(), results)); },
+            [&](Variable          v) { return TermList::var(v.id()); },
+            [&](AnyPoly           p) { return p.denormalize(results); }
+            ); })
+    .memo(memo)
+    .apply(*this);
 }
 
 

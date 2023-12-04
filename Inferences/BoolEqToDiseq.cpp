@@ -44,8 +44,6 @@ typedef ApplicativeHelper AH;
 
 ClauseIterator BoolEqToDiseq::generateClauses(Clause* cl)
 {
-  CALL("PrimitiveInstantiation::generateClauses");
-
   unsigned pos = 0;
   Literal* newLit = 0;
 

@@ -140,9 +140,6 @@ private:
   /** The list of definitions produced by naming for this unit*/
   UnitList* _defs;
 
-  // set of already-introduced definitions (when -dr on), and whether they are iff
-  DHMap<Literal *, bool> _already_seen;
-
   /** Replaces the two functions below with a non-recursive implementation. */
   Formula* apply_iter(Formula* top_f);
 

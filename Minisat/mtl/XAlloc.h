@@ -29,7 +29,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <cerrno>
 #include <cstdlib>
 
-#include "Lib/Allocator.hpp"
+#include "Lib/Timer.hpp"
 
 namespace Minisat {
 
@@ -39,7 +39,8 @@ namespace Minisat {
 class OutOfMemoryException{};
 static inline void* xrealloc(void *ptr, size_t size)
 {
-    void* mem = REALLOC_UNKNOWN(ptr, size, "Minisat::xrealloc");
+    Lib::TimeoutProtector tp;
+    void* mem = std::realloc(ptr, size);
     if (mem == NULL && errno == ENOMEM){
         throw OutOfMemoryException();
     }else
@@ -48,7 +49,8 @@ static inline void* xrealloc(void *ptr, size_t size)
 
 static inline void xfree (void* ptr)
 {
-  DEALLOC_UNKNOWN(ptr,"Minisat::xrealloc");
+    Lib::TimeoutProtector tp;
+    std::free(ptr);
 }
 
 //=================================================================================================

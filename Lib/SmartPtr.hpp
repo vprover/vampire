@@ -20,7 +20,6 @@
 #include "Forwards.hpp"
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -31,7 +30,6 @@ template<typename T>
 class SmartPtr {
 private:
   struct RefCounter {
-    CLASS_NAME(SmartPtr::RefCounter);
     USE_ALLOCATOR(SmartPtr::RefCounter);
   
     inline explicit RefCounter(int v) : _val(v) {}
@@ -73,8 +71,6 @@ public:
   }
   SmartPtr& operator=(const SmartPtr& ptr)
   {
-    CALL("SmartPtr::operator=");
-
     T* oldObj=_obj;
     RefCounter* oldCnt=_refCnt;
     _obj=ptr._obj;

@@ -35,14 +35,12 @@ using namespace Indexing;
 
 IndexManager::IndexManager(SaturationAlgorithm* alg) 
   : _alg(alg) 
-  , _uwa(MismatchHandler::create())
+  , _uwa(AbstractionOracle::create())
   , _uwaFixedPointIteration(env.options->unificationWithAbstractionFixedPointIteration())
 { }
 
 Index* IndexManager::request(IndexType t)
 {
-  CALL("IndexManager::request");
-
   Entry e;
   if(_store.find(t,e)) {
     e.refCnt++;
@@ -56,8 +54,6 @@ Index* IndexManager::request(IndexType t)
 
 void IndexManager::release(IndexType t)
 {
-  CALL("IndexManager::release");
-
   Entry e=_store.get(t);
 
   e.refCnt--;
@@ -93,7 +89,6 @@ Index* IndexManager::get(IndexType t)
  */
 void IndexManager::provideIndex(IndexType t, Index* index)
 {
-  CALL("IndexManager::provideIndex");
   ASS(!_store.find(t));
 
   Entry e;
@@ -104,8 +99,6 @@ void IndexManager::provideIndex(IndexType t, Index* index)
 
 Index* IndexManager::create(IndexType t)
 {
-  CALL("IndexManager::create");
-
   Index* res;
   using TermSubstitutionTree    = Indexing::TermSubstitutionTree<TermLiteralClause>;
   using LiteralSubstitutionTree = Indexing::LiteralSubstitutionTree<LiteralClause>;
@@ -129,8 +122,16 @@ Index* IndexManager::create(IndexType t)
     res = new UnitClauseLiteralIndex(new LiteralSubstitutionTree());
     isGenerating = true;
     break;
+  case URR_UNIT_CLAUSE_WITH_AL_SUBST_TREE:
+    res=new UnitClauseWithALLiteralIndex(new LiteralSubstitutionTree());
+    isGenerating = true;
+    break;
   case URR_NON_UNIT_CLAUSE_SUBST_TREE:
     res  =new NonUnitClauseLiteralIndex(new LiteralSubstitutionTree());
+    isGenerating = true;
+    break;
+  case URR_NON_UNIT_CLAUSE_WITH_AL_SUBST_TREE:
+    res=new NonUnitClauseWithALLiteralIndex(new LiteralSubstitutionTree());
     isGenerating = true;
     break;
 

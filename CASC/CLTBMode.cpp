@@ -18,7 +18,6 @@
 #include <cstdlib>
 #include <csignal>
 #include <sstream>
-#include "Lib/Allocator.hpp"
 
 #include "Lib/Portability.hpp"
 
@@ -63,8 +62,6 @@ using namespace Saturation;
  */
 void CLTBMode::perform()
 {
-  CALL("CLTBMode::perform");
-
   if (env.options->inputFile() == "") {
     USER_ERROR("Input file must be specified for ltb mode");
   }
@@ -127,8 +124,6 @@ void CLTBMode::perform()
  */
 void CLTBMode::solveBatch(istream& batchFile, bool first,vstring inputDirectory)
 {
-  CALL("CLTBMode::solveBatch(istream& batchfile)");
-
   // this is the time in milliseconds since the start when this batch file should terminate
   _timeUsedByPreviousBatches = env.timer->elapsedMilliseconds();
   coutLineOutput() << "Starting Vampire on the batch file " << "\n";
@@ -244,8 +239,6 @@ void CLTBMode::solveBatch(istream& batchFile, bool first,vstring inputDirectory)
 
 void CLTBMode::loadIncludes()
 {
-  CALL("CLTBMode::loadIncludes");
-
   UnitList* theoryAxioms=0;
   {
     TIME_TRACE(TimeTrace::PARSING);
@@ -278,14 +271,13 @@ void CLTBMode::loadIncludes()
   //ensure we scan the theory axioms for property here, so we don't need to
   //do it afterward in each problem
   _baseProblem->getProperty();
+  env.setMainProblem(_baseProblem.ptr());
   env.statistics->phase=Statistics::UNKNOWN_PHASE;
 } // CLTBMode::loadIncludes
 
 
 void CLTBMode::learnFromSolutionFile(vstring& solnFileName)
 {
-  CALL("CLTBMode::learnFromSolutionFile");
-
     ifstream soln(solnFileName.c_str());
     if (soln.fail()) {
       return; // ignore if we cannot get the solution file
@@ -380,8 +372,6 @@ void CLTBMode::learnFromSolutionFile(vstring& solnFileName)
 
 void CLTBMode::doTraining()
 {
-  CALL("CLTBMode::doTraining");
-
   env.beginOutput();
   env.out() << "Training in LTB currently unsupported" << endl;
   env.endOutput();
@@ -426,8 +416,6 @@ void CLTBMode::doTraining()
  */
 int CLTBMode::readInput(istream& in, bool first)
 {
-  CALL("CLTBMode::readInput");
-
   vstring line, word;
 
   if(first){
@@ -634,7 +622,6 @@ void CLTBProblem::fillSchedule(Schedule& sched,const Shell::Property* property,i
  */
 void CLTBProblem::performStrategy(int terminationTime,int timeLimit,Category category,const Shell::Property* property)
 {
-  CALL("CLTBProblem::performStrategy");
   cout << "% Hi Geoff, go and have some cold beer while I am trying to solve this very hard problem!\n";
 
   Schedule quick;
@@ -668,7 +655,6 @@ void CLTBProblem::performStrategy(int terminationTime,int timeLimit,Category cat
  */
 void CLTBProblem::searchForProof(int terminationTime,int timeLimit,const Category category)
 {
-  CALL("CLTBProblem::searchForProof");
   TIME_TRACE("search for proof")
 
   System::registerForSIGHUPOnParentDeath();
@@ -745,8 +731,6 @@ void CLTBProblem::searchForProof(int terminationTime,int timeLimit,const Categor
  */
 void CLTBProblem::exitOnNoSuccess()
 {
-  CALL("CLTBProblem::exitOnNoSuccess");
-
   env.beginOutput();
   CLTBMode::lineOutput() << "Proof not found in time " << Timer::msToSecondsString(env.timer->elapsedMilliseconds()) << endl;
   if (env.remainingTime()/100>0) {
@@ -778,8 +762,6 @@ static unsigned milliToDeci(unsigned timeInMiliseconds) {
  */
 bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,int terminationTime)
 {
-  CALL("CLTBProblem::runSchedule");
-
   // compute the number of parallel processes depending on the
   // number of available cores
   int parallelProcesses;
@@ -884,7 +866,6 @@ bool CLTBProblem::runSchedule(Schedule& schedule,StrategySet& used,int terminati
  */
 void CLTBProblem::waitForChildAndExitWhenProofFound()
 {
-  CALL("CLTBProblem::waitForChildAndExitWhenProofFound");
   ASS(!childIds.isEmpty());
 
   int resValue;
@@ -925,8 +906,6 @@ void CLTBProblem::terminatingSignalHandler(int sigNum)
  */
 void CLTBProblem::runSlice(vstring sliceCode, unsigned timeLimitInMilliseconds)
 {
-  CALL("CLTBProblem::runSlice");
-
   Options opt = *env.options;
   opt.readFromEncodedOptions(sliceCode);
   opt.setTimeLimitInDeciseconds(milliToDeci(timeLimitInMilliseconds));
@@ -944,7 +923,6 @@ void CLTBProblem::runSlice(vstring sliceCode, unsigned timeLimitInMilliseconds)
  */
 void CLTBProblem::runSlice(Options& strategyOpt)
 {
-  CALL("CLTBProblem::runSlice(Option&)");
   TIME_TRACE_NEW_ROOT("run slice")
 
   System::registerForSIGHUPOnParentDeath();
@@ -1000,7 +978,6 @@ void CLTBProblem::runSlice(Options& strategyOpt)
     env.endOutput();
   }
 
-  STOP_CHECKING_FOR_ALLOCATOR_BYPASSES;
   exit(resultValue);
 } // CLTBProblem::runSlice
 
@@ -1012,8 +989,6 @@ void CLTBProblem::runSlice(Options& strategyOpt)
  */
 unsigned CLTBProblem::getSliceTime(vstring sliceCode,vstring& chopped)
 {
-  CALL("CASCMode::getSliceTime");
-
   unsigned pos = sliceCode.find_last_of('_');
   vstring sliceTimeStr = sliceCode.substr(pos+1);
   chopped.assign(sliceCode.substr(0,pos));
@@ -1037,7 +1012,6 @@ unsigned CLTBProblem::getSliceTime(vstring sliceCode,vstring& chopped)
  */
 ostream& CLTBMode::lineOutput()
 {
-  CALL("CLTBMode::lineOutput");
   return env.out() << "% (" << getpid() << ',' << (env.timer->elapsedMilliseconds()/100)/10.0 << ") ";
 } // CLTBMode::lineOutput
 
@@ -1049,6 +1023,5 @@ ostream& CLTBMode::lineOutput()
  */
 ostream& CLTBMode::coutLineOutput()
 {
-  CALL("CLTBMode::lineOutput");
   return cout << "% (" << getpid() << ',' << (env.timer->elapsedMilliseconds()/100)/10.0 << ") ";
 } // CLTBMode::coutLineOutput

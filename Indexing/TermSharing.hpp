@@ -30,19 +30,17 @@ namespace Indexing {
 class TermSharing
 {
 public:
-  CLASS_NAME(TermSharing);
   USE_ALLOCATOR(TermSharing);
 
   TermSharing();
   ~TermSharing();
 
-  Term* insert(Term*);
-  Term* insertRecurrently(Term*);
-
-  AtomicSort* insert(AtomicSort*);
-
-  Literal* insert(Literal*);
-  Literal* insertVariableEquality(Literal* lit,TermList sort);
+  // TODO we should probably inline the common path where a term already exists
+  // not quite sure what that todo exactly meant but I think it should be resolved now (?)
+  void computeAndSetSharedTermData(Term*);
+  void computeAndSetSharedSortData(AtomicSort*);
+  void computeAndSetSharedLiteralData(Literal*);
+  void computeAndSetSharedVarEqData(Literal*, TermList eqSort);
 
   Literal* tryGetOpposite(Literal* l);
 
@@ -56,7 +54,14 @@ public:
   { return t->hash(); }
   static bool equals(const Term* t1,const Term* t2);
 
-  static bool equals(const Literal* l1, const Literal* l2, bool opposite=false);
+  /**
+   * True if the two literals are equal (or equal except polarity if @c opposite is true)
+   */
+  template<bool opposite = false>
+  static bool equals(const Literal* l1, const Literal* l2)
+  { return Literal::literalEquals(l1, l2->functor(), l2->polarity() ^ opposite, 
+        [&](auto i){ return *l2->nthArgument(i); }, 
+        l2->arity(), someIf(l2->isTwoVarEquality(), [&](){ return l2->twoVarEqSort(); }), l2->commutative()); }
 
   DHSet<TermList>* getArraySorts(){
     return &_arraySorts;
@@ -67,13 +72,13 @@ public:
     Literal* l;
   };
   inline static unsigned hash(const OpLitWrapper& w)
-  { return w.l->hash(true); }
+  { return w.l->hash<true>(); }
   static bool equals(const Literal* l1,const OpLitWrapper& w) {
-    return equals(l1, w.l, true);
+    return equals<true>(l1, w.l);
   }
 
-  friend class WellSortednessCheckingLocalDisabler;
-
+  // stuff for disabling a well-sortedness check
+  // still used, but only in BlockedClauseElimination: can we eliminate that occurrence?
   class WellSortednessCheckingLocalDisabler {
     TermSharing* _tsInstance;
     bool _valueToRestore;
@@ -90,8 +95,11 @@ public:
   bool isWellSortednessCheckingDisabled() const { return _wellSortednessCheckingDisabled; }
 
 private:
+  friend class Kernel::Term;
+  friend class Kernel::Literal;
+  friend class Kernel::AtomicSort;
   int sumRedLengths(TermStack& args);
-  bool argNormGt(TermList t1, TermList t2);
+  static bool argNormGt(TermList t1, TermList t2);
 
   /** The set storing all terms */
   Set<Term*,TermSharing> _terms;
@@ -103,26 +111,11 @@ private:
    * Can be deleted once array axioms are made truly poltmorphic
    */  
   DHSet<TermList> _arraySorts;
-  /** Number of terms stored */
-  unsigned _totalTerms;
-  /** Number of sorts stored */
-  unsigned _totalSorts;
-  /** Number of ground terms stored */
-  // unsigned _groundTerms; // MS: unused
-  /** Number of literals stored */
-  unsigned _totalLiterals;
-  /** Number of ground literals stored */
-  // unsigned _groundLiterals; // MS: unused
-  /** Number of literal insertions */
-  unsigned _literalInsertions;
-  /** number of sort insertions */
-  unsigned _sortInsertions;
-  /** Number of term insertions */
-  unsigned _termInsertions;
 
   bool _poly;
   bool _wellSortednessCheckingDisabled;
 }; // class TermSharing
+
 
 } // namespace Indexing
 

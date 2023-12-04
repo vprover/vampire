@@ -17,9 +17,7 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "Lib/Allocator.hpp"
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
 #include "Lib/VString.hpp"
 #include "Lib/Environment.hpp"
@@ -32,11 +30,12 @@
 
 namespace Shell {
 
+using namespace std;
+
 CommandLine::CommandLine (int argc, char* argv [])
   : _next(argv+1),
     _last(argv+argc)
 {
-  CALL ("CommandLine::CommandLine");
 } // CommandLine::CommandLine
 
 /**
@@ -50,18 +49,15 @@ CommandLine::CommandLine (int argc, char* argv [])
  */
 void CommandLine::interpret (Options& options)
 {
-  CALL ("CommandLine::interpret");
-
   bool fileGiven = false;
   while (_next != _last) {
     ASS(_next < _last);
     const char* arg = *_next++;
     if (strcmp(arg, "--version")==0) {
-      cout<<VERSION_STRING<<endl;
+      cout << VERSION_STRING << endl;
 #if VZ3
       cout << "Linked with Z3 " << Z3Interfacing::z3_full_version() << endl;
 #endif
-      STOP_CHECKING_FOR_ALLOCATOR_BYPASSES;
       exit(0);
     }
     // If --help or -h are used without arguments we still print help

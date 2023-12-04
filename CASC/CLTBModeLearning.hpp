@@ -36,7 +36,6 @@
 
 namespace CASC {
 
-using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
@@ -58,16 +57,16 @@ public:
 
   static void perform();
 private:
-  void solveBatch(istream& batchFile, bool first, vstring inputDirectory);
-  int readInput(istream& batchFile, bool first);
-  static ostream& lineOutput();
-  static ostream& coutLineOutput();
+  void solveBatch(std::istream& batchFile, bool first, vstring inputDirectory);
+  int readInput(std::istream& batchFile, bool first);
+  static std::ostream& lineOutput();
+  static std::ostream& coutLineOutput();
   void loadIncludes();
   void doTraining(int time,bool startup);
 
   typedef List<vstring> StringList;
   typedef Stack<vstring> StringStack;
-  typedef pair<vstring,vstring> StringPair;
+  typedef std::pair<vstring,vstring> StringPair;
   typedef Stack<StringPair> StringPairStack;
   typedef Stack<vstring> Schedule;
   static void fillSchedule(Schedule& strats);
@@ -121,7 +120,7 @@ private:
   void waitForChildAndExitWhenProofFound(bool stopOnProof);
   [[noreturn]] void exitOnNoSuccess();
 
-  static ofstream* writerFileStream;
+  static std::ofstream* writerFileStream;
   [[noreturn]] static void terminatingSignalHandler(int sigNum);
   [[noreturn]] void runSlice(vstring slice, unsigned milliseconds,bool printProof);
   [[noreturn]] void runSlice(Options& strategyOpt, bool printProof);
@@ -176,12 +175,12 @@ private:
     // Probably dangerous to acquire in constructor
     ScopedSyncPipe(SyncPipe* p) : pipe(p)
     {
-      cout << "getting pipe" << endl;
+      std::cout << "getting pipe" << std::endl;
       pipe->acquireWrite();
-      cout << "got pipe" << endl;
+      std::cout << "got pipe" << std::endl;
     }
     ~ScopedSyncPipe(){
-      cout << "release pipe" << endl;
+      std::cout << "release pipe" << std::endl;
       pipe->releaseWrite();
     } 
   };

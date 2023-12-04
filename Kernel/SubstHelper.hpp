@@ -43,7 +43,6 @@ public:
   template<class Applicator>
   static TermList apply(TermList t, Applicator& applicator, bool noSharing=false)
   {
-    CALL("SubstHelper::apply(TermList...)");
     return applyImpl<false,Applicator>(t, applicator, noSharing);
   }
 
@@ -61,7 +60,6 @@ public:
   template<class Applicator>
   static Term* apply(Term* t, Applicator& applicator, bool noSharing=false)
   {
-    CALL("SubstHelper::apply(Term*...)");
     return applyImpl<false,Applicator>(t, applicator, noSharing);
   }
 
@@ -79,7 +77,6 @@ public:
   template<class Applicator>
   static Literal* apply(Literal* lit, Applicator& applicator)
   {
-    CALL("SubstHelper::apply(Literal*...)");
     Literal* subbedLit = static_cast<Literal*>(apply(static_cast<Term*>(lit),applicator));
     if(subbedLit->isTwoVarEquality()){ //either nothing's changed or variant
       TermList sort = lit->twoVarEqSort();
@@ -106,7 +103,6 @@ public:
   template<class Applicator>
   static Formula* apply(Formula* f, Applicator& applicator)
   {
-    CALL("SubstHelper::apply(Formula*...)");
     return applyImpl<false>(f, applicator, false);
   }
 
@@ -141,7 +137,6 @@ public:
   template<class Subst>
   static Literal* applyToLiteral(Literal* lit, Subst subst)
   {
-    CALL("SubstHelper::applyToLiteral");
     static DArray<TermList> ts(32);
 
     int arity = lit->arity();
@@ -192,8 +187,6 @@ private:
    */
   static bool canBeShared(TermList * terms, size_t len)
   {
-    CALL("SubstHelper::anyNonShareable");
-
     for(unsigned i=0;i<len;i++) {
       TermList trm=terms[i];
       if(trm.isSpecialVar()||(trm.isTerm()&&!trm.term()->shared())) {
@@ -243,8 +236,6 @@ struct SpecVarHandler<false>
 template<bool ProcessSpecVars, class Applicator>
 TermList SubstHelper::applyImpl(TermList trm, Applicator& applicator, bool noSharing)
 {
-  CALL("SubstHelper::applyImpl(TermList...)");
-
   using namespace SubstHelper_Aux;
 
   if(trm.isOrdinaryVar()) {
@@ -279,21 +270,19 @@ TermList SubstHelper::applyImpl(TermList trm, Applicator& applicator, bool noSha
 template<bool ProcessSpecVars, class Applicator>
 Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
 {
-  CALL("SubstHelper::applyImpl(Term*...)");
-
   using namespace SubstHelper_Aux;
 
   if(trm->isSpecial()) {
     Term::SpecialTermData* sd = trm->getSpecialData();
-    switch(trm->functor()) {
-    case Term::SF_ITE:
+    switch(trm->specialFunctor()) {
+    case Term::SpecialFunctor::ITE:
       return Term::createITE(
     applyImpl<ProcessSpecVars>(sd->getCondition(), applicator, noSharing),
     applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
     applyImpl<ProcessSpecVars>(*trm->nthArgument(1), applicator, noSharing),
-          sd->getSort()
+    applyImpl<ProcessSpecVars>(sd->getSort(), applicator, noSharing)
     );
-    case Term::SF_LET:
+    case Term::SpecialFunctor::LET:
       return Term::createLet(
     sd->getFunctor(),
     sd->getVariables(),
@@ -301,11 +290,11 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
     sd->getSort()
     );
-    case Term::SF_FORMULA:
+    case Term::SpecialFunctor::FORMULA:
       return Term::createFormula(
       applyImpl<ProcessSpecVars>(sd->getFormula(), applicator, noSharing)
       );
-    case Term::SF_LET_TUPLE:
+    case Term::SpecialFunctor::LET_TUPLE:
       return Term::createTupleLet(
         sd->getFunctor(),
         sd->getTupleSymbols(),
@@ -313,9 +302,12 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
         applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
         sd->getSort()
         );
-    case Term::SF_TUPLE:
+    case Term::SpecialFunctor::TUPLE:
       return Term::createTuple(applyImpl<ProcessSpecVars>(sd->getTupleTerm(), applicator, noSharing));
-    case Term::SF_MATCH: {
+    case Term::SpecialFunctor::LAMBDA:
+      // TODO in principle this should not be so difficult to handle
+      ASSERTION_VIOLATION;
+    case Term::SpecialFunctor::MATCH: {
       DArray<TermList> terms(trm->arity());
       for (unsigned i = 0; i < trm->arity(); i++) {
         terms[i] = applyImpl<ProcessSpecVars>(*trm->nthArgument(i), applicator, noSharing);
@@ -462,8 +454,6 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
 template<bool ProcessSpecVars, class Applicator>
 Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noSharing)
 {
-  CALL("SubstHelper::applyImpl(Formula*...)");
-
   switch (f->connective()) {
   case LITERAL:
   {
@@ -557,8 +547,6 @@ Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noShari
 template<bool ProcessSpecVars, class Applicator>
 FormulaList* SubstHelper::applyImpl(FormulaList* fs, Applicator& applicator, bool noSharing)
 {
-  CALL("SubstHelper::applyImpl(FormulaList*...)");
-
   if (FormulaList::isEmpty(fs)) {
     return fs;
   }

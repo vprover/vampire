@@ -17,7 +17,7 @@
 #define __LiteralSubstitutionTree__
 
 #include "Indexing/Index.hpp"
-#include "Kernel/MismatchHandler.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "LiteralIndexingStructure.hpp"
 #include "SubstitutionTree.hpp"
@@ -36,15 +36,11 @@ class LiteralSubstitutionTree
   using Node                        = typename SubstitutionTree::Node;
   using FastInstancesIterator       = typename SubstitutionTree::FastInstancesIterator;
   using FastGeneralizationsIterator = typename SubstitutionTree::FastGeneralizationsIterator;
-  template<class UnificationAlgorithm>
-  using UnificationsIterator        = typename SubstitutionTree::template UnificationsIterator<UnificationAlgorithm>;
   using LDIterator                  = typename SubstitutionTree::LDIterator;
   using Leaf                        = typename SubstitutionTree::Leaf;
   using LeafIterator                = typename SubstitutionTree::LeafIterator;
 
-
 public:
-  CLASS_NAME(LiteralSubstitutionTree);
   USE_ALLOCATOR(LiteralSubstitutionTree);
 
   LiteralSubstitutionTree()
@@ -56,8 +52,6 @@ public:
 
   VirtualIterator<LeafData> getAll() final override
   {
-    CALL("LiteralSubstitutionTree::getAll");
-
     return pvi(
           iterTraits(getRangeIterator((unsigned long)0, _trees.size()))
            .flatMap([this](auto i) { return LeafIterator(&_trees[i]); })
@@ -68,14 +62,14 @@ public:
   }
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData_>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions) final override
-  { return getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification>>(lit, complementary, retrieveSubstitutions); }
+  { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::RobUnification>>(lit, complementary, retrieveSubstitutions)); }
 
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions) final override
-  { return getResultIterator<FastGeneralizationsIterator>(lit, complementary, retrieveSubstitutions); }
+  { return pvi(getResultIterator<FastGeneralizationsIterator>(lit, complementary, retrieveSubstitutions)); }
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions) final override
-  { return getResultIterator<FastInstancesIterator>(lit, complementary, retrieveSubstitutions); }
+  { return pvi(getResultIterator<FastInstancesIterator>(lit, complementary, retrieveSubstitutions)); }
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getVariants(Literal* query, bool complementary, bool retrieveSubstitutions) final override
   {
@@ -83,31 +77,35 @@ public:
           .map([](auto qr) { return queryRes(std::move(qr.unif), qr.data); }));
   }
 
-
 private:
   static unsigned idxToFunctor(unsigned idx) { return idx / 2; }
   static bool idxIsNegative(unsigned idx) { return idx % 2; }
   static unsigned toIdx(unsigned f, bool isNegative) { return f * 2 + isNegative; }
 
+  template<class Iterator, class... Args>
+  auto getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, Args... args)
+  {
+    auto iter = [=](bool reversed) 
+      { return iterTraits(getTree(lit, complementary).template iterator<Iterator>(lit, retrieveSubstitutions, reversed, args...)) ; };
 
-  template<class Algo>
-  using UwaIter = typename Indexing::SubstitutionTree<LeafData_>::template UnificationsIterator<Algo>;
-
-  auto nopostproUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa)
-  { return getResultIterator<UwaIter<UnificationAlgorithms::UnificationWithAbstraction>>(lit, complementary, /* retrieveSubstitutions */ true, MismatchHandler(uwa)); }
-
-  auto postproUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa)
-  { return pvi(iterTraits(getResultIterator<UwaIter<UnificationAlgorithms::UnificationWithAbstractionWithPostprocessing>>(lit, complementary, /* retrieveSubstitutions */ true, MismatchHandler(uwa)))
-    .filterMap([](auto r)
-        { return r.unifier.fixedPointIteration().map([&](AbstractingUnifier* unif) { return queryRes(unif, r.data); }); })); }
-
+    auto filterResults = [=](auto it) { 
+      return std::move(it)
+          .map([](auto r) { return queryRes(std::move(r.unif), r.data); }) ; 
+    };
+    return ifElseIter(
+        !lit->commutative(),
+        [&]() { return filterResults(iter( /* reversed */ false)); },
+        [&]() { return filterResults(concatIters(
+                                      iter( /* reversed */ false),
+                                      iter( /* reversed */ true)
+                                    )); }
+        );
+  }
 
 public:
 
-
   VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) final override
-  { return fixedPointIteration ? pvi(  postproUwa(lit, complementary, uwa))
-                               : pvi(nopostproUwa(lit, complementary, uwa)); }
+  { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction>>(lit, complementary, /* retrieveSubstitutions */ true, AbstractionOracle(uwa), fixedPointIteration)); }
 
   friend std::ostream& operator<<(std::ostream& out, LiteralSubstitutionTree const& self)
   { 
@@ -126,12 +124,12 @@ public:
   friend std::ostream& operator<<(std::ostream& out, OutputMultiline<LiteralSubstitutionTree> const& self)
   { 
     int i = 0;
-    out << "{ " << endl;
+    out << "{ " << std::endl;
     for (auto& t : self.self._trees) {
       if (!t.isEmpty()) {
         auto f = env.signature->getPredicate(idxToFunctor(i));
         OutputMultiline<LiteralSubstitutionTree>::outputIndent(out, self.indent);
-        out << (idxIsNegative(i) ? "~" : " ") << *f << "(" << multiline(t, self.indent + 1) << ")" << endl; 
+        out << (idxIsNegative(i) ? "~" : " ") << *f << "(" << multiline(t, self.indent + 1) << ")" << std::endl; 
       }
       i++;
     }
@@ -141,40 +139,12 @@ public:
 private:
   SubstitutionTree& getTree(Literal* lit, bool complementary)
   {
-    auto pos = lit->functor() * 2;
-    auto neg = pos + 1;
-    auto idx = complementary ? (lit->isPositive() ? neg : pos)
-                             : (lit->isPositive() ? pos : neg);
+    auto idx = complementary ? lit->header() : lit->complementaryHeader();
     while (idx >= _trees.size()) {
-      auto p = _trees.size() / 2;
-      auto arity = env.signature->isEqualityPredicate(p) ? 3 // equality is special case because it has an implicit type argument not present in the signature
-                                                         : env.signature->getPredicate(p)->arity();
-      _trees.push(SubstitutionTree(arity));
+      auto f = idx / 2;
+      _trees.push(SubstitutionTree(env.signature->getPredicate(f)->arity()));
     }
     return _trees[idx];
-  }
-
-
-  template<class Iterator, class... Args>
-  auto getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, Args... args)
-  {
-    CALL("LiteralSubstitutionTree::getResultIterator");
-
-    auto iter = [=](bool reversed) 
-      { return iterTraits(getTree(lit, complementary).template iterator<Iterator>(lit, retrieveSubstitutions, reversed, args...)) ; };
-
-    auto filterResults = [=](auto it) { 
-      return pvi(
-          std::move(it)
-          .map([](auto r) { return queryRes(std::move(r.unif), r.data); })
-          ); 
-    };
-    return !lit->commutative() 
-      ?  filterResults(iter( /* reversed */ false))
-      :  filterResults(concatIters(
-          iter( /* reversed */ false),
-          iter( /* reversed */ true)
-        ));
   }
 
   Stack<SubstitutionTree> _trees;

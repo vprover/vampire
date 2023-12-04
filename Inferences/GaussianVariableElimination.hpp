@@ -18,7 +18,6 @@ class GaussianVariableElimination
   : public SimplifyingGeneratingInference1 
 {
 public:
-  CLASS_NAME(GaussianVariableElimination);
   USE_ALLOCATOR(GaussianVariableElimination);
 
   SimplifyingGeneratingInference1::Result simplify(Clause *cl, bool doCheckOrdering) override;

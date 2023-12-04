@@ -72,7 +72,6 @@ public:
     
     TermInfo* next();
     
-    CLASS_NAME(TermCodeTree::TermMatcher);
     USE_ALLOCATOR(TermMatcher);
   };
 

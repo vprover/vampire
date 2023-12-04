@@ -50,7 +50,6 @@ private:
   Problem& operator=(const Problem&); //private and undefined assignment operator
 public:
 
-  CLASS_NAME(Problem);
   USE_ALLOCATOR(Problem);
 
   explicit Problem(UnitList* units=0);
@@ -110,7 +109,8 @@ public:
   bool hasAppliedVar() const;
   bool hasPolymorphicSym() const;
   bool quantifiesOverPolymorphicVar() const;
-  bool higherOrder() const;
+  bool isHigherOrder() const;
+  bool hasNonDefaultSorts() const;
 
   bool mayHaveEquality() const { return _mayHaveEquality; }
   bool mayHaveFormulas() const { return _mayHaveFormulas; }
@@ -122,7 +122,6 @@ public:
     _smtlibLogic = smtLibLogic;
   }
   SMTLIBLogic getSMTLIBLogic() const {
-    CALL("Kernel::Problem::getSMTLIBLogic");
     return _smtlibLogic;
   }
 
@@ -137,7 +136,7 @@ public:
     invalidateProperty();
     _hasFOOL = true;
   }
-  
+
   void reportFormulasAdded()
   {
     invalidateProperty();
@@ -216,8 +215,9 @@ private:
   mutable MaybeBool _hasLogicalProxy;
   mutable MaybeBool _hasPolymorphicSym;
   mutable MaybeBool _quantifiesOverPolymorphicVar;
-  mutable MaybeBool _hasBoolVar; 
-  mutable MaybeBool _higherOrder; 
+  mutable MaybeBool _hasBoolVar;
+  mutable MaybeBool _higherOrder;
+  mutable MaybeBool _hasNonDefaultSorts;
 
   SMTLIBLogic _smtlibLogic;
 

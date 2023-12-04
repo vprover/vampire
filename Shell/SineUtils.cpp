@@ -43,6 +43,7 @@
 namespace Shell
 {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
@@ -61,36 +62,34 @@ SineSymbolExtractor::SymId SineSymbolExtractor::getSymIdBound()
 
 void SineSymbolExtractor::addSymIds(Term* term, DHSet<SymId>& ids)
 {
-  CALL("SineSymbolExtractor::addSymIds");
-
   if (!term->shared()) {
     if (term->isSpecial()) {
       Term::SpecialTermData *sd = term->getSpecialData();
-      switch (sd->getType()) {
-        case Term::SF_FORMULA:
+      switch (sd->specialFunctor()) {
+        case Term::SpecialFunctor::FORMULA:
           extractFormulaSymbols(sd->getFormula(), ids);
               break;
-        case Term::SF_ITE:
+        case Term::SpecialFunctor::ITE:
           extractFormulaSymbols(sd->getCondition(), ids);
               break;
-        case Term::SF_LET:
-        case Term::SF_LET_TUPLE: {
+        case Term::SpecialFunctor::LET:
+        case Term::SpecialFunctor::LET_TUPLE: {
           TermList binding = sd->getBinding();
           if (binding.isTerm()) {
             addSymIds(binding.term(), ids);
           }
           break;
         }
-        case Term::SF_TUPLE: {
+        case Term::SpecialFunctor::TUPLE: {
           addSymIds(sd->getTupleTerm(), ids);
           break;
         }
-        case Term::SF_MATCH: {
+        case Term::SpecialFunctor::LAMBDA:
+          NOT_IMPLEMENTED;
+        case Term::SpecialFunctor::MATCH: {
           // args are handled below
           break;
         }
-        default:
-          ASSERTION_VIOLATION;
       }
     } else {
       //all sorts should be shared
@@ -127,8 +126,6 @@ void SineSymbolExtractor::addSymIds(Term* term, DHSet<SymId>& ids)
  */
 void SineSymbolExtractor::addSymIds(Literal* lit,DHSet<SymId>& ids)
 {
-  CALL("SineSymbolExtractor::addSymIds");
-
   SymId predId=lit->functor()*3;
   ids.insert(predId);
 
@@ -158,8 +155,6 @@ void SineSymbolExtractor::decodeSymId(SymId s, bool& pred, unsigned& functor)
 
 bool SineSymbolExtractor::validSymId(SymId s)
 {
-  CALL("SineSymbolExtractor::validSymId");
-
   bool pred;
   unsigned functor;
   decodeSymId(s, pred, functor);
@@ -183,7 +178,6 @@ bool SineSymbolExtractor::validSymId(SymId s)
  */
 void SineSymbolExtractor::extractFormulaSymbols(Formula* f,DHSet<SymId>& itms)
 {
-  CALL("SineSymbolExtractor::extractFormulaSymbols");
   Stack<Formula*> fs;
   fs.push(f);
   while (!fs.isEmpty()) {
@@ -237,8 +231,6 @@ void SineSymbolExtractor::extractFormulaSymbols(Formula* f,DHSet<SymId>& itms)
  */
 SineSymbolExtractor::SymIdIterator SineSymbolExtractor::extractSymIds(Unit* u)
 {
-  CALL("SineSymbolExtractor::extractSymIds");
-
   static DHSet<SymId> itms;
   itms.reset();
 
@@ -257,13 +249,11 @@ SineSymbolExtractor::SymIdIterator SineSymbolExtractor::extractSymIds(Unit* u)
   DHSet<SymId>::Iterator iter(itms);
   ids.loadFromIterator(iter);
   std::sort(ids.begin(), ids.end()); // <- make order deterministic
-  return pvi(ownedArrayishIterator(std::move(ids)));
+  return pvi(arrayIter(std::move(ids)));
 }
 
 void SineBase::initGeneralityFunction(UnitList* units)
 {
-  CALL("SineBase::initGeneralityFunction");
-
   SymId symIdBound=_symExtr.getSymIdBound();
   _gen.init(symIdBound,0);
 
@@ -285,8 +275,6 @@ SineSelector::SineSelector(const Options& opt)
   _depthLimit(opt.sineDepth()),
   _justForSineLevels(false)
 {
-  CALL("SineSelector::SineSelector/0");
-
   init();
 }
 
@@ -297,14 +285,11 @@ SineSelector::SineSelector(bool onIncluded, float tolerance, unsigned depthLimit
   _depthLimit(depthLimit),
   _justForSineLevels(justForSineLevels)
 {
-  CALL("SineSelector::SineSelector/4");
-
   init();
 }
 
 void SineSelector::init()
 {
-  CALL("SineSelector::init");
   ASS(_tolerance>=1.0f || _tolerance==-1);
 
   _strict=_tolerance==1.0f;
@@ -315,8 +300,6 @@ void SineSelector::init()
  */
 void SineSelector::updateDefRelation(Unit* u)
 {
-  CALL("SineSelector::updateDefRelation");
-
   SymIdIterator sit=_symExtr.extractSymIds(u);
 
   if (!sit.hasNext()) {
@@ -392,8 +375,6 @@ void SineSelector::updateDefRelation(Unit* u)
 
 void SineSelector::perform(Problem& prb)
 {
-  CALL("SineSelector::perform");
-
   if (perform(prb.units())) {
     prb.reportIncompleteTransformation();
   }
@@ -402,8 +383,6 @@ void SineSelector::perform(Problem& prb)
 
 bool SineSelector::perform(UnitList*& units)
 {
-  CALL("SineSelector::perform");
-
   TIME_TRACE(TimeTrace::SINE_SELECTION);
 
   initGeneralityFunction(units);
@@ -539,13 +518,10 @@ bool SineSelector::perform(UnitList*& units)
 SineTheorySelector::SineTheorySelector(const Options& opt)
 : _genThreshold(opt.sineGeneralityThreshold()), _opt(opt)
 {
-  CALL("SineTheorySelector::SineTheorySelector");
 }
 
 void SineTheorySelector::handlePossibleSignatureChange()
 {
-  CALL("SineTheorySelector::handlePossibleSignatureChange");
-
   size_t symIdBound=_symExtr.getSymIdBound();
   size_t oldSize=_def.size();
   ASS_EQ(_gen.size(), oldSize);
@@ -568,8 +544,6 @@ void SineTheorySelector::handlePossibleSignatureChange()
  */
 void SineTheorySelector::updateDefRelation(Unit* u)
 {
-  CALL("SineTheorySelector::updateDefRelation");
-
   SymIdIterator sit0=_symExtr.extractSymIds(u);
 
   if (!sit0.hasNext()) {
@@ -628,8 +602,6 @@ void SineTheorySelector::updateDefRelation(Unit* u)
  */
 void SineTheorySelector::initSelectionStructure(UnitList* units)
 {
-  CALL("SineTheorySelector::initSelectionStructure");
-
   TIME_TRACE(TimeTrace::SINE_SELECTION);
 
   initGeneralityFunction(units);
@@ -648,8 +620,6 @@ void SineTheorySelector::initSelectionStructure(UnitList* units)
 
 void SineTheorySelector::perform(UnitList*& units)
 {
-  CALL("SineTheorySelector::perform");
-
   TIME_TRACE(TimeTrace::SINE_SELECTION);
 
   handlePossibleSignatureChange();

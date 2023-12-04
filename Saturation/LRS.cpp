@@ -33,22 +33,19 @@
 namespace Saturation
 {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
 bool LRS::isComplete()
 {
-  CALL("LRS::isComplete");
-
   return !_limitsEverActive && SaturationAlgorithm::isComplete();
 }
 
 
 void LRS::onUnprocessedSelected(Clause* c)
 {
-  CALL("LRS::onUnprocessedSelected");
-
   SaturationAlgorithm::onUnprocessedSelected(c);
 
   if(shouldUpdateLimits()) {
@@ -73,8 +70,6 @@ void LRS::onUnprocessedSelected(Clause* c)
  */
 bool LRS::shouldUpdateLimits()
 {
-  CALL("LRS::shouldUpdateLimits");
-
   static unsigned cnt=0;
   cnt++;
 
@@ -92,8 +87,6 @@ bool LRS::shouldUpdateLimits()
  */
 long long LRS::estimatedReachableCount()
 {
-  CALL("LRS::estimatedReachableCount");
-
 #if DETERMINISE_LRS_LOAD
   static std::ifstream infile("lrs_data.txt");
   long long thing;
@@ -110,12 +103,14 @@ long long LRS::estimatedReachableCount()
   float correction_coef = _opt.lrsEstimateCorrectionCoef();
   int firstCheck=_opt.lrsFirstTimeCheck(); // (in percent)!
 
-  unsigned opt_instruction_limit = 0; // (in mega-instructions)
+  long int opt_instruction_limit = 0; // (in mega-instructions)
 #ifdef __linux__
-  opt_instruction_limit = _opt.instructionLimit();
+  opt_instruction_limit = _opt.simulatedInstructionLimit()
+    ? _opt.simulatedInstructionLimit()
+    : _opt.instructionLimit();
 #endif
 
-  unsigned instrsBurned = env.timer->elapsedMegaInstructions();
+  long int instrsBurned = env.timer->elapsedMegaInstructions();
 
   long long result = -1;
 
@@ -140,7 +135,7 @@ long long LRS::estimatedReachableCount()
       timeLeft=opt_timeLimitDeci*100 - currTime;
     }
 
-    long long instrsLeft = opt_instruction_limit - instrsBurned;
+    long int instrsLeft = opt_instruction_limit - instrsBurned;
 
     // note that result is -1 here already
 

@@ -45,6 +45,7 @@
 
 namespace Inferences {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
@@ -52,7 +53,6 @@ using namespace Saturation;
 
 void BackwardDemodulation::attach(SaturationAlgorithm* salg)
 {
-  CALL("BackwardDemodulation::attach");
   BackwardSimplificationEngine::attach(salg);
   _index=static_cast<DemodulationSubtermIndex*>(
 	  _salg->getIndexManager()->request(DEMODULATION_SUBTERM_SUBST_TREE) );
@@ -60,7 +60,6 @@ void BackwardDemodulation::attach(SaturationAlgorithm* salg)
 
 void BackwardDemodulation::detach()
 {
-  CALL("BackwardDemodulation::detach");
   _index=0;
   _salg->getIndexManager()->release(DEMODULATION_SUBTERM_SUBST_TREE);
   BackwardSimplificationEngine::detach();
@@ -76,15 +75,13 @@ struct BackwardDemodulation::RemovedIsNonzeroFn
 
 struct BackwardDemodulation::RewritableClausesFn
 {
-  RewritableClausesFn(DemodulationSubtermIndex* index, Literal* lit) : _index(index), _lit(lit) {}
-  VirtualIterator<pair<TermList,TermQueryResult> > operator() (TermList lhs)
+  RewritableClausesFn(DemodulationSubtermIndex* index) : _index(index) {}
+  VirtualIterator<pair<TypedTermList,TermQueryResult> > operator() (TypedTermList lhs)
   {
-    TermList sort = SortHelper::getTermSort(lhs, _lit);
-    return pvi( pushPairIntoRightIterator(lhs, _index->getInstances(TypedTermList(lhs,sort), true)) );
+    return pvi( pushPairIntoRightIterator(lhs, _index->getInstances(lhs, true)) );
   }
 private:
   DemodulationSubtermIndex* _index;
-  Literal* _lit;
 };
 
 
@@ -93,14 +90,16 @@ struct BackwardDemodulation::ResultFn
   typedef DHMultiset<Clause*> ClauseSet;
 
   ResultFn(Clause* cl, BackwardDemodulation& parent)
-  : _cl(cl), _parent(parent), _ordering(parent._salg->getOrdering())
+  : _cl(cl), _ordering(parent._salg->getOrdering())
   {
     ASS_EQ(_cl->length(),1);
     _eqLit=(*_cl)[0];
     _eqSort = SortHelper::getEqualityArgumentSort(_eqLit);
     _removed=SmartPtr<ClauseSet>(new ClauseSet());
-    _encompassing = parent.getOptions().demodulationEncompassment();
+    _redundancyCheck = parent.getOptions().demodulationRedundancyCheck() != Options::DemodulationRedunancyCheck::OFF;
+    _encompassing = parent.getOptions().demodulationRedundancyCheck() == Options::DemodulationRedunancyCheck::ENCOMPASS;
   }
+
   /**
    * Return pair of clauses. First clause is being replaced,
    * and the second is the clause, that replaces it. If no
@@ -108,8 +107,6 @@ struct BackwardDemodulation::ResultFn
    */
   BwSimplificationRecord operator() (pair<TermList,TermQueryResult> arg)
   {
-    CALL("BackwardDemodulation::ResultFn::operator()");
-
     TermQueryResult qr=arg.second;
 
     if( !ColorHelper::compatible(_cl->color(), qr.data->clause->color()) ) {
@@ -155,7 +152,7 @@ struct BackwardDemodulation::ResultFn
       return BwSimplificationRecord(0);
     }
 
-    if(_parent.getOptions().demodulationRedundancyCheck() && qr.data->literal->isEquality() &&
+    if(_redundancyCheck && qr.data->literal->isEquality() && 
       (qr.data->term==*qr.data->literal->nthArgument(0) || qr.data->term==*qr.data->literal->nthArgument(1)) && 
       // encompassment has issues only with positive units
       (!_encompassing || (qr.data->literal->isPositive() && qr.data->clause->length() == 1))) {
@@ -171,9 +168,7 @@ struct BackwardDemodulation::ResultFn
           TermList eqSort = SortHelper::getEqualityArgumentSort(qr.data->literal);
           Literal* eqLitS=Literal::createEquality(true, lhsS, rhsS, eqSort);
           bool isMax=true;
-          Clause::Iterator cit(*qr.data->clause);
-          while(cit.hasNext()) {
-            Literal* lit2=cit.next();
+          for (Literal* lit2 : qr.data->clause->iterLits()) {
             if(qr.data->literal==lit2) {
               continue;
             }
@@ -226,9 +221,9 @@ private:
   Clause* _cl;
   SmartPtr<ClauseSet> _removed;
 
+  bool _redundancyCheck;
   bool _encompassing;
 
-  BackwardDemodulation& _parent;
   Ordering& _ordering;
 };
 
@@ -236,7 +231,6 @@ private:
 void BackwardDemodulation::perform(Clause* cl,
 	BwSimplificationRecordIterator& simplifications)
 {
-  CALL("BackwardDemodulation::perform");
   TIME_TRACE("backward demodulation");
 
   if(cl->length()!=1 || !(*cl)[0]->isEquality() || !(*cl)[0]->isPositive() ) {
@@ -250,7 +244,7 @@ void BackwardDemodulation::perform(Clause* cl,
 	    getMappingIterator(
 		    getMapAndFlattenIterator(
 			    EqHelper::getDemodulationLHSIterator(lit, false, _salg->getOrdering(), _salg->getOptions()),
-			    RewritableClausesFn(_index, lit)),
+			    RewritableClausesFn(_index)),
 		    ResultFn(cl, *this)),
  	    RemovedIsNonzeroFn()) );
 

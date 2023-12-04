@@ -27,6 +27,7 @@
 
 #include "SortHelper.hpp"
 
+using namespace std;
 using namespace Kernel;
 
 
@@ -36,8 +37,6 @@ using namespace Kernel;
  */
 OperatorType* SortHelper::getType(Term* t)
 {
-  CALL("SortHelper::getType(Term*)");
-
   if (t->isLiteral()) {
     return env.signature->getPredicate(t->functor())->predType();
   } else if (t->isSort()) {
@@ -57,8 +56,6 @@ OperatorType* SortHelper::getType(Term* t)
  */
 void SortHelper::getTypeSub(const Term* t, Substitution& subst)
 {
-  CALL("SortHelper::getTypeSub(Term*)");
-  
   TermList* typeArg;
   OperatorType* ot       = getType(const_cast<Term*>(t)); //sym->fnType();
   unsigned typeArgsArity = ot->numTypeArguments();
@@ -84,7 +81,6 @@ void SortHelper::getTypeSub(const Term* t, Substitution& subst)
  */
 TermList SortHelper::getResultSort(const Term* t)
 {
-  CALL("SortHelper::getResultSort(Term*)");
   ASS(!t->isSpecial());
   ASS(!t->isLiteral());
 
@@ -102,7 +98,6 @@ TermList SortHelper::getResultSort(const Term* t)
 
 TermList SortHelper::getResultSortMono(const Term* t)
 {
-  CALL("SortHelper::getResultSortMono(Term*)");
   ASS(!t->isSpecial());
   ASS(!t->isLiteral());
 
@@ -117,7 +112,6 @@ TermList SortHelper::getResultSortMono(const Term* t)
  */
 bool SortHelper::tryGetResultSort(const Term* t, TermList& result)
 {
-  CALL("tryGetResultSort(Term*,unsigned&)");
   ASS(!t->isLiteral());
 
   TermList masterVar;
@@ -126,7 +120,6 @@ bool SortHelper::tryGetResultSort(const Term* t, TermList& result)
 
 bool SortHelper::tryGetResultSort(const TermList t, TermList& result)
 {
-  CALL("tryGetResultSort(TermList,unsigned&)");
   if (t.isVar()) {
     return false;
   }
@@ -138,8 +131,6 @@ bool SortHelper::tryGetResultSort(const TermList t, TermList& result)
  */
 TermList SortHelper::getResultSort(TermList t, DHMap<unsigned,TermList>& varSorts)
 {
-  CALL("SortHelper::getResultSort");
-
   TermList res;
   TermList masterVar;
   if (!getResultSortOrMasterVariable(t, res, masterVar)) {
@@ -156,36 +147,37 @@ TermList SortHelper::getResultSort(TermList t, DHMap<unsigned,TermList>& varSort
  */
 bool SortHelper::getResultSortOrMasterVariable(const Term* t, TermList& resultSort, TermList& resultVar)
 {
-  CALL("SortHelper::getResultSortOrMasterVariable");
-
   if(t->isSort()){
     resultSort = AtomicSort::superSort();
     return true;
   }
 
-  switch(t->functor()) {
-    case Term::SF_LET:
-    case Term::SF_LET_TUPLE:
-    case Term::SF_ITE:
-    case Term::SF_MATCH:
-      resultSort = t->getSpecialData()->getSort();
-      return true;
-    case Term::SF_FORMULA:
-      resultSort = AtomicSort::boolSort();
-      return true;
-    case Term::SF_LAMBDA: {
-      resultSort = t->getSpecialData()->getSort();
-      return true;
-    }
-    case Term::SF_TUPLE: {
-      resultSort = getResultSort(t->getSpecialData()->getTupleTerm());
-      return true;
-    }
-    default:
-      ASS(!t->isSpecial());
+  if (!t->isSpecial()) {
       resultSort = getResultSort(t);
       return true;
   }
+
+  switch(t->specialFunctor()) {
+    case Term::SpecialFunctor::LET:
+    case Term::SpecialFunctor::LET_TUPLE:
+    case Term::SpecialFunctor::ITE:
+    case Term::SpecialFunctor::MATCH:
+      resultSort = t->getSpecialData()->getSort();
+      return true;
+    case Term::SpecialFunctor::FORMULA:
+      resultSort = AtomicSort::boolSort();
+      return true;
+    case Term::SpecialFunctor::LAMBDA: {
+      resultSort = t->getSpecialData()->getSort();
+      return true;
+    }
+    case Term::SpecialFunctor::TUPLE: {
+      resultSort = getResultSort(t->getSpecialData()->getTupleTerm());
+      return true;
+    }
+  }
+  ASSERTION_VIOLATION
+  
 } // SortHelper::getResultSortOrMasterVariable
 
 /**
@@ -195,8 +187,6 @@ bool SortHelper::getResultSortOrMasterVariable(const Term* t, TermList& resultSo
  */
 bool SortHelper::getResultSortOrMasterVariable(const TermList t, TermList& resultSort, TermList& resultVar)
 {
-  CALL("SortHelper::getResultSortOrMasterVariable");
-
   if (t.isVar()) {
     resultVar = t;
     return false;
@@ -209,7 +199,6 @@ bool SortHelper::getResultSortOrMasterVariable(const TermList t, TermList& resul
  */
 TermList SortHelper::getArgSort(Term* t, unsigned argIndex)
 {
-  CALL("SortHelper::getArgSort(Term*,unsigned)");
   ASS_L(argIndex, t->arity());
 
   if(t->isSort()){
@@ -237,7 +226,6 @@ TermList SortHelper::getTermArgSort(Term* t, unsigned n)
 
 TermList SortHelper::getEqualityArgumentSort(const Literal* lit)
 {
-  CALL("SortHelper::getEqualityArgumentSort");
   ASS(lit->isEquality());
 
   if (lit->isTwoVarEquality()) {
@@ -261,8 +249,6 @@ TermList SortHelper::getEqualityArgumentSort(const Literal* lit)
  */
 TermList SortHelper::getTermSort(TermList trm, Literal* lit)
 {
-  CALL("SortHelper::getTermSort");
-
   if (trm.isTerm()) {
     return getResultSort(trm.term());
   }
@@ -280,10 +266,8 @@ TermList SortHelper::getTermSort(TermList trm, Literal* lit)
  */
 TermList SortHelper::getVariableSort(TermList var, Term* t)
 {
-  CALL("SortHelper::getVariableSort(TermList,Term*)");
-
   TermList res;
-  ALWAYS(tryGetVariableSort(var, t, res));
+  ALWAYS(tryGetVariableSortTerm(var, t, res, true));
   return res;
 }
 
@@ -294,8 +278,6 @@ TermList SortHelper::getVariableSort(TermList var, Term* t)
  */
 bool SortHelper::tryGetVariableSort(unsigned var, Formula* f, TermList& res)
 {
-  CALL("SortHelper::tryGetVariableSort(unsigned,Formula*,unsigned&)");
-
   TermList varTerm(var, false);
 
   SubformulaIterator sfit(f);
@@ -316,7 +298,7 @@ bool SortHelper::tryGetVariableSort(unsigned var, Formula* f, TermList& res)
            return true;
          }
       }
-      if(tryGetVariableSort(varTerm, lit, res)){
+      if(tryGetVariableSortTerm(varTerm, lit, res, false)){
         return true;
       }
     }
@@ -328,7 +310,7 @@ bool SortHelper::tryGetVariableSort(unsigned var, Formula* f, TermList& res)
       }
       if(stt.isTerm()){
         Term* st = stt.term();
-        if(tryGetVariableSort(varTerm,st,res)){
+        if(tryGetVariableSortTerm(varTerm,st,res, false)){
           return true;
         } 
       }
@@ -346,8 +328,6 @@ bool SortHelper::tryGetVariableSort(unsigned var, Formula* f, TermList& res)
  */
 void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermList>& map, bool ignoreBound)
 {
-  CALL("SortHelper::collectVariableSortsIter");
-
   Stack<CollectTask> todo;
   MultiCounter bound;
 
@@ -361,8 +341,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
     
         unsigned position = 0;
         for (TermList* ts = term->args(); ts->isNonEmpty(); ts = ts->next()) {
-          CollectTask newTask;
-          newTask.fncTag = COLLECT_TERMLIST;
+          CollectTask newTask(COLLECT_TERMLIST);
           newTask.ts = *ts;
           newTask.contextSort = getArgSort(term, position++);
           todo.push(newTask);
@@ -376,17 +355,10 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
         if (ts.isTerm()) {
           Term* term = ts.term();
 
-          CollectTask newTask;
+          CollectTask newTask(term->isSpecial() ? COLLECT_SPECIALTERM : COLLECT_TERM);
           newTask.t = term;
           newTask.contextSort = task.contextSort;
-
-          if (term->isSpecial()) {
-            newTask.fncTag = COLLECT_SPECIALTERM;
-            todo.push(newTask);
-          } else {
-            newTask.fncTag = COLLECT_TERM;
-            todo.push(newTask);
-          }
+          todo.push(newTask);
         } else if (ts.isOrdinaryVar()) {
           unsigned var = ts.var();
           if (!ignoreBound || !bound.get(var)) {
@@ -405,12 +377,10 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
 
         Term::SpecialTermData* sd = term->getSpecialData();
 
-        switch (term->functor()) {
-          case Term::SF_ITE: {
-            CollectTask newTask;
-
-            newTask.fncTag = COLLECT_TERMLIST;
-            newTask.contextSort = task.contextSort;
+        switch (term->specialFunctor()) {
+          case Term::SpecialFunctor::ITE: {
+            CollectTask newTask(COLLECT_TERMLIST);
+            newTask.contextSort = sd->getSort();
 
             newTask.ts = *term->nthArgument(0);
             todo.push(newTask);
@@ -425,83 +395,99 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             break;
           }
 
-          case Term::SF_LET: {
+          case Term::SpecialFunctor::LET: {
             TermList binding = sd->getBinding();
             bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
             Signature::Symbol* symbol = isPredicate ? env.signature->getPredicate(sd->getFunctor())
                                                     : env.signature->getFunction(sd->getFunctor());
-            unsigned position = 0;
             VList::Iterator vit(sd->getVariables());
-            while (vit.hasNext()) {
-              unsigned var = vit.next();
-              TermList sort = isPredicate ? symbol->predType()->arg(position) : symbol->fnType()->arg(position);
+            Substitution subst;
+            auto type = isPredicate ? symbol->predType() : symbol->fnType();
+            for (unsigned i = 0; i < type->arity(); i++) {
+              ASS(vit.hasNext());
+              auto var = vit.next();
+              TermList sort = AtomicSort::superSort();
+              if (i < type->numTypeArguments()) {
+                subst.bind(type->quantifiedVar(i).var(), TermList(var, false));
+              } else {
+                sort = SubstHelper::apply(type->arg(i),subst);
+              }
               if (!ignoreBound || !bound.get(var)) {
                 if (!map.insert(var, sort)) {
                   ASS_EQ(sort, map.get(var));
                 }
               }
-              position++;
             }
 
-            CollectTask newTask;
-
-            newTask.fncTag = COLLECT_TERMLIST;
-            newTask.contextSort = task.contextSort;
+            CollectTask newTask(COLLECT_TERMLIST);
+            newTask.contextSort = sd->getSort();
 
             newTask.ts = *term->nthArgument(0);
             todo.push(newTask);
 
             newTask.ts = binding;
             if (!isPredicate) {
-              newTask.contextSort = symbol->fnType()->result();
+              newTask.contextSort = SubstHelper::apply(type->result(),subst);
             }
             todo.push(newTask);
 
             break;
           }
 
-          case Term::SF_LET_TUPLE: {
+          case Term::SpecialFunctor::LET_TUPLE: {
             TermList binding = sd->getBinding();
             Signature::Symbol* symbol = env.signature->getFunction(sd->getFunctor());
+            Substitution subst;
+            VList::Iterator vit(sd->getTupleSymbols());
+            auto type = symbol->fnType();
+            for (unsigned i = 0; i < type->arity(); i++) {
+              ASS(vit.hasNext());
+              auto var = vit.next();
+              TermList sort = AtomicSort::superSort();
+              if (i < type->numTypeArguments()) {
+                subst.bind(type->quantifiedVar(i).var(), TermList(var, false));
+              } else {
+                sort = SubstHelper::apply(type->arg(i),subst);
+              }
+              if (!ignoreBound || !bound.get(var)) {
+                if (!map.insert(var, sort)) {
+                  ASS_EQ(sort, map.get(var));
+                }
+              }
+            }
 
-            CollectTask newTask;
-            newTask.fncTag = COLLECT_TERMLIST;
-            newTask.contextSort = task.contextSort;
+            CollectTask newTask(COLLECT_TERMLIST);
+            newTask.contextSort = sd->getSort();
             newTask.ts = *term->nthArgument(0);
             todo.push(newTask);
 
-            newTask.contextSort = symbol->fnType()->result();
+            newTask.contextSort = SubstHelper::apply(type->result(),subst);
             newTask.ts = binding;
             todo.push(newTask);
 
             break;
           }
 
-          case Term::SF_FORMULA: {
-            CollectTask newTask;
-            newTask.fncTag = COLLECT_FORMULA;
+          case Term::SpecialFunctor::FORMULA: {
+            CollectTask newTask(COLLECT_FORMULA);
             newTask.f = sd->getFormula();
             todo.push(newTask);
           } break;
-          case Term::SF_LAMBDA: {
-            CollectTask newTask;
-            newTask.fncTag = COLLECT_TERMLIST;
+          case Term::SpecialFunctor::LAMBDA: {
+            CollectTask newTask(COLLECT_TERMLIST);
             newTask.contextSort = sd->getLambdaExpSort();
             newTask.ts = sd->getLambdaExp();
-            todo.push(newTask);              
+            todo.push(newTask);
           } break;
 
-          case Term::SF_TUPLE: {
-            CollectTask newTask;
-            newTask.fncTag = COLLECT_TERM;
+          case Term::SpecialFunctor::TUPLE: {
+            CollectTask newTask(COLLECT_TERM);
             newTask.t = sd->getTupleTerm();
             todo.push(newTask);
           } break;
 
-          case Term::SF_MATCH: {
-            CollectTask newTask;
-
-            newTask.fncTag = COLLECT_TERMLIST;
+          case Term::SpecialFunctor::MATCH: {
+            CollectTask newTask(COLLECT_TERMLIST);
             auto matchedSort = term->getSpecialData()->getMatchedSort();
 
             // there are two sorts here, one is the sort
@@ -516,16 +502,11 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
               todo.push(newTask);
 
               newTask.ts = *term->nthArgument(i + 1);
-              newTask.contextSort = task.contextSort;
+              newTask.contextSort = sd->getSort();
               todo.push(newTask);
             }
             break;
           }
-
-      #if VDEBUG
-          default:
-            ASSERTION_VIOLATION;
-      #endif
         }
       } break;
 
@@ -536,14 +517,12 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
           case LITERAL: {
             Literal* lit = f->literal();
             if(lit->isTwoVarEquality()){
-              CollectTask newTask;
-              newTask.fncTag = COLLECT_TERMLIST;
+              CollectTask newTask(COLLECT_TERMLIST);
               newTask.ts = lit->twoVarEqSort();
               newTask.contextSort = AtomicSort::superSort();
               todo.push(newTask);
             }
-            CollectTask newTask;
-            newTask.fncTag = COLLECT_TERM;
+            CollectTask newTask(COLLECT_TERM);
             newTask.t = lit;
 
             todo.push(newTask);
@@ -561,12 +540,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             } else {
               ASS(ts.isTerm());
 
-              CollectTask newTask;
-              if(ts.term()->isSpecial()){
-                newTask.fncTag = COLLECT_SPECIALTERM;
-              } else {
-                newTask.fncTag = COLLECT_TERM;
-              }
+              CollectTask newTask(ts.term()->isSpecial() ? COLLECT_SPECIALTERM : COLLECT_TERM);
               newTask.t = ts.term();
               newTask.contextSort = AtomicSort::boolSort();
 
@@ -578,20 +552,17 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
           case EXISTS:
           case FORALL: {
             if (ignoreBound) {
-              CollectTask unbindTask;
-              unbindTask.fncTag = UNBIND;
+              CollectTask unbindTask(UNBIND);
               unbindTask.vars = f->vars();
               todo.push(unbindTask);
             }
 
-            CollectTask newTask;
-            newTask.fncTag = COLLECT_FORMULA;
+            CollectTask newTask(COLLECT_FORMULA);
             newTask.f = f->qarg();
             todo.push(newTask);
 
             if (ignoreBound) {
-              CollectTask bindTask;
-              bindTask.fncTag = BIND;
+              CollectTask bindTask(BIND);
               bindTask.vars = f->vars();
               todo.push(bindTask);
             }
@@ -602,8 +573,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
           case OR: {
             FormulaList::Iterator argIt(f->args());
             while (argIt.hasNext()) {
-              CollectTask newTask;
-              newTask.fncTag = COLLECT_FORMULA;
+              CollectTask newTask(COLLECT_FORMULA);
               newTask.f = argIt.next();
               todo.push(newTask);
             }
@@ -613,21 +583,18 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
           case IMP:
           case IFF:
           case XOR: {
-            CollectTask leftTask;
-            leftTask.fncTag = COLLECT_FORMULA;
+            CollectTask leftTask(COLLECT_FORMULA);
             leftTask.f = f->left();
             todo.push(leftTask);
 
-            CollectTask rightTask;
-            rightTask.fncTag = COLLECT_FORMULA;
+            CollectTask rightTask(COLLECT_FORMULA);
             rightTask.f = f->right();
             todo.push(rightTask);
             break;
           }
 
           case NOT: {
-            CollectTask newTask;
-            newTask.fncTag = COLLECT_FORMULA;
+            CollectTask newTask(COLLECT_FORMULA);
             newTask.f = f->uarg();
             todo.push(newTask);
             break;
@@ -665,10 +632,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
  */
 void SortHelper::collectVariableSorts(Term* term, DHMap<unsigned,TermList>& map)
 {
-  CALL("SortHelper::collectVariableSorts(Term*,...)");
-
-  CollectTask t;
-  t.fncTag = COLLECT_TERM;
+  CollectTask t(term->isSpecial() ? COLLECT_SPECIALTERM : COLLECT_TERM);
   t.t = term;
 
   collectVariableSortsIter(t,map);
@@ -681,10 +645,7 @@ void SortHelper::collectVariableSorts(Term* term, DHMap<unsigned,TermList>& map)
  */
 void SortHelper::collectVariableSorts(Formula* f, DHMap<unsigned,TermList>& map, bool ignoreBound)
 {
-  CALL("SortHelper::collectVariableSorts(Formula*,...)");
-
-  CollectTask task;
-  task.fncTag = COLLECT_FORMULA;
+  CollectTask task(COLLECT_FORMULA);
   task.f = f;
 
   collectVariableSortsIter(task,map,ignoreBound);
@@ -697,13 +658,10 @@ void SortHelper::collectVariableSorts(Formula* f, DHMap<unsigned,TermList>& map,
  */
 void SortHelper::collectVariableSorts(Unit* u, DHMap<unsigned,TermList>& map)
 {
-  CALL("SortHelper::collectVariableSorts(Unit*,...)");
-
   if (!u->isClause()) {
     FormulaUnit* fu = static_cast<FormulaUnit*>(u);
 
-    CollectTask task;
-    task.fncTag = COLLECT_FORMULA;
+    CollectTask task(COLLECT_FORMULA);
     task.f = fu->formula();
 
     collectVariableSortsIter(task,map);
@@ -712,12 +670,9 @@ void SortHelper::collectVariableSorts(Unit* u, DHMap<unsigned,TermList>& map)
   }
 
   Clause* cl = static_cast<Clause*>(u);
-  Clause::Iterator cit(*cl);
-  while (cit.hasNext()) {
-    Literal* l = cit.next();
+  for (Literal* l : cl->iterLits()) {
 
-    CollectTask task;
-    task.fncTag = COLLECT_TERM;
+    CollectTask task(COLLECT_TERM);
     task.t = l;
 
     collectVariableSortsIter(task,map);
@@ -726,8 +681,6 @@ void SortHelper::collectVariableSorts(Unit* u, DHMap<unsigned,TermList>& map)
 
 void SortHelper::normaliseArgSorts(VList* qVars, TermStack& argSorts)
 {
-  CALL("SortHelper::normaliseArgSorts/1");
-
   Substitution subst;
   unsigned i = 0;
   while(qVars){
@@ -743,8 +696,6 @@ void SortHelper::normaliseArgSorts(VList* qVars, TermStack& argSorts)
 
 void SortHelper::normaliseSort(VList* qVars, TermList& sort)
 {
-  CALL("SortHelper::normaliseSort/1");
-
   Substitution subst;
   unsigned i = 0;
   while(qVars){
@@ -758,8 +709,6 @@ void SortHelper::normaliseSort(VList* qVars, TermList& sort)
 
 void SortHelper::normaliseArgSorts(TermStack& qVars, TermStack& argSorts)
 {
-  CALL("SortHelper::normaliseArgSorts/2");
-
   Substitution subst;
   for(unsigned i = 0; i < qVars.size(); i++){
     subst.bind(qVars[i].var(), TermList(i, false));
@@ -772,8 +721,6 @@ void SortHelper::normaliseArgSorts(TermStack& qVars, TermStack& argSorts)
 
 void SortHelper::normaliseSort(TermStack qVars, TermList& sort)
 {
-  CALL("SortHelper::normaliseSort/2");  
-
   Substitution subst;
   for(unsigned i = 0; i < qVars.size(); i++){
     subst.bind(qVars[i].var(), TermList(i, false));
@@ -787,10 +734,13 @@ void SortHelper::normaliseSort(TermStack qVars, TermList& sort)
  * sort and return true. Otherwise return false.
  * @since 04/05/2013 Manchester, new NonVariableIterator is used
  * @author Andrei Voronkov
+ *
+ * MS: Note that tryGetVariableSortTerm is typically called by tryGetVariableSort(unsigned,Formula*,unsigned&) which
+ *   traverses all subformulas, including those in special terms! If those invocations of tryGetVariableSortTerm
+ *   would again go after these subformulas, nested useless calls could arise.
  */
-bool SortHelper::tryGetVariableSort(TermList var, Term* t0, TermList& result)
+bool SortHelper::tryGetVariableSortTerm(TermList var, Term* t0, TermList& result, bool recurseToSubformulas)
 {
-  CALL("SortHelper::tryGetVariableSort");
   ASS(var.isVar());
 
   NonVariableIterator sit(t0,true);
@@ -806,7 +756,7 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, TermList& result)
           result = sym->fnType()->result();
           return true;
         }
-      } else if(tryGetVariableSort(var,binding.term(),result)){
+      } else if(tryGetVariableSortTerm(var,binding.term(),result,recurseToSubformulas)){
         return true;
       }
 
@@ -819,7 +769,12 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, TermList& result)
       continue;
     }
     if (t->isITE()) {
-      // if its in the condition, it is in a subformula to be iterated over by tryGetVariableSort(unsigned var, Formula* f, ...
+      if (recurseToSubformulas) {
+        Formula* f = t->getSpecialData()->getCondition();
+        if(tryGetVariableSort(var.var(), f, result)){
+          return true;
+        }
+      }
       ASS_EQ(t->arity(),2);
       if (*t->nthArgument(0) == var || *t->nthArgument(1) == var) {
         result = t->getSpecialData()->getSort();
@@ -827,7 +782,7 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, TermList& result)
       }
       continue;
     }
-    if(t->isFormula()){
+    if(t->isFormula() && recurseToSubformulas){
       Formula* f = t->getSpecialData()->getFormula();
       if(tryGetVariableSort(var.var(), f, result)){
         return true;
@@ -838,7 +793,7 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, TermList& result)
       TermList lambdaTerm = t->getSpecialData()->getLambdaExp();
 
       if(lambdaTerm.isTerm()){
-        if(tryGetVariableSort(var, lambdaTerm.term(),result)){
+        if(tryGetVariableSortTerm(var, lambdaTerm.term(),result,recurseToSubformulas)){
           return true;
         }
       } else {
@@ -886,8 +841,6 @@ bool SortHelper::tryGetVariableSort(TermList var, Term* t0, TermList& result)
  */
 bool SortHelper::areImmediateSortsValidPoly(Term* t)
 {
-  CALL("SortHelper::areImmediateSortsValidPoly");
-
   ASS(!t->isSuper());  
 
   if (t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
@@ -931,8 +884,6 @@ bool SortHelper::areImmediateSortsValidPoly(Term* t)
  */
 bool SortHelper::areImmediateSortsValidMono(Term* t)
 {
-  CALL("SortHelper::areImmediateSortsValidMono");
-
   ASS(!t->isSuper());  
 
   if (t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
@@ -973,8 +924,6 @@ bool SortHelper::areImmediateSortsValidMono(Term* t)
  */
 bool SortHelper::allTopLevelArgsAreSorts(AtomicSort* sort)
 {
-  CALL("SortHelper::allTopLevelArgsAreSorts");
-
   for(unsigned i = 0; i < sort->arity(); i++){
     TermList arg = *sort->nthArgument(i);
     if(arg.isVar()){
@@ -989,14 +938,12 @@ bool SortHelper::allTopLevelArgsAreSorts(AtomicSort* sort)
 
 TermList SortHelper::getIndexSort(TermList arraySort)
 {
-  CALL("SortHelper::getIndexSort");  
   ASS(arraySort.isArraySort());
   return *arraySort.term()->nthArgument(0);
 }
 
 TermList SortHelper::getInnerSort(TermList arraySort)
 {
-  CALL("SortHelper::getInnerSort");  
   ASS(arraySort.isArraySort());
   return *arraySort.term()->nthArgument(1);
 }
@@ -1009,8 +956,6 @@ TermList SortHelper::getInnerSort(TermList arraySort)
  */
 bool SortHelper::areSortsValid(Clause* cl)
 {
-  CALL("SortHelper::areSortsValid");
-
   static DHMap<unsigned,TermList> varSorts;
   varSorts.reset();
 
@@ -1024,7 +969,6 @@ bool SortHelper::areSortsValid(Clause* cl)
 }
 bool SortHelper::areSortsValid(Term* t0)
 {
-  CALL("SortHelper::areSortsValid");
   DHMap<unsigned,TermList> varSorts;
   return areSortsValid(t0, varSorts);
 }
@@ -1038,8 +982,6 @@ bool SortHelper::areSortsValid(Term* t0)
  */
 bool SortHelper::areSortsValid(Term* t0, DHMap<unsigned,TermList>& varSorts)
 {
-  CALL("SortHelper::areSortsValid");
-
   NonVariableIterator sit(t0,true);
   while (sit.hasNext()) {
     Term* t = sit.next().term();

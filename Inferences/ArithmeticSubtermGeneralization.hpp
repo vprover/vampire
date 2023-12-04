@@ -23,7 +23,6 @@ class NumeralMultiplicationGeneralization
 : public SimplifyingGeneratingInference1
 {
 public:
-  CLASS_NAME(NumeralMultiplicationGeneralization);
   USE_ALLOCATOR(NumeralMultiplicationGeneralization);
 
   virtual ~NumeralMultiplicationGeneralization();
@@ -36,7 +35,6 @@ class VariableMultiplicationGeneralization
 : public SimplifyingGeneratingInference1
 {
 public:
-  CLASS_NAME(VariableMultiplicationGeneralization);
   USE_ALLOCATOR(VariableMultiplicationGeneralization);
 
   virtual ~VariableMultiplicationGeneralization();
@@ -49,7 +47,6 @@ class VariablePowerGeneralization
 : public SimplifyingGeneratingInference1
 {
 public:
-  CLASS_NAME(VariablePowerGeneralization);
   USE_ALLOCATOR(VariablePowerGeneralization);
 
   virtual ~VariablePowerGeneralization();
@@ -62,7 +59,6 @@ class AdditionGeneralization
 : public SimplifyingGeneratingInference1
 {
 public:
-  CLASS_NAME(AdditionGeneralization);
   USE_ALLOCATOR(AdditionGeneralization);
 
   virtual ~AdditionGeneralization();

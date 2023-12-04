@@ -17,8 +17,6 @@
 #define __TermIndexingStructure__
 
 #include "Index.hpp"
-#include "Kernel/TypedTermList.hpp"
-#include "Kernel/MismatchHandler.hpp"
 
 namespace Indexing {
 
@@ -37,10 +35,10 @@ public:
   virtual VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
   virtual VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getInstances(TypedTermList t, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
 
-
   virtual bool generalizationExists(TermList t) { NOT_IMPLEMENTED; }
 
   virtual void output(std::ostream& output) const = 0;
+
   friend std::ostream& operator<<(std::ostream& out, TermIndexingStructure const& self)
   { self.output(out); return out; }
 };

@@ -52,7 +52,6 @@ public:
   virtual void addClause(SATClause* cl) = 0;
 
   void addClausesIter(SATClauseIterator cit) {
-    CALL("SATSolver::addClauses");
     while (cit.hasNext()) {
       addClause(cit.next());
     }
@@ -140,7 +139,6 @@ public:
    * a different model (provided the status will be satisfiable).
    */
   virtual void randomizeForNextAssignment(unsigned maxVar) {
-    CALL("SATSolver::randomizeForNextAssignment");
     for (unsigned var=1; var <= maxVar; var++) {
       suggestPolarity(var,Random::getBit());
     }
@@ -171,8 +169,6 @@ public:
    */
   bool trueInAssignment(SATLiteral lit)
   {
-    CALL("SATSolver::trueInAssignment");
-
     VarAssignment asgn = getAssignment(lit.var());
     VarAssignment desired = lit.polarity() ? TRUE : FALSE;
     return asgn==desired;
@@ -183,15 +179,13 @@ public:
    */
   bool falseInAssignment(SATLiteral lit)
   {
-    CALL("SATSolver::trueInAssignment");
-
     VarAssignment asgn = getAssignment(lit.var());
     VarAssignment desired = lit.polarity() ? FALSE: TRUE;
     return asgn==desired;
   }  
 };
 
-inline std::ostream& operator<<(ostream& out, SATSolver::Status const& s)
+inline std::ostream& operator<<(std::ostream& out, SATSolver::Status const& s)
 { 
   switch (s)  {
     case SATSolver::SATISFIABLE: return out << "SATISFIABLE";
@@ -240,8 +234,6 @@ public:
   // to clean in the end.
 
   virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit, bool onlyProperSubusets) {
-    CALL("SATSolver::solveUnderAssumptions");
-
     ASS(!hasAssumptions());
     _failedAssumptionBuffer.reset();
 
@@ -302,8 +294,6 @@ public:
   }
 
   virtual const SATLiteralStack& explicitlyMinimizedFailedAssumptions(unsigned conflictCountLimit, bool randomize) {
-    CALL("SATSolver::explicitlyMinimizeFailedAssumptions");
-
     // assumes solveUnderAssumptions(...,conflictCountLimit,...) just returned UNSAT and initialized _failedAssumptionBuffer
 
     ASS(!hasAssumptions());
@@ -364,29 +354,21 @@ public:
   PrimitiveProofRecordingSATSolver() :  
     _addedClauses(0), _refutation(new(0) SATClause(0)), _refutationInference(new PropInference(SATClauseList::empty()))
     {
-      CALL("PrimitiveProofRecordingSATSolver::PrimitiveProofRecordingSATSolver");
-      
       _refutation->setInference(_refutationInference);    
     }
   
   virtual ~PrimitiveProofRecordingSATSolver() {
-    CALL("PrimitiveProofRecordingSATSolver::~PrimitiveProofRecordingSATSolver");
-
     // cannot clear the list - some inferences may be keeping its suffices till proof printing phase ...
     // _addedClauses->destroy(); // we clear the list but not its content
   }
 
   virtual void addClause(SATClause* cl) override 
   {
-    CALL("PrimitiveProofRecordingSATSolver::addClause");
-    
     SATClauseList::push(cl,_addedClauses);
   }
   
   virtual SATClause* getRefutation() override
   {
-    CALL("PrimitiveProofRecordingSATSolver::getRefutation");
-
     // connect the added clauses ... 
     SATClauseList* prems = _addedClauses;  
 

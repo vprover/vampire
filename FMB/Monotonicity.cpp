@@ -26,6 +26,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/TermTransformer.hpp"
+#include "Kernel/BottomUpEvaluation.hpp"
 
 #include "SAT/SATSolver.hpp"
 #include "SAT/SATLiteral.hpp"
@@ -37,10 +38,10 @@
 namespace FMB
 {
 
+using namespace std;
+
 Monotonicity::Monotonicity(ClauseList* clauses, unsigned srt) : _srt(srt)
 {
- CALL("Monotonicity::Monotonicity");
-
   _solver = new MinisatInterfacing(*env.options,true);
 
  // create pt and pf per predicate and add the constraint -pf | -pt
@@ -57,9 +58,7 @@ Monotonicity::Monotonicity(ClauseList* clauses, unsigned srt) : _srt(srt)
  ClauseIterator cit = pvi(ClauseList::Iterator(clauses));
  while(cit.hasNext()){
    Clause* c = cit.next();
-   Clause::Iterator lit(*c);
-   while(lit.hasNext()){
-     Literal* l = lit.next();
+   for (auto l : c->iterLits()) {
      monotone(c,l);
    }
  }
@@ -72,8 +71,6 @@ Monotonicity::Monotonicity(ClauseList* clauses, unsigned srt) : _srt(srt)
 
 void Monotonicity::monotone(Clause* c, Literal* l)
 {
-  CALL("Monotonicity::monotone");
-
   // if we have equality
   if(l->isEquality()){
     TermList* t1 = l->nthArgument(0); 
@@ -112,14 +109,11 @@ void Monotonicity::safe(Clause* c, Literal* parent, TermList* t,SATLiteral add){
 
 void Monotonicity::safe(Clause* c, Literal* parent, TermList* t,Stack<SATLiteral>& slits)
 {
-  CALL("Monotonicity::safe");
   if(t->isVar()){
     unsigned var = t->var();
     TermList s = SortHelper::getVariableSort(*t,parent);
     if(s.term()->functor()==_srt){
-      Clause::Iterator lit(*c);
-      while(lit.hasNext()){
-        Literal* l = lit.next(); 
+      for (auto l : c->iterLits()) {
         if(guards(l,var,slits)){
           // if guards returns true it means true will be added to the clause
           // so don't bother creating it
@@ -134,8 +128,6 @@ void Monotonicity::safe(Clause* c, Literal* parent, TermList* t,Stack<SATLiteral
 
 bool Monotonicity::guards(Literal* l, unsigned var, Stack<SATLiteral>& slits)
 {
-  CALL("Monotonicyt::guards");
-
   if(l->isEquality()){
     // check for X != f(...) or f(...) != X
     // i.e. a negative equality with X on one side
@@ -164,12 +156,10 @@ bool Monotonicity::guards(Literal* l, unsigned var, Stack<SATLiteral>& slits)
 
 void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<unsigned>& del_f)
 {
-  CALL("Monotonicity::addSortPredicates");
-
   // First compute the monotonic sorts
   DArray<bool> isMonotonic(env.signature->typeCons());
   for(unsigned s=0;s<env.signature->typeCons();s++){
-    if(env.property->usesSort(s) || env.signature->isNonDefaultCon(s)){
+    if(env.getMainProblem()->getProperty()->usesSort(s) || env.signature->isNonDefaultCon(s)){
        if(withMon){
          Monotonicity m(clauses,s);
          bool monotonic = m.check();
@@ -267,7 +257,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
      if(!sortedVariables.isEmpty()){
 
        Stack<Literal*> literals; 
-       literals.loadFromIterator(Clause::Iterator(*cl)); 
+       literals.loadFromIterator(cl->iterLits()); 
 
        Stack<std::pair<unsigned,unsigned>>::Iterator vit(sortedVariables);
        while(vit.hasNext()){
@@ -296,41 +286,35 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
    clauses = ClauseList::concat(clauses,newAxioms);
 }
 
-class SortFunctionTransformer : public BottomUpTermTransformer
-{
+class SortFunctionTransformer {
 public:
-SortFunctionTransformer(Literal* lit, 
-                        DArray<bool> isM,
-                        DArray<unsigned> sf) : _lit(lit), _isM(isM), _sf(sf) {}
+  SortFunctionTransformer(DArray<bool> const &isM, DArray<unsigned> const &sf) : _isM(isM), _sf(sf) {}
 
-TermList transformSubterm(TermList trm){
-  CALL("SortFunctionTransformer::transformSubterm");
+  using Result = TermList;
+  using Arg = TypedTermList;
+  TermList operator()(TypedTermList origTerm, TermList *evalArgs)
+  {
+    // cout << "transformSubterm " << trm.toString() << endl;
 
-  // cout << "transformSubterm " << trm.toString() << endl;
+    TermList srt = origTerm.sort();
+    TermList trm = origTerm.isVar() ? origTerm : TermList(Term::create(origTerm.term(), evalArgs));
+    if (_isM[srt.term()->functor()])
+      return trm;
 
-  TermList srt = SortHelper::getTermSort(trm, _lit);
-  if(_isM[srt.term()->functor()]) return trm;
+    unsigned f = _sf[srt.term()->functor()];
+    return TermList(Term::create1(f, trm));
+  }
 
-  unsigned f =  _sf[srt.term()->functor()];
-
-  return TermList(Term::create1(f,trm));
-}
-
-Literal* _lit;
-DArray<bool> _isM;
-DArray<unsigned> _sf;
-
+  DArray<bool> const &_isM;
+  DArray<unsigned> const &_sf;
 };
-
 
 void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
 {
-  CALL("Monotonicity::addSortFunctions");
-
   // First compute the monotonic sorts
   DArray<bool> isMonotonic(env.signature->typeCons());
   for(unsigned s=0;s<env.signature->typeCons();s++){
-    if(env.property->usesSort(s) || env.signature->isNonDefaultCon(s)){
+    if(env.getMainProblem()->getProperty()->usesSort(s) || env.signature->isNonDefaultCon(s)){
        if(withMon){
          Monotonicity m(clauses,s);
          bool monotonic = m.check();
@@ -368,13 +352,9 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
 
      Stack<Literal*> literals;
 
-     Clause::Iterator lit(*cl);
      bool changed = false;
-     while(lit.hasNext()){
-       Literal* l = lit.next();
-       SortFunctionTransformer transformer(l,isMonotonic,sortFunctions);
-       Literal* lnew = l;
-       if(l->arity()){ lnew = transformer.transform(l); }
+     for (auto l : cl->iterLits()) {
+       Literal* lnew = l->arity() == 0 ? l : evaluateLiteralBottomUp(l, SortFunctionTransformer(isMonotonic,sortFunctions));
        if(l!=lnew) {
          changed=true;
          // cout << "before " << l->toString() << endl;

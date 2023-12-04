@@ -20,8 +20,6 @@
 #include "Kernel/Signature.hpp"
 #include "Lib/Environment.hpp"
 
-#include "Api/FormulaBuilder.hpp"
-#include "Api/Problem.hpp"
 #include "Lib/Coproduct.hpp"
 #include "Lib/Map.hpp"
 #include "Kernel/Clause.hpp"
@@ -190,22 +188,22 @@ public:
 };
 
 template<class A>
-class Pretty<unique_ptr<A>> {
-  unique_ptr<A> const& _self;
+class Pretty<std::unique_ptr<A>> {
+  std::unique_ptr<A> const& _self;
 
 public:
-  Pretty(unique_ptr<A> const& self) : _self(self) {}
+  Pretty(std::unique_ptr<A> const& self) : _self(self) {}
 
   std::ostream& prettyPrint(std::ostream& out) const
   { return out << pretty(*_self); }
 };
 
 template<class A, class B>
-class Pretty<pair<A,B>> {
-  pair<A,B> const& _self;
+class Pretty<std::pair<A,B>> {
+  std::pair<A,B> const& _self;
 
 public:
-  Pretty(pair<A,B> const& self) : _self(self) {}
+  Pretty(std::pair<A,B> const& self) : _self(self) {}
 
   std::ostream& prettyPrint(std::ostream& out) const
   { return out << pretty(_self.first) << " : " << pretty(_self.second); }
@@ -237,6 +235,7 @@ bool __permEq(L1& lhs, L2& rhs, Eq elemEq, DArray<unsigned>& perm, unsigned idx)
     return true;
   }
   for (unsigned i = idx; i < perm.size(); i++) {
+    using std::swap;//ADL
     swap(perm[i], perm[idx]);
 
     if (__permEq(lhs,rhs, elemEq, perm, idx+1)) return true;
@@ -250,7 +249,6 @@ bool __permEq(L1& lhs, L2& rhs, Eq elemEq, DArray<unsigned>& perm, unsigned idx)
 template<class L1, class L2, class Eq>
 bool TestUtils::permEq(L1& lhs, L2& rhs, Eq elemEq)
 {
-  CALL("TestUtils::permEq")
   if (lhs.size() != rhs.size()) return false;
   DArray<unsigned> perm(lhs.size());
   for (unsigned i = 0; i < lhs.size(); i++) {

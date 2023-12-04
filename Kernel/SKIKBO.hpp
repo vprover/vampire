@@ -40,7 +40,6 @@ class SKIKBO
 : public PrecedenceOrdering
 {
 public:
-  CLASS_NAME(SKIKBO);
   USE_ALLOCATOR(SKIKBO);
 
   SKIKBO(Problem& prb, const Options& opt, bool basic_hol = false);
@@ -87,7 +86,7 @@ protected:
     return Ordering::INCOMPARABLE;
   }
 
-  void showConcrete(ostream&) const override
+  void showConcrete(std::ostream&) const override
   { NOT_IMPLEMENTED; }
 
   //VarCondRes compareVariables(VarOccMap&, VarOccMap&, VarCondRes) const;

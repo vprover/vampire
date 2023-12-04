@@ -23,6 +23,8 @@
 namespace Lib
 {
 
+using namespace std;
+
 Exception::Exception (const char* msg, int line)
   : _message((vstring(msg)+": "+Int::toString(line)).c_str()) {}
 

@@ -51,7 +51,6 @@ typedef ApplicativeHelper AH;
  */
 const Options& InferenceEngine::getOptions() const
 {
-  CALL("InferenceEngine::getOptions");
   ASS(attached());
 
   return _salg->getOptions();
@@ -251,7 +250,7 @@ CompositeSGI::ClauseGenerationResult CompositeSGI::generateSimplify(Kernel::Clau
     }
   }
   return ClauseGenerationResult {
-    .clauses          = pvi(getFlattenedIterator(ownedArrayishIterator(std::move(clauses)))),
+    .clauses          = pvi(getFlattenedIterator(arrayIter(std::move(clauses)))),
     .premiseRedundant = redundant,
   };
 }
@@ -267,8 +266,6 @@ CompositeSGI::~CompositeSGI() {
 
 Clause* ChoiceDefinitionISE::simplify(Clause* c)
 {
-  CALL("ChoiceDefinitionISE::simplify");
-
   if (c->length() != 2) {
     return c;
   }
@@ -293,8 +290,6 @@ Clause* ChoiceDefinitionISE::simplify(Clause* c)
 }
 
 bool ChoiceDefinitionISE::isPositive(Literal* lit) {
-  CALL("ChoiceDefinitionISE::isPositive");
-
   TermList lhs = *lit->nthArgument(0);
   TermList rhs = *lit->nthArgument(1);
   if(!AH::isBool(lhs) && !AH::isBool(rhs)){ return false; }
@@ -309,8 +304,6 @@ bool ChoiceDefinitionISE::isPositive(Literal* lit) {
 };
 
 bool ChoiceDefinitionISE::is_of_form_xy(Literal* lit, TermList& x){
-  CALL("ChoiceDefinitionISE::is_of_form_xy");
-
   TermList term = AH::isBool(*lit->nthArgument(0)) ? *lit->nthArgument(1) : *lit->nthArgument(0);
   
   TermStack args;
@@ -319,8 +312,6 @@ bool ChoiceDefinitionISE::is_of_form_xy(Literal* lit, TermList& x){
 }
 
 bool ChoiceDefinitionISE::is_of_form_xfx(Literal* lit, TermList x, TermList& f){
-  CALL("ChoiceDefinitionISE::is_of_form_xfx");
-  
   TermList term = AH::isBool(*lit->nthArgument(0)) ? *lit->nthArgument(1) : *lit->nthArgument(0);
   
   TermStack args;
@@ -336,8 +327,6 @@ bool ChoiceDefinitionISE::is_of_form_xfx(Literal* lit, TermList x, TermList& f){
 
 Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
 {
-  CALL("DuplicateLiteralRemovalISE::simplify");
-
   int length = c->length();
   if (length <= 1) {
     return c;
@@ -377,9 +366,7 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
     seen.reset();
     //here we rely on the fact that the iterator traverses the clause from
     //the first to the last literal
-    Clause::Iterator cit(*c);
-    while(cit.hasNext()) {
-      Literal* lit = cit.next();
+    for (Literal* lit : c->iterLits()) {
       if(!seen.insert(lit)) {
         skipped.push(lit);
       }
@@ -418,8 +405,8 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
     origLits.reset();
     static DHSet<Literal*> newLits;
     newLits.reset();
-    origLits.loadFromIterator(Clause::Iterator(*c));
-    newLits.loadFromIterator(Clause::Iterator(*d));
+    origLits.loadFromIterator(c->iterLits());
+    newLits.loadFromIterator(d->iterLits());
     ASS_EQ(origLits.size(),newLits.size());
     ASS_EQ(origLits.size(), static_cast<unsigned>(newLength));
   }
@@ -430,8 +417,6 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
 
 Clause* TautologyDeletionISE2::simplify(Clause* c)
 {
-  CALL("TautologyDeletionISE2::simplify");
-
   typedef ApplicativeHelper AH;
 
   static LiteralStack negLits;
@@ -486,8 +471,6 @@ Clause* TautologyDeletionISE2::simplify(Clause* c)
 
 Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
 {
-  CALL("TrivialInequalitiesRemovalISE::simplify");
-
   static DArray<Literal*> lits(32);
 
   typedef ApplicativeHelper AH;
@@ -538,7 +521,6 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
 
 Clause* SimplifyingGeneratingInference1::simplify(Clause* cl) 
 {
-  CALL("SimplifyingGeneratingInference1::simplify(Clause*)")
   if (cl->isTheoryAxiom()) {
     DEBUG("skipping theory axiom")
     return cl;
@@ -552,7 +534,6 @@ ImmediateSimplificationEngine& SimplifyingGeneratingInference1::asISE()
 
 
 SimplifyingGeneratingInference::ClauseGenerationResult SimplifyingGeneratingInference1::generateSimplify(Clause* cl) {
-  CALL("SimplifyingGeneratingInference1::generateClauses(Clause*)")
   auto gen = this->simplify(cl, true);
   auto simpl = gen.simplified;
   auto redundant = gen.premiseRedundant;
@@ -574,8 +555,6 @@ SimplifyingGeneratingInference::ClauseGenerationResult SimplifyingGeneratingInfe
 }
 
 SimplifyingGeneratingInference1::Result SimplifyingGeneratingLiteralSimplification::simplify(Clause* cl_, bool doOrderingCheck) {
-  CALL("SimplifyingGeneratingLiteralSimplification::simplify"); 
- 
   DEBUG("in:  ", *cl_)
   auto& cl = *cl_;
   Stack<Literal*> out(cl.size());

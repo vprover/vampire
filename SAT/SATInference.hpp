@@ -82,7 +82,6 @@ public:
 class PropInference : public SATInference
 {
 public:
-  CLASS_NAME(PropInference);
   USE_ALLOCATOR(PropInference);
 
   PropInference(SATClauseList* premises) : _premises(premises) {}
@@ -111,7 +110,6 @@ private:
 class FOConversionInference : public SATInference
 {
 public:
-  CLASS_NAME(FOConversionInference);
   USE_ALLOCATOR(FOConversionInference);
 
   FOConversionInference(Unit* origin);
@@ -127,7 +125,6 @@ private:
 class AssumptionInference : public SATInference
 {
 public:
-  CLASS_NAME(AssumptionInference);
   USE_ALLOCATOR(AssumptionInference);
 
   virtual InfType getType() const { return ASSUMPTION; }
@@ -140,7 +137,6 @@ public:
 template <typename Filter>
 void SATInference::collectFilteredFOPremises(SATClause* cl, Stack<Unit*>& acc, Filter f)
 {
-  CALL("SATInference::collectFilteredFOPremises");
   ASS_ALLOC_TYPE(cl, "SATClause");
 
   static Stack<SATClause*> toDo;

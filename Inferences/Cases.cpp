@@ -34,9 +34,9 @@
 
 namespace Inferences {
 
-Clause* Cases::performParamodulation(Clause* premise, Literal* lit, TermList t) {
-  CALL("Cases::performParamodulation");
+using namespace std;
 
+Clause* Cases::performParamodulation(Clause* premise, Literal* lit, TermList t) {
   ASS(t.isTerm());
 
   TermList lhs = *lit->nthArgument(0);
@@ -79,8 +79,6 @@ struct Cases::ResultFn
   ResultFn(Clause* cl, Cases& parent) : _cl(cl), _parent(parent) {}
   Clause* operator()(pair<Literal*, TermList> arg)
   {
-    CALL("FOOLParamodulation::ResultFn::operator()");
-    
     return _parent.performParamodulation(_cl, arg.first, arg.second);
   }
 private:
@@ -94,8 +92,6 @@ struct Cases::RewriteableSubtermsFn
 
   VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
   {
-    CALL("Cases::RewriteableSubtermsFn()");
-
     return pvi( pushPairIntoRightIterator(lit, 
                 EqHelper::getBooleanSubtermIterator(lit, _ord)) );
   }
@@ -106,8 +102,6 @@ private:
 
 ClauseIterator Cases::generateClauses(Clause* premise)
 {
-  CALL("Cases::generateClauses");
-
   auto it1 = premise->getSelectedLiteralIterator();
 
   auto it2 = getMapAndFlattenIterator(it1,RewriteableSubtermsFn(_salg->getOrdering()));

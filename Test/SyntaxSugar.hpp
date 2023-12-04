@@ -88,6 +88,7 @@
 #define DECL_PRED(f, ...)   auto f = PredSugar(#f, __VA_ARGS__);
 #define DECL_TYPE_CON(f, arity) auto f = TypeConSugar(#f, arity);    
 #define DECL_SORT(s)        auto s = TypeConstSugar(#s);
+#define DECL_SORT_BOOL      auto Bool = SortSugar(AtomicSort::boolSort());
 #define DECL_VAR(x, i) auto x = TermSugar(TermList::var(i));
 #define DECL_SORT_VAR(x, i) auto x = SortSugar(TermList::var(i));    
 #define DECL_VAR_SORTED(x, i, s) auto x = TermSugar(TermList::var(i), s);
@@ -551,7 +552,6 @@ public:
   }
 
   FuncSugar dtor(unsigned i) const {
-    CALL("FuncSugar::dtor(unsigned)")
     ASS_L(i, arity())
     ASS (symbol()->termAlgebraCons()) 
     return FuncSugar(
@@ -564,7 +564,6 @@ public:
 
   template<class... As>
   TermSugar operator()(As... args) const {
-    BYPASSING_ALLOCATOR
     Stack<TermList> as { TermSugar(args).sugaredExpr()... };
     return TermList(Term::create(_functor, 
         as.size(), 
@@ -593,10 +592,8 @@ class TypeConSugar {
   unsigned _functor;
 
 public:
-  TypeConSugar(const char* name, unsigned arity) 
+  TypeConSugar(const char* name, unsigned arity)
   {
-    BYPASSING_ALLOCATOR
-
     bool added = false;
     _functor = env.signature->addTypeCon(name, arity, added);
     if (added)
@@ -632,13 +629,11 @@ class PredSugar {
 public:
   PredSugar(const char* name, std::initializer_list<SortSugar> args, unsigned taArity = 0) 
   {
-    BYPASSING_ALLOCATOR
     Stack<SortId> as;
     for (auto a : args) {
       as.push(a.sugaredExpr());
     }
     
-    // TODO rename taArity to something more descriptfy like nTypeArgs
     if(taArity){
       // TODO don't haredcode these varible numbers?!
       TermStack vars = {TermList(101, false), TermList(102, false), TermList(103, false)};      
@@ -695,7 +690,7 @@ inline Stack<Clause*> clauses(std::initializer_list<std::initializer_list<Lit>> 
   return out;
 }
 
-inline void createTermAlgebra(SortSugar sort, initializer_list<FuncSugar> fs) {
+inline void createTermAlgebra(SortSugar sort, std::initializer_list<FuncSugar> fs) {
 
   using namespace Shell;
 

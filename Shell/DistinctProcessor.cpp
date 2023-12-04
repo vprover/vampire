@@ -33,8 +33,6 @@ namespace Shell
  */
 bool DistinctProcessor::isDistinctPred(Literal* l)
 {
-  CALL("DistinctProcessor::isDistinctPred");
-
   //this is a hacky way to check for disctnct predicates,
   //needs to be fixed once we have a proper sopport for
   //these in the signature
@@ -48,8 +46,6 @@ bool DistinctProcessor::isDistinctPred(Literal* l)
 
 bool DistinctProcessor::apply(FormulaUnit* unit, Unit*& res)
 {
-  CALL("DistinctProcessor::apply");
-
   Formula* form = unit->formula();
 
 

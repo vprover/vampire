@@ -33,7 +33,6 @@ using namespace Lib;
 
 class Renaming {
 public:
-  CLASS_NAME(Renaming);
   USE_ALLOCATOR(Renaming);
 
   Renaming() :

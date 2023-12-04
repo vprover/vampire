@@ -38,7 +38,6 @@ using namespace Lib;
 class Z3MainLoop : public MainLoop 
 {
 public:
-  CLASS_NAME(Z3MainLoop);
   USE_ALLOCATOR(Z3MainLoop);  
   
   Z3MainLoop(Problem& prb, const Options& opt);

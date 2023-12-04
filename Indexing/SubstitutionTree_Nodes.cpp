@@ -58,19 +58,16 @@ public:
   inline
   void insert(LeafData ld)
   {
-    CALL("SubstitutionTree::UListLeaf::insert");
     LDList::push(ld, _children);
     _size++;
   }
   inline
   void remove(LeafData ld)
   {
-    CALL("SubstitutionTree::UListLeaf::remove");
     _children = LDList::remove(ld, _children);
     _size--;
   }
 
-  CLASS_NAME(SubstitutionTree::UListLeaf);
   USE_ALLOCATOR(UListLeaf);
 private:
   typedef List<LeafData> LDList;
@@ -103,15 +100,12 @@ public:
     return pvi( iterTraits(typename LDSkipList::RefIterator(_children)).map([](auto& x) { return &x; }) );
   }
   void insert(LeafData ld) {
-    CALL("SubstitutionTree::SListLeaf::insert");
     _children.insert(ld);
   }
   void remove(LeafData ld) {
-    CALL("SubstitutionTree::SListLeaf::remove");
     _children.remove(ld);
   }
 
-  CLASS_NAME(SubstitutionTree::SListLeaf);
   USE_ALLOCATOR(SListLeaf);
 private:
   typedef SkipList<LeafData,LDComparator> LDSkipList;
@@ -136,14 +130,12 @@ typename SubstitutionTree<LeafData_>::Leaf* SubstitutionTree<LeafData_>::createL
 template<class LeafData_>
 typename SubstitutionTree<LeafData_>::IntermediateNode* SubstitutionTree<LeafData_>::createIntermediateNode(unsigned childVar)
 {
-  CALL("SubstitutionTree::createIntermediateNode/2");
   return new UArrIntermediateNode(childVar);
 }
 
 template<class LeafData_>
 typename SubstitutionTree<LeafData_>::IntermediateNode* SubstitutionTree<LeafData_>::createIntermediateNode(TermList ts, unsigned childVar)
 {
-  CALL("SubstitutionTree::createIntermediateNode/3");
   return new UArrIntermediateNode(ts, childVar);
 }
 
@@ -173,15 +165,13 @@ template<class LeafData_>
 typename SubstitutionTree<LeafData_>::Node** SubstitutionTree<LeafData_>::UArrIntermediateNode::
 	childByTop(TermList::Top t, bool canCreate)
 {
-  CALL("SubstitutionTree::UArrIntermediateNode::childByTop");
-
   for(int i=0;i<_size;i++) {
-    if(t == _nodes[i]->term.top()) {
+    if(t == _nodes[i]->top()) {
       return &_nodes[i];
     }
   }
   if(canCreate) {
-    this->mightExistAsTop(t);
+    // this->mightExistAsTop(t);
     ASS_L(_size,UARR_INTERMEDIATE_NODE_MAX_SIZE);
     ASS_EQ(_nodes[_size],0);
     _nodes[++_size]=0;
@@ -193,10 +183,8 @@ typename SubstitutionTree<LeafData_>::Node** SubstitutionTree<LeafData_>::UArrIn
 template<class LeafData_>
 void SubstitutionTree<LeafData_>::UArrIntermediateNode::remove(TermList::Top t)
 {
-  CALL("SubstitutionTree::UArrIntermediateNode::remove");
-
   for(int i=0;i<_size;i++) {
-    if(t == _nodes[i]->term.top()) {
+    if(t == _nodes[i]->top()) {
       _size--;
       _nodes[i]=_nodes[_size];
       _nodes[_size]=0;
@@ -214,11 +202,9 @@ template<class LeafData_>
 typename SubstitutionTree<LeafData_>::IntermediateNode* SubstitutionTree<LeafData_>::SListIntermediateNode
 	::assimilate(IntermediateNode* orig)
 {
-  CALL("SubstitutionTree::SListIntermediateNode::assimilate");
-
   IntermediateNode* res= 0;
   // TODO refactor such that children are not copied here, and deleted at (2), but moved instead
-  res = new SListIntermediateNode(orig->term, orig->childVar);
+  res = new SListIntermediateNode(orig->term(), orig->childVar);
   res->loadChildren(orig->allChildren());
   orig->makeEmpty();
   // TODO (2) see above
@@ -233,9 +219,7 @@ typename SubstitutionTree<LeafData_>::IntermediateNode* SubstitutionTree<LeafDat
 template<class LeafData_>
 typename SubstitutionTree<LeafData_>::SListLeaf* SubstitutionTree<LeafData_>::SListLeaf::assimilate(Leaf* orig)
 {
-  CALL("SubstitutionTree::SListLeaf::assimilate");
-
-  SListLeaf* res=new SListLeaf(orig->term);
+  SListLeaf* res=new SListLeaf(orig->term());
   res->loadChildren(orig->allChildren());
   orig->makeEmpty();
   delete orig;
@@ -245,8 +229,6 @@ typename SubstitutionTree<LeafData_>::SListLeaf* SubstitutionTree<LeafData_>::SL
 template<class LeafData_>
 void SubstitutionTree<LeafData_>::ensureLeafEfficiency(Leaf** leaf)
 {
-  CALL("SubstitutionTree::ensureLeafEfficiency");
-
   if( (*leaf)->algorithm()==UNSORTED_LIST && (*leaf)->size()>5 ) {
     *leaf=SListLeaf::assimilate(*leaf);
   }
@@ -255,8 +237,6 @@ void SubstitutionTree<LeafData_>::ensureLeafEfficiency(Leaf** leaf)
 template<class LeafData_>
 void SubstitutionTree<LeafData_>::ensureIntermediateNodeEfficiency(IntermediateNode** inode)
 {
-  CALL("SubstitutionTree::ensureIntermediateNodeEfficiency");
-
   if( (*inode)->algorithm()==UNSORTED_LIST && (*inode)->size()>3 ) {
     *inode=SListIntermediateNode::assimilate(*inode);
   }

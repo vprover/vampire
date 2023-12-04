@@ -25,7 +25,6 @@ class CombinatorDemodISE
 : public ImmediateSimplificationEngine
 {
 public:
-  CLASS_NAME(CombinatorDemodISE);
   USE_ALLOCATOR(CombinatorDemodISE);
 
   CombinatorDemodISE(){}

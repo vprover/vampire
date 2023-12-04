@@ -31,7 +31,6 @@ class SubVarSup
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(SubVarSup);
   USE_ALLOCATOR(SubVarSup);
 
   void attach(SaturationAlgorithm* salg);

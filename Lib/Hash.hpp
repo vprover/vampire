@@ -129,7 +129,7 @@ struct TupleHash {
 
 
   template<typename... T>
-  static unsigned hash(tuple<T...> const& s) {
+  static unsigned hash(std::tuple<T...> const& s) {
     //C++17: repace with std::apply:
     // return std::apply(s, [](auto... args) { return HashUtils::combine(hash(args)...); });
     return tuple_hash_impl<0>(s);
@@ -231,9 +231,19 @@ public:
     size_t size,
     unsigned hash = FNV32_OFFSET_BASIS
   ) {
-    CALL("DefaultHash::hashBytes");
     for (size_t i = 0; i < size; i++) {
       hash = (hash ^ val[i]) * FNV32_PRIME;
+    }
+    return hash;
+  }
+
+  template<class Iter>
+  static unsigned hashIter(
+      Iter iter,
+      unsigned hash = FNV32_OFFSET_BASIS
+      ) {
+    while (iter.hasNext()) {
+      hash = (hash ^ iter.next()) * FNV32_PRIME;
     }
     return hash;
   }
@@ -242,8 +252,6 @@ public:
    * FNV-1a applied to a NUL-terminated C-style string
    */
   static unsigned hashNulTerminated(const char* val) {
-    CALL("Hash::hash(const char *)");
-
     unsigned hash = FNV32_OFFSET_BASIS;
     while (*val) {
       hash = (hash ^ *val) * FNV32_PRIME;
@@ -255,13 +263,13 @@ public:
 
 
   template<typename... T>
-  static unsigned hash(tuple<T...> const& s) 
+  static unsigned hash(std::tuple<T...> const& s) 
   { return TupleHash<DefaultHash>::hash(s); }
 
   template<typename T>
   static unsigned hash(Lib::Option<T> const& o) 
-  { return o.isSome() ? o->defaultHash()
-                      : Lib::DefaultHash::hash(typeid(T).hash_code()); }
+  { return o.isSome() ? Lib::DefaultHash::hash(*o)
+                      : Lib::DefaultHash::hash(0); }
 };
 
 // a default secondary hash for doubly-hashed containers
@@ -331,13 +339,13 @@ public:
     );
   }
   template<typename... T>
-  static unsigned hash(tuple<T...> const& s) 
+  static unsigned hash(std::tuple<T...> const& s) 
   { return TupleHash<DefaultHash2>::hash(s); }
 
   template<typename T>
   static unsigned hash(Lib::Option<T> const& o) 
-  { return o.isSome() ? o->defaultHash2()
-                      : Lib::DefaultHash2::hash(typeid(T).hash_code()); }
+  { return o.isSome() ? Lib::DefaultHash2::hash(*o)
+                      : Lib::DefaultHash2::hash(0); }
 };
 
 } // namespace Lib
@@ -351,9 +359,9 @@ template<class T> struct hash<Lib::Stack<T>>
 };
 
 
-template<class... T> struct hash<tuple<T...>> 
+template<class... T> struct hash<std::tuple<T...>> 
 {
-  size_t operator()(tuple<T...> const& s) const 
+  size_t operator()(std::tuple<T...> const& s) const 
   { return Lib::DefaultHash::hash(s); }
 };
 } // std

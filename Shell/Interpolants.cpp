@@ -63,16 +63,14 @@
 
 namespace Shell
 {
+    using namespace std;
     using namespace Kernel;
-    
+
     
 //preprocessing proof
     
     void Interpolants::removeTheoryInferences(Unit* refutation)
     {
-        BYPASSING_ALLOCATOR;
-        CALL("Interpolants::removeTheoryInferences");
-
         ProofIteratorPostOrder it(refutation);
         while (it.hasNext()) // traverse the proof in depth-first post order
         {
@@ -142,9 +140,6 @@ namespace Shell
      */
     Formula* Interpolants::getInterpolant(Unit *refutation, UnitWeight weightFunction)
     {
-        BYPASSING_ALLOCATOR;
-        CALL("Interpolants::getInterpolant");
-                
         /*
          * compute coloring for the inferences, i.e. compute splitting function in the words of the thesis
          */
@@ -178,8 +173,6 @@ namespace Shell
      */
     Interpolants::SubproofsUnionFind Interpolants::computeSubproofs(Unit* refutation, const SplittingFunction& splittingFunction)
     {
-        CALL("Interpolants::computeSubproofs");
-
         std::unordered_map<Unit*, Unit*> unitsToRepresentative; // maps each unit u1 (belonging to a red subproof) to the representative unit u2 of that subproof
         std::unordered_map<Unit*, int> unitsToSize; // needed for weighted quick-union: for each unit, counts number of elements rooted in that unit
         
@@ -217,8 +210,6 @@ namespace Shell
      */
     Interpolants::Boundary Interpolants::computeBoundary(Unit* refutation,const SplittingFunction& splittingFunction)
     {
-        CALL("Interpolants::computeBoundary");
-
         std::unordered_set<Kernel::Unit*> inputNodes;   // input is a blue premise of a red inference
         std::unordered_set<Kernel::Unit*> outputNodes;  // output is a red premise of a blue inference or a red refutation
         
@@ -282,8 +273,6 @@ namespace Shell
     Formula* Interpolants::generateInterpolant(Kernel::Unit* refutation, const Boundary& boundary,
                 const SplittingFunction& splittingFunction, const SubproofsUnionFind& unitsToRepresentative)
     {
-        CALL("Interpolants::generateInterpolant");
-
         const std::unordered_set<Unit*>& inputNodes = boundary.first;
         const std::unordered_set<Unit*>& outputNodes = boundary.second;
         
@@ -296,12 +285,10 @@ namespace Shell
           InterpolantBuilder() : implCnt(0), lastCol(COLOR_LEFT), conjuncts(FormulaList::empty()), aside(nullptr) {}
 
           Formula* finiliseLeft() {
-            CALL("Interpolants::InterpolantBuilder::finiliseLeft");
             return JunctionFormula::generalJunction(Connective::AND, conjuncts);
           }
 
           Formula* finiliseRight() {
-            CALL("Interpolants::InterpolantBuilder::finiliseRight");
             Formula* antecedent = JunctionFormula::generalJunction(Connective::AND, conjuncts);
 
             implCnt++;
@@ -310,7 +297,6 @@ namespace Shell
           }
 
           Formula* finalise() {
-            CALL("Interpolants::InterpolantBuilder::finalise");
             if (lastCol == COLOR_LEFT) {
               return finiliseLeft();
             } else {
@@ -319,7 +305,6 @@ namespace Shell
           }
 
           void addLeft(Unit* u) {
-            CALL("Interpolants::InterpolantBuilder::addLeft");
             // cout << "addLeft " << u->toString() << endl;
 
             if (lastCol != COLOR_LEFT) {
@@ -333,7 +318,6 @@ namespace Shell
           }
 
           void addRight(Unit* u) {
-            CALL("Interpolants::InterpolantBuilder::addRight");
             // cout << "addRight " << u->toString() << endl;
 
             if (lastCol != COLOR_RIGHT) {
@@ -414,8 +398,6 @@ namespace Shell
 
     void Interpolants::removeConjectureNodesFromRefutation(Unit* refutation)
     {
-        CALL("Interpolants::removeConjectureNodesFromRefutation");
-
         Stack<Unit*> todo;
         DHSet<Unit*> seen;
 
@@ -452,8 +434,6 @@ namespace Shell
 
     Unit* Interpolants::formulifyRefutation(Unit* refutation)
     {
-    CALL("Interpolants::formulifyRefutation");
-
     Stack<Unit*> todo;
     DHMap<Unit*,Unit*> translate; // for caching results (we deal with a DAG in general), but also to distinguish the first call from the next
 
@@ -530,8 +510,6 @@ namespace Shell
      */
     std::unordered_map<Kernel::Unit*, Kernel::Color> Interpolants::computeSplittingFunction(Kernel::Unit* refutation, UnitWeight weightFunction)
     {
-        CALL("Interpolants::computeSplittingFunction");
-
         std::unordered_map<Kernel::Unit*, Kernel::Color> splittingFunction;
         
         ProofIteratorPostOrder it(refutation);
@@ -608,8 +586,6 @@ namespace Shell
 
     double Interpolants::weightForUnit(Kernel::Unit* unit, UnitWeight weightFunction)
     {
-        CALL("Interpolants::weightForUnit");
-
         if (weightFunction == UnitWeight::VAMPIRE)
         {
             return unit->getWeight();
@@ -635,8 +611,6 @@ namespace Shell
     
     Kernel::Unit* Interpolants::root(const UnionFindMap& unitsToRepresentative, Unit* unit)
     {
-        CALL("Interpolants::root");
-
         Unit* root = unit;
         while (unitsToRepresentative.find(root) != unitsToRepresentative.end())
         {
@@ -649,8 +623,6 @@ namespace Shell
     
     bool Interpolants::find(UnionFindMap& unitsToRepresentative, Unit* unit1, Unit* unit2)
     {
-        CALL("Interpolants::find");
-
         return root(unitsToRepresentative, unit1) == root(unitsToRepresentative, unit2);
     }
     
@@ -659,8 +631,6 @@ namespace Shell
                                 Unit* unit1,
                                 Unit* unit2)
     {
-        CALL("Interpolants::merge");
-
         ASS_NEQ(unit1, unit2);
         Unit* root1 = root(unitsToRepresentative, unit1);
         Unit* root2 = root(unitsToRepresentative, unit2);
@@ -682,15 +652,11 @@ namespace Shell
 
     ProofIteratorBFSPreOrder::ProofIteratorBFSPreOrder(Unit* refutation)
     {
-        CALL("ProofIteratorBFSPreOrder::ProofIteratorBFSPreOrder");
-
         todo.push(refutation);
     }
 
     bool ProofIteratorBFSPreOrder::hasNext()
     {
-        CALL("ProofIteratorBFSPreOrder::hasNext");
-
         while (!todo.empty())
         {
             if (visited.find(todo.front()) == visited.end())
@@ -711,8 +677,6 @@ namespace Shell
      */
     Unit* ProofIteratorBFSPreOrder::next()
     {
-        CALL("ProofIteratorBFSPreOrder::next");
-
         while (!todo.empty())
         {
             Unit* current = todo.front();
@@ -744,13 +708,11 @@ namespace Shell
 
     ProofIteratorPostOrder::ProofIteratorPostOrder(Unit* refutation)
     {
-        CALL("ProofIteratorPostOrder::ProofIteratorPostOrder");
         todo.push(refutation);
     }
 
     bool ProofIteratorPostOrder::hasNext()
     {
-        CALL("ProofIteratorPostOrder::hasNext");
         return !todo.empty();
     }
 
@@ -761,7 +723,6 @@ namespace Shell
      */
     Unit* ProofIteratorPostOrder::next()
     {
-        CALL("ProofIteratorPostOrder::next");
         while (!todo.empty())
         {
             Unit* currentUnit = todo.top();

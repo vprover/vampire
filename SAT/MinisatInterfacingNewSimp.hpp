@@ -30,7 +30,6 @@ namespace SAT{
 class MinisatInterfacingNewSimp : public SATSolverWithAssumptions
 {
 public:
-  CLASS_NAME(MinisatInterfacingNewSimp);
   USE_ALLOCATOR(MinisatInterfacingNewSimp);
   
   static const unsigned VAR_MAX;
@@ -50,7 +49,6 @@ public:
    * (Minisat deletes unconditionally satisfied clauses.)
    */
   virtual void simplify() override {
-    CALL("MinisatInterfacingNewSimp::simplify");
     _solver.simplify();
   }
 

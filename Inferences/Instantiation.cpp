@@ -37,6 +37,7 @@
 namespace Inferences
 {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 /*
@@ -72,7 +73,6 @@ struct InvertNumber
 };
 
 void Instantiation::init(){
-  CALL("Instantiation::init");
     Set<Term*>* intSet = new Set<Term*>();
     Set<Term*>* ratSet = new Set<Term*>();
     Set<Term*>* realSet = new Set<Term*>();
@@ -98,14 +98,11 @@ void Instantiation::init(){
  */
 void Instantiation::registerClause(Clause* cl)
 {
-  CALL("Instantiation::registerClause");
   ASS(cl);
 
   //cout << "register " << cl->toString() << endl;
 
-  Clause::Iterator cit(*cl);
-  while(cit.hasNext()){
-    Literal* lit = cit.next();
+  for (Literal* lit : cl->iterLits()) {
     SubtermIterator it(lit);
     while(it.hasNext()){
       TermList t = it.next();
@@ -141,8 +138,6 @@ void Instantiation::registerClause(Clause* cl)
  */
 void Instantiation::tryMakeLiteralFalse(Literal* lit, Stack<Substitution>& subs)
 {
-  CALL("Instantiation::tryMakeLiteralFalse");
-
   if(theory->isInterpretedPredicate(lit->functor())){
     Interpretation itp = theory->interpretPredicate(lit);
     //unsigned sort = theory->getOperationSort(interpretation);
@@ -185,8 +180,6 @@ void Instantiation::tryMakeLiteralFalse(Literal* lit, Stack<Substitution>& subs)
 
 Term* Instantiation::tryGetDifferentValue(Term* t)
 {
-  CALL("Instantiation::tryGetDifferentValue");
-
   TermList sort = SortHelper::getResultSort(t);
 
   try {
@@ -217,8 +210,6 @@ Term* Instantiation::tryGetDifferentValue(Term* t)
 
 VirtualIterator<Term*> Instantiation::getCandidateTerms(Clause* cl, unsigned var,TermList sort)
 {
-  CALL("Instantiation::getCandidateTerms");
-
   Stack<Term*>* cans=0;
   VirtualIterator<Term*> res = VirtualIterator<Term*>::getEmpty();
   if(sorted_candidates.find(sort,cans) && cans->size()){
@@ -232,7 +223,6 @@ public:
   DECL_ELEMENT_TYPE(Substitution);
   AllSubstitutionsIterator(Clause* cl,Instantiation* ins)
   {
-    CALL("Instantiation::AllSubstitutionsIterator");
     DHMap<unsigned,TermList> sortedVars;
     SortHelper::collectVariableSorts(cl,sortedVars);
     auto it = sortedVars.items();
@@ -253,7 +243,6 @@ public:
 
   Substitution next()
   {
-    CALL("AllSubstitutionsIterator::next")
     Substitution sub;
     VirtualIterator<unsigned> vs = candidates.domain(); 
     while(vs.hasNext()){
@@ -292,8 +281,6 @@ struct Instantiation::ResultFn
   ResultFn(Clause* cl) : _cl(cl) {}
   Clause* operator()(Substitution sub)
   {
-    CALL("Instantiation::ResultFn::operator()");
-
     unsigned clen = _cl->length();
     Clause* res = new(clen) Clause(clen,GeneratingInference1(InferenceRule::INSTANTIATION,_cl));
 
@@ -309,8 +296,6 @@ private:
 
 ClauseIterator Instantiation::generateClauses(Clause* premise)
 {
-  CALL("Instantiation::generateClauses");
-
   //cout << "Instantiate " << premise->toString() << endl;
 
   Stack<Substitution> subs;
@@ -319,17 +304,10 @@ ClauseIterator Instantiation::generateClauses(Clause* premise)
     tryMakeLiteralFalse(lit,subs);
   }
 
-  return pvi(getConcatenatedIterator(
-  //return pvi(
-               getMappingIterator(
-                  getPersistentIterator(Stack<Substitution>::Iterator(subs)),
-                  ResultFn(premise)
-               ),
-               getMappingIterator(
-                 AllSubstitutionsIterator(premise,this),
-                 ResultFn(premise)
-              )
-         ));
+  return pvi(concatIters(
+                 getPersistentIterator(Stack<Substitution>::Iterator(subs)),
+                 AllSubstitutionsIterator(premise,this))
+            .map(ResultFn(premise)));
 
 }
 

@@ -31,7 +31,6 @@ class Narrow
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(Narrow);
   USE_ALLOCATOR(Narrow);
 
   ClauseIterator generateClauses(Clause* premise);

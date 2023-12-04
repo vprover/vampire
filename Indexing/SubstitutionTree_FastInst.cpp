@@ -23,14 +23,10 @@
 namespace Indexing
 {
 
-template<class LeafData_>
-std::ostream& operator<< (ostream& out, typename SubstitutionTree<LeafData_>::InstMatcher::TermSpec ts )
-{
-  CALL("operator<<(ostream&,SubstitutionTree::InstMatcher::TermSpec)");
 
-  out<<ts.toString();
-  return out;
-}
+template<class LeafData_>
+std::ostream& operator<< (std::ostream& out, typename SubstitutionTree<LeafData_>::InstMatcher::TermSpec ts )
+{ return out << ts; }
 
 
 template<class LeafData_>
@@ -38,7 +34,6 @@ class SubstitutionTree<LeafData_>::InstMatcher::Substitution
 : public ResultSubstitution
 {
 public:
-  CLASS_NAME(SubstitutionTree::InstMatcher::Substitution);
   USE_ALLOCATOR(SubstitutionTree::InstMatcher::Substitution);
   
   Substitution(InstMatcher* parent, Renaming* resultDenormalizer)
@@ -50,15 +45,11 @@ public:
 
   TermList applyToBoundQuery(TermList t) override
   {
-    CALL("SubstitutionTree::InstMatcher::Substitution::applyToBoundQuery");
-
     return SubstHelper::apply(t, *this);
   }
 
   TermList apply(unsigned var)
   {
-    CALL("SubstitutionTree::InstMatcher::Substitution::apply");
-
     TermList normalized=_parent->derefQueryBinding(var);
     ASS_REP(!normalized.isTerm() || normalized.term()->shared(), normalized);
     return _resultDenormalizer->apply(normalized);
@@ -80,8 +71,6 @@ private:
 template<class LeafData_>
 ResultSubstitutionSP SubstitutionTree<LeafData_>::InstMatcher::getSubstitution(Renaming* resultDenormalizer)
 {
-  CALL("SubstitutionTree::InstMatcher::getSubstitution");
-
   return ResultSubstitutionSP(
 	  new Substitution(this, resultDenormalizer));
 }
@@ -89,8 +78,6 @@ ResultSubstitutionSP SubstitutionTree<LeafData_>::InstMatcher::getSubstitution(R
 template<class LeafData_>
 TermList SubstitutionTree<LeafData_>::InstMatcher::derefQueryBinding(unsigned var)
 {
-  CALL("SubstitutionTree::InstMatcher::derefQueryBinding");
-
   TermList tvar0(var, false);
   TermList tvar=tvar0;
 
@@ -165,7 +152,6 @@ TermList SubstitutionTree<LeafData_>::InstMatcher::derefQueryBinding(unsigned va
 template<class LeafData_>
 typename SubstitutionTree<LeafData_>::InstMatcher::TermSpec SubstitutionTree<LeafData_>::InstMatcher::deref(TermList var)
 {
-  CALL("SubstitutionTree::InstMatcher::deref");
   ASS_REP(var.isVar(), var.tag());
 
 #if VDEBUG
@@ -195,8 +181,6 @@ typename SubstitutionTree<LeafData_>::InstMatcher::TermSpec SubstitutionTree<Lea
 template<class LeafData_>
 void SubstitutionTree<LeafData_>::InstMatcher::backtrack()
 {
-  CALL("SubstitutionTree::InstMatcher::backtrack");
-
   for(;;) {
     TermList boundVar=_boundVars->pop();
     if(boundVar.isEmpty()) {
@@ -206,34 +190,10 @@ void SubstitutionTree<LeafData_>::InstMatcher::backtrack()
   }
 }
 
-/**
- * Try to undo one call to the @b matchNext method with separate param
- * set to @b true and all other @b matchNext calls that were joined to it.
- * Return true iff successful. (The failure can be due to the fact there
- * is no separated @b matchNext call to be undone. In this case every binding
- * on the @b _boundVars stack would be undone.)
- */
-template<class LeafData_>
-bool SubstitutionTree<LeafData_>::InstMatcher::tryBacktrack()
-{
-  CALL("SubstitutionTree::InstMatcher::tryBacktrack");
-
-  while(_boundVars->isNonEmpty()) {
-    TermList boundVar=_boundVars->pop();
-    if(boundVar.isEmpty()) {
-      return true;
-    }
-    _bindings->remove(boundVar);
-  }
-  return false;
-}
-
 
 template<class LeafData_>
 bool SubstitutionTree<LeafData_>::InstMatcher::matchNext(unsigned specVar, TermList nodeTerm, bool separate)
 {
-  CALL("SubstitutionTree::InstMatcher::matchNext");
-
   if(separate) {
     TermList sep;
     sep.makeEmpty();
@@ -264,8 +224,6 @@ bool SubstitutionTree<LeafData_>::InstMatcher::matchNext(unsigned specVar, TermL
 template<class LeafData_>
 bool SubstitutionTree<LeafData_>::InstMatcher::matchNextAux(TermList queryTerm, TermList nodeTerm, bool separate)
 {
-  CALL("SubstitutionTree::InstMatcher::matchNextAux");
-
   unsigned specVar;
   TermSpec tsBinding;
 
@@ -294,11 +252,11 @@ bool SubstitutionTree<LeafData_>::InstMatcher::matchNextAux(TermList queryTerm, 
     goto finish;
   }
 
-  static Stack<pair<TermSpec,TermSpec> > toDo;
+  static Stack<std::pair<TermSpec,TermSpec> > toDo;
   static DisagreementSetIterator dsit;
 
   toDo.reset();
-  toDo.push(make_pair(tsBinding, tsNode));
+  toDo.push(std::make_pair(tsBinding, tsNode));
 
   while(toDo.isNonEmpty()) {
     TermSpec ts1=toDo.top().first;
@@ -307,7 +265,7 @@ bool SubstitutionTree<LeafData_>::InstMatcher::matchNextAux(TermList queryTerm, 
 
     dsit.reset(ts1.t, ts2.t, ts1.q!=ts2.q);
     while(dsit.hasNext()) {
-      pair<TermList,TermList> disarg=dsit.next();
+      std::pair<TermList,TermList> disarg=dsit.next();
       TermList dt1=disarg.first;
       TermList dt2=disarg.second;
 
@@ -355,7 +313,7 @@ bool SubstitutionTree<LeafData_>::InstMatcher::matchNextAux(TermList queryTerm, 
 	deref2=deref(dt2);
       }
 
-      toDo.push(make_pair(deref1, deref2));
+      toDo.push(std::make_pair(deref1, deref2));
     }
   }
   success=true;
@@ -376,8 +334,6 @@ finish:
 template<class LeafData_>
 bool SubstitutionTree<LeafData_>::FastInstancesIterator::hasNext()
 {
-  CALL("SubstitutionTree::FastInstancesIterator::hasNext");
-
   while(!_ldIterator.hasNext() && findNextLeaf()) {}
   return _ldIterator.hasNext();
 }
@@ -386,10 +342,8 @@ bool SubstitutionTree<LeafData_>::FastInstancesIterator::hasNext()
 #define LOGGING 0
 
 template<class LeafData_>
-typename SubstitutionTree<LeafData_>::RSQueryResult SubstitutionTree<LeafData_>::FastInstancesIterator::next()
+typename SubstitutionTree<LeafData_>::template QueryResult<ResultSubstitutionSP> SubstitutionTree<LeafData_>::FastInstancesIterator::next()
 {
-  CALL("SubstitutionTree::FastInstancesIterator::next");
-
   while(!_ldIterator.hasNext() && findNextLeaf()) {}
   ASS(_ldIterator.hasNext());
   auto ld = _ldIterator.next();
@@ -418,8 +372,6 @@ typename SubstitutionTree<LeafData_>::RSQueryResult SubstitutionTree<LeafData_>:
 template<class LeafData_>
 bool SubstitutionTree<LeafData_>::FastInstancesIterator::findNextLeaf()
 {
-  CALL("SubstitutionTree::FastInstancesIterator::findNextLeaf");
-
   Node* curr;
   bool sibilingsRemain = false;
   if(_inLeaf) {
@@ -505,7 +457,7 @@ main_loop_start:
       //there are no other alternatives
       return false;
     }
-    if(!_subst.matchNext(currSpecVar, curr->term, sibilingsRemain)) {	//[1]
+    if(!_subst.matchNext(currSpecVar, curr->term(), sibilingsRemain)) {	//[1]
       //match unsuccessful, try next alternative
       curr=0;
       if(!sibilingsRemain && _alternatives->isNonEmpty()) {
@@ -518,8 +470,7 @@ main_loop_start:
       unsigned specVar=static_cast<UArrIntermediateNode*>(curr)->childVar;
       curr=static_cast<UArrIntermediateNode*>(curr)->_nodes[0];
       ASS(curr);
-      ASSERT_VALID(*curr);
-      if(!_subst.matchNext(specVar, curr->term, false)) {
+      if(!_subst.matchNext(specVar, curr->term(), false)) {
 	//matching failed, let's go back to the node, that had multiple children
 	//_subst.backtrack();
 	if(sibilingsRemain || _alternatives->isNonEmpty()) {
@@ -564,8 +515,6 @@ main_loop_start:
 template<class LeafData_>
 bool SubstitutionTree<LeafData_>::FastInstancesIterator::enterNode(Node*& curr)
 {
-  CALL("SubstitutionTree::FastInstancesIterator::enterNode");
-  ASSERT_VALID(*curr);
   ASS(!curr->isLeaf());
 
   IntermediateNode* inode=static_cast<IntermediateNode*>(curr);
@@ -591,13 +540,13 @@ bool SubstitutionTree<LeafData_>::FastInstancesIterator::enterNode(Node*& curr)
     if(query.isTerm()) {
       unsigned bindingFunctor=query.term()->functor();
       //let's skip terms that don't have the same top functor...
-      while(*nl && (!(*nl)->term.isTerm() || (*nl)->term.term()->functor()!=bindingFunctor)) {
+      while(*nl && (!(*nl)->term().isTerm() || (*nl)->term().term()->functor()!=bindingFunctor)) {
         nl++;
       }
 
       if(*nl) {
 	//we've found the term with the same top functor
-	ASS_EQ((*nl)->term.term()->functor(),bindingFunctor);
+	ASS_EQ((*nl)->term().term()->functor(),bindingFunctor);
         curr=*nl;
         noAlternatives=true; //there is at most one term with each top functor
       }

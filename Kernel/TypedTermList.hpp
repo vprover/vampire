@@ -20,7 +20,6 @@ class TypedTermList : public TermList
 {
   SortId _sort;
 public:
-  CLASS_NAME(TypedTermList)
 
     // TODO get rid of default constructor
   TypedTermList() {}

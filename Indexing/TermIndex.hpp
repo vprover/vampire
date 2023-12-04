@@ -30,7 +30,6 @@ class TermIndex
 {
   using TermIndexingStructure   = Indexing::TermIndexingStructure<Data>;
 public:
-  CLASS_NAME(TermIndex);
   USE_ALLOCATOR(TermIndex);
 
   virtual ~TermIndex() {}
@@ -53,7 +52,7 @@ public:
 protected:
   TermIndex(TermIndexingStructure* is) : _is(is) {}
 
-  unique_ptr<TermIndexingStructure> _is;
+  std::unique_ptr<TermIndexingStructure> _is;
 };
 
 class SuperpositionSubtermIndex
@@ -62,7 +61,6 @@ class SuperpositionSubtermIndex
   using TermIndex             = Indexing::TermIndex<TermLiteralClause>;
   using TermIndexingStructure = Indexing::TermIndexingStructure<TermLiteralClause>;
 public:
-  CLASS_NAME(SuperpositionSubtermIndex);
   USE_ALLOCATOR(SuperpositionSubtermIndex);
 
   SuperpositionSubtermIndex(TermIndexingStructure* is, Ordering& ord)
@@ -79,7 +77,6 @@ class SuperpositionLHSIndex
   using TermIndex             = Indexing::TermIndex<TermLiteralClause>;
   using TermIndexingStructure = Indexing::TermIndexingStructure<TermLiteralClause>;
 public:
-  CLASS_NAME(SuperpositionLHSIndex);
   USE_ALLOCATOR(SuperpositionLHSIndex);
 
   SuperpositionLHSIndex(TermSubstitutionTree<TermLiteralClause>* is, Ordering& ord, const Options& opt)
@@ -116,7 +113,6 @@ class DemodulationSubtermIndexImpl
   using TermIndex             = Indexing::TermIndex<TermLiteralClause>;
   using TermIndexingStructure = Indexing::TermIndexingStructure<TermLiteralClause>;
 public:
-  CLASS_NAME(DemodulationSubtermIndexImpl);
   USE_ALLOCATOR(DemodulationSubtermIndexImpl);
 
   DemodulationSubtermIndexImpl(TermIndexingStructure* is)
@@ -134,7 +130,6 @@ class DemodulationLHSIndex
   using TermIndex             = Indexing::TermIndex<TermLiteralClause>;
   using TermIndexingStructure = Indexing::TermIndexingStructure<TermLiteralClause>;
 public:
-  CLASS_NAME(DemodulationLHSIndex);
   USE_ALLOCATOR(DemodulationLHSIndex);
 
   DemodulationLHSIndex(TermIndexingStructure* is, Ordering& ord, const Options& opt)
@@ -155,7 +150,6 @@ class InductionTermIndex
   using TermIndex             = Indexing::TermIndex<TermLiteralClause>;
   using TermIndexingStructure = Indexing::TermIndexingStructure<TermLiteralClause>;
 public:
-  CLASS_NAME(InductionTermIndex);
   USE_ALLOCATOR(InductionTermIndex);
 
   InductionTermIndex(TermIndexingStructure* is)
@@ -174,7 +168,6 @@ class StructInductionTermIndex
   using TermIndex             = Indexing::TermIndex<TermLiteralClause>;
   using TermIndexingStructure = Indexing::TermIndexingStructure<TermLiteralClause>;
 public:
-  CLASS_NAME(StructInductionTermIndex);
   USE_ALLOCATOR(StructInductionTermIndex);
 
   StructInductionTermIndex(TermIndexingStructure* is)
@@ -194,7 +187,6 @@ class PrimitiveInstantiationIndex
   using TermIndex             = Indexing::TermIndex<TermLiteralClause>;
   using TermIndexingStructure = Indexing::TermIndexingStructure<TermLiteralClause>;
 public:
-  CLASS_NAME(PrimitiveInstantiationIndex);
   USE_ALLOCATOR(PrimitiveInstantiationIndex);
 
   PrimitiveInstantiationIndex(TermIndexingStructure* is) : TermIndex(is)
@@ -211,7 +203,6 @@ class SubVarSupSubtermIndex
   using TermIndex             = Indexing::TermIndex<TermLiteralClause>;
   using TermIndexingStructure = Indexing::TermIndexingStructure<TermLiteralClause>;
 public:
-  CLASS_NAME(SubVarSupSubtermIndex);
   USE_ALLOCATOR(SubVarSupSubtermIndex);
 
   SubVarSupSubtermIndex(TermIndexingStructure* is, Ordering& ord)
@@ -228,7 +219,6 @@ class SubVarSupLHSIndex
   using TermIndex             = Indexing::TermIndex<TermLiteralClause>;
   using TermIndexingStructure = Indexing::TermIndexingStructure<TermLiteralClause>;
 public:
-  CLASS_NAME(SubVarSupLHSIndex);
   USE_ALLOCATOR(SubVarSupLHSIndex);
 
   SubVarSupLHSIndex(TermIndexingStructure* is, Ordering& ord, const Options& opt)
@@ -248,7 +238,6 @@ class NarrowingIndex
   using TermIndex             = Indexing::TermIndex<TermLiteralClause>;
   using TermIndexingStructure = Indexing::TermIndexingStructure<TermLiteralClause>;
 public:
-  CLASS_NAME(NarrowingIndex);
   USE_ALLOCATOR(NarrowingIndex);
 
   NarrowingIndex(TermIndexingStructure* is) : TermIndex(is)
@@ -267,7 +256,6 @@ class SkolemisingFormulaIndex
   using TermIndex             = Indexing::TermIndex<LeafData>;
   using TermIndexingStructure = Indexing::TermIndexingStructure<LeafData>;
 public:
-  CLASS_NAME(SkolemisingFormulaIndex);
   USE_ALLOCATOR(SkolemisingFormulaIndex);
 
   SkolemisingFormulaIndex(TermIndexingStructure* is) : TermIndex(is)

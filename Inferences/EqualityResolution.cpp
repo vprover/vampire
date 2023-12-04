@@ -64,13 +64,11 @@ struct EqualityResolution::ResultFn
 
   Clause* operator() (Literal* lit)
   {
-    CALL("EqualityResolution::ResultFn::operator()");
-
     ASS(lit->isEquality());
     ASS(lit->isNegative());
 
-    static MismatchHandler _mismatchHandler = MismatchHandler::create();
-    auto handler = _mismatchHandler;
+    static AbstractionOracle _abstractionOracle = AbstractionOracle::create();
+    auto abstractionOracle = _abstractionOracle;
 
     TermList arg0 = *lit->nthArgument(0);
     TermList arg1 = *lit->nthArgument(1);
@@ -79,18 +77,18 @@ struct EqualityResolution::ResultFn
     // and therefore a constraint can be created between arguments
     if(arg0.isTerm() && arg1.isTerm() &&
        arg0.term()->functor() != arg1.term()->functor()){
-      handler = MismatchHandler(Shell::Options::UnificationWithAbstraction::OFF);
+      abstractionOracle = AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF);
     }
 
-    auto absUnif = AbstractingUnifier::unify(arg0, 0, arg1, 0, handler, env.options->unificationWithAbstractionFixedPointIteration());
+    auto absUnif = AbstractingUnifier::unify(arg0, 0, arg1, 0, abstractionOracle, env.options->unificationWithAbstractionFixedPointIteration());
 
     if(absUnif.isNone()){ 
       return 0; 
     }
 
-    // TODO create absUnif.constrLiterals or so
-    auto constraints = absUnif->constraintLiterals();
-    unsigned newLen=_cLen - 1 + constraints->length();
+    auto constraints = absUnif->computeConstraintLiterals();
+    auto nConstraints = constraints->size();
+    unsigned newLen=_cLen - 1 + nConstraints;
 
     Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
 
@@ -138,8 +136,6 @@ private:
 
 ClauseIterator EqualityResolution::generateClauses(Clause* premise)
 {
-  CALL("EqualityResolution::generateClauses");
-
   if(premise->isEmpty()) {
     return ClauseIterator::getEmpty();
   }
@@ -165,8 +161,6 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
  */
 Clause* EqualityResolution::tryResolveEquality(Clause* cl, Literal* toResolve)
 {
-  CALL("EqualityResolution::tryResolveEquality");
-
   return ResultFn(cl)(toResolve);
 }
 

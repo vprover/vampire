@@ -27,8 +27,6 @@ using namespace Kernel;
 
 LiteralList* SpassLiteralSelector::getMaximalsInOrder(Clause* c, unsigned eligible)
 {
-  CALL("SpassLiteralSelector::getMaximalsInOrder");
-
   LiteralList* res = LiteralList::empty();
 
   for(int li=((int)eligible)-1; li>=0; li--) {
@@ -42,8 +40,6 @@ LiteralList* SpassLiteralSelector::getMaximalsInOrder(Clause* c, unsigned eligib
 
 void SpassLiteralSelector::doSelection(Clause* c, unsigned eligible)
 {
-  CALL("SpassLiteralSelector::doSelection");
-
   LiteralList* maximals = LiteralList::empty();
 
   if (_value == IFSEVERALMAXIMAL) {

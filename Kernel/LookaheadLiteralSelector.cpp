@@ -35,6 +35,7 @@
 namespace Kernel
 {
 
+using namespace std;
 using namespace Lib;
 using namespace Indexing;
 using namespace Saturation;
@@ -47,14 +48,12 @@ using namespace Saturation;
 struct LookaheadLiteralSelector::GenIteratorIterator
 {
   using TermIndex = Indexing::TermIndex<TermLiteralClause>;
-  DECL_ELEMENT_TYPE(VirtualIterator<tuple<>>);
+  DECL_ELEMENT_TYPE(VirtualIterator<std::tuple<>>);
 
   GenIteratorIterator(Literal* lit, LookaheadLiteralSelector& parent) : stage(0), lit(lit), prepared(false), _parent(parent) {}
 
   bool hasNext()
   {
-    CALL("LookaheadLiteralSelector::GenIteratorIterator::hasNext");
-
     if(prepared) {
       return true;
     }
@@ -94,7 +93,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
 
       nextIt=pvi( getMapAndFlattenIterator(
 	       EqHelper::getLHSIterator(lit, _parent._ord),
-	       TermUnificationRetriever(bsi, lit)) );
+	       TermUnificationRetriever(bsi)) );
       break;
     }
     case 2:  //forward superposition
@@ -104,9 +103,8 @@ struct LookaheadLiteralSelector::GenIteratorIterator
       ASS(fsi);
 
       nextIt=pvi( getMapAndFlattenIterator(
-	       getMappingIterator(EqHelper::getSubtermIterator(lit, _parent._ord), //TODO update for combinatory sup
-           [](Term* t) { return TermList(t); }),
-	       TermUnificationRetriever(fsi, lit)) );
+	       EqHelper::getSubtermIterator(lit, _parent._ord), //TODO update for combinatory sup
+	       TermUnificationRetriever(fsi)) );
       break;
     }
     case 3:  //equality resolution
@@ -137,9 +135,8 @@ struct LookaheadLiteralSelector::GenIteratorIterator
     return true;
   }
 
-  VirtualIterator<tuple<>> next()
+  VirtualIterator<std::tuple<>> next()
   {
-    CALL("LookaheadLiteralSelector::GenIteratorIterator::next");
     if(!prepared) {
       ALWAYS(hasNext());
     }
@@ -152,21 +149,19 @@ private:
 
   struct TermUnificationRetriever
   {
-    TermUnificationRetriever(TermIndex* index, Literal* lit) : _index(index), _lit(lit) {}
-    VirtualIterator<tuple<>> operator()(TermList trm)
+    TermUnificationRetriever(TermIndex* index) : _index(index) {}
+    VirtualIterator<std::tuple<>> operator()(TypedTermList trm)
     {
-      // TODO getting the sort of the term in this way is very inefficient
-      return pvi( dropElementType(_index->getUnifications(TypedTermList(trm, SortHelper::getTermSort(trm, _lit)),false)) );
+      return pvi(dropElementType(_index->getUnifications(trm, /* retrieveSubst */ false)));
     }
   private:
     TermIndex* _index;
-    Literal* _lit;
   };
 
   int stage;
   Literal* lit;
   bool prepared;
-  VirtualIterator<tuple<>> nextIt;
+  VirtualIterator<std::tuple<>> nextIt;
 
   LookaheadLiteralSelector& _parent;
 };
@@ -175,10 +170,8 @@ private:
  * Return iterator with the same number of elements as there are inferences
  * that can be performed with @b lit literal selected
  */
-VirtualIterator<tuple<>> LookaheadLiteralSelector::getGeneraingInferenceIterator(Literal* lit)
+VirtualIterator<std::tuple<>> LookaheadLiteralSelector::getGeneraingInferenceIterator(Literal* lit)
 {
-  CALL("LookaheadLiteralSelector::getGeneraingInferenceIterator");
-
   return pvi( getFlattenedIterator(GenIteratorIterator(lit, *this)) );
 }
 
@@ -189,10 +182,9 @@ VirtualIterator<tuple<>> LookaheadLiteralSelector::getGeneraingInferenceIterator
  */
 Literal* LookaheadLiteralSelector::pickTheBest(Literal** lits, unsigned cnt)
 {
-  CALL("LookaheadLiteralSelector::pickTheBest");
   ASS_G(cnt,1); //special cases are handled elsewhere
 
-  static DArray<VirtualIterator<tuple<>> > runifs; //resolution unification iterators
+  static DArray<VirtualIterator<std::tuple<>> > runifs; //resolution unification iterators
   runifs.ensure(cnt);
 
   for(unsigned i=0;i<cnt;i++) {
@@ -240,8 +232,6 @@ Literal* LookaheadLiteralSelector::pickTheBest(Literal** lits, unsigned cnt)
  */
 void LookaheadLiteralSelector::removeVariants(LiteralStack& lits)
 {
-  CALL("LookaheadLiteralSelector::removeVariants");
-
   size_t cnt=lits.size();
 
   for(size_t i=0;i<cnt-1;i++) {
@@ -261,8 +251,6 @@ void LookaheadLiteralSelector::removeVariants(LiteralStack& lits)
  */
 void LookaheadLiteralSelector::doSelection(Clause* c, unsigned eligible)
 {
-  CALL("LookaheadLiteralSelector::doSelection");
-
   if(_startupSelector){
    
     _startupSelector->select(c,eligible);
@@ -310,7 +298,7 @@ void LookaheadLiteralSelector::doSelection(Clause* c, unsigned eligible)
     }
   }
   else {
-    selectable.loadFromIterator(ArrayishObjectIterator<Clause>(*c, eligible));
+    selectable.loadFromIterator(arrayIter(*c, eligible));
     removeVariants(selectable);
   }
 
