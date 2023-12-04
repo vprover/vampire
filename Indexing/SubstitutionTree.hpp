@@ -200,11 +200,6 @@ public:
   { return QueryResult<Unifier>(ld, std::move(unif)); }
 
   template<class I> using QueryResultIter = VirtualIterator<QueryResult<typename I::Unifier>>;
-  // TODO get rid of me
-  using RSQueryResult = QueryResult<ResultSubstitutionSP>;
-  // TODO get rid of me
-  using RSQueryResultIter = VirtualIterator<QueryResult<ResultSubstitutionSP>>;
-  // TODO make const function
   template<class I, class TermOrLit, class... Args> 
   auto iterator(TermOrLit query, bool retrieveSubstitutions, bool reversed, Args... args)
   {
@@ -350,10 +345,6 @@ public:
         Node::makeEmpty();
         removeAllChildren();
       }
-
-      // // TODO remove this?
-      // virtual void mightExistAsTop(TermList::Top t) {
-      // }
 
       void loadChildren(NodeIterator children);
 
@@ -510,7 +501,6 @@ public:
         bool found=_nodes.getPosition(t,res,canCreate);
         if(!found) {
           if(canCreate) {
-            // mightExistAsTop(t);
             *res=0;
           } else {
             res=0;
@@ -555,8 +545,6 @@ public:
 
     typedef DHMap<unsigned,TermList,IdentityHash,DefaultHash> BindingMap;
     typedef Stack<unsigned> VarStack;
-
-    void getBindingsArgBindings(Term* t, BindingMap& binding);
 
     Leaf* findLeaf(BindingMap& svBindings)
     { return _root ? findLeaf(_root, svBindings) : nullptr; }

@@ -171,7 +171,6 @@ typename SubstitutionTree<LeafData_>::Node** SubstitutionTree<LeafData_>::UArrIn
     }
   }
   if(canCreate) {
-    // this->mightExistAsTop(t);
     ASS_L(_size,UARR_INTERMEDIATE_NODE_MAX_SIZE);
     ASS_EQ(_nodes[_size],0);
     _nodes[++_size]=0;

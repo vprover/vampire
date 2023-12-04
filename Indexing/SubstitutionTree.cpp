@@ -46,29 +46,6 @@
 #include "SubstitutionTree.hpp"
 
 namespace Indexing {
-
-/**
- * Store initial bindings of term @b t into @b bq.
- *
- * This method is used for insertions and deletions.
- */
-  // TODO get rid of this unused function
-template<class LeafData_>
-void Indexing::SubstitutionTree<LeafData_>::getBindingsArgBindings(Term* t, BindingMap& svBindings)
-{
-  TermList* args=t->args();
-
-  int nextVar = 0;
-  while (! args->isEmpty()) {
-    if (_nextVar <= nextVar) {
-      ASS_EQ(_iterCnt,0);
-      _nextVar = nextVar+1;
-    }
-    svBindings.insert(nextVar++, *args);
-    args = args->next();
-  }
-}
-
 struct UnresolvedSplitRecord
 {
   UnresolvedSplitRecord() {}
