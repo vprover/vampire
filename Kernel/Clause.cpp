@@ -576,10 +576,9 @@ unsigned Clause::computeWeightForClauseSelection(const Options& opt) const
   if(derivedFromGoal && opt.restrictNWCtoGC()){
     bool found = false;
     for(unsigned i=0;i<_length;i++){
-      TermFunIterator it(_literals[i]);
-      it.next(); // skip literal symbol
+      NonVariableNonTypeIterator it(_literals[i]);
       while(it.hasNext()){
-        found |= env.signature->getFunction(it.next())->inGoal();
+        found |= env.signature->getFunction(it.next()->functor())->inGoal();
       }
     }
     if(!found){ derivedFromGoal=false; }
