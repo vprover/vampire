@@ -353,18 +353,6 @@ public:
       virtual void output(std::ostream& out, bool multiline, int indent) const override;
     }; // class SubstitutionTree::IntermediateNode
 
-    // TODO remove this
-      struct NotTop
-      {
-          NotTop(unsigned t) : top(t) {};
-          bool operator()(TermList t){
-              return t.term()->functor()!=top;
-          }
-      private:
-          unsigned top;
-      };
-      
-
     class Leaf
     : public Node
     {
@@ -397,15 +385,6 @@ public:
     static IntermediateNode* createIntermediateNode(unsigned childVar);
     static IntermediateNode* createIntermediateNode(TermList ts, unsigned childVar);
     static void ensureIntermediateNodeEfficiency(IntermediateNode** inode);
-
-    // TODO remove this
-    struct IsPtrToVarNodeFn
-    {
-      bool operator()(Node** n)
-      {
-        return (*n)->term().isVar();
-      }
-    };
 
     class UArrIntermediateNode
     : public IntermediateNode
@@ -443,8 +422,9 @@ public:
 
       NodeIterator variableChildren()
       {
-        return pvi( getFilteredIterator(arrayIter(_nodes, _size).map([](Node *& n) { return &n; }),
-              IsPtrToVarNodeFn()) );
+        return pvi( arrayIter(_nodes, _size)
+              .filter([](auto& n) { return n->term().isVar(); })
+              .map([](Node *& n) { return &n; }));
       }
       virtual Node** childByTop(TermList::Top t, bool canCreate);
       void remove(TermList::Top t);
@@ -493,7 +473,7 @@ public:
       {
         return pvi( getWhileLimitedIterator(
                       _nodes.ptrIter(),
-                      IsPtrToVarNodeFn()) );
+                      [](auto* n) {return (*n)->term().isVar(); }));
       }
       virtual Node** childByTop(TermList::Top t, bool canCreate)
       {
@@ -582,7 +562,6 @@ public:
       createBindings(norm, /* reversed */ false,
           [&](auto var, auto term) { 
             bindings->insert(var, term);
-            _nextVar = std::max(_nextVar, (int)var + 1); // TODO is this needed ?
           });
       if (doInsert) insert(*bindings, ld);
       else          remove(*bindings, ld);
@@ -647,7 +626,6 @@ public:
       Recycled<BindingMap> svBindings;
       createBindings(normQuery, /* reversed */ false,
           [&](auto v, auto t) { {
-            _nextVar = std::max<int>(_nextVar, v + 1);
             svBindings->insert(v, t);
           } });
       Leaf* leaf = findLeaf(*svBindings);

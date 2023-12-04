@@ -45,7 +45,6 @@ Clause* unit(Literal* lit)
   return clause({ lit });
 }
 
-static const auto lld = [](auto l) { return LiteralClause(nullptr, l); };
 static const auto tld = [](auto t) { return TermLiteralClause(TypedTermList(t), nullptr, nullptr); };
 
 
