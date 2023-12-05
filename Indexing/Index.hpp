@@ -153,30 +153,6 @@ template<class Unifier, class Data>
 QueryRes<Unifier, Data> queryRes(Unifier unifier, Data const* d) 
 { return QueryRes<Unifier, Data>(std::move(unifier), std::move(d)); }
 
-struct ClauseSResQueryResult
-{
-  ClauseSResQueryResult() {}
-  ClauseSResQueryResult(Clause* c)
-  : clause(c), resolved(false) {}
-  ClauseSResQueryResult(Clause* c, unsigned rqlIndex)
-  : clause(c), resolved(true), resolvedQueryLiteralIndex(rqlIndex) {}
-  
-  Clause* clause;
-  bool resolved;
-  unsigned resolvedQueryLiteralIndex;
-};
-
-struct FormulaQueryResult
-{
-  FormulaQueryResult() {}
-  FormulaQueryResult(FormulaUnit* unit, Formula* f, ResultSubstitutionSP s=ResultSubstitutionSP())
-  : unit(unit), formula(f), substitution(s) {}
-
-  FormulaUnit* unit;
-  Formula* formula;
-  ResultSubstitutionSP substitution;
-};
-
 class Index
 {
 public:
@@ -199,18 +175,6 @@ protected:
 private:
   SubscriptionData _addedSD;
   SubscriptionData _removedSD;
-};
-
-
-
-class ClauseSubsumptionIndex
-: public Index
-{
-public:
-
-  virtual VirtualIterator<ClauseSResQueryResult> getSubsumingOrSResolvingClauses(Clause* c, 
-    bool subsumptionResolution)
-  { NOT_IMPLEMENTED; };
 };
 
 };

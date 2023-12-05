@@ -65,17 +65,14 @@ private:
 };
 
 class CodeTreeSubsumptionIndex
-: public ClauseSubsumptionIndex
+: public Index
 {
 public:
   USE_ALLOCATOR(CodeTreeSubsumptionIndex);
 
-  VirtualIterator<ClauseSResQueryResult> getSubsumingOrSResolvingClauses(Clause* c, bool subsumptionResolution);
 protected:
-  //overrides Index::handleClause
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) override;
 private:
-  class ClauseSResIterator;
 
   ClauseCodeTree _ct;
 };

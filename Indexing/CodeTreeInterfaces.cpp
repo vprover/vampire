@@ -206,46 +206,6 @@ bool CodeTreeTIS::generalizationExists(TermList t)
 
 /////////////////   CodeTreeSubsumptionIndex   //////////////////////
 
-class CodeTreeSubsumptionIndex::ClauseSResIterator
-: public IteratorCore<ClauseSResQueryResult>
-{
-public:
-  ClauseSResIterator(ClauseCodeTree* tree, Clause* query, bool sres)
-  : ready(false)
-  {
-    cm->init(tree, query, sres);
-  }
-  
-  bool hasNext()
-  {
-    if(ready) {
-      return result;
-    }
-    ready=true;
-    result=cm->next(resolvedQueryLit);
-    ASS(!result || resolvedQueryLit<1000000);
-    return result;
-  }
-  
-  ClauseSResQueryResult next()
-  {
-    ASS(result);
-    
-    ready=false;
-    if(resolvedQueryLit==-1) {
-      return ClauseSResQueryResult(result);
-    }
-    else {
-      return ClauseSResQueryResult(result, resolvedQueryLit);
-    }
-  }
-private:
-  bool ready;
-  Clause* result;
-  int resolvedQueryLit;
-  Recycled<ClauseCodeTree::ClauseMatcher> cm;
-};
-
 void CodeTreeSubsumptionIndex::handleClause(Clause* cl, bool adding)
 {
   TIME_TRACE("codetree subsumption index maintanance");
@@ -257,17 +217,6 @@ void CodeTreeSubsumptionIndex::handleClause(Clause* cl, bool adding)
     _ct.remove(cl);
   }
 }
-
-VirtualIterator<ClauseSResQueryResult> CodeTreeSubsumptionIndex
-	::getSubsumingOrSResolvingClauses(Clause* cl, bool subsumptionResolution)
-{
-  if(_ct.isEmpty()) {
-    return VirtualIterator<ClauseSResQueryResult>::getEmpty();
-  }
-
-  return vi( new ClauseSResIterator(&_ct, cl, subsumptionResolution) );
-}
-
 
 }
 
