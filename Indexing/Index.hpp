@@ -34,32 +34,29 @@ using namespace Kernel;
 using namespace Lib;
 using namespace Saturation;
 
-
 struct LiteralClause 
 {
   LiteralClause() {}
   Literal* const& key() const
   { return literal; }
 
-  LiteralClause(Clause* cls, Literal* literal)
-    : clause(cls), literal(literal) {  }
-
   LiteralClause(Literal* lit, Clause* cl)
-    : LiteralClause(cl, lit) {}
+    : literal(lit) 
+    , clause(cl)
+  { ASS(cl); ASS(literal) }
+
+  LiteralClause(Clause* cl, Literal* lit)
+    : LiteralClause(lit, cl) {}
 
 private:
   auto asTuple() const
-  { return std::make_tuple(
-      clause == nullptr, 
-      clause == nullptr ? 0 : clause->number(), 
-      literal == nullptr,
-      literal == nullptr ? 0 : literal->getId()); }
+  { return std::make_tuple(clause->number(), literal->getId()); }
 public:
 
   IMPL_COMPARISONS_FROM_TUPLE(LiteralClause)
 
-  Clause* clause;
   Literal* literal;
+  Clause* clause;
 
   friend std::ostream& operator<<(std::ostream& out, LiteralClause const& self)
   { return out << "{ " << outputPtr(self.clause)

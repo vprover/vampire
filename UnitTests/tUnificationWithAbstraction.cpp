@@ -855,8 +855,10 @@ TEST_FUN(literal_indexing)
   DECL_CONST(a, Int) 
   DECL_CONST(b, Int) 
 
-  index->insert(LiteralClause(p(num(1) + num(1)), nullptr));
-  index->insert(LiteralClause(p(1 + a          ), nullptr));
+  Clause* dummy = unit(p(a));
+
+  index->insert(LiteralClause(p(num(1) + num(1)), dummy));
+  index->insert(LiteralClause(p(1 + a          ), dummy));
 
   checkLiteralMatches(*index, uwa, fixedPointIteration, p(b + 2), {
 

@@ -364,7 +364,7 @@ void NarrowingIndex::populateIndex()
 
 void SkolemisingFormulaIndex::insertFormula(TermList formula, TermList skolem)
 {
-  _is->insert(LeafData(TypedTermList(formula.term()), skolem));
+  _is->insert(TermWithValue<TermList>(TypedTermList(formula.term()), skolem));
 }
 
 } // namespace Indexing

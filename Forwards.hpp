@@ -139,8 +139,6 @@ class Index;
 class IndexManager;
 template<class Data>
 class LiteralIndex;
-struct LiteralClause;
-struct TermLiteralClause;
 template<class Data>
 class TermIndex;
 template<class Data>
