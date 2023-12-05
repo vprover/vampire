@@ -27,7 +27,12 @@
 #include "Kernel/UnificationWithAbstraction.hpp"
 
 #include "Lib/Allocator.hpp"
-
+/**
+ * Indices are parametrized by a LeafData, i.e. the bit of data you want to store in the index.
+ * Each leaf data must have a key to store at the leave. The Key can currently be either a Literal* or a TypedTermList.
+ * A LeafData must have a function  `<Key> key() const;` returns the key, and must have comparison operators (<=,<,>=,>,!=,==) implemented.
+ * See e.g. TermLiteralClause below for examples.
+ */
 namespace Indexing
 {
 using namespace Kernel;
@@ -59,10 +64,7 @@ public:
   Clause* clause;
 
   friend std::ostream& operator<<(std::ostream& out, LiteralClause const& self)
-  { return out << "{ " << outputPtr(self.clause)
-               << ", " << outputPtr(self.literal)
-               << " }"; }
-
+  { return out << "{ " << outputPtr(self.clause) << ", " << outputPtr(self.literal) << " }"; }
 };
 
 template<class Value>
