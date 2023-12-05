@@ -105,7 +105,7 @@ private:
 
 
 class CodeTreeTIS::ResultIterator
-: public IteratorCore<TermQueryResult>
+: public IteratorCore<QueryRes<ResultSubstitutionSP, TermLiteralClause>>
 {
 public:
   ResultIterator(CodeTreeTIS* tree, TermList t, bool retrieveSubstitutions)
@@ -144,7 +144,7 @@ public:
     return _found;
   }
 
-  TermQueryResult next()
+  QueryRes<ResultSubstitutionSP, TermLiteralClause> next()
   {
     ASS(_found);
 
@@ -154,7 +154,7 @@ public:
       _resultNormalizer->normalizeVariables(_found->term);
       subs = ResultSubstitutionSP(_subst, /* nondisposable */ true);
     }
-    auto out = TermQueryResult(subs, _found);
+    auto out = QueryRes<ResultSubstitutionSP, TermLiteralClause>(subs, _found);
     _found=0;
     return out;
   }
@@ -180,10 +180,10 @@ void CodeTreeTIS::_remove(TypedTermList t, Literal* lit, Clause* cls)
   _ct.remove(TermCodeTree::TermInfo(t,lit,cls));
 }
 
-TermQueryResultIterator CodeTreeTIS::getGeneralizations(TypedTermList t, bool retrieveSubstitutions)
+VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>> CodeTreeTIS::getGeneralizations(TypedTermList t, bool retrieveSubstitutions)
 {
   if(_ct.isEmpty()) {
-    return TermQueryResultIterator::getEmpty();
+    return VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>>::getEmpty();
   }
 
   return vi( new ResultIterator(this, t, retrieveSubstitutions) );
@@ -258,11 +258,11 @@ void CodeTreeSubsumptionIndex::handleClause(Clause* cl, bool adding)
   }
 }
 
-ClauseSResResultIterator CodeTreeSubsumptionIndex
+VirtualIterator<ClauseSResQueryResult> CodeTreeSubsumptionIndex
 	::getSubsumingOrSResolvingClauses(Clause* cl, bool subsumptionResolution)
 {
   if(_ct.isEmpty()) {
-    return ClauseSResResultIterator::getEmpty();
+    return VirtualIterator<ClauseSResQueryResult>::getEmpty();
   }
 
   return vi( new ClauseSResIterator(&_ct, cl, subsumptionResolution) );

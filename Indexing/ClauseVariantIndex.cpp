@@ -104,15 +104,6 @@ private:
   SmartPtr<LiteralMiniIndex> _queryIndex;
 };
 
-class SubstitutionTreeClauseVariantIndex::SLQueryResultToClauseFn
-{
-public:
-
-  Clause* operator()(SLQueryResult res) {
-    return res.data->clause;
-  }
-};
-
 ClauseIterator SubstitutionTreeClauseVariantIndex::retrieveVariants(Literal* const * lits, unsigned length)
 {
   if(length==0) {
@@ -138,7 +129,7 @@ ClauseIterator SubstitutionTreeClauseVariantIndex::retrieveVariants(Literal* con
   return pvi( getFilteredIterator(
     getMappingIterator(
       index->getVariants(mainLit, false, false),
-      getCompositionFn(ResultClauseToVariantClauseFn(lits, length),SLQueryResultToClauseFn())),
+      getCompositionFn(ResultClauseToVariantClauseFn(lits, length),[](auto qr) { return qr.data->clause; })),
     NonzeroFn()) );
 }
 

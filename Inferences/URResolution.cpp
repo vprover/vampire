@@ -131,7 +131,7 @@ struct URResolution::Item
    * substitution is applied to the literals, otherwise the result
    * part is applied.
    */
-  void resolveLiteral(unsigned idx, SLQueryResult& unif, Clause* premise, bool useQuerySubstitution)
+  void resolveLiteral(unsigned idx, QueryRes<ResultSubstitutionSP, LiteralClause>& unif, Clause* premise, bool useQuerySubstitution)
   {
     Literal* rlit = _lits[idx];
     _lits[idx] = 0;
@@ -299,9 +299,9 @@ void URResolution::processLiteral(ItemList*& itms, unsigned idx)
       iit.insert(itm2);
     }
 
-    SLQueryResultIterator unifs = _unitIndex->getUnifications(lit, true, true);
+    auto unifs = _unitIndex->getUnifications(lit, true, true);
     while(unifs.hasNext()) {
-      SLQueryResult unif = unifs.next();
+      auto unif = unifs.next();
 
       if( !ColorHelper::compatible(itm->_color, unif.data->clause->color()) ) {
         continue;
@@ -365,9 +365,9 @@ void URResolution::doBackwardInferences(Clause* cl, ClauseList*& acc)
     lit = (*cl)[1];
   }
 
-  SLQueryResultIterator unifs = _nonUnitIndex->getUnifications(lit, true, true);
+  auto unifs = _nonUnitIndex->getUnifications(lit, true, true);
   while(unifs.hasNext()) {
-    SLQueryResult unif = unifs.next();
+    auto unif = unifs.next();
     Clause* ucl = unif.data->clause;
 
     if( !ColorHelper::compatible(cl->color(), ucl->color()) ) {

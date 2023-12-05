@@ -177,14 +177,6 @@ struct FormulaQueryResult
   ResultSubstitutionSP substitution;
 };
 
-using TermQueryResult = QueryRes<ResultSubstitutionSP, TermLiteralClause>;
-using SLQueryResult   = QueryRes<ResultSubstitutionSP, LiteralClause>;
-
-using TermQueryResultIterator = VirtualIterator<TermQueryResult>;
-using SLQueryResultIterator   = VirtualIterator<SLQueryResult>;
-typedef VirtualIterator<ClauseSResQueryResult> ClauseSResResultIterator;
-typedef VirtualIterator<FormulaQueryResult> FormulaQueryResultIterator;
-
 class Index
 {
 public:
@@ -216,7 +208,7 @@ class ClauseSubsumptionIndex
 {
 public:
 
-  virtual ClauseSResResultIterator getSubsumingOrSResolvingClauses(Clause* c, 
+  virtual VirtualIterator<ClauseSResQueryResult> getSubsumingOrSResolvingClauses(Clause* c, 
     bool subsumptionResolution)
   { NOT_IMPLEMENTED; };
 };

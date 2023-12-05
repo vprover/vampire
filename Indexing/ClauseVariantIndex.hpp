@@ -63,8 +63,6 @@ public:
   ClauseIterator retrieveVariants(Literal* const * lits, unsigned length) override;
 
 private:
-  class SLQueryResultToClauseFn;
-
   Literal* getMainLiteral(Literal* const * lits, unsigned length);
 
   DHMap<Literal*, ClauseList*> _groundUnits;

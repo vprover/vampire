@@ -47,7 +47,7 @@ public:
   { if (insert) { _insert(data.term, data.literal, data.clause); }
     else        { _remove(data.term, data.literal, data.clause); } }
 
-  TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) final override;
+  VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) final override;
   // TODO use TypedTermList here too
   bool generalizationExists(TermList t) final override;
   // TODO: get rid of NOT_IMPLEMENTED
@@ -70,7 +70,7 @@ class CodeTreeSubsumptionIndex
 public:
   USE_ALLOCATOR(CodeTreeSubsumptionIndex);
 
-  ClauseSResResultIterator getSubsumingOrSResolvingClauses(Clause* c, bool subsumptionResolution);
+  VirtualIterator<ClauseSResQueryResult> getSubsumingOrSResolvingClauses(Clause* c, bool subsumptionResolution);
 protected:
   //overrides Index::handleClause
   void handleClause(Clause* c, bool adding);

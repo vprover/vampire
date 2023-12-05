@@ -38,7 +38,7 @@ namespace {
 struct SLQueryResultToTermQueryResultFn
 {
   SLQueryResultToTermQueryResultFn(TypedTermList v) : variable(v) {}
-  TermLiteralClause operator() (const SLQueryResult slqr) {
+  TermLiteralClause operator() (const QueryRes<ResultSubstitutionSP, LiteralClause> slqr) {
     return TermLiteralClause(slqr.unifier->applyToQuery(variable), slqr.data->literal, slqr.data->clause);
   }
 
@@ -92,7 +92,7 @@ VirtualIterator<TermLiteralClause> InductionHelper::getGreater(Term* t)
     getComparisonMatch(/*polarity=*/true, /*termIsLeft=*/true, t)));
 }
 
-TermQueryResultIterator InductionHelper::getTQRsForInductionTerm(Term* inductionTerm) {
+VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>> InductionHelper::getTQRsForInductionTerm(Term* inductionTerm) {
   ASS(_inductionTermIndex);
   return _inductionTermIndex->getUnifications(TypedTermList(inductionTerm));
 }

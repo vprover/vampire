@@ -76,7 +76,7 @@ struct BackwardDemodulation::RemovedIsNonzeroFn
 struct BackwardDemodulation::RewritableClausesFn
 {
   RewritableClausesFn(DemodulationSubtermIndex* index) : _index(index) {}
-  VirtualIterator<pair<TypedTermList,TermQueryResult> > operator() (TypedTermList lhs)
+  VirtualIterator<pair<TypedTermList,QueryRes<ResultSubstitutionSP, TermLiteralClause>> > operator() (TypedTermList lhs)
   {
     return pvi( pushPairIntoRightIterator(lhs, _index->getInstances(lhs, true)) );
   }
@@ -105,9 +105,9 @@ struct BackwardDemodulation::ResultFn
    * and the second is the clause, that replaces it. If no
    * replacement should occur, return pair of zeroes.
    */
-  BwSimplificationRecord operator() (pair<TermList,TermQueryResult> arg)
+  BwSimplificationRecord operator() (pair<TermList,QueryRes<ResultSubstitutionSP, TermLiteralClause>> arg)
   {
-    TermQueryResult qr=arg.second;
+    auto qr=arg.second;
 
     if( !ColorHelper::compatible(_cl->color(), qr.data->clause->color()) ) {
       //colors of premises don't match
