@@ -233,6 +233,7 @@ TermList normalizedFromIterator(Add add, Zero zero, Iter iter)
 {
   // TODO check whether the iterator is reverable (?)
   auto ts = Stack<TermList>::fromIterator(iter);
+  // auto rev = range(0, ts.size()).map([&](auto i) { return ts[i]; });
   auto rev = range(0, ts.size()).map([&](auto i) { return ts[ts.size() - 1 - i]; });
   if (!rev.hasNext()) {
     return zero();
@@ -530,7 +531,9 @@ class Polynom
   using Monom        = Kernel::Monom<Number>;
 
   TermList _inner;
-  explicit Polynom(TermList inner) : _inner(inner) { integrity(); }
+  explicit Polynom(TermList inner) : _inner(inner) { 
+    // DBGE(*this)
+    integrity(); }
 
 public:
   USE_ALLOCATOR(Polynom)
@@ -641,6 +644,8 @@ public:
 
   friend Polynom operator*(Numeral const& k, Polynom const& self)
   {
+    // self.integrity();
+    DBGE(self.denormalize())
     return Polynom::fromIterator(
         self.iterSummands()
                 .map([&](auto m) { return k * m; }));

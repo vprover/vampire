@@ -516,3 +516,10 @@ TEST_ALL(misc_05,
       .out = { {    a * a  +                b * b                           > 0, } },
       .strong = false,
     })
+
+TEST_FRAC(bug_09, 
+    TestCase {
+      .in  =     ((frac(1,2) * (((2 * a) * b) + (2/1 * c))) + -x) > 0    ,
+      .out = { { ((            (((    a) * b) + (      c))) + -x) > 0 } },
+      .strong = false,
+    })

@@ -11,6 +11,8 @@
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Kernel/QKbo.hpp"
+#include "Lib/Metaiterators.hpp"
 #include "Shell/Statistics.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Debug/TimeProfiling.hpp"
@@ -297,12 +299,13 @@ Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const
           { return v; },
 
           [&](AnyPoly p) 
-          { return simplifyPoly(p, ts, /* removeZeros = */ false); }
+          { return simplifyPoly(p, ts, /* removeZeros = */ true); }
       );
     }
   };
   static Memo::Hashed<PolyNf, PolyNf> memo;
   auto out = evaluateBottomUp(normalized, Eval{ *this }, memo);
+  DBGE(out)
   if (out == normalized) {
     return Option<PolyNf>();
   } else {
@@ -317,20 +320,27 @@ Polynom<Number> simplifyPoly(Polynom<Number> in, PolyNf* simplifiedArgs, bool re
   TIME_TRACE("simplify(Polynom<Number>const&, PolyNf* simplifiedArgs)") 
   using Monom   = Monom<Number>;
   using Polynom = Polynom<Number>;
-  try { 
+  try {
 
     // first we simplify all the monoms containted in this polynom
     auto offs = 0;
     auto out = in.iterSummands()
-      .filterMap([&](auto monom) {
-          auto simpl = simplifyMonom(monom, &simplifiedArgs[offs], removeZeros);
+      .map([&](auto monom) {
+          Monom simpl = simplifyMonom(monom, &simplifiedArgs[offs], removeZeros);
           offs += monom.factors.cntFactors();
-          if (simpl.numeral == Number::zeroC()) {
-            /* we don't add it */
-            return Option<Monom>();
-          } else {
-            return Option<Monom>(simpl);
-          }
+          return simpl;
+      })
+      .filter([](auto monom) { return monom.numeral != Number::zeroC(); })
+      .flatMap([](auto monom) {
+         // j * ( k1 t1 + ... + kn tn ) ==> j k1 t1 + ... + j kn tn
+         return ifElseIter(
+                monom.factors.tryMonomFactor().isSome()
+                      && monom.factors.tryMonomFactor()->power() == 1
+                      && monom.factors.tryMonomFactor()->term().asPoly().isSome()
+                , [=]() { return monom.factors.tryMonomFactor()->term()
+                                   .asPoly()->template downcast<Number>()->iterSummands()
+                                   .map([=](auto m) -> Monom { return monom.numeral * m; }); }
+                , [=]() { return getSingletonIterator(monom); });
       })
       .template collect<Stack>();
 

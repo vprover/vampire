@@ -1832,8 +1832,8 @@ auto coproductIter(Coproduct<Is...> is)
 template<class IfIter, class ElseIter>
 static auto _ifElseIter(bool cond, IfIter ifIter, ElseIter elseIter) 
 { return iterTraits(
-         cond ? coproductIter(Coproduct<ResultOf<IfIter>, ResultOf<ElseIter>>(ifIter()))
-              : coproductIter(Coproduct<ResultOf<IfIter>, ResultOf<ElseIter>>(elseIter()))); }
+         cond ? coproductIter(Coproduct<ResultOf<IfIter>, ResultOf<ElseIter>>::template variant<0>(ifIter()))
+              : coproductIter(Coproduct<ResultOf<IfIter>, ResultOf<ElseIter>>::template variant<1>(elseIter()))); }
 
 template<class ElseIter>
 static auto ifElseIter(ElseIter elseIter) 

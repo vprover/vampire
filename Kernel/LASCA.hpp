@@ -1320,6 +1320,7 @@ Option<Stack<LascaLiteral<NumTraits>>> InequalityNormalizer::normalizeLasca(Lite
 
     auto tt = TypedTermList(t, NumTraits::sort());
     auto norm = Kernel::normalizeTerm(tt);
+    
     auto simpl = _eval.evaluate(norm);
     auto simplValue = (simpl || norm).wrapPoly<NumTraits>();
     simplValue.integrity();
