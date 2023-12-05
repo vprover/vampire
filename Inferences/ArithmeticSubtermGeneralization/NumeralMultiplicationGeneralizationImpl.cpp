@@ -25,7 +25,7 @@ namespace NumeralMultiplicationGeneralizationImpl
  */
 template<class NumTraits>
 using Numeral = typename NumTraits::ConstantType;
-using NumeralMap = Map<Variable, FlatMeetLattice<AnyNumber<Numeral>>, StlHash>;
+using NumeralMap = Map<Variable, FlatMeetLattice<AnyNumber<Numeral>>>;
 
 bool canDivideBy(IntegerConstantType i) 
 { return i == IntegerConstantType(1) || i == IntegerConstantType(-1); }

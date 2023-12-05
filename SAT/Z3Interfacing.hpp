@@ -272,7 +272,6 @@ public:
      */
     Term *forSorts;
 
-    friend struct std::hash<FuncOrPredId> ;
     friend bool operator==(FuncOrPredId const& l, FuncOrPredId const& r)
     {
       if(l.id != r.id || l.isPredicate != r.isPredicate)
@@ -302,6 +301,14 @@ public:
           out << " " << self.forSorts->typeArg(i).toString();
       return out;
     }
+
+    unsigned defaultHash() const {
+        unsigned hash = Lib::HashUtils::combine(id, isPredicate);
+        if(forSorts)
+          for(unsigned i = 0; i < forSorts->numTypeArguments(); i++)
+            hash = Lib::HashUtils::combine(hash, forSorts->typeArg(i).content());
+        return hash;
+     }
   };
 
 private:
@@ -314,7 +321,7 @@ private:
     static bool equals(z3::expr const& l, z3::expr const& r) { return z3::eq(l,r); }
   };
   Map<z3::func_decl, FuncOrPredId , Z3Hash > _fromZ3;
-  Map<FuncOrPredId,  z3::func_decl, StlHash> _toZ3;
+  Map<FuncOrPredId,  z3::func_decl> _toZ3;
   Set<SortId> _createdTermAlgebras;
 
   z3::func_decl const& findConstructor(FuncId id);
@@ -405,18 +412,6 @@ private:
 };
 
 }//end SAT namespace
-namespace std {
-    template<>
-    struct hash<SAT::Z3Interfacing::FuncOrPredId> {
-      size_t operator()(SAT::Z3Interfacing::FuncOrPredId const& self) {
-        unsigned hash = Lib::HashUtils::combine(self.id, self.isPredicate);
-        if(self.forSorts)
-          for(unsigned i = 0; i < self.forSorts->numTypeArguments(); i++)
-            hash = Lib::HashUtils::combine(hash, self.forSorts->typeArg(i).content());
-        return hash;
-      }
-    };
-}
 
 #endif /* if VZ3 */
 #endif /*Z3Interfacing*/

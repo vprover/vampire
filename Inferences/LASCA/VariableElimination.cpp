@@ -48,7 +48,7 @@ void VariableElimination::setTestIndices(Stack<Indexing::Index*> const&)
 Option<VariableElimination::AnyFoundVariable> VariableElimination::findUnshieldedVar(Clause* premise) const
 {
   Stack<Variable> vars; // contains the same data as the keys in the map. just there to deterministically iterate over map entries.
-  Map<Variable, AnyFoundVariable, StlHash> unshielded;
+  Map<Variable, AnyFoundVariable> unshielded;
   Set<unsigned> shielded;
   for (unsigned i = 0; i < premise->size(); i++) {
     auto lit = (*premise)[i];

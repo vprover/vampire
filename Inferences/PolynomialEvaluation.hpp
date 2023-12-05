@@ -61,7 +61,7 @@ private:
 
   PolyNf evaluateStep(Term* orig, PolyNf* evaluatedArgs) const;
 
-  mutable Memo::Hashed<PolyNf, PolyNf, StlHash> _memo;
+  mutable Memo::Hashed<PolyNf, PolyNf> _memo;
   bool _removeZeros;
 };
 

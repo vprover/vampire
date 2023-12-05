@@ -23,7 +23,7 @@ namespace VariablePowerGeneralizationImpl {
 */
 
 using IntLattice = FlatMeetLattice<int>;
-using PowerMap = Map<Variable, IntLattice, StlHash>;
+using PowerMap = Map<Variable, IntLattice>;
 template<class Num>
 using EnableIfNotReal = typename std::enable_if<!std::is_same<Num, RealTraits>::value, int>::type;
 

@@ -27,6 +27,7 @@
 #include "Indexing/ResultSubstitution.hpp"
 #include "Kernel/MismatchHandler.hpp"
 
+#include "Lib/Reflection.hpp"
 #include "Signature.hpp" 
 #include "SortHelper.hpp"
 #include "TermIterators.hpp"
@@ -120,6 +121,8 @@ namespace Kernel {
     friend struct std::hash<LascaLiteral>;
 
   public:
+    MAKE_DERIVABLE(LascaLiteral, _term, _symbol);
+    DERIVE_HASH
 
     LascaLiteral(Polynom<NumTraits> term, LascaPredicate symbol) 
       : _term(term)
@@ -1467,8 +1470,8 @@ template<class NumTraits> struct std::hash<Kernel::LascaLiteral<NumTraits>>
   size_t operator()(Kernel::LascaLiteral<NumTraits> const& self) const
   {
     return Lib::HashUtils::combine(
-      Lib::StlHash::hash(self._symbol),
-      Lib::StlHash::hash(self._term)
+      self._symbol.hash(),
+      self._term.hash()
     );
   }
 };

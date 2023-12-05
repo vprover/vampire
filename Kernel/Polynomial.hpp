@@ -917,16 +917,6 @@ public:
 
 } // namespace Kernel
 
-DERIVE_STD_HASH(Kernel::PolyNf)
-DERIVE_STD_HASH(Kernel::AnyPoly)
-DERIVE_STD_HASH(Kernel::FuncId)
-DERIVE_STD_HASH(Kernel::Variable)
-DERIVE_STD_HASH(Kernel::FuncTerm)
-template<class NumTraits> TEMPLATE_DERIVE_STD_HASH(Kernel::MonomFactor<NumTraits>)
-template<class NumTraits> TEMPLATE_DERIVE_STD_HASH(Kernel::MonomFactors<NumTraits>)
-template<class NumTraits> TEMPLATE_DERIVE_STD_HASH(Kernel::Monom<NumTraits>)
-template<class NumTraits> TEMPLATE_DERIVE_STD_HASH(Kernel::Polynom<NumTraits>)
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // TEMPLATE STUFF IMPLEMENTATIONS

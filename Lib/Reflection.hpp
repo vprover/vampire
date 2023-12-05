@@ -96,7 +96,7 @@
   friend bool operator>=(Self const& l, Self const& r) { return l == r || l > r; }        \
  
 /** automatically implementes a function 
- * template<class Hash = Lib::StlHash>
+ * template<class Hash = Lib::DefaultHash>
  * size_t hash() const;
  * That function uses a Lib::Hash object to combine the hashes of the individual fields. 
  * 
@@ -104,9 +104,11 @@
  * \see MAKE_DERIVABLE
  */
 #define DERIVE_HASH                                                                       \
-  template<class Hash = Lib::StlHash>                                                     \
+  template<class Hash = Lib::DefaultHash>                                                 \
   size_t hash() const                                                                     \
-  { return Lib::HashUtils::hashTuple<Hash>(asTuple()); }
+  { return Lib::HashUtils::hashTuple<Hash>(asTuple()); }                                  \
+  unsigned defaultHash() const { return DefaultHash::hash(asTuple()); }                   \
+  unsigned defaultHash2() const { return DefaultHash2::hash(asTuple()); }                 \
 
 #define DERIVE_MOVE_SEMANTICS                                                             \
   explicit Self(Self const&) = default;                                                   \
@@ -114,40 +116,30 @@
   Self& operator=(Self const&) = default;                                                 \
   Self& operator=(Self     &&) = default;                                                 \
 
-#define TEMPLATE_DERIVE_STD_HASH(Class)                                                   \
-  struct std::hash<Class>                                                                 \
-  { size_t operator()(Class const& self)                                                  \
-    { return self.hash<Lib::StlHash>(); } };
+#define DEFAULT_CONSTRUCTORS(Class)                                                       \
+  Class(Class const&) = default;                                                          \
+  Class(Class     &&) = default;                                                          \
+  Class& operator=(Class const&) = default;                                               \
+  Class& operator=(Class     &&) = default;                                               \
 
+#define IMPL_COMPARISONS_FROM_TUPLE(Class)                                                \
+  friend bool operator==(Class const& l, Class const& r)                                  \
+  { return l.asTuple() == r.asTuple(); }                                                  \
+                                                                                          \
+  friend bool operator<(Class const& l, Class const& r)                                   \
+  { return l.asTuple() < r.asTuple(); }                                                   \
+                                                                                          \
+  IMPL_COMPARISONS_FROM_LESS_AND_EQUALS(Class)                                            \
 
-#define DERIVE_STD_HASH(Class)                                                            \
-  template<>                                                                              \
-  TEMPLATE_DERIVE_STD_HASH(Class)
+#define IMPL_COMPARISONS_FROM_LESS_AND_EQUALS(Class)                                      \
+  friend bool operator> (Class const& l, Class const& r) { return r < l; }                \
+  friend bool operator<=(Class const& l, Class const& r) { return l == r || l < r; }      \
+  friend bool operator>=(Class const& l, Class const& r) { return l == r || l > r; }      \
+  friend bool operator!=(Class const& l, Class const& r) { return !(l == r); }            \
 
-#define DEFAULT_CONSTRUCTORS(Class)                                                                 \
-  Class(Class const&) = default;                                                                    \
-  Class(Class     &&) = default;                                                                    \
-  Class& operator=(Class const&) = default;                                                         \
-  Class& operator=(Class     &&) = default;                                                         \
-
-#define IMPL_COMPARISONS_FROM_TUPLE(Class)                                                          \
-  friend bool operator==(Class const& l, Class const& r)                                            \
-  { return l.asTuple() == r.asTuple(); }                                                            \
-                                                                                                    \
-  friend bool operator<(Class const& l, Class const& r)                                             \
-  { return l.asTuple() < r.asTuple(); }                                                             \
-                                                                                                    \
-  IMPL_COMPARISONS_FROM_LESS_AND_EQUALS(Class)                                                      \
-
-#define IMPL_COMPARISONS_FROM_LESS_AND_EQUALS(Class)                                                \
-  friend bool operator> (Class const& l, Class const& r) { return r < l; }                          \
-  friend bool operator<=(Class const& l, Class const& r) { return l == r || l < r; }                \
-  friend bool operator>=(Class const& l, Class const& r) { return l == r || l > r; }                \
-  friend bool operator!=(Class const& l, Class const& r) { return !(l == r); }                      \
-
-#define IMPL_HASH_FROM_TUPLE(Class)                                                                 \
-  unsigned defaultHash() const { return DefaultHash::hash(asTuple()); }                             \
-  unsigned defaultHash2() const { return DefaultHash2::hash(asTuple()); }                           \
+#define IMPL_HASH_FROM_TUPLE(Class)                                                       \
+  unsigned defaultHash() const { return DefaultHash::hash(asTuple()); }                   \
+  unsigned defaultHash2() const { return DefaultHash2::hash(asTuple()); }                 \
 
 //The obvious way to define this macro would be
 //#define DECL_ELEMENT_TYPE(T) typedef T _ElementType

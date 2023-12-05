@@ -301,7 +301,7 @@ Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const
       );
     }
   };
-  static Memo::Hashed<PolyNf, PolyNf, StlHash> memo;
+  static Memo::Hashed<PolyNf, PolyNf> memo;
   auto out = evaluateBottomUp(normalized, Eval{ *this }, memo);
   if (out == normalized) {
     return Option<PolyNf>();

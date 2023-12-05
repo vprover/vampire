@@ -30,7 +30,7 @@ namespace VariableMultiplicationGeneralizationImpl {
 template<class A>
 class IntMap
 {
-  Map<A, unsigned, StlHash> _map;
+  Map<A, unsigned> _map;
   Stack<A> _stack;
 public:
   unsigned insert(A obj) 

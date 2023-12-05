@@ -24,7 +24,7 @@ namespace AdditionGeneralizationImpl {
 
 template<class NumTraits> class MonomSet;
 
-using GenMap = Map<Variable, AnyNumber<MonomSet>, StlHash>;
+using GenMap = Map<Variable, AnyNumber<MonomSet>>;
 
 template<class NumTraits>
 class MonomSet 
@@ -81,7 +81,7 @@ struct Preprocess
   {
     CALL("AdditionGeneralizationImpl::Preprocess::operator()")
     // a variable might occur twice within one sum.
-    Set<Variable, StlHash> didOccur;
+    Set<Variable> didOccur;
     for (auto monom : poly.iterSummands()) {
       auto var = monom.tryVar();
 

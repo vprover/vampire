@@ -235,7 +235,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 // TODO move to appropriate place
 
 SimplifyingGeneratingInference::ClauseGenerationResult InequalityTautologyDetection::generateSimplify(Clause* premise) {
-  Map<AnyLascaLiteral, bool, StlHash> lits;
+  Map<AnyLascaLiteral, bool> lits;
   TIME_TRACE("lasca tautology detection")
   for (auto lit : iterTraits(premise->iterLits())) {
     auto norm_ = _shared->renormalize(lit);
