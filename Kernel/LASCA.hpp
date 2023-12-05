@@ -20,6 +20,7 @@
 
 #include "Indexing/Index.hpp"
 #include "Kernel/Formula.hpp"
+#include "Lib/Allocator.hpp"
 #include "Lib/Int.hpp"
 #include "Forwards.hpp"
 #include "Kernel/SortHelper.hpp"
@@ -53,6 +54,7 @@
 #include "Kernel/PolynomialNormalizer.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/OrderingUtils.hpp"
+#include "Lib/STL.hpp"
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
 
@@ -121,12 +123,14 @@ namespace Kernel {
     friend struct std::hash<LascaLiteral>;
 
   public:
+    CLASS_NAME(LascaLiteral);
+    USE_ALLOCATOR(LascaLiteral);
     MAKE_DERIVABLE(LascaLiteral, _term, _symbol);
     DERIVE_HASH
 
     LascaLiteral(Polynom<NumTraits> term, LascaPredicate symbol) 
       : _term(term)
-      , _summands(new Recycled<Stack<Monom<NumTraits>>>()) 
+      , _summands(Lib::make_shared(new Recycled<Stack<Monom<NumTraits>>>())) 
       , _symbol(symbol) 
     { 
       (*_summands)->loadFromIterator(term.iterSummands());

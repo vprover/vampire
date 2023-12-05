@@ -16,6 +16,7 @@
 
 #include "Forwards.hpp"
 
+#include "Lib/Allocator.hpp"
 #include "Stack.hpp"
 #include "DArray.hpp"
 #include <initializer_list>
@@ -70,6 +71,8 @@ class Recycled
   }
   Recycled(Recycled const&) = delete;
 public:
+  CLASS_NAME(Recycled);
+  USE_ALLOCATOR(Recycled);
 
   Recycled()
     : _ptr(mem().isNonEmpty() ? mem().pop() : T())
