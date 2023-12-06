@@ -449,8 +449,9 @@ PolyNf simplNormalizeTerm(TypedTermList t, bool& evaluated)
             using MonomFactors = MonomFactors<NumTraits>;
 
             if (NumTraits::addF() == f) {
-              // TODO use recycled stacks here
-              auto summands = range(0, nTs)
+              Recycled<Stack<Monom>> summands_;
+              auto& summands = *summands_;
+              summands.loadFromIterator(range(0, nTs)
                 .map([&](auto i) {
                     auto p = ts[i];
                     return p.asPoly().isSome() 
@@ -472,9 +473,7 @@ PolyNf simplNormalizeTerm(TypedTermList t, bool& evaluated)
                                              .map([=](auto m) -> Monom { return monom.numeral * m; }); }
                           , [=]() { return getSingletonIterator(monom); });
                 })
-                // .map([&](auto i) { return ts[i].denormalize()); })
-                // .map([&](auto i) { return ts[i].denormalize()); })
-                .template collect<Stack<Monom>>();
+              );
 
               // then we sort them by their monom, in order to add up the coefficients efficiently
               std::sort(summands.begin(), summands.end(), 
@@ -621,111 +620,6 @@ PolyNf simplNormalizeTerm(TypedTermList t, bool& evaluated)
   };
   return evaluateBottomUp(PolyNormTerm(t), Eval{.evaluated = evaluated}, memo);
 }
-
-PolyNf normalizeTerm(TypedTermList t, bool& evaluated)
-{
-  CALL("PolyNf::normalize")
-  TIME_TRACE("PolyNf::normalize")
-  DEBUG("normalizing ", t)
-  Memo::None<PolyNormTerm,NormalizationResult> memo;
-  struct Eval
-  {
-    bool& evaluated;
-
-    using Arg    = PolyNormTerm;
-    using Result = NormalizationResult;
-
-    NormalizationResult operator()(PolyNormTerm t_, NormalizationResult* ts, unsigned nTs) const
-    { 
-      // ASSERTION_VIOLATION_REP("unimplemented")
-      auto t = t_._self;
-      if (t.isVar()) {
-        return PolyNf(Variable(t.var(), t.sort()));
-      } else {
-        auto term = t.term();
-        auto f = term->functor();
-        auto poly = tryNumTraits([&](auto n) -> Option<PolyNf> {
-            using NumTraits = decltype(n);
-            using Numeral = typename NumTraits::ConstantType;
-
-            if (NumTraits::addF() == f) {
-            // TODO use recycled stacks here
-              auto summands = range(0, nTs)
-                .map([&](auto i) { return Monom<NumTraits>::fromNormalized(ts[i].denormalize()); })
-                .template collect<Stack<Monom<NumTraits>>>();
-              std::sort(summands.begin(), summands.end());
-              auto out = some(PolyNf(AnyPoly(Polynom<NumTraits>(std::move(summands)))));
-              return out;
-            } else if (GetProductArgs<NumTraits>::isAcTerm(t)) {
-              Stack<pair<PolyNf, unsigned>> facs = range(0, nTs)
-                .map([&](auto i) { return make_pair(ts[i], unsigned(0)); })
-                .template collect<Stack>();
-
-              std::sort(facs.begin(), facs.end(),
-                  [](auto& l, auto& r) { return l.first < r.first; });
-
-              Numeral numeral(1);
-              unsigned offs = 0;
-              unsigned i = 0;
-              unsigned nums = 0;
-              while (i < facs.size()) {
-                auto n = NumTraits::tryNumeral(facs[i].first.denormalize());
-                auto collectSameNonNumerals = [&]() {
-                    facs[offs].first = facs[i].first;
-                    while (i < facs.size() && facs[i].first == facs[offs].first) {
-                      facs[offs].second++;
-                      i++;
-                    }
-                    offs++;
-                };
-                if (n.isSome()) {
-                  try {
-                    numeral = numeral * n.unwrap();
-                    nums++;
-                    i++;
-                  } catch (MachineArithmeticException) {
-                    collectSameNonNumerals();
-                  }
-                } else {
-                  collectSameNonNumerals();
-                }
-              }
-              if (nums > 1 || (nums == 1 && numeral == Numeral(1))) 
-                this->evaluated = true;
-
-              auto out =  PolyNf(AnyPoly(Polynom<NumTraits>(Monom<NumTraits>(
-                          numeral, 
-                          // TODO  pass straght a reverse sorted iterator
-                          MonomFactors<NumTraits>::fromIterator(
-                            range(0, offs)
-                              .map([&](auto i) { return MonomFactor<NumTraits>(facs[i].first, facs[i].second); })
-                            )
-                          ))));
-
-              return some(out);
-            } else if (NumTraits::minusF() == f) {
-              return some(PolyNf(AnyPoly(Polynom<NumTraits>(Monom<NumTraits>(
-                          Numeral(-1), 
-                          MonomFactors<NumTraits>(ts[0])
-                          )))));
-            } else if (n.tryNumeral(term).isSome()) {
-              auto num = n.tryNumeral(term).unwrap();
-              return some(PolyNf(AnyPoly(Polynom<NumTraits>(Monom<NumTraits>(
-                          num, 
-                          MonomFactors<NumTraits>::one()
-                          )))));
-            } else {
-              return Option<PolyNf>();
-            }
-        });
-        return poly || [&]() { return PolyNf(FuncTerm(FuncId::symbolOf(t.term()), ts)); };
-      }
-    }
-  };
-  NormalizationResult r = evaluateBottomUp(PolyNormTerm(t), Eval{.evaluated = evaluated}, memo);
-  return r;
-}
-
 } // namespace Kernel
 
 namespace Lib {
