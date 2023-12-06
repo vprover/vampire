@@ -35,8 +35,6 @@ using namespace Kernel;
  *
  */
 class FiniteModel {
- USE_ALLOCATOR(FiniteModel);
-
 public:
 
  const unsigned _size;

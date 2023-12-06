@@ -23,7 +23,6 @@ namespace Inferences {
 
 class FOOLParamodulation : public GeneratingInferenceEngine {
   public:
-    USE_ALLOCATOR(FOOLParamodulation);
     ClauseIterator generateClauses(Clause* premise);
 };
 

@@ -39,8 +39,6 @@ class TermSubstitutionTree
 : public TermIndexingStructure, SubstitutionTree
 {
 public:
-  USE_ALLOCATOR(TermSubstitutionTree);
-  
   /* 
    * The extra flag is a higher-order concern. it is set to true when 
    * we require the term query result to include two terms, the result term

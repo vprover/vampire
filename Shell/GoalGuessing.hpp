@@ -25,8 +25,6 @@ using namespace Kernel;
 class GoalGuessing
 {
 public:
-  USE_ALLOCATOR(GoalGuessing);
-
   void apply(Problem& prb);
 private:
   bool apply(UnitList*& units);

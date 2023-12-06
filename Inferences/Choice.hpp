@@ -24,8 +24,6 @@ namespace Inferences {
 class Choice : public GeneratingInferenceEngine
 {
   public:
-    USE_ALLOCATOR(Choice);
-
     ClauseIterator generateClauses(Clause* premise);
 
   private:

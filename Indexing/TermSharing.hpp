@@ -30,8 +30,6 @@ namespace Indexing {
 class TermSharing
 {
 public:
-  USE_ALLOCATOR(TermSharing);
-
   TermSharing();
   ~TermSharing();
 

@@ -162,8 +162,6 @@ class Induction
 : public GeneratingInferenceEngine
 {
 public:
-  USE_ALLOCATOR(Induction);
-
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
 

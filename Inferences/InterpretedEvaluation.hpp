@@ -31,8 +31,6 @@ class InterpretedEvaluation
 : public ImmediateSimplificationEngine
 {
 public:
-  USE_ALLOCATOR(InterpretedEvaluation);
-
   InterpretedEvaluation(bool doNormalize, Ordering& ordering);
   virtual ~InterpretedEvaluation();
 

@@ -25,8 +25,6 @@ namespace Inferences {
 class ElimLeibniz : public GeneratingInferenceEngine
 {
   public:
-    USE_ALLOCATOR(ElimLeibniz);
-
     ClauseIterator generateClauses(Clause* premise);
 
   private:

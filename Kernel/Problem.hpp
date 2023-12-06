@@ -49,9 +49,6 @@ private:
   Problem(const Problem&); //private and undefined copy constructor
   Problem& operator=(const Problem&); //private and undefined assignment operator
 public:
-
-  USE_ALLOCATOR(Problem);
-
   explicit Problem(UnitList* units=0);
   explicit Problem(ClauseIterator clauses, bool copy);
   ~Problem();
