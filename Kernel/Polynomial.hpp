@@ -228,6 +228,29 @@ TermList denormalizeAndNormalizedFromIterator(Add add, Zero zero, Iter iter)
         .map([](auto a){ return a.denormalize(); }));
 }
 
+
+template<class Add, class Zero, class Iter>
+TermList denormalizeAndNormalizedFromRevIterator(Add add, Zero zero, Iter iter)
+{
+  return normalizedFromRevIterator(add, zero, 
+      iterTraits(iter)
+        .map([](auto a){ return a.denormalize(); }));
+}
+
+template<class Add, class Zero, class Iter>
+TermList normalizedFromRevIterator(Add add, Zero zero, Iter rev)
+{
+  if (!rev.hasNext()) {
+    return zero();
+  } else {
+    auto out = rev.next();
+    while (rev.hasNext()) {
+      out = add(rev.next(), out);
+    }
+    return out;
+  }
+}
+
 template<class Add, class Zero, class Iter>
 TermList normalizedFromIterator(Add add, Zero zero, Iter iter)
 {
@@ -304,6 +327,12 @@ public:
   static MonomFactors fromIterator(Iter iter)
   { return MonomFactors::fromNormalized(
       denormalizeAndNormalizedFromIterator(Number::mul, Number::one, iter)); }
+
+  // \pre iter must be sorted in reverse order
+  template<class Iter>
+  static MonomFactors fromRevIterator(Iter iter)
+  { return MonomFactors::fromNormalized(
+      denormalizeAndNormalizedFromRevIterator(Number::mul, Number::one, iter)); }
 
 
   MonomFactors(TermList factors);
@@ -531,9 +560,8 @@ class Polynom
   using Monom        = Kernel::Monom<Number>;
 
   TermList _inner;
-  explicit Polynom(TermList inner) : _inner(inner) { 
-    // DBGE(*this)
-    integrity(); }
+  explicit Polynom(TermList inner) : _inner(inner) 
+  { integrity(); }
 
 public:
   USE_ALLOCATOR(Polynom)
@@ -644,8 +672,8 @@ public:
 
   friend Polynom operator*(Numeral const& k, Polynom const& self)
   {
-    // self.integrity();
-    DBGE(self.denormalize())
+    if (k == Numeral(1)) return self;
+    if (k == Numeral(0)) return Polynom(Numeral(0));
     return Polynom::fromIterator(
         self.iterSummands()
                 .map([&](auto m) { return k * m; }));
@@ -766,6 +794,15 @@ public:
   PolyNf(FuncTerm t);
   PolyNf(Variable t);
   PolyNf(AnyPoly  t);
+
+  template<class N>
+  static PolyNf fromNumeral(N n) 
+  { return PolyNf::fromNormalized(TypedTermList(TermList(NumTraits<N>::constantT(n)), NumTraits<N>::sort())); }
+
+  template<class NumTraits>
+  Option<typename NumTraits::ConstantType> asNumeral() const 
+  { return asPoly().flatMap([](auto p) { return p.template tryNumeral<NumTraits>(); }) 
+    || [&]() { return asFuncTerm().flatMap([](auto t) { return t.template tryNumeral<NumTraits>(); }); }; }
 
   static PolyNf normalize(TypedTermList t, bool& evaluated);
   static PolyNf normalize(TypedTermList t) 

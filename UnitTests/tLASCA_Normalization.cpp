@@ -523,3 +523,10 @@ TEST_FRAC(bug_09,
       .out = { { ((            (((    a) * b) + (      c))) + -x) > 0 } },
       .strong = false,
     })
+
+TEST_ALL(bug_10, 
+    TestCase {
+      .in  =     -1 * (a + 3 * b) > 0    ,
+      .out = { {-a + -3 * b > 0 } },
+      .strong = false,
+    })

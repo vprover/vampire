@@ -26,7 +26,7 @@ SimplifyingGeneratingLiteralSimplification::Result PolynomialMultiplication::sim
     // we have a special datastructure for arithmetic terms, called PolyNF. 
     // Have a look at Kernel/Polynomial.hpp
     // Terms are converted to this normal using normalizerTerm
-    auto term = normalizeTerm(TypedTermList(*l->nthArgument(i), SortHelper::getArgSort(l, i)));
+    auto term = simplNormalizeTerm(TypedTermList(*l->nthArgument(i), SortHelper::getArgSort(l, i)));
     // CHECK OUT:
     // we do not wanna use recursion due to "problems with stack overflows in the past". So we use an explicit 
     // stack for recursion instead. For many common cases this can be handled using the function evaluateBottomUp

@@ -432,11 +432,11 @@ FRACTIONAL_TEST(test_div_1,
 //       p(a * (b * c))
 //       )
 
-ALL_NUMBERS_TEST(eval_test_cached_1,
-      p(((b * a) * c) * ((b * a) * c)),
-      // p(a * (a * (b * (b * (c * c)))))
-      evaluationFail
-      )
+// ALL_NUMBERS_TEST(eval_test_cached_1,
+//       p(((b * a) * c) * ((b * a) * c)),
+//       // p(a * (a * (b * (b * (c * c)))))
+//       evaluationFail
+//       )
 
 // ALL_NUMBERS_TEST(eval_test_cached_2,
 //       (b * a) * c == f((b * a) * c),

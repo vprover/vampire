@@ -38,14 +38,14 @@ public:
     : _removeZeros(removeZeros) 
   {  }
 
-  Option<PolyNf> evaluate(PolyNf in) const;
-  template<class NumTraits>
-  Option<Polynom<NumTraits>> evaluate(Polynom<NumTraits> in) const
-  { return evaluate(PolyNf(in))
-      .map([](auto overf) 
-          { return overf.map([](PolyNf p) 
-              { return p.template downcast<NumTraits>().unwrap(); }); });
-  }
+  // Option<PolyNf> evaluate(PolyNf in) const;
+  // template<class NumTraits>
+  // Option<Polynom<NumTraits>> evaluate(Polynom<NumTraits> in) const
+  // { return evaluate(PolyNf(in))
+  //     .map([](auto overf) 
+  //         { return overf.map([](PolyNf p) 
+  //             { return p.template downcast<NumTraits>().unwrap(); }); });
+  // }
 
   template<class NumTraits>
   static PolyNf simplifySummation(Stack<Monom<NumTraits>>, bool removeZeros);
@@ -54,9 +54,9 @@ public:
   Option<Result> tryEvalPredicate(Literal* orig, PolyNf* evaluatedArgs) const;
 private:
 
-  Option<PolyNf> evaluate(TermList in, SortId sortNumber) const;
-  Option<PolyNf> evaluate(Term* in) const;
-  Option<PolyNf> evaluate(TypedTermList in) const;
+  // Option<PolyNf> evaluate(TermList in, SortId sortNumber) const;
+  // Option<PolyNf> evaluate(Term* in) const;
+  // Option<PolyNf> evaluate(TypedTermList in) const;
 
 
   PolyNf evaluateStep(Term* orig, PolyNf* evaluatedArgs) const;

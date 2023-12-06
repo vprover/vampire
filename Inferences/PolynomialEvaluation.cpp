@@ -71,9 +71,9 @@ PolynomialEvaluationRule::Result PolynomialEvaluationRule::simplifyLiteral(Liter
   for (unsigned i = 0; i < lit->numTermArguments(); i++) {
     auto term = lit->termArg(i);
     auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getTermArgSort(lit, i)));
-    auto ev = _inner.evaluate(norm);
-    anyChange = anyChange || ev.isSome();
-    terms.push(std::move(ev) || norm);
+    // auto ev = _inner.evaluate(norm);
+    anyChange = anyChange || norm.denormalize() != term;
+    terms.push(norm);
   }
   auto simplified = _inner.tryEvalPredicate(lit, terms.begin());
   anyChange = anyChange || simplified.isSome();
@@ -251,70 +251,75 @@ Option<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs)
 // }
 
 
-Option<PolyNf> PolynomialEvaluation::evaluate(TermList term, SortId sort) const 
-{ return evaluate(TypedTermList(term, sort)); }
-
-Option<PolyNf> PolynomialEvaluation::evaluate(Term* term) const 
-{ return evaluate(TypedTermList(term)); }
-
-Option<PolyNf> PolynomialEvaluation::evaluate(TypedTermList term) const 
-{ return evaluate(PolyNf::normalize(term)); }
-
-template<class Number>
-Polynom<Number> simplifyPoly(Polynom<Number> in, PolyNf* simplifiedArgs, bool removeZeros);
-
-template<class Number>
-Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs, bool removeZeros);
-
-AnyPoly simplifyPoly(AnyPoly const& p, PolyNf* ts, bool removeZeros)
-{ return p.apply([&](auto& p) { return AnyPoly(simplifyPoly(p, ts, removeZeros)); }); }
-
-Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const 
-{
-  CALL("PolynomialEvaluation::evaluate(TypedTermList term) const")
-  TIME_TRACE("evaluating polynomial")
-
-  DEBUG("evaluating ", normalized)
-  struct Eval 
-  {
-    const PolynomialEvaluation& norm;
-
-    using Result = PolyNf;
-    using Arg    = PolyNf;
-
-    PolyNf operator()(PolyNf orig, PolyNf* ts, unsigned _nTs)
-    { 
-      return orig.match(
-          [&](FuncTerm f)  -> PolyNf
-          { 
-            return f.function().tryInterpret()
-              .andThen( [&](Theory::Interpretation && i)  -> Option<PolyNf>
-                { return trySimplify(i, ts); })
-              .unwrapOrElse([&]() -> PolyNf
-                { return PolyNf(FuncTerm(f.function(), ts)); });
-
-          }, 
-
-          [&](Variable v) 
-          { return v; },
-
-          [&](AnyPoly p) 
-          { return simplifyPoly(p, ts, /* removeZeros = */ true); }
-      );
-    }
-  };
-  static Memo::Hashed<PolyNf, PolyNf> memo;
-  auto out = evaluateBottomUp(normalized, Eval{ *this }, memo);
-  DBGE(out)
-  if (out == normalized) {
-    return Option<PolyNf>();
-  } else {
-    return Option<PolyNf>(out);
-  }
-}
+// Option<PolyNf> PolynomialEvaluation::evaluate(TermList term, SortId sort) const 
+// { return evaluate(TypedTermList(term, sort)); }
+//
+// Option<PolyNf> PolynomialEvaluation::evaluate(Term* term) const 
+// { return evaluate(TypedTermList(term)); }
+//
+// Option<PolyNf> PolynomialEvaluation::evaluate(TypedTermList term) const 
+// { 
+//   auto norm = PolyNf::normalize(term);
+//   return someIf(norm.denormalize() == term, 
+//       [&]() { return norm; });
+// }
 
 template<class Number>
-Polynom<Number> simplifyPoly(Polynom<Number> in, PolyNf* simplifiedArgs, bool removeZeros)
+Polynom<Number> _simplifyPoly(Polynom<Number> in, PolyNf* simplifiedArgs, bool removeZeros);
+
+template<class Number>
+Monom<Number> _simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs, bool removeZeros);
+
+AnyPoly _simplifyPoly(AnyPoly const& p, PolyNf* ts, bool removeZeros)
+{ return p.apply([&](auto& p) { return AnyPoly(_simplifyPoly(p, ts, removeZeros)); }); }
+
+// Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const 
+// {
+//   CALL("PolynomialEvaluation::evaluate(TypedTermList term) const")
+//   TIME_TRACE("evaluating polynomial")
+//
+//   DEBUG("evaluating ", normalized)
+//   struct Eval 
+//   {
+//     const PolynomialEvaluation& norm;
+//
+//     using Result = PolyNf;
+//     using Arg    = PolyNf;
+//
+//     PolyNf operator()(PolyNf orig, PolyNf* ts, unsigned _nTs)
+//     { 
+//       return orig.match(
+//           [&](FuncTerm f)  -> PolyNf
+//           { 
+//             return f.function().tryInterpret()
+//               .andThen( [&](Theory::Interpretation && i)  -> Option<PolyNf>
+//                 { return trySimplify(i, ts); })
+//               .unwrapOrElse([&]() -> PolyNf
+//                 { return PolyNf(FuncTerm(f.function(), ts)); });
+//
+//           }, 
+//
+//           [&](Variable v) 
+//           { return v; },
+//
+//           [&](AnyPoly p) 
+//           { return _simplifyPoly(p, ts, /* removeZeros = */ true); }
+//       );
+//     }
+//   };
+//   static Memo::Hashed<PolyNf, PolyNf> memo;
+//   DBGE(normalized)
+//   auto out = evaluateBottomUp(normalized, Eval{ *this }, memo);
+//   DBGE(out)
+//   if (out == normalized) {
+//     return Option<PolyNf>();
+//   } else {
+//     return Option<PolyNf>(out);
+//   }
+// }
+
+template<class Number>
+Polynom<Number> _simplifyPoly(Polynom<Number> in, PolyNf* simplifiedArgs, bool removeZeros)
 { 
   CALL("simplify(Polynom<Number>const&, PolyNf* simplifiedArgs)") 
   TIME_TRACE("simplify(Polynom<Number>const&, PolyNf* simplifiedArgs)") 
@@ -326,7 +331,8 @@ Polynom<Number> simplifyPoly(Polynom<Number> in, PolyNf* simplifiedArgs, bool re
     auto offs = 0;
     auto out = in.iterSummands()
       .map([&](auto monom) {
-          Monom simpl = simplifyMonom(monom, &simplifiedArgs[offs], removeZeros);
+          Monom simpl = _simplifyMonom(monom, &simplifiedArgs[offs], removeZeros);
+          DBG(simpl)
           offs += monom.factors.cntFactors();
           return simpl;
       })
@@ -367,6 +373,7 @@ Polynom<Number> simplifyPoly(Polynom<Number> in, PolyNf* simplifiedArgs, bool re
 
     auto poly = Polynom(std::move(out));
     poly.integrity();
+    DBGE(poly)
     return poly;
   } catch (ArithmeticException&) { 
     return in.replaceTerms(simplifiedArgs);
@@ -374,7 +381,7 @@ Polynom<Number> simplifyPoly(Polynom<Number> in, PolyNf* simplifiedArgs, bool re
 }
 
 template<class Number>
-Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs, bool removeZeros) 
+Monom<Number> _simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs, bool removeZeros) 
 { 
 
   using Numeral      = typename Number::ConstantType;
@@ -430,10 +437,6 @@ Monom<Number> simplifyMonom(Monom<Number> const& in, PolyNf* simplifiedArgs, boo
 }
 
 TermList PolynomialEvaluation::evaluateToTerm(Term* in) const
-{
-  auto norm = PolyNf::normalize(in);
-  auto eval = evaluate(in) || norm;
-  return eval.denormalize();
-}
+{ return PolyNf::normalize(in).denormalize(); }
 
 } // Inferences

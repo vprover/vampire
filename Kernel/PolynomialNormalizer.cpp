@@ -9,6 +9,9 @@
  */
 
 #include "PolynomialNormalizer.hpp"
+#include "Kernel/Polynomial.hpp"
+#include "Kernel/Theory.hpp"
+#include "Lib/Metaiterators.hpp"
 
 // using NormalizationResult = Coproduct<PolyNf 
 //         , Polynom< IntTraits>
@@ -410,12 +413,214 @@ struct GetProductArgs {
 //   }
 // }
 //
-// #define PRINT_AND_RETURN(...)                                                                                 \
-//   auto f = [&](){ __VA_ARGS__ };                                                                              \
-//   auto out = f();                                                                                             \
-//   DBG("out : ", out);                                                                                         \
-//   return out;                                                                                                 \
-//
+// #define PRINT_AND_RETURN(...)                                                          \
+//   auto f = [&](){ __VA_ARGS__ };                                                       \
+//   auto out = f();                                                                      \
+//   DBG("out : ", out);                                                                  \
+//   return out;                                                                          \
+
+PolyNf simplNormalizeTerm(TypedTermList t, bool& evaluated)
+{
+  CALL("PolyNf::normalize")
+  TIME_TRACE("PolyNf::normalize")
+  DEBUG("normalizing ", t)
+  Memo::None<PolyNormTerm,PolyNf> memo;
+  struct Eval
+  {
+    bool& evaluated;
+
+    using Arg    = PolyNormTerm;
+    using Result = PolyNf;
+
+    PolyNf operator()(PolyNormTerm t_, PolyNf* ts, unsigned nTs) const
+    { 
+      // ASSERTION_VIOLATION_REP("unimplemented")
+      auto t = t_._self;
+      if (t.isVar()) {
+        return PolyNf(Variable(t.var(), t.sort()));
+      } else {
+        auto term = t.term();
+        auto f = term->functor();
+        auto poly = tryNumTraits([&](auto n) -> Option<PolyNf> {
+            using NumTraits = decltype(n);
+            using Numeral = typename NumTraits::ConstantType;
+            using Polynom = Polynom<NumTraits>;
+            using Monom = Monom<NumTraits>;
+            using MonomFactors = MonomFactors<NumTraits>;
+
+            if (NumTraits::addF() == f) {
+              // TODO use recycled stacks here
+              auto summands = range(0, nTs)
+                .map([&](auto i) {
+                    auto p = ts[i];
+                    return p.asPoly().isSome() 
+                        && p.asPoly()->template downcast<NumTraits>()
+                                       ->asMonom().isSome() 
+                         ? p.asPoly()->template downcast<NumTraits>()
+                                       ->asMonom().unwrap()
+                         : Monom(p);
+                })
+                .filter([](auto monom) { return monom.numeral != Numeral(0); })
+                .flatMap([](auto monom) {
+                   // j * ( k1 t1 + ... + kn tn ) ==> j k1 t1 + ... + j kn tn
+                   return ifElseIter(
+                          monom.factors.tryMonomFactor().isSome()
+                                && monom.factors.tryMonomFactor()->power() == 1
+                                && monom.factors.tryMonomFactor()->term().asPoly().isSome()
+                          , [=]() { return monom.factors.tryMonomFactor()->term()
+                                             .asPoly()->template downcast<NumTraits>()->iterSummands()
+                                             .map([=](auto m) -> Monom { return monom.numeral * m; }); }
+                          , [=]() { return getSingletonIterator(monom); });
+                })
+                // .map([&](auto i) { return ts[i].denormalize()); })
+                // .map([&](auto i) { return ts[i].denormalize()); })
+                .template collect<Stack<Monom>>();
+
+              // then we sort them by their monom, in order to add up the coefficients efficiently
+              std::sort(summands.begin(), summands.end(), 
+                  [](auto& l, auto& r) { return l.factors < r.factors; });
+
+              // add up the coefficient (in place)
+              {
+                auto offs = 0;
+                for (unsigned i = 0; i < summands.size(); i++) { 
+                  auto monom = summands[i];
+                  auto numeral = monom.numeral;
+                  auto& factors = monom.factors;
+                  while ( i + 1 < summands.size() && summands[i+1].factors == factors ) {
+                    numeral = numeral + summands[i+1].numeral;
+                    i++;
+                  }
+                  if (numeral != Numeral(0)) 
+                    summands[offs++] = Monom(numeral, std::move(factors));
+                }
+                summands.truncate(offs);
+              }
+
+              auto poly = Polynom(std::move(summands));
+              poly.integrity();
+              return some(PolyNf(poly));
+              auto out = some(PolyNf(AnyPoly(Polynom(std::move(summands)))));
+              return out;
+            } else if (GetProductArgs<NumTraits>::isAcTerm(t)) {
+              Recycled<Stack<pair<PolyNf, unsigned>>> facs_;
+              facs_->loadFromIterator(range(0, nTs)
+                .map([&](auto i) { return ts[i]; })
+                .flatMap([&](auto factor) { return ifElseIter(
+                      factor.asPoly().isSome() && 
+                      factor.asPoly()->template downcast<NumTraits>()
+                                         ->asMonom().isSome()
+                    , [&](){
+                      auto m = *factor.asPoly()->template downcast<NumTraits>()
+                                         ->asMonom();
+                      return concatIters(
+                          getSingletonIterator(make_pair(PolyNf::fromNumeral(m.numeral), unsigned(1))),
+                          m.factors.iter()
+                                .map([](auto f) { return make_pair(f.term(), f.power()); })
+                          );
+                                         // TODO memory issue (?)
+                                         // do we need std::move(m.factors).iter()
+                    }
+                    , [&]() { return getSingletonIterator(make_pair(factor, unsigned(1))); });
+                }));
+              auto& facs = *facs_;
+
+              std::sort(facs.begin(), facs.end(),
+                  [](auto& l, auto& r) { return l.first < r.first; });
+
+              Numeral numeral(1);
+              unsigned offs = 0;
+              unsigned i = 0;
+              while (i < facs.size()) {
+                auto n = NumTraits::tryNumeral(facs[i].first.denormalize());
+                auto collectSameNonNumerals = [&]() {
+                    facs[offs] = facs[i];
+                    i++;
+                    while (i < facs.size() && facs[i].first == facs[offs].first) {
+                      facs[offs].second += facs[i].second;
+                      i++;
+                    }
+                    offs++;
+                };
+                if (n.isSome()) {
+                  try {
+                    ASS_EQ(facs[i].second, 1)
+                    numeral = numeral * n.unwrap();
+                    i++;
+                  } catch (MachineArithmeticException) {
+                    collectSameNonNumerals();
+                  }
+                } else {
+                  collectSameNonNumerals();
+                }
+              }
+              facs.truncate(offs);
+              if (numeral == Numeral(0)) {
+                return some(PolyNf::fromNumeral(numeral));
+              } else if (facs.size()
+                  && facs[0].second == 1 
+                  && facs[0].first.asPoly().isSome()) {
+                auto poly = *facs[0].first.asPoly()->template downcast<NumTraits>();
+                return some(PolyNf(AnyPoly(numeral * poly)));
+
+              } else {
+
+                return some(PolyNf(AnyPoly(Polynom(Monom(
+                            numeral, 
+                            MonomFactors::fromRevIterator(
+                              range(0, facs.size())
+                                .map([&](auto i) { return offs - i - 1; })
+                                .map([&](auto i) -> MonomFactor<NumTraits> { return MonomFactor<NumTraits>(facs[i].first, facs[i].second); })
+                              )
+                            )))));
+              }
+            } else if (NumTraits::isMinus(f)) {
+              if (ts[0].asPoly()) {
+                return some(PolyNf(AnyPoly(Numeral(-1) * ts[0].asPoly()->template downcast<NumTraits>().unwrap())));
+              } else {
+                return some(PolyNf(AnyPoly(Polynom(Monom(
+                            Numeral(-1), 
+                            MonomFactors(ts[0])
+                            )))));
+              }
+            } else if (n.tryNumeral(term).isSome()) {
+              auto num = n.tryNumeral(term).unwrap();
+              return some(PolyNf::fromNumeral(num));
+            } else {
+              return Option<PolyNf>();
+            }
+        });
+
+        if (poly.isNone()) {
+#define Q_or_R_CASES(isOpX, opX, byZeroResult)                                            \
+          if (IntTraits::isOpX(f)) {                                                      \
+            auto l = ts[0].template asNumeral<IntTraits>();                               \
+            auto r = ts[1].template asNumeral<IntTraits>();                               \
+            if (r.isSome() && *r == IntegerConstantType(1)) {                             \
+              DBG("zero case: ", byZeroResult)                                                \
+              return byZeroResult;                                                        \
+            } else if (l.isSome() && r.isSome() && *r != IntegerConstantType(0)) {        \
+              return PolyNf::fromNumeral(l->opX(*r));                                     \
+            } else {                                                                      \
+              return PolyNf(FuncTerm(FuncId::symbolOf(t.term()), ts));                    \
+            }                                                                             \
+          }
+
+#define QR_CASES(isQuotientX, quotientX, isRemainderX, remainderX)                        \
+          Q_or_R_CASES(isQuotientX, quotientX, ts[0])                                     \
+          Q_or_R_CASES(isRemainderX, remainderX, PolyNf::fromNumeral(IntegerConstantType(0)))\
+
+          QR_CASES(isQuotientE, quotientE, isRemainderE, remainderE)
+          QR_CASES(isQuotientT, quotientT, isRemainderT, remainderT)
+          QR_CASES(isQuotientF, quotientF, isRemainderF, remainderF)
+        }
+
+        return poly || [&]() { return PolyNf(FuncTerm(FuncId::symbolOf(t.term()), ts)); };
+      }
+    }
+  };
+  return evaluateBottomUp(PolyNormTerm(t), Eval{.evaluated = evaluated}, memo);
+}
 
 PolyNf normalizeTerm(TypedTermList t, bool& evaluated)
 {
@@ -444,6 +649,7 @@ PolyNf normalizeTerm(TypedTermList t, bool& evaluated)
             using Numeral = typename NumTraits::ConstantType;
 
             if (NumTraits::addF() == f) {
+            // TODO use recycled stacks here
               auto summands = range(0, nTs)
                 .map([&](auto i) { return Monom<NumTraits>::fromNormalized(ts[i].denormalize()); })
                 .template collect<Stack<Monom<NumTraits>>>();

@@ -17,7 +17,7 @@
 namespace Kernel {
 
 PolyNf PolyNf::normalize(TypedTermList t, bool& evaluated)
-{ return normalizeTerm(t, evaluated); }
+{ return simplNormalizeTerm(t, evaluated); }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // impl Variable

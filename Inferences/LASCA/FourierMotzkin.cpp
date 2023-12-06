@@ -17,7 +17,7 @@
 #include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
 
-#define DEBUG_FM(lvl, ...) if (lvl <= 0) DBG(__VA_ARGS__)
+#define DEBUG_FM(lvl, ...) if (lvl <= 1) DBG(__VA_ARGS__)
 
 namespace Inferences {
 namespace LASCA {

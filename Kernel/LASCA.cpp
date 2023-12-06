@@ -116,11 +116,7 @@ Literal* InequalityNormalizer::normalizeUninterpreted(Literal* lit) const
     if (orig.isVar()) {
       args.push(orig);
     } else {
-      auto norm = PolyNf::normalize(TypedTermList(orig.term()));
-      auto eval = evaluator()
-        .evaluate(norm)
-        .map([](auto t) { return t.denormalize(); }) 
-        || norm.denormalize();  // <- nothing was done during evaluation
+      auto eval = PolyNf::normalize(TypedTermList(orig.term())).denormalize();
       args.push(eval);
     }
   }
@@ -268,9 +264,7 @@ Option<AnyInequalityLiteral> LascaState::renormalizeIneq(Literal* lit)
 PolyNf LascaState::normalize(TypedTermList term) 
 { 
   TIME_TRACE("lasca normalize term")
-  auto norm = PolyNf::normalize(term);
-  auto out = this->normalizer.evaluator().evaluate(norm); 
-  return out || norm;
+  return PolyNf::normalize(term);
 }
 
 Option<AbstractingUnifier> LascaState::unify(TermList lhs, TermList rhs) const 

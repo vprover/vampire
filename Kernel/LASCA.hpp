@@ -1250,9 +1250,8 @@ Option<Stack<LascaLiteral<NumTraits>>> InequalityNormalizer::normalizeLasca(Lite
     switch(itp) {
       case NumTraits::isIntI:{
 
-        auto norm = Kernel::normalizeTerm(TypedTermList(*lit->nthArgument(0), NumTraits::sort()));
-        auto simpl = _eval.evaluate(norm);
-        auto simplValue = (simpl || norm).wrapPoly<NumTraits>();
+        auto simpl = Kernel::simplNormalizeTerm(TypedTermList(*lit->nthArgument(0), NumTraits::sort()));
+        auto simplValue = simpl.wrapPoly<NumTraits>();
         auto llit = LascaLiteral<NumTraits>(simplValue, lit->isPositive() ? LascaPredicate::IS_INT_POS
                                                                           : LascaPredicate::IS_INT_NEG);
         return Opt(Stack<LascaLiteral<NumTraits>>{llit});
@@ -1319,10 +1318,9 @@ Option<Stack<LascaLiteral<NumTraits>>> InequalityNormalizer::normalizeLasca(Lite
     ASS(!isInt || pred != LascaPredicate::GREATER_EQ)
 
     auto tt = TypedTermList(t, NumTraits::sort());
-    auto norm = Kernel::normalizeTerm(tt);
+    auto simplValue = Kernel::simplNormalizeTerm(tt)
+      .template wrapPoly<NumTraits>();
     
-    auto simpl = _eval.evaluate(norm);
-    auto simplValue = (simpl || norm).wrapPoly<NumTraits>();
     simplValue.integrity();
     auto factorsNormalized = normalizeFactors(simplValue);
 
