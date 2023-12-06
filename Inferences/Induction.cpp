@@ -691,22 +691,30 @@ ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, In
   #if VDEBUG
     bool flag = false;
   #endif
+
+  #if VDEBUG
+    cout << "induction premise is " << premise->toString() << endl;
+    cout << "induction literal is " << indLit->toString() << endl;
+  #endif
   while(cit.hasNext()){
     Clause* c = cit.next();
     unsigned cLen = c->length();
 
     int resLitIdx = SynthesisManager::getInstance()->getResolventLiteralIdx(c); // The literal which contains a rec(.) term should be picked for resolution
-
     if (resLitIdx == -1){ //ToDo: check why not finding correct literal in cut-off subtract
       resLitIdx = cLen - 1;
       // std::cout << "clause to resolve is " << c->toString() << std::endl;
       // USER_ERROR("No literal with rec(.) term found in the clause to resolve");
     }
-
     Literal* resLit = (*c)[resLitIdx]; 
 
     RobSubstitution subst;
-    if (subst.unifyArgs(indLit, 0, resLit, 1, nullptr)) {
+    subst.reset();
+
+
+    if (subst.unify(*indLit->nthArgument(0), 0, *resLit->nthArgument(1), 1, nullptr) &&
+     subst.unify(*indLit->nthArgument(1), 0, *resLit->nthArgument(0), 1, nullptr)) {
+
       #if VDEBUG
         flag = true;
       #endif
@@ -733,11 +741,48 @@ ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, In
       Clause* resolvent = Clause::fromStack(lits, GeneratingInference2(InferenceRule::RESOLUTION, c, context.getPremise()));
       resolved_clauses.push(resolvent);
     }
+    else {
+      subst.reset();
+      if (subst.unify(*indLit->nthArgument(0), 0, *resLit->nthArgument(0), 1, nullptr) &&
+        subst.unify(*indLit->nthArgument(1), 0, *resLit->nthArgument(1), 1, nullptr)) {
+
+        #if VDEBUG
+          flag = true;
+        #endif
+        Literal* indLitS = subst.apply(indLit, 0);
+
+        Stack<Literal*> lits;
+        for (unsigned i = 0; i < cLen; i++) { // Apply resolution on rest of the literals
+          if (i == resLitIdx) {
+            continue;
+          }
+          Literal* lit = subst.apply((*c)[i], 1);
+          lits.push(lit);
+        }
+
+        unsigned pLen = premise->length();
+        for (unsigned i = 0; i < pLen; i++) {
+          Literal* lit = subst.apply((*premise)[i], 0);
+          if (lit == indLitS) {
+            continue;
+          }
+          lits.push(lit);
+        }
+
+        Clause* resolvent = Clause::fromStack(lits, GeneratingInference2(InferenceRule::RESOLUTION, c, context.getPremise()));
+        resolved_clauses.push(resolvent);
+    } else {
+      #if VDEBUG
+        cout << "could not unify " << indLit->toString() << " and " << resLit->toString() << endl;
+      #endif
+    }
+  
+    }
   }
 
   #if VDEBUG
     if (!flag) {
-      cout << "No resolution found for " << hypothesis->toString() << endl;
+      cout << "Failed hyperresolution for " << hypothesis->toString() << endl;
     }
   #endif
 
