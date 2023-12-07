@@ -325,8 +325,6 @@ class Signature
     OperatorType* fnType() const;
     OperatorType* predType() const;
     OperatorType* typeConType() const;
-
-    USE_ALLOCATOR(Symbol);
   }; // class Symbol
 
   class InterpretedSymbol
@@ -343,8 +341,6 @@ class Signature
     : Symbol(nm, Theory::getArity(interp), true), _interp(interp)
     {
     }
-
-    USE_ALLOCATOR(InterpretedSymbol);
 
     /** Return the interpreted function that corresponds to this symbol */
     inline Interpretation getInterpretation() const { ASS_REP(interpreted(), _name); return _interp; }
@@ -364,7 +360,6 @@ class Signature
     {
       setType(OperatorType::getConstantsType(AtomicSort::intSort()));
     }
-    USE_ALLOCATOR(IntegerSymbol);
   };
 
   class RationalSymbol
@@ -381,7 +376,6 @@ class Signature
     {
       setType(OperatorType::getConstantsType(AtomicSort::rationalSort()));
     }
-    USE_ALLOCATOR(RationalSymbol);
   };
 
   class RealSymbol
@@ -398,7 +392,6 @@ class Signature
     {
       setType(OperatorType::getConstantsType(AtomicSort::realSort()));
     }
-    USE_ALLOCATOR(RealSymbol);
   }; 
 
   //////////////////////////////////////
@@ -584,8 +577,6 @@ class Signature
 
   Signature();
   ~Signature();
-
-  USE_ALLOCATOR(Signature);
 
   bool functionExists(const vstring& name,unsigned arity) const;
   bool predicateExists(const vstring& name,unsigned arity) const;

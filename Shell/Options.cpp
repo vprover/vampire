@@ -576,6 +576,7 @@ void Options::init()
     _inlineLet = BoolOptionValue("inline_let","ile",false);
     _inlineLet.description="Always inline let-expressions.";
     _lookup.insert(&_inlineLet);
+    _inlineLet.onlyUsefulWith(_newCNF.is(equal(true)));
     _inlineLet.tag(OptionTag::PREPROCESSING);
 
 //*********************** Output  ***********************
@@ -1658,13 +1659,16 @@ void Options::init()
     _equationalTautologyRemoval.onlyUsefulWith(ProperSaturationAlgorithm());
     _equationalTautologyRemoval.tag(OptionTag::INFERENCES);
 
-    _unitResultingResolution = ChoiceOptionValue<URResolution>("unit_resulting_resolution","urr",URResolution::OFF,{"ec_only","off","on"});
+    _unitResultingResolution = ChoiceOptionValue<URResolution>("unit_resulting_resolution","urr",URResolution::OFF,{"ec_only","off","on","full"});
     _unitResultingResolution.description=
-    "Uses unit resulting resolution only to derive empty clauses (may be useful for splitting)";
+    "Uses unit resulting resolution only to derive empty clauses (may be useful for splitting)."
+    " 'ec_only' only derives empty clauses, 'on' does everything (but implements a heuristic to skip deriving more than one empty clause),"
+    " 'full' ignores this heuristic and is thus complete also under AVATAR.";
     _lookup.insert(&_unitResultingResolution);
     _unitResultingResolution.tag(OptionTag::INFERENCES);
     _unitResultingResolution.onlyUsefulWith(ProperSaturationAlgorithm());
     _unitResultingResolution.addProblemConstraint(notJustEquality());
+    _unitResultingResolution.addConstraint(If(equal(URResolution::FULL)).then(_splitting.is(equal(true))));
     // If br has already been set off then this will be forced on, if br has not yet been set
     // then setting this to off will force br on
 
@@ -3414,9 +3418,10 @@ bool Options::complete(const Problem& prb) const
 
   if (!hasEquality) {
     if (_binaryResolution.actualValue) return true;
-    if (_unitResultingResolution.actualValue!=URResolution::ON) return false;
     // binary resolution is off
-    return prop.category() == Property::HNE; // URR is complete for Horn problems
+    if (_unitResultingResolution.actualValue!=URResolution::FULL &&
+       (_unitResultingResolution.actualValue!=URResolution::ON || _splitting.actualValue) ) return false;
+    return prop.category() == Property::HNE; // enough URR is complete for Horn problems
   }
 
   if (_demodulationRedundancyCheck.actualValue == DemodulationRedunancyCheck::OFF) {

@@ -65,8 +65,6 @@ class AWPassiveClauseContainer
 : public PassiveClauseContainer
 {
 public:
-  USE_ALLOCATOR(AWPassiveClauseContainer);
-
   AWPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name);
   ~AWPassiveClauseContainer();
   void add(Clause* cl) override;

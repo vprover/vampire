@@ -50,8 +50,6 @@ class DistinctnessISE
 {
 
 public:
-  USE_ALLOCATOR(DistinctnessISE);
-  
   Kernel::Clause* simplify(Kernel::Clause* c);
 };
 
@@ -69,8 +67,6 @@ public:
 class InjectivityGIE
   : public GeneratingInferenceEngine {
 public:
-  USE_ALLOCATOR(InjectivityGIE);
-  
   Kernel::ClauseIterator generateClauses(Kernel::Clause* c);
 
 private:
@@ -91,8 +87,6 @@ class InjectivityISE
   : public ImmediateSimplificationEngine
 {
 public:
-  USE_ALLOCATOR(InjectivityISE);
-  
   Kernel::Clause* simplify(Kernel::Clause* c);
 };
 
@@ -100,8 +94,6 @@ class NegativeInjectivityISE
   : public ImmediateSimplificationEngine
 {
 public:
-  USE_ALLOCATOR(NegativeInjectivityISE);
-
   Kernel::Clause* simplify(Kernel::Clause* c);
 
 private:
@@ -111,8 +103,6 @@ private:
 class AcyclicityGIE
   : public GeneratingInferenceEngine {
 public:
-  USE_ALLOCATOR(AcyclicityGIE);
-
   void attach(Saturation::SaturationAlgorithm* salg);
   void detach();
   Kernel::ClauseIterator generateClauses(Kernel::Clause *c);
@@ -126,8 +116,6 @@ private:
 class AcyclicityGIE1
   : public GeneratingInferenceEngine {
 public:
-  USE_ALLOCATOR(AcyclicityGIE1);
-  
   Kernel::ClauseIterator generateClauses(Kernel::Clause* c);
 
 private:

@@ -32,8 +32,6 @@ class RndLiteralSelector
 : public LiteralSelector
 {
 public:
-  USE_ALLOCATOR(RndLiteralSelector);
-
   RndLiteralSelector(const Ordering& ordering, const Options& options, bool complete) :
     LiteralSelector(ordering, options), _complete(complete) {}
 

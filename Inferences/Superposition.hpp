@@ -31,8 +31,6 @@ class Superposition
 : public GeneratingInferenceEngine
 {
 public:
-  USE_ALLOCATOR(Superposition);
-
   void attach(SaturationAlgorithm* salg);
   void detach();
 

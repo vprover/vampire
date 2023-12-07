@@ -75,7 +75,6 @@ namespace CoproductImpl {
    * data VariadicUnion (a::as) = union {a, Coproduct as}
    */
   template <class A, class... As> union VariadicUnion<A, As...> {
-    // USE_ALLOCATOR(VariadicUnion)
     using Ts = TL::List<A,As...>;
 
     A _head;

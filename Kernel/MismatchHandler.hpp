@@ -35,8 +35,6 @@ public:
   UWAMismatchHandler(Stack<UnificationConstraint>& c) : constraints(c) /*, specialVar(0)*/ {}
   virtual bool handle(RobSubstitution* sub, TermList t1, unsigned index1, TermList t2, unsigned index2);
 
-  USE_ALLOCATOR(UWAMismatchHandler);
-
 private:
   bool checkUWA(TermList t1, TermList t2); 
   virtual bool introduceConstraint(TermList t1,unsigned index1, TermList t2, unsigned index2);
@@ -51,8 +49,6 @@ public:
   HOMismatchHandler(UnificationConstraintStack& c) : constraints(c) {}
   
   virtual bool handle(RobSubstitution* sub, TermList t1, unsigned index1, TermList t2, unsigned index2);
-
-  USE_ALLOCATOR(HOMismatchHandler);
 
 private:
 

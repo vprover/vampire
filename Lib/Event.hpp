@@ -67,8 +67,6 @@ public:
   ~SubscriptionObject();
   void unsubscribe();
   bool belongsTo(BaseEvent& evt);
-
-  USE_ALLOCATOR(SubscriptionObject);
 private:
   BaseEvent* event;
   BaseEvent::HandlerStruct* hs;
@@ -110,7 +108,6 @@ protected:
     {
       (pObj->*pMethod)();
     }
-    USE_ALLOCATOR(MethodSpecificHandlerStruct);
   };
 
   template<class Cls>
@@ -159,8 +156,6 @@ protected:
     {
       (pObj->*pMethod)(t);
     }
-
-    USE_ALLOCATOR(MethodSpecificHandlerStruct);
   };
 
   template<class Cls>
@@ -212,8 +207,6 @@ protected:
     {
       (pObj->*pMethod)(t1, t2);
     }
-
-    USE_ALLOCATOR(MethodSpecificHandlerStruct);
   };
 
   template<class Cls>

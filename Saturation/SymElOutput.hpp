@@ -33,8 +33,6 @@ using namespace Shell;
  */
 class SymElOutput {
 public:
-  USE_ALLOCATOR(SymElOutput);
-  
   SymElOutput();
 
   void init(SaturationAlgorithm* sa);

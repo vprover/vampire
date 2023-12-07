@@ -39,8 +39,6 @@ using namespace Inferences;
  */
 class ConsequenceFinder {
 public:
-  USE_ALLOCATOR(ConsequenceFinder);
-  
   ~ConsequenceFinder();
 
   void init(SaturationAlgorithm* sa);

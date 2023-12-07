@@ -31,8 +31,6 @@ class KBOForEPR
 : public PrecedenceOrdering
 {
 public:
-  USE_ALLOCATOR(KBOForEPR);
-
   KBOForEPR(Problem& prb, const Options& opt);
 
   using PrecedenceOrdering::compare;

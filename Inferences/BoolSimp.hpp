@@ -24,7 +24,6 @@ namespace Inferences {
 class BoolSimp : public ImmediateSimplificationEngine
 {
   public:
-    USE_ALLOCATOR(BoolSimp);
     Clause* simplify(Clause* premise);
 
   private:

@@ -58,8 +58,6 @@ public:
     _varDiffs.reset();
   }
 
-  USE_ALLOCATOR(State);
-
   void traverse(ArgsIt_ptr aai1, ArgsIt_ptr aai2);
   void traverse(ArgsIt_ptr aai, int coefficient);
   Result result(ArgsIt_ptr aai1, ArgsIt_ptr aai2);

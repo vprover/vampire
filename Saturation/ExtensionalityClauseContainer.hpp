@@ -49,8 +49,6 @@ typedef DHMap<TermList, ExtensionalityClauseList*> ClausesBySort;
 class ExtensionalityClauseContainer
 {
 public:
-  USE_ALLOCATOR(ExtensionalityClauseContainer);
-
   ExtensionalityClauseContainer(const Options& opt)
   : _size(0),
     _maxLen(opt.extensionalityMaxLength()),
