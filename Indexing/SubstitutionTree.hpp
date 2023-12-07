@@ -181,8 +181,10 @@ public:
   }
 
 
-  friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self);
-  friend std::ostream& operator<<(std::ostream& out, OutputMultiline<SubstitutionTree> const& self);
+  template<class T>
+  friend std::ostream& operator<<(std::ostream& out, SubstitutionTree<T> const& self);
+  template<class T>
+  friend std::ostream& operator<<(std::ostream& out, OutputMultiline<SubstitutionTree<T>> const& self);
   typedef VirtualIterator<LeafData*> LDIterator;
 
   template<class Unifier>
@@ -1277,7 +1279,7 @@ public:
 
   public:
     bool isEmpty() const { return _root == nullptr || _root->isEmpty(); }
-    friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self);
+    // friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self);
 
     Cntr _iterCnt;
   }; // class SubstiutionTree

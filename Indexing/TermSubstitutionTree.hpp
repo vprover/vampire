@@ -74,12 +74,7 @@ private:
   bool generalizationExists(TermList t) override
   { return t.isVar() ? false : _inner.generalizationExists(TypedTermList(t.term())); }
 
-
-#if VDEBUG
   virtual void output(std::ostream& out) const final override { out << *this; }
-#endif
-
-
 
   friend std::ostream& operator<<(std::ostream& out, TermSubstitutionTree const& self)
   { return out << self._inner; }
