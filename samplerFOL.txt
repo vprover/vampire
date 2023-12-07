@@ -17,11 +17,11 @@ ep!=off > mep ~cat on:10,off:1
 # general_splitting
 > gsp ~cat off:8,on:1
 
-# inline_let -- this is probably irrelevant on TPTP anyway
-> ile ~cat off:10,on:1
-
 # newcnf
 > newcnf ~cat on:9,off:25
+
+# inline_let -- this is probably irrelevant on TPTP anyway
+newcnf=on > ile ~cat off:10,on:1
 
 # naming
 > $nm ~cat Z:1,NZ:5

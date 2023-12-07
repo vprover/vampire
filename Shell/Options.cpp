@@ -576,6 +576,7 @@ void Options::init()
     _inlineLet = BoolOptionValue("inline_let","ile",false);
     _inlineLet.description="Always inline let-expressions.";
     _lookup.insert(&_inlineLet);
+    _inlineLet.onlyUsefulWith(_newCNF.is(equal(true)));
     _inlineLet.tag(OptionTag::PREPROCESSING);
 
 //*********************** Output  ***********************
