@@ -710,13 +710,6 @@ struct BottomUpChildIter<Kernel::PolyNormTerm>
   static bool isProd(unsigned functor) { return forAnyNumTraits([=](auto n) { return n.mulF() == functor; }); }
   static bool isSum (TermList t) { return t.isTerm() && isSum (t.term()->functor()); }
   static bool isProd(TermList t) { return t.isTerm() && isProd(t.term()->functor()); }
-  //
-  // Coproduct<AcIter, Uninter> _self;
-  // BottomUpChildIter(Kernel::PolyNormTerm t) 
-  //   : _self((isSum(t._self) || isProd(t._self))
-  //                      ? decltype(_self)(AcIter(t._self.term()))
-  //                      : decltype(_self)(Uninter(t))) 
-  //   {}
 
 
   using Inner = Coproduct< Uninter
