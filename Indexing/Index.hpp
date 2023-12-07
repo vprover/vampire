@@ -20,6 +20,7 @@
 
 #include "Lib/Event.hpp"
 #include "Kernel/Clause.hpp"
+#include "Kernel/Term.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Saturation/ClauseContainer.hpp"

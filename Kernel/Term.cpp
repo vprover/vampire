@@ -178,13 +178,13 @@ bool TermList::sameTop(TermList ss,TermList tt)
   }
   return ss.term()->functor() == tt.term()->functor();
 }
-std::ostream& Kernel::operator<<(std::ostream& out, TermList::Top const& self)
+void TermList::Top::output(std::ostream& out) const
 { 
-  if (self.var()) {
-    return out << TermList::var(self.var());
+  if (this->var()) {
+    out << TermList::var(this->var());
   } else {
-    ASS(self.functor())
-    return out << *env.signature->getFunction(*self.functor());
+    ASS(this->functor())
+    out << *env.signature->getFunction(*this->functor());
   }
 }
 
@@ -1681,7 +1681,7 @@ void TermList::assertValid() const
 
 #endif
 
-std::ostream& Kernel::operator<< (ostream& out, TermList tl )
+std::ostream& Kernel::operator<<(ostream& out, TermList const& tl)
 {
   if (tl.isEmpty()) {
     return out<<"<empty TermList>";
@@ -1689,14 +1689,14 @@ std::ostream& Kernel::operator<< (ostream& out, TermList tl )
   if (tl.isVar()) {
     return out<<Term::variableToString(tl);
   }
-  return out<<tl.term()->toString();
+  return out << *tl.term();
 }
 
-std::ostream& Kernel::operator<< (ostream& out, const Term& t )
+std::ostream& Kernel::operator<<(ostream& out, const Term& t)
 {
   return out<<t.toString();
 }
-std::ostream& Kernel::operator<< (ostream& out, const Literal& l )
+std::ostream& Kernel::operator<<(ostream& out, const Literal& l)
 {
   return out<<l.toString();
 }
@@ -1809,7 +1809,7 @@ bool Term::computableOrVar() const {
   return true;
 }
 
-std::ostream& Kernel::operator<<(std::ostream& out, Term::SpecialFunctor const& self)
+std::ostream& operator<<(std::ostream& out, Term::SpecialFunctor const& self)
 {
   switch (self) {
     case Term::SpecialFunctor::ITE: return out << "ITE";

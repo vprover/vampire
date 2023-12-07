@@ -49,6 +49,10 @@
 #define TERM_DIST_VAR_UNKNOWN ((2 ^ TERM_DIST_VAR_BITS) - 1)
 
 namespace Kernel {
+  std::ostream& operator<<(std::ostream& out, Term const& self);
+  std::ostream& operator<<(std::ostream& out, TermList const& self);
+  std::ostream& operator<<(std::ostream& out, Literal const& self);
+  bool operator<(TermList const&,TermList const&);
 
 using namespace Lib;
 
@@ -159,6 +163,8 @@ public:
   unsigned defaultHash2() const { return content(); }
 
   vstring toString(bool topLevel = true) const;
+
+  friend std::ostream& operator<<(std::ostream& out, Kernel::TermList const& tl);
   /** make the term into an ordinary variable with a given number */
   inline void makeVar(unsigned vnumber)
   { _content = vnumber * 4 + ORD_VAR; }
@@ -193,7 +199,7 @@ public:
     IMPL_COMPARISONS_FROM_COMPARE(Top);
     friend bool operator==(Top const& l, Top const& r) { return l._inner == r._inner; }
     friend bool operator!=(Top const& l, Top const& r) { return      !(l == r);       }
-    friend std::ostream& operator<<(std::ostream& out, Top const& self);
+    void output(std::ostream& out) const;
   };
 
   Top top() const
@@ -453,6 +459,7 @@ public:
   SpecialFunctor specialFunctor() const 
   { return toSpecialFunctor(functor()); }
   vstring toString(bool topLevel = true) const;
+  friend std::ostream& operator<<(std::ostream& out, Kernel::Term const& tl);
   static vstring variableToString(unsigned var);
   static vstring variableToString(TermList var);
 
@@ -1126,7 +1133,9 @@ public:
 
   bool isAnswerLiteral() const;
 
+  friend std::ostream& operator<<(std::ostream& out, Kernel::Literal const& tl);
   vstring toString() const;
+
   const vstring& predicateName() const;
 
   virtual bool computable() const;
@@ -1142,13 +1151,12 @@ private:
 bool positionIn(TermList& subterm,TermList* term, vstring& position);
 bool positionIn(TermList& subterm,Term* term, vstring& position);
 
-std::ostream& operator<< (std::ostream& out, TermList tl );
-std::ostream& operator<< (std::ostream& out, const Term& tl );
-std::ostream& operator<< (std::ostream& out, const Literal& tl );
-
-std::ostream& operator<<(std::ostream& out, Term::SpecialFunctor const& self);
-
 } // namespace Kernel
+
+inline std::ostream& operator<<(std::ostream& out, Kernel::TermList::Top const& self)
+{ self.output(out); return out; }
+
+std::ostream& operator<<(std::ostream& out, Kernel::Term::SpecialFunctor const& self);
 
 template<>
 struct std::hash<Kernel::TermList> {
