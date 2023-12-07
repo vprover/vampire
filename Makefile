@@ -225,10 +225,6 @@ VI_OBJ = Indexing/AcyclicityIndex.o\
          Indexing/LiteralIndex.o\
          Indexing/LiteralMiniIndex.o\
          Indexing/ResultSubstitution.o\
-         Indexing/SubstitutionTree.o\
-         Indexing/SubstitutionTree_FastGen.o\
-         Indexing/SubstitutionTree_FastInst.o\
-         Indexing/SubstitutionTree_Nodes.o\
          Indexing/TermCodeTree.o\
          Indexing/TermIndex.o\
          Indexing/TermSharing.o\
@@ -433,12 +429,7 @@ LIB_DEP = Indexing/TermSharing.o\
     Kernel/Rebalancing/Inverters.o\
     Kernel/NumTraits.o
 
-OTHER_CL_DEP = Indexing/LiteralSubstitutionTree.o\
-	       Indexing/ResultSubstitution.o\
-	       Indexing/SubstitutionTree_FastGen.o\
-	       Indexing/SubstitutionTree_FastInst.o\
-	       Indexing/SubstitutionTree_Nodes.o\
-	       Indexing/SubstitutionTree.o\
+OTHER_CL_DEP = Indexing/ResultSubstitution.o\
 	       Inferences/InferenceEngine.o\
 	       Inferences/TautologyDeletionISE.o\
 	       Kernel/EqHelper.o\
