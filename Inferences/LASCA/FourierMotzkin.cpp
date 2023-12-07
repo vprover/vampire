@@ -13,6 +13,7 @@
  */
 
 #include "FourierMotzkin.hpp"
+#include "Debug/Output.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
@@ -73,11 +74,11 @@ ClauseIterator FourierMotzkin::generateClauses(Clause* premise)
   Stack<Clause*> out;
 
   for (auto const& lhs : Lhs::iter(*_shared, premise)) {
-    DEBUG_FM(1, "lhs: ", lhs)
+    DEBUG_FM(1, "lhs: ", lhs, " (id: ", lhs.clause()->number(), ")")
     for (auto rhs_sigma : _rhsIndex->find(lhs.key())) {
       auto& rhs   = *rhs_sigma.data;
       auto& sigma = rhs_sigma.unifier;
-      DEBUG_FM(1, "  rhs: ", rhs)
+      DEBUG_FM(1, "| rhs: ", rhs, " (id: ", rhs.clause()->number(), ")")
       auto res = applyRule(lhs, 0, rhs, 1, *sigma);
       if (res.isSome()) {
         out.push(res.unwrap());
@@ -86,13 +87,13 @@ ClauseIterator FourierMotzkin::generateClauses(Clause* premise)
   }
 
   for (auto const& rhs : Rhs::iter(*_shared, premise)) {
-    DEBUG_FM(1, "rhs: ", rhs)
+    DEBUG_FM(1, "rhs: ", rhs, " (id: ", rhs.clause()->number(), ")")
 
     for (auto lhs_sigma : _lhsIndex->find(rhs.key())) {
       auto& lhs   = *lhs_sigma.data;
       auto& sigma = lhs_sigma.unifier;
       if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop
-        DEBUG_FM(1, "  lhs: ", lhs)
+        DEBUG_FM(1, "| lhs: ", lhs, " (id: ", lhs.clause()->number(), ")")
         auto res = applyRule(lhs, 1, rhs, 0, *sigma);
         if (res.isSome()) {
           out.push(res.unwrap());

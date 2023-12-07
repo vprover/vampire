@@ -72,6 +72,10 @@ public:
     }
   }
 
+  friend std::ostream& operator<<(std::ostream& out, LascaIndex<T> const& self)
+  { return out << self._index; }
+  friend std::ostream& operator<<(std::ostream& out, OutputMultiline<LascaIndex<T>> const& self)
+  { return out << multiline(self.self._index); }
 private:
   TermSubstitutionTree<T> _index;
   shared_ptr<Kernel::LascaState> _shared;
