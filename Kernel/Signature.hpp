@@ -429,7 +429,9 @@ class Signature
   unsigned addSkolemTypeCon(unsigned arity,const char* suffix = 0);
   unsigned addFreshPredicate(unsigned arity, const char* prefix, const char* suffix = 0);
   unsigned addSkolemPredicate(unsigned arity,const char* suffix = 0);
+  // add a predicate naming a sub-formula - if you are not sure, use `addFreshPredicate`
   unsigned addNamePredicate(unsigned arity);
+  // same as `addNamePredicate`, but produces a function of Boolean sort
   unsigned addNameFunction(unsigned arity);
   void addEquality();
   unsigned getApp();

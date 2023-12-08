@@ -157,11 +157,11 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
   unsigned fun;
   OperatorType* type;
   if(!_appify){
-    fun=env.signature->addNamePredicate(vars.size() + 1);
+    fun=env.signature->addFreshPredicate(vars.size() + 1, "sQ", "ins");
     type = OperatorType::getPredicateType({srt}, vars.size());
   } else {
     srt = AtomicSort::arrowSort(srt, AtomicSort::boolSort());
-    fun=env.signature->addNameFunction(vars.size());
+    fun=env.signature->addFreshFunction(vars.size(), "sQ", "ins");
     type = OperatorType::getConstantsType(srt, vars.size());
   }
 

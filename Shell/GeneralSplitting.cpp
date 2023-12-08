@@ -227,7 +227,7 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
   }
 
 
-  unsigned namingPred=env.signature->addNamePredicate(minDeg);
+  unsigned namingPred=env.signature->addFreshPredicate(minDeg, "sQ", "gsp");
   OperatorType* npredType = OperatorType::getPredicateType(minDeg, argSorts.begin());
   env.signature->getPredicate(namingPred)->setType(npredType);
 
