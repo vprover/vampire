@@ -722,7 +722,7 @@ ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, In
 
       Stack<Literal*> lits;
       for (unsigned i = 0; i < cLen; i++) { // Apply resolution on rest of the literals
-        if (i == resLitIdx) {
+        if (i == (unsigned)resLitIdx) {
           continue;
         }
         Literal* lit = subst.apply((*c)[i], 1);
@@ -753,7 +753,7 @@ ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, In
 
         Stack<Literal*> lits;
         for (unsigned i = 0; i < cLen; i++) { // Apply resolution on rest of the literals
-          if (i == resLitIdx) {
+          if (i == (unsigned)resLitIdx) {
             continue;
           }
           Literal* lit = subst.apply((*c)[i], 1);
