@@ -93,6 +93,16 @@ private:
   Literal* rectify(Literal*);
   Literal* rectifyShared(Literal* lit);
   SList* rectifySortList(SList* from, bool& modified);
+  /** Rectifies a list of `TermList`s. Both From and To are meant to be closures that can be called with an index and return a TermList.
+   * Rectification procededs as follows:
+   * ```
+   * to(0) = rectify from(0)
+   * to(1) = rectify from(1)
+   * ...
+   * to(cnt - 1) = rectify from(cnt - 1)
+   * ```
+   * (This generalization is needed for properly rectfiying equalities, which don't have the equality sort stored as a usual term argument.)
+   */
   template<class From, class To>
   bool rectify(From from, To to, unsigned cnt);
 
