@@ -217,7 +217,7 @@ void RobSubstitution::bind(const VarSpec& v, TermSpec b)
   //ASS(!b.term.isTerm() || b.index!=AUX_INDEX || b.term.term()->shared());
   ASS_NEQ(v.index, UNBOUND_INDEX);
 
-  bind(_bindings, v, std::move(b));
+  bind(_bindings, v, b);
 }
 
 void RobSubstitution::bindVar(const VarSpec& var, const VarSpec& to)
