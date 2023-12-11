@@ -1172,9 +1172,9 @@ void Options::init()
     _unificationWithAbstraction.tag(OptionTag::THEORIES);
     _lookup.insert(&_unificationWithAbstraction);
 
-    _unificationWithAbstractionFixedPointIteration = BoolOptionValue("unification_with_abstraction_postpro","uwa_fpi",
+    _unificationWithAbstractionFixedPointIteration = BoolOptionValue("unification_with_abstraction_fixed_point_iteration","uwa_fpi",
                                      false);
-    _unificationWithAbstractionFixedPointIteration.description="TODO";
+    _unificationWithAbstractionFixedPointIteration.description="The order in which arguments are being processed in unification with absraction can yield different results. i.e. unnecessary unifiers. This can be resolved by applying unification with absraction multiple times. This option enables this fixed point iertation. For details have a look at the paper \"Refining Unification with Abstraction\" from LPAR 2023.";
     _unificationWithAbstractionFixedPointIteration.tag(OptionTag::INFERENCES);
     _lookup.insert(&_unificationWithAbstractionFixedPointIteration);
 
