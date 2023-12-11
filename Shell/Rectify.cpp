@@ -338,10 +338,25 @@ Literal* Rectify::rectify (Literal* l)
   }
 } // Rectify::rectify (Literal*)
 
-/**
- * Rectify a list of terms @b from to the list of terms @b to.
- * Return true if the list has changed.
- * @since 24/03/2008 Torrevieja
+/** 
+ * Rectifies a list of `TermList`s. Both From and To are meant to be closures that can be called with an index and return a TermList.
+ * Rectification procededs as follows:
+ * ```
+ * to(0) = rectify from(0)
+ * to(1) = rectify from(1)
+ * ...
+ * to(cnt - 1) = rectify from(cnt - 1)
+ * ```
+ * This generalization is needed for properly rectfiying equalities, which don't have the equality sort stored as a usual term argument.
+ * The "default use" of this function would be
+ * ```
+ * Literal* input = ...;
+ * bool changed = Rectify::rectify(
+ *      [&](auto i) { return *input->nthArgument(i); },
+ *      [&](auto i) -> TermList& { return (*output)[i]; },
+ *      input->arity());
+ * ```
+ * Returns true if the list has changed.
  */
 template<class From, class To>
 bool Rectify::rectify(From from, To to, unsigned cnt)
