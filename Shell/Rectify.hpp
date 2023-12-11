@@ -101,7 +101,15 @@ private:
    * ...
    * to(cnt - 1) = rectify from(cnt - 1)
    * ```
-   * (This generalization is needed for properly rectfiying equalities, which don't have the equality sort stored as a usual term argument.)
+   * This generalization is needed for properly rectfiying equalities, which don't have the equality sort stored as a usual term argument.
+   * The "default use" of this function would be
+   * ```
+   * Literal* input = ...;
+   * bool changed = Rectify::rectify(
+   *      [&](auto i) { return *input->nthArgument(i); },
+   *      [&](auto i) -> TermList& { return (*output)[i]; },
+   *      input->arity());
+   * ```
    */
   template<class From, class To>
   bool rectify(From from, To to, unsigned cnt);
