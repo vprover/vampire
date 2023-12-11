@@ -1150,6 +1150,7 @@ std::ostream& operator<< (std::ostream& out, const Term& tl );
 std::ostream& operator<< (std::ostream& out, const Literal& tl );
 
 std::ostream& operator<<(std::ostream& out, Term::SpecialFunctor const& self);
+std::ostream& operator<<(std::ostream& out, TermList::Top const& self);
 
 } // namespace Kernel
 
