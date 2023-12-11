@@ -24,8 +24,6 @@ class DistinctEqualitySimplifier
 : public ImmediateSimplificationEngine
 {
 public:
-  USE_ALLOCATOR(DistinctEqualitySimplifier);
-
   Clause* simplify(Clause* cl);
   static bool mustBeDistinct(TermList t1, TermList t2);
   static bool mustBeDistinct(TermList t1, TermList t2, unsigned& grp);

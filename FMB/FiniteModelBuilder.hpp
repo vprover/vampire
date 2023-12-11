@@ -57,8 +57,6 @@ using namespace SAT;
 
 class FiniteModelBuilder : public MainLoop {
 public:
-  USE_ALLOCATOR(FiniteModelBuilder);    
-  
   FiniteModelBuilder(Problem& prb, const Options& opt);
   ~FiniteModelBuilder();
 
@@ -251,8 +249,6 @@ private:
 
   class HackyDSAE : public DSAEnumerator {
     struct Constraint_Generator {
-      USE_ALLOCATOR(FiniteModelBuilder::HackyDSAE::Constraint_Generator);
-
       Constraint_Generator_Vals _vals;
       unsigned _weight;
 
@@ -287,8 +283,6 @@ private:
     bool checkConstriant(DArray<unsigned>& newSortSizes, Constraint_Generator_Vals& constraint);
 
   public:
-    USE_ALLOCATOR(FiniteModelBuilder::HackyDSAE);
-
     HackyDSAE(bool keepOldGenerators) : _maxWeightSoFar(0), _keepOldGenerators(keepOldGenerators) {}
 
     bool init(unsigned _startSize, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>& dsc, Stack<std::pair<unsigned,unsigned>>& sdsc) override {
@@ -314,9 +308,6 @@ private:
     unsigned loadSizesFromSmt(DArray<unsigned>& szs);
     void reportZ3OutOfMemory();
   public:
-    // the following is not sufficient, since z3::solver and z3::context allocate internally
-    USE_ALLOCATOR(FiniteModelBuilder::SmtBasedDSAE);
-
     SmtBasedDSAE() : _smtSolver(_context) {}
 
     bool init(unsigned, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>&, Stack<std::pair<unsigned,unsigned>>&) override;

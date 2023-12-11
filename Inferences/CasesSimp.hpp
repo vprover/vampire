@@ -23,8 +23,6 @@ namespace Inferences {
 
 class CasesSimp : public ImmediateSimplificationEngine {
   public:
-    USE_ALLOCATOR(CasesSimp);
-
     ClauseIterator simplifyMany(Clause* premise);
     Clause* simplify(Clause* premise){ NOT_IMPLEMENTED; }
 

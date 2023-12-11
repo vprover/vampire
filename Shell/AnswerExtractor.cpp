@@ -354,6 +354,8 @@ Literal* AnswerLiteralManager::getAnswerLiteral(VList* vars,Formula* f)
   Signature::Symbol* predSym = env.signature->getPredicate(pred);
   predSym->setType(OperatorType::getPredicateType(sorts.size(), sorts.begin()));
   predSym->markAnswerPredicate();
+  // don't need equality proxy for answer literals
+  predSym->markSkipCongruence();
   return Literal::create(pred, vcnt, true, false, litArgs.begin());
 }
 

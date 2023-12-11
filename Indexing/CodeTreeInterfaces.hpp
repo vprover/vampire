@@ -40,8 +40,6 @@ using namespace Lib;
 class CodeTreeTIS : public TermIndexingStructure
 {
 public:
-  USE_ALLOCATOR(CodeTreeTIS);
-
   void insert(TypedTermList t, Literal* lit, Clause* cls);
   void remove(TypedTermList t, Literal* lit, Clause* cls);
 
@@ -62,8 +60,6 @@ class CodeTreeSubsumptionIndex
 : public ClauseSubsumptionIndex
 {
 public:
-  USE_ALLOCATOR(CodeTreeSubsumptionIndex);
-
   ClauseSResResultIterator getSubsumingOrSResolvingClauses(Clause* c, bool subsumptionResolution);
 protected:
   //overrides Index::handleClause

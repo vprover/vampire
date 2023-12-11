@@ -31,9 +31,7 @@ class EqualityFactoring
 : public GeneratingInferenceEngine
 {
 public:
-  USE_ALLOCATOR(EqualityFactoring);
   EqualityFactoring();
-
   ClauseIterator generateClauses(Clause* premise);
 private:
   struct IsPositiveEqualityFn;

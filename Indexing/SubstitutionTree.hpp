@@ -125,8 +125,6 @@ using namespace Kernel;
   class SubstitutionTree
   {
   public:
-    USE_ALLOCATOR(SubstitutionTree);
-
     SubstitutionTree();
     SubstitutionTree(SubstitutionTree const&) = delete;
     SubstitutionTree& operator=(SubstitutionTree const& other) = delete;

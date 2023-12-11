@@ -48,8 +48,8 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-URResolution::URResolution()
-: _selectedOnly(false), _unitIndex(0), _nonUnitIndex(0) {}
+URResolution::URResolution(bool full)
+: _full(full), _selectedOnly(false), _unitIndex(0), _nonUnitIndex(0) {}
 
 /**
  * Creates URResolution object with explicitely supplied
@@ -58,9 +58,9 @@ URResolution::URResolution()
  * For objects created using this constructor it is not allowed
  * to call the @c attach() function.
  */
-URResolution::URResolution(bool selectedOnly, UnitClauseLiteralIndex* unitIndex,
+URResolution::URResolution(bool full, bool selectedOnly, UnitClauseLiteralIndex* unitIndex,
     NonUnitClauseLiteralIndex* nonUnitIndex)
-: _emptyClauseOnly(false), _selectedOnly(selectedOnly), _unitIndex(unitIndex), _nonUnitIndex(nonUnitIndex) {}
+: _full(full), _emptyClauseOnly(false), _selectedOnly(selectedOnly), _unitIndex(unitIndex), _nonUnitIndex(nonUnitIndex) {}
 
 void URResolution::attach(SaturationAlgorithm* salg)
 {
@@ -99,8 +99,8 @@ void URResolution::detach()
 
 struct URResolution::Item
 {
-  USE_ALLOCATOR(URResolution::Item); 
-  
+  USE_ALLOCATOR(URResolution::Item);
+
   Item(Clause* cl, bool selectedOnly, URResolution& parent, bool mustResolveAll)
   : _orig(cl), _color(cl->color()), _parent(parent)
   {
@@ -151,7 +151,7 @@ struct URResolution::Item
       if (!_ansLit) {
         _ansLit = premAnsLit;
       } else if (_ansLit != premAnsLit) {
-        bool neg = rlit->isNegative(); 
+        bool neg = rlit->isNegative();
         Literal* resolved = unif.unifier->apply(rlit, !useQuerySubstitution);
         if (neg) {
           resolved = Literal::complementaryLiteral(resolved);
@@ -311,9 +311,11 @@ void URResolution::processLiteral(ItemList*& itms, unsigned idx)
       itm2->resolveLiteral(idx, unif, unif.clause, true);
       iit.insert(itm2);
 
-      if(itm->_atMostOneNonGround && (!synthesis || !unif.clause->hasAnswerLiteral())) {
-        //if there is only one non-ground literal left, there is no need to retrieve
-        //all unifications
+      if(!_full && itm->_atMostOneNonGround && (!synthesis || !unif.clause->hasAnswerLiteral())) {
+        /* if there is only one non-ground literal left, there is no need to retrieve all unifications.
+           However, this does not hold under AVATAR where different empty clauses may close different
+           splitting branches, that's why only "full" URR is complete under AVATAR (see Options::complete)
+        */
         break;
       }
     }
