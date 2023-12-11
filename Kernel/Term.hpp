@@ -299,6 +299,19 @@ static_assert(
   "size of TermList must be the same size as that of size_t"
 );
 
+//special functor values
+enum class SpecialFunctor {
+  ITE,
+  LET,
+  FORMULA,
+  TUPLE,
+  LET_TUPLE,
+  LAMBDA,
+  MATCH, // <- keep this one the last, or modify SPECIAL_FUNCTOR_LAST accordingly
+};
+static constexpr SpecialFunctor SPECIAL_FUNCTOR_LAST = SpecialFunctor::MATCH;
+std::ostream& operator<<(std::ostream& out, SpecialFunctor const& self);
+
 /**
  * Class to represent terms and lists of terms.
  * @since 19/02/2008 Manchester, changed to use class TermList
@@ -306,17 +319,6 @@ static_assert(
 class Term
 {
 public:
-  //special functor values
-  enum class SpecialFunctor {
-    ITE,
-    LET,
-    FORMULA,
-    TUPLE,
-    LET_TUPLE,
-    LAMBDA,
-    MATCH, // <- keep this one the last, or modify SPECIAL_FUNCTOR_LAST accordingly
-  };
-  static constexpr SpecialFunctor SPECIAL_FUNCTOR_LAST = SpecialFunctor::MATCH;
 
   static constexpr unsigned SPECIAL_FUNCTOR_LOWER_BOUND  =  std::numeric_limits<unsigned>::max() - unsigned(SPECIAL_FUNCTOR_LAST);
   static SpecialFunctor toSpecialFunctor(unsigned f) {
@@ -1155,8 +1157,6 @@ bool positionIn(TermList& subterm,Term* term, vstring& position);
 
 inline std::ostream& operator<<(std::ostream& out, Kernel::TermList::Top const& self)
 { self.output(out); return out; }
-
-std::ostream& operator<<(std::ostream& out, Kernel::Term::SpecialFunctor const& self);
 
 template<>
 struct std::hash<Kernel::TermList> {

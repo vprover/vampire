@@ -498,12 +498,12 @@ vstring Term::headToString() const
     const Term::SpecialTermData* sd = getSpecialData();
 
     switch(specialFunctor()) {
-      case Term::SpecialFunctor::FORMULA: {
+      case SpecialFunctor::FORMULA: {
         ASS_EQ(arity(), 0);
         vstring formula = sd->getFormula()->toString();
         return env.options->showFOOL() ? "$term{" + formula + "}" : formula;
       }
-      case Term::SpecialFunctor::LET: {
+      case SpecialFunctor::LET: {
         ASS_EQ(arity(), 1);
         TermList binding = sd->getBinding();
         bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
@@ -526,11 +526,11 @@ vstring Term::headToString() const
         }
         return "$let(" + functor + ": " + type->toString() + ", " + functor + variablesList + " := " + binding.toString() + ", ";
       }
-      case Term::SpecialFunctor::ITE: {
+      case SpecialFunctor::ITE: {
         ASS_EQ(arity(),2);
         return "$ite(" + sd->getCondition()->toString() + ", ";
       }
-      case Term::SpecialFunctor::TUPLE: {
+      case SpecialFunctor::TUPLE: {
         ASS_EQ(arity(), 0);
         Term* term = sd->getTupleTerm();
         vstring termList = "";
@@ -544,7 +544,7 @@ vstring Term::headToString() const
         }
         return "[" + termList + "]";
       }
-      case Term::SpecialFunctor::LET_TUPLE: {
+      case SpecialFunctor::LET_TUPLE: {
         ASS_EQ(arity(), 1);
         VList* symbols = sd->getTupleSymbols();
         unsigned tupleFunctor = sd->getFunctor();
@@ -568,7 +568,7 @@ vstring Term::headToString() const
 
         return "$let([" + typesList + "], [" + symbolsList + "] := " + binding.toString() + ", ";
       }
-      case Term::SpecialFunctor::LAMBDA: {
+      case SpecialFunctor::LAMBDA: {
         VList* vars = sd->getLambdaVars();
         SList* sorts = sd->getLambdaVarSorts();
         TermList lambdaExp = sd->getLambdaExp();
@@ -589,7 +589,7 @@ vstring Term::headToString() const
         varList += "]";        
         return "(^" + varList + " : (" + lambdaExp.toString() + "))";
       }
-      case Term::SpecialFunctor::MATCH: {
+      case SpecialFunctor::MATCH: {
         // we simply let the arguments be written out
         return "$match(";
       }
@@ -1809,16 +1809,16 @@ bool Term::computableOrVar() const {
   return true;
 }
 
-std::ostream& operator<<(std::ostream& out, Term::SpecialFunctor const& self)
+std::ostream& Kernel::operator<<(std::ostream& out, SpecialFunctor const& self)
 {
   switch (self) {
-    case Term::SpecialFunctor::ITE: return out << "ITE";
-    case Term::SpecialFunctor::LET: return out << "LET";
-    case Term::SpecialFunctor::FORMULA: return out << "FORMULA";
-    case Term::SpecialFunctor::TUPLE: return out << "TUPLE";
-    case Term::SpecialFunctor::LET_TUPLE: return out << "LET_TUPLE";
-    case Term::SpecialFunctor::LAMBDA: return out << "LAMBDA";
-    case Term::SpecialFunctor::MATCH: return out << "SPECIAL_FUNCTOR_LAST ";
+    case SpecialFunctor::ITE: return out << "ITE";
+    case SpecialFunctor::LET: return out << "LET";
+    case SpecialFunctor::FORMULA: return out << "FORMULA";
+    case SpecialFunctor::TUPLE: return out << "TUPLE";
+    case SpecialFunctor::LET_TUPLE: return out << "LET_TUPLE";
+    case SpecialFunctor::LAMBDA: return out << "LAMBDA";
+    case SpecialFunctor::MATCH: return out << "SPECIAL_FUNCTOR_LAST ";
   }
   ASSERTION_VIOLATION
 }

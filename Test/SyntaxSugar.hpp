@@ -633,7 +633,7 @@ public:
     for (auto a : args) {
       as.push(a.sugaredExpr());
     }
-    
+
     if(taArity){
       // TODO don't haredcode these varible numbers?!
       TermStack vars = {TermList(101, false), TermList(102, false), TermList(103, false)};      
