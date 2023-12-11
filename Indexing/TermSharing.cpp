@@ -343,6 +343,8 @@ void TermSharing::computeAndSetSharedVarEqData(Literal* t, TermList sort)
  */
 Literal* TermSharing::tryGetOpposite(Literal* l)
 {
+  // the complementary literal is shared iff l is shared
+  if (!l->shared()) return nullptr; 
   Literal* res;
   if(_literals.find(OpLitWrapper(l), res)) {
     return res;
