@@ -32,8 +32,6 @@ using namespace Kernel;
 class InductionHelper {
   using TermIndex               = Indexing::TermIndex<TermLiteralClause>;
 public:
-  USE_ALLOCATOR(InductionHelper);
-
   InductionHelper(LiteralIndex<LiteralClause>* comparisonIndex, TermIndex* inductionTermIndex)
       : _comparisonIndex(comparisonIndex), _inductionTermIndex(inductionTermIndex) {}
 

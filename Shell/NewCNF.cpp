@@ -972,17 +972,21 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
   bool isPredicate = (rangeSort == AtomicSort::boolSort());
   if (isPredicate) {
     unsigned pred = Skolem::addSkolemPredicate(arity, domainSorts.begin(), var);
+    Signature::Symbol *sym = env.signature->getPredicate(pred);
+    sym->markSkipCongruence();
     if(_beingClausified->derivedFromGoal()){
-      env.signature->getPredicate(pred)->markInGoal();
+      sym->markInGoal();
     }
     res = Term::createFormula(new AtomicFormula(Literal::create(pred, arity, true, false, fnArgs.begin())));
   } else {
     unsigned fun = Skolem::addSkolemFunction(arity, domainSorts.begin(), rangeSort, var);
+    Signature::Symbol *sym = env.signature->getFunction(fun);
+    sym->markSkipCongruence();
     if(_beingClausified->derivedFromGoal()){
-      env.signature->getFunction(fun)->markInGoal();
+      sym->markInGoal();
     }
     if(_forInduction){
-      env.signature->getFunction(fun)->markInductionSkolem();
+      sym->markInductionSkolem();
     }
     res = Term::create(fun, arity, fnArgs.begin());
   }
@@ -1181,6 +1185,7 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
   env.statistics->formulaNames++;
 
   Signature::Symbol* predSym = env.signature->getPredicate(pred);
+  predSym->markSkipCongruence();
 
   if (env.colorUsed) {
     Color fc = f->getColor();

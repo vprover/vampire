@@ -41,8 +41,6 @@ class LiteralSubstitutionTree
   using LeafIterator                = typename SubstitutionTree::LeafIterator;
 
 public:
-  USE_ALLOCATOR(LiteralSubstitutionTree);
-
   LiteralSubstitutionTree()
     : _trees(env.signature->predicates() * 2)
     { }

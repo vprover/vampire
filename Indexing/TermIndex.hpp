@@ -29,10 +29,7 @@ class TermIndex
 : public Index
 {
 public:
-  USE_ALLOCATOR(TermIndex);
-
   virtual ~TermIndex() {}
-
 
   VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
   { return _is->getUwa(t, uwa, fixedPointIteration); }
@@ -58,8 +55,6 @@ class SuperpositionSubtermIndex
 : public TermIndex<TermLiteralClause>
 {
 public:
-  USE_ALLOCATOR(SuperpositionSubtermIndex);
-
   SuperpositionSubtermIndex(Indexing::TermIndexingStructure<TermLiteralClause>* is, Ordering& ord)
   : TermIndex(is), _ord(ord) {};
 protected:
@@ -72,8 +67,6 @@ class SuperpositionLHSIndex
 : public TermIndex<TermLiteralClause>
 {
 public:
-  USE_ALLOCATOR(SuperpositionLHSIndex);
-
   SuperpositionLHSIndex(TermSubstitutionTree<TermLiteralClause>* is, Ordering& ord, const Options& opt)
   : TermIndex(is), _ord(ord), _opt(opt), _tree(is) {};
 protected:
@@ -104,8 +97,6 @@ class DemodulationSubtermIndexImpl
 : public DemodulationSubtermIndex
 {
 public:
-  USE_ALLOCATOR(DemodulationSubtermIndexImpl);
-
   DemodulationSubtermIndexImpl(TermIndexingStructure<TermLiteralClause>* is)
   : DemodulationSubtermIndex(is) {};
 protected:
@@ -119,8 +110,6 @@ class DemodulationLHSIndex
 : public TermIndex<TermLiteralClause>
 {
 public:
-  USE_ALLOCATOR(DemodulationLHSIndex);
-
   DemodulationLHSIndex(TermIndexingStructure<TermLiteralClause>* is, Ordering& ord, const Options& opt)
   : TermIndex(is), _ord(ord), _opt(opt) {};
 protected:
@@ -137,8 +126,6 @@ class InductionTermIndex
 : public TermIndex<TermLiteralClause>
 {
 public:
-  USE_ALLOCATOR(InductionTermIndex);
-
   InductionTermIndex(TermIndexingStructure<TermLiteralClause>* is)
   : TermIndex(is) {}
 
@@ -153,8 +140,6 @@ class StructInductionTermIndex
 : public TermIndex<TermLiteralClause>
 {
 public:
-  USE_ALLOCATOR(StructInductionTermIndex);
-
   StructInductionTermIndex(TermIndexingStructure<TermLiteralClause>* is)
   : TermIndex(is) {}
 
@@ -170,8 +155,6 @@ class PrimitiveInstantiationIndex
 : public TermIndex<TermWithoutValue>
 {
 public:
-  USE_ALLOCATOR(PrimitiveInstantiationIndex);
-
   PrimitiveInstantiationIndex(TermIndexingStructure<TermWithoutValue>* is) : TermIndex(is)
   {
     populateIndex();
@@ -184,8 +167,6 @@ class SubVarSupSubtermIndex
 : public TermIndex<TermLiteralClause>
 {
 public:
-  USE_ALLOCATOR(SubVarSupSubtermIndex);
-
   SubVarSupSubtermIndex(TermIndexingStructure<TermLiteralClause>* is, Ordering& ord)
   : TermIndex(is), _ord(ord) {};
 protected:
@@ -198,8 +179,6 @@ class SubVarSupLHSIndex
 : public TermIndex<TermLiteralClause>
 {
 public:
-  USE_ALLOCATOR(SubVarSupLHSIndex);
-
   SubVarSupLHSIndex(TermIndexingStructure<TermLiteralClause>* is, Ordering& ord, const Options& opt)
   : TermIndex(is), _ord(ord) {};
 protected:
@@ -215,8 +194,6 @@ class NarrowingIndex
 : public TermIndex<TermWithValue<Literal*>>
 {
 public:
-  USE_ALLOCATOR(NarrowingIndex);
-
   NarrowingIndex(TermIndexingStructure<TermWithValue<Literal*>>* is) : TermIndex(is)
   {
     populateIndex();
@@ -229,13 +206,11 @@ class SkolemisingFormulaIndex
 : public TermIndex<TermWithValue<TermList>>
 {
 public:
-  USE_ALLOCATOR(SkolemisingFormulaIndex);
-
   SkolemisingFormulaIndex(TermIndexingStructure<TermWithValue<TermList>>* is) : TermIndex(is)
   {}
   void insertFormula(TermList formula, TermList skolem);
 };
 
-} // namespace TermIndex
 
+} // namespace Indexing
 #endif /* __TermIndex__ */

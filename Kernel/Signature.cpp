@@ -58,7 +58,7 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _inUnit(0),
     _inductionSkolem(0),
     _skolem(0),
-    _namesFormula(0),
+    _skipCongruence(0),
     _tuple(0),
     _computable(1),
     _prox(NOT_PROXY),
@@ -822,17 +822,13 @@ unsigned Signature::addPredicate (const vstring& name,
  */
 unsigned Signature::addNamePredicate(unsigned arity)
 {
-  unsigned index = addFreshPredicate(arity,"sP");
-  getPredicate(index)->markNamesFormula();
-  return index;
+  return addFreshPredicate(arity,"sP");
 } // addNamePredicate
 
 
 unsigned Signature::addNameFunction(unsigned arity)
 {
-  unsigned index = addFreshFunction(arity,"sP");
-  getFunction(index)->markNamesFormula();
-  return index;
+  return addFreshFunction(arity,"sP");
 } // addNameFunction
 
 /**

@@ -40,8 +40,6 @@ using namespace Lib;
 class CodeTreeTIS : public TermIndexingStructure<TermLiteralClause>
 {
 public:
-  USE_ALLOCATOR(CodeTreeTIS);
-
   /* INFO: we ignore unifying the sort of the keys here */
   virtual void handle(TermLiteralClause data, bool insert) final override
   { if (insert) { _insert(data.term, data.literal, data.clause); }
@@ -68,8 +66,6 @@ class CodeTreeSubsumptionIndex
 : public Index
 {
 public:
-  USE_ALLOCATOR(CodeTreeSubsumptionIndex);
-
 protected:
   void handleClause(Clause* c, bool adding) override;
 private:

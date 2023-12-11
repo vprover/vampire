@@ -156,7 +156,6 @@ QueryRes<Unifier, Data> queryRes(Unifier unifier, Data const* d)
 class Index
 {
 public:
-
   virtual ~Index();
 
   void attachContainer(ClauseContainer* cc);

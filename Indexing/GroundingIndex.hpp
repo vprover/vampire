@@ -31,8 +31,6 @@ using namespace Shell;
 
 class GroundingIndex : public Index {
 public:
-  USE_ALLOCATOR(GroundingIndex);
-
   GroundingIndex(const Options& opt);
 
   SATSolverWithAssumptions& getSolver() { return *_solver; }

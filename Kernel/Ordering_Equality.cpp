@@ -24,8 +24,6 @@ namespace Kernel
 class Ordering::EqCmp
 {
 public:
-  USE_ALLOCATOR(EqCmp);
-
   EqCmp(Ordering* ordering) : _ordering(ordering)
   {
 #if VDEBUG

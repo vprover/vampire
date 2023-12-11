@@ -32,8 +32,6 @@ class ForwardDemodulation
 : public ForwardSimplificationEngine
 {
 public:
-  USE_ALLOCATOR(ForwardDemodulation);
-
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override = 0;
@@ -49,8 +47,6 @@ class ForwardDemodulationImpl
 : public ForwardDemodulation
 {
 public:
-  USE_ALLOCATOR(ForwardDemodulationImpl);
-
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 private:
 };

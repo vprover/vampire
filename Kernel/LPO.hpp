@@ -33,8 +33,6 @@ class LPO
 : public PrecedenceOrdering
 {
 public:
-  USE_ALLOCATOR(LPO);
-
   LPO(Problem& prb, const Options& opt) :
     PrecedenceOrdering(prb, opt)
   {}

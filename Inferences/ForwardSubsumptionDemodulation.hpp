@@ -48,8 +48,6 @@ class ForwardSubsumptionDemodulation
   : public ForwardSimplificationEngine
 {
   public:
-    USE_ALLOCATOR(ForwardSubsumptionDemodulation);
-
     ForwardSubsumptionDemodulation(bool doSubsumption)
       : _doSubsumption(doSubsumption)
     { }

@@ -33,8 +33,6 @@ class BinaryResolution
 : public GeneratingInferenceEngine
 {
 public:
-  USE_ALLOCATOR(BinaryResolution);
-
   BinaryResolution() 
     : _index(0)
   {  }

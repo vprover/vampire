@@ -163,8 +163,6 @@ class Induction
 {
   using TermIndex = Indexing::TermIndex<TermLiteralClause>;
 public:
-  USE_ALLOCATOR(Induction);
-
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
 

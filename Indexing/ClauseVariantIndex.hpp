@@ -53,8 +53,6 @@ class SubstitutionTreeClauseVariantIndex : public ClauseVariantIndex
 {
   using LiteralSubstitutionTree = Indexing::LiteralSubstitutionTree<LiteralClause>;
 public:
-  USE_ALLOCATOR(SubstitutionTreeClauseVariantIndex);
-
   SubstitutionTreeClauseVariantIndex() : _emptyClauses(0) {}
   virtual ~SubstitutionTreeClauseVariantIndex() override;
 
@@ -75,8 +73,6 @@ private:
 class HashingClauseVariantIndex : public ClauseVariantIndex
 {
 public:
-  USE_ALLOCATOR(HashingClauseVariantIndex);
-
   virtual ~HashingClauseVariantIndex() override;
 
   virtual void insert(Clause* cl) override;

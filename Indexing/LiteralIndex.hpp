@@ -29,10 +29,9 @@ class LiteralIndex
 : public Index
 {
 public:
-  USE_ALLOCATOR(LiteralIndex);
-
   VirtualIterator<LiteralClause> getAll()
   { return _is->getAll(); }
+  virtual ~LiteralIndex();
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, LiteralClause>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
   { return _is->getUnifications(lit, complementary, retrieveSubstitutions); }
@@ -63,8 +62,6 @@ class BinaryResolutionIndex
 : public LiteralIndex<LiteralClause>
 {
 public:
-  USE_ALLOCATOR(BinaryResolutionIndex);
-
   BinaryResolutionIndex(LiteralIndexingStructure<LiteralClause>* is)
   : LiteralIndex<LiteralClause>(is) {};
 protected:
@@ -75,8 +72,6 @@ class BackwardSubsumptionIndex
 : public LiteralIndex<LiteralClause>
 {
 public:
-  USE_ALLOCATOR(BackwardSubsumptionIndex);
-
   BackwardSubsumptionIndex(LiteralIndexingStructure<LiteralClause>* is)
   : LiteralIndex<LiteralClause>(is) {};
 protected:
@@ -87,8 +82,6 @@ class FwSubsSimplifyingLiteralIndex
 : public LiteralIndex<LiteralClause>
 {
 public:
-  USE_ALLOCATOR(FwSubsSimplifyingLiteralIndex);
-
   FwSubsSimplifyingLiteralIndex(LiteralIndexingStructure<LiteralClause>* is)
     : LiteralIndex<LiteralClause>(is)
   { }
@@ -101,8 +94,6 @@ class FSDLiteralIndex
 : public LiteralIndex<LiteralClause>
 {
 public:
-  USE_ALLOCATOR(FSDLiteralIndex);
-
   FSDLiteralIndex(LiteralIndexingStructure<LiteralClause>* is)
     : LiteralIndex<LiteralClause>(is)
   { }
@@ -115,8 +106,6 @@ class UnitClauseLiteralIndex
 : public LiteralIndex<LiteralClause>
 {
 public:
-  USE_ALLOCATOR(UnitClauseLiteralIndex);
-
   UnitClauseLiteralIndex(LiteralIndexingStructure<LiteralClause>* is)
   : LiteralIndex<LiteralClause>(is) {};
 protected:
@@ -127,8 +116,6 @@ class UnitClauseWithALLiteralIndex
 : public LiteralIndex<LiteralClause>
 {
 public:
-  USE_ALLOCATOR(UnitClauseWithALLiteralIndex);
-
   UnitClauseWithALLiteralIndex(LiteralIndexingStructure<LiteralClause>* is)
   : LiteralIndex(is) {};
 protected:
@@ -139,8 +126,6 @@ class NonUnitClauseLiteralIndex
 : public LiteralIndex<LiteralClause>
 {
 public:
-  USE_ALLOCATOR(NonUnitClauseLiteralIndex);
-
   NonUnitClauseLiteralIndex(LiteralIndexingStructure<LiteralClause>* is, bool selectedOnly=false)
   : LiteralIndex<LiteralClause>(is), _selectedOnly(selectedOnly) {};
 protected:
@@ -153,8 +138,6 @@ class NonUnitClauseWithALLiteralIndex
 : public LiteralIndex<LiteralClause>
 {
 public:
-  USE_ALLOCATOR(NonUnitClauseWithALLiteralIndex);
-
   NonUnitClauseWithALLiteralIndex(LiteralIndexingStructure<LiteralClause>* is, bool selectedOnly=false)
   : LiteralIndex(is), _selectedOnly(selectedOnly) {};
 protected:
@@ -167,8 +150,6 @@ class RewriteRuleIndex
 : public LiteralIndex<LiteralClause>
 {
 public:
-  USE_ALLOCATOR(RewriteRuleIndex);
-
   RewriteRuleIndex(LiteralIndexingStructure<LiteralClause>* is, Ordering& ordering);
   ~RewriteRuleIndex();
 
@@ -191,8 +172,6 @@ class DismatchingLiteralIndex
 : public LiteralIndex<LiteralClause>
 {
 public:
-  USE_ALLOCATOR(DismatchingLiteralIndex);
-
   DismatchingLiteralIndex(LiteralIndexingStructure<LiteralClause>* is)
   : LiteralIndex<LiteralClause>(is) {};
   void handleClause(Clause* c, bool adding);
@@ -203,8 +182,6 @@ class UnitIntegerComparisonLiteralIndex
 : public LiteralIndex<LiteralClause>
 {
 public:
-  USE_ALLOCATOR(UnitIntegerComparisonLiteralIndex);
-
   UnitIntegerComparisonLiteralIndex(LiteralIndexingStructure<LiteralClause>* is)
   : LiteralIndex<LiteralClause>(is) {}
 
