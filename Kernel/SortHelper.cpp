@@ -35,7 +35,7 @@ using namespace Kernel;
  * Return the type of a term or a literal @c t
  * @author Andrei Voronkov
  */
-OperatorType* SortHelper::getType(Term* t)
+OperatorType* SortHelper::getType(Term const* t)
 {
   if (t->isLiteral()) {
     return env.signature->getPredicate(t->functor())->predType();
@@ -197,7 +197,7 @@ bool SortHelper::getResultSortOrMasterVariable(const TermList t, TermList& resul
 /**
  * Return sort of the argument @c argIndex of the term or literal @c t
  */
-TermList SortHelper::getArgSort(Term* t, unsigned argIndex)
+TermList SortHelper::getArgSort(Term const* t, unsigned argIndex)
 {
   ASS_L(argIndex, t->arity());
 
@@ -205,8 +205,8 @@ TermList SortHelper::getArgSort(Term* t, unsigned argIndex)
     return AtomicSort::superSort();
   }
 
-  if (t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
-    return getEqualityArgumentSort(static_cast<Literal*>(t));
+  if (t->isLiteral() && static_cast<Literal const*>(t)->isEquality()) {
+    return getEqualityArgumentSort(static_cast<Literal const*>(t));
   }
 
   Substitution subst;
@@ -221,7 +221,7 @@ TermList SortHelper::getArgSort(Term* t, unsigned argIndex)
 } // getArgSort
 
 /* returns the sort of the nth term argument */
-TermList SortHelper::getTermArgSort(Term* t, unsigned n)
+TermList SortHelper::getTermArgSort(Term const* t, unsigned n)
 { return getArgSort(t, n + t->numTypeArguments()); }
 
 TermList SortHelper::getEqualityArgumentSort(const Literal* lit)
