@@ -1285,10 +1285,16 @@ using namespace Kernel;
           _bdStack->push(BacktrackData());
           if (runBacktracking([&]() { return _algo.associate(_svStack->top(), n->term()); })) {
             prepareChildren(n, /* backtrackable */ true);
+            if (_inLeaf && !runBacktracking([&](){ return _algo.doFinalLeafCheck(); })) {
+              _inLeaf = false;
+              continue;
+            }
           } else {
             continue;
           }
-        } while(!(_inLeaf && runBacktracking([&](){ return _algo.doFinalLeafCheck(); })));
+        } while(!_inLeaf);
+        ASS(_inLeaf)
+        ASS(_bdStack.size() != 0)
         return true;
       }
 
