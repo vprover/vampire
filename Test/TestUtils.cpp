@@ -339,7 +339,7 @@ template<class Lits>
 bool TestUtils::_eqModACRect(Lits const& lhs, Lits const& rhs)
 { 
   auto vars = [](Lits const& lits) {
-    auto vs = iterTraits(getRangeIterator(0u, (unsigned) lits.size()))
+    auto vs = range(0, lits.size())
       .map([&](auto i) { return lits[i]; })
       .flatMap([](Literal* lit) { return vi(new VariableIterator(lit)); })
       .template collect<Stack>();

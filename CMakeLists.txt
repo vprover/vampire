@@ -314,6 +314,9 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Polynomial.cpp
     Kernel/PolynomialNormalizer.hpp
     Kernel/PolynomialNormalizer.cpp
+    QE/ElimSet.hpp
+    QE/LIRA.hpp
+    QE/LIRA.cpp
     Kernel/ApplicativeHelper.hpp
     Kernel/ApplicativeHelper.cpp
     Kernel/SKIKBO.hpp
@@ -778,6 +781,7 @@ set(UNIT_TESTS
     UnitTests/tSATSolver.cpp
     UnitTests/tArithCompare.cpp
     UnitTests/tSyntaxSugar.cpp
+    UnitTests/tQE_LIRA.cpp
     UnitTests/tSkipList.cpp
     UnitTests/tBinaryHeap.cpp
     UnitTests/tSafeRecursion.cpp
