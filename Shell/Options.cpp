@@ -3366,7 +3366,7 @@ bool Options::complete(const Problem& prb) const
   }
 
   if (unificationWithAbstraction() != UnificationWithAbstraction::OFF) {
-    // can, depending on concrete UWA option and rules it is used in result in saturation, where using normal unification rules would still be applicable
+    // unification with abstraction might cause in "spurious saturations"
     return false;
   }
 
