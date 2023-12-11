@@ -31,7 +31,6 @@ class LiteralIndex
 public:
   VirtualIterator<LiteralClause> getAll()
   { return _is->getAll(); }
-  virtual ~LiteralIndex();
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, LiteralClause>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
   { return _is->getUnifications(lit, complementary, retrieveSubstitutions); }
