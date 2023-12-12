@@ -82,6 +82,7 @@ public:
     auto t = _todo->pop();
     auto* dt = &_subs->derefBound(t);
     while (dt->isTerm() && dt->functor() == _function) {
+      DBGE(*dt)
       ASS_EQ(dt->nTermArgs(), 2);
       _todo->push(dt->termArg(1));
       t = dt->termArg(0);
@@ -147,11 +148,11 @@ Option<AbstractionOracle::AbstractionResult> funcExt(
         auto& arg1 = au->subs().derefBound(t1.termArg(1));
         auto& arg2 = au->subs().derefBound(t2.termArg(1));
         auto out = AbstractionOracle::EqualIf()
-              .unify (UnificationConstraint(t1.typeArg(0), t2.typeArg(0)),
-                      UnificationConstraint(t1.typeArg(1), t2.typeArg(1)),
-                      UnificationConstraint(t1.termArg(0), t2.termArg(0)));
+              .unify (UnificationConstraint(t1.typeArg(0), t2.typeArg(0), TermSpec(AtomicSort::superSort(), 0)),
+                      UnificationConstraint(t1.typeArg(1), t2.typeArg(1), TermSpec(AtomicSort::superSort(), 0)),
+                      UnificationConstraint(t1.termArg(0), t2.termArg(0), t1.termArgSort(0)));
 
-        auto argsEq = UnificationConstraint(arg1, arg2);
+        auto argsEq = UnificationConstraint(arg1, arg2, t1.termArgSort(1));
         auto res = some(AbstractionOracle::AbstractionResult(
               // if both are variables we don't want to introduce a constraint
               arg1.isVar() && arg2.isVar()
@@ -170,10 +171,15 @@ Option<AbstractionOracle::AbstractionResult> AbstractionOracle::tryAbstract(Abst
   using Uwa = Shell::Options::UnificationWithAbstraction;
   ASS(_mode != Uwa::OFF)
 
+  auto intSort = []() { return TermSpec(IntTraits::sort(), 0); };
+
 
   if (_mode == Uwa::AC1 || _mode == Uwa::AC2) {
       if (!(t1.isTerm() && theory->isInterpretedFunction(t1.functor(), IntTraits::addI))
-       || !(t2.isTerm() && theory->isInterpretedFunction(t2.functor(), IntTraits::addI))) {
+       || !(t2.isTerm() && theory->isInterpretedFunction(t2.functor(), IntTraits::addI))
+       || (t1.isTerm() && t1.isSort())
+       || (t2.isTerm() && t2.isSort())
+       ) {
         return Option<AbstractionResult>();
       }
       auto a1 = iterTraits(AcIter(IntTraits::addF(), t1, &au->subs())).template collect<Stack>();
@@ -196,7 +202,7 @@ Option<AbstractionOracle::AbstractionResult> AbstractionOracle::tryAbstract(Abst
               { return au->subs().createTerm(IntTraits::addF(), l, r); })
             .unwrap(); };
       auto diffConstr = [&]() 
-      { return UnificationConstraint(sum(diff1), sum(diff2)); };
+      { return UnificationConstraint(sum(diff1), sum(diff2), intSort()); };
 
       auto functors = [](auto& diff) 
       { return arrayIter(diff).map([](auto& f) { return f.functor(); }); };
@@ -209,10 +215,10 @@ Option<AbstractionOracle::AbstractionResult> AbstractionOracle::tryAbstract(Abst
         return some(AbstractionResult(NeverEqual{}));
 
       } else if (_mode == Uwa::AC2 && diff1.size() == 1 && diff1[0].isVar()) {
-        return some(AbstractionResult(EqualIf().unify(UnificationConstraint(std::move(diff1[0]), sum(diff2)))));
+        return some(AbstractionResult(EqualIf().unify(UnificationConstraint(std::move(diff1[0]), sum(diff2), intSort()))));
 
       } else if (_mode == Uwa::AC2 && diff2.size() == 1 && diff2[0].isVar()) {
-        return some(AbstractionResult(EqualIf().unify(UnificationConstraint(std::move(diff2[0]), sum(diff1)))));
+        return some(AbstractionResult(EqualIf().unify(UnificationConstraint(std::move(diff2[0]), sum(diff1), intSort()))));
 
       } else if (concatIters(arrayIter(diff1), arrayIter(diff2)).any([](auto& x) { return x.isVar(); })) {
         return some(AbstractionResult(EqualIf().constr(diffConstr())));
@@ -233,7 +239,10 @@ Option<AbstractionOracle::AbstractionResult> AbstractionOracle::tryAbstract(Abst
     auto abs = canAbstract(au, t1, t2);
     DEBUG("canAbstract(", t1, ",", t2, ") = ", abs);
     return someIf(abs, [&](){
-        return AbstractionResult(EqualIf().constr(UnificationConstraint(t1, t2)));
+        return AbstractionResult(EqualIf().constr(UnificationConstraint(t1, t2, 
+                t1.isTerm() ? TermSpec(SortHelper::getResultSort(t1.term.term()), t1.index)
+                            : TermSpec(SortHelper::getResultSort(t2.term.term()), t2.index)
+                )));
     });
   }
 }
@@ -270,9 +279,10 @@ Option<Literal*> UnificationConstraint::toLiteral(RobSubstitution& s)
 { 
   auto t1 = _t1.toTerm(s);
   auto t2 = _t2.toTerm(s);
+  auto sort = _sort.toTerm(s);
   return t1 == t2 
     ? Option<Literal*>()
-    : Option<Literal*>(Literal::createEquality(false, t1, t2, t1.isTerm() ? SortHelper::getResultSort(t1.term()) : SortHelper::getResultSort(t2.term())));
+    : Option<Literal*>(Literal::createEquality(false, t1, t2, sort));
 }
 
 
@@ -347,12 +357,12 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
 
   auto impl = [&]() -> bool {
 
-    Recycled<Stack<UnificationConstraint>> toDo;
-    toDo->push(UnificationConstraint(t1, t2));
+    Recycled<Stack<std::pair<TermSpec, TermSpec>>> toDo;
+    toDo->push(std::make_pair(t1, t2));
     
     // Save encountered unification pairs to avoid
     // recomputing their unification
-    Recycled<DHSet<UnificationConstraint>> encountered;
+    Recycled<DHSet<std::pair<TermSpec,TermSpec>>> encountered;
 
     Option<AbstractionOracle::AbstractionResult> absRes;
     auto doAbstract = [&](auto& l, auto& r) -> bool
@@ -401,8 +411,8 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
 
     while (toDo->isNonEmpty()) {
       auto cur = toDo->pop();
-      auto& dt1 = subs().derefBound(cur.lhs());
-      auto& dt2 = subs().derefBound(cur.rhs());
+      auto& dt1 = subs().derefBound(cur.first);
+      auto& dt2 = subs().derefBound(cur.second);
       DEBUG_UNIFY(2, "popped: ", dt1, " = ", dt2)
       if (dt1 == dt2) {
         progress = true;
@@ -436,8 +446,9 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
             progress = true;
           }
           for (auto& x : conditions.unify()) {
-            ASS_NEQ(x, cur)
-            pushTodo(std::move(x));
+            auto pair = std::make_pair(x.lhs(), x.rhs());
+            ASS_NEQ(pair, cur)
+            pushTodo(pair);
           }
           for (auto& x: conditions.constr()) {
             _constr->add(std::move(x), bd());
@@ -446,8 +457,8 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
 
       } else if(dt1.isTerm() && dt2.isTerm() && dt1.functor() == dt2.functor()) {
         
-        for (auto c : dt1.allArgs().zip(dt2.allArgs())) {
-          pushTodo(UnificationConstraint(std::move(c.first), std::move(c.second)));
+        for (auto p : dt1.allArgs().zip(dt2.allArgs())) {
+          pushTodo(p);
         }
 
       } else {

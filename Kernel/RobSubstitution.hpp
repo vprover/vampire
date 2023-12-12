@@ -99,6 +99,8 @@ struct TermSpec {
   VarSpec varSpec() const { return VarSpec(term.var(), term.isSpecialVar() ? SPECIAL_INDEX : index); }
   bool isTerm() const { return term.isTerm(); }
 
+  TermSpec termArgSort(unsigned i) const { return TermSpec(SortHelper::getTermArgSort(term.term(), i), index); }
+
   unsigned nTypeArgs() const { return term.term()->numTermArguments(); }
   unsigned nTermArgs() const { return term.term()->numTermArguments(); }
   unsigned nAllArgs() const { return term.term()->arity(); }
@@ -231,15 +233,16 @@ class UnificationConstraint
 {
   TermSpec _t1;
   TermSpec _t2;
+  TermSpec _sort;
 public:
   UnificationConstraint() {}
   USE_ALLOCATOR(UnificationConstraint)
-  auto asTuple() const -> decltype(auto) { return std::tie(_t1, _t2); }
+  auto asTuple() const -> decltype(auto) { return std::tie(_t1, _t2, _sort); }
   IMPL_COMPARISONS_FROM_TUPLE(UnificationConstraint);
   IMPL_HASH_FROM_TUPLE(UnificationConstraint);
 
-  UnificationConstraint(TermSpec t1, TermSpec t2)
-  : _t1(std::move(t1)), _t2(std::move(t2))
+  UnificationConstraint(TermSpec t1, TermSpec t2, TermSpec sort)
+  : _t1(std::move(t1)), _t2(std::move(t2)), _sort(std::move(sort))
   {}
 
   Option<Literal*> toLiteral(RobSubstitution& s);
@@ -248,7 +251,7 @@ public:
   TermSpec const& rhs() const { return _t2; }
 
   friend std::ostream& operator<<(std::ostream& out, UnificationConstraint const& self)
-  { return out << self._t1 << " != " << self._t2; }
+  { return out << self._t1 << " ?= " << self._t2; }
 };
 
 using namespace Lib;
