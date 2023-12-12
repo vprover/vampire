@@ -19,12 +19,6 @@ static_assert(
     "Vampire assumes that there are 8 bits in a `char`"
 );
 
-static_assert(
-    sizeof(void *) == 8,
-    "Vampire assumes that the size of a pointer is 8 bytes for efficiency reasons. "
-    "This may be fixed/relaxed in future, but for the moment expect problems if running on other architectures."
-);
-
 // enable warnings for unused results
 // C++17: replace this with [[nodiscard]]
 #ifdef __GNUC__

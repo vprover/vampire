@@ -95,9 +95,14 @@ public:
   /** dummy constructor, does nothing */
   TermList() {}
   /** creates a term list and initialises its content with data */
-  explicit TermList(size_t data) : _content(data) {}
+  explicit TermList(uint64_t data) : _content(data) {}
   /** creates a term list containing a pointer to a term */
-  explicit TermList(Term* t) : _term(t) { ASS_EQ(tag(), REF); }
+  explicit TermList(Term* t) : _content(0) {
+    // NB we also zero-initialise _content so that the spare bits are zero on 32-bit platforms
+    // dead-store eliminated on 64-bit
+    _term = t;
+    ASS_EQ(tag(), REF);
+  }
   /** creates a term list containing a variable. If @b special is true, then the variable
    * will be "special". Special variables are also variables, with a difference that a
    * special variables and ordinary variables have an empty intersection */
@@ -150,7 +155,7 @@ public:
   inline bool sameContent(const TermList& t) const
   { return sameContent(&t); }
   /** return the content, useful for e.g., term argument comparison */
-  inline size_t content() const { return _content; }
+  inline uint64_t content() const { return _content; }
   /** default hash is to hash the content */
   unsigned defaultHash() const { return DefaultHash::hash(content()); }
   unsigned defaultHash2() const { return content(); }
@@ -166,8 +171,13 @@ public:
   inline void makeEmpty()
   { _content = FUN; }
   /** make the term into a reference */
-  inline void setTerm(Term* t)
-  { _term = t; ASS_EQ(tag(), REF); }
+  inline void setTerm(Term* t) {
+    // NB we also zero-initialise _content so that the spare bits are zero on 32-bit platforms
+    // dead-store eliminated on 64-bit
+    _content = 0;
+    _term = t;
+    ASS_EQ(tag(), REF);
+  }
   static bool sameTop(TermList ss, TermList tt);
   static bool sameTopFunctor(TermList ss, TermList tt);
   static bool equals(TermList t1, TermList t2);
@@ -204,10 +214,10 @@ private:
   vstring asArgsToString() const;
 
   union {
+    /** raw content, can be anything */
+    uint64_t _content;
     /** reference to another term */
     Term* _term;
-    /** raw content, can be anything */
-    size_t _content;
     /** Used by Term, storing some information about the term using bits */
     /*
      * A note from 2022: the following bitfield is somewhat non-portable.
@@ -255,11 +265,7 @@ private:
   friend class Literal;
   friend class AtomicSort;
 }; // class TermList
-
-static_assert(
-  sizeof(TermList) == sizeof(size_t),
-  "size of TermList must be the same size as that of size_t"
-);
+static_assert(sizeof(TermList) == 8, "size of TermList must be exactly 64 bits");
 
 /**
  * Class to represent terms and lists of terms.
