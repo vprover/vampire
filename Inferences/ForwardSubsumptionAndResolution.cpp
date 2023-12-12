@@ -118,14 +118,10 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
       if (!checkedClauses.insert(mcl)) {
         continue;
       }
-#if USE_OPTIMIZED_FORWARD
-      bool checkSR = _subsumptionResolution && !conclusion &&
+
+      bool checkSR = _optimizedLoop && _subsumptionResolution && !conclusion &&
           (_checkLongerClauses || mcl->length() <= clen);
-#else
-      // If USE_OPTIMIZED_FORWARD is disabled, the compiler will remove the dead code in
-      // the if statement, and the variable checkSR will not be used
-      const bool checkSR = false;
-#endif
+
       // if mcl is longer than cl, then it cannot subsume cl but still could be resolved
       bool checkS = mcl->length() <= clen;
       if (checkS) {
@@ -181,31 +177,32 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
     }
   }
 
-#if !USE_OPTIMIZED_FORWARD
-  /*******************************************************/
-  /*        SUBSUMPTION RESOLUTION MULTI-LITERAL         */
-  /*******************************************************/
-  // Check for the clauses positively matched in the index.
-  checkedClauses.reset();
-  for (unsigned li = 0; li < clen; li++) {
-    Literal *lit = (*cl)[li];
-    auto it = _fwIndex->getGeneralizations(lit, false, false);
-    while (it.hasNext()) {
-      mcl = it.next().clause;
-      if (!checkedClauses.insert(mcl) || (!_checkLongerClauses && mcl->length() > clen)) {
-        continue;
-      }
-      conclusion = satSubs.checkSubsumptionResolution(mcl, cl, false);
-      if (conclusion) {
-        ASS(premise == nullptr)
-        premise = mcl;
-        replacement = conclusion;
-        premises = pvi(getSingletonIterator(premise));
-        return true;
+  if (!_optimizedLoop) {
+    /*******************************************************/
+    /*        SUBSUMPTION RESOLUTION MULTI-LITERAL         */
+    /*******************************************************/
+    // Check for the clauses positively matched in the index.
+    // If the loop is optimized, this would already have been done during subsumption
+    checkedClauses.reset();
+    for (unsigned li = 0; li < clen; li++) {
+      Literal *lit = (*cl)[li];
+      auto it = _fwIndex->getGeneralizations(lit, false, false);
+      while (it.hasNext()) {
+        mcl = it.next().clause;
+        if (!checkedClauses.insert(mcl) || (!_checkLongerClauses && mcl->length() > clen)) {
+          continue;
+        }
+        conclusion = satSubs.checkSubsumptionResolution(mcl, cl, false);
+        if (conclusion) {
+          ASS(premise == nullptr)
+          premise = mcl;
+          replacement = conclusion;
+          premises = pvi(getSingletonIterator(premise));
+          return true;
+        }
       }
     }
   }
-#endif
 
   /*******************************************************/
   /*        SUBSUMPTION RESOLUTION MULTI-LITERAL         */

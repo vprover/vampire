@@ -65,6 +65,10 @@ public:
     satSubs.forceIndirectEncodingForSubsumptionResolution();
   }
 
+  void setOptimizedLoop(bool optimizedLoop) {
+    _optimizedLoop = optimizedLoop;
+  }
+
 private:
   /// @brief Unit index of the saturation algorithm
   Indexing::UnitClauseLiteralIndex *_unitIndex;
@@ -76,6 +80,8 @@ private:
   bool _subsumptionResolution;
 
   bool _checkLongerClauses = true;
+
+  bool _optimizedLoop = true;
 
   /// @brief Engine performing subsumption and subsumption resolution using a sat solver
   SATSubsumption::SATSubsumptionAndResolution satSubs;

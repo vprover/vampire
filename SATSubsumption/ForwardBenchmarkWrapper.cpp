@@ -74,6 +74,49 @@ void ForwardBenchmarkWrapper::detach()
   ForwardSimplificationEngine::detach();
 }
 
+/* Code copied from stack overflow start here*/
+// https://stackoverflow.com/questions/25892665/performance-of-log10-function-returning-an-int
+unsigned int baseTwoDigits(unsigned int x) {
+    return x ? 32 - __builtin_clz(x) : 0;
+}
+
+static unsigned int baseTenDigits(unsigned int x) {
+    static const unsigned char guess[33] = {
+        0, 0, 0, 0, 1, 1, 1, 2, 2, 2,
+        3, 3, 3, 3, 4, 4, 4, 5, 5, 5,
+        6, 6, 6, 6, 7, 7, 7, 8, 8, 8,
+        9, 9, 9
+    };
+    static const unsigned int tenToThe[] = {
+        1, 10, 100, 1000, 10000, 100000,
+        1000000, 10000000, 100000000, 1000000000,
+    };
+    unsigned int digits = guess[baseTwoDigits(x)];
+    return digits + (x >= tenToThe[digits]);
+}
+/* Code copied ends here */
+
+static unsigned power(unsigned n, unsigned p) {
+  unsigned result = 1;
+  while (p > 0) {
+    if (p % 2 == 0) {
+      n *= n;
+      p /= 2;
+    }
+    else {
+      result *= n;
+      p--;
+    }
+  }
+  return result;
+}
+
+static unsigned round_to_n_digits(unsigned x, unsigned n_digits) {
+  unsigned n = baseTenDigits(x);
+  unsigned rounded = x - (x % power(10, n-n_digits));
+  return rounded;
+}
+
 bool ForwardBenchmarkWrapper::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)
 {
   replacement = nullptr;
@@ -89,16 +132,16 @@ bool ForwardBenchmarkWrapper::perform(Clause *cl, Clause *&replacement, ClauseIt
 #if !CORRELATE_LENGTH_TIME
   auto stop = chrono::high_resolution_clock::now();
 
-  auto duration = chrono::duration_cast<chrono::microseconds>(stop - start);
+  auto duration = chrono::duration_cast<chrono::nanoseconds>(stop - start);
   totalDuration += duration;
-  outputFile << duration.count() << endl;
+  outputFile << round_to_n_digits(duration.count(), 1) << endl;
 #endif
 
   /* Then compute the output using the oracle */
   auto start_oracle = chrono::high_resolution_clock::now();
   bool result = _forwardOracle.perform(cl, replacement, premises);
   auto stop_oracle = chrono::high_resolution_clock::now();
-  auto duration_oracle = chrono::duration_cast<chrono::microseconds>(stop_oracle - start_oracle);
+  auto duration_oracle = chrono::duration_cast<chrono::nanoseconds>(stop_oracle - start_oracle);
 
   const double threshold = 5;
   bool enable_symmetric = false;

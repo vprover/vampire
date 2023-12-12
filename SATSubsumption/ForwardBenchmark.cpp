@@ -55,7 +55,7 @@ struct ClauseMatches {
   USE_ALLOCATOR(ClauseMatches);
 
 private:
-  //private and undefined operator= and copy constructor to avoid implicitly generated ones
+  // private and undefined operator= and copy constructor to avoid implicitly generated ones
   ClauseMatches(const ClauseMatches &);
   ClauseMatches &operator=(const ClauseMatches &);
 
@@ -152,8 +152,8 @@ Clause *ForwardBenchmark::generateSubsumptionResolutionClause(Clause *cl, Litera
   bool found = false;
   for (int i = 0; i < clen; i++) {
     Literal *curr = (*cl)[i];
-    //As we will apply subsumption resolution after duplicate literal
-    //deletion, the same literal should never occur twice.
+    // As we will apply subsumption resolution after duplicate literal
+    // deletion, the same literal should never occur twice.
     ASS(curr != lit || !found);
     if (curr != lit || found) {
       (*res)[next++] = curr;
@@ -238,7 +238,7 @@ bool ForwardBenchmark::perform(Clause *cl, Clause *&replacement, ClauseIterator 
         SLQueryResult res = rit.next();
         Clause *mcl = res.clause;
         if (mcl->hasAux()) {
-          //we've already checked this clause
+          // we've already checked this clause
           continue;
         }
         ASS_G(mcl->length(), 1);
@@ -305,7 +305,7 @@ bool ForwardBenchmark::perform(Clause *cl, Clause *&replacement, ClauseIterator 
       }
 
       for (unsigned li = 0; li < clen; li++) {
-        Literal *resLit = (*cl)[li]; //resolved literal
+        Literal *resLit = (*cl)[li]; // resolved literal
         SLQueryResultIterator rit = _fwIndex->getGeneralizations(resLit, true, false);
         while (rit.hasNext()) {
           SLQueryResult res = rit.next();
@@ -356,11 +356,22 @@ void ForwardBenchmark::attach(SaturationAlgorithm *salg)
 {
   _forward.attach(salg);
 
-  #if SAT_SR_IMPL == 1
+  cout << "Forward benchmark: ";
+#if SAT_SR_IMPL == 1
   _forward.forceDirectEncodingForSubsumptionResolution();
-  #elif SAT_SR_IMPL == 2
+  cout << "direct encoding";
+#elif SAT_SR_IMPL == 2
   _forward.forceIndirectEncodingForSubsumptionResolution();
-  #endif
+  cout << "indirect encoding";
+#else
+  cout << "dynamic encoding";
+#endif
+#if USE_OPTIMIZED_FORWARD
+  _forward.setOptimizedLoop(true);
+  cout << " - optimized loop";
+#else
+  _forward.setOptimizedLoop(false);
+#endif
 }
 
 void ForwardBenchmark::detach()
