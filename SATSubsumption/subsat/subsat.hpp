@@ -1701,10 +1701,13 @@ private:
     Constraint const* reason_ptr = &m_constraints.deref(conflict_ref);
     Constraint tmp_binary{2};  // a stack-allocated clause has space for two literals
 
+    uint64_t ticks = 0;
+
     while (true) {
       assert(reason_ptr);
       LOG_TRACE("Reason: " << *reason_ptr << ", uip: " << uip << ", unresolved: " << unresolved_on_conflict_level);
       Constraint const& reason_clause = *reason_ptr;
+      ticks++;
 
       // TODO: reason->used = true
 
@@ -1770,6 +1773,8 @@ private:
       Reason const reason = m_vars[uip.var()].reason;
       reason_ptr = &get_reason(uip, reason, tmp_binary);
     }  // while(true)
+
+    m_stats.ticks += ticks;
 
     // TODO: analyze loop is a bit simpler in kitten, maybe we can do that too?
     //       kitten does not use any blocks/frames (we use them for minimization though)
