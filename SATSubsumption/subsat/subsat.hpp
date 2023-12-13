@@ -1369,6 +1369,7 @@ private:
     assign(decision, Reason::invalid());
   }
 
+
   /// Unit propagation.
   /// Returns the conflicting clause when a conflict is encountered,
   /// or an invalid ClauseRef if all unit clauses have been propagated without conflict.
@@ -1386,16 +1387,13 @@ private:
     return ConstraintRef::invalid();
   }
 
-  /// Unit propagation for the given literal.
-  ConstraintRef propagate_literal(Lit const lit)
+
+  /// Unit propagation for 'lit' over AtMostOne constraints.
+  ConstraintRef propagate_literal_in_amos(Lit const lit, uint64_t& ticks)
   {
-    LOG_DEBUG("Propagating " << lit);
-    // assert(checkInvariants());
-    assert(m_values[lit] == Value::True);
-
     Lit const not_lit = ~lit;
+    ConstraintRef conflict = ConstraintRef::invalid();
 
-    // Propagate AtMostOne constraints.
     // There's no need to copy/modify any watches here,
     // because as soon as an AtMostOne constraint triggers,
     // all other literals will be set to false immediately.
@@ -1431,6 +1429,16 @@ private:
         }
       }
     }
+
+    return ConstraintRef::invalid();
+  }  // propagate_literal_in_amos
+
+
+  /// Unit propagation for 'lit' over clauses.
+  ConstraintRef propagate_literal_in_clauses(Lit const lit, uint64_t& ticks)
+  {
+    Lit const not_lit = ~lit;
+    ConstraintRef conflict = ConstraintRef::invalid();
 
     vector<Watch>& watches = m_watches[not_lit];
 
@@ -1528,6 +1536,26 @@ private:
     assert(remaining_watches >= 0);
     watches.resize(static_cast<std::size_t>(remaining_watches));
     assert(watches.end() == q);
+
+    return conflict;
+  }  // propagate_literal_in_clauses
+
+
+  /// Unit propagation for the given literal.
+  ConstraintRef propagate_literal(Lit const lit)
+  {
+    LOG_DEBUG("Propagating " << lit);
+    assert(m_values[lit] == Value::True);
+
+    uint64_t ticks = 1;
+
+    ConstraintRef conflict = ConstraintRef::invalid();
+
+    if (!conflict.is_valid())
+      conflict = propagate_literal_in_amos(lit, ticks);
+
+    if (!conflict.is_valid())
+      conflict = propagate_literal_in_clauses(lit, ticks);
 
     return conflict;
   }  // propagate_literal
