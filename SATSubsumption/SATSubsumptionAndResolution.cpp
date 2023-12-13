@@ -261,7 +261,7 @@ void SATSubsumptionAndResolution::addBinding(BindingsManager::Binder *binder,
 #if CORRELATE_LENGTH_TIME
 double SATSubsumption::SATSubsumptionAndResolution::getSparsity()
 {
-  return (double) _matchSet._matchesByI.size() / (double) (_n * _m);
+  return (double)_matchSet._matchesByI.size() / (double)(_n * _m);
 }
 #endif
 
@@ -917,9 +917,6 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolution(Clause *L,
 {
   ASS(L)
   ASS(M)
-#if CORRELATE_LENGTH_TIME
-  builtSatProblem = false;
-#endif
   if (usePreviousSetUp) {
     ASS(_L == L)
     ASS(_M == M)
@@ -951,28 +948,34 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolution(Clause *L,
   }
 
 #if CORRELATE_LENGTH_TIME
-  builtSatProblem = true;
   start = chrono::high_resolution_clock::now();
 #endif
-// set up the clauses
-bool encodingSuccess;
-switch (chooseEncoding()) {
-  case EncodingMethod::DIRECT:
-    encodingSuccess = directEncodingForSubsumptionResolution();
-    break;
-  case EncodingMethod::INDIRECT:
-    encodingSuccess = indirectEncodingForSubsumptionResolution();
-    break;
-  default:
-    ASS(false);
-}
+  // set up the clauses
+  bool encodingSuccess;
+  switch (chooseEncoding()) {
+    case EncodingMethod::DIRECT:
+      encodingSuccess = directEncodingForSubsumptionResolution();
+      break;
+    case EncodingMethod::INDIRECT:
+      encodingSuccess = indirectEncodingForSubsumptionResolution();
+      break;
+    default:
+      ASS(false);
+  }
 
-if (!encodingSuccess) {
+  if (!encodingSuccess) {
 #if PRINT_CLAUSES_SUBS
     cout << "CNF building failed" << endl;
 #endif
 #if CORRELATE_LENGTH_TIME
     stop = chrono::high_resolution_clock::now();
+    auto duration = stop - start;
+    if (log) {
+      logFile << _L->length() << ","
+              << _M->length() << ","
+              << getSparsity() << ","
+              << duration.count() << "\n";
+    }
 #endif
     return nullptr;
   }
@@ -985,24 +988,31 @@ if (!encodingSuccess) {
     // These constraints are created in the fillMatches() function by filling the _bindingsManager
     solver.theory().setBindings(&_bindingsManager);
   }
-  if (solver.solve() != subsat::Result::Sat) {
+  Clause *conclusion = nullptr;
+  if (solver.solve() == subsat::Result::Sat) {
 #if PRINT_CLAUSES_SUBS
-    cout << "SAT solver failed" << endl;
+    cout << "SAT solver succeeded" << endl;
 #endif
-#if CORRELATE_LENGTH_TIME
-    stop = chrono::high_resolution_clock::now();
-#endif
-    return nullptr;
+    _model.clear();
+    solver.get_model(_model);
+    conclusion = generateConclusion();
   }
-  _model.clear();
-  solver.get_model(_model);
-
 #if PRINT_CLAUSES_SUBS
-  cout << "SAT solver succeeded" << endl;
+  else {
+    cout << "SAT solver failed" << endl;
+  }
 #endif
+
 #if CORRELATE_LENGTH_TIME
   stop = chrono::high_resolution_clock::now();
+  auto duration = stop - start;
+  if (log) {
+    logFile << _L->length() << ","
+            << _M->length() << ","
+            << getSparsity() << ","
+            << duration.count() << "\n";
+  }
 #endif
   // If the problem is SAT, then generate the conclusion clause
-  return generateConclusion();
+  return conclusion;
 } // SATSubsumptionAndResolution::checkSubsumptionResolution

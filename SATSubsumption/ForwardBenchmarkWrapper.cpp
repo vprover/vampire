@@ -16,7 +16,14 @@ static std::chrono::high_resolution_clock::duration totalDuration = chrono::dura
 static ofstream outputFile;
 static ofstream problemFile;
 
-ForwardBenchmarkWrapper::ForwardBenchmarkWrapper(bool subsumptionResolution) : _forwardBenchmark(subsumptionResolution), _forwardOracle(subsumptionResolution), _subsumptionResolution(subsumptionResolution)
+ForwardBenchmarkWrapper::ForwardBenchmarkWrapper(bool subsumptionResolution) :
+  #if CORRELATE_LENGTH_TIME
+  _forwardBenchmark(subsumptionResolution, true),
+  #else
+  _forwardBenchmark(subsumptionResolution),
+  #endif
+  _forwardOracle(subsumptionResolution),
+  _subsumptionResolution(subsumptionResolution)
 {
 }
 
@@ -74,6 +81,7 @@ void ForwardBenchmarkWrapper::detach()
   ForwardSimplificationEngine::detach();
 }
 
+#if !CORRELATE_LENGTH_TIME
 /* Code copied from stack overflow start here*/
 // https://stackoverflow.com/questions/25892665/performance-of-log10-function-returning-an-int
 unsigned int baseTwoDigits(unsigned int x) {
@@ -116,6 +124,7 @@ static unsigned round_to_n_digits(unsigned x, unsigned n_digits) {
   unsigned rounded = x - (x % power(10, n-n_digits));
   return rounded;
 }
+#endif
 
 bool ForwardBenchmarkWrapper::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)
 {
@@ -143,6 +152,7 @@ bool ForwardBenchmarkWrapper::perform(Clause *cl, Clause *&replacement, ClauseIt
   auto stop_oracle = chrono::high_resolution_clock::now();
   auto duration_oracle = chrono::duration_cast<chrono::nanoseconds>(stop_oracle - start_oracle);
 
+#if !CORRELATE_LENGTH_TIME
   const double threshold = 5;
   bool enable_symmetric = false;
   if ((false && duration_oracle.count() > threshold * duration.count() && duration_oracle.count() > 500)
@@ -205,6 +215,7 @@ bool ForwardBenchmarkWrapper::perform(Clause *cl, Clause *&replacement, ClauseIt
 
     log_file.close();
   }
+#endif
 
   if (result != resultAux || (replacement == nullptr) != (replacementAux == nullptr)) {
     if (!problemFile.is_open()) {

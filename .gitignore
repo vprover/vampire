@@ -1,6 +1,7 @@
 # ignore CMake/Doxygen output
 cmake-build
 build/
+build*
 build_dbg/
 doc/
 

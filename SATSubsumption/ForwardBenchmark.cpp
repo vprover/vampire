@@ -15,11 +15,6 @@
 #include "Kernel/ColorHelper.hpp"
 #endif
 
-#if CORRELATE_LENGTH_TIME
-#include <chrono>
-#include <fstream>
-#endif
-
 namespace Inferences {
 using namespace std;
 using namespace Lib;

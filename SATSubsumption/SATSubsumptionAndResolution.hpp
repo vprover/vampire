@@ -20,12 +20,10 @@
 
 #include "SATSubsumption/SATSubsumptionConfig.hpp"
 
-#if WRITE_LITERAL_MATCHES_FILE
-#include <iostream> //include the header files like input-output streams
-#include <fstream>  //include the filestreamobject as the header files
-#endif
 #if CORRELATE_LENGTH_TIME
 #include <chrono>
+#include <iostream>
+#include <fstream>  //include the filestreamobject as the header files
 #endif
 
 namespace SATSubsumption {
@@ -499,15 +497,45 @@ public:
 #if CORRELATE_LENGTH_TIME
   std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
   std::chrono::high_resolution_clock::time_point stop = start;
-  bool builtSatProblem = false;
+  std::ofstream logFile;
+  bool log;
 #endif
 
-  SATSubsumptionAndResolution() :
+  SATSubsumptionAndResolution(bool log = false) :
     _L(nullptr),
     _M(nullptr),
     _m(0),
     _n(0)
-    {}
+    {
+      this->log = log;
+#if CORRELATE_LENGTH_TIME
+      if (log) {
+        vstring fileName = "outputs/data_" + env.options->problemName();
+        #if SAT_SR_IMPL == 0
+          fileName += "_no_sat";
+        #elif SAT_SR_IMPL == 1
+          fileName += "_direct";
+        #elif SAT_SR_IMPL == 2
+          fileName += "_indirect";
+        #elif SAT_SR_IMPL == 3
+          fileName += "_dynamic";
+        #else
+          fileName += "_unknown";
+        #endif
+        #if USE_OPTIMIZED_FORWARD
+          fileName += "_opt";
+        #endif
+        fileName += ".csv";
+        logFile.open(fileName.c_str());
+        if (!logFile.is_open()) {
+          std::cout << "Could not open file " << fileName << std::endl;
+        } else {
+          logFile << "m,n,sparsity,time" << std::endl;
+          std::cout << "Opened file " << fileName << std::endl;
+        }
+      }
+#endif
+    }
 
   /**
    * Checks whether the instance clause is subsumed by the base clause

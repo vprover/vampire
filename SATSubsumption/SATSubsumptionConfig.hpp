@@ -31,7 +31,7 @@
 /// If 1, then print in file the time spent in subsumption resolution
 /// and the length of the clauses
 #ifndef CORRELATE_LENGTH_TIME
-#define CORRELATE_LENGTH_TIME 0
+#define CORRELATE_LENGTH_TIME 1
 #endif
 
 /*****************************************************************************/

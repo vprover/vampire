@@ -25,9 +25,7 @@ namespace Inferences {
 class ForwardSubsumptionAndResolution
     : public ForwardSimplificationEngine {
 public:
-  USE_ALLOCATOR(ForwardSubsumptionAndResolution);
-
-  ForwardSubsumptionAndResolution(bool subsumptionResolution = true);
+  ForwardSubsumptionAndResolution(bool subsumptionResolution = true, bool log = false);
   ~ForwardSubsumptionAndResolution();
 
   /**

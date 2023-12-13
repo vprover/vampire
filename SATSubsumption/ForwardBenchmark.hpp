@@ -41,10 +41,10 @@ private:
 #endif
 
 public:
-  ForwardBenchmark(bool subsumptionResolution = true)
+  ForwardBenchmark(bool subsumptionResolution = true, bool log = false)
       : _subsumptionResolution(subsumptionResolution)
 #if SAT_SR_IMPL != 0
-      , _forward(subsumptionResolution)
+      , _forward(subsumptionResolution, log)
 #endif
   { }
 
