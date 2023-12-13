@@ -30,8 +30,11 @@ namespace subsat {
 
 void print_config(std::ostream& os);
 
-#if SUBSAT_STATISTICS
 struct Statistics {
+#if SUBSAT_LIMITS
+  uint64_t ticks = 0;             ///< Number of ticks (an arbitrary but deterministic measure of time spent solving).
+#endif
+#if SUBSAT_STATISTICS
   int conflicts = 0;              ///< Number of conflicts encountered.
   int conflicts_by_amo = 0;       ///< Number of conflicts due to violated AtMostOne-constraint.
   int conflicts_by_clause = 0;    ///< Number of conflicts due to violated clause.
@@ -53,9 +56,14 @@ struct Statistics {
 #if SUBSAT_RESTART
   int restarts = 0;               ///< Number of restarts performed.
 #endif
+#endif SUBSAT_STATISTICS
+
+  void reset() { *this = Statistics(); }
 };
+
 static inline std::ostream& operator<<(std::ostream& os, Statistics const& stats)
 {
+#if SUBSAT_STATISTICS
   os << subsat::string(70, '-') << '\n';
 #if SUBSAT_RESTART
   os << "Restarts:         " << std::setw(8) << stats.restarts << '\n';
@@ -73,8 +81,11 @@ static inline std::ostream& operator<<(std::ostream& os, Statistics const& stats
      << " (= learned literals + clause headers + " << (stats.max_stored_literals - static_cast<std::size_t>(stats.learned_literals + stats.learned_long_clauses + stats.learned_binary_clauses)) << ")\n";
   assert(stats.conflicts == stats.conflicts_by_clause + stats.conflicts_by_amo);
   assert(stats.propagations == stats.propagations_by_clause + stats.propagations_by_amo + stats.propagations_by_theory);
+#endif SUBSAT_STATISTICS
   return os;
 }
+
+#if SUBSAT_STATISTICS
 #define SUBSAT_STAT_ADD(NAME, VALUE)                                                \
   do {                                                                              \
     auto v = static_cast<decltype(m_stats.NAME)>(VALUE);                            \
@@ -96,6 +107,52 @@ static inline std::ostream& operator<<(std::ostream& os, Statistics const& stats
   } while (false)
 #endif  // SUBSAT_STATISTICS
 #define SUBSAT_STAT_INC(NAME) SUBSAT_STAT_ADD(NAME, 1)
+
+
+
+
+// The following adapted from https://github.com/arminbiere/satch/blob/8afbc3540a4b4ca028ed47124e44dabff2bbefb4/satch.c#L4196C33-L4196C33
+//
+// Estimate the number of cache lines spanning the given array.
+//
+// We could use the numerical vales of the 'begin' and 'end' pointers of the
+// array but that would make the code dependent on memory addresses which
+// should be avoided.  Therefore we fall back to an estimation, which in
+// essence assumes that the start address is cache-line-size aligned.
+//
+// Typical size of a cache line is 128 bytes, but even if your processor has
+// less or more, this computation is anyhow just a rough estimate and by
+// keeping it machine independent we also keep scheduling of for instance
+// the focused and stable phases and thus the whole solver execution machine
+// independent (does not vary for different cache-line size).
+
+#define log2_bytes_per_cache_line   7
+#define bytes_per_cache_line        (1u << log2_bytes_per_cache_line)
+
+inline
+size_t cache_lines_bytes(size_t const bytes)
+{
+  size_t const round = bytes_per_cache_line - 1;
+  size_t const res = (bytes + round) >> log2_bytes_per_cache_line;
+  return res;
+}
+
+inline
+size_t cache_lines_array(void const* begin, void const* end)
+{
+  size_t const bytes = (char*)end - (char*)begin;
+  return cache_lines_bytes(bytes);
+}
+
+template <typename T, typename Alloc>
+size_t cache_lines_vec(std::vector<T, Alloc> const& vec)
+{
+  size_t const bytes = sizeof(T) * vec.size();
+  return cache_lines_bytes(bytes);
+}
+
+
+
 
 
 using Level = uint32_t;
@@ -463,9 +520,7 @@ public:
 
     m_theory.clear();
 
-#if SUBSAT_STATISTICS
-    m_stats = Statistics();
-#endif
+    m_stats.reset();
 
     assert(checkEmpty());
   }
@@ -512,9 +567,7 @@ public:
 
     m_frames.clear();
 
-#if SUBSAT_STATISTICS
-    m_stats = Statistics();
-#endif
+    m_stats.reset();
   }
 
 
@@ -1120,7 +1173,7 @@ public:
 
     Result res = Result::Unknown;
 
-    // Prepare to find next model
+    // Last solve() returned Sat, so prepare to find next model
     if (m_state == State::Sat) {
 #if SUBSAT_RESTART
 #warning "Model enumeration probably doesn't work with restarting at the moment!"
@@ -1140,12 +1193,6 @@ public:
         if (!analyze(conflict_ref)) {
           res = Result::Unsat;
         }
-        // auto it = std::find_if(m_trail.rbegin(), m_trail.rend(),
-        //                        [this](Lit lit) { return !m_vars[lit.var()].reason.is_valid(); });
-        // assert(it != m_trail.rend());
-        // Lit last_decision = *it;
-        // backtrack(m_level - 1);
-        // assign(~last_decision, Reason::invalid());   // this won't work... if both branches lead to a model we'll keep flipping the same decision.
       }
     }
 
@@ -1208,8 +1255,8 @@ public:
   }
 
   /// Copy the currently true literals into the given vector.
-  template < typename A >
-  void get_model(std::vector<Lit, A>& model) const
+  template < typename Alloc >
+  void get_model(std::vector<Lit, Alloc>& model) const
   {
     assert(m_state == State::Sat);
     assert(m_unassigned_vars == 0);
@@ -1377,14 +1424,18 @@ private:
   {
     LOG_TRACE("propagate");
     assert(m_theory_propagate_head == m_trail.size());
-    while (m_propagate_head < m_trail.size()) {
+
+    ConstraintRef conflict = ConstraintRef::invalid();
+    uint64_t ticks = 0;
+
+    while (!conflict.is_valid() && m_propagate_head < m_trail.size()) {
       Lit const lit = m_trail[m_propagate_head++];
-      ConstraintRef const conflict = propagate_literal(lit);
-      if (conflict.is_valid()) {
-        return conflict;
-      }
+      conflict = propagate_literal(lit, ticks);
     }
-    return ConstraintRef::invalid();
+
+    m_stats.ticks += ticks;
+
+    return conflict;
   }
 
 
@@ -1394,12 +1445,16 @@ private:
     Lit const not_lit = ~lit;
     ConstraintRef conflict = ConstraintRef::invalid();
 
+    auto const& watches = m_watches_amo[lit];
+    ticks += cache_lines_vec(watches);
+
     // There's no need to copy/modify any watches here,
     // because as soon as an AtMostOne constraint triggers,
     // all other literals will be set to false immediately.
-    for (Watch const& watch : m_watches_amo[lit]) {
+    for (Watch const& watch : watches) {
       ConstraintRef const cr = watch.clause_ref;
       Constraint& c = m_constraints.deref(cr);
+      ticks++;
       assert(c.size() >= 3);
       for (Lit other_lit : c) {
         if (lit == other_lit) {
@@ -1411,6 +1466,7 @@ private:
           LOG_DEBUG("Assigning " << ~other_lit << " due to AtMostOne constraint " << SHOWREF(cr));
           SUBSAT_STAT_INC(propagations);
           SUBSAT_STAT_INC(propagations_by_amo);
+          ticks++;
           assign(~other_lit, Reason{not_lit});
         }
         else if (other_value == Value::True) {
@@ -1445,7 +1501,7 @@ private:
     auto q = watches.begin();   // points to updated watch, follows p
     auto p = watches.cbegin();  // points to currently processed watch
 
-    ConstraintRef conflict = ConstraintRef::invalid();
+    ticks += cache_lines_vec(watches);
 
     while (!conflict.is_valid() && p != watches.cend()) {
       Watch const& watch = *p;
@@ -1463,6 +1519,11 @@ private:
       ConstraintRef const clause_ref = watch.clause_ref;
       Constraint& clause = m_constraints.deref(clause_ref);
       assert(clause.size() >= 2);
+
+      // We mainly count accesses to large clauses, which
+      // can amount to up to 80% of solving time.
+      // See https://github.com/arminbiere/satch/blob/8afbc3540a4b4ca028ed47124e44dabff2bbefb4/satch.c#L4336
+      ticks++;
 
       // The two watched literals of a clause are stored as the first two literals,
       // but we don't know which one is not_lit and which one is the other one.
@@ -1511,6 +1572,7 @@ private:
         *replacement_it = not_lit;
         // Watch the replacement literal
         watch_clause_literal(replacement, /* TODO: other_lit, */ clause_ref);
+        ticks++;
       }
       else if (other_value != Value::Unassigned) {
         // All literals in the clause are false => conflict
@@ -1525,6 +1587,7 @@ private:
         SUBSAT_STAT_INC(propagations);
         SUBSAT_STAT_INC(propagations_by_clause);
         assign(other_lit, Reason{clause_ref});
+        ticks++;
       }
     }  // while
 
@@ -1542,12 +1605,12 @@ private:
 
 
   /// Unit propagation for the given literal.
-  ConstraintRef propagate_literal(Lit const lit)
+  ConstraintRef propagate_literal(Lit const lit, uint64_t& ticks)
   {
     LOG_DEBUG("Propagating " << lit);
     assert(m_values[lit] == Value::True);
 
-    uint64_t ticks = 1;
+    ticks++;
 
     ConstraintRef conflict = ConstraintRef::invalid();
 
@@ -2118,9 +2181,7 @@ private:
   vector_map<Level, uint8_t> m_frames; ///< stores for each level whether we already have it in blocks (we use 'char' because vector<bool> is bad)
   ConstraintRef tmp_propagate_binary_conflict_ref = ConstraintRef::invalid();
 
-#if SUBSAT_STATISTICS
   Statistics m_stats;
-#endif
 }; // Solver
 
 #if SUBSAT_LOGGING_ENABLED
