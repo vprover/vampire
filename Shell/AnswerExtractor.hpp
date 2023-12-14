@@ -96,9 +96,10 @@ typedef List<Binding> BindingList;
 struct SkolemTracker { // used for tracking skolem terms in the structural induction axiom (recursive program synthesis)
     Binding binding;
     unsigned constructorIndex; // a skolem constant will be considered computable in the j'th arg of rec(.), if j = constructorIndex
-    bool recursiveArg;
+    bool recursiveArg; // E.g., BT(l, n, r) is recursive in arg 0 and 2, but not in arg 1
     int recursivePos; // -1 if not recursive, otherwise the position of the recursive argument
-    SkolemTracker(Binding b, unsigned c, bool r, int pos) : binding(b), constructorIndex(c), recursiveArg(r), recursivePos(pos) {}
+    int recFnID; // the ID of the rec(.) function in the structural induction axiom
+    SkolemTracker(Binding b, unsigned c, bool r, int pos, int rec_fn) : binding(b), constructorIndex(c), recursiveArg(r), recursivePos(pos), recFnID(rec_fn) {}
     vstring toString() {
       vstring s;
       s += "SkolemTracker(";
@@ -107,10 +108,12 @@ struct SkolemTracker { // used for tracking skolem terms in the structural induc
       s += binding.second->toString();
       s += ", cnstrID=";
       s += Int::toString(constructorIndex);
-      s += ", rec=";
+      s += ", recursiveArg=";
       s += recursiveArg ? "true" : "false";
       s += ", recPos=";
-      s += Int::toString(recursivePos) + ")";
+      s += Int::toString(recursivePos);
+      s += ", recFnID=";
+      s += Int::toString(recFnID) + ")";
       return s;
     }
   };
@@ -178,7 +181,7 @@ public:
 
   Literal* makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit);
 
-  void storeSkolemMapping(unsigned int var, Term* skolem, unsigned int constructorIndex, bool recursiveArg, int recursivePos);
+  void storeSkolemMapping(unsigned int var, Term* skolem, unsigned int constructorIndex, bool recursiveArg, int recursivePos, int recFnID);
   void matchSkolemSymbols(BindingList* bindingList, SkolemTrackerList* tempSkolemMappings); // called after skolemization has happened to fill _skolemMappings
   void storeRecTerm(unsigned int fnId) { _recTermIds->push(fnId, _recTermIds); }
   bool isRecTerm(Term* t);

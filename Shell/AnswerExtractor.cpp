@@ -815,8 +815,8 @@ TermList SynthesisManager::ConjectureSkolemReplacement::transformSubterm(TermLis
 }
 
 
-void SynthesisManager::storeSkolemMapping(unsigned int var, Term* skolem, unsigned int constructorIndex, bool recursiveArg, int recursivePos) {
-  _skolemMappings->push(SkolemTracker(Binding(var, skolem), constructorIndex, recursiveArg, recursivePos), _skolemMappings);
+void SynthesisManager::storeSkolemMapping(unsigned int var, Term* skolem, unsigned int constructorIndex, bool recursiveArg, int recursivePos, int recFnID) {
+  _skolemMappings->push(SkolemTracker(Binding(var, skolem), constructorIndex, recursiveArg, recursivePos, recFnID), _skolemMappings);
 }
 
 void SynthesisManager::printSkolemMappings() {
@@ -837,7 +837,7 @@ void SynthesisManager::matchSkolemSymbols(BindingList* bindingList, SkolemTracke
     while(bIt.hasNext()) {
       Binding b = bIt.next();
       if (st.binding.first == b.first) { 
-        storeSkolemMapping(b.first, b.second, st.constructorIndex, st.recursiveArg, st.recursivePos);
+        storeSkolemMapping(b.first, b.second, st.constructorIndex, st.recursiveArg, st.recursivePos, st.recFnID);
         Signature::Symbol* s = env.signature->getFunction(b.second->functor());
         s->setConstructorId(st.constructorIndex);
         break;

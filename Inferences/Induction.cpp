@@ -1457,6 +1457,9 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   VList* ys = VList::empty(); 
   SkolemTrackerList* tempSkolemMappings = SkolemTrackerList::empty();  // Stores SkolemTrackers before skolemization happens
 
+  unsigned rec_fn = env.signature->addFreshFunction(ta->nConstructors() + 1, "rec");
+
+
   for (unsigned i = 0; i < ta->nConstructors(); i++){
     TermAlgebraConstructor* con = ta->constructor(i);
     unsigned arity = con->arity();
@@ -1478,7 +1481,8 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
 
         TermList w(var++, false);
         VList::push(w.var(), ws);
-        tempSkolemMappings->push(SkolemTracker(Binding(w.var(), nullptr), i, false, -1), tempSkolemMappings);
+        // Stores SkolemTrackers before skolemization happens
+        tempSkolemMappings->push(SkolemTracker(Binding(w.var(), nullptr), i, false, -1, rec_fn), tempSkolemMappings);
 
         TermReplacement tr(context._indTerm, y);
         Literal* curLit = tr.transform(L);
@@ -1488,7 +1492,8 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
 
         FormulaList::push(new AtomicFormula(curLit), hyps); // L[y_j, w_j]
       }
-      tempSkolemMappings->push(SkolemTracker(Binding(y.var(), nullptr), i, (recursive != -1) ? true : false, recursive), tempSkolemMappings);
+      // Stores SkolemTrackers before skolemization happens
+      tempSkolemMappings->push(SkolemTracker(Binding(y.var(), nullptr), i, (recursive != -1) ? true : false, recursive, rec_fn), tempSkolemMappings);
     }
     Formula* antecedent = JunctionFormula::generalJunction(Connective::AND, hyps); // /\_{j ∈ P_c}  L[y_j, w_j]
 
@@ -1515,7 +1520,6 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   TermList z(var++, false);
   recFuncArgs.push(z);
 
-  unsigned rec_fn = env.signature->addFreshFunction(ta->nConstructors() + 1, "rec");
   SynthesisManager::getInstance()->storeRecTerm(rec_fn);
 
   auto synth_sort = SortHelper::getVariableSort(freshSynthVar, L);
