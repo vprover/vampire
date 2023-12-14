@@ -93,9 +93,7 @@ public:
   // divide by 4 because of the tag, by 2 to split the space evenly
   static const unsigned SPEC_UPPER_BOUND = (UINT_MAX / 4) / 2;
   /** dummy constructor, does nothing */
-  TermList() {}
-  /** creates a term list and initialises its content with data */
-  explicit TermList(uint64_t data) : _content(data) {}
+  TermList() = default;
   /** creates a term list containing a pointer to a term */
   explicit TermList(Term* t) : _content(0) {
     // NB we also zero-initialise _content so that the spare bits are zero on 32-bit platforms
@@ -156,6 +154,8 @@ public:
   { return sameContent(&t); }
   /** return the content, useful for e.g., term argument comparison */
   inline uint64_t content() const { return _content; }
+  /** set the content manually - hazardous, such terms should then only be used as integers */
+  void setContent(uint64_t content) { _content = content; }
   /** default hash is to hash the content */
   unsigned defaultHash() const { return DefaultHash::hash(content()); }
   unsigned defaultHash2() const { return content(); }
