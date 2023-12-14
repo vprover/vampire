@@ -40,7 +40,8 @@
 
 // the number of bits used for "TermList::_info::distinctVars"
 #define TERM_DIST_VAR_BITS 21
-#define TERM_DIST_VAR_UNKNOWN ((2 ^ TERM_DIST_VAR_BITS) - 1)
+// maximum number that fits in a 21-bit integer - update if TERM_DIST_VAR_BITS changes
+#define TERM_DIST_VAR_UNKNOWN 0x1FFFFF
 
 namespace Kernel {
 
@@ -789,8 +790,6 @@ protected:
     _args[0]._info.order = val;
   }
 
-  /** For shared terms, this is a unique id used for deterministic comparison */
-  unsigned _id;
   /** The number of this symbol in a signature */
   unsigned _functor;
   /** Arity of the symbol */
