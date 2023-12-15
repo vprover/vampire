@@ -151,8 +151,8 @@ class Signature
     unsigned _inductionSkolem : 1;
     /** if skolem function in general **/
     unsigned _skolem : 1;
-    /** if introduced for naming a subformula */
-    unsigned _namesFormula : 1;
+    /** if does not need congruence axioms with equality proxy */
+    unsigned _skipCongruence : 1;
     /** if tuple sort */
     unsigned _tuple : 1;
     /** if allowed in answer literals */
@@ -277,8 +277,8 @@ class Signature
     inline void markSkolem(){ _skolem = 1;}
     inline bool skolem(){ return _skolem; }
 
-    inline void markNamesFormula() { _namesFormula = 1; }
-    inline bool namesFormula() { return _namesFormula; }
+    inline void markSkipCongruence() { _skipCongruence = 1; }
+    inline bool skipCongruence() { return _skipCongruence; }
 
     inline void markTuple(){ _tuple = 1; }
     inline bool tupleSort(){ return _tuple; }
