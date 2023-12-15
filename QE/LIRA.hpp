@@ -18,7 +18,7 @@ namespace QE {
 
 class LIRA {
 public:
-  static Stack<ElimSet> computeElimSet(Stack<Literal*> const& conjunction);
+  static Stack<ElimSet> computeElimSet(unsigned var, Stack<Literal*> const& conjunction);
 };
 
 

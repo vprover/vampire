@@ -12,26 +12,50 @@
 #define __QE_ElimSet__
 
 
+#include "Lib/Reflection.hpp"
 #include "Lib/Stack.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/Theory.hpp"
+#include "Kernel/NumTraits.hpp"
 
 namespace QE {
 
 using namespace Kernel;
 using namespace Lib;
 
-enum class Lim {
-  Infinity,
-  Epsilon,
+// #define S_EPSILON "\u03B5"
+//
+// enum class Lim {
+//   Infinity,
+//   Epsilon,
+// };
+//
+// inline std::ostream& operator<<(std::ostream& out, Lim const& self)
+// { 
+//   switch(self) {
+//     // case Lim::Infinity: return out << "\u221E";
+//     case Lim::Epsilon:  return out << "\u03B5";
+//   } 
+// }
+
+
+struct Epsilon
+{
+  friend std::ostream& operator<<(std::ostream& out, Epsilon const& self)
+  { return out << "\u03B5"; }
+  auto asTuple() const { return std::tie(); }
+  IMPL_COMPARISONS_FROM_TUPLE(Epsilon);
 };
 
-inline std::ostream& operator<<(std::ostream& out, Lim const& self)
+struct Period
 { 
-  switch(self) {
-    case Lim::Infinity: return out << "\u221E";
-    case Lim::Epsilon:  return out << "\u03B5";
-  } 
-}
+  RealConstantType p; 
+  explicit Period(RealConstantType p) : p(p) {}
+  friend std::ostream& operator<<(std::ostream& out, Period const& self)
+  { return out << self.p << "\u2124"; }
+  auto asTuple() const { return std::tie(p); }
+  IMPL_COMPARISONS_FROM_TUPLE(Period);
+};
 
 enum class Sign { Plus, Minus, };
 
@@ -43,32 +67,64 @@ inline std::ostream& operator<<(std::ostream& out, Sign const& self)
   } 
 }
 
-class ElimTerm {
-
+class FiniteElimTerm 
+{
   TermList _term;
-  Option<std::pair<Sign, Lim>> _lim;
-  ElimTerm(TermList term, Sign s, Lim l) : _term(term), _lim(std::make_pair(s, l)) {  }
+  Option<Epsilon> _epsilon;
+  Option<Period> _period;
+  friend class ElimTerm;
+  FiniteElimTerm(TermList term, Option<Epsilon> epsilon, Option<Period> period) : _term(term), _epsilon(std::move(epsilon)), _period(std::move(period)) {  }
 public: 
-  explicit ElimTerm(TermList term) : _term(term), _lim() {  }
-  friend ElimTerm operator+(TermList t, Lim l);
-  friend ElimTerm operator-(TermList t, Lim l);
+  Option<Period > const& period () const { return _period ; }
+  Option<Epsilon> const& epsilon() const { return _epsilon; }
+  friend FiniteElimTerm operator+(FiniteElimTerm t, Epsilon e);
+  friend FiniteElimTerm operator+(FiniteElimTerm t, Period  p);
+  explicit FiniteElimTerm(TermList term) : FiniteElimTerm(term, {}, {}) {  }
   TermList const& term() const { return _term; }
-  Option<std::pair<Sign, Lim>> const& lim() const { return _lim; }
-  friend std::ostream& operator<<(std::ostream& out, ElimTerm const& self)
+  friend std::ostream& operator<<(std::ostream& out, FiniteElimTerm const& self)
   { 
     out << self._term; 
-    if (self._lim.isSome()) { out << " " << self._lim->first << " " << self._lim->second; } 
+    if (self._epsilon.isSome()) { out << " + " << self._epsilon; } 
+    if (self._period.isSome()) { out << " + " << self._period; } 
     return out; 
   }
 };
 
-inline ElimTerm operator+(TermList t, Lim l) { return ElimTerm(t, Sign::Plus , l); }
-inline ElimTerm operator-(TermList t, Lim l) { return ElimTerm(t, Sign::Minus, l); }
+class MinusInfinity { 
+  friend class ElimTerm; 
+  friend std::ostream& operator<<(std::ostream& out, MinusInfinity const& self)
+  { return out << "-\u221E"; }
+};
+
+class ElimTerm 
+{
+  Coproduct<FiniteElimTerm, MinusInfinity> _self;
+public: 
+  ElimTerm(FiniteElimTerm t) : _self(t) {}
+  ElimTerm(MinusInfinity  t) : _self(t) {}
+  Option<FiniteElimTerm const&> asFinite() const { return _self.template as<FiniteElimTerm>(); }
+  bool                          isFinite() const { return _self.template is<FiniteElimTerm>(); }
+  explicit ElimTerm(TermList term) : ElimTerm(FiniteElimTerm(term, {}, {})) {  }
+  static ElimTerm minusInfinity() { return ElimTerm(FiniteElimTerm(RealTraits::zero(), {}, some(Period(RealConstantType(1))))); }
+  // static ElimTerm minusInfinity() { return ElimTerm(MinusInfinity{}); }
+  friend std::ostream& operator<<(std::ostream& out, ElimTerm const& self)
+  { self._self.apply([&](auto& x) { out << x; }); return out; }
+};
+
+inline FiniteElimTerm operator+(FiniteElimTerm t, Epsilon e) { return FiniteElimTerm(t.term(), some(e), t.period()); }
+inline FiniteElimTerm operator+(FiniteElimTerm t, Period  p) { return FiniteElimTerm(t.term(), t.epsilon(), some(p)); }
+inline ElimTerm operator+(ElimTerm t, Epsilon e) { ASS(t.isFinite()) return ElimTerm(*t.asFinite() + e); }
+inline ElimTerm operator+(ElimTerm t, Period  p) { ASS(t.isFinite()) return ElimTerm(*t.asFinite() + p); }
+inline ElimTerm operator+(TermList t, Epsilon e) { return ElimTerm(t) + e; }
+inline ElimTerm operator+(TermList t, Period  p) { return ElimTerm(t) + p; }
 
 class ElimSet {
   Stack<ElimTerm> _ts;
 public:
   explicit ElimSet(Stack<ElimTerm> ts) : _ts(std::move(ts)) {}
+  template<class Iter>
+  static ElimSet fromIter(Iter iter) 
+  { return ElimSet(iterTraits(std::move(iter)).template collect<Stack>()); }
   static ElimSet empty() { return ElimSet(Stack<ElimTerm>()); }
   friend std::ostream& operator<<(std::ostream& out, ElimSet const& self)
   { return out << self._ts; }

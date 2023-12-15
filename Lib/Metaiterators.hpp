@@ -2133,6 +2133,12 @@ auto arrayIter(Array&& x)
 { return range(0, x.size())
      .map([x = std::move(x)](auto i) { return std::move(x[i]); }); }
 
+
+// template<class T>
+// auto initListIter(std::initializer_list<T> list)
+// { return range(0, list.size())
+//      .map([iter = list.begin()](unsigned) mutable { auto elem = *iter; iter++; return elem; }); }
+//
 // template<class Array>
 // auto arrayIter(Array const& x) 
 // { return iterTraits(getArrayishObjectIterator<const_ref_t>(x)); }

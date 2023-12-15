@@ -49,6 +49,9 @@ public:
   //WARNING, this function cannot be used when @param t is a sort.
   static Term* replace(Term* t, TermList what, TermList by);
   static Literal* replace(Literal* lit, TermList what, TermList by);
+  static TermList replace(TermList t, TermList what, TermList by)
+  { return t.isVar() ? (t == what ? by : t)
+                     : TermList(replace(t.term(), what, by));  }
 
   struct LHSIteratorFn
   {

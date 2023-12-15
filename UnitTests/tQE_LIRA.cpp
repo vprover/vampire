@@ -13,6 +13,7 @@
  * @date 2020-04-29
  */
 
+#include "Kernel/Theory.hpp"
 #include "Test/UnitTesting.hpp"
 #include "Test/TestUtils.hpp"
 #include "Test/SyntaxSugar.hpp"
@@ -21,9 +22,19 @@
 using namespace QE;
 using namespace Test;
 
+#define VAR_X 0
 
 bool eqModAC(ElimSet const& lhs, ElimSet const& rhs)
-{ return TestUtils::permEq(lhs, rhs, [&](auto& l, auto& r) { return l.lim() == r.lim() && TestUtils::eqModAC(l.term(), r.term());  }); }
+{ return TestUtils::permEq(lhs, rhs, [&](auto& l_, auto& r_) { 
+    if (l_.isFinite() != r_.isFinite()) return false;
+    else {
+      auto& l = *l_.asFinite();
+      auto& r = *r_.asFinite();
+      return l.period() == r.period() 
+          && l.epsilon() == r.epsilon() 
+          && TestUtils::eqModAC(l.term(), r.term());
+    }
+      }); }
 
 
 struct ElimSetTest {
@@ -31,7 +42,7 @@ struct ElimSetTest {
   Stack<ElimSet> expected;
 
   void run() {
-    auto result = LIRA::computeElimSet(conj);
+    auto result = LIRA::computeElimSet(VAR_X, conj);
     for (auto& s : expected) {
       if (!arrayIter(result).any([&](auto& res) { return eqModAC(res, s); }) ) {
         std::cout << "[      case ] " << pretty(     conj ) << std::endl;
@@ -44,22 +55,28 @@ struct ElimSetTest {
   }
 };
 
+Period Z(int i)        { return Period(RealConstantType(i));    }
+Period Z(int p, int q) { return Period(RealConstantType(p, q)); }
+
 /* syntax sugar functions for writing nice test cases*/
 ElimTerm elimTerm(int i) { return ElimTerm(num(i)); }
 ElimTerm elimTerm(ElimTerm e) { return ElimTerm(e); }
 ElimTerm elimTerm(TermList t) { return ElimTerm(t); }
-template<class... As> ElimSet elimSet(As... as) { return ElimSet({elimTerm(as)...}); }
+ElimSet elimSet() { return ElimSet(Stack<ElimTerm>()); }
+template<class A, class... As> ElimSet elimSet(A a, As... as) { return ElimSet({elimTerm(a), elimTerm(as)...}); }
 
-inline ElimTerm operator+(int n, Lim lim) { return num(n) + lim; }
-inline ElimTerm operator-(int n, Lim lim) { return num(n) - lim; }
 
-constexpr Lim eps = Lim::Epsilon;
-constexpr Lim inf = Lim::Infinity;
+inline ElimTerm operator+(int n, Epsilon e) { return num(n) + e; }
+inline ElimTerm operator+(int n, Period  p) { return num(n) + p; }
+ElimTerm minusInf() { return ElimTerm::minusInfinity(); }
+
+
+constexpr Epsilon eps = Epsilon{};
 
 #define SUGAR                                                                             \
   __ALLOW_UNUSED(                                                                         \
     NUMBER_SUGAR(Real)                                                                    \
-    DECL_VAR(x, 0)                                                                        \
+    DECL_VAR(x, VAR_X)                                                                    \
     DECL_CONST(a, Real)                                                                   \
     DECL_CONST(b, Real)                                                                   \
     DECL_CONST(c, Real)                                                                   \
@@ -72,74 +89,67 @@ constexpr Lim inf = Lim::Infinity;
 RUN_TEST(lra_01, 
     ElimSetTest {
       .conj = { x > 3 },
-      .expected = { elimSet(0 + inf) 
-                  , elimSet(3 + eps) },
+      .expected = { elimSet(3 + eps) },
     })
 
 RUN_TEST(lra_02, 
     ElimSetTest {
       .conj = { x < 3 },
-      .expected = { elimSet(0 - inf) 
-                  , elimSet(3 - eps) },
+      .expected = { elimSet(minusInf()) },
     })
 
 RUN_TEST(lra_03, 
     ElimSetTest {
       .conj = { x >= 3 },
-      .expected = { elimSet(0 + inf) 
-                  , elimSet(3      ) },
+      .expected = { elimSet(3) },
     })
 
 RUN_TEST(lra_04, 
     ElimSetTest {
       .conj = { x <= 3 },
-      .expected = { elimSet(0 - inf) 
-                  , elimSet(3      ) },
+      .expected = { elimSet(minusInf()) },
     })
 
 RUN_TEST(lra_05, 
     ElimSetTest {
       .conj = { a < x, x < b },
-      .expected = { elimSet(a + eps) 
-                  , elimSet(b - eps) }, 
+      .expected = { elimSet(a + eps) }, 
     })
 
 RUN_TEST(lra_06, 
     ElimSetTest {
       .conj = { a <= x, x < b },
-      .expected = { elimSet(a) 
-                  , elimSet(b - eps) }, 
+      .expected = { elimSet(a, minusInf()) }, 
     })
 
 RUN_TEST(lra_07, 
     ElimSetTest {
       .conj = { a <= x, x <= b },
-      .expected = { elimSet(a) 
-                  , elimSet(b) }, 
+      .expected = { elimSet(a, minusInf()) }, 
     })
 
 RUN_TEST(floor_1, 
     ElimSetTest {
       .conj = { floor(x) == x },
-      .expected = {elimSet(0) }, 
+      .expected = {elimSet(0 + Z(1)) }, 
     })
 
 RUN_TEST(floor_2, 
     ElimSetTest {
       .conj = { floor(x) >= x },
-      .expected = {elimSet(0) }, 
+      .expected = {elimSet(0 + Z(1)) }, 
     })
 
 RUN_TEST(floor_3, 
     ElimSetTest {
       .conj = { floor(x - frac(1,2)) == x },
-      .expected = {elimSet(frac(1,2)) }, 
+      .expected = {elimSet(frac(1,2) + Z(1)) }, 
     })
 
 RUN_TEST(floor_4, 
     ElimSetTest {
       .conj = { floor(x - a) == x },
-      .expected = {elimSet(a) }, 
+      .expected = {elimSet(a + Z(1)) }, 
     })
 
 // RUN_TEST(floor_2, 
