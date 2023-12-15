@@ -840,6 +840,7 @@ void SynthesisManager::matchSkolemSymbols(BindingList* bindingList, SkolemTracke
         storeSkolemMapping(b.first, b.second, st.constructorIndex, st.recursiveArg, st.recursivePos, st.recFnID);
         Signature::Symbol* s = env.signature->getFunction(b.second->functor());
         s->setConstructorId(st.constructorIndex);
+        s->setRecTermId(st.recFnID);
         break;
       }
     }
