@@ -127,6 +127,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
       bool checkS = mcl->length() <= clen;
       if (checkS) {
         if (satSubs.checkSubsumption(mcl, cl, checkSR)) {
+          ASS(replacement == nullptr)
           premises = pvi(getSingletonIterator(mcl));
           return true;
         }
@@ -190,7 +191,10 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
       auto it = _fwIndex->getGeneralizations(lit, false, false);
       while (it.hasNext()) {
         mcl = it.next().clause;
-        if (!checkedClauses.insert(mcl) || (!_checkLongerClauses && mcl->length() > clen)) {
+        if (!checkedClauses.insert(mcl)) {
+          continue;
+        }
+        if (!_checkLongerClauses && mcl->length() > clen) {
           continue;
         }
         conclusion = satSubs.checkSubsumptionResolution(mcl, cl, false);
@@ -214,10 +218,12 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
     auto it = _fwIndex->getGeneralizations(lit, true, false);
     while (it.hasNext()) {
       mcl = it.next().clause;
-      if (!checkedClauses.insert(mcl) || (!_checkLongerClauses && mcl->length() > clen)) {
+      if (!checkedClauses.insert(mcl)) {
         continue;
       }
-
+      if (!_checkLongerClauses && mcl->length() > clen) {
+        continue;
+      }
       conclusion = satSubs.checkSubsumptionResolution(mcl, cl);
       if (conclusion) {
         ASS(premise == nullptr)
@@ -228,6 +234,9 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
       }
     }
   }
+
   return false;
-}
+}  // perform
+
+
 } // namespace Inferences
