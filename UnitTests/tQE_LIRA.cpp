@@ -18,6 +18,7 @@
 #include "Test/TestUtils.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "QE/LIRA.hpp"
+#include "Kernel/LASCA.hpp"
 
 using namespace QE;
 using namespace Test;
@@ -32,7 +33,8 @@ bool eqModAC(ElimSet const& lhs, ElimSet const& rhs)
       auto& r = *r_.asFinite();
       return l.period() == r.period() 
           && l.epsilon() == r.epsilon() 
-          && TestUtils::eqModAC(l.term(), r.term());
+          && testLascaState()->equivalent(l.term(), r.term());
+          // && TestUtils::eqModAC(l.term(), r.term());
     }
       }); }
 
@@ -69,7 +71,6 @@ template<class A, class... As> ElimSet elimSet(A a, As... as) { return ElimSet({
 inline ElimTerm operator+(int n, Epsilon e) { return num(n) + e; }
 inline ElimTerm operator+(int n, Period  p) { return num(n) + p; }
 ElimTerm minusInf() { return ElimTerm::minusInfinity(); }
-
 
 constexpr Epsilon eps = Epsilon{};
 
