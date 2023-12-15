@@ -383,6 +383,15 @@ void vampireMode()
   }
 } // vampireMode
 
+
+
+
+
+
+
+
+
+
 vmap<unsigned int, Clause*> getNumberedClauses(UnitList const* units)
 {
   vmap<unsigned int, Clause*> clauses;
@@ -432,6 +441,32 @@ vmap<unsigned int, Clause*> getNumberedClauses(UnitList const* units)
 
   return clauses;
 }
+
+/// Implements mode 'sbench'
+void subsumptionBenchmarkMode()
+{
+  Timer::setLimitEnforcement(false);  // don't terminate in signal handler
+
+  // We need to set this option to make the parser save axiom names
+  env.options->setOutputAxiomNames(true);
+
+  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
+  Shell::Preprocess prepro(*env.options);
+  prepro.preprocess_very_lightly(*prb);
+
+  // TODO: load subsumption benchmark
+
+  vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+}
+
+
+
+
+
+
+
+
+
 
 void spiderMode()
 {
@@ -663,6 +698,10 @@ int main(int argc, char* argv[])
     case Options::Mode::CONSEQUENCE_ELIMINATION:
     case Options::Mode::VAMPIRE:
       vampireMode();
+      break;
+
+    case Options::Mode::SUBSUMPTION_BENCHMARK:
+      subsumptionBenchmarkMode();
       break;
 
     case Options::Mode::CASC:

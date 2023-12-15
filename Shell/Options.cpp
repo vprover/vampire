@@ -124,9 +124,7 @@ void Options::init()
                                         "tclausify",
                                         "tpreprocess",
                                         "vampire",
-                                        "stest",
-                                        "sbench-micro",
-                                        "sbench-run",
+                                        "sbench",
                                     });
     _mode.description=
     "Select the mode of operation. Choices are:\n"
