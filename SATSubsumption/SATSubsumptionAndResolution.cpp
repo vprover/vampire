@@ -157,7 +157,6 @@ void SATSubsumptionAndResolution::loadProblem(Clause *L,
   _bindingsManager.clear();
 } // SATSubsumptionAndResolution::loadProblem
 
-static vvector<unsigned> headerMultiset;
 /**
  * @brief Heuristically determine whether it is impossible to find a subsumption
  * between _L and _M.
@@ -183,16 +182,16 @@ bool SATSubsumptionAndResolution::pruneSubsumption()
   }
 
   // multiset of signed predicates in M
-  headerMultiset.clear();
-  headerMultiset.resize(2 * env.signature->predicates());
+  _headerMultiset.clear();
+  _headerMultiset.resize(2 * env.signature->predicates());
 
   // fill in the multiset of functors in M
   for (unsigned i = 0; i < _M->length(); i++)
-    headerMultiset[(*_M)[i]->header()]++;
+    _headerMultiset[(*_M)[i]->header()]++;
 
   // check if the multiset of functors in L is a subset of the multiset of functors in M
   for (unsigned j = 0; j < _L->length(); j++)
-    if (!headerMultiset[(*_L)[j]->header()]--) {
+    if (!_headerMultiset[(*_L)[j]->header()]--) {
       _subsumptionImpossible = true;
       return true;
     }
@@ -209,7 +208,6 @@ bool SATSubsumptionAndResolution::pruneSubsumption()
   return false;
 } // SATSubsumptionAndResolution::pruneSubsumption
 
-static vvector<bool> functorSet;
 /**
  * @brief Heuristically determine whether it is impossible to apply subsumption
  * resolution between _L and _M.
@@ -225,14 +223,14 @@ bool SATSubsumptionAndResolution::pruneSubsumptionResolution()
   ASS(_L)
   ASS(_M)
 
-  functorSet.clear();
-  functorSet.resize(env.signature->predicates());
+  _functorSet.clear();
+  _functorSet.resize(env.signature->predicates());
 
   for (unsigned i = 0; i < _M->length(); i++)
-    functorSet[(*_M)[i]->functor()] = true;
+    _functorSet[(*_M)[i]->functor()] = true;
 
   for (unsigned j = 0; j < _L->length(); j++)
-    if (!functorSet[(*_L)[j]->functor()])
+    if (!_functorSet[(*_L)[j]->functor()])
       return true;
 
   return false;

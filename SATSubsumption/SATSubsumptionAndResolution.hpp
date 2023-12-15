@@ -342,6 +342,11 @@ private:
   // remembers if the fillMatchesSR concluded that subsumption resolution is impossible
   bool _srImpossible;
 
+  // temporary storage, used by pruneSubsumption
+  vvector<unsigned> _headerMultiset;
+  // temporary storage, used by pruneSubsumptionResolution
+  vvector<char> _functorSet;
+
   /* Methods */
   /**
    * Sets up the problem and cleans the match set and bindings
