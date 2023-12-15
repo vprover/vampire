@@ -40,8 +40,8 @@
 
 // the number of bits used for "TermList::_info::distinctVars"
 #define TERM_DIST_VAR_BITS 21
-// maximum number that fits in a 21-bit integer - update if TERM_DIST_VAR_BITS changes
-#define TERM_DIST_VAR_UNKNOWN 0x1FFFFF
+// maximum number that fits in a TERM_DIST_VAR_BITS-bit unsigned integer
+#define TERM_DIST_VAR_UNKNOWN ((1 << TERM_DIST_VAR_BITS)-1)
 
 namespace Kernel {
 
