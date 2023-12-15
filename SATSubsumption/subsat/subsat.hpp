@@ -56,7 +56,7 @@ struct Statistics {
 #if SUBSAT_RESTART
   int restarts = 0;               ///< Number of restarts performed.
 #endif
-#endif SUBSAT_STATISTICS
+#endif  // SUBSAT_STATISTICS
 
   void reset() { *this = Statistics(); }
 };
@@ -81,7 +81,7 @@ static inline std::ostream& operator<<(std::ostream& os, Statistics const& stats
      << " (= learned literals + clause headers + " << (stats.max_stored_literals - static_cast<std::size_t>(stats.learned_literals + stats.learned_long_clauses + stats.learned_binary_clauses)) << ")\n";
   assert(stats.conflicts == stats.conflicts_by_clause + stats.conflicts_by_amo);
   assert(stats.propagations == stats.propagations_by_clause + stats.propagations_by_amo + stats.propagations_by_theory);
-#endif SUBSAT_STATISTICS
+#endif  // SUBSAT_STATISTICS
   return os;
 }
 
@@ -1443,7 +1443,6 @@ private:
   ConstraintRef propagate_literal_in_amos(Lit const lit, uint64_t& ticks)
   {
     Lit const not_lit = ~lit;
-    ConstraintRef conflict = ConstraintRef::invalid();
 
     auto const& watches = m_watches_amo[lit];
     ticks += cache_lines_vec(watches);
