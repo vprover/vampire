@@ -739,6 +739,8 @@ set(VAMPIRE_SAT_SUBSUMPTION_SOURCES
     SATSubsumption/ForwardBenchmark.hpp
     SATSubsumption/Util.cpp
     SATSubsumption/Util.hpp
+    SATSubsumption/SubsumptionLogger.cpp
+    SATSubsumption/SubsumptionLogger.hpp
 
     SATSubsumption/subsat/constraint.cpp
     SATSubsumption/subsat/constraint.hpp
