@@ -530,7 +530,7 @@ public:
         if (!logFile.is_open()) {
           std::cout << "Could not open file " << fileName << std::endl;
         } else {
-          logFile << "m,n,sparsity,time" << std::endl;
+          logFile << "m,n,sparsity,time,satcall,ticks" << std::endl;
           std::cout << "Opened file " << fileName << std::endl;
         }
       }

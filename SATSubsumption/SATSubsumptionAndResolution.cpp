@@ -974,7 +974,9 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolution(Clause *L,
       logFile << _L->length() << ","
               << _M->length() << ","
               << getSparsity() << ","
-              << duration.count() << "\n";
+              << duration.count() << ","
+              << 0 /* no SAT call */ << ","
+              << 0 /* SAT ticks */ << "\n";
     }
 #endif
     return nullptr;
@@ -1010,7 +1012,9 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolution(Clause *L,
     logFile << _L->length() << ","
             << _M->length() << ","
             << getSparsity() << ","
-            << duration.count() << "\n";
+            << duration.count() << ","
+            << 1 /* SAT call */ << ","
+            << solver.stats().ticks << "\n";
   }
 #endif
   // If the problem is SAT, then generate the conclusion clause

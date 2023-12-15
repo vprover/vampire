@@ -463,6 +463,11 @@ public:
     return m_theory;
   }
 
+  Statistics const& stats()
+  {
+    return m_stats;
+  }
+
 
   /// Return true iff the solver is empty
   /// (i.e., in the state after construction/clear).
@@ -2255,11 +2260,9 @@ bool Solver::checkEmpty() const
   assert(tmp_analyze_seen.empty());
   assert(m_frames.empty());
   assert(m_theory.empty());
-#if SUBSAT_STATISTICS
   auto stats_ptr = reinterpret_cast<unsigned char const*>(&m_stats);
   assert(std::all_of(stats_ptr, stats_ptr + sizeof(Statistics),
                      [](unsigned char x) { return x == 0; }));
-#endif
   return true;
 }
 
