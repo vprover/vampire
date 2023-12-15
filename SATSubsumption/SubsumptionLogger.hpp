@@ -10,7 +10,7 @@
 #ifndef SUBSUMPTION_LOGGER_HPP
 #define SUBSUMPTION_LOGGER_HPP
 
-#include "Kernel/Clause.hpp"
+#include "Forwards.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/STL.hpp"
 #include "Shell/TPTPPrinter.hpp"
@@ -64,6 +64,39 @@ public:
   void logSubsumptionResolution(Clause* side_premise, Clause* main_premise, Clause* result);
 
   void flush();
+};
+
+struct SubsumptionInstance {
+  Kernel::Clause* side_premise = nullptr;  // base
+  // Kernel::Clause* main_premise = nullptr;  // instance
+  int result = -999;
+};
+
+struct SubsumptionResolutionInstance {
+  Kernel::Clause* side_premise = nullptr;  // base
+  // Kernel::Clause* main_premise = nullptr;  // instance
+  int result = -999;
+};
+
+struct ForwardSubsumptionLoop {
+  // all of these should have the same main premise
+  vvector<SubsumptionInstance> subsumptions;
+  vvector<SubsumptionResolutionInstance> subsumption_resolutions;
+  Kernel::Clause* main_premise = nullptr;  // instance
+
+  bool empty() const {
+    return subsumptions.empty() && subsumption_resolutions.empty();
+  }
+
+  void reset() {
+    *this = ForwardSubsumptionLoop();
+  }
+};
+
+struct SubsumptionBenchmark {
+  vvector<ForwardSubsumptionLoop> fwd_loops;
+
+  void load_from(Kernel::UnitList const* units, vstring const& slog_filename);
 };
 
 

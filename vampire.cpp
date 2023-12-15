@@ -392,56 +392,6 @@ void vampireMode()
 
 
 
-vmap<unsigned int, Clause*> getNumberedClauses(UnitList const* units)
-{
-  vmap<unsigned int, Clause*> clauses;
-
-  while (UnitList::isNonEmpty(units)) {
-    Clause* clause = units->head()->asClause();
-    // std::cerr << "Clause: " << clause->toString() << std::endl;
-
-    Unit* unit = clause;
-    while (true) {
-      auto const& inference = unit->inference();
-      auto parents = inference.iterator();
-      if (!inference.hasNext(parents)) {
-        // no parents -> we have an axiom
-        vstring name;
-        Parse::TPTP::findAxiomName(unit, name);
-
-        vstring prefix = "clause_";
-        if (std::strncmp(name.c_str(), prefix.c_str(), prefix.size()) == 0) {
-          unsigned int number = std::strtoul(name.c_str() + prefix.size(), nullptr, 10);
-          bool inserted = clauses.insert({number, clause}).second;
-          if (!inserted) {
-             throw UserErrorException("duplicate clause with number: ", number);
-          }
-        }
-        // done with this clause, go to the next one
-        break;
-      } else {
-        // There's still parents to process
-        Unit* parent = inference.next(parents);
-        ASS(!inference.hasNext(parents));  // we expect exactly one parent
-        unit = parent;
-      }
-    }
-
-    units = units->tail();
-  }
-
-  // The parser reverses the order of literals in the clause as given in the input file, so we correct this here
-  DHSet<Clause*> seen;
-  for (auto& pair : clauses) {
-    Clause* clause = pair.second;
-    if (seen.insert(clause)) {
-      std::reverse(clause->literals(), clause->literals() + clause->length());
-    }
-  }
-
-  return clauses;
-}
-
 /// Implements mode 'sbench'
 void subsumptionBenchmarkMode()
 {
@@ -454,7 +404,9 @@ void subsumptionBenchmarkMode()
   Shell::Preprocess prepro(*env.options);
   prepro.preprocess_very_lightly(*prb);
 
-  // TODO: load subsumption benchmark
+  vstring const& tptp_file = env.options->inputFile();
+  vstring slog_file = tptp_file.substr(0, tptp_file.find_last_of('.')) + ".slog";
+  // TODO: load subsumption benchmark from prb->units() and slog_file
 
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 }
