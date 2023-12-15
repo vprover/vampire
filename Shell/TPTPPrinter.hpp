@@ -37,6 +37,7 @@ public:
   void print(Unit* u);
   void printAsClaim(vstring name, Unit* u);
   void printWithRole(vstring name, vstring role, Unit* u, bool includeSplitLevels = true);
+  void printWithRole(vstring name, vstring role, Literal* u);
 
   static vstring toString(const Unit*);
   static vstring toString(const Formula*);
@@ -46,11 +47,11 @@ public:
 private:
 
   vstring getBodyStr(Unit* u, bool includeSplitLevels);
+  void writeBodyStr(std::ostream& out, Literal* lit);
 
-  void ensureHeadersPrinted(Unit* u);
+  void ensureHeadersPrinted();
   void outputSymbolTypeDefinitions(unsigned symNumber, SymbolType symType);
 
-  void ensureNecesarySorts();
   void printTffWrapper(Unit* u, vstring bodyStr);
 
   void beginOutput();

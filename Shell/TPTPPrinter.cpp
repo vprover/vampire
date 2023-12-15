@@ -54,7 +54,7 @@ void TPTPPrinter::print(Unit* u)
   vstring body = getBodyStr(u, true);
 
   beginOutput();
-  ensureHeadersPrinted(u);
+  ensureHeadersPrinted();
   printTffWrapper(u, body);
   endOutput();
 }
@@ -74,8 +74,19 @@ void TPTPPrinter::printWithRole(vstring name, vstring role, Unit* u, bool includ
   vstring body = getBodyStr(u, includeSplitLevels);
 
   beginOutput();
-  ensureHeadersPrinted(u);
+  ensureHeadersPrinted();
   tgt() << "tff(" << name << ", " << role << ", " << body << ")." << endl;
+  endOutput();
+}
+
+/** Print literal as if it were a unit clause. */
+void TPTPPrinter::printWithRole(vstring name, vstring role, Literal* lit)
+{
+  beginOutput();
+  ensureHeadersPrinted();
+  tgt() << "tff(" << name << ", " << role << ", ";
+  writeBodyStr(tgt(), lit);
+  tgt() << ").\n";
   endOutput();
 }
 
@@ -144,6 +155,40 @@ vstring TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
     return static_cast<FormulaUnit*>(u)->formula()->toString();
   }
   return res.str();
+}
+
+void TPTPPrinter::writeBodyStr(std::ostream& out, Literal* lit)
+{
+  typedef DHMap<unsigned,TermList> SortMap;
+  static SortMap varSorts;
+  varSorts.reset();
+  SortHelper::collectVariableSorts(lit, varSorts);
+
+  SortMap::Iterator vit(varSorts);
+  bool quantified = vit.hasNext();
+  if (quantified) {
+    out << "![";
+    while (vit.hasNext()) {
+      unsigned var;
+      TermList varSort;
+      vit.next(var, varSort);
+
+      out << 'X' << var;
+      if (varSort != AtomicSort::defaultSort()) {
+        out << " : " << varSort.toString();
+      }
+      if (vit.hasNext()) {
+        out << ',';
+      }
+    }
+    out << "]: (";
+  }
+
+  out << lit->toString();
+
+  if (quantified) {
+    out << ')';
+  }
 }
 
 /**
@@ -295,13 +340,11 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
 /**
  * Makes sure that only the needed headers in the @param u are printed out on the output
  */
-void TPTPPrinter::ensureHeadersPrinted(Unit* u)
+void TPTPPrinter::ensureHeadersPrinted()
 {
   if(_headersPrinted) {
     return;
   }
-  
-  //ensureNecesarySorts();
 
   unsigned typeCons = env.signature->typeCons();
   for(unsigned i=Signature::FIRST_USER_CON; i<typeCons; i++) {
