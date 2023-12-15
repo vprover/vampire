@@ -29,13 +29,8 @@ using namespace Saturation;
 
 ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(bool subsumptionResolution, bool log)
     : _subsumptionResolution(subsumptionResolution)
+    , satSubs(log || CORRELATE_LENGTH_TIME)
 {
-  #if CORRELATE_LENGTH_TIME
-  if (log)
-    satSubs = SATSubsumption::SATSubsumptionAndResolution(true);
-  #else
-  satSubs = SATSubsumption::SATSubsumptionAndResolution(log);
-  #endif
 }
 
 ForwardSubsumptionAndResolution::~ForwardSubsumptionAndResolution()
