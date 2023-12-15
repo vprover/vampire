@@ -2133,6 +2133,19 @@ auto arrayIter(Array&& x)
 { return range(0, x.size())
      .map([x = std::move(x)](auto i) { return std::move(x[i]); }); }
 
+template<class T>
+class NatIter {
+  T _i;
+public:
+  DECL_ELEMENT_TYPE(T);
+  NatIter() : _i(0) {}
+  bool hasNext() const { return true; }
+  T next() { return _i++; }
+};
+
+template<class T = unsigned>
+auto natIter()
+{ return iterTraits(NatIter<T>()); }
 
 // template<class T>
 // auto initListIter(std::initializer_list<T> list)

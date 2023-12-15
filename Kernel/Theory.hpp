@@ -189,6 +189,11 @@ struct RationalConstantType {
   RationalConstantType(int num, int den);
   RationalConstantType(IntegerConstantType num, IntegerConstantType den);
 
+  RationalConstantType operator++(int) { 
+    auto out = *this;
+    _num += _den; cannonize(); 
+    return out;
+  }
   RationalConstantType operator+(const RationalConstantType& num) const;
   RationalConstantType operator-(const RationalConstantType& num) const;
   RationalConstantType operator-() const;
@@ -281,6 +286,7 @@ public:
   { return RealConstantType(RationalConstantType::operator*(num)); }
   RealConstantType operator/(const RealConstantType& num) const
   { return RealConstantType(RationalConstantType::operator/(num)); }
+  RealConstantType operator++(int) { return RealConstantType(RationalConstantType::operator++(0)); }
 
   RealConstantType floor() const { return RealConstantType(RationalConstantType::floor()); }
   RealConstantType truncate() const { return RealConstantType(RationalConstantType::truncate()); }

@@ -1085,11 +1085,10 @@ bool Theory::isInterpretedPredicate(Literal* lit)
  * as @b itp
  */
 bool Theory::isInterpretedPredicate(Literal* lit, Interpretation itp)
-{
-  CALL("Theory::isInterpretedPredicate/2");
+{ return isInterpretedPredicate(lit->functor(), itp); }
 
-  return isInterpretedPredicate(lit) && interpretPredicate(lit)==itp;
-}
+bool Theory::isInterpretedPredicate(unsigned p, Interpretation itp)
+{ return isInterpretedPredicate(p) && interpretPredicate(p) == itp; }
 
 bool Theory::isInterpretedFunction(unsigned func)
 {
