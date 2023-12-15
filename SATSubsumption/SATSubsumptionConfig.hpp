@@ -34,6 +34,12 @@
 #define CORRELATE_LENGTH_TIME 1
 #endif
 
+
+/// If 1, writes all subsumption and subsumption resolution calls into files:
+/// - "slog/<name>.slog" defines clauses, subsumption calls, subsumption resolution calls
+/// - "slog/<name>.p" defines literals in TPTP syntax
+#define LOG_SSR_CLAUSES 1
+
 /*****************************************************************************/
 /*                          SUBSUMPTION RESOLUTION                           */
 /*****************************************************************************/
@@ -44,7 +50,7 @@
 #ifndef SAT_SR_IMPL
 #define SAT_SR_IMPL 3
 #endif
-/// If 1, prints the clauses added to the solver on the standard output
+/// If 1, prints the SAT clauses added to the solver on the standard output
 #define PRINT_CLAUSES_SUBS 0
 /// If 1, prints some comments about the subsumption resolution process
 #define PRINT_CLAUSE_COMMENTS_SUBS 0

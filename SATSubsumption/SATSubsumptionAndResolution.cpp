@@ -822,7 +822,6 @@ Clause *SATSubsumptionAndResolution::generateConclusion()
 // Provided the solution of the sat solver, we can create the conclusion clause
 #if VDEBUG
   unsigned j = INVALID;
-  ;
   // Check that there is only one negative polarity match to j inside the model
   for (subsat::Lit lit : _model) {
     if (lit.is_positive()) {
@@ -871,6 +870,17 @@ bool SATSubsumptionAndResolution::checkSubsumption(Clause *L,
                                                    Clause *M,
                                                    bool setSR)
 {
+  bool result = checkSubsumptionImpl(L, M, setSR);
+#if LOG_SSR_CLAUSES
+  _logger->logSubsumption(L, M, result);
+#endif
+  return result;
+}
+
+bool SATSubsumptionAndResolution::checkSubsumptionImpl(Clause *L,
+                                                       Clause *M,
+                                                       bool setSR)
+{
   ASS(L)
   ASS(M)
 
@@ -912,6 +922,17 @@ bool SATSubsumptionAndResolution::checkSubsumption(Clause *L,
 Clause *SATSubsumptionAndResolution::checkSubsumptionResolution(Clause *L,
                                                                 Clause *M,
                                                                 bool usePreviousSetUp)
+{
+  Clause* result = checkSubsumptionResolutionImpl(L, M, usePreviousSetUp);
+#if LOG_SSR_CLAUSES
+  _logger->logSubsumptionResolution(L, M, result);
+#endif
+  return result;
+}
+
+Clause *SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause *L,
+                                                                    Clause *M,
+                                                                    bool usePreviousSetUp)
 {
   ASS(L)
   ASS(M)

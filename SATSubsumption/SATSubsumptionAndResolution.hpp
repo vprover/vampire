@@ -16,18 +16,24 @@
 
 #include "Kernel/Clause.hpp"
 #include "Lib/STL.hpp"
+
 #include "./subsat/subsat.hpp"
 
 #include "SATSubsumption/SATSubsumptionConfig.hpp"
 
+#if LOG_SSR_CLAUSES
+#include "SATSubsumption/SubsumptionLogger.hpp"
+#include <memory>
+#endif
+
 #if CORRELATE_LENGTH_TIME
 #include <chrono>
 #include <iostream>
-#include <fstream>  //include the filestreamobject as the header files
+#include <fstream>
 #endif
 
 namespace SATSubsumption {
-class SATSubsumptionAndResolution;
+
 
 /**
  * Class implementing the simplifying rules of subsumption and subsumption resolution using
@@ -347,6 +353,10 @@ private:
   // temporary storage, used by pruneSubsumptionResolution
   vvector<char> _functorSet;
 
+#if LOG_SSR_CLAUSES
+  std::unique_ptr<ForwardSubsumptionLogger> _logger;
+#endif
+
   /* Methods */
   /**
    * Sets up the problem and cleans the match set and bindings
@@ -511,42 +521,53 @@ public:
     _M(nullptr),
     _m(0),
     _n(0)
-    {
-      this->log = log;
+  {
+    this->log = log;
 #if CORRELATE_LENGTH_TIME
-      if (log) {
-        vstring fileName = "outputs/data_" + env.options->problemName();
-        #if SAT_SR_IMPL == 0
-          fileName += "_no_sat";
-        #elif SAT_SR_IMPL == 1
-          fileName += "_direct";
-        #elif SAT_SR_IMPL == 2
-          fileName += "_indirect";
-        #elif SAT_SR_IMPL == 3
-          fileName += "_dynamic";
-        #else
-          fileName += "_unknown";
-        #endif
-        #if USE_OPTIMIZED_FORWARD
-          fileName += "_opt";
-        #endif
-        fileName += ".csv";
-        logFile.open(fileName.c_str());
-        if (!logFile.is_open()) {
-          std::cout << "Could not open file " << fileName << std::endl;
-        } else {
-          logFile << "m,n,sparsity,time,satcall,ticks" << std::endl;
-          std::cout << "Opened file " << fileName << std::endl;
-        }
+    if (log) {
+      vstring fileName = "outputs/data_" + env.options->problemName();
+      #if SAT_SR_IMPL == 0
+        fileName += "_no_sat";
+      #elif SAT_SR_IMPL == 1
+        fileName += "_direct";
+      #elif SAT_SR_IMPL == 2
+        fileName += "_indirect";
+      #elif SAT_SR_IMPL == 3
+        fileName += "_dynamic";
+      #else
+        fileName += "_unknown";
+      #endif
+      #if USE_OPTIMIZED_FORWARD
+        fileName += "_opt";
+      #endif
+      fileName += ".csv";
+      logFile.open(fileName.c_str());
+      if (!logFile.is_open()) {
+        std::cout << "Could not open file " << fileName << std::endl;
+      } else {
+        logFile << "m,n,sparsity,time,satcall,ticks" << std::endl;
+        std::cout << "Opened file " << fileName << std::endl;
       }
-#endif
     }
+#endif
+#if LOG_SSR_CLAUSES
+    vstring filename = "slog/slog_" + env.options->problemName();
+    _logger = std::make_unique<ForwardSubsumptionLogger>(filename);
+#endif
+  }
+
+  void beginLoop(Kernel::Clause* main_premise)
+  {
+#if LOG_SSR_CLAUSES
+    _logger->beginLoop(main_premise);
+#endif
+  }
 
   /**
    * Checks whether the instance clause is subsumed by the base clause
    *
-   * @param L the base clause
-   * @param M the instance clause
+   * @param L the base clause (side premise)
+   * @param M the instance clause (main premise)
    * @param setSR if true, the Match set will be filled with negative matches as well. It will also check whether subsumption resolution is impossible.
    * @return true if M is subsumed by L
    *
@@ -588,8 +609,8 @@ public:
   /**
    * Checks whether a subsumption resolution can occur between the clauses @b L and @b M . If it is possible, returns the conclusion of the resolution, otherwise return NULL.
    *
-   * @param L the base clause
-   * @param M the instance clause
+   * @param L the base clause (side premise)
+   * @param M the instance clause (main premise)
    * @param usePreviousMatchSet whether to use the previous match set or not. If false, the match set will be cleared and filled again.
    * @return the conclusion of the resolution, or NULL if no resolution is possible
    *
@@ -625,6 +646,15 @@ public:
   static Kernel::Clause *getSubsumptionResolutionConclusion(Kernel::Clause *M,
                                                             Kernel::Literal *m_j,
                                                             Kernel::Clause *L);
+
+private:
+  bool checkSubsumptionImpl(Kernel::Clause *L,
+                            Kernel::Clause *M,
+                            bool setSR = false);
+
+  Kernel::Clause *checkSubsumptionResolutionImpl(Kernel::Clause *L,
+                                                 Kernel::Clause *M,
+                                                 bool usePreviousMatchSet = false);
 };
 
 } // namespace SATSubsumption

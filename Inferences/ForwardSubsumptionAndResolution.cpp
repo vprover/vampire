@@ -64,6 +64,8 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
 {
   TIME_TRACE("forward subsumption");
 
+  satSubs.beginLoop(cl);
+
   ASS(replacement == nullptr)
 
   unsigned clen = cl->length();
