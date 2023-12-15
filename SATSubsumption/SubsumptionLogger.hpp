@@ -46,7 +46,7 @@ private:
   DHMap<Literal*, LitIdx> m_logged_lits;
 
   struct ClauseInfo {
-    ClauseIdx idx;
+    ClauseIdx idx = 0;
     vvector<Literal*> lits;
     bool is_equal_to(Clause* cl) const;
   };

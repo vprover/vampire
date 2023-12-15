@@ -27,8 +27,12 @@ ForwardSubsumptionLogger::ForwardSubsumptionLogger(vstring const& filename_base)
   vstring path_tptp = filename_base + ".p";
   m_file_slog.open(path_slog.c_str());
   m_file_tptp.open(path_tptp.c_str());
-  ASS(m_file_slog.is_open());
-  ASS(m_file_tptp.is_open());
+  if (!m_file_slog.is_open()) {
+    USER_ERROR("unable to open file for writing: ", path_slog);
+  }
+  if (!m_file_tptp.is_open()) {
+    USER_ERROR("unable to open file for writing: ", path_tptp);
+  }
 }
 
 ForwardSubsumptionLogger::LitIdx ForwardSubsumptionLogger::logLiteral(Literal* lit)
@@ -60,10 +64,12 @@ ForwardSubsumptionLogger::ClauseIdx ForwardSubsumptionLogger::logClause(Clause* 
     else
       m_logged_clauses.remove(cl);
   }
-  ClauseIdx idx = m_next_clause++;
-  ClauseInfo info;
 
-  m_file_slog << "C " << idx;
+  ClauseIdx clause_idx = m_next_clause++;
+  ClauseInfo info;
+  info.idx = clause_idx;
+
+  m_file_slog << "C " << clause_idx;
   for (unsigned i = 0; i < cl->length(); ++i) {
     Literal* lit = (*cl)[i];
     LitIdx lit_idx = logLiteral(lit);
@@ -74,7 +80,7 @@ ForwardSubsumptionLogger::ClauseIdx ForwardSubsumptionLogger::logClause(Clause* 
   m_file_slog << " 0\n";
 
   ALWAYS(m_logged_clauses.emplace(cl, std::move(info)));
-  return idx;
+  return clause_idx;
 }
 
 void ForwardSubsumptionLogger::beginLoop(Clause* main_premise)
