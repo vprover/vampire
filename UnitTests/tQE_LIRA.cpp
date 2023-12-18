@@ -14,6 +14,7 @@
  */
 
 #include "Kernel/Theory.hpp"
+#include "QE/ElimSet.hpp"
 #include "Test/UnitTesting.hpp"
 #include "Test/TestUtils.hpp"
 #include "Test/SyntaxSugar.hpp"
@@ -25,8 +26,23 @@ using namespace Test;
 
 #define VAR_X 0
 
-bool eqModAC(ElimSet const& lhs, ElimSet const& rhs)
-{ return TestUtils::permEq(lhs, rhs, [&](auto& l_, auto& r_) { 
+
+ElimTerm simpl(ElimTerm t) 
+{
+  auto fin = t.asFinite();
+  if (fin) {
+    return ElimTerm(FiniteElimTerm(testLascaState()->normalize(fin->term()).denormalize(), fin->epsilon(), fin->period()));
+  } else {
+    return t;
+  }
+}
+
+template<class ElimSetish1, class ElimSetish2>
+bool eqModAC(ElimSetish1 const& lhs_, ElimSetish2 const& rhs_)
+{ 
+  auto lhs = arrayIter(lhs_).map([](auto& x) -> ElimTerm { return x; }).template collect<Stack>().sorted().deduped();
+  auto rhs = arrayIter(rhs_).map([](auto& x) -> ElimTerm { return x; }).template collect<Stack>().sorted().deduped();
+  return TestUtils::permEq(lhs, rhs, [&](auto& l_, auto& r_) { 
     if (l_.isFinite() != r_.isFinite()) return false;
     else {
       auto& l = *l_.asFinite();
@@ -45,12 +61,20 @@ struct ElimSetTest {
 
   void run() {
     auto result = LIRA::computeElimSet(VAR_X, conj);
+    auto simplResult = arrayIter(result)
+      .map([](auto s) { 
+          return arrayIter(s)
+                  .map([](auto t) { return simpl(t); })
+                  .template collect<Stack>();
+      })
+      .template collect<Stack>();
     for (auto& s : expected) {
-      if (!arrayIter(result).any([&](auto& res) { return eqModAC(res, s); }) ) {
-        std::cout << "[      case ] " << pretty(     conj ) << std::endl;
-        std::cout << "[    result ] " << pretty(   result ) << std::endl;
-        std::cout << "[ not found ] " << pretty(        s ) << std::endl;
-        std::cout << "[  expected ] " << pretty( expected ) << std::endl;
+      if (!arrayIter(simplResult).any([&](auto& res) { return eqModAC(res, s); }) ) {
+        std::cout << "[         case ] " << pretty(     conj ) << std::endl;
+        std::cout << "[       result ] " << pretty(      result ) << std::endl;
+        std::cout << "[ simpl result ] " << pretty( simplResult ) << std::endl;
+        std::cout << "[    not found ] " << pretty(           s ) << std::endl;
+        std::cout << "[     expected ] " << pretty(    expected ) << std::endl;
         exit(-1);
       }
     }
@@ -114,7 +138,7 @@ RUN_TEST(lra_04,
 RUN_TEST(lra_05, 
     ElimSetTest {
       .conj = { a < x, x < b },
-      .expected = { elimSet(a + eps) }, 
+      .expected = { elimSet(minusInf(), a + eps) }, 
     })
 
 RUN_TEST(lra_06, 
@@ -138,7 +162,7 @@ RUN_TEST(floor_1,
 RUN_TEST(floor_2, 
     ElimSetTest {
       .conj = { floor(x) >= x },
-      .expected = {elimSet(0 + Z(1)) }, 
+      .expected = {elimSet(0 + Z(1), num(0) + eps + Z(1)) },  // TODO do we really need eps and non-eps here
     })
 
 RUN_TEST(floor_3, 

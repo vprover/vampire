@@ -73,27 +73,45 @@ class FiniteElimTerm
   Option<Epsilon> _epsilon;
   Option<Period> _period;
   friend class ElimTerm;
-  FiniteElimTerm(TermList term, Option<Epsilon> epsilon, Option<Period> period) : _term(term), _epsilon(std::move(epsilon)), _period(std::move(period)) {  }
 public: 
+  FiniteElimTerm(TermList term, Option<Epsilon> epsilon, Option<Period> period) : _term(term), _epsilon(std::move(epsilon)), _period(std::move(period)) {  }
   Option<Period > const& period () const { return _period ; }
   Option<Epsilon> const& epsilon() const { return _epsilon; }
   friend FiniteElimTerm operator+(FiniteElimTerm t, Epsilon e);
   friend FiniteElimTerm operator+(FiniteElimTerm t, Period  p);
   explicit FiniteElimTerm(TermList term) : FiniteElimTerm(term, {}, {}) {  }
   TermList const& term() const { return _term; }
+
   friend std::ostream& operator<<(std::ostream& out, FiniteElimTerm const& self)
   { 
-    out << self._term; 
-    if (self._epsilon.isSome()) { out << " + " << self._epsilon; } 
-    if (self._period.isSome()) { out << " + " << self._period; } 
+    bool first = true;
+    auto output = [&](auto& x) { 
+      if (first) { 
+        first = false; 
+        out << x; 
+      } else {
+        out << " + " << x;
+      } 
+    };
+    if (!RealTraits::isZero(self._term)) {
+      output(self._term);
+    }
+    if (self._epsilon.isSome()) { output(self._epsilon); }
+    if (self._period.isSome()) { output(self._period); }
+    if (first) { out << "0"; }
     return out; 
   }
+
+  auto asTuple() const { return std::tie(_term, _epsilon, _period); }
+  IMPL_COMPARISONS_FROM_TUPLE(FiniteElimTerm);
 };
 
 class MinusInfinity { 
   friend class ElimTerm; 
   friend std::ostream& operator<<(std::ostream& out, MinusInfinity const& self)
   { return out << "-\u221E"; }
+  auto asTuple() const { return std::tie(); }
+  IMPL_COMPARISONS_FROM_TUPLE(MinusInfinity);
 };
 
 class ElimTerm 
@@ -109,6 +127,8 @@ public:
   // static ElimTerm minusInfinity() { return ElimTerm(MinusInfinity{}); }
   friend std::ostream& operator<<(std::ostream& out, ElimTerm const& self)
   { self._self.apply([&](auto& x) { out << x; }); return out; }
+  auto asTuple() const { return std::tie(_self); }
+  IMPL_COMPARISONS_FROM_TUPLE(ElimTerm);
 };
 
 inline FiniteElimTerm operator+(FiniteElimTerm t, Epsilon e) { return FiniteElimTerm(t.term(), some(e), t.period()); }

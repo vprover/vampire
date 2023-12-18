@@ -16,6 +16,7 @@
 #ifndef __Metaiterators__
 #define __Metaiterators__
 
+#include <type_traits>
 #include <utility>
 #include <functional>
 
@@ -2133,6 +2134,21 @@ public:
 template<class T = unsigned>
 auto natIter()
 { return iterTraits(NatIter<T>()); }
+
+
+template<class Ptr> 
+class ArrayPtr 
+{
+  Ptr _ptr;
+public:
+  ArrayPtr(Ptr ptr) : _ptr(std::move(ptr)) {}
+  auto size() { return (*_ptr).size(); }
+  template<class C> auto operator[](C idx) const -> decltype(auto) { return (*_ptr)[idx]; }
+  template<class C> auto operator[](C idx)       -> decltype(auto) { return (*_ptr)[idx]; }
+};
+
+template<class Ptr> 
+auto arrayPtr(Ptr p) { return ArrayPtr<Ptr>(std::move(p)); }
 
 // template<class T>
 // auto initListIter(std::initializer_list<T> list)

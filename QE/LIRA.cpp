@@ -167,7 +167,7 @@ public:
 
 
   static Recycled<Stack<TermList>> breaks(TermList t, unsigned x) {
-    return eval<Recycled<Stack<TermList>>>(t, x,
+    auto out = eval<Recycled<Stack<TermList>>>(t, x,
         /* var x     */ [&]() { return Recycled<Stack<TermList>>(); },
         /* other var */ [&](TermList v) { return Recycled<Stack<TermList>>(); },
         /* k * t     */ [](auto k, auto t, auto res) { return std::move(res); },
@@ -186,7 +186,6 @@ public:
                           auto o = off(t, x);
                           auto s = slope(t, x);
                           Recycled<Stack<TermList>> out;
-
                           auto br0 = [&]() 
                           { return arrayIter(*res)
                               .flatMap([&](auto b) { return Grid(b, p).intersect(/*incl*/ true, R::constantTl(0), outerP, /* incl */ false); }); };
@@ -213,6 +212,7 @@ public:
                           return out;
                         }
     );
+    return out;
   }
 
 
@@ -318,7 +318,17 @@ auto elimSet(TermList var, Literal* lit_) {
   bool excl = !incl;
   auto lit = NormLit::from(lit_);
   auto slope = lit.slope(var.var());
+
+
+
+
+
+
   auto breaks = make_shared(lit.breaks(var.var()));
+  auto breaksIter = [=]() { 
+    return range(0, (**breaks).size())
+              .map([=](auto i) { return (**breaks)[i]; });
+  };
   auto phi = lit.term();
 
   auto maybeEps = [=](auto t) { 
@@ -371,13 +381,13 @@ auto elimSet(TermList var, Literal* lit_) {
 
         auto ebreak = [=](bool lIncl, bool rIncl) {
           return ifElseIter(
-              off.isZero(), [=]() { return arrayIter(**breaks)    .map([=](auto b) { return ElimTerm(b) + Period(per); }); }
-                          , [=]() { return arrayIter(**breaks).flatMap([=](auto b) { return intrestGrid(lIncl, Grid(b, per), rIncl); }); });
+              off.isZero(), [=]() { return breaksIter().map([=](auto b) { return ElimTerm(b) + Period(per); }); }
+                          , [=]() { return breaksIter().flatMap([=](auto b) { return intrestGrid(lIncl, Grid(b, per), rIncl); }); });
         };
 
         auto einter = [=]() {
           ASS(!slope.isZero())
-          auto inters = [=]() { return arrayIter(**breaks).map([=](auto b) -> TermList { return R::mul(R::constantTl(Numeral(-1) / slope), dlin(b)); }); };
+          auto inters = [=]() { return breaksIter().map([=](auto b) -> TermList { return R::mul(R::constantTl(Numeral(-1) / slope), dlin(b)); }); };
           return ifElseIter(
               /* if */ off.isZero(),
               [=]() { return inters().map([=](auto i) { return i + Period(per); });  },
