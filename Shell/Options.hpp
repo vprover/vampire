@@ -428,7 +428,8 @@ public:
     SMTCOMP_2018,
     SNAKE_TPTP_UNS,
     SNAKE_TPTP_SAT,
-    STRUCT_INDUCTION
+    STRUCT_INDUCTION,
+    STRUCT_INDUCTION_TIP
   };
 
 /* TODO: use an enum for Selection. The current issue is the way these values are manipulated as ints
