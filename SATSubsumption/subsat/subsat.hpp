@@ -36,10 +36,11 @@ struct Statistics {
 #endif
 #if SUBSAT_STATISTICS
   int conflicts = 0;              ///< Number of conflicts encountered.
-  int conflicts_by_amo = 0;       ///< Number of conflicts due to violated AtMostOne-constraint.
-  int conflicts_by_clause = 0;    ///< Number of conflicts due to violated clause.
   int decisions = 0;              ///< Number of decisions.
   int propagations = 0;           ///< Number of unit propagations performed.
+#if SUBSAT_STATISTICS >= 2
+  int conflicts_by_amo = 0;       ///< Number of conflicts due to violated AtMostOne-constraint.
+  int conflicts_by_clause = 0;    ///< Number of conflicts due to violated clause.
   int propagations_by_amo = 0;    ///< Number of unit propagations caused by AtMostOne-constraints.
   int propagations_by_clause = 0; ///< Number of unit propagations caused by clauses.
   int propagations_by_theory = 0; ///< Number of unit propagations caused by substitution theory.
@@ -47,12 +48,13 @@ struct Statistics {
   int learned_binary_clauses = 0; ///< Number of learned binary clauses.
   int learned_long_clauses = 0;   ///< Number of learned long clauses (size >= 3).
   int learned_literals = 0;       ///< Sum of the sizes of all learned clauses.
+#endif
   std::size_t max_stored_literals = 0;    ///< Maximum number of literals in the m_constraints storage.
-#if SUBSAT_MINIMIZE
+#if SUBSAT_MINIMIZE && SUBSAT_STATISTICS >= 2
   int minimized_literals = 0;     ///< Number of literals removed by learned clause minimization.
 #endif
   int original_clauses = 0;       ///< Total number of (non-unit) original clauses.
-  int original_amos = 0;          ///< Total number of (true) AtMostOne-constraints.
+  int original_amos = 0;          ///< Total number of AtMostOne-constraints (proper AMO constraints, i.e., at least 3 literals).
 #if SUBSAT_RESTART
   int restarts = 0;               ///< Number of restarts performed.
 #endif
@@ -69,44 +71,75 @@ static inline std::ostream& operator<<(std::ostream& os, Statistics const& stats
   os << "Restarts:         " << std::setw(8) << stats.restarts << '\n';
 #endif
   os << "Decisions:        " << std::setw(8) << stats.decisions << '\n';
-  os << "Propagations:     " << std::setw(8) << stats.propagations << " (by clause: " << stats.propagations_by_clause << ", by amo: " << stats.propagations_by_amo << ", by theory: " << stats.propagations_by_theory << ")\n";
-  os << "Conflicts:        " << std::setw(8) << stats.conflicts << " (by clause: " << stats.conflicts_by_clause << ", by amo: " << stats.conflicts_by_amo << ")\n";
+  os << "Propagations:     " << std::setw(8) << stats.propagations;
+#if SUBSAT_STATISTICS >= 2
+  os << " (by clause: " << stats.propagations_by_clause << ", by amo: " << stats.propagations_by_amo << ", by theory: " << stats.propagations_by_theory << ")";
+#endif
+  os << "\n";
+  os << "Conflicts:        " << std::setw(8) << stats.conflicts;
+#if SUBSAT_STATISTICS >= 2
+  os << " (by clause: " << stats.conflicts_by_clause << ", by amo: " << stats.conflicts_by_amo << ")";
+#endif
+  os << "\n";
+#if SUBSAT_STATISTICS >= 2
   auto const total_learned_clauses = stats.learned_long_clauses + stats.learned_binary_clauses + stats.learned_unit_clauses;  // same as #conflicts during solving since we don't delete any
   os << "Learned clauses:  " << std::setw(8) << total_learned_clauses << " (" << stats.learned_long_clauses << " long, " << stats.learned_binary_clauses << " binary, " << stats.learned_unit_clauses << " unit)\n";
   os << "Learned literals: " << std::setw(8) << stats.learned_literals << " (on average " << std::setprecision(1) << std::fixed << (static_cast<double>(stats.learned_literals) / total_learned_clauses) << " literals/clause)\n";
-#if SUBSAT_MINIMIZE
+#endif
+#if SUBSAT_MINIMIZE && SUBSAT_STATISTICS >= 2
   os << "Minimized literals:" << std::setw(7) << stats.minimized_literals << " (on average " << std::setprecision(1) << std::fixed << (static_cast<double>(stats.minimized_literals) / total_learned_clauses) << " literals/clause)\n";
 #endif
-  os << "Max. storage used:" << std::setw(8) << stats.max_stored_literals << " literals"
-     << " (= learned literals + clause headers + " << (stats.max_stored_literals - static_cast<std::size_t>(stats.learned_literals + stats.learned_long_clauses + stats.learned_binary_clauses)) << ")\n";
+  os << "Max. storage used:" << std::setw(8) << stats.max_stored_literals << " literals";
+#if SUBSAT_STATISTICS >= 2
+  os << " (= learned literals + clause headers + " << (stats.max_stored_literals - static_cast<std::size_t>(stats.learned_literals + stats.learned_long_clauses + stats.learned_binary_clauses)) << ")";
+#endif
+  os << "\n";
+#if SUBSAT_STATISTICS >= 2
   assert(stats.conflicts == stats.conflicts_by_clause + stats.conflicts_by_amo);
   assert(stats.propagations == stats.propagations_by_clause + stats.propagations_by_amo + stats.propagations_by_theory);
+#endif
 #endif  // SUBSAT_STATISTICS
   return os;
 }
 
 #if SUBSAT_STATISTICS
+
 #define SUBSAT_STAT_ADD(NAME, VALUE)                                                \
   do {                                                                              \
     auto v = static_cast<decltype(m_stats.NAME)>(VALUE);                            \
     assert(m_stats.NAME <= std::numeric_limits<decltype(m_stats.NAME)>::max() - v); \
     m_stats.NAME += v;                                                              \
   } while (false)
+
 #define UPDATE_STORAGE_STATS()                                                                 \
   do {                                                                                         \
     m_stats.max_stored_literals = std::max(m_stats.max_stored_literals, m_constraints.size()); \
   } while (false)
+
+#if SUBSAT_STATISTICS >= 2
+#define SUBSAT_STAT2_ADD(NAME, VALUE) SUBSAT_STAT_ADD(NAME, VALUE)
 #else
+#define SUBSAT_STAT2_ADD(NAME, VALUE) \
+  do {                                \
+    /* do nothing */                  \
+  } while (false)
+#endif
+
+#else
+
 #define SUBSAT_STAT_ADD(NAME, VALUE) \
   do {                               \
     /* do nothing */                 \
   } while (false)
+
 #define UPDATE_STORAGE_STATS() \
   do {                         \
     /* do nothing */           \
   } while (false)
 #endif  // SUBSAT_STATISTICS
-#define SUBSAT_STAT_INC(NAME) SUBSAT_STAT_ADD(NAME, 1)
+
+#define SUBSAT_STAT_INC(NAME)   SUBSAT_STAT_ADD(NAME, 1)
+#define SUBSAT_STAT2_INC(NAME)  SUBSAT_STAT2_ADD(NAME, 1)
 
 
 
@@ -1252,7 +1285,7 @@ public:
       }
     }
 
-#if SUBSAT_STATISTICS
+#if SUBSAT_STATISTICS >= 2
     std::cerr << m_stats;
 #endif
     m_state = res;
@@ -1342,7 +1375,7 @@ private:
               LOG_DEBUG("Assigning " << propagated << " due to theory");
               if (value == Value::Unassigned) {
                 SUBSAT_STAT_INC(propagations);
-                SUBSAT_STAT_INC(propagations_by_theory);
+                SUBSAT_STAT2_INC(propagations_by_theory);
                 basic_assign(propagated, Reason{reason});
               } else {
                 assert(m_values[propagated] == Value::True);
@@ -1379,7 +1412,7 @@ private:
               LOG_DEBUG("Assigning " << propagated << " due to theory");
               if (m_values[propagated] == Value::Unassigned) {
                 SUBSAT_STAT_INC(propagations);
-                SUBSAT_STAT_INC(propagations_by_theory);
+                SUBSAT_STAT2_INC(propagations_by_theory);
                 basic_assign(propagated, Reason{reason});
               } else {
                 assert(m_values[propagated] == Value::True);
@@ -1469,7 +1502,7 @@ private:
           // propagate
           LOG_DEBUG("Assigning " << ~other_lit << " due to AtMostOne constraint " << SHOWREF(cr));
           SUBSAT_STAT_INC(propagations);
-          SUBSAT_STAT_INC(propagations_by_amo);
+          SUBSAT_STAT2_INC(propagations_by_amo);
           ticks++;
           assign(~other_lit, Reason{not_lit});
         }
@@ -1477,7 +1510,7 @@ private:
           // at least two literals in the AtMostOne constraint are true => conflict
           LOG_TRACE("Current assignment: " << SHOWASSIGNMENT());
           LOG_DEBUG("Conflict with AtMostOne constraint " << SHOWREF(cr));
-          SUBSAT_STAT_INC(conflicts_by_amo);
+          SUBSAT_STAT2_INC(conflicts_by_amo);
           Constraint& tmp_binary_clause = m_constraints.deref(tmp_propagate_binary_conflict_ref);
           tmp_binary_clause[0] = not_lit;
           tmp_binary_clause[1] = ~other_lit;
@@ -1581,7 +1614,7 @@ private:
       else if (other_value != Value::Unassigned) {
         // All literals in the clause are false => conflict
         assert(other_value == Value::False);
-        SUBSAT_STAT_INC(conflicts_by_clause);
+        SUBSAT_STAT2_INC(conflicts_by_clause);
         conflict = clause_ref;
       }
       else {
@@ -1589,7 +1622,7 @@ private:
         assert(other_value == Value::Unassigned);
         LOG_TRACE("Assigning " << other_lit << " due to clause " << SHOWREF(clause_ref));
         SUBSAT_STAT_INC(propagations);
-        SUBSAT_STAT_INC(propagations_by_clause);
+        SUBSAT_STAT2_INC(propagations_by_clause);
         assign(other_lit, Reason{clause_ref});
         ticks++;
       }
@@ -1832,8 +1865,8 @@ private:
       // We learned a unit clause
       assert(jump_level == 0);
       LOG_INFO("Learned unit: " << not_uip);
-      SUBSAT_STAT_INC(learned_unit_clauses);
-      SUBSAT_STAT_ADD(learned_literals, 1);
+      SUBSAT_STAT2_INC(learned_unit_clauses);
+      SUBSAT_STAT2_ADD(learned_literals, 1);
       assign(not_uip, Reason::invalid());
     }
     // else if (size == 2) {
@@ -1862,9 +1895,9 @@ private:
       ConstraintRef learned_ref = handle_build(learned).m_ref;
 #if SUBSAT_LEARN
       LOG_INFO("Learned: size = " << size << ", literals = " << SHOWREF(learned_ref));
-      if (size == 2) { SUBSAT_STAT_INC(learned_binary_clauses); }  // TODO: move this when adding binary clause optimization
-      if (size >= 3) { SUBSAT_STAT_INC(learned_long_clauses); }
-      SUBSAT_STAT_ADD(learned_literals, size);
+      if (size == 2) { SUBSAT_STAT2_INC(learned_binary_clauses); }  // TODO: move this when adding binary clause optimization
+      if (size >= 3) { SUBSAT_STAT2_INC(learned_long_clauses); }
+      SUBSAT_STAT2_ADD(learned_literals, size);
       // TODO: call new_redundant_clause
       connect_clause(learned_ref);
       Reason reason{learned_ref};
@@ -1972,7 +2005,7 @@ private:
 
     clause.erase(new_end, clause.end());
     LOG_DEBUG("minimized " << minimized << " literals");
-    SUBSAT_STAT_ADD(minimized_literals, minimized);
+    SUBSAT_STAT2_ADD(minimized_literals, minimized);
 
     // Clear 'poisoned' and 'removable' marks
     for (Var var : m_marked) {

@@ -34,14 +34,14 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 
 // By default, statistics are only enabled in standalone mode or if logging is enabled
 #if SUBSAT_STANDALONE || SUBSAT_LOGGING_ENABLED
-#define SUBSAT_STATISTICS 1
+#define SUBSAT_STATISTICS 2
 #else
-#define SUBSAT_STATISTICS 0
+#define SUBSAT_STATISTICS 1
 #endif
 
 // If SUBSAT_STATISTICS_INTERVAL is set, print statistics periodically
 // (interval is measured in number of loop iterations)
-#if SUBSAT_STATISTICS && !defined(SUBSAT_STATISTICS_INTERVAL)
+#if SUBSAT_STATISTICS >= 2 && !defined(SUBSAT_STATISTICS_INTERVAL)
 #define SUBSAT_STATISTICS_INTERVAL (VDEBUG ? 500 : 5000)
 #endif
 
