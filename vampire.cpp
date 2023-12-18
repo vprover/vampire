@@ -393,7 +393,7 @@ void vampireMode()
 
 
 /// Implements mode 'sbench'
-void subsumptionBenchmarkMode()
+void subsumptionReplayMode()
 {
   Timer::setLimitEnforcement(false);  // don't terminate in signal handler
 
@@ -652,8 +652,8 @@ int main(int argc, char* argv[])
       vampireMode();
       break;
 
-    case Options::Mode::SUBSUMPTION_BENCHMARK:
-      subsumptionBenchmarkMode();
+    case Options::Mode::SUBSUMPTION_REPLAY:
+      subsumptionReplayMode();
       break;
 
     case Options::Mode::CASC:

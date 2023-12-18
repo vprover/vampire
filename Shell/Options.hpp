@@ -405,7 +405,7 @@ public:
     TCLAUSIFY,
     TPREPROCESS,
     VAMPIRE,
-    SUBSUMPTION_BENCHMARK,
+    SUBSUMPTION_REPLAY,
   };
 
   enum class Schedule : unsigned int {

@@ -124,7 +124,7 @@ void Options::init()
                                         "tclausify",
                                         "tpreprocess",
                                         "vampire",
-                                        "sbench",
+                                        "sreplay",
                                     });
     _mode.description=
     "Select the mode of operation. Choices are:\n"
