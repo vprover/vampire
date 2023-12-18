@@ -32,7 +32,17 @@
 
 namespace Shell {
 
-using namespace std;
+std::ostream& printVersion(std::ostream& out)
+{
+  out << VERSION_STRING << "\n";
+#if VZ3
+  cout << "Linked with Z3 " << Z3Interfacing::z3_full_version() << "\n";
+#endif
+  out << "\% USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION=" << USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION << "\n";
+  out << "\% CORRELATE_LENGTH_TIME=" << CORRELATE_LENGTH_TIME << "\n";
+  subsat::print_config(out << "\% ");
+  return out;
+}
 
 CommandLine::CommandLine (int argc, char* argv [])
   : _next(argv+1),
@@ -56,12 +66,7 @@ void CommandLine::interpret (Options& options)
     ASS(_next < _last);
     const char* arg = *_next++;
     if (strcmp(arg, "--version")==0) {
-      cout << VERSION_STRING << endl;
-#if VZ3
-      cout << "Linked with Z3 " << Z3Interfacing::z3_full_version() << endl;
-#endif
-      cout << "\% USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION=" << USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION << endl;
-      cout << "\% CORRELATE_LENGTH_TIME=" << CORRELATE_LENGTH_TIME << endl;
+      printVersion(std::cout);
       exit(0);
     }
     // If --help or -h are used without arguments we still print help
@@ -70,7 +75,7 @@ void CommandLine::interpret (Options& options)
     if(strcmp(arg,"--help")==0 ||
        (strcmp(arg,"-h")==0 && _next==_last) //if -h and there is no more
       ){
-      // cout << _next << " " << _last << endl;
+      // std::cout << _next << " " << _last << endl;
       options.set("help","on");
       env.beginOutput();
       options.output(env.out());
@@ -108,7 +113,7 @@ void CommandLine::interpret (Options& options)
     options.checkGlobalOptionConstraints();
   }
   if(options.encodeStrategy()){
-    cout << options.generateEncodedOptions() << "\n";
+    std::cout << options.generateEncodedOptions() << "\n";
   }
 } // CommandLine::interpret
 

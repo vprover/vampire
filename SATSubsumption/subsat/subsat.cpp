@@ -4,7 +4,7 @@
 // TODO: move solver implementation here
 
 
-void subsat::print_config(std::ostream& os)
+std::ostream& subsat::print_config(std::ostream& os)
 {
     os << "subsat features:";
     if (SUBSAT_STANDALONE) { os << " STANDALONE"; }
@@ -30,4 +30,5 @@ void subsat::print_config(std::ostream& os)
     }
     if (VDEBUG && SUBSAT_EXPENSIVE_ASSERTIONS) { os << " EXPENSIVE_ASSERTIONS"; }
     os << '\n';
+    return os;
 }

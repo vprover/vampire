@@ -28,7 +28,7 @@
 
 namespace subsat {
 
-void print_config(std::ostream& os);
+std::ostream& print_config(std::ostream& os);
 
 struct Statistics {
 #if SUBSAT_LIMITS
