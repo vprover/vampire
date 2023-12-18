@@ -646,89 +646,89 @@ public:
   static Theory::Tuples* tuples();
 };
 
-#define ANY_INTERPRETED_PREDICATE                                                                             \
-         Kernel::Theory::EQUAL:                                                                               \
-    case Kernel::Theory::INT_IS_INT:                                                                          \
-    case Kernel::Theory::INT_IS_RAT:                                                                          \
-    case Kernel::Theory::INT_IS_REAL:                                                                         \
-    case Kernel::Theory::INT_GREATER:                                                                         \
-    case Kernel::Theory::INT_GREATER_EQUAL:                                                                   \
-    case Kernel::Theory::INT_LESS:                                                                            \
-    case Kernel::Theory::INT_LESS_EQUAL:                                                                      \
-    case Kernel::Theory::INT_DIVIDES:                                                                         \
-    case Kernel::Theory::RAT_IS_INT:                                                                          \
-    case Kernel::Theory::RAT_IS_RAT:                                                                          \
-    case Kernel::Theory::RAT_IS_REAL:                                                                         \
-    case Kernel::Theory::RAT_GREATER:                                                                         \
-    case Kernel::Theory::RAT_GREATER_EQUAL:                                                                   \
-    case Kernel::Theory::RAT_LESS:                                                                            \
-    case Kernel::Theory::RAT_LESS_EQUAL:                                                                      \
-    case Kernel::Theory::REAL_IS_INT:                                                                         \
-    case Kernel::Theory::REAL_IS_RAT:                                                                         \
-    case Kernel::Theory::REAL_IS_REAL:                                                                        \
-    case Kernel::Theory::REAL_GREATER:                                                                        \
-    case Kernel::Theory::REAL_GREATER_EQUAL:                                                                  \
-    case Kernel::Theory::REAL_LESS:                                                                           \
-    case Kernel::Theory::ARRAY_BOOL_SELECT:                                                                   \
+#define ANY_INTERPRETED_PREDICATE                                                         \
+         Kernel::Theory::EQUAL:                                                           \
+    case Kernel::Theory::INT_IS_INT:                                                      \
+    case Kernel::Theory::INT_IS_RAT:                                                      \
+    case Kernel::Theory::INT_IS_REAL:                                                     \
+    case Kernel::Theory::INT_GREATER:                                                     \
+    case Kernel::Theory::INT_GREATER_EQUAL:                                               \
+    case Kernel::Theory::INT_LESS:                                                        \
+    case Kernel::Theory::INT_LESS_EQUAL:                                                  \
+    case Kernel::Theory::INT_DIVIDES:                                                     \
+    case Kernel::Theory::RAT_IS_INT:                                                      \
+    case Kernel::Theory::RAT_IS_RAT:                                                      \
+    case Kernel::Theory::RAT_IS_REAL:                                                     \
+    case Kernel::Theory::RAT_GREATER:                                                     \
+    case Kernel::Theory::RAT_GREATER_EQUAL:                                               \
+    case Kernel::Theory::RAT_LESS:                                                        \
+    case Kernel::Theory::RAT_LESS_EQUAL:                                                  \
+    case Kernel::Theory::REAL_IS_INT:                                                     \
+    case Kernel::Theory::REAL_IS_RAT:                                                     \
+    case Kernel::Theory::REAL_IS_REAL:                                                    \
+    case Kernel::Theory::REAL_GREATER:                                                    \
+    case Kernel::Theory::REAL_GREATER_EQUAL:                                              \
+    case Kernel::Theory::REAL_LESS:                                                       \
+    case Kernel::Theory::ARRAY_BOOL_SELECT:                                               \
     case Kernel::Theory::REAL_LESS_EQUAL
 
-#define ANY_INTERPRETED_FUNCTION                                                                              \
-         Kernel::Theory::INT_SUCCESSOR:                                                                       \
-    case Kernel::Theory::INT_UNARY_MINUS:                                                                     \
-    case Kernel::Theory::INT_PLUS:                                                                            \
-    case Kernel::Theory::INT_MINUS:                                                                           \
-    case Kernel::Theory::INT_MULTIPLY:                                                                        \
-    case Kernel::Theory::INT_QUOTIENT_E:                                                                      \
-    case Kernel::Theory::INT_QUOTIENT_T:                                                                      \
-    case Kernel::Theory::INT_QUOTIENT_F:                                                                      \
-    case Kernel::Theory::INT_REMAINDER_E:                                                                     \
-    case Kernel::Theory::INT_REMAINDER_T:                                                                     \
-    case Kernel::Theory::INT_REMAINDER_F:                                                                     \
-    case Kernel::Theory::INT_FLOOR:                                                                           \
-    case Kernel::Theory::INT_CEILING:                                                                         \
-    case Kernel::Theory::INT_TRUNCATE:                                                                        \
-    case Kernel::Theory::INT_ROUND:                                                                           \
-    case Kernel::Theory::INT_ABS:                                                                             \
-    case Kernel::Theory::RAT_UNARY_MINUS:                                                                     \
-    case Kernel::Theory::RAT_PLUS:                                                                            \
-    case Kernel::Theory::RAT_MINUS:                                                                           \
-    case Kernel::Theory::RAT_MULTIPLY:                                                                        \
-    case Kernel::Theory::RAT_QUOTIENT:                                                                        \
-    case Kernel::Theory::RAT_QUOTIENT_E:                                                                      \
-    case Kernel::Theory::RAT_QUOTIENT_T:                                                                      \
-    case Kernel::Theory::RAT_QUOTIENT_F:                                                                      \
-    case Kernel::Theory::RAT_REMAINDER_E:                                                                     \
-    case Kernel::Theory::RAT_REMAINDER_T:                                                                     \
-    case Kernel::Theory::RAT_REMAINDER_F:                                                                     \
-    case Kernel::Theory::RAT_FLOOR:                                                                           \
-    case Kernel::Theory::RAT_CEILING:                                                                         \
-    case Kernel::Theory::RAT_TRUNCATE:                                                                        \
-    case Kernel::Theory::RAT_ROUND:                                                                           \
-    case Kernel::Theory::REAL_UNARY_MINUS:                                                                    \
-    case Kernel::Theory::REAL_PLUS:                                                                           \
-    case Kernel::Theory::REAL_MINUS:                                                                          \
-    case Kernel::Theory::REAL_MULTIPLY:                                                                       \
-    case Kernel::Theory::REAL_QUOTIENT:                                                                       \
-    case Kernel::Theory::REAL_QUOTIENT_E:                                                                     \
-    case Kernel::Theory::REAL_QUOTIENT_T:                                                                     \
-    case Kernel::Theory::REAL_QUOTIENT_F:                                                                     \
-    case Kernel::Theory::REAL_REMAINDER_E:                                                                    \
-    case Kernel::Theory::REAL_REMAINDER_T:                                                                    \
-    case Kernel::Theory::REAL_REMAINDER_F:                                                                    \
-    case Kernel::Theory::REAL_FLOOR:                                                                          \
-    case Kernel::Theory::REAL_CEILING:                                                                        \
-    case Kernel::Theory::REAL_TRUNCATE:                                                                       \
-    case Kernel::Theory::REAL_ROUND:                                                                          \
-    case Kernel::Theory::INT_TO_INT:                                                                          \
-    case Kernel::Theory::INT_TO_RAT:                                                                          \
-    case Kernel::Theory::INT_TO_REAL:                                                                         \
-    case Kernel::Theory::RAT_TO_INT:                                                                          \
-    case Kernel::Theory::RAT_TO_RAT:                                                                          \
-    case Kernel::Theory::RAT_TO_REAL:                                                                         \
-    case Kernel::Theory::REAL_TO_INT:                                                                         \
-    case Kernel::Theory::REAL_TO_RAT:                                                                         \
-    case Kernel::Theory::REAL_TO_REAL:                                                                        \
-    case Kernel::Theory::ARRAY_SELECT:                                                                        \
+#define ANY_INTERPRETED_FUNCTION                                                          \
+         Kernel::Theory::INT_SUCCESSOR:                                                   \
+    case Kernel::Theory::INT_UNARY_MINUS:                                                 \
+    case Kernel::Theory::INT_PLUS:                                                        \
+    case Kernel::Theory::INT_MINUS:                                                       \
+    case Kernel::Theory::INT_MULTIPLY:                                                    \
+    case Kernel::Theory::INT_QUOTIENT_E:                                                  \
+    case Kernel::Theory::INT_QUOTIENT_T:                                                  \
+    case Kernel::Theory::INT_QUOTIENT_F:                                                  \
+    case Kernel::Theory::INT_REMAINDER_E:                                                 \
+    case Kernel::Theory::INT_REMAINDER_T:                                                 \
+    case Kernel::Theory::INT_REMAINDER_F:                                                 \
+    case Kernel::Theory::INT_FLOOR:                                                       \
+    case Kernel::Theory::INT_CEILING:                                                     \
+    case Kernel::Theory::INT_TRUNCATE:                                                    \
+    case Kernel::Theory::INT_ROUND:                                                       \
+    case Kernel::Theory::INT_ABS:                                                         \
+    case Kernel::Theory::RAT_UNARY_MINUS:                                                 \
+    case Kernel::Theory::RAT_PLUS:                                                        \
+    case Kernel::Theory::RAT_MINUS:                                                       \
+    case Kernel::Theory::RAT_MULTIPLY:                                                    \
+    case Kernel::Theory::RAT_QUOTIENT:                                                    \
+    case Kernel::Theory::RAT_QUOTIENT_E:                                                  \
+    case Kernel::Theory::RAT_QUOTIENT_T:                                                  \
+    case Kernel::Theory::RAT_QUOTIENT_F:                                                  \
+    case Kernel::Theory::RAT_REMAINDER_E:                                                 \
+    case Kernel::Theory::RAT_REMAINDER_T:                                                 \
+    case Kernel::Theory::RAT_REMAINDER_F:                                                 \
+    case Kernel::Theory::RAT_FLOOR:                                                       \
+    case Kernel::Theory::RAT_CEILING:                                                     \
+    case Kernel::Theory::RAT_TRUNCATE:                                                    \
+    case Kernel::Theory::RAT_ROUND:                                                       \
+    case Kernel::Theory::REAL_UNARY_MINUS:                                                \
+    case Kernel::Theory::REAL_PLUS:                                                       \
+    case Kernel::Theory::REAL_MINUS:                                                      \
+    case Kernel::Theory::REAL_MULTIPLY:                                                   \
+    case Kernel::Theory::REAL_QUOTIENT:                                                   \
+    case Kernel::Theory::REAL_QUOTIENT_E:                                                 \
+    case Kernel::Theory::REAL_QUOTIENT_T:                                                 \
+    case Kernel::Theory::REAL_QUOTIENT_F:                                                 \
+    case Kernel::Theory::REAL_REMAINDER_E:                                                \
+    case Kernel::Theory::REAL_REMAINDER_T:                                                \
+    case Kernel::Theory::REAL_REMAINDER_F:                                                \
+    case Kernel::Theory::REAL_FLOOR:                                                      \
+    case Kernel::Theory::REAL_CEILING:                                                    \
+    case Kernel::Theory::REAL_TRUNCATE:                                                   \
+    case Kernel::Theory::REAL_ROUND:                                                      \
+    case Kernel::Theory::INT_TO_INT:                                                      \
+    case Kernel::Theory::INT_TO_RAT:                                                      \
+    case Kernel::Theory::INT_TO_REAL:                                                     \
+    case Kernel::Theory::RAT_TO_INT:                                                      \
+    case Kernel::Theory::RAT_TO_RAT:                                                      \
+    case Kernel::Theory::RAT_TO_REAL:                                                     \
+    case Kernel::Theory::REAL_TO_INT:                                                     \
+    case Kernel::Theory::REAL_TO_RAT:                                                     \
+    case Kernel::Theory::REAL_TO_REAL:                                                    \
+    case Kernel::Theory::ARRAY_SELECT:                                                    \
     case Kernel::Theory::ARRAY_STORE
 
 typedef Theory::Interpretation Interpretation;
@@ -763,5 +763,23 @@ struct std::hash<Kernel::RealConstantType>
   size_t operator()(Kernel::RealConstantType const& self) const noexcept 
   { return self.hash(); }
 };
+
+#define INT_OP(Type, OP)                                                                  \
+  inline auto operator OP(int l, Type const& r) -> decltype(auto) { return Type(l) OP r; }\
+  inline auto operator OP(Type const& l, int r) -> decltype(auto) { return l OP Type(r); }\
+
+#define INT_OPS(Type)                                                                     \
+  INT_OP(Type, < ) INT_OP(Type, <=)                                                       \
+  INT_OP(Type, > ) INT_OP(Type, >=)                                                       \
+  INT_OP(Type, ==) INT_OP(Type, !=)                                                       \
+  INT_OP(Type, *) INT_OP(Type, +)                                                         \
+                  INT_OP(Type, -)                                                         \
+
+INT_OPS(Kernel::RealConstantType)
+INT_OPS(Kernel::RationalConstantType)
+INT_OPS(Kernel::IntegerConstantType)
+INT_OP(Kernel::RealConstantType, /)
+INT_OP(Kernel::RationalConstantType, /)
+
 
 #endif // __Theory__

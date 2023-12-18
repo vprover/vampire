@@ -19,12 +19,9 @@
 #include "Kernel/EqHelper.hpp"
 #include "Lib/Reflection.hpp"
 #include "Kernel/BottomUpEvaluation/TermList.hpp"
+#include <iterator>
 
 namespace QE {
-
-// struct FloorFormula {
-//
-// };
 
 using Numeral = RealConstantType;
 using R = RealTraits;
@@ -70,6 +67,21 @@ public:
   }
 };
 
+TermList operator*(Numeral k, TermList t) { return R::mul(R::constantTl(k), t); }
+
+TermList operator+(TermList s, TermList t) { return R::add(s, t); }
+TermList operator-(TermList s, TermList t) { return R::add(s, R::minus(t)); }
+
+TermList operator+(Numeral s, TermList t) { return R::constantTl(s) + t; }
+TermList operator+(TermList s, Numeral t) { return s + R::constantTl(t); }
+TermList operator-(Numeral s, TermList t) { return R::constantTl(s) - t; }
+TermList operator-(TermList s, Numeral t) { return s - R::constantTl(t); }
+
+TermList operator+(int s, TermList t) { return Numeral(s) + t; }
+TermList operator+(TermList s, int t) { return s + Numeral(t); }
+TermList operator-(int s, TermList t) { return Numeral(s) - t; }
+TermList operator-(TermList s, int t) { return s - Numeral(t); }
+TermList operator-(TermList s) { return R::minus(s); }
 
 class NormLit {
   TermList _term;
@@ -105,7 +117,6 @@ public:
               return add(origArg(0), origArg(1), std::move(args[0]), std::move(args[1]));
 
             } else if (R::isFloor(f)) {
-              // TODO use new bottom up evaluation to not recurse into floors when joe-uwa-refactor landed
               return floor(origArg(0), std::move(args[0]));
 
             } else {
@@ -118,155 +129,157 @@ public:
         });
   }
 
-  RealConstantType slope(unsigned x) const { return      slope(_term, x); }
-  RealConstantType   off(unsigned x) const { return        off(_term, x); }
-  RealConstantType   per(unsigned x) const { return        per(_term, x); }
-  TermList     xMinusInf(unsigned x) const { return  xMinusInf(_term, x); }
-  TermList    computeLim(unsigned x) const { return computeLim(_term, x); }
-  Recycled<Stack<TermList>> breaks(unsigned x) const { return breaks(_term, x); }
-
-  static RealConstantType slope(TermList t, unsigned x) {
-    return eval<RealConstantType>(t, x,
-        /* var x     */ []() { return Numeral(1); },
-        /* other var */ [](TermList) { return Numeral(0); },
-        /* k * t     */ [](auto k, auto t, auto res) { return k * res; },
-        /* l + r     */ [](auto l, auto r, auto lRes, auto rRes) { return lRes + rRes; },
-        // TODO use new bottom up evaluation to not recurse into floors when joe-uwa-refactor landed
-        /* floor(t)  */ [](auto t, auto res) { return Numeral(0); }
-    );
-  }
-
-  static RealConstantType off(TermList t, unsigned x) {
-    return eval<RealConstantType>(t, x,
-        /* var x     */ []() { return Numeral(1); },
-        /* other var */ [](TermList) { return Numeral(0); },
-        /* k * t     */ [](auto k, auto t, auto res) { return k * res; },
-        /* l + r     */ [](auto l, auto r, auto lRes, auto rRes) { return lRes + rRes; },
-        /* floor(t)  */ [](auto t, auto res) { return std::move(res); }
-    );
-  }
-
-  static RealConstantType per(TermList t, unsigned x) {
-    return eval<RealConstantType>(t, x,
-        /* var x     */ []() { return Numeral(0); },
-        /* other var */ [](TermList) { return Numeral(0); },
-        /* k * t     */ [](auto k, auto t, auto res) { return res; },
-        /* l + r     */ [](auto l, auto r, auto lRes, auto rRes) { 
-                          return lRes.isZero() ? rRes
-                               : rRes.isZero() ? lRes
-                               : qLcm(lRes, rRes);
-                          },
-        /* floor(t)  */ [&](auto t, auto res) {
-                          auto o = off(t, x);
-                          return   o.isZero() ? Numeral(0)
-                               : res.isZero() ? Numeral(1) / o
-                                              : Numeral(1) / (o * res);
-        }
-    );
-  }
-
-
-  static Recycled<Stack<TermList>> breaks(TermList t, unsigned x) {
-    auto out = eval<Recycled<Stack<TermList>>>(t, x,
-        /* var x     */ [&]() { return Recycled<Stack<TermList>>(); },
-        /* other var */ [&](TermList v) { return Recycled<Stack<TermList>>(); },
-        /* k * t     */ [](auto k, auto t, auto res) { return std::move(res); },
-        /* l + r     */ [](auto l, auto r, auto lRes, auto rRes) { 
-                          auto merge = [](auto& l, auto& r) {
-                            l->loadFromIterator(arrayIter(*r));
-                            return std::move(l);
-                          };
-                          return lRes->size() >= rRes->size() 
-                                   ?  merge(lRes, rRes)
-                                   :  merge(rRes, lRes);
-                        },
-        /* floor(t)  */ [&](auto t, auto res) {
-                          auto p = per(t, x);
-                          auto outerP = per(R::floor(t), x);
-                          auto o = off(t, x);
-                          auto s = slope(t, x);
-                          Recycled<Stack<TermList>> out;
-                          auto br0 = [&]() 
-                          { return arrayIter(*res)
-                              .flatMap([&](auto b) { return Grid(b, p).intersect(/*incl*/ true, R::constantTl(0), outerP, /* incl */ false); }); };
-
-                          if (p.isZero() &&  o.isZero()) {
-                            // no breaks
-                          } else if (p.isZero() && !o.isZero())  {
-                            out->push(R::mul(R::constantTl(Numeral(-1) / o), EqHelper::replace(t, TermList::var(x), R::constantTl(0))));
-                          } else if (!p.isZero() &&  s.isZero()) {
-                            out->loadFromIterator(br0());
-                          } else {
-                            ASS(!p.isZero() && !s.isZero())
-
-                            // TODO move this to right place. Also maybe make (non-)recursive?
-                            auto dlin = [s, x, t](auto b) -> TermList 
-                            { return R::add(R::mul(R::constantTl(-s), b), EqHelper::replace(t, TermList::var(x), b)); };
-
-                            // TODO here can be improved by heuristics
-                            auto maxDist = p;
-                            out->loadFromIterator(br0());
-                            out->loadFromIterator(br0()
-                                .flatMap([&](auto b) { return Grid(R::mul(R::constantTl(Numeral(-1) / s), dlin(b)), Numeral(-1) / s).intersect(/* incl */ false, b, maxDist,  /* incl */ false); }));
-                          }
-                          return out;
-                        }
-    );
-    return out;
-  }
-
-
-  static TermList computeLim(TermList t, unsigned x) {
-    return eval<TermList>(t, x,
-        /* var x     */ [&]() { return TermList::var(x); },
-        /* other var */ [&](TermList v) { return v; },
-        /* k * t     */ [](auto k, auto t, auto res) { return R::mul(R::constantTl(k), res); },
-        /* l + r     */ [](auto l, auto r, auto lRes, auto rRes) { return R::add(lRes, rRes); },
-        /* floor(t)  */ [&](auto t, auto res) {
-                          auto s = slope(t, x);
-                          return s >= Numeral(0) ? R::floor(res) : R::add(R::minus(R::floor(R::minus(res))), R::constantTl(-1));
-                        }
-    );
-  }
-
-  RealConstantType deltaInf(unsigned x) const { return __dist(_term, x).dist; }
-
   struct XInfRegion {
     TermList lower;
     Numeral dist;
-    TermList upper() const { return R::add(lower, R::constantTl(dist)); }
+    TermList upper() const { return lower + dist; }
     auto asTuple() const { return std::tie(lower, dist); }
     friend std::ostream& operator<<(std::ostream& out, XInfRegion const& self)
     { return out << "[" << self.lower << " (+ " << self.dist << ") ]"; }
     IMPL_COMPARISONS_FROM_TUPLE(XInfRegion);
   };
 
-  static TermList dist(TermList t, unsigned x, bool plus) { auto d = __dist(t, x); return plus ? d.upper() : d.lower; }
-  static XInfRegion __dist(TermList t, unsigned x) {
-    return eval<XInfRegion>(t, x,
-        /* var x     */ []() { return XInfRegion { .lower = R::constantTl(Numeral(0)), .dist = Numeral(0) }; },
-        /* other var */ [](TermList v) { return XInfRegion { .lower = v, .dist = Numeral(0) }; },
-        /* k * t     */ [](auto k, auto t, auto res) { 
-                          
-                          if (k == Numeral(0)) return XInfRegion { .lower = R::constantTl(Numeral(0)), .dist = Numeral(0) };
-                          if (k  > Numeral(0)) return XInfRegion { .lower = R::mul(R::constantTl(k), res.lower), .dist = k * res.dist };
-                          else                 return XInfRegion { .lower = R::mul(R::constantTl(k.abs()), res.upper()), .dist = k.abs() * res.dist };
-                        },
-        /* l + r     */ [](auto l, auto r, auto lRes, auto rRes) { 
-                          return XInfRegion { .lower = R::add(lRes.lower, rRes.lower), .dist = lRes.dist + rRes.dist, };
-                        },
-        /* floor(t)  */ [&](auto t, auto res) {
-                          auto o = off(t, x);
-                          return XInfRegion { .lower = R::add(res.lower, R::constantTl(-o)) , .dist = res.dist + o, };
-                        });
-  }
+  struct Summary {
+    RealConstantType slope;
+    RealConstantType   off;
+    RealConstantType   per;
+    XInfRegion  xInfRegion;
+    TermList    lim;
+    Recycled<Stack<TermList>> breaks;
+    friend std::ostream& operator<<(std::ostream& out, Summary const& self)
+    { return out << "Summary {...}"; }
 
+    TermList dist(bool plus) { return plus ? xInfRegion.upper() : xInfRegion.lower; }
 
-  static TermList xMinusInf(TermList t, unsigned x) {
-    auto o = off(t, x);
-    ASS(!o.isZero())
-    auto d = dist(t, x, o.isPositive());
-    return R::mul(R::constantTl(Numeral(-1) / std::move(o)), d);
+    auto xMinusInf() {
+      ASS(!off.isZero())
+      return (-1 / off) * dist(off.isPositive());
+    }
+  };
+
+  Summary summary(unsigned x) {
+    return eval<Summary>(_term, x,
+        /* var x */ 
+        [&]() { 
+          return Summary {
+              .slope = Numeral(1),
+              .off = Numeral(1),
+              .per = Numeral(0),
+              .xInfRegion = {
+                .lower = R::constantTl(0),
+                .dist = Numeral(0),
+              },
+              .lim = TermList::var(x),
+              .breaks = Recycled<Stack<TermList>>(),
+          }; 
+        },
+
+        /* other var */ 
+        [](TermList v) { 
+          return Summary {
+              .slope = Numeral(0),
+              .off = Numeral(0),
+              .per = Numeral(0),
+              .xInfRegion = {
+                .lower = v,
+                .dist = Numeral(0),
+              },
+              .lim = v,
+              .breaks = Recycled<Stack<TermList>>(),
+          }; 
+        },
+
+        /* k * t */ 
+        [](auto k, auto t, auto res) { 
+          return Summary {
+              .slope = k * res.slope,
+              .off = k * res.off,
+              .per = std::move(res.per),
+              .xInfRegion = 
+                k == Numeral(0) ? XInfRegion {
+                    .lower = R::constantTl(0),
+                    .dist = Numeral(0),
+                  }
+                : k > Numeral(0) ? XInfRegion {
+                  .lower = k * res.xInfRegion.lower, 
+                  .dist = k * res.xInfRegion.dist 
+                }
+                : /* k < 0 */ XInfRegion {
+                  .lower = k.abs() * res.xInfRegion.upper(), 
+                  .dist = k.abs() * res.xInfRegion.dist 
+                }
+              ,
+              .lim = k * res.lim,
+              .breaks = std::move(res.breaks),
+          }; 
+        },
+
+        /* l + r */ 
+        [](auto l, auto r, auto lRes, auto rRes) { 
+          auto merge = [](auto& l, auto& r) {
+            l->loadFromIterator(arrayIter(*r));
+            return std::move(l);
+          };
+          return Summary {
+              .slope = lRes.slope + rRes.slope,
+              .off = lRes.off + rRes.off,
+              .per = lRes.per.isZero() ? rRes.per
+                   : rRes.per.isZero() ? lRes.per
+                   : qLcm(lRes.per, rRes.per),
+              .xInfRegion = {
+                .lower = lRes.xInfRegion.lower + rRes.xInfRegion.lower, 
+                .dist = lRes.xInfRegion.dist + rRes.xInfRegion.dist, 
+              },
+              .lim = lRes.lim + rRes.lim,
+              .breaks = lRes.breaks->size() >= rRes.breaks->size() 
+                   ?  merge(lRes.breaks, rRes.breaks)
+                   :  merge(rRes.breaks, lRes.breaks),
+          }; 
+        },
+
+        /* floor(t) */ 
+        [&](auto t, auto res) { 
+          auto newPer = 
+                     res.off.isZero() ? Numeral(0)
+                   : res.per.isZero() ? Numeral(1) / res.off
+                                      : Numeral(1) / (res.off * res.per);
+          auto br0 = [&]() 
+          { return arrayIter(*res.breaks)
+              .flatMap([&](auto b) { return Grid(b, res.per).intersect(/*incl*/ true, R::constantTl(0), newPer, /* incl */ false); }); };
+
+          auto rstack = [](auto iter) {
+            Recycled<Stack<TermList>> out;
+            out->loadFromIterator(iter);
+            return out;
+          };
+          // TODO here can be improved by heuristics
+          auto maxDist = res.per;
+
+          // TODO move this to right place. Also maybe make (non-)recursive?
+          auto dlin = [&](auto b) -> TermList 
+          { return (-res.slope *  b + EqHelper::replace(t, TermList::var(x), b)); };
+
+          return Summary {
+              .slope = Numeral(0),
+              .off = res.off,
+              .per = newPer,
+              .xInfRegion = {
+                .lower = res.xInfRegion.lower + -res.off, 
+                .dist = res.xInfRegion.dist + res.off, 
+              },
+              .lim = res.slope >= 0 ? R::floor(res.lim) : -R::floor(-res.lim) - 1,
+              .breaks = 
+                   res.per.isZero() &&  res.off.isZero()   ? rstack(arrayIter(Stack<TermList>()))
+                :  res.per.isZero() && !res.off.isZero()   ? rstack(getSingletonIterator((-1 / res.off) * EqHelper::replace(t, TermList::var(x), R::constantTl(0))))
+                : !res.per.isZero() && res.slope.isZero() ? rstack(br0())
+                : /* !res.per.isZero() && !res.slope.isZero() */ rstack(concatIters(
+                      br0(),
+                      br0()
+                      .flatMap([&](auto b){ return Grid((-1 / res.slope) * dlin(b), 1 / res.slope).intersect(/* incl */ false, b, maxDist,  /* incl */ false); })
+                      ))
+          }; 
+        }
+    );
   }
 
   TermList term() const { return _term; }
@@ -317,17 +330,12 @@ auto elimSet(TermList var, Literal* lit_) {
   bool incl = true;
   bool excl = !incl;
   auto lit = NormLit::from(lit_);
-  auto slope = lit.slope(var.var());
-
-
-
-
-
-
-  auto breaks = make_shared(lit.breaks(var.var()));
+  auto summary = make_shared(lit.summary(var.var()));
+  auto slope = std::move(summary->slope);
+  // auto breaks = make_shared(std::move(summary->breaks));
   auto breaksIter = [=]() { 
-    return range(0, (**breaks).size())
-              .map([=](auto i) { return (**breaks)[i]; });
+    return range(0, summary->breaks->size())
+              .map([=](auto i) { return (*summary->breaks)[i]; });
   };
   auto phi = lit.term();
 
@@ -341,7 +349,7 @@ auto elimSet(TermList var, Literal* lit_) {
   };
 
   return ifElseIter(
-      /* if */ (*breaks)->isEmpty(),
+      /* if */ summary->breaks->isEmpty(),
       [=]() {
         auto set = [](std::initializer_list<ElimTerm> x) {
           Recycled<Stack<ElimTerm>> set;
@@ -366,12 +374,12 @@ auto elimSet(TermList var, Literal* lit_) {
       },
       /* else */
       [=](){
-        auto off = lit.off(var.var());
-        auto per = lit.per(var.var());
-        auto deltaInf = lit.deltaInf(var.var()); 
-        auto xMinusInf = [=]() { return lit.xMinusInf(var.var()); };
+        auto off = summary->off;
+        auto per = summary->per;
+        auto deltaInf = (*summary).xInfRegion.dist;
+        auto xMinusInf = [=]() { return summary->xMinusInf(); };
 
-        auto limPhi = lit.computeLim(var.var());
+        auto limPhi = summary->lim;
 
         auto dlin = [slope, var, limPhi](auto b) -> TermList 
         { return R::add(R::mul(R::constantTl(-slope), b), EqHelper::replace(limPhi, var, b)); };
