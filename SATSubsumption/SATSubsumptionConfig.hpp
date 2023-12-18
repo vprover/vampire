@@ -38,7 +38,7 @@
 /// If 1, writes all subsumption and subsumption resolution calls into files:
 /// - "slog/<name>.slog" defines clauses, subsumption calls, subsumption resolution calls
 /// - "slog/<name>.p" defines literals in TPTP syntax
-#define LOG_SSR_CLAUSES 1
+#define LOG_SSR_CLAUSES 0
 
 /*****************************************************************************/
 /*                          SUBSUMPTION RESOLUTION                           */
