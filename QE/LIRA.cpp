@@ -65,8 +65,8 @@ public:
   auto intersect(bool lIncl, TermList min, Numeral dist, bool rIncl) {
     auto start = lIncl ? perCeiling(min) : perFloor(R::add(min, R::constantTl(_per)));
     return natIter<Numeral>()
-      .takeWhile([&](auto n) { return rIncl ? n * _per <= dist : n * _per < dist;  })
-      .map([&](auto n) -> TermList { return R::add(start, R::constantTl(n * _per)); });
+      .takeWhile([=](auto n) { return rIncl ? n * _per <= dist : n * _per < dist;  })
+      .map([=](auto n) -> TermList { return R::add(start, R::constantTl(n * _per)); });
   }
 };
 
@@ -83,7 +83,7 @@ public:
   template<class Res, class TargetVar, class OtherVarOrConst, class NumMul, class Add, class Floor> 
   static auto eval(TermList t, unsigned var, TargetVar targetVar, OtherVarOrConst otherVarOrConst, NumMul numMul, Add add, Floor floor) {
     return evalBottomUp<Res>(t,
-        [&](auto& orig, auto* args) {
+        [=](auto& orig, auto* args) {
           if (orig.isVar()) {
             if (orig.var() == var) {
               return targetVar();
@@ -92,7 +92,7 @@ public:
             }
           } else {
             auto f = orig.term()->functor();
-            auto origArg = [&](auto i) { return orig.term()->termArg(i); };
+            auto origArg = [=](auto i) { return orig.term()->termArg(i); };
             if (R::isMul(f)) {
               auto k = R::tryNumeral(origArg(0));
               ASS(k.isSome())
@@ -106,7 +106,7 @@ public:
 
             } else if (R::isFloor(f)) {
               // TODO use new bottom up evaluation to not recurse into floors when joe-uwa-refactor landed
-              return floor(orig, std::move(args[0]));
+              return floor(origArg(0), std::move(args[0]));
 
             } else {
               // we can't compute the slope for non-constants as they might contain variables. 
@@ -318,10 +318,10 @@ auto elimSet(TermList var, Literal* lit_) {
   bool excl = !incl;
   auto lit = NormLit::from(lit_);
   auto slope = lit.slope(var.var());
-  auto breaks = lit.breaks(var.var());
+  auto breaks = make_shared(lit.breaks(var.var()));
   auto phi = lit.term();
 
-  auto maybeEps = [&](auto t) { 
+  auto maybeEps = [=](auto t) { 
     switch(lit.connective()) {
       case Connective::Greater:
       case Connective::Neq: return t + Epsilon {};
@@ -331,8 +331,8 @@ auto elimSet(TermList var, Literal* lit_) {
   };
 
   return ifElseIter(
-      /* if */ breaks->isEmpty(),
-      [&]() {
+      /* if */ (*breaks)->isEmpty(),
+      [=]() {
         auto set = [](std::initializer_list<ElimTerm> x) {
           Recycled<Stack<ElimTerm>> set;
           set->init(x);
@@ -354,39 +354,39 @@ auto elimSet(TermList var, Literal* lit_) {
             return set({ intersection });
         }
       },
-      /* else */ 
-      [&](){
+      /* else */
+      [=](){
         auto off = lit.off(var.var());
         auto per = lit.per(var.var());
         auto deltaInf = lit.deltaInf(var.var()); 
-        auto xMinusInf = lit.xMinusInf(var.var()); 
+        auto xMinusInf = [=]() { return lit.xMinusInf(var.var()); };
 
         auto limPhi = lit.computeLim(var.var());
 
         auto dlin = [slope, var, limPhi](auto b) -> TermList 
         { return R::add(R::mul(R::constantTl(-slope), b), EqHelper::replace(limPhi, var, b)); };
 
-        auto intrestGrid = [&](bool lIncl, Grid g, bool rIncl) 
-        { return g.intersect(lIncl, xMinusInf, deltaInf, rIncl).map([](TermList t) { return ElimTerm(t); }); };
+        auto intrestGrid = [=](bool lIncl, Grid g, bool rIncl) 
+        { return g.intersect(lIncl, xMinusInf(), deltaInf, rIncl).map([](TermList t) { return ElimTerm(t); }); };
 
-        auto ebreak = [&](bool lIncl, bool rIncl) {
+        auto ebreak = [=](bool lIncl, bool rIncl) {
           return ifElseIter(
-              off.isZero(), [&]() { return arrayIter(*breaks)    .map([&](auto b) { return ElimTerm(b) + Period(per); }); }
-                          , [&]() { return arrayIter(*breaks).flatMap([&](auto b) { return intrestGrid(lIncl, Grid(b, per), rIncl); }); });
+              off.isZero(), [=]() { return arrayIter(**breaks)    .map([=](auto b) { return ElimTerm(b) + Period(per); }); }
+                          , [=]() { return arrayIter(**breaks).flatMap([=](auto b) { return intrestGrid(lIncl, Grid(b, per), rIncl); }); });
         };
 
-        auto einter = [&]() {
+        auto einter = [=]() {
           ASS(!slope.isZero())
-          auto inters = [&]() { return arrayIter(*breaks).map([&](auto b) -> TermList { return R::mul(R::constantTl(Numeral(-1) / slope), dlin(b)); }); };
+          auto inters = [=]() { return arrayIter(**breaks).map([=](auto b) -> TermList { return R::mul(R::constantTl(Numeral(-1) / slope), dlin(b)); }); };
           return ifElseIter(
               /* if */ off.isZero(),
-              [&]() { return inters().map([&](auto i) { return i + Period(per); });  },
+              [=]() { return inters().map([=](auto i) { return i + Period(per); });  },
 
               /* if */ !off.isZero() && off != slope,
-              [&]() { return inters().flatMap([&](auto i) { return intrestGrid(excl, Grid(i, (Numeral(1) - off/slope) * per), excl); }); },
+              [=]() { return inters().flatMap([=](auto i) { return intrestGrid(excl, Grid(i, (Numeral(1) - off/slope) * per), excl); }); },
 
               /* else */
-              [&]() { 
+              [=]() { 
                 ASS(!off.isZero() && off == slope)
                 return inters().map([](auto x) { return ElimTerm(x); }); }
               );
@@ -399,24 +399,25 @@ auto elimSet(TermList var, Literal* lit_) {
 
         auto eseg = ifElseIter(
                       /* if */ slope.isZero() || (slope < Numeral(0) && isIneq(lit.connective()))
-                    , [&]() { return ebreak(incl, excl).map([](auto b) { return b + Epsilon{}; }); }
+                    , [=]() { return ebreak(incl, excl).map([](auto b) { return b + Epsilon{}; }); }
 
                     , /* if */ slope > Numeral(0) && isIneq(lit.connective())
-                    , [&]() { return concatIters(
+                    , [=]() { return concatIters(
                                            ebreak(incl, excl).map([](auto b) { return b + Epsilon{}; }),
-                                           einter().map([&](auto i) { return maybeEps(i); })
+                                           einter().map([=](auto i) { return maybeEps(i); })
                                      ); }
 
                     , /* if */ lit.connective() == Connective::Eq
-                    , [&]() { ASS(!slope.isZero())
+                    , [=]() { ASS(!slope.isZero())
                               return einter(); }
 
                     // else
-                    , [&]() { ASS(lit.connective() == Connective::Neq && !slope.isZero())
+                    , [=]() { ASS(lit.connective() == Connective::Neq && !slope.isZero())
                               return concatIters(ebreak(incl, excl), einter()).map([](auto b) { return b + Epsilon{}; }); }
 
             );
         return concatIters( ebreak(incl, incl), eseg, einf);
+        // return concatIters( ebreak(incl, incl));
       });
 }
 
@@ -425,7 +426,7 @@ Stack<ElimSet> LIRA::computeElimSet(unsigned var, Stack<Literal*> const& conjunc
   return {
     ElimSet::fromIter(
                 arrayIter(conjunction)
-                  .flatMap([&](auto lit) { return elimSet(TermList::var(var), lit); })
+                  .flatMap([=](auto lit) { return elimSet(TermList::var(var), lit); })
         )
   };
   // return {

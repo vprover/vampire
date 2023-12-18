@@ -1864,16 +1864,10 @@ public:
   explicit IterTraits(Iter iter) : _iter(std::move(iter)) {}
 
   Elem next() 
-  { 
-    CALL("IterTraits::next")
-    return move_if_value<Elem>(_iter.next()); 
-  }
+  { return move_if_value<Elem>(_iter.next()); }
 
   bool hasNext() 
-  { 
-    CALL("IterTraits::hasNext")
-    return _iter.hasNext(); 
-  }
+  { return _iter.hasNext(); }
 
   Option<Elem> tryNext() 
   { 
@@ -1887,7 +1881,6 @@ public:
   template<class F>
   void forEach(F f) 
   {
-    CALL("IterTraits::forEach")
     while (hasNext()) {
       f(next());
     }
@@ -1895,16 +1888,12 @@ public:
 
   template<class P>
   bool any(P p) 
-  {
-    CALL("IterTraits::any")
-    return find(p).isSome();
-  }
+  { return find(p).isSome(); }
 
 
   template<class P>
   bool all(P p) 
   {
-    CALL("IterTraits::all")
     while (hasNext())
       if (!p(next()))
         return false;
@@ -1914,7 +1903,6 @@ public:
   template<class P>
   Option<Elem> find(P p) 
   {
-    CALL("IterTraits::find")
     while (hasNext()) {
       Elem x = next();
       if (p(x)) {
@@ -1927,7 +1915,6 @@ public:
   template<class P>
   Option<unsigned> findPosition(P p) 
   {
-    CALL("IterTraits::findPosition")
     unsigned i = 0;
     while (hasNext()) {
       Elem x = next();
