@@ -32,14 +32,34 @@
 
 namespace Shell {
 
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
+#define PRINT_VAR(out, VARNAME)                    \
+  do {                                             \
+    (out) << "\% " #VARNAME "=" STR(VARNAME) "\n"; \
+  } while (false)
+
 std::ostream& printVersion(std::ostream& out)
 {
   out << VERSION_STRING << "\n";
 #if VZ3
   cout << "Linked with Z3 " << Z3Interfacing::z3_full_version() << "\n";
 #endif
-  out << "\% USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION=" << USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION << "\n";
-  out << "\% CORRELATE_LENGTH_TIME=" << CORRELATE_LENGTH_TIME << "\n";
+  PRINT_VAR(out, VDEBUG);
+  PRINT_VAR(out, USE_NEW_SUBSUMPTION_AND_RESOLUTION_BACKWARD);
+  PRINT_VAR(out, USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION);
+  PRINT_VAR(out, CORRELATE_LENGTH_TIME);
+  PRINT_VAR(out, SAT_SR_IMPL);
+  PRINT_VAR(out, PRINT_CLAUSES_SUBS);
+  PRINT_VAR(out, PRINT_CLAUSE_COMMENTS_SUBS);
+  PRINT_VAR(out, CHECK_SAT_SUBSUMPTION);
+  PRINT_VAR(out, CHECK_SAT_SUBSUMPTION_RESOLUTION);
+  PRINT_VAR(out, USE_OPTIMIZED_FORWARD);
+  PRINT_VAR(out, CHECK_CORRECTNESS_BACKWARD_SUBSUMPTION_AND_RESOLUTION);
+  PRINT_VAR(out, USE_SAT_SUBSUMPTION_BACKWARD);
+  PRINT_VAR(out, USE_SAT_SUBSUMPTION_RESOLUTION_BACKWARD);
+  PRINT_VAR(out, SEPARATE_LOOPS_BACKWARD);
   subsat::print_config(out << "\% ");
   return out;
 }
