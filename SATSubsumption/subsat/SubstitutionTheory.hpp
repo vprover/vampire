@@ -245,7 +245,7 @@ private:
 class SubstitutionTheory final
 {
 public:
-  using BindingsManager = typename subsat::BindingsManager;
+  using BindingsManager = typename ::subsat::BindingsManager;
 private:
   using BindingsEntry = typename BindingsManager::BindingsEntry;
   using BindingsRef = typename BindingsManager::BindingsRef;
