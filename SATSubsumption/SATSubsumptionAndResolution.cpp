@@ -926,7 +926,7 @@ bool SATSubsumptionAndResolution::checkSubsumptionImpl(Clause *L,
               << duration.count() << ","
               << 0 /* result */ << ","
               << 0 /* no SAT call */ << ","
-              << 0 /* SAT ticks */ << ",";
+              << 0 /* SAT ticks */ << "\n";
               // << 0 /* SAT conflicts */ << ","
               // << 0 /* SAT decisions */ << ","
               // << 0 /* SAT propagations */ << ","
@@ -953,7 +953,7 @@ bool SATSubsumptionAndResolution::checkSubsumptionImpl(Clause *L,
             << duration.count() << ","
             << subsumed /* result */ << ","
             << 1 /* SAT call */ << ","
-            << _solver.stats().ticks << ",";
+            << _solver.stats().ticks << "\n";
             // << _solver.stats().conflicts /* SAT conflicts */ << ","
             // << _solver.stats().decisions /* SAT decisions */ << ","
             // << _solver.stats().propagations /* SAT propagations */ << ","
@@ -1043,7 +1043,7 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause *L,
               << duration.count() << ","
               << 0 /* result */ << ","
               << 0 /* no SAT call */ << ","
-              << 0 /* SAT ticks */ << ",";
+              << 0 /* SAT ticks */ << "\n";
               // << 0 /* SAT conflicts */ << ","
               // << 0 /* SAT decisions */ << ","
               // << 0 /* SAT propagations */ << ","
@@ -1088,7 +1088,7 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause *L,
             << duration.count() << ","
             << !!conclusion /* result */ << ","
             << 1 /* SAT call */ << ","
-            << _solver.stats().ticks << ",";
+            << _solver.stats().ticks << "\n";
             // << _solver.stats().conflicts /* SAT conflicts */ << ","
             // << _solver.stats().decisions /* SAT decisions */ << ","
             // << _solver.stats().propagations /* SAT propagations */ << ","
