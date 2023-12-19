@@ -881,6 +881,8 @@ bool SATSubsumptionAndResolution::checkSubsumptionImpl(Clause *L,
                                                        Clause *M,
                                                        bool setSR)
 {
+  using namespace std::chrono_literals;
+
   ASS(L)
   ASS(M)
 
@@ -918,7 +920,7 @@ bool SATSubsumptionAndResolution::checkSubsumptionImpl(Clause *L,
 #if CORRELATE_LENGTH_TIME
     stop = chrono::high_resolution_clock::now();
     auto duration = stop - start;
-    if (log) {
+    if (log && (duration > 1ms || _solver.stats().ticks >= 100)) {
       logFile << 0 /* S */ << ","
               << _L->length() << ","
               << _M->length() << ","
@@ -945,7 +947,7 @@ bool SATSubsumptionAndResolution::checkSubsumptionImpl(Clause *L,
 #if CORRELATE_LENGTH_TIME
   stop = chrono::high_resolution_clock::now();
   auto duration = stop - start;
-  if (log) {
+  if (log && (duration > 1ms || _solver.stats().ticks >= 100)) {
     logFile << 0 /* S */ << ","
             << _L->length() << ","
             << _M->length() << ","
@@ -980,6 +982,8 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause *L,
                                                                     Clause *M,
                                                                     bool usePreviousSetUp)
 {
+  using namespace std::chrono_literals;
+
   ASS(L)
   ASS(M)
   if (usePreviousSetUp) {
@@ -1035,7 +1039,7 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause *L,
 #if CORRELATE_LENGTH_TIME
     stop = chrono::high_resolution_clock::now();
     auto duration = stop - start;
-    if (log) {
+    if (log && (duration > 1ms || _solver.stats().ticks >= 100)) {
       logFile << 1 /* SR */ << ","
               << _L->length() << ","
               << _M->length() << ","
@@ -1080,7 +1084,7 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause *L,
 #if CORRELATE_LENGTH_TIME
   stop = chrono::high_resolution_clock::now();
   auto duration = stop - start;
-  if (log) {
+  if (log && (duration > 1ms || _solver.stats().ticks >= 100)) {
     logFile << 1 /* SR */ << ","
             << _L->length() << ","
             << _M->length() << ","
