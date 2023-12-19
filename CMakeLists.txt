@@ -75,7 +75,7 @@ else()
   endif()
 endif()
 
-set(BENCHMARK_S_SR "0" CACHE STRING "If set to 1, then will benmark the specified version of subsumption and subsumption resolution.")
+set(BENCHMARK_S_SR "0" CACHE STRING "If set to 1, then will benchmark the specified version of subsumption and subsumption resolution.")
 message(STATUS "BENCHMARK_S_SR=${BENCHMARK_S_SR}")
 if(${BENCHMARK_S_SR} STREQUAL "0")
   add_compile_definitions(USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION=0)
