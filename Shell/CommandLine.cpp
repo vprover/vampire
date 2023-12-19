@@ -44,7 +44,7 @@ std::ostream& printVersion(std::ostream& out)
 {
   out << VERSION_STRING << "\n";
 #if VZ3
-  cout << "Linked with Z3 " << Z3Interfacing::z3_full_version() << "\n";
+  std::cout << "Linked with Z3 " << Z3Interfacing::z3_full_version() << "\n";
 #endif
   PRINT_VAR(out, VDEBUG);
   PRINT_VAR(out << "\% (BENCHMARK_S_SR) ", USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION);
