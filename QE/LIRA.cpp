@@ -24,9 +24,10 @@
 namespace QE {
 
 using Numeral = RealConstantType;
+
 using R = RealTraits;
 
-namespace FancyRealOps {
+namespace AutoSimplifyingRealOps {
 
   TermList operator-(TermList s) { 
     return R::isNumeral(s) ? R::constantTl(-(*R::tryNumeral(s)))
@@ -40,14 +41,12 @@ namespace FancyRealOps {
           : k == 1 ? t
           : k == -1 ? -t
           : R::mul(R::constantTl(k), t); }
-  // TermList operator*(Numeral k, TermList t) { return R::mul(R::constantTl(k), t); }
 
   TermList operator+(TermList s, TermList t) { 
     return R::tryNumeral(s) == some(Numeral(0)) ? t
          : R::tryNumeral(t) == some(Numeral(0)) ? s
          : R::add(s, t);
   }
-  // TermList operator-(TermList s) { return R::minus(s); }
 
   TermList operator-(TermList s, TermList t) { return s + (-t); }
 
@@ -64,7 +63,7 @@ namespace FancyRealOps {
 
 }
 
-using namespace FancyRealOps;
+using namespace AutoSimplifyingRealOps;
 
 Numeral qLcm(Numeral l, Numeral r) {
   return Numeral(IntegerConstantType::lcm(l.numerator(), r.numerator()), 
@@ -138,6 +137,10 @@ public:
               ASS(k.isSome())
               return numMul(k.unwrap(), orig, std::move(args[1]));
 
+
+            } else if (R::tryNumeral(orig)) {
+              return numMul(R::tryNumeral(orig).unwrap(), R::constantTl(1), otherVarOrConst(R::constantTl(1)));
+
             } else if (R::isMinus(f)) {
               return numMul(Numeral(-1), origArg(0), std::move(args[0]));
 
@@ -157,45 +160,45 @@ public:
         });
   }
 
-  struct XInfRegion {
+  struct LinBounds {
     TermList lower;
-    Numeral dist;
-    TermList upper() const { return lower + dist; }
-    auto asTuple() const { return std::tie(lower, dist); }
-    friend std::ostream& operator<<(std::ostream& out, XInfRegion const& self)
-    { return out << "[" << self.lower << " (+ " << self.dist << ") ]"; }
-    IMPL_COMPARISONS_FROM_TUPLE(XInfRegion);
+    Numeral delta;
+    TermList upper() const { return lower + delta; }
+    auto asTuple() const { return std::tie(lower, delta); }
+    friend std::ostream& operator<<(std::ostream& out, LinBounds const& self)
+    { return out << "[" << self.lower << " (+ " << self.delta << ") ]"; }
+    IMPL_COMPARISONS_FROM_TUPLE(LinBounds);
   };
 
-  struct Summary {
+  struct FloorLiteral {
     RealConstantType slope;
     RealConstantType   off;
     RealConstantType   per;
-    XInfRegion  xInfRegion;
+    LinBounds  linBounds;
     TermList    lim;
     Recycled<Stack<ElimTerm>> breaks;
-    friend std::ostream& operator<<(std::ostream& out, Summary const& self)
-    { return out << "Summary {...}"; }
+    friend std::ostream& operator<<(std::ostream& out, FloorLiteral const& self)
+    { return out << "FloorLiteral {...}"; }
 
-    TermList dist(bool plus) { return plus ? xInfRegion.upper() : xInfRegion.lower; }
+    TermList dist(bool plus) { return plus ? linBounds.upper() : linBounds.lower; }
 
     auto xMinusInf() {
-      ASS(!off.isZero())
+      ASS(off != 0)
       return (-1 / off) * dist(off.isPositive());
     }
   };
 
-  Summary summary(unsigned x) {
-    return eval<Summary>(_term, x,
+  FloorLiteral summary(unsigned x) {
+    return eval<FloorLiteral>(_term, x,
         /* var x */ 
         [&]() { 
-          return Summary {
+          return FloorLiteral {
               .slope = Numeral(1),
               .off = Numeral(1),
               .per = Numeral(0),
-              .xInfRegion = {
+              .linBounds = {
                 .lower = R::constantTl(0),
-                .dist = Numeral(0),
+                .delta = Numeral(0),
               },
               .lim = TermList::var(x),
               .breaks = Recycled<Stack<ElimTerm>>(),
@@ -204,13 +207,13 @@ public:
 
         /* other var */ 
         [](TermList v) { 
-          return Summary {
+          return FloorLiteral {
               .slope = Numeral(0),
               .off = Numeral(0),
               .per = Numeral(0),
-              .xInfRegion = {
+              .linBounds = {
                 .lower = v,
-                .dist = Numeral(0),
+                .delta = Numeral(0),
               },
               .lim = v,
               .breaks = Recycled<Stack<ElimTerm>>(),
@@ -219,22 +222,22 @@ public:
 
         /* k * t */ 
         [](auto k, auto t, auto res) { 
-          return Summary {
+          return FloorLiteral {
               .slope = k * res.slope,
               .off = k * res.off,
               .per = std::move(res.per),
-              .xInfRegion = 
-                k == Numeral(0) ? XInfRegion {
+              .linBounds = 
+                k == Numeral(0) ? LinBounds {
                     .lower = R::constantTl(0),
-                    .dist = Numeral(0),
+                    .delta = Numeral(0),
                   }
-                : k > Numeral(0) ? XInfRegion {
-                  .lower = k * res.xInfRegion.lower, 
-                  .dist = k * res.xInfRegion.dist 
+                : k > Numeral(0) ? LinBounds {
+                  .lower = k * res.linBounds.lower, 
+                  .delta = k * res.linBounds.delta 
                 }
-                : /* k < 0 */ XInfRegion {
-                  .lower = k.abs() * res.xInfRegion.upper(), 
-                  .dist = k.abs() * res.xInfRegion.dist 
+                : /* k < 0 */ LinBounds {
+                  .lower = k.abs() * res.linBounds.upper(), 
+                  .delta  = k.abs() * res.linBounds.delta 
                 }
               ,
               .lim = k * res.lim,
@@ -248,15 +251,15 @@ public:
             l->loadFromIterator(arrayIter(*r));
             return std::move(l);
           };
-          return Summary {
+          return FloorLiteral {
               .slope = lRes.slope + rRes.slope,
               .off = lRes.off + rRes.off,
-              .per = lRes.per.isZero() ? rRes.per
-                   : rRes.per.isZero() ? lRes.per
+              .per = lRes.per == 0 ? rRes.per
+                   : rRes.per == 0 ? lRes.per
                    : qLcm(lRes.per, rRes.per),
-              .xInfRegion = {
-                .lower = lRes.xInfRegion.lower + rRes.xInfRegion.lower, 
-                .dist = lRes.xInfRegion.dist + rRes.xInfRegion.dist, 
+              .linBounds = {
+                .lower = lRes.linBounds.lower + rRes.linBounds.lower, 
+                .delta = lRes.linBounds.delta + rRes.linBounds.delta, 
               },
               .lim = lRes.lim + rRes.lim,
               .breaks = lRes.breaks->size() >= rRes.breaks->size() 
@@ -268,9 +271,9 @@ public:
         /* floor(t) */ 
         [&](auto t, auto res) { 
           auto newPer = 
-                     res.off.isZero() ? Numeral(0)
-                   : res.per.isZero() ? Numeral(1) / res.off
-                                      : Numeral(1) / (res.off * res.per);
+                     res.off == 0 ? Numeral(0)
+                   : res.per == 0 ? 1 / res.off
+                                  : 1 / (res.off * res.per);
           // auto br0 = [&]() 
           // { return arrayIter(*res.breaks)
           //     .flatMap([&](auto b) { return Grid(b, res.per).intersect(/*incl*/ true, R::constantTl(0), newPer, /* incl */ false); }); };
@@ -280,8 +283,6 @@ public:
             out->loadFromIterator(iter);
             return out;
           };
-          // TODO here can be improved by heuristics
-          auto maxDist = res.per;
 
           // TODO move this to right place. Also maybe make (non-)recursive?
           auto dlin = [&](auto b) -> TermList 
@@ -312,13 +313,13 @@ public:
             }
           };
 
-          return Summary {
+          return FloorLiteral {
               .slope = Numeral(0),
               .off = res.off,
               .per = newPer,
-              .xInfRegion = {
-                .lower = res.xInfRegion.lower + -res.off, 
-                .dist = res.xInfRegion.dist + res.off, 
+              .linBounds = {
+                .lower = res.linBounds.lower + -res.off, 
+                .delta = res.linBounds.delta + res.off, 
               },
               .lim = res.slope >= 0 ? R::floor(res.lim) : -R::floor(-res.lim) - 1,
               .breaks = breaks(),
@@ -370,18 +371,17 @@ bool isInclusive(Connective c) {
 }
 
 
-auto elimSet(TermList var, Literal* lit_) {
+auto elimSet(unsigned var, Literal* lit_) {
   bool incl = true;
   bool excl = !incl;
   auto lit = NormLit::from(lit_);
-  auto summary = make_shared(lit.summary(var.var()));
-  auto slope = std::move(summary->slope);
-  // auto breaks = make_shared(std::move(summary->breaks));
-  auto breaksIter = [=]() { 
-    return range(0, summary->breaks->size())
-              .map([=](auto i) { return (*summary->breaks)[i]; });
+  auto phi = make_shared(lit.summary(var));
+  auto slope = phi->slope;
+  auto breaksIter = [=]() {
+    return range(0, phi->breaks->size())
+              .map([=](auto i) { return (*phi->breaks)[i]; });
   };
-  auto phi = lit.term();
+  auto term = lit.term();
 
   auto maybeEps = [=](auto t) { 
     switch(lit.connective()) {
@@ -393,7 +393,7 @@ auto elimSet(TermList var, Literal* lit_) {
   };
 
   return ifElseIter(
-      /* if */ summary->breaks->isEmpty(),
+      /* if */ phi->breaks->isEmpty(),
       [=]() {
         auto set = [](std::initializer_list<ElimTerm> x) {
           Recycled<Stack<ElimTerm>> set;
@@ -401,85 +401,84 @@ auto elimSet(TermList var, Literal* lit_) {
           return range(0, set->size())
               .map([set = std::move(set)](auto i) { return (*set)[i]; });
         };
-        auto intersection = ElimTerm((-1 / slope) * EqHelper::replace(phi, var, R::constantTl(0)));
+        auto intersection = [&]() { return ElimTerm((-1 / slope) * EqHelper::replace(term, TermList::var(var), R::constantTl(0)));};
         switch (lit.connective()) {
           case Connective::Greater: 
           case Connective::Geq:
             if (slope > RealConstantType(0)) {
-              return set({ maybeEps(intersection), });
+              return set({ maybeEps(intersection()), });
             } else {
               return set({ ElimTerm::minusInfinity(), });
             }
           case Connective::Neq:
-            return set({ ElimTerm::minusInfinity(), intersection + Epsilon {} });
+            return set({ ElimTerm::minusInfinity(), intersection() + Epsilon {} });
           case Connective::Eq:
-            return set({ intersection });
+            return set({ intersection() });
         }
       },
       /* else */
       [=](){
         // using namespace OtherRealOps;
 
-        auto off = summary->off;
-        auto per = summary->per;
-        auto deltaInf = (*summary).xInfRegion.dist;
-        auto xMinusInf = [=]() { return summary->xMinusInf(); };
+        auto off = phi->off;
+        auto per = phi->per;
+        auto deltaInf = phi->linBounds.delta;
 
-        auto limPhi = summary->lim;
+        auto limPhi = phi->lim;
 
         auto dlin = [slope, var, limPhi](auto b) -> TermList 
-        { return -slope * b + EqHelper::replace(limPhi, var, b); };
+        { return -slope * b + EqHelper::replace(limPhi, TermList::var(var), b); };
 
-        auto intrestGrid = [=](bool lIncl, Grid g, bool rIncl) 
-        { return g.intersect(lIncl, xMinusInf(), deltaInf, rIncl).map([](TermList t) { return ElimTerm(t); }); };
+        auto linBounds = [=](bool lIncl, Grid g, bool rIncl) 
+        { return g.intersect(lIncl, phi->xMinusInf(), deltaInf, rIncl).map([](TermList t) { return ElimTerm(t); }); };
 
         auto ebreak = [=](bool lIncl, bool rIncl) {
           return ifElseIter(
-              off.isZero(), [=]() { return breaksIter(); } // .map([=](auto b) { return ElimTerm(b) + Period(per); }); }
-                          , [=]() { return breaksIter().flatMap([=](auto b) { return intrestGrid(lIncl, Grid(b), rIncl); }); });
+              off == 0, [=]() { return breaksIter(); }
+                      , [=]() { return breaksIter().flatMap([=](auto b) { return linBounds(lIncl, Grid(b), rIncl); }); });
         };
 
         auto einter = [=]() {
-          ASS(!slope.isZero())
+          ASS(slope != 0)
           auto inter = [=](auto b) { 
             auto out = (-1 / slope) * dlin(b.asFinite()->term()); 
               return out;
           };
           return ifElseIter(
-              /* if */ off.isZero(),
+              /* if */ off == 0,
               [=]() { return breaksIter().map([=](auto b) { return inter(b) + *b.asFinite()->period(); });  },
 
-              /* if */ !off.isZero() && off != slope,
-              [=]() { return breaksIter().flatMap([=](auto b) { return intrestGrid(excl, Grid(inter(b), (Numeral(1) - (off/slope)) * b.asFinite()->period()->p), excl); }); },
+              /* if */ off != 0 && off != slope,
+              [=]() { return breaksIter().flatMap([=](auto b) { return linBounds(excl, Grid(inter(b), (Numeral(1) - (off/slope)) * b.asFinite()->period()->p), excl); }); },
 
               /* else */
               [=]() { 
-                ASS(!off.isZero() && off == slope)
-                return breaksIter().map([=](auto b) { return ElimTerm(inter(b)); }); }
+                ASS(off != 0 && off == slope)
+                return breaksIter()
+                         .map([=](auto b) { return ElimTerm(inter(b)); }); }
               );
         };
 
-        auto einf = ifElseIter((isIneq(lit.connective()) && off < Numeral(0)) 
+        auto einf = ifElseIter((isIneq(lit.connective()) && off < 0) 
                              || lit.connective() == Connective::Neq,
                              []() { return getSingletonIterator(ElimTerm::minusInfinity()); },
                              []() { return arrayIter(Stack<ElimTerm>()); });
 
         auto eseg = ifElseIter(
-                      /* if */ slope.isZero() || (slope < Numeral(0) && isIneq(lit.connective()))
+                      /* if */ slope == 0 || (slope < 0 && isIneq(lit.connective()))
                     , [=]() { return ebreak(incl, excl).map([](auto b) { return b + Epsilon{}; }); }
 
-                    , /* if */ slope > Numeral(0) && isIneq(lit.connective())
+                    , /* if */ slope > 0 && isIneq(lit.connective())
                     , [=]() { return concatIters(
                                            ebreak(incl, excl).map([](auto b) { return b + Epsilon{}; }),
                                            einter().map([=](auto i) { return maybeEps(i); })
                                      ); }
 
                     , /* if */ lit.connective() == Connective::Eq
-                    , [=]() { ASS(!slope.isZero())
-                              return einter(); }
+                    , [=]() { ASS(slope != 0); return einter(); }
 
                     // else
-                    , [=]() { ASS(lit.connective() == Connective::Neq && !slope.isZero())
+                    , [=]() { ASS(lit.connective() == Connective::Neq && slope != 0)
                               return concatIters(ebreak(incl, excl), einter()).map([](auto b) { return b + Epsilon{}; }); }
 
             );
@@ -487,12 +486,15 @@ auto elimSet(TermList var, Literal* lit_) {
       });
 }
 
+IterTraits<VirtualIterator<ElimTerm>> LIRA::iterElimSet(unsigned var, Literal* lit)
+{ return iterTraits(pvi(elimSet(var, lit))); }
+
 Stack<ElimSet> LIRA::computeElimSet(unsigned var, Stack<Literal*> const& conjunction) 
 { 
   return {
     ElimSet::fromIter(
                 arrayIter(conjunction)
-                  .flatMap([=](auto lit) { return elimSet(TermList::var(var), lit); })
+                  .flatMap([=](auto lit) { return elimSet(var, lit); })
         )
   };
   return Stack<ElimSet>(); 

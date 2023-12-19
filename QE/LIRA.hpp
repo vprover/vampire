@@ -19,6 +19,12 @@ namespace QE {
 class LIRA {
 public:
   static Stack<ElimSet> computeElimSet(unsigned var, Stack<Literal*> const& conjunction);
+  static IterTraits<VirtualIterator<ElimTerm>> iterElimSet(unsigned var, Literal* conjunction);
+  static auto iterElimSet(unsigned var, Stack<Literal*> const& conjunction)
+  {
+    return arrayIter(conjunction)
+      .flatMap([var](auto l) { return iterElimSet(var, l); });
+  }
 };
 
 

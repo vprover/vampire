@@ -16,6 +16,7 @@
 #ifndef __Metaiterators__
 #define __Metaiterators__
 
+#include <initializer_list>
 #include <type_traits>
 #include <utility>
 #include <functional>
@@ -2149,6 +2150,32 @@ public:
 
 template<class Ptr> 
 auto arrayPtr(Ptr p) { return ArrayPtr<Ptr>(std::move(p)); }
+
+
+// template<unsigned N, class A>
+// class SmallVec {
+//   A _elems[N];
+//   unsigned _size;
+// public:
+//   SmallVec(std::initializer_list<A> elems) 
+//     : _size(elems.size()) 
+//   {
+//     ASS(_size <= capacity());
+//     unsigned i = 0;
+//     for (auto a : elems) {
+//       _elems[i++] = a;
+//     }
+//   }
+//   void push(A a) { _elems[_size] =  }
+//   unsigned size() const { return _size; }
+//   constexpr unsigned capacity() const { return N; }
+//   A const& operator[](unsigned i) const { ASS(i < size()) return _elems[i]; }
+//   A      & operator[](unsigned i)       { ASS(i < size()) return _elems[i]; }
+// };
+//
+// template<unsigned N, class A, class... As>
+// auto smallVec(A a, As... as) 
+// { return SmalVec<N, A>::fromElems({ a, as... }); }
 
 // template<class T>
 // auto initListIter(std::initializer_list<T> list)
