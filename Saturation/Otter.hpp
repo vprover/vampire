@@ -28,8 +28,6 @@ class Otter
 : public SaturationAlgorithm
 {
 public:
-  USE_ALLOCATOR(Otter);
-
   Otter(Problem& prb, const Options& opt);
 
   ClauseContainer* getSimplifyingClauseContainer() override;

@@ -35,8 +35,6 @@ using namespace Kernel;
  *
  */
 class FiniteModelMultiSorted {
- USE_ALLOCATOR(FiniteModelMultiSorted);
-
  DHMap<unsigned,unsigned> _sizes;
 
 public:

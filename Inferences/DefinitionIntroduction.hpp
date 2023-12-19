@@ -23,8 +23,6 @@ namespace Inferences
 
 class DefinitionIntroduction: public GeneratingInferenceEngine, public Index {
 public:
-  USE_ALLOCATOR(DefinitionIntroduction);
-
   void attach(SaturationAlgorithm *salg) override {
     GeneratingInferenceEngine::attach(salg);
     attachContainer(salg->getPassiveClauseContainer());

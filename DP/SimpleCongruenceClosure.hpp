@@ -48,8 +48,6 @@ using namespace Kernel;
 class SimpleCongruenceClosure : public DecisionProcedure
 {
 public:
-  USE_ALLOCATOR(SimpleCongruenceClosure);
-
   SimpleCongruenceClosure(Ordering* ord);
 
   virtual void addLiterals(LiteralIterator lits, bool onlyEqualites) override;

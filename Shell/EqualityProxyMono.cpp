@@ -203,7 +203,7 @@ void EqualityProxyMono::addCongruenceAxioms(UnitList*& units)
   for (unsigned i=0; i<funs; i++) {
     Signature::Symbol* fnSym = env.signature->getFunction(i);
     // can axiomatise equality _before_ preprocessing, so skip (some) introduced symbols
-    if(!fnSym->usageCnt() || fnSym->skolem())
+    if(!fnSym->usageCnt() || fnSym->skipCongruence())
       continue;
     unsigned arity = fnSym->arity();
     if (arity == 0) {
@@ -223,7 +223,7 @@ void EqualityProxyMono::addCongruenceAxioms(UnitList*& units)
   for (unsigned i = 1; i < preds; i++) {
     Signature::Symbol* predSym = env.signature->getPredicate(i);
     // can axiomatise equality _before_ preprocessing, so skip (some) introduced symbols
-    if(!predSym->usageCnt() || predSym->namesFormula() || predSym->equalityProxy() || predSym->answerPredicate())
+    if(!predSym->usageCnt() || predSym->skipCongruence())
       continue;
     unsigned arity = predSym->arity();
     if (arity == 0) {
@@ -340,6 +340,8 @@ unsigned EqualityProxyMono::getProxyPredicate(TermList sort)
   OperatorType* predType = OperatorType::getPredicateType({sort, sort});
   predSym->setType(predType);
   predSym->markEqualityProxy();
+  // don't need congruence axioms for the equality predicate itself
+  predSym->markSkipCongruence();
 
   ASS(sort.isTerm());
   ASS(sort.term()->shared());

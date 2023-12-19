@@ -40,8 +40,6 @@ class SKIKBO
 : public PrecedenceOrdering
 {
 public:
-  USE_ALLOCATOR(SKIKBO);
-
   SKIKBO(Problem& prb, const Options& opt, bool basic_hol = false);
   SKIKBO(
         // KBO params

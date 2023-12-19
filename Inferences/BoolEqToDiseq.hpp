@@ -24,8 +24,6 @@ namespace Inferences {
 class BoolEqToDiseq : public GeneratingInferenceEngine
 {
   public:
-    USE_ALLOCATOR(BoolEqToDiseq);
-
     ClauseIterator generateClauses(Clause* premise);
 
 };

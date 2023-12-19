@@ -195,8 +195,6 @@ class TimeTraceOrdering : public Kernel::Ordering
   const char* _nameTerm;
   Ord _ord;
 public:
-  USE_ALLOCATOR(TimeTraceOrdering);
-
   TimeTraceOrdering(const char* nameLit, const char* nameTerm, Ord ord)
   : _nameLit(nameLit)
   , _nameTerm(nameTerm)

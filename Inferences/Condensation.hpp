@@ -34,8 +34,6 @@ class Condensation
 : public ImmediateSimplificationEngine
 {
 public:
-  USE_ALLOCATOR(Condensation);
-
   Clause* simplify(Clause* cl);
 };
 

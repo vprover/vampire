@@ -20,8 +20,6 @@ class Cancellation
 : public SimplifyingGeneratingLiteralSimplification
 {
 public:
-  USE_ALLOCATOR(Cancellation);
-
   Cancellation(Ordering& ordering);
   virtual ~Cancellation();
 

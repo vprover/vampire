@@ -33,8 +33,6 @@ class Instantiation
 : public GeneratingInferenceEngine
 {
 public:
-  USE_ALLOCATOR(Instantiation);
-
   Instantiation() {}
 
   //void init();

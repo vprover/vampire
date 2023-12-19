@@ -137,6 +137,7 @@ unsigned Skolem::addSkolemFunction(unsigned arity, unsigned taArity, TermList* d
 
   unsigned fun = env.signature->addSkolemFunction(arity, suffix);
   Signature::Symbol* fnSym = env.signature->getFunction(fun);
+  fnSym->markSkipCongruence();
   OperatorType* ot = OperatorType::getFunctionType(arity - taArity, domainSorts, rangeSort, taArity);
   fnSym->setType(ot);
   return fun;

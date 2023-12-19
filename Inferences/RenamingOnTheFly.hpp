@@ -31,8 +31,6 @@ class RenamingOnTheFly
   : public SimplificationEngine
 {
 public:
-  USE_ALLOCATOR(RenamingOnTheFly);
-
   ClauseIterator perform(Clause* c);
 
   void attach(SaturationAlgorithm* salg) override;

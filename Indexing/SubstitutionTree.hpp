@@ -119,7 +119,6 @@ class SubstitutionTree
 public:
   static constexpr int QRS_QUERY_BANK = 0;
   static constexpr int QRS_RESULT_BANK = 1;
-  USE_ALLOCATOR(SubstitutionTree);
 
   SubstitutionTree(bool useC, bool rfSubs);
 

@@ -31,8 +31,6 @@ class ArgCong
 : public GeneratingInferenceEngine
 {
 public:
-  USE_ALLOCATOR(ArgCong);
-
   ClauseIterator generateClauses(Clause* premise);
 private:
   struct ResultFn;

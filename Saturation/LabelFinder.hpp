@@ -32,8 +32,6 @@ using namespace Inferences;
 
 class LabelFinder {
 public:
-  USE_ALLOCATOR(LabelFinder);
-  
   ~LabelFinder();
 
   void onNewPropositionalClause(Clause* cl);

@@ -67,8 +67,6 @@ private:
 class InterpretedLiteralEvaluator::Evaluator
 {
 public:
-  USE_ALLOCATOR(InterpretedLiteralEvaluator::Evaluator);
-  
   virtual ~Evaluator() {}
 
   virtual bool canEvaluateFunc(unsigned func) { return false; }
@@ -130,8 +128,6 @@ template<class AbelianGroup>
    : public Evaluator
 {
 public:
-  USE_ALLOCATOR(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
-
   using ConstantType = typename AbelianGroup::ConstantType;
 
   ACFunEvaluator() : _fun(env.signature->getInterpretingSymbol(AbelianGroup::interpreation)) { }
