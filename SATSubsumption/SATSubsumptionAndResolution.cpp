@@ -909,14 +909,60 @@ bool SATSubsumptionAndResolution::checkSubsumptionImpl(Clause *L,
 
   ASS_GE(_matchSet.allMatches().size(), _L->length())
 
+#if CORRELATE_LENGTH_TIME
+  start = chrono::high_resolution_clock::now();
+#endif
+
   // Create the constraints for the sat solver
   if (!cnfForSubsumption()) {
+#if CORRELATE_LENGTH_TIME
+    stop = chrono::high_resolution_clock::now();
+    auto duration = stop - start;
+    if (log) {
+      logFile << 0 /* S */ << ","
+              << _L->length() << ","
+              << _M->length() << ","
+              << getSparsity() << ","
+              << duration.count() << ","
+              << 0 /* result */ << ","
+              << 0 /* no SAT call */ << ","
+              << 0 /* SAT ticks */ << ","
+              << 0 /* SAT conflicts */ << ","
+              << 0 /* SAT decisions */ << ","
+              << 0 /* SAT propagations */ << ","
+              << 0 /* SAT max storage */ << ","
+              << 0 /* SAT original clauses */ << ","
+              << 0 /* SAT original AMOs */ << "\n";
+    }
+#endif
     return false;
   }
 
   // Solve the SAT problem
   _solver.theory().setBindings(&_bindingsManager);
-  return _solver.solve() == subsat::Result::Sat;
+  bool const subsumed = _solver.solve() == subsat::Result::Sat;
+
+#if CORRELATE_LENGTH_TIME
+  stop = chrono::high_resolution_clock::now();
+  auto duration = stop - start;
+  if (log) {
+    logFile << 0 /* S */ << ","
+            << _L->length() << ","
+            << _M->length() << ","
+            << getSparsity() << ","
+            << duration.count() << ","
+            << subsumed /* result */ << ","
+            << 1 /* SAT call */ << ","
+            << _solver.stats().ticks << ","
+            << _solver.stats().conflicts /* SAT conflicts */ << ","
+            << _solver.stats().decisions /* SAT decisions */ << ","
+            << _solver.stats().propagations /* SAT propagations */ << ","
+            << _solver.stats().max_stored_literals /* SAT max storage */ << ","
+            << _solver.stats().original_clauses /* SAT original clauses */ << ","
+            << _solver.stats().original_amos /* SAT original AMOs */ << "\n";
+  }
+#endif
+  return subsumed;
 } // SATSubsumptionAndResolution::checkSubsumption
 
 Clause *SATSubsumptionAndResolution::checkSubsumptionResolution(Clause *L,
@@ -990,10 +1036,12 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause *L,
     stop = chrono::high_resolution_clock::now();
     auto duration = stop - start;
     if (log) {
-      logFile << _L->length() << ","
+      logFile << 1 /* SR */ << ","
+              << _L->length() << ","
               << _M->length() << ","
               << getSparsity() << ","
               << duration.count() << ","
+              << 0 /* result */ << ","
               << 0 /* no SAT call */ << ","
               << 0 /* SAT ticks */ << ","
               << 0 /* SAT conflicts */ << ","
@@ -1008,20 +1056,19 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause *L,
   }
 
   // Solve the SAT problem
-  Solver &solver = _solver;
-  if (solver.theory().empty()) {
+  if (_solver.theory().empty()) {
     // -> b_ij implies a certain substitution is valid
     //    for each i, j : b_ij => (S(l_i) = m_j V S(l_i) = ~m_j)
     // These constraints are created in the fillMatches() function by filling the _bindingsManager
-    solver.theory().setBindings(&_bindingsManager);
+    _solver.theory().setBindings(&_bindingsManager);
   }
   Clause *conclusion = nullptr;
-  if (solver.solve() == subsat::Result::Sat) {
+  if (_solver.solve() == subsat::Result::Sat) {
 #if PRINT_CLAUSES_SUBS
     cout << "SAT solver succeeded" << endl;
 #endif
     _model.clear();
-    solver.get_model(_model);
+    _solver.get_model(_model);
     conclusion = generateConclusion();
   }
 #if PRINT_CLAUSES_SUBS
@@ -1034,18 +1081,20 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause *L,
   stop = chrono::high_resolution_clock::now();
   auto duration = stop - start;
   if (log) {
-    logFile << _L->length() << ","
+    logFile << 1 /* SR */ << ","
+            << _L->length() << ","
             << _M->length() << ","
             << getSparsity() << ","
             << duration.count() << ","
+            << !!conclusion /* result */ << ","
             << 1 /* SAT call */ << ","
-            << solver.stats().ticks << ","
-            << solver.stats().conflicts /* SAT conflicts */ << ","
-            << solver.stats().decisions /* SAT decisions */ << ","
-            << solver.stats().propagations /* SAT propagations */ << ","
-            << solver.stats().max_stored_literals /* SAT max storage */ << ","
-            << solver.stats().original_clauses /* SAT original clauses */ << ","
-            << solver.stats().original_amos /* SAT original AMOs */ << "\n";
+            << _solver.stats().ticks << ","
+            << _solver.stats().conflicts /* SAT conflicts */ << ","
+            << _solver.stats().decisions /* SAT decisions */ << ","
+            << _solver.stats().propagations /* SAT propagations */ << ","
+            << _solver.stats().max_stored_literals /* SAT max storage */ << ","
+            << _solver.stats().original_clauses /* SAT original clauses */ << ","
+            << _solver.stats().original_amos /* SAT original AMOs */ << "\n";
   }
 #endif
   // If the problem is SAT, then generate the conclusion clause
