@@ -26,7 +26,6 @@ class ForwardSubsumptionAndResolution
     : public ForwardSimplificationEngine {
 public:
   ForwardSubsumptionAndResolution(bool subsumptionResolution = true, bool log = false);
-  ~ForwardSubsumptionAndResolution();
 
   /**
    * Attaches the inference engine to the saturation algorithm.

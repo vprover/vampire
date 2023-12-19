@@ -33,10 +33,6 @@ ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(bool subsumptio
 {
 }
 
-ForwardSubsumptionAndResolution::~ForwardSubsumptionAndResolution()
-{
-}
-
 void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
 {
   ForwardSimplificationEngine::attach(salg);
