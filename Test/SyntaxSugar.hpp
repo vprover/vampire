@@ -21,8 +21,10 @@
 #define __TEST__SYNTAX_SUGAR__H__
 
 #include<functional>
+#include <memory>
 
 #include "Forwards.hpp"
+#include "Kernel/Formula.hpp"
 #include "Lib/Environment.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Clause.hpp"
@@ -407,6 +409,9 @@ public:
   operator Literal*() const 
   { return _lit; }
 
+  operator Formula*() const;
+  // { return _lit; }
+
   bool selected() const 
   { return _selected; }
 
@@ -725,5 +730,33 @@ inline void createTermAlgebra(SortSugar sort, initializer_list<FuncSugar> fs) {
   }
   env.signature->addTermAlgebra(new TermAlgebra(sort.sugaredExpr(), cons.size(), cons.begin()));
 }
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////
+/// FORMULAS
+///////////////////////////////////////////////////////////////////////////////////////
+
+class FormSugar {
+  std::shared_ptr<Formula> _self;
+public:
+  FormSugar(Literal* lit) 
+    ;
+  //   : _self(Formula::c)
+  // { }
+  FormSugar(Formula* f) : _self(f) {}
+  FormSugar(Lit lit) : FormSugar(new AtomicFormula(lit)) {}
+  operator Formula*() { return &*_self; }
+
+  FormSugar impl  (FormSugar r) { return FormSugar(new BinaryFormula(Connective::IMP, *this, r)); }
+  FormSugar iff   (FormSugar r) { return FormSugar(new BinaryFormula(Connective::IFF, *this, r)); }
+};
+
+inline FormSugar forall(TermSugar x, SortSugar s, FormSugar f) { return FormSugar(new QuantifiedFormula(Connective::FORALL, VList::singleton(TermList(x).var()), SList::singleton(s), f)); }
+inline FormSugar exists(TermSugar x, SortSugar s, FormSugar f) { return FormSugar(new QuantifiedFormula(Connective::EXISTS, VList::singleton(TermList(x).var()), SList::singleton(s), f)); }
+inline FormSugar operator&&(FormSugar l, FormSugar r) { return FormSugar(new BinaryFormula(Connective::AND, l, r)); }
+inline FormSugar operator||(FormSugar l, FormSugar r) { return FormSugar(new BinaryFormula(Connective::OR , l, r)); }
+inline FormSugar operator~(FormSugar l) { return FormSugar(new NegatedFormula(l)); }
 
 #endif // __TEST__SYNTAX_SUGAR__H__

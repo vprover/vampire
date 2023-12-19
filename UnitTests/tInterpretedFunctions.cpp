@@ -145,7 +145,7 @@ Option<LitSimplResult> evaluate(Literal* lit)
 }
 
 void check_eval(Lit orig_, Failure) {
-  Literal& orig = *orig_;
+  auto& orig = *(Literal*)orig_;
 
   Literal* src = Literal::create(&orig, orig.polarity());
   auto res = evaluate(src);
@@ -162,7 +162,7 @@ std::ostream& Pretty<LitSimplResult>::prettyPrint(std::ostream& out) const
 
 
 void check_eval(Lit orig_, bool expected) {
-  Literal& orig = *orig_;
+  auto& orig = *(Literal*)orig_;
 
 
   auto sideConditions = Stack<Literal*>();
@@ -175,8 +175,8 @@ void check_eval(Lit orig_, bool expected) {
 }
 
 void check_eval(Lit orig_, Lit expected_) {
-  Literal& orig = *orig_;
-  Literal& expected = *expected_;
+  auto& orig = *(Literal*)orig_;
+  auto& expected = *(Literal*)expected_;
 
   auto sideConditions = Stack<Literal*>();
   Literal* src = Literal::create(&orig, orig.polarity());
