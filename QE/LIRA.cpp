@@ -26,6 +26,46 @@ namespace QE {
 using Numeral = RealConstantType;
 using R = RealTraits;
 
+namespace FancyRealOps {
+
+  TermList operator-(TermList s) { 
+    return R::isNumeral(s) ? R::constantTl(-(*R::tryNumeral(s)))
+         : s.isTerm() && R::isMinus(s.term()->functor()) 
+                           ? s.term()->termArg(0)
+                           : R::minus(s);
+  }
+
+  TermList operator*(Numeral k, TermList t) { 
+    return  k == 0 ? R::constantTl(0) 
+          : k == 1 ? t
+          : k == -1 ? -t
+          : R::mul(R::constantTl(k), t); }
+  // TermList operator*(Numeral k, TermList t) { return R::mul(R::constantTl(k), t); }
+
+  TermList operator+(TermList s, TermList t) { 
+    return R::tryNumeral(s) == some(Numeral(0)) ? t
+         : R::tryNumeral(t) == some(Numeral(0)) ? s
+         : R::add(s, t);
+  }
+  // TermList operator-(TermList s) { return R::minus(s); }
+
+  TermList operator-(TermList s, TermList t) { return s + (-t); }
+
+  TermList operator+(Numeral s, TermList t) { return R::constantTl(s) + t; }
+  TermList operator+(TermList s, Numeral t) { return s + R::constantTl(t); }
+  TermList operator-(Numeral s, TermList t) { return R::constantTl(s) - t; }
+  TermList operator-(TermList s, Numeral t) { return s - R::constantTl(t); }
+
+  TermList operator+(int s, TermList t) { return Numeral(s) + t; }
+  TermList operator+(TermList s, int t) { return s + Numeral(t); }
+  TermList operator-(int s, TermList t) { return Numeral(s) - t; }
+  TermList operator-(TermList s, int t) { return s - Numeral(t); }
+
+
+}
+
+using namespace FancyRealOps;
+
 Numeral qLcm(Numeral l, Numeral r) {
   return Numeral(IntegerConstantType::lcm(l.numerator(), r.numerator()), 
                  IntegerConstantType::gcd(l.numerator(), r.numerator()));
@@ -43,20 +83,20 @@ Recycled<Stack<T>> rstack(T t, Ts... ts)
 }
 
 TermList genQuot(TermList t, Numeral q)
-{ return R::floor(R::mul(R::constantTl(Numeral(1)/q), t)); }
+{ return R::floor((1/q) * t); }
 
 TermList genRem(TermList t, Numeral q)
-{ return R::add(t, R::mul(R::constantTl(-q), genQuot(t,q))); }
+{ return t + -q * genQuot(t,q); }
 
 class Grid {
   TermList _anchor;
   Numeral _per;
 public:
   TermList perCeiling(TermList t) 
-  { return R::add(t, genRem(R::add(_anchor, R::minus(t)), _per)); }
+  { return t + genRem(_anchor - t, _per); }
 
   TermList perFloor(TermList t) 
-  { return R::add(t, R::minus(genRem(R::add(t, R::minus(_anchor)), _per))); }
+  { return t - genRem(t - _anchor, _per); }
 
   Grid(TermList anchor, Numeral per) : _anchor(anchor), _per(std::move(per)) { ASS(_per > Numeral(0)) }
   Grid(ElimTerm t) : Grid(t.asFinite().unwrap().term(), t.asFinite().unwrap().period().unwrap().p) 
@@ -64,28 +104,12 @@ public:
     ASS(t.asFinite().unwrap().epsilon().isNone())
   }
   auto intersect(bool lIncl, TermList min, Numeral dist, bool rIncl) {
-    auto start = lIncl ? perCeiling(min) : perFloor(R::add(min, R::constantTl(_per)));
+    auto start = lIncl ? perCeiling(min) : perFloor(min + _per);
     return natIter<Numeral>()
       .takeWhile([=](auto n) { return rIncl ? n * _per <= dist : n * _per < dist;  })
-      .map([=](auto n) -> TermList { return R::add(start, R::constantTl(n * _per)); });
+      .map([=](auto n) -> TermList { return start + (n * _per); });
   }
 };
-
-TermList operator*(Numeral k, TermList t) { return R::mul(R::constantTl(k), t); }
-
-TermList operator+(TermList s, TermList t) { return R::add(s, t); }
-TermList operator-(TermList s, TermList t) { return R::add(s, R::minus(t)); }
-
-TermList operator+(Numeral s, TermList t) { return R::constantTl(s) + t; }
-TermList operator+(TermList s, Numeral t) { return s + R::constantTl(t); }
-TermList operator-(Numeral s, TermList t) { return R::constantTl(s) - t; }
-TermList operator-(TermList s, Numeral t) { return s - R::constantTl(t); }
-
-TermList operator+(int s, TermList t) { return Numeral(s) + t; }
-TermList operator+(TermList s, int t) { return s + Numeral(t); }
-TermList operator-(int s, TermList t) { return Numeral(s) - t; }
-TermList operator-(TermList s, int t) { return s - Numeral(t); }
-TermList operator-(TermList s) { return R::minus(s); }
 
 class NormLit {
   TermList _term;
@@ -263,6 +287,31 @@ public:
           auto dlin = [&](auto b) -> TermList 
           { return (-res.slope *  b + EqHelper::replace(t, TermList::var(x), b)); };
 
+          auto breaks = [&]() {
+            if (res.per == 0 &&  res.off == 0) { 
+              return rstack(arrayIter(Stack<ElimTerm>())); 
+            } else if (res.per == 0 && res.off != 0) {
+              return rstack(getSingletonIterator((-1 / res.off) * EqHelper::replace(t, TermList::var(x), R::constantTl(0)) + Period(newPer)));
+            } else if (res.per != 0 && res.slope == 0) {
+              return std::move(res.breaks);
+            } else {
+              ASS(res.per != 0 && res.slope != 0)
+              auto pmin = arrayIter(*res.breaks).map([](auto& b) { return b.asFinite()->period()->p; }).min();
+              auto out = std::move(res.breaks);
+              out->loadFromIterator(arrayIter(*out)
+                        .flatMap([&](ElimTerm b_plus_pZ_) { 
+                          auto b_plus_pZ = b_plus_pZ_.asFinite().unwrap();
+                          auto b = b_plus_pZ.term();
+                          auto maxDist = pmin.unwrap();
+                          return Grid((-1 / res.slope) * dlin(b), 1 / res.slope)
+                                  .intersect(/* incl */ false, b, maxDist,  /* incl */ false)
+                                  .map([&](auto i) -> ElimTerm { return i + Period(newPer); });
+                        })
+                  );
+              return out;
+            }
+          };
+
           return Summary {
               .slope = Numeral(0),
               .off = res.off,
@@ -272,23 +321,7 @@ public:
                 .dist = res.xInfRegion.dist + res.off, 
               },
               .lim = res.slope >= 0 ? R::floor(res.lim) : -R::floor(-res.lim) - 1,
-              .breaks = 
-                   res.per.isZero() &&  res.off.isZero()   ? rstack(arrayIter(Stack<ElimTerm>()))
-                :  res.per.isZero() && !res.off.isZero()   ? rstack(getSingletonIterator((-1 / res.off) * EqHelper::replace(t, TermList::var(x), R::constantTl(0)) + Period(newPer)))
-                : !res.per.isZero() && res.slope.isZero() ? std::move(res.breaks)
-                : /* !res.per.isZero() && !res.slope.isZero() */ rstack(concatIters(
-                      arrayIter(*res.breaks).map([](auto& b) -> ElimTerm { return b; }),
-                      arrayIter(*res.breaks)
-                        .flatMap([&](ElimTerm b_plus_pZ_) { 
-                          auto b_plus_pZ = b_plus_pZ_.asFinite().unwrap();
-                          auto b = b_plus_pZ.term();
-                          auto p = b_plus_pZ.period().unwrap().p;
-                          auto maxDist = p;
-                          return Grid((-1 / res.slope) * dlin(b), 1 / res.slope)
-                                  .intersect(/* incl */ false, b, maxDist,  /* incl */ false)
-                                  .map([&](auto i) -> ElimTerm { return i + Period(newPer); });
-                        })
-                      )),
+              .breaks = breaks(),
           }; 
         }
     );
@@ -300,7 +333,7 @@ public:
     auto l = lit->termArg(0);
     auto r = lit->termArg(1);
     if (lit->isEquality()) {
-      return NormLit(R::add(l, R::minus(r)), lit->isPositive() ? Connective::Eq : Connective::Neq);
+      return NormLit(l - r, lit->isPositive() ? Connective::Eq : Connective::Neq);
     } else {
       auto f = lit->functor();
       ASS(R::isLess(f) || R::isLeq(f) || R::isGreater(f) || R::isGeq(f))
@@ -311,8 +344,7 @@ public:
         grtr = !grtr;
       }
       return NormLit(
-        grtr ? R::add(l, R::minus(r))
-             : R::add(r, R::minus(l)),
+        grtr ? l - r : r - l,
         strict ? Connective::Greater : Connective::Geq
       );
     }
@@ -369,7 +401,7 @@ auto elimSet(TermList var, Literal* lit_) {
           return range(0, set->size())
               .map([set = std::move(set)](auto i) { return (*set)[i]; });
         };
-        auto intersection = ElimTerm(R::mul(R::constantTl(Numeral(-1) / slope), EqHelper::replace(phi, var, R::constantTl(0))));
+        auto intersection = ElimTerm((-1 / slope) * EqHelper::replace(phi, var, R::constantTl(0)));
         switch (lit.connective()) {
           case Connective::Greater: 
           case Connective::Geq:
@@ -386,6 +418,8 @@ auto elimSet(TermList var, Literal* lit_) {
       },
       /* else */
       [=](){
+        // using namespace OtherRealOps;
+
         auto off = summary->off;
         auto per = summary->per;
         auto deltaInf = (*summary).xInfRegion.dist;
@@ -394,7 +428,7 @@ auto elimSet(TermList var, Literal* lit_) {
         auto limPhi = summary->lim;
 
         auto dlin = [slope, var, limPhi](auto b) -> TermList 
-        { return R::add(R::mul(R::constantTl(-slope), b), EqHelper::replace(limPhi, var, b)); };
+        { return -slope * b + EqHelper::replace(limPhi, var, b); };
 
         auto intrestGrid = [=](bool lIncl, Grid g, bool rIncl) 
         { return g.intersect(lIncl, xMinusInf(), deltaInf, rIncl).map([](TermList t) { return ElimTerm(t); }); };
@@ -408,11 +442,9 @@ auto elimSet(TermList var, Literal* lit_) {
         auto einter = [=]() {
           ASS(!slope.isZero())
           auto inter = [=](auto b) { 
-            return (-1 / slope) * dlin(b.asFinite()->term()); 
+            auto out = (-1 / slope) * dlin(b.asFinite()->term()); 
+              return out;
           };
-          // auto inters = [=]() { 
-          //   return breaksIter().map([=](auto b) -> TermList { return R::mul(R::constantTl(Numeral(-1) / slope), dlin(b)); }); 
-          // };
           return ifElseIter(
               /* if */ off.isZero(),
               [=]() { return breaksIter().map([=](auto b) { return inter(b) + *b.asFinite()->period(); });  },
@@ -452,7 +484,6 @@ auto elimSet(TermList var, Literal* lit_) {
 
             );
         return concatIters( ebreak(incl, incl), eseg, einf);
-        // return concatIters( ebreak(incl, incl));
       });
 }
 
