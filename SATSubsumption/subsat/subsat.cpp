@@ -28,6 +28,7 @@ std::ostream& subsat::print_config(std::ostream& os)
 #endif
         os << ")";
     }
+    if (SUBSAT_LIMITS) { os << " LIMITS"; }
     if (VDEBUG && SUBSAT_EXPENSIVE_ASSERTIONS) { os << " EXPENSIVE_ASSERTIONS"; }
     os << '\n';
     return os;
