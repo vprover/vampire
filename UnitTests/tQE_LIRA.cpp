@@ -121,17 +121,33 @@ struct ElimSetTest {
           .template collect<Stack>();
     auto error = expected.check(result);
     if (error.isSome()) {
-
-    // for (auto& s : arrayIter(expected)) {
-    //   if (!arrayIter(simplResult).any([&](auto& res) { return eqModAC(res, s); }) ) {
         std::cout << "[         case ] " << pretty(     conj ) << std::endl;
         std::cout << "[       result ] " << pretty(      result ) << std::endl;
         std::cout << "[ simpl result ] " << pretty( simplResult ) << std::endl;
         std::cout << "[        error ] " << pretty(      *error ) << std::endl;
         std::cout << "[     expected ] " << pretty(    expected ) << std::endl;
         exit(-1);
-    //   }
-    // }
+    }
+  }
+};
+
+
+struct CdvsTest {
+  Formula* formula;
+  bool expected;
+
+  void run() {
+    auto result = QE::CDVS::ConflictDrivenVirtualSubstitution::decide(formula);
+    // auto result = LIRA::iterElimSet(VAR_X, conj).template collect<Stack>();
+    // auto simplResult = arrayIter(result)
+    //       .map([](auto t) { return simpl(t); })
+    //       .template collect<Stack>();
+    // auto error = expected.check(result);
+    if (expected != result) {
+        std::cout << "[         case ] " << pretty(    *formula ) << std::endl;
+        std::cout << "[       result ] " << pretty(      result ) << std::endl;
+        std::cout << "[     expected ] " << pretty(    expected ) << std::endl;
+        exit(-1);
     }
   }
 };
@@ -224,4 +240,20 @@ RUN_TEST(floor_4,
     ElimSetTest {
       .conj = { floor(x - a) == x },
       .expected = containsAll( a + Z(1) ), 
+    })
+
+RUN_TEST(floor_5, 
+    ElimSetTest {
+      .conj = { floor(x - a) == x },
+      .expected = containsAll( a + Z(1) ), 
+    })
+
+//////////////////////////////////////////////////////////////////////////////////////
+// Full Decisision procedure tests
+//////////////////////////////////////////////////////////////////////////////////////
+
+RUN_TEST(decide_01,
+    CdvsTest {
+      .formula  = exists(x, Real, floor(x - a) == x),
+      .expected = true,
     })

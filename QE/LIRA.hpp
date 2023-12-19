@@ -12,6 +12,8 @@
 #define __QE_LIRA__
 
 
+#include "Debug/Assertion.hpp"
+#include "Kernel/Formula.hpp"
 #include "QE/ElimSet.hpp"
 
 namespace QE {
@@ -26,6 +28,14 @@ public:
       .flatMap([var](auto l) { return iterElimSet(var, l); });
   }
 };
+
+namespace CDVS {
+
+struct ConflictDrivenVirtualSubstitution {
+  static bool decide(Kernel::Formula* f) { ASSERTION_VIOLATION_REP("TODO") }
+};
+
+} // namespace CDVS
 
 
 } // namespace QE
