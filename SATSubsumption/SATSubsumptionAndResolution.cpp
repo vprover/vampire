@@ -922,17 +922,17 @@ bool SATSubsumptionAndResolution::checkSubsumptionImpl(Clause *L,
       logFile << 0 /* S */ << ","
               << _L->length() << ","
               << _M->length() << ","
-              << getSparsity() << ","
+              // << getSparsity() << ","
               << duration.count() << ","
               << 0 /* result */ << ","
               << 0 /* no SAT call */ << ","
-              << 0 /* SAT ticks */ << ","
-              << 0 /* SAT conflicts */ << ","
-              << 0 /* SAT decisions */ << ","
-              << 0 /* SAT propagations */ << ","
-              << 0 /* SAT max storage */ << ","
-              << 0 /* SAT original clauses */ << ","
-              << 0 /* SAT original AMOs */ << "\n";
+              << 0 /* SAT ticks */ << ",";
+              // << 0 /* SAT conflicts */ << ","
+              // << 0 /* SAT decisions */ << ","
+              // << 0 /* SAT propagations */ << ","
+              // << 0 /* SAT max storage */ << ","
+              // << 0 /* SAT original clauses */ << ","
+              // << 0 /* SAT original AMOs */ << "\n";
     }
 #endif
     return false;
@@ -949,17 +949,17 @@ bool SATSubsumptionAndResolution::checkSubsumptionImpl(Clause *L,
     logFile << 0 /* S */ << ","
             << _L->length() << ","
             << _M->length() << ","
-            << getSparsity() << ","
+            // << getSparsity() << ","
             << duration.count() << ","
             << subsumed /* result */ << ","
             << 1 /* SAT call */ << ","
-            << _solver.stats().ticks << ","
-            << _solver.stats().conflicts /* SAT conflicts */ << ","
-            << _solver.stats().decisions /* SAT decisions */ << ","
-            << _solver.stats().propagations /* SAT propagations */ << ","
-            << _solver.stats().max_stored_literals /* SAT max storage */ << ","
-            << _solver.stats().original_clauses /* SAT original clauses */ << ","
-            << _solver.stats().original_amos /* SAT original AMOs */ << "\n";
+            << _solver.stats().ticks << ",";
+            // << _solver.stats().conflicts /* SAT conflicts */ << ","
+            // << _solver.stats().decisions /* SAT decisions */ << ","
+            // << _solver.stats().propagations /* SAT propagations */ << ","
+            // << _solver.stats().max_stored_literals /* SAT max storage */ << ","
+            // << _solver.stats().original_clauses /* SAT original clauses */ << ","
+            // << _solver.stats().original_amos /* SAT original AMOs */ << "\n";
   }
 #endif
   return subsumed;
@@ -1039,17 +1039,17 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause *L,
       logFile << 1 /* SR */ << ","
               << _L->length() << ","
               << _M->length() << ","
-              << getSparsity() << ","
+              // << getSparsity() << ","
               << duration.count() << ","
               << 0 /* result */ << ","
               << 0 /* no SAT call */ << ","
-              << 0 /* SAT ticks */ << ","
-              << 0 /* SAT conflicts */ << ","
-              << 0 /* SAT decisions */ << ","
-              << 0 /* SAT propagations */ << ","
-              << 0 /* SAT max storage */ << ","
-              << 0 /* SAT original clauses */ << ","
-              << 0 /* SAT original AMOs */ << "\n";
+              << 0 /* SAT ticks */ << ",";
+              // << 0 /* SAT conflicts */ << ","
+              // << 0 /* SAT decisions */ << ","
+              // << 0 /* SAT propagations */ << ","
+              // << 0 /* SAT max storage */ << ","
+              // << 0 /* SAT original clauses */ << ","
+              // << 0 /* SAT original AMOs */ << "\n";
     }
 #endif
     return nullptr;
@@ -1084,17 +1084,17 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause *L,
     logFile << 1 /* SR */ << ","
             << _L->length() << ","
             << _M->length() << ","
-            << getSparsity() << ","
+            // << getSparsity() << ","
             << duration.count() << ","
             << !!conclusion /* result */ << ","
             << 1 /* SAT call */ << ","
-            << _solver.stats().ticks << ","
-            << _solver.stats().conflicts /* SAT conflicts */ << ","
-            << _solver.stats().decisions /* SAT decisions */ << ","
-            << _solver.stats().propagations /* SAT propagations */ << ","
-            << _solver.stats().max_stored_literals /* SAT max storage */ << ","
-            << _solver.stats().original_clauses /* SAT original clauses */ << ","
-            << _solver.stats().original_amos /* SAT original AMOs */ << "\n";
+            << _solver.stats().ticks << ",";
+            // << _solver.stats().conflicts /* SAT conflicts */ << ","
+            // << _solver.stats().decisions /* SAT decisions */ << ","
+            // << _solver.stats().propagations /* SAT propagations */ << ","
+            // << _solver.stats().max_stored_literals /* SAT max storage */ << ","
+            // << _solver.stats().original_clauses /* SAT original clauses */ << ","
+            // << _solver.stats().original_amos /* SAT original AMOs */ << "\n";
   }
 #endif
   // If the problem is SAT, then generate the conclusion clause
