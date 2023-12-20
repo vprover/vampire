@@ -136,18 +136,14 @@ struct CdvsTest {
   Formula* formula;
   bool expected;
 
-  void run() {
+  void run() 
+  {
     auto result = QE::CDVS::ConflictDrivenVirtualSubstitution::decide(formula);
-    // auto result = LIRA::iterElimSet(VAR_X, conj).template collect<Stack>();
-    // auto simplResult = arrayIter(result)
-    //       .map([](auto t) { return simpl(t); })
-    //       .template collect<Stack>();
-    // auto error = expected.check(result);
     if (expected != result) {
-        std::cout << "[         case ] " << pretty(    *formula ) << std::endl;
-        std::cout << "[       result ] " << pretty(      result ) << std::endl;
-        std::cout << "[     expected ] " << pretty(    expected ) << std::endl;
-        exit(-1);
+      std::cout << "[         case ] " << pretty(    *formula ) << std::endl;
+      std::cout << "[       result ] " << pretty(      result ) << std::endl;
+      std::cout << "[     expected ] " << pretty(    expected ) << std::endl;
+      exit(-1);
     }
   }
 };
