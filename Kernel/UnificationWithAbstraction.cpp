@@ -82,7 +82,6 @@ public:
     auto t = _todo->pop();
     auto* dt = &_subs->derefBound(t);
     while (dt->isTerm() && dt->functor() == _function) {
-      DBGE(*dt)
       ASS_EQ(dt->nTermArgs(), 2);
       _todo->push(dt->termArg(1));
       t = dt->termArg(0);
@@ -171,13 +170,12 @@ Option<AbstractionOracle::AbstractionResult> AbstractionOracle::tryAbstract(Abst
 
   auto intSort = []() { return TermSpec(IntTraits::sort(), 0); };
 
-
   if (_mode == Uwa::AC1 || _mode == Uwa::AC2) {
-      if (!(t1.isTerm() && theory->isInterpretedFunction(t1.functor(), IntTraits::addI))
-       || !(t2.isTerm() && theory->isInterpretedFunction(t2.functor(), IntTraits::addI))
-       || (t1.isTerm() && t1.isSort())
-       || (t2.isTerm() && t2.isSort())
-       ) {
+      if ( (t1.isTerm() && t1.isSort())
+        || (t2.isTerm() && t2.isSort())
+        || !(t1.isTerm() && theory->isInterpretedFunction(t1.functor(), IntTraits::addI))
+        || !(t2.isTerm() && theory->isInterpretedFunction(t2.functor(), IntTraits::addI))
+        ) {
         return Option<AbstractionResult>();
       }
       auto a1 = iterTraits(AcIter(IntTraits::addF(), t1, &au->subs())).template collect<Stack>();
