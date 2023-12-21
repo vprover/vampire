@@ -24,7 +24,13 @@
 #   VZ3              - compile with Z3
 
 COMPILE_ONLY = -fno-pie
+
+OS = $(shell uname)
+ifeq ($(OS),Darwin)
 LINK_ONLY = -Wl,-no_pie
+else
+LINK_ONLY = -no-pie
+endif
 
 DBG_FLAGS = -g -DVTIME_PROFILING=0 -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider
 # DELETEMEin2017: the bug with gcc-6.2 and problems in ClauseQueue could be also fixed by adding -fno-tree-ch
