@@ -168,6 +168,8 @@ using namespace Kernel;
       // In all other situations it is empty
       TermList extraTerm;
 
+      friend std::ostream& operator<<(std::ostream& out, LeafData const& self)
+      { return out << outputPtr(self.clause); }
     };
     typedef VirtualIterator<LeafData*> LDIterator;
 
@@ -1159,21 +1161,20 @@ using namespace Kernel;
         , _svStack()
         , _literalRetrieval(std::is_same<TermOrLit, Literal*>::value)
         , _retrieveSubstitution(retrieveSubstitution)
-        , _inLeaf(false)
-        , _ldIterator(LDIterator::getEmpty())
+        , _leafData()
         , _nodeIterators()
         , _bdStack()
-        , _clientBDRecording(false)
+        , _normalizationRecording(false)
         , _iterCntr(parent->_iterCnt)
       {
-#define DEBUG_QUERY(...) // DBG(__VA_ARGS__)
+#define DEBUG_QUERY(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
         if(!root) {
           return;
         }
 
         parent->createBindings(query, reversed, 
             [&](unsigned var, TermList t) { _algo.bindQuerySpecialVar(var, t); });
-        DEBUG_QUERY("query: ", _abstractingUnifier.subs())
+        DEBUG_QUERY(1, "query: ", _algo)
 
 
         prepareChildren(root, /* backtrackable */ false);
@@ -1182,10 +1183,10 @@ using namespace Kernel;
 
       ~Iterator()
       {
-        if(_clientBDRecording) {
+        if(_normalizationRecording) {
           _algo.bdDone();
-          _clientBDRecording=false;
-          _clientBacktrackData.backtrack();
+          _normalizationRecording=false;
+          _normalizationBacktrackData.backtrack();
         }
         if (_bdStack.alive()) 
           while(_bdStack->isNonEmpty()) {
@@ -1193,26 +1194,28 @@ using namespace Kernel;
           }
       }
 
+      bool hasLeafData() { return _leafData.isSome() && _leafData->hasNext(); };
+
       bool hasNext()
       {
-        if(_clientBDRecording) {
+        if(_normalizationRecording) {
           _algo.bdDone();
-          _clientBDRecording=false;
-          _clientBacktrackData.backtrack();
+          _normalizationRecording=false;
+          _normalizationBacktrackData.backtrack();
         }
 
-        while(!_ldIterator.hasNext() && findNextLeaf()) {}
-        return _ldIterator.hasNext();
+        while(!hasLeafData() && findNextLeaf()) {}
+        return hasLeafData();
       }
 
       QueryResult<Unifier> next()
       {
-        while(!_ldIterator.hasNext() && findNextLeaf()) {}
-        ASS(_ldIterator.hasNext());
+        while(!hasLeafData() && findNextLeaf()) {}
+        ASS(hasLeafData());
 
-        ASS(!_clientBDRecording);
+        ASS(!_normalizationRecording);
 
-        auto ld = _ldIterator.next();
+        auto ld = _leafData->next();
         if (_retrieveSubstitution) {
             Renaming normalizer;
             if(_literalRetrieval) {
@@ -1224,29 +1227,29 @@ using namespace Kernel;
               }
             }
 
-            ASS(_clientBacktrackData.isEmpty());
-            _algo.bdRecord(_clientBacktrackData);
-            _clientBDRecording=true;
+            ASS(_normalizationBacktrackData.isEmpty());
+            _algo.bdRecord(_normalizationBacktrackData);
+            _normalizationRecording=true;
 
             _algo.denormalize(normalizer);
         }
 
+        DEBUG_QUERY(1, "leaf data: ", *ld)
         return queryResult(ld, _algo.unifier());
       }
 
     private:
 
       template<class F>
-      bool runBacktracking(F f) 
+      bool runRecording(F f) 
       {
         _algo.bdRecord(_bdStack->top());
         bool success = f();
         _algo.bdDone();
-        if (!success) {
-          _bdStack->pop().backtrack();
-        }
         return success;
       }
+
+      bool inLeaf() const { return _leafData.isSome(); }
 
       bool findNextLeaf()
       {
@@ -1260,22 +1263,22 @@ using namespace Kernel;
           return false;
         }
 
-        if(_inLeaf) {
-          ASS(!_clientBDRecording);
-          //Leave the current leaf
-          _bdStack->pop().backtrack();
-          _inLeaf=false;
+        auto leaveLeaf = [&]() {
+            ASS(!_normalizationRecording);
+            _bdStack->pop().backtrack();
+            _leafData = {};
+        };
+
+        if(_leafData.isSome()) {
+          leaveLeaf();
         }
 
-        ASS(!_clientBDRecording);
+        ASS(!_normalizationRecording);
         ASS(_bdStack->length()+1==_nodeIterators->length());
 
         do {
-          while(!_nodeIterators->top().hasNext() && !_bdStack->isEmpty()) {
-            //backtrack undos everything that something wrapped in runBacktracking(...) method has done,
-            //so it also pops one item out of the nodeIterators stack
+          while (!_nodeIterators->top().hasNext() && !_bdStack->isEmpty()) {
             _bdStack->pop().backtrack();
-            _svStack->pop();
           }
           if(!_nodeIterators->top().hasNext()) {
             return false;
@@ -1283,17 +1286,19 @@ using namespace Kernel;
           Node* n=*_nodeIterators->top().next();
 
           _bdStack->push(BacktrackData());
-          if (runBacktracking([&]() { return _algo.associate(_svStack->top(), n->term()); })) {
+
+          if (runRecording([&]() { return _algo.associate(_svStack->top(), n->term());})) {
             prepareChildren(n, /* backtrackable */ true);
-            if (_inLeaf && !runBacktracking([&](){ return _algo.doFinalLeafCheck(); })) {
-              _inLeaf = false;
+            if (_leafData.isSome() && !runRecording([&](){ return _algo.doFinalLeafCheck(); })) {
+              leaveLeaf();
               continue;
             }
           } else {
+            _bdStack->pop().backtrack();
             continue;
           }
-        } while(!_inLeaf);
-        ASS(_inLeaf)
+        } while(_leafData.isNone());
+        ASS(_leafData.isSome())
         ASS(_bdStack.size() != 0)
         return true;
       }
@@ -1303,15 +1308,20 @@ using namespace Kernel;
        */
       void prepareChildren(Node* n, bool backtrackable) {
         if(n->isLeaf()) {
-          _ldIterator=static_cast<Leaf*>(n)->allChildren();
-          _inLeaf=true;
+          _leafData = some(static_cast<Leaf*>(n)->allChildren());
         } else {
           IntermediateNode* inode=static_cast<IntermediateNode*>(n);
           _svStack->push(inode->childVar);
+          _leafData = {};
+          DEBUG_QUERY(1, "entering node: S", _svStack->top())
           
           _nodeIterators->push(_algo.selectPotentiallyUnifiableChildren(inode));
           if (backtrackable) {
-            _bdStack->top().addClosure([&]() { _nodeIterators->pop(); });
+            _bdStack->top().addClosure([&]() { 
+                auto var = _svStack->pop();
+                DEBUG_QUERY(1, "backtracking node: S", var)
+                _nodeIterators->pop(); 
+            });
           }
         }
       }
@@ -1320,12 +1330,11 @@ using namespace Kernel;
       Recycled<VarStack> _svStack;
       bool _literalRetrieval;
       bool _retrieveSubstitution;
-      bool _inLeaf;
-      LDIterator _ldIterator;
+      Option<LDIterator> _leafData;
       Recycled<Stack<NodeIterator>> _nodeIterators;
       Recycled<Stack<BacktrackData>> _bdStack;
-      bool _clientBDRecording;
-      BacktrackData _clientBacktrackData;
+      bool _normalizationRecording;
+      BacktrackData _normalizationBacktrackData;
       InstanceCntr _iterCntr;
     };
 
@@ -1434,6 +1443,8 @@ using namespace Kernel;
             }
           }
         }
+        friend std::ostream& operator<<(std::ostream& out, RobUnification const& self)
+        { return out << *self._subs; }
 
       };
 
@@ -1497,6 +1508,8 @@ using namespace Kernel;
 
         SubstitutionTree::NodeIterator selectPotentiallyUnifiableChildren(SubstitutionTree::IntermediateNode* n)
         { return selectPotentiallyUnifiableChildren(n, _unif); }
+        friend std::ostream& operator<<(std::ostream& out, UnificationWithAbstraction const& self)
+        { return out << self._unif; }
       };
     };
 
