@@ -154,6 +154,7 @@ void checkTermMatches(TermSubstitutionTree& index, Options::UnificationWithAbstr
       [&](auto& idx, auto t) { return idx.getUwa(term, uwa, fixedPointIteration); });
 }
 
+
 struct IndexTest {
   unique_ptr<TermSubstitutionTree> index;
   Options::UnificationWithAbstraction uwa;
@@ -170,6 +171,25 @@ struct IndexTest {
 
     checkTermMatches(*this->index, uwa, fixedPointIteration, TypedTermList(this->query, this->query.sort()),this->expected);
 
+  }
+};
+
+
+struct LiteralIndexTest {
+  unique_ptr<LiteralSubstitutionTree> index;
+  Options::UnificationWithAbstraction uwa;
+  bool fixedPointIteration = false;
+  Stack<Literal*> insert;
+  Literal* query;
+  Stack<LiteralUnificationResultSpec> expected;
+
+  void run() {
+    DECL_PRED(dummy, Stack<SortSugar>())
+    for (auto x : this->insert) {
+      index->insert(x, unit(dummy()));
+    }
+
+    checkLiteralMatches(*index, uwa, fixedPointIteration, query, expected);
   }
 };
 
@@ -1324,5 +1344,52 @@ RUN_TEST(top_level_constraints_2,
       },
     })
 
+RUN_TEST(literal_tree_test_01,
+    INT_SUGAR,
+    LiteralIndexTest {
+      .index = getLiteralIndex(),
+      .uwa = Options::UnificationWithAbstraction::AC2,
+      .fixedPointIteration = true,
+      .insert = {
+        x < (a + (x + 1)),
+        x < (x + a),
+      },
+      .query = x < 1 + (x + 1),
+      .expected = Stack<LiteralUnificationResultSpec>{ 
+
+      },
+    })
 
 
+RUN_TEST(literal_tree_test_02,
+    INT_SUGAR,
+    LiteralIndexTest {
+      .index = getLiteralIndex(),
+      .uwa = Options::UnificationWithAbstraction::AC1,
+      .fixedPointIteration = true,
+      .insert = {
+        x < x,
+        x < (y + 1),
+        x < (-1 + (x + 1)),
+        x < (x + -1),
+        x < y,
+        (x + 1) < x,
+        (1  + (x + 1)) < x,
+      },
+      .query = x < 1 + (x + 1),
+      .expected = Stack<LiteralUnificationResultSpec>{ 
+
+          // x < y + 1
+          LiteralUnificationResultSpec 
+          { .querySigma  = x < 1 + (x + 1),
+            .resultSigma = x < 1 + (x + 1),
+            .constraints = Stack<Literal*>{} }, 
+
+          // x < y
+          LiteralUnificationResultSpec 
+          { .querySigma  = x < 1 + (x + 1),
+            .resultSigma = x < 1 + (x + 1),
+            .constraints = Stack<Literal*>{} }, 
+
+      },
+    })
