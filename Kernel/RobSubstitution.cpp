@@ -200,14 +200,22 @@ unsigned RobSubstitution::findOrIntroduceOutputVariable(VarSpec v) const
 
 VarSpec RobSubstitution::introGlueVar(TermSpec forTerm)
 {
-  auto v = VarSpec(_nextGlueAvailable++, GLUE_INDEX);
-  if (bdIsRecording()) {
-    bdAdd(BacktrackObject::fromClosure([this](){
-      _nextGlueAvailable--;
-    }));
+
+  auto old = _gluedTerms.find(forTerm);
+  if (old) {
+    return VarSpec(*old, GLUE_INDEX);
+  } else {
+    auto v = VarSpec(_nextGlueAvailable++, GLUE_INDEX);
+    _gluedTerms.insert(forTerm, v.var);
+    if (bdIsRecording()) {
+      bdAdd(BacktrackObject::fromClosure([this, forTerm](){
+        _nextGlueAvailable--;
+        _gluedTerms.remove(forTerm);
+      }));
+    }
+    bind(v, forTerm);
+    return v;
   }
-  bind(v, forTerm);
-  return v;
 }
 
 void RobSubstitution::bind(const VarSpec& v, TermSpec b)

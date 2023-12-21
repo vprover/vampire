@@ -270,6 +270,7 @@ class RobSubstitution
   mutable bool _startedBindingOutputVars;
   mutable unsigned _nextUnboundAvailable;
   mutable unsigned _nextGlueAvailable;
+  DHMap<TermSpec, unsigned> _gluedTerms;
   mutable OnlyMemorizeNonVar<TermList> _applyMemo;
 
 public:
@@ -279,6 +280,7 @@ public:
     : _startedBindingOutputVars(false)
     , _nextUnboundAvailable(0) 
     , _nextGlueAvailable(0) 
+    , _gluedTerms() 
   {}
 
   SubstIterator matches(Literal* base, int baseIndex,
@@ -341,6 +343,7 @@ public:
     _startedBindingOutputVars = false;
     _nextUnboundAvailable=0;
     _nextGlueAvailable=0;
+    _gluedTerms.reset();
     _applyMemo.reset();
   }
   bool keepRecycled() const { return _bindings.keepRecycled() || _outputVarBindings.keepRecycled(); }
