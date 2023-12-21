@@ -411,7 +411,7 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
       auto& dt1 = subs().derefBound(cur.first);
       auto& dt2 = subs().derefBound(cur.second);
       DEBUG_UNIFY(2, "popped: ", dt1, " = ", dt2)
-      if (dt1 == dt2) {
+      if (dt1.deepEqCheck(dt2)) {
         progress = true;
 
       } else if(dt1.isVar() && !occurs(dt1, dt2)) {
@@ -431,14 +431,14 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
         } else {
           ASS(absRes->is<AbstractionOracle::EqualIf>())
           auto& conditions = absRes->unwrap<AbstractionOracle::EqualIf>();
-          auto eq = [](UnificationConstraint& c, TermSpec const& lhs, TermSpec const& rhs) 
+          auto deepEqCheck = [](UnificationConstraint& c, TermSpec const& lhs, TermSpec const& rhs) 
           { 
-            return (c.lhs() == lhs && c.rhs() == rhs) 
-                || (c.lhs() == rhs && c.rhs() == lhs); };
+            return (c.lhs().deepEqCheck(lhs) && c.rhs().deepEqCheck(rhs)) 
+                || (c.lhs().deepEqCheck(rhs) && c.rhs().deepEqCheck(lhs)); };
           if (progress 
               || conditions.constr().size() != 1 
               || conditions.unify().size() != 0
-              || !eq(conditions.constr()[0], t1, t2)
+              || !deepEqCheck(conditions.constr()[0], t1, t2)
               ) {
             progress = true;
           }
