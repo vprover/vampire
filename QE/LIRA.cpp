@@ -11,6 +11,8 @@
 #include "QE/LIRA.hpp"
 #include "Debug/Assertion.hpp"
 #include "Kernel/Connective.hpp"
+#include "Kernel/LASCA.hpp"
+#include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Theory.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -59,8 +61,6 @@ namespace AutoSimplifyingRealOps {
   TermList operator+(TermList s, int t) { return s + Numeral(t); }
   TermList operator-(int s, TermList t) { return Numeral(s) - t; }
   TermList operator-(TermList s, int t) { return s - Numeral(t); }
-
-
 }
 
 using namespace AutoSimplifyingRealOps;
@@ -72,6 +72,16 @@ Numeral qLcm(Numeral l, Numeral r) {
 enum class Connective {
   Greater, Geq, Neq, Eq,
 };
+
+std::ostream& operator<<(std::ostream& out, Connective const& self)
+{ 
+  switch(self) {
+    case Connective::Greater: return out << ">";
+    case Connective::Geq:     return out << ">=";
+    case Connective::Neq:     return out << "!=";
+    case Connective::Eq:      return out << "==";
+  }
+} 
 
 template<class T, class... Ts>
 Recycled<Stack<T>> rstack(T t, Ts... ts) 
@@ -117,18 +127,12 @@ class NormLit {
 public:
 
   auto& connective() const { return _connective; }
-
-
   template<class Res, class TargetVar, class OtherVarOrConst, class NumMul, class Add, class Floor> 
-  static auto eval(TermList t, unsigned var, TargetVar targetVar, OtherVarOrConst otherVarOrConst, NumMul numMul, Add add, Floor floor) {
+  static auto eval(TermList t, TermList var, TargetVar targetVar, OtherVarOrConst otherVarOrConst, NumMul numMul, Add add, Floor floor) {
     return evalBottomUp<Res>(t,
         [=](auto& orig, auto* args) {
-          if (orig.isVar()) {
-            if (orig.var() == var) {
-              return targetVar();
-            } else {
-              return otherVarOrConst(orig);
-            }
+          if (orig == var) {
+            return targetVar();
           } else {
             auto f = orig.term()->functor();
             auto origArg = [=](auto i) { return orig.term()->termArg(i); };
@@ -160,6 +164,27 @@ public:
         });
   }
 
+  template<class Res, class One, class NumMul, class Add, class Floor> 
+  static auto evalGround(TermList t, One one, NumMul numMul, Add add, Floor floor) {
+    return eval<Res>(t, TermList::var(0),
+        /* var x     */ []() -> Res { ASSERTION_VIOLATION_REP("not ground") },
+        /* other var */ [&](TermList t)  -> Res { 
+          ASS(R::tryNumeral(t) == some(Numeral(1)))
+          // TODO this is unnecessary work because we discard the result later
+          return one();
+        }, 
+        /* k * t */ 
+        numMul,
+
+        /* l + r */ 
+        add,
+
+        /* floor(t) */ 
+        floor
+    );
+  }
+
+
   struct LinBounds {
     TermList lower;
     Numeral delta;
@@ -188,7 +213,7 @@ public:
     }
   };
 
-  FloorLiteral summary(unsigned x) {
+  FloorLiteral summary(TermList x) const {
     return eval<FloorLiteral>(_term, x,
         /* var x */ 
         [&]() { 
@@ -200,7 +225,7 @@ public:
                 .lower = R::constantTl(0),
                 .delta = Numeral(0),
               },
-              .lim = TermList::var(x),
+              .lim = x,
               .breaks = Recycled<Stack<ElimTerm>>(),
           }; 
         },
@@ -286,13 +311,13 @@ public:
 
           // TODO move this to right place. Also maybe make (non-)recursive?
           auto dlin = [&](auto b) -> TermList 
-          { return (-res.slope *  b + EqHelper::replace(t, TermList::var(x), b)); };
+          { return (-res.slope *  b + EqHelper::replace(t, x, b)); };
 
           auto breaks = [&]() {
             if (res.per == 0 &&  res.off == 0) { 
               return rstack(arrayIter(Stack<ElimTerm>())); 
             } else if (res.per == 0 && res.off != 0) {
-              return rstack(getSingletonIterator((-1 / res.off) * EqHelper::replace(t, TermList::var(x), R::constantTl(0)) + Period(newPer)));
+              return rstack(getSingletonIterator((-1 / res.off) * EqHelper::replace(t, x, R::constantTl(0)) + Period(newPer)));
             } else if (res.per != 0 && res.slope == 0) {
               return std::move(res.breaks);
             } else {
@@ -350,6 +375,8 @@ public:
       );
     }
   }
+  friend std::ostream& operator<<(std::ostream& out, NormLit const& self)
+  { return out << self.term() << " " << self.connective() << " 0"; }
 };
 
 bool isIneq(Connective c) {
@@ -371,10 +398,9 @@ bool isInclusive(Connective c) {
 }
 
 
-auto elimSet(unsigned var, Literal* lit_) {
+auto elimSet(TermList var, NormLit const& lit) {
   bool incl = true;
   bool excl = !incl;
-  auto lit = NormLit::from(lit_);
   auto phi = make_shared(lit.summary(var));
   auto slope = phi->slope;
   auto breaksIter = [=]() {
@@ -401,7 +427,7 @@ auto elimSet(unsigned var, Literal* lit_) {
           return range(0, set->size())
               .map([set = std::move(set)](auto i) { return (*set)[i]; });
         };
-        auto intersection = [&]() { return ElimTerm((-1 / slope) * EqHelper::replace(term, TermList::var(var), R::constantTl(0)));};
+        auto intersection = [&]() { return ElimTerm((-1 / slope) * EqHelper::replace(term, var, R::constantTl(0)));};
         switch (lit.connective()) {
           case Connective::Greater: 
           case Connective::Geq:
@@ -427,7 +453,7 @@ auto elimSet(unsigned var, Literal* lit_) {
         auto limPhi = phi->lim;
 
         auto dlin = [slope, var, limPhi](auto b) -> TermList 
-        { return -slope * b + EqHelper::replace(limPhi, TermList::var(var), b); };
+        { return -slope * b + EqHelper::replace(limPhi, var, b); };
 
         auto linBounds = [=](bool lIncl, Grid g, bool rIncl) 
         { return g.intersect(lIncl, phi->xMinusInf(), deltaInf, rIncl).map([](TermList t) { return ElimTerm(t); }); };
@@ -485,6 +511,13 @@ auto elimSet(unsigned var, Literal* lit_) {
         return concatIters( ebreak(incl, incl), eseg, einf);
       });
 }
+auto elimSet(TermList var, Stack<NormLit> const& lits) 
+{ return arrayIter(lits).flatMap([var](auto l) { return elimSet(var, l); }); }
+
+auto elimSet(unsigned var, Literal* lit_) {
+  auto l = NormLit::from(lit_);
+  return elimSet(TermList::var(var), l);
+}
 
 IterTraits<VirtualIterator<ElimTerm>> LIRA::iterElimSet(unsigned var, Literal* lit)
 { return iterTraits(pvi(elimSet(var, lit))); }
@@ -500,6 +533,144 @@ Stack<ElimSet> LIRA::computeElimSet(unsigned var, Stack<Literal*> const& conjunc
   return Stack<ElimSet>(); 
 }
 
+namespace CDVS {
+struct CDVSFormula;
+
+struct Conjunction {
+  std::shared_ptr<CDVSFormula> lhs;
+  std::shared_ptr<CDVSFormula> rhs;
+};
+
+struct Disjunction {
+  std::shared_ptr<CDVSFormula> lhs;
+  std::shared_ptr<CDVSFormula> rhs;
+};
+
+struct Negation {
+  std::shared_ptr<CDVSFormula> inner;
+};
+
+struct CDVSFormula
+  : public Coproduct< NormLit
+                    , Conjunction>
+{
+
+};
+
+Numeral simplGround(TermList t) {
+  return NormLit::evalGround<Numeral>(t, 
+      /* 1        */ [&]() { return Numeral(1); },
+      /* k * t    */ [&](auto k, auto t, auto tRes) { return k * tRes; },
+      /* l + r    */ [&](auto l, auto r, auto lRes, auto rRes) { return lRes + rRes; },
+      /* floor(t) */ [&](auto t, auto tRes) { return tRes.floor(); });
+}
+
+bool simplGround(NormLit lit) {
+  Numeral v = simplGround(lit.term());
+  switch (lit.connective()) {
+    case Connective::Greater: return v >  0;
+    case Connective::Geq:     return v >= 0;
+    case Connective::Neq:     return v != 0;
+    case Connective::Eq:      return v == 0;
+  }
+
+}
+
+struct Assignment;
+template<class T>
+using DummyIter = IterTraits<VirtualIterator<T>>;
+
+template<class T> T dummyValue();
+auto elimSet(TermList var, 
+    Stack<NormLit> const& lits, 
+    Stack<NormLit> const& lemmas, 
+    Stack<Assignment> const& assignment) -> DummyIter<ElimTerm>;
+// {
+//
+// }
+
+using ElimSetIter = decltype(elimSet(
+        dummyValue<TermList>()
+      , dummyValue<Stack<NormLit> const&>()
+      , dummyValue<Stack<NormLit> const&>()
+      , dummyValue<Stack<Assignment> const&>()
+    ));
+
+struct Assignment {
+  TermList _var;
+  ElimTerm _val;
+  // ElimSetIter _iter;
+  // Option<ElimTerm> _elem;
+
+  Assignment(TermList var, ElimTerm val)
+    : _var(var)
+    , _val(val)
+    // , _elem() 
+  {}
+
+  // bool advance() 
+  // { 
+  //   _elem = _iter.tryNext(); 
+  //   return _elem.isSome();
+  // }
+};
+
+
+
+bool _decide(Stack<TermList> vars, Stack<NormLit> const& lits) 
+{
+
+  // if (vars.isEmpty()) {
+  //   return arrayIter(lits)
+  //     .all([](auto l) { return simplGround(l); });
+  // }
+
+  Stack<Assignment> assignment;
+  // Stack<std::unique_ptr<Stack<NormLit>>> curLits;
+  Stack<NormLit> lemmas;
+  // curLits.push(std::make_unique<Stack<NormLit>>(lits));
+  auto trivEval = []() -> Option<bool> {ASSERTION_VIOLATION_REP("TODO")};
+  auto learn = []() -> DummyIter<NormLit> {ASSERTION_VIOLATION_REP("TODO")};
+
+  do {
+    auto triv = trivEval();
+    if (triv.isSome()) {
+      if (*triv) {
+        return true;
+      } else {
+        lemmas.loadFromIterator(learn());
+        while (triv.isSome()) {
+          vars.push(assignment.pop()._var);
+          triv = trivEval();
+          ASS_REP(triv != some(true), "assigning less variables cannot make the formula true")
+        }
+      }
+    }
+    ASS_REP(vars.isNonEmpty(), outputToString("unexpeced unbound variables in ", lits))
+    auto var = vars.pop();
+    // assignment.push(Assignment(v, elimSet(v, lits, lemmas, assignment)));
+    auto val = elimSet(var, lits, lemmas, assignment).tryNext();
+    if (val.isNone()) {
+      // var cannot be assigned to any value, formula is unsat
+      return false;
+    } else {
+      assignment.push(Assignment(var, *val));
+    }
+  } while(true);
+}
+
+bool ConflictDrivenVirtualSubstitution::decide(Stack<Literal*> lits) 
+{
+  auto vars = arrayIter(lits)
+    .flatMap([](auto lit) { return VariableIterator(lit); })
+    .template collect<Stack>()
+    .sorted()
+    .deduped();
+  auto ls = arrayIter(lits).map([](auto l) { return NormLit::from(l); }).template collect<Stack>();
+  return _decide(vars, ls);
+}
+
+} // namespace CDVS
 
 } // namespace QE
 

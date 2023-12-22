@@ -32,7 +32,7 @@ public:
 namespace CDVS {
 
 struct ConflictDrivenVirtualSubstitution {
-  static bool decide(Kernel::Formula* f) { ASSERTION_VIOLATION_REP("TODO") }
+  static bool decide(Stack<Literal*> conj);
 };
 
 } // namespace CDVS

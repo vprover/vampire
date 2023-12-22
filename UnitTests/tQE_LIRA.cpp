@@ -133,14 +133,14 @@ struct ElimSetTest {
 
 
 struct CdvsTest {
-  Formula* formula;
+  Stack<Literal*> formula;
   bool expected;
 
   void run() 
   {
     auto result = QE::CDVS::ConflictDrivenVirtualSubstitution::decide(formula);
     if (expected != result) {
-      std::cout << "[         case ] " << pretty(    *formula ) << std::endl;
+      std::cout << "[         case ] " << pretty(     formula ) << std::endl;
       std::cout << "[       result ] " << pretty(      result ) << std::endl;
       std::cout << "[     expected ] " << pretty(    expected ) << std::endl;
       exit(-1);
@@ -250,6 +250,7 @@ RUN_TEST(floor_5,
 
 RUN_TEST(decide_01,
     CdvsTest {
-      .formula  = exists(x, Real, floor(x - a) == x),
+      // .formula  = exists(x, Real, floor(x - a) == x),
+      .formula  =  {floor(x - a) == x},
       .expected = true,
     })
