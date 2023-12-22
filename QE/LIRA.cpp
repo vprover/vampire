@@ -101,6 +101,7 @@ class Grid {
   TermList _anchor;
   Numeral _per;
 public:
+
   TermList perCeiling(TermList t) 
   { return t + genRem(_anchor - t, _per); }
 
@@ -120,11 +121,48 @@ public:
   }
 };
 
+struct NormTerm {
+  TermList _term;
+};
+
+template<class Var, class One, class NumMul, class Add, class Floor>
+auto matchNormTerm(NormTerm const& nt, Var var, One one, NumMul numMul, Add add, Floor floor) -> decltype(one()) {
+  auto tl = nt._term;
+  if (tl.isVar()) {
+    return var(tl);
+  } else {
+    auto term = tl.term();
+    auto f = term->functor();
+    if (R::isNumeral(f)) {
+      return numMul(*R::tryNumeral(term), NormTerm{R::constantTl(1)});
+
+    } else if (R::isMul(f)) {
+      auto k = R::tryNumeral(term->termArg(0));
+      ASS(k.isSome())
+      return numMul(*k, NormTerm{term->termArg(1)});
+
+    } else if (R::isMinus(f)) {
+      return numMul(Numeral(-1), NormTerm{term->termArg(0)});
+
+    } else if (R::isAdd(f)) {
+      return add(NormTerm{term->termArg(0)}, NormTerm{term->termArg(1)});
+
+    } else if (R::isFloor(f)) {
+      return floor(NormTerm{term->termArg(0)});
+
+    } else {
+      return var(tl);
+
+    }
+  }
+}
+
 class NormLit {
   TermList _term;
   Connective _connective;
-  NormLit(TermList term, Connective connective) : _term(term), _connective(connective) {}
 public:
+  NormLit(TermList term, Connective connective) : _term(term), _connective(connective) {}
+  NormTerm normTerm() const { return { _term }; }
 
   auto& connective() const { return _connective; }
   template<class Res, class TargetVar, class OtherVarOrConst, class NumMul, class Add, class Floor> 
@@ -511,6 +549,10 @@ auto elimSet(TermList var, NormLit const& lit) {
         return concatIters( ebreak(incl, incl), eseg, einf);
       });
 }
+
+template<class T>
+using DummyIter = IterTraits<VirtualIterator<T>>;
+
 auto elimSet(TermList var, Stack<NormLit> const& lits) 
 { return arrayIter(lits).flatMap([var](auto l) { return elimSet(var, l); }); }
 
@@ -577,79 +619,248 @@ bool simplGround(NormLit lit) {
 }
 
 struct Assignment;
-template<class T>
-using DummyIter = IterTraits<VirtualIterator<T>>;
-
-template<class T> T dummyValue();
-auto elimSet(TermList var, 
-    Stack<NormLit> const& lits, 
-    Stack<NormLit> const& lemmas, 
-    Stack<Assignment> const& assignment) -> DummyIter<ElimTerm>;
-// {
-//
-// }
-
-using ElimSetIter = decltype(elimSet(
-        dummyValue<TermList>()
-      , dummyValue<Stack<NormLit> const&>()
-      , dummyValue<Stack<NormLit> const&>()
-      , dummyValue<Stack<Assignment> const&>()
-    ));
 
 struct Assignment {
-  TermList _var;
-  ElimTerm _val;
-  // ElimSetIter _iter;
-  // Option<ElimTerm> _elem;
+  TermList var;
+  ElimTerm val;
 
   Assignment(TermList var, ElimTerm val)
-    : _var(var)
-    , _val(val)
-    // , _elem() 
+    : var(var)
+    , val(val)
   {}
 
-  // bool advance() 
-  // { 
-  //   _elem = _iter.tryNext(); 
-  //   return _elem.isSome();
-  // }
+};
+
+class Assignments {
+  Stack<Assignment> _asgn;
+public:
+  Assignments() : _asgn() {}
+  void push(Assignment a) { _asgn.push(std::move(a)); }
+  Assignment pop() { return _asgn.pop(); }
+  auto iter() const 
+  { return arrayIter(_asgn); }
+};
+struct NfFormula;
+struct Conj 
+{
+  std::shared_ptr<NfFormula> lhs;
+  std::shared_ptr<NfFormula> rhs;
+};
+
+struct Disj 
+{
+  std::shared_ptr<NfFormula> lhs;
+  std::shared_ptr<NfFormula> rhs;
+};
+
+struct NfFormula 
+  : public Coproduct<NormLit, Conj, Disj> 
+{
+    using Coproduct::Coproduct;
+};
+
+class NfFormulaIter {
+  Recycled<Stack<NormLit>> _lits;
+  void fill(NfFormula const& phi) 
+  {
+    return phi.match(
+        [&](NormLit const& l) { return _lits->push(l); },
+        [&](Conj const& c) { fill(*c.lhs); fill(*c.rhs); },
+        [&](Disj const& c) { fill(*c.lhs); fill(*c.rhs); });
+  }
+
+public:
+  NfFormulaIter(NfFormula const& phi) 
+    : _lits() 
+  {
+    fill(phi);
+  }
+
+  DECL_ELEMENT_TYPE(NormLit);
+
+  NormLit next() { return _lits->pop(); }
+  bool hasNext() { return _lits->isNonEmpty(); }
 };
 
 
+auto elimSet(TermList var, NfFormula const& phi) {
+  return iterTraits(NfFormulaIter(phi))
+    .flatMap([&](auto lit) { return elimSet(var, lit); });
+}
+
+
+
+#define BIN_OP(op, Class)                                                                 \
+  NfFormula operator op(std::shared_ptr<NfFormula> const& lhs, std::shared_ptr<NfFormula> const& rhs) \
+  { return NfFormula(Class { lhs, rhs, }); }                                              \
+                                                                                          \
+  NfFormula operator op(NfFormula const& lhs, std::shared_ptr<NfFormula> const& rhs)      \
+  { return make_shared(lhs)  op rhs; }                                                    \
+                                                                                          \
+  NfFormula operator op(std::shared_ptr<NfFormula> const& lhs, NfFormula const& rhs)      \
+  { return lhs  op make_shared(rhs); }                                                    \
+                                                                                          \
+  NfFormula operator op(NfFormula const& lhs, NfFormula const& rhs)                       \
+  { return lhs  op make_shared(rhs); }                                                    \
+
+BIN_OP(&&, Conj)
+BIN_OP(||, Disj)
+
+Option<Numeral> trivEval(NormTerm const& phi)
+{
+  return matchNormTerm(phi
+      , [&](TermList var) -> Option<Numeral> { return {}; }
+      , [&]() { return some(Numeral(1)); }
+      , [&](Numeral k, NormTerm t) { 
+          return k == 0 ? some(Numeral(0)) 
+                        : trivEval(t).map([&](auto n) { return k * n; }); 
+        }
+      , [&](NormTerm lhs, NormTerm rhs) { 
+          auto l = trivEval(lhs);
+          if (l.isNone()) return l;
+          auto r = trivEval(rhs);
+          if (r.isNone()) return r;
+          return some(*l + *r);
+        }      
+      , [&](NormTerm t) { 
+          return trivEval(t).map([](auto n) { return n.floor(); });
+      });
+}
+
+Option<bool> trivEval(NormLit const& phi) {
+  return trivEval(phi.normTerm())
+    .map([&](Numeral const& n) {
+        switch (phi.connective()) {
+          case Connective::Greater: return n >  0;
+          case Connective::Geq:     return n >= 0;
+          case Connective::Neq:     return n != 0;
+          case Connective::Eq:      return n == 0;
+        }});
+}
+
+NfFormula vsubs(NormLit const& phi, TermList var, FiniteElimTerm const& val) 
+{
+  ASS(val.period().isNone())
+
+  if (val.epsilon().isNone())  {
+    return NfFormula(NormLit(EqHelper::replace(phi.term(), var, val.term()), phi.connective()));
+  } else {
+    auto sum = phi.summary(var);
+    auto limSubs = [&]() { return EqHelper::replace(sum.lim, var, val.term()); };
+    if (isIneq(phi.connective()))  {
+      return NfFormula(NormLit(limSubs()
+                          , sum.slope >  0 ? Connective::Geq 
+                          : sum.slope == 0 ? phi.connective()
+                          :                  Connective::Greater));
+    } else {
+      return NfFormula(NormLit(sum.slope == 0 ? limSubs()         // <- (~) lim[t] = 0
+                                              : R::constantTl(1), // <- (~) 1 = 0
+                                              phi.connective()));
+    }
+
+  }
+}
+
+NfFormula vsubs(NfFormula const& phi, TermList var, FiniteElimTerm const& val)
+{
+  ASS(val.period().isNone())
+
+  return phi.match(
+      [&](NormLit const& l) { return vsubs(l, var, val); },
+      [&](Conj const& c) { return vsubs(*c.lhs, var, val) && vsubs(*c.rhs,var,val); },
+      [&](Disj const& c) { return vsubs(*c.lhs, var, val) || vsubs(*c.rhs,var,val); });
+}
+
+
+NfFormula vsubs(NfFormula const& phi, TermList var, ElimTerm val)
+{ return vsubs(phi, var, *val.asFinite()); }
+
+NfFormula vsubs(NfFormula const& phi, Assignments const& asgn) {
+  auto res = phi;
+  for (auto a : asgn.iter()) {
+    res = vsubs(std::move(res), a.var, a.val);
+  }
+  return res;
+}
+
+Option<bool> trivEval(NfFormula const& phi) {
+  return phi.match(
+      [&](NormLit const& l) {
+        return trivEval(l);
+      },
+      [&](Conj const& c) -> Option<bool> {
+        auto l = trivEval(*c.lhs);
+        auto r = trivEval(*c.lhs);
+        if (l.isSome()) {
+          return false == *l ? some(false) : r;
+        } else if (r.isSome()) {
+          return false == *r ? some(false) : l;
+        } else {
+          ASS(l.isNone() && r.isNone())
+          return {};
+        }
+      },
+      [&](Disj const& c) -> Option<bool> {
+        auto l = trivEval(*c.lhs);
+        auto r = trivEval(*c.lhs);
+        if (l.isSome()) {
+          return true == *l ? some(true) : r;
+        } else if (r.isSome()) {
+          return true == *r ? some(true) : l;
+        } else {
+          ASS(l.isNone() && r.isNone())
+          return {};
+        }
+      });
+}
 
 bool _decide(Stack<TermList> vars, Stack<NormLit> const& lits) 
 {
 
-  // if (vars.isEmpty()) {
-  //   return arrayIter(lits)
-  //     .all([](auto l) { return simplGround(l); });
-  // }
-
-  Stack<Assignment> assignment;
-  // Stack<std::unique_ptr<Stack<NormLit>>> curLits;
-  Stack<NormLit> lemmas;
-  // curLits.push(std::make_unique<Stack<NormLit>>(lits));
-  auto trivEval = []() -> Option<bool> {ASSERTION_VIOLATION_REP("TODO")};
-  auto learn = []() -> DummyIter<NormLit> {ASSERTION_VIOLATION_REP("TODO")};
+  Assignments assignment;
+  Stack<std::shared_ptr<NfFormula>> phi_hist;
+  if (lits.isEmpty()) return true;
+  phi_hist.push(make_shared(arrayIter(lits)
+      .map([](auto l) { return NfFormula(l); })
+      .fold([](auto l, auto r) { return l && r; })
+      .unwrap()));
+  Stack<std::shared_ptr<NfFormula>> lemma_hist;
+  auto learn = []() -> NfFormula {ASSERTION_VIOLATION_REP("TODO")};
 
   do {
-    auto triv = trivEval();
+    auto triv = trivEval(phi_hist.top() && lemma_hist.top());
     if (triv.isSome()) {
       if (*triv) {
         return true;
       } else {
-        lemmas.loadFromIterator(learn());
+        auto lemma = make_shared(learn());
         while (triv.isSome()) {
-          vars.push(assignment.pop()._var);
-          triv = trivEval();
+          lemma_hist.pop();
+          phi_hist.pop();
+          vars.push(assignment.pop().var);
+          triv = trivEval(phi_hist.top() && lemma_hist.top());
           ASS_REP(triv != some(true), "assigning less variables cannot make the formula true")
+        }
+        for (auto& p : lemma_hist) {
+          p = make_shared(p && lemma);
         }
       }
     }
     ASS_REP(vars.isNonEmpty(), outputToString("unexpeced unbound variables in ", lits))
     auto var = vars.pop();
-    // assignment.push(Assignment(v, elimSet(v, lits, lemmas, assignment)));
-    auto val = elimSet(var, lits, lemmas, assignment).tryNext();
+    Option<ElimTerm> val;
+    for (auto t : elimSet(var, *phi_hist.top())) {
+      auto phiS = make_shared(vsubs(*phi_hist.top(), var, t));
+      auto lemmaS = make_shared(vsubs(*lemma_hist.top(), var, t));
+      auto triv = trivEval(phiS && lemmaS);
+      if (triv != some(false)) {
+        phi_hist.push(phiS);
+        lemma_hist.push(lemmaS);
+        val = some(t);
+        break;
+      }
+    }
+
     if (val.isNone()) {
       // var cannot be assigned to any value, formula is unsat
       return false;
