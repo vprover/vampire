@@ -61,8 +61,8 @@ struct EqualityResolution::IsNegativeEqualityFn
 
 struct EqualityResolution::ResultFn
 {
-  ResultFn(Clause* cl, bool afterCheck = false, Ordering* ord = nullptr, ReducibilityChecker* checker = nullptr)
-      : _afterCheck(afterCheck), _ord(ord), _cl(cl), _cLen(cl->length()), _checker(checker) {}
+  ResultFn(Clause* cl, bool afterCheck = false, Ordering* ord = nullptr/* , ReducibilityChecker* checker = nullptr */)
+      : _afterCheck(afterCheck), _ord(ord), _cl(cl), _cLen(cl->length())/* , _checker(checker) */ {}
   Clause* operator() (Literal* lit)
   {
     ASS(lit->isEquality());
@@ -136,14 +136,14 @@ struct EqualityResolution::ResultFn
       TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
       litAfter = subst.apply(lit, 0);
     }
-    if (_checker) {
-      _checker->reset();
-      if (_checker->checkLiteral(subst.apply(lit, 0))) {
-        env.statistics->redundantEqualityResolution++;
-        res->destroy();
-        return 0;
-      }
-    }
+    // if (_checker) {
+    //   _checker->reset();
+    //   if (_checker->checkLiteral(subst.apply(lit, 0))) {
+    //     env.statistics->redundantEqualityResolution++;
+    //     res->destroy();
+    //     return 0;
+    //   }
+    // }
 
     unsigned next = 0;
     for(unsigned i=0;i<_cLen;i++) {
@@ -160,11 +160,11 @@ struct EqualityResolution::ResultFn
             return 0;
           }
         }
-        if (i < _cl->numSelected() && _checker && _checker->checkLiteral(currAfter)) {
-          env.statistics->redundantEqualityResolution++;
-          res->destroy();
-          return 0;
-        }
+        // if (i < _cl->numSelected() && _checker && _checker->checkLiteral(currAfter)) {
+        //   env.statistics->redundantEqualityResolution++;
+        //   res->destroy();
+        //   return 0;
+        // }
 
         (*res)[next++] = currAfter;
       }
@@ -200,7 +200,7 @@ private:
   Ordering* _ord;
   Clause* _cl;
   unsigned _cLen;
-  ReducibilityChecker* _checker;
+  // ReducibilityChecker* _checker;
 };
 
 ClauseIterator EqualityResolution::generateClauses(Clause* premise)
@@ -216,7 +216,7 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
 
   auto it3 = getMappingIterator(it2,ResultFn(premise,
       getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
-      &_salg->getOrdering(), _salg->getReducibilityChecker()));
+      &_salg->getOrdering()/* , _salg->getReducibilityChecker() */));
 
   auto it4 = getFilteredIterator(it3,NonzeroFn());
 

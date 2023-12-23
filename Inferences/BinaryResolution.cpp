@@ -266,11 +266,11 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
           return 0;
         }
       }
-      if (i < queryCl->numSelected() && checker && checker->checkLiteral(newLit)) {
-        env.statistics->redundantResolution++;
-        res->destroy();
-        return 0;
-      }
+      // if (i < queryCl->numSelected() && checker && checker->checkLiteral(newLit)) {
+      //   env.statistics->redundantResolution++;
+      //   res->destroy();
+      //   return 0;
+      // }
       ASS(next < newLength);
       (*res)[next] = newLit;
       next++;
@@ -309,11 +309,11 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
           return 0;
         }
       }
-      if (i < qr.clause->numSelected() && checker && checker->checkLiteral(newLit)) {
-        env.statistics->redundantResolution++;
-        res->destroy();
-        return 0;
-      }
+      // if (i < qr.clause->numSelected() && checker && checker->checkLiteral(newLit)) {
+      //   env.statistics->redundantResolution++;
+      //   res->destroy();
+      //   return 0;
+      // }
 
       (*res)[next] = newLit;
       next++;

@@ -1240,30 +1240,25 @@ bool KBO::isGreater(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple
 {
   auto res = isGreaterHelper(tl1,tl2, tl1State, constraints);
   ASS_REP((compare(tl1,tl2)==Ordering::GREATER)==res, tl1.toString()+" "+tl2.toString()+" false "+(res?"positive":"negative"));
-  // for (const auto& c : _stateGt->constraints()) {
-  //   auto x = get<0>(c);
-  //   auto y = get<1>(c);
-  //   ASS_REP(x!=y,tl1.toString()+" "+tl2.toString()+" and X"+Int::toString(x));
-  //   if (x==y) {
-  //     USER_ERROR("x==y");
-  //   }
-  //   auto strict = get<2>(c);
-  //   VarOrder vo;
-  //   vo.add_gt(x,y);
-  //   ASS_REP(isGreater(tl1,tl2,vo),tl1.toString()+" "+tl2.toString()+" under "+vo.to_string());
-  //   if (!isGreater(tl1,tl2,vo)) {
-  //     USER_ERROR("!isGreater1 "+tl1.toString()+" "+tl2.toString()+" under "+vo.to_string());
-  //   }
-  //   if (!strict) {
-  //     VarOrder eq;
-  //     Substitution subst;
-  //     subst.bind(x,TermList(y,false));
-  //     ASS_REP(isGreater(SubstHelper::apply(tl1,subst),SubstHelper::apply(tl2,subst),eq),tl1.toString()+" "+tl2.toString()+" under "+Int::toString(x)+"="+Int::toString(y));
-  //     if (!isGreater(SubstHelper::apply(tl1,subst),SubstHelper::apply(tl2,subst),eq)) {
-  //       USER_ERROR("!isGreater2 "+tl1.toString()+" "+tl2.toString()+" under "+Int::toString(x)+"="+Int::toString(y));
-  //     }
-  //   }
-  // }
+#if VDEBUG
+  if (constraints) {
+    for (const auto& c : *constraints) {
+      auto x = get<0>(c);
+      auto y = get<1>(c);
+      ASS_REP(x!=y,tl1.toString()+" "+tl2.toString()+" and X"+Int::toString(x));
+      auto strict = get<2>(c);
+      VarOrder vo;
+      vo.add_gt(x,y);
+      ASS_REP(isGreater(tl1,tl2,vo),tl1.toString()+" "+tl2.toString()+" under "+vo.to_string());
+      if (!strict) {
+        VarOrder eq;
+        Substitution subst;
+        subst.bind(x,TermList(y,false));
+        ASS_REP(isGreater(SubstHelper::apply(tl1,subst),SubstHelper::apply(tl2,subst),eq),tl1.toString()+" "+tl2.toString()+" under "+Int::toString(x)+"="+Int::toString(y));
+      }
+    }
+  }
+#endif
   return res;
 }
 
