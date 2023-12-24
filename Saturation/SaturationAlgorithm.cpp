@@ -1484,8 +1484,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   // create generating inference engine
   CompositeGIE* gie=new CompositeGIE();
 
-  if(opt.functionDefinitionIntroduction())
+  if(opt.functionDefinitionIntroduction()) {
     gie->addFront(new DefinitionIntroduction);
+  }
 
   //TODO here induction is last, is that right?
   if(opt.induction()!=Options::Induction::NONE){
