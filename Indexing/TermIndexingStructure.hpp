@@ -32,7 +32,7 @@ public:
   virtual void insert(TypedTermList t, TermList trm, Literal* lit, Clause* cls){ NOT_IMPLEMENTED; }
 
   virtual TermQueryResultIterator getUnifications(TypedTermList t, bool retrieveSubstitutions = true, bool withConstraints = false) { NOT_IMPLEMENTED; }
-  virtual TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true, void* extra = nullptr) { NOT_IMPLEMENTED; }
   virtual TermQueryResultIterator getInstances(TypedTermList t, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
 
   virtual bool generalizationExists(TermList t) { NOT_IMPLEMENTED; }

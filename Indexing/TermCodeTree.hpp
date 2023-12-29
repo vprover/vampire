@@ -83,7 +83,7 @@ public:
   {
     TermMatcher();
 
-    void init(CodeTree* tree, TermList t);
+    void init(CodeTree* tree, TermList t, void* extra);
     void reset();
     
     TermInfo* next();

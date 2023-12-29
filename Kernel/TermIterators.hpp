@@ -26,6 +26,7 @@
 #include "Term.hpp"
 #include "SortHelper.hpp"
 #include "ApplicativeHelper.hpp"
+#include "FlatTerm.hpp"
 
 namespace Kernel {
 
@@ -688,6 +689,56 @@ private:
   /** the number of non-variable subterms added at the last iteration, used by right() */
   int _added;
 }; // NonVariableIterator
+
+class FTNonTypeIterator
+  : public IteratorCore<std::pair<TermList,FlatTerm::Entry*>>
+{
+public:
+  FTNonTypeIterator(TermList term, FlatTerm* ft, bool includeSelf=false)
+  : _stack(8),
+    _added(0)
+  {
+    _stack.push(std::make_pair(term,ft->data()));
+    if (!includeSelf) {
+      FTNonTypeIterator::next();
+    }
+  }
+
+  /** true if there exists at least one subterm */
+  bool hasNext() { return !_stack.isEmpty(); }
+  std::pair<TermList,FlatTerm::Entry*> next();
+  void right();
+private:
+  /** available non-variable subterms */
+  Stack<std::pair<TermList,FlatTerm::Entry*>> _stack;
+  /** the number of non-variable subterms added at the last iteration, used by right() */
+  int _added;
+}; // FTNonTypeIterator
+
+class FTNonVariableNonTypeIterator
+  : public IteratorCore<std::pair<Term*,FlatTerm::Entry*>>
+{
+public:
+  FTNonVariableNonTypeIterator(Term* term, FlatTerm* ft, bool includeSelf=false)
+  : _stack(8),
+    _added(0)
+  {
+    _stack.push(std::make_pair(term,ft->data()));
+    if (!includeSelf) {
+      FTNonVariableNonTypeIterator::next();
+    }
+  }
+
+  /** true if there exists at least one subterm */
+  bool hasNext() { return !_stack.isEmpty(); }
+  std::pair<Term*,FlatTerm::Entry*> next();
+  void right();
+private:
+  /** available non-variable subterms */
+  Stack<std::pair<Term*,FlatTerm::Entry*>> _stack;
+  /** the number of non-variable subterms added at the last iteration, used by right() */
+  int _added;
+}; // FTNonVariableNonTypeIterator
 
 /**
  * Iterator that iterator over disagreement set of two terms

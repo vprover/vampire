@@ -34,7 +34,7 @@ public:
   virtual ~TermIndex();
 
   TermQueryResultIterator getUnifications(TypedTermList t, bool retrieveSubstitutions = true, bool withConstraints = false);
-  TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true);
+  TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true, void* extra = nullptr);
   TermQueryResultIterator getInstances(TypedTermList t, bool retrieveSubstitutions = true);
 
 protected:

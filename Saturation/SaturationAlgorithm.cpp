@@ -295,6 +295,7 @@ SaturationAlgorithm::~SaturationAlgorithm()
   }
   if (_checker) {
     getIndexManager()->release(DEMODULATION_LHS_CODE_TREE);
+    getIndexManager()->release(FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE);
     delete _checker;
   }
 
@@ -1492,7 +1493,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   if (prb.hasEquality()) {
     res->_checker = new ReducibilityChecker(
-      static_cast<DemodulationLHSIndex*>(res->_imgr->request(DEMODULATION_LHS_CODE_TREE)), res->_ordering.ref(), opt);
+      static_cast<DemodulationLHSIndex*>(res->_imgr->request(DEMODULATION_LHS_CODE_TREE)),
+      static_cast<UnitClauseLiteralIndex *>(res->_imgr->request(FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE)),
+      res->_ordering.ref(), opt);
   }
 
   // create generating inference engine

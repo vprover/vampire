@@ -28,19 +28,19 @@ namespace Kernel
 
 using namespace Lib;
 
-/**
- * Allocate a FlatTerm object having @b num entries.
- */
-void* FlatTerm::operator new(size_t sz,unsigned num)
-{
-  ASS_GE(num,1);
-  ASS_EQ(sz, sizeof(FlatTerm));
+// /**
+//  * Allocate a FlatTerm object having @b num entries.
+//  */
+// void* FlatTerm::operator new(size_t sz,unsigned num)
+// {
+//   ASS_GE(num,1);
+//   ASS_EQ(sz, sizeof(FlatTerm));
 
-  //one entry is already accounted for in the size of the FlatTerm object
-  size_t size=sizeof(FlatTerm)+(num-1)*sizeof(Entry);
+//   //one entry is already accounted for in the size of the FlatTerm object
+//   size_t size=sizeof(FlatTerm)+(num-1)*sizeof(Entry);
 
-  return ALLOC_KNOWN(size,"FlatTerm");
-}
+//   return ALLOC_KNOWN(size,"FlatTerm");
+// }
 
 /**
  * Destroy the FlatTerm object
@@ -49,14 +49,14 @@ void FlatTerm::destroy()
 {
   ASS_GE(_length,1);
 
-  //one entry is already accounted for in the size of the FlatTerm object
-  size_t size=sizeof(FlatTerm)+(_length-1)*sizeof(Entry);
-
-  DEALLOC_KNOWN(this, size,"FlatTerm");
+  if (_ownsData) {
+    DEALLOC_KNOWN(_data, _length*sizeof(Entry), "FlatTerm");
+  }
+  DEALLOC_KNOWN(this, sizeof(FlatTerm), "FlatTerm");
 }
 
 FlatTerm::FlatTerm(size_t length)
-: _length(length)
+: _length(length), _ownsData(false), _data(nullptr)
 {
 }
 
@@ -70,7 +70,11 @@ FlatTerm* FlatTerm::create(Term* t)
 {
   size_t entries=getEntryCount(t);
 
-  FlatTerm* res=new(entries) FlatTerm(entries);
+  FlatTerm* res=new FlatTerm(entries);
+  void* mem = ALLOC_KNOWN(entries*sizeof(Entry), "FlatTerm");
+  res->_data = array_new<Entry>(mem, entries);
+  res->_ownsData = true;
+
   size_t fti=0;
   res->_data[fti++]=Entry(FUN,
       t->isLiteral() ? static_cast<Literal*>(t)->header() : t->functor());
@@ -104,9 +108,27 @@ FlatTerm* FlatTerm::create(TermList t)
   }
   ASS(t.isOrdinaryVar());
 
-
-  FlatTerm* res=new(1) FlatTerm(1);
+  FlatTerm* res=new FlatTerm(1);
+  void* mem = ALLOC_KNOWN(sizeof(Entry), "FlatTerm");
+  res->_data = array_new<Entry>(mem, 1);
+  res->_ownsData = true;
   res->_data[0]=Entry(VAR, t.var());
+
+  return res;
+}
+
+FlatTerm* FlatTerm::create(Term* t, Entry* data)
+{
+  size_t entries=getEntryCount(t);
+
+  FlatTerm* res=new FlatTerm(entries);
+  res->_data = data;
+  res->_ownsData = false;
+
+#if VDEBUG
+  ASS(res->_data[0].isFun())
+  ASS_EQ(res->_data[1]._ptr,t);
+#endif
 
   return res;
 }
@@ -114,7 +136,10 @@ FlatTerm* FlatTerm::create(TermList t)
 FlatTerm* FlatTerm::copy(const FlatTerm* ft)
 {
   size_t entries=ft->_length;
-  FlatTerm* res=new(entries) FlatTerm(entries);
+  FlatTerm* res=new FlatTerm(entries);
+  void* mem = ALLOC_KNOWN(entries*sizeof(Entry), "FlatTerm");
+  res->_data = array_new<Entry>(mem, entries);
+  res->_ownsData = true;
   memcpy(res->_data, ft->_data, entries*sizeof(Entry));
   return res;
 }

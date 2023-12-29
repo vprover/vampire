@@ -408,7 +408,7 @@ Clause* Superposition::performSuperposition(
   auto checker = _salg->getReducibilityChecker();
   if (checker) {
     checker->reset();
-    if (checker->checkSup(rwLit,eqLit,eqLHS,rwTermS.term(),tgtTermS,subst.ptr(),eqIsResult,Ordering::reverse(comp),eqClause->length()==1)) {
+    if (checker->checkSup(rwLit,eqLit,eqLHS,rwTerm.term(),rwTermS.term(),tgtTermS,subst.ptr(),eqIsResult,Ordering::reverse(comp),eqClause->length()==1)) {
       env.statistics->redundantSuperposition++;
       return 0;
     }

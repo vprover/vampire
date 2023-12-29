@@ -47,8 +47,8 @@ TermIndex::~TermIndex()
 TermQueryResultIterator TermIndex::getUnifications(TypedTermList t, bool retrieveSubstitutions, bool withConstraints)
 { return _is->getUnifications(t, retrieveSubstitutions, withConstraints); }
 
-TermQueryResultIterator TermIndex::getGeneralizations(TypedTermList t, bool retrieveSubstitutions)
-{ return _is->getGeneralizations(t, retrieveSubstitutions); }
+TermQueryResultIterator TermIndex::getGeneralizations(TypedTermList t, bool retrieveSubstitutions, void* extra)
+{ return _is->getGeneralizations(t, retrieveSubstitutions, extra); }
 
 TermQueryResultIterator TermIndex::getInstances(TypedTermList t, bool retrieveSubstitutions)
 { return _is->getInstances(t, retrieveSubstitutions); }

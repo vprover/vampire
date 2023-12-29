@@ -43,11 +43,11 @@ public:
   CLASS_NAME(CodeTreeTIS);
   USE_ALLOCATOR(CodeTreeTIS);
 
-  void insert(TypedTermList t, Literal* lit, Clause* cls);
-  void remove(TypedTermList t, Literal* lit, Clause* cls);
+  void insert(TypedTermList t, Literal* lit, Clause* cls) override;
+  void remove(TypedTermList t, Literal* lit, Clause* cls) override;
 
-  TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true);
-  bool generalizationExists(TermList t);
+  TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true, void* extra = nullptr) override;
+  bool generalizationExists(TermList t) override;
 
 #if VDEBUG
   virtual void markTagged(){ NOT_IMPLEMENTED; } 

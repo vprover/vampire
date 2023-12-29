@@ -478,6 +478,118 @@ void NonVariableNonTypeIterator::right()
   }
 } // NonVariableIterator::right
 
+size_t getFTEntryCount(Term* t)
+{
+  //functionEntryCount entries per function and one per variable
+  return t->weight()*FlatTerm::functionEntryCount-(FlatTerm::functionEntryCount-1)*t->numVarOccs();
+}
+
+std::pair<TermList,FlatTerm::Entry*> FTNonTypeIterator::next()
+{
+  auto kv = _stack.pop();
+  TermList* ts;
+  _added = 0;
+  if (kv.first.isVar()) {
+    return kv;
+  }
+  auto t = kv.first.term();
+  Signature::Symbol* sym;
+  if (t->isLiteral()) {
+    sym = env.signature->getPredicate(t->functor());
+  } else{
+    sym = env.signature->getFunction(t->functor());
+  }
+  unsigned taArity; 
+  unsigned arity;
+
+  if(t->isLiteral() && static_cast<Literal*>(t)->isEquality()){
+    taArity = 0;
+    arity = 2;
+  } else {
+    taArity = sym->numTypeArguments();
+    arity = sym->arity();
+  }
+
+  size_t cnt = FlatTerm::functionEntryCount;
+  for(unsigned i = taArity; i < arity; i++){
+    ts = t->nthArgument(i);
+    auto e = kv.second + cnt;
+    _stack.push(std::make_pair(*ts, e));
+    _added++;
+    if (ts->isTerm()) {
+      cnt += getFTEntryCount(ts->term());
+    } else {
+      cnt++;
+    }
+  }
+  return kv;
+}
+
+/**
+ * Skip all subterms of the terms returned by the last call to next()
+ */
+void FTNonTypeIterator::right()
+{
+  while (_added > 0) {
+    _added--;
+    _stack.pop();
+  }
+} // NonVariableIterator::right
+
+std::pair<Term*,FlatTerm::Entry*> FTNonVariableNonTypeIterator::next()
+{
+  auto kv = _stack.pop();
+  // FlatTerm::create(kv.first, kv.second);
+  auto t = kv.first;
+  TermList* ts;
+  _added = 0;
+  Signature::Symbol* sym;
+  if (t->isLiteral()) {
+    sym = env.signature->getPredicate(t->functor());
+  } else{
+    sym = env.signature->getFunction(t->functor());
+  }
+  unsigned taArity; 
+  unsigned arity;
+
+  if(t->isLiteral() && static_cast<Literal*>(t)->isEquality()){
+    taArity = 0;
+    arity = 2;
+  } else {
+    taArity = sym->numTypeArguments();
+    arity = sym->arity();
+  }
+
+  // cout << "term " << *t << " " << kv.second << endl;
+  size_t cnt = FlatTerm::functionEntryCount;
+  for(unsigned i = taArity; i < arity; i++){
+    // cout << cnt << endl;
+    ts = t->nthArgument(i);
+    // cout << "arg " << *ts << endl;
+    if (ts->isTerm()) {
+      auto e = kv.second + cnt;
+      // cout << "entry " << e << endl;
+      _stack.push(std::make_pair(const_cast<Term*>(ts->term()), e));
+      cnt += getFTEntryCount(ts->term());
+      _added++;
+    } else {
+      cnt++;
+    }
+  }
+  return kv;
+}
+
+/**
+ * Skip all subterms of the terms returned by the last call to next()
+ */
+void FTNonVariableNonTypeIterator::right()
+{
+  while (_added > 0) {
+    _added--;
+    _stack.pop();
+  }
+} // NonVariableIterator::right
+
 /**
  * True if there exists next non-variable subterm
  */

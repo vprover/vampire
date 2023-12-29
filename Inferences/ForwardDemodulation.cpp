@@ -89,11 +89,16 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
   unsigned cLen=cl->length();
   for(unsigned li=0;li<cLen;li++) {
     Literal* lit=(*cl)[li];
-    typename std::conditional<!combinatorySupSupport,
-      NonVariableNonTypeIterator,
-      FirstOrderSubtermIt>::type it(lit);
+    auto ft = FlatTerm::create(lit);
+    FTNonVariableNonTypeIterator it(lit,ft);
+    // typename std::conditional<!combinatorySupSupport,
+    //   NonVariableNonTypeIterator,
+    //   FirstOrderSubtermIt>::type it(lit);
     while(it.hasNext()) {
-      TypedTermList trm = it.next();
+      // TypedTermList trm = it.next();
+      auto kv = it.next();
+      TypedTermList trm = kv.first;
+      FlatTerm::Entry* e = kv.second;
       if(!attempted.insert(trm)) {
         //We have already tried to demodulate the term @b trm and did not
         //succeed (otherwise we would have returned from the function).
@@ -113,7 +118,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
       }
       ordering.initStateForTerm(_rwTermState,trm.term());
 
-      TermQueryResultIterator git=_index->getGeneralizations(trm, true);
+      TermQueryResultIterator git=_index->getGeneralizations(trm, true, e);
       while(git.hasNext()) {
         TermQueryResult qr=git.next();
         ASS_EQ(qr.clause->length(),1);
@@ -249,6 +254,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         return true;
       }
     }
+    ft->destroy();
   }
 
   return false;

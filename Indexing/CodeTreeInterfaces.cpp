@@ -109,11 +109,11 @@ class CodeTreeTIS::ResultIterator
 : public IteratorCore<TermQueryResult>
 {
 public:
-  ResultIterator(CodeTreeTIS* tree, TermList t, bool retrieveSubstitutions)
+  ResultIterator(CodeTreeTIS* tree, TermList t, bool retrieveSubstitutions, void* extra)
   : _retrieveSubstitutions(retrieveSubstitutions),
     _found(0), _finished(false), _tree(tree)
   {
-    _matcher->init(&_tree->_ct, t);
+    _matcher->init(&_tree->_ct, t, extra);
 
     if(_retrieveSubstitutions) {
       _subst = new CodeTreeSubstitution(&_matcher->bindings, &*_resultNormalizer);
@@ -185,13 +185,13 @@ void CodeTreeTIS::remove(TypedTermList t, Literal* lit, Clause* cls)
   _ct.remove(TermCodeTree::TermInfo(t,lit,cls));
 }
 
-TermQueryResultIterator CodeTreeTIS::getGeneralizations(TypedTermList t, bool retrieveSubstitutions)
+TermQueryResultIterator CodeTreeTIS::getGeneralizations(TypedTermList t, bool retrieveSubstitutions, void* extra)
 {
   if(_ct.isEmpty()) {
     return TermQueryResultIterator::getEmpty();
   }
 
-  return vi( new ResultIterator(this, t, retrieveSubstitutions) );
+  return vi( new ResultIterator(this, t, retrieveSubstitutions, extra) );
 }
 
 bool CodeTreeTIS::generalizationExists(TermList t)
@@ -202,7 +202,7 @@ bool CodeTreeTIS::generalizationExists(TermList t)
 
   static TermCodeTree::TermMatcher tm;
   
-  tm.init(&_ct, t);
+  tm.init(&_ct, t, nullptr);
   bool res=tm.next();
   tm.reset();
   
