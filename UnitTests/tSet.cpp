@@ -10,6 +10,7 @@
 #include "Debug/Assertion.hpp"
 #include "Lib/Set.hpp"
 #include "Test/UnitTesting.hpp"
+#include "UnitTests/dummyHash.hpp"
 
 TEST_FUN(find_remove_contains)
 {
@@ -41,4 +42,19 @@ TEST_FUN(reset)
   ASS_EQ(test_set->size(), 1);
   test_set->reset();
   ASS_EQ(test_set->size(), 0);
+}
+
+TEST_FUN(dummy_hash)
+{
+  Set<int, DummyHash> *test_set = new Set<int, DummyHash>();
+  int test_num = 42;
+  // two different cells fall in the same hash bucket
+  test_set->insert(test_num + 1);
+  test_set->insert(test_num);
+  ASS_EQ(test_set->size(), 2);
+  int found_num = 0;
+  ALWAYS(test_set->find(test_num, found_num));
+  ASS_EQ(found_num, test_num);
+  ALWAYS(test_set->remove(test_num));
+  ASS_EQ(test_set->size(), 1);
 }
