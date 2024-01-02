@@ -13,7 +13,7 @@ using namespace Saturation;
 using namespace Inferences;
 
 using benchmark_clock = std::chrono::steady_clock;
-static benchmark_clock::duration totalDuration = chrono::duration<int64_t, std::nano>::zero();
+static std::chrono::nanoseconds totalDuration = std::chrono::nanoseconds::zero();
 static ofstream outputFile;
 static ofstream problemFile;
 
@@ -269,9 +269,9 @@ bool ForwardBenchmarkWrapper::perform(Clause *cl, Clause *&replacement, ClauseIt
 
 void ForwardBenchmarkWrapper::printStats(std::ostream &out)
 {
-  out << "**** ForwardBenchmarkWrapper ****" << endl;
-  out << "Total time for perform: " << ((double)totalDuration.count() / 1000000000) << " seconds" << endl;
 #if !CORRELATE_LENGTH_TIME
+  out << "**** ForwardBenchmarkWrapper ****" << endl;
+  out << "Total time for perform: " << std::chrono::duration_cast<std::chrono::duration<double>>(totalDuration).count() << " seconds" << endl;
   outputFile.close();
 #endif
   if (problemFile.is_open()) {

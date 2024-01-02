@@ -524,8 +524,8 @@ public:
     _m(0),
     _n(0)
   {
-    this->log = log;
 #if CORRELATE_LENGTH_TIME
+    this->log = log;
     if (log) {
       vstring fileName = "outputs/data_" + env.options->problemName();
       #if SAT_SR_IMPL == 0
