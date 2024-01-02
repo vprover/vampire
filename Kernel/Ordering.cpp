@@ -17,6 +17,7 @@
 #include "Forwards.hpp"
 
 #include "Indexing/TermSharing.hpp"
+#include "Indexing/ResultSubstitution.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
@@ -919,9 +920,9 @@ void PrecedenceOrdering::show(ostream& out) const
   showConcrete(out);
 }
 
-bool Ordering::isGreater(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple<unsigned,unsigned,bool>>* constraints) const
+bool Ordering::isGreater(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple<unsigned,unsigned,bool>>* constraints, Indexing::ResultSubstitution* subst) const
 {
-  return compare(tl1,tl2)==GREATER;
+  return compare(tl1,subst?subst->applyToBoundResult(tl2):tl2)==GREATER;
 }
 
 bool Ordering::isGreater(TermList tl1, TermList tl2, const VarOrder& vo) const

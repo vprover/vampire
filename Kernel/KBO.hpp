@@ -158,7 +158,7 @@ public:
 
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
-  bool isGreater(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple<unsigned,unsigned,bool>>* constraints) const override;
+  bool isGreater(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple<unsigned,unsigned,bool>>* constraints, Indexing::ResultSubstitution* subst) const override;
   bool makeGreater(TermList tl1, TermList tl2, VarOrder& vo) const override;
   bool isGreater(TermList tl1, TermList tl2, const VarOrder& vo) const override;
 
@@ -173,14 +173,18 @@ protected:
   class State;
   class StateGreater;
   class StateGreaterVO;
+  class StateGreaterSubst;
 
   // int functionSymbolWeight(unsigned fun) const;
   int symbolWeight(Term* t) const;
   void computeWeight(Term* t) const;
+  void computeWeight2(Term* t, Indexing::ResultSubstitution* subst) const;
   unsigned weight(TermList t) const;
+  unsigned weight2(TermList t, Indexing::ResultSubstitution* subst, bool underSubst) const;
 
 private:
   bool isGreaterHelper(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple<unsigned,unsigned,bool>>* constraints) const;
+  bool isGreaterHelper(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple<unsigned,unsigned,bool>>* constraints, Indexing::ResultSubstitution* subst) const;
   bool makeGreaterNonRecursive(TermList tl1, TermList tl2, VarOrder& vo) const;
   bool makeGreaterRecursive(TermList tl1, TermList tl2, VarOrder& vo) const;
 
@@ -201,6 +205,7 @@ private:
   mutable State* _state;
   mutable StateGreater* _stateGt;
   mutable StateGreaterVO* _stateGtVo;
+  mutable StateGreaterSubst* _stateGtSubst;
 };
 
 }

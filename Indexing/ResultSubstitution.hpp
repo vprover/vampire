@@ -105,6 +105,9 @@ public:
   virtual Literal* applyToBoundResult(Literal* lit)
   { return applyToResult(lit); }
 
+  virtual TermList applyToBoundResult(unsigned v)
+  { return applyToResult(TermList(v,false)); }
+
   /**
    * Return true if, when the substitution is applied to a result
    * term through the @b applyToBoundResult function, the corresponding

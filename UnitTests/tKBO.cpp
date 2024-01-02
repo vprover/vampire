@@ -396,5 +396,5 @@ TEST_FUN(kbo_test24) {
       ),
       weights());
 
-  ASS(!ord.isGreater(join(meet(join(x,join(y,z)),u),meet(v,meet(join(x,y),u))), join(meet(meet(join(x,y),u),v),meet(join(x,join(y,z)),u)), nullptr, nullptr));
+  ASS(!ord.isGreater(join(meet(join(x,join(y,z)),u),meet(v,meet(join(x,y),u))), join(meet(meet(join(x,y),u),v),meet(join(x,join(y,z)),u)), nullptr, nullptr, nullptr));
 }

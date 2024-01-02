@@ -277,7 +277,7 @@ void LPO::showConcrete(ostream&) const
 
 // isGreater variants
 
-bool LPO::isGreater(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple<unsigned,unsigned,bool>>* constraints) const
+bool LPO::isGreater(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple<unsigned,unsigned,bool>>* constraints, Indexing::ResultSubstitution* subst) const
 {
   ASS(!constraints || constraints->isEmpty());
   TIME_TRACE("LPO::isGreater1");

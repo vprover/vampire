@@ -89,8 +89,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
   unsigned cLen=cl->length();
   for(unsigned li=0;li<cLen;li++) {
     Literal* lit=(*cl)[li];
-    auto ft = FlatTerm::create(lit);
-    FTNonVariableNonTypeIterator it(lit,ft);
+    FTNonVariableNonTypeIterator it(lit);
     // typename std::conditional<!combinatorySupSupport,
     //   NonVariableNonTypeIterator,
     //   FirstOrderSubtermIt>::type it(lit);
@@ -145,6 +144,56 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         }
 
         TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
+        // TermList rhsS;
+        // if(!qr.substitution->isIdentityOnQueryWhenResultBound()) {
+        //   //When we apply substitution to the rhs, we get a term, that is
+        //   //a variant of the term we'd like to get, as new variables are
+        //   //produced in the substitution application.
+        //   TermList lhsSBadVars=qr.substitution->applyToResult(qr.term);
+        //   TermList rhsSBadVars=qr.substitution->applyToResult(rhs);
+        //   Renaming rNorm, qNorm, qDenorm;
+        //   rNorm.normalizeVariables(lhsSBadVars);
+        //   qNorm.normalizeVariables(trm);
+        //   qDenorm.makeInverse(qNorm);
+        //   ASS_EQ(trm,qDenorm.apply(rNorm.apply(lhsSBadVars)));
+        //   rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
+        // } else {
+        //   rhsS=qr.substitution->applyToBoundResult(rhs);
+        // }
+        // if(resultTermIsVar){
+        //   rhsS = subst.apply(rhsS, 0);
+        // }
+
+        Ordering::Result argOrder = ordering.getEqualityArgumentOrder(qr.literal);
+        bool preordered = argOrder==Ordering::LESS || argOrder==Ordering::GREATER;
+  #if VDEBUG
+        if(preordered) {
+          if(argOrder==Ordering::LESS) {
+            ASS_EQ(rhs, *qr.literal->nthArgument(0));
+          }
+          else {
+            ASS_EQ(rhs, *qr.literal->nthArgument(1));
+          }
+        }
+  #endif
+        // if(!preordered && (_preorderedOnly || !ordering.isGreater(trm,rhsS,_rwTermState)) ) {
+        if(!preordered && (_preorderedOnly || !ordering.isGreater(trm,rhs,_rwTermState,nullptr,qr.substitution.ptr())) ) {
+          // TIME_TRACE("skip");
+          continue;
+        }
+
+        // encompassing demodulation is fine when rewriting the smaller guy
+        if (toplevelCheck && _encompassing) {
+          // this will only run at most once;
+          // could have been factored out of the getGeneralizations loop,
+          // but then it would run exactly once there
+          Ordering::Result litOrder = ordering.getEqualityArgumentOrder(lit);
+          if ((trm==*lit->nthArgument(0) && litOrder == Ordering::LESS) ||
+              (trm==*lit->nthArgument(1) && litOrder == Ordering::GREATER)) {
+            toplevelCheck = false;
+          }
+        }
+
         TermList rhsS;
         if(!qr.substitution->isIdentityOnQueryWhenResultBound()) {
           //When we apply substitution to the rhs, we get a term, that is
@@ -163,34 +212,6 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         }
         if(resultTermIsVar){
           rhsS = subst.apply(rhsS, 0);
-        }
-
-        Ordering::Result argOrder = ordering.getEqualityArgumentOrder(qr.literal);
-        bool preordered = argOrder==Ordering::LESS || argOrder==Ordering::GREATER;
-  #if VDEBUG
-        if(preordered) {
-          if(argOrder==Ordering::LESS) {
-            ASS_EQ(rhs, *qr.literal->nthArgument(0));
-          }
-          else {
-            ASS_EQ(rhs, *qr.literal->nthArgument(1));
-          }
-        }
-  #endif
-        if(!preordered && (_preorderedOnly || !ordering.isGreater(trm,rhsS,_rwTermState)) ) {
-          continue;
-        }
-
-        // encompassing demodulation is fine when rewriting the smaller guy
-        if (toplevelCheck && _encompassing) {
-          // this will only run at most once;
-          // could have been factored out of the getGeneralizations loop,
-          // but then it would run exactly once there
-          Ordering::Result litOrder = ordering.getEqualityArgumentOrder(lit);
-          if ((trm==*lit->nthArgument(0) && litOrder == Ordering::LESS) ||
-              (trm==*lit->nthArgument(1) && litOrder == Ordering::GREATER)) {
-            toplevelCheck = false;
-          }
         }
 
         if(toplevelCheck) {
@@ -254,7 +275,6 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         return true;
       }
     }
-    ft->destroy();
   }
 
   return false;

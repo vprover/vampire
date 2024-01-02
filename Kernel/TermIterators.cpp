@@ -539,8 +539,8 @@ void FTNonTypeIterator::right()
 std::pair<Term*,FlatTerm::Entry*> FTNonVariableNonTypeIterator::next()
 {
   auto kv = _stack.pop();
-  // FlatTerm::create(kv.first, kv.second);
   auto t = kv.first;
+  auto ft_e = kv.second;
   TermList* ts;
   _added = 0;
   Signature::Symbol* sym;
@@ -560,22 +560,24 @@ std::pair<Term*,FlatTerm::Entry*> FTNonVariableNonTypeIterator::next()
     arity = sym->arity();
   }
 
-  // cout << "term " << *t << " " << kv.second << endl;
+  ASS(ft_e[0].isFun(t->isLiteral() ? static_cast<Literal*>(t)->header() : t->functor()));
+  ASS_EQ(ft_e[1].ptr(),t);
+  ft_e->expand();
   size_t cnt = FlatTerm::functionEntryCount;
-  for(unsigned i = taArity; i < arity; i++){
-    // cout << cnt << endl;
+  for(unsigned i = 0; i < arity; i++){
     ts = t->nthArgument(i);
-    // cout << "arg " << *ts << endl;
-    if (ts->isTerm()) {
-      auto e = kv.second + cnt;
-      // cout << "entry " << e << endl;
-      _stack.push(std::make_pair(const_cast<Term*>(ts->term()), e));
-      cnt += getFTEntryCount(ts->term());
-      _added++;
-    } else {
+    if (ts->isVar()) {
       cnt++;
+    } else {
+      auto e = ft_e + cnt;
+      cnt += e[2].number();
+      if (taArity <= i) {
+        _stack.push(std::make_pair(const_cast<Term*>(ts->term()), e));
+        _added++;
+      }
     }
   }
+  ASS_EQ(cnt,ft_e[2].number());
   return kv;
 }
 

@@ -23,6 +23,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Formula.hpp"
+#include "Kernel/Matcher.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
@@ -126,6 +127,25 @@ void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c
 template class DemodulationSubtermIndexImpl<false>;
 template class DemodulationSubtermIndexImpl<true>;
 
+struct Binder {
+  bool bind(unsigned var, TermList term)
+  {
+    TermList* inserted;
+    if (term.isTerm()) {
+      renaming = false;
+    }
+    return _map.getValuePtr(var, inserted, term) || *inserted == term;
+  }
+
+  void specVar(unsigned var, TermList term) const
+  {
+    ASSERTION_VIOLATION;
+  }
+
+  bool renaming = true;
+  DHMap<unsigned,TermList> _map;
+};
+
 void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
 {
   if (c->length()!=1) {
@@ -138,6 +158,15 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
   auto lhsi = EqHelper::getDemodulationLHSIterator(lit, true, _ord, _opt);
   while (lhsi.hasNext()) {
     auto lhs = lhsi.next();
+    if (lhsi.hasNext()) {
+      Binder b;
+      if (MatchingUtils::matchTerms(lhs,EqHelper::getOtherEqualitySide(lit,lhs),b) &&
+          MatchingUtils::matchTerms(EqHelper::getOtherEqualitySide(lit,lhs),lhs,b) && b.renaming)
+      {
+        // std::cout << *lit << std::endl;
+        continue;
+      }
+    }
     // auto checker = _salg->getReducibilityChecker();
     // if (checker) {
     //   auto ptr = checker->isUselessLHS(lhs, EqHelper::getOtherEqualitySide(lit, lhs));

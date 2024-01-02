@@ -47,7 +47,7 @@ public:
 
   using PrecedenceOrdering::compare;
   VWARN_UNUSED Result compare(TermList tl1, TermList tl2) const override;
-  VWARN_UNUSED bool isGreater(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple<unsigned,unsigned,bool>>* constraints) const override;
+  VWARN_UNUSED bool isGreater(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple<unsigned,unsigned,bool>>* constraints, Indexing::ResultSubstitution* subst) const override;
   VWARN_UNUSED bool isGreater(TermList tl1, TermList tl2, const VarOrder& vo) const override;
   VWARN_UNUSED bool makeGreater(TermList tl1, TermList tl2, VarOrder& vo) const override;
   void showConcrete(std::ostream&) const override;

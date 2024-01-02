@@ -24,10 +24,14 @@ class FlatTerm
 {
 public:
   struct Entry;
+  USE_ALLOCATOR(FlatTerm);
 
   static FlatTerm* create(Term* t);
+  static FlatTerm* createAndExpand(Term* t);
   static FlatTerm* create(TermList t);
+  static FlatTerm* createAndExpand(TermList t);
   static FlatTerm* create(Term* t, Entry* data);
+  static size_t getEntryCount(Term* t);
   void destroy();
 
   static FlatTerm* copy(const FlatTerm* ft);
@@ -43,7 +47,8 @@ public:
      * added to the position of the corresponding @b FUN Entry in order
      * to get behind the function
      */
-    FUN_RIGHT_OFS = 3
+    FUN_RIGHT_OFS = 3,
+    FUN_TODO = 4,
   };
 
   struct Entry
@@ -57,14 +62,15 @@ public:
     inline Term* ptr() const { return _ptr; }
     inline bool isVar() const { return tag()==VAR; }
     inline bool isVar(unsigned num) const { return isVar() && number()==num; }
-    inline bool isFun() const { return tag()==FUN; }
+    inline bool isFun() const { return tag()==FUN || tag()==FUN_TODO; }
     inline bool isFun(unsigned num) const { return isFun() && number()==num; }
+    void expand();
 
     union {
       Term* _ptr;
       struct {
-	unsigned tag : 2;
-	unsigned number : 30;
+	unsigned tag : 4;
+	unsigned number : 28;
       } _info;
     };
   };
@@ -78,8 +84,6 @@ public:
   { _data[0]._info.number^=1; }
 
 private:
-  static size_t getEntryCount(Term* t);
-
   FlatTerm(size_t length);
   // void* operator new(size_t,unsigned length);
 

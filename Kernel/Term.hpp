@@ -595,6 +595,26 @@ public:
     _kboWeight = w;
   }
 
+  int kboWeight2() const
+  {
+    return _kboWeight2;
+  }
+
+  void setKboWeight2(int w)
+  {
+    _kboWeight2 = w;
+  }
+
+  int kboWeight2TimeStamp() const
+  {
+    return _kboWeight2TimeStamp;
+  }
+
+  void setKboWeight2TimeStamp(int ts)
+  {
+    _kboWeight2TimeStamp = ts;
+  }
+
   int maxRedLength() const
   {
     ASS(shared());
@@ -857,6 +877,8 @@ protected:
   unsigned _weight;
   /** Cached weight of the term for KBO, otherwise -1 and invalid. */
   int _kboWeight;
+  int _kboWeight2;
+  int _kboWeight2TimeStamp;
   /** length of maximum reduction length */
   int _maxRedLen;
   unsigned _varmap : 32;

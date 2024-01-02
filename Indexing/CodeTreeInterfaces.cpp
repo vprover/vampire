@@ -61,6 +61,11 @@ public:
     return SubstHelper::apply(lit, *getApplicator());
   }
 
+  TermList applyToBoundResult(unsigned var) override
+  {
+    return getApplicator()->apply(var);
+  }
+
   bool isIdentityOnQueryWhenResultBound() override {return true;}
 private:
   struct Applicator

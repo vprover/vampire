@@ -719,13 +719,34 @@ class FTNonVariableNonTypeIterator
   : public IteratorCore<std::pair<Term*,FlatTerm::Entry*>>
 {
 public:
-  FTNonVariableNonTypeIterator(Term* term, FlatTerm* ft, bool includeSelf=false)
-  : _stack(8),
-    _added(0)
+  FTNonVariableNonTypeIterator(Literal* lit)
+  : _stack(8), _added(0), _ft1(nullptr), _ft2(nullptr)
   {
-    _stack.push(std::make_pair(term,ft->data()));
-    if (!includeSelf) {
+    if (lit->isEquality()) {
+      if (lit->nthArgument(0)->isTerm()) {
+        _ft1 = FlatTerm::create(lit->nthArgument(0)->term());
+        _stack.push(std::make_pair(lit->nthArgument(0)->term(),_ft1->data()));
+      }
+      if (lit->nthArgument(1)->isTerm()) {
+        _ft2 = FlatTerm::create(lit->nthArgument(1)->term());
+        _stack.push(std::make_pair(lit->nthArgument(1)->term(),_ft2->data()));
+      }
+    } else {
+      _ft1 = FlatTerm::create(lit);
+      _stack.push(std::make_pair(lit,_ft1->data()));
       FTNonVariableNonTypeIterator::next();
+    }
+  }
+
+  ~FTNonVariableNonTypeIterator()
+  {
+    if (_ft1) {
+      _ft1->destroy();
+      _ft1 = nullptr;
+    }
+    if (_ft2) {
+      _ft2->destroy();
+      _ft2 = nullptr;
     }
   }
 
@@ -738,6 +759,8 @@ private:
   Stack<std::pair<Term*,FlatTerm::Entry*>> _stack;
   /** the number of non-variable subterms added at the last iteration, used by right() */
   int _added;
+  FlatTerm* _ft1 = nullptr;
+  FlatTerm* _ft2 = nullptr;
 }; // FTNonVariableNonTypeIterator
 
 /**

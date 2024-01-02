@@ -52,7 +52,8 @@ void FlatTerm::destroy()
   if (_ownsData) {
     DEALLOC_KNOWN(_data, _length*sizeof(Entry), "FlatTerm");
   }
-  DEALLOC_KNOWN(this, sizeof(FlatTerm), "FlatTerm");
+  delete this;
+  // DEALLOC_KNOWN(this, sizeof(FlatTerm), "FlatTerm");
 }
 
 FlatTerm::FlatTerm(size_t length)
@@ -63,6 +64,9 @@ FlatTerm::FlatTerm(size_t length)
 size_t FlatTerm::getEntryCount(Term* t)
 {
   //functionEntryCount entries per function and one per variable
+  // if (t->isTwoVarEquality()) {
+  //   return t->weight()*functionEntryCount-(functionEntryCount-1)*2;
+  // }
   return t->weight()*functionEntryCount-(functionEntryCount-1)*t->numVarOccs();
 }
 
@@ -72,7 +76,24 @@ FlatTerm* FlatTerm::create(Term* t)
 
   FlatTerm* res=new FlatTerm(entries);
   void* mem = ALLOC_KNOWN(entries*sizeof(Entry), "FlatTerm");
-  res->_data = array_new<Entry>(mem, entries);
+  res->_data = static_cast<Entry*>(mem);
+  res->_ownsData = true;
+
+  res->_data[0]=Entry(FUN_TODO,
+      t->isLiteral() ? static_cast<Literal*>(t)->header() : t->functor());
+  res->_data[1]=Entry(t);
+  res->_data[2]=Entry(FUN_RIGHT_OFS, entries);
+
+  return res;
+}
+
+FlatTerm* FlatTerm::createAndExpand(Term* t)
+{
+  size_t entries=getEntryCount(t);
+
+  FlatTerm* res=new FlatTerm(entries);
+  void* mem = ALLOC_KNOWN(entries*sizeof(Entry), "FlatTerm");
+  res->_data = static_cast<Entry*>(mem);
   res->_ownsData = true;
 
   size_t fti=0;
@@ -105,6 +126,22 @@ FlatTerm* FlatTerm::create(TermList t)
 {
   if(t.isTerm()) {
     return create(t.term());
+  }
+  ASS(t.isOrdinaryVar());
+
+  FlatTerm* res=new FlatTerm(1);
+  void* mem = ALLOC_KNOWN(sizeof(Entry), "FlatTerm");
+  res->_data = array_new<Entry>(mem, 1);
+  res->_ownsData = true;
+  res->_data[0]=Entry(VAR, t.var());
+
+  return res;
+}
+
+FlatTerm* FlatTerm::createAndExpand(TermList t)
+{
+  if(t.isTerm()) {
+    return createAndExpand(t.term());
   }
   ASS(t.isOrdinaryVar());
 
@@ -186,6 +223,34 @@ void FlatTerm::swapCommutativePredicateArguments()
     memcpy(&_data[firstStart+secLen], &_data[firstStart], firstLen*sizeof(Entry));
     memcpy(&_data[firstStart], buf.array(), secLen*sizeof(Entry));
   }
+}
+
+void FlatTerm::Entry::expand()
+{
+  if (tag()==FUN) {
+    return;
+  }
+  ASS(tag()==FUN_TODO);
+  ASS(this[1].tag()==FUN_TERM_PTR);
+  ASS(this[2].tag()==FUN_RIGHT_OFS);
+  auto t = this[1].ptr();
+  size_t p = FlatTerm::functionEntryCount;
+  for (unsigned i = 0; i < t->arity(); i++) {
+    auto arg = t->nthArgument(i);
+    if (arg->isVar()) {
+      ASS(arg->isOrdinaryVar());
+      this[p++] = Entry(VAR, arg->var());
+    }
+    else {
+      ASS(arg->isTerm());
+      this[p] = Entry(FUN_TODO, arg->term()->functor());
+      this[p+1] = Entry(arg->term());
+      this[p+2] = Entry(FUN_RIGHT_OFS, getEntryCount(arg->term()));
+      p += this[p+2].number();
+    }
+  }
+  ASS_EQ(p,this[2].number());
+  _info.tag = FUN;
 }
 
 };
