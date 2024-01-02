@@ -919,13 +919,13 @@ bool SATSubsumptionAndResolution::checkSubsumptionImpl(Clause *L,
   if (!cnfForSubsumption()) {
 #if CORRELATE_LENGTH_TIME
     stop = clock::now();
-    auto duration = stop - start;
-    if (log && (duration > 1ms || _solver.stats().ticks >= 100)) {
+    auto const duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+    if (log && (duration_ns > 1ms || _solver.stats().ticks >= 100)) {
       logFile << 0 /* S */ << ","
               << _L->length() << ","
               << _M->length() << ","
               // << getSparsity() << ","
-              << duration.count() << ","
+              << duration_ns.count() << ","
               << 0 /* result */ << ","
               << 0 /* no SAT call */ << ","
               << 0 /* SAT ticks */ << "\n";
@@ -946,13 +946,13 @@ bool SATSubsumptionAndResolution::checkSubsumptionImpl(Clause *L,
 
 #if CORRELATE_LENGTH_TIME
   stop = clock::now();
-  auto duration = stop - start;
-  if (log && (duration > 1ms || _solver.stats().ticks >= 100)) {
+  auto const duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  if (log && (duration_ns > 1ms || _solver.stats().ticks >= 100)) {
     logFile << 0 /* S */ << ","
             << _L->length() << ","
             << _M->length() << ","
             // << getSparsity() << ","
-            << duration.count() << ","
+            << duration_ns.count() << ","
             << subsumed /* result */ << ","
             << 1 /* SAT call */ << ","
             << _solver.stats().ticks << "\n";
@@ -1038,13 +1038,13 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause *L,
 #endif
 #if CORRELATE_LENGTH_TIME
     stop = clock::now();
-    auto duration = stop - start;
-    if (log && (duration > 1ms || _solver.stats().ticks >= 100)) {
+    auto const duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+    if (log && (duration_ns > 1ms || _solver.stats().ticks >= 100)) {
       logFile << 1 /* SR */ << ","
               << _L->length() << ","
               << _M->length() << ","
               // << getSparsity() << ","
-              << duration.count() << ","
+              << duration_ns.count() << ","
               << 0 /* result */ << ","
               << 0 /* no SAT call */ << ","
               << 0 /* SAT ticks */ << "\n";
@@ -1083,13 +1083,13 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause *L,
 
 #if CORRELATE_LENGTH_TIME
   stop = clock::now();
-  auto duration = stop - start;
-  if (log && (duration > 1ms || _solver.stats().ticks >= 100)) {
+  auto const duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  if (log && (duration_ns > 1ms || _solver.stats().ticks >= 100)) {
     logFile << 1 /* SR */ << ","
             << _L->length() << ","
             << _M->length() << ","
             // << getSparsity() << ","
-            << duration.count() << ","
+            << duration_ns.count() << ","
             << !!conclusion /* result */ << ","
             << 1 /* SAT call */ << ","
             << _solver.stats().ticks << "\n";
