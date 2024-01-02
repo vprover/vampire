@@ -74,10 +74,6 @@ namespace Shell {
 
 #endif // VTIME_PROFILING
 
-
-#if VTIME_PROFILING
-
-
 /**
  * A class to trace time for particular blocks. this class shall never be used directly,
  * as it is preprocessed away when the flag VTIME_PROFILING is set to false.
@@ -136,7 +132,6 @@ private:
 
 
   struct Node {
-    CLASS_NAME(Node)
     USE_ALLOCATOR(Node)
     const char* name;
     Lib::Stack<std::unique_ptr<Node>> children;
@@ -200,9 +195,6 @@ class TimeTraceOrdering : public Kernel::Ordering
   const char* _nameTerm;
   Ord _ord;
 public:
-  CLASS_NAME(TimeTraceOrdering);
-  USE_ALLOCATOR(TimeTraceOrdering);
-
   TimeTraceOrdering(const char* nameLit, const char* nameTerm, Ord ord)
   : _nameLit(nameLit)
   , _nameTerm(nameTerm)
@@ -223,7 +215,6 @@ public:
   Ord      & inner()       { return _ord; }
   Ord const& inner() const { return _ord; }
 };
-#endif // VTIME_PROFILING
 
 } // namespace Shell
 

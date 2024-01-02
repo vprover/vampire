@@ -230,7 +230,6 @@ private:
     {
       _bh->backtrackPop(_val,_lastBubbleIndex);
     }
-    CLASS_NAME(BinaryHeap::BHPopBacktrackObject);
     USE_ALLOCATOR(BHPopBacktrackObject);
   private:
     BinaryHeap* _bh;
@@ -248,7 +247,6 @@ private:
     {
       _bh->backtrackInsert(_lastBubbleIndex);
     }
-    CLASS_NAME(BinaryHeap::BHInsertBacktrackObject);
     USE_ALLOCATOR(BHInsertBacktrackObject);
   private:
     BinaryHeap* _bh;

@@ -48,7 +48,6 @@ namespace CoproductImpl {
    * data VariadicUnion []      = bottom type
    */
   template<> union VariadicUnion<> {
-    CLASS_NAME(VariadicUnion)
 
     inline void unwrap(unsigned idx) { ASSERTION_VIOLATION_REP(idx) }
     ~VariadicUnion() {}
@@ -76,8 +75,6 @@ namespace CoproductImpl {
    * data VariadicUnion (a::as) = union {a, Coproduct as}
    */
   template <class A, class... As> union VariadicUnion<A, As...> {
-    CLASS_NAME(VariadicUnion)
-    // USE_ALLOCATOR(VariadicUnion)
     using Ts = TL::List<A,As...>;
 
     A _head;
@@ -278,7 +275,6 @@ class Coproduct<A, As...>
   Coproduct() : _tag(std::numeric_limits<unsigned>::max()) {}
 
 public:
-  CLASS_NAME(Coproduct)
 
   /** a type-level list of all types of this Coproduct */
   using Ts = TL::List<A, As...>;

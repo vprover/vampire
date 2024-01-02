@@ -501,9 +501,6 @@ bool PortfolioMode::runScheduleAndRecoverProof(Schedule schedule)
      * the user didn't wish a proof in the file, so we printed it to the secret tmp file
      * now it's time to restore it.
      */
-
-    BYPASSING_ALLOCATOR; 
-    
     ifstream input(_tmpFileNameForProof);
 
     bool openSucceeded = !input.fail();
@@ -561,10 +558,9 @@ unsigned PortfolioMode::getSliceTime(const vstring &sliceCode)
     vstring sliceInstrStr = sliceCode.substr(bidx,eidx-bidx);
     unsigned sliceInstr;
     ALWAYS(Int::stringToUnsignedInt(sliceInstrStr,sliceInstr));
-    
+
     // sliceTime is in deci second, we assume a roughly 2GHz CPU here
-    sliceTime = sliceInstr / 200;
-    if (sliceTime == 0) { sliceTime = 1; }
+    sliceTime = 1 + sliceInstr / 200; // rather round up than down (and never return 0 here)
   }
 
   return _slowness * sliceTime;
@@ -692,8 +688,6 @@ void PortfolioMode::runSlice(Options& strategyOpt)
       fname = _tmpFileNameForProof;
     }
 
-    BYPASSING_ALLOCATOR; 
-    
     ofstream output(fname.c_str());
     if (output.fail()) {
       // fallback to old printing method
@@ -722,8 +716,6 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   if (outputResult) {
     _syncSemaphore.inc(SEM_LOCK); // would be also released after the processes' death, but we are polite and do it already here
   }
-
-  STOP_CHECKING_FOR_ALLOCATOR_BYPASSES;
 
   exit(resultValue);
 } // runSlice

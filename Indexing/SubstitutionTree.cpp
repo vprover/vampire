@@ -664,11 +664,6 @@ SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
     _subst->bdRecord(_clientBacktrackData);
     _clientBDRecording=true;
 
-    // Reset nextUnbound before we start applying substitutions
-    // so that we rename variables from 0 instead of from some large number.
-    // This improves sharing of terms and hence memory usage and performance
-    _subst->resetNextUnboundAvailable();
-
     _subst->denormalize(normalizer,NORM_RESULT_BANK,RESULT_BANK);
 
     return QueryResult(ld, ResultSubstitution::fromSubstitution( &*_subst, QUERY_BANK, RESULT_BANK),

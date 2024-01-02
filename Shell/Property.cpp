@@ -82,6 +82,7 @@ Property::Property()
     _hasLogicalProxy(false),
     _hasLambda(false),
     _hasPolymorphicSym(false),
+    _hasAnswerLiteral(false),
     _quantifiesOverPolymorphicVar(false),
     _onlyFiniteDomainDatatypes(true),
     _knownInfiniteDomain(false),
@@ -595,6 +596,11 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
     if(type->numTypeArguments()){
       _hasPolymorphicSym = true;
     }
+
+    if (lit->isAnswerLiteral()) {
+      _hasAnswerLiteral = true;
+    }
+
 
     for (int i=0; i<arity; i++) {
       scanSort(SortHelper::getArgSort(lit, i));

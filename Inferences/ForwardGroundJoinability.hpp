@@ -35,7 +35,6 @@ class ForwardGroundJoinability
 : public ForwardSimplificationEngine
 {
 public:
-  CLASS_NAME(ForwardGroundJoinability);
   USE_ALLOCATOR(ForwardGroundJoinability);
 
   void attach(SaturationAlgorithm* salg) override;

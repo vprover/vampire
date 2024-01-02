@@ -30,7 +30,6 @@ using namespace Kernel;
 class LiteralMiniIndex
 {
 public:
-  CLASS_NAME(LiteralMiniIndex);
   USE_ALLOCATOR(LiteralMiniIndex);
   
   LiteralMiniIndex(Clause* cl);

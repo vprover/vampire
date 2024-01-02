@@ -58,7 +58,9 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _inUnit(0),
     _inductionSkolem(0),
     _skolem(0),
+    _skipCongruence(0),
     _tuple(0),
+    _computable(1),
     _prox(NOT_PROXY),
     _comb(NOT_COMB)
 {
@@ -144,11 +146,11 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
  */
 void Signature::Symbol::setType(OperatorType* type)
 {
-  ASS_REP(!_type, _type->toString());
+  ASS_REP(!_type || _type == type, _type->toString());
 
   // this is copied out to the Symbol for convenience
   _typeArgsArity = type->numTypeArguments(); 
-  _type = type;  
+  _type = type;
 }
 
 /**
@@ -827,7 +829,8 @@ unsigned Signature::addNamePredicate(unsigned arity)
 unsigned Signature::addNameFunction(unsigned arity)
 {
   return addFreshFunction(arity,"sP");
-} // addNamePredicate
+} // addNameFunction
+
 /**
  * Add fresh function of a given arity and with a given prefix. If suffix is non-zero,
  * the function name will be prefixI, where I is an integer, otherwise it will be
@@ -917,10 +920,14 @@ unsigned Signature::addFreshPredicate(unsigned arity, const char* prefix, const 
  * into the name of the Skolem function.
  * @since 01/07/2005 Manchester
  */
-unsigned Signature::addSkolemFunction (unsigned arity, const char* suffix)
+unsigned Signature::addSkolemFunction (unsigned arity, const char* suffix, bool computable)
 {
   unsigned f = addFreshFunction(arity, "sK", suffix);
-  getFunction(f)->markSkolem();
+  Symbol* s = getFunction(f);
+  s->markSkolem();
+  if (!computable) {
+    s->markUncomputable();
+  }
 
   // Register it as a LaTeX function
  // theory->registerLaTeXFuncName(f,"\\sigma_{"+Int::toString(_skolemFunctionCount)+"}(a0)");

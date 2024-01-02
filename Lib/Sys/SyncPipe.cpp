@@ -49,13 +49,9 @@ SyncPipe::SyncPipe()
   _readDescriptor=fd[0];
   _writeDescriptor=fd[1];
 
-  {
-    BYPASSING_ALLOCATOR;
-  
-    _istream=new fdstream(_readDescriptor);
-    _ostream=new fdstream(_writeDescriptor);
-  }
-  
+  _istream=new fdstream(_readDescriptor);
+  _ostream=new fdstream(_writeDescriptor);
+
   _istream->rdbuf()->pubsetbuf(0,0);
 
   //add the privileges into the semaphore
@@ -137,12 +133,8 @@ void SyncPipe::neverRead()
     SYSTEM_FAIL("Closing read descriptor of a pipe.", errno);
   }
   ASS_EQ(res,0);
-  {
-    BYPASSING_ALLOCATOR;
-  
-    delete _istream;
-    _istream=0;
-  }
+  delete _istream;
+  _istream=0;
 }
 
 
@@ -187,12 +179,8 @@ void SyncPipe::neverWrite()
   }
   ASS_EQ(res,0);
 
-  {
-    BYPASSING_ALLOCATOR;
-    
-    delete _ostream;
-    _ostream=0;
-  }
+  delete _ostream;
+  _ostream=0;
 }
 /**
  * Give up all the privileges of this object

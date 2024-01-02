@@ -33,18 +33,7 @@ using namespace std;
 
 GroundingIndex::GroundingIndex(const Options& opt)
 {
-  switch(opt.satSolver()){
-#if VZ3
-    case Options::SatSolver::Z3:
-      //cout << "Warning, Z3 not curently used for Global Subsumption" << endl;
-#endif
-    case Options::SatSolver::MINISAT:
-      _solver = new MinisatInterfacing(opt,true);
-      break;
-    default:
-      ASSERTION_VIOLATION_REP(opt.satSolver());
-  }
-  
+  _solver = new MinisatInterfacing(opt,true);
   _grounder = new Kernel::GlobalSubsumptionGrounder(_solver.ptr());
 }
 

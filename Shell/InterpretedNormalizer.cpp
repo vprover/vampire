@@ -50,9 +50,6 @@ public:
 class InterpretedNormalizer::RoundingFunctionTranslator : public FunctionTranslator
 {
 public:
-  CLASS_NAME(InterpretedNormalizer::RoundingFunctionTranslator);
-  USE_ALLOCATOR(InterpretedNormalizer::RoundingFunctionTranslator);
-  
   RoundingFunctionTranslator(Interpretation origf, Interpretation newf, Interpretation roundf)
   {
     _origFun = env.signature->getInterpretingSymbol(origf);
@@ -88,9 +85,6 @@ private:
 class InterpretedNormalizer::SuccessorTranslator : public FunctionTranslator
 {
 public:
-  CLASS_NAME(InterpretedNormalizer::SuccessorTranslator);
-  USE_ALLOCATOR(InterpretedNormalizer::SuccessorTranslator);
-  
   SuccessorTranslator()
   {
     _succFun = env.signature->getInterpretingSymbol(Theory::INT_SUCCESSOR);
@@ -122,9 +116,6 @@ private:
 class InterpretedNormalizer::BinaryMinusTranslator : public FunctionTranslator
 {
 public:
-  CLASS_NAME(InterpretedNormalizer::BinaryMinusTranslator);
-  USE_ALLOCATOR(InterpretedNormalizer::BinaryMinusTranslator);
-  
   BinaryMinusTranslator(Interpretation bMinus, Interpretation plus, Interpretation uMinus)
   {
     _bMinusFun = env.signature->getInterpretingSymbol(bMinus);
@@ -158,9 +149,6 @@ private:
 class InterpretedNormalizer::IneqTranslator
 {
 public:
-  CLASS_NAME(InterpretedNormalizer::IneqTranslator);
-  USE_ALLOCATOR(InterpretedNormalizer::IneqTranslator);
-  
   IneqTranslator(Interpretation src, Interpretation tgt, bool swapArguments, bool reversePolarity)
    : _swapArguments(swapArguments), _reversePolarity(reversePolarity)
   {
@@ -198,9 +186,6 @@ private:
 class InterpretedNormalizer::NLiteralTransformer : public TermTransformer
 {
 public:
-  CLASS_NAME(InterpretedNormalizer::NLiteralTransformer);
-  USE_ALLOCATOR(InterpretedNormalizer::NLiteralTransformer);
-  
   NLiteralTransformer()
   : _ineqTransls(env.signature->predicates()),
     _fnTransfs(env.signature->functions())

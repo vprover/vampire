@@ -48,7 +48,6 @@ class ArrayMap
 {
   typedef ArrayMapEntry<T> Entry;
 public:
-  CLASS_NAME(ArrayMap<T>);
   USE_ALLOCATOR(ArrayMap<T>); 
 
   /**

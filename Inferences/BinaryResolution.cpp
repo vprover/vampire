@@ -22,6 +22,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/ColorHelper.hpp"
+#include "Kernel/Formula.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/LiteralSelector.hpp"
@@ -34,12 +35,13 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#include "Shell/AnswerExtractor.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/UnificationWithAbstractionConfig.hpp"
 
 #include "ReducibilityChecker.hpp"
 #include "BinaryResolution.hpp"
-#include "Shell/UnificationWithAbstractionConfig.hpp"
 
 namespace Inferences
 {
@@ -181,8 +183,13 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   //   return 0;
   // }
 
+  bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
+  Literal* cAnsLit = synthesis ? queryCl->getAnswerLiteral() : nullptr;
+  Literal* dAnsLit = synthesis ? qr.clause->getAnswerLiteral() : nullptr;
+  bool bothHaveAnsLit = (cAnsLit != nullptr) && (dAnsLit != nullptr);
+
   unsigned conlength = withConstraints ? constraints->size() : 0;
-  unsigned newLength = clength+dlength-2+conlength;
+  unsigned newLength = clength+dlength-2+conlength-(bothHaveAnsLit ? 1 : 0);
 
   inf_destroyer.disable(); // ownership passed to the the clause below
   Clause* res = new(newLength) Clause(newLength, inf); // the inference object owned by res from now on
@@ -242,7 +249,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   }
   for(unsigned i=0;i<clength;i++) {
     Literal* curr=(*queryCl)[i];
-    if(curr!=queryLit) {
+    if(curr!=queryLit && (!bothHaveAnsLit || curr!=cAnsLit)) {
       Literal* newLit=qr.substitution->applyToQuery(curr);
       if(needsToFulfilWeightLimit) {
         wlb+=newLit->weight() - curr->weight();
@@ -285,7 +292,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 
   for(unsigned i=0;i<dlength;i++) {
     Literal* curr=(*qr.clause)[i];
-    if(curr!=qr.literal) {
+    if(curr!=qr.literal && (!bothHaveAnsLit || curr!=dAnsLit)) {
       Literal* newLit = qr.substitution->applyToResult(curr);
       if(needsToFulfilWeightLimit) {
         wlb+=newLit->weight() - curr->weight();
@@ -340,6 +347,15 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
         return 0;
       }
     }
+  }
+
+  if (bothHaveAnsLit) {
+    ASS(next == newLength-1);
+    Literal* newLitC = qr.substitution->applyToQuery(cAnsLit);
+    Literal* newLitD = qr.substitution->applyToResult(dAnsLit);
+    bool cNeg = queryLit->isNegative();
+    Literal* condLit = cNeg ? qr.substitution->applyToResult(qr.literal) : qr.substitution->applyToQuery(queryLit);
+    (*res)[next] = SynthesisManager::getInstance()->makeITEAnswerLiteral(condLit, cNeg ? newLitC : newLitD, cNeg ? newLitD : newLitC);
   }
 
   if(withConstraints){

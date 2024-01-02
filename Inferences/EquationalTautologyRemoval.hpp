@@ -26,9 +26,6 @@ class EquationalTautologyRemoval
 : public ImmediateSimplificationEngine
 {
 public:
-  CLASS_NAME(EquationalTautologyRemoval);
-  USE_ALLOCATOR(EquationalTautologyRemoval);
-
   EquationalTautologyRemoval() : _cc(nullptr) {}
 
   Clause* simplify(Clause* cl) override;

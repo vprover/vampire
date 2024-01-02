@@ -39,6 +39,7 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#include "Shell/AnswerExtractor.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -414,7 +415,11 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-  unsigned newLength = rwLength+eqLength-1+conLength;
+  bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
+  Literal* rwAnsLit = synthesis ? rwClause->getAnswerLiteral() : nullptr;
+  Literal* eqAnsLit = synthesis ? eqClause->getAnswerLiteral() : nullptr;
+  bool bothHaveAnsLit = (rwAnsLit != nullptr) && (eqAnsLit != nullptr);
+  unsigned newLength = rwLength+eqLength-1+conLength - (bothHaveAnsLit ? 1 : 0);
 
   static bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 
@@ -457,15 +462,15 @@ Clause* Superposition::performSuperposition(
     if (!env.proofExtra) {
       env.proofExtra = new DHMap<const Unit*,vstring>();
     }
-    env.proofExtra->insert(res,extra);
+    ALWAYS(env.proofExtra->insert(res,extra));
   }
 
   (*res)[0] = tgtLitS;
-  int next = 1;
+  unsigned next = 1;
   unsigned weight=tgtLitS->weight();
   for(unsigned i=0;i<rwLength;i++) {
     Literal* curr=(*rwClause)[i];
-    if(curr!=rwLit) {
+    if(curr!=rwLit && (!bothHaveAnsLit || curr!=rwAnsLit)) {
       Literal* currAfter = subst->apply(curr, !eqIsResult);
 
       if (doSimS) {
@@ -506,7 +511,7 @@ Clause* Superposition::performSuperposition(
 
     for(unsigned i=0;i<eqLength;i++) {
       Literal* curr=(*eqClause)[i];
-      if(curr!=eqLit) {
+      if(curr!=eqLit && (!bothHaveAnsLit || curr!=eqAnsLit)) {
         Literal* currAfter = subst->apply(curr, eqIsResult);
 
         if(EqHelper::isEqTautology(currAfter)) {
@@ -560,6 +565,14 @@ Clause* Superposition::performSuperposition(
       (*res)[next] = constraint;
       next++;   
     }
+  }
+
+  if (bothHaveAnsLit) {
+    ASS_REP2(next == newLength-1, rwClause->toString(), eqClause->toString());
+    Literal* newLitC = subst->apply(rwAnsLit, !eqIsResult);
+    Literal* newLitD = subst->apply(eqAnsLit, eqIsResult);
+    Literal* condLit = subst->apply(eqLit, eqIsResult);
+    (*res)[next] = SynthesisManager::getInstance()->makeITEAnswerLiteral(condLit, newLitC, newLitD);
   }
 
   if(needsToFulfilWeightLimit && !passiveClauseContainer->fulfilsWeightLimit(weight, numPositiveLiteralsLowerBound, res->inference())) {

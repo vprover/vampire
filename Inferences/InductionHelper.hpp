@@ -31,9 +31,6 @@ using namespace Kernel;
 
 class InductionHelper {
 public:
-  CLASS_NAME(InductionHelper);
-  USE_ALLOCATOR(InductionHelper);
-
   InductionHelper(LiteralIndex* comparisonIndex, TermIndex* inductionTermIndex)
       : _comparisonIndex(comparisonIndex), _inductionTermIndex(inductionTermIndex) {}
 

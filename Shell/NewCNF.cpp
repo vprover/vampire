@@ -972,17 +972,21 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
   bool isPredicate = (rangeSort == AtomicSort::boolSort());
   if (isPredicate) {
     unsigned pred = Skolem::addSkolemPredicate(arity, domainSorts.begin(), var);
+    Signature::Symbol *sym = env.signature->getPredicate(pred);
+    sym->markSkipCongruence();
     if(_beingClausified->derivedFromGoal()){
-      env.signature->getPredicate(pred)->markInGoal();
+      sym->markInGoal();
     }
     res = Term::createFormula(new AtomicFormula(Literal::create(pred, arity, true, false, fnArgs.begin())));
   } else {
     unsigned fun = Skolem::addSkolemFunction(arity, domainSorts.begin(), rangeSort, var);
+    Signature::Symbol *sym = env.signature->getFunction(fun);
+    sym->markSkipCongruence();
     if(_beingClausified->derivedFromGoal()){
-      env.signature->getFunction(fun)->markInGoal();
+      sym->markInGoal();
     }
     if(_forInduction){
-      env.signature->getFunction(fun)->markInductionSkolem();
+      sym->markInductionSkolem();
     }
     res = Term::create(fun, arity, fnArgs.begin());
   }
@@ -1148,7 +1152,7 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
   switch (sd->specialFunctor()) {
     case Term::SpecialFunctor::FORMULA:
       process(sd->getFormula(), occurrences);
-      break;
+      return;
     case Term::SpecialFunctor::TUPLE:
       NOT_IMPLEMENTED;
     case Term::SpecialFunctor::ITE: {
@@ -1157,20 +1161,18 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
       Formula* left = BoolTermFormula::create(*term->nthArgument(LEFT));
       Formula* right = BoolTermFormula::create(*term->nthArgument(RIGHT));
       processITE(condition, left, right, occurrences);
-      break;
+      return;
     }
-
     case Term::SpecialFunctor::LET:
     case Term::SpecialFunctor::LET_TUPLE:
       processLet(sd, *term->nthArgument(0), occurrences);
-      break;
+      return;
     case Term::SpecialFunctor::LAMBDA:
       NOT_IMPLEMENTED;
     case Term::SpecialFunctor::MATCH: {
       processMatch(sd, term, occurrences);
-      break;
+      return;
     }
-
   }
   ASSERTION_VIOLATION_REP(term->toString());
 }
@@ -1185,6 +1187,7 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
   env.statistics->formulaNames++;
 
   Signature::Symbol* predSym = env.signature->getPredicate(pred);
+  predSym->markSkipCongruence();
 
   if (env.colorUsed) {
     Color fc = f->getColor();

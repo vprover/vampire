@@ -48,7 +48,6 @@ public:
     }
   }
 
-  CLASS_NAME(CodeTreeSubstitution);
   USE_ALLOCATOR(CodeTreeSubstitution);
 
   TermList applyToBoundResult(TermList t) override
@@ -84,7 +83,6 @@ private:
       return res;
     }
 
-    CLASS_NAME(CodeTreeSubstitution::Applicator);
     USE_ALLOCATOR(Applicator);
   private:
     CodeTree::BindingArray* _bindings;
@@ -132,7 +130,6 @@ public:
     }
   }
 
-  CLASS_NAME(CodeTreeTIS::ResultIterator);
   USE_ALLOCATOR(ResultIterator);
 
   bool hasNext()

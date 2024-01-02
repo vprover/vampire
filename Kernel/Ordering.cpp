@@ -740,8 +740,6 @@ DArray<int> PrecedenceOrdering::typeConPrecFromOpts(Problem& prb, const Options&
     aux.initFromIterator(getRangeIterator(0u, nTypeCons), nTypeCons);
 
     if (!opt.typeConPrecedence().empty()) {
-      BYPASSING_ALLOCATOR;
-
       vstring precedence;
       ifstream precedence_file (opt.typeConPrecedence().c_str());
       if (precedence_file.is_open() && getline(precedence_file, precedence)) {
@@ -768,8 +766,6 @@ DArray<int> PrecedenceOrdering::funcPrecFromOpts(Problem& prb, const Options& op
     aux.initFromIterator(getRangeIterator(0u, nFunctions), nFunctions);
 
     if (!opt.functionPrecedence().empty()) {
-      BYPASSING_ALLOCATOR;
-
       vstring precedence;
       ifstream precedence_file (opt.functionPrecedence().c_str());
       if (precedence_file.is_open() && getline(precedence_file, precedence)) {
@@ -794,8 +790,6 @@ DArray<int> PrecedenceOrdering::predPrecFromOpts(Problem& prb, const Options& op
   aux.initFromIterator(getRangeIterator(0u, nPredicates), nPredicates);
 
   if (!opt.predicatePrecedence().empty()) {
-    BYPASSING_ALLOCATOR;
-
     vstring precedence;
     ifstream precedence_file (opt.predicatePrecedence().c_str());
     if (precedence_file.is_open() && getline(precedence_file, precedence)) {

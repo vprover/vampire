@@ -65,6 +65,7 @@
 #include "Inferences/ForwardGroundJoinability.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
+#include "Inferences/InvalidAnswerLiteralRemoval.hpp"
 #include "Inferences/ForwardSubsumptionDemodulation.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/InnerRewriting.hpp"
@@ -907,7 +908,6 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 
   env.checkTimeSometime<64>();
 
-
   cl=doImmediateSimplification(cl);
   if (!cl) {
     return;
@@ -1033,6 +1033,25 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
         onClauseReduction(cl, repStack.begin(), repStack.size(), 0);
         return false;
       }
+    }
+  }
+
+  bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
+
+  if (synthesis) {
+    ASS((_answerLiteralManager != nullptr));
+    Clause* ansLitCl = cl;
+    if (_splitter && cl->hasAnswerLiteral() && !cl->noSplits() && cl->computable()) {
+      ansLitCl = _splitter->reintroduceAvatarAssertions(cl);
+    }
+    Clause* reduced = _answerLiteralManager->recordAnswerAndReduce(ansLitCl);
+    if (reduced) {
+      ansLitCl = reduced;
+    }
+    if (ansLitCl != cl) {
+      addNewClause(ansLitCl);
+      onClauseReduction(cl, &ansLitCl, 1, 0);
+      return false;
     }
   }
 
@@ -1501,8 +1520,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   // create generating inference engine
   CompositeGIE* gie=new CompositeGIE();
 
-  if(opt.functionDefinitionIntroduction())
+  if(opt.functionDefinitionIntroduction()) {
     gie->addFront(new DefinitionIntroduction);
+  }
 
   //TODO here induction is last, is that right?
   if(opt.induction()!=Options::Induction::NONE){
@@ -1557,7 +1577,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new BinaryResolution());
   }
   if (opt.unitResultingResolution() != Options::URResolution::OFF) {
-    gie->addFront(new URResolution());
+    gie->addFront(new URResolution(opt.unitResultingResolution() == Options::URResolution::FULL));
   }
   if (opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {
     gie->addFront(new ExtensionalityResolution());
@@ -1724,6 +1744,8 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   if (opt.questionAnswering()==Options::QuestionAnsweringMode::ANSWER_LITERAL) {
     res->_answerLiteralManager = AnswerLiteralManager::getInstance();
+  } else if (opt.questionAnswering()==Options::QuestionAnsweringMode::SYNTHESIS) {
+    res->_answerLiteralManager = SynthesisManager::getInstance();
   }
   return res;
 } // SaturationAlgorithm::createFromOptions
@@ -1830,6 +1852,8 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
   }
   res->addFront(new DuplicateLiteralRemovalISE());
 
+  if (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS)
+     res->addFront(new InvalidAnswerLiteralRemoval());
   return res;
 }
 

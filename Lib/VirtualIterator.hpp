@@ -81,8 +81,6 @@ public:
    */
   virtual size_t size() const { INVALID_OPERATION("This iterator cannot retrieve its size."); }
 
-  CLASS_NAME(IteratorCore);
-//  CLASS_NAME(typeid(IteratorCore).name());
 private:
   /**
    * Reference counter field used by the @b VirtualIterator object
@@ -101,7 +99,6 @@ class EmptyIterator
 : public IteratorCore<T>
 {
 public:
-  CLASS_NAME(EmptyIterator);
   USE_ALLOCATOR(EmptyIterator);
 
   EmptyIterator() {}
@@ -126,7 +123,6 @@ public:
 template<typename T>
 class VirtualIterator {
 public:
-  CLASS_NAME(VirtualIterator);
   USE_ALLOCATOR(VirtualIterator);
 
   DECL_ELEMENT_TYPE(T);
@@ -298,7 +294,6 @@ class ProxyIterator
 : public IteratorCore<T>
 {
 public:
-  CLASS_NAME(ProxyIterator);
   USE_ALLOCATOR(ProxyIterator);
   
   explicit ProxyIterator(Inner inn) : _inn(std::move(inn)) {}

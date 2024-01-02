@@ -193,6 +193,9 @@ void Clause::destroy()
   static Stack<Clause*> toDestroy(32);
   Clause* cl = this;
   for(;;) {
+    if ((env.options->proofExtra()==Options::ProofExtra::FULL) && env.proofExtra) {
+      env.proofExtra->remove(cl);
+    }
     Inference::Iterator it = cl->_inference.iterator();
     while (cl->_inference.hasNext(it)) {
       Unit* refU = cl->_inference.next(it);
@@ -573,10 +576,9 @@ unsigned Clause::computeWeightForClauseSelection(const Options& opt) const
   if(derivedFromGoal && opt.restrictNWCtoGC()){
     bool found = false;
     for(unsigned i=0;i<_length;i++){
-      TermFunIterator it(_literals[i]);
-      it.next(); // skip literal symbol
+      NonVariableNonTypeIterator it(_literals[i]);
       while(it.hasNext()){
-        found |= env.signature->getFunction(it.next())->inGoal();
+        found |= env.signature->getFunction(it.next()->functor())->inGoal();
       }
     }
     if(!found){ derivedFromGoal=false; }
@@ -748,6 +750,27 @@ std::ostream& operator<<(std::ostream& out, Clause::Store const& store)
     case Clause::SELECTED:    return out << "SELECTED";
   }
   ASSERTION_VIOLATION;
+}
+
+Literal* Clause::getAnswerLiteral() {
+  for (unsigned i = 0; i < _length; ++i) {
+    if (_literals[i]->isAnswerLiteral()) {
+      return _literals[i];
+    }
+  }
+  return nullptr;
+}
+
+bool Clause::computable() {
+  for (unsigned i = 0; i < length(); ++i) {
+    if ((*this)[i]->isAnswerLiteral()) {
+      continue;
+    }
+    if (!(*this)[i]->computable()) {
+      return false;
+    }
+  }
+  return true;
 }
 
 }

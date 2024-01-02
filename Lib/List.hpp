@@ -468,7 +468,6 @@ public:
   /** iterator over the list elements */
   class Iterator {
   public:
-    CLASS_NAME(List::Iterator);
     USE_ALLOCATOR(List::Iterator);
     
     DECL_ELEMENT_TYPE(C);
@@ -510,7 +509,6 @@ public:
   /** iterator over references to list elements */
   class RefIterator {
    public:
-     CLASS_NAME(List::RefIterator);
      USE_ALLOCATOR(List::RefIterator);
      
      DECL_ELEMENT_TYPE(C&);
@@ -541,7 +539,6 @@ public:
   class PtrIterator
   {
   public:
-    CLASS_NAME(List::PtrIterator);
     USE_ALLOCATOR(List::PtrIterator);
     
     DECL_ELEMENT_TYPE(C*);
@@ -563,7 +560,6 @@ public:
   /** Iterator that allows one to delete the current element */
   class DelIterator {
    public:
-     CLASS_NAME(List::DelIterator);
      USE_ALLOCATOR(List::DelIterator);
      
     DECL_ELEMENT_TYPE(C);
@@ -701,7 +697,6 @@ public:
    */
   class DestructiveIterator {
   public:
-    CLASS_NAME(List::DestructiveIterator);
     USE_ALLOCATOR(List::DestructiveIterator);
     
     DECL_ELEMENT_TYPE(C);
@@ -729,7 +724,6 @@ public:
   };
 
   // use allocator to (de)allocate objects of this class
-  CLASS_NAME(List);
   USE_ALLOCATOR(List);
 
   /**

@@ -105,7 +105,15 @@ Problem* getPreprocessedProblem()
 
 #ifdef __linux__
   if (env.options->parsingDoesNotCount()) {
-    env.options->setInstructionLimit(saveInstrLimit+Timer::elapsedMegaInstructions());
+    Timer::updateInstructionCount();
+    unsigned burnedParsing = Timer::elapsedMegaInstructions();
+
+    env.beginOutput();
+    addCommentSignForSZS(env.out());
+    env.out() << "Instructions burned parsing: " << burnedParsing << " (million)" << endl;
+    env.endOutput();
+
+    env.options->setInstructionLimit(saveInstrLimit+burnedParsing);
   }
 #endif
 
@@ -130,34 +138,16 @@ void explainException(Exception& exception)
   env.endOutput();
 } // explainException
 
-void getRandomStrategy()
-{
-  // We might have set random_strategy sat
-  if(env.options->randomStrategy()==Options::RandomStrategy::OFF){
-    env.options->setRandomStrategy(Options::RandomStrategy::ON);
-  }
-
-  // One call to randomize before preprocessing (see Options)
-  env.options->randomizeStrategy(0); 
-  ScopedPtr<Problem> prb(getPreprocessedProblem());
-  // Then again when the property is here
-  env.options->randomizeStrategy(prb->getProperty()); 
-
-  // It is possible that the random strategy is still incorrect as we don't
-  // have access to the Property when setting preprocessing
-  env.options->checkProblemOptionConstraints(prb->getProperty(), /*before_preprocessing = */ false);
-}
-
 VWARN_UNUSED
 Problem *doProving()
 {
-  // One call to randomize before preprocessing (see Options)
-  env.options->randomizeStrategy(0);
+  // a new strategy randomization mechanism
+  if (!env.options->strategySamplerFilename().empty()) {
+    env.options->sampleStrategy(env.options->strategySamplerFilename());
+    env.options->checkGlobalOptionConstraints();
+  }
 
   Problem *prb = getPreprocessedProblem();
-
-  // Then again when the property is here (this will only randomize non-default things if an option is set to do so)
-  env.options->randomizeStrategy(prb->getProperty()); 
 
   // this will provide warning if options don't make sense for problem
   if (env.options->mode()!=Options::Mode::SPIDER) {
@@ -215,8 +205,6 @@ void outputClausesToLaTeX(Problem* prb)
 {
   ASS(env.options->latexOutput()!="off");
 
-  BYPASSING_ALLOCATOR; // not sure why we need this yet, ofstream?
-
   LaTeX latex;
   ofstream latexOut(env.options->latexOutput().c_str());
   latexOut << latex.header() << endl;
@@ -248,8 +236,6 @@ void outputClausesToLaTeX(Problem* prb)
 void outputProblemToLaTeX(Problem* prb)
 {
   ASS(env.options->latexOutput()!="off");
-
-  BYPASSING_ALLOCATOR; // not sure why we need this yet, ofstream?
 
   LaTeX latex;
   ofstream latexOut(env.options->latexOutput().c_str());
@@ -592,8 +578,6 @@ int main(int argc, char* argv[])
   System::registerArgv0(argv[0]);
   System::setSignalHandlers();
 
-  START_CHECKING_FOR_ALLOCATOR_BYPASSES;
-
   try {
     // read the command line and interpret it
     Shell::CommandLine cl(argc, argv);
@@ -624,9 +608,6 @@ int main(int argc, char* argv[])
       break;
     case Options::Mode::SPIDER:
       spiderMode();
-      break;
-    case Options::Mode::RANDOM_STRATEGY:
-      getRandomStrategy();
       break;
     case Options::Mode::CONSEQUENCE_ELIMINATION:
     case Options::Mode::VAMPIRE:
@@ -762,7 +743,6 @@ int main(int argc, char* argv[])
   }
 #if VZ3
   catch (z3::exception& exception) {
-    BYPASSING_ALLOCATOR;
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     if (outputAllowed()) {
       cout << "Z3 exception:\n" << exception.msg() << endl;

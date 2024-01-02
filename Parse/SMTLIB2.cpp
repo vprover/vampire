@@ -290,6 +290,18 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       continue;
     }
 
+    if (ibRdr.tryAcceptAtom("assert-claim")) {
+      if (!ibRdr.hasNext()) {
+        USER_ERROR_EXPR("assert expects a body");
+      }
+      LExpr* body = ibRdr.readNext();
+      readAssertClaim(body);
+
+      ibRdr.acceptEOL();
+
+      continue;
+    }
+
     if (ibRdr.tryAcceptAtom("assert-not")) {
       if (!ibRdr.hasNext()) {
         USER_ERROR_EXPR("assert-not expects a body");
@@ -348,6 +360,18 @@ void SMTLIB2::readBenchmark(LExprList* bench)
     }
 
     if (ibRdr.tryAcceptAtom("set-option")) {
+      if (ibRdr.tryAcceptAtom(":uncomputable")) {
+        LExprList* lel = ibRdr.readList();
+        LExprList::Iterator lIt(lel);
+        while (lIt.hasNext()) {
+          LExpr* exp = lIt.next();
+          ASS(exp->isAtom());
+          vstring& name = exp->str;
+          markSymbolUncomputable(name);
+        }
+        ibRdr.acceptEOL();
+        continue;
+      }
       LOG2("ignoring set-option", ibRdr.readAtom());
       continue;
     }
@@ -2509,7 +2533,9 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
   ASS(head->isList());
   LispListReader headRdr(head);
 
-  headRdr.acceptAtom(UNDERSCORE);
+  if (!headRdr.tryAcceptAtom(UNDERSCORE)) {
+    USER_ERROR("Compound functor expected to be a rankend function (starting with '_'). Instead read: "+head->toString());
+  }
 
   if(headRdr.tryAcceptAtom("divisible")){
 
@@ -2830,6 +2856,24 @@ void SMTLIB2::readAssert(LExpr* body)
   UnitList::push(fu, _formulas);
 }
 
+void SMTLIB2::readAssertClaim(LExpr* body)
+{
+  _nextVar = 0;
+  ASS(_scopes.isEmpty());
+
+  ParseResult res = parseTermOrFormula(body,false/*isSort*/);
+
+  Formula* fla;
+  if (!res.asFormula(fla)) {
+    USER_ERROR_EXPR("Asserted expression of non-boolean sort "+body->toString());
+  }
+
+  static unsigned claim_id = 0;
+
+  FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
+  UnitList::push(TPTP::processClaimFormula(fu,fla,"claim"+Int::toString(claim_id++)), _formulas);
+}
+
 void SMTLIB2::readAssertNot(LExpr* body)
 {
   _nextVar = 0;
@@ -2864,15 +2908,7 @@ void SMTLIB2::readAssertTheory(LExpr* body)
   UnitList::push(fu, _formulas);
 }
 
-void SMTLIB2::colorSymbol(const vstring& name, Color color)
-{
-  if (!_declaredSymbols.find(name)) {
-    USER_ERROR_EXPR("'"+name+"' is not a user symbol");
-  }
-  DeclaredSymbol& s = _declaredSymbols.get(name);
-
-  env.colorUsed = true;
-
+Signature::Symbol* SMTLIB2::getSymbol(DeclaredSymbol& s) {
   Signature::Symbol* sym = nullptr;
   switch (s.second)
   {
@@ -2890,7 +2926,31 @@ void SMTLIB2::colorSymbol(const vstring& name, Color color)
   }
   }
 
+  return sym;
+}
+
+void SMTLIB2::colorSymbol(const vstring& name, Color color)
+{
+  if (!_declaredSymbols.find(name)) {
+    USER_ERROR_EXPR("'"+name+"' is not a user symbol");
+  }
+  DeclaredSymbol& s = _declaredSymbols.get(name);
+
+  env.colorUsed = true;
+
+  Signature::Symbol* sym = getSymbol(s);
   sym->addColor(color);
+}
+
+void SMTLIB2::markSymbolUncomputable(const vstring& name)
+{
+  if (!_declaredSymbols.find(name)) {
+    USER_ERROR("'"+name+"' is not a user symbol");
+  }
+  DeclaredSymbol& f = _declaredSymbols.get(name);
+
+  Signature::Symbol* sym = getSymbol(f);
+  sym->markUncomputable();
 }
 
 }

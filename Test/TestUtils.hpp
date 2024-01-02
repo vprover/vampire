@@ -20,7 +20,6 @@
 #include "Kernel/Signature.hpp"
 #include "Lib/Environment.hpp"
 
-#include "Api/FormulaBuilder.hpp"
 #include "Lib/Coproduct.hpp"
 #include "Lib/Map.hpp"
 #include "Kernel/Clause.hpp"

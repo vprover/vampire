@@ -128,24 +128,14 @@ timer_sigalrm_handler (int sig)
 
 #ifdef __linux__
   if(Timer::s_limitEnforcement && (env.options->instructionLimit() || env.options->simulatedInstructionLimit())) {
-    if (perf_fd >= 0) {
-      // we could also decide not to guard this read by env.options->instructionLimit(),
-      // to get info about instructions burned even when not instruction limiting
-      read(perf_fd, &last_instruction_count_read, sizeof(long long));
-
-      if (env.options->instructionLimit() && last_instruction_count_read >= MEGA*(long long)env.options->instructionLimit()) {
-        Timer::setLimitEnforcement(false);
-        if (TimeoutProtector::protectingTimeout) {
-          TimeoutProtector::callLimitReachedLater = 2; // 2 for an instr limit
-        } else {
-          Timer::limitReached(2); // 2 for an instr limit
-        }
+    Timer::updateInstructionCount();
+    if (env.options->instructionLimit() && last_instruction_count_read >= MEGA*(long long)env.options->instructionLimit()) {
+      Timer::setLimitEnforcement(false);
+      if (TimeoutProtector::protectingTimeout) {
+        TimeoutProtector::callLimitReachedLater = 2; // 2 for an instr limit
+      } else {
+        Timer::limitReached(2); // 2 for an instr limit
       }
-    } else if (perf_fd == -1 && error_to_report) {
-      // however, we definitely want this to be guarded by env.options->instructionLimit()
-      // not to bother with the error people who don't even know about instruction limiting
-      cerr << "perf_event_open failed (instruction limiting will be disabled): " << error_to_report << endl;
-      error_to_report = nullptr;
     }
   }
 #endif
@@ -157,6 +147,22 @@ timer_sigalrm_handler (int sig)
   }
 #endif
 
+}
+
+void Timer::updateInstructionCount()
+{
+#ifdef __linux__
+  if (perf_fd >= 0) {
+    // we could also decide not to guard this read by env.options->instructionLimit(),
+    // to get info about instructions burned even when not instruction limiting
+    read(perf_fd, &last_instruction_count_read, sizeof(long long));
+  } else if (perf_fd == -1 && error_to_report) {
+    // however, we definitely want this to be guarded by env.options->instructionLimit()
+    // not to bother with the error people who don't even know about instruction limiting
+    cerr << "perf_event_open failed (instruction limiting will be disabled): " << error_to_report << endl;
+    error_to_report = nullptr;
+  }
+#endif
 }
 
 /** number of miliseconds (of CPU time) passed since some moment */

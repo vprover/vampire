@@ -168,8 +168,13 @@ RobSubstitution::TermSpec RobSubstitution::deref(VarSpec v) const
     bool found=_bank.find(v,binding);
     if(!found) {
       binding.index=UNBOUND_INDEX;
+      unsigned nuaVal = _nextUnboundAvailable;
       binding.term.makeVar(_nextUnboundAvailable++);
-      const_cast<RobSubstitution&>(*this).bind(v,binding,false);
+      RobSubstitution* self = const_cast<RobSubstitution*>(this);
+      self->bind(v,binding);
+      if(self->bdIsRecording()) {
+        self->bdAdd(new NextUnboundVariableBacktrackObject(self, nuaVal));
+      }
       return binding;
     } else if(binding.index==UNBOUND_INDEX || binding.term.isTerm()
               || binding.term.isVSpecialVar()) {

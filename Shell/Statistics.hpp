@@ -43,9 +43,6 @@ using namespace Kernel;
 class Statistics
 {
 public:
-  CLASS_NAME(Statistics);
-  USE_ALLOCATOR(Statistics);
-
   Statistics();
 
   void print(std::ostream& out);
@@ -352,6 +349,7 @@ public:
     UNUSED_PREDICATE_DEFINITION_REMOVAL,
     BLOCKED_CLAUSE_ELIMINATION,
     TWEE,
+    ANSWER_LITERAL,
     PREPROCESS_2,
     NEW_CNF,
     NAMING,

@@ -36,9 +36,6 @@ class LiteralSubstitutionTree
   using Leaf = SubstitutionTree::Leaf;
 
 public:
-  CLASS_NAME(LiteralSubstitutionTree);
-  USE_ALLOCATOR(LiteralSubstitutionTree);
-
   LiteralSubstitutionTree(bool useC=false);
 
   void insert(Literal* lit, Clause* cls) override { handleLiteral(lit, cls, /* insert */ true); }

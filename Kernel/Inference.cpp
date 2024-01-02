@@ -60,7 +60,6 @@ UnitInputType Kernel::getInputType(UnitList* units)
  * To be kept around in _ptr2 of INFERENCE_FROM_SAT_REFUTATION
  **/
 struct FromSatRefutationInfo {
-  CLASS_NAME(FromSatRefutationInfo);
   USE_ALLOCATOR(FromSatRefutationInfo);
 
   FromSatRefutationInfo(const FromSatRefutation& fsr) : _satPremises(fsr._satPremises), _usedAssumptions(fsr._usedAssumptions)
@@ -588,6 +587,12 @@ vstring Kernel::ruleName(InferenceRule rule)
   case InferenceRule::ANSWER_LITERAL:
   case InferenceRule::ANSWER_LITERAL_RESOLVER:
     return "answer literal";
+  case InferenceRule::ANSWER_LITERAL_INPUT_SKOLEMISATION:
+    return "answer literal with input var skolemisation";
+  case InferenceRule::ANSWER_LITERAL_REMOVAL:
+    return "answer literal removal";
+  case InferenceRule::AVATAR_ASSERTION_REINTRODUCTION:
+    return "avatar assertion reintroduction";
   case InferenceRule::RECTIFY:
     return "rectify";
   case InferenceRule::CLOSURE:
@@ -596,12 +601,14 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "flattening";
   case InferenceRule::FOOL_ELIMINATION:
     return "fool elimination";
-  case InferenceRule::FOOL_ITE_ELIMINATION:
-    return "fool $ite elimination";
-  case InferenceRule::FOOL_LET_ELIMINATION:
-    return "fool $let elimination";
-  case InferenceRule::FOOL_MATCH_ELIMINATION:
-    return "fool $match elimination";
+  case InferenceRule::FOOL_ITE_DEFINITION:
+    return "fool ite definition";
+  case InferenceRule::FOOL_LET_DEFINITION:
+    return "fool let definition";
+  case InferenceRule::FOOL_FORMULA_DEFINITION:
+    return "fool formula definition";
+  case InferenceRule::FOOL_MATCH_DEFINITION:
+    return "fool match definition";
   case InferenceRule::FOOL_PARAMODULATION:
     return "fool paramodulation";
 //  case CHOICE_AXIOM:

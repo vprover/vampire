@@ -33,9 +33,6 @@ class BinaryResolution
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(BinaryResolution);
-  USE_ALLOCATOR(BinaryResolution);
-
   BinaryResolution() 
     : _index(0),
     _unificationWithAbstraction(false)

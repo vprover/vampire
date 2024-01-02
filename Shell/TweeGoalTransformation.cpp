@@ -34,6 +34,7 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/TermTransformer.hpp"
 #include "Kernel/Renaming.hpp"
+#include "Kernel/InferenceStore.hpp"
 
 #include "TweeGoalTransformation.hpp"
 
@@ -147,6 +148,8 @@ class Definizator : public BottomUpTermTransformer {
           Inference inference(NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FUNCTION_DEFINITION));
           newDef = new (1) Clause(1, inference);
           newDef->literals()[0] = equation;
+
+          InferenceStore::instance()->recordIntroducedSymbol(newDef,SymbolType::FUNC,newSym);
         } else {
           // linear term, don't replace (and remember it in cache)
           symAndDef.first = 0;

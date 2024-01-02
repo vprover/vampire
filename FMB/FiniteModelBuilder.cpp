@@ -132,11 +132,7 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
       break;
 #if VZ3
     case Options::FMBEnumerationStrategy::SMT:
-      {
-        BYPASSING_ALLOCATOR;
-
-        _dsaEnumerator = new SmtBasedDSAE();
-      }
+      _dsaEnumerator = new SmtBasedDSAE();
       _xmass = false;
       break;
 #endif
@@ -153,8 +149,6 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
 FiniteModelBuilder::~FiniteModelBuilder()
 {
   if(_dsaEnumerator){
-    BYPASSING_ALLOCATOR;
-
     delete _dsaEnumerator;
   }
 }
@@ -2484,8 +2478,6 @@ bool FiniteModelBuilder::SmtBasedDSAE::init(unsigned _startModelSize, DArray<uns
 {
   _skippedSomeSizes = (_startModelSize > 1);
 
-  BYPASSING_ALLOCATOR;
-
   try {
     // initialize the smt solver
     z3::expr zero = _context.int_val(_startModelSize-1);
@@ -2533,8 +2525,6 @@ bool FiniteModelBuilder::SmtBasedDSAE::init(unsigned _startModelSize, DArray<uns
 
 void FiniteModelBuilder::SmtBasedDSAE::learnNogood(Constraint_Generator_Vals& nogood, unsigned weight)
 {
-  BYPASSING_ALLOCATOR;
-
   try {
     z3::expr z3clause = _context.bool_val(false);
     // turning a no-good into a clause
@@ -2595,8 +2585,6 @@ void FiniteModelBuilder::SmtBasedDSAE::reportZ3OutOfMemory()
 
 bool FiniteModelBuilder::SmtBasedDSAE::increaseModelSizes(DArray<unsigned>& newSortSizes, DArray<unsigned>& sortMaxes)
 {
-  BYPASSING_ALLOCATOR;
-
   try {
     TIME_TRACE("smt search for next domain size assignment");
 

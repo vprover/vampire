@@ -80,7 +80,6 @@ private:
 
 struct SubstitutionTree::GenMatcher::Applicator
 {
-  CLASS_NAME(SubstitutionTree::GenMatcher::Applicator);
   USE_ALLOCATOR(SubstitutionTree::GenMatcher::Applicator); 
 
   inline
@@ -107,7 +106,6 @@ class SubstitutionTree::GenMatcher::Substitution
 : public ResultSubstitution
 {
 public:
-  CLASS_NAME(SubstitutionTree::GenMatcher::Substitution);
   USE_ALLOCATOR(SubstitutionTree::GenMatcher::Substitution);
   
   Substitution(GenMatcher* parent, Renaming* resultNormalizer)

@@ -32,9 +32,6 @@ using namespace Shell;
 using namespace Lib;
 
 struct SortedSignature{
-    CLASS_NAME(SortedSignature);
-    USE_ALLOCATOR(SortedSignature);
-
     unsigned sorts;
     DArray<Stack<unsigned>> sortedConstants;
     DArray<Stack<unsigned>> sortedFunctions;
@@ -78,9 +75,6 @@ struct SortedSignature{
 
 class SortInference {
 public:
-  CLASS_NAME(SortInference);
-  USE_ALLOCATOR(SortInference);    
-  
   SortInference(ClauseList* clauses,
                 DArray<unsigned> del_f,
                 DArray<unsigned> del_p,

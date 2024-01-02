@@ -38,7 +38,6 @@ template <typename Val, class Hash1, class Hash2>
 class DHSet
 {
 public:
-  CLASS_NAME(DHSet);
   USE_ALLOCATOR(DHSet);
 
   /** Empty the DHSet */

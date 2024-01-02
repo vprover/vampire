@@ -115,6 +115,9 @@ enum class InferenceRule : unsigned char {
   /** introduction of answer literal into the conjecture,
    * or the unit negation of answer literal used to obtain refutation */
   ANSWER_LITERAL,
+  /** introduction of answer literal into the conjecture,
+   * and skolemisation of input variables */
+  ANSWER_LITERAL_INPUT_SKOLEMISATION,
   /** claim definition, definition introduced by a claim in the input */
   CLAIM_DEFINITION,
 //     /** choice_axiom (Ax)((Ey)F(x,y) -> F(x,f(x))) */
@@ -249,6 +252,8 @@ enum class InferenceRule : unsigned char {
   /** simplification eliminating variables by rewriting arithmetic equalities: e.g.: 6 = 3 x \/ L[x] => L[2] */
   GAUSSIAN_VARIABLE_ELIMINIATION,
   ARITHMETIC_SUBTERM_GENERALIZATION,
+  /* clause added after removing answer literal and saving it as a witness */
+  ANSWER_LITERAL_REMOVAL,
   /** the last simplifying inference marker --
     inferences between GENERIC_SIMPLIFYING_INFERNCE and INTERNAL_SIMPLIFYING_INFERNCE_LAST will be automatically understood simplifying
     (see also isSimplifyingInferenceRule) */
@@ -390,12 +395,14 @@ enum class InferenceRule : unsigned char {
   BOOLEAN_TERM_ENCODING,
   /** Elimination of FOOL expressions that makes a formula not syntactically first-order */
   FOOL_ELIMINATION,
-  /** Elimination of $ite expressions */
-  FOOL_ITE_ELIMINATION,
-  /** Elimination of $let expressions */
-  FOOL_LET_ELIMINATION,
-  /** Elimination of $match expressions */
-  FOOL_MATCH_ELIMINATION,
+  /** Definition of $ite expressions */
+  FOOL_ITE_DEFINITION,
+  /** Definition of $let expressions */
+  FOOL_LET_DEFINITION,
+  /** Definition of formulas used as terms */
+  FOOL_FORMULA_DEFINITION,
+  /** Definition for $match expressions */
+  FOOL_MATCH_DEFINITION,
   /** result of general splitting */
   GENERAL_SPLITTING,
   /** component introduced by general splitting */
@@ -454,6 +461,8 @@ enum class InferenceRule : unsigned char {
 
   /* the unit clause against which the Answer is extracted in the last step */
   ANSWER_LITERAL_RESOLVER,
+  /* clause with literals added from AVATAR assertions of the parent */
+  AVATAR_ASSERTION_REINTRODUCTION,
 
   /** A (first-order) tautology generated on behalf of a decision procedure,
    * whose propositional counterpart becomes a conflict clause in a sat solver */
@@ -703,7 +712,6 @@ class Inference
 {
 private:
   // don't construct on the heap
-  CLASS_NAME(Inference);
   USE_ALLOCATOR(Inference);
 
   enum class Kind : unsigned char {

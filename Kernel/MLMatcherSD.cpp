@@ -120,7 +120,7 @@ void createLiteralBindings(Literal* baseLit, LiteralList const* const alts, Clau
         altBindingPtrs++;
         altBindingData+=numVars;
         // add index of the literal in instance clause at the end of the binding sequence
-        ::new (altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
+        (altBindingData++)->setContent(instCl->getLiteralPosition(alit));
       }
       if(MatchingUtils::matchReversedArgs(baseLit, alit)) {
         ArrayStoringBinder binder(altBindingData, variablePositions);
@@ -129,7 +129,7 @@ void createLiteralBindings(Literal* baseLit, LiteralList const* const alts, Clau
         altBindingPtrs++;
         altBindingData+=numVars;
         // add index of the literal in instance clause at the end of the binding sequence
-        ::new (altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
+        (altBindingData++)->setContent(instCl->getLiteralPosition(alit));
       }
     } else {
       if(numVars) {
@@ -141,7 +141,7 @@ void createLiteralBindings(Literal* baseLit, LiteralList const* const alts, Clau
       altBindingPtrs++;
       altBindingData+=numVars;
       // add index of the literal in instance clause at the end of the binding sequence
-      ::new (altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
+      (altBindingData++)->setContent(instCl->getLiteralPosition(alit));
     }
   }
 }
@@ -701,7 +701,6 @@ using namespace Lib;
 class MLMatcherSD::Impl final
 {
   public:
-    CLASS_NAME(MLMatcherSD::Impl);
     USE_ALLOCATOR(MLMatcherSD::Impl);
 
     Impl();

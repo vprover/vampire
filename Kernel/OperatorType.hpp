@@ -55,9 +55,6 @@ namespace Kernel {
 class OperatorType
 {
 public:
-  CLASS_NAME(OperatorType);
-  USE_ALLOCATOR(OperatorType);
-
   class TypeHash {
   public:
     static bool equals(OperatorType* t1, OperatorType* t2)

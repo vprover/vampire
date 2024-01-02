@@ -65,7 +65,6 @@ private:
   bool checkSmallerSanityGround(const Stack<Literal*>& lits, Literal* rwLit, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
 
 public:
-  CLASS_NAME(ReducibilityChecker);
   USE_ALLOCATOR(ReducibilityChecker);
 
   ReducibilityChecker(DemodulationLHSIndex* index, UnitClauseLiteralIndex* litIndex, const Ordering& ord, const Options& opt);

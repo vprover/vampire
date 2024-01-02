@@ -17,6 +17,8 @@
 
 #include "Indexing/TermSharing.hpp"
 
+#include "Shell/AnswerExtractor.hpp"
+
 #include "SubstHelper.hpp"
 #include "TermIterators.hpp"
 #include "RobSubstitution.hpp"
@@ -793,6 +795,11 @@ const vstring& Literal::predicateName() const
 
   return env.signature->predicateName(_functor);
 } // Literal::predicateName
+
+
+bool Literal::isAnswerLiteral() const {
+  return env.signature->getPredicate(functor())->answerPredicate();
+}
 
 
 /**
@@ -1681,6 +1688,32 @@ Literal::Literal()
 {
 }
 
+bool Literal::computable() const {
+  if (!env.signature->getPredicate(this->functor())->computable()) {
+    return false;
+  }
+  for (unsigned i = 0; i < arity(); ++i) {
+    const TermList* t = nthArgument(i);
+    if (!t->isTerm() || !t->term()->computable()) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool Literal::computableOrVar() const {
+  if (!env.signature->getPredicate(this->functor())->computable()) {
+    return false;
+  }
+  for (unsigned i = 0; i < arity(); ++i) {
+    const TermList* t = nthArgument(i);
+    if (t->isTerm() && !t->term()->computableOrVar()) {
+      return false;
+    }
+  }
+  return true;
+}
+
 AtomicSort::AtomicSort()
 {
 }
@@ -1807,6 +1840,34 @@ TermList Term::typeArg(unsigned n) const
   ASS_LE(0, n)
   ASS_L(n, numTypeArguments())
   return *nthArgument(n);
+}
+
+bool Term::computable() const {
+  if (!env.signature->getFunction(this->functor())->computable()) {
+    return false;
+  }
+  SubtermIterator sit(this);
+  while (sit.hasNext()) {
+    TermList t = sit.next();
+    if (!t.isTerm() || !env.signature->getFunction(t.term()->functor())->computable()) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool Term::computableOrVar() const {
+  if (!env.signature->getFunction(this->functor())->computable()) {
+    return false;
+  }
+  SubtermIterator sit(this);
+  while (sit.hasNext()) {
+    TermList t = sit.next();
+    if (t.isTerm() && !env.signature->getFunction(t.term()->functor())->computable()) {
+      return false;
+    }
+  }
+  return true;
 }
 
 std::ostream& Kernel::operator<<(std::ostream& out, Term::SpecialFunctor const& self)

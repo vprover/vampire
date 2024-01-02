@@ -14,6 +14,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
   add_compile_options(-Wall)
   # we don't use multithreading in (mainline!) Vampire
   add_compile_options(-fno-threadsafe-statics)
+  # ...or RTTI
+  add_compile_options(-fno-rtti)
   # enable standards-compliant standard library with sized operator delete
   add_compile_options(-fsized-deallocation)
 endif()
@@ -422,6 +424,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/InferenceEngine.cpp
     Inferences/Instantiation.cpp
     Inferences/InterpretedEvaluation.cpp
+    Inferences/InvalidAnswerLiteralRemoval.cpp
     Inferences/PushUnaryMinus.cpp
     Inferences/Cancellation.cpp
     Inferences/ArithmeticSubtermGeneralization.cpp
@@ -457,6 +460,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/InferenceEngine.hpp
     Inferences/Instantiation.hpp
     Inferences/InterpretedEvaluation.hpp
+    Inferences/InvalidAnswerLiteralRemoval.hpp
     Inferences/PushUnaryMinus.hpp
     Inferences/Cancellation.hpp
     Inferences/ArithmeticSubtermGeneralization.hpp
@@ -750,6 +754,7 @@ set(UNIT_TESTS
     UnitTests/tIterator.cpp
     UnitTests/tOption.cpp
     UnitTests/tStack.cpp
+    UnitTests/tSet.cpp
     )
 source_group(unit_tests FILES ${UNIT_TESTS})
 
@@ -807,12 +812,13 @@ elseif(CMAKE_BUILD_TYPE STREQUAL Release)
   add_compile_definitions(VDEBUG=0)
 endif()
 
-add_compile_definitions(VTIME_PROFILING=1)
+# enable for time profiling
+add_compile_definitions(VTIME_PROFILING=0)
 
 if (CYGWIN)
  add_compile_definitions(_BSD_SOURCE)
 endif()
-                    
+
 # configure warning flags
 if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
   add_compile_options(-Wall)
