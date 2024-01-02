@@ -140,7 +140,16 @@ DHMap<uint32_t, Literal*> getNumberedLiterals(UnitList const* units)
       if (clause->length() != 1) {
         USER_ERROR("expected unit clause, but has length ", clause->length());
       }
-      Literal* const lit = (*clause)[0];
+
+      // We need to get the literal from the input unit,
+      // because we need the original literal (before variable names are normalized).
+      ASS(!unit->isClause());
+      Formula* f = unit->getFormula();
+      while (f->connective() == FORALL)
+        f = f->qarg();
+      ASS_EQ(f->connective(), LITERAL);
+
+      Literal* const lit = f->literal();
       uint32_t const lit_idx = std::strtoul(name.c_str() + prefix.size(), nullptr, 10);
       bool const inserted = literals.insert(lit_idx, lit);
       if (!inserted) {
