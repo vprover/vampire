@@ -62,8 +62,6 @@ public:
   void beginLoop(Clause* main_premise);
   void logSubsumption(Clause* side_premise, Clause* main_premise, int result);
   void logSubsumptionResolution(Clause* side_premise, Clause* main_premise, Clause* result);
-
-  void flush();
 };
 
 struct SubsumptionInstance {

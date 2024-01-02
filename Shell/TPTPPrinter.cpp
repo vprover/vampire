@@ -75,7 +75,7 @@ void TPTPPrinter::printWithRole(vstring name, vstring role, Unit* u, bool includ
 
   beginOutput();
   ensureHeadersPrinted();
-  tgt() << "tff(" << name << ", " << role << ", " << body << ")." << endl;
+  tgt() << "tff(" << name << ", " << role << ", " << body << ")." << std::endl;
   endOutput();
 }
 
@@ -86,7 +86,7 @@ void TPTPPrinter::printWithRole(vstring name, vstring role, Literal* lit)
   ensureHeadersPrinted();
   tgt() << "tff(" << name << ", " << role << ", ";
   writeBodyStr(tgt(), lit);
-  tgt() << ").\n";
+  tgt() << ")." << std::endl;
   endOutput();
 }
 

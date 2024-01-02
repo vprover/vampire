@@ -9,6 +9,7 @@
  */
 
 #include "SATSubsumption/SubsumptionLogger.hpp"
+#include "Lib/Timer.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Unit.hpp"
 #include "Parse/TPTP.hpp"
@@ -42,6 +43,7 @@ ForwardSubsumptionLogger::LitIdx ForwardSubsumptionLogger::logLiteral(Literal* l
   LitIdx idx = m_next_lit++;
   ALWAYS(m_logged_lits.insert(lit, idx));
 
+  TimeoutProtector _tp;
   vostringstream id_stream;
   id_stream << "l_" << idx;
   m_tptp.printWithRole(id_stream.str(), "hypothesis", lit);
@@ -65,6 +67,7 @@ ForwardSubsumptionLogger::ClauseIdx ForwardSubsumptionLogger::logClause(Clause* 
       m_logged_clauses.remove(cl);
   }
 
+  TimeoutProtector _tp;
   ClauseIdx clause_idx = m_next_clause++;
   ClauseInfo info;
   info.idx = clause_idx;
@@ -77,7 +80,7 @@ ForwardSubsumptionLogger::ClauseIdx ForwardSubsumptionLogger::logClause(Clause* 
     info.lits.push_back(lit);
     m_file_slog << ' ' << lit_idx;
   }
-  m_file_slog << " 0\n";
+  m_file_slog << " 0" << std::endl;
 
   ALWAYS(m_logged_clauses.emplace(cl, std::move(info)));
   return clause_idx;
@@ -85,29 +88,26 @@ ForwardSubsumptionLogger::ClauseIdx ForwardSubsumptionLogger::logClause(Clause* 
 
 void ForwardSubsumptionLogger::beginLoop(Clause* main_premise)
 {
+  TimeoutProtector _tp;
   ClauseIdx main_idx = logClause(main_premise);
-  m_file_slog << "L " << main_idx << '\n';
+  m_file_slog << "L " << main_idx << std::endl;
   m_main_premise = main_premise;
 }
 
 void ForwardSubsumptionLogger::logSubsumption(Clause* side_premise, Clause* main_premise, int result)
 {
   ASS(main_premise == m_main_premise);
+  TimeoutProtector _tp;
   ClauseIdx side_idx = logClause(side_premise);
-  m_file_slog << "S " << side_idx << ' ' << result << '\n';
+  m_file_slog << "S " << side_idx << ' ' << result << std::endl;
 }
 
 void ForwardSubsumptionLogger::logSubsumptionResolution(Clause* side_premise, Clause* main_premise, Clause* result)
 {
   ASS(main_premise == m_main_premise);
+  TimeoutProtector _tp;
   ClauseIdx side_idx = logClause(side_premise);
-  m_file_slog << "R " << side_idx << ' ' << (!!result) << '\n';
-}
-
-void ForwardSubsumptionLogger::flush()
-{
-  m_file_slog.flush();
-  m_file_tptp.flush();
+  m_file_slog << "R " << side_idx << ' ' << (!!result) << std::endl;
 }
 
 DHMap<uint32_t, Literal*> getNumberedLiterals(UnitList const* units)
