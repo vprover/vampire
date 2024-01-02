@@ -988,7 +988,7 @@ endif()
 # 2. it's used for ASLR, which isn't a huge concern for us and messes with our backtrace support
 check_pie_supported(OUTPUT_VARIABLE PIE_ERROR LANGUAGES CXX)
 if(NOT CMAKE_CXX_LINK_PIE_SUPPORTED)
-  message(STATUS "PIE not supported, stack traces may be broken")
+  message(STATUS "disabling position-independent code not supported, stack traces may be broken")
   message(STATUS "${PIE_ERROR}")
 endif()
 
