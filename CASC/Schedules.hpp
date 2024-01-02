@@ -45,6 +45,7 @@ public:
 
   static void getInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
   static void getIntegerInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
+  static void getIntindOeisSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
   static void getStructInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
   static void getStructInductionTipSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
 

@@ -404,6 +404,9 @@ void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule
   case Options::Schedule::INTEGER_INDUCTION:
     Schedules::getIntegerInductionSchedule(prop,quick,fallback);
     break;
+  case Options::Schedule::INTIND_OEIS:
+    Schedules::getIntindOeisSchedule(prop,quick,fallback);
+    break;
   case Options::Schedule::STRUCT_INDUCTION:
     Schedules::getStructInductionSchedule(prop,quick,fallback);
     break;

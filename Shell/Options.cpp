@@ -158,6 +158,7 @@ void Options::init()
          "file",
          "induction",
          "integer_induction",
+         "intind_oeis",
          "ltb_default_2017",
          "ltb_hh4_2017",
          "ltb_hll_2017",
