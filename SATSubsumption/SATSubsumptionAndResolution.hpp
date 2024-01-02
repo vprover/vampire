@@ -509,9 +509,11 @@ private:
   Kernel::Clause *generateConclusion();
 
 public:
+  using clock = std::chrono::steady_clock;
+
 #if CORRELATE_LENGTH_TIME
-  std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
-  std::chrono::high_resolution_clock::time_point stop = start;
+  clock::time_point start = clock::now();
+  clock::time_point stop = start;
   std::ofstream logFile;
   bool log;
 #endif

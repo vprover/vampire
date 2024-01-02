@@ -12,7 +12,8 @@ using namespace Indexing;
 using namespace Saturation;
 using namespace Inferences;
 
-static std::chrono::high_resolution_clock::duration totalDuration = chrono::duration<int64_t, std::nano>::zero();
+using benchmark_clock = std::chrono::steady_clock;
+static benchmark_clock::duration totalDuration = chrono::duration<int64_t, std::nano>::zero();
 static ofstream outputFile;
 static ofstream problemFile;
 
@@ -135,11 +136,11 @@ bool ForwardBenchmarkWrapper::perform(Clause *cl, Clause *&replacement, ClauseIt
   ClauseIterator premiseAux;
   Clause *replacementAux = nullptr;
 #if !CORRELATE_LENGTH_TIME
-  auto start = chrono::high_resolution_clock::now();
+  auto start = benchmark_clock::now();
 #endif
   bool resultAux = _forwardBenchmark.perform(cl, replacementAux, premiseAux);
 #if !CORRELATE_LENGTH_TIME
-  auto stop = chrono::high_resolution_clock::now();
+  auto stop = benchmark_clock::now();
 
   auto duration = chrono::duration_cast<chrono::nanoseconds>(stop - start);
   totalDuration += duration;
@@ -147,9 +148,9 @@ bool ForwardBenchmarkWrapper::perform(Clause *cl, Clause *&replacement, ClauseIt
 #endif
 
   /* Then compute the output using the oracle */
-  auto start_oracle = chrono::high_resolution_clock::now();
+  auto start_oracle = benchmark_clock::now();
   bool result = _forwardOracle.perform(cl, replacement, premises);
-  auto stop_oracle = chrono::high_resolution_clock::now();
+  auto stop_oracle = benchmark_clock::now();
   auto duration_oracle = chrono::duration_cast<chrono::nanoseconds>(stop_oracle - start_oracle);
 
 #if !CORRELATE_LENGTH_TIME
