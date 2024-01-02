@@ -16,6 +16,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <chrono>
 
 #include "Debug/Assertion.hpp"
 
@@ -61,6 +62,9 @@ std::ostream& printVersion(std::ostream& out)
   PRINT_VAR(out, USE_SAT_SUBSUMPTION_BACKWARD);
   PRINT_VAR(out, USE_SAT_SUBSUMPTION_RESOLUTION_BACKWARD);
   PRINT_VAR(out, SEPARATE_LOOPS_BACKWARD);
+  std::cout << "\% high_resolution_clock: steady = " << std::chrono::high_resolution_clock::is_steady << ", tick period = " << std::chrono::high_resolution_clock::period::num << "/" << std::chrono::high_resolution_clock::period::den << "\n";
+  std::cout << "\%          steady_clock: steady = " << std::chrono::steady_clock::is_steady << ", tick period = " << std::chrono::steady_clock::period::num << "/" << std::chrono::steady_clock::period::den << "\n";
+  std::cout << "\%          system_clock: steady = " << std::chrono::system_clock::is_steady << ", tick period = " << std::chrono::system_clock::period::num << "/" << std::chrono::system_clock::period::den << "\n";
   subsat::print_config(out << "\% ");
   return out;
 }
