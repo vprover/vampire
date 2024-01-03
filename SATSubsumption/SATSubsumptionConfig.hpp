@@ -31,16 +31,20 @@
 /// If 1, then print in file the time spent in subsumption resolution
 /// and the length of the clauses
 #ifndef CORRELATE_LENGTH_TIME
-#define CORRELATE_LENGTH_TIME 1
+#define CORRELATE_LENGTH_TIME 0
 #endif
 
 
 /// If 1, writes all subsumption and subsumption resolution calls into files:
 /// - "slog/<name>.slog" defines clauses, subsumption calls, subsumption resolution calls
 /// - "slog/<name>.p" defines literals in TPTP syntax
+#ifndef LOG_SSR_CLAUSES
 #define LOG_SSR_CLAUSES 0
+#endif
 
+#ifndef ENABLE_ROUNDS
 #define ENABLE_ROUNDS 0
+#endif
 
 /*****************************************************************************/
 /*                          SUBSUMPTION RESOLUTION                           */
