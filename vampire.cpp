@@ -61,6 +61,8 @@
 
 #include "FMB/ModelCheck.hpp"
 
+#include "SATSubsumption/SubsumptionLogger.hpp"
+
 #if CHECK_LEAKS
 #include "Lib/MemoryLeak.hpp"
 #endif
@@ -392,7 +394,7 @@ void vampireMode()
 
 
 
-/// Implements mode 'sbench'
+/// Implements mode 'sreplay'
 void subsumptionReplayMode()
 {
   Timer::setLimitEnforcement(false);  // don't terminate in signal handler
@@ -406,7 +408,25 @@ void subsumptionReplayMode()
 
   vstring const& tptp_file = env.options->inputFile();
   vstring slog_file = tptp_file.substr(0, tptp_file.find_last_of('.')) + ".slog";
-  // TODO: load subsumption benchmark from prb->units() and slog_file
+
+  SATSubsumption::SubsumptionBenchmark b;
+  b.load_from(prb->units(), slog_file);
+
+  uint64_t num_s = 0;
+  uint64_t num_sr = 0;
+  for (auto const& l : b.fwd_loops) {
+    for (auto const& ssr : l.instances) {
+      if (ssr.do_subsumption)
+        num_s += 1;
+      if (ssr.do_subsumption_resolution)
+        num_sr += 1;
+    }
+  }
+
+  std::cout << "\% Loaded " << b.fwd_loops.size() << " forward loops with a total of " << num_s << " subsumptions and " << num_sr << " subsumption resolutions.\n";
+
+  SATSubsumption::SubsumptionReplay r;
+  r.run(b);
 
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 }

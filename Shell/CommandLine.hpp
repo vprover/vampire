@@ -17,6 +17,8 @@
 #ifndef __CommandLine__
 #define __CommandLine__
 
+#include <ostream>
+
 namespace Shell {
 
 class Options;
@@ -37,6 +39,8 @@ private:
   /** (After) last string to process */
   char** _last;
 }; // class CommandLine
+
+std::ostream& printVersion(std::ostream& out);
 
 }
 

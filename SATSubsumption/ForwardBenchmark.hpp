@@ -19,8 +19,10 @@
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
 #include "SATSubsumption/SATSubsumptionConfig.hpp"
+#include "SATSubsumption/SubsumptionLogger.hpp"
 #include "Indexing/LiteralMiniIndex.hpp"
 #include "Lib/STL.hpp"
+#include <chrono>
 
 namespace Inferences {
 class ForwardBenchmark
@@ -63,6 +65,10 @@ public:
    * @return true if the clause is subsumed or resolved and subsumed, false otherwise
    */
   bool perform(Kernel::Clause *cl, Kernel::Clause *&replacement, Kernel::ClauseIterator &premises) override;
+
+  using benchmark_clock = std::chrono::steady_clock;
+  static SATSubsumption::SubsumptionReplayResult replay(SATSubsumption::SubsumptionBenchmark const& b, bool do_subsumption_resolution);
+
 };
 
 }; // namespace Inferences

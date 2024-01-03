@@ -13,6 +13,9 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Unit.hpp"
 #include "Parse/TPTP.hpp"
+#include "Shell/CommandLine.hpp"
+#include "SATSubsumption/SATSubsumptionAndResolution.hpp"
+#include "SATSubsumption/ForwardBenchmark.hpp"
 
 using namespace Indexing;
 using namespace Kernel;
@@ -275,5 +278,47 @@ void SubsumptionBenchmark::load_from(UnitList const* units, vstring const& slog_
 
   if (!loop.empty()) {
     fwd_loops.push_back(std::move(loop));
+  }
+}
+
+
+SubsumptionReplay::SubsumptionReplay()
+{
+  if (!env.options->forwardSubsumption()) {
+    USER_ERROR("forward subsumption must be enabled");
+  }
+  do_subsumption_resolution = env.options->forwardSubsumptionResolution();
+}
+
+void SubsumptionReplay::run(SubsumptionBenchmark const& b)
+{
+#if LOG_SSR_CLAUSES
+  USER_ERROR("to run subsumption benchmarks, compile with LOG_SSR_CLAUSES=0");
+#endif
+
+  vstring filename =
+    "outputs/replay_"
+    + env.options->problemName()
+    + (do_subsumption_resolution ? "_ssr" : "_s")
+    + ("_" SAT_SR_IMPL_NAME ".csv");
+  std::ofstream output_file(filename.c_str());
+
+  if (!output_file.is_open()) {
+    USER_ERROR("unable to open file for writing: ", filename);
+  }
+
+  Shell::printVersion(std::cout << "\n") << "\n";
+
+  auto const r = Inferences::ForwardBenchmark::replay(b, do_subsumption_resolution);
+
+  std::cout << "\% Replayed " << r.subsumptions << " subsumptions and " << r.subsumption_resolutions << " subsumption resolutions: got " << r.errors << " unexpected results." << std::endl;
+  std::cout << "\% Replay took " << std::chrono::duration_cast<std::chrono::duration<double>>(r.duration_ns).count() << " seconds." << std::endl;
+
+  output_file << "s,sr,err,duration_ns\n";
+  output_file << r.subsumptions << "," << r.subsumption_resolutions << "," << r.errors << "," << r.duration_ns.count() << std::endl;
+  output_file.close();
+
+  if (r.errors > 0) {
+    USER_ERROR("got unexpected subsumption results, please debug");
   }
 }

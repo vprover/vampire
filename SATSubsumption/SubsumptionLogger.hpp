@@ -19,6 +19,7 @@
 
 #include "SATSubsumption/SATSubsumptionConfig.hpp"
 
+#include <chrono>
 #include <iostream>
 #include <fstream>
 
@@ -90,6 +91,20 @@ struct SubsumptionBenchmark {
   vvector<ForwardSubsumptionLoop> fwd_loops;
 
   void load_from(Kernel::UnitList const* units, vstring const& slog_filename);
+};
+
+struct SubsumptionReplayResult {
+  uint64_t subsumptions = 0;
+  uint64_t subsumption_resolutions = 0;
+  uint64_t errors = 0;
+  std::chrono::nanoseconds duration_ns = std::chrono::nanoseconds::zero();
+};
+
+class SubsumptionReplay {
+  bool do_subsumption_resolution = true;
+public:
+  SubsumptionReplay();
+  void run(SubsumptionBenchmark const& b);
 };
 
 

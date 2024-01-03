@@ -381,4 +381,146 @@ bool ForwardBenchmark::perform(Clause *cl, Clause *&replacement, ClauseIterator 
 }
 #endif
 
+
+// The compiler will not reorder instructions across a compiler fence.
+// See also https://stackoverflow.com/q/14449141
+#define COMPILER_FENCE             \
+  do {                             \
+    asm volatile("" ::: "memory"); \
+  } while (false)
+
+
+#if SAT_SR_IMPL == 0
+
+SubsumptionReplayResult ForwardBenchmark::replay(SubsumptionBenchmark const& b, bool do_subsumption_resolution)
+{
+  SubsumptionReplayResult r;
+  ALWAYS(r.subsumptions == 0);
+  ALWAYS(r.subsumption_resolutions == 0);
+  ALWAYS(r.errors == 0);
+
+  if (do_subsumption_resolution) {
+    USER_ERROR("cannot replay subsumption resolutions with old algorithm");
+  }
+
+  CMStack cmStore(64);
+
+  COMPILER_FENCE;
+  auto const start = benchmark_clock::now();
+  COMPILER_FENCE;
+
+  for (auto const& l : b.fwd_loops) {
+
+    Clause* cl = l.main_premise;
+    unsigned clen = cl->length();
+    if (clen == 0) {
+      continue;
+    }
+
+    Clause::requestAux();
+    ASS(cmStore.isEmpty());
+
+    LiteralMiniIndex miniIndex(cl);
+
+    for (auto const& i : l.instances) {
+
+      if (i.do_subsumption) {
+        r.subsumptions++;
+        Clause *mcl = i.side_premise;
+
+        auto check_subsumption = [&]() -> bool {
+          if (mcl->hasAux()) {
+            // we've already checked this clause
+            return false;
+          }
+          ASS_G(mcl->length(), 1);
+
+          ClauseMatches *cms = new ClauseMatches(mcl);
+          mcl->setAux(cms);
+          cmStore.push(cms);
+          cms->fillInMatches(&miniIndex);
+
+          if (cms->anyNonMatched()) {
+            return false;
+          }
+
+          return MLMatcher::canBeMatched(mcl, cl, cms->_matches, 0);
+        };
+
+        bool const result = check_subsumption();
+        if (i.subsumption_result != result) {
+          r.errors++;
+        }
+      }
+
+      if (do_subsumption_resolution && i.do_subsumption_resolution) {
+        ASS(false);
+      }
+
+    }  // l.instances
+
+    Clause::releaseAux();
+    while (cmStore.isNonEmpty()) {
+      delete cmStore.pop();
+    }
+
+  }  // b.fwd_loops
+
+  COMPILER_FENCE;
+  auto const stop = benchmark_clock::now();
+  COMPILER_FENCE;
+
+  r.duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+
+  return r;
+}
+
+#else
+
+SubsumptionReplayResult ForwardBenchmark::replay(SubsumptionBenchmark const& b, bool do_subsumption_resolution)
+{
+  SubsumptionReplayResult r;
+  ALWAYS(r.subsumptions == 0);
+  ALWAYS(r.subsumption_resolutions == 0);
+  ALWAYS(r.errors == 0);
+
+  SATSubsumptionAndResolution satSubs;
+
+  COMPILER_FENCE;
+  auto const start = benchmark_clock::now();
+  COMPILER_FENCE;
+
+  for (auto const& l : b.fwd_loops) {
+    for (auto const& i : l.instances) {
+      if (i.do_subsumption) {
+        r.subsumptions++;
+        bool const result = satSubs.checkSubsumption(i.side_premise, l.main_premise, i.do_subsumption_resolution);
+        if (i.subsumption_result != result)
+          r.errors++;
+      }
+      if (do_subsumption_resolution && i.do_subsumption_resolution) {
+        r.subsumption_resolutions++;
+        Clause* const conclusion = satSubs.checkSubsumptionResolution(i.side_premise, l.main_premise, i.do_subsumption);
+        bool const result = !!conclusion;
+        if (i.subsumption_resolution_result != result)
+          r.errors++;
+      }
+    }
+  }
+
+  COMPILER_FENCE;
+  auto const stop = benchmark_clock::now();
+  COMPILER_FENCE;
+
+  r.duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+
+  return r;
+}
+
+#endif
+
+
+
+
+
 } // namespace Inferences
