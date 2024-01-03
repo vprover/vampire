@@ -175,11 +175,11 @@ void read_value(std::istream& in, T& val, char const* name)
 // R <side_premise_idx> <result>
 void SubsumptionBenchmark::load_from(UnitList const* units, vstring const& slog_filename)
 {
-  std::cerr << "\% Loading subsumption log..." << std::endl;
+  std::cout << "\% Loading subsumption log from " << slog_filename << std::endl;
+
   DHMap<uint32_t, Literal*> const literals = getNumberedLiterals(units);
   DHMap<uint32_t, Clause*> clauses;
 
-  std::cerr << "\% Reading subsumption log from " << slog_filename << std::endl;
   std::ifstream slog{slog_filename.c_str()};
 
   auto read_literal = [&literals, &slog]() -> Literal* {
@@ -242,17 +242,31 @@ void SubsumptionBenchmark::load_from(UnitList const* units, vstring const& slog_
     }
     else if (cmd == "S") {
       // subsumption
-      SubsumptionInstance s;
+      SSRInstance s;
+      s.do_subsumption = true;
       s.side_premise = read_clause("side_premise");
-      read_value(slog, s.result, "result");  // TODO: on error, could continue with result 'unknown'
-      loop.subsumptions.push_back(s);
+      read_value(slog, s.subsumption_result, "result");  // TODO: on error, could continue with result 'unknown'
+      loop.instances.push_back(s);
     }
     else if (cmd == "R") {
       // subsumption resolution
-      SubsumptionResolutionInstance sr;
+      SSRInstance sr;
+      sr.do_subsumption_resolution = true;
       sr.side_premise = read_clause("side_premise");
-      read_value(slog, sr.result, "result");  // TODO: on error, could continue with result 'unknown'
-      loop.subsumption_resolutions.push_back(sr);
+      read_value(slog, sr.subsumption_resolution_result, "result");  // TODO: on error, could continue with result 'unknown'
+      // try to merge with previous instance, if possible
+      bool merged = false;
+      if (!loop.instances.empty()) {
+        SSRInstance& s = loop.instances.back();
+        if (s.side_premise == sr.side_premise && !s.do_subsumption_resolution) {
+          s.do_subsumption_resolution = true;
+          s.subsumption_resolution_result = sr.subsumption_resolution_result;
+          merged = true;
+        }
+      }
+      if (!merged) {
+        loop.instances.push_back(sr);
+      }
     }
     else {
       USER_ERROR("expected 'C', 'L', 'S', or 'R'");

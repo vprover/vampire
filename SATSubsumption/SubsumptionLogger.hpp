@@ -18,7 +18,6 @@
 #include "./subsat/subsat.hpp"
 
 #include "SATSubsumption/SATSubsumptionConfig.hpp"
-#include "SATSubsumption/SubsumptionLogger.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -64,30 +63,26 @@ public:
   void logSubsumptionResolution(Clause* side_premise, Clause* main_premise, Clause* result);
 };
 
-struct SubsumptionInstance {
-  Kernel::Clause* side_premise = nullptr;  // base
-  // Kernel::Clause* main_premise = nullptr;  // instance
-  int result = -999;
-};
-
-struct SubsumptionResolutionInstance {
-  Kernel::Clause* side_premise = nullptr;  // base
-  // Kernel::Clause* main_premise = nullptr;  // instance
-  int result = -999;
+struct SSRInstance {
+  Kernel::Clause* side_premise = nullptr;  // also "base clause"
+  bool do_subsumption = false;
+  int subsumption_result = -999;
+  bool do_subsumption_resolution = false;
+  int subsumption_resolution_result = -999;
 };
 
 struct ForwardSubsumptionLoop {
-  // all of these should have the same main premise
-  vvector<SubsumptionInstance> subsumptions;
-  vvector<SubsumptionResolutionInstance> subsumption_resolutions;
-  Kernel::Clause* main_premise = nullptr;  // instance
+  // all of these have the same main premise
+  vvector<SSRInstance> instances;
+  Kernel::Clause* main_premise = nullptr;  // also "instance clause"
 
   bool empty() const {
-    return subsumptions.empty() && subsumption_resolutions.empty();
+    return instances.empty();
   }
 
   void reset() {
-    *this = ForwardSubsumptionLoop();
+    instances.clear();
+    main_premise = nullptr;
   }
 };
 
