@@ -43,25 +43,7 @@ void ForwardBenchmarkWrapper::attach(SaturationAlgorithm *salg)
   _forwardBenchmark.attach(salg);
   _forwardOracle.attach(salg);
 
-  // replace the '.' with '_' in the file name
-  vstring problemName = env.options->problemName();
-  for (unsigned i = 0; i < problemName.length(); i++) {
-    if (problemName[i] == '.') {
-      problemName[i] = '_';
-    }
-  }
-  vstring fileName = "outputs/" + env.options->problemName();
-#if SAT_SR_IMPL == 0
-  fileName += "_no_sat";
-#elif SAT_SR_IMPL == 1
-  fileName += "_direct";
-#elif SAT_SR_IMPL == 2
-  fileName += "_indirect";
-#elif SAT_SR_IMPL == 3
-  fileName += "_dynamic";
-#else
-  fileName += "_unknown";
-#endif
+  vstring fileName = "outputs/" + env.options->problemName() + ("_" SAT_SR_IMPL_NAME);
 #if USE_OPTIMIZED_FORWARD
   fileName += "_opt";
 #endif
@@ -166,18 +148,7 @@ bool ForwardBenchmarkWrapper::perform(Clause *cl, Clause *&replacement, ClauseIt
     // open to append at the end of the file
     ofstream log_file(file_name, ios_base::app);
     log_file << "------------------------------------------------------------" << endl;
-    log_file << "Configuration: ";
-#if SAT_SR_IMPL == 0
-    log_file << "no_sat";
-#elif SAT_SR_IMPL == 1
-    log_file << "direct";
-#elif SAT_SR_IMPL == 2
-    log_file << "indirect";
-#elif SAT_SR_IMPL == 3
-    log_file << "dynamic";
-#else
-    log_file << "unknown";
-#endif
+    log_file << "Configuration: " << SAT_SR_IMPL_NAME;
 #if USE_OPTIMIZED_FORWARD
     log_file << " optimized";
 #endif
@@ -224,18 +195,7 @@ bool ForwardBenchmarkWrapper::perform(Clause *cl, Clause *&replacement, ClauseIt
       problemFile.open(fileName.c_str());
     }
     problemFile << "------------------------------------------------------------" << endl;
-    problemFile << "Configuration: ";
-#if SAT_SR_IMPL == 0
-    problemFile << "no_sat";
-#elif SAT_SR_IMPL == 1
-    problemFile << "direct";
-#elif SAT_SR_IMPL == 2
-    problemFile << "indirect";
-#elif SAT_SR_IMPL == 3
-    problemFile << "dynamic";
-#else
-    problemFile << "unknown";
-#endif
+    problemFile << "Configuration: " << SAT_SR_IMPL_NAME;
 #if USE_OPTIMIZED_FORWARD
     problemFile << " optimized";
 #endif

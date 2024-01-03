@@ -527,18 +527,7 @@ public:
 #if CORRELATE_LENGTH_TIME
     this->log = log;
     if (log) {
-      vstring fileName = "outputs/data_" + env.options->problemName();
-      #if SAT_SR_IMPL == 0
-        fileName += "_no_sat";
-      #elif SAT_SR_IMPL == 1
-        fileName += "_direct";
-      #elif SAT_SR_IMPL == 2
-        fileName += "_indirect";
-      #elif SAT_SR_IMPL == 3
-        fileName += "_dynamic";
-      #else
-        fileName += "_unknown";
-      #endif
+      vstring fileName = "outputs/data_" + env.options->problemName() + ("_" SAT_SR_IMPL_NAME);
       #if USE_OPTIMIZED_FORWARD
         fileName += "_opt";
       #endif

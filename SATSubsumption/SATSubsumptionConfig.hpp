@@ -44,9 +44,11 @@
 /*                          SUBSUMPTION RESOLUTION                           */
 /*****************************************************************************/
 /// Encoding of the problem
+/// 0 : Old MLMatcher-based implementation (not SAT-based)
 /// 1 : Using c_j <=> (b_0j- V ... V b_nj-)
 /// 2 : Without c_j
-/// This options should be defined in the cMakeList.txt file
+/// 3 : dynamic, choose either 1 or 2 heuristically, depending on the clauses
+/// This option should be defined in the CMakeLists.txt file (e.g., `cmake -DS_SR_IMPL=3`)
 #ifndef SAT_SR_IMPL
 #define SAT_SR_IMPL 3
 #endif
@@ -55,6 +57,17 @@
 /// If 1, prints some comments about the subsumption resolution process
 #define PRINT_CLAUSE_COMMENTS_SUBS 0
 
+#if SAT_SR_IMPL == 0
+#   define SAT_SR_IMPL_NAME "no_sat"
+#elif SAT_SR_IMPL == 1
+#   define SAT_SR_IMPL_NAME "direct"
+#elif SAT_SR_IMPL == 2
+#   define SAT_SR_IMPL_NAME "indirect"
+#elif SAT_SR_IMPL == 3
+#   define SAT_SR_IMPL_NAME "dynamic"
+#else
+#   define SAT_SR_IMPL_NAME "unknown"
+#endif
 
 /*****************************************************************************/
 /*                 FORWARD SUBSUMPTION AND RESOLUTION                        */
