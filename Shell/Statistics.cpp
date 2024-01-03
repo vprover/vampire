@@ -114,6 +114,9 @@ Statistics::Statistics()
     proxyEliminations(0),
     leibnizElims(0),
     booleanSimps(0),
+#if ENABLE_ROUNDS
+    forwardSubsumptionRounds(0),
+#endif
     duplicateLiterals(0),
     trivialInequalities(0),
     forwardSubsumptionResolution(0),
@@ -330,6 +333,9 @@ void Statistics::print(ostream& out)
   COND_OUT("Condensations", condensations);
   COND_OUT("Global subsumptions", globalSubsumption);
   COND_OUT("Interpreted simplifications", interpretedSimplifications);
+#if ENABLE_ROUNDS
+  addCommentSignForSZS(out); out << "Fw subsumption rounds" << ": " << forwardSubsumptionRounds << endl; separable = true;
+#endif
 
   COND_OUT("asg count", asgCnt);
   COND_OUT("asg results not smaller than the premis", asgViolations);

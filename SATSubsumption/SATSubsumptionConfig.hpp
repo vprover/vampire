@@ -40,6 +40,8 @@
 /// - "slog/<name>.p" defines literals in TPTP syntax
 #define LOG_SSR_CLAUSES 0
 
+#define ENABLE_ROUNDS 0
+
 /*****************************************************************************/
 /*                          SUBSUMPTION RESOLUTION                           */
 /*****************************************************************************/

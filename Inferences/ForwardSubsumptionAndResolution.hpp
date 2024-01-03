@@ -82,6 +82,10 @@ private:
 
   /// @brief Engine performing subsumption and subsumption resolution using a sat solver
   SATSubsumption::SATSubsumptionAndResolution satSubs;
+
+#if ENABLE_ROUNDS
+  unsigned max_rounds = 0;
+#endif
 };
 
 }; // namespace Inferences

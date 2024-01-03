@@ -17,6 +17,8 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Indexing/LiteralIndex.hpp"
 #include "Kernel/ColorHelper.hpp"
+#include "Lib/Timer.hpp"
+#include "Lib/Environment.hpp"
 
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
 
@@ -31,6 +33,9 @@ ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(bool subsumptio
     : _subsumptionResolution(subsumptionResolution)
     , satSubs(log || CORRELATE_LENGTH_TIME)
 {
+#if ENABLE_ROUNDS
+  max_rounds = env.options->maxRounds();
+#endif
 }
 
 void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
@@ -61,6 +66,16 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
   TIME_TRACE("forward subsumption");
 
   satSubs.beginLoop(cl);
+
+#if ENABLE_ROUNDS
+  env.statistics->forwardSubsumptionRounds++;
+  if (max_rounds && env.statistics->forwardSubsumptionRounds > max_rounds) {
+    env.statistics->forwardSubsumptionRounds--;
+    env.statistics->terminationReason = Shell::Statistics::TIME_LIMIT;
+    Timer::setLimitEnforcement(false);
+    throw TimeLimitExceededException();
+  }
+#endif
 
   ASS(replacement == nullptr)
 

@@ -55,6 +55,7 @@
 #include "Lib/STL.hpp"
 
 #include "Property.hpp"
+#include "SATSubsumption/SATSubsumptionConfig.hpp"
 
 namespace Shell {
 
@@ -2087,6 +2088,9 @@ public:
   Subsumption backwardSubsumptionResolution() const { return _backwardSubsumptionResolution.actualValue; }
   bool backwardSubsumptionDemodulation() const { return _backwardSubsumptionDemodulation.actualValue; }
   unsigned backwardSubsumptionDemodulationMaxMatches() const { return _backwardSubsumptionDemodulationMaxMatches.actualValue; }
+#if ENABLE_ROUNDS
+  unsigned maxRounds() const { return _maxRounds.actualValue; }
+#endif
   bool forwardSubsumption() const { return _forwardSubsumption.actualValue; }
   bool forwardLiteralRewriting() const { return _forwardLiteralRewriting.actualValue; }
   int lrsFirstTimeCheck() const { return _lrsFirstTimeCheck.actualValue; }
@@ -2428,6 +2432,9 @@ private:
   ChoiceOptionValue<Subsumption> _backwardSubsumptionResolution;
   BoolOptionValue _backwardSubsumptionDemodulation;
   UnsignedOptionValue _backwardSubsumptionDemodulationMaxMatches;
+#if ENABLE_ROUNDS
+  UnsignedOptionValue _maxRounds;
+#endif
   BoolOptionValue _binaryResolution;
 
   BoolOptionValue _colorUnblocking;

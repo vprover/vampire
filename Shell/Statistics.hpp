@@ -25,6 +25,7 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Option.hpp"
+#include "SATSubsumption/SATSubsumptionConfig.hpp"
 
 extern const char* VERSION_STRING;
 
@@ -155,6 +156,11 @@ public:
   unsigned proxyEliminations;
   unsigned leibnizElims;
   unsigned booleanSimps;
+
+#if ENABLE_ROUNDS
+  /** number of forward subsumption (resolution) rounds */
+  unsigned forwardSubsumptionRounds;
+#endif
 
   // Simplifying inferences
   /** number of duplicate literals deleted */
