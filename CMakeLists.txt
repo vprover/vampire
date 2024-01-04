@@ -813,7 +813,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL Release)
 endif()
 
 # enable for time profiling
-add_compile_definitions(VTIME_PROFILING=0)
+add_compile_definitions(VTIME_PROFILING=1)
 
 if (CYGWIN)
  add_compile_definitions(_BSD_SOURCE)

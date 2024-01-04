@@ -47,7 +47,7 @@ public:
 	  Literal* instance, int instanceIndex, bool complementary);
   SubstIterator unifiers(Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
 
-  bool unify(TermList t1,int index1, TermList t2, int index2, MismatchHandler* hndlr=0);
+  bool unify(TermList t1,int index1, TermList t2, int index2, MismatchHandler* hndlr=0, bool noFail = false);
   bool match(TermList base,int baseIndex, TermList instance, int instanceIndex);
 
   bool unifyArgs(Term* t1,int index1, Term* t2, int index2, MismatchHandler* hndlr=0);
@@ -237,11 +237,11 @@ private:
   TermSpec derefBound(TermSpec v) const;
 
   void addToConstraints(const VarSpec& v1, const VarSpec& v2,MismatchHandler* hndlr);
-  void bind(const VarSpec& v, const TermSpec& b, bool clearCache = true);
+  void bind(const VarSpec& v, const TermSpec& b, bool clearCache = true, bool noFail = false);
   void bindVar(const VarSpec& var, const VarSpec& to);
   VarSpec root(VarSpec v) const;
   bool match(TermSpec base, TermSpec instance);
-  bool unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr);
+  bool unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr,bool noFail);
   bool occurs(VarSpec vs, TermSpec ts) const;
 
   inline

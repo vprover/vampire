@@ -36,9 +36,9 @@ const int RobSubstitution::UNBOUND_INDEX=-1;
 /**
  * Unify @b t1 and @b t2, and return true iff it was successful.
  */
-bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2, MismatchHandler* hndlr)
+bool RobSubstitution::unify(TermList t1,int index1, TermList t2, int index2, MismatchHandler* hndlr, bool noFail)
 {
-  return unify(TermSpec(t1,index1), TermSpec(t2,index2),hndlr);
+  return unify(TermSpec(t1,index1), TermSpec(t2,index2),hndlr,noFail);
 }
 
 /**
@@ -53,7 +53,7 @@ bool RobSubstitution::unifyArgs(Term* t1,int index1, Term* t2, int index2, Misma
   TermList t1TL(t1);
   TermList t2TL(t2);
 
-  return unify(TermSpec(t1TL,index1), TermSpec(t2TL,index2),hndlr);
+  return unify(TermSpec(t1TL,index1), TermSpec(t2TL,index2),hndlr,false);
 }
 
 bool RobSubstitution::match(TermList base,int baseIndex,
@@ -184,7 +184,7 @@ RobSubstitution::TermSpec RobSubstitution::deref(VarSpec v) const
   }
 }
 
-void RobSubstitution::bind(const VarSpec& v, const TermSpec& b, bool clearCache)
+void RobSubstitution::bind(const VarSpec& v, const TermSpec& b, bool clearCache, bool noFail)
 {
   ASSERT_VALID(b.term);
   //Aux terms don't contain special variables, ergo
@@ -198,7 +198,7 @@ void RobSubstitution::bind(const VarSpec& v, const TermSpec& b, bool clearCache)
   }
 #endif
 
-  if(bdIsRecording()) {
+  if(!noFail && bdIsRecording()) {
     bdAdd(new BindingBacktrackObject(this, v));
   }
   _bank.set(v,b);
@@ -300,7 +300,7 @@ bool RobSubstitution::occurs(VarSpec vs, TermSpec ts) const
   }
 }
 
-bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
+bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr,bool noFail)
 {
   if(t1.sameTermContent(t2)) {
     return true;
@@ -308,7 +308,9 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
 
   bool mismatch=false;
   BacktrackData localBD;
-  bdRecord(localBD);
+  if (!noFail) {
+    bdRecord(localBD);
+  }
 
   static Stack<TTPair> toDo(64);
   static Stack<TermList*> subterms(64);
@@ -339,14 +341,14 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
     // cannot be currently bound as we already dereferenced
     else if(dt1.isVar() && !dt1.isVSpecialVar()) {
       VarSpec v1=getVarSpec(dt1);
-      if(occurs(v1, dt2)) {
+      if(!noFail && occurs(v1, dt2)) {
         mismatch=true;
         break;
       }
       bind(v1,dt2);
     } else if(dt2.isVar() && !dt2.isVSpecialVar()) {
       VarSpec v2=getVarSpec(dt2);
-      if(occurs(v2, dt1)) {
+      if(!noFail && occurs(v2, dt1)) {
         mismatch=true;
         break;
       }
@@ -440,15 +442,17 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr)
     toDo.reset();
   }
 
-  bdDone();
+  if (!noFail) {
+    bdDone();
 
-  if(mismatch) {
-    localBD.backtrack();
-  } else {
-    if(bdIsRecording()) {
-      bdCommit(localBD);
+    if(mismatch) {
+      localBD.backtrack();
+    } else {
+      if(bdIsRecording()) {
+        bdCommit(localBD);
+      }
+      localBD.drop();
     }
-    localBD.drop();
   }
 
   return !mismatch;

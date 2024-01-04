@@ -17,7 +17,8 @@
 #include "NumTraits.hpp"
 #include "VarOrder.hpp"
 
-#include "Indexing/ResultSubstitution.hpp"
+#include "Indexing/Index.hpp"
+#include "Inferences/ForwardGroundJoinability.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/Comparison.hpp"
@@ -27,6 +28,7 @@
 #include "SubstHelper.hpp"
 #include <fstream>
 
+#include "EqHelper.hpp"
 #include "Term.hpp"
 #include "KBO.hpp"
 #include "Signature.hpp"
@@ -1567,9 +1569,102 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
   return res;
 }
 
-bool KBO::isGreater(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple<unsigned,unsigned,bool>>* constraints, Indexing::ResultSubstitution* subst) const
+bool canDecomposeIntoConstraints(TermList lhs, TermList rhs)
 {
+  TIME_TRACE("canDecomposeIntoConstraints");
+  if (lhs.isVar()) {
+    if (rhs.isVar()) {
+      return true;
+    }
+    return false;
+  }
+  if (rhs.isVar() || !TermList::sameTopFunctor(lhs,rhs)) {
+    return false;
+  }
+  auto t0 = lhs.term();
+  auto t1 = rhs.term();
+  for (unsigned i = 0; i < t0->arity(); i++) {
+    if (!canDecomposeIntoConstraints(*t0->nthArgument(i),*t1->nthArgument(i))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool KBO::isGreater(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple<unsigned,unsigned,bool>>* constraints, const Indexing::TermQueryResult* qr) const
+{
+  if (constraints) {
+    constraints->reset();
+  }
   TIME_TRACE("KBO::isGreater");
+  // if (qr) {
+  //   auto lhs = qr->term;
+  //   auto rhs = EqHelper::getOtherEqualitySide(qr->literal, lhs);
+  //   auto eqOrd = getEqualityArgumentOrder(qr->literal);
+  //   if (eqOrd==GREATER) {
+  //     ASS_EQ(lhs,*qr->literal->nthArgument(0));
+  //     return true;
+  //   } else if (eqOrd==LESS) {
+  //     ASS_EQ(lhs,*qr->literal->nthArgument(1));
+  //     return true;
+  //   }
+  //   DemodulatorConstraints* dc;
+  //   if (_demodulatorCache.getValuePtr(make_pair(qr->term,qr->literal),dc)) {
+  //     dc->canDecompose = canDecomposeIntoConstraints(lhs,rhs);
+  //     if (dc->canDecompose) {
+  //       NEVER(isGreater(lhs,rhs,nullptr,&dc->constraints,nullptr));
+  //       cout << "constraints for " << lhs << " = " << rhs << endl;
+  //       for (const auto& c : dc->constraints) {
+  //         auto x = get<0>(c);
+  //         auto y = get<1>(c);
+  //         auto strict = get<2>(c);
+  //         cout << "X" << x << (strict?" > X":" >= X") << y << endl;
+  //       }
+  //       cout << "also: " << endl;
+  //       Stack<VarOrder> vos;
+  //       vos.push(VarOrder());
+  //       while (vos.isNonEmpty()) {
+  //         auto vo = vos.pop();
+  //         VarOrder ext = vo;
+  //         if (makeGreater(lhs,rhs,ext)) {
+  //           cout << ext.to_string() << endl;
+  //           for (auto&& diff : Inferences::ForwardGroundJoinability::order_diff(vo,ext)) {
+  //             vos.push(std::move(diff));
+  //           }
+  //         }
+  //       }
+  //       cout << endl;
+  //     }
+  //   }
+  //   if (dc->canDecompose) {
+  //     for (const auto& c : dc->constraints) {
+  //       auto xS = qr->substitution->applyToBoundResult(get<0>(c));
+  //       auto yS = qr->substitution->applyToBoundResult(get<1>(c));
+  //       auto strict = get<2>(c);
+  //       if (!strict && xS == yS) {
+  //         return true;
+  //       }
+  //       Stack<std::tuple<unsigned,unsigned,bool>> localC;
+  //       if (isGreater(xS,yS,nullptr,&localC,nullptr)) {
+  //         return true;
+  //       }
+  //       if (constraints) {
+  //         for (const auto& c : localC) {
+  //           constraints->push(c);
+  //         }
+  //       }
+  //     }
+  //     // if (isGreater(tl1,qr->substitution->applyToBoundResult(tl2),nullptr,constraints,nullptr)) {
+  //     //   TIME_TRACE("nope");
+  //     //   return true;
+  //     //   // cout << tl1 << " should be greater than " << qr->substitution->applyToBoundResult(tl2) << endl;
+  //     //   // cout << "coming from " << lhs << " = " << rhs << endl << endl;
+  //     // }
+  //     // for now just return here if we didn't find a suitable constraint
+  //     return false;
+  //   }
+  // }
+  Indexing::ResultSubstitution* subst = qr ? qr->substitution.ptr() : nullptr;
   auto res = subst ? isGreaterHelper(tl1,tl2, tl1State, constraints, subst) : isGreaterHelper(tl1,tl2, tl1State, constraints);
   // if (subst && (compare(tl1,subst->applyToBoundResult(tl2))==Ordering::GREATER)!=res) {
   //   cout << tl1.toString()+" "+tl2.toString()+" applied "+subst->applyToBoundResult(tl2).toString()+" false "+(res?"positive":"negative") << endl;
@@ -1604,9 +1699,6 @@ bool KBO::isGreater(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple
 
 bool KBO::isGreaterHelper(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple<unsigned,unsigned,bool>>* constraints) const
 {
-  if (constraints) {
-    constraints->reset();
-  }
   if(tl1==tl2 || tl1.isOrdinaryVar()) {
     return false;
   }
@@ -1684,14 +1776,11 @@ bool KBO::isGreaterHelper(TermList tl1, TermList tl2, void* tl1State, Stack<std:
 
 bool KBO::isGreaterHelper(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple<unsigned,unsigned,bool>>* constraints, Indexing::ResultSubstitution* subst) const
 {
-  if (constraints) {
-    constraints->reset();
-  }
   ASS(subst);
   if (tl2.isOrdinaryVar()) {
     return isGreaterHelper(tl1,subst->applyToBoundResult(tl2.var()),nullptr,constraints);
   }
-  if(tl1==tl2 || tl1.isOrdinaryVar()) {
+  if (tl1.isOrdinaryVar()) {
     return false;
   }
 

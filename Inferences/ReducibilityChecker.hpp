@@ -54,15 +54,15 @@ private:
   Stack<std::tuple<unsigned,unsigned,bool>> _constraintsFromComparison;
 
   bool pushSidesFromLiteral(Literal* lit, ResultSubstitution* subst, bool result);
-  bool getDemodulationRHSCodeTree(const TermQueryResult& qr, Term* lhsS, TermList& rhsS, bool* preordered);
+  bool getDemodulationRHSCodeTree(const TermQueryResult& qr, Term* lhsS, TermList& rhsS);
   ReducibilityEntry* getCacheEntryForTerm(Term* t);
 
-  bool checkLiteral(Term* rwTermS, TermList* tgtTermS, vstringstream& exp, Term* rwTerm);
+  bool checkLiteral(Term* rwTermS, TermList* tgtTermS/*, vstringstream& exp*/, Term* rwTerm, ResultSubstitution* subst, bool result);
 
-  bool checkLiteralSanity(Literal* lit, Term* rwTermS, vstringstream& exp);
-  bool checkRwTermSanity(Term* rwTermS, TermList tgtTermS, vstringstream& exp);
-  bool checkSmallerSanity(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
-  bool checkSmallerSanityGround(const Stack<Literal*>& lits, Literal* rwLit, Term* rwTermS, TermList* tgtTermS, vstringstream& exp);
+  bool checkLiteralSanity(Literal* lit, Term* rwTermS/*, vstringstream& exp*/);
+  bool checkRwTermSanity(Term* rwTermS, TermList tgtTermS/*, vstringstream& exp*/);
+  bool checkSmallerSanity(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS/*, vstringstream& exp*/);
+  bool checkSmallerSanityGround(const Stack<Literal*>& lits, Literal* rwLit, Term* rwTermS, TermList* tgtTermS/*, vstringstream& exp*/);
 
 public:
   USE_ALLOCATOR(ReducibilityChecker);

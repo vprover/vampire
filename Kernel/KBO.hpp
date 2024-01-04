@@ -155,7 +155,7 @@ public:
 
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
-  bool isGreater(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple<unsigned,unsigned,bool>>* constraints, Indexing::ResultSubstitution* subst) const override;
+  bool isGreater(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple<unsigned,unsigned,bool>>* constraints, const Indexing::TermQueryResult* qr) const override;
   bool makeGreater(TermList tl1, TermList tl2, VarOrder& vo) const override;
   bool isGreater(TermList tl1, TermList tl2, const VarOrder& vo) const override;
 
@@ -196,6 +196,11 @@ private:
   template<class SigTraits> 
   void showConcrete_(std::ostream&) const;
 
+  // struct DemodulatorConstraints {
+  //   bool canDecompose = false;
+  //   Stack<std::tuple<unsigned,unsigned,bool>> constraints;
+  // };
+
   /**
    * State used for comparing terms and literals
    */
@@ -203,6 +208,7 @@ private:
   mutable StateGreater* _stateGt;
   mutable StateGreaterVO* _stateGtVo;
   mutable StateGreaterSubst* _stateGtSubst;
+  // mutable DHMap<std::pair<TermList,Literal*>,DemodulatorConstraints> _demodulatorCache;
 };
 
 }

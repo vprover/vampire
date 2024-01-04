@@ -180,7 +180,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         }
   #endif
         // if(!preordered && (_preorderedOnly || !ordering.isGreater(trm,rhsS,_rwTermState)) ) {
-        if(!preordered && (_preorderedOnly || !ordering.isGreater(trm,rhs,_rwTermState,nullptr,qr.substitution.ptr())) ) {
+        if(!preordered && (_preorderedOnly || !ordering.isGreater(trm,rhs,_rwTermState,nullptr,&qr)) ) {
           // TIME_TRACE("skip");
           continue;
         }
