@@ -88,7 +88,7 @@ public:
     bind(vs, TermSpec(t,index));
   }
   TermList getSpecialVarTop(unsigned specialVar) const;
-  TermList apply(TermList t, int index);
+  TermList apply(TermList t, int index, bool noFail = false);
   Literal* apply(Literal* lit, int index);
   size_t getApplicationResultWeight(TermList t, int index) const;
   size_t getApplicationResultWeight(Literal* lit, int index) const;
@@ -233,7 +233,7 @@ private:
   static const int UNBOUND_INDEX;
 
   bool isUnbound(VarSpec v) const;
-  TermSpec deref(VarSpec v) const;
+  TermSpec deref(VarSpec v, bool noFail = false) const;
   TermSpec derefBound(TermSpec v) const;
 
   void addToConstraints(const VarSpec& v1, const VarSpec& v2,MismatchHandler* hndlr);

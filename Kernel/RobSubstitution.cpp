@@ -161,7 +161,7 @@ RobSubstitution::TermSpec RobSubstitution::derefBound(TermSpec t) const
  * UNBOUND_INDEX. This effectively names unbound variables apart from
  * any variables in the range of bound variables.
  */
-RobSubstitution::TermSpec RobSubstitution::deref(VarSpec v) const
+RobSubstitution::TermSpec RobSubstitution::deref(VarSpec v, bool noFail) const
 {
   for(;;) {
     TermSpec binding;
@@ -170,10 +170,12 @@ RobSubstitution::TermSpec RobSubstitution::deref(VarSpec v) const
       binding.index=UNBOUND_INDEX;
       unsigned nuaVal = _nextUnboundAvailable;
       binding.term.makeVar(_nextUnboundAvailable++);
-      RobSubstitution* self = const_cast<RobSubstitution*>(this);
-      self->bind(v,binding);
-      if(self->bdIsRecording()) {
-        self->bdAdd(new NextUnboundVariableBacktrackObject(self, nuaVal));
+      if (!noFail) {
+        RobSubstitution* self = const_cast<RobSubstitution*>(this);
+        self->bind(v,binding);
+        if(self->bdIsRecording()) {
+          self->bdAdd(new NextUnboundVariableBacktrackObject(self, nuaVal));
+        }
       }
       return binding;
     } else if(binding.index==UNBOUND_INDEX || binding.term.isTerm()
@@ -401,9 +403,9 @@ bool RobSubstitution::unify(TermSpec t1, TermSpec t2,MismatchHandler* hndlr,bool
               if((itm.first.isVar() && isUnbound(getVarSpec(itm.first))) ||
                  (itm.second.isVar() && isUnbound(getVarSpec(itm.second))) ) {
                 toDo.push(itm);
-              } else if(!encountered.find(itm)) {
+              } else if(encountered.insert(itm)) {
                 toDo.push(itm);
-                encountered.insert(itm);
+                // encountered.insert(itm);
               }
             } else {
               // Eventually, we want to make theories using the hashing/very special variable
@@ -587,7 +589,7 @@ Literal* RobSubstitution::apply(Literal* lit, int index)
   return Literal::create(lit,ts.array());
 }
 
-TermList RobSubstitution::apply(TermList trm, int index)
+TermList RobSubstitution::apply(TermList trm, int index, bool noFail)
 {
 
   struct Todo {
@@ -661,7 +663,7 @@ TermList RobSubstitution::apply(TermList trm, int index)
         continue;
       }
 
-      ts=deref(vs);
+      ts=deref(vs, noFail);
       if(ts.term.isVar() && !ts.term.isVSpecialVar()) {
         ASS(ts.index==UNBOUND_INDEX);
         args.push(ts.term);

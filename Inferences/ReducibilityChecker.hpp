@@ -52,6 +52,7 @@ private:
   Stack<TermList> _sidesToCheck2;
   void* _rwTermState;
   Stack<std::tuple<unsigned,unsigned,bool>> _constraintsFromComparison;
+  DHMap<std::pair<Term*,Literal*>,Stack<VarOrder>> _reducedLitCache;
 
   bool pushSidesFromLiteral(Literal* lit, ResultSubstitution* subst, bool result);
   bool getDemodulationRHSCodeTree(const TermQueryResult& qr, Term* lhsS, TermList& rhsS);
