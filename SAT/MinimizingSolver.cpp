@@ -32,6 +32,8 @@ void MinimizingSolver::ensureVarCount(unsigned newVarCnt)
   _varCnt = newVarCnt;
   _inner->ensureVarCount(newVarCnt);
   _asgn.expand(newVarCnt+1);
+  _explicit.expand(newVarCnt+1);
+  _polarity.expand(newVarCnt+1);
   _watcher.expand(newVarCnt+1);
   _unsClCnt.expand(newVarCnt+1, 0);
   _heap.elMap().expand(newVarCnt+1);
@@ -77,6 +79,8 @@ SATSolver::VarAssignment MinimizingSolver::getAssignment(unsigned var)
   }
 
   if(admitsDontcare(var)) {
+    if(_explicit[var])
+      return _polarity[var] ? VarAssignment::TRUE : VarAssignment::FALSE;
     return VarAssignment::DONT_CARE;
   }
   return _asgn[var] ? VarAssignment::TRUE : VarAssignment::FALSE;

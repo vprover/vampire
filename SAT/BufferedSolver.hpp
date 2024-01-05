@@ -67,10 +67,11 @@ public:
     ALWAYS(_inner->newVar() == ++_varCnt);
     return _varCnt;
   }
-  
+
   virtual void suggestPolarity(unsigned var,unsigned pol) override {
     _polaritySuggestions.push_back({var, pol});
   }
+  virtual void setPolarity(unsigned var,unsigned pol) override { _inner->setPolarity(var,pol); }
 
 private:
 
