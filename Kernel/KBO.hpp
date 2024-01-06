@@ -155,7 +155,7 @@ public:
 
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
-  bool isGreater(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple<unsigned,unsigned,bool>>* constraints, const Indexing::TermQueryResult* qr) const override;
+  bool isGreater(TermList tl1, TermList tl2, void* tl1State, VarOrderBV* constraints, const Indexing::TermQueryResult* qr) const override;
   bool makeGreater(TermList tl1, TermList tl2, VarOrder& vo) const override;
   bool isGreater(TermList tl1, TermList tl2, const VarOrder& vo) const override;
 
@@ -181,8 +181,8 @@ protected:
   unsigned weight2(TermList t, Indexing::ResultSubstitution* subst, bool underSubst) const;
 
 private:
-  bool isGreaterHelper(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple<unsigned,unsigned,bool>>* constraints) const;
-  bool isGreaterHelper(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple<unsigned,unsigned,bool>>* constraints, Indexing::ResultSubstitution* subst, bool weightsEqual) const;
+  bool isGreaterHelper(TermList tl1, TermList tl2, void* tl1State, VarOrderBV* constraints, VarOrderBV* newConstraints) const;
+  bool isGreaterHelper(TermList tl1, TermList tl2, void* tl1State, VarOrderBV* constraints, VarOrderBV* newConstraints, Indexing::ResultSubstitution* subst, bool weightsEqual) const;
   bool makeGreaterNonRecursive(TermList tl1, TermList tl2, VarOrder& vo) const;
   bool makeGreaterRecursive(TermList tl1, TermList tl2, VarOrder& vo) const;
 

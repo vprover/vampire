@@ -128,9 +128,10 @@ public:
     _ls = nullptr;
   }
 
-  void setConstraints(Stack<std::tuple<unsigned,unsigned,bool>>* constraints)
+  void setConstraints(VarOrderBV* constraints, VarOrderBV* newConstraints)
   {
     _constraints = constraints;
+    _newConstraints = newConstraints;
   }
 
   USE_ALLOCATOR(StateGreater);
@@ -149,7 +150,8 @@ private:
   /** The ordering used */
   KBO& _kbo;
   LeftState* _ls;
-  Stack<std::tuple<unsigned,unsigned,bool>>* _constraints;
+  VarOrderBV* _constraints;
+  VarOrderBV* _newConstraints;
 }; // class KBO::State
 
 class KBO::StateGreaterSubst
@@ -182,9 +184,10 @@ public:
     _ls = nullptr;
   }
 
-  void setConstraints(Stack<std::tuple<unsigned,unsigned,bool>>* constraints)
+  void setConstraints(VarOrderBV* constraints, VarOrderBV* newConstraints)
   {
     _constraints = constraints;
+    _newConstraints = newConstraints;
   }
 
   USE_ALLOCATOR(StateGreater);
@@ -204,7 +207,8 @@ private:
   /** The ordering used */
   KBO& _kbo;
   LeftState* _ls;
-  Stack<std::tuple<unsigned,unsigned,bool>>* _constraints;
+  VarOrderBV* _constraints;
+  VarOrderBV* _newConstraints;
   Indexing::ResultSubstitution* _subst;
 }; // class KBO::StateGreaterSubst
 
@@ -518,7 +522,7 @@ bool KBO::StateGreater::traverse(Term* t1, Term* t2)
       ASS(!stillEqual); // we should have detected the difference earlier
       if (!checkVars()) {
         greater = false;
-        if (!_constraints || _constraints->isEmpty()) {
+        if (!_newConstraints || !*_newConstraints) {
           return false;
         }
       }
@@ -539,7 +543,7 @@ bool KBO::StateGreater::traverse(Term* t1, Term* t2)
         traverseVars(*ss,1);
         traverseVars(*tt,-1);
         if (!checkVars()) {
-          if (!_constraints || _constraints->isEmpty()) {
+          if (!_newConstraints || !*_newConstraints) {
             return false;
           }
           greater = false;
@@ -549,12 +553,16 @@ bool KBO::StateGreater::traverse(Term* t1, Term* t2)
       }
       // weight(*ss)==weight(*tt)
       if (ss->isOrdinaryVar()) {
-        if (!tt->isOrdinaryVar() || !_constraints) {
+        if (!tt->isOrdinaryVar() || !_newConstraints) {
           return false;
         }
 
-        ASS(_constraints->isEmpty());
-        _constraints->push(make_tuple(ss->var(),tt->var(),true/*strict*/));
+        ASS(!*_newConstraints);
+        if (isBitSet(ss->var(),tt->var(),PoComp::GT,*_constraints)) {
+          setBit(ss->var(),tt->var(),PoComp::GT,*_newConstraints);
+        } else {
+          return false;
+        }
         recordVariable(ss->var(),1);
         recordVariable(tt->var(),-1);
         stillEqual = false;
@@ -565,7 +573,7 @@ bool KBO::StateGreater::traverse(Term* t1, Term* t2)
         traverseVars(*ss,1);
         traverseVars(*tt,-1);
         if (!checkVars()) {
-          if (!_constraints || _constraints->isEmpty()) {
+          if (!_newConstraints || !*_newConstraints) {
             return false;
           }
           greater = false;
@@ -584,7 +592,7 @@ bool KBO::StateGreater::traverse(Term* t1, Term* t2)
           traverseVars(*ss,1);
           traverseVars(*tt,-1);
           if (!checkVars()) {
-            if (!_constraints || _constraints->isEmpty()) {
+            if (!_newConstraints || !*_newConstraints) {
               return false;
             }
             greater = false;
@@ -609,43 +617,50 @@ bool KBO::StateGreater::traverse(Term* t1, Term* t2)
 
 bool KBO::StateGreater::checkVars() const
 {
-  if (_constraints && (_negNum == 1 || _constraints->isNonEmpty())) {
+  if (_newConstraints && (_negNum == 1 || *_newConstraints)) {
+    if (_negNum>1) {
+      *_newConstraints = 0;
+      return _negNum <= 0;
+    }
     decltype(_varDiffs)::Iterator it(_varDiffs);
     while (it.hasNext()) {
       unsigned var;
-      int val;
-      it.next(var,val);
-      if (val>=0) {
+      int cnt;
+      it.next(var,cnt);
+      if (cnt>=0) {
         continue;
       }
-      // cout << "balancing X" << var << " with value " << val << endl;
-      if (_constraints->isEmpty()) {
+      if (!*_newConstraints) {
         decltype(_varDiffs)::Iterator it2(_varDiffs);
         while (it2.hasNext()) {
           unsigned var2;
-          int val2;
-          it2.next(var2,val2);
-          if (var!=var2 && val2>=(-val)) {
-            // cout << "found X" << var2 << " with value " << val2 << endl;
-            _constraints->push(make_tuple(var2,var,false));
-          }
-          if (var>6 || var2>6) {
-            TIME_TRACE("overflown constraint");
+          int cnt2;
+          it2.next(var2,cnt2);
+          if (var!=var2 && cnt2>=(-cnt)) {
+            if (isBitSet(var2,var,PoComp::EQ,*_constraints)) {
+              setBit(var2,var,PoComp::EQ,*_newConstraints);
+            }
+            if (isBitSet(var2,var,PoComp::GT,*_constraints)) {
+              setBit(var2,var,PoComp::GT,*_newConstraints);
+            }
           }
         }
       } else {
-        Stack<std::tuple<unsigned,unsigned,bool>>::DelIterator it2(*_constraints);
-        while (it2.hasNext()) {
-          auto t = it2.next();
-          // cout << "checking constraint X" << get<0>(t) << " X" << get<1>(t) << endl;
-          if (get<1>(t)==var && _varDiffs.get(get<0>(t))>=(-val)) {
-            ASS(get<0>(t)!=var);
+        VarOrderBV mask = 0;
+        for (unsigned i = 0; i <= 6; i++) {
+          if (i==var) {
             continue;
           }
-          it2.del();
+          auto ptr = _varDiffs.findPtr(i);
+          if (ptr && *ptr>=(-cnt)) {
+            continue;
+          }
+          setBit(i,var,PoComp::EQ,mask);
+          setBit(i,var,PoComp::GT,mask);
         }
+        *_newConstraints &= mask;
       }
-      if (_constraints->isEmpty()) {
+      if (!*_newConstraints) {
         break;
       }
     }
@@ -777,7 +792,7 @@ bool KBO::StateGreaterSubst::traverse(Term* t1, Term* t2, bool weightsOk)
       // ASS(!stillEqual); // we should have detected the difference earlier
       if (!checkVars()) {
         greater = false;
-        if (!_constraints || _constraints->isEmpty()) {
+        if (!_newConstraints || !*_newConstraints) {
           return false;
         }
       }
@@ -818,7 +833,7 @@ bool KBO::StateGreaterSubst::traverse(Term* t1, Term* t2, bool weightsOk)
           traverseVars2(t);
         }
         if (!checkVars()) {
-          if (!_constraints || _constraints->isEmpty()) {
+          if (!_newConstraints || !*_newConstraints) {
             return false;
           }
           greater = false;
@@ -828,13 +843,17 @@ bool KBO::StateGreaterSubst::traverse(Term* t1, Term* t2, bool weightsOk)
       }
       // weight(*ss)==weight(*tt)
       if (ss->isOrdinaryVar()) {
-        if (!t.isOrdinaryVar() || !_constraints) {
+        if (!t.isOrdinaryVar() || !_newConstraints) {
           return false;
         }
 
         ASS(underSubst);
-        ASS(_constraints->isEmpty());
-        _constraints->push(make_tuple(ss->var(),t.var(),true/*strict*/));
+        ASS(!*_newConstraints);
+        if (isBitSet(ss->var(),t.var(),PoComp::GT,*_constraints)) {
+          setBit(ss->var(),t.var(),PoComp::GT,*_newConstraints);
+        } else {
+          return false;
+        }
         recordVariable(ss->var(),1);
         recordVariable(t.var(),-1);
         stillEqual = false;
@@ -850,7 +869,7 @@ bool KBO::StateGreaterSubst::traverse(Term* t1, Term* t2, bool weightsOk)
           traverseVars2(t);
         }
         if (!checkVars()) {
-          if (!_constraints || _constraints->isEmpty()) {
+          if (!_newConstraints || !*_newConstraints) {
             return false;
           }
           greater = false;
@@ -873,7 +892,7 @@ bool KBO::StateGreaterSubst::traverse(Term* t1, Term* t2, bool weightsOk)
             traverseVars2(t);
           }
           if (!checkVars()) {
-            if (!_constraints || _constraints->isEmpty()) {
+            if (!_newConstraints || !*_newConstraints) {
               return false;
             }
             greater = false;
@@ -902,37 +921,50 @@ bool KBO::StateGreaterSubst::traverse(Term* t1, Term* t2, bool weightsOk)
 
 bool KBO::StateGreaterSubst::checkVars() const
 {
-  if (_constraints && (_negNum == 1 || _constraints->isNonEmpty())) {
+  if (_newConstraints && (_negNum == 1 || *_newConstraints)) {
+    if (_negNum>1) {
+      *_newConstraints = 0;
+      return _negNum <= 0;
+    }
     decltype(_varDiffs)::Iterator it(_varDiffs);
     while (it.hasNext()) {
       unsigned var;
-      int val;
-      it.next(var,val);
-      if (val>=0) {
+      int cnt;
+      it.next(var,cnt);
+      if (cnt>=0) {
         continue;
       }
-      if (_constraints->isEmpty()) {
+      if (!*_newConstraints) {
         decltype(_varDiffs)::Iterator it2(_varDiffs);
         while (it2.hasNext()) {
           unsigned var2;
-          int val2;
-          it2.next(var2,val2);
-          if (var!=var2 && val2>=(-val)) {
-            _constraints->push(make_tuple(var2,var,false));
+          int cnt2;
+          it2.next(var2,cnt2);
+          if (var!=var2 && cnt2>=(-cnt)) {
+            if (isBitSet(var2,var,PoComp::EQ,*_constraints)) {
+              setBit(var2,var,PoComp::EQ,*_newConstraints);
+            }
+            if (isBitSet(var2,var,PoComp::GT,*_constraints)) {
+              setBit(var2,var,PoComp::GT,*_newConstraints);
+            }
           }
         }
       } else {
-        Stack<std::tuple<unsigned,unsigned,bool>>::DelIterator it2(*_constraints);
-        while (it2.hasNext()) {
-          auto t = it2.next();
-          if (get<1>(t)==var && _varDiffs.get(get<0>(t))>=(-val)) {
-            ASS(get<0>(t)!=var);
+        VarOrderBV mask = 0;
+        for (unsigned i = 0; i <= 6; i++) {
+          if (i==var) {
             continue;
           }
-          it2.del();
+          auto ptr = _varDiffs.findPtr(i);
+          if (ptr && *ptr>=(-cnt)) {
+            continue;
+          }
+          setBit(i,var,PoComp::EQ,mask);
+          setBit(i,var,PoComp::GT,mask);
         }
+        *_newConstraints &= mask;
       }
-      if (_constraints->isEmpty()) {
+      if (!*_newConstraints) {
         break;
       }
     }
@@ -1011,7 +1043,6 @@ bool KBO::StateGreaterVO::traverse(Term* t1, Term* t2, VarOrder& vo)
   while(stack.isNonEmpty()) {
     tt=stack.pop();
     ss=stack.pop();
-    // cout << "ss " << ss->toString() << " tt " << tt->toString() << endl;
     if(ss->isEmpty()) {
       ASS(tt->isEmpty());
       ASS(!stillEqual); // we should have detected the difference earlier
@@ -1649,11 +1680,9 @@ bool KBO::weightsOk(TermList lhs, TermList rhs) const
   return true;
 }
 
-bool KBO::isGreater(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple<unsigned,unsigned,bool>>* constraints, const Indexing::TermQueryResult* qr) const
+bool KBO::isGreater(TermList tl1, TermList tl2, void* tl1State, VarOrderBV* constraints, const Indexing::TermQueryResult* qr) const
 {
-  if (constraints) {
-    constraints->reset();
-  }
+  ASS_REP(!constraints || *constraints, *constraints);
   TIME_TRACE("KBO::isGreater");
   static DHMap<Literal*,bool> weightsOkCache;
   bool weightsOkFlag = false;
@@ -1732,39 +1761,61 @@ bool KBO::isGreater(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple
   //   }
   }
   Indexing::ResultSubstitution* subst = qr ? qr->substitution.ptr() : nullptr;
-  auto res = subst ? isGreaterHelper(tl1,tl2, tl1State, constraints, subst, weightsOkFlag) : isGreaterHelper(tl1,tl2, tl1State, constraints);
+  VarOrderBV newConstraints = 0;
+
+  auto res = subst
+    ? isGreaterHelper(tl1,tl2, tl1State, constraints, constraints ? &newConstraints : nullptr, subst, weightsOkFlag)
+    : isGreaterHelper(tl1,tl2, tl1State, constraints, constraints ? &newConstraints : nullptr);
   // if (subst && (compare(tl1,subst->applyToBoundResult(tl2))==Ordering::GREATER)!=res) {
   //   cout << tl1.toString()+" "+tl2.toString()+" applied "+subst->applyToBoundResult(tl2).toString()+" false "+(res?"positive":"negative") << endl;
   // }
 #if VDEBUG
-  if (subst) {
-    ASS_REP((compare(tl1,subst->applyToBoundResult(tl2))==Ordering::GREATER)==res, tl1.toString()+" "+tl2.toString()+" applied "+subst->applyToBoundResult(tl2).toString()+" false "+(res?"positive":"negative"));
-  } else {
-    ASS_REP((compare(tl1,tl2)==Ordering::GREATER)==res, tl1.toString()+" "+tl2.toString()+" false "+(res?"positive":"negative"));
-  }
-  if (constraints) {
-    for (const auto& c : *constraints) {
-      auto x = get<0>(c);
-      auto y = get<1>(c);
-      ASS_REP(x!=y,tl1.toString()+" "+tl2.toString()+" and X"+Int::toString(x));
-      auto strict = get<2>(c);
-      VarOrder vo;
-      vo.add_gt(x,y);
-      auto tl2S = subst?subst->applyToBoundResult(tl2):tl2;
-      ASS_REP(isGreater(tl1,tl2S,vo),tl1.toString()+" "+tl2S.toString()+" under "+vo.to_string());
-      if (!strict) {
-        VarOrder eq;
-        Substitution subst;
-        subst.bind(x,TermList(y,false));
-        ASS_REP(isGreater(SubstHelper::apply(tl1,subst),SubstHelper::apply(tl2S,subst),eq),tl1.toString()+" "+tl2S.toString()+" under "+Int::toString(x)+"="+Int::toString(y));
+  auto tl2S = subst?subst->applyToBoundResult(tl2):tl2;
+  ASS_REP((compare(tl1,tl2S)==Ordering::GREATER)==res,
+    tl1.toString()+" "+tl2S.toString()+" (orig "+tl2.toString()+") false "+(res?"positive":"negative"));
+
+  if (!res && constraints) {
+    for (unsigned i = 0; i < 6; i++) {
+      for (unsigned j = i+1; j <= 6; j++) {
+
+        // TODO the assertions below could be strenthened into equivalences, i.e. we could have more constraints
+
+        VarOrder vo_gt;
+        vo_gt.add_gt(i,j);
+        auto bit_gt = isBitSet(i,j,PoComp::GT,*constraints);
+        auto new_bit_gt = isBitSet(i,j,PoComp::GT,newConstraints);
+        ASS(bit_gt || !new_bit_gt);
+        ASS_REP(!bit_gt || !new_bit_gt || isGreater(tl1,tl2S,vo_gt),
+          tl1.toString()+"\n"+tl2S.toString()+"\n (orig "+tl2.toString()+") under "+vo_gt.to_string());
+
+        VarOrder vo_lt;
+        vo_lt.add_gt(j,i);
+        auto bit_lt = isBitSet(i,j,PoComp::LT,*constraints);
+        auto new_bit_lt = isBitSet(i,j,PoComp::LT,newConstraints);
+        ASS(bit_lt || !new_bit_lt);
+        ASS_REP(!bit_lt || !new_bit_lt || isGreater(tl1,tl2S,vo_lt),
+          tl1.toString()+"\n"+tl2S.toString()+"\n (orig "+tl2.toString()+") under "+vo_lt.to_string());
+
+        VarOrder vo_eq;
+        vo_eq.add_eq(i,j);
+        VarOrder::EqApplicator voApp(vo_eq);
+        auto bit_eq = isBitSet(i,j,PoComp::EQ,*constraints);
+        auto new_bit_eq = isBitSet(i,j,PoComp::EQ,newConstraints);
+        ASS(bit_eq || !new_bit_eq);
+        ASS_REP(!bit_eq || !new_bit_eq || isGreater(SubstHelper::apply(tl1,voApp),SubstHelper::apply(tl2S,voApp),vo_eq),
+          tl1.toString()+"\n"+tl2S.toString()+"\n (orig "+tl2.toString()+") under "+vo_eq.to_string());
       }
     }
   }
 #endif
+  if (constraints) {
+    *constraints = newConstraints;
+  }
+  ASS(!constraints || *constraints!=~0UL);
   return res;
 }
 
-bool KBO::isGreaterHelper(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple<unsigned,unsigned,bool>>* constraints) const
+bool KBO::isGreaterHelper(TermList tl1, TermList tl2, void* tl1State, VarOrderBV* constraints, VarOrderBV* newConstraints) const
 {
   if(tl1==tl2 || tl1.isOrdinaryVar()) {
     return false;
@@ -1794,7 +1845,7 @@ bool KBO::isGreaterHelper(TermList tl1, TermList tl2, void* tl1State, Stack<std:
   ASS(!s || s->t==t1);
 
   _stateGt->init();
-  _stateGt->setConstraints(constraints);
+  _stateGt->setConstraints(constraints,newConstraints);
   if (t1->kboWeight()>t2->kboWeight()) {
     // traverse variables
     if (s) {
@@ -1841,12 +1892,12 @@ bool KBO::isGreaterHelper(TermList tl1, TermList tl2, void* tl1State, Stack<std:
   ASSERTION_VIOLATION;
 }
 
-bool KBO::isGreaterHelper(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple<unsigned,unsigned,bool>>* constraints, Indexing::ResultSubstitution* subst, bool weightsEqual) const
+bool KBO::isGreaterHelper(TermList tl1, TermList tl2, void* tl1State, VarOrderBV* constraints, VarOrderBV* newConstraints, Indexing::ResultSubstitution* subst, bool weightsEqual) const
 {
   ASS(subst);
   if (tl2.isOrdinaryVar()) {
     ASS(!weightsEqual);
-    return isGreaterHelper(tl1,subst->applyToBoundResult(tl2.var()),nullptr,constraints);
+    return isGreaterHelper(tl1,subst->applyToBoundResult(tl2.var()),nullptr,constraints,newConstraints);
   }
   if (tl1.isOrdinaryVar()) {
     return false;
@@ -1861,7 +1912,7 @@ bool KBO::isGreaterHelper(TermList tl1, TermList tl2, void* tl1State, Stack<std:
   auto s = static_cast<LeftState*>(tl1State);
   ASS(!s || s->t==t1);
   _stateGtSubst->init(subst);
-  _stateGtSubst->setConstraints(constraints);
+  _stateGtSubst->setConstraints(constraints,newConstraints);
 
   if (!weightsEqual) {
     computeWeight(t1);

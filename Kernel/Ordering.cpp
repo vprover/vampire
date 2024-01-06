@@ -914,7 +914,7 @@ void PrecedenceOrdering::show(ostream& out) const
   showConcrete(out);
 }
 
-bool Ordering::isGreater(TermList tl1, TermList tl2, void* tl1State, Stack<std::tuple<unsigned,unsigned,bool>>* constraints, const Indexing::TermQueryResult* qr) const
+bool Ordering::isGreater(TermList tl1, TermList tl2, void* tl1State, VarOrderBV* constraints, const Indexing::TermQueryResult* qr) const
 {
   return compare(tl1,qr?qr->substitution->applyToBoundResult(tl2):tl2)==GREATER;
 }

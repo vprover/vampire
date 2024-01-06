@@ -41,17 +41,16 @@ public:
     ReducibilityEntry() : reducesTo(), reducesToCond(), superTerms() {}
 
     DHSet<std::pair<TermList,Term*>> reducesTo;
-    DHMap<std::pair<TermList,Term*>,uint64_t> reducesToCond;
+    DHMap<std::pair<TermList,Term*>,VarOrderBV> reducesToCond;
     Stack<Term*> superTerms;
   };
 private:
   TermSubstitutionTree _tis;
   DHSet<Term*> _attempted;
-  uint64_t _reducedUnder;
+  VarOrderBV _reducedUnder;
   Stack<Term*> _sidesToCheck;
   Stack<TermList> _sidesToCheck2;
   void* _rwTermState;
-  Stack<std::tuple<unsigned,unsigned,bool>> _constraintsFromComparison;
   DHMap<std::pair<Term*,Literal*>,Stack<VarOrder>> _reducedLitCache;
 
   bool pushSidesFromLiteral(Literal* lit, ResultSubstitution* subst, bool result);

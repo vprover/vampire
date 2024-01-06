@@ -98,4 +98,163 @@ bool VarOrder::tryExtendWith(const VarOrder& other)
   return true;
 }
 
+// bitvector operations
+
+void setBit(unsigned x, unsigned y, PoComp c, VarOrderBV& bv)
+{
+  if (x > y) {
+    swap(x,y);
+    c = reverse(c);
+  }
+  size_t idx = y*(y-1)/2 + x;
+  size_t pos;
+  switch (c) {
+    case PoComp::GT:
+      pos = 3*idx;
+      break;
+    case PoComp::EQ:
+      pos = 3*idx+1;
+      break;
+    case PoComp::LT:
+      pos = 3*idx+2;
+      break;
+    case PoComp::INC:
+      return;
+  }
+  bv |= 1UL << pos;
+}
+
+void unsetBit(unsigned x, unsigned y, PoComp c, VarOrderBV& bv)
+{
+  if (x > y) {
+    swap(x,y);
+    c = reverse(c);
+  }
+  size_t idx = y*(y-1)/2 + x;
+  size_t pos;
+  switch (c) {
+    case PoComp::GT:
+      pos = 3*idx;
+      break;
+    case PoComp::EQ:
+      pos = 3*idx+1;
+      break;
+    case PoComp::LT:
+      pos = 3*idx+2;
+      break;
+    case PoComp::INC:
+      return;
+  }
+  bv &= ~(1UL << pos);
+}
+
+bool isBitSet(unsigned x, unsigned y, PoComp c, VarOrderBV bv)
+{
+  ASS(c!=PoComp::INC);
+  if (x > y) {
+    swap(x,y);
+    c = reverse(c);
+  }
+  size_t idx = y*(y-1)/2 + x;
+  size_t pos;
+  switch (c) {
+    case PoComp::GT:
+      pos = 3*idx;
+      break;
+    case PoComp::EQ:
+      pos = 3*idx+1;
+      break;
+    case PoComp::LT:
+      pos = 3*idx+2;
+      break;
+    case PoComp::INC:
+      return false;
+  }
+  return (bv & (1UL << pos));
+}
+
+// ~000 & 111 -> 111 & 111 -> 1
+// ~001 & 111 -> 110 & 111 -> 1
+// ...
+// ~111 & 111 -> 000 & 111 -> 0
+
+bool isReducedUnderAny(VarOrderBV bv)
+{
+  for (unsigned i = 0; i < 21; i++) {
+    size_t pos = 3*i;
+    if (!(~bv & (0b111UL << pos))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+VarOrderBV getRemaining(VarOrderBV bv)
+{
+  return ~bv & ~(1UL << 63);
+}
+
+PoComp oneRemains(VarOrderBV val, unsigned x, unsigned y) {
+  ASS(x < y);
+  size_t idx = y*(y-1)/2 + x;
+  bool gt = val & (1UL << (3*idx));
+  bool eq = val & (1UL << (3*idx+1));
+  bool lt = val & (1UL << (3*idx+2));
+  ASS(!gt || !eq || !lt);
+  if (gt && eq) {
+    return PoComp::LT;
+  }
+  if (gt && lt) {
+    return PoComp::EQ;
+  }
+  if (eq && lt) {
+    return PoComp::GT;
+  }
+  return PoComp::INC;
+}
+
+bool addToVo(VarOrder& vo, unsigned x, unsigned y, PoComp c)
+{
+  switch (c) {
+    case PoComp::GT:
+      return vo.add_gt(x,y);
+    case PoComp::EQ:
+      return vo.add_eq(x,y);
+    case PoComp::LT:
+      return vo.add_gt(y,x);
+  }
+  return true;
+}
+
+bool isRemainingUnsat(VarOrderBV val)
+{
+  for (unsigned i = 0; i < 6; i++) {
+    for (unsigned j = i+1; j < 6; j++) {
+      auto c0 = oneRemains(val,i,j);
+      if (c0 == PoComp::INC) {
+        continue;
+      }
+      for (unsigned l = j+1; l < 6; l++) {
+        auto c1 = oneRemains(val,i,l);
+        auto c2 = oneRemains(val,j,l);
+        if (c1 == PoComp::INC || c2 == PoComp::INC) {
+          continue;
+        }
+        VarOrder vo;
+        if (!addToVo(vo,i,j,c0)) {
+          return true;
+        }
+        if (!addToVo(vo,i,l,c1)) {
+          return true;
+        }
+        if (!addToVo(vo,j,l,c2)) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+
 }

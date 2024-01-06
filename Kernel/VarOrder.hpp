@@ -47,6 +47,15 @@ private:
   PartialOrdering<unsigned> _po;
 };
 
+void setBit(unsigned x, unsigned y, PoComp c, VarOrderBV& val);
+void unsetBit(unsigned x, unsigned y, PoComp c, VarOrderBV& val);
+bool isBitSet(unsigned x, unsigned y, PoComp c, VarOrderBV val);
+bool isReducedUnderAny(VarOrderBV val);
+VarOrderBV getRemaining(VarOrderBV val);
+PoComp oneRemains(VarOrderBV val, unsigned x, unsigned y);
+bool addToVo(VarOrder& vo, unsigned x, unsigned y, PoComp c);
+bool isRemainingUnsat(VarOrderBV val);
+
 }
 
 #endif

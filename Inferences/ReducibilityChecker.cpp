@@ -152,108 +152,6 @@ bool argReduced(Term* t) {
   return t->isReduced() && static_cast<ReducibilityChecker::ReducibilityEntry*>(t->reducibilityInfo())->reducesTo.isEmpty();
 }
 
-void setBits(unsigned x, unsigned y, PoComp c, uint64_t& val)
-{
-  if (x > y) {
-    swap(x,y);
-    c = reverse(c);
-  }
-  size_t idx = y*(y-1)/2 + x;
-  size_t pos;
-  switch (c) {
-    case PoComp::GT:
-      pos = 3*idx;
-      break;
-    case PoComp::EQ:
-      pos = 3*idx+1;
-      break;
-    case PoComp::LT:
-      pos = 3*idx+2;
-      break;
-    case PoComp::INC:
-      return;
-  }
-  val |= 1UL << pos;
-}
-
-// ~000 & 111 -> 111 & 111 -> 1
-// ~001 & 111 -> 110 & 111 -> 1
-// ...
-// ~111 & 111 -> 000 & 111 -> 0
-
-bool isReducedUnderAny(uint64_t val)
-{
-  for (unsigned i = 0; i < 21; i++) {
-    size_t pos = 3*i;
-    if (!(~val & (0b111UL << pos))) {
-      return true;
-    }
-  }
-  return false;
-}
-
-PoComp oneRemains(uint64_t val, unsigned x, unsigned y) {
-  ASS(x < y);
-  size_t idx = y*(y-1)/2 + x;
-  bool gt = val & (1UL << (3*idx));
-  bool eq = val & (1UL << (3*idx+1));
-  bool lt = val & (1UL << (3*idx+2));
-  ASS(!gt || !eq || !lt);
-  if (gt && eq) {
-    return PoComp::LT;
-  }
-  if (gt && lt) {
-    return PoComp::EQ;
-  }
-  if (eq && lt) {
-    return PoComp::GT;
-  }
-  return PoComp::INC;
-}
-
-bool addToVo(VarOrder& vo, unsigned x, unsigned y, PoComp c)
-{
-  switch (c) {
-    case PoComp::GT:
-      return vo.add_gt(x,y);
-    case PoComp::EQ:
-      return vo.add_eq(x,y);
-    case PoComp::LT:
-      return vo.add_gt(y,x);
-  }
-  return true;
-}
-
-bool isRemainingUnsat(uint64_t val)
-{
-  for (unsigned i = 0; i < 6; i++) {
-    for (unsigned j = i+1; j < 6; j++) {
-      auto c0 = oneRemains(val,i,j);
-      if (c0 == PoComp::INC) {
-        continue;
-      }
-      for (unsigned l = j+1; l < 6; l++) {
-        auto c1 = oneRemains(val,i,l);
-        auto c2 = oneRemains(val,j,l);
-        if (c1 == PoComp::INC || c2 == PoComp::INC) {
-          continue;
-        }
-        VarOrder vo;
-        if (!addToVo(vo,i,j,c0)) {
-          return true;
-        }
-        if (!addToVo(vo,i,l,c1)) {
-          return true;
-        }
-        if (!addToVo(vo,j,l,c2)) {
-          return true;
-        }
-      }
-    }
-  }
-  return false;
-}
-
 ReducibilityChecker::ReducibilityChecker(DemodulationLHSIndex* index, UnitClauseLiteralIndex* litIndex, const Ordering& ord, const Options& opt)
 : _index(index), _litIndex(litIndex), _ord(ord), _opt(opt), _rwTermState(_ord.createState()) {}
 
@@ -455,7 +353,7 @@ bool ReducibilityChecker::checkSup(Literal* rwLit, Literal* eqLit, TermList eqLH
     if (_sidesToCheck.size()==2) {
       OneEqBinder binder;
       if (MatchingUtils::matchTerms(TermList(_sidesToCheck[0]),TermList(_sidesToCheck[1]),binder)) {
-        setBits(binder.b, binder.v, PoComp::EQ, _reducedUnder);
+        setBit(binder.b, binder.v, PoComp::EQ, _reducedUnder);
       }
     }
   }
@@ -498,29 +396,22 @@ bool ReducibilityChecker::checkSup(Literal* rwLit, Literal* eqLit, TermList eqLH
       return true;
     }
     LOG2(exp,"rhs ",rhs.toString());
-    if (!_ord.isGreater(tgtTermS,rhs,nullptr,&_constraintsFromComparison)) {
+    VarOrderBV bits = getRemaining(_reducedUnder);
+    if (!_ord.isGreater(tgtTermS,rhs,nullptr,&bits)) {
       LOG1(exp,"not greater tgtTerm");
-      for (const auto& c : _constraintsFromComparison) {
-        auto l = get<0>(c);
-        auto r = get<1>(c);
-        auto strict = get<2>(c);
-        setBits(l, r, PoComp::GT, _reducedUnder);
-        if (!strict) {
-          setBits(l, r, PoComp::EQ, _reducedUnder);
-        }
-        if (isReducedUnderAny(_reducedUnder)) {
-          return true;
-        }
+      _reducedUnder |= bits;
+      if (isReducedUnderAny(_reducedUnder)) {
+        return true;
       }
       continue;
     }
     return true;
   }
 
-  DHMap<pair<TermList,Term*>,uint64_t>::Iterator rcIt(ptr->reducesToCond);
+  DHMap<pair<TermList,Term*>,VarOrderBV>::Iterator rcIt(ptr->reducesToCond);
   while (rcIt.hasNext()) {
     pair<TermList,Term*> kv;
-    uint64_t val;
+    VarOrderBV val;
     rcIt.next(kv,val);
     if (!eqClauseUnit) {
       _reducedUnder |= val;
@@ -540,18 +431,11 @@ bool ReducibilityChecker::checkSup(Literal* rwLit, Literal* eqLit, TermList eqLH
       continue;
     }
     LOG2(exp,"rhs ",rhs.toString());
-    if (!_ord.isGreater(tgtTermS,rhs,nullptr,&_constraintsFromComparison)) {
-      for (const auto& c : _constraintsFromComparison) {
-        auto l = get<0>(c);
-        auto r = get<1>(c);
-        auto strict = get<2>(c);
-        setBits(l, r, PoComp::GT, _reducedUnder);
-        if (!strict) {
-          setBits(l, r, PoComp::EQ, _reducedUnder);
-        }
-        if (isReducedUnderAny(_reducedUnder)) {
-          return true;
-        }
+    VarOrderBV bits = val & getRemaining(_reducedUnder);
+    if (!_ord.isGreater(tgtTermS,rhs,nullptr,&bits)) {
+      _reducedUnder |= bits;
+      if (isReducedUnderAny(_reducedUnder)) {
+        return true;
       }
       continue;
     }
@@ -565,22 +449,15 @@ bool ReducibilityChecker::checkSup(Literal* rwLit, Literal* eqLit, TermList eqLH
   }
   auto temp = _reducedUnder;
   if (rwComp==Ordering::INCOMPARABLE) {
-    NEVER(_ord.isGreater(tgtTermS,TermList(rwTermS),nullptr,&_constraintsFromComparison));
-    for (const auto& c : _constraintsFromComparison) {
-      auto l = get<0>(c);
-      auto r = get<1>(c);
-      auto strict = get<2>(c);
-      setBits(l, r, PoComp::GT, _reducedUnder);
-      if (!strict) {
-        setBits(l, r, PoComp::EQ, _reducedUnder);
-      }
-      if (isReducedUnderAny(_reducedUnder)) {
-        return true;
-      }
+    VarOrderBV bits = getRemaining(_reducedUnder);
+    NEVER(_ord.isGreater(tgtTermS,TermList(rwTermS),nullptr,&bits));
+    _reducedUnder |= bits;
+    if (isReducedUnderAny(_reducedUnder)) {
+      return true;
     }
     OneEqBinder binder;
     if (MatchingUtils::matchTerms(TermList(rwTermS),tgtTermS,binder)) {
-      setBits(binder.b, binder.v, PoComp::EQ, _reducedUnder);
+      setBit(binder.b, binder.v, PoComp::EQ, _reducedUnder);
     }
     if (isReducedUnderAny(_reducedUnder)) {
       return true;
@@ -778,7 +655,7 @@ void ReducibilityChecker::clauseActivated(Clause* cl)
 //       continue;
 //     }
 //     for (unsigned j = 0; j <= 1; j++) {
-//       // uint64_t bits = 0;
+//       // VarOrderBV bits = 0;
 //       auto side = *lit->nthArgument(j);
 //       if (side.isVar()) {
 //         continue;
@@ -926,25 +803,14 @@ void ReducibilityChecker::clauseActivated(Clause* cl)
       LOG2(cout,"possible rhs ",rhsS);
 
       auto e = static_cast<ReducibilityEntry*>(t->reducibilityInfo());
-      if (!_ord.isGreater(TermList(t),rhsS,nullptr,&_constraintsFromComparison)) {
+      VarOrderBV bits = getRemaining(t->reducesUnder());
+      if (!_ord.isGreater(TermList(t),rhsS,nullptr,&bits)) {
         LOG1(cout,"not greater");
-        for (const auto& c : _constraintsFromComparison) {
-          auto l = get<0>(c);
-          auto r = get<1>(c);
-          auto strict = get<2>(c);
-          setBits(l, r, PoComp::GT, t->reducesUnder());
-          if (!strict) {
-            setBits(l, r, PoComp::EQ, t->reducesUnder());
-          }
-
-          uint64_t* ptr;
-          e->reducesToCond.getValuePtr(make_pair(rhsS,lhs.term()), ptr, 0);
-          setBits(l, r, PoComp::GT, (*ptr));
-          if (!strict) {
-            setBits(l, r, PoComp::EQ, (*ptr));
-          }
-          changed.insert(t);
-        }
+        t->reducesUnder() |= bits;
+        VarOrderBV* ptr;
+        e->reducesToCond.getValuePtr(make_pair(rhsS,lhs.term()), ptr, 0);
+        (*ptr) |= bits;
+        changed.insert(t);
         continue;
       }
       LOG1(cout,"rhs reduces");
@@ -1041,22 +907,12 @@ ReducibilityChecker::ReducibilityEntry* ReducibilityChecker::getCacheEntryForTer
     }
     LOG2(cout,"rhs ",rhsS);
     Ordering::Result argOrder = _ord.getEqualityArgumentOrder(qr.literal);
-    if (argOrder!=Ordering::LESS && argOrder!=Ordering::GREATER && !_ord.isGreater(TermList(t),rhsS,nullptr,&_constraintsFromComparison)) {
-      for (const auto& c : _constraintsFromComparison) {
-        auto l = get<0>(c);
-        auto r = get<1>(c);
-        auto strict = get<2>(c);
-        setBits(l, r, PoComp::GT, t->reducesUnder());
-        if (!strict) {
-          setBits(l, r, PoComp::EQ, t->reducesUnder());
-        }
-        uint64_t* ptr;
-        e->reducesToCond.getValuePtr(make_pair(rhsS,qr.term.term()), ptr, 0);
-        setBits(l, r, PoComp::GT, (*ptr));
-        if (!strict) {
-          setBits(l, r, PoComp::EQ, (*ptr));
-        }
-      }
+    VarOrderBV bits = getRemaining(0); // we query all bits here
+    if (argOrder!=Ordering::LESS && argOrder!=Ordering::GREATER && !_ord.isGreater(TermList(t),rhsS,nullptr,&bits)) {
+      t->reducesUnder() |= bits;
+      VarOrderBV* ptr;
+      e->reducesToCond.getValuePtr(make_pair(rhsS,qr.term.term()), ptr, 0);
+      (*ptr) |= bits;
       LOG1(cout,"not greater");
       continue;
     }
@@ -1093,17 +949,8 @@ bool ReducibilityChecker::checkLiteral(Term* rwTermS, TermList* tgtTermS, /* vst
         stit.right();
         continue;
       }
-      if (rwTermS && !_ord.isGreater(TermList(rwTermS),TermList(st),_rwTermState,&_constraintsFromComparison)) {
-        uint64_t bits = 0;
-        for (const auto& c : _constraintsFromComparison) {
-          auto l = get<0>(c);
-          auto r = get<1>(c);
-          auto strict = get<2>(c);
-          setBits(l, r, PoComp::GT, bits);
-          if (!strict) {
-            setBits(l, r, PoComp::EQ, bits);
-          }
-        }
+      VarOrderBV bits = getRemaining(_reducedUnder);
+      if (rwTermS && !_ord.isGreater(TermList(rwTermS),TermList(st),_rwTermState,&bits)) {
         if (!bits) {
           continue;
         }
@@ -1197,10 +1044,10 @@ bool ReducibilityChecker::checkLiteral(Term* rwTermS, TermList* tgtTermS, /* vst
             return true;
           }
         }
-        DHMap<pair<TermList,Term*>,uint64_t>::Iterator rcIt(ce->reducesToCond);
+        DHMap<pair<TermList,Term*>,VarOrderBV>::Iterator rcIt(ce->reducesToCond);
         while (rcIt.hasNext()) {
           pair<TermList,Term*> kv;
-          uint64_t val;
+          VarOrderBV val;
           rcIt.next(kv,val);
           auto lhsO = kv.second;
           Binder b;
@@ -1233,28 +1080,17 @@ bool ReducibilityChecker::checkLiteral(Term* rwTermS, TermList* tgtTermS, /* vst
           TermList rhs = EqHelper::getOtherEqualitySide(qr.literal,qr.term);
           Ordering::Result argOrder = _ord.getEqualityArgumentOrder(qr.literal);
           bool oriented = true;
-          uint64_t bits = 0;
+          VarOrderBV bits = getRemaining(_reducedUnder);
           // TODO !!!!!!!!! enable constraints below
-          // if (argOrder!=Ordering::LESS && argOrder!=Ordering::GREATER && !_ord.isGreater(TermList(stS),rhsS,stSstate,&_constraintsFromComparison)) {
-          if (argOrder!=Ordering::LESS && argOrder!=Ordering::GREATER && !_ord.isGreater(TermList(stS),rhs,stSstate,&_constraintsFromComparison,&qr)) {
-            for (const auto& c : _constraintsFromComparison) {
-              auto l = get<0>(c);
-              auto r = get<1>(c);
-              auto strict = get<2>(c);
-              setBits(l, r, PoComp::GT, bits);
-              if (!strict) {
-                setBits(l, r, PoComp::EQ, bits);
-              }
-            }
+          // auto rhsS = qr.substitution->applyToBoundResult(rhs);
+          // if (argOrder!=Ordering::LESS && argOrder!=Ordering::GREATER && !_ord.isGreater(TermList(stS),rhsS,stSstate,&bits)) {
+          if (argOrder!=Ordering::LESS && argOrder!=Ordering::GREATER && !_ord.isGreater(TermList(stS),rhs,stSstate,&bits,&qr)) {
             oriented = false;
           }
-          if (!oriented && (bits | _reducedUnder) == _reducedUnder) {
-            TIME_TRACE("no new bits2");
+          if (!oriented && !bits) {
             continue;
           }
-          // TIME_TRACE("match and stuff");
           if (varmap & ~st.term()->varmap()) {
-            // TIME_TRACE("does not contain term-bound vars");
             if (oriented) {
               return true;
             }
