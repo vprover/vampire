@@ -916,6 +916,9 @@ void PrecedenceOrdering::show(ostream& out) const
 
 bool Ordering::isGreater(TermList tl1, TermList tl2, void* tl1State, VarOrderBV* constraints, const Indexing::TermQueryResult* qr) const
 {
+  if (constraints) {
+    *constraints = 0;
+  }
   return compare(tl1,qr?qr->substitution->applyToBoundResult(tl2):tl2)==GREATER;
 }
 

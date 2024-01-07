@@ -328,20 +328,20 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   }
   if (checker) {
     if (queryLitAfter) {
-      if (checker->checkLiteral(queryLitAfter)) {
+      if (checker->checkBR(queryLitAfter)) {
         env.statistics->redundantResolution++;
         res->destroy();
         return 0;
       }
     } else if (qrLitAfter) {
-      if (checker->checkLiteral(qrLitAfter)) {
+      if (checker->checkBR(qrLitAfter)) {
         env.statistics->redundantResolution++;
         res->destroy();
         return 0;
       }
     } else {
       auto lit = qr.substitution->applyToQuery(queryLit);
-      if (checker->checkLiteral(lit)) {
+      if (checker->checkBR(lit)) {
         env.statistics->redundantResolution++;
         res->destroy();
         return 0;

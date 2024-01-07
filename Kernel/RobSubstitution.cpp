@@ -170,12 +170,10 @@ RobSubstitution::TermSpec RobSubstitution::deref(VarSpec v, bool noFail) const
       binding.index=UNBOUND_INDEX;
       unsigned nuaVal = _nextUnboundAvailable;
       binding.term.makeVar(_nextUnboundAvailable++);
-      if (!noFail) {
-        RobSubstitution* self = const_cast<RobSubstitution*>(this);
-        self->bind(v,binding);
-        if(self->bdIsRecording()) {
-          self->bdAdd(new NextUnboundVariableBacktrackObject(self, nuaVal));
-        }
+      RobSubstitution* self = const_cast<RobSubstitution*>(this);
+      self->bind(v,binding);
+      if(self->bdIsRecording()) {
+        self->bdAdd(new NextUnboundVariableBacktrackObject(self, nuaVal));
       }
       return binding;
     } else if(binding.index==UNBOUND_INDEX || binding.term.isTerm()

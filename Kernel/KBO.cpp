@@ -581,7 +581,10 @@ bool KBO::StateGreater::traverse(Term* t1, Term* t2)
         stillEqual = false;
         continue;
       }
-      switch (_kbo.compareFunctionPrecedences(ss->term()->functor(),tt->term()->functor()))
+      Result comp = ss->term()->isSort()
+        ? _kbo.compareTypeConPrecedences(ss->term()->functor(),tt->term()->functor())
+        : _kbo.compareFunctionPrecedences(ss->term()->functor(),tt->term()->functor());
+      switch (comp)
       {
         case Ordering::LESS:
         case Ordering::LESS_EQ: {
@@ -652,7 +655,7 @@ bool KBO::StateGreater::checkVars() const
             continue;
           }
           auto ptr = _varDiffs.findPtr(i);
-          if (ptr && *ptr>=(-cnt)) {
+          if (!ptr || *ptr<(-cnt)) {
             continue;
           }
           setBit(i,var,PoComp::EQ,mask);
@@ -766,7 +769,7 @@ bool KBO::StateGreaterSubst::traverse(Term* t1, Term* t2, bool weightsOk)
 {
   ASS_EQ(t1->functor(),t2->functor());
   ASS(weightsOk || t1->kboWeight()==t2->kboWeight2());
-  ASS(t1->arity());
+  // ASS(t1->arity()); // we cannot check for equality outside, so this is commented
   bool stillEqual = true;
   bool greater = true; // true if the unconstrained comparison is still greater
 
@@ -877,7 +880,10 @@ bool KBO::StateGreaterSubst::traverse(Term* t1, Term* t2, bool weightsOk)
         stillEqual = false;
         continue;
       }
-      switch (_kbo.compareFunctionPrecedences(ss->term()->functor(),t.term()->functor()))
+      Result comp = ss->term()->isSort()
+        ? _kbo.compareTypeConPrecedences(ss->term()->functor(),t.term()->functor())
+        : _kbo.compareFunctionPrecedences(ss->term()->functor(),t.term()->functor());
+      switch (comp)
       {
         case Ordering::LESS:
         case Ordering::LESS_EQ: {
@@ -956,7 +962,7 @@ bool KBO::StateGreaterSubst::checkVars() const
             continue;
           }
           auto ptr = _varDiffs.findPtr(i);
-          if (ptr && *ptr>=(-cnt)) {
+          if (!ptr || *ptr<(-cnt)) {
             continue;
           }
           setBit(i,var,PoComp::EQ,mask);
@@ -1090,7 +1096,10 @@ bool KBO::StateGreaterVO::traverse(Term* t1, Term* t2, VarOrder& vo)
         stillEqual = false;
         continue;
       }
-      switch (_kbo.compareFunctionPrecedences(ss->term()->functor(),tt->term()->functor()))
+      Result comp = ss->term()->isSort()
+        ? _kbo.compareTypeConPrecedences(ss->term()->functor(),tt->term()->functor())
+        : _kbo.compareFunctionPrecedences(ss->term()->functor(),tt->term()->functor());
+      switch (comp)
       {
         case Ordering::LESS:
         case Ordering::LESS_EQ: {
@@ -1865,7 +1874,10 @@ bool KBO::isGreaterHelper(TermList tl1, TermList tl2, void* tl1State, VarOrderBV
     return _stateGt->checkVars();
   }
   // t1->kboWeight()==t2->kboWeight()
-  switch (compareFunctionPrecedences(t1->functor(),t2->functor()))
+  Result comp = t1->isSort()
+    ? compareTypeConPrecedences(t1->functor(),t2->functor())
+    : compareFunctionPrecedences(t1->functor(),t2->functor());
+  switch (comp)
   {
     case Ordering::LESS:
     case Ordering::LESS_EQ: {
@@ -1942,7 +1954,10 @@ bool KBO::isGreaterHelper(TermList tl1, TermList tl2, void* tl1State, VarOrderBV
     }
   }
   // t1->kboWeight()==t2->kboWeight()
-  switch (compareFunctionPrecedences(t1->functor(),t2->functor()))
+  Result comp = t1->isSort()
+    ? compareTypeConPrecedences(t1->functor(),t2->functor())
+    : compareFunctionPrecedences(t1->functor(),t2->functor());
+  switch (comp)
   {
     case Ordering::LESS:
     case Ordering::LESS_EQ: {
@@ -2138,7 +2153,10 @@ bool KBO::makeGreaterNonRecursive(TermList tl1, TermList tl2, VarOrder& vo) cons
     return _stateGtVo->checkVars(vo);
   }
   // t1->kboWeight()==t2->kboWeight()
-  switch (compareFunctionPrecedences(t1->functor(),t2->functor()))
+  Result comp = t1->isSort()
+    ? compareTypeConPrecedences(t1->functor(),t2->functor())
+    : compareFunctionPrecedences(t1->functor(),t2->functor());
+  switch (comp)
   {
     case Ordering::LESS:
     case Ordering::LESS_EQ: {
@@ -2396,7 +2414,7 @@ void KBO::computeWeight2(Term* t, Indexing::ResultSubstitution* subst) const
     .w = (unsigned)symbolWeight(t),
     .args = t->args(),
   });
-  static unsigned ts = 0;
+  static int ts = 0;
   ts++;
 
   while (stack.isNonEmpty()) {

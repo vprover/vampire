@@ -40,16 +40,20 @@ public:
   struct ReducibilityEntry {
     ReducibilityEntry() : reducesTo(), reducesToCond(), superTerms() {}
 
-    DHSet<std::pair<TermList,Term*>> reducesTo;
-    DHMap<std::pair<TermList,Term*>,VarOrderBV> reducesToCond;
+    DHSet<std::pair<TermList,TermList>> reducesTo;
+    DHMap<std::pair<TermList,TermList>,VarOrderBV> reducesToCond;
     Stack<Term*> superTerms;
   };
 private:
   TermSubstitutionTree _tis;
+
+  DHMap<unsigned,TermList> _subst;
+  bool _substRenaming;
+  unsigned _varmap;
+
   DHSet<Term*> _attempted;
   VarOrderBV _reducedUnder;
-  Stack<Term*> _sidesToCheck;
-  Stack<TermList> _sidesToCheck2;
+  Stack<std::pair<TermList,Term*>> _sidesToCheck;
   void* _rwTermState;
   DHMap<std::pair<Term*,Literal*>,uint64_t> _reducedLitCache;
 
@@ -57,12 +61,12 @@ private:
   bool getDemodulationRHSCodeTree(const TermQueryResult& qr, Term* lhsS, TermList& rhsS);
   ReducibilityEntry* getCacheEntryForTerm(Term* t);
 
-  bool checkLiteral(Term* rwTermS, TermList* tgtTermS/*, vstringstream& exp*/, Term* rwTerm, ResultSubstitution* subst, bool result);
+  bool checkSide(TermList side, Term* sideS, Term* rwTermS, TermList* tgtTermS, Term* rwTerm, ResultSubstitution* subst, bool result);
 
-  bool checkLiteralSanity(Literal* lit, Term* rwTermS/*, vstringstream& exp*/);
-  bool checkRwTermSanity(Term* rwTermS, TermList tgtTermS/*, vstringstream& exp*/);
-  bool checkSmallerSanity(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS/*, vstringstream& exp*/);
-  bool checkSmallerSanityGround(const Stack<Literal*>& lits, Literal* rwLit, Term* rwTermS, TermList* tgtTermS/*, vstringstream& exp*/);
+  // bool checkLiteralSanity(Literal* lit, Term* rwTermS/*, vstringstream& exp*/);
+  // bool checkRwTermSanity(Term* rwTermS, TermList tgtTermS/*, vstringstream& exp*/);
+  // bool checkSmallerSanity(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS/*, vstringstream& exp*/);
+  // bool checkSmallerSanityGround(const Stack<Literal*>& lits, Literal* rwLit, Term* rwTermS, TermList* tgtTermS/*, vstringstream& exp*/);
 
 public:
   USE_ALLOCATOR(ReducibilityChecker);
@@ -70,13 +74,14 @@ public:
   ReducibilityChecker(DemodulationLHSIndex* index, UnitClauseLiteralIndex* litIndex, const Ordering& ord, const Options& opt);
 
   void reset() {
+    _subst.reset();
     _attempted.reset();
     _reducedUnder = 0;
+    _sidesToCheck.reset();
   }
 
   bool checkSup(Literal* rwLit, Literal* eqLit, TermList eqLHS, Term* rwTerm, Term* rwTermS, TermList tgtTermS, ResultSubstitution* subst, bool eqIsResult, Ordering::Result rwComp, bool eqClauseUnit);
-  bool checkBR(Clause* queryClause, Clause* resultClause, ResultSubstitution* subst);
-  bool checkLiteral(Literal* lit);
+  bool checkBR(Literal* lit);
   void clauseActivated(Clause* cl);
 };
 

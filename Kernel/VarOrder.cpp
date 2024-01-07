@@ -102,6 +102,10 @@ bool VarOrder::tryExtendWith(const VarOrder& other)
 
 void setBit(unsigned x, unsigned y, PoComp c, VarOrderBV& bv)
 {
+  if (x > 6 || y > 6) {
+    return;
+  }
+  ASS(c!=PoComp::INC);
   if (x > y) {
     swap(x,y);
     c = reverse(c);
@@ -126,6 +130,10 @@ void setBit(unsigned x, unsigned y, PoComp c, VarOrderBV& bv)
 
 void unsetBit(unsigned x, unsigned y, PoComp c, VarOrderBV& bv)
 {
+  if (x > 6 || y > 6) {
+    return;
+  }
+  ASS(c!=PoComp::INC);
   if (x > y) {
     swap(x,y);
     c = reverse(c);
@@ -150,6 +158,9 @@ void unsetBit(unsigned x, unsigned y, PoComp c, VarOrderBV& bv)
 
 bool isBitSet(unsigned x, unsigned y, PoComp c, VarOrderBV bv)
 {
+  if (x > 6 || y > 6) {
+    return false;
+  }
   ASS(c!=PoComp::INC);
   if (x > y) {
     swap(x,y);
@@ -194,7 +205,9 @@ VarOrderBV getRemaining(VarOrderBV bv)
   return ~bv & ~(1UL << 63);
 }
 
-PoComp oneRemains(VarOrderBV val, unsigned x, unsigned y) {
+PoComp oneRemains(VarOrderBV val, unsigned x, unsigned y)
+{
+  ASS(x <= 6 && y <= 6);
   ASS(x < y);
   size_t idx = y*(y-1)/2 + x;
   bool gt = val & (1UL << (3*idx));
@@ -215,6 +228,7 @@ PoComp oneRemains(VarOrderBV val, unsigned x, unsigned y) {
 
 bool addToVo(VarOrder& vo, unsigned x, unsigned y, PoComp c)
 {
+  ASS(x <= 6 && y <= 6);
   switch (c) {
     case PoComp::GT:
       return vo.add_gt(x,y);
