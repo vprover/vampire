@@ -51,9 +51,9 @@ private:
   Stack<Term*> _sidesToCheck;
   Stack<TermList> _sidesToCheck2;
   void* _rwTermState;
-  DHMap<std::pair<Term*,Literal*>,Stack<VarOrder>> _reducedLitCache;
+  DHMap<std::pair<Term*,Literal*>,uint64_t> _reducedLitCache;
 
-  bool pushSidesFromLiteral(Literal* lit, ResultSubstitution* subst, bool result);
+  bool pushSidesFromLiteral(Literal* lit, ResultSubstitution* subst, bool result, Term* rwTermS);
   bool getDemodulationRHSCodeTree(const TermQueryResult& qr, Term* lhsS, TermList& rhsS);
   ReducibilityEntry* getCacheEntryForTerm(Term* t);
 

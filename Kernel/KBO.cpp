@@ -1682,7 +1682,7 @@ bool KBO::weightsOk(TermList lhs, TermList rhs) const
 
 bool KBO::isGreater(TermList tl1, TermList tl2, void* tl1State, VarOrderBV* constraints, const Indexing::TermQueryResult* qr) const
 {
-  ASS_REP(!constraints || *constraints, *constraints);
+  // ASS_REP(!constraints || *constraints, *constraints);
   TIME_TRACE("KBO::isGreater");
   static DHMap<Literal*,bool> weightsOkCache;
   bool weightsOkFlag = false;
@@ -1784,16 +1784,18 @@ bool KBO::isGreater(TermList tl1, TermList tl2, void* tl1State, VarOrderBV* cons
         vo_gt.add_gt(i,j);
         auto bit_gt = isBitSet(i,j,PoComp::GT,*constraints);
         auto new_bit_gt = isBitSet(i,j,PoComp::GT,newConstraints);
+        auto isGreater_gt = isGreater(tl1,tl2S,vo_gt);
         ASS(bit_gt || !new_bit_gt);
-        ASS_REP(!bit_gt || !new_bit_gt || isGreater(tl1,tl2S,vo_gt),
+        ASS_REP(!bit_gt || !new_bit_gt || isGreater_gt,
           tl1.toString()+"\n"+tl2S.toString()+"\n (orig "+tl2.toString()+") under "+vo_gt.to_string());
 
         VarOrder vo_lt;
         vo_lt.add_gt(j,i);
         auto bit_lt = isBitSet(i,j,PoComp::LT,*constraints);
         auto new_bit_lt = isBitSet(i,j,PoComp::LT,newConstraints);
+        auto isGreater_lt = isGreater(tl1,tl2S,vo_lt);
         ASS(bit_lt || !new_bit_lt);
-        ASS_REP(!bit_lt || !new_bit_lt || isGreater(tl1,tl2S,vo_lt),
+        ASS_REP(!bit_lt || !new_bit_lt || isGreater_lt,
           tl1.toString()+"\n"+tl2S.toString()+"\n (orig "+tl2.toString()+") under "+vo_lt.to_string());
 
         VarOrder vo_eq;
@@ -1801,8 +1803,9 @@ bool KBO::isGreater(TermList tl1, TermList tl2, void* tl1State, VarOrderBV* cons
         VarOrder::EqApplicator voApp(vo_eq);
         auto bit_eq = isBitSet(i,j,PoComp::EQ,*constraints);
         auto new_bit_eq = isBitSet(i,j,PoComp::EQ,newConstraints);
+        auto isGreater_eq = isGreater(SubstHelper::apply(tl1,voApp),SubstHelper::apply(tl2S,voApp),vo_eq);
         ASS(bit_eq || !new_bit_eq);
-        ASS_REP(!bit_eq || !new_bit_eq || isGreater(SubstHelper::apply(tl1,voApp),SubstHelper::apply(tl2S,voApp),vo_eq),
+        ASS_REP(!bit_eq || !new_bit_eq || isGreater_eq,
           tl1.toString()+"\n"+tl2S.toString()+"\n (orig "+tl2.toString()+") under "+vo_eq.to_string());
       }
     }

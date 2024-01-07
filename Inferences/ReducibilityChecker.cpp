@@ -155,7 +155,7 @@ bool argReduced(Term* t) {
 ReducibilityChecker::ReducibilityChecker(DemodulationLHSIndex* index, UnitClauseLiteralIndex* litIndex, const Ordering& ord, const Options& opt)
 : _index(index), _litIndex(litIndex), _ord(ord), _opt(opt), _rwTermState(_ord.createState()) {}
 
-bool ReducibilityChecker::pushSidesFromLiteral(Literal* lit, ResultSubstitution* subst, bool result)
+bool ReducibilityChecker::pushSidesFromLiteral(Literal* lit, ResultSubstitution* subst, bool result, Term* rwTermS)
 {
   _sidesToCheck.reset();
   _sidesToCheck2.reset();
@@ -175,11 +175,11 @@ bool ReducibilityChecker::pushSidesFromLiteral(Literal* lit, ResultSubstitution*
       auto t1s = subst->apply(t1,result);
       switch (_ord.compare(t0s,t1s)) {
         case Ordering::INCOMPARABLE:
-          if (t0s.isTerm()) {
+          if (t0s.isTerm() && t0s.containsSubterm(TermList(rwTermS))) {
             _sidesToCheck.push(t0s.term());
             _sidesToCheck2.push(t0);
           }
-          if (t1s.isTerm()) {
+          if (t1s.isTerm() && t1s.containsSubterm(TermList(rwTermS))) {
             _sidesToCheck.push(t1s.term());
             _sidesToCheck2.push(t1);
           }
@@ -187,6 +187,7 @@ bool ReducibilityChecker::pushSidesFromLiteral(Literal* lit, ResultSubstitution*
         case Ordering::GREATER:
         case Ordering::GREATER_EQ:
           if (t0s.isTerm()) {
+            ASS(t0s.containsSubterm(TermList(rwTermS)));
             _sidesToCheck.push(t0s.term());
             _sidesToCheck2.push(t0);
           }
@@ -194,6 +195,7 @@ bool ReducibilityChecker::pushSidesFromLiteral(Literal* lit, ResultSubstitution*
         case Ordering::LESS:
         case Ordering::LESS_EQ:
           if (t1s.isTerm()) {
+            ASS(t1s.containsSubterm(TermList(rwTermS)));
             _sidesToCheck.push(t1s.term());
             _sidesToCheck2.push(t1);
           }
@@ -207,14 +209,18 @@ bool ReducibilityChecker::pushSidesFromLiteral(Literal* lit, ResultSubstitution*
     case Ordering::GREATER:
     case Ordering::GREATER_EQ: {
       ASS(t0.isTerm());
-      _sidesToCheck.push(subst->apply(t0,result).term());
+      auto t0s = subst->apply(t0,result);
+      ASS(t0s.containsSubterm(TermList(rwTermS)));
+      _sidesToCheck.push(t0s.term());
       _sidesToCheck2.push(t0);
       break;
     }
     case Ordering::LESS:
     case Ordering::LESS_EQ: {
       ASS(t1.isTerm());
-      _sidesToCheck.push(subst->apply(t1,result).term());
+      auto t1s = subst->apply(t1,result);
+      ASS(t1s.containsSubterm(TermList(rwTermS)));
+      _sidesToCheck.push(t1s.term());
       _sidesToCheck2.push(t1);
       break;
     }
@@ -312,6 +318,46 @@ bool violatesCondition(const VarOrder& vo, ResultSubstitution* subst, bool resul
   return false;
 }
 
+bool addConditions(VarOrderBV bits, ResultSubstitution* subst, bool result, VarOrderBV& res, const Ordering& ord)
+{
+  for (unsigned i = 0; i < 6; i++) {
+    for (unsigned j = i+1; j <= 6; j++) {
+      if (isBitSet(i,j,PoComp::GT,bits)) {
+        auto xS = subst->applyTo(TermList(i,false),result);
+        auto yS = subst->applyTo(TermList(j,false),result);
+        VarOrderBV bits = getRemaining(res);
+        if (!ord.isGreater(xS,yS,nullptr,&bits)) {
+          res |= bits;
+        } else {
+          return true;
+        }
+      }
+      if (isBitSet(i,j,PoComp::LT,bits)) {
+        auto xS = subst->applyTo(TermList(i,false),result);
+        auto yS = subst->applyTo(TermList(j,false),result);
+        VarOrderBV bits = getRemaining(res);
+        if (!ord.isGreater(yS,xS,nullptr,&bits)) {
+          res |= bits;
+        } else {
+          return true;
+        }
+      }
+      if (isBitSet(i,j,PoComp::EQ,bits)) {
+        auto xS = subst->applyTo(TermList(i,false),result);
+        auto yS = subst->applyTo(TermList(j,false),result);
+        OneEqBinder binder;
+        if (xS == yS) {
+          return true;
+        }
+        if (MatchingUtils::matchTerms(xS,yS,binder)) {
+          setBit(binder.b, binder.v, PoComp::EQ, res);
+        }
+      }
+    }
+  }
+  return false;
+}
+
 bool ReducibilityChecker::checkSup(Literal* rwLit, Literal* eqLit, TermList eqLHS, Term* rwTerm, Term* rwTermS, TermList tgtTermS, ResultSubstitution* subst, bool eqIsResult, Ordering::Result rwComp, bool eqClauseUnit)
 {
   TIME_TRACE("ReducibilityChecker::checkSup");
@@ -320,35 +366,34 @@ bool ReducibilityChecker::checkSup(Literal* rwLit, Literal* eqLit, TermList eqLH
   }
   _ord.initStateForTerm(_rwTermState, rwTermS);
   // vstringstream exp;
-  if (pushSidesFromLiteral(rwLit, subst, !eqIsResult)) {
+  if (pushSidesFromLiteral(rwLit, subst, !eqIsResult, rwTermS)) {
     return true;
   }
-  // if (!subst->isRenamingOnU(TermList(rwTerm),!eqIsResult)) {
-  //   Stack<VarOrder>* ptr = nullptr;
-  //   if (_sidesToCheck2.size()==1) {
-  //     ptr = _reducedLitCache.findPtr(make_pair(_sidesToCheck2[0].term(),rwLit));
-  //   } else if (_sidesToCheck2.size()==2) {
-  //     if (!_sidesToCheck2[0].containsSubterm(TermList(rwTerm))) {
-  //       ptr = _reducedLitCache.findPtr(make_pair(_sidesToCheck2[1].term(),rwLit));
-  //     }
-  //     if (!_sidesToCheck2[1].containsSubterm(TermList(rwTerm))) {
-  //       ptr = _reducedLitCache.findPtr(make_pair(_sidesToCheck2[0].term(),rwLit));
-  //     }
-  //   }
-  //   if (ptr) {
-  //     bool success = true;
-  //     for (const auto& vo : *ptr) {
-  //       if (!violatesCondition(vo, subst, !eqIsResult, _ord)) {
-  //         success = false;
-  //         break;
-  //       }
-  //     }
-  //     if (success) {
-  //       TIME_TRACE("1");
-  //       return true;
-  //     }
-  //   }
-  // }
+
+  {
+    Binder b;
+    if (MatchingUtils::matchTerms(TermList(rwTerm), TermList(rwTermS), b) && !b.renaming) {
+      VarOrderBV* ptr = nullptr;
+      if (_sidesToCheck2.size()==1) {
+        ptr = _reducedLitCache.findPtr(make_pair(_sidesToCheck2[0].term(),rwLit));
+      } else if (_sidesToCheck2.size()==2) {
+        if (!_sidesToCheck2[0].containsSubterm(TermList(rwTerm))) {
+          ptr = _reducedLitCache.findPtr(make_pair(_sidesToCheck2[1].term(),rwLit));
+        }
+        if (!_sidesToCheck2[1].containsSubterm(TermList(rwTerm))) {
+          ptr = _reducedLitCache.findPtr(make_pair(_sidesToCheck2[0].term(),rwLit));
+        }
+      }
+      if (ptr) {
+        VarOrderBV test = 0;
+        if (addConditions(*ptr, subst, !eqIsResult, test, _ord)) {
+          TIME_TRACE("reduced");
+          return true;
+        }
+        _reducedUnder |= test;
+      }
+    }
+  }
   if (rwLit->isEquality()) {
     if (_sidesToCheck.size()==2) {
       OneEqBinder binder;
@@ -648,118 +693,45 @@ void ReducibilityChecker::clauseActivated(Clause* cl)
 {
   TIME_TRACE("ReducibilityChecker::clauseActivated");
 
-//   Stack<std::tuple<unsigned,unsigned,bool>> constraints;
-//   for (unsigned i = 0; i < cl->numSelected(); i++) {
-//     auto lit = (*cl)[i];
-//     if (!lit->isEquality()) {
-//       continue;
-//     }
-//     for (unsigned j = 0; j <= 1; j++) {
-//       // VarOrderBV bits = 0;
-//       auto side = *lit->nthArgument(j);
-//       if (side.isVar()) {
-//         continue;
-//       }
-//       auto other = EqHelper::getOtherEqualitySide(lit, side);
-//       auto argOrder = _ord.getEqualityArgumentOrder(lit);
-//       if ((j==0 && argOrder==Ordering::LESS) || (j==1 && argOrder==Ordering::GREATER)) {
-//         continue;
-//       }
-//       // if (_ord.isGreater(other,side,nullptr,&constraints,nullptr)) {
-//       //   continue;
-//       // }
-//       Stack<VarOrder> rest;
-//       Stack<VarOrder> vos;
-//       vos.push(VarOrder());
-//       // bool fail = false;
-//       while(vos.isNonEmpty()) {
-//         auto vo = vos.pop();
-//         VarOrder::EqApplicator voApp(vo);
-//         auto sideS = side;//SubstHelper::apply(side,voApp);
-//         auto otherS = other;//SubstHelper::apply(other,voApp);
-//         VarOrder ext = vo;
-//         if (_ord.makeGreater(otherS,sideS,ext)) {
-//           for (const auto& nvo : ForwardGroundJoinability::order_diff(vo,ext)) {
-//             vos.push(nvo);
-//           }
-//           continue;
-//         }
-//         // if (_ord.isGreater(other,side,nullptr,&constraints,nullptr)) {
-//         //   continue;
-//         // }
-//         // for (const auto& c : constraints) {
-//         //   auto l = get<0>(c);
-//         //   auto r = get<1>(c);
-//         //   auto strict = get<2>(c);
-//         //   setBits(l, r, PoComp::GT, bits);
-//         //   if (!strict) {
-//         //     setBits(l, r, PoComp::EQ, bits);
-//         //   }
-//         // }
-//         NonVariableNonTypeIterator nvi(sideS.term(),false);
-//         ClauseStack cls;
-//         while (nvi.hasNext()) {
-//           auto st = nvi.next();
-//           auto git = _index->getGeneralizations(st,true);
-//           while (git.hasNext()) {
-//             auto qr = git.next();
-//             TermList rhsS;
-//             if (!getDemodulationRHSCodeTree(qr, st, rhsS)) {
-//               continue;
-//             }
-//             LOG2(cout,"rhs ",rhsS);
-//             // Ordering::Result argOrder = _ord.getEqualityArgumentOrder(qr.literal);
-//             // NEVER(_ord.isGreater(TermList(st),rhsS,nullptr,&constraints));
-//             // for (const auto& c : constraints) {
-//             //   auto l = get<0>(c);
-//             //   auto r = get<1>(c);
-//             //   auto strict = get<2>(c);
-//             //   setBits(l, r, PoComp::GT, bits);
-//             //   if (!strict) {
-//             //     setBits(l, r, PoComp::EQ, bits);
-//             //   }
-//             // }
-//             VarOrder ext = vo;
-//             if (_ord.makeGreater(TermList(st),rhsS,ext)) {
-//               for (const auto& nvo : ForwardGroundJoinability::order_diff(vo,ext)) {
-//                 vos.push(nvo);
-//               }
-//               goto success_reduced;
-//             }
-//           }
-//         }
-//         rest.push(vo);
-//         // if (vo.size()==2) {
-//         //   cout << "side " << side << " not reduced under " << vo.to_string() << endl;
-//         // }
-//         // fail = true;
-//         // break;
-// success_reduced:
-//         continue;
-//       }
-//       // if (isReducedUnderAny(bits)) {
-//       //   cout << "side " << side << " of literal " << *lit << " of clause " << *cl << " is reducible conditionally" << endl;
-//       // }
-//       // if (isRemainingUnsat(bits)) {
-//       //   cout << "2side " << side << " of literal " << *lit << " of clause " << *cl << " is reducible conditionally" << endl;
-//       // }
-//       _reducedLitCache.insert(make_pair(side.term(),lit),rest);
-//       // if (rest.isEmpty()) {
-//       //   cout << "side " << side << " of literal " << *lit << " of clause " << *cl << " is reducible conditionally" << endl << endl;
-//       // } else {
-//       //   // bool allOnes=iterTraits(Stack<VarOrder>::Iterator(rest)).all([](const VarOrder& vo) {
-//       //   //   return vo.size()==2;
-//       //   // });
-//       //   // if (allOnes) {
-//       //     cout << "side " << side << " of literal " << *lit << " of clause " << *cl << " is reducible, except:" << endl;
-//       //     for (const auto& vo : rest) {
-//       //       cout << vo.to_string() << endl;
-//       //     }
-//       //     cout << endl;
-//       //   // }
-//       // }
-//     }
-//   }
+  for (unsigned i = 0; i < cl->numSelected(); i++) {
+    auto lit = (*cl)[i];
+    if (!lit->isEquality()) {
+      continue;
+    }
+    for (unsigned j = 0; j <= 1; j++) {
+      auto side = *lit->nthArgument(j);
+      if (side.isVar()) {
+        continue;
+      }
+
+      auto other = EqHelper::getOtherEqualitySide(lit, side);
+      auto argOrder = _ord.getEqualityArgumentOrder(lit);
+      if ((j==0 && argOrder==Ordering::LESS) || (j==1 && argOrder==Ordering::GREATER)) {
+        continue;
+      }
+
+      VarOrderBV* ptr;
+      if (!_reducedLitCache.getValuePtr(make_pair(side.term(),lit),ptr,0)) {
+        continue;
+      }
+      NonVariableNonTypeIterator nvi(side.term(),false);
+      while (nvi.hasNext()) {
+        auto st = nvi.next();
+        auto git = _index->getGeneralizations(st,true);
+        while (git.hasNext()) {
+          auto qr = git.next();
+          TermList rhsS;
+          if (!getDemodulationRHSCodeTree(qr, st, rhsS)) {
+            continue;
+          }
+          Ordering::Result argOrder = _ord.getEqualityArgumentOrder(qr.literal);
+          VarOrderBV bits = getRemaining(*ptr);
+          NEVER(_ord.isGreater(TermList(st),rhsS,nullptr,&bits));
+          *ptr |= bits;
+        }
+      }
+    }
+  }
 
   if (cl->length()!=1 || !cl->noSplits()) {
     return;
@@ -937,9 +909,8 @@ bool ReducibilityChecker::checkLiteral(Term* rwTermS, TermList* tgtTermS, /* vst
   checked.insert(rwTermS);
 
   for (Term* side : _sidesToCheck) {
-    if (_sidesToCheck.size()>1 && !side->containsSubterm(TermList(rwTermS))) {
-      continue;
-    }
+    ASS(side->containsSubterm(TermList(rwTermS)));
+
     NonVariableNonTypeIterator stit(side, !side->isLiteral());
     while (stit.hasNext()) {
       auto st = stit.next();
@@ -1011,9 +982,7 @@ bool ReducibilityChecker::checkLiteral(Term* rwTermS, TermList* tgtTermS, /* vst
     if (side.isVar()) {
       continue;
     }
-    if (_sidesToCheck.size()>1 && !sideS->containsSubterm(TermList(rwTermS))) {
-      continue;
-    }
+    ASS(sideS->containsSubterm(TermList(rwTermS)));
 
     auto ft = FlatTerm::create(sideS);
     // FTNonTypeIterator stit(side,ft);
@@ -1028,6 +997,10 @@ bool ReducibilityChecker::checkLiteral(Term* rwTermS, TermList* tgtTermS, /* vst
         stit.right();
         continue;
       }
+      // if (!(st.term()->varmap() & rwTerm->varmap())) {
+      //   stit.right();
+      //   continue;
+      // }
       ReducibilityEntry* ce = nullptr;
       // ReducibilityEntry* ce = getCacheEntryForTerm(stS.term());
       // ReducibilityEntry* ce = static_cast<ReducibilityChecker::ReducibilityEntry*>(stS.term()->reducibilityInfo());
