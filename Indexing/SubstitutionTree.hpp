@@ -43,6 +43,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/OperatorType.hpp"
+#include "Debug/Tracer.hpp"
 #include "Lib/Option.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
@@ -1318,7 +1319,7 @@ using namespace Kernel;
           _nodeIterators->push(_algo.selectPotentiallyUnifiableChildren(inode));
           if (backtrackable) {
             _bdStack->top().addClosure([&]() { 
-                auto var = _svStack->pop();
+                DEBUG_CODE(auto var = )_svStack->pop();
                 DEBUG_QUERY(1, "backtracking node: S", var)
                 _nodeIterators->pop(); 
             });
