@@ -190,8 +190,8 @@ Option<AbstractionOracle::AbstractionResult> AbstractionOracle::tryAbstract(Abst
       Recycled<Stack<TermSpec>> diff2_;
       auto& diff1 = *diff1_;
       auto& diff2 = *diff2_;
-      diff1.moveFromIterator(iterSortedDiff(arrayIter(a1), arrayIter(a2), cmp));
-      diff2.moveFromIterator(iterSortedDiff(arrayIter(a2), arrayIter(a1), cmp));
+      diff1.loadFromIterator(iterSortedDiff(arrayIter(a1), arrayIter(a2), cmp));
+      diff2.loadFromIterator(iterSortedDiff(arrayIter(a2), arrayIter(a1), cmp));
       auto sum = [&](auto& diff) {
           return arrayIter(diff)
             .map([](TermSpec& t) -> TermSpec { return t; })
