@@ -572,12 +572,11 @@ vstring Term::headToString() const
         VList* vars = sd->getLambdaVars();
         SList* sorts = sd->getLambdaVarSorts();
         TermList lambdaExp = sd->getLambdaExp();
-     
+
         vstring varList = "[";
-         
+
         VList::Iterator vs(vars);
         SList::Iterator ss(sorts);
-        TermList sort;
         bool first = true;
         while(vs.hasNext()) {
           if (!first){
