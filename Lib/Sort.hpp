@@ -26,6 +26,9 @@
 
 namespace Lib {
 
+/** A type level predicate that tells whether there is a function `Result T::compare(T const&) const;` for some result type Result. o
+ * It provides the bool constexpr `HasCompareFunction<T>::value`
+ */
 template<class T>
 struct HasCompareFunction 
 { 
