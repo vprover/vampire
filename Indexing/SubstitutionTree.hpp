@@ -1285,6 +1285,7 @@ using namespace Kernel;
             return false;
           }
           Node* n=*_nodeIterators->top().next();
+          DEBUG_QUERY(1, "trying S", _svStack->top(), " -> ", n->term())
 
           _bdStack->push(BacktrackData());
 
