@@ -676,11 +676,11 @@ ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, In
   inf.setInductionDepth(maxInductionDepth+1);
   FormulaUnit* fu = new FormulaUnit(hypothesis,inf);
   if(_opt.showInduction()){
-    env.beginOutput();
+    env.beginOutput();// Stores SkolemTrackers before skolemization happens
     env.out() << "[Induction] formula " << fu->toString() << endl;
     env.endOutput();
   }
-  cnf.clausifySynthesis(NNF::ennf(fu), hyp_clauses, bindingList);
+  cnf.clausifySynthesis(NNF::ennf(fu), hyp_clauses, bindingList); // Skolemization happens here (using new CNF)
 
   // Hyperresolution 
   Literal* indLit = context.getInductionLiteral();
@@ -701,7 +701,7 @@ ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, In
     unsigned cLen = c->length();
 
     int resLitIdx = SynthesisManager::getInstance()->getResolventLiteralIdx(c); // The literal which contains a rec(.) term should be picked for resolution
-    if (resLitIdx == -1){ //ToDo: check why not finding correct literal in cut-off subtract
+    if (resLitIdx == -1){ //ToDo: check why not finding correct literal in cut-off subtract. This if should not be needed when getResolventLiteralIdx is debugged.
       resLitIdx = cLen - 1;
       // std::cout << "clause to resolve is " << c->toString() << std::endl;
       // USER_ERROR("No literal with rec(.) term found in the clause to resolve");
@@ -1473,7 +1473,7 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
       argTerms.push(y);
       VList::push(y.var(), ys);
 
-      int recursive = -1;
+      int recursive = -1; // e.g., In BT(l, n, r), l and r will be recursive.
 
       if (con->argSort(j) == con->rangeSort()){
         recTerms.push(y);
@@ -1481,7 +1481,7 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
 
         TermList w(var++, false);
         VList::push(w.var(), ws);
-        // Stores SkolemTrackers before skolemization happens
+        // Stores SkolemTrackers before skolemization happens. Later (after skolemization), they will be used to match Skolem symbols.
         tempSkolemMappings->push(SkolemTracker(Binding(w.var(), nullptr), i, false, -1, rec_fn), tempSkolemMappings);
 
         TermReplacement tr(context._indTerm, y);
@@ -1492,7 +1492,7 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
 
         FormulaList::push(new AtomicFormula(curLit), hyps); // L[y_j, w_j]
       }
-      // Stores SkolemTrackers before skolemization happens
+      // Stores SkolemTrackers before skolemization happens. Later (after skolemization), they will be used to match Skolem symbols.
       tempSkolemMappings->push(SkolemTracker(Binding(y.var(), nullptr), i, (recursive != -1) ? true : false, recursive, rec_fn), tempSkolemMappings);
     }
     Formula* antecedent = JunctionFormula::generalJunction(Connective::AND, hyps); // /\_{j ∈ P_c}  L[y_j, w_j]
@@ -1550,8 +1550,8 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   BindingList* bindingList = BindingList::empty();
 
 
-
   auto cls = produceClausesSynth(formula, InferenceRule::STRUCT_INDUCTION_AXIOM, context, bindingList);
+  // cls contains the hyperresoluted clauses
 
   SynthesisManager::getInstance()->matchSkolemSymbols(bindingList, tempSkolemMappings);
   
@@ -1562,6 +1562,8 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
     #if VDEBUG
       cout << cl->toString() << endl;
     #endif
+    cout << cl->toString() << endl;
+
     _clauses.push(cl);
   }
 }

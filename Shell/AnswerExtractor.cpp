@@ -849,7 +849,7 @@ void SynthesisManager::matchSkolemSymbols(BindingList* bindingList, SkolemTracke
   }
 }
 
-bool SynthesisManager::isRecTerm(Term* t) {
+bool SynthesisManager::isRecTerm(Term* t) { // Checks if t is a _rec_ term
   unsigned int fn = t->functor();
   List<unsigned int>::Iterator it(_recTermIds);
   while (it.hasNext()) {
@@ -861,7 +861,7 @@ bool SynthesisManager::isRecTerm(Term* t) {
   return false;
 }
 
-bool SynthesisManager::hasRecTerm(Literal* lit) {
+bool SynthesisManager::hasRecTerm(Literal* lit) { // ToDo: rewrite it recursively
   if (!lit->isEquality()) {
     return false;
   }
