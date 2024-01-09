@@ -1110,7 +1110,6 @@ void SaturationAlgorithm::activate(Clause* cl)
       return removeSelected(cl);
     }
   }
-
   {
     TIME_TRACE("splitting")
     if (_splitter && _opt.splitAtActivation()) {
@@ -1118,6 +1117,8 @@ void SaturationAlgorithm::activate(Clause* cl)
         return removeSelected(cl);
       }
     }
+    if(_splitter && _opt.conjectureMaximal())
+      _splitter->doConjecturing(cl);
   }
 
   _clauseActivationInProgress = true;
