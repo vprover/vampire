@@ -72,8 +72,7 @@ struct TermSpec {
 
   TermList term;
   int index;
-
-  bool sameTermContent(const TermSpec& ts)
+  bool sameTermContent(const TermSpec& ts) const
   {
     bool termSameContent=term.sameContent(&ts.term);
     if(!termSameContent && term.isTerm() && term.term()->isLiteral() &&
@@ -112,6 +111,23 @@ struct TermSpec {
   auto typeArgs() const { return range(0, nTypeArgs()).map([this](auto i) { return typeArg(i); }); }
   auto termArgs() const { return range(0, nTermArgs()).map([this](auto i) { return termArg(i); }); }
   auto allArgs()  const { return range(0, nAllArgs()).map([this](auto i) { return anyArg(i); }); }
+
+  bool deepEqCheck(const TermSpec& t2) const {
+    TermSpec const& t1 = *this;
+    if (t1.term.sameContent(t2.term)) {
+      return t1.isVar() ? t1.index == t2.index 
+                        : (t1.index == t2.index || t1.term.term()->ground());
+    } else {
+      if (t1.isTerm() != t2.isTerm()) return false;
+      if (t1.isVar()) {
+        ASS(t2.isVar() && (t1.term.var() != t2.term.var() || t1.term.isSpecialVar() != t2.term.isSpecialVar()))
+        return false;
+      }
+      return t1.functor() == t2.functor() 
+        && t1.allArgs().zip(t2.allArgs()).all([](auto pair) { return pair.first.deepEqCheck(pair.second); });
+    }
+  }
+
 
   TermList::Top top() const { return this->term.top(); }
   unsigned functor() const { return term.term()->functor(); }
@@ -270,6 +286,7 @@ class RobSubstitution
   mutable bool _startedBindingOutputVars;
   mutable unsigned _nextUnboundAvailable;
   mutable unsigned _nextGlueAvailable;
+  DHMap<TermSpec, unsigned> _gluedTerms;
   mutable OnlyMemorizeNonVar<TermList> _applyMemo;
 
 public:
@@ -279,6 +296,7 @@ public:
     : _startedBindingOutputVars(false)
     , _nextUnboundAvailable(0) 
     , _nextGlueAvailable(0) 
+    , _gluedTerms() 
   {}
 
   SubstIterator matches(Literal* base, int baseIndex,
@@ -341,6 +359,7 @@ public:
     _startedBindingOutputVars = false;
     _nextUnboundAvailable=0;
     _nextGlueAvailable=0;
+    _gluedTerms.reset();
     _applyMemo.reset();
   }
   bool keepRecycled() const { return _bindings.keepRecycled() || _outputVarBindings.keepRecycled(); }

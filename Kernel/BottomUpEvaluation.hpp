@@ -73,20 +73,32 @@ namespace Memo {
 template<class A>
 struct BottomUpChildIter
 {
+  /** a context argument that will be passed to every function called to the iterator. 
+   *
+   * An example for such a term are `TermSpec`s in Substitution trees which have a RobSubstution as a context
+   * and variables are automatically dereferenced according to the substitution.
+   * Concretely think for example of doing arithmetic simplifications on the term f(X0) the context { X0 -> 1 + 2 }.
+   * Passing `Context = RobSubstition*` we can evaluate it straight to `f(3)`. 
+   *
+   * Note that every type `A` must define exactly one Context. 
+   * If you want do use multiple different contexts you have to newtype A.
+   * */
+  using Context = EmptyContext;
+
   /** constructs an iterator over the children of the current node */
-  BottomUpChildIter(A a);
+  BottomUpChildIter(A a, Context c);
 
   /** returns the node this iterator was constructed with */
-  A self();
+  A self(Context c);
 
   /** returns the next child of the node this this object was constructed with */
-  A next();
+  A next(Context c);
 
   /** returns the next child of the current node in the structure to be traversed */
-  bool hasNext();
+  bool hasNext(Context c);
 
   /** returns how many children this node has */
-  unsigned nChildren();
+  unsigned nChildren(Context c);
 };
 
 template<class A> BottomUpChildIter<A> bottomUpChildIter(A a)
@@ -149,7 +161,7 @@ using NoMemo = Memo::None<Arg, Result>;
   MACRO(0, Function , function      , (std::tuple<>())           )                        \
   MACRO(1, EvNonRec , evNonRec      , (ReturnNone<Result>{})     )                        \
   MACRO(2, Memo     , memo          , (NoMemo<Arg, Result>()))                            \
-  MACRO(3, Context  , context       , (std::tuple<>())           )                        \
+  MACRO(3, Context  , context       , (EmptyContext())           )                        \
   /*    ^  ^^^^^^^^^  ^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^----> default value */
   /*    |      |         +--------------------------------------------> field name */
   /*    |      +------------------------------------------------------> type param name */

@@ -134,6 +134,15 @@ public:
     return out << "} ";
   }
 
+  virtual void output(std::ostream& out, Option<unsigned> multilineIndent) const override {
+    if (multilineIndent) {
+      out << multiline(*this, *multilineIndent);
+    } else {
+      out << *this;
+    }
+  }
+
+
 private:
   SubstitutionTree& getTree(Literal* lit, bool complementary)
   {

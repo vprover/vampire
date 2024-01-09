@@ -72,6 +72,8 @@ struct OutputInterleaved<Sep,Iter> outputInterleaved(Sep const& s, Iter i)
 
 template<class Iter>
 auto commaSep(Iter i) { return outputInterleaved(", ", std::move(i)); }
+template<class... As> 
+std::ostream& operator<<(std::ostream& out, std::tuple<As...> const& self);
 
 template<unsigned i, unsigned sz, class Tup> 
 struct __OutputTuple
@@ -84,18 +86,23 @@ struct __OutputTuple
 };
 
 template<unsigned i, class Tup> 
-struct __OutputTuple<i, i, Tup>  {
+struct __OutputTuple<i, i + 1, Tup>  {
   static void apply(std::ostream& out, Tup const& self)
   {
     out << std::get<i>(self);
   }
+};
+template<class Tup> 
+struct __OutputTuple<0, 0, Tup>  {
+  static void apply(std::ostream& out, Tup const& self)
+  { }
 };
 
 template<class... As> 
 std::ostream& operator<<(std::ostream& out, std::tuple<As...> const& self)
 { 
   out << "(";
-  Kernel::__OutputTuple<0, std::tuple_size<std::tuple<As...>>::value - 1, std::tuple<As...>>::apply(out, self);
+  Kernel::__OutputTuple<0, std::tuple_size<std::tuple<As...>>::value, std::tuple<As...>>::apply(out, self);
   out << ")";
   return out;
 }

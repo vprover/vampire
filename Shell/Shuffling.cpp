@@ -41,8 +41,9 @@ void Shuffling::polarityFlip(Problem& prb)
 
   for (unsigned p = 0; p < flippage.size(); p++) {
     auto pSymb = env.signature->getPredicate(p);
-    if (!pSymb->protectedSymbol()) { 
+    if (!pSymb->protectedSymbol() && !pSymb->termAlgebraDest()) {
       // don't try to flip interpreted or otherwise protected predicates
+      // (this includes term algebra destructors which may go to bool and thus eventually become first-order predicates)
       ASS(p); // the equality predicate (at index 0) is protected
       flippage[p] = Random::getBit();
       if (flippage[p]) {

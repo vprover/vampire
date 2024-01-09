@@ -169,6 +169,25 @@ struct IndexTest {
 };
 
 
+struct LiteralIndexTest {
+  unique_ptr<LiteralSubstitutionTree<LiteralClause>> index;
+  Options::UnificationWithAbstraction uwa;
+  bool fixedPointIteration = false;
+  Stack<Literal*> insert;
+  Literal* query;
+  Stack<LiteralUnificationResultSpec> expected;
+
+  void run() {
+    DECL_PRED(dummy, {})
+    for (auto x : this->insert) {
+      index->insert(LiteralClause(x, unit(dummy())));
+    }
+
+    checkLiteralMatches(*index, uwa, fixedPointIteration, query, expected);
+  }
+};
+
+
 #define INT_SUGAR                                                                                   \
    __ALLOW_UNUSED(                                                                                  \
       DECL_DEFAULT_VARS                                                                             \
@@ -1319,5 +1338,52 @@ RUN_TEST(top_level_constraints_2,
       },
     })
 
+RUN_TEST(literal_tree_test_01,
+    INT_SUGAR,
+    LiteralIndexTest {
+      .index = getLiteralIndex(),
+      .uwa = Options::UnificationWithAbstraction::AC2,
+      .fixedPointIteration = true,
+      .insert = {
+        x < (a + (x + 1)),
+        x < (x + a),
+      },
+      .query = x < 1 + (x + 1),
+      .expected = Stack<LiteralUnificationResultSpec>{ 
+
+      },
+    })
 
 
+RUN_TEST(literal_tree_test_02,
+    INT_SUGAR,
+    LiteralIndexTest {
+      .index = getLiteralIndex(),
+      .uwa = Options::UnificationWithAbstraction::AC1,
+      .fixedPointIteration = true,
+      .insert = {
+        x < x,
+        x < (y + 1),
+        x < (-1 + (x + 1)),
+        x < (x + -1),
+        x < y,
+        (x + 1) < x,
+        (1  + (x + 1)) < x,
+      },
+      .query = x < 1 + (x + 1),
+      .expected = Stack<LiteralUnificationResultSpec>{ 
+
+          // x < y + 1
+          LiteralUnificationResultSpec 
+          { .querySigma  = x < 1 + (x + 1),
+            .resultSigma = x < 1 + (x + 1),
+            .constraints = Stack<Literal*>{} }, 
+
+          // x < y
+          LiteralUnificationResultSpec 
+          { .querySigma  = x < 1 + (x + 1),
+            .resultSigma = x < 1 + (x + 1),
+            .constraints = Stack<Literal*>{} }, 
+
+      },
+    })

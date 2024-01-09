@@ -32,7 +32,8 @@
 #include "Debug/Output.hpp"
 #include "Debug/Tracer.hpp"
 #define DEBUG(...) // DBG(__VA_ARGS__)
-#define DEBUG_FINALIZE(LVL, ...) if (LVL <= 0) DBG(__VA_ARGS__)
+#define DEBUG_FINALIZE(LVL, ...) if (LVL < 0) DBG(__VA_ARGS__)
+#define DEBUG_UNIFY(LVL, ...) if (LVL < 0) DBG(__VA_ARGS__)
 
 namespace Kernel
 {
@@ -189,8 +190,8 @@ Option<AbstractionOracle::AbstractionResult> AbstractionOracle::tryAbstract(Abst
       Recycled<Stack<TermSpec>> diff2_;
       auto& diff1 = *diff1_;
       auto& diff2 = *diff2_;
-      diff1.moveFromIterator(iterSortedDiff(arrayIter(a1), arrayIter(a2), cmp));
-      diff2.moveFromIterator(iterSortedDiff(arrayIter(a2), arrayIter(a1), cmp));
+      diff1.loadFromIterator(iterSortedDiff(arrayIter(a1), arrayIter(a2), cmp));
+      diff2.loadFromIterator(iterSortedDiff(arrayIter(a2), arrayIter(a1), cmp));
       auto sum = [&](auto& diff) {
           return arrayIter(diff)
             .map([](TermSpec& t) -> TermSpec { return t; })
@@ -226,7 +227,6 @@ Option<AbstractionOracle::AbstractionResult> AbstractionOracle::tryAbstract(Abst
       } else {
         return some(AbstractionResult(EqualIf().constr(diffConstr())));
       }
-
 
   } else if (_mode == Shell::Options::UnificationWithAbstraction::FUNC_EXT) {
     return funcExt(au, t1, t2);
@@ -286,6 +286,7 @@ Option<Literal*> UnificationConstraint::toLiteral(RobSubstitution& s)
 
 bool AbstractingUnifier::fixedPointIteration()
 {
+  TIME_TRACE("uwa fixed point")
   Recycled<Stack<UnificationConstraint>> todo;
   while (!constr().isEmpty()) { 
     todo->push(constr().pop(bd()));
@@ -339,9 +340,9 @@ bool AbstractingUnifier::unify(TermList term1, unsigned bank1, TermList term2, u
   return unify(TermSpec(term1, bank1), TermSpec(term2, bank2), progress);
 }
 
-#define DEBUG_UNIFY(LVL, ...) if (LVL <= 0) DBG(__VA_ARGS__)
 bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
 {
+  TIME_TRACE("unification with abstraction")
   ASS_NEQ(_uwa._mode, Shell::Options::UnificationWithAbstraction::OFF) 
   DEBUG_UNIFY(1, *this, ".unify(", t1, ",", t2, ")")
   progress = false;
@@ -410,7 +411,7 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
       auto& dt1 = subs().derefBound(cur.first);
       auto& dt2 = subs().derefBound(cur.second);
       DEBUG_UNIFY(2, "popped: ", dt1, " = ", dt2)
-      if (dt1 == dt2) {
+      if (dt1.deepEqCheck(dt2)) {
         progress = true;
 
       } else if(dt1.isVar() && !occurs(dt1, dt2)) {
@@ -430,14 +431,14 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
         } else {
           ASS(absRes->is<AbstractionOracle::EqualIf>())
           auto& conditions = absRes->unwrap<AbstractionOracle::EqualIf>();
-          auto eq = [](UnificationConstraint& c, TermSpec const& lhs, TermSpec const& rhs) 
+          auto deepEqCheck = [](UnificationConstraint& c, TermSpec const& lhs, TermSpec const& rhs) 
           { 
-            return (c.lhs() == lhs && c.rhs() == rhs) 
-                || (c.lhs() == rhs && c.rhs() == lhs); };
+            return (c.lhs().deepEqCheck(lhs) && c.rhs().deepEqCheck(rhs)) 
+                || (c.lhs().deepEqCheck(rhs) && c.rhs().deepEqCheck(lhs)); };
           if (progress 
               || conditions.constr().size() != 1 
               || conditions.unify().size() != 0
-              || !eq(conditions.constr()[0], t1, t2)
+              || !deepEqCheck(conditions.constr()[0], t1, t2)
               ) {
             progress = true;
           }

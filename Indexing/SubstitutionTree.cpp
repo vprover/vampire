@@ -36,7 +36,6 @@
 
 #include <iostream>
 #include "Debug/Tracer.hpp"
-
 #if VDEBUG
 #include "Kernel/Signature.hpp"
 #include "Lib/Environment.hpp"

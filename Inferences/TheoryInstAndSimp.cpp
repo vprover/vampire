@@ -925,6 +925,9 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
 
   // we have an eligable candidate
   env.statistics->theoryInstSimpCandidates++;
+#if VTIME_PROFILING
+  static const char* THEORY_INST_SIMP = "theory instantiation";
+#endif // VTIME_PROFILING
 
   auto guards = computeGuards(selectedLiterals);
 
