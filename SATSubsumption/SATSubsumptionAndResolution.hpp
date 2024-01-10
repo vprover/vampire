@@ -402,6 +402,7 @@ private:
 #if CORRELATE_LENGTH_TIME
   public:
   double getSparsity();
+  unsigned getNumMatches();
   private:
 #endif
 
@@ -536,9 +537,7 @@ public:
       if (!logFile.is_open()) {
         std::cout << "Could not open file " << fileName << std::endl;
       } else {
-        logFile << "s_or_sr,m,n,time_ns,result,satcall,ticks";
-        // logFile << "s_or_sr,m,n,sparsity,time_ns,result";
-        // logFile << ",satcall,ticks,conflicts,decisions,propagations,max_stored_literals,original_clauses,original_amos";
+        logFile << "s_or_sr,side_len,main_len,num_matches,time_ns,result,satcall,ticks";
         logFile << std::endl;
         std::cout << "Opened file " << fileName << std::endl;
       }
