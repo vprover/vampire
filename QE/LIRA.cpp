@@ -61,14 +61,18 @@ namespace AutoSimplifyingRealOps {
   TermList operator+(TermList s, int t) { return s + Numeral(t); }
   TermList operator-(int s, TermList t) { return Numeral(s) - t; }
   TermList operator-(TermList s, int t) { return s - Numeral(t); }
+
 }
 
 using namespace AutoSimplifyingRealOps;
+Numeral operator-(Numeral const& l, int r) { return l - Numeral(r); }
+Numeral operator-(int l, Numeral const& r) { return Numeral(l) - r; }
 
 Numeral qLcm(Numeral l, Numeral r) {
   return Numeral(IntegerConstantType::lcm(l.numerator(), r.numerator()), 
                  IntegerConstantType::gcd(l.numerator(), r.numerator()));
 }
+
 enum class Connective {
   Greater, Geq, Neq, Eq,
 };
@@ -120,51 +124,13 @@ public:
       .map([=](auto n) -> TermList { return start + (n * _per); });
   }
 };
-
-struct NormTerm {
+class LiraTerm {
   TermList _term;
-};
 
-template<class Var, class One, class NumMul, class Add, class Floor>
-auto matchNormTerm(NormTerm const& nt, Var var, One one, NumMul numMul, Add add, Floor floor) -> decltype(one()) {
-  auto tl = nt._term;
-  if (tl.isVar()) {
-    return var(tl);
-  } else {
-    auto term = tl.term();
-    auto f = term->functor();
-    if (R::isNumeral(f)) {
-      return numMul(*R::tryNumeral(term), NormTerm{R::constantTl(1)});
-
-    } else if (R::isMul(f)) {
-      auto k = R::tryNumeral(term->termArg(0));
-      ASS(k.isSome())
-      return numMul(*k, NormTerm{term->termArg(1)});
-
-    } else if (R::isMinus(f)) {
-      return numMul(Numeral(-1), NormTerm{term->termArg(0)});
-
-    } else if (R::isAdd(f)) {
-      return add(NormTerm{term->termArg(0)}, NormTerm{term->termArg(1)});
-
-    } else if (R::isFloor(f)) {
-      return floor(NormTerm{term->termArg(0)});
-
-    } else {
-      return var(tl);
-
-    }
-  }
-}
-
-class NormLit {
-  TermList _term;
-  Connective _connective;
 public:
-  NormLit(TermList term, Connective connective) : _term(term), _connective(connective) {}
-  NormTerm normTerm() const { return { _term }; }
+  LiraTerm(TermList term) : _term(term) {}
+  TermList toNormalTerm() const { return _term; }
 
-  auto& connective() const { return _connective; }
   template<class Res, class TargetVar, class OtherVarOrConst, class NumMul, class Add, class Floor> 
   static auto eval(TermList t, TermList var, TargetVar targetVar, OtherVarOrConst otherVarOrConst, NumMul numMul, Add add, Floor floor) {
     return evalBottomUp<Res>(t,
@@ -202,25 +168,6 @@ public:
         });
   }
 
-  template<class Res, class One, class NumMul, class Add, class Floor> 
-  static auto evalGround(TermList t, One one, NumMul numMul, Add add, Floor floor) {
-    return eval<Res>(t, TermList::var(0),
-        /* var x     */ []() -> Res { ASSERTION_VIOLATION_REP("not ground") },
-        /* other var */ [&](TermList t)  -> Res { 
-          ASS(R::tryNumeral(t) == some(Numeral(1)))
-          // TODO this is unnecessary work because we discard the result later
-          return one();
-        }, 
-        /* k * t */ 
-        numMul,
-
-        /* l + r */ 
-        add,
-
-        /* floor(t) */ 
-        floor
-    );
-  }
 
 
   struct LinBounds {
@@ -233,15 +180,15 @@ public:
     IMPL_COMPARISONS_FROM_TUPLE(LinBounds);
   };
 
-  struct FloorLiteral {
+  struct LiraTermSummary {
     RealConstantType slope;
     RealConstantType   off;
     RealConstantType   per;
     LinBounds  linBounds;
     TermList    lim;
     Recycled<Stack<ElimTerm>> breaks;
-    friend std::ostream& operator<<(std::ostream& out, FloorLiteral const& self)
-    { return out << "FloorLiteral {...}"; }
+    friend std::ostream& operator<<(std::ostream& out, LiraTermSummary const& self)
+    { return out << "LiraTermSummary {...}"; }
 
     TermList dist(bool plus) { return plus ? linBounds.upper() : linBounds.lower; }
 
@@ -251,11 +198,12 @@ public:
     }
   };
 
-  FloorLiteral summary(TermList x) const {
-    return eval<FloorLiteral>(_term, x,
+
+  LiraTermSummary summary(TermList x) const {
+    return eval<LiraTermSummary>(_term, x,
         /* var x */ 
         [&]() { 
-          return FloorLiteral {
+          return LiraTermSummary {
               .slope = Numeral(1),
               .off = Numeral(1),
               .per = Numeral(0),
@@ -270,7 +218,7 @@ public:
 
         /* other var */ 
         [](TermList v) { 
-          return FloorLiteral {
+          return LiraTermSummary {
               .slope = Numeral(0),
               .off = Numeral(0),
               .per = Numeral(0),
@@ -285,7 +233,7 @@ public:
 
         /* k * t */ 
         [](auto k, auto t, auto res) { 
-          return FloorLiteral {
+          return LiraTermSummary {
               .slope = k * res.slope,
               .off = k * res.off,
               .per = std::move(res.per),
@@ -314,7 +262,7 @@ public:
             l->loadFromIterator(arrayIter(*r));
             return std::move(l);
           };
-          return FloorLiteral {
+          return LiraTermSummary {
               .slope = lRes.slope + rRes.slope,
               .off = lRes.off + rRes.off,
               .per = lRes.per == 0 ? rRes.per
@@ -376,7 +324,7 @@ public:
             }
           };
 
-          return FloorLiteral {
+          return LiraTermSummary {
               .slope = Numeral(0),
               .off = res.off,
               .per = newPer,
@@ -391,7 +339,156 @@ public:
     );
   }
 
-  TermList term() const { return _term; }
+  template<class Var, class One, class NumMul, class Add, class Floor>
+  auto match(Var var, One one, NumMul numMul, Add add, Floor floor) const -> decltype(one())  
+  {
+    auto tl = _term;
+    if (tl.isVar()) {
+      return var(tl);
+    } else {
+      auto term = tl.term();
+      auto f = term->functor();
+      if (R::isNumeral(f)) {
+        return numMul(*R::tryNumeral(term), LiraTerm(R::constantTl(1)));
+
+      } else if (R::isMul(f)) {
+        auto k = R::tryNumeral(term->termArg(0));
+        ASS(k.isSome())
+        return numMul(*k, LiraTerm(term->termArg(1)));
+
+      } else if (R::isMinus(f)) {
+        return numMul(Numeral(-1), LiraTerm(term->termArg(0)));
+
+      } else if (R::isAdd(f)) {
+        return add(LiraTerm(term->termArg(0)), LiraTerm(term->termArg(1)));
+
+      } else if (R::isFloor(f)) {
+        return floor(LiraTerm(term->termArg(0)));
+
+      } else {
+        return var(tl);
+
+      }
+    }
+  }
+
+  friend std::ostream& operator<<(std::ostream& out, LiraTerm const& self)
+  { return out << self._term; }
+
+};
+
+/** represents _term != epsilon */
+class EpsLit {
+  LiraTerm _term;
+public:
+
+  EpsLit(TermList term) 
+    : _term(term) 
+  {}
+
+  LiraTerm term() const { return _term; }
+};
+
+
+
+class NormLit 
+{
+  LiraTerm _term;
+  Connective _connective;
+public:
+  NormLit(TermList term, Connective connective) : _term(term), _connective(connective) {}
+  // NormTerm normTerm() const { return { _term }; }
+
+  auto& connective() const { return _connective; }
+  // template<class Res, class TargetVar, class OtherVarOrConst, class NumMul, class Add, class Floor> 
+  // static auto eval(TermList t, TermList var, TargetVar targetVar, OtherVarOrConst otherVarOrConst, NumMul numMul, Add add, Floor floor) {
+  //   return evalBottomUp<Res>(t,
+  //       [=](auto& orig, auto* args) {
+  //         if (orig == var) {
+  //           return targetVar();
+  //         } else {
+  //           auto f = orig.term()->functor();
+  //           auto origArg = [=](auto i) { return orig.term()->termArg(i); };
+  //           if (R::isMul(f)) {
+  //             auto k = R::tryNumeral(origArg(0));
+  //             ASS(k.isSome())
+  //             return numMul(k.unwrap(), orig, std::move(args[1]));
+  //
+  //
+  //           } else if (R::tryNumeral(orig)) {
+  //             return numMul(R::tryNumeral(orig).unwrap(), R::constantTl(1), otherVarOrConst(R::constantTl(1)));
+  //
+  //           } else if (R::isMinus(f)) {
+  //             return numMul(Numeral(-1), origArg(0), std::move(args[0]));
+  //
+  //           } else if (R::isAdd(f)) {
+  //             return add(origArg(0), origArg(1), std::move(args[0]), std::move(args[1]));
+  //
+  //           } else if (R::isFloor(f)) {
+  //             return floor(origArg(0), std::move(args[0]));
+  //
+  //           } else {
+  //             // we can't compute the slope for non-constants as they might contain variables. 
+  //             // if we'd want to do that we'd have to extend the theory and this will be surely undecidable in general.
+  //             ASS_EQ(orig.term()->arity(), 0)
+  //             return otherVarOrConst(orig);
+  //           }
+  //         }
+  //       });
+  // }
+
+  // template<class Res, class One, class NumMul, class Add, class Floor> 
+  // static auto evalGround(TermList t, One one, NumMul numMul, Add add, Floor floor) {
+  //   return eval<Res>(t, TermList::var(0),
+  //       /* var x     */ []() -> Res { ASSERTION_VIOLATION_REP("not ground") },
+  //       /* other var */ [&](TermList t)  -> Res { 
+  //         ASS(R::tryNumeral(t) == some(Numeral(1)))
+  //         // TODO this is unnecessary work because we discard the result later
+  //         return one();
+  //       }, 
+  //       /* k * t */ 
+  //       numMul,
+  //
+  //       /* l + r */ 
+  //       add,
+  //
+  //       /* floor(t) */ 
+  //       floor
+  //   );
+  // }
+
+
+  // struct LinBounds {
+  //   TermList lower;
+  //   Numeral delta;
+  //   TermList upper() const { return lower + delta; }
+  //   auto asTuple() const { return std::tie(lower, delta); }
+  //   friend std::ostream& operator<<(std::ostream& out, LinBounds const& self)
+  //   { return out << "[" << self.lower << " (+ " << self.delta << ") ]"; }
+  //   IMPL_COMPARISONS_FROM_TUPLE(LinBounds);
+  // };
+  //
+  // struct FloorLiteral {
+  //   RealConstantType slope;
+  //   RealConstantType   off;
+  //   RealConstantType   per;
+  //   LinBounds  linBounds;
+  //   TermList    lim;
+  //   Recycled<Stack<ElimTerm>> breaks;
+  //   friend std::ostream& operator<<(std::ostream& out, FloorLiteral const& self)
+  //   { return out << "FloorLiteral {...}"; }
+  //
+  //   TermList dist(bool plus) { return plus ? linBounds.upper() : linBounds.lower; }
+  //
+  //   auto xMinusInf() {
+  //     ASS(off != 0)
+  //     return (-1 / off) * dist(off.isPositive());
+  //   }
+  // };
+
+  
+
+  LiraTerm term() const { return _term; }
 
   static NormLit from(Literal* lit) {
     auto l = lit->termArg(0);
@@ -417,6 +514,11 @@ public:
   { return out << self.term() << " " << self.connective() << " 0"; }
 };
 
+class LiraLiteral : public Coproduct<NormLit, EpsLit> {
+public:
+  using Coproduct::Coproduct;
+};
+
 bool isIneq(Connective c) {
   switch (c) {
     case Connective::Greater:
@@ -439,13 +541,13 @@ bool isInclusive(Connective c) {
 auto elimSet(TermList var, NormLit const& lit) {
   bool incl = true;
   bool excl = !incl;
-  auto phi = make_shared(lit.summary(var));
+  auto phi = make_shared(lit.term().summary(var));
   auto slope = phi->slope;
   auto breaksIter = [=]() {
     return range(0, phi->breaks->size())
               .map([=](auto i) { return (*phi->breaks)[i]; });
   };
-  auto term = lit.term();
+  auto term = lit.term().toNormalTerm();
 
   auto maybeEps = [=](auto t) { 
     switch(lit.connective()) {
@@ -599,26 +701,24 @@ struct CDVSFormula
 
 };
 
-Numeral simplGround(TermList t) {
-  return NormLit::evalGround<Numeral>(t, 
-      /* 1        */ [&]() { return Numeral(1); },
-      /* k * t    */ [&](auto k, auto t, auto tRes) { return k * tRes; },
-      /* l + r    */ [&](auto l, auto r, auto lRes, auto rRes) { return lRes + rRes; },
-      /* floor(t) */ [&](auto t, auto tRes) { return tRes.floor(); });
-}
-
-bool simplGround(NormLit lit) {
-  Numeral v = simplGround(lit.term());
-  switch (lit.connective()) {
-    case Connective::Greater: return v >  0;
-    case Connective::Geq:     return v >= 0;
-    case Connective::Neq:     return v != 0;
-    case Connective::Eq:      return v == 0;
-  }
-
-}
-
-struct Assignment;
+// Numeral simplGround(TermList t) {
+//   return NormLit::evalGround<Numeral>(t, 
+//       /* 1        */ [&]() { return Numeral(1); },
+//       /* k * t    */ [&](auto k, auto t, auto tRes) { return k * tRes; },
+//       /* l + r    */ [&](auto l, auto r, auto lRes, auto rRes) { return lRes + rRes; },
+//       /* floor(t) */ [&](auto t, auto tRes) { return tRes.floor(); });
+// }
+//
+// bool simplGround(NormLit lit) {
+//   Numeral v = simplGround(lit.term());
+//   switch (lit.connective()) {
+//     case Connective::Greater: return v >  0;
+//     case Connective::Geq:     return v >= 0;
+//     case Connective::Neq:     return v != 0;
+//     case Connective::Eq:      return v == 0;
+//   }
+//
+// }
 
 struct Assignment {
   TermList var;
@@ -629,6 +729,8 @@ struct Assignment {
     , val(val)
   {}
 
+  friend std::ostream& operator<<(std::ostream& out, Assignment const& self)
+  { return out << self.var << " -> " << self.val; }
 };
 
 class Assignments {
@@ -639,6 +741,9 @@ public:
   Assignment pop() { return _asgn.pop(); }
   auto iter() const 
   { return arrayIter(_asgn); }
+
+  friend std::ostream& operator<<(std::ostream& out, Assignments const& self)
+  { return out << self._asgn; }
 };
 struct NfFormula;
 struct Conj 
@@ -654,17 +759,17 @@ struct Disj
 };
 
 struct NfFormula 
-  : public Coproduct<NormLit, Conj, Disj> 
+  : public Coproduct<LiraLiteral, Conj, Disj> 
 {
     using Coproduct::Coproduct;
 };
 
 class NfFormulaIter {
-  Recycled<Stack<NormLit>> _lits;
+  Recycled<Stack<LiraLiteral>> _lits;
   void fill(NfFormula const& phi) 
   {
     return phi.match(
-        [&](NormLit const& l) { return _lits->push(l); },
+        [&](LiraLiteral const& l) { return _lits->push(l); },
         [&](Conj const& c) { fill(*c.lhs); fill(*c.rhs); },
         [&](Disj const& c) { fill(*c.lhs); fill(*c.rhs); });
   }
@@ -676,15 +781,16 @@ public:
     fill(phi);
   }
 
-  DECL_ELEMENT_TYPE(NormLit);
+  DECL_ELEMENT_TYPE(LiraLiteral);
 
-  NormLit next() { return _lits->pop(); }
+  LiraLiteral next() { return _lits->pop(); }
   bool hasNext() { return _lits->isNonEmpty(); }
 };
 
 
 auto elimSet(TermList var, NfFormula const& phi) {
   return iterTraits(NfFormulaIter(phi))
+    .map([](auto l) { return l.template as<NormLit>().unwrap(); })
     .flatMap([&](auto lit) { return elimSet(var, lit); });
 }
 
@@ -706,29 +812,29 @@ auto elimSet(TermList var, NfFormula const& phi) {
 BIN_OP(&&, Conj)
 BIN_OP(||, Disj)
 
-Option<Numeral> trivEval(NormTerm const& phi)
+Option<Numeral> trivEval(LiraTerm const& phi)
 {
-  return matchNormTerm(phi
-      , [&](TermList var) -> Option<Numeral> { return {}; }
+  return phi.match(
+        [&](TermList var) -> Option<Numeral> { return {}; }
       , [&]() { return some(Numeral(1)); }
-      , [&](Numeral k, NormTerm t) { 
+      , [&](Numeral k, LiraTerm t) { 
           return k == 0 ? some(Numeral(0)) 
                         : trivEval(t).map([&](auto n) { return k * n; }); 
         }
-      , [&](NormTerm lhs, NormTerm rhs) { 
+      , [&](LiraTerm lhs, LiraTerm rhs) { 
           auto l = trivEval(lhs);
           if (l.isNone()) return l;
           auto r = trivEval(rhs);
           if (r.isNone()) return r;
           return some(*l + *r);
         }      
-      , [&](NormTerm t) { 
+      , [&](LiraTerm t) { 
           return trivEval(t).map([](auto n) { return n.floor(); });
       });
 }
 
 Option<bool> trivEval(NormLit const& phi) {
-  return trivEval(phi.normTerm())
+  return trivEval(phi.term())
     .map([&](Numeral const& n) {
         switch (phi.connective()) {
           case Connective::Greater: return n >  0;
@@ -743,30 +849,50 @@ NfFormula vsubs(NormLit const& phi, TermList var, FiniteElimTerm const& val)
   ASS(val.period().isNone())
 
   if (val.epsilon().isNone())  {
-    return NfFormula(NormLit(EqHelper::replace(phi.term(), var, val.term()), phi.connective()));
+    return NfFormula(LiraLiteral(NormLit(EqHelper::replace(phi.term().toNormalTerm(), var, val.term()), phi.connective())));
   } else {
-    auto sum = phi.summary(var);
+    auto sum = phi.term().summary(var);
     auto limSubs = [&]() { return EqHelper::replace(sum.lim, var, val.term()); };
     if (isIneq(phi.connective()))  {
-      return NfFormula(NormLit(limSubs()
+      return NfFormula(LiraLiteral(NormLit(limSubs()
                           , sum.slope >  0 ? Connective::Geq 
                           : sum.slope == 0 ? phi.connective()
-                          :                  Connective::Greater));
+                          :                  Connective::Greater)));
     } else {
-      return NfFormula(NormLit(sum.slope == 0 ? limSubs()         // <- (~) lim[t] = 0
+      return NfFormula(LiraLiteral(NormLit(sum.slope == 0 ? limSubs()         // <- (~) lim[t] = 0
                                               : R::constantTl(1), // <- (~) 1 = 0
-                                              phi.connective()));
+                                              phi.connective())));
     }
 
   }
 }
+
+
+NfFormula vsubs(EpsLit const& lit, TermList var, FiniteElimTerm const& val)
+{ 
+  auto phi = lit.term();
+  ASS(val.period().isNone())
+  if (val.epsilon()) {
+    auto sum = phi.summary(var);
+    auto limT = EqHelper::replace(sum.lim, var, val.term());
+    return NfFormula(
+        sum.slope == 1 ? LiraLiteral(NormLit(limT, Connective::Neq))
+                       : LiraLiteral(EpsLit((1 / (1 - sum.slope)) * limT)));
+  } else {
+    /* phi[x//t] !~ eps => phi[x/t] !~ eps */ 
+    return NfFormula(LiraLiteral(EpsLit(EqHelper::replace(phi.toNormalTerm(), var, val.term()))));
+  }
+}
+
+NfFormula vsubs(LiraLiteral const& phi, TermList var, FiniteElimTerm const& val) 
+{ return phi.apply([&](auto l) { return vsubs(l, var, val); }); }
 
 NfFormula vsubs(NfFormula const& phi, TermList var, FiniteElimTerm const& val)
 {
   ASS(val.period().isNone())
 
   return phi.match(
-      [&](NormLit const& l) { return vsubs(l, var, val); },
+      [&](LiraLiteral const& l) { return vsubs(l, var, val); },
       [&](Conj const& c) { return vsubs(*c.lhs, var, val) && vsubs(*c.rhs,var,val); },
       [&](Disj const& c) { return vsubs(*c.lhs, var, val) || vsubs(*c.rhs,var,val); });
 }
@@ -783,11 +909,19 @@ NfFormula vsubs(NfFormula const& phi, Assignments const& asgn) {
   return res;
 }
 
+
+Option<bool> trivEval(EpsLit const& phi)
+{
+  auto t = trivEval(phi.term());
+  return someIf(t.isSome(), []() { return false; });
+}
+
+Option<bool> trivEval(LiraLiteral const& phi) 
+{ return phi.apply([&](auto l) { return trivEval(l); }); }
+
 Option<bool> trivEval(NfFormula const& phi) {
   return phi.match(
-      [&](NormLit const& l) {
-        return trivEval(l);
-      },
+      [&](LiraLiteral const& l) { return trivEval(l); },
       [&](Conj const& c) -> Option<bool> {
         auto l = trivEval(*c.lhs);
         auto r = trivEval(*c.lhs);
@@ -821,11 +955,14 @@ bool _decide(Stack<TermList> vars, Stack<NormLit> const& lits)
   Stack<std::shared_ptr<NfFormula>> phi_hist;
   if (lits.isEmpty()) return true;
   phi_hist.push(make_shared(arrayIter(lits)
+      .map([](auto l) { return LiraLiteral(l); })
       .map([](auto l) { return NfFormula(l); })
       .fold([](auto l, auto r) { return l && r; })
       .unwrap()));
   Stack<std::shared_ptr<NfFormula>> lemma_hist;
-  auto learn = []() -> NfFormula {ASSERTION_VIOLATION_REP("TODO")};
+  auto learn = [&]() -> NfFormula {
+    DBGE(assignment);
+    ASSERTION_VIOLATION_REP("TODO")};
 
   do {
     auto triv = trivEval(phi_hist.top() && lemma_hist.top());

@@ -740,7 +740,7 @@ extern Theory* theory;
 
 std::ostream& operator<<(std::ostream& out, Kernel::Theory::Interpretation const& self);
 
-}
+} // namespace Kernel
 
 template<>
 struct std::hash<Kernel::IntegerConstantType>
