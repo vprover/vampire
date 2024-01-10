@@ -31,6 +31,8 @@
 
 #include "Tracer.hpp"
 #include "Lib/System.hpp"
+#include "Lib/Environment.hpp"
+#include "Shell/Options.hpp"
 
 // define in version.cpp.in
 extern const char* VERSION_STRING;
@@ -54,6 +56,7 @@ void Debug::Tracer::printStack(std::ostream& str) {
     str << ' ' << call_stack[sz - (i + 1)];
   str << std::endl;
 
+  if (env.options->traceback()) {
 // UNIX-like systems, including BSD and Linux but not MacOS
 #if defined(__unix__)
   str << "invoking addr2line(1) ..." << std::endl;
@@ -74,6 +77,7 @@ void Debug::Tracer::printStack(std::ostream& str) {
   // TODO symbol lookup support for other platforms
   str << "no symbol lookup support for this platform yet" << std::endl;
 #endif
+  }
 
 #else
   // TODO backtrace support for other platforms
