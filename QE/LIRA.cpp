@@ -762,6 +762,9 @@ struct NfFormula
   : public Coproduct<LiraLiteral, Conj, Disj> 
 {
     using Coproduct::Coproduct;
+
+    static NfFormula top() { return NfFormula(LiraLiteral(NormLit(R::constantTl(0), Connective::Eq))); }
+    static NfFormula bot() { return NfFormula(LiraLiteral(NormLit(R::constantTl(0), Connective::Neq))); }
 };
 
 class NfFormulaIter {
@@ -913,7 +916,7 @@ NfFormula vsubs(NfFormula const& phi, Assignments const& asgn) {
 Option<bool> trivEval(EpsLit const& phi)
 {
   auto t = trivEval(phi.term());
-  return someIf(t.isSome(), []() { return false; });
+  return someIf(t.isSome(), []() { return true; });
 }
 
 Option<bool> trivEval(LiraLiteral const& phi) 
@@ -960,6 +963,7 @@ bool _decide(Stack<TermList> vars, Stack<NormLit> const& lits)
       .fold([](auto l, auto r) { return l && r; })
       .unwrap()));
   Stack<std::shared_ptr<NfFormula>> lemma_hist;
+  lemma_hist.push(make_shared(NfFormula::top()));
   auto learn = [&]() -> NfFormula {
     DBGE(assignment);
     ASSERTION_VIOLATION_REP("TODO")};
