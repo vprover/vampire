@@ -924,7 +924,7 @@ bool SATSubsumptionAndResolution::checkSubsumptionImpl(Clause *L,
 #if CORRELATE_LENGTH_TIME
     stop = clock::now();
     auto const duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-    if (log && (duration_ns > 1ms || _solver.stats().ticks >= 100)) {
+    if (log /* && (duration_ns > 1ms || _solver.stats().ticks >= 100) */) {
       logFile << 0 /* S */ << ","
               << _L->length() << ","
               << _M->length() << ","
@@ -945,7 +945,7 @@ bool SATSubsumptionAndResolution::checkSubsumptionImpl(Clause *L,
 #if CORRELATE_LENGTH_TIME
   stop = clock::now();
   auto const duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-  if (log && (duration_ns > 1ms || _solver.stats().ticks >= 100)) {
+  if (log /* && (duration_ns > 1ms || _solver.stats().ticks >= 100) */) {
     logFile << 0 /* S */ << ","
             << _L->length() << ","
             << _M->length() << ","
@@ -1031,7 +1031,7 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause *L,
 #if CORRELATE_LENGTH_TIME
     stop = clock::now();
     auto const duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-    if (log && (duration_ns > 1ms || _solver.stats().ticks >= 100)) {
+    if (log /* && (duration_ns > 1ms || _solver.stats().ticks >= 100) */) {
       logFile << 1 /* SR */ << ","
               << _L->length() << ","
               << _M->length() << ","
@@ -1070,7 +1070,7 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause *L,
 #if CORRELATE_LENGTH_TIME
   stop = clock::now();
   auto const duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-  if (log && (duration_ns > 1ms || _solver.stats().ticks >= 100)) {
+  if (log /* && (duration_ns > 1ms || _solver.stats().ticks >= 100) */) {
     logFile << 1 /* SR */ << ","
             << _L->length() << ","
             << _M->length() << ","
