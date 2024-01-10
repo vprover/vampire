@@ -80,22 +80,28 @@ struct __OutputTuple
 {
   static void apply(std::ostream& out, Tup const& self)
   {
-    out << std::get<i>(self) << ", ";
+   out << ", " << std::get<i>(self);
     __OutputTuple<i + 1, sz, Tup>::apply(out, self);
   }
 };
 
-template<unsigned i, class Tup> 
-struct __OutputTuple<i, i + 1, Tup>  {
+template<> 
+struct __OutputTuple<0, 0, std::tuple<>>  
+{ static void apply(std::ostream& out, std::tuple<> const& self) { } };
+
+template<unsigned sz, class Tup> 
+struct __OutputTuple<sz, sz, Tup>  
+{ static void apply(std::ostream& out, Tup const& self) { } };
+
+
+template<unsigned sz, class Tup> 
+struct __OutputTuple<0, sz, Tup>  
+{
   static void apply(std::ostream& out, Tup const& self)
   {
-    out << std::get<i>(self);
+    out << std::get<0>(self);
+    __OutputTuple<1, sz, Tup>::apply(out, self);
   }
-};
-template<class Tup> 
-struct __OutputTuple<0, 0, Tup>  {
-  static void apply(std::ostream& out, Tup const& self)
-  { }
 };
 
 template<class... As> 
