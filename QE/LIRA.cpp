@@ -196,6 +196,10 @@ public:
       ASS(off != 0)
       return (-1 / off) * dist(off.isPositive());
     }
+    auto deltaInf() {
+      ASS(off != 0) 
+      return (-1 / off) * linBounds.delta;
+    }
   };
 
 
@@ -790,11 +794,37 @@ public:
   bool hasNext() { return _lits->isNonEmpty(); }
 };
 
+auto iterNormLits(NfFormula const& phi) {
+  return iterTraits(NfFormulaIter(phi))
+    .map([](auto l) { return l.template as<NormLit>().unwrap(); });
+}
 
 auto elimSet(TermList var, NfFormula const& phi) {
-  return iterTraits(NfFormulaIter(phi))
-    .map([](auto l) { return l.template as<NormLit>().unwrap(); })
-    .flatMap([&](auto lit) { return elimSet(var, lit); });
+  return iterNormLits(phi)
+    .flatMap([&](auto lit) { return elimSet(var, lit); })
+    .flatMap([&](auto t_) {
+        auto t = t_.asFinite().unwrap();
+        // return getSingletonIterator(t_);
+        return ifElseIter(t.period().isNone()
+            , [=]() { return getSingletonIterator(t_); }
+            , [=]() { 
+              auto p = t.period().unwrap();
+              auto eps = t.epsilon();
+              auto bigPeriod = iterNormLits(phi)
+                .map([=](auto l) { return l.term().summary(var).per; })
+                .fold([=](auto l, auto r) { return qLcm(l,r); })
+                .unwrap();
+
+              return iterNormLits(phi)
+                .flatMap([=](auto l) { 
+                    auto phi = l.term().summary(var);
+                    return Grid(t)
+                      .intersect(true, phi.xMinusInf(), bigPeriod + phi.deltaInf(), true); })
+                      .map([=](auto t2) { return ElimTerm(FiniteElimTerm(t2, eps, {})); })
+                          ;
+                }
+            );
+    });
 }
 
 
