@@ -1184,6 +1184,9 @@ void SaturationAlgorithm::activate(Clause* cl)
     _active->remove(cl);
   }
 
+  if(_splitter && _opt.conjectureMaximal())
+    _splitter->doConjecturing(cl);
+
   return;
 }
 
