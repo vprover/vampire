@@ -934,7 +934,7 @@ bool SATSubsumptionAndResolution::checkSubsumptionImpl(Clause *L,
               << duration_ns.count() << ","
               << 0 /* result */ << ","
               << 0 /* no SAT call */ << ","
-              << 0 /* SAT ticks */ << "\n";
+              << 0 /* SAT ticks */ << std::endl;
     }
 #endif
     return false;
@@ -955,7 +955,7 @@ bool SATSubsumptionAndResolution::checkSubsumptionImpl(Clause *L,
             << duration_ns.count() << ","
             << subsumed /* result */ << ","
             << 1 /* SAT call */ << ","
-            << _solver.stats().ticks << "\n";
+            << _solver.stats().ticks << std::endl;
   }
 #endif
   return subsumed;
@@ -1041,7 +1041,7 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause *L,
               << duration_ns.count() << ","
               << 0 /* result */ << ","
               << 0 /* no SAT call */ << ","
-              << 0 /* SAT ticks */ << "\n";
+              << 0 /* SAT ticks */ << std::endl;
     }
 #endif
     return nullptr;
@@ -1080,7 +1080,7 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause *L,
             << duration_ns.count() << ","
             << !!conclusion /* result */ << ","
             << 1 /* SAT call */ << ","
-            << _solver.stats().ticks << "\n";
+            << _solver.stats().ticks << std::endl;
   }
 #endif
   // If the problem is SAT, then generate the conclusion clause
