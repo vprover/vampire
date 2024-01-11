@@ -126,7 +126,8 @@ bool ForwardBenchmarkWrapper::perform(Clause *cl, Clause *&replacement, ClauseIt
 
   auto duration = chrono::duration_cast<chrono::nanoseconds>(stop - start);
   totalDuration += duration;
-  outputFile << round_to_n_digits(duration.count(), 1) << endl;
+  // outputFile << round_to_n_digits(duration.count(), 1) << std::endl;
+  outputFile << duration.count() << std::endl;
 #endif
 
   /* Then compute the output using the oracle */
