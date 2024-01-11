@@ -34,14 +34,13 @@
 
 namespace SATSubsumption {
 
-
 /**
  * Class implementing the simplifying rules of subsumption and subsumption resolution using
  * a SAT solver.
  */
 class SATSubsumptionAndResolution {
 #if VDEBUG
-// Make it public to allow unit testing
+  // Make it public to allow unit testing
 public:
 #else
 private:
@@ -54,21 +53,24 @@ private:
   /**
    * Slice type representing some contiguous range of memory.
    */
-  template<typename T>
+  template <typename T>
   class Slice {
   public:
     Slice(T *begin, T *end) : _begin(begin), _end(end) {}
     unsigned size() const { return _end - _begin; };
-    T operator[](unsigned i) const {
+    T operator[](unsigned i) const
+    {
       ASS_L(i, size())
       return _begin[i];
     }
-    const T &back() const {
+    const T &back() const
+    {
       ASS_G(size(), 0)
       return *(_end - 1);
     }
     T *begin() const { return _begin; }
     T *end() const { return _end; }
+
   private:
     T *_begin;
     T *_end;
@@ -185,26 +187,27 @@ private:
     Lib::vvector<unsigned> _indexJ;
 
     /// @brief all matches, ordered by row
-    vvector<Match> &allMatches() {
+    vvector<Match> &allMatches()
+    {
       return _matchesByI;
     }
 
     /// @brief get the matches at row i
-    Slice<Match> getIMatches(unsigned i) {
+    Slice<Match> getIMatches(unsigned i)
+    {
       ASS_L(i, _indexI.size())
       return Slice<Match>(
-        &_matchesByI[_indexI[i]],
-        &_matchesByI[_indexI[i + 1]]
-      );
+          &_matchesByI[_indexI[i]],
+          &_matchesByI[_indexI[i + 1]]);
     }
 
     /// @brief get the matches at column j
-    Slice<Match> getJMatches(unsigned j) {
+    Slice<Match> getJMatches(unsigned j)
+    {
       ASS_L(j, _indexJ.size())
       return Slice<Match>(
-        &_matchesByJ[_indexJ[j]],
-        &_matchesByJ[_indexJ[j + 1]]
-      );
+          &_matchesByJ[_indexJ[j]],
+          &_matchesByJ[_indexJ[j + 1]]);
     }
 
     /**
@@ -216,7 +219,8 @@ private:
      *
      * @warning the allocated matches will remain accessible but will be no longer be reserved. It would therefore be preferable to not keep the matches after calling this function.
      */
-    void resize(unsigned m, unsigned n) {
+    void resize(unsigned m, unsigned n)
+    {
       ASS_G(m, 0)
       ASS_G(n, 0)
       _jStates.resize(n / 4 + 1, 0);
@@ -285,7 +289,8 @@ private:
      * @param v the variable
      * @return true if the variable is a match variable
      */
-    bool isMatchVar(subsat::Var v) {
+    bool isMatchVar(subsat::Var v)
+    {
       return v.index() < _matchesByI.size();
     }
 
@@ -365,7 +370,7 @@ private:
    * @param M the instance clause
    */
   void loadProblem(Kernel::Clause *L,
-                    Kernel::Clause *M);
+                   Kernel::Clause *M);
 
   /**
    * Heuristically predicts whether subsumption or subsumption resolution will fail.
@@ -399,11 +404,12 @@ private:
                   bool polarity,
                   bool isNullary);
 
-#if CORRELATE_LENGTH_TIME
-  public:
   double getSparsity();
+#if CORRELATE_LENGTH_TIME
+public:
   unsigned getNumMatches();
-  private:
+
+private:
 #endif
 
   /**
@@ -417,13 +423,13 @@ private:
 
   /**
    * Allows to force using the direct encoding for subsumption resolution
-  */
+   */
   bool forceDirectEncoding = false;
   /**
    * Allows to force using the indirect encoding for subsumption resolution
    *
    * @details if both forceDirectEncoding and forceIndirectEncoding are set to true, the direct encoding will be used
-  */
+   */
   bool forceIndirectEncoding = false;
 
   /**
@@ -435,7 +441,7 @@ private:
    * @details The encoding must use the variables in the MatchSet. It may add new variables
    * to the SAT solver, but the variables in the MatchSet must be used to interpret the model
    * and build the conclusion.
-  */
+   */
   // using EncodingMethod = std::function<bool ()>;
 
   /**
@@ -444,11 +450,11 @@ private:
    * The heuristic uses the data available in the SATSubsumptionAndResolution object
    *
    * @return the encoding method
-  */
+   */
   EncodingMethod chooseEncoding();
 
   /**
-  * Adds the clauses for the subsumption resolution problem to the sat solver
+   * Adds the clauses for the subsumption resolution problem to the sat solver
    *
    * @remark The BindingsManager is not required to be set up in this method.
    * @pre _L and _M must be set in the checker
@@ -458,7 +464,7 @@ private:
   bool directEncodingForSubsumptionResolution();
 
   /**
-  * Adds the clauses for the subsumption resolution problem to the sat solver
+   * Adds the clauses for the subsumption resolution problem to the sat solver
    *
    * @remark The BindingsManager is not required to be set up in this method.
    * @pre _L and _M must be set in the checker
@@ -519,24 +525,24 @@ public:
   bool log;
 #endif
 
-  SATSubsumptionAndResolution(bool log = false) :
-    _L(nullptr),
-    _M(nullptr),
-    _m(0),
-    _n(0)
+  SATSubsumptionAndResolution(bool log = false) : _L(nullptr),
+                                                  _M(nullptr),
+                                                  _m(0),
+                                                  _n(0)
   {
 #if CORRELATE_LENGTH_TIME
     this->log = log;
     if (log) {
       vstring fileName = "outputs/data_" + env.options->problemName() + ("_" SAT_SR_IMPL_NAME);
-      #if USE_OPTIMIZED_FORWARD
-        fileName += "_opt";
-      #endif
+#if USE_OPTIMIZED_FORWARD
+      fileName += "_opt";
+#endif
       fileName += ".csv";
       logFile.open(fileName.c_str());
       if (!logFile.is_open()) {
         std::cout << "Could not open file " << fileName << std::endl;
-      } else {
+      }
+      else {
         logFile << "s_or_sr,side_len,main_len,num_matches,time_ns,result,satcall,ticks";
         logFile << std::endl;
         std::cout << "Opened file " << fileName << std::endl;
@@ -549,7 +555,7 @@ public:
 #endif
   }
 
-  void beginLoop(Kernel::Clause* main_premise)
+  void beginLoop(Kernel::Clause *main_premise)
   {
 #if LOG_SSR_CLAUSES
     _logger->beginLoop(main_premise);
@@ -575,8 +581,9 @@ public:
 
   /**
    * Forces the encoding to be direct for subsumption resolution
-  */
-  void forceDirectEncodingForSubsumptionResolution() {
+   */
+  void forceDirectEncodingForSubsumptionResolution()
+  {
     std::cout << "Forcing direct encoding for subsumption resolution" << std::endl;
     forceDirectEncoding = true;
     forceIndirectEncoding = false;
@@ -584,8 +591,9 @@ public:
 
   /**
    * Forces the encoding to be indirect for subsumption resolution
-  */
-  void forceIndirectEncodingForSubsumptionResolution() {
+   */
+  void forceIndirectEncodingForSubsumptionResolution()
+  {
     std::cout << "Forcing indirect encoding for subsumption resolution" << std::endl;
     forceDirectEncoding = false;
     forceIndirectEncoding = true;
@@ -593,8 +601,9 @@ public:
 
   /**
    * Forces to use the heuristic encoding for subsumption resolution
-  */
-  void forceHeuristicEncodingForSubsumptionResolution() {
+   */
+  void forceHeuristicEncodingForSubsumptionResolution()
+  {
     forceDirectEncoding = false;
     forceIndirectEncoding = false;
   }

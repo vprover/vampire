@@ -256,11 +256,11 @@ void SATSubsumptionAndResolution::addBinding(BindingsManager::Binder *binder,
     _bindingsManager.commit_bindings(*binder, satVar, i, j);
 } // SATSubsumptionAndResolution::addBinding
 
-#if CORRELATE_LENGTH_TIME
 double SATSubsumption::SATSubsumptionAndResolution::getSparsity()
 {
   return (double)_matchSet.allMatches().size() / (double)(_n * _m);
 }
+#if CORRELATE_LENGTH_TIME
 unsigned SATSubsumption::SATSubsumptionAndResolution::getNumMatches()
 {
   return _matchSet.allMatches().size();
@@ -469,7 +469,7 @@ SATSubsumptionAndResolution::EncodingMethod SATSubsumption::SATSubsumptionAndRes
     return DIRECT;
   if (forceIndirectEncoding)
     return INDIRECT;
-  if (_L->length() <= 3)
+  if (_L->length() <= 3 && ((_M->length() <= 37 && getSparsity() <= 1.185) || _L->length() >= 3))
     return DIRECT;
   return INDIRECT;
 }
@@ -963,7 +963,7 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolution(Clause *L,
                                                                 Clause *M,
                                                                 bool usePreviousSetUp)
 {
-  Clause* result = checkSubsumptionResolutionImpl(L, M, usePreviousSetUp);
+  Clause *result = checkSubsumptionResolutionImpl(L, M, usePreviousSetUp);
 #if LOG_SSR_CLAUSES
   _logger->logSubsumptionResolution(L, M, result);
 #endif
