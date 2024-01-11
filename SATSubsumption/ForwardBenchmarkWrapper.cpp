@@ -114,11 +114,15 @@ bool ForwardBenchmarkWrapper::perform(Clause *cl, Clause *&replacement, ClauseIt
   ClauseIterator premiseAux;
   Clause *replacementAux = nullptr;
 #if !CORRELATE_LENGTH_TIME
+  COMPILER_FENCE;
   auto start = benchmark_clock::now();
+  COMPILER_FENCE;
 #endif
   bool resultAux = _forwardBenchmark.perform(cl, replacementAux, premiseAux);
 #if !CORRELATE_LENGTH_TIME
+  COMPILER_FENCE;
   auto stop = benchmark_clock::now();
+  COMPILER_FENCE;
 
   auto duration = chrono::duration_cast<chrono::nanoseconds>(stop - start);
   totalDuration += duration;
@@ -126,9 +130,13 @@ bool ForwardBenchmarkWrapper::perform(Clause *cl, Clause *&replacement, ClauseIt
 #endif
 
   /* Then compute the output using the oracle */
+  COMPILER_FENCE;
   auto start_oracle = benchmark_clock::now();
+  COMPILER_FENCE;
   bool result = _forwardOracle.perform(cl, replacement, premises);
+  COMPILER_FENCE;
   auto stop_oracle = benchmark_clock::now();
+  COMPILER_FENCE;
   auto duration_oracle = chrono::duration_cast<chrono::nanoseconds>(stop_oracle - start_oracle);
 
 #if !CORRELATE_LENGTH_TIME

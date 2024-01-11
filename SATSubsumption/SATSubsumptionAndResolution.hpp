@@ -32,6 +32,15 @@
 #include <fstream>
 #endif
 
+
+// The compiler will not reorder instructions across a compiler fence.
+// See also https://stackoverflow.com/q/14449141
+#define COMPILER_FENCE             \
+  do {                             \
+    asm volatile("" ::: "memory"); \
+  } while (false)
+
+
 namespace SATSubsumption {
 
 /**

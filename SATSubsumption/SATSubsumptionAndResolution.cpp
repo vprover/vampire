@@ -918,13 +918,17 @@ bool SATSubsumptionAndResolution::checkSubsumptionImpl(Clause *L,
   ASS_GE(_matchSet.allMatches().size(), _L->length())
 
 #if CORRELATE_LENGTH_TIME
+  COMPILER_FENCE;
   start = clock::now();
+  COMPILER_FENCE;
 #endif
 
   // Create the constraints for the sat solver
   if (!cnfForSubsumption()) {
 #if CORRELATE_LENGTH_TIME
+    COMPILER_FENCE;
     stop = clock::now();
+    COMPILER_FENCE;
     auto const duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
     if (log /* && (duration_ns > 1ms || _solver.stats().ticks >= 100) */) {
       logFile << 0 /* S */ << ","
@@ -945,7 +949,9 @@ bool SATSubsumptionAndResolution::checkSubsumptionImpl(Clause *L,
   bool const subsumed = _solver.solve() == subsat::Result::Sat;
 
 #if CORRELATE_LENGTH_TIME
+  COMPILER_FENCE;
   stop = clock::now();
+  COMPILER_FENCE;
   auto const duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
   if (log /* && (duration_ns > 1ms || _solver.stats().ticks >= 100) */) {
     logFile << 0 /* S */ << ","
@@ -1011,7 +1017,9 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause *L,
   }
 
 #if CORRELATE_LENGTH_TIME
+  COMPILER_FENCE;
   start = clock::now();
+  COMPILER_FENCE;
 #endif
   // set up the clauses
   bool encodingSuccess;
@@ -1031,7 +1039,9 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause *L,
     cout << "CNF building failed" << endl;
 #endif
 #if CORRELATE_LENGTH_TIME
+    COMPILER_FENCE;
     stop = clock::now();
+    COMPILER_FENCE;
     auto const duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
     if (log /* && (duration_ns > 1ms || _solver.stats().ticks >= 100) */) {
       logFile << 1 /* SR */ << ","
@@ -1070,7 +1080,9 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause *L,
 #endif
 
 #if CORRELATE_LENGTH_TIME
+  COMPILER_FENCE;
   stop = clock::now();
+  COMPILER_FENCE;
   auto const duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
   if (log /* && (duration_ns > 1ms || _solver.stats().ticks >= 100) */) {
     logFile << 1 /* SR */ << ","
