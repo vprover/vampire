@@ -331,13 +331,13 @@ private:
 
   /* Variables */
 
-  /// @brief the base clause
+  /// @brief the base clause (side premise)
   Kernel::Clause *_L;
-  /// @brief the instance clause
+  /// @brief the instance clause (main premise)
   Kernel::Clause *_M;
-  /// @brief the number of literals in the base clause
+  /// @brief the number of literals in the base clause (side premise)
   unsigned _m;
-  /// @brief the number of literals in the instance clause
+  /// @brief the number of literals in the instance clause (main premise)
   unsigned _n;
   /// @brief the SAT solver
   Solver _solver;
