@@ -18,12 +18,8 @@ static ofstream outputFile;
 static ofstream problemFile;
 
 ForwardBenchmarkWrapper::ForwardBenchmarkWrapper(bool subsumptionResolution) :
-  #if CORRELATE_LENGTH_TIME
-  _forwardBenchmark(subsumptionResolution, true),
-  #else
-  _forwardBenchmark(subsumptionResolution),
-  #endif
-  _forwardOracle(subsumptionResolution),
+  _forwardBenchmark(subsumptionResolution, CORRELATE_LENGTH_TIME),
+  _forwardOracle(subsumptionResolution, false),
   _subsumptionResolution(subsumptionResolution)
 {
 }

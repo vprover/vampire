@@ -31,7 +31,7 @@ using namespace Saturation;
 
 ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(bool subsumptionResolution, bool log)
     : _subsumptionResolution(subsumptionResolution)
-    , satSubs(log || CORRELATE_LENGTH_TIME)
+    , satSubs(log)
 {
 #if ENABLE_ROUNDS
   max_rounds = env.options->maxRounds();

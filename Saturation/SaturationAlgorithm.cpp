@@ -1663,7 +1663,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem &prb, const 
       res->addForwardSimplifierToFront(new ForwardBenchmarkWrapper(true));
 #else
       cout << "Using forward subsumption and resolution" << endl;
-      res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolution(true));
+      res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolution(true, CORRELATE_LENGTH_TIME));
 #endif
     }
     else {
@@ -1671,7 +1671,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem &prb, const 
 #if USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION
       res->addForwardSimplifierToFront(new ForwardBenchmarkWrapper(false));
 #else
-      res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolution(false));
+      res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolution(false, CORRELATE_LENGTH_TIME));
 #endif
     }
   }
