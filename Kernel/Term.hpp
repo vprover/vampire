@@ -178,7 +178,7 @@ public:
   { _content = FUN; }
   inline static TermList empty()
   { TermList out; out.makeEmpty(); return out; }
-  /** make the term into a reference */
+  /** the top of a term is either a function symbol or a variable id. this class is model this */
   class Top {
     using Inner = Coproduct<unsigned, unsigned>;
     static constexpr unsigned VAR = 0;
@@ -201,10 +201,12 @@ public:
     friend std::ostream& operator<<(std::ostream& out, Top const& self);
   };
 
+  /* returns the Top of a function (a variable id, or a function symbol depending on whether the term is a variable or a complex term) */
   Top top() const
   { return isTerm() ? TermList::Top::functor(term()) 
                     : TermList::Top::var(var());            }
 
+  /** make the term into a reference */
   inline void setTerm(Term* t) {
     // NB we also zero-initialise _content so that the spare bits are zero on 32-bit platforms
     // dead-store eliminated on 64-bit
