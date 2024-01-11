@@ -315,9 +315,9 @@ inline SyntaxSugarGlobals& syntaxSugarGlobals()
 class ExpressionSugar
 {
 public: 
-  ExpressionSugar(){
-    _sugaredExpr.makeEmpty();
-  }
+  ExpressionSugar() 
+   : _sugaredExpr(TermList::empty())
+  { }
 
   ExpressionSugar(TermList sugaredExpr) : 
     _sugaredExpr(sugaredExpr){}
@@ -375,7 +375,7 @@ public:
   { 
     ASS_REP(!_sugaredExpr.isEmpty(), _sugaredExpr);
     if (_sugaredExpr.isVar()) {
-      _srt.makeEmpty();
+      _srt = TermList::empty();
     } else {
       _srt = SortHelper::getResultSort(_sugaredExpr.term());
     }

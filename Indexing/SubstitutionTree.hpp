@@ -147,15 +147,15 @@ using namespace Kernel;
       LeafData(Clause* cls, Literal* literal, TypedTermList term, TermList extraTerm)
       : clause(cls), literal(literal), term(term), sort(term.sort()), extraTerm(extraTerm) {}
       LeafData(Clause* cls, Literal* literal, TypedTermList term)
-      : clause(cls), literal(literal), term(term), sort(term.sort()) { extraTerm.makeEmpty();}
+      : clause(cls), literal(literal), term(term), sort(term.sort()), extraTerm(TermList::empty()) {}
 
       LeafData(Clause* cls, Literal* literal, TermList term, TermList extraTerm)
-      : clause(cls), literal(literal), term(term), extraTerm(extraTerm) { sort.makeEmpty();}
+      : clause(cls), literal(literal), term(term), sort(TermList::empty()), extraTerm(extraTerm) {}
       LeafData(Clause* cls, Literal* literal, TermList term)
-      : clause(cls), literal(literal), term(term) { extraTerm.makeEmpty(); sort.makeEmpty(); }
+      : clause(cls), literal(literal), term(term), sort(TermList::empty()), extraTerm(TermList::empty()) {}
 
       LeafData(Clause* cls, Literal* literal)
-      : clause(cls), literal(literal) { term.makeEmpty(); sort.makeEmpty(), extraTerm.makeEmpty(); }
+      : clause(cls), literal(literal), term(TermList::empty()), sort(TermList::empty()), extraTerm(TermList::empty()) {  }
       inline
       bool operator==(const LeafData& o)
       { return clause==o.clause && literal==o.literal && term==o.term; }
@@ -279,7 +279,7 @@ using namespace Kernel;
        * The current node will be deleted, but we don't want to destroy
        * structures, that are taken over by the new node implementation.
        */
-      virtual void makeEmpty() { _term.makeEmpty(); }
+      virtual void makeEmpty() { _term = TermList::empty(); }
       static void split(Node** pnode, TermList* where, int var);
 
       void setTerm(TermList t) { 
@@ -920,7 +920,7 @@ using namespace Kernel;
       {
         TermSpec() : q(false) {
         #if VDEBUG
-          t.makeEmpty();
+          t = TermList::empty();
         #endif
         }
         TermSpec(bool q, TermList t)
@@ -1040,7 +1040,7 @@ using namespace Kernel;
 
       struct DerefTask
       {
-        DerefTask(TermList var) : var(var) { trm.t.makeEmpty(); }
+        DerefTask(TermList var) : var(var) { trm.t = TermList::empty(); }
         DerefTask(TermList var, TermSpec trm) : var(var), trm(trm) {}
         TermList var;
         TermSpec trm;

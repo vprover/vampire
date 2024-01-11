@@ -193,9 +193,7 @@ void SubstitutionTree::InstMatcher::backtrack()
 bool SubstitutionTree::InstMatcher::matchNext(unsigned specVar, TermList nodeTerm, bool separate)
 {
   if(separate) {
-    TermList sep;
-    sep.makeEmpty();
-    _boundVars->push(sep);
+    _boundVars->push(TermList::empty());
   }
 
 #if VDEBUG
