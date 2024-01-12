@@ -52,6 +52,7 @@
 #include "Util.hpp"
 #include <algorithm>
 #include <iostream>
+#include <type_traits>
 
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
 #include "SATSubsumptionAndResolution.hpp"
@@ -166,9 +167,6 @@ void SATSubsumptionAndResolution::loadProblem(Clause *L,
  * the multiset of predicates in _M. If it is not, then it is impossible to find
  * a subsumption.
  *
- * @note If the number of predicates is high, clearing the multiset is expensive.
- * It might be worth remembering which elements are non zero and clear them manually.
- *
  * @return true if subsumption is impossible, false if we don't know
  */
 bool SATSubsumptionAndResolution::pruneSubsumption()
@@ -182,20 +180,50 @@ bool SATSubsumptionAndResolution::pruneSubsumption()
     return true;
   }
 
+  auto& headerMultiset = _pruneStorage;
+  prune_t& timestamp = _pruneTimestamp;
+  static_assert(
+    std::is_same<std::remove_reference_t<decltype(timestamp)>,
+                 std::remove_reference_t<decltype(headerMultiset)>::value_type
+                >::value,
+    "timestamp and storage should be the same type"
+  );
+
   // multiset of signed predicates in M
-  _headerMultiset.clear();
-  _headerMultiset.resize(2 * env.signature->predicates());
+  headerMultiset.resize(2 * env.signature->predicates(), 0);
+  ASS(all_of(headerMultiset, [&](prune_t x) { return x <= timestamp; }));
+
+  // Our relative zero for counting is the timestamp.
+  // We need to reset the vector only if the counts could overflow.
+  if (is_addition_overflow<prune_t>(timestamp, _M->length())) {
+    // when timestamp wraps around, we reset the vector to 0.
+    std::fill(headerMultiset.begin(), headerMultiset.end(), 0);
+    timestamp = 0;
+  }
+
+  prune_t const zero = timestamp;
+  prune_t max_timestamp = zero;
+  ASS(all_of(headerMultiset, [&](prune_t x) { return x <= zero; }));
 
   // fill in the multiset of functors in M
-  for (unsigned i = 0; i < _M->length(); i++)
-    _headerMultiset[(*_M)[i]->header()]++;
+  for (unsigned i = 0; i < _M->length(); i++) {
+    unsigned const hdr = (*_M)[i]->header();
+    headerMultiset[hdr] = std::max(headerMultiset[hdr], zero) + 1;
+    max_timestamp = std::max(max_timestamp, headerMultiset[hdr]);
+  }
+
+  timestamp = max_timestamp;
 
   // check if the multiset of functors in L is a subset of the multiset of functors in M
-  for (unsigned j = 0; j < _L->length(); j++)
-    if (!_headerMultiset[(*_L)[j]->header()]--) {
+  for (unsigned j = 0; j < _L->length(); j++) {
+    unsigned const hdr = (*_L)[j]->header();
+    // we need to do the check before decrementing to avoid wraparound and keep the invariant valid
+    if (headerMultiset[hdr] <= zero) {
       _subsumptionImpossible = true;
       return true;
     }
+    headerMultiset[hdr]--;
+  }
 
   // WARNING !!!
   // In the implementation, it is assumed that the pruning for subsumption resolution
@@ -217,6 +245,9 @@ bool SATSubsumptionAndResolution::pruneSubsumption()
  * set of predicates in _M. If it is not, then it is impossible to find a
  * subsumption resolution.
  *
+ * TODO: functorSet is initialized from _M which is the same for the whole forward loop.
+ *       we could re-use it for multiple pruning checks instead of filling it everytime.
+ *
  * @return true if subsumption resolution is impossible, false if we don't know
  */
 bool SATSubsumptionAndResolution::pruneSubsumptionResolution()
@@ -224,22 +255,25 @@ bool SATSubsumptionAndResolution::pruneSubsumptionResolution()
   ASS(_L)
   ASS(_M)
 
-  _functorSet.resize(env.signature->predicates(), 0);
-  ASS(all_of(_functorSet, [&](uint8_t x) { return x <= _functorTimestamp; }));
+  auto& functorSet = _pruneStorage;
+  auto& timestamp = _pruneTimestamp;
 
-  _functorTimestamp++;
-  if (_functorTimestamp == 0) {
+  functorSet.resize(env.signature->predicates(), 0);
+  ASS(all_of(functorSet, [&](prune_t x) { return x <= timestamp; }));
+
+  timestamp++;
+  if (timestamp == 0) {
     // when timestamp wraps around, we reset the vector to 0 and increment again.
-    _functorTimestamp++;
-    std::fill(_functorSet.begin(), _functorSet.end(), 0);
+    timestamp++;
+    std::fill(functorSet.begin(), functorSet.end(), 0);
   }
-  ASS(all_of(_functorSet, [&](uint8_t x) { return x != _functorTimestamp; }));
+  ASS(all_of(functorSet, [&](prune_t x) { return x < timestamp; }));
 
   for (unsigned i = 0; i < _M->length(); i++)
-    _functorSet[(*_M)[i]->functor()] = _functorTimestamp;
+    functorSet[(*_M)[i]->functor()] = timestamp;
 
   for (unsigned j = 0; j < _L->length(); j++)
-    if (_functorSet[(*_L)[j]->functor()] != _functorTimestamp)
+    if (functorSet[(*_L)[j]->functor()] != timestamp)
       return true;
 
   return false;

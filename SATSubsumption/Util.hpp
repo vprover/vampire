@@ -16,4 +16,11 @@ bool all_of(Container const& xs, Predicate p)
   return true;
 }
 
+template <typename T>
+bool is_addition_overflow(T a, T b)
+{
+  static_assert(std::is_unsigned<T>::value, "overflow check is only defined for unsigned arithmetic types");
+  return static_cast<T>(a + b) < a;
+}
+
 #endif /* !SATSUBSUMPTION_UTIL_HPP */

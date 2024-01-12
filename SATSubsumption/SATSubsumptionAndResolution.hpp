@@ -362,11 +362,11 @@ private:
   // remembers if the fillMatchesSR concluded that subsumption resolution is impossible
   bool _srImpossible;
 
-  // temporary storage, used by pruneSubsumption
-  vvector<unsigned> _headerMultiset;
-  // temporary storage, used by pruneSubsumptionResolution
-  vvector<uint8_t> _functorSet;
-  uint8_t _functorTimestamp = 0;
+  // temporary storage, used by pruneSubsumption and pruneSubsumptionResolution
+  // invariant: for all x in _tmpStorage, x <= _tmpTimestamp
+  using prune_t = unsigned;
+  vvector<prune_t> _pruneStorage;
+  prune_t _pruneTimestamp = 0;
 
 #if LOG_SSR_CLAUSES
   std::unique_ptr<ForwardSubsumptionLogger> _logger;
