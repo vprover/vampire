@@ -202,17 +202,14 @@ bool SATSubsumptionAndResolution::pruneSubsumption()
   }
 
   prune_t const zero = timestamp;
-  prune_t max_timestamp = zero;
+  timestamp += _M->length();
   ASS(all_of(headerMultiset, [&](prune_t x) { return x <= zero; }));
 
   // fill in the multiset of functors in M
   for (unsigned i = 0; i < _M->length(); i++) {
     unsigned const hdr = (*_M)[i]->header();
     headerMultiset[hdr] = std::max(headerMultiset[hdr], zero) + 1;
-    max_timestamp = std::max(max_timestamp, headerMultiset[hdr]);
   }
-
-  timestamp = max_timestamp;
 
   // check if the multiset of functors in L is a subset of the multiset of functors in M
   for (unsigned j = 0; j < _L->length(); j++) {
