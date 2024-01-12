@@ -365,7 +365,8 @@ private:
   // temporary storage, used by pruneSubsumption
   vvector<unsigned> _headerMultiset;
   // temporary storage, used by pruneSubsumptionResolution
-  vvector<char> _functorSet;
+  vvector<uint8_t> _functorSet;
+  uint8_t _functorTimestamp = 0;
 
 #if LOG_SSR_CLAUSES
   std::unique_ptr<ForwardSubsumptionLogger> _logger;

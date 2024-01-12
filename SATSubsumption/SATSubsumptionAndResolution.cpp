@@ -50,6 +50,7 @@
 #include "Kernel/Matcher.hpp"
 #include "Debug/RuntimeStatistics.hpp"
 #include "Util.hpp"
+#include <algorithm>
 #include <iostream>
 
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
@@ -223,14 +224,22 @@ bool SATSubsumptionAndResolution::pruneSubsumptionResolution()
   ASS(_L)
   ASS(_M)
 
-  _functorSet.clear();
-  _functorSet.resize(env.signature->predicates());
+  _functorSet.resize(env.signature->predicates(), 0);
+  ASS(all_of(_functorSet, [&](uint8_t x) { return x <= _functorTimestamp; }));
+
+  _functorTimestamp++;
+  if (_functorTimestamp == 0) {
+    // when timestamp wraps around, we reset the vector to 0 and increment again.
+    _functorTimestamp++;
+    std::fill(_functorSet.begin(), _functorSet.end(), 0);
+  }
+  ASS(all_of(_functorSet, [&](uint8_t x) { return x != _functorTimestamp; }));
 
   for (unsigned i = 0; i < _M->length(); i++)
-    _functorSet[(*_M)[i]->functor()] = true;
+    _functorSet[(*_M)[i]->functor()] = _functorTimestamp;
 
   for (unsigned j = 0; j < _L->length(); j++)
-    if (!_functorSet[(*_L)[j]->functor()])
+    if (_functorSet[(*_L)[j]->functor()] != _functorTimestamp)
       return true;
 
   return false;
