@@ -68,12 +68,14 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
   satSubs.beginLoop(cl);
 
 #if ENABLE_ROUNDS
-  env.statistics->forwardSubsumptionRounds++;
-  if (max_rounds && env.statistics->forwardSubsumptionRounds > max_rounds) {
-    env.statistics->forwardSubsumptionRounds--;
-    env.statistics->terminationReason = Shell::Statistics::TIME_LIMIT;
-    Timer::setLimitEnforcement(false);
-    throw TimeLimitExceededException();
+  if (!_isOracle) {
+    env.statistics->forwardSubsumptionRounds++;
+    if (max_rounds && env.statistics->forwardSubsumptionRounds > max_rounds) {
+      env.statistics->forwardSubsumptionRounds--;
+      env.statistics->terminationReason = Shell::Statistics::TIME_LIMIT;
+      Timer::setLimitEnforcement(false);
+      throw TimeLimitExceededException();
+    }
   }
 #endif
 

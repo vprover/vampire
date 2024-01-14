@@ -22,6 +22,7 @@ ForwardBenchmarkWrapper::ForwardBenchmarkWrapper(bool subsumptionResolution) :
   _forwardOracle(subsumptionResolution, false),
   _subsumptionResolution(subsumptionResolution)
 {
+  _forwardOracle.setOracle();
 }
 
 ForwardBenchmarkWrapper::~ForwardBenchmarkWrapper()
