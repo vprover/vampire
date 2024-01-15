@@ -141,8 +141,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   unsigned clength = queryCl->length();
   unsigned dlength = resultCl->length();
 
-
-
   // LRS-specific optimization:
   // check whether we can conclude that the resulting clause will be discarded by LRS since it does not fulfil the age/weight limits (in which case we can discard the clause)
   // we already know the age here so we can immediately conclude whether the clause fulfils the age limit
@@ -179,7 +177,12 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     }
   }
 
-  unsigned newLength = clength + dlength - 2 + nConstraints;
+  bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
+  Literal* cAnsLit = synthesis ? queryCl->getAnswerLiteral() : nullptr;
+  Literal* dAnsLit = synthesis ? resultCl->getAnswerLiteral() : nullptr;
+  bool bothHaveAnsLit = (cAnsLit != nullptr) && (dAnsLit != nullptr);
+
+  unsigned newLength = clength + dlength - 2 + nConstraints - (bothHaveAnsLit ? 1 : 0) ;
 
   inf_destroyer.disable(); // ownership passed to the the clause below
   Clause* res = new(newLength) Clause(newLength, inf); // the inference object owned by res from now on
@@ -196,7 +199,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   }
   for(unsigned i=0;i<clength;i++) {
     Literal* curr=(*queryCl)[i];
-    if(curr!=queryLit) {
+    if(curr!=queryLit && (!bothHaveAnsLit || curr!=cAnsLit)) {
       Literal* newLit = subs->applyToQuery(curr);
       if(needsToFulfilWeightLimit) {
         wlb+=newLit->weight() - curr->weight();
@@ -234,7 +237,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
 
   for(unsigned i=0;i<dlength;i++) {
     Literal* curr=(*resultCl)[i];
-    if(curr!=resultLit) {
+    if(curr!=resultLit && (!bothHaveAnsLit || curr!=dAnsLit)) {
       Literal* newLit = subs->applyToResult(curr);
       if(needsToFulfilWeightLimit) {
         wlb+=newLit->weight() - curr->weight();
@@ -263,6 +266,15 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
       next++;
     }
   }
+
+   if (bothHaveAnsLit) {
+     ASS(next == newLength-1);
+     Literal* newLitC = subs->applyToQuery(cAnsLit);
+     Literal* newLitD = subs->applyToResult(dAnsLit);
+     bool cNeg = queryLit->isNegative();
+     Literal* condLit = cNeg ? subs->applyToResult(resultLit) : subs->applyToQuery(queryLit);
+     (*res)[next] = SynthesisManager::getInstance()->makeITEAnswerLiteral(condLit, cNeg ? newLitC : newLitD, cNeg ? newLitD : newLitC);
+   }
 
   if(nConstraints != 0){
     env.statistics->cResolution++;
