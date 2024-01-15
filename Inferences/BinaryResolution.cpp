@@ -53,9 +53,6 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-// TODO remove after refactor
-using BRQueryRes = LQueryRes<AbstractingUnifier*>;
-
 void BinaryResolution::attach(SaturationAlgorithm* salg)
 {
   ASS(!_index);
@@ -79,11 +76,11 @@ struct BinaryResolution::UnificationsFn
 {
   UnificationsFn(BinaryResolutionIndex* index)
   : _index(index) {}
-  VirtualIterator<pair<Literal*, BRQueryRes> > operator()(Literal* lit)
+  VirtualIterator<pair<Literal*, LQueryRes<AbstractingUnifier*>> > operator()(Literal* lit)
   {
     if(lit->isEquality()) {
       //Binary resolution is not performed with equality literals
-      return VirtualIterator<pair<Literal*, BRQueryRes> >::getEmpty();
+      return VirtualIterator<pair<Literal*, LQueryRes<AbstractingUnifier*>> >::getEmpty();
     }
     return pvi( pushPairIntoRightIterator(lit, _index->getUwa(lit, /* complementary */ true, env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration())));
   }
@@ -95,9 +92,9 @@ struct BinaryResolution::ResultFn
 {
   ResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, bool afterCheck, Ordering* ord, LiteralSelector& selector, BinaryResolution& parent)
   : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _afterCheck(afterCheck), _ord(ord), _selector(selector), _parent(parent) {}
-  Clause* operator()(pair<Literal*, BRQueryRes> arg)
+  Clause* operator()(pair<Literal*, LQueryRes<AbstractingUnifier*>> arg)
   {
-    BRQueryRes& qr = arg.second;
+    auto & qr = arg.second;
     Literal* resLit = arg.first;
 
     auto subs = ResultSubstitution::fromSubstitution(&qr.unifier->subs(), QUERY_BANK, RESULT_BANK);
