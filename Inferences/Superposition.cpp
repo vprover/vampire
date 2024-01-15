@@ -400,6 +400,10 @@ Clause* Superposition::performSuperposition(
   Recycled<Stack<Literal*>> res;
   res->reserve(rwLength + eqLength - 1 + unifier->maxNumberOfConstraints());
 
+  bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
+  Literal* rwAnsLit = synthesis ? rwClause->getAnswerLiteral() : nullptr;
+  Literal* eqAnsLit = synthesis ? eqClause->getAnswerLiteral() : nullptr;
+  bool bothHaveAnsLit = (rwAnsLit != nullptr) && (eqAnsLit != nullptr);
 
   static bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 
@@ -407,7 +411,7 @@ Clause* Superposition::performSuperposition(
   unsigned weight=tgtLitS->weight();
   for(unsigned i=0;i<rwLength;i++) {
     Literal* curr=(*rwClause)[i];
-    if(curr!=rwLit) {
+    if(curr!=rwLit && (!bothHaveAnsLit || curr!=rwAnsLit)) {
       Literal* currAfter = subst->apply(curr, !eqIsResult);
 
       if (doSimS) {
@@ -480,6 +484,13 @@ Clause* Superposition::performSuperposition(
   }
 
   res->loadFromIterator(unifier->computeConstraintLiterals()->iter());
+
+  if (bothHaveAnsLit) {
+    Literal* newLitC = subst->apply(rwAnsLit, !eqIsResult);
+    Literal* newLitD = subst->apply(eqAnsLit, eqIsResult);
+    Literal* condLit = subst->apply(eqLit, eqIsResult);
+    res->push(SynthesisManager::getInstance()->makeITEAnswerLiteral(condLit, newLitC, newLitD));
+  }
 
   if(needsToFulfilWeightLimit && !passiveClauseContainer->fulfilsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
     RSTAT_CTR_INC("superpositions skipped for weight limit after the clause was built");
