@@ -39,16 +39,14 @@ private:
   /** Simplification unit index */
   Indexing::UnitClauseLiteralIndex *_unitIndex;
   Indexing::FwSubsSimplifyingLiteralIndex *_fwIndex;
+#if ENABLE_ROUNDS
+  unsigned max_rounds = 0;
+#endif
   static Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* lit, Clause* baseClause);
 #endif
 
 public:
-  ForwardBenchmark(bool subsumptionResolution = true, bool log = false)
-      : _subsumptionResolution(subsumptionResolution)
-#if SAT_SR_IMPL != 0
-      , _forward(subsumptionResolution, log)
-#endif
-  { }
+  ForwardBenchmark(bool subsumptionResolution = true, bool log = false);
 
   void attach(Saturation::SaturationAlgorithm *salg) override;
   void detach() override;

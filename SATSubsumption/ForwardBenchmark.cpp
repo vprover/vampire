@@ -4,6 +4,7 @@
 
 #include "ForwardBenchmark.hpp"
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
+#include "Lib/Timer.hpp"
 
 #if !USE_SAT_SUBSUMPTION_FORWARD
 #include "Indexing/LiteralMiniIndex.hpp"
@@ -23,6 +24,18 @@ using namespace Indexing;
 using namespace Saturation;
 using namespace SATSubsumption;
 using namespace std::chrono;
+
+
+ForwardBenchmark::ForwardBenchmark(bool subsumptionResolution, bool log)
+    : _subsumptionResolution(subsumptionResolution)
+#if SAT_SR_IMPL != 0
+    , _forward(subsumptionResolution, log)
+#endif
+{
+#if ENABLE_ROUNDS && SAT_SR_IMPL == 0
+  max_rounds = env.options->maxRounds();
+#endif
+}
 
 #if SAT_SR_IMPL == 0
 /*
@@ -195,6 +208,17 @@ bool checkForSubsumptionResolution(Clause *cl, ClauseMatches *cms, Literal *resL
 
 bool ForwardBenchmark::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)
 {
+
+#if ENABLE_ROUNDS
+  env.statistics->forwardSubsumptionRounds++;
+  if (max_rounds && env.statistics->forwardSubsumptionRounds > max_rounds) {
+    env.statistics->forwardSubsumptionRounds--;
+    env.statistics->terminationReason = Shell::Statistics::TIME_LIMIT;
+    Timer::setLimitEnforcement(false);
+    throw TimeLimitExceededException();
+  }
+#endif
+
   Clause *resolutionClause = 0;
 
   unsigned clen = cl->length();
