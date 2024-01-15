@@ -110,12 +110,12 @@ struct URResolution::Item
     _mustResolveAll = mustResolveAll || (selectedOnly ? true : (clen < 2 + (_ansLit ? 1 : 0)));
     unsigned litslen = clen - (_ansLit ? 1 : 0);
     _premises.init(litslen, 0);
-    _lits.ensure(litslen);
+    _lits.reserve(litslen);
     unsigned nonGroundCnt = 0;
     for(unsigned i=0; i<clen; i++) {
       if ((*cl)[i] != _ansLit) {
-        _lits[i] = (*cl)[i];
-        if(!_lits[i]->ground()) nonGroundCnt++;
+        _lits.push((*cl)[i]);
+        if(!_lits.top()->ground()) nonGroundCnt++;
       }
     }
     _atMostOneNonGround = nonGroundCnt<=1;
@@ -269,7 +269,7 @@ struct URResolution::Item
    *
    * The unresolved literals have the substitutions from other resolutions
    * applied to themselves */
-  DArray<Literal*> _lits;
+  Stack<Literal*> _lits;
 
   Literal* _ansLit;
 
