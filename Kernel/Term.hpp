@@ -1029,6 +1029,7 @@ public:
     if (commutative) {
       ASS_EQ(arity, 2)
       ASS(rightArgOrder(getArg(0), getArg(1)))
+      ASS(rightArgOrder(*lit->nthArgument(0), *lit->nthArgument(1)))
 
       if (someIf(lit->isTwoVarEquality(), [&](){ return lit->twoVarEqSort(); }) != twoVarEqSort) {
         return false;
