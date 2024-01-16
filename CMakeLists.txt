@@ -741,6 +741,7 @@ set(UNIT_TESTS
     UnitTests/tOption.cpp
     UnitTests/tStack.cpp
     UnitTests/tSet.cpp
+    UnitTests/tDeque.cpp
     )
 source_group(unit_tests FILES ${UNIT_TESTS})
 
