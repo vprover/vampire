@@ -938,6 +938,12 @@ bool Splitter::handleNonSplittable(Clause* cl)
     satLits.push(getLiteralFromName(compName));
 
     SATClause* nsClause = SATClause::fromStack(satLits);
+    nsClause->sort();
+    if(_already_added.contains(nsClause)) {
+      delete nsClause;
+      return true;
+    }
+    _already_added.insert(nsClause);
 
     UnitList* ps = 0;
 
@@ -945,7 +951,7 @@ bool Splitter::handleNonSplittable(Clause* cl)
     // do compName first
     UnitList::push(getDefinitionFromName(compName),ps);
     FormulaList::push(new NamedFormula(getFormulaStringFromName(compName)),resLst);
- 
+
     // now do splits
     SplitSet::Iterator sit(*cl->splits());
     while(sit.hasNext()) {
