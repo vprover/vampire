@@ -510,15 +510,17 @@ SubsumptionReplayResult ForwardBenchmark::replay(SubsumptionBenchmark const& b, 
 
   for (auto const& l : b.fwd_loops) {
     for (auto const& i : l.instances) {
-      if (i.do_subsumption) {
+      bool const do_s = i.do_subsumption;
+      bool const do_sr = do_subsumption_resolution && i.do_subsumption_resolution;
+      if (do_s) {
         r.subsumptions++;
-        bool const result = satSubs.checkSubsumption(i.side_premise, l.main_premise, i.do_subsumption_resolution);
+        bool const result = satSubs.checkSubsumption(i.side_premise, l.main_premise, do_sr);
         if (i.subsumption_result != result)
           r.errors++;
       }
-      if (do_subsumption_resolution && i.do_subsumption_resolution) {
+      if (do_sr) {
         r.subsumption_resolutions++;
-        Clause* const conclusion = satSubs.checkSubsumptionResolution(i.side_premise, l.main_premise, i.do_subsumption);
+        Clause* const conclusion = satSubs.checkSubsumptionResolution(i.side_premise, l.main_premise, do_s);
         bool const result = !!conclusion;
         if (i.subsumption_resolution_result != result)
           r.errors++;
