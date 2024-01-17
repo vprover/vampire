@@ -509,9 +509,9 @@ SATSubsumptionAndResolution::EncodingMethod SATSubsumption::SATSubsumptionAndRes
     return DIRECT;
   if (forceIndirectEncoding)
     return INDIRECT;
-  if (_L->length() <= 3 && _M->length() <= 37 && getSparsity() <= 1.185)
+  if (5 < _M->length() && _M->length() <= 9 && _L->length() <= 3)
     return DIRECT;
-  if (_L->length() == 3 && _M->length() > 37)
+  if (_M->length() <= 5 && _L->length() <= 3 && getSparsity() <= 1.075)
     return DIRECT;
   return INDIRECT;
 }
