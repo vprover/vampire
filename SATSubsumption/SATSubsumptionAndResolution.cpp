@@ -986,6 +986,9 @@ bool SATSubsumptionAndResolution::checkSubsumptionImpl(Clause *L,
 
   // Solve the SAT problem
   _solver.theory().setBindings(&_bindingsManager);
+#if ENABLE_SAT_SR_CUTOFF
+  _solver.set_max_ticks(SAT_SR_CUTOFF_MAX_TICKS);
+#endif
   bool const subsumed = _solver.solve() == subsat::Result::Sat;
 
 #if CORRELATE_LENGTH_TIME
@@ -1105,6 +1108,9 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause *L,
     _solver.theory().setBindings(&_bindingsManager);
   }
   Clause *conclusion = nullptr;
+#if ENABLE_SAT_SR_CUTOFF
+  _solver.set_max_ticks(SAT_SR_CUTOFF_MAX_TICKS);
+#endif
   if (_solver.solve() == subsat::Result::Sat) {
 #if PRINT_CLAUSES_SUBS
     cout << "SAT solver succeeded" << endl;

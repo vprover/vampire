@@ -28,10 +28,10 @@ std::ostream& operator<<(std::ostream& os, Result r)
 {
   switch (r) {
     case Result::Sat:
-      os << "satisfiable";
+      os << "sat";
       break;
     case Result::Unsat:
-      os << "unsatisfiable";
+      os << "unsat";
       break;
     case Result::Unknown:
       os << "unknown";
