@@ -48,6 +48,8 @@
  */
 
 #include "Kernel/Matcher.hpp"
+#include "Lib/Environment.hpp"
+#include "Shell/Statistics.hpp"
 #include "Debug/RuntimeStatistics.hpp"
 #include "Util.hpp"
 #include <algorithm>
@@ -989,7 +991,14 @@ bool SATSubsumptionAndResolution::checkSubsumptionImpl(Clause *L,
 #if ENABLE_SAT_SR_CUTOFF
   _solver.set_max_ticks(SAT_SR_CUTOFF_MAX_TICKS);
 #endif
-  bool const subsumed = _solver.solve() == subsat::Result::Sat;
+  auto const result = _solver.solve();
+#if ENABLE_SAT_SR_CUTOFF
+  if (result == subsat::Result::Unknown) {
+    env.statistics->subsumptionCutoffAborted += 1;
+  }
+#endif
+
+  bool const subsumed = result == subsat::Result::Sat;
 
 #if CORRELATE_LENGTH_TIME
   COMPILER_FENCE;
@@ -1002,11 +1011,12 @@ bool SATSubsumptionAndResolution::checkSubsumptionImpl(Clause *L,
             << _M->length() << ","
             << getNumMatches() << ","
             << duration_ns.count() << ","
-            << subsumed /* result */ << ","
+            << result << ","
             << 1 /* SAT call */ << ","
             << _solver.stats().ticks << std::endl;
   }
 #endif
+
   return subsumed;
 } // SATSubsumptionAndResolution::checkSubsumption
 
@@ -1111,7 +1121,14 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause *L,
 #if ENABLE_SAT_SR_CUTOFF
   _solver.set_max_ticks(SAT_SR_CUTOFF_MAX_TICKS);
 #endif
-  if (_solver.solve() == subsat::Result::Sat) {
+  auto const result = _solver.solve();
+#if ENABLE_SAT_SR_CUTOFF
+  if (result == subsat::Result::Unknown) {
+    env.statistics->subsumptionResolutionCutoffAborted += 1;
+  }
+#endif
+
+  if (result == subsat::Result::Sat) {
 #if PRINT_CLAUSES_SUBS
     cout << "SAT solver succeeded" << endl;
 #endif
@@ -1121,7 +1138,7 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause *L,
   }
 #if PRINT_CLAUSES_SUBS
   else {
-    cout << "SAT solver failed" << endl;
+    cout << "SAT solver failed (" << result << ")" << endl;
   }
 #endif
 
@@ -1136,7 +1153,7 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause *L,
             << _M->length() << ","
             << getNumMatches() << ","
             << duration_ns.count() << ","
-            << !!conclusion /* result */ << ","
+            << result << ","
             << 1 /* SAT call */ << ","
             << _solver.stats().ticks << std::endl;
   }

@@ -162,6 +162,13 @@ public:
   unsigned forwardSubsumptionRounds;
 #endif
 
+#if ENABLE_SAT_SR_CUTOFF
+  /** number of subsumptions aborted because of cutoff */
+  unsigned subsumptionCutoffAborted;
+  /** number of subsumption resolutions aborted because of cutoff */
+  unsigned subsumptionResolutionCutoffAborted;
+#endif
+
   // Simplifying inferences
   /** number of duplicate literals deleted */
   unsigned duplicateLiterals;

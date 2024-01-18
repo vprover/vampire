@@ -117,6 +117,10 @@ Statistics::Statistics()
 #if ENABLE_ROUNDS
     forwardSubsumptionRounds(0),
 #endif
+#if ENABLE_SAT_SR_CUTOFF
+    subsumptionCutoffAborted(0),
+    subsumptionResolutionCutoffAborted(0),
+#endif
     duplicateLiterals(0),
     trivialInequalities(0),
     forwardSubsumptionResolution(0),
@@ -335,6 +339,11 @@ void Statistics::print(ostream& out)
   COND_OUT("Interpreted simplifications", interpretedSimplifications);
 #if ENABLE_ROUNDS
   addCommentSignForSZS(out); out << "Fw subsumption rounds" << ": " << forwardSubsumptionRounds << endl; separable = true;
+#endif
+
+#if ENABLE_SAT_SR_CUTOFF
+  addCommentSignForSZS(out); out << "Subsumptions aborted" << ": " << subsumptionCutoffAborted << endl; separable = true;
+  addCommentSignForSZS(out); out << "Subsumption resolutions aborted" << ": " << subsumptionResolutionCutoffAborted << endl; separable = true;
 #endif
 
   COND_OUT("asg count", asgCnt);
