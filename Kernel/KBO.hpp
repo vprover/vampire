@@ -155,17 +155,37 @@ public:
 
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
+  bool isGreater(TermList tl1, TermList tl2, void* tl1State, VarOrderBV* constraints, const Indexing::TermQueryResult* qr) const override;
+  bool makeGreater(TermList tl1, TermList tl2, VarOrder& vo) const override;
+  bool isGreater(TermList tl1, TermList tl2, const VarOrder& vo) const override;
+
+  void* createState() const override;
+  void initStateForTerm(void* state, Term* t) const override;
+  void destroyState(void* state) const override;
+
+  KboWeightMap<FuncSigTraits> _funcWeights;
 protected:
   Result comparePredicates(Literal* l1, Literal* l2) const override;
 
   class State;
+  class StateGreater;
+  class StateGreaterVO;
+  class StateGreaterSubst;
 
   // int functionSymbolWeight(unsigned fun) const;
   int symbolWeight(Term* t) const;
+  void computeWeight(Term* t) const;
+  void computeWeight2(Term* t, Indexing::ResultSubstitution* subst) const;
+  bool weightsOk(TermList lhs, TermList rhs) const;
+  unsigned weight(TermList t) const;
+  unsigned weight2(TermList t, Indexing::ResultSubstitution* subst, bool underSubst) const;
 
 private:
+  bool isGreaterHelper(TermList tl1, TermList tl2, void* tl1State, VarOrderBV* constraints, VarOrderBV* newConstraints) const;
+  bool isGreaterHelper(TermList tl1, TermList tl2, void* tl1State, VarOrderBV* constraints, VarOrderBV* newConstraints, Indexing::ResultSubstitution* subst, bool weightsEqual) const;
+  bool makeGreaterNonRecursive(TermList tl1, TermList tl2, VarOrder& vo) const;
+  bool makeGreaterRecursive(TermList tl1, TermList tl2, VarOrder& vo) const;
 
-  KboWeightMap<FuncSigTraits> _funcWeights;
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
   KboWeightMap<PredSigTraits> _predWeights;
 #endif
@@ -181,6 +201,10 @@ private:
    * State used for comparing terms and literals
    */
   mutable State* _state;
+  mutable StateGreater* _stateGt;
+  mutable StateGreaterVO* _stateGtVo;
+  mutable StateGreaterSubst* _stateGtSubst;
+  // mutable DHMap<std::pair<TermList,Literal*>,DemodulatorConstraints> _demodulatorCache;
 };
 
 }

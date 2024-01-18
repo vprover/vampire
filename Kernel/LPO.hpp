@@ -44,6 +44,9 @@ public:
 
   using PrecedenceOrdering::compare;
   VWARN_UNUSED Result compare(TermList tl1, TermList tl2) const override;
+  VWARN_UNUSED bool isGreater(TermList tl1, TermList tl2, void* tl1State, VarOrderBV* constraints, const Indexing::TermQueryResult* qr) const override;
+  VWARN_UNUSED bool isGreater(TermList tl1, TermList tl2, const VarOrder& vo) const override;
+  VWARN_UNUSED bool makeGreater(TermList tl1, TermList tl2, VarOrder& vo) const override;
   void showConcrete(std::ostream&) const override;
 protected:
   VWARN_UNUSED Result comparePredicates(Literal* l1, Literal* l2) const override;
@@ -58,6 +61,17 @@ protected:
   VWARN_UNUSED Result lexMAE(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity) const;
   VWARN_UNUSED Result majo(Term* s, TermList* tl, unsigned arity) const;
 
+  VWARN_UNUSED bool alpha_gt(TermList* tl, unsigned arity, Term *t, const VarOrder& vo) const;
+  VWARN_UNUSED bool clpo_gt(Term* t1, TermList tl2, const VarOrder& vo) const;
+  VWARN_UNUSED bool lpo_gt(TermList tl1, TermList tl2, const VarOrder& vo) const;
+  VWARN_UNUSED bool lexMAE_gt(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity, const VarOrder& vo) const;
+  VWARN_UNUSED bool majo_gt(Term* s, TermList* tl, unsigned arity, const VarOrder& vo) const;
+
+  VWARN_UNUSED bool alpha_mgt(TermList* tl, unsigned arity, Term *t, VarOrder& vo) const;
+  VWARN_UNUSED bool clpo_mgt(Term* t1, TermList tl2, VarOrder& vo) const;
+  VWARN_UNUSED bool lpo_mgt(TermList tl1, TermList tl2, VarOrder& vo) const;
+  VWARN_UNUSED bool lexMAE_mgt(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity, VarOrder& vo) const;
+  VWARN_UNUSED bool majo_mgt(Term* s, TermList* tl, unsigned arity, VarOrder& vo) const;
 };
 
 }

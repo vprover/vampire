@@ -1623,6 +1623,10 @@ Term::Term(const Term& t) throw()
     _hasInterpretedConstants(0),
     _isTwoVarEquality(0),
     _weight(0),
+    _kboWeight(-1),
+    _kboWeight2(-1),
+    _kboWeight2TimeStamp(-1),
+    _varmap(0),
     _vars(0)
 {
   ASS(!isSpecial()); //we do not copy special terms
@@ -1654,6 +1658,10 @@ Term::Term() throw()
    _isTwoVarEquality(0),
    _weight(0),
    _maxRedLen(0),
+   _kboWeight(-1),
+   _kboWeight2(-1),
+   _kboWeight2TimeStamp(-1),
+   _varmap(0),
    _vars(0)
 {
   _args[0]._info.polarity = 0;

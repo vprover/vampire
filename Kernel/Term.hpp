@@ -591,6 +591,36 @@ public:
     return _weight;
   }
 
+  int kboWeight() const
+  {
+    return _kboWeight;
+  }
+
+  void setKboWeight(int w)
+  {
+    _kboWeight = w;
+  }
+
+  int kboWeight2() const
+  {
+    return _kboWeight2;
+  }
+
+  void setKboWeight2(int w)
+  {
+    _kboWeight2 = w;
+  }
+
+  int kboWeight2TimeStamp() const
+  {
+    return _kboWeight2TimeStamp;
+  }
+
+  void setKboWeight2TimeStamp(int ts)
+  {
+    _kboWeight2TimeStamp = ts;
+  }
+
   int maxRedLength() const
   {
     ASS(shared());
@@ -639,6 +669,16 @@ public:
   {
     ASS(shared() && !isSort());
     _args[0]._info.hasTermVar = b;
+  }
+
+  unsigned varmap() const
+  {
+    return _varmap;
+  }
+
+  void setVarmap(unsigned v)
+  {
+    _varmap = v;
   }
 
   /** Return the number of variable _occurrences_ */
@@ -808,8 +848,13 @@ protected:
   unsigned _isTwoVarEquality : 1;
   /** Weight of the symbol */
   unsigned _weight;
+  /** Cached weight of the term for KBO, otherwise -1 and invalid. */
+  int _kboWeight;
+  int _kboWeight2;
+  int _kboWeight2TimeStamp;
   /** length of maximum reduction length */
   int _maxRedLen;
+  unsigned _varmap : 32;
   union {
     /** If _isTwoVarEquality is false, this value is valid and contains
      * number of occurrences of variables */

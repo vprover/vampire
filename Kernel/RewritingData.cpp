@@ -17,6 +17,8 @@
 #include "Clause.hpp"
 #include "TermIterators.hpp"
 
+using namespace std;
+
 namespace Kernel {
 
 bool RewritingData::addRewrite(Term* t, TermList into, Term* rwTerm)
@@ -39,7 +41,7 @@ bool RewritingData::addRewrite(Term* t, TermList into, Term* rwTerm)
   }
 
   // otherwise see if t really needs to be inserted
-  return (_ord.compare(TermList(rwTerm),TermList(t)) != Ordering::Result::GREATER);
+  return !_ord.isGreater(TermList(t),TermList(rwTerm));
 }
 
 bool RewritingData::blockTerm(Term* t, Term* rwTerm)
@@ -182,7 +184,7 @@ bool RewritingData::validate(Term* lhs, RuleInfo& info)
   // finally, check if the rule lhs is not greater than the
   // lhs of the associated rewrite (where it was copied from)
   if (info.rwTerm) {
-    if (_ord.compare(TermList(info.rwTerm),TermList(lhs))!=Ordering::GREATER) {
+    if (!_ord.isGreater(TermList(info.rwTerm),TermList(lhs))) {
       return false;
     }
   }

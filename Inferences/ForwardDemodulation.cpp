@@ -171,7 +171,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           }
         }
   #endif
-        if(!preordered && (_preorderedOnly || ordering.compare(trm,rhsS)!=Ordering::GREATER) ) {
+        if(!preordered && (_preorderedOnly || !ordering.isGreater(trm,rhsS)) ) {
           continue;
         }
 

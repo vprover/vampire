@@ -116,7 +116,7 @@ public:
         continue;
       }
       lhs = f(TermList(lhs)).term();
-      if (rwTerm && _ord.compare(TermList(rwTerm), TermList(lhs)) != Ordering::Result::GREATER) {
+      if (rwTerm && !_ord.isGreater(TermList(rwTerm), TermList(lhs))) {
         continue;
       }
       if (!other) {

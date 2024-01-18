@@ -237,6 +237,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/MLVariant.cpp
     Kernel/Ordering.cpp
     Kernel/Ordering_Equality.cpp
+    Kernel/PartialOrdering.cpp
     Kernel/Problem.cpp
     Kernel/Renaming.cpp
     Kernel/RewritingData.cpp
@@ -284,6 +285,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/MLMatcher.hpp
     Kernel/MLVariant.hpp
     Kernel/Ordering.hpp
+    Kernel/PartialOrdering.hpp
     Kernel/Problem.hpp
     Kernel/RCClauseStack.hpp
     Kernel/Renaming.hpp
@@ -314,6 +316,8 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/ApplicativeHelper.cpp
     Kernel/SKIKBO.hpp
     Kernel/SKIKBO.cpp
+    Kernel/VarOrder.cpp
+    Kernel/VarOrder.hpp
     Inferences/CNFOnTheFly.cpp
     Inferences/CNFOnTheFly.hpp
     Inferences/CombinatorDemodISE.cpp
@@ -806,7 +810,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL Release)
 endif()
 
 # enable for time profiling
-add_compile_definitions(VTIME_PROFILING=0)
+add_compile_definitions(VTIME_PROFILING=1)
 
 if (CYGWIN)
  add_compile_definitions(_BSD_SOURCE)

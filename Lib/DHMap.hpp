@@ -158,6 +158,15 @@ public:
     return &e->_val;
   }
 
+  const Val* findPtr(Key key) const
+  {
+    const Entry* e=findEntry(key);
+    if(!e) {
+      return nullptr;
+    }
+    return &e->_val;
+  }
+
   /**
    *  Return true iff a pair with @b key as a key is in the map.
    */

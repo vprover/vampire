@@ -112,6 +112,8 @@ typedef VirtualIterator<Matcher*> MatchIterator;
 
 class LiteralSelector;
 
+class VarOrder;
+using VarOrderBV = uint64_t;
 class Ordering;
 typedef Lib::SmartPtr<Ordering> OrderingSP;
 

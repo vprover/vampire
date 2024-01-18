@@ -60,24 +60,7 @@ bool ForwardDeletionByRule::perform(Clause* cl, Clause*& replacement, ClauseIter
     while(git.hasNext()) {
       TermQueryResult qr=git.next();
       TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
-      TermList rhsS;
-      if (!qr.substitution->isIdentityOnQueryWhenResultBound()) {
-        //When we apply substitution to the rhs, we get a term, that is
-        //a variant of the term we'd like to get, as new variables are
-        //produced in the substitution application.
-        TermList lhsSBadVars=qr.substitution->applyToResult(qr.term);
-        TermList rhsSBadVars=qr.substitution->applyToResult(rhs);
-        Renaming rNorm, qNorm, qDenorm;
-        rNorm.normalizeVariables(lhsSBadVars);
-        qNorm.normalizeVariables(lhs);
-        qDenorm.makeInverse(qNorm);
-        ASS_EQ(TermList(lhs),qDenorm.apply(rNorm.apply(lhsSBadVars)));
-        rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
-      } else {
-        rhsS=qr.substitution->applyToBoundResult(rhs);
-      }
-
-      if (ord.compare(TermList(lhs),rhsS)!=Ordering::GREATER) {
+      if (!ord.isGreater(TermList(lhs),rhs,nullptr,nullptr,&qr)) {
         continue;
       }
 
@@ -170,7 +153,7 @@ struct BackwardDeletionByRuleResultFn
       rhsS=qr.substitution->applyToBoundQuery(rhs);
     }
 
-    if(_ordering.compare(lhsS,rhsS)!=Ordering::GREATER) {
+    if(!_ordering.isGreater(lhsS,rhsS)) {
       return BwSimplificationRecord(nullptr);
     }
 
