@@ -1562,7 +1562,7 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
     #if VDEBUG
       cout << cl->toString() << endl;
     #endif
-    cout << cl->toString() << endl;
+    //cout << cl->toString() << endl;
 
     _clauses.push(cl);
   }
