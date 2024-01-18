@@ -46,6 +46,11 @@
 #define ENABLE_ROUNDS 0
 #endif
 
+/// Whether to enable ticks-based cutoff for the SAT solver.
+#ifndef ENABLE_SAT_SR_CUTOFF
+#define ENABLE_SAT_SR_CUTOFF 0
+#endif
+
 /*****************************************************************************/
 /*                          SUBSUMPTION RESOLUTION                           */
 /*****************************************************************************/
