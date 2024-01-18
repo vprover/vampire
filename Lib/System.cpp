@@ -47,6 +47,8 @@ unsigned Lib::System::getNumberOfCores()
 
 namespace Lib {
 
+using namespace std;
+
 bool System::s_shouldIgnoreSIGINT = false;
 bool System::s_shouldIgnoreSIGHUP = false;
 const char* System::s_argv0 = 0;
@@ -93,8 +95,6 @@ const char* signalToString (int sigNum)
  */
 void handleSignal (int sigNum)
 {
-  CALL("System::handleSignal");
-
   // true if a terminal signal has been handled already.
   // to avoid catching signals over and over again
   static bool handled = false;
@@ -104,6 +104,7 @@ void handleSignal (int sigNum)
   switch (sigNum)
     {
     case SIGTERM:
+
 # ifndef _MSC_VER
     case SIGQUIT:
       if (handled) {
@@ -139,6 +140,7 @@ void handleSignal (int sigNum)
 	return;
       }
       haveSigInt=true;
+      System::terminateImmediately(VAMP_RESULT_STATUS_SIGINT);
 //      exit(0);
 //      return;
 
@@ -166,15 +168,11 @@ void handleSignal (int sigNum)
 	    env.beginOutput();
 	    env.out() << getpid() << " Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
 	    env.statistics->print(env.out());
-#if VDEBUG
 	    Debug::Tracer::printStack(env.out());
-#endif
 	    env.endOutput();
 	  } else {
 	    cout << getpid() << "Aborted by signal " << signalDescription << "\n";
-#if VDEBUG
 	    Debug::Tracer::printStack(cout);
-#endif
 	  }
 	}
 	System::terminateImmediately(haveSigInt ? VAMP_RESULT_STATUS_SIGINT : VAMP_RESULT_STATUS_OTHER_SIGNAL);
@@ -223,8 +221,6 @@ void System::setSignalHandlers()
  */
 ZIArray<List<VoidFunc>*>& System::terminationHandlersArray()
 {
-  CALL("System::initializationHandlersArray");
-
   static ZIArray<List<VoidFunc>*> arr(2);
   return arr;
 }
@@ -239,8 +235,6 @@ ZIArray<List<VoidFunc>*>& System::terminationHandlersArray()
  */
 void System::addTerminationHandler(VoidFunc proc, unsigned priority)
 {
-  CALL("System::addTerminationHandler");
-
   VoidFuncList::push(proc, terminationHandlersArray()[priority]);
 }
 
@@ -250,8 +244,6 @@ void System::addTerminationHandler(VoidFunc proc, unsigned priority)
  */
 void System::onTermination()
 {
-  CALL("System::onTermination");
-
   static bool called=false;
   if(called) {
     return;
@@ -271,8 +263,6 @@ void System::onTermination()
 
 void System::terminateImmediately(int resultStatus)
 {
-  CALL("System::terminateImmediately");
-
   onTermination();
   _exit(resultStatus);
 }
@@ -292,8 +282,6 @@ void System::registerForSIGHUPOnParentDeath()
 
 vstring System::extractFileNameFromPath(vstring str)
 {
-  CALL("System::extractFileNameFromPath");
-
   size_t index=str.find_last_of("\\/")+1;
   if(index==vstring::npos) {
     return str;
@@ -309,8 +297,6 @@ vstring System::extractFileNameFromPath(vstring str)
  */
 bool System::extractDirNameFromPath(vstring path, vstring& dir)
 {
-  CALL("System::extractDirNameFromPath");
-
   size_t index=path.find_last_of("\\/");
   if(index==vstring::npos) {
     return false;
@@ -321,9 +307,6 @@ bool System::extractDirNameFromPath(vstring path, vstring& dir)
 
 bool System::fileExists(vstring fname)
 {
-  CALL("System::fileExists");
-  BYPASSING_ALLOCATOR;
-
   ifstream ifile(fname.c_str());
   return ifile.good();
 }
@@ -331,8 +314,6 @@ bool System::fileExists(vstring fname)
 // C++17: use std::filesystem
 void System::readDir(vstring dirName, Stack<vstring>& filenames)
 {
-  CALL("System::readDir");
-
   DIR *dirp;
   struct dirent *dp;
 

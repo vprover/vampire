@@ -32,9 +32,6 @@ class SpassLiteralSelector
 : public LiteralSelector
 {
 public:
-  CLASS_NAME(SpassLiteralSelector);
-  USE_ALLOCATOR(SpassLiteralSelector);
-
   enum Values {
     OFF = 0,
     IFSEVERALMAXIMAL = 1,

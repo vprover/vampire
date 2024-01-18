@@ -28,6 +28,7 @@
 
 #include "Shuffling.hpp"
 
+using namespace std;
 using namespace Kernel;
 using namespace Shell;
 
@@ -36,14 +37,13 @@ using namespace Shell;
  */
 void Shuffling::polarityFlip(Problem& prb)
 {
-  CALL("Shuffling::polarityFlip (Problem&)");
-
   DArray<bool> flippage(env.signature->predicates());
 
   for (unsigned p = 0; p < flippage.size(); p++) {
     auto pSymb = env.signature->getPredicate(p);
-    if (!pSymb->protectedSymbol()) { 
+    if (!pSymb->protectedSymbol() && !pSymb->termAlgebraDest()) {
       // don't try to flip interpreted or otherwise protected predicates
+      // (this includes term algebra destructors which may go to bool and thus eventually become first-order predicates)
       ASS(p); // the equality predicate (at index 0) is protected
       flippage[p] = Random::getBit();
       if (flippage[p]) {
@@ -86,8 +86,6 @@ void Shuffling::polarityFlip(Problem& prb)
  */
 void Shuffling::shuffle(Problem& prb)
 {
-  CALL("Shuffling::shuffle (Problem&)");
-
   shuffle(prb.units());
 }
 
@@ -98,8 +96,6 @@ void Shuffling::shuffle(Problem& prb)
  */
 void Shuffling::shuffle (UnitList*& units)
 {
-  CALL("Shuffling::shuffle (UnitList*&)");
-
   UnitList::Iterator us(units);
   while (us.hasNext()) {
     shuffle(us.next());
@@ -110,8 +106,6 @@ void Shuffling::shuffle (UnitList*& units)
 
 void Shuffling::shuffle(Unit* unit)
 {
-  CALL("Shuffling::shuffle (Unit*");
-
   // cout << "Bef: " << unit->toString() << endl;
 
   if (unit->isClause()) {
@@ -125,8 +119,6 @@ void Shuffling::shuffle(Unit* unit)
 
 void Shuffling::shuffle(Clause* clause)
 {
-  CALL("Shuffling::shuffle (Clause*)");
-
   unsigned s = clause->numSelected();
 
   // don't shuffle between selected and non-selected literals
@@ -140,8 +132,6 @@ void Shuffling::shuffle(Clause* clause)
 
 // iterative implementation of shuffling Formula* / Literal* / TermList
 void Shuffling::shuffleIter(Shufflable sh) {
-  CALL("Shuffling::shuffleIter");
-
   static Stack<Shufflable> todo;
   ASS(todo.isEmpty());
 
@@ -267,30 +257,44 @@ void Shuffling::shuffleIter(Shufflable sh) {
         if (!t->shared()) {
           if (t->isSpecial()) {
             Term::SpecialTermData* sd = t->getSpecialData();
-            switch (sd->getType()) {
-              case Term::SF_ITE:
+            switch (sd->specialFunctor()) {
+              case Term::SpecialFunctor::ITE:
                 todo.push(Shufflable(sd->getCondition()));
                 todo.push(Shufflable(*t->nthArgument(0)));
                 tl = *t->nthArgument(1);
                 goto tl_updated;
                 break; // I know, unreachable;
 
-              case Term::SF_FORMULA:
+              case Term::SpecialFunctor::FORMULA:
                 todo.push(Shufflable(sd->getFormula()));
                 break;
 
-              case Term::SF_LET:
-              case Term::SF_LET_TUPLE:
+              case Term::SpecialFunctor::LET:
+              case Term::SpecialFunctor::LET_TUPLE:
                 todo.push(Shufflable(sd->getBinding()));
                 tl = *t->nthArgument(0);
                 goto tl_updated;
                 break; // I know, unreachable;
 
-              case Term::SF_TUPLE:
+              case Term::SpecialFunctor::TUPLE:
                 tl = TermList(sd->getTupleTerm());
                 goto tl_updated;
                 break; // I know, unreachable;
 
+              case Term::SpecialFunctor::LAMBDA:
+                tl = sd->getLambdaExp();
+                goto tl_updated;
+                break; // I know, unreachable;
+
+              case Term::SpecialFunctor::MATCH:
+                {
+                  // treat as non-special (and don't shuffle the MATCH specifics)
+                  Term::Iterator it(t);
+                  while (it.hasNext()) {
+                    todo.push(Shufflable(it.next()));
+                  }
+                }
+                break;
               default:
                 ASSERTION_VIOLATION_REP(tl.toString());
             }

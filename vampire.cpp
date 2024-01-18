@@ -14,25 +14,18 @@
 #include <iostream>
 #include <ostream>
 #include <fstream>
-#include <csignal>
 
 #if VZ3
 #include "z3++.h"
 #endif
 
-#include "Debug/Tracer.hpp"
-
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
 #include "Lib/Random.hpp"
-#include "Lib/Set.hpp"
-#include "Lib/Stack.hpp"
-#include "Debug/TimeProfiling.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/VString.hpp"
 #include "Lib/List.hpp"
-#include "Lib/Vector.hpp"
 #include "Lib/System.hpp"
 #include "Lib/Metaiterators.hpp"
 
@@ -43,8 +36,6 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 
-#include "Indexing/TermSharing.hpp"
-
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
 
@@ -52,7 +43,6 @@
 #include "CASC/CLTBMode.hpp"
 #include "CASC/CLTBModeLearning.hpp"
 #include "Shell/CommandLine.hpp"
-//#include "Shell/EqualityProxy.hpp"
 #include "Shell/Normalisation.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
@@ -68,24 +58,13 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "SAT/MinisatInterfacing.hpp"
-#include "SAT/MinisatInterfacingNewSimp.hpp"
-
 #include "FMB/ModelCheck.hpp"
-#include <thread>
 
 #if CHECK_LEAKS
 #include "Lib/MemoryLeak.hpp"
 #endif
 
-#define USE_SPIDER 0
-#define SAVE_SPIDER_PROPERTIES 0
-
-using namespace Shell;
-using namespace SAT;
-using namespace Saturation;
-using namespace Inferences;
-//using namespace InstGen;
+using namespace std;
 
 /**
  * Return value is non-zero unless we were successful.
@@ -109,32 +88,15 @@ using namespace Inferences;
 int vampireReturnValue = VAMP_RESULT_STATUS_UNKNOWN;
 
 /**
- * Return value is non-zero unless we were successful.
- *
- * Being successful for modes that involve proving means that we have
- * either found refutation or established satisfiability.
- *
- *
- * If execution was interrupted by a SIGINT, value 3 is returned,
- * and in case of other signal we return 2. For implementation
- * of these return values see Lib/System.hpp.
- *
- * In case execution was terminated by the timer, return value is 1.
- * (see @c timeLimitReached() in Lib/Timer.cpp)
- */
-int g_returnValue = 1;
-
-/**
  * Preprocess input problem
  *
  */
+VWARN_UNUSED
 Problem* getPreprocessedProblem()
 {
-  CALL("getPreprocessedProblem");
-
 #ifdef __linux__
   unsigned saveInstrLimit = env.options->instructionLimit();
-  if (env.options->parsingDoesNotCount()) {  
+  if (env.options->parsingDoesNotCount()) {
     env.options->setInstructionLimit(0);
   }
 #endif
@@ -143,7 +105,15 @@ Problem* getPreprocessedProblem()
 
 #ifdef __linux__
   if (env.options->parsingDoesNotCount()) {
-    env.options->setInstructionLimit(saveInstrLimit+Timer::elapsedMegaInstructions());
+    Timer::updateInstructionCount();
+    unsigned burnedParsing = Timer::elapsedMegaInstructions();
+
+    env.beginOutput();
+    addCommentSignForSZS(env.out());
+    env.out() << "Instructions burned parsing: " << burnedParsing << " (million)" << endl;
+    env.endOutput();
+
+    env.options->setInstructionLimit(saveInstrLimit+burnedParsing);
   }
 #endif
 
@@ -157,7 +127,7 @@ Problem* getPreprocessedProblem()
   Shell::Preprocess prepro(*env.options);
   //phases for preprocessing are being set inside the preprocess method
   prepro.preprocess(*prb);
-  
+
   return prb;
 } // getPreprocessedProblem
 
@@ -168,35 +138,16 @@ void explainException(Exception& exception)
   env.endOutput();
 } // explainException
 
-void getRandomStrategy()
+VWARN_UNUSED
+Problem *doProving()
 {
-  CALL("getRandomStrategy()");
-  // We might have set random_strategy sat
-  if(env.options->randomStrategy()==Options::RandomStrategy::OFF){
-    env.options->setRandomStrategy(Options::RandomStrategy::ON);
+  // a new strategy randomization mechanism
+  if (!env.options->strategySamplerFilename().empty()) {
+    env.options->sampleStrategy(env.options->strategySamplerFilename());
+    env.options->checkGlobalOptionConstraints();
   }
 
-  // One call to randomize before preprocessing (see Options)
-  env.options->randomizeStrategy(0); 
-  ScopedPtr<Problem> prb(getPreprocessedProblem());
-  // Then again when the property is here
-  env.options->randomizeStrategy(prb->getProperty()); 
-
-  // It is possible that the random strategy is still incorrect as we don't
-  // have access to the Property when setting preprocessing
-  env.options->checkProblemOptionConstraints(prb->getProperty(), /*before_preprocessing = */ false);
-}
-
-void doProving()
-{
-  CALL("doProving()");
-  // One call to randomize before preprocessing (see Options)
-  env.options->randomizeStrategy(0);
-
-  ScopedPtr<Problem> prb(getPreprocessedProblem());
-
-  // Then again when the property is here (this will only randomize non-default things if an option is set to do so)
-  env.options->randomizeStrategy(prb->getProperty()); 
+  Problem *prb = getPreprocessedProblem();
 
   // this will provide warning if options don't make sense for problem
   if (env.options->mode()!=Options::Mode::SPIDER) {
@@ -204,6 +155,7 @@ void doProving()
   }
 
   ProvingHelper::runVampireSaturation(*prb, *env.options);
+  return prb;
 }
 
 /**
@@ -212,8 +164,6 @@ void doProving()
  */
 void profileMode()
 {
-  CALL("profileMode()");
-
   ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
 
   /* CAREFUL: Make sure that the order
@@ -232,31 +182,6 @@ void profileMode()
   //we have succeeded with the profile mode, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // profileMode
-
-void outputResult(ostream& out) {
-  CALL("outputResult");
-
-  switch(env.statistics->terminationReason) {
-  case Statistics::UNKNOWN:
-    cout<<"unknown"<<endl;
-    break;
-  case Statistics::INAPPROPRIATE:
-    cout<<"inappropriate"<<endl;
-    break;
-  case Statistics::SATISFIABLE:
-    cout<<"sat"<<endl;
-    break;
-  case Statistics::REFUTATION:
-    cout<<"unsat"<<endl;
-    break;
-  default:
-    //these outcomes are not reachable with the current implementation
-    ASSERTION_VIOLATION;
-  }
-  if(env.options->mode()!=Options::Mode::SPIDER){
-    env.statistics->print(env.out());
-  }
-}
 
 // prints Unit u at an index to latexOut using the LaTeX object
 void outputUnitToLaTeX(LaTeX& latex, ofstream& latexOut, Unit* u,unsigned index)
@@ -278,10 +203,7 @@ void outputUnitToLaTeX(LaTeX& latex, ofstream& latexOut, Unit* u,unsigned index)
 // print the clauses of a problem to a LaTeX file
 void outputClausesToLaTeX(Problem* prb)
 {
-  CALL("outputClausesToLaTeX");
   ASS(env.options->latexOutput()!="off");
-
-  BYPASSING_ALLOCATOR; // not sure why we need this yet, ofstream?
 
   LaTeX latex;
   ofstream latexOut(env.options->latexOutput().c_str());
@@ -313,10 +235,7 @@ void outputClausesToLaTeX(Problem* prb)
 // print the formulas of a problem to a LaTeX file
 void outputProblemToLaTeX(Problem* prb)
 {
-  CALL("outputProblemToLaTeX");
   ASS(env.options->latexOutput()!="off");
-
-  BYPASSING_ALLOCATOR; // not sure why we need this yet, ofstream?
 
   LaTeX latex;
   ofstream latexOut(env.options->latexOutput().c_str());
@@ -326,8 +245,6 @@ void outputProblemToLaTeX(Problem* prb)
   latexOut << "\\[\n\\begin{array}{ll}" << endl;
 
   //TODO  get symbol and sort declarations into LaTeX
-  //UIHelper::outputSortDeclarations(env.out());
-  //UIHelper::outputSymbolDeclarations(env.out());
 
   UnitList::Iterator units(prb->units());
 
@@ -353,8 +270,6 @@ void outputProblemToLaTeX(Problem* prb)
  */
 void preprocessMode(bool theory)
 {
-  CALL("preprocessMode()");
-
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
   TIME_TRACE(TimeTrace::PREPROCESSING);
@@ -409,8 +324,6 @@ void preprocessMode(bool theory)
  */
 void modelCheckMode()
 {
-  CALL("modelCheckMode");
-
   env.options->setOutputAxiomNames(true);
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
@@ -431,8 +344,6 @@ void modelCheckMode()
  */
 void outputMode()
 {
-  CALL("outputMode()");
-
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
   env.beginOutput();
@@ -455,13 +366,11 @@ void outputMode()
 
 void vampireMode()
 {
-  CALL("vampireMode()");
-
   if (env.options->mode() == Options::Mode::CONSEQUENCE_ELIMINATION) {
     env.options->setUnusedPredicateDefinitionRemoval(false);
   }
 
-  doProving();
+  ScopedPtr<Problem> prb(doProving());
 
   env.beginOutput();
   UIHelper::outputResult(env.out());
@@ -475,17 +384,23 @@ void vampireMode()
 
 void spiderMode()
 {
-  CALL("spiderMode()");
   env.options->setBadOptionChoice(Options::BadOption::HARD);
   env.options->setOutputMode(Options::Output::SPIDER);
+  env.options->setNormalize(true);
+  // to start counting instructions
+#ifdef __linux__
+  Timer::ensureTimerInitialized();
+#endif
+
   Exception* exception = 0;
 #if VZ3
   z3::exception* z3_exception = 0;
 #endif
   
   bool exceptionRaised = false;
+  ScopedPtr<Problem> prb;
   try {
-    doProving();
+    prb = doProving();
   } catch (Exception& e) {
     exception = &e;
     exceptionRaised = true;
@@ -567,8 +482,6 @@ void spiderMode()
 
 void clausifyMode(bool theory)
 {
-  CALL("clausifyMode()");
-
   CompositeISE simplifier;
   simplifier.addFront(new TrivialInequalitiesRemovalISE());
   simplifier.addFront(new TautologyDeletionISE());
@@ -622,8 +535,6 @@ void clausifyMode(bool theory)
 
 void axiomSelectionMode()
 {
-  CALL("axiomSelectionMode()");
-
   env.options->setSineSelection(Options::SineSelection::AXIOMS);
 
   ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
@@ -664,12 +575,8 @@ void axiomSelectionMode()
  */
 int main(int argc, char* argv[])
 {
-  CALL ("main");
-
   System::registerArgv0(argv[0]);
   System::setSignalHandlers();
-
-  START_CHECKING_FOR_ALLOCATOR_BYPASSES;
 
   try {
     // read the command line and interpret it
@@ -691,7 +598,7 @@ int main(int argc, char* argv[])
       exit(0);
     }
 
-    Allocator::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
+    Lib::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
     Lib::Random::setSeed(env.options->randomSeed());
 
     switch (env.options->mode())
@@ -701,9 +608,6 @@ int main(int argc, char* argv[])
       break;
     case Options::Mode::SPIDER:
       spiderMode();
-      break;
-    case Options::Mode::RANDOM_STRATEGY:
-      getRandomStrategy();
       break;
     case Options::Mode::CONSEQUENCE_ELIMINATION:
     case Options::Mode::VAMPIRE:
@@ -718,7 +622,6 @@ int main(int argc, char* argv[])
       env.options->setOutputAxiomNames(true);
       env.options->setNormalize(true);
       env.options->setRandomizeSeedForPortfolioWorkers(false);
-      //env.options->setTimeLimitInSeconds(300);
 
       if (CASC::PortfolioMode::perform(env.options->slowness())) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -730,12 +633,8 @@ int main(int argc, char* argv[])
       env.options->setSchedule(Options::Schedule::CASC_HOL_2020);
       env.options->setOutputMode(Options::Output::SZS);
       env.options->setProof(Options::Proof::TPTP);
-      //env.options->setMulticore(0); // use all available cores
       env.options->setOutputAxiomNames(true);
 
-      //unsigned int nthreads = std::thread::hardware_concurrency();
-      //float slowness = 1.00 + (0.04 * nthreads);
- 
       if (CASC::PortfolioMode::perform(env.options->slowness())) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       }
@@ -749,7 +648,6 @@ int main(int argc, char* argv[])
       env.options->setOutputAxiomNames(true);
       env.options->setNormalize(true);
       env.options->setRandomizeSeedForPortfolioWorkers(false);
-      //env.options->setTimeLimitInSeconds(300);
 
       if (CASC::PortfolioMode::perform(env.options->slowness())) {
         vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -837,9 +735,6 @@ int main(int argc, char* argv[])
     case Options::Mode::TPREPROCESS:
       preprocessMode(true);
       break;
-
-    default:
-      USER_ERROR("Unsupported mode");
     }
 #if CHECK_LEAKS
     delete env.signature;
@@ -848,7 +743,6 @@ int main(int argc, char* argv[])
   }
 #if VZ3
   catch (z3::exception& exception) {
-    BYPASSING_ALLOCATOR;
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     if (outputAllowed()) {
       cout << "Z3 exception:\n" << exception.msg() << endl;
@@ -880,7 +774,6 @@ catch (Parse::TPTP::ParseErrorException& exception) {
 #endif
     env.beginOutput();
     explainException(exception);
-    //env.statistics->print(env.out());
     env.endOutput();
   } catch (std::bad_alloc& _) {
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
@@ -892,7 +785,6 @@ catch (Parse::TPTP::ParseErrorException& exception) {
     env.out() << "Insufficient system memory" << '\n';
     env.endOutput();
   }
-//   delete env.allocator;
 
   return vampireReturnValue;
 } // main

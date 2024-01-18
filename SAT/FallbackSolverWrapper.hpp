@@ -37,9 +37,6 @@ using namespace Lib;
 
 class FallbackSolverWrapper : public SATSolver {
 public:
-  CLASS_NAME(FallbackSolverWrapper);
-  USE_ALLOCATOR(FallbackSolverWrapper);
-
   FallbackSolverWrapper(SATSolver* inner,SATSolver* fallback);
 
   virtual SATClause* getRefutation() override { 
@@ -64,7 +61,6 @@ public:
   virtual VarAssignment getAssignment(unsigned var) override;
 
   virtual bool isZeroImplied(unsigned var) override {
-    CALL("FallbackSolverWrapper::isZeroImplied");
     ASS_G(var,0); ASS_LE(var,_varCnt);
 
     if(_usingFallback){
@@ -92,13 +88,11 @@ public:
   virtual void ensureVarCount(unsigned newVarCnt) override { 
     _inner->ensureVarCount(newVarCnt); 
     _fallback->ensureVarCount(newVarCnt); 
-    _varCnt=max(_varCnt,newVarCnt); 
+    _varCnt=std::max(_varCnt,newVarCnt); 
   }
 
 
   virtual unsigned newVar() override { 
-    CALL("FallbackSolverWrapper::newVar");
-    
     ALWAYS(_inner->newVar() == ++_varCnt);
     ALWAYS(_fallback->newVar() == _varCnt);
     return _varCnt;

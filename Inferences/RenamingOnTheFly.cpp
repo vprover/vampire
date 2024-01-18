@@ -33,14 +33,13 @@
 #include "RenamingOnTheFly.hpp"
 
 namespace Inferences {
+using namespace std;
 using namespace Indexing;
 
 typedef ApplicativeHelper AH;
 
 void RenamingOnTheFly::attach(SaturationAlgorithm* salg)
 {
-  CALL("RenamingOnTheFly::attach");
-
   SimplificationEngine::attach(salg);
   _formulaIndex=static_cast<RenamingFormulaIndex*> (
    _salg->getIndexManager()->request(RENAMING_FORMULA_INDEX) );
@@ -48,8 +47,6 @@ void RenamingOnTheFly::attach(SaturationAlgorithm* salg)
 
 void RenamingOnTheFly::detach()
 {
-  CALL("RenamingOnTheFly::detach");
-
   _formulaIndex=0;
   _salg->getIndexManager()->release(RENAMING_FORMULA_INDEX);
   SimplificationEngine::detach();
@@ -57,8 +54,6 @@ void RenamingOnTheFly::detach()
 
 ClauseIterator RenamingOnTheFly::produceClauses(Clause* c)
 {
-  CALL("RenamingOnTheFly::produceClauses");  
-
   //0 means dont rename
   static int namingBound = env.options->naming();
 
@@ -237,8 +232,6 @@ ClauseIterator RenamingOnTheFly::produceClauses(Clause* c)
 
 ClauseIterator RenamingOnTheFly::perform(Clause* c)
 {
-  CALL("RenamingOnTheFly::perform");
-  
   if(c->inference()->rule() == Inference::PREDICATE_DEFINITION){
     //dont want to name definitions
     return ClauseIterator::getEmpty();
@@ -251,8 +244,6 @@ ClauseIterator RenamingOnTheFly::perform(Clause* c)
 
 void RenamingOnTheFly::addToQueue(TermList formula, TermList name, Literal* lit, Clause* c)
 {
-  CALL("RenamingOnTheFly::addToQueue");
-  
   _formulas.push(formula);
   _names.push(name);
   _lits.push(lit);
@@ -261,8 +252,6 @@ void RenamingOnTheFly::addToQueue(TermList formula, TermList name, Literal* lit,
 
 void RenamingOnTheFly::processQueue()
 {
-  CALL("RenamingOnTheFly::processQueue");
-
   while(!_formulas.isEmpty()){
     _formulaIndex->insertFormula(_formulas.pop(), _names.pop(), _lits.pop(), _clauses.pop());
   }
@@ -272,8 +261,6 @@ void RenamingOnTheFly::processQueue()
 
 bool RenamingOnTheFly::isNamingLit(Literal* lit)
 {
-  CALL("RenamingOnTheFly::isNamingLit");
-
   TermList lhs = *lit->nthArgument(0);
   TermList rhs = *lit->nthArgument(1);
   bool lhsIsAtom = AH::getProxy(AH::getHead(lhs)) == Signature::NOT_PROXY;
@@ -283,8 +270,6 @@ bool RenamingOnTheFly::isNamingLit(Literal* lit)
 
 TermList RenamingOnTheFly::getFormula(Literal* lit)
 {
-  CALL("RenamingOnTheFly::getFormula");
-
   TermList lhs = *lit->nthArgument(0);
   TermList rhs = *lit->nthArgument(1);
   return AH::isBool(lhs) ? rhs : lhs;

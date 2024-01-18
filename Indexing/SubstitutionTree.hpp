@@ -52,7 +52,6 @@
 #include <iostream>
 #endif
 
-using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
@@ -86,7 +85,7 @@ public:
   Cntr& _cntr;
 
   InstanceCntr& operator=(InstanceCntr&& other) 
-  { swap(other._cntr, _cntr); return *this; }
+  { using std::swap; swap(other._cntr, _cntr); return *this; }
 
   InstanceCntr(InstanceCntr&& other) 
     : _cntr(other._cntr)
@@ -120,8 +119,6 @@ class SubstitutionTree
 public:
   static constexpr int QRS_QUERY_BANK = 0;
   static constexpr int QRS_RESULT_BANK = 1;
-  CLASS_NAME(SubstitutionTree);
-  USE_ALLOCATOR(SubstitutionTree);
 
   SubstitutionTree(bool useC, bool rfSubs);
 
@@ -189,7 +186,6 @@ public:
   template<class Iterator, class TermOrLit> 
   QueryResultIterator iterator(TermOrLit query, bool retrieveSubstitutions, bool withConstraints, bool reversed = false)
   {
-    CALL("TermSubstitutionTree::iterator");
     return _root == nullptr 
       ? QueryResultIterator::getEmpty()
       : pvi(iterTraits(Iterator(this, _root, query, retrieveSubstitutions, reversed, withConstraints, _functionalSubtermMap.asPtr() )));
@@ -201,8 +197,6 @@ public:
     inline
     static Comparison compare(const LeafData& ld1, const LeafData& ld2)
     {
-      CALL("SubstitutionTree::LDComparator::compare");
-
       if(ld1.clause && ld2.clause && ld1.clause!=ld2.clause) {
         ASS_NEQ(ld1.clause->number(), ld2.clause->number());
         return (ld1.clause->number()<ld2.clause->number()) ? LESS : GREATER;
@@ -251,9 +245,9 @@ public:
 
   class Node {
   public:
-    friend std::ostream& operator<<(ostream& out, OutputMultiline<Node> const& self) 
+    friend std::ostream& operator<<(std::ostream& out, OutputMultiline<Node> const& self) 
     { self.self.output(out, /* multiline = */ true, /* indent */ 0); return out; }
-    friend std::ostream& operator<<(ostream& out, Node const& self) 
+    friend std::ostream& operator<<(std::ostream& out, Node const& self) 
     { self.output(out, /* multiline = */ false, /* indent */ 0); return out; }
     inline
     Node() { term.makeEmpty(); }
@@ -302,7 +296,6 @@ public:
     {
     public:
         
-        CLASS_NAME(SubstitutionTree::ChildBySortHelper);
         USE_ALLOCATOR(ChildBySortHelper);
         
         ChildBySortHelper(IntermediateNode* p):  _parent(p)
@@ -328,7 +321,6 @@ public:
          */
         NodeIterator childBySort(TermList t)
         {
-          CALL("SubstitutionTree::ChildBySortHelper::childBySort");
           TermList srt;
           // only consider interpreted sorts
           if(SortHelper::tryGetResultSort(t,srt) && !srt.isVar()){
@@ -354,7 +346,6 @@ public:
          */
         void mightExistAsTop(TermList t)
         {
-          CALL("SubstitutionTree::ChildBySortHelper::mightExistAsTop");
           if(!t.isTerm()){ return; }
           TermList srt;
           if(SortHelper::tryGetResultSort(t,srt) &&  !srt.isVar() && 
@@ -370,7 +361,6 @@ public:
         }
         void remove(TermList t)
         {
-          CALL("SubstitutionTree::ChildBySortHelper::remove");
           if(!t.isTerm()){ return;}
           TermList srt;
           if(SortHelper::tryGetResultSort(t,srt) && !srt.isVar() &&  
@@ -571,7 +561,6 @@ public:
     }
 #endif
 
-    CLASS_NAME(SubstitutionTree::UArrIntermediateNode);
     USE_ALLOCATOR(UArrIntermediateNode);
 
     int _size;
@@ -638,8 +627,6 @@ public:
     }
     virtual Node** childByTop(TermList t, bool canCreate)
     {
-      CALL("SubstitutionTree::SListIntermediateNode::childByTop");
-
       Node** res;
       bool found=_nodes.getPosition(t,res,canCreate);
       if(!found) {
@@ -661,7 +648,6 @@ public:
       }
     }
 
-    CLASS_NAME(SubstitutionTree::SListIntermediateNode);
     USE_ALLOCATOR(SListIntermediateNode);
 
     class NodePtrComparator
@@ -669,8 +655,6 @@ public:
     public:
       static Comparison compare(TermList t1,TermList t2)
       {
-	CALL("SubstitutionTree::SListIntermediateNode::NodePtrComparator::compare");
-
 	if(t1.isVar()) {
 	  if(t2.isVar()) {
 	    return Int::compare(t1.var(), t2.var());
@@ -787,7 +771,7 @@ public:
     createBindings(norm, /* reversed */ false,
         [&](auto var, auto term) { 
           bindings->insert(var, term);
-          _nextVar = max(_nextVar, (int)var + 1);
+          _nextVar = std::max(_nextVar, (int)var + 1);
         });
     if (doInsert) insert(*bindings, ld);
     else          remove(*bindings, ld);
@@ -851,9 +835,6 @@ public:
   template<class Query>
   QueryResultIterator getVariants(Query query, bool retrieveSubstitutions)
   {
-    CALL("LiteralSubstitutionTree::getVariants");
-
-
     RenamingSubstitution* renaming = retrieveSubstitutions ? new RenamingSubstitution() : nullptr;
     ResultSubstitutionSP resultSubst = retrieveSubstitutions ? ResultSubstitutionSP(renaming) : ResultSubstitutionSP();
 
@@ -868,7 +849,7 @@ public:
     Recycled<BindingMap> svBindings;
     createBindings(normQuery, /* reversed */ false,
         [&](auto v, auto t) { {
-          _nextVar = max<int>(_nextVar, v + 1); // TODO do we need this line?
+          _nextVar = std::max<int>(_nextVar, v + 1); // TODO do we need this line?
           svBindings->insert(v, t);
         } });
     Leaf* leaf = findLeaf(*svBindings);
@@ -930,14 +911,13 @@ public:
       if(_specVars->size()<nextSpecVar) {
         //_specVars can get really big, but it was introduced instead of hash table
         //during optimizations, as it raised performance by abour 5%.
-        _specVars->ensure(max(static_cast<unsigned>(_specVars->size()*2), nextSpecVar));
+        _specVars->ensure(std::max(static_cast<unsigned>(_specVars->size()*2), nextSpecVar));
       }
       _bindings->ensure(weight(query));
     }
 
 
 
-    CLASS_NAME(SubstitutionTree::GenMatcher);
     USE_ALLOCATOR(GenMatcher);
 
     /**
@@ -1071,7 +1051,6 @@ public:
       , _nodeTypes()
       , _iterCntr(parent->_iterCnt)
     {
-      CALL("SubstitutionTree::FastGeneralizationsIterator::FastGeneralizationsIterator");
       ASS(root);
       ASS(!root->isLeaf());
 
@@ -1126,7 +1105,6 @@ public:
       _derefBindings.reset();
     }
 
-    CLASS_NAME(SubstitutionTree::InstMatcher);
     USE_ALLOCATOR(InstMatcher);
 
     struct TermSpec
@@ -1139,8 +1117,6 @@ public:
       TermSpec(bool q, TermList t)
       : q(q), t(t)
       {
-        CALL("SubstitutionTree::InstMatcher::TermSpec::TermSpec");
-
         //query does not contain special vars
         ASS(!q || !t.isTerm() || t.term()->shared());
         ASS(!q || !t.isSpecialVar());
@@ -1148,7 +1124,6 @@ public:
 
       vstring toString()
       {
-        CALL("SubstitutionTree::InstMatcher::TermSpec::toString");
         return (q ? "q|" : "n|")+t.toString();
       }
 
@@ -1176,7 +1151,6 @@ public:
      */
     void bindSpecialVar(unsigned var, TermList term)
     {
-      CALL("SubstitutionTree::InstMatcher::bindSpecialVar");
       ASS_EQ(getBSCnt(), 0);
 
       ALWAYS(_bindings.insert(TermList(var,true),TermSpec(true,term)));
@@ -1232,14 +1206,12 @@ public:
 
     bool isBound(TermList var)
     {
-      CALL("SubstitutionTree::InstMatcher::isBound");
       ASS(var.isVar());
 
       return _bindings.find(var);
     }
     void bind(TermList var, TermSpec trm)
     {
-      CALL("SubstitutionTree::InstMatcher::bind");
       ASS(!var.isOrdinaryVar() || !trm.q); //we do not bind ordinary vars to query terms
 
       ALWAYS(_bindings.insert(var, trm));
@@ -1278,7 +1250,6 @@ public:
       DerefApplicator(InstMatcher* im, bool query) : query(query), im(im) {}
       TermList apply(unsigned var)
       {
-        CALL("SubstitutionTree::InstMatcher::DerefApplicator::apply");
         if(query) {
     return im->_derefBindings.get(TermList(var, false));
         }
@@ -1288,7 +1259,6 @@ public:
       }
       TermList applyToSpecVar(unsigned specVar)
       {
-        CALL("SubstitutionTree::InstMatcher::DerefApplicator::applyToSpecVar");
         ASS(!query);
 
         return im->_derefBindings.get(TermList(specVar, true));
@@ -1327,7 +1297,6 @@ public:
       , _nodeTypes()
       , _iterCntr(parent->_iterCnt)
     {
-      CALL("SubstitutionTree::FastInstancesIterator::FastInstancesIterator");
       ASS(root);
       ASS(!root->isLeaf());
 
@@ -1410,8 +1379,6 @@ public:
 #endif
     {
 #define DEBUG_QUERY(...) // DBG(__VA_ARGS__)
-      CALL("SubstitutionTree::UnificationsIterator::UnificationsIterator");
-
       ASS(!_useUWAConstraints || retrieveSubstitution);
       ASS(!_useUWAConstraints || parent->_useC);
 

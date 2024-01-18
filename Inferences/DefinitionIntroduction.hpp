@@ -23,30 +23,19 @@ namespace Inferences
 
 class DefinitionIntroduction: public GeneratingInferenceEngine, public Index {
 public:
-  CLASS_NAME(DefinitionIntroduction);
-  USE_ALLOCATOR(DefinitionIntroduction);
-
   void attach(SaturationAlgorithm *salg) override {
-    CALL("DefinitionIntroduction::attach")
     GeneratingInferenceEngine::attach(salg);
     attachContainer(salg->getPassiveClauseContainer());
-    reset = false;
   }
 
   void handleClause(Clause *cl, bool adding) override {
-    CALL("DefinitionIntroduction::handleClause");
-    if(reset)
-      _definitions.reset();
-
-    reset = false;
-    if(adding)
+    if(adding) {
       process(cl);
+    }
   }
 
   ClauseIterator generateClauses(Clause *cl) override {
-    CALL("DefinitionIntroduction::generateClauses");
-    reset = true;
-    return pvi(decltype(_definitions)::Iterator(_definitions));
+    return pvi(ownedArrayishIterator(std::move(_definitions)));
   }
 
 private:
@@ -62,7 +51,6 @@ private:
   DHSet<Term *> _defined;
   Stack<Stack<Entry>> _entries;
   Stack<Clause *> _definitions;
-  bool reset;
 };
 
 }

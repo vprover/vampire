@@ -32,7 +32,6 @@
 
 //#define DEBUG_SHOW_STATE
 
-using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
@@ -308,7 +307,7 @@ public:
     ParseErrorException(vstring message,unsigned ln) : _message(message), _ln(ln) {}
     ParseErrorException(vstring message,Token& tok,unsigned ln);
     ParseErrorException(vstring message,int position,unsigned ln);
-    void cry(ostream&) const;
+    void cry(std::ostream&) const;
     ~ParseErrorException() {}
   protected:
     vstring _message;
@@ -319,10 +318,10 @@ public:
 #define PARSE_ERROR(msg,tok) \
   throw ParseErrorException(msg,tok,_lineNumber)
 
-  TPTP(istream& in);
+  TPTP(std::istream& in);
   ~TPTP();
   void parse();
-  static UnitList* parse(istream& str);
+  static UnitList* parse(std::istream& str);
   /** Return the list of parsed units */
   inline UnitList* units() { return _units.list(); }
   /**
@@ -356,8 +355,6 @@ private:
    */
   class Type {
   public:
-    CLASS_NAME(Type);
-    USE_ALLOCATOR(Type);
     explicit Type(TypeTag tag) : _tag(tag) {}
     /** return the kind of this sort */
     TypeTag tag() const {return _tag;}
@@ -371,8 +368,6 @@ private:
     : public Type
   {
   public:
-    CLASS_NAME(AtomicType);
-    USE_ALLOCATOR(AtomicType);
     explicit AtomicType(TermList sort)
       : Type(TT_ATOMIC), _sort(sort)
     {}
@@ -388,8 +383,6 @@ private:
     : public Type
   {
   public:
-    CLASS_NAME(ArrowType);
-    USE_ALLOCATOR(ArrowType);
     ArrowType(Type* lhs,Type* rhs)
       : Type(TT_ARROW), _lhs(lhs), _rhs(rhs)
     {}
@@ -412,8 +405,6 @@ private:
     : public Type
   {
   public:
-    CLASS_NAME(ProductType);
-    USE_ALLOCATOR(ProductType);
     ProductType(Type* lhs,Type* rhs)
       : Type(TT_PRODUCT), _lhs(lhs), _rhs(rhs)
     {}
@@ -434,8 +425,6 @@ private:
     : public Type
   {
   public:
-    CLASS_NAME(QuantifiedType);
-    USE_ALLOCATOR(QuantifiedType);
     QuantifiedType(Type* t, VList* vars)
       : Type(TT_QUANTIFIED), _type(t), _vars(vars)
     {}
@@ -554,9 +543,9 @@ private:
   /** set of files whose inclusion should be ignored */
   Set<vstring> _forbiddenIncludes;
   /** the input stream */
-  istream* _in;
+  std::istream* _in;
   /** in the case include() is used, previous streams will be saved here */
-  Stack<istream*> _inputs;
+  Stack<std::istream*> _inputs;
   /** the current include directory */
   vstring _includeDirectory;
   /** in the case include() is used, previous sequence of directories will be
@@ -629,15 +618,15 @@ private:
   Color _currentColor;
 
   /** a function name and arity */
-  typedef pair<vstring, unsigned> LetSymbolName;
+  typedef std::pair<vstring, unsigned> LetSymbolName;
 
   /** a symbol number with a predicate/function flag */
-  typedef pair<unsigned, bool> LetSymbolReference;
+  typedef std::pair<unsigned, bool> LetSymbolReference;
   #define SYMBOL(ref) (ref.first)
   #define IS_PREDICATE(ref) (ref.second)
 
   /** a definition of a function symbol, defined in $let */
-  typedef pair<LetSymbolName, LetSymbolReference> LetSymbol;
+  typedef std::pair<LetSymbolName, LetSymbolReference> LetSymbol;
 
   /** a scope of function definitions */
   typedef Stack<LetSymbol> LetSymbols;
@@ -668,11 +657,9 @@ private:
    */
   inline char getChar(int pos)
   {
-    CALL("TPTP::getChar");
-
     while (_cend <= pos) {
       int c = _in->get();
-      //      if (c == -1) { cout << "<EOF>"; } else {cout << char(c);}
+      //      if (c == -1) { std::cout << "<EOF>"; } else {std::cout << char(c);}
       _chars[_cend++] = c == -1 ? 0 : c;
     }
     return _chars[pos];
@@ -683,7 +670,6 @@ private:
    */
   inline void shiftChars(int n)
   {
-    CALL("TPTP::shiftChars");
     ASS(n > 0);
     ASS(n <= _cend);
 
@@ -709,8 +695,6 @@ private:
    */
   inline Token& getTok(int pos)
   {
-    CALL("TPTP::getTok");
-
     while (_tend <= pos) {
       Token& tok = _tokens[_tend++];
       readToken(tok);
@@ -723,8 +707,6 @@ private:
    */
   inline void shiftToks(int n)
   {
-    CALL("TPTP::shiftToks");
-
     ASS(n > 0);
     ASS(n <= _tend);
 
@@ -844,6 +826,9 @@ public:
   static unsigned addRationalConstant(const vstring&, Set<vstring>& overflow, bool defaultSort);
   static unsigned addRealConstant(const vstring&, Set<vstring>& overflow, bool defaultSort);
   static unsigned addUninterpretedConstant(const vstring& name, Set<vstring>& overflow, bool& added);
+
+  // also here, simply made public static to share the code with another use site
+  static Unit* processClaimFormula(Unit* unit, Formula* f, const vstring& nm);
 
   /**
    * Used to store the contents of the 'source' of an input formula

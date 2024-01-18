@@ -119,7 +119,6 @@ template<class A> BottomUpChildIter<A> bottomUpChildIter(A a)
 template<class EvalFn, class Memo>
 typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalFn evaluateStep, Memo& memo)
 {
-  CALL("evaluateBottomUp(...)")
   using Result = typename EvalFn::Result;
   using Arg    = typename EvalFn::Arg;
 
@@ -148,7 +147,6 @@ typename EvalFn::Result evaluateBottomUp(typename EvalFn::Arg const& term, EvalF
 
       BottomUpChildIter<Arg> orig = recState->pop();
       Result eval = memo.getOrInit(orig.self(), [&](){
-            CALL("evaluateBottomUp(..)::closure@1")
             Result* argLst = NULL;
             if (orig.nChildren() != 0) {
               ASS_GE(recResults->size(), orig.nChildren());
@@ -311,7 +309,7 @@ struct BottomUpChildIter<Kernel::PolyNf>
     unsigned nChildren() const
     { return _nChildren; }
 
-    friend ostream& operator<<(ostream& out, PolynomialBottomUpChildIter const& self)
+    friend std::ostream& operator<<(std::ostream& out, PolynomialBottomUpChildIter const& self)
     { return out << self._self << "@(" << self._idx1 << ", " << self._idx2 << ")"; }
   };
 
@@ -332,7 +330,7 @@ struct BottomUpChildIter<Kernel::PolyNf>
     unsigned nChildren() const
     { return _self->numTermArguments(); }
 
-    friend ostream& operator<<(ostream& out, FuncTermBottomUpChildIter const& self)
+    friend std::ostream& operator<<(std::ostream& out, FuncTermBottomUpChildIter const& self)
     { return out << self._self << "@" << self._idx; }
   };
 
@@ -351,7 +349,7 @@ struct BottomUpChildIter<Kernel::PolyNf>
     unsigned nChildren() const
     { return 0; }
 
-    friend ostream& operator<<(ostream& out, VariableBottomUpChildIter const& self)
+    friend std::ostream& operator<<(std::ostream& out, VariableBottomUpChildIter const& self)
     { return out << self._self; }
   };
 
@@ -377,7 +375,7 @@ struct BottomUpChildIter<Kernel::PolyNf>
   Kernel::PolyNf self() const
   { return _self.apply([](auto& x) { return Kernel::PolyNf(x._self); }); }
 
-  friend ostream& operator<<(ostream& out, BottomUpChildIter const& self)
+  friend std::ostream& operator<<(std::ostream& out, BottomUpChildIter const& self)
   { return out << self._self; }
 };
 

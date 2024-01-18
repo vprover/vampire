@@ -46,6 +46,7 @@
 
 namespace Inferences {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
@@ -53,7 +54,6 @@ using namespace Saturation;
 
 void BackwardDemodulation::attach(SaturationAlgorithm* salg)
 {
-  CALL("BackwardDemodulation::attach");
   BackwardSimplificationEngine::attach(salg);
   _index=static_cast<DemodulationSubtermIndex*>(
 	  _salg->getIndexManager()->request(DEMODULATION_SUBTERM_SUBST_TREE) );
@@ -61,7 +61,6 @@ void BackwardDemodulation::attach(SaturationAlgorithm* salg)
 
 void BackwardDemodulation::detach()
 {
-  CALL("BackwardDemodulation::detach");
   _index=0;
   _salg->getIndexManager()->release(DEMODULATION_SUBTERM_SUBST_TREE);
   BackwardSimplificationEngine::detach();
@@ -110,8 +109,6 @@ struct BackwardDemodulation::ResultFn
    */
   BwSimplificationRecord operator() (pair<TermList,TermQueryResult> arg)
   {
-    CALL("BackwardDemodulation::ResultFn::operator()");
-
     TermQueryResult qr=arg.second;
 
     if( !ColorHelper::compatible(_cl->color(), qr.clause->color()) ) {
@@ -256,7 +253,6 @@ private:
 void BackwardDemodulation::perform(Clause* cl,
 	BwSimplificationRecordIterator& simplifications)
 {
-  CALL("BackwardDemodulation::perform");
   TIME_TRACE("backward demodulation");
 
   if(cl->length()!=1 || !(*cl)[0]->isEquality() || !(*cl)[0]->isPositive() ) {

@@ -101,7 +101,6 @@ bool ForwardDeletionByRule::perform(Clause* cl, Clause*& replacement, ClauseIter
 
 void BackwardDeletionByRule::attach(SaturationAlgorithm* salg)
 {
-  CALL("BackwardDeletionByRule::attach");
   BackwardSimplificationEngine::attach(salg);
   _index=static_cast<BlockedTermIndex*>(
 	  _salg->getIndexManager()->request(BLOCKED_TERM_INDEX) );
@@ -109,7 +108,6 @@ void BackwardDeletionByRule::attach(SaturationAlgorithm* salg)
 
 void BackwardDeletionByRule::detach()
 {
-  CALL("BackwardDeletionByRule::detach");
   _index=0;
   _salg->getIndexManager()->release(BLOCKED_TERM_INDEX);
   BackwardSimplificationEngine::detach();
@@ -132,9 +130,8 @@ struct BackwardDeletionByRuleResultFn
    * and the second is the clause, that replaces it. If no
    * replacement should occur, return pair of zeroes.
    */
-  BwSimplificationRecord operator() (pair<TermList,TermQueryResult> arg)
+  BwSimplificationRecord operator() (std::pair<TermList,TermQueryResult> arg)
   {
-    CALL("BackwardDemodulation::ResultFn::operator()");
     TIME_TRACE("backward deletion by rule");
 
     TermQueryResult qr=arg.second;
@@ -202,7 +199,6 @@ private:
 
 void BackwardDeletionByRule::perform(Clause* cl, BwSimplificationRecordIterator& simplifications)
 {
-  CALL("BackwardDeletionByRule::perform");
   TIME_TRACE("backward deletion by rule");
 
   if(cl->length()!=1 || !(*cl)[0]->isEquality() || !(*cl)[0]->isPositive() ) {

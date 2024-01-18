@@ -57,7 +57,6 @@ template <typename Key, typename Val, class Hash1, class Hash2>
 class DHMap
 {
 public:
-  CLASS_NAME(DHMap);
   USE_ALLOCATOR(DHMap);
   
   /** Create a new DHMap */
@@ -112,7 +111,6 @@ public:
   /** Empty the DHMap */
   void reset()
   {
-    CALL("DHMap::reset");
     unsigned oldTS=_timestamp;
     _timestamp++;
     _size=0;
@@ -138,7 +136,6 @@ public:
   inline
   bool find(Key key, Val& val) const
   {
-    CALL("DHMap::find/2");
     const Entry* e=findEntry(key);
     if(!e) {
       return false;
@@ -154,7 +151,6 @@ public:
    */
   Val* findPtr(Key key)
   {
-    CALL("DHMap::findPtr");
     Entry* e=findEntry(key);
     if(!e) {
       return nullptr;
@@ -168,7 +164,6 @@ public:
   inline
   bool find(Key key) const
   {
-    CALL("DHMap::find/1");
     return findEntry(key);
   }
 
@@ -239,7 +234,6 @@ public:
   /** same as @b insert but using move semantics instead of copying */
   bool emplace(Key key, Val&& val)
   {
-    CALL("DHMap::emplace");
     ensureExpanded();
     Entry* e=findEntryToInsert(key);
     bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;
@@ -269,7 +263,6 @@ public:
    */
   bool insert(Key key, const Val& val)
   {
-    CALL("DHMap::insert");
     return emplace(key, Val(val));
   }
 
@@ -279,7 +272,6 @@ public:
    */
   Val findOrInsert(Key key, const Val& val)
   {
-    CALL("DHMap::insert");
     ensureExpanded();
     Entry* e=findEntryToInsert(key);
     bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;
@@ -308,7 +300,6 @@ public:
    */
   bool findOrInsert(Key key, Val& val, const Val& initial)
   {
-    CALL("DHMap::insert");
     ensureExpanded();
     Entry* e=findEntryToInsert(key);
     bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;
@@ -338,7 +329,6 @@ public:
    */
   bool getValuePtr(Key key, Val*& pval, const Val& initial)
   {
-    CALL("DHMap::getValuePtr/3");
     ensureExpanded();
     Entry* e=findEntryToInsert(key);
     bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;
@@ -368,7 +358,6 @@ public:
    */
   bool getValuePtr(Key key, Val*& pval)
   {
-    CALL("DHMap::getValuePtr/2");
     ensureExpanded();
     Entry* e=findEntryToInsert(key);
     bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;
@@ -398,7 +387,6 @@ public:
    */
   bool set(Key key, const Val& val)
   {
-    CALL("DHMap::set");
     ensureExpanded();
     Entry* e=findEntryToInsert(key);
     bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;
@@ -429,7 +417,6 @@ public:
   inline
   bool pop(Key key, Val& val)
   {
-    CALL("DHMap::pop");
     Entry* e=findEntry(key);
     if(!e) {
       return false;
@@ -448,7 +435,6 @@ public:
    */
   bool remove(Key key)
   {
-    CALL("DHMap::remove");
     Entry* e=findEntry(key);
     if(!e) {
       return false;
@@ -524,7 +510,7 @@ private:
   void ensureExpanded()
   {
     if(_size+_deleted>=_nextExpansionOccupancy) {
-      //cout << this << ", " << _size << ", " << _deleted << ", " << _nextExpansionOccupancy << endl;
+      //std::cout << this << ", " << _size << ", " << _deleted << ", " << _nextExpansionOccupancy << std::endl;
       expand();
     }
   }
@@ -532,8 +518,6 @@ private:
   /** Expand DHMap to about double of its current size */
   void expand()
   {
-    CALL("DHMap::expand");
-
     if(_capacityIndex>=DHMAP_MAX_CAPACITY_INDEX) {
       throw Exception("Lib::DHMap::expand: MaxCapacityIndex reached.");
     }
@@ -586,7 +570,6 @@ private:
    * or 0, if there is no such */
   const Entry* findEntry(Key key) const
   {
-    CALL("DHMap::findEntry");
     if (_capacity == 0) return nullptr;
     ASS(_capacity>_size+_deleted);
 
@@ -629,7 +612,6 @@ private:
    * specified key */
   Entry* findEntryToInsert(Key key)
   {
-    CALL("DHMap::findEntryToInsert");
     ensureExpanded();
     ASS(_capacity>_size+_deleted);
 
@@ -687,7 +669,6 @@ private:
      */
     bool hasNext()
     {
-      CALL("DHMap::DomainIteratorCore::hasNext");
       while (_next != _last) {
 	if (_next->_info.timestamp==_timestamp && !_next->_info.deleted) {
 	  return true;
@@ -704,7 +685,6 @@ private:
     inline
     Entry* next()
     {
-      CALL("DHMap::DomainIteratorCore::next");
       ASS(_next != _last);
       ASS(_next->_info.timestamp==_timestamp && !_next->_info.deleted);
       return _next++;
@@ -894,14 +874,12 @@ public:
     inline Key nextKey() { return getNextEntry()->_key; }
 
     void del() {
-      CALL("DHMap::DelIterator::del");
       _curr->_info.deleted=1;
       _map._size--;
       _map._deleted++;
     }
 
     void setValue(Val val) {
-      CALL("DHMap::DelIterator::setValue");
       _curr->_val = val;
     }
 

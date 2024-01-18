@@ -2,7 +2,7 @@
 
 # Vampire
 This is the main source repository of the [Vampire](https://vprover.github.io) project, an advanced tool for automated reasoning.
-The following is for end-users of Vampire: new developers should read `HACKING.md` as well.
+The following is for end-users of Vampire: new developers should read the [wiki](https://github.com/vprover/vampire/wiki) as well.
 
 ## Licensing
 Please see LICENCE for usage restrictions.
@@ -62,6 +62,8 @@ $ ls bin/
 vampire_z3_rel_master_4933
 $
 ```
+
+Windows can be tricky. We are working on improving the situation, but in the meantime you might wish to look at the [Cygwin wiki page](https://github.com/vprover/vampire/wiki/Cygwin), and [related](https://github.com/vprover/vampire/issues/462) [bug](https://github.com/vprover/vampire/issues/318) [reports](https://github.com/vprover/vampire/issues/282).
 
 ### Adding Z3
 Vampire can optionally link to a fixed version of the external Z3 library.

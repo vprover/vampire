@@ -25,7 +25,6 @@
 #include "Map.hpp"
 #include "VString.hpp"
 
-using namespace std;
 
 namespace Lib {
 

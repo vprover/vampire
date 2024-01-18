@@ -48,6 +48,7 @@
 
 namespace FMB
 {
+using namespace std;
 using namespace Shell;
 
 void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator clauses, 
@@ -55,7 +56,6 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
                  DHSet<std::pair<unsigned,unsigned>>& nonstrict_cons,
                  DHSet<std::pair<unsigned,unsigned>>& strict_cons)
 {
-  CALL("FunctionRelationshipInference::findFunctionRelationships");
   bool print = env.options->showFMBsortInfo();
 
   ClauseList* checkingClauses = getCheckingClauses();
@@ -201,8 +201,6 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
 
 ClauseList* FunctionRelationshipInference::getCheckingClauses()
 {
-  CALL("FunctionRelationshipInference::getCheckingClauses");
-
   ClauseList* newClauses = 0;
 
   unsigned initial_functions = env.signature->functions();
@@ -282,8 +280,6 @@ void FunctionRelationshipInference::addClaimForFunction(TermList x, TermList y, 
                                                TermList arg_srt, TermList ret_srt, VList* existential,
                                                ClauseList*& newClauses)
 {
-    CALL("FunctionRelationshipInference::addClaimForFunction");
-
     VList* xy = VList::cons(0,VList::cons(1,VList::empty()));
 
     Formula* eq_fxfy = new AtomicFormula(Literal::createEquality(true,fx,fy,ret_srt));
@@ -322,8 +318,6 @@ void FunctionRelationshipInference::addClaimForFunction(TermList x, TermList y, 
 
 void FunctionRelationshipInference::addClaim(Formula* conjecture, ClauseList*& newClauses)
 {
-    CALL("FunctionRelationshipInference::addClaim");
-    
     FormulaUnit* fu = new FormulaUnit(conjecture,
                       FromInput(UnitInputType::CONJECTURE)); //TODO create new Inference kind?
 
@@ -343,8 +337,6 @@ void FunctionRelationshipInference::addClaim(Formula* conjecture, ClauseList*& n
 // get a name for a formula that captures the relationship that |fromSrt| >= |toSrt|
 Formula* FunctionRelationshipInference::getName(TermList fromSrt, TermList toSrt, bool strict)
 {
-    CALL("FunctionRelationshipInference::getName");
-
     unsigned label= env.signature->addFreshPredicate(0,"label");
     env.signature->getPredicate(label)->markLabel();
 

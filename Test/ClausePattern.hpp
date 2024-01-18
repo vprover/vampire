@@ -24,8 +24,8 @@ class ClausePattern;
  */
 struct AnyOf 
 {
-  shared_ptr<ClausePattern> lhs;
-  shared_ptr<ClausePattern> rhs;
+  std::shared_ptr<ClausePattern> lhs;
+  std::shared_ptr<ClausePattern> rhs;
 };
 
 /**
@@ -41,22 +41,22 @@ public:
     : Coproduct<Kernel::Clause const*, AnyOf>(clause) {}
 
   ClausePattern(ClausePattern l, ClausePattern r) : Coproduct<Kernel::Clause const*, AnyOf>(AnyOf {
-        Lib::make_unique<ClausePattern>(std::move(l)),
-        Lib::make_unique<ClausePattern>(std::move(r))
+        std::make_unique<ClausePattern>(std::move(l)),
+        std::make_unique<ClausePattern>(std::move(r))
       }) {}
 
   template<class EqualityOperator>
   bool matches(EqualityOperator& equality, Kernel::Clause const* result);
-  friend ostream& operator<<(ostream& out, ClausePattern const& self);
+  friend std::ostream& operator<<(std::ostream& out, ClausePattern const& self);
 };
 
-inline ostream& operator<<(ostream& out, ClausePattern const& self) 
+inline std::ostream& operator<<(std::ostream& out, ClausePattern const& self) 
 {
   return self.match(
-      [&](Kernel::Clause const* const& self) -> ostream&
+      [&](Kernel::Clause const* const& self) -> std::ostream&
       { return out << pretty(self); },
 
-      [&](AnyOf const& self)  -> ostream&
+      [&](AnyOf const& self)  -> std::ostream&
       { return out << pretty(self.lhs) << " or " << pretty(self.rhs); });
 }
 

@@ -54,17 +54,17 @@ struct NoReset
 template<class T, class Reset = DefaultReset>
 class Recycled
 {
-  unique_ptr<T> _ptr;
+  std::unique_ptr<T> _ptr;
   Reset _reset;
 
-  static Stack<unique_ptr<T>>& mem() {
-    static Stack<unique_ptr<T>> mem;
+  static Stack<std::unique_ptr<T>>& mem() {
+    static Stack<std::unique_ptr<T>> mem;
     return mem;
   }
 public:
 
   Recycled()
-    : _ptr(mem().isNonEmpty() ? mem().pop() : make_unique<T>()) 
+    : _ptr(mem().isNonEmpty() ? mem().pop() : std::make_unique<T>()) 
     , _reset()
   { }
 

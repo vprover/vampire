@@ -18,8 +18,6 @@
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
-#define CALL_DBG(...) CALL(__VA_ARGS__)
-
 namespace Kernel {
   namespace Rebalancing {
 
@@ -135,7 +133,6 @@ template<class C> BalanceIter<C>::BalanceIter(const Balancer<C>& balancer, bool 
   , _litIndex(end ? 2 : 0)
   , _balancer(balancer)
 {
-  CALL_DBG("BalanceIter()")
   if (end) {
     DEBUG("end")
   } else {
@@ -175,7 +172,6 @@ template<class C> TermList BalanceIter<C>::derefPath() const
 
 template<class C> bool BalanceIter<C>::canInvert() const 
 {
-  CALL("Balancer::canInver()")
   if (_path.isEmpty()) {
     DEBUG("can invert empty")
     return true;/* <- we can 'invert' an equality by doing nothing*/
@@ -187,9 +183,7 @@ template<class C> bool BalanceIter<C>::canInvert() const
 
 /** moves to the next invertible point in the term */
 template<class C> void BalanceIter<C>::incrementPath() 
-{ 
-  CALL_DBG("BalanceIter::incrementPath")
-
+{
   auto peak = [&]() -> Node& { return _path.top(); };
   auto incPeak = [&]() {
      ++peak()._index;
@@ -240,16 +234,13 @@ template<class C> void BalanceIter<C>::incrementPath()
 }
 
 template<class C> void BalanceIter<C>::findNextVar() 
-{ 
-  CALL_DBG("BalanceIter::findNextVar")
-
+{
   while(inBounds() && !derefPath().isVar() ) {
     incrementPath();
   }
 }
 
-template<class C> void BalanceIter<C>::operator++() { 
-  CALL_DBG("BalanceIter::operator++")
+template<class C> void BalanceIter<C>::operator++() {
   incrementPath();
   if (inBounds())
     findNextVar();
@@ -257,15 +248,13 @@ template<class C> void BalanceIter<C>::operator++() {
 
 
 template<class C> 
-const BalanceIter<C>& BalanceIter<C>::operator*() const { 
-  CALL_DBG("BalanceIter::operator*")
+const BalanceIter<C>& BalanceIter<C>::operator*() const {
   DEBUG(lhs())
   return *this;
 }
 
 template<class C> 
-bool operator!=(const BalanceIter<C>& lhs, const BalanceIter<C>& rhs) { 
-  CALL_DBG("BalanceIter::operator!=")
+bool operator!=(const BalanceIter<C>& lhs, const BalanceIter<C>& rhs) {
   ASS(rhs._path.isEmpty());
   auto out = lhs.inBounds();//!lhs._path.isEmpty() || lhs._litIndex != 2;
   return out;
@@ -273,9 +262,8 @@ bool operator!=(const BalanceIter<C>& lhs, const BalanceIter<C>& rhs) {
 
 
 template<class C> 
-TermList BalanceIter<C>::lhs() const 
+TermList BalanceIter<C>::lhs() const
 {
-  // CALL_DBG("BalanceIter::lhs")
   auto out = derefPath();
   ASS_REP(out.isVar(), out);
   // DEBUG(out)

@@ -18,7 +18,6 @@
 
 #include <type_traits>
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 #include <iostream>
 
 
@@ -69,7 +68,6 @@ public:
 
   ~OptionBase() 
   { 
-    CALL("~OptionBase") 
     if (isSome()) { 
       unwrap().~A(); 
     }
@@ -78,7 +76,6 @@ public:
     : _isSome(true)
       , _elem()
   {
-    CALL("Option(A)")
     _elem.init(std::move(content));
   }
  
@@ -93,7 +90,6 @@ public:
                                                                                                               \
   OptionBase(OptionBase REF a) : _isSome(a._isSome)                                                           \
   {                                                                                                           \
-    CALL("OptionBase(OptionBase " #REF ")");                                                                  \
     if (isSome()) {                                                                                           \
       _elem.init(MV(a).unwrap());                                                                             \
     }                                                                                                         \
@@ -101,8 +97,6 @@ public:
                                                                                                               \
   OptionBase& operator=(OptionBase REF other)                                                                 \
   {                                                                                                           \
-    CALL("OptionBase& operator=(OptionBase "#REF")");                                                         \
-                                                                                                              \
     if (_isSome) {                                                                                            \
       if (other._isSome) {                                                                                    \
         unwrap() = MV(other).unwrap();                                                                        \
@@ -248,6 +242,7 @@ public:
   Option take() 
   {
     Option out;
+    using std::swap;//ADL
     swap(*this,out);
     return out;
   }

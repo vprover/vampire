@@ -53,7 +53,6 @@ public:
   template<class InitFn>
   B& getOrInit(A key, InitFn init) 
   {
-    CALL("Map::getOrInit");
     return Into::getOrInit(key, [&]() {
         auto val = init();
         From::insert(val, key);

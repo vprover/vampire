@@ -40,7 +40,6 @@ private:
   struct ClWrapper;
 
   struct Candidate {
-    CLASS_NAME(BlockedClauseElimination::Candidate);
     USE_ALLOCATOR(Candidate);
 
     ClWrapper* clw;
@@ -56,7 +55,6 @@ private:
   };
 
   struct ClWrapper {
-    CLASS_NAME(BlockedClauseElimination::ClWrapper);
     USE_ALLOCATOR(ClWrapper);
 
     Clause* cl;            // the actual clause

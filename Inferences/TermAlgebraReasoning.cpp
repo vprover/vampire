@@ -39,8 +39,6 @@ namespace Inferences {
   // copy clause c, replacing literal a by b
   Clause* replaceLit(Clause *c, Literal *a, Literal *b, const Inference& inf)
   {
-    CALL("replaceLit");
-
     int length = c->length();
     Clause* res = new(length) Clause(length,inf);
 
@@ -55,8 +53,6 @@ namespace Inferences {
   // copy clause c, with the exception of the i-th literal
   Clause* removeLit(Clause *c, unsigned i, const Inference& inf)
   {
-    CALL("removeLit");
-
     unsigned length = c->length();
     ASS_GE(i, 0);
     ASS_L(i, length);
@@ -73,8 +69,6 @@ namespace Inferences {
   // algebra constructor, or nullptr otherwise
   Signature::Symbol* termAlgebraConstructor(TermList *t)
   {
-    CALL("termAlgebraConstructor");
-
     if (t->isTerm()) {
       Signature::Symbol *s = env.signature->getFunction(t->term()->functor());
 
@@ -90,8 +84,6 @@ namespace Inferences {
   // equality of disequality
   bool distinctConstructorsEquality(Literal *lit)
   {
-    CALL("distinctConstructorsEquality");
-
     if (!lit->isEquality())
       return false;
 
@@ -105,8 +97,6 @@ namespace Inferences {
   // where f is a term algebra constructor
   bool sameConstructorsEquality(Literal *lit)
   {
-    CALL("sameConstructorsEquality");
-
     if (!lit->isEquality())
       return false;
 
@@ -118,8 +108,6 @@ namespace Inferences {
 
   Clause* DistinctnessISE::simplify(Clause* c)
   {
-    CALL("DistinctnessISE::simplify");
-
     if (c->isPureTheoryDescendant())
       return c;
     
@@ -169,8 +157,6 @@ namespace Inferences {
     bool hasNext() { return _index < _length; }
     OWN_ELEMENT_TYPE next()
     {
-      CALL("InjectivityGIE::SubtermIterator::next()");
-
       // from the clause f(x1 ... xn) = f(y1 .. yn) \/ C, we create
       // a new clause xi = yi \/ C. In this case, next() can be
       // called n times to create the n relevant conclusions.
@@ -201,8 +187,6 @@ namespace Inferences {
       : _premise(premise) {}
     VirtualIterator<Clause*> operator()(Literal* lit)
     {
-      CALL("InjectivityGIE::SubtermEqualityFn::operator()");
-
       return pvi(SubtermIterator(_premise, lit));
     }
   private:
@@ -211,8 +195,6 @@ namespace Inferences {
 
   ClauseIterator InjectivityGIE::generateClauses(Clause* c)
   {
-    CALL("InjectivityGIE::generateClauses");
-
     auto it1 = c->getSelectedLiteralIterator();
     auto it2 = getMappingIterator(it1, SubtermEqualityFn(c));
     auto it3 = getFlattenedIterator(it2);
@@ -221,8 +203,6 @@ namespace Inferences {
 
   Clause* InjectivityISE::simplify(Clause *c)
   {
-    CALL("InjectivityISE::simplify");
-    
     if (c->isPureTheoryDescendant())
       return c;
 
@@ -248,7 +228,6 @@ namespace Inferences {
 
   bool NegativeInjectivityISE::litCondition(Clause *c, unsigned i)
   {
-    CALL("NegativeInjectivityISE::litCondition");
     Literal *lit = (*c)[i];
     if (sameConstructorsEquality(lit) && !lit->polarity()) {
       unsigned numTypeArguments = lit->nthArgument(0)->term()->numTypeArguments();
@@ -273,8 +252,6 @@ namespace Inferences {
 
   Clause* NegativeInjectivityISE::simplify(Clause *c)
   {
-    CALL("NegativeInjectivityISE::simplify");
-
     if (c->isPureTheoryDescendant())
       return c;
 
@@ -316,8 +293,6 @@ namespace Inferences {
 
   void AcyclicityGIE::attach(SaturationAlgorithm* salg)
   {
-    CALL("AcyclicityGIE::attach");
-
     GeneratingInferenceEngine::attach(salg);
 
     _acyclIndex = static_cast<AcyclicityIndex*>(_salg->getIndexManager()->request(ACYCLICITY_INDEX));
@@ -325,8 +300,6 @@ namespace Inferences {
 
   void AcyclicityGIE::detach()
   {
-    CALL("AcyclicityGIE::detach");
-
     _acyclIndex = 0;
     _salg->getIndexManager()->release(ACYCLICITY_INDEX);
     GeneratingInferenceEngine::detach();
@@ -346,8 +319,6 @@ namespace Inferences {
     
     OWN_ELEMENT_TYPE next()
     {
-      CALL("AcyclicityGIE::AcyclicityGenIterator::next()");
-
       Indexing::CycleQueryResult *qres = _queryResults.next();
 
       ASS_EQ(LiteralList::length(qres->literals), ClauseList::length(qres->premises));
@@ -404,8 +375,6 @@ namespace Inferences {
     {}
     VirtualIterator<Clause*> operator()(Literal* lit)
     {
-      CALL("AcyclicityGIE::AyclicityGenFn::operator()");
-
       return pvi(AcyclicityGenIterator(_premise, _aidx->queryCycles(lit, _premise)));
     }
   private:
@@ -415,8 +384,6 @@ namespace Inferences {
 
   ClauseIterator AcyclicityGIE::generateClauses(Clause *c)
   {
-    CALL("AcyclicityGIE::generateClauses");
-
     auto it1 = c->getSelectedLiteralIterator();
     auto it2 = getMappingIterator(it1, AcyclicityGenFn(_acyclIndex, c));
     auto it3 = getFlattenedIterator(it2);
@@ -425,8 +392,6 @@ namespace Inferences {
 
   void pushSubterms(TermList *tl, Stack<TermList*> &stack)
   {
-    CALL("getSubterms");
-
     if (!termAlgebraConstructor(tl)) {
       return;
     }
@@ -499,8 +464,6 @@ namespace Inferences {
     
     OWN_ELEMENT_TYPE next()
     {
-      CALL("InjectivityGIE::SubtermIterator::next()");
-
       Literal *newlit = Literal::createEquality(false,
                                                 *_lit->nthArgument(_leftSide ? 0 : 1),
                                                 *_subterms.pop(),
@@ -524,8 +487,6 @@ namespace Inferences {
       : _premise(premise) {}
     VirtualIterator<Clause*> operator()(Literal* lit)
     {
-      CALL("AcyclicityGIE1::SubtermDisequalityFn::operator()");
-
       return pvi(SubtermDisequalityIterator(_premise, lit));
     }
   private:
@@ -556,8 +517,6 @@ namespace Inferences {
 
   ClauseIterator AcyclicityGIE1::generateClauses(Clause* c)
   {
-    CALL("AcyclicityGIE1::generateClauses");
-
     LiteralIterator it1(c);
     auto it2 = getMappingIterator(it1, SubtermDisequalityFn(c));
     auto it3 = getFlattenedIterator(it2);

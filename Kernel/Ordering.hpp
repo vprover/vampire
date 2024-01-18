@@ -26,6 +26,7 @@
 #include "Lib/DArray.hpp"
 
 #include "Lib/Allocator.hpp"
+#include "Lib/Portability.hpp"
 
 namespace Kernel {
 
@@ -38,9 +39,6 @@ using namespace Shell;
 class Ordering
 {
 public:
-  CLASS_NAME(Ordering);
-  USE_ALLOCATOR(Ordering);
-
   /**
    * Represents the results of ordering comparisons
    *
@@ -66,7 +64,7 @@ public:
    * @b t1 and @b t2 */
   virtual Result compare(TermList t1,TermList t2) const = 0;
 
-  virtual void show(ostream& out) const = 0;
+  virtual void show(std::ostream& out) const = 0;
 
   static bool isGorGEorE(Result r) { return (r == GREATER || r == GREATER_EQ || r == EQUAL); }
 
@@ -77,8 +75,6 @@ public:
 
   static Result reverse(Result r)
   {
-    CALL("Ordering::reverse");
-    
     switch(r) {
     case GREATER:
       return LESS;
@@ -131,8 +127,8 @@ class PrecedenceOrdering
 {
 public:
   Result compare(Literal* l1, Literal* l2) const override;
-  void show(ostream&) const override;
-  virtual void showConcrete(ostream&) const = 0;
+  void show(std::ostream&) const override;
+  virtual void showConcrete(std::ostream&) const = 0;
 
 protected:
   // l1 and l2 are not equalities and have the same predicate
@@ -172,7 +168,7 @@ protected:
 };
 
 
-inline ostream& operator<<(ostream& out, Ordering::Result const& r) 
+inline std::ostream& operator<<(std::ostream& out, Ordering::Result const& r) 
 {
   switch (r) {
     case Ordering::Result::GREATER: return out << "GREATER";

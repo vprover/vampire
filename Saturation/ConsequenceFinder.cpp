@@ -29,13 +29,12 @@
 namespace Saturation
 {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
 void ConsequenceFinder::init(SaturationAlgorithm* sa)
 {
-  CALL("ConsequenceFinder::init");
-
   _sa=sa;
 
   ClauseContainer* cc=_sa->getSimplifyingClauseContainer();
@@ -45,16 +44,12 @@ void ConsequenceFinder::init(SaturationAlgorithm* sa)
 
 ConsequenceFinder::~ConsequenceFinder()
 {
-  CALL("ConsequenceFinder::~ConsequenceFinder");
-
   _sdInsertion->unsubscribe();
   _sdRemoval->unsubscribe();
 }
 
 void ConsequenceFinder::onNewPropositionalClause(Clause* cl)
 {
-  CALL("ConsequenceFinder::onNewPropositionalClause");
-
   TIME_TRACE(TimeTrace::CONSEQUENCE_FINDING);
 
   //remove duplicate literals (necessary for tautology deletion)
@@ -115,8 +110,6 @@ void ConsequenceFinder::onNewPropositionalClause(Clause* cl)
 
 void ConsequenceFinder::onAllProcessed()
 {
-  CALL("ConsequenceFinder::onAllProcessed");
-
   TIME_TRACE(TimeTrace::CONSEQUENCE_FINDING);
 
   while(_redundantsToHandle.isNonEmpty()) {
@@ -148,8 +141,6 @@ void ConsequenceFinder::onAllProcessed()
  */
 bool ConsequenceFinder::isRedundant(Clause* cl)
 {
-  CALL("ConsequenceFinder::isRedundant");
-
   Clause::Iterator it(*cl);
   while(it.hasNext()) {
     unsigned fn=it.next()->functor();
@@ -166,8 +157,6 @@ bool ConsequenceFinder::isRedundant(Clause* cl)
 
 void ConsequenceFinder::onClauseInserted(Clause* cl)
 {
-  CALL("ConsequenceFinder::onClauseInserted");
-
   TIME_TRACE(TimeTrace::CONSEQUENCE_FINDING);
 
   bool red=false;
@@ -197,8 +186,6 @@ void ConsequenceFinder::onClauseInserted(Clause* cl)
 
 void ConsequenceFinder::onClauseRemoved(Clause* cl)
 {
-  CALL("ConsequenceFinder::onClauseRemoved");
-
   TIME_TRACE(TimeTrace::CONSEQUENCE_FINDING);
 
   Clause::Iterator it(*cl);
@@ -219,8 +206,6 @@ void ConsequenceFinder::onClauseRemoved(Clause* cl)
  */
 void ConsequenceFinder::indexClause(unsigned indexNum, Clause* cl, bool add)
 {
-  CALL("ConsequenceFinder::indexClause");
-
   if(add) {
     if(!_index[indexNum]) {
       _index[indexNum]=new ClauseSL();

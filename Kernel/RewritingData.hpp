@@ -52,7 +52,6 @@ struct RuleInfo {
 
 class RewritingData {
 public:
-  CLASS_NAME(RewritingData);
   USE_ALLOCATOR(RewritingData);
 
   RewritingData(const Ordering& ord) : _ord(ord) {}
@@ -65,7 +64,6 @@ public:
 
   void copyRewriteRules(RewritingData* other)
   {
-    CALL("RewritingData::copyRewriteRules");
     ASS(isEmpty()); // this can be done only once
 
     DHMap<Term*,RuleInfo>::Iterator it(other->_rules);
@@ -80,7 +78,6 @@ public:
   template<class Applicator>
   bool addRewriteRules(Clause* cl, Applicator f, Term* rwTerm = nullptr)
   {
-    CALL("RewritingData::addRewriteRules");
     ASS_EQ(cl->store(),Clause::ACTIVE);
     auto other = cl->rewritingData();
     if (!other) {
@@ -107,7 +104,6 @@ public:
   template<class Applicator>
   bool subsumes(RewritingData* other, Applicator f, Term* rwTerm)
   {
-    CALL("RewritingData::subsumes");
     TIME_TRACE("subsumes");
 
     DHMap<Term*,RuleInfo>::DelIterator it(_rules);

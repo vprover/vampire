@@ -55,9 +55,6 @@ namespace Kernel {
 class OperatorType
 {
 public:
-  CLASS_NAME(OperatorType);
-  USE_ALLOCATOR(OperatorType);
-
   class TypeHash {
   public:
     static bool equals(OperatorType* t1, OperatorType* t2)
@@ -109,48 +106,36 @@ public:
              _typeArgsArity==t._typeArgsArity; }
 
   static OperatorType* getPredicateType(unsigned arity, const TermList* sorts=0, unsigned taArity = 0) {
-    CALL("OperatorType::getPredicateType(unsigned,const unsigned*)");
-
     OperatorKey* key = setupKey(arity,sorts);
     (*key)[arity] = getEmpty();
     return getTypeFromKey(key,taArity);
   }
 
   static OperatorType* getPredicateType(std::initializer_list<TermList> sorts, unsigned taArity = 0) {
-    CALL("OperatorType::getPredicateType(std::initializer_list<unsigned>)");
-
     OperatorKey* key = setupKey(sorts);
     (*key)[sorts.size()] = getEmpty();
     return getTypeFromKey(key,taArity);
   }
 
   static OperatorType* getPredicateTypeUniformRange(unsigned arity, TermList argsSort, unsigned taArity = 0) {
-    CALL("OperatorType::getPredicateTypeUniformRange");
-
     OperatorKey* key = setupKeyUniformRange(arity,argsSort);
     (*key)[arity] = getEmpty();
     return getTypeFromKey(key, taArity);
   }
 
   static OperatorType* getFunctionType(unsigned arity, const TermList* sorts, TermList resultSort, unsigned taArity = 0) {
-    CALL("OperatorType::getFunctionType");
-
     OperatorKey* key = setupKey(arity,sorts);
     (*key)[arity] = resultSort;
     return getTypeFromKey(key, taArity);
   }
 
   static OperatorType* getFunctionType(std::initializer_list<TermList> sorts, TermList resultSort, unsigned taArity = 0) {
-    CALL("OperatorType::getFunctionType(std::initializer_list<unsigned>)");
- 
     OperatorKey* key = setupKey(sorts);
     (*key)[sorts.size()] = resultSort;
     return getTypeFromKey(key,taArity);
   }
 
   static OperatorType* getFunctionTypeUniformRange(unsigned arity, TermList argsSort, TermList resultSort, unsigned taArity = 0) {
-    CALL("OperatorType::getFunctionTypeUniformRange");
-
     OperatorKey* key = setupKeyUniformRange(arity,argsSort);
     (*key)[arity] = resultSort;
     return getTypeFromKey(key,taArity);
@@ -182,7 +167,6 @@ public:
    */
   TermList quantifiedVar(unsigned idx) const
   {
-    CALL("OperatorType::quantifiedVar");
     ASS(idx < _typeArgsArity);
     return TermList(idx, false);
   }
@@ -194,7 +178,6 @@ public:
     */
   TermList arg(unsigned idx) const
   {
-    CALL("OperatorType::arg");
     if(idx < _typeArgsArity){
       return AtomicSort::superSort();
     } 
@@ -211,7 +194,6 @@ public:
    * The result sort of function types; or empty for predicates.
    */
   TermList result() const {
-    CALL("OperatorType::result");
     return (*_key)[arity() - numTypeArguments()];
   }
   

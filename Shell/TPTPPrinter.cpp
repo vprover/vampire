@@ -39,10 +39,11 @@
 
 namespace Shell
 {
+
+using namespace std;
 TPTPPrinter::TPTPPrinter(ostream* tgtStream)
 : _tgtStream(tgtStream), _headersPrinted(false)
 {
-  CALL("TPTPPrinter::TPTPPrinter");
 }
 
 /**
@@ -50,8 +51,6 @@ TPTPPrinter::TPTPPrinter(ostream* tgtStream)
  */
 void TPTPPrinter::print(Unit* u)
 {
-  CALL("TPTPPrinter::print");
-
   vstring body = getBodyStr(u, true);
 
   beginOutput();
@@ -67,14 +66,11 @@ void TPTPPrinter::print(Unit* u)
  */
 void TPTPPrinter::printAsClaim(vstring name, Unit* u)
 {
-  CALL("TPTPPrinter::printAsClaim");
   printWithRole(name, "claim", u);
 }
 
 void TPTPPrinter::printWithRole(vstring name, vstring role, Unit* u, bool includeSplitLevels)
 {
-  CALL("TPTPPrinter::printWithRole");
-
   vstring body = getBodyStr(u, includeSplitLevels);
 
   beginOutput();
@@ -91,8 +87,6 @@ void TPTPPrinter::printWithRole(vstring name, vstring role, Unit* u, bool includ
  */
 vstring TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
 {
-  CALL("TPTPPrinter::getBodyStr");
-
   vostringstream res;
 
   typedef DHMap<unsigned,TermList> SortMap;
@@ -159,8 +153,6 @@ vstring TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
  */
 void TPTPPrinter::printTffWrapper(Unit* u, vstring bodyStr)
 {
-  CALL("TPTPPrinter::printTffWrapper");
-
   tgt() << "tff(";
   vstring unitName;
   if(Parse::TPTP::findAxiomName(u, unitName)) {
@@ -196,8 +188,6 @@ void TPTPPrinter::printTffWrapper(Unit* u, vstring bodyStr)
  */
 void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType symType)
 {
-  CALL("TPTPPrinter::outputSymbolTypeDefinitions");
-
   Signature::Symbol* sym;
   OperatorType* type;
   if(symType == SymbolType::FUNC){
@@ -261,7 +251,6 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
  */
 /*void TPTPPrinter::ensureNecesarySorts()
 {
-  CALL("TPTPPrinter::ensureNecesarySorts");
   if (_headersPrinted) {
     return;
   }
@@ -308,8 +297,6 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
  */
 void TPTPPrinter::ensureHeadersPrinted(Unit* u)
 {
-  CALL("TPTPPrinter::ensureHeadersPrinted");
-
   if(_headersPrinted) {
     return;
   }
@@ -337,8 +324,6 @@ void TPTPPrinter::ensureHeadersPrinted(Unit* u)
  */
 ostream& TPTPPrinter::tgt()
 {
-  CALL("TPTPPrinter::tgt");
-
   if(_tgtStream) {
     return *_tgtStream;
   }
@@ -353,15 +338,11 @@ ostream& TPTPPrinter::tgt()
  */
 void TPTPPrinter::beginOutput()
 {
-  CALL("TPTPPrinter::beginOutput");
-
   if(!_tgtStream) { env.beginOutput(); }
 }
 
 void TPTPPrinter::endOutput()
 {
-  CALL("TPTPPrinter::endOutput");
-
   if(!_tgtStream) { env.endOutput(); }
 }
 
@@ -370,7 +351,6 @@ void TPTPPrinter::endOutput()
  */
 vstring TPTPPrinter::toString(const Formula* formula)
 {
-  CALL("TPTPPrinter::toString(const Formula*)");
   static vstring names [] =
     { "", " & ", " | ", " => ", " <=> ", " <~> ",
       "~", "!", "?", "$term", "$false", "$true", "", ""};
@@ -518,7 +498,6 @@ vstring TPTPPrinter::toString(const Formula* formula)
  */
 vstring TPTPPrinter::toString (const Unit* unit)
 {
-  CALL("TPTPPrinter::toString(const Unit*)");
 //  const Inference* inf = unit->inference();
 //  Inference::Rule rule = inf->rule();
 

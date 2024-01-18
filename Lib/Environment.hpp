@@ -30,7 +30,6 @@ namespace Sys {
   class SyncPipe;
 }
 
-using namespace std;
 using namespace Sys;
 
 /**
@@ -65,13 +64,13 @@ public:
   bool haveOutput();
   void beginOutput();
   void endOutput();
-  ostream& out();
+  std::ostream& out();
 
   void setPipeOutput(SyncPipe* pipe);
   SyncPipe* getOutputPipe() { return _pipe; }
 
-  void setPriorityOutput(ostream* stm);
-  ostream* getPriorityOutput() { return _priorityOutput; }
+  void setPriorityOutput(std::ostream* stm);
+  std::ostream* getPriorityOutput() { return _priorityOutput; }
 
   bool timeLimitReached() const;
 
@@ -106,7 +105,7 @@ public:
 private:
   int _outputDepth;
   /** if non-zero, all output will go here */
-  ostream* _priorityOutput;
+  std::ostream* _priorityOutput;
   SyncPipe* _pipe;
 
   Kernel::Problem* _problem;

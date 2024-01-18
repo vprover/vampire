@@ -62,8 +62,6 @@ struct ArgCong::ResultFn
       }
   Clause* operator() (Literal* lit)
   {
-    CALL("ArgCong::ResultFn::operator()");
-
     ASS(lit->isEquality());
     ASS(lit->isPositive());
 
@@ -139,8 +137,6 @@ private:
 
 ClauseIterator ArgCong::generateClauses(Clause* premise)
 {
-  CALL("ArgCong::generateClauses");
-
   //cout << "argcong with " + premise->toString() << endl;
   if(premise->isEmpty()) {
     return ClauseIterator::getEmpty();

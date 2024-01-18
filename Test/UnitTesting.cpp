@@ -14,7 +14,6 @@
 
 #include <iomanip>
 #include <fstream>
-#include "Debug/Tracer.hpp"
 
 #include "Lib/Sys/Multiprocessing.hpp"
 
@@ -27,6 +26,7 @@
 
 namespace Test {
 
+using namespace std;
 using namespace Lib;
 using namespace Lib::Sys;
 
@@ -125,7 +125,6 @@ bool TestUnit::run(ostream& out)
     out.flush();
     bool ok;
     {
-      CALL(t.name);
       ok = spawnTest(t.proc);
     }
     out << "\r" << ( ok ? "[  OK  ]" : "[ FAIL ]" ) << " " << t.name << "          " << endl;
@@ -198,7 +197,6 @@ std::ostream& operator<<(ostream& out, TestUnit::Test const& t)
 
 int main(int argc, const char** argv) 
 {
-  CALL("UnitTesting::main")
   using namespace Lib;
   using namespace std;
   bool success;

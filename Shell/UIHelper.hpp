@@ -26,17 +26,17 @@ using namespace Lib;
 using namespace Kernel;
 
 bool szsOutputMode();
-ostream& addCommentSignForSZS(ostream&);
+std::ostream& addCommentSignForSZS(std::ostream&);
 void reportSpiderFail();
 void reportSpiderStatus(char status);
 bool outputAllowed(bool debug=false);
 
 class UIHelper {
 public:
-  static UnitList* tryParseTPTP(istream* input);
-  static UnitList* tryParseSMTLIB2(const Options& opts,istream* input,SMTLIBLogic& logic);
+  static UnitList* tryParseTPTP(std::istream* input);
+  static UnitList* tryParseSMTLIB2(const Options& opts,std::istream* input,SMTLIBLogic& logic);
   static Problem* getInputProblem(const Options& opts);
-  static void outputResult(ostream& out);
+  static void outputResult(std::ostream& out);
 
   /**
    * Return true if there was a conjecture formula among the parsed units
@@ -50,14 +50,14 @@ public:
   static bool haveConjectureInProof() { return s_proofHasConjecture; }
   static void setConjectureInProof(bool haveConjectureInProof) { s_proofHasConjecture = haveConjectureInProof; }
 
-  static void outputAllPremises(ostream& out, UnitList* units, vstring prefix="");
+  static void outputAllPremises(std::ostream& out, UnitList* units, vstring prefix="");
 
 
-  static void outputSatisfiableResult(ostream& out);
-  static void outputSaturatedSet(ostream& out, UnitIterator uit);
+  static void outputSatisfiableResult(std::ostream& out);
+  static void outputSaturatedSet(std::ostream& out, UnitIterator uit);
 
-  static void outputSymbolDeclarations(ostream& out);
-  static void outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, bool typecon, unsigned symNumber);
+  static void outputSymbolDeclarations(std::ostream& out);
+  static void outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool function, bool typecon, unsigned symNumber);
 
   /**
    * A hacky global flag distinguishing the parent and the child in portfolio modes.

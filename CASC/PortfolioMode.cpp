@@ -45,6 +45,7 @@
 
 #include "PortfolioMode.hpp"
 
+using namespace std;
 using namespace Lib;
 using namespace CASC;
 
@@ -81,8 +82,6 @@ PortfolioMode::PortfolioMode() : _slowness(1.0), _syncSemaphore(2) {
  */
 bool PortfolioMode::perform(float slowness)
 {
-  CALL("PortfolioMode::perform");
-
   PortfolioMode pm;
   pm._slowness = slowness;
 
@@ -129,8 +128,6 @@ bool PortfolioMode::perform(float slowness)
 
 bool PortfolioMode::searchForProof()
 {
-  CALL("PortfolioMode::searchForProof");
-
   _prb = UIHelper::getInputProblem(*env.options);
 
   /* CAREFUL: Make sure that the order
@@ -168,8 +165,6 @@ bool PortfolioMode::searchForProof()
 
 bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
 {
-  CALL("PortfolioMode::prepareScheduleAndPerform");
-
   // this is the one and only schedule that will leave this function
   // we fill it up in various ways
   Schedule schedule;
@@ -192,8 +187,6 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
 
   // a (temporary) helper lambda that will go away as soon as we have new schedules from spider
   auto additionsSinceTheLastSpiderings = [&prop](const Schedule& sOrig, Schedule& sWithExtras) { 
-    CALL("PortfolioMode::prepareScheduleAndPerform-additionsSinceTheLastSpiderings");
-
     // Always try these
     addScheduleExtra(sOrig,sWithExtras,"si=on:rtra=on:rawr=on:rp=on"); // shuffling options
     addScheduleExtra(sOrig,sWithExtras,"sp=frequency");                // frequency sp; this is in casc19 but not smt18
@@ -295,8 +288,6 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
  */
 void PortfolioMode::rescaleScheduleLimits(const Schedule& sOld, Schedule& sNew, float limit_multiplier) 
 {
-  CALL("PortfolioMode::rescaleScheduleLimits");
-
   Schedule::BottomFirstIterator it(sOld);
   while(it.hasNext()){
     vstring s = it.next();
@@ -337,8 +328,6 @@ void PortfolioMode::rescaleScheduleLimits(const Schedule& sOld, Schedule& sNew, 
  */
 void PortfolioMode::addScheduleExtra(const Schedule& sOld, Schedule& sNew, vstring extra)
 {
-  CALL("PortfolioMode::addScheduleExtra");
-
   Schedule::BottomFirstIterator it(sOld);
   while(it.hasNext()){
     vstring s = it.next();
@@ -355,8 +344,6 @@ void PortfolioMode::addScheduleExtra(const Schedule& sOld, Schedule& sNew, vstri
 
 void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule& fallback)
 {
-  CALL("PortfolioMode::getSchedules");
-
   switch(env.options->schedule()) {
   case Options::Schedule::FILE:
     Schedules::getScheduleFromFile(env.options->scheduleFile(), quick);
@@ -369,13 +356,21 @@ void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule
     Schedules::getSnakeTptpSatSchedule(prop,quick);
     break;
 
-  case Options::Schedule::CASC_2019:
+  case Options::Schedule::CASC_2023:
   case Options::Schedule::CASC:
+    Schedules::getCasc2023Schedule(prop,quick,fallback);
+    break;
+
+  case Options::Schedule::CASC_2019:
     Schedules::getCasc2019Schedule(prop,quick,fallback);
     break;
 
-  case Options::Schedule::CASC_SAT_2019:
+  case Options::Schedule::CASC_SAT_2023:
   case Options::Schedule::CASC_SAT:
+    Schedules::getCascSat2023Schedule(prop,quick,fallback);
+    break;
+
+  case Options::Schedule::CASC_SAT_2019:
     Schedules::getCascSat2019Schedule(prop,quick,fallback);
     break;
 
@@ -416,7 +411,6 @@ void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule
 }
 
 bool PortfolioMode::runSchedule(Schedule schedule) {
-  CALL("PortfolioMode::runSchedule");
   TIME_TRACE("run schedule");
 
   Schedule::BottomFirstIterator it(schedule);
@@ -483,7 +477,7 @@ bool PortfolioMode::runSchedule(Schedule schedule) {
   // kill all running processes first
   decltype(processes)::Iterator killIt(processes);
   while(killIt.hasNext())
-    Multiprocessing::instance()->killNoCheck(killIt.next(), SIGKILL);
+    Multiprocessing::instance()->killNoCheck(killIt.next(), SIGINT);
 
   return success;
 }
@@ -494,8 +488,6 @@ bool PortfolioMode::runSchedule(Schedule schedule) {
  */
 bool PortfolioMode::runScheduleAndRecoverProof(Schedule schedule)
 {
-  CALL("PortfolioMode::runScheduleAndRecoverProof");
-
   if (schedule.size() == 0)
     return false;
 
@@ -509,9 +501,6 @@ bool PortfolioMode::runScheduleAndRecoverProof(Schedule schedule)
      * the user didn't wish a proof in the file, so we printed it to the secret tmp file
      * now it's time to restore it.
      */
-
-    BYPASSING_ALLOCATOR; 
-    
     ifstream input(_tmpFileNameForProof);
 
     bool openSucceeded = !input.fail();
@@ -543,8 +532,6 @@ bool PortfolioMode::runScheduleAndRecoverProof(Schedule schedule)
  */
 unsigned PortfolioMode::getSliceTime(const vstring &sliceCode)
 {
-  CALL("PortfolioMode::getSliceTime");
-
   unsigned pos = sliceCode.find_last_of('_');
   vstring sliceTimeStr = sliceCode.substr(pos+1);
   unsigned sliceTime;
@@ -554,7 +541,7 @@ unsigned PortfolioMode::getSliceTime(const vstring &sliceCode)
     if (outputAllowed()) {
       env.beginOutput();
       addCommentSignForSZS(env.out());
-      env.out() << "WARNING: time unlimited strategy and instruction limiting not in place - attemping to translate instructions to time" << endl;
+      env.out() << "WARNING: time unlimited strategy and instruction limiting not in place - attempting to translate instructions to time" << endl;
       env.endOutput();
     }
 
@@ -571,10 +558,9 @@ unsigned PortfolioMode::getSliceTime(const vstring &sliceCode)
     vstring sliceInstrStr = sliceCode.substr(bidx,eidx-bidx);
     unsigned sliceInstr;
     ALWAYS(Int::stringToUnsignedInt(sliceInstrStr,sliceInstr));
-    
+
     // sliceTime is in deci second, we assume a roughly 2GHz CPU here
-    sliceTime = sliceInstr / 200;
-    if (sliceTime == 0) { sliceTime = 1; }
+    sliceTime = 1 + sliceInstr / 200; // rather round up than down (and never return 0 here)
   }
 
   return _slowness * sliceTime;
@@ -585,7 +571,6 @@ unsigned PortfolioMode::getSliceTime(const vstring &sliceCode)
  */
 void PortfolioMode::runSlice(vstring sliceCode, int timeLimitInDeciseconds)
 {
-  CALL("PortfolioMode::runSlice");
   TIME_TRACE("run slice");
 
   int sliceTime = getSliceTime(sliceCode);
@@ -631,8 +616,6 @@ void PortfolioMode::runSlice(vstring sliceCode, int timeLimitInDeciseconds)
  */
 void PortfolioMode::runSlice(Options& strategyOpt)
 {
-  CALL("PortfolioMode::runSlice(Option&)");
-
   System::registerForSIGHUPOnParentDeath();
   UIHelper::portfolioParent=false;
 
@@ -705,8 +688,6 @@ void PortfolioMode::runSlice(Options& strategyOpt)
       fname = _tmpFileNameForProof;
     }
 
-    BYPASSING_ALLOCATOR; 
-    
     ofstream output(fname.c_str());
     if (output.fail()) {
       // fallback to old printing method
@@ -735,8 +716,6 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   if (outputResult) {
     _syncSemaphore.inc(SEM_LOCK); // would be also released after the processes' death, but we are polite and do it already here
   }
-
-  STOP_CHECKING_FOR_ALLOCATOR_BYPASSES;
 
   exit(resultValue);
 } // runSlice

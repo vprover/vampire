@@ -133,7 +133,6 @@ class AnyPoly;
 template<class Number> 
 struct Monom 
 {
-  CLASS_NAME(Monom)
   USE_ALLOCATOR(Monom)
 
   using Numeral = typename Number::ConstantType;
@@ -160,7 +159,6 @@ class FuncTerm
   FuncId _fun;
   Stack<PolyNf> _args;
 public:
-  CLASS_NAME(FuncTerm)
   USE_ALLOCATOR(FuncTerm)
 
   FuncTerm(FuncId f, Stack<PolyNf>&& args);
@@ -230,7 +228,6 @@ using PolyNfSuper = Lib::Coproduct<Perfect<FuncTerm>, Variable, AnyPoly>;
 class PolyNf : public PolyNfSuper
 {
 public:
-  CLASS_NAME(PolyNf)
 
   PolyNf(Perfect<FuncTerm> t);
   PolyNf(Variable               t);
@@ -291,7 +288,6 @@ public:
 template<class Number> 
 struct MonomFactor 
 {
-  CLASS_NAME(MonomFactor)
   PolyNf term;
   int power;
 
@@ -317,7 +313,6 @@ class MonomFactors
   friend struct std::hash<MonomFactors>;
 
 public:
-  CLASS_NAME(MonomFactors)
   USE_ALLOCATOR(MonomFactors)
 
   /** 
@@ -406,7 +401,6 @@ class Polynom
 
 public:
   USE_ALLOCATOR(Polynom)
-  CLASS_NAME(Polynom)
 
   /** 
    * constructs a new Polynom with a list of summands 
@@ -891,8 +885,6 @@ bool operator==(const MonomFactors<Number>& l, const MonomFactors<Number>& r) {
 template<class Number>
 TermList MonomFactors<Number>::denormalize(TermList* results)  const
 {
-  CALL("MonomFactors::denormalize()")
-
   if (_factors.size() == 0) {
     return Number::one();
   } else {
@@ -1068,8 +1060,6 @@ typename Number::ConstantType Polynom<Number>::unwrapNumber() const&
 template<class Number>
 TermList Polynom<Number>::denormalize(TermList* results) const
 {
-  CALL("Polynom::denormalize()")
-
   auto monomToTerm = [](Monom const& monom, TermList* t) -> TermList {
     auto c = TermList(theory->representConstant(monom.numeral));
     if (monom.factors->isOne()) {
@@ -1109,7 +1099,6 @@ Stack<Monom<Number>>& Polynom<Number>::raw()
 template<class Number>
 Polynom<Number> Polynom<Number>::replaceTerms(PolyNf* simplifiedTerms) const 
 {
-  CALL("Polynom::replaceTerms(PolyNf*)")
   int offs = 0;
   Stack<Monom> out;
   out.reserve(nSummands());

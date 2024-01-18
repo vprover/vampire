@@ -40,9 +40,6 @@ class ExtensionalityResolution
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(ExtensionalityResolution);
-  USE_ALLOCATOR(ExtensionalityResolution);
-
   ExtensionalityResolution() {}
   
   ClauseIterator generateClauses(Clause* premise);

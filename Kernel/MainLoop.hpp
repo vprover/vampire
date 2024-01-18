@@ -53,10 +53,7 @@ struct MainLoopResult
 
 
 class MainLoop {
-public:  
-  CLASS_NAME(MainLoop);
-  USE_ALLOCATOR(MainLoop);
-
+public:
   MainLoop(Problem& prb, const Options& opt) : _prb(prb), _opt(opt) {}
   virtual ~MainLoop() {}
 
@@ -72,7 +69,6 @@ public:
   {
     RefutationFoundException(Clause* ref) : refutation(ref)
     {
-      CALL("MainLoop::RefutationFoundException::RefutationFoundException");
       ASS(isRefutation(ref));
     }
 

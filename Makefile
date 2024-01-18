@@ -23,9 +23,18 @@
 #   CHECK_LEAKS      - test for memory leaks (debugging mode only)
 #   VZ3              - compile with Z3
 
-DBG_FLAGS = -g -DVTIME_PROFILING=1 -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider 
+COMPILE_ONLY = -fno-pie
+
+OS = $(shell uname)
+ifeq ($(OS),Darwin)
+LINK_ONLY = -Wl,-no_pie
+else
+LINK_ONLY = -no-pie
+endif
+
+DBG_FLAGS = -g -DVTIME_PROFILING=0 -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider
 # DELETEMEin2017: the bug with gcc-6.2 and problems in ClauseQueue could be also fixed by adding -fno-tree-ch
-REL_FLAGS = -O6 -DVTIME_PROFILING=1 -DVDEBUG=0 # no debugging
+REL_FLAGS = -O6 -DVTIME_PROFILING=0 -DVDEBUG=0 # no debugging
 GCOV_FLAGS = -O0 --coverage #-pedantic
 
 MINISAT_DBG_FLAGS = -D DEBUG
@@ -123,22 +132,10 @@ XFLAGS = $(STATIC) $(REL_FLAGS) $(Z3FLAG)
 MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
 
-
-################################################################
-# Specific build options for some targets
-#
-
-ifneq (,$(filter libvapi,$(MAKECMDGOALS)))
-XFLAGS = $(REL_FLAGS) -DVAPI_LIBRARY=1 -fPIC
-endif
-ifneq (,$(filter libvapi_dbg,$(MAKECMDGOALS)))
-XFLAGS = $(DBG_FLAGS) -DVAPI_LIBRARY=1 -fPIC 
-endif
-
 ################################################################
 
 CXX = g++
-CXXFLAGS = $(XFLAGS) -Wall -fno-threadsafe-statics -std=c++14  $(INCLUDES) # -Wno-unknown-warning-option for clang
+CXXFLAGS = $(XFLAGS) -Wall -fno-threadsafe-statics -fno-rtti -std=c++14  $(INCLUDES) # -Wno-unknown-warning-option for clang
 
 CC = gcc 
 CCFLAGS = -Wall -O3 -DNDBLSCR -DNLGLOG -DNDEBUG -DNCHKSOL -DNLGLPICOSAT 
@@ -149,12 +146,6 @@ MINISAT_OBJ = Minisat/core/Solver.o\
   Minisat/utils/System.o\
   SAT/MinisatInterfacing.o\
   SAT/MinisatInterfacingNewSimp.o
-
-API_OBJ = Api/FormulaBuilder.o\
-	  Api/Helper.o\
-	  Api/ResourceLimits.o\
-	  Api/Tracing.o
-#	  Api/Problem.o\	  
 
 VD_OBJ = Debug/Assertion.o\
          Debug/RuntimeStatistics.o\
@@ -169,7 +160,6 @@ VL_OBJ= Lib/Allocator.o\
         Lib/IntNameTable.o\
         Lib/IntUnionFind.o\
         Lib/MemoryLeak.o\
-        Lib/MultiCounter.o\
         Lib/NameArray.o\
         Lib/Random.o\
         Lib/StringUtils.o\
@@ -255,9 +245,6 @@ VI_OBJ = Indexing/AcyclicityIndex.o\
          Indexing/TermSharing.o\
          Indexing/TermSubstitutionTree.o
 
-VIG_OBJ = InstGen/IGAlgorithm.o\
-          InstGen/ModelPrinter.o
-
 VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BackwardSubsumptionResolution.o\
          Inferences/BackwardSubsumptionDemodulation.o\
@@ -284,7 +271,6 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/SubsumptionDemodulationHelper.o\
          Inferences/ForwardSubsumptionDemodulation.o\
          Inferences/GlobalSubsumption.o\
-         Inferences/HyperSuperposition.o\
          Inferences/InnerRewriting.o\
          Inferences/RewritingByRule.o\
          Inferences/DeletionByRule.o\
@@ -313,7 +299,8 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BoolEqToDiseq.o\
          Inferences/GaussianVariableElimination.o\
          Inferences/InterpretedEvaluation.o\
-         Inferences/TheoryInstAndSimp.o\
+         Inferences/InvalidAnswerLiteralRemoval.o\
+         Inferences/TheoryInstAndSimp.o
 #         Inferences/RenamingOnTheFly.o\
 
 VSAT_OBJ=SAT/MinimizingSolver.o\
@@ -488,7 +475,7 @@ OTHER_CL_DEP = Indexing/LiteralSubstitutionTree.o\
 	       SAT/SATInference.o\
 	       SAT/SATLiteral.o\
 
-VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel FMB Indexing Inferences InstGen Shell CASC SAT Saturation Test UnitTests VUtils Parse Minisat Minisat/core Minisat/mtl Minisat/simp Minisat/utils Kernel/Rebalancing
+VAMP_DIRS := Debug DP Lib Lib/Sys Kernel FMB Indexing Inferences Shell CASC SAT Saturation Test UnitTests VUtils Parse Minisat Minisat/core Minisat/mtl Minisat/simp Minisat/utils Kernel/Rebalancing
 
 VAMP_BASIC := $(MINISAT_OBJ) $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(BP_VD_OBJ) $(BP_VL_OBJ) $(BP_VLS_OBJ) $(BP_VSOL_OBJ) $(BP_VT_OBJ) $(BP_MPS_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VFMB_OBJ)
 VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) $(LIB_DEP)
@@ -496,8 +483,6 @@ VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) $(LIB_DEP)
 VAMPIRE_DEP := $(VAMP_BASIC) $(CASC_OBJ) $(TKV_BASIC) vampire.o
 VSAT_DEP = $(VSAT_BASIC)
 VTEST_DEP = $(VAMP_BASIC) $(VT_OBJ) $(VUT_OBJ) $(DP_OBJ) vtest.o
-LIBVAPI_DEP = $(VD_OBJ) $(API_OBJ)
-VAPI_DEP =  $(LIBVAPI_DEP) test_vapi.o
 
 all: #default make disabled
 	@echo "The make(1)-based build is no longer supported: use the CMake build instead."
@@ -510,7 +495,7 @@ all: #default make disabled
 ################################################################
 # automated generation of Vampire revision information
 
-VERSION_NUMBER = 4.7
+VERSION_NUMBER = 4.8
 
 # We extract the revision number from svn every time the svn meta-data are modified
 # (that's why there is the dependency on .svn/entries) 
@@ -552,15 +537,15 @@ obj/%X: | obj
 
 $(CONF_ID)/%.o : %.cpp | $(CONF_ID)
 	mkdir -p `dirname $@`
-	$(CXX) $(CXXFLAGS) -c -o $@ $*.cpp -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
+	$(CXX) $(CXXFLAGS) $(COMPILE_ONLY) -c -o $@ $*.cpp -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
 
 %.o : %.c 
 $(CONF_ID)/%.o : %.c | $(CONF_ID)
-	$(CC) $(CCFLAGS) -c -o $@ $*.c -MMD -MF $(CONF_ID)/$*.d
+	$(CC) $(CCFLAGS) $(COMPILE_ONLY) -c -o $@ $*.c -MMD -MF $(CONF_ID)/$*.d
 
 %.o : %.cc
 $(CONF_ID)/%.o : %.cc | $(CONF_ID)
-	$(CXX) $(CXXFLAGS) -c -o $@ $*.cc $(MINISAT_FLAGS) -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
+	$(CXX) $(CXXFLAGS) $(COMPILE_ONLY) -c -o $@ $*.cc $(MINISAT_FLAGS) -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
 
 ################################################################
 # targets for executables
@@ -569,12 +554,10 @@ VAMPIRE_OBJ := $(addprefix $(CONF_ID)/, $(VAMPIRE_DEP))
 VTEST_OBJ := $(addprefix $(CONF_ID)/, $(VTEST_DEP))
 VUTIL_OBJ := $(addprefix $(CONF_ID)/, $(VUTIL_DEP))
 VSAT_OBJ := $(addprefix $(CONF_ID)/, $(VSAT_DEP))
-VAPI_OBJ := $(addprefix $(CONF_ID)/, $(VAPI_DEP))
-LIBVAPI_OBJ := $(addprefix $(CONF_ID)/, $(LIBVAPI_DEP))
 TKV_OBJ := $(addprefix $(CONF_ID)/, $(TKV_DEP))
 
 define COMPILE_CMD
-$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB)
+$(CXX) $(CXXFLAGS) $(LINK_ONLY) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB)
 @#$(CXX) -static $(CXXFLAGS) $(Z3LIB) $(filter %.o, $^) -o $@
 @#strip $@
 endef
@@ -607,15 +590,6 @@ vampire: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
 vtest vtest_z3: $(VTEST_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
-vapi vapi_dbg vapi_rel: $(VAPI_OBJ) $(EXEC_DEF_PREREQ)
-	$(COMPILE_CMD)
-
-libvapi libvapi_dbg: $(LIBVAPI_OBJ) $(EXEC_DEF_PREREQ)
-	$(CXX) $(CXXFLAGS) -shared -Wl,-soname,libvapi.so -o libvapi.so $(filter %.o, $^) -lc
-
-test_libvapi: $(CONF_ID)/test_libvapi.o $(EXEC_DEF_PREREQ)
-	$(CXX) $(CXXFLAGS) $(filter %.o, $^) -o $@ -lvapi -L. -Wl,-R,\$$ORIGIN
-
 compile_commands:
 	mkdir compile_commands
 
@@ -636,16 +610,6 @@ compile_commands.json: $(foreach x, $(VAMPIRE_DEP), compile_commands/$x)
 	echo '  }'>> $@
 	echo ']' >> $@
 
-api_src:
-	rm -rf $@
-	mkdir $@
-	mkdir $(patsubst %, $@/%, $(VAMP_DIRS))
-	tar cf - $(sort $(patsubst %.o,%.cpp, $(VAPI_DEP) test_libvapi.o)) | (cd $@ ; tar xvf -) 2>/dev/null
-	cp Makefile Makefile_depend test_vapi.cpp $@
-	tar cf - $(sort $(shell $(CXX) -I. -MM -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 $(sort $(patsubst %.o,%.cpp, $(VAPI_DEP))) |tr '\n' ' '|tr -d ':\\'|sed -E 's/(^| )[^ ]+\.(o|cpp)//g' )) | (cd $@ ; tar xvf -) 2>/dev/null
-	rm -f $@.tgz
-	tar -czf $@.tgz $@
-
 clean:
 	rm -rf obj version.cpp
 
@@ -653,7 +617,7 @@ doc:
 	rm -fr doc/html
 	doxygen config.doc
 
-.PHONY: doc clean api_src
+.PHONY: doc clean
 
 ###########################
 # include header dependencies

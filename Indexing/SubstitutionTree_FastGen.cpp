@@ -80,7 +80,6 @@ private:
 
 struct SubstitutionTree::GenMatcher::Applicator
 {
-  CLASS_NAME(SubstitutionTree::GenMatcher::Applicator);
   USE_ALLOCATOR(SubstitutionTree::GenMatcher::Applicator); 
 
   inline
@@ -107,7 +106,6 @@ class SubstitutionTree::GenMatcher::Substitution
 : public ResultSubstitution
 {
 public:
-  CLASS_NAME(SubstitutionTree::GenMatcher::Substitution);
   USE_ALLOCATOR(SubstitutionTree::GenMatcher::Substitution);
   
   Substitution(GenMatcher* parent, Renaming* resultNormalizer)
@@ -148,8 +146,6 @@ private:
 
 bool SubstitutionTree::GenMatcher::matchNext(unsigned specVar, TermList nodeTerm, bool separate)
 {
-  CALL("SubstitutionTree::GenMatcher::matchNext");
-
   if(separate) {
     _boundVars->push(BACKTRACK_SEPARATOR);
   }
@@ -170,8 +166,6 @@ bool SubstitutionTree::GenMatcher::matchNext(unsigned specVar, TermList nodeTerm
  */
 bool SubstitutionTree::GenMatcher::matchNextAux(TermList queryTerm, TermList nodeTerm, bool separate)
 {
-  CALL("SubstitutionTree::GenMatcher::matchNextAux");
-
   bool success;
   if(nodeTerm.isTerm()) {
     Term* nt=nodeTerm.term();
@@ -217,8 +211,6 @@ bool SubstitutionTree::GenMatcher::matchNextAux(TermList queryTerm, TermList nod
  */
 void SubstitutionTree::GenMatcher::backtrack()
 {
-  CALL("SubstitutionTree::GenMatcher::backtrack");
-
   for(;;) {
     unsigned boundVar = _boundVars->pop();
     if(boundVar==BACKTRACK_SEPARATOR) {
@@ -237,8 +229,6 @@ void SubstitutionTree::GenMatcher::backtrack()
  */
 bool SubstitutionTree::GenMatcher::tryBacktrack()
 {
-  CALL("SubstitutionTree::GenMatcher::tryBacktrack");
-
   while(_boundVars->isNonEmpty()) {
     unsigned boundVar = _boundVars->pop();
     if(boundVar==BACKTRACK_SEPARATOR) {
@@ -261,16 +251,12 @@ ResultSubstitutionSP SubstitutionTree::GenMatcher::getSubstitution(
 
 bool SubstitutionTree::FastGeneralizationsIterator::hasNext()
 {
-  CALL("SubstitutionTree::FastGeneralizationsIterator::hasNext");
-
   while(!_ldIterator.hasNext() && findNextLeaf()) {}
   return _ldIterator.hasNext();
 }
 
 SubstitutionTree::QueryResult SubstitutionTree::FastGeneralizationsIterator::next()
 {
-  CALL("SubstitutionTree::FastGeneralizationsIterator::next");
-
   while(!_ldIterator.hasNext() && findNextLeaf()) {}
   ASS(_ldIterator.hasNext());
   LeafData& ld=_ldIterator.next();
@@ -295,8 +281,6 @@ SubstitutionTree::QueryResult SubstitutionTree::FastGeneralizationsIterator::nex
  */
 bool SubstitutionTree::FastGeneralizationsIterator::findNextLeaf()
 {
-  CALL("SubstitutionTree::FastGeneralizationsIterator::findNextLeaf");
-
   Node* curr;
   bool sibilingsRemain = false;
   if(_inLeaf) {

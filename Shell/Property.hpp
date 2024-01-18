@@ -39,7 +39,6 @@ namespace Kernel {
 
 namespace Shell {
 
-using namespace std;
 using namespace Kernel;
 using namespace Lib;
 
@@ -153,9 +152,6 @@ public:
   static const uint64_t PR_HAS_CDT_CONSTRUCTORS = 2199023255552ul; // 2^41
 
  public:
-  CLASS_NAME(Property);
-  USE_ALLOCATOR(Property);
-
   // constructor, operators new and delete
   explicit Property();
   static Property* scan(UnitList*);
@@ -232,11 +228,11 @@ public:
   bool hasBoolVar() const { return _hasBoolVar; }
   bool hasLogicalProxy() const { return _hasLogicalProxy; }
   bool hasPolymorphicSym() const { return _hasPolymorphicSym; }
+  bool hasAnswerLiteral() const { return _hasAnswerLiteral; }
   bool higherOrder() const { return hasCombs() || hasApp() || hasLogicalProxy() ||
                                     hasArrowSort() || _hasLambda; }
   bool quantifiesOverPolymorphicVar() const { return _quantifiesOverPolymorphicVar; }
   bool usesSort(unsigned sort) const { 
-    CALL("Property::usesSort");
     if(_usesSort.size() <= sort) return false;
     return _usesSort[sort]; 
   } //TODO only utilised by FMB which should eventually update to use the new sorts (as TermLists)
@@ -246,7 +242,6 @@ public:
   bool knownInfiniteDomain() const { return _knownInfiniteDomain; }
   
   void setSMTLIBLogic(SMTLIBLogic smtLibLogic) { 
-    CALL("Property::setSMTLIBLogic");
     _smtlibLogic = smtLibLogic; 
   }
   SMTLIBLogic getSMTLIBLogic() const { 
@@ -337,6 +332,7 @@ public:
   bool _hasLogicalProxy;
   bool _hasLambda;
   bool _hasPolymorphicSym;
+  bool _hasAnswerLiteral;
   bool _quantifiesOverPolymorphicVar;
 
   bool _onlyFiniteDomainDatatypes;

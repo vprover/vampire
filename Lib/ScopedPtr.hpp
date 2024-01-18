@@ -18,7 +18,6 @@
 #include "Forwards.hpp"
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
 namespace Lib
 {
@@ -44,15 +43,12 @@ public:
   inline
   ~ScopedPtr()
   {
-    CALL("Lib::ScopedPtr::~ScopedPtr");
     if(_obj) {
       checked_delete(_obj);
     }
   }
   void operator=(T* obj)
   {
-    CALL("SmartPtr::operator=");
-
     if(_obj) {
       checked_delete(_obj);
     }
@@ -65,7 +61,6 @@ public:
   inline
   T* operator->() const
   {
-    CALL("ScopedPtr::operator->");
     ASS(_obj);
 
     return _obj;
@@ -73,7 +68,6 @@ public:
   inline
   T& operator*() const
   {
-    CALL("ScopedPtr::operator*");
     ASS(_obj);
 
     return *_obj;

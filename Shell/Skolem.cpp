@@ -34,6 +34,7 @@
 #include "Skolem.hpp"
 #include "VarManager.hpp"
 
+using namespace std;
 using namespace Kernel;
 using namespace Shell;
 
@@ -48,7 +49,6 @@ using namespace Shell;
  */
 FormulaUnit* Skolem::skolemise (FormulaUnit* unit, bool appify)
 {
-  CALL("Skolem::skolemise(Unit*)");
   ASS(! unit->isClause());
 
   unit = Rectify::rectify(unit);
@@ -69,8 +69,6 @@ FormulaUnit* Skolem::skolemise (FormulaUnit* unit, bool appify)
 
 FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
 {
-  CALL("Skolem::skolemiseImpl(FormulaUnit*)");
-
   ASS(_introducedSkolemSyms.isEmpty());
   
   _appify = appify;
@@ -123,8 +121,6 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
 unsigned Skolem::addSkolemFunction(unsigned arity, TermList* domainSorts,
     TermList rangeSort, unsigned var, unsigned taArity)
 {
-  CALL("Skolem::addSkolemFunction(unsigned,unsigned*,unsigned,unsigned)");
-
   if(VarManager::varNamePreserving()) {
     vstring varName=VarManager::getVarName(var);
     return addSkolemFunction(arity, taArity, domainSorts, rangeSort, varName.c_str());
@@ -137,11 +133,11 @@ unsigned Skolem::addSkolemFunction(unsigned arity, TermList* domainSorts,
 unsigned Skolem::addSkolemFunction(unsigned arity, unsigned taArity, TermList* domainSorts,
     TermList rangeSort, const char* suffix)
 {
-  CALL("Skolem::addSkolemFunction(unsigned,TermList*,TermList,const char*)");
   //ASS(arity==0 || domainSorts!=0);
 
   unsigned fun = env.signature->addSkolemFunction(arity, suffix);
   Signature::Symbol* fnSym = env.signature->getFunction(fun);
+  fnSym->markSkipCongruence();
   OperatorType* ot = OperatorType::getFunctionType(arity - taArity, domainSorts, rangeSort, taArity);
   fnSym->setType(ot);
   return fun;
@@ -149,8 +145,6 @@ unsigned Skolem::addSkolemFunction(unsigned arity, unsigned taArity, TermList* d
 
 unsigned Skolem::addSkolemTypeCon(unsigned arity, unsigned var)
 {
-  CALL("Skolem::addSkolemTypeCon");
-
   if(VarManager::varNamePreserving()) {
     vstring varName=VarManager::getVarName(var);
     return addSkolemTypeCon(arity, varName.c_str());
@@ -162,8 +156,6 @@ unsigned Skolem::addSkolemTypeCon(unsigned arity, unsigned var)
 
 unsigned Skolem::addSkolemTypeCon(unsigned arity, const char* suffix)
 {
-  CALL("Skolem::addSkolemTypeCon");
-
   unsigned typeCon = env.signature->addSkolemTypeCon(arity, suffix);
   Signature::Symbol* tcSym = env.signature->getTypeCon(typeCon);
   OperatorType* ot = OperatorType::getTypeConType(arity);
@@ -173,8 +165,6 @@ unsigned Skolem::addSkolemTypeCon(unsigned arity, const char* suffix)
 
 unsigned Skolem::addSkolemPredicate(unsigned arity, TermList* domainSorts, unsigned var, unsigned taArity)
 {
-  CALL("Skolem::addSkolemPredicate(unsigned,unsigned*,unsigned,unsigned)");
-
   if(VarManager::varNamePreserving()) {
     vstring varName=VarManager::getVarName(var);
     return addSkolemPredicate(arity, taArity, domainSorts, varName.c_str());
@@ -186,7 +176,6 @@ unsigned Skolem::addSkolemPredicate(unsigned arity, TermList* domainSorts, unsig
 
 unsigned Skolem::addSkolemPredicate(unsigned arity, unsigned taArity, TermList* domainSorts, const char* suffix)
 {
-  CALL("Skolem::addSkolemPredicate(unsigned,unsigned*,unsigned,const char*)");
   //ASS(arity==0 || domainSorts!=0);
 
   unsigned pred = env.signature->addSkolemPredicate(arity, suffix);
@@ -198,8 +187,6 @@ unsigned Skolem::addSkolemPredicate(unsigned arity, unsigned taArity, TermList* 
 
 void Skolem::ensureHavingVarSorts()
 {
-  CALL("Skolem::ensureHavingVarSorts");
-
   if (_varSorts.size() == 0) {
     Formula* f = _beingSkolemised->formula();
     SortHelper::collectVariableSorts(f, _varSorts);
@@ -214,8 +201,6 @@ void Skolem::ensureHavingVarSorts()
  */
 void Skolem::preskolemise (Formula* f)
 {
-  CALL("Skolem::preskolemise (Formula*)");
-
   switch (f->connective()) {
   case LITERAL:
     {
@@ -359,8 +344,6 @@ void Skolem::preskolemise (Formula* f)
  */
 Formula* Skolem::skolemise (Formula* f)
 {
-  CALL("Skolem::skolemise (Formula*)");
-
   switch (f->connective()) {
   case LITERAL: 
     {
@@ -574,8 +557,6 @@ Formula* Skolem::skolemise (Formula* f)
  */
 FormulaList* Skolem::skolemise (FormulaList* fs)
 {
-  CALL("Skolem:skolemise(FormulaList*)");
-
   ASS(FormulaList::isNonEmpty(fs));
 
   Stack<FormulaList*> args;

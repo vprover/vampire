@@ -15,6 +15,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/InferenceStore.hpp"
 
 namespace Inferences
 {
@@ -28,7 +29,6 @@ static Stack<TermList> args;
 static DHMap<std::pair<TermList, TermList>, unsigned> substitution;
 
 Term *DefinitionIntroduction::lgg(Term *left, Term *right) {
-  CALL("DefinitionIntroduction::lgg")
   ASS_EQ(left->functor(), right->functor())
   ASS_EQ(functions.length(), 0)
   ASS_EQ(args.length(), 0)
@@ -84,8 +84,6 @@ Term *DefinitionIntroduction::lgg(Term *left, Term *right) {
 }
 
 void DefinitionIntroduction::introduceDefinitionFor(Term *t) {
-  CALL("DefinitionIntroduction::introduceDefinitionFor");
-
   if(!_defined.insert(t))
     return;
 
@@ -113,12 +111,12 @@ void DefinitionIntroduction::introduceDefinitionFor(Term *t) {
   Clause *definition = new (1) Clause(1, inference);
   (*definition)[0] = eq;
 
+  InferenceStore::instance()->recordIntroducedSymbol(definition,SymbolType::FUNC,functor);
+
   _definitions.push(definition);
 }
 
 void DefinitionIntroduction::process(Term *t) {
-  CALL("DefinitionIntroduction::process(Term *)");
-
   unsigned functor = t->functor();
   Stack<Entry> &entries = _entries[functor];
 
@@ -144,8 +142,6 @@ void DefinitionIntroduction::process(Term *t) {
 }
 
 void DefinitionIntroduction::process(Clause *cl) {
-  CALL("DefinitionIntroduction::process(Clause *)");
-
   if(cl->inference().rule() == InferenceRule::FUNCTION_DEFINITION)
     return;
 

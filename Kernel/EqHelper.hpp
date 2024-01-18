@@ -55,7 +55,7 @@ public:
   {
     LHSIteratorFn(const Ordering& ord) : _ord(ord) {}
 
-    VirtualIterator<pair<Literal*, TypedTermList> > operator()(Literal* lit)
+    VirtualIterator<std::pair<Literal*, TypedTermList> > operator()(Literal* lit)
     {
       return pvi( pushPairIntoRightIterator(lit, getLHSIterator(lit, _ord)) );
     }
@@ -67,7 +67,7 @@ public:
   {
     SuperpositionLHSIteratorFn(const Ordering& ord, const Options& opt) : _ord(ord), _opt(opt) {}
 
-    VirtualIterator<pair<Literal*, TypedTermList> > operator()(Literal* lit)
+    VirtualIterator<std::pair<Literal*, TypedTermList> > operator()(Literal* lit)
     {
       return pvi( pushPairIntoRightIterator(lit, getSuperpositionLHSIterator(lit, _ord, _opt)) );
     }
@@ -80,7 +80,7 @@ public:
   {
     SubVarSupLHSIteratorFn(const Ordering& ord) : _ord(ord) {}
 
-    VirtualIterator<pair<Literal*, TypedTermList> > operator()(Literal* lit)
+    VirtualIterator<std::pair<Literal*, TypedTermList> > operator()(Literal* lit)
     {
       return pvi( pushPairIntoRightIterator(lit, getSubVarSupLHSIterator(lit, _ord)) );
     }
@@ -91,7 +91,7 @@ public:
 
   struct EqualityArgumentIteratorFn
   {
-    VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
+    VirtualIterator<std::pair<Literal*, TermList> > operator()(Literal* lit)
     {
       return pvi( pushPairIntoRightIterator(lit, getEqualityArgumentIterator(lit)) );
     }

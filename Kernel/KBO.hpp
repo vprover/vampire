@@ -127,9 +127,6 @@ class KBO
 : public PrecedenceOrdering
 {
 public:
-  CLASS_NAME(KBO);
-  USE_ALLOCATOR(KBO);
-
   KBO(Problem& prb, const Options& opt);
   KBO(
       // KBO params
@@ -151,7 +148,7 @@ public:
   static KBO testKBO();
 
   virtual ~KBO();
-  void showConcrete(ostream&) const override;
+  void showConcrete(std::ostream&) const override;
   template<class HandleError>
   void checkAdmissibility(HandleError handle) const;
   void zeroWeightForMaximalFunc();
@@ -178,7 +175,7 @@ private:
   template<class SigTraits> KboWeightMap<SigTraits> weightsFromFile(const Options& opts) const;
 
   template<class SigTraits> 
-  void showConcrete_(ostream&) const;
+  void showConcrete_(std::ostream&) const;
 
   /**
    * State used for comparing terms and literals

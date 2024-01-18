@@ -50,8 +50,6 @@ vstring FormulaUnit::toString() const
 
 unsigned FormulaUnit::varCnt()
 {
-  CALL("FormulaUnit::varCnt");
-
   Formula* frm = formula();
   VList* fv = frm->freeVariables();
   VList* bv = frm->boundVariables();
@@ -70,7 +68,6 @@ unsigned FormulaUnit::varCnt()
  */
 Color FormulaUnit::getColor()
 {
-  CALL("FormulaUnit::getColor");
   ASS_ALLOC_TYPE(this, "FormulaUnit");
 
   if (_cachedColor == COLOR_INVALID) {
@@ -81,7 +78,6 @@ Color FormulaUnit::getColor()
 
 unsigned FormulaUnit::weight()
 {
-  CALL("FormulaUnit::weight");
   ASS_ALLOC_TYPE(this, "FormulaUnit");
 
   if (!_cachedWeight) {

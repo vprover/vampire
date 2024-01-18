@@ -53,7 +53,6 @@ using namespace Saturation;
 
 void SLQueryBackwardSubsumption::attach(SaturationAlgorithm* salg)
 {
-  CALL("SLQueryBackwardSubsumption::attach");
   ASS(!_index);
 
   BackwardSimplificationEngine::attach(salg);
@@ -63,7 +62,6 @@ void SLQueryBackwardSubsumption::attach(SaturationAlgorithm* salg)
 
 void SLQueryBackwardSubsumption::detach()
 {
-  CALL("SLQueryBackwardSubsumption::detach");
   _index=0;
   _salg->getIndexManager()->release(BACKWARD_SUBSUMPTION_SUBST_TREE);
   BackwardSimplificationEngine::detach();
@@ -89,7 +87,6 @@ struct SLQueryBackwardSubsumption::ClauseToBwSimplRecordFn
 void SLQueryBackwardSubsumption::perform(Clause* cl,
 	BwSimplificationRecordIterator& simplifications)
 {
-  CALL("SLQueryBackwardSubsumption::perform");
   ASSERT_VALID(*cl);
 
   //we do all work in this method, so we can just measure time simply

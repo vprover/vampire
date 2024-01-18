@@ -21,14 +21,14 @@
 namespace Kernel
 {
 
+using namespace std;
+
 /**
  * TODO: functions transform and transformSpecial call each other to process FOOL subterms,
  * a fully non-recursive implementation is pretty complicated and is left for the future
  */
 Term* TermTransformer::transform(Term* term)
 {
-  CALL("TermTransformer::transform(Term* term)");
-
   if (term->isSpecial()) {
     return transformSpecial(term);
   }
@@ -72,7 +72,7 @@ Term* TermTransformer::transform(Term* term)
       if(orig->isSort()){
         //For most applications we probably dont want to transform sorts.
         //However, we don't enforce that here, inheriting classes can decide
-        //for themselves        
+        //for themselves
         newTrm=AtomicSort::create(static_cast<AtomicSort*>(orig), argLst);
       } else {
         newTrm=Term::create(orig,argLst);
@@ -136,7 +136,6 @@ Term* TermTransformer::transform(Term* term)
 
 Literal* TermTransformer::transform(Literal* lit)
 {
-  CALL("TermTransformer::transform(Literal* lit)");
   Term* t = transform(static_cast<Term*>(lit));
   ASS(t->isLiteral());
   return static_cast<Literal*>(t);
@@ -144,12 +143,11 @@ Literal* TermTransformer::transform(Literal* lit)
 
 Term* TermTransformer::transformSpecial(Term* term)
 {
-  CALL("TermTransformer::transformSpecial(Term* term)");
   ASS(term->isSpecial());
 
   Term::SpecialTermData* sd = term->getSpecialData();
-  switch (sd->getType()) {
-    case Term::SF_ITE: {
+  switch (sd->specialFunctor()) {
+    case Term::SpecialFunctor::ITE: {
       Formula* condition = transform(sd->getCondition());
       TermList thenBranch = transform(*term->nthArgument(0));
       TermList elseBranch = transform(*term->nthArgument(1));
@@ -163,7 +161,7 @@ Term* TermTransformer::transformSpecial(Term* term)
       }
     }
 
-    case Term::SF_FORMULA: {
+    case Term::SpecialFunctor::FORMULA: {
       Formula* formula = transform(sd->getFormula());
 
       if (formula == sd->getFormula()) {
@@ -173,7 +171,7 @@ Term* TermTransformer::transformSpecial(Term* term)
       }
     }
 
-    case Term::SF_LET: {
+    case Term::SpecialFunctor::LET: {
       TermList binding = transform(sd->getBinding());
       TermList body = transform(*term->nthArgument(0));
 
@@ -184,7 +182,7 @@ Term* TermTransformer::transformSpecial(Term* term)
       }
     }
 
-    case Term::SF_LET_TUPLE: {
+    case Term::SpecialFunctor::LET_TUPLE: {
       TermList binding = transform(sd->getBinding());
       TermList body = transform(*term->nthArgument(0));
 
@@ -196,7 +194,7 @@ Term* TermTransformer::transformSpecial(Term* term)
       break;
     }
 
-    case Term::SF_TUPLE: {
+    case Term::SpecialFunctor::TUPLE: {
       Term* tupleTerm = transform(sd->getTupleTerm());
 
       if (tupleTerm == sd->getTupleTerm()) {
@@ -206,7 +204,9 @@ Term* TermTransformer::transformSpecial(Term* term)
       }
     }
 
-    case Term::SF_MATCH: {
+    case Term::SpecialFunctor::LAMBDA:
+      NOT_IMPLEMENTED;
+    case Term::SpecialFunctor::MATCH: {
       DArray<TermList> terms(term->arity());
       bool unchanged = true;
       for (unsigned i = 0; i < term->arity(); i++) {
@@ -221,36 +221,34 @@ Term* TermTransformer::transformSpecial(Term* term)
     }
 
   }
-  ASSERTION_VIOLATION_REP(term->toString()); 
-  return nullptr;
+  ASSERTION_VIOLATION_REP(term->toString());
 }
 
 TermList TermTransformer::transform(TermList ts)
 {
-  CALL("TermTransformer::transform(TermList ts)");
-
-  if (ts.isVar()) {
-    return transformSubterm(ts);
+  // first let's try transforming ts directly
+  TermList transformed = transformSubterm(ts);
+  if (transformed != ts) {
+    // we did transform, so we are done
+    return transformed;
+  } else if (ts.isVar()) {
+    // we didn't transform, but it's a var (no way to recurse)
+    return ts;
   } else {
-    Term* transformed = transform(ts.term());
-    if (transformed != ts.term()) {
-      return TermList(transformed);
-    } else {
-      return ts;
-    }
+    // try transform subterms
+    ASS(ts.isTerm());
+    return TermList(transform(ts.term()));
   }
 }
 
 Formula* TermTransformer::transform(Formula* f)
 {
-  CALL("TermTransformer::transform(Formula* f)");
   TermTransformingFormulaTransformer ttft(*this);
   return ttft.transform(f);
 }
 
 Term* BottomUpTermTransformer::transform(Term* term)
 {
-  CALL("BottomUpTermTransformer::transform(Term* term)");
   ASS(term->shared());
 
   static Stack<TermList*> toDo(8);
@@ -339,7 +337,6 @@ Term* BottomUpTermTransformer::transform(Term* term)
 
 Literal* BottomUpTermTransformer::transform(Literal* lit)
 {
-  CALL("TermTransformer::transform(Literal* lit)");
   Term* t = transform(static_cast<Term*>(lit));
   ASS(t->isLiteral());
   return static_cast<Literal*>(t);
@@ -347,7 +344,6 @@ Literal* BottomUpTermTransformer::transform(Literal* lit)
 
 Formula* BottomUpTermTransformer::transform(Formula* f)
 {
-  CALL("BottomUpTermTransformer::transform(Formula* f)");
   static BottomUpTermTransformerFormulaTransformer ttft(*this);
   return ttft.transform(f);
 }

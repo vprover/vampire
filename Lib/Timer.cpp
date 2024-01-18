@@ -35,6 +35,8 @@
 #define DEBUG_TIMER_CHANGES 0
 #define MEGA (1 << 20)
 
+using namespace std;
+
 // things that need to be signal-safe because they are used in timer_sigalrm_handler
 // in principle we also need is_lock_free() to avoid deadlock as well
 // not sure it's worth assertion-failing over
@@ -125,25 +127,15 @@ timer_sigalrm_handler (int sig)
   }
 
 #ifdef __linux__
-  if(Timer::s_limitEnforcement && env.options->instructionLimit()) {
-    if (perf_fd >= 0) {
-      // we could also decide not to guard this read by env.options->instructionLimit(),
-      // to get info about instructions burned even when not instruction limiting
-      read(perf_fd, &last_instruction_count_read, sizeof(long long));
-
-      if (last_instruction_count_read >= MEGA*(long long)env.options->instructionLimit()) {
-        Timer::setLimitEnforcement(false);
-        if (TimeoutProtector::protectingTimeout) {
-          TimeoutProtector::callLimitReachedLater = 2; // 2 for an instr limit
-        } else {
-          Timer::limitReached(2); // 2 for an instr limit
-        }
+  if(Timer::s_limitEnforcement && (env.options->instructionLimit() || env.options->simulatedInstructionLimit())) {
+    Timer::updateInstructionCount();
+    if (env.options->instructionLimit() && last_instruction_count_read >= MEGA*(long long)env.options->instructionLimit()) {
+      Timer::setLimitEnforcement(false);
+      if (TimeoutProtector::protectingTimeout) {
+        TimeoutProtector::callLimitReachedLater = 2; // 2 for an instr limit
+      } else {
+        Timer::limitReached(2); // 2 for an instr limit
       }
-    } else if (perf_fd == -1 && error_to_report) {
-      // however, we definitely want this to be guarded by env.options->instructionLimit()
-      // not to bother with the error people who don't even know about instruction limiting
-      cerr << "perf_event_open failed (instruction limiting will be disabled): " << error_to_report << endl;
-      error_to_report = nullptr;
     }
   }
 #endif
@@ -157,10 +149,25 @@ timer_sigalrm_handler (int sig)
 
 }
 
+void Timer::updateInstructionCount()
+{
+#ifdef __linux__
+  if (perf_fd >= 0) {
+    // we could also decide not to guard this read by env.options->instructionLimit(),
+    // to get info about instructions burned even when not instruction limiting
+    read(perf_fd, &last_instruction_count_read, sizeof(long long));
+  } else if (perf_fd == -1 && error_to_report) {
+    // however, we definitely want this to be guarded by env.options->instructionLimit()
+    // not to bother with the error people who don't even know about instruction limiting
+    cerr << "perf_event_open failed (instruction limiting will be disabled): " << error_to_report << endl;
+    error_to_report = nullptr;
+  }
+#endif
+}
+
 /** number of miliseconds (of CPU time) passed since some moment */
 int Timer::miliseconds()
 {
-  CALL("Timer::miliseconds");
   ASS_GE(timer_sigalrm_counter, 0);
 
   return timer_sigalrm_counter;
@@ -223,8 +230,6 @@ long perf_event_open(struct perf_event_attr *hw_event, pid_t pid, int cpu, int g
 
 void Timer::ensureTimerInitialized()
 {
-  CALL("Timer::ensureTimerInitialized");
-  
   // When ensureTimerInitialized is called, env.options->instructionLimit() will not be set yet,
   // so we do this init unconditionally
   resetInstructionMeasuring();
@@ -252,8 +257,6 @@ void Timer::ensureTimerInitialized()
 void Timer::resetInstructionMeasuring()
 {
 #ifdef __linux__ // if available, initialize the perf reading
-  CALL("Timer::resetInstructionMeasuring");
-
   /*
    * NOTE: we need to do this before initializing the actual timer
    * (otherwise timer_sigalrm_handler could start asking the uninitialized perf_fd!)
@@ -295,8 +298,6 @@ bool Timer::instructionLimitingInPlace()
 
 void Timer::deinitializeTimer()
 {
-  CALL("Timer::deinitializeTimer");
-
   itimerval tv1, tv2;
   tv1.it_value.tv_usec=0;
   tv1.it_value.tv_sec=0;
@@ -344,9 +345,6 @@ vstring Timer::msToSecondsString(int ms)
  */
 void Timer::printMSString(ostream& str, int ms)
 {
-  //having the call macro here distorts the stacks printouts
-//  CALL("Timer::printMSString");
-
   if(ms<0) {
     str << '-';
     ms = -ms;

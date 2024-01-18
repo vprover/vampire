@@ -34,6 +34,7 @@
 namespace Kernel
 {
 
+using namespace std;
 using namespace Lib;
 using namespace Indexing;
 using namespace Saturation;
@@ -51,8 +52,6 @@ struct LookaheadLiteralSelector::GenIteratorIterator
 
   bool hasNext()
   {
-    CALL("LookaheadLiteralSelector::GenIteratorIterator::hasNext");
-
     if(prepared) {
       return true;
     }
@@ -136,7 +135,6 @@ struct LookaheadLiteralSelector::GenIteratorIterator
 
   VirtualIterator<void> next()
   {
-    CALL("LookaheadLiteralSelector::GenIteratorIterator::next");
     if(!prepared) {
       ALWAYS(hasNext());
     }
@@ -172,8 +170,6 @@ private:
  */
 VirtualIterator<void> LookaheadLiteralSelector::getGeneraingInferenceIterator(Literal* lit)
 {
-  CALL("LookaheadLiteralSelector::getGeneraingInferenceIterator");
-
   return pvi( getFlattenedIterator(GenIteratorIterator(lit, *this)) );
 }
 
@@ -184,7 +180,6 @@ VirtualIterator<void> LookaheadLiteralSelector::getGeneraingInferenceIterator(Li
  */
 Literal* LookaheadLiteralSelector::pickTheBest(Literal** lits, unsigned cnt)
 {
-  CALL("LookaheadLiteralSelector::pickTheBest");
   ASS_G(cnt,1); //special cases are handled elsewhere
 
   static DArray<VirtualIterator<void> > runifs; //resolution unification iterators
@@ -235,8 +230,6 @@ Literal* LookaheadLiteralSelector::pickTheBest(Literal** lits, unsigned cnt)
  */
 void LookaheadLiteralSelector::removeVariants(LiteralStack& lits)
 {
-  CALL("LookaheadLiteralSelector::removeVariants");
-
   size_t cnt=lits.size();
 
   for(size_t i=0;i<cnt-1;i++) {
@@ -256,8 +249,6 @@ void LookaheadLiteralSelector::removeVariants(LiteralStack& lits)
  */
 void LookaheadLiteralSelector::doSelection(Clause* c, unsigned eligible)
 {
-  CALL("LookaheadLiteralSelector::doSelection");
-
   if(_startupSelector){
    
     _startupSelector->select(c,eligible);

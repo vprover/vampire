@@ -44,6 +44,7 @@
 namespace Shell
 {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
@@ -79,8 +80,6 @@ struct PredicateDefinition::PredData
 
   void add(int polarity, int add, PredicateDefinition* pdObj)
   {
-    CALL("PredicateDefinition::PredData::add");
-
     switch (polarity) {
     case -1:
       nocc += add;
@@ -104,8 +103,6 @@ struct PredicateDefinition::PredData
 
   void check(PredicateDefinition* pdObj)
   {
-    CALL("PredicateDefinition::PredData::check");
-
     //we don't remove anything that concerns interpreted predicates
     if(builtIn) {
       return;
@@ -147,8 +144,6 @@ struct PredicateDefinition::PredData
 	+ ") -(" + Int::toString(nocc) + ") 0(" + Int::toString(docc) + ")";
   }
 
-  CLASS_NAME(PredicateDefinition::PredData);  
-  USE_ALLOCATOR_ARRAY;
 };
 
 PredicateDefinition::PredicateDefinition()
@@ -179,7 +174,6 @@ PredicateDefinition::~PredicateDefinition()
  */
 void PredicateDefinition::addBuiltInPredicate(unsigned pred)
 {
-  CALL("PredicateDefinition::addBuiltInPredicate");  
   ASS_L(pred,_predCnt);
 
   _preds[pred].builtIn = true;
@@ -194,8 +188,6 @@ void PredicateDefinition::addBuiltInPredicate(unsigned pred)
 
 Unit* PredicateDefinition::getReplacement(Unit* u, ReplMap& replacements)
 {
-  CALL("PredicateDefinition::getReplacement(Unit*,ReplMap&)");
-
   Unit* tgt;
   while(replacements.find(u,tgt)) {
     u=tgt;
@@ -205,8 +197,6 @@ Unit* PredicateDefinition::getReplacement(Unit* u, ReplMap& replacements)
 
 FormulaUnit* PredicateDefinition::getReplacement(FormulaUnit* u, ReplMap& replacements)
 {
-  CALL("PredicateDefinition::getReplacement(FormulaUnit*,ReplMap&)");
-
   Unit* res0 = getReplacement(static_cast<Unit*>(u), replacements);
   ASS(!res0 || !res0->isClause()); //we never transform FormulaUnit into Clause
   return static_cast<FormulaUnit*>(res0);
@@ -215,8 +205,6 @@ FormulaUnit* PredicateDefinition::getReplacement(FormulaUnit* u, ReplMap& replac
 
 void PredicateDefinition::eliminatePredicateDefinition(unsigned pred, ReplMap& replacements)
 {
-  CALL("PredicateDefinition::eliminatePredicateDefinition");
-
   PredData& pd=_preds[pred];
   ASS(pd.defUnit);
   FormulaUnit* def0 = pd.defUnit;
@@ -279,8 +267,6 @@ void PredicateDefinition::eliminatePredicateDefinition(unsigned pred, ReplMap& r
 
 void PredicateDefinition::replacePurePred(unsigned pred, ReplMap& replacements)
 {
-  CALL("PredicateDefinition::replacePurePred");
-
   PredData& pd=_preds[pred];
   ASS(pd.pocc==0 || pd.nocc==0);
 
@@ -322,8 +308,6 @@ void PredicateDefinition::replacePurePred(unsigned pred, ReplMap& replacements)
  */
 void PredicateDefinition::collectReplacements(UnitList* units, ReplMap& replacements)
 {
-  CALL("PredicateDefinition::collectReplacements");
-
   UnitList::Iterator scanIterator(units);
   while(scanIterator.hasNext()) {
     scan(scanIterator.next());
@@ -365,16 +349,12 @@ void PredicateDefinition::collectReplacements(UnitList* units, ReplMap& replacem
 
 void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(Problem& prb)
 {
-  CALL("PredicateDefinition::removeUnusedDefinitionsAndPurePredicates");
-
   ScopedLet<Problem*> prbLet(_processedPrb, &prb);
   removeUnusedDefinitionsAndPurePredicates(prb.units());
 }
 
 void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(UnitList*& units)
 {
-  CALL("PredicateDefinition::removeUnusedDefinitionsAndPurePredicates");
-
   static DHMap<Unit*, Unit*> replacements;
   replacements.reset();
 
@@ -436,8 +416,6 @@ Unit* PredicateDefinition::replacePurePredicates(Unit* u)
 
 Formula* PredicateDefinition::replacePurePredicates(Formula* f)
 {
-  CALL("PredicateDefinition::replacePurePredicates");
-
   Connective con = f->connective();
   switch (con) {
   case LITERAL:
@@ -743,8 +721,6 @@ void PredicateDefinition::scan(Clause* cl)
 
 void PredicateDefinition::scan(FormulaUnit* unit)
 {
-  CALL("PredicateDefinition::scan(FormulaUnit)");
-
   count(unit, 1);
 
   Formula* f=unit->formula();
@@ -776,7 +752,6 @@ void PredicateDefinition::scan(FormulaUnit* unit)
 
 void PredicateDefinition::count (Unit* u,int add)
 {
-  CALL("PredicateDefinition::count(Unit*,int)");
   if(!u) {
     return;
   }
@@ -790,7 +765,6 @@ void PredicateDefinition::count (Unit* u,int add)
 
 void PredicateDefinition::count (Clause* cl, int add)
 {
-  CALL("PredicateDefinition::count(Clause*,int)");
   unsigned clen=cl->length();
   for(unsigned i=0;i<clen;i++) {
     Literal* l=(*cl)[i];
@@ -804,8 +778,6 @@ void PredicateDefinition::count (Clause* cl, int add)
 
 void PredicateDefinition::count (Formula* f,int polarity,int add, Unit* unit)
 {
-  CALL("PredicateDefinition::count(Formula*,...)");
-
   switch (f->connective()) {
     case LITERAL:
     {
@@ -867,8 +839,6 @@ void PredicateDefinition::count (Formula* f,int polarity,int add, Unit* unit)
 
 void PredicateDefinition::count (TermList ts,int add, Unit* unit)
 {
-  CALL("PredicateDefinition::count(TermList,...)");
-
   if (ts.isVar()) {
     return;
   }
@@ -881,29 +851,29 @@ void PredicateDefinition::count (TermList ts,int add, Unit* unit)
 
   if (term->isSpecial()) {
     Term::SpecialTermData* sd = term->getSpecialData();
-    switch (sd->getType()) {
-      case Term::SF_FORMULA:
+    switch (sd->specialFunctor()) {
+      case Term::SpecialFunctor::FORMULA:
         count(sd->getFormula(), 0, add, unit);
         break;
 
-      case Term::SF_ITE:
+      case Term::SpecialFunctor::ITE:
         count(sd->getCondition(), 0, add, unit);
         break;
 
-      case Term::SF_LET:
-      case Term::SF_LET_TUPLE:
+      case Term::SpecialFunctor::LET:
+      case Term::SpecialFunctor::LET_TUPLE:
         count(sd->getBinding(), add, unit);
         break;
 
-      case Term::SF_TUPLE:
+      case Term::SpecialFunctor::TUPLE:
         count(TermList(sd->getTupleTerm()), add, unit);
         break;
 
-      case Term::SF_MATCH:
+      case Term::SpecialFunctor::LAMBDA:
+        NOT_IMPLEMENTED;
+      case Term::SpecialFunctor::MATCH:
         break; // args are handled later
 
-      default:
-        ASSERTION_VIOLATION;
     }
   }
 
@@ -915,8 +885,6 @@ void PredicateDefinition::count (TermList ts,int add, Unit* unit)
 
 bool PredicateDefinition::tryGetDef(Literal* lhs, Formula* rhs, FormulaUnit* unit)
 {
-  CALL("PredicateDefinition::tryGetDef");
-
   if(lhs->isEquality()) {
     return false;
   }

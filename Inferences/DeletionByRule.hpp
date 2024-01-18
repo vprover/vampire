@@ -27,7 +27,6 @@ class ForwardDeletionByRule
 : public ForwardSimplificationEngine
 {
 public:
-  CLASS_NAME(ForwardDeletionByRule);
   USE_ALLOCATOR(ForwardDeletionByRule);
 
   void attach(SaturationAlgorithm* salg) override;
@@ -43,7 +42,6 @@ class BackwardDeletionByRule
 : public BackwardSimplificationEngine
 {
 public:
-  CLASS_NAME(BackwardDeletionByRule);
   USE_ALLOCATOR(BackwardDeletionByRule);
 
   void attach(SaturationAlgorithm* salg);

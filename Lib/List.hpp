@@ -160,8 +160,6 @@ public:
   /** Destroy the list */
   static void destroy (List *l)
   {
-    CALL("List::destroy");
-
     if (isEmpty(l)) return;
     List* current = l;
 
@@ -180,8 +178,6 @@ public:
    */
   static void destroyWithDeletion(List *l)
   {
-    CALL("List::destroyWithDeletion");
-
     if (isEmpty(l)) return;
     List* current = l;
 
@@ -269,7 +265,6 @@ public:
   /** pop the first element and return it */
   static C pop(List* &lst)
   {
-    CALL("List::pop");
     ASS_NEQ(lst,0);
 
     List* tail = lst->tail();
@@ -462,7 +457,6 @@ public:
 #if VDEBUG
 // Only works if called on a List of elements with toString functions
   vstring toString(){
-    CALL("List::toString");
     vstring h = _head->toString();
     if(_tail){
       return h+","+_tail->toString();
@@ -474,7 +468,6 @@ public:
   /** iterator over the list elements */
   class Iterator {
   public:
-    CLASS_NAME(List::Iterator);
     USE_ALLOCATOR(List::Iterator);
     
     DECL_ELEMENT_TYPE(C);
@@ -516,7 +509,6 @@ public:
   /** iterator over references to list elements */
   class RefIterator {
    public:
-     CLASS_NAME(List::RefIterator);
      USE_ALLOCATOR(List::RefIterator);
      
      DECL_ELEMENT_TYPE(C&);
@@ -547,7 +539,6 @@ public:
   class PtrIterator
   {
   public:
-    CLASS_NAME(List::PtrIterator);
     USE_ALLOCATOR(List::PtrIterator);
     
     DECL_ELEMENT_TYPE(C*);
@@ -569,7 +560,6 @@ public:
   /** Iterator that allows one to delete the current element */
   class DelIterator {
    public:
-     CLASS_NAME(List::DelIterator);
      USE_ALLOCATOR(List::DelIterator);
      
     DECL_ELEMENT_TYPE(C);
@@ -707,7 +697,6 @@ public:
    */
   class DestructiveIterator {
   public:
-    CLASS_NAME(List::DestructiveIterator);
     USE_ALLOCATOR(List::DestructiveIterator);
     
     DECL_ELEMENT_TYPE(C);
@@ -735,7 +724,6 @@ public:
   };
 
   // use allocator to (de)allocate objects of this class
-  CLASS_NAME(List);
   USE_ALLOCATOR(List);
 
   /**
@@ -827,7 +815,7 @@ struct IteratorTypeInfo<const List<T>*>
 #if VDEBUG
 
 template<typename T>
-std::ostream& operator<< (ostream& out, const List<T>& lstr )
+std::ostream& operator<< (std::ostream& out, const List<T>& lstr )
 {
   const List<T>* lst=&lstr;
   out<<'[';
@@ -842,7 +830,7 @@ std::ostream& operator<< (ostream& out, const List<T>& lstr )
 }
 
 template<typename T>
-std::ostream& operator<< (ostream& out, const List<T*>& lstr )
+std::ostream& operator<< (std::ostream& out, const List<T*>& lstr )
 {
   const List<T*>* lst=&lstr;
   out<<'[';

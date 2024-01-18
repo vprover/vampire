@@ -29,6 +29,7 @@
 
 #include "TermSharing.hpp"
 
+using namespace std;
 using namespace Kernel;
 using namespace Indexing;
 
@@ -42,7 +43,6 @@ TermSharing::TermSharing()
   : _poly(true),
     _wellSortednessCheckingDisabled(false)
 {
-  CALL("TermSharing::TermSharing");
 }
 
 /**
@@ -51,8 +51,6 @@ TermSharing::TermSharing()
  */
 TermSharing::~TermSharing()
 {
-  CALL("TermSharing::~TermSharing");
-  
 #if CHECK_LEAKS
   Set<Term*,TermSharing>::Iterator ts(_terms);
   while (ts.hasNext()) {
@@ -71,8 +69,6 @@ TermSharing::~TermSharing()
 
 void TermSharing::setPoly()
 {
-  CALL("TermSharing::setPoly()");
-
   //combinatory superposiiton can introduce polymorphism into a monomorphic problem
   _poly = env.getMainProblem()->isHigherOrder() || env.getMainProblem()->hasPolymorphicSym() ||
     (env.options->equalityProxy() != Options::EqualityProxy::OFF && !env.options->useMonoEqualityProxy());
@@ -85,7 +81,6 @@ void TermSharing::setPoly()
 Term* TermSharing::insert(Term* t)
 {
 
-  CALL("TermSharing::insert(Term*)");
   ASS(!t->isLiteral());
   ASS(!t->isSpecial());
   ASS(!t->isSort());
@@ -211,7 +206,6 @@ Term* TermSharing::insert(Term* t)
 
 AtomicSort* TermSharing::insert(AtomicSort* sort)
 {
-  CALL("TermSharing::insert(AtomicSort*)");
   ASS(!sort->isLiteral());
   ASS(!sort->isSpecial());
   ASS(sort->isSort());
@@ -268,7 +262,6 @@ AtomicSort* TermSharing::insert(AtomicSort* sort)
  */
 Literal* TermSharing::insert(Literal* t)
 {
-  CALL("TermSharing::insert(Literal*)");
   ASS(t->isLiteral());
   ASS(!t->isSort());
   ASS(!t->isSpecial());
@@ -350,7 +343,6 @@ Literal* TermSharing::insert(Literal* t)
  */
 Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
 {
-  CALL("TermSharing::insertVariableEquality");
   ASS(t->isLiteral());
   ASS(t->commutative());
   ASS(t->isEquality());
@@ -402,8 +394,6 @@ Literal* TermSharing::insertVariableEquality(Literal* t, TermList sort)
  */
 Literal* TermSharing::tryGetOpposite(Literal* l)
 {
-  CALL("TermSharing::tryGetOpposite");
-
   Literal* res;
   if(_literals.find(OpLitWrapper(l), res)) {
     return res;
@@ -414,8 +404,6 @@ Literal* TermSharing::tryGetOpposite(Literal* l)
 
 int TermSharing::sumRedLengths(TermStack& args)
 {
-  CALL("TermSharing::sumRedLengths");
-
   int redLength = 0;
 
   for(unsigned i = 0; i < args.size(); i++){
@@ -437,8 +425,6 @@ int TermSharing::sumRedLengths(TermStack& args)
  */
 bool TermSharing::argNormGt(TermList t1, TermList t2)
 {
-  CALL("TermSharing::argNormGt");
-
   if(t1.tag()!=t2.tag()) {
     return t1.tag()>t2.tag();
   }
@@ -464,8 +450,6 @@ bool TermSharing::argNormGt(TermList t1, TermList t2)
  */
 bool TermSharing::equals(const Term* s,const Term* t)
 {
-  CALL("TermSharing::equals(Term*,Term*)");
-
   if (s->functor() != t->functor()) return false;
 
   const TermList* ss = s->args();
@@ -486,8 +470,6 @@ bool TermSharing::equals(const Term* s,const Term* t)
 template<bool opposite>
 bool TermSharing::equals(const Literal* l1, const Literal* l2)
 {
-  CALL("TermSharing::equals(Literal*,Literal*)");
-
   if( (l1->polarity()==l2->polarity()) == opposite) {
     return false;
   }

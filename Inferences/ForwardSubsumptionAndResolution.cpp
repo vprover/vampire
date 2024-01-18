@@ -48,7 +48,6 @@ using namespace Saturation;
 
 void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
 {
-  CALL("ForwardSubsumptionAndResolution::attach");
   ForwardSimplificationEngine::attach(salg);
   _unitIndex = static_cast<UnitClauseLiteralIndex *>(
       _salg->getIndexManager()->request(FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE));
@@ -58,7 +57,6 @@ void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
 
 void ForwardSubsumptionAndResolution::detach()
 {
-  CALL("ForwardSubsumptionAndResolution::detach");
   _unitIndex = 0;
   _fwIndex = 0;
   _salg->getIndexManager()->release(FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE);
@@ -67,7 +65,6 @@ void ForwardSubsumptionAndResolution::detach()
 }
 
 struct ClauseMatches {
-  CLASS_NAME(ForwardSubsumptionAndResolution::ClauseMatches);
   USE_ALLOCATOR(ClauseMatches);
 
 private:
@@ -158,7 +155,6 @@ typedef Stack<ClauseMatches *> CMStack;
 
 Clause *ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(Clause *cl, Literal *lit, Clause *baseClause)
 {
-  CALL("ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause");
   int clen = cl->length();
   int nlen = clen - 1;
 
@@ -222,8 +218,6 @@ bool blockedTermCheck(Clause* subsumed, Clause* subsumer, const std::function<Te
 
 bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)
 {
-  CALL("ForwardSubsumptionAndResolution::perform");
-
   Clause *resolutionClause = 0;
 
   unsigned clen = cl->length();

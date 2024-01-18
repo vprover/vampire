@@ -31,9 +31,6 @@ class PrimitiveInstantiation
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(PrimitiveInstantiation);
-  USE_ALLOCATOR(PrimitiveInstantiation);
-
   void attach(SaturationAlgorithm* salg);
   void detach();
 

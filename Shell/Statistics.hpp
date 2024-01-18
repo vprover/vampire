@@ -43,9 +43,6 @@ using namespace Kernel;
 class Statistics
 {
 public:
-  CLASS_NAME(Statistics);
-  USE_ALLOCATOR(Statistics);
-
   Statistics();
 
   void print(std::ostream& out);
@@ -283,11 +280,6 @@ public:
 
   unsigned smtFallbacks;
 
-  unsigned instGenGeneratedClauses;
-  unsigned instGenRedundantClauses;
-  unsigned instGenKeptClauses;
-  unsigned instGenIterations;
-
   /** Number of pure variables eliminated by SAT solver */
   unsigned satPureVarsEliminated;
 
@@ -356,6 +348,7 @@ public:
     UNUSED_PREDICATE_DEFINITION_REMOVAL,
     BLOCKED_CLAUSE_ELIMINATION,
     TWEE,
+    ANSWER_LITERAL,
     PREPROCESS_2,
     NEW_CNF,
     NAMING,

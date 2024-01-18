@@ -39,7 +39,6 @@ class RobSubstitution
 :public Backtrackable
 {
 public:
-  CLASS_NAME(RobSubstitution);
   USE_ALLOCATOR(RobSubstitution);
   
   RobSubstitution() : _funcSubtermMap(nullptr), _nextUnboundAvailable(0) {}
@@ -198,7 +197,7 @@ public:
     /** index of term to which it is bound */
     int index;
   };
-  typedef pair<TermSpec,TermSpec> TTPair;
+  typedef std::pair<TermSpec,TermSpec> TTPair;
  
   /** struct containing first hash function of TTPair objects*/
   struct TTPairHash
@@ -253,7 +252,6 @@ private:
 
   VarSpec getVarSpec(TermList tl, int index) const
   {
-    CALL("RobSubstitution::getVarSpec");
     ASS(tl.isVar());
     index = tl.isSpecialVar() ? SPECIAL_INDEX : index;
     return VarSpec(tl.var(), index);
@@ -265,11 +263,23 @@ private:
   BankType _bank;
   mutable unsigned _nextUnboundAvailable;
 #ifdef CACHE
-  DHMap<pair<TermList,unsigned>,TermList> _cache;
+  DHMap<std::pair<TermList,unsigned>,TermList> _cache;
 #endif
 
   friend std::ostream& operator<<(std::ostream& out, RobSubstitution const& self)
   { return out << self._bank; }
+
+  class NextUnboundVariableBacktrackObject
+  : public BacktrackObject
+  {
+  public:
+    NextUnboundVariableBacktrackObject(RobSubstitution* subst, unsigned v) : _subst(subst), _v(v) {}
+    void backtrack() { _subst->_nextUnboundAvailable = _v; }
+    USE_ALLOCATOR(NextUnboundVariableBacktrackObject);
+  private:
+    RobSubstitution* _subst;
+    unsigned _v;
+  };
 
   class BindingBacktrackObject
   : public BacktrackObject
@@ -295,7 +305,6 @@ private:
     }
     friend std::ostream& operator<<(std::ostream& out, BindingBacktrackObject const& self)
     { return out << "(ROB backtrack object for " << self._var << ")"; }
-    CLASS_NAME(RobSubstitution::BindingBacktrackObject);
     USE_ALLOCATOR(BindingBacktrackObject);
   private:
     RobSubstitution* _subst;

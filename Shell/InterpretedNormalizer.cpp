@@ -31,6 +31,8 @@
 namespace Shell
 {
 
+using namespace std;
+
 /**
  * Base term transforming class
  */
@@ -48,13 +50,8 @@ public:
 class InterpretedNormalizer::RoundingFunctionTranslator : public FunctionTranslator
 {
 public:
-  CLASS_NAME(InterpretedNormalizer::RoundingFunctionTranslator);
-  USE_ALLOCATOR(InterpretedNormalizer::RoundingFunctionTranslator);
-  
   RoundingFunctionTranslator(Interpretation origf, Interpretation newf, Interpretation roundf)
   {
-    CALL("InterpretedNormalizer::RoundingFunctionTranslator::RoundingFunctionTranslator");
-
     _origFun = env.signature->getInterpretingSymbol(origf);
     _newFun = env.signature->getInterpretingSymbol(newf);
     _roundingFun = env.signature->getInterpretingSymbol(roundf);
@@ -63,7 +60,6 @@ public:
 
   virtual TermList translate(Term* trm)
   {
-    CALL("InterpretedNormalizer::RoundingFunctionTranslator::translate");
     ASS_EQ(trm->functor(), _origFun);
 
     TermList arg1 = trm->termArg(0);
@@ -89,13 +85,8 @@ private:
 class InterpretedNormalizer::SuccessorTranslator : public FunctionTranslator
 {
 public:
-  CLASS_NAME(InterpretedNormalizer::SuccessorTranslator);
-  USE_ALLOCATOR(InterpretedNormalizer::SuccessorTranslator);
-  
   SuccessorTranslator()
   {
-    CALL("InterpretedNormalizer::SuccessorTranslator::SuccessorTranslator");
-
     _succFun = env.signature->getInterpretingSymbol(Theory::INT_SUCCESSOR);
     _plusFun = env.signature->getInterpretingSymbol(Theory::INT_PLUS);
     _one = TermList(theory->representConstant(IntegerConstantType(1)));
@@ -103,7 +94,6 @@ public:
 
   virtual TermList translate(Term* trm)
   {
-    CALL("InterpretedNormalizer::SuccessorTranslator::translate");
     ASS_EQ(trm->functor(), _succFun);
 
     TermList arg = trm->termArg(0);
@@ -126,13 +116,8 @@ private:
 class InterpretedNormalizer::BinaryMinusTranslator : public FunctionTranslator
 {
 public:
-  CLASS_NAME(InterpretedNormalizer::BinaryMinusTranslator);
-  USE_ALLOCATOR(InterpretedNormalizer::BinaryMinusTranslator);
-  
   BinaryMinusTranslator(Interpretation bMinus, Interpretation plus, Interpretation uMinus)
   {
-    CALL("InterpretedNormalizer::BinaryMinusTranslator::BinaryMinusTranslator");
-
     _bMinusFun = env.signature->getInterpretingSymbol(bMinus);
     _plusFun = env.signature->getInterpretingSymbol(plus);
     _uMinusFun = env.signature->getInterpretingSymbol(uMinus);
@@ -140,7 +125,6 @@ public:
 
   virtual TermList translate(Term* trm)
   {
-    CALL("InterpretedNormalizer::BinaryMinusTranslator::translate");
     ASS_EQ(trm->functor(), _bMinusFun);
 
     TermList arg1 = trm->termArg(0);
@@ -165,13 +149,9 @@ private:
 class InterpretedNormalizer::IneqTranslator
 {
 public:
-  CLASS_NAME(InterpretedNormalizer::IneqTranslator);
-  USE_ALLOCATOR(InterpretedNormalizer::IneqTranslator);
-  
   IneqTranslator(Interpretation src, Interpretation tgt, bool swapArguments, bool reversePolarity)
    : _swapArguments(swapArguments), _reversePolarity(reversePolarity)
   {
-    CALL("InterpretedNormalizer::IneqTranslator::IneqTranslator");
     _srcPred = env.signature->getInterpretingSymbol(src);
     _tgtPred = env.signature->getInterpretingSymbol(tgt);
     ASS_EQ(env.signature->predicateArity(_srcPred), 2);
@@ -184,7 +164,6 @@ public:
 
   Literal* apply(Literal* lit)
   {
-    CALL("InterpretedNormalizer::IneqTranslator::apply");
     ASS_EQ(lit->functor(), _srcPred);
 
     TermList args[2] = { lit->termArg(0), lit->termArg(1) };
@@ -207,15 +186,10 @@ private:
 class InterpretedNormalizer::NLiteralTransformer : public TermTransformer
 {
 public:
-  CLASS_NAME(InterpretedNormalizer::NLiteralTransformer);
-  USE_ALLOCATOR(InterpretedNormalizer::NLiteralTransformer);
-  
   NLiteralTransformer()
   : _ineqTransls(env.signature->predicates()),
     _fnTransfs(env.signature->functions())
   {
-    CALL("InterpretedNormalizer::NLiteralTransformer::NLiteralTransformer");
-
     // from, to, swap, reverse_pol 
     addIneqTransformer(Theory::INT_LESS_EQUAL, 	  Theory::INT_LESS, true, true);
     addIneqTransformer(Theory::INT_GREATER, 	  Theory::INT_LESS, true, false);
@@ -248,8 +222,6 @@ public:
 
   void apply(Literal* lit, bool& constantRes, Literal*& litRes, bool& boolRes)
   {
-    CALL("InterpretedNormalizer::NLiteralTransformer::apply");
-
     if (!lit->isEquality() && theory->isInterpretedPredicate(lit->functor()))
     {
       Interpretation itp = theory->interpretPredicate(lit);
@@ -276,8 +248,6 @@ protected:
 
   TermList transformSubterm(TermList trm) override
   {
-    CALL("InterpretedNormalizer::NLiteralTransformer::transformSubterm");
-
     // sorts can never contain interpreted functions
     // this is a stopgap solution until PR that changes how termTransformer works
     // is merged
@@ -313,8 +283,6 @@ private:
    */
   void addMinusTransformer(Interpretation bMinus, Interpretation plus, Interpretation uMinus)
   {
-    CALL("InterpretedNormalizer::NLiteralTransformer::addMinusTransformer");
-
     if(!env.signature->haveInterpretingSymbol(bMinus)) {
       return; //the symbol to be transformed doesn't exist, so we don't need to worry
     }
@@ -329,8 +297,6 @@ private:
    */
   void addSuccessorTransformer()
   {
-    CALL("InterpretedNormalizer::NLiteralTransformer::addSuccessorTransformer");
-
     if(!env.signature->haveInterpretingSymbol(Theory::INT_SUCCESSOR)) {
       return; //the symbol to be transformed doesn't exist, so we don't need to worry
     }
@@ -345,8 +311,6 @@ private:
    */
   void addRoundingFunctionTransformer(Interpretation origF, Interpretation newF, Interpretation roundF)
   {
-    CALL("InterpretedNormalizer::NLiteralTransformer::addRoundingFunctionTransformer");
-
     if(!env.signature->haveInterpretingSymbol(origF)) {
       return; //the symbol to be transformed doesn't exist, so we don't need to worry
     }
@@ -363,8 +327,6 @@ private:
    */
   void addIneqTransformer(Interpretation from, Interpretation to, bool swapArguments, bool reversePolarity)
   {
-    CALL("InterpretedNormalizer::NLiteralTransformer::addIneqTransformer");
-
     if(!env.signature->haveInterpretingSymbol(from)) {
       return; //the symbol to be transformed doesn't exist, so we don't need to worry
     }
@@ -380,7 +342,6 @@ private:
    */
   FunctionTranslator* getFnTranslator(unsigned func)
   {
-    CALL("InterpretedNormalizer::NLiteralTransformer::addIneqTransformer");
     if(_fnTransfs.size()<=func) { return 0; }
     return _fnTransfs[func].ptr();
   }
@@ -391,7 +352,6 @@ private:
    */
   IneqTranslator* getIneqTranslator(unsigned ineq)
   {
-    CALL("InterpretedNormalizer::NLiteralTransformer::getIneqTranslator");
     if(_ineqTransls.size()<=ineq) { return 0; }
     return _ineqTransls[ineq].ptr();
   }
@@ -418,8 +378,6 @@ protected:
    */
   virtual Formula* applyLiteral(Formula* f)
   {
-    CALL("InterpretedNormalizer::NFormulaTransformer::applyLiteral");
-
     Literal* lit = f->literal();
     bool isConst;
     Literal* newLit;
@@ -449,22 +407,15 @@ Formula* InterpretedNormalizer::NLiteralTransformer::transform(Formula* f)
 InterpretedNormalizer::InterpretedNormalizer()
 : _litTransf(new NLiteralTransformer())
 {
-  CALL("InterpretedNormalizer::InterpretedNormalizer");
-
-
 }
 
 InterpretedNormalizer::~InterpretedNormalizer()
 {
-  CALL("InterpretedNormalizer::~InterpretedNormalizer");
-
   delete _litTransf;
 }
 
 void InterpretedNormalizer::apply(Problem& prb)
 {
-  CALL("InterpretedNormalizer::apply(Problem&)");
-
   if(apply(prb.units())) {
     prb.invalidateByRemoval();
   }
@@ -476,8 +427,6 @@ void InterpretedNormalizer::apply(Problem& prb)
  */
 bool InterpretedNormalizer::apply(UnitList*& units)
 {
-  CALL("InterpretedNormalizer::apply(UnitList*& units)");
-
   NFormulaTransformer ftransf(_litTransf);
   FTFormulaUnitTransformer<NFormulaTransformer> futransf(InferenceRule::THEORY_NORMALIZATION, ftransf);
 
@@ -513,8 +462,6 @@ bool InterpretedNormalizer::apply(UnitList*& units)
 
 Clause* InterpretedNormalizer::apply(Clause* cl)
 {
-  CALL("InterpretedNormalizer::apply(Clause* cl)");
-
   static LiteralStack lits;
   lits.reset();
   unsigned clen = cl->length();
@@ -556,8 +503,6 @@ Clause* InterpretedNormalizer::apply(Clause* cl)
  */
 bool InterpretedNormalizer::isTrivialInterpretation(Interpretation itp)
 {
-  CALL("InterpretedNormalizer::isTrivialInterpretation");
-
   switch(itp) {
   case Theory::INT_IS_INT:
   case Theory::INT_IS_RAT:

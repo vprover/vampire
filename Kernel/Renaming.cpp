@@ -34,8 +34,6 @@ using namespace Indexing;
 
 Literal* Renaming::apply(Literal* lit)
 {
-  CALL("Renaming::apply(Literal*...)");
-
   if(identity()) {
     return lit;
   }
@@ -45,8 +43,6 @@ Literal* Renaming::apply(Literal* lit)
 
 Term* Renaming::apply(Term* trm)
 {
-  CALL("Renaming::apply(Term*...)");
-
   if(identity()) {
     return trm;
   }
@@ -56,8 +52,6 @@ Term* Renaming::apply(Term* trm)
 
 TermList Renaming::apply(TermList trm)
 {
-  CALL("Renaming::apply(TermList...)");
-
   if(identity()) {
     return trm;
   }
@@ -123,7 +117,6 @@ void Renaming::makeInverse(const Renaming& orig)
 
 TypedTermList Renaming::normalize(TypedTermList l)
 {
-  CALL("Renaming::normalize(TypedTermList)");
   if (l.isTerm()) {
     return TypedTermList(normalize(l.term()));
   } else {
@@ -137,8 +130,6 @@ TypedTermList Renaming::normalize(TypedTermList l)
 
 Literal* Renaming::normalize(Literal* l)
 {
-  CALL("Renaming::normalize(Literal*)");
-
   Recycled<Renaming> n;
   n->normalizeVariables(l);
   return n->apply(l);
@@ -146,8 +137,6 @@ Literal* Renaming::normalize(Literal* l)
 
 Term* Renaming::normalize(Term* trm)
 {
-  CALL("Renaming::normalize(Term*)");
-
   Recycled<Renaming> n;
   n->normalizeVariables(trm);
   return n->apply(trm);
@@ -155,8 +144,6 @@ Term* Renaming::normalize(Term* trm)
 
 TermList Renaming::normalize(TermList trm)
 {
-  CALL("Renaming::normalize(TermList)");
-
   Recycled<Renaming> n;
   n->normalizeVariables(trm);
   return n->apply(trm);

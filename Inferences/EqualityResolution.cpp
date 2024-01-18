@@ -65,8 +65,6 @@ struct EqualityResolution::ResultFn
       : _afterCheck(afterCheck), _ord(ord), _cl(cl), _cLen(cl->length()) {}
   Clause* operator() (Literal* lit)
   {
-    CALL("EqualityResolution::ResultFn::operator()");
-
     ASS(lit->isEquality());
     ASS(lit->isNegative());
 
@@ -212,8 +210,6 @@ private:
 
 ClauseIterator EqualityResolution::generateClauses(Clause* premise)
 {
-  CALL("EqualityResolution::generateClauses");
-
   if(premise->isEmpty()) {
     return ClauseIterator::getEmpty();
   }
@@ -239,8 +235,6 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
  */
 Clause* EqualityResolution::tryResolveEquality(Clause* cl, Literal* toResolve)
 {
-  CALL("EqualityResolution::tryResolveEquality");
-
   return ResultFn(cl)(toResolve);
 }
 

@@ -59,12 +59,13 @@ public :
     inline const_pointer address(const_reference r) { return &r; }
 
     //    memory allocation
-    inline pointer allocate(size_type cnt, 
-      typename std::allocator<void>::const_pointer = 0) { 
-      return reinterpret_cast<pointer>(ALLOC_KNOWN(cnt*sizeof(T),"STLAllocator<T>"));           
+    inline pointer allocate(size_type cnt,
+      typename std::allocator<void>::const_pointer = 0) {
+      return static_cast<pointer>(Lib::alloc(cnt*sizeof(T), alignof(T)));
     }
-    inline void deallocate(pointer p, size_type cnt) { 
-      DEALLOC_KNOWN(p,cnt * sizeof(T),"STLAllocator<T>");
+
+    inline void deallocate(pointer p, size_type cnt) {
+      Lib::free(p, cnt * sizeof(T), alignof(T));
     }
 
     //    size

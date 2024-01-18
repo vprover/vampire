@@ -31,7 +31,6 @@
 
 #include "Forwards.hpp"
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Portability.hpp"
@@ -41,7 +40,8 @@
 
 // the number of bits used for "TermList::_info::distinctVars"
 #define TERM_DIST_VAR_BITS 21
-#define TERM_DIST_VAR_UNKNOWN ((2 ^ TERM_DIST_VAR_BITS) - 1)
+// maximum number that fits in a TERM_DIST_VAR_BITS-bit unsigned integer
+#define TERM_DIST_VAR_UNKNOWN ((1 << TERM_DIST_VAR_BITS)-1)
 
 namespace Kernel {
 
@@ -91,15 +91,17 @@ bool operator<(const TermList& lhs, const TermList& rhs);
  */
 class TermList {
 public:
-  CLASS_NAME(TermList)
   // divide by 4 because of the tag, by 2 to split the space evenly
   static const unsigned SPEC_UPPER_BOUND = (UINT_MAX / 4) / 2;
   /** dummy constructor, does nothing */
-  TermList() {}
-  /** creates a term list and initialises its content with data */
-  explicit TermList(size_t data) : _content(data) {}
+  TermList() = default;
   /** creates a term list containing a pointer to a term */
-  explicit TermList(Term* t) : _term(t) { ASS_EQ(tag(), REF); }
+  explicit TermList(Term* t) : _content(0) {
+    // NB we also zero-initialise _content so that the spare bits are zero on 32-bit platforms
+    // dead-store eliminated on 64-bit
+    _term = t;
+    ASS_EQ(tag(), REF);
+  }
   /** creates a term list containing a variable. If @b special is true, then the variable
    * will be "special". Special variables are also variables, with a difference that a
    * special variables and ordinary variables have an empty intersection */
@@ -152,7 +154,9 @@ public:
   inline bool sameContent(const TermList& t) const
   { return sameContent(&t); }
   /** return the content, useful for e.g., term argument comparison */
-  inline size_t content() const { return _content; }
+  inline uint64_t content() const { return _content; }
+  /** set the content manually - hazardous, such terms should then only be used as integers */
+  void setContent(uint64_t content) { _content = content; }
   /** default hash is to hash the content */
   unsigned defaultHash() const { return DefaultHash::hash(content()); }
   unsigned defaultHash2() const { return content(); }
@@ -168,8 +172,13 @@ public:
   inline void makeEmpty()
   { _content = FUN; }
   /** make the term into a reference */
-  inline void setTerm(Term* t)
-  { _term = t; ASS_EQ(tag(), REF); }
+  inline void setTerm(Term* t) {
+    // NB we also zero-initialise _content so that the spare bits are zero on 32-bit platforms
+    // dead-store eliminated on 64-bit
+    _content = 0;
+    _term = t;
+    ASS_EQ(tag(), REF);
+  }
   static bool sameTop(TermList ss, TermList tt);
   static bool sameTopFunctor(TermList ss, TermList tt);
   static bool equals(TermList t1, TermList t2);
@@ -206,10 +215,10 @@ private:
   vstring asArgsToString() const;
 
   union {
+    /** raw content, can be anything */
+    uint64_t _content;
     /** reference to another term */
     Term* _term;
-    /** raw content, can be anything */
-    size_t _content;
     /** Used by Term, storing some information about the term using bits */
     /*
      * A note from 2022: the following bitfield is somewhat non-portable.
@@ -257,11 +266,7 @@ private:
   friend class Literal;
   friend class AtomicSort;
 }; // class TermList
-
-static_assert(
-  sizeof(TermList) == sizeof(size_t),
-  "size of TermList must be the same size as that of size_t"
-);
+static_assert(sizeof(TermList) == 8, "size of TermList must be exactly 64 bits");
 
 /**
  * Class to represent terms and lists of terms.
@@ -271,14 +276,26 @@ class Term
 {
 public:
   //special functor values
-  static const unsigned SF_ITE = 0xFFFFFFFF;
-  static const unsigned SF_LET = 0xFFFFFFFE;
-  static const unsigned SF_FORMULA = 0xFFFFFFFD;
-  static const unsigned SF_TUPLE = 0xFFFFFFFC;
-  static const unsigned SF_LET_TUPLE = 0xFFFFFFFB;
-  static const unsigned SF_LAMBDA = 0xFFFFFFFA;
-  static const unsigned SF_MATCH = 0xFFFFFFF9;
-  static const unsigned SPECIAL_FUNCTOR_LOWER_BOUND = 0xFFFFFFF9;
+  enum class SpecialFunctor {
+    ITE,
+    LET,
+    FORMULA,
+    TUPLE,
+    LET_TUPLE,
+    LAMBDA,
+    MATCH, // <- keep this one the last, or modify SPECIAL_FUNCTOR_LAST accordingly
+  };
+  static constexpr SpecialFunctor SPECIAL_FUNCTOR_LAST = SpecialFunctor::MATCH;
+
+  static constexpr unsigned SPECIAL_FUNCTOR_LOWER_BOUND  =  std::numeric_limits<unsigned>::max() - unsigned(SPECIAL_FUNCTOR_LAST);
+  static SpecialFunctor toSpecialFunctor(unsigned f) {
+    ASS_GE(f, SPECIAL_FUNCTOR_LOWER_BOUND);
+    unsigned result = std::numeric_limits<unsigned>::max() - unsigned(f);
+    ASS_LE(result, unsigned(SPECIAL_FUNCTOR_LAST))
+    return SpecialFunctor(result);
+  }
+  static unsigned toNormalFunctor(SpecialFunctor f) 
+  { return std::numeric_limits<unsigned>::max() - unsigned(f); }
 
   class SpecialTermData
   {
@@ -322,43 +339,41 @@ public:
     /** Return pointer to the term to which this object is attached */
     const Term* getTerm() const { return reinterpret_cast<const Term*>(this+1); }
   public:
-    unsigned getType() const {
-      unsigned res = getTerm()->functor();
-      ASS_GE(res,SPECIAL_FUNCTOR_LOWER_BOUND);
-      return res;
-    }
-    Formula* getCondition() const { ASS_EQ(getType(), SF_ITE); return _iteData.condition; }
+    SpecialFunctor specialFunctor() const
+    { return getTerm()->specialFunctor(); }
+
+    Formula* getCondition() const { ASS_EQ(specialFunctor(), SpecialFunctor::ITE); return _iteData.condition; }
     unsigned getFunctor() const {
-      ASS_REP(getType() == SF_LET || getType() == SF_LET_TUPLE, getType());
-      return getType() == SF_LET ? _letData.functor : _letTupleData.functor;
+      ASS_REP(specialFunctor() == SpecialFunctor::LET || specialFunctor() == SpecialFunctor::LET_TUPLE, specialFunctor());
+      return specialFunctor() == SpecialFunctor::LET ? _letData.functor : _letTupleData.functor;
     }
-    VList* getLambdaVars() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData._vars; }
-    SList* getLambdaVarSorts() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData._sorts; }
-    TermList getLambdaExp() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData.lambdaExp; }
-    VList* getVariables() const { ASS_EQ(getType(), SF_LET); return _letData.variables; }
+    VList* getLambdaVars() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData._vars; }
+    SList* getLambdaVarSorts() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData._sorts; }
+    TermList getLambdaExp() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData.lambdaExp; }
+    VList* getVariables() const { ASS_EQ(specialFunctor(), SpecialFunctor::LET); return _letData.variables; }
     VList* getTupleSymbols() const { return _letTupleData.symbols; }
     TermList getBinding() const {
-      ASS_REP(getType() == SF_LET || getType() == SF_LET_TUPLE, getType());
-      return TermList(getType() == SF_LET ? _letData.binding : _letTupleData.binding);
+      ASS_REP(specialFunctor() == SpecialFunctor::LET || specialFunctor() == SpecialFunctor::LET_TUPLE, specialFunctor());
+      return TermList(specialFunctor() == SpecialFunctor::LET ? _letData.binding : _letTupleData.binding);
     }
-    TermList getLambdaExpSort() const { ASS_EQ(getType(), SF_LAMBDA); return _lambdaData.expSort; }
+    TermList getLambdaExpSort() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData.expSort; }
     TermList getSort() const {
-      switch (getType()) {
-        case SF_ITE:
+      switch (specialFunctor()) {
+        case SpecialFunctor::ITE:
           return _iteData.sort;
-        case SF_LET:
+        case SpecialFunctor::LET:
           return _letData.sort;
-        case SF_LET_TUPLE:
+        case SpecialFunctor::LET_TUPLE:
           return _letTupleData.sort;
-        case SF_LAMBDA:
+        case SpecialFunctor::LAMBDA:
           return _lambdaData.sort;
-        case SF_MATCH:
+        case SpecialFunctor::MATCH:
           return _matchData.sort;
         default:
-          ASSERTION_VIOLATION_REP(getType());
+          ASSERTION_VIOLATION_REP(specialFunctor());
       }
     }
-    Formula* getFormula() const { ASS_EQ(getType(), SF_FORMULA); return _formulaData.formula; }
+    Formula* getFormula() const { ASS_EQ(specialFunctor(), SpecialFunctor::FORMULA); return _formulaData.formula; }
     Term* getTupleTerm() const { return _tupleData.term; }
     TermList getMatchedSort() const { return _matchData.matchedSort; }
   };
@@ -401,6 +416,9 @@ public:
   /** Function or predicate symbol of a term */
   const unsigned functor() const { return _functor; }
 
+
+  SpecialFunctor specialFunctor() const 
+  { return toSpecialFunctor(functor()); }
   vstring toString(bool topLevel = true) const;
   static vstring variableToString(unsigned var);
   static vstring variableToString(TermList var);
@@ -495,7 +513,6 @@ public:
    * @since 28/12/2007 Manchester
    */
   unsigned hash() const {
-    CALL("Term::hash");
     return DefaultHash::hashBytes(
       reinterpret_cast<const unsigned char*>(_args+1),
       _arity*sizeof(TermList),
@@ -563,6 +580,7 @@ public:
 
     TermList* ts1 = args();
     TermList* ts2 = ts1->next();
+    using std::swap;//ADL
     swap(ts1->_content, ts2->_content);
   }
 
@@ -610,8 +628,6 @@ public:
   /** Set the number of variable _occurrences_ */
   void setNumVarOccs(unsigned v)
   {
-    CALL("Term::setNumVarOccs");
-
     if(_isTwoVarEquality) {
       ASS_EQ(v,2);
       return;
@@ -621,7 +637,6 @@ public:
 
   void setHasTermVar(bool b)
   {
-    CALL("setHasTermVar");
     ASS(shared() && !isSort());
     _args[0]._info.hasTermVar = b;
   }
@@ -629,7 +644,6 @@ public:
   /** Return the number of variable _occurrences_ */
   unsigned numVarOccs() const
   {
-    CALL("Term::numVarOccs");
     ASS(shared());
     if(_isTwoVarEquality) {
       return _sort.isVar() ? 3 : 2 + _sort.term()->numVarOccs();
@@ -661,8 +675,6 @@ public:
   /** Return an index of the argument to which @b arg points */
   unsigned getArgumentIndex(TermList* arg)
   {
-    CALL("Term::getArgumentIndex");
-
     unsigned res=arity()-(arg-_args);
     ASS_L(res,arity());
     return res;
@@ -726,14 +738,15 @@ public:
   void setInterpretedConstantsPresence(bool value) { _hasInterpretedConstants=value; }
 
   /** Return true if term is either an if-then-else or a let...in expression */
-  bool isSpecial() const { return functor()>=SPECIAL_FUNCTOR_LOWER_BOUND; }
-  bool isITE() const { return functor() == SF_ITE; }
-  bool isLet() const { return functor() == SF_LET; }
-  bool isTupleLet() const { return functor() == SF_LET_TUPLE; }
-  bool isTuple() const { return functor() == SF_TUPLE; }
-  bool isFormula() const { return functor() == SF_FORMULA; }
-  bool isLambda() const { return functor() == SF_LAMBDA; }
-  bool isMatch() const { return functor() == SF_MATCH; }
+  bool isSpecial() const { return functor() >= SPECIAL_FUNCTOR_LOWER_BOUND; }
+
+  bool isITE()      const { return functor() == toNormalFunctor(SpecialFunctor::ITE); }
+  bool isLet()      const { return functor() == toNormalFunctor(SpecialFunctor::LET); }
+  bool isTupleLet() const { return functor() == toNormalFunctor(SpecialFunctor::LET_TUPLE); }
+  bool isTuple()    const { return functor() == toNormalFunctor(SpecialFunctor::TUPLE); }
+  bool isFormula()  const { return functor() == toNormalFunctor(SpecialFunctor::FORMULA); }
+  bool isLambda()   const { return functor() == toNormalFunctor(SpecialFunctor::LAMBDA); }
+  bool isMatch()    const { return functor() == toNormalFunctor(SpecialFunctor::MATCH); }
   bool isBoolean() const;
   bool isSuper() const; 
   
@@ -743,10 +756,13 @@ public:
   /** Return pointer to structure containing extra data for special terms such as
    * if-then-else or let...in */
   SpecialTermData* getSpecialData() {
-    CALL("Term::getSpecialData");
     ASS(isSpecial());
     return reinterpret_cast<SpecialTermData*>(this)-1;
   }
+
+  virtual bool computable() const;
+  virtual bool computableOrVar() const;
+
 protected:
   vstring headToString() const;
 
@@ -774,15 +790,12 @@ protected:
    */
   void setArgumentOrderValue(ArgumentOrderVals val)
   {
-    CALL("Term::setArgumentOrderValue");
     ASS_GE(val,AO_UNKNOWN);
     ASS_LE(val,AO_INCOMPARABLE);
 
     _args[0]._info.order = val;
   }
 
-  /** For shared terms, this is a unique id used for deterministic comparison */
-  unsigned _id;
   /** The number of this symbol in a signature */
   unsigned _functor;
   /** Arity of the symbol */
@@ -827,7 +840,6 @@ public:
     bool hasNext() const { return _next->isNonEmpty(); }
     TermList next()
     {
-      CALL("Term::Iterator::next");
       ASS(hasNext());
       TermList res = *_next;
       _next = _next->next();
@@ -954,7 +966,6 @@ public:
   template<bool flip = false>
   unsigned hash() const
   {
-    CALL("Literal::hash");
     bool positive = (flip ^ isPositive());
     unsigned hash = DefaultHash::hash(positive ? (2*_functor) : (2*_functor+1));
     if (isTwoVarEquality()) {
@@ -999,7 +1010,6 @@ public:
    */
   void markTwoVarEquality()
   {
-    CALL("Literal::markTwoVarEquality");
     ASS(!shared());
     ASS(isEquality());
     ASS(nthArgument(0)->isVar() || !nthArgument(0)->term()->shared());
@@ -1014,7 +1024,6 @@ public:
    */
   TermList twoVarEqSort() const
   {
-    CALL("Literal::twoVarEqSort");
     ASS(isTwoVarEquality());
 
     return _sort;
@@ -1023,7 +1032,6 @@ public:
   /** Assign sort of the variables in an equality between two variables. */
   void setTwoVarEqSort(TermList sort)
   {
-    CALL("Literal::setTwoVarEqSort");
     ASS(isTwoVarEquality());
 
     _sort = sort;
@@ -1040,8 +1048,13 @@ public:
     return headersMatch(this, lit, complementary);
   }
 
+  bool isAnswerLiteral() const;
+
   vstring toString() const;
   const vstring& predicateName() const;
+
+  virtual bool computable() const;
+  virtual bool computableOrVar() const;
 
 private:
   static Literal* createVariableEquality(bool polarity, TermList arg1, TermList arg2, TermList variableSort);
@@ -1053,10 +1066,12 @@ private:
 bool positionIn(TermList& subterm,TermList* term, vstring& position);
 bool positionIn(TermList& subterm,Term* term, vstring& position);
 
-std::ostream& operator<< (ostream& out, TermList tl );
-std::ostream& operator<< (ostream& out, const Term& tl );
-std::ostream& operator<< (ostream& out, const Literal& tl );
+std::ostream& operator<< (std::ostream& out, TermList tl );
+std::ostream& operator<< (std::ostream& out, const Term& tl );
+std::ostream& operator<< (std::ostream& out, const Literal& tl );
 
-};
+std::ostream& operator<<(std::ostream& out, Term::SpecialFunctor const& self);
+
+} // namespace Kernel
 
 #endif

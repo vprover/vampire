@@ -40,6 +40,7 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#include "Shell/AnswerExtractor.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -56,11 +57,10 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
+using std::pair;
 
 void Superposition::attach(SaturationAlgorithm* salg)
 {
-  CALL("Superposition::attach");
-
   GeneratingInferenceEngine::attach(salg);
   _subtermIndex=static_cast<SuperpositionSubtermIndex*> (
 	  _salg->getIndexManager()->request(SUPERPOSITION_SUBTERM_SUBST_TREE) );
@@ -70,8 +70,6 @@ void Superposition::attach(SaturationAlgorithm* salg)
 
 void Superposition::detach()
 {
-  CALL("Superposition::detach");
-
   _subtermIndex=0;
   _lhsIndex=0;
   _salg->getIndexManager()->release(SUPERPOSITION_SUBTERM_SUBST_TREE);
@@ -84,8 +82,6 @@ struct Superposition::ForwardResultFn
   ForwardResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, Superposition& parent) : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _parent(parent) {}
   Clause* operator()(pair<pair<Literal*, TypedTermList>, TermQueryResult> arg)
   {
-    CALL("Superposition::ForwardResultFn::operator()");
-
     TermQueryResult& qr = arg.second;
     return _parent.performSuperposition(_cl, arg.first.first, arg.first.second,
 	    qr.clause, qr.literal, qr.term, qr.substitution, true, _passiveClauseContainer, qr.constraints);
@@ -102,8 +98,6 @@ struct Superposition::BackwardResultFn
   BackwardResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, Superposition& parent) : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _parent(parent) {}
   Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
   {
-    CALL("Superposition::BackwardResultFn::operator()");
-
     if(_cl==arg.second.clause) {
       return 0;
     }
@@ -121,7 +115,6 @@ private:
 
 ClauseIterator Superposition::generateClauses(Clause* premise)
 {
-  CALL("Superposition::generateClauses");
   PassiveClauseContainer* passiveClauseContainer = _salg->getPassiveClauseContainer();
 
   //cout << "SUPERPOSITION with " << premise->toString() << endl;
@@ -189,14 +182,12 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
  */
 bool Superposition::checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause)
 {
-  CALL("Superposition::checkClauseColorCompatibility");
-
   if(ColorHelper::compatible(rwClause->color(), eqClause->color())) {
     return true;
   }
   if(getOptions().showBlocked()) {
     env.beginOutput();
-    env.out()<<"Blocked superposition of "<<eqClause->toString()<<" into "<<rwClause->toString()<<endl;
+    env.out()<<"Blocked superposition of "<<eqClause->toString()<<" into "<<rwClause->toString()<<std::endl;
     env.endOutput();
   }
   if(getOptions().colorUnblocking()) {
@@ -221,7 +212,6 @@ bool Superposition::checkClauseColorCompatibility(Clause* eqClause, Clause* rwCl
  */
 bool Superposition::checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS)
 {
-  CALL("Superposition::checkSuperpositionFromVariable");
   ASS(eqLHS.isVar());
   //if we should do rewriting, LHS cannot appear inside RHS
   //ASS_REP(!EqHelper::getOtherEqualitySide(eqLit, eqLHS).containsSubterm(eqLHS), eqLit->toString());
@@ -261,8 +251,6 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
       Clause* rwClause, Literal* rwLit, TermList rwTerm, TermList eqLHS, TermList eqRHS,
       ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer, unsigned numPositiveLiteralsLowerBound, const Inference& inf)
 {
-  CALL("Superposition::earlyWeightLimitCheck");
-
   unsigned nonInvolvedLiteralWLB=0;//weight lower bound for literals that aren't going to be rewritten
 
   unsigned rwLength = rwClause->length();
@@ -334,7 +322,6 @@ Clause* Superposition::performSuperposition(
     ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer,
     UnificationConstraintStackSP constraints)
 {
-  CALL("Superposition::performSuperposition");
   TIME_TRACE("perform superposition");
   // we want the rwClause and eqClause to be active
   ASS(rwClause->store()==Clause::ACTIVE);
@@ -456,7 +443,11 @@ Clause* Superposition::performSuperposition(
     resRwData = rwData.release();
   }
 
-  unsigned newLength = rwLength+eqLength-1+conLength;
+  bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
+  Literal* rwAnsLit = synthesis ? rwClause->getAnswerLiteral() : nullptr;
+  Literal* eqAnsLit = synthesis ? eqClause->getAnswerLiteral() : nullptr;
+  bool bothHaveAnsLit = (rwAnsLit != nullptr) && (eqAnsLit != nullptr);
+  unsigned newLength = rwLength+eqLength-1+conLength - (bothHaveAnsLit ? 1 : 0);
 
   static bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 
@@ -500,15 +491,15 @@ Clause* Superposition::performSuperposition(
     if (!env.proofExtra) {
       env.proofExtra = new DHMap<const Unit*,vstring>();
     }
-    env.proofExtra->insert(res,extra);
+    ALWAYS(env.proofExtra->insert(res,extra));
   }
 
   (*res)[0] = tgtLitS;
-  int next = 1;
+  unsigned next = 1;
   unsigned weight=tgtLitS->weight();
   for(unsigned i=0;i<rwLength;i++) {
     Literal* curr=(*rwClause)[i];
-    if(curr!=rwLit) {
+    if(curr!=rwLit && (!bothHaveAnsLit || curr!=rwAnsLit)) {
       Literal* currAfter = subst->apply(curr, !eqIsResult);
 
       if (doSimS) {
@@ -549,7 +540,7 @@ Clause* Superposition::performSuperposition(
 
     for(unsigned i=0;i<eqLength;i++) {
       Literal* curr=(*eqClause)[i];
-      if(curr!=eqLit) {
+      if(curr!=eqLit && (!bothHaveAnsLit || curr!=eqAnsLit)) {
         Literal* currAfter = subst->apply(curr, eqIsResult);
 
         if(EqHelper::isEqTautology(currAfter)) {
@@ -603,6 +594,14 @@ Clause* Superposition::performSuperposition(
       (*res)[next] = constraint;
       next++;   
     }
+  }
+
+  if (bothHaveAnsLit) {
+    ASS_REP2(next == newLength-1, rwClause->toString(), eqClause->toString());
+    Literal* newLitC = subst->apply(rwAnsLit, !eqIsResult);
+    Literal* newLitD = subst->apply(eqAnsLit, eqIsResult);
+    Literal* condLit = subst->apply(eqLit, eqIsResult);
+    (*res)[next] = SynthesisManager::getInstance()->makeITEAnswerLiteral(condLit, newLitC, newLitD);
   }
 
   if(needsToFulfilWeightLimit && !passiveClauseContainer->fulfilsWeightLimit(weight, numPositiveLiteralsLowerBound, res->inference())) {

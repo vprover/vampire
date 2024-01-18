@@ -18,6 +18,8 @@
 
 #include <cmath>
 
+#include "Debug/Tracer.hpp"
+
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Clause.hpp"
@@ -70,13 +72,13 @@
 namespace FMB 
 {
 
+using namespace std;
+
 FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
 : MainLoop(prb, opt), _sortedSignature(0), _groundClauses(0), _clauses(0),
                       _isAppropriate(true)
 
 {
-  CALL("FiniteModelBuilder::FiniteModelBuilder");
-
   Property& prop = *prb.getProperty();
 
   LOG(prop.hasInterpretedOperations());
@@ -130,11 +132,7 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
       break;
 #if VZ3
     case Options::FMBEnumerationStrategy::SMT:
-      {
-        BYPASSING_ALLOCATOR;
-
-        _dsaEnumerator = new SmtBasedDSAE();
-      }
+      _dsaEnumerator = new SmtBasedDSAE();
       _xmass = false;
       break;
 #endif
@@ -150,11 +148,7 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
 
 FiniteModelBuilder::~FiniteModelBuilder()
 {
-  CALL("FiniteModelBuilder::~FiniteModelBuilder");
-
   if(_dsaEnumerator){
-    BYPASSING_ALLOCATOR;
-
     delete _dsaEnumerator;
   }
 }
@@ -163,8 +157,6 @@ FiniteModelBuilder::~FiniteModelBuilder()
 // Returns false we if we failed to reset, this can happen if offsets overflow 2^32, possible for
 // large signatures and large models. If this a frequent problem then we can go to longs.
 bool FiniteModelBuilder::reset(){
-  CALL("FiniteModelBuilder::reset");
-
   // Construct the offsets for symbols
   // Each symbol requires size^n) variables where n is the number of spaces for grounding
   // For function symbols we have n=arity+1 as we have the return value
@@ -324,8 +316,6 @@ struct FMBSymmetryFunctionComparator
 
 void FiniteModelBuilder::createSymmetryOrdering()
 {
-  CALL("FiniteModelBuilder::createSymmeteryOrdreing");
-  
   // only really required the first time
   _sortedGroundedTerms.ensure(_sortedSignature->sorts);
 
@@ -431,8 +421,6 @@ void FiniteModelBuilder::createSymmetryOrdering()
 // Initialise things for the first time
 void FiniteModelBuilder::init()
 {
-  CALL("FiniteModelBuilder::init");
-
   // If we're not complete don't both doing anything
   if(!_isAppropriate) return;
 
@@ -957,8 +945,6 @@ void FiniteModelBuilder::init()
 
 void FiniteModelBuilder::addGroundClauses()
 {
-  CALL("FiniteModelBuilder::addGroundClauses");
-
   // If we don't have any ground clauses don't do anything
   if(!_groundClauses) return;
 
@@ -990,7 +976,6 @@ void FiniteModelBuilder::addGroundClauses()
 // uses _distinctSortSizes to estimate how many instances would we generate
 unsigned FiniteModelBuilder::estimateInstanceCount()
 {
-  CALL("FiniteModelBuilder::estimateInstanceCount");
   unsigned res = 0;
   ClauseList::Iterator cit(_clauses);
 
@@ -1016,8 +1001,6 @@ unsigned FiniteModelBuilder::estimateInstanceCount()
 
 void FiniteModelBuilder::addNewInstances()
 {
-  CALL("FiniteModelBuilder::addNewInstances");
-
   ClauseList::Iterator cit(_clauses); 
 
   while(cit.hasNext()){
@@ -1182,7 +1165,6 @@ instanceLabel:
 // uses _distinctSortSizes to estimate how many instances would we generate
 unsigned FiniteModelBuilder::estimateFunctionalDefCount()
 {
-  CALL("FiniteModelBuilder::estimateFunctionalDefCount");
   unsigned res = 0;
 
   for(unsigned f=0;f<env.signature->functions();f++){
@@ -1211,8 +1193,6 @@ unsigned FiniteModelBuilder::estimateFunctionalDefCount()
 
 void FiniteModelBuilder::addNewFunctionalDefs()
 {
-  CALL("FiniteModelBuilder::addNewFunctionalDefs");
-
   // For each function f of arity n we add the constraint 
   // f(x1,...,xn) != y | f(x1,...,xn) != z 
   // they should be instantiated with groundings where y!=z
@@ -1288,9 +1268,6 @@ newFuncLabel:
 void FiniteModelBuilder::addNewSymmetryOrderingAxioms(unsigned size,
                        Stack<GroundedTerm>& groundedTerms)
 {
-  CALL("FiniteModelBuilder::addNewSymmetryOrderingAxioms");
-
-
   // Add restricted totality 
   // i.e. for constant a1 add { a1=1 } and for a2 add { a2=1, a2=2 } and so on
   if(groundedTerms.length() < size) return;
@@ -1320,8 +1297,6 @@ void FiniteModelBuilder::addNewSymmetryCanonicityAxioms(unsigned size,
                        Stack<GroundedTerm>& groundedTerms,
                        unsigned maxSize)
 {
-  CALL("FiniteModelBuilder::addNewSymmetryCanonicityAxioms");
-
   if(size<=1) return;
 
   unsigned w = _symmetryRatio * maxSize; 
@@ -1364,8 +1339,6 @@ void FiniteModelBuilder::addNewSymmetryCanonicityAxioms(unsigned size,
 
 void FiniteModelBuilder::addUseModelSize(unsigned size)
 {
-  CALL("FiniteModelBuilder::addUseModelSize");
-
   return;
 /*
 
@@ -1403,8 +1376,6 @@ void FiniteModelBuilder::addUseModelSize(unsigned size)
 
 void FiniteModelBuilder::addNewTotalityDefs()
 {
-  CALL("FiniteModelBuilder::addNewTotalityDefs");
-
   if (_xmass) {
     // make sure to solve the problem of some sorts not growing all the way to _sortModelSizes[srt], because of _sortedSignature->sortBounds[srt]
     for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
@@ -1527,8 +1498,6 @@ newTotalLabel:
 SATLiteral FiniteModelBuilder::getSATLiteral(unsigned f, const DArray<unsigned>& grounding,
                                                            bool polarity,bool isFunction)
 {
-  CALL("FiniteModelBuilder::getSATLiteral");
-
   // cannot have predicate 0 here (it's equality)
   ASS(f>0 || isFunction);
 
@@ -1562,7 +1531,6 @@ SATLiteral FiniteModelBuilder::getSATLiteral(unsigned f, const DArray<unsigned>&
 
 void FiniteModelBuilder::addSATClause(SATClause* cl)
 {
-  CALL("FiniteModelBuilder::addSATClause");
   cl = SATClause::removeDuplicateLiterals(cl);
   if(!cl){ return; }
 #if VTRACE_FMB
@@ -1575,8 +1543,6 @@ void FiniteModelBuilder::addSATClause(SATClause* cl)
 
 MainLoopResult FiniteModelBuilder::runImpl()
 {
-  CALL("FiniteModelBuilder::runImpl");
-
   if(!_isAppropriate){
     // give up!
     return MainLoopResult(Statistics::INAPPROPRIATE);
@@ -1919,7 +1885,6 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
 void FiniteModelBuilder::onModelFound()
 {
- CALL("FiniteModelBuilder::onModelFound");
  // Don't do any output if proof is off
  if(_opt.proof()==Options::Proof::OFF){ 
    return; 
@@ -2343,8 +2308,6 @@ ppModelLabel:
 
 void FiniteModelBuilder::HackyDSAE::learnNogood(Constraint_Generator_Vals& nogood, unsigned weight)
 {
-  CALL("FiniteModelBuilder::HackyDSAE::learnNogood");
-
   Constraint_Generator* constraint_p = new Constraint_Generator(nogood,weight);
 
   _constraints_generators.insert(constraint_p);
@@ -2356,8 +2319,6 @@ void FiniteModelBuilder::HackyDSAE::learnNogood(Constraint_Generator_Vals& nogoo
 
 bool FiniteModelBuilder::HackyDSAE::checkConstriant(DArray<unsigned>& newSortSizes, Constraint_Generator_Vals& constraint)
 {
-  CALL("FiniteModelBuilder::HackyDSAE::checkConstriant");
-
   for (unsigned j = 0; j < newSortSizes.size(); j++) {
     pair<ConstraintSign,unsigned>& cc = constraint[j];
     if (cc.first == EQ && cc.second != newSortSizes[j]) {
@@ -2380,8 +2341,6 @@ bool FiniteModelBuilder::HackyDSAE::checkConstriant(DArray<unsigned>& newSortSiz
 
 bool FiniteModelBuilder::HackyDSAE::increaseModelSizes(DArray<unsigned>& newSortSizes, DArray<unsigned>& sortMaxes)
 {
-  CALL("FiniteModelBuilder::HackyDSAE::increaseModelSizes");
-
   // cout << "_constraints_generators.size() " << _constraints_generators.size() << endl;
 
   while (!_constraints_generators.isEmpty()) {
@@ -2517,11 +2476,7 @@ bool FiniteModelBuilder::HackyDSAE::increaseModelSizes(DArray<unsigned>& newSort
 bool FiniteModelBuilder::SmtBasedDSAE::init(unsigned _startModelSize, DArray<unsigned>& _distinctSortSizes,
       Stack<std::pair<unsigned,unsigned>>& _distinct_sort_constraints, Stack<std::pair<unsigned,unsigned>>& _strict_distinct_sort_constraints)
 {
-  CALL("FiniteModelBuilder::SmtBasedDSAE::init");
-
   _skippedSomeSizes = (_startModelSize > 1);
-
-  BYPASSING_ALLOCATOR;
 
   try {
     // initialize the smt solver
@@ -2570,10 +2525,6 @@ bool FiniteModelBuilder::SmtBasedDSAE::init(unsigned _startModelSize, DArray<uns
 
 void FiniteModelBuilder::SmtBasedDSAE::learnNogood(Constraint_Generator_Vals& nogood, unsigned weight)
 {
-  CALL("FiniteModelBuilder::SmtBasedDSAE::learnNogood");
-
-  BYPASSING_ALLOCATOR;
-
   try {
     z3::expr z3clause = _context.bool_val(false);
     // turning a no-good into a clause
@@ -2605,7 +2556,6 @@ void FiniteModelBuilder::SmtBasedDSAE::learnNogood(Constraint_Generator_Vals& no
  *  and return the weight of the vector */
 unsigned FiniteModelBuilder::SmtBasedDSAE::loadSizesFromSmt(DArray<unsigned>& szs)
 {
-  CALL("FiniteModelBuilder::SmtBasedDSAE::loadSizesFromSmt");
   unsigned weight = 0;
 
   z3::model model = _smtSolver.get_model();
@@ -2622,27 +2572,19 @@ unsigned FiniteModelBuilder::SmtBasedDSAE::loadSizesFromSmt(DArray<unsigned>& sz
 
 void FiniteModelBuilder::SmtBasedDSAE::reportZ3OutOfMemory()
 {
-  CALL("FiniteModelBuilder::SmtBasedDSAE::reportZ3OutOfMemory");
-
   env.beginOutput();
   reportSpiderStatus('m');
   env.out() << "Z3 ran out of memory" << endl;
   if(env.statistics) {
     env.statistics->print(env.out());
   }
-#if VDEBUG
   Debug::Tracer::printStack(env.out());
-#endif
   env.endOutput();
   System::terminateImmediately(1);
 }
 
 bool FiniteModelBuilder::SmtBasedDSAE::increaseModelSizes(DArray<unsigned>& newSortSizes, DArray<unsigned>& sortMaxes)
 {
-  CALL("FiniteModelBuilder::SmtBasedDSAE::increaseModelSizes");
-
-  BYPASSING_ALLOCATOR;
-
   try {
     TIME_TRACE("smt search for next domain size assignment");
 

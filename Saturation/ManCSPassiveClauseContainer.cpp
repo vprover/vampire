@@ -21,34 +21,14 @@ namespace Saturation
 using namespace Lib;
 using namespace Kernel;
 
-/*
- * this class wraps the iterator of std::vector into IteratorCore required by Vampire.
- */
-class VectorIteratorWrapper : public IteratorCore<Clause*>
-{
-public:
-  CLASS_NAME(VectorIteratorWrapper);
-  USE_ALLOCATOR(VectorIteratorWrapper);
-  
-  explicit VectorIteratorWrapper(const std::vector<Clause*>& v) : curr(v.begin()), end(v.end()) {}
-  bool hasNext() { return curr != end; };
-  Clause* next() { auto cl = *curr; curr = std::next(curr); return cl;};
-
-private:
-  std::vector<Clause*>::const_iterator curr;
-  const std::vector<Clause*>::const_iterator end;
-};
-
 void ManCSPassiveClauseContainer::add(Clause* cl)
 {
-  CALL("ManCSPassiveClauseContainer::add");
   clauses.push_back(cl);
   addedEvent.fire(cl);
 }
 
 void ManCSPassiveClauseContainer::remove(Clause* cl)
 {
-  CALL("ManCSPassiveClauseContainer::remove");
   ASS(cl->store()==Clause::PASSIVE);
 
   auto it = std::find(clauses.begin(),clauses.end(),cl);
@@ -61,7 +41,6 @@ void ManCSPassiveClauseContainer::remove(Clause* cl)
 
 Clause* ManCSPassiveClauseContainer::popSelected()
 {
-  CALL("ManCSPassiveClauseContainer::popSelected");
   ASS(!clauses.empty());
 
   std::vector<Clause*>::iterator selectedClauseIt;

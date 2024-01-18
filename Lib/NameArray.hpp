@@ -20,7 +20,6 @@
 #ifndef __NameArray__
 #define __NameArray__
 
-using namespace std;
 
 namespace Lib {
 

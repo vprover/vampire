@@ -21,7 +21,6 @@ namespace Kernel {
 
 bool RewritingData::addRewrite(Term* t, TermList into, Term* rwTerm)
 {
-  CALL("RewritingData::addRewrite");
   RuleInfo info;
   info.rhs = into;
   info.rwTerm = rwTerm;
@@ -45,7 +44,6 @@ bool RewritingData::addRewrite(Term* t, TermList into, Term* rwTerm)
 
 bool RewritingData::blockTerm(Term* t, Term* rwTerm)
 {
-  CALL("RewritingData::blockTerm");
   TermList empty;
   empty.makeEmpty();
   return addRewrite(t, empty, rwTerm);
@@ -53,13 +51,11 @@ bool RewritingData::blockTerm(Term* t, Term* rwTerm)
 
 bool RewritingData::contains(Term* t) const
 {
-  CALL("RewritingData::contains");
   return _rules.find(t);
 }
 
 bool RewritingData::isBlocked(Term* t)
 {
-  CALL("RewritingData::isBlocked");
   auto ptr = _rules.findPtr(t);
   if (!ptr) {
     return false;
@@ -74,8 +70,6 @@ bool RewritingData::isBlocked(Term* t)
 template<class SubtermIterator>
 SubtermIterator getSubtermIterator(Literal* lit, const Ordering& ord)
 {
-  CALL("getSubtermIterator");
-
   if (lit->isEquality()) {
     TermList sel;
     switch(ord.getEqualityArgumentOrder(lit)) {
@@ -107,7 +101,6 @@ SubtermIterator getSubtermIterator(Literal* lit, const Ordering& ord)
 
 bool RewritingData::blockNewTerms(Clause* cl, ResultSubstitution* subst, bool result, Term* rwTerm)
 {
-  CALL("RewritingData::blockNewTerms");
   DHSet<Term*> done;
   for (unsigned i = 0; i < cl->numSelected(); i++) {
     auto lit = subst->apply((*cl)[i], result);
@@ -129,7 +122,6 @@ bool RewritingData::blockNewTerms(Clause* cl, ResultSubstitution* subst, bool re
 
 bool RewritingData::validate(Term* lhs, RuleInfo& info)
 {
-  CALL("RewritingData::validate(Term*)");
   TIME_TRACE("validate");
   if (info.valid) {
     return true;

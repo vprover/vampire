@@ -38,10 +38,10 @@
 namespace FMB
 {
 
+using namespace std;
+
 Monotonicity::Monotonicity(ClauseList* clauses, unsigned srt) : _srt(srt)
 {
- CALL("Monotonicity::Monotonicity");
-
   _solver = new MinisatInterfacing(*env.options,true);
 
  // create pt and pf per predicate and add the constraint -pf | -pt
@@ -73,8 +73,6 @@ Monotonicity::Monotonicity(ClauseList* clauses, unsigned srt) : _srt(srt)
 
 void Monotonicity::monotone(Clause* c, Literal* l)
 {
-  CALL("Monotonicity::monotone");
-
   // if we have equality
   if(l->isEquality()){
     TermList* t1 = l->nthArgument(0); 
@@ -113,7 +111,6 @@ void Monotonicity::safe(Clause* c, Literal* parent, TermList* t,SATLiteral add){
 
 void Monotonicity::safe(Clause* c, Literal* parent, TermList* t,Stack<SATLiteral>& slits)
 {
-  CALL("Monotonicity::safe");
   if(t->isVar()){
     unsigned var = t->var();
     TermList s = SortHelper::getVariableSort(*t,parent);
@@ -135,8 +132,6 @@ void Monotonicity::safe(Clause* c, Literal* parent, TermList* t,Stack<SATLiteral
 
 bool Monotonicity::guards(Literal* l, unsigned var, Stack<SATLiteral>& slits)
 {
-  CALL("Monotonicyt::guards");
-
   if(l->isEquality()){
     // check for X != f(...) or f(...) != X
     // i.e. a negative equality with X on one side
@@ -165,8 +160,6 @@ bool Monotonicity::guards(Literal* l, unsigned var, Stack<SATLiteral>& slits)
 
 void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<unsigned>& del_f)
 {
-  CALL("Monotonicity::addSortPredicates");
-
   // First compute the monotonic sorts
   DArray<bool> isMonotonic(env.signature->typeCons());
   for(unsigned s=0;s<env.signature->typeCons();s++){
@@ -305,8 +298,6 @@ public:
   using Arg = TypedTermList;
   TermList operator()(TypedTermList origTerm, TermList *evalArgs)
   {
-    CALL("SortFunctionTransformer::transformSubterm");
-
     // cout << "transformSubterm " << trm.toString() << endl;
 
     TermList srt = origTerm.sort();
@@ -324,8 +315,6 @@ public:
 
 void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
 {
-  CALL("Monotonicity::addSortFunctions");
-
   // First compute the monotonic sorts
   DArray<bool> isMonotonic(env.signature->typeCons());
   for(unsigned s=0;s<env.signature->typeCons();s++){

@@ -139,8 +139,6 @@ bool SDHelper::checkForSubsumptionResolution(Clause* cl, SDClauseMatches const& 
  */
 Clause* SDHelper::generateSubsumptionResolutionClause(Clause* cl, Literal* resLit, Clause* mcl)
 {
-  CALL("generateSubsumptionResolutionClause");
-
   unsigned newLen = cl->length() - 1;
   Clause* newCl = new(newLen) Clause(newLen,
       SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, cl, mcl));

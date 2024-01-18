@@ -28,10 +28,10 @@
 namespace Kernel
 {
 
+using namespace std;
+
 bool UWAMismatchHandler::handle(RobSubstitution* sub, TermList t1, unsigned index1, TermList t2, unsigned index2)
 {
-  CALL("UWAMismatchHandler::handle");
-
     TermList tt1 = sub->apply(t1,index1);
     TermList tt2 = sub->apply(t2,index2);
 
@@ -43,9 +43,8 @@ bool UWAMismatchHandler::handle(RobSubstitution* sub, TermList t1, unsigned inde
 
 bool UWAMismatchHandler::checkUWA(TermList t1, TermList t2)
 {
-  CALL("UWAMismatchHandler::checkUWA");
-
     if(!(t1.isTerm() && t2.isTerm())) return false;
+    if(t1.term()->isSort() || t2.term()->isSort()) return false;
 
     bool t1Interp = Shell::UnificationWithAbstractionConfig::isInterpreted(t1.term());
     bool t2Interp = Shell::UnificationWithAbstractionConfig::isInterpreted(t2.term());
@@ -86,8 +85,6 @@ bool UWAMismatchHandler::introduceConstraint(TermList t1,unsigned index1, TermLi
 
 bool HOMismatchHandler::handle(RobSubstitution* sub, TermList t1, unsigned index1, TermList t2, unsigned index2)
 {
-  CALL("HOMismatchHandler::handle");
-
   auto constraint = make_pair(make_pair(t1,index1),make_pair(t2,index2));
   constraints.push(constraint);
   return true; 

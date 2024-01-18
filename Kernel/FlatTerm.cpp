@@ -33,7 +33,6 @@ using namespace Lib;
  */
 void* FlatTerm::operator new(size_t sz,unsigned num)
 {
-  CALL("FlatTerm::operator new");
   ASS_GE(num,1);
   ASS_EQ(sz, sizeof(FlatTerm));
 
@@ -48,7 +47,6 @@ void* FlatTerm::operator new(size_t sz,unsigned num)
  */
 void FlatTerm::destroy()
 {
-  CALL("FlatTerm::destroy");
   ASS_GE(_length,1);
 
   //one entry is already accounted for in the size of the FlatTerm object
@@ -60,7 +58,6 @@ void FlatTerm::destroy()
 FlatTerm::FlatTerm(size_t length)
 : _length(length)
 {
-  CALL("FlatTerm::FlatTerm");
 }
 
 size_t FlatTerm::getEntryCount(Term* t)
@@ -71,8 +68,6 @@ size_t FlatTerm::getEntryCount(Term* t)
 
 FlatTerm* FlatTerm::create(Term* t)
 {
-  CALL("FlatTerm::create(Term)");
-
   size_t entries=getEntryCount(t);
 
   FlatTerm* res=new(entries) FlatTerm(entries);
@@ -104,8 +99,6 @@ FlatTerm* FlatTerm::create(Term* t)
 
 FlatTerm* FlatTerm::create(TermList t)
 {
-  CALL("FlatTerm::create(TermList)");
-
   if(t.isTerm()) {
     return create(t.term());
   }
@@ -120,8 +113,6 @@ FlatTerm* FlatTerm::create(TermList t)
 
 FlatTerm* FlatTerm::copy(const FlatTerm* ft)
 {
-  CALL("FlatTerm::copy");
-
   size_t entries=ft->_length;
   FlatTerm* res=new(entries) FlatTerm(entries);
   memcpy(res->_data, ft->_data, entries*sizeof(Entry));
@@ -130,7 +121,6 @@ FlatTerm* FlatTerm::copy(const FlatTerm* ft)
 
 void FlatTerm::swapCommutativePredicateArguments()
 {
-  CALL("FlatTerm::swapCommutativePredicateArguments");
   ASS_EQ((*this)[0].tag(), FUN);
   ASS_EQ((*this)[0].number()|1, 1); //as for now, the only commutative predicate is equality
 

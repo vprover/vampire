@@ -28,7 +28,6 @@
 
 namespace SAT {
 
-using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
@@ -52,6 +51,7 @@ public:
   void setInference(SATInference* val);
 
   void* operator new(size_t,unsigned length);
+  void operator delete(void *);
 
   /**
    * Return the (reference to) the nth literal

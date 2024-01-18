@@ -45,7 +45,6 @@ struct SRWorkerBase
 {
   template<class ChildCallback>
   void pre(unsigned obj, ChildCallback fn) {
-    CALL("SRWorkerBase::pre");
     Stack<unsigned>& children = getGraph()[obj];
     Stack<unsigned>::BottomFirstIterator cit(children);
     while(cit.hasNext()) {
@@ -59,7 +58,6 @@ struct MaxDegreeRetrievalWorker : public SRWorkerBase
 {
   int post(unsigned obj, size_t childCnt, int* childRes)
   {
-    CALL("MaxDegreeRetrievalWorker::post");
     int res = childCnt;
     for(size_t i=0; i<childCnt; i++) {
       if(childRes[i]>res) {
@@ -83,7 +81,6 @@ struct StrRepWorker : public SRWorkerBase
 {
   vstring post(unsigned obj, size_t childCnt, vstring* childRes)
   {
-    CALL("MaxDegreeRetrievalWorker::post");
     vstring res = Int::toString(obj);
     if(childCnt==0) {
       return res;

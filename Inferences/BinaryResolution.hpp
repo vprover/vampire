@@ -33,7 +33,6 @@ class BinaryResolution
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(BinaryResolution);
   USE_ALLOCATOR(BinaryResolution);
 
   BinaryResolution(bool hasEquality) 

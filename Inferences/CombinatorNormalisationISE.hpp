@@ -40,9 +40,6 @@ class CombinatorNormalisationISE
 : public ImmediateSimplificationEngine
 {
 public:
-  CLASS_NAME(CombinatorNormalisationISE);
-  USE_ALLOCATOR(CombinatorNormalisationISE);
-
   CombinatorNormalisationISE(){}
   Clause* simplify(Clause* cl);
 private:

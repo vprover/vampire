@@ -18,7 +18,6 @@
  * @since 15/05/2015 Gothenburg, FOOL support added
  */
 
-#include "Debug/Tracer.hpp"
 
 #include "FormulaVarIterator.hpp"
 
@@ -43,7 +42,6 @@ FormulaVarIterator::FormulaVarIterator(const Formula* f)
 FormulaVarIterator::FormulaVarIterator(const Term* t)
   : _found(false)
 {
-  CALL("FormulaVarIterator::FormulaVarIterator(Term*)");
   _instructions.push(FVI_TERM);
   _terms.push(t);
 } // FormulaVarIterator::FormulaVarIterator
@@ -55,7 +53,6 @@ FormulaVarIterator::FormulaVarIterator(const Term* t)
 FormulaVarIterator::FormulaVarIterator(const TermList* ts)
   : _found(false)
 {
-  CALL("FormulaVarIterator::FormulaVarIterator(TermList)");
   _instructions.push(FVI_TERM_LIST);
   _termLists.push(*ts);
 } // FormulaVarIterator::FormulaVarIterator
@@ -66,8 +63,6 @@ FormulaVarIterator::FormulaVarIterator(const TermList* ts)
  */
 unsigned FormulaVarIterator::next()
 {
-  CALL("FormulaVarIterator::next");
-
   ASS(_found);
   _found = false;
   return _nextVar;
@@ -81,8 +76,6 @@ unsigned FormulaVarIterator::next()
  */
 bool FormulaVarIterator::hasNext()
 {
-  CALL("FormulaVarIterator::hasNext");
-
   if (_found) return true;
 
   while (_instructions.isNonEmpty()) {
@@ -161,20 +154,20 @@ bool FormulaVarIterator::hasNext()
 
         if (t->isSpecial()) {
           const Term::SpecialTermData* sd = t->getSpecialData();
-          switch (t->functor()) {
-            case Term::SF_ITE:
+          switch (t->specialFunctor()) {
+            case Term::SpecialFunctor::ITE:
               _instructions.push(FVI_FORMULA);
               _formulas.push(sd->getCondition());
               _instructions.push(FVI_TERM_LIST);
               _termLists.push(sd->getSort());
               break;
 
-            case Term::SF_FORMULA:
+            case Term::SpecialFunctor::FORMULA:
               _instructions.push(FVI_FORMULA);
               _formulas.push(sd->getFormula());
               break;
 
-            case Term::SF_LET: {
+            case Term::SpecialFunctor::LET: {
               _instructions.push(FVI_UNBIND);
 
               _instructions.push(FVI_TERM_LIST);
@@ -188,7 +181,7 @@ bool FormulaVarIterator::hasNext()
               break;
             }
 
-            case Term::SF_LET_TUPLE: {
+            case Term::SpecialFunctor::LET_TUPLE: {
               _instructions.push(FVI_TERM_LIST);
               _termLists.push(sd->getBinding());
               _instructions.push(FVI_TERM_LIST);
@@ -196,7 +189,7 @@ bool FormulaVarIterator::hasNext()
               break;
             }
 
-            case Term::SF_TUPLE: {
+            case Term::SpecialFunctor::TUPLE: {
               Term* tt = sd->getTupleTerm();
               Term::Iterator tts(tt);
               while (tts.hasNext()) {
@@ -206,7 +199,7 @@ bool FormulaVarIterator::hasNext()
               break;
             }
       
-            case Term::SF_LAMBDA:{
+            case Term::SpecialFunctor::LAMBDA:{
               _instructions.push(FVI_UNBIND);
               SList* sorts = sd->getLambdaVarSorts();
               while(sorts){
@@ -223,7 +216,7 @@ bool FormulaVarIterator::hasNext()
               break;
             }
 
-            case Term::SF_MATCH: {
+            case Term::SpecialFunctor::MATCH: {
               for (unsigned int i = 0; i < t->arity(); i++) {
                 _instructions.push(FVI_TERM_LIST);
                 _termLists.push(*t->nthArgument(i));
@@ -235,10 +228,6 @@ bool FormulaVarIterator::hasNext()
               break;
             }
 
-#if VDEBUG
-            default:
-              ASSERTION_VIOLATION;
-#endif
           }
         }
 

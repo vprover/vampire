@@ -40,8 +40,6 @@ class ModelCheck{
 public:
 static void doCheck(Problem*& prb)
 {
-  CALL("ModelCheck::doCheck");
-
   // find model size
   // looking for a domain axiom
   // Currently assume it is called 'finite_domain'
@@ -56,7 +54,7 @@ static void doCheck(Problem*& prb)
       vstring name;
       ALWAYS(Parse::TPTP::findAxiomName(u,name));
       if(name == "finite_domain"){
-        //cout << "Finite domain axiom found:" << endl << u->toString() << endl;
+        //std::cout << "Finite domain axiom found:" << std::endl << u->toString() << std::endl;
         // Set model size and domainConstants
         // And check it is a finite domain axiom
         if(u->isClause()){
@@ -87,8 +85,8 @@ static void doCheck(Problem*& prb)
     }
   }
   ASS_EQ(modelSize,(unsigned)domainConstants.size());
-  cout << "Detected model of size " << modelSize << endl;
-  cout << "Distinct domain assumed, domain elements are:" << endl;
+  std::cout << "Detected model of size " << modelSize << std::endl;
+  std::cout << "Distinct domain assumed, domain elements are:" << std::endl;
 
   // number the domain constants
   DHMap<Term*,unsigned> domainConstantNumber;
@@ -96,11 +94,11 @@ static void doCheck(Problem*& prb)
   unsigned count=1;
   while(dit.hasNext()){ 
     Term* con = dit.next();
-    cout << con->toString() << endl; 
+    std::cout << con->toString() << std::endl; 
     domainConstantNumber.insert(con,count++); 
   }
 
-  cout << "Loading model..." << endl;
+  std::cout << "Loading model..." << std::endl;
   FiniteModel model(modelSize);
 
   {
@@ -145,17 +143,17 @@ static void doCheck(Problem*& prb)
         }
       }
     }
-    cout << "Model loaded" << endl;
-    cout << "Checking formulas..." << endl;
+    std::cout << "Model loaded" << std::endl;
+    std::cout << "Checking formulas..." << std::endl;
     {
       UnitList::Iterator uit(prb->units());
       while(uit.hasNext()){
         Unit* u = uit.next();
         if(u->inputType()== UnitInputType::MODEL_DEFINITION) continue;
 
-        cout << "Checking " << u->toString() << "..." << endl;
+        std::cout << "Checking " << u->toString() << "..." << std::endl;
         bool res = model.evaluate(u);
-        cout << "Evaluates to " << (res ? "True" : "False") << endl;
+        std::cout << "Evaluates to " << (res ? "True" : "False") << std::endl;
       }
     }
   }
@@ -165,8 +163,6 @@ private:
 
 static void checkIsDomainLiteral(Literal* l, int& single_var, Set<Term*>& domainConstants)
 {
-  CALL("ModelCheck::checkIsDomainLiteral");
-
             if(!l->isEquality()) USER_ERROR("finite_domain is not a domain axiom");
 
             // put var in left and constant in right
@@ -196,8 +192,6 @@ static void addDefinition(FiniteModel& model,Literal* lit,bool negated,
                           Set<Term*>& domainConstants,
                           DHMap<Term*,unsigned>& domainConstantNumber)
 {
-  CALL("ModelCheck::addDefinition");
-
   if(lit->isEquality()){
           if(!lit->polarity() || negated) USER_ERROR("Cannot have negated function definition");
           // Defining a function or constant

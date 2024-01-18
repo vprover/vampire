@@ -25,8 +25,6 @@ namespace Inferences
 
 Clause* DistinctEqualitySimplifier::simplify(Clause* cl)
 {
-  CALL("DistinctEqualitySimplifier::simplify");
-
   if(!canSimplify(cl)) {
     return cl;
   }
@@ -69,16 +67,12 @@ Clause* DistinctEqualitySimplifier::simplify(Clause* cl)
 
 bool DistinctEqualitySimplifier::mustBeDistinct(TermList t1, TermList t2)
 {
-  CALL("DistinctEqualitySimplifier::mustBeDistinct/2");
-
   unsigned aux;
   return mustBeDistinct(t1, t2, aux);
 }
 
 bool DistinctEqualitySimplifier::mustBeDistinct(TermList t1, TermList t2, unsigned& grp)
 {
-  CALL("DistinctEqualitySimplifier::mustBeDistinct/3");
-
   if(!t1.isTerm() || t1.term()->arity()!=0 || !t2.isTerm() || t2.term()->arity()!=0 || t1.term() == t2.term()) {
     return false;
   }
@@ -105,8 +99,6 @@ bool DistinctEqualitySimplifier::mustBeDistinct(TermList t1, TermList t2, unsign
 
 bool DistinctEqualitySimplifier::canSimplify(Clause* cl)
 {
-  CALL("DistinctEqualitySimplifier::canSimplify");
-
   unsigned clen = cl->length();
   for(unsigned i=0; i<clen; i++) {
     Literal* lit = (*cl)[i];

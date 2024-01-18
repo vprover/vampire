@@ -14,7 +14,6 @@
  * @since 28/05/2004 Manchester
  */
 
-#include "Debug/Tracer.hpp"
 
 #include "Lib/Allocator.hpp"
 #include "Lib/DHMultiset.hpp"
@@ -44,6 +43,7 @@
 
 namespace Shell {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
@@ -117,9 +117,6 @@ struct FunctionDefinition::Def
       DEALLOC_KNOWN(argOccurs, lhs->arity()*sizeof(bool), "FunctionDefinition::Def::argOccurs");
     }
   }
-
-  CLASS_NAME(FunctionDefinition::Def);
-  USE_ALLOCATOR(Def);
 }; // class FunctionDefintion::Def
 
 
@@ -135,13 +132,10 @@ FunctionDefinition::FunctionDefinition ()
     _removed(0),
     _processedProblem(0)
 {
-  CALL("FunctionDefinition::FunctionDefinition");
 } // FunctionDefinition::FunctionDefinition
 
 void FunctionDefinition::removeUnusedDefinitions(Problem& prb, bool inHigherOrder)
 {
-  CALL("FunctionDefinition::removeUnusedDefinitions");
-
   if(removeUnusedDefinitions(prb.units(), &prb, inHigherOrder)) {
     prb.invalidateByRemoval();
   }
@@ -159,8 +153,6 @@ void FunctionDefinition::removeUnusedDefinitions(Problem& prb, bool inHigherOrde
  */
 bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb, bool inHigherOrder)
 {
-  CALL("FunctionDefinition::removeUnusedDefinitions");
-
   unsigned funs=env.signature->functions();
 
   Stack<Def*> defStack;
@@ -242,8 +234,6 @@ bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb,
 
 void FunctionDefinition::removeAllDefinitions(Problem& prb, bool inHigherOrder)
 {
-  CALL("FunctionDefinition::removeAllDefinitions(Problem&)");
-
   ScopedLet<Problem*> prbLet(_processedProblem, &prb);
   if(removeAllDefinitions(prb.units(),inHigherOrder)) {
     prb.invalidateByRemoval();
@@ -251,7 +241,6 @@ void FunctionDefinition::removeAllDefinitions(Problem& prb, bool inHigherOrder)
 }
 
 void FunctionDefinition::reverse(Def* def){
-  CALL("FunctionDefinition::reverse");
   ASS(def->twoConstDef);
   Term* temp = def->lhs;
   def->lhs = def->rhs;
@@ -265,8 +254,6 @@ void FunctionDefinition::reverse(Def* def){
  */
 bool FunctionDefinition::removeAllDefinitions(UnitList*& units, bool inHigherOrder)
 {
-  CALL("FunctionDefinition::removeAllDefinitions");
-
   UnitList::DelIterator scanIterator(units);
   while(scanIterator.hasNext()) {
     Clause* cl=static_cast<Clause*>(scanIterator.next());
@@ -391,8 +378,6 @@ bool FunctionDefinition::removeAllDefinitions(UnitList*& units, bool inHigherOrd
 
 void FunctionDefinition::checkDefinitions(Def* def0)
 {
-  CALL("FunctionDefinition::unfoldDefinition");
-
   TermList t=TermList(def0->lhs);
 
   //Next argument of the current-level term to be processed.
@@ -491,7 +476,6 @@ void FunctionDefinition::checkDefinitions(Def* def0)
  */
 void FunctionDefinition::assignArgOccursData(Def* updDef)
 {
-  CALL("FunctionDefinition::assignArgOccursData");
   ASS(!updDef->argOccurs);
 
   if(!updDef->lhs->arity()) {
@@ -565,8 +549,6 @@ typedef DHMap<BindingSpec, bool> UnfoldedSet;
 
 Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
 {
-  CALL("FunctionDefinition::applyDefinitions");
-
   //cout << "applying definitions to " + lit->toString() << endl;
 
   if (env.options->showPreprocessing()) {
@@ -722,8 +704,6 @@ Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
 
 Clause* FunctionDefinition::applyDefinitions(Clause* cl)
 {
-  CALL("FunctionDefinition::applyDefinitions(Clause*)")
-
   unsigned clen=cl->length();
 
   static Stack<Def*> usedDefs(8);
@@ -766,8 +746,6 @@ Clause* FunctionDefinition::applyDefinitions(Clause* cl)
  */
 FunctionDefinition::~FunctionDefinition ()
 {
-  CALL("FunctionDefinition::~FunctionDefinition");
-
   Fn2DefMap::Iterator dit(_defs);
   while(dit.hasNext()) {
     delete dit.next();
@@ -782,7 +760,6 @@ FunctionDefinition::~FunctionDefinition ()
 FunctionDefinition::Def*
 FunctionDefinition::isFunctionDefinition (Unit& unit, bool inHigherOrder)
 {
-  CALL("FunctionDefinition::isFunctionDefinition(const Unit&)");
   if(unit.derivedFromGoal() && env.options->ignoreConjectureInPreprocessing()){
     return 0;
   }
@@ -803,8 +780,6 @@ FunctionDefinition::isFunctionDefinition (Unit& unit, bool inHigherOrder)
 FunctionDefinition::Def*
 FunctionDefinition::isFunctionDefinition (Clause* clause, bool inHigherOrder)
 {
-  CALL("FunctionDefinition::isFunctionDefinition(Clause*)");
-
   if (clause->length() != 1) {
     return 0;
   }
@@ -818,8 +793,6 @@ FunctionDefinition::isFunctionDefinition (Clause* clause, bool inHigherOrder)
 FunctionDefinition::Def*
 FunctionDefinition::isFunctionDefinition (Literal* lit, bool inHigherOrder)
 {
-  CALL("FunctionDefinition::isFunctionDefinition(const Literal*)");
-
   if (! lit->isPositive() ||
       ! lit->isEquality() ||
       ! lit->shared()) {
@@ -866,8 +839,6 @@ FunctionDefinition::isFunctionDefinition (Literal* lit, bool inHigherOrder)
 FunctionDefinition::Def*
 FunctionDefinition::defines (Term* lhs, Term* rhs, bool inHigherOrder)
 {
-  CALL("FunctionDefinition::defines");
-
   if(!lhs->shared() || !rhs->shared()) {
     return 0;
   }
@@ -961,8 +932,6 @@ FunctionDefinition::defines (Term* lhs, Term* rhs, bool inHigherOrder)
  */
 bool FunctionDefinition::occurs (unsigned f, Term& t)
 {
-  CALL ("FunctionDefinition::occurs");
-
   TermFunIterator funs(&t);
   while (funs.hasNext()) {
     if (f == funs.next()) {
@@ -983,8 +952,6 @@ bool FunctionDefinition::occurs (unsigned f, Term& t)
 FunctionDefinition::Def*
 FunctionDefinition::isFunctionDefinition (FormulaUnit& unit, bool inHigherOrder)
 {
-  CALL ("Definition::isFunctionDefinition(FormulaUnit&)" );
-
   Formula* f = unit.formula();
   // skip all universal quantifiers in front of the formula
   while (f->connective() == FORALL) {

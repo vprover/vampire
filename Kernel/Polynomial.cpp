@@ -192,7 +192,6 @@ PolyNf::SubtermIter::SubtermIter(PolyNf p)
 
 PolyNf PolyNf::SubtermIter::next() 
 {
-  CALL("PolyNf::SubtermIter::next")
   ASS(_stack.size() != 0)
   while(_stack.top().hasNext()) {
     ASS(_stack.size() != 0)
@@ -204,7 +203,6 @@ PolyNf PolyNf::SubtermIter::next()
 
 bool PolyNf::SubtermIter::hasNext() const 
 { 
-  CALL("PolyNf::SubtermIter::hasNext")
   return !_stack.isEmpty(); 
 }
 

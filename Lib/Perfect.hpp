@@ -13,7 +13,6 @@
 
 #include <functional>
 #include "Lib/Map.hpp"
-#include "Debug/Tracer.hpp"
 #include "Lib/Coproduct.hpp"
 
 namespace Lib {

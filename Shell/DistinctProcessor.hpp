@@ -42,7 +42,6 @@ protected:
 
   virtual void updateModifiedProblem(Problem& prb)
   {
-    CALL("DistinctProcessor::updateModifiedProblem");
     prb.invalidateProperty();
   }
 };
