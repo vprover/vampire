@@ -1662,8 +1662,25 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem &prb, const 
       cout << "Using wrapped forward subsumption and resolution" << endl;
       res->addForwardSimplifierToFront(new ForwardBenchmarkWrapper(true));
 #else
-      cout << "Using forward subsumption and resolution" << endl;
-      res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolution(true, CORRELATE_LENGTH_TIME));
+      cout << "Using forward subsumption and resolution: ";
+      ForwardSubsumptionAndResolution* fwd = new ForwardSubsumptionAndResolution(true, CORRELATE_LENGTH_TIME);
+      #if SAT_SR_IMPL == 1
+        fwd->forceDirectEncodingForSubsumptionResolution();
+        cout << "direct encoding";
+      #elif SAT_SR_IMPL == 2
+        fwd->forceIndirectEncodingForSubsumptionResolution();
+        cout << "indirect encoding";
+      #else
+        cout << "dynamic encoding";
+      #endif
+      #if USE_OPTIMIZED_FORWARD
+        fwd->setOptimizedLoop(true);
+        cout << " - optimized loop";
+      #else
+        fwd->setOptimizedLoop(false);
+      #endif
+      res->addForwardSimplifierToFront(fwd);
+      cout << endl;
 #endif
     }
     else {
@@ -1671,7 +1688,21 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem &prb, const 
 #if USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION
       res->addForwardSimplifierToFront(new ForwardBenchmarkWrapper(false));
 #else
-      res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolution(false, CORRELATE_LENGTH_TIME));
+      cout << "Using forward subsumption: ";
+      ForwardSubsumptionAndResolution* fwd = new ForwardSubsumptionAndResolution(false, CORRELATE_LENGTH_TIME);
+      #if SAT_SR_IMPL == 1
+        fwd->forceDirectEncodingForSubsumptionResolution();
+      #elif SAT_SR_IMPL == 2
+        fwd->forceIndirectEncodingForSubsumptionResolution();
+      #endif
+      #if USE_OPTIMIZED_FORWARD
+        fwd->setOptimizedLoop(true);
+        cout << " - optimized loop";
+      #else
+        fwd->setOptimizedLoop(false);
+      #endif
+      res->addForwardSimplifierToFront(fwd);
+      cout << endl;
 #endif
     }
   }
