@@ -55,6 +55,7 @@
 #include <type_traits>
 
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
+#include "Shell/Statistics.hpp"
 #include "SATSubsumptionAndResolution.hpp"
 
 using namespace Indexing;
@@ -180,14 +181,12 @@ bool SATSubsumptionAndResolution::pruneSubsumption()
     return true;
   }
 
-  auto& headerMultiset = _pruneStorage;
-  prune_t& timestamp = _pruneTimestamp;
+  auto &headerMultiset = _pruneStorage;
+  prune_t &timestamp = _pruneTimestamp;
   static_assert(
-    std::is_same<std::remove_reference_t<decltype(timestamp)>,
-                 std::remove_reference_t<decltype(headerMultiset)>::value_type
-                >::value,
-    "timestamp and storage should be the same type"
-  );
+      std::is_same<std::remove_reference_t<decltype(timestamp)>,
+                   std::remove_reference_t<decltype(headerMultiset)>::value_type>::value,
+      "timestamp and storage should be the same type");
 
   // multiset of signed predicates in M
   headerMultiset.resize(2 * env.signature->predicates(), 0);
@@ -255,8 +254,8 @@ bool SATSubsumptionAndResolution::pruneSubsumptionResolution()
   ASS(_L)
   ASS(_M)
 
-  auto& functorSet = _pruneStorage;
-  auto& timestamp = _pruneTimestamp;
+  auto &functorSet = _pruneStorage;
+  auto &timestamp = _pruneTimestamp;
 
   functorSet.resize(env.signature->predicates(), 0);
   ASS(all_of(functorSet, [&](prune_t x) { return x <= timestamp; }));
@@ -718,6 +717,9 @@ bool SATSubsumptionAndResolution::indirectEncodingForSubsumptionResolution()
   Solver &solver = _solver;
 
   /**** Existence ****/
+#if PRINT_CLAUSE_COMMENTS_SUBS
+  cout << "Existence" << endl;
+#endif
 #if PRINT_CLAUSES_SUBS
   vstring s = "";
 #endif
@@ -738,19 +740,36 @@ bool SATSubsumptionAndResolution::indirectEncodingForSubsumptionResolution()
   auto build = solver.constraint_end();
   solver.add_clause_unsafe(build);
 #if PRINT_CLAUSES_SUBS
-  cout << s.substr(0, s.size() - 3) << endl
-       << endl;
+  cout << s.substr(0, s.size() - 3) << endl;
 #endif
 
   /**** Uniqueness ****/
+#if PRINT_CLAUSE_COMMENTS_SUBS
+  cout << "Uniqueness" << endl;
+#endif
+#if PRINT_CLAUSES_SUBS
+  cout << "AtMostOne(";
+#endif
   solver.constraint_start();
   for (auto var : atMostOneVars) {
     solver.constraint_push_literal(var.second);
+#if PRINT_CLAUSES_SUBS
+    cout << var.second;
+    if (var != atMostOneVars.back()) {
+      cout << ", ";
+    }
+#endif
   }
   build = solver.constraint_end();
   solver.add_atmostone_constraint(build);
+#if PRINT_CLAUSES_SUBS
+  cout << ")" << endl;
+#endif
 
   /**** Completeness ****/
+#if PRINT_CLAUSE_COMMENTS_SUBS
+  cout << "Completeness" << endl;
+#endif
   for (unsigned i = 0; i < _m; ++i) {
     solver.constraint_start();
     Slice<Match> matches = _matchSet.getIMatches(i);
@@ -771,6 +790,9 @@ bool SATSubsumptionAndResolution::indirectEncodingForSubsumptionResolution()
   }
 
   /**** Coherence ****/
+#if PRINT_CLAUSE_COMMENTS_SUBS
+  cout << "Coherence" << endl;
+#endif
   for (auto var : atMostOneVars) {
     unsigned j = var.first;
     subsat::Var c_j = var.second;
@@ -791,6 +813,9 @@ bool SATSubsumptionAndResolution::indirectEncodingForSubsumptionResolution()
     }
   }
 
+#if PRINT_CLAUSE_COMMENTS_SUBS
+  cout << "Stucturality" << endl;
+#endif
   /**** Encoding of c_j ****/
   // -> c_j is true if and only if there is a negative polarity match b_ij-
   //    for each j : c_j <=> b_ij- for some i
@@ -804,7 +829,7 @@ bool SATSubsumptionAndResolution::indirectEncodingForSubsumptionResolution()
     //   (~c_j V b_1j- V ... V b_nj-)
     solver.constraint_push_literal(~c_j);
 #if PRINT_CLAUSES_SUBS
-    cout << c_j;
+    cout << ~c_j;
 #endif
     for (Match match : matches) {
       if (!match.polarity) {
@@ -932,6 +957,7 @@ bool SATSubsumptionAndResolution::checkSubsumptionImpl(Clause *L,
 {
   using namespace std::chrono_literals;
 
+  env.statistics->subsumptionTried++;
   ASS(L)
   ASS(M)
 
@@ -943,18 +969,22 @@ bool SATSubsumptionAndResolution::checkSubsumptionImpl(Clause *L,
     // WARNING!!! This assumes that the check for subsumption resolution is stronger than
     // the check for subsumption.
     _subsumptionImpossible = _srImpossible || pruneSubsumption();
-
-    if (_srImpossible && _subsumptionImpossible)
+    if (_srImpossible) {
+      assert(_subsumptionImpossible);
+      env.statistics->subsumptionPrunedWithSR++;
       return false;
+    }
     else {
       ASS(!_srImpossible)
       fillMatchesSR();
     }
     if (_subsumptionImpossible) {
+      env.statistics->subsumptionPruned++;
       return false;
     }
   } // if (setSR)
   else if (pruneSubsumption() || !fillMatchesS()) {
+    env.statistics->subsumptionPrunedAfterMatching++;
     return false;
   }
 
@@ -1007,6 +1037,7 @@ bool SATSubsumptionAndResolution::checkSubsumptionImpl(Clause *L,
             << _solver.stats().ticks << std::endl;
   }
 #endif
+  env.statistics->subsumptionSucceeded += subsumed;
   return subsumed;
 } // SATSubsumptionAndResolution::checkSubsumption
 
@@ -1025,6 +1056,7 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause *L,
                                                                     Clause *M,
                                                                     bool usePreviousSetUp)
 {
+  env.statistics->subsumptionResolutionTried++;
   using namespace std::chrono_literals;
 
   ASS(L)
@@ -1036,6 +1068,7 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause *L,
 #if PRINT_CLAUSES_SUBS
       cout << "SR impossible" << endl;
 #endif
+      env.statistics->subsumptionResolutionPruned++;
       return nullptr;
     }
     ASS_GE(_matchSet.allMatches().size(), _L->length())
@@ -1048,6 +1081,7 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause *L,
 #if PRINT_CLAUSES_SUBS
       cout << "SR pruned" << endl;
 #endif
+      env.statistics->subsumptionResolutionPruned++;
       return nullptr;
     }
     fillMatchesSR();
@@ -1055,6 +1089,7 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause *L,
 #if PRINT_CLAUSES_SUBS
       cout << "SR impossible" << endl;
 #endif
+      env.statistics->subsumptionResolutionPrunedAfterMatching++;
       return nullptr;
     }
   }
@@ -1139,5 +1174,6 @@ Clause *SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause *L,
   }
 #endif
   // If the problem is SAT, then generate the conclusion clause
+  env.statistics->subsumptionResolutionSucceeded += !!conclusion;
   return conclusion;
 } // SATSubsumptionAndResolution::checkSubsumptionResolution
