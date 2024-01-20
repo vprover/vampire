@@ -572,7 +572,7 @@ Clause* Superposition::performSuperposition(
 
     if (ite == false) {
       RobSubstitution rSubst;
-      if (rSubst.unifyArgs(newLitC, 0, newLitD, 1, nullptr)) {
+      if (rSubst.unifyArgs(newLitC, 0, newLitD, 0, nullptr)) {
         Literal* newLitCS = rSubst.apply(newLitC, 0);
 
         for (unsigned i = 0; i < next; i++) {
@@ -583,6 +583,7 @@ Clause* Superposition::performSuperposition(
 
         (*res)[next++] = newLitCS;      
       } else {
+        res->destroy();
         return 0;
       }
     } else {

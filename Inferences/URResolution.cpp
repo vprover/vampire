@@ -131,7 +131,7 @@ struct URResolution::Item
    * substitution is applied to the literals, otherwise the result
    * part is applied.
    */
-  void resolveLiteral(unsigned idx, SLQueryResult& unif, Clause* premise, bool useQuerySubstitution)
+  void resolveLiteral(unsigned idx, SLQueryResult& unif, Clause* premise, bool useQuerySubstitution, bool ansLitIte)
   {
     Literal* rlit = _lits[idx];
     _lits[idx] = 0;
@@ -143,6 +143,8 @@ struct URResolution::Item
       _ansLit = unif.substitution->apply(_ansLit, !useQuerySubstitution);
     }
     bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
+    RobSubstitution rSubst;
+    bool substUsed = false;
     if (synthesis && premise->hasAnswerLiteral()) {
       Literal* premAnsLit = premise->getAnswerLiteral();
       if (!premAnsLit->ground()) {
@@ -151,12 +153,17 @@ struct URResolution::Item
       if (!_ansLit) {
         _ansLit = premAnsLit;
       } else if (_ansLit != premAnsLit) {
-        bool neg = rlit->isNegative();
-        Literal* resolved = unif.substitution->apply(rlit, !useQuerySubstitution);
-        if (neg) {
-          resolved = Literal::complementaryLiteral(resolved);
+        if (!ansLitIte && rSubst.unifyArgs(_ansLit, 0, premAnsLit, 0, nullptr)) {
+          _ansLit = rSubst.apply(_ansLit, 0);
+          substUsed = true;
+        } else {
+          bool neg = rlit->isNegative();
+          Literal* resolved = unif.substitution->apply(rlit, !useQuerySubstitution);
+          if (neg) {
+            resolved = Literal::complementaryLiteral(resolved);
+          }
+          _ansLit = SynthesisManager::getInstance()->makeITEAnswerLiteral(resolved, neg ? _ansLit : premAnsLit, neg ? premAnsLit : _ansLit);
         }
-        _ansLit = SynthesisManager::getInstance()->makeITEAnswerLiteral(resolved, neg ? _ansLit : premAnsLit, neg ? premAnsLit : _ansLit);
       }
     }
 
@@ -172,6 +179,7 @@ struct URResolution::Item
         continue;
       }
       lit = unif.substitution->apply(lit, !useQuerySubstitution);
+      if (substUsed) lit = rSubst.apply(lit, 0);
       if(!lit->ground()) {
         nonGroundCnt++;
       }
@@ -283,7 +291,7 @@ struct URResolution::Item
  *
  * (See documentation to the @c processAndGetClauses() function.)
  */
-void URResolution::processLiteral(ItemList*& itms, unsigned idx)
+void URResolution::processLiteral(ItemList*& itms, unsigned idx, bool ansLitIte)
 {
   bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
   ItemList::DelIterator iit(itms);
@@ -308,7 +316,7 @@ void URResolution::processLiteral(ItemList*& itms, unsigned idx)
       }
 
       Item* itm2 = new Item(*itm);
-      itm2->resolveLiteral(idx, unif, unif.clause, true);
+      itm2->resolveLiteral(idx, unif, unif.clause, true, ansLitIte);
       iit.insert(itm2);
 
       if(!_full && itm->_atMostOneNonGround && (!synthesis || !unif.clause->hasAnswerLiteral())) {
@@ -336,14 +344,14 @@ void URResolution::processLiteral(ItemList*& itms, unsigned idx)
  * call to the @c processLiteral() function moves us to the next
  * level of the traversal.
  */
-void URResolution::processAndGetClauses(Item* itm, unsigned startIdx, ClauseList*& acc)
+void URResolution::processAndGetClauses(Item* itm, unsigned startIdx, ClauseList*& acc, bool ansLitIte)
 {
   unsigned activeLen = itm->_activeLength;
 
   ItemList* itms = 0;
   ItemList::push(itm, itms);
   for(unsigned i = startIdx; itms && i<activeLen; i++) {
-    processLiteral(itms, i);
+    processLiteral(itms, i, ansLitIte);
   }
 
   while(itms) {
@@ -358,7 +366,7 @@ void URResolution::processAndGetClauses(Item* itm, unsigned startIdx, ClauseList
  * Perform URR inferences between a newly derived unit clause
  * @c cl and non-unit active clauses
  */
-void URResolution::doBackwardInferences(Clause* cl, ClauseList*& acc)
+void URResolution::doBackwardInferences(Clause* cl, ClauseList*& acc, bool ansLitIte)
 {
   ASS((cl->size() == 1) || (cl->size() == 2 && cl->hasAnswerLiteral()));
 
@@ -380,9 +388,9 @@ void URResolution::doBackwardInferences(Clause* cl, ClauseList*& acc)
     unsigned pos = ucl->getLiteralPosition(unif.literal);
     ASS(!_selectedOnly || pos<ucl->numSelected());
     swap(itm->_lits[0], itm->_lits[pos]);
-    itm->resolveLiteral(0, unif, cl, false);
+    itm->resolveLiteral(0, unif, cl, false, ansLitIte);
 
-    processAndGetClauses(itm, 1, acc);
+    processAndGetClauses(itm, 1, acc, ansLitIte);
   }
 }
 
@@ -396,11 +404,13 @@ ClauseIterator URResolution::generateClauses(Clause* cl)
   TIME_TRACE("unit resulting resolution");
 
   ClauseList* res = 0;
-  processAndGetClauses(new Item(cl, _selectedOnly, *this, _emptyClauseOnly), 0, res);
+  processAndGetClauses(new Item(cl, _selectedOnly, *this, _emptyClauseOnly), 0, res, false);
+  processAndGetClauses(new Item(cl, _selectedOnly, *this, _emptyClauseOnly), 0, res, true);
 
   if (clen==1 ||
       ((env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) && clen==2 && cl->hasAnswerLiteral())) {
-    doBackwardInferences(cl, res);
+    doBackwardInferences(cl, res, false);
+    doBackwardInferences(cl, res, true);
   }
 
   return getPersistentIterator(ClauseList::DestructiveIterator(res));

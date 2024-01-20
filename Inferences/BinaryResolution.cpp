@@ -96,12 +96,14 @@ struct BinaryResolution::ResultFn
 {
   ResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, bool afterCheck, Ordering* ord, LiteralSelector& selector, BinaryResolution& parent)
   : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _afterCheck(afterCheck), _ord(ord), _selector(selector), _parent(parent) {}
-  Clause* operator()(pair<Literal*, SLQueryResult> arg)
+  ClauseIterator operator()(pair<Literal*, SLQueryResult> arg)
   {
     SLQueryResult& qr = arg.second;
     Literal* resLit = arg.first;
 
-    return BinaryResolution::generateClause(_cl, resLit, qr, _parent.getOptions(), _passiveClauseContainer, _afterCheck ? _ord : 0, &_selector);
+    return ti(
+        BinaryResolution::generateClause(_cl, resLit, qr, _parent.getOptions(), _passiveClauseContainer, _afterCheck ? _ord : 0, &_selector, false),
+        BinaryResolution::generateClause(_cl, resLit, qr, _parent.getOptions(), _passiveClauseContainer, _afterCheck ? _ord : 0, &_selector, true));
   }
 private:
   Clause* _cl;
@@ -116,7 +118,7 @@ private:
  * Ordering aftercheck is performed iff ord is not 0,
  * in which case also ls is assumed to be not 0.
  */
-Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult qr, const Options& opts, PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls)
+Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult qr, const Options& opts, PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls, bool ansLitIte)
 {
   ASS(qr.clause->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses
 
@@ -312,9 +314,25 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     ASS(next == newLength-1);
     Literal* newLitC = qr.substitution->applyToQuery(cAnsLit);
     Literal* newLitD = qr.substitution->applyToResult(dAnsLit);
-    bool cNeg = queryLit->isNegative();
-    Literal* condLit = cNeg ? qr.substitution->applyToResult(qr.literal) : qr.substitution->applyToQuery(queryLit);
-    (*res)[next] = SynthesisManager::getInstance()->makeITEAnswerLiteral(condLit, cNeg ? newLitC : newLitD, cNeg ? newLitD : newLitC);
+    if (!ansLitIte) {
+    RobSubstitution rSubst;
+      if (rSubst.unifyArgs(newLitC, 0, newLitD, 0, nullptr)) {
+        Literal* newLitCS = rSubst.apply(newLitC, 0);
+        for (unsigned i = 0; i < next; i++) {
+          Literal* curLit = (*res)[i];
+          Literal* curLitS = rSubst.apply(curLit, 0);
+          (*res)[i] = curLitS;
+        }
+        (*res)[next++] = newLitCS;
+      } else {
+        res->destroy();
+        return 0;
+      }
+    } else {
+      bool cNeg = queryLit->isNegative();
+      Literal* condLit = cNeg ? qr.substitution->applyToResult(qr.literal) : qr.substitution->applyToQuery(queryLit);
+      (*res)[next] = SynthesisManager::getInstance()->makeITEAnswerLiteral(condLit, cNeg ? newLitC : newLitD, cNeg ? newLitD : newLitC);
+    }
   }
 
   if(withConstraints){
@@ -340,7 +358,7 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
   // actually, we got one iterator per selected literal; we flatten the obtained iterator of iterators:
   auto it2 = getFlattenedIterator(it1);
   // perform binary resolution on these pairs
-  auto it3 = getMappingIterator(it2,ResultFn(premise, passiveClauseContainer,
+  auto it3 = getMapAndFlattenIterator(it2,ResultFn(premise, passiveClauseContainer,
       getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(), &_salg->getOrdering(),_salg->getLiteralSelector(),*this));
   // filter out only non-zero results
   auto it4 = getFilteredIterator(it3, NonzeroFn());
