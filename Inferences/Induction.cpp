@@ -530,7 +530,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         resolveClauses(kv.first, ctx, kv.second);
       }
     }
-  } else {
+  } else if (lit->getDistinctVars() == 1) {
     NonVariableNonTypeIterator nvi(lit);
     while (nvi.hasNext()) {
       auto st = nvi.next();
@@ -708,75 +708,38 @@ ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, In
     }
     Literal* resLit = (*c)[resLitIdx]; 
 
+    VList* vars = indLit->freeVariables();
+    ASS(VList::length(vars) == 1);
+    unsigned freeVar = vars->head();
+    TermList v(freeVar, false);
     RobSubstitution subst;
-    subst.reset();
-
-
-    if (subst.unify(*indLit->nthArgument(0), 0, *resLit->nthArgument(1), 1, nullptr) &&
-     subst.unify(*indLit->nthArgument(1), 0, *resLit->nthArgument(0), 1, nullptr)) {
-
-      #if VDEBUG
-        flag = true;
-      #endif
-      Literal* indLitS = subst.apply(indLit, 0);
-
-      Stack<Literal*> lits;
-      for (unsigned i = 0; i < cLen; i++) { // Apply resolution on rest of the literals
-        if (i == (unsigned)resLitIdx) {
-          continue;
-        }
-        Literal* lit = subst.apply((*c)[i], 1);
-        lits.push(lit);
-      }
-
-      unsigned pLen = premise->length();
-      for (unsigned i = 0; i < pLen; i++) {
-        Literal* lit = subst.apply((*premise)[i], 0);
-        if (lit == indLitS) {
-          continue;
-        }
-        lits.push(lit);
-      }
-
-      Clause* resolvent = Clause::fromStack(lits, GeneratingInference2(InferenceRule::RESOLUTION, c, context.getPremise()));
-      resolved_clauses.push(resolvent);
-    }
-    else {
-      subst.reset();
-      if (subst.unify(*indLit->nthArgument(0), 0, *resLit->nthArgument(0), 1, nullptr) &&
-        subst.unify(*indLit->nthArgument(1), 0, *resLit->nthArgument(1), 1, nullptr)) {
-
-        #if VDEBUG
-          flag = true;
-        #endif
-        Literal* indLitS = subst.apply(indLit, 0);
-
+    bool resolved = false;
+    SubstIterator sit = subst.unifiers(indLit, 0, resLit, 1, /*complementary=*/true);
+    while (!resolved && sit.hasNext()) {
+      sit.next();
+      TermList t = subst.apply(v, 0);
+      if (t.isTerm() && env.signature->getFunction(t.term()->functor())->recursionAnswerSymbol()) {
         Stack<Literal*> lits;
         for (unsigned i = 0; i < cLen; i++) { // Apply resolution on rest of the literals
-          if (i == (unsigned)resLitIdx) {
-            continue;
+          if (i != (unsigned)resLitIdx) {
+            lits.push(subst.apply((*c)[i], 1));
           }
-          Literal* lit = subst.apply((*c)[i], 1);
-          lits.push(lit);
         }
-
-        unsigned pLen = premise->length();
-        for (unsigned i = 0; i < pLen; i++) {
-          Literal* lit = subst.apply((*premise)[i], 0);
-          if (lit == indLitS) {
-            continue;
+        for (unsigned i = 0; i < premise->length(); i++) {
+          Literal* lit = (*premise)[i];
+          if (lit != indLit) {
+            lits.push(subst.apply(lit, 0));
           }
-          lits.push(lit);
         }
-
         Clause* resolvent = Clause::fromStack(lits, GeneratingInference2(InferenceRule::RESOLUTION, c, context.getPremise()));
         resolved_clauses.push(resolvent);
-    } else {
+        resolved = true;
+      }
+    }
+    if (!resolved) {
       #if VDEBUG
         cout << "could not unify " << indLit->toString() << " and " << resLit->toString() << endl;
       #endif
-    }
-  
     }
   }
 
@@ -1530,6 +1493,7 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   sortArgs.push(sort);
 
   env.signature->getFunction(rec_fn)->setType(OperatorType::getFunctionType(sortArgs.size(), sortArgs.begin(), synth_sort));
+  env.signature->getFunction(rec_fn)->markRecursionAnswerSymbol();
   TermList rec(Term::create(rec_fn, recFuncArgs.size(), recFuncArgs.begin()));
 
   TermReplacement tr(context._indTerm, z);

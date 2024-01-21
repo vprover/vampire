@@ -137,6 +137,8 @@ class Signature
     unsigned _numericConstant : 1;
     /** predicate introduced for query answering */
     unsigned _answerPredicate : 1;
+    /** recursion answer function introduced for synthesis */
+    unsigned _recursionAnswer : 1;
     /** marks numbers too large to represent natively */
     unsigned _overflownConstant : 1;
     /** marks term algebra constructors */
@@ -187,6 +189,8 @@ class Signature
     void markLabel() { ASS_EQ(arity(), 0); _label=1; markProtected(); }
     /** mark symbol to be an answer predicate */
     void markAnswerPredicate() { _answerPredicate=1; markProtected(); }
+    /** mark symbol to be an recursion answer symbol */
+    void markRecursionAnswerSymbol() { _recursionAnswer=1; markProtected(); }
     /** mark predicate to be an equality proxy */
     void markEqualityProxy() { _equalityProxy=1; }
     /** mark predicate as (polarity) flipped */
@@ -241,6 +245,8 @@ class Signature
     inline bool numericConstant() const { return _numericConstant; }
     /** Return true iff symbol is an answer predicate */
     inline bool answerPredicate() const { return _answerPredicate; }
+    /** Return true iff symbol is a recusion answer symbol */
+    inline bool recursionAnswerSymbol() const { return _recursionAnswer; }
     /** Return true iff symbol is an equality proxy */
     inline bool equalityProxy() const { return _equalityProxy; }
     /** Return true iff symbol was polarity flipped */
