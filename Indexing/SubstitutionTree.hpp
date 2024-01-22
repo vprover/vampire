@@ -126,7 +126,7 @@ using namespace Kernel;
   class SubstitutionTree
   {
   public:
-    SubstitutionTree();
+    SubstitutionTree() = default;
     SubstitutionTree(SubstitutionTree const&) = delete;
     SubstitutionTree& operator=(SubstitutionTree const& other) = delete;
     SubstitutionTree(SubstitutionTree&& other)
@@ -610,8 +610,10 @@ using namespace Kernel;
     void remove(BindingMap& binding,LeafData ld);
 
     /** Number of the next variable */
-    int _nextVar;
-    Node* _root;
+    int _nextVar = 0;
+    Node* _root = nullptr;
+    Cntr _iterCnt;
+
   public:
 
     class RenamingSubstitution 
@@ -1345,7 +1347,6 @@ using namespace Kernel;
     bool isEmpty() const { return _root == nullptr || _root->isEmpty(); }
     friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self);
 
-    Cntr _iterCnt;
   }; // class SubstiutionTree
 
   /* This namespace defines classes to be used as type parameter for SubstitutionTree::Iterator. 

@@ -45,17 +45,6 @@
 using namespace std;
 using namespace Indexing;
 
-
-/**
- * Initialise the substitution tree.
- * @since 16/08/2008 flight Sydney-San Francisco
- */
-SubstitutionTree::SubstitutionTree()
-  : _nextVar(0)
-  , _root(nullptr)
-{
-} // SubstitutionTree::SubstitutionTree
-
 /**
  * Destroy the substitution tree.
  * @warning does not destroy nodes yet
