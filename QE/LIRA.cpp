@@ -10,7 +10,7 @@
 
 #include "QE/LIRA.hpp"
 #include "Debug/Assertion.hpp"
-#include "Kernel/Connective.hpp"
+#include "Inferences/PolynomialEvaluation.hpp"
 #include "Kernel/LASCA.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
@@ -52,38 +52,41 @@ namespace AutoSimplifyingRealOps {
 
   TermList operator-(TermList s, TermList t) { return s + (-t); }
 
-  TermList operator+(Numeral s, TermList t) { return R::constantTl(s) + t; }
-  TermList operator+(TermList s, Numeral t) { return s + R::constantTl(t); }
-  TermList operator-(Numeral s, TermList t) { return R::constantTl(s) - t; }
-  TermList operator-(TermList s, Numeral t) { return s - R::constantTl(t); }
+#define WRAPPING_OPERATOR(OP, ToWrap, Wrapped, wrap) \
+  auto operator OP(ToWrap l, Wrapped r) { return wrap(l) OP r; } \
+  auto operator OP(Wrapped l, ToWrap r) { return l OP wrap(r); } \
 
-  TermList operator+(int s, TermList t) { return Numeral(s) + t; }
-  TermList operator+(TermList s, int t) { return s + Numeral(t); }
-  TermList operator-(int s, TermList t) { return Numeral(s) - t; }
-  TermList operator-(TermList s, int t) { return s - Numeral(t); }
+  WRAPPING_OPERATOR(+, Numeral, TermList, R::constantTl);
+  WRAPPING_OPERATOR(-, Numeral, TermList, R::constantTl);
 
-}
+  WRAPPING_OPERATOR(+, int, TermList, Numeral);
+  WRAPPING_OPERATOR(-, int, TermList, Numeral);
+
+  WRAPPING_OPERATOR(+, int, Numeral, Numeral);
+  WRAPPING_OPERATOR(-, int, Numeral, Numeral);
+  WRAPPING_OPERATOR(*, int, Numeral, Numeral);
+
+
+} // namespace AutoSimplifyingRealOps
 
 using namespace AutoSimplifyingRealOps;
-Numeral operator-(Numeral const& l, int r) { return l - Numeral(r); }
-Numeral operator-(int l, Numeral const& r) { return Numeral(l) - r; }
 
 Numeral qLcm(Numeral l, Numeral r) {
   return Numeral(IntegerConstantType::lcm(l.numerator(), r.numerator()), 
                  IntegerConstantType::gcd(l.numerator(), r.numerator()));
 }
 
-enum class Connective {
+enum class LiraPred {
   Greater, Geq, Neq, Eq,
 };
 
-std::ostream& operator<<(std::ostream& out, Connective const& self)
+std::ostream& operator<<(std::ostream& out, LiraPred const& self)
 { 
   switch(self) {
-    case Connective::Greater: return out << ">";
-    case Connective::Geq:     return out << ">=";
-    case Connective::Neq:     return out << "!=";
-    case Connective::Eq:      return out << "==";
+    case LiraPred::Greater: return out << ">";
+    case LiraPred::Geq:     return out << ">=";
+    case LiraPred::Neq:     return out << "!=";
+    case LiraPred::Eq:      return out << "==";
   }
 } 
 
@@ -106,29 +109,41 @@ class Grid {
   Numeral _per;
 public:
 
-  TermList perCeiling(TermList t) 
+  TermList perCeiling(TermList t) const
   { return t + genRem(_anchor - t, _per); }
 
-  TermList perFloor(TermList t) 
+  TermList perFloor(TermList t) const
   { return t - genRem(t - _anchor, _per); }
 
-  Grid(TermList anchor, Numeral per) : _anchor(anchor), _per(std::move(per)) { ASS(_per > Numeral(0)) }
-  Grid(ElimTerm t) : Grid(t.asFinite().unwrap().term(), t.asFinite().unwrap().period().unwrap().p) 
+  Grid(TermList anchor, Numeral per) : _anchor(anchor), _per(std::move(per)) { ASS_REP(_per > Numeral(0), _per) }
+  Grid(ElimTerm const& t) : Grid(t.asFinite().unwrap().term(), t.asFinite().unwrap().period().unwrap().p) 
   {
     ASS(t.asFinite().unwrap().epsilon().isNone())
   }
-  auto intersect(bool lIncl, TermList min, Numeral dist, bool rIncl) {
-    auto start = lIncl ? perCeiling(min) : perFloor(min + _per);
+  auto intersect(bool lIncl, TermList min, Numeral dist, bool rIncl) const {
+    ASS(dist >= 0)
+    auto start = lIncl ? this->perCeiling(min) : this->perFloor(min + _per);
+    auto less = [=](auto l, auto r) { return rIncl ? l <= r : l < r; };
+    auto per  = this->_per;
     return natIter<Numeral>()
-      .takeWhile([=](auto n) { return rIncl ? n * _per <= dist : n * _per < dist;  })
-      .map([=](auto n) -> TermList { return start + (n * _per); });
+      .takeWhile([=](auto n) { return less(n * per, dist); })
+      .map([start = std::move(start),per](auto n) -> TermList { return start + (n * per); });
   }
 };
-class LiraTerm {
+
+template<class T> 
+T integrity(T t) {
+  t.integrity();
+  return t;
+}
+
+class LiraTerm 
+{
   TermList _term;
 
 public:
-  LiraTerm(TermList term) : _term(term) {}
+  LiraTerm(TermList term) 
+    : _term(term) {}
   TermList toNormalTerm() const { return _term; }
 
   template<class Res, class TargetVar, class OtherVarOrConst, class NumMul, class Add, class Floor> 
@@ -136,33 +151,35 @@ public:
     return evalBottomUp<Res>(t,
         [=](auto& orig, auto* args) {
           if (orig == var) {
-            return targetVar();
+            return integrity(targetVar());
+          } else if (orig.isVar()) {
+            return integrity(otherVarOrConst(orig));
           } else {
             auto f = orig.term()->functor();
             auto origArg = [=](auto i) { return orig.term()->termArg(i); };
             if (R::isMul(f)) {
               auto k = R::tryNumeral(origArg(0));
               ASS(k.isSome())
-              return numMul(k.unwrap(), orig, std::move(args[1]));
+              return integrity(numMul(k.unwrap(), orig, std::move(args[1])));
 
 
             } else if (R::tryNumeral(orig)) {
-              return numMul(R::tryNumeral(orig).unwrap(), R::constantTl(1), otherVarOrConst(R::constantTl(1)));
+              return integrity(numMul(R::tryNumeral(orig).unwrap(), R::constantTl(1), otherVarOrConst(R::constantTl(1))));
 
             } else if (R::isMinus(f)) {
-              return numMul(Numeral(-1), origArg(0), std::move(args[0]));
+              return integrity(numMul(Numeral(-1), origArg(0), std::move(args[0])));
 
             } else if (R::isAdd(f)) {
-              return add(origArg(0), origArg(1), std::move(args[0]), std::move(args[1]));
+              return integrity(add(origArg(0), origArg(1), std::move(args[0]), std::move(args[1])));
 
             } else if (R::isFloor(f)) {
-              return floor(origArg(0), std::move(args[0]));
+              return integrity(floor(origArg(0), std::move(args[0])));
 
             } else {
               // we can't compute the slope for non-constants as they might contain variables. 
               // if we'd want to do that we'd have to extend the theory and this will be surely undecidable in general.
               ASS_EQ(orig.term()->arity(), 0)
-              return otherVarOrConst(orig);
+              return integrity(otherVarOrConst(orig));
             }
           }
         });
@@ -190,15 +207,21 @@ public:
     friend std::ostream& operator<<(std::ostream& out, LiraTermSummary const& self)
     { return out << "LiraTermSummary {...}"; }
 
-    TermList dist(bool plus) { return plus ? linBounds.upper() : linBounds.lower; }
+    TermList dist(bool plus) const { return plus ? linBounds.upper() : linBounds.lower; }
 
-    auto xMinusInf() {
+    auto xMinusInf() const {
       ASS(off != 0)
       return (-1 / off) * dist(off.isPositive());
     }
-    auto deltaInf() {
+
+    auto deltaInf() const  {
       ASS(off != 0) 
       return (-1 / off) * linBounds.delta;
+    }
+
+    void integrity() const {
+      ASS(per >= 0)
+      ASS(linBounds.delta >= 0)
     }
   };
 
@@ -287,12 +310,12 @@ public:
         [&](auto t, auto res) { 
           auto newPer = 
                      res.off == 0 ? Numeral(0)
-                   : res.per == 0 ? 1 / res.off
-                                  : 1 / (res.off * res.per);
+                   : res.per == 0 ? 1 / res.off.abs()
+                                  : 1 / (res.off.abs() * res.per);
           // auto br0 = [&]() 
           // { return arrayIter(*res.breaks)
           //     .flatMap([&](auto b) { return Grid(b, res.per).intersect(/*incl*/ true, R::constantTl(0), newPer, /* incl */ false); }); };
-          //
+
           auto rstack = [](auto iter) {
             Recycled<Stack<ElimTerm>> out;
             out->loadFromIterator(iter);
@@ -327,17 +350,18 @@ public:
               return out;
             }
           };
+          auto br = breaks();
 
           return LiraTermSummary {
               .slope = Numeral(0),
               .off = res.off,
               .per = newPer,
               .linBounds = {
-                .lower = res.linBounds.lower + -res.off, 
-                .delta = res.linBounds.delta + res.off, 
+                .lower = res.linBounds.lower + -res.off.abs(), 
+                .delta = res.linBounds.delta + res.off.abs(), 
               },
               .lim = res.slope >= 0 ? R::floor(res.lim) : -R::floor(-res.lim) - 1,
-              .breaks = breaks(),
+              .breaks = std::move(br),
           }; 
         }
     );
@@ -395,110 +419,21 @@ public:
 
 
 
-class NormLit 
+class LiraLit 
 {
   LiraTerm _term;
-  Connective _connective;
+  LiraPred _connective;
 public:
-  NormLit(TermList term, Connective connective) : _term(term), _connective(connective) {}
-  // NormTerm normTerm() const { return { _term }; }
+  LiraLit(TermList term, LiraPred connective) : _term(term), _connective(connective) {}
 
   auto& connective() const { return _connective; }
-  // template<class Res, class TargetVar, class OtherVarOrConst, class NumMul, class Add, class Floor> 
-  // static auto eval(TermList t, TermList var, TargetVar targetVar, OtherVarOrConst otherVarOrConst, NumMul numMul, Add add, Floor floor) {
-  //   return evalBottomUp<Res>(t,
-  //       [=](auto& orig, auto* args) {
-  //         if (orig == var) {
-  //           return targetVar();
-  //         } else {
-  //           auto f = orig.term()->functor();
-  //           auto origArg = [=](auto i) { return orig.term()->termArg(i); };
-  //           if (R::isMul(f)) {
-  //             auto k = R::tryNumeral(origArg(0));
-  //             ASS(k.isSome())
-  //             return numMul(k.unwrap(), orig, std::move(args[1]));
-  //
-  //
-  //           } else if (R::tryNumeral(orig)) {
-  //             return numMul(R::tryNumeral(orig).unwrap(), R::constantTl(1), otherVarOrConst(R::constantTl(1)));
-  //
-  //           } else if (R::isMinus(f)) {
-  //             return numMul(Numeral(-1), origArg(0), std::move(args[0]));
-  //
-  //           } else if (R::isAdd(f)) {
-  //             return add(origArg(0), origArg(1), std::move(args[0]), std::move(args[1]));
-  //
-  //           } else if (R::isFloor(f)) {
-  //             return floor(origArg(0), std::move(args[0]));
-  //
-  //           } else {
-  //             // we can't compute the slope for non-constants as they might contain variables. 
-  //             // if we'd want to do that we'd have to extend the theory and this will be surely undecidable in general.
-  //             ASS_EQ(orig.term()->arity(), 0)
-  //             return otherVarOrConst(orig);
-  //           }
-  //         }
-  //       });
-  // }
-
-  // template<class Res, class One, class NumMul, class Add, class Floor> 
-  // static auto evalGround(TermList t, One one, NumMul numMul, Add add, Floor floor) {
-  //   return eval<Res>(t, TermList::var(0),
-  //       /* var x     */ []() -> Res { ASSERTION_VIOLATION_REP("not ground") },
-  //       /* other var */ [&](TermList t)  -> Res { 
-  //         ASS(R::tryNumeral(t) == some(Numeral(1)))
-  //         // TODO this is unnecessary work because we discard the result later
-  //         return one();
-  //       }, 
-  //       /* k * t */ 
-  //       numMul,
-  //
-  //       /* l + r */ 
-  //       add,
-  //
-  //       /* floor(t) */ 
-  //       floor
-  //   );
-  // }
-
-
-  // struct LinBounds {
-  //   TermList lower;
-  //   Numeral delta;
-  //   TermList upper() const { return lower + delta; }
-  //   auto asTuple() const { return std::tie(lower, delta); }
-  //   friend std::ostream& operator<<(std::ostream& out, LinBounds const& self)
-  //   { return out << "[" << self.lower << " (+ " << self.delta << ") ]"; }
-  //   IMPL_COMPARISONS_FROM_TUPLE(LinBounds);
-  // };
-  //
-  // struct FloorLiteral {
-  //   RealConstantType slope;
-  //   RealConstantType   off;
-  //   RealConstantType   per;
-  //   LinBounds  linBounds;
-  //   TermList    lim;
-  //   Recycled<Stack<ElimTerm>> breaks;
-  //   friend std::ostream& operator<<(std::ostream& out, FloorLiteral const& self)
-  //   { return out << "FloorLiteral {...}"; }
-  //
-  //   TermList dist(bool plus) { return plus ? linBounds.upper() : linBounds.lower; }
-  //
-  //   auto xMinusInf() {
-  //     ASS(off != 0)
-  //     return (-1 / off) * dist(off.isPositive());
-  //   }
-  // };
-
-  
-
   LiraTerm term() const { return _term; }
 
-  static NormLit from(Literal* lit) {
+  static LiraLit from(Literal* lit) {
     auto l = lit->termArg(0);
     auto r = lit->termArg(1);
     if (lit->isEquality()) {
-      return NormLit(l - r, lit->isPositive() ? Connective::Eq : Connective::Neq);
+      return LiraLit(l - r, lit->isPositive() ? LiraPred::Eq : LiraPred::Neq);
     } else {
       auto f = lit->functor();
       ASS(R::isLess(f) || R::isLeq(f) || R::isGreater(f) || R::isGeq(f))
@@ -508,41 +443,63 @@ public:
         strict = !strict;
         grtr = !grtr;
       }
-      return NormLit(
+      return LiraLit(
         grtr ? l - r : r - l,
-        strict ? Connective::Greater : Connective::Geq
+        strict ? LiraPred::Greater : LiraPred::Geq
       );
     }
   }
-  friend std::ostream& operator<<(std::ostream& out, NormLit const& self)
+  friend std::ostream& operator<<(std::ostream& out, LiraLit const& self)
   { return out << self.term() << " " << self.connective() << " 0"; }
 };
 
-class LiraLiteral : public Coproduct<NormLit, EpsLit> {
+class LiraLiteral : public Coproduct<LiraLit, EpsLit> {
 public:
   using Coproduct::Coproduct;
 };
 
-bool isIneq(Connective c) {
+bool isIneq(LiraPred c) {
   switch (c) {
-    case Connective::Greater:
-    case Connective::Geq: return true;
-    case Connective::Neq:
-    case Connective::Eq: return false;
+    case LiraPred::Greater:
+    case LiraPred::Geq: return true;
+    case LiraPred::Neq:
+    case LiraPred::Eq: return false;
   }
 }
 
-bool isInclusive(Connective c) {
+bool isInclusive(LiraPred c) {
   switch (c) {
-    case Connective::Greater:
-    case Connective::Neq: return false;
-    case Connective::Eq: 
-    case Connective::Geq: return true;
+    case LiraPred::Greater:
+    case LiraPred::Neq: return false;
+    case LiraPred::Eq: 
+    case LiraPred::Geq: return true;
+  }
+}
+
+TermList simpl(TermList t) 
+{ return PolynomialEvaluation::evaluate(t); }
+
+ElimTerm simpl(ElimTerm t) 
+{
+  auto fin = t.asFinite();
+  if (fin) {
+    return ElimTerm(FiniteElimTerm(PolynomialEvaluation::evaluate(fin->term()), fin->epsilon(), fin->period()));
+  } else {
+    return t;
   }
 }
 
 
-auto elimSet(TermList var, NormLit const& lit) {
+template<class Iter>
+auto simplIter(Iter i) 
+{ return iterTraits(std::move(i)).map([](auto x) { return simpl(std::move(x)); }); }
+
+
+template<class Iter>
+auto dbgIter(Iter iter) 
+{ return iter.template collect<Stack>(); }
+
+auto elimSet(TermList var, LiraLit const& lit) {
   bool incl = true;
   bool excl = !incl;
   auto phi = make_shared(lit.term().summary(var));
@@ -555,10 +512,10 @@ auto elimSet(TermList var, NormLit const& lit) {
 
   auto maybeEps = [=](auto t) { 
     switch(lit.connective()) {
-      case Connective::Greater:
-      case Connective::Neq: return t + Epsilon {};
-      case Connective::Geq:
-      case Connective::Eq: return t;
+      case LiraPred::Greater:
+      case LiraPred::Neq: return t + Epsilon {};
+      case LiraPred::Geq:
+      case LiraPred::Eq: return t;
     }
   };
 
@@ -573,16 +530,16 @@ auto elimSet(TermList var, NormLit const& lit) {
         };
         auto intersection = [&]() { return ElimTerm((-1 / slope) * EqHelper::replace(term, var, R::constantTl(0)));};
         switch (lit.connective()) {
-          case Connective::Greater: 
-          case Connective::Geq:
+          case LiraPred::Greater: 
+          case LiraPred::Geq:
             if (slope > RealConstantType(0)) {
               return set({ maybeEps(intersection()), });
             } else {
               return set({ ElimTerm::minusInfinity(), });
             }
-          case Connective::Neq:
+          case LiraPred::Neq:
             return set({ ElimTerm::minusInfinity(), intersection() + Epsilon {} });
-          case Connective::Eq:
+          case LiraPred::Eq:
             return set({ intersection() });
         }
       },
@@ -603,9 +560,10 @@ auto elimSet(TermList var, NormLit const& lit) {
         { return g.intersect(lIncl, phi->xMinusInf(), deltaInf, rIncl).map([](TermList t) { return ElimTerm(t); }); };
 
         auto ebreak = [=](bool lIncl, bool rIncl) {
-          return ifElseIter(
+          return simplIter(ifElseIter(
               off == 0, [=]() { return breaksIter(); }
-                      , [=]() { return breaksIter().flatMap([=](auto b) { return linBounds(lIncl, Grid(b), rIncl); }); });
+                      , [=]() { return breaksIter().flatMap([=](auto b) { return linBounds(lIncl, Grid(b), rIncl); }); }))
+            ;
         };
 
         auto einter = [=]() {
@@ -619,7 +577,7 @@ auto elimSet(TermList var, NormLit const& lit) {
               [=]() { return breaksIter().map([=](auto b) { return inter(b) + *b.asFinite()->period(); });  },
 
               /* if */ off != 0 && off != slope,
-              [=]() { return breaksIter().flatMap([=](auto b) { return linBounds(excl, Grid(inter(b), (Numeral(1) - (off/slope)) * b.asFinite()->period()->p), excl); }); },
+              [=]() { return breaksIter().flatMap([=](auto b) { return linBounds(excl, Grid(inter(b), (1 - (off/slope)).abs() * b.asFinite()->period()->p), excl); }); },
 
               /* else */
               [=]() { 
@@ -629,12 +587,15 @@ auto elimSet(TermList var, NormLit const& lit) {
               );
         };
 
-        auto einf = ifElseIter((isIneq(lit.connective()) && off < 0) 
-                             || lit.connective() == Connective::Neq,
+        auto einf = [=]() { return simplIter(
+            ifElseIter((isIneq(lit.connective()) && off < 0) 
+                             || lit.connective() == LiraPred::Neq,
                              []() { return getSingletonIterator(ElimTerm::minusInfinity()); },
-                             []() { return arrayIter(Stack<ElimTerm>()); });
+                             []() { return arrayIter(Stack<ElimTerm>()); }));
+        };
 
-        auto eseg = ifElseIter(
+        auto eseg = [=]() { return simplIter(
+            ifElseIter(
                       /* if */ slope == 0 || (slope < 0 && isIneq(lit.connective()))
                     , [=]() { return ebreak(incl, excl).map([](auto b) { return b + Epsilon{}; }); }
 
@@ -644,26 +605,31 @@ auto elimSet(TermList var, NormLit const& lit) {
                                            einter().map([=](auto i) { return maybeEps(i); })
                                      ); }
 
-                    , /* if */ lit.connective() == Connective::Eq
+                    , /* if */ lit.connective() == LiraPred::Eq
                     , [=]() { ASS(slope != 0); return einter(); }
 
                     // else
-                    , [=]() { ASS(lit.connective() == Connective::Neq && slope != 0)
+                    , [=]() { ASS(lit.connective() == LiraPred::Neq && slope != 0)
                               return concatIters(ebreak(incl, excl), einter()).map([](auto b) { return b + Epsilon{}; }); }
 
-            );
-        return concatIters( ebreak(incl, incl), eseg, einf);
+            )); 
+        };
+        DBGE(dbgIter(ebreak(incl,incl)))
+        DBGE(dbgIter(eseg()))
+        DBGE(dbgIter(einf()))
+        return concatIters( ebreak(incl, incl), eseg(), einf());
+        return concatIters( ebreak(incl, incl), eseg(), einf());
       });
 }
 
 template<class T>
 using DummyIter = IterTraits<VirtualIterator<T>>;
 
-auto elimSet(TermList var, Stack<NormLit> const& lits) 
+auto elimSet(TermList var, Stack<LiraLit> const& lits) 
 { return arrayIter(lits).flatMap([var](auto l) { return elimSet(var, l); }); }
 
 auto elimSet(unsigned var, Literal* lit_) {
-  auto l = NormLit::from(lit_);
+  auto l = LiraLit::from(lit_);
   return elimSet(TermList::var(var), l);
 }
 
@@ -699,30 +665,11 @@ struct Negation {
 };
 
 struct CDVSFormula
-  : public Coproduct< NormLit
+  : public Coproduct< LiraLit
                     , Conjunction>
 {
 
 };
-
-// Numeral simplGround(TermList t) {
-//   return NormLit::evalGround<Numeral>(t, 
-//       /* 1        */ [&]() { return Numeral(1); },
-//       /* k * t    */ [&](auto k, auto t, auto tRes) { return k * tRes; },
-//       /* l + r    */ [&](auto l, auto r, auto lRes, auto rRes) { return lRes + rRes; },
-//       /* floor(t) */ [&](auto t, auto tRes) { return tRes.floor(); });
-// }
-//
-// bool simplGround(NormLit lit) {
-//   Numeral v = simplGround(lit.term());
-//   switch (lit.connective()) {
-//     case Connective::Greater: return v >  0;
-//     case Connective::Geq:     return v >= 0;
-//     case Connective::Neq:     return v != 0;
-//     case Connective::Eq:      return v == 0;
-//   }
-//
-// }
 
 struct Assignment {
   TermList var;
@@ -749,31 +696,31 @@ public:
   friend std::ostream& operator<<(std::ostream& out, Assignments const& self)
   { return out << self._asgn; }
 };
-struct NfFormula;
+struct LiraFormula;
 struct Conj 
 {
-  std::shared_ptr<NfFormula> lhs;
-  std::shared_ptr<NfFormula> rhs;
+  std::shared_ptr<LiraFormula> lhs;
+  std::shared_ptr<LiraFormula> rhs;
 };
 
 struct Disj 
 {
-  std::shared_ptr<NfFormula> lhs;
-  std::shared_ptr<NfFormula> rhs;
+  std::shared_ptr<LiraFormula> lhs;
+  std::shared_ptr<LiraFormula> rhs;
 };
 
-struct NfFormula 
+struct LiraFormula 
   : public Coproduct<LiraLiteral, Conj, Disj> 
 {
     using Coproduct::Coproduct;
 
-    static NfFormula top() { return NfFormula(LiraLiteral(NormLit(R::constantTl(0), Connective::Eq))); }
-    static NfFormula bot() { return NfFormula(LiraLiteral(NormLit(R::constantTl(0), Connective::Neq))); }
+    static LiraFormula top() { return LiraFormula(LiraLiteral(LiraLit(R::constantTl(0), LiraPred::Eq))); }
+    static LiraFormula bot() { return LiraFormula(LiraLiteral(LiraLit(R::constantTl(0), LiraPred::Neq))); }
 };
 
-class NfFormulaIter {
+class LiraFormulaIter {
   Recycled<Stack<LiraLiteral>> _lits;
-  void fill(NfFormula const& phi) 
+  void fill(LiraFormula const& phi) 
   {
     return phi.match(
         [&](LiraLiteral const& l) { return _lits->push(l); },
@@ -782,7 +729,7 @@ class NfFormulaIter {
   }
 
 public:
-  NfFormulaIter(NfFormula const& phi) 
+  LiraFormulaIter(LiraFormula const& phi) 
     : _lits() 
   {
     fill(phi);
@@ -794,13 +741,13 @@ public:
   bool hasNext() { return _lits->isNonEmpty(); }
 };
 
-auto iterNormLits(NfFormula const& phi) {
-  return iterTraits(NfFormulaIter(phi))
-    .map([](auto l) { return l.template as<NormLit>().unwrap(); });
+auto iterLiraLits(LiraFormula const& phi) {
+  return iterTraits(LiraFormulaIter(phi))
+    .map([](auto l) { return l.template as<LiraLit>().unwrap(); });
 }
 
-auto elimSet(TermList var, NfFormula const& phi) {
-  return iterNormLits(phi)
+auto elimSet(TermList var, LiraFormula const& phi) {
+  return iterLiraLits(phi)
     .flatMap([&](auto lit) { return elimSet(var, lit); })
     .flatMap([&](auto t_) {
         auto t = t_.asFinite().unwrap();
@@ -810,19 +757,31 @@ auto elimSet(TermList var, NfFormula const& phi) {
             , [=]() { 
               auto p = t.period().unwrap();
               auto eps = t.epsilon();
-              auto bigPeriod = iterNormLits(phi)
-                .map([=](auto l) { return l.term().summary(var).per; })
+              auto bigPeriod = iterLiraLits(phi)
+                .map([=](auto l) { return l.term().summary(var); })
+                // .filter([](auto& l) { return l.off != 0; })
+                .map([=](auto l) { return l.per; })
                 .fold([=](auto l, auto r) { return qLcm(l,r); })
                 .unwrap();
 
-              return iterNormLits(phi)
-                .flatMap([=](auto l) { 
-                    auto phi = l.term().summary(var);
+              auto aperiodicLits = [=]() { 
+                return iterLiraLits(phi)
+                  .map([=](auto l) { return l.term().summary(var); })
+                  .filter([](auto& phi) { return phi.off != 0; }); 
+              };
+              auto intervals = ifElseIter(aperiodicLits().hasNext(),
+                  [=]() { return aperiodicLits()
+                                   .map([=](auto phi) { return make_pair(phi.xMinusInf(), bigPeriod + phi.deltaInf()); }); },
+                  [=]() { return getSingletonIterator(make_pair(R::zero(), bigPeriod)); });
+
+              return intervals
+                .flatMap([=](auto inter) { 
+                    // auto phi = l.term().summary(var);
                     return Grid(t)
-                      .intersect(true, phi.xMinusInf(), bigPeriod + phi.deltaInf(), true); })
+                      .intersect(true, inter.first, inter.second, true); })
                       .map([=](auto t2) { return ElimTerm(FiniteElimTerm(t2, eps, {})); })
                           ;
-                }
+              }
             );
     });
 }
@@ -830,16 +789,16 @@ auto elimSet(TermList var, NfFormula const& phi) {
 
 
 #define BIN_OP(op, Class)                                                                 \
-  NfFormula operator op(std::shared_ptr<NfFormula> const& lhs, std::shared_ptr<NfFormula> const& rhs) \
-  { return NfFormula(Class { lhs, rhs, }); }                                              \
+  LiraFormula operator op(std::shared_ptr<LiraFormula> const& lhs, std::shared_ptr<LiraFormula> const& rhs) \
+  { return LiraFormula(Class { lhs, rhs, }); }                                              \
                                                                                           \
-  NfFormula operator op(NfFormula const& lhs, std::shared_ptr<NfFormula> const& rhs)      \
+  LiraFormula operator op(LiraFormula const& lhs, std::shared_ptr<LiraFormula> const& rhs)      \
   { return make_shared(lhs)  op rhs; }                                                    \
                                                                                           \
-  NfFormula operator op(std::shared_ptr<NfFormula> const& lhs, NfFormula const& rhs)      \
+  LiraFormula operator op(std::shared_ptr<LiraFormula> const& lhs, LiraFormula const& rhs)      \
   { return lhs  op make_shared(rhs); }                                                    \
                                                                                           \
-  NfFormula operator op(NfFormula const& lhs, NfFormula const& rhs)                       \
+  LiraFormula operator op(LiraFormula const& lhs, LiraFormula const& rhs)                       \
   { return lhs  op make_shared(rhs); }                                                    \
 
 BIN_OP(&&, Conj)
@@ -847,52 +806,75 @@ BIN_OP(||, Disj)
 
 Option<Numeral> trivEval(LiraTerm const& phi)
 {
-  return phi.match(
-        [&](TermList var) -> Option<Numeral> { return {}; }
-      , [&]() { return some(Numeral(1)); }
-      , [&](Numeral k, LiraTerm t) { 
-          return k == 0 ? some(Numeral(0)) 
-                        : trivEval(t).map([&](auto n) { return k * n; }); 
-        }
-      , [&](LiraTerm lhs, LiraTerm rhs) { 
-          auto l = trivEval(lhs);
-          if (l.isNone()) return l;
-          auto r = trivEval(rhs);
-          if (r.isNone()) return r;
-          return some(*l + *r);
-        }      
-      , [&](LiraTerm t) { 
-          return trivEval(t).map([](auto n) { return n.floor(); });
-      });
+  auto simpl = PolynomialEvaluation::evaluate(phi.toNormalTerm());
+  return R::tryNumeral(simpl);
+  // return phi.match(
+  //       [&](TermList var) -> Option<Numeral> { return {}; }
+  //     , [&]() { return some(Numeral(1)); }
+  //     , [&](Numeral k, LiraTerm t) { 
+  //         return k == 0 ? some(Numeral(0)) 
+  //                       : trivEval(t).map([&](auto n) { return k * n; }); 
+  //       }
+  //     , [&](LiraTerm lhs, LiraTerm rhs) { 
+  //         auto l = trivEval(lhs);
+  //         if (l.isNone()) return l;
+  //         auto r = trivEval(rhs);
+  //         if (r.isNone()) return r;
+  //         return some(*l + *r);
+  //       }      
+  //     , [&](LiraTerm t) { 
+  //         return trivEval(t).map([](auto n) { return n.floor(); });
+  //     });
 }
 
-Option<bool> trivEval(NormLit const& phi) {
+// Option<Numeral> trivEval(LiraTerm const& phi)
+// {
+//   return phi.match(
+//         [&](TermList var) -> Option<Numeral> { return {}; }
+//       , [&]() { return some(Numeral(1)); }
+//       , [&](Numeral k, LiraTerm t) { 
+//           return k == 0 ? some(Numeral(0)) 
+//                         : trivEval(t).map([&](auto n) { return k * n; }); 
+//         }
+//       , [&](LiraTerm lhs, LiraTerm rhs) { 
+//           auto l = trivEval(lhs);
+//           if (l.isNone()) return l;
+//           auto r = trivEval(rhs);
+//           if (r.isNone()) return r;
+//           return some(*l + *r);
+//         }      
+//       , [&](LiraTerm t) { 
+//           return trivEval(t).map([](auto n) { return n.floor(); });
+//       });
+// }
+
+Option<bool> trivEval(LiraLit const& phi) {
   return trivEval(phi.term())
     .map([&](Numeral const& n) {
         switch (phi.connective()) {
-          case Connective::Greater: return n >  0;
-          case Connective::Geq:     return n >= 0;
-          case Connective::Neq:     return n != 0;
-          case Connective::Eq:      return n == 0;
+          case LiraPred::Greater: return n >  0;
+          case LiraPred::Geq:     return n >= 0;
+          case LiraPred::Neq:     return n != 0;
+          case LiraPred::Eq:      return n == 0;
         }});
 }
 
-NfFormula vsubs(NormLit const& phi, TermList var, FiniteElimTerm const& val) 
+LiraFormula vsubs(LiraLit const& phi, TermList var, FiniteElimTerm const& val) 
 {
   ASS(val.period().isNone())
 
   if (val.epsilon().isNone())  {
-    return NfFormula(LiraLiteral(NormLit(EqHelper::replace(phi.term().toNormalTerm(), var, val.term()), phi.connective())));
+    return LiraFormula(LiraLiteral(LiraLit(EqHelper::replace(phi.term().toNormalTerm(), var, val.term()), phi.connective())));
   } else {
     auto sum = phi.term().summary(var);
     auto limSubs = [&]() { return EqHelper::replace(sum.lim, var, val.term()); };
     if (isIneq(phi.connective()))  {
-      return NfFormula(LiraLiteral(NormLit(limSubs()
-                          , sum.slope >  0 ? Connective::Geq 
+      return LiraFormula(LiraLiteral(LiraLit(limSubs()
+                          , sum.slope >  0 ? LiraPred::Geq 
                           : sum.slope == 0 ? phi.connective()
-                          :                  Connective::Greater)));
+                          :                  LiraPred::Greater)));
     } else {
-      return NfFormula(LiraLiteral(NormLit(sum.slope == 0 ? limSubs()         // <- (~) lim[t] = 0
+      return LiraFormula(LiraLiteral(LiraLit(sum.slope == 0 ? limSubs()         // <- (~) lim[t] = 0
                                               : R::constantTl(1), // <- (~) 1 = 0
                                               phi.connective())));
     }
@@ -901,26 +883,26 @@ NfFormula vsubs(NormLit const& phi, TermList var, FiniteElimTerm const& val)
 }
 
 
-NfFormula vsubs(EpsLit const& lit, TermList var, FiniteElimTerm const& val)
+LiraFormula vsubs(EpsLit const& lit, TermList var, FiniteElimTerm const& val)
 { 
   auto phi = lit.term();
   ASS(val.period().isNone())
   if (val.epsilon()) {
     auto sum = phi.summary(var);
     auto limT = EqHelper::replace(sum.lim, var, val.term());
-    return NfFormula(
-        sum.slope == 1 ? LiraLiteral(NormLit(limT, Connective::Neq))
+    return LiraFormula(
+        sum.slope == 1 ? LiraLiteral(LiraLit(limT, LiraPred::Neq))
                        : LiraLiteral(EpsLit((1 / (1 - sum.slope)) * limT)));
   } else {
     /* phi[x//t] !~ eps => phi[x/t] !~ eps */ 
-    return NfFormula(LiraLiteral(EpsLit(EqHelper::replace(phi.toNormalTerm(), var, val.term()))));
+    return LiraFormula(LiraLiteral(EpsLit(EqHelper::replace(phi.toNormalTerm(), var, val.term()))));
   }
 }
 
-NfFormula vsubs(LiraLiteral const& phi, TermList var, FiniteElimTerm const& val) 
+LiraFormula vsubs(LiraLiteral const& phi, TermList var, FiniteElimTerm const& val) 
 { return phi.apply([&](auto l) { return vsubs(l, var, val); }); }
 
-NfFormula vsubs(NfFormula const& phi, TermList var, FiniteElimTerm const& val)
+LiraFormula vsubs(LiraFormula const& phi, TermList var, FiniteElimTerm const& val)
 {
   ASS(val.period().isNone())
 
@@ -931,10 +913,10 @@ NfFormula vsubs(NfFormula const& phi, TermList var, FiniteElimTerm const& val)
 }
 
 
-NfFormula vsubs(NfFormula const& phi, TermList var, ElimTerm val)
+LiraFormula vsubs(LiraFormula const& phi, TermList var, ElimTerm val)
 { return vsubs(phi, var, *val.asFinite()); }
 
-NfFormula vsubs(NfFormula const& phi, Assignments const& asgn) {
+LiraFormula vsubs(LiraFormula const& phi, Assignments const& asgn) {
   auto res = phi;
   for (auto a : asgn.iter()) {
     res = vsubs(std::move(res), a.var, a.val);
@@ -952,7 +934,7 @@ Option<bool> trivEval(EpsLit const& phi)
 Option<bool> trivEval(LiraLiteral const& phi) 
 { return phi.apply([&](auto l) { return trivEval(l); }); }
 
-Option<bool> trivEval(NfFormula const& phi) {
+Option<bool> trivEval(LiraFormula const& phi) {
   return phi.match(
       [&](LiraLiteral const& l) { return trivEval(l); },
       [&](Conj const& c) -> Option<bool> {
@@ -981,20 +963,21 @@ Option<bool> trivEval(NfFormula const& phi) {
       });
 }
 
-bool _decide(Stack<TermList> vars, Stack<NormLit> const& lits) 
+bool _decide(Stack<TermList> vars, Stack<LiraLit> const& lits) 
 {
 
+  DBGE(lits)
   Assignments assignment;
-  Stack<std::shared_ptr<NfFormula>> phi_hist;
+  Stack<std::shared_ptr<LiraFormula>> phi_hist;
   if (lits.isEmpty()) return true;
   phi_hist.push(make_shared(arrayIter(lits)
       .map([](auto l) { return LiraLiteral(l); })
-      .map([](auto l) { return NfFormula(l); })
+      .map([](auto l) { return LiraFormula(l); })
       .fold([](auto l, auto r) { return l && r; })
       .unwrap()));
-  Stack<std::shared_ptr<NfFormula>> lemma_hist;
-  lemma_hist.push(make_shared(NfFormula::top()));
-  auto learn = [&]() -> NfFormula {
+  Stack<std::shared_ptr<LiraFormula>> lemma_hist;
+  lemma_hist.push(make_shared(LiraFormula::top()));
+  auto learn = [&]() -> LiraFormula {
     DBGE(assignment);
     ASSERTION_VIOLATION_REP("TODO")};
 
@@ -1020,11 +1003,14 @@ bool _decide(Stack<TermList> vars, Stack<NormLit> const& lits)
     ASS_REP(vars.isNonEmpty(), outputToString("unexpeced unbound variables in ", lits))
     auto var = vars.pop();
     Option<ElimTerm> val;
-    for (auto t : elimSet(var, *phi_hist.top())) {
+    for (auto t : elimSet(var, *phi_hist.top()).map([](auto t) { return simpl(t); })) {
       auto phiS = make_shared(vsubs(*phi_hist.top(), var, t));
       auto lemmaS = make_shared(vsubs(*lemma_hist.top(), var, t));
+      DBG("checking ", var, " -> ", t)
       auto triv = trivEval(phiS && lemmaS);
+      DBG("triv eval result: ", triv)
       if (triv != some(false)) {
+        // DBGE(phi_hist)
         phi_hist.push(phiS);
         lemma_hist.push(lemmaS);
         val = some(t);
@@ -1033,6 +1019,7 @@ bool _decide(Stack<TermList> vars, Stack<NormLit> const& lits)
     }
 
     if (val.isNone()) {
+      DBG("no assignment for ", var)
       // var cannot be assigned to any value, formula is unsat
       return false;
     } else {
@@ -1048,7 +1035,7 @@ bool ConflictDrivenVirtualSubstitution::decide(Stack<Literal*> lits)
     .template collect<Stack>()
     .sorted()
     .deduped();
-  auto ls = arrayIter(lits).map([](auto l) { return NormLit::from(l); }).template collect<Stack>();
+  auto ls = arrayIter(lits).map([](auto l) { return LiraLit::from(l); }).template collect<Stack>();
   return _decide(vars, ls);
 }
 

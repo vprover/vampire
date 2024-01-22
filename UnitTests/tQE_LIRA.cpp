@@ -163,6 +163,7 @@ constexpr Epsilon eps = Epsilon{};
   __ALLOW_UNUSED(                                                                         \
     NUMBER_SUGAR(Real)                                                                    \
     DECL_VAR(x, VAR_X)                                                                    \
+    DECL_VAR(y, 1)                                                                    \
     DECL_CONST(a, Real)                                                                   \
     DECL_CONST(b, Real)                                                                   \
     DECL_CONST(c, Real)                                                                   \
@@ -244,6 +245,13 @@ RUN_TEST(floor_5,
       .expected = containsAll( a + Z(1) ), 
     })
 
+RUN_TEST(bug_01,
+    ElimSetTest {
+      // .formula  = exists(x, Real, floor(x - a) == x),
+      .conj     =  {floor(y - x) == y},
+      .expected = containsAll(num(0)),
+    })
+
 //////////////////////////////////////////////////////////////////////////////////////
 // Full Decisision procedure tests
 //////////////////////////////////////////////////////////////////////////////////////
@@ -251,6 +259,6 @@ RUN_TEST(floor_5,
 RUN_TEST(decide_01,
     CdvsTest {
       // .formula  = exists(x, Real, floor(x - a) == x),
-      .formula  =  {floor(x - a) == x},
+      .formula  =  {floor(x - y) == x},
       .expected = true,
     })

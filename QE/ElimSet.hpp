@@ -50,7 +50,7 @@ struct Epsilon
 struct Period
 { 
   RealConstantType p; 
-  explicit Period(RealConstantType p) : p(p) {}
+  explicit Period(RealConstantType p) : p(p) { ASS(p > 0) }
   friend std::ostream& operator<<(std::ostream& out, Period const& self)
   { return out << self.p << "\u2124"; }
   auto asTuple() const { return std::tie(p); }

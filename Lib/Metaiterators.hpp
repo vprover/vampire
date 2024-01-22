@@ -1817,7 +1817,7 @@ public:
     return inner.apply([](auto& x) { return x.hasNext();}); }
 
   OWN_ELEMENT_TYPE next()
-  { return _inner.apply([](auto&& x) { return x.next();}); }
+  { return _inner.apply([](auto& x) -> OWN_ELEMENT_TYPE { return x.next(); }); }
 
   bool knowsSize() const 
   { return _inner.apply([](auto& x) { return x.knowsSize();}); }
@@ -2127,7 +2127,7 @@ class NatIter {
   T _i;
 public:
   DECL_ELEMENT_TYPE(T);
-  NatIter() : _i(0) {}
+  NatIter() : _i(0) { }
   bool hasNext() const { return true; }
   T next() { return _i++; }
 };

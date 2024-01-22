@@ -51,6 +51,11 @@ public:
   static PolyNf simplifySummation(Stack<Monom<NumTraits>>, bool removeZeros);
   TermList evaluateToTerm(Term* in) const;
   TermList evaluateToTerm(TermList in) const { return in.isVar() ? in : evaluateToTerm(in.term()); }
+  template<class T>
+  static TermList evaluate(T in) {
+    static PolynomialEvaluation instance(/* removeZeros = */ true);
+    return instance.evaluateToTerm(in);
+  }
   Option<Result> tryEvalPredicate(Literal* orig, PolyNf* evaluatedArgs) const;
 private:
 

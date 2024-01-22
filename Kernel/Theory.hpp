@@ -178,7 +178,7 @@ struct RationalConstantType {
 
   static TermList getSort() { return AtomicSort::rationalSort(); }
 
-  RationalConstantType() {}
+  RationalConstantType() : _num(0), _den(1) {}
   RationalConstantType(RationalConstantType&&) = default;
   RationalConstantType(const RationalConstantType&) = default;
   RationalConstantType& operator=(const RationalConstantType&) = default;
