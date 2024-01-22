@@ -1397,7 +1397,7 @@ using namespace Kernel;
         void denormalize(Renaming& norm)
         { _subs->denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
 
-        /** whenever we arrieve at a leave we return the currrent witness for the current leave term to unify
+        /** whenever we arrive at a leave we return the currrent witness for the current leave term to unify
          * with the query term. The unifier is queried using this function.  */
         Unifier unifier() { return ResultSubstitution::fromSubstitution(&*_subs, QUERY_BANK, RESULT_BANK); }
 
