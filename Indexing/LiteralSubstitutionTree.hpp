@@ -52,9 +52,14 @@ public:
   SLQueryResultIterator getVariants(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
 
 private:
-  static unsigned idxToFunctor(unsigned idx) { return idx / 2; }
-  static bool idxIsNegative(unsigned idx) { return idx % 2; }
+  /** encodes functor and polarity into one number, so it can be used as an index in the array _trees
+   * The inverse functions to this are `idxIsNegative` and `idxToFunctor` 
+   */
   static unsigned toIdx(unsigned f, bool isNegative) { return f * 2 + isNegative; }
+  /** see `toIdx` */
+  static unsigned idxToFunctor(unsigned idx) { return idx / 2; }
+  /** see `toIdx` */
+  static bool idxIsNegative(unsigned idx) { return idx % 2; }
 
   template<class Iterator, class... Args>
   auto getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, Args... args)
