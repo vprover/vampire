@@ -305,8 +305,7 @@ using namespace Kernel;
 
 
     typedef VirtualIterator<Node**> NodeIterator;
-    class IntermediateNode;
-      
+
     class IntermediateNode
           : public Node
     {
