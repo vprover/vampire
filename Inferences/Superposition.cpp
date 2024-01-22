@@ -498,7 +498,6 @@ Clause* Superposition::performSuperposition(
     return nullptr;
   }
 
-  //TODO update AYB
   if(!unifier->usesUwa()){
     if(rwClause==eqClause) {
       env.statistics->selfSuperposition++;

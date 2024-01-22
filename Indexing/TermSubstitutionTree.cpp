@@ -24,8 +24,7 @@ using namespace Lib;
 using namespace Kernel;
 
 TermSubstitutionTree::TermSubstitutionTree(bool extra)
-: SubstitutionTree()
-, _extra(extra)
+: _extra(extra)
 { }
 
 
