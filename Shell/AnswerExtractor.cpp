@@ -797,6 +797,7 @@ TermList SynthesisManager::ConjectureSkolemReplacement::transformSubterm(TermLis
       while (it.hasNext()) {
         SkolemTracker st = it.next();
         if (st.recFnID == t->functor()) {
+          // TODO: here instead of printing out the skolem mapping, construct the corresponding function, add it to some internal structure, and print it at some point.
           cout << trm << ": " << st.toString() << endl;
         }
       }
