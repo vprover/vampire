@@ -499,6 +499,8 @@ bool SynthesisManager::tryGetAnswer(Clause* refutation, Stack<TermList>& answer)
     AnsList::push(make_pair(0, make_pair(nullptr, _lastAnsLit)), _answerPairs);
   }
 
+  _skolemReplacement.associateRecMappings(_skolemMappings);
+
   ClauseStack premiseClauses;
   Stack<Unit*> conjectures;
   DHSet<Unit*> proofUnits;
@@ -708,7 +710,6 @@ Term* SynthesisManager::translateToSynthesisConditionTerm(Literal* l)
       }
       if (!env.signature->getPredicate(l->functor())->computable()) {
         sym->markUncomputable();
-        cout << "creating " << sym->name() << " as uncomputable based on " << l->toString() << endl;
       }
     }
     sym->setType(OperatorType::getFunctionType(arity, argSorts.begin(), AtomicSort::defaultSort()));
@@ -791,23 +792,29 @@ TermList SynthesisManager::ConjectureSkolemReplacement::transformSubterm(TermLis
       return TermList(it->second, false);
     }
     Term* t = trm.term();
-    if ((t->arity() == 3) && t->nthArgument(0)->isTerm()) {
+    if (env.signature->getFunction(t->functor())->recursionAnswerSymbol()) {
+      SkolemTrackerList::Iterator it(_skolemMappings);
+      while (it.hasNext()) {
+        SkolemTracker st = it.next();
+        if (st.recFnID == t->functor()) {
+          cout << trm << ": " << st.toString() << endl;
+        }
+      }
+    } else if ((t->arity() == 3) && t->nthArgument(0)->isTerm()) {
       TermList sort = env.signature->getFunction(t->functor())->fnType()->arg(1);
       if (t->functor() == getITEFunctionSymbol(sort)) {
         // Build condition
         Term* tcond = t->nthArgument(0)->term();
         vstring condName = tcond->functionName();
         unsigned pred = _condFnToPred.get(tcond->functor());
-        Stack<TermList> args;
-        for (unsigned i = 0; i < tcond->arity(); ++i) args.push(transform(*(tcond->nthArgument(i))));
         Literal* newCond;
         if (env.signature->isEqualityPredicate(pred)) {
-          newCond = Literal::createEquality(/*polarity=*/true, args[0], args[1], sort);
+          newCond = Literal::createEquality(/*polarity=*/true, *tcond->nthArgument(0), *tcond->nthArgument(1), sort);
         } else {
-          newCond = Literal::create(pred, tcond->arity(), /*polarity=*/true, /*commutative=*/false, args.begin());
+          newCond = Literal::create(pred, tcond->arity(), /*polarity=*/true, /*commutative=*/false, tcond->args());
         }
         // Build the whole ITE term
-        return TermList(Term::createITE(new AtomicFormula(newCond), transform(*(t->nthArgument(1))), transform(*(t->nthArgument(2))), sort));
+        return TermList(Term::createITE(new AtomicFormula(newCond), *(t->nthArgument(1)), *(t->nthArgument(2)), sort));
       }
     }
   }

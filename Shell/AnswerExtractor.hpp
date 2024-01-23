@@ -125,18 +125,20 @@ class SynthesisManager : public AnswerLiteralManager
 {
 
 private:
-  class ConjectureSkolemReplacement : public TermTransformer {
+  class ConjectureSkolemReplacement : public BottomUpTermTransformer {
    public:
     ConjectureSkolemReplacement() : _skolemToVar() {}
     void bindSkolemToVar(Term* t, unsigned v);
     TermList transformTermList(TermList tl, TermList sort);
     void addCondPair(unsigned fn, unsigned pred) { _condFnToPred.insert(fn, pred); }
+    void associateRecMappings(SkolemTrackerList* l) { _skolemMappings = l; }
    protected:
     TermList transformSubterm(TermList trm) override;
    private:
     vmap<Term*, unsigned> _skolemToVar;
     // Map from functions to predicates they represent in answer literal conditions
     DHMap<unsigned, unsigned> _condFnToPred;
+    SkolemTrackerList* _skolemMappings = nullptr;
   };
 
 

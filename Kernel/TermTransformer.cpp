@@ -348,4 +348,16 @@ Formula* BottomUpTermTransformer::transform(Formula* f)
   return ttft.transform(f);
 }
 
+TermList BottomUpTermTransformer::transform(TermList ts)
+{
+  if (ts.isVar()) {
+    // it's a var (no way to recurse)
+    return transformSubterm(ts);
+  } else {
+    // try transform subterms and try transforming the whole term
+    ASS(ts.isTerm());
+    return transformSubterm(TermList(transform(ts.term())));
+  }
+}
+
 }
