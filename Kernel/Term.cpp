@@ -1880,7 +1880,7 @@ bool Term::computableOrVarHelper(List<Term*>* recAnces, List<unsigned int>* idx)
       // Check if this skolem (this) is allowed in index _idx_ of _rec_
       Signature::Symbol* s = env.signature->getFunction(rec->functor());
       if (s->recFnId() == symbol->recFnId()) { // if this skolem was obtained from the axiom introducing _rec_
-        if (pos != symbol->constructorId()) {
+        if ((int)pos != symbol->constructorId()) {
           return false;
         }
       }

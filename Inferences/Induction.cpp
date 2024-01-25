@@ -1436,16 +1436,13 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
       argTerms.push(y);
       VList::push(y.var(), ys);
 
-      int recursive = -1; // e.g., In BT(l, n, r), l and r will be recursive.
-
       if (con->argSort(j) == con->rangeSort()){
         recTerms.push(y);
-        recursive = j;
 
         TermList w(var++, false);
         VList::push(w.var(), ws);
         // Stores SkolemTrackers before skolemization happens. Later (after skolemization), they will be used to match Skolem symbols.
-        tempSkolemMappings->push(SkolemTracker(Binding(w.var(), nullptr), i, false, -1, rec_fn), tempSkolemMappings);
+        tempSkolemMappings->push(SkolemTracker(Binding(w.var(), nullptr), i, true, j, rec_fn), tempSkolemMappings);
 
         TermReplacement tr(context._indTerm, y);
         Literal* curLit = tr.transform(L);
@@ -1456,7 +1453,7 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
         FormulaList::push(new AtomicFormula(curLit), hyps); // L[y_j, w_j]
       }
       // Stores SkolemTrackers before skolemization happens. Later (after skolemization), they will be used to match Skolem symbols.
-      tempSkolemMappings->push(SkolemTracker(Binding(y.var(), nullptr), i, (recursive != -1) ? true : false, recursive, rec_fn), tempSkolemMappings);
+      tempSkolemMappings->push(SkolemTracker(Binding(y.var(), nullptr), i, false, j, rec_fn), tempSkolemMappings);
     }
     Formula* antecedent = JunctionFormula::generalJunction(Connective::AND, hyps); // /\_{j ∈ P_c}  L[y_j, w_j]
 

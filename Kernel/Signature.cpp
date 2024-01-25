@@ -51,6 +51,7 @@ Signature::Symbol::Symbol(const vstring& nm, unsigned arity, bool interpreted, b
     _stringConstant(stringConstant ? 1: 0),
     _numericConstant(numericConstant ? 1: 0),
     _answerPredicate(0),
+    _recursionAnswer(0),
     _overflownConstant(overflownConstant ? 1 : 0),
     _termAlgebraCons(0),
     _termAlgebraDest(0),

@@ -499,7 +499,7 @@ bool SynthesisManager::tryGetAnswer(Clause* refutation, Stack<TermList>& answer)
     AnsList::push(make_pair(0, make_pair(nullptr, _lastAnsLit)), _answerPairs);
   }
 
-  _skolemReplacement.associateRecMappings(_skolemMappings);
+  _skolemReplacement.associateRecMappings(&_recursionMappings);
 
   ClauseStack premiseClauses;
   Stack<Unit*> conjectures;
@@ -512,6 +512,9 @@ bool SynthesisManager::tryGetAnswer(Clause* refutation, Stack<TermList>& answer)
   AnsList::Iterator it(_answerPairs);
   ALWAYS(it.hasNext());
   pair<unsigned, pair<Clause*, Literal*>> p = it.next();
+  while (p.first > 0 && !proofNums.contains(p.first) && it.hasNext()) p = it.next();
+  ASS(p.first == 0 || proofNums.contains(p.first));
+  _skolemReplacement.initializeRecSkolems(p.second.second);
   unsigned arity = p.second.second->arity();
   Stack<TermList> sorts(arity);
   for (unsigned i = 0; i < arity; i++) {
@@ -525,6 +528,8 @@ bool SynthesisManager::tryGetAnswer(Clause* refutation, Stack<TermList>& answer)
     if (!proofNums.contains(p.first)) {
       continue;
     }
+    _skolemReplacement.initializeRecSkolems(p.second.first);
+    _skolemReplacement.initializeRecSkolems(p.second.second);
     // Create the condition for an if-then-else by negating the clause
     Formula* condition = getConditionFromClause(p.second.first);
     for (unsigned i = 0; i < arity; i++) {
@@ -656,7 +661,7 @@ Unit* SynthesisManager::createUnitFromConjunctionWithAnswerLiteral(Formula* junc
       skSym->setType(ot);
       Term* skTerm = Term::create(skFun, /*arity=*/0, /*args=*/nullptr);
       subst.bind(var, skTerm);
-      _skolemReplacement.bindSkolemToVar(skTerm, var);
+      _skolemReplacement.bindSkolemToTermList(skTerm, TermList(var, false));
     }
     quant = SubstHelper::apply(quant, subst);
   }
@@ -732,9 +737,18 @@ Term* SynthesisManager::createRegularITE(Term* condition, TermList thenBranch, T
   return Term::create(itefn, {TermList(condition), thenBranch, elseBranch});
 }
 
-void SynthesisManager::ConjectureSkolemReplacement::bindSkolemToVar(Term* t, unsigned v) {
-  ASS(_skolemToVar.count(t) == 0);
-  _skolemToVar[t] = v;
+void SynthesisManager::ConjectureSkolemReplacement::bindSkolemToTermList(Term* t, TermList&& tl) {
+  ASS(!_skolemToTermList.find(t));
+  if (env.signature->getFunction(t->functor())->computable()) {
+    ++_numInputSkolems;
+  }
+  _skolemToTermList.emplace(t, std::move(tl));
+}
+
+void SynthesisManager::ConjectureSkolemReplacement::bindRecToFun(unsigned functor, SynthesisManager::ConjectureSkolemReplacement::Function&& f) {
+  if (!_functions.find(functor)) {
+    _functions.emplace(functor, std::move(f));
+  }
 }
 
 TermList SynthesisManager::ConjectureSkolemReplacement::transformTermList(TermList tl, TermList sort) {
@@ -787,23 +801,21 @@ TermList SynthesisManager::ConjectureSkolemReplacement::transformTermList(TermLi
 
 TermList SynthesisManager::ConjectureSkolemReplacement::transformSubterm(TermList trm) {
   if (trm.isTerm()) {
-    auto it = _skolemToVar.find(trm.term());
-    if (it != _skolemToVar.end()) {
-      return TermList(it->second, false);
+    TermList* res = _skolemToTermList.findPtr(trm.term());
+    if (res) {
+      return *res;
     }
     Term* t = trm.term();
-    if (env.signature->getFunction(t->functor())->recursionAnswerSymbol()) {
-      SkolemTrackerList::Iterator it(_skolemMappings);
-      while (it.hasNext()) {
-        SkolemTracker st = it.next();
-        if (st.recFnID == t->functor()) {
-          // TODO: here instead of printing out the skolem mapping, construct the corresponding function, add it to some internal structure, and print it at some point.
-          cout << trm << ": " << st.toString() << endl;
-        }
-      }
+    unsigned functor = t->functor();
+    if (env.signature->getFunction(functor)->recursionAnswerSymbol()) {
+      ASS(_functions.find(functor));
+      Function& f = _functions.get(functor);
+      f.addCases(t);
+      cout << f.toString();
+      return TermList(Term::create(f._functor, {*t->nthArgument(t->arity()-1)}));
     } else if ((t->arity() == 3) && t->nthArgument(0)->isTerm()) {
-      TermList sort = env.signature->getFunction(t->functor())->fnType()->arg(1);
-      if (t->functor() == getITEFunctionSymbol(sort)) {
+      TermList sort = env.signature->getFunction(functor)->fnType()->arg(1);
+      if (functor == getITEFunctionSymbol(sort)) {
         // Build condition
         Term* tcond = t->nthArgument(0)->term();
         vstring condName = tcond->functionName();
@@ -822,11 +834,76 @@ TermList SynthesisManager::ConjectureSkolemReplacement::transformSubterm(TermLis
   return trm;
 }
 
+void SynthesisManager::ConjectureSkolemReplacement::initializeRecSkolems(Literal* l) {
+  NonVariableIterator it(l);
+  while (it.hasNext()) {
+    TermList tl = it.next();
+    ASS(tl.isTerm());
+    unsigned functor = tl.term()->functor();
+    if (env.signature->getFunction(functor)->recursionAnswerSymbol()) {
+      ASS(_recursionMappings->find(functor));
+      bindRecToFun(functor, Function(functor, this));
+    }
+  }
 }
 
+void SynthesisManager::ConjectureSkolemReplacement::initializeRecSkolems(Clause* cl) {
+  for (unsigned i = 0; i < cl->length(); ++i) {
+    initializeRecSkolems((*cl)[i]);
+  }
+}
 
-void SynthesisManager::storeSkolemMapping(unsigned int var, Term* skolem, unsigned int constructorIndex, bool recursiveArg, int recursivePos, int recFnID) {
-  _skolemMappings->push(SkolemTracker(Binding(var, skolem), constructorIndex, recursiveArg, recursivePos, recFnID), _skolemMappings);
+SynthesisManager::ConjectureSkolemReplacement::Function::Function(unsigned recFunctor, ConjectureSkolemReplacement* replacement) {
+  _replacement = replacement;
+  DHMap<unsigned, SkolemTrackerList*>& mapping = _replacement->_recursionMappings->get(recFunctor);
+  OperatorType* ot = env.signature->getFunction(recFunctor)->fnType();
+  TermList in = ot->arg(ot->arity()-1);
+  TermList out = ot->arg(0);
+  _ta = env.signature->getTermAlgebraOfSort(in);
+  _functor = env.signature->addFreshFunction(/*arity=*/1, "rf");
+  Signature::Symbol* f = env.signature->getFunction(_functor);
+  f->setType(OperatorType::getFunctionType({in}, out));
+  DHMap<unsigned, SkolemTrackerList*>::Iterator it(mapping);
+  while (it.hasNext()) {
+    unsigned consIdx;
+    SkolemTrackerList* st;
+    it.next(consIdx, st);
+    SkolemTrackerList::Iterator sit(st);
+    while (sit.hasNext()) {
+      SkolemTracker s = sit.next();
+      unsigned var = s.constructorPos + _replacement->numInputSkolems();
+      _replacement->bindSkolemToTermList(s.binding.second, s.recursiveCall ? TermList(Term::create(_functor, {TermList(var, false)})) : TermList(var, false));
+    }
+  }
+}
+
+void SynthesisManager::ConjectureSkolemReplacement::Function::addCases(Term* t) {
+  for (unsigned i = 0; i < t->arity()-1; ++i) {
+    List<TermList>::push(*t->nthArgument(t->arity()-2-i), _cases);
+  }
+}
+
+void SynthesisManager::storeSkolemMapping(unsigned int var, Term* skolem, unsigned int constructorIndex, bool recursiveCall, int constructorPos, int recFnID) {
+  ASS(recFnID >= 0);
+  DHMap<unsigned, SkolemTrackerList*>* m;
+  _recursionMappings.getValuePtr((unsigned)recFnID, m);
+  SkolemTrackerList** l;
+  m->getValuePtr(constructorIndex, l);
+  SkolemTrackerList::push(SkolemTracker(Binding(var, skolem), constructorIndex, recursiveCall, constructorPos, (unsigned)recFnID), (*l));
+}
+
+void SynthesisManager::printRecursionMappings() {
+  cout << "Recursion mappings:" << endl;
+  RecursionMappings::Iterator rit(_recursionMappings);
+  while (rit.hasNext()) {
+    DHMap<unsigned, SkolemTrackerList*>::Iterator mit(rit.next());
+    while (mit.hasNext()) {
+      SkolemTrackerList::Iterator it(mit.next());
+      while (it.hasNext()) {
+        cout << it.next().toString() << endl;
+      }
+    }
+  }
 }
 
 void SynthesisManager::printSkolemMappings() {
@@ -847,7 +924,7 @@ void SynthesisManager::matchSkolemSymbols(BindingList* bindingList, SkolemTracke
     while(bIt.hasNext()) {
       Binding b = bIt.next();
       if (st.binding.first == b.first) { 
-        storeSkolemMapping(b.first, b.second, st.constructorIndex, st.recursiveArg, st.recursivePos, st.recFnID);
+        storeSkolemMapping(b.first, b.second, st.constructorIndex, st.recursiveCall, st.constructorPos, st.recFnID);
         Signature::Symbol* s = env.signature->getFunction(b.second->functor());
         s->setConstructorId(st.constructorIndex);
         s->setRecTermId(st.recFnID);
@@ -903,4 +980,6 @@ unsigned int SynthesisManager::getResolventLiteralIdx(Clause* clause) {
     }
   }
   return -1;
+}
+
 }
