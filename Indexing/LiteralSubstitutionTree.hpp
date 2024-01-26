@@ -153,8 +153,9 @@ private:
   {
     auto idx = complementary ? lit->header() : lit->complementaryHeader();
     while (idx >= _trees.size()) {
-      auto f = idx / 2;
-      _trees.push(SubstitutionTree(env.signature->getPredicate(f)->arity()));
+      auto f = idxToFunctor(idx);
+      auto isEquality = f == 0;
+      _trees.push(SubstitutionTree(isEquality ? 3 : env.signature->getPredicate(f)->arity()));
     }
     return _trees[idx];
   }
