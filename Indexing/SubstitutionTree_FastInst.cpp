@@ -195,9 +195,7 @@ template<class LeafData_>
 bool SubstitutionTree<LeafData_>::InstMatcher::matchNext(unsigned specVar, TermList nodeTerm, bool separate)
 {
   if(separate) {
-    TermList sep;
-    sep.makeEmpty();
-    _boundVars->push(sep);
+    _boundVars->push(TermList::empty());
   }
 
 #if VDEBUG

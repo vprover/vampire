@@ -272,7 +272,7 @@ public:
      * The current node will be deleted, but we don't want to destroy
      * structures, that are taken over by the new node implementation.
      */
-    virtual void makeEmpty() { _term.makeEmpty(); }
+    virtual void makeEmpty() { _term = TermList::empty(); }
     static void split(Node** pnode, TermList* where, int var);
 
     void setTerm(TermList t) { 
@@ -575,8 +575,10 @@ public:
     void remove(BindingMap& binding,LeafData ld);
 
     /** Number of the next variable */
-    int _nextVar;
-    Node* _root;
+    int _nextVar = 0;
+    Node* _root = nullptr;
+    Cntr _iterCnt;
+
   public:
 
     class RenamingSubstitution 
@@ -882,7 +884,7 @@ public:
       {
         TermSpec() : q(false) {
         #if VDEBUG
-          t.makeEmpty();
+          t = TermList::empty();
         #endif
         }
         TermSpec(bool q, TermList t)
@@ -1002,7 +1004,7 @@ public:
 
       struct DerefTask
       {
-        DerefTask(TermList var) : var(var) { trm.t.makeEmpty(); }
+        DerefTask(TermList var) : var(var) { trm.t = TermList::empty(); }
         DerefTask(TermList var, TermSpec trm) : var(var), trm(trm) {}
         TermList var;
         TermSpec trm;
@@ -1296,7 +1298,6 @@ public:
     bool isEmpty() const { return _root == nullptr || _root->isEmpty(); }
     // friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self);
 
-    Cntr _iterCnt;
   }; // class SubstiutionTree
 
   /* This namespace defines classes to be used as type parameter for SubstitutionTree::Iterator. 
@@ -1348,7 +1349,7 @@ public:
         void denormalize(Renaming& norm)
         { _subs->denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
 
-        /** whenever we arrieve at a leave we return the currrent witness for the current leave term to unify
+        /** whenever we arrive at a leave we return the currrent witness for the current leave term to unify
          * with the query term. The unifier is queried using this function.  */
         Unifier unifier() { return ResultSubstitution::fromSubstitution(&*_subs, QUERY_BANK, RESULT_BANK); }
 

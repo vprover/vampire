@@ -177,12 +177,10 @@ public:
   /** make the term into a special variable with a given number */
   inline void makeSpecialVar(unsigned vnumber)
   { _content = vnumber * 4 + SPEC_VAR; }
-  /** make the term empty (so that isEmpty() returns true) */
-  inline void makeEmpty()
-  { _content = FUN; }
+  /** create an term empty (so that isEmpty() returns true) */
   inline static TermList empty()
-  { TermList out; out.makeEmpty(); return out; }
-  /** make the term into a reference */
+  { TermList out; out._content = FUN; return out; }
+  /** the top of a term is either a function symbol or a variable id. this class is model this */
   class Top {
     using Inner = Coproduct<unsigned, unsigned>;
     static constexpr unsigned VAR = 0;
@@ -205,10 +203,12 @@ public:
     void output(std::ostream& out) const;
   };
 
+  /* returns the Top of a function (a variable id, or a function symbol depending on whether the term is a variable or a complex term) */
   Top top() const
   { return isTerm() ? TermList::Top::functor(term()) 
                     : TermList::Top::var(var());            }
 
+  /** make the term into a reference */
   inline void setTerm(Term* t) {
     // NB we also zero-initialise _content so that the spare bits are zero on 32-bit platforms
     // dead-store eliminated on 64-bit
@@ -1035,6 +1035,7 @@ public:
     if (commutative) {
       ASS_EQ(arity, 2)
       ASS(rightArgOrder(getArg(0), getArg(1)))
+      ASS(rightArgOrder(*lit->nthArgument(0), *lit->nthArgument(1)))
 
       if (someIf(lit->isTwoVarEquality(), [&](){ return lit->twoVarEqSort(); }) != twoVarEqSort) {
         return false;

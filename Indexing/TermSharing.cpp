@@ -75,8 +75,8 @@ void TermSharing::setPoly()
 }
 
 /**
- * TODO update documentation
- * Insert a new term in the index and return the result.
+ * pre-computes some properties that are stored for shared terms and caches them.
+ * This includes things like the term's id, the number of variables, the weight, etc.
  * @since 28/12/2007 Manchester
  */
 void TermSharing::computeAndSetSharedTermData(Term* t)
@@ -182,7 +182,7 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
     }
 } // TermSharing::insert
 
- // TODO update documentation
+/** same as `TermSharing::computeAndSetSharedTermData(Term*)` but for sorts */
 void TermSharing::computeAndSetSharedSortData(AtomicSort* sort)
 {
   ASS(!sort->isLiteral());
@@ -222,16 +222,12 @@ void TermSharing::computeAndSetSharedSortData(AtomicSort* sort)
     if (!SortHelper::allTopLevelArgsAreSorts(sort)){
       USER_ERROR("Immediate subterms of sort "+sort->toString()+" are not all sorts as mandated in rank-1 polymorphism!");      
     }
-} // TermSharing::insert
+} // TermSharing::computeAndSetSharedSortData
 
-/**
- * TODO update documentation
- * Insert a new literal in the index and return the result.
+/** same as `TermSharing::computeAndSetSharedTermData(Term*)` but for literals 
  *
  * Equalities between two variables cannot be inserted using this
- * function. @c insertVariableEquality() must be used instead.
- *
- * @since 28/12/2007 Manchester
+ * function. @c computeAndSetSharedVarEqData() must be used instead.
  */
 void TermSharing::computeAndSetSharedLiteralData(Literal* t)
 {
@@ -291,12 +287,9 @@ void TermSharing::computeAndSetSharedLiteralData(Literal* t)
     } else if (_poly && !SortHelper::areImmediateSortsValidPoly(t) && !_wellSortednessCheckingDisabled){
       USER_ERROR("Immediate (shared) subterms of  term/literal "+t->toString()+" have different types/not well-typed!");      
     }
-} // TermSharing::insert
+} // TermSharing::computeAndSetSharedLiteralData
 
-/**
- * Insert a new literal in the index and return the result.
- * @since 28/12/2007 Manchester
- */
+/** same as `TermSharing::computeAndSetSharedTermData(Term*)` but for two variable equlities */
 void TermSharing::computeAndSetSharedVarEqData(Literal* t, TermList sort)
 {
   ASS(t->isLiteral());
@@ -335,7 +328,7 @@ void TermSharing::computeAndSetSharedVarEqData(Literal* t, TermList sort)
       t->setColor(COLOR_TRANSPARENT);
     }
     t->setInterpretedConstantsPresence(false);
-} // TermSharing::insertVariableEquality
+} // TermSharing::computeAndSetSharedVarEqData
 
 /**
  * If the sharing structure contains a literal opposite to @b l, return it.
