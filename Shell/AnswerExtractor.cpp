@@ -934,7 +934,7 @@ void SynthesisManager::matchSkolemSymbols(BindingList* bindingList, SkolemTracke
   }
 }
 
-bool SynthesisManager::isRecTerm(Term* t) { // Checks if t is a _rec_ term
+bool SynthesisManager::isRecTerm(const Term* t) { // Checks if t is a _rec_ term
   unsigned int fn = t->functor();
   List<unsigned int>::Iterator it(_recTermIds);
   while (it.hasNext()) {

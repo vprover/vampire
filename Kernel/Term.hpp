@@ -762,7 +762,7 @@ public:
 
   virtual bool computable() const;
   virtual bool computableOrVar() const;
-  virtual bool computableOrVarHelper(List<Term*>* recAnces, List<unsigned int>* idx) const;
+  virtual bool computableOrVarHelper(List<const Term*>* recAnces, List<unsigned int>* idx) const;
 
 protected:
   vstring headToString() const;

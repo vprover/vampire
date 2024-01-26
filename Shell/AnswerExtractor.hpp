@@ -232,7 +232,7 @@ public:
   void storeSkolemMapping(unsigned int var, Term* skolem, unsigned int constructorIndex, bool recursiveCall, int constructorPos, int recFnID);
   void matchSkolemSymbols(BindingList* bindingList, SkolemTrackerList* tempSkolemMappings); // called after skolemization has happened to fill _skolemMappings
   void storeRecTerm(unsigned int fnId) { _recTermIds->push(fnId, _recTermIds); }
-  bool isRecTerm(Term* t);
+  bool isRecTerm(const Term* t);
   SkolemTrackerList* getSkolemMappings() { return _skolemMappings; }
   bool hasRecTerm(Literal* lit);
   unsigned int getResolventLiteralIdx(Clause* clause);

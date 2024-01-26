@@ -1839,191 +1839,63 @@ bool Term::computable() const {
   return true;
 }
 
-bool Term::computableOrVarHelper(List<Term*>* recAnces, List<unsigned int>* idx) const {
-  Term* term = const_cast<Term*>(this);
-  Signature::Symbol* symbol = env.signature->getFunction(term->functor());
+bool Term::computableOrVarHelper(List<const Term*>* recAnces, List<unsigned int>* idx) const {
+  Signature::Symbol* symbol = env.signature->getFunction(functor());
 
-  if (!env.signature->getFunction(this->functor())->computable()) { // marked as uncomputable in benchmark
-    if (!symbol->skolem()) // should not really need this!
+  if (!symbol->computable()) { // either symbol marked as uncomputable in the input, or a skolem
+    if (!symbol->skolem() || !symbol->skolemFromStructIndAxiom()) {
       return false;
-  }
-
-
-  // cout << "arity=" << term->arity() << endl;
-  // cout << "This term is inside the following rec-terms:" << endl;
-  // List<Term*>::Iterator rit(recAnces);
-  // while (rit.hasNext()) {
-  //   Term* t = rit.next();
-  //   cout << t->functionName() << endl;
-  // }
-  // cout << "This term has appeared in the following indices of rec-terms:" << endl;
-  // List<unsigned int>::Iterator iit(idx);
-  // while (iit.hasNext()) {
-  //   unsigned int pos = iit.next();
-  //   cout << pos << endl;
-  // }
-  // cout << endl;
-
-  
-  if (symbol->skolem()) {
-    if (symbol->skolemFromStructIndAxiom() && recAnces->isEmpty(recAnces)) {
-      return false;
-    }
-    if (!symbol->skolemFromStructIndAxiom()) { // skolem from input
-      return true;
-    }
-    List<Term*>::Iterator rit(recAnces);
-    List<unsigned int>::Iterator iit(idx);
-    while (rit.hasNext() && iit.hasNext()) { // rit.hasNext() <==> iit.hasNext()
-      Term* rec = rit.next();
-      unsigned int pos = iit.next();
-      // Check if this skolem (this) is allowed in index _idx_ of _rec_
-      Signature::Symbol* s = env.signature->getFunction(rec->functor());
-      if (s->recFnId() == symbol->recFnId()) { // if this skolem was obtained from the axiom introducing _rec_
-        if ((int)pos != symbol->constructorId()) {
-          return false;
+    } else {
+      // The symbol is a skolem. It can still be allowed if it occurs in a suitable argument of a rec-term.
+      List<const Term*>::Iterator rit(recAnces);
+      List<unsigned int>::Iterator iit(idx);
+      bool found = false;
+      while (!found && rit.hasNext() && iit.hasNext()) { // rit.hasNext() <==> iit.hasNext()
+        // Check if this skolem (this) is allowed in index _idx_ of _rec_
+        const Term* t = rit.next();
+        unsigned i = iit.next();
+        if (((int)t->functor() == symbol->recFnId()) && ((int)i == symbol->constructorId())) {
+          found = true;
         }
       }
+      if (!found) {
+        return false;
+      }
     }
-    return true;
   }
-  if (SynthesisManager::getInstance()->isRecTerm(term)) {
-    unsigned int arity = term->arity();
-    for (unsigned i = 0; i < arity; i++) {
-      TermList* t = term->nthArgument(i);
-      if (t->isTerm()) { // else we have a variable, which needs no check
-        recAnces->push(term, recAnces);
+
+  // Top functor is computable, now recurse.
+  bool thisRec = SynthesisManager::getInstance()->isRecTerm(this);
+  if (thisRec) {
+    recAnces->push(this, recAnces);
+  }
+  for (unsigned i = 0; i < _arity; i++) {
+    const TermList* t = nthArgument(i);
+    if (t->isTerm()) { // else we have a variable, which needs no check
+      if (thisRec) {
         idx->push(i, idx);
-        bool result = t->term()->computableOrVarHelper(recAnces, idx);
-        recAnces->pop(recAnces);
+      }
+      bool result = t->term()->computableOrVarHelper(recAnces, idx);
+      if (thisRec) {
         idx->pop(idx);
-        if (!result) {
-          return false;
-        }
+      }
+      if (!result) {
+        return false;
       }
     }
-    return true;
+  }
+  if (thisRec) {
+    recAnces->pop(recAnces);
   }
 
-  // ITE, s(s(...))
-  unsigned int arity = term->arity();
-    for (unsigned i = 0; i < arity; i++) {
-      TermList* t = term->nthArgument(i);
-      if (t->isTerm()) { // else we have a variable, which needs no check
-        bool result = t->term()->computableOrVarHelper(recAnces, idx);
-        if (!result) {
-          return false;
-        }
-      }
-    }
-
-  // cout << "------------------------------" << endl;
   return true;
 }
 
 bool Term::computableOrVar() const {
-  List<Term*>* recAnces = List<Term*>::empty();
+  List<const Term*>* recAnces = List<const Term*>::empty();
   List<unsigned int>* idx = List<unsigned int>::empty();
   bool res = this->computableOrVarHelper(recAnces, idx);
   return res;
-
-  /*
-    *********************************************************************************** 
-    * OLD IMPLEMENTATION: 
-    *   WORKS WHEN THERE ARE NO NESTED REC-TERMS (INDUCTION MAY BE APPLIED ONLY ONCE)
-  
-    if (!env.signature->getFunction(this->functor())->computable()) { // marked as uncomputable in benchmark
-      return false;
-    }
-
-
-    if (SynthesisManager::getInstance()->isRecTerm(const_cast<Term*>(this))) {
-      // assumes there are no nested recs. I.e. rec(...,rec(...),...) is not possible
-      unsigned recArgIdx = 0;
-      SubtermIterator sit(this);
-      while (sit.hasNext()) { 
-        TermList t = sit.next();
-        if (t.isTerm()) {
-          unsigned arity = t.term()->numTermArguments();
-          if (arity > 0) {
-            if (!env.signature->getFunction(t.term()->functor())->computable()) { 
-              return false;
-            }
-          }
-          else {
-            Signature::Symbol* s = env.signature->getFunction(t.term()->functor());
-            if (s->skolemFromStructIndAxiom()) { 
-                unsigned symbolConstructorId = s->constructorId();
-                if (symbolConstructorId != recArgIdx) {
-                  return false;
-                }
-            }
-            recArgIdx++;
-          }
-        } else { // t is a variable
-          recArgIdx++;
-        }
-      }
-      return true;
-    }
-    SubtermIterator sit(this);
-    unsigned recArgIdx = 0;
-    bool inRecTerm = false;
-    while (sit.hasNext()) {
-      TermList t = sit.next();
-
-      if (t.isTerm()) {
-        if (!env.signature->getFunction(t.term()->functor())->computable()) { 
-          return false;
-        }
-      }
-
-      if (t.isTerm() && SynthesisManager::getInstance()->isRecTerm(t.term())) {
-        recArgIdx = 0;
-        inRecTerm = true;
-        continue;
-      }    
-      
-      if (t.isTerm()) {
-        if (inRecTerm) {
-          unsigned arity = t.term()->numTermArguments();
-          if (arity > 0) {
-            if (!env.signature->getFunction(t.term()->functor())->computable()) { 
-              return false;
-            }
-          } else {
-            Signature::Symbol* s = env.signature->getFunction(t.term()->functor());
-            if (s->skolemFromStructIndAxiom()) { 
-                unsigned symbolConstructorId = s->constructorId();
-                if (symbolConstructorId != recArgIdx) {
-                  return false;
-                }
-            }
-            
-            recArgIdx++;
-            if (recArgIdx == 3) {
-              inRecTerm = false;
-            }
-          }
-        } else { // a term that is not in an argument of rec(...)
-            Signature::Symbol* s = env.signature->getFunction(t.term()->functor());
-            if (s->skolemFromStructIndAxiom()) {
-                return false;
-            } 
-          }
-        }
-      else { // t is var
-        if (inRecTerm) {
-          recArgIdx++;
-          if (recArgIdx == 3) {
-            inRecTerm = false;
-          }
-        }
-      }
-    }
-    return true;
-    *********************************************************************************** 
-  */
 }
 
 std::ostream& Kernel::operator<<(std::ostream& out, Term::SpecialFunctor const& self)
