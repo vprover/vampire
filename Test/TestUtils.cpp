@@ -51,123 +51,6 @@ SAT::SATClause* TestUtils::buildSATClause(unsigned len,...)
 
   return SATClause::fromStack(lits);
 }
-
-std::ostream& printOp(std::ostream& out, const Term* t, const char* op) {
-  auto l = *t->nthArgument(0);
-  auto r = *t->nthArgument(1);
-  return out << "(" << pretty(l) << " " << op << " " << pretty(r) << ")";
-}
-
-template<>
-std::ostream& Pretty<Kernel::TermList>::prettyPrint(std::ostream& out) const
-{
-  using namespace Kernel;
-
-  auto t = _self;
-  if (t.isVar()) {
-    return out << "X" << t.var();
-  } else {
-    auto term = t.term();
-    auto func = term->functor();
-    if (theory->isInterpretedFunction(func)) {
-      switch(theory->interpretFunction(func)) {
-#define NUM_CASE(oper) \
-        case Kernel::Theory::INT_  ## oper: \
-        case Kernel::Theory::REAL_ ## oper: \
-        case Kernel::Theory::RAT_  ## oper
-
-        NUM_CASE(PLUS):     
-          return printOp(out, term, "+");
-        NUM_CASE(MULTIPLY):
-          return printOp(out, term, "*");
-        // case Kernel::Theory::EQUAL:
-        //   return printOp("=")
-        default: {}
-#undef NUM_CASE
-      }
-    }
-
-    Signature::Symbol* sym = env.signature->getFunction(func);
-    out << sym->name();
-    if (sym->arity() > 0) {
-      out << "(" << pretty(*term->nthArgument(0));
-      for (unsigned i = 1; i < sym->arity(); i++) {
-        out << ", " << pretty(*term->nthArgument(i));
-      }
-      out << ")";
-    }
-    return out;
-  }
-}
-
-template<>
-std::ostream& Pretty<Literal*>::prettyPrint(std::ostream& out) const
-{ return out << pretty(*_self); }
-
-
-template<>
-std::ostream& Pretty<Clause>::prettyPrint(std::ostream& out) const
-{ 
-  auto iter = _self.iterLits();
-  if (iter.hasNext()) {
-    out << pretty(*iter.next());
-    while(iter.hasNext()) {
-      out << " \\/ " << pretty(*iter.next());
-    }
-  } else {
-    out << "bot";
-  }
-  return out;
-}
-
-template<>
-std::ostream& Pretty<Literal>::prettyPrint(std::ostream& out) const
-{
-  const Literal& lit = _self;
-  auto print = [&]() -> ostream& {
-
-    auto func = lit.functor();
-    if(theory->isInterpretedPredicate(func)) {
-      switch(theory->interpretPredicate(func)) {
-#define NUM_CASE(oper) \
-        case Kernel::Theory::INT_  ## oper: \
-        case Kernel::Theory::REAL_ ## oper: \
-        case Kernel::Theory::RAT_  ## oper
-
-        NUM_CASE(LESS_EQUAL):
-          return printOp(out, &lit, "<=");
-        case Kernel::Theory::EQUAL:
-          return printOp(out, &lit, "=");
-        default: 
-        {
-        }
-#undef NUM_CASE
-      }
-    }
-    Signature::Symbol* sym = env.signature->getPredicate(func);
-    out << sym->name();
-    if (sym->arity() > 0) {
-      out << "(" << pretty(*lit.nthArgument(0));
-      for (unsigned i = 1; i < sym->arity(); i++) {
-        out << ", " << pretty(*lit.nthArgument(i));
-      }
-      out << ")";
-    }
-    return out;
-  };
-
-
-  if (!lit.polarity()) {
-    out << "~(";
-  }
-  print();
-  if (!lit.polarity()) {
-    out << ")";
-  }
-  return out;
-}
-
-
 bool TestUtils::isAC(Term* t) 
 {
   auto f = t->functor();
@@ -177,6 +60,7 @@ bool TestUtils::isAC(Term* t)
     return theory->isInterpretedFunction(f) && isAC(theory->interpretFunction(f));
   }
 }
+
 bool TestUtils::isAC(Theory::Interpretation i) 
 {
   switch (i) {
