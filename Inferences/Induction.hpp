@@ -119,6 +119,7 @@ struct InductionContext {
   // would be storing indices but then we need to pass around the
   // clause as well.
   vunordered_map<Clause*, LiteralStack, StlClauseHash> _cls;
+  bool _standardBase = true;
 private:
   Formula* getFormula(TermReplacement& tr, bool opposite) const;
 };

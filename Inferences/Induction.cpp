@@ -537,6 +537,8 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       if (env.signature->getFunction(st->functor())->skolem()) {
         InductionContext ctx(st, lit, premise);
         performStructInductionSynth(ctx); // clauses get resolved in the function
+        ctx._standardBase = false;
+        performStructInductionSynth(ctx);
       }
     }
   }
@@ -688,9 +690,6 @@ ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, In
 
   Stack<Clause*>::Iterator cit(hyp_clauses);
   Stack<Clause*> resolved_clauses;
-  #if VDEBUG
-    bool flag = false;
-  #endif
 
   #if VDEBUG
     cout << "induction premise is " << premise->toString() << endl;
@@ -703,7 +702,7 @@ ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, In
     int resLitIdx = SynthesisManager::getInstance()->getResolventLiteralIdx(c); // The literal which contains a rec(.) term should be picked for resolution
     if (resLitIdx == -1){ //ToDo: check why not finding correct literal in cut-off subtract. This if should not be needed when getResolventLiteralIdx is debugged.
       resLitIdx = cLen - 1;
-      // std::cout << "clause to resolve is " << c->toString() << std::endl;
+      std::cout << "clause to resolve is " << c->toString() << std::endl;
       // USER_ERROR("No literal with rec(.) term found in the clause to resolve");
     }
     Literal* resLit = (*c)[resLitIdx]; 
@@ -742,12 +741,6 @@ ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, In
       #endif
     }
   }
-
-  #if VDEBUG
-    if (!flag) {
-      cout << "Failed hyperresolution for " << hypothesis->toString() << endl;
-    }
-  #endif
 
 
   switch (rule) {
@@ -1395,9 +1388,27 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   TermList sort = SortHelper::getResultSort(context._indTerm);
   TermAlgebra* ta = env.signature->getTermAlgebraOfSort(sort);
 
+  if (!context._standardBase) {
+    if (ta->nConstructors() != 2) {
+      return;
+    }
+    for (unsigned i = 0; i < ta->nConstructors(); i++) {
+      TermAlgebraConstructor* con = ta->constructor(i);
+      unsigned rec = 0;
+      for (unsigned j = 0; j < con->arity(); j++) {
+        if (con->argSort(j) == con->rangeSort()) {
+          ++rec;
+        }
+      }
+      if (rec > 1) {
+        return;
+      }
+    }
+  }
+
   FormulaList* formulas = FormulaList::empty();
 
-  unsigned var = 0;
+  unsigned var = SynthesisManager::getInstance()->numInputSkolems();
   Literal* L = Literal::complementaryLiteral(context._cls.begin()->second[0]);
   
   VList* free_vars = L->freeVariables();
@@ -1418,13 +1429,79 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   VList* us = VList::empty(); 
   VList* ws = VList::empty(); 
   VList* ys = VList::empty(); 
+  VList* nse = VList::empty(); 
+  VList* nsf = VList::empty(); 
   SkolemTrackerList* tempSkolemMappings = SkolemTrackerList::empty();  // Stores SkolemTrackers before skolemization happens
 
-  unsigned rec_fn = env.signature->addFreshFunction(ta->nConstructors() + 1, "rec");
+  unsigned recArity = ta->nConstructors() + 1;
+  //Formula* baseCond = nullptr;
+  //TermList baseVar(var++, false);
+  //TermList consVar(var++, false);
+  //if (!context._standardBase) {
+  //  unsigned numBase = 0;
+  //  for (unsigned i = 0; i < ta->nConstructors(); i++) {
+  //    if (!ta->constructor(i)->recursive()) {
+  //      ++numBase;
+  //    }
+  //  }
+  //  unsigned numDisjunctions = 0;
+  //  Literal* condLit = Literal::createEquality(/*polarity=*/true, baseVar, consVar, sort);
+  //  FormulaList* conds = FormulaList::empty();
+  //  VList* as = VList::empty();
+  //  for (unsigned i = 0; i < ta->nConstructors(); i++) {
+  //    TermAlgebraConstructor* con = ta->constructor(i);
+  //    TermStack argTerms(con->arity());
+  //    unsigned numRecArgs = 0;
+  //    for (unsigned j = 0; i < con->arity(); ++j) {
+  //      if (!con->recursive()) {
+  //        TermList a(var++, false);
+  //        argTerms.push(a);
+  //        VList::push(a.var(), as);
+  //      } else {
+  //        if (con->argSort(j) == con->rangeSort()) {
+  //          ++numRecArgs;
+  //        }
+  //      }
+  //    }
+  //    numDisjunctions += numRecArgs * (numBase + 1); // TOOD: how many?
+  //    TermList conTerm(Term::create(con->functor(), (unsigned)argTerms.size(), argTerms.begin()));
+  //    s.reset();
+  //    s.bind(consVar.var(), conTerm);
+  //    FormulaList::push(new AtomicFormula(SubstHelper::apply(condLit, s)), conds);
+  //  }
+  //  baseCond = new QuantifiedFormula(Connective::EXISTS, as, SList::empty(), new JunctionFormula(Connective::OR, conds));
+  //}
 
-
+  unsigned rec_fn = env.signature->addFreshFunction(recArity, "rec");
+  TermAlgebraConstructor* nsBaseCon = nullptr;
+  List<TermList>* fnHeads = List<TermList>::empty();
   for (unsigned i = 0; i < ta->nConstructors(); i++){
     TermAlgebraConstructor* con = ta->constructor(i);
+    TermAlgebraConstructor* nsOtherCon = nullptr;
+    TermList nsConVar(var++, false);
+    Term* nsOtherConTerm = nullptr;
+    if (!context._standardBase) {
+      ASS(ta->nConstructors() == 2);
+      nsOtherCon = ta->constructor(1-i);
+      TermStack argTerms(nsOtherCon->arity()); // y_1, ..., y_arity
+      unsigned recArgs = 0;
+      for (unsigned j = 0; j < nsOtherCon->arity(); j++) {
+        if (nsOtherCon->argSort(j) == nsOtherCon->rangeSort()) {
+          argTerms.push(nsConVar);
+          ++recArgs;
+        } else {
+          TermList y(var++, false);
+          argTerms.push(y);
+          VList::push(y.var(), (nsOtherCon->recursive() ? nse : nsf));
+        }
+      }
+      ASS(recArgs <= 1);
+      nsOtherConTerm = Term::create(nsOtherCon->functor(), (unsigned)argTerms.size(), argTerms.begin());
+      if (!con->recursive()) {
+        ASS(nsBaseCon == nullptr);
+        nsBaseCon = con;
+      }
+    }
     unsigned arity = con->arity();
     
     TermStack argTerms(arity); // y_1, ..., y_arity
@@ -1450,7 +1527,10 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
         s.bind(freshSynthVar.var(), w);
         curLit = SubstHelper::apply(curLit, s); 
 
-        FormulaList::push(new AtomicFormula(curLit), hyps); // L[y_j, w_j]
+        if (!context._standardBase) {
+          FormulaList::push(new AtomicFormula(Literal::createEquality(/*polarity=*/false, TermList(nsOtherConTerm), y, sort)), hyps);
+        }
+        FormulaList::push(new AtomicFormula(curLit), hyps); // L[y_j, w_j] or L[y_j, w_j] \/ y_j = cons1 \/ ... \/ y_j = consN
       }
       // Stores SkolemTrackers before skolemization happens. Later (after skolemization), they will be used to match Skolem symbols.
       tempSkolemMappings->push(SkolemTracker(Binding(y.var(), nullptr), i, false, j, rec_fn), tempSkolemMappings);
@@ -1461,7 +1541,23 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
     recFuncArgs.push(u);
     VList::push(u.var(), us);
 
-    TermList cons(Term::create(con->functor(), (unsigned)argTerms.size(), argTerms.begin()));
+    Term* tcons = Term::create(con->functor(), (unsigned)argTerms.size(), argTerms.begin());
+    if (!context._standardBase && !con->recursive()) {
+      ASS(nsOtherCon->recursive());
+      s.reset();
+      s.bind(nsConVar.var(), TermList(tcons));
+      tcons = SubstHelper::apply(nsOtherConTerm, s);
+      VList::Iterator it(nse);
+      for (unsigned vi = 0; vi < nsOtherConTerm->arity(); ++vi) {
+        TermList* tl = nsOtherConTerm->nthArgument(vi);
+        if (*tl != nsConVar) {
+          ASS(tl->isVar());
+          tempSkolemMappings->push(SkolemTracker(Binding(tl->var(), nullptr), i, false, vi, rec_fn, 0), tempSkolemMappings);
+        }
+      }
+    }
+    TermList cons(tcons);
+    fnHeads->push(cons, fnHeads);
     TermReplacement tr(context._indTerm, cons);
     Literal* curLit = tr.transform(L);
     s.reset();
@@ -1500,13 +1596,30 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
 
   s.bind(freshSynthVar.var(), rec);
   Formula* conclusion = new AtomicFormula(SubstHelper::apply(curLit, s));
+  if (!context._standardBase) {
+    TermStack argTerms(nsBaseCon->arity()); // y_1, ..., y_arity
+    for (unsigned j = 0; j < nsBaseCon->arity(); j++) {
+      TermList y(var++, false);
+      argTerms.push(y);
+      VList::push(y.var(), nse);
+    }
+    TermList baseTerm(Term::create(nsBaseCon->functor(), (unsigned)argTerms.size(), argTerms.begin()));
+    conclusion = new JunctionFormula(Connective::OR, new FormulaList(conclusion, FormulaList::singleton(
+            new AtomicFormula(Literal::createEquality(/*polarity=*/true, baseTerm, z, sort)))));
+  }
   formula = new BinaryFormula(Connective::IMP, formula, conclusion);
   formula = new QuantifiedFormula(Connective::FORALL, VList::singleton(z.var()), SList::empty(), formula);
   formula = new QuantifiedFormula(Connective::FORALL, us, SList::empty(), formula); 
+  if (VList::isNonEmpty(nsf)) {
+    formula = new QuantifiedFormula(Connective::FORALL, nsf, SList::empty(), formula); 
+  }
   formula = new QuantifiedFormula(Connective::EXISTS, ws, SList::empty(), formula);
   formula = new QuantifiedFormula(Connective::EXISTS, ys, SList::empty(), formula);
+  if (VList::isNonEmpty(nse)) {
+    formula = new QuantifiedFormula(Connective::EXISTS, nse, SList::empty(), formula);
+  }
 
-  // std::cout << "Synthesized induction formula: " << formula->toString() << std::endl;
+  //std::cout << "Synthesized induction formula: " << formula->toString() << std::endl;
 
   BindingList* bindingList = BindingList::empty();
 
@@ -1514,7 +1627,8 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   auto cls = produceClausesSynth(formula, InferenceRule::STRUCT_INDUCTION_AXIOM, context, bindingList);
   // cls contains the hyperresoluted clauses
 
-  SynthesisManager::getInstance()->matchSkolemSymbols(bindingList, tempSkolemMappings);
+  fnHeads = fnHeads->reverse(fnHeads);
+  SynthesisManager::getInstance()->matchSkolemSymbols(bindingList, tempSkolemMappings, fnHeads);
   
   #if VDEBUG
     cout << "Clauses produced by structural induction axiom: " << endl;
