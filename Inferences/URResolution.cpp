@@ -113,9 +113,9 @@ struct URResolution::Item
     _lits.ensure(litslen);
     unsigned nonGroundCnt = 0;
     for(unsigned i=0; i<clen; i++) {
+      if(!(*cl)[i]->ground()) nonGroundCnt++;
       if ((*cl)[i] != _ansLit) {
         _lits[i] = (*cl)[i];
-        if(!_lits[i]->ground()) nonGroundCnt++;
       }
     }
     _atMostOneNonGround = nonGroundCnt<=1;
@@ -171,7 +171,7 @@ struct URResolution::Item
       return;
     }
 
-    unsigned nonGroundCnt = 0;
+    unsigned nonGroundCnt = _ansLit ? !_ansLit->ground() : 0;
     unsigned clen = _lits.size();
     for(unsigned i=0; i<clen; i++) {
       Literal*& lit = _lits[i];
