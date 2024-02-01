@@ -70,6 +70,13 @@ template< typename T,
 std::shared_ptr<T> make_shared(T t)
 { return make_shared(move_to_heap(std::move(t))); }
 
+                
+template< typename T, 
+          std::enable_if_t<!std::is_pointer<T>::value, bool> = true  
+        >
+std::unique_ptr<T> make_unique(T t)
+{ return std::unique_ptr<T>(move_to_heap(std::move(t))); }
+
 }  // namespace Lib
 
 #endif /* !STL_HPP */

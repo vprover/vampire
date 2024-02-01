@@ -805,8 +805,10 @@ vstring Term::toString(bool topLevel) const
         return binary("*");
       } else if (_functor == NumTraits::minusF()) {
         return unary("-");
+      } else if (_functor == NumTraits::floorF()) {
+        return some(outputToString("⌊", termArg(0), "⌋"));
       }
-    }
+    } 
     return Option<vstring>();
   });
 

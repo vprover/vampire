@@ -25,49 +25,7 @@
 
 namespace QE {
 
-using Numeral = RealConstantType;
 
-using R = RealTraits;
-
-namespace AutoSimplifyingRealOps {
-
-  TermList operator-(TermList s) { 
-    return R::isNumeral(s) ? R::constantTl(-(*R::tryNumeral(s)))
-         : s.isTerm() && R::isMinus(s.term()->functor()) 
-                           ? s.term()->termArg(0)
-                           : R::minus(s);
-  }
-
-  TermList operator*(Numeral k, TermList t) { 
-    return  k == 0 ? R::constantTl(0) 
-          : k == 1 ? t
-          : k == -1 ? -t
-          : R::mul(R::constantTl(k), t); }
-
-  TermList operator+(TermList s, TermList t) { 
-    return R::tryNumeral(s) == some(Numeral(0)) ? t
-         : R::tryNumeral(t) == some(Numeral(0)) ? s
-         : R::add(s, t);
-  }
-
-  TermList operator-(TermList s, TermList t) { return s + (-t); }
-
-#define WRAPPING_OPERATOR(OP, ToWrap, Wrapped, wrap) \
-  auto operator OP(ToWrap l, Wrapped r) { return wrap(l) OP r; } \
-  auto operator OP(Wrapped l, ToWrap r) { return l OP wrap(r); } \
-
-  WRAPPING_OPERATOR(+, Numeral, TermList, R::constantTl);
-  WRAPPING_OPERATOR(-, Numeral, TermList, R::constantTl);
-
-  WRAPPING_OPERATOR(+, int, TermList, Numeral);
-  WRAPPING_OPERATOR(-, int, TermList, Numeral);
-
-  WRAPPING_OPERATOR(+, int, Numeral, Numeral);
-  WRAPPING_OPERATOR(-, int, Numeral, Numeral);
-  WRAPPING_OPERATOR(*, int, Numeral, Numeral);
-
-
-} // namespace AutoSimplifyingRealOps
 
 using namespace AutoSimplifyingRealOps;
 
@@ -160,7 +118,7 @@ public:
             if (R::isMul(f)) {
               auto k = R::tryNumeral(origArg(0));
               ASS(k.isSome())
-              return integrity(numMul(k.unwrap(), orig, std::move(args[1])));
+              return integrity(numMul(k.unwrap(), origArg(1), std::move(args[1])));
 
 
             } else if (R::tryNumeral(orig)) {
@@ -187,45 +145,7 @@ public:
 
 
 
-  struct LinBounds {
-    TermList lower;
-    Numeral delta;
-    TermList upper() const { return lower + delta; }
-    auto asTuple() const { return std::tie(lower, delta); }
-    friend std::ostream& operator<<(std::ostream& out, LinBounds const& self)
-    { return out << "[" << self.lower << " (+ " << self.delta << ") ]"; }
-    IMPL_COMPARISONS_FROM_TUPLE(LinBounds);
-  };
-
-  struct LiraTermSummary {
-    RealConstantType slope;
-    RealConstantType   off;
-    RealConstantType   per;
-    LinBounds  linBounds;
-    TermList    lim;
-    Recycled<Stack<ElimTerm>> breaks;
-    friend std::ostream& operator<<(std::ostream& out, LiraTermSummary const& self)
-    { return out << "LiraTermSummary {...}"; }
-
-    TermList dist(bool plus) const { return plus ? linBounds.upper() : linBounds.lower; }
-
-    auto xMinusInf() const {
-      ASS(off != 0)
-      return (-1 / off) * dist(off.isPositive());
-    }
-
-    auto deltaInf() const  {
-      ASS(off != 0) 
-      return (-1 / off) * linBounds.delta;
-    }
-
-    void integrity() const {
-      ASS(per >= 0)
-      ASS(linBounds.delta >= 0)
-    }
-  };
-
-
+  
   LiraTermSummary summary(TermList x) const {
     return eval<LiraTermSummary>(_term, x,
         /* var x */ 
@@ -265,17 +185,17 @@ public:
               .off = k * res.off,
               .per = std::move(res.per),
               .linBounds = 
-                k == Numeral(0) ? LinBounds {
+                k == 0 ? LinBounds {
                     .lower = R::constantTl(0),
                     .delta = Numeral(0),
                   }
-                : k > Numeral(0) ? LinBounds {
+                : k > 0 ? LinBounds {
                   .lower = k * res.linBounds.lower, 
                   .delta = k * res.linBounds.delta 
                 }
                 : /* k < 0 */ LinBounds {
-                  .lower = k.abs() * res.linBounds.upper(), 
-                  .delta  = k.abs() * res.linBounds.delta 
+                  .lower = k * res.linBounds.lower + k * res.linBounds.delta,
+                  .delta = k.abs() * res.linBounds.delta 
                 }
               ,
               .lim = k * res.lim,
@@ -405,6 +325,9 @@ public:
 
 };
 
+LiraTermSummary LiraTermSummary::from(TermList var, TermList term)
+{ return LiraTerm(term).summary(var); }
+
 /** represents _term != epsilon */
 class EpsLit {
   LiraTerm _term;
@@ -415,6 +338,8 @@ public:
   {}
 
   LiraTerm term() const { return _term; }
+  friend std::ostream& operator<<(std::ostream& out, EpsLit const& self)
+  { return out << self._term << " != " << Epsilon {}; }
 };
 
 
@@ -490,6 +415,19 @@ ElimTerm simpl(ElimTerm t)
 }
 
 
+LiraTerm simpl(LiraTerm const& t) 
+{ return LiraTerm(simpl(t.toNormalTerm())); }
+
+EpsLit simpl(EpsLit const& lit) 
+{ return EpsLit(simpl(lit.term()).toNormalTerm()); }
+
+LiraLit simpl(LiraLit const& lit) 
+{ return LiraLit(simpl(lit.term()).toNormalTerm(), lit.connective()); }
+
+LiraLiteral simpl(LiraLiteral lit) 
+{ return lit.apply([&](auto l) { return LiraLiteral(simpl(l)); }); }
+
+
 template<class Iter>
 auto simplIter(Iter i) 
 { return iterTraits(std::move(i)).map([](auto x) { return simpl(std::move(x)); }); }
@@ -500,6 +438,7 @@ auto dbgIter(Iter iter)
 { return iter.template collect<Stack>(); }
 
 auto elimSet(TermList var, LiraLit const& lit) {
+#define DEBUG_ELIMSET(lvl, ...) if (lvl < 2) DBG(__VA_ARGS__)
   bool incl = true;
   bool excl = !incl;
   auto phi = make_shared(lit.term().summary(var));
@@ -515,7 +454,7 @@ auto elimSet(TermList var, LiraLit const& lit) {
       case LiraPred::Greater:
       case LiraPred::Neq: return t + Epsilon {};
       case LiraPred::Geq:
-      case LiraPred::Eq: return t;
+      case LiraPred::Eq: return ElimTerm(t);
     }
   };
 
@@ -528,7 +467,11 @@ auto elimSet(TermList var, LiraLit const& lit) {
           return range(0, set->size())
               .map([set = std::move(set)](auto i) { return (*set)[i]; });
         };
-        auto intersection = [&]() { return ElimTerm((-1 / slope) * EqHelper::replace(term, var, R::constantTl(0)));};
+        auto phiZero = [&]() { return EqHelper::replace(term, var, R::zero()); };
+        if (phi->slope == 0)  {
+          return set({ ElimTerm(phiZero()) });
+        }
+        auto intersection = [&]() { return ElimTerm((-1 / slope) * phiZero());};
         switch (lit.connective()) {
           case LiraPred::Greater: 
           case LiraPred::Geq:
@@ -549,15 +492,21 @@ auto elimSet(TermList var, LiraLit const& lit) {
 
         auto off = phi->off;
         auto per = phi->per;
-        auto deltaInf = phi->linBounds.delta;
+        auto deltaX = phi->linBounds.delta;
 
         auto limPhi = phi->lim;
 
         auto dlin = [slope, var, limPhi](auto b) -> TermList 
         { return -slope * b + EqHelper::replace(limPhi, var, b); };
 
+        if (phi->off != 0) {
+          DEBUG_ELIMSET(1, "lower X: ", simpl(phi->lowerX()))
+          DEBUG_ELIMSET(1, "delta X: ", phi->deltaX())
+        }
+        
+
         auto linBounds = [=](bool lIncl, Grid g, bool rIncl) 
-        { return g.intersect(lIncl, phi->xMinusInf(), deltaInf, rIncl).map([](TermList t) { return ElimTerm(t); }); };
+        { return g.intersect(lIncl, phi->lowerX(), deltaX, rIncl).map([](TermList t) { return ElimTerm(t); }); };
 
         auto ebreak = [=](bool lIncl, bool rIncl) {
           return simplIter(ifElseIter(
@@ -587,10 +536,17 @@ auto elimSet(TermList var, LiraLit const& lit) {
               );
         };
 
-        auto einf = [=]() { return simplIter(
+        auto einfMinus= [=]() { return simplIter(
             ifElseIter((isIneq(lit.connective()) && off < 0) 
                              || lit.connective() == LiraPred::Neq,
                              []() { return getSingletonIterator(ElimTerm::minusInfinity()); },
+                             []() { return arrayIter(Stack<ElimTerm>()); }));
+        };
+
+        auto einfPlus= [=]() { return simplIter(
+            ifElseIter((isIneq(lit.connective()) && off > 0) 
+                             || lit.connective() == LiraPred::Neq,
+                             [=]() { return getSingletonIterator(maybeEps(phi->upperX())); },
                              []() { return arrayIter(Stack<ElimTerm>()); }));
         };
 
@@ -614,11 +570,11 @@ auto elimSet(TermList var, LiraLit const& lit) {
 
             )); 
         };
-        DBGE(dbgIter(ebreak(incl,incl)))
-        DBGE(dbgIter(eseg()))
-        DBGE(dbgIter(einf()))
-        return concatIters( ebreak(incl, incl), eseg(), einf());
-        return concatIters( ebreak(incl, incl), eseg(), einf());
+        DEBUG_ELIMSET(0, "ebreak: ", dbgIter(ebreak(incl,incl)))
+        DEBUG_ELIMSET(0, "eseg:   ", dbgIter(eseg()))
+        DEBUG_ELIMSET(0, "einf-:  ", dbgIter(einfMinus()))
+        return concatIters( eseg(), ebreak(incl, incl), einfMinus(), einfPlus());
+        // return concatIters( ebreak(incl, incl), eseg(), einfMinus());
       });
 }
 
@@ -688,10 +644,16 @@ class Assignments {
   Stack<Assignment> _asgn;
 public:
   Assignments() : _asgn() {}
+
   void push(Assignment a) { _asgn.push(std::move(a)); }
   Assignment pop() { return _asgn.pop(); }
+
   auto iter() const 
   { return arrayIter(_asgn); }
+
+  auto size() const { return _asgn.size(); }
+  auto operator[](unsigned i)       -> decltype(auto) { return _asgn[i]; }
+  auto operator[](unsigned i) const -> decltype(auto) { return _asgn[i]; }
 
   friend std::ostream& operator<<(std::ostream& out, Assignments const& self)
   { return out << self._asgn; }
@@ -746,10 +708,11 @@ auto iterLiraLits(LiraFormula const& phi) {
     .map([](auto l) { return l.template as<LiraLit>().unwrap(); });
 }
 
-auto elimSet(TermList var, LiraFormula const& phi) {
-  return iterLiraLits(phi)
-    .flatMap([&](auto lit) { return elimSet(var, lit); })
-    .flatMap([&](auto t_) {
+template<class Iter>
+auto flattenPeriods(TermList var, Stack<LiraLit> const& lits_, Iter elimTerms) {
+  auto lits = &lits_;
+  return iterTraits(std::move(elimTerms))
+    .flatMap([=](auto t_) {
         auto t = t_.asFinite().unwrap();
         // return getSingletonIterator(t_);
         return ifElseIter(t.period().isNone()
@@ -757,27 +720,30 @@ auto elimSet(TermList var, LiraFormula const& phi) {
             , [=]() { 
               auto p = t.period().unwrap();
               auto eps = t.epsilon();
-              auto bigPeriod = iterLiraLits(phi)
+              auto bigPeriod = arrayIter(*lits)
                 .map([=](auto l) { return l.term().summary(var); })
                 // .filter([](auto& l) { return l.off != 0; })
                 .map([=](auto l) { return l.per; })
+                .filter([](auto p) { return p != 0; })
                 .fold([=](auto l, auto r) { return qLcm(l,r); })
-                .unwrap();
+                // .unwrap();
+                || Numeral(0);
+                // .unwrap(); // TODO check whether this matches up with theory part
 
               auto aperiodicLits = [=]() { 
-                return iterLiraLits(phi)
+                return arrayIter(*lits)
                   .map([=](auto l) { return l.term().summary(var); })
                   .filter([](auto& phi) { return phi.off != 0; }); 
               };
               auto intervals = ifElseIter(aperiodicLits().hasNext(),
                   [=]() { return aperiodicLits()
-                                   .map([=](auto phi) { return make_pair(phi.xMinusInf(), bigPeriod + phi.deltaInf()); }); },
+                                   .map([=](auto phi) { return make_pair(phi.lowerX(), bigPeriod + phi.deltaX()); }); },
                   [=]() { return getSingletonIterator(make_pair(R::zero(), bigPeriod)); });
 
               return intervals
                 .flatMap([=](auto inter) { 
                     // auto phi = l.term().summary(var);
-                    return Grid(t)
+                    return Grid(t.term(), p.p)
                       .intersect(true, inter.first, inter.second, true); })
                       .map([=](auto t2) { return ElimTerm(FiniteElimTerm(t2, eps, {})); })
                           ;
@@ -785,6 +751,46 @@ auto elimSet(TermList var, LiraFormula const& phi) {
             );
     });
 }
+
+// auto elimSet(TermList var, LiraFormula const& phi) {
+//   return iterLiraLits(phi)
+//     .flatMap([&](auto lit) { return elimSet(var, lit); })
+//     .flatMap([&](auto t_) {
+//         auto t = t_.asFinite().unwrap();
+//         // return getSingletonIterator(t_);
+//         return ifElseIter(t.period().isNone()
+//             , [=]() { return getSingletonIterator(t_); }
+//             , [=]() { 
+//               auto p = t.period().unwrap();
+//               auto eps = t.epsilon();
+//               auto bigPeriod = iterLiraLits(phi)
+//                 .map([=](auto l) { return l.term().summary(var); })
+//                 // .filter([](auto& l) { return l.off != 0; })
+//                 .map([=](auto l) { return l.per; })
+//                 .fold([=](auto l, auto r) { return qLcm(l,r); })
+//                 .unwrap();
+//
+//               auto aperiodicLits = [=]() { 
+//                 return iterLiraLits(phi)
+//                   .map([=](auto l) { return l.term().summary(var); })
+//                   .filter([](auto& phi) { return phi.off != 0; }); 
+//               };
+//               auto intervals = ifElseIter(aperiodicLits().hasNext(),
+//                   [=]() { return aperiodicLits()
+//                                    .map([=](auto phi) { return make_pair(phi.lowerX(), bigPeriod + phi.deltaX()); }); },
+//                   [=]() { return getSingletonIterator(make_pair(R::zero(), bigPeriod)); });
+//
+//               return intervals
+//                 .flatMap([=](auto inter) { 
+//                     // auto phi = l.term().summary(var);
+//                     return Grid(t)
+//                       .intersect(true, inter.first, inter.second, true); })
+//                       .map([=](auto t2) { return ElimTerm(FiniteElimTerm(t2, eps, {})); })
+//                           ;
+//               }
+//             );
+//     });
+// }
 
 
 
@@ -899,6 +905,15 @@ LiraFormula vsubs(EpsLit const& lit, TermList var, FiniteElimTerm const& val)
   }
 }
 
+Stack<LiraLit> vsubs(Stack<LiraLit> const& phi, TermList var, ElimTerm const& val) 
+{ 
+  return arrayIter(phi)
+           .map([&](auto phi) { return vsubs(phi, var, val.asFinite().unwrap()).template unwrap<LiraLiteral>().template unwrap<LiraLit>(); })
+           .template collect<Stack>(); 
+}
+
+
+
 LiraFormula vsubs(LiraLiteral const& phi, TermList var, FiniteElimTerm const& val) 
 { return phi.apply([&](auto l) { return vsubs(l, var, val); }); }
 
@@ -934,93 +949,245 @@ Option<bool> trivEval(EpsLit const& phi)
 Option<bool> trivEval(LiraLiteral const& phi) 
 { return phi.apply([&](auto l) { return trivEval(l); }); }
 
-Option<bool> trivEval(LiraFormula const& phi) {
+struct True {
+  friend std::ostream& operator<<(std::ostream& out, True const& self)
+  { return out << "true"; }
+};
+struct False { 
+  LiraLiteral lit; 
+  friend std::ostream& operator<<(std::ostream& out, False const& self)
+  { return out << "false ( " << self.lit << " )"; }
+};
+struct Unknown {
+  friend std::ostream& operator<<(std::ostream& out, Unknown const& self)
+  { return out << "unknown"; }
+};
+using TrivEvalResult = Coproduct<True, False, Unknown>;
+
+TrivEvalResult trivEval(LiraFormula const& phi) {
   return phi.match(
-      [&](LiraLiteral const& l) { return trivEval(l); },
-      [&](Conj const& c) -> Option<bool> {
+      [&](LiraLiteral const& l) { 
+        auto r = trivEval(l); 
+        return r.isNone() ? TrivEvalResult(Unknown{})
+             : *r         ? TrivEvalResult(True{})
+             :              TrivEvalResult(False{l});
+      },
+      [&](Conj const& c) {
         auto l = trivEval(*c.lhs);
         auto r = trivEval(*c.lhs);
-        if (l.isSome()) {
-          return false == *l ? some(false) : r;
-        } else if (r.isSome()) {
-          return false == *r ? some(false) : l;
+        if (!l.template is<Unknown>()) {
+          return l.is<False>() ? l : r;
+        } else if (!r.template is<Unknown>()) {
+          return r.is<False>() ? r : l;
         } else {
-          ASS(l.isNone() && r.isNone())
-          return {};
+          return l;
         }
       },
-      [&](Disj const& c) -> Option<bool> {
-        auto l = trivEval(*c.lhs);
-        auto r = trivEval(*c.lhs);
-        if (l.isSome()) {
-          return true == *l ? some(true) : r;
-        } else if (r.isSome()) {
-          return true == *r ? some(true) : l;
-        } else {
-          ASS(l.isNone() && r.isNone())
-          return {};
-        }
+      [&](Disj const& c) -> TrivEvalResult {
+        ASSERTION_VIOLATION_REP("TODO")
+        // auto l = trivEval(*c.lhs);
+        // auto r = trivEval(*c.lhs);
+        // if (l.isSome()) {
+        //   return true == *l ? some(true) : r;
+        // } else if (r.isSome()) {
+        //   return true == *r ? some(true) : l;
+        // } else {
+        //   ASS(l.isNone() && r.isNone())
+        //   return {};
+        // }
       });
 }
 
+// Option<bool> trivEval(LiraFormula const& phi) {
+//   return phi.match(
+//       [&](LiraLiteral const& l) { return trivEval(l); },
+//       [&](Conj const& c) -> Option<bool> {
+//         auto l = trivEval(*c.lhs);
+//         auto r = trivEval(*c.lhs);
+//         if (l.isSome()) {
+//           return false == *l ? some(false) : r;
+//         } else if (r.isSome()) {
+//           return false == *r ? some(false) : l;
+//         } else {
+//           ASS(l.isNone() && r.isNone())
+//           return {};
+//         }
+//       },
+//       [&](Disj const& c) -> Option<bool> {
+//         auto l = trivEval(*c.lhs);
+//         auto r = trivEval(*c.lhs);
+//         if (l.isSome()) {
+//           return true == *l ? some(true) : r;
+//         } else if (r.isSome()) {
+//           return true == *r ? some(true) : l;
+//         } else {
+//           ASS(l.isNone() && r.isNone())
+//           return {};
+//         }
+//       });
+// }
+
+template<class F>
+auto tupMatch1(F f) 
+{ return [f = std::move(f)](auto tup) { return f(std::get<0>(tup)); }; }
+
+
+template<class F>
+auto tupMatch2(F f) 
+{ return [f = std::move(f)](auto tup) { return f(std::get<0>(tup), std::get<1>(tup)); }; }
+
+
+template<class F>
+auto tupMatch3(F f) 
+{ return [f = std::move(f)](auto tup) { return f(std::get<0>(tup), std::get<1>(tup), std::get<2>(tup)); }; }
+
 bool _decide(Stack<TermList> vars, Stack<LiraLit> const& lits) 
 {
+#define DEBUG_DECIDE(lvl, ...) if (lvl < 2) DBG(outputInterleaved("", range(0, state.size()).map([](auto) { return "|  "; })), __VA_ARGS__)
 
-  DBGE(lits)
   Assignments assignment;
-  Stack<std::shared_ptr<LiraFormula>> phi_hist;
+  struct DecisionLevel {
+    Stack<LiraLit> phi;
+    Stack<LiraLit> lemmas;
+  };
+  Stack<std::unique_ptr<DecisionLevel>> state;
+  // Stack<Stack<LiraLit>> phi_history;
+  // Stack<Stack<LiraLit>> lemma_history;
+  auto phi = [&]() -> Stack<LiraLit>& { return state.top()->phi; };
+  auto lemmas = [&]() -> Stack<LiraLit>& { return state.top()->lemmas; };
+  // Stack<std::shared_ptr<LiraFormula>> phi_hist;
   if (lits.isEmpty()) return true;
-  phi_hist.push(make_shared(arrayIter(lits)
-      .map([](auto l) { return LiraLiteral(l); })
-      .map([](auto l) { return LiraFormula(l); })
-      .fold([](auto l, auto r) { return l && r; })
-      .unwrap()));
-  Stack<std::shared_ptr<LiraFormula>> lemma_hist;
-  lemma_hist.push(make_shared(LiraFormula::top()));
+  // phi_history.push(lits);
+  // phi_hist.push(make_shared(arrayIter(lits)
+  //     .map([](auto l) { return LiraLiteral(l); })
+  //     .map([](auto l) { return LiraFormula(l); })
+  //     .fold([](auto l, auto r) { return l && r; })
+  //     .unwrap()));
+  // Stack<std::shared_ptr<LiraFormula>> lemma_hist;
+  // lemma_hist.push(make_shared(LiraFormula::top()));
+  state.push(make_unique(DecisionLevel {
+      .phi = lits,
+      .lemmas = Stack<LiraLit>(),
+  }));
+  DEBUG_DECIDE(0, "input: ", lits)
   auto learn = [&]() -> LiraFormula {
-    DBGE(assignment);
     ASSERTION_VIOLATION_REP("TODO")};
 
   do {
-    auto triv = trivEval(phi_hist.top() && lemma_hist.top());
-    if (triv.isSome()) {
-      if (*triv) {
-        return true;
-      } else {
-        auto lemma = make_shared(learn());
-        while (triv.isSome()) {
-          lemma_hist.pop();
-          phi_hist.pop();
-          vars.push(assignment.pop().var);
-          triv = trivEval(phi_hist.top() && lemma_hist.top());
-          ASS_REP(triv != some(true), "assigning less variables cannot make the formula true")
-        }
-        for (auto& p : lemma_hist) {
-          p = make_shared(p && lemma);
-        }
-      }
-    }
+    // auto triv = trivEval(phi_hist.top() && lemma_hist.top());
+    // if (triv.isSome()) {
+    //   if (*triv) {
+    //     return true;
+    //   } else {
+    //     auto lemma = make_shared(learn());
+    //     while (triv.isSome()) {
+    //       lemma_hist.pop();
+    //       phi_hist.pop();
+    //       vars.push(assignment.pop().var);
+    //       triv = trivEval(phi_hist.top() && lemma_hist.top());
+    //       ASS_REP(triv != some(true), "assigning less variables cannot make the formula true")
+    //     }
+    //     for (auto& p : lemma_hist) {
+    //       p = make_shared(p && lemma);
+    //     }
+    //   }
+    // }
     ASS_REP(vars.isNonEmpty(), outputToString("unexpeced unbound variables in ", lits))
     auto var = vars.pop();
+    Recycled<Stack<std::tuple<ElimTerm, unsigned, bool>>> failed;
     Option<ElimTerm> val;
-    for (auto t : elimSet(var, *phi_hist.top()).map([](auto t) { return simpl(t); })) {
-      auto phiS = make_shared(vsubs(*phi_hist.top(), var, t));
-      auto lemmaS = make_shared(vsubs(*lemma_hist.top(), var, t));
-      DBG("checking ", var, " -> ", t)
-      auto triv = trivEval(phiS && lemmaS);
-      DBG("triv eval result: ", triv)
-      if (triv != some(false)) {
-        // DBGE(phi_hist)
-        phi_hist.push(phiS);
-        lemma_hist.push(lemmaS);
+    // for (auto t : simplIter(elimSet(var, phi()))) {
+    for (auto t : simplIter(flattenPeriods(var, phi(), simplIter(elimSet(var, phi()))))) {
+      // DEBUG_DECIDE(0, "------------------------------------------ ")
+      auto phiS = vsubs(phi(), var, t);
+      auto lemS = vsubs(lemmas(), var, t);
+
+      // auto phiS = make_shared(vsubs(*phi_hist.top(), var, t));
+      // auto lemmaS = make_shared(vsubs(*lemma_hist.top(), var, t));
+      DEBUG_DECIDE(0, "trying assigment ", var, " -> ", t)
+      // auto triv = trivEval(phiS && lemmaS);
+      auto lits = 
+        concatIters(
+          range(0, phi().size())
+            .map([](auto i) { return make_tuple(i, false); }),
+          range(0, lemmas().size())
+            .map([](auto i) { return make_tuple(i, true); }));
+        // .inspect(tupMatch3([](LiraLit lit, unsigned, unsigned) { return trivEval(lit) == some(false); }))
+        // .map(tupMatch3([](LiraLit lit, unsigned, unsigned) { return make_tuple(trivEval(lit) )== some(false); }))
+        // .find(tupMatch3([](LiraLit lit, unsigned, unsigned) { return trivEval(lit) == some(false); }))
+        ;
+
+      bool anyUnknown = false;
+      bool anyFailed = false;
+      for (auto id : lits) {
+        auto idx = std::get<0>(id); 
+        auto isLem = std::get<1>(id); 
+        auto lit = (isLem ? lemS[idx] : phiS[idx]);
+        auto triv = trivEval(lit);
+        DEBUG_DECIDE(2, lit, " -> ", triv)
+        if (triv == some(false)) {
+          failed->push(std::make_tuple(t, idx, isLem));
+          anyFailed = true;
+          DEBUG_DECIDE(1, "false: ", lit)
+          break;
+        } else if (triv.isNone()) {
+          anyUnknown = true;
+        }
+      }
+
+      // DBG("triv eval result: ", triv)
+      if (!anyFailed) {
+        state.push(make_unique(DecisionLevel {
+            .phi = phiS,
+            .lemmas = lemS,
+        }));
+        DEBUG_DECIDE(0, "new literals: ", phiS)
+        DEBUG_DECIDE(0, "new lemmas: "  , lemS)
         val = some(t);
-        break;
+        if (anyUnknown) {
+          break;
+        } else {
+          return true;
+        }
+        // phi_hist.push(phiS);
+        // lemma_hist.push(lemmaS);
+      } else {
+        DEBUG_DECIDE(0, "------------------------------------------")
       }
     }
+    DEBUG_DECIDE(0, "------------------------------------------")
 
     if (val.isNone()) {
-      DBG("no assignment for ", var)
-      // var cannot be assigned to any value, formula is unsat
+      DEBUG_DECIDE(0, "conflicting assignment: ", assignment)
+      // DEBUG_DECIDE(0, "conflict for ", var)
+      // DEBUG_DECIDE(2, assignment)
+      // for (auto i : range(0, assignment.size())) {
+      //   auto a = assignment[i];
+      //   auto newVar = (i < assignment.size()) ? assignment[i + 1].var : var;
+      //   DBGE(a, " ==> ", elimSet())
+      // }
+      // for (auto&& a : assignment.iter()) {
+      //   DBG(a, "\t", elimSet())
+      // }
+      for (auto fail : *failed) {
+        auto elimTerm = std::get<0>(fail); 
+        auto idx = std::get<1>(fail); 
+        auto isLem = std::get<2>(fail); 
+        auto lit = [&](auto& state) { return (isLem ? state->lemmas[idx] : state->phi[idx]); };
+        // auto lit = (isLem ? state[0].lemmas[idx] : state[0].phi[idx]);
+        DEBUG_DECIDE(2, var, " // ", elimTerm, "\t conflict literal ", dbgIter(simplIter(arrayIter(state).map(lit))));
+      }
+      ASSERTION_VIOLATION
+
+      // auto lemma = learn();
+      // state[0].lemmas.extend(lemma);
+      // for (auto i : range(0, assignment.size())) {
+      //
+      // }
+
+      // DBGE(dbgIter(simplIter(failed->iter())))
+      // var cannot be assigned to any value, we need to learn a lemma why that 
+      // prevents the current assignment of the other variables
       return false;
     } else {
       assignment.push(Assignment(var, *val));

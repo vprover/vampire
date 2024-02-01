@@ -428,14 +428,8 @@ public:
 #undef REF_POLYMORPIHIC
 
   friend bool operator==(const Coproduct &lhs, const Coproduct &rhs)
-  {
-    if (lhs._tag != rhs._tag) {
-      return false;
-    } else {
-      auto tag = lhs._tag;
-      return Content::equal(tag, lhs._content, rhs._content);
-    }
-  }
+  { return lhs._tag == rhs._tag 
+        && Content::equal(lhs._tag, lhs._content, rhs._content); }
 
   friend bool operator!=(const Coproduct &lhs, const Coproduct &rhs)
   { return !(lhs == rhs); }
@@ -443,9 +437,14 @@ public:
   ~Coproduct() 
   { _content.destroy(_tag); }
 
+#define __COPRODUCT_VERBOS_OUTPUT 0
   friend std::ostream &operator<<(std::ostream &out, const Coproduct &self)
   { return self.apply([&](auto const& x)  -> std::ostream&
+#if __COPRODUCT_VERBOS_OUTPUT
         { return out << "var" << self._tag << "(" << x << ")"; }); }
+#else
+        { return out << x; }); }
+#endif // __COPRODUCT_VERBOS_OUTPUT
 
   friend struct std::hash<Coproduct>;
 

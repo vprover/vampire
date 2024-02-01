@@ -14,6 +14,7 @@
  */
 
 #include "Kernel/Theory.hpp"
+#include <functional>
 #include "Lib/VString.hpp"
 #include "QE/ElimSet.hpp"
 #include "Test/UnitTesting.hpp"
@@ -28,15 +29,27 @@ using namespace Test;
 #define VAR_X 0
 
 
+RealConstantType simpl(RealConstantType t) 
+{ return t; }
+
+TermList simpl(TermList t) 
+{ return testLascaState()->normalize(t).denormalize(); }
+
 ElimTerm simpl(ElimTerm t) 
 {
   auto fin = t.asFinite();
   if (fin) {
-    return ElimTerm(FiniteElimTerm(testLascaState()->normalize(fin->term()).denormalize(), fin->epsilon(), fin->period()));
+    return ElimTerm(FiniteElimTerm(simpl(fin->term()), fin->epsilon(), fin->period()));
   } else {
     return t;
   }
 }
+
+bool eqModAC(RealConstantType const& l, RealConstantType const& r)
+{ return l == r; }
+
+bool eqModAC(TermList l, TermList r)
+{ return testLascaState()->equivalent(l,r); }
 
 bool eqModAC(ElimTerm const& l_, ElimTerm const& r_)
 { 
@@ -51,7 +64,7 @@ bool eqModAC(ElimTerm const& l_, ElimTerm const& r_)
       auto& r = *r_.asFinite();
       return l.period() == r.period() 
           && l.epsilon() == r.epsilon() 
-          && testLascaState()->equivalent(l.term(), r.term());
+          && eqModAC(l.term(), r.term());
           // && TestUtils::eqModAC(l.term(), r.term());
     }
 }
@@ -148,6 +161,21 @@ struct CdvsTest {
   }
 };
 
+struct TermSummaryTest {
+  using TestFun = std::function<void(TermList, LiraTermSummary&)>;
+  TermList term;
+  Stack<TestFun> expected;
+
+  void run() {
+    auto result = LiraTermSummary::from(TermList::var(VAR_X), term);
+    for (auto& c : expected) {
+      c(term, result);
+    }
+  }
+};
+
+
+
 Period Z(int i)        { return Period(RealConstantType(i));    }
 Period Z(int p, int q) { return Period(RealConstantType(p, q)); }
 
@@ -164,6 +192,7 @@ constexpr Epsilon eps = Epsilon{};
     NUMBER_SUGAR(Real)                                                                    \
     DECL_VAR(x, VAR_X)                                                                    \
     DECL_VAR(y, 1)                                                                    \
+    DECL_VAR(z, 3)                                                                    \
     DECL_CONST(a, Real)                                                                   \
     DECL_CONST(b, Real)                                                                   \
     DECL_CONST(c, Real)                                                                   \
@@ -245,20 +274,242 @@ RUN_TEST(floor_5,
       .expected = containsAll( a + Z(1) ), 
     })
 
-RUN_TEST(bug_01,
+RUN_TEST(motivating_test,
     ElimSetTest {
-      // .formula  = exists(x, Real, floor(x - a) == x),
-      .conj     =  {floor(y - x) == y},
-      .expected = containsAll(num(0)),
+      .conj = { 
+        floor( x ) - 1 >= 0
+      // , x - 2 * floor(frac(1,2) * x) - b > 0
+      // , floor(3 * x - c) + floor(-3 * x + c) == 0
+      },
+      .expected = containsAll( 1 ), 
     })
+
+RUN_TEST(motivating_test_3,
+    ElimSetTest {
+      .conj = { 
+        floor( x ) - 1 > 0
+      // , x - 2 * floor(frac(1,2) * x) - b > 0
+      // , floor(3 * x - c) + floor(-3 * x + c) == 0
+      },
+      .expected = containsAll( 2 ), 
+    })
+
+RUN_TEST(motivating_test_4,
+    ElimSetTest {
+      .conj = { 
+        -floor( -x ) - 1 > 0
+      // , x - 2 * floor(frac(1,2) * x) - b > 0
+      // , floor(3 * x - c) + floor(-3 * x + c) == 0
+      },
+      .expected = containsAll( 1 + eps ), 
+    })
+
+RUN_TEST(motivating_test_5,
+    ElimSetTest {
+      .conj = { 
+        -floor( -x ) - 1 == 0
+      // , x - 2 * floor(frac(1,2) * x) - b > 0
+      // , floor(3 * x - c) + floor(-3 * x + c) == 0
+      },
+      .expected = containsAll( 1 ), 
+    })
+
+RUN_TEST(motivating_test_2,
+    ElimSetTest {
+      .conj = { 
+        floor( x ) - a >= 0
+      // , x - 2 * floor(frac(1,2) * x) - b > 0
+      // , floor(3 * x - c) + floor(-3 * x + c) == 0
+      },
+      .expected = containsAll( -floor(-a),  -floor(-a) + eps ), 
+    })
+
+
+RUN_TEST(motivating, 
+    ElimSetTest {
+      .conj = { 
+        floor( x ) - a >= 0
+      , x - 2 * floor(frac(1,2) * x) - b > 0
+      // , floor(3 * x - c) + floor(-3 * x + c) == 0
+      },
+      .expected = containsAll( a + Z(1) ), 
+    })
+
+//////////////////////////////////////////////////////////////////////////////////////
+// term property tests
+//////////////////////////////////////////////////////////////////////////////////////
+
+template<class... Tests> 
+auto allPass(Tests... ts) 
+{ return Stack<TermSummaryTest::TestFun> { TermSummaryTest::TestFun(ts)... }; }
+
+#define TEST_EQ(lhs, rhs) \
+  [](auto input, LiraTermSummary& result) { \
+    if (!(eqModAC(simpl(lhs), simpl(rhs)))) {  \
+      std::cout << "[         case ] " << pretty(      input ) << std::endl; \
+      std::cout << "[       result ] " << pretty(     result ) << std::endl; \
+      std::cout << "[        check ] " << #lhs << " == " << pretty( rhs ) << std::endl; \
+      std::cout << "[       result ] " << pretty( simpl(lhs) ) << "\t (simplified)" << std::endl; \
+      exit(-1); \
+    } \
+  } \
+
+RUN_TEST(props_0,
+    TermSummaryTest {
+      .term     = floor( x ) - 1,
+      .expected =  allPass(
+            TEST_EQ(result.linBounds.lower, TermList(num(-2)))
+          , TEST_EQ(result.lowerX(), TermList(num(1)))
+          ),
+    })
+
+RUN_TEST(props_1,
+    TermSummaryTest {
+      .term     = TermList(num(1)),
+      .expected =  allPass(
+          TEST_EQ(result.linBounds.lower, TermList(num(1)))
+          ),
+    })
+
+RUN_TEST(props_2,
+    TermSummaryTest {
+      .term     = TermList(-num(1)),
+      .expected =  allPass(TEST_EQ(result.linBounds.lower, TermList(num(-1)))),
+    })
+
+RUN_TEST(props_3,
+    TermSummaryTest {
+      .term     = x,
+      .expected =  allPass(
+            TEST_EQ(result.linBounds.lower, TermList(num(0)))
+          , TEST_EQ(result.lowerX(), TermList(num(0)))
+          ),
+    })
+
+RUN_TEST(props_4,
+    TermSummaryTest {
+      .term     = floor(x),
+      .expected =  allPass(
+            TEST_EQ(result.linBounds.lower, TermList(num(-1)))
+          , TEST_EQ(result.off, RealConstantType(1))
+          , TEST_EQ(result.lowerX(), TermList(num(0)))
+          ),
+    })
+
 
 //////////////////////////////////////////////////////////////////////////////////////
 // Full Decisision procedure tests
 //////////////////////////////////////////////////////////////////////////////////////
 
+
+template<class T>
+auto ceil(T t) 
+{ return -floor(-t); }
+
+RUN_TEST(lemma_ex00, // tryout
+    CdvsTest {
+      .formula  =  { 
+        floor(y) - y + frac(1,2) > 0,
+        x == 0,
+        floor(2 * y) + 2 * y + frac(1,2) < x,
+        // 0 < x, x < -1, // <-> false
+      },
+      .expected = true,
+    })
+
+
+RUN_TEST(lemma_ex01, // ebreak conflict
+    CdvsTest {
+      .formula  =  { 
+        floor(y) - y == 0,
+        0 < x, x < -1, // <-> false
+      },
+      .expected = false,
+    })
+
+
+RUN_TEST(lemma_ex02, // eseg conflict
+    CdvsTest {
+      .formula  =  { 
+        floor(y) - y != 0,
+        0 < x, x < -1, // <-> false
+      },
+      .expected = false,
+    })
+
+
+RUN_TEST(lemma_ex03, // einf conflict
+    CdvsTest {
+      .formula  =  { 
+        floor(y) < 0,
+        0 < x, x < -1, // <-> false
+      },
+      .expected = false,
+    })
+
+
+RUN_TEST(lemma_ex04, // epsilon lower bound conflict
+    CdvsTest {
+      .formula  =  { 
+        frac(1,2) * y + 7 > 0,
+        0 < x, x < -1, // <-> false
+      },
+      .expected = false,
+    })
+
+RUN_TEST(lemma_ex05, // lower bound conflict
+    CdvsTest {
+      .formula  =  { 
+        frac(1,2) * y + 7 >= 0,
+        0 < x, x < -1, // <-> false
+      },
+      .expected = false,
+    })
+
+RUN_TEST(lemma_ex06, // lower bound conflict
+    CdvsTest {
+      .formula  =  { 
+        frac(1,2) * y + 7 < 0,
+        0 < x, x < -1, // <-> false
+      },
+      .expected = false,
+    })
+
+
 RUN_TEST(decide_01,
+    CdvsTest {
+      // .formula  = exists(x, Real, floor(x - a) == x),
+      .formula  =  { 
+      floor(y) != y,
+      2 * floor(x) - ceil(x) == 0,
+      -floor(x) + 1 > 0
+      // x >= 0 
+      // ceil(y) - floor(y) - frac(1,2) >= 0 
+      //              , x - floor(x) + y >= 0
+                   },
+        .expected = false,
+    })
+
+RUN_TEST(decide_02,
     CdvsTest {
       // .formula  = exists(x, Real, floor(x - a) == x),
       .formula  =  {floor(x - y) == x},
       .expected = true,
+    })
+
+RUN_TEST(decide_03,
+    CdvsTest {
+      // .formula  = exists(x, Real, floor(x - a) == x),
+      .formula  =  { ceil(x) - floor(x) + frac(1,2) >= 0 
+                   },
+      .expected = true,
+    })
+
+RUN_TEST(decide_04,
+    CdvsTest {
+      // .formula  = exists(x, Real, floor(x - a) == x),
+      .formula  =  { ceil(x) - floor(x) - frac(1,2) >= 0 
+                   , x - floor(x) == 0
+                   },
+      .expected = false,
     })

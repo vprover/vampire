@@ -356,8 +356,9 @@ RationalConstantType RationalConstantType::operator*(const RationalConstantType&
 
 RationalConstantType RationalConstantType::operator/(const RationalConstantType& o) const
 {
-  auto lhs = *this;
-  auto rhs = o;
+  auto &lhs = *this;
+  auto &rhs = o;
+  ASS(!rhs._num.isZero())
   return RationalConstantType(
       lhs._num * rhs._den, 
       lhs._den * rhs._num);
