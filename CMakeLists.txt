@@ -875,6 +875,11 @@ set(UNIT_TEST_OBJ   )
 set(UNIT_TEST_CASES )
 if (COMPILE_TESTS)
   include(CTest)
+  if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
+    set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} --coverage)
+    set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} --coverage)
+    set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} --coverage)
+  endif()
   foreach(test_file ${UNIT_TESTS})
     get_filename_component(test_name ${test_file} NAME_WE)
     string(REGEX REPLACE "^t" "" test_name ${test_name})
@@ -902,7 +907,7 @@ if (COMPILE_TESTS)
     add_test(${case} ${CMAKE_BINARY_DIR}/vtest run ${case})
     set_tests_properties(${case}
           PROPERTIES
-          TIMEOUT 20)
+          TIMEOUT 60)
   endforeach()
 
 endif() # COMPILE_TESTS
