@@ -67,6 +67,7 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
     AnswerLiteralManager::getInstance()->tryOutputInputUnits();
   } else if (hasSyntManager) {
     SynthesisManager::getInstance()->tryOutputInputUnits();
+    SynthesisManager::getInstance()->outputRecursiveFunctions();
   }
   env.out() << "% SZS answers Tuple [[";
   Stack<TermList>::BottomFirstIterator ait(answer);
@@ -100,7 +101,7 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
 
 void AnswerExtractor::tryOutputInputUnits() {
   if (!UnitList::isEmpty(_inputs)) {
-    env.out() << "% Inputs for question answering:" << endl;
+    env.out() << "% Inputs for synthesis:" << endl;
     UnitList::Iterator it(_inputs);
     while (it.hasNext()) {
       env.out() << it.next()->toString() << endl;
@@ -365,6 +366,8 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
   if (quant == nullptr) {
     return unit;
   }
+
+  addInputUnit(unit);
 
   VList* vars = quant->vars();
   ASS(vars);
@@ -811,7 +814,7 @@ TermList SynthesisManager::ConjectureSkolemReplacement::transformSubterm(TermLis
       ASS(_functions.find(functor));
       Function& f = _functions.get(functor);
       f.addCases(t);
-      cout << f.toString();
+      f._used = true;
       return TermList(Term::create(f._functor, {*t->nthArgument(t->arity()-1)}));
     } else if ((t->arity() == 3) && t->nthArgument(0)->isTerm()) {
       TermList sort = env.signature->getFunction(functor)->fnType()->arg(1);
@@ -853,6 +856,21 @@ void SynthesisManager::ConjectureSkolemReplacement::initializeRecSkolems(Clause*
   }
 }
 
+void SynthesisManager::ConjectureSkolemReplacement::outputRecursiveFunctions() {
+  VirtualIterator<Function> it = _functions.range();
+  vstring res = "";
+  while (it.hasNext()) {
+    const Function& f = it.next();
+    if (f._used) {
+      res += f.toString();
+    }
+  }
+  if (res != "") {
+    env.out() << "% Recursive function definitions:" << endl;
+    env.out() << res;
+  }
+}
+
 SynthesisManager::ConjectureSkolemReplacement::Function::Function(unsigned recFunctor, ConjectureSkolemReplacement* replacement) {
   _replacement = replacement;
   ALWAYS(_replacement->_functionHeads->find(recFunctor, _caseHeads));
@@ -872,7 +890,6 @@ SynthesisManager::ConjectureSkolemReplacement::Function::Function(unsigned recFu
     SkolemTrackerList::Iterator sit(st);
     while (sit.hasNext()) {
       SkolemTracker s = sit.next();
-      unsigned var = s.constructorPos + _replacement->numInputSkolems();
       _replacement->bindSkolemToTermList(s.binding.second, s.recursiveCall ? TermList(Term::create(_functor, {*_caseHeads->nth(_caseHeads, s.constructorIndex).term()->nthArgument(s.constructorPos)})) : TermList(s.binding.first, false));
     }
   }
@@ -894,6 +911,15 @@ void SynthesisManager::storeSkolemMapping(unsigned int var, Term* skolem, unsign
   SkolemTrackerList::push(SkolemTracker(Binding(var, skolem), constructorIndex, recursiveCall, constructorPos, (unsigned)recFnID, recConIndex), (*l));
 }
 
+void SynthesisManager::printSkolemMappings() {
+  cout << "Skolem mappings:" << endl;
+  SkolemTrackerList::Iterator it(_skolemMappings);
+  while (it.hasNext()) {
+    SkolemTracker st = it.next();
+    cout << st.toString() << endl;
+  }
+}
+
 void SynthesisManager::printRecursionMappings() {
   cout << "Recursion mappings:" << endl;
   RecursionMappings::Iterator rit(_recursionMappings);
@@ -905,15 +931,6 @@ void SynthesisManager::printRecursionMappings() {
         cout << it.next().toString() << endl;
       }
     }
-  }
-}
-
-void SynthesisManager::printSkolemMappings() {
-  cout << "Skolem mappings:" << endl;
-  SkolemTrackerList::Iterator it(_skolemMappings);
-  while (it.hasNext()) {
-    SkolemTracker st = it.next();
-    cout << st.toString() << endl;
   }
 }
 

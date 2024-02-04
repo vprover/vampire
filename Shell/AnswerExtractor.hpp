@@ -139,7 +139,7 @@ private:
       Function() = default;
       Function(unsigned recFunctor, ConjectureSkolemReplacement* replacement);
       void addCases(Term* t);
-      vstring toString() {
+      vstring toString() const {
         ASS(List<TermList>::length(_cases) == _ta->nConstructors());
         vstring s;
         vstring fname = env.signature->getFunction(_functor)->name();
@@ -161,12 +161,13 @@ private:
           //  }
           //}
           //s += (con->arity() > 0 ? ")" : "");
-          s += ") = " + it.next().toString() + "\n";
+          s += ") = " + it.next().toString() + "\n"; // TODO: fix to print endl
           //++i;
         }
         return s;
       }
       unsigned _functor;
+      bool _used = false;
       TermAlgebra* _ta = nullptr;
       List<TermList>* _cases = nullptr;
       List<TermList>* _caseHeads = nullptr;
@@ -181,6 +182,7 @@ private:
     void initializeRecSkolems(Literal* l);
     void initializeRecSkolems(Clause* cl);
     unsigned numInputSkolems() { return _numInputSkolems; }
+    void outputRecursiveFunctions();
 
     DHMap<unsigned, List<TermList>*>* _functionHeads;
     RecursionMappings* _recursionMappings;
@@ -250,6 +252,8 @@ public:
 
   void printSkolemMappings();
   void printRecursionMappings();
+
+  void outputRecursiveFunctions() { _skolemReplacement.outputRecursiveFunctions(); }
 
   unsigned numInputSkolems() { return _skolemReplacement.numInputSkolems(); }
 };
