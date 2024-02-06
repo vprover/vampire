@@ -3540,189 +3540,109 @@ void Schedules::getStructInductionSchedule(const Shell::Property& property, Sche
 }
 
 void Schedules::getStructInductionTipSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback) {
-  // Ran on tipvampire231219.txt
+  // Ran on tipvampire231219_nolemmas.txt
   // Sub-schedule for 2000Mi strat cap / 2000Mi overall limit
    quick.push("lrs+10_1:1024_fnrw=on:gtg=all:gtgl=3:ind=struct:indao=on:indc=goal:indoct=on:newcnf=on:sac=on:sp=unary_first:i=43:si=on:rtra=on_0");
-   quick.push("dis+10_180:31_canc=force:gtg=exists_all:gtgl=4:newcnf=on:rp=on:s2a=on:s2agt=10:sac=on:sas=z3:sos=all:uhcvi=on:i=235:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_drc=off:ind=struct:newcnf=on:nicw=on:sik=recursion:sil=100000:sp=const_frequency:to=lpo:i=58:si=on:rtra=on_0");
-   quick.push("lrs+21_1:128_gtg=exists_top:gtgl=2:ind=both:indc=goal_plus:indmd=1:newcnf=on:nm=20:nui=on:sik=recursion:sp=unary_frequency:spb=non_intro:i=35:si=on:rtra=on_0");
+   quick.push("lrs+21_1:128_gtg=exists_top:gtgl=2:ind=both:indc=goal_plus:indmd=1:newcnf=on:nm=20:nui=on:sik=recursion:sp=unary_frequency:spb=non_intro:i=19:si=on:rtra=on_0");
    quick.push("lrs+10_1:40_bsr=unit_only:drc=off:flr=on:ind=both:newcnf=on:nm=75:nui=on:sik=recursion:sp=const_min:updr=off:i=28:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_aac=none:gtg=exists_all:gtgl=3:ind=both:newcnf=on:nui=on:plsq=on:plsqr=4,1:rp=on:sik=recursion:spb=goal_then_units:i=22:si=on:rtra=on_0");
-   quick.push("ott+2_1:64_bsr=unit_only:fnrw=on:ind=both:indmd=10:newcnf=on:nui=on:nwc=1.5:sik=recursion:sp=reverse_arity:spb=intro:i=41:si=on:rtra=on_0");
-   quick.push("dis+1010_1:1_drc=off:er=filter:fsr=off:ind=both:indao=on:newcnf=on:nm=32:rp=on:sac=on:sik=recursion:sp=unary_frequency:tac=rule:taea=off:to=lpo:uace=off:i=7:si=on:rtra=on_0");
-   quick.push("dis+1002_1:1_tac=light:taea=off:i=65:si=on:rtra=on_0");
+   quick.push("dis+1010_1:1_drc=off:er=filter:fsr=off:ind=both:indao=on:newcnf=on:nm=32:rp=on:sac=on:sik=recursion:sp=unary_frequency:tac=rule:taea=off:to=lpo:uace=off:i=8:si=on:rtra=on_0");
+   quick.push("dis+10_1:1_flr=on:ind=both:kws=precedence:newcnf=on:nui=on:sik=recursion:i=25:si=on:rtra=on_0");
+   quick.push("dis+1002_1:1_tac=light:taea=off:i=32:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_av=off:drc=off:ind=struct:indstrhyp=on:newcnf=on:sik=all:taea=off:urr=on:i=74:si=on:rtra=on_0");
-   quick.push("lrs+1010_1:128_add=large:bs=on:bsd=on:etr=on:ev=force:fnrw=on:ind=struct:indc=goal_plus:indmd=2:indoct=on:lecc=2.0:newcnf=on:nui=on:sp=unary_first:i=114:si=on:rtra=on_0");
-   quick.push("ott+21_1:10_bsr=on:canc=force:drc=encompass:ev=cautious:ile=on:ind=struct:indao=on:indoct=on:newcnf=on:spb=non_intro:tac=rule:taea=off:to=lpo:i=2:si=on:rtra=on_0");
-   quick.push("lrs+10_1:1_ind=struct:newcnf=on:nui=on:nwc=10.0:sac=on:sik=recursion:to=lpo:i=67:si=on:rtra=on_0");
-   quick.push("lrs+10_1:128_br=off:fnrw=on:gtg=position:ind=struct:indmd=1:newcnf=on:nui=on:sil=100000:slsq=on:i=37:si=on:rtra=on_0");
+   quick.push("lrs+1010_1:128_add=large:bs=on:bsd=on:etr=on:ev=force:fnrw=on:ind=struct:indc=goal_plus:indmd=2:indoct=on:lecc=2.0:newcnf=on:nui=on:sp=unary_first:i=89:si=on:rtra=on_0");
+   quick.push("lrs+1002_1:1_avsq=on:avsql=on:drc=off:ind=struct:indmd=20:kws=precedence:newcnf=on:rp=on:sas=z3:sp=const_max:i=260:si=on:rtra=on_0");
+   quick.push("dis+10_1:1_bs=unit_only:fde=unused:fnrw=on:ind=int:indn=off:ins=1:intindstcomp=always:kws=arity:newcnf=on:rp=on:sp=frequency:tac=rule:taea=off:tgt=full:urr=on:i=28:si=on:rtra=on_0");
+   quick.push("lrs+10_1:1_ind=struct:newcnf=on:nui=on:nwc=10.0:sac=on:sik=recursion:to=lpo:i=16:si=on:rtra=on_0");
    quick.push("lrs+1011_1:1_fnrw=on:ind=both:indmd=2:indoct=on:kws=frequency:newcnf=on:nui=on:sik=recursion:taea=off:i=13:si=on:rtra=on_0");
-   quick.push("lrs+2_1:1_drc=encompass:ind=struct:indao=on:newcnf=on:plsq=on:plsqr=32,1:sp=frequency:to=lpo:i=7:si=on:rtra=on_0");
-   quick.push("lrs+1010_1:1_aac=none:afp=10000:fnrw=on:ind=both:indc=goal_plus:indmd=1:indn=off:newcnf=on:i=78:si=on:rtra=on_0");
-   quick.push("lrs+1002_1:3_av=off:bsr=unit_only:drc=off:gtg=exists_top:gtgl=5:ind=struct:nwc=10.0:sil=100000:sp=const_min:spb=intro:tac=light:taea=off:to=lpo:urr=ec_only:i=59:si=on:rtra=on_0");
-   quick.push("lrs+10_1633:262144_canc=cautious:drc=off:ev=force:fde=none:ind=both:indoct=on:newcnf=on:sik=recursion:sil=100000:sp=const_min:spb=goal_then_units:to=lpo:updr=off:i=55:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_ind=struct:indstrhyp=on:kws=precedence:s2a=on:s2agt=16:sac=on:sos=all:sp=reverse_arity:spb=intro:i=71:si=on:rtra=on_0");
+   quick.push("lrs+2_1:1_drc=encompass:ind=struct:indao=on:newcnf=on:plsq=on:plsqr=32,1:sp=frequency:to=lpo:i=8:si=on:rtra=on_0");
+   quick.push("lrs+1010_1:1_aac=none:afp=10000:fnrw=on:ind=both:indc=goal_plus:indmd=1:indn=off:newcnf=on:i=4:si=on:rtra=on_0");
+   quick.push("dis+10_1:1_asg=cautious:ind=both:intindstterm=no_skolems:newcnf=on:norm_ineq=on:rp=on:sac=on:sas=z3:sos=theory:spb=intro:to=lpo:i=174:si=on:rtra=on_0");
+   quick.push("lrs+10_1633:262144_canc=cautious:drc=off:ev=force:fde=none:ind=both:indoct=on:newcnf=on:sik=recursion:sil=100000:sp=const_min:spb=goal_then_units:to=lpo:updr=off:i=15:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_bd=off:gtg=exists_all:ind=both:indmd=1:indstrhyp=on:ins=3:newcnf=on:nui=on:spb=goal_then_units:to=lpo:i=19:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_drc=off:fs=off:fsr=off:ind=struct:indstrhyp=on:nwc=5.0:s2a=on:sos=on:tar=off:i=80:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_drc=off:fs=off:fsr=off:ind=struct:indstrhyp=on:nwc=5.0:s2a=on:sos=on:tar=off:i=60:si=on:rtra=on_0");
    quick.push("lrs-1003_1:4_av=off:drc=off:ind=struct:indu=off:kws=precedence:newcnf=on:rawr=on:s2a=on:s2agt=16:sil=100000:slsq=on:spb=units:urr=on:uwa=ground:i=31:si=on:rtra=on_0");
-   quick.push("lrs+1010_1:1_cond=on:er=tagged:fnrw=on:gve=force:irw=on:kws=inv_precedence:newcnf=on:nm=10:plsq=on:plsqc=2:plsqr=1,32:rp=on:sil=100000:sos=theory:spb=units:ss=axioms:tac=axiom:i=72:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_drc=encompass:gtg=exists_all:ind=struct:indmd=3:indstrhyp=on:s2a=on:i=72:si=on:rtra=on_0");
-   quick.push("dis+1010_3:1_aac=none:flr=on:ind=struct:ins=2:newcnf=on:nwc=2.0:sac=on:sil=100000:i=82:si=on:rtra=on_0");
-   quick.push("lrs+2_1:4_drc=off:gtg=position:gve=cautious:ile=on:ind=struct:indao=on:indc=goal:indmd=6:newcnf=on:nwc=5.0:s2a=on:tac=axiom:to=lpo:i=44:si=on:rtra=on_0");
-   quick.push("lrs+1002_1:8_alpa=false:bd=preordered:drc=off:ind=struct:newcnf=on:nwc=10.0:sac=on:sik=recursion:sp=occurrence:spb=goal:i=3:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_drc=off:fnrw=on:gtg=all:gtgl=3:ind=both:indao=on:kws=precedence:newcnf=on:nwc=6.0:sac=on:sp=reverse_arity:uwa=interpreted_only:i=34:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_add=large:flr=on:ind=both:newcnf=on:nui=on:nwc=5.0:sik=all:sil=100000:spb=non_intro:i=37:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_drc=encompass:gtg=exists_all:ind=struct:indmd=3:indstrhyp=on:s2a=on:i=27:si=on:rtra=on_0");
+   quick.push("dis+1010_3:1_aac=none:flr=on:ind=struct:ins=2:newcnf=on:nwc=2.0:sac=on:sil=100000:i=69:si=on:rtra=on_0");
+   quick.push("lrs+2_1:4_drc=off:gtg=position:gve=cautious:ile=on:ind=struct:indao=on:indc=goal:indmd=6:newcnf=on:nwc=5.0:s2a=on:tac=axiom:to=lpo:i=39:si=on:rtra=on_0");
+   quick.push("lrs+1002_1:8_alpa=false:bd=preordered:drc=off:ind=struct:newcnf=on:nwc=10.0:sac=on:sik=recursion:sp=occurrence:spb=goal:i=10:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_drc=off:fnrw=on:gtg=all:gtgl=3:ind=both:indao=on:kws=precedence:newcnf=on:nwc=6.0:sac=on:sp=reverse_arity:uwa=interpreted_only:i=11:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_add=large:flr=on:ind=both:newcnf=on:nui=on:nwc=5.0:sik=all:sil=100000:spb=non_intro:i=13:si=on:rtra=on_0");
    quick.push("lrs+1002_1:1_av=off:bd=off:gtg=exists_top:ind=struct:indao=on:kws=precedence:newcnf=on:nwc=10.0:sik=recursion:sil=100000:sp=frequency:taea=off:uwa=all:i=16:si=on:rtra=on_0");
-   quick.push("lrs+10_1:1_drc=off:fsr=off:ind=struct:newcnf=on:sik=all:taea=off:to=lpo:i=201:si=on:rtra=on_0");
-   quick.push("ott+21_1:1_ep=RST:fsd=on:gve=cautious:ind=both:indn=off:newcnf=on:nui=on:nwc=10.0:sik=recursion:spb=intro:urr=on:i=31:si=on:rtra=on_0");
-   quick.push("lrs+10_1:1_drc=off:ind=struct:indstrhyp=on:newcnf=on:sos=on:sp=reverse_arity:to=lpo:i=28:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_ev=cautious:gtg=exists_top:ind=struct:indc=goal:indstrhyp=on:nwc=10.0:sos=on:i=7:si=on:rtra=on_0");
+   quick.push("ott+21_1:1_ep=RST:fsd=on:gve=cautious:ind=both:indn=off:newcnf=on:nui=on:nwc=10.0:sik=recursion:spb=intro:urr=on:i=4:si=on:rtra=on_0");
    quick.push("lrs+1010_1:1_gtg=exists_all:ind=both:indmd=1:newcnf=on:nui=on:taea=off:updr=off:i=18:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_drc=encompass:erd=off:ind=struct:indmd=1:sos=on:ss=axioms:urr=on:i=21:si=on:rtra=on_0");
+   quick.push("lrs+10_1:1_add=large:drc=encompass:gtg=exists_sym:ind=both:indmd=2:newcnf=on:sik=recursion:sil=100000:uwa=one_side_constant:i=65:si=on:rtra=on_0");
    quick.push("lrs+21_1:8_av=off:awrs=converge:awrsf=10:drc=off:fnrw=on:ind=struct:newcnf=on:slsq=on:slsqc=5:sp=unary_frequency:uwa=all:i=10:si=on:rtra=on_0");
-   quick.push("ott+1002_1:1024_bsd=on:drc=off:fd=preordered:ind=struct:indao=on:indgenss=7:kws=inv_arity:rawr=on:sac=on:sp=const_max:spb=intro:sup=off:uhcvi=on:updr=off:uwa=ground:i=37:si=on:rtra=on_0");
+   quick.push("ott+1002_1:1024_bsd=on:drc=off:fd=preordered:ind=struct:indao=on:indgenss=7:kws=inv_arity:rawr=on:sac=on:sp=const_max:spb=intro:sup=off:uhcvi=on:updr=off:uwa=ground:i=51:si=on:rtra=on_0");
+   quick.push("ott+1002_3:2_aac=none:abs=on:alpa=true:drc=off:gve=force:ind=struct:indao=on:newcnf=on:nicw=on:nm=30:rawr=on:taea=off:i=8:si=on:rtra=on_0");
+   quick.push("lrs+1002_1:4_drc=off:fsd=on:ind=struct:indmd=1:newcnf=on:nm=10:rp=on:s2pl=no:sik=recursion:sil=100000:sos=theory:sp=const_frequency:taea=off:uace=off:i=8:si=on:rtra=on_0");
+   quick.push("dis+21_1:1_alpa=true:amm=off:fnrw=on:gtg=exists_top:gtgl=2:ind=struct:indc=goal:newcnf=on:rp=on:sil=100000:sos=theory:sp=frequency:taea=off:tgt=full:urr=on:i=82:si=on:rtra=on_0");
+   quick.push("dis-1011_1:1_erd=off:gtg=exists_sym:gve=cautious:ind=both:indmd=3:indstrhyp=on:kws=inv_frequency:norm_ineq=on:sil=100000:sp=occurrence:spb=intro:ss=axioms:i=97:si=on:rtra=on_0");
    quick.push("ott+10_1:1_ind=both:newcnf=on:nui=on:plsq=on:sik=recursion:sp=unary_frequency:uwa=interpreted_only:i=2:si=on:rtra=on_0");
-   quick.push("dis+10_1:1_av=off:fnrw=on:ind=struct:newcnf=on:nwc=5.0:i=65:si=on:rtra=on_0");
+   quick.push("dis+10_1:1_av=off:fnrw=on:ind=struct:newcnf=on:nwc=5.0:i=9:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_atotf=0.1:ind=struct:indstrhyp=on:newcnf=on:sik=all:taea=off:i=177:si=on:rtra=on_0");
+   quick.push("dis+1002_1:1_bd=off:ep=RSTC:gtg=exists_all:newcnf=on:nm=10:norm_ineq=on:rp=on:s2agt=32:sac=on:sas=z3:slsq=on:slsqr=151023,1048576:sp=const_max:tac=light:i=161:si=on:rtra=on_0");
    quick.push("lrs+21_1:128_av=off:drc=encompass:gtg=all:ind=struct:indao=on:ins=1:newcnf=on:spb=units:uwa=one_side_interpreted:i=12:si=on:rtra=on_0");
-   quick.push("lrs+1010_8:1_ind=both:indmd=2:kws=inv_precedence:newcnf=on:sik=recursion:sp=const_min:i=38:si=on:rtra=on_0");
+   quick.push("lrs+1010_8:1_ind=both:indmd=2:kws=inv_precedence:newcnf=on:sik=recursion:sp=const_min:i=32:si=on:rtra=on_0");
    quick.push("dis+10_1:64_ind=both:indmd=2:indoct=on:newcnf=on:sac=on:sik=recursion:sil=100000:sp=frequency:taea=off:to=lpo:i=13:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_erd=off:gve=cautious:ind=both:newcnf=on:nui=on:updr=off:i=3:si=on:rtra=on_0");
    quick.push("lrs+10_1:4_drc=encompass:erd=off:ind=both:sil=100000:taea=off:urr=on:i=34:si=on:rtra=on_0");
-  // Improves by expected 440.31860246135017 probs costing 1999 Mi
+  // Improves by expected 216.06498927478503 probs costing 1990 Mi
   // Sub-schedule for 4000Mi strat cap / 4000Mi overall limit
-   quick.push("ott+10_1:1_drc=off:ind=struct:newcnf=on:nicw=on:sik=recursion:sil=100000:sp=const_frequency:to=lpo:i=541:si=on:rtra=on_0");
-   quick.push("lrs+2_1:1_aac=none:gtg=exists_all:gtgl=3:ind=both:newcnf=on:nui=on:plsq=on:plsqr=4,1:rp=on:sik=recursion:spb=goal_then_units:i=17:si=on:rtra=on_0");
-   quick.push("ott+2_1:64_bsr=unit_only:fnrw=on:ind=both:indmd=10:newcnf=on:nui=on:nwc=1.5:sik=recursion:sp=reverse_arity:spb=intro:i=271:si=on:rtra=on_0");
-   quick.push("lrs+1002_1:1_avsq=on:avsql=on:drc=off:ind=struct:indmd=20:kws=precedence:newcnf=on:rp=on:sas=z3:sp=const_max:i=282:si=on:rtra=on_0");
-   quick.push("dis+10_1:1_bs=unit_only:fde=unused:fnrw=on:ind=int:indn=off:ins=1:intindstcomp=always:kws=arity:newcnf=on:rp=on:sp=frequency:tac=rule:taea=off:tgt=full:urr=on:i=28:si=on:rtra=on_0");
-   quick.push("lrs+10_1:1_abs=on:ev=cautious:gtg=exists_top:ind=struct:newcnf=on:nui=on:s2a=on:sac=on:sas=z3:sik=recursion:i=203:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_ind=struct:indstrhyp=on:kws=precedence:s2a=on:s2agt=16:sac=on:sos=all:sp=reverse_arity:spb=intro:i=97:si=on:rtra=on_0");
-   quick.push("dis+10_1:1_asg=cautious:ind=both:intindstterm=no_skolems:newcnf=on:norm_ineq=on:rp=on:sac=on:sas=z3:sos=theory:spb=intro:to=lpo:i=311:si=on:rtra=on_0");
-   quick.push("lrs+10_1:1_bd=off:gtg=exists_all:ind=both:indmd=1:indstrhyp=on:ins=3:newcnf=on:nui=on:spb=goal_then_units:to=lpo:i=169:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_drc=off:fs=off:fsr=off:ind=struct:indstrhyp=on:nwc=5.0:s2a=on:sos=on:tar=off:i=133:si=on:rtra=on_0");
-   quick.push("lrs+1010_1:1_cond=on:er=tagged:fnrw=on:gve=force:irw=on:kws=inv_precedence:newcnf=on:nm=10:plsq=on:plsqc=2:plsqr=1,32:rp=on:sil=100000:sos=theory:spb=units:ss=axioms:tac=axiom:i=72:si=on:rtra=on_0");
-   quick.push("dis+1010_1:1_abs=on:fsr=off:gs=on:gtg=position:newcnf=on:rp=on:sac=on:sas=z3:sil=100000:slsq=on:sos=on:sp=unary_first:uace=off:urr=on:i=286:si=on:rtra=on_0");
-   quick.push("lrs+1010_1:1_ind=struct:indc=goal_plus:indmd=1:newcnf=on:nui=on:s2a=on:spb=intro:i=134:si=on:rtra=on_0");
-   quick.push("lrs+10_1:1_drc=off:ind=struct:indstrhyp=on:newcnf=on:sos=on:sp=reverse_arity:to=lpo:i=202:si=on:rtra=on_0");
-   quick.push("ott+21_1:1_asg=cautious:av=off:drc=off:fnrw=on:ins=1:newcnf=on:norm_ineq=on:rp=on:sp=const_min:ss=axioms:taea=off:uwa=interpreted_only:i=96:si=on:rtra=on_0");
-   quick.push("lrs+10_1:1_add=large:drc=encompass:gtg=exists_sym:ind=both:indmd=2:newcnf=on:sik=recursion:sil=100000:uwa=one_side_constant:i=66:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_avsq=on:avsql=on:bd=off:gtg=position:ind=both:indstrhyp=on:kws=precedence:newcnf=on:nwc=10.0:sac=on:sgt=30:sik=all:sp=frequency:ss=axioms:taea=off:urr=on:i=149:si=on:rtra=on_0");
-   quick.push("lrs+21_1:8_av=off:awrs=converge:awrsf=10:drc=off:fnrw=on:ind=struct:newcnf=on:slsq=on:slsqc=5:sp=unary_frequency:uwa=all:i=10:si=on:rtra=on_0");
-   quick.push("dis-1011_1:1_erd=off:gtg=exists_sym:gve=cautious:ind=both:indmd=3:indstrhyp=on:kws=inv_frequency:norm_ineq=on:sil=100000:sp=occurrence:spb=intro:ss=axioms:i=97:si=on:rtra=on_0");
-   quick.push("lrs+1011_16:1_drc=off:ev=cautious:fd=preordered:ind=struct:indstrhyp=on:sp=reverse_arity:i=176:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_atotf=0.1:ind=struct:indstrhyp=on:newcnf=on:sik=all:taea=off:i=177:si=on:rtra=on_0");
-   quick.push("dis+1002_1:1_bd=off:ep=RSTC:gtg=exists_all:newcnf=on:nm=10:norm_ineq=on:rp=on:s2agt=32:sac=on:sas=z3:slsq=on:slsqr=151023,1048576:sp=const_max:tac=light:i=168:si=on:rtra=on_0");
-   quick.push("dis+2_1:1_fd=preordered:fde=none:gtg=position:newcnf=on:rp=on:sas=z3:sos=theory:sp=unary_frequency:spb=goal:i=238:si=on:rtra=on_0");
-   quick.push("dis+10_1:64_ind=both:indmd=2:indoct=on:newcnf=on:sac=on:sik=recursion:sil=100000:sp=frequency:taea=off:to=lpo:i=89:si=on:rtra=on_0");
-   quick.push("lrs+2_1:1_erd=off:gve=cautious:ind=both:newcnf=on:nui=on:updr=off:i=3:si=on:rtra=on_0");
-  // Improves by expected 42.05751854957042 probs costing 3990 Mi
-  // Sub-schedule for 4000Mi strat cap / 4000Mi overall limit
-   quick.push("dis+10_180:31_canc=force:gtg=exists_all:gtgl=4:newcnf=on:rp=on:s2a=on:s2agt=10:sac=on:sas=z3:sos=all:uhcvi=on:i=235:si=on:rtra=on_0");
-   quick.push("ott+2_1:64_bsr=unit_only:fnrw=on:ind=both:indmd=10:newcnf=on:nui=on:nwc=1.5:sik=recursion:sp=reverse_arity:spb=intro:i=71:si=on:rtra=on_0");
-   quick.push("lrs+10_1:1_av=off:drc=off:ind=struct:indstrhyp=on:newcnf=on:sik=all:taea=off:urr=on:i=154:si=on:rtra=on_0");
-   quick.push("lrs+1010_1:128_add=large:bs=on:bsd=on:etr=on:ev=force:fnrw=on:ind=struct:indc=goal_plus:indmd=2:indoct=on:lecc=2.0:newcnf=on:nui=on:sp=unary_first:i=70:si=on:rtra=on_0");
-   quick.push("dis+1010_1:1_abs=on:fde=none:gs=on:gtg=exists_all:gtgl=4:kws=inv_frequency:newcnf=on:rp=on:sas=z3:sd=1:sgt=30:sil=100000:ss=axioms:tac=rule:i=550:si=on:rtra=on_0");
-   quick.push("dis+10_1:1_bs=unit_only:fde=unused:fnrw=on:ind=int:indn=off:ins=1:intindstcomp=always:kws=arity:newcnf=on:rp=on:sp=frequency:tac=rule:taea=off:tgt=full:urr=on:i=28:si=on:rtra=on_0");
-   quick.push("lrs+1002_1:1_abs=on:anc=all:ev=cautious:kws=inv_frequency:newcnf=on:rp=on:sac=on:sas=z3:spb=goal_then_units:tgt=ground:uwa=interpreted_only:i=485:si=on:rtra=on_0");
-   quick.push("lrs+1010_1:1_aac=none:afp=10000:fnrw=on:ind=both:indc=goal_plus:indmd=1:indn=off:newcnf=on:i=310:si=on:rtra=on_0");
-   quick.push("dis+10_1:1_asg=cautious:ind=both:intindstterm=no_skolems:newcnf=on:norm_ineq=on:rp=on:sac=on:sas=z3:sos=theory:spb=intro:to=lpo:i=233:si=on:rtra=on_0");
-   quick.push("lrs-10_1:5_flr=on:fnrw=on:fsr=off:gs=on:ind=struct:indao=on:newcnf=on:plsq=on:plsqc=2:plsqr=2,7:rp=on:sik=recursion:sil=100000:tar=off:uwa=one_side_constant:i=443:si=on:rtra=on_0");
-   quick.push("dis+1010_1:1_abs=on:fsr=off:gs=on:gtg=position:newcnf=on:rp=on:sac=on:sas=z3:sil=100000:slsq=on:sos=on:sp=unary_first:uace=off:urr=on:i=287:si=on:rtra=on_0");
-   quick.push("lrs+1010_1:1_ind=struct:indc=goal_plus:indmd=1:newcnf=on:nui=on:s2a=on:spb=intro:i=134:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_add=large:flr=on:ind=both:newcnf=on:nui=on:nwc=5.0:sik=all:sil=100000:spb=non_intro:i=195:si=on:rtra=on_0");
-   quick.push("ott+21_1:1_asg=cautious:av=off:drc=off:fnrw=on:ins=1:newcnf=on:norm_ineq=on:rp=on:sp=const_min:ss=axioms:taea=off:uwa=interpreted_only:i=96:si=on:rtra=on_0");
-   quick.push("dis-1011_1:1_erd=off:gtg=exists_sym:gve=cautious:ind=both:indmd=3:indstrhyp=on:kws=inv_frequency:norm_ineq=on:sil=100000:sp=occurrence:spb=intro:ss=axioms:i=85:si=on:rtra=on_0");
-   quick.push("lrs+1010_1:5_fsd=on:fsdmm=3:gve=force:newcnf=on:nm=32:norm_ineq=on:rp=on:sas=z3:spb=intro:tar=off:i=174:si=on:rtra=on_0");
-   quick.push("dis+10_1:1024_br=off:fnrw=on:ind=struct:newcnf=on:sac=on:sik=recursion:sil=100000:sp=occurrence:spb=non_intro:tac=axiom:taea=off:uwa=one_side_interpreted:i=310:si=on:rtra=on_0");
-   quick.push("ott-1010_1:1_bce=on:canc=force:fnrw=on:kws=inv_arity_squared:lcm=reverse:newcnf=on:nm=16:plsq=on:plsqc=1:plsqr=22,45:rawr=on:rp=on:sil=100000:sp=occurrence:taea=off:thi=strong:i=137:si=on:rtra=on_0");
-  // Improves by expected 15.633859842662645 probs costing 3979 Mi
-  // Sub-schedule for 8000Mi strat cap / 8000Mi overall limit
-   quick.push("ott-21_1:3_amm=off:canc=force:ev=cautious:gtg=exists_all:gtgl=2:ind=both:indc=goal:indmd=1:indoct=on:indstrhyp=on:nwc=5.0:plsq=on:plsqr=13907591,524288:pum=on:sp=weighted_frequency:to=lpo:urr=on:i=132:si=on:rtra=on_0");
-   quick.push("ott+2_1:64_bsr=unit_only:fnrw=on:ind=both:indmd=10:newcnf=on:nui=on:nwc=1.5:sik=recursion:sp=reverse_arity:spb=intro:i=242:si=on:rtra=on_0");
+   quick.push("dis+10_180:31_canc=force:gtg=exists_all:gtgl=4:newcnf=on:rp=on:s2a=on:s2agt=10:sac=on:sas=z3:sos=all:uhcvi=on:i=223:si=on:rtra=on_0");
    quick.push("ott+21_1:5_drc=off:erd=off:ind=both:indgen=on:indgenss=5:sac=on:slsq=on:taea=off:urr=on:i=391:si=on:rtra=on_0");
-   quick.push("lrs+10_1:1_av=off:drc=off:ind=struct:indstrhyp=on:newcnf=on:sik=all:taea=off:urr=on:i=154:si=on:rtra=on_0");
-   quick.push("dis+1010_1:1_abs=on:fde=none:gs=on:gtg=exists_all:gtgl=4:kws=inv_frequency:newcnf=on:rp=on:sas=z3:sd=1:sgt=30:sil=100000:ss=axioms:tac=rule:i=805:si=on:rtra=on_0");
-   quick.push("lrs+10_1:1_ind=struct:newcnf=on:nui=on:nwc=10.0:sac=on:sik=recursion:to=lpo:i=835:si=on:rtra=on_0");
-   quick.push("lrs+10_1:1_abs=on:ev=cautious:gtg=exists_top:ind=struct:newcnf=on:nui=on:s2a=on:sac=on:sas=z3:sik=recursion:i=318:si=on:rtra=on_0");
-   quick.push("ott+1002_1:1_canc=cautious:kws=inv_precedence:nm=0:rp=on:sas=z3:spb=units:updr=off:i=514:si=on:rtra=on_0");
-   quick.push("dis+10_1:1_asg=cautious:ind=both:intindstterm=no_skolems:newcnf=on:norm_ineq=on:rp=on:sac=on:sas=z3:sos=theory:spb=intro:to=lpo:i=309:si=on:rtra=on_0");
-   quick.push("lrs+10_1633:262144_canc=cautious:drc=off:ev=force:fde=none:ind=both:indoct=on:newcnf=on:sik=recursion:sil=100000:sp=const_min:spb=goal_then_units:to=lpo:updr=off:i=56:si=on:rtra=on_0");
+   quick.push("dis+1002_1:1_fnrw=on:gtg=exists_sym:gtgl=4:newcnf=on:rp=on:sil=100000:sp=frequency:taea=off:tgt=full:to=lpo:i=51:si=on:rtra=on_0");
+   quick.push("lrs+1002_1:6_canc=cautious:cond=on:ind=both:indao=on:intindint=infinite:intindsteq=not_in_both:newcnf=on:nm=16:rp=on:s2pl=on:sas=z3:slsq=on:slsqc=4:slsql=off:slsqr=33,13:sp=const_min:urr=on:i=248:si=on:rtra=on_0");
+   quick.push("lrs+1002_1:1_avsq=on:avsql=on:drc=off:ind=struct:indmd=20:kws=precedence:newcnf=on:rp=on:sas=z3:sp=const_max:i=260:si=on:rtra=on_0");
+   quick.push("dis+10_1:1_bs=unit_only:fde=unused:fnrw=on:ind=int:indn=off:ins=1:intindstcomp=always:kws=arity:newcnf=on:rp=on:sp=frequency:tac=rule:taea=off:tgt=full:urr=on:i=28:si=on:rtra=on_0");
+   quick.push("lrs+10_1:1_abs=on:ev=cautious:gtg=exists_top:ind=struct:newcnf=on:nui=on:s2a=on:sac=on:sas=z3:sik=recursion:i=164:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_ind=struct:indstrhyp=on:kws=precedence:s2a=on:s2agt=16:sac=on:sos=all:sp=reverse_arity:spb=intro:i=182:si=on:rtra=on_0");
+   quick.push("dis+10_1:1_asg=cautious:ind=both:intindstterm=no_skolems:newcnf=on:norm_ineq=on:rp=on:sac=on:sas=z3:sos=theory:spb=intro:to=lpo:i=260:si=on:rtra=on_0");
    quick.push("ott+10_1:1_drc=off:fs=off:fsr=off:ind=struct:indstrhyp=on:nwc=5.0:s2a=on:sos=on:tar=off:i=133:si=on:rtra=on_0");
-   quick.push("dis+1010_1:1_abs=on:fsr=off:gs=on:gtg=position:newcnf=on:rp=on:sac=on:sas=z3:sil=100000:slsq=on:sos=on:sp=unary_first:uace=off:urr=on:i=287:si=on:rtra=on_0");
-   quick.push("lrs+1010_1:1_ind=struct:indc=goal_plus:indmd=1:newcnf=on:nui=on:s2a=on:spb=intro:i=141:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_drc=off:gve=cautious:ind=both:kws=inv_frequency:newcnf=on:sik=recursion:sil=100000:sos=on:sp=weighted_frequency:ss=axioms:st=6.0:i=711:si=on:rtra=on_0");
-   quick.push("ott+10_5:1_drc=off:ind=struct:indstrhyp=on:kws=precedence:taea=off:uwa=all:i=217:si=on:rtra=on_0");
+   quick.push("lrs-10_1:5_flr=on:fnrw=on:fsr=off:gs=on:ind=struct:indao=on:newcnf=on:plsq=on:plsqc=2:plsqr=2,7:rp=on:sik=recursion:sil=100000:tar=off:uwa=one_side_constant:i=443:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_drc=off:gve=cautious:ind=both:kws=inv_frequency:newcnf=on:sik=recursion:sil=100000:sos=on:sp=weighted_frequency:ss=axioms:st=6.0:i=582:si=on:rtra=on_0");
+   quick.push("lrs+10_1:1_bd=off:gtg=exists_top:ind=struct:indmd=2:indstrhyp=on:nwc=5.0:s2a=on:s2agt=16:i=103:si=on:rtra=on_0");
    quick.push("ott+21_1:1_asg=cautious:av=off:drc=off:fnrw=on:ins=1:newcnf=on:norm_ineq=on:rp=on:sp=const_min:ss=axioms:taea=off:uwa=interpreted_only:i=96:si=on:rtra=on_0");
-   quick.push("ott+1002_16:1_drc=off:fd=preordered:ind=both:indn=off:sil=100000:sp=const_max:taea=off:to=lpo:uace=off:i=967:si=on:rtra=on_0");
-   quick.push("ott+1002_1:1024_bsd=on:drc=off:fd=preordered:ind=struct:indao=on:indgenss=7:kws=inv_arity:rawr=on:sac=on:sp=const_max:spb=intro:sup=off:uhcvi=on:updr=off:uwa=ground:i=51:si=on:rtra=on_0");
-   quick.push("lrs+1010_1:1_anc=all_dependent:fde=none:fnrw=on:gtg=exists_top:kws=inv_arity:newcnf=on:rp=on:i=112:si=on:rtra=on_0");
-   quick.push("dis-1011_1:1_erd=off:gtg=exists_sym:gve=cautious:ind=both:indmd=3:indstrhyp=on:kws=inv_frequency:norm_ineq=on:sil=100000:sp=occurrence:spb=intro:ss=axioms:i=85:si=on:rtra=on_0");
-   quick.push("dis+10_1:1024_br=off:fnrw=on:ind=struct:newcnf=on:sac=on:sik=recursion:sil=100000:sp=occurrence:spb=non_intro:tac=axiom:taea=off:uwa=one_side_interpreted:i=310:si=on:rtra=on_0");
-   quick.push("dis+1002_1:1_bd=off:ep=RSTC:gtg=exists_all:newcnf=on:nm=10:norm_ineq=on:rp=on:s2agt=32:sac=on:sas=z3:slsq=on:slsqr=151023,1048576:sp=const_max:tac=light:i=149:si=on:rtra=on_0");
-   quick.push("dis+2_1:1_fd=preordered:fde=none:gtg=position:newcnf=on:rp=on:sas=z3:sos=theory:sp=unary_frequency:spb=goal:i=238:si=on:rtra=on_0");
-   quick.push("dis+10_1:1_amm=off:drc=off:gtg=all:gtgl=5:ind=struct:indmd=2:newcnf=on:sos=on:taea=off:tgt=full:i=458:si=on:rtra=on_0");
-   quick.push("ott-1010_1:1_bce=on:canc=force:fnrw=on:kws=inv_arity_squared:lcm=reverse:newcnf=on:nm=16:plsq=on:plsqc=1:plsqr=22,45:rawr=on:rp=on:sil=100000:sp=occurrence:taea=off:thi=strong:i=253:si=on:rtra=on_0");
-  // Improves by expected 11.640267411239504 probs costing 7939 Mi
-  // Sub-schedule for 20000Mi strat cap / 20000Mi overall limit
-   quick.push("ott-21_1:3_amm=off:canc=force:ev=cautious:gtg=exists_all:gtgl=2:ind=both:indc=goal:indmd=1:indoct=on:indstrhyp=on:nwc=5.0:plsq=on:plsqr=13907591,524288:pum=on:sp=weighted_frequency:to=lpo:urr=on:i=132:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_drc=off:ind=struct:newcnf=on:nicw=on:sik=recursion:sil=100000:sp=const_frequency:to=lpo:i=541:si=on:rtra=on_0");
-   quick.push("ott+2_1:64_bsr=unit_only:fnrw=on:ind=both:indmd=10:newcnf=on:nui=on:nwc=1.5:sik=recursion:sp=reverse_arity:spb=intro:i=242:si=on:rtra=on_0");
+   quick.push("dis+21_1:1_alpa=true:amm=off:fnrw=on:gtg=exists_top:gtgl=2:ind=struct:indc=goal:newcnf=on:rp=on:sil=100000:sos=theory:sp=frequency:taea=off:tgt=full:urr=on:i=82:si=on:rtra=on_0");
+   quick.push("dis-1011_1:1_erd=off:gtg=exists_sym:gve=cautious:ind=both:indmd=3:indstrhyp=on:kws=inv_frequency:norm_ineq=on:sil=100000:sp=occurrence:spb=intro:ss=axioms:i=86:si=on:rtra=on_0");
+   quick.push("lrs+10_1:1_drc=off:gtg=exists_all:gtgl=2:ind=struct:ss=axioms:uwa=one_side_constant:i=86:si=on:rtra=on_0");
+   quick.push("dis+1002_1:1_bd=off:ep=RSTC:gtg=exists_all:newcnf=on:nm=10:norm_ineq=on:rp=on:s2agt=32:sac=on:sas=z3:slsq=on:slsqr=151023,1048576:sp=const_max:tac=light:i=161:si=on:rtra=on_0");
+   quick.push("dis+2_1:1_fd=preordered:fde=none:gtg=position:newcnf=on:rp=on:sas=z3:sos=theory:sp=unary_frequency:spb=goal:i=295:si=on:rtra=on_0");
+   quick.push("lrs+2_1:1_erd=off:gve=cautious:ind=both:newcnf=on:nui=on:updr=off:i=3:si=on:rtra=on_0");
+  // Improves by expected 13.741168084071628 probs costing 3857 Mi
+  // Sub-schedule for 4000Mi strat cap / 4000Mi overall limit
+   quick.push("dis+10_180:31_canc=force:gtg=exists_all:gtgl=4:newcnf=on:rp=on:s2a=on:s2agt=10:sac=on:sas=z3:sos=all:uhcvi=on:i=223:si=on:rtra=on_0");
    quick.push("dis-1011_1:10_bd=preordered:ind=struct:indmd=1:newcnf=on:nui=on:pum=on:sil=100000:i=461:si=on:rtra=on_0");
-   quick.push("lrs+10_1:1_av=off:drc=off:ind=struct:indstrhyp=on:newcnf=on:sik=all:taea=off:urr=on:i=154:si=on:rtra=on_0");
-   quick.push("lrs+1002_1:1_avsq=on:avsql=on:drc=off:ind=struct:indmd=20:kws=precedence:newcnf=on:rp=on:sas=z3:sp=const_max:i=1624:si=on:rtra=on_0");
-   quick.push("dis+1010_1:1_abs=on:fde=none:gs=on:gtg=exists_all:gtgl=4:kws=inv_frequency:newcnf=on:rp=on:sas=z3:sd=1:sgt=30:sil=100000:ss=axioms:tac=rule:i=404:si=on:rtra=on_0");
-   quick.push("lrs+1002_1:1_abs=on:anc=all:ev=cautious:kws=inv_frequency:newcnf=on:rp=on:sac=on:sas=z3:spb=goal_then_units:tgt=ground:uwa=interpreted_only:i=959:si=on:rtra=on_0");
-   quick.push("lrs+10_1:1_ind=struct:newcnf=on:nui=on:nwc=10.0:sac=on:sik=recursion:to=lpo:i=835:si=on:rtra=on_0");
-   quick.push("lrs+10_1:1_abs=on:ev=cautious:gtg=exists_top:ind=struct:newcnf=on:nui=on:s2a=on:sac=on:sas=z3:sik=recursion:i=203:si=on:rtra=on_0");
-   quick.push("ott+1002_1:1_canc=cautious:kws=inv_precedence:nm=0:rp=on:sas=z3:spb=units:updr=off:i=514:si=on:rtra=on_0");
-   quick.push("dis+10_1:1_asg=cautious:ind=both:intindstterm=no_skolems:newcnf=on:norm_ineq=on:rp=on:sac=on:sas=z3:sos=theory:spb=intro:to=lpo:i=2701:si=on:rtra=on_0");
+   quick.push("dis+10_1:1_bs=unit_only:fde=unused:fnrw=on:ind=int:indn=off:ins=1:intindstcomp=always:kws=arity:newcnf=on:rp=on:sp=frequency:tac=rule:taea=off:tgt=full:urr=on:i=28:si=on:rtra=on_0");
+   quick.push("ott+1002_1:1_canc=cautious:kws=inv_precedence:nm=0:rp=on:sas=z3:spb=units:updr=off:i=412:si=on:rtra=on_0");
+   quick.push("dis+10_1:1_asg=cautious:ind=both:intindstterm=no_skolems:newcnf=on:norm_ineq=on:rp=on:sac=on:sas=z3:sos=theory:spb=intro:to=lpo:i=233:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_drc=off:fs=off:fsr=off:ind=struct:indstrhyp=on:nwc=5.0:s2a=on:sos=on:tar=off:i=133:si=on:rtra=on_0");
    quick.push("lrs-10_1:5_flr=on:fnrw=on:fsr=off:gs=on:ind=struct:indao=on:newcnf=on:plsq=on:plsqc=2:plsqr=2,7:rp=on:sik=recursion:sil=100000:tar=off:uwa=one_side_constant:i=389:si=on:rtra=on_0");
-   quick.push("ott+21_1:185_fd=preordered:fde=none:fnrw=on:ind=both:indmd=5:lma=on:newcnf=on:nm=5:nui=on:rp=on:sik=recursion:sp=weighted_frequency:spb=units:tac=rule:thi=neg_eq:i=1351:si=on:rtra=on_0");
-   quick.push("dis+1010_1:1_abs=on:fsr=off:gs=on:gtg=position:newcnf=on:rp=on:sac=on:sas=z3:sil=100000:slsq=on:sos=on:sp=unary_first:uace=off:urr=on:i=311:si=on:rtra=on_0");
-   quick.push("lrs+1010_1:1_ind=struct:indc=goal_plus:indmd=1:newcnf=on:nui=on:s2a=on:spb=intro:i=141:si=on:rtra=on_0");
-   quick.push("lrs+10_1:1_drc=off:fsr=off:ind=struct:newcnf=on:sik=all:taea=off:to=lpo:i=520:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_drc=off:gve=cautious:ind=both:kws=inv_frequency:newcnf=on:sik=recursion:sil=100000:sos=on:sp=weighted_frequency:ss=axioms:st=6.0:i=607:si=on:rtra=on_0");
    quick.push("dis+10_1:1_avsq=on:avsqr=1,16:drc=off:fd=preordered:ins=1:nm=32:sfv=off:sp=unary_frequency:spb=goal:to=lpo:updr=off:i=1060:si=on:rtra=on_0");
-   quick.push("ott+21_1:1_asg=cautious:av=off:drc=off:fnrw=on:ins=1:newcnf=on:norm_ineq=on:rp=on:sp=const_min:ss=axioms:taea=off:uwa=interpreted_only:i=91:si=on:rtra=on_0");
+   quick.push("ott+21_1:1_asg=cautious:av=off:drc=off:fnrw=on:ins=1:newcnf=on:norm_ineq=on:rp=on:sp=const_min:ss=axioms:taea=off:uwa=interpreted_only:i=89:si=on:rtra=on_0");
    quick.push("ott+21_3:1_fnrw=on:gtg=exists_sym:gtgl=4:ins=1:newcnf=on:rp=on:sil=100000:ss=axioms:tgt=full:thi=neg_eq:to=lpo:urr=on:i=291:si=on:rtra=on_0");
-   quick.push("lrs+10_1:1_drc=off:ev=force:ind=struct:indmd=3:indstrhyp=on:newcnf=on:norm_ineq=on:plsq=on:plsqr=161,8:sil=100000:sp=const_min:spb=goal_then_units:thi=all:i=2034:si=on:rtra=on_0");
-   quick.push("lrs+10_3:1_asg=cautious:fnrw=on:gtg=all:ind=both:indmd=1:indn=off:lcm=reverse:newcnf=on:nui=on:sac=on:sik=recursion:sil=100000:slsq=on:slsql=off:taea=off:thi=strong:uwa=one_side_constant:i=245:si=on:rtra=on_0");
-   quick.push("ott+1002_1:2_bs=unit_only:canc=force:ep=RS:fnrw=on:newcnf=on:norm_ineq=on:rp=on:sil=100000:sp=reverse_arity:taea=off:urr=ec_only:uwa=interpreted_only:i=501:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_atotf=0.1:ind=struct:indstrhyp=on:newcnf=on:sik=all:taea=off:i=1468:si=on:rtra=on_0");
-   quick.push("lrs+1002_1:3_awrs=decay:fnrw=on:gtg=exists_sym:newcnf=on:nm=32:rp=on:sp=unary_first:tac=rule:taea=off:tar=off:tgt=full:uhcvi=on:uwa=ground:i=811:si=on:rtra=on_0");
-   quick.push("dis+10_1:1_amm=off:drc=off:gtg=all:gtgl=5:ind=struct:indmd=2:newcnf=on:sos=on:taea=off:tgt=full:i=458:si=on:rtra=on_0");
-   quick.push("ott-1010_1:1_bce=on:canc=force:fnrw=on:kws=inv_arity_squared:lcm=reverse:newcnf=on:nm=16:plsq=on:plsqc=1:plsqr=22,45:rawr=on:rp=on:sil=100000:sp=occurrence:taea=off:thi=strong:i=253:si=on:rtra=on_0");
-  // Improves by expected 8.367897376694664 probs costing 19273 Mi
-  // Sub-schedule for 40000Mi strat cap / 40000Mi overall limit
-   quick.push("ott+10_1:1_aac=none:bs=unit_only:drc=off:ev=cautious:fsr=off:ind=struct:indao=on:newcnf=on:nicw=on:sik=recursion:ss=axioms:tgt=full:i=17001:si=on:rtra=on_0");
-   quick.push("dis+1010_1:1_abs=on:fde=none:gs=on:gtg=exists_all:gtgl=4:kws=inv_frequency:newcnf=on:rp=on:sas=z3:sd=1:sgt=30:sil=100000:ss=axioms:tac=rule:i=805:si=on:rtra=on_0");
-   quick.push("lrs+10_1:1_abs=on:ev=cautious:gtg=exists_top:ind=struct:newcnf=on:nui=on:s2a=on:sac=on:sas=z3:sik=recursion:i=284:si=on:rtra=on_0");
+   quick.push("dis+2_1:1_fd=preordered:fde=none:gtg=position:newcnf=on:rp=on:sas=z3:sos=theory:sp=unary_frequency:spb=goal:i=213:si=on:rtra=on_0");
+   quick.push("dis+10_1:1_amm=off:drc=off:gtg=all:gtgl=5:ind=struct:indmd=2:newcnf=on:sos=on:taea=off:tgt=full:i=441:si=on:rtra=on_0");
+  // Improves by expected 3.349762257387157 probs costing 3961 Mi
+  // Sub-schedule for 8000Mi strat cap / 8000Mi overall limit
+   quick.push("dis-1011_1:10_bd=preordered:ind=struct:indmd=1:newcnf=on:nui=on:pum=on:sil=100000:i=461:si=on:rtra=on_0");
+   quick.push("lrs+1002_1:1_abs=on:anc=all:ev=cautious:kws=inv_frequency:newcnf=on:rp=on:sac=on:sas=z3:spb=goal_then_units:tgt=ground:uwa=interpreted_only:i=681:si=on:rtra=on_0");
    quick.push("dis+10_1:1_asg=cautious:ind=both:intindstterm=no_skolems:newcnf=on:norm_ineq=on:rp=on:sac=on:sas=z3:sos=theory:spb=intro:to=lpo:i=2701:si=on:rtra=on_0");
-   quick.push("lrs+1002_1:3_av=off:bsr=unit_only:drc=off:gtg=exists_top:gtgl=5:ind=struct:nwc=10.0:sil=100000:sp=const_min:spb=intro:tac=light:taea=off:to=lpo:urr=ec_only:i=2101:si=on:rtra=on_0");
-   quick.push("ott+21_1:185_fd=preordered:fde=none:fnrw=on:ind=both:indmd=5:lma=on:newcnf=on:nm=5:nui=on:rp=on:sik=recursion:sp=weighted_frequency:spb=units:tac=rule:thi=neg_eq:i=1351:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_drc=off:gve=cautious:ind=both:kws=inv_frequency:newcnf=on:sik=recursion:sil=100000:sos=on:sp=weighted_frequency:ss=axioms:st=6.0:i=582:si=on:rtra=on_0");
    quick.push("dis+10_1:1_avsq=on:avsqr=1,16:drc=off:fd=preordered:ins=1:nm=32:sfv=off:sp=unary_frequency:spb=goal:to=lpo:updr=off:i=1060:si=on:rtra=on_0");
-   quick.push("lrs+1010_1:1_gtg=exists_all:ind=both:indmd=1:newcnf=on:nui=on:taea=off:updr=off:i=2973:si=on:rtra=on_0");
-   quick.push("ott+2_3:1_avsq=on:avsqr=1,16:bd=off:ep=RS:fnrw=on:lma=on:newcnf=on:nm=32:rp=on:sil=100000:sos=all:sp=unary_first:tgt=full:i=2101:si=on:rtra=on_0");
-   quick.push("lrs+10_1:1_ind=struct:newcnf=on:nui=on:s2a=on:sas=z3:sik=recursion:i=4511:si=on:rtra=on_0");
-   quick.push("dis+10_1:1_amm=off:drc=off:gtg=all:gtgl=5:ind=struct:indmd=2:newcnf=on:sos=on:taea=off:tgt=full:i=458:si=on:rtra=on_0");
-   quick.push("ott-1010_1:1_bce=on:canc=force:fnrw=on:kws=inv_arity_squared:lcm=reverse:newcnf=on:nm=16:plsq=on:plsqc=1:plsqr=22,45:rawr=on:rp=on:sil=100000:sp=occurrence:taea=off:thi=strong:i=253:si=on:rtra=on_0");
-  // Improves by expected 2.739235446503001 probs costing 35587 Mi
-  // Sub-schedule for 120000Mi strat cap / 120000Mi overall limit
-   quick.push("ott+2_1:1_bsr=on:erd=off:gtg=exists_top:gve=cautious:ind=both:indmd=1:indstrhyp=on:newcnf=on:nui=on:i=8101:si=on:rtra=on_0");
-   quick.push("ott+10_1:1024_asg=cautious:awrs=decay:drc=off:fsd=on:ind=struct:newcnf=on:nm=2:sac=on:taea=off:i=48260:si=on:rtra=on_0");
+   quick.push("lrs+1002_1:3_awrs=decay:fnrw=on:gtg=exists_sym:newcnf=on:nm=32:rp=on:sp=unary_first:tac=rule:taea=off:tar=off:tgt=full:uhcvi=on:uwa=ground:i=734:si=on:rtra=on_0");
+   quick.push("dis+10_1:1_amm=off:drc=off:gtg=all:gtgl=5:ind=struct:indmd=2:newcnf=on:sos=on:taea=off:tgt=full:i=441:si=on:rtra=on_0");
+  // Improves by expected 1.496372313496297 probs costing 6653 Mi
+  // Sub-schedule for 20000Mi strat cap / 20000Mi overall limit
    quick.push("dis+10_1:1_asg=cautious:ind=both:intindstterm=no_skolems:newcnf=on:norm_ineq=on:rp=on:sac=on:sas=z3:sos=theory:spb=intro:to=lpo:i=2701:si=on:rtra=on_0");
-   quick.push("lrs+1002_1:3_av=off:bsr=unit_only:drc=off:gtg=exists_top:gtgl=5:ind=struct:nwc=10.0:sil=100000:sp=const_min:spb=intro:tac=light:taea=off:to=lpo:urr=ec_only:i=2101:si=on:rtra=on_0");
-   quick.push("ott+21_1:185_fd=preordered:fde=none:fnrw=on:ind=both:indmd=5:lma=on:newcnf=on:nm=5:nui=on:rp=on:sik=recursion:sp=weighted_frequency:spb=units:tac=rule:thi=neg_eq:i=18462:si=on:rtra=on_0");
-   quick.push("dis+1010_1:1_add=large:afr=on:newcnf=on:pum=on:rp=on:sas=z3:sos=all:sp=unary_frequency:thi=overlap:to=lpo:uhcvi=on:i=21001:si=on:rtra=on_0");
-  // Improves by expected 1.2405810942121944 probs costing 100620 Mi
-  // Sub-schedule for 240000Mi strat cap / 240000Mi overall limit
-   quick.push("ott+10_1:1024_asg=cautious:awrs=decay:drc=off:fsd=on:ind=struct:newcnf=on:nm=2:sac=on:taea=off:i=48260:si=on:rtra=on_0");
-   quick.push("ott+21_1:185_fd=preordered:fde=none:fnrw=on:ind=both:indmd=5:lma=on:newcnf=on:nm=5:nui=on:rp=on:sik=recursion:sp=weighted_frequency:spb=units:tac=rule:thi=neg_eq:i=7014:si=on:rtra=on_0");
-  // Improves by expected 0.2254904815878388 probs costing 55272 Mi
-  // Sub-schedule for 480000Mi strat cap / 480000Mi overall limit
-   quick.push("ott+21_1:185_fd=preordered:fde=none:fnrw=on:ind=both:indmd=5:lma=on:newcnf=on:nm=5:nui=on:rp=on:sik=recursion:sp=weighted_frequency:spb=units:tac=rule:thi=neg_eq:i=13988:si=on:rtra=on_0");
-  // Improves by expected 0.10323808058227672 probs costing 13987 Mi
-  // Overall score 522.3266907444028 probs on average / budget 242646 Mi
+   quick.push("ott+1010_9:4_anc=all_dependent:drc=encompass:fsd=on:ind=struct:indao=on:indstrhyp=on:newcnf=on:pum=on:s2a=on:s2agt=32:sos=all:tac=rule:i=4801:si=on:rtra=on_0");
+   quick.push("dis+10_1:1_amm=off:drc=off:gtg=all:gtgl=5:ind=struct:indmd=2:newcnf=on:sos=on:taea=off:tgt=full:i=441:si=on:rtra=on_0");
+  // Improves by expected 0.4182775034739544 probs costing 7940 Mi
 
-  // Old: Overall score 509.99088280867824 probs on average / budget 683853 Mi
+  // Overall score 235.07056943321408 probs on average / budget 24401 Mi
 }
 
 void Schedules::getSnakeTptpUnsSchedule(const Shell::Property& property, Schedule& quick) {    
