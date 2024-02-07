@@ -47,10 +47,10 @@
 #include "Superposition.hpp"
 #include "Shell/UnificationWithAbstractionConfig.hpp"
 
-#if VDEBUG
+// #if VDEBUG
 #include <iostream>
 using namespace std;
-#endif
+// #endif
 
 using namespace Inferences;
 using namespace Lib;
@@ -376,8 +376,7 @@ Clause* Superposition::performSuperposition(
   //cout << "Check ordering on " << tgtTermS.toString() << " and " << rwTermS.toString() << endl;
 
   //check that we're not rewriting smaller subterm with larger
-  auto comp = ordering.compare(tgtTermS,rwTermS);
-  if(Ordering::isGorGEorE(comp)) {
+  if(Ordering::isGorGEorE(ordering.compare(tgtTermS,rwTermS))) {
     return 0;
   }
 
@@ -409,10 +408,13 @@ Clause* Superposition::performSuperposition(
   auto checker = _salg->getReducibilityChecker();
   if (checker) {
     checker->reset();
-    if (checker->checkSup(rwLit,eqLit,eqLHS,rwTerm.term(),rwTermS.term(),tgtTermS,subst.ptr(),eqIsResult,Ordering::reverse(comp),eqClause->length()==1)) {
+    if (checker->checkSupEager(rwLit,eqLit,eqLHS,rwTerm.term(),rwTermS.term(),tgtTermS,subst.ptr(),eqIsResult,eqClause->length()==1)) {
       env.statistics->redundantSuperposition++;
+      // cout << "redundant eager" << endl;
       return 0;
-    }
+    }/*  else {
+      cout << "non-redundant eager" << endl;
+    } */
   }
 
   bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
@@ -602,12 +604,22 @@ Clause* Superposition::performSuperposition(
     }
   }
 
+  if (env.options->reducibilityCheck()==Options::ReducibilityCheck::LAZY) {
+    auto supInfo = new Clause::SupInfo();
+    supInfo->eqLHS = eqLHS;
+    supInfo->rwTerm = rwTerm.term();
+    supInfo->rwLit = rwLit;
+    supInfo->eqLit = eqLit;
+    supInfo->splitSet = rwClause->splits();
+    res->setSupInfo(supInfo);
+  }
+
 /*
   if(hasConstraints){ 
     cout << "RETURNING " << res->toString() << endl;
     //NOT_IMPLEMENTED;
   }
 */
-//  cout << "result " + res->toString() << endl;
+//  cout << "result " + res->toString() << endl << endl;
   return res;
 }

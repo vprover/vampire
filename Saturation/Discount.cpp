@@ -18,6 +18,7 @@
 #include "Kernel/LiteralSelector.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
+#include "Inferences/ReducibilityChecker.hpp"
 
 #include "Discount.hpp"
 
@@ -38,6 +39,11 @@ bool Discount::handleClauseBeforeActivation(Clause* cl)
 
   if (!forwardSimplify(cl)) {
     cl->setStore(Clause::NONE);
+    return false;
+  }
+  if (_checker && _checker->checkInferenceLazy(cl)) {
+    cl->setStore(Clause::NONE);
+    env.statistics->redundantSuperposition++;
     return false;
   }
   backwardSimplify(cl);

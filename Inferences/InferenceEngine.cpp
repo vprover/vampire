@@ -387,6 +387,11 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
 		 Clause(newLength,
 			 SimplifyingInference1(InferenceRule::REMOVE_DUPLICATE_LITERALS,c));
 
+  if (c->getSupInfo()) {
+    d->setSupInfo(c->getSupInfo());
+    c->setSupInfo(nullptr);
+  }
+
   int origIdx = length-1;
 
   for(int newIdx=newLength-1; newIdx>=0; newIdx--,origIdx--) {
@@ -517,6 +522,10 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
     (*d)[i] = lits[newLength-i-1];
   }
   env.statistics->trivialInequalities += found;
+  if (c->getSupInfo()) {
+    d->setSupInfo(c->getSupInfo());
+    c->setSupInfo(nullptr);
+  }
 
   return d;
 }

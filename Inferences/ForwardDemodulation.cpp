@@ -110,6 +110,12 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         continue;
       }
 
+      // auto re = static_cast<ReducibilityChecker::ReducibilityEntry*>(trm.term()->reducibilityInfo());
+      // if (re && !trm.term()->isReduced() && re->reducesTo.isEmpty()) {
+      //   TIME_TRACE("skipping unreducible");
+      //   it.right();
+      //   continue;
+      // }
 
       bool toplevelCheck = _redundancyCheck &&
         lit->isEquality() && (trm==*lit->nthArgument(0) || trm==*lit->nthArgument(1));
@@ -270,6 +276,10 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           }
         }
         ASS_EQ(next,cLen);
+        if (cl->getSupInfo()) {
+          res->setSupInfo(cl->getSupInfo());
+          // cl->setSupInfo(nullptr);
+        }
 
         env.statistics->forwardDemodulations++;
 

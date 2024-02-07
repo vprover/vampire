@@ -67,6 +67,11 @@ bool InnerRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& p
 
             env.statistics->innerRewrites++;
 
+            if (cl->getSupInfo()) {
+              res->setSupInfo(cl->getSupInfo());
+              // cl->setSupInfo(nullptr);
+            }
+
             replacement = res;
             return true;
           }

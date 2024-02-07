@@ -1783,6 +1783,10 @@ bool KBO::isGreater(TermList tl1, TermList tl2, void* tl1State, VarOrderBV* cons
   ASS_REP((compare(tl1,tl2S)==Ordering::GREATER)==res,
     tl1.toString()+" "+tl2S.toString()+" (orig "+tl2.toString()+") false "+(res?"positive":"negative"));
 
+  if (res) {
+    newConstraints = 0;
+  }
+
   if (!res && constraints) {
     for (unsigned i = 0; i < 6; i++) {
       for (unsigned j = i+1; j <= 6; j++) {
@@ -1829,11 +1833,36 @@ bool KBO::isGreater(TermList tl1, TermList tl2, void* tl1State, VarOrderBV* cons
 
 bool KBO::isGreaterHelper(TermList tl1, TermList tl2, void* tl1State, VarOrderBV* constraints, VarOrderBV* newConstraints) const
 {
-  if(tl1==tl2 || tl1.isOrdinaryVar()) {
+  if (tl1==tl2) {
+    return false;
+  }
+  if (tl1.isOrdinaryVar()) {
+    // if (constraints && tl2.isOrdinaryVar()) {
+    //   if (isBitSet(tl1.var(),tl2.var(),PoComp::GT,*constraints)) {
+    //     TIME_TRACE("setting bit here");
+    //     setBit(tl1.var(),tl2.var(),PoComp::GT,*newConstraints);
+    //   }
+    // }
     return false;
   }
   if(tl2.isOrdinaryVar()) {
-    return tl1.isTerm() && tl1.containsSubterm(tl2);
+    if (tl1.isTerm() && tl1.containsSubterm(tl2)) {
+      return true;
+    }
+    // for (unsigned i = 0; i <= 6; i++) {
+    //   if (i == tl2.var() || !(tl1.term()->varmap() & (1 << i))) {
+    //     continue;
+    //   }
+    //   if (isBitSet(i,tl2.var(),PoComp::GT,*constraints)) {
+    //     TIME_TRACE("setting bit here");
+    //     setBit(i,tl2.var(),PoComp::GT,*newConstraints);
+    //   }
+    //   if (isBitSet(i,tl2.var(),PoComp::EQ,*constraints)) {
+    //     TIME_TRACE("setting bit here");
+    //     setBit(i,tl2.var(),PoComp::EQ,*newConstraints);
+    //   }
+    // }
+    return false;
   }
 
   ASS(tl1.isTerm());
@@ -2053,6 +2082,9 @@ bool KBO::isGreater(TermList tl1, TermList tl2, const VarOrder& vo) const
       }
     }
   }
+  // if (t2->numVarOccs()>t1->numVarOccs()) {
+  //   return false;
+  // }
 
   // compare variables
   VariableIterator vit2(t2);
@@ -2080,6 +2112,7 @@ bool KBO::isGreater(TermList tl1, TermList tl2, const VarOrder& vo) const
           ASS(pos);
           pos--;
         }
+        // break; // this particular variable occurrence cannot be used anymore
       }
     }
   }
@@ -2250,15 +2283,19 @@ bool KBO::makeGreaterRecursive(TermList tl1, TermList tl2, VarOrder& vo) const
       }
     }
   }
+  // cout << "compare vars of " << *t1 << " and " << *t2 << endl;
 
   // compare variables
   VariableIterator vit2(t2);
   DHMap<unsigned,unsigned> varCnts;
   while (vit2.hasNext()) {
     unsigned* cnt;
-    varCnts.getValuePtr(vit2.next().var(), cnt, 0);
+    auto v = vit2.next();
+    varCnts.getValuePtr(v.var(), cnt, 0);
     (*cnt)++;
+    // cout << "found " << v << " " << *cnt << endl;
   }
+  // cout << "vo " << vo.to_string() << endl;
 
   VariableIterator vit1(t1);
   unsigned pos = varCnts.size();
@@ -2268,17 +2305,20 @@ bool KBO::makeGreaterRecursive(TermList tl1, TermList tl2, VarOrder& vo) const
     unsigned* cnt;
     varCntsExtra.getValuePtr(t1v, cnt, 0);
     (*cnt)++;
+    // cout << "found2 " << t1v << " " << *cnt << endl;
 
     DHMap<unsigned,unsigned>::Iterator vit2(varCnts);
     while (vit2.hasNext()) {
       unsigned t2v;
-      unsigned& cnt = vit2.nextRef(t2v);
+      unsigned& cnt2 = vit2.nextRef(t2v);
+      // cout << "remaining of X" << t2v << " " << cnt2 << endl;
       if (t1v == t2v || vo.query(t1v,t2v) == PoComp::GT) {
-        if (!cnt) { // already 0
+        if (!cnt2) { // already 0
           continue;
         }
-        cnt--;
-        if (!cnt) {
+        // cout << "decreased" << endl;
+        cnt2--;
+        if (!cnt2) {
           ASS(pos);
           pos--;
         }

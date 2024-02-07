@@ -56,9 +56,10 @@ private:
   Stack<std::pair<TermList,Term*>> _sidesToCheck;
   void* _rwTermState;
   DHMap<std::pair<Term*,Literal*>,uint64_t> _reducedLitCache;
+  DHMap<std::pair<Term*,Literal*>,Stack<VarOrder>> _reducedLitCache2;
 
-  bool pushSidesFromLiteral(Literal* lit, ResultSubstitution* subst, bool result, Term* rwTermS);
-  bool getDemodulationRHSCodeTree(const TermQueryResult& qr, Term* lhsS, TermList& rhsS);
+  bool pushSidesFromLiteral(Literal* lit, ResultSubstitution* subst, bool result, Term* rwTermS, bool& litIncomparable);
+  bool getDemodulationRHSCodeTree(const TermQueryResult& qr, Term* lhsS, TermList& rhsS, SplitSet* ss);
   ReducibilityEntry* getCacheEntryForTerm(Term* t);
 
   bool checkSide(TermList side, Term* sideS, Term* rwTermS, TermList* tgtTermS, Term* rwTerm, ResultSubstitution* subst, bool result);
@@ -67,6 +68,10 @@ private:
   // bool checkRwTermSanity(Term* rwTermS, TermList tgtTermS/*, vstringstream& exp*/);
   // bool checkSmallerSanity(const Stack<Literal*>& lits, Term* rwTermS, TermList* tgtTermS/*, vstringstream& exp*/);
   // bool checkSmallerSanityGround(const Stack<Literal*>& lits, Literal* rwLit, Term* rwTermS, TermList* tgtTermS/*, vstringstream& exp*/);
+
+  bool checkSup(Literal* rwLit, Literal* eqLit, TermList eqLHS, Term* rwTerm, Term* rwTermS, TermList tgtTermS, ResultSubstitution* subst, bool eqIsResult, bool eqClauseUnit);
+  bool checkSupExpensive(Literal* rwLit, Literal* eqLit, TermList eqLHS, Term* rwTerm, Term* rwTermS, TermList tgtTermS, ResultSubstitution* subst, bool eqIsResult, bool eqClauseUnit, SplitSet* rwSplitSet);
+  bool checkBRExpensive(Literal* rwLit);
 
 public:
   USE_ALLOCATOR(ReducibilityChecker);
@@ -80,8 +85,9 @@ public:
     _sidesToCheck.reset();
   }
 
-  bool checkSup(Literal* rwLit, Literal* eqLit, TermList eqLHS, Term* rwTerm, Term* rwTermS, TermList tgtTermS, ResultSubstitution* subst, bool eqIsResult, Ordering::Result rwComp, bool eqClauseUnit);
-  bool checkBR(Literal* lit);
+  bool checkInferenceLazy(Clause* cl);
+  bool checkSupEager(Literal* rwLit, Literal* eqLit, TermList eqLHS, Term* rwTerm, Term* rwTermS, TermList tgtTermS, ResultSubstitution* subst, bool eqIsResult, bool eqClauseUnit);
+  bool checkBREager(Literal* lit);
   void clauseActivated(Clause* cl);
 };
 

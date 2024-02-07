@@ -536,6 +536,16 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause** replacements, u
   static ClauseStack premStack;
   premStack.reset();
   premStack.loadFromIterator(premises);
+  // if we want to do this simplification, now is the time to drop the premise constraints
+  for (const auto& premise : premStack) {
+    if (premise->getSupInfo()) {
+      env.statistics->redundantEqualityFactoring++;
+      premise->setSupInfo(nullptr);
+    }
+    // if (_checker && _checker->checkInferenceLazy(premise)) {
+    //   env.statistics->redundantEqualityResolution++;
+    // }
+  }
 
   Clause* replacement = numOfReplacements ? *replacements : 0;
 
@@ -702,6 +712,9 @@ simpl_start:
 
   Clause* simplCl=_immediateSimplifier->simplify(cl);
   if (simplCl != cl) {
+    if (cl->getSupInfo() && !simplCl->getSupInfo()) {
+      cout << ruleName(simplCl->inference().rule()) << endl;
+    }
     if (!simplCl) {
       onClauseReduction(cl, 0, 0, 0);
       goto fin;
@@ -730,6 +743,9 @@ simpl_start:
   cl->setStore(Clause::ACTIVE);
   env.statistics->activeClauses++;
   _active->add(cl);
+  if (_checker) {
+    _checker->clauseActivated(cl);
+  }
 
   onSOSClauseAdded(cl);
 
@@ -1003,6 +1019,9 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
 
       if (fse->perform(cl,replacement,premises)) {
         if (replacement) {
+          if (cl->getSupInfo() && !replacement->getSupInfo()) {
+            cout << ruleName(replacement->inference().rule()) << endl;
+          }
           addNewClause(replacement);
         }
         onClauseReduction(cl, &replacement, 1, premises);
@@ -1074,7 +1093,6 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
 {
   TIME_TRACE("backward simplification");
 
-
   BwSimplList::Iterator bsit(_bwSimplifiers);
   while (bsit.hasNext()) {
     BackwardSimplificationEngine* bse=bsit.next();
@@ -1087,6 +1105,15 @@ void SaturationAlgorithm::backwardSimplify(Clause* cl)
       ASS_NEQ(redundant, cl);
 
       Clause* replacement=srec.replacement;
+
+      // when this happens, we just drop the constraint
+      // if (cl->getSupInfo()) {
+      //   cl->setSupInfo(nullptr);
+      // }
+      // if (_checker && _checker->checkInferenceLazy(cl)) {
+      //   TIME_TRACE("redundant clause would simplify");
+      //   env.statistics->redundantEqualityFactoring++;
+      // }
 
       if (replacement) {
 	addNewClause(replacement);
@@ -1310,6 +1337,12 @@ start:
  */
 bool SaturationAlgorithm::handleClauseBeforeActivation(Clause* c)
 {
+  if (_checker && _checker->checkInferenceLazy(c)) {
+    TIME_TRACE("redundant clause would activate");
+    c->setStore(Clause::NONE);
+    env.statistics->redundantSuperposition++;
+    return false;
+  }
   return true;
 }
 
@@ -1510,7 +1543,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     res->_splitter = new Splitter();
   }
 
-  if (prb.hasEquality()) {
+  if (prb.hasEquality() && opt.reducibilityCheck()!=Options::ReducibilityCheck::OFF) {
     res->_checker = new ReducibilityChecker(
       static_cast<DemodulationLHSIndex*>(res->_imgr->request(DEMODULATION_LHS_CODE_TREE)),
       static_cast<UnitClauseLiteralIndex *>(res->_imgr->request(FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE)),

@@ -247,6 +247,11 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
 
         env.statistics->globalSubsumption++;
         ASS_L(replacement->length(), clen);
+
+        if (cl->getSupInfo()) {
+          replacement->setSupInfo(cl->getSupInfo());
+          // cl->setSupInfo(nullptr);
+        }
         
         return replacement;       
       }                  

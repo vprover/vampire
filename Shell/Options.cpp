@@ -1665,7 +1665,7 @@ void Options::init()
     _equationalTautologyRemoval.onlyUsefulWith(ProperSaturationAlgorithm());
     _equationalTautologyRemoval.tag(OptionTag::INFERENCES);
 
-    _reducibilityCheck = ChoiceOptionValue<ReducibilityCheck>("reducibility_check","rc",ReducibilityCheck::OFF,{"leftmost_innermost","smaller","smaller_ground","off"});
+    _reducibilityCheck = ChoiceOptionValue<ReducibilityCheck>("reducibility_check","rc",ReducibilityCheck::OFF,{"lazy","eager","off"});
     _reducibilityCheck.description = "";
     _lookup.insert(&_reducibilityCheck);
     _reducibilityCheck.tag(OptionTag::INFERENCES);

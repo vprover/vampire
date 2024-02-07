@@ -289,6 +289,10 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
             env.statistics->forwardSubsumptionResolution++;
             premises = pvi(getSingletonIterator(mcl));
             replacement = resolutionClause;
+            if (cl->getSupInfo()) {
+              resolutionClause->setSupInfo(cl->getSupInfo());
+              // cl->setSupInfo(nullptr);
+            }
             result = true;
             goto fin;
           }
@@ -306,6 +310,10 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
               env.statistics->forwardSubsumptionResolution++;
               premises = pvi(getSingletonIterator(cms->_cl));
               replacement = resolutionClause;
+              if (cl->getSupInfo()) {
+                resolutionClause->setSupInfo(cl->getSupInfo());
+                // cl->setSupInfo(nullptr);
+              }
               result = true;
               goto fin;
             }
@@ -346,6 +354,10 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
             env.statistics->forwardSubsumptionResolution++;
             premises = pvi(getSingletonIterator(cms->_cl));
             replacement = resolutionClause;
+            if (cl->getSupInfo()) {
+              resolutionClause->setSupInfo(cl->getSupInfo());
+              // cl->setSupInfo(nullptr);
+            }
             result = true;
             goto fin;
           }
