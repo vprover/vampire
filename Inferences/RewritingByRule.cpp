@@ -143,80 +143,58 @@ using namespace Inferences;
 //     .timeTraced("superposition by rule"));
 // }
 
-// Clause* DemodulationByRule::simplify(Clause* c)
-// {
-//   CALL("DemodulationByRule::simplify");
-//   TIME_TRACE("demodulation by rule");
+Clause* DemodulationByRule::simplify(Clause* c)
+{
+  TIME_TRACE("demodulation by rule");
 
-//   auto cLen = c->length();
-//   auto& ord = _salg->getOrdering();
-//   auto rwData = c->rewritingData();
-//   if (!rwData) {
-//     return c;
-//   }
-//   DHSet<Term*> attempted;
-//   for (unsigned i = 0; i < cLen; i++) {
-//     auto lit = (*c)[i];
-//     NonVariableNonTypeIterator nvi(lit);
-//     while (nvi.hasNext()) {
-//       auto st = nvi.next();
-//       if (!attempted.insert(st)) {
-//         nvi.right();
-//         continue;
-//       }
-//       if (rwData->isRewritten(st)) {
-//         TIME_TRACE("could be demodulated");
-//         nvi.right();
-//         continue;
-//       }
-//       // TermList lhs(kv.first);
-//       // auto rhs = kv.second.first;
-//       // auto qr = kv.second.second;
-//       // if (rhs.isEmpty() || !lit->containsSubterm(lhs)) {
-//       //   continue;
-//       // }
-//       // if (ord.compare(lhs,rhs)!=Ordering::GREATER) {
-//       //   continue;
-//       // }
-//       // if (lit->isEquality() && (lit->termArg(0) == lhs || lit->termArg(1) == lhs)) {
-//       //   // simply skip this for now, it is usually unsound
-//       //   continue;
-//       //   // // TODO: perform demodulation redundancy check
-//       //   // auto other = lit->termArg(0) == lhs ? lit->termArg(1) : lit->termArg(0);
-//       //   // Ordering::Result tord=ord.compare(kv.second, other);
-//       //   // if (tord !=Ordering::LESS && tord!=Ordering::LESS_EQ) {
-//       //   //   // bool isMax = true;
-//       //   //   // for (unsigned j = 0; j < cLen; j++) {
-//       //   //   //   if (lit == (*c)[j]) {
-//       //   //   //     continue;
-//       //   //   //   }
-//       //   //   //   if (ord.compare(lit, (*c)[j]) == Ordering::LESS) {
-//       //   //   //     isMax=false;
-//       //   //   //     break;
-//       //   //   //   }
-//       //   //   // }
-//       //   //   // if(isMax) {
-//       //   //     // cout << "rule " << kv.first << "->" << kv.second << ", cl: " << *c << endl;
-//       //   //     continue;
-//       //   //   // }
-//       //   // }
-//       // }
+  auto cLen = c->length();
+  auto& ord = _salg->getOrdering();
+  auto rwData = c->rewritingData();
+  if (!rwData) {
+    return c;
+  }
+  DHSet<Term*> attempted;
+  for (unsigned i = 0; i < cLen; i++) {
+    auto lit = (*c)[i];
+    NonVariableNonTypeIterator nvi(lit);
+    while (nvi.hasNext()) {
+      auto st = nvi.next();
+      if (!attempted.insert(st)) {
+        nvi.right();
+        continue;
+      }
+      TermList rhs;
+      if (!rwData->contains(st,rhs) || rhs.isEmpty()) {
+        continue;
+      }
+      TermList lhs(st);
+      if (!ord.isGreater(lhs,rhs)) {
+        continue;
+      }
+      if (lit->isEquality() && (lit->termArg(0) == lhs || lit->termArg(1) == lhs)) {
+        // simply skip this for now, it is usually unsound
+        continue;
+      }
 
-//       // Clause* res = new(cLen) Clause(cLen,
-//       //   SimplifyingInference1(InferenceRule::DEMODULATION_BY_RULE, c));
-//       // (*res)[0]=EqHelper::replace(lit,lhs,rhs);
-//       // unsigned next=1;
-//       // for(unsigned i=0;i<cLen;i++) {
-//       //   Literal* curr=(*c)[i];
-//       //   if(curr!=lit) {
-//       //     (*res)[next++] = curr;
-//       //   }
-//       // }
-//       // ASS_EQ(next,cLen);
-//       // c->rewritingData()->copy(res->rewritingData(),[](TermList t) { return t; });
-//       // env.statistics->demodulationByRule++;
-//       // return res;
-//     }
-//   }
-//   return c;
-// }
+      Clause* res = new(cLen) Clause(cLen,
+        SimplifyingInference1(InferenceRule::DEMODULATION_BY_RULE, c));
+      (*res)[0]=EqHelper::replace(lit,lhs,rhs);
+      unsigned next=1;
+      for(unsigned i=0;i<cLen;i++) {
+        Literal* curr=(*c)[i];
+        if(curr!=lit) {
+          (*res)[next++] = curr;
+        }
+      }
+      ASS_EQ(next,cLen);
+      if (c->rewritingData()) {
+        res->setRewritingData(new RewritingData(_salg->getOrdering()));
+        res->rewritingData()->copyRewriteRules(c->rewritingData());
+      }
+      // env.statistics->demodulationByRule++;
+      TIME_TRACE("demodulation by rule");
+      return res;
+    }
+  }
+  return c;
+}

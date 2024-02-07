@@ -17,6 +17,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/RewritingData.hpp"
+#include "Kernel/VarOrder.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 
 using namespace Kernel;
@@ -45,6 +46,10 @@ bool ForwardDeletionByRule::perform(Clause* cl, Clause*& replacement, ClauseIter
     return false;
   }
 
+#if CONDITIONAL_MODE
+  ClauseStack condPrem;
+  VarOrderBV bits = 0;
+#endif
   auto it = rwData->iter();
   while (it.hasNext()) {
     Term* lhs;
@@ -56,29 +61,88 @@ bool ForwardDeletionByRule::perform(Clause* cl, Clause*& replacement, ClauseIter
       it.del();
       continue;
     }
+#if CONDITIONAL_MODE
+    {
+      if (info.rhs.isNonEmpty()) {
+        VarOrderBV bits2 = getRemaining(bits);
+        if (ord.isGreater(info.rhs,TermList(lhs),nullptr,&bits2)) {
+          TIME_TRACE("ordering check");
+          return true;
+        }
+        if (bits2) {
+          bits |= bits2;
+        }
+      }
+    }
+#endif
     TermQueryResultIterator git=_index->getGeneralizations(lhs, true);
     while(git.hasNext()) {
       TermQueryResult qr=git.next();
-      TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
-      if (!ord.isGreater(TermList(lhs),rhs,nullptr,nullptr,&qr)) {
-        continue;
-      }
-
       auto qrRwData = qr.clause->rewritingData();
-      if (!qrRwData || qrRwData->subsumes(rwData, [qr](TermList t) {
+      if (qrRwData && !qrRwData->subsumes(rwData, [qr](TermList t) {
         ASS(qr.substitution->isIdentityOnQueryWhenResultBound());
         return qr.substitution->applyToBoundResult(t);
       }, lhs)) {
-        premises = pvi(getSingletonIterator(qr.clause));
-        if (info.rhs.isNonEmpty()) {
-          env.statistics->forwardDeletionByRule++;
-        } else {
-          env.statistics->forwardDeletionByRuleBlocked++;
-        }
-        return true;
+        continue;
       }
+
+      TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
+#if CONDITIONAL_MODE
+      VarOrderBV bits2 = getRemaining(bits);
+      if (!ord.isGreater(TermList(lhs),rhs,nullptr,&bits2,&qr)) {
+        if (!bits2 || info.rhs.isNonEmpty()) {
+          continue;
+        }
+        bits |= bits2;
+        condPrem.push(qr.clause);
+        if (isReducedUnderAny(bits)) {
+          premises = getUniquePersistentIterator(ClauseStack::Iterator(condPrem));
+          env.statistics->forwardConditionalDeletionByRuleBlocked++;
+          goto success;
+        }
+        continue;
+      }
+#else
+      if (!ord.isGreater(TermList(lhs),rhs,nullptr,nullptr,&qr)) {
+        continue;
+      }
+#endif
+      premises = pvi(getSingletonIterator(qr.clause));
+      if (info.rhs.isNonEmpty()) {
+        auto rhsS = qr.substitution->applyToBoundResult(rhs);
+#if CONDITIONAL_MODE
+        VarOrderBV bits2 = getRemaining(bits);
+        if (!ord.isGreater(info.rhs,rhsS,nullptr,&bits2)) {
+          // if (!ord.isGreater(info.rhs,rhs,nullptr,nullptr,&qr)) {
+          if (!bits2) {
+            continue;
+          }
+          bits |= bits2;
+          condPrem.push(qr.clause);
+          if (isReducedUnderAny(bits)) {
+            premises = getUniquePersistentIterator(ClauseStack::Iterator(condPrem));
+            env.statistics->forwardConditionalDeletionByRule++;
+            goto success;
+          }
+          continue;
+        }
+#else
+        if (!ord.isGreater(info.rhs,rhsS)) {
+          continue;
+        }
+#endif
+        // std::cout << *lhs << " " << info.rhs << " " << rhs << " " << rhsS << std::endl;
+        env.statistics->forwardDeletionByRule++;
+      } else {
+        env.statistics->forwardDeletionByRuleBlocked++;
+      }
+success:
+      return true;
     }
   }
+#if CONDITIONAL_MODE
+  cl->reducedUnder() = bits;
+#endif
   return false;
 }
 

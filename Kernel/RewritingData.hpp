@@ -47,7 +47,7 @@ private:
 struct RuleInfo {
   TermList rhs;
   bool valid = false;
-  Term* rwTerm = nullptr;
+  // Term* rwTerm = nullptr;
 };
 
 class RewritingData {
@@ -58,6 +58,7 @@ public:
 
   bool isEmpty() const { return _rules.isEmpty(); }
   bool contains(Term* t) const;
+  bool contains(Term* t, TermList& rhs);
   bool isBlocked(Term* t);
   bool blockTerm(Term* t, Term* rwTerm);
   bool addRewrite(Term* t, TermList into, Term* rwTerm);
@@ -71,7 +72,7 @@ public:
       Term* lhs;
       RuleInfo info;
       it.next(lhs,info);
-      ALWAYS(addRewrite(lhs, info.rhs, info.rwTerm));
+      ALWAYS(addRewrite(lhs, info.rhs, nullptr/* info.rwTerm */));
     }
   }
 
@@ -126,13 +127,12 @@ public:
       if (!ptr) {
         return false;
       }
-      if (rhs.isNonEmpty()) {
-        rhs = f(rhs);
-      }
-
       if (!other->validate(lhs, *ptr)) {
         other->_rules.remove(lhs);
         return false;
+      }
+      if (rhs.isNonEmpty()) {
+        rhs = f(rhs);
       }
 
       if (!subsumes(rhs, ptr->rhs)) {
@@ -144,22 +144,32 @@ public:
 
   inline bool subsumes(TermList rhs, TermList rhsOther) {
     // other is blocked
-    if (rhsOther.isEmpty()) {
-      return true;
-    }
-    // this is blocked
-    if (rhs.isEmpty()) {
+    // return rhs == rhsOther;
+    if (rhs.isEmpty() || rhsOther.isEmpty()) {
       return false;
     }
+
+    // if (rhsOther.isEmpty()) {
+    //   return true;
+    // }
+    // // this is blocked
+    // if (rhs.isEmpty()) {
+    //   return false;
+    // }
+    // std::cout << "comparing " << rhs << " and " << rhsOther << std::endl;
     return Ordering::isGorGEorE(_ord.compare(rhsOther,rhs));
   }
 
+  bool blockNewBasic(Term* rwLhs, ResultSubstitution* subst, bool result);
+  bool blockNewTerms(Term* rwLhs, Literal* rwLit);
   bool blockNewTerms(Clause* cl, ResultSubstitution* subst, bool eqIsResult, Term* rwLhs);
   bool validate(Term* lhs, RuleInfo& info);
 
   void setClause(Clause* cl) {
     _cl = cl;
   }
+
+  size_t size() { return this->_rules.size(); }
 
   vstring toString() const;
 

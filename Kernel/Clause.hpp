@@ -354,6 +354,8 @@ public:
   RewritingData* rewritingData();
   void setRewritingData(RewritingData* rwData);
 
+  VarOrderBV& reducedUnder() { return _reducedUnder; }
+
   Literal* getAnswerLiteral();
 
   bool hasAnswerLiteral() {
@@ -393,6 +395,7 @@ protected:
   /** a map that translates Literal* to its index in the clause */
   InverseLookup<Literal>* _literalPositions;
   RewritingData* _rwData;
+  VarOrderBV _reducedUnder;
 
   int _numActiveSplits;
 

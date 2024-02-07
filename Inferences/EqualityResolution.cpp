@@ -180,7 +180,9 @@ struct EqualityResolution::ResultFn
 
     if (env.options->diamondBreakingSuperposition()) {
       TIME_TRACE("diamond-breaking");
-      ScopedPtr<RewritingData> rwData(new RewritingData(*_ord));
+      // ScopedPtr<RewritingData> rwData(new RewritingData(*_ord));
+      auto rwData = new RewritingData(*_ord);
+      res->setRewritingData(rwData);
       if (!rwData->addRewriteRules(_cl,[](TermList t) {
         return subst.apply(t,0);
       })) {
@@ -188,13 +190,12 @@ struct EqualityResolution::ResultFn
         res->destroy();
         return 0;
       }
-      auto resultSubst = ResultSubstitution::fromSubstitution(&subst, 0, 0);
-      if (!rwData->blockNewTerms(_cl, resultSubst.ptr(), true, nullptr)) {
-        env.statistics->skippedEqualityResolution++;
-        res->destroy();
-        return 0;
-      }
-      res->setRewritingData(rwData.release());
+      // auto resultSubst = ResultSubstitution::fromSubstitution(&subst, 0, 0);
+      // if (!rwData->blockNewTerms(_cl, resultSubst.ptr(), true, nullptr)) {
+      //   env.statistics->skippedEqualityResolution++;
+      //   res->destroy();
+      //   return 0;
+      // }
     }
 
     env.statistics->equalityResolution++;

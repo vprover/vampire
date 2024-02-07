@@ -180,37 +180,37 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     }
   }
 
-  RewritingData* resRwData = nullptr;
-  if (diamondBreaking) {
-    TIME_TRACE("diamond-breaking");
-    ScopedPtr<RewritingData> rwData(new RewritingData(ord));
-    if (!rwData->addRewriteRules(queryCl, [qr](TermList t) {
-      return qr.substitution->applyToQuery(t);
-    }))
-    {
-      env.statistics->skippedResolution++;
-      return 0;
-    }
+  // RewritingData* resRwData = nullptr;
+  // if (diamondBreaking) {
+  //   TIME_TRACE("diamond-breaking");
+  //   ScopedPtr<RewritingData> rwData(new RewritingData(ord));
+  //   if (!rwData->addRewriteRules(queryCl, [qr](TermList t) {
+  //     return qr.substitution->applyToQuery(t);
+  //   }))
+  //   {
+  //     env.statistics->skippedResolution++;
+  //     return 0;
+  //   }
 
-    if (!rwData->addRewriteRules(qr.clause, [qr](TermList t) {
-        return qr.substitution->applyToResult(t);
-      }))
-    {
-      env.statistics->skippedResolution++;
-      return 0;
-    }
+  //   if (!rwData->addRewriteRules(qr.clause, [qr](TermList t) {
+  //       return qr.substitution->applyToResult(t);
+  //     }))
+  //   {
+  //     env.statistics->skippedResolution++;
+  //     return 0;
+  //   }
 
-    // block new terms from both clauses
-    if (!rwData->blockNewTerms(queryCl, qr.substitution.ptr(), false, nullptr)) {
-      env.statistics->skippedResolution++;
-      return 0;
-    }
-    if (!rwData->blockNewTerms(qr.clause, qr.substitution.ptr(), true, nullptr)) {
-      env.statistics->skippedResolution++;
-      return 0;
-    }
-    resRwData = rwData.release();
-  }
+  //   // block new terms from both clauses
+  //   // if (!rwData->blockNewTerms(queryCl, qr.substitution.ptr(), false, nullptr)) {
+  //   //   env.statistics->skippedResolution++;
+  //   //   return 0;
+  //   // }
+  //   // if (!rwData->blockNewTerms(qr.clause, qr.substitution.ptr(), true, nullptr)) {
+  //   //   env.statistics->skippedResolution++;
+  //   //   return 0;
+  //   // }
+  //   resRwData = rwData.release();
+  // }
 
   bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
   Literal* cAnsLit = synthesis ? queryCl->getAnswerLiteral() : nullptr;
@@ -222,7 +222,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 
   inf_destroyer.disable(); // ownership passed to the the clause below
   Clause* res = new(newLength) Clause(newLength, inf); // the inference object owned by res from now on
-  res->setRewritingData(resRwData);
+  // res->setRewritingData(resRwData);
 
   Literal* queryLitAfter = 0;
   if (afterCheck && queryCl->numSelected() > 1) {

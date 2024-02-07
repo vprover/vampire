@@ -241,14 +241,18 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
     while (rit.hasNext()) {
       auto qr = rit.next();
       Clause *premise = qr.clause;
-      if (ColorHelper::compatible(cl->color(), premise->color()) && blockedTermCheck(cl, premise, [&qr](TermList t) {
-        if (qr.substitution->isIdentityOnQueryWhenResultBound()) {
-          return qr.substitution->applyToBoundResult(t);
-        } else {
-          TIME_TRACE("can't subsume");
-          return t;
+      if (ColorHelper::compatible(cl->color(), premise->color())) {
+        if (!blockedTermCheck(cl, premise, [&qr](TermList t) {
+          if (qr.substitution->isIdentityOnQueryWhenResultBound()) {
+            return qr.substitution->applyToBoundResult(t);
+          } else {
+            TIME_TRACE("can't subsume");
+            return t;
+          }
+        })) {
+          _salg->addBlockedSimplifier(premise);
+          continue;
         }
-      })) {
         premises = pvi(getSingletonIterator(premise));
         env.statistics->forwardSubsumed++;
         result = true;
@@ -306,14 +310,18 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
           if (qr.clause->rewritingData()) {
             continue;
           }
-          if (ColorHelper::compatible(cl->color(), mcl->color()) && blockedTermCheck(cl, mcl, [&qr](TermList t){
-            if (qr.substitution->isIdentityOnQueryWhenResultBound()) {
-              return qr.substitution->applyToBoundResult(t);
-            } else {
-              TIME_TRACE("can't subsume");
-              return t;
+          if (ColorHelper::compatible(cl->color(), mcl->color())) {
+            if (!blockedTermCheck(cl, mcl, [&qr](TermList t){
+              if (qr.substitution->isIdentityOnQueryWhenResultBound()) {
+                return qr.substitution->applyToBoundResult(t);
+              } else {
+                TIME_TRACE("can't subsume");
+                return t;
+              }
+            })) {
+              _salg->addBlockedSimplifier(mcl);
+              continue;
             }
-          })) {
             resolutionClause = generateSubsumptionResolutionClause(cl, resLit, mcl);
             env.statistics->forwardSubsumptionResolution++;
             premises = pvi(getSingletonIterator(mcl));

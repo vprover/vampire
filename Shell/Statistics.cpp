@@ -116,6 +116,7 @@ Statistics::Statistics()
     forwardSubsumptionResolution(0),
     backwardSubsumptionResolution(0),
     forwardDemodulations(0),
+    forwardConditionalDemodulations(0),
     forwardDemodulationsToEqTaut(0),
     backwardDemodulations(0),
     backwardDemodulationsToEqTaut(0),
@@ -146,6 +147,8 @@ Statistics::Statistics()
     backwardSubsumed(0),
     forwardDeletionByRule(0),
     forwardDeletionByRuleBlocked(0),
+    forwardConditionalDeletionByRule(0),
+    forwardConditionalDeletionByRuleBlocked(0),
     taDistinctnessSimplifications(0),
     taDistinctnessTautologyDeletions(0),
     taInjectivitySimplifications(0),
@@ -320,6 +323,7 @@ void Statistics::print(ostream& out)
   COND_OUT("Fw subsumption resolutions", forwardSubsumptionResolution);
   COND_OUT("Bw subsumption resolutions", backwardSubsumptionResolution);
   COND_OUT("Fw demodulations", forwardDemodulations);
+  COND_OUT("Fw conditional demodulations", forwardConditionalDemodulations);
   COND_OUT("Bw demodulations", backwardDemodulations);
   COND_OUT("Fw subsumption demodulations", forwardSubsumptionDemodulations);
   COND_OUT("Bw subsumption demodulations", backwardSubsumptionDemodulations);
@@ -354,6 +358,8 @@ void Statistics::print(ostream& out)
   COND_OUT("Backward subsumptions", backwardSubsumed);
   COND_OUT("Forward deletion by rule", forwardDeletionByRule);
   COND_OUT("Forward deletion by blocking rule", forwardDeletionByRuleBlocked);
+  COND_OUT("Forward conditional deletion by rule", forwardConditionalDeletionByRule);
+  COND_OUT("Forward conditional deletion by blocking rule", forwardConditionalDeletionByRuleBlocked);
   COND_OUT("Fw demodulations to eq. taut.", forwardDemodulationsToEqTaut);
   COND_OUT("Bw demodulations to eq. taut.", backwardDemodulationsToEqTaut);
   COND_OUT("Fw subsumption demodulations to eq. taut.", forwardSubsumptionDemodulationsToEqTaut);

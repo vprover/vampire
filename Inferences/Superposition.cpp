@@ -33,6 +33,7 @@
 #include "Kernel/Unit.hpp"
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/VarOrder.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
@@ -386,6 +387,18 @@ Clause* Superposition::performSuperposition(
   if(Ordering::isGorGEorE(ordering.compare(tgtTermS,rwTermS))) {
     return 0;
   }
+#if CONDITIONAL_MODE
+  {
+    auto bits = rwClause->reducedUnder();
+    auto bits2 = getRemaining(bits);
+    if (!ordering.isGreater(tgtTermS,rwTermS,nullptr,&bits2)) {
+      if (isReducedUnderAny(bits | bits2)) {
+        TIME_TRACE("superposition skipped");
+        return 0;
+      }
+    }
+  }
+#endif
 
   if(rwLitS->isEquality()) {
     //check that we're not rewriting only the smaller side of an equality
@@ -412,36 +425,8 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
-  RewritingData* resRwData = nullptr;
-  if (getOptions().diamondBreakingSuperposition()) {
-    TIME_TRACE("diamond-breaking");
-    ScopedPtr<RewritingData> rwData(new RewritingData(ordering));
-
-    // add previous rewrites
-    if (!rwData->addRewriteRules(rwClause, ResultSubstApplicator(subst.ptr(), !eqIsResult))) {
-      env.statistics->skippedSuperposition++;
-      return 0;
-    }
-    if (!rwData->addRewriteRules(eqClause, ResultSubstApplicator(subst.ptr(), eqIsResult), rwTermS.term())) {
-      env.statistics->skippedSuperposition++;
-      return 0;
-    }
-    // add current rewrite
-    if (!rwData->addRewrite(rwTermS.term(),tgtTermS,rwTermS.term())) {
-      env.statistics->skippedSuperposition++;
-      return 0;
-    }
-    // block new terms
-    if (!rwData->blockNewTerms(rwClause, subst.ptr(), !eqIsResult, rwTermS.term())) {
-      env.statistics->skippedSuperposition++;
-      return 0;
-    }
-    if (!rwData->blockNewTerms(eqClause, subst.ptr(), eqIsResult, rwTermS.term())) {
-      env.statistics->skippedSuperposition++;
-      return 0;
-    }
-    resRwData = rwData.release();
-  }
+  // auto falsity = tgtLitS->isEquality() && tgtLitS->isNegative() &&
+  //   (*tgtLitS->nthArgument(0))==(*tgtLitS->nthArgument(1));
 
   bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
   Literal* rwAnsLit = synthesis ? rwClause->getAnswerLiteral() : nullptr;
@@ -453,7 +438,6 @@ Clause* Superposition::performSuperposition(
 
   inf_destroyer.disable(); // ownership passed to the the clause below
   Clause* res = new(newLength) Clause(newLength, inf);
-  res->setRewritingData(resRwData);
 
   // If proof extra is on let's compute the positions we have performed
   // superposition on 
@@ -593,6 +577,66 @@ Clause* Superposition::performSuperposition(
 
       (*res)[next] = constraint;
       next++;   
+    }
+  }
+
+  {
+    // RewritingData* resRwData = nullptr;
+    if (getOptions().diamondBreakingSuperposition()) {
+      TIME_TRACE("diamond-breaking");
+      // ScopedPtr<RewritingData> rwData(new RewritingData(ordering));
+      auto rwData = new RewritingData(ordering);
+      res->setRewritingData(rwData);
+
+      // add previous rewrites
+      if (!rwData->addRewriteRules(rwClause, ResultSubstApplicator(subst.ptr(), !eqIsResult))) {
+        env.statistics->skippedSuperposition++;
+        // std::cout << "1 skipped between " << *rwClause << " and " << *eqClause << std::endl;
+        // if (falsity) {
+        //   TIME_TRACE("falsity");
+        // }
+        return 0;
+      }
+      // if (!rwData->addRewriteRules(eqClause, ResultSubstApplicator(subst.ptr(), eqIsResult), rwTermS.term())) {
+      //   env.statistics->skippedSuperposition++;
+      //   return 0;
+      // }
+      // add current rewrite
+      if (!rwData->addRewrite(rwTermS.term(),tgtTermS,nullptr/* ,rwTermS.term() */)) {
+        env.statistics->skippedSuperposition++;
+        // std::cout << "2 skipped between " << *rwClause << " and " << *eqClause << std::endl;
+        // std::cout << "adding rule " << rwTermS << " -> " << tgtTermS << std::endl;
+        // if (falsity) {
+        //   TIME_TRACE("falsity");
+        // }
+        return 0;
+      }
+
+      if (!rwData->blockNewTerms(rwTermS.term(), rwLitS)) {
+        env.statistics->skippedSuperposition++;
+        // std::cout << "3 skipped between " << *rwClause << " and " << *eqClause << std::endl;
+        // std::cout << "while blocking terms in " << *rwLitS << " smaller than " << rwTermS << std::endl;
+        // if (falsity) {
+        //   TIME_TRACE("falsity");
+        // }
+        return 0;
+      }
+      // std::cout << "rwTerm " << rwTerm << " " << rwTermS << std::endl;
+      // if (!rwData->blockNewBasic(rwTerm.term(), subst.ptr(), !eqIsResult)) {
+      //   env.statistics->skippedSuperposition++;
+      //   return 0;
+      // }
+
+      // // block new terms
+      // if (!rwData->blockNewTerms(rwClause, subst.ptr(), !eqIsResult, rwTermS.term())) {
+      //   env.statistics->skippedSuperposition++;
+      //   return 0;
+      // }
+      // if (!rwData->blockNewTerms(eqClause, subst.ptr(), eqIsResult, rwTermS.term())) {
+      //   env.statistics->skippedSuperposition++;
+      //   return 0;
+      // }
+      // resRwData = rwData.release();
     }
   }
 

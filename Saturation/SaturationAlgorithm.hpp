@@ -115,6 +115,11 @@ public:
    */
   void onNewClause(Clause* c);
 
+  void addBlockedSimplifier(Clause* c) {
+    unsigned* ptr;
+    _blockedSimplifiers.getValuePtr(c,ptr,0);
+    (*ptr)++;
+  }
 
   /**
    * If the saturation algorithm run is in progress, return pointer
@@ -183,6 +188,7 @@ protected:
   RCClauseStack _newClauses;
 
   ClauseStack _postponedClauseRemovals;
+  DHMap<Clause*,unsigned> _blockedSimplifiers;
 
   UnprocessedClauseContainer* _unprocessed;
   std::unique_ptr<PassiveClauseContainer> _passive;

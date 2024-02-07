@@ -33,6 +33,7 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/VarOrder.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
@@ -139,6 +140,108 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         }
 
         TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
+        // TermList rhsS;
+        // if(!qr.substitution->isIdentityOnQueryWhenResultBound()) {
+        //   //When we apply substitution to the rhs, we get a term, that is
+        //   //a variant of the term we'd like to get, as new variables are
+        //   //produced in the substitution application.
+        //   TermList lhsSBadVars=qr.substitution->applyToResult(qr.term);
+        //   TermList rhsSBadVars=qr.substitution->applyToResult(rhs);
+        //   Renaming rNorm, qNorm, qDenorm;
+        //   rNorm.normalizeVariables(lhsSBadVars);
+        //   qNorm.normalizeVariables(trm);
+        //   qDenorm.makeInverse(qNorm);
+        //   ASS_EQ(trm,qDenorm.apply(rNorm.apply(lhsSBadVars)));
+        //   rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
+        // } else {
+        //   rhsS=qr.substitution->applyToBoundResult(rhs);
+        // }
+        // if(resultTermIsVar){
+        //   rhsS = subst.apply(rhsS, 0);
+        // }
+
+        Ordering::Result argOrder = ordering.getEqualityArgumentOrder(qr.literal);
+        bool preordered = argOrder==Ordering::LESS || argOrder==Ordering::GREATER;
+  #if VDEBUG
+        if(preordered) {
+          if(argOrder==Ordering::LESS) {
+            ASS_EQ(rhs, *qr.literal->nthArgument(0));
+          }
+          else {
+            ASS_EQ(rhs, *qr.literal->nthArgument(1));
+          }
+        }
+  #endif
+  #if CONDITIONAL_MODE
+        VarOrderBV bits = getRemaining(cl->reducedUnder());
+        if(!preordered && (_preorderedOnly || !ordering.isGreater(trm,rhs,nullptr,&bits,&qr)) ) {
+          auto bits2 = (cl->reducedUnder() | bits);
+          if (isReducedUnderAny(bits2) && !toplevelCheck) {
+            //
+            if (_salg->getOptions().diamondBreakingSuperposition()) {
+              TIME_TRACE("diamond-breaking");
+              if (qr.clause->rewritingData() && !qr.clause->rewritingData()->subsumes(cl->rewritingData(), [qr](TermList t) {
+                ASS(qr.substitution->isIdentityOnQueryWhenResultBound());
+                return qr.substitution->applyToBoundResult(t);
+              }, trm.term()))
+              {
+                continue;
+              }
+            }
+
+            Literal* resLit = EqHelper::replace(lit,trm,qr.substitution->applyToBoundResult(rhs));
+            if(EqHelper::isEqTautology(resLit)) {
+              env.statistics->forwardDemodulationsToEqTaut++;
+              premises = pvi( getSingletonIterator(qr.clause));
+              return true;
+            }
+
+            Clause* res = new(cLen) Clause(cLen,
+              SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.clause));
+            (*res)[0]=resLit;
+            unsigned next=1;
+            for(unsigned i=0;i<cLen;i++) {
+              Literal* curr=(*cl)[i];
+              if(curr!=lit) {
+                (*res)[next++] = curr;
+              }
+            }
+            ASS_EQ(next,cLen);
+
+            if (_salg->getOptions().diamondBreakingSuperposition()) {
+              TIME_TRACE("diamond-breaking");
+              if (cl->rewritingData()) {
+                res->setRewritingData(new RewritingData(_salg->getOrdering()));
+                res->rewritingData()->copyRewriteRules(cl->rewritingData());
+              }
+            }
+
+            env.statistics->forwardConditionalDemodulations++;
+
+            premises = pvi( getSingletonIterator(qr.clause));
+            replacement = res;
+            return true;
+          }
+          continue;
+        }
+  #else
+        if(!preordered && (_preorderedOnly || !ordering.isGreater(trm,rhs,nullptr,nullptr,&qr)) ) {
+          continue;
+        }
+  #endif
+
+        // encompassing demodulation is fine when rewriting the smaller guy
+        if (toplevelCheck && _encompassing) {
+          // this will only run at most once;
+          // could have been factored out of the getGeneralizations loop,
+          // but then it would run exactly once there
+          Ordering::Result litOrder = ordering.getEqualityArgumentOrder(lit);
+          if ((trm==*lit->nthArgument(0) && litOrder == Ordering::LESS) ||
+              (trm==*lit->nthArgument(1) && litOrder == Ordering::GREATER)) {
+            toplevelCheck = false;
+          }
+        }
+
         TermList rhsS;
         if(!qr.substitution->isIdentityOnQueryWhenResultBound()) {
           //When we apply substitution to the rhs, we get a term, that is
@@ -157,34 +260,6 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         }
         if(resultTermIsVar){
           rhsS = subst.apply(rhsS, 0);
-        }
-
-        Ordering::Result argOrder = ordering.getEqualityArgumentOrder(qr.literal);
-        bool preordered = argOrder==Ordering::LESS || argOrder==Ordering::GREATER;
-  #if VDEBUG
-        if(preordered) {
-          if(argOrder==Ordering::LESS) {
-            ASS_EQ(rhs, *qr.literal->nthArgument(0));
-          }
-          else {
-            ASS_EQ(rhs, *qr.literal->nthArgument(1));
-          }
-        }
-  #endif
-        if(!preordered && (_preorderedOnly || !ordering.isGreater(trm,rhsS)) ) {
-          continue;
-        }
-
-        // encompassing demodulation is fine when rewriting the smaller guy
-        if (toplevelCheck && _encompassing) {
-          // this will only run at most once;
-          // could have been factored out of the getGeneralizations loop,
-          // but then it would run exactly once there
-          Ordering::Result litOrder = ordering.getEqualityArgumentOrder(lit);
-          if ((trm==*lit->nthArgument(0) && litOrder == Ordering::LESS) ||
-              (trm==*lit->nthArgument(1) && litOrder == Ordering::GREATER)) {
-            toplevelCheck = false;
-          }
         }
 
         if(toplevelCheck) {
@@ -228,6 +303,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
             return qr.substitution->applyToBoundResult(t);
           }, trm.term()))
           {
+            _salg->addBlockedSimplifier(qr.clause);
             continue;
           }
         }

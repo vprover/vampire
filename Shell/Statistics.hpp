@@ -171,6 +171,7 @@ public:
   unsigned backwardSubsumptionResolution;
   /** number of forward demodulations */
   unsigned forwardDemodulations;
+  unsigned forwardConditionalDemodulations;
   /** number of forward demodulations into equational tautologies */
   unsigned forwardDemodulationsToEqTaut;
   /** number of backward demodulations */
@@ -229,6 +230,8 @@ public:
   unsigned backwardSubsumed;
   unsigned forwardDeletionByRule;
   unsigned forwardDeletionByRuleBlocked;
+  unsigned forwardConditionalDeletionByRule;
+  unsigned forwardConditionalDeletionByRuleBlocked;
 
   /** statistics of term algebra rules */
   unsigned taDistinctnessSimplifications;

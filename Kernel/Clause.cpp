@@ -76,6 +76,7 @@ Clause::Clause(unsigned length,const Inference& inf)
     _reductionTimestamp(0),
     _literalPositions(0),
     _rwData(nullptr),
+    _reducedUnder(0),
     _numActiveSplits(0),
     _auxTimestamp(0)
 {
@@ -478,6 +479,21 @@ unsigned Clause::computeWeight() const
     ASS(_literals[i]->shared());
     result += _literals[i]->weight();
   }
+  // if (_rwData) {
+  //   auto it = _rwData->iter();
+  //   while (it.hasNext()) {
+  //     Term* lhs;
+  //     auto& info = it.nextRef(lhs);
+  //     if (!_rwData->validate(lhs,info)) {
+  //       it.del();
+  //       continue;
+  //     }
+  //     result += lhs->weight();
+  //     if (info.rhs.isNonEmpty()) {
+  //       result += info.rhs.weight();
+  //     }
+  //   }
+  // }
 
   return result;
 } // Clause::computeWeight

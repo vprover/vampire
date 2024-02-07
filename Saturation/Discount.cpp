@@ -16,6 +16,7 @@
 #include "Lib/VirtualIterator.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/LiteralSelector.hpp"
+#include "Kernel/RewritingData.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -40,6 +41,10 @@ bool Discount::handleClauseBeforeActivation(Clause* cl)
     cl->setStore(Clause::NONE);
     return false;
   }
+  // if (cl->rewritingData()) {
+  //   delete cl->rewritingData();
+  //   cl->setRewritingData(nullptr);
+  // }
   backwardSimplify(cl);
   return true;
 }
