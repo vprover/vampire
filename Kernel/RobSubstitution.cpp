@@ -171,7 +171,7 @@ RobSubstitution::TermSpec RobSubstitution::deref(VarSpec v, bool noFail) const
       unsigned nuaVal = _nextUnboundAvailable;
       binding.term.makeVar(_nextUnboundAvailable++);
       RobSubstitution* self = const_cast<RobSubstitution*>(this);
-      self->bind(v,binding);
+      self->bind(v,binding,false);
       if(self->bdIsRecording()) {
         self->bdAdd(new NextUnboundVariableBacktrackObject(self, nuaVal));
       }

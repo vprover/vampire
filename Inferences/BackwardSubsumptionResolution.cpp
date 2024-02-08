@@ -153,6 +153,7 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
   bool basePredsInit=false;
 
   List<BwSimplificationRecord>* simplRes=0;
+  Substitution subst;
 
   SLQueryResultIterator rit=_index->getInstances( lmLit, true, false);
   while(rit.hasNext()) {
@@ -255,7 +256,7 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
     }
 
     RSTAT_CTR_INC("bsr1 3 final check");
-    if(MLMatcher::canBeMatched(cl,icl,matchedLits.array(),qr.literal)) {
+    if(MLMatcher::canBeMatched(cl,icl,matchedLits.array(),qr.literal,subst)) {
       RSTAT_CTR_INC("bsr1 4 performed");
       Clause* resCl=ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(qr.clause, qr.literal, cl);
       List<BwSimplificationRecord>::push(BwSimplificationRecord(qr.clause,resCl), simplRes);
@@ -401,7 +402,7 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
     }
 
     RSTAT_CTR_INC("bsr2 4 final check");
-    if(MLMatcher::canBeMatched(cl,icl,matchedLits.array(),resolvedLit)) {
+    if(MLMatcher::canBeMatched(cl,icl,matchedLits.array(),resolvedLit,subst)) {
       RSTAT_CTR_INC("bsr2 5 performed");
       Clause* resCl=ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(qr.clause, resolvedLit, cl);
       List<BwSimplificationRecord>::push(BwSimplificationRecord(qr.clause,resCl), simplRes);

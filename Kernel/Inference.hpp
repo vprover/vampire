@@ -212,6 +212,7 @@ enum class InferenceRule : unsigned char {
   REORDER_LITERALS,
   /** obtain a clause from a clause by removing duplicate literals */
   REMOVE_DUPLICATE_LITERALS,
+  DEMODULATION_BY_RULE,
   /** remove from clause one or more inequalities <i>s != s</i> */
   TRIVIAL_INEQUALITY_REMOVAL,
   /** equality resolution as a simplification */
@@ -284,6 +285,7 @@ enum class InferenceRule : unsigned char {
   SUPERPOSITION,
   /** superposition with constraints */
   CONSTRAINED_SUPERPOSITION,
+  SUPERPOSITION_BY_RULE,
   /** equality factoring inference */
   EQUALITY_FACTORING,
   /** equality resolution inference */

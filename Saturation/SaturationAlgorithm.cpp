@@ -36,6 +36,7 @@
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/MLVariant.hpp"
 #include "Kernel/Problem.hpp"
+#include "Kernel/RewritingData.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Unit.hpp"
 
@@ -94,6 +95,8 @@
 #include "Inferences/Cases.hpp"
 #include "Inferences/DefinitionIntroduction.hpp"
 #include "Inferences/ReducibilityChecker.hpp"
+#include "Inferences/RewritingByRule.hpp"
+#include "Inferences/DeletionByRule.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -808,6 +811,27 @@ Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
   }
 
   Clause* cl=cl0;
+  // if (!cl->rewritingData() || cl->rewritingData()->isEmpty()) {
+  //   auto it = cl->inference().iterator();
+  //   if (cl->inference().hasNext(it)) {
+  //     auto u = cl->inference().next(it);
+  //     if (u->isClause()) {
+  //       auto p = u->asClause();
+  //       if (p->rewritingData() && !p->rewritingData()->isEmpty()) {
+  //         static vmap<InferenceRule,unsigned> rules;
+  //         auto kv = rules.insert(make_pair(cl0->inference().rule(),1));
+  //         if (kv.second) {
+  //           cout << "inference not covered: " << ruleName(cl0->inference().rule()) << endl;
+  //         } else {
+  //           kv.first->second++;
+  //           if (kv.first->second % 1000 == 0) {
+  //             cout << "inference not covered: " << ruleName(cl0->inference().rule()) << " " << kv.first->second << endl;
+  //           }
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
 
   Clause* simplCl=_immediateSimplifier->simplify(cl);
   if (simplCl != cl) {
@@ -1397,10 +1421,30 @@ void SaturationAlgorithm::doOneAlgorithmStep()
   }
 
   Clause* cl = nullptr;
+  // static unsigned cnt = 0;
+  // if (_blockedSimplifiers.size() && cnt++ % 2 == 0) {
+  //   DHMap<Clause*,unsigned>::Iterator it(_blockedSimplifiers);
+  //   Clause* mc = nullptr;
+  //   unsigned max = 0;
+  //   while (it.hasNext()) {
+  //     Clause* c;
+  //     unsigned cnt;
+  //     it.next(c,cnt);
+  //     if (max < cnt) {
+  //       max = cnt;
+  //       mc = c;
+  //     }
+  //   }
+  //   // cout << "max " << max << " " << *mc << endl;
+  //   _blockedSimplifiers.remove(mc);
+  //   cl = Clause::fromClause(mc);
+  //   cl->setStore(Clause::PASSIVE);
+  // } else {
   {
     TIME_TRACE(TimeTrace::PASSIVE_CONTAINER_MAINTENANCE);
     cl = _passive->popSelected();
   }
+  // }
   ASS_EQ(cl->store(),Clause::PASSIVE);
   cl->setStore(Clause::SELECTED);
 
@@ -1607,7 +1651,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   gie->addFront(new Factoring());
   if (opt.binaryResolution()) {
-    gie->addFront(new BinaryResolution());
+    gie->addFront(new BinaryResolution(prb.hasEquality()));
   }
   if (opt.unitResultingResolution() != Options::URResolution::OFF) {
     gie->addFront(new URResolution(opt.unitResultingResolution() == Options::URResolution::FULL));
@@ -1741,6 +1785,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   else if (opt.forwardSubsumptionResolution()) {
     USER_ERROR("Forward subsumption resolution requires forward subsumption to be enabled.");
   }
+  res->addForwardSimplifierToFront(new ForwardDeletionByRule());
 
   // create backward simplification engine
   if (prb.hasEquality()) {
@@ -1768,6 +1813,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     bool byUnitsOnly=opt.backwardSubsumptionResolution()==Options::Subsumption::UNIT_ONLY;
     res->addBackwardSimplifierToFront(new BackwardSubsumptionResolution(byUnitsOnly));
   }
+  res->addBackwardSimplifierToFront(new BackwardDeletionByRule());
 
   if (opt.mode()==Options::Mode::CONSEQUENCE_ELIMINATION) {
     res->_consFinder=new ConsequenceFinder();
@@ -1876,6 +1922,7 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     }
 
   }
+  // res->addFront(new DemodulationByRule());
   if(prb.hasEquality()) {
     res->addFront(new TrivialInequalitiesRemovalISE());
   }

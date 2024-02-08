@@ -81,6 +81,20 @@ protected:
   void handleClause(Clause* c, bool adding) = 0;
 };
 
+/**
+ * Term index for backward demodulation
+ */
+class BlockedTermIndex
+: public TermIndex
+{
+public:
+  BlockedTermIndex(TermIndexingStructure* is)
+  : TermIndex(is) {}
+
+protected:
+  void handleClause(Clause* c, bool adding);
+};
+
 template <bool combinatorySupSupport>
 class DemodulationSubtermIndexImpl
 : public DemodulationSubtermIndex

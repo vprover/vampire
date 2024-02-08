@@ -24,6 +24,8 @@
 #include "Lib/Comparison.hpp"
 #include "Lib/Set.hpp"
 
+#include "Indexing/Index.hpp"
+
 #include "Shell/Options.hpp"
 #include "SubstHelper.hpp"
 #include <fstream>
@@ -33,6 +35,7 @@
 #include "KBO.hpp"
 #include "Signature.hpp"
 #include "TermIterators.hpp"
+#include "VarOrder.hpp"
 
 #define COLORED_WEIGHT_BOOST 0x10000
 
@@ -190,7 +193,7 @@ public:
     _newConstraints = newConstraints;
   }
 
-  USE_ALLOCATOR(StateGreater);
+  USE_ALLOCATOR(StateGreaterSubst);
 
   bool traverse(Term* t1, Term* t2, bool weightsOk);
   void traverseVars2(TermList tl);
@@ -1733,7 +1736,7 @@ bool KBO::isGreater(TermList tl1, TermList tl2, void* tl1State, VarOrderBV* cons
   //         VarOrder ext = vo;
   //         if (makeGreater(lhs,rhs,ext)) {
   //           cout << ext.to_string() << endl;
-  //           for (auto&& diff : Inferences::ForwardGroundJoinability::order_diff(vo,ext)) {
+  //           for (auto&& diff : VarOrder::order_diff(vo,ext)) {
   //             vos.push(std::move(diff));
   //           }
   //         }

@@ -648,6 +648,8 @@ class NonVariableNonTypeIterator
 {
 public:
   NonVariableNonTypeIterator(const NonVariableNonTypeIterator&);
+
+  NonVariableNonTypeIterator() : _stack(), _added(0) {}
   /**
    * If @c includeSelf is false, then only proper subterms of @c term will be included.
    */

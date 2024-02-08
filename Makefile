@@ -23,6 +23,15 @@
 #   CHECK_LEAKS      - test for memory leaks (debugging mode only)
 #   VZ3              - compile with Z3
 
+COMPILE_ONLY = -fno-pie
+
+OS = $(shell uname)
+ifeq ($(OS),Darwin)
+LINK_ONLY = -Wl,-no_pie
+else
+LINK_ONLY = -no-pie
+endif
+
 DBG_FLAGS = -g -DVTIME_PROFILING=0 -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider
 # DELETEMEin2017: the bug with gcc-6.2 and problems in ClauseQueue could be also fixed by adding -fno-tree-ch
 REL_FLAGS = -O6 -DVTIME_PROFILING=0 -DVDEBUG=0 # no debugging
@@ -192,6 +201,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Ordering_Equality.o\
         Kernel/Problem.o\
         Kernel/Renaming.o\
+        Kernel/RewritingData.o\
         Kernel/RobSubstitution.o\
         Kernel/MismatchHandler.o\
         Kernel/Signature.o\
@@ -263,6 +273,8 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/ForwardSubsumptionDemodulation.o\
          Inferences/GlobalSubsumption.o\
          Inferences/InnerRewriting.o\
+         Inferences/RewritingByRule.o\
+         Inferences/DeletionByRule.o\
          Inferences/EquationalTautologyRemoval.o\
          Inferences/InferenceEngine.o\
 	 Inferences/Instantiation.o\
@@ -529,15 +541,15 @@ obj/%X: | obj
 
 $(CONF_ID)/%.o : %.cpp | $(CONF_ID)
 	mkdir -p `dirname $@`
-	$(CXX) $(CXXFLAGS) -c -o $@ $*.cpp -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
+	$(CXX) $(CXXFLAGS) $(COMPILE_ONLY) -c -o $@ $*.cpp -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
 
 %.o : %.c 
 $(CONF_ID)/%.o : %.c | $(CONF_ID)
-	$(CC) $(CCFLAGS) -c -o $@ $*.c -MMD -MF $(CONF_ID)/$*.d
+	$(CC) $(CCFLAGS) $(COMPILE_ONLY) -c -o $@ $*.c -MMD -MF $(CONF_ID)/$*.d
 
 %.o : %.cc
 $(CONF_ID)/%.o : %.cc | $(CONF_ID)
-	$(CXX) $(CXXFLAGS) -c -o $@ $*.cc $(MINISAT_FLAGS) -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
+	$(CXX) $(CXXFLAGS) $(COMPILE_ONLY) -c -o $@ $*.cc $(MINISAT_FLAGS) -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
 
 ################################################################
 # targets for executables
@@ -548,14 +560,8 @@ VUTIL_OBJ := $(addprefix $(CONF_ID)/, $(VUTIL_DEP))
 VSAT_OBJ := $(addprefix $(CONF_ID)/, $(VSAT_DEP))
 TKV_OBJ := $(addprefix $(CONF_ID)/, $(TKV_DEP))
 
-ifeq ($(OS),Darwin)
-EXPORT_DYNAMIC = 
-else
-EXPORT_DYNAMIC = -Wl,--export-dynamic
-endif
-
 define COMPILE_CMD
-$(CXX) $(CXXFLAGS) $(EXPORT_DYNAMIC) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB) -ldl
+$(CXX) $(CXXFLAGS) $(LINK_ONLY) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB)
 @#$(CXX) -static $(CXXFLAGS) $(Z3LIB) $(filter %.o, $^) -o $@
 @#strip $@
 endef

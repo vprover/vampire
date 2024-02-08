@@ -27,9 +27,11 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Renaming.hpp"
+#include "Kernel/RewritingData.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/VarOrder.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/TermIndex.hpp"
@@ -98,6 +100,7 @@ struct BackwardDemodulation::ResultFn
     _removed=SmartPtr<ClauseSet>(new ClauseSet());
     _redundancyCheck = parent.getOptions().demodulationRedundancyCheck() != Options::DemodulationRedunancyCheck::OFF;
     _encompassing = parent.getOptions().demodulationRedundancyCheck() == Options::DemodulationRedunancyCheck::ENCOMPASS;
+    _diamondBreaking = parent.getOptions().diamondBreakingSuperposition();
   }
 
   /**
@@ -148,9 +151,65 @@ struct BackwardDemodulation::ResultFn
       rhsS=qr.substitution->applyToBoundQuery(rhs);
     }
 
+    auto toplevelCheck = _redundancyCheck && qr.literal->isEquality() && (qr.term==*qr.literal->nthArgument(0) || qr.term==*qr.literal->nthArgument(1)) &&
+      // encompassment has issues only with positive units
+      (!_encompassing || (qr.literal->isPositive() && qr.clause->length() == 1));
+
+#if CONDITIONAL_MODE
+    VarOrderBV bits = getRemaining(qr.clause->reducedUnder());
+    if (!_ordering.isGreater(lhsS,rhsS,nullptr,&bits)) {
+      auto bits2 = (qr.clause->reducedUnder() | bits);
+      if (isReducedUnderAny(bits2) && !toplevelCheck) {
+        if (_diamondBreaking) {
+          TIME_TRACE("diamond-breaking");
+          if (_cl->rewritingData() && !_cl->rewritingData()->subsumes(qr.clause->rewritingData(), [qr](TermList t) {
+            return qr.substitution->applyToBoundQuery(t);
+          }, lhsS.term()))
+          {
+            return BwSimplificationRecord(0);
+          }
+        }
+
+        Literal* resLit=EqHelper::replace(qr.literal,lhsS,rhsS);
+        if(EqHelper::isEqTautology(resLit)) {
+          env.statistics->backwardDemodulationsToEqTaut++;
+          _removed->insert(qr.clause);
+          return BwSimplificationRecord(qr.clause);
+        }
+
+        unsigned cLen=qr.clause->length();
+        Clause* res = new(cLen) Clause(cLen, SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.clause, _cl));
+
+        (*res)[0]=resLit;
+        unsigned next=1;
+        for(unsigned i=0;i<cLen;i++) {
+          Literal* curr=(*qr.clause)[i];
+          if(curr!=qr.literal) {
+            (*res)[next++] = curr;
+          }
+        }
+        ASS_EQ(next,cLen);
+
+        if (_diamondBreaking) {
+          TIME_TRACE("diamond-breaking");
+          if (qr.clause->rewritingData()) {
+            res->setRewritingData(new RewritingData(_ordering));
+            res->rewritingData()->copyRewriteRules(qr.clause->rewritingData());
+          }
+        }
+
+        env.statistics->backwardDemodulations++;
+        _removed->insert(qr.clause);
+        TIME_TRACE("conditionally bw demodulated");
+        return BwSimplificationRecord(qr.clause,res);
+      }
+      return BwSimplificationRecord(0);
+    }
+#else
     if(_ordering.compare(lhsS,rhsS)!=Ordering::GREATER) {
       return BwSimplificationRecord(0);
     }
+#endif
 
     if(_redundancyCheck && qr.literal->isEquality() && (qr.term==*qr.literal->nthArgument(0) || qr.term==*qr.literal->nthArgument(1)) &&
       // encompassment has issues only with positive units
@@ -191,6 +250,17 @@ struct BackwardDemodulation::ResultFn
       }
     }
 
+    if (_diamondBreaking) {
+      TIME_TRACE("diamond-breaking");
+      if (_cl->rewritingData() && !_cl->rewritingData()->subsumes(qr.clause->rewritingData(), [qr](TermList t) {
+        return qr.substitution->applyToBoundQuery(t);
+      }, lhsS.term()))
+      {
+        return BwSimplificationRecord(0);
+      }
+    }
+
+
     Literal* resLit=EqHelper::replace(qr.literal,lhsS,rhsS);
     if(EqHelper::isEqTautology(resLit)) {
       env.statistics->backwardDemodulationsToEqTaut++;
@@ -202,7 +272,6 @@ struct BackwardDemodulation::ResultFn
     Clause* res = new(cLen) Clause(cLen, SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.clause, _cl));
 
     (*res)[0]=resLit;
-
     unsigned next=1;
     for(unsigned i=0;i<cLen;i++) {
       Literal* curr=(*qr.clause)[i];
@@ -211,6 +280,14 @@ struct BackwardDemodulation::ResultFn
       }
     }
     ASS_EQ(next,cLen);
+
+    if (_diamondBreaking) {
+      TIME_TRACE("diamond-breaking");
+      if (qr.clause->rewritingData()) {
+        res->setRewritingData(new RewritingData(_ordering));
+        res->rewritingData()->copyRewriteRules(qr.clause->rewritingData());
+      }
+    }
 
     env.statistics->backwardDemodulations++;
     _removed->insert(qr.clause);
@@ -224,6 +301,7 @@ private:
 
   bool _redundancyCheck;
   bool _encompassing;
+  bool _diamondBreaking;
 
   Ordering& _ordering;
 };

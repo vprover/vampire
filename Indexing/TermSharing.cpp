@@ -171,6 +171,7 @@ Term* TermSharing::insert(Term* t)
         vars += r->numVarOccs();
         varmap |= r->varmap();
         weight += r->weight();
+        varmap |= r->varmap();
         hasTermVar |= r->hasTermVar();
         if (env.colorUsed) {
           color = static_cast<Color>(color | r->color());
@@ -248,6 +249,7 @@ AtomicSort* TermSharing::insert(AtomicSort* sort)
         vars += r->numVarOccs();
         varmap |= r->varmap();
         weight += r->weight();
+        varmap |= r->varmap();
       }
     }
     sort->markShared();
@@ -321,6 +323,7 @@ Literal* TermSharing::insert(Literal* t)
         vars += r->numVarOccs();
         varmap |= r->varmap();
         weight += r->weight();
+        varmap |= r->varmap();
 
         if (env.colorUsed) {
           ASS(color == COLOR_TRANSPARENT || r->color() == COLOR_TRANSPARENT || color == r->color());

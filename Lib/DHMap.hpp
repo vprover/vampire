@@ -865,6 +865,18 @@ public:
     inline Val next() { return getNextEntry()->_val; }
 
     /**
+     * Return next value via reference and pass corresponding key via argument.
+     * @warning hasNext() must have been called before
+     */
+    inline
+    Val& nextRef(Key& key)
+    {
+      Entry* e = getNextEntry();
+      key = e->_key;
+      return e->_val;
+    }
+
+    /**
      * Return the key of next entry
      * @warning hasNext() must have been called before
      */

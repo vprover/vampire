@@ -121,12 +121,12 @@ class MLMatcher
 
   public:
     /// Helper function for compatibility to previous code. It uses a shared static instance of MLMatcher::Impl.
-    static bool canBeMatched(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const *alts, Literal* resolvedLit, bool multiset);
+    static bool canBeMatched(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const *alts, Literal* resolvedLit, bool multiset, Substitution& subst);
 
     /// Helper function for compatibility to previous code. It uses a shared static instance of MLMatcher::Impl.
-    static bool canBeMatched(Clause* base,                          Clause* instance, LiteralList const* const *alts, Literal* resolvedLit)
+    static bool canBeMatched(Clause* base,                          Clause* instance, LiteralList const* const *alts, Literal* resolvedLit, Substitution& subst)
     {
-      return canBeMatched(base->literals(), base->length(), instance, alts, resolvedLit, resolvedLit == nullptr);
+      return canBeMatched(base->literals(), base->length(), instance, alts, resolvedLit, resolvedLit == nullptr, subst);
     }
 };
 

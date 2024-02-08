@@ -348,6 +348,11 @@ void Options::init()
     _lookup.insert(&_ignoreMissingInputsInUnsatCore);
     _ignoreMissingInputsInUnsatCore.tag(OptionTag::OUTPUT);
 
+    _traceback = BoolOptionValue("traceback","",false);
+    _traceback.description="Try decoding backtrace into a sequence of human readable function names using addr2line/atos/etc.";
+    _lookup.insert(&_traceback);
+    _traceback.tag(OptionTag::OUTPUT);
+
     _thanks = StringOptionValue("thanks","","Tanya");
     _thanks.description="";
     _lookup.insert(&_thanks);
@@ -1670,6 +1675,12 @@ void Options::init()
     _lookup.insert(&_reducibilityCheck);
     _reducibilityCheck.tag(OptionTag::INFERENCES);
     _reducibilityCheck.onlyUsefulWith(ProperSaturationAlgorithm());
+
+    _diamondBreakingSuperposition = BoolOptionValue("diamond_breaking_superposition","dbs",false);
+    _diamondBreakingSuperposition.description="Skip superpositions detected to be done on a different rewrite branch.";
+    _lookup.insert(&_diamondBreakingSuperposition);
+    _diamondBreakingSuperposition.onlyUsefulWith(ProperSaturationAlgorithm());
+    _diamondBreakingSuperposition.tag(OptionTag::INFERENCES);
 
     _unitResultingResolution = ChoiceOptionValue<URResolution>("unit_resulting_resolution","urr",URResolution::OFF,{"ec_only","off","on","full"});
     _unitResultingResolution.description=

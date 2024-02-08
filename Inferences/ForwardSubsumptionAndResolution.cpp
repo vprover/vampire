@@ -25,6 +25,8 @@
 #include "Kernel/Matcher.hpp"
 #include "Kernel/MLMatcher.hpp"
 #include "Kernel/ColorHelper.hpp"
+#include "Kernel/RewritingData.hpp"
+#include "Kernel/SubstHelper.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
@@ -177,7 +179,7 @@ Clause *ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(Cla
   return res;
 }
 
-bool checkForSubsumptionResolution(Clause *cl, ClauseMatches *cms, Literal *resLit)
+bool checkForSubsumptionResolution(Clause *cl, ClauseMatches *cms, Literal *resLit, Substitution& subst)
 {
   Clause *mcl = cms->_cl;
   unsigned mclen = mcl->length();
@@ -206,7 +208,12 @@ bool checkForSubsumptionResolution(Clause *cl, ClauseMatches *cms, Literal *resL
     }
   }
 
-  return MLMatcher::canBeMatched(mcl, cl, cms->_matches, resLit);
+  return MLMatcher::canBeMatched(mcl, cl, cms->_matches, resLit, subst);
+}
+
+bool blockedTermCheck(Clause* subsumed, Clause* subsumer, const std::function<TermList(TermList)>& subst) {
+  TIME_TRACE("diamond-breaking-subsume");
+  return !subsumer->rewritingData() || subsumer->rewritingData()->subsumes(subsumed->rewritingData(), subst, nullptr);
 }
 
 bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)
@@ -223,15 +230,29 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
   bool result = false;
 
   Clause::requestAux();
+  Substitution subst;
 
   static CMStack cmStore(64);
   ASS(cmStore.isEmpty());
+  auto& ord = _salg->getOrdering();
 
   for (unsigned li = 0; li < clen; li++) {
-    SLQueryResultIterator rit = _unitIndex->getGeneralizations((*cl)[li], false, false);
+    SLQueryResultIterator rit = _unitIndex->getGeneralizations((*cl)[li], false, true);
     while (rit.hasNext()) {
-      Clause *premise = rit.next().clause;
+      auto qr = rit.next();
+      Clause *premise = qr.clause;
       if (ColorHelper::compatible(cl->color(), premise->color())) {
+        if (!blockedTermCheck(cl, premise, [&qr](TermList t) {
+          if (qr.substitution->isIdentityOnQueryWhenResultBound()) {
+            return qr.substitution->applyToBoundResult(t);
+          } else {
+            TIME_TRACE("can't subsume");
+            return t;
+          }
+        })) {
+          _salg->addBlockedSimplifier(premise);
+          continue;
+        }
         premises = pvi(getSingletonIterator(premise));
         env.statistics->forwardSubsumed++;
         result = true;
@@ -263,7 +284,8 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
           continue;
         }
 
-        if (MLMatcher::canBeMatched(mcl, cl, cms->_matches, 0) && ColorHelper::compatible(cl->color(), mcl->color())) {
+        if (MLMatcher::canBeMatched(mcl, cl, cms->_matches, 0, subst) && ColorHelper::compatible(cl->color(), mcl->color()) &&
+            blockedTermCheck(cl, cms->_cl, [&subst](TermList t){return SubstHelper::apply(t, subst); })) {
           premises = pvi(getSingletonIterator(mcl));
           env.statistics->forwardSubsumed++;
           result = true;
@@ -281,10 +303,25 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
 
       for (unsigned li = 0; li < clen; li++) {
         Literal *resLit = (*cl)[li];
-        SLQueryResultIterator rit = _unitIndex->getGeneralizations(resLit, true, false);
+        SLQueryResultIterator rit = _unitIndex->getGeneralizations(resLit, true, true);
         while (rit.hasNext()) {
-          Clause *mcl = rit.next().clause;
+          auto qr = rit.next();
+          Clause *mcl = qr.clause;
+          if (qr.clause->rewritingData()) {
+            continue;
+          }
           if (ColorHelper::compatible(cl->color(), mcl->color())) {
+            if (!blockedTermCheck(cl, mcl, [&qr](TermList t){
+              if (qr.substitution->isIdentityOnQueryWhenResultBound()) {
+                return qr.substitution->applyToBoundResult(t);
+              } else {
+                TIME_TRACE("can't subsume");
+                return t;
+              }
+            })) {
+              _salg->addBlockedSimplifier(mcl);
+              continue;
+            }
             resolutionClause = generateSubsumptionResolutionClause(cl, resLit, mcl);
             env.statistics->forwardSubsumptionResolution++;
             premises = pvi(getSingletonIterator(mcl));
@@ -292,6 +329,13 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
             if (cl->getSupInfo()) {
               resolutionClause->setSupInfo(cl->getSupInfo());
               // cl->setSupInfo(nullptr);
+            }
+            {
+              TIME_TRACE("diamond-breaking");
+              if (cl->rewritingData()) {
+                resolutionClause->setRewritingData(new RewritingData(ord));
+                resolutionClause->rewritingData()->copyRewriteRules(cl->rewritingData());
+              }
             }
             result = true;
             goto fin;
@@ -303,9 +347,13 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
         CMStack::Iterator csit(cmStore);
         while (csit.hasNext()) {
           ClauseMatches *cms = csit.next();
+          if (cms->_cl->rewritingData()) {
+            continue;
+          }
           for (unsigned li = 0; li < clen; li++) {
             Literal *resLit = (*cl)[li];
-            if (checkForSubsumptionResolution(cl, cms, resLit) && ColorHelper::compatible(cl->color(), cms->_cl->color())) {
+            if (checkForSubsumptionResolution(cl, cms, resLit, subst) && ColorHelper::compatible(cl->color(), cms->_cl->color())
+                && blockedTermCheck(cl, cms->_cl, [&subst](TermList t){return SubstHelper::apply(t,subst);})) {
               resolutionClause = generateSubsumptionResolutionClause(cl, resLit, cms->_cl);
               env.statistics->forwardSubsumptionResolution++;
               premises = pvi(getSingletonIterator(cms->_cl));
@@ -313,6 +361,13 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
               if (cl->getSupInfo()) {
                 resolutionClause->setSupInfo(cl->getSupInfo());
                 // cl->setSupInfo(nullptr);
+              }
+              {
+                TIME_TRACE("diamond-breaking");
+                if (cl->rewritingData()) {
+                  resolutionClause->setRewritingData(new RewritingData(ord));
+                  resolutionClause->rewritingData()->copyRewriteRules(cl->rewritingData());
+                }
               }
               result = true;
               goto fin;
@@ -329,6 +384,9 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
         while (rit.hasNext()) {
           SLQueryResult res = rit.next();
           Clause *mcl = res.clause;
+          if (res.clause->rewritingData()) {
+            continue;
+          }
 
           ClauseMatches *cms = nullptr;
           if (mcl->hasAux()) {
@@ -349,7 +407,8 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
             cms->fillInMatches(&miniIndex);
           }
 
-          if (checkForSubsumptionResolution(cl, cms, resLit) && ColorHelper::compatible(cl->color(), cms->_cl->color())) {
+          if (checkForSubsumptionResolution(cl, cms, resLit, subst) && ColorHelper::compatible(cl->color(), cms->_cl->color())
+              && blockedTermCheck(cl, cms->_cl, [&subst](TermList t){return SubstHelper::apply(t,subst);})) {
             resolutionClause = generateSubsumptionResolutionClause(cl, resLit, cms->_cl);
             env.statistics->forwardSubsumptionResolution++;
             premises = pvi(getSingletonIterator(cms->_cl));
@@ -357,6 +416,13 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
             if (cl->getSupInfo()) {
               resolutionClause->setSupInfo(cl->getSupInfo());
               // cl->setSupInfo(nullptr);
+            }
+            {
+              TIME_TRACE("diamond-breaking");
+              if (cl->rewritingData()) {
+                resolutionClause->setRewritingData(new RewritingData(ord));
+                resolutionClause->rewritingData()->copyRewriteRules(cl->rewritingData());
+              }
             }
             result = true;
             goto fin;
@@ -371,6 +437,24 @@ fin:
   while (cmStore.isNonEmpty()) {
     delete cmStore.pop();
   }
+  // if (/* !_subsumptionResolution &&  */result) {
+  //   cout << "subsumed " << *cl << endl;
+  //   auto rwcl1 = cl->getRewriteClauses();
+  //   while (rwcl1.hasNext()) {
+  //     auto rwcl = rwcl1.next();
+  //     cout << "                  " << *rwcl << endl;
+  //   }
+  //   cout << endl;
+  //   auto premise = premises.next();
+  //   cout << "by       " << *premise << endl;
+  //   auto rwcl2 = premise->getRewriteClauses();
+  //   while (rwcl2.hasNext()) {
+  //     auto rwcl = rwcl2.next();
+  //     cout << "                  " << *rwcl << endl;
+  //   }
+  //   cout << "----------" << endl << endl;
+  //   premises = pvi(getSingletonIterator(premise));
+  // }
   return result;
 }
 

@@ -27,11 +27,13 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Renaming.hpp"
+#include "Kernel/RewritingData.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/VarOrder.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
@@ -185,11 +187,65 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           }
         }
   #endif
+  #if CONDITIONAL_MODE
+        VarOrderBV bits = getRemaining(cl->reducedUnder());
+        if(!preordered && (_preorderedOnly || !ordering.isGreater(trm,rhs,nullptr,&bits,&qr)) ) {
+          auto bits2 = (cl->reducedUnder() | bits);
+          if (isReducedUnderAny(bits2) && !toplevelCheck) {
+            //
+            if (_salg->getOptions().diamondBreakingSuperposition()) {
+              TIME_TRACE("diamond-breaking");
+              if (qr.clause->rewritingData() && !qr.clause->rewritingData()->subsumes(cl->rewritingData(), [qr](TermList t) {
+                ASS(qr.substitution->isIdentityOnQueryWhenResultBound());
+                return qr.substitution->applyToBoundResult(t);
+              }, trm.term()))
+              {
+                continue;
+              }
+            }
+
+            Literal* resLit = EqHelper::replace(lit,trm,qr.substitution->applyToBoundResult(rhs));
+            if(EqHelper::isEqTautology(resLit)) {
+              env.statistics->forwardDemodulationsToEqTaut++;
+              premises = pvi( getSingletonIterator(qr.clause));
+              return true;
+            }
+
+            Clause* res = new(cLen) Clause(cLen,
+              SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.clause));
+            (*res)[0]=resLit;
+            unsigned next=1;
+            for(unsigned i=0;i<cLen;i++) {
+              Literal* curr=(*cl)[i];
+              if(curr!=lit) {
+                (*res)[next++] = curr;
+              }
+            }
+            ASS_EQ(next,cLen);
+
+            if (_salg->getOptions().diamondBreakingSuperposition()) {
+              TIME_TRACE("diamond-breaking");
+              if (cl->rewritingData()) {
+                res->setRewritingData(new RewritingData(_salg->getOrdering()));
+                res->rewritingData()->copyRewriteRules(cl->rewritingData());
+              }
+            }
+
+            env.statistics->forwardConditionalDemodulations++;
+
+            premises = pvi( getSingletonIterator(qr.clause));
+            replacement = res;
+            return true;
+          }
+          continue;
+        }
+  #else
         // if(!preordered && (_preorderedOnly || !ordering.isGreater(trm,rhsS,_rwTermState)) ) {
         if(!preordered && (_preorderedOnly || !ordering.isGreater(trm,rhs,_rwTermState,nullptr,&qr)) ) {
           // TIME_TRACE("skip");
           continue;
         }
+  #endif
 
         // encompassing demodulation is fine when rewriting the smaller guy
         if (toplevelCheck && _encompassing) {
@@ -257,6 +313,18 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           }
         }
 
+        if (_salg->getOptions().diamondBreakingSuperposition()) {
+          TIME_TRACE("diamond-breaking");
+          if (qr.clause->rewritingData() && !qr.clause->rewritingData()->subsumes(cl->rewritingData(), [qr](TermList t) {
+            ASS(qr.substitution->isIdentityOnQueryWhenResultBound());
+            return qr.substitution->applyToBoundResult(t);
+          }, trm.term()))
+          {
+            _salg->addBlockedSimplifier(qr.clause);
+            continue;
+          }
+        }
+
         Literal* resLit = EqHelper::replace(lit,trm,rhsS);
         if(EqHelper::isEqTautology(resLit)) {
           env.statistics->forwardDemodulationsToEqTaut++;
@@ -267,7 +335,6 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         Clause* res = new(cLen) Clause(cLen,
           SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.clause));
         (*res)[0]=resLit;
-
         unsigned next=1;
         for(unsigned i=0;i<cLen;i++) {
           Literal* curr=(*cl)[i];
@@ -279,6 +346,14 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         if (cl->getSupInfo()) {
           res->setSupInfo(cl->getSupInfo());
           // cl->setSupInfo(nullptr);
+        }
+
+        if (_salg->getOptions().diamondBreakingSuperposition()) {
+          TIME_TRACE("diamond-breaking");
+          if (cl->rewritingData()) {
+            res->setRewritingData(new RewritingData(_salg->getOrdering()));
+            res->rewritingData()->copyRewriteRules(cl->rewritingData());
+          }
         }
 
         env.statistics->forwardDemodulations++;

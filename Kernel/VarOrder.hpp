@@ -43,6 +43,10 @@ public:
     const VarOrder& _vo;
   };
 
+  static void order_diff_helper(VarOrder& vo, const List<Edge>* edges, Stack<VarOrder>& res);
+  static Stack<VarOrder> order_diff(const VarOrder& vo, const VarOrder& other);
+  static Stack<VarOrder> order_diff_nonrecursive(const VarOrder& vo, const VarOrder& other);
+
 private:
   PartialOrdering<unsigned> _po;
 };

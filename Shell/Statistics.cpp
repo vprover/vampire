@@ -54,6 +54,7 @@ Statistics::Statistics()
     sineIterations(0),
     factoring(0),
     resolution(0),
+    skippedResolution(0),
     urResolution(0),
     cResolution(0),
     forwardSuperposition(0),
@@ -62,8 +63,11 @@ Statistics::Statistics()
     cForwardSuperposition(0),
     cBackwardSuperposition(0),
     selfSuperposition(0),
+    skippedSuperposition(0),
     equalityFactoring(0),
+    skippedEqualityFactoring(0),
     equalityResolution(0),
+    skippedEqualityResolution(0),
     forwardExtensionalityResolution(0),
     backwardExtensionalityResolution(0),
     theoryInstSimp(0),
@@ -112,6 +116,7 @@ Statistics::Statistics()
     forwardSubsumptionResolution(0),
     backwardSubsumptionResolution(0),
     forwardDemodulations(0),
+    forwardConditionalDemodulations(0),
     forwardDemodulationsToEqTaut(0),
     backwardDemodulations(0),
     backwardDemodulationsToEqTaut(0),
@@ -146,6 +151,10 @@ Statistics::Statistics()
     forwardSubsumed(0),
     backwardSubsumed(0),
     forwardGroundJoinableEqs(0),
+    forwardDeletionByRule(0),
+    forwardDeletionByRuleBlocked(0),
+    forwardConditionalDeletionByRule(0),
+    forwardConditionalDeletionByRuleBlocked(0),
     taDistinctnessSimplifications(0),
     taDistinctnessTautologyDeletions(0),
     taInjectivitySimplifications(0),
@@ -316,11 +325,11 @@ void Statistics::print(ostream& out)
       +innerRewrites
       +booleanSimps
       );
-  COND_OUT("Duplicate literals", duplicateLiterals);
   COND_OUT("Trivial inequalities", trivialInequalities);
   COND_OUT("Fw subsumption resolutions", forwardSubsumptionResolution);
   COND_OUT("Bw subsumption resolutions", backwardSubsumptionResolution);
   COND_OUT("Fw demodulations", forwardDemodulations);
+  COND_OUT("Fw conditional demodulations", forwardConditionalDemodulations);
   COND_OUT("Bw demodulations", backwardDemodulations);
   COND_OUT("Fw subsumption demodulations", forwardSubsumptionDemodulations);
   COND_OUT("Bw subsumption demodulations", backwardSubsumptionDemodulations);
@@ -354,6 +363,10 @@ void Statistics::print(ostream& out)
   COND_OUT("Forward subsumptions", forwardSubsumed);
   COND_OUT("Backward subsumptions", backwardSubsumed);
   COND_OUT("Forward ground joinable equations", forwardGroundJoinableEqs);
+  COND_OUT("Forward deletion by rule", forwardDeletionByRule);
+  COND_OUT("Forward deletion by blocking rule", forwardDeletionByRuleBlocked);
+  COND_OUT("Forward conditional deletion by rule", forwardConditionalDeletionByRule);
+  COND_OUT("Forward conditional deletion by blocking rule", forwardConditionalDeletionByRuleBlocked);
   COND_OUT("Fw demodulations to eq. taut.", forwardDemodulationsToEqTaut);
   COND_OUT("Bw demodulations to eq. taut.", backwardDemodulationsToEqTaut);
   COND_OUT("Fw subsumption demodulations to eq. taut.", forwardSubsumptionDemodulationsToEqTaut);
@@ -369,6 +382,7 @@ void Statistics::print(ostream& out)
       +primitiveInstantiations+choiceInstances+narrow+forwardSubVarSup+backwardSubVarSup+selfSubVarSup+
       theoryInstSimp+theoryInstSimpCandidates+theoryInstSimpTautologies+theoryInstSimpLostSolution+inductionApplication+generalizedInductionApplication);
   COND_OUT("Binary resolution", resolution);
+  COND_OUT("Skipped binary resolution", skippedResolution);
   COND_OUT("Unit resulting resolution", urResolution);
   COND_OUT("Binary resolution with abstraction",cResolution);
   COND_OUT("Factoring", factoring);
@@ -378,8 +392,11 @@ void Statistics::print(ostream& out)
   COND_OUT("Forward superposition with abstraction", cForwardSuperposition);
   COND_OUT("Backward superposition with abstraction", cBackwardSuperposition);
   COND_OUT("Self superposition with abstraction", cSelfSuperposition);
+  COND_OUT("Skipped superposition", skippedSuperposition);
   COND_OUT("Equality factoring", equalityFactoring);
+  COND_OUT("Skipped equality factoring", skippedEqualityFactoring);
   COND_OUT("Equality resolution", equalityResolution);
+  COND_OUT("Skipped equality resolution", skippedEqualityResolution);
   COND_OUT("Fw extensionality resolution", forwardExtensionalityResolution);
   COND_OUT("Bw extensionality resolution", backwardExtensionalityResolution);
   COND_OUT("TheoryInstSimp",theoryInstSimp);

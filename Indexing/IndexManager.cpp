@@ -214,6 +214,12 @@ Index* IndexManager::create(IndexType t)
     isGenerating = false;
     break;
 
+  case BLOCKED_TERM_INDEX:
+    tis=new TermSubstitutionTree();
+    res=new BlockedTermIndex(tis);
+    isGenerating = false;
+    break;
+
   case FW_SUBSUMPTION_CODE_TREE:
     res=new CodeTreeSubsumptionIndex();
     isGenerating = false;

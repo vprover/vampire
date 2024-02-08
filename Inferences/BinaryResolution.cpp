@@ -27,7 +27,9 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/RewritingData.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/TermIterators.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
@@ -95,20 +97,21 @@ private:
 
 struct BinaryResolution::ResultFn
 {
-  ResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, bool afterCheck, Ordering* ord, LiteralSelector& selector, BinaryResolution& parent)
+  ResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, bool afterCheck, Ordering& ord, LiteralSelector& selector, BinaryResolution& parent)
   : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _afterCheck(afterCheck), _ord(ord), _selector(selector), _parent(parent) {}
   Clause* operator()(pair<Literal*, SLQueryResult> arg)
   {
     SLQueryResult& qr = arg.second;
     Literal* resLit = arg.first;
 
-    return BinaryResolution::generateClause(_cl, resLit, qr, _parent.getOptions(), _passiveClauseContainer, _afterCheck ? _ord : 0, &_selector, _parent._salg->getReducibilityChecker());
+    bool diamondBreaking = (_parent._hasEquality || _parent._unificationWithAbstraction) && _parent.getOptions().diamondBreakingSuperposition();
+    return BinaryResolution::generateClause(_cl, resLit, qr, _parent.getOptions(), _ord, _passiveClauseContainer, _afterCheck, &_selector, _parent._salg->getReducibilityChecker(), diamondBreaking);
   }
 private:
   Clause* _cl;
   PassiveClauseContainer* _passiveClauseContainer;
   bool _afterCheck;
-  Ordering* _ord;
+  Ordering& _ord;
   LiteralSelector& _selector;
   BinaryResolution& _parent;
 };
@@ -117,7 +120,7 @@ private:
  * Ordering aftercheck is performed iff ord is not 0,
  * in which case also ls is assumed to be not 0.
  */
-Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult qr, const Options& opts, PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls, ReducibilityChecker* checker)
+Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult qr, const Options& opts, Ordering& ord, PassiveClauseContainer* passiveClauseContainer, bool afterCheck, LiteralSelector* ls, ReducibilityChecker* checker, bool diamondBreaking)
 {
   ASS(qr.clause->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses
 
@@ -182,6 +185,38 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   //   env.statistics->skippedResolution++;
   //   return 0;
   // }
+  
+  // RewritingData* resRwData = nullptr;
+  // if (diamondBreaking) {
+  //   TIME_TRACE("diamond-breaking");
+  //   ScopedPtr<RewritingData> rwData(new RewritingData(ord));
+  //   if (!rwData->addRewriteRules(queryCl, [qr](TermList t) {
+  //     return qr.substitution->applyToQuery(t);
+  //   }))
+  //   {
+  //     env.statistics->skippedResolution++;
+  //     return 0;
+  //   }
+
+  //   if (!rwData->addRewriteRules(qr.clause, [qr](TermList t) {
+  //       return qr.substitution->applyToResult(t);
+  //     }))
+  //   {
+  //     env.statistics->skippedResolution++;
+  //     return 0;
+  //   }
+
+  //   // block new terms from both clauses
+  //   // if (!rwData->blockNewTerms(queryCl, qr.substitution.ptr(), false, nullptr)) {
+  //   //   env.statistics->skippedResolution++;
+  //   //   return 0;
+  //   // }
+  //   // if (!rwData->blockNewTerms(qr.clause, qr.substitution.ptr(), true, nullptr)) {
+  //   //   env.statistics->skippedResolution++;
+  //   //   return 0;
+  //   // }
+  //   resRwData = rwData.release();
+  // }
 
   bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
   Literal* cAnsLit = synthesis ? queryCl->getAnswerLiteral() : nullptr;
@@ -193,9 +228,10 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
 
   inf_destroyer.disable(); // ownership passed to the the clause below
   Clause* res = new(newLength) Clause(newLength, inf); // the inference object owned by res from now on
+  // res->setRewritingData(resRwData);
 
   Literal* queryLitAfter = 0;
-  if (ord && queryCl->numSelected() > 1) {
+  if (afterCheck && queryCl->numSelected() > 1) {
     TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
     queryLitAfter = qr.substitution->applyToQuery(queryLit);
   }
@@ -263,7 +299,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       if (queryLitAfter && i < queryCl->numSelected()) {
         TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
 
-        Ordering::Result o = ord->compare(newLit,queryLitAfter);
+        Ordering::Result o = ord.compare(newLit,queryLitAfter);
 
         if (o == Ordering::GREATER ||
             (ls->isPositiveForSelection(newLit)    // strict maximimality for positive literals
@@ -285,7 +321,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   }
 
   Literal* qrLitAfter = 0;
-  if (ord && qr.clause->numSelected() > 1) {
+  if (afterCheck && qr.clause->numSelected() > 1) {
     TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
     qrLitAfter = qr.substitution->applyToResult(qr.literal);
   }
@@ -306,7 +342,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       if (qrLitAfter && i < qr.clause->numSelected()) {
         TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
 
-        Ordering::Result o = ord->compare(newLit,qrLitAfter);
+        Ordering::Result o = ord.compare(newLit,qrLitAfter);
 
         if (o == Ordering::GREATER ||
             (ls->isPositiveForSelection(newLit)   // strict maximimality for positive literals
@@ -326,28 +362,29 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
       next++;
     }
   }
-  if (checker) {
-    if (queryLitAfter) {
-      if (checker->checkBREager(queryLitAfter)) {
-        env.statistics->redundantResolution++;
-        res->destroy();
-        return 0;
-      }
-    } else if (qrLitAfter) {
-      if (checker->checkBREager(qrLitAfter)) {
-        env.statistics->redundantResolution++;
-        res->destroy();
-        return 0;
-      }
-    } else {
-      auto lit = qr.substitution->applyToQuery(queryLit);
-      if (checker->checkBREager(lit)) {
-        env.statistics->redundantResolution++;
-        res->destroy();
-        return 0;
-      }
-    }
-  }
+  // if (checker) {
+  //   USER_ERROR("no BR");
+  //   if (queryLitAfter) {
+  //     if (checker->checkBREager(queryLitAfter)) {
+  //       env.statistics->redundantResolution++;
+  //       res->destroy();
+  //       return 0;
+  //     }
+  //   } else if (qrLitAfter) {
+  //     if (checker->checkBREager(qrLitAfter)) {
+  //       env.statistics->redundantResolution++;
+  //       res->destroy();
+  //       return 0;
+  //     }
+  //   } else {
+  //     auto lit = qr.substitution->applyToQuery(queryLit);
+  //     if (checker->checkBREager(lit)) {
+  //       env.statistics->redundantResolution++;
+  //       res->destroy();
+  //       return 0;
+  //     }
+  //   }
+  // }
 
   if (bothHaveAnsLit) {
     ASS(next == newLength-1);
@@ -395,7 +432,7 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
   auto it2 = getFlattenedIterator(it1);
   // perform binary resolution on these pairs
   auto it3 = getMappingIterator(it2,ResultFn(premise, passiveClauseContainer,
-      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(), &_salg->getOrdering(),_salg->getLiteralSelector(),*this));
+      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(), _salg->getOrdering(),_salg->getLiteralSelector(),*this));
   // filter out only non-zero results
   auto it4 = getFilteredIterator(it3, NonzeroFn());
   // measure time of the overall processing

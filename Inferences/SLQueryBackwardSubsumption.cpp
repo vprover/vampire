@@ -154,6 +154,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
   static DHSet<Clause*> checkedClauses;
   checkedClauses.reset();
 
+  Substitution subst;
   SLQueryResultIterator rit=_index->getInstances( (*cl)[lmIndex], false, false);
   while(rit.hasNext()) {
     SLQueryResult qr=rit.next();
@@ -257,7 +258,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
     }
 
     RSTAT_CTR_INC("bs1 3 final check");
-    if(MLMatcher::canBeMatched(cl,icl,matchedLits.array(),0)) {
+    if(MLMatcher::canBeMatched(cl,icl,matchedLits.array(),0,subst)) {
       ClauseList::push(icl, subsumed);
       env.statistics->backwardSubsumed++;
       RSTAT_CTR_INC("bs1 4 performed");

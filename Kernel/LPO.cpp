@@ -560,5 +560,4 @@ bool LPO::majo_mgt(Term* s, TermList* tl, unsigned arity, VarOrder& vo) const
   return true;
 }
 
-
 }

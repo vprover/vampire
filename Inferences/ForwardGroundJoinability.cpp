@@ -181,7 +181,7 @@ bool ForwardGroundJoinability::join(TermList orig_s, TermList orig_t, bool check
       if (ext.s == ext.t) {
         LOG2(cout,"joined ",ext.toString());
         joined = true;
-        auto vos = order_diff(curr.vo,ext.vo);
+        auto vos = VarOrder::order_diff(curr.vo,ext.vo);
         for (auto&& evo : vos) {
           VarOrder::EqApplicator voApp(evo);
           todo.push(State(std::move(evo),
@@ -362,99 +362,6 @@ bool ForwardGroundJoinability::extend(TermList& t, bool& checkCompleteness, VarO
   }
 
   return false;
-}
-
-void ForwardGroundJoinability::order_diff_helper(VarOrder& vo, const List<Edge>* edges, Stack<VarOrder>& res)
-{
-  if (List<Edge>::isEmpty(edges)) {
-    return;
-  }
-
-  auto e = edges->head();
-
-  switch (e.c) {
-    case PoComp::GT:
-      if (vo.query(e.x,e.y) != PoComp::GT) {
-        VarOrder eq = vo;
-        VarOrder lt = vo;
-        ALWAYS(eq.add_eq(e.x,e.y));
-        ALWAYS(lt.add_gt(e.y,e.x));
-        res.push(eq);
-        res.push(lt);
-        ALWAYS(vo.add_gt(e.x,e.y));
-      }
-      break;
-    case PoComp::EQ:
-      if (vo.query(e.x,e.y) != PoComp::EQ) {
-        VarOrder gt = vo;
-        VarOrder lt = vo;
-        ALWAYS(gt.add_gt(e.x,e.y));
-        ALWAYS(lt.add_gt(e.y,e.x));
-        res.push(gt);
-        res.push(lt);
-        ALWAYS(vo.add_eq(e.x,e.y));
-      }
-      break;
-    default:
-      ASSERTION_VIOLATION;
-  }
-
-  order_diff_helper(vo, edges->tail(), res);
-}
-
-Stack<VarOrder> ForwardGroundJoinability::order_diff(const VarOrder& vo, const VarOrder& other)
-{
-  return order_diff_nonrecursive(vo,other);
-  // auto tr = other.transitive_reduction();
-
-  // Stack<VarOrder> res;
-  // VarOrder temp = vo;
-  // order_diff_helper(temp, tr, res);
-  // return res;
-}
-
-Stack<VarOrder> ForwardGroundJoinability::order_diff_nonrecursive(const VarOrder& vo, const VarOrder& other)
-{
-  auto tr = other.transitive_reduction();
-
-  Stack<VarOrder> res;
-  VarOrder temp = vo;
-
-  while (List<Edge>::isNonEmpty(tr)) {
-
-    auto e = tr->head();
-
-    switch (e.c) {
-      case PoComp::GT:
-        if (temp.query(e.x,e.y) != PoComp::GT) {
-          VarOrder eq = temp;
-          VarOrder lt = temp;
-          ALWAYS(eq.add_eq(e.x,e.y));
-          ALWAYS(lt.add_gt(e.y,e.x));
-          res.push(eq);
-          res.push(lt);
-          ALWAYS(temp.add_gt(e.x,e.y));
-        }
-        break;
-      case PoComp::EQ:
-        if (temp.query(e.x,e.y) != PoComp::EQ) {
-          VarOrder gt = temp;
-          VarOrder lt = temp;
-          ALWAYS(gt.add_gt(e.x,e.y));
-          ALWAYS(lt.add_gt(e.y,e.x));
-          res.push(gt);
-          res.push(lt);
-          ALWAYS(temp.add_eq(e.x,e.y));
-        }
-        break;
-      default:
-        ASSERTION_VIOLATION;
-    }
-
-    tr = tr->tail();
-  }
-
-  return res;
 }
 
 }

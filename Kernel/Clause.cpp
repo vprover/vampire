@@ -34,6 +34,7 @@
 #include "Shell/Options.hpp"
 
 #include "Inference.hpp"
+#include "RewritingData.hpp"
 #include "Signature.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
@@ -74,6 +75,8 @@ Clause::Clause(unsigned length,const Inference& inf)
     _refCnt(0),
     _reductionTimestamp(0),
     _literalPositions(0),
+    _rwData(nullptr),
+    _reducedUnder(0),
     _numActiveSplits(0),
     _auxTimestamp(0),
     _supInfo(0)
@@ -411,6 +414,7 @@ vstring Clause::toString() const
 
     result += ",thDist:" + Int::toString( _inference.th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference.all_ancestors);
     result += vstring("}");
+    result += " rewritingData: [ " + (_rwData ? _rwData->toString() : "") + " ]";
   }
 
   return result;
@@ -476,6 +480,21 @@ unsigned Clause::computeWeight() const
     ASS(_literals[i]->shared());
     result += _literals[i]->weight();
   }
+  // if (_rwData) {
+  //   auto it = _rwData->iter();
+  //   while (it.hasNext()) {
+  //     Term* lhs;
+  //     auto& info = it.nextRef(lhs);
+  //     if (!_rwData->validate(lhs,info)) {
+  //       it.del();
+  //       continue;
+  //     }
+  //     result += lhs->weight();
+  //     if (info.rhs.isNonEmpty()) {
+  //       result += info.rhs.weight();
+  //     }
+  //   }
+  // }
 
   return result;
 } // Clause::computeWeight
@@ -701,6 +720,19 @@ unsigned Clause::getLiteralPosition(Literal* lit)
       _literalPositions=new InverseLookup<Literal>(_literals,length());
     }
     return static_cast<unsigned>(_literalPositions->get(lit));
+  }
+}
+
+RewritingData* Clause::rewritingData()
+{
+  return _rwData;
+}
+
+void Clause::setRewritingData(RewritingData* rwData)
+{
+  _rwData = rwData;
+  if (_rwData) {
+    _rwData->setClause(this);
   }
 }
 

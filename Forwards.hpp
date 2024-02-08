@@ -100,6 +100,7 @@ typedef Stack<Clause*> ClauseStack;
 class Problem;
 
 class Renaming;
+class RewritingData;
 class Substitution;
 
 class RobSubstitution;
@@ -111,6 +112,7 @@ typedef VirtualIterator<Matcher*> MatchIterator;
 
 class LiteralSelector;
 
+#define CONDITIONAL_MODE 0
 class VarOrder;
 using VarOrderBV = uint64_t;
 class Ordering;

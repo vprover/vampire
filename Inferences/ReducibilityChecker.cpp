@@ -24,6 +24,7 @@
 #include "Kernel/Matcher.hpp"
 #include "Kernel/VarOrder.hpp"
 #include "Kernel/SubstHelper.hpp"
+#include "Kernel/RewritingData.hpp"
 
 #include "Indexing/ResultSubstitution.hpp"
 
@@ -793,6 +794,9 @@ bool ReducibilityChecker::getDemodulationRHSCodeTree(const TermQueryResult& qr, 
   if (!qr.clause->noSplits() && !(ss && qr.clause->splits()->isSubsetOf(ss))) {
     return false;
   }
+  if (qr.clause->rewritingData() && !qr.clause->rewritingData()->isEmpty()) {
+    return false;
+  }
   if (qr.clause->getSupInfo()) {
     return false;
   }
@@ -919,7 +923,7 @@ void ReducibilityChecker::clauseActivated(Clause* cl)
         }
         VarOrder ext = vo;
         if (_ord.makeGreater(otherS,sideS,ext)) {
-          for (const auto& nvo : ForwardGroundJoinability::order_diff(vo,ext)) {
+          for (const auto& nvo : VarOrder::order_diff(vo,ext)) {
             vos.push(nvo);
           }
           continue;
@@ -937,7 +941,7 @@ void ReducibilityChecker::clauseActivated(Clause* cl)
             }
             VarOrder ext = vo;
             if (_ord.makeGreater(TermList(st),rhsS,ext)) {
-              for (const auto& nvo : ForwardGroundJoinability::order_diff(vo,ext)) {
+              for (const auto& nvo : VarOrder::order_diff(vo,ext)) {
                 vos.push(nvo);
               }
               goto success_reduced;
@@ -954,7 +958,7 @@ void ReducibilityChecker::clauseActivated(Clause* cl)
             }
             VarOrder ext = vo;
             if (_ord.makeGreater(sideS,rhsS,ext) && _ord.makeGreater(rhsS,otherS,ext)) {
-              for (const auto& nvo : ForwardGroundJoinability::order_diff(vo,ext)) {
+              for (const auto& nvo : VarOrder::order_diff(vo,ext)) {
                 vos.push(nvo);
               }
               goto success_reduced;
@@ -1387,7 +1391,7 @@ bool ReducibilityChecker::checkSupExpensive(Literal* rwLit, Literal* eqLit, Term
       EqBinder eb;
       eb.vo = vo;
       if (MatchingUtils::matchTerms(TermList(rwTermSS),tgtTermSS,eb)) {
-        auto vos = ForwardGroundJoinability::order_diff(vo,eb.vo);
+        auto vos = VarOrder::order_diff(vo,eb.vo);
         for (auto&& evo : vos) {
           todo.push(std::move(evo));
         }
@@ -1396,7 +1400,7 @@ bool ReducibilityChecker::checkSupExpensive(Literal* rwLit, Literal* eqLit, Term
 
       VarOrder ext = vo;
       if (_ord.makeGreater(tgtTermSS,TermList(rwTermSS),ext)) {
-        auto vos = ForwardGroundJoinability::order_diff(vo,ext);
+        auto vos = VarOrder::order_diff(vo,ext);
         for (auto&& evo : vos) {
           todo.push(std::move(evo));
         }
@@ -1409,7 +1413,7 @@ bool ReducibilityChecker::checkSupExpensive(Literal* rwLit, Literal* eqLit, Term
         auto otherS = subst->apply(other,!eqIsResult);
         auto otherSS = SubstHelper::apply(otherS,voApp);
         if (MatchingUtils::matchTerms(otherSS,TermList(sideSS),eb)) {
-          auto vos = ForwardGroundJoinability::order_diff(vo,eb.vo);
+          auto vos = VarOrder::order_diff(vo,eb.vo);
           for (auto&& evo : vos) {
             todo.push(std::move(evo));
           }
@@ -1418,7 +1422,7 @@ bool ReducibilityChecker::checkSupExpensive(Literal* rwLit, Literal* eqLit, Term
 
         VarOrder ext = vo;
         if (_ord.makeGreater(otherSS,TermList(sideSS),ext)) {
-          auto vos = ForwardGroundJoinability::order_diff(vo,ext);
+          auto vos = VarOrder::order_diff(vo,ext);
           for (auto&& evo : vos) {
             todo.push(std::move(evo));
           }
@@ -1452,7 +1456,7 @@ bool ReducibilityChecker::checkSupExpensive(Literal* rwLit, Literal* eqLit, Term
       //     if (!qr.clause->noSplits()) {
       //       TIME_TRACE("reduced by clause with splits");
       //     }
-      //     auto vos = ForwardGroundJoinability::order_diff(vo,ext);
+      //     auto vos = VarOrder::order_diff(vo,ext);
       //     for (auto&& evo : vos) {
       //       todo.push(std::move(evo));
       //     }
@@ -1549,7 +1553,7 @@ bool ReducibilityChecker::checkSupExpensive(Literal* rwLit, Literal* eqLit, Term
             //   cout << "redundant2 under " << vo.to_string() << " by " << *qr.clause << " " << qr.term << endl;
             //   cout << *st << " " << stS << " " << *stSS << endl;
             // }
-            auto vos = ForwardGroundJoinability::order_diff(vo,ext2);
+            auto vos = VarOrder::order_diff(vo,ext2);
             for (auto&& evo : vos) {
               todo.push(std::move(evo));
             }
@@ -1592,7 +1596,7 @@ bool ReducibilityChecker::checkSupExpensive(Literal* rwLit, Literal* eqLit, Term
           // if (ext.is_empty()) {
           // cout << "redundant3 under " << vo.to_string() << " by " << *qr.clause << endl;
           // }
-          auto vos = ForwardGroundJoinability::order_diff(vo,ext);
+          auto vos = VarOrder::order_diff(vo,ext);
           for (auto&& evo : vos) {
             todo.push(std::move(evo));
           }
@@ -1656,7 +1660,7 @@ bool ReducibilityChecker::checkBRExpensive(Literal* rwLit)
           continue;
         }
         // cout << "redundant under " << vo.to_string() << " by " << *qr.clause << endl;
-        auto vos = ForwardGroundJoinability::order_diff(vo,ext);
+        auto vos = VarOrder::order_diff(vo,ext);
         for (auto&& evo : vos) {
           todo.push(std::move(evo));
         }

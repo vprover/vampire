@@ -1963,6 +1963,7 @@ public:
   Proof proof() const { return _proof.actualValue; }
   bool minimizeSatProofs() const { return _minimizeSatProofs.actualValue; }
   ProofExtra proofExtra() const { return _proofExtra.actualValue; }
+  bool traceback() const { return _traceback.actualValue; }
   vstring printProofToFile() const { return _printProofToFile.actualValue; }
   int naming() const { return _naming.actualValue; }
 
@@ -2085,6 +2086,7 @@ public:
   bool innerRewriting() const { return _innerRewriting.actualValue; }
   bool equationalTautologyRemoval() const { return _equationalTautologyRemoval.actualValue; }
   ReducibilityCheck reducibilityCheck() const { return _reducibilityCheck.actualValue; }
+  bool diamondBreakingSuperposition() const { return _diamondBreakingSuperposition.actualValue; }
   bool arityCheck() const { return _arityCheck.actualValue; }
   //void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation.actualValue; }
@@ -2496,6 +2498,7 @@ private:
   BoolOptionValue _innerRewriting;
   BoolOptionValue _equationalTautologyRemoval;
   ChoiceOptionValue<ReducibilityCheck> _reducibilityCheck;
+  BoolOptionValue _diamondBreakingSuperposition;
 
   /** if true, then calling set() on non-existing options will not result in a user error */
   ChoiceOptionValue<IgnoreMissing> _ignoreMissing;
@@ -2570,7 +2573,8 @@ private:
   ChoiceOptionValue<Proof> _proof;
   BoolOptionValue _minimizeSatProofs;
   ChoiceOptionValue<ProofExtra> _proofExtra;
-  
+  BoolOptionValue _traceback;
+
   StringOptionValue _protectedPrefix;
 
   ChoiceOptionValue<QuestionAnsweringMode> _questionAnswering;
