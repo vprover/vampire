@@ -1466,27 +1466,27 @@ void Options::init()
     _nonUnitInduction.reliesOn(_induction.is(notEqual(Induction::NONE)));
     _lookup.insert(&_nonUnitInduction);
 
-    _goalParamodulation = ChoiceOptionValue<GoalParamodulation>(
-      "goal_paramodulation",
-      "gp",
-      GoalParamodulation::OFF,
+    _goalRewriting = ChoiceOptionValue<GoalRewriting>(
+      "goal_rewriting",
+      "grw",
+      GoalRewriting::OFF,
       {"off", "up_ltr", "up", "ltr", "all"}
     );
-    _goalParamodulation.description = "Paramodulate goals with unit equalities possibly in the upward direction (w.r.t. the ordering)";
-    _goalParamodulation.tag(OptionTag::INFERENCES);
-    _lookup.insert(&_goalParamodulation);
+    _goalRewriting.description = "Paramodulate goals with unit equalities possibly in the upward direction (w.r.t. the ordering)";
+    _goalRewriting.tag(OptionTag::INFERENCES);
+    _lookup.insert(&_goalRewriting);
 
-    _maxGoalParamodulationDepth = UnsignedOptionValue("max_goal_paramodulation_depth","mgpd",3);
-    _maxGoalParamodulationDepth.description = "Set maximum goal paramodulation depth";
-    _maxGoalParamodulationDepth.tag(OptionTag::INFERENCES);
-    _maxGoalParamodulationDepth.reliesOn(_goalParamodulation.is(notEqual(GoalParamodulation::OFF)));
-    _lookup.insert(&_maxGoalParamodulationDepth);
+    _maxGoalRewritingDepth = UnsignedOptionValue("max_goal_rewriting_depth","mgrwd",3);
+    _maxGoalRewritingDepth.description = "Set maximum goal rewriting depth";
+    _maxGoalRewritingDepth.tag(OptionTag::INFERENCES);
+    _maxGoalRewritingDepth.reliesOn(_goalRewriting.is(notEqual(GoalRewriting::OFF)));
+    _lookup.insert(&_maxGoalRewritingDepth);
 
-    _goalParamodulationChaining = BoolOptionValue("goal_paramodulation_chaining","gpc",false);
-    _goalParamodulationChaining.description = "Introduce chains to avoid useless clauses during goal paramodulation for inductive reasoning";
-    _goalParamodulationChaining.tag(OptionTag::INFERENCES);
-    _goalParamodulationChaining.reliesOn(_goalParamodulation.is(notEqual(GoalParamodulation::OFF)));
-    _lookup.insert(&_goalParamodulationChaining);
+    _goalRewritingChaining = BoolOptionValue("goal_rewriting_chaining","grwc",false);
+    _goalRewritingChaining.description = "Introduce chains to avoid useless clauses during goal rewriting for inductive reasoning";
+    _goalRewritingChaining.tag(OptionTag::INFERENCES);
+    _goalRewritingChaining.reliesOn(_goalRewriting.is(notEqual(GoalRewriting::OFF)));
+    _lookup.insert(&_goalRewritingChaining);
 
     _inductionRedundancyCheck = BoolOptionValue("induction_redundancy_check","indrc",false);
     _inductionRedundancyCheck.description = "Skip redundant induction inferences";

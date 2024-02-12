@@ -123,14 +123,14 @@ private:
   const Options& _opt;
 };
 
-class GoalParamodulationLHSIndex
+class GoalRewritingLHSIndex
 : public TermIndex
 {
 public:
-  CLASS_NAME(GoalParamodulationLHSIndex);
-  USE_ALLOCATOR(GoalParamodulationLHSIndex);
+  CLASS_NAME(GoalRewritingLHSIndex);
+  USE_ALLOCATOR(GoalRewritingLHSIndex);
 
-  GoalParamodulationLHSIndex(TermIndexingStructure* is, const Ordering& ord, const Options& opt) : TermIndex(is), _ord(ord), _opt(opt) {}
+  GoalRewritingLHSIndex(TermIndexingStructure* is, const Ordering& ord, const Options& opt) : TermIndex(is), _ord(ord), _opt(opt) {}
 
 protected:
   void handleClause(Clause* c, bool adding) override;
@@ -138,11 +138,11 @@ protected:
   const Options& _opt;
 };
 
-class GoalParamodulationSubtermIndex
+class GoalRewritingSubtermIndex
 : public TermIndex
 {
 public:
-  GoalParamodulationSubtermIndex(TermIndexingStructure* is, const Options& opt) : TermIndex(is), _opt(opt) {};
+  GoalRewritingSubtermIndex(TermIndexingStructure* is, const Options& opt) : TermIndex(is), _opt(opt) {};
 protected:
   void handleClause(Clause* c, bool adding) override;
   const Options& _opt;

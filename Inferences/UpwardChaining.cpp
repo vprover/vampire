@@ -23,7 +23,7 @@
 
 #include "Shell/Options.hpp"
 
-#include "GoalParamodulation.hpp"
+#include "GoalRewriting.hpp"
 #include "UpwardChaining.hpp"
 
 namespace Inferences {
@@ -63,7 +63,7 @@ void UpwardChaining::detach()
 ClauseIterator UpwardChaining::generateClauses(Clause* premise)
 {
   auto res = ClauseIterator::getEmpty();
-  ASS(_salg->getOptions().goalParamodulationChaining());
+  ASS(_salg->getOptions().goalRewritingChaining());
 
   if (premise->length()!=1) {
     return res;
@@ -74,7 +74,7 @@ ClauseIterator UpwardChaining::generateClauses(Clause* premise)
     return res;
   }
 
-  if (premise->goalParamodulationDepth()>=_salg->getOptions().maxGoalParamodulationDepth()) {
+  if (premise->goalRewritingDepth()>=_salg->getOptions().maxGoalRewritingDepth()) {
     return res;
   }
 
@@ -193,7 +193,7 @@ Clause* UpwardChaining::perform(
   ASS(rwLit->isEquality()&&rwLit->isPositive());
   ASS(eqLit->isEquality()&&eqLit->isPositive());
 
-  if (rwClause->goalParamodulationDepth()+eqClause->goalParamodulationDepth()>=_salg->getOptions().maxGoalParamodulationDepth()) {
+  if (rwClause->goalRewritingDepth()+eqClause->goalRewritingDepth()>=_salg->getOptions().maxGoalRewritingDepth()) {
     return 0;
   }
 
@@ -246,8 +246,8 @@ Clause* UpwardChaining::perform(
   //      << "from " << *rwClause << endl
   //      << "and " << *eqClause << endl << endl;
   // cout << left << " " << eqIsResult << endl;
-  res->setGoalParamodulationDepth(rwClause->goalParamodulationDepth()+eqClause->goalParamodulationDepth()+1);
-  env.statistics->goalParamodulationChaining++;
+  res->setGoalRewritingDepth(rwClause->goalRewritingDepth()+eqClause->goalRewritingDepth()+1);
+  env.statistics->goalRewritingChaining++;
   return res;
 }
 

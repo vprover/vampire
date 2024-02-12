@@ -383,7 +383,7 @@ bool InductionClauseIterator::isRedundant(const InductionContext& context)
     return false;
   }
   auto cl = context._cls.begin()->first;
-  if (!cl->goalParamodulationDepth()) {
+  if (!cl->goalRewritingDepth()) {
     return false;
   }
   auto lits = context._cls.begin()->second;

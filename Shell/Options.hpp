@@ -283,7 +283,7 @@ public:
     INTERPRETED_CONSTANT,
     NO_SKOLEMS
   };
-  enum class GoalParamodulation : unsigned int {
+  enum class GoalRewriting : unsigned int {
     OFF,
     UP_LTR,
     UP,
@@ -2379,9 +2379,9 @@ public:
   IntegerInductionLiteralStrictness integerInductionStrictnessComp() const {return _integerInductionStrictnessComp.actualValue; }
   IntegerInductionTermStrictness integerInductionStrictnessTerm() const {return _integerInductionStrictnessTerm.actualValue; }
   bool nonUnitInduction() const { return _nonUnitInduction.actualValue; }
-  GoalParamodulation goalParamodulation() const { return _goalParamodulation.actualValue; }
-  unsigned maxGoalParamodulationDepth() const { return _maxGoalParamodulationDepth.actualValue; }
-  bool goalParamodulationChaining() const { return _goalParamodulationChaining.actualValue; }
+  GoalRewriting goalRewriting() const { return _goalRewriting.actualValue; }
+  unsigned maxGoalRewritingDepth() const { return _maxGoalRewritingDepth.actualValue; }
+  bool goalRewritingChaining() const { return _goalRewritingChaining.actualValue; }
   bool inductionRedundancyCheck() const { return _inductionRedundancyCheck.actualValue; }
 
   bool useHashingVariantIndex() const { return _useHashingVariantIndex.actualValue; }
@@ -2675,9 +2675,9 @@ private:
   ChoiceOptionValue<IntegerInductionLiteralStrictness> _integerInductionStrictnessComp;
   ChoiceOptionValue<IntegerInductionTermStrictness> _integerInductionStrictnessTerm;
   BoolOptionValue _nonUnitInduction;
-  ChoiceOptionValue<GoalParamodulation> _goalParamodulation;
-  UnsignedOptionValue _maxGoalParamodulationDepth;
-  BoolOptionValue _goalParamodulationChaining;
+  ChoiceOptionValue<GoalRewriting> _goalRewriting;
+  UnsignedOptionValue _maxGoalRewritingDepth;
+  BoolOptionValue _goalRewritingChaining;
   BoolOptionValue _inductionRedundancyCheck;
 
   StringOptionValue _latexOutput;

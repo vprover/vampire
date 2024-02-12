@@ -16,7 +16,7 @@
 #include "Lib/DHMap.hpp"
 
 #include "Inferences/InductionHelper.hpp"
-#include "Inferences/GoalParamodulation.hpp"
+#include "Inferences/GoalRewriting.hpp"
 
 #include "Kernel/ApplicativeHelper.hpp"
 #include "Kernel/Clause.hpp"
@@ -90,7 +90,7 @@ void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c
 
   static DHSet<Term*> inserted;
 
-  if (c->goalParamodulationDepth()) {
+  if (c->goalRewritingDepth()) {
     return;
   }
 
@@ -134,7 +134,7 @@ template class DemodulationSubtermIndexImpl<true>;
 
 void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
 {
-  if (c->length()!=1 || c->goalParamodulationDepth()) {
+  if (c->length()!=1 || c->goalRewritingDepth()) {
     return;
   }
 
@@ -147,14 +147,14 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
   }
 }
 
-void GoalParamodulationLHSIndex::handleClause(Clause* c, bool adding)
+void GoalRewritingLHSIndex::handleClause(Clause* c, bool adding)
 {
-  if (c->length()!=1 || c->goalParamodulationDepth()>=_opt.maxGoalParamodulationDepth()) {
+  if (c->length()!=1 || c->goalRewritingDepth()>=_opt.maxGoalRewritingDepth()) {
     return;
   }
 
   Literal* lit=(*c)[0];
-  if (!lit->isEquality() || lit->isNegative() || (_opt.goalParamodulationChaining() && shouldChain(lit, _ord))) {
+  if (!lit->isEquality() || lit->isNegative() || (_opt.goalRewritingChaining() && shouldChain(lit, _ord))) {
     return;
   }
   for (unsigned i = 0; i <= 1; i++) {
@@ -166,9 +166,9 @@ void GoalParamodulationLHSIndex::handleClause(Clause* c, bool adding)
   }
 }
 
-void GoalParamodulationSubtermIndex::handleClause(Clause* c, bool adding)
+void GoalRewritingSubtermIndex::handleClause(Clause* c, bool adding)
 {
-  if (c->length()!=1 || c->goalParamodulationDepth()>=_opt.maxGoalParamodulationDepth()) {
+  if (c->length()!=1 || c->goalRewritingDepth()>=_opt.maxGoalRewritingDepth()) {
     return;
   }
 
@@ -192,7 +192,7 @@ void GoalParamodulationSubtermIndex::handleClause(Clause* c, bool adding)
 
 void UpwardChainingLHSIndex::handleClause(Clause* c, bool adding)
 {
-  if (c->length()!=1 || c->goalParamodulationDepth()>=_opt.maxGoalParamodulationDepth()) {
+  if (c->length()!=1 || c->goalRewritingDepth()>=_opt.maxGoalRewritingDepth()) {
     return;
   }
 
@@ -229,7 +229,7 @@ void UpwardChainingLHSIndex::handleClause(Clause* c, bool adding)
 
 void UpwardChainingSubtermIndex::handleClause(Clause* c, bool adding)
 {
-  if (c->length()!=1 || c->goalParamodulationDepth()>=_opt.maxGoalParamodulationDepth()) {
+  if (c->length()!=1 || c->goalRewritingDepth()>=_opt.maxGoalRewritingDepth()) {
     return;
   }
 

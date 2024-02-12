@@ -8,8 +8,8 @@
  * and in the source directory
  */
 /**
- * @file GoalParamodulation.cpp
- * Implements class GoalParamodulation.
+ * @file GoalRewriting.cpp
+ * Implements class GoalRewriting.
  */
 
 #include "Lib/Metaiterators.hpp"
@@ -23,7 +23,7 @@
 
 #include "Shell/Options.hpp"
 
-#include "GoalParamodulation.hpp"
+#include "GoalRewriting.hpp"
 
 namespace Inferences {
 
@@ -33,27 +33,27 @@ using namespace std;
 
 #define INDUCTION_MODE
 
-void GoalParamodulation::attach(SaturationAlgorithm* salg)
+void GoalRewriting::attach(SaturationAlgorithm* salg)
 {
   GeneratingInferenceEngine::attach(salg);
 
-  auto gp = salg->getOptions().goalParamodulation();
-  _onlyUpwards = (gp == Options::GoalParamodulation::UP || gp == Options::GoalParamodulation::UP_LTR);
-  _leftToRight = (gp == Options::GoalParamodulation::LTR || gp == Options::GoalParamodulation::UP_LTR);
-  _chaining = salg->getOptions().goalParamodulationChaining();
+  auto gp = salg->getOptions().goalRewriting();
+  _onlyUpwards = (gp == Options::GoalRewriting::UP || gp == Options::GoalRewriting::UP_LTR);
+  _leftToRight = (gp == Options::GoalRewriting::LTR || gp == Options::GoalRewriting::UP_LTR);
+  _chaining = salg->getOptions().goalRewritingChaining();
 
   _lhsIndex=static_cast<TermIndex*>(
-	  _salg->getIndexManager()->request(GOAL_PARAMODULATION_LHS_INDEX) );
+	  _salg->getIndexManager()->request(GOAL_REWRITING_LHS_INDEX) );
   _subtermIndex=static_cast<TermIndex*>(
-	  _salg->getIndexManager()->request(GOAL_PARAMODULATION_SUBTERM_INDEX) );
+	  _salg->getIndexManager()->request(GOAL_REWRITING_SUBTERM_INDEX) );
 }
 
-void GoalParamodulation::detach()
+void GoalRewriting::detach()
 {
   _lhsIndex = 0;
   _subtermIndex=0;
-  _salg->getIndexManager()->release(GOAL_PARAMODULATION_LHS_INDEX);
-  _salg->getIndexManager()->release(GOAL_PARAMODULATION_SUBTERM_INDEX);
+  _salg->getIndexManager()->release(GOAL_REWRITING_LHS_INDEX);
+  _salg->getIndexManager()->release(GOAL_REWRITING_SUBTERM_INDEX);
   GeneratingInferenceEngine::detach();
 }
 
@@ -286,11 +286,11 @@ VirtualIterator<Term*> termIterator(Literal* lit, Clause* cl, bool leftToRight) 
   return res;
 }
 
-ClauseIterator GoalParamodulation::generateClauses(Clause* premise)
+ClauseIterator GoalRewriting::generateClauses(Clause* premise)
 {
   auto res = ClauseIterator::getEmpty();
 
-  if (premise->length()!=1 || premise->goalParamodulationDepth()>=_salg->getOptions().maxGoalParamodulationDepth()) {
+  if (premise->length()!=1 || premise->goalRewritingDepth()>=_salg->getOptions().maxGoalRewritingDepth()) {
     return res;
   }
 
@@ -310,7 +310,7 @@ ClauseIterator GoalParamodulation::generateClauses(Clause* premise)
       })
       .filter([premise,&opt,lit](pair<Term*,TermQueryResult> arg) {
         auto qr = arg.second;
-        if (premise->goalParamodulationDepth()+qr.clause->goalParamodulationDepth()>=opt.maxGoalParamodulationDepth()) {
+        if (premise->goalRewritingDepth()+qr.clause->goalRewritingDepth()>=opt.maxGoalRewritingDepth()) {
           return false;
         }
         if (SortHelper::getResultSort(arg.first) != SortHelper::getEqualityArgumentSort(qr.literal)) {
@@ -344,7 +344,7 @@ ClauseIterator GoalParamodulation::generateClauses(Clause* premise)
         return perform(premise,lit,side,lhsS,std::move(pos),qr.clause,qr.literal,qr.term,qr.substitution.ptr(),true);
       })
       .filter(NonzeroFn())
-      .timeTraced("forward goal paramodulation"));
+      .timeTraced("forward goal rewriting"));
   }
 
   // backward
@@ -355,7 +355,7 @@ ClauseIterator GoalParamodulation::generateClauses(Clause* premise)
       })
       .filter([premise,lit,&opt](pair<TypedTermList,TermQueryResult> arg) {
         auto qr = arg.second;
-        if (premise->goalParamodulationDepth()+qr.clause->goalParamodulationDepth()>=opt.maxGoalParamodulationDepth()) {
+        if (premise->goalRewritingDepth()+qr.clause->goalRewritingDepth()>=opt.maxGoalRewritingDepth()) {
           return false;
         }
         if (SortHelper::getResultSort(qr.term.term()) != SortHelper::getEqualityArgumentSort(lit)) {
@@ -394,12 +394,12 @@ ClauseIterator GoalParamodulation::generateClauses(Clause* premise)
         return perform(qr.clause, qr.literal, side, qr.term.term(), std::move(pos), premise, lit, eqLhs, qr.substitution.ptr(), false);
       })
       .filter(NonzeroFn())
-      .timeTraced("backward goal paramodulation"))));
+      .timeTraced("backward goal rewriting"))));
   }
   return res;
 }
 
-Clause* GoalParamodulation::perform(Clause* rwClause, Literal* rwLit, Term* rwSide, Term* rwTerm, Position&& pos,
+Clause* GoalRewriting::perform(Clause* rwClause, Literal* rwLit, Term* rwSide, Term* rwTerm, Position&& pos,
   Clause* eqClause, Literal* eqLit, TermList eqLhs, ResultSubstitution* subst, bool eqIsResult)
 {
   const auto& ord = _salg->getOrdering();
@@ -459,15 +459,15 @@ Clause* GoalParamodulation::perform(Clause* rwClause, Literal* rwLit, Term* rwSi
   auto resLit = Literal::createEquality(false, TermList(tgtSide), other, SortHelper::getEqualityArgumentSort(rwLit));
 
   Clause* res = new(1) Clause(1,
-    GeneratingInference2(InferenceRule::GOAL_PARAMODULATION, rwClause, eqClause));
+    GeneratingInference2(InferenceRule::GOAL_REWRITING, rwClause, eqClause));
   (*res)[0]=resLit;
-  res->setGoalParamodulationDepth(rwClause->goalParamodulationDepth()+eqClause->goalParamodulationDepth()+1);
+  res->setGoalRewritingDepth(rwClause->goalRewritingDepth()+eqClause->goalRewritingDepth()+1);
   if (_leftToRight) {
     bool reversedNew = other == resLit->termArg(other == rwLit->termArg(0) ? 1 : 0);
     res->setPosInfo(reversed ^ reversedNew, switchedNew, std::move(pos));
   }
 
-  env.statistics->goalParamodulations++;
+  env.statistics->goalRewritings++;
   return res;
 }
 

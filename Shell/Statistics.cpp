@@ -62,8 +62,8 @@ Statistics::Statistics()
     cForwardSuperposition(0),
     cBackwardSuperposition(0),
     selfSuperposition(0),
-    goalParamodulations(0),
-    goalParamodulationChaining(0),
+    goalRewritings(0),
+    goalRewritingChaining(0),
     equalityFactoring(0),
     equalityResolution(0),
     forwardExtensionalityResolution(0),
@@ -374,8 +374,8 @@ void Statistics::print(ostream& out)
   COND_OUT("Forward superposition with abstraction", cForwardSuperposition);
   COND_OUT("Backward superposition with abstraction", cBackwardSuperposition);
   COND_OUT("Self superposition with abstraction", cSelfSuperposition);
-  COND_OUT("Goal paramodulations", goalParamodulations);
-  COND_OUT("Goal paramodulations chaining", goalParamodulationChaining);
+  COND_OUT("Goal rewritings", goalRewritings);
+  COND_OUT("Goal rewritings chaining", goalRewritingChaining);
   COND_OUT("Equality factoring", equalityFactoring);
   COND_OUT("Equality resolution", equalityResolution);
   COND_OUT("Fw extensionality resolution", forwardExtensionalityResolution);

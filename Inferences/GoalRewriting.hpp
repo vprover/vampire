@@ -8,13 +8,13 @@
  * and in the source directory
  */
 /**
- * @file GoalParamodulation.hpp
- * Defines class GoalParamodulation
+ * @file GoalRewriting.hpp
+ * Defines class GoalRewriting
  *
  */
 
-#ifndef __GoalParamodulation__
-#define __GoalParamodulation__
+#ifndef __GoalRewriting__
+#define __GoalRewriting__
 
 #include "Forwards.hpp"
 
@@ -60,12 +60,12 @@ private:
   Stack<std::pair<Term*,Position>> _stack;
 }; // PositionalNonVariableNonTypeIterator
 
-class GoalParamodulation
+class GoalRewriting
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(GoalParamodulation);
-  USE_ALLOCATOR(GoalParamodulation);
+  CLASS_NAME(GoalRewriting);
+  USE_ALLOCATOR(GoalRewriting);
 
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
@@ -85,4 +85,4 @@ private:
 
 }
 
-#endif /*__GoalParamodulation__*/
+#endif /*__GoalRewriting__*/

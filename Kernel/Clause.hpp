@@ -360,8 +360,8 @@ public:
 
   bool computable();
 
-  unsigned goalParamodulationDepth() const { return _gpDepth; }
-  void setGoalParamodulationDepth(unsigned depth) { _gpDepth = depth; }
+  unsigned goalRewritingDepth() const { return _grwDepth; }
+  void setGoalRewritingDepth(unsigned depth) { _grwDepth = depth; }
   bool reversed() const { return _posInfo.reversed; }
   bool switched() const { return _posInfo.switched; }
   const Position& position() const { return _posInfo.pos; }
@@ -401,7 +401,7 @@ protected:
   unsigned _reductionTimestamp;
   /** a map that translates Literal* to its index in the clause */
   InverseLookup<Literal>* _literalPositions;
-  unsigned _gpDepth;
+  unsigned _grwDepth;
   // tuple containing info about the position of the last rewrite on this clause:
   // 1. is literal reversed compared to first rewrite
   // 2. has rewrite happened in RHS w.r.t. the initial orientation

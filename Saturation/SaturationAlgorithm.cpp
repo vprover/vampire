@@ -66,7 +66,7 @@
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
 #include "Inferences/InvalidAnswerLiteralRemoval.hpp"
 #include "Inferences/ForwardSubsumptionDemodulation.hpp"
-#include "Inferences/GoalParamodulation.hpp"
+#include "Inferences/GoalRewriting.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/InnerRewriting.hpp"
 #include "Inferences/TermAlgebraReasoning.hpp"
@@ -1512,11 +1512,11 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if(opt.induction()!=Options::Induction::NONE){
     gie->addFront(new Induction());
   }
-  if (opt.goalParamodulation()!=Options::GoalParamodulation::OFF) {
-    if (opt.goalParamodulationChaining()) {
+  if (opt.goalRewriting()!=Options::GoalRewriting::OFF) {
+    if (opt.goalRewritingChaining()) {
       gie->addFront(new UpwardChaining());
     }
-    gie->addFront(new GoalParamodulation());
+    gie->addFront(new GoalRewriting());
   }
 
   if(opt.instantiation()!=Options::Instantiation::OFF){

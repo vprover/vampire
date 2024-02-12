@@ -37,7 +37,7 @@
 #include "Shell/Statistics.hpp"
 
 #include "ForwardSubsumptionAndResolution.hpp"
-#include "GoalParamodulation.hpp"
+#include "GoalRewriting.hpp"
 
 namespace Inferences {
 using namespace Lib;
@@ -234,7 +234,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
     while (rit.hasNext()) {
       Clause *premise = rit.next().clause;
       if (ColorHelper::compatible(cl->color(), premise->color())) {
-        if (cl->goalParamodulationDepth()<premise->goalParamodulationDepth()) {
+        if (cl->goalRewritingDepth()<premise->goalRewritingDepth()) {
           continue;
         }
         if (premise->switched() && !cl->switched()) {

@@ -324,7 +324,7 @@ Clause* Superposition::performSuperposition(
   bool hasConstraints = !constraints.isEmpty() && !constraints->isEmpty();
   TermList eqLHSsort = SortHelper::getEqualityArgumentSort(eqLit); 
 
-  if (rwClause->goalParamodulationDepth() || eqClause->goalParamodulationDepth()) {
+  if (rwClause->goalRewritingDepth() || eqClause->goalRewritingDepth()) {
     return 0;
   }
 
