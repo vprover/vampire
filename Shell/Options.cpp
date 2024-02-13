@@ -87,7 +87,7 @@ void Options::init()
     _memoryLimit.description="Memory limit in MB";
     _lookup.insert(&_memoryLimit);
 
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
   _instructionLimit = UnsignedOptionValue("instruction_limit","i",0);
   _instructionLimit.description="Limit the number (in millions) of executed instructions (excluding the kernel ones).";
   _lookup.insert(&_instructionLimit);
@@ -3327,7 +3327,7 @@ vstring Options::generateEncodedOptions() const
     forbidden.insert(&_memoryLimit);
     forbidden.insert(&_proof);
     forbidden.insert(&_inputSyntax);
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
     forbidden.insert(&_parsingDoesNotCount);
 #endif
     forbidden.insert(&_ignoreMissing); // or maybe we do!

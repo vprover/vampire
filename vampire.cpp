@@ -94,7 +94,7 @@ int vampireReturnValue = VAMP_RESULT_STATUS_UNKNOWN;
 VWARN_UNUSED
 Problem* getPreprocessedProblem()
 {
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
   unsigned saveInstrLimit = env.options->instructionLimit();
   if (env.options->parsingDoesNotCount()) {
     env.options->setInstructionLimit(0);
@@ -103,7 +103,7 @@ Problem* getPreprocessedProblem()
 
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
   if (env.options->parsingDoesNotCount()) {
     Timer::updateInstructionCount();
     unsigned burnedParsing = Timer::elapsedMegaInstructions();
@@ -388,7 +388,7 @@ void spiderMode()
   env.options->setOutputMode(Options::Output::SPIDER);
   env.options->setNormalize(true);
   // to start counting instructions
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
   Timer::ensureTimerInitialized();
 #endif
 

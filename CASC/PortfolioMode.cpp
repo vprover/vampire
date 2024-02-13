@@ -637,7 +637,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
     env.beginOutput();
     addCommentSignForSZS(env.out()) << opt.testId() << " on " << opt.problemName() << 
       " for (" << opt.timeLimitInDeciseconds() << "ds"<<
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
       "/" << opt.instructionLimit() << "Mi" <<
 #endif
       ")" << endl;
