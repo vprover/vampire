@@ -294,7 +294,7 @@ private:
   /* as there can be both limits, it's hard to covert between them,
    * and we terminate at the earlier one, let's just keep checking both. */
   unsigned _stopSplittingAtTime; // time elapsed in milliseconds
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
   unsigned _stopSplittingAtInst; // mega-instructions elapsed
 #endif
 
