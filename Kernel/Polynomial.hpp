@@ -367,11 +367,9 @@ public:
   MonomFactors replaceTerms(PolyNf* simplifiedTerms) const;
 
 
-  /** an iterator over all factors */
-  using FactorIter = IterTraits<ArrayishObjectIterator<typename std::remove_reference<decltype(_factors)>::type, no_ref_t>>;
-
   /** returns an iterator over all factors */
-  FactorIter iter() const&;
+  auto iter() const&
+  { return arrayIter(_factors); }
 
   explicit MonomFactors(const MonomFactors&) = default;
   explicit MonomFactors(MonomFactors&) = default;
@@ -464,11 +462,9 @@ public:
   /** integrity check of the data structure. does noly have an effect in debug mode */
   void integrity() const;
 
-  /** an iterator over all summands of this Polyom */
-  using SummandIter = IterTraits<ArrayishObjectIterator<typename std::remove_reference<decltype(_summands)>::type, no_ref_t>>;
-
   /** returns iterator over all summands of this Polyom */
-  SummandIter iterSummands() const&;
+  auto iterSummands() const&
+  { return arrayIter(_summands); }
 
   Stack<Monom>& raw();
 
@@ -676,13 +672,6 @@ Option<typename NumTraits::ConstantType> AnyPoly::tryNumeral() const&
 { return apply(PolymorphicToNumeral<NumTraits>{}); }
 
 } // namespace Kernel
-
-template<> struct std::less<Kernel::AnyPoly> 
-{
-  bool operator()(Kernel::AnyPoly const& lhs, Kernel::AnyPoly const& rhs) const 
-  { return PolymorphicCoproductOrdering<std::less>{}(lhs,rhs); }
-};
-
 
 template<> struct std::hash<Kernel::AnyPoly> 
 {
@@ -949,10 +938,6 @@ MonomFactors<Number> MonomFactors<Number>::replaceTerms(PolyNf* simplifiedTerms)
   return out;
 }
 
-template<class Number>
-typename MonomFactors<Number>::FactorIter MonomFactors<Number>::iter() const&
-{ return iterTraits(getArrayishObjectIterator<no_ref_t>(_factors)); }
-
 } // namespace Kernel
 
 template<class NumTraits>
@@ -1145,10 +1130,6 @@ void Polynom<Number>::integrity() const {
   } 
 #endif
 }
-
-template<class Number>
-typename Polynom<Number>::SummandIter Polynom<Number>::iterSummands() const&
-{ return iterTraits(getArrayishObjectIterator<no_ref_t>(_summands)); }
 
 
 template<class Number> 

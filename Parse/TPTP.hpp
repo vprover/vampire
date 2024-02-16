@@ -19,6 +19,7 @@
 
 #include <iostream>
 
+#include "Kernel/RobSubstitution.hpp"
 #include "Lib/Array.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Stack.hpp"
@@ -530,6 +531,9 @@ private:
     return tf;
   }
 
+  TermList* nLastTermLists(unsigned n) 
+  { return n == 0 ? nullptr : &_termLists[_termLists.size() - n]; }
+
   /** true if the input contains a conjecture */
   bool _containsConjecture;
   /** Allowed names of formulas.
@@ -616,6 +620,8 @@ private:
   Set<vstring> _overflow;
   /** current color, if the input contains colors */
   Color _currentColor;
+  /** a robsubstitution object to be used temporarily that is kept around to safe memory allocation time  */
+  RobSubstitution _substScratchpad;
 
   /** a function name and arity */
   typedef std::pair<vstring, unsigned> LetSymbolName;

@@ -51,11 +51,14 @@ SAT::SATClause* TestUtils::buildSATClause(unsigned len,...)
 
   return SATClause::fromStack(lits);
 }
+
 bool TestUtils::isAC(Term* t) 
 {
   auto f = t->functor();
   if (t->isLiteral()) {
     return theory->isInterpretedPredicate(f) && isAC(theory->interpretPredicate(f));
+  } else if (t->isSort()) {
+    return false;
   } else {
     return theory->isInterpretedFunction(f) && isAC(theory->interpretFunction(f));
   }

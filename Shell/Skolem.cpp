@@ -411,7 +411,7 @@ Formula* Skolem::skolemise (Formula* f)
        * univ dep of C is empty, but A will sneak into the actual dep
        * through B's dependency on A.
        */
-      VarSet::Iterator veIt(*depInfo.exist);
+      auto veIt = depInfo.exist->iter();
       while(veIt.hasNext()) {
         unsigned evar = veIt.next();
         Formula* block = _blockLookup.get(evar);
@@ -424,7 +424,7 @@ Formula* Skolem::skolemise (Formula* f)
        * although perhaps only C occurs in "something", it's as if A occurred as well */
       depInfo.univ = dep;
 
-      VarSet::Iterator vuIt(*dep);
+      auto vuIt = dep->iter();
       while(vuIt.hasNext()) {
         unsigned uvar = vuIt.next();
         TermList sort = _varSorts.get(uvar, AtomicSort::defaultSort());

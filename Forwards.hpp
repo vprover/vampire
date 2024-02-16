@@ -23,7 +23,6 @@ struct EmptyStruct {};
 typedef void (*VoidFunc)();
 
 template<typename T> class VirtualIterator;
-template<typename T, template<class> class ref_t> class ArrayishObjectIterator;
 
 template<typename T> class ScopedPtr;
 template<typename T> class SmartPtr;
@@ -59,8 +58,6 @@ using namespace Lib;
 class Signature;
 
 class Term;
-typedef BiMap<unsigned, Term*> FuncSubtermMap;
-
 class TermList;
 typedef VirtualIterator<TermList> TermIterator;
 typedef Stack<TermList> TermStack;
@@ -69,9 +66,6 @@ typedef List<unsigned> VList; // a list of variables (which are unsigned)
 typedef List<TermList> SList; // a list of sorts (which are now, with polymorphism, TermLists)
 typedef const SharedSet<unsigned> VarSet;
 
-typedef std::pair<std::pair<TermList,unsigned>,std::pair<TermList,unsigned>> UnificationConstraint;
-typedef Stack<UnificationConstraint> UnificationConstraintStack;
-typedef Lib::SmartPtr<UnificationConstraintStack> UnificationConstraintStackSP;
 
 class Literal;
 typedef List<Literal*> LiteralList;
@@ -153,8 +147,6 @@ class TermSharing;
 class ResultSubstitution;
 typedef Lib::SmartPtr<ResultSubstitution> ResultSubstitutionSP;
 
-struct SLQueryResult;
-struct TermQueryResult;
 };
 
 namespace Saturation
@@ -197,5 +189,4 @@ class Options;
 class Property;
 class Statistics;
 }
-
 #endif /* __Forwards__ */

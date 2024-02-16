@@ -65,7 +65,7 @@ public:
 
     //we assume there are no duplicate literals
     ASS(l1!=l2);
-    ASS_EQ(_subst->size(),0);
+    ASS(_subst->isEmpty());
 
     if(l1->isEquality()) {
       //We don't perform factoring with equalities

@@ -240,7 +240,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Problem.cpp
     Kernel/Renaming.cpp
     Kernel/RobSubstitution.cpp
-    Kernel/MismatchHandler.cpp
+    Kernel/UnificationWithAbstraction.cpp
     Kernel/Signature.cpp
     Kernel/SortHelper.cpp
     Kernel/OperatorType.cpp
@@ -287,7 +287,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/RCClauseStack.hpp
     Kernel/Renaming.hpp
     Kernel/RobSubstitution.hpp
-    Kernel/MismatchHandler.hpp
+    Kernel/UnificationWithAbstraction.hpp
     Kernel/Signature.hpp
     Kernel/SortHelper.hpp
     Kernel/OperatorType.hpp
@@ -639,8 +639,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Token.hpp
     Shell/TPTPPrinter.hpp
     Shell/TweeGoalTransformation.hpp
-    Shell/UnificationWithAbstractionConfig.hpp
-    Shell/UnificationWithAbstractionConfig.cpp
     Shell/UIHelper.hpp
     Shell/VarManager.hpp
     Shell/Lexer.hpp

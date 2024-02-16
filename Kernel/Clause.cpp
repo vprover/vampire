@@ -157,7 +157,7 @@ Clause* Clause::fromStack(const Stack<Literal*>& lits, const Inference& inf)
  */
 Clause* Clause::fromClause(Clause* c)
 {
-  Clause* res = fromIterator(Clause::Iterator(*c), SimplifyingInference1(InferenceRule::REORDER_LITERALS, c));
+  Clause* res = fromIterator(c->iterLits(), SimplifyingInference1(InferenceRule::REORDER_LITERALS, c));
 
   if (c->splits()) {
     res->setSplits(c->splits());
@@ -244,13 +244,7 @@ void Clause::setStore(Store s)
  */
 bool Clause::isGround()
 {
-  Iterator it(*this);
-  while (it.hasNext()) {
-    if (!it.next()->ground()) {
-      return false;
-    }
-  }
-  return true;
+  return iterLits().all([](auto l) { return l->ground(); });
 }
 
 /**
@@ -258,13 +252,7 @@ bool Clause::isGround()
  */
 bool Clause::isPropositional()
 {
-  Iterator it(*this);
-  while (it.hasNext()) {
-    if (it.next()->arity() > 0) {
-      return false;
-    }
-  }
-  return true;
+  return iterLits().all([](auto l) { return l->arity() == 0; });
 }
 
 /**
@@ -273,9 +261,8 @@ bool Clause::isPropositional()
 bool Clause::isHorn()
 {
   bool posFound=false;
-  Iterator it(*this);
-  while (it.hasNext()) {
-    if (it.next()->isPositive()) {
+  for (Literal* l : iterLits()) {
+    if (l->isPositive()) {
       if (posFound) {
         return false;
       }
@@ -295,7 +282,7 @@ VirtualIterator<unsigned> Clause::getVariableIterator()
   return pvi( getUniquePersistentIterator(
       getMappingIterator(
 	  getMapAndFlattenIterator(
-	      Iterator(*this),
+	      iterLits(),
 	      VariableIteratorFn()),
 	  OrdVarNumberExtractorFn())));
 }
@@ -422,7 +409,6 @@ vstring Clause::toString() const
 VirtualIterator<vstring> Clause::toSimpleClauseStrings()
 {
     return pvi(getSingletonIterator(literalsOnlyToString()));
-
 }
 
 /**
@@ -502,9 +488,7 @@ unsigned Clause::splitWeight() const
 
 unsigned Clause::getNumeralWeight() const {
   unsigned res = 0;
-  Iterator litIt(*this);
-  while (litIt.hasNext()) {
-    Literal* lit = litIt.next();
+  for (Literal* lit : iterLits()) {
     if (!lit->hasInterpretedConstants()) {
       continue;
     }
@@ -618,9 +602,7 @@ void Clause::collectVars(DHSet<unsigned>& acc)
 template<class VarIt>
 void Clause::collectVars2(DHSet<unsigned>& acc)
 {
-  Iterator it(*this);
-  while (it.hasNext()) {
-    Literal* lit = it.next();
+  for (Literal* lit : iterLits()) {
     VarIt vit(lit);
     while (vit.hasNext()) {
       TermList var = vit.next();

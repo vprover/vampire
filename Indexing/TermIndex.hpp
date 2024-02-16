@@ -28,16 +28,24 @@ class TermIndex
 : public Index
 {
 public:
-  virtual ~TermIndex();
+  VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
+  { return _is->getUwa(t, uwa, fixedPointIteration); }
 
-  TermQueryResultIterator getUnifications(TypedTermList t, bool retrieveSubstitutions = true, bool withConstraints = false);
-  TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true);
-  TermQueryResultIterator getInstances(TypedTermList t, bool retrieveSubstitutions = true);
+  TermQueryResultIterator getUnifications(TypedTermList t, bool retrieveSubstitutions = true)
+  { return _is->getUnifications(t, retrieveSubstitutions); }
 
+  TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true)
+  { return _is->getGeneralizations(t, retrieveSubstitutions); }
+
+  TermQueryResultIterator getInstances(TypedTermList t, bool retrieveSubstitutions = true)
+  { return _is->getInstances(t, retrieveSubstitutions); }
+
+  friend std::ostream& operator<<(std::ostream& out, TermIndex const& self)
+  { return out << *self._is; }
 protected:
   TermIndex(TermIndexingStructure* is) : _is(is) {}
 
-  TermIndexingStructure* _is;
+  std::unique_ptr<TermIndexingStructure> _is;
 };
 
 class SuperpositionSubtermIndex

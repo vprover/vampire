@@ -56,10 +56,7 @@ private:
   template<class VarIt>
   void collectVars2(DHSet<unsigned>& acc);
 public:
-  typedef ArrayishObjectIterator<const Clause> Iterator;
-
   DECL_ELEMENT_TYPE(Literal*);
-  DECL_ITERATOR_TYPE(Iterator);
 
   /** Storage kind */
   enum Store {
@@ -224,17 +221,11 @@ public:
     return savedTimestamp == _reductionTimestamp;
   }
 
-  ArrayishObjectIterator<Clause> getSelectedLiteralIterator()
-  { return ArrayishObjectIterator<Clause>(*this,numSelected()); }
-
-  ArrayishObjectIterator<Clause> iterLits() &
-  { return ArrayishObjectIterator<Clause>(*this,size()); }
-
-  ArrayishObjectIterator<Clause, const_ref_t> iterLits() const&
-  { return ArrayishObjectIterator<Clause, const_ref_t>(*this,size()); }
-
-  ArrayishObjectIterator<Clause> getLiteralIterator()
-  { return ArrayishObjectIterator<Clause>(*this,size()); }
+  auto getSelectedLiteralIterator() { return arrayIter(*this,numSelected()); }
+  auto iterLits()                   { return arrayIter(*this,size()); }
+  auto iterLits() const             { return arrayIter(*this,size()); }
+  // TODO remove this
+  auto getLiteralIterator()         { return arrayIter(*this,size()); }
 
   bool isGround();
   bool isPropositional();

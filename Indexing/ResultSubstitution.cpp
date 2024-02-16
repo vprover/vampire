@@ -60,9 +60,7 @@ private:
 };
 
 ResultSubstitutionSP ResultSubstitution::fromSubstitution(RobSubstitution* s, int queryBank, int resultBank)
-{
-  return ResultSubstitutionSP(new RSProxy(s, queryBank, resultBank));
-}
+{ return ResultSubstitutionSP(new RSProxy(s, queryBank, resultBank)); }
 
 /**
  * Test whether this substitution object is a renaming on the variables of @param t

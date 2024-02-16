@@ -35,7 +35,7 @@ public:
   }
 
   ClauseIterator generateClauses(Clause *cl) override {
-    return pvi(ownedArrayishIterator(std::move(_definitions)));
+    return pvi(arrayIter(std::move(_definitions)));
   }
 
 private:

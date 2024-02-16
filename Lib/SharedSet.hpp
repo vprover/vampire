@@ -520,18 +520,15 @@ public:
     return hash(is.begin(), is.size());
   }
 
-  class Iterator : public PointerIterator<T>
-  {
-  public:
-    Iterator(const SharedSet& s) : PointerIterator<T>(s._items, s._items+s.size()) {}
-  };
+  auto iter() const
+  { return arrayIter(_items, size()); }
 
 };
 
 template<typename T>
 std::ostream& operator<< (std::ostream& out, const SharedSet<T>& s )
 {
-  typename SharedSet<T>::Iterator it(s);
+  auto it = s.iter();
   while(it.hasNext()) {
     out<<it.next();
     if(it.hasNext()) {

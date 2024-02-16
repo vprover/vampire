@@ -29,14 +29,20 @@
 #ifndef __Term__
 #define __Term__
 
+#include "Debug/Output.hpp"
 #include "Forwards.hpp"
 #include "Debug/Assertion.hpp"
 
 #include "Lib/Allocator.hpp"
+#include "Lib/Metaiterators.hpp"
 #include "Lib/Portability.hpp"
 #include "Lib/Comparison.hpp"
+#include "Lib/Reflection.hpp"
+#include "Lib/Sort.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Hash.hpp"
+#include "Lib/Coproduct.hpp"
+#include "Lib/Recycled.hpp"
 
 // the number of bits used for "TermList::_info::distinctVars"
 #define TERM_DIST_VAR_BITS 21
@@ -136,7 +142,6 @@ public:
   /** the term contains a special variable as its head */
   inline bool isSpecialVar() const { return tag() == SPEC_VAR && var() < SPEC_UPPER_BOUND; }
 
-  inline bool isVSpecialVar() const { return tag() == SPEC_VAR && var() > SPEC_UPPER_BOUND; }
   /** return the variable number */
   inline unsigned var() const
   { ASS(isVar()); return _content / 4; }
@@ -168,9 +173,37 @@ public:
   /** make the term into a special variable with a given number */
   inline void makeSpecialVar(unsigned vnumber)
   { _content = vnumber * 4 + SPEC_VAR; }
-  /** make the term empty (so that isEmpty() returns true) */
-  inline void makeEmpty()
-  { _content = FUN; }
+  /** create an term empty (so that isEmpty() returns true) */
+  inline static TermList empty()
+  { TermList out; out._content = FUN; return out; }
+  /** the top of a term is either a function symbol or a variable id. this class is model this */
+  class Top {
+    using Inner = Coproduct<unsigned, unsigned>;
+    static constexpr unsigned VAR = 0;
+    static constexpr unsigned FUN = 1;
+    Inner _inner;
+    
+    Top(Inner self) : _inner(self) {}
+  public:
+    static Top var    (unsigned v) { return Top(Inner::variant<VAR>(v)); }
+    static Top functor(unsigned f) { return Top(Inner::variant<FUN>(f)); }
+    template<class T>
+    static Top functor(T const* t) { return Top(Inner::variant<FUN>(t->functor())); }
+    Option<unsigned> var()     const { return _inner.as<VAR>().toOwned(); }
+    Option<unsigned> functor() const { return _inner.as<FUN>().toOwned(); }
+    Lib::Comparison compare(Top const& other) const 
+    { return _inner.compare(other._inner); }
+    IMPL_COMPARISONS_FROM_COMPARE(Top);
+    friend bool operator==(Top const& l, Top const& r) { return l._inner == r._inner; }
+    friend bool operator!=(Top const& l, Top const& r) { return      !(l == r);       }
+    friend std::ostream& operator<<(std::ostream& out, Top const& self);
+  };
+
+  /* returns the Top of a function (a variable id, or a function symbol depending on whether the term is a variable or a complex term) */
+  Top top() const
+  { return isTerm() ? TermList::Top::functor(term()) 
+                    : TermList::Top::var(var());            }
+
   /** make the term into a reference */
   inline void setTerm(Term* t) {
     // NB we also zero-initialise _content so that the spare bits are zero on 32-bit platforms
@@ -195,6 +228,7 @@ public:
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(TermList t);
 
+  bool ground() const;
   bool isSafe() const;
 
   VList* freeVariables() const;
@@ -383,6 +417,14 @@ public:
   explicit Term(const Term& t) throw();
   static Term* create(unsigned function, unsigned arity, const TermList* args);
   static Term* create(unsigned fn, std::initializer_list<TermList> args);
+  static Term* create(unsigned fn, Stack<TermList> const& args) { return Term::create(fn, args.length(), args.begin()); }
+  template<class Iter>
+  static Term* createFromIter(unsigned fn, Iter args) 
+  { 
+    Recycled<Stack<TermList>> stack;
+    stack->loadFromIterator(args);
+    return Term::create(fn, *stack); 
+  }
   static Term* create(Term* t,TermList* args);
   static Term* createNonShared(unsigned function, unsigned arity, TermList* arg);
   static Term* createNonShared(Term* t,TermList* args);
@@ -507,18 +549,27 @@ public:
   TermList* args()
   { return _args + _arity; }
 
+
+  template<class GetArg>
+  static unsigned termHash(unsigned functor, GetArg getArg, unsigned arity) {
+    return DefaultHash::hashIter(
+        range(0, arity).map([&](auto i) { 
+          TermList t = getArg(i);
+          return DefaultHash::hashBytes(
+              reinterpret_cast<const unsigned char*>(&t),
+              sizeof(TermList)
+              );
+          }),
+        DefaultHash::hash(functor));
+  }
+
   /**
    * Return the hash function of the top-level of a complex term.
    * @pre The term must be non-variable
    * @since 28/12/2007 Manchester
    */
-  unsigned hash() const {
-    return DefaultHash::hashBytes(
-      reinterpret_cast<const unsigned char*>(_args+1),
-      _arity*sizeof(TermList),
-      DefaultHash::hash(_functor)
-    );
-  }
+  unsigned hash() const 
+  { return termHash(_functor, [&](auto i) { return *nthArgument(i); }, _arity); }
 
   /** return the arity */
   unsigned arity() const
@@ -871,7 +922,7 @@ public:
 
   static AtomicSort* create(unsigned typeCon, unsigned arity, const TermList* args);
   static AtomicSort* create2(unsigned tc, TermList arg1, TermList arg2);
-  static AtomicSort* create(AtomicSort* t,TermList* args);
+  static AtomicSort* create(AtomicSort const* t,TermList* args);
   static AtomicSort* createConstant(unsigned typeCon) { return create(typeCon,0,0); }
   static AtomicSort* createConstant(const vstring& name); 
 
@@ -950,14 +1001,13 @@ public:
   /** set polarity to true or false */
   void setPolarity(bool positive)
   { _args[0]._info.polarity = positive ? 1 : 0; }
-  static Literal* create(unsigned predicate, unsigned arity, bool polarity,
-	  bool commutative, const TermList* args);
+  static Literal* create(unsigned predicate, unsigned arity, bool polarity, bool commutative, TermList* args);
+  static Literal* create(unsigned predicate, bool polarity, std::initializer_list<TermList>, bool commutative = false);
   static Literal* create(Literal* l,bool polarity);
   static Literal* create(Literal* l,TermList* args);
   static Literal* createEquality(bool polarity, TermList arg1, TermList arg2, TermList sort);
   static Literal* create1(unsigned predicate, bool polarity, TermList arg);
   static Literal* create2(unsigned predicate, bool polarity, TermList arg1, TermList arg2);
-  static Literal* create(unsigned fn, bool polarity, std::initializer_list<TermList> args);
 
   /**
    * Return the hash function of the top-level of a literal.
@@ -966,20 +1016,54 @@ public:
   template<bool flip = false>
   unsigned hash() const
   {
-    bool positive = (flip ^ isPositive());
-    unsigned hash = DefaultHash::hash(positive ? (2*_functor) : (2*_functor+1));
-    if (isTwoVarEquality()) {
-      hash = HashUtils::combine(
-        DefaultHash::hash(twoVarEqSort()),
-        hash
-      );
-    }
-    return DefaultHash::hashBytes(
-      reinterpret_cast<const unsigned char*>(_args+1),
-      _arity*sizeof(TermList),
-      hash
-    );
+    return Literal::literalHash(functor(), polarity() ^ flip, 
+        [&](auto i) -> TermList const& { return *nthArgument(i); }, arity(),
+        someIf(isTwoVarEquality(), [&](){ return twoVarEqSort(); }),
+        commutative());
   }
+
+  template<class GetArg>
+  static unsigned literalEquals(const Literal* lit, unsigned functor, bool polarity, GetArg getArg, unsigned arity, Option<TermList> twoVarEqSort, bool commutative) {
+    if (functor != lit->functor() || polarity != lit->polarity()) return false;
+
+    if (commutative) {
+      ASS_EQ(arity, 2)
+      ASS(rightArgOrder(getArg(0), getArg(1)))
+      ASS(rightArgOrder(*lit->nthArgument(0), *lit->nthArgument(1)))
+
+      if (someIf(lit->isTwoVarEquality(), [&](){ return lit->twoVarEqSort(); }) != twoVarEqSort) {
+        return false;
+      }
+      return std::make_tuple(*lit->nthArgument(0), *lit->nthArgument(1)) == std::make_tuple(getArg(0), getArg(1));
+
+    } else {
+      ASS(twoVarEqSort.isNone())
+      return range(0, arity).all([&](auto i) { return *lit->nthArgument(i) == getArg(i); });
+    }
+  }
+
+  static bool rightArgOrder(TermList const& lhs, TermList const& rhs);
+
+  template<class GetArg>
+  static unsigned literalHash(unsigned functor, bool polarity, GetArg getArg, unsigned arity, Option<TermList> twoVarEqSort, bool commutative) {
+    if (commutative) {
+      ASS_EQ(arity, 2)
+      ASS(rightArgOrder(getArg(0), getArg(1)))
+      return HashUtils::combine(
+          DefaultHash::hash(polarity),
+          DefaultHash::hash(functor),
+          DefaultHash::hash(twoVarEqSort),
+          getArg(0).defaultHash(),
+          getArg(1).defaultHash());
+    } else {
+      ASS(twoVarEqSort.isNone())
+      return HashUtils::combine(
+          DefaultHash::hash(polarity),
+          Term::termHash(functor, getArg, arity));
+    }
+  }
+
+
 
   static Literal* complementaryLiteral(Literal* l);
   /** If l is positive, return l; otherwise return its complementary literal. */
@@ -1057,8 +1141,8 @@ public:
   virtual bool computableOrVar() const;
 
 private:
-  static Literal* createVariableEquality(bool polarity, TermList arg1, TermList arg2, TermList variableSort);
-
+  template<class GetArg>
+  static Literal* create(unsigned predicate, unsigned arity, bool polarity, bool commutative, GetArg args, Option<TermList> twoVarEqSort = Option<TermList>());
 }; // class Literal
 
 // TODO used in some proofExtra output
@@ -1071,7 +1155,14 @@ std::ostream& operator<< (std::ostream& out, const Term& tl );
 std::ostream& operator<< (std::ostream& out, const Literal& tl );
 
 std::ostream& operator<<(std::ostream& out, Term::SpecialFunctor const& self);
+std::ostream& operator<<(std::ostream& out, TermList::Top const& self);
 
 } // namespace Kernel
+
+template<>
+struct std::hash<Kernel::TermList> {
+  size_t operator()(Kernel::TermList const& t) const 
+  { return t.defaultHash(); }
+};
 
 #endif

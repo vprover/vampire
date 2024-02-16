@@ -22,6 +22,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include "Debug/Output.hpp"
 
 namespace Debug {
 

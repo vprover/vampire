@@ -50,6 +50,7 @@ public:
     _nextVar = 0;
     _identity = true;
   }
+  bool keepRecycled() const { return _data.keepRecycled() > 0; }
 
   unsigned getOrBind(unsigned v)
   {

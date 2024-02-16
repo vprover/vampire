@@ -1123,8 +1123,7 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit,Stack<Li
     TermList* args = t2.term()->args();
     
     // find which arg of t2 is the non_constant bit, this is what we are unwrapping 
-    TermList to_unwrap;
-    to_unwrap.makeEmpty();
+    TermList to_unwrap = TermList::empty();
     while(args->isNonEmpty()){
       if(!theory->isInterpretedNumber(*args)){
         if(!to_unwrap.isEmpty()){

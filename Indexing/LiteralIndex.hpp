@@ -16,9 +16,11 @@
 #ifndef __LiteralIndex__
 #define __LiteralIndex__
 
+#include "Debug/Output.hpp"
 #include "Lib/DHMap.hpp"
 
 #include "Index.hpp"
+#include "LiteralIndexingStructure.hpp"
 
 
 namespace Indexing {
@@ -31,11 +33,11 @@ public:
 
   SLQueryResultIterator getAll();
 
-  SLQueryResultIterator getUnifications(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions = true);
+  SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
+  { return _is->getUnifications(lit, complementary, retrieveSubstitutions); }
 
-  SLQueryResultIterator getUnificationsWithConstraints(Literal* lit,
-          bool complementary, bool retrieveSubstitutions = true);
+  VirtualIterator<LQueryRes<AbstractingUnifier*>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
+  { return _is->getUwa(lit, complementary, uwa, fixedPointIteration); }
 
   SLQueryResultIterator getGeneralizations(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions = true);
@@ -45,6 +47,9 @@ public:
 
   size_t getUnificationCount(Literal* lit, bool complementary);
 
+
+  friend std::ostream& operator<<(std::ostream& out,                 LiteralIndex const& self) { return out << *self._is; }
+  friend std::ostream& operator<<(std::ostream& out, OutputMultiline<LiteralIndex>const& self) { return out << multiline(*self.self._is, self.indent); }
 
 protected:
   LiteralIndex(LiteralIndexingStructure* is) : _is(is) {}

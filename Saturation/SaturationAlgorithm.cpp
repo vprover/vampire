@@ -745,7 +745,7 @@ void SaturationAlgorithm::init()
     Stack<Clause*> aux;
     aux.loadFromIterator(_prb.clauseIterator());
     Shuffling::shuffleArray(aux,aux.size());
-    toAdd = pvi(ownedArrayishIterator(std::move(aux)));
+    toAdd = pvi(arrayIter(std::move(aux)));
   } else {
     toAdd = _prb.clauseIterator();
   }
@@ -1210,7 +1210,7 @@ void SaturationAlgorithm::activate(Clause* cl)
   _active->add(cl);
     
   auto generated = TIME_TRACE_EXPR(TimeTrace::CLAUSE_GENERATION, _generator->generateSimplify(cl));
-  auto toAdd = timeTraceIter(TimeTrace::CLAUSE_GENERATION, generated.clauses);
+  auto toAdd = TIME_TRACE_ITER(TimeTrace::CLAUSE_GENERATION, generated.clauses);
 
   while (toAdd.hasNext()) {
     Clause* genCl=toAdd.next();

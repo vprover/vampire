@@ -739,7 +739,7 @@ Unit* Splitter::getDefinitionFromName(SplitLevel compName) const
 
 void Splitter::collectDependenceLits(SplitSet* splits, SATLiteralStack& acc) const
 {
-  SplitSet::Iterator sit(*splits);
+  auto sit = splits->iter();
   while(sit.hasNext()) {
     SplitLevel nm = sit.next();
     acc.push(getLiteralFromName(nm).opposite());
@@ -765,7 +765,7 @@ Clause* Splitter::reintroduceAvatarAssertions(Clause* cl) {
     (*newCl)[i] = (*cl)[i];
     i++;
   }
-  SplitSet::Iterator sit(*cl->splits());
+  auto sit = cl->splits()->iter();
   while (sit.hasNext()) {
     SplitLevel nm = sit.next();
     Clause* compCl = getComponentClause(nm);
@@ -953,7 +953,7 @@ bool Splitter::handleNonSplittable(Clause* cl)
     FormulaList::push(new NamedFormula(getFormulaStringFromName(compName)),resLst);
 
     // now do splits
-    SplitSet::Iterator sit(*cl->splits());
+    auto sit = cl->splits()->iter();
     while(sit.hasNext()) {
       SplitLevel nm = sit.next();
       UnitList::push(getDefinitionFromName(nm),ps);
@@ -989,7 +989,7 @@ vstring Splitter::splitsToString(SplitSet* splits)
 {
   vostringstream res;
 
-  typename SplitSet::Iterator it(*splits);
+  auto it = splits->iter();
   while(it.hasNext()) {
     res << getLiteralFromName(it.next());
     if(it.hasNext()) {
@@ -1146,7 +1146,7 @@ bool Splitter::doSplitting(Clause* cl)
   }
 
   // now do splits
-  SplitSet::Iterator sit(*cl->splits());
+  auto sit = cl->splits()->iter();
   while(sit.hasNext()) {
     SplitLevel nm = sit.next();
     UnitList::push(getDefinitionFromName(nm),ps);
@@ -1232,7 +1232,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
     }
 
     vstring formula_name = getFormulaStringFromName(posName);
-    Clause* temp = Clause::fromIterator(getArrayishObjectIterator(possibly_flipped_lits, size),
+    Clause* temp = Clause::fromIterator(arrayIter(possibly_flipped_lits, size),
         NonspecificInference0(inpType,InferenceRule::AVATAR_DEFINITION));
     Formula* def_f = new BinaryFormula(IFF,
                  new NamedFormula(formula_name),
@@ -1249,7 +1249,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
     ALWAYS(_defs.insert(posName,def_u));
   }
 
-  Clause* compCl = Clause::fromIterator(getArrayishObjectIterator(lits, size),
+  Clause* compCl = Clause::fromIterator(arrayIter(lits, size),
           NonspecificInference1(InferenceRule::AVATAR_COMPONENT,def_u));
 
   // propagate running sums:
@@ -1297,7 +1297,7 @@ SplitLevel Splitter::addNonGroundComponent(unsigned size, Literal* const * lits,
 {
   ASS_REP(_db.size()%2==0, _db.size());
   ASS_G(size,0);
-  ASS(forAll(getArrayishObjectIterator(lits, size), 
+  ASS(forAll(arrayIter(lits, size), 
           [] (Literal* l) { return !l->ground(); } )); //none of the literals can be ground
 
   SATLiteral posLit(_sat2fo.createSpareSatVar(), true);
@@ -1404,7 +1404,7 @@ void Splitter::assignClauseSplitSet(Clause* cl, SplitSet* splits)
   cl->setSplits(splits);
 
   //update "children" field of relevant SplitRecords
-  SplitSet::Iterator bsit(*splits);
+  auto bsit = splits->iter();
   bool should_reintroduce = false;
   unsigned cl_weight = cl->weight();
   while(bsit.hasNext()) {
@@ -1451,7 +1451,7 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
               //SplitSet* difference = premise->splits()->subtract(replacement->splits());
               //if(difference->isEmpty()) return true; // isSubsetOf true
               // Now check if those in the difference are zero implied
-              //SplitSet::Iterator dsit(*difference);
+              //auto dsit = difference->iter();
               //while(dsit.hasNext()){
               //  SplitLevel sl = dsit.next();
                 // check if zero-implied
@@ -1497,7 +1497,7 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
 //#endif
 
   cl->invalidateMyReductionRecords();
-  SplitSet::Iterator dit(*diff);
+  auto dit = diff->iter();
   while(dit.hasNext()) {
     SplitLevel slev=dit.next();
     _db[slev]->addReduced(cl);
@@ -1506,7 +1506,7 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
 
 bool Splitter::allSplitLevelsActive(SplitSet* s)
 {
-  SplitSet::Iterator sit(*s);
+  auto sit = s->iter();
   while(sit.hasNext()) {
     SplitLevel lev=sit.next();
     ASS_REP(lev<_db.size(), lev);
@@ -1549,7 +1549,7 @@ void Splitter::onNewClause(Clause* cl)
 
       Color color = cl->color();
 
-      SplitSet::Iterator it(*splits);
+      auto it = splits->iter();
       while(it.hasNext()) {
         SplitLevel lv=it.next();
         SplitRecord* sr=_db[lv];
@@ -1636,7 +1636,7 @@ bool Splitter::handleEmptyClause(Clause* cl)
 
   FormulaList* resLst=0;
 
-  SplitSet::Iterator sit(*cl->splits());
+  auto sit = cl->splits()->iter();
   while(sit.hasNext()) {
     SplitLevel nm = sit.next();
     FormulaList::push(new NamedFormula(getFormulaStringFromName(nm,true /*negated*/)),resLst);
@@ -1654,7 +1654,7 @@ bool Splitter::handleEmptyClause(Clause* cl)
     if (_showSplitting) {
       env.beginOutput();
       env.out() << "[AVATAR] proved ";
-      SplitSet::Iterator sit(*cl->splits());
+      auto sit = cl->splits()->iter();
       while(sit.hasNext()){
         env.out() << (_db[sit.next()]->component)->toString();
         if(sit.hasNext()){ env.out() << " | "; }
@@ -1716,7 +1716,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
 
   // ensure all children are backtracked
   // i.e. removed from _sa and reference counter dec
-  SplitSet::Iterator blit(*backtracked);
+  auto blit = backtracked->iter();
   while(blit.hasNext()) {
     SplitLevel bl=blit.next();
     SplitRecord* sr=_db[bl];
@@ -1748,7 +1748,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
     
   // pick all reduced clauses (if the record relates to most recent reduction)
   // and them add back to _sa using addNewClause - this will get put to unprocessed
-  SplitSet::Iterator blit2(*backtracked);
+  auto blit2 = backtracked->iter();
   while(blit2.hasNext()) {
     SplitLevel bl=blit2.next();
     SplitRecord* sr=_db[bl];
