@@ -59,6 +59,15 @@ void* SATClause::operator new(size_t sz,unsigned lits)
   return ALLOC_KNOWN(size,"SATClause");
 }
 
+void SATClause::operator delete(void *ptr, size_t sz) {
+  SATClause *self = static_cast<SATClause *>(ptr);
+  size_t size = sz + self->_length * sizeof(SATLiteral);
+  if(self->_length > 0)
+    size -= sizeof(SATLiteral);
+
+  DEALLOC_KNOWN(ptr, size, "SATClause");
+}
+
 SATClause::SATClause(unsigned length)
   : _length(length), _nonDestroyable(0), _inference(0)
 {

@@ -23,6 +23,14 @@
 #include "Allocator.hpp"
 #include "VString.hpp"
 
+#define VAMPIRE_PERF_EXISTS 0
+#if defined __linux__  && defined __has_include
+#if __has_include(<linux/perf_event.h>)
+#undef VAMPIRE_PERF_EXISTS
+#define VAMPIRE_PERF_EXISTS 1
+#endif
+#endif
+
 namespace Lib
 {
 

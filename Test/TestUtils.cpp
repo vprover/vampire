@@ -173,7 +173,6 @@ std::ostream& Pretty<Literal>::prettyPrint(std::ostream& out) const
   return out;
 }
 
-
 bool TestUtils::isAC(Term* t) 
 {
   auto f = t->functor();
@@ -185,6 +184,7 @@ bool TestUtils::isAC(Term* t)
     return theory->isInterpretedFunction(f) && isAC(theory->interpretFunction(f));
   }
 }
+
 bool TestUtils::isAC(Theory::Interpretation i) 
 {
   switch (i) {

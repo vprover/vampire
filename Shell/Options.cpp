@@ -87,7 +87,7 @@ void Options::init()
     _memoryLimit.description="Memory limit in MB";
     _lookup.insert(&_memoryLimit);
 
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
   _instructionLimit = UnsignedOptionValue("instruction_limit","i",0);
   _instructionLimit.description="Limit the number (in millions) of executed instructions (excluding the kernel ones).";
   _lookup.insert(&_instructionLimit);
@@ -347,6 +347,11 @@ void Options::init()
     " an input formula that has no label. Set this on if you don't want this behaviour (which is default in smt-comp)."; 
     _lookup.insert(&_ignoreMissingInputsInUnsatCore);
     _ignoreMissingInputsInUnsatCore.tag(OptionTag::OUTPUT);
+
+    _traceback = BoolOptionValue("traceback","",false);
+    _traceback.description="Try decoding backtrace into a sequence of human readable function names using addr2line/atos/etc.";
+    _lookup.insert(&_traceback);
+    _traceback.tag(OptionTag::OUTPUT);
 
     _thanks = StringOptionValue("thanks","","Tanya");
     _thanks.description="";
@@ -3331,7 +3336,7 @@ vstring Options::generateEncodedOptions() const
     forbidden.insert(&_memoryLimit);
     forbidden.insert(&_proof);
     forbidden.insert(&_inputSyntax);
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
     forbidden.insert(&_parsingDoesNotCount);
 #endif
     forbidden.insert(&_ignoreMissing); // or maybe we do!

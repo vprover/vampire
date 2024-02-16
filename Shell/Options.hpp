@@ -53,6 +53,7 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/STL.hpp"
+#include "Lib/Timer.hpp"
 
 #include "Property.hpp"
 
@@ -1960,6 +1961,7 @@ public:
   Proof proof() const { return _proof.actualValue; }
   bool minimizeSatProofs() const { return _minimizeSatProofs.actualValue; }
   ProofExtra proofExtra() const { return _proofExtra.actualValue; }
+  bool traceback() const { return _traceback.actualValue; }
   vstring printProofToFile() const { return _printProofToFile.actualValue; }
   int naming() const { return _naming.actualValue; }
 
@@ -2115,7 +2117,7 @@ public:
   int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds.actualValue; }
   size_t memoryLimit() const { return _memoryLimit.actualValue; }
   void setMemoryLimitOptionValue(size_t newVal) { _memoryLimit.actualValue = newVal; }
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
   unsigned instructionLimit() const { return _instructionLimit.actualValue; }
   void setInstructionLimit(unsigned newVal) { _instructionLimit.actualValue = newVal; }
   unsigned simulatedInstructionLimit() const { return _simulatedInstructionLimit.actualValue; }
@@ -2536,7 +2538,7 @@ private:
   ChoiceOptionValue<LTBLearning> _ltbLearning;
   StringOptionValue _ltbDirectory;
 
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
   UnsignedOptionValue _instructionLimit;
   UnsignedOptionValue _simulatedInstructionLimit;
   BoolOptionValue _parsingDoesNotCount;
@@ -2564,7 +2566,8 @@ private:
   ChoiceOptionValue<Proof> _proof;
   BoolOptionValue _minimizeSatProofs;
   ChoiceOptionValue<ProofExtra> _proofExtra;
-  
+  BoolOptionValue _traceback;
+
   StringOptionValue _protectedPrefix;
 
   ChoiceOptionValue<QuestionAnsweringMode> _questionAnswering;
