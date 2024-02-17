@@ -88,7 +88,7 @@ ClauseIterator UpwardChaining::generateClauses(Clause* premise)
     if (side.isTerm()) {
       // 1. left, forward
       // rewrite given unuseful s[r]=t into s[l]=t with indexed not unuseful l=r
-      res = pvi(getConcatenatedIterator(res, pvi(iterTraits(vi(new PositionalNonVariableNonTypeIterator(side.term())))
+      res = pvi(concatIters(res, pvi(iterTraits(vi(new PositionalNonVariableNonTypeIterator(side.term())))
         .flatMap([this](pair<Term*,Position> arg) {
           return pvi(pushPairIntoRightIterator(arg, _leftLhsIndex->getUnifications(arg.first, true)));
         })
@@ -97,18 +97,18 @@ ClauseIterator UpwardChaining::generateClauses(Clause* premise)
           auto pos = arg.first.second;
           auto qr = arg.second;
           ASS(!shouldChain(qr.literal, ord));
-          return perform(premise,lit,TermList(side),TermList(rwTerm),qr.clause,qr.literal,qr.term,pos,qr.substitution,true,true);
+          return perform(premise,lit,TermList(side),TermList(rwTerm),qr.clause,qr.literal,qr.term,pos,qr.unifier,true,true);
         }))));
 
       // 2. right, backward
       // rewrite indexed not unuseful s=t[l] into s=t[r] with given unuseful l=r
-      res = pvi(getConcatenatedIterator(res, pvi(iterTraits(_rightSubtermIndex->getUnifications(side.term(), true))
+      res = pvi(concatIters(res, pvi(iterTraits(_rightSubtermIndex->getUnifications(side.term(), true))
         .flatMap([](TermQueryResult arg) {
           auto t = arg.term.term();
           auto t0 = arg.literal->termArg(0);
           auto t1 = arg.literal->termArg(1);
           return pushPairIntoRightIterator(arg,
-            pvi(getConcatenatedIterator(
+            pvi(concatIters(
               pvi(pushPairIntoRightIterator(t0,getPositions(t0,t))),
               pvi(pushPairIntoRightIterator(t1,getPositions(t1,t)))
             )));
@@ -121,13 +121,13 @@ ClauseIterator UpwardChaining::generateClauses(Clause* premise)
           auto pos = arg.second.second.second;
           auto qr = arg.first;
           ASS(!shouldChain(qr.literal, ord));
-          return perform(qr.clause,qr.literal,rwSide,rwTerm,premise,lit,eqLHS,pos,qr.substitution,false,false);
+          return perform(qr.clause,qr.literal,rwSide,rwTerm,premise,lit,eqLHS,pos,qr.unifier,false,false);
         }))));
     }
   } else {
     // 3. left, backward
     // rewrite indexed unuseful s[r]=t into s[l]=t with given not unuseful l=r
-    res = pvi(getConcatenatedIterator(res, pvi(iterTraits(EqHelper::getSuperpositionLHSIterator(lit, ord, _salg->getOptions()))
+    res = pvi(concatIters(res, pvi(iterTraits(EqHelper::getSuperpositionLHSIterator(lit, ord, _salg->getOptions()))
       .map([lit](TypedTermList lhs) {
         return TypedTermList(EqHelper::getOtherEqualitySide(lit, lhs), SortHelper::getEqualityArgumentSort(lit));
       })
@@ -149,12 +149,12 @@ ClauseIterator UpwardChaining::generateClauses(Clause* premise)
         ASS_EQ(arg.second.second.first,rwTerm.term());
         auto pos = arg.second.second.second;
         auto qr = arg.first.second;
-        return perform(qr.clause,qr.literal,side,rwTerm,premise,lit,eqLHS,pos,qr.substitution,false,true);
+        return perform(qr.clause,qr.literal,side,rwTerm,premise,lit,eqLHS,pos,qr.unifier,false,true);
       }))));
 
     // 4. right, forward
     // rewrite given not unuseful s=t[l] into s=t[r] with indexed unuseful l=r
-    res = pvi(getConcatenatedIterator(res, pvi(iterTraits(EqHelper::getSuperpositionLHSIterator(lit, ord, _salg->getOptions()))
+    res = pvi(concatIters(res, pvi(iterTraits(EqHelper::getSuperpositionLHSIterator(lit, ord, _salg->getOptions()))
       .map([lit](TermList t) {
         return TypedTermList(EqHelper::getOtherEqualitySide(lit,t), SortHelper::getEqualityArgumentSort(lit));
       })
@@ -172,13 +172,12 @@ ClauseIterator UpwardChaining::generateClauses(Clause* premise)
         auto rwTerm = arg.first.second.first;
         auto pos = arg.first.second.second;
         auto qr = arg.second;
-        return perform(premise,lit,TermList(side),TermList(rwTerm),qr.clause,qr.literal,qr.term,pos,qr.substitution,true,false);
+        return perform(premise,lit,TermList(side),TermList(rwTerm),qr.clause,qr.literal,qr.term,pos,qr.unifier,true,false);
       }))));
   }
 
-  return pvi(iterTraits(res)
-    .filter(NonzeroFn())
-    .timeTraced("upward chaining"));
+  auto resTT = TIME_TRACE_ITER("upward chaining", iterTraits(res).filter(NonzeroFn()));
+  return pvi(resTT);
 }
 
 Clause* UpwardChaining::perform(

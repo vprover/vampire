@@ -64,7 +64,6 @@ class GoalRewriting
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(GoalRewriting);
   USE_ALLOCATOR(GoalRewriting);
 
   void attach(SaturationAlgorithm* salg) override;

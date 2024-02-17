@@ -417,8 +417,8 @@ bool InductionClauseIterator::isRedundant(const InductionContext& context)
 
       TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
       TermList rhsS;
-      ASS(qr.substitution->isIdentityOnQueryWhenResultBound());
-      rhsS=qr.substitution->applyToBoundResult(rhs);
+      ASS(qr.unifier->isIdentityOnQueryWhenResultBound());
+      rhsS=qr.unifier->applyToBoundResult(rhs);
       if(resultTermIsVar){
         rhsS = subst.apply(rhsS, 0);
       }
@@ -454,8 +454,8 @@ bool InductionClauseIterator::isRedundant(const InductionContext& context)
 
       TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
       TermList rhsS;
-      ASS(qr.substitution->isIdentityOnQueryWhenResultBound());
-      rhsS=qr.substitution->applyToBoundResult(rhs);
+      ASS(qr.unifier->isIdentityOnQueryWhenResultBound());
+      rhsS=qr.unifier->applyToBoundResult(rhs);
       if(resultTermIsVar){
         rhsS = subst.apply(rhsS, 0);
       }

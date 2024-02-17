@@ -193,38 +193,32 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case GOAL_REWRITING_LHS_INDEX:
-    tis=new TermSubstitutionTree();
-    res=new GoalRewritingLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
+    res=new GoalRewritingLHSIndex(new CodeTreeTIS(), _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
 
   case GOAL_REWRITING_SUBTERM_INDEX:
-    tis=new TermSubstitutionTree();
-    res=new GoalRewritingSubtermIndex(tis, _alg->getOptions());
+    res=new GoalRewritingSubtermIndex(new TermSubstitutionTree(/* extra */ false), _alg->getOptions());
     isGenerating = true;
     break;
 
   case LEFT_UPWARD_CHAINING_LHS_INDEX:
-    tis=new TermSubstitutionTree();
-    res=new UpwardChainingLHSIndex(tis, _alg->getOrdering(), _alg->getOptions(), true /*left*/);
+    res=new UpwardChainingLHSIndex(new TermSubstitutionTree(/* extra */ false), _alg->getOrdering(), _alg->getOptions(), true /*left*/);
     isGenerating = true;
     break;
 
   case RIGHT_UPWARD_CHAINING_LHS_INDEX:
-    tis=new TermSubstitutionTree();
-    res=new UpwardChainingLHSIndex(tis, _alg->getOrdering(), _alg->getOptions(), false /*left*/);
+    res=new UpwardChainingLHSIndex(new TermSubstitutionTree(/* extra */ false), _alg->getOrdering(), _alg->getOptions(), false /*left*/);
     isGenerating = true;
     break;
 
   case LEFT_UPWARD_CHAINING_SUBTERM_INDEX:
-    tis=new TermSubstitutionTree();
-    res=new UpwardChainingSubtermIndex(tis, _alg->getOrdering(), _alg->getOptions(), true /*left*/);
+    res=new UpwardChainingSubtermIndex(new TermSubstitutionTree(/* extra */ false), _alg->getOrdering(), _alg->getOptions(), true /*left*/);
     isGenerating = true;
     break;
 
   case RIGHT_UPWARD_CHAINING_SUBTERM_INDEX:
-    tis=new TermSubstitutionTree();
-    res=new UpwardChainingSubtermIndex(tis, _alg->getOrdering(), _alg->getOptions(), false /*left*/);
+    res=new UpwardChainingSubtermIndex(new TermSubstitutionTree(/* extra */ false), _alg->getOrdering(), _alg->getOptions(), false /*left*/);
     isGenerating = true;
     break;
 

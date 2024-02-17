@@ -247,7 +247,7 @@ VirtualIterator<TypedTermList> sideIterator(Literal* lit)
     auto lhs = lit->termArg(i);
     auto rhs = lit->termArg(1-i);
     if (lhs.containsAllVariablesOf(rhs)) {
-      res = pvi(getConcatenatedIterator(res, pvi(getSingletonIterator(TypedTermList(lhs,SortHelper::getEqualityArgumentSort(lit))))));
+      res = pvi(concatIters(res, pvi(getSingletonIterator(TypedTermList(lhs,SortHelper::getEqualityArgumentSort(lit))))));
     }
   }
   return res;
@@ -272,16 +272,16 @@ VirtualIterator<Term*> termIterator(Literal* lit, Clause* cl, bool leftToRight) 
     // add args to the right of index
     for (unsigned j = i+1; j < curr->arity(); j++) {
       auto arg = curr->termArg(j);
-      res = pvi(getConcatenatedIterator(res, vi(new NonVariableNonTypeIterator(arg.term(),true))));
+      res = pvi(concatIters(res, vi(new NonVariableNonTypeIterator(arg.term(),true))));
     }
     // add term itself
-    res = pvi(getConcatenatedIterator(res, getSingletonIterator(curr)));
+    res = pvi(concatIters(res, getSingletonIterator(curr)));
     curr = curr->termArg(i).term();
   }
   // add last term and all its subterms
-  res = pvi(getConcatenatedIterator(res, vi(new NonVariableNonTypeIterator(curr,true))));
+  res = pvi(concatIters(res, vi(new NonVariableNonTypeIterator(curr,true))));
   if (!switched) {
-    res = pvi(getConcatenatedIterator(res, vi(new NonVariableNonTypeIterator(other.term(),true))));
+    res = pvi(concatIters(res, vi(new NonVariableNonTypeIterator(other.term(),true))));
   }
   return res;
 }
@@ -317,7 +317,8 @@ ClauseIterator GoalRewriting::generateClauses(Clause* premise)
           return false;
         }
 #ifdef INDUCTION_MODE
-        DHSet<unsigned> sks(*getSkolems(lit));
+        DHSet<unsigned> sks;
+        sks.loadFromIterator(DHSet<unsigned>::Iterator(*getSkolems(lit)));
         DHSet<unsigned>::Iterator skIt(*getSkolems(qr.literal));
         while (skIt.hasNext()) {
           if (!sks.contains(skIt.next())) {
@@ -331,7 +332,7 @@ ClauseIterator GoalRewriting::generateClauses(Clause* premise)
         auto t0 = lit->termArg(0);
         auto t1 = lit->termArg(1);
         return pushPairIntoRightIterator(arg.second,
-          pvi(getConcatenatedIterator(
+          pvi(concatIters(
             pvi(pushPairIntoRightIterator(t0.term(),getPositions(t0,arg.first))),
             pvi(pushPairIntoRightIterator(t1.term(),getPositions(t1,arg.first)))
           )));
@@ -341,15 +342,14 @@ ClauseIterator GoalRewriting::generateClauses(Clause* premise)
         auto lhsS = arg.second.second.first;
         auto pos = arg.second.second.second;
         auto qr = arg.first;
-        return perform(premise,lit,side,lhsS,std::move(pos),qr.clause,qr.literal,qr.term,qr.substitution.ptr(),true);
+        return perform(premise,lit,side,lhsS,std::move(pos),qr.clause,qr.literal,qr.term,qr.unifier.ptr(),true);
       })
-      .filter(NonzeroFn())
-      .timeTraced("forward goal rewriting"));
+      .filter(NonzeroFn()));
   }
 
   // backward
   if (lit->isPositive() && (!_chaining || !shouldChain(lit,_salg->getOrdering()))) {
-    res = pvi(getConcatenatedIterator(res,pvi(iterTraits(sideIterator(lit))
+    res = pvi(concatIters(res,pvi(iterTraits(sideIterator(lit))
       .flatMap([this](TypedTermList lhs) {
         return pvi(pushPairIntoRightIterator(lhs,_subtermIndex->getInstances(lhs,true)));
       })
@@ -362,7 +362,8 @@ ClauseIterator GoalRewriting::generateClauses(Clause* premise)
           return false;
         }
 #ifdef INDUCTION_MODE
-        DHSet<unsigned> sks(*getSkolems(lit));
+        DHSet<unsigned> sks;
+        sks.loadFromIterator(DHSet<unsigned>::Iterator(*getSkolems(lit)));
         if (sks.isEmpty()) {
           return true;
         }
@@ -381,7 +382,7 @@ ClauseIterator GoalRewriting::generateClauses(Clause* premise)
         auto t0 = arg.second.literal->termArg(0);
         auto t1 = arg.second.literal->termArg(1);
         return pushPairIntoRightIterator(arg,
-          pvi(getConcatenatedIterator(
+          pvi(concatIters(
             pvi(pushPairIntoRightIterator(t0.term(),getPositions(t0,t))),
             pvi(pushPairIntoRightIterator(t1.term(),getPositions(t1,t)))
           )));
@@ -391,12 +392,12 @@ ClauseIterator GoalRewriting::generateClauses(Clause* premise)
         auto pos = arg.second.second.second;
         auto qr = arg.first.second;
         auto eqLhs = arg.first.first;
-        return perform(qr.clause, qr.literal, side, qr.term.term(), std::move(pos), premise, lit, eqLhs, qr.substitution.ptr(), false);
+        return perform(qr.clause, qr.literal, side, qr.term.term(), std::move(pos), premise, lit, eqLhs, qr.unifier.ptr(), false);
       })
-      .filter(NonzeroFn())
-      .timeTraced("backward goal rewriting"))));
+      .filter(NonzeroFn()))));
   }
-  return res;
+  auto resTT = TIME_TRACE_ITER("goal rewriting", res);
+  return pvi(resTT);
 }
 
 Clause* GoalRewriting::perform(Clause* rwClause, Literal* rwLit, Term* rwSide, Term* rwTerm, Position&& pos,

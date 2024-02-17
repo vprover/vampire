@@ -120,7 +120,6 @@ class GoalRewritingLHSIndex
 : public TermIndex
 {
 public:
-  CLASS_NAME(GoalRewritingLHSIndex);
   USE_ALLOCATOR(GoalRewritingLHSIndex);
 
   GoalRewritingLHSIndex(TermIndexingStructure* is, const Ordering& ord, const Options& opt) : TermIndex(is), _ord(ord), _opt(opt) {}
@@ -145,7 +144,6 @@ class UpwardChainingLHSIndex
 : public TermIndex
 {
 public:
-  CLASS_NAME(UpwardChainingLHSIndex);
   USE_ALLOCATOR(UpwardChainingLHSIndex);
 
   UpwardChainingLHSIndex(TermIndexingStructure* is, const Ordering& ord, const Options& opt, bool left)

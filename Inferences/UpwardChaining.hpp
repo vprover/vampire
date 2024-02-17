@@ -39,7 +39,6 @@ class UpwardChaining
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(UpwardChaining);
   USE_ALLOCATOR(UpwardChaining);
 
   void attach(SaturationAlgorithm* salg) override;

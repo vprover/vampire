@@ -1587,9 +1587,6 @@ public:
   Option<Elem> max()
   { return maxBy(std::less<Elem>{}); }
 
-  auto timeTraced(const char* name)
-  { return iterTraits(timeTraceIter(name, std::move(_iter))); }
-
   template<class Result, class F>
   auto fold(Result init, F f) -> Result
   { 
