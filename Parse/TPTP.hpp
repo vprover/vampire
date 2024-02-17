@@ -19,6 +19,7 @@
 
 #include <iostream>
 
+#include "Kernel/RobSubstitution.hpp"
 #include "Lib/Array.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Stack.hpp"
@@ -355,8 +356,6 @@ private:
    */
   class Type {
   public:
-    CLASS_NAME(Type);
-    USE_ALLOCATOR(Type);
     explicit Type(TypeTag tag) : _tag(tag) {}
     /** return the kind of this sort */
     TypeTag tag() const {return _tag;}
@@ -370,8 +369,6 @@ private:
     : public Type
   {
   public:
-    CLASS_NAME(AtomicType);
-    USE_ALLOCATOR(AtomicType);
     explicit AtomicType(TermList sort)
       : Type(TT_ATOMIC), _sort(sort)
     {}
@@ -387,8 +384,6 @@ private:
     : public Type
   {
   public:
-    CLASS_NAME(ArrowType);
-    USE_ALLOCATOR(ArrowType);
     ArrowType(Type* lhs,Type* rhs)
       : Type(TT_ARROW), _lhs(lhs), _rhs(rhs)
     {}
@@ -411,8 +406,6 @@ private:
     : public Type
   {
   public:
-    CLASS_NAME(ProductType);
-    USE_ALLOCATOR(ProductType);
     ProductType(Type* lhs,Type* rhs)
       : Type(TT_PRODUCT), _lhs(lhs), _rhs(rhs)
     {}
@@ -433,8 +426,6 @@ private:
     : public Type
   {
   public:
-    CLASS_NAME(QuantifiedType);
-    USE_ALLOCATOR(QuantifiedType);
     QuantifiedType(Type* t, VList* vars)
       : Type(TT_QUANTIFIED), _type(t), _vars(vars)
     {}
@@ -540,6 +531,9 @@ private:
     return tf;
   }
 
+  TermList* nLastTermLists(unsigned n) 
+  { return n == 0 ? nullptr : &_termLists[_termLists.size() - n]; }
+
   /** true if the input contains a conjecture */
   bool _containsConjecture;
   /** Allowed names of formulas.
@@ -626,6 +620,8 @@ private:
   Set<vstring> _overflow;
   /** current color, if the input contains colors */
   Color _currentColor;
+  /** a robsubstitution object to be used temporarily that is kept around to safe memory allocation time  */
+  RobSubstitution _substScratchpad;
 
   /** a function name and arity */
   typedef std::pair<vstring, unsigned> LetSymbolName;

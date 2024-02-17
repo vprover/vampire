@@ -54,9 +54,6 @@ class BestLiteralSelector
     : public LiteralSelector
       {
       public:
-  CLASS_NAME(BestLiteralSelector);
-  USE_ALLOCATOR(BestLiteralSelector);
-
   BestLiteralSelector(const Ordering& ordering, const Options& options) : LiteralSelector(ordering, options)
   {
     _comp.attachSelector(this);
@@ -116,9 +113,6 @@ class CompleteBestLiteralSelector
     : public LiteralSelector
 {
 public:
-  CLASS_NAME(CompleteBestLiteralSelector);
-  USE_ALLOCATOR(CompleteBestLiteralSelector);
-
   CompleteBestLiteralSelector(const Ordering& ordering, const Options& options) : LiteralSelector(ordering, options)
   {
     _comp.attachSelector(this);

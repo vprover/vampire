@@ -64,7 +64,6 @@ void ForwardSubsumptionAndResolution::detach()
 }
 
 struct ClauseMatches {
-  CLASS_NAME(ForwardSubsumptionAndResolution::ClauseMatches);
   USE_ALLOCATOR(ClauseMatches);
 
 private:

@@ -30,9 +30,6 @@ class LRS
 : public Otter
 {
 public:
-  CLASS_NAME(LRS);
-  USE_ALLOCATOR(LRS);
-
   LRS(Problem& prb, const Options& opt)
   : Otter(prb, opt), _limitsEverActive(false) {}
 

@@ -98,7 +98,7 @@ bool GeneralSplitting::apply(ClauseList*& clauses)
   }
   ASS_EQ(modified, UnitList::isNonEmpty(splitRes));
   ClauseList* splitResC = 0;
-  ClauseList::pushFromIterator(getStaticCastIterator<Clause*>(UnitList::Iterator(splitRes)),splitResC);
+  ClauseList::pushFromIterator(iterTraits(UnitList::Iterator(splitRes)).map([](Unit* u) { return (Clause*)u; }),splitResC);
   clauses=ClauseList::concat(splitResC, clauses);
   return modified;
 }
@@ -228,8 +228,10 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
 
 
   unsigned namingPred=env.signature->addNamePredicate(minDeg);
+  Signature::Symbol *sym = env.signature->getPredicate(namingPred);
+  sym->markSkipCongruence();
   OperatorType* npredType = OperatorType::getPredicateType(minDeg, argSorts.begin());
-  env.signature->getPredicate(namingPred)->setType(npredType);
+  sym->setType(npredType);
 
   if(mdvColor!=COLOR_TRANSPARENT && otherColor!=COLOR_TRANSPARENT) {
     ASS_EQ(mdvColor, otherColor);

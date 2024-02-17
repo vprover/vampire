@@ -67,9 +67,6 @@ private:
 class InterpretedLiteralEvaluator::Evaluator
 {
 public:
-  CLASS_NAME(InterpretedLiteralEvaluator::Evaluator);
-  USE_ALLOCATOR(InterpretedLiteralEvaluator::Evaluator);
-  
   virtual ~Evaluator() {}
 
   virtual bool canEvaluateFunc(unsigned func) { return false; }
@@ -131,9 +128,6 @@ template<class AbelianGroup>
    : public Evaluator
 {
 public:
-CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
-  USE_ALLOCATOR(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
-
   using ConstantType = typename AbelianGroup::ConstantType;
 
   ACFunEvaluator() : _fun(env.signature->getInterpretingSymbol(AbelianGroup::interpreation)) { }
@@ -1129,8 +1123,7 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit,Stack<Li
     TermList* args = t2.term()->args();
     
     // find which arg of t2 is the non_constant bit, this is what we are unwrapping 
-    TermList to_unwrap;
-    to_unwrap.makeEmpty();
+    TermList to_unwrap = TermList::empty();
     while(args->isNonEmpty()){
       if(!theory->isInterpretedNumber(*args)){
         if(!to_unwrap.isEmpty()){

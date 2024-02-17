@@ -49,7 +49,6 @@ public:
 
   /** expressions */
   struct Expression {
-    CLASS_NAME(LispParser::Expression);
     USE_ALLOCATOR(Expression);
 
     /** type of the expression */

@@ -354,6 +354,8 @@ Literal* AnswerLiteralManager::getAnswerLiteral(VList* vars,Formula* f)
   Signature::Symbol* predSym = env.signature->getPredicate(pred);
   predSym->setType(OperatorType::getPredicateType(sorts.size(), sorts.begin()));
   predSym->markAnswerPredicate();
+  // don't need equality proxy for answer literals
+  predSym->markSkipCongruence();
   return Literal::create(pred, vcnt, true, false, litArgs.begin());
 }
 
@@ -779,15 +781,6 @@ TermList SynthesisManager::ConjectureSkolemReplacement::transformTermList(TermLi
   }
   // Then replace skolems by variables
   return transform(tl);
-}
-
-TermList SynthesisManager::ConjectureSkolemReplacement::transform(TermList tl) {
-  TermList transformed = transformSubterm(tl);
-  if (transformed != tl) {
-    return transformed;
-  } else {
-    return TermTransformer::transform(tl);
-  }
 }
 
 TermList SynthesisManager::ConjectureSkolemReplacement::transformSubterm(TermList trm) {

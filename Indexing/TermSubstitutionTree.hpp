@@ -17,7 +17,10 @@
 #define __TermSubstitutionTree__
 
 
+#include "Forwards.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
 #include "Kernel/Renaming.hpp"
+#include "Kernel/TypedTermList.hpp"
 #include "Lib/SkipList.hpp"
 #include "Lib/BiMap.hpp"
 
@@ -39,20 +42,17 @@ class TermSubstitutionTree
 : public TermIndexingStructure, SubstitutionTree
 {
 public:
-  CLASS_NAME(TermSubstitutionTree);
-  USE_ALLOCATOR(TermSubstitutionTree);
-  
-  /* 
-   * The extra flag is a higher-order concern. it is set to true when 
+  /*
+   * The extra flag is a higher-order concern. it is set to true when
    * we require the term query result to include two terms, the result term
-   * and another. 
+   * and another.
    *
-   * The main use case is to store a different term in the leaf to the one indexed 
-   * in the tree. This is used for example in Skolemisation on the fly where we 
+   * The main use case is to store a different term in the leaf to the one indexed
+   * in the tree. This is used for example in Skolemisation on the fly where we
    * store Terms of type $o (formulas) in the tree, but in the leaf we store
    * the skolem terms used to witness them (to facilitate the reuse of Skolems)
    */
-  TermSubstitutionTree(bool useC=false, bool replaceFunctionalSubterms = false, bool extra = false);
+  explicit TermSubstitutionTree(bool extra);
 
   void handle(TypedTermList t, Literal* lit, Clause* cls, bool adding)
   { handleTerm(t, LeafData(cls, lit, t), adding); }
@@ -73,24 +73,21 @@ public:
   { return t.isVar() ? false : SubstitutionTree::generalizationExists(TypedTermList(t.term())); }
 
 
-#if VDEBUG
-  virtual void markTagged() override { SubstitutionTree::markTagged();}
-#endif
+  virtual void output(std::ostream& out) const final override { out << *this; }
 
 private:
-
 
   void handleTerm(TypedTermList tt, LeafData ld, bool insert)
   { SubstitutionTree::handle(tt, ld, insert); }
 
-  template<class Iterator> 
-  auto getResultIterator(TypedTermList query, bool retrieveSubstitutions, bool withConstraints)
-  { 
-    return iterTraits(SubstitutionTree::iterator<Iterator>(query, retrieveSubstitutions, withConstraints))
-      .map([this](QueryResult qr) 
-        { return TermQueryResult(
+  template<class Iterator, class... Args>
+  auto getResultIterator(TypedTermList query, bool retrieveSubstitutions, Args... args)
+  {
+    return iterTraits(SubstitutionTree::iterator<Iterator>(query, retrieveSubstitutions, /* reversed */  false, std::move(args)...))
+      .map([this](auto qr)
+        { return tQueryRes(
             _extra ? qr.data->extraTerm : qr.data->term,
-            qr.data->literal, qr.data->clause, qr.subst, qr.constr); }) ; 
+            qr.data->literal, qr.data->clause, std::move(qr.unif)); }) ;
   }
 
   //higher-order concerns
@@ -99,16 +96,21 @@ private:
   friend std::ostream& operator<<(std::ostream& out, TermSubstitutionTree const& self)
   { return out << (SubstitutionTree const&) self; }
   friend std::ostream& operator<<(std::ostream& out, OutputMultiline<TermSubstitutionTree> const& self)
-  { return out << multiline((SubstitutionTree const&) self.self); }
+  { return out << multiline((SubstitutionTree const&) self.self, self.indent); }
+
 public:
   TermQueryResultIterator getInstances(TypedTermList t, bool retrieveSubstitutions) override
-  { return pvi(getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions, /* constraints */ false)); }
+  { return pvi(getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions)); }
 
   TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions) override
-  { return pvi(getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions, /* constraints */ false)); }
+  { return pvi(getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions)); }
 
-  TermQueryResultIterator getUnifications(TypedTermList t, bool retrieveSubstitutions, bool withConstraints) override
-  { return pvi(getResultIterator<UnificationsIterator>(t, retrieveSubstitutions, withConstraints)); }
+
+  VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) final override
+  { return pvi(getResultIterator<Iterator<RetrievalAlgorithms::UnificationWithAbstraction>>(t, /* retrieveSubstitutions */ true, AbstractionOracle(uwa), fixedPointIteration)); }
+
+  TermQueryResultIterator getUnifications(TypedTermList t, bool retrieveSubstitutions) override
+  { return pvi(getResultIterator<Iterator<RetrievalAlgorithms::RobUnification>>(t, retrieveSubstitutions)); }
 
 };
 

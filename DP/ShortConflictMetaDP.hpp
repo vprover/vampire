@@ -34,9 +34,6 @@ using namespace SAT;
 
 class ShortConflictMetaDP : public DecisionProcedure {
 public:
-  CLASS_NAME(ShortConflictMetaDP);
-  USE_ALLOCATOR(ShortConflictMetaDP);
-
   /**
    * Create object using @c inner decision procedure. Object takes ownership of the @c inner object.
    */

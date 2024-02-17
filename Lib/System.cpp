@@ -307,8 +307,6 @@ bool System::extractDirNameFromPath(vstring path, vstring& dir)
 
 bool System::fileExists(vstring fname)
 {
-  BYPASSING_ALLOCATOR;
-
   ifstream ifile(fname.c_str());
   return ifile.good();
 }

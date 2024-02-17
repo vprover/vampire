@@ -58,9 +58,7 @@ Monotonicity::Monotonicity(ClauseList* clauses, unsigned srt) : _srt(srt)
  ClauseIterator cit = pvi(ClauseList::Iterator(clauses));
  while(cit.hasNext()){
    Clause* c = cit.next();
-   Clause::Iterator lit(*c);
-   while(lit.hasNext()){
-     Literal* l = lit.next();
+   for (auto l : c->iterLits()) {
      monotone(c,l);
    }
  }
@@ -115,9 +113,7 @@ void Monotonicity::safe(Clause* c, Literal* parent, TermList* t,Stack<SATLiteral
     unsigned var = t->var();
     TermList s = SortHelper::getVariableSort(*t,parent);
     if(s.term()->functor()==_srt){
-      Clause::Iterator lit(*c);
-      while(lit.hasNext()){
-        Literal* l = lit.next(); 
+      for (auto l : c->iterLits()) {
         if(guards(l,var,slits)){
           // if guards returns true it means true will be added to the clause
           // so don't bother creating it
@@ -261,7 +257,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
      if(!sortedVariables.isEmpty()){
 
        Stack<Literal*> literals; 
-       literals.loadFromIterator(Clause::Iterator(*cl)); 
+       literals.loadFromIterator(cl->iterLits()); 
 
        Stack<std::pair<unsigned,unsigned>>::Iterator vit(sortedVariables);
        while(vit.hasNext()){
@@ -356,10 +352,8 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
 
      Stack<Literal*> literals;
 
-     Clause::Iterator lit(*cl);
      bool changed = false;
-     while(lit.hasNext()){
-       Literal* l = lit.next();
+     for (auto l : cl->iterLits()) {
        Literal* lnew = l->arity() == 0 ? l : evaluateLiteralBottomUp(l, SortFunctionTransformer(isMonotonic,sortFunctions));
        if(l!=lnew) {
          changed=true;

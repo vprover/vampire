@@ -69,9 +69,7 @@ void ConsequenceFinder::onNewPropositionalClause(Clause* cl)
   }
   Literal* pos=0;
   bool horn=true;
-  Clause::Iterator it(*cl);
-  while(it.hasNext()) {
-    Literal* l=it.next();
+  for (auto l : cl->iterLits()) {
     if(!env.signature->getPredicate(l->functor())->label()) {
       return;
     }
@@ -141,9 +139,8 @@ void ConsequenceFinder::onAllProcessed()
  */
 bool ConsequenceFinder::isRedundant(Clause* cl)
 {
-  Clause::Iterator it(*cl);
-  while(it.hasNext()) {
-    unsigned fn=it.next()->functor();
+  for (auto l : cl->iterLits()) {
+    unsigned fn = l->functor();
     if(!env.signature->getPredicate(fn)->label()) {
       continue;
     }
@@ -160,9 +157,8 @@ void ConsequenceFinder::onClauseInserted(Clause* cl)
   TIME_TRACE(TimeTrace::CONSEQUENCE_FINDING);
 
   bool red=false;
-  Clause::Iterator it(*cl);
-  while(it.hasNext()) {
-    unsigned fn=it.next()->functor();
+  for (auto l : cl->iterLits()) {
+    unsigned fn = l->functor();
     if(!env.signature->getPredicate(fn)->label()) {
       continue;
     }
@@ -188,9 +184,8 @@ void ConsequenceFinder::onClauseRemoved(Clause* cl)
 {
   TIME_TRACE(TimeTrace::CONSEQUENCE_FINDING);
 
-  Clause::Iterator it(*cl);
-  while(it.hasNext()) {
-    unsigned fn=it.next()->functor();
+  for (auto l : cl->iterLits()) {
+    unsigned fn = l->functor();
     if(!env.signature->getPredicate(fn)->label()) {
       continue;
     }

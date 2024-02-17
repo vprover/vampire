@@ -55,9 +55,6 @@ namespace Kernel {
 class OperatorType
 {
 public:
-  CLASS_NAME(OperatorType);
-  USE_ALLOCATOR(OperatorType);
-
   class TypeHash {
   public:
     static bool equals(OperatorType* t1, OperatorType* t2)
@@ -94,13 +91,6 @@ private:
 
   static OperatorType* getTypeFromKey(OperatorKey* key, unsigned taArity);
 
-  static inline TermList getEmpty() { 
-    TermList empty;
-    empty.makeEmpty();
-    return empty;
-  }
-  //static const TermList PREDICATE_FLAG;
-
 public:
   ~OperatorType() { _key->deallocate(); }
 
@@ -110,19 +100,19 @@ public:
 
   static OperatorType* getPredicateType(unsigned arity, const TermList* sorts=0, unsigned taArity = 0) {
     OperatorKey* key = setupKey(arity,sorts);
-    (*key)[arity] = getEmpty();
+    (*key)[arity] = TermList::empty();
     return getTypeFromKey(key,taArity);
   }
 
   static OperatorType* getPredicateType(std::initializer_list<TermList> sorts, unsigned taArity = 0) {
     OperatorKey* key = setupKey(sorts);
-    (*key)[sorts.size()] = getEmpty();
+    (*key)[sorts.size()] = TermList::empty();
     return getTypeFromKey(key,taArity);
   }
 
   static OperatorType* getPredicateTypeUniformRange(unsigned arity, TermList argsSort, unsigned taArity = 0) {
     OperatorKey* key = setupKeyUniformRange(arity,argsSort);
-    (*key)[arity] = getEmpty();
+    (*key)[arity] = TermList::empty();
     return getTypeFromKey(key, taArity);
   }
 

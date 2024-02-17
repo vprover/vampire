@@ -30,9 +30,6 @@ using namespace SAT;
 
 class Grounder {
 public:
-  CLASS_NAME(Grounder);
-  USE_ALLOCATOR(Grounder);
-  
   Grounder(SATSolver* satSolver) : _satSolver(satSolver) {}
   virtual ~Grounder() {}
 
@@ -70,9 +67,6 @@ class GlobalSubsumptionGrounder : public Grounder {
 
   bool _doNormalization;
 public:
-  CLASS_NAME(GlobalSubsumptionGrounder);
-  USE_ALLOCATOR(GlobalSubsumptionGrounder);
-
   GlobalSubsumptionGrounder(SATSolver* satSolver, bool doNormalization=true) 
           : Grounder(satSolver), _doNormalization(doNormalization) {}
 protected:
@@ -81,9 +75,6 @@ protected:
 
 class IGGrounder : public Grounder {
 public:
-  CLASS_NAME(IGGrounder);
-  USE_ALLOCATOR(IGGrounder);
-
   IGGrounder(SATSolver* satSolver);
 private:
   TermList _tgtTerm;

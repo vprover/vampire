@@ -1,16 +1,17 @@
 #!/bin/bash
 
-# If you have gcov installed you can do make vampire_gcov to produce a version of vampire compiled
+# If you run cmake with -DCMAKE_BUILD_TYPE=Debug option, make will produce a version of vampire compiled
 # with the extra gcov stuff included. This will cause coverage information to be stored alongside the
 # object files here.
 #
-# This script produces an html summary of the coverage information. Run here.
+# This script produces an html summary of the coverage information.
+# Run from the (cmake) build directory.
 #
-# By Giles
+# Original version by Giles
 
 mkdir -p gcovdata
-lcov --directory ~/git/vampire/ --capture --output-file vampire.info
+lcov -j $1 --directory . --capture --output-file vampire.info
 mv vampire.info gcovdata
 cd gcovdata
-genhtml vampire.info
+genhtml -j $1 vampire.info
 open index.html &

@@ -192,7 +192,6 @@ void TimeTrace::Node::printPrettyRec(std::ostream& out, NodeFormatOpts& opts)
   if (opts.parentDuration.isSome()) {
     out << "[" << setw(2) << percent(total, opts.parentDuration.unwrap()) << "%] ";
   }
-  BYPASSING_ALLOCATOR
   if (opts.nameWidth.isSome()) {
     out << msetw(opts.nameWidth.unwrap()) << left;
   }

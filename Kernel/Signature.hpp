@@ -151,8 +151,8 @@ class Signature
     unsigned _inductionSkolem : 1;
     /** if skolem function in general **/
     unsigned _skolem : 1;
-    /** if introduced for naming a subformula */
-    unsigned _namesFormula : 1;
+    /** if does not need congruence axioms with equality proxy */
+    unsigned _skipCongruence : 1;
     /** if tuple sort */
     unsigned _tuple : 1;
     /** if allowed in answer literals */
@@ -265,8 +265,8 @@ class Signature
     inline void markSkolem(){ _skolem = 1;}
     inline bool skolem(){ return _skolem; }
 
-    inline void markNamesFormula() { _namesFormula = 1; }
-    inline bool namesFormula() { return _namesFormula; }
+    inline void markSkipCongruence() { _skipCongruence = 1; }
+    inline bool skipCongruence() { return _skipCongruence; }
 
     inline void markTuple(){ _tuple = 1; }
     inline bool tupleSort(){ return _tuple; }
@@ -315,9 +315,6 @@ class Signature
     OperatorType* fnType() const;
     OperatorType* predType() const;
     OperatorType* typeConType() const;
-
-    CLASS_NAME(Signature::Symbol);
-    USE_ALLOCATOR(Symbol);
   }; // class Symbol
 
   class InterpretedSymbol
@@ -334,9 +331,6 @@ class Signature
     : Symbol(nm, Theory::getArity(interp), true), _interp(interp)
     {
     }
-
-    CLASS_NAME(Signature::InterpretedSymbol);
-    USE_ALLOCATOR(InterpretedSymbol);
 
     /** Return the interpreted function that corresponds to this symbol */
     inline Interpretation getInterpretation() const { ASS_REP(interpreted(), _name); return _interp; }
@@ -356,8 +350,6 @@ class Signature
     {
       setType(OperatorType::getConstantsType(AtomicSort::intSort()));
     }
-    CLASS_NAME(Signature::IntegerSymbol);
-    USE_ALLOCATOR(IntegerSymbol);
   };
 
   class RationalSymbol
@@ -374,8 +366,6 @@ class Signature
     {
       setType(OperatorType::getConstantsType(AtomicSort::rationalSort()));
     }
-    CLASS_NAME(Signature::RationalSymbol);
-    USE_ALLOCATOR(RationalSymbol);
   };
 
   class RealSymbol
@@ -392,8 +382,6 @@ class Signature
     {
       setType(OperatorType::getConstantsType(AtomicSort::realSort()));
     }
-    CLASS_NAME(Signature::RealSymbol);
-    USE_ALLOCATOR(RealSymbol);
   }; 
 
   //////////////////////////////////////
@@ -579,9 +567,6 @@ class Signature
 
   Signature();
   ~Signature();
-
-  CLASS_NAME(Signature);
-  USE_ALLOCATOR(Signature);
 
   bool functionExists(const vstring& name,unsigned arity) const;
   bool predicateExists(const vstring& name,unsigned arity) const;

@@ -117,7 +117,6 @@ public:
 
     void ensureFreshness(unsigned globalTimestamp);
 
-    CLASS_NAME(CodeTree::ILStruct);
     USE_ALLOCATOR(ILStruct);
 
     struct GVArrComparator;
@@ -293,7 +292,6 @@ public:
     ~FnSearchStruct();
     CodeOp*& targetOp(unsigned fn);
 
-    CLASS_NAME(CodeTree::FnSearchStruct);
     USE_ALLOCATOR(FnSearchStruct);
 
     struct OpComparator;
@@ -308,7 +306,6 @@ public:
     ~GroundTermSearchStruct();
     CodeOp*& targetOp(const Term* trm);
 
-    CLASS_NAME(CodeTree::GroundTermSearchStruct);
     USE_ALLOCATOR(GroundTermSearchStruct);
 
     struct OpComparator;
@@ -394,6 +391,11 @@ public:
   {
   public:
     bool next();
+
+    bool keepRecycled() const
+    { return bindings.keepRecycled() 
+        || btStack.keepRecycled() 
+        || (firstsInBlocks && firstsInBlocks->keepRecycled()); }
 
   protected:
     void init(CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_,
@@ -491,6 +493,7 @@ public:
   public:
     /** Variable bindings */
     BindingArray bindings;
+    bool keepRecycled() const { return bindings.keepRecycled(); }
 
   protected:
     /** the matcher object is initialized but no execution of code was done yet */

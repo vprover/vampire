@@ -40,7 +40,6 @@ struct CycleQueryResult {
     clausesTheta(c)
   {}
 
-  CLASS_NAME(CycleQueryResult);
   USE_ALLOCATOR(CycleQueryResult);
 
   unsigned totalLengthClauses();
@@ -67,14 +66,11 @@ public:
   void remove(Kernel::Literal *lit, Kernel::Clause *c);
 
   CycleQueryResultsIterator queryCycles(Kernel::Literal *lit, Kernel::Clause *c);
-             
-  CLASS_NAME(AcyclicityIndex);
-  USE_ALLOCATOR(AcyclicityIndex);
 protected:
   void handleClause(Kernel::Clause* c, bool adding);
 private:
   bool matchesPattern(Kernel::Literal *lit, Kernel::TermList *&fs, Kernel::TermList *&t, TermList *sort);
-  Lib::List<TermList>* getSubterms(Kernel::Term *t);
+  Lib::List<TypedTermList>* getSubterms(Kernel::Term *t);
   
   struct IndexEntry;
   struct CycleSearchTreeNode;

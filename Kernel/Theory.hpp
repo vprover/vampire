@@ -57,7 +57,6 @@ public:
 class IntegerConstantType
 {
 public:
-  CLASS_NAME(IntegerConstantType)
   static TermList getSort() { return AtomicSort::intSort(); }
 
   typedef int InnerType;
@@ -135,7 +134,6 @@ std::ostream& operator<< (std::ostream& out, const IntegerConstantType& val) {
  */
 struct RationalConstantType {
   typedef IntegerConstantType InnerType;
-  CLASS_NAME(RationalConstantType)
 
   static TermList getSort() { return AtomicSort::rationalSort(); }
 
@@ -208,7 +206,6 @@ std::ostream& operator<< (std::ostream& out, const RationalConstantType& val) {
 class RealConstantType : public RationalConstantType
 {
 public:
-  CLASS_NAME(RealConstantType)
   static TermList getSort() { return AtomicSort::realSort(); }
 
   RealConstantType() {}

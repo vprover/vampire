@@ -23,12 +23,12 @@
 #include "Lib/VirtualIterator.hpp"
 #include "Saturation/ClauseContainer.hpp"
 #include "ResultSubstitution.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
 
 #include "Lib/Allocator.hpp"
 
 namespace Indexing
 {
-
 using namespace Kernel;
 using namespace Lib;
 using namespace Saturation;
@@ -37,65 +37,52 @@ using namespace Saturation;
 /**
  * Class of objects which contain results of single literal queries.
  */
-struct SLQueryResult
+template<class Unifier>
+struct LQueryRes
 {
-  SLQueryResult() {}
-  SLQueryResult(Literal* l, Clause* c, ResultSubstitutionSP s)
-  : literal(l), clause(c), substitution(s) {}
-  SLQueryResult(Literal* l, Clause* c)
-  : literal(l), clause(c) {}
-  SLQueryResult(Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStackSP con)
-  : literal(l), clause(c), substitution(s), constraints(con) {}
+  LQueryRes() {}
+  LQueryRes(Literal* l, Clause* c, Unifier unifier)
+  : literal(l), clause(c), unifier(std::move(unifier)) {}
 
 
   Literal* literal;
   Clause* clause;
-  ResultSubstitutionSP substitution;
-  UnificationConstraintStackSP constraints;
-
-  struct ClauseExtractFn
-  {
-    Clause* operator()(const SLQueryResult& res)
-    {
-      return res.clause;
-    }
-  };
+  Unifier unifier;
 };
+
+template<class Unifier>
+LQueryRes<Unifier> lQueryRes(Literal* l, Clause* c, Unifier unifier)
+{ return LQueryRes<Unifier>(l,c,std::move(unifier)); }
 
 /**
  * Class of objects which contain results of term queries.
  */
-struct TermQueryResult
+template<class Unifier>
+struct TQueryRes
 {
-  TermQueryResult() : literal(nullptr), clause(nullptr) {}
-  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s)
-  : term(t), literal(l), clause(c), substitution(s) {}
-  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s, bool b)
-  : term(t), literal(l), clause(c), substitution(s) {}
-  TermQueryResult(TermList t, Literal* l, Clause* c)
-  : term(t), literal(l), clause(c) {}
-  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStackSP con)
-  : term(t), literal(l), clause(c), substitution(s), constraints(con) {}
-  TermQueryResult(TermList t, Literal* l, Clause* c, ResultSubstitutionSP s,UnificationConstraintStackSP con, bool b)
-  : term(t), literal(l), clause(c), substitution(s), constraints(con) {}
+  TQueryRes() {}
+  TQueryRes(TermList t, Literal* l, Clause* c, Unifier unifier)
+  : term(t), literal(l), clause(c), unifier(std::move(unifier)) {}
 
   TermList term;
   Literal* literal;
   Clause* clause;
-  ResultSubstitutionSP substitution;
-  UnificationConstraintStackSP constraints;
-  friend std::ostream& operator<<(std::ostream& out, TermQueryResult const& self)
+  Unifier unifier;
+
+  friend std::ostream& operator<<(std::ostream& out, TQueryRes const& self)
   { 
     return out 
       << "{ term: " << self.term 
       << ", literal: " << outputPtr(self.literal)
       << ", clause: " << outputPtr(self.literal)
-      << ", substitution: " << self.substitution
-      << ", constraints: " << self.constraints
+      << ", unifier: " << self.unifier
       << "}";
   }
-
 };
+
+template<class Unifier>
+TQueryRes<Unifier> tQueryRes(TermList t, Literal* l, Clause* c, Unifier unifier) 
+{ return TQueryRes<Unifier>(t,l,c,std::move(unifier)); }
 
 struct ClauseSResQueryResult
 {
@@ -121,17 +108,17 @@ struct FormulaQueryResult
   ResultSubstitutionSP substitution;
 };
 
-typedef VirtualIterator<SLQueryResult> SLQueryResultIterator;
-typedef VirtualIterator<TermQueryResult> TermQueryResultIterator;
+using TermQueryResult = TQueryRes<ResultSubstitutionSP>;
+using SLQueryResult   = LQueryRes<ResultSubstitutionSP>;
+
+using TermQueryResultIterator = VirtualIterator<TermQueryResult>;
+using SLQueryResultIterator = VirtualIterator<SLQueryResult>;
 typedef VirtualIterator<ClauseSResQueryResult> ClauseSResResultIterator;
 typedef VirtualIterator<FormulaQueryResult> FormulaQueryResultIterator;
 
 class Index
 {
 public:
-  CLASS_NAME(Index);
-  USE_ALLOCATOR(Index);
-
   virtual ~Index();
 
   void attachContainer(ClauseContainer* cc);
@@ -158,9 +145,6 @@ class ClauseSubsumptionIndex
 : public Index
 {
 public:
-  CLASS_NAME(ClauseSubsumptionIndex);
-  USE_ALLOCATOR(ClauseSubsumptionIndex);
-
   virtual ClauseSResResultIterator getSubsumingOrSResolvingClauses(Clause* c, 
     bool subsumptionResolution)
   { NOT_IMPLEMENTED; };

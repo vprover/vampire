@@ -57,9 +57,6 @@ public:
     _varDiffs.reset();
   }
 
-  CLASS_NAME(KBO::State);
-  USE_ALLOCATOR(State);
-
   void traverse(Term* t1, Term* t2);
   void traverse(TermList tl,int coefficient);
   Result result(Term* t1, Term* t2);
@@ -395,7 +392,6 @@ template<class SigTraits>
 KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const 
 {
   DArray<KboWeight> weights(SigTraits::nSymbols());
-  BYPASSING_ALLOCATOR
 
   ///////////////////////// parsing helper functions ///////////////////////// 
  

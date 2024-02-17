@@ -36,9 +36,6 @@ using namespace Shell;
 class LiteralSelector
 {
 public:
-  CLASS_NAME(LiteralSelector);
-  USE_ALLOCATOR(LiteralSelector);
-
   LiteralSelector(const Ordering& ordering, const Options& options)
   : _ord(ordering), _opt(options), _reversePolarity(false)
   {
@@ -123,9 +120,6 @@ class TotalLiteralSelector
 : public LiteralSelector
 {
 public:
-  CLASS_NAME(TotalLiteralSelector);
-  USE_ALLOCATOR(TotalLiteralSelector);
-
   TotalLiteralSelector(const Ordering& ordering, const Options& options)
   : LiteralSelector(ordering, options) {}
 

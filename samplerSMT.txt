@@ -1,14 +1,6 @@
 # An extension of samplerFOL.txt for dealing with theory reasoning
 # - this assumes compilation with z3
 
-# SMTLIB specific:
-
-# guess_the_goal
-> gtg ~cat off:20,all:1,exists_top:1,exists_all:1,exists_sym:1,position:1
-
-# guess_the_goal_limit
-gtg!=off > gtgl ~cat 1:10,2:2,3:1
-
 # PREPROCESSING
 
 # blocked_clause_elimination
@@ -28,14 +20,14 @@ ep!=off > mep ~cat on:10,off:1
 # general_splitting
 > gsp ~cat off:8,on:1
 
-# inline_let -- this is probably irrelevant on TPTP anyway
-> ile ~cat off:10,on:1
-
 # newcnf
 > newcnf ~cat on:9,off:25
 
+# inline_let -- this is probably irrelevant on TPTP anyway
+newcnf=on > ile ~cat off:10,on:1
+
 # naming
-> $nm ~cat Z:1,NZ:5 
+> $nm ~cat Z:1,NZ:5
 $nm=Z > nm ~cat 0:1
 $nm=NZ > nm ~sgd 0.07,2
 
@@ -78,7 +70,7 @@ ss!=off > st ~cat -1.0:50,1.0:150,1.5:37,2.0:60,2.5:20,3.0:70,3.5:15,4.0:60,4.5:
 # SATURATION
 
 # saturation_algorithms
-> sa     ~cat lrs:600,discount:572,otter:236,z3:10
+> sa ~cat lrs:600,discount:572,otter:236
 
 # literal selection
 > $s_pos ~cat Y:4,N:1
@@ -169,7 +161,7 @@ fsd=on > fsdmm ~cat 0:10,1:3,2:2,3:1
 > bd ~cat all:500,off:245,preordered:91
 
 # backward_subsumption
-fs!=off > bs ~cat off::500,unit_only:74,on:64
+fs!=off > bs ~cat off:500,unit_only:74,on:64
 
 # backward_subsumption_resolution
 > bsr ~cat off:500,unit_only:118,on:75
@@ -185,9 +177,6 @@ bsd=on > bsdmm ~cat 0:10,1:3,2:2,3:1
 
 # condensation
 > cond ~cat off:500,on:89,fast:61
-
-# demodulation_redundancy_check
-> drc ~cat encompass:500,on:500,off:354 
 
 # equational_tautology_removal
 > etr ~cat off:500,on:30
@@ -207,7 +196,13 @@ er!=off > erml ~cat 0:3,2:1,3:1
 # forward_demodulation
 > fd ~cat all:500,off:41,preordered:168
 
-# forward_literal_rewriting 
+# demodulation_redundancy_check
+> $set_drc ~cat N:1
+fd!=off > $set_drc ~cat Y:1
+bd!=off > $set_drc ~cat Y:1
+$set_drc=Y > drc ~cat encompass:500,on:500,off:354
+
+# forward_literal_rewriting
 > flr ~cat off:8,on:1
 
 # function_definition_introduction
@@ -215,9 +210,6 @@ er!=off > erml ~cat 0:3,2:1,3:1
 
 # inner_rewriting
 > irw ~cat off:165,on:6
-
-# unit_resulting_resolution
-> urr ~cat off:1200,ec_only:162,on:340
 
 # SINE LEVELS and shit
 
@@ -273,8 +265,18 @@ $s2a=on > s2agt ~cat 0:7,5:1,10:1,15:1,20:1,30:1,50:1,100:1
 # sine_to_age_tolerance
 $s2a=on > s2at ~cat -1.0:50,1.0:150,1.5:37,2.0:60,2.5:20,3.0:70,3.5:15,4.0:60,4.5:15,5.0:50,5.5:10,6.0:30,7.0:20
 
-# AVATAR
+# AVATAR - main
 > av ~cat on:15,off:4
+
+# SAT SOLVER
+
+# sat_solver
+av=on > sas ~cat minisat:1,z3:1
+
+# sat_fallback_for_smt
+av=on sas=z3 > sffsmt ~cat off:5,on:1
+
+# AVATAR - rest
 
 # avatar_add_complementary
 av=on > aac ~cat none:147,ground:600
@@ -283,7 +285,7 @@ av=on > aac ~cat none:147,ground:600
 av=on > abs ~cat on:63,off:300
 
 # avatar_congruence_closure
-av=on > acc ~cat off:600,model:24,on:58
+av=on sas!=z3 > acc ~cat off:600,model:24,on:58
 
 # cc_unsat_cores
 acc!=off > ccuc ~cat first:1,small_ones:1,all:3
@@ -328,6 +330,12 @@ av=on > sac ~cat off:3,on:1
 # TODO: consider enabling this for vampire_z3 compiles!
 # av=on > sas ~cat minisat:10,z3:1
 
+# BACK TO PREPROCESSING
+
+# unit_resulting_resolution
+av=on  > urr ~cat off:1200,ec_only:162,on:300,full:40
+av=off > urr ~cat off:1200,ec_only:162,on:340
+
 # AVATAR SPLIT QUEUE
 
 # avatar_split_queue
@@ -359,11 +367,13 @@ gs=on av=on > gsaa ~cat off:30,from_current:11,full_model:3
 
 > uhcvi ~cat off:1,on:1
 
-# sat_solver
-> sas ~cat minisat:1,z3:1
+# GOAL GUESSING - useful on SMTLIB problems
 
-# sat_fallback_for_smt
-av=on > sffsmt ~cat off:5,on:1
+# guess_the_goal
+> gtg ~cat off:10,all:1,exists_top:1,exists_all:1,exists_sym:1,position:1
+
+# guess_the_goal_limit
+gtg!=off > gtgl ~ui 1,5
 
 # THEORY SPLIT QUEUE
 
@@ -382,16 +392,60 @@ thsq=on > thsqr ~u2r -3;3;,
 # theory_split_queue_expected_ratio_denom
 thsq=on > thsqd ~cat 2:1,4:1,8:7,32:5,64:2,128:1
 
+# TERM ALGEBRA REASONINING
+
+# term_algebra_acyclicity
+> tac ~cat off:3,axiom:1,rule:1,light:1
+
+# term_algebra_rules
+> tar ~cat off:1,on:1
+
+# ARITHMETIC THEORIES (assume z3 will be present):
+
+# arithmetic_subterm_generalizations
+> asg ~cat force:1,cautious:1,off:3
+
+# cancellation
+> canc ~cat force:1,cautious:1,off:3
+
+# evaluation
+> ev ~cat simple:3,force:1,cautious:1
+
+# use_ac_eval
+> uace ~cat off:1,on:1
+
+# gaussian_variable_elimination
+> gve ~cat force:1,cautious:1,off:3
+
+# high_school - this only fakes an option combo for a quick access, so we will not sample it expliticly
+
+# instantiation
+> inst ~cat off:20,on:1
+
+# normalize_inequalities
+> norm_ineq ~cat off:1,on:1
+
+# push_unary_minus
+> pum ~cat off:1,on:1
+
+# theory_instantiation
+> thi ~cat off:1,all:1,strong:1,neg_eq:1,overlap:1
+
+# theory_instantiation_generalisation
+thi!=off > thigen ~cat off:1,on:1
+
+# theory_instantiation_tautology_deletion
+thi!=off > thitd ~cat off:1,on:1
+
+# unification_with_abstraction
+> uwa ~cat off:5,interpreted_only:1,one_side_interpreted:1,one_side_constant:1,all:1,ground:1,func_ext:1,ac1:1,ac2:1
+
+# unification_with_abstraction_postpro
+> uwa_fpi ~cat off:5,on:1
+
 # MISSING, kind of, on purpose:
 
 # Any FMB - although that arguably does not make sense for theories
 # Any higher-order options - which is a different game
 
-
-
-
-# TODO - should still add:
-
-# 1) all options with the "Theories" tag
-
-# 2) any induction options - if that's relevant for your domain
+# TODO: any induction options - if that's relevant for your domain

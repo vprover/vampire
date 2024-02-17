@@ -20,6 +20,7 @@
 #include "Indexing/TermIndex.hpp"
 
 #include "InferenceEngine.hpp"
+#include "Kernel/RobSubstitution.hpp"
 
 namespace Inferences {
 
@@ -31,9 +32,6 @@ class Superposition
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(Superposition);
-  USE_ALLOCATOR(Superposition);
-
   void attach(SaturationAlgorithm* salg);
   void detach();
 
@@ -44,8 +42,7 @@ private:
   Clause* performSuperposition(
     Clause* rwClause, Literal* rwLiteral, TermList rwTerm,
     Clause* eqClause, Literal* eqLiteral, TermList eqLHS,
-    ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer,
-          UnificationConstraintStackSP constraints);
+    AbstractingUnifier* unifier, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer);
 
   bool checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause);
   static bool earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,

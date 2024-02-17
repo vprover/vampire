@@ -2,7 +2,7 @@
 
 # Vampire
 This is the main source repository of the [Vampire](https://vprover.github.io) project, an advanced tool for automated reasoning.
-The following is for end-users of Vampire: new developers should read `HACKING.md` as well.
+The following is for end-users of Vampire: new developers should read the [wiki](https://github.com/vprover/vampire/wiki) as well.
 
 ## Licensing
 Please see LICENCE for usage restrictions.

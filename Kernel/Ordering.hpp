@@ -39,9 +39,6 @@ using namespace Shell;
 class Ordering
 {
 public:
-  CLASS_NAME(Ordering);
-  USE_ALLOCATOR(Ordering);
-
   /**
    * Represents the results of ordering comparisons
    *

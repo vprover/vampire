@@ -48,7 +48,6 @@ class ArrayMap
 {
   typedef ArrayMapEntry<T> Entry;
 public:
-  CLASS_NAME(ArrayMap<T>);
   USE_ALLOCATOR(ArrayMap<T>); 
 
   /**
@@ -79,6 +78,7 @@ public:
       _timestamp=1;
     }
   }
+  using DArray<Entry>::keepRecycled;
 
   /**
    * Ensure that keys less than @b size can be stored in the map

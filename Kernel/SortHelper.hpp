@@ -53,8 +53,8 @@ public:
   static TermList getResultSort(const Term* t);
   static TermList getResultSortMono(const Term* t);
   static TermList getResultSort(TermList t, DHMap<unsigned,TermList>& varSorts);
-  static TermList getArgSort(Term* t, unsigned argIndex);
-  static TermList getTermArgSort(Term* t, unsigned argIndex);
+  static TermList getArgSort(Term const* t, unsigned argIndex);
+  static TermList getTermArgSort(Term const* t, unsigned argIndex);
 
   static bool tryGetResultSort(const Term* t, TermList& result);
   static bool tryGetResultSort(const TermList t, TermList& result);
@@ -84,7 +84,7 @@ public:
   static void normaliseArgSorts(TermStack& qVars, TermStack& argSorts);
   static void normaliseSort(TermStack qVars, TermList& sort);    
 
-  static OperatorType* getType(Term* t);
+  static OperatorType* getType(Term const* t);
 
   static void getTypeSub(const Term* t, Substitution& subst);
 

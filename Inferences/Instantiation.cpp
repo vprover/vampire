@@ -102,9 +102,7 @@ void Instantiation::registerClause(Clause* cl)
 
   //cout << "register " << cl->toString() << endl;
 
-  Clause::Iterator cit(*cl);
-  while(cit.hasNext()){
-    Literal* lit = cit.next();
+  for (Literal* lit : cl->iterLits()) {
     SubtermIterator it(lit);
     while(it.hasNext()){
       TermList t = it.next();
@@ -227,10 +225,10 @@ public:
   {
     DHMap<unsigned,TermList> sortedVars;
     SortHelper::collectVariableSorts(cl,sortedVars);
-    VirtualIterator<std::pair<unsigned,TermList>> it = sortedVars.items();
+    auto it = sortedVars.items();
 
     while(it.hasNext()){
-       std::pair<unsigned,TermList> item = it.next();
+       auto item = it.next();
        DArray<Term*>* array = new DArray<Term*>();
        array->initFromIterator(ins->getCandidateTerms(cl,item.first,item.second));
        candidates.insert(item.first,array);
@@ -306,17 +304,10 @@ ClauseIterator Instantiation::generateClauses(Clause* premise)
     tryMakeLiteralFalse(lit,subs);
   }
 
-  return pvi(getConcatenatedIterator(
-  //return pvi(
-               getMappingIterator(
-                  getPersistentIterator(Stack<Substitution>::Iterator(subs)),
-                  ResultFn(premise)
-               ),
-               getMappingIterator(
-                 AllSubstitutionsIterator(premise,this),
-                 ResultFn(premise)
-              )
-         ));
+  return pvi(concatIters(
+                 getPersistentIterator(Stack<Substitution>::Iterator(subs)),
+                 AllSubstitutionsIterator(premise,this))
+            .map(ResultFn(premise)));
 
 }
 

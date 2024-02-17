@@ -16,6 +16,9 @@
 #ifndef __LiteralSubstitutionTree__
 #define __LiteralSubstitutionTree__
 
+#include "Indexing/Index.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
+#include "Lib/VirtualIterator.hpp"
 #include "LiteralIndexingStructure.hpp"
 #include "SubstitutionTree.hpp"
 
@@ -25,53 +28,114 @@ namespace Indexing {
 class LiteralSubstitutionTree
 : public LiteralIndexingStructure
 {
-  using UnificationsIterator = SubstitutionTree::UnificationsIterator;
   using FastInstancesIterator = SubstitutionTree::FastInstancesIterator;
-  using BindingMap = SubstitutionTree::BindingMap;
   using LDIterator = SubstitutionTree::LDIterator;
   using FastGeneralizationsIterator = SubstitutionTree::FastGeneralizationsIterator;
-  using QueryResult = SubstitutionTree::QueryResult;
   using LeafData = SubstitutionTree::LeafData;
   using LeafIterator = SubstitutionTree::LeafIterator;
   using Leaf = SubstitutionTree::Leaf;
 
 public:
-  CLASS_NAME(LiteralSubstitutionTree);
-  USE_ALLOCATOR(LiteralSubstitutionTree);
-
-  LiteralSubstitutionTree(bool useC=false);
+  LiteralSubstitutionTree();
 
   void insert(Literal* lit, Clause* cls) override { handleLiteral(lit, cls, /* insert */ true); }
   void remove(Literal* lit, Clause* cls) override { handleLiteral(lit, cls, /* insert */ false); }
 
+  SLQueryResultIterator getAll() final override;
   void handleLiteral(Literal* lit, Clause* cls, bool insert)
   { getTree(lit, /* complementary */ false).handle(lit, SubstitutionTree::LeafData(cls, lit), insert); }
 
-  SLQueryResultIterator getAll() override;
+  SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
 
-  SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions) override;
-
-  SLQueryResultIterator getUnificationsWithConstraints(Literal* lit, bool complementary, bool retrieveSubstitutions) override;
-
-  SLQueryResultIterator getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions) override;
-
-  SLQueryResultIterator getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions) override;
-
-  SLQueryResultIterator getVariants(Literal* lit, bool complementary, bool retrieveSubstitutions) override;
-
-
-#if VDEBUG
-  virtual void markTagged() override { }
-#endif
+  SLQueryResultIterator getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
+  SLQueryResultIterator getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
+  SLQueryResultIterator getVariants(Literal* lit, bool complementary, bool retrieveSubstitutions) final override;
 
 private:
-  SubstitutionTree& getTree(Literal* lit, bool complementary);
+  /** encodes functor and polarity into one number, so it can be used as an index in the array _trees
+   * The inverse functions to this are `idxIsNegative` and `idxToFunctor` 
+   */
+  static unsigned toIdx(unsigned f, bool isNegative) { return f * 2 + isNegative; }
+  /** see `toIdx` */
+  static unsigned idxToFunctor(unsigned idx) { return idx / 2; }
+  /** see `toIdx` */
+  static bool idxIsNegative(unsigned idx) { return idx % 2; }
 
-  template<class Iterator>
-  SLQueryResultIterator getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, bool useConstraints);
+  template<class Iterator, class... Args>
+  auto getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, Args... args)
+  {
+    auto iter = [=](bool reversed) 
+      { return iterTraits(getTree(lit, complementary).template iterator<Iterator>(lit, retrieveSubstitutions, reversed, args...)) ; };
+
+    auto filterResults = [=](auto it) { 
+      return std::move(it)
+          .map([](auto r) { return lQueryRes(r.data->literal, r.data->clause, std::move(r.unif)); }) ; 
+    };
+    return ifElseIter(
+        !lit->commutative(),
+        [&]() { return filterResults(iter( /* reversed */ false)); },
+        [&]() { return filterResults(concatIters(
+                                      iter( /* reversed */ false),
+                                      iter( /* reversed */ true)
+                                    )); }
+        );
+  }
+
+
+public:
+
+  VirtualIterator<LQueryRes<AbstractingUnifier*>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) final override
+  { return pvi(getResultIterator<SubstitutionTree::Iterator<RetrievalAlgorithms::UnificationWithAbstraction>>(lit, complementary, /* retrieveSubstitutions */ true, AbstractionOracle(uwa), fixedPointIteration)); }
+
+  friend std::ostream& operator<<(std::ostream& out, LiteralSubstitutionTree const& self)
+  { 
+    int i = 0;
+    out << "{ ";
+    for (auto& t : self._trees) {
+      if (!t.isEmpty()) {
+        auto f = env.signature->getPredicate(idxToFunctor(i));
+        if (idxIsNegative(i)) out << "~";
+        out << *f << "(" << t << "), "; 
+      }
+      i++;
+    }
+    return out << "} ";
+  }
+  friend std::ostream& operator<<(std::ostream& out, OutputMultiline<LiteralSubstitutionTree> const& self)
+  { 
+    int i = 0;
+    out << "{ " << std::endl;
+    for (auto& t : self.self._trees) {
+      if (!t.isEmpty()) {
+        auto f = env.signature->getPredicate(idxToFunctor(i));
+        OutputMultiline<LiteralSubstitutionTree>::outputIndent(out, self.indent);
+        out << (idxIsNegative(i) ? "~" : " ") << *f << "(" << multiline(t, self.indent + 1) << ")" << std::endl; 
+      }
+      i++;
+    }
+    return out << "} ";
+  }
+
+  virtual void output(std::ostream& out, Option<unsigned> multilineIndent) const override {
+    if (multilineIndent) {
+      out << multiline(*this, *multilineIndent);
+    } else {
+      out << *this;
+    }
+  }
+
+
+private:
+  SubstitutionTree& getTree(Literal* lit, bool complementary)
+  {
+    auto idx = complementary ? lit->header() : lit->complementaryHeader();
+    while (idx >= _trees.size()) {
+      _trees.push(SubstitutionTree());
+    }
+    return _trees[idx];
+  }
 
   Stack<SubstitutionTree> _trees;
-  bool _useC;
 };
 
 };

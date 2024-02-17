@@ -40,48 +40,26 @@ using namespace Lib;
 class CodeTreeTIS : public TermIndexingStructure
 {
 public:
-  CLASS_NAME(CodeTreeTIS);
-  USE_ALLOCATOR(CodeTreeTIS);
-
   void insert(TypedTermList t, Literal* lit, Clause* cls);
   void remove(TypedTermList t, Literal* lit, Clause* cls);
 
   TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true);
   bool generalizationExists(TermList t);
+  // TODO: get rid of NOT_IMPLEMENTED
+  VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t, Options::UnificationWithAbstraction, bool fixedPointIteration) { NOT_IMPLEMENTED; }
 
-#if VDEBUG
-  virtual void markTagged(){ NOT_IMPLEMENTED; } 
-#endif
+  virtual void output(std::ostream& out) const { out << "CodeTree"; }
 
 private:
   class ResultIterator;
 
   TermCodeTree _ct;
 };
-/*
-class CodeTreeLIS : public LiteralIndexingStructure
-{
-public:
-  void insert(Literal* lit, Clause* cls);
-  void remove(Literal* lit, Clause* cls);
-
-  SLQueryResultIterator getGeneralizations(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions = true);
-private:
-  struct LiteralInfo;
-  class ResultIterator;
-
-  TermCodeTree _ct;
-};
-*/
 
 class CodeTreeSubsumptionIndex
 : public ClauseSubsumptionIndex
 {
 public:
-  CLASS_NAME(CodeTreeSubsumptionIndex);
-  USE_ALLOCATOR(CodeTreeSubsumptionIndex);
-
   ClauseSResResultIterator getSubsumingOrSResolvingClauses(Clause* c, bool subsumptionResolution);
 protected:
   //overrides Index::handleClause

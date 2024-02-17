@@ -13,6 +13,7 @@
  *
  */
 
+#include "Indexing/ResultSubstitution.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/Recycled.hpp"
 #include "Debug/TimeProfiling.hpp"
@@ -48,7 +49,6 @@ public:
     }
   }
 
-  CLASS_NAME(CodeTreeSubstitution);
   USE_ALLOCATOR(CodeTreeSubstitution);
 
   TermList applyToBoundResult(TermList t) override
@@ -79,7 +79,6 @@ private:
       return res;
     }
 
-    CLASS_NAME(CodeTreeSubstitution::Applicator);
     USE_ALLOCATOR(Applicator);
   private:
     CodeTree::BindingArray* _bindings;
@@ -127,7 +126,6 @@ public:
     }
   }
 
-  CLASS_NAME(CodeTreeTIS::ResultIterator);
   USE_ALLOCATOR(ResultIterator);
 
   bool hasNext()
@@ -150,18 +148,15 @@ public:
   {
     ASS(_found);
 
-    TermQueryResult res;
-    if(_retrieveSubstitutions) {
+    ResultSubstitutionSP subs;
+    if (_retrieveSubstitutions) {
       _resultNormalizer->reset();
       _resultNormalizer->normalizeVariables(_found->t);
-      res=TermQueryResult(_found->t, _found->lit, _found->cls,
-	  ResultSubstitutionSP(_subst,true));
+      subs = ResultSubstitutionSP(_subst, /* nondisposable */ true);
     }
-    else {
-      res=TermQueryResult(_found->t, _found->lit, _found->cls);
-    }
+    auto out = TermQueryResult(_found->t, _found->lit, _found->cls, subs);
     _found=0;
-    return res;
+    return out;
   }
 private:
 

@@ -127,9 +127,6 @@ class KBO
 : public PrecedenceOrdering
 {
 public:
-  CLASS_NAME(KBO);
-  USE_ALLOCATOR(KBO);
-
   KBO(Problem& prb, const Options& opt);
   KBO(
       // KBO params

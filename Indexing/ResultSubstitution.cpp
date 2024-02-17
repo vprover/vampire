@@ -26,7 +26,6 @@ class RSProxy
 : public ResultSubstitution
 {
 public:
-  CLASS_NAME(RSProxy);
   USE_ALLOCATOR(RSProxy);
   
   RSProxy(RobSubstitution* subst, int queryBank, int resultBank)
@@ -61,9 +60,7 @@ private:
 };
 
 ResultSubstitutionSP ResultSubstitution::fromSubstitution(RobSubstitution* s, int queryBank, int resultBank)
-{
-  return ResultSubstitutionSP(new RSProxy(s, queryBank, resultBank));
-}
+{ return ResultSubstitutionSP(new RSProxy(s, queryBank, resultBank)); }
 
 /**
  * Test whether this substitution object is a renaming on the variables of @param t

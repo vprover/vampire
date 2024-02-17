@@ -152,9 +152,6 @@ public:
   static const uint64_t PR_HAS_CDT_CONSTRUCTORS = 2199023255552ul; // 2^41
 
  public:
-  CLASS_NAME(Property);
-  USE_ALLOCATOR(Property);
-
   // constructor, operators new and delete
   explicit Property();
   static Property* scan(UnitList*);

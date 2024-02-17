@@ -33,6 +33,12 @@
 using namespace Lib;
 using namespace Indexing;
 
+IndexManager::IndexManager(SaturationAlgorithm* alg) 
+  : _alg(alg) 
+  , _uwa(AbstractionOracle::create())
+  , _uwaFixedPointIteration(env.options->unificationWithAbstractionFixedPointIteration())
+{ }
+
 Index* IndexManager::request(IndexType t)
 {
   Entry e;
@@ -94,123 +100,95 @@ void IndexManager::provideIndex(IndexType t, Index* index)
 Index* IndexManager::create(IndexType t)
 {
   Index* res;
-  LiteralIndexingStructure* is;
-  TermIndexingStructure* tis;
-  TermSubstitutionTree* tst;
 
   bool isGenerating;
-  static bool const useConstraints = env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF;
-  static bool const extByAbs = (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION) &&
-                    env.getMainProblem()->isHigherOrder();
-                    
+                   
   switch(t) {
   case BINARY_RESOLUTION_SUBST_TREE:
-    is=new LiteralSubstitutionTree(useConstraints);
-    res=new BinaryResolutionIndex(is);
+    res = new BinaryResolutionIndex(new LiteralSubstitutionTree());
     isGenerating = true;
     break;
   case BACKWARD_SUBSUMPTION_SUBST_TREE:
-    is=new LiteralSubstitutionTree();
-    res=new BackwardSubsumptionIndex(is);
+    res = new BackwardSubsumptionIndex(new LiteralSubstitutionTree());
     isGenerating = false;
     break;
   case FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE:
-    is=new LiteralSubstitutionTree();
-    res=new UnitClauseLiteralIndex(is);
+    res = new UnitClauseLiteralIndex(new LiteralSubstitutionTree());
     isGenerating = false;
     break;
   case URR_UNIT_CLAUSE_SUBST_TREE:
-    is=new LiteralSubstitutionTree();
-    res=new UnitClauseLiteralIndex(is);
+    res = new UnitClauseLiteralIndex(new LiteralSubstitutionTree());
     isGenerating = true;
     break;
   case URR_UNIT_CLAUSE_WITH_AL_SUBST_TREE:
-    is=new LiteralSubstitutionTree();
-    res=new UnitClauseWithALLiteralIndex(is);
+    res=new UnitClauseWithALLiteralIndex(new LiteralSubstitutionTree());
     isGenerating = true;
     break;
   case URR_NON_UNIT_CLAUSE_SUBST_TREE:
-    is=new LiteralSubstitutionTree();
-    res=new NonUnitClauseLiteralIndex(is);
+    res  =new NonUnitClauseLiteralIndex(new LiteralSubstitutionTree());
     isGenerating = true;
     break;
   case URR_NON_UNIT_CLAUSE_WITH_AL_SUBST_TREE:
-    is=new LiteralSubstitutionTree();
-    res=new NonUnitClauseWithALLiteralIndex(is);
+    res=new NonUnitClauseWithALLiteralIndex(new LiteralSubstitutionTree());
     isGenerating = true;
     break;
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
-    tis=new TermSubstitutionTree(useConstraints, extByAbs);
-    res=new SuperpositionSubtermIndex(tis, _alg->getOrdering());
+    res = new SuperpositionSubtermIndex(new TermSubstitutionTree(/* extra */ false), _alg->getOrdering());
     isGenerating = true;
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
-    tst=new TermSubstitutionTree(useConstraints, extByAbs);
-    res=new SuperpositionLHSIndex(tst, _alg->getOrdering(), _alg->getOptions());
+    res = new SuperpositionLHSIndex(new TermSubstitutionTree(/* extra */ false), _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
     
   case SUB_VAR_SUP_SUBTERM_SUBST_TREE:
     //using a substitution tree to store variable.
     //TODO update
-    tis=new TermSubstitutionTree();
-    res=new SubVarSupSubtermIndex(tis, _alg->getOrdering());
+    res = new SubVarSupSubtermIndex(new TermSubstitutionTree(/* extra */ false), _alg->getOrdering());
     isGenerating = true;
     break;
   case SUB_VAR_SUP_LHS_SUBST_TREE:
-    tis=new TermSubstitutionTree();
-    res=new SubVarSupLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
+    res = new SubVarSupLHSIndex(new TermSubstitutionTree(/* extra */ false), _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
   
   case SKOLEMISING_FORMULA_INDEX:
-    tis=new TermSubstitutionTree(false, false, true);
-    res=new SkolemisingFormulaIndex(tis);
+    res = new SkolemisingFormulaIndex(new TermSubstitutionTree(/* extra */ true));
     isGenerating = false;
     break;
 
-  /*case RENAMING_FORMULA_INDEX:
-    tis=new TermSubstitutionTree(false, false, true);
-    res=new RenamingFormulaIndex(tis);
-    attachPassive = true;
-    break;*/
-
   case NARROWING_INDEX:
-    tis=new TermSubstitutionTree();
-    res=new NarrowingIndex(tis); 
+    res = new NarrowingIndex(new TermSubstitutionTree(/* extra */ false)); 
     isGenerating = true;
     break; 
 
   case PRIMITIVE_INSTANTIATION_INDEX:
-    tis=new TermSubstitutionTree();
-    res=new PrimitiveInstantiationIndex(tis); 
+    res = new PrimitiveInstantiationIndex(new TermSubstitutionTree(/* extra */ false)); 
     isGenerating = true;
     break;  
    case ACYCLICITY_INDEX:
-    tis = new TermSubstitutionTree();
-    res = new AcyclicityIndex(tis);
+    res = new AcyclicityIndex(new TermSubstitutionTree(/* extra */ false));
     isGenerating = true;
     break; 
 
-  case DEMODULATION_SUBTERM_SUBST_TREE:
-    tis=new TermSubstitutionTree();
+  case DEMODULATION_SUBTERM_SUBST_TREE: {
+    auto tis = new TermSubstitutionTree(/* extra */ false);
     if (env.options->combinatorySup()) {
-      res=new DemodulationSubtermIndexImpl<true>(tis);
+      res = new DemodulationSubtermIndexImpl<true>(tis);
     } else {
-      res=new DemodulationSubtermIndexImpl<false>(tis);
+      res = new DemodulationSubtermIndexImpl<false>(tis);
     }
     isGenerating = false;
     break;
+  }
   case DEMODULATION_LHS_CODE_TREE:
-    tis=new CodeTreeTIS();
-    res=new DemodulationLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
+    res = new DemodulationLHSIndex(new CodeTreeTIS(), _alg->getOrdering(), _alg->getOptions());
     isGenerating = false;
     break;
 
   case DEMODULATION_LHS_SUBST_TREE:
-    tis=new TermSubstitutionTree();
-    res=new DemodulationLHSIndex(tis, _alg->getOrdering(), _alg->getOptions());
+    res = new DemodulationLHSIndex(new TermSubstitutionTree(/* extra */ false), _alg->getOrdering(), _alg->getOptions());
     isGenerating = false;
     break;
 
@@ -251,26 +229,22 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case FW_SUBSUMPTION_CODE_TREE:
-    res=new CodeTreeSubsumptionIndex();
+    res = new CodeTreeSubsumptionIndex();
     isGenerating = false;
     break;
 
   case FW_SUBSUMPTION_SUBST_TREE:
-    is=new LiteralSubstitutionTree();
-//    is=new CodeTreeLIS();
-    res=new FwSubsSimplifyingLiteralIndex(is);
+    res = new FwSubsSimplifyingLiteralIndex(new LiteralSubstitutionTree());
     isGenerating = false;
     break;
 
   case FSD_SUBST_TREE:
-    is = new LiteralSubstitutionTree();
-    res = new FSDLiteralIndex(is);
+    res = new FSDLiteralIndex(new LiteralSubstitutionTree());
     isGenerating = false;
     break;
 
   case REWRITE_RULE_SUBST_TREE:
-    is=new LiteralSubstitutionTree();
-    res=new RewriteRuleIndex(is, _alg->getOrdering());
+    res = new RewriteRuleIndex(new LiteralSubstitutionTree(), _alg->getOrdering());
     isGenerating = false;
     break;
 
@@ -280,20 +254,17 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case UNIT_INT_COMPARISON_INDEX:
-    is = new LiteralSubstitutionTree();
-    res = new UnitIntegerComparisonLiteralIndex(is);
+    res = new UnitIntegerComparisonLiteralIndex(new LiteralSubstitutionTree());
     isGenerating = true;
     break;
 
   case INDUCTION_TERM_INDEX:
-    tis = new TermSubstitutionTree();
-    res = new InductionTermIndex(tis);
+    res = new InductionTermIndex(new TermSubstitutionTree(/* extra */ false));
     isGenerating = true;
     break;
 
   case STRUCT_INDUCTION_TERM_INDEX:
-    tis = new TermSubstitutionTree();
-    res = new StructInductionTermIndex(tis);
+    res = new StructInductionTermIndex(new TermSubstitutionTree(/* extra */ false));
     isGenerating = true;
     break;
 

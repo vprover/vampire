@@ -145,12 +145,10 @@ Formula* Naming::apply_iter(Formula* top_f) {
       case AND: {
         FormulaList* fs = tas.f->args();
         unsigned length = FormulaList::length(fs);
-        void* mem = ALLOC_UNKNOWN(length * sizeof(int), "Naming::apply");
-        int* cls = array_new<int>(mem, length);
+        int *cls = new int[length]();
         int* negCls = 0;
         if (tas.where == UNDER_IFF) {
-          mem = ALLOC_UNKNOWN(length * sizeof(int), "Naming::apply");
-          negCls = array_new<int>(mem, length);
+          negCls = new int[length]();
         }
 
         t.fncTag = APPLY_SUB_AND;
@@ -167,12 +165,10 @@ Formula* Naming::apply_iter(Formula* top_f) {
       case OR: {
         FormulaList* fs = tas.f->args();
         unsigned length = FormulaList::length(fs);
-        void* mem = ALLOC_UNKNOWN(length * sizeof(int), "Naming::apply");
-        int* cls = array_new<int>(mem, length);
+        int *cls = new int[length]();
         int* negCls = 0;
         if (tas.where == UNDER_IFF) {
-          mem = ALLOC_UNKNOWN(length * sizeof(int), "Naming::apply");
-          negCls = array_new<int>(mem, length);
+          negCls = new int[length]();
         }
         if (tas.where == ON_TOP) {
           tas.where = OTHER;
@@ -317,14 +313,12 @@ Formula* Naming::apply_iter(Formula* top_f) {
               FormulaList::push(gs[i], rs);
             }
             f = new JunctionFormula(AND, rs);
-            DEALLOC_UNKNOWN(gs, "Naming::apply");
+            delete[] gs;
           } else if (fs != f->args()) {
             f = new JunctionFormula(AND, fs);
           }
-          DEALLOC_UNKNOWN(sand.cls, "Naming::apply");
-          if (sand.negCls) {
-            DEALLOC_UNKNOWN(sand.negCls, "Naming::apply");
-          }
+          delete[] sand.cls;
+          delete[] sand.negCls;
 
           {
             Result r;
@@ -341,8 +335,7 @@ Formula* Naming::apply_iter(Formula* top_f) {
         // conjunction under disjunction or IFF, should be split
         split = true;
         if (!gs) {
-          void* mem = ALLOC_UNKNOWN(length * sizeof(Formula*), "Naming::apply");
-          gs = array_new<Formula*>(mem, length);
+          gs = new Formula*[length]();
           int j = 0;
           FormulaList::Iterator hs(fs);
           while (hs.hasNext()) {
@@ -439,14 +432,12 @@ Formula* Naming::apply_iter(Formula* top_f) {
               FormulaList::push(gs[i], rs);
             }
             f = new JunctionFormula(OR, rs);
-            DEALLOC_UNKNOWN(gs, "Naming::apply");
+            delete[] gs;
           } else if (fs != f->args()) {
             f = new JunctionFormula(OR, fs);
           }
-          DEALLOC_UNKNOWN(sor.cls, "Naming::apply");
-          if (sor.negCls) {
-            DEALLOC_UNKNOWN(sor.negCls, "Naming::apply");
-          }
+          delete[] sor.cls;
+          delete[] sor.negCls;
 
           {
             Result r;
@@ -463,8 +454,7 @@ Formula* Naming::apply_iter(Formula* top_f) {
         // splitWhat != 0
         split = true;
         if (!gs) {
-          void* mem = ALLOC_UNKNOWN(length * sizeof(Formula*), "Naming::apply");
-          gs = array_new<Formula*>(mem, length);
+          gs = new Formula*[length]();
 
           int j = 0;
           FormulaList::Iterator hs(fs);
@@ -756,12 +746,10 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
   case AND: {
     FormulaList* fs = f->args();
     unsigned length = FormulaList::length(fs);
-    void* mem = ALLOC_UNKNOWN(length * sizeof(int), "Naming::apply");
-    int* cls = array_new<int>(mem, length);
+    int *cls = new int[length]();
     int* negCls = 0;
     if (where == UNDER_IFF) {
-      mem = ALLOC_UNKNOWN(length * sizeof(int), "Naming::apply");
-      negCls = array_new<int>(mem, length);
+      negCls = new int[length]();
     }
     fs = apply_list(fs, where, cls, negCls);
     bool split = false;
@@ -825,14 +813,12 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
             FormulaList::push(gs[i], rs);
           }
           f = new JunctionFormula(AND, rs);
-          DEALLOC_UNKNOWN(gs, "Naming::apply");
+          delete[] gs;
         } else if (fs != f->args()) {
           f = new JunctionFormula(AND, fs);
         }
-        DEALLOC_UNKNOWN(cls, "Naming::apply");
-        if (negCls) {
-          DEALLOC_UNKNOWN(negCls, "Naming::apply");
-        }
+        delete[] cls;
+        delete[] negCls;
         neg = product;
         pos = sum;
         return f;
@@ -841,8 +827,7 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
       // conjunction under disjunction or IFF, should be split
       split = true;
       if (!gs) {
-        void* mem = ALLOC_UNKNOWN(length * sizeof(Formula*), "Naming::apply");
-        gs = array_new<Formula*>(mem, length);
+        gs = new Formula *[length]();
         int j = 0;
         FormulaList::Iterator hs(fs);
         while (hs.hasNext()) {
@@ -866,12 +851,10 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
   case OR: {
     FormulaList* fs = f->args();
     unsigned length = FormulaList::length(fs);
-    void* mem = ALLOC_UNKNOWN(length * sizeof(int), "Naming::apply");
-    int* cls = array_new<int>(mem, length);
+    int *cls = new int[length]();
     int* negCls = 0;
     if (where == UNDER_IFF) {
-      mem = ALLOC_UNKNOWN(length * sizeof(int), "Naming::apply");
-      negCls = array_new<int>(mem, length);
+      negCls = new int[length]();
     }
     if (where == ON_TOP) {
       where = OTHER;
@@ -938,14 +921,12 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
             FormulaList::push(gs[i], rs);
           }
           f = new JunctionFormula(OR, rs);
-          DEALLOC_UNKNOWN(gs, "Naming::apply");
+          delete[] gs;
         } else if (fs != f->args()) {
           f = new JunctionFormula(OR, fs);
         }
-        DEALLOC_UNKNOWN(cls, "Naming::apply");
-        if (negCls) {
-          DEALLOC_UNKNOWN(negCls, "Naming::apply");
-        }
+        delete[] cls;
+        delete[] negCls;
         neg = sum;
         pos = product;
         return f;
@@ -954,8 +935,7 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
       // splitWhat != 0
       split = true;
       if (!gs) {
-        void* mem = ALLOC_UNKNOWN(length * sizeof(Formula*), "Naming::apply");
-        gs = array_new<Formula*>(mem, length);
+        gs = new Formula *[length]();
         int j = 0;
         FormulaList::Iterator hs(fs);
         while (hs.hasNext()) {
@@ -1139,6 +1119,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
   if(!_appify){
     unsigned pred = env.signature->addNamePredicate(arity);
     Signature::Symbol* predSym = env.signature->getPredicate(pred);
+    predSym->markSkipCongruence();
 
     if (env.colorUsed) {
       Color fc = f->getColor();
@@ -1156,6 +1137,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
     unsigned fun = env.signature->addNameFunction(typeVars.size());
     TermList sort = AtomicSort::arrowSort(termVarSorts, AtomicSort::boolSort());
     Signature::Symbol* sym = env.signature->getFunction(fun);
+    sym->markSkipCongruence();
     sym->setType(OperatorType::getConstantsType(sort, typeArgArity)); 
     TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
     TermList t = ApplicativeHelper::createAppTerm(

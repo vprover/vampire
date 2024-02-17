@@ -28,9 +28,6 @@ class BackwardSubsumptionResolution
 : public BackwardSimplificationEngine
 {
 public:
-  CLASS_NAME(BackwardSubsumptionResolution);
-  USE_ALLOCATOR(BackwardSubsumptionResolution);
-
   BackwardSubsumptionResolution(bool byUnitsOnly) : _byUnitsOnly(byUnitsOnly) {}
 
   void attach(SaturationAlgorithm* salg);

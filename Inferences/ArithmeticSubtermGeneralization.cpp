@@ -82,7 +82,7 @@ template<class EvalFn>
 SimplifyingGeneratingInference1::Result generalizeBottomUp(Clause* cl, EvalFn eval) 
 {
   /* apply the selectedGen generalization */
-  bool anyChange = false;
+  DEBUG_CODE(bool anyChange = false);
   bool oneLess = false;
   bool allLessEq = true;
 
@@ -92,9 +92,9 @@ SimplifyingGeneratingInference1::Result generalizeBottomUp(Clause* cl, EvalFn ev
         auto termArgs = termArgIter(lit)
           .map([&](TermList term) -> TermList { 
               auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getTermArgSort(lit, j++)));
-              auto res = evaluateBottomUp(norm, eval);
+              auto res = BottomUpEvaluation<typename EvalFn::Arg, typename EvalFn::Result>().function(eval).apply(norm);
               if (res != norm) {
-                anyChange = true;
+                DEBUG_CODE(anyChange = true);
                 DEBUG("generalized: ", norm, " -> ", res);
                 return res.denormalize();
               } else {
@@ -134,7 +134,7 @@ SimplifyingGeneratingInference1::Result generalizeBottomUp(Clause* cl, EvalFn ev
     })
     .template collect<Stack>();
 
-  ASS (anyChange) 
+  ASS(anyChange)
   Inference inf(SimplifyingInference1(Kernel::InferenceRule::ARITHMETIC_SUBTERM_GENERALIZATION, cl));
   bool redundant = allLessEq && oneLess;
   env.statistics->asgCnt++;
@@ -175,13 +175,13 @@ struct EvaluateAnyPoly
   PolyNf operator()(PolyNf term, PolyNf* evaluatedArgs) 
   {
     auto out = term.match(
-        [&](Perfect<FuncTerm> t) -> PolyNf
-        { return perfect(FuncTerm(t->function(), evaluatedArgs)); },
+        [&](Perfect<FuncTerm> t)
+        { return PolyNf(perfect(FuncTerm(t->function(), evaluatedArgs))); },
 
-        [&](Variable v) 
-        { return v; },
+        [&](Variable v)
+        { return PolyNf(v); },
 
-        [&](AnyPoly p) 
+        [&](AnyPoly p)
         { return PolyNf(eval(p, evaluatedArgs)); }
         );
     return out;

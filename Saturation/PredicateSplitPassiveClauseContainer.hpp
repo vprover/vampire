@@ -23,9 +23,6 @@ class PredicateSplitPassiveClauseContainer
 : public PassiveClauseContainer
 {
 public:
-  CLASS_NAME(PredicateSplitPassiveClauseContainer);
-  USE_ALLOCATOR(PredicateSplitPassiveClauseContainer);
-
   PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues, Lib::vvector<float> cutoffs, Lib::vvector<int> ratios, bool layeredArrangement);
   virtual ~PredicateSplitPassiveClauseContainer();
 

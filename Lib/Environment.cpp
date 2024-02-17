@@ -51,8 +51,6 @@ Environment::Environment()
     _pipe(0),
     _problem(0)
 {
-  START_CHECKING_FOR_ALLOCATOR_BYPASSES;
-
   options = new Options;
 
   // statistics calls the timer
@@ -94,10 +92,7 @@ Environment::~Environment()
   delete signature;
   delete statistics;
   if (predicateSineLevels) delete predicateSineLevels;
-  {
-    BYPASSING_ALLOCATOR; // use of std::function in options
-    delete options;
-  }
+  delete options;
 // #endif
 }
 

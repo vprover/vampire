@@ -41,7 +41,6 @@ template <typename Value,class ValueComparator>
 class SkipList
 {
 public:
-  CLASS_NAME(SkipList);
   USE_ALLOCATOR(SkipList);
 
   class Node {

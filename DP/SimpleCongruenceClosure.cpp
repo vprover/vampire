@@ -75,7 +75,7 @@ vstring SimpleCongruenceClosure::CEq::toString(SimpleCongruenceClosure& parent) 
 
 void SimpleCongruenceClosure::ConstInfo::init() {
   sigSymbol = NO_SIG_SYMBOL;
-  term.makeEmpty();
+  term = TermList::empty();
   lit = 0;
   namedPair = CPair(0,0);
   reprConst = 0;
@@ -905,7 +905,7 @@ void SimpleCongruenceClosure::getModel(LiteralStack& model)
     
     cInfo.processed = false;    
     cInfo.half_normalized = false;
-    cInfo.normalForm.makeEmpty();                
+    cInfo.normalForm = TermList::empty();                
     
     if (cInfo.sigSymbol != NO_SIG_SYMBOL) { // either a symbol ...
       // cout << " is sigsym ";

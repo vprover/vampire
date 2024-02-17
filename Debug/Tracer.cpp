@@ -9,8 +9,14 @@
  */
 /**
  * @file Tracer.cpp
+ * Try and work out where we crashed and print out a call stack.
+ *
+ * You don't typically _want_ to use this for debugging,
+ * but sometimes Vampire crashes on some server somewhere,
+ * and this is the best you're going to get. Good luck!
  *
  * @since 01/05/2002 Manchester
+ * @since 25/12/2023 Mísečky invoke system binary for backtrace
  */
 
 #ifdef __has_include
@@ -20,19 +26,13 @@
 #define HAVE_EXECINFO
 #endif
 
-#if __has_include(<dlfcn.h>)
-#include <dlfcn.h>
-#define HAVE_DLFCN
-#endif
-
-#if __has_include(<cxxabi.h>)
-#include <cxxabi.h>
-#define HAVE_CXXABI
-#endif
-
-#endif
+#include <cstdlib>
+#include <sstream>
 
 #include "Tracer.hpp"
+#include "Lib/System.hpp"
+#include "Lib/Environment.hpp"
+#include "Shell/Options.hpp"
 
 // define in version.cpp.in
 extern const char* VERSION_STRING;
@@ -51,34 +51,38 @@ void Debug::Tracer::printStack(std::ostream& str) {
 #ifdef HAVE_EXECINFO
   void *call_stack[MAX_CALLS];
   int sz = ::backtrace(call_stack, MAX_CALLS);
-  for(int i = 0; i < sz; i++) {
-    for(int j = 0; j < i; j++)
-      str << ' ';
-    void *call = call_stack[sz - (i + 1)];
-#ifdef HAVE_DLFCN
-    Dl_info info;
-    if(dladdr(call, &info) && info.dli_sname) {
-      const char *name = info.dli_sname;
-#ifdef HAVE_CXXABI
-      int status;
-      const char *demangled = abi::__cxa_demangle(info.dli_sname, nullptr, nullptr, &status);
-      if(status == 0)
-        name = demangled;
+  str << "call stack:";
+  for(int i = 0; i < sz; i++)
+    str << ' ' << call_stack[sz - (i + 1)];
+  str << std::endl;
+
+  if (env.options->traceback()) {
+// UNIX-like systems, including BSD and Linux but not MacOS
+#if defined(__unix__)
+  str << "invoking addr2line(1) ..." << std::endl;
+  std::stringstream out;
+  out << "addr2line -Cfe " << Lib::System::getArgv0();
+  for(int i = 0; i < sz; i++)
+    out << ' ' << call_stack[sz - (i + 1)];
+  std::system(out.str().c_str());
+// Apple things
+#elif defined(__APPLE__)
+  str << "invoking atos(1) ..." << std::endl;
+  std::stringstream out;
+  out << "atos -o " << Lib::System::getArgv0();
+  for(int i = 0; i < sz; i++)
+    out << ' ' << call_stack[sz - (i + 1)];
+  std::system(out.str().c_str());
 #else
-      // TODO demangling support for other platforms
-#endif
-      str << name << std::endl;
-    }
-    else {
-      str << "???" << std::endl;
-    }
-#else
-    // TODO symbol name support for other platforms
-    str << "???" << std::endl;
+  // TODO symbol lookup support for other platforms
+  str << "no symbol lookup support for this platform yet" << std::endl;
 #endif
   }
+
 #else
   // TODO backtrace support for other platforms
-  str << "no backtrace support for this compiler/platform yet" << std::endl;
+  str << "no call stack support for this platform yet" << std::endl;
 #endif
 } // Tracer::printStack (ostream& str)
+
+#endif

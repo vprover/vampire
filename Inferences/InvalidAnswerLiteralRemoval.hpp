@@ -28,9 +28,6 @@ class InvalidAnswerLiteralRemoval
 : public ImmediateSimplificationEngine
 {
 public:
-  CLASS_NAME(InvalidAnswerLiteralRemoval);
-  USE_ALLOCATOR(InvalidAnswerLiteralRemoval);
-
   Clause* simplify(Clause* cl) override;
 };
 

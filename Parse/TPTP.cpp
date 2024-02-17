@@ -47,7 +47,6 @@ using namespace Parse;
 #define DEBUG_SHOW_TOKENS 0
 #define DEBUG_SHOW_UNITS 0
 #define DEBUG_SOURCE 0
-
 DHMap<unsigned, vstring> TPTP::_axiomNames;
 
 //Numbers chosen to avoid clashing with connectives.
@@ -1220,10 +1219,7 @@ void TPTP::unitList()
       return;
     }
     resetChars();
-    {
-      BYPASSING_ALLOCATOR; // ifstream was allocated by "system new"
-      delete _in;
-    }
+    delete _in;
     _in = _inputs.pop();
     _includeDirectory = _includeDirectories.pop();
     delete _allowedNames;
@@ -2110,10 +2106,7 @@ void TPTP::include()
   // the TPTP standard, so far we just set it to ""
   _includeDirectory = "";
   vstring fileName(env.options->includeFileName(relativeName));
-  {
-    BYPASSING_ALLOCATOR; // we cannot make ifstream allocated via Allocator
-    _in = new ifstream(fileName.c_str());
-  }
+  _in = new ifstream(fileName.c_str());
   if (!*_in) {
     USER_ERROR((vstring)"cannot open file " + fileName);
   }
@@ -2893,11 +2886,7 @@ void TPTP::term()
         default:
           ASSERTION_VIOLATION;
       }
-      Term *t = new(0) Term;
-      t->makeSymbol(number, 0);
-      t = env.sharing->insert(t);
-      TermList constant(t);
-      _termLists.push(constant);
+      _termLists.push(TermList(Term::createConstant(number)));
       return;
     }
 
@@ -3167,35 +3156,30 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
     }
   }
   // not equality or distinct
-  Literal* lit = new(arity) Literal(pred,arity,true,false);
+  auto args = nLastTermLists(arity);
   OperatorType* type = env.signature->getPredicate(pred)->predType();
-  bool safe = true;
-  for (int i = arity-1;i >= 0;i--) {
+  for (auto i : range(0, arity)) {
     TermList sort = type->arg(i);
-    TermList ts = _termLists.pop();
+    TermList ts = args[i];
     TermList tsSort = sortOf(ts);
-    if((unsigned)i < type->numTypeArguments()){
+    if(i < type->numTypeArguments()){
       if(tsSort != AtomicSort::superSort()){
-        USER_ERROR("The sort " + tsSort.toString() + " of type argument " + ts.toString() + " "
-                   "is not $ttype as mandated by TF1");
+        USER_ERROR("The sort ", tsSort, " of type argument ", ts, " is not $ttype as mandated by TF1");
       }
     } else {
-      static RobSubstitution subst;
-      subst.reset();
-      if(!subst.match(sort, 0, tsSort, 1)) {
-        USER_ERROR("Failed to create predicate application for " + name + " of type " + type->toString() + "\n" +
-                   "The sort " + tsSort.toString() + " of the intended term argument " + ts.toString() + " (at index " + Int::toString(i) +") "
-                   "is not an instance of sort " + sort.toString());
+      _substScratchpad.reset();
+      if(!_substScratchpad.match(sort, 0, tsSort, 1)) {
+        USER_ERROR("Failed to create predicate application for ", name, " of type ", type, "\n",
+                   "The sort ", tsSort, " of the intended term argument ", ts, " (at index ", i, ") "
+                   "is not an instance of sort ", sort);
       }
     }
-    safe = safe && ts.isSafe();
-    *(lit->nthArgument(i)) = ts;
   }
-  if (safe) {
-    lit = env.sharing->insert(lit);
-  }
-  return new AtomicFormula(lit);
+  auto out = new AtomicFormula(Literal::create(pred, arity, /* polarity */ true, /* commutative */ false, args));
+  _termLists.pop(arity);
+  return out;
 } // createPredicateApplication
+
 
 /**
  * Creates a term that is a function application from
@@ -3219,35 +3203,30 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
       fun = addUninterpretedConstant(name, _overflow, dummy);
     }
   }
-  Term* t = new(arity) Term;
-  t->makeSymbol(fun,arity);
+
   OperatorType* type = env.signature->getFunction(fun)->fnType();
-  bool safe = true;
-  for (int i = arity-1;i >= 0;i--) {
+  auto args = nLastTermLists(arity);
+  for (unsigned i : range(0, arity)) {
     TermList sort = type->arg(i);
-    TermList ss = _termLists.pop();
+    TermList ss = args[i];
     TermList ssSort = sortOf(ss);
-    if((unsigned)i < type->numTypeArguments()){
+    if(i < type->numTypeArguments()){
       if(ssSort != AtomicSort::superSort()){
         USER_ERROR("The sort " + ssSort.toString() + " of type argument " + ss.toString() + " "
                    "is not $tType as mandated by TF1");
       }
     } else {
-      static RobSubstitution subst;
-      subst.reset();
-      if(!subst.match(sort, 0, ssSort, 1)){
+      _substScratchpad.reset();
+      if(!_substScratchpad.match(sort, 0, ssSort, 1)){
         USER_ERROR("Failed to create function application for " + name + " of type " + type->toString() + "\n" +
                    "The sort " + ssSort.toString() + " of the intended term argument " + ss.toString() + " (at index " + Int::toString(i) +") "
                    "is not an instance of sort " + sort.toString());
       }
     }
-    *(t->nthArgument(i)) = ss;
-    safe = safe && ss.isSafe();
   }
-  if (safe) {
-    t = env.sharing->insert(t);
-  }
-  return TermList(t);
+  auto t = TermList(Term::create(fun, arity, args));
+  _termLists.pop(arity);
+  return t;
 }
 
 /**
@@ -3264,23 +3243,17 @@ TermList TPTP::createTypeConApplication(vstring name, unsigned arity)
   //TODO not checking for overflown constant. Is that OK?
   //seems to be done this way for predicates as well.
   unsigned typeCon = env.signature->addTypeCon(name,arity,dummy);
-  AtomicSort* s = new(arity) AtomicSort(typeCon,arity);
 
-  bool safe = true;
-  for (int i = arity-1;i >= 0;i--) {
-    TermList ss = _termLists.pop();
-    TermList ssSort = sortOf(ss);
-    if(ssSort != AtomicSort::superSort()){
-        USER_ERROR("The sort " + ssSort.toString() + " of type argument " + ss.toString() + " "
-                   "is not $tType as mandated by TF1");
-    }
-    *(s->nthArgument(i)) = ss;
-    safe = safe && ss.isSafe();
+  auto args = nLastTermLists(arity);
+  for (auto i : range(0, arity)) {
+    auto term = args[i];
+    auto sort = sortOf(term);
+    if (sort != AtomicSort::superSort()) 
+        USER_ERROR("The sort ", sort, " of type argument ", term, " is not $tType as mandated by TF1");
   }
-  if (safe) {
-    s = env.sharing->insert(s);
-  }
-  return TermList(s);
+  auto s = TermList(AtomicSort::create(typeCon, arity, args));
+  _termLists.pop(arity);
+  return s;
 }
 
 /**
@@ -3653,13 +3626,12 @@ void TPTP::endFof()
       unsigned arity = VList::length(g->vars());
       unsigned pred = env.signature->addPredicate("$$answer",arity);
       env.signature->getPredicate(pred)->markAnswerPredicate();
-      Literal* a = new(arity) Literal(pred,arity,true,false);
+      Recycled<Stack<TermList>> args;
       VList::Iterator vs(g->vars());
-      int i = 0;
       while (vs.hasNext()) {
-        a->nthArgument(i++)->makeVar(vs.next());
+        args->push(TermList::var(vs.next()));
       }
-      a = env.sharing->insert(a);
+      Literal* a = Literal::create(pred, arity, /* polarity */ true, /* commutative */  false, args->begin());
       f = new QuantifiedFormula(FORALL,
         g->vars(),
         g->sorts(),
@@ -3708,9 +3680,7 @@ Unit* TPTP::processClaimFormula(Unit* unit, Formula * f, const vstring& nm)
     USER_ERROR("Names of claims must be unique: "+nm);
   }
   env.signature->getPredicate(pred)->markLabel();
-  Literal* a = new(0) Literal(pred,0,true,false);
-  a = env.sharing->insert(a);
-  Formula* claim = new AtomicFormula(a);
+  Formula* claim = new AtomicFormula(Literal::create(pred, /* polarity */ true, {}));
   VList* vs = f->freeVariables();
   if (VList::isNonEmpty(vs)) {
     //TODO can we use sortOf to get sorts of vs?

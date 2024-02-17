@@ -117,9 +117,6 @@ struct FunctionDefinition::Def
       DEALLOC_KNOWN(argOccurs, lhs->arity()*sizeof(bool), "FunctionDefinition::Def::argOccurs");
     }
   }
-
-  CLASS_NAME(FunctionDefinition::Def);
-  USE_ALLOCATOR(Def);
 }; // class FunctionDefintion::Def
 
 

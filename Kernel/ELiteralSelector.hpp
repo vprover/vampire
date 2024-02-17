@@ -32,9 +32,6 @@ class ELiteralSelector
 : public LiteralSelector
 {
 public:
-  CLASS_NAME(ELiteralSelector);
-  USE_ALLOCATOR(ELiteralSelector);
-
   enum Values {
     // NoSelection, -- not implemented, this would be the same as spass's OFF
     SelectNegativeLiterals = 0,
