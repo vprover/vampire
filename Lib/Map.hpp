@@ -62,6 +62,13 @@ public:
         value().~Val();
       }
     }
+    void reset() {
+      if (occupied()) {
+        key().~Key();
+        value().~Val();
+      }
+      code = 0;
+    }
 
   private:
     /** Create a new entry */
@@ -199,9 +206,9 @@ public:
    * 
    * @since 25/08/2020 Manchester
    */
-  Option<Val&> tryGet(Key const& key) const
+  Option<Val const&> tryGet(Key const& key) const
   {
-    using Opt = Option<Val&>;
+    using Opt = Option<Val const&>;
 
     auto code = hashCode(key);
     Entry* entry;
@@ -488,6 +495,7 @@ public:
     return true;
   }
   
+
   void clear()
   {
     if (_entries) {
@@ -501,6 +509,18 @@ public:
     _maxEntries  = 0;
   }
   
+  /**
+   * resets every entry in the map keeping the memory of _entries allocated
+   */
+  void reset()
+  {
+    for (int i = _capacity-1;i >= 0;i--) {
+      _entries[i].reset();
+    }
+    _noOfEntries = 0;
+  } // reset
+
+ 
   /**
    * Delete all entries.
    * @since 07/08/2005 Redmond

@@ -30,8 +30,6 @@ namespace SAT{
 class MinisatInterfacingNewSimp : public SATSolverWithAssumptions
 {
 public:
-  USE_ALLOCATOR(MinisatInterfacingNewSimp);
-  
   static const unsigned VAR_MAX;
 
 	MinisatInterfacingNewSimp(const Shell::Options& opts, bool generateProofs=false);

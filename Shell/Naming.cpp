@@ -1119,6 +1119,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
   if(!_appify){
     unsigned pred = env.signature->addNamePredicate(arity);
     Signature::Symbol* predSym = env.signature->getPredicate(pred);
+    predSym->markSkipCongruence();
 
     if (env.colorUsed) {
       Color fc = f->getColor();
@@ -1136,6 +1137,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
     unsigned fun = env.signature->addNameFunction(typeVars.size());
     TermList sort = AtomicSort::arrowSort(termVarSorts, AtomicSort::boolSort());
     Signature::Symbol* sym = env.signature->getFunction(fun);
+    sym->markSkipCongruence();
     sym->setType(OperatorType::getConstantsType(sort, typeArgArity)); 
     TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
     TermList t = ApplicativeHelper::createAppTerm(

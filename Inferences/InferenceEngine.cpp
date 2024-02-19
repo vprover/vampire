@@ -250,7 +250,7 @@ CompositeSGI::ClauseGenerationResult CompositeSGI::generateSimplify(Kernel::Clau
     }
   }
   return ClauseGenerationResult {
-    .clauses          = pvi(getFlattenedIterator(ownedArrayishIterator(std::move(clauses)))),
+    .clauses          = pvi(getFlattenedIterator(arrayIter(std::move(clauses)))),
     .premiseRedundant = redundant,
   };
 }
@@ -366,9 +366,7 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
     seen.reset();
     //here we rely on the fact that the iterator traverses the clause from
     //the first to the last literal
-    Clause::Iterator cit(*c);
-    while(cit.hasNext()) {
-      Literal* lit = cit.next();
+    for (Literal* lit : c->iterLits()) {
       if(!seen.insert(lit)) {
         skipped.push(lit);
       }
@@ -407,8 +405,8 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
     origLits.reset();
     static DHSet<Literal*> newLits;
     newLits.reset();
-    origLits.loadFromIterator(Clause::Iterator(*c));
-    newLits.loadFromIterator(Clause::Iterator(*d));
+    origLits.loadFromIterator(c->iterLits());
+    newLits.loadFromIterator(d->iterLits());
     ASS_EQ(origLits.size(),newLits.size());
     ASS_EQ(origLits.size(), static_cast<unsigned>(newLength));
   }

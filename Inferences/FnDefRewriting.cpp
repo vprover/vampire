@@ -65,7 +65,7 @@ struct FnDefRewriting::ForwardResultFn {
     TermQueryResult &qr = arg.second;
     bool temp;
     return FnDefRewriting::perform(_cl, arg.first.first, TermList(arg.first.second), qr.clause,
-                                   qr.literal, qr.term, qr.substitution, false, temp,
+                                   qr.literal, qr.term, qr.unifier, false, temp,
                                    Inference(GeneratingInference2(InferenceRule::FNDEF_REWRITING, _cl, qr.clause)));
   }
 private:
@@ -124,7 +124,7 @@ bool FnDefRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& p
           continue;
         }
         bool isEqTautology = false;
-        auto res = FnDefRewriting::perform(cl, lit, trm, qr.clause, qr.literal, qr.term, qr.substitution, toplevelCheck,
+        auto res = FnDefRewriting::perform(cl, lit, trm, qr.clause, qr.literal, qr.term, qr.unifier, toplevelCheck,
           isEqTautology, Inference(SimplifyingInference2(InferenceRule::FNDEF_DEMODULATION, cl, qr.clause)), salg);
         if (!res && !isEqTautology) {
           continue;

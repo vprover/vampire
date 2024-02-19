@@ -20,6 +20,7 @@
 #include "Inference.hpp"
 #include "TermTransformer.hpp"
 #include "Lib/Recycled.hpp"
+#include "Lib/DHMap.hpp"
 
 namespace Kernel {
 

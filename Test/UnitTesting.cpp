@@ -44,31 +44,51 @@ UnitTesting& UnitTesting::instance()
   return *_instance; 
 }
 
-bool UnitTesting::runTest(vstring const& unitId, vstring const& testCase) 
+bool UnitTesting::runTest(vstring const& unitId, vstring const& testName) 
 {
   auto unit = findUnit(unitId);
   if (unit == nullptr) return false;
-  else return unit->runTest(testCase);
+  else if (unit->hasTest(testName)) {
+    return unit->runTest(testName);
+  } else {
+    return unit->runTestsWithNameSubstring(testName, std::cout);
+  }
 }
-bool TestUnit::runTest(vstring const& testCase)
+
+TestUnit::Test* TestUnit::findTest(vstring const& testCase)
 {
-  for (auto test : _tests) {
+  for (auto& test : _tests) {
     if (test.name == testCase) {
-      test.proc();
-      return true;
+      return &test;
     }
   }
-  std::cerr << "test \"" << testCase << "\" not found in " << id() << std::endl;
-  return false;
+  return nullptr;
+}
+bool TestUnit::hasTest(vstring const& name)
+{ return findTest(name) != nullptr; }
+
+
+bool TestUnit::runTest(vstring const& name)
+{
+  auto test = findTest(name);
+  if (test != nullptr) {
+      test->proc();
+      return true;
+  } else {
+    std::cerr << "test \"" << name << "\" not found in " << id() << std::endl;
+    return false;
+  }
 }
 
 bool UnitTesting::run(Stack<vstring> const& args) 
 {
   if (args.size() == 2) {
     return runTest(args[0], args[1]);
-  } else {
-    ASS_EQ(args.size(), 1)
+  } else if (args.size() == 1) {
     return runUnit(args[0]);
+  } else {
+    std::cerr << "usage: vtest <unit-name> [ <test-name-substring> ]";
+    exit(-1);
   }
 }
 
@@ -110,7 +130,7 @@ bool UnitTesting::listTests(Stack<vstring> const&)
   return true;
 }
 
-bool TestUnit::run(ostream& out)
+bool TestUnit::runTestsWithNameSubstring(vstring const& pref, ostream& out)
 {
   Stack<Test>::BottomFirstIterator uit(_tests);
 
@@ -121,15 +141,17 @@ bool TestUnit::run(ostream& out)
   unsigned cnt_ok  = 0;
   while(uit.hasNext()) {
     TestUnit::Test t=uit.next();
-    out << "Running " << t.name << "... ";
-    out.flush();
-    bool ok;
-    {
-      ok = spawnTest(t.proc);
+    if (vstring(t.name).find(pref) != vstring::npos) {
+      out << "Running " << t.name << "... \r";
+      out.flush();
+      bool ok;
+      {
+        ok = spawnTest(t.proc);
+      }
+      out << "\r" << ( ok ? "[  OK  ]" : "[ FAIL ]" ) << " " << t.name << "          " << endl;
+      if (ok) cnt_ok++;
+      else cnt_fail++;
     }
-    out << "\r" << ( ok ? "[  OK  ]" : "[ FAIL ]" ) << " " << t.name << "          " << endl;
-    if (ok) cnt_ok++;
-    else cnt_fail++;
   }
   out << endl;
   auto cnt = cnt_fail + cnt_ok;
@@ -139,6 +161,9 @@ bool TestUnit::run(ostream& out)
   out << "  - fail " << cnt_fail << "\t(" << (cnt_fail * 100.0 / cnt) << ") %" << endl;
   return cnt_fail == 0;
 }
+
+bool TestUnit::run(ostream& out)
+{ return runTestsWithNameSubstring("", out); }
 
 void TestUnit::add(Test t)
 { _tests.push(t); }
@@ -160,16 +185,13 @@ bool TestUnit::spawnTest(TestProc proc)
     try {
       proc();
     } catch (Lib::Exception& e) {
-      // e.cry(std::cout);
       e.cry(std::cerr);
-      _exit(-1);
-
+      exit(-1);
     } catch (std::exception& e) {
       std::cerr << e.what() << std::endl;
-      _exit(-1);
-
+      exit(-1);
     }
-    _exit(0); // don't call parent's atexit! 
+    exit(0);
   } else {
     int childRes;
     Multiprocessing::instance()->waitForChildTermination(childRes);

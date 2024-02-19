@@ -37,8 +37,6 @@ using namespace Lib;
 
 class FallbackSolverWrapper : public SATSolver {
 public:
-  USE_ALLOCATOR(FallbackSolverWrapper);
-
   FallbackSolverWrapper(SATSolver* inner,SATSolver* fallback);
 
   virtual SATClause* getRefutation() override { 

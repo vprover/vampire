@@ -96,7 +96,7 @@ FuncTerm::FuncTerm(FuncId f, Stack<PolyNf>&& args)
 
 FuncTerm::FuncTerm(FuncId f, PolyNf* args) 
   : _fun(f)
-  , _args(Stack<PolyNf>::fromIterator(getArrayishObjectIterator(args, f.numTermArguments()))) 
+  , _args(Stack<PolyNf>::fromIterator(arrayIter(args, f.numTermArguments()))) 
 { }
 
 bool operator==(FuncTerm const& lhs, FuncTerm const& rhs) 

@@ -30,8 +30,6 @@ class InnerRewriting
 : public ForwardSimplificationEngine
 {
 public:
-  USE_ALLOCATOR(InnerRewriting);
-  
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 };
 

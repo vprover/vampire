@@ -23,8 +23,6 @@ class NumeralMultiplicationGeneralization
 : public SimplifyingGeneratingInference1
 {
 public:
-  USE_ALLOCATOR(NumeralMultiplicationGeneralization);
-
   virtual ~NumeralMultiplicationGeneralization();
 
   SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck);
@@ -35,8 +33,6 @@ class VariableMultiplicationGeneralization
 : public SimplifyingGeneratingInference1
 {
 public:
-  USE_ALLOCATOR(VariableMultiplicationGeneralization);
-
   virtual ~VariableMultiplicationGeneralization();
 
   SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck);
@@ -47,8 +43,6 @@ class VariablePowerGeneralization
 : public SimplifyingGeneratingInference1
 {
 public:
-  USE_ALLOCATOR(VariablePowerGeneralization);
-
   virtual ~VariablePowerGeneralization();
 
   SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck);
@@ -59,8 +53,6 @@ class AdditionGeneralization
 : public SimplifyingGeneratingInference1
 {
 public:
-  USE_ALLOCATOR(AdditionGeneralization);
-
   virtual ~AdditionGeneralization();
 
   SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck);

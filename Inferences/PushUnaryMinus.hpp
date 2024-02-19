@@ -27,8 +27,6 @@ class PushUnaryMinus
 : public ImmediateSimplificationEngine
 {
 public:
-  USE_ALLOCATOR(PushUnaryMinus);
-
   virtual ~PushUnaryMinus();
 
   Clause* simplify(Clause* cl);

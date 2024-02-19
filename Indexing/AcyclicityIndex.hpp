@@ -66,8 +66,6 @@ public:
   void remove(Kernel::Literal *lit, Kernel::Clause *c);
 
   CycleQueryResultsIterator queryCycles(Kernel::Literal *lit, Kernel::Clause *c);
-             
-  USE_ALLOCATOR(AcyclicityIndex);
 protected:
   void handleClause(Kernel::Clause* c, bool adding);
 private:

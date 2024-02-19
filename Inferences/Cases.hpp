@@ -23,8 +23,6 @@ namespace Inferences {
 
 class Cases : public GeneratingInferenceEngine {
   public:
-    USE_ALLOCATOR(Cases);
-    
     Clause* performParamodulation(Clause* cl, Literal* lit, TermList t);
     ClauseIterator generateClauses(Clause* premise);
     struct RewriteableSubtermsFn;

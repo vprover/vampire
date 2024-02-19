@@ -30,8 +30,6 @@ class Factoring
 : public GeneratingInferenceEngine
 {
 public:
-  USE_ALLOCATOR(Factoring);
-
   ClauseIterator generateClauses(Clause* premise);
 private:
   class UnificationsOnPositiveFn;

@@ -104,7 +104,7 @@ long long LRS::estimatedReachableCount()
   int firstCheck=_opt.lrsFirstTimeCheck(); // (in percent)!
 
   long int opt_instruction_limit = 0; // (in mega-instructions)
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
   opt_instruction_limit = _opt.simulatedInstructionLimit()
     ? _opt.simulatedInstructionLimit()
     : _opt.instructionLimit();

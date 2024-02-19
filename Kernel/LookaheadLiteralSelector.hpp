@@ -25,8 +25,6 @@ class LookaheadLiteralSelector
 : public LiteralSelector
 {
 public:
-  USE_ALLOCATOR(LookaheadLiteralSelector);
-
   LookaheadLiteralSelector(bool completeSelection, const Ordering& ordering, const Options& options)
   : LiteralSelector(ordering, options), _completeSelection(completeSelection)
   {
@@ -48,7 +46,7 @@ protected:
 private:
   Literal* pickTheBest(Literal** lits, unsigned cnt);
   void removeVariants(LiteralStack& lits);
-  VirtualIterator<void> getGeneraingInferenceIterator(Literal* lit);
+  VirtualIterator<std::tuple<>> getGeneraingInferenceIterator(Literal* lit);
 
   struct GenIteratorIterator;
 

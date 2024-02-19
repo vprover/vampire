@@ -823,7 +823,7 @@ std::ostream& operator<< (std::ostream& out, const List<T>& lstr )
   while(lst) {
     out<<lst->head();
     lst=lst->tail();
-    if (lst) out << ",\n";
+    if (lst) out << ", ";
   }
 
   return out<<']';
@@ -843,6 +843,10 @@ std::ostream& operator<< (std::ostream& out, const List<T*>& lstr )
 
   return out<<']';
 }
+
+
+
+
 
 #endif
 

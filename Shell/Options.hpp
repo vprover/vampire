@@ -53,6 +53,7 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/STL.hpp"
+#include "Lib/Timer.hpp"
 
 #include "Property.hpp"
 
@@ -179,8 +180,6 @@ public:
     void setInputFile(const vstring& newVal){ _inputFile.set(newVal); }
     vstring includeFileName (const vstring& relativeName);
 
-    USE_ALLOCATOR(Options);
-    
     // standard ways of creating options
     void set(const vstring& name, const vstring& value); // implicitly the long version used here
     void set(const char* name, const char* value, bool longOpt);
@@ -234,7 +233,10 @@ public:
     ONE_INTERP,
     CONSTANT,
     ALL,
-    GROUND
+    GROUND,
+    FUNC_EXT,
+    AC1,
+    AC2,
   };
 
   enum class Induction : unsigned int {
@@ -536,7 +538,8 @@ public:
   enum class URResolution : unsigned int {
     EC_ONLY = 0,
     OFF = 1,
-    ON = 2
+    ON = 2,
+    FULL = 3
   };
 
   enum class TermOrdering : unsigned int {
@@ -845,9 +848,6 @@ private:
      * @author Giles
      */
     struct AbstractOptionValue {
-
-        USE_ALLOCATOR(AbstractOptionValue);
-
         AbstractOptionValue(){}
         AbstractOptionValue(vstring l,vstring s) :
         longName(l), shortName(s), experimental(false), is_set(false),_should_copy(true), _tag(OptionTag::LAST_TAG), supress_problemconstraints(false) {}
@@ -977,9 +977,6 @@ private:
      */
     template<typename T>
     struct OptionValue : public AbstractOptionValue {
-        
-        USE_ALLOCATOR(OptionValue);
-        
         // We need to include an empty constructor as all the OptionValue objects need to be initialized
         // with something when the Options object is created. They should then all be reconstructed
         // This is annoying but preferable to the alternative in my opinion
@@ -1077,9 +1074,6 @@ private:
      */
     template<typename T >
     struct ChoiceOptionValue : public OptionValue<T> {
-        
-        USE_ALLOCATOR(ChoiceOptionValue);
-        
         ChoiceOptionValue(){}
         ChoiceOptionValue(vstring l, vstring s,T def,OptionChoiceValues c) :
         OptionValue<T>(l,s,def), choices(c) {}
@@ -1209,9 +1203,6 @@ vstring getStringOfValue(float value) const{ return Lib::Int::toString(value); }
 * @author Giles
 */
 struct RatioOptionValue : public OptionValue<int> {
-
-USE_ALLOCATOR(RatioOptionValue);
-
 RatioOptionValue(){}
 RatioOptionValue(vstring l, vstring s, int def, int other, char sp=':') :
 OptionValue(l,s,def), sep(sp), defaultOtherValue(other), otherValue(other) {};
@@ -1254,9 +1245,6 @@ virtual vstring getStringOfActual() const override {
 * @author Giles
 */
 struct NonGoalWeightOptionValue : public OptionValue<float>{
-
-USE_ALLOCATOR(NonGoalWeightOptionValue);
-
 NonGoalWeightOptionValue(){}
 NonGoalWeightOptionValue(vstring l, vstring s, float def) :
 OptionValue(l,s,def), numerator(1), denominator(1) {};
@@ -1395,7 +1383,6 @@ virtual vstring getStringOfValue(int value) const{ return Lib::Int::toString(val
 
 template<typename T>
 struct OptionValueConstraint{
-USE_ALLOCATOR(OptionValueConstraint);
 OptionValueConstraint() : _hard(false) {}
 
 virtual ~OptionValueConstraint() {} // virtual methods present -> there should be virtual destructor
@@ -1421,8 +1408,6 @@ bool _hard;
 
     template<typename T>
     struct WrappedConstraint : AbstractWrappedConstraint {
-        USE_ALLOCATOR(WrappedConstraint);
-        
         WrappedConstraint(const OptionValue<T>& v, OptionValueConstraintUP<T> c) : value(v), con(std::move(c)) {}
         
         bool check() override {
@@ -1437,7 +1422,6 @@ bool _hard;
     };
     
     struct WrappedConstraintOrWrapper : public AbstractWrappedConstraint {
-        USE_ALLOCATOR(WrappedConstraintOrWrapper);
         WrappedConstraintOrWrapper(AbstractWrappedConstraintUP l, AbstractWrappedConstraintUP r) : left(std::move(l)),right(std::move(r)) {}
         bool check() override {
             return left->check() || right->check();
@@ -1449,7 +1433,6 @@ bool _hard;
     };
 
     struct WrappedConstraintAndWrapper : public AbstractWrappedConstraint {
-        USE_ALLOCATOR(WrappedConstraintAndWrapper);
         WrappedConstraintAndWrapper(AbstractWrappedConstraintUP l, AbstractWrappedConstraintUP r) : left(std::move(l)),right(std::move(r)) {}
         bool check() override {
             return left->check() && right->check();
@@ -1462,7 +1445,6 @@ bool _hard;
 
     template<typename T>
     struct OptionValueConstraintOrWrapper : public OptionValueConstraint<T>{
-        USE_ALLOCATOR(OptionValueConstraintOrWrapper);
         OptionValueConstraintOrWrapper(OptionValueConstraintUP<T> l, OptionValueConstraintUP<T> r) : left(std::move(l)),right(std::move(r)) {}
         bool check(const OptionValue<T>& value){
             return left->check(value) || right->check(value);
@@ -1475,7 +1457,6 @@ bool _hard;
 
     template<typename T>
     struct OptionValueConstraintAndWrapper : public OptionValueConstraint<T>{
-        USE_ALLOCATOR(OptionValueConstraintAndWrapper);
         OptionValueConstraintAndWrapper(OptionValueConstraintUP<T> l, OptionValueConstraintUP<T> r) : left(std::move(l)),right(std::move(r)) {}
         bool check(const OptionValue<T>& value){
             return left->check(value) && right->check(value);
@@ -1488,8 +1469,6 @@ bool _hard;
 
     template<typename T>
     struct UnWrappedConstraint : public OptionValueConstraint<T>{
-        USE_ALLOCATOR(UnWrappedConstraint);
-        
         UnWrappedConstraint(AbstractWrappedConstraintUP c) : con(std::move(c)) {}
         
         bool check(const OptionValue<T>&){ return con->check(); }
@@ -1552,7 +1531,6 @@ bool _hard;
 
     template<typename T>
     struct Equal : public OptionValueConstraint<T>{
-        USE_ALLOCATOR(Equal);
         Equal(T gv) : _goodvalue(gv) {}
         bool check(const OptionValue<T>& value){
             return value.actualValue == _goodvalue;
@@ -1569,7 +1547,6 @@ bool _hard;
     
     template<typename T>
     struct NotEqual : public OptionValueConstraint<T>{
-        USE_ALLOCATOR(NotEqual);
         NotEqual(T bv) : _badvalue(bv) {}
         bool check(const OptionValue<T>& value){
             return value.actualValue != _badvalue;
@@ -1586,7 +1563,6 @@ bool _hard;
     // optionally we can allow it be equal to that value also
     template<typename T>
     struct LessThan : public OptionValueConstraint<T>{
-        USE_ALLOCATOR(LessThan);
         LessThan(T gv,bool eq=false) : _goodvalue(gv), _orequal(eq) {}
         bool check(const OptionValue<T>& value){
             return (value.actualValue < _goodvalue || (_orequal && value.actualValue==_goodvalue));
@@ -1612,7 +1588,6 @@ bool _hard;
     // optionally we can allow it be equal to that value also
     template<typename T>
     struct GreaterThan : public OptionValueConstraint<T>{
-        USE_ALLOCATOR(GreaterThan);
         GreaterThan(T gv,bool eq=false) : _goodvalue(gv), _orequal(eq) {}
         bool check(const OptionValue<T>& value){
             return (value.actualValue > _goodvalue || (_orequal && value.actualValue==_goodvalue));
@@ -1639,7 +1614,6 @@ bool _hard;
     // optionally we can allow it be equal to that value also
     template<typename T>
     struct SmallerThan : public OptionValueConstraint<T>{
-        USE_ALLOCATOR(SmallerThan);
         SmallerThan(T gv,bool eq=false) : _goodvalue(gv), _orequal(eq) {}
         bool check(const OptionValue<T>& value){
             return (value.actualValue < _goodvalue || (_orequal && value.actualValue==_goodvalue));
@@ -1671,8 +1645,6 @@ bool _hard;
     
     template<typename T>
     struct IfThenConstraint : public OptionValueConstraint<T>{
-        USE_ALLOCATOR(IfThenConstraint);
-        
         IfThenConstraint(OptionValueConstraintUP<T> ic, OptionValueConstraintUP<T> c) :
         if_con(std::move(ic)), then_con(std::move(c)) {}
         
@@ -1691,7 +1663,6 @@ bool _hard;
     
     template<typename T>
     struct IfConstraint {
-        USE_ALLOCATOR(IfConstraint);
         IfConstraint(OptionValueConstraintUP<T> c) :if_con(std::move(c)) {}
 
         OptionValueConstraintUP<T> then(OptionValueConstraintUP<T> c){
@@ -1766,7 +1737,6 @@ bool _hard;
     }
 
     struct isLookAheadSelectionConstraint : public OptionValueConstraint<int>{
-        USE_ALLOCATOR(isLookAheadSelectionConstraint);
         isLookAheadSelectionConstraint() {}
         bool check(const OptionValue<int>& value){
             return value.actualValue == 11 || value.actualValue == 1011 || value.actualValue == -11 || value.actualValue == -1011;
@@ -1788,16 +1758,12 @@ bool _hard;
      */
     
     struct OptionProblemConstraint{
-      USE_ALLOCATOR(OptionProblemConstraint);
-
       virtual bool check(Property* p) = 0;
       virtual vstring msg() = 0;
       virtual ~OptionProblemConstraint() {};
     };
     
     struct CategoryCondition : OptionProblemConstraint{
-      USE_ALLOCATOR(CategoryCondition);
-
       CategoryCondition(Property::Category c,bool h) : cat(c), has(h) {}
       bool check(Property*p){
           ASS(p);
@@ -1813,8 +1779,6 @@ bool _hard;
     };
 
     struct UsesEquality : OptionProblemConstraint{
-      USE_ALLOCATOR(UsesEquality);
-
       bool check(Property*p){
         ASS(p)
         return (p->equalityAtoms() != 0) ||
@@ -1825,8 +1789,6 @@ bool _hard;
     };
 
     struct HasHigherOrder : OptionProblemConstraint{
-      USE_ALLOCATOR(HasHigherOrder);
-
       bool check(Property*p){
         ASS(p)
         return (p->higherOrder());
@@ -1835,8 +1797,6 @@ bool _hard;
     };
 
     struct OnlyFirstOrder : OptionProblemConstraint{
-      USE_ALLOCATOR(OnlyFirstOrder);
-
       bool check(Property*p){
         ASS(p)
         return (!p->higherOrder());
@@ -1845,8 +1805,6 @@ bool _hard;
     };
 
     struct MayHaveNonUnits : OptionProblemConstraint{
-      USE_ALLOCATOR(MayHaveNonUnits);
-
       bool check(Property*p){
         return (p->formulas() > 0) // let's not try to guess what kind of clauses these will give rise to
           || (p->clauses() > p->unitClauses());
@@ -1855,8 +1813,6 @@ bool _hard;
     };
 
     struct NotJustEquality : OptionProblemConstraint{
-      USE_ALLOCATOR(NotJustEquality);
-
       bool check(Property*p){
         return (p->category()!=Property::PEQ || p->category()!=Property::UEQ);
       }
@@ -1864,8 +1820,6 @@ bool _hard;
     };
 
     struct AtomConstraint : OptionProblemConstraint{
-      USE_ALLOCATOR(AtomConstraint);
-
       AtomConstraint(int a,bool g) : atoms(a),greater(g) {}
       int atoms;
       bool greater;
@@ -1881,8 +1835,6 @@ bool _hard;
     };
 
     struct HasTheories : OptionProblemConstraint {
-      USE_ALLOCATOR(HasTheories);
-
       static bool actualCheck(Property*p);
 
       bool check(Property*p);
@@ -1890,8 +1842,6 @@ bool _hard;
     };
 
     struct HasFormulas : OptionProblemConstraint {
-      USE_ALLOCATOR(HasFormulas);
-
       bool check(Property*p) {
         return p->hasFormulas();
       }
@@ -1899,8 +1849,6 @@ bool _hard;
     };
 
     struct HasGoal : OptionProblemConstraint {
-      USE_ALLOCATOR(HasGoal);
-
       bool check(Property*p){
         return p->hasGoal();
       }
@@ -1936,8 +1884,6 @@ bool _hard;
     // set of options will not be randomized and some will be randomized first
 
     struct OptionHasValue : OptionProblemConstraint{
-      USE_ALLOCATOR(OptionHasValue);
-
       OptionHasValue(vstring ov,vstring v) : option_value(ov),value(v) {}
       bool check(Property*p);
       vstring msg(){ return option_value+" has value "+value; } 
@@ -1946,8 +1892,6 @@ bool _hard;
     };
 
     struct ManyOptionProblemConstraints : OptionProblemConstraint {
-      USE_ALLOCATOR(ManyOptionProblemConstraints);
-
       ManyOptionProblemConstraints(bool a) : is_and(a) {}
 
       bool check(Property*p){
@@ -2020,6 +1964,7 @@ public:
   Proof proof() const { return _proof.actualValue; }
   bool minimizeSatProofs() const { return _minimizeSatProofs.actualValue; }
   ProofExtra proofExtra() const { return _proofExtra.actualValue; }
+  bool traceback() const { return _traceback.actualValue; }
   vstring printProofToFile() const { return _printProofToFile.actualValue; }
   int naming() const { return _naming.actualValue; }
 
@@ -2112,6 +2057,7 @@ public:
   bool thiTautologyDeletion() const { return _thiTautologyDeletion.actualValue; }
 #endif
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
+  bool unificationWithAbstractionFixedPointIteration() const { return _unificationWithAbstractionFixedPointIteration.actualValue; }
   void setUWA(UnificationWithAbstraction value){ _unificationWithAbstraction.actualValue = value; } 
   bool fixUWA() const { return _fixUWA.actualValue; }
   bool useACeval() const { return _useACeval.actualValue;}
@@ -2174,7 +2120,7 @@ public:
   int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds.actualValue; }
   size_t memoryLimit() const { return _memoryLimit.actualValue; }
   void setMemoryLimitOptionValue(size_t newVal) { _memoryLimit.actualValue = newVal; }
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
   unsigned instructionLimit() const { return _instructionLimit.actualValue; }
   void setInstructionLimit(unsigned newVal) { _instructionLimit.actualValue = newVal; }
   unsigned simulatedInstructionLimit() const { return _simulatedInstructionLimit.actualValue; }
@@ -2603,7 +2549,7 @@ private:
   ChoiceOptionValue<LTBLearning> _ltbLearning;
   StringOptionValue _ltbDirectory;
 
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
   UnsignedOptionValue _instructionLimit;
   UnsignedOptionValue _simulatedInstructionLimit;
   BoolOptionValue _parsingDoesNotCount;
@@ -2631,7 +2577,8 @@ private:
   ChoiceOptionValue<Proof> _proof;
   BoolOptionValue _minimizeSatProofs;
   ChoiceOptionValue<ProofExtra> _proofExtra;
-  
+  BoolOptionValue _traceback;
+
   StringOptionValue _protectedPrefix;
 
   ChoiceOptionValue<QuestionAnsweringMode> _questionAnswering;
@@ -2682,6 +2629,7 @@ private:
   BoolOptionValue _thiTautologyDeletion;
 #endif
   ChoiceOptionValue<UnificationWithAbstraction> _unificationWithAbstraction; 
+  BoolOptionValue _unificationWithAbstractionFixedPointIteration; 
   BoolOptionValue _fixUWA;
   BoolOptionValue _useACeval;
   TimeLimitOptionValue _simulatedTimeLimit;

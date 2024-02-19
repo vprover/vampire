@@ -21,6 +21,7 @@
 #include "Problem.hpp"
 #include "SortHelper.hpp"
 #include "TermTransformer.hpp"
+#include "Lib/DHMap.hpp"
 
 #include "FormulaTransformer.hpp"
 

@@ -40,9 +40,6 @@ namespace FMB {
   using namespace Lib;
 
 class Monotonicity{
-
-  USE_ALLOCATOR(Monotonicity);
-
 public:
   // Assumes clauses are flattened
   Monotonicity(ClauseList* clauses, unsigned srt);

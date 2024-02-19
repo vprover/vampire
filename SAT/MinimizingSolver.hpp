@@ -36,8 +36,6 @@ using namespace Lib;
 
 class MinimizingSolver : public SATSolver {
 public:
-  USE_ALLOCATOR(MinimizingSolver);
-
   MinimizingSolver(SATSolver* inner);
 
   virtual SATClause* getRefutation() override { return _inner->getRefutation(); }

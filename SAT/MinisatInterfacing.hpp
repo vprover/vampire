@@ -25,8 +25,6 @@ namespace SAT{
 class MinisatInterfacing : public PrimitiveProofRecordingSATSolver
 {
 public: 
-  USE_ALLOCATOR(MinisatInterfacing);
-  
 	MinisatInterfacing(const Shell::Options& opts, bool generateProofs=false);
 
   /**

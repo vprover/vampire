@@ -25,6 +25,7 @@
 #include "LiteralSubstitutionTree.hpp"
 
 #include "LiteralIndex.hpp"
+#include "IndexManager.hpp"
 
 namespace Indexing
 {
@@ -41,17 +42,6 @@ SLQueryResultIterator LiteralIndex::getAll()
   return _is->getAll();
 }
 
-SLQueryResultIterator LiteralIndex::getUnifications(Literal* lit,
-	  bool complementary, bool retrieveSubstitutions)
-{
-  return _is->getUnifications(lit, complementary, retrieveSubstitutions);
-}
-
-SLQueryResultIterator LiteralIndex::getUnificationsWithConstraints(Literal* lit,
-          bool complementary, bool retrieveSubstitutions)
-{
-  return _is->getUnificationsWithConstraints(lit, complementary, retrieveSubstitutions);
-}
 
 SLQueryResultIterator LiteralIndex::getGeneralizations(Literal* lit,
 	  bool complementary, bool retrieveSubstitutions)
@@ -201,7 +191,7 @@ void NonUnitClauseWithALLiteralIndex::handleClause(Clause* c, bool adding)
 RewriteRuleIndex::RewriteRuleIndex(LiteralIndexingStructure* is, Ordering& ordering)
 : LiteralIndex(is), _ordering(ordering)
 {
-  _partialIndex=new LiteralSubstitutionTree();
+  _partialIndex = new LiteralSubstitutionTree();
 }
 
 RewriteRuleIndex::~RewriteRuleIndex()

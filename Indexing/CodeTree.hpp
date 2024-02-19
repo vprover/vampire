@@ -392,6 +392,11 @@ public:
   public:
     bool next();
 
+    bool keepRecycled() const
+    { return bindings.keepRecycled() 
+        || btStack.keepRecycled() 
+        || (firstsInBlocks && firstsInBlocks->keepRecycled()); }
+
   protected:
     void init(CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_,
 	CodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_);
@@ -488,6 +493,7 @@ public:
   public:
     /** Variable bindings */
     BindingArray bindings;
+    bool keepRecycled() const { return bindings.keepRecycled(); }
 
   protected:
     /** the matcher object is initialized but no execution of code was done yet */

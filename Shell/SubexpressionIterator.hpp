@@ -28,7 +28,6 @@ namespace Shell {
 
   class SubexpressionIterator {
     public:
-      USE_ALLOCATOR(SubexpressionIterator);
       /**
        * SubexpressionIterator::Expression represents an expression, which is
        * either a term or a formula. Terms are stored as objects of TermList,

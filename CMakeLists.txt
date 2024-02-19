@@ -1,8 +1,11 @@
 ################################################################
 # general configuration
 ################################################################
-cmake_minimum_required (VERSION 3.12.0)
+cmake_minimum_required (VERSION 3.14.0)
 project(Vampire)
+
+include(CheckIPOSupported)
+include(CheckPIESupported)
 
 # require the compiler to use C++14
 set(CMAKE_CXX_STANDARD 14)
@@ -46,12 +49,6 @@ if (NOT BUILD_SHARED_LIBS)
   set(VAMPIRE_BINARY_STATIC _static)
 endif()
 
-# get symbol names in binary for backtraces
-set(CMAKE_ENABLE_EXPORTS ON)
-
-# link to libdl for dladdr() on POSIXy things, used for backtraces
-link_libraries(${CMAKE_DL_LIBS})
-
 # We compile tests only in debug mode, since in release mode assertions are NOPs anyways.
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
   SET(COMPILE_TESTS ON)
@@ -59,10 +56,11 @@ else()
   SET(COMPILE_TESTS OFF)
 endif()
 
+# options for inter-procedural optimisation, which you might know as "LTO"
 option(IPO "If supported, build with link-time optimisation." OFF)
 option(DEBUG_IPO "Print information about why IPO isn't supported" OFF)
+
 # check whether IPO is available
-include(CheckIPOSupported)
 check_ipo_supported(RESULT IPO_SUPPORTED OUTPUT IPO_ERROR)
 if (IPO_SUPPORTED)
   message(STATUS "IPO supported")
@@ -77,7 +75,7 @@ endif()
 
 ################################################################
 # define all vampire sources,
-# generate the main target and 
+# generate the main target and
 # link it against the libraries
 # NOTE: we add the header files here such that they are considered
 #       to be a part of the project and therefore are displayed
@@ -117,7 +115,7 @@ source_group(minisat_source_files FILES ${VAMPIRE_MINISAT_SOURCES})
 set(VAMPIRE_DEBUG_SOURCES
     Debug/Assertion.cpp
     Debug/RuntimeStatistics.cpp
-    Debug/Tracer.cpp    
+    Debug/Tracer.cpp
     Debug/Assertion.hpp
     Debug/RuntimeStatistics.hpp
     Debug/Tracer.hpp
@@ -242,12 +240,12 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Problem.cpp
     Kernel/Renaming.cpp
     Kernel/RobSubstitution.cpp
-    Kernel/MismatchHandler.cpp
+    Kernel/UnificationWithAbstraction.cpp
     Kernel/Signature.cpp
     Kernel/SortHelper.cpp
     Kernel/OperatorType.cpp
     Kernel/SpassLiteralSelector.cpp
-    Kernel/RndLiteralSelector.cpp    
+    Kernel/RndLiteralSelector.cpp
     Kernel/SubformulaIterator.cpp
     Kernel/Substitution.cpp
     Kernel/Term.cpp
@@ -289,12 +287,12 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/RCClauseStack.hpp
     Kernel/Renaming.hpp
     Kernel/RobSubstitution.hpp
-    Kernel/MismatchHandler.hpp
+    Kernel/UnificationWithAbstraction.hpp
     Kernel/Signature.hpp
     Kernel/SortHelper.hpp
     Kernel/OperatorType.hpp
     Kernel/SpassLiteralSelector.hpp
-    Kernel/RndLiteralSelector.hpp    
+    Kernel/RndLiteralSelector.hpp
     Kernel/SubformulaIterator.hpp
     Kernel/SubstHelper.hpp
     Kernel/Substitution.hpp
@@ -552,7 +550,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/DistinctGroupExpansion.cpp
     Shell/EqResWithDeletion.cpp
     Shell/EqualityProxy.cpp
-    Shell/EqualityProxyMono.cpp    
+    Shell/EqualityProxyMono.cpp
     Shell/Flattening.cpp
     Shell/FunctionDefinition.cpp
     Shell/GeneralSplitting.cpp
@@ -644,8 +642,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Token.hpp
     Shell/TPTPPrinter.hpp
     Shell/TweeGoalTransformation.hpp
-    Shell/UnificationWithAbstractionConfig.hpp
-    Shell/UnificationWithAbstractionConfig.cpp
     Shell/UIHelper.hpp
     Shell/VarManager.hpp
     Shell/Lexer.hpp
@@ -676,7 +672,7 @@ set(
     FMB/DefinitionIntroduction.hpp
     FMB/FiniteModel.hpp
     FMB/FiniteModelBuilder.hpp
-    FMB/FiniteModelMultiSorted.hpp    
+    FMB/FiniteModelMultiSorted.hpp
     FMB/FunctionRelationshipInference.hpp
     FMB/ModelCheck.hpp
     FMB/Monotonicity.hpp
@@ -745,6 +741,8 @@ set(UNIT_TESTS
     UnitTests/tIterator.cpp
     UnitTests/tOption.cpp
     UnitTests/tStack.cpp
+    UnitTests/tSet.cpp
+    UnitTests/tDeque.cpp
     UnitTests/tTermAlgebra.cpp
     UnitTests/tFnDefRewriting.cpp
     UnitTests/tFunctionDefinitionHandler.cpp
@@ -760,7 +758,7 @@ source_group(unit_tests_z3 FILES ${UNIT_TESTS_Z3})
 
 
 # also include forwards.hpp?
-set(VAMPIRE_SOURCES 
+set(VAMPIRE_SOURCES
     ${VAMPIRE_DEBUG_SOURCES}
     ${VAMPIRE_LIB_SOURCES}
     ${VAMPIRE_LIB_SYS_SOURCES}
@@ -810,11 +808,6 @@ add_compile_definitions(VTIME_PROFILING=0)
 
 if (CYGWIN)
  add_compile_definitions(_BSD_SOURCE)
-endif()
-
-# configure warning flags
-if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
-  add_compile_options(-Wall)
 endif()
 
 ################################################################
@@ -874,25 +867,30 @@ endif()
 # build objects
 ################################################################
 add_library(obj OBJECT ${VAMPIRE_SOURCES})
-if (COMPILE_TESTS) 
+if (COMPILE_TESTS)
   add_library(test_obj OBJECT ${VAMPIRE_TESTING_SOURCES})
 endif()
 
 ################################################################
-# UNIT TESTING 
+# UNIT TESTING
 ################################################################
 
 set(UNIT_TEST_OBJ   )
 set(UNIT_TEST_CASES )
-if (COMPILE_TESTS) 
+if (COMPILE_TESTS)
   include(CTest)
+  if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
+    set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} --coverage)
+    set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} --coverage)
+    set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} --coverage)
+  endif()
   foreach(test_file ${UNIT_TESTS})
     get_filename_component(test_name ${test_file} NAME_WE)
     string(REGEX REPLACE "^t" "" test_name ${test_name})
 
-    # compiling the test case object 
+    # compiling the test case object
     add_library(${test_name}_obj OBJECT ${test_file})
-    target_compile_definitions(${test_name}_obj PUBLIC 
+    target_compile_definitions(${test_name}_obj PUBLIC
       UNIT_ID_STR=\"${test_name}\"
       UNIT_ID=${test_name}
       )
@@ -913,7 +911,7 @@ if (COMPILE_TESTS)
     add_test(${case} ${CMAKE_BINARY_DIR}/vtest run ${case})
     set_tests_properties(${case}
           PROPERTIES
-          TIMEOUT 20)
+          TIMEOUT 60)
   endforeach()
 
 endif() # COMPILE_TESTS
@@ -988,8 +986,23 @@ set_target_properties(vampire PROPERTIES
   )
 configure_file(version.cpp.in version.cpp)
 
+# enable IPO
 if(CMAKE_BUILD_TYPE STREQUAL Release AND IPO)
   message(STATUS "compiling Vampire with IPO: this might take a while")
   set_property(TARGET obj PROPERTY INTERPROCEDURAL_OPTIMIZATION true)
   set_property(TARGET vampire PROPERTY INTERPROCEDURAL_OPTIMIZATION true)
+endif()
+
+# do not generate position-independent code:
+# 1. it has some overhead
+# 2. it's used for ASLR, which isn't a huge concern for us and messes with our backtrace support
+check_pie_supported(OUTPUT_VARIABLE PIE_ERROR LANGUAGES CXX)
+if(NOT CMAKE_CXX_LINK_PIE_SUPPORTED)
+  message(STATUS "disabling position-independent code not supported, stack traces may be broken")
+  message(STATUS "${PIE_ERROR}")
+endif()
+
+# FIXME this guard should not be necessary but is currently because of how we do static linking above
+if(BUILD_SHARED_LIBS)
+  set_property(TARGET vampire PROPERTY POSITION_INDEPENDENT_CODE false)
 endif()

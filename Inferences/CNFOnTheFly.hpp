@@ -34,9 +34,6 @@ class IFFXORRewriterISE
   : public ImmediateSimplificationEngine
 {
 public:
-
-  USE_ALLOCATOR(IFFXORRewriterISE);
-
   Clause* simplify(Clause* c);
 };
 
@@ -44,9 +41,6 @@ class EagerClausificationISE
   : public ImmediateSimplificationEngine
 {
 public:
-
-  USE_ALLOCATOR(EagerClausificationISE);
-
   ClauseIterator simplifyMany(Clause* c);
   Clause* simplify(Clause* c){ NOT_IMPLEMENTED; }
 
@@ -56,8 +50,6 @@ class LazyClausification
   : public SimplificationEngine
 {
 public:
-  USE_ALLOCATOR(LazyClausification);
-
   LazyClausification(){
     _formulaIndex = 0;
   }
@@ -75,9 +67,6 @@ class LazyClausificationGIE
   : public GeneratingInferenceEngine
 {
 public:
-
-  USE_ALLOCATOR(LazyClausificationGIE);
-
   LazyClausificationGIE(){
     _formulaIndex = 0;
   }
@@ -95,8 +84,6 @@ private:
   : public ImmediateSimplificationEngine
 {
 public:
-  USE_ALLOCATOR(NotProxyISE);
-  
   Kernel::Clause* simplify(Kernel::Clause* c);
 };
 
@@ -106,8 +93,6 @@ class EqualsProxyISE
 {
 
 public:
-  USE_ALLOCATOR(EqualsProxyISE);
-  
   Kernel::Clause* simplify(Kernel::Clause* c);        
 };
 
@@ -117,8 +102,6 @@ class OrImpAndProxyISE
 {
 
 public:
-  USE_ALLOCATOR(OrImpAndProxyISE);
-  
   Kernel::Clause* simplify(Kernel::Clause* c);
 };
 
@@ -128,8 +111,6 @@ class PiSigmaProxyISE
 {
   
 public:
-  USE_ALLOCATOR(PiSigmaProxyISE);
-  
   Kernel::Clause* simplify(Kernel::Clause* c);     
 };
 
@@ -137,7 +118,6 @@ public:
 class ProxyISE 
   : public ImmediateSimplificationEngine {
   public:
-    USE_ALLOCATOR(ProxyISE);
     ClauseIterator simplifyMany(Clause* c);
     Clause* simplify(Clause* c){ NOT_IMPLEMENTED; }
 };*/

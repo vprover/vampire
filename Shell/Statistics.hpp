@@ -43,8 +43,6 @@ using namespace Kernel;
 class Statistics
 {
 public:
-  USE_ALLOCATOR(Statistics);
-
   Statistics();
 
   void print(std::ostream& out);

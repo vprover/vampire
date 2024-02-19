@@ -189,8 +189,8 @@ private:
   {
     for(unsigned i=0;i<len;i++) {
       TermList trm=terms[i];
-      if(trm.isVSpecialVar()||trm.isSpecialVar()||(trm.isTerm()&&!trm.term()->shared())) {
-	return false;
+      if(trm.isSpecialVar()||(trm.isTerm()&&!trm.term()->shared())) {
+	      return false;
       }
     }
     return true;
@@ -384,7 +384,7 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
       }
       continue;
     }
-    ASS(tl.isVSpecialVar() || tl.isTerm());
+    ASS(tl.isTerm());
     if(tl.isVar() || (tl.term()->shared() && tl.term()->ground())) {
       args->push(tl);
       continue;
