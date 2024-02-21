@@ -278,6 +278,15 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       continue;
     }
 
+    if (ibRdr.tryAcceptAtom("define-funs-rec")) {
+      LExprList* declarations = ibRdr.readList();
+      LExprList* definitions = ibRdr.readList();
+
+      readDefineFunsRec(declarations, definitions);
+
+      continue;
+    }
+
     if (ibRdr.tryAcceptAtom("assert")) {
       if (!ibRdr.hasNext()) {
         USER_ERROR_EXPR("assert expects a body");
@@ -839,6 +848,102 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
   FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
 
   UnitList::push(fu, _formulas);
+}
+
+void SMTLIB2::readDefineFunsRec(LExprList* declsExpr, LExprList* defsExpr)
+{
+  struct Declaration {
+    DeclaredSymbol sym;
+    TermLookup* lookup;
+    TermList rangeSort;
+    TermStack args;
+  };
+  Stack<Declaration> declarations;
+
+  // first, declare all symbols
+  LispListReader declsRdr(declsExpr);
+  while (declsRdr.hasNext()) {
+    auto declExpr = declsRdr.next();
+    if (!declExpr->isList()) {
+      USER_ERROR_EXPR("define-funs-rec expect a list of lists of declaration as its first argument");
+    }
+
+    Declaration decl;
+    LispListReader declRdr(declExpr->list);
+    vstring name = declRdr.readAtom();
+    if (isAlreadyKnownSymbol(name)) {
+      USER_ERROR_EXPR("Redeclaring function symbol: "+name);
+    }
+    LExprList* iArgs = declRdr.readList();
+
+    decl.lookup = new TermLookup();
+
+    static TermStack argSorts;
+    argSorts.reset();
+
+    LispListReader iaRdr(iArgs);
+    while (iaRdr.hasNext()) {
+      LExprList* pair = iaRdr.readList();
+      LispListReader pRdr(pair);
+
+      vstring vName = pRdr.readAtom();
+      TermList vSort = parseSort(pRdr.readNext());
+
+      pRdr.acceptEOL();
+
+      // the vars need not be fresh across multiple definition, but it does not hurt
+      TermList arg = TermList(_nextVar++, false);
+      decl.args.push(arg);
+
+      if (!decl.lookup->insert(vName,make_pair(arg,vSort))) {
+        USER_ERROR_EXPR("Multiple occurrence of variable "+vName+" in the definition of function "+name);
+      }
+
+      argSorts.push(vSort);
+    }
+    decl.rangeSort = parseSort(declRdr.readNext());
+    decl.sym = declareFunctionOrPredicate(name, decl.rangeSort, argSorts, /*taArity=*/ 0);
+
+    declarations.push(decl);
+  }
+
+  // then, read all definitions
+  LispListReader defsRdr(defsExpr);
+  for (const auto& decl : declarations) {
+    if (!defsRdr.hasNext()) {
+      USER_ERROR_EXPR("Less definitions than declarations in define-funs-rec");
+    }
+    auto def = defsRdr.next();
+    _scopes.push(decl.lookup);
+    ParseResult res = parseTermOrFormula(def,false/*isSort*/);
+
+    TermList rhs;
+    if (res.asTerm(rhs) != decl.rangeSort) {
+      USER_ERROR_EXPR("Defined function body "+def->toString()+" has different sort than declared "+decl.rangeSort.toString());
+    }
+
+    unsigned symbIdx = decl.sym.first;
+    ASS(decl.sym.second != SymbolType::TYPECON);
+    bool isTrueFun = decl.sym.second==SymbolType::FUNCTION;
+
+    TermList lhs;
+    if (isTrueFun) {
+      lhs = TermList(Term::create(symbIdx,decl.args.size(),decl.args.begin()));
+    } else {
+      Formula* frm = new AtomicFormula(Literal::create(symbIdx,decl.args.size(),true,false,decl.args.begin()));
+      lhs = TermList(Term::createFormula(frm));
+    }
+
+    Formula* fla = new AtomicFormula(Literal::createEquality(true,lhs,rhs,decl.rangeSort));
+
+    FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
+    UnitList::push(fu, _formulas);
+
+    delete _scopes.pop();
+  }
+  if (defsRdr.hasNext()) {
+    USER_ERROR_EXPR("More definitions than declarations in define-funs-rec");
+  }
 }
 
 void SMTLIB2::readTypeParameters(LispListReader& rdr, TermLookup* lookup, TermStack* ts)
