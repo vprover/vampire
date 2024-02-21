@@ -271,12 +271,12 @@ VirtualIterator<Term*> termIterator(Literal* lit, Clause* cl, bool leftToRight) 
   for (const auto& i : pos) {
     // add args to the right of index
     for (unsigned j = i+1; j < curr->arity(); j++) {
-      auto arg = curr->termArg(j);
+      auto arg = *curr->nthArgument(j);
       res = pvi(concatIters(res, vi(new NonVariableNonTypeIterator(arg.term(),true))));
     }
     // add term itself
     res = pvi(concatIters(res, getSingletonIterator(curr)));
-    curr = curr->termArg(i).term();
+    curr = curr->nthArgument(i)->term();
   }
   // add last term and all its subterms
   res = pvi(concatIters(res, vi(new NonVariableNonTypeIterator(curr,true))));
