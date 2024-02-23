@@ -143,6 +143,15 @@ static inline std::ostream& operator<<(std::ostream& os, Statistics const& stats
 
 
 
+struct Limits {
+#if SUBSAT_LIMITS
+  uint64_t max_ticks = std::numeric_limits<uint64_t>::max();
+#endif
+
+  void reset() { *this = Limits(); }
+};
+
+
 
 // The following adapted from https://github.com/arminbiere/satch/blob/8afbc3540a4b4ca028ed47124e44dabff2bbefb4/satch.c#L4196C33-L4196C33
 //
@@ -501,6 +510,19 @@ public:
     return m_stats;
   }
 
+  Limits const& limits()
+  {
+    return m_limits;
+  }
+
+#if SUBSAT_LIMITS
+  // Set maximum number of ticks.
+  void set_max_ticks(uint64_t max_ticks)
+  {
+    m_limits.max_ticks = max_ticks;
+  }
+#endif
+
 
   /// Return true iff the solver is empty
   /// (i.e., in the state after construction/clear).
@@ -559,6 +581,7 @@ public:
     m_theory.clear();
 
     m_stats.reset();
+    m_limits.reset();
 
     assert(checkEmpty());
   }
@@ -606,6 +629,7 @@ public:
     m_frames.clear();
 
     m_stats.reset();
+    m_limits.reset();
   }
 
 
@@ -1255,9 +1279,19 @@ public:
       }
 #endif
 
+#if SUBSAT_LIMITS
+      if (m_stats.ticks > m_limits.max_ticks)
+        break;
+#endif
+
       ConstraintRef conflict = propagate();
 
       assert(checkInvariants());
+
+#if SUBSAT_LIMITS
+      if (m_stats.ticks > m_limits.max_ticks)
+        break;
+#endif
 
       if (conflict.is_valid()) {
         if (!analyze(conflict)) {
@@ -2224,6 +2258,7 @@ private:
   ConstraintRef tmp_propagate_binary_conflict_ref = ConstraintRef::invalid();
 
   Statistics m_stats;
+  Limits m_limits;
 }; // Solver
 
 #if SUBSAT_LOGGING_ENABLED

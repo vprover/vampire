@@ -66,6 +66,10 @@ public:
     _optimizedLoop = optimizedLoop;
   }
 
+  void setOracle() {
+    _isOracle = true;
+  }
+
 private:
   /// @brief Unit index of the saturation algorithm
   Indexing::UnitClauseLiteralIndex *_unitIndex;
@@ -79,6 +83,8 @@ private:
   bool _checkLongerClauses = true;
 
   bool _optimizedLoop = true;
+
+  bool _isOracle = false;
 
   /// @brief Engine performing subsumption and subsumption resolution using a sat solver
   SATSubsumption::SATSubsumptionAndResolution satSubs;

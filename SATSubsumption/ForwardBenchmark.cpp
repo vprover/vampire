@@ -4,6 +4,7 @@
 
 #include "ForwardBenchmark.hpp"
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
+#include "Lib/Timer.hpp"
 
 #if !USE_SAT_SUBSUMPTION_FORWARD
 #include "Indexing/LiteralMiniIndex.hpp"
@@ -23,6 +24,18 @@ using namespace Indexing;
 using namespace Saturation;
 using namespace SATSubsumption;
 using namespace std::chrono;
+
+
+ForwardBenchmark::ForwardBenchmark(bool subsumptionResolution, bool log)
+    : _subsumptionResolution(subsumptionResolution)
+#if SAT_SR_IMPL != 0
+    , _forward(subsumptionResolution, log)
+#endif
+{
+#if ENABLE_ROUNDS && SAT_SR_IMPL == 0
+  max_rounds = env.options->maxRounds();
+#endif
+}
 
 #if SAT_SR_IMPL == 0
 /*
@@ -195,6 +208,17 @@ bool checkForSubsumptionResolution(Clause *cl, ClauseMatches *cms, Literal *resL
 
 bool ForwardBenchmark::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)
 {
+
+#if ENABLE_ROUNDS
+  env.statistics->forwardSubsumptionRounds++;
+  if (max_rounds && env.statistics->forwardSubsumptionRounds > max_rounds) {
+    env.statistics->forwardSubsumptionRounds--;
+    env.statistics->terminationReason = Shell::Statistics::TIME_LIMIT;
+    Timer::setLimitEnforcement(false);
+    throw TimeLimitExceededException();
+  }
+#endif
+
   Clause *resolutionClause = 0;
 
   unsigned clen = cl->length();
@@ -486,15 +510,17 @@ SubsumptionReplayResult ForwardBenchmark::replay(SubsumptionBenchmark const& b, 
 
   for (auto const& l : b.fwd_loops) {
     for (auto const& i : l.instances) {
-      if (i.do_subsumption) {
+      bool const do_s = i.do_subsumption;
+      bool const do_sr = do_subsumption_resolution && i.do_subsumption_resolution;
+      if (do_s) {
         r.subsumptions++;
-        bool const result = satSubs.checkSubsumption(i.side_premise, l.main_premise, i.do_subsumption_resolution);
+        bool const result = satSubs.checkSubsumption(i.side_premise, l.main_premise, do_sr);
         if (i.subsumption_result != result)
           r.errors++;
       }
-      if (do_subsumption_resolution && i.do_subsumption_resolution) {
+      if (do_sr) {
         r.subsumption_resolutions++;
-        Clause* const conclusion = satSubs.checkSubsumptionResolution(i.side_premise, l.main_premise, i.do_subsumption);
+        Clause* const conclusion = satSubs.checkSubsumptionResolution(i.side_premise, l.main_premise, do_s);
         bool const result = !!conclusion;
         if (i.subsumption_resolution_result != result)
           r.errors++;

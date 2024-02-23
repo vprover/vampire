@@ -135,6 +135,15 @@ else()
   message(FATAL_ERROR "Wrong option value (should be 0 or 1)")
 endif()
 
+set(ENABLE_SAT_SR_CUTOFF "0" CACHE STRING "Choose whether to enable cutoff in SAT solver for S/SR.")
+if(${ENABLE_SAT_SR_CUTOFF} STREQUAL "0")
+  add_compile_definitions(ENABLE_SAT_SR_CUTOFF=0)
+elseif(${ENABLE_SAT_SR_CUTOFF} STREQUAL "1")
+  add_compile_definitions(ENABLE_SAT_SR_CUTOFF=1)
+else()
+  message(FATAL_ERROR "Wrong option value (should be 0 or 1)")
+endif()
+
 ################################################################
 # define all vampire sources,
 # generate the main target and

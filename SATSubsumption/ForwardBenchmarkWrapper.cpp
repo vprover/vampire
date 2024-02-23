@@ -22,6 +22,7 @@ ForwardBenchmarkWrapper::ForwardBenchmarkWrapper(bool subsumptionResolution) :
   _forwardOracle(subsumptionResolution, false),
   _subsumptionResolution(subsumptionResolution)
 {
+  _forwardOracle.setOracle();
 }
 
 ForwardBenchmarkWrapper::~ForwardBenchmarkWrapper()
@@ -98,11 +99,11 @@ static unsigned power(unsigned n, unsigned p) {
   return result;
 }
 
-static unsigned round_to_n_digits(unsigned x, unsigned n_digits) {
-  unsigned n = baseTenDigits(x);
-  unsigned rounded = x - (x % power(10, n-n_digits));
-  return rounded;
-}
+// static unsigned round_to_n_digits(unsigned x, unsigned n_digits) {
+//   unsigned n = baseTenDigits(x);
+//   unsigned rounded = x - (x % power(10, n-n_digits));
+//   return rounded;
+// }
 #endif
 
 bool ForwardBenchmarkWrapper::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)
