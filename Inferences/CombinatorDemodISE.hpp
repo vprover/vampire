@@ -25,8 +25,6 @@ class CombinatorDemodISE
 : public ImmediateSimplificationEngine
 {
 public:
-  USE_ALLOCATOR(CombinatorDemodISE);
-
   CombinatorDemodISE(){}
   Clause* simplify(Clause* cl);
 private:

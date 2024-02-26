@@ -87,7 +87,7 @@ void Options::init()
     _memoryLimit.description="Memory limit in MB";
     _lookup.insert(&_memoryLimit);
 
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
   _instructionLimit = UnsignedOptionValue("instruction_limit","i",0);
   _instructionLimit.description="Limit the number (in millions) of executed instructions (excluding the kernel ones).";
   _lookup.insert(&_instructionLimit);
@@ -348,6 +348,11 @@ void Options::init()
     _lookup.insert(&_ignoreMissingInputsInUnsatCore);
     _ignoreMissingInputsInUnsatCore.tag(OptionTag::OUTPUT);
 
+    _traceback = BoolOptionValue("traceback","",false);
+    _traceback.description="Try decoding backtrace into a sequence of human readable function names using addr2line/atos/etc.";
+    _lookup.insert(&_traceback);
+    _traceback.tag(OptionTag::OUTPUT);
+
     _thanks = StringOptionValue("thanks","","Tanya");
     _thanks.description="";
     _lookup.insert(&_thanks);
@@ -576,6 +581,7 @@ void Options::init()
     _inlineLet = BoolOptionValue("inline_let","ile",false);
     _inlineLet.description="Always inline let-expressions.";
     _lookup.insert(&_inlineLet);
+    _inlineLet.onlyUsefulWith(_newCNF.is(equal(true)));
     _inlineLet.tag(OptionTag::PREPROCESSING);
 
 //*********************** Output  ***********************
@@ -1157,7 +1163,7 @@ void Options::init()
 
     _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
                                      UnificationWithAbstraction::OFF,
-                                     {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground"});
+                                     {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "func_ext", "ac1", "ac2"});
     _unificationWithAbstraction.description=
       "During unification, if two terms s and t fail to unify we will introduce a constraint s!=t and carry on. For example, "
       "resolving p(1) \\/ C with ~p(a+2) would produce C \\/ 1 !=a+2. This is controlled by a check on the terms. The expected "
@@ -1171,6 +1177,12 @@ void Options::init()
       "See Unification with Abstraction and Theory Instantiation in Saturation-Based Reasoning for further details.";
     _unificationWithAbstraction.tag(OptionTag::THEORIES);
     _lookup.insert(&_unificationWithAbstraction);
+
+    _unificationWithAbstractionFixedPointIteration = BoolOptionValue("unification_with_abstraction_fixed_point_iteration","uwa_fpi",
+                                     false);
+    _unificationWithAbstractionFixedPointIteration.description="The order in which arguments are being processed in unification with absraction can yield different results. i.e. unnecessary unifiers. This can be resolved by applying unification with absraction multiple times. This option enables this fixed point iertation. For details have a look at the paper \"Refining Unification with Abstraction\" from LPAR 2023.";
+    _unificationWithAbstractionFixedPointIteration.tag(OptionTag::INFERENCES);
+    _lookup.insert(&_unificationWithAbstractionFixedPointIteration);
 
     _useACeval = BoolOptionValue("use_ac_eval","uace",true);
     _useACeval.description="Evaluate associative and commutative operators e.g. + and *.";
@@ -1658,13 +1670,16 @@ void Options::init()
     _equationalTautologyRemoval.onlyUsefulWith(ProperSaturationAlgorithm());
     _equationalTautologyRemoval.tag(OptionTag::INFERENCES);
 
-    _unitResultingResolution = ChoiceOptionValue<URResolution>("unit_resulting_resolution","urr",URResolution::OFF,{"ec_only","off","on"});
+    _unitResultingResolution = ChoiceOptionValue<URResolution>("unit_resulting_resolution","urr",URResolution::OFF,{"ec_only","off","on","full"});
     _unitResultingResolution.description=
-    "Uses unit resulting resolution only to derive empty clauses (may be useful for splitting)";
+    "Uses unit resulting resolution only to derive empty clauses (may be useful for splitting)."
+    " 'ec_only' only derives empty clauses, 'on' does everything (but implements a heuristic to skip deriving more than one empty clause),"
+    " 'full' ignores this heuristic and is thus complete also under AVATAR.";
     _lookup.insert(&_unitResultingResolution);
     _unitResultingResolution.tag(OptionTag::INFERENCES);
     _unitResultingResolution.onlyUsefulWith(ProperSaturationAlgorithm());
     _unitResultingResolution.addProblemConstraint(notJustEquality());
+    _unitResultingResolution.addConstraint(If(equal(URResolution::FULL)).then(_splitting.is(equal(true))));
     // If br has already been set off then this will be forced on, if br has not yet been set
     // then setting this to off will force br on
 
@@ -1738,6 +1753,9 @@ void Options::init()
     _maximumXXNarrows.addProblemConstraint(hasHigherOrder());    
     _maximumXXNarrows.tag(OptionTag::HIGHER_ORDER);
 
+    // TODO we have two ways of enabling function extensionality abstraction atm:
+    // this option, and `-uwa`. 
+    // We should sort this out before merging into master.
     _functionExtensionality = ChoiceOptionValue<FunctionExtensionality>("func_ext","fe",FunctionExtensionality::ABSTRACTION,
                                                                           {"off", "axiom", "abstraction"});
     _functionExtensionality.description="Deal with extensionality using abstraction, axiom or neither";
@@ -2489,7 +2507,7 @@ void Options::output (ostream& str) const
        str << name << " not a known option" << endl;
        Stack<vstring> sim_s = getSimilarOptionNames(name,true);
        Stack<vstring> sim_l = getSimilarOptionNames(name,false);
-       VirtualIterator<vstring> sit = pvi(getConcatenatedIterator(
+       VirtualIterator<vstring> sit = pvi(concatIters(
            Stack<vstring>::Iterator(sim_s),Stack<vstring>::Iterator(sim_l))); 
         if(sit.hasNext()){
           vstring first = sit.next();
@@ -3325,7 +3343,7 @@ vstring Options::generateEncodedOptions() const
     forbidden.insert(&_memoryLimit);
     forbidden.insert(&_proof);
     forbidden.insert(&_inputSyntax);
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
     forbidden.insert(&_parsingDoesNotCount);
 #endif
     forbidden.insert(&_ignoreMissing); // or maybe we do!
@@ -3360,6 +3378,11 @@ bool Options::complete(const Problem& prb) const
 {
   if(prb.isHigherOrder()){
     //safer for competition
+    return false;
+  }
+
+  if (unificationWithAbstraction() != UnificationWithAbstraction::OFF) {
+    // unification with abstraction might cause in "spurious saturations"
     return false;
   }
 
@@ -3421,9 +3444,10 @@ bool Options::complete(const Problem& prb) const
 
   if (!hasEquality) {
     if (_binaryResolution.actualValue) return true;
-    if (_unitResultingResolution.actualValue!=URResolution::ON) return false;
     // binary resolution is off
-    return prop.category() == Property::HNE; // URR is complete for Horn problems
+    if (_unitResultingResolution.actualValue!=URResolution::FULL &&
+       (_unitResultingResolution.actualValue!=URResolution::ON || _splitting.actualValue) ) return false;
+    return prop.category() == Property::HNE; // enough URR is complete for Horn problems
   }
 
   if (_demodulationRedundancyCheck.actualValue == DemodulationRedunancyCheck::OFF) {

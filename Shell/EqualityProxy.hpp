@@ -56,8 +56,6 @@ using namespace Kernel;
 class EqualityProxy
 {
 public:
-  USE_ALLOCATOR(EqualityProxy);
-
   EqualityProxy(Options::EqualityProxy opt);
 
   void apply(Problem& prb);

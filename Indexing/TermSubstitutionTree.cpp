@@ -23,9 +23,9 @@ namespace Indexing
 using namespace Lib;
 using namespace Kernel;
 
-TermSubstitutionTree::TermSubstitutionTree(bool useC, bool rfSubs, bool extra)
-: SubstitutionTree(useC, rfSubs)
-, _extra(extra)
+TermSubstitutionTree::TermSubstitutionTree(bool extra)
+: _extra(extra)
 { }
+
 
 } // namespace  Indexing

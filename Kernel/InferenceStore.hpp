@@ -38,8 +38,6 @@ using namespace Lib;
 class InferenceStore
 {
 public:
-  USE_ALLOCATOR(InferenceStore);
-  
   static InferenceStore* instance();
 
   typedef List<int> IntList;

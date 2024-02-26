@@ -33,8 +33,6 @@ using namespace Lib;
 
 class Renaming {
 public:
-  USE_ALLOCATOR(Renaming);
-
   Renaming() :
     _nextVar(0), _identity(true) {
   }
@@ -52,6 +50,7 @@ public:
     _nextVar = 0;
     _identity = true;
   }
+  bool keepRecycled() const { return _data.keepRecycled() > 0; }
 
   unsigned getOrBind(unsigned v)
   {

@@ -21,6 +21,7 @@
 #include "TermIterators.hpp"
 #include "ApplicativeHelper.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Matcher.hpp"
 
 #include "EqHelper.hpp"
 
@@ -285,11 +286,10 @@ VirtualIterator<TypedTermList> EqHelper::getLHSIterator(Literal* lit, const Orde
     switch(ord.getEqualityArgumentOrder(lit))
     {
     case Ordering::INCOMPARABLE:
-      return withEqualitySort(lit, getConcatenatedIterator(getSingletonIterator(t0),
-	      getSingletonIterator(t1)) );
+      return withEqualitySort(lit, iterItems(t0, t1) );
     case Ordering::GREATER:
     case Ordering::GREATER_EQ:
-      return withEqualitySort(lit, getSingletonIterator(t0) );
+      return withEqualitySort(lit, iterItems(t0) );
     case Ordering::LESS:
     case Ordering::LESS_EQ:
       return withEqualitySort(lit, getSingletonIterator(t1) );
@@ -352,8 +352,7 @@ VirtualIterator<TypedTermList> EqHelper::getSubVarSupLHSIterator(Literal* lit, c
     {
     case Ordering::INCOMPARABLE:
       if(t0hisVarOrComb && t1hisVarOrComb){ 
-        return withEqualitySort(lit, getConcatenatedIterator(getSingletonIterator(t0),
-	        getSingletonIterator(t1)) );
+        return withEqualitySort(lit, iterItems(t0, t1) );
       } else if( t0hisVarOrComb ){
         return withEqualitySort(lit, getSingletonIterator(t1) );      
       } else if( t1hisVarOrComb ) {
@@ -406,8 +405,12 @@ VirtualIterator<TypedTermList> EqHelper::getDemodulationLHSIterator(Literal* lit
       }
       if (t0.containsAllVariablesOf(t1)) {
         if (t1.containsAllVariablesOf(t0)) {
-          return withEqualitySort(lit, getConcatenatedIterator(getSingletonIterator(t0),
-              getSingletonIterator(t1)) );
+          // If the equation is its own variant when oriented
+          // reversed, there's no need to index both sides
+          if (MatchingUtils::matchReversedArgs(lit, lit)) {
+            return withEqualitySort(lit, getSingletonIterator(t0) );
+          }
+          return withEqualitySort(lit, iterItems(t0, t1));
         }
         return withEqualitySort(lit, getSingletonIterator(t0) );
       }
@@ -437,9 +440,7 @@ TermIterator EqHelper::getEqualityArgumentIterator(Literal* lit)
 {
   ASS(lit->isEquality());
 
-  return pvi( getConcatenatedIterator(
-	  getSingletonIterator(*lit->nthArgument(0)),
-	  getSingletonIterator(*lit->nthArgument(1))) );
+  return pvi( iterItems( *lit->nthArgument(0), *lit->nthArgument(1)) );
 }
 
 

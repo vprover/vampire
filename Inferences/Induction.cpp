@@ -14,8 +14,10 @@
 
 #include <utility>
 
+#include "Forwards.hpp"
 #include "Indexing/IndexManager.hpp"
 
+#include "Indexing/ResultSubstitution.hpp"
 #include "Lib/BitUtils.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/IntUnionFind.hpp"
@@ -343,7 +345,7 @@ struct InductionContextFn
         }
         InductionContext ctx(arg.first, _lit, _premise);
         ctx.insert(tqr.clause, tqr.literal);
-        res = pvi(getConcatenatedIterator(res, getSingletonIterator(ctx)));
+        res = pvi(concatIters(res, getSingletonIterator(ctx)));
       }
       return res;
     // heuristic 1
@@ -439,7 +441,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
           // add formula with default bound
           if (_opt.integerInductionDefaultBound()) {
             InductionFormulaIndex::Entry* e = nullptr;
-            static TermQueryResult defaultBound(TermList(theory->representConstant(IntegerConstantType(0))), nullptr, nullptr);
+            static TermQueryResult defaultBound(TermList(theory->representConstant(IntegerConstantType(0))), nullptr, nullptr, ResultSubstitutionSP());
             // for now, represent default bounds with no bound in the index, this is unique
             // since the placeholder is still int
             if (notDoneInt(ctx, nullptr, nullptr, e)) {
@@ -487,7 +489,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       .flatMap([this](const InductionContext& arg) {
         return vi(ContextSubsetReplacement::instance(arg, _opt));
       });
-    auto indCtxIt = iterTraits(getConcatenatedIterator(sideLitsIt2, indCtxSingle))
+    auto indCtxIt = concatIters(sideLitsIt2, indCtxSingle)
       // filter out the ones without an induction literal
       .filter([](const InductionContext& arg) {
         for (const auto& kv : arg._cls) {
@@ -544,16 +546,16 @@ void InductionClauseIterator::processIntegerComparison(Clause* premise, Literal*
 
     auto bound2 = iterTraits(i ? _helper.getGreater(indt) : _helper.getLess(indt)).collect<Stack>();
     auto it = iterTraits(_helper.getTQRsForInductionTerm(indt))
-      .filter([&premise](const TermQueryResult& tqr) {
+      .filter([&premise](const auto& tqr) {
         return tqr.clause != premise;
       })
-      .map([&indt](const TermQueryResult& tqr) {
+      .map([&indt](const auto& tqr) {
         return InductionContext(indt, tqr.literal, tqr.clause);
       })
       .flatMap([this](const InductionContext& arg) {
         return vi(ContextSubsetReplacement::instance(arg, _opt));
       });
-    TermQueryResult b(bound, lit, premise);
+    TermQueryResult b(bound, lit, premise, ResultSubstitutionSP());
     // loop over literals containing the current induction term
     while (it.hasNext()) {
       auto ctx = it.next();

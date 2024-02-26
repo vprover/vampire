@@ -41,8 +41,9 @@ void Shuffling::polarityFlip(Problem& prb)
 
   for (unsigned p = 0; p < flippage.size(); p++) {
     auto pSymb = env.signature->getPredicate(p);
-    if (!pSymb->protectedSymbol()) { 
+    if (!pSymb->protectedSymbol() && !pSymb->termAlgebraDest()) {
       // don't try to flip interpreted or otherwise protected predicates
+      // (this includes term algebra destructors which may go to bool and thus eventually become first-order predicates)
       ASS(p); // the equality predicate (at index 0) is protected
       flippage[p] = Random::getBit();
       if (flippage[p]) {
@@ -58,20 +59,20 @@ void Shuffling::polarityFlip(Problem& prb)
   while (us.hasNext()) {
     Unit* &u = us.next(); ASS(u->isClause()); Clause* cl = u->asClause();
 
-    // cout << "Before: " << cl->toString() << endl;
+    // cout << "Before: " << cl->toString() << std::endl;
     newLits.reset();
     bool modified = false;
     for (unsigned i = 0; i < cl->length(); i++) {
       Literal* l = (*cl)[i];
-      // cout << "  bef: " << l->toString() << endl;
+      // cout << "  bef: " << l->toString() << std::endl;
       if (flippage[l->functor()]) {
         l = Literal::complementaryLiteral(l);
         modified = true;
       }
       newLits.push(l);
-      // cout << "  aft: " << l->toString() << endl;
+      // cout << "  aft: " << l->toString() << std::endl;
     }
-    // cout << "After: " << cl->toString() << endl;
+    // cout << "After: " << cl->toString() << std::endl;
     if (modified) {
       Clause* nc = Clause::fromStack(newLits,
         NonspecificInferenceMany(InferenceRule::POLARITY_FLIPPING,UnitList::singleton(cl)));
@@ -105,7 +106,7 @@ void Shuffling::shuffle (UnitList*& units)
 
 void Shuffling::shuffle(Unit* unit)
 {
-  // cout << "Bef: " << unit->toString() << endl;
+  // cout << "Bef: " << unit->toString() << std::endl;
 
   if (unit->isClause()) {
     shuffle(unit->asClause());
@@ -113,7 +114,7 @@ void Shuffling::shuffle(Unit* unit)
     shuffle(static_cast<FormulaUnit*>(unit)->formula());
   }
 
-  // cout << "Aft: " << unit->toString() << endl;
+  // cout << "Aft: " << unit->toString() << std::endl;
 }
 
 void Shuffling::shuffle(Clause* clause)
@@ -195,7 +196,7 @@ void Shuffling::shuffleIter(Shufflable sh) {
         case EXISTS:
         {
 
-          //cout << "Shuffling FORALL/EXISTS: " << fla->toString() << endl;
+          //cout << "Shuffling FORALL/EXISTS: " << fla->toString() << std::endl;
 
           // can't naively shuffle variables in the polymorphic case
           // as we require type variables to come before term variable in the list
@@ -208,7 +209,7 @@ void Shuffling::shuffleIter(Shufflable sh) {
             }
           }
 
-          //cout << "getting: " << fla->toString() << endl;
+          //cout << "getting: " << fla->toString() << std::endl;
 
           fla = fla->qarg();
 

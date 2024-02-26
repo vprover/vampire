@@ -278,7 +278,7 @@ vstring LaTeX::toString (Clause* c)
 
   if (c->isEmpty()) {
     if(c->splits() && !c->splits()->isEmpty()){
-      SplitSet::Iterator sit(*c->splits());
+      auto sit = c->splits()->iter();
       result = "\\mathit{false}";
       while(sit.hasNext()){
         result += vstring(" \\Vor ") + replaceNeg(Saturation::Splitter::getFormulaStringFromName(sit.next(),true /*negated*/));
@@ -296,7 +296,7 @@ vstring LaTeX::toString (Clause* c)
       result += vstring(" \\Vor ") + toString((*c)[i]);
     }
     if(c->splits() && !c->splits()->isEmpty()){
-      SplitSet::Iterator sit(*c->splits());
+      auto sit = c->splits()->iter();
       while(sit.hasNext()){
         result += vstring(" \\Vor ") + replaceNeg(Saturation::Splitter::getFormulaStringFromName(sit.next(),true /*negated*/));
       }

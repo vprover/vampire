@@ -30,8 +30,6 @@ class BackwardDemodulation
 : public BackwardSimplificationEngine
 {
 public:
-  USE_ALLOCATOR(BackwardDemodulation);
-
   void attach(SaturationAlgorithm* salg);
   void detach();
 

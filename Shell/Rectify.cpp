@@ -268,22 +268,17 @@ Term* Rectify::rectify (Term* t)
     return rectifySpecialTerm(t);
   }
 
-  Term* s = new(t->arity()) Term(*t);
-  if (rectify(t->args(),s->args())) {
-    if(TermList::allShared(s->args())) {
-      if(t->isSort()){
-        return env.sharing->insert(static_cast<AtomicSort*>(s));
-      } else {
-        return env.sharing->insert(s);
-      }
-    }
-    else {
-      return s;
-    }
+  Recycled<Stack<TermList>> args;
+  for (auto a : anyArgIter(t)) {
+    args->push(rectify(a));
   }
-  // term not changed
-  s->destroy();
-  return t;
+  if (t->isSort()) {
+    return AtomicSort::create(static_cast<AtomicSort*>(t), args->begin());
+  } else if (t->isLiteral()) {
+    return Literal::create(static_cast<Literal*>(t), args->begin());
+  } else {
+    return Term::create(t, args->begin());
+  }
 } // Rectify::rectify (Term*)
 
 SList* Rectify::rectifySortList(SList* from, bool& modified)
@@ -319,73 +314,72 @@ Literal* Rectify::rectify (Literal* l)
     if(l->ground()) {
       return l;
     }
-//    //this is faster than the way below
-//    return rectifyShared(l);
   }
 
-  bool sortChanged = false;
-  TermList rectifiedSrt;
-  if(l->isTwoVarEquality()){
-    TermList srt = SortHelper::getEqualityArgumentSort(l);
-    rectifiedSrt = rectify(srt);
 
-    ASS(!srt.isTerm() || srt.term()->shared());
-    ASS(!rectifiedSrt.isTerm() || rectifiedSrt.term()->shared());
-    if(srt != rectifiedSrt){ // assumes shared
-      sortChanged = true;
-    }
+  if (l->isTwoVarEquality()) {
+    constexpr unsigned arity = 3;
+    TermList args[arity];
+    bool changed = Rectify::rectify(
+        /* from */ [&](auto i) { return i == 0 ? SortHelper::getEqualityArgumentSort(l)
+                                               : *l->nthArgument(i - 1); },
+        /* to */ [&](auto i) -> TermList& { return args[i]; },
+        /* cnt */ arity);
+    return changed ? Literal::createEquality(l->polarity(), args[1], args[2], args[0]) : l;
+  } else {
+    Recycled<DArray<TermList>> args;
+    args->ensure(l->arity());
+    bool changed = Rectify::rectify(
+        /* from */ [&](auto i) { return *l->nthArgument(i); },
+        /* to */ [&](auto i) -> TermList& { return (*args)[i]; },
+        /* cnt */ l->arity());
+    return !changed ? l : Literal::create(l->functor(), l->arity(), l->polarity(), l->commutative(), 
+                       args->begin());
   }
-
-  Literal* m = new(l->arity()) Literal(*l);
-  if (rectify(l->args(),m->args()) || sortChanged) {
-    if(TermList::allShared(m->args())) {
-      if(l->isEquality() && m->nthArgument(0)->isVar() && m->nthArgument(1)->isVar()) {
-        ASS(l->shared());
-        return env.sharing->insertVariableEquality(m, rectifiedSrt);
-      }
-      else {
-        return env.sharing->insert(m);
-      }
-    }
-    else {
-      return m;
-    }
-  }
-  // literal not changed
-  m->destroy();
-  return l;
 } // Rectify::rectify (Literal*)
 
-/**
- * Rectify a list of terms @b from to the list of terms @b to.
- * Return true if the list has changed.
- * @since 24/03/2008 Torrevieja
+/** 
+ * Rectifies a list of `TermList`s. Both From and To are meant to be closures that can be called with an index and return a TermList.
+ * Rectification procededs as follows:
+ * ```
+ * to(0) = rectify from(0)
+ * to(1) = rectify from(1)
+ * ...
+ * to(cnt - 1) = rectify from(cnt - 1)
+ * ```
+ * This generalization is needed for properly rectfiying equalities, which don't have the equality sort stored as a usual term argument.
+ * The "default use" of this function would be
+ * ```
+ * Literal* input = ...;
+ * bool changed = Rectify::rectify(
+ *      [&](auto i) { return *input->nthArgument(i); },
+ *      [&](auto i) -> TermList& { return (*output)[i]; },
+ *      input->arity());
+ * ```
+ * Returns true if the list has changed.
  */
-bool Rectify::rectify(TermList* from,TermList* to)
+template<class From, class To>
+bool Rectify::rectify(From from, To to, unsigned cnt)
 {
   bool changed = false;
-  while (! from->isEmpty()) {
-    if (from->isVar()) {
-      int v = from->var();
+  for (auto i : range(0, cnt)) {
+    if (from(i).isVar()) {
+      int v = from(i).var();
       int newV = rectifyVar(v);
-      to->makeVar(newV);
+      to(i) = TermList::var(newV);
       if (v != newV) { // rename variable to itself
-	changed = true;
+        changed = true;
       }
     }
     else { // from is not a variable
-      Term* f = from->term();
+      Term* f = from(i).term();
       Term* t = rectify(f);
-      to->setTerm(t);
+      to(i) = TermList(t);
       if (f != t) {
-	changed = true;
+        changed = true;
       }
     }
-    from = from->next();
-    ASS(! to->isEmpty());
-    to = to->next();
   }
-  ASS(to->isEmpty());
   return changed;
 } // Rectify::rectify (TermList*,...)
 

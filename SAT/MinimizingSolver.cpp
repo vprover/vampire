@@ -107,7 +107,7 @@ void MinimizingSolver::selectVariable(unsigned var)
       continue;
     }
     watch.push(cl);
-    SATClause::Iterator cit(*cl);
+    auto cit = cl->iter();
     while(cit.hasNext()) {
       SATLiteral cl_lit = cit.next();
       unsigned cl_var = cl_lit.var(); 
@@ -124,7 +124,7 @@ void MinimizingSolver::selectVariable(unsigned var)
 
 void MinimizingSolver::putIntoIndex(SATClause* cl)
 {
-  SATClause::Iterator cit(*cl);
+  auto cit = cl->iter();
   while(cit.hasNext()) {
     SATLiteral lit = cit.next();
     unsigned var = lit.var();
@@ -138,7 +138,7 @@ void MinimizingSolver::putIntoIndex(SATClause* cl)
 
 bool MinimizingSolver::tryPuttingToAnExistingWatch(SATClause* cl)
 {
-  SATClause::Iterator cit(*cl);
+  auto cit = cl->iter();
   while(cit.hasNext()) {
     SATLiteral lit = cit.next();
     unsigned var = lit.var();

@@ -116,7 +116,7 @@ vstring TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
     }
 
     Clause* cl = static_cast<Clause*>(u);
-    Clause::Iterator cit(*cl);
+    auto cit = cl->iterLits();
     if(!cit.hasNext()) {
       res << "$false";
     }
@@ -133,7 +133,7 @@ vstring TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
     }
 
     if(includeSplitLevels && !cl->noSplits()) {
-      SplitSet::Iterator sit(*cl->splits());
+      auto sit = cl->splits()->iter();
       while(sit.hasNext()) {
         SplitLevel split = sit.next();
         res << " | " << "$splitLevel" << split;

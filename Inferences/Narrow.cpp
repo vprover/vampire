@@ -106,8 +106,7 @@ struct Narrow::ResultFn
   Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
   {
     TermQueryResult& qr = arg.second;
-    return _parent.performNarrow(_cl, arg.first.first, arg.first.second, qr.term, 
-                                 qr.literal, qr.substitution);
+    return _parent.performNarrow(_cl, arg.first.first, arg.first.second, qr.term, qr.literal, qr.unifier);
   }
 private:
   Clause* _cl;

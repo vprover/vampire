@@ -246,8 +246,6 @@ struct UnitNumberComparator
 
 struct InferenceStore::ProofPrinter
 {
-  USE_ALLOCATOR(InferenceStore::ProofPrinter);
-  
   ProofPrinter(ostream& out, InferenceStore* is)
   : _is(is), out(out)
   {
@@ -426,8 +424,6 @@ protected:
 struct InferenceStore::ProofPropertyPrinter
 : public InferenceStore::ProofPrinter
 {
-  USE_ALLOCATOR(InferenceStore::ProofPropertyPrinter);
-
   ProofPropertyPrinter(ostream& out, InferenceStore* is) : ProofPrinter(out,is)
   {
     max_theory_clause_depth = 0;
@@ -511,8 +507,6 @@ protected:
 struct InferenceStore::TPTPProofPrinter
 : public InferenceStore::ProofPrinter
 {
-  USE_ALLOCATOR(InferenceStore::TPTPProofPrinter);
-  
   TPTPProofPrinter(ostream& out, InferenceStore* is)
   : ProofPrinter(out, is) {
     splitPrefix = Saturation::Splitter::splPrefix; 
@@ -575,7 +569,7 @@ protected:
     if (splits->size()==1) {
       return Saturation::Splitter::getFormulaStringFromName(splits->sval(),true /*negated*/);
     }
-    SplitSet::Iterator sit(*splits);
+    auto sit = splits->iter();
     vstring res("(");
     while(sit.hasNext()) {
       res+= Saturation::Splitter::getFormulaStringFromName(sit.next(),true /*negated*/);
@@ -801,11 +795,9 @@ protected:
 
     vstring compStr;
     List<unsigned>* compOnlyVars=0;
-    Clause::Iterator lits(*us->asClause());
     bool first=true;
     bool multiple=false;
-    while(lits.hasNext()) {
-      Literal* lit=lits.next();
+    for (Literal* lit : us->asClause()->iterLits()) {
       if (lit==nameLit) {
 	      continue;
       }
@@ -874,8 +866,6 @@ protected:
 struct InferenceStore::ProofCheckPrinter
 : public InferenceStore::ProofPrinter
 {
-  USE_ALLOCATOR(InferenceStore::ProofCheckPrinter);
-
   ProofCheckPrinter(ostream& out, InferenceStore* is)
   : ProofPrinter(out, is) {}
 

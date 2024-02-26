@@ -57,8 +57,6 @@ public:
     _varDiffs.reset();
   }
 
-  USE_ALLOCATOR(State);
-
   void traverse(Term* t1, Term* t2);
   void traverse(TermList tl,int coefficient);
   Result result(Term* t1, Term* t2);

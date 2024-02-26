@@ -94,7 +94,7 @@ int vampireReturnValue = VAMP_RESULT_STATUS_UNKNOWN;
 VWARN_UNUSED
 Problem* getPreprocessedProblem()
 {
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
   unsigned saveInstrLimit = env.options->instructionLimit();
   if (env.options->parsingDoesNotCount()) {
     env.options->setInstructionLimit(0);
@@ -103,7 +103,7 @@ Problem* getPreprocessedProblem()
 
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
   if (env.options->parsingDoesNotCount()) {
     Timer::updateInstructionCount();
     unsigned burnedParsing = Timer::elapsedMegaInstructions();
@@ -144,6 +144,7 @@ Problem *doProving()
   // a new strategy randomization mechanism
   if (!env.options->strategySamplerFilename().empty()) {
     env.options->sampleStrategy(env.options->strategySamplerFilename());
+    env.options->checkGlobalOptionConstraints();
   }
 
   Problem *prb = getPreprocessedProblem();
@@ -387,7 +388,7 @@ void spiderMode()
   env.options->setOutputMode(Options::Output::SPIDER);
   env.options->setNormalize(true);
   // to start counting instructions
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
   Timer::ensureTimerInitialized();
 #endif
 
@@ -520,8 +521,8 @@ void clausifyMode(bool theory)
   if(!printed_conjecture && UIHelper::haveConjecture()){
     unsigned p = env.signature->addFreshPredicate(0,"p");
     Clause* c = new(2) Clause(2,NonspecificInference0(UnitInputType::NEGATED_CONJECTURE,InferenceRule::INPUT));
-    (*c)[0] = Literal::create(p,0,true,false,0);
-    (*c)[1] = Literal::create(p,0,false,false,0);
+    (*c)[0] = Literal::create(p, /* polarity */ true , {});
+    (*c)[1] = Literal::create(p, /* polarity */ false, {});
     env.out() << TPTPPrinter::toString(c) << "\n";
   }
   env.endOutput();

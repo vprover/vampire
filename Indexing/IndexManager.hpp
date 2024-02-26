@@ -21,6 +21,7 @@
 #include "Index.hpp"
 
 #include "Lib/Allocator.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
 
 
 namespace Indexing
@@ -72,10 +73,8 @@ enum IndexType {
 class IndexManager
 {
 public:
-  USE_ALLOCATOR(IndexManager);
-
   /** alg can be zero, then it must be set by setSaturationAlgorithm */
-  explicit IndexManager(SaturationAlgorithm* alg) : _alg(alg) {}
+  explicit IndexManager(SaturationAlgorithm* alg);
   void setSaturationAlgorithm(SaturationAlgorithm* alg) 
   { 
     ASS(!_alg);
@@ -98,6 +97,8 @@ private:
   DHMap<IndexType,Entry> _store;
 
   Index* create(IndexType t);
+  Shell::Options::UnificationWithAbstraction _uwa;
+  bool _uwaFixedPointIteration;
 };
 
 };

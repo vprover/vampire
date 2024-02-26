@@ -129,7 +129,7 @@ ClauseIterator Problem::clauseIterator() const
   //no formulas. otherwise we call hasFormulas() which may cause rescanning
   //the problem property
   ASS(!mayHaveFormulas() || !hasFormulas());
-  return pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units())) );
+  return pvi( iterTraits(UnitList::Iterator(units())).map([](Unit* u) { return (Clause*)u; }) );
 }
 
 /**
@@ -247,11 +247,12 @@ void Problem::refreshProperty() const
   TIME_TRACE(TimeTrace::PROPERTY_EVALUATION);
   ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase, Statistics::PROPERTY_SCANNING);
 
-  if(_property) {
-    delete _property;
-  }
+  auto oldProp = _property;
   _propertyValid = true;
   _property = Property::scan(_units);
+  if(oldProp) {
+    delete oldProp;
+  }
   ASS(_property);
   _property->setSMTLIBLogic(getSMTLIBLogic());
   readDetailsFromProperty();
@@ -290,14 +291,14 @@ void Problem::readDetailsFromProperty() const
 void Problem::invalidateEverything()
 {
   invalidateProperty();
-  _hasFormulas = MaybeBool::UNKNOWN;
-  _hasEquality = MaybeBool::UNKNOWN;
-  _hasInterpretedOperations = MaybeBool::UNKNOWN;
-  _hasNumerals = MaybeBool::UNKNOWN;
-  _hasFOOL = MaybeBool::UNKNOWN;
-  _hasCombs = MaybeBool::UNKNOWN;
-  _hasApp = MaybeBool::UNKNOWN;
-  _hasAppliedVar = MaybeBool::UNKNOWN;
+  _hasFormulas = MaybeBool::Unknown;
+  _hasEquality = MaybeBool::Unknown;
+  _hasInterpretedOperations = MaybeBool::Unknown;
+  _hasNumerals = MaybeBool::Unknown;
+  _hasFOOL = MaybeBool::Unknown;
+  _hasCombs = MaybeBool::Unknown;
+  _hasApp = MaybeBool::Unknown;
+  _hasAppliedVar = MaybeBool::Unknown;
 
   _mayHaveFormulas = true;
   _mayHaveEquality = true;

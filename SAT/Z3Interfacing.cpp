@@ -49,19 +49,19 @@ struct BottomUpChildIter<z3::expr>
   z3::expr _self;
 
   /** constructs an iterator over the children of the current node */
-  BottomUpChildIter(z3::expr a) : _idx(0), _self(a) {}
+  BottomUpChildIter(z3::expr a, EmptyContext = EmptyContext()) : _idx(0), _self(a) {}
 
   /** returns the node this iterator was constructed with */
-  z3::expr self() { return _self; }
+  z3::expr self(EmptyContext = EmptyContext()) { return _self; }
 
   /** returns the next child of the node this this object was constructed with */
-  z3::expr next() { return _self.arg(_idx++); }
+  z3::expr next(EmptyContext = EmptyContext()) { return _self.arg(_idx++); }
 
   /** returns the next child of the current node in the structure to be traversed */
-  bool hasNext() { return _self.is_app() && _idx < _self.num_args(); }
+  bool hasNext(EmptyContext = EmptyContext()) { return _self.is_app() && _idx < _self.num_args(); }
 
   /** returns how many children this node has */
-  unsigned nChildren() { return _self.is_app() ? _self.num_args() : 0; }
+  unsigned nChildren(EmptyContext = EmptyContext()) { return _self.is_app() ? _self.num_args() : 0; }
 };
 
 } // namespace Lib
@@ -355,91 +355,6 @@ Term* createTermOrPred(Z3Interfacing::FuncOrPredId f, unsigned arity, TermList* 
     : Term::create(f.id, arity, ts);
 }
 
-struct EvaluateInModel
-{
-
-  Z3Interfacing& self;
-  using Copro = Coproduct<Term*, RationalConstantType, IntegerConstantType>;
-
-  using Arg    = z3::expr;
-  using Result = Option<Copro>;
-
-  static Term* toTerm(Copro const& co, SortId sort) {
-    return co.match(
-            [&](Term* t)
-            { return t; },
-
-            [&](RationalConstantType c)
-            {
-              return sort == RealTraits::sort()
-                ? theory->representConstant(RealConstantType(c))
-                : theory->representConstant(c);
-            },
-
-            [&](IntegerConstantType c)
-            { return theory->representConstant(c); }
-            );
-  }
-
-  Result operator()(z3::expr expr, Result* evaluatedArgs)
-  {
-    DEBUG("in: ", expr)
-    auto intVal = [](z3::expr e) -> Option<int> {
-      int val;
-      return e.is_numeral_i(val)
-        ? Option<int>(val)
-        : Option<int>();
-    };
-
-    if (expr.is_int()) {
-      return intVal(expr)
-        .map([](int i) { return Copro(IntTraits::constantT(i)); });
-
-    } else if(expr.is_real()) {
-      if (!expr.is_numeral()) {
-        // non-numeral reals are, e.g., the algebraic numbers such as (root-obj (+ (^ x 2) (- 2)) 2)),
-        // which we currently cannot handle
-        return Result();
-      }      
-
-      auto toFrac = [&](int l, int r)  { return Copro(RatTraits::constant(l,r)); };
-
-      auto nonFractional = intVal(expr).map([&](int i) { return toFrac(i,1); });
-      if (nonFractional.isSome()) {
-        return nonFractional;
-      } else {
-        auto num = intVal(expr.numerator());
-        auto den = intVal(expr.denominator());
-        if (num.isSome() && den.isSome()) {
-          return Result(Copro(toFrac(num.unwrap(), den.unwrap())));
-        } else {
-          return Result();
-        }
-      }
-
-    } else if (expr.is_app()) {
-      auto f = expr.decl();
-      auto vfunc = self._fromZ3.get(f);
-      unsigned arity = f.arity();
-      ASS(arity == 0 || evaluatedArgs != nullptr)
-      Stack<TermList> args(arity);
-      for (unsigned i = 0; i < arity; i++) {
-        if (evaluatedArgs[i].isNone()) {
-          // evaluation failed somewhere in a recursive call
-          return Result();
-        } else {
-          auto argSort = operatorType(vfunc)->arg(i);
-          auto t = TermList(toTerm(evaluatedArgs[i].unwrap(), argSort));
-          args.push(t);
-        }
-      }
-      return Result(Copro(createTermOrPred(vfunc, args.size(), args.begin())));
-    } else {
-      return Result();
-    }
-  }
-};
-
 Term* Z3Interfacing::evaluateInModel(Term* trm)
 {
   DEBUG("in: ", *trm)
@@ -452,8 +367,87 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
   SortId sort = SortHelper::getResultSort(trm);
 
   DEBUG("z3 expr: ", ev)
-  auto result = evaluateBottomUp(ev, EvaluateInModel { *this })
-    .map([&](EvaluateInModel::Copro co) {
+  using Copro = Coproduct<Term*, RationalConstantType, IntegerConstantType>;
+  using Result = Option<Copro>;
+  auto result = BottomUpEvaluation<z3::expr, Option<Copro>>()
+    .function(
+      [&](z3::expr const& expr, Result* evaluatedArgs) -> Result
+      {
+        auto toTerm = [&](Copro const& co, SortId sort) -> Term* {
+          return co.match(
+                  [&](Term* t)
+                  { return t; },
+
+                  [&](RationalConstantType c)
+                  {
+                    return sort == RealTraits::sort()
+                      ? theory->representConstant(RealConstantType(c))
+                      : theory->representConstant(c);
+                  },
+
+                  [&](IntegerConstantType c)
+                  { return theory->representConstant(c); }
+                  );
+        };
+
+
+        DEBUG("in: ", expr)
+        auto intVal = [](z3::expr e) -> Option<int> {
+          int val;
+          return e.is_numeral_i(val)
+            ? Option<int>(val)
+            : Option<int>();
+        };
+
+        if (expr.is_int()) {
+          return intVal(expr)
+            .map([](int i) { return Copro(IntTraits::constantT(i)); });
+
+        } else if(expr.is_real()) {
+          if (!expr.is_numeral()) {
+            // non-numeral reals are, e.g., the algebraic numbers such as (root-obj (+ (^ x 2) (- 2)) 2),
+            // which we currently cannot handle
+            return Result();
+          }      
+
+          auto toFrac = [&](int l, int r)  { return Copro(RatTraits::constant(l,r)); };
+
+          auto nonFractional = intVal(expr).map([&](int i) { return toFrac(i,1); });
+          if (nonFractional.isSome()) {
+            return nonFractional;
+          } else {
+            auto num = intVal(expr.numerator());
+            auto den = intVal(expr.denominator());
+            if (num.isSome() && den.isSome()) {
+              return Result(Copro(toFrac(num.unwrap(), den.unwrap())));
+            } else {
+              return Result();
+            }
+          }
+
+        } else if (expr.is_app()) {
+          auto f = expr.decl();
+          auto vfunc = _fromZ3.get(f);
+          unsigned arity = f.arity();
+          ASS(arity == 0 || evaluatedArgs != nullptr)
+          Stack<TermList> args(arity);
+          for (unsigned i = 0; i < arity; i++) {
+            if (evaluatedArgs[i].isNone()) {
+              // evaluation failed somewhere in a recursive call
+              return Result();
+            } else {
+              auto argSort = operatorType(vfunc)->arg(i);
+              auto t = TermList(toTerm(evaluatedArgs[i].unwrap(), argSort));
+              args.push(t);
+            }
+          }
+          return Result(Copro(createTermOrPred(vfunc, args.size(), args.begin())));
+        } else {
+          return Result();
+        }
+      })
+    .apply(ev)
+    .map([&](Copro co) {
         return co.match(
             [&](Term* t)
             { return t; },
@@ -805,252 +799,6 @@ namespace tptp {
 }
 
 
-struct ToZ3Expr
-{
-  Z3Interfacing& self;
-  Stack<z3::expr> _defs;
-
-  using Arg    = TermList;
-  using Result = z3::expr;
-
-  z3::expr operator()(TermList toEval, z3::expr* args)
-  {
-    // DEBUG("in: ", toEval)
-    ASS(toEval.isTerm())
-    auto trm = toEval.term();
-    bool isLit = trm->isLiteral();
-
-    Signature::Symbol* symb;
-    SortId range_sort;
-    if (isLit) {
-      symb = env.signature->getPredicate(trm->functor());
-      range_sort = AtomicSort::boolSort();
-      // check for equality
-      if( trm->functor()==0 || symb->equalityProxy()){
-        ASS(trm->numTermArguments()==2);
-        // both equality and equality proxy translated as z3 equality
-        if (symb->wasFlipped()) {
-          // equality proxy could have been flipped (by random_polarities)
-          return args[0] != args[1];
-        } else {
-          return args[0] == args[1];
-        }
-      }
-    } else {
-      auto actualSort = SortHelper::getResultSort(trm);
-      symb = env.signature->getFunction(trm->functor());
-      OperatorType* ftype = symb->fnType();
-      range_sort = ftype->result();
-      if (env.signature->isTermAlgebraSort(actualSort) &&  !self._createdTermAlgebras.contains(actualSort) ) {
-        self.createTermAlgebra(actualSort);
-      }
-    }
-
-    //if constant treat specially
-    if(trm->arity() == 0) {
-      if(symb->integerConstant()){
-        IntegerConstantType value = symb->integerValue();
-        return self._context.int_val(value.toInner());
-      }
-      if(symb->realConstant()) {
-        RealConstantType value = symb->realValue();
-        return self._context.real_val(value.numerator().toInner(),value.denominator().toInner());
-      }
-      if(symb->rationalConstant()) {
-        RationalConstantType value = symb->rationalValue();
-        return self._context.real_val(value.numerator().toInner(),value.denominator().toInner());
-      }
-      if(!isLit && env.signature->isFoolConstantSymbol(true,trm->functor())) {
-        return self._context.bool_val(true);
-      }
-      if(!isLit && env.signature->isFoolConstantSymbol(false,trm->functor())) {
-        return self._context.bool_val(false);
-      }
-      if(symb->termAlgebraCons()) {
-        auto ctor = self.findConstructor(trm);
-        return ctor();
-      }
-      // TODO do we really have overflownConstants ?? not in evaluation(s) at least
-      if (symb->overflownConstant()) {
-        // too large for native representation, but z3 should cope
-        auto s = symb->fnType()->result();
-        if (s == IntTraits::sort()) {
-          return self._context.int_val(symb->name().c_str());
-        } else if (s == RatTraits::sort()) {
-          return self._context.real_val(symb->name().c_str());
-        } else if (s == RealTraits::sort()) {
-          return self._context.real_val(symb->name().c_str());
-        } else {
-          ; // intentional fallthrough; the input is fof (and not tff), so let's just treat this as a constant
-        }
-      }
-
-      // If not value then create constant symbol
-      return self.getConst(symb, self.getz3sort(range_sort));
-    }
-    ASS_G(trm->arity(), 0);
-
-    // Currently do not deal with all intepreted operations, should extend
-    // - constants dealt with above
-    // - unary funs/preds like is_rat interpretation unclear
-    if(symb->interpreted()){
-      Interpretation interp = static_cast<Signature::InterpretedSymbol*>(symb)->getInterpretation();
-
-      if (Theory::isPolymorphic(interp)) {
-        switch(interp){
-          case Theory::ARRAY_SELECT:
-          case Theory::ARRAY_BOOL_SELECT:
-            // select(array,index)
-            return select(args[0],args[1]);
-
-          case Theory::ARRAY_STORE:
-            // store(array,index,value)
-            return store(args[0],args[1],args[2]);
-
-          default:
-            {}//skip it and treat the function as uninterpretted
-        }
-
-      } else {
-        auto int_zero = self._context.int_val(0);
-        auto real_zero = self._context.real_val(0);
-
-        switch(interp){
-        // Numerical operations
-        case Theory::INT_DIVIDES:
-          {
-          auto k = self.getNamingConstantFor(toEval, self._context.int_sort());
-          // a divides b <-> k * a ==  b
-          return k * args[0] == args[1];
-          }
-
-        case Theory::INT_UNARY_MINUS:
-        case Theory::RAT_UNARY_MINUS:
-        case Theory::REAL_UNARY_MINUS:
-          return -args[0];
-
-        case Theory::INT_PLUS:
-        case Theory::RAT_PLUS:
-        case Theory::REAL_PLUS:
-          return args[0] + args[1];
-
-        // Don't really need as it's preprocessed away
-        case Theory::INT_MINUS:
-        case Theory::RAT_MINUS:
-        case Theory::REAL_MINUS:
-          return args[0] - args[1];
-
-        case Theory::INT_MULTIPLY:
-        case Theory::RAT_MULTIPLY:
-        case Theory::REAL_MULTIPLY:
-          return args[0] * args[1];
-
-        case Theory::RAT_QUOTIENT:
-        case Theory::REAL_QUOTIENT:
-          return args[0] / args[1];
-
-        /** TPTP's ${quotient,remainder}_e */
-        case Theory::INT_QUOTIENT_E:  return args[0] / args[1];          /* <--- same semantics of tptp and smtlib2 for int */
-        case Theory::INT_REMAINDER_E: return z3::mod(args[0], args[1]);  /* <---                                            */
-        case Theory::RAT_QUOTIENT_E:
-        case Theory::REAL_QUOTIENT_E:  return                 tptp::quotient_e (args[0], args[1]);
-        case Theory::RAT_REMAINDER_E:
-        case Theory::REAL_REMAINDER_E: return tptp::remainder(tptp::quotient_e)(args[0], args[1]);
-
-         /** {quotient,remainder}_t */
-        case Theory::INT_QUOTIENT_T:  return tptp::liftInt(                tptp::quotient_t )(args[0],args[1]);
-        case Theory::INT_REMAINDER_T: return tptp::liftInt(tptp::remainder(tptp::quotient_t))(args[0],args[1]);
-        case Theory::RAT_QUOTIENT_T:
-        case Theory::REAL_QUOTIENT_T: return                 tptp::quotient_t (args[0], args[1]);
-        case Theory::REAL_REMAINDER_T:
-        case Theory::RAT_REMAINDER_T: return tptp::remainder(tptp::quotient_t)(args[0], args[1]);
-
-        /** {quotient,remainder}_f */
-        case Theory::INT_QUOTIENT_F:  return tptp::liftInt(                tptp::quotient_f )(args[0], args[1]);
-        case Theory::INT_REMAINDER_F: return tptp::liftInt(tptp::remainder(tptp::quotient_f))(args[0],args[1]);
-        case Theory::RAT_QUOTIENT_F:
-        case Theory::REAL_QUOTIENT_F: return                 tptp::quotient_f (args[0], args[1]);
-        case Theory::REAL_REMAINDER_F:
-        case Theory::RAT_REMAINDER_F: return tptp::remainder(tptp::quotient_f)(args[0], args[1]);
-
-
-        case Theory::RAT_TO_INT:
-        case Theory::REAL_TO_INT:
-        case Theory::INT_FLOOR:
-        case Theory::RAT_FLOOR:
-        case Theory::REAL_FLOOR:
-          return to_real(to_int(args[0]));
-
-        case Theory::RAT_TO_REAL:
-          return args[0];
-
-        case Theory::INT_TO_REAL:
-        case Theory::INT_TO_RAT:
-          return to_real(args[0]);
-
-        case Theory::INT_CEILING:
-        case Theory::RAT_CEILING:
-        case Theory::REAL_CEILING:
-          return tptp::ceiling(args[0]);
-
-        case Theory::INT_TRUNCATE:
-        case Theory::RAT_TRUNCATE:
-        case Theory::REAL_TRUNCATE:
-          return tptp::truncate(args[0]);
-
-        case Theory::INT_ROUND:
-        case Theory::RAT_ROUND:
-        case Theory::REAL_ROUND: {
-            z3::expr t = args[0];
-            z3::expr i = to_int(t);
-            z3::expr i2 = i + self._context.real_val(1,2);
-            return ite(t > i2, i+1, ite(t==i2, ite(z3::mod(i, 2),i ,i+1 ),i));
-          }
-
-        case Theory::INT_ABS: {
-            z3::expr t = args[0];
-            return ite(t > 0, t, -t);
-          }
-
-        case Theory::INT_IS_INT:
-        case Theory::RAT_IS_INT:
-        case Theory::REAL_IS_INT:
-          return z3::is_int(args[0]);
-
-        case Theory::INT_LESS:
-        case Theory::RAT_LESS:
-        case Theory::REAL_LESS:
-          return args[0] < args[1];
-
-        case Theory::INT_GREATER:
-        case Theory::RAT_GREATER:
-        case Theory::REAL_GREATER:
-          return args[0] > args[1];
-
-        case Theory::INT_LESS_EQUAL:
-        case Theory::RAT_LESS_EQUAL:
-        case Theory::REAL_LESS_EQUAL:
-          return args[0] <= args[1];
-
-        case Theory::INT_GREATER_EQUAL:
-        case Theory::RAT_GREATER_EQUAL:
-        case Theory::REAL_GREATER_EQUAL:
-          return args[0] >= args[1];
-
-        default:
-          {}//skip it and treat the function as uninterpretted
-        }
-      }
-    }
-
-    // uninterpretd function
-    auto f = self.z3Function(Z3Interfacing::FuncOrPredId(trm));
-    return f(f.arity(), args);
-  }
-};
-
-
-
 z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
 {
   auto& self = *this;
@@ -1100,7 +848,242 @@ z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
 Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
 {
   Stack<z3::expr> defs;
-  auto expr = evaluateBottomUp(TermList(trm), ToZ3Expr{ *this, defs });
+  auto expr = BottomUpEvaluation<TermList, z3::expr>()
+    .function(
+      [&](TermList toEval, z3::expr* args) -> z3::expr
+      {
+        ASS(toEval.isTerm())
+        auto trm = toEval.term();
+        bool isLit = trm->isLiteral();
+
+        Signature::Symbol* symb;
+        SortId range_sort;
+        if (isLit) {
+          symb = env.signature->getPredicate(trm->functor());
+          range_sort = AtomicSort::boolSort();
+          // check for equality
+          if( trm->functor()==0 || symb->equalityProxy()){
+            ASS(trm->numTermArguments()==2);
+            // both equality and equality proxy translated as z3 equality
+            if (symb->wasFlipped()) {
+              // equality proxy could have been flipped (by random_polarities)
+              return args[0] != args[1];
+            } else {
+              return args[0] == args[1];
+            }
+          }
+        } else {
+          auto actualSort = SortHelper::getResultSort(trm);
+          symb = env.signature->getFunction(trm->functor());
+          OperatorType* ftype = symb->fnType();
+          range_sort = ftype->result();
+          if (env.signature->isTermAlgebraSort(actualSort) &&  !_createdTermAlgebras.contains(actualSort) ) {
+            createTermAlgebra(actualSort);
+          }
+        }
+
+        //if constant treat specially
+        if(trm->arity() == 0) {
+          if(symb->integerConstant()){
+            IntegerConstantType value = symb->integerValue();
+            return _context.int_val(value.toInner());
+          }
+          if(symb->realConstant()) {
+            RealConstantType value = symb->realValue();
+            return _context.real_val(value.numerator().toInner(),value.denominator().toInner());
+          }
+          if(symb->rationalConstant()) {
+            RationalConstantType value = symb->rationalValue();
+            return _context.real_val(value.numerator().toInner(),value.denominator().toInner());
+          }
+          if(!isLit && env.signature->isFoolConstantSymbol(true,trm->functor())) {
+            return _context.bool_val(true);
+          }
+          if(!isLit && env.signature->isFoolConstantSymbol(false,trm->functor())) {
+            return _context.bool_val(false);
+          }
+          if(symb->termAlgebraCons()) {
+            auto ctor = findConstructor(trm);
+            return ctor();
+          }
+          // TODO do we really have overflownConstants ?? not in evaluation(s) at least
+          if (symb->overflownConstant()) {
+            // too large for native representation, but z3 should cope
+            auto s = symb->fnType()->result();
+            if (s == IntTraits::sort()) {
+              return _context.int_val(symb->name().c_str());
+            } else if (s == RatTraits::sort()) {
+              return _context.real_val(symb->name().c_str());
+            } else if (s == RealTraits::sort()) {
+              return _context.real_val(symb->name().c_str());
+            } else {
+              ; // intentional fallthrough; the input is fof (and not tff), so let's just treat this as a constant
+            }
+          }
+
+          // If not value then create constant symbol
+          return getConst(symb, getz3sort(range_sort));
+        }
+        ASS_G(trm->arity(), 0);
+
+        // Currently do not deal with all intepreted operations, should extend
+        // - constants dealt with above
+        // - unary funs/preds like is_rat interpretation unclear
+        if(symb->interpreted()){
+          Interpretation interp = static_cast<Signature::InterpretedSymbol*>(symb)->getInterpretation();
+
+          if (Theory::isPolymorphic(interp)) {
+            switch(interp){
+              case Theory::ARRAY_SELECT:
+              case Theory::ARRAY_BOOL_SELECT:
+                // select(array,index)
+                return select(args[0],args[1]);
+
+              case Theory::ARRAY_STORE:
+                // store(array,index,value)
+                return store(args[0],args[1],args[2]);
+
+              default:
+                {}//skip it and treat the function as uninterpretted
+            }
+
+          } else {
+            auto int_zero = _context.int_val(0);
+            auto real_zero = _context.real_val(0);
+
+            switch(interp){
+            // Numerical operations
+            case Theory::INT_DIVIDES:
+              {
+              auto k = getNamingConstantFor(toEval, _context.int_sort());
+              // a divides b <-> k * a ==  b
+              return k * args[0] == args[1];
+              }
+
+            case Theory::INT_UNARY_MINUS:
+            case Theory::RAT_UNARY_MINUS:
+            case Theory::REAL_UNARY_MINUS:
+              return -args[0];
+
+            case Theory::INT_PLUS:
+            case Theory::RAT_PLUS:
+            case Theory::REAL_PLUS:
+              return args[0] + args[1];
+
+            // Don't really need as it's preprocessed away
+            case Theory::INT_MINUS:
+            case Theory::RAT_MINUS:
+            case Theory::REAL_MINUS:
+              return args[0] - args[1];
+
+            case Theory::INT_MULTIPLY:
+            case Theory::RAT_MULTIPLY:
+            case Theory::REAL_MULTIPLY:
+              return args[0] * args[1];
+
+            case Theory::RAT_QUOTIENT:
+            case Theory::REAL_QUOTIENT:
+              return args[0] / args[1];
+
+            /** TPTP's ${quotient,remainder}_e */
+            case Theory::INT_QUOTIENT_E:  return args[0] / args[1];          /* <--- same semantics of tptp and smtlib2 for int */
+            case Theory::INT_REMAINDER_E: return z3::mod(args[0], args[1]);  /* <---                                            */
+            case Theory::RAT_QUOTIENT_E:
+            case Theory::REAL_QUOTIENT_E:  return                 tptp::quotient_e (args[0], args[1]);
+            case Theory::RAT_REMAINDER_E:
+            case Theory::REAL_REMAINDER_E: return tptp::remainder(tptp::quotient_e)(args[0], args[1]);
+
+             /** {quotient,remainder}_t */
+            case Theory::INT_QUOTIENT_T:  return tptp::liftInt(                tptp::quotient_t )(args[0],args[1]);
+            case Theory::INT_REMAINDER_T: return tptp::liftInt(tptp::remainder(tptp::quotient_t))(args[0],args[1]);
+            case Theory::RAT_QUOTIENT_T:
+            case Theory::REAL_QUOTIENT_T: return                 tptp::quotient_t (args[0], args[1]);
+            case Theory::REAL_REMAINDER_T:
+            case Theory::RAT_REMAINDER_T: return tptp::remainder(tptp::quotient_t)(args[0], args[1]);
+
+            /** {quotient,remainder}_f */
+            case Theory::INT_QUOTIENT_F:  return tptp::liftInt(                tptp::quotient_f )(args[0], args[1]);
+            case Theory::INT_REMAINDER_F: return tptp::liftInt(tptp::remainder(tptp::quotient_f))(args[0],args[1]);
+            case Theory::RAT_QUOTIENT_F:
+            case Theory::REAL_QUOTIENT_F: return                 tptp::quotient_f (args[0], args[1]);
+            case Theory::REAL_REMAINDER_F:
+            case Theory::RAT_REMAINDER_F: return tptp::remainder(tptp::quotient_f)(args[0], args[1]);
+
+
+            case Theory::RAT_TO_INT:
+            case Theory::REAL_TO_INT:
+            case Theory::INT_FLOOR:
+            case Theory::RAT_FLOOR:
+            case Theory::REAL_FLOOR:
+              return to_real(to_int(args[0]));
+
+            case Theory::RAT_TO_REAL:
+              return args[0];
+
+            case Theory::INT_TO_REAL:
+            case Theory::INT_TO_RAT:
+              return to_real(args[0]);
+
+            case Theory::INT_CEILING:
+            case Theory::RAT_CEILING:
+            case Theory::REAL_CEILING:
+              return tptp::ceiling(args[0]);
+
+            case Theory::INT_TRUNCATE:
+            case Theory::RAT_TRUNCATE:
+            case Theory::REAL_TRUNCATE:
+              return tptp::truncate(args[0]);
+
+            case Theory::INT_ROUND:
+            case Theory::RAT_ROUND:
+            case Theory::REAL_ROUND: {
+                z3::expr t = args[0];
+                z3::expr i = to_int(t);
+                z3::expr i2 = i + _context.real_val(1,2);
+                return ite(t > i2, i+1, ite(t==i2, ite(z3::mod(i, 2),i ,i+1 ),i));
+              }
+
+            case Theory::INT_ABS: {
+                z3::expr t = args[0];
+                return ite(t > 0, t, -t);
+              }
+
+            case Theory::INT_IS_INT:
+            case Theory::RAT_IS_INT:
+            case Theory::REAL_IS_INT:
+              return z3::is_int(args[0]);
+
+            case Theory::INT_LESS:
+            case Theory::RAT_LESS:
+            case Theory::REAL_LESS:
+              return args[0] < args[1];
+
+            case Theory::INT_GREATER:
+            case Theory::RAT_GREATER:
+            case Theory::REAL_GREATER:
+              return args[0] > args[1];
+
+            case Theory::INT_LESS_EQUAL:
+            case Theory::RAT_LESS_EQUAL:
+            case Theory::REAL_LESS_EQUAL:
+              return args[0] <= args[1];
+
+            case Theory::INT_GREATER_EQUAL:
+            case Theory::RAT_GREATER_EQUAL:
+            case Theory::REAL_GREATER_EQUAL:
+              return args[0] >= args[1];
+
+            default:
+              {}//skip it and treat the function as uninterpretted
+            }
+          }
+        }
+
+        // uninterpretd function
+        auto f = z3Function(Z3Interfacing::FuncOrPredId(trm));
+        return f(f.arity(), args);
+      })
+      .apply(TermList(trm));
   return Representation(expr, std::move(defs));
 }
 

@@ -70,7 +70,7 @@ TEST_FUN(testFlatMap1) {
   auto out = Stack<int>{ 1, 2, 3, 4, 5, 6, };
 
   ASS_EQ(iterTraits(in.iterFifo())
-      .flatMap([](Stack<int> const& i) { return i.iterFifo(); })
+      .flatMap([](Stack<int> i) { return arrayIter(std::move(i)); })
       .template collect<Stack>(), out)
 }
 

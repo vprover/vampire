@@ -11,17 +11,15 @@
  * @file Forwards.hpp
  * Forward declarations of some classes
  */
-#ifndef __Debug_Output__
-#define __Debug_Output__
+#ifndef __Debug_Output_HPP__
+#define __Debug_Output_HPP__
 
 #include <iostream>
 #include <utility>
+#include <tuple>
+
 
 namespace Kernel {
-
-template<class A, class B>
-std::ostream& operator<<(std::ostream& out, std::pair<A,B> const& self)
-{ return out << "(" << self.first << ", " << self.second << ")"; }
 
 /** Newtype in order to nicely output a pointer.
  * Usage: `out << outputPtr(ptr) << std::endl;` 
@@ -36,6 +34,11 @@ struct OutputPtr {
 template<class T>
 OutputPtr<T> outputPtr(T* self) { return { .self = self, }; }
 
+template<class T>
+void repeat(std::ostream& out, T const& c, int times) 
+{ for (int i = 0; i < times; i++) out << c; };
+
+
 /** Newtype for outputting a datatype that implements it in multiline format.
  * Usage: `out << multiline(substitutioTree) << std::endl;` 
  *
@@ -43,18 +46,76 @@ OutputPtr<T> outputPtr(T* self) { return { .self = self, }; }
  * std::ostream& operator<<(std::ostream&, OutputMultiline<MyType>)
  */
 template<class T>
-struct OutputMultiline { T const& self; };
+struct OutputMultiline { 
+  T const& self; 
+  unsigned indent; 
+
+  static void outputIndent(std::ostream& out, unsigned indent)
+  { repeat(out, "    ", indent); };
+};
+
 
 template<class T>
-OutputMultiline<T> multiline(T const& self)
-{ return { self }; }
+OutputMultiline<T> multiline(T const& self, unsigned indent = 0)
+{ return { self, indent, }; }
+
+template<class Sep, class Iter>
+struct OutputInterleaved { 
+  Sep const& sep; 
+  Iter iter; 
+};
+
+template<class Sep, class Iter>
+struct OutputInterleaved<Sep,Iter> outputInterleaved(Sep const& s, Iter i)
+{ return OutputInterleaved<Sep, Iter>{s, std::move(i)}; }
 
 
-template<class T>
-void repeat(std::ostream& out, T const& c, int times) 
-{ for (int i = 0; i < times; i++) out << c; };
+template<class Iter>
+auto commaSep(Iter i) { return outputInterleaved(", ", std::move(i)); }
 
-static constexpr char const* INDENT = "    ";
+template<unsigned i, unsigned sz, class Tup> 
+struct __OutputTuple
+{
+  static void apply(std::ostream& out, Tup const& self)
+  {
+    out << std::get<i>(self) << ", ";
+    __OutputTuple<i + 1, sz, Tup>::apply(out, self);
+  }
+};
+
+template<unsigned i, class Tup> 
+struct __OutputTuple<i, i, Tup>  {
+  static void apply(std::ostream& out, Tup const& self)
+  {
+    out << std::get<i>(self);
+  }
+};
+
+template<class... As> 
+std::ostream& operator<<(std::ostream& out, std::tuple<As...> const& self)
+{ 
+  out << "(";
+  Kernel::__OutputTuple<0, std::tuple_size<std::tuple<As...>>::value - 1, std::tuple<As...>>::apply(out, self);
+  out << ")";
+  return out;
+}
+
+template<class Sep, class Iter>
+std::ostream& operator<<(std::ostream& out, Kernel::OutputInterleaved<Sep, Iter> self)
+{
+  if (self.iter.hasNext()) {
+    out << self.iter.next();
+    while (self.iter.hasNext()) {
+      out << self.sep << self.iter.next();
+    }
+  }
+  return out;
+}
 
 } // namespace Kernel
-#endif // __Debug_Output__
+
+template<class A, class B>
+std::ostream& operator<<(std::ostream& out, std::pair<A,B> const& self)
+{ return out << "(" << self.first << ", " << self.second << ")"; }
+
+#endif // __Debug_Output_HPP__

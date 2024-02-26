@@ -558,10 +558,9 @@ unsigned PortfolioMode::getSliceTime(const vstring &sliceCode)
     vstring sliceInstrStr = sliceCode.substr(bidx,eidx-bidx);
     unsigned sliceInstr;
     ALWAYS(Int::stringToUnsignedInt(sliceInstrStr,sliceInstr));
-    
+
     // sliceTime is in deci second, we assume a roughly 2GHz CPU here
-    sliceTime = sliceInstr / 200;
-    if (sliceTime == 0) { sliceTime = 1; }
+    sliceTime = 1 + sliceInstr / 200; // rather round up than down (and never return 0 here)
   }
 
   return _slowness * sliceTime;
@@ -638,7 +637,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
     env.beginOutput();
     addCommentSignForSZS(env.out()) << opt.testId() << " on " << opt.problemName() << 
       " for (" << opt.timeLimitInDeciseconds() << "ds"<<
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
       "/" << opt.instructionLimit() << "Mi" <<
 #endif
       ")" << endl;

@@ -183,7 +183,7 @@ TopLevelVarIterator::TopLevelVarIterator(TermList t)
     _next = t;
     return;
   }
-  _next.makeEmpty();
+  _next = TermList::empty();
 
   static TermStack args;
   args.reset();

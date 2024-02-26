@@ -18,13 +18,15 @@
 #define __Stack__
 
 #include <cstdlib>
+#include <algorithm>
 
 #include "Forwards.hpp"
+#include "Lib/TypeList.hpp"
 
 #include "Debug/Assertion.hpp"
 
 #include "Allocator.hpp"
-#include "Backtrackable.hpp"
+#include "Lib/Reflection.hpp"
 
 namespace std
 {
@@ -56,6 +58,7 @@ public:
 
   USE_ALLOCATOR(Stack);
 
+
   /**
    * Create a stack having initialCapacity.
    */
@@ -68,7 +71,7 @@ public:
       _stack = static_cast<C*>(mem);
     }
     else {
-      _stack = 0;
+      _stack = nullptr;
     }
     _cursor = _stack;
     _end = _stack+_capacity;
@@ -98,6 +101,8 @@ public:
       _end = _stack + _capacity;
     }
   }
+
+  bool keepRecycled() const { return _capacity > 0; }
 
 
   Stack(const Stack& s)
@@ -173,26 +178,15 @@ public:
   }
 
   /**
-   * Put all elements of an iterator onto the stack.
-   */
-  template<class It>
-  void moveFromIterator(It it) {
-    // TODO check iterator.size() or iterator.sizeHint()
-    while(it.hasNext()) {
-      push(std::move(it.next()));
-    }
-  }
-
-
-  /**
    * Create a new stack with the contents of the itererator.
    */
   template<class It>
   static Stack fromIterator(It it) {
     Stack out;
-    out.loadFromIterator(it);
+    out.loadFromIterator(std::move(it));
     return out;
   }
+
   /* a first-in-first-out iterator  */
   BottomFirstIterator iterFifo() const 
   { return BottomFirstIterator(*this); }
@@ -222,6 +216,31 @@ public:
 
     return _stack[n];
   }
+
+  friend int cmp(const Stack& l, const Stack& r)
+  {
+    int sdiff = int(l.size()) - int(r.size());
+    if(sdiff) return sdiff;
+    
+    auto i1 = arrayIter(l);
+    auto i2 = arrayIter(r);
+    while (i1.hasNext()) {
+      auto& e1 = i1.next();
+      auto& e2 = i2.next();
+      if (e1 != e2) {
+        if (e1 < e2) return -1;
+        if (e1 > e2) return 1;
+      }
+    }
+    ASS(!i2.hasNext())
+    return 0;
+  }
+
+  friend bool operator< (const Stack& l, const Stack& r) { return cmp(l,r) <  0; }
+  friend bool operator<=(const Stack& l, const Stack& r) { return cmp(l,r) <= 0; }
+  friend bool operator> (const Stack& l, const Stack& r) { return cmp(l,r) >  0; }
+  friend bool operator>=(const Stack& l, const Stack& r) { return cmp(l,r) >= 0; }
+
 
   bool operator==(const Stack& o) const
   {
@@ -304,22 +323,7 @@ public:
    * @since 11/03/2006 Bellevue
    */
   inline
-  void push(const C& elem)
-  {
-    if (_cursor == _end) {
-      expand();
-    }
-    ASS(_cursor < _end);
-    ::new(_cursor) C(elem);
-    _cursor++;
-  } // Stack::push()
-
-  /**
-   * Push new element on the stack (move semantics version).
-   * @since 11/08/2020 
-   */
-  inline
-  void push(C&& elem)
+  void push(C elem)
   {
     if (_cursor == _end) {
       expand();
@@ -346,6 +350,37 @@ public:
   } // Stack::pop()
 
 
+  /** removes consecutive duplicates. instead of the operator== the given predicate is used */
+  template<class Equal = std::equal_to<C>>
+  void dedup(Equal eq = std::equal_to<C>{})
+  { 
+    auto& self = *this;
+    if (self.size() == 0) return;
+    unsigned offs = 0;
+    for (unsigned i = 1;  i < self.size(); i++) {
+      if (eq(self[offs], self[i])) {
+        /* skip */
+      } else {
+        self[offs++ + 1] = std::move(self[i]);
+      }
+    }
+    self.pop(self.size() - (offs + 1));
+  }
+
+  /** like Stack::dedup but moves the content out of `this` and returns the resulting Stack instead of changing the contents of this  */
+  template<class Equal = std::equal_to<C>>
+  Stack deduped(Equal eq = std::equal_to<C>{})
+  { dedup(); return std::move(*this); }
+
+  template<class Less = std::less<C>>
+  void sort(Less less = std::less<C>{})
+  { std::sort(begin(), end(), less); }
+
+  /** like Stack::sort but moves the content out of `this` and returns the resulting Stack instead of changing the contents of this */
+  template<class Equal = std::equal_to<C>>
+  Stack sorted(Equal eq = std::equal_to<C>{})
+  { sort(); return std::move(*this); }
+
   inline
   void pop(unsigned cnt)
   {
@@ -367,6 +402,19 @@ public:
       }
     }
     return false;
+  }
+
+  /**
+   * removes the element at the given index, replacing it by the last element in the stack and shrinking the stack.
+   * constant time operation.
+   * returns the removed element.
+   */
+  C swapRemove(unsigned idx)
+  {
+    ASS(idx < size())
+    ASS(size() > 0)
+    std::swap((*this)[idx], (*this)[size() - 1]);
+    return pop();
   }
 
   /**
@@ -396,6 +444,34 @@ public:
     }
     _cursor = _stack;
   }
+
+  void init(std::initializer_list<C> elems)
+  {
+    reserve(elems.size());
+    for (auto& x : elems) {
+      push(std::move(x));
+    }
+  }
+private:
+  void __pushMany() {}
+
+  template<class... As>
+  void __pushMany(C item, As... rest) 
+  { 
+    push(std::move(item)); 
+    __pushMany(std::move(rest)...);
+  }
+
+
+public:
+
+  template<class... As>
+  void pushMany(As... items) 
+  { 
+    reserve(size() + TypeList::Size<TypeList::List<As...>>::val);
+    __pushMany(std::move(items)...);
+  }
+
 
   /** Sets the length of the stack to @b len
    *  @since 27/12/2007 Manchester */
@@ -430,21 +506,6 @@ public:
     }
     return false;
   }
-
-#if VDEBUG
-  vstring toString()
-  {
-    vstring ret = "[";
-    Iterator it(const_cast<Stack&>(*this));
-    while(it.hasNext()){
-      C el = it.next();
-      ret += Int::toString(static_cast<unsigned int>(el));
-      if(it.hasNext()){ ret +=",";}
-    }
-    return ret+"]";
-  }
-
-#endif
 
   friend class RefIterator;
 
@@ -582,6 +643,9 @@ public:
     DECL_ELEMENT_TYPE(C);
     C next() { return ConstRefIterator::next(); }
   };
+
+  ConstIterator iterCloned() const&
+  { return ConstIterator(*this); }
 
   RefIterator iter() &
   { return RefIterator(*this); }
@@ -783,22 +847,8 @@ protected:
     _capacity = newCapacity;
   } // Stack::expand
 
-  class PushBacktrackObject: public BacktrackObject
-  {
-    Stack* st;
-  public:
-    USE_ALLOCATOR(Stack::PushBacktrackObject);
-    
-    PushBacktrackObject(Stack* st) : st(st) {}
-    void backtrack() { st->pop(); }
-  };
 public:
 
-  void backtrackablePush(C v, BacktrackData& bd)
-  {
-    push(v);
-    bd.addBacktrackObject(new PushBacktrackObject(this));
-  }
 
   friend std::ostream& operator<<(std::ostream& out, const Stack<C>& s) {
     out << "[";

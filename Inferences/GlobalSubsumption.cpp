@@ -120,7 +120,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
   if (cl->splits() && cl->splits()->size()!=0) {
     ASS(_splittingAssumps);
     
-    SplitSet::Iterator sit(*cl->splits());
+    auto sit = cl->splits()->iter();
     while(sit.hasNext()) {
       SplitLevel l = sit.next();      
       unsigned var = splitLevelToVar(l);

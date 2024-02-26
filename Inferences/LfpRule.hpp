@@ -21,8 +21,6 @@ class LfpRule
 {
   Rule _inner;
 public:
-  USE_ALLOCATOR(LfpRule);
- 
   LfpRule(Rule rule);
   LfpRule();
   SimplifyingGeneratingInference1::Result simplify(Clause *cl, bool doCheckOrdering) override;
