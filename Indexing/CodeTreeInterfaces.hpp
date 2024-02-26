@@ -40,15 +40,15 @@ using namespace Lib;
 class CodeTreeTIS : public TermIndexingStructure
 {
 public:
-  void insert(TypedTermList t, Literal* lit, Clause* cls);
-  void remove(TypedTermList t, Literal* lit, Clause* cls);
+  void insert(TypedTermList t, Literal* lit, Clause* cls) override;
+  void remove(TypedTermList t, Literal* lit, Clause* cls) override;
 
-  TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true);
-  bool generalizationExists(TermList t);
+  TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true, void* extraData = nullptr) override;
+  bool generalizationExists(TermList t) override;
   // TODO: get rid of NOT_IMPLEMENTED
-  VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t, Options::UnificationWithAbstraction, bool fixedPointIteration) { NOT_IMPLEMENTED; }
+  VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t, Options::UnificationWithAbstraction, bool fixedPointIteration) override { NOT_IMPLEMENTED; }
 
-  virtual void output(std::ostream& out) const { out << "CodeTree"; }
+  virtual void output(std::ostream& out) const override { out << "CodeTree"; }
 
 private:
   class ResultIterator;

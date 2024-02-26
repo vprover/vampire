@@ -34,8 +34,8 @@ public:
   TermQueryResultIterator getUnifications(TypedTermList t, bool retrieveSubstitutions = true)
   { return _is->getUnifications(t, retrieveSubstitutions); }
 
-  TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true)
-  { return _is->getGeneralizations(t, retrieveSubstitutions); }
+  TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true, void* extraData = nullptr)
+  { return _is->getGeneralizations(t, retrieveSubstitutions, extraData); }
 
   TermQueryResultIterator getInstances(TypedTermList t, bool retrieveSubstitutions = true)
   { return _is->getInstances(t, retrieveSubstitutions); }

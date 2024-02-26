@@ -478,6 +478,62 @@ void NonVariableNonTypeIterator::right()
   }
 } // NonVariableIterator::right
 
+std::pair<Term*,FlatTerm::Entry*> FTNonVariableNonTypeIterator::next()
+{
+  auto kv = _stack.pop();
+  auto t = kv.first;
+  auto ft_e = kv.second;
+  TermList* ts;
+  _added = 0;
+  Signature::Symbol* sym;
+  if (t->isLiteral()) {
+    sym = env.signature->getPredicate(t->functor());
+  } else{
+    sym = env.signature->getFunction(t->functor());
+  }
+  unsigned taArity; 
+  unsigned arity;
+
+  if(t->isLiteral() && static_cast<Literal*>(t)->isEquality()){
+    taArity = 0;
+    arity = 2;
+  } else {
+    taArity = sym->numTypeArguments();
+    arity = sym->arity();
+  }
+
+  ASS(ft_e[0].isFun(t->isLiteral() ? static_cast<Literal*>(t)->header() : t->functor()));
+  ASS_EQ(ft_e[1].ptr(),t);
+  ft_e->expand();
+  size_t cnt = FlatTerm::functionEntryCount;
+  for(unsigned i = 0; i < arity; i++){
+    ts = t->nthArgument(i);
+    if (ts->isVar()) {
+      cnt++;
+    } else {
+      auto e = ft_e + cnt;
+      cnt += e[2].number();
+      if (taArity <= i) {
+        _stack.push(std::make_pair(const_cast<Term*>(ts->term()), e));
+        _added++;
+      }
+    }
+  }
+  ASS_EQ(cnt,ft_e[2].number());
+  return kv;
+}
+
+/**
+ * Skip all subterms of the terms returned by the last call to next()
+ */
+void FTNonVariableNonTypeIterator::right()
+{
+  while (_added > 0) {
+    _added--;
+    _stack.pop();
+  }
+} // NonVariableIterator::right
+
 bool TracedNonVariableNonTypeIterator::hasNext()
 {
   if (_ready) {

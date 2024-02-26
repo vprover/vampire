@@ -102,7 +102,7 @@ public:
   TermQueryResultIterator getInstances(TypedTermList t, bool retrieveSubstitutions) override
   { return pvi(getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions)); }
 
-  TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions) override
+  TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions, void* extraData) override
   { return pvi(getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions)); }
 
 

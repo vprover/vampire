@@ -166,6 +166,7 @@ protected:
   // int functionSymbolWeight(unsigned fun) const;
   int symbolWeight(Term* t) const;
   void computeWeight(Term* t) const;
+  unsigned weight(TermList t) const;
 
 private:
 

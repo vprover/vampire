@@ -96,9 +96,12 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
     // typename std::conditional<!combinatorySupSupport,
     //   NonVariableNonTypeIterator,
     //   FirstOrderSubtermIt>::type it(lit);
-    TracedNonVariableNonTypeIterator it(lit);
+    // TracedNonVariableNonTypeIterator it(lit);
+    FTNonVariableNonTypeIterator it(lit);
     while(it.hasNext()) {
-      TypedTermList trm = it.next();
+      auto p = it.next();
+      TypedTermList trm = p.first;
+      auto fte = p.second;
       if(!attempted.insert(trm)) {
         //We have already tried to demodulate the term @b trm and did not
         //succeed (otherwise we would have returned from the function).
@@ -121,7 +124,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         attempted.remove(trm);
       }
 
-      TermQueryResultIterator git=_index->getGeneralizations(trm, true);
+      TermQueryResultIterator git=_index->getGeneralizations(trm, true, fte);
       while(git.hasNext()) {
         TermQueryResult qr=git.next();
         ASS_EQ(qr.clause->length(),1);
@@ -244,10 +247,10 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         if(EqHelper::isEqTautology(resLit)) {
           env.statistics->forwardDemodulationsToEqTaut++;
           premises = pvi( getSingletonIterator(qr.clause));
-          for (const auto& t : it.getTrace()) {
-            attempted.remove(TermList(t));
-          }
-          attempted.remove(trm);
+          // for (const auto& t : it.getTrace()) {
+          //   attempted.remove(TermList(t));
+          // }
+          // attempted.remove(trm);
           return true;
         }
 
@@ -268,10 +271,10 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
         premises = pvi( getSingletonIterator(qr.clause));
         replacement = res;
-        for (const auto& t : it.getTrace()) {
-          attempted.remove(TermList(t));
-        }
-        attempted.remove(trm);
+        // for (const auto& t : it.getTrace()) {
+        //   attempted.remove(TermList(t));
+        // }
+        // attempted.remove(trm);
         return true;
       }
     }

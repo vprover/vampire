@@ -34,7 +34,7 @@ public:
   virtual TermQueryResultIterator getUnifications(TypedTermList t, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
   virtual VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) = 0;
   virtual TermQueryResultIterator getUnificationsUsingSorts(TypedTermList tt, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }  
-  virtual TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true, void* extraData = nullptr) { NOT_IMPLEMENTED; }
   virtual TermQueryResultIterator getInstances(TypedTermList t, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
 
   virtual bool generalizationExists(TermList t) { NOT_IMPLEMENTED; }

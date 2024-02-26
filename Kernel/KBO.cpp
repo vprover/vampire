@@ -98,7 +98,6 @@ public:
     _varDiffs.reset();
   }
 
-  CLASS_NAME(KBO::StateGreater);
   USE_ALLOCATOR(StateGreater);
 
   bool traverse(Term* t1, Term* t2);
@@ -403,10 +402,10 @@ bool KBO::StateGreater::traverse(Term* t1, Term* t2)
       continue;
     }
     if (stillEqual) {
-      if (ss->kboWeight()<tt->kboWeight()) {
+      if (_kbo.weight(*ss)<_kbo.weight(*tt)) {
         return false;
       }
-      if (ss->kboWeight()>tt->kboWeight()) {
+      if (_kbo.weight(*ss)>_kbo.weight(*tt)) {
         traverseVars(*ss,1);
         traverseVars(*tt,-1);
         if (!checkVars()) {
@@ -415,7 +414,7 @@ bool KBO::StateGreater::traverse(Term* t1, Term* t2)
         stillEqual = false;
         continue;
       }
-      // ss->kboWeight()==tt->kboWeight()
+      // _kbo.weight(*ss)==_kbo.weight(*tt)
       if (ss->isOrdinaryVar()) {
         return false;
       }
@@ -1032,6 +1031,15 @@ void KBO::computeWeight(Term* t) const
   ASS(values.isEmpty());
   ASS(stack.isEmpty());
   ASS_NEQ(t->kboWeight(),-1);
+}
+
+unsigned KBO::weight(TermList t) const
+{
+  if (t.isVar()) {
+    return _funcWeights._specialWeights._variableWeight;
+  }
+  ASS_NEQ(t.term()->kboWeight(),-1);
+  return t.term()->kboWeight();
 }
 
 template<class SigTraits>
