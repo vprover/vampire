@@ -150,8 +150,10 @@ Problem *doProving()
   // a new strategy randomization mechanism
   if (!env.options->strategySamplerFilename().empty()) {
     env.options->sampleStrategy(env.options->strategySamplerFilename());
-    env.options->checkGlobalOptionConstraints();
   }
+
+  env.options->setForcedOptionValues();
+  env.options->checkGlobalOptionConstraints();
 
   Problem *prb = getPreprocessedProblem();
 
@@ -588,6 +590,11 @@ int main(int argc, char* argv[])
     // read the command line and interpret it
     Shell::CommandLine cl(argc, argv);
     cl.interpret(*env.options);
+
+    if(env.options->encodeStrategy()){
+      cout << env.options->generateEncodedOptions() << "\n";
+    }
+
 #if VTIME_PROFILING
     TimeTrace::instance().setEnabled(env.options->timeStatistics());
 #endif
