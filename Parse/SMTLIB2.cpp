@@ -65,7 +65,6 @@ SMTLIB2::SMTLIB2(const Options& opts)
 : _logicSet(false),
   _logic(SMT_UNDEFINED),
   _numeralsAreReal(false),
-  _formulas(nullptr),
   _topLevelExpr(nullptr)
 {
 }
@@ -838,7 +837,7 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
 
   FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
 
-  UnitList::push(fu, _formulas);
+  _formulas.pushBack(fu);
 }
 
 void SMTLIB2::readTypeParameters(LispListReader& rdr, TermLookup* lookup, TermStack* ts)
@@ -2853,7 +2852,7 @@ void SMTLIB2::readAssert(LExpr* body)
   }
 
   FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
-  UnitList::push(fu, _formulas);
+  _formulas.pushBack(fu);
 }
 
 void SMTLIB2::readAssertClaim(LExpr* body)
@@ -2871,7 +2870,7 @@ void SMTLIB2::readAssertClaim(LExpr* body)
   static unsigned claim_id = 0;
 
   FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
-  UnitList::push(TPTP::processClaimFormula(fu,fla,"claim"+Int::toString(claim_id++)), _formulas);
+  _formulas.pushBack(TPTP::processClaimFormula(fu,fla,"claim"+Int::toString(claim_id++)));
 }
 
 void SMTLIB2::readAssertNot(LExpr* body)
@@ -2889,7 +2888,7 @@ void SMTLIB2::readAssertNot(LExpr* body)
   FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::CONJECTURE));
   fu = new FormulaUnit(new NegatedFormula(fla),
                        FormulaTransformation(InferenceRule::NEGATED_CONJECTURE, fu));
-  UnitList::push(fu, _formulas);
+  _formulas.pushBack(fu);
 }
 
 void SMTLIB2::readAssertTheory(LExpr* body)
@@ -2905,7 +2904,7 @@ void SMTLIB2::readAssertTheory(LExpr* body)
   }
 
   FormulaUnit* fu = new FormulaUnit(theoryAxiom, Inference(TheoryAxiom(InferenceRule::EXTERNAL_THEORY_AXIOM)));
-  UnitList::push(fu, _formulas);
+  _formulas.pushBack(fu);
 }
 
 Signature::Symbol* SMTLIB2::getSymbol(DeclaredSymbol& s) {

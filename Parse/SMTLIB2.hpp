@@ -50,7 +50,7 @@ public:
    *
    *  We don't know what the conjecture is.
    **/
-  UnitList* getFormulas() const { return _formulas; }
+  UnitList* getFormulas() const { return _formulas.list(); }
 
   /**
    * Return the parsed logic (or LO_INVALID if not set).
@@ -486,7 +486,7 @@ private:
   /**
    * Units collected during parsing.
    */
-  UnitList* _formulas;
+  UnitList::FIFO _formulas;
 
   /**
    * To support a mechanism for dealing with large arithmetic constants.
