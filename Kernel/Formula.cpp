@@ -268,41 +268,6 @@ bool Formula::parenthesesRequired (Connective outer) const
   ASSERTION_VIOLATION;
 } // Formula::parenthesesRequired
 
-
-/**
- * Return the list of all free variables of the formula
- *
- * Each variable in the formula is returned just once.
- *
- * NOTE: don't use this function, if you don't actually need a List
- * (FormulaVarIterator is a better choice)
- *
- * NOTE: remember to free the list when done with it
- * (otherwise we leak memory!)
- *
- * @since 12/12/2004 Manchester
- */
-VList* Formula::freeVariables () const
-{
-  FormulaVarIterator fvi(this);
-  VList::FIFO result;
-  while (fvi.hasNext()) {
-    result.pushBack(fvi.next());
-  }
-  return result.list();
-} // Formula::freeVariables
-
-bool Formula::isFreeVariable(unsigned var) const
-{
-  FormulaVarIterator fvi(this);
-  while (fvi.hasNext()) {
-    if (var == fvi.next()) {
-      return true;
-    }
-  }
-  return false;
-}
-
 /**
  * Return the list of all bound variables of the formula
  *

@@ -27,6 +27,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubformulaIterator.hpp"
+#include "Kernel/FormulaVarIterator.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
 
@@ -65,7 +66,7 @@ Naming::Naming(int threshold, bool preserveEpr, bool appify) :
  */
 FormulaUnit* Naming::apply(FormulaUnit* unit, UnitList*& defs) {
   ASS(!unit->isClause());
-  ASS_REP(unit->formula()->freeVariables() == 0, *unit);
+  ASS_REP(!FormulaVarIterator(unit->formula()).hasNext(), *unit);
   ASS(!_varsInScope); //_varsInScope can be true only when traversing inside a formula
 
   if (env.options->showPreprocessing()) {
@@ -1069,11 +1070,9 @@ bool Naming::canBeInDefinition(Formula* f, Where where) {
     }
   }
 
-  VList* fvars = f->freeVariables();
-  bool freeVars = fvars;
-  VList::destroy(fvars);
+  bool hasFreeVars = FormulaVarIterator(f).hasNext();
 
-  if (!_varsInScope && freeVars
+  if (!_varsInScope && hasFreeVars
       && (exQuant || (unQuant && where == UNDER_IFF))) {
     return false;
   }
@@ -1163,8 +1162,7 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
 
   RSTAT_CTR_INC("naming_introduced_defs");
 
-  VList* vs;
-  vs = f->freeVariables();
+  VList* vs = freeVariables(f);
   Literal* atom = getDefinitionLiteral(f, vs);
   Formula* name = new AtomicFormula(atom);
 

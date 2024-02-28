@@ -28,6 +28,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Theory.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/FormulaVarIterator.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
@@ -3639,7 +3640,7 @@ void TPTP::endFof()
         unit = new FormulaUnit(f,FormulaTransformation(InferenceRule::ANSWER_LITERAL,unit));
     }
     else {
-      VList* vs = f->freeVariables();
+      VList* vs = freeVariables(f);
       if (VList::isEmpty(vs)) {
         f = new NegatedFormula(f);
       }
@@ -3681,7 +3682,7 @@ Unit* TPTP::processClaimFormula(Unit* unit, Formula * f, const vstring& nm)
   }
   env.signature->getPredicate(pred)->markLabel();
   Formula* claim = new AtomicFormula(Literal::create(pred, /* polarity */ true, {}));
-  VList* vs = f->freeVariables();
+  VList* vs = freeVariables(f);
   if (VList::isNonEmpty(vs)) {
     //TODO can we use sortOf to get sorts of vs?
     f = new QuantifiedFormula(FORALL,vs,0,f);

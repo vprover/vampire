@@ -231,9 +231,6 @@ public:
   bool ground() const;
   bool isSafe() const;
 
-  VList* freeVariables() const;
-  bool isFreeVariable(unsigned var) const;
-
 #if VDEBUG
   void assertValid() const;
 #endif
@@ -450,7 +447,6 @@ public:
   static Term* foolFalse(); 
 
   VList* freeVariables() const;
-  bool isFreeVariable(unsigned var) const;
 
   /** Return number of bytes before the start of the term that belong to it */
   size_t getPreDataSize() { return isSpecial() ? sizeof(SpecialTermData) : 0; }
