@@ -18,11 +18,11 @@
 
 #include "Shell/FunctionDefinitionHandler.hpp"
 
-#include "Inferences/FnDefRewriting.hpp"
+#include "Inferences/FunctionDefinitionRewriting.hpp"
 
 using namespace Test;
 
-REGISTER_GEN_TESTER(FnDefRewriting)
+REGISTER_GEN_TESTER(FunctionDefinitionRewriting)
 
 /**
  * NECESSARY: We neet to tell the tester which syntax sugar to import for creating terms & clauses. 

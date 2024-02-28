@@ -404,12 +404,12 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/ExtensionalityResolution.cpp
     Inferences/Factoring.cpp
     Inferences/FastCondensation.cpp
-    Inferences/FnDefRewriting.cpp
     Inferences/FOOLParamodulation.cpp
     Inferences/ForwardDemodulation.cpp
     Inferences/ForwardLiteralRewriting.cpp
     Inferences/ForwardSubsumptionAndResolution.cpp
     Inferences/ForwardSubsumptionDemodulation.cpp
+    Inferences/FunctionDefinitionRewriting.cpp
     Inferences/GlobalSubsumption.cpp
     Inferences/InnerRewriting.cpp
     Inferences/EquationalTautologyRemoval.cpp
@@ -446,6 +446,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/ForwardDemodulation.hpp
     Inferences/ForwardLiteralRewriting.hpp
     Inferences/ForwardSubsumptionAndResolution.hpp
+    Inferences/FunctionDefinitionRewriting.hpp
     Inferences/GlobalSubsumption.hpp
     Inferences/InnerRewriting.hpp
     Inferences/EquationalTautologyRemoval.hpp
@@ -744,8 +745,8 @@ set(UNIT_TESTS
     UnitTests/tSet.cpp
     UnitTests/tDeque.cpp
     UnitTests/tTermAlgebra.cpp
-    UnitTests/tFnDefRewriting.cpp
     UnitTests/tFunctionDefinitionHandler.cpp
+    UnitTests/tFunctionDefinitionRewriting.cpp
     )
 source_group(unit_tests FILES ${UNIT_TESTS})
 

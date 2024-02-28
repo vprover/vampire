@@ -8,8 +8,8 @@
  * and in the source directory
  */
 /**
- * @file FnDefRewriting.cpp
- * Implements class FnDefRewriting.
+ * @file FunctionDefinitionRewriting.cpp
+ * Implements class FunctionDefinitionRewriting.
  */
 
 #include "Lib/Metaiterators.hpp"
@@ -30,14 +30,14 @@
 #include "Shell/Options.hpp"
 #include "Shell/FunctionDefinitionHandler.hpp"
 
-#include "FnDefRewriting.hpp"
+#include "FunctionDefinitionRewriting.hpp"
 
 using namespace Inferences;
 using namespace Lib;
 using namespace Kernel;
 using namespace Saturation;
 
-struct FnDefRewriting::GeneralizationsFn {
+struct FunctionDefinitionRewriting::GeneralizationsFn {
   GeneralizationsFn(FunctionDefinitionHandler *index) : _index(index) {}
   VirtualIterator<std::pair<std::pair<Literal*, Term*>, TermQueryResult>> operator()(std::pair<Literal*, Term*> arg)
   {
@@ -48,7 +48,7 @@ private:
   FunctionDefinitionHandler *_index;
 };
 
-struct FnDefRewriting::RewriteableSubtermsFn {
+struct FunctionDefinitionRewriting::RewriteableSubtermsFn {
   VirtualIterator<std::pair<Literal*, Term*>> operator()(Literal *lit)
   {
     NonVariableNonTypeIterator nvi(lit);
@@ -57,22 +57,22 @@ struct FnDefRewriting::RewriteableSubtermsFn {
   }
 };
 
-struct FnDefRewriting::ForwardResultFn {
+struct FunctionDefinitionRewriting::ForwardResultFn {
   ForwardResultFn(Clause *cl) : _cl(cl) {}
 
   Clause* operator()(std::pair<std::pair<Literal*, Term*>, TermQueryResult> arg)
   {
     TermQueryResult &qr = arg.second;
     bool temp;
-    return FnDefRewriting::perform(_cl, arg.first.first, TermList(arg.first.second), qr.clause,
+    return FunctionDefinitionRewriting::perform(_cl, arg.first.first, TermList(arg.first.second), qr.clause,
                                    qr.literal, qr.term, qr.unifier, false, temp,
-                                   Inference(GeneratingInference2(InferenceRule::FNDEF_REWRITING, _cl, qr.clause)));
+                                   Inference(GeneratingInference2(InferenceRule::FUNCTION_DEFINITION_REWRITING, _cl, qr.clause)));
   }
 private:
   Clause *_cl;
 };
 
-ClauseIterator FnDefRewriting::generateClauses(Clause *premise)
+ClauseIterator FunctionDefinitionRewriting::generateClauses(Clause *premise)
 {
   auto itf1 = premise->iterLits();
 
@@ -90,7 +90,7 @@ ClauseIterator FnDefRewriting::generateClauses(Clause *premise)
   return pvi(getFilteredIterator(it, NonzeroFn()));
 }
 
-bool FnDefRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
+bool FunctionDefinitionRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   auto salg = ForwardSimplificationEngine::_salg;
 
@@ -120,12 +120,13 @@ bool FnDefRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& p
           continue;
         }
         auto rhs = EqHelper::getOtherEqualitySide(qr.literal, qr.term);
+        // TODO shouldn't allow demodulation with incomparables in the non-ground case
         if (Ordering::isGorGEorE(ordering.compare(rhs,qr.term))) {
           continue;
         }
         bool isEqTautology = false;
-        auto res = FnDefRewriting::perform(cl, lit, trm, qr.clause, qr.literal, qr.term, qr.unifier, toplevelCheck,
-          isEqTautology, Inference(SimplifyingInference2(InferenceRule::FNDEF_DEMODULATION, cl, qr.clause)), salg);
+        auto res = FunctionDefinitionRewriting::perform(cl, lit, trm, qr.clause, qr.literal, qr.term, qr.unifier, toplevelCheck,
+          isEqTautology, Inference(SimplifyingInference2(InferenceRule::FUNCTION_DEFINITION_DEMODULATION, cl, qr.clause)), salg);
         if (!res && !isEqTautology) {
           continue;
         }
@@ -141,7 +142,7 @@ bool FnDefRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& p
   return false;
 }
 
-Clause *FnDefRewriting::perform(
+Clause *FunctionDefinitionRewriting::perform(
     Clause *rwClause, Literal *rwLit, TermList rwTerm,
     Clause *eqClause, Literal *eqLit, TermList eqLHS,
     ResultSubstitutionSP subst, bool toplevelCheck, bool& isEqTautology,

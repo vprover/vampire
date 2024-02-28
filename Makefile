@@ -260,7 +260,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/SubVarSup.o\
          Inferences/Factoring.o\
          Inferences/FastCondensation.o\
-         Inferences/FnDefRewriting.o\
+         Inferences/FunctionDefinitionRewriting.o\
          Inferences/FOOLParamodulation.o\
          Inferences/Injectivity.o\
          Inferences/ForwardDemodulation.o\

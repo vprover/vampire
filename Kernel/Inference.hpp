@@ -264,7 +264,7 @@ enum class InferenceRule : unsigned char {
 
   BOOL_SIMP,
 
-  FNDEF_DEMODULATION,
+  FUNCTION_DEFINITION_DEMODULATION,
 
   INTERNAL_SIMPLIFYING_INFERNCE_LAST,
 
@@ -283,7 +283,7 @@ enum class InferenceRule : unsigned char {
   /** superposition inference */
   SUPERPOSITION,
   /** function definition rewriting inference */
-  FNDEF_REWRITING,
+  FUNCTION_DEFINITION_REWRITING,
   /** superposition with constraints */
   CONSTRAINED_SUPERPOSITION,
   /** equality factoring inference */

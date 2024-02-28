@@ -61,7 +61,7 @@
 #include "Inferences/FOOLParamodulation.hpp"
 #include "Inferences/Injectivity.hpp"
 #include "Inferences/Factoring.hpp"
-#include "Inferences/FnDefRewriting.hpp"
+#include "Inferences/FunctionDefinitionRewriting.hpp"
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
@@ -1601,8 +1601,8 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
   }
   if (env.options->functionDefinitionRewriting()) {
-    gie->addFront(new FnDefRewriting());
-    res->addForwardSimplifierToFront(new FnDefRewriting());
+    gie->addFront(new FunctionDefinitionRewriting());
+    res->addForwardSimplifierToFront(new FunctionDefinitionRewriting());
   }
 
   CompositeSGI* sgi = new CompositeSGI();

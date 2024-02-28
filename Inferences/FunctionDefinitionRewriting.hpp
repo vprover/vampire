@@ -8,12 +8,12 @@
  * and in the source directory
  */
 /**
- * @file FnDefRewriting.hpp
- * Defines class FnDefRewriting.
+ * @file FunctionDefinitionRewriting.hpp
+ * Defines class FunctionDefinitionRewriting.
  */
 
-#ifndef __FnDefRewriting__
-#define __FnDefRewriting__
+#ifndef __FunctionDefinitionRewriting__
+#define __FunctionDefinitionRewriting__
 
 #include "Forwards.hpp"
 
@@ -22,12 +22,12 @@ namespace Inferences {
 using namespace Kernel;
 using namespace Shell;
 
-class FnDefRewriting
+class FunctionDefinitionRewriting
   : public GeneratingInferenceEngine
   , public ForwardSimplificationEngine
   {
 public:
-  USE_ALLOCATOR(FnDefRewriting);
+  USE_ALLOCATOR(FunctionDefinitionRewriting);
 
   ClauseIterator generateClauses(Clause *premise) override;
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
@@ -46,4 +46,4 @@ private:
 
 }; // namespace Inferences
 
-#endif /* __FnDefRewriting__ */
+#endif /* __FunctionDefinitionRewriting__ */
