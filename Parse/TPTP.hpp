@@ -440,37 +440,6 @@ private:
      VList* _vars;
   }; // ProductType
 
-  /**
-   * Class that allows to create a list initially by pushing elements
-   * at the end of it.
-   * @since 10/05/2007 Manchester, updated from List::FIFO
-   */
-  class UnitStack {
-  public:
-    /** constructor */
-    inline explicit UnitStack()
-      : _initial(0),
-	_last(&_initial)
-    {}
-
-    /** add element at the end of the original list */
-    inline void push(Unit* u)
-    {
-      UnitList* newList = new UnitList(u);
-      *_last = newList;
-      _last = reinterpret_cast<UnitList**>(&newList->tailReference());
-    }
-
-    /** Return the collected list */
-    UnitList* list() { return _initial; }
-
-  private:
-    /** reference to the initial element */
-    UnitList* _initial;
-    /** last element */
-    UnitList** _last;
-  }; // class UnitStack
-
   enum TheorySort {
     /** $array theoy */
     TS_ARRAY,
@@ -569,8 +538,8 @@ private:
   int _tend;
   /** line number */
   unsigned _lineNumber;
-  /** The stack of units read */
-  UnitStack _units;
+  /** The list of units read (with additions directed to the end) */
+  UnitList::FIFO _units;
   /** stack of unprocessed states */
   Stack<State> _states;
   /** input type of the last read unit */ // it must be int since -1 can be used as a value

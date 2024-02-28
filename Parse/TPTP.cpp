@@ -3660,7 +3660,7 @@ void TPTP::endFof()
   default:
     break;
   }
-  _units.push(unit);
+  _units.pushBack(unit);
 } // tag
 
 /*
@@ -3670,7 +3670,7 @@ void TPTP::endFof()
 * that will serve as the name of the predice we introduce:
 *
 * Now instead of returning it directly, we turn it into an equivalence
-* with a fresh predicate symbol (of name nm) and return that one. 
+* with a fresh predicate symbol (of name nm) and return that one.
 * The new symbo is marked not to be eliminated during preprocessing.
 */
 Unit* TPTP::processClaimFormula(Unit* unit, Formula * f, const vstring& nm)
