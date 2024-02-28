@@ -324,7 +324,7 @@ public:
   void parse();
   static UnitList* parse(std::istream& str);
   /** Return the list of parsed units */
-  inline UnitList* units() { return _units.list(); }
+  UnitList* units() const { return _units.list(); }
   /**
    * Return true if there was a conjecture formula among the parsed units
    *

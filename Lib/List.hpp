@@ -762,7 +762,7 @@ public:
       _last = newLast;
     }
 
-    List* list()
+    List* list() const
     {
       return _first;
     }
