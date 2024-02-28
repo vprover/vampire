@@ -382,11 +382,7 @@ void Options::init()
     _inputFile.tag(OptionTag::INPUT);
     _inputFile.setExperimental();
 
-    _inputSyntax= ChoiceOptionValue<InputSyntax>("input_syntax","",
-                                                 //in case we compile vampire with bpa, then the default input syntax is smtlib
-                                                 InputSyntax::AUTO,
-                                                 //{"simplify","smtlib","smtlib2","tptp"});//,"xhuman","xmps","xnetlib"});
-                                                 {"smtlib2","tptp","auto"});//,"xhuman","xmps","xnetlib"});
+    _inputSyntax= ChoiceOptionValue<InputSyntax>("input_syntax","",InputSyntax::AUTO,{"smtlib2","tptp","auto"});
     _inputSyntax.description=
     "Input syntax. Historic input syntaxes have been removed as they are not actively maintained. Contact developers for help with these.";
     _lookup.insert(&_inputSyntax);
