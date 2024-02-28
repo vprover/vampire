@@ -727,45 +727,49 @@ public:
   USE_ALLOCATOR(List);
 
   /**
-   * Class that allows to create a list initially by pushing elements
-   * at the end of it.
+   * Class that allows to create a list initially by pushing element both at the beginning (pushFront, the usual push)
+   * and at the end of it (pushBack, the FIFO style).
+   *
+   * The interal list is not owned by the FIFO. In a typical use case, the list will be retrieved via list() call
+   * and kept after FIFO passes out of scope.
    * @since 06/04/2006 Bellevue
    */
   class FIFO {
   public:
-    /** constructor */
-    explicit FIFO(List* &lst)
-      : _last(0), _initial(lst)
-    {
-      ASS_EQ(_initial,0);
+    explicit FIFO() : _first(0), _last(0) {}
+
+    bool empty() const {
+      return !_first;
     }
-    
-    /** add element at the end of the original list */
+
+    /* If you only need pushFront, you probably don't need FIFO. */
+    void pushFront(C elem)
+    {
+      _first = cons(elem, _first);
+      if (!_last) {
+        _last = _first;
+      }
+    }
+
     void pushBack(C elem)
     {
       List* newLast = new List(elem);
       if (_last) {
         _last->setTail(newLast);
       } else {
-        _initial = newLast;
+        _first = newLast;
       }
-
       _last = newLast;
     }
 
-    void pushFront(C elem)
+    List* list()
     {
-      _initial = new List(elem, _initial);
-      if (!_last) {
-        _last = _initial;
-      }
+      return _first;
     }
 
-  private:
-    /** last element */
+  protected:
+    List* _first;
     List* _last;
-    /** reference to the initial element */
-    List* &_initial;
   }; // class List::FIFO
 
 protected:  // structure

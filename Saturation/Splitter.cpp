@@ -1799,9 +1799,8 @@ UnitList* Splitter::preprendCurrentlyAssumedComponentClauses(UnitList* clauses)
 {
   DHSet<Clause*> seen;
 
-  UnitList*   res = nullptr;
   // to keep the nice order
-  UnitList::FIFO fifo(res);
+  UnitList::FIFO res;
 
   ArraySet::Iterator ait(_branchSelector._selected);
   while(ait.hasNext()) {
@@ -1810,8 +1809,7 @@ UnitList* Splitter::preprendCurrentlyAssumedComponentClauses(UnitList* clauses)
 
     //cout << "selected level: " level << " has clause: " << cl->toString() << endl;
     seen.insert(cl);
-
-    fifo.pushBack(cl);
+    res.pushBack(cl);
   }
 
   // OK, for simplicity's sake, let's not even try keeping any of the old links
@@ -1822,13 +1820,13 @@ UnitList* Splitter::preprendCurrentlyAssumedComponentClauses(UnitList* clauses)
 
     if (seen.insert(cl)) {
       // cout << "a new guy: " << cl->toString() << endl;
-      fifo.pushBack(cl);
+      res.pushBack(cl);
     } else {
       // cout << "seen already: " << cl->toString() << endl;
     }
   }
 
-  return res;
+  return res.list();
 }
 
 }

@@ -143,12 +143,11 @@ bool TermList::isSafe() const
 VList* TermList::freeVariables() const
 {
   FormulaVarIterator fvi(this);
-  VList* result = VList::empty();
-  VList::FIFO stack(result);
+  VList::FIFO result;
   while (fvi.hasNext()) {
-    stack.pushBack(fvi.next());
+    result.pushBack(fvi.next());
   }
-  return result;
+  return result.list();
 } // TermList::freeVariables
 
 
@@ -1251,12 +1250,11 @@ TermList AtomicSort::tupleSort(unsigned arity, TermList* sorts)
 VList* Term::freeVariables() const
 {
   FormulaVarIterator fvi(this);
-  VList* result = VList::empty();
-  VList::FIFO stack(result);
+  VList::FIFO result;
   while (fvi.hasNext()) {
-    stack.pushBack(fvi.next());
+    result.pushBack(fvi.next());
   }
-  return result;
+  return result.list();
 } // Term::freeVariables
 
 bool Term::isFreeVariable(unsigned var) const

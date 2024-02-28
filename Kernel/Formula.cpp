@@ -285,12 +285,11 @@ bool Formula::parenthesesRequired (Connective outer) const
 VList* Formula::freeVariables () const
 {
   FormulaVarIterator fvi(this);
-  VList* result = VList::empty();
-  VList::FIFO stack(result);
+  VList::FIFO result;
   while (fvi.hasNext()) {
-    stack.pushBack(fvi.next());
+    result.pushBack(fvi.next());
   }
-  return result;
+  return result.list();
 } // Formula::freeVariables
 
 bool Formula::isFreeVariable(unsigned var) const
@@ -464,14 +463,12 @@ Formula* Formula::quantify(Formula* f)
   SortHelper::collectVariableSorts(f,tMap,/*ignoreBound=*/true);
 
   //we have to quantify the formula
-  VList* varLst = VList::empty();
-  SList* sortLst = SList::empty();
-  VList::FIFO quantifiedVars(varLst);
-  SList::FIFO theirSorts(sortLst);
+  VList::FIFO quantifiedVars;
+  SList::FIFO theirSorts;
 
   DHMap<unsigned,TermList>::Iterator tmit(tMap);
   while(tmit.hasNext()) {
-    unsigned v; 
+    unsigned v;
     TermList s;
     tmit.next(v, s);
     if(s.isTerm() && s.term()->isSuper()){
@@ -483,15 +480,15 @@ Formula* Formula::quantify(Formula* f)
       theirSorts.pushBack(s);
     }
   }
-  if(varLst) {
-    f=new QuantifiedFormula(FORALL, varLst, sortLst, f);
+  if(!quantifiedVars.empty()) {
+    f = new QuantifiedFormula(FORALL, quantifiedVars.list(), theirSorts.list(), f);
   }
   return f;
 }
 
 
 /**
- * Return formula equal to @b cl 
+ * Return formula equal to @b cl
  * that has all variables quantified
  */
 Formula* Formula::fromClause(Clause* cl)

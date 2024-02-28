@@ -1336,15 +1336,14 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
     }
     TermStack args;
     TermStack varSorts;
-    auto typeVars = VList::empty();
-    VList::FIFO tvs(typeVars);
+    VList::FIFO typeVars;
     // type vars are before term vars in the args list, so process them first
     iterTraits(vs.items())
-      .forEach([&tvs,&args](std::pair<unsigned,TermList> kv) {
+      .forEach([&typeVars,&args](std::pair<unsigned,TermList> kv) {
         if (kv.second != AtomicSort::superSort()) {
           return;
         }
-        tvs.pushBack(kv.first);
+        typeVars.pushBack(kv.first);
         args.push(TermList(kv.first,false));
       });
     iterTraits(vs.items())
@@ -1359,7 +1358,7 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
         varSorts.push(kv.second);
         args.push(TermList(kv.first,false));
       });
-    SortHelper::normaliseArgSorts(typeVars,varSorts);
+    SortHelper::normaliseArgSorts(typeVars.list(),varSorts);
 
     TermList trm;
     if (sort == AtomicSort::boolSort()) {
@@ -1371,7 +1370,7 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
       trm = TermList(Term::createFormula(atom));
     } else {
       TermList nSort = sort;
-      SortHelper::normaliseSort(typeVars,nSort);
+      SortHelper::normaliseSort(typeVars.list(),nSort);
       unsigned symb = env.signature->addFreshFunction (args.size(),"sLF");
       OperatorType* type = OperatorType::getFunctionType(varSorts.size(), varSorts.begin(), nSort, args.size()-varSorts.size());
       env.signature->getFunction(symb)->setType(type);
@@ -1382,6 +1381,8 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
     if (!lookup->insert(cName,make_pair(trm,sort))) {
       USER_ERROR_EXPR("Multiple bindings of symbol "+cName+" in let expression "+exp->toString());
     }
+
+    VList::destroy(typeVars.list());
   }
 
   _scopes.push(lookup);
@@ -1429,15 +1430,14 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
       exprT = exprT->getSpecialData()->getFormula()->literal();
     }
 
-    auto vars = VList::empty();
-    VList::FIFO vs(vars);
+    VList::FIFO vars;
     Substitution subst;
     for (unsigned i = 0; i < exprT->arity(); i++) {
       subst.bind(exprT->nthArgument(i)->var(),TermList(_nextVar,false));
-      vs.pushBack(_nextVar++);
+      vars.pushBack(_nextVar++);
     }
 
-    let = TermList(Term::createLet(exprT->functor(), vars, SubstHelper::apply(boundExpr,subst), let, letSort));
+    let = TermList(Term::createLet(exprT->functor(), vars.list(), SubstHelper::apply(boundExpr,subst), let, letSort));
   }
 
   _results.push(ParseResult(letSort,let));
