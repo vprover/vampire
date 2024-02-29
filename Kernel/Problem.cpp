@@ -38,7 +38,7 @@ using namespace Kernel;
  * The new object takes ownership of the list @c units.
  */
 Problem::Problem(UnitList* units)
-: _units(0), _smtlibLogic(SMTLIBLogic::SMT_UNDEFINED), _property(0)
+: _units(0), _fnDefHandler(0), _smtlibLogic(SMTLIBLogic::SMT_UNDEFINED), _property(0)
 {
   initValues();
 
