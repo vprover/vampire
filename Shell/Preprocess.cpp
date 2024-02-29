@@ -367,9 +367,11 @@ void Preprocess::preprocess(Problem& prb)
      resolver.apply(prb);
    }
 
-  auto fnDefHandler = new FunctionDefinitionHandler();
-  fnDefHandler->preprocess(prb);
-  prb.addFunctionDefinitionHandler(fnDefHandler);
+  if (_options.functionDefinitionRewriting() || _options.structInduction()==Options::StructuralInductionKind::RECURSION) {
+    auto fnDefHandler = new FunctionDefinitionHandler();
+    fnDefHandler->preprocess(prb);
+    prb.addFunctionDefinitionHandler(fnDefHandler);
+  }
 
    if (_options.generalSplitting()) {
      if (prb.isHigherOrder() || prb.hasPolymorphicSym()) {  // TODO: extend GeneralSplitting to support polymorphism (would higher-order make sense?)

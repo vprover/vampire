@@ -772,6 +772,11 @@ SMTLIB2::DeclaredSymbol SMTLIB2::declareFunctionOrPredicate(const vstring& name,
 
 //  ----------------------------------------------------------------------
 
+bool shouldCreateFunctionDefinition(unsigned fn)
+{
+  return env.options->functionDefinitionRewriting() || env.options->structInduction()==Options::StructuralInductionKind::RECURSION;
+}
+
 void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort, LExpr* body, const TermStack& typeArgs, bool recursive)
 {
   if (isAlreadyKnownSymbol(name)) {
@@ -838,12 +843,23 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
   Literal* lit;
   if (isTrueFun) {
     TermList lhs(Term::create(symbIdx,args.size(),args.begin()));
-    auto p = env.signature->getFnDef(symbIdx);
-    lit = Literal::create(p, true, { lhs, rhs });
+    if (shouldCreateFunctionDefinition(symbIdx)) {
+      auto p = env.signature->getFnDef(symbIdx);
+      auto defArgs = typeArgs;
+      defArgs.push(lhs);
+      defArgs.push(rhs);
+      lit = Literal::create(p,defArgs.size(),true,false,defArgs.begin());
+    } else {
+      lit = Literal::createEquality(true,lhs,rhs,rangeSort);
+    }
   } else {
-    auto p = env.signature->getBoolDef(symbIdx);
-    Formula* frm = new AtomicFormula(Literal::create(p,args.size(),true,false,args.begin()));
-    TermList lhs(Term::createFormula(frm));
+    if (shouldCreateFunctionDefinition(symbIdx)) {
+      auto p = env.signature->getBoolDef(symbIdx);
+      lit = Literal::create(p,args.size(),true,false,args.begin());
+    } else {
+      lit = Literal::create(symbIdx,args.size(),true,false,args.begin());
+    }
+    TermList lhs(Term::createFormula(new AtomicFormula(lit)));
     lit = Literal::createEquality(true, lhs, rhs, rangeSort);
   }
   Formula* fla = new AtomicFormula(lit);
@@ -932,13 +948,24 @@ void SMTLIB2::readDefineFunsRec(LExprList* declsExpr, LExprList* defsExpr)
     Literal* lit;
     if (isTrueFun) {
       TermList lhs(Term::create(symbIdx,decl.args.size(),decl.args.begin()));
-      auto p = env.signature->getFnDef(symbIdx);
-      lit = Literal::create(p, true, { lhs, rhs });
+      if (shouldCreateFunctionDefinition(symbIdx)) {
+        auto p = env.signature->getFnDef(symbIdx);
+        TermStack defArgs; // no type arguments (yet) in this case
+        defArgs.push(lhs);
+        defArgs.push(rhs);
+        lit = Literal::create(p,defArgs.size(),true,false,defArgs.begin());
+      } else {
+        lit = Literal::createEquality(true,lhs,rhs,decl.rangeSort);
+      }
     } else {
-      auto p = env.signature->getBoolDef(symbIdx);
-      Formula* frm = new AtomicFormula(Literal::create(p,decl.args.size(),true,false,decl.args.begin()));
-      TermList lhs(Term::createFormula(frm));
-      lit = Literal::createEquality(true,lhs,rhs,decl.rangeSort);
+      if (shouldCreateFunctionDefinition(symbIdx)) {
+        auto p = env.signature->getBoolDef(symbIdx);
+        lit = Literal::create(p,decl.args.size(),true,false,decl.args.begin());
+      } else {
+        lit = Literal::create(symbIdx,decl.args.size(),true,false,decl.args.begin());
+      }
+      TermList lhs(Term::createFormula(new AtomicFormula(lit)));
+      lit = Literal::createEquality(true, lhs, rhs, decl.rangeSort);
     }
     Formula* fla = new AtomicFormula(lit);
 

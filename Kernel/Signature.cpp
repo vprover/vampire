@@ -699,14 +699,14 @@ unsigned Signature::getDiff(){
 
 unsigned Signature::getFnDef(unsigned fn)
 {
-  auto sort = getFunction(fn)->fnType()->result();
-  ASS(sort.isTerm() && sort.term()->ground());
+  auto type = getFunction(fn)->fnType();
+  auto sort = type->result();
   bool added = false;
   auto name = "$def_"+sort.toString();
   unsigned p = addPredicate(name, 2, added);
   if (added) {
     ALWAYS(_fnDefPreds.insert(p));
-    OperatorType* ot = OperatorType::getPredicateType({sort, sort});
+    OperatorType* ot = OperatorType::getPredicateType({sort, sort}, type->numTypeArguments());
     Symbol* sym = getPredicate(p);
     sym->markProtected();
     sym->setType(ot);
