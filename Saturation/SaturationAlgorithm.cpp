@@ -337,11 +337,6 @@ void SaturationAlgorithm::tryUpdateFinalClauseCount()
   }
 }
 
-void SaturationAlgorithm::setFunctionDefinitionHandler(FunctionDefinitionHandler* fnDefHandler)
-{
-  _fnDefHandler = fnDefHandler;
-}
-
 /**
  * Return true if the run of the prover so far is complete
  */
