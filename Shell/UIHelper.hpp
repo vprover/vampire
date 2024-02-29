@@ -34,7 +34,7 @@ bool outputAllowed(bool debug=false);
 class UIHelper {
 public:
   static UnitList* tryParseTPTP(std::istream* input);
-  static UnitList* tryParseSMTLIB2(const Options& opts,std::istream* input,SMTLIBLogic& logic);
+  static UnitList* tryParseSMTLIB2(std::istream* input,SMTLIBLogic& logic);
   static Problem* getInputProblem(const Options& opts);
   static void outputResult(std::ostream& out);
 

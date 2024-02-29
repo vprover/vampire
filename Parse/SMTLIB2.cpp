@@ -61,7 +61,7 @@ using namespace std;
 static const char* PAR = "par";
 static const char* TYPECON_POSTFIX = "()";
 
-SMTLIB2::SMTLIB2(const Options& opts)
+SMTLIB2::SMTLIB2()
 : _logicSet(false),
   _logic(SMT_UNDEFINED),
   _numeralsAreReal(false),

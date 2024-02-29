@@ -219,9 +219,9 @@ UnitList* UIHelper::tryParseTPTP(istream* input)
   return parser.units();
 }
 
-UnitList* UIHelper::tryParseSMTLIB2(const Options& opts,istream* input,SMTLIBLogic& smtLibLogic)
+UnitList* UIHelper::tryParseSMTLIB2(istream* input, SMTLIBLogic& smtLibLogic)
 {
-  Parse::SMTLIB2 parser(opts);
+  Parse::SMTLIB2 parser;
   parser.parse(*input);
   Unit::onParsingEnd();
 
@@ -300,7 +300,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
        // First lets pick a place to start based on the input file name
        bool smtlib = hasEnding(inputFile,"smt") || hasEnding(inputFile,"smt2");
        Options::Mode mode = env.options->mode();
-       
+
        if (smtlib){
          if (mode != Options::Mode::SPIDER && mode != Options::Mode::PROFILE) {
            env.beginOutput();
@@ -309,7 +309,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
            env.endOutput();
          }
          try{
-           units = tryParseSMTLIB2(opts,input,smtLibLogic);
+           units = tryParseSMTLIB2(input,smtLibLogic);
          }
          catch (UserErrorException& exception) {
            resetParsing(exception,inputFile,input,"TPTP");
@@ -333,21 +333,21 @@ Problem* UIHelper::getInputProblem(const Options& opts)
            env.endOutput();
          }
          try{
-           units = tryParseTPTP(input); 
+           units = tryParseTPTP(input);
          }
          catch (Parse::TPTP::ParseErrorException& exception) {
-           resetParsing(exception,inputFile,input,"SMTLIB2"); 
-           units = tryParseSMTLIB2(opts,input,smtLibLogic); 
+           resetParsing(exception,inputFile,input,"SMTLIB2");
+           units = tryParseSMTLIB2(input,smtLibLogic);
          }
        }
-       
+
     }
     break;
   case Options::InputSyntax::TPTP:
     units = tryParseTPTP(input);
     break;
   case Options::InputSyntax::SMTLIB2:
-    units = tryParseSMTLIB2(opts,input,smtLibLogic);
+    units = tryParseSMTLIB2(input,smtLibLogic);
     break;
   }
   if (inputFile!="") {

@@ -35,7 +35,7 @@ using namespace Shell;
 
 class SMTLIB2 {
 public:
-  SMTLIB2(const Options& opts);
+  SMTLIB2();
 
   /** Parse from an open stream */
   void parse(std::istream& str);
