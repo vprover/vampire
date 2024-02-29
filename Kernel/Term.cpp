@@ -37,7 +37,9 @@ constexpr unsigned Term::SPECIAL_FUNCTOR_LOWER_BOUND;
 
 void Term::setId(unsigned id)
 {
-  if (env.options->randomTraversals()) {
+  if (env.options->randomTraversals() &&
+      Random::seed() != 1) { // not until a proper seed has been set (i.e. after parsing!)
+      // (cf ProvingHelper::runVampire and getPreprocessedProblem in vampire.cpp)
     id += Random::getInteger(1 << 12) << 20; // the twelve most significant bits are randomized
   }
    _args[0]._info.id = id;
