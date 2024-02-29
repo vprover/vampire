@@ -30,10 +30,10 @@ class ThrowableBase
 {
 };
 
-template<class... Ms> 
+template<class... Ms>
 struct OutputAll;
 
-template<class M, class... Ms> 
+template<class M, class... Ms>
 struct OutputAll<M,Ms...> {
   static void apply(std::ostream& out, M m, Ms... ms) {
     out << m;
@@ -41,7 +41,7 @@ struct OutputAll<M,Ms...> {
   }
 };
 
-template<> 
+template<>
 struct OutputAll<> {
   static void apply(std::ostream& out) { }
 };
@@ -65,7 +65,7 @@ public:
   explicit Exception (const vstring msg) : _message(msg) {}
 
   template<class... Msg>
-  explicit Exception(Msg... msg) 
+  explicit Exception(Msg... msg)
    : Exception(toString(msg...))
   { }
 
@@ -86,6 +86,8 @@ protected:
 }; // Exception
 
 
+class ParsingRelatedException : public Exception { using Exception::Exception; };
+
 /**
  * Class UserErrorException. A UserErrorException is thrown
  * when a user error occurred, for example, a file name is
@@ -93,19 +95,11 @@ protected:
  * was given, or there is a syntax error in the input file.
  */
 class UserErrorException
-  : public Exception
+  : public ParsingRelatedException
 {
  public:
-  UserErrorException (const char* msg)
-    : Exception(msg)
-  {}
-  template<class... Msgs>
-  UserErrorException (Msgs... ms)
-    : Exception(ms...)
-  {}
-  UserErrorException (const vstring msg)
-    : Exception(msg)
-  {}
+  using ParsingRelatedException::ParsingRelatedException;
+
   void cry (std::ostream&) const;
 }; // UserErrorException
 

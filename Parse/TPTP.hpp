@@ -301,8 +301,8 @@ public:
   /**
    * Implements lexer and parser exceptions.
    */
-  class ParseErrorException 
-    : public ::Exception
+  class ParseErrorException
+    : public ParsingRelatedException
   {
   public:
     ParseErrorException(vstring message,unsigned ln) : _message(message), _ln(ln) {}

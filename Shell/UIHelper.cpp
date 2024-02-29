@@ -67,7 +67,7 @@ bool outputAllowed(bool debug)
   return !Lib::env.options ||
     (
      Lib::env.options->outputMode() != Shell::Options::Output::SPIDER
-     && Lib::env.options->outputMode() != Shell::Options::Output::SMTCOMP 
+     && Lib::env.options->outputMode() != Shell::Options::Output::SMTCOMP
      && Lib::env.options->outputMode() != Shell::Options::Output::UCORE
      );
 }
@@ -141,7 +141,7 @@ bool UIHelper::portfolioParent=false;
 bool UIHelper::satisfiableStatusWasAlreadyOutput=false;
 
 bool UIHelper::spiderOutputDone = false;
-  
+
 void UIHelper::outputAllPremises(ostream& out, UnitList* units, vstring prefix)
 {
 #if 1
@@ -311,19 +311,10 @@ Problem* UIHelper::getInputProblem(const Options& opts)
          try{
            units = tryParseSMTLIB2(input,smtLibLogic);
          }
-         catch (UserErrorException& exception) {
+         catch (ParsingRelatedException& exception) {
            resetParsing(exception,inputFile,input,"TPTP");
            units = tryParseTPTP(input);
          }
-         catch (LexerException& exception) {
-           resetParsing(exception,inputFile,input,"TPTP");
-           units = tryParseTPTP(input);
-         }
-         catch (LispParser::Exception& exception) {
-           resetParsing(exception,inputFile,input,"TPTP");
-           units = tryParseTPTP(input);
-         }
-
        }
        else {
          if (mode != Options::Mode::SPIDER && mode != Options::Mode::PROFILE) {
@@ -374,7 +365,7 @@ void UIHelper::outputResult(ostream& out)
 {
   switch (env.statistics->terminationReason) {
   case Statistics::REFUTATION:
-    if(env.options->outputMode() == Options::Output::SMTCOMP){ 
+    if(env.options->outputMode() == Options::Output::SMTCOMP){
       out << "unsat" << endl;
       return;
     }
@@ -583,7 +574,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   } else if(typeCon){
     sym = env.signature->getTypeCon(symNumber);
   } else {
-    sym = env.signature->getPredicate(symNumber);    
+    sym = env.signature->getPredicate(symNumber);
   }
 
   if (typeCon && (env.signature->isArrayCon(symNumber) ||
@@ -591,7 +582,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
     return;
   }
 
-  if(typeCon && env.signature->isDefaultSortCon(symNumber) && 
+  if(typeCon && env.signature->isDefaultSortCon(symNumber) &&
     (!env.signature->isBoolCon(symNumber) || !env.options->showFOOL())){
     return;
   }
@@ -618,7 +609,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
     }
   }
 
-  OperatorType* type = function ? sym->fnType() : 
+  OperatorType* type = function ? sym->fnType() :
                (typeCon ? sym->typeConType() : sym->predType());
 
   if (type->isAllDefault()) {//TODO required
@@ -637,7 +628,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   //don't output type of app. It is an internal Vampire thing
   if(!(function && env.signature->isAppFun(symNumber))){
     out << (env.getMainProblem()->isHigherOrder() ? "thf(" : "tff(")
-        << (function ? "func" : (typeCon ?  "type" : "pred")) 
+        << (function ? "func" : (typeCon ?  "type" : "pred"))
         << "_def_" << symNumber << ", type, "
         << symName << ": ";
     out << type->toString();
