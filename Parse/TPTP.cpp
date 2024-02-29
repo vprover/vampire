@@ -83,11 +83,12 @@ UnitList* TPTP::parse(istream& input)
  * Initialise a lexer.
  * @since 27/07/2004 Torrevieja
  */
-TPTP::TPTP(istream& in)
+TPTP::TPTP(istream& in, UnitList::FIFO unitBuffer)
   : _containsConjecture(false),
     _allowedNames(0),
     _in(&in),
     _includeDirectory(""),
+    _units(unitBuffer),
     _isThf(false),
     _containsPolymorphism(false),
     _currentColor(COLOR_TRANSPARENT),

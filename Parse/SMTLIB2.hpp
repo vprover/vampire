@@ -35,7 +35,16 @@ using namespace Shell;
 
 class SMTLIB2 {
 public:
-  SMTLIB2();
+  /**
+   * @brief Construct a new SMTLIB2 parser
+   *
+   * @param formulaBuffer is FIFO to which newly parsed Formulas will be added (via pushBack);
+   *
+   *  if left unspeficied, and empty fifo is created and used instead.
+   *  (use this default behaviour if you do not want to collect formulas
+   *  from multiple parser calls)
+   */
+  SMTLIB2(UnitList::FIFO formulaBuffer = UnitList::FIFO());
 
   /** Parse from an open stream */
   void parse(std::istream& str);
@@ -51,6 +60,8 @@ public:
    *  We don't know what the conjecture is.
    **/
   UnitList* getFormulas() const { return _formulas.list(); }
+  /** Return the current formulaBuffer (on top of getFormulas() you also get a pointer to the last added unit in constant time). */
+  UnitList::FIFO formulaBuffer() const { return _formulas; }
 
   /**
    * Return the parsed logic (or LO_INVALID if not set).

@@ -131,6 +131,8 @@ ostream& addCommentSignForSZS(ostream& out)
   return out;
 }
 
+UnitList::FIFO UIHelper::_allLoadedUnits;
+
 bool UIHelper::s_haveConjecture=false;
 bool UIHelper::s_proofHasConjecture=true;
 
@@ -205,26 +207,36 @@ static bool hasEnding (vstring const &fullString, vstring const &ending) {
   }
 }
 
-UnitList* UIHelper::tryParseTPTP(istream* input)
+void UIHelper::tryParseTPTP(istream* input)
 {
-  Parse::TPTP parser(*input);
+  Parse::TPTP parser(*input,_allLoadedUnits);
   try{
     parser.parse();
   }
   catch (UserErrorException& exception) {
-    vstring msg = exception.msg();
-    throw Parse::TPTP::ParseErrorException(msg,parser.lineNumber());
+    UnitList::destroy(_allLoadedUnits.clipAtLast()); // destroy units that perhaps got already parsed
+    throw ParsingRelatedException(exception.msg()," at line ",parser.lineNumber());
   }
-  s_haveConjecture=parser.containsConjecture();
-  return parser.units();
+  catch (ParsingRelatedException& exception) {
+    UnitList::destroy(_allLoadedUnits.clipAtLast()); // destroy units that perhaps got already parsed
+    throw;
+  }
+  _allLoadedUnits = parser.unitBuffer();
+  s_haveConjecture = parser.containsConjecture();
 }
 
-UnitList* UIHelper::tryParseSMTLIB2(istream* input, SMTLIBLogic& smtLibLogic)
+void UIHelper::tryParseSMTLIB2(istream* input,SMTLIBLogic& smtLibLogic)
 {
-  Parse::SMTLIB2 parser;
-  parser.parse(*input);
-  Unit::onParsingEnd();
+  Parse::SMTLIB2 parser(_allLoadedUnits);
+  try {
+    parser.parse(*input);
+  } catch (ParsingRelatedException& exception) {
+    UnitList::destroy(_allLoadedUnits.clipAtLast()); // destroy units that perhaps got already parsed
+    throw;
+  }
 
+  Unit::onParsingEnd();
+  _allLoadedUnits = parser.formulaBuffer();
   smtLibLogic = parser.getLogic();
   s_haveConjecture=false;
 
@@ -236,12 +248,10 @@ UnitList* UIHelper::tryParseSMTLIB2(istream* input, SMTLIBLogic& smtLibLogic)
     s_expecting_unsat = true;
   }
 #endif
-  return parser.getFormulas();
 }
 
 // Call this function to report a parsing attempt has failed and to reset the input
-template<typename T>
-void resetParsing(T exception, vstring inputFile, istream*& input,vstring nowtry)
+void resetParsing(ParsingRelatedException& exception, vstring inputFile, istream*& input,vstring nowtry)
 {
   if (env.options->mode()!=Options::Mode::SPIDER) {
     env.beginOutput();
@@ -293,7 +303,6 @@ Problem* UIHelper::getInputProblem(const Options& opts)
     }
   }
 
-  UnitList* units = nullptr;
   switch (inputSyntax) {
   case Options::InputSyntax::AUTO:
     {
@@ -309,11 +318,11 @@ Problem* UIHelper::getInputProblem(const Options& opts)
            env.endOutput();
          }
          try{
-           units = tryParseSMTLIB2(input,smtLibLogic);
+           tryParseSMTLIB2(input,smtLibLogic);
          }
          catch (ParsingRelatedException& exception) {
            resetParsing(exception,inputFile,input,"TPTP");
-           units = tryParseTPTP(input);
+           tryParseTPTP(input);
          }
        }
        else {
@@ -324,21 +333,20 @@ Problem* UIHelper::getInputProblem(const Options& opts)
            env.endOutput();
          }
          try{
-           units = tryParseTPTP(input);
+           tryParseTPTP(input);
          }
-         catch (Parse::TPTP::ParseErrorException& exception) {
+         catch (ParsingRelatedException& exception) {
            resetParsing(exception,inputFile,input,"SMTLIB2");
-           units = tryParseSMTLIB2(input,smtLibLogic);
+           tryParseSMTLIB2(input,smtLibLogic);
          }
        }
-
     }
     break;
   case Options::InputSyntax::TPTP:
-    units = tryParseTPTP(input);
+    tryParseTPTP(input);
     break;
   case Options::InputSyntax::SMTLIB2:
-    units = tryParseSMTLIB2(input,smtLibLogic);
+    tryParseSMTLIB2(input,smtLibLogic);
     break;
   }
   if (inputFile!="") {
@@ -346,7 +354,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
     input=0;
   }
 
-  Problem* res = new Problem(units);
+  Problem* res = new Problem(_allLoadedUnits.list());
   res->setSMTLIBLogic(smtLibLogic);
   env.statistics->phase=Statistics::UNKNOWN_PHASE;
   env.setMainProblem(res);

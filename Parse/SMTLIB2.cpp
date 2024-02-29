@@ -61,10 +61,11 @@ using namespace std;
 static const char* PAR = "par";
 static const char* TYPECON_POSTFIX = "()";
 
-SMTLIB2::SMTLIB2()
+SMTLIB2::SMTLIB2(UnitList::FIFO formulaBuffer)
 : _logicSet(false),
   _logic(SMT_UNDEFINED),
   _numeralsAreReal(false),
+  _formulas(formulaBuffer),
   _topLevelExpr(nullptr)
 {
 }

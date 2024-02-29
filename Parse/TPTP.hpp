@@ -314,17 +314,29 @@ public:
     vstring _message;
     unsigned _ln;
   }; // TPTP::ParseErrorException
-  friend class Exception;
 
 #define PARSE_ERROR(msg,tok) \
   throw ParseErrorException(msg,tok,_lineNumber)
 
-  TPTP(std::istream& in);
+  /**
+   * @brief Construct a new TPTP parser.
+   *
+   * @param in is the stream with the raw input to read
+   * @param unitBuffer is FIFO of units to which newly parsed Clauses/Formulas
+   *   will be added (via pushBack);
+   *
+   *  if left unspeficied, and empty fifo is created and used instead.
+   *  (use this default behaviour if you do not want to collect formulas
+   *   from multiple parser calls)
+   */
+  TPTP(std::istream& in, UnitList::FIFO unitBuffer = UnitList::FIFO());
   ~TPTP();
   void parse();
   static UnitList* parse(std::istream& str);
   /** Return the list of parsed units */
   UnitList* units() const { return _units.list(); }
+  /** Return the current unitBuffer (on top of units() you also get a pointer to the last added unit in constant time). */
+  UnitList::FIFO unitBuffer() const { return _units; }
   /**
    * Return true if there was a conjecture formula among the parsed units
    *

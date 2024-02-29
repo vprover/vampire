@@ -85,7 +85,6 @@ protected:
 
 }; // Exception
 
-
 class ParsingRelatedException : public Exception { using Exception::Exception; };
 
 /**

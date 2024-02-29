@@ -767,6 +767,23 @@ public:
       return _first;
     }
 
+    /**
+     * @brief If last's tail is not null, set it to null.
+     *
+     * @return Whatever was last's tail pointing to.
+     *
+     * Note that this will only return non-null,
+     * if the list inside was modified outside this objects interface.
+     */
+    List* clipAtLast() const
+    {
+      List* beyondLast = List::empty();
+      if (_last) {
+        std::swap(_last->_tail,beyondLast);
+      }
+      return beyondLast;
+    }
+
   protected:
     List* _first;
     List* _last;

@@ -32,9 +32,10 @@ void reportSpiderStatus(char status);
 bool outputAllowed(bool debug=false);
 
 class UIHelper {
+private:
+  static void tryParseTPTP(std::istream* input);
+  static void tryParseSMTLIB2(std::istream* input,SMTLIBLogic& logic);
 public:
-  static UnitList* tryParseTPTP(std::istream* input);
-  static UnitList* tryParseSMTLIB2(std::istream* input,SMTLIBLogic& logic);
   static Problem* getInputProblem(const Options& opts);
   static void outputResult(std::ostream& out);
 
@@ -78,6 +79,8 @@ public:
   static bool spiderOutputDone;
 
 private:
+  static UnitList::FIFO _allLoadedUnits;
+
   static bool s_expecting_sat;
   static bool s_expecting_unsat;
 
