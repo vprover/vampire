@@ -774,7 +774,8 @@ SMTLIB2::DeclaredSymbol SMTLIB2::declareFunctionOrPredicate(const vstring& name,
 
 bool shouldCreateFunctionDefinition(unsigned fn)
 {
-  return env.options->functionDefinitionRewriting() || env.options->structInduction()==Options::StructuralInductionKind::RECURSION;
+  return env.options->functionDefinitionRewriting() || env.options->inductionOnActiveOccurrences() ||
+    env.options->structInduction()==Options::StructuralInductionKind::RECURSION;
 }
 
 void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort, LExpr* body, const TermStack& typeArgs, bool recursive)

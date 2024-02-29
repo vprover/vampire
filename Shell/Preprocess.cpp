@@ -367,7 +367,9 @@ void Preprocess::preprocess(Problem& prb)
      resolver.apply(prb);
    }
 
-  if (_options.functionDefinitionRewriting() || _options.structInduction()==Options::StructuralInductionKind::RECURSION) {
+  if (_options.functionDefinitionRewriting() || _options.inductionOnActiveOccurrences() ||
+    _options.structInduction()==Options::StructuralInductionKind::RECURSION)
+  {
     auto fnDefHandler = new FunctionDefinitionHandler();
     fnDefHandler->preprocess(prb);
     prb.addFunctionDefinitionHandler(fnDefHandler);
