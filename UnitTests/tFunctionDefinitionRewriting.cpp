@@ -24,8 +24,7 @@ using namespace Test;
 
 REGISTER_GEN_TESTER(FunctionDefinitionRewriting)
 
-// this is to avoid name collisions with other tests
-namespace {
+namespace FunctionDefinitionRewritingTest {
 
 /**
  * NECESSARY: We neet to tell the tester which syntax sugar to import for creating terms & clauses. 

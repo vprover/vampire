@@ -33,8 +33,7 @@ using namespace Test::Generation;
 #define SKOLEM_VAR_MIN 100
 #define DECL_SKOLEM_VAR(x, i) DECL_VAR(x, i+SKOLEM_VAR_MIN)
 
-// this is to avoid name collisions with other tests
-namespace {
+namespace InductionTest {
 
 LiteralIndex* comparisonIndex() {
   return new UnitIntegerComparisonLiteralIndex(new LiteralSubstitutionTree());
