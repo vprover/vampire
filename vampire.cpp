@@ -28,6 +28,7 @@
 #include "Lib/List.hpp"
 #include "Lib/System.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Lib/StringUtils.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
@@ -575,6 +576,182 @@ void axiomSelectionMode()
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 }
 
+void dispatchByMode()
+{
+  switch (env.options->mode())
+  {
+  case Options::Mode::AXIOM_SELECTION:
+    axiomSelectionMode();
+    break;
+  case Options::Mode::SPIDER:
+    spiderMode();
+    break;
+  case Options::Mode::CONSEQUENCE_ELIMINATION:
+  case Options::Mode::VAMPIRE:
+    vampireMode();
+    break;
+
+  case Options::Mode::CASC:
+    env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
+    env.options->setSchedule(Options::Schedule::CASC);
+    env.options->setOutputMode(Options::Output::SZS);
+    env.options->setProof(Options::Proof::TPTP);
+    env.options->setOutputAxiomNames(true);
+    env.options->setNormalize(true);
+    env.options->setRandomizeSeedForPortfolioWorkers(false);
+
+    if (CASC::PortfolioMode::perform(env.options->slowness())) {
+      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+    }
+    break;
+
+  case Options::Mode::CASC_HOL: {
+    env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
+    env.options->setSchedule(Options::Schedule::CASC_HOL_2020);
+    env.options->setOutputMode(Options::Output::SZS);
+    env.options->setProof(Options::Proof::TPTP);
+    env.options->setOutputAxiomNames(true);
+
+    if (CASC::PortfolioMode::perform(env.options->slowness())) {
+      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+    }
+    break;
+  }
+  case Options::Mode::CASC_SAT:
+    env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
+    env.options->setSchedule(Options::Schedule::CASC_SAT);
+    env.options->setOutputMode(Options::Output::SZS);
+    env.options->setProof(Options::Proof::TPTP);
+    env.options->setOutputAxiomNames(true);
+    env.options->setNormalize(true);
+    env.options->setRandomizeSeedForPortfolioWorkers(false);
+
+    if (CASC::PortfolioMode::perform(env.options->slowness())) {
+      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+    }
+    break;
+
+  case Options::Mode::SMTCOMP:
+    env.options->setIgnoreMissing(Options::IgnoreMissing::OFF);
+    env.options->setInputSyntax(Options::InputSyntax::SMTLIB2);
+    if(env.options->outputMode() != Options::Output::UCORE){
+      env.options->setOutputMode(Options::Output::SMTCOMP);
+    }
+    env.options->setSchedule(Options::Schedule::SMTCOMP);
+    env.options->setProof(Options::Proof::OFF);
+    env.options->setNormalize(true);
+    env.options->setRandomizeSeedForPortfolioWorkers(false);
+
+    env.options->setMulticore(0); // use all available cores
+    env.options->setTimeLimitInSeconds(1800);
+    env.options->setStatistics(Options::Statistics::NONE);
+
+    //TODO needed?
+    // to prevent from terminating by time limit
+    env.options->setTimeLimitInSeconds(100000);
+
+    if (CASC::PortfolioMode::perform(env.options->slowness())){
+      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+    }
+    else {
+      cout << "unknown" << endl;
+    }
+    break;
+
+  case Options::Mode::PORTFOLIO:
+    env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
+
+    if (CASC::PortfolioMode::perform(env.options->slowness())) {
+      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+    }
+    break;
+
+  case Options::Mode::CASC_LTB: {
+    bool learning = env.options->ltbLearning()!=Options::LTBLearning::OFF;
+    try {
+      if(learning){
+        CASC::CLTBModeLearning::perform();
+      }
+      else{
+        CASC::CLTBMode::perform();
+      }
+    } catch (Lib::SystemFailException& ex) {
+      cerr << "Process " << getpid() << " received SystemFailException" << endl;
+      ex.cry(cerr);
+      cerr << " and will now die" << endl;
+    }
+    //we have processed the ltb batch file, so we can return zero
+    vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+    break;
+  }
+  case Options::Mode::MODEL_CHECK:
+    modelCheckMode();
+    break;
+
+  case Options::Mode::CLAUSIFY:
+    clausifyMode(false);
+    break;
+
+  case Options::Mode::TCLAUSIFY:
+    clausifyMode(true);
+    break;
+
+  case Options::Mode::OUTPUT:
+    outputMode();
+    break;
+
+  case Options::Mode::PROFILE:
+    profileMode();
+    break;
+
+  case Options::Mode::PREPROCESS:
+  case Options::Mode::PREPROCESS2:
+    preprocessMode(false);
+    break;
+
+  case Options::Mode::TPREPROCESS:
+    preprocessMode(true);
+    break;
+  }
+}
+
+void interactiveMetamode()
+{
+  env.options->setInteractive(false); // so that we don't pass the interactivity on to the workers
+
+  ScopedPtr<Problem> prb;
+  if (!env.options->inputFile().empty()) {
+    prb = UIHelper::getInputProblem(*env.options);
+  } else {
+    prb = new Problem(UnitList::empty());
+    env.setMainProblem(prb.ptr());
+  }
+
+  while (true) {
+    vstring line;
+    getline(cin, line);
+
+    if (line.rfind("exit",0) == 0) {
+      break;
+    } else if (line.rfind("run",0) == 0) {
+      Stack<vstring> pieces;
+      StringUtils::splitStr(line.c_str(),' ',pieces);
+      StringUtils::dropEmpty(pieces);
+      Stack<const char*> argv(pieces.size());
+      for(auto it = pieces.iter(); it.hasNext();) {
+        argv.push(it.next().c_str());
+      }
+      Shell::CommandLine cl(argv.size(), argv.begin());
+      cl.interpret(*env.options);
+      dispatchByMode();
+    } else if (line.rfind("load",0) == 0) {
+
+    } else {
+      cout << "Unreconginzed command! Try 'run [options]', 'load <filename>', 'read <one_line_input>', 'pop [how many levels]', or 'exit'." << endl;
+    }
+  }
+}
+
 /**
  * The main function.
  * @since 03/12/2003 many changes related to logging
@@ -613,141 +790,12 @@ int main(int argc, char* argv[])
 
     Lib::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
 
-    switch (env.options->mode())
-    {
-    case Options::Mode::AXIOM_SELECTION:
-      axiomSelectionMode();
-      break;
-    case Options::Mode::SPIDER:
-      spiderMode();
-      break;
-    case Options::Mode::CONSEQUENCE_ELIMINATION:
-    case Options::Mode::VAMPIRE:
-      vampireMode();
-      break;
-
-    case Options::Mode::CASC:
-      env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
-      env.options->setSchedule(Options::Schedule::CASC);
-      env.options->setOutputMode(Options::Output::SZS);
-      env.options->setProof(Options::Proof::TPTP);
-      env.options->setOutputAxiomNames(true);
-      env.options->setNormalize(true);
-      env.options->setRandomizeSeedForPortfolioWorkers(false);
-
-      if (CASC::PortfolioMode::perform(env.options->slowness())) {
-        vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-      }
-      break;
-
-    case Options::Mode::CASC_HOL: {
-      env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
-      env.options->setSchedule(Options::Schedule::CASC_HOL_2020);
-      env.options->setOutputMode(Options::Output::SZS);
-      env.options->setProof(Options::Proof::TPTP);
-      env.options->setOutputAxiomNames(true);
-
-      if (CASC::PortfolioMode::perform(env.options->slowness())) {
-        vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-      }
-      break;
+    if (env.options->interactive()) {
+      interactiveMetamode();
+    } else {
+      dispatchByMode();
     }
-    case Options::Mode::CASC_SAT:
-      env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
-      env.options->setSchedule(Options::Schedule::CASC_SAT);
-      env.options->setOutputMode(Options::Output::SZS);
-      env.options->setProof(Options::Proof::TPTP);
-      env.options->setOutputAxiomNames(true);
-      env.options->setNormalize(true);
-      env.options->setRandomizeSeedForPortfolioWorkers(false);
 
-      if (CASC::PortfolioMode::perform(env.options->slowness())) {
-        vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-      }
-      break;
-
-    case Options::Mode::SMTCOMP:
-      env.options->setIgnoreMissing(Options::IgnoreMissing::OFF);
-      env.options->setInputSyntax(Options::InputSyntax::SMTLIB2);
-      if(env.options->outputMode() != Options::Output::UCORE){
-        env.options->setOutputMode(Options::Output::SMTCOMP);
-      }
-      env.options->setSchedule(Options::Schedule::SMTCOMP);
-      env.options->setProof(Options::Proof::OFF);
-      env.options->setNormalize(true);
-      env.options->setRandomizeSeedForPortfolioWorkers(false);
-
-      env.options->setMulticore(0); // use all available cores
-      env.options->setTimeLimitInSeconds(1800);
-      env.options->setStatistics(Options::Statistics::NONE);
-
-      //TODO needed?
-      // to prevent from terminating by time limit
-      env.options->setTimeLimitInSeconds(100000);
-
-      if (CASC::PortfolioMode::perform(env.options->slowness())){
-        vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-      }
-      else {
-        cout << "unknown" << endl;
-      }
-      break;
-
-    case Options::Mode::PORTFOLIO:
-      env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
-
-      if (CASC::PortfolioMode::perform(env.options->slowness())) {
-        vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-      }
-      break;
-
-    case Options::Mode::CASC_LTB: {
-      bool learning = env.options->ltbLearning()!=Options::LTBLearning::OFF;
-      try {
-        if(learning){
-          CASC::CLTBModeLearning::perform();
-        }
-        else{
-          CASC::CLTBMode::perform();
-        }
-      } catch (Lib::SystemFailException& ex) {
-        cerr << "Process " << getpid() << " received SystemFailException" << endl;
-        ex.cry(cerr);
-        cerr << " and will now die" << endl;
-      }
-      //we have processed the ltb batch file, so we can return zero
-      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-      break;
-    }
-    case Options::Mode::MODEL_CHECK:
-      modelCheckMode();
-      break; 
-
-    case Options::Mode::CLAUSIFY:
-      clausifyMode(false);
-      break;
-
-    case Options::Mode::TCLAUSIFY:
-      clausifyMode(true);
-      break;
-
-    case Options::Mode::OUTPUT:
-      outputMode();
-      break;
-
-    case Options::Mode::PROFILE:
-      profileMode();
-      break;
-
-    case Options::Mode::PREPROCESS:
-    case Options::Mode::PREPROCESS2:
-      preprocessMode(false);
-      break;
-
-    case Options::Mode::TPREPROCESS:
-      preprocessMode(true);
-      break;
-    }
 #if CHECK_LEAKS
     delete env.signature;
     env.signature = 0;
@@ -769,7 +817,7 @@ int main(int argc, char* argv[])
     MemoryLeak::cancelReport();
 #endif
     explainException(exception);
-  } 
+  }
 catch (Parse::TPTP::ParseErrorException& exception) {
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();

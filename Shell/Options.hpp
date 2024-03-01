@@ -2125,6 +2125,8 @@ public:
   unsigned setSimulatedInstructionLimit() const { return _simulatedInstructionLimit.actualValue; }
   bool parsingDoesNotCount() const { return _parsingDoesNotCount.actualValue; }
 #endif
+  bool interactive() const { return _interactive.actualValue; }
+  void setInteractive(bool v) { _interactive.actualValue = v; }
   int inequalitySplitting() const { return _inequalitySplitting.actualValue; }
   int ageRatio() const { return _ageWeightRatio.actualValue; }
   void setAgeRatio(int v){ _ageWeightRatio.actualValue = v; }
@@ -2546,6 +2548,9 @@ private:
 #endif
 
   UnsignedOptionValue _memoryLimit; // should be size_t, making an assumption
+
+  BoolOptionValue _interactive;
+
   ChoiceOptionValue<Mode> _mode;
   ChoiceOptionValue<Schedule> _schedule;
   StringOptionValue _scheduleFile;
