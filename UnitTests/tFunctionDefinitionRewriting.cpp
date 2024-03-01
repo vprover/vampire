@@ -24,6 +24,9 @@ using namespace Test;
 
 REGISTER_GEN_TESTER(FunctionDefinitionRewriting)
 
+// this is to avoid name collisions with other tests
+namespace {
+
 /**
  * NECESSARY: We neet to tell the tester which syntax sugar to import for creating terms & clauses. 
  * See Test/SyntaxSugar.hpp for which kinds of syntax sugar are available
@@ -118,3 +121,5 @@ TEST_GENERATION(test_06,
       .input( clause({  f(b,b) == b  }))
       .expected(none())
     )
+
+}

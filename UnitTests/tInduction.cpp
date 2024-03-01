@@ -33,6 +33,9 @@ using namespace Test::Generation;
 #define SKOLEM_VAR_MIN 100
 #define DECL_SKOLEM_VAR(x, i) DECL_VAR(x, i+SKOLEM_VAR_MIN)
 
+// this is to avoid name collisions with other tests
+namespace {
+
 LiteralIndex* comparisonIndex() {
   return new UnitIntegerComparisonLiteralIndex(new LiteralSubstitutionTree());
 }
@@ -1324,4 +1327,6 @@ TEST_FUN(generalizations_03) {
                         f(f(f(ph_s,sK2),f(ph_s,ph_s)),f(f(ph_s,g(sK2)),f(f(ph_s,sK2),ph_s)))) }),
     }),
   });
+}
+
 }

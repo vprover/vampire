@@ -134,6 +134,7 @@ public:
     Problem p;
     Options o;
     env.setMainProblem(&p);
+    env.options->set("traceback", "on");
     for (const auto& kv : _options) {
       o.set(kv.first, kv.second);
       env.options->set(kv.first, kv.second);
