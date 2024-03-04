@@ -151,9 +151,10 @@ public:
 private:
   SubstitutionTree& getTree(Literal* lit, bool complementary)
   {
-    auto idx = complementary ? lit->header() : lit->complementaryHeader();
+    auto findNegative = complementary ? lit->isPositive() : lit->isNegative();
+    auto idx = toIdx(lit->functor(), findNegative);
     while (idx >= _trees.size()) {
-      auto f = idxToFunctor(idx);
+      auto f = idxToFunctor(_trees.size());
       auto isEquality = f == 0;
       _trees.push(SubstitutionTree(isEquality ? 3 : env.signature->getPredicate(f)->arity()));
     }
