@@ -49,7 +49,24 @@ public:
   void setInference(SATInference* val);
 
   void* operator new(size_t,unsigned length);
-  void operator delete(void *);
+  void operator delete(void *, size_t);
+
+  unsigned defaultHash() const {
+    unsigned hash = 0;
+    for(unsigned i = 0; i < length(); i++)
+      hash ^= DefaultHash::hash(_literals[i]);
+    return hash;
+  }
+
+  bool operator==(const SATClause &other) const {
+    if(length() != other.length())
+      return false;
+    for(unsigned i = 0; i < length(); i++)
+      if(_literals[i] != other[i])
+        return false;
+    return true;
+  }
+  bool operator!=(const SATClause &other) const { return !operator==(other); }
 
   /**
    * Return the (reference to) the nth literal

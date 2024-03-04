@@ -675,13 +675,21 @@ void Splitter::init(SaturationAlgorithm* sa)
 #endif
 
   if (opts.splittingAvatimer() < 1.0) {
-    _stopSplittingAtTime = opts.splittingAvatimer() * opts.timeLimitInDeciseconds() * 100;
-#ifdef __linux__
-    _stopSplittingAtInst = opts.splittingAvatimer() * opts.instructionLimit();
+    unsigned timeLimit = opts.simulatedTimeLimit(); // is also stored in deciseconds
+    if (timeLimit == 0) {
+      timeLimit = opts.timeLimitInDeciseconds();
+    }
+    _stopSplittingAtTime = opts.splittingAvatimer() * timeLimit * 100;
+#if VAMPIRE_PERF_EXISTS
+    unsigned instrLimit = opts.simulatedInstructionLimit();
+    if (instrLimit == 0) {
+      instrLimit = opts.instructionLimit();
+    }
+    _stopSplittingAtInst = opts.splittingAvatimer() * instrLimit;
 #endif
   } else {
     _stopSplittingAtTime = 0;
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
     _stopSplittingAtInst = 0;
 #endif
   }
@@ -938,6 +946,12 @@ bool Splitter::handleNonSplittable(Clause* cl)
     satLits.push(getLiteralFromName(compName));
 
     SATClause* nsClause = SATClause::fromStack(satLits);
+    nsClause->sort();
+    if(_already_added.contains(nsClause)) {
+      delete nsClause;
+      return true;
+    }
+    _already_added.insert(nsClause);
 
     UnitList* ps = 0;
 
@@ -945,7 +959,7 @@ bool Splitter::handleNonSplittable(Clause* cl)
     // do compName first
     UnitList::push(getDefinitionFromName(compName),ps);
     FormulaList::push(new NamedFormula(getFormulaStringFromName(compName)),resLst);
- 
+
     // now do splits
     auto sit = cl->splits()->iter();
     while(sit.hasNext()) {
@@ -1080,7 +1094,7 @@ bool Splitter::doSplitting(Clause* cl)
     return false;
   }
   if ((_stopSplittingAtTime && (unsigned)env.timer->elapsedMilliseconds() >= _stopSplittingAtTime)
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
     || (_stopSplittingAtInst && env.timer->elapsedMegaInstructions() >= _stopSplittingAtInst)
 #endif
     ) {

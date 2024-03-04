@@ -21,6 +21,7 @@
 #include "TermIterators.hpp"
 #include "ApplicativeHelper.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Matcher.hpp"
 
 #include "EqHelper.hpp"
 
@@ -404,7 +405,12 @@ VirtualIterator<TypedTermList> EqHelper::getDemodulationLHSIterator(Literal* lit
       }
       if (t0.containsAllVariablesOf(t1)) {
         if (t1.containsAllVariablesOf(t0)) {
-          return withEqualitySort(lit, iterItems(t0, t1) );
+          // If the equation is its own variant when oriented
+          // reversed, there's no need to index both sides
+          if (MatchingUtils::matchReversedArgs(lit, lit)) {
+            return withEqualitySort(lit, getSingletonIterator(t0) );
+          }
+          return withEqualitySort(lit, iterItems(t0, t1));
         }
         return withEqualitySort(lit, getSingletonIterator(t0) );
       }

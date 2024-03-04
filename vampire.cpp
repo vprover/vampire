@@ -94,7 +94,7 @@ int vampireReturnValue = VAMP_RESULT_STATUS_UNKNOWN;
 VWARN_UNUSED
 Problem* getPreprocessedProblem()
 {
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
   unsigned saveInstrLimit = env.options->instructionLimit();
   if (env.options->parsingDoesNotCount()) {
     env.options->setInstructionLimit(0);
@@ -103,7 +103,7 @@ Problem* getPreprocessedProblem()
 
   Problem* prb = UIHelper::getInputProblem(*env.options);
 
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
   if (env.options->parsingDoesNotCount()) {
     Timer::updateInstructionCount();
     unsigned burnedParsing = Timer::elapsedMegaInstructions();
@@ -116,6 +116,12 @@ Problem* getPreprocessedProblem()
     env.options->setInstructionLimit(saveInstrLimit+burnedParsing);
   }
 #endif
+
+  // Here officially starts preprocessing of vampireMode
+  // and that's the moment we want to set the random seed (no randomness in parsing, for the peace of mind)
+  // the main reason being that we want to stay in sync with what profolio mode will do
+  // cf ProvingHelper::runVampire
+  Lib::Random::setSeed(env.options->randomSeed());
 
   TIME_TRACE(TimeTrace::PREPROCESSING);
 
@@ -388,7 +394,7 @@ void spiderMode()
   env.options->setOutputMode(Options::Output::SPIDER);
   env.options->setNormalize(true);
   // to start counting instructions
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
   Timer::ensureTimerInitialized();
 #endif
 
@@ -599,7 +605,6 @@ int main(int argc, char* argv[])
     }
 
     Lib::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
-    Lib::Random::setSeed(env.options->randomSeed());
 
     switch (env.options->mode())
     {

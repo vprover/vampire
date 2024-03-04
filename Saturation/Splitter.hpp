@@ -20,6 +20,7 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/ArrayMap.hpp"
 #include "Lib/DHMap.hpp"
+#include "Lib/Hash.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/ScopedPtr.hpp"
 
@@ -294,7 +295,7 @@ private:
   /* as there can be both limits, it's hard to covert between them,
    * and we terminate at the earlier one, let's just keep checking both. */
   unsigned _stopSplittingAtTime; // time elapsed in milliseconds
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
   unsigned _stopSplittingAtInst; // mega-instructions elapsed
 #endif
 
@@ -307,6 +308,10 @@ private:
   RCClauseStack _fastClauses;
   
   SaturationAlgorithm* _sa;
+
+  // clauses we already added to the SAT solver
+  // not just optimisation: also prevents the SAT solver oscillating between two models in some cases
+  Set<SATClause *, DerefPtrHash<DefaultHash>> _already_added;
 
 public:
   static vstring splPrefix;

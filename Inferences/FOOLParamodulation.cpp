@@ -82,11 +82,11 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
       }
     }
 
-    // we shouldn't replace variables, hence NonVariableIterator
-    NonVariableIterator nvi(literal);
+    // we shouldn't replace variables, hence NonVariableIterator (also NonType, to support polymorphism)
+    NonVariableNonTypeIterator nvi(literal);
     while (nvi.hasNext()) {
-      TermList subterm = nvi.next();
-      unsigned functor = subterm.term()->functor();
+      Term* subterm = nvi.next();
+      unsigned functor = subterm->functor();
 
       // we shouldn't replace boolean constants
       if (env.signature->isFoolConstantSymbol(false,functor) || env.signature->isFoolConstantSymbol(true,functor)) {
@@ -95,7 +95,7 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
 
       TermList resultType = env.signature->getFunction(functor)->fnType()->result();
       if (resultType == AtomicSort::boolSort()) {
-        booleanTerm = subterm;
+        booleanTerm = TermList(subterm);
         goto substitution;
       }
     }
