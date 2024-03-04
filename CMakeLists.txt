@@ -999,4 +999,5 @@ endif()
 # FIXME this guard should not be necessary but is currently because of how we do static linking above
 if(BUILD_SHARED_LIBS)
   set_property(TARGET vampire PROPERTY POSITION_INDEPENDENT_CODE false)
+  set_property(TARGET vtest PROPERTY POSITION_INDEPENDENT_CODE false)
 endif()
