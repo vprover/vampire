@@ -351,6 +351,7 @@ public:
   static void assignAxiomName(const Unit* unit, vstring& name);
   unsigned lineNumber(){ return _lineNumber; }
 private:
+  void parseImpl();
   /** Return the input string of characters */
   const char* input() { return _chars.content(); }
 

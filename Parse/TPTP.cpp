@@ -109,11 +109,20 @@ TPTP::~TPTP()
 {
 } // TPTP::~TPTP
 
+void TPTP::parse()
+{
+  try{
+    parseImpl();
+  } catch (UserErrorException& exception) {
+    throw ParseErrorException(exception.msg(),lineNumber());
+  }
+}
+
 /**
  * Read all tokens one by one 
  * @since 08/04/2011 Manchester
  */
-void TPTP::parse()
+void TPTP::parseImpl()
 {
   // bulding tokens one by one
   _gpos = 0;
@@ -1081,7 +1090,7 @@ TPTP::ParseErrorException::ParseErrorException(vstring message,Token& tok, unsig
  */
 void TPTP::ParseErrorException::cry(ostream& str) const
 {
-  str << "Parsing Error on line " << _ln << "\n";
+  str << "Parsing Error on line " << _ln << ": ";
   str << _message << "\n";
 }
 

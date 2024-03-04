@@ -210,14 +210,9 @@ static bool hasEnding (vstring const &fullString, vstring const &ending) {
 void UIHelper::tryParseTPTP(istream* input)
 {
   Parse::TPTP parser(*input,_allLoadedUnits);
-  try{
+  try {
     parser.parse();
-  }
-  catch (UserErrorException& exception) {
-    UnitList::destroy(_allLoadedUnits.clipAtLast()); // destroy units that perhaps got already parsed
-    throw ParsingRelatedException(exception.msg()," at line ",parser.lineNumber());
-  }
-  catch (ParsingRelatedException& exception) {
+  } catch (ParsingRelatedException& exception) {
     UnitList::destroy(_allLoadedUnits.clipAtLast()); // destroy units that perhaps got already parsed
     throw;
   }
