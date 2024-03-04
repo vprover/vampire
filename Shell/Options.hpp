@@ -1982,6 +1982,7 @@ public:
   LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
   vstring ltbDirectory() const { return _ltbDirectory.actualValue; }
   Mode mode() const { return _mode.actualValue; }
+  void setMode(Mode mode) { _mode.actualValue = mode; }
   Schedule schedule() const { return _schedule.actualValue; }
   vstring scheduleName() const { return _schedule.getStringOfValue(_schedule.actualValue); }
   void setSchedule(Schedule newVal) {  _schedule.actualValue = newVal; }
@@ -2001,6 +2002,7 @@ public:
   vstring include() const { return _include.actualValue; }
   void setInclude(vstring val) { _include.actualValue = val; }
   vstring inputFile() const { return _inputFile.actualValue; }
+  void resetInputFile() { _inputFile.actualValue = ""; }
   int activationLimit() const { return _activationLimit.actualValue; }
   unsigned randomSeed() const { return _randomSeed.actualValue; }
   void setRandomSeed(unsigned seed) { _randomSeed.actualValue = seed; }

@@ -29,6 +29,7 @@
 #include "Lib/System.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/StringUtils.hpp"
+#include "Lib/Sys/Multiprocessing.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
@@ -706,6 +707,7 @@ void interactiveMetamode()
   ScopedPtr<Problem> prb;
   if (!opts.inputFile().empty()) {
     UIHelper::parseFile(opts.inputFile(),opts.inputSyntax(),true);
+    opts.resetInputFile();
   } // no parsing of the whole cin in interactiveMetamode
   prb = UIHelper::getInputProblem();
 
@@ -715,22 +717,40 @@ void interactiveMetamode()
       cout << "Bye." << endl;
       break;
     } else if (line.rfind("run",0) == 0) {
+      // the whole running happens in a child (don't modify our options, don't crash here when parsing option rubbish, etc.)
+      pid_t process = Multiprocessing::instance()->fork();
+      ASS_NEQ(process, -1);
+      if(process == 0) {
+        Stack<vstring> pieces;
+        StringUtils::splitStr(line.c_str(),' ',pieces);
+        StringUtils::dropEmpty(pieces);
+        Stack<const char*> argv(pieces.size());
+        for(auto it = pieces.iterFifo(); it.hasNext();) {
+          argv.push(it.next().c_str());
+        }
+        Shell::CommandLine cl(argv.size(), argv.begin());
+        cl.interpret(opts);
+        if (opts.mode() == Options::Mode::CASC_LTB) {
+          cout << "casc_ltb incompatible with interactive mode. Switching to vampire mode instead" << endl;
+          opts.setMode(Options::Mode::VAMPIRE);
+        }
+        if (!opts.inputFile().empty()) {
+          UIHelper::parseFile(opts.inputFile(),opts.inputSyntax(),true);
+          prb = UIHelper::getInputProblem();
+        }
+        dispatchByMode(prb.ptr());
+        exit(vampireReturnValue);
+      }
+    } else if (line.rfind("load",0) == 0) {
       Stack<vstring> pieces;
       StringUtils::splitStr(line.c_str(),' ',pieces);
       StringUtils::dropEmpty(pieces);
-      Stack<const char*> argv(pieces.size());
-      for(auto it = pieces.iter(); it.hasNext();) {
-        argv.push(it.next().c_str());
+      auto it = pieces.iterFifo();
+      ALWAYS(it.next() == "load");
+      while (it.hasNext()) {
+        UIHelper::parseFile(it.next(),opts.inputSyntax(),true);
       }
-      Shell::CommandLine cl(argv.size(), argv.begin());
-      cl.interpret(*env.options);
-
-      // TODO: error if mode has been set to CASC_LTB
-
-      // also, do this in a child process!
-      dispatchByMode(prb.ptr());
-    } else if (line.rfind("load",0) == 0) {
-
+      prb = UIHelper::getInputProblem();
     } else if (line.rfind("tptp ",0) == 0) {
       try {
         UIHelper::parseSingleLine(line.substr(5),Options::InputSyntax::TPTP);
@@ -751,7 +771,8 @@ void interactiveMetamode()
       UIHelper::popLoadedPiece();
       prb = UIHelper::getInputProblem();
     } else {
-      cout << "Unreconginzed command! Try 'run [options]', 'load <filename>', 'read <one_line_input>', 'pop [how many levels]', or 'exit'." << endl;
+      cout << "Unreconginzed command! Try 'run [options] [filename_to_load]', 'load <filenames>', 'tptp <one_line_input_in_tptp>',\n"
+              "'smt2 <one_line_input_in_smt2>' 'pop [how_many_levels] (one is default)', 'list', or 'exit'." << endl;
     }
   }
 }
