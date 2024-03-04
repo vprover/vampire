@@ -32,6 +32,7 @@
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/Theory.hpp"
+#include "Kernel/FormulaVarIterator.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Saturation/Splitter.hpp"
@@ -233,7 +234,7 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
 bool TheoryInstAndSimp::isXeqTerm(TermList left, TermList right) {
   bool r = left.isVar() &&
     right.isTerm() &&
-    !VList::member(left.var(), right.term()->freeVariables());
+    !VList::member(left.var(), freeVariables(right.term()));
   return r;
 }
 
@@ -248,7 +249,7 @@ unsigned TheoryInstAndSimp::varOfXeqTerm(const Literal* lit,bool flip) {
     if (isXeqTerm(right,left)){ return right.var();}
     ASS(lit->isTwoVarEquality());
     if(flip){
-      return left.var(); 
+      return left.var();
     }else{
       return right.var();
     }
@@ -818,7 +819,7 @@ Stack<Literal*> computeGuards(Stack<Literal*> const& lits)
 
             case Theory::INT_QUOTIENT_F:
             case Theory::INT_REMAINDER_F:
-            case Theory::INT_QUOTIENT_E: 
+            case Theory::INT_QUOTIENT_E:
             case Theory::INT_QUOTIENT_T:
             case Theory::INT_REMAINDER_T:
             case Theory::INT_REMAINDER_E:
@@ -827,7 +828,7 @@ Stack<Literal*> computeGuards(Stack<Literal*> const& lits)
 
             default:; /* no guard */
           }
-        } else if (sym->termAlgebraDest()) { 
+        } else if (sym->termAlgebraDest()) {
           out.push(destructorGuard(term, sym->fnType()->arg(0), /* predicate */ false));
         }
       }
@@ -842,8 +843,8 @@ Stack<Literal*> filterLiterals(Stack<Literal*> lits, Options::TheoryInstSimp mod
   { return ( lit->isEquality() && lit->isNegative())
         || (!lit->isEquality() && theory->isInterpretedPredicate(lit->functor())); };
 
-  auto freeVars = [](Literal* lit) 
-  { return iterTraits(VList::Iterator(lit->freeVariables())); };
+  auto freeVars = [](Literal* lit)
+  { return iterTraits(VList::Iterator(freeVariables(lit))); };
 
   switch(mode) {
     case Options::TheoryInstSimp::ALL:
@@ -856,7 +857,7 @@ Stack<Literal*> filterLiterals(Stack<Literal*> lits, Options::TheoryInstSimp mod
 
     case Options::TheoryInstSimp::NEG_EQ:
       return iterTraits(lits.iterFifo())
-                            .filter([](Literal* lit) 
+                            .filter([](Literal* lit)
                                { return lit->isEquality() && lit->isNegative(); } )
                             .collect<Stack>();
 
