@@ -682,15 +682,15 @@ public:
   {
     if (lit->isEquality()) {
       if (lit->nthArgument(0)->isTerm()) {
-        _ft1 = FlatTerm::create(lit->nthArgument(0)->term());
+        _ft1 = FlatTerm::createUnexpanded(lit->nthArgument(0)->term());
         _stack.push(std::make_pair(lit->nthArgument(0)->term(),_ft1->data()));
       }
       if (lit->nthArgument(1)->isTerm()) {
-        _ft2 = FlatTerm::create(lit->nthArgument(1)->term());
+        _ft2 = FlatTerm::createUnexpanded(lit->nthArgument(1)->term());
         _stack.push(std::make_pair(lit->nthArgument(1)->term(),_ft2->data()));
       }
     } else {
-      _ft1 = FlatTerm::create(lit);
+      _ft1 = FlatTerm::createUnexpanded(lit);
       _stack.push(std::make_pair(lit,_ft1->data()));
       FTNonVariableNonTypeIterator::next();
     }

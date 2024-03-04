@@ -291,6 +291,10 @@ Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
   return comparePredicates(l1, l2);
 } // PrecedenceOrdering::compare()
 
+bool Ordering::isGreater(Literal* lit, TermList lhs, Indexing::ResultSubstitution* subst) const {
+  NOT_IMPLEMENTED;
+}
+
 bool Ordering::isGreater(TermList t1, TermList t2) const {
   return compare(t1,t2)==Ordering::GREATER;
 }

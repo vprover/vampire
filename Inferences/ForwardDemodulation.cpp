@@ -81,11 +81,12 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
   //the heaviest first...
 
   static DHSet<TermList> attempted;
-  static unsigned cacheTimestamp = 0;
-  if (cacheTimestamp != _index->insertionTimestamp()) {
-    attempted.reset();
-    cacheTimestamp = _index->insertionTimestamp();
-  }
+  attempted.reset();
+  // static unsigned cacheTimestamp = 0;
+  // if (cacheTimestamp != _index->insertionTimestamp()) {
+  //   attempted.reset();
+  //   cacheTimestamp = _index->insertionTimestamp();
+  // }
 
   unsigned cLen=cl->length();
   for(unsigned li=0;li<cLen;li++) {
@@ -99,6 +100,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
     // TracedNonVariableNonTypeIterator it(lit);
     FTNonVariableNonTypeIterator it(lit);
     while(it.hasNext()) {
+      // TypedTermList trm = it.next();
       auto p = it.next();
       TypedTermList trm = p.first;
       auto fte = p.second;
@@ -128,6 +130,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
       while(git.hasNext()) {
         TermQueryResult qr=git.next();
         ASS_EQ(qr.clause->length(),1);
+        env.statistics->forwardDemodulationAttempts++;
 
         if(!ColorHelper::compatible(cl->color(), qr.clause->color())) {
           continue;
@@ -153,6 +156,8 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
         TermList rhsS;
         auto subs = qr.unifier;
+#define PRECOMPILED
+#ifndef PRECOMPILED
         if(!subs->isIdentityOnQueryWhenResultBound()) {
           //When we apply substitution to the rhs, we get a term, that is
           //a variant of the term we'd like to get, as new variables are
@@ -171,6 +176,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         if(resultTermIsVar){
           rhsS = subst.apply(rhsS, 0);
         }
+#endif
 
         Ordering::Result argOrder = ordering.getEqualityArgumentOrder(qr.literal);
         bool preordered = argOrder==Ordering::LESS || argOrder==Ordering::GREATER;
@@ -184,17 +190,19 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           }
         }
   #endif
-        if(!preordered && (_preorderedOnly || !ordering.isGreater(trm,rhsS)) ) {
         // if(!preordered && (_preorderedOnly || ordering.compare(trm,rhsS)!=Ordering::GREATER) ) {
-          ASS(ordering.compare(trm,rhsS)!=Ordering::GREATER);
+#ifdef PRECOMPILED
+        if(!preordered && (_preorderedOnly || !ordering.isGreater(qr.literal,qr.term,subs.ptr())) ) {
+#else
+        if(!preordered && (_preorderedOnly || !ordering.isGreater(trm,rhsS)) ) {
+#endif
           // if (ordering.compare(trm,rhsS)==Ordering::GREATER) {
-          //   std::cout << "greater " << trm.toString() << " " << rhsS << std::endl;
+          //   USER_ERROR("is greater " + trm.toString() + " " + rhsS.toString() + "\nFrom equation " + qr.literal->toString() + " side " + qr.term.toString());
           // }
           continue;
         }
-        ASS(ordering.compare(trm,rhsS)==Ordering::GREATER);
         // if (ordering.compare(trm,rhsS)!=Ordering::GREATER) {
-        //   std::cout << "not greater " << trm.toString() << " " << rhsS << std::endl;
+        //   USER_ERROR("is not greater " + trm.toString() + " " + rhsS.toString() + "\nFrom equation " + qr.literal->toString() + " side " + qr.term.toString());
         // }
 
         // encompassing demodulation is fine when rewriting the smaller guy
@@ -208,6 +216,27 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
             toplevelCheck = false;
           }
         }
+
+#ifdef PRECOMPILED
+        if(!subs->isIdentityOnQueryWhenResultBound()) {
+          //When we apply substitution to the rhs, we get a term, that is
+          //a variant of the term we'd like to get, as new variables are
+          //produced in the substitution application.
+          TermList lhsSBadVars = subs->applyToResult(qr.term);
+          TermList rhsSBadVars = subs->applyToResult(rhs);
+          Renaming rNorm, qNorm, qDenorm;
+          rNorm.normalizeVariables(lhsSBadVars);
+          qNorm.normalizeVariables(trm);
+          qDenorm.makeInverse(qNorm);
+          ASS_EQ(trm,qDenorm.apply(rNorm.apply(lhsSBadVars)));
+          rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
+        } else {
+          rhsS = subs->applyToBoundResult(rhs);
+        }
+        if(resultTermIsVar){
+          rhsS = subst.apply(rhsS, 0);
+        }
+#endif
 
         if(toplevelCheck) {
           TermList other=EqHelper::getOtherEqualitySide(lit, trm);

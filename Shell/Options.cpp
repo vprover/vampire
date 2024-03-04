@@ -2184,7 +2184,7 @@ void Options::init()
     _kboMaxZero.description="Modifies any kbo_weight_scheme by setting the maximal (by the precedence) function symbol to have weight 0.";
     _lookup.insert(&_kboMaxZero);
 
-    _kboImprovedGreater = BoolOptionValue("kbo_improved_greater","kig",false);
+    _kboImprovedGreater = BoolOptionValue("kbo_improved_greater","kig",true);
     _kboImprovedGreater.setExperimental();
     _kboImprovedGreater.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
     _kboImprovedGreater.tag(OptionTag::SATURATION);

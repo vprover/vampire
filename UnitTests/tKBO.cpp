@@ -578,5 +578,23 @@ TEST_FUN(kbo_isGreater_test16) {
   ASS(ord.isGreater(
     f(f(y,x,z),u,f(f(u,z,y),x,f(x,f(y,x,z),z))),
     f(x,f(y,x,z),f(f(y,x,z),u,f(f(u,z,y),x,z)))));
+  ASS(!ord.isGreater(
+    f(x,f(y,x,z),f(f(y,x,z),u,f(f(u,z,y),x,z))),
+    f(f(y,x,z),u,f(f(u,z,y),x,f(x,f(y,x,z),z)))));
+}
+
+TEST_FUN(kbo_isGreater_test17) {
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_FUNC(f, {srt}, srt)
+  DECL_FUNC(g, {srt, srt}, srt)
+
+  auto ord = kbo(1, 1, weights(), weights(), true);
+  ASS(ord.isGreater(
+    f(g(f(g(x,g(y,z))),y)),
+    f(g(y,f(g(x,g(y,z)))))));
+  ASS(!ord.isGreater(
+    f(g(y,f(g(x,g(y,z))))),
+    f(g(f(g(x,g(y,z))),y))));
 }
 

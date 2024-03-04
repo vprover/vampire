@@ -130,6 +130,8 @@ struct BackwardDemodulation::ResultFn
     TermList lhsS=qr.term;
     TermList rhsS;
 
+// #define PRECOMPILED
+#ifndef PRECOMPILED
     if(!qr.unifier->isIdentityOnResultWhenQueryBound()) {
       //When we apply substitution to the rhs, we get a term, that is
       //a variant of the term we'd like to get, as new variables are
@@ -147,11 +149,36 @@ struct BackwardDemodulation::ResultFn
     } else {
       rhsS=qr.unifier->applyToBoundQuery(rhs);
     }
+#endif
 
+#ifdef PRECOMPILED
+    if(!_ordering.isGreater(_eqLit,lhs,qr.unifier.ptr())) {
+#else
     if(!_ordering.isGreater(lhsS,rhsS)) {
+#endif
     // if(_ordering.compare(lhsS,rhsS)!=Ordering::GREATER) {
       return BwSimplificationRecord(0);
     }
+
+#ifdef PRECOMPILED
+    if(!qr.unifier->isIdentityOnResultWhenQueryBound()) {
+      //When we apply substitution to the rhs, we get a term, that is
+      //a variant of the term we'd like to get, as new variables are
+      //produced in the substitution application.
+      //We'd rather rename variables in the rhs, than in the whole clause
+      //that we're simplifying.
+      TermList lhsSBadVars=qr.unifier->applyToQuery(lhs);
+      TermList rhsSBadVars=qr.unifier->applyToQuery(rhs);
+      Renaming rNorm, qNorm, qDenorm;
+      rNorm.normalizeVariables(lhsSBadVars);
+      qNorm.normalizeVariables(lhsS);
+      qDenorm.makeInverse(qNorm);
+      ASS_EQ(lhsS,qDenorm.apply(rNorm.apply(lhsSBadVars)));
+      rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
+    } else {
+      rhsS=qr.unifier->applyToBoundQuery(rhs);
+    }
+#endif
 
     if(_redundancyCheck && qr.literal->isEquality() && (qr.term==*qr.literal->nthArgument(0) || qr.term==*qr.literal->nthArgument(1)) &&
       // encompassment has issues only with positive units

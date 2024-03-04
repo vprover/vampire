@@ -81,6 +81,9 @@ public:
     }
   }
 
+  virtual TermList applyToBoundResult(unsigned v)
+  { return applyToResult(TermList(v,false)); }
+
   /**
    * Apply substitution to result term that fulfills the condition,
    * that all its variables are bound to some term of the query.

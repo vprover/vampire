@@ -27,6 +27,11 @@
 #include "KBO.hpp"
 #include "Signature.hpp"
 
+#include "Indexing/Index.hpp"
+#include "TermIterators.hpp"
+#include "EqHelper.hpp"
+#include "SubstHelper.hpp"
+
 #define COLORED_WEIGHT_BOOST 0x10000
 
 namespace Kernel {
@@ -516,6 +521,298 @@ struct FuncSigTraits {
   { return env.signature->getFunction(functor); }
 };
 
+struct KBO::CompInstruction {
+  enum class Result {
+    SUCCESS,
+    FAIL,
+    CONTINUE,
+  };
+  virtual Result perform(Indexing::ResultSubstitution* subst) = 0;
+  virtual vstring toString() const = 0;
+};
+
+struct WeightCompInstruction
+  : public KBO::CompInstruction
+{
+  WeightCompInstruction(const KBO* kbo, int w, const Stack<pair<unsigned, int>>& ws) : _kbo(kbo), _w(w), _ws(ws) {}
+
+  Result perform(Indexing::ResultSubstitution* subst) override {
+    // TIME_TRACE("WeightCompInstruction::perform");
+    int res = _w;
+    for (const auto& kv : _ws) {
+      auto w = _kbo->computeWeight(subst->applyToBoundResult(kv.first));
+      res += kv.second*w;
+    }
+    if (res > 0) {
+      return Result::SUCCESS;
+    } else if (res == 0) {
+      return Result::CONTINUE;
+    }
+    return Result::FAIL;
+  }
+
+  vstring toString() const override {
+    vstring res = "WeightCompInstruction " + Int::toString(_w);
+    for (const auto& kv : _ws) {
+      res += " + (" + Int::toString(kv.second) + " * w(X" + Int::toString(kv.first) + "))";
+    }
+    res += " >= 0";
+    return res;
+  }
+
+  const KBO* _kbo;
+  int _w;
+  Stack<pair<unsigned, int>> _ws;
+};
+
+struct VarCompInstruction
+  : public KBO::CompInstruction
+{
+  VarCompInstruction(const Stack<pair<unsigned, int>>& ws) : _ws(ws) {}
+
+  Result perform(Indexing::ResultSubstitution* subst) override {
+    // TIME_TRACE("VarCompInstruction::perform");
+    DHMap<unsigned,int> varDiffs;
+    for (const auto& kv : _ws) {
+      VariableIterator vit(subst->applyToBoundResult(kv.first));
+      while (vit.hasNext()) {
+        auto v = vit.next();
+        int* ptr;
+        varDiffs.getValuePtr(v.var(),ptr,0);
+        *ptr += kv.second;
+      }
+    }
+    DHMap<unsigned,int>::Iterator vdit(varDiffs);
+    while (vdit.hasNext()) {
+      unsigned v;
+      int cnt;
+      vdit.next(v,cnt);
+      if (cnt<0) {
+        return Result::FAIL;
+      }
+    }
+    return Result::CONTINUE;
+  }
+
+  vstring toString() const override {
+    vstring res = "VarCompInstruction ";
+    return res;
+  }
+
+  Stack<pair<unsigned, int>> _ws;
+};
+
+struct CompareCompInstruction
+  : public KBO::CompInstruction
+{
+  CompareCompInstruction(const KBO* kbo, TermList lhs, TermList rhs) : _kbo(kbo), _lhs(lhs), _rhs(rhs) {}
+
+  Result perform(Indexing::ResultSubstitution* subst) override {
+    // TIME_TRACE("CompareCompInstruction::perform");
+    TermList lhsS, rhsS;
+    if (_lhs.isVar()) {
+      lhsS = subst->applyToBoundResult(_lhs.var());
+    } else {
+      lhsS = subst->applyToBoundResult(_lhs);
+    }
+    if (_rhs.isVar()) {
+      rhsS = subst->applyToBoundResult(_rhs.var());
+    } else {
+      rhsS = subst->applyToBoundResult(_rhs);
+    }
+    if (lhsS == rhsS) {
+      return Result::CONTINUE;
+    }
+    if (_kbo->isGreater(lhsS,rhsS)) {
+      return Result::SUCCESS;
+    }
+    return Result::FAIL;
+  }
+
+  vstring toString() const override {
+    return "CompareCompInstruction " + _lhs.toString() + " > " + _rhs.toString();
+  }
+
+  const KBO* _kbo;
+  TermList _lhs;
+  TermList _rhs;
+};
+
+struct CompareCompInstruction2
+  : public KBO::CompInstruction
+{
+  CompareCompInstruction2(const KBO* kbo, unsigned lhs, unsigned rhs) : _kbo(kbo), _lhs(lhs), _rhs(rhs) {}
+
+  Result perform(Indexing::ResultSubstitution* subst) override {
+    // TIME_TRACE("CompareCompInstruction2::perform");
+    TermList lhsS = subst->applyToBoundResult(_lhs);
+    TermList rhsS = subst->applyToBoundResult(_rhs);
+    if (lhsS == rhsS) {
+      return Result::CONTINUE;
+    }
+    if (_kbo->isGreater(lhsS,rhsS)) {
+      return Result::SUCCESS;
+    }
+    return Result::FAIL;
+  }
+
+  vstring toString() const override {
+    return "CompareCompInstruction2 X" + Int::toString(_lhs) + " > X" + Int::toString(_rhs);
+  }
+
+  const KBO* _kbo;
+  unsigned _lhs;
+  unsigned _rhs;
+};
+
+struct SuccessCompInstruction
+  : public KBO::CompInstruction
+{
+  Result perform(Indexing::ResultSubstitution* subst) override {
+    // TIME_TRACE("SuccessCompInstruction::perform");
+    return Result::SUCCESS;
+  }
+
+  vstring toString() const override {
+    return "SuccessCompInstruction";
+  }
+};
+
+Stack<KBO::CompInstruction*>* KBO::preprocessEquation(Literal* lit, TermList side) const
+{
+  TIME_TRACE("KBO::preprocessEquation");
+  Stack<CompInstruction*>* instrPtr;
+  if (!_demodulatorCompInstructions.getValuePtr(make_pair(lit,side),instrPtr)) {
+    return instrPtr;
+  }
+
+  // cout << "preprocess " << *lit << " " << side << endl;
+
+  Substitution subst;
+  Stack<pair<TermList,TermList>> todo;
+  todo.push(make_pair(side,EqHelper::getOtherEqualitySide(lit,side)));
+
+  auto cntFn = [this](DHMap<unsigned,int>& vars, int& w, TermList t, int coeff) {
+    if (t.isVar()) {
+      int* vcnt;
+      vars.getValuePtr(t.var(), vcnt, 0);
+      (*vcnt) += coeff;
+    } else {
+      w += coeff*symbolWeight(t.term());
+      SubtermIterator sti(t.term());
+      while (sti.hasNext()) {
+        auto st = sti.next();
+        if (st.isVar()) {
+          int* vcnt;
+          vars.getValuePtr(st.var(), vcnt, 0);
+          (*vcnt) += coeff;
+        } else {
+          w += coeff*symbolWeight(st.term());
+        }
+      }
+    }
+  };
+
+  while (todo.isNonEmpty()) {
+    auto kv = todo.pop();
+    auto lhs = SubstHelper::apply(kv.first,subst);
+    auto rhs = SubstHelper::apply(kv.second,subst);
+    auto comp = compare(lhs,rhs);
+    // cout << "subcase " << lhs << " " << rhs << endl;
+
+    switch (comp) {
+      case LESS:
+      case LESS_EQ: {
+        goto loop_end;
+      }
+      case GREATER:
+      case GREATER_EQ: {
+        instrPtr->push(new SuccessCompInstruction());
+        goto loop_end;
+      }
+      default:
+        break;
+    }
+    if (comp != Ordering::INCOMPARABLE) {
+      continue;
+    }
+    if (lhs.isVar() || rhs.isVar()) {
+      if (lhs.isVar() && rhs.isVar()) {
+        instrPtr->push(new CompareCompInstruction2(this, lhs.var(), rhs.var()));
+      } else {
+        instrPtr->push(new CompareCompInstruction(this, lhs, rhs));
+      }
+      if (lhs.isVar()) {
+        subst.bind(lhs.var(),rhs);
+      } else {
+        subst.bind(rhs.var(),lhs);
+      }
+      continue;
+    }
+
+    DHMap<unsigned,int> vars;
+    int w = 0;
+    cntFn(vars, w, lhs, 1);
+    cntFn(vars, w, rhs, -1);
+
+    bool varInbalance = false;
+    Stack<pair<unsigned,int>> ibvars;
+    DHMap<unsigned,int>::Iterator vit(vars);
+    while (vit.hasNext()) {
+      unsigned v;
+      int cnt;
+      vit.next(v,cnt);
+      if (cnt!=0) {
+        ibvars.push(make_pair(v,cnt));
+      }
+      if (cnt<0) {
+        varInbalance = true;
+      }
+    }
+    if (varInbalance) {
+      instrPtr->push(new VarCompInstruction(ibvars));
+    }
+    if (w < 0 || varInbalance) {
+      instrPtr->push(new WeightCompInstruction(this, w, ibvars));
+    }
+    auto lhst = lhs.term();
+    auto rhst = rhs.term();
+
+    Result prec = lhst->isSort()
+      ? compareTypeConPrecedences(lhst->functor(),rhst->functor())
+      : compareFunctionPrecedences(lhst->functor(),rhst->functor());
+    switch (prec)
+    {
+      case Ordering::LESS:
+      case Ordering::LESS_EQ: {
+        goto loop_end;
+      }
+      case Ordering::GREATER:
+      case Ordering::GREATER_EQ: {
+        instrPtr->push(new SuccessCompInstruction());
+        goto loop_end;
+      }
+      case Ordering::EQUAL: {
+        for (unsigned i = 0; i < lhst->arity(); i++) {
+          auto lhsArg = *lhst->nthArgument(lhst->arity()-i-1);
+          auto rhsArg = *rhst->nthArgument(lhst->arity()-i-1);
+          todo.push(make_pair(lhsArg,rhsArg));
+        }
+        break;
+      }
+      default: {
+        ASSERTION_VIOLATION;
+      }
+    }
+  }
+loop_end:
+  // unsigned cnt = 0;
+  // for (const auto& instr : *instrPtr) {
+  //   cout << cnt++ << " " << instr->toString() << endl;
+  // }
+  // cout << endl;
+  return instrPtr;
+}
 
 template<class SigTraits> 
 KboWeightMap<SigTraits> KBO::weightsFromOpts(const Options& opts, const DArray<int>& rawPrecedence) const
@@ -922,6 +1219,24 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
   return res;
 }
 
+bool KBO::isGreater(Literal* lit, TermList lhs, Indexing::ResultSubstitution* subst) const
+{
+  TIME_TRACE("KBO::isGreaterPrecompiled");
+  auto ptr = preprocessEquation(lit, lhs);
+  ASS(ptr);
+  for (const auto& instr : *ptr) {
+    switch (instr->perform(subst)) {
+      case CompInstruction::Result::FAIL:
+        return false;
+      case CompInstruction::Result::SUCCESS:
+        return true;
+      case CompInstruction::Result::CONTINUE:
+        continue;
+    }
+  }
+  return false;
+}
+
 bool KBO::isGreater(TermList tl1, TermList tl2) const
 {
   if (!_improvedGreater) {
@@ -942,22 +1257,25 @@ bool KBO::isGreater(TermList tl1, TermList tl2) const
   Term* t1=tl1.term();
   Term* t2=tl2.term();
 
-  computeWeight(t1);
-  computeWeight(t2);
+  auto w1 = computeWeight(tl1);
+  auto w2 = computeWeight(tl2);
 
-  if (t1->kboWeight()<t2->kboWeight()) {
+  if (w1<w2) {
     return false;
   }
 
   _stateGt->init();
-  if (t1->kboWeight()>t2->kboWeight()) {
+  if (w1>w2) {
     // traverse variables
     _stateGt->traverseVars(tl1,1);
     _stateGt->traverseVars(tl2,-1);
     return _stateGt->checkVars();
   }
-  // t1->kboWeight()==t2->kboWeight()
-  switch (compareFunctionPrecedences(t1->functor(),t2->functor()))
+  // w1==w2
+  Result comp = t1->isSort()
+    ? compareTypeConPrecedences(t1->functor(),t2->functor())
+    : compareFunctionPrecedences(t1->functor(),t2->functor());
+  switch (comp)
   {
     case Ordering::LESS:
     case Ordering::LESS_EQ: {
@@ -992,45 +1310,58 @@ int KBO::symbolWeight(Term* t) const
   return _funcWeights.symbolWeight(t);
 }
 
-void KBO::computeWeight(Term* t) const
+unsigned KBO::computeWeight(TermList tl) const
 {
-  // TIME_TRACE("computeWeight");
-  if (t->kboWeight()!=-1) {
-    return;
+  if (tl.isVar()) {
+    return _funcWeights._specialWeights._variableWeight;
   }
-  static Stack<pair<Term*,unsigned>> values(8);
-  values.push(make_pair(t,symbolWeight(t)));
-
-  static Stack<TermList*> stack(8);
-  stack.push(t->args());
+  auto t = tl.term();
+  if (t->kboWeight()!=-1) {
+    return t->kboWeight();
+  }
+  struct Todo {
+    Term* t;
+    unsigned w;
+    TermList* args;
+  };
+  static Stack<Todo> stack(8);
+  stack.push(Todo {
+    .t = t,
+    .w = (unsigned)symbolWeight(t),
+    .args = t->args(),
+  });
 
   while (stack.isNonEmpty()) {
     auto& curr = stack.top();
-    if (curr->isEmpty()) {
+    if (curr.args->isEmpty()) {
       stack.pop();
-      auto kv = values.pop();
-      if (values.isNonEmpty()) {
-        values.top().second += kv.second;
+      if (stack.isNonEmpty()) {
+        stack.top().w += curr.w;
       }
-      kv.first->setKboWeight(kv.second);
+      curr.t->setKboWeight(curr.w);
       continue;
     }
-    if (curr->isVar()) {
-      values.top().second += _funcWeights._specialWeights._variableWeight;
+    auto arg = curr.args;
+    // update this here so reallocation won't affect it
+    curr.args = curr.args->next();
+    if (arg->isVar()) {
+      stack.top().w += _funcWeights._specialWeights._variableWeight;
     } else {
-      auto w = curr->term()->kboWeight();
+      auto w = arg->term()->kboWeight();
       if (w!=-1) {
-        values.top().second += w;
+        stack.top().w += w;
       } else {
-        values.push(make_pair(curr->term(),symbolWeight(curr->term())));
-        stack.push(curr->term()->args());
+        stack.push(Todo{
+          .t = arg->term(),
+          .w = (unsigned)symbolWeight(arg->term()),
+          .args = arg->term()->args()
+        });
       }
     }
-    curr = curr->next();
   }
-  ASS(values.isEmpty());
   ASS(stack.isEmpty());
   ASS_NEQ(t->kboWeight(),-1);
+  return t->kboWeight();
 }
 
 unsigned KBO::weight(TermList t) const

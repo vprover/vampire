@@ -51,6 +51,11 @@ public:
 
   USE_ALLOCATOR(CodeTreeSubstitution);
 
+  TermList applyToBoundResult(unsigned var) override
+  {
+    return getApplicator()->apply(var);
+  }
+
   TermList applyToBoundResult(TermList t) override
   {
     return SubstHelper::apply(t, *getApplicator());

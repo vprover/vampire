@@ -20,6 +20,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/DArray.hpp"
+#include "Lib/DHMap.hpp"
 
 #include "Ordering.hpp"
 
@@ -154,19 +155,26 @@ public:
   void checkAdmissibility(HandleError handle) const;
   void zeroWeightForMaximalFunc();
 
+  struct CompInstruction;
+
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
+  bool isGreater(Literal* lit, TermList lhs, Indexing::ResultSubstitution* subst) const override;
   bool isGreater(TermList tl1, TermList tl2) const override;
 protected:
   Result comparePredicates(Literal* l1, Literal* l2) const override;
+
+  Stack<CompInstruction*>* preprocessEquation(Literal* lit, TermList lhs) const;
 
   class State;
   class StateGreater;
 
   // int functionSymbolWeight(unsigned fun) const;
   int symbolWeight(Term* t) const;
-  void computeWeight(Term* t) const;
+  unsigned computeWeight(TermList t) const;
   unsigned weight(TermList t) const;
+
+  friend struct WeightCompInstruction;
 
 private:
 
@@ -188,6 +196,7 @@ private:
    */
   mutable State* _state;
   mutable StateGreater* _stateGt;
+  mutable DHMap<std::pair<Literal*,TermList>,Stack<CompInstruction*>> _demodulatorCompInstructions;
 };
 
 }
