@@ -397,7 +397,7 @@ Problem* UIHelper::getInputProblem()
 
 void UIHelper::listLoadedPieces(ostream& out)
 {
-  Stack<LoadedPiece>::BottomFirstIterator it(_loadedPieces);
+  auto it = _loadedPieces.iterFifo();
   ALWAYS(it.next()._id.empty()); // skip the first, empty, entry
   while (it.hasNext()) {
     out << " " << it.next()._id << endl;
