@@ -38,7 +38,7 @@ using namespace Kernel;
 class ModelCheck{
 
 public:
-static void doCheck(Problem*& prb)
+static void doCheck(UnitList* units)
 {
   // find model size
   // looking for a domain axiom
@@ -47,7 +47,7 @@ static void doCheck(Problem*& prb)
   unsigned modelSize = 0;
   Set<Term*> domainConstants;
   {
-    UnitList::Iterator uit(prb->units());
+    UnitList::Iterator uit(units);
     while(uit.hasNext()){
       Unit* u = uit.next();
       if(u->inputType()!= UnitInputType::MODEL_DEFINITION) continue;
@@ -102,7 +102,7 @@ static void doCheck(Problem*& prb)
   FiniteModel model(modelSize);
 
   {
-    UnitList::Iterator uit(prb->units());
+    UnitList::Iterator uit(units);
     while(uit.hasNext()){
       Unit* u = uit.next();
       if(u->inputType()!= UnitInputType::MODEL_DEFINITION) continue;
@@ -146,7 +146,7 @@ static void doCheck(Problem*& prb)
     std::cout << "Model loaded" << std::endl;
     std::cout << "Checking formulas..." << std::endl;
     {
-      UnitList::Iterator uit(prb->units());
+      UnitList::Iterator uit(units);
       while(uit.hasNext()){
         Unit* u = uit.next();
         if(u->inputType()== UnitInputType::MODEL_DEFINITION) continue;

@@ -89,11 +89,12 @@ using namespace std;
 int vampireReturnValue = VAMP_RESULT_STATUS_UNKNOWN;
 
 /**
- * Preprocess input problem
+ * Preprocess the given problem (in dependence of env.options).
  *
+ * The problem is modified destructively.
  */
 VWARN_UNUSED
-Problem* getPreprocessedProblem()
+Problem* preprocessProblem(Problem* prb)
 {
 #if VAMPIRE_PERF_EXISTS
   unsigned saveInstrLimit = env.options->instructionLimit();
@@ -101,8 +102,6 @@ Problem* getPreprocessedProblem()
     env.options->setInstructionLimit(0);
   }
 #endif
-
-  Problem* prb = UIHelper::getInputProblem(*env.options);
 
 #if VAMPIRE_PERF_EXISTS
   if (env.options->parsingDoesNotCount()) {
@@ -146,7 +145,7 @@ void explainException(Exception& exception)
 } // explainException
 
 VWARN_UNUSED
-Problem *doProving()
+Problem *doProving(Problem* problem)
 {
   // a new strategy randomization mechanism
   if (!env.options->strategySamplerFilename().empty()) {
@@ -156,7 +155,7 @@ Problem *doProving()
   env.options->setForcedOptionValues();
   env.options->checkGlobalOptionConstraints();
 
-  Problem *prb = getPreprocessedProblem();
+  Problem *prb = preprocessProblem(problem);
 
   // this will provide warning if options don't make sense for problem
   if (env.options->mode()!=Options::Mode::SPIDER) {
@@ -171,9 +170,9 @@ Problem *doProving()
  * Read a problem and output profiling information about it.
  * @since 03/08/2008 Torrevieja
  */
-void profileMode()
+void profileMode(Problem* problem)
 {
-  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
+  ScopedPtr<Problem> prb(problem);
 
   /* CAREFUL: Make sure that the order
    * 1) getProperty, 2) normalise, 3) TheoryFinder::search
@@ -277,9 +276,9 @@ void outputProblemToLaTeX(Problem* prb)
  * @author Andrei Voronkov
  * @since 02/07/2013 Manchester
  */
-void preprocessMode(bool theory)
+void preprocessMode(Problem* problem, bool theory)
 {
-  Problem* prb = UIHelper::getInputProblem(*env.options);
+  ScopedPtr<Problem> prb(problem);
 
   TIME_TRACE(TimeTrace::PREPROCESSING);
 
@@ -320,7 +319,7 @@ void preprocessMode(bool theory)
   }
   env.endOutput();
 
-  if(env.options->latexOutput()!="off"){ outputProblemToLaTeX(prb); }
+  if(env.options->latexOutput()!="off"){ outputProblemToLaTeX(prb.ptr()); }
 
   //we have successfully output all clauses, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -331,17 +330,16 @@ void preprocessMode(bool theory)
  * @author Giles
  * @since 6/10/2015
  */
-void modelCheckMode()
+void modelCheckMode(Problem* problem)
 {
+  ScopedPtr<Problem> prb(problem);
   env.options->setOutputAxiomNames(true);
-  Problem* prb = UIHelper::getInputProblem(*env.options);
 
   if(env.getMainProblem()->hasPolymorphicSym() || env.getMainProblem()->isHigherOrder()){
     USER_ERROR("Polymorphic Vampire is not yet compatible with theory reasoning");
   }
 
-  FMB::ModelCheck::doCheck(prb);
-
+  FMB::ModelCheck::doCheck(prb->units());
 } // modelCheckMode
 
 
@@ -351,9 +349,9 @@ void modelCheckMode()
  * @author Laura Kovacs and Andrei Voronkov
  * @since 02/07/2013 Gothenburg and Manchester
  */
-void outputMode()
+void outputMode(Problem* problem)
 {
-  Problem* prb = UIHelper::getInputProblem(*env.options);
+  ScopedPtr<Problem> prb(problem);
 
   env.beginOutput();
   //outputSymbolDeclarations also deals with sorts for now
@@ -367,19 +365,19 @@ void outputMode()
   }
   env.endOutput();
 
-  if(env.options->latexOutput()!="off"){ outputProblemToLaTeX(prb); }
+  if(env.options->latexOutput()!="off"){ outputProblemToLaTeX(prb.ptr()); }
 
   //we have successfully output all clauses, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // outputMode
 
-void vampireMode()
+void vampireMode(Problem* problem)
 {
   if (env.options->mode() == Options::Mode::CONSEQUENCE_ELIMINATION) {
     env.options->setUnusedPredicateDefinitionRemoval(false);
   }
 
-  ScopedPtr<Problem> prb(doProving());
+  ScopedPtr<Problem> prb(doProving(problem));
 
   env.beginOutput();
   UIHelper::outputResult(env.out());
@@ -391,7 +389,7 @@ void vampireMode()
   }
 } // vampireMode
 
-void spiderMode()
+void spiderMode(Problem* problem)
 {
   env.options->setBadOptionChoice(Options::BadOption::HARD);
   env.options->setOutputMode(Options::Output::SPIDER);
@@ -405,17 +403,17 @@ void spiderMode()
 #if VZ3
   z3::exception* z3_exception = 0;
 #endif
-  
+
   bool exceptionRaised = false;
   ScopedPtr<Problem> prb;
   try {
-    prb = doProving();
+    prb = doProving(problem);
   } catch (Exception& e) {
     exception = &e;
     exceptionRaised = true;
 #if VZ3
   } catch(z3::exception& e){
-    z3_exception = &e; 
+    z3_exception = &e;
     exceptionRaised = true;
 #endif
   } catch (...) {
@@ -476,7 +474,7 @@ void spiderMode()
     else {
       reportSpiderFail();
     }
-    
+
     env.endOutput();
     return;
   }
@@ -484,19 +482,19 @@ void spiderMode()
 
   reportSpiderFail();
   env.endOutput();
-  
-  ASS(exception); 
-  explainException(*exception); 
+
+  ASS(exception);
+  explainException(*exception);
 } // spiderMode
 
-void clausifyMode(bool theory)
+void clausifyMode(Problem* problem, bool theory)
 {
   CompositeISE simplifier;
   simplifier.addFront(new TrivialInequalitiesRemovalISE());
   simplifier.addFront(new TautologyDeletionISE());
   simplifier.addFront(new DuplicateLiteralRemovalISE());
 
-  ScopedPtr<Problem> prb(getPreprocessedProblem());
+  ScopedPtr<Problem> prb(preprocessProblem(problem));
 
   env.beginOutput();
   //outputSymbolDeclarations deals with sorts as well for now
@@ -542,11 +540,11 @@ void clausifyMode(bool theory)
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // clausifyMode
 
-void axiomSelectionMode()
+void axiomSelectionMode(Problem* problem)
 {
-  env.options->setSineSelection(Options::SineSelection::AXIOMS);
+  ScopedPtr<Problem> prb(problem);
 
-  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
+  env.options->setSineSelection(Options::SineSelection::AXIOMS);
 
   if (prb->hasFOOL()) {
     FOOLElimination().apply(*prb);
@@ -576,19 +574,19 @@ void axiomSelectionMode()
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 }
 
-void dispatchByMode()
+void dispatchByMode(Problem* problem)
 {
   switch (env.options->mode())
   {
   case Options::Mode::AXIOM_SELECTION:
-    axiomSelectionMode();
+    axiomSelectionMode(problem);
     break;
   case Options::Mode::SPIDER:
-    spiderMode();
+    spiderMode(problem);
     break;
   case Options::Mode::CONSEQUENCE_ELIMINATION:
   case Options::Mode::VAMPIRE:
-    vampireMode();
+    vampireMode(problem);
     break;
 
   case Options::Mode::CASC:
@@ -600,7 +598,7 @@ void dispatchByMode()
     env.options->setNormalize(true);
     env.options->setRandomizeSeedForPortfolioWorkers(false);
 
-    if (CASC::PortfolioMode::perform(env.options->slowness())) {
+    if (CASC::PortfolioMode::perform(problem)) {
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
     }
     break;
@@ -612,7 +610,7 @@ void dispatchByMode()
     env.options->setProof(Options::Proof::TPTP);
     env.options->setOutputAxiomNames(true);
 
-    if (CASC::PortfolioMode::perform(env.options->slowness())) {
+    if (CASC::PortfolioMode::perform(problem)) {
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
     }
     break;
@@ -626,7 +624,7 @@ void dispatchByMode()
     env.options->setNormalize(true);
     env.options->setRandomizeSeedForPortfolioWorkers(false);
 
-    if (CASC::PortfolioMode::perform(env.options->slowness())) {
+    if (CASC::PortfolioMode::perform(problem)) {
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
     }
     break;
@@ -650,7 +648,7 @@ void dispatchByMode()
     // to prevent from terminating by time limit
     env.options->setTimeLimitInSeconds(100000);
 
-    if (CASC::PortfolioMode::perform(env.options->slowness())){
+    if (CASC::PortfolioMode::perform(problem)){
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
     }
     else {
@@ -661,67 +659,53 @@ void dispatchByMode()
   case Options::Mode::PORTFOLIO:
     env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
 
-    if (CASC::PortfolioMode::perform(env.options->slowness())) {
+    if (CASC::PortfolioMode::perform(problem)) {
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
     }
     break;
-
-  case Options::Mode::CASC_LTB: {
-    bool learning = env.options->ltbLearning()!=Options::LTBLearning::OFF;
-    try {
-      if(learning){
-        CASC::CLTBModeLearning::perform();
-      }
-      else{
-        CASC::CLTBMode::perform();
-      }
-    } catch (Lib::SystemFailException& ex) {
-      cerr << "Process " << getpid() << " received SystemFailException" << endl;
-      ex.cry(cerr);
-      cerr << " and will now die" << endl;
-    }
-    //we have processed the ltb batch file, so we can return zero
-    vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-    break;
-  }
   case Options::Mode::MODEL_CHECK:
-    modelCheckMode();
+    modelCheckMode(problem);
     break;
 
   case Options::Mode::CLAUSIFY:
-    clausifyMode(false);
+    clausifyMode(problem,false);
     break;
 
   case Options::Mode::TCLAUSIFY:
-    clausifyMode(true);
+    clausifyMode(problem,true);
     break;
 
   case Options::Mode::OUTPUT:
-    outputMode();
+    outputMode(problem);
     break;
 
   case Options::Mode::PROFILE:
-    profileMode();
+    profileMode(problem);
     break;
 
   case Options::Mode::PREPROCESS:
   case Options::Mode::PREPROCESS2:
-    preprocessMode(false);
+    preprocessMode(problem,false);
     break;
 
   case Options::Mode::TPREPROCESS:
-    preprocessMode(true);
+    preprocessMode(problem,true);
     break;
+
+  case Options::Mode::CASC_LTB:
+    // handled elsewhere!
+    ASSERTION_VIOLATION;
   }
 }
 
 void interactiveMetamode()
 {
-  env.options->setInteractive(false); // so that we don't pass the interactivity on to the workers
+  Options& opts = *env.options;
+  opts.setInteractive(false); // so that we don't pass the interactivity on to the workers
 
   ScopedPtr<Problem> prb;
-  if (!env.options->inputFile().empty()) {
-    prb = UIHelper::getInputProblem(*env.options);
+  if (!opts.inputFile().empty()) {
+    prb = UIHelper::getInputProblem(opts.inputFile(),opts.inputSyntax(),true);
   } else {
     prb = new Problem(UnitList::empty());
     env.setMainProblem(prb.ptr());
@@ -743,7 +727,11 @@ void interactiveMetamode()
       }
       Shell::CommandLine cl(argv.size(), argv.begin());
       cl.interpret(*env.options);
-      dispatchByMode();
+
+      // TODO: error if mode has been set to CASC_LTB
+
+      // also, do this in a child process!
+      dispatchByMode(prb.ptr());
     } else if (line.rfind("load",0) == 0) {
 
     } else {
@@ -764,36 +752,54 @@ int main(int argc, char* argv[])
   System::setSignalHandlers();
 
   try {
+    Options& opts = *env.options;
+
     // read the command line and interpret it
     Shell::CommandLine cl(argc, argv);
-    cl.interpret(*env.options);
+    cl.interpret(opts);
 
-    if(env.options->encodeStrategy()){
-      cout << env.options->generateEncodedOptions() << "\n";
+    if(opts.encodeStrategy()){
+      cout << opts.generateEncodedOptions() << "\n";
     }
 
 #if VTIME_PROFILING
-    TimeTrace::instance().setEnabled(env.options->timeStatistics());
+    TimeTrace::instance().setEnabled(opts.timeStatistics());
 #endif
 
     // If any of these options are set then we just need to output and exit
-    if (env.options->showHelp() ||
-        env.options->showOptions() ||
-        env.options->showExperimentalOptions() ||
-        !env.options->explainOption().empty() ||
-        env.options->printAllTheoryAxioms()) {
+    if (opts.showHelp() || opts.showOptions() || opts.showExperimentalOptions() ||
+       !opts.explainOption().empty() || opts.printAllTheoryAxioms()) {
       env.beginOutput();
-      env.options->output(env.out());
+      opts.output(env.out());
       env.endOutput();
       exit(0);
     }
 
     Lib::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
 
-    if (env.options->interactive()) {
+    // CASC_LTB is treated specially, all other modes are happy to receive a Problem* as input and take it from there
+    if (opts.mode() == Options::Mode::CASC_LTB) {
+      bool learning = opts.ltbLearning()!=Options::LTBLearning::OFF;
+      try {
+        if(learning){
+          CASC::CLTBModeLearning::perform();
+        }
+        else{
+          CASC::CLTBMode::perform();
+        }
+      } catch (Lib::SystemFailException& ex) {
+        cerr << "Process " << getpid() << " received SystemFailException" << endl;
+        ex.cry(cerr);
+        cerr << " and will now die" << endl;
+      }
+      //we have processed the ltb batch file, so we can return zero
+      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+    } else if (opts.interactive()) {
       interactiveMetamode();
     } else {
-      dispatchByMode();
+      Problem* problem = UIHelper::getInputProblem(opts.inputFile(),opts.inputSyntax(),
+                            opts.mode() != Options::Mode::SPIDER && opts.mode() != Options::Mode::PROFILE);
+      dispatchByMode(problem);
     }
 
 #if CHECK_LEAKS

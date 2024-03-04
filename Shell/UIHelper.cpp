@@ -269,20 +269,22 @@ void resetParsing(ParsingRelatedException& exception, vstring inputFile, istream
 }
 
 /**
- * Return problem object with units obtained according to the content of
- * @b env.options
+ * Return problem object with units obtained through parsing inputFile (may be empty, which means read stdin)
+ * according to inputSyntax (may be auto, which triggers input syntax auto detection)
  *
  * No preprocessing is performed on the units.
+ *
+ * The Options object should intentionally not be part of this game,
+ * as any form of "conditional parsing" compromises the effective use of the correspoding conditioning option
+ * as a part of strategy development and use in portfolios. In other words, if you need getInputProblem
+ * to depend on an option, think twice, and if really needed, make it an explicit argument of this function.
  */
-Problem* UIHelper::getInputProblem(const Options& opts)
+Problem* UIHelper::getInputProblem(const vstring& inputFile, Options::InputSyntax inputSyntax, bool verbose)
 {
   TIME_TRACE(TimeTrace::PARSING);
   env.statistics->phase = Statistics::PARSING;
 
   SMTLIBLogic smtLibLogic = SMT_UNDEFINED;
-
-  vstring inputFile = opts.inputFile();
-  auto inputSyntax = opts.inputSyntax();
 
   istream* input;
   if (inputFile=="") {
@@ -308,10 +310,9 @@ Problem* UIHelper::getInputProblem(const Options& opts)
     {
        // First lets pick a place to start based on the input file name
        bool smtlib = hasEnding(inputFile,"smt") || hasEnding(inputFile,"smt2");
-       Options::Mode mode = env.options->mode();
 
        if (smtlib){
-         if (mode != Options::Mode::SPIDER && mode != Options::Mode::PROFILE) {
+         if (verbose) {
            env.beginOutput();
            addCommentSignForSZS(env.out());
            env.out() << "Running in auto input_syntax mode. Trying SMTLIB2\n";
@@ -326,7 +327,7 @@ Problem* UIHelper::getInputProblem(const Options& opts)
          }
        }
        else {
-         if (mode != Options::Mode::SPIDER && mode != Options::Mode::PROFILE) {
+         if (verbose) {
            env.beginOutput();
            addCommentSignForSZS(env.out());
            env.out() << "Running in auto input_syntax mode. Trying TPTP\n";

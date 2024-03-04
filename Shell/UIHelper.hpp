@@ -36,7 +36,7 @@ private:
   static void tryParseTPTP(std::istream* input);
   static void tryParseSMTLIB2(std::istream* input,SMTLIBLogic& logic);
 public:
-  static Problem* getInputProblem(const Options& opts);
+  static Problem* getInputProblem(const vstring& inputFile, Options::InputSyntax inputSyntax, bool verbose);
   static void outputResult(std::ostream& out);
 
   /**
