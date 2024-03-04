@@ -18,6 +18,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <iostream>
+#include <sstream>
 
 #include "Forwards.hpp"
 
@@ -26,6 +27,7 @@
 #include "Lib/VString.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/Allocator.hpp"
+#include "Lib/ScopedLet.hpp"
 
 #include "Kernel/InferenceStore.hpp"
 #include "Kernel/Problem.hpp"
@@ -131,10 +133,7 @@ ostream& addCommentSignForSZS(ostream& out)
   return out;
 }
 
-UnitList::FIFO UIHelper::_allLoadedUnits;
-
-bool UIHelper::s_haveConjecture=false;
-bool UIHelper::s_proofHasConjecture=true;
+Stack<UIHelper::LoadedPiece> UIHelper::_loadedPieces = { UIHelper::LoadedPiece() }; // start initialized with a singleton
 
 bool UIHelper::s_expecting_sat=false;
 bool UIHelper::s_expecting_unsat=false;
@@ -207,33 +206,34 @@ static bool hasEnding (vstring const &fullString, vstring const &ending) {
   }
 }
 
-void UIHelper::tryParseTPTP(istream* input)
+void UIHelper::tryParseTPTP(istream& input)
 {
-  Parse::TPTP parser(*input,_allLoadedUnits);
+  LoadedPiece& curPiece = _loadedPieces.top();
+  Parse::TPTP parser(input,curPiece._units);
   try {
     parser.parse();
+    curPiece._units = parser.unitBuffer();
+    curPiece._hasConjecture = parser.containsConjecture();
   } catch (ParsingRelatedException& exception) {
-    UnitList::destroy(_allLoadedUnits.clipAtLast()); // destroy units that perhaps got already parsed
+    UnitList::destroy(curPiece._units.clipAtLast()); // destroy units that perhaps got already parsed
     throw;
   }
-  _allLoadedUnits = parser.unitBuffer();
-  s_haveConjecture = parser.containsConjecture();
 }
 
-void UIHelper::tryParseSMTLIB2(istream* input,SMTLIBLogic& smtLibLogic)
+void UIHelper::tryParseSMTLIB2(istream& input)
 {
-  Parse::SMTLIB2 parser(_allLoadedUnits);
+  LoadedPiece& curPiece = _loadedPieces.top();
+  Parse::SMTLIB2 parser(curPiece._units);
   try {
-    parser.parse(*input);
+    parser.parse(input);
+    Unit::onParsingEnd(); // dubious in interactiveMetamode (influences SMT goal guessing and InferenceStore::ProofPropertyPrinter)
+    curPiece._units = parser.formulaBuffer();
+    curPiece._smtLibLogic = parser.getLogic();
+    curPiece._hasConjecture = false;
   } catch (ParsingRelatedException& exception) {
-    UnitList::destroy(_allLoadedUnits.clipAtLast()); // destroy units that perhaps got already parsed
+    UnitList::destroy(curPiece._units.clipAtLast()); // destroy units that perhaps got already parsed
     throw;
   }
-
-  Unit::onParsingEnd();
-  _allLoadedUnits = parser.formulaBuffer();
-  smtLibLogic = parser.getLogic();
-  s_haveConjecture=false;
 
 #if VDEBUG
   const vstring& expected_status = parser.getStatus();
@@ -245,8 +245,35 @@ void UIHelper::tryParseSMTLIB2(istream* input,SMTLIBLogic& smtLibLogic)
 #endif
 }
 
+void UIHelper::parseSingleLine(const vstring& lineToParse, Options::InputSyntax inputSyntax)
+{
+  LoadedPiece newPiece = _loadedPieces.top();  // copy everything
+  newPiece._id = lineToParse;
+  _loadedPieces.push(std::move(newPiece));
+
+  ScopedLet<Statistics::ExecutionPhase> localAssing(env.statistics->phase,Statistics::PARSING);
+
+  vistringstream stream(lineToParse);
+  try {
+    switch (inputSyntax) {
+      case Options::InputSyntax::TPTP:
+        tryParseTPTP(stream);
+        break;
+      case Options::InputSyntax::SMTLIB2:
+        tryParseSMTLIB2(stream);
+        break;
+      case Options::InputSyntax::AUTO:
+        ASSERTION_VIOLATION;
+        break;
+    }
+  } catch (ParsingRelatedException& exception) {
+    _loadedPieces.pop();
+    throw;
+  }
+}
+
 // Call this function to report a parsing attempt has failed and to reset the input
-void resetParsing(ParsingRelatedException& exception, vstring inputFile, istream*& input,vstring nowtry)
+void resetParsing(ParsingRelatedException& exception, istream& input, vstring nowtry)
 {
   if (env.options->mode()!=Options::Mode::SPIDER) {
     env.beginOutput();
@@ -259,100 +286,112 @@ void resetParsing(ParsingRelatedException& exception, vstring inputFile, istream
     env.endOutput();
   }
 
-  delete static_cast<ifstream*>(input);
-  input=new ifstream(inputFile.c_str());
+  input.clear();
+  input.seekg(0);
 }
 
-/**
- * Return problem object with units obtained through parsing inputFile (may be empty, which means read stdin)
- * according to inputSyntax (may be auto, which triggers input syntax auto detection)
- *
- * No preprocessing is performed on the units.
- *
- * The Options object should intentionally not be part of this game,
- * as any form of "conditional parsing" compromises the effective use of the correspoding conditioning option
- * as a part of strategy development and use in portfolios. In other words, if you need getInputProblem
- * to depend on an option, think twice, and if really needed, make it an explicit argument of this function.
- */
-Problem* UIHelper::getInputProblem(const vstring& inputFile, Options::InputSyntax inputSyntax, bool verbose)
+void UIHelper::parseStream(std::istream& input, Options::InputSyntax inputSyntax, bool verbose, bool preferSMTonAuto)
 {
-  TIME_TRACE(TimeTrace::PARSING);
-  env.statistics->phase = Statistics::PARSING;
-
-  SMTLIBLogic smtLibLogic = SMT_UNDEFINED;
-
-  istream* input;
-  if (inputFile=="") {
-    input=&cin;
-
-    if (inputSyntax == Options::InputSyntax::AUTO) {
-      env.beginOutput();
-      addCommentSignForSZS(env.out());
-      env.out() << "input_syntax=auto not supported for standard input parsing, switching to tptp.\n";
-      env.endOutput();
-
-      inputSyntax = Options::InputSyntax::TPTP;
-    }
-  } else {
-    input=new ifstream(inputFile.c_str());
-    if (input->fail()) {
-      USER_ERROR("Cannot open problem file: "+inputFile);
-    }
-  }
-
   switch (inputSyntax) {
   case Options::InputSyntax::AUTO:
-    {
-       // First lets pick a place to start based on the input file name
-       bool smtlib = hasEnding(inputFile,"smt") || hasEnding(inputFile,"smt2");
-
-       if (smtlib){
-         if (verbose) {
-           env.beginOutput();
-           addCommentSignForSZS(env.out());
-           env.out() << "Running in auto input_syntax mode. Trying SMTLIB2\n";
-           env.endOutput();
-         }
-         try{
-           tryParseSMTLIB2(input,smtLibLogic);
-         }
-         catch (ParsingRelatedException& exception) {
-           resetParsing(exception,inputFile,input,"TPTP");
-           tryParseTPTP(input);
-         }
-       }
-       else {
-         if (verbose) {
-           env.beginOutput();
-           addCommentSignForSZS(env.out());
-           env.out() << "Running in auto input_syntax mode. Trying TPTP\n";
-           env.endOutput();
-         }
-         try{
-           tryParseTPTP(input);
-         }
-         catch (ParsingRelatedException& exception) {
-           resetParsing(exception,inputFile,input,"SMTLIB2");
-           tryParseSMTLIB2(input,smtLibLogic);
-         }
-       }
+    if (preferSMTonAuto){
+      if (verbose) {
+        env.beginOutput();
+        addCommentSignForSZS(env.out());
+        env.out() << "Running in auto input_syntax mode. Trying SMTLIB2\n";
+        env.endOutput();
+      }
+      try {
+        tryParseSMTLIB2(input);
+      } catch (ParsingRelatedException& exception) {
+        resetParsing(exception,input,"TPTP");
+        tryParseTPTP(input);
+      }
+    } else {
+      if (verbose) {
+        env.beginOutput();
+        addCommentSignForSZS(env.out());
+        env.out() << "Running in auto input_syntax mode. Trying TPTP\n";
+        env.endOutput();
+      }
+      try {
+        tryParseTPTP(input);
+      } catch (ParsingRelatedException& exception) {
+        resetParsing(exception,input,"SMTLIB2");
+        tryParseSMTLIB2(input);
+      }
     }
     break;
   case Options::InputSyntax::TPTP:
     tryParseTPTP(input);
     break;
   case Options::InputSyntax::SMTLIB2:
-    tryParseSMTLIB2(input,smtLibLogic);
+    tryParseSMTLIB2(input);
     break;
   }
-  if (inputFile!="") {
-    delete static_cast<ifstream*>(input);
-    input=0;
+}
+
+void UIHelper::parseStandardInput(Options::InputSyntax inputSyntax)
+{
+  LoadedPiece newPiece = _loadedPieces.top();  // copy everything
+  newPiece._id = "<cin>";
+  _loadedPieces.push(std::move(newPiece));
+
+  if (inputSyntax == Options::InputSyntax::AUTO) {
+    env.beginOutput();
+    addCommentSignForSZS(env.out());
+    env.out() << "input_syntax=auto not supported for standard input parsing, switching to tptp.\n";
+    env.endOutput();
+
+    inputSyntax = Options::InputSyntax::TPTP;
+  }
+  try {
+    parseStream(cin,inputSyntax,false,false);
+  } catch (ParsingRelatedException& exception) {
+    _loadedPieces.pop();
+    throw;
+  }
+}
+
+void UIHelper::parseFile(const vstring& inputFile, Options::InputSyntax inputSyntax, bool verbose)
+{
+  LoadedPiece newPiece = _loadedPieces.top();  // copy everything
+  newPiece._id = inputFile;
+  _loadedPieces.push(std::move(newPiece));
+
+  TIME_TRACE(TimeTrace::PARSING);
+  ScopedLet<Statistics::ExecutionPhase> localAssing(env.statistics->phase,Statistics::PARSING);
+
+  ifstream input(inputFile.c_str());
+  if (input.fail()) {
+    USER_ERROR("Cannot open problem file: "+inputFile);
   }
 
-  Problem* res = new Problem(_allLoadedUnits.list());
-  res->setSMTLIBLogic(smtLibLogic);
-  env.statistics->phase=Statistics::UNKNOWN_PHASE;
+  try {
+    parseStream(input,inputSyntax,verbose,hasEnding(inputFile,"smt") || hasEnding(inputFile,"smt2"));
+  } catch (ParsingRelatedException& exception) {
+    _loadedPieces.pop();
+    throw;
+  }
+}
+
+
+/**
+ * After a single call (or a series of calls) to parse* functions,
+ * return a problem object with the obtained units.
+ *
+ * No preprocessing is performed on the units.
+ *
+ * The Options object should intentionally not be part of this game,
+ * as any form of "conditional parsing" compromises the effective use of the correspoding conditioning option
+ * as a part of strategy development and use in portfolios. In other words, if you need getInputProblem or the parse* functions
+ * to depend on an option, think twice, and if really needed, make it an explicit argument of your function.
+ */
+Problem* UIHelper::getInputProblem()
+{
+  LoadedPiece topPiece = _loadedPieces.top();
+  Problem* res = new Problem(topPiece._units.list());
+  res->setSMTLIBLogic(topPiece._smtLibLogic);
   env.setMainProblem(res);
   return res;
 }

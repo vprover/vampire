@@ -705,11 +705,9 @@ void interactiveMetamode()
 
   ScopedPtr<Problem> prb;
   if (!opts.inputFile().empty()) {
-    prb = UIHelper::getInputProblem(opts.inputFile(),opts.inputSyntax(),true);
-  } else {
-    prb = new Problem(UnitList::empty());
-    env.setMainProblem(prb.ptr());
-  }
+    UIHelper::parseFile(opts.inputFile(),opts.inputSyntax(),true);
+  } // no parsing of the whole cin in interactiveMetamode
+  prb = UIHelper::getInputProblem();
 
   while (true) {
     vstring line;
@@ -733,6 +731,20 @@ void interactiveMetamode()
       dispatchByMode(prb.ptr());
     } else if (line.rfind("load",0) == 0) {
 
+    } else if (line.rfind("tptp ",0) == 0) {
+      try {
+        UIHelper::parseSingleLine(line.substr(5),Options::InputSyntax::TPTP);
+        prb = UIHelper::getInputProblem();
+      } catch (ParsingRelatedException& exception) {
+        explainException(exception);
+      }
+    } else if (line.rfind("smt2 ",0) == 0) {
+      try {
+        UIHelper::parseSingleLine(line.substr(5),Options::InputSyntax::SMTLIB2);
+        prb = UIHelper::getInputProblem();
+      } catch (ParsingRelatedException& exception) {
+        explainException(exception);
+      }
     } else {
       cout << "Unreconginzed command! Try 'run [options]', 'load <filename>', 'read <one_line_input>', 'pop [how many levels]', or 'exit'." << endl;
     }
@@ -796,9 +808,13 @@ int main(int argc, char* argv[])
     } else if (opts.interactive()) {
       interactiveMetamode();
     } else {
-      Problem* problem = UIHelper::getInputProblem(opts.inputFile(),opts.inputSyntax(),
+      if (opts.inputFile().empty()) {
+        UIHelper::parseStandardInput(opts.inputSyntax());
+      } else {
+        UIHelper::parseFile(opts.inputFile(),opts.inputSyntax(),
                             opts.mode() != Options::Mode::SPIDER && opts.mode() != Options::Mode::PROFILE);
-      dispatchByMode(problem);
+      }
+      dispatchByMode(UIHelper::getInputProblem());
     }
 
 #if CHECK_LEAKS
