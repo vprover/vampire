@@ -30,6 +30,7 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/StringUtils.hpp"
 #include "Lib/Sys/Multiprocessing.hpp"
+#include "Lib/Int.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
@@ -769,7 +770,14 @@ void interactiveMetamode()
     } else if (line.rfind("list",0) == 0) {
       UIHelper::listLoadedPieces(cout);
     } else if (line.rfind("pop",0) == 0) {
-      UIHelper::popLoadedPiece();
+      Stack<vstring> pieces;
+      StringUtils::splitStr(line.c_str(),' ',pieces);
+      StringUtils::dropEmpty(pieces);
+      int numPops = 1;
+      if (pieces.size() > 1) {
+        Int::stringToInt(pieces[1],numPops);
+      }
+      UIHelper::popLoadedPiece(numPops);
       prb = UIHelper::getInputProblem();
     } else {
       cout << "Unreconginzed command! Try 'run [options] [filename_to_load]', 'load <filenames>', 'tptp <one_line_input_in_tptp>',\n"

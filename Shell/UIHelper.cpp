@@ -404,11 +404,13 @@ void UIHelper::listLoadedPieces(ostream& out)
   }
 }
 
-void UIHelper::popLoadedPiece()
+void UIHelper::popLoadedPiece(int numPops)
 {
-  if (_loadedPieces.size() > 1) {
-    _loadedPieces.pop();
-    UnitList::destroy(_loadedPieces.top()._units.clipAtLast());
+  while (numPops-- > 0) {
+    if (_loadedPieces.size() > 1) {
+      _loadedPieces.pop();
+      UnitList::destroy(_loadedPieces.top()._units.clipAtLast());
+    }
   }
 }
 

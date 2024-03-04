@@ -59,7 +59,7 @@ public:
   static Problem* getInputProblem();
 
   static void listLoadedPieces(std::ostream& out);
-  static void popLoadedPiece();
+  static void popLoadedPiece(int numPops);
 
   static void outputResult(std::ostream& out);
 
