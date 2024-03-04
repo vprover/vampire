@@ -375,7 +375,6 @@ void UIHelper::parseFile(const vstring& inputFile, Options::InputSyntax inputSyn
   }
 }
 
-
 /**
  * After a single call (or a series of calls) to parse* functions,
  * return a problem object with the obtained units.
@@ -389,11 +388,20 @@ void UIHelper::parseFile(const vstring& inputFile, Options::InputSyntax inputSyn
  */
 Problem* UIHelper::getInputProblem()
 {
-  LoadedPiece topPiece = _loadedPieces.top();
+  LoadedPiece& topPiece = _loadedPieces.top();
   Problem* res = new Problem(topPiece._units.list());
   res->setSMTLIBLogic(topPiece._smtLibLogic);
   env.setMainProblem(res);
   return res;
+}
+
+void UIHelper::listLoadedPieces(ostream& out)
+{
+  Stack<LoadedPiece>::BottomFirstIterator it(_loadedPieces);
+  ALWAYS(it.next()._id.empty()); // skip the first, empty, entry
+  while (it.hasNext()) {
+    out << " " << it.next()._id << endl;
+  }
 }
 
 /**

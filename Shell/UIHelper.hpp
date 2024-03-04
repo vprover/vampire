@@ -58,6 +58,8 @@ public:
 
   static Problem* getInputProblem();
 
+  static void listLoadedPieces(std::ostream& out);
+
   static void outputResult(std::ostream& out);
 
   /**

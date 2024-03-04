@@ -745,6 +745,8 @@ void interactiveMetamode()
       } catch (ParsingRelatedException& exception) {
         explainException(exception);
       }
+    } else if (line.rfind("list",0) == 0) {
+      UIHelper::listLoadedPieces(cout);
     } else {
       cout << "Unreconginzed command! Try 'run [options]', 'load <filename>', 'read <one_line_input>', 'pop [how many levels]', or 'exit'." << endl;
     }
