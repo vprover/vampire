@@ -87,10 +87,6 @@ private:
   static bool s_haveConjecture;
   static bool s_proofHasConjecture;
 
-#if VDEBUG
-  static bool _inputHasBeenRead;
-#endif
-
 };
 
 }
