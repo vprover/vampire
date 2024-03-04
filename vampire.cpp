@@ -577,6 +577,7 @@ void axiomSelectionMode(Problem* problem)
 
 void dispatchByMode(Problem* problem)
 {
+  Timer::instance()->start();
   switch (env.options->mode())
   {
   case Options::Mode::AXIOM_SELECTION:
@@ -816,6 +817,7 @@ int main(int argc, char* argv[])
 
     // CASC_LTB is treated specially, all other modes are happy to receive a Problem* as input and take it from there
     if (opts.mode() == Options::Mode::CASC_LTB) {
+      Timer::instance()->start();
       bool learning = opts.ltbLearning()!=Options::LTBLearning::OFF;
       try {
         if(learning){
