@@ -713,9 +713,8 @@ void interactiveMetamode()
 
   while (true) {
     vstring line;
-    getline(cin, line);
-
-    if (line.rfind("exit",0) == 0) {
+    if (!getline(cin, line) || line.rfind("exit",0) == 0) {
+      cout << "Bye." << endl;
       break;
     } else if (line.rfind("run",0) == 0) {
       Stack<vstring> pieces;
