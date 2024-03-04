@@ -747,6 +747,9 @@ void interactiveMetamode()
       }
     } else if (line.rfind("list",0) == 0) {
       UIHelper::listLoadedPieces(cout);
+    } else if (line.rfind("pop",0) == 0) {
+      UIHelper::popLoadedPiece();
+      prb = UIHelper::getInputProblem();
     } else {
       cout << "Unreconginzed command! Try 'run [options]', 'load <filename>', 'read <one_line_input>', 'pop [how many levels]', or 'exit'." << endl;
     }

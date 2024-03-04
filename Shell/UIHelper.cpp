@@ -404,6 +404,14 @@ void UIHelper::listLoadedPieces(ostream& out)
   }
 }
 
+void UIHelper::popLoadedPiece()
+{
+  if (_loadedPieces.size() > 1) {
+    _loadedPieces.pop();
+    UnitList::destroy(_loadedPieces.top()._units.clipAtLast());
+  }
+}
+
 /**
  * Output result based on the content of
  * @b env.statistics->terminationReason
