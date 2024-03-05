@@ -121,22 +121,21 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           continue;
         }
 
-        // // to deal with polymorphic matching
-        // // Ideally, we would like to extend the substitution
-        // // returned by the index to carry out the sort match.
-        // // However, ForwardDemodulation uses a CodeTree as its
-        // // indexing mechanism, and it is not clear how to extend
-        // // the substitution returned by a code tree.
-        // static RobSubstitution subst;
-        // bool resultTermIsVar = qr.term.isVar();
-        // if(resultTermIsVar){
-        //   TermList querySort = trm.sort();
-        //   TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
-        //   subst.reset();
-        //   if(!subst.match(eqSort, 0, querySort, 1)){
-        //     continue;
-        //   }
-        // }
+        // TODO:
+        // to deal with polymorphic matching
+        // Ideally, we would like to extend the substitution
+        // returned by the index to carry out the sort match.
+        // However, ForwardDemodulation uses a CodeTree as its
+        // indexing mechanism, and it is not clear how to extend
+        // the substitution returned by a code tree.
+        Recycled<RobSubstitution> subst;
+        if(qr.data->term.isVar()){
+          TermList querySort = trm.sort();
+          TermList eqSort = SortHelper::getEqualityArgumentSort(qr.data->literal);
+          if(!subst->match(eqSort, 0, querySort, 1)){
+            continue;
+          }
+        }
 
         TermList rhs=EqHelper::getOtherEqualitySide(qr.data->literal,qr.data->term);
         TermList rhsS;
