@@ -382,14 +382,22 @@ void UIHelper::parseFile(const vstring& inputFile, Options::InputSyntax inputSyn
  * No preprocessing is performed on the units.
  *
  * The Options object should intentionally not be part of this game,
- * as any form of "conditional parsing" compromises the effective use of the correspoding conditioning option
+ * as any form of "conditional parsing" compromises the effective use of the correspoding conditioning options
  * as a part of strategy development and use in portfolios. In other words, if you need getInputProblem or the parse* functions
- * to depend on an option, think twice, and if really needed, make it an explicit argument of your function.
+ * to depend on an option, think twice, and if really needed, make it an explicit argument of that function.
  */
 Problem* UIHelper::getInputProblem()
 {
   LoadedPiece& topPiece = _loadedPieces.top();
   Problem* res = new Problem(topPiece._units.list());
+  
+  if(res->isHigherOrder())
+    USER_ERROR(
+      "This version of Vampire is not yet HOLy.\n\n"
+      "Support for higher-order logic is currently on the ahmed-new-hol branch.\n"
+      "HOL should be coming to mainline 'soon'."
+    );
+
   res->setSMTLIBLogic(topPiece._smtLibLogic);
   env.setMainProblem(res);
   return res;
