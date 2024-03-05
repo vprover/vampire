@@ -356,6 +356,13 @@ Problem* UIHelper::getInputProblem(const Options& opts)
   }
 
   Problem* res = new Problem(units);
+  if(res->isHigherOrder())
+    USER_ERROR(
+      "This version of Vampire is not yet HOLy.\n\n"
+      "Support for higher-order logic is currently on the ahmed-new-hol branch.\n"
+      "HOL should be coming to mainline 'soon'."
+    );
+
   res->setSMTLIBLogic(smtLibLogic);
   env.statistics->phase=Statistics::UNKNOWN_PHASE;
   env.setMainProblem(res);
