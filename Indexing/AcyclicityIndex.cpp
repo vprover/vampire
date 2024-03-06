@@ -410,7 +410,7 @@ namespace Indexing
       ULit ulit = make_pair(lit, c);
       if (!index->find(ulit)) {
         index->insert(ulit, new IndexEntry(lit, c, TypedTermList(*t,sort), getSubterms(fs->term())));
-        _tis->insert(TermLiteralClause(TypedTermList(*t, sort), lit, c));
+        _tis->insert(TermLiteralClause{ TypedTermList(*t, sort), lit, c });
       }
     }
   }
@@ -427,7 +427,7 @@ namespace Indexing
         return;
 
       _sIndexes.get(sort)->remove(ulit);
-      _tis->remove(TermLiteralClause(TypedTermList(*t, sort), lit, c));
+      _tis->remove(TermLiteralClause{ TypedTermList(*t, sort), lit, c });
     }
   }
 

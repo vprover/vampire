@@ -39,7 +39,7 @@ struct SLQueryResultToTermQueryResultFn
 {
   SLQueryResultToTermQueryResultFn(TypedTermList v) : variable(v) {}
   TermLiteralClause operator() (const QueryRes<ResultSubstitutionSP, LiteralClause> slqr) {
-    return TermLiteralClause(slqr.unifier->applyToQuery(variable), slqr.data->literal, slqr.data->clause);
+    return TermLiteralClause{slqr.unifier->applyToQuery(variable), slqr.data->literal, slqr.data->clause};
   }
 
   TypedTermList variable;

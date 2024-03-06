@@ -49,7 +49,7 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
                                               : EqHelper::getSubtermIterator(lit,_ord);
     while (rsti.hasNext()) {
       auto tt = TypedTermList(rsti.next());
-      ((TermSubstitutionTree<TermLiteralClause>*)&*_is)->handle(TermLiteralClause(tt, lit, c), adding);
+      ((TermSubstitutionTree<TermLiteralClause>*)&*_is)->handle(TermLiteralClause{ tt, lit, c }, adding);
     }
   }
 }
@@ -63,7 +63,7 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
     Literal* lit=(*c)[i];
     auto lhsi = EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt);
     while (lhsi.hasNext()) {
-	    _tree->handle(TermLiteralClause(lhsi.next(), lit, c), adding);
+	    _tree->handle(TermLiteralClause{ lhsi.next(), lit, c }, adding);
     }
   }
 }
@@ -99,9 +99,9 @@ void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c
         continue;
       }
       if (adding) {
-        _is->insert(TermLiteralClause(t, lit, c));
+        _is->insert(TermLiteralClause{ t, lit, c });
       } else {
-        _is->remove(TermLiteralClause(t, lit, c));
+        _is->remove(TermLiteralClause{ t, lit, c });
       }
     }
   }
@@ -123,7 +123,7 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
   Literal* lit=(*c)[0];
   auto lhsi = EqHelper::getDemodulationLHSIterator(lit, true, _ord, _opt);
   while (lhsi.hasNext()) {
-    _is->handle(TermLiteralClause(lhsi.next(), lit, c), adding);
+    _is->handle(TermLiteralClause{ lhsi.next(), lit, c }, adding);
   }
 }
 
@@ -146,9 +146,9 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
           if (InductionHelper::isInductionTermFunctor(t->functor()) &&
               InductionHelper::isIntInductionTermListInLiteral(t, lit)) {
             if (adding) {
-              _is->insert(TermLiteralClause(t, lit, c));
+              _is->insert(TermLiteralClause{ t, lit, c });
             } else {
-              _is->remove(TermLiteralClause(t, lit, c));
+              _is->remove(TermLiteralClause{ t, lit, c });
             }
           }
         }
@@ -182,9 +182,9 @@ void StructInductionTermIndex::handleClause(Clause* c, bool adding)
       if (InductionHelper::isInductionTermFunctor(t->functor()) &&
           InductionHelper::isStructInductionTerm(t)) {
         if (adding) {
-          _is->insert(TermLiteralClause(t, lit, c));
+          _is->insert(TermLiteralClause{ t, lit, c });
         } else {
-          _is->remove(TermLiteralClause(t, lit, c));
+          _is->remove(TermLiteralClause{ t, lit, c });
         }
       }
     }
@@ -206,7 +206,7 @@ void SubVarSupSubtermIndex::handleClause(Clause* c, bool adding)
     Literal* lit=(*c)[i];
     auto rvi = EqHelper::getRewritableVarsIterator(&unstableVars, lit,_ord);
     while(rvi.hasNext()){
-      _is->handle(TermLiteralClause(rvi.next(), lit, c), adding);
+      _is->handle(TermLiteralClause{ rvi.next(), lit, c }, adding);
     }
   }
 }
@@ -218,7 +218,7 @@ void SubVarSupLHSIndex::handleClause(Clause* c, bool adding)
     Literal* lit=(*c)[i];
     auto lhsi = EqHelper::getSubVarSupLHSIterator(lit, _ord);
     while (lhsi.hasNext()) {
-      _is->handle(TermLiteralClause(lhsi.next(), lit, c), adding);
+      _is->handle(TermLiteralClause{ lhsi.next(), lit, c }, adding);
     }
   }
 }

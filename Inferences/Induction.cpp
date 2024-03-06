@@ -557,7 +557,7 @@ void InductionClauseIterator::processIntegerComparison(Clause* premise, Literal*
       .flatMap([this](const InductionContext& arg) {
         return vi(ContextSubsetReplacement::instance(arg, _opt));
       });
-    auto b = TermLiteralClause(TypedTermList(bound, IntTraits::sort()), lit, premise);
+    auto b = TermLiteralClause{ TypedTermList(bound, IntTraits::sort()), lit, premise };
     // loop over literals containing the current induction term
     while (it.hasNext()) {
       auto ctx = it.next();

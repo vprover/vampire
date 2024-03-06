@@ -177,7 +177,7 @@ void SubstitutionTreeClauseVariantIndex::insert(Clause* cl)
     _strees[clen] = new LiteralSubstitutionTree();
   }
   Literal* mainLit=getMainLiteral(cl->literals(), clen);
-  _strees[clen]->insert(LiteralClause(mainLit, cl));
+  _strees[clen]->insert(LiteralClause{ mainLit, cl });
 }
 
 Literal* SubstitutionTreeClauseVariantIndex::getMainLiteral(Literal* const * lits, unsigned length)

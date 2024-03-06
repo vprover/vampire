@@ -13,6 +13,7 @@
  *
  */
 
+#include "Indexing/Index.hpp"
 #include "Indexing/ResultSubstitution.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/Recycled.hpp"
@@ -171,13 +172,13 @@ private:
 
 void CodeTreeTIS::_insert(TypedTermList t, Literal* lit, Clause* cls)
 {
-  TermCodeTree::TermInfo* ti=new TermCodeTree::TermInfo(t,lit,cls);
+  auto ti = new TermLiteralClause{ t,lit,cls };
   _ct.insert(ti);
 }
 
 void CodeTreeTIS::_remove(TypedTermList t, Literal* lit, Clause* cls)
 {
-  _ct.remove(TermCodeTree::TermInfo(t,lit,cls));
+  _ct.remove(TermLiteralClause{ t,lit,cls });
 }
 
 VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>> CodeTreeTIS::getGeneralizations(TypedTermList t, bool retrieveSubstitutions)

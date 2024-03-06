@@ -180,7 +180,7 @@ struct LiteralIndexTest {
   void run() {
     DECL_PRED(dummy, {})
     for (auto x : this->insert) {
-      index->insert(LiteralClause(x, unit(dummy())));
+      index->insert(LiteralClause{ x, unit(dummy()) });
     }
 
     checkLiteralMatches(*index, uwa, fixedPointIteration, query, expected);
@@ -876,8 +876,8 @@ TEST_FUN(literal_indexing)
 
   Clause* dummy = unit(p(a));
 
-  index->insert(LiteralClause(p(num(1) + num(1)), dummy));
-  index->insert(LiteralClause(p(1 + a          ), dummy));
+  index->insert(LiteralClause{ p(num(1) + num(1)), dummy });
+  index->insert(LiteralClause{ p(1 + a          ), dummy });
 
   checkLiteralMatches(*index, uwa, fixedPointIteration, p(b + 2), {
 
@@ -893,8 +893,8 @@ TEST_FUN(literal_indexing)
 
       });
 
-  index->insert(LiteralClause(p(b + 2),unit(p(b + 2))));
-  index->insert(LiteralClause(p(2 + b),unit(p(2 + b))));
+  index->insert(LiteralClause{ p(b + 2),unit(p(b + 2)) });
+  index->insert(LiteralClause{ p(2 + b),unit(p(2 + b)) });
 
   checkLiteralMatches(*index, uwa, fixedPointIteration, p(b + 2), {
 

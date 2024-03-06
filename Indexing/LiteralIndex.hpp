@@ -55,8 +55,8 @@ public:
 protected:
   LiteralIndex(LiteralIndexingStructure<Data>* is) : _is(is) {}
 
-  void handleLiteral(Literal* lit, Clause* cl, bool add)
-  { _is->handle(Data(cl, lit), add); }
+  void handle(Data data, bool add)
+  { _is->handle(std::move(data), add); }
 
   std::unique_ptr<LiteralIndexingStructure<Data>> _is;
 };

@@ -42,17 +42,8 @@ using namespace Saturation;
 
 struct LiteralClause 
 {
-  LiteralClause() {}
   Literal* const& key() const
   { return literal; }
-
-  LiteralClause(Literal* lit, Clause* cl)
-    : literal(lit) 
-    , clause(cl)
-  { ASS(cl); ASS(literal) }
-
-  LiteralClause(Clause* cl, Literal* lit)
-    : LiteralClause(lit, cl) {}
 
 private:
   auto asTuple() const
@@ -101,15 +92,9 @@ public:
 
 struct TermLiteralClause 
 {
-  Clause* clause;
-  Literal* literal;
   TypedTermList term;
-
-  TermLiteralClause() : clause(nullptr), literal(nullptr), term() {}
-
-  TermLiteralClause(TypedTermList t, Literal* l, Clause* c)
-    : clause(c), literal(l), term(t) 
-  { ASS(l); ASS(c) }
+  Literal* literal;
+  Clause* clause;
 
   TypedTermList const& key() const { return term; }
 
