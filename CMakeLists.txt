@@ -720,7 +720,6 @@ set(UNIT_TESTS
     UnitTests/tSKIKBO.cpp
     UnitTests/tLPO.cpp
     UnitTests/tRatioKeeper.cpp
-    UnitTests/tTwoVampires.cpp
     UnitTests/tOptionConstraints.cpp
     UnitTests/tDHMultiset.cpp
     UnitTests/tList.cpp

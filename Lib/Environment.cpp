@@ -15,8 +15,6 @@
  */
 
 
-#include "Lib/Sys/SyncPipe.hpp"
-
 #include "Indexing/TermSharing.hpp"
 
 #include "Kernel/Signature.hpp"

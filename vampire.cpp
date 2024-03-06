@@ -43,8 +43,6 @@
 #include "Inferences/TautologyDeletionISE.hpp"
 
 #include "CASC/PortfolioMode.hpp"
-#include "CASC/CLTBMode.hpp"
-#include "CASC/CLTBModeLearning.hpp"
 #include "Shell/CommandLine.hpp"
 #include "Shell/Normalisation.hpp"
 #include "Shell/Options.hpp"
