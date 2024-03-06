@@ -188,11 +188,7 @@ public:
   }
 
   /* a first-in-first-out iterator  */
-  BottomFirstIterator iterFifo() const 
-  { return BottomFirstIterator(*this); }
-
-  /* a first-in-first-out iterator  */
-  BottomFirstIterator iterFifoMut() const 
+  BottomFirstIterator iterFifo() const
   { return BottomFirstIterator(*this); }
 
   /**

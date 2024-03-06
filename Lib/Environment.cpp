@@ -55,7 +55,6 @@ Environment::Environment()
 
   // statistics calls the timer
   timer = Timer::instance();
-  timer->start();
 
   statistics = new Statistics;
   signature = new Signature;

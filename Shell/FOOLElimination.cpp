@@ -426,7 +426,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
   // it becomes the quantified variables of a formula,
   // and leaks with the formula. In other situations, it leaks
   // form this function.
-  VList* freeVars = term->freeVariables();
+  VList* freeVars = freeVariables(term);
   TermStack termVarSorts;
   TermStack termVars;
   TermStack typeVars;
@@ -606,7 +606,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // collect variables B1,...,Bj,X1, ..., Xn
         VList* bodyFreeVars = VList::empty();
-        FormulaVarIterator bfvi(&binding);
+        FormulaVarIterator bfvi(binding);
         while (bfvi.hasNext()) {
           unsigned var = bfvi.next();
           if (!VList::member(var, argumentVars)) {

@@ -28,6 +28,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Theory.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/FormulaVarIterator.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
@@ -82,11 +83,12 @@ UnitList* TPTP::parse(istream& input)
  * Initialise a lexer.
  * @since 27/07/2004 Torrevieja
  */
-TPTP::TPTP(istream& in)
+TPTP::TPTP(istream& in, UnitList::FIFO unitBuffer)
   : _containsConjecture(false),
     _allowedNames(0),
     _in(&in),
     _includeDirectory(""),
+    _units(unitBuffer),
     _isThf(false),
     _containsPolymorphism(false),
     _currentColor(COLOR_TRANSPARENT),
@@ -107,11 +109,20 @@ TPTP::~TPTP()
 {
 } // TPTP::~TPTP
 
+void TPTP::parse()
+{
+  try{
+    parseImpl();
+  } catch (UserErrorException& exception) {
+    throw ParseErrorException(exception.msg(),lineNumber());
+  }
+}
+
 /**
  * Read all tokens one by one 
  * @since 08/04/2011 Manchester
  */
-void TPTP::parse()
+void TPTP::parseImpl()
 {
   // bulding tokens one by one
   _gpos = 0;
@@ -1079,7 +1090,7 @@ TPTP::ParseErrorException::ParseErrorException(vstring message,Token& tok, unsig
  */
 void TPTP::ParseErrorException::cry(ostream& str) const
 {
-  str << "Parsing Error on line " << _ln << "\n";
+  str << "Parsing Error on line " << _ln << ": ";
   str << _message << "\n";
 }
 
@@ -3639,7 +3650,7 @@ void TPTP::endFof()
         unit = new FormulaUnit(f,FormulaTransformation(InferenceRule::ANSWER_LITERAL,unit));
     }
     else {
-      VList* vs = f->freeVariables();
+      VList* vs = freeVariables(f);
       if (VList::isEmpty(vs)) {
         f = new NegatedFormula(f);
       }
@@ -3659,7 +3670,7 @@ void TPTP::endFof()
   default:
     break;
   }
-  _units.push(unit);
+  _units.pushBack(unit);
 } // tag
 
 /*
@@ -3669,7 +3680,7 @@ void TPTP::endFof()
 * that will serve as the name of the predice we introduce:
 *
 * Now instead of returning it directly, we turn it into an equivalence
-* with a fresh predicate symbol (of name nm) and return that one. 
+* with a fresh predicate symbol (of name nm) and return that one.
 * The new symbo is marked not to be eliminated during preprocessing.
 */
 Unit* TPTP::processClaimFormula(Unit* unit, Formula * f, const vstring& nm)
@@ -3681,7 +3692,7 @@ Unit* TPTP::processClaimFormula(Unit* unit, Formula * f, const vstring& nm)
   }
   env.signature->getPredicate(pred)->markLabel();
   Formula* claim = new AtomicFormula(Literal::create(pred, /* polarity */ true, {}));
-  VList* vs = f->freeVariables();
+  VList* vs = freeVariables(f);
   if (VList::isNonEmpty(vs)) {
     //TODO can we use sortOf to get sorts of vs?
     f = new QuantifiedFormula(FORALL,vs,0,f);

@@ -23,6 +23,8 @@
 #include "Lib/VString.hpp"
 #include "Lib/Sys/Semaphore.hpp"
 
+#include "Kernel/Problem.hpp"
+
 #include "Shell/Property.hpp"
 #include "Schedules.hpp"
 
@@ -38,9 +40,9 @@ class PortfolioMode {
     SEM_PRINTED = 1
   };
 
-  PortfolioMode();
+  PortfolioMode(Kernel::Problem* problem);
 public:
-  static bool perform(float slowness);
+  static bool perform(Kernel::Problem* problem);
 
   static void rescaleScheduleLimits(const Schedule& sOld, Schedule& sNew, float limit_multiplier);
   static void addScheduleExtra(const Schedule& sOld, Schedule& sNew, vstring extra);
@@ -60,10 +62,7 @@ private:
 #if VDEBUG
   DHSet<pid_t> childIds;
 #endif
-
   unsigned _numWorkers;
-  float _slowness;
-
   const char * _tmpFileNameForProof;
 
   /**
@@ -73,6 +72,7 @@ private:
    * will be using the problem object.
    */
   ScopedPtr<Problem> _prb;
+  float _slowness;
 
   Semaphore _syncSemaphore; // semaphore for synchronizing proof printing
 };

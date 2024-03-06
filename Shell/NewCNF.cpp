@@ -196,8 +196,8 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
       }
     } else {
       VarSet* fv = freeVars(condition);
-      fv = fv->getUnion(VarSet::getFromIterator(FormulaVarIterator(&thenBranch)));
-      fv = fv->getUnion(VarSet::getFromIterator(FormulaVarIterator(&elseBranch)));
+      fv = fv->getUnion(VarSet::getFromIterator(FormulaVarIterator(thenBranch)));
+      fv = fv->getUnion(VarSet::getFromIterator(FormulaVarIterator(elseBranch)));
 
       VList* vars = VList::singleton(variable);
       VList::pushFromIterator(fv->iter(), vars);
@@ -817,7 +817,7 @@ void NewCNF::processLet(Term::SpecialTermData* sd, TermList contents, Occurrence
 TermList NewCNF::nameLetBinding(unsigned symbol, VList* bindingVariables, TermList binding, TermList contents)
 {
   VList* bindingFreeVars = VList::empty();
-  FormulaVarIterator bfvi(&binding);
+  FormulaVarIterator bfvi(binding);
   while (bfvi.hasNext()) {
     unsigned var = bfvi.next();
     if (!VList::member(var, bindingVariables)) {
@@ -1349,7 +1349,7 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
         List<GenLit>::Iterator glsit(gls);
         while (glsit.hasNext()) {
           GenLit gl = glsit.next();
-          if (formula(gl)->isFreeVariable(variable)) {
+          if (isFreeVariableOf(formula(gl),variable)) {
             occurs = true;
             break;
           }
@@ -1391,7 +1391,7 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
         List<GenLit>::Iterator glsit(gls);
         while (glsit.hasNext()) {
           GenLit gl = glsit.next();
-          if (formula(gl)->isFreeVariable(variable)) {
+          if (isFreeVariableOf(formula(gl),variable)) {
             occurs = true;
             break;
           }

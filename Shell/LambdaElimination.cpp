@@ -32,6 +32,7 @@
 #include "Kernel/ApplicativeHelper.hpp"
 #include "Kernel/SKIKBO.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/FormulaVarIterator.hpp"
 
 #include "Skolem.hpp"
 #include "Options.hpp"
@@ -304,11 +305,13 @@ TermList LambdaElimination::elimLambda(Stack<int>& vars, TermStack& sorts,
 }
 
 
-TermList LambdaElimination::elimLambda(int var, TermList varSort, 
+TermList LambdaElimination::elimLambda(int var, TermList varSort,
                                        TermList body, TermList sort)
 {
-  if(!body.isFreeVariable(var)){
-    return createKTerm(sort, varSort, body);    
+  using Kernel::isFreeVariableOf;
+
+  if(!isFreeVariableOf(body,var)){
+    return createKTerm(sort, varSort, body);
   }
 
   if(body.isVar()){
@@ -320,17 +323,17 @@ TermList LambdaElimination::elimLambda(int var, TermList varSort,
   // Specials should already have been removed via earlier
   // recursive calls
   ASS_REP(!t->isSpecial(), t->toString());
-  
+
   //must be of the form app(s1, s2, arg1, arg2)
   TermList s1 = *t->nthArgument(0);
-  TermList s2 = *t->nthArgument(1);  
+  TermList s2 = *t->nthArgument(1);
   TermList arg1 = *t->nthArgument(2);
   TermList arg2 = *t->nthArgument(3);
   TermList a1sort = AtomicSort::arrowSort(s1, s2);
   TermList a2sort = s1;
 
-  bool freeInArg1 = arg1.isFreeVariable(var);
-  bool freeInArg2 = arg2.isFreeVariable(var);
+  bool freeInArg1 = isFreeVariableOf(arg1,var);
+  bool freeInArg2 = isFreeVariableOf(arg2,var);
 
   if(arg2.isVar() && (arg2.var() == (unsigned)var) && !freeInArg1){
     //This is the case [\x. exp @ x] wehere x is not free in exp.
@@ -341,7 +344,7 @@ TermList LambdaElimination::elimLambda(int var, TermList varSort,
     TermList arg1e = elimLambda(var, varSort, arg1, a1sort);
     TermList s1e = AtomicSort::arrowSort(varSort, a1sort);
     TermList arg2e = elimLambda(var, varSort, arg2, a2sort);
-    TermList s2e = AtomicSort::arrowSort(varSort, a2sort);     
+    TermList s2e = AtomicSort::arrowSort(varSort, a2sort);
     return createSCorBTerm(arg1e, s1e, arg2e, s2e, Signature::S_COMB);
   } else if (freeInArg1) {
     TermList arg1e = elimLambda(var, varSort, arg1, a1sort);
