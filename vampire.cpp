@@ -723,6 +723,9 @@ void interactiveMetamode()
       pid_t process = Multiprocessing::instance()->fork();
       ASS_NEQ(process, -1);
       if(process == 0) {
+        // probably garbage at this point
+        UIHelper::unsetExpecting();
+
         Stack<vstring> pieces;
         StringUtils::splitStr(line.c_str(),' ',pieces);
         StringUtils::dropEmpty(pieces);

@@ -94,6 +94,7 @@ public:
    */
   static bool satisfiableStatusWasAlreadyOutput;
 
+  static void unsetExpecting() { s_expecting_sat = s_expecting_unsat = false; }
   static void setExpectingSat(){ s_expecting_sat=true; }
   static void setExpectingUnsat(){ s_expecting_unsat=true; }
 
