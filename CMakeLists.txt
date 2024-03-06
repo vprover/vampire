@@ -157,8 +157,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Environment.hpp
     Lib/Event.hpp
     Lib/Exception.hpp
-    Lib/fdstream.hpp
-    Lib/FreshnessGuard.hpp
     Lib/Hash.hpp
     Lib/Int.hpp
     Lib/IntNameTable.hpp
@@ -202,10 +200,8 @@ source_group(lib_source_files FILES ${VAMPIRE_LIB_SOURCES})
 set(VAMPIRE_LIB_SYS_SOURCES
     Lib/Sys/Multiprocessing.cpp
     Lib/Sys/Semaphore.cpp
-    Lib/Sys/SyncPipe.cpp
     Lib/Sys/Multiprocessing.hpp
     Lib/Sys/Semaphore.hpp
-    Lib/Sys/SyncPipe.hpp
     )
 source_group(lib_sys_source_files FILES ${VAMPIRE_LIB_SYS_SOURCES})
 
@@ -686,12 +682,8 @@ source_group(smt_comp_source_files FILES ${VAMPIRE_SMTCOMP_SOURCES})
 set(VAMPIRE_CASC_SOURCES
     CASC/PortfolioMode.cpp
     CASC/Schedules.cpp
-    CASC/CLTBMode.cpp
-    CASC/CLTBModeLearning.cpp
     CASC/PortfolioMode.hpp
     CASC/Schedules.hpp
-    CASC/CLTBMode.hpp
-    CASC/CLTBModeLearning.hpp
     )
 source_group(casc_source_files FILES ${VAMPIRE_CASC_SOURCES})
 

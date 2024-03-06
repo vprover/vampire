@@ -48,6 +48,7 @@
 using namespace std;
 using namespace Lib;
 using namespace CASC;
+using Lib::Sys::Multiprocessing;
 
 PortfolioMode::PortfolioMode(Problem* problem) : _prb(problem), _slowness(env.options->slowness()), _syncSemaphore(2) {
   unsigned cores = System::getNumberOfCores();

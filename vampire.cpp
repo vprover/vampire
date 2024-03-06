@@ -58,6 +58,7 @@
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/LaTeX.hpp"
+#include "Shell/SineUtils.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -560,7 +561,7 @@ void axiomSelectionMode(Problem* problem)
   }
 
   env.statistics->phase = Statistics::SINE_SELECTION;
-  SineSelector(*env.options).perform(*prb);
+  Shell::SineSelector(*env.options).perform(*prb);
 
   env.statistics->phase = Statistics::FINALIZATION;
 
@@ -694,10 +695,6 @@ void dispatchByMode(Problem* problem)
   case Options::Mode::TPREPROCESS:
     preprocessMode(problem,true);
     break;
-
-  case Options::Mode::CASC_LTB:
-    // handled elsewhere!
-    ASSERTION_VIOLATION;
   }
 }
 
@@ -720,7 +717,7 @@ void interactiveMetamode()
       break;
     } else if (line.rfind("run",0) == 0) {
       // the whole running happens in a child (don't modify our options, don't crash here when parsing option rubbish, etc.)
-      pid_t process = Multiprocessing::instance()->fork();
+      pid_t process = Lib::Sys::Multiprocessing::instance()->fork();
       ASS_NEQ(process, -1);
       if(process == 0) {
         // probably garbage at this point
@@ -735,10 +732,6 @@ void interactiveMetamode()
         }
         Shell::CommandLine cl(argv.size(), argv.begin());
         cl.interpret(opts);
-        if (opts.mode() == Options::Mode::CASC_LTB) {
-          cout << "casc_ltb incompatible with interactive mode. Switching to vampire mode instead" << endl;
-          opts.setMode(Options::Mode::VAMPIRE);
-        }
         if (!opts.inputFile().empty()) {
           UIHelper::parseFile(opts.inputFile(),opts.inputSyntax(),true);
           prb = UIHelper::getInputProblem();
@@ -826,25 +819,7 @@ int main(int argc, char* argv[])
 
     Lib::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
 
-    // CASC_LTB is treated specially, all other modes are happy to receive a Problem* as input and take it from there
-    if (opts.mode() == Options::Mode::CASC_LTB) {
-      Timer::instance()->start();
-      bool learning = opts.ltbLearning()!=Options::LTBLearning::OFF;
-      try {
-        if(learning){
-          CASC::CLTBModeLearning::perform();
-        }
-        else{
-          CASC::CLTBMode::perform();
-        }
-      } catch (Lib::SystemFailException& ex) {
-        cerr << "Process " << getpid() << " received SystemFailException" << endl;
-        ex.cry(cerr);
-        cerr << " and will now die" << endl;
-      }
-      //we have processed the ltb batch file, so we can return zero
-      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-    } else if (opts.interactive()) {
+    if (opts.interactive()) {
       interactiveMetamode();
     } else {
       if (opts.inputFile().empty()) {
