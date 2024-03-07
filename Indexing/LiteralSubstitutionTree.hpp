@@ -77,12 +77,13 @@ public:
 
 private:
   /** encodes functor and polarity into one number, so it can be used as an index in the array _trees
-   * The inverse functions to this are `idxIsNegative` and `idxToFunctor` 
-   */
+   * The inverse functions to this are `idxIsNegative` and `idxToFunctor` */
   static unsigned toIdx(unsigned f, bool isNegative) { return f * 2 + isNegative; }
-  /** see `toIdx` */
+  /** `toIdx` encodes functor and polarity into one number, so it can be used as an index in the array _trees
+   * The inverse functions to this are `idxIsNegative` and `idxToFunctor` */
   static unsigned idxToFunctor(unsigned idx) { return idx / 2; }
-  /** see `toIdx` */
+  /** `toIdx` encodes functor and polarity into one number, so it can be used as an index in the array _trees
+   * The inverse functions to this are `idxIsNegative` and `idxToFunctor` */
   static bool idxIsNegative(unsigned idx) { return idx % 2; }
 
   template<class Iterator, class... Args>
@@ -154,9 +155,7 @@ private:
     auto findNegative = complementary ? lit->isPositive() : lit->isNegative();
     auto idx = toIdx(lit->functor(), findNegative);
     while (idx >= _trees.size()) {
-      auto f = idxToFunctor(_trees.size());
-      auto isEquality = f == 0;
-      _trees.push(SubstitutionTree(isEquality ? 3 : env.signature->getPredicate(f)->arity()));
+      _trees.push(SubstitutionTree());
     }
     return _trees[idx];
   }

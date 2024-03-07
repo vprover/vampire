@@ -133,12 +133,6 @@ public:
   static constexpr int QRS_QUERY_BANK = 0;
   static constexpr int QRS_RESULT_BANK = 1;
 
-
-  SubstitutionTree(unsigned reservedSpecialVars)
-    : _nextVar(reservedSpecialVars)
-    , _root(nullptr)
-  {}
-
   SubstitutionTree(SubstitutionTree const&) = delete;
   SubstitutionTree& operator=(SubstitutionTree const& other) = delete;
   static void swap(SubstitutionTree& self, SubstitutionTree& other) {
@@ -146,7 +140,9 @@ public:
     std::swap(self._root,    other._root);
   }
   SubstitutionTree& operator=(SubstitutionTree && other) { swap(*this,other); return *this; }
-  SubstitutionTree(SubstitutionTree&& other) : SubstitutionTree(0) { swap(*this, other); }
+  SubstitutionTree(SubstitutionTree&& other) : SubstitutionTree() { swap(*this, other); }
+
+  SubstitutionTree() : _nextVar(0), _root(nullptr) {}
 
   ~SubstitutionTree()
   {
@@ -223,7 +219,6 @@ public:
            : ld1 > ld2 ? Comparison::GREATER
            : Comparison::EQUAL;
     }
-
   };
 
   static bool isGround(Literal* literal) { return literal->ground(); }
@@ -563,7 +558,8 @@ public:
       auto norm = Renaming::normalize(ld.key());
       Recycled<BindingMap> bindings;
       createBindings(norm, /* reversed */ false,
-          [&](auto var, auto term) { 
+          [&](int var, auto term) { 
+            _nextVar = std::max(_nextVar, var + 1);
             bindings->insert(var, term);
           });
       if (doInsert) insert(*bindings, ld);

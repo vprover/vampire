@@ -57,7 +57,7 @@ public:
   using LeafData = LeafData_;
   
   TermSubstitutionTree()
-    : _inner(/* reservedSpecialVars */ 2 /* S0 -> term, S1 -> sort */ )
+    : _inner()
     { }
 
   void handle(LeafData d, bool insert) final override
