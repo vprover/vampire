@@ -26,8 +26,8 @@
 #include "Saturation/ClauseContainer.hpp"
 #include "ResultSubstitution.hpp"
 #include "Kernel/UnificationWithAbstraction.hpp"
-
 #include "Lib/Allocator.hpp"
+
 /**
  * Indices are parametrized by a LeafData, i.e. the bit of data you want to store in the index.
  * Each leaf data must have a key to store at the leave. The Key can currently be either a Literal* or a TypedTermList.
@@ -52,8 +52,8 @@ public:
 
   IMPL_COMPARISONS_FROM_TUPLE(LiteralClause)
 
-  Literal* literal;
-  Clause* clause;
+  Literal* literal = nullptr;
+  Clause* clause = nullptr;
 
   friend std::ostream& operator<<(std::ostream& out, LiteralClause const& self)
   { return out << "{ " << outputPtr(self.clause) << ", " << outputPtr(self.literal) << " }"; }
@@ -93,8 +93,8 @@ public:
 struct TermLiteralClause 
 {
   TypedTermList term;
-  Literal* literal;
-  Clause* clause;
+  Literal* literal = nullptr;
+  Clause* clause = nullptr;
 
   TypedTermList const& key() const { return term; }
 
