@@ -130,7 +130,7 @@ struct BackwardDemodulation::ResultFn
     TermList lhsS=qr.term;
     TermList rhsS;
 
-// #define PRECOMPILED
+#define PRECOMPILED
 #ifndef PRECOMPILED
     if(!qr.unifier->isIdentityOnResultWhenQueryBound()) {
       //When we apply substitution to the rhs, we get a term, that is
@@ -152,7 +152,7 @@ struct BackwardDemodulation::ResultFn
 #endif
 
 #ifdef PRECOMPILED
-    if(!_ordering.isGreater(_eqLit,lhs,qr.unifier.ptr())) {
+    if(!_ordering.isGreater(_eqLit,lhs,qr.unifier.ptr(),false/*result*/)) {
 #else
     if(!_ordering.isGreater(lhsS,rhsS)) {
 #endif

@@ -192,7 +192,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
   #endif
         // if(!preordered && (_preorderedOnly || ordering.compare(trm,rhsS)!=Ordering::GREATER) ) {
 #ifdef PRECOMPILED
-        if(!preordered && (_preorderedOnly || !ordering.isGreater(qr.literal,qr.term,subs.ptr())) ) {
+        if(!preordered && (_preorderedOnly || !ordering.isGreater(qr.literal,qr.term,subs.ptr(),true/*result*/)) ) {
 #else
         if(!preordered && (_preorderedOnly || !ordering.isGreater(trm,rhsS)) ) {
 #endif

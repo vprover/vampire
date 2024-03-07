@@ -115,6 +115,8 @@ public:
    */
   virtual bool isIdentityOnQueryWhenResultBound() {return false;}
 
+  virtual TermList applyToBoundQuery(unsigned v)
+  { return applyToQuery(TermList(v,false)); }
 
   /**
    * Apply substitution to query term that fulfills the condition,

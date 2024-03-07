@@ -47,6 +47,11 @@ public:
   {
   }
 
+  TermList applyToBoundQuery(unsigned var) override
+  {
+    return apply(var);
+  }
+
   TermList applyToBoundQuery(TermList t) override
   {
     return SubstHelper::apply(t, *this);

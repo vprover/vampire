@@ -155,16 +155,36 @@ public:
   void checkAdmissibility(HandleError handle) const;
   void zeroWeightForMaximalFunc();
 
-  struct CompInstruction;
+  enum class InstructionTag {
+    WEIGHT,
+    VAR,
+    COMPARE_VV,
+    COMPARE_VT,
+    COMPARE_TV,
+    COMPARE_TT,
+    SUCCESS,
+  };
+  struct Instruction {
+    explicit Instruction(InstructionTag tag) { _data._tag = tag; }
+    explicit Instruction(Term* t) { _data._ptr = t; }
+    explicit Instruction(unsigned v) { _data._v = v; }
+    explicit Instruction(int w) { _data._w = w; }
+    union {
+      InstructionTag _tag;
+      Term* _ptr;
+      unsigned _v;
+      int _w;
+    } _data;
+  };
 
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
-  bool isGreater(Literal* lit, TermList lhs, Indexing::ResultSubstitution* subst) const override;
+  bool isGreater(Literal* lit, TermList lhs, Indexing::ResultSubstitution* subst, bool result) const override;
   bool isGreater(TermList tl1, TermList tl2) const override;
 protected:
   Result comparePredicates(Literal* l1, Literal* l2) const override;
 
-  Stack<CompInstruction*>* preprocessEquation(Literal* lit, TermList lhs) const;
+  Stack<Instruction>* preprocessEquation(Literal* lit, TermList lhs) const;
 
   class State;
   class StateGreater;
@@ -196,7 +216,7 @@ private:
    */
   mutable State* _state;
   mutable StateGreater* _stateGt;
-  mutable DHMap<std::pair<Literal*,TermList>,Stack<CompInstruction*>> _demodulatorCompInstructions;
+  mutable DHMap<std::pair<Literal*,TermList>,Stack<Instruction>> _demodulatorInstructions;
 };
 
 }
