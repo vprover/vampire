@@ -15,8 +15,6 @@
  */
 
 
-#include "Lib/Sys/SyncPipe.hpp"
-
 #include "Indexing/TermSharing.hpp"
 
 #include "Kernel/Signature.hpp"
@@ -47,8 +45,6 @@ Environment::Environment()
     predicateSineLevels(nullptr),
     colorUsed(false),
     _outputDepth(0),
-    _priorityOutput(0),
-    _pipe(0),
     _problem(0)
 {
   options = new Options;
@@ -133,9 +129,6 @@ void Environment::beginOutput()
   ASS_GE(_outputDepth,0);
 
   _outputDepth++;
-  if(_outputDepth==1 && _pipe) {
-    _pipe->acquireWrite();
-  }
 }
 
 /**
@@ -147,13 +140,7 @@ void Environment::endOutput()
 
   _outputDepth--;
   if(_outputDepth==0) {
-    if(_pipe) {
-      cout.flush();
-      _pipe->releaseWrite();
-    }
-    else {
-      cout.flush();
-    }
+    cout.flush();
   }
 }
 
@@ -174,36 +161,7 @@ bool Environment::haveOutput()
 ostream& Environment::out()
 {
   ASS(_outputDepth);
-
-  if(_priorityOutput) {
-    return *_priorityOutput;
-  }
-  else if(_pipe) {
-    return _pipe->out();
-  }
-  else {
-    return cout;
-  }
-}
-
-/**
- * Direct @b env.out() into @b pipe or to @b cout if @b pipe is zero
- *
- * This function cannot be called when an output is in progress.
- */
-void Environment::setPipeOutput(SyncPipe* pipe)
-{
-  ASS(!haveOutput());
-
-  _pipe=pipe;
-}
-
-void Environment::setPriorityOutput(ostream* stm)
-{
-  ASS(!_priorityOutput || !stm);
-
-  _priorityOutput=stm;
-
+  return cout;
 }
 
 // global environment object, constructed before main() and used everywhere

@@ -337,12 +337,6 @@ public:
     SOFT
   };
 
-  enum class LTBLearning : unsigned int {
-    ON,
-    OFF,
-    BIASED
-  };
-
   enum class IgnoreMissing : unsigned int {
     ON,
     OFF,
@@ -392,7 +386,6 @@ public:
     CASC,
     CASC_HOL,
     CASC_SAT,
-    CASC_LTB,
     CLAUSIFY,
     CONSEQUENCE_ELIMINATION,
     MODEL_CHECK,
@@ -1979,8 +1972,6 @@ public:
   bool keepSbeamGenerators() const { return _fmbKeepSbeamGenerators.actualValue; }
 
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
-  LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
-  vstring ltbDirectory() const { return _ltbDirectory.actualValue; }
   Mode mode() const { return _mode.actualValue; }
   void setMode(Mode mode) { _mode.actualValue = mode; }
   Schedule schedule() const { return _schedule.actualValue; }
@@ -2540,8 +2531,6 @@ private:
   IntOptionValue _lookaheadDelay;
   IntOptionValue _lrsFirstTimeCheck;
   BoolOptionValue _lrsWeightLimitOnly;
-  ChoiceOptionValue<LTBLearning> _ltbLearning;
-  StringOptionValue _ltbDirectory;
 
 #if VAMPIRE_PERF_EXISTS
   UnsignedOptionValue _instructionLimit;

@@ -26,12 +26,6 @@
 
 namespace Lib {
 
-namespace Sys {
-  class SyncPipe;
-}
-
-using namespace Sys;
-
 /**
  * Class Environment.
  * Implements environment used by the top-level run procedures.
@@ -66,12 +60,6 @@ public:
   void endOutput();
   std::ostream& out();
 
-  void setPipeOutput(SyncPipe* pipe);
-  SyncPipe* getOutputPipe() { return _pipe; }
-
-  void setPriorityOutput(std::ostream* stm);
-  std::ostream* getPriorityOutput() { return _priorityOutput; }
-
   bool timeLimitReached() const;
 
   template<int Period>
@@ -104,10 +92,6 @@ public:
 
 private:
   int _outputDepth;
-  /** if non-zero, all output will go here */
-  std::ostream* _priorityOutput;
-  SyncPipe* _pipe;
-
   Kernel::Problem* _problem;
 }; // class Environment
 

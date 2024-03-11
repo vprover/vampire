@@ -74,7 +74,7 @@ private:
   ScopedPtr<Problem> _prb;
   float _slowness;
 
-  Semaphore _syncSemaphore; // semaphore for synchronizing proof printing
+  Sys::Semaphore _syncSemaphore; // semaphore for synchronizing proof printing
 };
 
 }
