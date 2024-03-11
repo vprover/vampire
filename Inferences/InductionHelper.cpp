@@ -255,13 +255,11 @@ bool InductionHelper::isStructInductionTerm(Term* t) {
 
 Term* InductionHelper::getOtherTermFromComparison(Literal* l, Term* t) {
   if (isIntegerComparisonLiteral(l)) {
+    ASS(l->ground());
+    ASS_EQ(l->arity(),2);
     for (unsigned i = 0; i < 2; ++i) {
-      TermList* tp1 = l->nthArgument(i);
-      if (tp1->isTerm() && t == tp1->term()) {
-        TermList* tp2 = l->nthArgument(1-i);
-        if (tp2->isTerm()) {
-          return tp2->term();
-        }
+      if (l->termArg(i).term() == t) {
+        return l->termArg(1-i).term();
       }
     }
   }

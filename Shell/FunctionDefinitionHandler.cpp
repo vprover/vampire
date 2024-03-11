@@ -287,11 +287,12 @@ bool InductionTemplate::checkUsefulness() const
 
 bool InductionTemplate::checkWellFoundedness()
 {
-  // fill in bit vector of induction variables
   vvector<pair<Term*, Term*>> relatedTerms;
   for (auto& b : _branches) {
     for (auto& r : b._recursiveCalls) {
       relatedTerms.push_back(make_pair(b._header, r));
+
+      // fill in bit vector of induction variables
       for (unsigned i = 0; i < _arity; i++) {
         if (env.signature->isTermAlgebraSort(_type->arg(i))) {
           _indPos[i] = _indPos[i] || (*b._header->nthArgument(i) != *r->nthArgument(i));
@@ -361,6 +362,10 @@ vstring InductionTemplate::toString() const
   return str.str();
 }
 
+/**
+ * Try to find a lexicographic order between the arguments
+ * by exhaustively trying all combinations.
+ */
 bool checkWellFoundednessHelper(const vvector<pair<Term*,Term*>>& relatedTerms,
   const vset<unsigned>& indices, const vset<unsigned>& positions)
 {
@@ -422,6 +427,10 @@ bool InductionPreprocessor::checkWellFoundedness(const vvector<pair<Term*,Term*>
   return checkWellFoundednessHelper(relatedTerms, indices, positions);
 }
 
+/**
+ * Check well-definedness for term algebra arguments and
+ * in the process generate all missing cases.
+ */
 bool InductionPreprocessor::checkWellDefinedness(const vvector<Term*>& cases, vvector<vvector<TermList>>& missingCases)
 {
   if (cases.empty()) {

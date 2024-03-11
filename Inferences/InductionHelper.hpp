@@ -54,7 +54,7 @@ public:
   static bool isStructInductionTerm(Term* t);
   static bool isValidBound(Term* t, Clause* c, const TermQueryResult& b) {
     ASS(b.term.isTerm());
-    return (b.clause != c && (t != b.term.term()));
+    return ((b.clause != c) && (t != b.term.term()));
   }
   static Term* getOtherTermFromComparison(Literal* l, Term* t);
 

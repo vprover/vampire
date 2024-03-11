@@ -22,6 +22,13 @@ namespace Inferences {
 using namespace Kernel;
 using namespace Shell;
 
+/**
+ * Inference implementing function definition rewriting.
+ * Function definitions are assumed to be available when saturation begins,
+ * so there is only a forward version of the inference. Moreover, we use
+ * a forward simplification variant to eagerly perform rewritings which
+ * are also demodulations.
+ */
 class FunctionDefinitionRewriting
   : public GeneratingInferenceEngine
   , public ForwardSimplificationEngine
@@ -38,10 +45,6 @@ private:
       Clause *eqClause, Literal *eqLiteral, TermList eqLHS,
       ResultSubstitutionSP subst, bool toplevelCheck,
       bool& isEqTautology, const Inference& inf, SaturationAlgorithm* salg = nullptr);
-
-  struct ForwardResultFn;
-  struct RewriteableSubtermsFn;
-  struct GeneralizationsFn;
 };
 
 }; // namespace Inferences

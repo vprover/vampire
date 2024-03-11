@@ -48,6 +48,12 @@ using namespace Saturation;
 using namespace Shell;
 using namespace Lib;
 
+/**
+ * This class is similar to @b NonVariableNonTypeIterator and is
+ * used to iterate over terms in active positions inside a literal.
+ * The active positions are given by a @b FunctionDefinitionHandler
+ * instance.
+ */
 class ActiveOccurrenceIterator
   : public IteratorCore<Term*>
 {
@@ -67,17 +73,33 @@ private:
   FunctionDefinitionHandler* _fnDefHandler;
 };
 
+/**
+ * Hash used to make hashing over shared terms deterministic.
+ */
 struct SharedTermHash {
   static bool equals(Term* t1, Term* t2) { return t1==t2; }
   static unsigned hash(Term* t) { return t->getId(); }
 };
 
+/**
+ * Hash used to make hashing over clauses deterministic.
+ */
 struct StlClauseHash {
   std::size_t operator()(Clause* c) const { return std::hash<unsigned>()(c->number()); }
 };
 
+/**
+ * This function replaces the induction terms given in @b ts
+ * with static placeholders, so that already generated induction
+ * formulas can be easily detected. We allow multiple induction terms,
+ * so we have to index the placeholders as well with @b i.
+ */
 Term* getPlaceholderForTerm(const vvector<Term*>& ts, unsigned i);
 
+/**
+ * Term transformer class that replaces
+ * terms according to the mapping @b _m.
+ */
 class TermReplacement : public TermTransformer {
 public:
   TermReplacement(const vmap<Term*, TermList>& m) : _m(m) {}
@@ -86,6 +108,10 @@ protected:
   vmap<Term*,TermList> _m;
 };
 
+/**
+ * Same as @b TermReplacement, except we replace non-sort Skolems
+ * with variables, used for strengthening induction hypotheses.
+ */
 class SkolemSquashingTermReplacement : public TermReplacement {
 public:
   SkolemSquashingTermReplacement(const vmap<Term*, TermList>& m, unsigned& var)
@@ -93,9 +119,15 @@ public:
   TermList transformSubterm(TermList trm) override;
   DHMap<Term*, unsigned, SharedTermHash> _tv; // maps terms to their variable replacement
 private:
-  unsigned& _v;               // fresh variable counter supported by caller
+  unsigned& _v; // fresh variable counter supported by caller
 };
 
+/**
+ * Class representing an induction. This includes:
+ * - induction terms in @b _indTerms,
+ * - selected literals from clauses in @b _cls,
+ *   which are inducted upon.
+ */
 struct InductionContext {
   explicit InductionContext(vvector<Term*>&& ts)
     : _indTerms(ts) {}
@@ -113,6 +145,9 @@ struct InductionContext {
     node->second.push(lit);
   }
 
+  // These two functions should be only called on objects where
+  // all induction term occurrences actually inducted upon are
+  // replaced with placeholders (e.g. with ContextReplacement).
   Formula* getFormula(const vvector<TermList>& r, bool opposite, Substitution* subst = nullptr) const;
   Formula* getFormulaWithSquashedSkolems(const vvector<TermList>& r, bool opposite, unsigned& var,
     VList** varList = nullptr, Substitution* subst = nullptr) const;
@@ -141,9 +176,20 @@ struct InductionContext {
   // clause as well.
   vunordered_map<Clause*, LiteralStack, StlClauseHash> _cls;
 private:
+  /**
+   * Creates a formula which corresponds to the conjunction of disjunction
+   * of selected literals for each clause in @b _cls, where we apply the term
+   * replacement @b tr on each literal. Opposite means we get the negated
+   * formula, i.e. each literal is negated and conjunction and disjunction
+   * are switched.
+   */
   Formula* getFormula(TermReplacement& tr, bool opposite) const;
 };
 
+/**
+ * Gives @b InductionContext instances with
+ * induction terms replaced with placeholders.
+ */
 class ContextReplacement
   : public TermReplacement, public IteratorCore<InductionContext> {
 public:
@@ -159,6 +205,10 @@ protected:
   bool _used;
 };
 
+/**
+ * Same as @b ContextReplacement but replaces only active occurrences
+ * of induction terms, given by a @b FunctionDefinitionHandler instance.
+ */
 class ActiveOccurrenceContextReplacement
   : public ContextReplacement {
 public:
@@ -176,6 +226,11 @@ private:
   bool _hasNonActive;
 };
 
+/**
+ * Same as @b ContextReplacement but iterates over all non-empty
+ * subsets of occurrences of the induction terms and replaces
+ * only the occurrences in these subsets with placeholder terms.
+ */
 class ContextSubsetReplacement
   : public ContextReplacement {
 public:
@@ -201,6 +256,9 @@ private:
   bool _done;
 };
 
+/**
+ * The induction inference.
+ */
 class Induction
 : public GeneratingInferenceEngine
 {
@@ -227,6 +285,10 @@ private:
   InductionFormulaIndex _recFormulaIndex;
 };
 
+/**
+ * Helper class that generates all induction clauses for
+ * a premise and serves as an iterator for these clauses.
+ */
 class InductionClauseIterator
 {
 public:
@@ -265,8 +327,25 @@ private:
   void performStructInductionThree(const InductionContext& context, InductionFormulaIndex::Entry* e);
   void performRecursionInduction(const InductionContext& context, const InductionTemplate* templ, const vvector<Term*>& typeArgs, InductionFormulaIndex::Entry* e);
 
+  /**
+   * Whether an induction formula is applicable (or has already been generated)
+   * is determined by its conclusion part, which is resolved against the literals
+   * and bounds we induct on. From this point of view, an integer induction formula
+   * can have one lower bound and/or one upper bound. This function wraps this
+   * information by adding the bounds and querying the index with the resulting context.
+   *
+   * TODO: default bounds are now stored as special cases with no bounds (this makes
+   * the resolve part easier) but this means some default bound induction formulas
+   * are duplicates of normal formulas.
+   */
   bool notDoneInt(InductionContext context, Literal* bound1, Literal* bound2, InductionFormulaIndex::Entry*& e);
 
+  /**
+   * If the integer induction literal is a comparison, and the induction term is
+   * one of its arguments, the other argument should not be allowed as a bound
+   * (such inductions are useless and can lead to redundant literals in the
+   * induction axiom).
+   */
   bool isValidBound(const InductionContext& context, const TermQueryResult& bound);
 
   Stack<Clause*> _clauses;

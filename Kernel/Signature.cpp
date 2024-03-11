@@ -702,7 +702,7 @@ unsigned Signature::getFnDef(unsigned fn)
   auto type = getFunction(fn)->fnType();
   auto sort = type->result();
   bool added = false;
-  auto name = "$def_"+sort.toString();
+  auto name = "$def_"+getFunction(fn)->name();
   unsigned p = addPredicate(name, 2, added);
   if (added) {
     ALWAYS(_fnDefPreds.insert(p));

@@ -28,9 +28,9 @@ using namespace Kernel;
 using namespace Lib;
 
 /**
- * Corresponds to the branches of a function definition.
- * Stores the branches and the active positions
- * (i.e. the changing arguments) of the function.
+ * Corresponds to the branches of a function definition,
+ * including recursive calls and the active argument positions
+ * which are not variables in some branch.
  */
 struct InductionTemplate {
   USE_ALLOCATOR(InductionTemplate);

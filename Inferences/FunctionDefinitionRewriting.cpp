@@ -37,57 +37,25 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Saturation;
 
-struct FunctionDefinitionRewriting::GeneralizationsFn {
-  GeneralizationsFn(FunctionDefinitionHandler *index) : _index(index) {}
-  VirtualIterator<std::pair<std::pair<Literal*, Term*>, TermQueryResult>> operator()(std::pair<Literal*, Term*> arg)
-  {
-    return pvi(pushPairIntoRightIterator(arg, _index->getGeneralizations(arg.second)));
-  }
-
-private:
-  FunctionDefinitionHandler *_index;
-};
-
-struct FunctionDefinitionRewriting::RewriteableSubtermsFn {
-  VirtualIterator<std::pair<Literal*, Term*>> operator()(Literal *lit)
-  {
-    NonVariableNonTypeIterator nvi(lit);
-    return pvi(pushPairIntoRightIterator(lit,
-                                         getUniquePersistentIteratorFromPtr(&nvi)));
-  }
-};
-
-struct FunctionDefinitionRewriting::ForwardResultFn {
-  ForwardResultFn(Clause *cl) : _cl(cl) {}
-
-  Clause* operator()(std::pair<std::pair<Literal*, Term*>, TermQueryResult> arg)
-  {
-    TermQueryResult &qr = arg.second;
-    bool temp;
-    return FunctionDefinitionRewriting::perform(_cl, arg.first.first, TermList(arg.first.second), qr.clause,
-                                   qr.literal, qr.term, qr.unifier, false, temp,
-                                   Inference(GeneratingInference2(InferenceRule::FUNCTION_DEFINITION_REWRITING, _cl, qr.clause)));
-  }
-private:
-  Clause *_cl;
-};
-
-ClauseIterator FunctionDefinitionRewriting::generateClauses(Clause *premise)
+Kernel::ClauseIterator FunctionDefinitionRewriting::generateClauses(Clause *premise)
 {
-  auto itf1 = premise->iterLits();
-
-  // Get an iterator of pairs of selected literals and rewritable subterms
-  // of those literals. Here all subterms of a literal are rewritable.
-  auto itf2 = getMapAndFlattenIterator(itf1, RewriteableSubtermsFn());
-
-  // Get clauses with a function definition literal whose lhs is a generalization of the rewritable subterm,
-  // returns a pair with the original pair and the generalization result (includes substitution)
-  auto itf3 = getMapAndFlattenIterator(itf2, GeneralizationsFn(GeneratingInferenceEngine::_salg->getFunctionDefinitionHandler()));
-
-  //Perform forward rewriting
-  auto it = pvi(getMappingIterator(itf3, ForwardResultFn(premise)));
-  // Remove null elements
-  return pvi(getFilteredIterator(it, NonzeroFn()));
+  return pvi(premise->iterLits()
+    .flatMap([](Literal *lit) {
+      NonVariableNonTypeIterator nvi(lit);
+      return pvi(pushPairIntoRightIterator(lit, getUniquePersistentIteratorFromPtr(&nvi)));
+    })
+    .flatMap([this](std::pair<Literal*, Term*> arg){
+      return pvi(pushPairIntoRightIterator(arg,
+        GeneratingInferenceEngine::_salg->getFunctionDefinitionHandler()->getGeneralizations(arg.second)));
+    })
+    .map([premise](std::pair<std::pair<Literal*, Term*>, TermQueryResult> arg) {
+      TermQueryResult &qr = arg.second;
+      bool temp;
+      return (Clause*)FunctionDefinitionRewriting::perform(premise, arg.first.first, TermList(arg.first.second), qr.clause,
+        qr.literal, qr.term, qr.unifier, false, temp,
+        Inference(GeneratingInference2(InferenceRule::FUNCTION_DEFINITION_REWRITING, premise, qr.clause)));
+    })
+    .filter(NonzeroFn()));
 }
 
 bool FunctionDefinitionRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)

@@ -52,6 +52,8 @@ Term* ActiveOccurrenceIterator::next()
   InductionTemplate* templ = _fnDefHandler ?
     _fnDefHandler->getInductionTemplate(t) : nullptr;
   if (templ) {
+    // if there is an induction template,
+    // only induct on the active occurrences
     auto& actPos = templ->inductionPositions();
     for (unsigned i = t->numTypeArguments(); i < t->arity(); i++) {
       if (actPos[i]) {
@@ -83,6 +85,8 @@ Term* getPlaceholderForTerm(const vvector<Term*>& ts, unsigned i)
 
 TermList TermReplacement::transformSubterm(TermList trm)
 {
+  // if we reach any of the mapped terms,
+  // replace it with the term it is mapped to
   if(trm.isTerm() && _m.count(trm.term())){
     return _m.at(trm.term());
   }
@@ -130,6 +134,8 @@ Formula* InductionContext::getFormula(const vvector<TermList>& r, bool opposite,
 {
   ASS_EQ(_indTerms.size(), r.size());
 
+  // Assuming this object is the result of a ContextReplacement (or similar iterator)
+  // we can replace the ith placeholder with the ith term in r.
   vmap<Term*,TermList> replacementMap;
   for (unsigned i = 0; i < _indTerms.size(); i++) {
     auto ph = getPlaceholderForTerm(_indTerms,i);
@@ -181,7 +187,8 @@ Formula* InductionContext::getFormulaWithSquashedSkolems(const vvector<TermList>
   return res;
 }
 
-vmap<Term*,TermList> getContextReplacementMap(const InductionContext& context, bool inverse = false) {
+vmap<Term*,TermList> getContextReplacementMap(const InductionContext& context, bool inverse = false)
+{
   vmap<Term*,TermList> m;
   for (unsigned i = 0; i < context._indTerms.size(); i++) {
     auto ph = getPlaceholderForTerm(context._indTerms,i);
@@ -280,9 +287,15 @@ VirtualIterator<InductionContext> contextReplacementInstance(const InductionCont
   auto ctx = context;
   auto res = VirtualIterator<InductionContext>::getEmpty();
   if (opt.inductionOnActiveOccurrences()) {
+    // In case of using active occurrences, we replace the input
+    // context with one where the active occurrences are already
+    // replaced, so that we only iterate on the rest of them below.
     ActiveOccurrenceContextReplacement aor(context, fnDefHandler);
     ASS(aor.hasNext());
     auto ao_ctx = aor.next();
+    // If there are no active occurrences, we get an empty context
+    // and we simply fall back to inducting on all occurrences.
+    //
     // TODO do this filtering inside ActiveOccurrenceContextReplacement
     if (!ao_ctx._cls.empty()) {
       ctx = ao_ctx;
@@ -317,6 +330,7 @@ ContextSubsetReplacement::ContextSubsetReplacement(const InductionContext& conte
       _iteration[i] = _maxIterations[i]-1;
     }
   }
+  // find first iteration that shouldn't be skipped
   while (!_done && shouldSkipIteration()) {
     stepIteration();
   }
@@ -343,22 +357,18 @@ bool ContextSubsetReplacement::hasNext()
     return !_done;
   }
   _ready = true;
-  // Increment _iteration, since it either is 0, or was already used.
-  // _iteration++;
-  // unsigned setBits = BitUtils::oneBits(_iteration);
-  // // Skip this iteration if not all bits are set, but more than maxSubset are set.
-  // while (hasNextInner() &&
-  //        ((_maxSubsetSize > 0) && (setBits < _occurrences) && (setBits > _maxSubsetSize))) {
-  //   _iteration++;
-  //   setBits = BitUtils::oneBits(_iteration);
-  stepIteration();
-  while (!_done && shouldSkipIteration()) {
+  // we step forward until we find an
+  // iteration which shouldn't be skipped
+  // or we run out of iterations
+  do {
     stepIteration();
-  }
+  } while (!_done && shouldSkipIteration());
+
   return !_done;
 }
 
-InductionContext ContextSubsetReplacement::next() {
+InductionContext ContextSubsetReplacement::next()
+{
   ASS(_ready);
   InductionContext context(_context._indTerms);
   for (unsigned i = 0; i < _context._indTerms.size(); i++) {
@@ -386,6 +396,8 @@ InductionContext ContextSubsetReplacement::next() {
 
 bool ContextSubsetReplacement::shouldSkipIteration() const
 {
+  // We skip an iteration if too many (but not all)
+  // occurrences of an induction term are used.
   const bool subsetSizeCheck = _maxSubsetSize > 0;
   for (unsigned i = 0; i < _iteration.size(); i++) {
     unsigned setBits = __builtin_popcount(_iteration[i]);
@@ -492,7 +504,7 @@ struct InductionContextFn
       }
       auto indTerm = arg.first[0];
       // check for complex term and non-equality
-      if (_lit->isEquality()/*  || !indTerm->arity() */) {
+      if (_lit->isEquality() || !indTerm->arity()) {
         return res;
       }
       while (arg.second.hasNext()) {
@@ -578,7 +590,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       if (templ) {
         vvector<Term*> indTerms;
         if (templ->matchesTerm(lit, indTerms)) {
-          vvector<Term*> typeArgs; //(lit->numTypeArguments());
+          vvector<Term*> typeArgs;
           for (unsigned i = 0; i < lit->numTypeArguments(); i++) {
             typeArgs.push_back(lit->nthArgument(i)->term());
           }
@@ -619,7 +631,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         if (templ) {
           vvector<Term*> indTerms;
           if (templ->matchesTerm(t, indTerms)) {
-            vvector<Term*> typeArgs; //(t->numTypeArguments());
+            vvector<Term*> typeArgs;
             for (unsigned i = 0; i < t->numTypeArguments(); i++) {
               typeArgs.push_back(t->nthArgument(i)->term());
             }
@@ -1571,15 +1583,6 @@ void InductionClauseIterator::performRecursionInduction(const InductionContext& 
   e->add(std::move(cls), std::move(subst));
 }
 
-// Whether an induction formula is applicable (or has already been generated)
-// is determined by its conclusion part, which is resolved against the literals
-// and bounds we induct on. From this point of view, an integer induction formula
-// can have one lower bound and/or one upper bound. This function wraps this
-// information by adding the bounds and querying the index with the resulting context.
-//
-// TODO: default bounds are now stored as special cases with no bounds (this makes
-// the resolve part easier) but this means some default bound induction formulas
-// are duplicates of normal formulas.
 bool InductionClauseIterator::notDoneInt(InductionContext context, Literal* bound1, Literal* bound2, InductionFormulaIndex::Entry*& e)
 {
   ASS_EQ(context._indTerms.size(), 1);
@@ -1599,10 +1602,6 @@ bool InductionClauseIterator::notDoneInt(InductionContext context, Literal* boun
   return _formulaIndex.findOrInsert(context, e, b1, b2);
 }
 
-// If the integer induction literal is a comparison, and the induction term is
-// one of its arguments, the other argument should not be allowed as a bound
-// (such inductions are useless and can lead to redundant literals in the
-// induction axiom).
 bool InductionClauseIterator::isValidBound(const InductionContext& context, const TermQueryResult& bound)
 {
   ASS_EQ(context._indTerms.size(), 1);

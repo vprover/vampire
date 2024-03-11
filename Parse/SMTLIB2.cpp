@@ -772,7 +772,7 @@ SMTLIB2::DeclaredSymbol SMTLIB2::declareFunctionOrPredicate(const vstring& name,
 
 //  ----------------------------------------------------------------------
 
-bool shouldCreateFunctionDefinition(unsigned fn)
+bool shouldCreateFunctionDefinition()
 {
   return env.options->functionDefinitionRewriting() || env.options->inductionOnActiveOccurrences() ||
     env.options->structInduction()==Options::StructuralInductionKind::RECURSION;
@@ -844,7 +844,7 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
   Literal* lit;
   if (isTrueFun) {
     TermList lhs(Term::create(symbIdx,args.size(),args.begin()));
-    if (shouldCreateFunctionDefinition(symbIdx)) {
+    if (shouldCreateFunctionDefinition()) {
       auto p = env.signature->getFnDef(symbIdx);
       auto defArgs = typeArgs;
       defArgs.push(lhs);
@@ -854,7 +854,7 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
       lit = Literal::createEquality(true,lhs,rhs,rangeSort);
     }
   } else {
-    if (shouldCreateFunctionDefinition(symbIdx)) {
+    if (shouldCreateFunctionDefinition()) {
       auto p = env.signature->getBoolDef(symbIdx);
       lit = Literal::create(p,args.size(),true,false,args.begin());
     } else {
@@ -949,7 +949,7 @@ void SMTLIB2::readDefineFunsRec(LExprList* declsExpr, LExprList* defsExpr)
     Literal* lit;
     if (isTrueFun) {
       TermList lhs(Term::create(symbIdx,decl.args.size(),decl.args.begin()));
-      if (shouldCreateFunctionDefinition(symbIdx)) {
+      if (shouldCreateFunctionDefinition()) {
         auto p = env.signature->getFnDef(symbIdx);
         TermStack defArgs; // no type arguments (yet) in this case
         defArgs.push(lhs);
@@ -959,7 +959,7 @@ void SMTLIB2::readDefineFunsRec(LExprList* declsExpr, LExprList* defsExpr)
         lit = Literal::createEquality(true,lhs,rhs,decl.rangeSort);
       }
     } else {
-      if (shouldCreateFunctionDefinition(symbIdx)) {
+      if (shouldCreateFunctionDefinition()) {
         auto p = env.signature->getBoolDef(symbIdx);
         lit = Literal::create(p,decl.args.size(),true,false,decl.args.begin());
       } else {

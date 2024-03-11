@@ -435,7 +435,16 @@ class Signature
   unsigned getApp();
   unsigned getDiff();
   unsigned getChoice();
+  /**
+   * For a function f with result type t, this introduces a predicate
+   * $def_f with the type t x t. This is used to track expressions of
+   * the form f(s) = s' as $def_f(f(s),s') through preprocessing.
+   */
   unsigned getFnDef(unsigned fn);
+  /**
+   * For a predicate p, this introduces a predicate $def_p with the same signature,
+   * which is used to track a predicate definition "headers" through preprocessing.
+   */
   unsigned getBoolDef(unsigned fn);
 
   // Interpreted symbol declarations

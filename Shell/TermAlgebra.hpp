@@ -157,6 +157,11 @@ namespace Shell {
     unsigned getSubtermPredicate();
     void getTypeSub(Kernel::Term* t, Kernel::Substitution& subst);
 
+    /**
+     * Given a set of (possibly variable) term algebra terms in @b availables
+     * and a term algebra term @b e, compute a new set of terms in @b availables
+     * which covers the same term algebra terms, except for terms covered by @b e.
+     */
     static void excludeTermFromAvailables(Kernel::TermStack& availables, Kernel::TermList e, unsigned& var);
 
     friend std::ostream& operator<<(std::ostream& out, TermAlgebra const& self);
