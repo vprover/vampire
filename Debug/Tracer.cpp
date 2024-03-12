@@ -78,6 +78,8 @@ void Debug::Tracer::printStack(std::ostream& str) {
   str << "no symbol lookup support for this platform yet" << std::endl;
 #endif
   }
+  else
+    str << "(use '--traceback on' to get a human-readable stack trace)" << std::endl;
 
 #else
   // TODO backtrace support for other platforms

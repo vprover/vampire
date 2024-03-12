@@ -35,10 +35,10 @@ class Lexer;
  * Class LexerException. Implements lexer exceptions.
  * @since 14/07/2004 Turku
  */
-class LexerException 
-  : public Exception
+class LexerException
+  : public ParsingRelatedException
 {
- public:                                
+ public:
   LexerException(vstring message,const Lexer&);
   void cry(std::ostream&) const;
   ~LexerException() {}
@@ -51,7 +51,7 @@ class LexerException
  * Class Lexer, implements a generic lexer.
  * @since 27/07/2004 Torrevieja
  */
-class Lexer 
+class Lexer
 {
 public:
   Lexer(std::istream& in);

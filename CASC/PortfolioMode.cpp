@@ -48,8 +48,9 @@
 using namespace std;
 using namespace Lib;
 using namespace CASC;
+using Lib::Sys::Multiprocessing;
 
-PortfolioMode::PortfolioMode() : _slowness(1.0), _syncSemaphore(2) {
+PortfolioMode::PortfolioMode(Problem* problem) : _prb(problem), _slowness(env.options->slowness()), _syncSemaphore(2) {
   unsigned cores = System::getNumberOfCores();
   cores = cores < 1 ? 1 : cores;
   _numWorkers = min(cores, env.options->multicore());
@@ -80,10 +81,9 @@ PortfolioMode::PortfolioMode() : _slowness(1.0), _syncSemaphore(2) {
  * The function that does all the job: reads the input files and runs
  * Vampires to solve problems.
  */
-bool PortfolioMode::perform(float slowness)
+bool PortfolioMode::perform(Problem* problem)
 {
-  PortfolioMode pm;
-  pm._slowness = slowness;
+  PortfolioMode pm(problem);
 
   bool resValue;
   try {
@@ -128,8 +128,6 @@ bool PortfolioMode::perform(float slowness)
 
 bool PortfolioMode::searchForProof()
 {
-  _prb = UIHelper::getInputProblem(*env.options);
-
   /* CAREFUL: Make sure that the order
    * 1) getProperty, 2) normalise, 3) TheoryFinder::search
    * is the same as in profileMode (vampire.cpp)

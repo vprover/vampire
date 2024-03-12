@@ -456,6 +456,7 @@ void Statistics::print(ostream& out)
   Timer::printMSString(out,env.timer->elapsedMilliseconds());
   out << endl;
   
+  Timer::updateInstructionCount();
   unsigned instr = Timer::elapsedMegaInstructions();
   if (instr) {
     addCommentSignForSZS(out);

@@ -388,22 +388,21 @@ FormulaList* NNF::ennf (FormulaList* fs, bool polarity)
     return fs;
   }
 
-  FormulaList* result = FormulaList::empty();
-  FormulaList::FIFO stack(result);
+  FormulaList::FIFO result;
   bool changed = false;
   FormulaList::Iterator it(fs);
   while (it.hasNext()) {
     Formula* f = it.next();
     Formula* g = ennf(f,polarity);
-    stack.pushBack(g);
+    result.pushBack(g);
     if (f != g) {
       changed = true;
     }
   }
   if (changed) {
-    return result;
+    return result.list();
   }
-  FormulaList::destroy(result);
+  FormulaList::destroy(result.list());
   return fs;
 } // NNF::ennf(FormulaList...)
 
@@ -535,22 +534,21 @@ FormulaList* NNF::nnf (FormulaList* fs, bool polarity)
     return fs;
   }
 
-  FormulaList* result = FormulaList::empty();
-  FormulaList::FIFO stack(result);
+  FormulaList::FIFO result;
   bool changed = false;
   FormulaList::Iterator it(fs);
   while (it.hasNext()) {
     Formula* f = it.next();
     Formula* g = nnf(f,polarity);
-    stack.pushBack(g);
+    result.pushBack(g);
     if (f != g) {
       changed = true;
     }
   }
   if (changed) {
-    return result;
+    return result.list();
   }
-  FormulaList::destroy(result);
+  FormulaList::destroy(result.list());
   return fs;
 } // NNF::nnf(FormulaList...)
 
