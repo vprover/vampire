@@ -6,7 +6,7 @@
 # new rule: no portfolio modes! hard to debug if they fail
 
 # where is Vampire? passed by CI
-vampire=`pwd`/$1
+vampire="`pwd`/$1 --traceback on"
 
 # check the output is exactly what we expect: quite fragile by nature, be careful
 check_exact_output() {

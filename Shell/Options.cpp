@@ -105,12 +105,16 @@ void Options::init()
   _parsingDoesNotCount.tag(OptionTag::DEVELOPMENT);
 #endif
 
+    _interactive = BoolOptionValue("interactive","",false);
+    _interactive.description = "An experimental interactive mode (commands to use: load <file to parse>, read <line to parse>, pop (to drop the last added set of formulas), run [options to supply], exit).";
+    _interactive.setExperimental();
+    _lookup.insert(&_interactive);
+
     _mode = ChoiceOptionValue<Mode>("mode","",Mode::VAMPIRE,
                                     {"axiom_selection",
                                         "casc",
                                         "casc_hol",
                                         "casc_sat",
-                                        "casc_ltb",
                                         "clausify",
                                         "consequence_elimination",
                                         "model_check",
@@ -193,16 +197,6 @@ void Options::init()
     _randomizSeedForPortfolioWorkers.description = "In portfolio mode, let each worker process start from its own independent random seed.";
     _lookup.insert(&_randomizSeedForPortfolioWorkers);
     _randomizSeedForPortfolioWorkers.onlyUsefulWith(UsingPortfolioTechnology());
-
-    _ltbLearning = ChoiceOptionValue<LTBLearning>("ltb_learning","ltbl",LTBLearning::OFF,{"on","off","biased"});
-    _ltbLearning.description = "Perform learning in LTB mode";
-    _lookup.insert(&_ltbLearning);
-    _ltbLearning.setExperimental();
-
-    _ltbDirectory = StringOptionValue("ltb_directory","","");
-    _ltbDirectory.description = "Directory for output from LTB mode. Default is to put output next to problem.";
-    _lookup.insert(&_ltbDirectory);
-    _ltbDirectory.setExperimental();
 
     _decode = DecodeOptionValue("decode","",this);
     _decode.description="Decodes an encoded strategy. Can be used to replay a strategy. To make Vampire output an encoded version of the strategy use the encode option.";
@@ -384,11 +378,7 @@ void Options::init()
     _inputFile.tag(OptionTag::INPUT);
     _inputFile.setExperimental();
 
-    _inputSyntax= ChoiceOptionValue<InputSyntax>("input_syntax","",
-                                                 //in case we compile vampire with bpa, then the default input syntax is smtlib
-                                                 InputSyntax::AUTO,
-                                                 //{"simplify","smtlib","smtlib2","tptp"});//,"xhuman","xmps","xnetlib"});
-                                                 {"smtlib2","tptp","auto"});//,"xhuman","xmps","xnetlib"});
+    _inputSyntax= ChoiceOptionValue<InputSyntax>("input_syntax","",InputSyntax::AUTO,{"smtlib2","tptp","auto"});
     _inputSyntax.description=
     "Input syntax. Historic input syntaxes have been removed as they are not actively maintained. Contact developers for help with these.";
     _lookup.insert(&_inputSyntax);
@@ -1097,7 +1087,7 @@ void Options::init()
     _simulatedTimeLimit = TimeLimitOptionValue("simulated_time_limit","stl",0);
     _simulatedTimeLimit.description=
     "Time limit in seconds for the purpose of reachability estimations of the LRS saturation algorithm (if 0, the actual time limit is used)";
-    _simulatedTimeLimit.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
+    _simulatedTimeLimit.onlyUsefulWith(Or(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)),_splittingAvatimer.is(notEqual(1.0f))));
     _lookup.insert(&_simulatedTimeLimit);
     _simulatedTimeLimit.tag(OptionTag::LRS);
 

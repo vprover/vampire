@@ -15,7 +15,10 @@
 #include <iomanip>
 #include <fstream>
 
+#include "Lib/Environment.hpp"
+#include "Lib/System.hpp"
 #include "Lib/Sys/Multiprocessing.hpp"
+#include "Shell/Options.hpp"
 
 #include "Lib/Comparison.hpp"
 #include "Lib/Int.hpp"
@@ -221,6 +224,11 @@ int main(int argc, const char** argv)
 {
   using namespace Lib;
   using namespace std;
+
+  // enable tracebacks in failing unit tests by default
+  System::registerArgv0(argv[0]);
+  env.options->setTraceback(true);
+
   bool success;
   auto cmd = vstring(argv[1]);
   auto args = Stack<vstring>(argc - 2);

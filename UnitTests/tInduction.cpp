@@ -23,6 +23,7 @@
 
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/FormulaVarIterator.hpp"
 
 #include "Inferences/Induction.hpp"
 
@@ -113,7 +114,7 @@ public:
         _btd.backtrack();
         return false;
       }
-      VList::Iterator vit(r->freeVariables());
+      VList::Iterator vit(freeVariables(r));
       while (vit.hasNext()) {
         auto v = vit.next();
         if (!_varsMatched.count(v)) {

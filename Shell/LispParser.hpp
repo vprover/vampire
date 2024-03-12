@@ -90,10 +90,10 @@ public:
    * Class Exception. Implements parser exceptions.
    * @since 17/07/2004 Helsinki airport
    */
-  class Exception 
-    : public Lib::Exception
+  class Exception
+    : public Lib::ParsingRelatedException
   {
-  public:                                
+  public:
     Exception (vstring message,const Token&);
     void cry (std::ostream&) const;
     ~Exception () {}

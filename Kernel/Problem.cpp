@@ -71,9 +71,6 @@ Problem::Problem(ClauseIterator clauses, bool copy)
 
 Problem::~Problem()
 {
-  //TODO: decrease reference counter of clauses (but make sure there's no segfault...)
-
-  UnitList::destroy(_units);
   // Don't delete the property as it is owned by Environment
 }
 
