@@ -411,9 +411,7 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       // can't read anything else (and it does not make sense to read get-unsat-core more than once)
       // so let's just warn and exit
       if(env.options->mode()!=Options::Mode::SPIDER) {
-        env.beginOutput();
-        env.out() << "% Warning: check-sat is not the last entry. Skipping the rest!" << endl;
-        env.endOutput();
+        std::cout << "% Warning: check-sat is not the last entry. Skipping the rest!" << endl;
       }
       break;
     }
@@ -1829,7 +1827,7 @@ void SMTLIB2::parseAnnotatedTerm(LExpr* exp)
 
   if (!annotation_warning) {
     //env.beginOutput();
-    //env.out() << "% Warning: term annotations ignored!" << endl;
+    //std::cout << "% Warning: term annotations ignored!" << endl;
     //env.endOutput();
     annotation_warning = true;
   }

@@ -692,12 +692,10 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
     ASS(!bit.hasNext());
 
     if (env.options->showPreprocessing()) {
-      env.beginOutput();
       Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, binding, contents, tupleType->result());
-      env.out() << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << std::endl;
+      std::cout << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << std::endl;
       Term* processedLet = Term::createLet(symbol, 0, processedBinding, processedContents, bodySort);
-      env.out() << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
-      env.endOutput();
+      std::cout << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
     }
 
     variables = VList::empty();
@@ -737,12 +735,10 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
     }
 
     if (env.options->showPreprocessing()) {
-      env.beginOutput();
       Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, binding, contents, tupleType->result());
-      env.out() << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << std::endl;
+      std::cout << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << std::endl;
       Term* processedLet = Term::createLet(tuple, 0, binding, detupledContents, bodySort);
-      env.out() << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
-      env.endOutput();
+      std::cout << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
     }
 
     symbol = tuple;
@@ -782,20 +778,16 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
   if (inlineLet) {
     processedContents = inlineLetBinding(symbol, variables, binding, contents);
     if (env.options->showPreprocessing()) {
-      env.beginOutput();
-      env.out() << "[PP] clausify (inline let) binding: " << binding.toString() << std::endl;
-      env.out() << "[PP] clausify (inline let) in:  " << contents.toString() << std::endl;
-      env.out() << "[PP] clausify (inline let) out: " << processedContents.toString() << std::endl;
-      env.endOutput();
+      std::cout << "[PP] clausify (inline let) binding: " << binding.toString() << std::endl;
+      std::cout << "[PP] clausify (inline let) in:  " << contents.toString() << std::endl;
+      std::cout << "[PP] clausify (inline let) out: " << processedContents.toString() << std::endl;
     }
   } else {
     processedContents = nameLetBinding(symbol, variables, binding, contents);
     if (env.options->showPreprocessing()) {
-      env.beginOutput();
-      env.out() << "[PP] clausify (name let) binding: " << binding.toString() << std::endl;
-      env.out() << "[PP] clausify (name let) in:  " << contents.toString() << std::endl;
-      env.out() << "[PP] clausify (name let) out: " << processedContents.toString() << std::endl;
-      env.endOutput();
+      std::cout << "[PP] clausify (name let) binding: " << binding.toString() << std::endl;
+      std::cout << "[PP] clausify (name let) in:  " << contents.toString() << std::endl;
+      std::cout << "[PP] clausify (name let) out: " << processedContents.toString() << std::endl;
     }
   }
 

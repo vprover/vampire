@@ -461,12 +461,12 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
   UnitList::push(iAxiom, prb.units());
 
   if (env.options->showPreprocessing()) {
-    env.out() << "Added combinator axioms: " << std::endl;
-    env.out() << sAxiom->toString() << std::endl;
-    env.out() << cAxiom->toString() << std::endl;
-    env.out() << bAxiom->toString() << std::endl;
-    env.out() << kAxiom->toString() << std::endl;  
-    env.out() << iAxiom->toString() << std::endl;        
+    std::cout << "Added combinator axioms: " << std::endl;
+    std::cout << sAxiom->toString() << std::endl;
+    std::cout << cAxiom->toString() << std::endl;
+    std::cout << bAxiom->toString() << std::endl;
+    std::cout << kAxiom->toString() << std::endl;
+    std::cout << iAxiom->toString() << std::endl;
   }
 }
 
@@ -496,8 +496,8 @@ void LambdaElimination::addFunctionExtensionalityAxiom(Problem& prb)
 
 
   if (env.options->showPreprocessing()) {
-    env.out() << "Added functional extensionality axiom: " << std::endl;
-    env.out() << funcExtAx->toString() << std::endl;       
+    std::cout << "Added functional extensionality axiom: " << std::endl;
+    std::cout << funcExtAx->toString() << std::endl;
   }
 }
 
@@ -522,8 +522,8 @@ void LambdaElimination::addChoiceAxiom(Problem& prb)
 
 
   if (env.options->showPreprocessing()) {
-    env.out() << "Added Hilbert choice axiom: " << std::endl;
-    env.out() << choiceAx->toString() << std::endl;       
+    std::cout << "Added Hilbert choice axiom: " << std::endl;
+    std::cout << choiceAx->toString() << std::endl;
   }
 }
 
@@ -674,28 +674,27 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   //TODO iff and xor
 
   if (env.options->showPreprocessing()) {
-    env.out() << "Added proxy axioms: " << std::endl;
-    env.out() << eqAxiom1->toString() << std::endl;
-    env.out() << eqAxiom2->toString() << std::endl;
-    env.out() << notAxiom1->toString() << std::endl;
-    env.out() << notAxiom2->toString() << std::endl;  
-    env.out() << piAxiom1->toString() << std::endl;
-    env.out() << piAxiom2->toString() << std::endl;            
-    env.out() << sigmaAxiom1->toString() << std::endl;
-    env.out() << sigmaAxiom2->toString() << std::endl;
-    env.out() << impAxiom1->toString() << std::endl;  
-    env.out() << impAxiom2->toString() << std::endl;
-    env.out() << impAxiom3->toString() << std::endl;  
-    env.out() << andAxiom1->toString() << std::endl;  
-    env.out() << andAxiom2->toString() << std::endl;
-    env.out() << andAxiom3->toString() << std::endl;   
-    env.out() << orAxiom1->toString() << std::endl;  
-    env.out() << orAxiom2->toString() << std::endl;
-    env.out() << orAxiom3->toString() << std::endl;      
+    std::cout << "Added proxy axioms: " << std::endl;
+    std::cout << eqAxiom1->toString() << std::endl;
+    std::cout << eqAxiom2->toString() << std::endl;
+    std::cout << notAxiom1->toString() << std::endl;
+    std::cout << notAxiom2->toString() << std::endl;
+    std::cout << piAxiom1->toString() << std::endl;
+    std::cout << piAxiom2->toString() << std::endl;
+    std::cout << sigmaAxiom1->toString() << std::endl;
+    std::cout << sigmaAxiom2->toString() << std::endl;
+    std::cout << impAxiom1->toString() << std::endl;
+    std::cout << impAxiom2->toString() << std::endl;
+    std::cout << impAxiom3->toString() << std::endl;
+    std::cout << andAxiom1->toString() << std::endl;
+    std::cout << andAxiom2->toString() << std::endl;
+    std::cout << andAxiom3->toString() << std::endl;
+    std::cout << orAxiom1->toString() << std::endl;
+    std::cout << orAxiom2->toString() << std::endl;
+    std::cout << orAxiom3->toString() << std::endl;
   }
-    
 }
- 
+
 Literal* LambdaElimination::toEquality(TermList booleanTerm, bool polarity) {
   TermList boolVal = polarity ? TermList(Term::foolTrue()) : TermList(Term::foolFalse());
   return Literal::createEquality(true, booleanTerm, boolVal, AtomicSort::boolSort());

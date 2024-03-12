@@ -813,17 +813,15 @@ void Splitter::onAllProcessed()
   _branchSelector.recomputeModel(toAdd, toRemove, flushing);
   
   if (_showSplitting) { // TODO: this is just one of many ways Splitter could report about changes
-    env.beginOutput();
-    env.out() << "[AVATAR] recomputeModel: + ";
+    std::cout << "[AVATAR] recomputeModel: + ";
     for (unsigned i = 0; i < toAdd.size(); i++) {
-      env.out() << getLiteralFromName(toAdd[i]) << ",";
+      std::cout << getLiteralFromName(toAdd[i]) << ",";
     }
-    env.out() << "\t - ";
+    std::cout << "\t - ";
     for (unsigned i = 0; i < toRemove.size(); i++) {
-      env.out() << getLiteralFromName(toRemove[i]) << ",";
+      std::cout << getLiteralFromName(toRemove[i]) << ",";
     }
-    env.out() << std::endl;
-    env.endOutput();
+    std::cout << std::endl;
   }
 
   {
@@ -976,9 +974,7 @@ bool Splitter::handleNonSplittable(Clause* cl)
     nsClause->setInference(new FOConversionInference(scl));
 
     if (_showSplitting) {
-      env.beginOutput();
-      env.out() << "[AVATAR] registering a non-splittable: "<< cl->toString() << std::endl;
-      env.endOutput();
+      std::cout << "[AVATAR] registering a non-splittable: "<< cl->toString() << std::endl;
     }
 
     addSatClauseToSolver(nsClause, false);
@@ -1099,9 +1095,7 @@ bool Splitter::doSplitting(Clause* cl)
 #endif
     ) {
     if (_showSplitting) {
-      env.beginOutput();
-      env.out() << "[AVATAR] Stopping the splitting process."<< std::endl;
-      env.endOutput();
+      std::cout << "[AVATAR] Stopping the splitting process."<< std::endl;
     }
     hasStopped = true;
     return false;
@@ -1148,9 +1142,7 @@ bool Splitter::doSplitting(Clause* cl)
   SATClause* splitClause = SATClause::fromStack(satClauseLits);
 
   if (_showSplitting) {
-    env.beginOutput();
-    env.out() << "[AVATAR] split a clause: "<< cl->toString() << std::endl;
-    env.endOutput();
+    std::cout << "[AVATAR] split a clause: "<< cl->toString() << std::endl;
   }
 
   // now do splits
@@ -1660,15 +1652,13 @@ bool Splitter::handleEmptyClause(Clause* cl)
   addSatClauseToSolver(confl,true);
 
     if (_showSplitting) {
-      env.beginOutput();
-      env.out() << "[AVATAR] proved ";
+      std::cout << "[AVATAR] proved ";
       auto sit = cl->splits()->iter();
       while(sit.hasNext()){
-        env.out() << (_db[sit.next()]->component)->toString();
-        if(sit.hasNext()){ env.out() << " | "; }
+        std::cout << (_db[sit.next()]->component)->toString();
+        if(sit.hasNext()){ std::cout << " | "; }
       }
-      env.out() << endl; 
-      env.endOutput();
+      std::cout << endl;
     }
 
 

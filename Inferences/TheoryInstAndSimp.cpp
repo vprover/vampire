@@ -79,9 +79,7 @@ Options::TheoryInstSimp manageDeprecations(Options::TheoryInstSimp mode)
     case Options::TheoryInstSimp::FULL:
     case Options::TheoryInstSimp::NEW:
       if(outputAllowed()) {
-        env.beginOutput();
-        env.out() << "WARNING: the modes full & new are deprecated for theory instantiation. using all instead." << std::endl;
-        env.endOutput();
+        std::cout << "WARNING: the modes full & new are deprecated for theory instantiation. using all instead." << std::endl;
       }
       return Options::TheoryInstSimp::ALL;
     default:

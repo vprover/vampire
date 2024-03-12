@@ -113,9 +113,7 @@ void handleSignal (int sigNum)
       handled = true;
       if(Shell::outputAllowed(true)) {
 	if(env.options) {
-	  env.beginOutput();
-	  env.out() << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
-	  env.endOutput();
+    cout << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
 	} else {
 	  cout << "Aborted by signal " << signalDescription << "\n";
 	}
@@ -124,9 +122,7 @@ void handleSignal (int sigNum)
     case SIGXCPU:
       if(Shell::outputAllowed(true)) {
 	if(env.options) {
-	  env.beginOutput();
-	  env.out() << "External time out (SIGXCPU) on " << env.options->inputFile() << "\n";
-	  env.endOutput();
+    cout << "External time out (SIGXCPU) on " << env.options->inputFile() << "\n";
 	} else {
 	  cout << "External time out (SIGXCPU)\n";
 	}
@@ -165,11 +161,9 @@ void handleSignal (int sigNum)
 	handled = true;
 	if(Shell::outputAllowed()) {
 	  if(env.options && env.statistics) {
-	    env.beginOutput();
-	    env.out() << getpid() << " Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
-	    env.statistics->print(env.out());
-	    Debug::Tracer::printStack(env.out());
-	    env.endOutput();
+      cout << getpid() << " Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
+	    env.statistics->print(cout);
+	    Debug::Tracer::printStack(cout);
 	  } else {
 	    cout << getpid() << "Aborted by signal " << signalDescription << "\n";
 	    Debug::Tracer::printStack(cout);

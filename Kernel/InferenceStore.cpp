@@ -517,7 +517,7 @@ struct InferenceStore::TPTPProofPrinter
   void print()
   {
     //outputSymbolDeclarations also deals with sorts for now
-    //UIHelper::outputSortDeclarations(env.out());
+    //UIHelper::outputSortDeclarations(out);
     UIHelper::outputSymbolDeclarations(out);
     ProofPrinter::print();
   }

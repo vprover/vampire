@@ -95,32 +95,30 @@ bool PortfolioMode::perform(Problem* problem)
   }
 
   if (outputAllowed()) {
-    env.beginOutput();
     if (resValue) {
-      addCommentSignForSZS(env.out());
-      env.out()<<"Success in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
+      addCommentSignForSZS(std::cout);
+      std::cout<<"Success in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
     }
     else {
-      addCommentSignForSZS(env.out());
-      env.out()<<"Proof not found in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
+      addCommentSignForSZS(std::cout);
+      std::cout<<"Proof not found in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
       if (env.remainingTime()/100>0) {
-        addCommentSignForSZS(env.out());
-        env.out()<<"SZS status GaveUp for "<<env.options->problemName()<<endl;
+        addCommentSignForSZS(std::cout);
+        std::cout<<"SZS status GaveUp for "<<env.options->problemName()<<endl;
       }
       else {
         //From time to time we may also be terminating in the timeLimitReached()
         //function in Lib/Timer.cpp in case the time runs out. We, however, output
         //the same string there as well.
-        addCommentSignForSZS(env.out());
-        env.out()<<"SZS status Timeout for "<<env.options->problemName()<<endl;
+        addCommentSignForSZS(std::cout);
+        std::cout<<"SZS status Timeout for "<<env.options->problemName()<<endl;
       }
     }
 #if VTIME_PROFILING
     if (env.options && env.options->timeStatistics()) {
-      TimeTrace::instance().printPretty(env.out());
+      TimeTrace::instance().printPretty(std::cout);
     }
 #endif // VTIME_PROFILING
-    env.endOutput();
   }
 
   return resValue;
@@ -464,10 +462,8 @@ bool PortfolioMode::runSchedule(Schedule schedule) {
       }
     } else if (signalled) {
       // killed by an external agency (could be e.g. a slurm cluster killing for too much memory allocated)
-      env.beginOutput();
-      Shell::addCommentSignForSZS(env.out());
-      env.out()<<"Child killed by signal " << code << endl;
-      env.endOutput();
+      Shell::addCommentSignForSZS(std::cout);
+      std::cout<<"Child killed by signal " << code << endl;
       ALWAYS(processes.remove(process));
     }
   }
@@ -504,14 +500,10 @@ bool PortfolioMode::runScheduleAndRecoverProof(Schedule schedule)
     bool openSucceeded = !input.fail();
 
     if (openSucceeded) {
-      env.beginOutput();
-      env.out() << input.rdbuf();
-      env.endOutput();
+      std::cout << input.rdbuf();
     } else {
       if (outputAllowed()) {
-        env.beginOutput();
-        addCommentSignForSZS(env.out()) << "Failed to restore proof from tempfile " << _tmpFileNameForProof << endl;
-        env.endOutput();
+        addCommentSignForSZS(std::cout) << "Failed to restore proof from tempfile " << _tmpFileNameForProof << endl;
       }
     }
 
@@ -537,10 +529,8 @@ unsigned PortfolioMode::getSliceTime(const vstring &sliceCode)
 
   if (sliceTime == 0 && !Timer::instructionLimitingInPlace()) {
     if (outputAllowed()) {
-      env.beginOutput();
-      addCommentSignForSZS(env.out());
-      env.out() << "WARNING: time unlimited strategy and instruction limiting not in place - attempting to translate instructions to time" << endl;
-      env.endOutput();
+      addCommentSignForSZS(std::cout);
+      std::cout << "WARNING: time unlimited strategy and instruction limiting not in place - attempting to translate instructions to time" << endl;
     }
 
     size_t bidx = sliceCode.find(":i=");
@@ -632,14 +622,12 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   *env.options = opt; //just temporarily until we get rid of dependencies on env.options in solving
 
   if (outputAllowed()) {
-    env.beginOutput();
-    addCommentSignForSZS(env.out()) << opt.testId() << " on " << opt.problemName() << 
+    addCommentSignForSZS(std::cout) << opt.testId() << " on " << opt.problemName() <<
       " for (" << opt.timeLimitInDeciseconds() << "ds"<<
 #if VAMPIRE_PERF_EXISTS
       "/" << opt.instructionLimit() << "Mi" <<
 #endif
       ")" << endl;
-    env.endOutput();
   }
 
   Saturation::ProvingHelper::runVampire(*_prb, opt);
@@ -674,9 +662,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
     ASS(!resultValue);
 
     if (outputAllowed() && env.options->multicore() != 1) {
-      env.beginOutput();
-      addCommentSignForSZS(env.out()) << "First to succeed." << endl;
-      env.endOutput();
+      addCommentSignForSZS(std::cout) << "First to succeed." << endl;
     }
 
     // At the moment we only save one proof. We could potentially
@@ -689,26 +675,20 @@ void PortfolioMode::runSlice(Options& strategyOpt)
     ofstream output(fname.c_str());
     if (output.fail()) {
       // fallback to old printing method
-      env.beginOutput();
-      addCommentSignForSZS(env.out()) << "Solution printing to a file '" << fname <<  "' failed. Outputting to stdout" << endl;
-      UIHelper::outputResult(env.out());
-      env.endOutput();
+      addCommentSignForSZS(std::cout) << "Solution printing to a file '" << fname <<  "' failed. Outputting to stdout" << endl;
+      UIHelper::outputResult(std::cout);
     } else {
       UIHelper::outputResult(output);
       if (!env.options->printProofToFile().empty() && outputAllowed()) {
-        env.beginOutput();
-        addCommentSignForSZS(env.out()) << "Solution written to " << fname << endl;
-        env.endOutput();
+        addCommentSignForSZS(std::cout) << "Solution written to " << fname << endl;
       }
     }
   } else if (outputAllowed()) {
-    env.beginOutput();
     if (resultValue) {
-      UIHelper::outputResult(env.out());
+      UIHelper::outputResult(std::cout);
     } else if (Lib::env.options && Lib::env.options->multicore() != 1) {
-      addCommentSignForSZS(env.out()) << "Also succeeded, but the first one will report." << endl;
+      addCommentSignForSZS(std::cout) << "Also succeeded, but the first one will report." << endl;
     }
-    env.endOutput();
   }
 
   if (outputResult) {

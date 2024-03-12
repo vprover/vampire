@@ -45,10 +45,8 @@ FormulaUnit* NNF::ennf(FormulaUnit* unit)
   FormulaUnit* res = new FormulaUnit(g,FormulaTransformation(InferenceRule::ENNF,unit));
 
   if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] ennf in: " << unit->toString() << std::endl;
-    env.out() << "[PP] ennf out: " << res->toString() << std::endl;
-    env.endOutput();
+    std::cout << "[PP] ennf in: " << unit->toString() << std::endl;
+    std::cout << "[PP] ennf out: " << res->toString() << std::endl;
   }
 
   return res;

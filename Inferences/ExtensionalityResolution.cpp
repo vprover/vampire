@@ -209,9 +209,7 @@ Clause* ExtensionalityResolution::performExtensionalityResolution(
   if(!ColorHelper::compatible(extCl->color(),otherCl->color()) ) {
     env.statistics->inferencesSkippedDueToColors++;
     if(opts.showBlocked()) {
-      env.beginOutput();
-      env.out()<<"Blocked extensionality resolution of "<<extCl->toString()<<" and "<<otherCl->toString()<<endl;
-      env.endOutput();
+      std::cout<<"Blocked extensionality resolution of "<<extCl->toString()<<" and "<<otherCl->toString()<<endl;
     }
     return 0;
   }
