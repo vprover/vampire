@@ -23,6 +23,9 @@
 #include "Problem.hpp"
 #include "Term.hpp"
 #include "Signature.hpp"
+#include "EqHelper.hpp"
+
+#include "Indexing/ResultSubstitution.hpp"
 
 #include "KBOForEPR.hpp"
 
@@ -110,6 +113,13 @@ Ordering::Result KBOForEPR::compare(TermList tl1, TermList tl2) const
   return compareFunctionPrecedences(tl1.term()->functor(), tl2.term()->functor());
 }
 
+bool KBOForEPR::isGreater(Literal* lit, TermList lhs, Indexing::ResultSubstitution* subst, bool result) const
+{
+  auto rhs = EqHelper::getOtherEqualitySide(lit, lhs);
+  return compare(
+    result ? subst->applyToBoundResult(lhs) : subst->applyToBoundQuery(lhs),
+    result ? subst->applyToBoundResult(rhs) : subst->applyToBoundQuery(rhs)) == GREATER;
+}
 
 void KBOForEPR::showConcrete(ostream& out) const 
 { 

@@ -151,12 +151,25 @@ struct BackwardDemodulation::ResultFn
     }
 #endif
 
-#ifdef PRECOMPILED
-    if(!_ordering.isGreater(_eqLit,lhs,qr.unifier.ptr(),false/*result*/)) {
-#else
-    if(!_ordering.isGreater(lhsS,rhsS)) {
+    Ordering::Result argOrder = _ordering.getEqualityArgumentOrder(_eqLit);
+    bool preordered = argOrder==Ordering::LESS || argOrder==Ordering::GREATER;
+#if VDEBUG
+    if(preordered) {
+      if(argOrder==Ordering::LESS) {
+        ASS_EQ(rhs, *_eqLit->nthArgument(0));
+      }
+      else {
+        ASS_EQ(rhs, *_eqLit->nthArgument(1));
+      }
+    }
 #endif
-    // if(_ordering.compare(lhsS,rhsS)!=Ordering::GREATER) {
+
+#ifdef PRECOMPILED
+    if(!preordered && !_ordering.isGreater(_eqLit,lhs,qr.unifier.ptr(),false/*result*/)) {
+#else
+    if(!preordered && !_ordering.isGreater(lhsS,rhsS)) {
+#endif
+    // if(!preordered && _ordering.compare(lhsS,rhsS)!=Ordering::GREATER) {
       return BwSimplificationRecord(0);
     }
 

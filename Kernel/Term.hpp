@@ -708,6 +708,16 @@ public:
     return _vars;
   } // vars()
 
+  unsigned varmap() const
+  {
+    return _varmap;
+  }
+
+  void setVarmap(unsigned v)
+  {
+    _varmap = v;
+  }
+
   /**
    * Return true iff the object is an equality between two variables.
    *
@@ -867,6 +877,7 @@ protected:
   unsigned _weight;
   /** Cached weight of the term for KBO, otherwise -1 and invalid. */
   int _kboWeight;
+  unsigned _varmap : 32;
   /** length of maximum reduction length */
   int _maxRedLen;
   union {

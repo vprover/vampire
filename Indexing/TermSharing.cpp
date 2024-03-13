@@ -85,6 +85,7 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
 
     unsigned weight = 1;
     unsigned vars = 0;
+    unsigned varmap = 0;
     bool hasInterpretedConstants=t->arity()==0 &&
 	env.signature->getFunction(t->functor())->interpreted();
     bool hasTermVar = false;
@@ -141,6 +142,7 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
         }
         vars++;
         weight += 1;
+        varmap |= 1UL << tt->var();
       }
       else 
       {
@@ -150,6 +152,7 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
   
         vars += r->numVarOccs();
         weight += r->weight();
+        varmap |= r->varmap();
         hasTermVar |= r->hasTermVar();
         if (env.colorUsed) {
           color = static_cast<Color>(color | r->color());
@@ -163,6 +166,7 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
     t->setId(_terms.size());
     t->setNumVarOccs(vars);
     t->setWeight(weight);
+    t->setVarmap(varmap);
     t->setHasTermVar(hasTermVar);
     if (env.colorUsed) {
       Color fcolor = env.signature->getFunction(t->functor())->color();
@@ -196,12 +200,14 @@ void TermSharing::computeAndSetSharedSortData(AtomicSort* sort)
     }
     unsigned weight = 1;
     unsigned vars = 0;
+    unsigned varmap = 0;
 
     for (TermList* tt = sort->args(); ! tt->isEmpty(); tt = tt->next()) {
       if (tt->isVar()) {
         ASS(tt->isOrdinaryVar());
         vars++;
         weight += 1;
+        varmap |= 1UL << tt->var();
       }
       else 
       {
@@ -211,12 +217,14 @@ void TermSharing::computeAndSetSharedSortData(AtomicSort* sort)
   
         vars += r->numVarOccs();
         weight += r->weight();
+        varmap |= r->varmap();
       }
     }
     sort->markShared();
     sort->setId(_sorts.size());
     sort->setNumVarOccs(vars);
     sort->setWeight(weight);
+    sort->setVarmap(varmap);
 
     ASS_REP(SortHelper::allTopLevelArgsAreSorts(sort), sort->toString());
     if (!SortHelper::allTopLevelArgsAreSorts(sort)){
@@ -242,6 +250,7 @@ void TermSharing::computeAndSetSharedLiteralData(Literal* t)
 
     unsigned weight = 1;
     unsigned vars = 0;
+    unsigned varmap = 0;
     Color color = COLOR_TRANSPARENT;
     bool hasInterpretedConstants=false;
 
@@ -254,12 +263,14 @@ void TermSharing::computeAndSetSharedLiteralData(Literal* t)
         ASS(tt->isOrdinaryVar());
         vars++;
         weight += 1;
+        varmap |= 1UL << tt->var();
       }
       else {
         ASS_REP(tt->term()->shared(), tt->term()->toString());
         Term* r = tt->term();
         vars += r->numVarOccs();
         weight += r->weight();
+        varmap |= r->varmap();
 
         if (env.colorUsed) {
           ASS(color == COLOR_TRANSPARENT || r->color() == COLOR_TRANSPARENT || color == r->color());
@@ -274,6 +285,7 @@ void TermSharing::computeAndSetSharedLiteralData(Literal* t)
     t->setId(_literals.size());
     t->setNumVarOccs(vars);
     t->setWeight(weight);
+    t->setVarmap(varmap);
     if (env.colorUsed) {
       Color fcolor = env.signature->getPredicate(t->functor())->color();
       color = static_cast<Color>(color | fcolor);

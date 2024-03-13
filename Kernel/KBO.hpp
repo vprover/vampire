@@ -157,11 +157,9 @@ public:
 
   enum class InstructionTag {
     WEIGHT,
-    VAR,
     COMPARE_VV,
     COMPARE_VT,
     COMPARE_TV,
-    COMPARE_TT,
     SUCCESS,
   };
   struct Instruction {
@@ -192,6 +190,7 @@ protected:
   // int functionSymbolWeight(unsigned fun) const;
   int symbolWeight(Term* t) const;
   unsigned computeWeight(TermList t) const;
+  int computeWeight(Stack<Instruction>* ptr, unsigned index, Indexing::ResultSubstitution* subst, bool result) const;
   unsigned weight(TermList t) const;
 
   friend struct WeightCompInstruction;
