@@ -493,15 +493,12 @@ Formula* Skolem::skolemise (Formula* f)
         _subst.bind(v,skolemTerm);
 
         if (env.options->showSkolemisations()) {
-          env.beginOutput();
-          env.out() << "Skolemising: "<<skolemTerm->toString()<<" for X"<< v
+          std::cout << "Skolemising: "<<skolemTerm->toString()<<" for X"<< v
             <<" in "<<f->toString()<<" in formula "<<_beingSkolemised->toString() << endl;
-          env.endOutput();
         }
 
         if (env.options->showNonconstantSkolemFunctionTrace() && arity!=0) {
-          env.beginOutput();
-          ostream& out = env.out();
+          ostream& out = std::cout;
             out <<"Nonconstant skolem function introduced: "
             <<skolemTerm->toString()<<" for X"<<v<<" in "<<f->toString()
             <<" in formula "<<_beingSkolemised->toString()<<endl;
@@ -510,7 +507,6 @@ Formula* Skolem::skolemise (Formula* f)
           Refutation ref(_beingSkolemised, true);
           ref.output(out);
           */
-          env.endOutput();
         }
       }
 

@@ -70,9 +70,7 @@ FormulaUnit* Naming::apply(FormulaUnit* unit, UnitList*& defs) {
   ASS(!_varsInScope); //_varsInScope can be true only when traversing inside a formula
 
   if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] naming args: " << unit->toString() << std::endl;
-    env.endOutput();
+    std::cout << "[PP] naming args: " << unit->toString() << std::endl;
   }
 
   Formula* f = unit->formula();
@@ -1190,9 +1188,7 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
   UnitList::push(definition, _defs);
 
   if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] naming defs: " << definition->toString() << std::endl;
-    env.endOutput();
+    std::cout << "[PP] naming defs: " << definition->toString() << std::endl;
   }
 
   return name;

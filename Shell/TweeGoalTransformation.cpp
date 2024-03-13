@@ -161,7 +161,7 @@ class Definizator : public BottomUpTermTransformer {
         // record globally
         UnitList::push(newDef,newUnits);
         if(env.options->showPreprocessing()) {
-          env.out() << "[PP] twee: " << newDef->toString() << std::endl;
+          std::cout << "[PP] twee: " << newDef->toString() << std::endl;
         }
         symAndDef.first = newSym;
         symAndDef.second = newDef;

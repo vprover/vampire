@@ -68,9 +68,7 @@ void CommandLine::interpret (Options& options)
       ){
       // cout << _next << " " << _last << endl;
       options.set("help","on");
-      env.beginOutput();
-      options.output(env.out());
-      env.endOutput();
+      options.output(std::cout);
       exit(0);
     }
     if (arg[0] == '-') {
