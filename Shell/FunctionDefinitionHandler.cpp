@@ -27,9 +27,6 @@ namespace Shell {
 
 inline bool canBeUsedForRewriting(Term* lhs, Clause* cl)
 {
-  if (!env.options->functionDefinitionRewriting()) {
-    return false;
-  }
   // TODO: we are using a codetree to get the generalizations
   // for rewriting and it cannot handle unbound variables on
   // the indexed side, hence we check if there are any variables
@@ -44,7 +41,7 @@ inline bool canBeUsedForRewriting(Term* lhs, Clause* cl)
   return true;
 }
 
-void FunctionDefinitionHandler::initAndPreprocess(Problem& prb)
+void FunctionDefinitionHandler::initAndPreprocess(Problem& prb, const Options& opts)
 {
   // reset state
   _is = new CodeTreeTIS();
@@ -107,7 +104,7 @@ void FunctionDefinitionHandler::initAndPreprocess(Problem& prb)
       addFunctionBranch(lhs.term(), rhs);
 
       // process for rewriting
-      if (canBeUsedForRewriting(lhs.term(), defCl)) {
+      if (opts.functionDefinitionRewriting() && canBeUsedForRewriting(lhs.term(), defCl)) {
         it.del(); // take ownership
         defCl->setSplits(SplitSet::getEmpty());
         defCl->incRefCnt();
@@ -131,7 +128,7 @@ void FunctionDefinitionHandler::initAndPreprocess(Problem& prb)
       tIt.del();
       continue;
     }
-    if (env.options->showInduction()) {
+    if (opts.showInduction()) {
       cout << "[Induction] added induction template: " << ptr->toString() << endl;
     }
   }

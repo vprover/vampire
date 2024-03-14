@@ -50,8 +50,9 @@ inline void addFunctionDefs(FunctionDefinitionHandler& handler, std::initializer
   }
   Problem prb;
   prb.addUnits(ul);
+  Options opts;
 
-  handler.initAndPreprocess(prb);
+  handler.initAndPreprocess(prb,opts);
 }
 
 inline void checkTemplateBranches(FunctionDefinitionHandler& handler, TermSugar t, const vvector<pair<TermSugar, vvector<TermSugar>>>& expected) {

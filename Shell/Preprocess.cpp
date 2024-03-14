@@ -364,7 +364,9 @@ void Preprocess::preprocess(Problem& prb)
      resolver.apply(prb);
    }
 
-   prb.getFunctionDefinitionHandler().initAndPreprocess(prb);
+   if (env.signature->hasDefPreds()) {
+     prb.getFunctionDefinitionHandler().initAndPreprocess(prb,_options);
+   }
 
    if (_options.generalSplitting()) {
      if (prb.isHigherOrder() || prb.hasPolymorphicSym()) {  // TODO: extend GeneralSplitting to support polymorphism (would higher-order make sense?)
