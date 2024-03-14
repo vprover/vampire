@@ -122,9 +122,9 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         toplevelCheck &= lit->isPositive() && (cLen == 1);
       }
 
-      if (toplevelCheck) {
-        attempted.remove(trm);
-      }
+      // if (toplevelCheck) {
+      //   attempted.remove(trm);
+      // }
 
       TermQueryResultIterator git=_index->getGeneralizations(trm, true, fte);
       while(git.hasNext()) {

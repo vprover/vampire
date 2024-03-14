@@ -170,8 +170,15 @@ struct BackwardDemodulation::ResultFn
     if(!preordered && !_ordering.isGreater(lhsS,rhsS)) {
 #endif
     // if(!preordered && _ordering.compare(lhsS,rhsS)!=Ordering::GREATER) {
+      // if (_ordering.compare(lhsS,rhsS)==Ordering::GREATER) {
+      //   USER_ERROR("is greater " + lhsS.toString() + " " + rhsS.toString() + "\nFrom equation " + _eqLit->toString() + " side " + lhs.toString());
+      // }
+      TIME_TRACE("bw dem fail");
       return BwSimplificationRecord(0);
     }
+    // if (_ordering.compare(lhsS,rhsS)!=Ordering::GREATER) {
+    //   USER_ERROR("is not greater " + lhsS.toString() + " " + rhsS.toString() + "\nFrom equation " + _eqLit->toString() + " side " + lhs.toString());
+    // }
 
 #ifdef PRECOMPILED
     if(!qr.unifier->isIdentityOnResultWhenQueryBound()) {

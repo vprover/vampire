@@ -20,7 +20,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/DArray.hpp"
-#include "Lib/DHMap.hpp"
+#include "Lib/Map.hpp"
 
 #include "Ordering.hpp"
 
@@ -183,6 +183,8 @@ protected:
   Result comparePredicates(Literal* l1, Literal* l2) const override;
 
   Stack<Instruction>* preprocessEquation(Literal* lit, TermList lhs) const;
+  bool isGreaterVT(TermList tl1, Term* t2, Indexing::ResultSubstitution* subst, bool result, Stack<Instruction>* ptr, unsigned index, bool& equal) const;
+  bool isGreaterTV(Term* t1, TermList tl2, Indexing::ResultSubstitution* subst, bool result, Stack<Instruction>* ptr, unsigned index, bool& equal) const;
 
   class State;
   class StateGreater;
@@ -215,7 +217,7 @@ private:
    */
   mutable State* _state;
   mutable StateGreater* _stateGt;
-  mutable DHMap<std::pair<Literal*,TermList>,Stack<Instruction>> _demodulatorInstructions;
+  mutable Map<std::pair<Literal*,TermList>,Stack<Instruction>> _demodulatorInstructions;
 };
 
 }
