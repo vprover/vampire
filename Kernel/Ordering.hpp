@@ -63,8 +63,10 @@ public:
   /** Return the result of comparing terms (not term lists!)
    * @b t1 and @b t2 */
   virtual Result compare(TermList t1,TermList t2) const = 0;
+  /** Optimised function used in demodulation for checking whether
+   * @b lhs is greater than the rhs of @b lit under substitution @b subst.
+   */
   virtual bool isGreater(Literal* lit, TermList lhs, Indexing::ResultSubstitution* subst, bool result) const;
-  virtual bool isGreater(TermList t1, TermList t2) const;
 
   virtual void show(std::ostream& out) const = 0;
 

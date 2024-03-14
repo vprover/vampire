@@ -288,7 +288,7 @@ public:
     GOAL_PLUS,                // above plus skolem terms introduced in induction inferences
   };
 
-  enum class DemodulationRedunancyCheck : unsigned int {
+  enum class DemodulationRedundancyCheck : unsigned int {
     OFF,
     ENCOMPASS,
     ON
@@ -2080,7 +2080,9 @@ public:
   bool arityCheck() const { return _arityCheck.actualValue; }
   //void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation.actualValue; }
-  DemodulationRedunancyCheck demodulationRedundancyCheck() const { return _demodulationRedundancyCheck.actualValue; }
+  DemodulationRedundancyCheck demodulationRedundancyCheck() const { return _demodulationRedundancyCheck.actualValue; }
+  bool demodulationPrecompiledComparison() const { return _demodulationPrecompiledComparison.actualValue; }
+
   //void setBackwardDemodulation(Demodulation newVal) { _backwardDemodulation = newVal; }
   Subsumption backwardSubsumption() const { return _backwardSubsumption.actualValue; }
   //void setBackwardSubsumption(Subsumption newVal) { _backwardSubsumption = newVal; }
@@ -2102,7 +2104,6 @@ public:
   KboWeightGenerationScheme kboWeightGenerationScheme() const { return _kboWeightGenerationScheme.actualValue; }
   bool kboMaxZero() const { return _kboMaxZero.actualValue; }
   const KboAdmissibilityCheck kboAdmissabilityCheck() const { return _kboAdmissabilityCheck.actualValue; }
-  bool kboImprovedGreater() const { return _kboImprovedGreater.actualValue; }
   const vstring& functionWeights() const { return _functionWeights.actualValue; }
   const vstring& predicateWeights() const { return _predicateWeights.actualValue; }
   const vstring& functionPrecedence() const { return _functionPrecedence.actualValue; }
@@ -2437,7 +2438,8 @@ private:
   BoolOptionValue _colorUnblocking;
   ChoiceOptionValue<Condensation> _condensation;
 
-  ChoiceOptionValue<DemodulationRedunancyCheck> _demodulationRedundancyCheck;
+  ChoiceOptionValue<DemodulationRedundancyCheck> _demodulationRedundancyCheck;
+  BoolOptionValue _demodulationPrecompiledComparison;
 
   ChoiceOptionValue<EqualityProxy> _equalityProxy;
   BoolOptionValue _useMonoEqualityProxy;
@@ -2655,7 +2657,6 @@ private:
   ChoiceOptionValue<KboWeightGenerationScheme> _kboWeightGenerationScheme;
   BoolOptionValue _kboMaxZero;
   ChoiceOptionValue<KboAdmissibilityCheck> _kboAdmissabilityCheck;
-  BoolOptionValue _kboImprovedGreater;
   StringOptionValue _functionWeights;
   StringOptionValue _predicateWeights;
   StringOptionValue _typeConPrecedence;

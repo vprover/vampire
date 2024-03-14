@@ -1504,7 +1504,7 @@ void Options::init()
     _condensation.tag(OptionTag::INFERENCES);
     _condensation.onlyUsefulWith(ProperSaturationAlgorithm());
 
-    _demodulationRedundancyCheck = ChoiceOptionValue<DemodulationRedunancyCheck>("demodulation_redundancy_check","drc",DemodulationRedunancyCheck::ON,{"off","encompass","on"});
+    _demodulationRedundancyCheck = ChoiceOptionValue<DemodulationRedundancyCheck>("demodulation_redundancy_check","drc",DemodulationRedundancyCheck::ON,{"off","encompass","on"});
     _demodulationRedundancyCheck.description=
        "The following cases of backward and forward demodulation do not preserve completeness:\n"
        "s = t     s = t1 \\/ C \t s = t     s != t1 \\/ C\n"
@@ -1520,6 +1520,17 @@ void Options::init()
     _demodulationRedundancyCheck.onlyUsefulWith(ProperSaturationAlgorithm());
     _demodulationRedundancyCheck.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
     _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
+
+    _demodulationPrecompiledComparison = BoolOptionValue("demodulation_precompiled_comparison","dpc",false);
+    _demodulationPrecompiledComparison.description=
+       "Precompiles ordering constraints on unorientable demodulators which results in less overhead when actually comparing."
+       "Only works with KBO currently.";
+    _lookup.insert(&_demodulationPrecompiledComparison);
+    _demodulationPrecompiledComparison.tag(OptionTag::INFERENCES);
+    _demodulationPrecompiledComparison.onlyUsefulWith(ProperSaturationAlgorithm());
+    _demodulationPrecompiledComparison.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
+    _demodulationPrecompiledComparison.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
+    _demodulationPrecompiledComparison.addProblemConstraint(hasEquality());
 
     _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","erape",false);
     _extensionalityAllowPosEq.description="If extensionality resolution equals filter, this dictates"
@@ -2173,13 +2184,6 @@ void Options::init()
     _kboMaxZero.tag(OptionTag::SATURATION);
     _kboMaxZero.description="Modifies any kbo_weight_scheme by setting the maximal (by the precedence) function symbol to have weight 0.";
     _lookup.insert(&_kboMaxZero);
-
-    _kboImprovedGreater = BoolOptionValue("kbo_improved_greater","kig",true);
-    _kboImprovedGreater.setExperimental();
-    _kboImprovedGreater.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
-    _kboImprovedGreater.tag(OptionTag::SATURATION);
-    _kboImprovedGreater.description="Cache term weights and return early when checking t1 > t2.";
-    _lookup.insert(&_kboImprovedGreater);
 
     _kboAdmissabilityCheck = ChoiceOptionValue<KboAdmissibilityCheck>(
         "kbo_admissibility_check", "", KboAdmissibilityCheck::ERROR,
@@ -3440,7 +3444,7 @@ bool Options::complete(const Problem& prb) const
     return prop.category() == Property::HNE; // enough URR is complete for Horn problems
   }
 
-  if (_demodulationRedundancyCheck.actualValue == DemodulationRedunancyCheck::OFF) {
+  if (_demodulationRedundancyCheck.actualValue == DemodulationRedundancyCheck::OFF) {
     return false;
   }
   if (!_superpositionFromVariables.actualValue) return false;

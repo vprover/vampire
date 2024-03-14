@@ -143,7 +143,7 @@ TermCodeTree::TermMatcher::TermMatcher()
 #endif
 }
 
-void TermCodeTree::TermMatcher::init(CodeTree* tree, TermList t, void* extraData)
+void TermCodeTree::TermMatcher::init(CodeTree* tree, TermList t)
 {
   Matcher::init(tree,tree->getEntryPoint());
 
@@ -151,12 +151,7 @@ void TermCodeTree::TermMatcher::init(CodeTree* tree, TermList t, void* extraData
   linfoCnt=0;
 
   ASS(!ft);
-  if (extraData) {
-    ASS(t.isTerm());
-    ft=FlatTerm::attach(t.term(), static_cast<FlatTerm::Entry*>(extraData));
-  } else {
-    ft=FlatTerm::create(t);
-  }
+  ft=FlatTerm::create(t);
 
   op=entry;
   tp=0;

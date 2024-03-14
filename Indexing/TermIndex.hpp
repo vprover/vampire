@@ -34,8 +34,8 @@ public:
   TermQueryResultIterator getUnifications(TypedTermList t, bool retrieveSubstitutions = true)
   { return _is->getUnifications(t, retrieveSubstitutions); }
 
-  TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true, void* extraData = nullptr)
-  { return _is->getGeneralizations(t, retrieveSubstitutions, extraData); }
+  TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true)
+  { return _is->getGeneralizations(t, retrieveSubstitutions); }
 
   TermQueryResultIterator getInstances(TypedTermList t, bool retrieveSubstitutions = true)
   { return _is->getInstances(t, retrieveSubstitutions); }
@@ -108,15 +108,12 @@ class DemodulationLHSIndex
 {
 public:
   DemodulationLHSIndex(TermIndexingStructure* is, Ordering& ord, const Options& opt)
-  : TermIndex(is), _ord(ord), _opt(opt), _insertionTimestamp(0) {};
-
-  unsigned insertionTimestamp() const { return _insertionTimestamp; }
+  : TermIndex(is), _ord(ord), _opt(opt) {};
 protected:
   void handleClause(Clause* c, bool adding);
 private:
   Ordering& _ord;
   const Options& _opt;
-  unsigned _insertionTimestamp;
 };
 
 /**

@@ -79,7 +79,7 @@ private:
   }
 
   int _weightDiff;
-  DHMap<unsigned, int, IdentityHash, DefaultHash> _varDiffs;
+  ZIArray<int> _varDiffs;
   /** Number of variables, that occur more times in the first literal */
   int _posNum;
   /** Number of variables, that occur more times in the second literal */
@@ -113,7 +113,7 @@ private:
   void recordVariable(unsigned var, int coef);
 
   /** The variable counters */
-  DHMap<unsigned, int, IdentityHash, DefaultHash> _varDiffs;
+  ZIArray<int> _varDiffs;
   /** Number of variables, that occur more times in the second literal */
   int _negNum;
   /** The ordering used */
@@ -198,19 +198,17 @@ void KBO::State::recordVariable(unsigned var, int coef)
 {
   ASS(coef==1 || coef==-1);
 
-  int* pnum;
-  _varDiffs.getValuePtr(var,pnum,0);
-  (*pnum)+=coef;
+  _varDiffs[var]+=coef;
   if(coef==1) {
-    if(*pnum==0) {
+    if(_varDiffs[var]==0) {
       _negNum--;
-    } else if(*pnum==1) {
+    } else if(_varDiffs[var]==1) {
       _posNum++;
     }
   } else {
-    if(*pnum==0) {
+    if(_varDiffs[var]==0) {
       _posNum--;
-    } else if(*pnum==-1) {
+    } else if(_varDiffs[var]==-1) {
       _negNum++;
     }
   }
@@ -324,15 +322,13 @@ void KBO::StateGreater::recordVariable(unsigned var, int coef)
 {
   ASS(coef==1 || coef==-1);
 
-  int* pnum;
-  _varDiffs.getValuePtr(var,pnum,0);
-  (*pnum)+=coef;
+  _varDiffs[var]+=coef;
   if(coef==1) {
-    if(*pnum==0) {
+    if(_varDiffs[var]==0) {
       _negNum--;
     }
   } else {
-    if(*pnum==-1) {
+    if(_varDiffs[var]==-1) {
       _negNum++;
     }
   }
@@ -604,7 +600,6 @@ void output(Stack<KBO::Instruction>* ptr)
 
 Stack<KBO::Instruction>* KBO::preprocessEquation(Literal* lit, TermList side) const
 {
-  // TIME_TRACE("KBO::preprocessEquation");
   Stack<Instruction>* instrStackPtr;
   if (!_demodulatorInstructions.getValuePtr(make_pair(lit,side),instrStackPtr,Stack<Instruction>())) {
     return instrStackPtr;
@@ -951,14 +946,12 @@ KBO::KBO(
     DArray<int> predLevels, 
 
     // other
-    bool reverseLCM,
-    bool improvedGreater
+    bool reverseLCM
   ) : PrecedenceOrdering(funcPrec, typeConPrec, predPrec, predLevels, reverseLCM)
   , _funcWeights(funcWeights)
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
   , _predWeights(predWeights)
 #endif
-  , _improvedGreater(improvedGreater)
   , _state(new State(this))
   , _stateGt(new StateGreater(this))
 { 
@@ -983,7 +976,7 @@ KBO KBO::testKBO()
       DArray<int>::fromIterator(getRangeIterator(0, (int)env.signature->typeCons())),
       DArray<int>::fromIterator(getRangeIterator(0, (int)env.signature->predicates())),
       predLevels(),
-      false, false /*improvedGreater*/);
+      false);
 }
 
 void KBO::zeroWeightForMaximalFunc() {
@@ -1074,7 +1067,6 @@ KBO::KBO(Problem& prb, const Options& opts)
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
  , _predWeights(weightsFromOpts<PredSigTraits>(opts,_predicatePrecedences))
 #endif
- , _improvedGreater(opts.kboImprovedGreater())
  , _state(new State(this))
  , _stateGt(new StateGreater(this))
 {
@@ -1202,7 +1194,6 @@ bool KBO::isGreater(Literal* lit, TermList lhs, Indexing::ResultSubstitution* su
 template<bool result>
 bool KBO::isGreater(Literal* lit, TermList lhs, Indexing::ResultSubstitution* subst) const
 {
-  // TIME_TRACE("KBO::isGreaterPrecompiled");
   auto ptr = preprocessEquation(lit, lhs);
   // output(ptr);
   ASS(ptr);
@@ -1307,11 +1298,6 @@ bool KBO::isGreater(Literal* lit, TermList lhs, Indexing::ResultSubstitution* su
 
 bool KBO::isGreater(TermList tl1, TermList tl2) const
 {
-  if (!_improvedGreater) {
-    return compare(tl1,tl2)==Ordering::GREATER;
-  }
-  // TIME_TRACE("KBO:isGreater");
-
   if(tl1==tl2 || tl1.isOrdinaryVar()) {
     return false;
   }

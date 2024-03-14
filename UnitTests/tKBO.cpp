@@ -24,8 +24,7 @@ using namespace Kernel;
 KBO kbo(unsigned introducedSymbolWeight, 
     unsigned variableWeight, 
     const Map<unsigned, KboWeight>& funcs, 
-    const Map<unsigned, KboWeight>& preds,
-    bool improvedGreater = false) {
+    const Map<unsigned, KboWeight>& preds) {
  
   return KBO(toWeightMap<FuncSigTraits>(introducedSymbolWeight, { 
           ._variableWeight = variableWeight ,
@@ -43,11 +42,11 @@ KBO kbo(unsigned introducedSymbolWeight,
              DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->typeCons())),
              DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->predicates())),
              predLevels(),
-             /*revereseLCM*/ false, improvedGreater);
+             /*revereseLCM*/ false);
 }
 
-KBO kbo(const Map<unsigned, KboWeight>& funcs, const Map<unsigned, KboWeight>& preds, bool improvedGreater = false) {
-  return kbo(1, 1, funcs, preds, improvedGreater);
+KBO kbo(const Map<unsigned, KboWeight>& funcs, const Map<unsigned, KboWeight>& preds) {
+  return kbo(1, 1, funcs, preds);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -387,7 +386,7 @@ TEST_FUN(kbo_isGreater_test01) {
   DECL_FUNC (g, {srt}, srt)
   DECL_CONST(c, srt)
 
-  auto ord = kbo(weights(make_pair(f, 10u), make_pair(c, 1u)), weights(), true);
+  auto ord = kbo(weights(make_pair(f, 10u), make_pair(c, 1u)), weights());
 
   ASS(ord.isGreater(f(c), g(c)));
   ASS(!ord.isGreater(g(c), f(c)));
@@ -400,7 +399,7 @@ TEST_FUN(kbo_isGreater_test02) {
   DECL_FUNC (g, {srt}, srt)
   DECL_CONST(c, srt)
 
-  auto ord = kbo(weights(make_pair(f, 10u)), weights(), true);
+  auto ord = kbo(weights(make_pair(f, 10u)), weights());
 
   ASS(ord.isGreater(f(c), g(g(g(g(g(c)))))));
   ASS(!ord.isGreater(g(g(g(g(g(c))))), f(c)));
@@ -413,7 +412,7 @@ TEST_FUN(kbo_isGreater_test03) {
   DECL_FUNC (g, {srt}, srt)
   DECL_CONST(c, srt)
 
-  auto ord = kbo(weights(make_pair(f, 10u)), weights(), true);
+  auto ord = kbo(weights(make_pair(f, 10u)), weights());
 
   ASS(ord.isGreater(f(x), g(g(g(g(g(c)))))));
   ASS(!ord.isGreater(g(g(g(g(g(c))))), f(x)));
@@ -425,7 +424,7 @@ TEST_FUN(kbo_isGreater_test04) {
   DECL_FUNC (f, {srt}, srt)
   DECL_FUNC (g, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(f, 10u)), weights(), true);
+  auto ord = kbo(weights(make_pair(f, 10u)), weights());
 
   ASS(!ord.isGreater(f(x), g(g(g(g(g(y)))))));
   ASS(!ord.isGreater(g(g(g(g(g(y))))), f(x)));
@@ -437,7 +436,7 @@ TEST_FUN(kbo_isGreater_test05) {
   DECL_FUNC (g, {srt}, srt)
   DECL_FUNC (f, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(f, 0u)), weights(), true);
+  auto ord = kbo(weights(make_pair(f, 0u)), weights());
 
   ASS(ord.isGreater(g(x), f(x)));
   ASS(!ord.isGreater(f(x), g(x)));
@@ -448,7 +447,7 @@ TEST_FUN(kbo_isGreater_test06) {
   DECL_SORT(srt)
   DECL_FUNC(f, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(f, 0u)), weights(), true);
+  auto ord = kbo(weights(make_pair(f, 0u)), weights());
 
   ASS(ord.isGreater(f(x), x));
   ASS(!ord.isGreater(x, f(x)));
@@ -460,7 +459,7 @@ TEST_FUN(kbo_isGreater_test07) {
   DECL_FUNC(g, {srt}, srt)
   DECL_FUNC(f, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(f, 0u), make_pair(g, 1u)), weights(), true);
+  auto ord = kbo(weights(make_pair(f, 0u), make_pair(g, 1u)), weights());
 
   ASS(ord.isGreater(f(g(x)), g(f(x))));
   ASS(!ord.isGreater(g(f(x)), f(g(x))));
@@ -472,7 +471,7 @@ TEST_FUN(kbo_isGreater_test08) {
   DECL_FUNC(g, {srt}, srt)
   DECL_FUNC(f, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(f, 0u), make_pair(g, 1u)), weights(), true);
+  auto ord = kbo(weights(make_pair(f, 0u), make_pair(g, 1u)), weights());
 
   ASS(!ord.isGreater(g(f(x)), f(g(x))));
   ASS(ord.isGreater(f(g(x)), g(f(x))));
@@ -484,7 +483,7 @@ TEST_FUN(kbo_isGreater_test09) {
   DECL_CONST(a, srt)
   DECL_CONST(b, srt)
 
-  auto ord = kbo(weights(), weights(), true);
+  auto ord = kbo(weights(), weights());
 
   ASS(!ord.isGreater(a,b));
   ASS(ord.isGreater(b,a));
@@ -496,7 +495,7 @@ TEST_FUN(kbo_isGreater_test10) {
   DECL_CONST(a, srt)
   DECL_CONST(b, srt)
 
-  auto ord = kbo(weights(make_pair(a,3u), make_pair(b,2u)), weights(), true);
+  auto ord = kbo(weights(make_pair(a,3u), make_pair(b,2u)), weights());
 
   ASS(ord.isGreater(a,b));
   ASS(!ord.isGreater(b,a));
@@ -510,7 +509,7 @@ TEST_FUN(kbo_isGreater_test11) {
   DECL_FUNC(g, {srt}, srt)
   DECL_FUNC(u, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights(), true);
+  auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
   ASS(ord.isGreater(u(f(g(x),g(a))), u(f(x,g(a)))));
   ASS(!ord.isGreater(u(f(x,g(a))), u(f(g(x),g(a)))));
@@ -524,7 +523,7 @@ TEST_FUN(kbo_isGreater_test12) {
   DECL_FUNC(g, {srt}, srt)
   DECL_FUNC(u, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights(), true);
+  auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
   ASS(ord.isGreater(u(f(g(u(x)),g(a))), u(f(x,g(a)))));
   ASS(!ord.isGreater(u(f(x,g(a))), u(f(g(u(x)),g(a)))));
@@ -536,7 +535,7 @@ TEST_FUN(kbo_isGreater_test13) {
   DECL_CONST(a, srt)
   DECL_FUNC(u, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights(), true);
+  auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
   ASS(ord.isGreater(u(x), x));
   ASS(!ord.isGreater(x, u(x)));
@@ -549,7 +548,7 @@ TEST_FUN(kbo_isGreater_test14) {
   DECL_FUNC(f, {srt}, srt)
   DECL_FUNC(u, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights(), true);
+  auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
   ASS(ord.isGreater(u(f(x)), f(x)));
   ASS(!ord.isGreater(f(x), u(f(x))));
@@ -562,7 +561,7 @@ TEST_FUN(kbo_isGreater_test15) {
   DECL_FUNC(f, {srt}, srt)
   DECL_FUNC(u, {srt}, srt)
 
-  auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights(), true);
+  auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
   ASS(ord.isGreater(f(u(x)), f(x)));
   ASS(!ord.isGreater(f(x), f(u(x))));
@@ -574,7 +573,7 @@ TEST_FUN(kbo_isGreater_test16) {
   DECL_FUNC(f, {srt, srt, srt}, srt)
   DECL_VAR(u, 3)
 
-  auto ord = kbo(1, 1, weights(make_pair(f,1u)), weights(), true);
+  auto ord = kbo(1, 1, weights(make_pair(f,1u)), weights());
   ASS(ord.isGreater(
     f(f(y,x,z),u,f(f(u,z,y),x,f(x,f(y,x,z),z))),
     f(x,f(y,x,z),f(f(y,x,z),u,f(f(u,z,y),x,z)))));
@@ -589,7 +588,7 @@ TEST_FUN(kbo_isGreater_test17) {
   DECL_FUNC(f, {srt}, srt)
   DECL_FUNC(g, {srt, srt}, srt)
 
-  auto ord = kbo(1, 1, weights(), weights(), true);
+  auto ord = kbo(1, 1, weights(), weights());
   ASS(ord.isGreater(
     f(g(f(g(x,g(y,z))),y)),
     f(g(y,f(g(x,g(y,z)))))));

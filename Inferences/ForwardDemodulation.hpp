@@ -39,6 +39,7 @@ protected:
   bool _preorderedOnly;
   bool _redundancyCheck;
   bool _encompassing;
+  bool _precompiledComparison;
   DemodulationLHSIndex* _index;
 };
 

@@ -43,12 +43,12 @@ public:
   void insert(TypedTermList t, Literal* lit, Clause* cls) override;
   void remove(TypedTermList t, Literal* lit, Clause* cls) override;
 
-  TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true, void* extraData = nullptr) override;
+  TermQueryResultIterator getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) override;
   bool generalizationExists(TermList t) override;
   // TODO: get rid of NOT_IMPLEMENTED
   VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t, Options::UnificationWithAbstraction, bool fixedPointIteration) override { NOT_IMPLEMENTED; }
 
-  virtual void output(std::ostream& out) const override { out << "CodeTree"; }
+  void output(std::ostream& out) const override { out << "CodeTree"; }
 
 private:
   class ResultIterator;

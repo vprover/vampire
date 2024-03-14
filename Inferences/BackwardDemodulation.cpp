@@ -96,8 +96,10 @@ struct BackwardDemodulation::ResultFn
     _eqLit=(*_cl)[0];
     _eqSort = SortHelper::getEqualityArgumentSort(_eqLit);
     _removed=SmartPtr<ClauseSet>(new ClauseSet());
-    _redundancyCheck = parent.getOptions().demodulationRedundancyCheck() != Options::DemodulationRedunancyCheck::OFF;
-    _encompassing = parent.getOptions().demodulationRedundancyCheck() == Options::DemodulationRedunancyCheck::ENCOMPASS;
+    _preorderedOnly = parent.getOptions().backwardDemodulation() == Options::Demodulation::PREORDERED;
+    _redundancyCheck = parent.getOptions().demodulationRedundancyCheck() != Options::DemodulationRedundancyCheck::OFF;
+    _encompassing = parent.getOptions().demodulationRedundancyCheck() == Options::DemodulationRedundancyCheck::ENCOMPASS;
+    _precompiledComparison = parent.getOptions().demodulationPrecompiledComparison();
   }
 
   /**
@@ -121,35 +123,11 @@ struct BackwardDemodulation::ResultFn
     }
 
     TermList lhs=arg.first;
+    TermList rhs=EqHelper::getOtherEqualitySide(_eqLit, lhs);
 
     // AYB there used to be a check here to ensure that the sorts
     // matched. This is no longer necessary, as sort matching / unification
     // is handled directly within the tree
-
-    TermList rhs=EqHelper::getOtherEqualitySide(_eqLit, lhs);
-    TermList lhsS=qr.term;
-    TermList rhsS;
-
-#define PRECOMPILED
-#ifndef PRECOMPILED
-    if(!qr.unifier->isIdentityOnResultWhenQueryBound()) {
-      //When we apply substitution to the rhs, we get a term, that is
-      //a variant of the term we'd like to get, as new variables are
-      //produced in the substitution application.
-      //We'd rather rename variables in the rhs, than in the whole clause
-      //that we're simplifying.
-      TermList lhsSBadVars=qr.unifier->applyToQuery(lhs);
-      TermList rhsSBadVars=qr.unifier->applyToQuery(rhs);
-      Renaming rNorm, qNorm, qDenorm;
-      rNorm.normalizeVariables(lhsSBadVars);
-      qNorm.normalizeVariables(lhsS);
-      qDenorm.makeInverse(qNorm);
-      ASS_EQ(lhsS,qDenorm.apply(rNorm.apply(lhsSBadVars)));
-      rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
-    } else {
-      rhsS=qr.unifier->applyToBoundQuery(rhs);
-    }
-#endif
 
     Ordering::Result argOrder = _ordering.getEqualityArgumentOrder(_eqLit);
     bool preordered = argOrder==Ordering::LESS || argOrder==Ordering::GREATER;
@@ -164,41 +142,23 @@ struct BackwardDemodulation::ResultFn
     }
 #endif
 
-#ifdef PRECOMPILED
-    if(!preordered && !_ordering.isGreater(_eqLit,lhs,qr.unifier.ptr(),false/*result*/)) {
-#else
-    if(!preordered && !_ordering.isGreater(lhsS,rhsS)) {
-#endif
-    // if(!preordered && _ordering.compare(lhsS,rhsS)!=Ordering::GREATER) {
-      // if (_ordering.compare(lhsS,rhsS)==Ordering::GREATER) {
-      //   USER_ERROR("is greater " + lhsS.toString() + " " + rhsS.toString() + "\nFrom equation " + _eqLit->toString() + " side " + lhs.toString());
-      // }
-      TIME_TRACE("bw dem fail");
-      return BwSimplificationRecord(0);
-    }
-    // if (_ordering.compare(lhsS,rhsS)!=Ordering::GREATER) {
-    //   USER_ERROR("is not greater " + lhsS.toString() + " " + rhsS.toString() + "\nFrom equation " + _eqLit->toString() + " side " + lhs.toString());
-    // }
+    auto subs = qr.unifier;
+    ASS(subs->isIdentityOnResultWhenQueryBound());
 
-#ifdef PRECOMPILED
-    if(!qr.unifier->isIdentityOnResultWhenQueryBound()) {
-      //When we apply substitution to the rhs, we get a term, that is
-      //a variant of the term we'd like to get, as new variables are
-      //produced in the substitution application.
-      //We'd rather rename variables in the rhs, than in the whole clause
-      //that we're simplifying.
-      TermList lhsSBadVars=qr.unifier->applyToQuery(lhs);
-      TermList rhsSBadVars=qr.unifier->applyToQuery(rhs);
-      Renaming rNorm, qNorm, qDenorm;
-      rNorm.normalizeVariables(lhsSBadVars);
-      qNorm.normalizeVariables(lhsS);
-      qDenorm.makeInverse(qNorm);
-      ASS_EQ(lhsS,qDenorm.apply(rNorm.apply(lhsSBadVars)));
-      rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
-    } else {
-      rhsS=qr.unifier->applyToBoundQuery(rhs);
+    if (_precompiledComparison) {
+      if (!preordered && (_preorderedOnly || !_ordering.isGreater(_eqLit,lhs,subs.ptr(),false/*result*/))) {
+        return BwSimplificationRecord(0);
+      }
     }
-#endif
+
+    TermList lhsS=qr.term;
+    TermList rhsS=subs->applyToBoundQuery(rhs);
+
+    if (!_precompiledComparison) {
+      if (!preordered && (_preorderedOnly || _ordering.compare(lhsS,rhsS)!=Ordering::GREATER)) {
+        return BwSimplificationRecord(0);
+      }
+    }
 
     if(_redundancyCheck && qr.literal->isEquality() && (qr.term==*qr.literal->nthArgument(0) || qr.term==*qr.literal->nthArgument(1)) &&
       // encompassment has issues only with positive units
@@ -207,7 +167,7 @@ struct BackwardDemodulation::ResultFn
       Ordering::Result tord=_ordering.compare(rhsS, other);
       if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
         if (_encompassing) {
-          if (qr.unifier->isRenamingOn(lhs,false /* we talk of a non-result, i.e., a query term */)) {
+          if (subs->isRenamingOn(lhs,false /* we talk of a non-result, i.e., a query term */)) {
             // under _encompassing, we know there are no other literals in qr.clause
             return BwSimplificationRecord(0);
           }
@@ -268,8 +228,10 @@ private:
   Clause* _cl;
   SmartPtr<ClauseSet> _removed;
 
+  bool _preorderedOnly;
   bool _redundancyCheck;
   bool _encompassing;
+  bool _precompiledComparison;
 
   Ordering& _ordering;
 };

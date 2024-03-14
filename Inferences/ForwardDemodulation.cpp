@@ -57,9 +57,10 @@ void ForwardDemodulation::attach(SaturationAlgorithm* salg)
   _index=static_cast<DemodulationLHSIndex*>(
 	  _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) );
 
-  _preorderedOnly = getOptions().forwardDemodulation()== Options::Demodulation::PREORDERED;
-  _redundancyCheck = getOptions().demodulationRedundancyCheck() != Options::DemodulationRedunancyCheck::OFF;
-  _encompassing = getOptions().demodulationRedundancyCheck() == Options::DemodulationRedunancyCheck::ENCOMPASS;
+  _preorderedOnly = getOptions().forwardDemodulation() == Options::Demodulation::PREORDERED;
+  _redundancyCheck = getOptions().demodulationRedundancyCheck() != Options::DemodulationRedundancyCheck::OFF;
+  _encompassing = getOptions().demodulationRedundancyCheck() == Options::DemodulationRedundancyCheck::ENCOMPASS;
+  _precompiledComparison = getOptions().demodulationPrecompiledComparison();
 }
 
 void ForwardDemodulation::detach()
@@ -82,11 +83,6 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
   static DHSet<TermList> attempted;
   attempted.reset();
-  // static unsigned cacheTimestamp = 0;
-  // if (cacheTimestamp != _index->insertionTimestamp()) {
-  //   attempted.reset();
-  //   cacheTimestamp = _index->insertionTimestamp();
-  // }
 
   unsigned cLen=cl->length();
   for(unsigned li=0;li<cLen;li++) {
@@ -94,16 +90,11 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
     if (lit->isAnswerLiteral()) {
       continue;
     }
-    // typename std::conditional<!combinatorySupSupport,
-    //   NonVariableNonTypeIterator,
-    //   FirstOrderSubtermIt>::type it(lit);
-    // TracedNonVariableNonTypeIterator it(lit);
-    FTNonVariableNonTypeIterator it(lit);
+    typename std::conditional<!combinatorySupSupport,
+      NonVariableNonTypeIterator,
+      FirstOrderSubtermIt>::type it(lit);
     while(it.hasNext()) {
-      // TypedTermList trm = it.next();
-      auto p = it.next();
-      TypedTermList trm = p.first;
-      auto fte = p.second;
+      TypedTermList trm = it.next();
       if(!attempted.insert(trm)) {
         //We have already tried to demodulate the term @b trm and did not
         //succeed (otherwise we would have returned from the function).
@@ -122,15 +113,10 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         toplevelCheck &= lit->isPositive() && (cLen == 1);
       }
 
-      // if (toplevelCheck) {
-      //   attempted.remove(trm);
-      // }
-
-      TermQueryResultIterator git=_index->getGeneralizations(trm, true, fte);
+      TermQueryResultIterator git=_index->getGeneralizations(trm, true);
       while(git.hasNext()) {
         TermQueryResult qr=git.next();
         ASS_EQ(qr.clause->length(),1);
-        env.statistics->forwardDemodulationAttempts++;
 
         if(!ColorHelper::compatible(cl->color(), qr.clause->color())) {
           continue;
@@ -154,30 +140,6 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         }
 
         TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
-        TermList rhsS;
-        auto subs = qr.unifier;
-#define PRECOMPILED
-#ifndef PRECOMPILED
-        if(!subs->isIdentityOnQueryWhenResultBound()) {
-          //When we apply substitution to the rhs, we get a term, that is
-          //a variant of the term we'd like to get, as new variables are
-          //produced in the substitution application.
-          TermList lhsSBadVars = subs->applyToResult(qr.term);
-          TermList rhsSBadVars = subs->applyToResult(rhs);
-          Renaming rNorm, qNorm, qDenorm;
-          rNorm.normalizeVariables(lhsSBadVars);
-          qNorm.normalizeVariables(trm);
-          qDenorm.makeInverse(qNorm);
-          ASS_EQ(trm,qDenorm.apply(rNorm.apply(lhsSBadVars)));
-          rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
-        } else {
-          rhsS = subs->applyToBoundResult(rhs);
-        }
-        if(resultTermIsVar){
-          rhsS = subst.apply(rhsS, 0);
-        }
-#endif
-
         Ordering::Result argOrder = ordering.getEqualityArgumentOrder(qr.literal);
         bool preordered = argOrder==Ordering::LESS || argOrder==Ordering::GREATER;
   #if VDEBUG
@@ -190,20 +152,26 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           }
         }
   #endif
-        // if(!preordered && (_preorderedOnly || ordering.compare(trm,rhsS)!=Ordering::GREATER) ) {
-#ifdef PRECOMPILED
-        if(!preordered && (_preorderedOnly || !ordering.isGreater(qr.literal,qr.term,subs.ptr(),true/*result*/)) ) {
-#else
-        if(!preordered && (_preorderedOnly || !ordering.isGreater(trm,rhsS)) ) {
-#endif
-          // if (ordering.compare(trm,rhsS)==Ordering::GREATER) {
-          //   USER_ERROR("is greater " + trm.toString() + " " + rhsS.toString() + "\nFrom equation " + qr.literal->toString() + " side " + qr.term.toString());
-          // }
-          continue;
+
+        auto subs = qr.unifier;
+        ASS(subs->isIdentityOnQueryWhenResultBound());
+
+        if (_precompiledComparison) {
+          if (!preordered && (_preorderedOnly || !ordering.isGreater(qr.literal,qr.term,subs.ptr(),true/*result*/)) ) {
+            continue;
+          }
         }
-        // if (ordering.compare(trm,rhsS)!=Ordering::GREATER) {
-        //   USER_ERROR("is not greater " + trm.toString() + " " + rhsS.toString() + "\nFrom equation " + qr.literal->toString() + " side " + qr.term.toString());
-        // }
+
+        TermList rhsS = subs->applyToBoundResult(rhs);
+        if(resultTermIsVar){
+          rhsS = subst.apply(rhsS, 0);
+        }
+
+        if (!_precompiledComparison) {
+          if (!preordered && (_preorderedOnly || ordering.compare(trm,rhsS)!=Ordering::GREATER) ) {
+            continue;
+          }
+        }
 
         // encompassing demodulation is fine when rewriting the smaller guy
         if (toplevelCheck && _encompassing) {
@@ -216,27 +184,6 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
             toplevelCheck = false;
           }
         }
-
-#ifdef PRECOMPILED
-        if(!subs->isIdentityOnQueryWhenResultBound()) {
-          //When we apply substitution to the rhs, we get a term, that is
-          //a variant of the term we'd like to get, as new variables are
-          //produced in the substitution application.
-          TermList lhsSBadVars = subs->applyToResult(qr.term);
-          TermList rhsSBadVars = subs->applyToResult(rhs);
-          Renaming rNorm, qNorm, qDenorm;
-          rNorm.normalizeVariables(lhsSBadVars);
-          qNorm.normalizeVariables(trm);
-          qDenorm.makeInverse(qNorm);
-          ASS_EQ(trm,qDenorm.apply(rNorm.apply(lhsSBadVars)));
-          rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
-        } else {
-          rhsS = subs->applyToBoundResult(rhs);
-        }
-        if(resultTermIsVar){
-          rhsS = subst.apply(rhsS, 0);
-        }
-#endif
 
         if(toplevelCheck) {
           TermList other=EqHelper::getOtherEqualitySide(lit, trm);
@@ -276,10 +223,6 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         if(EqHelper::isEqTautology(resLit)) {
           env.statistics->forwardDemodulationsToEqTaut++;
           premises = pvi( getSingletonIterator(qr.clause));
-          // for (const auto& t : it.getTrace()) {
-          //   attempted.remove(TermList(t));
-          // }
-          // attempted.remove(trm);
           return true;
         }
 
@@ -300,10 +243,6 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
         premises = pvi( getSingletonIterator(qr.clause));
         replacement = res;
-        // for (const auto& t : it.getTrace()) {
-        //   attempted.remove(TermList(t));
-        // }
-        // attempted.remove(trm);
         return true;
       }
     }

@@ -24,7 +24,6 @@
 #include "Lib/DHMultiset.hpp"
 
 #include "Term.hpp"
-#include "FlatTerm.hpp"
 #include "SortHelper.hpp"
 #include "ApplicativeHelper.hpp"
 
@@ -672,88 +671,6 @@ private:
   /** the number of non-variable subterms added at the last iteration, used by right() */
   int _added;
 }; // NonVariableIterator
-
-class FTNonVariableNonTypeIterator
-  : public IteratorCore<std::pair<Term*,FlatTerm::Entry*>>
-{
-public:
-  FTNonVariableNonTypeIterator(Literal* lit)
-  : _stack(8), _added(0), _ft1(nullptr), _ft2(nullptr)
-  {
-    if (lit->isEquality()) {
-      if (lit->nthArgument(0)->isTerm()) {
-        _ft1 = FlatTerm::createUnexpanded(lit->nthArgument(0)->term());
-        _stack.push(std::make_pair(lit->nthArgument(0)->term(),_ft1->data()));
-      }
-      if (lit->nthArgument(1)->isTerm()) {
-        _ft2 = FlatTerm::createUnexpanded(lit->nthArgument(1)->term());
-        _stack.push(std::make_pair(lit->nthArgument(1)->term(),_ft2->data()));
-      }
-    } else {
-      _ft1 = FlatTerm::createUnexpanded(lit);
-      _stack.push(std::make_pair(lit,_ft1->data()));
-      FTNonVariableNonTypeIterator::next();
-    }
-  }
-
-  ~FTNonVariableNonTypeIterator()
-  {
-    if (_ft1) {
-      _ft1->destroy();
-      _ft1 = nullptr;
-    }
-    if (_ft2) {
-      _ft2->destroy();
-      _ft2 = nullptr;
-    }
-  }
-
-  /** true if there exists at least one subterm */
-  bool hasNext() { return !_stack.isEmpty(); }
-  std::pair<Term*,FlatTerm::Entry*> next();
-  void right();
-private:
-  /** available non-variable subterms */
-  Stack<std::pair<Term*,FlatTerm::Entry*>> _stack;
-  /** the number of non-variable subterms added at the last iteration, used by right() */
-  int _added;
-  FlatTerm* _ft1 = nullptr;
-  FlatTerm* _ft2 = nullptr;
-}; // FTNonVariableNonTypeIterator
-
-class TracedNonVariableNonTypeIterator
-  : public IteratorCore<Term*>
-{
-public:
-  TracedNonVariableNonTypeIterator(const TracedNonVariableNonTypeIterator&);
-  /**
-   * If @c includeSelf is false, then only proper subterms of @c term will be included.
-   */
-  TracedNonVariableNonTypeIterator(Literal* lit)
-  : _stack(8),
-    _ready(false)
-  {
-    for (unsigned i = 0; i <= 1; i++) {
-      auto t = lit->termArg(i);
-      if (t.isTerm()) {
-        _stack.push(std::make_pair(t.term(),0));
-      }
-    }
-    _ready = true;
-  }
-
-  /** true if there exists at least one subterm */
-  bool hasNext();
-  Term* next();
-  void right();
-  const Stack<Term*>& getTrace() const { return _trace; }
-private:
-  /** available non-variable subterms */
-  Stack<std::pair<Term*,unsigned>> _stack;
-  Stack<Term*> _trace;
-  /** the number of non-variable subterms added at the last iteration, used by right() */
-  bool _ready;
-}; // TracedNonVariableNonTypeIterator
 
 /**
  * Iterator that iterator over disagreement set of two terms

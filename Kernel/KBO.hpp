@@ -144,8 +144,7 @@ public:
       DArray<int> predLevels,
 
       // other
-      bool reverseLCM,
-      bool improvedGreater);
+      bool reverseLCM);
 
   static KBO testKBO();
 
@@ -178,7 +177,10 @@ public:
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
   bool isGreater(Literal* lit, TermList lhs, Indexing::ResultSubstitution* subst, bool result) const override;
-  bool isGreater(TermList tl1, TermList tl2) const override;
+
+  // exposed for unit testing
+  bool isGreater(TermList tl1, TermList tl2) const;
+
 protected:
   Result comparePredicates(Literal* l1, Literal* l2) const override;
 
@@ -205,7 +207,6 @@ private:
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
   KboWeightMap<PredSigTraits> _predWeights;
 #endif
-  bool _improvedGreater;
 
   template<class SigTraits> const KboWeightMap<SigTraits>& getWeightMap() const;
   template<class SigTraits> KboWeightMap<SigTraits> weightsFromOpts(const Options& opts, const DArray<int>& rawPrecedence) const;
