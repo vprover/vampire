@@ -2409,6 +2409,13 @@ Options::OptionProblemConstraintUP Options::isRandSat(){
  * @since 16/10/2003 Manchester, relativeName changed to string from char*
  * @since 07/08/2014 Manchester, relativeName changed to vstring
  */
+// TODO this behaviour isn't quite right, at least:
+// 1. we use the *root* file to resolve relative paths, which won't work if we have an axiom file that includes another
+// 2. checks current directory, which spec doesn't ask for
+// 3. checks our "-include" option, which isn't in the spec either (OK if someone relies on it, I guess)
+// cf https://tptp.org/TPTP/TR/TPTPTR.shtml#IncludeSection
+// probable solution: move all this logic into TPTP parser and do it properly there
+
 vstring Options::includeFileName (const vstring& relativeName)
 {
   if (relativeName[0] == '/') { // absolute name
