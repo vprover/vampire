@@ -42,25 +42,26 @@ namespace FunctionDefinitionRewritingTest {
   DECL_PRED(p, {s})
 
 auto setup = [](SaturationAlgorithm& salg) {
+  salg.getFunctionDefinitionHandler().initAndPreprocess(salg.getProblem());
+};
+
+ClauseStack fnDefContext() {
   __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
 
-  auto ul = UnitList::empty();
-  UnitList::push(clause({ def_s(f(b,y), y) }), ul);
-  UnitList::push(clause({ def_s(f(r(x),y), f(x,r(y))), x != b() }), ul);
-  UnitList::push(clause({ def_s(f(r(x),y), f(x,y)), x == r(b()) }), ul);
+  return {
+    clause({ def_s(f(b,y), y) }),
+    clause({ def_s(f(r(x),y), f(x,r(y))), x != b() }),
+    clause({ def_s(f(r(x),y), f(x,y)), x == r(b()) }),
 
-  UnitList::push(clause({ def_s(g(b()), f(b(),b())) }), ul);
-  UnitList::push(clause({ def_s(g(r(r(x))), f(r(x),g(x))), p(x), x != b() }), ul);
-
-  Problem prb;
-  prb.addUnits(ul);
-  salg.setFunctionDefinitionHandler(new Shell::FunctionDefinitionHandler());
-  salg.getFunctionDefinitionHandler()->preprocess(prb);
-};
+    clause({ def_s(g(b()), f(b(),b())) }),
+    clause({ def_s(g(r(r(x))), f(r(x),g(x))), p(x), x != b() }),
+  };
+}
 
 TEST_GENERATION(test_01,
     Generation::TestCase()
       .setup(setup)
+      .context(fnDefContext())
       .options({ { "function_definition_rewriting", "on"} })
       .input( clause({  b != f(b, y), p(x) }))
       .expected(exactly(
@@ -71,6 +72,7 @@ TEST_GENERATION(test_01,
 TEST_GENERATION(test_02,
     Generation::TestCase()
       .setup(setup)
+      .context(fnDefContext())
       .options({ { "function_definition_rewriting", "on"} })
       .input( clause({  g(b)   == g(r(x)), p(x) }))
       .expected(exactly(
@@ -82,6 +84,7 @@ TEST_GENERATION(test_02,
 TEST_GENERATION(test_03,
     Generation::TestCase()
       .setup(setup)
+      .context(fnDefContext())
       .options({ { "function_definition_rewriting", "on"} })
       .input( clause({  g(r(x)) == f(x, r(x)) }))
       .expected(none())
@@ -91,6 +94,7 @@ TEST_GENERATION(test_03,
 TEST_GENERATION(test_04,
     Generation::TestCase()
       .setup(setup)
+      .context(fnDefContext())
       .options({ { "function_definition_rewriting", "on"} })
       .input( clause({  f(r(b),f(b, y)) == f(y, r(y)) }))
       .expected({
@@ -104,6 +108,7 @@ TEST_GENERATION(test_04,
 TEST_GENERATION(test_05,
     Generation::TestCase()
       .setup(setup)
+      .context(fnDefContext())
       .options({ { "function_definition_rewriting", "on"} })
       .input( clause({  g(r(r(r(b))))      != b, g(b)   == b }))
       .expected({
@@ -116,6 +121,7 @@ TEST_GENERATION(test_05,
 TEST_GENERATION(test_06,
     Generation::TestCase()
       .setup(setup)
+      .context(fnDefContext())
       .options({ { "function_definition_rewriting", "on"} })
       .input( clause({  f(b,b) == b  }))
       .expected(none())

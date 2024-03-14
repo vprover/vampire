@@ -116,7 +116,7 @@ public:
   }                                                                                                           \
 
   BUILDER_METHOD(Clause*, input)
-  BUILDER_METHOD(Stack<Clause*>, context)
+  BUILDER_METHOD(ClauseStack, context)
   BUILDER_METHOD(Stack<ClausePattern>, expected)
   BUILDER_METHOD(bool, premiseRedundant)
   BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
@@ -131,9 +131,15 @@ public:
 
     // set up saturation algorithm
     auto container = PlainClauseContainer();
+
+    // init problem
     Problem p;
-    Options o;
+    auto ul = UnitList::empty();
+    UnitList::pushFromIterator(ClauseStack::Iterator(_context), ul);
+    p.addUnits(ul);
     env.setMainProblem(&p);
+
+    Options o;
     for (const auto& kv : _options) {
       o.set(kv.first, kv.second);
       env.options->set(kv.first, kv.second);

@@ -1130,28 +1130,29 @@ TEST_GENERATION_INDUCTION(test_33,
 //
 
 auto setup = [](SaturationAlgorithm& salg) {
+  salg.getFunctionDefinitionHandler().initAndPreprocess(salg.getProblem());
+};
+
+ClauseStack fnDefContext() {
   __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
 
-  auto ul = UnitList::empty();
-  UnitList::push(clause({ def_s(f(b,y),    y) }), ul);
-  UnitList::push(clause({ def_s(f(r(x),b), f(x,x)) }), ul);
-  UnitList::push(clause({ def_s(f(r(x),r(y)), h(f(x,g(y)),f(r(x),y))) }), ul);
+  return {
+    clause({ def_s(f(b,y),    y) }),
+    clause({ def_s(f(r(x),b), f(x,x)) }),
+    clause({ def_s(f(r(x),r(y)), h(f(x,g(y)),f(r(x),y))) }),
 
-  UnitList::push(clause({ def_s(h(b,y), y) }), ul);
-  UnitList::push(clause({ def_s(h(r(x),y), h(x,y)) }), ul);
+    clause({ def_s(h(b,y), y) }),
+    clause({ def_s(h(r(x),y), h(x,y)) }),
 
-  UnitList::push(clause({ def_p(b()) }), ul);
-  UnitList::push(clause({ ~def_p(r(r(x))), p(x), x != b() }), ul);
-
-  Problem prb;
-  prb.addUnits(ul);
-  salg.setFunctionDefinitionHandler(new Shell::FunctionDefinitionHandler());
-  salg.getFunctionDefinitionHandler()->preprocess(prb);
-};
+    clause({ def_p(b()) }),
+    clause({ ~def_p(r(r(x))), p(x), x != b() }),
+  };
+}
 
 TEST_GENERATION_INDUCTION(test_34,
     Generation::TestCase()
       .setup(setup)
+      .context(fnDefContext())
       .options({
         { "induction", "struct" },
         { "structural_induction_kind", "recursion" },
@@ -1167,6 +1168,7 @@ TEST_GENERATION_INDUCTION(test_34,
 TEST_GENERATION_INDUCTION(test_35,
     Generation::TestCase()
       .setup(setup)
+      .context(fnDefContext())
       .options({
         { "induction", "struct" },
         { "structural_induction_kind", "recursion" },
@@ -1188,6 +1190,7 @@ TEST_GENERATION_INDUCTION(test_35,
 TEST_GENERATION_INDUCTION(test_36,
     Generation::TestCase()
       .setup(setup)
+      .context(fnDefContext())
       .options({
         { "induction", "struct" },
         { "induction_on_active_occurrences", "on" },
@@ -1210,6 +1213,7 @@ TEST_GENERATION_INDUCTION(test_36,
 TEST_GENERATION_INDUCTION(test_37,
     Generation::TestCase()
       .setup(setup)
+      .context(fnDefContext())
       .options({
         { "induction", "struct" },
         { "induction_on_active_occurrences", "on" },

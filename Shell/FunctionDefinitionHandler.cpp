@@ -44,8 +44,12 @@ inline bool canBeUsedForRewriting(Term* lhs, Clause* cl)
   return true;
 }
 
-void FunctionDefinitionHandler::preprocess(Problem& prb)
+void FunctionDefinitionHandler::initAndPreprocess(Problem& prb)
 {
+  // reset state
+  _is = new CodeTreeTIS();
+  _templates.reset();
+
   UnitList::DelIterator it(prb.units());
   while (it.hasNext()) {
     auto u = it.next();
@@ -108,7 +112,7 @@ void FunctionDefinitionHandler::preprocess(Problem& prb)
         defCl->setSplits(SplitSet::getEmpty());
         defCl->incRefCnt();
         ASS_EQ(condLits.size()+1,lits.size());
-        _is.insert(lhs.term(), lits.top(), defCl);
+        _is->insert(lhs.term(), lits.top(), defCl);
         // TODO should we store this clause anywhere else?
       } else {
         it.replace(defCl);

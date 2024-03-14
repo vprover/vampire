@@ -703,7 +703,7 @@ unsigned Signature::getFnDef(unsigned fn)
   auto sort = type->result();
   bool added = false;
   auto name = "$def_"+getFunction(fn)->name();
-  unsigned p = addPredicate(name, 2, added);
+  unsigned p = addPredicate(name, 2+type->numTypeArguments(), added);
   if (added) {
     ALWAYS(_fnDefPreds.insert(p));
     OperatorType* ot = OperatorType::getPredicateType({sort, sort}, type->numTypeArguments());

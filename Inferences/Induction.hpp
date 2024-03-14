@@ -58,7 +58,7 @@ class ActiveOccurrenceIterator
   : public IteratorCore<Term*>
 {
 public:
-  ActiveOccurrenceIterator(Term* term, FunctionDefinitionHandler* fnDefHandler)
+  ActiveOccurrenceIterator(Term* term, FunctionDefinitionHandler& fnDefHandler)
   : _stack(8), _fnDefHandler(fnDefHandler)
   {
     _stack.push(term);
@@ -70,7 +70,7 @@ public:
   Term* next() override;
 private:
   Stack<Term*> _stack;
-  FunctionDefinitionHandler* _fnDefHandler;
+  FunctionDefinitionHandler& _fnDefHandler;
 };
 
 /**
@@ -212,7 +212,7 @@ protected:
 class ActiveOccurrenceContextReplacement
   : public ContextReplacement {
 public:
-  ActiveOccurrenceContextReplacement(const InductionContext& context, FunctionDefinitionHandler* fnDefHandler);
+  ActiveOccurrenceContextReplacement(const InductionContext& context, FunctionDefinitionHandler& fnDefHandler);
   InductionContext next() override;
   bool hasNonActive() const { return _hasNonActive; }
 
@@ -220,7 +220,7 @@ protected:
   TermList transformSubterm(TermList trm) override;
 
 private:
-  FunctionDefinitionHandler* _fnDefHandler;
+  FunctionDefinitionHandler& _fnDefHandler;
   vvector<unsigned> _iteration;
   vvector<unsigned> _matchCount;
   bool _hasNonActive;
@@ -353,7 +353,7 @@ private:
   const Options& _opt;
   TermIndex* _structInductionTermIndex;
   InductionFormulaIndex& _formulaIndex;
-  FunctionDefinitionHandler* _fnDefHandler;
+  FunctionDefinitionHandler& _fnDefHandler;
 };
 
 };

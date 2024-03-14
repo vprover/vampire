@@ -49,8 +49,7 @@ using namespace Lib;
 Term* ActiveOccurrenceIterator::next()
 {
   Term* t = _stack.pop();
-  InductionTemplate* templ = _fnDefHandler ?
-    _fnDefHandler->getInductionTemplate(t) : nullptr;
+  InductionTemplate* templ = _fnDefHandler.getInductionTemplate(t);
   if (templ) {
     // if there is an induction template,
     // only induct on the active occurrences
@@ -218,7 +217,7 @@ InductionContext ContextReplacement::next()
 }
 
 ActiveOccurrenceContextReplacement::ActiveOccurrenceContextReplacement(
-  const InductionContext& context, FunctionDefinitionHandler* fnDefHandler)
+  const InductionContext& context, FunctionDefinitionHandler& fnDefHandler)
   : ContextReplacement(context),
     _fnDefHandler(fnDefHandler),
     _iteration(_context._indTerms.size(),0),
@@ -257,7 +256,7 @@ InductionContext ActiveOccurrenceContextReplacement::next()
         auto kv = stack.pop();
         auto t = kv.first;
         auto active = kv.second;
-        auto templ = _fnDefHandler->getInductionTemplate(t);
+        auto templ = _fnDefHandler.getInductionTemplate(t);
         for (unsigned k = 0; k < t->arity(); k++) {
           stack.push(make_pair(t->nthArgument(k)->term(),
             active && templ ? templ->inductionPositions()[k] : active));
@@ -282,7 +281,7 @@ InductionContext ActiveOccurrenceContextReplacement::next()
   return context;
 }
 
-VirtualIterator<InductionContext> contextReplacementInstance(const InductionContext& context, const Options& opt, FunctionDefinitionHandler* fnDefHandler)
+VirtualIterator<InductionContext> contextReplacementInstance(const InductionContext& context, const Options& opt, FunctionDefinitionHandler& fnDefHandler)
 {
   auto ctx = context;
   auto res = VirtualIterator<InductionContext>::getEmpty();
@@ -585,8 +584,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       Set<Term*,SharedTermHash> int_terms;
       vmap<vvector<Term*>,vset<pair<const InductionTemplate*,vvector<Term*>>>> ta_terms;
 
-      auto templ = _fnDefHandler ?
-        _fnDefHandler->getInductionTemplate(lit) : nullptr;
+      auto templ = _fnDefHandler.getInductionTemplate(lit);
       if (templ) {
         vvector<Term*> indTerms;
         if (templ->matchesTerm(lit, indTerms)) {
@@ -626,8 +624,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
             int_terms.insert(t);
           }
         }
-        auto templ = _fnDefHandler ?
-          _fnDefHandler->getInductionTemplate(t) : nullptr;
+        auto templ = _fnDefHandler.getInductionTemplate(t);
         if (templ) {
           vvector<Term*> indTerms;
           if (templ->matchesTerm(t, indTerms)) {

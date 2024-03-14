@@ -46,7 +46,7 @@ Kernel::ClauseIterator FunctionDefinitionRewriting::generateClauses(Clause *prem
     })
     .flatMap([this](std::pair<Literal*, Term*> arg){
       return pvi(pushPairIntoRightIterator(arg,
-        GeneratingInferenceEngine::_salg->getFunctionDefinitionHandler()->getGeneralizations(arg.second)));
+        GeneratingInferenceEngine::_salg->getFunctionDefinitionHandler().getGeneralizations(arg.second)));
     })
     .map([premise](std::pair<std::pair<Literal*, Term*>, TermQueryResult> arg) {
       TermQueryResult &qr = arg.second;
@@ -81,7 +81,7 @@ bool FunctionDefinitionRewriting::perform(Clause* cl, Clause*& replacement, Clau
       bool toplevelCheck = salg->getOptions().demodulationRedundancyCheck()!=Options::DemodulationRedunancyCheck::OFF &&
         lit->isEquality() && (trm==*lit->nthArgument(0) || trm==*lit->nthArgument(1));
 
-      auto git = salg->getFunctionDefinitionHandler()->getGeneralizations(trm);
+      auto git = salg->getFunctionDefinitionHandler().getGeneralizations(trm);
       while (git.hasNext()) {
         TermQueryResult qr = git.next();
         if (qr.clause->length() != 1) {

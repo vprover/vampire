@@ -79,13 +79,12 @@ public:
 
   void addEliminatedFunction(unsigned func, Literal* definition);
   void addEliminatedPredicate(unsigned pred, Unit* definition);
-  void addPartiallyEliminatedPredicate(unsigned pred, Unit* definition); 
-  void addFunctionDefinitionHandler(FunctionDefinitionHandler* handler);
+  void addPartiallyEliminatedPredicate(unsigned pred, Unit* definition);
  
   DHMap<unsigned,Literal*> getEliminatedFunctions(){ return _deletedFunctions; }
   DHMap<unsigned,Unit*> getEliminatedPredicates(){ return _deletedPredicates; }
   DHMap<unsigned,Unit*> getPartiallyEliminatedPredicates(){ return _partiallyDeletedPredicates;}
-  FunctionDefinitionHandler* getFunctionDefinitionHandler(){ return _fnDefHandler.ptr(); }
+  FunctionDefinitionHandler& getFunctionDefinitionHandler(){ return *_fnDefHandler; }
   
 
   bool isPropertyUpToDate() const { return _propertyValid; }

@@ -82,12 +82,13 @@ class FunctionDefinitionHandler
 public:
   USE_ALLOCATOR(FunctionDefinitionHandler);
 
-  void preprocess(Problem& prb);
+  /* has to be called before using other functionality of the handler */
+  void initAndPreprocess(Problem& prb);
   void addFunctionBranch(Term* header, TermList body);
   void addPredicateBranch(Literal* header, const LiteralStack& conditions);
 
   TermQueryResultIterator getGeneralizations(TypedTermList t) {
-    return _is.getGeneralizations(t, true);
+    return _is->getGeneralizations(t, true);
   }
 
   InductionTemplate* getInductionTemplate(Term* t) {
@@ -97,7 +98,7 @@ public:
   }
 
 private:
-  CodeTreeTIS _is;
+  ScopedPtr<CodeTreeTIS> _is;
   DHMap<std::pair<unsigned, SymbolType>, InductionTemplate> _templates;
 };
 
