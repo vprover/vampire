@@ -2355,10 +2355,8 @@ void Options::set(const char* name,const char* value, bool longOpt)
         break;
       case IgnoreMissing::WARN:
         if (outputAllowed()) {
-          env.beginOutput();
-          addCommentSignForSZS(env.out());
-          env.out() << "WARNING: invalid value "<< value << " for option " << name << endl;
-          env.endOutput();
+          addCommentSignForSZS(std::cout);
+          std::cout << "WARNING: invalid value "<< value << " for option " << name << endl;
         }
         break;
       case IgnoreMissing::ON:
@@ -2371,10 +2369,8 @@ void Options::set(const char* name,const char* value, bool longOpt)
       vstring msg = (vstring)name + (longOpt ? " is not a valid option" : " is not a valid short option (did you mean --?)");
       if (_ignoreMissing.actualValue == IgnoreMissing::WARN) {
         if (outputAllowed()) {
-          env.beginOutput();
-          addCommentSignForSZS(env.out());
-          env.out() << "WARNING: " << msg << endl;
-          env.endOutput();
+          addCommentSignForSZS(std::cout);
+          std::cout << "WARNING: " << msg << endl;
         }
         return;
       } // else:
@@ -2437,6 +2433,13 @@ Options::OptionProblemConstraintUP Options::isRandSat(){
  * @since 16/10/2003 Manchester, relativeName changed to string from char*
  * @since 07/08/2014 Manchester, relativeName changed to vstring
  */
+// TODO this behaviour isn't quite right, at least:
+// 1. we use the *root* file to resolve relative paths, which won't work if we have an axiom file that includes another
+// 2. checks current directory, which spec doesn't ask for
+// 3. checks our "-include" option, which isn't in the spec either (OK if someone relies on it, I guess)
+// cf https://tptp.org/TPTP/TR/TPTPTR.shtml#IncludeSection
+// probable solution: move all this logic into TPTP parser and do it properly there
+
 vstring Options::includeFileName (const vstring& relativeName)
 {
   if (relativeName[0] == '/') { // absolute name
@@ -3175,10 +3178,8 @@ void Options::readOptionsString(vstring optionsString,bool assign)
                 break;
               case IgnoreMissing::WARN:
                 if (outputAllowed()) {
-                  env.beginOutput();
-                  addCommentSignForSZS(env.out());
-                  env.out() << "WARNING: value " << value << " for option "<< param <<" not known" << endl;
-                  env.endOutput();
+                  addCommentSignForSZS(std::cout);
+                  std::cout << "WARNING: value " << value << " for option "<< param <<" not known" << endl;
                 }
                 break;
               case IgnoreMissing::ON:
@@ -3199,12 +3200,9 @@ void Options::readOptionsString(vstring optionsString,bool assign)
         USER_ERROR("option "+param+" not known");
         break;
       case IgnoreMissing::WARN:
-        env.beginOutput();
         if (outputAllowed()) {
-          env.beginOutput();
-          addCommentSignForSZS(env.out());
-          env.out() << "WARNING: option "<< param << " not known." << endl;
-          env.endOutput();
+          addCommentSignForSZS(std::cout);
+          std::cout << "WARNING: option "<< param << " not known." << endl;
         }
         break;
       case IgnoreMissing::ON:
@@ -3490,7 +3488,6 @@ bool Options::checkGlobalOptionConstraints(bool fail_early)
   return result;
 }
 
-//TODO should not use cout, should use env.out
 template <typename T>
 bool Options::OptionValue<T>::checkConstraints()
 {

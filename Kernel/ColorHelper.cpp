@@ -220,9 +220,7 @@ void ColorHelper::tryUnblock(Clause* c, SaturationAlgorithm* salg)
     Clause* unblocked = skolemizeColoredTerms(c);
     if (unblocked) {
       if (env.options->showBlocked()) {
-	env.beginOutput();
-	env.out()<<"Unblocking clause "<<unblocked->toString()<<endl;
-	env.endOutput();
+        cout<<"Unblocking clause "<<unblocked->toString()<<endl;
       }
       salg->addNewClause(unblocked);
     }

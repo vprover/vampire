@@ -641,12 +641,11 @@ isRedundant:
         replacement = newCl;
 
 #if BSD_LOG_INFERENCES
-        env.beginOutput();
-        env.out() << "\% Begin Inference \"BSD-" << newCl->number() << "\"\n";
-        env.out() << "\% eqLit: " << eqLit->toString() << "\n";
-        env.out() << "\% eqLitS: " << binder.applyTo(eqLit)->toString() << "\n";
-        env.out() << "\% dlit: " << dlit->toString() << "\n";
-        // env.out() << "\% numMatches+1: success at match #" << (numMatches+1) << "\n";
+        std::cout << "\% Begin Inference \"BSD-" << newCl->number() << "\"\n";
+        std::cout << "\% eqLit: " << eqLit->toString() << "\n";
+        std::cout << "\% eqLitS: " << binder.applyTo(eqLit)->toString() << "\n";
+        std::cout << "\% dlit: " << dlit->toString() << "\n";
+        // std::cout << "\% numMatches+1: success at match #" << (numMatches+1) << "\n";
         TPTPPrinter tptp;
         // NOTE: do not output the splitLevels here, because those will be set for newCl only later
         tptp.printWithRole("side_premise", "hypothesis", sideCl, false);
@@ -658,8 +657,7 @@ isRedundant:
         //       Problem: how to detect that situation??
         //       probably if the input only contains FOF and no TFF
         // TODO: Also don't output type defs for $$false and $$true, see problem SYO091^5.p
-        env.out() << "\% End Inference \"BSD-" << newCl->number() << "\"" << std::endl;
-        env.endOutput();
+        std::cout << "\% End Inference \"BSD-" << newCl->number() << "\"" << std::endl;
 #endif
 
 #if VDEBUG && BSD_VDEBUG_REDUNDANCY_ASSERTIONS

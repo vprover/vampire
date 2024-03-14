@@ -55,11 +55,6 @@ public:
 
   DHMap<const Kernel::Unit*,vstring>* proofExtra; // maps Unit* pointers to the associated proof extra string, if available
 
-  bool haveOutput();
-  void beginOutput();
-  void endOutput();
-  std::ostream& out();
-
   bool timeLimitReached() const;
 
   template<int Period>
@@ -91,7 +86,6 @@ public:
   void setMainProblem(Kernel::Problem* p) { _problem = p; }
 
 private:
-  int _outputDepth;
   Kernel::Problem* _problem;
 }; // class Environment
 

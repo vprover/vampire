@@ -356,10 +356,8 @@ ClauseIterator SaturationAlgorithm::activeClauses()
 void SaturationAlgorithm::onActiveAdded(Clause* c)
 {
   if (env.options->showActive()) {
-    env.beginOutput();    
-    env.out() << "[SA] active: " << c->toString() << std::endl;
-    env.endOutput();             
-  }          
+    std::cout << "[SA] active: " << c->toString() << std::endl;
+  }
 }
 
 /**
@@ -395,11 +393,9 @@ void SaturationAlgorithm::onAllProcessed()
 void SaturationAlgorithm::onPassiveAdded(Clause* c)
 {
   if (env.options->showPassive()) {
-    env.beginOutput();
-    env.out() << "[SA] passive: " << c->toString() << std::endl;
-    env.endOutput();
+    std::cout << "[SA] passive: " << c->toString() << std::endl;
   }
-  
+
   //when a clause is added to the passive container,
   //we know it is not redundant
   onNonRedundantClause(c);
@@ -460,9 +456,7 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
   }
 
   if (env.options->showNew()) {
-    env.beginOutput();
-    env.out() << "[SA] new: " << cl->toString() << std::endl;
-    env.endOutput();
+    std::cout << "[SA] new: " << cl->toString() << std::endl;
   }
 
   if (cl->isPropositional()) {
@@ -479,9 +473,7 @@ void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
   ASS(c->isPropositional());
   
   if (env.options->showNewPropositional()) {
-    env.beginOutput();
-    env.out() << "[SA] new propositional: " << c->toString() << std::endl;
-    env.endOutput();
+    std::cout << "[SA] new propositional: " << c->toString() << std::endl;
   }
 
   if (_consFinder) {
@@ -534,19 +526,17 @@ void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause** replacements, u
   Clause* replacement = numOfReplacements ? *replacements : 0;
 
   if (env.options->showReductions()) {
-    env.beginOutput();
-    env.out() << "[SA] " << (forward ? "forward" : "backward") << " reduce: " << cl->toString() << endl;
+    std::cout << "[SA] " << (forward ? "forward" : "backward") << " reduce: " << cl->toString() << endl;
     for(unsigned i = 0; i < numOfReplacements; i++){
       Clause* replacement = *replacements;
-      if(replacement){ env.out() << "      replaced by " << replacement->toString() << endl; }
+      if(replacement){ std::cout << "      replaced by " << replacement->toString() << endl; }
       replacements++;
     }
     ClauseStack::Iterator pit(premStack);
     while(pit.hasNext()){
       Clause* premise = pit.next();
-      if(premise){ env.out() << "     using " << premise->toString() << endl; }
+      if(premise){ std::cout << "     using " << premise->toString() << endl; }
     }
-    env.endOutput();
   }
 
   if (_splitter) {

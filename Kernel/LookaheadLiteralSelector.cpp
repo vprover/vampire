@@ -62,9 +62,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
       static bool errAnnounced = false;
       if(!errAnnounced) {
 	errAnnounced = true;
-	env.beginOutput();
-	env.out()<<"Using LookaheadLiteralSelector without having an SaturationAlgorithm object\n";
-	env.endOutput();
+  std::cout<<"Using LookaheadLiteralSelector without having an SaturationAlgorithm object\n";
       }
       //we are too early, there's no saturation algorithm and therefore no generating inferences
       prepared=false;

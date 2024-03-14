@@ -44,7 +44,6 @@ Environment::Environment()
     maxSineLevel(1),
     predicateSineLevels(nullptr),
     colorUsed(false),
-    _outputDepth(0),
     _problem(0)
 {
   options = new Options;
@@ -73,14 +72,6 @@ Environment::Environment()
 Environment::~Environment()
 {
   Timer::setLimitEnforcement(false);
-
-  //in the usual cases the _outputDepth should be zero at this point, but in case of
-  //thrown exceptions this might not be true.
-//  ASS_EQ(_outputDepth,0);
-
-  while(_outputDepth!=0) {
-    endOutput();
-  }
 
 // #if CHECK_LEAKS
   delete sharing;
@@ -117,51 +108,6 @@ int Environment::remainingTime() const
     return 3600000;
   }
   return options->timeLimitInDeciseconds()*100 - timer->elapsedMilliseconds();
-}
-
-/**
- * Acquire an output stream
- *
- * A process cannot hold an output stream during forking.
- */
-void Environment::beginOutput()
-{
-  ASS_GE(_outputDepth,0);
-
-  _outputDepth++;
-}
-
-/**
- * Release the output stream
- */
-void Environment::endOutput()
-{
-  ASS_G(_outputDepth,0);
-
-  _outputDepth--;
-  if(_outputDepth==0) {
-    cout.flush();
-  }
-}
-
-/**
- * Return true if we have an output stream acquired
- */
-bool Environment::haveOutput()
-{
-  return _outputDepth;
-}
-
-/**
- * Return the output stream if we have it acquired
- *
- * Process must have an output stream acquired in order to call
- * this function.
- */
-ostream& Environment::out()
-{
-  ASS(_outputDepth);
-  return cout;
 }
 
 // global environment object, constructed before main() and used everywhere

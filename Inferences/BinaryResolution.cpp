@@ -124,9 +124,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   if(!ColorHelper::compatible(queryCl->color(),resultCl->color()) ) {
     env.statistics->inferencesSkippedDueToColors++;
     if(opts.showBlocked()) {
-      env.beginOutput();
-      env.out() << "Blocked resolution of " << *queryCl << " and " << * resultCl << endl;
-      env.endOutput();
+      std::cout << "Blocked resolution of " << *queryCl << " and " << * resultCl << endl;
     }
     if(opts.colorUnblocking()) {
       SaturationAlgorithm* salg = SaturationAlgorithm::tryGetInstance();

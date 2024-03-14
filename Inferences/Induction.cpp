@@ -575,9 +575,7 @@ private:
 void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
 {
   if(_opt.showInduction()){
-    env.beginOutput();
-    env.out() << "[Induction] process " << lit->toString() << " in " << premise->toString() << endl;
-    env.endOutput();
+    std::cout << "[Induction] process " << lit->toString() << " in " << premise->toString() << endl;
   }
 
   if (lit->ground()) {
@@ -859,9 +857,7 @@ ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, Inferen
   inf.setInductionDepth(maxInductionDepth+1);
   FormulaUnit* fu = new FormulaUnit(hypothesis,inf);
   if(_opt.showInduction()){
-    env.beginOutput();
-    env.out() << "[Induction] formula " << fu->toString() << endl;
-    env.endOutput();
+    std::cout << "[Induction] formula " << fu->toString() << endl;
   }
   cnf.clausify(NNF::ennf(fu), hyp_clauses);
 
@@ -1146,9 +1142,7 @@ void InductionClauseIterator::resolveClauses(const ClauseStack& cls, const Induc
     IntUnionFind::ElementIterator eIt = cit.next();
     _clauses.push(resolveClausesHelper(context, cls, eIt, subst, generalized, applySubst));
     if(_opt.showInduction()){
-      env.beginOutput();
-      env.out() << "[Induction] generate " << _clauses.top()->toString() << endl;
-      env.endOutput();
+      std::cout << "[Induction] generate " << _clauses.top()->toString() << endl;
     }
   }
 }

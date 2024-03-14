@@ -132,9 +132,7 @@ void FunctionDefinitionHandler::initAndPreprocess(Problem& prb)
       continue;
     }
     if (env.options->showInduction()) {
-      env.beginOutput();
-      env.out() << "[Induction] added induction template: " << ptr->toString() << endl;
-      env.endOutput();
+      cout << "[Induction] added induction template: " << ptr->toString() << endl;
     }
   }
 }
@@ -197,8 +195,7 @@ void InductionTemplate::checkWellDefinedness()
 
   if (!missingCases.empty()) {
     if (env.options->showInduction()) {
-      env.beginOutput();
-      env.out() << "% Warning: adding missing cases to template " << toString();
+      cout << "% Warning: adding missing cases to template " << toString();
     }
     for (const auto& m : missingCases) {
       Stack<TermList> args;
@@ -215,8 +212,7 @@ void InductionTemplate::checkWellDefinedness()
       addBranch(vvector<Term*>(), Renaming::normalize(t));
     }
     if (env.options->showInduction()) {
-      env.out() << ". New template is " << toString() << endl;
-      env.endOutput();
+      cout << ". New template is " << toString() << endl;
     }
   }
 }
