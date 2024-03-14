@@ -638,15 +638,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   if (env.statistics->terminationReason == Statistics::REFUTATION ||
       env.statistics->terminationReason == Statistics::SATISFIABLE) {
     resultValue=0;
-
-    /*
-     env.beginOutput();
-     lineOutput() << " found solution " << endl;
-     env.endOutput();
-    */
   }
-
-  System::ignoreSIGHUP(); // don't interrupt now, we need to finish printing the proof !
 
   bool outputResult = false;
   if (!resultValue) {

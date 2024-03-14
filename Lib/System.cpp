@@ -46,7 +46,6 @@ namespace Lib {
 
 using namespace std;
 
-bool System::s_shouldIgnoreSIGHUP = false;
 const char* System::s_argv0 = 0;
 
 const char* signalToString (int sigNum)
@@ -134,9 +133,6 @@ void handleSignal (int sigNum)
 //      return;
 
     case SIGHUP:
-      if(System::shouldIgnoreSIGHUP()) {
-  return;
-      }
     case SIGILL:
     case SIGFPE:
     case SIGSEGV:
