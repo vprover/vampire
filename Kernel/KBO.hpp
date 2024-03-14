@@ -198,6 +198,8 @@ protected:
   friend struct WeightCompInstruction;
 
 private:
+  template<bool result>
+  bool isGreater(Literal* lit, TermList lhs, Indexing::ResultSubstitution* subst) const;
 
   KboWeightMap<FuncSigTraits> _funcWeights;
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__

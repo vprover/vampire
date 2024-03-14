@@ -1195,18 +1195,25 @@ int KBO::computeWeight(Stack<Instruction>* ptr, unsigned index, Indexing::Result
 
 bool KBO::isGreater(Literal* lit, TermList lhs, Indexing::ResultSubstitution* subst, bool result) const
 {
+  return result ? isGreater<true>(lit, lhs, subst) : isGreater<false>(lit, lhs, subst);
+}
+
+// TODO template<bool result> all the things?
+template<bool result>
+bool KBO::isGreater(Literal* lit, TermList lhs, Indexing::ResultSubstitution* subst) const
+{
   // TIME_TRACE("KBO::isGreaterPrecompiled");
   auto ptr = preprocessEquation(lit, lhs);
   // output(ptr);
   ASS(ptr);
   for (unsigned i = 0; i < ptr->size();) {
-    const auto& tag = (*ptr)[i];
+    Instruction tag = (*ptr)[i];
     switch (tag._data._tag) {
       case InstructionTag::WEIGHT: {
         // checks vars
         auto arity = (*ptr)[i+2]._data._v;
-        static DHMap<unsigned,int> varDiffs;
-        varDiffs.reset();
+        ZIArray<int> varDiffs;
+        unsigned maxv = 0;
         for (unsigned j = i+3; j < i+3+arity*2; j+=2) {
           auto var = (*ptr)[j]._data._v;
           auto coeff = (*ptr)[j+1]._data._w;
@@ -1214,20 +1221,13 @@ bool KBO::isGreater(Literal* lit, TermList lhs, Indexing::ResultSubstitution* su
           VariableIterator vit(result ? subst->applyToBoundResult(var) : subst->applyToBoundQuery(var));
           while (vit.hasNext()) {
             auto v = vit.next();
-            int* ptr;
-            varDiffs.getValuePtr(v.var(),ptr,0);
-            *ptr += coeff;
+            varDiffs[v.var()] += coeff;
+            maxv = std::max(v.var() + 1, maxv);
           }
         }
-        DHMap<unsigned,int>::Iterator vdit(varDiffs);
-        while (vdit.hasNext()) {
-          unsigned v;
-          int cnt;
-          vdit.next(v,cnt);
-          if (cnt<0) {
+        for(unsigned v = 0; v < maxv; v++)
+          if(varDiffs[v] < 0)
             return false;
-          }
-        }
 
         // check weight
         auto res = computeWeight(ptr, i+1, subst, result);
