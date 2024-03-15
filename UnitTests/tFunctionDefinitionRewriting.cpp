@@ -58,6 +58,13 @@ ClauseStack fnDefContext() {
   };
 }
 
+TEST_GENERATION(test_00,
+    Generation::TestCase()
+      .options({ { "function_definition_rewriting", "on"} })
+      .input( clause({  b != f(b, y), p(x) }))
+      .expected(none())
+    )
+
 TEST_GENERATION(test_01,
     Generation::TestCase()
       .setup(setup)
