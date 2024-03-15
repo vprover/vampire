@@ -38,6 +38,7 @@
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
 #include "Indexing/TermSharing.hpp"
+#include "Indexing/SubstitutionCoverTree.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -366,7 +367,8 @@ Clause* Superposition::performSuperposition(
   //cout << "Check ordering on " << tgtTermS.toString() << " and " << rwTermS.toString() << endl;
 
   //check that we're not rewriting smaller subterm with larger
-  if(Ordering::isGorGEorE(ordering.compare(tgtTermS,rwTermS))) {
+  auto comp = ordering.compare(tgtTermS,rwTermS);
+  if(Ordering::isGorGEorE(comp)) {
     return 0;
   }
 
@@ -393,6 +395,21 @@ Clause* Superposition::performSuperposition(
   //check we don't create an equational tautology (this happens during self-superposition)
   if(EqHelper::isEqTautology(tgtLitS)) {
     return 0;
+  }
+
+  if (getOptions().skipCoveredSuperpositions()) {
+    auto doInsert = comp == Ordering::LESS && eqClause->size()==1 &&
+      (!rwLitS->isEquality() || (rwLitS->termArg(0)!=rwTermS && rwLitS->termArg(1)!=rwTermS));
+
+    auto rwSupData = static_cast<SubstitutionCoverTree*>(rwClause->getSupData());
+    if (!rwSupData) {
+      rwSupData = new SubstitutionCoverTree(rwClause);
+      rwClause->setSupData(rwSupData);
+    }
+    if (!rwSupData->checkAndInsert(subst.ptr(), !eqIsResult, doInsert)) {
+      env.statistics->skippedSuperposition++;
+      return 0;
+    }
   }
 
   Recycled<Stack<Literal*>> res;

@@ -330,6 +330,16 @@ public:
 #endif
   }
 
+  void* getSupData()
+  {
+    return _supData;
+  }
+
+  void setSupData(void* supData)
+  {
+    _supData = supData;
+  }
+
   unsigned splitWeight() const;
   unsigned getNumeralWeight() const;
 
@@ -385,6 +395,7 @@ protected:
 
   size_t _auxTimestamp;
   void* _auxData;
+  void* _supData;
 
   static size_t _auxCurrTimestamp;
 #if VDEBUG

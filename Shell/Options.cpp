@@ -1660,6 +1660,13 @@ void Options::init()
     _equationalTautologyRemoval.onlyUsefulWith(ProperSaturationAlgorithm());
     _equationalTautologyRemoval.tag(OptionTag::INFERENCES);
 
+    _skipCoveredSuperpositions = BoolOptionValue("skip_covered_superpositions","scs",false);
+    _skipCoveredSuperpositions.description=
+    "Skip superpositions where a demodulation has been done on some generalization of the superposed into instance.";
+    _lookup.insert(&_skipCoveredSuperpositions);
+    _skipCoveredSuperpositions.onlyUsefulWith(ProperSaturationAlgorithm());
+    _skipCoveredSuperpositions.tag(OptionTag::INFERENCES);
+
     _unitResultingResolution = ChoiceOptionValue<URResolution>("unit_resulting_resolution","urr",URResolution::OFF,{"ec_only","off","on","full"});
     _unitResultingResolution.description=
     "Uses unit resulting resolution only to derive empty clauses (may be useful for splitting)."

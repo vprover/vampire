@@ -357,6 +357,7 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/LiteralMiniIndex.cpp
     Indexing/LiteralSubstitutionTree.cpp
     Indexing/ResultSubstitution.cpp
+    Indexing/SubstitutionCoverTree.cpp
     Indexing/SubstitutionTree.cpp
     Indexing/SubstitutionTree_FastGen.cpp
     Indexing/SubstitutionTree_FastInst.cpp
@@ -379,6 +380,7 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/LiteralMiniIndex.hpp
     Indexing/LiteralSubstitutionTree.hpp
     Indexing/ResultSubstitution.hpp
+    Indexing/SubstitutionCoverTree.hpp
     Indexing/SubstitutionTree.hpp
     Indexing/TermCodeTree.hpp
     Indexing/TermIndex.hpp
