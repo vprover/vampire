@@ -388,7 +388,7 @@ ind!=none > indao ~cat off:3,on:1
 # structural_induction_kind
 > $recursionOK ~cat 0:1
 newcnf=on erd=on > $recursionOK ~cat 1:1
-ind!=none ind!=int $recursionOK=0 > sik ~cat one:5,two:1,three:1,all:1
+ind!=none ind!=int $recursionOK=0 > sik ~cat one:5,two:1,three:1
 ind!=none ind!=int $recursionOK=1 > sik ~cat one:5,two:1,three:1,recursion:2,all:1
 
 # below integer induction only
