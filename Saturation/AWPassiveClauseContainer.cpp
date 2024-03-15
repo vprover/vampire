@@ -37,6 +37,8 @@
 
 #include "AWPassiveClauseContainer.hpp"
 
+#include <torch/utils.h>
+
 namespace Saturation
 {
 using namespace std;

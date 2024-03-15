@@ -17,8 +17,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
   add_compile_options(-Wall)
   # we don't use multithreading in (mainline!) Vampire
   add_compile_options(-fno-threadsafe-statics)
-  # ...or RTTI
-  add_compile_options(-fno-rtti)
   # enable standards-compliant standard library with sized operator delete
   add_compile_options(-fsized-deallocation)
 endif()
@@ -813,6 +811,14 @@ add_compile_definitions(VTIME_PROFILING=0)
 if (CYGWIN)
  add_compile_definitions(_BSD_SOURCE)
 endif()
+
+################################################################
+# pytorch stuff
+################################################################
+
+find_package(Torch REQUIRED)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
+link_libraries("${TORCH_LIBRARIES}")
 
 ################################################################
 # z3 stuff
