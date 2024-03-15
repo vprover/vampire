@@ -10,6 +10,12 @@
 /**
  * @file FunctionDefinitionRewriting.hpp
  * Defines class FunctionDefinitionRewriting.
+ * It expands defined terms into their definition bodies, trying to
+ * preserve the intended meaning of the definition. For example, if
+ * a definition f(x) = if !C then t else ... defining f is clausified into
+ * f(x) = t v C, we infer from clause D[f(s)] the new clause D[t] v C.
+ * @see also FunctionDefinitionHandler.
+ * Note that this replacement does not preserve refutational completeness.
  */
 
 #ifndef __FunctionDefinitionRewriting__

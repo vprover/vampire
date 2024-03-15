@@ -25,7 +25,7 @@ using namespace std;
 
 namespace Shell {
 
-inline bool canBeUsedForRewriting(Term* lhs, Clause* cl)
+bool canBeUsedForRewriting(Term* lhs, Clause* cl)
 {
   // TODO: we are using a codetree to get the generalizations
   // for rewriting and it cannot handle unbound variables on

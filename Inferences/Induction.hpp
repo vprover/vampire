@@ -51,6 +51,7 @@ using namespace Lib;
 /**
  * This class is similar to @b NonVariableNonTypeIterator and is
  * used to iterate over terms in active positions inside a literal.
+ * (active positions: https://doi.org/10.1007/978-3-319-66167-4_10)
  * The active positions are given by a @b FunctionDefinitionHandler
  * instance.
  */

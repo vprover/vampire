@@ -702,7 +702,7 @@ unsigned Signature::getFnDef(unsigned fn)
   auto type = getFunction(fn)->fnType();
   auto sort = type->result();
   bool added = false;
-  auto name = "$def_"+getFunction(fn)->name();
+  auto name = "sFN_"+getFunction(fn)->name();
   unsigned p = addPredicate(name, 2+type->numTypeArguments(), added);
   if (added) {
     ALWAYS(_fnDefPreds.insert(p));
@@ -717,7 +717,7 @@ unsigned Signature::getFnDef(unsigned fn)
 unsigned Signature::getBoolDef(unsigned fn)
 {
   auto type = getPredicate(fn)->predType();
-  auto name = "$def_"+getPredicate(fn)->name();
+  auto name = "sPN_"+getPredicate(fn)->name();
   bool added = false;
   auto p = addPredicate(name, type->arity(), added);
   if (added) {
