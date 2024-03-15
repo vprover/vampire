@@ -130,7 +130,7 @@ struct TupleHash {
 
   template<typename... T>
   static unsigned hash(std::tuple<T...> const& s) {
-    //C++17: repace with std::apply:
+    //TODO: repace with std::apply:
     // return std::apply(s, [](auto... args) { return HashUtils::combine(hash(args)...); });
     return tuple_hash_impl<0>(s);
   }
@@ -154,8 +154,7 @@ public:
   template<typename T>
   static typename std::enable_if<
     std::is_same<
-      //C++17: repace with std::invoke_result
-      typename std::result_of<decltype(&T::defaultHash)(T)>::type,
+      typename std::invoke_result<decltype(&T::defaultHash), T>::type,
       unsigned
     >::value,
     unsigned
@@ -281,8 +280,7 @@ public:
   template<typename T>
   static typename std::enable_if<
     std::is_same<
-      //C++17: repace with std::invoke_result
-      typename std::result_of<decltype(&T::defaultHash2)(T)>::type,
+      typename std::invoke_result<decltype(&T::defaultHash2), T>::type,
       unsigned
     >::value,
     unsigned
@@ -290,7 +288,7 @@ public:
     return ref.defaultHash2();
   }
 
-  // special-case for Units (and their descendants) as they have a unique incrementing identifier  
+  // special-case for Units (and their descendants) as they have a unique incrementing identifier
   template<typename T>
   static typename std::enable_if<
     std::is_base_of<Kernel::Unit, T>::value,

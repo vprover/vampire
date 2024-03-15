@@ -103,7 +103,7 @@ private:
   State _initState;
   ChoiceArr _choices;
   size_t _chLen;
-  Stack<std::result_of_t<Fn(State)> > _chits; //choice iterators
+  Stack<std::invoke_result_t<Fn, State>> _chits; //choice iterators
   Stack<State> _states;
   Fn _functor;
 };

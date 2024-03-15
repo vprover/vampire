@@ -19,8 +19,6 @@
  * @since 25/12/2023 Mísečky invoke system binary for backtrace
  */
 
-#ifdef __has_include
-
 #if __has_include(<execinfo.h>)
 #include <execinfo.h>
 #define HAVE_EXECINFO
@@ -86,5 +84,3 @@ void Debug::Tracer::printStack(std::ostream& str) {
   str << "no call stack support for this platform yet" << std::endl;
 #endif
 } // Tracer::printStack (ostream& str)
-
-#endif

@@ -320,8 +320,8 @@ public:
    * if the Option was None an empty option of the function's return type is returned.    \
    */                                                                                     \
   template<class Clsr>                                                                    \
-  Option<typename std::result_of<Clsr(A REF)>::type> map(Clsr clsr) REF {                 \
-    using OptOut = Option<typename std::result_of<Clsr(A REF)>::type>;                    \
+  Option<typename std::invoke_result<Clsr, A REF>::type> map(Clsr clsr) REF {                 \
+    using OptOut = Option<typename std::invoke_result<Clsr, A REF>::type>;                    \
     return this->isSome() ? OptOut(clsr(MOVE(unwrap())))                                  \
                           : OptOut();                                                     \
   }                                                                                       \
@@ -332,7 +332,7 @@ public:
    * \pre both CaseSome and CaseNone must have the same return type                       \
    */                                                                                     \
   template<class CaseSome, class CaseNone>                                                \
-  typename std::result_of<CaseSome( A REF)>::type match(CaseSome present, CaseNone none) REF {      \
+  typename std::invoke_result<CaseSome, A REF>::type match(CaseSome present, CaseNone none) REF {      \
     if (this->isSome()) {                                                                 \
       return present(MOVE((*this)).unwrap());                                             \
     } else {                                                                              \
@@ -368,7 +368,7 @@ public:
    * Returns this, if this is Some, or uses the closure to create an alternative option if this is None.      \
    */                                                                                     \
   template<class Clsr,                                                                    \
-           typename std::enable_if<std::is_same< typename std::result_of<Clsr()>::type    \
+           typename std::enable_if<std::is_same< typename std::invoke_result<Clsr>::type    \
                                       , Option                                            \
                                       >::value                                            \
                          , bool                                                           \
@@ -379,7 +379,7 @@ public:
                                                                                           \
   /** Returns the value of this, if this is Some, or uses the closure to create a value othewise. */\
   template<class Clsr,                                                                    \
-           typename std::enable_if<std::is_same< typename std::result_of<Clsr()>::type    \
+           typename std::enable_if<std::is_same< typename std::invoke_result<Clsr>::type    \
                                       , A                                                 \
                                       >::value                                            \
                          , bool                                                           \
@@ -395,8 +395,8 @@ public:
    * This function is the same as flatMap/andThen/(>>=)  in other programming languages with monads.\
    */                                                                                     \
   template<class Clsr>                                                                    \
-  typename std::result_of<Clsr(A REF)>::type andThen(Clsr clsr) REF {                     \
-    using OptOut = typename std::result_of<Clsr(A REF)>::type;                            \
+  typename std::invoke_result<Clsr, A REF>::type andThen(Clsr clsr) REF {                     \
+    using OptOut = typename std::invoke_result<Clsr, A REF>::type;                            \
     return this->isSome() ? clsr(MOVE(*this).unwrap())                                    \
                           : OptOut();                                                     \
   }                                                                                       \

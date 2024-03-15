@@ -86,7 +86,6 @@ public:
   // Let's fake a big enum like the one we used to have using a bunch of constexpr's
   // (NB: TimeTrace can only group TIME_TRACE calls with identical identifiers as pointers
   //  so always going through one place to declare a TIME_TRACE-able call site sounds like a nice routine)
-  // Also: don't forget to add definition to the cpp file (until we swith to C++17)
   static constexpr const char* const CLAUSE_GENERATION = "clause generation";
   static constexpr const char* const CONSEQUENCE_FINDING = "consequence finding";
   static constexpr const char* const FMB_DEFINITION_INTRODUCTION = "fmb definition introduction";

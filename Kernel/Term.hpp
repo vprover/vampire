@@ -549,7 +549,7 @@ public:
   template<class GetArg>
   static unsigned termHash(unsigned functor, GetArg getArg, unsigned arity) {
     return DefaultHash::hashIter(
-        range(0, arity).map([&](auto i) { 
+        range(0, arity).map([&](auto i) {
           TermList t = getArg(i);
           return DefaultHash::hashBytes(
               reinterpret_cast<const unsigned char*>(&t),
