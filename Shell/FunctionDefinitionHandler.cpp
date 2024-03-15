@@ -50,9 +50,7 @@ void FunctionDefinitionHandler::initAndPreprocess(Problem& prb, const Options& o
   UnitList::DelIterator it(prb.units());
   while (it.hasNext()) {
     auto u = it.next();
-    if (!u->isClause()) {
-      continue;
-    }
+    ASS(u->isClause());
     auto cl = u->asClause();
     LiteralStack defLits;
     LiteralStack condLits;
