@@ -398,7 +398,7 @@ Clause* Superposition::performSuperposition(
   }
 
   if (getOptions().skipCoveredSuperpositions()) {
-    auto doInsert = comp == Ordering::LESS && eqClause->size()==1 &&
+    auto doInsert = comp == Ordering::LESS && eqClause->size()==1 && eqClause->noSplits() &&
       (!rwLitS->isEquality() || (rwLitS->termArg(0)!=rwTermS && rwLitS->termArg(1)!=rwTermS));
 
     auto rwSupData = static_cast<SubstitutionCoverTree*>(rwClause->getSupData());
