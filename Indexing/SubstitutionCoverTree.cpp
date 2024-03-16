@@ -33,7 +33,15 @@ SubstitutionCoverTree::SubstitutionCoverTree(Clause* cl)
     return;
   }
   bool added;
-  _fn = env.signature->addFunction("$varwrap_"+Int::toString(_varSorts.size()),_varSorts.size(),added);
+  vstring fnname = "sFN_varwrap_";
+  DHMap<unsigned,TermList>::Iterator vit(_varSorts);
+  while (vit.hasNext()) {
+    unsigned v;
+    TermList t;
+    vit.next(v,t);
+    fnname += t.toString();
+  }
+  _fn = env.signature->addFunction(fnname,_varSorts.size(),added);
   if (added) {
     DHMap<unsigned,TermList>::Iterator vit(_varSorts);
     TermStack args;
