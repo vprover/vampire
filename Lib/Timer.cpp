@@ -158,6 +158,7 @@ void Timer::updateInstructionCount()
     // however, we definitely want this to be guarded by env.options->instructionLimit()
     // not to bother with the error people who don't even know about instruction limiting
     cerr << "perf_event_open failed (instruction limiting will be disabled): " << error_to_report << endl;
+    cerr << "(If you are seeing 'Permission denied' ask your admin to run 'sudo sysctl -w kernel.perf_event_paranoid=-1' for you.)" << endl;
     error_to_report = nullptr;
   }
 #endif

@@ -248,11 +248,18 @@ private:
   void readDeclareFun(const vstring& name, LExprList* iSorts, LExpr* oSort, unsigned taArity);
 
   /**
-   * Handle "define-fun" entry.
+   * Handle "define-fun[-rec]" entry.
    *
    * Defining a function extends the signature and adds the new function's definition into _formulas.
+   * Additionally, the "define-fun-rec" variant allows the defined function to be present inside the definition, allowing recursion.
    */
   void readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort, LExpr* body, const TermStack& typeArgs, bool recursive);
+  /**
+   * Handle "define-funs-rec" entry.
+   *
+   * Same as "define-fun-rec" (see above), except it defines possibly multiple functions at the same time which can use each other.
+   */
+  void readDefineFunsRec(LExprList* declarations, LExprList* definitions);
 
   void readDeclareDatatype(LExpr* sort, LExprList* datatype);
 

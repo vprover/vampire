@@ -32,6 +32,7 @@
 #include "Flattening.hpp"
 #include "FunctionDefinition.hpp"
 #include "GeneralSplitting.hpp"
+#include "FunctionDefinitionHandler.hpp"
 #include "InequalitySplitting.hpp"
 #include "InterpretedNormalizer.hpp"
 #include "Naming.hpp"
@@ -361,6 +362,10 @@ void Preprocess::preprocess(Problem& prb)
 
      EqResWithDeletion resolver;
      resolver.apply(prb);
+   }
+
+   if (env.signature->hasDefPreds()) {
+     prb.getFunctionDefinitionHandler().initAndPreprocess(prb,_options);
    }
 
    if (_options.generalSplitting()) {

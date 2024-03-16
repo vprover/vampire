@@ -697,6 +697,43 @@ unsigned Signature::getDiff(){
 }
 
 
+unsigned Signature::getFnDef(unsigned fn)
+{
+  auto type = getFunction(fn)->fnType();
+  auto sort = type->result();
+  bool added = false;
+  auto name = "sFN_"+getFunction(fn)->name();
+  unsigned p = addPredicate(name, 2+type->numTypeArguments(), added);
+  if (added) {
+    ALWAYS(_fnDefPreds.insert(p));
+    OperatorType* ot = OperatorType::getPredicateType({sort, sort}, type->numTypeArguments());
+    Symbol* sym = getPredicate(p);
+    sym->markProtected();
+    sym->setType(ot);
+  }
+  return p;
+}
+
+unsigned Signature::getBoolDef(unsigned fn)
+{
+  auto type = getPredicate(fn)->predType();
+  auto name = "sPN_"+getPredicate(fn)->name();
+  bool added = false;
+  auto p = addPredicate(name, type->arity(), added);
+  if (added) {
+    ALWAYS(_boolDefPreds.insert(p,fn));
+    TermStack sorts;
+    for (unsigned i = type->numTypeArguments(); i < type->arity(); i++) {
+      sorts.push(type->arg(i));
+    }
+    OperatorType* ot = OperatorType::getPredicateType(sorts.size(), sorts.begin(), type->numTypeArguments());
+    Symbol* sym = getPredicate(p);
+    sym->markProtected();
+    sym->setType(ot);
+  }
+  return p;
+}
+
 unsigned Signature::getChoice(){
   bool added = false;
   unsigned choice = addFunction("vEPSILON",1, added);      

@@ -217,7 +217,7 @@ Formula* FormulaTransformer::applyQuantified(Formula* f)
 Formula* TermTransformingFormulaTransformer::applyLiteral(Formula* f)
 {
   Literal* lit = f->literal();
-  Literal* res = _termTransformer.transform(lit);
+  Literal* res = _termTransformer.transformLiteral(lit);
   if(lit==res) { return f; }
   return new AtomicFormula(res);
 }
@@ -229,7 +229,7 @@ Formula* TermTransformingFormulaTransformer::applyLiteral(Formula* f)
 Formula* BottomUpTermTransformerFormulaTransformer::applyLiteral(Formula* f)
 {
   Literal* lit = f->literal();
-  Literal* res = _termTransformer.transform(lit);
+  Literal* res = _termTransformer.transformLiteral(lit);
   if(lit==res) { return f; }
   return new AtomicFormula(res);
 }
