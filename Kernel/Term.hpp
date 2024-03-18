@@ -338,23 +338,6 @@ private:
       return (_content & mask) >> lower;
   }
 
-  // getters
-#define GET(type, name, NAME) type _##name() const\
-  { return getBits<NAME##_BITS_START, NAME##_BITS_END>(); }
-  GET(unsigned, tag, TAG)
-  GET(bool, polarity, POLARITY)
-  GET(bool, commutative, COMMUTATIVE)
-  GET(bool, shared, SHARED)
-  GET(bool, literal, LITERAL)
-  GET(bool, sort, SORT)
-  GET(bool, hasTermVar, HAS_TERM_VAR)
-  GET(unsigned, order, ORDER)
-  GET(uint32_t, distinctVars, DISTINCT_VAR)
-  GET(uint32_t, id, ID)
-#undef GET
-  Term *_term() const
-  { return reinterpret_cast<Term *>(getBits<TERM_BITS_START, TERM_BITS_END>()); }
-
   // set the bits of `_content` between `lower` and `upper` to corresponding bits of `data`
   template<unsigned lower, unsigned upper>
   void setBits(uint64_t data) {
@@ -373,23 +356,25 @@ private:
       _content |= data;
   }
 
-  // setters
-#define SET(type, name, NAME) void _set##name(type val)\
-  { setBits<NAME##_BITS_START, NAME##_BITS_END>(val); }
-  SET(unsigned, Tag, TAG)
-  SET(bool, Polarity, POLARITY)
-  SET(bool, Commutative, COMMUTATIVE)
-  SET(bool, Shared, SHARED)
-  SET(bool, Literal, LITERAL)
-  SET(bool, Sort, SORT)
-  SET(bool, HasTermVar, HAS_TERM_VAR)
-  SET(unsigned, Order, ORDER)
-  SET(uint32_t, DistinctVars, DISTINCT_VAR)
-  SET(uint32_t, Id, ID)
-#undef SET
+  // getters and setters
+#define GET_AND_SET(type, name, Name, NAME) \
+  type _##name() const { return getBits<NAME##_BITS_START, NAME##_BITS_END>(); }\
+  void _set##Name(type val) { setBits<NAME##_BITS_START, NAME##_BITS_END>(val); }
+  GET_AND_SET(unsigned, tag, Tag, TAG)
+  GET_AND_SET(bool, polarity, Polarity, POLARITY)
+  GET_AND_SET(bool, commutative, Commutative, COMMUTATIVE)
+  GET_AND_SET(bool, shared, Shared, SHARED)
+  GET_AND_SET(bool, literal, Literal, LITERAL)
+  GET_AND_SET(bool, sort, Sort, SORT)
+  GET_AND_SET(bool, hasTermVar, HasTermVar, HAS_TERM_VAR)
+  GET_AND_SET(unsigned, order, Order, ORDER)
+  GET_AND_SET(uint32_t, distinctVars, DistinctVars, DISTINCT_VAR)
+  GET_AND_SET(uint32_t, id, Id, ID)
+#undef GET_AND_SET
+  Term *_term() const
+  { return reinterpret_cast<Term *>(getBits<TERM_BITS_START, TERM_BITS_END>()); }
   void _setTerm(Term *term)
   { setBits<TERM_BITS_START, TERM_BITS_END>(reinterpret_cast<uint64_t>(term)); }
-
   // end bitfield
 
   friend class Indexing::TermSharing;
