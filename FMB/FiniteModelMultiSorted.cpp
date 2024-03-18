@@ -284,12 +284,12 @@ vstring FiniteModelMultiSorted::toString()
     vstring name = env.signature->functionName(f);
 
     OperatorType* sig = env.signature->getFunction(f)->fnType();
-    modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": ";
+    modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": (";
     for(unsigned i=0;i<arity;i++){
       modelStm << sig->arg(i).toString();
       if(i+1 < arity) modelStm << " * ";
     }
-    modelStm << " > " << sig->result().toString() << ")." << endl; 
+    modelStm << ") > " << sig->result().toString() << ")." << endl; 
 
     modelStm << "tff("<<prepend("function_", name)<<",axiom,"<<endl;
 
@@ -378,14 +378,14 @@ fModelLabel:
     vstring name = env.signature->predicateName(f);
 
     OperatorType* sig = env.signature->getPredicate(f)->predType();
-    modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": ";
+    modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": (";
     for(unsigned i=0;i<arity;i++){
       TermList argST = sig->arg(i);
       unsigned argS = argST.term()->functor();      
       modelStm << env.signature->typeConName(argS);
       if(i+1 < arity) modelStm << " * ";
     }
-    modelStm << " > $o )." << endl;
+    modelStm << ") > $o)." << endl;
 
     modelStm << "tff("<<prepend("predicate_", name)<<",axiom,"<<endl;
 
