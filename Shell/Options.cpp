@@ -105,12 +105,16 @@ void Options::init()
   _parsingDoesNotCount.tag(OptionTag::DEVELOPMENT);
 #endif
 
+    _interactive = BoolOptionValue("interactive","",false);
+    _interactive.description = "An experimental interactive mode (commands to use: load <file to parse>, read <line to parse>, pop (to drop the last added set of formulas), run [options to supply], exit).";
+    _interactive.setExperimental();
+    _lookup.insert(&_interactive);
+
     _mode = ChoiceOptionValue<Mode>("mode","",Mode::VAMPIRE,
                                     {"axiom_selection",
                                         "casc",
                                         "casc_hol",
                                         "casc_sat",
-                                        "casc_ltb",
                                         "clausify",
                                         "consequence_elimination",
                                         "model_check",
@@ -191,16 +195,6 @@ void Options::init()
     _randomizSeedForPortfolioWorkers.description = "In portfolio mode, let each worker process start from its own independent random seed.";
     _lookup.insert(&_randomizSeedForPortfolioWorkers);
     _randomizSeedForPortfolioWorkers.onlyUsefulWith(UsingPortfolioTechnology());
-
-    _ltbLearning = ChoiceOptionValue<LTBLearning>("ltb_learning","ltbl",LTBLearning::OFF,{"on","off","biased"});
-    _ltbLearning.description = "Perform learning in LTB mode";
-    _lookup.insert(&_ltbLearning);
-    _ltbLearning.setExperimental();
-
-    _ltbDirectory = StringOptionValue("ltb_directory","","");
-    _ltbDirectory.description = "Directory for output from LTB mode. Default is to put output next to problem.";
-    _lookup.insert(&_ltbDirectory);
-    _ltbDirectory.setExperimental();
 
     _decode = DecodeOptionValue("decode","",this);
     _decode.description="Decodes an encoded strategy. Can be used to replay a strategy. To make Vampire output an encoded version of the strategy use the encode option.";
@@ -382,11 +376,7 @@ void Options::init()
     _inputFile.tag(OptionTag::INPUT);
     _inputFile.setExperimental();
 
-    _inputSyntax= ChoiceOptionValue<InputSyntax>("input_syntax","",
-                                                 //in case we compile vampire with bpa, then the default input syntax is smtlib
-                                                 InputSyntax::AUTO,
-                                                 //{"simplify","smtlib","smtlib2","tptp"});//,"xhuman","xmps","xnetlib"});
-                                                 {"smtlib2","tptp","auto"});//,"xhuman","xmps","xnetlib"});
+    _inputSyntax= ChoiceOptionValue<InputSyntax>("input_syntax","",InputSyntax::AUTO,{"smtlib2","tptp","auto"});
     _inputSyntax.description=
     "Input syntax. Historic input syntaxes have been removed as they are not actively maintained. Contact developers for help with these.";
     _lookup.insert(&_inputSyntax);
@@ -2341,10 +2331,8 @@ void Options::set(const char* name,const char* value, bool longOpt)
         break;
       case IgnoreMissing::WARN:
         if (outputAllowed()) {
-          env.beginOutput();
-          addCommentSignForSZS(env.out());
-          env.out() << "WARNING: invalid value "<< value << " for option " << name << endl;
-          env.endOutput();
+          addCommentSignForSZS(std::cout);
+          std::cout << "WARNING: invalid value "<< value << " for option " << name << endl;
         }
         break;
       case IgnoreMissing::ON:
@@ -2357,10 +2345,8 @@ void Options::set(const char* name,const char* value, bool longOpt)
       vstring msg = (vstring)name + (longOpt ? " is not a valid option" : " is not a valid short option (did you mean --?)");
       if (_ignoreMissing.actualValue == IgnoreMissing::WARN) {
         if (outputAllowed()) {
-          env.beginOutput();
-          addCommentSignForSZS(env.out());
-          env.out() << "WARNING: " << msg << endl;
-          env.endOutput();
+          addCommentSignForSZS(std::cout);
+          std::cout << "WARNING: " << msg << endl;
         }
         return;
       } // else:
@@ -2423,6 +2409,13 @@ Options::OptionProblemConstraintUP Options::isRandSat(){
  * @since 16/10/2003 Manchester, relativeName changed to string from char*
  * @since 07/08/2014 Manchester, relativeName changed to vstring
  */
+// TODO this behaviour isn't quite right, at least:
+// 1. we use the *root* file to resolve relative paths, which won't work if we have an axiom file that includes another
+// 2. checks current directory, which spec doesn't ask for
+// 3. checks our "-include" option, which isn't in the spec either (OK if someone relies on it, I guess)
+// cf https://tptp.org/TPTP/TR/TPTPTR.shtml#IncludeSection
+// probable solution: move all this logic into TPTP parser and do it properly there
+
 vstring Options::includeFileName (const vstring& relativeName)
 {
   if (relativeName[0] == '/') { // absolute name
@@ -3161,10 +3154,8 @@ void Options::readOptionsString(vstring optionsString,bool assign)
                 break;
               case IgnoreMissing::WARN:
                 if (outputAllowed()) {
-                  env.beginOutput();
-                  addCommentSignForSZS(env.out());
-                  env.out() << "WARNING: value " << value << " for option "<< param <<" not known" << endl;
-                  env.endOutput();
+                  addCommentSignForSZS(std::cout);
+                  std::cout << "WARNING: value " << value << " for option "<< param <<" not known" << endl;
                 }
                 break;
               case IgnoreMissing::ON:
@@ -3185,12 +3176,9 @@ void Options::readOptionsString(vstring optionsString,bool assign)
         USER_ERROR("option "+param+" not known");
         break;
       case IgnoreMissing::WARN:
-        env.beginOutput();
         if (outputAllowed()) {
-          env.beginOutput();
-          addCommentSignForSZS(env.out());
-          env.out() << "WARNING: option "<< param << " not known." << endl;
-          env.endOutput();
+          addCommentSignForSZS(std::cout);
+          std::cout << "WARNING: option "<< param << " not known." << endl;
         }
         break;
       case IgnoreMissing::ON:
@@ -3476,7 +3464,6 @@ bool Options::checkGlobalOptionConstraints(bool fail_early)
   return result;
 }
 
-//TODO should not use cout, should use env.out
 template <typename T>
 bool Options::OptionValue<T>::checkConstraints()
 {

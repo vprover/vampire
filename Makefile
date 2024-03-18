@@ -167,8 +167,7 @@ VL_OBJ= Lib/Allocator.o\
         Lib/Timer.o
 
 VLS_OBJ= Lib/Sys/Multiprocessing.o\
-         Lib/Sys/Semaphore.o\
-         Lib/Sys/SyncPipe.o
+         Lib/Sys/Semaphore.o
 
 VK_OBJ= Kernel/Clause.o\
         Kernel/ClauseQueue.o\
@@ -381,9 +380,7 @@ DP_OBJ = DP/ShortConflictMetaDP.o\
          DP/SimpleCongruenceClosure.o
 
 CASC_OBJ = CASC/PortfolioMode.o\
-           CASC/Schedules.o\
-           CASC/CLTBMode.o\
-           CASC/CLTBModeLearning.o
+           CASC/Schedules.o
 
 VFMB_OBJ = FMB/ClauseFlattening.o\
            FMB/SortInference.o\

@@ -337,12 +337,6 @@ public:
     SOFT
   };
 
-  enum class LTBLearning : unsigned int {
-    ON,
-    OFF,
-    BIASED
-  };
-
   enum class IgnoreMissing : unsigned int {
     ON,
     OFF,
@@ -392,7 +386,6 @@ public:
     CASC,
     CASC_HOL,
     CASC_SAT,
-    CASC_LTB,
     CLAUSIFY,
     CONSEQUENCE_ELIMINATION,
     MODEL_CHECK,
@@ -1979,9 +1972,8 @@ public:
   bool keepSbeamGenerators() const { return _fmbKeepSbeamGenerators.actualValue; }
 
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
-  LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
-  vstring ltbDirectory() const { return _ltbDirectory.actualValue; }
   Mode mode() const { return _mode.actualValue; }
+  void setMode(Mode mode) { _mode.actualValue = mode; }
   Schedule schedule() const { return _schedule.actualValue; }
   vstring scheduleName() const { return _schedule.getStringOfValue(_schedule.actualValue); }
   void setSchedule(Schedule newVal) {  _schedule.actualValue = newVal; }
@@ -2001,6 +1993,7 @@ public:
   vstring include() const { return _include.actualValue; }
   void setInclude(vstring val) { _include.actualValue = val; }
   vstring inputFile() const { return _inputFile.actualValue; }
+  void resetInputFile() { _inputFile.actualValue = ""; }
   int activationLimit() const { return _activationLimit.actualValue; }
   unsigned randomSeed() const { return _randomSeed.actualValue; }
   void setRandomSeed(unsigned seed) { _randomSeed.actualValue = seed; }
@@ -2125,6 +2118,8 @@ public:
   unsigned setSimulatedInstructionLimit() const { return _simulatedInstructionLimit.actualValue; }
   bool parsingDoesNotCount() const { return _parsingDoesNotCount.actualValue; }
 #endif
+  bool interactive() const { return _interactive.actualValue; }
+  void setInteractive(bool v) { _interactive.actualValue = v; }
   int inequalitySplitting() const { return _inequalitySplitting.actualValue; }
   int ageRatio() const { return _ageWeightRatio.actualValue; }
   void setAgeRatio(int v){ _ageWeightRatio.actualValue = v; }
@@ -2536,8 +2531,6 @@ private:
   IntOptionValue _lookaheadDelay;
   IntOptionValue _lrsFirstTimeCheck;
   BoolOptionValue _lrsWeightLimitOnly;
-  ChoiceOptionValue<LTBLearning> _ltbLearning;
-  StringOptionValue _ltbDirectory;
 
 #if VAMPIRE_PERF_EXISTS
   UnsignedOptionValue _instructionLimit;
@@ -2546,6 +2539,9 @@ private:
 #endif
 
   UnsignedOptionValue _memoryLimit; // should be size_t, making an assumption
+
+  BoolOptionValue _interactive;
+
   ChoiceOptionValue<Mode> _mode;
   ChoiceOptionValue<Schedule> _schedule;
   StringOptionValue _scheduleFile;

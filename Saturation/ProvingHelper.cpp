@@ -129,10 +129,8 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
 {
   Unit::onPreprocessingEnd();
   if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] onPreprocessingEnd(), Proving Helper" << std::endl;
-    UIHelper::outputAllPremises(env.out(), prb.units(), "New: ");
-    env.endOutput();
+    std::cout << "[PP] onPreprocessingEnd(), Proving Helper" << std::endl;
+    UIHelper::outputAllPremises(std::cout, prb.units(), "New: ");
   }
 
   //decide whether to use poly or mono well-typedness test

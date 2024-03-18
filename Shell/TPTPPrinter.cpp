@@ -53,10 +53,8 @@ void TPTPPrinter::print(Unit* u)
 {
   vstring body = getBodyStr(u, true);
 
-  beginOutput();
   ensureHeadersPrinted(u);
   printTffWrapper(u, body);
-  endOutput();
 }
 
 /**
@@ -73,10 +71,8 @@ void TPTPPrinter::printWithRole(vstring name, vstring role, Unit* u, bool includ
 {
   vstring body = getBodyStr(u, includeSplitLevels);
 
-  beginOutput();
   ensureHeadersPrinted(u);
   tgt() << "tff(" << name << ", " << role << ", " << body << ")." << endl;
-  endOutput();
 }
 
 /**
@@ -328,22 +324,8 @@ ostream& TPTPPrinter::tgt()
     return *_tgtStream;
   }
   else {
-    return env.out();
+    return std::cout;
   }
-}
-
-/**
- * In case there is no specified output stream, than print to the one
- * specified in the env.beginOutput();
- */
-void TPTPPrinter::beginOutput()
-{
-  if(!_tgtStream) { env.beginOutput(); }
-}
-
-void TPTPPrinter::endOutput()
-{
-  if(!_tgtStream) { env.endOutput(); }
 }
 
 /**

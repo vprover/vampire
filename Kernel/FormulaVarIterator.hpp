@@ -48,7 +48,7 @@ public:
   DECL_ELEMENT_TYPE(unsigned);
   explicit FormulaVarIterator(const Formula*);
   explicit FormulaVarIterator(const Term*);
-  explicit FormulaVarIterator(const TermList*);
+  explicit FormulaVarIterator(const TermList);
 
   bool hasNext();
   unsigned next();
@@ -88,6 +88,43 @@ private:
   /** Stack of lists of variables to process */
   Stack<const VList*> _vars;
 }; // class FormulaVarIterator
+
+template<typename T> // a template to work with Term*, TermList*, and Formula*
+bool isFreeVariableOf(T thing, unsigned var)
+{
+  FormulaVarIterator fvi(thing);
+  while (fvi.hasNext()) {
+    if (var == fvi.next()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Return the list of all free variables of the term.
+ * The result is only non-empty when there are quantified
+ * formulas or $let-terms inside the term.
+ * Each variable in the term is returned just once.
+ *
+ * NOTE: don't use this function, if you don't actually need a List
+ * (FormulaVarIterator is a better choice)
+ *
+ * NOTE: remember to free the list when done with it
+ * (otherwise we leak memory!)
+ *
+ * @since 07/05/2015 Gothenburg
+ */
+template<typename T> // a template to work with Term*, TermList*, and Formula*
+VList* freeVariables(T thing)
+{
+  FormulaVarIterator fvi(thing);
+  VList::FIFO result;
+  while (fvi.hasNext()) {
+    result.pushBack(fvi.next());
+  }
+  return result.list();
+} // Term::freeVariables
 
 }
 

@@ -27,7 +27,6 @@
 #include "Lib/Metaiterators.hpp"
 
 #include "Term.hpp"
-#include "FormulaVarIterator.hpp"
 
 using namespace std;
 using namespace Lib;
@@ -124,45 +123,6 @@ bool TermList::isSafe() const
 {
   return isVar() || term()->shared();
 }
-
-/**
- * Return the list of all free variables of the term.
- * The result is only non-empty when there are quantified
- * formulas or $let-terms inside the term.
- *
- * Each variable in the term is returned just once.
- *
- * NOTE: don't use this function, if you don't actually need a List
- * (FormulaVarIterator is a better choice)
- *
- * NOTE: remember to free the list when done with it
- * (otherwise we leak memory!)
- *
- * @since 15/05/2015 Gothenburg
- */
-VList* TermList::freeVariables() const
-{
-  FormulaVarIterator fvi(this);
-  VList* result = VList::empty();
-  VList::FIFO stack(result);
-  while (fvi.hasNext()) {
-    stack.pushBack(fvi.next());
-  }
-  return result;
-} // TermList::freeVariables
-
-
-bool TermList::isFreeVariable(unsigned var) const
-{
-  FormulaVarIterator fvi(this);
-  while (fvi.hasNext()) {
-    if (var == fvi.next()) {
-      return true;
-    }
-  }
-  return false;
-}
-
 
 /**
  * Return true if @b ss and @b tt have the same top symbols, that is,
@@ -1232,43 +1192,6 @@ TermList AtomicSort::arraySort(TermList indexSort, TermList innerSort)
 
 TermList AtomicSort::tupleSort(unsigned arity, TermList* sorts)
 { return TermList(Term::create(env.signature->getTupleConstructor(arity), arity, sorts)); }
-
-
-/**
- * Return the list of all free variables of the term.
- * The result is only non-empty when there are quantified
- * formulas or $let-terms inside the term.
- * Each variable in the term is returned just once.
- *
- * NOTE: don't use this function, if you don't actually need a List
- * (FormulaVarIterator is a better choice)
- *
- * NOTE: remember to free the list when done with it
- * (otherwise we leak memory!)
- *
- * @since 07/05/2015 Gothenburg
- */
-VList* Term::freeVariables() const
-{
-  FormulaVarIterator fvi(this);
-  VList* result = VList::empty();
-  VList::FIFO stack(result);
-  while (fvi.hasNext()) {
-    stack.pushBack(fvi.next());
-  }
-  return result;
-} // Term::freeVariables
-
-bool Term::isFreeVariable(unsigned var) const
-{
-  FormulaVarIterator fvi(this);
-  while (fvi.hasNext()) {
-    if (var == fvi.next()) {
-      return true;
-    }
-  }
-  return false;
-}
 
 unsigned Term::computeDistinctVars() const
 {

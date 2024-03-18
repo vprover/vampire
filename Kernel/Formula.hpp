@@ -72,8 +72,6 @@ public:
   Literal* literal();
   const TermList getBooleanTerm() const;
   TermList getBooleanTerm();
-  VList* freeVariables () const;
-  bool isFreeVariable(unsigned var) const;
   VList* boundVariables () const;
 
   // output

@@ -26,12 +26,6 @@
 
 namespace Lib {
 
-namespace Sys {
-  class SyncPipe;
-}
-
-using namespace Sys;
-
 /**
  * Class Environment.
  * Implements environment used by the top-level run procedures.
@@ -60,17 +54,6 @@ public:
   DHMap<unsigned, unsigned>* predicateSineLevels;
 
   DHMap<const Kernel::Unit*,vstring>* proofExtra; // maps Unit* pointers to the associated proof extra string, if available
-
-  bool haveOutput();
-  void beginOutput();
-  void endOutput();
-  std::ostream& out();
-
-  void setPipeOutput(SyncPipe* pipe);
-  SyncPipe* getOutputPipe() { return _pipe; }
-
-  void setPriorityOutput(std::ostream* stm);
-  std::ostream* getPriorityOutput() { return _priorityOutput; }
 
   bool timeLimitReached() const;
 
@@ -103,11 +86,6 @@ public:
   void setMainProblem(Kernel::Problem* p) { _problem = p; }
 
 private:
-  int _outputDepth;
-  /** if non-zero, all output will go here */
-  std::ostream* _priorityOutput;
-  SyncPipe* _pipe;
-
   Kernel::Problem* _problem;
 }; // class Environment
 

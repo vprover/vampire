@@ -47,14 +47,12 @@ MinisatInterfacingNewSimp::MinisatInterfacingNewSimp(const Shell::Options& opts,
 }
 
 void MinisatInterfacingNewSimp::reportMinisatOutOfMemory() {
-  env.beginOutput();
   reportSpiderStatus('m');
-  env.out() << "Minisat ran out of memory" << endl;
+  std::cout << "Minisat ran out of memory" << endl;
   if(env.statistics) {
-    env.statistics->print(env.out());
+    env.statistics->print(std::cout);
   }
-  Debug::Tracer::printStack(env.out());
-  env.endOutput();
+  Debug::Tracer::printStack(std::cout);
   System::terminateImmediately(1);
 }
 

@@ -157,8 +157,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Environment.hpp
     Lib/Event.hpp
     Lib/Exception.hpp
-    Lib/fdstream.hpp
-    Lib/FreshnessGuard.hpp
     Lib/Hash.hpp
     Lib/Int.hpp
     Lib/IntNameTable.hpp
@@ -202,10 +200,8 @@ source_group(lib_source_files FILES ${VAMPIRE_LIB_SOURCES})
 set(VAMPIRE_LIB_SYS_SOURCES
     Lib/Sys/Multiprocessing.cpp
     Lib/Sys/Semaphore.cpp
-    Lib/Sys/SyncPipe.cpp
     Lib/Sys/Multiprocessing.hpp
     Lib/Sys/Semaphore.hpp
-    Lib/Sys/SyncPipe.hpp
     )
 source_group(lib_sys_source_files FILES ${VAMPIRE_LIB_SYS_SOURCES})
 
@@ -680,12 +676,8 @@ source_group(smt_comp_source_files FILES ${VAMPIRE_SMTCOMP_SOURCES})
 set(VAMPIRE_CASC_SOURCES
     CASC/PortfolioMode.cpp
     CASC/Schedules.cpp
-    CASC/CLTBMode.cpp
-    CASC/CLTBModeLearning.cpp
     CASC/PortfolioMode.hpp
     CASC/Schedules.hpp
-    CASC/CLTBMode.hpp
-    CASC/CLTBModeLearning.hpp
     )
 source_group(casc_source_files FILES ${VAMPIRE_CASC_SOURCES})
 
@@ -723,7 +715,6 @@ set(UNIT_TESTS
     UnitTests/tSKIKBO.cpp
     UnitTests/tLPO.cpp
     UnitTests/tRatioKeeper.cpp
-    UnitTests/tTwoVampires.cpp
     UnitTests/tOptionConstraints.cpp
     UnitTests/tDHMultiset.cpp
     UnitTests/tList.cpp
@@ -1000,5 +991,7 @@ endif()
 # FIXME this guard should not be necessary but is currently because of how we do static linking above
 if(BUILD_SHARED_LIBS)
   set_property(TARGET vampire PROPERTY POSITION_INDEPENDENT_CODE false)
-  set_property(TARGET vtest PROPERTY POSITION_INDEPENDENT_CODE false)
+  if(COMPILE_TESTS)
+    set_property(TARGET vtest PROPERTY POSITION_INDEPENDENT_CODE false)
+  endif()
 endif()

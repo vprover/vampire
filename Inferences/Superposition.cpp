@@ -174,9 +174,7 @@ bool Superposition::checkClauseColorCompatibility(Clause* eqClause, Clause* rwCl
     return true;
   }
   if(getOptions().showBlocked()) {
-    env.beginOutput();
-    env.out()<<"Blocked superposition of "<<eqClause->toString()<<" into "<<rwClause->toString()<<std::endl;
-    env.endOutput();
+    std::cout<<"Blocked superposition of "<<eqClause->toString()<<" into "<<rwClause->toString()<<std::endl;
   }
   if(getOptions().colorUnblocking()) {
     SaturationAlgorithm* salg = SaturationAlgorithm::tryGetInstance();

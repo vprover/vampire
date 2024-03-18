@@ -50,7 +50,7 @@ Clause* Choice::createChoiceAxiom(TermList op, TermList set)
   TermList setType = ApplicativeHelper::getNthArg(opType, 1);
 
   unsigned max = 0;
-  FormulaVarIterator fvi(&set);
+  FormulaVarIterator fvi(set);
   while (fvi.hasNext()) {
     unsigned var = fvi.next();
     if (var > max) {

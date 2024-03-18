@@ -196,8 +196,8 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
       }
     } else {
       VarSet* fv = freeVars(condition);
-      fv = fv->getUnion(VarSet::getFromIterator(FormulaVarIterator(&thenBranch)));
-      fv = fv->getUnion(VarSet::getFromIterator(FormulaVarIterator(&elseBranch)));
+      fv = fv->getUnion(VarSet::getFromIterator(FormulaVarIterator(thenBranch)));
+      fv = fv->getUnion(VarSet::getFromIterator(FormulaVarIterator(elseBranch)));
 
       VList* vars = VList::singleton(variable);
       VList::pushFromIterator(fv->iter(), vars);
@@ -692,12 +692,10 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
     ASS(!bit.hasNext());
 
     if (env.options->showPreprocessing()) {
-      env.beginOutput();
       Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, binding, contents, tupleType->result());
-      env.out() << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << std::endl;
+      std::cout << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << std::endl;
       Term* processedLet = Term::createLet(symbol, 0, processedBinding, processedContents, bodySort);
-      env.out() << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
-      env.endOutput();
+      std::cout << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
     }
 
     variables = VList::empty();
@@ -737,12 +735,10 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
     }
 
     if (env.options->showPreprocessing()) {
-      env.beginOutput();
       Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, binding, contents, tupleType->result());
-      env.out() << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << std::endl;
+      std::cout << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << std::endl;
       Term* processedLet = Term::createLet(tuple, 0, binding, detupledContents, bodySort);
-      env.out() << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
-      env.endOutput();
+      std::cout << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
     }
 
     symbol = tuple;
@@ -782,20 +778,16 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
   if (inlineLet) {
     processedContents = inlineLetBinding(symbol, variables, binding, contents);
     if (env.options->showPreprocessing()) {
-      env.beginOutput();
-      env.out() << "[PP] clausify (inline let) binding: " << binding.toString() << std::endl;
-      env.out() << "[PP] clausify (inline let) in:  " << contents.toString() << std::endl;
-      env.out() << "[PP] clausify (inline let) out: " << processedContents.toString() << std::endl;
-      env.endOutput();
+      std::cout << "[PP] clausify (inline let) binding: " << binding.toString() << std::endl;
+      std::cout << "[PP] clausify (inline let) in:  " << contents.toString() << std::endl;
+      std::cout << "[PP] clausify (inline let) out: " << processedContents.toString() << std::endl;
     }
   } else {
     processedContents = nameLetBinding(symbol, variables, binding, contents);
     if (env.options->showPreprocessing()) {
-      env.beginOutput();
-      env.out() << "[PP] clausify (name let) binding: " << binding.toString() << std::endl;
-      env.out() << "[PP] clausify (name let) in:  " << contents.toString() << std::endl;
-      env.out() << "[PP] clausify (name let) out: " << processedContents.toString() << std::endl;
-      env.endOutput();
+      std::cout << "[PP] clausify (name let) binding: " << binding.toString() << std::endl;
+      std::cout << "[PP] clausify (name let) in:  " << contents.toString() << std::endl;
+      std::cout << "[PP] clausify (name let) out: " << processedContents.toString() << std::endl;
     }
   }
 
@@ -817,7 +809,7 @@ void NewCNF::processLet(Term::SpecialTermData* sd, TermList contents, Occurrence
 TermList NewCNF::nameLetBinding(unsigned symbol, VList* bindingVariables, TermList binding, TermList contents)
 {
   VList* bindingFreeVars = VList::empty();
-  FormulaVarIterator bfvi(&binding);
+  FormulaVarIterator bfvi(binding);
   while (bfvi.hasNext()) {
     unsigned var = bfvi.next();
     if (!VList::member(var, bindingVariables)) {
@@ -1349,7 +1341,7 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
         List<GenLit>::Iterator glsit(gls);
         while (glsit.hasNext()) {
           GenLit gl = glsit.next();
-          if (formula(gl)->isFreeVariable(variable)) {
+          if (isFreeVariableOf(formula(gl),variable)) {
             occurs = true;
             break;
           }
@@ -1391,7 +1383,7 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
         List<GenLit>::Iterator glsit(gls);
         while (glsit.hasNext()) {
           GenLit gl = glsit.next();
-          if (formula(gl)->isFreeVariable(variable)) {
+          if (isFreeVariableOf(formula(gl),variable)) {
             occurs = true;
             break;
           }

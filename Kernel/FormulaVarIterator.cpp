@@ -50,11 +50,11 @@ FormulaVarIterator::FormulaVarIterator(const Term* t)
  * Build an iterator over a list of terms.
  * @since 15/05/2015 Gothenburg
  */
-FormulaVarIterator::FormulaVarIterator(const TermList* ts)
+FormulaVarIterator::FormulaVarIterator(const TermList ts)
   : _found(false)
 {
   _instructions.push(FVI_TERM_LIST);
-  _termLists.push(*ts);
+  _termLists.push(ts);
 } // FormulaVarIterator::FormulaVarIterator
 
 /**

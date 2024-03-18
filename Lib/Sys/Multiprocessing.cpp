@@ -77,8 +77,6 @@ void Multiprocessing::executeFuncList(VoidFuncList* lst)
 
 pid_t Multiprocessing::fork()
 {
-  ASS(!env.haveOutput());
-
   executeFuncList(_preFork);
   errno=0;
   pid_t res=::fork();

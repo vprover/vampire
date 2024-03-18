@@ -31,28 +31,13 @@ namespace Lib {
 class System {
 public:
   static void setSignalHandlers();
-  static vstring extractFileNameFromPath(vstring str);
   static bool extractDirNameFromPath(vstring path, vstring& dir);
-
-  static void ignoreSIGINT() { s_shouldIgnoreSIGINT=true; }
-  static void heedSIGINT() { s_shouldIgnoreSIGINT=false; }
-  static bool shouldIgnoreSIGINT() { return s_shouldIgnoreSIGINT; }
-
-  static void ignoreSIGHUP() { s_shouldIgnoreSIGHUP=true; }
-  static void heedSIGHUP() { s_shouldIgnoreSIGHUP=false; }
-  static bool shouldIgnoreSIGHUP() { return s_shouldIgnoreSIGHUP; }
 
   static void addTerminationHandler(VoidFunc proc, unsigned priority=0);
   static void onTermination();
   [[noreturn]] static void terminateImmediately(int resultStatus);
 
   static void registerForSIGHUPOnParentDeath();
-
-  /**
-   * Collect filenames of all the files occurring in the given directory.
-   * Recursive traverse subdirs.
-   */
-  static void readDir(vstring dirName, Stack<vstring>& filenames);
 
   /**
    * Register the value of the argv[0] argument of the main function, so that
@@ -75,9 +60,6 @@ private:
    * Functions in lists with lower numbers will be called first.
    */
   static ZIArray<List<VoidFunc>*>& terminationHandlersArray();
-
-  static bool s_shouldIgnoreSIGINT;
-  static bool s_shouldIgnoreSIGHUP;
 
   static const char* s_argv0;
 };
