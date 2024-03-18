@@ -32,7 +32,10 @@
 
 #include "Indexing/TermSharing.hpp"
 #include "Kernel/Signature.hpp"
+#include "Kernel/TermIterators.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Shell/TermAlgebra.hpp"
+#include "Shell/FunctionDefinitionHandler.hpp"
 
 #define __TO_SORT_RAT RationalConstantType::getSort()
 #define __TO_SORT_INT IntegerConstantType::getSort()
@@ -97,6 +100,8 @@
 #define DECL_B_COMB(b) auto b = FuncSugar(env.signature->getCombinator(Signature::B_COMB));
 #define DECL_C_COMB(c) auto c = FuncSugar(env.signature->getCombinator(Signature::C_COMB));
 #define DECL_S_COMB(s) auto s = FuncSugar(env.signature->getCombinator(Signature::S_COMB));
+#define DECL_FUN_DEF(d, t)  auto d = PredSugar(env.signature->getFnDef(t.sugaredExpr().term()->functor()));
+#define DECL_PRED_DEF(d, t) auto d = PredSugar(env.signature->getBoolDef(((Literal*)t)->functor()));
 
 #define DECL_DEFAULT_VARS                                                                           \
   __ALLOW_UNUSED(                                                                                   \
@@ -358,7 +363,11 @@ public:
     if (_sugaredExpr.isVar()) {
       _srt = TermList::empty();
     } else {
-      _srt = SortHelper::getResultSort(_sugaredExpr.term());
+      if (_sugaredExpr.term()->isLiteral()) {
+        _srt = AtomicSort::boolSort();
+      } else {
+        _srt = SortHelper::getResultSort(_sugaredExpr.term());
+      }
     }
   }
 
@@ -414,6 +423,11 @@ public:
   {
     l._selected = true;
     return l;
+  }
+
+  TermSugar wrapInTerm()
+  {
+    return TermSugar(TermList(_lit));
   }
 };
 
@@ -627,7 +641,9 @@ class PredSugar {
   unsigned _functor;
 
 public:
-  PredSugar(const char* name, std::initializer_list<SortSugar> args, unsigned taArity = 0) 
+  PredSugar(unsigned functor)  : _functor(functor) {}
+
+  PredSugar(const char* name, std::initializer_list<SortSugar> args, unsigned taArity = 0)
   {
     Stack<SortId> as;
     for (auto a : args) {
@@ -691,6 +707,10 @@ inline Stack<Clause*> clauses(std::initializer_list<std::initializer_list<Lit>> 
 }
 
 inline void createTermAlgebra(SortSugar sort, std::initializer_list<FuncSugar> fs) {
+  // avoid redeclaration
+  if (env.signature->isTermAlgebraSort(sort.sugaredExpr())) {
+    return;
+  }
 
   using namespace Shell;
 

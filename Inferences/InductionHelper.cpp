@@ -55,7 +55,10 @@ bool isIntegerComparisonLiteral(Literal* lit) {
     case Theory::INT_GREATER_EQUAL:
     case Theory::INT_GREATER:
       // All formulas should be normalized to only use INT_LESS and not other integer comparison predicates.
-      ASSERTION_VIOLATION;
+
+      // Equality proxy may generate useless congruence axioms for the likes of INT_GREATER
+      // (although they only appeared in the input and are eliminated by now -> but this also means they are safe to ingore)
+      ASS_EQ(env.options->equalityProxy(),Options::EqualityProxy::RSTC);
     default:
       // Not an integer comparison.
       return false;
@@ -250,6 +253,19 @@ bool InductionHelper::isStructInductionTerm(Term* t) {
            // otherwise skip all constructors:
            !env.signature->getFunction(t->functor())->termAlgebraCons())
          );
+}
+
+Term* InductionHelper::getOtherTermFromComparison(Literal* l, Term* t) {
+  if (isIntegerComparisonLiteral(l)) {
+    ASS(l->ground());
+    ASS_EQ(l->arity(),2);
+    for (unsigned i = 0; i < 2; ++i) {
+      if (l->termArg(i).term() == t) {
+        return l->termArg(1-i).term();
+      }
+    }
+  }
+  return nullptr;
 }
 
 }  // namespace Inferences

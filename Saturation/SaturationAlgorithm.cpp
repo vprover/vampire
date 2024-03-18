@@ -61,6 +61,7 @@
 #include "Inferences/FOOLParamodulation.hpp"
 #include "Inferences/Injectivity.hpp"
 #include "Inferences/Factoring.hpp"
+#include "Inferences/FunctionDefinitionRewriting.hpp"
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
@@ -222,7 +223,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _clauseActivationInProgress(false),
     _fwSimplifiers(0), _simplifiers(0), _bwSimplifiers(0), _splitter(0),
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
-    _instantiation(0),
+    _instantiation(0), _fnDefHandler(prb.getFunctionDefinitionHandler()),
     _generatedClauseCount(0),
     _activationLimit(0)
 {
@@ -1581,6 +1582,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     if (opt.termAlgebraInferences()) {
       gie->addFront(new InjectivityGIE());
     }
+  }
+  if (env.options->functionDefinitionRewriting()) {
+    gie->addFront(new FunctionDefinitionRewriting());
+    res->addForwardSimplifierToFront(new FunctionDefinitionRewriting());
   }
 
   CompositeSGI* sgi = new CompositeSGI();

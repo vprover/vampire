@@ -52,7 +52,7 @@ public:
   {
     return pvi(
           iterTraits(getRangeIterator((unsigned long)0, _trees.size()))
-           .flatMap([this](auto i) { return LeafIterator(&_trees[i]); })
+           .flatMap([this](auto i) { return LeafIterator(_trees[i].get()); })
            .flatMap([](Leaf* l) { return l->allChildren(); })
            // TODO get rid of copying data here
            .map([](LeafData const* ld) { return *ld; })
@@ -116,10 +116,10 @@ public:
     int i = 0;
     out << "{ ";
     for (auto& t : self._trees) {
-      if (!t.isEmpty()) {
+      if (!t->isEmpty()) {
         auto f = env.signature->getPredicate(idxToFunctor(i));
         if (idxIsNegative(i)) out << "~";
-        out << *f << "(" << t << "), "; 
+        out << *f << "(" << *t << "), "; 
       }
       i++;
     }
@@ -130,10 +130,10 @@ public:
     int i = 0;
     out << "{ " << std::endl;
     for (auto& t : self.self._trees) {
-      if (!t.isEmpty()) {
+      if (!t->isEmpty()) {
         auto f = env.signature->getPredicate(idxToFunctor(i));
         OutputMultiline<LiteralSubstitutionTree>::outputIndent(out, self.indent);
-        out << (idxIsNegative(i) ? "~" : " ") << *f << "(" << multiline(t, self.indent + 1) << ")" << std::endl; 
+        out << (idxIsNegative(i) ? "~" : " ") << *f << "(" << multiline(*t, self.indent + 1) << ")" << std::endl; 
       }
       i++;
     }
@@ -155,12 +155,12 @@ private:
     auto findNegative = complementary ? lit->isPositive() : lit->isNegative();
     auto idx = toIdx(lit->functor(), findNegative);
     while (idx >= _trees.size()) {
-      _trees.push(SubstitutionTree());
+      _trees.push(std::make_unique<SubstitutionTree>());
     }
-    return _trees[idx];
+    return *_trees[idx];
   }
 
-  Stack<SubstitutionTree> _trees;
+  Stack<std::unique_ptr<SubstitutionTree>> _trees;
 };
 
 };

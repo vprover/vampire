@@ -399,6 +399,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/ForwardLiteralRewriting.cpp
     Inferences/ForwardSubsumptionAndResolution.cpp
     Inferences/ForwardSubsumptionDemodulation.cpp
+    Inferences/FunctionDefinitionRewriting.cpp
     Inferences/GlobalSubsumption.cpp
     Inferences/InnerRewriting.cpp
     Inferences/EquationalTautologyRemoval.cpp
@@ -435,6 +436,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/ForwardDemodulation.hpp
     Inferences/ForwardLiteralRewriting.hpp
     Inferences/ForwardSubsumptionAndResolution.hpp
+    Inferences/FunctionDefinitionRewriting.hpp
     Inferences/GlobalSubsumption.hpp
     Inferences/InnerRewriting.hpp
     Inferences/EquationalTautologyRemoval.hpp
@@ -544,6 +546,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/FunctionDefinition.cpp
     Shell/GeneralSplitting.cpp
     Shell/GoalGuessing.cpp
+    Shell/FunctionDefinitionHandler.cpp
     Shell/InequalitySplitting.cpp
     Shell/InterpolantMinimizer.cpp
     Shell/Interpolants.cpp
@@ -595,6 +598,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/EqualityProxyMono.hpp
     Shell/Flattening.hpp
     Shell/FunctionDefinition.hpp
+    Shell/FunctionDefinitionHandler.hpp
     Shell/GeneralSplitting.hpp
     Shell/InequalitySplitting.hpp
     Shell/InterpolantMinimizer.hpp
@@ -726,6 +730,9 @@ set(UNIT_TESTS
     UnitTests/tStack.cpp
     UnitTests/tSet.cpp
     UnitTests/tDeque.cpp
+    UnitTests/tTermAlgebra.cpp
+    UnitTests/tFunctionDefinitionHandler.cpp
+    UnitTests/tFunctionDefinitionRewriting.cpp
     )
 source_group(unit_tests FILES ${UNIT_TESTS})
 

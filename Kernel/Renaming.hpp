@@ -79,6 +79,8 @@ public:
   void normalizeVariables(TypedTermList t)
   { normalizeVariables(TermList(t)); normalizeVariables(t.sort()); }
   void makeInverse(const Renaming& orig);
+  unsigned nextVar() const
+  { return _nextVar; }
 
   static Literal* normalize(Literal* l);
   static TypedTermList normalize(TypedTermList l);

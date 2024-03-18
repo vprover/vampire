@@ -45,13 +45,24 @@ public:
   static bool isIntInductionOneOn();
   static bool isIntInductionTwoOn();
   static bool isInductionForFiniteIntervalsOn();
-  static bool isInductionForInfiniteIntervalsOn(); static bool isStructInductionOn();
+  static bool isInductionForInfiniteIntervalsOn();
+  static bool isStructInductionOn();
   static bool isNonUnitStructInductionOn();
   static bool isInductionClause(Clause* c);
   static bool isInductionLiteral(Literal* l);
   static bool isInductionTermFunctor(unsigned f);
   static bool isIntInductionTermListInLiteral(Term* tl, Literal* l);
   static bool isStructInductionTerm(Term* t);
+  static bool isValidForDefaultBound(Term* t, Clause* c, const TermList& defaultBound) {
+    ASS(defaultBound.isTerm());
+    ASS(c != nullptr)
+    return t != defaultBound.term();
+  }
+  static bool isValidBound(Term* t, Clause* c, const TermLiteralClause& b) {
+    ASS(b.term.isTerm());
+    return ((b.clause != c) && (t != b.term.term()));
+  }
+  static Term* getOtherTermFromComparison(Literal* l, Term* t);
 
 private:
   VirtualIterator<TermLiteralClause> getComparisonMatch(bool polarity, bool termIsLeft, Term* t);

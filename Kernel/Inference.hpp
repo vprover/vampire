@@ -264,6 +264,8 @@ enum class InferenceRule : unsigned char {
 
   BOOL_SIMP,
 
+  FUNCTION_DEFINITION_DEMODULATION,
+
   INTERNAL_SIMPLIFYING_INFERNCE_LAST,
 
 
@@ -280,6 +282,8 @@ enum class InferenceRule : unsigned char {
   CONSTRAINED_FACTORING,
   /** superposition inference */
   SUPERPOSITION,
+  /** function definition rewriting inference */
+  FUNCTION_DEFINITION_REWRITING,
   /** superposition with constraints */
   CONSTRAINED_SUPERPOSITION,
   /** equality factoring inference */
@@ -446,7 +450,10 @@ enum class InferenceRule : unsigned char {
   CHOICE_AXIOM,
 
   /* Structural induction hypothesis*/
-  STRUCT_INDUCTION_AXIOM,
+  STRUCT_INDUCTION_AXIOM_ONE,
+  STRUCT_INDUCTION_AXIOM_TWO,
+  STRUCT_INDUCTION_AXIOM_THREE,
+  STRUCT_INDUCTION_AXIOM_RECURSION,
   /* Integer induction hypothesis for infinite intervals */
   INT_INF_UP_INDUCTION_AXIOM,
   INT_INF_DOWN_INDUCTION_AXIOM,
