@@ -5,7 +5,7 @@ cmake_minimum_required (VERSION 3.14.0)
 project(Vampire)
 
 include(CheckIPOSupported)
-include(CheckPIESupported)
+# include(CheckPIESupported)
 
 # require the compiler to use C++17
 set(CMAKE_CXX_STANDARD 17)
@@ -13,6 +13,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # configure compilers
+add_compile_options(-fexceptions)
 if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
   add_compile_options(-Wall)
   # we don't use multithreading in (mainline!) Vampire
@@ -991,11 +992,11 @@ endif()
 # do not generate position-independent code:
 # 1. it has some overhead
 # 2. it's used for ASLR, which isn't a huge concern for us and messes with our backtrace support
-check_pie_supported(OUTPUT_VARIABLE PIE_ERROR LANGUAGES CXX)
-if(NOT CMAKE_CXX_LINK_PIE_SUPPORTED)
-  message(STATUS "disabling position-independent code not supported, stack traces may be broken")
-  message(STATUS "${PIE_ERROR}")
-endif()
+#check_pie_supported(OUTPUT_VARIABLE PIE_ERROR LANGUAGES CXX)
+#if(NOT CMAKE_CXX_LINK_PIE_SUPPORTED)
+#  message(STATUS "disabling position-independent code not supported, stack traces may be broken")
+#  message(STATUS "${PIE_ERROR}")
+#endif()
 
 # FIXME this guard should not be necessary but is currently because of how we do static linking above
 if(BUILD_SHARED_LIBS)
