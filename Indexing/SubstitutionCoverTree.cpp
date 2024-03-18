@@ -29,9 +29,6 @@ SubstitutionCoverTree::SubstitutionCoverTree(Clause* cl)
   for (unsigned i = 0; i < cl->length(); i++) {
     SortHelper::collectVariableSorts((*cl)[i], _varSorts);
   }
-  if (_varSorts.isEmpty()) {
-    return;
-  }
   bool added;
   vstring fnname = "sFN_varwrap_";
   DHMap<unsigned,TermList>::Iterator vit(_varSorts);
@@ -39,7 +36,15 @@ SubstitutionCoverTree::SubstitutionCoverTree(Clause* cl)
     unsigned v;
     TermList t;
     vit.next(v,t);
+    // cannot handle type vars yet
+    if (t==AtomicSort::superSort()) {
+      _varSorts.reset();
+      break;
+    }
     fnname += t.toString();
+  }
+  if (_varSorts.isEmpty()) {
+    return;
   }
   _fn = env.signature->addFunction(fnname,_varSorts.size(),added);
   if (added) {
@@ -53,7 +58,7 @@ SubstitutionCoverTree::SubstitutionCoverTree(Clause* cl)
   }
 }
 
-bool SubstitutionCoverTree::checkAndInsert(ResultSubstitution* subst, int bank, bool doInsert)
+bool SubstitutionCoverTree::checkAndInsert(ResultSubstitution* subst, bool result, bool doInsert)
 {
   if (_varSorts.isEmpty()) {
     return true;
@@ -62,18 +67,14 @@ bool SubstitutionCoverTree::checkAndInsert(ResultSubstitution* subst, int bank, 
   TermStack args;
   while (vit.hasNext()) {
     auto v = vit.nextKey();
-    auto t = subst->applyTo(TermList(v,false), bank);
+    auto t = subst->apply(TermList(v,false), result);
     args.push(t);
   }
   TermList t(Term::create(_fn, args.size(), args.begin()));
   if (_tis.generalizationExists(t)) {
-    // std::cout << "term " << t << std::endl;
     return false;
   }
   if (doInsert) {
-    // if (!anyArgIter(t.term()).any([](TermList t){ return t.isTerm(); })) {
-    //   USER_ERROR(t.toString());
-    // }
     _tis.insert(t.term(), nullptr, nullptr);
   }
   return true;

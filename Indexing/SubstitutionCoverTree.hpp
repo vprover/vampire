@@ -29,7 +29,7 @@ class SubstitutionCoverTree
 {
 public:
   SubstitutionCoverTree(Clause* cl);
-  bool checkAndInsert(ResultSubstitution* subst, int bank, bool doInsert);
+  bool checkAndInsert(ResultSubstitution* subst, bool result, bool doInsert);
 private:
   DHMap<unsigned,TermList> _varSorts;
   unsigned _fn;

@@ -35,6 +35,7 @@
 #include "Indexing/LiteralIndex.hpp"
 #include "Indexing/IndexManager.hpp"
 #include "Indexing/SubstitutionTree.hpp"
+#include "Indexing/SubstitutionCoverTree.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -134,6 +135,19 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
       }
     }
     return 0;
+  }
+
+  if (opts.skipCoveredSuperpositions()) {
+    auto supData = static_cast<SubstitutionCoverTree*>(queryCl->getSupData());
+    if (supData && !supData->checkAndInsert(subs.ptr(), false, /*doInsert=*/false)) {
+      env.statistics->skippedResolution++;
+      return 0;
+    }
+    supData = static_cast<SubstitutionCoverTree*>(resultCl->getSupData());
+    if (supData && !supData->checkAndInsert(subs.ptr(), true, /*doInsert=*/false)) {
+      env.statistics->skippedResolution++;
+      return 0;
+    }
   }
 
   unsigned clength = queryCl->length();
