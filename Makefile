@@ -29,7 +29,7 @@ OS = $(shell uname)
 
 ifeq ($(OS),Darwin) # don't forget we need clang for libtorch (not working with gcc on Mac for some reason)
 TORCHLINK= -Wl,-search_paths_first -Wl,-headerpad_max_install_names
-TORCHLIB= -Wl,-rpath,/Users/mbassms6/libtorch/lib /Users/mbassms6/libtorch/lib/libc10.dylib /Users/mbassms6/libtorch/lib/libtorch.dylib /Users/mbassms6/libtorch/lib/libtorch_cpu.dylib  
+TORCHLIB= -Wl,-rpath,/Users/msuda/libtorch/lib /Users/msuda/libtorch/lib/libc10.dylib /Users/msuda/libtorch/lib/libtorch.dylib /Users/msuda/libtorch/lib/libtorch_cpu.dylib
 else
 TORCHLINK= -D_GLIBCXX_USE_CXX11_ABI=1 -rdynamic
 TORCHLIB= -Wl,-rpath,/nfs/sudamar2/projects/vampire/libtorch/lib /nfs/sudamar2/projects/vampire/libtorch/lib/libtorch.so /nfs/sudamar2/projects/vampire/libtorch/lib/libc10.so /nfs/sudamar2/projects/vampire/libtorch/lib/libkineto.a -Wl,--no-as-needed,"/nfs/sudamar2/projects/vampire/libtorch/lib/libtorch_cpu.so" -Wl,--as-needed /nfs/sudamar2/projects/vampire/libtorch/lib/libc10.so -lpthread -Wl,--no-as-needed,"/nfs/sudamar2/projects/vampire/libtorch/lib/libtorch.so" -Wl,--as-needed 
@@ -43,7 +43,7 @@ endif
 
 DBG_FLAGS = -g -DVTIME_PROFILING=0 -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider
 # DELETEMEin2017: the bug with gcc-6.2 and problems in ClauseQueue could be also fixed by adding -fno-tree-ch
-REL_FLAGS = -O3 -DVTIME_PROFILING=0 -DVDEBUG=0 -D NDEBUG # no debugging
+REL_FLAGS = -O3 -DVTIME_PROFILING=1 -DVDEBUG=0 -D NDEBUG # no debugging
 GCOV_FLAGS = -O0 --coverage #-pedantic
 
 MINISAT_DBG_FLAGS = -D DEBUG
@@ -105,7 +105,7 @@ endif
 Z3FLAG= -DVZ3=0
 Z3LIB=
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g')) 
-INCLUDES := $(INCLUDES) -I../z3/src/api -I../z3/src/api/c++ 
+INCLUDES := $(INCLUDES) -I./z3/src/api -I./z3/src/api/c++ 
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*static.*//g'))
 Z3LIB= -Lz3/build -lz3 -lgomp -pthread  -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive -ldl
 else

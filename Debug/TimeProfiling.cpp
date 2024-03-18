@@ -20,9 +20,9 @@ namespace Shell {
 using namespace std;
 using namespace Lib;
 
-TimeTrace::TimeTrace() 
+TimeTrace::TimeTrace()
   : _root("[root]")
-  , _stack({ {&_root, Clock::now(), }, }) 
+  , _stack({ {&_root, Clock::now(), }, })
   , _enabled(false)
 {  }
 
