@@ -426,7 +426,10 @@ bool KBO::StateGreater::traverse(Term* t1, Term* t2)
         stillEqual = false;
         continue;
       }
-      switch (_kbo.compareFunctionPrecedences(ss->term()->functor(),tt->term()->functor()))
+      Result comp = ss->term()->isSort()
+        ? _kbo.compareTypeConPrecedences(ss->term()->functor(),tt->term()->functor())
+        : _kbo.compareFunctionPrecedences(ss->term()->functor(),tt->term()->functor());
+      switch (comp)
       {
         case Ordering::LESS:
         case Ordering::LESS_EQ: {
@@ -607,7 +610,6 @@ Stack<KBO::Instruction>* KBO::preprocessEquation(Literal* lit, TermList side) co
 
   // cout << "preprocess " << *lit << " " << side << endl;
 
-  Substitution subst;
   Stack<pair<TermList,TermList>> todo;
   todo.push(make_pair(side,EqHelper::getOtherEqualitySide(lit,side)));
 
@@ -634,8 +636,8 @@ Stack<KBO::Instruction>* KBO::preprocessEquation(Literal* lit, TermList side) co
 
   while (todo.isNonEmpty()) {
     auto kv = todo.pop();
-    auto lhs = SubstHelper::apply(kv.first,subst);
-    auto rhs = SubstHelper::apply(kv.second,subst);
+    auto lhs = kv.first;
+    auto rhs = kv.second;
     auto comp = compare(lhs,rhs);
     // cout << "subcase " << lhs << " " << rhs << endl;
 
@@ -693,10 +695,19 @@ Stack<KBO::Instruction>* KBO::preprocessEquation(Literal* lit, TermList side) co
           instrStackPtr->push(Instruction(kv.second));
         }
       }
+
+      // Prepare further cases if this is equal.
+      // Note that lhs and rhs are incomparable,
+      // so we don't need an occurs check.
+      Substitution subst;
       if (lhs.isVar()) {
         subst.bind(lhs.var(),rhs);
       } else {
         subst.bind(rhs.var(),lhs);
+      }
+      for (auto& kv : todo) {
+        kv.first = SubstHelper::apply(kv.first,subst);
+        kv.second = SubstHelper::apply(kv.second,subst);
       }
       continue;
     }

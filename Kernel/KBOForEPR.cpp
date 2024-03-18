@@ -20,9 +20,12 @@
 
 #include "Shell/Property.hpp"
 
+#include "EqHelper.hpp"
 #include "Problem.hpp"
 #include "Term.hpp"
 #include "Signature.hpp"
+
+#include "Indexing/ResultSubstitution.hpp"
 
 #include "KBOForEPR.hpp"
 
@@ -110,6 +113,14 @@ Ordering::Result KBOForEPR::compare(TermList tl1, TermList tl2) const
   return compareFunctionPrecedences(tl1.term()->functor(), tl2.term()->functor());
 }
 
+bool KBOForEPR::isGreater(Literal* lit, TermList lhs, Indexing::ResultSubstitution* subst, bool result) const
+{
+  auto rhs = EqHelper::getOtherEqualitySide(lit,lhs);
+  auto lhsS = result ? subst->applyToBoundResult(lhs) : subst->applyToBoundQuery(lhs);
+  auto rhsS = result ? subst->applyToBoundResult(rhs) : subst->applyToBoundQuery(rhs);
+  auto c = compare(lhsS,rhsS);
+  return c==GREATER||c==GREATER_EQ;
+}
 
 void KBOForEPR::showConcrete(ostream& out) const 
 { 
