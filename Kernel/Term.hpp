@@ -339,26 +339,19 @@ private:
   }
 
   // getters
-  unsigned _tag() const
-  { return getBits<TAG_BITS_START, TAG_BITS_END>();}
-  bool _polarity() const
-  { return getBits<POLARITY_BITS_START, POLARITY_BITS_END>();}
-  bool _commutative() const
-  { return getBits<COMMUTATIVE_BITS_START, COMMUTATIVE_BITS_END>();}
-  bool _shared() const
-  { return getBits<SHARED_BITS_START, SHARED_BITS_END>();}
-  bool _literal() const
-  { return getBits<LITERAL_BITS_START, LITERAL_BITS_END>(); }
-  bool _sort() const
-  { return getBits<SORT_BITS_START, SORT_BITS_END>(); }
-  bool _hasTermVar() const
-  { return getBits<HAS_TERM_VAR_BITS_START, HAS_TERM_VAR_BITS_END>();}
-  unsigned _order() const
-  { return getBits<ORDER_BITS_START, ORDER_BITS_END>(); }
-  uint32_t _distinctVars() const
-  { return getBits<DISTINCT_VAR_BITS_START, DISTINCT_VAR_BITS_END>(); }
-  uint32_t _id() const
-  { return getBits<ID_BITS_START, ID_BITS_END>(); }
+#define GET(type, name, NAME) type _##name() const\
+  { return getBits<NAME##_BITS_START, NAME##_BITS_END>(); }
+  GET(unsigned, tag, TAG)
+  GET(bool, polarity, POLARITY)
+  GET(bool, commutative, COMMUTATIVE)
+  GET(bool, shared, SHARED)
+  GET(bool, literal, LITERAL)
+  GET(bool, sort, SORT)
+  GET(bool, hasTermVar, HAS_TERM_VAR)
+  GET(unsigned, order, ORDER)
+  GET(uint32_t, distinctVars, DISTINCT_VAR)
+  GET(uint32_t, id, ID)
+#undef GET
   Term *_term() const
   { return reinterpret_cast<Term *>(getBits<TERM_BITS_START, TERM_BITS_END>()); }
 
@@ -380,26 +373,20 @@ private:
       _content |= data;
   }
 
-  void _setTag(unsigned tag)
-  { setBits<TAG_BITS_START, TAG_BITS_END>(tag); }
-  void _setPolarity(bool polarity)
-  { setBits<POLARITY_BITS_START, POLARITY_BITS_END>(polarity); }
-  void _setCommutative(bool commutative)
-  { setBits<COMMUTATIVE_BITS_START, COMMUTATIVE_BITS_END>(commutative); }
-  void _setShared(bool shared)
-  { setBits<SHARED_BITS_START, SHARED_BITS_END>(shared); }
-  void _setLiteral(bool literal)
-  { setBits<LITERAL_BITS_START, LITERAL_BITS_END>(literal); }
-  void _setSort(bool sort)
-  { setBits<SORT_BITS_START, SORT_BITS_END>(sort); }
-  void _setHasTermVar(bool hasTermVar)
-  { setBits<HAS_TERM_VAR_BITS_START, HAS_TERM_VAR_BITS_END>(hasTermVar); }
-  void _setOrder(unsigned order)
-  { setBits<ORDER_BITS_START, ORDER_BITS_END>(order); }
-  void _setDistinctVars(uint32_t distinct)
-  { setBits<DISTINCT_VAR_BITS_START, DISTINCT_VAR_BITS_END>(distinct); }
-  void _setId(uint32_t id)
-  { setBits<ID_BITS_START, ID_BITS_END>(id); }
+  // setters
+#define SET(type, name, NAME) void _set##name(type val)\
+  { setBits<NAME##_BITS_START, NAME##_BITS_END>(val); }
+  SET(unsigned, Tag, TAG)
+  SET(bool, Polarity, POLARITY)
+  SET(bool, Commutative, COMMUTATIVE)
+  SET(bool, Shared, SHARED)
+  SET(bool, Literal, LITERAL)
+  SET(bool, Sort, SORT)
+  SET(bool, HasTermVar, HAS_TERM_VAR)
+  SET(unsigned, Order, ORDER)
+  SET(uint32_t, DistinctVars, DISTINCT_VAR)
+  SET(uint32_t, Id, ID)
+#undef SET
   void _setTerm(Term *term)
   { setBits<TERM_BITS_START, TERM_BITS_END>(reinterpret_cast<uint64_t>(term)); }
 
