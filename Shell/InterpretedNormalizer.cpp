@@ -183,7 +183,7 @@ private:
 /**
  * Class that performs literal transformations
  */
-class InterpretedNormalizer::NLiteralTransformer : public TermTransformer
+class InterpretedNormalizer::NLiteralTransformer : public BottomUpTermTransformer
 {
 public:
   NLiteralTransformer()
@@ -233,7 +233,7 @@ public:
     }
 
     constantRes = false;
-    litRes = transform(lit);
+    litRes = transformLiteral(lit);
     unsigned pred = litRes->functor();
     IneqTranslator* transl = getIneqTranslator(pred);
     if(transl) {
@@ -244,7 +244,7 @@ public:
   Formula* transform(Formula* f) override;
 
 protected:
-  using TermTransformer::transform;
+  using BottomUpTermTransformer::transform;
 
   TermList transformSubterm(TermList trm) override
   {
@@ -452,8 +452,8 @@ bool InterpretedNormalizer::apply(UnitList*& units)
       FormulaUnit* fu = static_cast<FormulaUnit*>(u);
       FormulaUnit* fu1 = futransf.transform(fu);
       if(fu!=fu1) {
-	uit.replace(fu1);
-	modified = true;
+	      uit.replace(fu1);
+	      modified = true;
       }
     }
   }

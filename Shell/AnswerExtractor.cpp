@@ -663,7 +663,7 @@ Unit* SynthesisManager::createUnitFromConjunctionWithAnswerLiteral(Formula* junc
 Formula* SynthesisManager::getConditionFromClause(Clause* cl) {
   FormulaList* fl = FormulaList::empty();
   for (unsigned i = 0; i < cl->length(); ++i) {
-    Literal* newLit = Literal::complementaryLiteral(_skolemReplacement.transform((*cl)[i]));
+    Literal* newLit = Literal::complementaryLiteral(_skolemReplacement.transformLiteral((*cl)[i]));
     FormulaList::push(new AtomicFormula(newLit), fl);
   }
   return JunctionFormula::generalJunction(Connective::AND, fl);

@@ -33,7 +33,9 @@
 
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
+#if VZ3
 #include "z3++.h"
+#endif
 #include <ios>
 
 using namespace std;

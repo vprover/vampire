@@ -188,5 +188,6 @@ namespace Shell
 class Options;
 class Property;
 class Statistics;
+class FunctionDefinitionHandler;
 }
 #endif /* __Forwards__ */

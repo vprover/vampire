@@ -1202,14 +1202,14 @@ endOfUnwrapping:
 
   // don't swap equality
   if(lit->functor()==0){
-   resLit = BottomUpTermTransformer::transform(Literal::createEquality(lit->polarity(),t2,t1,srt));
+   resLit = BottomUpTermTransformer::transformLiteral(Literal::createEquality(lit->polarity(),t2,t1,srt));
   }
   else{
     // important, need to preserve the ordering of t1 and t2 in the original!
     if(swap){
-      resLit = BottomUpTermTransformer::transform(Literal::create2(lit->functor(),lit->polarity(),t2,t1));
+      resLit = BottomUpTermTransformer::transformLiteral(Literal::create2(lit->functor(),lit->polarity(),t2,t1));
     }else{
-      resLit = BottomUpTermTransformer::transform(Literal::create2(lit->functor(),lit->polarity(),t1,t2));
+      resLit = BottomUpTermTransformer::transformLiteral(Literal::create2(lit->functor(),lit->polarity(),t1,t2));
     }
   }
   return true;
@@ -1421,7 +1421,7 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
                       : lit;
   DEBUG( "\t0 ==> ", resLit->toString() );
 
-  resLit = BottomUpTermTransformer::transform( resLit);
+  resLit = BottomUpTermTransformer::transformLiteral( resLit);
   DEBUG( "\t1 ==> ", resLit->toString() );
 
 //   // If it can be balanced we balance it
@@ -1473,7 +1473,7 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
 
       case PredEvalResult::Simplified: 
         // resLit = r.simplified_val;
-        resLit = BottomUpTermTransformer::transform(r.simplified_val);
+        resLit = BottomUpTermTransformer::transformLiteral(r.simplified_val);
         break;
 
       case PredEvalResult::Trivial: 

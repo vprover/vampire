@@ -338,7 +338,7 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
     Literal* curlit = (*cl)[i];
 
     if (curlit->functor() != lit->functor() || curlit->polarity() != lit->polarity()) {
-      Literal* ncurlit = clNormalizer.transform(curlit);
+      Literal* ncurlit = clNormalizer.transformLiteral(curlit);
       Literal* opncurlit = Literal::complementaryLiteral(ncurlit);
 
       if (norm_lits.find(opncurlit)) {
@@ -389,7 +389,7 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
     Literal* curlit = (*pcl)[i];
 
     if (curlit->functor() != plit->functor() || curlit->polarity() != plit->polarity()) {
-      Literal* ncurlit = pclNormalizer.transform(curlit);
+      Literal* ncurlit = pclNormalizer.transformLiteral(curlit);
       Literal* opncurlit = Literal::complementaryLiteral(ncurlit);
 
       if (norm_lits.find(opncurlit)) {
