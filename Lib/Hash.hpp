@@ -116,24 +116,11 @@ struct VectorHash {
 };
 
 template<class InnerHash> 
-struct TupleHash {
-
-  template <std::size_t Index, typename... Ts>
-  static inline typename std::enable_if<Index == sizeof...(Ts), unsigned>::type
-  tuple_hash_impl(const std::tuple<Ts...> &t) { return 0; }
-
-  template <std::size_t Index, typename... Ts>
-  static inline typename std::enable_if<Index < sizeof...(Ts), unsigned>::type
-  tuple_hash_impl(const std::tuple<Ts...> &t) 
-  { return Lib::HashUtils::combine(tuple_hash_impl<Index + 1>(t), InnerHash::hash(std::get<Index>(t))); }
-
-
+struct TupleHash 
+{
   template<typename... T>
-  static unsigned hash(std::tuple<T...> const& s) {
-    //TODO: repace with std::apply:
-    // return std::apply(s, [](auto... args) { return HashUtils::combine(hash(args)...); });
-    return tuple_hash_impl<0>(s);
-  }
+  static unsigned hash(std::tuple<T...> const& s) 
+  { return std::apply([](auto... args) { return HashUtils::combine(InnerHash::hash(args)...); }, s); }
 };
 
 /**
