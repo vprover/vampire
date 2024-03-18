@@ -305,7 +305,10 @@ protected:
     //     ;
     // }
     switch (rule) {
-      case InferenceRule::STRUCT_INDUCTION_AXIOM:
+      case InferenceRule::STRUCT_INDUCTION_AXIOM_ONE:
+      case InferenceRule::STRUCT_INDUCTION_AXIOM_TWO:
+      case InferenceRule::STRUCT_INDUCTION_AXIOM_THREE:
+      case InferenceRule::STRUCT_INDUCTION_AXIOM_RECURSION:
         env.statistics->structInductionInProof++;
         break;
       case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
@@ -517,7 +520,7 @@ struct InferenceStore::TPTPProofPrinter
   void print()
   {
     //outputSymbolDeclarations also deals with sorts for now
-    //UIHelper::outputSortDeclarations(env.out());
+    //UIHelper::outputSortDeclarations(out);
     UIHelper::outputSymbolDeclarations(out);
     ProofPrinter::print();
   }

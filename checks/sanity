@@ -78,3 +78,4 @@ check_szs_status Unsatisfiable -ind struct -nui on ind/mem_append.smt2
 check_szs_status Unsatisfiable parse/types-funs.smt2
 check_szs_status Unsatisfiable -newcnf on parse/types-funs.smt2
 check_szs_status Unsatisfiable -t 2 parse/smtlib2-parametric-datatypes.smt2
+check_szs_status Unsatisfiable parse/smtlib2-mutual-recursion.smt2

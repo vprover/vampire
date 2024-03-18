@@ -75,33 +75,31 @@ unsigned Timer::elapsedMegaInstructions() {
   // so any code below that allocates might corrupt the allocator state.
   // Therefore, the printing below should avoid allocations!
 
-  env.beginOutput();
   reportSpiderStatus('t');
   if (outputAllowed()) {
-    addCommentSignForSZS(env.out());
-    env.out() << REACHED[whichLimit];
+    addCommentSignForSZS(std::cout);
+    std::cout << REACHED[whichLimit];
 
     if (UIHelper::portfolioParent) { // the boss
-      addCommentSignForSZS(env.out());
-      env.out() << "Proof not found in time ";
-      Timer::printMSString(env.out(),env.timer->elapsedMilliseconds());
+      addCommentSignForSZS(std::cout);
+      std::cout << "Proof not found in time ";
+      Timer::printMSString(std::cout,env.timer->elapsedMilliseconds());
 
 #if VAMPIRE_PERF_EXISTS
       if (last_instruction_count_read > -1) {
-        env.out() << " nor after " << last_instruction_count_read << " (user) instruction executed.";
+        std::cout << " nor after " << last_instruction_count_read << " (user) instruction executed.";
       }
 #endif
-      env.out() << endl;
+      std::cout << endl;
 
       if (szsOutputMode()) {
-        env.out() << STATUS[whichLimit] << (env.options ? env.options->problemName().c_str() : "unknown") << endl;
+        std::cout << STATUS[whichLimit] << (env.options ? env.options->problemName().c_str() : "unknown") << endl;
       }
     } else // the actual child
       if (env.statistics) {
-        env.statistics->print(env.out());
+        env.statistics->print(std::cout);
     }
   }
-  env.endOutput();
 
   System::terminateImmediately(1);
 }
@@ -160,6 +158,7 @@ void Timer::updateInstructionCount()
     // however, we definitely want this to be guarded by env.options->instructionLimit()
     // not to bother with the error people who don't even know about instruction limiting
     cerr << "perf_event_open failed (instruction limiting will be disabled): " << error_to_report << endl;
+    cerr << "(If you are seeing 'Permission denied' ask your admin to run 'sudo sysctl -w kernel.perf_event_paranoid=-1' for you.)" << endl;
     error_to_report = nullptr;
   }
 #endif

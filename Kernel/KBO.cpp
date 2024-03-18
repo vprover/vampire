@@ -936,10 +936,8 @@ KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const
 }
 
 void throwError(UserErrorException e) { throw e; }
-void warnError(UserErrorException e) { 
-  env.beginOutput();
-  env.out() << "WARNING: Your KBO is probably not well-founded. Reason: " << e.msg() << std::endl;
-  env.endOutput();
+void warnError(UserErrorException e) {
+  std::cout << "WARNING: Your KBO is probably not well-founded. Reason: " << e.msg() << std::endl;
 }
 
 

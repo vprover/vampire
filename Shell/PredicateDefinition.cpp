@@ -113,19 +113,15 @@ struct PredicateDefinition::PredData
       pdObj->_eliminable.push(pred);
       enqueuedForDefEl=true;
       if (env.options->showPreprocessing()) {
-        env.beginOutput();
-        env.out() << "[PP] pred marked for removing unused predicate definition: " 
+        std::cout << "[PP] pred marked for removing unused predicate definition: "
                 << env.signature->predicateName(pred) << std::endl;
-        env.endOutput();
-      }            
+      }
     } else if(!enqueuedForReplacement && isPure()) {
       pdObj->_pureToReplace.push(pred);
       enqueuedForReplacement=true;
       if (env.options->showPreprocessing()) {
-        env.beginOutput();
-        env.out() << "[PP] " << stateToString() << " to be replaced by " 
+        std::cout << "[PP] " << stateToString() << " to be replaced by "
                 << ((nocc==0) ? "$false" : "$true") << std::endl;
-        env.endOutput();
       }
     }
   }
@@ -179,11 +175,9 @@ void PredicateDefinition::addBuiltInPredicate(unsigned pred)
   _preds[pred].builtIn = true;
 
   if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] pred marked as built-in: " 
+    std::cout << "[PP] pred marked as built-in: "
             << env.signature->predicateName(pred) << std::endl;
-    env.endOutput();
-  }  
+  }
 }
 
 Unit* PredicateDefinition::getReplacement(Unit* u, ReplMap& replacements)
@@ -218,9 +212,7 @@ void PredicateDefinition::eliminatePredicateDefinition(unsigned pred, ReplMap& r
     //pred does not occur anywhere else, hence can be deleted
     repl = 0;
     if (env.options->showPreprocessing()) {
-      env.beginOutput();
-      env.out() << "[PP] definition " << (*def) << " removed" << std::endl;
-      env.endOutput();
+      std::cout << "[PP] definition " << (*def) << " removed" << std::endl;
     }
     _processedPrb->addEliminatedPredicate(pred,def);
   }
@@ -236,25 +228,21 @@ void PredicateDefinition::eliminatePredicateDefinition(unsigned pred, ReplMap& r
       //the definition formula was simplified by other transformation to the      
       //point it is no longer definition that can be eliminated
       if (env.options->showPreprocessing()) {
-        env.beginOutput();
-        env.out() << "[PP] Formula " << (*def) 
+        std::cout << "[PP] Formula " << (*def)
                 << " is no longer in the shape of definition of "
-                << env.signature->predicateName(pred) 
-                << ". The original definition was " << (*def0) 
+                << env.signature->predicateName(pred)
+                << ". The original definition was " << (*def0)
                 << "." << std::endl;
-        env.endOutput();
       }
-      
+
       return;
     }
     _processedPrb->addPartiallyEliminatedPredicate(pred,def);
 
     if (env.options->showPreprocessing()) {
-      env.beginOutput();
-      env.out() << "[PP] definition " << (*def) << " replaced by " 
+      std::cout << "[PP] definition " << (*def) << " replaced by "
               << (*repl) << std::endl;
-      env.endOutput();
-    }    
+    }
   }
   if(repl) {
     count(repl, 1);
@@ -285,15 +273,13 @@ void PredicateDefinition::replacePurePred(unsigned pred, ReplMap& replacements)
 
     ASS_NEQ(u,v);
     if (env.options->showPreprocessing()) {
-      env.beginOutput();
         if (v) {
-          env.out() << "unit " << (*u) << " replaced by " << (*v) << endl;
+          std::cout << "unit " << (*u) << " replaced by " << (*v) << endl;
         } else {
-          env.out() << "unit " << (*u) << " removed" << endl;
+          std::cout << "unit " << (*u) << " removed" << endl;
         }
-      env.endOutput();
     }
-    
+
     count(v,1);
     count(u,-1);
     ALWAYS(replacements.insert(u,v));
@@ -314,14 +300,12 @@ void PredicateDefinition::collectReplacements(UnitList* units, ReplMap& replacem
   }
 
   if (env.options->showPreprocessing()) {
-    env.beginOutput();
     for (unsigned i = 0; i < _predCnt; ++i) {
       if (!_preds[i].pocc && !_preds[i].nocc && !_preds[i].docc)
-        continue;      
-      env.out() << _preds[i].stateToString() << endl;
-    }    
-    env.endOutput();
-  }  
+        continue;
+      std::cout << _preds[i].stateToString() << endl;
+    }
+  }
 
   for(unsigned pred=1; pred<_predCnt; pred++) {
     _preds[pred].check(this);
@@ -338,12 +322,10 @@ void PredicateDefinition::collectReplacements(UnitList* units, ReplMap& replacem
     }
   }
   if (env.options->showPreprocessing()) {
-    env.beginOutput();
     for(unsigned i=0; i<_predCnt; ++i) {
       if(!_preds[i].pocc && !_preds[i].nocc  && !_preds[i].docc ) { continue; }
-      env.out() << _preds[i].stateToString() << endl;
-    }    
-    env.endOutput();
+      std::cout << _preds[i].stateToString() << endl;
+    }
   }
 }
 

@@ -162,6 +162,7 @@ void Options::init()
          "file",
          "induction",
          "integer_induction",
+         "intind_oeis",
          "ltb_default_2017",
          "ltb_hh4_2017",
          "ltb_hll_2017",
@@ -171,7 +172,8 @@ void Options::init()
          "smtcomp_2018",
          "snake_tptp_uns",
          "snake_tptp_sat",
-         "struct_induction"});
+         "struct_induction",
+         "struct_induction_tip"});
     _schedule.description = "Schedule to be run by the portfolio mode. casc and smtcomp usually point to the most recent schedule in that category. file loads the schedule from a file specified in --schedule_file. Note that some old schedules may contain option values that are no longer supported - see ignore_missing.";
     _lookup.insert(&_schedule);
     _schedule.reliesOn(UsingPortfolioTechnology());
@@ -1273,10 +1275,14 @@ void Options::init()
     //_induction.setRandomChoices
 
     _structInduction = ChoiceOptionValue<StructuralInductionKind>("structural_induction_kind","sik",
-                         StructuralInductionKind::ONE,{"one","two","three","all"});
+                         StructuralInductionKind::ONE,{"one","two","three","recursion","all"});
     _structInduction.description="The kind of structural induction applied";
     _structInduction.tag(OptionTag::INDUCTION);
     _structInduction.onlyUsefulWith(Or(_induction.is(equal(Induction::STRUCTURAL)),_induction.is(equal(Induction::BOTH))));
+    _structInduction.addHardConstraint(If(equal(StructuralInductionKind::RECURSION)).then(_newCNF.is(equal(true))));
+    _structInduction.addHardConstraint(If(equal(StructuralInductionKind::RECURSION)).then(_equalityResolutionWithDeletion.is(equal(true))));
+    _structInduction.addHardConstraint(If(equal(StructuralInductionKind::ALL)).then(_newCNF.is(equal(true))));
+    _structInduction.addHardConstraint(If(equal(StructuralInductionKind::ALL)).then(_equalityResolutionWithDeletion.is(equal(true))));
     _lookup.insert(&_structInduction);
 
     _intInduction = ChoiceOptionValue<IntInductionKind>("int_induction_kind","iik",
@@ -1346,6 +1352,13 @@ void Options::init()
     _inductionOnComplexTerms.onlyUsefulWith(_induction.is(notEqual(Induction::NONE)));
     _lookup.insert(&_inductionOnComplexTerms);
 
+    _functionDefinitionRewriting = BoolOptionValue("function_definition_rewriting","fnrw",false);
+    _functionDefinitionRewriting.description = "Use function definitions as rewrite rules with the intended orientation rather than the term ordering one";
+    _functionDefinitionRewriting.tag(OptionTag::INFERENCES);
+    _functionDefinitionRewriting.addHardConstraint(If(equal(true)).then(_newCNF.is(equal(true))));
+    _functionDefinitionRewriting.addHardConstraint(If(equal(true)).then(_equalityResolutionWithDeletion.is(equal(true))));
+    _lookup.insert(&_functionDefinitionRewriting);
+
     _integerInductionDefaultBound = BoolOptionValue("int_induction_default_bound","intinddb",false);
     _integerInductionDefaultBound.description = "Always apply integer induction with bound 0";
     _integerInductionDefaultBound.tag(OptionTag::INDUCTION);
@@ -1383,7 +1396,7 @@ void Options::init()
       "  - not_in_both: t does not occur in both arguments of l\n"
       "  - always: induction on l is not allowed at all\n";
     _integerInductionStrictnessEq.tag(OptionTag::INDUCTION);
-    _integerInductionStrictnessEq.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
+    _integerInductionStrictnessEq.onlyUsefulWith(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
     _lookup.insert(&_integerInductionStrictnessEq);
 
     _integerInductionStrictnessComp = ChoiceOptionValue<IntegerInductionLiteralStrictness>(
@@ -1402,7 +1415,7 @@ void Options::init()
       "  - not_in_both: t does not occur in both arguments of l\n"
       "  - always: induction on l is not allowed at all\n";
     _integerInductionStrictnessComp.tag(OptionTag::INDUCTION);
-    _integerInductionStrictnessComp.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
+    _integerInductionStrictnessComp.onlyUsefulWith(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
     _lookup.insert(&_integerInductionStrictnessComp);
 
     _integerInductionStrictnessTerm = ChoiceOptionValue<IntegerInductionTermStrictness>(
@@ -1418,7 +1431,7 @@ void Options::init()
       "  - interpreted_constant: t is an interpreted constant\n"
       "  - no_skolems: t does not contain a skolem function";
     _integerInductionStrictnessTerm.tag(OptionTag::INDUCTION);
-    _integerInductionStrictnessTerm.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
+    _integerInductionStrictnessTerm.onlyUsefulWith(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
     _lookup.insert(&_integerInductionStrictnessTerm);
 
     _nonUnitInduction = BoolOptionValue("non_unit_induction","nui",false);
@@ -1426,6 +1439,12 @@ void Options::init()
     _nonUnitInduction.tag(OptionTag::INDUCTION);
     _nonUnitInduction.reliesOn(_induction.is(notEqual(Induction::NONE)));
     _lookup.insert(&_nonUnitInduction);
+
+    _inductionOnActiveOccurrences = BoolOptionValue("induction_on_active_occurrences","indao",false);
+    _inductionOnActiveOccurrences.description = "Only use induction terms from active occurrences, generalize over active occurrences";
+    _inductionOnActiveOccurrences.tag(OptionTag::INDUCTION);
+    _inductionOnActiveOccurrences.onlyUsefulWith(_induction.is(notEqual(Induction::NONE)));
+    _lookup.insert(&_inductionOnActiveOccurrences);
 
     _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
     _instantiation.description = "Heuristically instantiate variables. Often wastes a lot of effort. Consider using thi instead.";
@@ -1595,6 +1614,11 @@ void Options::init()
       "         sn = tn \\/ A";
     _lookup.insert(&_termAlgebraInferences);
     _termAlgebraInferences.tag(OptionTag::THEORIES);
+
+    _termAlgebraExhaustivenessAxiom = BoolOptionValue("term_algebra_exhaustiveness_axiom","taea",true);
+    _termAlgebraExhaustivenessAxiom.description="Enable term algebra exhaustiveness axiom";
+    _lookup.insert(&_termAlgebraExhaustivenessAxiom);
+    _termAlgebraExhaustivenessAxiom.tag(OptionTag::THEORIES);
 
     _termAlgebraCyclicityCheck = ChoiceOptionValue<TACyclicityCheck>("term_algebra_acyclicity","tac",
                                                                      TACyclicityCheck::OFF,{"off","axiom","rule","light"});
@@ -2342,10 +2366,8 @@ void Options::set(const char* name,const char* value, bool longOpt)
         break;
       case IgnoreMissing::WARN:
         if (outputAllowed()) {
-          env.beginOutput();
-          addCommentSignForSZS(env.out());
-          env.out() << "WARNING: invalid value "<< value << " for option " << name << endl;
-          env.endOutput();
+          addCommentSignForSZS(std::cout);
+          std::cout << "WARNING: invalid value "<< value << " for option " << name << endl;
         }
         break;
       case IgnoreMissing::ON:
@@ -2358,10 +2380,8 @@ void Options::set(const char* name,const char* value, bool longOpt)
       vstring msg = (vstring)name + (longOpt ? " is not a valid option" : " is not a valid short option (did you mean --?)");
       if (_ignoreMissing.actualValue == IgnoreMissing::WARN) {
         if (outputAllowed()) {
-          env.beginOutput();
-          addCommentSignForSZS(env.out());
-          env.out() << "WARNING: " << msg << endl;
-          env.endOutput();
+          addCommentSignForSZS(std::cout);
+          std::cout << "WARNING: " << msg << endl;
         }
         return;
       } // else:
@@ -2424,6 +2444,13 @@ Options::OptionProblemConstraintUP Options::isRandSat(){
  * @since 16/10/2003 Manchester, relativeName changed to string from char*
  * @since 07/08/2014 Manchester, relativeName changed to vstring
  */
+// TODO this behaviour isn't quite right, at least:
+// 1. we use the *root* file to resolve relative paths, which won't work if we have an axiom file that includes another
+// 2. checks current directory, which spec doesn't ask for
+// 3. checks our "-include" option, which isn't in the spec either (OK if someone relies on it, I guess)
+// cf https://tptp.org/TPTP/TR/TPTPTR.shtml#IncludeSection
+// probable solution: move all this logic into TPTP parser and do it properly there
+
 vstring Options::includeFileName (const vstring& relativeName)
 {
   if (relativeName[0] == '/') { // absolute name
@@ -3162,10 +3189,8 @@ void Options::readOptionsString(vstring optionsString,bool assign)
                 break;
               case IgnoreMissing::WARN:
                 if (outputAllowed()) {
-                  env.beginOutput();
-                  addCommentSignForSZS(env.out());
-                  env.out() << "WARNING: value " << value << " for option "<< param <<" not known" << endl;
-                  env.endOutput();
+                  addCommentSignForSZS(std::cout);
+                  std::cout << "WARNING: value " << value << " for option "<< param <<" not known" << endl;
                 }
                 break;
               case IgnoreMissing::ON:
@@ -3186,12 +3211,9 @@ void Options::readOptionsString(vstring optionsString,bool assign)
         USER_ERROR("option "+param+" not known");
         break;
       case IgnoreMissing::WARN:
-        env.beginOutput();
         if (outputAllowed()) {
-          env.beginOutput();
-          addCommentSignForSZS(env.out());
-          env.out() << "WARNING: option "<< param << " not known." << endl;
-          env.endOutput();
+          addCommentSignForSZS(std::cout);
+          std::cout << "WARNING: option "<< param << " not known." << endl;
         }
         break;
       case IgnoreMissing::ON:
@@ -3477,7 +3499,6 @@ bool Options::checkGlobalOptionConstraints(bool fail_early)
   return result;
 }
 
-//TODO should not use cout, should use env.out
 template <typename T>
 bool Options::OptionValue<T>::checkConstraints()
 {

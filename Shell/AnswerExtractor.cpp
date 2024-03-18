@@ -62,13 +62,12 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
       }
     }
   }
-  env.beginOutput();
   if (hasALManager) {
     AnswerLiteralManager::getInstance()->tryOutputInputUnits();
   } else if (hasSyntManager) {
     SynthesisManager::getInstance()->tryOutputInputUnits();
   }
-  env.out() << "% SZS answers Tuple [[";
+  std::cout << "% SZS answers Tuple [[";
   Stack<TermList>::BottomFirstIterator ait(answer);
   while(ait.hasNext()) {
     TermList aLit = ait.next();
@@ -89,21 +88,20 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
       }
     }
 
-    env.out() << aLit.toString();
+    std::cout << aLit.toString();
     if(ait.hasNext()) {
-      env.out() << ',';
+      std::cout << ',';
     }
   }
-  env.out() << "]|_] for " << env.options->problemName() << endl;
-  env.endOutput();
+  std::cout << "]|_] for " << env.options->problemName() << endl;
 }
 
 void AnswerExtractor::tryOutputInputUnits() {
   if (!UnitList::isEmpty(_inputs)) {
-    env.out() << "% Inputs for question answering:" << endl;
+    std::cout << "% Inputs for question answering:" << endl;
     UnitList::Iterator it(_inputs);
     while (it.hasNext()) {
-      env.out() << it.next()->toString() << endl;
+      std::cout << it.next()->toString() << endl;
     }
   }
 }
@@ -665,7 +663,7 @@ Unit* SynthesisManager::createUnitFromConjunctionWithAnswerLiteral(Formula* junc
 Formula* SynthesisManager::getConditionFromClause(Clause* cl) {
   FormulaList* fl = FormulaList::empty();
   for (unsigned i = 0; i < cl->length(); ++i) {
-    Literal* newLit = Literal::complementaryLiteral(_skolemReplacement.transform((*cl)[i]));
+    Literal* newLit = Literal::complementaryLiteral(_skolemReplacement.transformLiteral((*cl)[i]));
     FormulaList::push(new AtomicFormula(newLit), fl);
   }
   return JunctionFormula::generalJunction(Connective::AND, fl);

@@ -105,8 +105,7 @@ void reportSpiderStatus(char status)
   vstring problemName = Lib::env.options->problemName();
   Timer* timer = Lib::env.timer;
 
-  env.beginOutput();
-  env.out()
+  std::cout
     << status << " "
     << (problemName.length() == 0 ? "unknown" : problemName) << " "
     << (timer ? timer->elapsedDeciseconds() : 0) << " "
@@ -114,7 +113,6 @@ void reportSpiderStatus(char status)
     << Lib::getUsedMemory()/1048576 << " "
     << (Lib::env.options ? Lib::env.options->testId() : "unknown") << " "
     << commitNumber << ':' << z3Version << endl;
-  env.endOutput();
 #endif
 }
 
@@ -276,14 +274,12 @@ void UIHelper::parseSingleLine(const vstring& lineToParse, Options::InputSyntax 
 void resetParsing(ParsingRelatedException& exception, istream& input, vstring nowtry)
 {
   if (env.options->mode()!=Options::Mode::SPIDER) {
-    env.beginOutput();
-    addCommentSignForSZS(env.out());
-    env.out() << "Failed with\n";
-    addCommentSignForSZS(env.out());
-    exception.cry(env.out());
-    addCommentSignForSZS(env.out());
-    env.out() << "Trying " << nowtry  << endl;
-    env.endOutput();
+    addCommentSignForSZS(std::cout);
+    std::cout << "Failed with\n";
+    addCommentSignForSZS(std::cout);
+    exception.cry(std::cout);
+    addCommentSignForSZS(std::cout);
+    std::cout << "Trying " << nowtry  << endl;
   }
 
   input.clear();
@@ -296,10 +292,8 @@ void UIHelper::parseStream(std::istream& input, Options::InputSyntax inputSyntax
   case Options::InputSyntax::AUTO:
     if (preferSMTonAuto){
       if (verbose) {
-        env.beginOutput();
-        addCommentSignForSZS(env.out());
-        env.out() << "Running in auto input_syntax mode. Trying SMTLIB2\n";
-        env.endOutput();
+        addCommentSignForSZS(std::cout);
+        std::cout << "Running in auto input_syntax mode. Trying SMTLIB2\n";
       }
       try {
         tryParseSMTLIB2(input);
@@ -309,10 +303,8 @@ void UIHelper::parseStream(std::istream& input, Options::InputSyntax inputSyntax
       }
     } else {
       if (verbose) {
-        env.beginOutput();
-        addCommentSignForSZS(env.out());
-        env.out() << "Running in auto input_syntax mode. Trying TPTP\n";
-        env.endOutput();
+        addCommentSignForSZS(std::cout);
+        std::cout << "Running in auto input_syntax mode. Trying TPTP\n";
       }
       try {
         tryParseTPTP(input);
@@ -338,10 +330,8 @@ void UIHelper::parseStandardInput(Options::InputSyntax inputSyntax)
   _loadedPieces.push(std::move(newPiece));
 
   if (inputSyntax == Options::InputSyntax::AUTO) {
-    env.beginOutput();
-    addCommentSignForSZS(env.out());
-    env.out() << "input_syntax=auto not supported for standard input parsing, switching to tptp.\n";
-    env.endOutput();
+    addCommentSignForSZS(std::cout);
+    std::cout << "input_syntax=auto not supported for standard input parsing, switching to tptp.\n";
 
     inputSyntax = Options::InputSyntax::TPTP;
   }

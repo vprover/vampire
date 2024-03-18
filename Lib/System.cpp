@@ -22,9 +22,6 @@
 // TODO these should probably be guarded
 // for getpid, _exit
 #include <unistd.h>
-// for listing directory items
-// C++17: use std::filesystem
-#include <dirent.h>
 
 #ifdef __linux__
 #include <sys/prctl.h>
@@ -49,8 +46,6 @@ namespace Lib {
 
 using namespace std;
 
-bool System::s_shouldIgnoreSIGINT = false;
-bool System::s_shouldIgnoreSIGHUP = false;
 const char* System::s_argv0 = 0;
 
 const char* signalToString (int sigNum)
@@ -113,9 +108,7 @@ void handleSignal (int sigNum)
       handled = true;
       if(Shell::outputAllowed(true)) {
 	if(env.options) {
-	  env.beginOutput();
-	  env.out() << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
-	  env.endOutput();
+    cout << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
 	} else {
 	  cout << "Aborted by signal " << signalDescription << "\n";
 	}
@@ -124,9 +117,7 @@ void handleSignal (int sigNum)
     case SIGXCPU:
       if(Shell::outputAllowed(true)) {
 	if(env.options) {
-	  env.beginOutput();
-	  env.out() << "External time out (SIGXCPU) on " << env.options->inputFile() << "\n";
-	  env.endOutput();
+    cout << "External time out (SIGXCPU) on " << env.options->inputFile() << "\n";
 	} else {
 	  cout << "External time out (SIGXCPU)\n";
 	}
@@ -136,18 +127,12 @@ void handleSignal (int sigNum)
 # endif
 
     case SIGINT:
-      if(System::shouldIgnoreSIGINT()) {
-	return;
-      }
       haveSigInt=true;
       System::terminateImmediately(VAMP_RESULT_STATUS_SIGINT);
 //      exit(0);
 //      return;
 
     case SIGHUP:
-      if(System::shouldIgnoreSIGHUP()) {
-  return;
-      }
     case SIGILL:
     case SIGFPE:
     case SIGSEGV:
@@ -165,11 +150,9 @@ void handleSignal (int sigNum)
 	handled = true;
 	if(Shell::outputAllowed()) {
 	  if(env.options && env.statistics) {
-	    env.beginOutput();
-	    env.out() << getpid() << " Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
-	    env.statistics->print(env.out());
-	    Debug::Tracer::printStack(env.out());
-	    env.endOutput();
+      cout << getpid() << " Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
+	    env.statistics->print(cout);
+	    Debug::Tracer::printStack(cout);
 	  } else {
 	    cout << getpid() << "Aborted by signal " << signalDescription << "\n";
 	    Debug::Tracer::printStack(cout);
@@ -280,15 +263,6 @@ void System::registerForSIGHUPOnParentDeath()
 #endif
 }
 
-vstring System::extractFileNameFromPath(vstring str)
-{
-  size_t index=str.find_last_of("\\/")+1;
-  if(index==vstring::npos) {
-    return str;
-  }
-  return vstring(str, index);
-}
-
 /**
  * If directory name can be extracted from @c path, assign it into
  * @c dir and return true; otherwise return false.
@@ -309,53 +283,6 @@ bool System::fileExists(vstring fname)
 {
   ifstream ifile(fname.c_str());
   return ifile.good();
-}
-
-// C++17: use std::filesystem
-void System::readDir(vstring dirName, Stack<vstring>& filenames)
-{
-  DIR *dirp;
-  struct dirent *dp;
-
-  static Stack<vstring> todo;
-  ASS(todo.isEmpty());
-  todo.push(dirName);
-
-  while (todo.isNonEmpty()) {
-    vstring dir = todo.pop();
-
-    dirp = opendir(dir.c_str());
-    
-    if (!dirp) {
-      // cout << "Cannot open dir " << dir << endl;
-      continue;
-    }
-    
-    while ((dp = readdir(dirp)) != NULL) {
-      if (strncmp(dp->d_name, ".", 1) == 0) {
-        continue;
-      }
-      if (strncmp(dp->d_name, "..", 2) == 0) {
-        continue;
-      }
-
-      switch (dp->d_type) {
-        case DT_REG:
-          filenames.push(dir+"/"+dp->d_name);
-          break;
-        case DT_DIR:
-          // cout << "seen dir " << dp->d_name << endl;
-          todo.push(dir+"/"+dp->d_name);
-          break;
-        default:
-          ;
-          // cout << "weird file type" << endl;
-      }
-    }
-    (void)closedir(dirp);
-  }
-
-  todo.reset();
 }
 
 };

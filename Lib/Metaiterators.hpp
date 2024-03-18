@@ -1712,4 +1712,37 @@ template<class Array> auto arrayIter(Array      & a) { return arrayIter(        
 
 }
 
+template <typename Iterator>
+class STLIterator
+{
+  private:
+    Iterator begin;
+    Iterator end;
+
+  public:
+    using value_type = typename Iterator::value_type;
+    DECL_ELEMENT_TYPE(value_type);
+
+    STLIterator(Iterator begin, Iterator end)
+      : begin(begin), end(end)
+    { }
+
+    bool hasNext() {
+      return begin != end;
+    }
+
+    value_type next() {
+      value_type x = *begin;
+      ++begin;
+      return x;
+    }
+};
+
+template <typename Iterator>
+STLIterator<Iterator> getSTLIterator(Iterator begin, Iterator end)
+{
+  return STLIterator<Iterator>(begin, end);
+}
+
+
 #endif /* __Metaiterators__ */

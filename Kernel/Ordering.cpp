@@ -143,9 +143,7 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
   }
   //TODO currently do not show SKIKBO
   if (opt.showSimplOrdering()) {
-    env.beginOutput();
-    out->show(env.out());
-    env.endOutput();
+    out->show(std::cout);
   }
   return out;
 }

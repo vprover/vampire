@@ -278,6 +278,15 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       continue;
     }
 
+    if (ibRdr.tryAcceptAtom("define-funs-rec")) {
+      LExprList* declarations = ibRdr.readList();
+      LExprList* definitions = ibRdr.readList();
+
+      readDefineFunsRec(declarations, definitions);
+
+      continue;
+    }
+
     if (ibRdr.tryAcceptAtom("assert")) {
       if (!ibRdr.hasNext()) {
         USER_ERROR_EXPR("assert expects a body");
@@ -411,9 +420,7 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       // can't read anything else (and it does not make sense to read get-unsat-core more than once)
       // so let's just warn and exit
       if(env.options->mode()!=Options::Mode::SPIDER) {
-        env.beginOutput();
-        env.out() << "% Warning: check-sat is not the last entry. Skipping the rest!" << endl;
-        env.endOutput();
+        std::cout << "% Warning: check-sat is not the last entry. Skipping the rest!" << endl;
       }
       break;
     }
@@ -826,19 +833,125 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
   ASS(fun.second != SymbolType::TYPECON);
   bool isTrueFun = fun.second==SymbolType::FUNCTION;
 
-  TermList lhs;
+  Literal* lit;
   if (isTrueFun) {
-    lhs = TermList(Term::create(symbIdx,args.size(),args.begin()));
+    TermList lhs(Term::create(symbIdx,args.size(),args.begin()));
+    auto p = env.signature->getFnDef(symbIdx);
+    auto defArgs = typeArgs;
+    defArgs.push(lhs);
+    defArgs.push(rhs);
+    lit = Literal::create(p,defArgs.size(),true,false,defArgs.begin());
   } else {
-    Formula* frm = new AtomicFormula(Literal::create(symbIdx,args.size(),true,false,args.begin()));
-    lhs = TermList(Term::createFormula(frm));
+    auto p = env.signature->getBoolDef(symbIdx);
+    TermList lhs(Term::createFormula(new AtomicFormula(Literal::create(p,args.size(),true,false,args.begin()))));
+    lit = Literal::createEquality(true, lhs, rhs, rangeSort);
   }
-
-  Formula* fla = new AtomicFormula(Literal::createEquality(true,lhs,rhs,rangeSort));
+  Formula* fla = new AtomicFormula(lit);
 
   FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
 
   _formulas.pushBack(fu);
+}
+
+void SMTLIB2::readDefineFunsRec(LExprList* declsExpr, LExprList* defsExpr)
+{
+  struct Declaration {
+    DeclaredSymbol sym;
+    TermLookup* lookup;
+    TermList rangeSort;
+    TermStack args;
+  };
+  Stack<Declaration> declarations;
+
+  // first, declare all symbols
+  LispListReader declsRdr(declsExpr);
+  while (declsRdr.hasNext()) {
+    auto declExpr = declsRdr.next();
+    if (!declExpr->isList()) {
+      USER_ERROR_EXPR("define-funs-rec expect a list of lists of declaration as its first argument");
+    }
+
+    Declaration decl;
+    LispListReader declRdr(declExpr->list);
+    vstring name = declRdr.readAtom();
+    if (isAlreadyKnownSymbol(name)) {
+      USER_ERROR_EXPR("Redeclaring function symbol: "+name);
+    }
+    LExprList* iArgs = declRdr.readList();
+
+    decl.lookup = new TermLookup();
+
+    static TermStack argSorts;
+    argSorts.reset();
+
+    LispListReader iaRdr(iArgs);
+    while (iaRdr.hasNext()) {
+      LExprList* pair = iaRdr.readList();
+      LispListReader pRdr(pair);
+
+      vstring vName = pRdr.readAtom();
+      TermList vSort = parseSort(pRdr.readNext());
+
+      pRdr.acceptEOL();
+
+      // the vars need not be fresh across multiple definition, but it does not hurt
+      TermList arg = TermList(_nextVar++, false);
+      decl.args.push(arg);
+
+      if (!decl.lookup->insert(vName,make_pair(arg,vSort))) {
+        USER_ERROR_EXPR("Multiple occurrence of variable "+vName+" in the definition of function "+name);
+      }
+
+      argSorts.push(vSort);
+    }
+    decl.rangeSort = parseSort(declRdr.readNext());
+    decl.sym = declareFunctionOrPredicate(name, decl.rangeSort, argSorts, /*taArity=*/ 0);
+
+    declarations.push(decl);
+  }
+
+  // then, read all definitions
+  LispListReader defsRdr(defsExpr);
+  for (const auto& decl : declarations) {
+    if (!defsRdr.hasNext()) {
+      USER_ERROR_EXPR("Less definitions than declarations in define-funs-rec");
+    }
+    auto def = defsRdr.next();
+    _scopes.push(decl.lookup);
+    ParseResult res = parseTermOrFormula(def,false/*isSort*/);
+
+    TermList rhs;
+    if (res.asTerm(rhs) != decl.rangeSort) {
+      USER_ERROR_EXPR("Defined function body "+def->toString()+" has different sort than declared "+decl.rangeSort.toString());
+    }
+
+    unsigned symbIdx = decl.sym.first;
+    ASS(decl.sym.second != SymbolType::TYPECON);
+    bool isTrueFun = decl.sym.second==SymbolType::FUNCTION;
+
+    Literal* lit;
+    if (isTrueFun) {
+      TermList lhs(Term::create(symbIdx,decl.args.size(),decl.args.begin()));
+      auto p = env.signature->getFnDef(symbIdx);
+      TermStack defArgs; // no type arguments (yet) in this case
+      defArgs.push(lhs);
+      defArgs.push(rhs);
+      lit = Literal::create(p,defArgs.size(),true,false,defArgs.begin());
+    } else {
+      auto p = env.signature->getBoolDef(symbIdx);
+      TermList lhs(Term::createFormula(new AtomicFormula(Literal::create(p,decl.args.size(),true,false,decl.args.begin()))));
+      lit = Literal::createEquality(true, lhs, rhs, decl.rangeSort);
+    }
+    Formula* fla = new AtomicFormula(lit);
+
+    FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
+    _formulas.pushBack(fu);
+
+    delete _scopes.pop();
+  }
+  if (defsRdr.hasNext()) {
+    USER_ERROR_EXPR("More definitions than declarations in define-funs-rec");
+  }
 }
 
 void SMTLIB2::readTypeParameters(LispListReader& rdr, TermLookup* lookup, TermStack* ts)
@@ -1516,15 +1629,9 @@ void SMTLIB2::parseMatchBegin(LExpr *exp)
         USER_ERROR_EXPR("Only function constructors are allowed: "+fst);
       }
       auto fn = env.signature->getFunction(sym.first);
-      unsigned i = 0;
-      // we need the type arguments in reverse order,
-      // so we push them on a stack and pop them
-      Stack<LExpr*> st;
-      while (tRdr.hasNext() && i++ < fn->numTypeArguments()) {
-        st.push(tRdr.readNext());
-      }
-      while (st.isNonEmpty()) {
-        _todo.push(make_pair(PO_PARSE_SORT, st.pop()));
+      for (unsigned i = 0; i < fn->numTypeArguments(); i++) {
+        ALWAYS(tRdr.hasNext());
+        _todo.push(make_pair(PO_PARSE_SORT, tRdr.readNext()));
       }
     }
     pRdr.acceptEOL();
@@ -1556,7 +1663,7 @@ void SMTLIB2::parseMatchCaseStart(LExpr *exp)
     unsigned i = 0;
     Substitution subst;
     while (tRdr.hasNext()) {
-      auto arg = tRdr.readNext();
+      auto argExp = tRdr.readNext();
       ASS_L(i,type->arity());
       if (i < type->numTypeArguments()) {
         if (_results.isEmpty() || _results.top().isSeparator()) {
@@ -1568,12 +1675,12 @@ void SMTLIB2::parseMatchCaseStart(LExpr *exp)
         i++;
         continue;
       }
-      if (!arg->isAtom() || isAlreadyKnownSymbol(arg->str)) {
-        USER_ERROR_EXPR("Nested ctors ("+arg->toString()+") in match patterns are disallowed: '" + exp->toString() + "'");
+      if (!argExp->isAtom() || isAlreadyKnownSymbol(argExp->str)) {
+        USER_ERROR_EXPR("Nested ctors ("+argExp->toString()+") in match patterns are disallowed: '" + exp->toString() + "'");
       }
       // from the type arguments used in the matched term we instantiate the type of the other variables
-      if (!lookup->insert(arg->str, make_pair(TermList(_nextVar++, false), SubstHelper::apply(type->arg(i++), subst)))) {
-        USER_ERROR_EXPR("Variable '" + arg->str + "' has already been defined");
+      if (!lookup->insert(argExp->str, make_pair(TermList(_nextVar++, false), SubstHelper::apply(type->arg(i++), subst)))) {
+        USER_ERROR_EXPR("Variable '" + argExp->str + "' has already been defined");
       }
     }
   }
@@ -1681,12 +1788,12 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
   if (varUsed) {
     Stack<TermList> argTerms;
     // the number of type arguments for all ctors is the arity of the type
-    unsigned numTypeArgs = env.signature->getTypeCon(sort.term()->functor())->typeConType()->arity();
+    unsigned numTypeArgs = env.signature->getTypeCon(matchedTermSort.term()->functor())->typeConType()->arity();
     for (const auto &kv : ctorFunctors) {
       argTerms.reset();
       for (unsigned j = 0; j < kv.second->arity(); j++) {
         if (j < numTypeArgs) {
-          argTerms.push(*sort.term()->nthArgument(j));
+          argTerms.push(*matchedTermSort.term()->nthArgument(j));
         } else {
           argTerms.push(TermList(_nextVar++, false));
         }
@@ -1829,7 +1936,7 @@ void SMTLIB2::parseAnnotatedTerm(LExpr* exp)
 
   if (!annotation_warning) {
     //env.beginOutput();
-    //env.out() << "% Warning: term annotations ignored!" << endl;
+    //std::cout << "% Warning: term annotations ignored!" << endl;
     //env.endOutput();
     annotation_warning = true;
   }

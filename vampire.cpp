@@ -109,10 +109,8 @@ Problem* preprocessProblem(Problem* prb)
     Timer::updateInstructionCount();
     unsigned burnedParsing = Timer::elapsedMegaInstructions();
 
-    env.beginOutput();
-    addCommentSignForSZS(env.out());
-    env.out() << "Instructions burned parsing: " << burnedParsing << " (million)" << endl;
-    env.endOutput();
+    addCommentSignForSZS(std::cout);
+    std::cout << "Instructions burned parsing: " << burnedParsing << " (million)" << endl;
 
     env.options->setInstructionLimit(saveInstrLimit+burnedParsing);
   }
@@ -140,9 +138,7 @@ Problem* preprocessProblem(Problem* prb)
 
 void explainException(Exception& exception)
 {
-  env.beginOutput();
-  exception.cry(env.out());
-  env.endOutput();
+  exception.cry(std::cout);
 } // explainException
 
 VWARN_UNUSED
@@ -183,10 +179,8 @@ void profileMode(Problem* problem)
   Normalisation().normalise(*prb);
   TheoryFinder(prb->units(), property).search();
 
-  env.beginOutput();
-  env.out() << property->categoryString() << ' ' << property->props() << ' '
+  std::cout << property->categoryString() << ' ' << property->props() << ' '
 	  << property->atoms() << "\n";
-  env.endOutput();
 
   //we have succeeded with the profile mode, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -291,10 +285,9 @@ void preprocessMode(Problem* problem, bool theory)
   }
   prepro.preprocess(*prb);
 
-  env.beginOutput();
   //outputSymbolDeclarations also deals with sorts for now
-  //UIHelper::outputSortDeclarations(env.out());
-  UIHelper::outputSymbolDeclarations(env.out());
+  //UIHelper::outputSortDeclarations(std::cout);
+  UIHelper::outputSymbolDeclarations(std::cout);
   UnitList::Iterator units(prb->units());
   while (units.hasNext()) {
     Unit* u = units.next();
@@ -313,12 +306,11 @@ void preprocessMode(Problem* problem, bool theory)
       }
 
       FormulaUnit* fu = new FormulaUnit(f,u->inference()); // we are stealing u's inference which is not nice
-      env.out() << TPTPPrinter::toString(fu) << "\n";
+      std::cout << TPTPPrinter::toString(fu) << "\n";
     } else {
-      env.out() << TPTPPrinter::toString(u) << "\n";
+      std::cout << TPTPPrinter::toString(u) << "\n";
     }
   }
-  env.endOutput();
 
   if(env.options->latexOutput()!="off"){ outputProblemToLaTeX(prb.ptr()); }
 
@@ -354,17 +346,15 @@ void outputMode(Problem* problem)
 {
   ScopedPtr<Problem> prb(problem);
 
-  env.beginOutput();
   //outputSymbolDeclarations also deals with sorts for now
-  //UIHelper::outputSortDeclarations(env.out());
-  UIHelper::outputSymbolDeclarations(env.out());
+  //UIHelper::outputSortDeclarations(std::cout);
+  UIHelper::outputSymbolDeclarations(std::cout);
   UnitList::Iterator units(prb->units());
 
   while (units.hasNext()) {
     Unit* u = units.next();
-    env.out() << TPTPPrinter::toString(u) << "\n";
+    std::cout << TPTPPrinter::toString(u) << "\n";
   }
-  env.endOutput();
 
   if(env.options->latexOutput()!="off"){ outputProblemToLaTeX(prb.ptr()); }
 
@@ -380,9 +370,7 @@ void vampireMode(Problem* problem)
 
   ScopedPtr<Problem> prb(doProving(problem));
 
-  env.beginOutput();
-  UIHelper::outputResult(env.out());
-  env.endOutput();
+  UIHelper::outputResult(std::cout);
 
   if (env.statistics->terminationReason == Statistics::REFUTATION
       || env.statistics->terminationReason == Statistics::SATISFIABLE) {
@@ -421,27 +409,22 @@ void spiderMode(Problem* problem)
     exceptionRaised = true;
   }
 
-  env.beginOutput();
   if (!exceptionRaised) {
     switch (env.statistics->terminationReason) {
     case Statistics::REFUTATION:
       reportSpiderStatus('+');
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
-      
     case Statistics::TIME_LIMIT:
       reportSpiderStatus('t');
       break;
-      
     case Statistics::MEMORY_LIMIT:
       reportSpiderStatus('m');
       break;
-      
     case Statistics::UNKNOWN:
     case Statistics::INAPPROPRIATE:
       reportSpiderStatus('u');
       break;
-      
     case Statistics::REFUTATION_NOT_FOUND:
       if (env.statistics->discardedNonRedundantClauses > 0) {
         reportSpiderStatus('n');
@@ -450,17 +433,13 @@ void spiderMode(Problem* problem)
         reportSpiderStatus('i');
       }
       break;
-      
     case Statistics::SATISFIABLE:
       reportSpiderStatus('-');
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
       break;
-      
     default:
       ASSERTION_VIOLATION;
     }
-    
-    env.endOutput();
     return;
   }
 
@@ -476,13 +455,11 @@ void spiderMode(Problem* problem)
       reportSpiderFail();
     }
 
-    env.endOutput();
     return;
   }
 #endif
 
   reportSpiderFail();
-  env.endOutput();
 
   ASS(exception);
   explainException(*exception);
@@ -497,10 +474,9 @@ void clausifyMode(Problem* problem, bool theory)
 
   ScopedPtr<Problem> prb(preprocessProblem(problem));
 
-  env.beginOutput();
   //outputSymbolDeclarations deals with sorts as well for now
-  //UIHelper::outputSortDeclarations(env.out());
-  UIHelper::outputSymbolDeclarations(env.out());
+  //UIHelper::outputSortDeclarations(std::cout);
+  UIHelper::outputSymbolDeclarations(std::cout);
 
   ClauseIterator cit = prb->clauseIterator();
   bool printed_conjecture = false;
@@ -521,9 +497,9 @@ void clausifyMode(Problem* problem, bool theory)
 
       FormulaUnit* fu = new FormulaUnit(f,cl->inference()); // we are stealing cl's inference, which is not nice!
       fu->overwriteNumber(cl->number()); // we are also making sure it's number is the same as that of the original (for Kostya from Russia to CASC, with love, and back again)
-      env.out() << TPTPPrinter::toString(fu) << "\n";
+      std::cout << TPTPPrinter::toString(fu) << "\n";
     } else {
-      env.out() << TPTPPrinter::toString(cl) << "\n";
+      std::cout << TPTPPrinter::toString(cl) << "\n";
     }
   }
   if(!printed_conjecture && UIHelper::haveConjecture()){
@@ -531,9 +507,8 @@ void clausifyMode(Problem* problem, bool theory)
     Clause* c = new(2) Clause(2,NonspecificInference0(UnitInputType::NEGATED_CONJECTURE,InferenceRule::INPUT));
     (*c)[0] = Literal::create(p, /* polarity */ true , {});
     (*c)[1] = Literal::create(p, /* polarity */ false, {});
-    env.out() << TPTPPrinter::toString(c) << "\n";
+    std::cout << TPTPPrinter::toString(c) << "\n";
   }
-  env.endOutput();
 
   if (env.options->latexOutput() != "off") { outputClausesToLaTeX(prb.ptr()); }
 
@@ -564,12 +539,10 @@ void axiomSelectionMode(Problem* problem)
   env.statistics->phase = Statistics::FINALIZATION;
 
   UnitList::Iterator uit(prb->units());
-  env.beginOutput();
   while (uit.hasNext()) {
     Unit* u = uit.next();
-    env.out() << TPTPPrinter::toString(u) << "\n";
+    std::cout << TPTPPrinter::toString(u) << "\n";
   }
-  env.endOutput();
 
   //we have successfully output the selected units, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -809,9 +782,7 @@ int main(int argc, char* argv[])
     // If any of these options are set then we just need to output and exit
     if (opts.showHelp() || opts.showOptions() || opts.showExperimentalOptions() ||
        !opts.explainOption().empty() || opts.printAllTheoryAxioms()) {
-      env.beginOutput();
-      opts.output(env.out());
-      env.endOutput();
+      opts.output(std::cout);
       exit(0);
     }
 
@@ -865,18 +836,14 @@ catch (Parse::TPTP::ParseErrorException& exception) {
 #if CHECK_LEAKS
     MemoryLeak::cancelReport();
 #endif
-    env.beginOutput();
     explainException(exception);
-    env.endOutput();
   } catch (std::bad_alloc& _) {
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
 #if CHECK_LEAKS
     MemoryLeak::cancelReport();
 #endif
-    env.beginOutput();
-    env.out() << "Insufficient system memory" << '\n';
-    env.endOutput();
+    std::cout << "Insufficient system memory" << '\n';
   }
 
   return vampireReturnValue;
