@@ -12,6 +12,7 @@
  * Implements class Semaphore.
  */
 
+#if 0
 #include "Lib/Portability.hpp"
 
 #include <cerrno>
@@ -418,5 +419,12 @@ void Semaphore::ensureEventHandlersInstalled()
 
 }
 }
+#endif
 
-
+#include "Semaphore.hpp"
+Lib::Sys::Semaphore::Semaphore(int) {}
+Lib::Sys::Semaphore::~Semaphore() {}
+int Lib::Sys::Semaphore::get(int) { return 0; }
+void Lib::Sys::Semaphore::inc(int) {}
+void Lib::Sys::Semaphore::dec(int) {}
+void Lib::Sys::Semaphore::set(int, int) {}
