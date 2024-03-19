@@ -116,24 +116,11 @@ struct VectorHash {
 };
 
 template<class InnerHash> 
-struct TupleHash {
-
-  template <std::size_t Index, typename... Ts>
-  static inline typename std::enable_if<Index == sizeof...(Ts), unsigned>::type
-  tuple_hash_impl(const std::tuple<Ts...> &t) { return 0; }
-
-  template <std::size_t Index, typename... Ts>
-  static inline typename std::enable_if<Index < sizeof...(Ts), unsigned>::type
-  tuple_hash_impl(const std::tuple<Ts...> &t) 
-  { return Lib::HashUtils::combine(tuple_hash_impl<Index + 1>(t), InnerHash::hash(std::get<Index>(t))); }
-
-
+struct TupleHash 
+{
   template<typename... T>
-  static unsigned hash(std::tuple<T...> const& s) {
-    //C++17: repace with std::apply:
-    // return std::apply(s, [](auto... args) { return HashUtils::combine(hash(args)...); });
-    return tuple_hash_impl<0>(s);
-  }
+  static unsigned hash(std::tuple<T...> const& s) 
+  { return std::apply([](auto... args) { return HashUtils::combine(InnerHash::hash(args)...); }, s); }
 };
 
 /**
@@ -154,8 +141,7 @@ public:
   template<typename T>
   static typename std::enable_if<
     std::is_same<
-      //C++17: repace with std::invoke_result
-      typename std::result_of<decltype(&T::defaultHash)(T)>::type,
+      typename std::invoke_result<decltype(&T::defaultHash), T>::type,
       unsigned
     >::value,
     unsigned
@@ -281,8 +267,7 @@ public:
   template<typename T>
   static typename std::enable_if<
     std::is_same<
-      //C++17: repace with std::invoke_result
-      typename std::result_of<decltype(&T::defaultHash2)(T)>::type,
+      typename std::invoke_result<decltype(&T::defaultHash2), T>::type,
       unsigned
     >::value,
     unsigned
@@ -290,7 +275,7 @@ public:
     return ref.defaultHash2();
   }
 
-  // special-case for Units (and their descendants) as they have a unique incrementing identifier  
+  // special-case for Units (and their descendants) as they have a unique incrementing identifier
   template<typename T>
   static typename std::enable_if<
     std::is_base_of<Kernel::Unit, T>::value,

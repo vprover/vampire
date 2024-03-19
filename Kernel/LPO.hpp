@@ -43,20 +43,20 @@ public:
   ~LPO() override = default;
 
   using PrecedenceOrdering::compare;
-  VWARN_UNUSED Result compare(TermList tl1, TermList tl2) const override;
+  [[nodiscard]] Result compare(TermList tl1, TermList tl2) const override;
   void showConcrete(std::ostream&) const override;
 protected:
-  VWARN_UNUSED Result comparePredicates(Literal* l1, Literal* l2) const override;
-  VWARN_UNUSED Result comparePrecedences(Term* t1, Term* t2) const;
+  [[nodiscard]] Result comparePredicates(Literal* l1, Literal* l2) const override;
+  [[nodiscard]] Result comparePrecedences(Term* t1, Term* t2) const;
 
-  VWARN_UNUSED Result cLMA(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity) const;
-  VWARN_UNUSED Result cMA(Term* t, TermList* tl, unsigned arity) const;
-  VWARN_UNUSED Result cAA(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity1, unsigned arity2) const;
-  VWARN_UNUSED Result alpha(TermList* tl, unsigned arity, Term *t) const;
-  VWARN_UNUSED Result clpo(Term* t1, TermList tl2) const;
-  VWARN_UNUSED Result lpo(TermList tl1, TermList tl2) const;
-  VWARN_UNUSED Result lexMAE(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity) const;
-  VWARN_UNUSED Result majo(Term* s, TermList* tl, unsigned arity) const;
+  [[nodiscard]] Result cLMA(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity) const;
+  [[nodiscard]] Result cMA(Term* t, TermList* tl, unsigned arity) const;
+  [[nodiscard]] Result cAA(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity1, unsigned arity2) const;
+  [[nodiscard]] Result alpha(TermList* tl, unsigned arity, Term *t) const;
+  [[nodiscard]] Result clpo(Term* t1, TermList tl2) const;
+  [[nodiscard]] Result lpo(TermList tl1, TermList tl2) const;
+  [[nodiscard]] Result lexMAE(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity) const;
+  [[nodiscard]] Result majo(Term* s, TermList* tl, unsigned arity) const;
 
 };
 

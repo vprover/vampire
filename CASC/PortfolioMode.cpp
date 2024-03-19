@@ -13,6 +13,9 @@
  * Implements class PortfolioMode.
  */
 
+//only for detecting number of cores, no threading here!
+#include <thread>
+
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Portability.hpp"
@@ -53,7 +56,7 @@ using std::cerr;
 using std::endl;
 
 PortfolioMode::PortfolioMode(Problem* problem) : _prb(problem), _slowness(env.options->slowness()), _syncSemaphore(2) {
-  unsigned cores = System::getNumberOfCores();
+  unsigned cores = std::thread::hardware_concurrency();
   cores = cores < 1 ? 1 : cores;
   _numWorkers = std::min(cores, env.options->multicore());
   if(!_numWorkers)
