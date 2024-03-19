@@ -39,7 +39,7 @@ which will use a set of strategies suited to satisfiable problems.
 
 Note that all of these modes are really shortcuts for other combinations e.g. `--mode casc` is a shortcut for
 ```shellsession
-$ vampire --mode portflio --schedule casc -p tptp
+$ vampire --mode portfolio --schedule casc -p tptp
 ```
 
 ## Advanced Usage
