@@ -26,14 +26,27 @@ namespace Indexing {
 using namespace Lib;
 
 class SubstitutionCoverTree
+  : public CodeTree
 {
 public:
   SubstitutionCoverTree(Clause* cl);
   bool checkAndInsert(ResultSubstitution* subst, bool result, bool doInsert);
 private:
+  void insert(ResultSubstitution* subst, bool result, void* ptr);
+  bool check(ResultSubstitution* subst, bool result);
+
   DHMap<unsigned,TermList> _varSorts;
-  unsigned _fn;
-  CodeTreeTIS _tis;
+  // unsigned _fn;
+  // CodeTreeTIS _tis;
+
+  struct SubstMatcher
+  : public Matcher
+  {
+    void init(CodeTree* tree, const TermStack& ts);
+    void reset();
+
+    void* next();
+  };
 };
 
 };

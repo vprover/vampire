@@ -25,6 +25,7 @@ class FlatTerm
 public:
   static FlatTerm* create(Term* t);
   static FlatTerm* create(TermList t);
+  static FlatTerm* create(TermStack ts);
   void destroy();
 
   static FlatTerm* copy(const FlatTerm* ft);

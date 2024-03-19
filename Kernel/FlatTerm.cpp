@@ -111,6 +111,48 @@ FlatTerm* FlatTerm::create(TermList t)
   return res;
 }
 
+FlatTerm* FlatTerm::create(TermStack ts)
+{
+  size_t entries=0;
+  for (auto& tl : ts) {
+    entries += tl.isVar() ? 1 : getEntryCount(tl.term());
+  }
+
+  FlatTerm* res=new(entries) FlatTerm(entries);
+  size_t fti=0;
+
+  for (auto& tl : ts) {
+    if (tl.isVar()) {
+      res->_data[fti++]=Entry(VAR, tl.var());
+      continue;
+    }
+    auto t = tl.term();
+    res->_data[fti++]=Entry(FUN,
+        t->isLiteral() ? static_cast<Literal*>(t)->header() : t->functor());
+    res->_data[fti++]=Entry(t);
+    res->_data[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(t));
+
+    SubtermIterator sti(t);
+    while(sti.hasNext()) {
+      ASS_L(fti, entries);
+      TermList s=sti.next();
+      if(s.isVar()) {
+        ASS(s.isOrdinaryVar());
+        res->_data[fti++]=Entry(VAR, s.var());
+      }
+      else {
+        ASS(s.isTerm());
+        res->_data[fti++]=Entry(FUN, s.term()->functor());
+        res->_data[fti++]=Entry(s.term());
+        res->_data[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(s.term()));
+      }
+    }
+  }
+  ASS_EQ(fti, entries);
+
+  return res;
+}
+
 FlatTerm* FlatTerm::copy(const FlatTerm* ft)
 {
   size_t entries=ft->_length;

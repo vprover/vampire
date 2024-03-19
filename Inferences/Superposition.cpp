@@ -402,13 +402,15 @@ Clause* Superposition::performSuperposition(
       (!rwLitS->isEquality() || (rwLitS->termArg(0)!=rwTermS && rwLitS->termArg(1)!=rwTermS));
 
     auto rwSupData = static_cast<SubstitutionCoverTree*>(rwClause->getSupData());
-    if (!rwSupData) {
-      rwSupData = new SubstitutionCoverTree(rwClause);
-      rwClause->setSupData(rwSupData);
-    }
-    if (!rwSupData->checkAndInsert(subst.ptr(), !eqIsResult, doInsert)) {
-      env.statistics->skippedSuperposition++;
-      return 0;
+    if (rwSupData || doInsert) {
+      if (!rwSupData) {
+        rwSupData = new SubstitutionCoverTree(rwClause);
+        rwClause->setSupData(rwSupData);
+      }
+      if (!rwSupData->checkAndInsert(subst.ptr(), !eqIsResult, doInsert)) {
+        env.statistics->skippedSuperposition++;
+        return 0;
+      }
     }
   }
 

@@ -719,7 +719,7 @@ void CodeTree::compileTerm(Term* trm, CodeStack& code, CompileContext& cctx, boo
   static Stack<unsigned> globalCounterparts;
   globalCounterparts.reset();
 
-  cctx.nextLit();
+  // cctx.nextLit();
 
   if(GROUND_TERM_CHECK && trm->ground()) {
     code.push(CodeOp::getGroundTermCheck(trm));
