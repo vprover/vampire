@@ -27,12 +27,14 @@ COMPILE_ONLY = -fno-pie
 
 OS = $(shell uname)
 
+# assumes LIBTORCH environment variable to be set to (an absolute path to) whereever you extracted the libtorch files (best set via export in .bash_profile or similar)
+
 ifeq ($(OS),Darwin) # don't forget we need clang for libtorch (not working with gcc on Mac for some reason)
 TORCHLINK= -Wl,-search_paths_first -Wl,-headerpad_max_install_names
-TORCHLIB= -Wl,-rpath,/Users/msuda/libtorch/lib /Users/msuda/libtorch/lib/libc10.dylib /Users/msuda/libtorch/lib/libtorch.dylib /Users/msuda/libtorch/lib/libtorch_cpu.dylib
+TORCHLIB= -Wl,-rpath,$(LIBTORCH)/lib $(LIBTORCH)/lib/libc10.dylib $(LIBTORCH)/lib/libtorch.dylib $(LIBTORCH)/lib/libtorch_cpu.dylib
 else
 TORCHLINK= -D_GLIBCXX_USE_CXX11_ABI=1 -rdynamic
-TORCHLIB= -Wl,-rpath,/nfs/sudamar2/projects/vampire/libtorch/lib /nfs/sudamar2/projects/vampire/libtorch/lib/libtorch.so /nfs/sudamar2/projects/vampire/libtorch/lib/libc10.so /nfs/sudamar2/projects/vampire/libtorch/lib/libkineto.a -Wl,--no-as-needed,"/nfs/sudamar2/projects/vampire/libtorch/lib/libtorch_cpu.so" -Wl,--as-needed /nfs/sudamar2/projects/vampire/libtorch/lib/libc10.so -lpthread -Wl,--no-as-needed,"/nfs/sudamar2/projects/vampire/libtorch/lib/libtorch.so" -Wl,--as-needed 
+TORCHLIB= -Wl,-rpath,$(LIBTORCH)/lib $(LIBTORCH)/lib/libtorch.so $(LIBTORCH)/lib/libc10.so $(LIBTORCH)/lib/libkineto.a -Wl,--no-as-needed,"$(LIBTORCH)/lib/libtorch_cpu.so" -Wl,--as-needed $(LIBTORCH)/lib/libc10.so -lpthread -Wl,--no-as-needed,"$(LIBTORCH)/lib/libtorch.so" -Wl,--as-needed
 endif
 
 ifeq ($(OS),Darwin)
