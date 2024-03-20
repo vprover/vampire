@@ -924,7 +924,29 @@ void Options::init()
     _numClauseFeatures.description="How many features do we ask a clause to provide? There are at most 15 features currently, the later ones more expensive to compute.";
     _lookup.insert(&_numClauseFeatures);
     _numClauseFeatures.tag(OptionTag::SATURATION);
-    _numClauseFeatures.onlyUsefulWith(_showPassiveTraffic.is(notEqual(false)));
+    _numClauseFeatures.onlyUsefulWith(Or(_showPassiveTraffic.is(notEqual(false)),_neuralPassiveClauseContainer.is(notEqual(std::string("")))));
+
+    _neuralPassiveClauseContainer = StringOptionValue("neural_passive_clause_container","npcc","");
+    _neuralPassiveClauseContainer.description="If non-empty, specifies a path to a torch script model that should be used instead of the standard passive containers";
+    _lookup.insert(&_neuralPassiveClauseContainer);
+    _neuralPassiveClauseContainer.tag(OptionTag::SATURATION);
+    _neuralPassiveClauseContainer.onlyUsefulWith(ProperSaturationAlgorithm());
+
+    _npccTemperature = FloatOptionValue("npcc_temperature","npcct",0.0);
+    _npccTemperature.description="Temperature for softmaxing in the neural passive clause container. 1.0 is the std softmax; 0.0 will make it argmax. (Negative values flip everything around.)";
+    _lookup.insert(&_npccTemperature);
+    _npccTemperature.tag(OptionTag::SATURATION);
+    _npccTemperature.onlyUsefulWith(_neuralPassiveClauseContainer.is(notEqual(std::string(""))));
+
+    _neuralPassiveClauseContainerTweaks = StringOptionValue("npcc_tweaks","npccw","");
+    _neuralPassiveClauseContainerTweaks.description="String representation of a vector passed as addtional ``problem-tweak'' to the npcc at contruction";
+    _lookup.insert(&_neuralPassiveClauseContainerTweaks);
+    _neuralPassiveClauseContainerTweaks.tag(OptionTag::SATURATION);
+    _neuralPassiveClauseContainerTweaks.onlyUsefulWith(_neuralPassiveClauseContainer.is(notEqual(std::string(""))));
+
+    _reshuffleAt = UnsignedOptionValue("reshuffle_at","ra",0);
+    _reshuffleAt.description="Nonterministically pick a new random seed before the specified-th clause selection from the NeuralPassiveClauseContainer (counter starts from 1, 0 value means 'never do this')";
+    _lookup.insert(&_reshuffleAt);
 
     _ageWeightRatio = RatioOptionValue("age_weight_ratio","awr",1,1,':');
     _ageWeightRatio.description=

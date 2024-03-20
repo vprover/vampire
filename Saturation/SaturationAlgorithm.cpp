@@ -226,7 +226,17 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
 
   _unprocessed = new UnprocessedClauseContainer();
 
-  if (opt.useManualClauseSelection()) {
+  const std::string& npcc = opt.neuralPassiveClauseContainer();
+  if (!npcc.empty())
+  {
+    if (npcc == "__NF12cLoop5") {
+       _passive = std::make_unique<LearnedPassiveClauseContainerExperNF12cLoop5>(true, opt);
+    } else {
+      _passive = std::make_unique<NeuralPassiveClauseContainer>(true, opt);
+    }
+  }
+  else if (opt.useManualClauseSelection())
+  {
     _passive = std::make_unique<ManCSPassiveClauseContainer>(true, opt);
   }
   else {
