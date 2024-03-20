@@ -29,24 +29,40 @@ namespace Kernel {
 
 class Clause;
 
+class AbstractClauseQueue
+{
+public:
+  virtual ~AbstractClauseQueue() {}
+  virtual void insert(Clause*) = 0;
+  virtual bool remove(Clause*) = 0; // ClauseQueue can tell whether it deleted or not; however, AbstractClauseQueue is only promising to delete elements that are present (otherwise undefined behaviour)
+  virtual Clause* pop() = 0;
+  virtual bool isEmpty() const = 0;
+#if VDEBUG
+  virtual void output(std::ostream& str) const {}
+#endif
+};
+
 /**
  * A clause queue organised as a skip list. The comparison of elements
  * is made using the virtual function compare.
  * @since 30/12/2007 Manchester
  */
-class ClauseQueue
+class ClauseQueue :
+  public AbstractClauseQueue
 {
 public:
   ClauseQueue();
   virtual ~ClauseQueue();
-  void insert(Clause*);
-  bool remove(Clause*);
+  void insert(Clause*) override;
+  bool remove(Clause*) override;
   void removeAll();
-  Clause* pop();
+  Clause* pop() override;
   /** True if the queue is empty */
-  bool isEmpty() const
+  bool isEmpty() const override
   { return _left->nodes[0] == 0; }
-  void output(std::ostream&) const;
+#if VDEBUG
+  void output(std::ostream&) const override;
+#endif
 
   friend class Iterator;
 protected:
@@ -92,21 +108,6 @@ public:
     Node* _current;
   }; // class ClauseQueue::Iterator
 
-//  class DelIterator {
-//  public:
-//    explicit DelIterator(ClauseQueue& queue)
-//    { }
-//
-//    bool hasNext()
-//    { }
-//
-//    Clause* next()
-//    { }
-//
-//    void del()
-//    { }
-//  private:
-//  };
 }; // class ClauseQueue
 
 } // namespace Kernel
