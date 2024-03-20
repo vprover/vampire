@@ -138,15 +138,39 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   }
 
   if (opts.skipCoveredSuperpositions()) {
-    auto supData = static_cast<SubstitutionCoverTree*>(queryCl->getSupData());
-    if (supData && !supData->checkAndInsert(subs.ptr(), false, /*doInsert=*/false)) {
-      env.statistics->skippedResolution++;
-      return 0;
+    {
+      bool doInsert = resultLit->isPositive() && resultCl->size()==1 && resultCl->noSplits();
+      auto supData = static_cast<SubstitutionCoverTree*>(queryCl->getSupData());
+      if (supData || doInsert) {
+        if (!supData) {
+          supData = new SubstitutionCoverTree(queryCl);
+          queryCl->setSupData(supData);
+        }
+        if (doInsert) {
+          env.statistics->inductionApplication++;
+        }
+        if (!supData->checkAndInsert(subs.ptr(), false, doInsert)) {
+          env.statistics->skippedResolution++;
+          return 0;
+        }
+      }
     }
-    supData = static_cast<SubstitutionCoverTree*>(resultCl->getSupData());
-    if (supData && !supData->checkAndInsert(subs.ptr(), true, /*doInsert=*/false)) {
-      env.statistics->skippedResolution++;
-      return 0;
+    {
+      bool doInsert = queryLit->isPositive() && queryCl->size()==1 && queryCl->noSplits();
+      auto supData = static_cast<SubstitutionCoverTree*>(resultCl->getSupData());
+      if (supData || doInsert) {
+        if (!supData) {
+          supData = new SubstitutionCoverTree(resultCl);
+          resultCl->setSupData(supData);
+        }
+        if (doInsert) {
+          env.statistics->inductionApplication++;
+        }
+        if (!supData->checkAndInsert(subs.ptr(), true, doInsert)) {
+          env.statistics->skippedResolution++;
+          return 0;
+        }
+      }
     }
   }
 

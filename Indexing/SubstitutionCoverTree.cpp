@@ -64,9 +64,9 @@ SubstitutionCoverTree::SubstitutionCoverTree(Clause* cl)
 
 bool SubstitutionCoverTree::checkAndInsert(ResultSubstitution* subst, bool result, bool doInsert)
 {
-  // if (_varSorts.isEmpty()) {
-  //   return true;
-  // }
+  if (_varSorts.isEmpty()) {
+    return true;
+  }
   DHMap<unsigned,TermList>::Iterator vit(_varSorts);
   TermStack args;
   while (vit.hasNext()) {

@@ -398,6 +398,12 @@ Clause* Superposition::performSuperposition(
   }
 
   if (getOptions().skipCoveredSuperpositions()) {
+    auto eqSupData = static_cast<SubstitutionCoverTree*>(eqClause->getSupData());
+    if (eqSupData && !eqSupData->checkAndInsert(subst.ptr(), eqIsResult, /*doInsert=*/false)) {
+      env.statistics->skippedSuperposition++;
+      return 0;
+    }
+
     auto doInsert = comp == Ordering::LESS && eqClause->size()==1 && eqClause->noSplits() &&
       (!rwLitS->isEquality() || (rwLitS->termArg(0)!=rwTermS && rwLitS->termArg(1)!=rwTermS));
 
