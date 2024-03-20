@@ -877,6 +877,7 @@ protected:
   unsigned _weight;
   /** Cached weight of the term for KBO, otherwise -1 and invalid. */
   int _kboWeight;
+  /** The ith bit of this bitvector is set if the term contains variable Xi. */
   unsigned _varmap : 32;
   /** length of maximum reduction length */
   int _maxRedLen;

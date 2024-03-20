@@ -164,3 +164,4 @@ void FlatTerm::swapCommutativePredicateArguments()
 }
 
 };
+

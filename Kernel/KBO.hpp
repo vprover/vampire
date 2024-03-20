@@ -185,8 +185,6 @@ protected:
   Result comparePredicates(Literal* l1, Literal* l2) const override;
 
   Stack<Instruction>* preprocessEquation(Literal* lit, TermList lhs) const;
-  bool isGreaterVT(TermList tl1, Term* t2, Indexing::ResultSubstitution* subst, bool result, Stack<Instruction>* ptr, unsigned index, bool& equal) const;
-  bool isGreaterTV(Term* t1, TermList tl2, Indexing::ResultSubstitution* subst, bool result, Stack<Instruction>* ptr, unsigned index, bool& equal) const;
 
   class State;
   class StateGreater;
@@ -194,7 +192,8 @@ protected:
   // int functionSymbolWeight(unsigned fun) const;
   int symbolWeight(Term* t) const;
   unsigned computeWeight(TermList t) const;
-  int computeWeight(Stack<Instruction>* ptr, unsigned index, Indexing::ResultSubstitution* subst, bool result) const;
+  template<bool result>
+  int computeWeight(Stack<Instruction>* ptr, unsigned index, Indexing::ResultSubstitution* subst) const;
   unsigned weight(TermList t) const;
 
   friend struct WeightCompInstruction;

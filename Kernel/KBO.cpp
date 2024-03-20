@@ -79,6 +79,7 @@ private:
   }
 
   int _weightDiff;
+  /** The variable counters */
   ZIArray<int> _varDiffs;
   /** Number of variables, that occur more times in the first literal */
   int _posNum;
@@ -88,7 +89,6 @@ private:
   Result _lexResult;
   /** The ordering used */
   KBO& _kbo;
-  /** The variable counters */
 }; // class KBO::State
 
 class KBO::StateGreater
@@ -557,41 +557,15 @@ void output(Stack<KBO::Instruction>* ptr)
       case KBO::InstructionTag::COMPARE_VT: {
         auto v1 = (*ptr)[i+1]._data._v;
         auto t2 = (*ptr)[i+2]._data._ptr;
-        cout << Int::toString(cnt++) << " compare X" << Int::toString(v1) << " " << *t2;// << endl;
-        // i += 3;
-
-        auto w = (*ptr)[i+3]._data._w;
-        auto arity = (*ptr)[i+4]._data._v;
-        cout << " weight " << Int::toString(w);
-
-        for (unsigned j = i+5; j < i+5+arity*2; j+=2) {
-          auto v = (*ptr)[j]._data._v;
-          auto coeff = (*ptr)[j+1]._data._w;
-
-          cout << " w(X" << Int::toString(v) << ")*" << Int::toString(coeff);
-        }
-        cout << endl;
-        i += 5+arity*2;
+        cout << Int::toString(cnt++) << " compare X" << Int::toString(v1) << " " << *t2 << endl;
+        i += 3;
         break;
       }
       case KBO::InstructionTag::COMPARE_TV: {
         auto t1 = (*ptr)[i+1]._data._ptr;
         auto v2 = (*ptr)[i+2]._data._v;
-        cout << Int::toString(cnt++) << " compare " << *t1 << " X" << Int::toString(v2);// << endl;
-        // i += 3;
-
-        auto w = (*ptr)[i+3]._data._w;
-        auto arity = (*ptr)[i+4]._data._v;
-        cout << " weight " << Int::toString(w);
-
-        for (unsigned j = i+5; j < i+5+arity*2; j+=2) {
-          auto v = (*ptr)[j]._data._v;
-          auto coeff = (*ptr)[j+1]._data._w;
-
-          cout << " w(X" << Int::toString(v) << ")*" << Int::toString(coeff);
-        }
-        cout << endl;
-        i += 5+arity*2;
+        cout << Int::toString(cnt++) << " compare " << *t1 << " X" << Int::toString(v2) << endl;
+        i += 3;
         break;
       }
       default:
@@ -666,34 +640,10 @@ Stack<KBO::Instruction>* KBO::preprocessEquation(Literal* lit, TermList side) co
         instrStackPtr->push(Instruction(InstructionTag::COMPARE_VT));
         instrStackPtr->push(Instruction(lhs.var()));
         instrStackPtr->push(Instruction(rhs.term()));
-
-        DHMap<unsigned,int> vars;
-        int w = 0;
-        cntFn(vars, w, rhs, 1);
-        instrStackPtr->push(Instruction(w));
-        instrStackPtr->push(Instruction(vars.size()));
-        auto vit = vars.items();
-        while (vit.hasNext()) {
-          auto kv = vit.next();
-          instrStackPtr->push(Instruction(kv.first));
-          instrStackPtr->push(Instruction(kv.second));
-        }
       } else if (rhs.isVar()) {
         instrStackPtr->push(Instruction(InstructionTag::COMPARE_TV));
         instrStackPtr->push(Instruction(lhs.term()));
         instrStackPtr->push(Instruction(rhs.var()));
-
-        DHMap<unsigned,int> vars;
-        int w = 0;
-        cntFn(vars, w, lhs, 1);
-        instrStackPtr->push(Instruction(w));
-        instrStackPtr->push(Instruction(vars.size()));
-        auto vit = vars.items();
-        while (vit.hasNext()) {
-          auto kv = vit.next();
-          instrStackPtr->push(Instruction(kv.first));
-          instrStackPtr->push(Instruction(kv.second));
-        }
       }
 
       // Prepare further cases if this is equal.
@@ -1179,7 +1129,8 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
   return res;
 }
 
-int KBO::computeWeight(Stack<Instruction>* ptr, unsigned index, Indexing::ResultSubstitution* subst, bool result) const
+template<bool result>
+int KBO::computeWeight(Stack<Instruction>* ptr, unsigned index, Indexing::ResultSubstitution* subst) const
 {
   auto res = (*ptr)[index]._data._w;
   auto arity = (*ptr)[index+1]._data._v;
@@ -1199,7 +1150,6 @@ bool KBO::isGreater(Literal* lit, TermList lhs, Indexing::ResultSubstitution* su
   return result ? isGreater<true>(lit, lhs, subst) : isGreater<false>(lit, lhs, subst);
 }
 
-// TODO template<bool result> all the things?
 template<bool result>
 bool KBO::isGreater(Literal* lit, TermList lhs, Indexing::ResultSubstitution* subst) const
 {
@@ -1230,7 +1180,7 @@ bool KBO::isGreater(Literal* lit, TermList lhs, Indexing::ResultSubstitution* su
             return false;
 
         // check weight
-        auto res = computeWeight(ptr, i+1, subst, result);
+        auto res = computeWeight<result>(ptr, i+1, subst);
 
         if (res > 0) {
           return true;
@@ -1255,45 +1205,23 @@ bool KBO::isGreater(Literal* lit, TermList lhs, Indexing::ResultSubstitution* su
         auto v1 = (*ptr)[i+1]._data._v;
         auto t2 = (*ptr)[i+2]._data._ptr;
         TermList lhsS = result ? subst->applyToBoundResult(v1) : subst->applyToBoundQuery(v1);
-        // TermList rhsS = result ? subst->applyToBoundResult(TermList(t2)) : subst->applyToBoundQuery(TermList(t2));
-        // if (lhsS == rhsS) {
-        //   i += 3;
-        //   break;
-        // }
-        // return isGreater(lhsS,rhsS);
-
-        bool equal;
-        if (isGreaterVT(lhsS,t2,subst,result,ptr,i,equal)) {
-          return true;
-        }
-        if (equal) {
-          auto arity = (*ptr)[i+4]._data._v;
-          i += 5+arity*2;
+        TermList rhsS = result ? subst->applyToBoundResult(TermList(t2)) : subst->applyToBoundQuery(TermList(t2));
+        if (lhsS == rhsS) {
+          i += 3;
           break;
         }
-        return false;
+        return isGreater(lhsS,rhsS);
       }
       case InstructionTag::COMPARE_TV: {
         auto t1 = (*ptr)[i+1]._data._ptr;
         auto v2 = (*ptr)[i+2]._data._v;
-        // TermList lhsS = result ? subst->applyToBoundResult(TermList(t1)) : subst->applyToBoundQuery(TermList(t1));
+        TermList lhsS = result ? subst->applyToBoundResult(TermList(t1)) : subst->applyToBoundQuery(TermList(t1));
         TermList rhsS = result ? subst->applyToBoundResult(v2) : subst->applyToBoundQuery(v2);
-        // if (lhsS == rhsS) {
-        //   i += 3;
-        //   break;
-        // }
-        // return isGreater(lhsS,rhsS);
-
-        bool equal;
-        if (isGreaterTV(t1,rhsS,subst,result,ptr,i,equal)) {
-          return true;
-        }
-        if (equal) {
-          auto arity = (*ptr)[i+4]._data._v;
-          i += 5+arity*2;
+        if (lhsS == rhsS) {
+          i += 3;
           break;
         }
-        return false;
+        return isGreater(lhsS,rhsS);
       }
       case InstructionTag::SUCCESS: {
         return true;
@@ -1328,137 +1256,6 @@ bool KBO::isGreater(TermList tl1, TermList tl2) const
   auto w2 = computeWeight(tl2);
 
   if (w1<w2) {
-    return false;
-  }
-
-  _stateGt->init();
-  if (w1>w2) {
-    // traverse variables
-    _stateGt->traverseVars(tl1,1);
-    _stateGt->traverseVars(tl2,-1);
-    return _stateGt->checkVars();
-  }
-  // w1==w2
-  Result comp = t1->isSort()
-    ? compareTypeConPrecedences(t1->functor(),t2->functor())
-    : compareFunctionPrecedences(t1->functor(),t2->functor());
-  switch (comp)
-  {
-    case Ordering::LESS:
-    case Ordering::LESS_EQ: {
-      return false;
-    }
-    case Ordering::GREATER:
-    case Ordering::GREATER_EQ: {
-      _stateGt->traverseVars(tl1,1);
-      _stateGt->traverseVars(tl2,-1);
-      return _stateGt->checkVars();
-    }
-    case Ordering::EQUAL: {
-      return _stateGt->traverse(t1,t2);
-    }
-    case Ordering::INCOMPARABLE:
-      ASSERTION_VIOLATION;
-  }
-  ASSERTION_VIOLATION;
-}
-
-// t2 is a term on which subst has to be applied
-bool KBO::isGreaterVT(TermList tl1, Term* t2, Indexing::ResultSubstitution* subst, bool result, Stack<Instruction>* ptr, unsigned index, bool& equal) const
-{
-  equal = false;
-  if (tl1.isOrdinaryVar()) {
-    return false;
-  }
-
-  Term* t1=tl1.term();
-
-  auto w1 = computeWeight(tl1);
-  auto w2 = computeWeight(ptr, index+3, subst, result);
-
-  if (w1<w2) {
-    return false;
-  }
-
-  auto tl2 = result ? subst->applyToBoundResult(TermList(t2)) : subst->applyToBoundQuery(TermList(t2));
-  t2 = tl2.term();
-  computeWeight(tl2);
-  if (tl1==tl2) {
-    equal = true;
-    return false;
-  }
-
-  _stateGt->init();
-  if (w1>w2) {
-    // traverse variables
-    _stateGt->traverseVars(tl1,1);
-    _stateGt->traverseVars(tl2,-1);
-    return _stateGt->checkVars();
-  }
-  // w1==w2
-  Result comp = t1->isSort()
-    ? compareTypeConPrecedences(t1->functor(),t2->functor())
-    : compareFunctionPrecedences(t1->functor(),t2->functor());
-  switch (comp)
-  {
-    case Ordering::LESS:
-    case Ordering::LESS_EQ: {
-      return false;
-    }
-    case Ordering::GREATER:
-    case Ordering::GREATER_EQ: {
-      _stateGt->traverseVars(tl1,1);
-      _stateGt->traverseVars(tl2,-1);
-      return _stateGt->checkVars();
-    }
-    case Ordering::EQUAL: {
-      return _stateGt->traverse(t1,t2);
-    }
-    case Ordering::INCOMPARABLE:
-      ASSERTION_VIOLATION;
-  }
-  ASSERTION_VIOLATION;
-}
-
-bool containsVar(Term* t, unsigned var, Indexing::ResultSubstitution* subst, bool result)
-{
-  DHSet<unsigned> vars;
-  VariableIterator vit(t);
-  while (vit.hasNext()) {
-    auto v = vit.next();
-    if (!vars.insert(v.var())) {
-      continue;
-    }
-    auto vS = result ? subst->applyToBoundResult(v.var()) : subst->applyToBoundQuery(v.var());
-    if (vS == TermList(var,false) || vS.containsSubterm(TermList(var,false))) {
-      return true;
-    }
-  }
-  return false;
-}
-
-// tl1 is a term on which subst has to be applied
-bool KBO::isGreaterTV(Term* t1, TermList tl2, Indexing::ResultSubstitution* subst, bool result, Stack<Instruction>* ptr, unsigned index, bool& equal) const
-{
-  equal = false;
-  if (tl2.isVar()) {
-    return containsVar(t1,tl2.var(),subst,result);
-  }
-
-  Term* t2=tl2.term();
-
-  auto w1 = computeWeight(ptr, index+3, subst, result);
-  auto w2 = computeWeight(tl2);
-
-  if (w1<w2) {
-    return false;
-  }
-
-  auto tl1 = result ? subst->applyToBoundResult(TermList(t1)) : subst->applyToBoundQuery(TermList(t1));
-  t1 = tl1.term();
-  computeWeight(tl1);
-  if (tl1==tl2) {
-    equal = true;
     return false;
   }
 

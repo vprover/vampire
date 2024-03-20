@@ -81,9 +81,6 @@ public:
     }
   }
 
-  virtual TermList applyToBoundResult(unsigned v)
-  { return applyToResult(TermList(v,false)); }
-
   /**
    * Apply substitution to result term that fulfills the condition,
    * that all its variables are bound to some term of the query.
@@ -97,16 +94,17 @@ public:
   { return applyToResult(t); }
 
   /**
-   * Apply substitution to result term that fulfills the condition,
-   * that all its variables are bound to some term of the query.
-   *
-   * Applying this substitution makes sense, when
-   * @b isIdentityOnQueryWhenResultBound() method returns true,
-   * as then there is no need to apply the substitution to any
-   * query terms.
+   * Same as @b applyToBoundResult(TermList) with @b Literal argument.
    */
   virtual Literal* applyToBoundResult(Literal* lit)
   { return applyToResult(lit); }
+
+  /**
+   * Same as @b applyToBoundResult(TermList) with variable argument.
+   * Overriding this allows a direct (and more efficient) access to the mapping.
+   */
+  virtual TermList applyToBoundResult(unsigned v)
+  { return applyToResult(TermList(v,false)); }
 
   /**
    * Return true if, when the substitution is applied to a result
@@ -115,8 +113,6 @@ public:
    */
   virtual bool isIdentityOnQueryWhenResultBound() {return false;}
 
-  virtual TermList applyToBoundQuery(unsigned v)
-  { return applyToQuery(TermList(v,false)); }
 
   /**
    * Apply substitution to query term that fulfills the condition,
@@ -129,6 +125,13 @@ public:
    */
   virtual TermList applyToBoundQuery(TermList t)
   { return applyToQuery(t); }
+
+  /**
+   * Same as @b applyToBoundQuery(TermList) with variable argument.
+   * Overriding this allows a direct (and more efficient) access to the mapping.
+   */
+  virtual TermList applyToBoundQuery(unsigned v)
+  { return applyToQuery(TermList(v,false)); }
 
   /**
    * Return true if, when the substitution is applied to a query
