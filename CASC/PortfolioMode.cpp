@@ -13,9 +13,8 @@
  * Implements class PortfolioMode.
  */
 
-//only for detecting number of cores, no threading here!
-#include <thread>
 
+#include "Debug/Assertion.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Portability.hpp"
@@ -36,9 +35,11 @@
 #include <unistd.h>
 #include <signal.h>
 #include <fstream>
-#include <stdio.h>
 #include <cstdio>
 #include <random>
+#include <filesystem>
+//only for detecting number of cores, no threading here!
+#include <thread>
 
 #include "Saturation/ProvingHelper.hpp"
 
@@ -54,6 +55,7 @@ using Lib::Sys::Multiprocessing;
 using std::cout;
 using std::cerr;
 using std::endl;
+namespace fs = std::filesystem;
 
 PortfolioMode::PortfolioMode(Problem* problem) : _prb(problem), _slowness(env.options->slowness()) {
   unsigned cores = std::thread::hardware_concurrency();
@@ -64,15 +66,25 @@ PortfolioMode::PortfolioMode(Problem* problem) : _prb(problem), _slowness(env.op
     _numWorkers = cores >= 8 ? cores - 2 : cores;
   }
 
-  if(env.options->printProofToFile().empty()) {
-    /* if the user does not ask for printing the proof to a file,
-     * we generate a temp file name, in master,
-     * to be filled up in the winning worker with the proof
-     * and printed later by master to stdout
-     * when all the workers have shut up reporting status
-     * (not to get the status talking interrupt the proof printing)
-     */
-    _tmpFileNameForProof = tmpnam(NULL);
+  auto pathGiven = env.options->printProofToFile();
+  if(pathGiven.empty())
+    // no collision as we can't have the same PID as another Vampire *simultaneously*
+    _path = fs::temp_directory_path() / ("vampire-proof-" + Int::toString(getpid()));
+  else
+    _path = fs::path(pathGiven);
+
+  // the first Vampire to succeed creates the file
+  // therefore: remove it first
+  try {
+    fs::remove(_path);
+  } catch(const fs::filesystem_error &remove_error) {
+    // this is not good: try and continue anyway, but we're probably on a loser
+    std::cerr
+      << "WARNING: could not synchronise on " << _path
+      << " (proof may be garbled)\n"
+      << remove_error.what()
+      << std::endl;
+    _path.clear();
   }
 }
 
@@ -500,7 +512,7 @@ bool PortfolioMode::runScheduleAndRecoverProof(Schedule schedule)
      * the user didn't wish a proof in the file, so we printed it to the secret tmp file
      * now it's time to restore it.
      */
-    std::ifstream input(_tmpFileNameForProof);
+    std::ifstream input(_path);
 
     bool openSucceeded = !input.fail();
 
@@ -508,14 +520,14 @@ bool PortfolioMode::runScheduleAndRecoverProof(Schedule schedule)
       cout << input.rdbuf();
     } else {
       if (outputAllowed()) {
-        addCommentSignForSZS(cout) << "Failed to restore proof from tempfile " << _tmpFileNameForProof << endl;
+        addCommentSignForSZS(cout) << "Failed to restore proof from tempfile " << _path << endl;
       }
     }
 
     //If for some reason, the proof could not be opened
     //we don't delete the proof file
     if(openSucceeded){
-      remove(_tmpFileNameForProof);
+      fs::remove(_path);
     }
   }
 
@@ -644,9 +656,26 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   }
 
   bool outputResult = false;
-  if (!resultValue) {
+  if(!resultValue) {
     // only successfull vampires get here
-    // TODO lock output file here and set outputResult
+
+    FILE *checkExists;
+    // try unsynchronised output if we failed to synchronise on `_path`
+    if(_path.empty())
+      outputResult = true;
+    // NB "wx": if we succeed opening here we're the first Vampire
+    else if((checkExists = std::fopen(_path.c_str(), "wx"))) {
+      std::fclose(checkExists);
+      outputResult = true;
+    }
+    // we're very likely the first but can't write a proof to file for some reason
+    else if(errno != EEXIST) {
+      std::cerr
+        << "WARNING: could not open proof file << " << _path
+        << " - printing to stdout." << std::endl;
+      _path.clear();
+      outputResult = true;
+    }
   }
 
   if(outputResult) { // this get only true for the first child to find a proof
@@ -656,23 +685,15 @@ void PortfolioMode::runSlice(Options& strategyOpt)
       addCommentSignForSZS(cout) << "First to succeed." << endl;
     }
 
-    // At the moment we only save one proof. We could potentially
-    // allow multiple proofs
-    vstring fname(env.options->printProofToFile());
-    if (fname.empty()) {
-      fname = _tmpFileNameForProof;
-    }
-
-    std::ofstream output(fname.c_str());
-    if (output.fail()) {
+    std::ofstream output(_path);
+    if(_path.empty() || output.fail()) {
       // fallback to old printing method
-      addCommentSignForSZS(cout) << "Solution printing to a file '" << fname <<  "' failed. Outputting to stdout" << endl;
+      addCommentSignForSZS(cout) << "Solution printing to a file '" << _path <<  "' failed. Outputting to stdout" << endl;
       UIHelper::outputResult(cout);
     } else {
       UIHelper::outputResult(output);
-      if (!env.options->printProofToFile().empty() && outputAllowed()) {
-        addCommentSignForSZS(cout) << "Solution written to " << fname << endl;
-      }
+      if(outputAllowed())
+        addCommentSignForSZS(cout) << "Solution written to " << _path << endl;
     }
   } else if (outputAllowed()) {
     if (resultValue) {
@@ -682,5 +703,6 @@ void PortfolioMode::runSlice(Options& strategyOpt)
     }
   }
 
+  // could be quick_exit if we flush output?
   exit(resultValue);
 } // runSlice

@@ -15,6 +15,8 @@
 #ifndef __PortfolioMode__
 #define __PortfolioMode__
 
+#include <filesystem>
+
 #include "Forwards.hpp"
 
 #include "Lib/ScopedPtr.hpp"
@@ -57,7 +59,8 @@ private:
   DHSet<pid_t> childIds;
 #endif
   unsigned _numWorkers;
-  const char *_tmpFileNameForProof;
+  // file that will contain a proof
+  std::filesystem::path _path;
 
   /**
    * Problem that is being solved.
