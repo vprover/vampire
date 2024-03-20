@@ -388,7 +388,7 @@ VirtualIterator<TypedTermList> EqHelper::getSubVarSupLHSIterator(Literal* lit, c
  *
  * If the literal @b lit is not a positive equality, empty iterator is returned.
  */
-VirtualIterator<TypedTermList> EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward, const Ordering& ord, const Options& opt)
+VirtualIterator<TypedTermList> EqHelper::getDemodulationLHSIterator(Literal* lit, bool preordered, const Ordering& ord)
 {
   if (lit->isEquality()) {
     if (lit->isNegative()) {
@@ -399,8 +399,7 @@ VirtualIterator<TypedTermList> EqHelper::getDemodulationLHSIterator(Literal* lit
     switch(ord.getEqualityArgumentOrder(lit))
     {
     case Ordering::INCOMPARABLE:
-      if ( forward ? (opt.forwardDemodulation() == Options::Demodulation::PREORDERED)
-		  : (opt.backwardDemodulation() == Options::Demodulation::PREORDERED) ) {
+      if ( preordered ) {
         return withEqualitySort(lit, TermIterator::getEmpty());
       }
       if (t0.containsAllVariablesOf(t1)) {
