@@ -55,7 +55,7 @@ using std::cout;
 using std::cerr;
 using std::endl;
 
-PortfolioMode::PortfolioMode(Problem* problem) : _prb(problem), _slowness(env.options->slowness()), _syncSemaphore(2) {
+PortfolioMode::PortfolioMode(Problem* problem) : _prb(problem), _slowness(env.options->slowness()) {
   unsigned cores = std::thread::hardware_concurrency();
   cores = cores < 1 ? 1 : cores;
   _numWorkers = std::min(cores, env.options->multicore());
@@ -63,10 +63,6 @@ PortfolioMode::PortfolioMode(Problem* problem) : _prb(problem), _slowness(env.op
   {
     _numWorkers = cores >= 8 ? cores - 2 : cores;
   }
-
-  // We need the following two values because the way the semaphore class is currently implemented:
-  // 1) dec is the only operation which is blocking
-  // 2) dec is done in the mode SEM_UNDO, so is undone when a process terminates
 
   if(env.options->printProofToFile().empty()) {
     /* if the user does not ask for printing the proof to a file,
@@ -78,8 +74,6 @@ PortfolioMode::PortfolioMode(Problem* problem) : _prb(problem), _slowness(env.op
      */
     _tmpFileNameForProof = tmpnam(NULL);
   }
-  _syncSemaphore.set(SEM_LOCK,1);    // to synchronize access to the second field
-  _syncSemaphore.set(SEM_PRINTED,0); // to indicate that a child has already printed result (it should only happen once)
 }
 
 /**
@@ -652,13 +646,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   bool outputResult = false;
   if (!resultValue) {
     // only successfull vampires get here
-
-    _syncSemaphore.dec(SEM_LOCK); // will block for all accept the first to enter (make sure it's until it has finished printing!)
-
-    if (!_syncSemaphore.get(SEM_PRINTED)) {
-      _syncSemaphore.set(SEM_PRINTED,1);
-      outputResult = true;
-    }
+    // TODO lock output file here and set outputResult
   }
 
   if(outputResult) { // this get only true for the first child to find a proof
@@ -692,10 +680,6 @@ void PortfolioMode::runSlice(Options& strategyOpt)
     } else if (Lib::env.options && Lib::env.options->multicore() != 1) {
       addCommentSignForSZS(cout) << "Also succeeded, but the first one will report." << endl;
     }
-  }
-
-  if (outputResult) {
-    _syncSemaphore.inc(SEM_LOCK); // would be also released after the processes' death, but we are polite and do it already here
   }
 
   exit(resultValue);

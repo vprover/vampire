@@ -21,7 +21,6 @@
 #include "Lib/Stack.hpp"
 
 #include "Lib/VString.hpp"
-#include "Lib/Sys/Semaphore.hpp"
 
 #include "Kernel/Problem.hpp"
 
@@ -35,11 +34,6 @@ using namespace Lib;
 using namespace Shell;
 
 class PortfolioMode {
-  enum {
-    SEM_LOCK = 0,
-    SEM_PRINTED = 1
-  };
-
   PortfolioMode(Kernel::Problem* problem);
 public:
   static bool perform(Kernel::Problem* problem);
@@ -63,7 +57,7 @@ private:
   DHSet<pid_t> childIds;
 #endif
   unsigned _numWorkers;
-  const char * _tmpFileNameForProof;
+  const char *_tmpFileNameForProof;
 
   /**
    * Problem that is being solved.
@@ -73,8 +67,6 @@ private:
    */
   ScopedPtr<Problem> _prb;
   float _slowness;
-
-  Sys::Semaphore _syncSemaphore; // semaphore for synchronizing proof printing
 };
 
 }

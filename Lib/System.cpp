@@ -18,7 +18,7 @@
 #include <csignal>
 
 // TODO these should probably be guarded
-// for getpid, _exit
+// for getpid
 #include <unistd.h>
 
 #ifdef __linux__
@@ -122,9 +122,6 @@ void handleSignal (int sigNum)
     case SIGINT:
       haveSigInt=true;
       System::terminateImmediately(VAMP_RESULT_STATUS_SIGINT);
-//      exit(0);
-//      return;
-
     case SIGHUP:
     case SIGILL:
     case SIGFPE:
@@ -175,72 +172,6 @@ void System::setSignalHandlers()
   signal(SIGBUS,handleSignal);
   signal(SIGTRAP,handleSignal);
 #endif
-
-  errno=0;
-  // ensure that termination handlers are created _before_ the atexit() call
-  // C++ then guarantees that the array is destructed _after_ onTermination
-  terminationHandlersArray();
-  int res=atexit(onTermination);
-  if(res==-1) {
-    SYSTEM_FAIL("Call of atexit() function in System::setSignalHandlers failed.", errno);
-  }
-  ASS_EQ(res,0);
-}
-
-/**
- * Function that returns a reference to an array that contains
- * lists of termination handlers
- *
- * Using a function with a static variable inside is a way to ensure
- * that no matter how early we want to register a termination
- * handler, the array will be constructed.
- */
-ZIArray<List<VoidFunc>*>& System::terminationHandlersArray()
-{
-  static ZIArray<List<VoidFunc>*> arr(2);
-  return arr;
-}
-
-/**
- * Ensure that @b proc will be called before termination of the process.
- * Functions added with lower @b priority will be called first.
- *
- * We try to cover all possibilities how the process may terminate, but
- * some are probably impossible (such as receiving the signal 9). In these
- * cases the @b proc function is not called.
- */
-void System::addTerminationHandler(VoidFunc proc, unsigned priority)
-{
-  VoidFuncList::push(proc, terminationHandlersArray()[priority]);
-}
-
-/**
- * This function should be called as the last thing on every path that leads
- * to a process termination.
- */
-void System::onTermination()
-{
-  static bool called=false;
-  if(called) {
-    return;
-  }
-  called=true;
-
-  auto handlers = terminationHandlersArray();
-  size_t sz=handlers.size();
-  for(size_t i=0;i<sz;i++) {
-    VoidFuncList::Iterator thIter(handlers[i]);
-    while(thIter.hasNext()) {
-      VoidFunc func=thIter.next();
-      func();
-    }
-  }
-}
-
-void System::terminateImmediately(int resultStatus)
-{
-  onTermination();
-  _exit(resultStatus);
 }
 
 /**
