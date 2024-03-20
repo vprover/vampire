@@ -48,7 +48,7 @@ class SoftmaxClauseQueue :
 protected:
   class Node;
 public:
-  SoftmaxClauseQueue(DHMap<Clause*,std::pair<double,unsigned>>& scores, bool talkative);
+  SoftmaxClauseQueue(DHMap<Clause*,std::pair<float,unsigned>>& scores, bool talkative);
   virtual ~SoftmaxClauseQueue() override;
   void insert(Clause*) override;
   bool remove(Clause*) override;
@@ -59,7 +59,7 @@ public:
   { return _left->nodes[0].first == 0; }
 #if VDEBUG
   bool consistent() const;
-  bool consistentRec(Node*, Node*, double&) const;
+  bool consistentRec(Node*, Node*, float&) const;
   void output(ostream&) const override;
 #endif
 
@@ -70,7 +70,7 @@ protected:
 
   // the pair means: (the node pointed to, the score mass traversed by jumping)
   // if .first == nullptr, .second is undef unless on h == 0 (in which case it's the score mass of the stored clause)
-  typedef std::pair<Node*,double> LinkInfo;
+  typedef std::pair<Node*,float> LinkInfo;
 
   /** Nodes in the skip list */
   class Node {
@@ -93,9 +93,9 @@ protected:
   /** the leftmost node with the dummy key and value */
   Node* _left;
   /** Sum of scores of all the inserted elements. */
-  double _total;
+  float _total;
 
-  typedef std::pair<double,unsigned> ScoreInfo; // the pair means: (the actual score, distinguishing random salt)
+  typedef std::pair<float,unsigned> ScoreInfo; // the pair means: (the actual score, distinguishing random salt)
   const DHMap<Clause*,ScoreInfo>& _scores;
 
   bool lessThan(Clause* c1, ScoreInfo sc1, Clause* c2);

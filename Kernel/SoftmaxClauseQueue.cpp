@@ -27,8 +27,8 @@
 using namespace Lib;
 using namespace Kernel;
 
-SoftmaxClauseQueue::SoftmaxClauseQueue(DHMap<Clause*,std::pair<double,unsigned>>& scores, bool talkative)
-    : _talkative(talkative), _height(0), _total(0.0), _scores(scores)
+SoftmaxClauseQueue::SoftmaxClauseQueue(DHMap<Clause*,std::pair<float,unsigned>>& scores, bool talkative)
+    : _talkative(talkative), _height(0), _total(0.0f), _scores(scores)
 {
   void* mem = ALLOC_KNOWN(sizeof(Node)+MAX_HEIGHT*sizeof(LinkInfo),"SoftmaxClauseQueue::Node");
   _left = reinterpret_cast<Node*>(mem);
@@ -37,7 +37,7 @@ SoftmaxClauseQueue::SoftmaxClauseQueue(DHMap<Clause*,std::pair<double,unsigned>>
   _left->height = MAX_HEIGHT;
   _left->clause = nullptr;
 #endif
-  _left->nodes[0] = make_pair(nullptr,0.0);
+  _left->nodes[0] = make_pair(nullptr,0.0f);
 }
 
 /** Temporary!!! */
@@ -88,7 +88,7 @@ void SoftmaxClauseQueue::insert(Clause* c)
       _height++;
     }
     h = _height;
-    _left->nodes[h] = make_pair(nullptr,0.0);
+    _left->nodes[h] = make_pair(nullptr,0.0f);
   }
   void* mem = ALLOC_KNOWN(sizeof(Node)+h*sizeof(LinkInfo),"SoftmaxClauseQueue::Node");
   Node* newNode = reinterpret_cast<Node*>(mem);
@@ -133,7 +133,7 @@ void SoftmaxClauseQueue::insert(Clause* c)
         // ... and start accumalating the distance in "second"
         // it's only important to zero this out from the first descend on,
         // (the node update[h] does not need to report the "distance traveled" upwards anymore)
-        update[lh].second = 0.0;
+        update[lh].second = 0.0f;
       }
     } else {
       left = next;
@@ -143,7 +143,7 @@ void SoftmaxClauseQueue::insert(Clause* c)
   ASS_EQ(lh,0);
   ASS(left == update[0].first);
   // init "dist" by the last (not yer recorded) jump on level 0
-  double dist = left->nodes[0].second;
+  float dist = left->nodes[0].second;
   // go up again, and update nodes waiting for it
   for (;;) {
     Node* updNode = update[lh].first;
@@ -163,7 +163,7 @@ void SoftmaxClauseQueue::insert(Clause* c)
   // (which we didn't want to derive from updNode->nodes[lh].second using subtraction,
   //  so we keep hopping beyond newNode now)
   newNode->nodes[0].second = sc.first;
-  dist = 0.0;
+  dist = 0.0f;
   Node* right = newNode;
   unsigned rh = 0; // traveling at "rh", but aiming for "rh+1" to write the result to
   while (rh < h) {
@@ -202,7 +202,7 @@ bool SoftmaxClauseQueue::remove(Clause* c)
   Node* found = nullptr;
 
   LinkInfo update[MAX_HEIGHT];
-  update[h].second = 0.0; // other second's get zero-ed out when we descend to meet them
+  update[h].second = 0.0f; // other second's get zero-ed out when we descend to meet them
   // as we go forward and down to locate the node (although, potentially, there is no such),
   // we remember the nodes that we will need to update with new dist
   // and keep collecting the traveled distances on each level (both in "update" like with "insert")
@@ -222,7 +222,7 @@ bool SoftmaxClauseQueue::remove(Clause* c)
       }
       update[h].first = left;
       h--;
-      update[h].second = 0.0; // starting a new counter
+      update[h].second = 0.0f; // starting a new counter
     }
     else {
       left = next;
@@ -240,7 +240,7 @@ bool SoftmaxClauseQueue::remove(Clause* c)
     // (no need to strore "left" on level 0)
     update[h].first = left;
     h--;
-    update[h].second = 0.0; // starting a new counter
+    update[h].second = 0.0f; // starting a new counter
     while (left->nodes[h].first != found) {
       update[h].second += left->nodes[h].second;
       left = left->nodes[h].first;
@@ -255,7 +255,7 @@ bool SoftmaxClauseQueue::remove(Clause* c)
   }
 
   ASS_EQ(h,0);
-  double dist = update[0].second; // does not include left->nodes[0].second
+  float dist = update[0].second; // does not include left->nodes[0].second
   Node* right = left;
   // we start from "left", which, on level 0, used to point to "found"
   // we start traversing from level 0
@@ -307,11 +307,11 @@ Clause* SoftmaxClauseQueue::pop()
   ASS(_height >= 0);
   ASS(_left->nodes[0].first != nullptr);
 
-  double sample = Random::getDouble(0.0,_total);
+  float sample = Random::getFloat(0.0f,_total);
   unsigned h = _height;
   Node* node = _left;
 
-  if (_total == std::numeric_limits<double>::infinity()) {
+  if (_total == std::numeric_limits<float>::infinity()) {
     node = _left->nodes[0].first;
     if (_talkative) {
       cout << "p: nan" << endl; // we say "nan", because maybe we are storing more than one infinity clause, but we are picking the first
@@ -322,14 +322,14 @@ Clause* SoftmaxClauseQueue::pop()
   for (;;) {
     LinkInfo li = node->nodes[h];
     Node* next = li.first;
-    double mass = li.second;
-    if (next == nullptr || sample - mass < 0.0 ||    // the link on level h shoots out, or is long enough to satisfy sample, or
+    float mass = li.second;
+    if (next == nullptr || sample - mass < 0.0f ||    // the link on level h shoots out, or is long enough to satisfy sample, or
        (node != _left && sample - mass == sample)) { // or subtraction stopped working (underflows? / zero mass elelements?)
       if (h > 0) {
         h--;
         continue;
       }
-      ASS(next != nullptr || sample - mass < 0.0); // wanting to overshoot a nullptr for h == 0 is evil. It means we jumped out of our collection
+      ASS(next != nullptr || sample - mass < 0.0f); // wanting to overshoot a nullptr for h == 0 is evil. It means we jumped out of our collection
       // found our node!
       // cout << "popping an element of mass " << mass << endl;
       if (_talkative) {
@@ -390,24 +390,24 @@ void SoftmaxClauseQueue::removeAll()
     dropFirst();
   }
 
-  _total = 0.0;
+  _total = 0.0f;
 } // removeAll
 
 #if VDEBUG
 /**
  * Are the two given POSITIVE doubles roughly the same?
  */
-static bool roughlyTheSame(double a, double b) {
-  ASS_G(a,0.0);
-  ASS_G(b,0.0);
-  return abs((a-b)/max(a,b)) < 0.0000001;
+static bool roughlyTheSame(float a, float b) {
+  ASS_G(a,0.0f);
+  ASS_G(b,0.0f);
+  return abs((a-b)/max(a,b)) < 0.0000001f;
 }
 
-bool SoftmaxClauseQueue::consistentRec(Node* cur, Node* whatsSeen, double& sumLinks) const
+bool SoftmaxClauseQueue::consistentRec(Node* cur, Node* whatsSeen, float& sumLinks) const
 {
   if (cur == nullptr) {
     for (unsigned h = 0; h <= _height; h++) {
-      whatsSeen->nodes[h] = make_pair(nullptr,0.0);
+      whatsSeen->nodes[h] = make_pair(nullptr,0.0f);
     }
     return true;
   }
@@ -416,7 +416,7 @@ bool SoftmaxClauseQueue::consistentRec(Node* cur, Node* whatsSeen, double& sumLi
     return false;
   }
   // keep checking, everything was OK until now
-  ScoreInfo sc = (cur == _left) ? std::make_pair(0.0,0u) : _scores.get(cur->clause);
+  ScoreInfo sc = (cur == _left) ? std::make_pair(0.0f,0u) : _scores.get(cur->clause);
   sumLinks += sc.first;
   for (unsigned h = 0; h <= _height; h++) {
     if (h > cur->height) {
@@ -438,7 +438,7 @@ bool SoftmaxClauseQueue::consistentRec(Node* cur, Node* whatsSeen, double& sumLi
       cout << "link.second is " << link.second << " and whatsSeen->nodes[h].second + sc.first is " << whatsSeen->nodes[h].second + sc.first << endl;
       return false;
     }
-    whatsSeen->nodes[h].second = 0.0; // from close by
+    whatsSeen->nodes[h].second = 0.0f; // from close by
   }
 
   return true;
@@ -448,7 +448,7 @@ bool SoftmaxClauseQueue::consistent() const
 {
   void* mem = ALLOC_KNOWN(sizeof(Node)+_height*sizeof(LinkInfo),"SoftmaxClauseQueue::Node");
   Node* whatsSeen = reinterpret_cast<Node*>(mem);
-  double sumLinks = 0.0;
+  float sumLinks = 0.0f;
   bool res = consistentRec(_left,whatsSeen,sumLinks);
   DEALLOC_KNOWN(whatsSeen,sizeof(Node)+_height*sizeof(LinkInfo),"SoftmaxClauseQueue::Node");
   // cout << "Total sum check diff " << sumLinks - _total << " from " <<  sumLinks << " and " << _total << endl;
