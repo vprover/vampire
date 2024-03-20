@@ -27,9 +27,11 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Reflection.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/Environment.hpp"
 
 #include "Unit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Term.hpp"
 
 namespace Kernel {
 
@@ -118,6 +120,112 @@ public:
   /** Return the (reference to) the nth literal */
   Literal*const& operator[] (int n) const
   { return _literals[n]; }
+
+  class FeatureIterator {
+    Clause* _cl;
+    unsigned _featureId;
+    unsigned _pLen;
+    unsigned _nLen;
+    unsigned _justEq;
+    unsigned _justNeq;
+    unsigned _numVarOcc;
+
+    float _thAnc;
+    float _allAnc;
+
+  public:
+    inline static constexpr unsigned NUM_FEATURES = 15;
+
+    FeatureIterator(Clause* cl) :
+      _cl(cl), _featureId(0),
+      _pLen(0), _nLen(0), _justEq(1), _justNeq(1),
+      _numVarOcc(0) { }
+
+    void computeGenLengthAndVarOcc() {
+      for (unsigned i = 0; i < _cl->length(); i++) {
+        Literal* l = (*_cl)[i];
+        _numVarOcc += l->numVarOccs();
+        if (l->isPositive()) { _pLen++; } else { _nLen++; }
+        if (l->isEquality()) { _justNeq = 0; } else { _justEq = 0; }
+      }
+    }
+
+    void collectBoundedThStuff() {
+      _thAnc = _cl->inference().th_ancestors;
+      if (_thAnc > 1024.0) { _thAnc = 1024.0; }
+      _allAnc = _cl->inference().all_ancestors;
+      if (_allAnc > 1024.0) { _allAnc = 1024.0; }
+    }
+
+    bool hasNext() {
+      return _featureId < NUM_FEATURES;
+    }
+
+    float next() {
+      Inference& inf = _cl->inference();
+
+      // TODO: could add, e.g., a one hot encoding of the deriving inference rules
+
+      switch (_featureId++) {
+        // good old AW
+        case 0:
+          return _cl->age();
+        case 1:
+          return _cl->weight();
+
+        case 2:
+          computeGenLengthAndVarOcc();
+          return _pLen;
+
+        case 3:
+          return _nLen;
+
+        case 4:
+          return _justEq;
+        case 5:
+          return _justNeq;
+
+        case 6:
+          return _numVarOcc;
+        case 7:
+          return (float)_numVarOcc/(float)_cl->weight();
+
+        // CAREFUL: check in Preprocess.cpp the lines relavant to initializing the sine levels when changing the feature codes
+
+        // SineLevels
+        case 8:  // redundant: the same as SineLevel == 0
+          return (_cl->derivedFromGoal() ? 1.0 : 0.0);
+        case 9: // redundant: the same as SineLevel == 255
+          return (inf.getSineLevel() == std::numeric_limits<decltype(inf.getSineLevel())>::max()) ? 1.0 : 0.0;
+        case 10:
+          if (inf.getSineLevel() == std::numeric_limits<decltype(inf.getSineLevel())>::max()) {
+            return 1.0;
+          } else if (inf.getSineLevel() == 0) {
+            return 0.0;
+          } else {
+            ASS_G(env.maxSineLevel,2);
+            return (0.5 * inf.getSineLevel()) / (env.maxSineLevel - 2);
+          }
+
+        // a bit of AVATAR
+        case 11:
+          return _cl->splitWeight();
+
+        case 12:
+          collectBoundedThStuff();
+          return _thAnc / _allAnc;
+
+        case 13:
+          return _thAnc;
+
+        case 14:
+          return _allAnc;
+
+        default:
+          ASSERTION_VIOLATION;
+      }
+    }
+  };
 
   /** Return the length (number of literals) */
   unsigned length() const { return _length; }
