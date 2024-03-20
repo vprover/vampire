@@ -29,13 +29,21 @@ namespace Kernel {
 
 using namespace Shell;
 
-/* turns an iterator with TermList elemenst to an iterator of TypedTermList elements 
- * with the sort of the provided equality literal 
+/*
+ * Turns an iterator with TermList elemenst to an iterator of TypedTermList elements
+ * with the sort of the provided equality literal.
+ *
+ * Computes the sort exactly once, so it's wastful to call if the the iterator is empty.
+ * (Or if the sort is already known.)
  */
 template<class TermListIter>
 auto withEqualitySort(Literal* eq, TermListIter iter)
-{ return pvi(iterTraits(std::move(iter))
-    .map([eq](TermList t) { return TypedTermList(t, SortHelper::getEqualityArgumentSort(eq)); })); }
+{
+  ASS(iter.hasNext());
+  auto sort = SortHelper::getEqualityArgumentSort(eq);
+  return pvi(iterTraits(std::move(iter))
+    .map([sort](TermList t) { return TypedTermList(t, sort); }));
+}
 
 /**
  * Return the other side of an equality @b eq than the @b lhs
@@ -279,7 +287,7 @@ VirtualIterator<TypedTermList> EqHelper::getLHSIterator(Literal* lit, const Orde
 {
   if (lit->isEquality()) {
     if (lit->isNegative()) {
-      return withEqualitySort(lit,TermIterator::getEmpty());
+      return VirtualIterator<TypedTermList>::getEmpty();
     }
     TermList t0=*lit->nthArgument(0);
     TermList t1=*lit->nthArgument(1);
@@ -297,9 +305,9 @@ VirtualIterator<TypedTermList> EqHelper::getLHSIterator(Literal* lit, const Orde
     case Ordering::EQUAL:
       ASSERTION_VIOLATION;
     }
-    return withEqualitySort(lit,TermIterator::getEmpty());
+    return VirtualIterator<TypedTermList>::getEmpty();
   } else {
-    return withEqualitySort(lit,TermIterator::getEmpty());
+    return VirtualIterator<TypedTermList>::getEmpty();
   }
 }
 
@@ -338,7 +346,7 @@ VirtualIterator<TypedTermList> EqHelper::getSubVarSupLHSIterator(Literal* lit, c
 
   if (eqSort.isVar() || eqSort.isArrowSort()) {
     if (lit->isNegative()) {
-      return withEqualitySort(lit, TermIterator::getEmpty());
+      return VirtualIterator<TypedTermList>::getEmpty();
     }
 
     TermList t0=*lit->nthArgument(0);
@@ -351,24 +359,24 @@ VirtualIterator<TypedTermList> EqHelper::getSubVarSupLHSIterator(Literal* lit, c
     switch(ord.getEqualityArgumentOrder(lit))
     {
     case Ordering::INCOMPARABLE:
-      if(t0hisVarOrComb && t1hisVarOrComb){ 
-        return withEqualitySort(lit, iterItems(t0, t1) );
+      if(t0hisVarOrComb && t1hisVarOrComb){
+        return pvi(iterItems(TypedTermList(t0,eqSort), TypedTermList(t1,eqSort)));
       } else if( t0hisVarOrComb ){
-        return withEqualitySort(lit, getSingletonIterator(t1) );      
+        return pvi(getSingletonIterator(TypedTermList(t1,eqSort)));
       } else if( t1hisVarOrComb ) {
-        return withEqualitySort(lit, getSingletonIterator(t0) );
+        return pvi(getSingletonIterator(TypedTermList(t0,eqSort)));
       }
       break;
     case Ordering::GREATER:
     case Ordering::GREATER_EQ:
       if(t1hisVarOrComb){
-        return withEqualitySort(lit, getSingletonIterator(t0) );
+        return pvi(getSingletonIterator(TypedTermList(t0,eqSort)));
       }
       break;
     case Ordering::LESS:
     case Ordering::LESS_EQ:
       if(t0hisVarOrComb){
-        return withEqualitySort(lit, getSingletonIterator(t1) );
+        return pvi(getSingletonIterator(TypedTermList(t1,eqSort)));
       }
       break;
     case Ordering::EQUAL:
@@ -376,10 +384,10 @@ VirtualIterator<TypedTermList> EqHelper::getSubVarSupLHSIterator(Literal* lit, c
     default:
       ASSERTION_VIOLATION;
     }
-    return withEqualitySort(lit, TermIterator::getEmpty());
+    return VirtualIterator<TypedTermList>::getEmpty();
   } else {
-    return withEqualitySort(lit, TermIterator::getEmpty());
-  }  
+    return VirtualIterator<TypedTermList>::getEmpty();
+  }
 }
 
 /**
@@ -392,7 +400,7 @@ VirtualIterator<TypedTermList> EqHelper::getDemodulationLHSIterator(Literal* lit
 {
   if (lit->isEquality()) {
     if (lit->isNegative()) {
-      return withEqualitySort(lit, TermIterator::getEmpty());
+      return VirtualIterator<TypedTermList>::getEmpty();
     }
     TermList t0=*lit->nthArgument(0);
     TermList t1=*lit->nthArgument(1);
@@ -400,7 +408,7 @@ VirtualIterator<TypedTermList> EqHelper::getDemodulationLHSIterator(Literal* lit
     {
     case Ordering::INCOMPARABLE:
       if ( preordered ) {
-        return withEqualitySort(lit, TermIterator::getEmpty());
+        return VirtualIterator<TypedTermList>::getEmpty();
       }
       if (t0.containsAllVariablesOf(t1)) {
         if (t1.containsAllVariablesOf(t0)) {
@@ -429,9 +437,9 @@ VirtualIterator<TypedTermList> EqHelper::getDemodulationLHSIterator(Literal* lit
     case Ordering::EQUAL:
       ASSERTION_VIOLATION;
     }
-    return withEqualitySort(lit,TermIterator::getEmpty());
+    return VirtualIterator<TypedTermList>::getEmpty();
   } else {
-    return withEqualitySort(lit,TermIterator::getEmpty());
+    return VirtualIterator<TypedTermList>::getEmpty();
   }
 }
 
