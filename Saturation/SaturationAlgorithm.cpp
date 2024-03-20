@@ -378,6 +378,26 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
     std::cout << "[SA] passive: " << c->toString() << std::endl;
   }
 
+  if (_opt.showPassiveTraffic()) {
+    if (!_shown.find(c)) {
+      // cout << cl->toString() << endl;
+
+      // show the clause's features when arriving for the first time
+      cout << "i: " << c->number();
+
+      Clause::FeatureIterator it(c);
+      unsigned i = 0;
+      while (i++ < _opt.numClauseFeatures() && it.hasNext()) {
+        cout << " " << it.next();
+      }
+      cout << '\n';
+
+      ALWAYS(_shown.insert(c));
+    }
+
+    cout << "a: " << c->number() << '\n';
+  }
+
   //when a clause is added to the passive container,
   //we know it is not redundant
   onNonRedundantClause(c);
@@ -390,6 +410,10 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
  */
 void SaturationAlgorithm::onPassiveRemoved(Clause* c)
 {
+  if (_opt.showPassiveTraffic()) {
+    cout << "r: " << c->number() << '\n';
+  }
+
   ASS(c->store()==Clause::PASSIVE);
   c->setStore(Clause::NONE);
   // at this point the c object can be deleted
@@ -404,6 +428,9 @@ void SaturationAlgorithm::onPassiveRemoved(Clause* c)
  */
 void SaturationAlgorithm::onPassiveSelected(Clause* c)
 {
+  if (_opt.showPassiveTraffic()) {
+    cout << "s: " << c->number() << '\n';
+  }
 }
 
 /**

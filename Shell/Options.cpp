@@ -245,6 +245,10 @@ void Options::init()
     _lookup.insert(&_printAllTheoryAxioms);
     _printAllTheoryAxioms.setExperimental();
 
+    _showPassiveTraffic = BoolOptionValue("show_passive_traffic","spt",false);
+    _showPassiveTraffic.description="Print information about new clauses and their feature vectors and how they enter end leave the passive container.";
+    _lookup.insert(&_showPassiveTraffic);
+
     _showHelp = BoolOptionValue("help","h",false);
     _showHelp.description="Display the help message";
     _lookup.insert(&_showHelp);
@@ -915,6 +919,12 @@ void Options::init()
     _lookaheadDelay.tag(OptionTag::SATURATION);
     _lookup.insert(&_lookaheadDelay);
     _lookaheadDelay.onlyUsefulWith(_selection.isLookAheadSelection());
+
+    _numClauseFeatures = UnsignedOptionValue("num_clause_features","ncf",2);
+    _numClauseFeatures.description="How many features do we ask a clause to provide? There are at most 15 features currently, the later ones more expensive to compute.";
+    _lookup.insert(&_numClauseFeatures);
+    _numClauseFeatures.tag(OptionTag::SATURATION);
+    _numClauseFeatures.onlyUsefulWith(_showPassiveTraffic.is(notEqual(false)));
 
     _ageWeightRatio = RatioOptionValue("age_weight_ratio","awr",1,1,':');
     _ageWeightRatio.description=

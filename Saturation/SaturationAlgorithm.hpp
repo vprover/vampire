@@ -159,6 +159,9 @@ protected:
   virtual bool isComplete();
 
 private:
+  // to remember which clauses have already had their feature vector shown
+  DHSet<Clause*> _shown;
+
   void passiveRemovedHandler(Clause* cl);
   void activeRemovedHandler(Clause* cl);
   void addInputClause(Clause* cl);
