@@ -42,6 +42,8 @@
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
+#include "DemodulationHelper.hpp"
+
 #include "ForwardDemodulation.hpp"
 
 namespace Inferences {
@@ -57,9 +59,9 @@ void ForwardDemodulation::attach(SaturationAlgorithm* salg)
   _index=static_cast<DemodulationLHSIndex*>(
 	  _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) );
 
-  _preorderedOnly = getOptions().forwardDemodulation()== Options::Demodulation::PREORDERED;
-  _redundancyCheck = getOptions().demodulationRedundancyCheck() != Options::DemodulationRedunancyCheck::OFF;
-  _encompassing = getOptions().demodulationRedundancyCheck() == Options::DemodulationRedunancyCheck::ENCOMPASS;
+  _preorderedOnly = getOptions().forwardDemodulation()==Options::Demodulation::PREORDERED;
+  _encompassing = getOptions().demodulationRedundancyCheck()==Options::DemodulationRedundancyCheck::ENCOMPASS;
+  _helper = DemodulationHelper(getOptions(), &_salg->getOrdering());
 }
 
 void ForwardDemodulation::detach()
@@ -103,14 +105,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         continue;
       }
 
-
-      bool toplevelCheck = _redundancyCheck &&
-        lit->isEquality() && (trm==*lit->nthArgument(0) || trm==*lit->nthArgument(1));
-
-      // encompassing demodulation is always fine into negative literals or into non-units
-      if (_encompassing) {
-        toplevelCheck &= lit->isPositive() && (cLen == 1);
-      }
+      bool redundancyCheck = _helper.redundancyCheckNeededForPremise(cl, lit, trm);
 
       TermQueryResultIterator git=_index->getGeneralizations(trm, true);
       while(git.hasNext()) {
@@ -177,49 +172,19 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         }
 
         // encompassing demodulation is fine when rewriting the smaller guy
-        if (toplevelCheck && _encompassing) {
+        if (redundancyCheck && _encompassing) {
           // this will only run at most once;
           // could have been factored out of the getGeneralizations loop,
           // but then it would run exactly once there
           Ordering::Result litOrder = ordering.getEqualityArgumentOrder(lit);
           if ((trm==*lit->nthArgument(0) && litOrder == Ordering::LESS) ||
               (trm==*lit->nthArgument(1) && litOrder == Ordering::GREATER)) {
-            toplevelCheck = false;
+            redundancyCheck = false;
           }
         }
 
-        if(toplevelCheck) {
-          TermList other=EqHelper::getOtherEqualitySide(lit, trm);
-          Ordering::Result tord=ordering.compare(rhsS, other);
-          if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
-            if (_encompassing) {
-              // last chance, if the matcher is not a renaming
-              if (subs->isRenamingOn(qr.term,true /* we talk of result term */)) {
-                continue; // under _encompassing, we know there are no other literals in cl
-              }
-            } else {
-              Literal* eqLitS = subs->applyToBoundResult(qr.literal);
-              bool isMax=true;
-              for(unsigned li2=0;li2<cLen;li2++) {
-                if(li==li2) {
-                  continue;
-                }
-                if(ordering.compare(eqLitS, (*cl)[li2])==Ordering::LESS) {
-                  isMax=false;
-                  break;
-                }
-              }
-              if(isMax) {
-                //RSTAT_CTR_INC("tlCheck prevented");
-                //The demodulation is this case which doesn't preserve completeness:
-                //s = t     s = t1 \/ C
-                //---------------------
-                //     t = t1 \/ C
-                //where t > t1 and s = t > C
-                continue;
-              }
-            }
-          }
+        if (redundancyCheck && !_helper.isPremiseRedundant(cl, lit, trm, rhsS, qr.term, subs.ptr(), true)) {
+          continue;
         }
 
         Literal* resLit = EqHelper::replace(lit,trm,rhsS);
