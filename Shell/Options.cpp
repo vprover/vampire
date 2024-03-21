@@ -1523,7 +1523,7 @@ void Options::init()
     _condensation.tag(OptionTag::INFERENCES);
     _condensation.onlyUsefulWith(ProperSaturationAlgorithm());
 
-    _demodulationRedundancyCheck = ChoiceOptionValue<DemodulationRedunancyCheck>("demodulation_redundancy_check","drc",DemodulationRedunancyCheck::ON,{"off","encompass","on"});
+    _demodulationRedundancyCheck = ChoiceOptionValue<DemodulationRedundancyCheck>("demodulation_redundancy_check","drc",DemodulationRedundancyCheck::ON,{"off","encompass","on"});
     _demodulationRedundancyCheck.description=
        "The following cases of backward and forward demodulation do not preserve completeness:\n"
        "s = t     s = t1 \\/ C \t s = t     s != t1 \\/ C\n"
@@ -3462,7 +3462,7 @@ bool Options::complete(const Problem& prb) const
     return prop.category() == Property::HNE; // enough URR is complete for Horn problems
   }
 
-  if (_demodulationRedundancyCheck.actualValue == DemodulationRedunancyCheck::OFF) {
+  if (_demodulationRedundancyCheck.actualValue == DemodulationRedundancyCheck::OFF) {
     return false;
   }
   if (!_superpositionFromVariables.actualValue) return false;
