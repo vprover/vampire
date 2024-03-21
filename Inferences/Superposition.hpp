@@ -18,6 +18,7 @@
 
 #include "Forwards.hpp"
 #include "Indexing/TermIndex.hpp"
+#include "DemodulationHelper.hpp"
 
 #include "InferenceEngine.hpp"
 #include "Kernel/RobSubstitution.hpp"
@@ -59,6 +60,7 @@ private:
 
   SuperpositionSubtermIndex* _subtermIndex;
   SuperpositionLHSIndex* _lhsIndex;
+  DemodulationHelper _helper;
 };
 
 

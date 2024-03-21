@@ -146,9 +146,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
           supData = new SubstitutionCoverTree(queryCl);
           queryCl->setSupData(supData);
         }
-        if (doInsert) {
-          env.statistics->inductionApplication++;
-        }
         if (!supData->checkAndInsert(subs.ptr(), false, doInsert)) {
           env.statistics->skippedResolution++;
           return 0;
@@ -162,9 +159,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
         if (!supData) {
           supData = new SubstitutionCoverTree(resultCl);
           resultCl->setSupData(supData);
-        }
-        if (doInsert) {
-          env.statistics->inductionApplication++;
         }
         if (!supData->checkAndInsert(subs.ptr(), true, doInsert)) {
           env.statistics->skippedResolution++;

@@ -67,6 +67,7 @@ void Superposition::attach(SaturationAlgorithm* salg)
 	  _salg->getIndexManager()->request(SUPERPOSITION_SUBTERM_SUBST_TREE) );
   _lhsIndex=static_cast<SuperpositionLHSIndex*> (
 	  _salg->getIndexManager()->request(SUPERPOSITION_LHS_SUBST_TREE) );
+  _helper = DemodulationHelper(getOptions(),&_salg->getOrdering());
 }
 
 void Superposition::detach()
@@ -404,8 +405,10 @@ Clause* Superposition::performSuperposition(
       return 0;
     }
 
-    auto doInsert = comp == Ordering::LESS && eqClause->size()==1 && eqClause->noSplits() &&
-      (!rwLitS->isEquality() || (rwLitS->termArg(0)!=rwTermS && rwLitS->termArg(1)!=rwTermS));
+    auto doInsert = comp == Ordering::LESS && eqClause->length()==1 && eqClause->noSplits() &&
+      (!_helper.redundancyCheckNeededForPremise(rwClause, rwLitS, rwTermS) ||
+        // TODO for rwClause->length()!=1 the function isPremiseRedundant does not work yet
+        (rwClause->length()==1 && _helper.isPremiseRedundant(rwClause, rwLitS, rwTermS, tgtTermS, eqLHS, subst.ptr(), eqIsResult)));
 
     auto rwSupData = static_cast<SubstitutionCoverTree*>(rwClause->getSupData());
     if (rwSupData || doInsert) {
