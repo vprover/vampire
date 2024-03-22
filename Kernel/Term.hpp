@@ -101,8 +101,7 @@ class TermList {
 public:
   // divide by 4 because of the tag, by 2 to split the space evenly
   static const unsigned SPEC_UPPER_BOUND = (UINT_MAX / 4) / 2;
-  /** dummy constructor, does nothing */
-  TermList() = default;
+  TermList() : _content(0) {};
   /** creates a term list containing a pointer to a term */
   explicit TermList(Term* t) : _content(0) {
     // NB we also zero-initialise _content so that the spare bits are zero on 32-bit platforms
