@@ -127,7 +127,7 @@ void CodeTree::MatchInfo::init(ILStruct* ils, unsigned liIndex_, DArray<TermList
 }
 
 
-CodeTree::ILStruct::ILStruct(Literal* lit, unsigned varCnt, Stack<unsigned>& gvnStack)
+CodeTree::ILStruct::ILStruct(const Literal* lit, unsigned varCnt, Stack<unsigned>& gvnStack)
 : varCnt(varCnt), sortedGlobalVarNumbers(0), globalVarPermutation(0), timestamp(0)
 {
   ASS_EQ(matches.size(), 0); //we don't want any uninitialized pointers in the array
@@ -321,7 +321,7 @@ CodeTree::CodeOp CodeTree::CodeOp::getTermOp(InstructionSuffix i, unsigned num)
   return res;
 }
 
-CodeTree::CodeOp CodeTree::CodeOp::getGroundTermCheck(Term* trm)
+CodeTree::CodeOp CodeTree::CodeOp::getGroundTermCheck(const Term* trm)
 {
   ASS(trm->ground());
 
@@ -698,7 +698,7 @@ void CodeTree::CompileContext::deinit(CodeTree* tree, bool discarded)
 }
 
 
-void CodeTree::compileTerm(Term* trm, CodeStack& code, CompileContext& cctx, bool addLitEnd)
+void CodeTree::compileTerm(const Term* trm, CodeStack& code, CompileContext& cctx, bool addLitEnd)
 {
   static Stack<unsigned> globalCounterparts;
   globalCounterparts.reset();
@@ -710,7 +710,7 @@ void CodeTree::compileTerm(Term* trm, CodeStack& code, CompileContext& cctx, boo
   }
   else {
     if(trm->isLiteral()) {
-      Literal* lit=static_cast<Literal*>(trm);
+      auto lit=static_cast<const Literal*>(trm);
       code.push(CodeOp::getTermOp(CHECK_FUN, lit->header()));
     }
     else {
@@ -758,7 +758,7 @@ void CodeTree::compileTerm(Term* trm, CodeStack& code, CompileContext& cctx, boo
     ASS(trm->isLiteral());  //LIT_END operation makes sense only for literals
     unsigned varCnt=cctx.nextVarNum;
     ASS_EQ(varCnt, globalCounterparts.size());
-    ILStruct* ils=new ILStruct(static_cast<Literal*>(trm), varCnt, globalCounterparts);
+    ILStruct* ils=new ILStruct(static_cast<const Literal*>(trm), varCnt, globalCounterparts);
     code.push(CodeOp::getLitEnd(ils));
   }
 

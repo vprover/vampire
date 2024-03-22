@@ -68,15 +68,14 @@ bool SubstitutionCoverTree::checkAndInsert(ResultSubstitution* subst, bool resul
     return true;
   }
   DHMap<unsigned,TermList>::Iterator vit(_varSorts);
-  TermStack args;
+  TermStack ts;
   while (vit.hasNext()) {
     auto v = vit.nextKey();
-    auto t = subst->apply(TermList(v,false), result);
-    args.push(t);
+    ts.push(subst->apply(TermList(v,false), result));
   }
   // TermList t(Term::create(_fn, args.size(), args.begin()));
   // auto oldCheck = _tis.generalizationExists(t);
-  auto newCheck = check(subst, result);
+  auto newCheck = check(ts);
   // if (oldCheck != newCheck) {
   //   USER_ERROR("checks don't match");
   // }
@@ -84,23 +83,20 @@ bool SubstitutionCoverTree::checkAndInsert(ResultSubstitution* subst, bool resul
     return false;
   }
   if (doInsert) {
-    insert(subst,result,this);
+    insert(ts,this);
     // _tis.insert(t.term(), nullptr, nullptr);
   }
   return true;
 }
 
-void SubstitutionCoverTree::insert(ResultSubstitution* subst, bool result, void* ptr)
+void SubstitutionCoverTree::insert(const TermStack& ts, void* ptr)
 {
   static CodeStack code;
   code.reset();
 
   static CompileContext cctx;
   cctx.init();
-  DHMap<unsigned,TermList>::Iterator vit(_varSorts);
-  while (vit.hasNext()) {
-    auto v = vit.nextKey();
-    auto t = subst->apply(TermList(v,false), result);
+  for (const auto& t : ts) {
     if (t.isVar()) {
       unsigned var=t.var();
       unsigned* varNumPtr;
@@ -123,20 +119,13 @@ void SubstitutionCoverTree::insert(ResultSubstitution* subst, bool result, void*
   incorporate(code);
 }
 
-bool SubstitutionCoverTree::check(ResultSubstitution* subst, bool result)
+bool SubstitutionCoverTree::check(const TermStack& ts)
 {
   if (isEmpty()) {
     return false;
   }
 
   static SubstMatcher matcher;
-
-  TermStack ts;
-  DHMap<unsigned,TermList>::Iterator vit(_varSorts);
-  while (vit.hasNext()) {
-    auto v = vit.nextKey();
-    ts.push(subst->apply(TermList(v,false), result));
-  }
 
   matcher.init(this, ts);
   bool res = matcher.next();

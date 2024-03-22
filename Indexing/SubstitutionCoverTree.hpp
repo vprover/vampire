@@ -32,8 +32,8 @@ public:
   SubstitutionCoverTree(Clause* cl);
   bool checkAndInsert(ResultSubstitution* subst, bool result, bool doInsert);
 private:
-  void insert(ResultSubstitution* subst, bool result, void* ptr);
-  bool check(ResultSubstitution* subst, bool result);
+  void insert(const TermStack& ts, void* ptr);
+  bool check(const TermStack& ts);
 
   DHMap<unsigned,TermList> _varSorts;
   // unsigned _fn;

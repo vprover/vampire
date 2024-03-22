@@ -109,7 +109,7 @@ public:
    */
   struct ILStruct
   {
-    ILStruct(Literal* lit, unsigned varCnt, Stack<unsigned>& gvnStack);
+    ILStruct(const Literal* lit, unsigned varCnt, Stack<unsigned>& gvnStack);
     ~ILStruct();
     void putIntoSequence(ILStruct* previous_);
 
@@ -177,7 +177,7 @@ public:
     static CodeOp getSuccess(void* data);
     static CodeOp getLitEnd(ILStruct* ils);
     static CodeOp getTermOp(InstructionSuffix i, unsigned num);
-    static CodeOp getGroundTermCheck(Term* trm);
+    static CodeOp getGroundTermCheck(const Term* trm);
 
     bool equalsForOpMatching(const CodeOp& o) const;
 
@@ -366,7 +366,7 @@ public:
   template<SearchStruct::Kind k>
   void compressCheckOps(CodeOp* chainStart);
 
-  static void compileTerm(Term* trm, CodeStack& code, CompileContext& cctx, bool addLitEnd);
+  static void compileTerm(const Term* trm, CodeStack& code, CompileContext& cctx, bool addLitEnd);
 
   //////////// removal //////////////
 
