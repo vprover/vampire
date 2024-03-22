@@ -46,13 +46,6 @@ public:
   static void registerArgv0(const char* argv0) { s_argv0 = argv0; }
   static const char *getArgv0() { return s_argv0; }
 
-  /**
-   * Return number of CPU cores
-   */
-  static unsigned getNumberOfCores();
-
-  static bool fileExists(vstring fname);
-
 private:
   /**
    * Lists of functions that will be called before Vampire terminates

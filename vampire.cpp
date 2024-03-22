@@ -94,7 +94,7 @@ int vampireReturnValue = VAMP_RESULT_STATUS_UNKNOWN;
  *
  * The problem is modified destructively.
  */
-VWARN_UNUSED
+[[nodiscard]]
 Problem* preprocessProblem(Problem* prb)
 {
 #if VAMPIRE_PERF_EXISTS
@@ -141,7 +141,7 @@ void explainException(Exception& exception)
   exception.cry(std::cout);
 } // explainException
 
-VWARN_UNUSED
+[[nodiscard]]
 Problem *doProving(Problem* problem)
 {
   // a new strategy randomization mechanism

@@ -7,8 +7,8 @@ project(Vampire)
 include(CheckIPOSupported)
 include(CheckPIESupported)
 
-# require the compiler to use C++14
-set(CMAKE_CXX_STANDARD 14)
+# require the compiler to use C++17
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 

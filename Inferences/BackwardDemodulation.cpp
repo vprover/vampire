@@ -91,7 +91,7 @@ struct BackwardDemodulation::ResultFn
   typedef DHMultiset<Clause*> ClauseSet;
 
   ResultFn(Clause* cl, BackwardDemodulation& parent, const DemodulationHelper& helper)
-  : _cl(cl), _ordering(parent._salg->getOrdering()), _helper(helper)
+  : _cl(cl), _helper(helper), _ordering(parent._salg->getOrdering())
   {
     ASS_EQ(_cl->length(),1);
     _eqLit=(*_cl)[0];

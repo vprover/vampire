@@ -20,21 +20,6 @@ namespace Shell {
 using namespace std;
 using namespace Lib;
 
-// TODO: these should be dispensable with C++17 onwards
-const char* const TimeTrace::CLAUSE_GENERATION;
-const char* const TimeTrace::CONSEQUENCE_FINDING;
-const char* const TimeTrace::FMB_DEFINITION_INTRODUCTION;
-const char* const TimeTrace::HYPER_SUP;
-const char* const TimeTrace::LITERAL_ORDER_AFTERCHECK;
-const char* const TimeTrace::PARSING;
-const char* const TimeTrace::PASSIVE_CONTAINER_MAINTENANCE;
-const char* const TimeTrace::PREPROCESSING;
-const char* const TimeTrace::PROPERTY_EVALUATION;
-const char* const TimeTrace::AVATAR_SAT_SOLVER;
-const char* const TimeTrace::SHUFFLING;
-const char* const TimeTrace::SINE_SELECTION;
-const char* const TimeTrace::TERM_SHARING;
-
 TimeTrace::TimeTrace() 
   : _root("[root]")
   , _stack({ {&_root, Clock::now(), }, }) 

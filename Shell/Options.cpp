@@ -21,6 +21,7 @@
 
 // Visual does not know the round function
 #include <cmath>
+#include <filesystem>
 #include <fstream>
 #include <random>
 
@@ -2453,7 +2454,7 @@ vstring Options::includeFileName (const vstring& relativeName)
     return relativeName;
   }
 
-  if (System::fileExists(relativeName)) {
+  if (std::filesystem::exists(relativeName)) {
     return relativeName;
   }
 
@@ -2467,7 +2468,7 @@ vstring Options::includeFileName (const vstring& relativeName)
     // i.e. the input file
     vstring currentFile = inputFile();
     System::extractDirNameFromPath(currentFile,dir); 
-    if(System::fileExists(dir+"/"+relativeName)){
+    if(std::filesystem::exists(dir+"/"+relativeName)){
       return dir + "/" + relativeName;
     }
 
