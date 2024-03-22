@@ -1586,7 +1586,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   if (env.options->functionDefinitionRewriting()) {
     gie->addFront(new FunctionDefinitionRewriting());
-    res->addForwardSimplifierToFront(new FunctionDefinitionRewriting());
+    res->addForwardSimplifierToFront(new FunctionDefinitionDemodulation());
   }
 
   CompositeSGI* sgi = new CompositeSGI();

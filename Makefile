@@ -254,6 +254,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BackwardSubsumptionDemodulation.o\
          Inferences/BinaryResolution.o\
          Inferences/Condensation.o\
+         Inferences/DemodulationHelper.o\
          Inferences/DistinctEqualitySimplifier.o\
          Inferences/DefinitionIntroduction.o\
          Inferences/EqualityFactoring.o\
