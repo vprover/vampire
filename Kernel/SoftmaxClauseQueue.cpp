@@ -37,7 +37,7 @@ SoftmaxClauseQueue::SoftmaxClauseQueue(DHMap<Clause*,std::pair<float,unsigned>>&
   _left->height = MAX_HEIGHT;
   _left->clause = nullptr;
 #endif
-  _left->nodes[0] = make_pair(nullptr,0.0f);
+  _left->nodes[0] = std::make_pair(nullptr,0.0f);
 }
 
 /** Temporary!!! */
@@ -88,7 +88,7 @@ void SoftmaxClauseQueue::insert(Clause* c)
       _height++;
     }
     h = _height;
-    _left->nodes[h] = make_pair(nullptr,0.0f);
+    _left->nodes[h] = std::make_pair(nullptr,0.0f);
   }
   void* mem = ALLOC_KNOWN(sizeof(Node)+h*sizeof(LinkInfo),"SoftmaxClauseQueue::Node");
   Node* newNode = reinterpret_cast<Node*>(mem);
@@ -314,7 +314,7 @@ Clause* SoftmaxClauseQueue::pop()
   if (_total == std::numeric_limits<float>::infinity()) {
     node = _left->nodes[0].first;
     if (_talkative) {
-      cout << "p: nan" << endl; // we say "nan", because maybe we are storing more than one infinity clause, but we are picking the first
+      std::cout << "p: nan" << std::endl; // we say "nan", because maybe we are storing more than one infinity clause, but we are picking the first
     }
     goto clause_found;
   }
@@ -333,7 +333,7 @@ Clause* SoftmaxClauseQueue::pop()
       // found our node!
       // cout << "popping an element of mass " << mass << endl;
       if (_talkative) {
-        cout << "p: " << mass/_total << endl;
+        std::cout << "p: " << mass/_total << std::endl;
       }
       break;
     } else {
@@ -427,15 +427,15 @@ bool SoftmaxClauseQueue::consistentRec(Node* cur, Node* whatsSeen, float& sumLin
     auto link = cur->nodes[h];
     // the pointers are fine:
     if (link.first != whatsSeen->nodes[h].first) {
-      cout << "Node " << cur->id << " failed the link check for h = " << h << endl;
+      std::cout << "Node " << cur->id << " failed the link check for h = " << h << std::endl;
       return false;
     }
     whatsSeen->nodes[h].first = cur;  // now you see me
     // the score mass is fine:
     if ((link.first != nullptr || h == 0) && // h > 0 nullptrs are fine with rubbish score mass
         cur != _left && !roughlyTheSame(link.second,whatsSeen->nodes[h].second + sc.first)) {
-      cout << "Node " << cur->id << " failed the mass check for h = " << h << endl;
-      cout << "link.second is " << link.second << " and whatsSeen->nodes[h].second + sc.first is " << whatsSeen->nodes[h].second + sc.first << endl;
+      std::cout << "Node " << cur->id << " failed the mass check for h = " << h << std::endl;
+      std::cout << "link.second is " << link.second << " and whatsSeen->nodes[h].second + sc.first is " << whatsSeen->nodes[h].second + sc.first << std::endl;
       return false;
     }
     whatsSeen->nodes[h].second = 0.0f; // from close by
@@ -454,9 +454,9 @@ bool SoftmaxClauseQueue::consistent() const
   // cout << "Total sum check diff " << sumLinks - _total << " from " <<  sumLinks << " and " << _total << endl;
   if (_left->nodes[0].first && // non-empty
       !roughlyTheSame(sumLinks,_total)) {
-    cout << "Total sum check failed." << endl;
-    cout << "sumLinks is " << sumLinks << " and _total is " << _total << endl;
-    cout << "The difference being " << sumLinks-_total << endl;
+    std::cout << "Total sum check failed." << std::endl;
+    std::cout << "sumLinks is " << sumLinks << " and _total is " << _total << std::endl;
+    std::cout << "The difference being " << sumLinks-_total << std::endl;
     return false;
   }
   return res;
@@ -464,16 +464,16 @@ bool SoftmaxClauseQueue::consistent() const
 
 void SoftmaxClauseQueue::output(ostream& str) const
 {
-  str << "SoftmaxClauseQueue with a total " << _total << endl;
+  str << "SoftmaxClauseQueue with a total " << _total << std::endl;
   for (const Node* node = _left; node; node=node->nodes[0].first) {
     Clause* cl = node->clause;
     unsigned height;
     if (cl) {
       height = node->height;
-      str << "Node " << node->id << " of mass " << _scores.get(node->clause).first << " and with clause " << node->clause->toString() << endl;
+      str << "Node " << node->id << " of mass " << _scores.get(node->clause).first << " and with clause " << node->clause->toString() << std::endl;
     } else {
       height = _height;
-      str << "Node " << node->id << " with no clause" << endl;
+      str << "Node " << node->id << " with no clause" << std::endl;
     }
     for (unsigned h = 0; h <= height; h++) {
       str << "(";
@@ -484,8 +484,8 @@ void SoftmaxClauseQueue::output(ostream& str) const
       }
       str << "," << std::setw(3) << node->nodes[h].second << ") | ";
     }
-    str << endl;
+    str << std::endl;
   }
-  str << endl;
+  str << std::endl;
 } // SoftmaxClauseQueue::output
 #endif
