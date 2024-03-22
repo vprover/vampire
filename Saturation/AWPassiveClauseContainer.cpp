@@ -167,7 +167,7 @@ NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, con
   const std::string& tweak_str = opt.neuralPassiveClauseContainerTweaks();
   if (!tweak_str.empty()) {
     if (auto m = _model.find_method("eatMyTweaks")) { // if the model is not interested in tweaks, it will get none!
-      c10::List<float> tweaks;
+      std::vector<float> tweaks;
 
       std::size_t i=0,j;
       while (true) {
@@ -190,7 +190,7 @@ NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, con
       }
 
       std::vector<torch::jit::IValue> inputs;
-      inputs.push_back(torch::jit::IValue(tweaks));
+      inputs.push_back(torch::jit::IValue(torch::from_blob(tweaks.data(), {static_cast<long long>(tweaks.size())}, torch::TensorOptions().dtype(torch::kFloat32))));
       (*m)(std::move(inputs));
     }
   }
@@ -217,7 +217,7 @@ void NeuralPassiveClauseContainer::add(Clause* cl)
       i++;
     }
     ASS_EQ(features.size(),_opt.numClauseFeatures());
-    inputs.push_back(torch::from_blob(features.data(), {_opt.numClauseFeatures()}, torch::TensorOptions().dtype(at::kFloat)));
+    inputs.push_back(torch::from_blob(features.data(), {_opt.numClauseFeatures()}, torch::TensorOptions().dtype(torch::kFloat32)));
 
     float logit = _model.forward(std::move(inputs)).toDouble();
     unsigned salt = Random::getInteger(1073741824); // 2^30, because why not
