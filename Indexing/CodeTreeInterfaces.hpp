@@ -48,7 +48,7 @@ public:
   // TODO: get rid of NOT_IMPLEMENTED
   VirtualIterator<TQueryRes<AbstractingUnifier*>> getUwa(TypedTermList t, Options::UnificationWithAbstraction, bool fixedPointIteration) { NOT_IMPLEMENTED; }
 
-  virtual void output(std::ostream& out) const { out << "CodeTree"; }
+  virtual void output(std::ostream& out) const { out << _ct; }
 
 private:
   class ResultIterator;

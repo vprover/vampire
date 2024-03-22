@@ -213,7 +213,7 @@ public:
       return const_cast<CodeOp*>(this)->getILS();
     }
 
-    SearchStruct* getSearchStruct();
+    SearchStruct* getSearchStruct() const;
 
     inline InstructionPrefix instrPrefix() const { return static_cast<InstructionPrefix>(_info.prefix); }
     inline InstructionSuffix instrSuffix() const
@@ -230,6 +230,8 @@ public:
     inline void setLongInstr(InstructionSuffix i) { _info.prefix=SUFFIX_INSTR; _info.suffix=i; }
 
     void makeFail() { _data=0; }
+
+    friend std::ostream& operator<<(std::ostream& out, const CodeOp& op);
 
   private:
     inline size_t data() const { return _data; }
@@ -257,7 +259,6 @@ public:
   struct SearchStruct
   {
     void destroy();
-    bool isFixedSearchStruct() const { return true; }
 
     bool getTargetOpPtr(const CodeOp& insertedOp, CodeOp**& tgt);
 
@@ -271,48 +272,33 @@ public:
 
     CodeOp landingOp;
     Kind kind;
-  protected:
-    SearchStruct(Kind kind);
-  };
-
-  struct FixedSearchStruct
-  : public SearchStruct
-  {
-    FixedSearchStruct(Kind kind, size_t length);
-    ~FixedSearchStruct();
-
     size_t length;
     CodeOp** targets;
+
+  protected:
+    SearchStruct(Kind kind, size_t length);
+    ~SearchStruct();
   };
 
-  struct FnSearchStruct
-  : public FixedSearchStruct
+  template<SearchStruct::Kind k>
+  struct SearchStructImpl
+  : public SearchStruct
   {
-    FnSearchStruct(size_t length);
-    ~FnSearchStruct();
-    CodeOp*& targetOp(unsigned fn);
+    USE_ALLOCATOR(SearchStructImpl);
 
-    USE_ALLOCATOR(FnSearchStruct);
+    SearchStructImpl(size_t length);
+    ~SearchStructImpl();
 
     struct OpComparator;
 
-    unsigned* values;
+    using T = typename std::conditional<k==SearchStruct::FN_STRUCT,unsigned,Term*>::type;
+    CodeOp*& targetOp(const T& val);
+
+    T* values;
   };
 
-  struct GroundTermSearchStruct
-  : public FixedSearchStruct
-  {
-    GroundTermSearchStruct(size_t length);
-    ~GroundTermSearchStruct();
-    CodeOp*& targetOp(const Term* trm);
-
-    USE_ALLOCATOR(GroundTermSearchStruct);
-
-    struct OpComparator;
-
-    Term** values;
-  };
-
+  using FnSearchStruct = SearchStructImpl<SearchStruct::FN_STRUCT>;
+  using GroundTermSearchStruct = SearchStructImpl<SearchStruct::GROUND_TERM_STRUCT>;
 
   typedef Vector<CodeOp> CodeBlock;
   typedef Stack<CodeOp> CodeStack;
@@ -350,12 +336,14 @@ public:
 
   //////// auxiliary methods //////////
 
-  inline bool isEmpty() { return !_entryPoint; }
-  inline CodeOp* getEntryPoint() { ASS(!isEmpty()); return &(*_entryPoint)[0]; }
+  inline bool isEmpty() const { return !_entryPoint; }
+  inline CodeOp* getEntryPoint() const { ASS(!isEmpty()); return &(*_entryPoint)[0]; }
   static CodeBlock* firstOpToCodeBlock(CodeOp* op);
 
   template<class Visitor>
-  void visitAllOps(Visitor visitor);
+  void visitAllOps(Visitor visitor) const;
+
+  friend std::ostream& operator<<(std::ostream& out, const CodeTree& ct);
 
   //////////// insertion //////////////
 
