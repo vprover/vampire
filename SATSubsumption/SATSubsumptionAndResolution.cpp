@@ -723,30 +723,44 @@ bool SATSubsumptionAndResolution::indirectEncodingForSubsumptionResolution()
   vstring s = "";
 #endif
   solver.constraint_start();
+  // highest variable number without including the c_j
+  unsigned max_var_without_c_j = 0xffffffff;
   for (unsigned j = 0; j < _n; ++j) {
     // Do not add useless variables in the solver
     // It would compromise correctness since a c_j without binding could be true and satisfy c_1 V ... V c_n without making any other clause false.
     if (_matchSet.hasNegativeMatchJ(j)) {
       // Do not create a new SAT variable if there is only one negative match to m_j
-      bool more_than_one_match = false;
-      subsat::Var negative_match_var;
-      for (Match match : matchSet.getJMatches(j)) {
+      // match_found is true if we found a match, false if we found a different number than one
+      // We also know that there is at least one match
+      bool match_found = false;
+      subsat::Var *negative_match_var;
+      for (Match match : _matchSet.getJMatches(j)) {
         if (!match.polarity)
         {
-          more_than_one_match = !more_than_one_match;
+          match_found = !match_found;
+          if (match_found)
+            negative_match_var = &match.var;
+          else
+            break;
         }
       }
-      if (more_than_one_match) {
+      if (!match_found) {
         subsat::Var c_j = solver.new_variable();
+        max_var_without_c_j = min(max_var_without_c_j, c_j.index());
         atMostOneVars.push_back(make_pair(j, c_j));
         solver.constraint_push_literal(c_j);
-      } else {
-        atMostOneVars.push_back(make_pair(j, c_j));
-        solver.constraint_push_literal(c_j);
-      }
 #if PRINT_CLAUSES_SUBS
-      s += Int::toString(c_j.index()) + " V ";
+        s += Int::toString(c_j.index()) + " V ";
 #endif
+      }
+      else {
+        // we have exactly one negative match. No need to create a new variable
+        atMostOneVars.push_back(make_pair(j, *negative_match_var));
+        solver.constraint_push_literal(*negative_match_var);
+#if PRINT_CLAUSES_SUBS
+        s += Int::toString(negative_match_var->index()) + " V ";
+#endif
+      }
     }
   }
   ASS(!atMostOneVars.empty())
@@ -836,8 +850,12 @@ bool SATSubsumptionAndResolution::indirectEncodingForSubsumptionResolution()
   //            /\ (c_j V ~b_1j-) /\ ... /\ (c_j V ~b_nj-)
   for (auto& pair : atMostOneVars) {
     unsigned j = pair.first;
-    Slice<Match> matches = _matchSet.getJMatches(j);
     subsat::Var c_j = pair.second;
+    if (c_j.index() < max_var_without_c_j) {
+      // This is not a c_j. We cannot encode it as a c_j
+      continue;
+    }
+    Slice<Match> matches = _matchSet.getJMatches(j);
     solver.constraint_start();
     //   (~c_j V b_1j- V ... V b_nj-)
     solver.constraint_push_literal(~c_j);
