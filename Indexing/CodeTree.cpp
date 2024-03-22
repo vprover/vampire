@@ -404,8 +404,8 @@ std::ostream& operator<<(std::ostream& out, const CodeTree::CodeOp& op)
       switch(ss->kind) {
         case CodeTree::SearchStruct::FN_STRUCT: {
           auto fn_ss = static_cast<CodeTree::FnSearchStruct*>(ss);
-          out << "length " << fn_ss->length;
-          for (unsigned i = 0; i < fn_ss->length; i++) {
+          out << "length " << fn_ss->length();
+          for (unsigned i = 0; i < fn_ss->length(); i++) {
             out << " " << fn_ss->values[i] << " ";
             if (fn_ss->targets[i]) {
               out << *fn_ss->targets[i];
@@ -417,8 +417,8 @@ std::ostream& operator<<(std::ostream& out, const CodeTree::CodeOp& op)
         }
         case CodeTree::SearchStruct::GROUND_TERM_STRUCT: {
           auto gt_ss = static_cast<CodeTree::GroundTermSearchStruct*>(ss);
-          out << "length " << gt_ss->length;
-          for (unsigned i = 0; i < gt_ss->length; i++) {
+          out << "length " << gt_ss->length();
+          for (unsigned i = 0; i < gt_ss->length(); i++) {
             out << " " << *gt_ss->values[i] << " ";
             if (gt_ss->targets[i]) {
               out << *gt_ss->targets[i];
@@ -437,45 +437,26 @@ std::ostream& operator<<(std::ostream& out, const CodeTree::CodeOp& op)
 }
 
 CodeTree::SearchStruct::SearchStruct(Kind kind, size_t length)
-: kind(kind), length(length)
+: kind(kind)
 {
   landingOp.setAlternative(0);
   landingOp.setLongInstr(SEARCH_STRUCT);
   ASS(length);
 
-  size_t tgtSize=sizeof(CodeOp*)*length;
-  targets=static_cast<CodeOp**>(
-    ALLOC_KNOWN(tgtSize, "CodeTree::SearchStruct::targets"));
+  targets.reserve(length);
 }
 
-CodeTree::SearchStruct::~SearchStruct()
-{
-  size_t tgtSize=sizeof(CodeOp*)*length;
-  DEALLOC_KNOWN(targets, tgtSize, "CodeTree::SearchStruct::targets");
-}
-
-void CodeTree::SearchStruct::destroy()
-{
-  switch(kind) {
-  case FN_STRUCT:
-    delete static_cast<FnSearchStruct*>(this);
-    break;
-  case GROUND_TERM_STRUCT:
-    delete static_cast<GroundTermSearchStruct*>(this);
-    break;
-  }
-}
-
+template<bool doInsert>
 bool CodeTree::SearchStruct::getTargetOpPtr(const CodeOp& insertedOp, CodeOp**& tgt)
 {
   switch(kind) {
   case FN_STRUCT:
     if(!insertedOp.isCheckFun()) { return false; }
-    tgt=&static_cast<FnSearchStruct*>(this)->targetOp(insertedOp.arg());
+    tgt=&static_cast<FnSearchStruct*>(this)->targetOp<doInsert>(insertedOp.arg());
     return true;
   case GROUND_TERM_STRUCT:
     if(!insertedOp.isCheckGroundTerm()) { return false; }
-    tgt=&static_cast<GroundTermSearchStruct*>(this)->targetOp(insertedOp.getTargetTerm());
+    tgt=&static_cast<GroundTermSearchStruct*>(this)->targetOp<doInsert>(insertedOp.getTargetTerm());
     return true;
   default:
     ASSERTION_VIOLATION;
@@ -487,11 +468,11 @@ CodeTree::CodeOp* CodeTree::SearchStruct::getTargetOp(const FlatTerm::Entry* ftP
   if(!ftPos->isFun()) { return 0; }
   switch(kind) {
   case FN_STRUCT:
-    return static_cast<FnSearchStruct*>(this)->targetOp(ftPos->number());
+    return static_cast<FnSearchStruct*>(this)->targetOp<false>(ftPos->number());
   case GROUND_TERM_STRUCT:
     ftPos++;
     ASS_EQ(ftPos->tag(), FlatTerm::FUN_TERM_PTR);
-    return static_cast<GroundTermSearchStruct*>(this)->targetOp(ftPos->ptr());
+    return static_cast<GroundTermSearchStruct*>(this)->targetOp<false>(ftPos->ptr());
   default:
     ASSERTION_VIOLATION;
   }
@@ -501,23 +482,14 @@ template<CodeTree::SearchStruct::Kind k>
 CodeTree::SearchStructImpl<k>::SearchStructImpl(size_t length)
 : SearchStruct(k, length)
 {
-  size_t valSize=sizeof(T)*length;
-  values=static_cast<T*>(
-    ALLOC_KNOWN(valSize, "CodeTree::SearchStructImpl::values"));
 }
 
 template<CodeTree::SearchStruct::Kind k>
-CodeTree::SearchStructImpl<k>::~SearchStructImpl()
-{
-  size_t valSize=sizeof(T)*length;
-  DEALLOC_KNOWN(values, valSize, "CodeTree::SearchStructImpl::values");
-}
-
-template<CodeTree::SearchStruct::Kind k>
+template<bool doInsert>
 CodeTree::CodeOp*& CodeTree::SearchStructImpl<k>::targetOp(const T& val)
 {
   size_t left=0;
-  size_t right=length-1;
+  size_t right=length()-1;
   while(left<right) {
     size_t mid=(left+right)/2;
     switch(Int::compare(val, values[mid])) {
@@ -532,74 +504,22 @@ CodeTree::CodeOp*& CodeTree::SearchStructImpl<k>::targetOp(const T& val)
     }
   }
   ASS_EQ(left,right);
-  ASS(left==length-1 || val<=values[left]);
+  ASS(left==length()-1 || val<=values[left]);
 
+  if constexpr (!doInsert) {
+    return targets[left];
+  }
   if (val==values[left]) {
     return targets[left];
   }
 
-  auto oldTargets = targets;
-  auto oldValues = values;
-
-  size_t tgtSize=sizeof(CodeOp*)*(length+1);
-  targets=static_cast<CodeOp**>(
-    ALLOC_KNOWN(tgtSize, "CodeTree::SearchStruct::targets"));
-  size_t valSize=sizeof(T)*(length+1);
-  values=static_cast<T*>(
-    ALLOC_KNOWN(valSize, "CodeTree::SearchStructImpl::values"));
-
-  if (val<oldValues[left]) {
-    memmove(targets,oldTargets,left*sizeof(CodeOp*));
-    memmove(targets+left+1,&oldTargets[left],(length-left)*sizeof(CodeOp*));
-    memmove(values,oldValues,left*sizeof(T));
-    memmove(values+left+1,&oldValues[left],(length-left)*sizeof(T));
-  } else {
-    memmove(targets,oldTargets,length*sizeof(CodeOp*));
-    memmove(values,oldValues,length*sizeof(T));
+  if (val>=values[left]) {
     left++;
   }
-  values[left] = val;
-
-  size_t oldTgtSize=sizeof(CodeOp*)*length;
-  size_t oldValSize=sizeof(T)*length;
-  DEALLOC_KNOWN(oldTargets, oldTgtSize, "CodeTree::SearchStruct::targets");
-  DEALLOC_KNOWN(oldValues, oldValSize, "CodeTree::SearchStructImpl::values");
-  length++;
-
-  targets[left]=0;
+  targets.insert(targets.begin()+left,0);
+  values.insert(values.begin()+left,val);
   return targets[left];
 }
-
-/**
- * Comparator that compares two CHECK_GROUND_TERM operations for the
- * purpose of insertion into the FnSearchStruct.
- *
- * Is used in the @b compressCheckGroundTermOps function.
- */
-template<>
-struct CodeTree::GroundTermSearchStruct::OpComparator
-{
-  static Comparison compare(CodeOp* op1, CodeOp* op2)
-  {
-    return Int::compare(op1->getTargetTerm(), op2->getTargetTerm());
-  }
-};
-
-/**
- * Comparator that compares two CHECK_FUN operations for the
- * purpose of insertion into the FnSearchStruct.
- *
- * Is used in the @b compressCheckFnOps function.
- */
-template<>
-struct CodeTree::FnSearchStruct::OpComparator
-{
-  static Comparison compare(CodeOp* op1, CodeOp* op2)
-  {
-    return Int::compare(op1->arg(), op2->arg());
-  }
-};
-
 
 inline bool CodeTree::BaseMatcher::doCheckGroundTerm()
 {
@@ -649,12 +569,12 @@ CodeTree::~CodeTree()
       }
       
       auto ss = top_op->getSearchStruct();
-      for (size_t i = 0; i < ss->length; i++) {
+      for (size_t i = 0; i < ss->length(); i++) {
         if (ss->targets[i]!=0) { // zeros are allowed as targets (they are holes after removals)
           top_ops.push(ss->targets[i]);
         }
       }
-      ss->destroy();
+      delete ss;
     } else {
       CodeBlock* cb=firstOpToCodeBlock(top_op);
 
@@ -716,7 +636,7 @@ void CodeTree::visitAllOps(Visitor visitor) const
       }
       
       auto ss = top_op->getSearchStruct();
-      for (size_t i = 0; i < ss->length; i++) {
+      for (size_t i = 0; i < ss->length(); i++) {
         if (ss->targets[i]!=0) { // zeros are allowed as targets (they are holes after removals)
           top_ops.push(make_pair(ss->targets[i],depth+1));
         }
@@ -905,7 +825,7 @@ void CodeTree::incorporate(CodeStack& code)
           //handle the SEARCH_STRUCT
           SearchStruct* ss = treeOp->getSearchStruct();
           CodeOp** toPtr;
-          if (ss->getTargetOpPtr(code[i], toPtr)) {
+          if (ss->getTargetOpPtr<true>(code[i], toPtr)) {
             if (!*toPtr) {
               tailTarget = toPtr;
               matchedCnt = i;
@@ -936,7 +856,7 @@ void CodeTree::incorporate(CodeStack& code)
           if (checkFunOps > checkFunOpThreshold) {
             //we put CHECK_FUN ops into the SEARCH_STRUCT op, and
             //restart with the chain
-            compressCheckOps(chainStart, SearchStruct::FN_STRUCT);
+            compressCheckOps<SearchStruct::FN_STRUCT>(chainStart);
             treeOp = chainStart;
             checkFunOps = 0;
             checkGroundTermOps = 0;
@@ -951,7 +871,7 @@ void CodeTree::incorporate(CodeStack& code)
           if (checkGroundTermOps > checkGroundTermOpThreshold) {
             //we put CHECK_GROUND_TERM ops into the SEARCH_STRUCT op, and
             //restart with the chain
-            compressCheckOps(chainStart, SearchStruct::GROUND_TERM_STRUCT);
+            compressCheckOps<SearchStruct::GROUND_TERM_STRUCT>(chainStart);
             treeOp = chainStart;
             checkFunOps = 0;
             checkGroundTermOps = 0;
@@ -1004,7 +924,8 @@ matching_done:
   }
 }
 
-void CodeTree::compressCheckOps(CodeOp* chainStart, SearchStruct::Kind kind)
+template<CodeTree::SearchStruct::Kind k>
+void CodeTree::compressCheckOps(CodeOp* chainStart)
 {
   ASS(chainStart->alternative());
 
@@ -1021,18 +942,24 @@ void CodeTree::compressCheckOps(CodeOp* chainStart, SearchStruct::Kind kind)
     if (op->alternative()) {
       toDo.push(op->alternative());
     }
-    if ((kind == SearchStruct::FN_STRUCT && op->isCheckFun()) ||
-            (kind == SearchStruct::GROUND_TERM_STRUCT && op->isCheckGroundTerm())) {
+    bool ofKind;
+    if constexpr (k == SearchStruct::FN_STRUCT) {
+      ofKind = op->isCheckFun();
+    } else {
+      ofKind = op->isCheckGroundTerm();
+    }
+
+    if (ofKind) {
       chfOps.push(op);
     } else if (op->isSearchStruct()) {
       auto ss = op->getSearchStruct();
-      if (ss->kind == kind) {
-        for (size_t i = 0; i < ss->length; i++) {
+      if (ss->kind == k) {
+        for (size_t i = 0; i < ss->length(); i++) {
           if (ss->targets[i]) {
             toDo.push(ss->targets[i]);
           }
         }
-        ss->destroy();
+        delete ss;
       } else {
         otherOps.push(op);
       }
@@ -1043,36 +970,29 @@ void CodeTree::compressCheckOps(CodeOp* chainStart, SearchStruct::Kind kind)
 
   ASS_G(chfOps.size(),1);
   size_t slen=chfOps.size();
-  SearchStruct* ss;
-  if(kind==SearchStruct::FN_STRUCT) {
-    FnSearchStruct* res=new FnSearchStruct(slen);
+  auto res=new SearchStructImpl<k>(slen);
 
-    sort<FnSearchStruct::OpComparator>(chfOps.begin(), chfOps.end());
+  sort(chfOps.begin(), chfOps.end(), [](CodeOp* op1, CodeOp* op2) {
+    if constexpr (k==SearchStruct::FN_STRUCT) {
+      return op1->arg() < op2->arg();
+    } else {
+      return op1->getTargetTerm() < op2->getTargetTerm();
+    }
+  });
 
-    for(size_t i=0;i<slen;i++) {
+  for(size_t i=0;i<slen;i++) {
+    if constexpr (k==SearchStruct::FN_STRUCT) {
       ASS(chfOps[i]->isCheckFun());
-      res->values[i]=chfOps[i]->arg();
-      res->targets[i]=chfOps[i];
-      chfOps[i]->setAlternative(0);
-    }
-    ss=res;
-  }
-  else {
-    ASS_EQ(kind, SearchStruct::GROUND_TERM_STRUCT);
-    GroundTermSearchStruct* res=new GroundTermSearchStruct(slen);
-
-    sort<GroundTermSearchStruct::OpComparator>(chfOps.begin(), chfOps.end());
-
-    for(size_t i=0;i<slen;i++) {
+      res->values.push_back(chfOps[i]->arg());
+    } else {
       ASS(chfOps[i]->isCheckGroundTerm());
-      res->values[i]=chfOps[i]->getTargetTerm();
-      res->targets[i]=chfOps[i];
-      chfOps[i]->setAlternative(0);
+      res->values.push_back(chfOps[i]->getTargetTerm());
     }
-    ss=res;
+    res->targets.push_back(chfOps[i]);
+    chfOps[i]->setAlternative(0);
   }
 
-  CodeOp* op=&ss->landingOp;
+  CodeOp* op=&res->landingOp;
   chainStart->setAlternative(op);
   while(otherOps.isNonEmpty()) {
     CodeOp* next=otherOps.pop();
@@ -1157,7 +1077,7 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp
       }
       auto ss = prevFirstOp->getSearchStruct();
       CodeOp** tgtPtr;
-      ALWAYS(ss->getTargetOpPtr(firstOpCopy, tgtPtr));
+      ALWAYS(ss->getTargetOpPtr<false>(firstOpCopy, tgtPtr));
       ASS_EQ(*tgtPtr, firstOp);
       *tgtPtr=alt;
       if(alt) {
@@ -1165,7 +1085,7 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp
 	    (ss->kind==SearchStruct::GROUND_TERM_STRUCT && alt->isCheckGroundTerm()) );
 	return;
       }
-      for(size_t i=0; i<ss->length; i++) {
+      for(size_t i=0; i<ss->length(); i++) {
 	if(ss->targets[i]!=0) {
 	  //the SearchStruct still contains something, so we won't delete it
 	  //TODO: we might want to compress the SearchStruct, if there are too many zeroes
@@ -1176,7 +1096,7 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp
       //if we're at this point, the SEARCH_STRUCT will be deleted
       firstOp=&ss->landingOp;
       alt=ss->landingOp.alternative();
-      ss->destroy();
+      delete ss;
 
       //now let's continue as if there wasn't any SEARCH_STRUCT operation:)
 

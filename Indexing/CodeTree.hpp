@@ -258,11 +258,11 @@ public:
 
   struct SearchStruct
   {
-    void destroy();
-
+    template<bool doInsert>
     bool getTargetOpPtr(const CodeOp& insertedOp, CodeOp**& tgt);
 
     CodeOp* getTargetOp(const FlatTerm::Entry* ftPos);
+    inline size_t length() const { return targets.size(); }
 
     enum Kind
     {
@@ -272,12 +272,10 @@ public:
 
     CodeOp landingOp;
     Kind kind;
-    size_t length;
-    CodeOp** targets;
+    vvector<CodeOp*> targets;
 
   protected:
     SearchStruct(Kind kind, size_t length);
-    ~SearchStruct();
   };
 
   template<SearchStruct::Kind k>
@@ -287,14 +285,13 @@ public:
     USE_ALLOCATOR(SearchStructImpl);
 
     SearchStructImpl(size_t length);
-    ~SearchStructImpl();
-
-    struct OpComparator;
 
     using T = typename std::conditional<k==SearchStruct::FN_STRUCT,unsigned,Term*>::type;
+
+    template<bool doInsert>
     CodeOp*& targetOp(const T& val);
 
-    T* values;
+    vvector<T> values;
   };
 
   using FnSearchStruct = SearchStructImpl<SearchStruct::FN_STRUCT>;
@@ -366,7 +363,8 @@ public:
   static CodeBlock* buildBlock(CodeStack& code, size_t cnt, ILStruct* prev);
   void incorporate(CodeStack& code);
 
-  void compressCheckOps(CodeOp* chainStart, SearchStruct::Kind kind);
+  template<SearchStruct::Kind k>
+  void compressCheckOps(CodeOp* chainStart);
 
   static void compileTerm(Term* trm, CodeStack& code, CompileContext& cctx, bool addLitEnd);
 

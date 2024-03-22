@@ -185,7 +185,7 @@ void ClauseCodeTree::matchCode(CodeStack& code, CodeOp* startOp, size_t& matched
       if(treeOp->isSearchStruct()) {
 	SearchStruct* ss=treeOp->getSearchStruct();
 	CodeOp** toPtr;
-	if(ss->getTargetOpPtr(code[i], toPtr) && *toPtr) {
+	if(ss->getTargetOpPtr<false>(code[i], toPtr) && *toPtr) {
 	  treeOp=*toPtr;
 	  continue;
 	}
