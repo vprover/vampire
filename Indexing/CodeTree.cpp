@@ -463,6 +463,9 @@ bool CodeTree::SearchStruct::getTargetOpPtr(const CodeOp& insertedOp, CodeOp**& 
   }
 }
 
+// expose for ClauseCodeTree.cpp
+template bool CodeTree::SearchStruct::getTargetOpPtr<false>(const CodeOp&, CodeOp**&);
+
 CodeTree::CodeOp* CodeTree::SearchStruct::getTargetOp(const FlatTerm::Entry* ftPos)
 {
   if(!ftPos->isFun()) { return 0; }

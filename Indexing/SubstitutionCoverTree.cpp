@@ -165,7 +165,7 @@ void* SubstitutionCoverTree::SubstMatcher::next()
   }
 
   ASS(op->isSuccess());
-  return static_cast<SubstitutionCoverTree*>(op->getSuccessResult());
+  return op->getSuccessResult();
 }
 
 }

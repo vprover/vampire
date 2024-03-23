@@ -29,6 +29,8 @@
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
 
+#include "Indexing/SubstitutionCoverTree.hpp"
+
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Shell/Statistics.hpp"
@@ -91,8 +93,8 @@ private:
 
 struct EqualityFactoring::ResultFn
 {
-  ResultFn(EqualityFactoring& self, Clause* cl, bool afterCheck, Ordering& ordering, bool fixedPointIteration)
-      : _self(self), _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ordering(ordering), _fixedPointIteration(fixedPointIteration) {}
+  ResultFn(EqualityFactoring& self, Clause* cl, bool afterCheck, bool skipCheck, Ordering& ordering, bool fixedPointIteration)
+      : _self(self), _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _skipCheck(skipCheck), _ordering(ordering), _fixedPointIteration(fixedPointIteration) {}
   Clause* operator() (pair<pair<Literal*,TermList>,pair<Literal*,TermList> > arg)
   {
     auto absUnif = AbstractingUnifier::empty(_self._abstractionOracle);
@@ -164,6 +166,20 @@ struct EqualityFactoring::ResultFn
         (*res)[next++] = currAfter;
       }
     }
+
+    if (_skipCheck) {
+      auto supData = static_cast<SubstitutionCoverTree*>(_cl->getSupData());
+      if (!supData) {
+        supData = new SubstitutionCoverTree(_cl);
+        _cl->setSupData(supData);
+      }
+      auto subst = ResultSubstitution::fromSubstitution(&absUnif.subs(), 0, 0);
+      if (!supData->checkAndInsert(subst.ptr(), false, /*doInsert=*/true)) {
+        env.statistics->skippedEqualityFactoring++;
+        return 0;
+      }
+    }
+
     for(Literal* c : *constraints){
       (*res)[next++] = c;
     }
@@ -178,6 +194,7 @@ private:
   Clause* _cl;
   unsigned _cLen;
   bool _afterCheck;
+  bool _skipCheck;
   Ordering& _ordering;
   bool _fixedPointIteration;
 };
@@ -198,7 +215,9 @@ ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
   auto it4 = getMapAndFlattenIterator(it3,FactorablePairsFn(premise));
 
   auto it5 = getMappingIterator(it4,ResultFn(*this, premise,
-      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(), _salg->getOrdering(), _uwaFixedPointIteration));
+      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
+      getOptions().skipCoveredSuperpositions(),
+      _salg->getOrdering(), _uwaFixedPointIteration));
 
   auto it6 = getFilteredIterator(it5,NonzeroFn());
 

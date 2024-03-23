@@ -137,37 +137,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     return 0;
   }
 
-  if (opts.skipCoveredSuperpositions()) {
-    {
-      bool doInsert = resultLit->isPositive() && resultCl->size()==1 && resultCl->noSplits();
-      auto supData = static_cast<SubstitutionCoverTree*>(queryCl->getSupData());
-      if (supData || doInsert) {
-        if (!supData) {
-          supData = new SubstitutionCoverTree(queryCl);
-          queryCl->setSupData(supData);
-        }
-        if (!supData->checkAndInsert(subs.ptr(), false, doInsert)) {
-          env.statistics->skippedResolution++;
-          return 0;
-        }
-      }
-    }
-    {
-      bool doInsert = queryLit->isPositive() && queryCl->size()==1 && queryCl->noSplits();
-      auto supData = static_cast<SubstitutionCoverTree*>(resultCl->getSupData());
-      if (supData || doInsert) {
-        if (!supData) {
-          supData = new SubstitutionCoverTree(resultCl);
-          resultCl->setSupData(supData);
-        }
-        if (!supData->checkAndInsert(subs.ptr(), true, doInsert)) {
-          env.statistics->skippedResolution++;
-          return 0;
-        }
-      }
-    }
-  }
-
   unsigned clength = queryCl->length();
   unsigned dlength = resultCl->length();
 
@@ -294,6 +263,37 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
       ASS_L(next, newLength)
       (*res)[next] = newLit;
       next++;
+    }
+  }
+
+  if (opts.skipCoveredSuperpositions()) {
+    {
+      bool doInsert = resultLit->isPositive() && resultCl->size()==1 && resultCl->noSplits();
+      auto supData = static_cast<SubstitutionCoverTree*>(queryCl->getSupData());
+      if (supData || doInsert) {
+        if (!supData) {
+          supData = new SubstitutionCoverTree(queryCl);
+          queryCl->setSupData(supData);
+        }
+        if (!supData->checkAndInsert(subs.ptr(), false, doInsert)) {
+          env.statistics->skippedResolution++;
+          return 0;
+        }
+      }
+    }
+    {
+      bool doInsert = queryLit->isPositive() && queryCl->size()==1 && queryCl->noSplits();
+      auto supData = static_cast<SubstitutionCoverTree*>(resultCl->getSupData());
+      if (supData || doInsert) {
+        if (!supData) {
+          supData = new SubstitutionCoverTree(resultCl);
+          resultCl->setSupData(supData);
+        }
+        if (!supData->checkAndInsert(subs.ptr(), true, doInsert)) {
+          env.statistics->skippedResolution++;
+          return 0;
+        }
+      }
     }
   }
 

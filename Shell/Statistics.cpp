@@ -64,6 +64,8 @@ Statistics::Statistics()
     selfSuperposition(0),
     skippedSuperposition(0),
     skippedResolution(0),
+    skippedEqualityResolution(0),
+    skippedEqualityFactoring(0),
     equalityFactoring(0),
     equalityResolution(0),
     forwardExtensionalityResolution(0),
@@ -357,7 +359,8 @@ void Statistics::print(ostream& out)
   SEPARATOR;
 
   HEADING("Generating Inferences",resolution+urResolution+cResolution+factoring+
-      forwardSuperposition+backwardSuperposition+selfSuperposition+skippedSuperposition+skippedResolution+
+      forwardSuperposition+backwardSuperposition+selfSuperposition+
+      skippedSuperposition+skippedResolution+skippedEqualityResolution+skippedEqualityFactoring+
       cForwardSuperposition+cBackwardSuperposition+cSelfSuperposition+leibnizElims+
       equalityFactoring+equalityResolution+forwardExtensionalityResolution+
       backwardExtensionalityResolution+argumentCongruence+negativeExtensionality+
@@ -372,6 +375,8 @@ void Statistics::print(ostream& out)
   COND_OUT("Self superposition", selfSuperposition);
   COND_OUT("Skipped superposition", skippedSuperposition);
   COND_OUT("Skipped resolution", skippedResolution);
+  COND_OUT("Skipped equality resolution", skippedEqualityResolution);
+  COND_OUT("Skipped equality factoring", skippedEqualityFactoring);
   COND_OUT("Forward superposition with abstraction", cForwardSuperposition);
   COND_OUT("Backward superposition with abstraction", cBackwardSuperposition);
   COND_OUT("Self superposition with abstraction", cSelfSuperposition);
