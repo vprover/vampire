@@ -27,7 +27,6 @@
 #include "KBO.hpp"
 #include "Signature.hpp"
 
-#include "Indexing/Index.hpp"
 #include "TermIterators.hpp"
 #include "EqHelper.hpp"
 #include "SubstHelper.hpp"
@@ -403,10 +402,10 @@ bool KBO::StateGreater::traverse(Term* t1, Term* t2)
       continue;
     }
     if (stillEqual) {
-      if (_kbo.weight(*ss)<_kbo.weight(*tt)) {
+      if (_kbo.computeWeight(*ss)<_kbo.computeWeight(*tt)) {
         return false;
       }
-      if (_kbo.weight(*ss)>_kbo.weight(*tt)) {
+      if (_kbo.computeWeight(*ss)>_kbo.computeWeight(*tt)) {
         traverseVars(*ss,1);
         traverseVars(*tt,-1);
         if (!checkVars()) {
@@ -519,61 +518,6 @@ struct FuncSigTraits {
   static Signature::Symbol* getSymbol(unsigned functor) 
   { return env.signature->getFunction(functor); }
 };
-
-void output(Stack<KBO::Instruction>* ptr)
-{
-  ASS(ptr);
-  unsigned cnt = 1;
-  for (unsigned i = 0; i < ptr->size();) {
-    auto tag = (*ptr)[i];
-    switch (tag._data._tag) {
-      case KBO::InstructionTag::SUCCESS: {
-        cout << Int::toString(cnt++) << " success" << endl;
-        i += 1;
-        break;
-      }
-      case KBO::InstructionTag::WEIGHT: {
-        auto w = (*ptr)[i+1]._data._w;
-        auto arity = (*ptr)[i+2]._data._v;
-        cout << Int::toString(cnt++) << " weight " << Int::toString(w);
-
-        for (unsigned j = i+3; j < i+3+arity*2; j+=2) {
-          auto v = (*ptr)[j]._data._v;
-          auto coeff = (*ptr)[j+1]._data._w;
-
-          cout << " w(X" << Int::toString(v) << ")*" << Int::toString(coeff);
-        }
-        cout << endl;
-        i += 3+arity*2;
-        break;
-      }
-      case KBO::InstructionTag::COMPARE_VV: {
-        auto v1 = (*ptr)[i+1]._data._v;
-        auto v2 = (*ptr)[i+2]._data._v;
-        cout << Int::toString(cnt++) << " compare X" << Int::toString(v1) << " X" << Int::toString(v2) << endl;
-        i += 3;
-        break;
-      }
-      case KBO::InstructionTag::COMPARE_VT: {
-        auto v1 = (*ptr)[i+1]._data._v;
-        auto t2 = (*ptr)[i+2]._data._ptr;
-        cout << Int::toString(cnt++) << " compare X" << Int::toString(v1) << " " << *t2 << endl;
-        i += 3;
-        break;
-      }
-      case KBO::InstructionTag::COMPARE_TV: {
-        auto t1 = (*ptr)[i+1]._data._ptr;
-        auto v2 = (*ptr)[i+2]._data._v;
-        cout << Int::toString(cnt++) << " compare " << *t1 << " X" << Int::toString(v2) << endl;
-        i += 3;
-        break;
-      }
-      default:
-        ASSERTION_VIOLATION;
-    }
-  }
-  cout << endl;
-}
 
 Stack<KBO::Instruction>* KBO::preprocessEquation(Literal* lit, TermList side) const
 {
@@ -1129,110 +1073,6 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
   return res;
 }
 
-template<bool result>
-int KBO::computeWeight(Stack<Instruction>* ptr, unsigned index, Indexing::ResultSubstitution* subst) const
-{
-  auto res = (*ptr)[index]._data._w;
-  auto arity = (*ptr)[index+1]._data._v;
-
-  for (unsigned j = index+2; j < index+2+arity*2; j+=2) {
-    auto v = (*ptr)[j]._data._v;
-    auto coeff = (*ptr)[j+1]._data._w;
-
-    auto w = computeWeight(result ? subst->applyToBoundResult(v) : subst->applyToBoundQuery(v));
-    res += coeff*w;
-  }
-  return res;
-}
-
-bool KBO::isGreater(Literal* lit, TermList lhs, Indexing::ResultSubstitution* subst, bool result) const
-{
-  return result ? isGreater<true>(lit, lhs, subst) : isGreater<false>(lit, lhs, subst);
-}
-
-template<bool result>
-bool KBO::isGreater(Literal* lit, TermList lhs, Indexing::ResultSubstitution* subst) const
-{
-  auto ptr = preprocessEquation(lit, lhs);
-  // output(ptr);
-  ASS(ptr);
-  for (unsigned i = 0; i < ptr->size();) {
-    Instruction tag = (*ptr)[i];
-    switch (tag._data._tag) {
-      case InstructionTag::WEIGHT: {
-        // checks vars
-        auto arity = (*ptr)[i+2]._data._v;
-        ZIArray<int> varDiffs;
-        unsigned maxv = 0;
-        for (unsigned j = i+3; j < i+3+arity*2; j+=2) {
-          auto var = (*ptr)[j]._data._v;
-          auto coeff = (*ptr)[j+1]._data._w;
-
-          VariableIterator vit(result ? subst->applyToBoundResult(var) : subst->applyToBoundQuery(var));
-          while (vit.hasNext()) {
-            auto v = vit.next();
-            varDiffs[v.var()] += coeff;
-            maxv = std::max(v.var() + 1, maxv);
-          }
-        }
-        for(unsigned v = 0; v < maxv; v++)
-          if(varDiffs[v] < 0)
-            return false;
-
-        // check weight
-        auto res = computeWeight<result>(ptr, i+1, subst);
-
-        if (res > 0) {
-          return true;
-        } else if (res < 0) {
-          return false;
-        }
-        i += 3+arity*2;
-        break;
-      }
-      case InstructionTag::COMPARE_VV: {
-        auto v1 = (*ptr)[i+1]._data._v;
-        auto v2 = (*ptr)[i+2]._data._v;
-        TermList lhsS = result ? subst->applyToBoundResult(v1) : subst->applyToBoundQuery(v1);
-        TermList rhsS = result ? subst->applyToBoundResult(v2) : subst->applyToBoundQuery(v2);
-        if (lhsS == rhsS) {
-          i += 3;
-          break;
-        }
-        return isGreater(lhsS,rhsS);
-      }
-      case InstructionTag::COMPARE_VT: {
-        auto v1 = (*ptr)[i+1]._data._v;
-        auto t2 = (*ptr)[i+2]._data._ptr;
-        TermList lhsS = result ? subst->applyToBoundResult(v1) : subst->applyToBoundQuery(v1);
-        TermList rhsS = result ? subst->applyToBoundResult(TermList(t2)) : subst->applyToBoundQuery(TermList(t2));
-        if (lhsS == rhsS) {
-          i += 3;
-          break;
-        }
-        return isGreater(lhsS,rhsS);
-      }
-      case InstructionTag::COMPARE_TV: {
-        auto t1 = (*ptr)[i+1]._data._ptr;
-        auto v2 = (*ptr)[i+2]._data._v;
-        TermList lhsS = result ? subst->applyToBoundResult(TermList(t1)) : subst->applyToBoundQuery(TermList(t1));
-        TermList rhsS = result ? subst->applyToBoundResult(v2) : subst->applyToBoundQuery(v2);
-        if (lhsS == rhsS) {
-          i += 3;
-          break;
-        }
-        return isGreater(lhsS,rhsS);
-      }
-      case InstructionTag::SUCCESS: {
-        return true;
-      }
-      default:
-        ASSERTION_VIOLATION;
-    }
-  }
-  return false;
-}
-
 bool KBO::isGreater(TermList tl1, TermList tl2) const
 {
   if(tl1==tl2 || tl1.isOrdinaryVar()) {
@@ -1357,15 +1197,6 @@ unsigned KBO::computeWeight(TermList tl) const
   ASS(stack.isEmpty());
   ASS_NEQ(t->kboWeight(),-1);
   return t->kboWeight();
-}
-
-unsigned KBO::weight(TermList t) const
-{
-  if (t.isVar()) {
-    return _funcWeights._specialWeights._variableWeight;
-  }
-  ASS_NEQ(t.term()->kboWeight(),-1);
-  return t.term()->kboWeight();
 }
 
 template<class SigTraits>

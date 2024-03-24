@@ -100,13 +100,6 @@ public:
   { return applyToResult(lit); }
 
   /**
-   * Same as @b applyToBoundResult(TermList) with variable argument.
-   * Overriding this allows a direct (and more efficient) access to the mapping.
-   */
-  virtual TermList applyToBoundResult(unsigned v)
-  { return applyToResult(TermList(v,false)); }
-
-  /**
    * Return true if, when the substitution is applied to a result
    * term through the @b applyToBoundResult function, the corresponding
    * substitution for query terms is identity.
@@ -125,13 +118,6 @@ public:
    */
   virtual TermList applyToBoundQuery(TermList t)
   { return applyToQuery(t); }
-
-  /**
-   * Same as @b applyToBoundQuery(TermList) with variable argument.
-   * Overriding this allows a direct (and more efficient) access to the mapping.
-   */
-  virtual TermList applyToBoundQuery(unsigned v)
-  { return applyToQuery(TermList(v,false)); }
 
   /**
    * Return true if, when the substitution is applied to a query

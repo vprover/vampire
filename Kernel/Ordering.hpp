@@ -63,10 +63,12 @@ public:
   /** Return the result of comparing terms (not term lists!)
    * @b t1 and @b t2 */
   virtual Result compare(TermList t1,TermList t2) const = 0;
+
+  /** Optimised function for checking if @b tl1 is greater than @b tl2. */
+  virtual bool isGreater(TermList tl1, TermList tl2) const;
   /** Optimised function used in demodulation for checking whether
-   * @b lhs is greater than the rhs of @b lit under substitution @b subst.
-   */
-  virtual bool isGreater(Literal* lit, TermList lhs, Indexing::ResultSubstitution* subst, bool result) const;
+   * @b lhs is greater than the rhs of @b lit under substitution @b subst. */
+  bool isGreater(Literal* lit, TermList lhs, const std::function<TermList(TermList)>& subst) const;
 
   virtual void show(std::ostream& out) const = 0;
 
@@ -104,6 +106,30 @@ public:
 
   Result getEqualityArgumentOrder(Literal* eq) const;
 protected:
+
+  enum class InstructionTag {
+    WEIGHT,
+    COMPARE_VV,
+    COMPARE_VT,
+    COMPARE_TV,
+    SUCCESS,
+  };
+  struct Instruction {
+    explicit Instruction(InstructionTag tag) { _data._tag = tag; }
+    explicit Instruction(Term* t) { _data._ptr = t; }
+    explicit Instruction(unsigned v) { _data._v = v; }
+    explicit Instruction(int w) { _data._w = w; }
+    union {
+      InstructionTag _tag;
+      Term* _ptr;
+      unsigned _v;
+      int _w;
+    } _data;
+  };
+  virtual Stack<Instruction>* preprocessEquation(Literal* lit, TermList lhs) const;
+  virtual unsigned computeWeight(TermList t) const;
+
+  std::ostream& output(std::ostream& out, const Stack<Ordering::Instruction>* ptr) const;
 
   Result compareEqualities(Literal* eq1, Literal* eq2) const;
 

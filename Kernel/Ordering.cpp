@@ -16,6 +16,7 @@
 
 #include "Forwards.hpp"
 
+#include "Indexing/Index.hpp"
 #include "Indexing/TermSharing.hpp"
 
 #include "Lib/Environment.hpp"
@@ -33,7 +34,6 @@
 #include "LPO.hpp"
 #include "KBO.hpp"
 #include "SKIKBO.hpp"
-#include "KBOForEPR.hpp"
 #include "Problem.hpp"
 #include "Signature.hpp"
 #include "Kernel/NumTraits.hpp" 
@@ -117,23 +117,7 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
   Ordering* out;
   switch (env.options->termOrdering()) {
   case Options::TermOrdering::KBO:
-    // KBOForEPR does not support 
-    // - colors
-    // - user specified symbol weights
-    // TODO fix this! 
-    if(prb.getProperty()->maxFunArity()==0 
-        && prb.getProperty()->maxTypeConArity() == 0
-        && !env.colorUsed
-        && env.options->predicateWeights() == ""
-        && env.options->functionWeights() == ""
-        && env.options->kboWeightGenerationScheme() == Options::KboWeightGenerationScheme::CONST
-        && !env.options->kboMaxZero()
-        && !prb.hasInterpretedOperations()
-        ) {
-      out = new KBOForEPR(prb, opt);
-    } else {
-      out = new KBO(prb, opt);
-    }
+    out = new KBO(prb, opt);
     break;
   case Options::TermOrdering::LPO:
     out = new LPO(prb, opt);
@@ -289,9 +273,156 @@ Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
   return comparePredicates(l1, l2);
 } // PrecedenceOrdering::compare()
 
-bool Ordering::isGreater(Literal* lit, TermList lhs, Indexing::ResultSubstitution* subst, bool result) const
+bool Ordering::isGreater(Literal* lit, TermList lhs, const std::function<TermList(TermList)>& subst) const
 {
-  NOT_IMPLEMENTED;
+  auto ptr = preprocessEquation(lit, lhs);
+  // output(ptr);
+  ASS(ptr);
+  for (unsigned i = 0; i < ptr->size();) {
+    Instruction tag = (*ptr)[i];
+    switch (tag._data._tag) {
+      case InstructionTag::WEIGHT: {
+        // checks vars
+        auto arity = (*ptr)[i+2]._data._v;
+        ZIArray<int> varDiffs;
+        unsigned maxv = 0;
+        for (unsigned j = i+3; j < i+3+arity*2; j+=2) {
+          auto var = (*ptr)[j]._data._v;
+          auto coeff = (*ptr)[j+1]._data._w;
+
+          VariableIterator vit(subst(TermList(var,false)));
+          while (vit.hasNext()) {
+            auto v = vit.next();
+            varDiffs[v.var()] += coeff;
+            maxv = std::max(v.var() + 1, maxv);
+          }
+        }
+        for(unsigned v = 0; v < maxv; v++)
+          if(varDiffs[v] < 0)
+            return false;
+
+        // check weight
+        auto res = (*ptr)[i+1]._data._w;
+
+        for (unsigned j = i+3; j < i+3+arity*2; j+=2) {
+          auto v = (*ptr)[j]._data._v;
+          auto coeff = (*ptr)[j+1]._data._w;
+
+          auto w = computeWeight(subst(TermList(v,false)));
+          res += coeff*w;
+        }
+
+        if (res > 0) {
+          return true;
+        } else if (res < 0) {
+          return false;
+        }
+        i += 3+arity*2;
+        break;
+      }
+      case InstructionTag::COMPARE_VV: {
+        auto v1 = (*ptr)[i+1]._data._v;
+        auto v2 = (*ptr)[i+2]._data._v;
+        TermList lhsS = subst(TermList(v1,false));
+        TermList rhsS = subst(TermList(v2,false));
+        if (lhsS == rhsS) {
+          i += 3;
+          break;
+        }
+        return isGreater(lhsS,rhsS);
+      }
+      case InstructionTag::COMPARE_VT: {
+        auto v1 = (*ptr)[i+1]._data._v;
+        auto t2 = (*ptr)[i+2]._data._ptr;
+        TermList lhsS = subst(TermList(v1,false));
+        TermList rhsS = subst(TermList(t2));
+        if (lhsS == rhsS) {
+          i += 3;
+          break;
+        }
+        return isGreater(lhsS,rhsS);
+      }
+      case InstructionTag::COMPARE_TV: {
+        auto t1 = (*ptr)[i+1]._data._ptr;
+        auto v2 = (*ptr)[i+2]._data._v;
+        TermList lhsS = subst(TermList(t1));
+        TermList rhsS = subst(TermList(v2,false));
+        if (lhsS == rhsS) {
+          i += 3;
+          break;
+        }
+        return isGreater(lhsS,rhsS);
+      }
+      case InstructionTag::SUCCESS: {
+        return true;
+      }
+      default:
+        ASSERTION_VIOLATION;
+    }
+  }
+  return false;
+}
+
+bool Ordering::isGreater(TermList lhs, TermList rhs) const { NOT_IMPLEMENTED; }
+
+Stack<Ordering::Instruction>* Ordering::preprocessEquation(Literal* lit, TermList lhs) const { NOT_IMPLEMENTED; }
+
+unsigned Ordering::computeWeight(TermList t) const { NOT_IMPLEMENTED; }
+
+std::ostream& Ordering::output(std::ostream& out, const Stack<Ordering::Instruction>* ptr) const
+{
+  ASS(ptr);
+  unsigned cnt = 1;
+  for (unsigned i = 0; i < ptr->size();) {
+    auto tag = (*ptr)[i];
+    switch (tag._data._tag) {
+      case KBO::InstructionTag::SUCCESS: {
+        out << Int::toString(cnt++) << " success" << endl;
+        i += 1;
+        break;
+      }
+      case KBO::InstructionTag::WEIGHT: {
+        auto w = (*ptr)[i+1]._data._w;
+        auto arity = (*ptr)[i+2]._data._v;
+        out << Int::toString(cnt++) << " weight " << Int::toString(w);
+
+        for (unsigned j = i+3; j < i+3+arity*2; j+=2) {
+          auto v = (*ptr)[j]._data._v;
+          auto coeff = (*ptr)[j+1]._data._w;
+
+          out << " w(X" << Int::toString(v) << ")*" << Int::toString(coeff);
+        }
+        out << endl;
+        i += 3+arity*2;
+        break;
+      }
+      case KBO::InstructionTag::COMPARE_VV: {
+        auto v1 = (*ptr)[i+1]._data._v;
+        auto v2 = (*ptr)[i+2]._data._v;
+        out << Int::toString(cnt++) << " compare X" << Int::toString(v1) << " X" << Int::toString(v2) << endl;
+        i += 3;
+        break;
+      }
+      case KBO::InstructionTag::COMPARE_VT: {
+        auto v1 = (*ptr)[i+1]._data._v;
+        auto t2 = (*ptr)[i+2]._data._ptr;
+        out << Int::toString(cnt++) << " compare X" << Int::toString(v1) << " " << *t2 << endl;
+        i += 3;
+        break;
+      }
+      case KBO::InstructionTag::COMPARE_TV: {
+        auto t1 = (*ptr)[i+1]._data._ptr;
+        auto v2 = (*ptr)[i+2]._data._v;
+        out << Int::toString(cnt++) << " compare " << *t1 << " X" << Int::toString(v2) << endl;
+        i += 3;
+        break;
+      }
+      default:
+        ASSERTION_VIOLATION;
+    }
+  }
+  out << endl;
+  return out;
 }
 
 /**

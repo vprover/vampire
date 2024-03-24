@@ -146,7 +146,9 @@ struct BackwardDemodulation::ResultFn
     ASS(subs->isIdentityOnResultWhenQueryBound());
 
     if (_precompiledComparison) {
-      if (!preordered && (_preorderedOnly || !_ordering.isGreater(_eqLit,lhs,subs.ptr(),false/*result*/))) {
+      if (!preordered && (_preorderedOnly || !_ordering.isGreater(_eqLit,lhs,[&subs](TermList t) {
+            return subs->applyToBoundQuery(t);
+          }))) {
         return BwSimplificationRecord(0);
       }
     }

@@ -157,7 +157,9 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         ASS(subs->isIdentityOnQueryWhenResultBound());
 
         if (_precompiledComparison) {
-          if (!preordered && (_preorderedOnly || !ordering.isGreater(qr.literal,qr.term,subs.ptr(),true/*result*/)) ) {
+          if (!preordered && (_preorderedOnly || !ordering.isGreater(qr.literal,qr.term,[&subs](TermList t) {
+            return subs->applyToBoundResult(t);
+          })) ) {
             continue;
           }
         }

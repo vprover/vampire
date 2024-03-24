@@ -154,54 +154,27 @@ public:
   void checkAdmissibility(HandleError handle) const;
   void zeroWeightForMaximalFunc();
 
-  enum class InstructionTag {
-    WEIGHT,
-    COMPARE_VV,
-    COMPARE_VT,
-    COMPARE_TV,
-    SUCCESS,
-  };
-  struct Instruction {
-    explicit Instruction(InstructionTag tag) { _data._tag = tag; }
-    explicit Instruction(Term* t) { _data._ptr = t; }
-    explicit Instruction(unsigned v) { _data._v = v; }
-    explicit Instruction(int w) { _data._w = w; }
-    union {
-      InstructionTag _tag;
-      Term* _ptr;
-      unsigned _v;
-      int _w;
-    } _data;
-  };
-
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
-  bool isGreater(Literal* lit, TermList lhs, Indexing::ResultSubstitution* subst, bool result) const override;
 
   // exposed for unit testing
-  bool isGreater(TermList tl1, TermList tl2) const;
+  bool isGreater(TermList tl1, TermList tl2) const override;
 
 protected:
   Result comparePredicates(Literal* l1, Literal* l2) const override;
 
-  Stack<Instruction>* preprocessEquation(Literal* lit, TermList lhs) const;
+  Stack<Instruction>* preprocessEquation(Literal* lit, TermList lhs) const override;
 
   class State;
   class StateGreater;
 
   // int functionSymbolWeight(unsigned fun) const;
   int symbolWeight(Term* t) const;
-  unsigned computeWeight(TermList t) const;
-  template<bool result>
-  int computeWeight(Stack<Instruction>* ptr, unsigned index, Indexing::ResultSubstitution* subst) const;
-  unsigned weight(TermList t) const;
+  unsigned computeWeight(TermList t) const override;
 
   friend struct WeightCompInstruction;
 
 private:
-  template<bool result>
-  bool isGreater(Literal* lit, TermList lhs, Indexing::ResultSubstitution* subst) const;
-
   KboWeightMap<FuncSigTraits> _funcWeights;
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
   KboWeightMap<PredSigTraits> _predWeights;

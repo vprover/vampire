@@ -189,7 +189,6 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/InferenceStore.o\
         Kernel/KBO.o\
         Kernel/SKIKBO.o\
-        Kernel/KBOForEPR.o\
         Kernel/LiteralSelector.o\
         Kernel/LookaheadLiteralSelector.o\
 	Kernel/LPO.o\
@@ -465,7 +464,6 @@ OTHER_CL_DEP = Indexing/LiteralSubstitutionTree.o\
 	       Kernel/Matcher.o\
 	       Kernel/KBO.o\
          Kernel/SKIKBO.o\
-	       Kernel/KBOForEPR.o\
 	       Kernel/Ordering.o\
 	       Kernel/Ordering_Equality.o\
 	       Kernel/Problem.o\
