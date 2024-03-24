@@ -324,7 +324,7 @@ Clause* SoftmaxClauseQueue::pop()
     Node* next = li.first;
     float mass = li.second;
     if (next == nullptr || sample - mass < 0.0f ||    // the link on level h shoots out, or is long enough to satisfy sample, or
-       (node != _left && sample - mass == sample)) { // or subtraction stopped working (underflows? / zero mass elelements?)
+       (node != _left && sample - mass == sample)) { // or subtraction stopped working (underflows? / zero mass elements?)
       if (h > 0) {
         h--;
         continue;
@@ -338,7 +338,7 @@ Clause* SoftmaxClauseQueue::pop()
       break;
     } else {
       sample = sample - mass;
-      node = node->nodes[h].first;
+      node = next;
     }
   }
   ASS_EQ(h,0);
@@ -395,7 +395,7 @@ void SoftmaxClauseQueue::removeAll()
 
 #if VDEBUG
 /**
- * Are the two given POSITIVE doubles roughly the same?
+ * Are the two given POSITIVE floats roughly the same?
  */
 static bool roughlyTheSame(float a, float b) {
   ASS_G(a,0.0f);

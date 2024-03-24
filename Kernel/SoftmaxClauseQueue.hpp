@@ -25,6 +25,7 @@ using namespace std;
 #include "Debug/Assertion.hpp"
 
 #include "Lib/Reflection.hpp"
+#include "Lib/DHMap.hpp"
 #include "Kernel/ClauseQueue.hpp"
 
 namespace Kernel {
