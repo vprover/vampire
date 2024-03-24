@@ -142,7 +142,7 @@ CXX = g++
 CC = gcc
 endif
 
-CXXFLAGS = $(XFLAGS) -Wall -fno-threadsafe-statics -fno-rtti -std=c++14  $(INCLUDES) # -Wno-unknown-warning-option for clang
+CXXFLAGS = $(XFLAGS) -Wall -fno-threadsafe-statics -fno-rtti -std=c++17  $(INCLUDES) # -Wno-unknown-warning-option for clang
 CCFLAGS = -Wall -O3 -DNDBLSCR -DNLGLOG -DNDEBUG -DNCHKSOL -DNLGLPICOSAT
 
 ################################################################
@@ -253,6 +253,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BackwardSubsumptionDemodulation.o\
          Inferences/BinaryResolution.o\
          Inferences/Condensation.o\
+         Inferences/DemodulationHelper.o\
          Inferences/DistinctEqualitySimplifier.o\
          Inferences/DefinitionIntroduction.o\
          Inferences/EqualityFactoring.o\

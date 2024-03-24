@@ -121,7 +121,8 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
   TIME_TRACE("forward demodulation index maintenance");
 
   Literal* lit=(*c)[0];
-  auto lhsi = EqHelper::getDemodulationLHSIterator(lit, true, _ord, _opt);
+  auto lhsi = EqHelper::getDemodulationLHSIterator(lit,
+                    _opt.forwardDemodulation()== Options::Demodulation::PREORDERED, _ord);
   while (lhsi.hasNext()) {
     _is->handle(lhsi.next(), lit, c, adding);
   }

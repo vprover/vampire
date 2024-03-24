@@ -18,7 +18,7 @@ A statically-linked build suitable for running on StarExec is provided with each
 If not, you will need to build Vampire from source, but this is not too onerous.
 
 ## Basic Usage
-The basic usage of Vampire is to save your problem in [TPTP](tptp.org) format and run
+The basic usage of Vampire is to save your problem in [TPTP](https://tptp.org) format and run
 ```shellsession
 $ vampire problem.p
 ```
@@ -39,7 +39,7 @@ which will use a set of strategies suited to satisfiable problems.
 
 Note that all of these modes are really shortcuts for other combinations e.g. `--mode casc` is a shortcut for
 ```shellsession
-$ vampire --mode portflio --schedule casc -p tptp
+$ vampire --mode portfolio --schedule casc -p tptp
 ```
 
 ## Advanced Usage
@@ -49,7 +49,7 @@ $ vampire --show_options on
 ```
 
 ## Source Build
-Vampire is built with the help of [CMake](cmake.org).
+Vampire is built with the help of [CMake](https://cmake.org).
 CMake does not run any build commands directly: instead, it can generate a number of different [output formats](https://cmake.org/cmake/help/latest/manual/cmake-generators.7.html), such as UNIX Makefiles.
 If you are completely new to CMake, there is a [tutorial](https://cmake.org/cmake/help/latest/guide/user-interaction/index.html) for end-users.
 

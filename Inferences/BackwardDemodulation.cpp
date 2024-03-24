@@ -56,6 +56,7 @@ void BackwardDemodulation::attach(SaturationAlgorithm* salg)
   BackwardSimplificationEngine::attach(salg);
   _index=static_cast<DemodulationSubtermIndex*>(
 	  _salg->getIndexManager()->request(DEMODULATION_SUBTERM_SUBST_TREE) );
+  _helper = DemodulationHelper(getOptions(), &_salg->getOrdering());
 }
 
 void BackwardDemodulation::detach()
@@ -89,16 +90,12 @@ struct BackwardDemodulation::ResultFn
 {
   typedef DHMultiset<Clause*> ClauseSet;
 
-  ResultFn(Clause* cl, BackwardDemodulation& parent)
-  : _cl(cl), _ordering(parent._salg->getOrdering())
+  ResultFn(Clause* cl, BackwardDemodulation& parent, const DemodulationHelper& helper)
+  : _cl(cl), _helper(helper), _ordering(parent._salg->getOrdering())
   {
     ASS_EQ(_cl->length(),1);
     _eqLit=(*_cl)[0];
-    _eqSort = SortHelper::getEqualityArgumentSort(_eqLit);
     _removed=SmartPtr<ClauseSet>(new ClauseSet());
-    _preorderedOnly = parent.getOptions().backwardDemodulation() == Options::Demodulation::PREORDERED;
-    _redundancyCheck = parent.getOptions().demodulationRedundancyCheck() != Options::DemodulationRedundancyCheck::OFF;
-    _encompassing = parent.getOptions().demodulationRedundancyCheck() == Options::DemodulationRedundancyCheck::ENCOMPASS;
     _precompiledComparison = parent.getOptions().demodulationPrecompiledComparison();
   }
 
@@ -129,26 +126,13 @@ struct BackwardDemodulation::ResultFn
     // matched. This is no longer necessary, as sort matching / unification
     // is handled directly within the tree
 
-    Ordering::Result argOrder = _ordering.getEqualityArgumentOrder(_eqLit);
-    bool preordered = argOrder==Ordering::LESS || argOrder==Ordering::GREATER;
-#if VDEBUG
-    if(preordered) {
-      if(argOrder==Ordering::LESS) {
-        ASS_EQ(rhs, *_eqLit->nthArgument(0));
-      }
-      else {
-        ASS_EQ(rhs, *_eqLit->nthArgument(1));
-      }
-    }
-#endif
-
     auto subs = qr.unifier;
     ASS(subs->isIdentityOnResultWhenQueryBound());
 
     if (_precompiledComparison) {
-      if (!preordered && (_preorderedOnly || !_ordering.isGreater(_eqLit,lhs,[&subs](TermList t) {
+      if (!_ordering.isGreater(_eqLit,lhs,[&subs](TermList t) {
             return subs->applyToBoundQuery(t);
-          }))) {
+          })) {
         return BwSimplificationRecord(0);
       }
     }
@@ -157,46 +141,15 @@ struct BackwardDemodulation::ResultFn
     TermList rhsS=subs->applyToBoundQuery(rhs);
 
     if (!_precompiledComparison) {
-      if (!preordered && (_preorderedOnly || _ordering.compare(lhsS,rhsS)!=Ordering::GREATER)) {
+      if (_ordering.compare(lhsS,rhsS)!=Ordering::GREATER) {
         return BwSimplificationRecord(0);
       }
     }
 
-    if(_redundancyCheck && qr.literal->isEquality() && (qr.term==*qr.literal->nthArgument(0) || qr.term==*qr.literal->nthArgument(1)) &&
-      // encompassment has issues only with positive units
-      (!_encompassing || (qr.literal->isPositive() && qr.clause->length() == 1))) {
-      TermList other=EqHelper::getOtherEqualitySide(qr.literal, qr.term);
-      Ordering::Result tord=_ordering.compare(rhsS, other);
-      if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
-        if (_encompassing) {
-          if (subs->isRenamingOn(lhs,false /* we talk of a non-result, i.e., a query term */)) {
-            // under _encompassing, we know there are no other literals in qr.clause
-            return BwSimplificationRecord(0);
-          }
-        } else {
-          TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
-          Literal* eqLitS=Literal::createEquality(true, lhsS, rhsS, eqSort);
-          bool isMax=true;
-          for (Literal* lit2 : qr.clause->iterLits()) {
-            if(qr.literal==lit2) {
-              continue;
-            }
-            if(_ordering.compare(eqLitS, lit2)==Ordering::LESS) {
-              isMax=false;
-              break;
-            }
-          }
-          if(isMax) {
-            //	  RSTAT_CTR_INC("bw subsumptions prevented by tlCheck");
-            //The demodulation is this case which doesn't preserve completeness:
-            //s = t     s = t1 \/ C
-            //---------------------
-            //     t = t1 \/ C
-            //where t > t1 and s = t > C
-            return BwSimplificationRecord(0);
-          }
-        }
-      }
+    if (_helper.redundancyCheckNeededForPremise(qr.clause,qr.literal,qr.term) &&
+      !_helper.isPremiseRedundant(qr.clause,qr.literal,qr.term,rhsS,lhs,subs.ptr(),false))
+    {
+      return BwSimplificationRecord(0);
     }
 
     Literal* resLit=EqHelper::replace(qr.literal,lhsS,rhsS);
@@ -225,15 +178,12 @@ struct BackwardDemodulation::ResultFn
     return BwSimplificationRecord(qr.clause,res);
   }
 private:
-  TermList _eqSort;
   Literal* _eqLit;
   Clause* _cl;
   SmartPtr<ClauseSet> _removed;
 
-  bool _preorderedOnly;
-  bool _redundancyCheck;
-  bool _encompassing;
   bool _precompiledComparison;
+  const DemodulationHelper& _helper;
 
   Ordering& _ordering;
 };
@@ -254,9 +204,11 @@ void BackwardDemodulation::perform(Clause* cl,
     pvi( getFilteredIterator(
 	    getMappingIterator(
 		    getMapAndFlattenIterator(
-			    EqHelper::getDemodulationLHSIterator(lit, false, _salg->getOrdering(), _salg->getOptions()),
+			    EqHelper::getDemodulationLHSIterator(lit,
+            _salg->getOptions().backwardDemodulation() == Options::Demodulation::PREORDERED,
+            _salg->getOrdering()),
 			    RewritableClausesFn(_index)),
-		    ResultFn(cl, *this)),
+		    ResultFn(cl, *this, _helper)),
  	    RemovedIsNonzeroFn()) );
 
   //here we know that the getPersistentIterator evaluates all items of the

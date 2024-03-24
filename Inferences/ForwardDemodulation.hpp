@@ -37,9 +37,9 @@ public:
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override = 0;
 protected:
   bool _preorderedOnly;
-  bool _redundancyCheck;
   bool _encompassing;
   bool _precompiledComparison;
+  DemodulationHelper _helper;
   DemodulationLHSIndex* _index;
 };
 
