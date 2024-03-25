@@ -87,8 +87,13 @@ public:
   void addFunctionBranch(Term* header, TermList body);
   void addPredicateBranch(Literal* header, const LiteralStack& conditions);
 
-  auto getGeneralizations(TypedTermList t) 
-  { return _is->getGeneralizations(t, true); }
+  auto getGeneralizations(TypedTermList t)
+  {
+    if (_is.isEmpty()) {
+      return VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>>::getEmpty();
+    }
+    return _is->getGeneralizations(t, true);
+  }
 
   InductionTemplate* getInductionTemplate(Term* t) {
     auto fn = t->functor();
