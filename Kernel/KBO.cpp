@@ -28,7 +28,6 @@
 #include "Signature.hpp"
 
 #include "TermIterators.hpp"
-#include "EqHelper.hpp"
 #include "SubstHelper.hpp"
 
 #define COLORED_WEIGHT_BOOST 0x10000
@@ -519,17 +518,10 @@ struct FuncSigTraits {
   { return env.signature->getFunction(functor); }
 };
 
-Stack<KBO::Instruction>* KBO::preprocessEquation(Literal* lit, TermList side) const
+void KBO::preprocessComparison(TermList tl1, TermList tl2, Stack<Instruction>* instrStackPtr) const
 {
-  Stack<Instruction>* instrStackPtr;
-  if (!_demodulatorInstructions.getValuePtr(make_pair(lit,side),instrStackPtr,Stack<Instruction>())) {
-    return instrStackPtr;
-  }
-
-  // cout << "preprocess " << *lit << " " << side << endl;
-
   Stack<pair<TermList,TermList>> todo;
-  todo.push(make_pair(side,EqHelper::getOtherEqualitySide(lit,side)));
+  todo.push(make_pair(tl1,tl2));
 
   auto cntFn = [this](DHMap<unsigned,int>& vars, int& w, TermList t, int coeff) {
     if (t.isVar()) {
@@ -562,12 +554,12 @@ Stack<KBO::Instruction>* KBO::preprocessEquation(Literal* lit, TermList side) co
     switch (comp) {
       case LESS:
       case LESS_EQ: {
-        goto loop_end;
+        return;
       }
       case GREATER:
       case GREATER_EQ: {
         instrStackPtr->push(Instruction(InstructionTag::SUCCESS));
-        goto loop_end;
+        return;
       }
       default:
         break;
@@ -648,12 +640,12 @@ Stack<KBO::Instruction>* KBO::preprocessEquation(Literal* lit, TermList side) co
     {
       case Ordering::LESS:
       case Ordering::LESS_EQ: {
-        goto loop_end;
+        return;
       }
       case Ordering::GREATER:
       case Ordering::GREATER_EQ: {
         instrStackPtr->push(Instruction(InstructionTag::SUCCESS));
-        goto loop_end;
+        return;
       }
       case Ordering::EQUAL: {
         for (unsigned i = 0; i < lhst->arity(); i++) {
@@ -668,9 +660,6 @@ Stack<KBO::Instruction>* KBO::preprocessEquation(Literal* lit, TermList side) co
       }
     }
   }
-loop_end:
-  // output(instrStackPtr);
-  return instrStackPtr;
 }
 
 template<class SigTraits> 

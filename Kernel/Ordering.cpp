@@ -30,14 +30,15 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
+#include "Shell/Shuffling.hpp"
 
+#include "EqHelper.hpp"
 #include "LPO.hpp"
 #include "KBO.hpp"
 #include "SKIKBO.hpp"
 #include "Problem.hpp"
 #include "Signature.hpp"
-#include "Kernel/NumTraits.hpp" 
-#include "Shell/Shuffling.hpp"
+#include "NumTraits.hpp"
 
 #include "Ordering.hpp"
 
@@ -56,10 +57,12 @@ Ordering::Ordering()
 {
   createEqualityComparator();
   ASS(_eqCmp);
+  _preprocessedComparisons = new Map<std::pair<TermList,TermList>,Stack<Instruction>>();
 }
 
 Ordering::~Ordering()
 {
+  delete _preprocessedComparisons;
   destroyEqualityComparator();
 }
 
@@ -275,8 +278,13 @@ Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
 
 bool Ordering::isGreater(Literal* lit, TermList lhs, const std::function<TermList(TermList)>& subst) const
 {
-  auto ptr = preprocessEquation(lit, lhs);
-  // output(ptr);
+  Stack<Instruction>* ptr;
+  auto rhs = EqHelper::getOtherEqualitySide(lit,lhs);
+  if (_preprocessedComparisons->getValuePtr(make_pair(lhs,rhs),ptr,Stack<Instruction>())) {
+    // cout << "preprocess " << *lit << " " << lhs << endl;
+    preprocessComparison(lhs, rhs, ptr);
+    // output(cout, ptr);
+  }
   ASS(ptr);
   for (unsigned i = 0; i < ptr->size();) {
     Instruction tag = (*ptr)[i];
@@ -365,23 +373,23 @@ bool Ordering::isGreater(Literal* lit, TermList lhs, const std::function<TermLis
 
 bool Ordering::isGreater(TermList lhs, TermList rhs) const { NOT_IMPLEMENTED; }
 
-Stack<Ordering::Instruction>* Ordering::preprocessEquation(Literal* lit, TermList lhs) const { NOT_IMPLEMENTED; }
+void Ordering::preprocessComparison(TermList tl1, TermList tl2, Stack<Ordering::Instruction>* ptr) const { NOT_IMPLEMENTED; }
 
-unsigned Ordering::computeWeight(TermList t) const { NOT_IMPLEMENTED; }
+unsigned Ordering::computeWeight(TermList tl) const { NOT_IMPLEMENTED; }
 
-std::ostream& Ordering::output(std::ostream& out, const Stack<Ordering::Instruction>* ptr) const
+void Ordering::output(std::ostream& out, const Stack<Ordering::Instruction>* ptr) const
 {
   ASS(ptr);
   unsigned cnt = 1;
   for (unsigned i = 0; i < ptr->size();) {
     auto tag = (*ptr)[i];
     switch (tag._data._tag) {
-      case KBO::InstructionTag::SUCCESS: {
+      case InstructionTag::SUCCESS: {
         out << Int::toString(cnt++) << " success" << endl;
         i += 1;
         break;
       }
-      case KBO::InstructionTag::WEIGHT: {
+      case InstructionTag::WEIGHT: {
         auto w = (*ptr)[i+1]._data._w;
         auto arity = (*ptr)[i+2]._data._v;
         out << Int::toString(cnt++) << " weight " << Int::toString(w);
@@ -396,21 +404,21 @@ std::ostream& Ordering::output(std::ostream& out, const Stack<Ordering::Instruct
         i += 3+arity*2;
         break;
       }
-      case KBO::InstructionTag::COMPARE_VV: {
+      case InstructionTag::COMPARE_VV: {
         auto v1 = (*ptr)[i+1]._data._v;
         auto v2 = (*ptr)[i+2]._data._v;
         out << Int::toString(cnt++) << " compare X" << Int::toString(v1) << " X" << Int::toString(v2) << endl;
         i += 3;
         break;
       }
-      case KBO::InstructionTag::COMPARE_VT: {
+      case InstructionTag::COMPARE_VT: {
         auto v1 = (*ptr)[i+1]._data._v;
         auto t2 = (*ptr)[i+2]._data._ptr;
         out << Int::toString(cnt++) << " compare X" << Int::toString(v1) << " " << *t2 << endl;
         i += 3;
         break;
       }
-      case KBO::InstructionTag::COMPARE_TV: {
+      case InstructionTag::COMPARE_TV: {
         auto t1 = (*ptr)[i+1]._data._ptr;
         auto v2 = (*ptr)[i+2]._data._v;
         out << Int::toString(cnt++) << " compare " << *t1 << " X" << Int::toString(v2) << endl;
@@ -422,7 +430,6 @@ std::ostream& Ordering::output(std::ostream& out, const Stack<Ordering::Instruct
     }
   }
   out << endl;
-  return out;
 }
 
 /**

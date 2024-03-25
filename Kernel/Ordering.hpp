@@ -106,7 +106,6 @@ public:
 
   Result getEqualityArgumentOrder(Literal* eq) const;
 protected:
-
   enum class InstructionTag {
     WEIGHT,
     COMPARE_VV,
@@ -126,10 +125,10 @@ protected:
       int _w;
     } _data;
   };
-  virtual Stack<Instruction>* preprocessEquation(Literal* lit, TermList lhs) const;
-  virtual unsigned computeWeight(TermList t) const;
+  virtual void preprocessComparison(TermList tl1, TermList tl2, Stack<Instruction>* ptr) const;
+  virtual unsigned computeWeight(TermList tl) const;
 
-  std::ostream& output(std::ostream& out, const Stack<Ordering::Instruction>* ptr) const;
+  void output(std::ostream& out, const Stack<Ordering::Instruction>* ptr) const;
 
   Result compareEqualities(Literal* eq1, Literal* eq2) const;
 
@@ -140,6 +139,7 @@ private:
   class EqCmp;
   /** Object used to compare equalities */
   EqCmp* _eqCmp;
+  mutable Map<std::pair<TermList,TermList>,Stack<Instruction>>* _preprocessedComparisons;
 
   /**
    * We store orientation of equalities in this ordering inside

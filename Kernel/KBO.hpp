@@ -163,7 +163,7 @@ public:
 protected:
   Result comparePredicates(Literal* l1, Literal* l2) const override;
 
-  Stack<Instruction>* preprocessEquation(Literal* lit, TermList lhs) const override;
+  void preprocessComparison(TermList tl1, TermList tl2, Stack<Instruction>* ptr) const override;
 
   class State;
   class StateGreater;
@@ -171,8 +171,6 @@ protected:
   // int functionSymbolWeight(unsigned fun) const;
   int symbolWeight(Term* t) const;
   unsigned computeWeight(TermList t) const override;
-
-  friend struct WeightCompInstruction;
 
 private:
   KboWeightMap<FuncSigTraits> _funcWeights;
@@ -192,7 +190,6 @@ private:
    */
   mutable State* _state;
   mutable StateGreater* _stateGt;
-  mutable Map<std::pair<Literal*,TermList>,Stack<Instruction>> _demodulatorInstructions;
 };
 
 }
