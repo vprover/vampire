@@ -1685,12 +1685,13 @@ void Options::init()
     _equationalTautologyRemoval.onlyUsefulWith(ProperSaturationAlgorithm());
     _equationalTautologyRemoval.tag(OptionTag::INFERENCES);
 
-    _skipCoveredSuperpositions = BoolOptionValue("skip_covered_superpositions","scs",false);
-    _skipCoveredSuperpositions.description=
-    "Skip superpositions where a demodulation has been done on some generalization of the superposed into instance.";
-    _lookup.insert(&_skipCoveredSuperpositions);
-    _skipCoveredSuperpositions.onlyUsefulWith(ProperSaturationAlgorithm());
-    _skipCoveredSuperpositions.tag(OptionTag::INFERENCES);
+    _instanceRedundancyCheck = ChoiceOptionValue<InstanceRedundancyCheck>("instance_redundancy_check","irc",
+      InstanceRedundancyCheck::OFF,{"lazy","eager","ground_eager","off"});
+    _instanceRedundancyCheck.description=
+    "Skip generating inferences on clause instances on which we already performed a reductive inference.";
+    _lookup.insert(&_instanceRedundancyCheck);
+    _instanceRedundancyCheck.onlyUsefulWith(ProperSaturationAlgorithm());
+    _instanceRedundancyCheck.tag(OptionTag::INFERENCES);
 
     _unitResultingResolution = ChoiceOptionValue<URResolution>("unit_resulting_resolution","urr",URResolution::OFF,{"ec_only","off","on","full"});
     _unitResultingResolution.description=

@@ -351,7 +351,7 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-  Ordering& ordering = _salg->getOrdering();
+  const Ordering& ordering = _salg->getOrdering();
 
   TermList eqLHSS = subst->apply(eqLHS, eqIsResult);
   TermList tgtTermS = subst->apply(tgtTerm, eqIsResult);
@@ -398,25 +398,29 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
-  if (getOptions().skipCoveredSuperpositions()) {
+  auto instanceRedundancyCheck = getOptions().instanceRedundancyCheck();
+  if (instanceRedundancyCheck!=Options::InstanceRedundancyCheck::OFF) {
     auto eqSupData = static_cast<SubstitutionCoverTree*>(eqClause->getSupData());
-    if (eqSupData && !eqSupData->checkAndInsert(subst.ptr(), eqIsResult, /*doInsert=*/false)) {
+    if (eqSupData && !eqSupData->checkAndInsert(&ordering, subst.ptr(), eqIsResult, /*doInsert=*/false)) {
       env.statistics->skippedSuperposition++;
       return 0;
     }
 
-    auto doInsert = comp == Ordering::LESS && eqClause->length()==1 && eqClause->noSplits() &&
+    auto doInsert = eqClause->length()==1 && eqClause->noSplits() &&
+      ((instanceRedundancyCheck!=Options::InstanceRedundancyCheck::LAZY && rwTermS.containsAllVariablesOf(tgtTermS)) || comp == Ordering::LESS) &&
       (!_helper.redundancyCheckNeededForPremise(rwClause, rwLitS, rwTermS) ||
         // TODO for rwClause->length()!=1 the function isPremiseRedundant does not work yet
         (rwClause->length()==1 && _helper.isPremiseRedundant(rwClause, rwLitS, rwTermS, tgtTermS, eqLHS, subst.ptr(), eqIsResult)));
 
+    bool incompInserted = doInsert && comp != Ordering::LESS;
     auto rwSupData = static_cast<SubstitutionCoverTree*>(rwClause->getSupData());
     if (rwSupData || doInsert) {
       if (!rwSupData) {
         rwSupData = new SubstitutionCoverTree(rwClause);
         rwClause->setSupData(rwSupData);
       }
-      if (!rwSupData->checkAndInsert(subst.ptr(), !eqIsResult, doInsert)) {
+      if (!rwSupData->checkAndInsert(&ordering, subst.ptr(), !eqIsResult, doInsert,
+          incompInserted ? rwTermS.term() : nullptr, incompInserted ? tgtTermS.term() : nullptr)) {
         env.statistics->skippedSuperposition++;
         return 0;
       }

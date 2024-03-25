@@ -127,7 +127,7 @@ struct EqualityResolution::ResultFn
         _cl->setSupData(supData);
       }
       auto subst = ResultSubstitution::fromSubstitution(&absUnif->subs(), 0, 0);
-      if (!supData->checkAndInsert(subst.ptr(), false, /*doInsert=*/true)) {
+      if (!supData->checkAndInsert(_ord, subst.ptr(), false, /*doInsert=*/true)) {
         env.statistics->skippedEqualityResolution++;
         return 0;
       }
@@ -145,7 +145,7 @@ struct EqualityResolution::ResultFn
 private:
   bool _afterCheck;
   bool _skipCheck;
-  Ordering* _ord;
+  const Ordering* _ord;
   Clause* _cl;
   unsigned _cLen;
 };
@@ -163,7 +163,7 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
 
   auto it3 = getMappingIterator(it2,ResultFn(premise,
       getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
-      getOptions().skipCoveredSuperpositions(),
+      getOptions().instanceRedundancyCheck()!=Options::InstanceRedundancyCheck::OFF,
       &_salg->getOrdering()));
 
   auto it4 = getFilteredIterator(it3,NonzeroFn());

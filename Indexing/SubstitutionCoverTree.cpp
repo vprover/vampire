@@ -17,6 +17,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/SubstHelper.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Shell/Statistics.hpp"
@@ -62,7 +63,7 @@ SubstitutionCoverTree::SubstitutionCoverTree(Clause* cl)
   // }
 }
 
-bool SubstitutionCoverTree::checkAndInsert(ResultSubstitution* subst, bool result, bool doInsert)
+bool SubstitutionCoverTree::checkAndInsert(const Ordering* ord, ResultSubstitution* subst, bool result, bool doInsert, Term* lhs, Term* rhs)
 {
   if (_varSorts.isEmpty()) {
     return true;
@@ -75,7 +76,7 @@ bool SubstitutionCoverTree::checkAndInsert(ResultSubstitution* subst, bool resul
   }
   // TermList t(Term::create(_fn, args.size(), args.begin()));
   // auto oldCheck = _tis.generalizationExists(t);
-  auto newCheck = check(ts);
+  auto newCheck = check(ts, ord);
   // if (oldCheck != newCheck) {
   //   USER_ERROR("checks don't match");
   // }
@@ -83,7 +84,10 @@ bool SubstitutionCoverTree::checkAndInsert(ResultSubstitution* subst, bool resul
     return false;
   }
   if (doInsert) {
-    insert(ts,this);
+    auto ld = new LeafData();
+    ld->lhs = lhs;
+    ld->rhs = rhs;
+    insert(ts,ld);
     // _tis.insert(t.term(), nullptr, nullptr);
   }
   return true;
@@ -119,7 +123,7 @@ void SubstitutionCoverTree::insert(const TermStack& ts, void* ptr)
   incorporate(code);
 }
 
-bool SubstitutionCoverTree::check(const TermStack& ts)
+bool SubstitutionCoverTree::check(const TermStack& ts, const Ordering* ord)
 {
   if (isEmpty()) {
     return false;
@@ -128,10 +132,26 @@ bool SubstitutionCoverTree::check(const TermStack& ts)
   static SubstMatcher matcher;
 
   matcher.init(this, ts);
-  bool res = matcher.next();
+  LeafData* ld;
+  while ((ld = matcher.next())) {
+    if (!ld->lhs) {
+      return true;
+    }
+    if (ord) {
+      struct Applicator {
+        TermList apply(unsigned v) { return matcher.bindings[v]; }
+      } applicator;
+
+      auto lhs = SubstHelper::apply(ld->lhs, applicator);
+      auto rhs = SubstHelper::apply(ld->rhs, applicator);
+      if (ord->compare(TermList(lhs),TermList(rhs))==Ordering::GREATER) {
+        return true;
+      }
+    }
+  }
   matcher.reset();
 
-  return res;
+  return false;
 }
 
 void SubstitutionCoverTree::SubstMatcher::init(CodeTree* tree, const TermStack& ts)
@@ -152,20 +172,20 @@ void SubstitutionCoverTree::SubstMatcher::reset()
   ft->destroy();
 }
 
-void* SubstitutionCoverTree::SubstMatcher::next()
+SubstitutionCoverTree::LeafData* SubstitutionCoverTree::SubstMatcher::next()
 {
   if (finished()) {
     //all possible matches are exhausted
-    return 0;
+    return nullptr;
   }
 
   _matched=execute();
   if (!_matched) {
-    return 0;
+    return nullptr;
   }
 
   ASS(op->isSuccess());
-  return op->getSuccessResult();
+  return static_cast<LeafData*>(op->getSuccessResult());
 }
 
 }

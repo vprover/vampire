@@ -762,6 +762,12 @@ public:
     OFF = 3
   };
 
+  enum class InstanceRedundancyCheck : unsigned int {
+    LAZY = 0,
+    EAGER = 1,
+    GROUND_EAGER = 2,
+    OFF = 3,
+  };
 
     //==========================================================
     // The Internals
@@ -2080,7 +2086,7 @@ public:
   bool simulatenousSuperposition() const { return _simultaneousSuperposition.actualValue; }
   bool innerRewriting() const { return _innerRewriting.actualValue; }
   bool equationalTautologyRemoval() const { return _equationalTautologyRemoval.actualValue; }
-  bool skipCoveredSuperpositions() const { return _skipCoveredSuperpositions.actualValue; }
+  InstanceRedundancyCheck instanceRedundancyCheck() const { return _instanceRedundancyCheck.actualValue; }
   bool arityCheck() const { return _arityCheck.actualValue; }
   //void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation.actualValue; }
@@ -2497,7 +2503,7 @@ private:
   BoolOptionValue _simultaneousSuperposition;
   BoolOptionValue _innerRewriting;
   BoolOptionValue _equationalTautologyRemoval;
-  BoolOptionValue _skipCoveredSuperpositions;
+  ChoiceOptionValue<InstanceRedundancyCheck> _instanceRedundancyCheck;
 
   /** if true, then calling set() on non-existing options will not result in a user error */
   ChoiceOptionValue<IgnoreMissing> _ignoreMissing;

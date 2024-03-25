@@ -74,6 +74,7 @@ void ClauseCodeTree::insert(Clause* cl)
   cctx.init();
 
   for(unsigned i=0;i<clen;i++) {
+    cctx.nextLit();
     compileTerm(lits[i], code, cctx, true);
   }
   code.push(CodeOp::getSuccess(cl));

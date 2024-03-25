@@ -174,7 +174,7 @@ struct EqualityFactoring::ResultFn
         _cl->setSupData(supData);
       }
       auto subst = ResultSubstitution::fromSubstitution(&absUnif.subs(), 0, 0);
-      if (!supData->checkAndInsert(subst.ptr(), false, /*doInsert=*/true)) {
+      if (!supData->checkAndInsert(&_ordering, subst.ptr(), false, /*doInsert=*/true)) {
         env.statistics->skippedEqualityFactoring++;
         return 0;
       }
@@ -195,7 +195,7 @@ private:
   unsigned _cLen;
   bool _afterCheck;
   bool _skipCheck;
-  Ordering& _ordering;
+  const Ordering& _ordering;
   bool _fixedPointIteration;
 };
 
@@ -216,7 +216,7 @@ ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
 
   auto it5 = getMappingIterator(it4,ResultFn(*this, premise,
       getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
-      getOptions().skipCoveredSuperpositions(),
+      getOptions().instanceRedundancyCheck()!=Options::InstanceRedundancyCheck::OFF,
       _salg->getOrdering(), _uwaFixedPointIteration));
 
   auto it6 = getFilteredIterator(it5,NonzeroFn());

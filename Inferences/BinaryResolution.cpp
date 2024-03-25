@@ -101,7 +101,7 @@ struct BinaryResolution::ResultFn
     auto subs = ResultSubstitution::fromSubstitution(&qr.unifier->subs(), QUERY_BANK, RESULT_BANK);
     return BinaryResolution::generateClause(_cl, resLit, qr.clause, qr.literal, subs, 
         [&](){ return qr.unifier->computeConstraintLiterals(); }, 
-        _parent.getOptions(), _passiveClauseContainer, _afterCheck ? _ord : 0, &_selector);
+        _parent.getOptions(), _afterCheck, _passiveClauseContainer, _ord, &_selector);
   }
 private:
   Clause* _cl;
@@ -118,7 +118,8 @@ private:
  */
 template<class ComputeConstraints>
 Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, 
-                                ResultSubstitutionSP subs, ComputeConstraints computeConstraints, const Options& opts, PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls)
+          ResultSubstitutionSP subs, ComputeConstraints computeConstraints, const Options& opts, bool afterCheck,
+          PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls)
 {
   ASS(resultCl->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses
 
@@ -187,7 +188,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   Clause* res = new(newLength) Clause(newLength, inf); // the inference object owned by res from now on
 
   Literal* queryLitAfter = 0;
-  if (ord && queryCl->numSelected() > 1) {
+  if (afterCheck && queryCl->numSelected() > 1) {
     TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
     queryLitAfter = subs->applyToQuery(queryLit);
   }
@@ -229,7 +230,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   }
 
   Literal* qrLitAfter = 0;
-  if (ord && resultCl->numSelected() > 1) {
+  if (afterCheck && resultCl->numSelected() > 1) {
     TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
     qrLitAfter = subs->applyToResult(resultLit);
   }
@@ -266,7 +267,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     }
   }
 
-  if (opts.skipCoveredSuperpositions()) {
+  if (opts.instanceRedundancyCheck()!=Options::InstanceRedundancyCheck::OFF) {
     {
       bool doInsert = resultLit->isPositive() && resultCl->size()==1 && resultCl->noSplits();
       auto supData = static_cast<SubstitutionCoverTree*>(queryCl->getSupData());
@@ -275,7 +276,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
           supData = new SubstitutionCoverTree(queryCl);
           queryCl->setSupData(supData);
         }
-        if (!supData->checkAndInsert(subs.ptr(), false, doInsert)) {
+        if (!supData->checkAndInsert(ord, subs.ptr(), false, doInsert)) {
           env.statistics->skippedResolution++;
           return 0;
         }
@@ -289,7 +290,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
           supData = new SubstitutionCoverTree(resultCl);
           resultCl->setSupData(supData);
         }
-        if (!supData->checkAndInsert(subs.ptr(), true, doInsert)) {
+        if (!supData->checkAndInsert(ord, subs.ptr(), true, doInsert)) {
           env.statistics->skippedResolution++;
           return 0;
         }

@@ -30,14 +30,19 @@ class SubstitutionCoverTree
 {
 public:
   SubstitutionCoverTree(Clause* cl);
-  bool checkAndInsert(ResultSubstitution* subst, bool result, bool doInsert);
+  bool checkAndInsert(const Ordering* ord, ResultSubstitution* subst, bool result, bool doInsert=false, Term* lhs=nullptr, Term* rhs=nullptr);
 private:
   void insert(const TermStack& ts, void* ptr);
-  bool check(const TermStack& ts);
+  bool check(const TermStack& ts, const Ordering* ord);
 
   DHMap<unsigned,TermList> _varSorts;
   // unsigned _fn;
   // CodeTreeTIS _tis;
+
+  struct LeafData {
+    Term* lhs = nullptr;
+    Term* rhs = nullptr;
+  };
 
   struct SubstMatcher
   : public Matcher
@@ -45,7 +50,7 @@ private:
     void init(CodeTree* tree, const TermStack& ts);
     void reset();
 
-    void* next();
+    LeafData* next();
   };
 };
 
