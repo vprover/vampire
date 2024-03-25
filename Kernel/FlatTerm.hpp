@@ -26,6 +26,9 @@ public:
   static FlatTerm* create(Term* t);
   static FlatTerm* create(TermList t);
   static FlatTerm* create(TermStack ts);
+  static FlatTerm* createUnexpanded(Term* t);
+  static FlatTerm* createUnexpanded(TermList t);
+  static FlatTerm* createUnexpanded(TermStack ts);
   void destroy();
 
   static FlatTerm* copy(const FlatTerm* ft);
@@ -41,12 +44,13 @@ public:
      * added to the position of the corresponding @b FUN Entry in order
      * to get behind the function
      */
-    FUN_RIGHT_OFS = 3
+    FUN_RIGHT_OFS = 3,
+    FUN_UNEXPANDED = 4,
   };
 
   struct Entry
   {
-    Entry() {}
+    Entry() = default;
     Entry(EntryTag tag, unsigned num) { _info.tag=tag; _info.number=num; }
     Entry(Term* ptr) : _ptr(ptr) { ASS_EQ(tag(), FUN_TERM_PTR); }
 
@@ -55,14 +59,15 @@ public:
     inline Term* ptr() const { return _ptr; }
     inline bool isVar() const { return tag()==VAR; }
     inline bool isVar(unsigned num) const { return isVar() && number()==num; }
-    inline bool isFun() const { return tag()==FUN; }
+    inline bool isFun() const { return tag()==FUN || tag()==FUN_UNEXPANDED; }
     inline bool isFun(unsigned num) const { return isFun() && number()==num; }
+    void expand();
 
     union {
       Term* _ptr;
       struct {
-	unsigned tag : 2;
-	unsigned number : 30;
+	unsigned tag : 4;
+	unsigned number : 28;
       } _info;
     };
   };

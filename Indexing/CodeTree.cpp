@@ -1286,10 +1286,11 @@ inline bool CodeTree::RemovingMatcher::doCheckFun()
   ASS_EQ(op->instrSuffix(), CHECK_FUN);
 
   unsigned functor=op->arg();
-  const FlatTerm::Entry& fte=(*ft)[tp];
+  FlatTerm::Entry& fte=(*ft)[tp];
   if(!fte.isFun(functor)) {
     return false;
   }
+  fte.expand();
   tp+=FlatTerm::functionEntryCount;
   return true;
 }
@@ -1470,10 +1471,11 @@ inline bool CodeTree::Matcher::doCheckFun()
   ASS_EQ(op->instrSuffix(), CHECK_FUN);
 
   unsigned functor=op->arg();
-  const FlatTerm::Entry& fte=(*ft)[tp];
+  FlatTerm::Entry& fte=(*ft)[tp];
   if(!fte.isFun(functor)) {
     return false;
   }
+  fte.expand();
   tp+=FlatTerm::functionEntryCount;
   return true;
 }
@@ -1489,7 +1491,7 @@ inline void CodeTree::Matcher::doAssignVar()
     tp++;
   }
   else {
-    ASS_EQ(fte->tag(), FlatTerm::FUN);
+    ASS(fte->isFun());
     fte++;
     ASS_EQ(fte->tag(), FlatTerm::FUN_TERM_PTR);
     ASS(fte->ptr());
@@ -1513,7 +1515,7 @@ inline bool CodeTree::Matcher::doCheckVar()
     tp++;
   }
   else {
-    ASS_EQ(fte->tag(), FlatTerm::FUN);
+    ASS(fte->isFun());
     fte++;
     ASS_EQ(fte->tag(), FlatTerm::FUN_TERM_PTR);
     if(bindings[var]!=TermList(fte->ptr())) {

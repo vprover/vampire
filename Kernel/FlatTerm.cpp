@@ -153,6 +153,60 @@ FlatTerm* FlatTerm::create(TermStack ts)
   return res;
 }
 
+FlatTerm* FlatTerm::createUnexpanded(Term* t)
+{
+  size_t entries=getEntryCount(t);
+
+  FlatTerm* res=new(entries) FlatTerm(entries);
+
+  res->_data[0]=Entry(FUN_UNEXPANDED,
+      t->isLiteral() ? static_cast<Literal*>(t)->header() : t->functor());
+  res->_data[1]=Entry(t);
+  res->_data[2]=Entry(FUN_RIGHT_OFS, entries);
+
+  return res;
+}
+
+FlatTerm* FlatTerm::createUnexpanded(TermList t)
+{
+  if(t.isTerm()) {
+    return createUnexpanded(t.term());
+  }
+  ASS(t.isOrdinaryVar());
+
+  FlatTerm* res=new(1) FlatTerm(1);
+  res->_data[0]=Entry(VAR, t.var());
+
+  return res;
+}
+
+FlatTerm* FlatTerm::createUnexpanded(TermStack ts)
+{
+  size_t entries=0;
+  for (auto& tl : ts) {
+    entries += tl.isVar() ? 1 : getEntryCount(tl.term());
+  }
+
+  FlatTerm* res=new(entries) FlatTerm(entries);
+  size_t fti=0;
+
+  for (auto& tl : ts) {
+    if (tl.isVar()) {
+      res->_data[fti++]=Entry(VAR, tl.var());
+      continue;
+    }
+    auto t = tl.term();
+    res->_data[fti]=Entry(FUN_UNEXPANDED,
+        t->isLiteral() ? static_cast<Literal*>(t)->header() : t->functor());
+    res->_data[fti+1]=Entry(t);
+    res->_data[fti+2]=Entry(FUN_RIGHT_OFS, getEntryCount(t));
+    fti+=getEntryCount(t);
+  }
+  ASS_EQ(fti, entries);
+
+  return res;
+}
+
 FlatTerm* FlatTerm::copy(const FlatTerm* ft)
 {
   size_t entries=ft->_length;
@@ -203,6 +257,34 @@ void FlatTerm::swapCommutativePredicateArguments()
     memcpy(&_data[firstStart+secLen], &_data[firstStart], firstLen*sizeof(Entry));
     memcpy(&_data[firstStart], buf.array(), secLen*sizeof(Entry));
   }
+}
+
+void FlatTerm::Entry::expand()
+{
+  if (tag()==FUN) {
+    return;
+  }
+  ASS(tag()==FUN_UNEXPANDED);
+  ASS(this[1].tag()==FUN_TERM_PTR);
+  ASS(this[2].tag()==FUN_RIGHT_OFS);
+  Term* t = this[1].ptr();
+  size_t p = FlatTerm::functionEntryCount;
+  for (unsigned i = 0; i < t->arity(); i++) {
+    auto arg = t->nthArgument(i);
+    if (arg->isVar()) {
+      ASS(arg->isOrdinaryVar());
+      this[p++] = Entry(VAR, arg->var());
+    }
+    else {
+      ASS(arg->isTerm());
+      this[p] = Entry(FUN_UNEXPANDED, arg->term()->functor());
+      this[p+1] = Entry(arg->term());
+      this[p+2] = Entry(FUN_RIGHT_OFS, getEntryCount(arg->term()));
+      p += this[p+2].number();
+    }
+  }
+  ASS_EQ(p,this[2].number());
+  _info.tag = FUN;
 }
 
 };

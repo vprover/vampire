@@ -161,7 +161,7 @@ void SubstitutionCoverTree::SubstMatcher::init(CodeTree* tree, const TermStack& 
   linfos=0;
   linfoCnt=0;
 
-  ft=FlatTerm::create(ts);
+  ft = FlatTerm::createUnexpanded(ts);
 
   op=entry;
   tp=0;
