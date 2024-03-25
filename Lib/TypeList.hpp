@@ -15,7 +15,7 @@
 
 namespace Lib {
 
-  template<class F, class... As> using ResultOf = typename std::result_of<F(As...)>::type;
+  template<class F, class... As> using ResultOf = typename std::invoke_result<F, As...>::type;
 
 namespace TypeList {
 
@@ -236,7 +236,7 @@ namespace TypeList {
        static_assert(__VA_ARGS__, "TEST FAIL: values don't match fail");
 
     STATIC_TEST_TYPE_EQ(
-        std::result_of<MkTuple(A,B)>::type,
+        std::invoke_result<MkTuple, A, B>::type,
         Tuple<A, B>)
 
     STATIC_TEST_TYPE_EQ(

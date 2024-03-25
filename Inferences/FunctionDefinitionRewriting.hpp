@@ -23,6 +23,8 @@
 
 #include "Forwards.hpp"
 
+#include "DemodulationHelper.hpp"
+
 namespace Inferences {
 
 using namespace Kernel;
@@ -37,20 +39,28 @@ using namespace Shell;
  */
 class FunctionDefinitionRewriting
   : public GeneratingInferenceEngine
-  , public ForwardSimplificationEngine
   {
 public:
-  USE_ALLOCATOR(FunctionDefinitionRewriting);
-
+  void attach(SaturationAlgorithm* salg) override;
   ClauseIterator generateClauses(Clause *premise) override;
+
+private:
+  DemodulationHelper _helper;
+};
+
+/**
+ * Simplifying version of the above inference, where we check if the rewriting
+ * coincides with a demodulation under the current options and ordering.
+ */
+class FunctionDefinitionDemodulation
+  : public ForwardSimplificationEngine
+  {
+public:
+  void attach(SaturationAlgorithm* salg) override;
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 
 private:
-  static Clause *perform(
-      Clause *rwClause, Literal *rwLiteral, TermList rwTerm,
-      Clause *eqClause, Literal *eqLiteral, TermList eqLHS,
-      ResultSubstitutionSP subst, bool toplevelCheck,
-      bool& isEqTautology, const Inference& inf, SaturationAlgorithm* salg = nullptr);
+  DemodulationHelper _helper;
 };
 
 }; // namespace Inferences

@@ -41,7 +41,7 @@ void Term::setId(unsigned id)
       // (cf ProvingHelper::runVampire and getPreprocessedProblem in vampire.cpp)
     id += Random::getInteger(1 << 12) << 20; // the twelve most significant bits are randomized
   }
-   _args[0]._info.id = id;
+   _args[0]._setId(id);
 }
 
 /**
@@ -1500,9 +1500,9 @@ Term::Term(const Term& t) throw()
   ASS(!isSpecial()); //we do not copy special terms
 
   _args[0] = t._args[0];
-  _args[0]._info.shared = 0u;
-  _args[0]._info.order = 0u;
-  _args[0]._info.distinctVars = TERM_DIST_VAR_UNKNOWN;
+  _args[0]._setShared(false);
+  _args[0]._setOrder(AO_UNKNOWN);
+  _args[0]._setDistinctVars(TERM_DIST_VAR_UNKNOWN);
 } // Term::Term
 
 /** create a new literal and copy from l its content */
@@ -1528,15 +1528,9 @@ Term::Term() throw()
    _maxRedLen(0),
    _vars(0)
 {
-  _args[0]._info.polarity = 0;
-  _args[0]._info.commutative = 0;
-  _args[0]._info.shared = 0;
-  _args[0]._info.literal = 0;
-  _args[0]._info.sort = 0;
-  _args[0]._info.hasTermVar = 0;
-  _args[0]._info.order = 0;
-  _args[0]._info.tag = FUN;
-  _args[0]._info.distinctVars = TERM_DIST_VAR_UNKNOWN;
+  _args[0].setContent(0);
+  _args[0]._setTag(FUN);
+  _args[0]._setDistinctVars(TERM_DIST_VAR_UNKNOWN);
 } // Term::Term
 
 Literal::Literal()
@@ -1580,26 +1574,26 @@ vstring Term::headerToString() const
   s += Int::toString(_functor) + ", arity: " + Int::toString(_arity)
     + ", weight: " + Int::toString(_weight)
     + ", vars: " + Int::toString(_vars)
-    + ", polarity: " + Int::toString(_args[0]._info.polarity)
-    + ", commutative: " + Int::toString(_args[0]._info.commutative)
-    + ", shared: " + Int::toString(_args[0]._info.shared)
-    + ", literal: " + Int::toString(_args[0]._info.literal)
-    + ", order: " + Int::toString(_args[0]._info.order)
-    + ", tag: " + Int::toString(_args[0]._info.tag);
+    + ", polarity: " + Int::toString(_args[0]._polarity())
+    + ", commutative: " + Int::toString(_args[0]._commutative())
+    + ", shared: " + Int::toString(_args[0]._shared())
+    + ", literal: " + Int::toString(_args[0]._literal())
+    + ", order: " + Int::toString(_args[0]._order())
+    + ", tag: " + Int::toString(_args[0]._tag());
   return s;
 }
 
 void Term::assertValid() const
 {
   ASS_ALLOC_TYPE(this, "Term");
-  ASS_EQ(_args[0]._info.tag, FUN);
+  ASS_EQ(_args[0]._tag(), FUN);
 }
 
 void TermList::assertValid() const
 {
   if (this->isTerm()) {
     ASS_ALLOC_TYPE(_term, "Term");
-    ASS_EQ(_term->_args[0]._info.tag, FUN);
+    ASS_EQ(_term()->_args[0]._tag(), FUN);
   }
 }
 

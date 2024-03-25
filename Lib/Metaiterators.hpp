@@ -274,7 +274,7 @@ template<class Inner, class Functor>
 class FilterMapIter
 {
 public:
-  DECL_ELEMENT_TYPE(typename std::result_of<Functor(ELEMENT_TYPE(Inner))>::type::Content);
+  DECL_ELEMENT_TYPE(typename std::invoke_result<Functor, ELEMENT_TYPE(Inner)>::type::Content);
   DEFAULT_CONSTRUCTORS(FilterMapIter)
 
   FilterMapIter(Inner inn, Functor func)
@@ -451,7 +451,7 @@ private:
  * The @b knowsSize() and @b size() functions of this iterator can be
  * called only if the underlying iterator contains these functions.
  */
-template<typename Inner, typename Functor, typename ResultType=std::result_of_t<Functor(ELEMENT_TYPE(Inner))>>
+template<typename Inner, typename Functor, typename ResultType=std::invoke_result_t<Functor, ELEMENT_TYPE(Inner)>>
 class MappingIterator
 {
 public:
@@ -1312,7 +1312,7 @@ struct CompositionFn {
    : _outer(outer), _inner(inner) { }
 
   template<typename Arg>
-  std::result_of_t<OuterFn(std::result_of_t<InnerFn(Arg)>)> operator()(Arg a) {
+  std::invoke_result_t<OuterFn, std::invoke_result_t<InnerFn, Arg>> operator()(Arg a) {
     return _outer(_inner(a));
   }
 private:

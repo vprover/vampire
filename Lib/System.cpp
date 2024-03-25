@@ -16,8 +16,6 @@
 #include "Portability.hpp"
 
 #include <csignal>
-#include <fstream>
-#include <thread>
 
 // TODO these should probably be guarded
 // for getpid, _exit
@@ -36,11 +34,6 @@
 #include "Environment.hpp"
 
 #include "System.hpp"
-
-unsigned Lib::System::getNumberOfCores()
-{
-  return std::thread::hardware_concurrency();
-}
 
 namespace Lib {
 
@@ -277,12 +270,6 @@ bool System::extractDirNameFromPath(vstring path, vstring& dir)
   }
   dir = path.substr(0, index);
   return true;
-}
-
-bool System::fileExists(vstring fname)
-{
-  ifstream ifile(fname.c_str());
-  return ifile.good();
 }
 
 };

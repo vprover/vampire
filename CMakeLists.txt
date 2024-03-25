@@ -7,8 +7,8 @@ project(Vampire)
 include(CheckIPOSupported)
 include(CheckPIESupported)
 
-# require the compiler to use C++14
-set(CMAKE_CXX_STANDARD 14)
+# require the compiler to use C++17
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -388,6 +388,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/BackwardSubsumptionResolution.cpp
     Inferences/BinaryResolution.cpp
     Inferences/Condensation.cpp
+    Inferences/DemodulationHelper.cpp
     Inferences/DistinctEqualitySimplifier.cpp
     Inferences/EqualityFactoring.cpp
     Inferences/EqualityResolution.cpp
@@ -426,6 +427,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/BackwardSubsumptionResolution.hpp
     Inferences/BinaryResolution.hpp
     Inferences/Condensation.hpp
+    Inferences/DemodulationHelper.hpp
     Inferences/DistinctEqualitySimplifier.hpp
     Inferences/EqualityFactoring.hpp
     Inferences/EqualityResolution.hpp
