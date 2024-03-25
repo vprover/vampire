@@ -60,11 +60,11 @@ class ActiveOccurrenceIterator
   : public IteratorCore<Term*>
 {
 public:
-  ActiveOccurrenceIterator(Term* term, FunctionDefinitionHandler& fnDefHandler)
+  ActiveOccurrenceIterator(Literal* lit, FunctionDefinitionHandler& fnDefHandler)
   : _stack(8), _fnDefHandler(fnDefHandler)
   {
-    _stack.push(term);
-    ASS(term->ground());
+    _stack.push(lit);
+    ASS(lit->ground());
     ActiveOccurrenceIterator::next();
   }
 

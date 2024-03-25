@@ -703,9 +703,11 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
           return kv.first;
         })
         .map([this](vvector<Term*> ts) {
-          auto res = arrayIter(ts)
-            .flatMap([&](auto t) { return _structInductionTermIndex->getGeneralizations(t, /*retrieveSubstitutions=*/ false); });
-          return make_pair(ts, pvi(res)); 
+          auto res = VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>>::getEmpty();
+          for (const auto& t : ts) {
+            res = pvi(concatIters(res, _structInductionTermIndex->getGeneralizations(t, false)));
+          }
+          return make_pair(ts, res);
         }));
     }
     // put clauses from queries into contexts alongside with the given clause and induction term
