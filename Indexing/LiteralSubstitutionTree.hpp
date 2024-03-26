@@ -89,10 +89,10 @@ private:
   template<class Iterator, class... Args>
   auto getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, Args... args)
   {
-    auto iter = [=](bool reversed) 
+    auto iter = [this, lit, complementary, retrieveSubstitutions, &args...](bool reversed) 
       { return iterTraits(getTree(lit, complementary).template iterator<Iterator>(lit, retrieveSubstitutions, reversed, args...)) ; };
 
-    auto filterResults = [=](auto it) { 
+    auto filterResults = [](auto it) { 
       return std::move(it)
           .map([](auto r) { return queryRes(std::move(r.unif), r.data); }) ; 
     };

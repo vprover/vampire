@@ -199,15 +199,10 @@ public:
   { return QueryResult<Unifier>(ld, std::move(unif)); }
 
   template<class I> using QueryResultIter = VirtualIterator<QueryResult<typename I::Unifier>>;
-  template<class I, class TermOrLit, class... Args> 
+  template<class I, class TermOrLit, class... Args>
   auto iterator(TermOrLit query, bool retrieveSubstitutions, bool reversed, Args... args)
-  {
-    return iterTraits(
-          someIf(_root != nullptr, 
-              [&]() { return I(this, _root, query, retrieveSubstitutions, reversed, std::move(args)...) ; })
-          .intoIter())
-        .flatten();
-  }
+  { return ifIter(_root != nullptr, 
+                 [&](){ return iterPointer(std::make_unique<I>(this, _root, query, retrieveSubstitutions, reversed, std::move(args)...)); }); }
 
   class LDComparator
   {
