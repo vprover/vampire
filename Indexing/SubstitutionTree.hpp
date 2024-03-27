@@ -195,8 +195,6 @@ public:
   { return isEmpty() ? VirtualIterator<ELEMENT_TYPE(I)>::getEmpty()
                      : pvi(iterPointer(Recycled<I>(this, _root, query, retrieveSubstitutions, reversed, std::move(args)...)));
   }
-  // { return ifIter(_root != nullptr, 
-  //                [&](){ return iterPointer(Recycled<I>(this, _root, query, retrieveSubstitutions, reversed, std::move(args)...)); }); }
 
   class LDComparator
   {
@@ -1330,8 +1328,6 @@ public:
   public:
     bool maybeEmpty() const { return _root == nullptr; }
     bool isEmpty() const { return _root == nullptr || _root->isEmpty(); }
-    // friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self);
-
   }; // class SubstiutionTree
 
   /* This namespace defines classes to be used as type parameter for SubstitutionTree::Iterator. 
@@ -1395,8 +1391,6 @@ public:
 
         /** same as in @Backtrackable */
         void bdDone() { _subs.bdDone(); }
-
-
 
         /** This function is called once when the iterator arrives at a leaf. 
          * The function can do a final check whether the current state of the retrieved witness (e.g. substitution) 
