@@ -18,7 +18,6 @@
 #define __System__
 
 #include "Forwards.hpp"
-#include "Array.hpp"
 
 #define VAMP_RESULT_STATUS_SUCCESS 0
 #define VAMP_RESULT_STATUS_UNKNOWN 1
@@ -33,9 +32,9 @@ public:
   static void setSignalHandlers();
   static bool extractDirNameFromPath(vstring path, vstring& dir);
 
-  static void addTerminationHandler(VoidFunc proc, unsigned priority=0);
-  static void onTermination();
-  [[noreturn]] static void terminateImmediately(int resultStatus);
+  [[noreturn]] static void terminateImmediately(int resultStatus) {
+    std::quick_exit(resultStatus);
+  }
 
   static void registerForSIGHUPOnParentDeath();
 
@@ -47,13 +46,6 @@ public:
   static const char *getArgv0() { return s_argv0; }
 
 private:
-  /**
-   * Lists of functions that will be called before Vampire terminates
-   *
-   * Functions in lists with lower numbers will be called first.
-   */
-  static ZIArray<List<VoidFunc>*>& terminationHandlersArray();
-
   static const char* s_argv0;
 };
 
