@@ -90,7 +90,7 @@ struct SubstitutionTree<LeafData_>::GenMatcher::Applicator
   {
     TermList* cacheEntry;
     if(_cache.getValuePtr(var,cacheEntry)) {
-      ASS(_resultNormalizer.contains(var));
+      ASS(_resultNormalizer->contains(var));
       unsigned nvar=_resultNormalizer->get(var);
       ASS(_parent->_bindings.find(nvar));
       *cacheEntry=_parent->_bindings.get(nvar);
