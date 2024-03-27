@@ -1351,11 +1351,11 @@ public:
   namespace RetrievalAlgorithms {
 
       class RobUnification { 
-        Recycled<RobSubstitution> _subs;
+        RobSubstitution _subs;
       public:
         RobUnification() : _subs() {}
 
-        void init() { _subs->reset(); }
+        void init() { _subs.reset(); }
 
         /** a witness that the returned term matches the retrieval condition 
          * (could be a substitution, variable renaming, etc.) 
@@ -1365,7 +1365,7 @@ public:
         /** before starting to retrieve terms from the tree we insert some query terms, which we are going to 
          *  match the terms in the tree with. This is done using this function. */
         void bindQuerySpecialVar(unsigned var, TermList term)
-        { _subs->bindSpecialVar(var, term, QUERY_BANK); }
+        { _subs.bindSpecialVar(var, term, QUERY_BANK); }
 
         /** we intrementally traverse the tree, and at every code we call this retrieval algorithm to check 
          * whether it is okay to bind a new special variable to some term in the tree.
@@ -1379,22 +1379,22 @@ public:
          * Matching them up again is done by the function denormalize.
          */
         bool associate(unsigned specialVar, TermList node)
-        { return _subs->unify(TermList(specialVar, /* special */ true), QUERY_BANK, node, NORM_RESULT_BANK); }
+        { return _subs.unify(TermList(specialVar, /* special */ true), QUERY_BANK, node, NORM_RESULT_BANK); }
 
 
         /** @see associate */
         void denormalize(Renaming& norm)
-        { _subs->denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
+        { _subs.denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
 
         /** whenever we arrive at a leave we return the currrent witness for the current leave term to unify
          * with the query term. The unifier is queried using this function.  */
-        Unifier unifier() { return ResultSubstitution::fromSubstitution(&*_subs, QUERY_BANK, RESULT_BANK); }
+        Unifier unifier() { return ResultSubstitution::fromSubstitution(&_subs, QUERY_BANK, RESULT_BANK); }
 
         /** same as in @Backtrackable */
-        void bdRecord(BacktrackData& bd) { _subs->bdRecord(bd); }
+        void bdRecord(BacktrackData& bd) { _subs.bdRecord(bd); }
 
         /** same as in @Backtrackable */
-        void bdDone() { _subs->bdDone(); }
+        void bdDone() { _subs.bdDone(); }
 
 
 
@@ -1417,7 +1417,7 @@ public:
          */
         template<class LD>
         typename SubstitutionTree<LD>::NodeIterator selectPotentiallyUnifiableChildren(typename SubstitutionTree<LD>::IntermediateNode* n)
-        { return _selectPotentiallyUnifiableChildren<LD>(n, *_subs); }
+        { return _selectPotentiallyUnifiableChildren<LD>(n, _subs); }
 
         template<class LD>
         static typename SubstitutionTree<LD>::NodeIterator _selectPotentiallyUnifiableChildren(typename SubstitutionTree<LD>::IntermediateNode* n, RobSubstitution& subs)
@@ -1438,7 +1438,7 @@ public:
           }
         }
         friend std::ostream& operator<<(std::ostream& out, RobUnification const& self)
-        { return out << *self._subs; }
+        { return out << self._subs; }
 
       };
 
