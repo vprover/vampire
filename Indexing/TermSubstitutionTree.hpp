@@ -69,7 +69,7 @@ private:
   auto getResultIterator(TypedTermList query, bool retrieveSubstitutions, Args... args)
   { 
     return iterTraits(_inner.template iterator<Iterator>(query, retrieveSubstitutions, /* reversed */  false, std::move(args)...))
-      .map([](auto qr) { return queryRes(std::move(qr.unif), qr.data); }) ; }
+      ; }
 
   bool generalizationExists(TermList t) override
   { return t.isVar() ? false : _inner.generalizationExists(TypedTermList(t.term())); }

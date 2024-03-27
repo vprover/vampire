@@ -84,14 +84,14 @@ TermList SubstitutionTree<LeafData_>::InstMatcher::derefQueryBinding(unsigned va
   TermSpec varBinding;
   {
     TermList val;
-    if(_derefBindings->find(tvar, val)) {
+    if(_derefBindings.find(tvar, val)) {
       return val;
     }
     //only bound values can be passed to this function
-    ALWAYS(_bindings->find(tvar, varBinding));
+    ALWAYS(_bindings.find(tvar, varBinding));
 
     if(varBinding.isFinal()) {
-      ALWAYS(_derefBindings->insert(tvar, varBinding.t));
+      ALWAYS(_derefBindings.insert(tvar, varBinding.t));
       return varBinding.t;
     }
   }
@@ -107,14 +107,14 @@ TermList SubstitutionTree<LeafData_>::InstMatcher::derefQueryBinding(unsigned va
       TermList bvar=varBinding.t;
       TermList derefBoundTerm;
 
-      if(_derefBindings->find(bvar, derefBoundTerm)) {
-	ALWAYS(_derefBindings->insert(tvar, derefBoundTerm));
+      if(_derefBindings.find(bvar, derefBoundTerm)) {
+	ALWAYS(_derefBindings.insert(tvar, derefBoundTerm));
       }
 
-      ALWAYS(_bindings->find(bvar,varBinding));
+      ALWAYS(_bindings.find(bvar,varBinding));
     }
     if(varBinding.isFinal()) {
-      ALWAYS(_derefBindings->insert(tvar, varBinding.t));
+      ALWAYS(_derefBindings.insert(tvar, varBinding.t));
       goto next_loop;
     }
     {
@@ -124,8 +124,8 @@ TermList SubstitutionTree<LeafData_>::InstMatcher::derefQueryBinding(unsigned va
       while(vit.hasNext()) {
 	TermList btv=vit.next(); //bound term variable
 	if(varBinding.q || btv.isSpecialVar()) {
-	  ASS(_bindings->find(btv));
-	  if(!_derefBindings->find(btv)) {
+	  ASS(_bindings.find(btv));
+	  if(!_derefBindings.find(btv)) {
 	    toDo.push(DerefTask(btv));
 	  }
 	}
@@ -138,15 +138,15 @@ TermList SubstitutionTree<LeafData_>::InstMatcher::derefQueryBinding(unsigned va
       DerefApplicator applicator(this, tspec.q);
       TermList derefTerm=SubstHelper::applySV(tspec.t, applicator);
       ASS_REP(!derefTerm.isTerm() || derefTerm.term()->shared(), derefTerm);
-      ALWAYS(_derefBindings->insert(tvar, derefTerm));
+      ALWAYS(_derefBindings.insert(tvar, derefTerm));
     }
     if(toDo.isEmpty()) {
       break;
     }
     tvar=toDo.pop().var;
-    ALWAYS(_bindings->find(tvar, varBinding));
+    ALWAYS(_bindings.find(tvar, varBinding));
   };
-  return _derefBindings->get(tvar0);
+  return _derefBindings.get(tvar0);
 }
 
 template<class LeafData_>
@@ -159,7 +159,7 @@ typename SubstitutionTree<LeafData_>::InstMatcher::TermSpec SubstitutionTree<Lea
 #endif
   for(;;) {
     TermSpec res;
-    if(!_bindings->find(var, res)) {
+    if(!_bindings.find(var, res)) {
 	return TermSpec(var.isOrdinaryVar() ? true : false, var);
     }
     if( res.t.isTerm() || (!res.q && res.t.isOrdinaryVar()) ) {
@@ -182,11 +182,11 @@ template<class LeafData_>
 void SubstitutionTree<LeafData_>::InstMatcher::backtrack()
 {
   for(;;) {
-    TermList boundVar=_boundVars->pop();
+    TermList boundVar=_boundVars.pop();
     if(boundVar.isEmpty()) {
       break;
     }
-    _bindings->remove(boundVar);
+    _bindings.remove(boundVar);
   }
 }
 
@@ -195,7 +195,7 @@ template<class LeafData_>
 bool SubstitutionTree<LeafData_>::InstMatcher::matchNext(unsigned specVar, TermList nodeTerm, bool separate)
 {
   if(separate) {
-    _boundVars->push(TermList::empty());
+    _boundVars.push(TermList::empty());
   }
 
 #if VDEBUG
@@ -340,7 +340,7 @@ bool SubstitutionTree<LeafData_>::FastInstancesIterator::hasNext()
 #define LOGGING 0
 
 template<class LeafData_>
-typename SubstitutionTree<LeafData_>::template QueryResult<ResultSubstitutionSP> SubstitutionTree<LeafData_>::FastInstancesIterator::next()
+QueryRes<ResultSubstitutionSP, LeafData_> SubstitutionTree<LeafData_>::FastInstancesIterator::next()
 {
   while(!_ldIterator.hasNext() && findNextLeaf()) {}
   ASS(_ldIterator.hasNext());
@@ -355,9 +355,9 @@ typename SubstitutionTree<LeafData_>::template QueryResult<ResultSubstitutionSP>
       _resultDenormalizer.makeInverse(normalizer);
     }
 
-    return queryResult(ld, _subst.getSubstitution(&_resultDenormalizer));
+    return QueryRes(_subst.getSubstitution(&_resultDenormalizer), ld);
   } else {
-    return queryResult(ld, ResultSubstitutionSP());
+    return QueryRes(ResultSubstitutionSP(), ld);
   }
 }
 #undef LOGGING
@@ -373,7 +373,7 @@ bool SubstitutionTree<LeafData_>::FastInstancesIterator::findNextLeaf()
   Node* curr;
   bool sibilingsRemain = false;
   if(_inLeaf) {
-    if(_alternatives->isEmpty()) {
+    if(_alternatives.isEmpty()) {
       return false;
     }
     _subst.backtrack();
@@ -395,26 +395,26 @@ main_loop_start:
 
     if(curr) {
       if(sibilingsRemain) {
-        ASS(_nodeTypes->top()!=UNSORTED_LIST || *static_cast<Node**>(_alternatives->top()));
-        currSpecVar = _specVarNumbers->top();
+        ASS(_nodeTypes.top()!=UNSORTED_LIST || *static_cast<Node**>(_alternatives.top()));
+        currSpecVar = _specVarNumbers.top();
       } else {
-	      currSpecVar = _specVarNumbers->pop();
+	      currSpecVar = _specVarNumbers.pop();
       }
     }
     //let's find a node we haven't been to...
-    while(curr==0 && _alternatives->isNonEmpty()) {
-      void* currAlt=_alternatives->pop();
+    while(curr==0 && _alternatives.isNonEmpty()) {
+      void* currAlt=_alternatives.pop();
       if(!currAlt) {
         //there's no alternative at this level, we have to backtrack
-        _nodeTypes->pop();
-        _specVarNumbers->pop();
-        if(_alternatives->isNonEmpty()) {
+        _nodeTypes.pop();
+        _specVarNumbers.pop();
+        if(_alternatives.isNonEmpty()) {
 	  _subst.backtrack();
 	}
 	continue;
       }
 
-      NodeAlgorithm parentType = _nodeTypes->top();
+      NodeAlgorithm parentType = _nodeTypes.top();
 
       //the fact that we have alternatives means that here we are
       //matching by a variable (as there is always at most one child
@@ -423,7 +423,7 @@ main_loop_start:
 	Node** alts=static_cast<Node**>(currAlt);
 	curr=*(alts++);
 	if(*alts) {
-	  _alternatives->push(alts);
+	  _alternatives.push(alts);
 	  sibilingsRemain=true;
 	} else {
 	  sibilingsRemain=false;
@@ -435,7 +435,7 @@ main_loop_start:
 
 	curr=alts->head();
 	if(alts->tail()) {
-	  _alternatives->push(alts->tail());
+	  _alternatives.push(alts->tail());
 	  sibilingsRemain=true;
 	} else {
 	  sibilingsRemain=false;
@@ -443,10 +443,10 @@ main_loop_start:
       }
 
       if(sibilingsRemain) {
-        currSpecVar = _specVarNumbers->top();
+        currSpecVar = _specVarNumbers.top();
       } else {
-        _nodeTypes->pop();
-        currSpecVar = _specVarNumbers->pop();
+        _nodeTypes.pop();
+        currSpecVar = _specVarNumbers.pop();
       }
       ASS(curr);
       break;
@@ -458,7 +458,7 @@ main_loop_start:
     if(!_subst.matchNext(currSpecVar, curr->term(), sibilingsRemain)) {	//[1]
       //match unsuccessful, try next alternative
       curr=0;
-      if(!sibilingsRemain && _alternatives->isNonEmpty()) {
+      if(!sibilingsRemain && _alternatives.isNonEmpty()) {
 	_subst.backtrack();
       }
       continue;
@@ -471,7 +471,7 @@ main_loop_start:
       if(!_subst.matchNext(specVar, curr->term(), false)) {
 	//matching failed, let's go back to the node, that had multiple children
 	//_subst.backtrack();
-	if(sibilingsRemain || _alternatives->isNonEmpty()) {
+	if(sibilingsRemain || _alternatives.isNonEmpty()) {
 	  //this backtrack can happen for two different reasons and have two different meanings:
 	  //either matching at [1] was separated from the previous one and we're backtracking it,
 	  //or it was not, which means it had no sibilings and we're backtracking from its parent.
@@ -491,7 +491,7 @@ main_loop_start:
 
     //let's go to the first child
     sibilingsRemain=enterNode(curr);
-    if(curr==0 && _alternatives->isNonEmpty()) {
+    if(curr==0 && _alternatives.isNonEmpty()) {
       _subst.backtrack();
     }
   }
@@ -556,11 +556,11 @@ bool SubstitutionTree<LeafData_>::FastInstancesIterator::enterNode(Node*& curr)
     }
 
     if(curr) {
-      _specVarNumbers->push(inode->childVar);
+      _specVarNumbers.push(inode->childVar);
     }
     if(*nl && !noAlternatives) {
-      _alternatives->push(nl);
-      _nodeTypes->push(currType);
+      _alternatives.push(nl);
+      _nodeTypes.push(currType);
       return true;
     }
   } else {
@@ -583,11 +583,11 @@ bool SubstitutionTree<LeafData_>::FastInstancesIterator::enterNode(Node*& curr)
     }
 
     if(curr) {
-      _specVarNumbers->push(inode->childVar);
+      _specVarNumbers.push(inode->childVar);
     }
     if(nl) {
-      _alternatives->push(nl);
-      _nodeTypes->push(currType);
+      _alternatives.push(nl);
+      _nodeTypes.push(currType);
       return true;
     }
   }

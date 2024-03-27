@@ -18,6 +18,7 @@
 
 #include "Indexing/Index.hpp"
 #include "Kernel/UnificationWithAbstraction.hpp"
+#include "Lib/Metaiterators.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "LiteralIndexingStructure.hpp"
 #include "SubstitutionTree.hpp"
@@ -62,7 +63,6 @@ public:
   VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData_>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions) final override
   { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::RobUnification>>(lit, complementary, retrieveSubstitutions)); }
 
-
   VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions) final override
   { return pvi(getResultIterator<FastGeneralizationsIterator>(lit, complementary, retrieveSubstitutions)); }
 
@@ -71,8 +71,7 @@ public:
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getVariants(Literal* query, bool complementary, bool retrieveSubstitutions) final override
   {
-    return pvi(iterTraits(getTree(query, complementary).getVariants(query, retrieveSubstitutions))
-          .map([](auto qr) { return queryRes(std::move(qr.unif), qr.data); }));
+    return pvi(iterTraits(getTree(query, complementary).getVariants(query, retrieveSubstitutions)));
   }
 
 private:
@@ -89,21 +88,29 @@ private:
   template<class Iterator, class... Args>
   auto getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, Args... args)
   {
-    auto iter = [this, lit, complementary, retrieveSubstitutions, &args...](bool reversed) 
-      { return iterTraits(getTree(lit, complementary).template iterator<Iterator>(lit, retrieveSubstitutions, reversed, args...)) ; };
+    auto tree = &getTree(lit, complementary);
 
-    auto filterResults = [](auto it) { 
-      return std::move(it)
-          .map([](auto r) { return queryRes(std::move(r.unif), r.data); }) ; 
-    };
+    auto iter = [tree, lit, retrieveSubstitutions, &args...](bool reversed) 
+      { return tree->template iterator<Iterator>(lit, retrieveSubstitutions, reversed, args...); };
+
     return ifElseIter(
-        !lit->commutative(),
-        [&]() { return filterResults(iter( /* reversed */ false)); },
-        [&]() { return filterResults(concatIters(
-                                      iter( /* reversed */ false),
-                                      iter( /* reversed */ true)
-                                    )); }
+        tree->isEmpty(), [&]() { return VirtualIterator<ELEMENT_TYPE(Iterator)>::getEmpty(); }, 
+                         [&]() { return ifElseIter(!lit->commutative(), 
+                                 [&]() { return iter(/* reverse */ false); },
+                                 [&]() { return concatIters(iter(/* reverse */ false), iter(/* reverse */ true)); }); }
         );
+    // if (tree.isEmpty()) {
+    //
+    // }
+
+    // return ifElseIter(
+    //     !lit->commutative(),
+    //     [&]() { return iter( /* reversed */ false); },
+    //     [&]() { return concatIters(
+    //                 iter( /* reversed */ false),
+    //                 iter( /* reversed */ true)
+    //                 ); }
+    //     );
   }
 
 public:
