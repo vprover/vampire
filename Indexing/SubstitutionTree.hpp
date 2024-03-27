@@ -1141,9 +1141,9 @@ public:
       DECL_ELEMENT_TYPE(QueryRes<Unifier, LeafData>);
 
       void reset() {
-        _svStack->reset();
-        _nodeIterators->reset();
-        _bdStack->reset();
+        _svStack.reset();
+        _nodeIterators.reset();
+        _bdStack.reset();
       }
 
       template<class TermOrLit, class...AlgoArgs>
@@ -1180,10 +1180,9 @@ public:
           _normalizationRecording=false;
           _normalizationBacktrackData.backtrack();
         }
-        if (_bdStack.alive()) 
-          while(_bdStack->isNonEmpty()) {
-            _bdStack->pop().backtrack();
-          }
+        while(_bdStack.isNonEmpty()) {
+          _bdStack.pop().backtrack();
+        }
       }
 
       bool hasLeafData() { return _leafData.isSome() && _leafData->hasNext(); };
@@ -1228,7 +1227,7 @@ public:
       template<class F>
       bool runRecording(F f) 
       {
-        _algo.bdRecord(_bdStack->top());
+        _algo.bdRecord(_bdStack.top());
         bool success = f();
         _algo.bdDone();
         return success;
@@ -1238,19 +1237,19 @@ public:
 
       bool findNextLeaf()
       {
-        if(_nodeIterators->isEmpty()) {
+        if(_nodeIterators.isEmpty()) {
           //There are no node iterators in the stack, so there's nowhere
           //to look for the next leaf.
           //This shouldn't hapen during the regular retrieval process, but it
           //can happen when there are no literals inserted for a predicate,
           //or when predicates with zero arity are encountered.
-          ASS(_bdStack->isEmpty());
+          ASS(_bdStack.isEmpty());
           return false;
         }
 
         auto leaveLeaf = [&]() {
             ASS(!_normalizationRecording);
-            _bdStack->pop().backtrack();
+            _bdStack.pop().backtrack();
             _leafData = {};
         };
 
@@ -1259,28 +1258,28 @@ public:
         }
 
         ASS(!_normalizationRecording);
-        ASS(_bdStack->length()+1==_nodeIterators->length());
+        ASS(_bdStack.length()+1==_nodeIterators.length());
 
         do {
-          while (!_nodeIterators->top().hasNext() && !_bdStack->isEmpty()) {
-            _bdStack->pop().backtrack();
+          while (!_nodeIterators.top().hasNext() && !_bdStack.isEmpty()) {
+            _bdStack.pop().backtrack();
           }
-          if(!_nodeIterators->top().hasNext()) {
+          if(!_nodeIterators.top().hasNext()) {
             return false;
           }
-          Node* n=*_nodeIterators->top().next();
-          DEBUG_QUERY(1, "trying S", _svStack->top(), " -> ", n->term())
+          Node* n=*_nodeIterators.top().next();
+          DEBUG_QUERY(1, "trying S", _svStack.top(), " -> ", n->term())
 
-          _bdStack->push(BacktrackData());
+          _bdStack.push(BacktrackData());
 
-          if (runRecording([&]() { return _algo.associate(_svStack->top(), n->term());})) {
+          if (runRecording([&]() { return _algo.associate(_svStack.top(), n->term());})) {
             prepareChildren(n, /* backtrackable */ true);
             if (_leafData.isSome() && !runRecording([&](){ return _algo.doFinalLeafCheck(); })) {
               leaveLeaf();
               continue;
             }
           } else {
-            _bdStack->pop().backtrack();
+            _bdStack.pop().backtrack();
             continue;
           }
         } while(_leafData.isNone());
@@ -1297,34 +1296,34 @@ public:
           _leafData = some(static_cast<Leaf*>(n)->allChildren());
         } else {
           IntermediateNode* inode=static_cast<IntermediateNode*>(n);
-          _svStack->push(inode->childVar);
+          _svStack.push(inode->childVar);
           _leafData = {};
-          DEBUG_QUERY(1, "entering node: S", _svStack->top())
+          DEBUG_QUERY(1, "entering node: S", _svStack.top())
           
-          _nodeIterators->push(_algo.template selectPotentiallyUnifiableChildren<LeafData>(inode));
+          _nodeIterators.push(_algo.template selectPotentiallyUnifiableChildren<LeafData>(inode));
           if (backtrackable) {
-            _bdStack->top().addClosure([&]() { 
-                DEBUG_CODE(auto var = )_svStack->pop();
+            _bdStack.top().addClosure([&]() { 
+                DEBUG_CODE(auto var = )_svStack.pop();
                 DEBUG_QUERY(1, "backtracking node: S", var)
-                _nodeIterators->pop(); 
+                _nodeIterators.pop(); 
             });
           }
         }
       }
 
       RetrievalAlgorithm _algo;
-      Recycled<VarStack> _svStack;
+      VarStack _svStack;
       bool _retrieveSubstitution;
       Option<LDIterator> _leafData;
-      Recycled<Stack<NodeIterator>> _nodeIterators;
-      Recycled<Stack<BacktrackData>> _bdStack;
+      Stack<NodeIterator> _nodeIterators;
+      Stack<BacktrackData> _bdStack;
       bool _normalizationRecording;
       BacktrackData _normalizationBacktrackData;
       InstanceCntr _iterCntr;
 
     public:
       bool keepRecycled() const 
-      { return _svStack->keepRecycled() || _nodeIterators->keepRecycled() || _bdStack->keepRecycled(); }
+      { return _svStack.keepRecycled() || _nodeIterators.keepRecycled() || _bdStack.keepRecycled(); }
     };
 
 
