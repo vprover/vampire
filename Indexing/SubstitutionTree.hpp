@@ -94,12 +94,16 @@ template<class LD> std::ostream& operator<<(std::ostream& out, OutputMultiline<S
 #if VDEBUG
     Cntr* _cntr = nullptr;
 
-    InstanceCntr& operator=(InstanceCntr&& other) 
-    { std::swap(other._cntr, _cntr); return *this; }
+    InstanceCntr(InstanceCntr&& other)
+      : InstanceCntr()
+    { std::swap(other._cntr, _cntr); }
 
-    InstanceCntr(InstanceCntr&& other) 
+    InstanceCntr(InstanceCntr const& other)
       : _cntr(other._cntr)
-    { }
+    { if (_cntr) _cntr->self++; }
+
+    InstanceCntr& operator=(InstanceCntr&& other) = default;
+    InstanceCntr& operator=(InstanceCntr const& other) = default;
 
     InstanceCntr() : _cntr(nullptr) 
     { }
@@ -108,7 +112,7 @@ template<class LD> std::ostream& operator<<(std::ostream& out, OutputMultiline<S
     { _cntr->self++; }
 
     ~InstanceCntr() 
-    { if (_cntr) _cntr->self--; _cntr = nullptr; }
+    { if (_cntr) _cntr->self--; }
 #else // VDEBUG
    InstanceCntr(){ }
    InstanceCntr(Cntr& parent) {}
