@@ -43,8 +43,10 @@ public:
   virtual ~ResultSubstitution() {}
   virtual TermList applyToQuery(TermList t) { NOT_IMPLEMENTED; }
   virtual Literal* applyToQuery(Literal* l) { NOT_IMPLEMENTED; }
+  virtual TypedTermList applyToQuery(TypedTermList t) { return TypedTermList(applyToQuery(TermList(t)), applyToQuery(t.sort())); }
   virtual TermList applyToResult(TermList t) { NOT_IMPLEMENTED; }
   virtual Literal* applyToResult(Literal* l) { NOT_IMPLEMENTED; }
+  virtual TypedTermList applyToResult(TypedTermList t) { return TypedTermList(applyToResult(TermList(t)), applyToResult(t.sort())); }
 
   virtual TermList applyTo(TermList t, unsigned index) { ASSERTION_VIOLATION; }
   virtual Literal* applyTo(Literal* l, unsigned index) { NOT_IMPLEMENTED; }

@@ -68,9 +68,9 @@ void BackwardSubsumptionResolution::detach()
 
 struct BackwardSubsumptionResolution::ClauseExtractorFn
 {
-  Clause* operator()(const SLQueryResult& res)
+  Clause* operator()(const QueryRes<ResultSubstitutionSP, LiteralClause>& res)
   {
-    return res.clause;
+    return res.data->clause;
   }
 };
 
@@ -107,17 +107,17 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
   if(clen==1) {
     List<BwSimplificationRecord>* simplRes=0;
 
-    SLQueryResultIterator rit=_index->getInstances( (*cl)[0], true, false);
+    auto rit = _index->getInstances( (*cl)[0], true, false);
     while(rit.hasNext()) {
-      SLQueryResult qr=rit.next();
+      auto qr = rit.next();
 
-      if(!checkedClauses.insert(qr.clause)) {
+      if(!checkedClauses.insert(qr.data->clause)) {
 	continue;
       }
 
-      Clause* resCl=ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(qr.clause, qr.literal, cl);
+      Clause* resCl=ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(qr.data->clause, qr.data->literal, cl);
 
-      List<BwSimplificationRecord>::push(BwSimplificationRecord(qr.clause,resCl), simplRes);
+      List<BwSimplificationRecord>::push(BwSimplificationRecord(qr.data->clause,resCl), simplRes);
       env.statistics->backwardSubsumptionResolution++;
       RSTAT_CTR_INC("bsr0 performed (units)");
     }
@@ -154,11 +154,11 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
 
   List<BwSimplificationRecord>* simplRes=0;
 
-  SLQueryResultIterator rit=_index->getInstances( lmLit, true, false);
+  auto rit = _index->getInstances( lmLit, true, false);
   while(rit.hasNext()) {
-    SLQueryResult qr=rit.next();
-    Clause* icl=qr.clause;
-    Literal* ilit=qr.literal;
+    auto qr = rit.next();
+    Clause* icl=qr.data->clause;
+    Literal* ilit=qr.data->literal;
     unsigned ilen=icl->length();
     if(ilen<clen || icl==cl) {
       continue;
@@ -239,10 +239,10 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
 
 
 
-    LiteralList::push(qr.literal, matchedLits[lmIndex]);
+    LiteralList::push(qr.data->literal, matchedLits[lmIndex]);
     for(unsigned bi=0;bi<clen;bi++) {
       for(unsigned ii=0;ii<ilen;ii++) {
-	if(bi==lmIndex && (*icl)[ii]==qr.literal) {
+	if(bi==lmIndex && (*icl)[ii]==qr.data->literal) {
 	  continue;
 	}
 	if(MatchingUtils::match((*cl)[bi],(*icl)[ii],false)) {
@@ -255,10 +255,10 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
     }
 
     RSTAT_CTR_INC("bsr1 3 final check");
-    if(MLMatcher::canBeMatched(cl,icl,matchedLits.array(),qr.literal)) {
+    if(MLMatcher::canBeMatched(cl,icl,matchedLits.array(),qr.data->literal)) {
       RSTAT_CTR_INC("bsr1 4 performed");
-      Clause* resCl=ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(qr.clause, qr.literal, cl);
-      List<BwSimplificationRecord>::push(BwSimplificationRecord(qr.clause,resCl), simplRes);
+      Clause* resCl=ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(qr.data->clause, qr.data->literal, cl);
+      List<BwSimplificationRecord>::push(BwSimplificationRecord(qr.data->clause,resCl), simplRes);
       env.statistics->backwardSubsumptionResolution++;      
     }
 
@@ -278,9 +278,9 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
 
   rit=_index->getInstances( lmLit, false, false);
   while(rit.hasNext()) {
-    SLQueryResult qr=rit.next();
-    Clause* icl=qr.clause;
-    Literal* ilit=qr.literal;
+    auto qr = rit.next();
+    Clause* icl=qr.data->clause;
+    Literal* ilit=qr.data->literal;
     unsigned ilen=icl->length();
     if(ilen<clen || icl==cl) {
       continue;
@@ -369,7 +369,7 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
     Literal* resolvedLit=0;
     for(unsigned bi=0;bi<clen;bi++) {
       for(unsigned ii=0;ii<ilen;ii++) {
-	if(bi==lmIndex && (*icl)[ii]==qr.literal) {
+	if(bi==lmIndex && (*icl)[ii]==qr.data->literal) {
 	  continue;
 	}
 	if(MatchingUtils::match((*cl)[bi],(*icl)[ii],true)) {
@@ -384,11 +384,11 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
   res_lit_found:
     RSTAT_CTR_INC("bsr2 3 have res lit");
 
-    LiteralList::push(qr.literal, matchedLits[lmIndex]);
+    LiteralList::push(qr.data->literal, matchedLits[lmIndex]);
     for(unsigned bi=0;bi<clen;bi++) {
       for(unsigned ii=0;ii<ilen;ii++) {
 	Literal* ilit=(*icl)[ii];
-	if( ilit==resolvedLit || (bi==lmIndex && ilit==qr.literal) ) {
+	if( ilit==resolvedLit || (bi==lmIndex && ilit==qr.data->literal) ) {
 	  continue;
 	}
 	if(MatchingUtils::match((*cl)[bi],ilit,false)) {
@@ -403,8 +403,8 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
     RSTAT_CTR_INC("bsr2 4 final check");
     if(MLMatcher::canBeMatched(cl,icl,matchedLits.array(),resolvedLit)) {
       RSTAT_CTR_INC("bsr2 5 performed");
-      Clause* resCl=ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(qr.clause, resolvedLit, cl);
-      List<BwSimplificationRecord>::push(BwSimplificationRecord(qr.clause,resCl), simplRes);
+      Clause* resCl=ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(qr.data->clause, resolvedLit, cl);
+      List<BwSimplificationRecord>::push(BwSimplificationRecord(qr.data->clause,resCl), simplRes);
       env.statistics->backwardSubsumptionResolution++;
     }
 

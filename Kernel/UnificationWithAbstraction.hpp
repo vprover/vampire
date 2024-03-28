@@ -150,6 +150,14 @@ class AbstractingUnifier
   friend class RobSubstitution;
   AbstractingUnifier(AbstractionOracle uwa) : _subs(), _constr(), _bd(), _uwa(uwa) { }
 public:
+  void init(AbstractionOracle uwa) 
+  { 
+    _subs->reset();
+    _constr->reset();
+    _bd = {};
+    _uwa = std::move(uwa);
+  }
+
   static AbstractingUnifier empty(AbstractionOracle uwa) { return AbstractingUnifier(uwa); }
 
   bool isRecording() { return _subs->bdIsRecording(); }

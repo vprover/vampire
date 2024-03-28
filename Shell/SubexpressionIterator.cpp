@@ -115,7 +115,7 @@ namespace Shell {
         if (term->isSpecial()) {
           Term::SpecialTermData* sd = term->getSpecialData();
           switch (sd->specialFunctor()) {
-            case Term::SpecialFunctor::FORMULA:
+            case SpecialFunctor::FORMULA:
               /**
                * Note that here we propagate the polarity of the boolean term to its
                * underlying formula
@@ -123,7 +123,7 @@ namespace Shell {
               _subexpressions.push(Expression(sd->getFormula(), polarity));
               break;
 
-            case Term::SpecialFunctor::ITE: 
+            case SpecialFunctor::ITE: 
               /**
                * Regardless of the polarity of the whole if-then-else expression,
                * the polarity of the condition is always 0. This is because you
@@ -134,8 +134,8 @@ namespace Shell {
               _subexpressions.push(Expression(*term->nthArgument(1), polarity));
               break;
 
-            case Term::SpecialFunctor::LET:
-            case Term::SpecialFunctor::LET_TUPLE: 
+            case SpecialFunctor::LET:
+            case SpecialFunctor::LET_TUPLE: 
               /**
                * The polarity of the body of let-bindings is 0.
                * An expression "$let(f := A, ...)", where A is a formula,
@@ -145,15 +145,15 @@ namespace Shell {
               _subexpressions.push(Expression(*term->nthArgument(0), polarity));
               break;
 
-            case Term::SpecialFunctor::LAMBDA:
+            case SpecialFunctor::LAMBDA:
 			       _subexpressions.push(Expression(sd->getLambdaExp(), polarity));
 			       break;
 
-            case Term::SpecialFunctor::TUPLE:
+            case SpecialFunctor::TUPLE:
               _subexpressions.push(Expression(sd->getTupleTerm()));
               break;
 
-            case Term::SpecialFunctor::MATCH: {
+            case SpecialFunctor::MATCH: {
               for (unsigned i = 0; i < term->arity(); i++) {
                 _subexpressions.push(Expression(*term->nthArgument(i), polarity));
               }

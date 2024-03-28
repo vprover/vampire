@@ -238,16 +238,10 @@ VI_OBJ = Indexing/AcyclicityIndex.o\
          Indexing/InductionFormulaIndex.o\
          Indexing/LiteralIndex.o\
          Indexing/LiteralMiniIndex.o\
-         Indexing/LiteralSubstitutionTree.o\
          Indexing/ResultSubstitution.o\
-         Indexing/SubstitutionTree.o\
-         Indexing/SubstitutionTree_FastGen.o\
-         Indexing/SubstitutionTree_FastInst.o\
-         Indexing/SubstitutionTree_Nodes.o\
          Indexing/TermCodeTree.o\
          Indexing/TermIndex.o\
          Indexing/TermSharing.o\
-         Indexing/TermSubstitutionTree.o
 
 VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BackwardSubsumptionResolution.o\
@@ -305,7 +299,6 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/InterpretedEvaluation.o\
          Inferences/InvalidAnswerLiteralRemoval.o\
          Inferences/TheoryInstAndSimp.o
-#         Inferences/RenamingOnTheFly.o\
 
 VSAT_OBJ=SAT/MinimizingSolver.o\
          SAT/SAT2FO.o\
@@ -451,12 +444,7 @@ LIB_DEP = Indexing/TermSharing.o\
     Kernel/Rebalancing/Inverters.o\
     Kernel/NumTraits.o
 
-OTHER_CL_DEP = Indexing/LiteralSubstitutionTree.o\
-	       Indexing/ResultSubstitution.o\
-	       Indexing/SubstitutionTree_FastGen.o\
-	       Indexing/SubstitutionTree_FastInst.o\
-	       Indexing/SubstitutionTree_Nodes.o\
-	       Indexing/SubstitutionTree.o\
+OTHER_CL_DEP = Indexing/ResultSubstitution.o\
 	       Inferences/InferenceEngine.o\
 	       Inferences/TautologyDeletionISE.o\
 	       Kernel/EqHelper.o\

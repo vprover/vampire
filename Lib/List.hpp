@@ -536,27 +536,6 @@ public:
     List* _lst;
   };
 
-  class PtrIterator
-  {
-  public:
-    USE_ALLOCATOR(List::PtrIterator);
-    
-    DECL_ELEMENT_TYPE(C*);
-    PtrIterator(List* lst) : _l(lst) {}
-    bool hasNext()
-    { return _l->isNonEmpty(); }
-
-    C* next()
-    {
-      C* res=_l->headPtr();
-      _l=_l->tail();
-      return res;
-    }
-  protected:
-    List* _l;
-  };
-
-
   /** Iterator that allows one to delete the current element */
   class DelIterator {
    public:

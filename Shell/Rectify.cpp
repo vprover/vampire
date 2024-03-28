@@ -130,7 +130,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
 {
   Term::SpecialTermData* sd = t->getSpecialData();
   switch(t->specialFunctor()) {
-  case Term::SpecialFunctor::ITE:
+  case SpecialFunctor::ITE:
   {
     ASS_EQ(t->arity(),2);
     Formula* c = rectify(sd->getCondition());
@@ -142,7 +142,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     }
     return Term::createITE(c, th, el, sort);
   }
-  case Term::SpecialFunctor::LET:
+  case SpecialFunctor::LET:
   {
     ASS_EQ(t->arity(),1);
 
@@ -169,7 +169,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     }
     return Term::createLet(sd->getFunctor(), variables, binding, contents, sort);
   }
-  case Term::SpecialFunctor::LET_TUPLE:
+  case SpecialFunctor::LET_TUPLE:
   {
     ASS_EQ(t->arity(),1);
 
@@ -182,7 +182,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     }
     return Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(), binding, contents, sort);
   } 
-  case Term::SpecialFunctor::FORMULA:
+  case SpecialFunctor::FORMULA:
   {
     ASS_EQ(t->arity(),0);
     Formula* orig = rectify(sd->getFormula());
@@ -191,7 +191,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     }
     return Term::createFormula(orig);
   }
-  case Term::SpecialFunctor::LAMBDA:
+  case SpecialFunctor::LAMBDA:
   {
     ASS_EQ(t->arity(),0);
     bindVars(sd->getLambdaVars());
@@ -225,7 +225,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     }
     return Term::createLambda(lambdaTerm, vs, rectifiedSorts, lambdaTermS);   
   }
-  case Term::SpecialFunctor::TUPLE:
+  case SpecialFunctor::TUPLE:
   {
     ASS_EQ(t->arity(),0);
     Term* rectifiedTupleTerm = rectify(sd->getTupleTerm());
@@ -234,7 +234,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     }
     return Term::createTuple(rectifiedTupleTerm);
   }
-  case Term::SpecialFunctor::MATCH: {
+  case SpecialFunctor::MATCH: {
     DArray<TermList> terms(t->arity());
     bool unchanged = true;
     for (unsigned i = 0; i < t->arity(); i++) {

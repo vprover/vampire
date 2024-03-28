@@ -131,7 +131,7 @@ struct URResolution::Item
    * substitution is applied to the literals, otherwise the result
    * part is applied.
    */
-  void resolveLiteral(unsigned idx, SLQueryResult& unif, Clause* premise, bool useQuerySubstitution)
+  void resolveLiteral(unsigned idx, QueryRes<ResultSubstitutionSP, LiteralClause>& unif, Clause* premise, bool useQuerySubstitution)
   {
     Literal* rlit = _lits[idx];
     _lits[idx] = 0;
@@ -299,19 +299,19 @@ void URResolution::processLiteral(ItemList*& itms, unsigned idx)
       iit.insert(itm2);
     }
 
-    SLQueryResultIterator unifs = _unitIndex->getUnifications(lit, true, true);
+    auto unifs = _unitIndex->getUnifications(lit, true, true);
     while(unifs.hasNext()) {
-      SLQueryResult unif = unifs.next();
+      auto unif = unifs.next();
 
-      if( !ColorHelper::compatible(itm->_color, unif.clause->color()) ) {
+      if( !ColorHelper::compatible(itm->_color, unif.data->clause->color()) ) {
         continue;
       }
 
       Item* itm2 = new Item(*itm);
-      itm2->resolveLiteral(idx, unif, unif.clause, true);
+      itm2->resolveLiteral(idx, unif, unif.data->clause, true);
       iit.insert(itm2);
 
-      if(!_full && itm->_atMostOneNonGround && (!synthesis || !unif.clause->hasAnswerLiteral())) {
+      if(!_full && itm->_atMostOneNonGround && (!synthesis || !unif.data->clause->hasAnswerLiteral())) {
         /* if there is only one non-ground literal left, there is no need to retrieve all unifications.
            However, this does not hold under AVATAR where different empty clauses may close different
            splitting branches, that's why only "full" URR is complete under AVATAR (see Options::complete)
@@ -367,17 +367,17 @@ void URResolution::doBackwardInferences(Clause* cl, ClauseList*& acc)
     lit = (*cl)[1];
   }
 
-  SLQueryResultIterator unifs = _nonUnitIndex->getUnifications(lit, true, true);
+  auto unifs = _nonUnitIndex->getUnifications(lit, true, true);
   while(unifs.hasNext()) {
-    SLQueryResult unif = unifs.next();
-    Clause* ucl = unif.clause;
+    auto unif = unifs.next();
+    Clause* ucl = unif.data->clause;
 
     if( !ColorHelper::compatible(cl->color(), ucl->color()) ) {
       continue;
     }
 
     Item* itm = new Item(ucl, _selectedOnly, *this, _emptyClauseOnly);
-    unsigned pos = ucl->getLiteralPosition(unif.literal);
+    unsigned pos = ucl->getLiteralPosition(unif.data->literal);
     ASS(!_selectedOnly || pos<ucl->numSelected());
     swap(itm->_lits[0], itm->_lits[pos]);
     itm->resolveLiteral(0, unif, cl, /* useQuerySubstitution */ false);

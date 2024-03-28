@@ -165,7 +165,6 @@ public:
   bool isSome() const { return _isSome;   }
   bool isNone() const { return !isSome(); }
 
-
   static OptionBase fromPtr(A* ptr) 
   { return ptr == nullptr ? OptionBase() : OptionBase(*ptr); }
 

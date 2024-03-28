@@ -139,7 +139,7 @@ void AnswerExtractor::getNeededUnits(Clause* refutation, ClauseStack& premiseCla
 class ConjunctionGoalAnswerExractor::SubstBuilder
 {
 public:
-  SubstBuilder(LiteralStack& goalLits, LiteralIndexingStructure& lemmas, RobSubstitution& subst)
+  SubstBuilder(LiteralStack& goalLits, LiteralIndexingStructure<LiteralClause>& lemmas, RobSubstitution& subst)
    : _goalLits(goalLits), _lemmas(lemmas), _subst(subst),
      _goalCnt(goalLits.size()), _btData(_goalCnt), _unifIts(_goalCnt), _triedEqUnif(_goalCnt)
   {}
@@ -194,9 +194,9 @@ public:
     Literal* goalLit = _goalLits[_depth];
 
     while(_unifIts[_depth].hasNext()) {
-      SLQueryResult qres = _unifIts[_depth].next();
-      ASS_EQ(goalLit->header(), qres.literal->header());
-      if(_subst.unifyArgs(goalLit, 0, qres.literal, 1)) {
+      auto qres = _unifIts[_depth].next();
+      ASS_EQ(goalLit->header(), qres.data->literal->header());
+      if(_subst.unifyArgs(goalLit, 0, qres.data->literal, 1)) {
 	return true;
       }
     }
@@ -211,12 +211,12 @@ public:
 
 private:
   LiteralStack& _goalLits;
-  LiteralIndexingStructure& _lemmas;
+  LiteralIndexingStructure<LiteralClause>& _lemmas;
   RobSubstitution& _subst;
 
   unsigned _goalCnt;
   DArray<BacktrackData> _btData;
-  DArray<SLQueryResultIterator> _unifIts;
+  DArray<VirtualIterator<QueryRes<ResultSubstitutionSP, LiteralClause>>> _unifIts;
   DArray<bool> _triedEqUnif;
 
   unsigned _depth;
@@ -279,9 +279,9 @@ bool ConjunctionGoalAnswerExractor::tryGetAnswer(Clause* refutation, Stack<TermL
 
   RobSubstitution subst;
 
-  SLQueryResultIterator alit = lemmas.getAll();
+  auto alit = lemmas.getAll();
   while(alit.hasNext()) {
-    SLQueryResult aqr = alit.next();
+    auto aqr = alit.next();
   }
 
   if(!SubstBuilder(goalLits, lemmas, subst).run()) {

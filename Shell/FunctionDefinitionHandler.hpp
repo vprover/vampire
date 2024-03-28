@@ -87,9 +87,10 @@ public:
   void addFunctionBranch(Term* header, TermList body);
   void addPredicateBranch(Literal* header, const LiteralStack& conditions);
 
-  TermQueryResultIterator getGeneralizations(TypedTermList t) {
+  auto getGeneralizations(TypedTermList t)
+  {
     if (_is.isEmpty()) {
-      return TermQueryResultIterator::getEmpty();
+      return VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>>::getEmpty();
     }
     return _is->getGeneralizations(t, true);
   }

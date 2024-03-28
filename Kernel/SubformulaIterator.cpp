@@ -158,14 +158,14 @@ bool SubformulaIterator::hasNext ()
         }
 
         switch (term->specialFunctor()) {
-          case Term::SpecialFunctor::ITE: {
+          case SpecialFunctor::ITE: {
             _current = term->getSpecialData()->getCondition();
             _currentPolarity = polarity;
             delete _reserve;
             _reserve = rest;
             return true;
           }
-          case Term::SpecialFunctor::LET: {
+          case SpecialFunctor::LET: {
             delete _reserve;
             TermList binding = term->getSpecialData()->getBinding();
             if (!binding.isTerm()) {
@@ -176,7 +176,7 @@ bool SubformulaIterator::hasNext ()
             }
             break;
           }
-          case Term::SpecialFunctor::LET_TUPLE: {
+          case SpecialFunctor::LET_TUPLE: {
             delete _reserve;
             TermList binding = term->getSpecialData()->getBinding();
             if (!binding.isTerm()) {
@@ -187,14 +187,14 @@ bool SubformulaIterator::hasNext ()
             }
             break;
           }
-          case Term::SpecialFunctor::FORMULA: {
+          case SpecialFunctor::FORMULA: {
             _current = term->getSpecialData()->getFormula();
             _currentPolarity = polarity;
             delete _reserve;
             _reserve = rest;
             return true;
           }
-          case Term::SpecialFunctor::LAMBDA: {
+          case SpecialFunctor::LAMBDA: {
             delete _reserve;
             TermList lambdaExp = term->getSpecialData()->getLambdaExp();
             if (!lambdaExp.isTerm()) {
@@ -205,14 +205,14 @@ bool SubformulaIterator::hasNext ()
             }
             break;
           }
-          case Term::SpecialFunctor::TUPLE: {
+          case SpecialFunctor::TUPLE: {
             delete _reserve;
             Term* tupleTerm = term->getSpecialData()->getTupleTerm();
             // TODO: should be 1 instead of polarity?
             _reserve = new Element(tupleTerm, polarity, rest);
             break;
           }
-          case Term::SpecialFunctor::MATCH: {
+          case SpecialFunctor::MATCH: {
             delete _reserve;
             _reserve = rest;
             break;

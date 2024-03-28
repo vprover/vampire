@@ -46,9 +46,7 @@ public:
   /** True if the queue is empty */
   bool isEmpty() const
   { return _left->nodes[0] == 0; }
-#if VDEBUG
   void output(std::ostream&) const;
-#endif
 
   friend class Iterator;
 protected:

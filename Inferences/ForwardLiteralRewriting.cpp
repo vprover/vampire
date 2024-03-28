@@ -52,36 +52,36 @@ bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIt
 
   for(unsigned i=0;i<clen;i++) {
     Literal* lit=(*cl)[i];
-    SLQueryResultIterator git=_index->getGeneralizations(lit, lit->isNegative(), true);
+    auto git = _index->getGeneralizations(lit, lit->isNegative(), true);
     while(git.hasNext()) {
-      SLQueryResult qr=git.next();
-      Clause* counterpart=_index->getCounterpart(qr.clause);
+      auto qr = git.next();
+      Clause* counterpart=_index->getCounterpart(qr.data->clause);
 
-      if(!ColorHelper::compatible(cl->color(), qr.clause->color()) ||
+      if(!ColorHelper::compatible(cl->color(), qr.data->clause->color()) ||
          !ColorHelper::compatible(cl->color(), counterpart->color()) ) {
         continue;
       }
 
-      if(cl==qr.clause || cl==counterpart) {
+      if(cl==qr.data->clause || cl==counterpart) {
   continue;
       }
       
-      Literal* rhs0 = (qr.literal==(*qr.clause)[0]) ? (*qr.clause)[1] : (*qr.clause)[0];
+      Literal* rhs0 = (qr.data->literal==(*qr.data->clause)[0]) ? (*qr.data->clause)[1] : (*qr.data->clause)[0];
       Literal* rhs = lit->isNegative() ? rhs0 : Literal::complementaryLiteral(rhs0);
       auto subs = qr.unifier;
 
       ASS(subs->isIdentityOnQueryWhenResultBound());
 
       //Due to the way we build the _index, we know that rhs contains only
-      //variables present in qr.literal
-      ASS(qr.literal->containsAllVariablesOf(rhs));
+      //variables present in qr.data->literal
+      ASS(qr.data->literal->containsAllVariablesOf(rhs));
       Literal* rhsS = subs->applyToBoundResult(rhs);
 
       if(ordering.compare(lit, rhsS)!=Ordering::GREATER) {
   continue;
       }
 
-      Clause* premise=lit->isNegative() ? qr.clause : counterpart;
+      Clause* premise=lit->isNegative() ? qr.data->clause : counterpart;
       // Martin: reductionPremise does not justify soundness of the inference
       //  (and brings in extra dependency which confuses splitter).
       //  Is there any other use for it?
@@ -89,7 +89,7 @@ bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIt
       //        it should be included in some kind of Inference object. Consider this
       //        when reviewing proof construction
       /*
-      Clause* reductionPremise=lit->isNegative() ? counterpart : qr.clause;
+      Clause* reductionPremise=lit->isNegative() ? counterpart : qr.data->clause;
       if(reductionPremise==premise) {
   reductionPremise=0;
       }

@@ -21,6 +21,7 @@
 #include "Lib/Array.hpp"
 #include "Lib/List.hpp"
 #include "Lib/DHMap.hpp"
+#include "Indexing/LiteralSubstitutionTree.hpp"
 
 #include "Kernel/Term.hpp"
 
@@ -28,7 +29,6 @@ namespace Indexing {
 
 using namespace Lib;
 using namespace Kernel;
-class LiteralSubstitutionTree;
 
 class ClauseVariantIndex
 {
@@ -51,6 +51,7 @@ protected:
 
 class SubstitutionTreeClauseVariantIndex : public ClauseVariantIndex
 {
+  using LiteralSubstitutionTree = Indexing::LiteralSubstitutionTree<LiteralClause>;
 public:
   SubstitutionTreeClauseVariantIndex() : _emptyClauses(0) {}
   virtual ~SubstitutionTreeClauseVariantIndex() override;
@@ -60,8 +61,6 @@ public:
   ClauseIterator retrieveVariants(Literal* const * lits, unsigned length) override;
 
 private:
-  class SLQueryResultToClauseFn;
-
   Literal* getMainLiteral(Literal* const * lits, unsigned length);
 
   DHMap<Literal*, ClauseList*> _groundUnits;

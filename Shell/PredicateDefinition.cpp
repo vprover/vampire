@@ -834,26 +834,26 @@ void PredicateDefinition::count (TermList ts,int add, Unit* unit)
   if (term->isSpecial()) {
     Term::SpecialTermData* sd = term->getSpecialData();
     switch (sd->specialFunctor()) {
-      case Term::SpecialFunctor::FORMULA:
+      case SpecialFunctor::FORMULA:
         count(sd->getFormula(), 0, add, unit);
         break;
 
-      case Term::SpecialFunctor::ITE:
+      case SpecialFunctor::ITE:
         count(sd->getCondition(), 0, add, unit);
         break;
 
-      case Term::SpecialFunctor::LET:
-      case Term::SpecialFunctor::LET_TUPLE:
+      case SpecialFunctor::LET:
+      case SpecialFunctor::LET_TUPLE:
         count(sd->getBinding(), add, unit);
         break;
 
-      case Term::SpecialFunctor::TUPLE:
+      case SpecialFunctor::TUPLE:
         count(TermList(sd->getTupleTerm()), add, unit);
         break;
 
-      case Term::SpecialFunctor::LAMBDA:
+      case SpecialFunctor::LAMBDA:
         NOT_IMPLEMENTED;
-      case Term::SpecialFunctor::MATCH:
+      case SpecialFunctor::MATCH:
         break; // args are handled later
 
     }

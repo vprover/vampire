@@ -54,8 +54,9 @@ typedef Lib::VirtualIterator<CycleQueryResult*> CycleQueryResultsIterator;
 class AcyclicityIndex
 : public Index
 {
+  using TermIndexingStructure   = Indexing::TermIndexingStructure<TermLiteralClause>;
 public:
-  AcyclicityIndex(Indexing::TermIndexingStructure* tis) :
+  AcyclicityIndex(TermIndexingStructure* tis) :
     _sIndexes(),
     _tis(tis)
   {}
@@ -79,7 +80,7 @@ private:
   typedef Lib::DHMap<ULit, IndexEntry*> SIndex;
 
   Lib::DHMap<TermList, SIndex*> _sIndexes;
-  Indexing::TermIndexingStructure* _tis;
+  TermIndexingStructure* _tis;
 };
 
 }

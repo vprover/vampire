@@ -645,31 +645,31 @@ void Property::scan(TermList ts,bool unit,bool goal)
 
   if (t->isSpecial()) {
     switch(t->specialFunctor()) {
-      case Term::SpecialFunctor::ITE:
+      case SpecialFunctor::ITE:
         _hasFOOL = true;
         addProp(PR_HAS_ITE);
         break;
 
-      case Term::SpecialFunctor::TUPLE:
+      case SpecialFunctor::TUPLE:
         // TODO something like
         // _hasFOOL = true
         // addProp(PR_HAS_TUPLE)
         // for now, do nothing
         break;
-      case Term::SpecialFunctor::LET:
-      case Term::SpecialFunctor::LET_TUPLE:
+      case SpecialFunctor::LET:
+      case SpecialFunctor::LET_TUPLE:
         _hasFOOL = true;
         addProp(PR_HAS_LET_IN);
         break;
-      case Term::SpecialFunctor::FORMULA:
+      case SpecialFunctor::FORMULA:
         _hasFOOL = true;
         break;
 
-      case Term::SpecialFunctor::MATCH:
+      case SpecialFunctor::MATCH:
         _hasFOOL = true;
         break;
 
-      case Term::SpecialFunctor::LAMBDA:
+      case SpecialFunctor::LAMBDA:
         _hasLambda = true;
         break;
 

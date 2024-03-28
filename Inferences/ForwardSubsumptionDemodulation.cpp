@@ -94,9 +94,9 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
   // Subsumption by unit clauses
   if (_doSubsumption) {
     for (unsigned sqli = 0; sqli < cl->length(); ++sqli) {
-      SLQueryResultIterator rit = _unitIndex->getGeneralizations((*cl)[sqli], false, false);
+      auto rit = _unitIndex->getGeneralizations((*cl)[sqli], false, false);
       while (rit.hasNext()) {
-        Clause* premise = rit.next().clause;
+        Clause* premise = rit.next().data->clause;
 
         if (premise->hasAux()) {
           continue;  // we've already checked this premise
@@ -124,10 +124,10 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
     /**
      * Step 1: find candidate clauses for subsumption
      */
-    SLQueryResultIterator rit = _index->getGeneralizations(subsQueryLit, false, false);
+    auto rit = _index->getGeneralizations(subsQueryLit, false, false);
     while (rit.hasNext()) {
-      SLQueryResult res = rit.next();
-      Clause* mcl = res.clause;  // left premise of FSD
+      auto res = rit.next();
+      Clause* mcl = res.data->clause;  // left premise of FSD
 
       ASS_NEQ(cl, mcl);  // this can't happen because cl isn't in the index yet
 

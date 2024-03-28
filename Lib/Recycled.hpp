@@ -150,16 +150,33 @@ class Recycled
   T const& self() const { ASS(alive()) return IF_USE_PTRS(*, )_self; }
   struct EmptyConstructMarker {};
 
-  Recycled(Self self)  : _self(std::move(self)), _reset(), _keep() {}
+  // Recycled(Self self)  : _self(std::move(self)), _reset(), _keep() {}
 public:
 
   Recycled()
-    : Recycled(mem().isNonEmpty() ? mem().pop() : IF_USE_PTRS(std::make_unique<T>(), T()))
+    : _self(mem().isNonEmpty() ? mem().pop() : IF_USE_PTRS(std::make_unique<T>(), T()))
   { }
 
+  // template<class A, class... As>
+  // Recycled(A a, As... as) : Recycled()
+  // { 
+  //   self().~T();
+  //   new(&self) T(a, as...); 
+  // }
+
+
   template<class A, class... As>
-  Recycled(A a, As... as) : Recycled()
-  { self().init(a, as...); }
+  Recycled(A a, As... as) 
+    : _self([&](){ 
+        if (mem().isNonEmpty()) {
+          auto elem = mem().pop();
+          elem->init(a, as...);
+          return elem;
+        } else {
+          return IF_USE_PTRS(std::make_unique<T>, T)(a, as...);
+        }
+    }())
+  { }
 
   template<class Clone>
   Recycled clone(Clone cloneFn) const

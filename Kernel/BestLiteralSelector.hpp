@@ -151,8 +151,7 @@ protected:
     //literals will be selected.
     bool allSelected=false;
 
-    if(isNegativeForSelection(litArr[0]) && 
-      (!combSup || canBeSelected(litArr[0], &maxTermHeads))) {
+    if(isNegativeForSelection(litArr[0])) {
       singleSelected=litArr[0];
     } else {
       if(!combSup){ fillMaximals(maximals, litArr); }
@@ -167,8 +166,7 @@ protected:
         }
         besti++;
         ASS_L(besti,eligible);
-        if(isNegativeForSelection(litArr[besti]) && 
-           (!combSup || canBeSelected(litArr[besti], &maxTermHeads))){
+        if(isNegativeForSelection(litArr[besti])){
           singleSelected=litArr[besti];
           break;
         }
@@ -241,24 +239,6 @@ protected:
       LiteralList::push(lit,maximals);
     }
     _ord.removeNonMaximal(maximals);
-  }
-
-  bool canBeSelected(Literal* lit, Set<unsigned>* maxTermHeads)
-  {
-    // TODO: 
-    // - fsi always returns terms only.therefore the whole implementation would always return true anyways, so we can comment out this code.
-    // - this was discovered during a refactoring. Why was this function here in the first place? 
-    // it is definitely dead/unnecessary code at the time of refactoring
-    //
-    // FirstOrderSubtermIt fsi(lit);
-    //
-    // while(fsi.hasNext()){
-    //   TermList t = TermList(fsi.next());
-    //   if(t.isVar() && maxTermHeads->contains(t.var())){
-    //     return false;
-    //   }
-    // }
-    return true;
   }
 
 private:

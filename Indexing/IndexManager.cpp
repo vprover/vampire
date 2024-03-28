@@ -12,6 +12,7 @@
  * Implements class IndexManager.
  */
 
+#include "Indexing/Index.hpp"
 #include "Lib/Exception.hpp"
 
 #include "Kernel/Grounder.hpp"
@@ -100,6 +101,8 @@ void IndexManager::provideIndex(IndexType t, Index* index)
 Index* IndexManager::create(IndexType t)
 {
   Index* res;
+  using TermSubstitutionTree    = Indexing::TermSubstitutionTree<TermLiteralClause>;
+  using LiteralSubstitutionTree = Indexing::LiteralSubstitutionTree<LiteralClause>;
 
   bool isGenerating;
                    
@@ -134,46 +137,46 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case SUPERPOSITION_SUBTERM_SUBST_TREE:
-    res = new SuperpositionSubtermIndex(new TermSubstitutionTree(/* extra */ false), _alg->getOrdering());
+    res = new SuperpositionSubtermIndex(new TermSubstitutionTree(), _alg->getOrdering());
     isGenerating = true;
     break;
   case SUPERPOSITION_LHS_SUBST_TREE:
-    res = new SuperpositionLHSIndex(new TermSubstitutionTree(/* extra */ false), _alg->getOrdering(), _alg->getOptions());
+    res = new SuperpositionLHSIndex(new TermSubstitutionTree(), _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
     
   case SUB_VAR_SUP_SUBTERM_SUBST_TREE:
     //using a substitution tree to store variable.
     //TODO update
-    res = new SubVarSupSubtermIndex(new TermSubstitutionTree(/* extra */ false), _alg->getOrdering());
+    res = new SubVarSupSubtermIndex(new TermSubstitutionTree(), _alg->getOrdering());
     isGenerating = true;
     break;
   case SUB_VAR_SUP_LHS_SUBST_TREE:
-    res = new SubVarSupLHSIndex(new TermSubstitutionTree(/* extra */ false), _alg->getOrdering(), _alg->getOptions());
+    res = new SubVarSupLHSIndex(new TermSubstitutionTree(), _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
   
   case SKOLEMISING_FORMULA_INDEX:
-    res = new SkolemisingFormulaIndex(new TermSubstitutionTree(/* extra */ true));
+    res = new SkolemisingFormulaIndex(new Indexing::TermSubstitutionTree<TermWithValue<Kernel::TermList>>());
     isGenerating = false;
     break;
 
   case NARROWING_INDEX:
-    res = new NarrowingIndex(new TermSubstitutionTree(/* extra */ false)); 
+    res = new NarrowingIndex(new Indexing::TermSubstitutionTree<TermWithValue<Literal*>>()); 
     isGenerating = true;
     break; 
 
   case PRIMITIVE_INSTANTIATION_INDEX:
-    res = new PrimitiveInstantiationIndex(new TermSubstitutionTree(/* extra */ false)); 
+    res = new PrimitiveInstantiationIndex(new Indexing::TermSubstitutionTree<TermWithoutValue>()); 
     isGenerating = true;
     break;  
    case ACYCLICITY_INDEX:
-    res = new AcyclicityIndex(new TermSubstitutionTree(/* extra */ false));
+    res = new AcyclicityIndex(new TermSubstitutionTree());
     isGenerating = true;
     break; 
 
   case DEMODULATION_SUBTERM_SUBST_TREE: {
-    auto tis = new TermSubstitutionTree(/* extra */ false);
+    auto tis = new TermSubstitutionTree();
     if (env.options->combinatorySup()) {
       res = new DemodulationSubtermIndexImpl<true>(tis);
     } else {
@@ -188,7 +191,7 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case DEMODULATION_LHS_SUBST_TREE:
-    res = new DemodulationLHSIndex(new TermSubstitutionTree(/* extra */ false), _alg->getOrdering(), _alg->getOptions());
+    res = new DemodulationLHSIndex(new TermSubstitutionTree(), _alg->getOrdering(), _alg->getOptions());
     isGenerating = false;
     break;
 
@@ -223,12 +226,12 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case INDUCTION_TERM_INDEX:
-    res = new InductionTermIndex(new TermSubstitutionTree(/* extra */ false));
+    res = new InductionTermIndex(new TermSubstitutionTree());
     isGenerating = true;
     break;
 
   case STRUCT_INDUCTION_TERM_INDEX:
-    res = new StructInductionTermIndex(new TermSubstitutionTree(/* extra */ false));
+    res = new StructInductionTermIndex(new TermSubstitutionTree());
     isGenerating = true;
     break;
 

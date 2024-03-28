@@ -12,6 +12,7 @@
  * Implements class FunctionDefinitionRewriting.
  */
 
+#include "Indexing/Index.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/PairUtils.hpp"
 
@@ -121,12 +122,12 @@ Kernel::ClauseIterator FunctionDefinitionRewriting::generateClauses(Clause *prem
       return pvi(pushPairIntoRightIterator(arg,
         GeneratingInferenceEngine::_salg->getFunctionDefinitionHandler().getGeneralizations(arg.second)));
     })
-    .map([premise](std::pair<std::pair<Literal*, Term*>, TermQueryResult> arg) {
-      TermQueryResult &qr = arg.second;
+    .map([premise](auto arg) {
+      auto &qr = arg.second;
       bool temp;
-      return (Clause*)performRewriting(premise, arg.first.first, TermList(arg.first.second), qr.clause,
-        qr.literal, qr.term, qr.unifier, nullptr, temp,
-        Inference(GeneratingInference2(InferenceRule::FUNCTION_DEFINITION_REWRITING, premise, qr.clause)));
+      return (Clause*)performRewriting(premise, arg.first.first, TermList(arg.first.second), qr.data->clause,
+        qr.data->literal, qr.data->term, qr.unifier, nullptr, temp,
+        Inference(GeneratingInference2(InferenceRule::FUNCTION_DEFINITION_REWRITING, premise, qr.data->clause)));
     })
     .filter(NonzeroFn()));
 }
@@ -159,26 +160,26 @@ bool FunctionDefinitionDemodulation::perform(Clause* cl, Clause*& replacement, C
 
       auto git = _salg->getFunctionDefinitionHandler().getGeneralizations(trm);
       while (git.hasNext()) {
-        TermQueryResult qr = git.next();
-        if (qr.clause->length() != 1) {
+        auto qr = git.next();
+        if (qr.data->clause->length() != 1) {
           continue;
         }
-        auto rhs = EqHelper::getOtherEqualitySide(qr.literal, qr.term);
+        auto rhs = EqHelper::getOtherEqualitySide(qr.data->literal, qr.data->term);
         // TODO shouldn't allow demodulation with incomparables in the non-ground case
-        if (Ordering::isGorGEorE(ordering.compare(rhs,qr.term))) {
+        if (Ordering::isGorGEorE(ordering.compare(rhs,qr.data->term))) {
           continue;
         }
         bool isEqTautology = false;
         auto res = performRewriting(
-          cl, lit, trm, qr.clause, qr.literal, qr.term, qr.unifier, redundancyCheck ? &_helper : nullptr,
-          isEqTautology, Inference(SimplifyingInference2(InferenceRule::FUNCTION_DEFINITION_DEMODULATION, cl, qr.clause)));
+          cl, lit, trm, qr.data->clause, qr.data->literal, qr.data->term, qr.unifier, redundancyCheck ? &_helper : nullptr,
+          isEqTautology, Inference(SimplifyingInference2(InferenceRule::FUNCTION_DEFINITION_DEMODULATION, cl, qr.data->clause)));
         if (!res && !isEqTautology) {
           continue;
         }
         if (!isEqTautology) {
           replacement = res;
         }
-        premises = pvi(getSingletonIterator(qr.clause));
+        premises = pvi(getSingletonIterator(qr.data->clause));
         return true;
       }
     }

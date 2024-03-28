@@ -23,10 +23,10 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
   if (term->isSpecial()) {
     Term::SpecialTermData* sd = term->getSpecialData();
     switch (term->specialFunctor()) {
-      case Term::SpecialFunctor::ITE:
+      case SpecialFunctor::ITE:
         return Term::createITE(process(sd->getCondition()), process(*term->nthArgument(0)), process(*term->nthArgument(1)), sd->getSort());
 
-      case Term::SpecialFunctor::LET:
+      case SpecialFunctor::LET:
           if (_isPredicate == (sd->getBinding().isTerm() && sd->getBinding().term()->isBoolean())) {
             // function symbols, defined inside $let are expected to be
             // disjoint and fresh symbols are expected to be fresh
@@ -35,10 +35,10 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
           }
           return Term::createLet(sd->getFunctor(), sd->getVariables(), process(sd->getBinding()), process(*term->nthArgument(0)), sd->getSort());
 
-      case Term::SpecialFunctor::FORMULA:
+      case SpecialFunctor::FORMULA:
           return Term::createFormula(process(sd->getFormula()));
 
-      case Term::SpecialFunctor::LET_TUPLE:
+      case SpecialFunctor::LET_TUPLE:
         if (_isPredicate == (sd->getBinding().isTerm() && sd->getBinding().term()->isBoolean())) {
           // function symbols, defined inside $let are expected to be
           // disjoint and fresh symbols are expected to be fresh
@@ -47,12 +47,12 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
         }
         return Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(), process(sd->getBinding()), process(*term->nthArgument(0)), sd->getSort());
 
-      case Term::SpecialFunctor::TUPLE:
+      case SpecialFunctor::TUPLE:
         return Term::createTuple(process(TermList(sd->getTupleTerm())).term());
 
-      case Term::SpecialFunctor::LAMBDA:
+      case SpecialFunctor::LAMBDA:
         NOT_IMPLEMENTED;
-      case Term::SpecialFunctor::MATCH: {
+      case SpecialFunctor::MATCH: {
         DArray<TermList> terms(term->arity());
         for (unsigned i = 0; i < term->arity(); i++) {
           terms[i] = process(*term->nthArgument(i));
