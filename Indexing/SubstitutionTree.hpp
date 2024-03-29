@@ -99,11 +99,22 @@ template<class LD> std::ostream& operator<<(std::ostream& out, OutputMultiline<S
     { std::swap(other._cntr, _cntr); }
 
     InstanceCntr(InstanceCntr const& other)
-      : _cntr(other._cntr)
-    { if (_cntr) _cntr->self++; }
+      : InstanceCntr()
+    { 
+      _cntr = other._cntr;
+      if (_cntr) _cntr->self++; 
+    }
 
-    InstanceCntr& operator=(InstanceCntr&& other) = default;
-    InstanceCntr& operator=(InstanceCntr const& other) = default;
+    InstanceCntr& operator=(InstanceCntr&& other) 
+    { std::swap(other._cntr, _cntr); return *this; }
+
+    InstanceCntr& operator=(InstanceCntr const& other)
+    { 
+      if (_cntr) _cntr->self--; 
+      _cntr = other._cntr; 
+      if (_cntr) _cntr->self++;
+      return *this; 
+    }
 
     InstanceCntr() : _cntr(nullptr) 
     { }
@@ -113,9 +124,15 @@ template<class LD> std::ostream& operator<<(std::ostream& out, OutputMultiline<S
 
     ~InstanceCntr() 
     { if (_cntr) _cntr->self--; }
+
+    void reset() { 
+      if (_cntr) _cntr->self--; 
+      _cntr = nullptr; 
+    }
 #else // VDEBUG
    InstanceCntr(){ }
    InstanceCntr(Cntr& parent) {}
+   void reset() { }
 #endif 
 };
 
@@ -813,6 +830,7 @@ public:
       using Unifier = ResultSubstitutionSP;
 
       void reset() {
+        _iterCntr.reset();
         _resultNormalizer.reset();
         _alternatives.reset();
         _specVarNumbers.reset();
@@ -1058,6 +1076,7 @@ public:
       using Unifier = ResultSubstitutionSP;
 
       void reset() {
+        _iterCntr.reset();
         _alternatives.reset();
         _specVarNumbers.reset();
         _nodeTypes.reset();
@@ -1143,6 +1162,7 @@ public:
       DECL_ELEMENT_TYPE(QueryRes<Unifier, LeafData>);
 
       void reset() {
+        _iterCntr.reset();
         _svStack.reset();
         _nodeIterators.reset();
         _bdStack.reset();
