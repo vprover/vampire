@@ -68,12 +68,7 @@ bool SubstitutionCoverTree::checkAndInsert(const Ordering* ord, ResultSubstituti
   if (_varSorts.isEmpty()) {
     return true;
   }
-  DHMap<unsigned,TermList>::Iterator vit(_varSorts);
-  TermStack ts;
-  while (vit.hasNext()) {
-    auto v = vit.nextKey();
-    ts.push(subst->apply(TermList(v,false), result));
-  }
+  auto ts = getInstances([subst,result](unsigned v) { return subst->applyTo(TermList(v,false),result); });
   // TermList t(Term::create(_fn, args.size(), args.begin()));
   // auto oldCheck = _tis.generalizationExists(t);
   auto newCheck = check(ts, ord);
@@ -152,6 +147,21 @@ bool SubstitutionCoverTree::check(const TermStack& ts, const Ordering* ord)
   matcher.reset();
 
   return false;
+}
+
+template<class Applicator>
+TermStack SubstitutionCoverTree::getInstances(Applicator applicator) const
+{
+  DHMap<unsigned,TermList>::Iterator vit(_varSorts);
+  TermStack res;
+  while (vit.hasNext()) {
+    auto v = vit.nextKey();
+    res.push(applicator(v));
+    // cout << TermList(v,false) << " -> " << res.top() << endl;
+    // ASS_REP(res.top().isVar() || SortHelper::getResultSort(res.top().term())==_varSorts.get(v),
+    //   SortHelper::getResultSort(res.top().term()).toString()+" vs "+_varSorts.get(v).toString()+" for X"+Int::toString(v));
+  }
+  return res;
 }
 
 void SubstitutionCoverTree::SubstMatcher::init(CodeTree* tree, const TermStack& ts)

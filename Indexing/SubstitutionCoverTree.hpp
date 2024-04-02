@@ -35,6 +35,9 @@ private:
   void insert(const TermStack& ts, void* ptr);
   bool check(const TermStack& ts, const Ordering* ord);
 
+  template<class Applicator>
+  TermStack getInstances(Applicator applicator) const;
+
   DHMap<unsigned,TermList> _varSorts;
   // unsigned _fn;
   // CodeTreeTIS _tis;

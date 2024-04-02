@@ -35,6 +35,9 @@
 namespace Indexing
 {
 
+#define GET_CONTAINING_OBJECT(ContainingClass,MemberField,object) \
+  reinterpret_cast<ContainingClass*>(reinterpret_cast<size_t>(object)-offsetof(ContainingClass,MemberField))
+
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
@@ -71,7 +74,7 @@ CodeTree::LitInfo CodeTree::LitInfo::getOpposite(const LitInfo& li)
   ft->changeLiteralPolarity();
 #if GROUND_TERM_CHECK
   ASS_EQ((*ft)[1].tag(), FlatTerm::FUN_TERM_PTR);
-  (*ft)[1]._ptr=Literal::oppositeLiteral(static_cast<Literal*>((*ft)[1].ptr()));
+  (*ft)[1]._ptr=Literal::complementaryLiteral(static_cast<Literal*>((*ft)[1].ptr()));
 #endif
 
   LitInfo res=li;
@@ -359,16 +362,8 @@ bool CodeTree::CodeOp::equalsForOpMatching(const CodeOp& o) const
 
 CodeTree::SearchStruct* CodeTree::CodeOp::getSearchStruct() const
 {
-  //the following line gives warning for not being according
-  //to the standard, so we have to work around
-//  static const size_t opOfs=offsetof(SearchStruct,landingOp);
-  static const size_t opOfs=reinterpret_cast<size_t>(
-	&reinterpret_cast<SearchStruct*>(8)->landingOp)-8;
-
-  SearchStruct* res=reinterpret_cast<SearchStruct*>(
-      reinterpret_cast<size_t>(this)-opOfs);
-
-  return res;
+  ASS(isSearchStruct());
+  return GET_CONTAINING_OBJECT(CodeTree::SearchStruct,landingOp,this);
 }
 
 std::ostream& operator<<(std::ostream& out, const CodeTree::CodeOp& op)
@@ -602,17 +597,7 @@ CodeTree::~CodeTree()
 CodeTree::CodeBlock* CodeTree::firstOpToCodeBlock(CodeOp* op)
 {
   ASS(!op->isSearchStruct());
-
-  //the following line gives warning for not being according
-  //to the standard, so we have to work around
-//  static const size_t opOfs=offsetof(CodeBlock,_array);
-  static const size_t opOfs=reinterpret_cast<size_t>(
-	&reinterpret_cast<CodeBlock*>(8)->_array[0])-8;
-
-  CodeBlock* res=reinterpret_cast<CodeBlock*>(
-      reinterpret_cast<size_t>(op)-opOfs);
-  ASS_ALLOC_TYPE(res,"Vector");
-  return res;
+  return GET_CONTAINING_OBJECT(CodeTree::CodeBlock,_array,op);
 }
 
 
