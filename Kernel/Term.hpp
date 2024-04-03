@@ -99,8 +99,6 @@ enum ArgumentOrderVals {
  */
 class TermList {
 public:
-  // divide by 4 because of the tag, by 2 to split the space evenly
-  static const unsigned SPEC_UPPER_BOUND = (UINT_MAX / 4) / 2;
   /* default constructor, satisfying isEmpty() */
   TermList() : _content(FUN) {}
   /** creates a term list containing a pointer to a term */
@@ -142,7 +140,7 @@ public:
   /** the term contains an ordinary variable as its head */
   inline bool isOrdinaryVar() const { return tag() == ORD_VAR; }
   /** the term contains a special variable as its head */
-  inline bool isSpecialVar() const { return tag() == SPEC_VAR && var() < SPEC_UPPER_BOUND; }
+  inline bool isSpecialVar() const { return tag() == SPEC_VAR; }
 
   /** return the variable number */
   inline unsigned var() const
