@@ -32,6 +32,10 @@ namespace Kernel {
 
 using namespace Shell;
 
+struct IdentityApplicator {
+  TermList operator()(TermList) const noexcept;
+};
+
 /**
  * An abstract class for simplification orderings
  * @since 30/04/2008 flight Brussels-Tel Aviv
@@ -64,11 +68,9 @@ public:
    * @b t1 and @b t2 */
   virtual Result compare(TermList t1,TermList t2) const = 0;
 
-  /** Optimised function for checking if @b tl1 is greater than @b tl2. */
-  virtual bool isGreater(TermList tl1, TermList tl2) const;
-  /** Optimised function used in demodulation for checking whether
-   * @b lhs is greater than the rhs of @b lit under substitution @b subst. */
-  bool isGreater(Literal* lit, TermList lhs, const std::function<TermList(TermList)>& subst) const;
+  /** Optimised function used for checking that @b lhs is greater than @b rhs,
+   * under substitution represented by @b applicator. */
+  template<class Applicator> bool isGreater(TermList lhs, TermList rhs, const Applicator& applicator) const;
 
   virtual void show(std::ostream& out) const = 0;
 
@@ -126,7 +128,6 @@ protected:
     } _data;
   };
   virtual void preprocessComparison(TermList tl1, TermList tl2, Stack<Instruction>* ptr) const;
-  virtual unsigned computeWeight(TermList tl) const;
 
   void output(std::ostream& out, const Stack<Ordering::Instruction>* ptr) const;
 

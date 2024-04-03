@@ -22,6 +22,7 @@
 #include "Lib/DArray.hpp"
 #include "Lib/Map.hpp"
 
+#include "BottomUpEvaluation.hpp"
 #include "Ordering.hpp"
 
 #define SPECIAL_WEIGHT_IDENT_VAR            "$var"
@@ -32,6 +33,56 @@
 #define SPECIAL_WEIGHT_IDENT_NUM_REAL       "$real"
 
 #define __KBO__CUSTOM_PREDICATE_WEIGHTS__ 0
+
+namespace Kernel {
+
+template<class Applicator>
+struct AppliedTerm
+{
+  TermList term;
+  bool termAboveVar;
+
+  AppliedTerm(TermList t, const Applicator& applicator, bool aboveVar) {
+    if (aboveVar && t.isVar()) {
+      term = applicator(t);
+      termAboveVar = false;
+    } else {
+      term = t;
+      termAboveVar = aboveVar;
+    }
+    ASS(!termAboveVar || term.isTerm());
+  }
+
+  bool operator==(const AppliedTerm& other) const {
+    return termAboveVar==other.termAboveVar && term==other.term;
+  }
+};
+
+}
+
+namespace Lib {
+  template<class Applicator>
+  struct BottomUpChildIter<Kernel::AppliedTerm<Applicator>>
+  {
+    using Item = Kernel::AppliedTerm<Applicator>;
+    Item _self;
+    unsigned _arg;
+
+    BottomUpChildIter(const Item& self, const Applicator& applicator) : _self(Item(self)), _arg(0) {}
+
+    const Item& self() { return _self; }
+
+    Item next(const Applicator& applicator)
+    { return Item(*_self.term.term()->nthArgument(_arg++), applicator, _self.termAboveVar); }
+
+    bool hasNext(const Applicator& applicator)
+    { return _self.term.isTerm() && _arg < _self.term.term()->arity(); }
+
+    unsigned nChildren(const Applicator& applicator)
+    { return _self.term.isTerm() ? _self.term.term()->arity() : 0; }
+  };
+
+} // namespace Lib
 
 namespace Kernel {
 
@@ -109,7 +160,7 @@ struct KboWeightMap {
   /** Special weights that are only present for function/predicate symbols. */
   KboSpecialWeights<SigTraits> _specialWeights;
 
-  KboWeight symbolWeight(Term*    t      ) const;
+  KboWeight symbolWeight(const Term* t) const;
   KboWeight symbolWeight(unsigned functor) const;
 
   static KboWeightMap dflt();
@@ -158,7 +209,10 @@ public:
   Result compare(TermList tl1, TermList tl2) const override;
 
   // exposed for unit testing
-  bool isGreater(TermList tl1, TermList tl2) const override;
+  template<class Applicator>
+  Result isGreaterOrEq(TermList tl1, TermList tl2, const Applicator& applicator) const;
+  template<class Applicator>
+  unsigned computeWeight(AppliedTerm<Applicator> tt, const Applicator& applicator) const;
 
 protected:
   Result comparePredicates(Literal* l1, Literal* l2) const override;
@@ -169,8 +223,7 @@ protected:
   class StateGreater;
 
   // int functionSymbolWeight(unsigned fun) const;
-  int symbolWeight(Term* t) const;
-  unsigned computeWeight(TermList t) const override;
+  int symbolWeight(const Term* t) const;
 
 private:
   KboWeightMap<FuncSigTraits> _funcWeights;

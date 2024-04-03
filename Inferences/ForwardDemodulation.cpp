@@ -152,11 +152,15 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         ASS(subs->isIdentityOnQueryWhenResultBound());
 
         if (_precompiledComparison) {
-          if (!preordered && (_preorderedOnly || !ordering.isGreater(qr.literal,qr.term,[&subs](TermList t) {
-            return subs->applyToBoundResult(t);
-          })) ) {
+          if (!preordered && (_preorderedOnly || !ordering.isGreater(qr.term,rhs,BoundResultApplicator(subs.ptr()))) ) {
+            // if (ordering.compare(trm,subs->applyToBoundResult(rhs))==Ordering::GREATER) {
+            //   USER_ERROR("is greater " + trm.toString() + " " + subs->applyToBoundResult(rhs).toString() + "\nFrom equation " + qr.literal->toString() + " side " + qr.term.toString());
+            // }
             continue;
           }
+          // if (ordering.compare(trm,subs->applyToBoundResult(rhs))!=Ordering::GREATER) {
+          //   USER_ERROR("is not greater " + trm.toString() + " " + subs->applyToBoundResult(rhs).toString() + "\nFrom equation " + qr.literal->toString() + " side " + qr.term.toString());
+          // }
         }
 
         TermList rhsS = subs->applyToBoundResult(rhs);

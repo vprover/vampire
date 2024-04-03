@@ -53,6 +53,8 @@ using namespace Kernel;
 
 OrderingSP Ordering::s_globalOrdering;
 
+TermList IdentityApplicator::operator()(TermList t) const noexcept { return t; }
+
 Ordering::Ordering()
 {
   createEqualityComparator();
@@ -276,10 +278,12 @@ Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
   return comparePredicates(l1, l2);
 } // PrecedenceOrdering::compare()
 
-bool Ordering::isGreater(Literal* lit, TermList lhs, const std::function<TermList(TermList)>& subst) const
+template<class Applicator>
+bool Ordering::isGreater(TermList lhs, TermList rhs, const Applicator& applicator) const
 {
+  // this function only works with KBO now
+  auto kbo = static_cast<const KBO*>(this);
   Stack<Instruction>* ptr;
-  auto rhs = EqHelper::getOtherEqualitySide(lit,lhs);
   if (_preprocessedComparisons->getValuePtr(make_pair(lhs,rhs),ptr,Stack<Instruction>())) {
     // cout << "preprocess " << *lit << " " << lhs << endl;
     preprocessComparison(lhs, rhs, ptr);
@@ -298,7 +302,7 @@ bool Ordering::isGreater(Literal* lit, TermList lhs, const std::function<TermLis
           auto var = (*ptr)[j]._data._v;
           auto coeff = (*ptr)[j+1]._data._w;
 
-          VariableIterator vit(subst(TermList(var,false)));
+          VariableIterator vit(applicator(TermList(var,false)));
           while (vit.hasNext()) {
             auto v = vit.next();
             varDiffs[v.var()] += coeff;
@@ -316,7 +320,7 @@ bool Ordering::isGreater(Literal* lit, TermList lhs, const std::function<TermLis
           auto v = (*ptr)[j]._data._v;
           auto coeff = (*ptr)[j+1]._data._w;
 
-          auto w = computeWeight(subst(TermList(v,false)));
+          auto w = kbo->computeWeight(AppliedTerm(TermList(v,false), applicator, true), applicator);
           res += coeff*w;
         }
 
@@ -329,37 +333,37 @@ bool Ordering::isGreater(Literal* lit, TermList lhs, const std::function<TermLis
         break;
       }
       case InstructionTag::COMPARE_VV: {
-        auto v1 = (*ptr)[i+1]._data._v;
-        auto v2 = (*ptr)[i+2]._data._v;
-        TermList lhsS = subst(TermList(v1,false));
-        TermList rhsS = subst(TermList(v2,false));
-        if (lhsS == rhsS) {
-          i += 3;
-          break;
+        TermList lhsS((*ptr)[i+1]._data._v,false);
+        TermList rhsS((*ptr)[i+2]._data._v,false);
+
+        auto res = kbo->isGreaterOrEq(lhsS,rhsS,applicator);
+        if (res==EQUAL) {
+            i += 3;
+            break;
         }
-        return isGreater(lhsS,rhsS);
+        return res==GREATER;
       }
       case InstructionTag::COMPARE_VT: {
-        auto v1 = (*ptr)[i+1]._data._v;
-        auto t2 = (*ptr)[i+2]._data._ptr;
-        TermList lhsS = subst(TermList(v1,false));
-        TermList rhsS = subst(TermList(t2));
-        if (lhsS == rhsS) {
-          i += 3;
-          break;
+        TermList lhsS((*ptr)[i+1]._data._v,false);
+        TermList rhsS((*ptr)[i+2]._data._ptr);
+
+        auto res = kbo->isGreaterOrEq(lhsS,rhsS,applicator);
+        if (res==EQUAL) {
+            i += 3;
+            break;
         }
-        return isGreater(lhsS,rhsS);
+        return res==GREATER;
       }
       case InstructionTag::COMPARE_TV: {
-        auto t1 = (*ptr)[i+1]._data._ptr;
-        auto v2 = (*ptr)[i+2]._data._v;
-        TermList lhsS = subst(TermList(t1));
-        TermList rhsS = subst(TermList(v2,false));
-        if (lhsS == rhsS) {
-          i += 3;
-          break;
+        TermList lhsS((*ptr)[i+1]._data._ptr);
+        TermList rhsS((*ptr)[i+2]._data._v,false);
+
+        auto res = kbo->isGreaterOrEq(lhsS,rhsS,applicator);
+        if (res==EQUAL) {
+            i += 3;
+            break;
         }
-        return isGreater(lhsS,rhsS);
+        return res==GREATER;
       }
       case InstructionTag::SUCCESS: {
         return true;
@@ -371,11 +375,11 @@ bool Ordering::isGreater(Literal* lit, TermList lhs, const std::function<TermLis
   return false;
 }
 
-bool Ordering::isGreater(TermList lhs, TermList rhs) const { NOT_IMPLEMENTED; }
+template bool Ordering::isGreater<Indexing::BoundResultApplicator>(TermList, TermList, const Indexing::BoundResultApplicator&) const;
+template bool Ordering::isGreater<Indexing::BoundQueryApplicator>(TermList, TermList, const Indexing::BoundQueryApplicator&) const;
+template bool Ordering::isGreater<IdentityApplicator>(TermList, TermList, const IdentityApplicator&) const;
 
 void Ordering::preprocessComparison(TermList tl1, TermList tl2, Stack<Ordering::Instruction>* ptr) const { NOT_IMPLEMENTED; }
-
-unsigned Ordering::computeWeight(TermList tl) const { NOT_IMPLEMENTED; }
 
 void Ordering::output(std::ostream& out, const Stack<Ordering::Instruction>* ptr) const
 {

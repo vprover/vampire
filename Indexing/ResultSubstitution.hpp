@@ -132,6 +132,22 @@ public:
   { self.output(out); return out; }
 };
 
+struct BoundResultApplicator {
+  BoundResultApplicator(ResultSubstitution* subst) : subst(subst) {}
+  TermList operator()(TermList t) const {
+    return subst->applyToBoundResult(t);
+  }
+  ResultSubstitution* subst;
+};
+
+struct BoundQueryApplicator {
+  BoundQueryApplicator(ResultSubstitution* subst) : subst(subst) {}
+  TermList operator()(TermList t) const {
+    return subst->applyToBoundQuery(t);
+  }
+  ResultSubstitution* subst;
+};
+
 }; // namepace Indexing
 
 #endif /* __ResultSubstitution__ */

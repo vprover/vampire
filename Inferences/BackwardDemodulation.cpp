@@ -130,11 +130,15 @@ struct BackwardDemodulation::ResultFn
     ASS(subs->isIdentityOnResultWhenQueryBound());
 
     if (_precompiledComparison) {
-      if (!_ordering.isGreater(_eqLit,lhs,[&subs](TermList t) {
-            return subs->applyToBoundQuery(t);
-          })) {
+      if (!_ordering.isGreater(lhs,rhs,BoundQueryApplicator(subs.ptr()))) {
+        // if (_ordering.compare(qr.term,subs->applyToBoundQuery(rhs))==Ordering::GREATER) {
+        //   USER_ERROR("is greater " + qr.term.toString() + " " + subs->applyToBoundQuery(rhs).toString() + "\nFrom equation " + _eqLit->toString() + " side " + lhs.toString());
+        // }
         return BwSimplificationRecord(0);
       }
+      // if (_ordering.compare(qr.term,subs->applyToBoundQuery(rhs))!=Ordering::GREATER) {
+      //   USER_ERROR("is not greater " + qr.term.toString() + " " + subs->applyToBoundQuery(rhs).toString() + "\nFrom equation " + _eqLit->toString() + " side " + lhs.toString());
+      // }
     }
 
     TermList lhsS=qr.term;

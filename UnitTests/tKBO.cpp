@@ -379,6 +379,10 @@ TEST_FUN(kbo_test23) {
 
 // isGreater tests
 
+bool isGreaterSymmetric(const Ordering& ord, TermList t1, TermList t2) {
+  return ord.isGreater(t1,t2,IdentityApplicator()) && !ord.isGreater(t2,t1,IdentityApplicator());
+}
+
 TEST_FUN(kbo_isGreater_test01) {
   DECL_DEFAULT_VARS
   DECL_SORT(srt)
@@ -388,8 +392,7 @@ TEST_FUN(kbo_isGreater_test01) {
 
   auto ord = kbo(weights(make_pair(f, 10u), make_pair(c, 1u)), weights());
 
-  ASS(ord.isGreater(f(c), g(c)));
-  ASS(!ord.isGreater(g(c), f(c)));
+  ASS(isGreaterSymmetric(ord, f(c), g(c)));
 }
 
 TEST_FUN(kbo_isGreater_test02) {
@@ -401,8 +404,7 @@ TEST_FUN(kbo_isGreater_test02) {
 
   auto ord = kbo(weights(make_pair(f, 10u)), weights());
 
-  ASS(ord.isGreater(f(c), g(g(g(g(g(c)))))));
-  ASS(!ord.isGreater(g(g(g(g(g(c))))), f(c)));
+  ASS(isGreaterSymmetric(ord, f(c), g(g(g(g(g(c)))))));
 }
 
 TEST_FUN(kbo_isGreater_test03) {
@@ -414,8 +416,7 @@ TEST_FUN(kbo_isGreater_test03) {
 
   auto ord = kbo(weights(make_pair(f, 10u)), weights());
 
-  ASS(ord.isGreater(f(x), g(g(g(g(g(c)))))));
-  ASS(!ord.isGreater(g(g(g(g(g(c))))), f(x)));
+  ASS(isGreaterSymmetric(ord, f(x), g(g(g(g(g(c)))))));
 }
 
 TEST_FUN(kbo_isGreater_test04) {
@@ -426,8 +427,8 @@ TEST_FUN(kbo_isGreater_test04) {
 
   auto ord = kbo(weights(make_pair(f, 10u)), weights());
 
-  ASS(!ord.isGreater(f(x), g(g(g(g(g(y)))))));
-  ASS(!ord.isGreater(g(g(g(g(g(y))))), f(x)));
+  ASS(!ord.isGreater(f(x), g(g(g(g(g(y))))), IdentityApplicator()));
+  ASS(!ord.isGreater(g(g(g(g(g(y))))), f(x), IdentityApplicator()));
 }
 
 TEST_FUN(kbo_isGreater_test05) {
@@ -438,8 +439,7 @@ TEST_FUN(kbo_isGreater_test05) {
 
   auto ord = kbo(weights(make_pair(f, 0u)), weights());
 
-  ASS(ord.isGreater(g(x), f(x)));
-  ASS(!ord.isGreater(f(x), g(x)));
+  ASS(isGreaterSymmetric(ord, g(x), f(x)));
 }
 
 TEST_FUN(kbo_isGreater_test06) {
@@ -449,8 +449,7 @@ TEST_FUN(kbo_isGreater_test06) {
 
   auto ord = kbo(weights(make_pair(f, 0u)), weights());
 
-  ASS(ord.isGreater(f(x), x));
-  ASS(!ord.isGreater(x, f(x)));
+  ASS(isGreaterSymmetric(ord, f(x), x));
 }
 
 TEST_FUN(kbo_isGreater_test07) {
@@ -461,8 +460,7 @@ TEST_FUN(kbo_isGreater_test07) {
 
   auto ord = kbo(weights(make_pair(f, 0u), make_pair(g, 1u)), weights());
 
-  ASS(ord.isGreater(f(g(x)), g(f(x))));
-  ASS(!ord.isGreater(g(f(x)), f(g(x))));
+  ASS(isGreaterSymmetric(ord, f(g(x)), g(f(x))));
 }
 
 TEST_FUN(kbo_isGreater_test08) {
@@ -473,8 +471,7 @@ TEST_FUN(kbo_isGreater_test08) {
 
   auto ord = kbo(weights(make_pair(f, 0u), make_pair(g, 1u)), weights());
 
-  ASS(!ord.isGreater(g(f(x)), f(g(x))));
-  ASS(ord.isGreater(f(g(x)), g(f(x))));
+  ASS(isGreaterSymmetric(ord, f(g(x)), g(f(x))));
 }
 
 TEST_FUN(kbo_isGreater_test09) {
@@ -485,8 +482,7 @@ TEST_FUN(kbo_isGreater_test09) {
 
   auto ord = kbo(weights(), weights());
 
-  ASS(!ord.isGreater(a,b));
-  ASS(ord.isGreater(b,a));
+  ASS(isGreaterSymmetric(ord,b,a));
 }
 
 TEST_FUN(kbo_isGreater_test10) {
@@ -497,8 +493,7 @@ TEST_FUN(kbo_isGreater_test10) {
 
   auto ord = kbo(weights(make_pair(a,3u), make_pair(b,2u)), weights());
 
-  ASS(ord.isGreater(a,b));
-  ASS(!ord.isGreater(b,a));
+  ASS(isGreaterSymmetric(ord,a,b));
 }
 
 TEST_FUN(kbo_isGreater_test11) {
@@ -511,8 +506,7 @@ TEST_FUN(kbo_isGreater_test11) {
 
   auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
-  ASS(ord.isGreater(u(f(g(x),g(a))), u(f(x,g(a)))));
-  ASS(!ord.isGreater(u(f(x,g(a))), u(f(g(x),g(a)))));
+  ASS(isGreaterSymmetric(ord, u(f(g(x),g(a))), u(f(x,g(a)))));
 }
 
 TEST_FUN(kbo_isGreater_test12) {
@@ -525,8 +519,7 @@ TEST_FUN(kbo_isGreater_test12) {
 
   auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
-  ASS(ord.isGreater(u(f(g(u(x)),g(a))), u(f(x,g(a)))));
-  ASS(!ord.isGreater(u(f(x,g(a))), u(f(g(u(x)),g(a)))));
+  ASS(isGreaterSymmetric(ord, u(f(g(u(x)),g(a))), u(f(x,g(a)))));
 }
 
 TEST_FUN(kbo_isGreater_test13) {
@@ -537,8 +530,7 @@ TEST_FUN(kbo_isGreater_test13) {
 
   auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
-  ASS(ord.isGreater(u(x), x));
-  ASS(!ord.isGreater(x, u(x)));
+  ASS(isGreaterSymmetric(ord, u(x), x));
 }
 
 TEST_FUN(kbo_isGreater_test14) {
@@ -550,8 +542,7 @@ TEST_FUN(kbo_isGreater_test14) {
 
   auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
-  ASS(ord.isGreater(u(f(x)), f(x)));
-  ASS(!ord.isGreater(f(x), u(f(x))));
+  ASS(isGreaterSymmetric(ord, u(f(x)), f(x)));
 }
 
 TEST_FUN(kbo_isGreater_test15) {
@@ -563,8 +554,7 @@ TEST_FUN(kbo_isGreater_test15) {
 
   auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
 
-  ASS(ord.isGreater(f(u(x)), f(x)));
-  ASS(!ord.isGreater(f(x), f(u(x))));
+  ASS(isGreaterSymmetric(ord, f(u(x)), f(x)));
 }
 
 TEST_FUN(kbo_isGreater_test16) {
@@ -574,12 +564,10 @@ TEST_FUN(kbo_isGreater_test16) {
   DECL_VAR(u, 3)
 
   auto ord = kbo(1, 1, weights(make_pair(f,1u)), weights());
-  ASS(ord.isGreater(
+
+  ASS(isGreaterSymmetric(ord,
     f(f(y,x,z),u,f(f(u,z,y),x,f(x,f(y,x,z),z))),
     f(x,f(y,x,z),f(f(y,x,z),u,f(f(u,z,y),x,z)))));
-  ASS(!ord.isGreater(
-    f(x,f(y,x,z),f(f(y,x,z),u,f(f(u,z,y),x,z))),
-    f(f(y,x,z),u,f(f(u,z,y),x,f(x,f(y,x,z),z)))));
 }
 
 TEST_FUN(kbo_isGreater_test17) {
@@ -589,11 +577,9 @@ TEST_FUN(kbo_isGreater_test17) {
   DECL_FUNC(g, {srt, srt}, srt)
 
   auto ord = kbo(1, 1, weights(), weights());
-  ASS(ord.isGreater(
+
+  ASS(isGreaterSymmetric(ord,
     f(g(f(g(x,g(y,z))),y)),
     f(g(y,f(g(x,g(y,z)))))));
-  ASS(!ord.isGreater(
-    f(g(y,f(g(x,g(y,z))))),
-    f(g(f(g(x,g(y,z))),y))));
 }
 
