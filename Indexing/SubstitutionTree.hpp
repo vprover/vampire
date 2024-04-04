@@ -1166,6 +1166,14 @@ public:
         _svStack.reset();
         _nodeIterators.reset();
         _bdStack.reset();
+        if(_normalizationRecording) {
+          _algo.bdDone();
+          _normalizationRecording=false;
+          _normalizationBacktrackData.backtrack();
+        }
+        while(_bdStack.isNonEmpty()) {
+          _bdStack.pop().backtrack();
+        }
       }
 
       template<class TermOrLit, class...AlgoArgs>
@@ -1196,16 +1204,7 @@ public:
 
 
       ~Iterator()
-      {
-        if(_normalizationRecording) {
-          _algo.bdDone();
-          _normalizationRecording=false;
-          _normalizationBacktrackData.backtrack();
-        }
-        while(_bdStack.isNonEmpty()) {
-          _bdStack.pop().backtrack();
-        }
-      }
+      { reset(); }
 
       bool hasLeafData() { return _leafData.isSome() && _leafData->hasNext(); };
 
