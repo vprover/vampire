@@ -330,6 +330,8 @@ public:
 #endif
   }
 
+  Stack<Ordering::Instruction>*& demodulatorCompInstructions(TermList side);
+
   unsigned splitWeight() const;
   unsigned getNumeralWeight() const;
 
@@ -390,6 +392,7 @@ protected:
 #if VDEBUG
   static bool _auxInUse;
 #endif
+  std::pair<Stack<Ordering::Instruction>*,Stack<Ordering::Instruction>*> _demodulatorCompInstructions;
 
 
   /** Array of literals of this unit */

@@ -68,9 +68,10 @@ public:
    * @b t1 and @b t2 */
   virtual Result compare(TermList t1,TermList t2) const = 0;
 
+  union Instruction;
   /** Optimised function used for checking that @b lhs is greater than @b rhs,
    * under substitution represented by @b applicator. */
-  template<class Applicator> bool isGreater(TermList lhs, TermList rhs, const Applicator& applicator) const;
+  template<class Applicator> bool isGreater(TermList lhs, TermList rhs, const Applicator& applicator, Stack<Instruction>*& instructions) const;
 
   virtual void show(std::ostream& out) const = 0;
 
@@ -107,29 +108,36 @@ public:
   static Ordering* tryGetGlobalOrdering();
 
   Result getEqualityArgumentOrder(Literal* eq) const;
-protected:
-  enum class InstructionTag {
+
+  enum class InstructionTag : unsigned {
     WEIGHT,
     COMPARE_VV,
     COMPARE_VT,
     COMPARE_TV,
     SUCCESS,
   };
-  struct Instruction {
-    explicit Instruction(InstructionTag tag) { _data._tag = tag; }
-    explicit Instruction(Term* t) { _data._ptr = t; }
-    explicit Instruction(unsigned v) { _data._v = v; }
-    explicit Instruction(int w) { _data._w = w; }
-    union {
-      InstructionTag _tag;
-      Term* _ptr;
-      unsigned _v;
-      int _w;
-    } _data;
-  };
-  virtual void preprocessComparison(TermList tl1, TermList tl2, Stack<Instruction>* ptr) const;
+  union Instruction {
+    explicit Instruction(unsigned v1, unsigned v2) { _v1 = v1; _v2._uint = v2; }
+    explicit Instruction(unsigned v) { _v1 = v; }
+    explicit Instruction(Term* t) { _t = t; }
+    explicit Instruction(unsigned v1, int v2) { _v1 = v1; _v2._int = v2; }
 
-  void output(std::ostream& out, const Stack<Ordering::Instruction>* ptr) const;
+    struct {
+      unsigned _v1;
+      union {
+        int _int;
+        unsigned _uint;
+      } _v2;
+    };
+    Term* _t;
+
+    static_assert(sizeof(Term*)==2*sizeof(unsigned));
+    static_assert(sizeof(Term*)==2*sizeof(int));
+  };
+protected:
+  virtual void preprocessComparison(TermList tl1, TermList tl2, Stack<Instruction>*& res) const;
+
+  void output(std::ostream& out, const Stack<Ordering::Instruction>& ptr) const;
 
   Result compareEqualities(Literal* eq1, Literal* eq2) const;
 
@@ -140,7 +148,6 @@ private:
   class EqCmp;
   /** Object used to compare equalities */
   EqCmp* _eqCmp;
-  mutable Map<std::pair<TermList,TermList>,Stack<Instruction>>* _preprocessedComparisons;
 
   /**
    * We store orientation of equalities in this ordering inside

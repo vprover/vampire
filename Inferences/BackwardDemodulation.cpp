@@ -130,7 +130,7 @@ struct BackwardDemodulation::ResultFn
     ASS(subs->isIdentityOnResultWhenQueryBound());
 
     if (_precompiledComparison) {
-      if (!_ordering.isGreater(lhs,rhs,BoundQueryApplicator(subs.ptr()))) {
+      if (!_ordering.isGreater(lhs,rhs,BoundQueryApplicator(subs.ptr()),_cl->demodulatorCompInstructions(lhs))) {
         // if (_ordering.compare(qr.term,subs->applyToBoundQuery(rhs))==Ordering::GREATER) {
         //   USER_ERROR("is greater " + qr.term.toString() + " " + subs->applyToBoundQuery(rhs).toString() + "\nFrom equation " + _eqLit->toString() + " side " + lhs.toString());
         // }

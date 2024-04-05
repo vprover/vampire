@@ -59,12 +59,10 @@ Ordering::Ordering()
 {
   createEqualityComparator();
   ASS(_eqCmp);
-  _preprocessedComparisons = new Map<std::pair<TermList,TermList>,Stack<Instruction>>();
 }
 
 Ordering::~Ordering()
 {
-  delete _preprocessedComparisons;
   destroyEqualityComparator();
 }
 
@@ -279,88 +277,76 @@ Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
 } // PrecedenceOrdering::compare()
 
 template<class Applicator>
-bool Ordering::isGreater(TermList lhs, TermList rhs, const Applicator& applicator) const
+bool Ordering::isGreater(TermList lhs, TermList rhs, const Applicator& applicator, Stack<Instruction>*& instructions) const
 {
   // this function only works with KBO now
   auto kbo = static_cast<const KBO*>(this);
-  Stack<Instruction>* ptr;
-  if (_preprocessedComparisons->getValuePtr(make_pair(lhs,rhs),ptr,Stack<Instruction>())) {
-    // cout << "preprocess " << *lit << " " << lhs << endl;
-    preprocessComparison(lhs, rhs, ptr);
-    // output(cout, ptr);
+  if (!instructions) {
+    instructions = new Stack<Instruction>();
+    preprocessComparison(lhs,rhs,instructions);
   }
-  ASS(ptr);
-  for (unsigned i = 0; i < ptr->size();) {
-    Instruction tag = (*ptr)[i];
-    switch (tag._data._tag) {
+  const auto& ins = *instructions;
+  // output(cout,*instructions);
+  for (unsigned i = 0; i < ins.size();) {
+    switch (static_cast<InstructionTag>(ins[i]._v1)) {
       case InstructionTag::WEIGHT: {
-        // checks vars
-        auto arity = (*ptr)[i+2]._data._v;
+        auto arity = ins[i+1]._v1;
+        auto weight = ins[i+1]._v2._int;
         ZIArray<int> varDiffs;
-        unsigned maxv = 0;
-        for (unsigned j = i+3; j < i+3+arity*2; j+=2) {
-          auto var = (*ptr)[j]._data._v;
-          auto coeff = (*ptr)[j+1]._data._w;
+        for (unsigned j = i+2; j < i+2+arity; j++) {
+          auto var = ins[j]._v1;
+          auto coeff = ins[j]._v2._int;
+          AppliedTerm tt(var, applicator);
 
-          VariableIterator vit(applicator(TermList(var,false)));
+          VariableIterator vit(tt.term);
           while (vit.hasNext()) {
             auto v = vit.next();
             varDiffs[v.var()] += coeff;
-            maxv = std::max(v.var() + 1, maxv);
+            if (varDiffs[v.var()]<0) {
+              return false;
+            }
+          }
+          auto w = kbo->computeWeight(tt, applicator);
+          weight += coeff*w;
+          if (coeff<0 && weight<0) {
+            return false;
           }
         }
-        for(unsigned v = 0; v < maxv; v++)
-          if(varDiffs[v] < 0)
-            return false;
 
-        // check weight
-        auto res = (*ptr)[i+1]._data._w;
-
-        for (unsigned j = i+3; j < i+3+arity*2; j+=2) {
-          auto v = (*ptr)[j]._data._v;
-          auto coeff = (*ptr)[j+1]._data._w;
-
-          auto w = kbo->computeWeight(AppliedTerm(TermList(v,false), applicator, true), applicator);
-          res += coeff*w;
-        }
-
-        if (res > 0) {
+        if (weight > 0) {
           return true;
-        } else if (res < 0) {
+        } else if (weight < 0) {
           return false;
         }
-        i += 3+arity*2;
+        i += 2+arity;
         break;
       }
       case InstructionTag::COMPARE_VV: {
-        TermList lhsS((*ptr)[i+1]._data._v,false);
-        TermList rhsS((*ptr)[i+2]._data._v,false);
-
-        auto res = kbo->isGreaterOrEq(lhsS,rhsS,applicator);
+        auto res = kbo->isGreaterOrEq(
+          AppliedTerm(ins[i]._v2._uint, applicator),
+          AppliedTerm(ins[i+1]._v1, applicator), applicator);
         if (res==EQUAL) {
-            i += 3;
+            i += 2;
             break;
         }
         return res==GREATER;
       }
       case InstructionTag::COMPARE_VT: {
-        TermList lhsS((*ptr)[i+1]._data._v,false);
-        TermList rhsS((*ptr)[i+2]._data._ptr);
-
-        auto res = kbo->isGreaterOrEq(lhsS,rhsS,applicator);
+        auto res = kbo->isGreaterOrEq(
+          AppliedTerm(ins[i]._v2._uint, applicator),
+          AppliedTerm(TermList(ins[i+1]._t), applicator, true), applicator);
         if (res==EQUAL) {
-            i += 3;
+            i += 2;
             break;
         }
         return res==GREATER;
       }
       case InstructionTag::COMPARE_TV: {
-        TermList lhsS((*ptr)[i+1]._data._ptr);
-        TermList rhsS((*ptr)[i+2]._data._v,false);
-
-        auto res = kbo->isGreaterOrEq(lhsS,rhsS,applicator);
+        auto res = kbo->isGreaterOrEq(
+          AppliedTerm(TermList(ins[i+1]._t),applicator,true),
+          AppliedTerm(ins[i]._v2._uint, applicator), applicator);
         if (res==EQUAL) {
-            i += 3;
+            i += 2;
             break;
         }
         return res==GREATER;
@@ -375,58 +361,56 @@ bool Ordering::isGreater(TermList lhs, TermList rhs, const Applicator& applicato
   return false;
 }
 
-template bool Ordering::isGreater<Indexing::BoundResultApplicator>(TermList, TermList, const Indexing::BoundResultApplicator&) const;
-template bool Ordering::isGreater<Indexing::BoundQueryApplicator>(TermList, TermList, const Indexing::BoundQueryApplicator&) const;
-template bool Ordering::isGreater<IdentityApplicator>(TermList, TermList, const IdentityApplicator&) const;
+template bool Ordering::isGreater<Indexing::BoundResultApplicator>(TermList, TermList, const Indexing::BoundResultApplicator&, Stack<Instruction>*&) const;
+template bool Ordering::isGreater<Indexing::BoundQueryApplicator>(TermList, TermList, const Indexing::BoundQueryApplicator&, Stack<Instruction>*&) const;
+template bool Ordering::isGreater<IdentityApplicator>(TermList, TermList, const IdentityApplicator&, Stack<Instruction>*&) const;
 
-void Ordering::preprocessComparison(TermList tl1, TermList tl2, Stack<Ordering::Instruction>* ptr) const { NOT_IMPLEMENTED; }
+void Ordering::preprocessComparison(TermList, TermList, Stack<Instruction>*&) const { NOT_IMPLEMENTED; }
 
-void Ordering::output(std::ostream& out, const Stack<Ordering::Instruction>* ptr) const
+void Ordering::output(std::ostream& out, const Stack<Ordering::Instruction>& ptr) const
 {
-  ASS(ptr);
   unsigned cnt = 1;
-  for (unsigned i = 0; i < ptr->size();) {
-    auto tag = (*ptr)[i];
-    switch (tag._data._tag) {
+  for (unsigned i = 0; i < ptr.size();) {
+    switch (static_cast<InstructionTag>(ptr[i]._v1)) {
       case InstructionTag::SUCCESS: {
         out << Int::toString(cnt++) << " success" << endl;
         i += 1;
         break;
       }
       case InstructionTag::WEIGHT: {
-        auto w = (*ptr)[i+1]._data._w;
-        auto arity = (*ptr)[i+2]._data._v;
+        auto arity = ptr[i+1]._v1;
+        auto w = ptr[i+1]._v2._int;
         out << Int::toString(cnt++) << " weight " << Int::toString(w);
 
-        for (unsigned j = i+3; j < i+3+arity*2; j+=2) {
-          auto v = (*ptr)[j]._data._v;
-          auto coeff = (*ptr)[j+1]._data._w;
+        for (unsigned j = i+2; j < i+2+arity; j++) {
+          auto var = ptr[j]._v1;
+          auto coeff = ptr[j]._v2._int;
 
-          out << " w(X" << Int::toString(v) << ")*" << Int::toString(coeff);
+          out << " w(X" << Int::toString(var) << ")*" << Int::toString(coeff);
         }
         out << endl;
-        i += 3+arity*2;
+        i += 2+arity;
         break;
       }
       case InstructionTag::COMPARE_VV: {
-        auto v1 = (*ptr)[i+1]._data._v;
-        auto v2 = (*ptr)[i+2]._data._v;
+        auto v1 = ptr[i]._v2._uint;
+        auto v2 = ptr[i+1]._v1;
         out << Int::toString(cnt++) << " compare X" << Int::toString(v1) << " X" << Int::toString(v2) << endl;
-        i += 3;
+        i += 2;
         break;
       }
       case InstructionTag::COMPARE_VT: {
-        auto v1 = (*ptr)[i+1]._data._v;
-        auto t2 = (*ptr)[i+2]._data._ptr;
+        auto v1 = ptr[i]._v2._uint;
+        auto t2 = ptr[i+1]._t;
         out << Int::toString(cnt++) << " compare X" << Int::toString(v1) << " " << *t2 << endl;
-        i += 3;
+        i += 2;
         break;
       }
       case InstructionTag::COMPARE_TV: {
-        auto t1 = (*ptr)[i+1]._data._ptr;
-        auto v2 = (*ptr)[i+2]._data._v;
+        auto t1 = ptr[i+1]._t;
+        auto v2 = ptr[i]._v2._uint;
         out << Int::toString(cnt++) << " compare " << *t1 << " X" << Int::toString(v2) << endl;
-        i += 3;
+        i += 2;
         break;
       }
       default:

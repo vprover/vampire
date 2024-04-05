@@ -152,7 +152,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         ASS(subs->isIdentityOnQueryWhenResultBound());
 
         if (_precompiledComparison) {
-          if (!preordered && (_preorderedOnly || !ordering.isGreater(qr.term,rhs,BoundResultApplicator(subs.ptr()))) ) {
+          if (!preordered && (_preorderedOnly || !ordering.isGreater(qr.term,rhs,BoundResultApplicator(subs.ptr()),qr.clause->demodulatorCompInstructions(qr.term))) ) {
             // if (ordering.compare(trm,subs->applyToBoundResult(rhs))==Ordering::GREATER) {
             //   USER_ERROR("is greater " + trm.toString() + " " + subs->applyToBoundResult(rhs).toString() + "\nFrom equation " + qr.literal->toString() + " side " + qr.term.toString());
             // }

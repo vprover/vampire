@@ -298,7 +298,7 @@ unsigned Term::numTermArguments() const
   return _arity - numTypeArguments(); 
 }
 
-bool TermList::containsSubterm(TermList trm)
+bool TermList::containsSubterm(TermList trm) const
 {
   if (!isTerm()) {
     return trm==*this;
@@ -306,7 +306,7 @@ bool TermList::containsSubterm(TermList trm)
   return term()->containsSubterm(trm);
 }
 
-bool Term::containsSubterm(TermList trm)
+bool Term::containsSubterm(TermList trm) const
 {
   ASS(!trm.isTerm() || trm.term()->shared());
   ASS(shared());
@@ -319,8 +319,8 @@ bool Term::containsSubterm(TermList trm)
     return false;
   }
 
-  TermList* ts=args();
-  static Stack<TermList*> stack(4);
+  const TermList* ts=args();
+  static Stack<const TermList*> stack(4);
   stack.reset();
   for(;;) {
     if (*ts==trm) {
