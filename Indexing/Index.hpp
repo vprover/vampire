@@ -46,7 +46,7 @@ struct LiteralClause
   { return literal; }
 
 private:
-  auto asTuple() const
+  std::tuple<unsigned,unsigned> asTuple() const
   { return std::make_tuple(clause->number(), literal->getId()); }
 public:
 
@@ -73,7 +73,7 @@ struct TermWithValue {
 
   TypedTermList const& key() const { return term; }
 
-  auto asTuple() const
+  std::tuple<const TypedTermList &,const Value &> asTuple() const
   { return std::tie(term, value); }
 
   IMPL_COMPARISONS_FROM_TUPLE(TermWithValue)
