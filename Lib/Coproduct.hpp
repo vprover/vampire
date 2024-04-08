@@ -292,13 +292,17 @@ namespace CoproductImpl {
     TrivialOperations::DisableIfNeeded<TrivialOperations::MoveCons, Ts> _moveCons;
     TrivialOperations::DisableIfNeeded<TrivialOperations::Destr   , Ts> _destr;
 
+#define __COPRODUCT_CONTENT_INIT 0
+
 #if VDEBUG
     RawCoproduct()
       : _tag(size)
     {
+#if __COPRODUCT_CONTENT_INIT 
       for (unsigned i = 0; i < sizeof(Bytes); i++) {
         _content[i] = 0xFF;
       }
+#endif // __COPRODUCT_CONTENT_INIT
     }
 #else // !VDEBUG
     RawCoproduct() = default;

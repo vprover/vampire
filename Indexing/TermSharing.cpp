@@ -144,6 +144,7 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
       }
       else 
       {
+        ASS(tt->isTerm());
         ASS_REP(tt->term()->shared(), tt->term()->toString());
         
         Term* r = tt->term();

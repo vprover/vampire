@@ -24,19 +24,22 @@
 
 namespace Indexing {
 
+template<class LeafData_>
 class LiteralIndexingStructure {
 public:
+  using LeafData = LeafData_;
   virtual ~LiteralIndexingStructure() {}
 
-  virtual void insert(Literal* lit, Clause* cls) = 0;
-  virtual void remove(Literal* lit, Clause* cls) = 0;
+  virtual void handle(LeafData ld, bool insert) = 0;
+  void insert(LeafData ld) { handle(std::move(ld), /* insert = */ true ); }
+  void remove(LeafData ld) { handle(std::move(ld), /* insert = */ false); }
 
-  virtual SLQueryResultIterator getAll() { NOT_IMPLEMENTED; }
-  virtual SLQueryResultIterator getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
-  virtual VirtualIterator<LQueryRes<AbstractingUnifier*>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) = 0;
-  virtual SLQueryResultIterator getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
-  virtual SLQueryResultIterator getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
-  virtual SLQueryResultIterator getVariants(Literal* lit, bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual VirtualIterator<LeafData> getAll() { NOT_IMPLEMENTED; }
+  virtual VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) = 0;
+  virtual VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getVariants(Literal* lit, bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
 
   virtual size_t getUnificationCount(Literal* lit, bool complementary)
   {

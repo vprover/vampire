@@ -13,6 +13,7 @@
  *
  */
 
+#include "Indexing/Index.hpp"
 #include "Indexing/ResultSubstitution.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/Recycled.hpp"
@@ -105,7 +106,7 @@ private:
 
 
 class CodeTreeTIS::ResultIterator
-: public IteratorCore<TermQueryResult>
+: public IteratorCore<QueryRes<ResultSubstitutionSP, TermLiteralClause>>
 {
 public:
   ResultIterator(CodeTreeTIS* tree, TermList t, bool retrieveSubstitutions)
@@ -144,17 +145,17 @@ public:
     return _found;
   }
 
-  TermQueryResult next()
+  QueryRes<ResultSubstitutionSP, TermLiteralClause> next()
   {
     ASS(_found);
 
     ResultSubstitutionSP subs;
     if (_retrieveSubstitutions) {
       _resultNormalizer->reset();
-      _resultNormalizer->normalizeVariables(_found->t);
+      _resultNormalizer->normalizeVariables(_found->term);
       subs = ResultSubstitutionSP(_subst, /* nondisposable */ true);
     }
-    auto out = TermQueryResult(_found->t, _found->lit, _found->cls, subs);
+    auto out = QueryRes<ResultSubstitutionSP, TermLiteralClause>(subs, _found);
     _found=0;
     return out;
   }
@@ -169,21 +170,21 @@ private:
   Recycled<TermCodeTree::TermMatcher> _matcher;
 };
 
-void CodeTreeTIS::insert(TypedTermList t, Literal* lit, Clause* cls)
+void CodeTreeTIS::_insert(TypedTermList t, Literal* lit, Clause* cls)
 {
-  TermCodeTree::TermInfo* ti=new TermCodeTree::TermInfo(t,lit,cls);
+  auto ti = new TermLiteralClause{ t,lit,cls };
   _ct.insert(ti);
 }
 
-void CodeTreeTIS::remove(TypedTermList t, Literal* lit, Clause* cls)
+void CodeTreeTIS::_remove(TypedTermList t, Literal* lit, Clause* cls)
 {
-  _ct.remove(TermCodeTree::TermInfo(t,lit,cls));
+  _ct.remove(TermLiteralClause{ t,lit,cls });
 }
 
-TermQueryResultIterator CodeTreeTIS::getGeneralizations(TypedTermList t, bool retrieveSubstitutions)
+VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>> CodeTreeTIS::getGeneralizations(TypedTermList t, bool retrieveSubstitutions)
 {
   if(_ct.isEmpty()) {
-    return TermQueryResultIterator::getEmpty();
+    return VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>>::getEmpty();
   }
 
   return vi( new ResultIterator(this, t, retrieveSubstitutions) );
@@ -206,46 +207,6 @@ bool CodeTreeTIS::generalizationExists(TermList t)
 
 /////////////////   CodeTreeSubsumptionIndex   //////////////////////
 
-class CodeTreeSubsumptionIndex::ClauseSResIterator
-: public IteratorCore<ClauseSResQueryResult>
-{
-public:
-  ClauseSResIterator(ClauseCodeTree* tree, Clause* query, bool sres)
-  : ready(false)
-  {
-    cm->init(tree, query, sres);
-  }
-  
-  bool hasNext()
-  {
-    if(ready) {
-      return result;
-    }
-    ready=true;
-    result=cm->next(resolvedQueryLit);
-    ASS(!result || resolvedQueryLit<1000000);
-    return result;
-  }
-  
-  ClauseSResQueryResult next()
-  {
-    ASS(result);
-    
-    ready=false;
-    if(resolvedQueryLit==-1) {
-      return ClauseSResQueryResult(result);
-    }
-    else {
-      return ClauseSResQueryResult(result, resolvedQueryLit);
-    }
-  }
-private:
-  bool ready;
-  Clause* result;
-  int resolvedQueryLit;
-  Recycled<ClauseCodeTree::ClauseMatcher> cm;
-};
-
 void CodeTreeSubsumptionIndex::handleClause(Clause* cl, bool adding)
 {
   TIME_TRACE("codetree subsumption index maintanance");
@@ -257,17 +218,6 @@ void CodeTreeSubsumptionIndex::handleClause(Clause* cl, bool adding)
     _ct.remove(cl);
   }
 }
-
-ClauseSResResultIterator CodeTreeSubsumptionIndex
-	::getSubsumingOrSResolvingClauses(Clause* cl, bool subsumptionResolution)
-{
-  if(_ct.isEmpty()) {
-    return ClauseSResResultIterator::getEmpty();
-  }
-
-  return vi( new ClauseSResIterator(&_ct, cl, subsumptionResolution) );
-}
-
 
 }
 

@@ -21,6 +21,7 @@
 
 #include "Forwards.hpp"
 
+#include "Indexing/Index.hpp"
 #include "Indexing/InductionFormulaIndex.hpp"
 #include "Indexing/LiteralIndex.hpp"
 #include "Indexing/TermIndex.hpp"
@@ -59,11 +60,11 @@ class ActiveOccurrenceIterator
   : public IteratorCore<Term*>
 {
 public:
-  ActiveOccurrenceIterator(Term* term, FunctionDefinitionHandler& fnDefHandler)
+  ActiveOccurrenceIterator(Literal* lit, FunctionDefinitionHandler& fnDefHandler)
   : _stack(8), _fnDefHandler(fnDefHandler)
   {
-    _stack.push(term);
-    ASS(term->ground());
+    _stack.push(lit);
+    ASS(lit->ground());
     ActiveOccurrenceIterator::next();
   }
 
@@ -263,6 +264,7 @@ private:
 class Induction
 : public GeneratingInferenceEngine
 {
+  using TermIndex = Indexing::TermIndex<TermLiteralClause>;
 public:
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
@@ -271,7 +273,7 @@ public:
 
 #if VDEBUG
   void setTestIndices(const Stack<Index*>& indices) override {
-    _comparisonIndex = static_cast<LiteralIndex*>(indices[0]);
+    _comparisonIndex = static_cast<LiteralIndex<LiteralClause>*>(indices[0]);
     _inductionTermIndex = static_cast<TermIndex*>(indices[1]);
     _structInductionTermIndex = static_cast<TermIndex*>(indices[2]);
   }
@@ -279,7 +281,7 @@ public:
 
 private:
   // The following pointers can be null if int induction is off.
-  LiteralIndex* _comparisonIndex = nullptr;
+  LiteralIndex<LiteralClause>* _comparisonIndex = nullptr;
   TermIndex* _inductionTermIndex = nullptr;
   TermIndex* _structInductionTermIndex = nullptr;
   InductionFormulaIndex _formulaIndex;
@@ -292,6 +294,7 @@ private:
  */
 class InductionClauseIterator
 {
+  using TermIndex               = Indexing::TermIndex<TermLiteralClause>;
 public:
   // all the work happens in the constructor!
   InductionClauseIterator(Clause* premise, InductionHelper helper, SaturationAlgorithm* salg,
@@ -316,12 +319,18 @@ private:
   void processIntegerComparison(Clause* premise, Literal* lit);
 
   ClauseStack produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context);
-  void resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TermQueryResult* bound1, const TermQueryResult* bound2);
+  void resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TermLiteralClause* bound1, const TermLiteralClause* bound2);
   void resolveClauses(const ClauseStack& cls, const InductionContext& context, Substitution& subst, bool applySubst = false);
 
-  void performFinIntInduction(const InductionContext& context, const TermQueryResult& lb, const TermQueryResult& ub);
-  void performInfIntInduction(const InductionContext& context, bool increasing, const TermQueryResult& bound);
-  void performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, const TermQueryResult& bound1, const TermQueryResult* optionalBound2);
+  void performFinIntInduction(const InductionContext& context, const TermLiteralClause& lb, const TermLiteralClause& ub);
+  void performInfIntInduction(const InductionContext& context, bool increasing, const TermLiteralClause& bound);
+
+  struct DefaultBound { TypedTermList term; };
+  using Bound = Coproduct<TermLiteralClause, DefaultBound>;
+  void performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, Bound bound1, const TermLiteralClause* optionalBound2);
+
+  void performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, TermLiteralClause const& bound1, const TermLiteralClause* optionalBound2)
+  { performIntInduction(context, e, increasing, Bound::variant<0>(bound1), optionalBound2); }
 
   void performStructInductionOne(const InductionContext& context, InductionFormulaIndex::Entry* e);
   void performStructInductionTwo(const InductionContext& context, InductionFormulaIndex::Entry* e);
@@ -347,7 +356,9 @@ private:
    * (such inductions are useless and can lead to redundant literals in the
    * induction axiom).
    */
-  bool isValidBound(const InductionContext& context, const TermQueryResult& bound);
+  bool isValidBound(const InductionContext& context, const Bound& bound);
+  bool isValidBound(const InductionContext& context, const TermLiteralClause& bound)
+  { return isValidBound(context, Bound(bound)); }
 
   Stack<Clause*> _clauses;
   InductionHelper _helper;

@@ -1389,6 +1389,13 @@ static auto ifElseIter(bool cond, IfIterCons ifCons, ElseIterCons elseCons)
   return coproductIter(cond ? C::template variant<0>(ifCons()) : C::template variant<1>(elseCons()));
 }
 
+
+
+template<class IfIterCons>
+static auto ifIter(bool cond, IfIterCons ifCons) 
+{ return iterTraits(someIf(cond, std::move(ifCons)).intoIter()).flatten(); }
+
+
 template<class T>
 struct EmptyIter
 {
@@ -1743,6 +1750,5 @@ STLIterator<Iterator> getSTLIterator(Iterator begin, Iterator end)
 {
   return STLIterator<Iterator>(begin, end);
 }
-
 
 #endif /* __Metaiterators__ */

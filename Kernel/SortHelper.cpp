@@ -158,20 +158,20 @@ bool SortHelper::getResultSortOrMasterVariable(const Term* t, TermList& resultSo
   }
 
   switch(t->specialFunctor()) {
-    case Term::SpecialFunctor::LET:
-    case Term::SpecialFunctor::LET_TUPLE:
-    case Term::SpecialFunctor::ITE:
-    case Term::SpecialFunctor::MATCH:
+    case SpecialFunctor::LET:
+    case SpecialFunctor::LET_TUPLE:
+    case SpecialFunctor::ITE:
+    case SpecialFunctor::MATCH:
       resultSort = t->getSpecialData()->getSort();
       return true;
-    case Term::SpecialFunctor::FORMULA:
+    case SpecialFunctor::FORMULA:
       resultSort = AtomicSort::boolSort();
       return true;
-    case Term::SpecialFunctor::LAMBDA: {
+    case SpecialFunctor::LAMBDA: {
       resultSort = t->getSpecialData()->getSort();
       return true;
     }
-    case Term::SpecialFunctor::TUPLE: {
+    case SpecialFunctor::TUPLE: {
       resultSort = getResultSort(t->getSpecialData()->getTupleTerm());
       return true;
     }
@@ -378,7 +378,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
         Term::SpecialTermData* sd = term->getSpecialData();
 
         switch (term->specialFunctor()) {
-          case Term::SpecialFunctor::ITE: {
+          case SpecialFunctor::ITE: {
             CollectTask newTask(COLLECT_TERMLIST);
             newTask.contextSort = sd->getSort();
 
@@ -395,7 +395,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             break;
           }
 
-          case Term::SpecialFunctor::LET: {
+          case SpecialFunctor::LET: {
             TermList binding = sd->getBinding();
             bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
             Signature::Symbol* symbol = isPredicate ? env.signature->getPredicate(sd->getFunctor())
@@ -434,7 +434,7 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             break;
           }
 
-          case Term::SpecialFunctor::LET_TUPLE: {
+          case SpecialFunctor::LET_TUPLE: {
             TermList binding = sd->getBinding();
             Signature::Symbol* symbol = env.signature->getFunction(sd->getFunctor());
             Substitution subst;
@@ -468,25 +468,25 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
             break;
           }
 
-          case Term::SpecialFunctor::FORMULA: {
+          case SpecialFunctor::FORMULA: {
             CollectTask newTask(COLLECT_FORMULA);
             newTask.f = sd->getFormula();
             todo.push(newTask);
           } break;
-          case Term::SpecialFunctor::LAMBDA: {
+          case SpecialFunctor::LAMBDA: {
             CollectTask newTask(COLLECT_TERMLIST);
             newTask.contextSort = sd->getLambdaExpSort();
             newTask.ts = sd->getLambdaExp();
             todo.push(newTask);
           } break;
 
-          case Term::SpecialFunctor::TUPLE: {
+          case SpecialFunctor::TUPLE: {
             CollectTask newTask(COLLECT_TERM);
             newTask.t = sd->getTupleTerm();
             todo.push(newTask);
           } break;
 
-          case Term::SpecialFunctor::MATCH: {
+          case SpecialFunctor::MATCH: {
             CollectTask newTask(COLLECT_TERMLIST);
             auto matchedSort = term->getSpecialData()->getMatchedSort();
 

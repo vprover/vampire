@@ -50,6 +50,10 @@
 #define TERM_DIST_VAR_UNKNOWN ((1 << TERM_DIST_VAR_BITS)-1)
 
 namespace Kernel {
+  std::ostream& operator<<(std::ostream& out, Term const& self);
+  std::ostream& operator<<(std::ostream& out, TermList const& self);
+  std::ostream& operator<<(std::ostream& out, Literal const& self);
+  bool operator<(TermList const&,TermList const&);
 
 using namespace Lib;
 
@@ -89,18 +93,14 @@ enum ArgumentOrderVals {
   AO_INCOMPARABLE=6,
 };
 
-bool operator<(const TermList& lhs, const TermList& rhs);
-
 /**
  * Class containing either a pointer to a compound term or
  * a variable number or a functor.
  */
 class TermList {
 public:
-  // divide by 4 because of the tag, by 2 to split the space evenly
-  static const unsigned SPEC_UPPER_BOUND = (UINT_MAX / 4) / 2;
-  /** dummy constructor, does nothing */
-  TermList() = default;
+  /* default constructor, satisfying isEmpty() */
+  TermList() : _content(FUN) {}
   /** creates a term list containing a pointer to a term */
   explicit TermList(Term* t) : _content(0) {
     // NB we also zero-initialise _content so that the spare bits are zero on 32-bit platforms
@@ -140,7 +140,7 @@ public:
   /** the term contains an ordinary variable as its head */
   inline bool isOrdinaryVar() const { return tag() == ORD_VAR; }
   /** the term contains a special variable as its head */
-  inline bool isSpecialVar() const { return tag() == SPEC_VAR && var() < SPEC_UPPER_BOUND; }
+  inline bool isSpecialVar() const { return tag() == SPEC_VAR; }
 
   /** return the variable number */
   inline unsigned var() const
@@ -167,15 +167,19 @@ public:
   unsigned defaultHash2() const { return content(); }
 
   vstring toString(bool topLevel = true) const;
+
+  friend std::ostream& operator<<(std::ostream& out, Kernel::TermList const& tl);
   /** make the term into an ordinary variable with a given number */
   inline void makeVar(unsigned vnumber)
   { _content = vnumber * 4 + ORD_VAR; }
   /** make the term into a special variable with a given number */
   inline void makeSpecialVar(unsigned vnumber)
   { _content = vnumber * 4 + SPEC_VAR; }
-  /** create an term empty (so that isEmpty() returns true) */
+  /** create an term empty (so that isEmpty() returns true)
+   *  (can just be the default constructor now)
+   */
   inline static TermList empty()
-  { TermList out; out._content = FUN; return out; }
+  { return TermList(); }
   /** the top of a term is either a function symbol or a variable id. this class is model this */
   class Top {
     using Inner = Coproduct<unsigned, unsigned>;
@@ -196,7 +200,7 @@ public:
     IMPL_COMPARISONS_FROM_COMPARE(Top);
     friend bool operator==(Top const& l, Top const& r) { return l._inner == r._inner; }
     friend bool operator!=(Top const& l, Top const& r) { return      !(l == r);       }
-    friend std::ostream& operator<<(std::ostream& out, Top const& self);
+    void output(std::ostream& out) const;
   };
 
   /* returns the Top of a function (a variable id, or a function symbol depending on whether the term is a variable or a complex term) */
@@ -227,7 +231,6 @@ public:
   bool isApplication() const;
   bool containsSubterm(TermList v);
   bool containsAllVariablesOf(TermList t);
-
   bool ground() const;
   bool isSafe() const;
 
@@ -384,6 +387,19 @@ private:
 }; // class TermList
 static_assert(sizeof(TermList) == 8, "size of TermList must be exactly 64 bits");
 
+//special functor values
+enum class SpecialFunctor {
+  ITE,
+  LET,
+  FORMULA,
+  TUPLE,
+  LET_TUPLE,
+  LAMBDA,
+  MATCH, // <- keep this one the last, or modify SPECIAL_FUNCTOR_LAST accordingly
+};
+static constexpr SpecialFunctor SPECIAL_FUNCTOR_LAST = SpecialFunctor::MATCH;
+std::ostream& operator<<(std::ostream& out, SpecialFunctor const& self);
+
 /**
  * Class to represent terms and lists of terms.
  * @since 19/02/2008 Manchester, changed to use class TermList
@@ -391,17 +407,6 @@ static_assert(sizeof(TermList) == 8, "size of TermList must be exactly 64 bits")
 class Term
 {
 public:
-  //special functor values
-  enum class SpecialFunctor {
-    ITE,
-    LET,
-    FORMULA,
-    TUPLE,
-    LET_TUPLE,
-    LAMBDA,
-    MATCH, // <- keep this one the last, or modify SPECIAL_FUNCTOR_LAST accordingly
-  };
-  static constexpr SpecialFunctor SPECIAL_FUNCTOR_LAST = SpecialFunctor::MATCH;
 
   static constexpr unsigned SPECIAL_FUNCTOR_LOWER_BOUND  =  std::numeric_limits<unsigned>::max() - unsigned(SPECIAL_FUNCTOR_LAST);
   static SpecialFunctor toSpecialFunctor(unsigned f) {
@@ -543,6 +548,7 @@ public:
   SpecialFunctor specialFunctor() const 
   { return toSpecialFunctor(functor()); }
   vstring toString(bool topLevel = true) const;
+  friend std::ostream& operator<<(std::ostream& out, Kernel::Term const& tl);
   static vstring variableToString(unsigned var);
   static vstring variableToString(TermList var);
 
@@ -1215,7 +1221,9 @@ public:
 
   bool isAnswerLiteral() const;
 
+  friend std::ostream& operator<<(std::ostream& out, Kernel::Literal const& tl);
   vstring toString() const;
+
   const vstring& predicateName() const;
 
   virtual bool computable() const;
@@ -1231,14 +1239,10 @@ private:
 bool positionIn(TermList& subterm,TermList* term, vstring& position);
 bool positionIn(TermList& subterm,Term* term, vstring& position);
 
-std::ostream& operator<< (std::ostream& out, TermList tl );
-std::ostream& operator<< (std::ostream& out, const Term& tl );
-std::ostream& operator<< (std::ostream& out, const Literal& tl );
-
-std::ostream& operator<<(std::ostream& out, Term::SpecialFunctor const& self);
-std::ostream& operator<<(std::ostream& out, TermList::Top const& self);
-
 } // namespace Kernel
+
+inline std::ostream& operator<<(std::ostream& out, Kernel::TermList::Top const& self)
+{ self.output(out); return out; }
 
 template<>
 struct std::hash<Kernel::TermList> {

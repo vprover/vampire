@@ -77,7 +77,7 @@ struct BackwardDemodulation::RemovedIsNonzeroFn
 struct BackwardDemodulation::RewritableClausesFn
 {
   RewritableClausesFn(DemodulationSubtermIndex* index) : _index(index) {}
-  VirtualIterator<pair<TypedTermList,TermQueryResult> > operator() (TypedTermList lhs)
+  VirtualIterator<pair<TypedTermList,QueryRes<ResultSubstitutionSP, TermLiteralClause>> > operator() (TypedTermList lhs)
   {
     return pvi( pushPairIntoRightIterator(lhs, _index->getInstances(lhs, true)) );
   }
@@ -103,16 +103,16 @@ struct BackwardDemodulation::ResultFn
    * and the second is the clause, that replaces it. If no
    * replacement should occur, return pair of zeroes.
    */
-  BwSimplificationRecord operator() (pair<TermList,TermQueryResult> arg)
+  BwSimplificationRecord operator() (pair<TermList,QueryRes<ResultSubstitutionSP, TermLiteralClause>> arg)
   {
-    TermQueryResult qr=arg.second;
+    auto qr=arg.second;
 
-    if( !ColorHelper::compatible(_cl->color(), qr.clause->color()) ) {
+    if( !ColorHelper::compatible(_cl->color(), qr.data->clause->color()) ) {
       //colors of premises don't match
       return BwSimplificationRecord(0);
     }
 
-    if(_cl==qr.clause || _removed->find(qr.clause)) {
+    if(_cl==qr.data->clause || _removed->find(qr.data->clause)) {
       //the retreived clause was already replaced during this
       //backward demodulation
       return BwSimplificationRecord(0);
@@ -125,7 +125,7 @@ struct BackwardDemodulation::ResultFn
     // is handled directly within the tree
 
     TermList rhs=EqHelper::getOtherEqualitySide(_eqLit, lhs);
-    TermList lhsS=qr.term;
+    TermList lhsS=qr.data->term;
     TermList rhsS;
 
     auto subs=qr.unifier;
@@ -152,36 +152,36 @@ struct BackwardDemodulation::ResultFn
       return BwSimplificationRecord(0);
     }
 
-    if (_helper.redundancyCheckNeededForPremise(qr.clause,qr.literal,qr.term) &&
-      !_helper.isPremiseRedundant(qr.clause,qr.literal,qr.term,rhsS,lhs,subs.ptr(),false))
+    if (_helper.redundancyCheckNeededForPremise(qr.data->clause,qr.data->literal,qr.data->term) &&
+      !_helper.isPremiseRedundant(qr.data->clause,qr.data->literal,qr.data->term,rhsS,lhs,subs.ptr(),false))
     {
       return BwSimplificationRecord(0);
     }
 
-    Literal* resLit=EqHelper::replace(qr.literal,lhsS,rhsS);
+    Literal* resLit=EqHelper::replace(qr.data->literal,lhsS,rhsS);
     if(EqHelper::isEqTautology(resLit)) {
       env.statistics->backwardDemodulationsToEqTaut++;
-      _removed->insert(qr.clause);
-      return BwSimplificationRecord(qr.clause);
+      _removed->insert(qr.data->clause);
+      return BwSimplificationRecord(qr.data->clause);
     }
 
-    unsigned cLen=qr.clause->length();
-    Clause* res = new(cLen) Clause(cLen, SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.clause, _cl));
+    unsigned cLen=qr.data->clause->length();
+    Clause* res = new(cLen) Clause(cLen, SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.data->clause, _cl));
 
     (*res)[0]=resLit;
 
     unsigned next=1;
     for(unsigned i=0;i<cLen;i++) {
-      Literal* curr=(*qr.clause)[i];
-      if(curr!=qr.literal) {
+      Literal* curr=(*qr.data->clause)[i];
+      if(curr!=qr.data->literal) {
         (*res)[next++] = curr;
       }
     }
     ASS_EQ(next,cLen);
 
     env.statistics->backwardDemodulations++;
-    _removed->insert(qr.clause);
-    return BwSimplificationRecord(qr.clause,res);
+    _removed->insert(qr.data->clause);
+    return BwSimplificationRecord(qr.data->clause,res);
   }
 private:
   Literal* _eqLit;
