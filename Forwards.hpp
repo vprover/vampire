@@ -137,16 +137,17 @@ namespace Indexing
 {
 class Index;
 class IndexManager;
+template<class Data>
 class LiteralIndex;
-class LiteralIndexingStructure;
+template<class Data>
 class TermIndex;
+template<class Data>
 class TermIndexingStructure;
 
 class TermSharing;
 
 class ResultSubstitution;
 typedef Lib::SmartPtr<ResultSubstitution> ResultSubstitutionSP;
-
 };
 
 namespace Saturation

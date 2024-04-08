@@ -12,9 +12,11 @@
  * Implements class Induction.
  */
 
+#include "Forwards.hpp"
 #include "Indexing/Index.hpp"
 #include "Indexing/ResultSubstitution.hpp"
 
+#include "Kernel/SortHelper.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
 
@@ -35,12 +37,12 @@ namespace {
 
 struct SLQueryResultToTermQueryResultFn
 {
-  SLQueryResultToTermQueryResultFn(TermList v) : variable(v) {}
-  TermQueryResult operator() (const SLQueryResult slqr) {
-    return TermQueryResult(slqr.unifier->applyToQuery(variable), slqr.literal, slqr.clause, ResultSubstitutionSP());
+  SLQueryResultToTermQueryResultFn(TypedTermList v) : variable(v) {}
+  TermLiteralClause operator() (const QueryRes<ResultSubstitutionSP, LiteralClause> slqr) {
+    return TermLiteralClause{slqr.unifier->applyToQuery(variable), slqr.data->literal, slqr.data->clause};
   }
 
-  TermList variable;
+  TypedTermList variable;
 };
 
 bool isIntegerComparisonLiteral(Literal* lit) {
@@ -66,16 +68,16 @@ bool isIntegerComparisonLiteral(Literal* lit) {
 
 };  // namespace
 
-TermQueryResultIterator InductionHelper::getComparisonMatch(
+VirtualIterator<TermLiteralClause> InductionHelper::getComparisonMatch(
     bool polarity, bool termIsLeft, Term* t) {
   static unsigned less = env.signature->getInterpretingSymbol(Theory::INT_LESS);
-  static TermList var(0, false);
+  static TypedTermList var(TermList::var(0), SortHelper::getResultSort(t));
   Literal* pattern = Literal::create2(less, polarity, termIsLeft ? TermList(t) : var, termIsLeft ? var : TermList(t));
   return pvi(getMappingIterator(_comparisonIndex->getUnifications(pattern, /*complementary=*/ false, /*retrieveSubstitution=*/ true),
                                 SLQueryResultToTermQueryResultFn(var)));
 }
 
-TermQueryResultIterator InductionHelper::getLess(Term* t)
+VirtualIterator<TermLiteralClause> InductionHelper::getLess(Term* t)
 {
   return pvi(concatIters(
     // x <= t  iff  ~ t < x
@@ -84,7 +86,7 @@ TermQueryResultIterator InductionHelper::getLess(Term* t)
     getComparisonMatch(/*polarity=*/true, /*termIsLeft=*/false, t)));
 }
 
-TermQueryResultIterator InductionHelper::getGreater(Term* t)
+VirtualIterator<TermLiteralClause> InductionHelper::getGreater(Term* t)
 {
   return pvi(concatIters(
     // x >= t  iff  ~ x < t
@@ -93,7 +95,7 @@ TermQueryResultIterator InductionHelper::getGreater(Term* t)
     getComparisonMatch(/*polarity=*/true, /*termIsLeft=*/true, t)));
 }
 
-TermQueryResultIterator InductionHelper::getTQRsForInductionTerm(Term* inductionTerm) {
+VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>> InductionHelper::getTQRsForInductionTerm(Term* inductionTerm) {
   ASS(_inductionTermIndex);
   return _inductionTermIndex->getUnifications(TypedTermList(inductionTerm));
 }

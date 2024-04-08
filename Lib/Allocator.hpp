@@ -54,7 +54,7 @@ inline void *alloc(size_t size, size_t align = alignof(std::max_align_t)) {
 inline void free(void *pointer, size_t size, size_t align = alignof(std::max_align_t)) {
   ::operator delete(pointer);
 }
-}
+} // namespace Lib
 #define USE_GLOBAL_SMALL_OBJECT_ALLOCATOR(C)
 
 // do some of our own allocation
@@ -281,7 +281,7 @@ inline void free(void *pointer, size_t size) {
   free(pointer, size, align);
 }
 
-}
+} // namespace Lib
 
 // overload class-specific operator new to call the global small-object allocator
 #define USE_GLOBAL_SMALL_OBJECT_ALLOCATOR(C) \

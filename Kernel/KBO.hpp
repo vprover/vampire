@@ -20,7 +20,6 @@
 #include "Forwards.hpp"
 
 #include "Lib/DArray.hpp"
-#include "Lib/Map.hpp"
 
 #include "Ordering.hpp"
 
@@ -193,6 +192,7 @@ protected:
   int symbolWeight(const Term* t) const;
 
 private:
+
   KboWeightMap<FuncSigTraits> _funcWeights;
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
   KboWeightMap<PredSigTraits> _predWeights;

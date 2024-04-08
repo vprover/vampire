@@ -60,6 +60,7 @@ ClauseStack fnDefContext() {
 
 TEST_GENERATION(test_00,
     Generation::TestCase()
+      .setup(setup)
       .options({ { "function_definition_rewriting", "on"} })
       .input( clause({  b != f(b, y), p(x) }))
       .expected(none())

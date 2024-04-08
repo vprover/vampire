@@ -32,7 +32,6 @@
 #include "Shell/Property.hpp"
 #include "Shell/Shuffling.hpp"
 
-#include "EqHelper.hpp"
 #include "LPO.hpp"
 #include "KBO.hpp"
 #include "SKIKBO.hpp"

@@ -36,16 +36,16 @@ using namespace Test::Generation;
 
 namespace InductionTest {
 
-LiteralIndex* comparisonIndex() {
-  return new UnitIntegerComparisonLiteralIndex(new LiteralSubstitutionTree());
+LiteralIndex<LiteralClause>* comparisonIndex() {
+  return new UnitIntegerComparisonLiteralIndex(new LiteralSubstitutionTree<LiteralClause>());
 }
 
-TermIndex* intInductionIndex() {
-  return new InductionTermIndex(new TermSubstitutionTree(/* extra */ false));
+TermIndex<TermLiteralClause>* intInductionIndex() {
+  return new InductionTermIndex(new TermSubstitutionTree<TermLiteralClause>());
 }
 
-TermIndex* structInductionIndex() {
-  return new StructInductionTermIndex(new TermSubstitutionTree(/* extra */ false));
+TermIndex<TermLiteralClause>* structInductionIndex() {
+  return new StructInductionTermIndex(new TermSubstitutionTree<TermLiteralClause>());
 }
 
 Stack<Index*> getIndices() {

@@ -14,7 +14,7 @@
  * @since 30/04/2008 flight Brussels-Tel Aviv
  */
 
-#include "Kernel/NumTraits.hpp"
+#include "Indexing/ResultSubstitution.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/Comparison.hpp"
@@ -23,14 +23,13 @@
 #include "Shell/Options.hpp"
 #include <fstream>
 
-#include "Term.hpp"
-#include "KBO.hpp"
+#include "NumTraits.hpp"
 #include "Signature.hpp"
-
-#include "Indexing/ResultSubstitution.hpp"
-
-#include "TermIterators.hpp"
 #include "SubstHelper.hpp"
+#include "TermIterators.hpp"
+#include "Term.hpp"
+
+#include "KBO.hpp"
 
 #define COLORED_WEIGHT_BOOST 0x10000
 

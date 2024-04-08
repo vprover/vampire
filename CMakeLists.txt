@@ -353,16 +353,10 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/InductionFormulaIndex.cpp
     Indexing/LiteralIndex.cpp
     Indexing/LiteralMiniIndex.cpp
-    Indexing/LiteralSubstitutionTree.cpp
     Indexing/ResultSubstitution.cpp
-    Indexing/SubstitutionTree.cpp
-    Indexing/SubstitutionTree_FastGen.cpp
-    Indexing/SubstitutionTree_FastInst.cpp
-    Indexing/SubstitutionTree_Nodes.cpp
     Indexing/TermCodeTree.cpp
     Indexing/TermIndex.cpp
     Indexing/TermSharing.cpp
-    Indexing/TermSubstitutionTree.cpp
     Indexing/AcyclicityIndex.hpp
     Indexing/ClauseCodeTree.hpp
     Indexing/ClauseVariantIndex.hpp
@@ -705,6 +699,7 @@ set(UNIT_TESTS
     UnitTests/tDHMap.cpp
     UnitTests/tQuotientE.cpp
     UnitTests/tUnificationWithAbstraction.cpp
+    UnitTests/tTermIndex.cpp
     UnitTests/tGaussianElimination.cpp
     UnitTests/tPushUnaryMinus.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
