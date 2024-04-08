@@ -151,6 +151,10 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           rhsS = subs->applyToBoundResult(rhs);
         }
 
+        if (qr.data->term.isVar()) {
+          rhsS = subst->apply(rhsS, 0);
+        }
+
         Ordering::Result argOrder = ordering.getEqualityArgumentOrder(qr.data->literal);
         bool preordered = argOrder==Ordering::LESS || argOrder==Ordering::GREATER;
   #if VDEBUG
