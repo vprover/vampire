@@ -19,102 +19,124 @@
 #include "Debug/Output.hpp"
 
 #include "Lib/Event.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/Term.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Saturation/ClauseContainer.hpp"
 #include "ResultSubstitution.hpp"
 #include "Kernel/UnificationWithAbstraction.hpp"
-
 #include "Lib/Allocator.hpp"
 
+/**
+ * Indices are parametrized by a LeafData, i.e. the bit of data you want to store in the index.
+ * Each leaf data must have a key to store at the leave. The Key can currently be either a Literal* or a TypedTermList.
+ * A LeafData must have a function  `<Key> key() const;` returns the key, and must have comparison operators (<=,<,>=,>,!=,==) implemented.
+ * See e.g. TermLiteralClause below for examples.
+ */
 namespace Indexing
 {
 using namespace Kernel;
 using namespace Lib;
 using namespace Saturation;
 
-
-/**
- * Class of objects which contain results of single literal queries.
- */
-template<class Unifier>
-struct LQueryRes
+struct LiteralClause 
 {
-  LQueryRes() {}
-  LQueryRes(Literal* l, Clause* c, Unifier unifier)
-  : literal(l), clause(c), unifier(std::move(unifier)) {}
+  Literal* const& key() const
+  { return literal; }
 
+private:
+  std::tuple<unsigned,unsigned> asTuple() const
+  { return std::make_tuple(clause->number(), literal->getId()); }
+public:
 
-  Literal* literal;
-  Clause* clause;
-  Unifier unifier;
+  IMPL_COMPARISONS_FROM_TUPLE(LiteralClause)
+
+  Literal* literal = nullptr;
+  Clause* clause = nullptr;
+
+  friend std::ostream& operator<<(std::ostream& out, LiteralClause const& self)
+  { return out << "{ " << outputPtr(self.clause) << ", " << outputPtr(self.literal) << " }"; }
 };
 
-template<class Unifier>
-LQueryRes<Unifier> lQueryRes(Literal* l, Clause* c, Unifier unifier)
-{ return LQueryRes<Unifier>(l,c,std::move(unifier)); }
+template<class Value>
+struct TermWithValue {
+  TypedTermList term;
+  Value value;
+
+  TermWithValue() {}
+
+  TermWithValue(TypedTermList term, Value v)
+    : term(term)
+    , value(std::move(v))
+  {}
+
+  TypedTermList const& key() const { return term; }
+
+  std::tuple<const TypedTermList &,const Value &> asTuple() const
+  { return std::tie(term, value); }
+
+  IMPL_COMPARISONS_FROM_TUPLE(TermWithValue)
+
+  friend std::ostream& operator<<(std::ostream& out, TermWithValue const& self)
+  { return out << self.asTuple(); }
+};
+
+class TermWithoutValue : public TermWithValue<std::tuple<>> 
+{
+public:
+  TermWithoutValue(TypedTermList t) 
+    : TermWithValue(t, std::make_tuple()) 
+  { }
+};
+
+struct TermLiteralClause 
+{
+  TypedTermList term;
+  Literal* literal = nullptr;
+  Clause* clause = nullptr;
+
+  TypedTermList const& key() const { return term; }
+
+  auto  asTuple() const
+  { return std::make_tuple(clause->number(), literal->getId(), term); }
+
+  IMPL_COMPARISONS_FROM_TUPLE(TermLiteralClause)
+
+  friend std::ostream& operator<<(std::ostream& out, TermLiteralClause const& self)
+  { return out << "("
+               << self.term << ", "
+               << self.literal
+               << outputPtr(self.clause)
+               << ")"; }
+};
 
 /**
  * Class of objects which contain results of term queries.
  */
-template<class Unifier>
-struct TQueryRes
+template<class Unifier, class Data>
+struct QueryRes
 {
-  TQueryRes() {}
-  TQueryRes(TermList t, Literal* l, Clause* c, Unifier unifier)
-  : term(t), literal(l), clause(c), unifier(std::move(unifier)) {}
-
-  TermList term;
-  Literal* literal;
-  Clause* clause;
   Unifier unifier;
+  Data const* data;
 
-  friend std::ostream& operator<<(std::ostream& out, TQueryRes const& self)
+  QueryRes() {}
+  QueryRes(Unifier unifier, Data const* data) 
+    : unifier(std::move(unifier))
+    , data(std::move(data)) {}
+
+  friend std::ostream& operator<<(std::ostream& out, QueryRes const& self)
   { 
     return out 
-      << "{ term: " << self.term 
-      << ", literal: " << outputPtr(self.literal)
-      << ", clause: " << outputPtr(self.literal)
+      << "{ data: " << self.data()
       << ", unifier: " << self.unifier
       << "}";
   }
 };
 
-template<class Unifier>
-TQueryRes<Unifier> tQueryRes(TermList t, Literal* l, Clause* c, Unifier unifier) 
-{ return TQueryRes<Unifier>(t,l,c,std::move(unifier)); }
-
-struct ClauseSResQueryResult
-{
-  ClauseSResQueryResult() {}
-  ClauseSResQueryResult(Clause* c)
-  : clause(c), resolved(false) {}
-  ClauseSResQueryResult(Clause* c, unsigned rqlIndex)
-  : clause(c), resolved(true), resolvedQueryLiteralIndex(rqlIndex) {}
-  
-  Clause* clause;
-  bool resolved;
-  unsigned resolvedQueryLiteralIndex;
-};
-
-struct FormulaQueryResult
-{
-  FormulaQueryResult() {}
-  FormulaQueryResult(FormulaUnit* unit, Formula* f, ResultSubstitutionSP s=ResultSubstitutionSP())
-  : unit(unit), formula(f), substitution(s) {}
-
-  FormulaUnit* unit;
-  Formula* formula;
-  ResultSubstitutionSP substitution;
-};
-
-using TermQueryResult = TQueryRes<ResultSubstitutionSP>;
-using SLQueryResult   = LQueryRes<ResultSubstitutionSP>;
-
-using TermQueryResultIterator = VirtualIterator<TermQueryResult>;
-using SLQueryResultIterator = VirtualIterator<SLQueryResult>;
-typedef VirtualIterator<ClauseSResQueryResult> ClauseSResResultIterator;
-typedef VirtualIterator<FormulaQueryResult> FormulaQueryResultIterator;
+template<class Unifier, class Data>
+QueryRes<Unifier, Data> queryRes(Unifier unifier, Data const* d) 
+{ return QueryRes<Unifier, Data>(std::move(unifier), std::move(d)); }
 
 class Index
 {
@@ -137,17 +159,6 @@ protected:
 private:
   SubscriptionData _addedSD;
   SubscriptionData _removedSD;
-};
-
-
-
-class ClauseSubsumptionIndex
-: public Index
-{
-public:
-  virtual ClauseSResResultIterator getSubsumingOrSResolvingClauses(Clause* c, 
-    bool subsumptionResolution)
-  { NOT_IMPLEMENTED; };
 };
 
 };

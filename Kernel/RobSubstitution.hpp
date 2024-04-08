@@ -391,7 +391,6 @@ public:
   friend std::ostream& operator<<(std::ostream& out, RobSubstitution const& self);
   std::ostream& output(std::ostream& out, bool deref) const;
 
-  typedef std::pair<TermSpec,TermSpec> TTPair;
   friend std::ostream& operator<<(std::ostream& out, VarSpec const& self)
   {
     if(self.index == SPECIAL_INDEX) {

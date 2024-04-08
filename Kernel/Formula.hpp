@@ -342,7 +342,7 @@ class BoolTermFormula
     if (term->isSpecial()) {
       Term::SpecialTermData *sd = term->getSpecialData();
       switch (sd->specialFunctor()) {
-        case Term::SpecialFunctor::FORMULA:
+        case SpecialFunctor::FORMULA:
           return sd->getFormula();
         default:
           return new BoolTermFormula(ts);

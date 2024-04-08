@@ -14,7 +14,9 @@
 
 #include <utility>
 
+#include "Debug/Output.hpp"
 #include "Forwards.hpp"
+#include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
 
 #include "Indexing/ResultSubstitution.hpp"
@@ -34,6 +36,7 @@
 #include "Shell/NewCNF.hpp"
 #include "Shell/NNF.hpp"
 #include "Shell/Rectify.hpp"
+#include "Kernel/NumTraits.hpp"
 
 #include "Induction.hpp"
 
@@ -430,7 +433,7 @@ void ContextSubsetReplacement::stepIteration()
 void Induction::attach(SaturationAlgorithm* salg) {
   GeneratingInferenceEngine::attach(salg);
   if (InductionHelper::isIntInductionOneOn()) {
-    _comparisonIndex = static_cast<LiteralIndex*>(_salg->getIndexManager()->request(UNIT_INT_COMPARISON_INDEX));
+    _comparisonIndex = static_cast<LiteralIndex<LiteralClause>*>(_salg->getIndexManager()->request(UNIT_INT_COMPARISON_INDEX));
     _inductionTermIndex = static_cast<TermIndex*>(_salg->getIndexManager()->request(INDUCTION_TERM_INDEX));
   }
   if (InductionHelper::isNonUnitStructInductionOn()) {
@@ -492,12 +495,13 @@ struct InductionContextFn
 {
   InductionContextFn(Clause* premise, Literal* lit) : _premise(premise), _lit(lit) {}
 
-  VirtualIterator<InductionContext> operator()(pair<vvector<Term*>, VirtualIterator<TermQueryResult>> arg) {
+  VirtualIterator<InductionContext> operator()(pair<vvector<Term*>, VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>>> arg) {
     auto indDepth = _premise->inference().inductionDepth();
     // heuristic 2
     if (indDepth) {
       auto res = VirtualIterator<InductionContext>::getEmpty();
       // TODO make this work for multiple induction terms
+      ASS(arg.first.size() >= 1)
       if (arg.first.size() > 1) {
         return res;
       }
@@ -507,7 +511,7 @@ struct InductionContextFn
         return res;
       }
       while (arg.second.hasNext()) {
-        auto tqr = arg.second.next();
+        auto& tqr = *arg.second.next().data;
         if (indDepth != tqr.clause->inference().inductionDepth()) {
           continue;
         }
@@ -552,7 +556,7 @@ struct InductionContextFn
       Set<Literal*,SharedTermHash> lits;
       lits.insert(_lit);
       while (arg.second.hasNext()) {
-        auto tqr = arg.second.next();
+        auto& tqr = *arg.second.next().data;
         // TODO: having the same literal multiple times or its complement has unwanted effects
         // in the clausification/resolution part, so avoid it for now
         if (lits.contains(tqr.literal) || lits.contains(Literal::complementaryLiteral(tqr.literal))) {
@@ -679,7 +683,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
           // add formula with default bound
           if (_opt.integerInductionDefaultBound()) {
             InductionFormulaIndex::Entry* e = nullptr;
-            static TermQueryResult defaultBound(TermList(theory->representConstant(IntegerConstantType(0))), nullptr, nullptr, ResultSubstitutionSP());
+            static Bound defaultBound = Bound(DefaultBound{ .term = TypedTermList(theory->representConstant(IntegerConstantType(0))) });
             // for now, represent default bounds with no bound in the index, this is unique
             // since the placeholder is still int
             if (notDoneInt(ctx, nullptr, nullptr, e) && isValidBound(ctx, defaultBound)) {
@@ -692,14 +696,14 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       }
     }
     // collect term queries for each induction term
-    auto sideLitsIt = VirtualIterator<pair<vvector<Term*>,TermQueryResultIterator>>::getEmpty();
+    auto sideLitsIt = VirtualIterator<pair<vvector<Term*>, VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>>>>::getEmpty();
     if (_opt.nonUnitInduction()) {
       sideLitsIt = pvi(iterTraits(getSTLIterator(ta_terms.begin(), ta_terms.end()))
         .map([](pair<vvector<Term*>,vset<pair<const InductionTemplate*,vvector<Term*>>>> kv){
           return kv.first;
         })
         .map([this](vvector<Term*> ts) {
-          auto res = TermQueryResultIterator::getEmpty();
+          auto res = VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>>::getEmpty();
           for (const auto& t : ts) {
             res = pvi(concatIters(res, _structInductionTermIndex->getGeneralizations(t, false)));
           }
@@ -801,15 +805,15 @@ void InductionClauseIterator::processIntegerComparison(Clause* premise, Literal*
     auto bound2 = iterTraits(i ? _helper.getGreater(indt) : _helper.getLess(indt)).collect<Stack>();
     auto it = iterTraits(_helper.getTQRsForInductionTerm(indt))
       .filter([&premise](const auto& tqr) {
-        return tqr.clause != premise;
+        return tqr.data->clause != premise;
       })
       .map([&indt](const auto& tqr) {
-        return InductionContext({ indt }, tqr.literal, tqr.clause);
+        return InductionContext({ indt }, tqr.data->literal, tqr.data->clause);
       })
       .flatMap([this](const InductionContext& arg) {
         return contextReplacementInstance(arg, _opt, _fnDefHandler);
       });
-    TermQueryResult b(bound, lit, premise, ResultSubstitutionSP());
+    auto b = TermLiteralClause{ TypedTermList(bound, IntTraits::sort()), lit, premise };
     // loop over literals containing the current induction term
     while (it.hasNext()) {
       auto ctx = it.next();
@@ -911,11 +915,11 @@ ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, Inferen
 
 // helper function to properly add bounds to integer induction contexts,
 // where the bounds are not part of the inner formula for the induction
-void InductionClauseIterator::resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TermQueryResult* bound1, const TermQueryResult* bound2)
+void InductionClauseIterator::resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TermLiteralClause* bound1, const TermLiteralClause* bound2)
 {
   static unsigned less = env.signature->getInterpretingSymbol(Theory::INT_LESS);
   ASS_EQ(context._indTerms.size(), 1);
-  static TermList ph(getPlaceholderForTerm(context._indTerms,0));
+  static TypedTermList ph(getPlaceholderForTerm(context._indTerms,0));
   // lower bound
   if (bound1) {
     auto lhs = bound1->literal->polarity() ? bound1->term : ph;
@@ -1147,7 +1151,7 @@ void InductionClauseIterator::resolveClauses(const ClauseStack& cls, const Induc
   }
 }
 
-void InductionClauseIterator::performFinIntInduction(const InductionContext& context, const TermQueryResult& lb, const TermQueryResult& ub)
+void InductionClauseIterator::performFinIntInduction(const InductionContext& context, const TermLiteralClause& lb, const TermLiteralClause& ub)
 {
   InductionFormulaIndex::Entry* e = nullptr;
   if (notDoneInt(context, lb.literal, ub.literal, e)) {
@@ -1157,7 +1161,7 @@ void InductionClauseIterator::performFinIntInduction(const InductionContext& con
   resolveClauses(context, e, &lb, &ub);
 }
 
-void InductionClauseIterator::performInfIntInduction(const InductionContext& context, bool increasing, const TermQueryResult& bound)
+void InductionClauseIterator::performInfIntInduction(const InductionContext& context, bool increasing, const TermLiteralClause& bound)
 {
   InductionFormulaIndex::Entry* e = nullptr;
   if (notDoneInt(context, increasing ? bound.literal : nullptr, increasing ? nullptr : bound.literal, e)) {
@@ -1165,6 +1169,7 @@ void InductionClauseIterator::performInfIntInduction(const InductionContext& con
   }
   resolveClauses(context, e, increasing ? &bound : nullptr, increasing ? nullptr : &bound);
 }
+
 
 // Given a literal ~L[term], where 'term' is of the integer sort,
 // introduce and induction hypothesis for integers, for example:
@@ -1179,9 +1184,9 @@ void InductionClauseIterator::performInfIntInduction(const InductionContext& con
 // either infinity or -infinity. (The intervals are set such that the hypothesis
 // is valid: if interval_y(Y) holds for some Y, then either interval_x(Y) holds,
 // or depending on 'increasing' either interval_x(Y-1) or interval_x(Y+1) holds.)
-void InductionClauseIterator::performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, const TermQueryResult& bound1, const TermQueryResult* optionalBound2)
+void InductionClauseIterator::performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, Coproduct<TermLiteralClause, DefaultBound> bound1, const TermLiteralClause* optionalBound2)
 {
-  TermList b1(bound1.term);
+  TermList b1(bound1.apply([](auto x) { return x.term; }));
   TermList one(theory->representConstant(IntegerConstantType(increasing ? 1 : -1)));
 
   TermList x(0,false);
@@ -1207,14 +1212,16 @@ void InductionClauseIterator::performIntInduction(const InductionContext& contex
   // create Y>=b1 (which is ~Y<b1), or Y>b1, or Y<=b1 (which is ~b1<Y), or Y<b1
   // This comparison is mirroring the structure of bound1.literal, which is "b1 <comparison> inductionTerm".
   // If bound1.literal is nullptr, we are using the default bound with the comparison sign >= or <=.
-  const bool isBound1Equal = (!bound1.literal || (bound1.literal->functor() == less && bound1.literal->isNegative()));
+  const bool isBound1Equal = bound1.match(
+      [](TermLiteralClause const& bound1) { return (bound1.literal->functor() == less && bound1.literal->isNegative()); },
+      [](DefaultBound) { return true; });
   const bool isBound1FirstArg = (increasing != isBound1Equal);
   Formula* Lycompb1 = new AtomicFormula(Literal::create2(
         less, !isBound1Equal, (isBound1FirstArg ? b1 : y), (isBound1FirstArg ? y : b1)));
 
   Formula* FxInterval;
   Formula* FyInterval;
-  const bool isDefaultBound = ((bound1.clause == nullptr) || (bound1.literal == nullptr));
+  const bool isDefaultBound = bound1.template is<DefaultBound>();
   const bool hasBound2 = ((optionalBound2 != nullptr) && (optionalBound2->literal != nullptr));
   // Also resolve the hypothesis with comparisons with bound(s) (if the bound(s) are present/not default).
   if (hasBound2) {
@@ -1593,7 +1600,7 @@ bool InductionClauseIterator::notDoneInt(InductionContext context, Literal* boun
   return _formulaIndex.findOrInsert(context, e, b1, b2);
 }
 
-bool InductionClauseIterator::isValidBound(const InductionContext& context, const TermQueryResult& bound)
+bool InductionClauseIterator::isValidBound(const InductionContext& context, const Bound& bound)
 {
   ASS_EQ(context._indTerms.size(), 1);
   Term* pt = getPlaceholderForTerm(context._indTerms,0);
@@ -1601,7 +1608,12 @@ bool InductionClauseIterator::isValidBound(const InductionContext& context, cons
     for (const auto& lit : kv.second) {
       ASS((lit != nullptr) && (kv.first != nullptr));
       Term* otherArg = InductionHelper::getOtherTermFromComparison(lit, pt);
-      if (!InductionHelper::isValidBound(otherArg, kv.first, bound)) {
+      if (!bound.match(
+            [&](TermLiteralClause const&  bound) 
+            { return InductionHelper::isValidBound(otherArg, kv.first, bound); },
+            [&](DefaultBound const& bound) 
+            { return InductionHelper::isValidForDefaultBound(otherArg, kv.first, bound.term); }
+            )) {
         return false;
       }
     }

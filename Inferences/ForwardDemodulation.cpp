@@ -107,40 +107,39 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
       bool redundancyCheck = _helper.redundancyCheckNeededForPremise(cl, lit, trm);
 
-      TermQueryResultIterator git=_index->getGeneralizations(trm, true);
+      auto git = _index->getGeneralizations(trm.term(), /* retrieveSubstitutions */ true);
       while(git.hasNext()) {
-        TermQueryResult qr=git.next();
-        ASS_EQ(qr.clause->length(),1);
+        auto qr=git.next();
+        ASS_EQ(qr.data->clause->length(),1);
 
-        if(!ColorHelper::compatible(cl->color(), qr.clause->color())) {
+        if(!ColorHelper::compatible(cl->color(), qr.data->clause->color())) {
           continue;
         }
 
+        // TODO:
         // to deal with polymorphic matching
         // Ideally, we would like to extend the substitution
         // returned by the index to carry out the sort match.
         // However, ForwardDemodulation uses a CodeTree as its
         // indexing mechanism, and it is not clear how to extend
         // the substitution returned by a code tree.
-        static RobSubstitution subst;
-        bool resultTermIsVar = qr.term.isVar();
-        if(resultTermIsVar){
+        Recycled<RobSubstitution> subst;
+        if(qr.data->term.isVar()){
           TermList querySort = trm.sort();
-          TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
-          subst.reset();
-          if(!subst.match(eqSort, 0, querySort, 1)){
+          TermList eqSort = SortHelper::getEqualityArgumentSort(qr.data->literal);
+          if(!subst->match(eqSort, 0, querySort, 1)){
             continue;
           }
         }
 
-        TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
+        TermList rhs=EqHelper::getOtherEqualitySide(qr.data->literal,qr.data->term);
         TermList rhsS;
         auto subs = qr.unifier;
         if(!subs->isIdentityOnQueryWhenResultBound()) {
           //When we apply substitution to the rhs, we get a term, that is
           //a variant of the term we'd like to get, as new variables are
           //produced in the substitution application.
-          TermList lhsSBadVars = subs->applyToResult(qr.term);
+          TermList lhsSBadVars = subs->applyToResult(qr.data->term);
           TermList rhsSBadVars = subs->applyToResult(rhs);
           Renaming rNorm, qNorm, qDenorm;
           rNorm.normalizeVariables(lhsSBadVars);
@@ -151,19 +150,20 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         } else {
           rhsS = subs->applyToBoundResult(rhs);
         }
-        if(resultTermIsVar){
-          rhsS = subst.apply(rhsS, 0);
+
+        if (qr.data->term.isVar()) {
+          rhsS = subst->apply(rhsS, 0);
         }
 
-        Ordering::Result argOrder = ordering.getEqualityArgumentOrder(qr.literal);
+        Ordering::Result argOrder = ordering.getEqualityArgumentOrder(qr.data->literal);
         bool preordered = argOrder==Ordering::LESS || argOrder==Ordering::GREATER;
   #if VDEBUG
         if(preordered) {
           if(argOrder==Ordering::LESS) {
-            ASS_EQ(rhs, *qr.literal->nthArgument(0));
+            ASS_EQ(rhs, *qr.data->literal->nthArgument(0));
           }
           else {
-            ASS_EQ(rhs, *qr.literal->nthArgument(1));
+            ASS_EQ(rhs, *qr.data->literal->nthArgument(1));
           }
         }
   #endif
@@ -183,19 +183,19 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           }
         }
 
-        if (redundancyCheck && !_helper.isPremiseRedundant(cl, lit, trm, rhsS, qr.term, subs.ptr(), true)) {
+        if (redundancyCheck && !_helper.isPremiseRedundant(cl, lit, trm, rhsS, qr.data->term, subs.ptr(), true)) {
           continue;
         }
 
         Literal* resLit = EqHelper::replace(lit,trm,rhsS);
         if(EqHelper::isEqTautology(resLit)) {
           env.statistics->forwardDemodulationsToEqTaut++;
-          premises = pvi( getSingletonIterator(qr.clause));
+          premises = pvi( getSingletonIterator(qr.data->clause));
           return true;
         }
 
         Clause* res = new(cLen) Clause(cLen,
-          SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.clause));
+          SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.data->clause));
         (*res)[0]=resLit;
 
         unsigned next=1;
@@ -209,7 +209,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
         env.statistics->forwardDemodulations++;
 
-        premises = pvi( getSingletonIterator(qr.clause));
+        premises = pvi( getSingletonIterator(qr.data->clause));
         replacement = res;
         return true;
       }

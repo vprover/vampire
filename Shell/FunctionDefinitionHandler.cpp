@@ -107,7 +107,7 @@ void FunctionDefinitionHandler::initAndPreprocess(Problem& prb, const Options& o
         defCl->setSplits(SplitSet::getEmpty());
         defCl->incRefCnt();
         ASS_EQ(condLits.size()+1,lits.size());
-        _is->insert(lhs.term(), lits.top(), defCl);
+        _is->insert(TermLiteralClause {lhs.term(), lits.top(), defCl});
         // TODO should we store this clause anywhere else?
       } else {
         it.replace(defCl);
