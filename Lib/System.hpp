@@ -17,6 +17,8 @@
 #ifndef __System__
 #define __System__
 
+#include <cstdlib>
+
 #include "Forwards.hpp"
 
 #define VAMP_RESULT_STATUS_SUCCESS 0
