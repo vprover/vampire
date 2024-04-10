@@ -78,10 +78,11 @@ PortfolioMode::PortfolioMode(Problem* problem) : _prb(problem), _slowness(env.op
   try {
     fs::remove(_path);
   } catch(const fs::filesystem_error &remove_error) {
-    // this is not good: try and continue anyway, but we're probably on a loser
+    // this is not good: we can't synchronise on _path
+    // attempt to output to stdout instead
     std::cerr
       << "WARNING: could not synchronise on " << _path
-      << " (proof may be garbled)\n"
+      << " (will output to stdout, but proof may be garbled)\n"
       << remove_error.what()
       << std::endl;
     _path.clear();
@@ -624,7 +625,6 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   System::registerForSIGHUPOnParentDeath();
   UIHelper::portfolioParent=false;
 
-  int resultValue=1;
   env.timer->reset();
   env.timer->start();
 
@@ -649,60 +649,69 @@ void PortfolioMode::runSlice(Options& strategyOpt)
 
   Saturation::ProvingHelper::runVampire(*_prb, opt);
 
-  //set return value to zero if we were successful
-  if (env.statistics->terminationReason == Statistics::REFUTATION ||
-      env.statistics->terminationReason == Statistics::SATISFIABLE) {
-    resultValue=0;
+  bool succeeded =
+    env.statistics->terminationReason == Statistics::REFUTATION ||
+    env.statistics->terminationReason == Statistics::SATISFIABLE;
+
+  if(!succeeded) {
+    if(outputAllowed())
+      UIHelper::outputResult(cout);
+    exit(EXIT_FAILURE);
   }
 
+  // whether this Vampire should print a proof or not
   bool outputResult = false;
-  if(!resultValue) {
-    // only successfull vampires get here
 
-    FILE *checkExists;
-    // try unsynchronised output if we failed to synchronise on `_path`
-    if(_path.empty())
-      outputResult = true;
-    // NB "wx": if we succeed opening here we're the first Vampire
-    else if((checkExists = std::fopen(_path.c_str(), "wx"))) {
-      std::fclose(checkExists);
-      outputResult = true;
-    }
-    // we're very likely the first but can't write a proof to file for some reason
-    else if(errno != EEXIST) {
-      std::cerr
-        << "WARNING: could not open proof file << " << _path
-        << " - printing to stdout." << std::endl;
-      _path.clear();
-      outputResult = true;
-    }
+  // FILE used to synchronise multiple Vampires
+  FILE *checkExists;
+
+  // fall back to stdout if we failed to agree on `_path` above
+  if(_path.empty())
+    outputResult = true;
+  // output to file if we get a lock
+  // NB "wx": if we succeed opening here we're the first Vampire
+  else if((checkExists = std::fopen(_path.c_str(), "wx"))) {
+    std::fclose(checkExists);
+    outputResult = true;
+  }
+  // we're very likely the first but can't write a proof to file for some reason
+  // fall back to stdout, two proofs better than none
+  else if(errno != EEXIST) {
+    std::cerr
+      << "WARNING: could not open proof file << " << _path
+      << " - printing to stdout." << std::endl;
+    _path.clear();
+    outputResult = true;
   }
 
-  if(outputResult) { // this get only true for the first child to find a proof
-    ASS(!resultValue);
-
-    if (outputAllowed() && env.options->multicore() != 1) {
-      addCommentSignForSZS(cout) << "First to succeed." << endl;
-    }
-
-    std::ofstream output(_path);
-    if(_path.empty() || output.fail()) {
-      // fallback to old printing method
-      addCommentSignForSZS(cout) << "Solution printing to a file '" << _path <<  "' failed. Outputting to stdout" << endl;
-      UIHelper::outputResult(cout);
-    } else {
-      UIHelper::outputResult(output);
-      if(outputAllowed())
-        addCommentSignForSZS(cout) << "Solution written to " << _path << endl;
-    }
-  } else if (outputAllowed()) {
-    if (resultValue) {
-      UIHelper::outputResult(cout);
-    } else if (Lib::env.options && Lib::env.options->multicore() != 1) {
+  // can conclude we didn't get the lock
+  if(!outputResult) {
+    if (Lib::env.options && Lib::env.options->multicore() != 1)
       addCommentSignForSZS(cout) << "Also succeeded, but the first one will report." << endl;
-    }
+
+    // we succeeded in some sense, but we failed to print a proof
+    // (only because the other Vampire beat us to it)
+    // NB: this really cannot be EXIT_SUCCESS
+    // otherwise, the parent might kill the proof-printing Vampire!
+    exit(EXIT_FAILURE);
+  }
+
+  // at this point, we should be go for launch
+  ASS(succeeded && outputResult)
+  if (outputAllowed() && env.options->multicore() != 1)
+    addCommentSignForSZS(cout) << "First to succeed." << endl;
+
+  std::ofstream output(_path);
+  if(_path.empty() || output.fail()) {
+    // failed to open file, fallback to stdout
+    addCommentSignForSZS(cout) << "Solution printing to a file '" << _path <<  "' failed. Outputting to stdout" << endl;
+    UIHelper::outputResult(cout);
+  } else {
+    UIHelper::outputResult(output);
+    if(outputAllowed())
+      addCommentSignForSZS(cout) << "Solution written to " << _path << endl;
   }
 
   // could be quick_exit if we flush output?
-  exit(resultValue);
+  exit(EXIT_SUCCESS);
 } // runSlice
