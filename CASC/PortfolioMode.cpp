@@ -685,13 +685,20 @@ void PortfolioMode::runSlice(Options& strategyOpt)
       addCommentSignForSZS(cout) << "First to succeed." << endl;
     }
 
+    addCommentSignForSZS(cout) << "attempting write to path: " << _path << endl;
     std::ofstream output(_path);
     if(_path.empty() || output.fail()) {
       // fallback to old printing method
       addCommentSignForSZS(cout) << "Solution printing to a file '" << _path <<  "' failed. Outputting to stdout" << endl;
       UIHelper::outputResult(cout);
     } else {
-      UIHelper::outputResult(output);
+      addCommentSignForSZS(cout) << "writing..." << endl;
+      try {
+        UIHelper::outputResult(output);
+      } catch(...) {
+        addCommentSignForSZS(cout) << "exception thrown" << endl;
+        throw;
+      }
       if(outputAllowed())
         addCommentSignForSZS(cout) << "Solution written to " << _path << endl;
     }
