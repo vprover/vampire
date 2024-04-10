@@ -75,8 +75,7 @@ using namespace std;
  * either found refutation or established satisfiability.
  *
  *
- * If Vampire was interrupted by a SIGINT, value
- * VAMP_RESULT_STATUS_SIGINT is returned,
+ * If Vampire was interrupted (e.g. SIGINT, SIGHUP), value VAMP_RESULT_STATUS_INTERRUPTED is returned,
  * and in case of other signal we return VAMP_RESULT_STATUS_OTHER_SIGNAL. For implementation
  * of these return values see Lib/System.hpp.
  *

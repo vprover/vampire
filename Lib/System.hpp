@@ -19,20 +19,19 @@
 
 #include <cstdlib>
 
-#include "Forwards.hpp"
-
-#define VAMP_RESULT_STATUS_SUCCESS 0
-#define VAMP_RESULT_STATUS_UNKNOWN 1
-#define VAMP_RESULT_STATUS_OTHER_SIGNAL 2
-#define VAMP_RESULT_STATUS_SIGINT 3
-#define VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION 4
+enum {
+  VAMP_RESULT_STATUS_SUCCESS,
+  VAMP_RESULT_STATUS_UNKNOWN,
+  VAMP_RESULT_STATUS_OTHER_SIGNAL,
+  VAMP_RESULT_STATUS_INTERRUPTED,
+  VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION
+};
 
 namespace Lib {
 
 class System {
 public:
   static void setSignalHandlers();
-  static bool extractDirNameFromPath(vstring path, vstring& dir);
 
   [[noreturn]] static void terminateImmediately(int resultStatus) {
     std::quick_exit(resultStatus);
