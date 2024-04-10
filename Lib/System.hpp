@@ -34,7 +34,7 @@ public:
   static void setSignalHandlers();
 
   [[noreturn]] static void terminateImmediately(int resultStatus) {
-    std::quick_exit(resultStatus);
+    std::_Exit(resultStatus);
   }
 
   static void registerForSIGHUPOnParentDeath();
