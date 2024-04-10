@@ -25,6 +25,7 @@
 #include "Comparison.hpp"
 #include "List.hpp"
 #include "Random.hpp"
+#include "Lib/Option.hpp"
 
 #define SKIP_LIST_MAX_HEIGHT 32
 
@@ -60,8 +61,8 @@ public:
   inline
   void insert(Value val)
   {
-    Value* pval = insertPosition(val);
-    *pval = val;
+    void* pval = insertPositionRaw(val);
+    new(pval) Value(std::move(val));
   } // SkipList::insert
 
   template<class Iterator>
@@ -81,8 +82,8 @@ public:
   bool ensurePresent(Value val)
   {
     Value* pval;
-    if(!getPosition(val, pval, true)) {
-      *pval = val;
+    if(!getPosition(val, pval, /* canCreate */ true)) {
+      new(pval) Value(std::move(val));
       return false;
     }
     return true;
@@ -101,6 +102,8 @@ public:
   template<typename Key>
   bool getPosition(Key key, Value*& pvalue, bool canCreate)
   {
+    pvalue = nullptr;
+
     if(_top==0) {
       if(canCreate) {
 	pvalue = insertPosition(key);
@@ -156,6 +159,7 @@ public:
     }
   } // SkipList::getPosition
 
+
   /**
    * Create Node where a value with given key could be
    * stored, and assign pointer to value in that Node into @b pvalue.
@@ -165,6 +169,14 @@ public:
    */
   template<typename Key>
   Value* insertPosition(Key key)
+  {
+    void* p = insertPositionRaw(key);
+    new(p) Value();
+    return (Value*) p;
+  }
+
+  template<typename Key>
+  void* insertPositionRaw(Key key)
   {
     // select a random height between 0 and top
     unsigned nodeHeight = 0;
@@ -182,7 +194,6 @@ public:
       }
     }
     Node* newNode = allocate(nodeHeight);
-    ::new (&newNode->value) Value();
 
 
     unsigned h = _top - 1;
@@ -469,7 +480,7 @@ public:
   bool find(Key key)
   {
     Value* pval;
-    return getPosition(key,pval,false);
+    return getPosition(key, pval, /* canCreate */ false);
   }
 
   template<typename Key>
@@ -477,8 +488,9 @@ public:
   bool find(Key key, Value& val)
   {
     Value* pval;
-    bool res=getPosition(key,pval,false);
-    val=*pval;
+    bool res = getPosition(key, pval, /* canCreate */ false);
+    if (res)
+      val = *pval;
     return res;
   }
 
@@ -633,41 +645,14 @@ public:
     Node* _cur;
   };
 
-  /**
-   * Iterator over the skip list elements,
-   * which yields pointers to elements.
-   */
-  class PtrIterator {
-  public:
-    DECL_ELEMENT_TYPE(Value*);
 
-    inline explicit
-    PtrIterator(const SkipList& l)
-      : _cur (l._left)
-    {}
+  auto iter() { return iterTraits(RefIterator(*this)); }
 
-    /** return the next element */
-    inline Value* next()
-    {
-      ASS(_cur->nodes[0]);
-      _cur=_cur->nodes[0];
-      return &_cur->value;
-    }
-
-    /** True if there is a next element. */
-    inline bool hasNext() const
-    {
-      return _cur->nodes[0];
-    }
-
-   private:
-    /** the node we're now pointing to */
-    Node* _cur;
-  };
+  auto ptrIter() { return iter().map([](auto& v) { return &v; }); }
 
   friend std::ostream& operator<<(std::ostream& out, SkipList const& self)
   { 
-    PtrIterator iter(self);
+    auto iter = self.iter();
     out << "[";
     if (iter.hasNext()) {
       out << " " << *iter.next();

@@ -21,6 +21,8 @@ class TypedTermList : public TermList
   SortId _sort;
 public:
 
+    // TODO get rid of default constructor
+  TypedTermList() {}
   TypedTermList(TermList t, SortId sort) : TermList(t), _sort(sort) 
   { 
     ASS_NEQ(sort, AtomicSort::superSort());

@@ -27,7 +27,6 @@
 #include "Lib/Metaiterators.hpp"
 
 #include "Term.hpp"
-#include "FormulaVarIterator.hpp"
 
 using namespace std;
 using namespace Lib;
@@ -37,10 +36,12 @@ constexpr unsigned Term::SPECIAL_FUNCTOR_LOWER_BOUND;
 
 void Term::setId(unsigned id)
 {
-  if (env.options->randomTraversals()) {
+  if (env.options->randomTraversals() &&
+      Random::seed() != 1) { // not until a proper seed has been set (i.e. after parsing!)
+      // (cf ProvingHelper::runVampire and getPreprocessedProblem in vampire.cpp)
     id += Random::getInteger(1 << 12) << 20; // the twelve most significant bits are randomized
   }
-   _args[0]._info.id = id;
+   _args[0]._setId(id);
 }
 
 /**
@@ -124,45 +125,6 @@ bool TermList::isSafe() const
 }
 
 /**
- * Return the list of all free variables of the term.
- * The result is only non-empty when there are quantified
- * formulas or $let-terms inside the term.
- *
- * Each variable in the term is returned just once.
- *
- * NOTE: don't use this function, if you don't actually need a List
- * (FormulaVarIterator is a better choice)
- *
- * NOTE: remember to free the list when done with it
- * (otherwise we leak memory!)
- *
- * @since 15/05/2015 Gothenburg
- */
-VList* TermList::freeVariables() const
-{
-  FormulaVarIterator fvi(this);
-  VList* result = VList::empty();
-  VList::FIFO stack(result);
-  while (fvi.hasNext()) {
-    stack.pushBack(fvi.next());
-  }
-  return result;
-} // TermList::freeVariables
-
-
-bool TermList::isFreeVariable(unsigned var) const
-{
-  FormulaVarIterator fvi(this);
-  while (fvi.hasNext()) {
-    if (var == fvi.next()) {
-      return true;
-    }
-  }
-  return false;
-}
-
-
-/**
  * Return true if @b ss and @b tt have the same top symbols, that is,
  * either both are the same variable or both are complex terms with the
  * same function symbol.
@@ -178,13 +140,13 @@ bool TermList::sameTop(TermList ss,TermList tt)
   }
   return ss.term()->functor() == tt.term()->functor();
 }
-std::ostream& Kernel::operator<<(std::ostream& out, TermList::Top const& self)
+void TermList::Top::output(std::ostream& out) const
 { 
-  if (self.var()) {
-    return out << TermList::var(self.var());
+  if (this->var()) {
+    out << TermList::var(this->var());
   } else {
-    ASS(self.functor())
-    return out << *env.signature->getFunction(*self.functor());
+    ASS(this->functor())
+    out << *env.signature->getFunction(*this->functor());
   }
 }
 
@@ -498,12 +460,12 @@ vstring Term::headToString() const
     const Term::SpecialTermData* sd = getSpecialData();
 
     switch(specialFunctor()) {
-      case Term::SpecialFunctor::FORMULA: {
+      case SpecialFunctor::FORMULA: {
         ASS_EQ(arity(), 0);
         vstring formula = sd->getFormula()->toString();
         return env.options->showFOOL() ? "$term{" + formula + "}" : formula;
       }
-      case Term::SpecialFunctor::LET: {
+      case SpecialFunctor::LET: {
         ASS_EQ(arity(), 1);
         TermList binding = sd->getBinding();
         bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
@@ -526,11 +488,11 @@ vstring Term::headToString() const
         }
         return "$let(" + functor + ": " + type->toString() + ", " + functor + variablesList + " := " + binding.toString() + ", ";
       }
-      case Term::SpecialFunctor::ITE: {
+      case SpecialFunctor::ITE: {
         ASS_EQ(arity(),2);
         return "$ite(" + sd->getCondition()->toString() + ", ";
       }
-      case Term::SpecialFunctor::TUPLE: {
+      case SpecialFunctor::TUPLE: {
         ASS_EQ(arity(), 0);
         Term* term = sd->getTupleTerm();
         vstring termList = "";
@@ -544,7 +506,7 @@ vstring Term::headToString() const
         }
         return "[" + termList + "]";
       }
-      case Term::SpecialFunctor::LET_TUPLE: {
+      case SpecialFunctor::LET_TUPLE: {
         ASS_EQ(arity(), 1);
         VList* symbols = sd->getTupleSymbols();
         unsigned tupleFunctor = sd->getFunctor();
@@ -568,7 +530,7 @@ vstring Term::headToString() const
 
         return "$let([" + typesList + "], [" + symbolsList + "] := " + binding.toString() + ", ";
       }
-      case Term::SpecialFunctor::LAMBDA: {
+      case SpecialFunctor::LAMBDA: {
         VList* vars = sd->getLambdaVars();
         SList* sorts = sd->getLambdaVarSorts();
         TermList lambdaExp = sd->getLambdaExp();
@@ -588,7 +550,7 @@ vstring Term::headToString() const
         varList += "]";        
         return "(^" + varList + " : (" + lambdaExp.toString() + "))";
       }
-      case Term::SpecialFunctor::MATCH: {
+      case SpecialFunctor::MATCH: {
         // we simply let the arguments be written out
         return "$match(";
       }
@@ -1231,43 +1193,6 @@ TermList AtomicSort::arraySort(TermList indexSort, TermList innerSort)
 TermList AtomicSort::tupleSort(unsigned arity, TermList* sorts)
 { return TermList(Term::create(env.signature->getTupleConstructor(arity), arity, sorts)); }
 
-
-/**
- * Return the list of all free variables of the term.
- * The result is only non-empty when there are quantified
- * formulas or $let-terms inside the term.
- * Each variable in the term is returned just once.
- *
- * NOTE: don't use this function, if you don't actually need a List
- * (FormulaVarIterator is a better choice)
- *
- * NOTE: remember to free the list when done with it
- * (otherwise we leak memory!)
- *
- * @since 07/05/2015 Gothenburg
- */
-VList* Term::freeVariables() const
-{
-  FormulaVarIterator fvi(this);
-  VList* result = VList::empty();
-  VList::FIFO stack(result);
-  while (fvi.hasNext()) {
-    stack.pushBack(fvi.next());
-  }
-  return result;
-} // Term::freeVariables
-
-bool Term::isFreeVariable(unsigned var) const
-{
-  FormulaVarIterator fvi(this);
-  while (fvi.hasNext()) {
-    if (var == fvi.next()) {
-      return true;
-    }
-  }
-  return false;
-}
-
 unsigned Term::computeDistinctVars() const
 {
   Set<unsigned> vars;
@@ -1575,9 +1500,9 @@ Term::Term(const Term& t) throw()
   ASS(!isSpecial()); //we do not copy special terms
 
   _args[0] = t._args[0];
-  _args[0]._info.shared = 0u;
-  _args[0]._info.order = 0u;
-  _args[0]._info.distinctVars = TERM_DIST_VAR_UNKNOWN;
+  _args[0]._setShared(false);
+  _args[0]._setOrder(AO_UNKNOWN);
+  _args[0]._setDistinctVars(TERM_DIST_VAR_UNKNOWN);
 } // Term::Term
 
 /** create a new literal and copy from l its content */
@@ -1603,15 +1528,9 @@ Term::Term() throw()
    _maxRedLen(0),
    _vars(0)
 {
-  _args[0]._info.polarity = 0;
-  _args[0]._info.commutative = 0;
-  _args[0]._info.shared = 0;
-  _args[0]._info.literal = 0;
-  _args[0]._info.sort = 0;
-  _args[0]._info.hasTermVar = 0;
-  _args[0]._info.order = 0;
-  _args[0]._info.tag = FUN;
-  _args[0]._info.distinctVars = TERM_DIST_VAR_UNKNOWN;
+  _args[0].setContent(0);
+  _args[0]._setTag(FUN);
+  _args[0]._setDistinctVars(TERM_DIST_VAR_UNKNOWN);
 } // Term::Term
 
 Literal::Literal()
@@ -1655,32 +1574,32 @@ vstring Term::headerToString() const
   s += Int::toString(_functor) + ", arity: " + Int::toString(_arity)
     + ", weight: " + Int::toString(_weight)
     + ", vars: " + Int::toString(_vars)
-    + ", polarity: " + Int::toString(_args[0]._info.polarity)
-    + ", commutative: " + Int::toString(_args[0]._info.commutative)
-    + ", shared: " + Int::toString(_args[0]._info.shared)
-    + ", literal: " + Int::toString(_args[0]._info.literal)
-    + ", order: " + Int::toString(_args[0]._info.order)
-    + ", tag: " + Int::toString(_args[0]._info.tag);
+    + ", polarity: " + Int::toString(_args[0]._polarity())
+    + ", commutative: " + Int::toString(_args[0]._commutative())
+    + ", shared: " + Int::toString(_args[0]._shared())
+    + ", literal: " + Int::toString(_args[0]._literal())
+    + ", order: " + Int::toString(_args[0]._order())
+    + ", tag: " + Int::toString(_args[0]._tag());
   return s;
 }
 
 void Term::assertValid() const
 {
   ASS_ALLOC_TYPE(this, "Term");
-  ASS_EQ(_args[0]._info.tag, FUN);
+  ASS_EQ(_args[0]._tag(), FUN);
 }
 
 void TermList::assertValid() const
 {
   if (this->isTerm()) {
     ASS_ALLOC_TYPE(_term, "Term");
-    ASS_EQ(_term->_args[0]._info.tag, FUN);
+    ASS_EQ(_term()->_args[0]._tag(), FUN);
   }
 }
 
 #endif
 
-std::ostream& Kernel::operator<< (ostream& out, TermList tl )
+std::ostream& Kernel::operator<<(ostream& out, TermList const& tl)
 {
   if (tl.isEmpty()) {
     return out<<"<empty TermList>";
@@ -1688,14 +1607,14 @@ std::ostream& Kernel::operator<< (ostream& out, TermList tl )
   if (tl.isVar()) {
     return out<<Term::variableToString(tl);
   }
-  return out<<tl.term()->toString();
+  return out << *tl.term();
 }
 
-std::ostream& Kernel::operator<< (ostream& out, const Term& t )
+std::ostream& Kernel::operator<<(ostream& out, const Term& t)
 {
   return out<<t.toString();
 }
-std::ostream& Kernel::operator<< (ostream& out, const Literal& l )
+std::ostream& Kernel::operator<<(ostream& out, const Literal& l)
 {
   return out<<l.toString();
 }
@@ -1707,6 +1626,11 @@ bool Kernel::operator<(const TermList& lhs, const TermList& rhs)
   if (lhs.isTerm()) {
     ASS(rhs.isTerm())
     return lhs.term()->getId() < rhs.term()->getId();
+  } else if (lhs.isEmpty() || rhs.isEmpty()) {
+    auto cmp = lhs.isEmpty() - rhs.isEmpty();
+    if (cmp != 0) return cmp < 0;
+    else return false;
+    
   } else {
     ASS(lhs.isVar())
     ASS(rhs.isVar())
@@ -1803,16 +1727,16 @@ bool Term::computableOrVar() const {
   return true;
 }
 
-std::ostream& Kernel::operator<<(std::ostream& out, Term::SpecialFunctor const& self)
+std::ostream& Kernel::operator<<(std::ostream& out, SpecialFunctor const& self)
 {
   switch (self) {
-    case Term::SpecialFunctor::ITE: return out << "ITE";
-    case Term::SpecialFunctor::LET: return out << "LET";
-    case Term::SpecialFunctor::FORMULA: return out << "FORMULA";
-    case Term::SpecialFunctor::TUPLE: return out << "TUPLE";
-    case Term::SpecialFunctor::LET_TUPLE: return out << "LET_TUPLE";
-    case Term::SpecialFunctor::LAMBDA: return out << "LAMBDA";
-    case Term::SpecialFunctor::MATCH: return out << "SPECIAL_FUNCTOR_LAST ";
+    case SpecialFunctor::ITE: return out << "ITE";
+    case SpecialFunctor::LET: return out << "LET";
+    case SpecialFunctor::FORMULA: return out << "FORMULA";
+    case SpecialFunctor::TUPLE: return out << "TUPLE";
+    case SpecialFunctor::LET_TUPLE: return out << "LET_TUPLE";
+    case SpecialFunctor::LAMBDA: return out << "LAMBDA";
+    case SpecialFunctor::MATCH: return out << "SPECIAL_FUNCTOR_LAST ";
   }
   ASSERTION_VIOLATION
 }

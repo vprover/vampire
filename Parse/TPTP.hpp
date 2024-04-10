@@ -301,8 +301,8 @@ public:
   /**
    * Implements lexer and parser exceptions.
    */
-  class ParseErrorException 
-    : public ::Exception
+  class ParseErrorException
+    : public ParsingRelatedException
   {
   public:
     ParseErrorException(vstring message,unsigned ln) : _message(message), _ln(ln) {}
@@ -314,17 +314,29 @@ public:
     vstring _message;
     unsigned _ln;
   }; // TPTP::ParseErrorException
-  friend class Exception;
 
 #define PARSE_ERROR(msg,tok) \
   throw ParseErrorException(msg,tok,_lineNumber)
 
-  TPTP(std::istream& in);
+  /**
+   * @brief Construct a new TPTP parser.
+   *
+   * @param in is the stream with the raw input to read
+   * @param unitBuffer is FIFO of units to which newly parsed Clauses/Formulas
+   *   will be added (via pushBack);
+   *
+   *  if left unspeficied, and empty fifo is created and used instead.
+   *  (use this default behaviour if you do not want to collect formulas
+   *   from multiple parser calls)
+   */
+  TPTP(std::istream& in, UnitList::FIFO unitBuffer = UnitList::FIFO());
   ~TPTP();
   void parse();
   static UnitList* parse(std::istream& str);
   /** Return the list of parsed units */
-  inline UnitList* units() { return _units.list(); }
+  UnitList* units() const { return _units.list(); }
+  /** Return the current unitBuffer (on top of units() you also get a pointer to the last added unit in constant time). */
+  UnitList::FIFO unitBuffer() const { return _units; }
   /**
    * Return true if there was a conjecture formula among the parsed units
    *
@@ -339,6 +351,7 @@ public:
   static void assignAxiomName(const Unit* unit, vstring& name);
   unsigned lineNumber(){ return _lineNumber; }
 private:
+  void parseImpl();
   /** Return the input string of characters */
   const char* input() { return _chars.content(); }
 
@@ -440,37 +453,6 @@ private:
      VList* _vars;
   }; // ProductType
 
-  /**
-   * Class that allows to create a list initially by pushing elements
-   * at the end of it.
-   * @since 10/05/2007 Manchester, updated from List::FIFO
-   */
-  class UnitStack {
-  public:
-    /** constructor */
-    inline explicit UnitStack()
-      : _initial(0),
-	_last(&_initial)
-    {}
-
-    /** add element at the end of the original list */
-    inline void push(Unit* u)
-    {
-      UnitList* newList = new UnitList(u);
-      *_last = newList;
-      _last = reinterpret_cast<UnitList**>(&newList->tailReference());
-    }
-
-    /** Return the collected list */
-    UnitList* list() { return _initial; }
-
-  private:
-    /** reference to the initial element */
-    UnitList* _initial;
-    /** last element */
-    UnitList** _last;
-  }; // class UnitStack
-
   enum TheorySort {
     /** $array theoy */
     TS_ARRAY,
@@ -569,8 +551,8 @@ private:
   int _tend;
   /** line number */
   unsigned _lineNumber;
-  /** The stack of units read */
-  UnitStack _units;
+  /** The list of units read (with additions directed to the end) */
+  UnitList::FIFO _units;
   /** stack of unprocessed states */
   Stack<State> _states;
   /** input type of the last read unit */ // it must be int since -1 can be used as a value

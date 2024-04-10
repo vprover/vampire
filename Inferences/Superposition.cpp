@@ -80,11 +80,11 @@ void Superposition::detach()
 struct Superposition::ForwardResultFn
 {
   ForwardResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, Superposition& parent) : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TypedTermList>, TQueryRes<AbstractingUnifier*>> arg)
+  Clause* operator()(pair<pair<Literal*, TypedTermList>, QueryRes<AbstractingUnifier*, TermLiteralClause>> arg)
   {
     auto& qr = arg.second;
     return _parent.performSuperposition(_cl, arg.first.first, arg.first.second,
-	    qr.clause, qr.literal, qr.term, qr.unifier, true, _passiveClauseContainer);
+	    qr.data->clause, qr.data->literal, qr.data->term, qr.unifier, true, _passiveClauseContainer);
   }
 private:
   Clause* _cl;
@@ -96,14 +96,14 @@ private:
 struct Superposition::BackwardResultFn
 {
   BackwardResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, Superposition& parent) : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TermList>, TQueryRes<AbstractingUnifier*>> arg)
+  Clause* operator()(pair<pair<Literal*, TermList>, QueryRes<AbstractingUnifier*, TermLiteralClause>> arg)
   {
-    if(_cl==arg.second.clause) {
+    if(_cl==arg.second.data->clause) {
       return 0;
     }
 
     auto& qr = arg.second;
-    return _parent.performSuperposition(qr.clause, qr.literal, qr.term,
+    return _parent.performSuperposition(qr.data->clause, qr.data->literal, qr.data->term,
 	    _cl, arg.first.first, arg.first.second, qr.unifier, false, _passiveClauseContainer);
   }
 private:
@@ -174,9 +174,7 @@ bool Superposition::checkClauseColorCompatibility(Clause* eqClause, Clause* rwCl
     return true;
   }
   if(getOptions().showBlocked()) {
-    env.beginOutput();
-    env.out()<<"Blocked superposition of "<<eqClause->toString()<<" into "<<rwClause->toString()<<std::endl;
-    env.endOutput();
+    std::cout<<"Blocked superposition of "<<eqClause->toString()<<" into "<<rwClause->toString()<<std::endl;
   }
   if(getOptions().colorUnblocking()) {
     SaturationAlgorithm* salg = SaturationAlgorithm::tryGetInstance();

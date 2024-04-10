@@ -1,0 +1,495 @@
+/*
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
+
+#include "FunctionDefinitionHandler.hpp"
+#include "Inferences/InductionHelper.hpp"
+
+#include "Kernel/TermIterators.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/Problem.hpp"
+
+#include "Lib/Hash.hpp"
+#include "Lib/SharedSet.hpp"
+
+using namespace Inferences;
+using namespace Kernel;
+using namespace Lib;
+using namespace std;
+
+namespace Shell {
+
+bool canBeUsedForRewriting(Term* lhs, Clause* cl)
+{
+  // TODO: we are using a codetree to get the generalizations
+  // for rewriting and it cannot handle unbound variables on
+  // the indexed side, hence we check if there are any variables
+  // that would be unbound
+  auto vIt = cl->getVariableIterator();
+  while (vIt.hasNext()) {
+    auto v = vIt.next();
+    if (!lhs->containsSubterm(TermList(v,false))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+void FunctionDefinitionHandler::initAndPreprocess(Problem& prb, const Options& opts)
+{
+  // reset state
+  _is = new CodeTreeTIS();
+  _templates.reset();
+
+  UnitList::DelIterator it(prb.units());
+  while (it.hasNext()) {
+    auto u = it.next();
+    ASS(u->isClause());
+    auto cl = u->asClause();
+    LiteralStack defLits;
+    LiteralStack condLits;
+    for (unsigned i = 0; i < cl->length(); i++) {
+      auto lit = (*cl)[i];
+      unsigned p;
+      if (env.signature->isFnDefPred(lit->functor()) || env.signature->isBoolDefPred(lit->functor(), p)) {
+        defLits.push(lit);
+      } else {
+        condLits.push(lit);
+      }
+    }
+
+    // clause not from a definition
+    if (defLits.isEmpty()) {
+      continue;
+    }
+
+    // clause contains definitions, we need to replace them with equalities
+    auto lits = condLits;
+    for (const auto& lit : defLits) {
+      unsigned orig_fn;
+      if (env.signature->isBoolDefPred(lit->functor(), orig_fn)) {
+        TermStack args;
+        for (unsigned i = 0; i < lit->arity(); i++) {
+          args.push(*lit->nthArgument(i));
+        }
+        lits.push(Literal::create(orig_fn, lit->arity(), lit->polarity(), false, args.begin()));
+      } else {
+        ASS(env.signature->isFnDefPred(lit->functor()));
+        auto lhs = lit->termArg(0);
+        ASS(lhs.isTerm());
+        lits.push(Literal::createEquality(lit->polarity(), lhs, lit->termArg(1), SortHelper::getResultSort(lhs.term())));
+      }
+    }
+    Clause* defCl = Clause::fromStack(lits, NonspecificInference1(InferenceRule::DEFINITION_UNFOLDING,u));
+
+    // multiple defining equations inside clause, skip
+    if (defLits.size()!=1) {
+      it.replace(defCl);
+      continue;
+    }
+
+    if (env.signature->isFnDefPred(defLits[0]->functor())) {
+      auto lhs = defLits[0]->termArg(0);
+      auto rhs = defLits[0]->termArg(1);
+
+      // process for induction
+      addFunctionBranch(lhs.term(), rhs);
+
+      // process for rewriting
+      if (opts.functionDefinitionRewriting() && canBeUsedForRewriting(lhs.term(), defCl)) {
+        it.del(); // take ownership
+        defCl->setSplits(SplitSet::getEmpty());
+        defCl->incRefCnt();
+        ASS_EQ(condLits.size()+1,lits.size());
+        _is->insert(TermLiteralClause {lhs.term(), lits.top(), defCl});
+        // TODO should we store this clause anywhere else?
+      } else {
+        it.replace(defCl);
+      }
+    } else {
+      addPredicateBranch(Literal::positiveLiteral(lits.top()), condLits);
+      it.replace(defCl);
+    }
+  }
+
+  DHMap<pair<unsigned,SymbolType>,InductionTemplate>::DelIterator tIt(_templates);
+  while (tIt.hasNext()) {
+    auto k = tIt.nextKey();
+    auto ptr = _templates.findPtr(k);
+    if (!ptr->finalize()) {
+      tIt.del();
+      continue;
+    }
+    if (opts.showInduction()) {
+      cout << "[Induction] added induction template: " << ptr->toString() << endl;
+    }
+  }
+}
+
+void FunctionDefinitionHandler::addFunctionBranch(Term* header, TermList body)
+{
+  auto fn = header->functor();
+  InductionTemplate* templ;
+  _templates.getValuePtr(make_pair(fn,SymbolType::FUNC), templ, InductionTemplate(header));
+
+  // handle for induction
+  vvector<Term*> recursiveCalls;
+  if (body.isTerm()) {
+    NonVariableNonTypeIterator it(body.term(), true);
+    while (it.hasNext()) {
+      auto st = it.next();
+      if (st->functor() == fn) {
+        recursiveCalls.push_back(st);
+      }
+    }
+  }
+  templ->addBranch(std::move(recursiveCalls), header);
+}
+
+void FunctionDefinitionHandler::addPredicateBranch(Literal* header, const LiteralStack& conditions)
+{
+  auto fn = header->functor();
+  InductionTemplate* templ;
+  _templates.getValuePtr(make_pair(fn,SymbolType::PRED), templ, InductionTemplate(header));
+
+  // handle for induction
+  vvector<Term*> recursiveCalls;
+  ASS(static_cast<Literal*>(header)->isPositive());
+  for(const auto& lit : conditions) {
+    if (!lit->isEquality() && fn == lit->functor()) {
+      recursiveCalls.push_back(lit->isPositive() ? lit : Literal::complementaryLiteral(lit));
+    }
+  }
+  templ->addBranch(std::move(recursiveCalls), header);
+}
+
+bool InductionTemplate::finalize()
+{
+  if (!checkWellFoundedness() || !checkUsefulness()) {
+    return false;
+  }
+
+  checkWellDefinedness();
+  return true;
+}
+
+void InductionTemplate::checkWellDefinedness()
+{
+  vvector<Term*> cases;
+  for (auto& b : _branches) {
+    cases.push_back(b._header);
+  }
+  vvector<vvector<TermList>> missingCases;
+  InductionPreprocessor::checkWellDefinedness(cases, missingCases);
+
+  if (!missingCases.empty()) {
+    if (env.options->showInduction()) {
+      cout << "% Warning: adding missing cases to template " << toString();
+    }
+    for (const auto& m : missingCases) {
+      Stack<TermList> args;
+      ASS_EQ(m.size(), _arity);
+      for(const auto& arg : m) {
+        args.push(arg);
+      }
+      Term* t;
+      if (_isLit) {
+        t = Literal::create(static_cast<Literal*>(_branches[0]._header), args.begin());
+      } else {
+        t = Term::create(_functor, _arity, args.begin());
+      }
+      addBranch(vvector<Term*>(), Renaming::normalize(t));
+    }
+    if (env.options->showInduction()) {
+      cout << ". New template is " << toString() << endl;
+    }
+  }
+}
+
+bool InductionTemplate::matchesTerm(Term* t, vvector<Term*>& inductionTerms) const
+{
+  ASS(t->ground());
+  inductionTerms.clear();
+  for (unsigned i = 0; i < t->arity(); i++) {
+    auto arg = t->nthArgument(i)->term();
+    auto f = arg->functor();
+    if (_indPos[i]) {
+      if (!InductionHelper::isInductionTermFunctor(f) ||
+          !InductionHelper::isStructInductionOn() ||
+          !InductionHelper::isStructInductionTerm(arg)) {
+        return false;
+      }
+      auto it = std::find(inductionTerms.begin(),inductionTerms.end(),arg);
+      if (it != inductionTerms.end()) {
+        return false;
+      }
+      inductionTerms.push_back(arg);
+    }
+  }
+  return !inductionTerms.empty();
+}
+
+bool InductionTemplate::Branch::contains(const InductionTemplate::Branch& other) const
+{
+  RobSubstitution subst;
+  if (!subst.match(TermList(_header), 0, TermList(other._header), 1)) {
+    return false;
+  }
+
+  for (auto recCall2 : other._recursiveCalls) {
+    bool found = false;
+    for (auto recCall1 : _recursiveCalls) {
+      Term* l1;
+      Term* l2;
+      if (_header->isLiteral()) {
+        l1 = subst.apply(static_cast<Literal*>(recCall1), 0);
+        l2 = subst.apply(static_cast<Literal*>(recCall2), 1);
+      } else {
+        l1 = subst.apply(TermList(recCall1), 0).term();
+        l2 = subst.apply(TermList(recCall2), 1).term();
+      }
+      if (l1 == l2) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool InductionTemplate::checkUsefulness() const
+{
+  // discard templates without inductive argument positions:
+  // this happens either when there are no recursive calls
+  // or none of the arguments change in any recursive call
+  bool discard = true;
+  for (const auto& p : _indPos) {
+    if (p) {
+      discard = false;
+    }
+  }
+  return !discard;
+}
+
+bool InductionTemplate::checkWellFoundedness()
+{
+  vvector<pair<Term*, Term*>> relatedTerms;
+  for (auto& b : _branches) {
+    for (auto& r : b._recursiveCalls) {
+      relatedTerms.push_back(make_pair(b._header, r));
+
+      // fill in bit vector of induction variables
+      for (unsigned i = 0; i < _arity; i++) {
+        if (env.signature->isTermAlgebraSort(_type->arg(i))) {
+          _indPos[i] = _indPos[i] || (*b._header->nthArgument(i) != *r->nthArgument(i));
+        }
+      }
+    }
+  }
+  return InductionPreprocessor::checkWellFoundedness(relatedTerms);
+}
+
+InductionTemplate::InductionTemplate(const Term* t)
+    : _functor(t->functor()), _arity(t->arity()), _isLit(t->isLiteral()),
+    _type(_isLit ? env.signature->getPredicate(_functor)->predType()
+                 : env.signature->getFunction(_functor)->fnType()),
+    _branches(), _indPos(_arity, false) {}
+
+void InductionTemplate::addBranch(vvector<Term*>&& recursiveCalls, Term* header)
+{
+  ASS(header->arity() == _arity && header->isLiteral() == _isLit && header->functor() == _functor);
+  Branch branch(std::move(recursiveCalls), std::move(header));
+  for (auto b : _branches) {
+    if (b.contains(branch)) {
+      return;
+    }
+  }
+  _branches.erase(remove_if(_branches.begin(), _branches.end(),
+  [&branch](const Branch& b) {
+    return branch.contains(b);
+  }), _branches.end());
+  _branches.push_back(std::move(branch));
+}
+
+vstring InductionTemplate::toString() const
+{
+  vstringstream str;
+  str << "Branches: ";
+  unsigned n = 0;
+  for (const auto& b : _branches) {
+    if (!b._recursiveCalls.empty()) {
+      str << "(";
+      unsigned n = 0;
+      for (const auto& r : b._recursiveCalls) {
+        str << *r;
+        if (++n < b._recursiveCalls.size()) {
+          str << " & ";
+        }
+      }
+      str << ") => ";
+    }
+    str << *b._header;
+    if (++n < _branches.size()) {
+      str << "; ";
+    }
+  }
+  str << " with positions: (";
+  for (unsigned i = 0; i < _arity; i++) {
+    if (_indPos[i]) {
+      str << "i";
+    } else {
+      str << "0";
+    }
+    if (i+1 < _arity) {
+      str << ",";
+    }
+  }
+  str << ")";
+  return str.str();
+}
+
+/**
+ * Try to find a lexicographic order between the arguments
+ * by exhaustively trying all combinations.
+ */
+bool checkWellFoundednessHelper(const vvector<pair<Term*,Term*>>& relatedTerms,
+  const vset<unsigned>& indices, const vset<unsigned>& positions)
+{
+  if (indices.empty()) {
+    return true;
+  }
+  if (positions.empty()) {
+    return false;
+  }
+  for (const auto& p : positions) {
+    vset<unsigned> newInd;
+    bool canOrder = true;
+    for (const auto& i : indices) {
+      auto arg1 = *relatedTerms[i].first->nthArgument(p);
+      auto arg2 = *relatedTerms[i].second->nthArgument(p);
+      if (arg1 == arg2) {
+        newInd.insert(i);
+      } else if (!arg1.containsSubterm(arg2)) {
+        canOrder = false;
+        break;
+      }
+    }
+    if (canOrder) {
+      auto newPos = positions;
+      newPos.erase(p);
+      if (checkWellFoundednessHelper(relatedTerms, newInd, newPos)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+bool InductionPreprocessor::checkWellFoundedness(const vvector<pair<Term*,Term*>>& relatedTerms)
+{
+  if (relatedTerms.empty()) {
+    return true;
+  }
+  auto t = relatedTerms[0].first;
+  bool isFun = !t->isLiteral();
+  auto fn = t->functor();
+  auto arity = t->arity();
+  OperatorType* type;
+  if (isFun) {
+    type = env.signature->getFunction(fn)->fnType();
+  } else {
+    type = env.signature->getPredicate(fn)->predType();
+  }
+  vset<unsigned> positions;
+  for (unsigned i = 0; i < arity; i++) {
+    if (env.signature->isTermAlgebraSort(type->arg(i))) {
+      positions.insert(i);
+    }
+  }
+  vset<unsigned> indices;
+  for (unsigned i = 0; i < relatedTerms.size(); i++) {
+    indices.insert(i);
+  }
+  return checkWellFoundednessHelper(relatedTerms, indices, positions);
+}
+
+/**
+ * Check well-definedness for term algebra arguments and
+ * in the process generate all missing cases.
+ */
+bool InductionPreprocessor::checkWellDefinedness(const vvector<Term*>& cases, vvector<vvector<TermList>>& missingCases)
+{
+  if (cases.empty()) {
+    return false;
+  }
+  missingCases.clear();
+  auto arity = cases[0]->arity();
+  if (arity == 0) {
+    return true;
+  }
+  Stack<Stack<TermStack>> availableTermsLists;
+  availableTermsLists.push(Stack<TermStack>(arity));
+  unsigned var = 0;
+  for (unsigned i = 0; i < arity; i++) {
+    availableTermsLists.top().push(TermStack({ TermList(var++, false) }));
+  }
+
+  for (auto& c : cases) {
+    Stack<Stack<TermStack>> nextAvailableTermsLists;
+    for (unsigned i = 0; i < arity; i++) {
+      auto arg = *c->nthArgument(i);
+      // we check lazily for non-term algebra sort non-variables
+      if (arg.isTerm() && env.signature->isTermAlgebraSort(SortHelper::getResultSort(arg.term()))) {
+        auto tempLists = availableTermsLists;
+        for (auto& availableTerms : tempLists) {
+          TermAlgebra::excludeTermFromAvailables(availableTerms[i], arg, var);
+        }
+        for (auto&& e : tempLists) {
+          nextAvailableTermsLists.push(std::move(e));
+        }
+      } else {
+        for (const auto& availableTerms : availableTermsLists) {
+          if (!availableTerms[i].isEmpty()) {
+            break;
+          }
+        }
+      }
+    }
+    availableTermsLists = nextAvailableTermsLists;
+  }
+
+  for (const auto& availableTerms : availableTermsLists) {
+    bool valid = true;
+    vvector<vvector<TermList>> argTuples(1);
+    for (const auto& v : availableTerms) {
+      if (v.isEmpty()) {
+        valid = false;
+        break;
+      }
+      vvector<vvector<TermList>> temp;
+      for (const auto& e : v) {
+        for (auto a : argTuples) {
+          a.push_back(e);
+          temp.push_back(a);
+        }
+      }
+      argTuples = temp;
+    }
+    if (valid) {
+      missingCases.insert(missingCases.end(),
+        argTuples.begin(), argTuples.end());
+    }
+  }
+  return missingCases.empty();
+}
+
+} // Shell

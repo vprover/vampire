@@ -21,6 +21,7 @@
 
 #include "Shell/Property.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/FunctionDefinitionHandler.hpp"
 
 #include "Clause.hpp"
 #include "Term.hpp"
@@ -38,7 +39,7 @@ using namespace Kernel;
  * The new object takes ownership of the list @c units.
  */
 Problem::Problem(UnitList* units)
-: _units(0), _smtlibLogic(SMTLIBLogic::SMT_UNDEFINED), _property(0)
+: _units(0), _fnDefHandler(new FunctionDefinitionHandler()), _smtlibLogic(SMTLIBLogic::SMT_UNDEFINED), _property(0)
 {
   initValues();
 
@@ -70,9 +71,6 @@ Problem::Problem(ClauseIterator clauses, bool copy)
 
 Problem::~Problem()
 {
-  //TODO: decrease reference counter of clauses (but make sure there's no segfault...)
-
-  UnitList::destroy(_units);
   // Don't delete the property as it is owned by Environment
 }
 

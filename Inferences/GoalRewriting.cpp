@@ -42,9 +42,9 @@ void GoalRewriting::attach(SaturationAlgorithm* salg)
   _leftToRight = (gp == Options::GoalRewriting::LTR || gp == Options::GoalRewriting::UP_LTR);
   _chaining = salg->getOptions().goalRewritingChaining();
 
-  _lhsIndex=static_cast<TermIndex*>(
+  _lhsIndex=static_cast<TermIndex<TermLiteralClause>*>(
 	  _salg->getIndexManager()->request(GOAL_REWRITING_LHS_INDEX) );
-  _subtermIndex=static_cast<TermIndex*>(
+  _subtermIndex=static_cast<TermIndex<TermLiteralClause>*>(
 	  _salg->getIndexManager()->request(GOAL_REWRITING_SUBTERM_INDEX) );
 }
 
@@ -57,7 +57,7 @@ void GoalRewriting::detach()
   GeneratingInferenceEngine::detach();
 }
 
-TermList replaceOccurrence(Term* t, Term* orig, TermList repl, const Position& pos)
+TermList replaceOccurrence(Term* t, const Term* orig, TermList repl, const Position& pos)
 {
   Stack<pair<Term*,unsigned>> todo;
   Term* curr = t;
@@ -182,7 +182,7 @@ inline bool hasTermToInductOn(TermList t) {
   return false;
 }
 
-VirtualIterator<pair<Term*,Position>> getPositions(TermList t, Term* st)
+VirtualIterator<pair<Term*,Position>> getPositions(TermList t, const Term* st)
 {
   if (t.isVar()) {
     return VirtualIterator<pair<Term*,Position>>::getEmpty();
@@ -308,18 +308,18 @@ ClauseIterator GoalRewriting::generateClauses(Clause* premise)
       .flatMap([this](Term* t) {
         return pvi(pushPairIntoRightIterator(t,_lhsIndex->getGeneralizations(t, true)));
       })
-      .filter([premise,&opt,lit](pair<Term*,TermQueryResult> arg) {
+      .filter([premise,&opt,lit](pair<Term*,QueryRes<ResultSubstitutionSP, TermLiteralClause>> arg) {
         auto qr = arg.second;
-        if (premise->goalRewritingDepth()+qr.clause->goalRewritingDepth()>=opt.maxGoalRewritingDepth()) {
+        if (premise->goalRewritingDepth()+qr.data->clause->goalRewritingDepth()>=opt.maxGoalRewritingDepth()) {
           return false;
         }
-        if (SortHelper::getResultSort(arg.first) != SortHelper::getEqualityArgumentSort(qr.literal)) {
+        if (SortHelper::getResultSort(arg.first) != SortHelper::getEqualityArgumentSort(qr.data->literal)) {
           return false;
         }
 #ifdef INDUCTION_MODE
         DHSet<unsigned> sks;
         sks.loadFromIterator(DHSet<unsigned>::Iterator(*getSkolems(lit)));
-        DHSet<unsigned>::Iterator skIt(*getSkolems(qr.literal));
+        DHSet<unsigned>::Iterator skIt(*getSkolems(qr.data->literal));
         while (skIt.hasNext()) {
           if (!sks.contains(skIt.next())) {
             return false;
@@ -328,7 +328,7 @@ ClauseIterator GoalRewriting::generateClauses(Clause* premise)
 #endif
         return true;
       })
-      .flatMap([lit](pair<Term*,TermQueryResult> arg) {
+      .flatMap([lit](pair<Term*,QueryRes<ResultSubstitutionSP, TermLiteralClause>> arg) {
         auto t0 = lit->termArg(0);
         auto t1 = lit->termArg(1);
         return pushPairIntoRightIterator(arg.second,
@@ -337,12 +337,12 @@ ClauseIterator GoalRewriting::generateClauses(Clause* premise)
             pvi(pushPairIntoRightIterator(t1.term(),getPositions(t1,arg.first)))
           )));
       })
-      .map([lit,premise,this](pair<TermQueryResult,pair<Term*,pair<Term*,Position>>> arg) -> Clause* {
+      .map([lit,premise,this](pair<QueryRes<ResultSubstitutionSP, TermLiteralClause>,pair<Term*,pair<Term*,Position>>> arg) -> Clause* {
         auto side = arg.second.first;
         auto lhsS = arg.second.second.first;
         auto pos = arg.second.second.second;
         auto qr = arg.first;
-        return perform(premise,lit,side,lhsS,std::move(pos),qr.clause,qr.literal,qr.term,qr.unifier.ptr(),true);
+        return perform(premise,lit,side,lhsS,std::move(pos),qr.data->clause,qr.data->literal,qr.data->term,qr.unifier.ptr(),true);
       })
       .filter(NonzeroFn()));
   }
@@ -353,12 +353,12 @@ ClauseIterator GoalRewriting::generateClauses(Clause* premise)
       .flatMap([this](TypedTermList lhs) {
         return pvi(pushPairIntoRightIterator(lhs,_subtermIndex->getInstances(lhs,true)));
       })
-      .filter([premise,lit,&opt](pair<TypedTermList,TermQueryResult> arg) {
+      .filter([premise,lit,&opt](pair<TypedTermList,QueryRes<ResultSubstitutionSP, TermLiteralClause>> arg) {
         auto qr = arg.second;
-        if (premise->goalRewritingDepth()+qr.clause->goalRewritingDepth()>=opt.maxGoalRewritingDepth()) {
+        if (premise->goalRewritingDepth()+qr.data->clause->goalRewritingDepth()>=opt.maxGoalRewritingDepth()) {
           return false;
         }
-        if (SortHelper::getResultSort(qr.term.term()) != SortHelper::getEqualityArgumentSort(lit)) {
+        if (SortHelper::getResultSort(qr.data->term.term()) != SortHelper::getEqualityArgumentSort(lit)) {
           return false;
         }
 #ifdef INDUCTION_MODE
@@ -367,7 +367,7 @@ ClauseIterator GoalRewriting::generateClauses(Clause* premise)
         if (sks.isEmpty()) {
           return true;
         }
-        auto skPtrOther = getSkolems(qr.literal);
+        auto skPtrOther = getSkolems(qr.data->literal);
         DHSet<unsigned>::Iterator skIt(sks);
         while (skIt.hasNext()) {
           if (!skPtrOther->contains(skIt.next())) {
@@ -377,22 +377,22 @@ ClauseIterator GoalRewriting::generateClauses(Clause* premise)
 #endif
         return true;
       })
-      .flatMap([](pair<TypedTermList,TermQueryResult> arg) {
-        auto t = arg.second.term.term();
-        auto t0 = arg.second.literal->termArg(0);
-        auto t1 = arg.second.literal->termArg(1);
+      .flatMap([](pair<TypedTermList,QueryRes<ResultSubstitutionSP, TermLiteralClause>> arg) {
+        auto t = arg.second.data->term.term();
+        auto t0 = arg.second.data->literal->termArg(0);
+        auto t1 = arg.second.data->literal->termArg(1);
         return pushPairIntoRightIterator(arg,
           pvi(concatIters(
             pvi(pushPairIntoRightIterator(t0.term(),getPositions(t0,t))),
             pvi(pushPairIntoRightIterator(t1.term(),getPositions(t1,t)))
           )));
       })
-      .map([lit,premise,this](pair<pair<TypedTermList,TermQueryResult>,pair<Term*,pair<Term*,Position>>> arg) -> Clause* {
+      .map([lit,premise,this](pair<pair<TypedTermList,QueryRes<ResultSubstitutionSP, TermLiteralClause>>,pair<Term*,pair<Term*,Position>>> arg) -> Clause* {
         auto side = arg.second.first;
         auto pos = arg.second.second.second;
         auto qr = arg.first.second;
         auto eqLhs = arg.first.first;
-        return perform(qr.clause, qr.literal, side, qr.term.term(), std::move(pos), premise, lit, eqLhs, qr.unifier.ptr(), false);
+        return perform(qr.data->clause, qr.data->literal, side, qr.data->term.term(), std::move(pos), premise, lit, eqLhs, qr.unifier.ptr(), false);
       })
       .filter(NonzeroFn()))));
   }
@@ -400,7 +400,7 @@ ClauseIterator GoalRewriting::generateClauses(Clause* premise)
   return pvi(resTT);
 }
 
-Clause* GoalRewriting::perform(Clause* rwClause, Literal* rwLit, Term* rwSide, Term* rwTerm, Position&& pos,
+Clause* GoalRewriting::perform(Clause* rwClause, Literal* rwLit, Term* rwSide, const Term* rwTerm, Position&& pos,
   Clause* eqClause, Literal* eqLit, TermList eqLhs, ResultSubstitution* subst, bool eqIsResult)
 {
   const auto& ord = _salg->getOrdering();
@@ -408,7 +408,7 @@ Clause* GoalRewriting::perform(Clause* rwClause, Literal* rwLit, Term* rwSide, T
   auto rhs = EqHelper::getOtherEqualitySide(eqLit,TermList(eqLhs));
   auto rhsS = eqIsResult ? subst->applyToBoundResult(rhs) : subst->applyToBoundQuery(rhs);
 
-  if (_onlyUpwards && ord.compare(TermList(rwTerm),rhsS) != Ordering::Result::LESS) {
+  if (_onlyUpwards && ord.compare(TermList(const_cast<Term*>(rwTerm)),rhsS) != Ordering::Result::LESS) {
     return nullptr;
   }
   ASS_REP(!_chaining || !shouldChain(eqLit,ord), eqLit->toString());

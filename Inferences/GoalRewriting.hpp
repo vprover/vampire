@@ -35,9 +35,9 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-TermList replaceOccurrence(Term* t, Term* orig, TermList repl, const Position& pos);
+TermList replaceOccurrence(Term* t, const Term* orig, TermList repl, const Position& pos);
 vstring posToString(const Position& pos);
-VirtualIterator<std::pair<Term*,Position>> getPositions(TermList t, Term* st);
+VirtualIterator<std::pair<Term*,Position>> getPositions(TermList t, const Term* st);
 bool shouldChain(Literal* lit, const Ordering& ord);
 bool toTheLeftStrict(const Position& p1, const Position& p2);
 
@@ -71,15 +71,15 @@ public:
   ClauseIterator generateClauses(Clause* premise) override;
 
 private:
-  Clause* perform(Clause* rwClause, Literal* rwLit, Term* rwSide, Term* rwTerm, Position&& pos,
+  Clause* perform(Clause* rwClause, Literal* rwLit, Term* rwSide, const Term* rwTerm, Position&& pos,
     Clause* eqClause, Literal* eqLit, TermList eqLhs, ResultSubstitution* subst, bool eqIsResult);
 
   bool _onlyUpwards;
   bool _leftToRight;
   bool _chaining;
 
-  TermIndex* _lhsIndex;
-  TermIndex* _subtermIndex;
+  TermIndex<TermLiteralClause>* _lhsIndex;
+  TermIndex<TermLiteralClause>* _subtermIndex;
 };
 
 }

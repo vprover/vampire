@@ -390,22 +390,21 @@ Formula* Skolem::skolemise (Formula* f)
       typeVars.reset();
 
       // for proof recording purposes, see below
-      VList* varArgs = VList::empty();
       //We use a FIFO structure since in the polymorphic case
       //a variable list must be of the form [typevars, termvars]
-      VList::FIFO vArgs(varArgs);
+      VList::FIFO vArgs;
       Formula* before = SubstHelper::apply(f, _subst);
-      
+
       ExVarDepInfo& depInfo = _varDeps.get(f);
 
       VarSet* dep = depInfo.univ;
 
       /*
-       * Universals occuring below are not enough, 
+       * Universals occuring below are not enough,
        * because some existential from above could depend on them
        * and its corresponding skolem will bring them here...
-       * 
-       * Ex: ! [A] : ? [B] : ( p(A,B) | ? [C] : r(B,C) & something ) 
+       *
+       * Ex: ! [A] : ? [B] : ( p(A,B) | ? [C] : r(B,C) & something )
        * when skolimising the subformula
        * ? [C] : r(B,C) & something
        * univ dep of C is empty, but A will sneak into the actual dep
@@ -473,10 +472,10 @@ Formula* Skolem::skolemise (Formula* f)
           //sk(typevars, termvars).
           if(skolemisingTypeVar){
             sym = addSkolemTypeCon(arity);
-            skolemTerm = AtomicSort::create(sym, arity, allVars.begin());    
+            skolemTerm = AtomicSort::create(sym, arity, allVars.begin());
           } else {
             sym = addSkolemFunction(arity, termVarSorts.begin(), rangeSort, v, typeVars.size());
-            skolemTerm = Term::create(sym, arity, allVars.begin());    
+            skolemTerm = Term::create(sym, arity, allVars.begin());
           }
         } else {
           //The higher-order case. Create the term
@@ -485,7 +484,7 @@ Formula* Skolem::skolemise (Formula* f)
           sym = addSkolemFunction(typeVars.size(), 0, skSymSort, v, typeVars.size());
           TermList head = TermList(Term::create(sym, typeVars.size(), typeVars.begin()));
           skolemTerm = ApplicativeHelper::createAppTerm(
-            SortHelper::getResultSort(head.term()), head, termVars).term();      
+            SortHelper::getResultSort(head.term()), head, termVars).term();
         }
         _introducedSkolemSyms.push(make_pair(skolemisingTypeVar, sym));
 
@@ -494,15 +493,12 @@ Formula* Skolem::skolemise (Formula* f)
         _subst.bind(v,skolemTerm);
 
         if (env.options->showSkolemisations()) {
-          env.beginOutput();
-          env.out() << "Skolemising: "<<skolemTerm->toString()<<" for X"<< v
+          std::cout << "Skolemising: "<<skolemTerm->toString()<<" for X"<< v
             <<" in "<<f->toString()<<" in formula "<<_beingSkolemised->toString() << endl;
-          env.endOutput();
         }
 
         if (env.options->showNonconstantSkolemFunctionTrace() && arity!=0) {
-          env.beginOutput();
-          ostream& out = env.out();
+          ostream& out = std::cout;
             out <<"Nonconstant skolem function introduced: "
             <<skolemTerm->toString()<<" for X"<<v<<" in "<<f->toString()
             <<" in formula "<<_beingSkolemised->toString()<<endl;
@@ -511,7 +507,6 @@ Formula* Skolem::skolemise (Formula* f)
           Refutation ref(_beingSkolemised, true);
           ref.output(out);
           */
-          env.endOutput();
         }
       }
 
@@ -520,7 +515,7 @@ Formula* Skolem::skolemise (Formula* f)
         Formula* def = new BinaryFormula(IMP, before, after);
 
         if (arity > 0) {
-          def = new QuantifiedFormula(FORALL,varArgs,nullptr,def);
+          def = new QuantifiedFormula(FORALL,vArgs.list(),nullptr,def);
         }
 
         Unit* defUnit = new FormulaUnit(def,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::CHOICE_AXIOM));

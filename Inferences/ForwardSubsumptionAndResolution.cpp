@@ -229,9 +229,9 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
   ASS(cmStore.isEmpty());
 
   for (unsigned li = 0; li < clen; li++) {
-    SLQueryResultIterator rit = _unitIndex->getGeneralizations((*cl)[li], false, false);
+    auto rit = _unitIndex->getGeneralizations((*cl)[li], false, false);
     while (rit.hasNext()) {
-      Clause *premise = rit.next().clause;
+      Clause *premise = rit.next().data->clause;
       if (ColorHelper::compatible(cl->color(), premise->color())) {
         if (cl->goalRewritingDepth()<premise->goalRewritingDepth()) {
           continue;
@@ -254,10 +254,10 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
     LiteralMiniIndex miniIndex(cl);
 
     for (unsigned li = 0; li < clen; li++) {
-      SLQueryResultIterator rit = _fwIndex->getGeneralizations((*cl)[li], false, false);
+      auto rit = _fwIndex->getGeneralizations((*cl)[li], false, false);
       while (rit.hasNext()) {
-        SLQueryResult res = rit.next();
-        Clause *mcl = res.clause;
+        auto res = rit.next();
+        Clause *mcl = res.data->clause;
         if (mcl->hasAux()) {
           //we've already checked this clause
           continue;
@@ -291,9 +291,9 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
 
       for (unsigned li = 0; li < clen; li++) {
         Literal *resLit = (*cl)[li];
-        SLQueryResultIterator rit = _unitIndex->getGeneralizations(resLit, true, false);
+        auto rit = _unitIndex->getGeneralizations(resLit, true, false);
         while (rit.hasNext()) {
-          Clause *mcl = rit.next().clause;
+          Clause *mcl = rit.next().data->clause;
           if (ColorHelper::compatible(cl->color(), mcl->color())) {
             resolutionClause = generateSubsumptionResolutionClause(cl, resLit, mcl);
             env.statistics->forwardSubsumptionResolution++;
@@ -327,10 +327,10 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
 
       for (unsigned li = 0; li < clen; li++) {
         Literal *resLit = (*cl)[li]; //resolved literal
-        SLQueryResultIterator rit = _fwIndex->getGeneralizations(resLit, true, false);
+        auto rit = _fwIndex->getGeneralizations(resLit, true, false);
         while (rit.hasNext()) {
-          SLQueryResult res = rit.next();
-          Clause *mcl = res.clause;
+          auto res = rit.next();
+          Clause *mcl = res.data->clause;
 
           ClauseMatches *cms = nullptr;
           if (mcl->hasAux()) {

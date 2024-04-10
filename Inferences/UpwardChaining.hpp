@@ -51,6 +51,8 @@ private:
     Clause* eqClause, Literal* eqLit, TermList eqLHS, const Position& pos,
     ResultSubstitutionSP subst, bool eqIsResult, bool left);
 
+  using TermIndex = TermIndex<TermLiteralClause>;
+
   TermIndex* _leftLhsIndex;
   TermIndex* _rightLhsIndex;
   TermIndex* _leftSubtermIndex;

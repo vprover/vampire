@@ -19,6 +19,7 @@
 
 #include "Lib/DHMap.hpp"
 #include "Lib/MaybeBool.hpp"
+#include "Lib/ScopedPtr.hpp"
 
 #include "Shell/SMTLIBLogic.hpp"
 
@@ -78,11 +79,12 @@ public:
 
   void addEliminatedFunction(unsigned func, Literal* definition);
   void addEliminatedPredicate(unsigned pred, Unit* definition);
-  void addPartiallyEliminatedPredicate(unsigned pred, Unit* definition); 
+  void addPartiallyEliminatedPredicate(unsigned pred, Unit* definition);
  
   DHMap<unsigned,Literal*> getEliminatedFunctions(){ return _deletedFunctions; }
   DHMap<unsigned,Unit*> getEliminatedPredicates(){ return _deletedPredicates; }
   DHMap<unsigned,Unit*> getPartiallyEliminatedPredicates(){ return _partiallyDeletedPredicates;}
+  FunctionDefinitionHandler& getFunctionDefinitionHandler(){ return *_fnDefHandler; }
   
 
   bool isPropertyUpToDate() const { return _propertyValid; }
@@ -190,6 +192,7 @@ private:
   DHMap<unsigned,Literal*> _deletedFunctions;
   DHMap<unsigned,Unit*> _deletedPredicates;
   DHMap<unsigned,Unit*> _partiallyDeletedPredicates; 
+  ScopedPtr<FunctionDefinitionHandler> _fnDefHandler;
 
   bool _hadIncompleteTransformation;
 

@@ -61,11 +61,11 @@ using namespace std;
 static const char* PAR = "par";
 static const char* TYPECON_POSTFIX = "()";
 
-SMTLIB2::SMTLIB2(const Options& opts)
+SMTLIB2::SMTLIB2(UnitList::FIFO formulaBuffer)
 : _logicSet(false),
   _logic(SMT_UNDEFINED),
   _numeralsAreReal(false),
-  _formulas(nullptr),
+  _formulas(formulaBuffer),
   _topLevelExpr(nullptr)
 {
 }
@@ -420,9 +420,7 @@ void SMTLIB2::readBenchmark(LExprList* bench)
       // can't read anything else (and it does not make sense to read get-unsat-core more than once)
       // so let's just warn and exit
       if(env.options->mode()!=Options::Mode::SPIDER) {
-        env.beginOutput();
-        env.out() << "% Warning: check-sat is not the last entry. Skipping the rest!" << endl;
-        env.endOutput();
+        std::cout << "% Warning: check-sat is not the last entry. Skipping the rest!" << endl;
       }
       break;
     }
@@ -835,19 +833,24 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
   ASS(fun.second != SymbolType::TYPECON);
   bool isTrueFun = fun.second==SymbolType::FUNCTION;
 
-  TermList lhs;
+  Literal* lit;
   if (isTrueFun) {
-    lhs = TermList(Term::create(symbIdx,args.size(),args.begin()));
+    TermList lhs(Term::create(symbIdx,args.size(),args.begin()));
+    auto p = env.signature->getFnDef(symbIdx);
+    auto defArgs = typeArgs;
+    defArgs.push(lhs);
+    defArgs.push(rhs);
+    lit = Literal::create(p,defArgs.size(),true,false,defArgs.begin());
   } else {
-    Formula* frm = new AtomicFormula(Literal::create(symbIdx,args.size(),true,false,args.begin()));
-    lhs = TermList(Term::createFormula(frm));
+    auto p = env.signature->getBoolDef(symbIdx);
+    TermList lhs(Term::createFormula(new AtomicFormula(Literal::create(p,args.size(),true,false,args.begin()))));
+    lit = Literal::createEquality(true, lhs, rhs, rangeSort);
   }
-
-  Formula* fla = new AtomicFormula(Literal::createEquality(true,lhs,rhs,rangeSort));
+  Formula* fla = new AtomicFormula(lit);
 
   FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
 
-  UnitList::push(fu, _formulas);
+  _formulas.pushBack(fu);
 }
 
 void SMTLIB2::readDefineFunsRec(LExprList* declsExpr, LExprList* defsExpr)
@@ -926,18 +929,23 @@ void SMTLIB2::readDefineFunsRec(LExprList* declsExpr, LExprList* defsExpr)
     ASS(decl.sym.second != SymbolType::TYPECON);
     bool isTrueFun = decl.sym.second==SymbolType::FUNCTION;
 
-    TermList lhs;
+    Literal* lit;
     if (isTrueFun) {
-      lhs = TermList(Term::create(symbIdx,decl.args.size(),decl.args.begin()));
+      TermList lhs(Term::create(symbIdx,decl.args.size(),decl.args.begin()));
+      auto p = env.signature->getFnDef(symbIdx);
+      TermStack defArgs; // no type arguments (yet) in this case
+      defArgs.push(lhs);
+      defArgs.push(rhs);
+      lit = Literal::create(p,defArgs.size(),true,false,defArgs.begin());
     } else {
-      Formula* frm = new AtomicFormula(Literal::create(symbIdx,decl.args.size(),true,false,decl.args.begin()));
-      lhs = TermList(Term::createFormula(frm));
+      auto p = env.signature->getBoolDef(symbIdx);
+      TermList lhs(Term::createFormula(new AtomicFormula(Literal::create(p,decl.args.size(),true,false,decl.args.begin()))));
+      lit = Literal::createEquality(true, lhs, rhs, decl.rangeSort);
     }
-
-    Formula* fla = new AtomicFormula(Literal::createEquality(true,lhs,rhs,decl.rangeSort));
+    Formula* fla = new AtomicFormula(lit);
 
     FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
-    UnitList::push(fu, _formulas);
+    _formulas.pushBack(fu);
 
     delete _scopes.pop();
   }
@@ -1441,15 +1449,14 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
     }
     TermStack args;
     TermStack varSorts;
-    auto typeVars = VList::empty();
-    VList::FIFO tvs(typeVars);
+    VList::FIFO typeVars;
     // type vars are before term vars in the args list, so process them first
     iterTraits(vs.items())
-      .forEach([&tvs,&args](std::pair<unsigned,TermList> kv) {
+      .forEach([&typeVars,&args](std::pair<unsigned,TermList> kv) {
         if (kv.second != AtomicSort::superSort()) {
           return;
         }
-        tvs.pushBack(kv.first);
+        typeVars.pushBack(kv.first);
         args.push(TermList(kv.first,false));
       });
     iterTraits(vs.items())
@@ -1464,7 +1471,7 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
         varSorts.push(kv.second);
         args.push(TermList(kv.first,false));
       });
-    SortHelper::normaliseArgSorts(typeVars,varSorts);
+    SortHelper::normaliseArgSorts(typeVars.list(),varSorts);
 
     TermList trm;
     if (sort == AtomicSort::boolSort()) {
@@ -1476,7 +1483,7 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
       trm = TermList(Term::createFormula(atom));
     } else {
       TermList nSort = sort;
-      SortHelper::normaliseSort(typeVars,nSort);
+      SortHelper::normaliseSort(typeVars.list(),nSort);
       unsigned symb = env.signature->addFreshFunction (args.size(),"sLF");
       OperatorType* type = OperatorType::getFunctionType(varSorts.size(), varSorts.begin(), nSort, args.size()-varSorts.size());
       env.signature->getFunction(symb)->setType(type);
@@ -1487,6 +1494,8 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
     if (!lookup->insert(cName,make_pair(trm,sort))) {
       USER_ERROR_EXPR("Multiple bindings of symbol "+cName+" in let expression "+exp->toString());
     }
+
+    VList::destroy(typeVars.list());
   }
 
   _scopes.push(lookup);
@@ -1534,15 +1543,14 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
       exprT = exprT->getSpecialData()->getFormula()->literal();
     }
 
-    auto vars = VList::empty();
-    VList::FIFO vs(vars);
+    VList::FIFO vars;
     Substitution subst;
     for (unsigned i = 0; i < exprT->arity(); i++) {
       subst.bind(exprT->nthArgument(i)->var(),TermList(_nextVar,false));
-      vs.pushBack(_nextVar++);
+      vars.pushBack(_nextVar++);
     }
 
-    let = TermList(Term::createLet(exprT->functor(), vars, SubstHelper::apply(boundExpr,subst), let, letSort));
+    let = TermList(Term::createLet(exprT->functor(), vars.list(), SubstHelper::apply(boundExpr,subst), let, letSort));
   }
 
   _results.push(ParseResult(letSort,let));
@@ -1621,15 +1629,9 @@ void SMTLIB2::parseMatchBegin(LExpr *exp)
         USER_ERROR_EXPR("Only function constructors are allowed: "+fst);
       }
       auto fn = env.signature->getFunction(sym.first);
-      unsigned i = 0;
-      // we need the type arguments in reverse order,
-      // so we push them on a stack and pop them
-      Stack<LExpr*> st;
-      while (tRdr.hasNext() && i++ < fn->numTypeArguments()) {
-        st.push(tRdr.readNext());
-      }
-      while (st.isNonEmpty()) {
-        _todo.push(make_pair(PO_PARSE_SORT, st.pop()));
+      for (unsigned i = 0; i < fn->numTypeArguments(); i++) {
+        ALWAYS(tRdr.hasNext());
+        _todo.push(make_pair(PO_PARSE_SORT, tRdr.readNext()));
       }
     }
     pRdr.acceptEOL();
@@ -1661,7 +1663,7 @@ void SMTLIB2::parseMatchCaseStart(LExpr *exp)
     unsigned i = 0;
     Substitution subst;
     while (tRdr.hasNext()) {
-      auto arg = tRdr.readNext();
+      auto argExp = tRdr.readNext();
       ASS_L(i,type->arity());
       if (i < type->numTypeArguments()) {
         if (_results.isEmpty() || _results.top().isSeparator()) {
@@ -1673,12 +1675,12 @@ void SMTLIB2::parseMatchCaseStart(LExpr *exp)
         i++;
         continue;
       }
-      if (!arg->isAtom() || isAlreadyKnownSymbol(arg->str)) {
-        USER_ERROR_EXPR("Nested ctors ("+arg->toString()+") in match patterns are disallowed: '" + exp->toString() + "'");
+      if (!argExp->isAtom() || isAlreadyKnownSymbol(argExp->str)) {
+        USER_ERROR_EXPR("Nested ctors ("+argExp->toString()+") in match patterns are disallowed: '" + exp->toString() + "'");
       }
       // from the type arguments used in the matched term we instantiate the type of the other variables
-      if (!lookup->insert(arg->str, make_pair(TermList(_nextVar++, false), SubstHelper::apply(type->arg(i++), subst)))) {
-        USER_ERROR_EXPR("Variable '" + arg->str + "' has already been defined");
+      if (!lookup->insert(argExp->str, make_pair(TermList(_nextVar++, false), SubstHelper::apply(type->arg(i++), subst)))) {
+        USER_ERROR_EXPR("Variable '" + argExp->str + "' has already been defined");
       }
     }
   }
@@ -1786,12 +1788,12 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
   if (varUsed) {
     Stack<TermList> argTerms;
     // the number of type arguments for all ctors is the arity of the type
-    unsigned numTypeArgs = env.signature->getTypeCon(sort.term()->functor())->typeConType()->arity();
+    unsigned numTypeArgs = env.signature->getTypeCon(matchedTermSort.term()->functor())->typeConType()->arity();
     for (const auto &kv : ctorFunctors) {
       argTerms.reset();
       for (unsigned j = 0; j < kv.second->arity(); j++) {
         if (j < numTypeArgs) {
-          argTerms.push(*sort.term()->nthArgument(j));
+          argTerms.push(*matchedTermSort.term()->nthArgument(j));
         } else {
           argTerms.push(TermList(_nextVar++, false));
         }
@@ -1934,7 +1936,7 @@ void SMTLIB2::parseAnnotatedTerm(LExpr* exp)
 
   if (!annotation_warning) {
     //env.beginOutput();
-    //env.out() << "% Warning: term annotations ignored!" << endl;
+    //std::cout << "% Warning: term annotations ignored!" << endl;
     //env.endOutput();
     annotation_warning = true;
   }
@@ -2958,7 +2960,7 @@ void SMTLIB2::readAssert(LExpr* body)
   }
 
   FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
-  UnitList::push(fu, _formulas);
+  _formulas.pushBack(fu);
 }
 
 void SMTLIB2::readAssertClaim(LExpr* body)
@@ -2976,7 +2978,7 @@ void SMTLIB2::readAssertClaim(LExpr* body)
   static unsigned claim_id = 0;
 
   FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
-  UnitList::push(TPTP::processClaimFormula(fu,fla,"claim"+Int::toString(claim_id++)), _formulas);
+  _formulas.pushBack(TPTP::processClaimFormula(fu,fla,"claim"+Int::toString(claim_id++)));
 }
 
 void SMTLIB2::readAssertNot(LExpr* body)
@@ -2994,7 +2996,7 @@ void SMTLIB2::readAssertNot(LExpr* body)
   FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::CONJECTURE));
   fu = new FormulaUnit(new NegatedFormula(fla),
                        FormulaTransformation(InferenceRule::NEGATED_CONJECTURE, fu));
-  UnitList::push(fu, _formulas);
+  _formulas.pushBack(fu);
 }
 
 void SMTLIB2::readAssertTheory(LExpr* body)
@@ -3010,7 +3012,7 @@ void SMTLIB2::readAssertTheory(LExpr* body)
   }
 
   FormulaUnit* fu = new FormulaUnit(theoryAxiom, Inference(TheoryAxiom(InferenceRule::EXTERNAL_THEORY_AXIOM)));
-  UnitList::push(fu, _formulas);
+  _formulas.pushBack(fu);
 }
 
 Signature::Symbol* SMTLIB2::getSymbol(DeclaredSymbol& s) {

@@ -138,6 +138,7 @@ Option<AbstractionOracle::AbstractionResult> funcExt(
       auto argSort1 = au->subs().derefBound(t1.typeArg(0));
       auto argSort2 = au->subs().derefBound(t2.typeArg(0));
       if (t1.isVar() || t2.isVar()
+       || argSort1.isVar() || argSort2.isVar()
        || env.signature->isArrowCon(argSort1.functor())
        || env.signature->isArrowCon(argSort2.functor())
        || env.signature->isBoolCon(argSort1.functor())

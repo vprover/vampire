@@ -17,6 +17,7 @@
 
 #include "Forwards.hpp"
 
+#include "Indexing/Index.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/DHMap.hpp"
@@ -45,23 +46,7 @@ protected:
 public:
   TermCodeTree();
   
-  struct TermInfo
-  {
-    TermInfo(TermList t, Literal* lit, Clause* cls)
-    : t(t), lit(lit), cls(cls) {}
-
-    inline bool operator==(const TermInfo& o)
-    { return cls==o.cls && t==o.t && lit==o.lit; }
-
-    inline bool operator!=(const TermInfo& o)
-    { return !(*this==o); }
-
-    USE_ALLOCATOR(TermInfo);
-
-    TermList t;
-    Literal* lit;
-    Clause* cls;
-  };
+  using TermInfo = TermLiteralClause;
 
 
   void insert(TermInfo* ti);

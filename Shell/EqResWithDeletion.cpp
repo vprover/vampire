@@ -18,6 +18,7 @@
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
+#include "Kernel/FormulaVarIterator.hpp"
 
 #include "EqResWithDeletion.hpp"
 
@@ -115,15 +116,17 @@ TermList EqResWithDeletion::apply(unsigned var)
 
 bool EqResWithDeletion::scan(Literal* lit)
 {
+  using Kernel::isFreeVariableOf;
+
   if(lit->isEquality() && lit->isNegative()) {
     TermList t0=*lit->nthArgument(0);
     TermList t1=*lit->nthArgument(1);
-    if( t0.isVar() && !t1.containsSubterm(t0) && (!_ansLit || !t1.isTerm() || t1.term()->computableOrVar() || !_ansLit->isFreeVariable(t0.var()))) {
+    if( t0.isVar() && !t1.containsSubterm(t0) && (!_ansLit || !t1.isTerm() || t1.term()->computableOrVar() || !isFreeVariableOf(_ansLit,t0.var()))) {
       if(_subst.insert(t0.var(), t1)) {
         return true;
       }
     }
-    if( t1.isVar() && !t0.containsSubterm(t1) && (!_ansLit || !t0.isTerm() || t0.term()->computableOrVar() || !_ansLit->isFreeVariable(t1.var()))) {
+    if( t1.isVar() && !t0.containsSubterm(t1) && (!_ansLit || !t0.isTerm() || t0.term()->computableOrVar() || !isFreeVariableOf(_ansLit,t1.var()))) {
       if(_subst.insert(t1.var(), t0)) {
         return true;
       }

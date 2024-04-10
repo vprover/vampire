@@ -157,10 +157,8 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
   _currentDefs = UnitList::empty();
 
   if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] " << unit->toString() << endl;
-    env.out() << "[PP] " << processedUnit->toString()  << endl;
-    env.endOutput();
+    std::cout << "[PP] " << unit->toString() << endl;
+    std::cout << "[PP] " << processedUnit->toString()  << endl;
   }
 
   return processedUnit;
@@ -426,7 +424,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
   // it becomes the quantified variables of a formula,
   // and leaks with the formula. In other situations, it leaks
   // form this function.
-  VList* freeVars = term->freeVariables();
+  VList* freeVars = freeVariables(term);
   TermStack termVarSorts;
   TermStack termVars;
   TermStack typeVars;
@@ -486,7 +484,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
     Term::SpecialTermData* sd = term->getSpecialData();
 
     switch (term->specialFunctor()) {
-      case Term::SpecialFunctor::ITE: {
+      case SpecialFunctor::ITE: {
         /**
          * Having a term of the form $ite(f, s, t) and the list Y1, ..., Ym,
          * X1, ..., Xn of its free type and term variables (it is the union of
@@ -569,7 +567,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         break;
       }
 
-      case Term::SpecialFunctor::LET: {
+      case SpecialFunctor::LET: {
         /**
          * Having a term of the form $let(f(B1,...Bj,Y1, ..., Yk) := s, t), where f is a
          * function or predicate symbol and the list A1,...,Am,X1, ..., Xn of free
@@ -606,7 +604,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // collect variables B1,...,Bj,X1, ..., Xn
         VList* bodyFreeVars = VList::empty();
-        FormulaVarIterator bfvi(&binding);
+        FormulaVarIterator bfvi(binding);
         while (bfvi.hasNext()) {
           unsigned var = bfvi.next();
           if (!VList::member(var, argumentVars)) {
@@ -677,9 +675,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
           InferenceStore::instance()->recordIntroducedSymbol(defUnit,bindingContext == FORMULA_CONTEXT ? SymbolType::PRED : SymbolType::FUNC, freshSymbol);
 
           if (env.options->showPreprocessing()) {
-            env.beginOutput();
-            env.out() << "[PP] FOOL replace in: " << contents.toString() << endl;
-            env.endOutput();
+            std::cout << "[PP] FOOL replace in: " << contents.toString() << endl;
           }
 
           SymbolOccurrenceReplacement replacement(bindingContext == FORMULA_CONTEXT,
@@ -688,9 +684,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
           contents = replacement.process(contents);
 
           if (env.options->showPreprocessing()) {
-            env.beginOutput();
-            env.out() << "[PP] FOOL replace out: " << contents.toString() << endl;
-            env.endOutput();
+            std::cout << "[PP] FOOL replace out: " << contents.toString() << endl;
           }
         }
 
@@ -698,10 +692,10 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         break;
       }
-      case Term::SpecialFunctor::TUPLE:
-      case Term::SpecialFunctor::LET_TUPLE:
+      case SpecialFunctor::TUPLE:
+      case SpecialFunctor::LET_TUPLE:
         NOT_IMPLEMENTED;
-      case Term::SpecialFunctor::FORMULA: {
+      case SpecialFunctor::FORMULA: {
         if (context == FORMULA_CONTEXT) {
           formulaResult = process(sd->getFormula());
           break;
@@ -760,7 +754,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         }
         break;
       }
-      case Term::SpecialFunctor::LAMBDA: {
+      case SpecialFunctor::LAMBDA: {
         // Lambda terms are translated to FOL using SKIBC combinators which are extensively described in
         // the literature.
         LambdaElimination le = LambdaElimination();
@@ -768,7 +762,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         break;
       }
 
-      case Term::SpecialFunctor::MATCH: {
+      case SpecialFunctor::MATCH: {
         /**
          * Having a term of the form $match(v, p1, b1, ..., pm, bm) and the list
          * X1, ..., Xn of its free variables (it is the union of free variables
@@ -975,9 +969,7 @@ void FOOLElimination::addDefinition(FormulaUnit* def) {
   UnitList::push(def, _currentDefs);
 
   if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] FOOL added definition: " << def->toString() << endl;
-    env.endOutput();
+    std::cout << "[PP] FOOL added definition: " << def->toString() << endl;
   }
 }
 
@@ -1007,15 +999,13 @@ unsigned FOOLElimination::introduceFreshSymbol(Context context, const char* pref
   }
 
   if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] FOOL: introduced fresh ";
+    std::cout << "[PP] FOOL: introduced fresh ";
     if (context == FORMULA_CONTEXT) {
-      env.out() << "predicate symbol " << env.signature->predicateName(symbol);
+      std::cout << "predicate symbol " << env.signature->predicateName(symbol);
     } else {
-      env.out() << "function symbol " << env.signature->functionName(symbol);
+      std::cout << "function symbol " << env.signature->functionName(symbol);
     }
-    env.out() << " of the sort " << type->toString() << endl;
-    env.endOutput();
+    std::cout << " of the sort " << type->toString() << endl;
   }
 
   return symbol;
@@ -1031,9 +1021,7 @@ void FOOLElimination::reportProcessed(vstring inputRepr, vstring outputRepr) {
      * the output seeming the same, we will not log such processings at
      * all. Setting show_fool to on, however, will display everything.
      */
-    env.beginOutput();
-    env.out() << "[PP] FOOL in:  " << inputRepr  << endl;
-    env.out() << "[PP] FOOL out: " << outputRepr << endl;
-    env.endOutput();
+    std::cout << "[PP] FOOL in:  " << inputRepr  << endl;
+    std::cout << "[PP] FOOL out: " << outputRepr << endl;
   }
 }

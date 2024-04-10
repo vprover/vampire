@@ -1069,7 +1069,9 @@ void TheoryAxioms::apply()
   while (tas.hasNext()) {
     TermAlgebra* ta = tas.next();
 
-    // addExhaustivenessAxiom(ta);
+    if (env.options->termAlgebraExhaustivenessAxiom()) {
+      addExhaustivenessAxiom(ta);
+    }
     addDistinctnessAxiom(ta);
     addInjectivityAxiom(ta);
     addDiscriminationAxiom(ta);

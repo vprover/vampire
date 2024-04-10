@@ -196,8 +196,8 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
       }
     } else {
       VarSet* fv = freeVars(condition);
-      fv = fv->getUnion(VarSet::getFromIterator(FormulaVarIterator(&thenBranch)));
-      fv = fv->getUnion(VarSet::getFromIterator(FormulaVarIterator(&elseBranch)));
+      fv = fv->getUnion(VarSet::getFromIterator(FormulaVarIterator(thenBranch)));
+      fv = fv->getUnion(VarSet::getFromIterator(FormulaVarIterator(elseBranch)));
 
       VList* vars = VList::singleton(variable);
       VList::pushFromIterator(fv->iter(), vars);
@@ -332,7 +332,7 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
 
   Term::SpecialTermData* sd = term->getSpecialData();
   switch (sd->specialFunctor()) {
-    case Term::SpecialFunctor::FORMULA: {
+    case SpecialFunctor::FORMULA: {
       sort = AtomicSort::boolSort();
       conditions.push(sd->getFormula());
       thenBranches.push(TermList(Term::foolTrue()));
@@ -340,7 +340,7 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
       break;
     }
 
-    case Term::SpecialFunctor::ITE: {
+    case SpecialFunctor::ITE: {
       sort = sd->getSort();
       conditions.push(sd->getCondition());
       thenBranches.push(*term->nthArgument(0));
@@ -348,22 +348,22 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
       break;
     }
 
-    case Term::SpecialFunctor::LET:
-    case Term::SpecialFunctor::LET_TUPLE: {
+    case SpecialFunctor::LET:
+    case SpecialFunctor::LET_TUPLE: {
       TermList contents = *term->nthArgument(0);
       TermList processedLet = eliminateLet(sd, contents);
       return findITEs(processedLet, variables, conditions, thenBranches,
         elseBranches, matchVariables, matchConditions, matchBranches);
     }
 
-    case Term::SpecialFunctor::TUPLE: {
+    case SpecialFunctor::TUPLE: {
       TermList tupleTerm = TermList(sd->getTupleTerm());
       return findITEs(tupleTerm, variables, conditions, thenBranches,
                       elseBranches, matchVariables, matchConditions, matchBranches);
     }
-    case Term::SpecialFunctor::LAMBDA:
+    case SpecialFunctor::LAMBDA:
       NOT_IMPLEMENTED;
-    case Term::SpecialFunctor::MATCH: {
+    case SpecialFunctor::MATCH: {
       sort = sd->getSort();
       auto matched = *term->nthArgument(0);
       List<Formula *> *mconditions(0);
@@ -653,13 +653,13 @@ void NewCNF::processMatch(Term::SpecialTermData *sd, Term *term, Occurrences &oc
 
 TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
 {
-  ASS((sd->specialFunctor() == Term::SpecialFunctor::LET) || (sd->specialFunctor() == Term::SpecialFunctor::LET_TUPLE));
+  ASS((sd->specialFunctor() == SpecialFunctor::LET) || (sd->specialFunctor() == SpecialFunctor::LET_TUPLE));
 
   unsigned symbol;
   VList* variables;
   TermList binding = sd->getBinding();
 
-  if (sd->specialFunctor() == Term::SpecialFunctor::LET) {
+  if (sd->specialFunctor() == SpecialFunctor::LET) {
     symbol = sd->getFunctor();
     variables = sd->getVariables();
   } else if (binding.isTerm() && binding.term()->isTuple()) {
@@ -692,12 +692,10 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
     ASS(!bit.hasNext());
 
     if (env.options->showPreprocessing()) {
-      env.beginOutput();
       Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, binding, contents, tupleType->result());
-      env.out() << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << std::endl;
+      std::cout << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << std::endl;
       Term* processedLet = Term::createLet(symbol, 0, processedBinding, processedContents, bodySort);
-      env.out() << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
-      env.endOutput();
+      std::cout << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
     }
 
     variables = VList::empty();
@@ -737,12 +735,10 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
     }
 
     if (env.options->showPreprocessing()) {
-      env.beginOutput();
       Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, binding, contents, tupleType->result());
-      env.out() << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << std::endl;
+      std::cout << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << std::endl;
       Term* processedLet = Term::createLet(tuple, 0, binding, detupledContents, bodySort);
-      env.out() << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
-      env.endOutput();
+      std::cout << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
     }
 
     symbol = tuple;
@@ -758,7 +754,7 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
 //    Term* term = binding.term();
 //    if (term->isSpecial()) {
 //      Term::SpecialTermData* sd = term->getSpecialData();
-//      if (sd->specialFunctor() == Term::SpecialFunctor::FORMULA) {
+//      if (sd->specialFunctor() == SpecialFunctor::FORMULA) {
 //        inlineLet = true;
 //      }
 //    }
@@ -769,7 +765,7 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
 ////      }
 //    } else if (term->isSpecial()) {
 //      Term::SpecialTermData* sd = term->getSpecialData();
-//      if (sd->specialFunctor() == Term::SpecialFunctor::FORMULA) {
+//      if (sd->specialFunctor() == SpecialFunctor::FORMULA) {
 //        Formula* f = sd->getFormula();
 //        if ((f->connective() == LITERAL) && f->literal()->shared()) {
 //          inlineLet = true;
@@ -782,20 +778,16 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
   if (inlineLet) {
     processedContents = inlineLetBinding(symbol, variables, binding, contents);
     if (env.options->showPreprocessing()) {
-      env.beginOutput();
-      env.out() << "[PP] clausify (inline let) binding: " << binding.toString() << std::endl;
-      env.out() << "[PP] clausify (inline let) in:  " << contents.toString() << std::endl;
-      env.out() << "[PP] clausify (inline let) out: " << processedContents.toString() << std::endl;
-      env.endOutput();
+      std::cout << "[PP] clausify (inline let) binding: " << binding.toString() << std::endl;
+      std::cout << "[PP] clausify (inline let) in:  " << contents.toString() << std::endl;
+      std::cout << "[PP] clausify (inline let) out: " << processedContents.toString() << std::endl;
     }
   } else {
     processedContents = nameLetBinding(symbol, variables, binding, contents);
     if (env.options->showPreprocessing()) {
-      env.beginOutput();
-      env.out() << "[PP] clausify (name let) binding: " << binding.toString() << std::endl;
-      env.out() << "[PP] clausify (name let) in:  " << contents.toString() << std::endl;
-      env.out() << "[PP] clausify (name let) out: " << processedContents.toString() << std::endl;
-      env.endOutput();
+      std::cout << "[PP] clausify (name let) binding: " << binding.toString() << std::endl;
+      std::cout << "[PP] clausify (name let) in:  " << contents.toString() << std::endl;
+      std::cout << "[PP] clausify (name let) out: " << processedContents.toString() << std::endl;
     }
   }
 
@@ -804,7 +796,7 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
 
 void NewCNF::processLet(Term::SpecialTermData* sd, TermList contents, Occurrences &occurrences)
 {
-  ASS((sd->specialFunctor() == Term::SpecialFunctor::LET) || (sd->specialFunctor() == Term::SpecialFunctor::LET_TUPLE));
+  ASS((sd->specialFunctor() == SpecialFunctor::LET) || (sd->specialFunctor() == SpecialFunctor::LET_TUPLE));
 
   TermList deletedContents = eliminateLet(sd, contents); // should be read "de-let-ed contents"
   Formula* deletedContentsFormula = BoolTermFormula::create(deletedContents);
@@ -817,7 +809,7 @@ void NewCNF::processLet(Term::SpecialTermData* sd, TermList contents, Occurrence
 TermList NewCNF::nameLetBinding(unsigned symbol, VList* bindingVariables, TermList binding, TermList contents)
 {
   VList* bindingFreeVars = VList::empty();
-  FormulaVarIterator bfvi(&binding);
+  FormulaVarIterator bfvi(binding);
   while (bfvi.hasNext()) {
     unsigned var = bfvi.next();
     if (!VList::member(var, bindingVariables)) {
@@ -1148,12 +1140,12 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
 
   Term::SpecialTermData* sd = term->getSpecialData();
   switch (sd->specialFunctor()) {
-    case Term::SpecialFunctor::FORMULA:
+    case SpecialFunctor::FORMULA:
       process(sd->getFormula(), occurrences);
       return;
-    case Term::SpecialFunctor::TUPLE:
+    case SpecialFunctor::TUPLE:
       NOT_IMPLEMENTED;
-    case Term::SpecialFunctor::ITE: {
+    case SpecialFunctor::ITE: {
       Formula* condition = sd->getCondition();
 
       Formula* left = BoolTermFormula::create(*term->nthArgument(LEFT));
@@ -1161,13 +1153,13 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
       processITE(condition, left, right, occurrences);
       return;
     }
-    case Term::SpecialFunctor::LET:
-    case Term::SpecialFunctor::LET_TUPLE:
+    case SpecialFunctor::LET:
+    case SpecialFunctor::LET_TUPLE:
       processLet(sd, *term->nthArgument(0), occurrences);
       return;
-    case Term::SpecialFunctor::LAMBDA:
+    case SpecialFunctor::LAMBDA:
       NOT_IMPLEMENTED;
-    case Term::SpecialFunctor::MATCH: {
+    case SpecialFunctor::MATCH: {
       processMatch(sd, term, occurrences);
       return;
     }
@@ -1349,7 +1341,7 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
         List<GenLit>::Iterator glsit(gls);
         while (glsit.hasNext()) {
           GenLit gl = glsit.next();
-          if (formula(gl)->isFreeVariable(variable)) {
+          if (isFreeVariableOf(formula(gl),variable)) {
             occurs = true;
             break;
           }
@@ -1391,7 +1383,7 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
         List<GenLit>::Iterator glsit(gls);
         while (glsit.hasNext()) {
           GenLit gl = glsit.next();
-          if (formula(gl)->isFreeVariable(variable)) {
+          if (isFreeVariableOf(formula(gl),variable)) {
             occurs = true;
             break;
           }

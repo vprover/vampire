@@ -161,7 +161,7 @@ class Definizator : public BottomUpTermTransformer {
         // record globally
         UnitList::push(newDef,newUnits);
         if(env.options->showPreprocessing()) {
-          env.out() << "[PP] twee: " << newDef->toString() << std::endl;
+          std::cout << "[PP] twee: " << newDef->toString() << std::endl;
         }
         symAndDef.first = newSym;
         symAndDef.second = newDef;
@@ -202,7 +202,7 @@ void Shell::TweeGoalTransformation::apply(Problem &prb, bool groundOnly)
     for (unsigned i = 0; i < c->size(); i++) {
       Literal* l = c->literals()[i];
       // cout << "L: " << l->toString() << endl;
-      Literal* nl = df.transform(l);
+      Literal* nl = df.transformLiteral(l);
       // cout << "NL: " << nl->toString() << endl;
       newLits.push(nl);
     }

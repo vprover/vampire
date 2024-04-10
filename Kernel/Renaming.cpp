@@ -14,6 +14,7 @@
 
 #include "Debug/RuntimeStatistics.hpp"
 
+#include "Kernel/SortHelper.hpp"
 #include "Lib/DArray.hpp"
 #include "Indexing/TermSharing.hpp"
 
@@ -77,7 +78,19 @@ bool Renaming::identity() const
 }
 
 /**
- * Make the renaming normalize variables of term or literal @c t
+ * Make the renaming normalize variables of literal @c t
+ */
+void Renaming::normalizeVariables(const Literal* t)
+{
+  normalizeVariables((const Term*) t);
+  if (t->isEquality()) {
+    normalizeVariables(SortHelper::getEqualityArgumentSort(t));
+  }
+}
+
+
+/**
+ * Make the renaming normalize variables of term @c t
  */
 void Renaming::normalizeVariables(const Term* t)
 {

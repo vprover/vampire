@@ -72,8 +72,6 @@ public:
   Literal* literal();
   const TermList getBooleanTerm() const;
   TermList getBooleanTerm();
-  VList* freeVariables () const;
-  bool isFreeVariable(unsigned var) const;
   VList* boundVariables () const;
 
   // output
@@ -344,7 +342,7 @@ class BoolTermFormula
     if (term->isSpecial()) {
       Term::SpecialTermData *sd = term->getSpecialData();
       switch (sd->specialFunctor()) {
-        case Term::SpecialFunctor::FORMULA:
+        case SpecialFunctor::FORMULA:
           return sd->getFormula();
         default:
           return new BoolTermFormula(ts);

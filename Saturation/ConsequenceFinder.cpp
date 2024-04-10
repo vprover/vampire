@@ -15,7 +15,6 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/SharedSet.hpp"
-#include "Lib/SkipList.hpp"
 #include "Debug/TimeProfiling.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -83,9 +82,7 @@ void ConsequenceFinder::onNewPropositionalClause(Clause* cl)
     }
   }
 
-  env.beginOutput();
-  env.out() << "Pure cf clause: " << cl->toNiceString() <<endl;
-  env.endOutput();
+  std::cout << "Pure cf clause: " << cl->toNiceString() <<endl;
 
   if(!horn || !pos) {
     return;
@@ -101,9 +98,7 @@ void ConsequenceFinder::onNewPropositionalClause(Clause* cl)
   //of the saturation algorithm loop
   _redundantsToHandle.push(red);
 
-  env.beginOutput();
-  env.out() << "Consequence found: " << env.signature->predicateName(red) << endl;
-  env.endOutput();
+  std::cout << "Consequence found: " << env.signature->predicateName(red) << endl;
 }
 
 void ConsequenceFinder::onAllProcessed()

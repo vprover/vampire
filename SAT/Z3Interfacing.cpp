@@ -177,9 +177,7 @@ void Z3Interfacing::addClause(SATClause* cl)
   auto z3clause = getRepresentation(cl);
 
   if(_showZ3){
-    env.beginOutput();
-    env.out() << "[Z3] add (clause): " << z3clause.expr << std::endl;
-    env.endOutput();
+    std::cout << "[Z3] add (clause): " << z3clause.expr << std::endl;
   }
 
   auto add = [&](auto x) {
@@ -268,9 +266,7 @@ SATSolver::Status Z3Interfacing::solve()
   z3::check_result result = _solver.check(_assumptions.size(), _assumptions.begin());
 
   if(_showZ3){
-    env.beginOutput();
-    env.out() << "[Z3] solve result: " << result << std::endl;
-    env.endOutput();
+    std::cout << "[Z3] solve result: " << result << std::endl;
   }
 
   if (_unsatCore) {
@@ -1106,9 +1102,7 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
       repr.expr = bname;
 
       if(_showZ3){
-        env.beginOutput();
-        env.out() << "[Z3] add (naming): " << naming << std::endl;
-        env.endOutput();
+        std::cout << "[Z3] add (naming): " << naming << std::endl;
       }
 
       if(slit.isNegative()) {

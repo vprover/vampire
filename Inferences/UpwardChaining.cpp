@@ -92,36 +92,36 @@ ClauseIterator UpwardChaining::generateClauses(Clause* premise)
         .flatMap([this](pair<Term*,Position> arg) {
           return pvi(pushPairIntoRightIterator(arg, _leftLhsIndex->getUnifications(arg.first, true)));
         })
-        .map([side,lit,premise,this,&ord](pair<pair<Term*,Position>,TermQueryResult> arg) -> Clause* {
+        .map([side,lit,premise,this,&ord](pair<pair<Term*,Position>,QueryRes<ResultSubstitutionSP, TermLiteralClause>> arg) -> Clause* {
           auto rwTerm = arg.first.first;
           auto pos = arg.first.second;
           auto qr = arg.second;
           ASS(!shouldChain(qr.literal, ord));
-          return perform(premise,lit,TermList(side),TermList(rwTerm),qr.clause,qr.literal,qr.term,pos,qr.unifier,true,true);
+          return perform(premise,lit,TermList(side),TermList(rwTerm),qr.data->clause,qr.data->literal,qr.data->term,pos,qr.unifier,true,true);
         }))));
 
       // 2. right, backward
       // rewrite indexed not unuseful s=t[l] into s=t[r] with given unuseful l=r
       res = pvi(concatIters(res, pvi(iterTraits(_rightSubtermIndex->getUnifications(side.term(), true))
-        .flatMap([](TermQueryResult arg) {
-          auto t = arg.term.term();
-          auto t0 = arg.literal->termArg(0);
-          auto t1 = arg.literal->termArg(1);
+        .flatMap([](QueryRes<ResultSubstitutionSP, TermLiteralClause> arg) {
+          auto t = arg.data->term.term();
+          auto t0 = arg.data->literal->termArg(0);
+          auto t1 = arg.data->literal->termArg(1);
           return pushPairIntoRightIterator(arg,
             pvi(concatIters(
               pvi(pushPairIntoRightIterator(t0,getPositions(t0,t))),
               pvi(pushPairIntoRightIterator(t1,getPositions(t1,t)))
             )));
         })
-        .map([side,lit,premise,this,&ord](pair<TermQueryResult,pair<TermList,pair<Term*,Position>>> arg) -> Clause* {
+        .map([side,lit,premise,this,&ord](pair<QueryRes<ResultSubstitutionSP, TermLiteralClause>,pair<TermList,pair<Term*,Position>>> arg) -> Clause* {
           auto eqLHS = side;
           auto rwSide = arg.second.first;
-          auto rwTerm = arg.first.term;
+          auto rwTerm = arg.first.data->term;
           ASS_EQ(arg.second.second.first,rwTerm.term());
           auto pos = arg.second.second.second;
           auto qr = arg.first;
-          ASS(!shouldChain(qr.literal, ord));
-          return perform(qr.clause,qr.literal,rwSide,rwTerm,premise,lit,eqLHS,pos,qr.unifier,false,false);
+          ASS(!shouldChain(qr.data->literal, ord));
+          return perform(qr.data->clause,qr.data->literal,rwSide,rwTerm,premise,lit,eqLHS,pos,qr.unifier,false,false);
         }))));
     }
   } else {
@@ -134,22 +134,22 @@ ClauseIterator UpwardChaining::generateClauses(Clause* premise)
       .flatMap([this](TypedTermList lhs) {
         return pvi(pushPairIntoRightIterator(lhs,_leftSubtermIndex->getUnifications(lhs, true)));
       })
-      .flatMap([&ord](pair<TypedTermList,TermQueryResult> arg) {
-        auto comp = ord.getEqualityArgumentOrder(arg.second.literal);
+      .flatMap([&ord](pair<TypedTermList,QueryRes<ResultSubstitutionSP, TermLiteralClause>> arg) {
+        auto comp = ord.getEqualityArgumentOrder(arg.second.data->literal);
         ASS(comp != Ordering::INCOMPARABLE && comp != Ordering::EQUAL);
-        auto side = arg.second.literal->termArg((comp == Ordering::LESS || comp == Ordering::LESS_EQ) ? 1 : 0);
+        auto side = arg.second.data->literal->termArg((comp == Ordering::LESS || comp == Ordering::LESS_EQ) ? 1 : 0);
 
-        auto t = arg.second.term.term();
+        auto t = arg.second.data->term.term();
         return pushPairIntoRightIterator(arg,pvi(pushPairIntoRightIterator(side,getPositions(side,t))));
       })
-      .map([lit,premise,this](pair<pair<TypedTermList,TermQueryResult>,pair<TermList,pair<Term*,Position>>> arg) -> Clause* {
+      .map([lit,premise,this](pair<pair<TypedTermList,QueryRes<ResultSubstitutionSP, TermLiteralClause>>,pair<TermList,pair<Term*,Position>>> arg) -> Clause* {
         auto eqLHS = arg.first.first;
         auto side = arg.second.first;
-        auto rwTerm = arg.first.second.term;
+        auto rwTerm = arg.first.second.data->term;
         ASS_EQ(arg.second.second.first,rwTerm.term());
         auto pos = arg.second.second.second;
         auto qr = arg.first.second;
-        return perform(qr.clause,qr.literal,side,rwTerm,premise,lit,eqLHS,pos,qr.unifier,false,true);
+        return perform(qr.data->clause,qr.data->literal,side,rwTerm,premise,lit,eqLHS,pos,qr.unifier,false,true);
       }))));
 
     // 4. right, forward
@@ -167,12 +167,12 @@ ClauseIterator UpwardChaining::generateClauses(Clause* premise)
       .flatMap([this](pair<Term*,pair<Term*,Position>> arg) {
         return pvi(pushPairIntoRightIterator(arg,_rightLhsIndex->getUnifications(arg.second.first, true)));
       })
-      .map([lit,premise,this](pair<pair<Term*,pair<Term*,Position>>,TermQueryResult> arg) -> Clause* {
+      .map([lit,premise,this](pair<pair<Term*,pair<Term*,Position>>,QueryRes<ResultSubstitutionSP, TermLiteralClause>> arg) -> Clause* {
         auto side = arg.first.first;
         auto rwTerm = arg.first.second.first;
         auto pos = arg.first.second.second;
         auto qr = arg.second;
-        return perform(premise,lit,TermList(side),TermList(rwTerm),qr.clause,qr.literal,qr.term,pos,qr.unifier,true,false);
+        return perform(premise,lit,TermList(side),TermList(rwTerm),qr.data->clause,qr.data->literal,qr.data->term,pos,qr.unifier,true,false);
       }))));
   }
 

@@ -34,7 +34,7 @@ endif
 
 DBG_FLAGS = -g -DVTIME_PROFILING=0 -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider
 # DELETEMEin2017: the bug with gcc-6.2 and problems in ClauseQueue could be also fixed by adding -fno-tree-ch
-REL_FLAGS = -O6 -DVTIME_PROFILING=0 -DVDEBUG=0 # no debugging
+REL_FLAGS = -O3 -DVTIME_PROFILING=0 -DVDEBUG=0 # no debugging
 GCOV_FLAGS = -O0 --coverage #-pedantic
 
 MINISAT_DBG_FLAGS = -D DEBUG
@@ -134,11 +134,17 @@ endif
 
 ################################################################
 
+ifeq ($(OS),Darwin)
+CXX = clang++
+CC = clang
+else
 CXX = g++
-CXXFLAGS = $(XFLAGS) -Wall -fno-threadsafe-statics -fno-rtti -std=c++14  $(INCLUDES) # -Wno-unknown-warning-option for clang
+CC = gcc
+endif
 
-CC = gcc 
-CCFLAGS = -Wall -O3 -DNDBLSCR -DNLGLOG -DNDEBUG -DNCHKSOL -DNLGLPICOSAT 
+CXXFLAGS = $(XFLAGS) -Wall -fno-threadsafe-statics -fno-rtti -std=c++17  $(INCLUDES) # -Wno-unknown-warning-option for clang
+CCFLAGS = -Wall -O3 -DNDBLSCR -DNLGLOG -DNDEBUG -DNCHKSOL -DNLGLPICOSAT
+
 ################################################################
 MINISAT_OBJ = Minisat/core/Solver.o\
   Minisat/simp/SimpSolver.o\
@@ -167,8 +173,7 @@ VL_OBJ= Lib/Allocator.o\
         Lib/Timer.o
 
 VLS_OBJ= Lib/Sys/Multiprocessing.o\
-         Lib/Sys/Semaphore.o\
-         Lib/Sys/SyncPipe.o
+         Lib/Sys/Semaphore.o
 
 VK_OBJ= Kernel/Clause.o\
         Kernel/ClauseQueue.o\
@@ -233,22 +238,17 @@ VI_OBJ = Indexing/AcyclicityIndex.o\
          Indexing/InductionFormulaIndex.o\
          Indexing/LiteralIndex.o\
          Indexing/LiteralMiniIndex.o\
-         Indexing/LiteralSubstitutionTree.o\
          Indexing/ResultSubstitution.o\
-         Indexing/SubstitutionTree.o\
-         Indexing/SubstitutionTree_FastGen.o\
-         Indexing/SubstitutionTree_FastInst.o\
-         Indexing/SubstitutionTree_Nodes.o\
          Indexing/TermCodeTree.o\
          Indexing/TermIndex.o\
          Indexing/TermSharing.o\
-         Indexing/TermSubstitutionTree.o
 
 VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BackwardSubsumptionResolution.o\
          Inferences/BackwardSubsumptionDemodulation.o\
          Inferences/BinaryResolution.o\
          Inferences/Condensation.o\
+         Inferences/DemodulationHelper.o\
          Inferences/DistinctEqualitySimplifier.o\
          Inferences/DefinitionIntroduction.o\
          Inferences/EqualityFactoring.o\
@@ -260,6 +260,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/SubVarSup.o\
          Inferences/Factoring.o\
          Inferences/FastCondensation.o\
+         Inferences/FunctionDefinitionRewriting.o\
          Inferences/FOOLParamodulation.o\
          Inferences/Injectivity.o\
          Inferences/ForwardDemodulation.o\
@@ -300,7 +301,6 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/InterpretedEvaluation.o\
          Inferences/InvalidAnswerLiteralRemoval.o\
          Inferences/TheoryInstAndSimp.o
-#         Inferences/RenamingOnTheFly.o\
 
 VSAT_OBJ=SAT/MinimizingSolver.o\
          SAT/SAT2FO.o\
@@ -338,6 +338,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/EqualityProxyMono.o\
          Shell/Flattening.o\
          Shell/FunctionDefinition.o\
+         Shell/FunctionDefinitionHandler.o\
          Shell/GeneralSplitting.o\
          Shell/GoalGuessing.o\
          Shell/InequalitySplitting.o\
@@ -390,9 +391,7 @@ DP_OBJ = DP/ShortConflictMetaDP.o\
          DP/SimpleCongruenceClosure.o
 
 CASC_OBJ = CASC/PortfolioMode.o\
-           CASC/Schedules.o\
-           CASC/CLTBMode.o\
-           CASC/CLTBModeLearning.o
+           CASC/Schedules.o
 
 VFMB_OBJ = FMB/ClauseFlattening.o\
            FMB/SortInference.o\
@@ -447,12 +446,7 @@ LIB_DEP = Indexing/TermSharing.o\
     Kernel/Rebalancing/Inverters.o\
     Kernel/NumTraits.o
 
-OTHER_CL_DEP = Indexing/LiteralSubstitutionTree.o\
-	       Indexing/ResultSubstitution.o\
-	       Indexing/SubstitutionTree_FastGen.o\
-	       Indexing/SubstitutionTree_FastInst.o\
-	       Indexing/SubstitutionTree_Nodes.o\
-	       Indexing/SubstitutionTree.o\
+OTHER_CL_DEP = Indexing/ResultSubstitution.o\
 	       Inferences/InferenceEngine.o\
 	       Inferences/TautologyDeletionISE.o\
 	       Kernel/EqHelper.o\

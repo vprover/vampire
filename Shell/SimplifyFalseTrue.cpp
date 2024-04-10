@@ -51,10 +51,8 @@ FormulaUnit* SimplifyFalseTrue::simplify (FormulaUnit* unit)
   FormulaUnit* res = new FormulaUnit(g,FormulaTransformation(InferenceRule::REDUCE_FALSE_TRUE,unit));
 
   if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] simplify in: " << unit->toString() << std::endl;
-    env.out() << "[PP] simplify out: " << res->toString() << std::endl;
-    env.endOutput();
+    std::cout << "[PP] simplify in: " << unit->toString() << std::endl;
+    std::cout << "[PP] simplify out: " << res->toString() << std::endl;
   }
   return res;
 } // SimplifyFalseTrue::simplify
@@ -335,7 +333,7 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
   if (term->isSpecial()) {
     Term::SpecialTermData* sd = term->getSpecialData();
     switch (sd->specialFunctor()) {
-      case Term::SpecialFunctor::FORMULA: {
+      case SpecialFunctor::FORMULA: {
         Formula* simplifiedFormula = simplify(sd->getFormula());
         switch (simplifiedFormula->connective()) {
           case TRUE: {
@@ -352,7 +350,7 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
           }
         }
       }
-      case Term::SpecialFunctor::ITE: {
+      case SpecialFunctor::ITE: {
         Formula* condition  = simplify(sd->getCondition());
 
         #define BRANCH unsigned
@@ -414,7 +412,7 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
         TermList sort = sd->getSort();
         return TermList(Term::createITE(condition, branches[THEN], branches[ELSE], sort));
       }
-      case Term::SpecialFunctor::LET: {
+      case SpecialFunctor::LET: {
         unsigned functor = sd->getFunctor();
         VList* variables = sd->getVariables();
         TermList binding = simplify(sd->getBinding());
@@ -425,7 +423,7 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
         TermList sort = sd->getSort();
         return TermList(Term::createLet(functor, variables, binding, body, sort));
       }
-      case Term::SpecialFunctor::LET_TUPLE: {
+      case SpecialFunctor::LET_TUPLE: {
         unsigned functor = sd->getFunctor();
         VList* symbols = sd->getTupleSymbols();
         TermList binding = simplify(sd->getBinding());
@@ -436,7 +434,7 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
         TermList sort = sd->getSort();
         return TermList(Term::createLet(functor, symbols, binding, body, sort));
       }
-      case Term::SpecialFunctor::TUPLE: {
+      case SpecialFunctor::TUPLE: {
         TermList tupleTerm = TermList(sd->getTupleTerm());
         TermList simplifiedTupleTerm = simplify(tupleTerm);
         if (tupleTerm == simplifiedTupleTerm) {
@@ -445,9 +443,9 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
         ASS_REP(simplifiedTupleTerm.isTerm(), simplifiedTupleTerm.toString());
         return TermList(Term::createTuple(simplifiedTupleTerm.term()));
       }
-      case Term::SpecialFunctor::LAMBDA:
+      case SpecialFunctor::LAMBDA:
         NOT_IMPLEMENTED;
-      case Term::SpecialFunctor::MATCH: {
+      case SpecialFunctor::MATCH: {
         DArray<TermList> terms(term->arity());
         bool unchanged = true;
         for (unsigned i = 0; i < term->arity(); i++) {

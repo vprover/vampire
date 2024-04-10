@@ -249,6 +249,7 @@ public:
     ONE,
     TWO,
     THREE,
+    RECURSION,
     ALL
   };
   enum class IntInductionKind : unsigned int {
@@ -295,7 +296,7 @@ public:
     GOAL_PLUS,                // above plus skolem terms introduced in induction inferences
   };
 
-  enum class DemodulationRedunancyCheck : unsigned int {
+  enum class DemodulationRedundancyCheck : unsigned int {
     OFF,
     ENCOMPASS,
     ON
@@ -342,12 +343,6 @@ public:
     FORCED,
     OFF,
     SOFT
-  };
-
-  enum class LTBLearning : unsigned int {
-    ON,
-    OFF,
-    BIASED
   };
 
   enum class IgnoreMissing : unsigned int {
@@ -399,7 +394,6 @@ public:
     CASC,
     CASC_HOL,
     CASC_SAT,
-    CASC_LTB,
     CLAUSIFY,
     CONSEQUENCE_ELIMINATION,
     MODEL_CHECK,
@@ -427,6 +421,7 @@ public:
     FILE,
     INDUCTION,
     INTEGER_INDUCTION,
+    INTIND_OEIS,
     LTB_DEFAULT_2017,
     LTB_HH4_2017,
     LTB_HLL_2017,
@@ -436,7 +431,8 @@ public:
     SMTCOMP_2018,
     SNAKE_TPTP_UNS,
     SNAKE_TPTP_SAT,
-    STRUCT_INDUCTION
+    STRUCT_INDUCTION,
+    STRUCT_INDUCTION_TIP
   };
 
 /* TODO: use an enum for Selection. The current issue is the way these values are manipulated as ints
@@ -1969,6 +1965,7 @@ public:
   bool minimizeSatProofs() const { return _minimizeSatProofs.actualValue; }
   ProofExtra proofExtra() const { return _proofExtra.actualValue; }
   bool traceback() const { return _traceback.actualValue; }
+  void setTraceback(bool traceback) { _traceback.actualValue = traceback; }
   vstring printProofToFile() const { return _printProofToFile.actualValue; }
   int naming() const { return _naming.actualValue; }
 
@@ -1985,9 +1982,8 @@ public:
   bool keepSbeamGenerators() const { return _fmbKeepSbeamGenerators.actualValue; }
 
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
-  LTBLearning ltbLearning() const { return _ltbLearning.actualValue; }
-  vstring ltbDirectory() const { return _ltbDirectory.actualValue; }
   Mode mode() const { return _mode.actualValue; }
+  void setMode(Mode mode) { _mode.actualValue = mode; }
   Schedule schedule() const { return _schedule.actualValue; }
   vstring scheduleName() const { return _schedule.getStringOfValue(_schedule.actualValue); }
   void setSchedule(Schedule newVal) {  _schedule.actualValue = newVal; }
@@ -2007,6 +2003,7 @@ public:
   vstring include() const { return _include.actualValue; }
   void setInclude(vstring val) { _include.actualValue = val; }
   vstring inputFile() const { return _inputFile.actualValue; }
+  void resetInputFile() { _inputFile.actualValue = ""; }
   int activationLimit() const { return _activationLimit.actualValue; }
   unsigned randomSeed() const { return _randomSeed.actualValue; }
   void setRandomSeed(unsigned seed) { _randomSeed.actualValue = seed; }
@@ -2093,7 +2090,7 @@ public:
   bool arityCheck() const { return _arityCheck.actualValue; }
   //void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation.actualValue; }
-  DemodulationRedunancyCheck demodulationRedundancyCheck() const { return _demodulationRedundancyCheck.actualValue; }
+  DemodulationRedundancyCheck demodulationRedundancyCheck() const { return _demodulationRedundancyCheck.actualValue; }
   //void setBackwardDemodulation(Demodulation newVal) { _backwardDemodulation = newVal; }
   Subsumption backwardSubsumption() const { return _backwardSubsumption.actualValue; }
   //void setBackwardSubsumption(Subsumption newVal) { _backwardSubsumption = newVal; }
@@ -2131,6 +2128,8 @@ public:
   unsigned setSimulatedInstructionLimit() const { return _simulatedInstructionLimit.actualValue; }
   bool parsingDoesNotCount() const { return _parsingDoesNotCount.actualValue; }
 #endif
+  bool interactive() const { return _interactive.actualValue; }
+  void setInteractive(bool v) { _interactive.actualValue = v; }
   int inequalitySplitting() const { return _inequalitySplitting.actualValue; }
   int ageRatio() const { return _ageWeightRatio.actualValue; }
   void setAgeRatio(int v){ _ageWeightRatio.actualValue = v; }
@@ -2163,6 +2162,7 @@ public:
   ExtensionalityResolution extensionalityResolution() const { return _extensionalityResolution.actualValue; }
   bool FOOLParamodulation() const { return _FOOLParamodulation.actualValue; }
   bool termAlgebraInferences() const { return _termAlgebraInferences.actualValue; }
+  bool termAlgebraExhaustivenessAxiom() const { return _termAlgebraExhaustivenessAxiom.actualValue; }
   TACyclicityCheck termAlgebraCyclicityCheck() const { return _termAlgebraCyclicityCheck.actualValue; }
   unsigned extensionalityMaxLength() const { return _extensionalityMaxLength.actualValue; }
   bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq.actualValue; }
@@ -2234,9 +2234,11 @@ public:
   bool inductionNegOnly() const { return _inductionNegOnly.actualValue; }
   bool inductionUnitOnly() const { return _inductionUnitOnly.actualValue; }
   bool inductionGen() const { return _inductionGen.actualValue; }
+  bool inductionGenHeur() const { return _inductionGenHeur.actualValue; }
   bool inductionStrengthenHypothesis() const { return _inductionStrengthenHypothesis.actualValue; }
   unsigned maxInductionGenSubsetSize() const { return _maxInductionGenSubsetSize.actualValue; }
   bool inductionOnComplexTerms() const {return _inductionOnComplexTerms.actualValue;}
+  bool functionDefinitionRewriting() const { return _functionDefinitionRewriting.actualValue; }
   bool integerInductionDefaultBound() const { return _integerInductionDefaultBound.actualValue; }
   IntegerInductionInterval integerInductionInterval() const { return _integerInductionInterval.actualValue; }
   IntegerInductionLiteralStrictness integerInductionStrictnessEq() const {return _integerInductionStrictnessEq.actualValue; }
@@ -2247,6 +2249,7 @@ public:
   unsigned maxGoalRewritingDepth() const { return _maxGoalRewritingDepth.actualValue; }
   bool goalRewritingChaining() const { return _goalRewritingChaining.actualValue; }
   bool inductionRedundancyCheck() const { return _inductionRedundancyCheck.actualValue; }
+  bool inductionOnActiveOccurrences() const { return _inductionOnActiveOccurrences.actualValue; }
 
   bool useHashingVariantIndex() const { return _useHashingVariantIndex.actualValue; }
 
@@ -2451,7 +2454,7 @@ private:
   BoolOptionValue _colorUnblocking;
   ChoiceOptionValue<Condensation> _condensation;
 
-  ChoiceOptionValue<DemodulationRedunancyCheck> _demodulationRedundancyCheck;
+  ChoiceOptionValue<DemodulationRedundancyCheck> _demodulationRedundancyCheck;
 
   ChoiceOptionValue<EqualityProxy> _equalityProxy;
   BoolOptionValue _useMonoEqualityProxy;
@@ -2465,6 +2468,7 @@ private:
 
   BoolOptionValue _termAlgebraInferences;
   ChoiceOptionValue<TACyclicityCheck> _termAlgebraCyclicityCheck;
+  BoolOptionValue _termAlgebraExhaustivenessAxiom;
 
   BoolOptionValue _fmbNonGroundDefs;
   UnsignedOptionValue _fmbStartSize;
@@ -2529,9 +2533,11 @@ private:
   BoolOptionValue _inductionNegOnly;
   BoolOptionValue _inductionUnitOnly;
   BoolOptionValue _inductionGen;
+  BoolOptionValue _inductionGenHeur;
   BoolOptionValue _inductionStrengthenHypothesis;
   UnsignedOptionValue _maxInductionGenSubsetSize;
   BoolOptionValue _inductionOnComplexTerms;
+  BoolOptionValue _functionDefinitionRewriting;
   BoolOptionValue _integerInductionDefaultBound;
   ChoiceOptionValue<IntegerInductionInterval> _integerInductionInterval;
   ChoiceOptionValue<IntegerInductionLiteralStrictness> _integerInductionStrictnessEq;
@@ -2542,6 +2548,7 @@ private:
   UnsignedOptionValue _maxGoalRewritingDepth;
   BoolOptionValue _goalRewritingChaining;
   BoolOptionValue _inductionRedundancyCheck;
+  BoolOptionValue _inductionOnActiveOccurrences;
 
   StringOptionValue _latexOutput;
   BoolOptionValue _latexUseDefaultSymbols;
@@ -2550,8 +2557,6 @@ private:
   IntOptionValue _lookaheadDelay;
   IntOptionValue _lrsFirstTimeCheck;
   BoolOptionValue _lrsWeightLimitOnly;
-  ChoiceOptionValue<LTBLearning> _ltbLearning;
-  StringOptionValue _ltbDirectory;
 
 #if VAMPIRE_PERF_EXISTS
   UnsignedOptionValue _instructionLimit;
@@ -2560,6 +2565,9 @@ private:
 #endif
 
   UnsignedOptionValue _memoryLimit; // should be size_t, making an assumption
+
+  BoolOptionValue _interactive;
+
   ChoiceOptionValue<Mode> _mode;
   ChoiceOptionValue<Schedule> _schedule;
   StringOptionValue _scheduleFile;

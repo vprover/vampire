@@ -80,7 +80,7 @@ void SubVarSup::detach()
 struct SubVarSup::RewritableResultsFn
 {
   RewritableResultsFn(SubVarSupSubtermIndex* index) : _index(index) {}
-  VirtualIterator<pair<pair<Literal*, TypedTermList>, TermQueryResult> > operator()(pair<Literal*, TypedTermList> arg)
+  VirtualIterator<pair<pair<Literal*, TypedTermList>, QueryRes<ResultSubstitutionSP, TermLiteralClause>> > operator()(pair<Literal*, TypedTermList> arg)
   {
     return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second, /* retrieveSubstitutions */ true)) );
   }
@@ -107,7 +107,7 @@ private:
 struct SubVarSup::ApplicableRewritesFn
 {
   ApplicableRewritesFn(SubVarSupLHSIndex* index) : _index(index) {}
-  VirtualIterator<pair<pair<Literal*, TypedTermList>, TermQueryResult> > operator()(pair<Literal*, TypedTermList> arg)
+  VirtualIterator<pair<pair<Literal*, TypedTermList>, QueryRes<ResultSubstitutionSP, TermLiteralClause>> > operator()(pair<Literal*, TypedTermList> arg)
   {
     return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second, /* retrieveSubst */ false)) );
   }
@@ -119,11 +119,11 @@ private:
 struct SubVarSup::ForwardResultFn
 {
   ForwardResultFn(Clause* cl, SubVarSup& parent) : _cl(cl), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
+  Clause* operator()(pair<pair<Literal*, TermList>, QueryRes<ResultSubstitutionSP, TermLiteralClause>> arg)
   {
-    TermQueryResult& qr = arg.second;
+    QueryRes<ResultSubstitutionSP, TermLiteralClause>& qr = arg.second;
     return _parent.performSubVarSup(_cl, arg.first.first, arg.first.second,
-	    qr.clause, qr.literal, qr.term, true);
+	    qr.data->clause, qr.data->literal, qr.data->term, true);
   }
 private:
   Clause* _cl;
@@ -134,14 +134,15 @@ private:
 struct SubVarSup::BackwardResultFn
 {
   BackwardResultFn(Clause* cl, SubVarSup& parent) : _cl(cl), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
+  Clause* operator()(pair<pair<Literal*, TermList>, QueryRes<ResultSubstitutionSP, TermLiteralClause>> arg)
   {
-    if(_cl==arg.second.clause) {
+
+    if(_cl==arg.second.data->clause) {
       return 0;
     }
 
-    TermQueryResult& qr = arg.second;
-    return _parent.performSubVarSup(qr.clause, qr.literal, qr.term,
+    QueryRes<ResultSubstitutionSP, TermLiteralClause>& qr = arg.second;
+    return _parent.performSubVarSup(qr.data->clause, qr.data->literal, qr.data->term,
 	    _cl, arg.first.first, arg.first.second, false);
   }
 private:

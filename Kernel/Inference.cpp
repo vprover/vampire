@@ -690,6 +690,10 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "goal rewriting";
   case InferenceRule::UPWARD_CHAINING:
     return "upward chaining";
+  case InferenceRule::FUNCTION_DEFINITION_REWRITING:
+    return "function definition rewriting";
+  case InferenceRule::FUNCTION_DEFINITION_DEMODULATION:
+    return "function definition demodulation";
   case InferenceRule::CONSTRAINED_SUPERPOSITION:
     return "constrained superposition";
   case InferenceRule::EQUALITY_FACTORING:
@@ -852,8 +856,14 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "finite model not found : exhaustively excluded all possible domain size assignments";
   case InferenceRule::ARITHMETIC_SUBTERM_GENERALIZATION:
     return "arithmetic subterm generalization";
-  case InferenceRule::STRUCT_INDUCTION_AXIOM:
-    return "structural induction hypothesis";
+  case InferenceRule::STRUCT_INDUCTION_AXIOM_ONE:
+    return "structural induction hypothesis (one)";
+  case InferenceRule::STRUCT_INDUCTION_AXIOM_TWO:
+    return "structural induction hypothesis (two)";
+  case InferenceRule::STRUCT_INDUCTION_AXIOM_THREE:
+    return "structural induction hypothesis (three)";
+  case InferenceRule::STRUCT_INDUCTION_AXIOM_RECURSION:
+    return "structural induction hypothesis (recursion)";
   case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
     return "integer induction hypothesis (up, infinite interval)";
   case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
