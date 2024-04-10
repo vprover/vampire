@@ -25,6 +25,14 @@ class FlatTerm
 public:
   static FlatTerm* create(Term* t);
   static FlatTerm* create(TermList t);
+  /**
+   * Similar to @b create but only allocates the flat term,
+   * and does not fill out its content. The caller has to
+   * make sure @b Entry::expand is called on each flat term
+   * entry before traversing its arguments.
+   */
+  static FlatTerm* createUnexpanded(Term* t);
+  static FlatTerm* createUnexpanded(TermList t);
   void destroy();
 
   static FlatTerm* copy(const FlatTerm* ft);
@@ -40,12 +48,13 @@ public:
      * added to the position of the corresponding @b FUN Entry in order
      * to get behind the function
      */
-    FUN_RIGHT_OFS = 3
+    FUN_RIGHT_OFS = 3,
+    FUN_UNEXPANDED = 4,
   };
 
   struct Entry
   {
-    Entry() {}
+    Entry() = default;
     Entry(EntryTag tag, unsigned num) { _info.tag=tag; _info.number=num; }
     Entry(Term* ptr) : _ptr(ptr) { ASS_EQ(tag(), FUN_TERM_PTR); }
 
@@ -54,14 +63,20 @@ public:
     inline Term* ptr() const { return _ptr; }
     inline bool isVar() const { return tag()==VAR; }
     inline bool isVar(unsigned num) const { return isVar() && number()==num; }
-    inline bool isFun() const { return tag()==FUN; }
+    inline bool isFun() const { return tag()==FUN || tag()==FUN_UNEXPANDED; }
     inline bool isFun(unsigned num) const { return isFun() && number()==num; }
+    /**
+     * Should be called when @b isFun() is true.
+     * If @b tag()==FUN_UNEXPANDED, it fills out entries for the functions
+     * arguments with FUN_UNEXPANDED values. Otherwise does nothing.
+     */
+    void expand();
 
     union {
       Term* _ptr;
       struct {
-	unsigned tag : 2;
-	unsigned number : 30;
+	unsigned tag : 4;
+	unsigned number : 28;
       } _info;
     };
   };
