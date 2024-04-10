@@ -47,7 +47,7 @@ public:
   void rebind(int v, Term* t);
   void rebind(int v, TermList t);
   bool findBinding(int var, TermList& res) const;
-  TermList apply(unsigned var);
+  TermList apply(unsigned var) const;
   void unbind(int var);
   void reset();
   bool isEmpty() const { return _map.isEmpty(); }

@@ -109,7 +109,7 @@ public:
    */
   struct ILStruct
   {
-    ILStruct(Literal* lit, unsigned varCnt, Stack<unsigned>& gvnStack);
+    ILStruct(const Literal* lit, unsigned varCnt, Stack<unsigned>& gvnStack);
     ~ILStruct();
     void putIntoSequence(ILStruct* previous_);
 
@@ -177,7 +177,7 @@ public:
     static CodeOp getSuccess(void* data);
     static CodeOp getLitEnd(ILStruct* ils);
     static CodeOp getTermOp(InstructionSuffix i, unsigned num);
-    static CodeOp getGroundTermCheck(Term* trm);
+    static CodeOp getGroundTermCheck(const Term* trm);
 
     bool equalsForOpMatching(const CodeOp& o) const;
 
@@ -213,7 +213,7 @@ public:
       return const_cast<CodeOp*>(this)->getILS();
     }
 
-    SearchStruct* getSearchStruct();
+    SearchStruct* getSearchStruct() const;
 
     inline InstructionPrefix instrPrefix() const { return static_cast<InstructionPrefix>(_info.prefix); }
     inline InstructionSuffix instrSuffix() const
@@ -230,6 +230,8 @@ public:
     inline void setLongInstr(InstructionSuffix i) { _info.prefix=SUFFIX_INSTR; _info.suffix=i; }
 
     void makeFail() { _data=0; }
+
+    friend std::ostream& operator<<(std::ostream& out, const CodeOp& op);
 
   private:
     inline size_t data() const { return _data; }
@@ -254,14 +256,27 @@ public:
     CodeOp* _alternative;
   };
 
+  /**
+   * A search structure that collects alternatives of the same
+   * kind (either function symbols or ground terms) and offers
+   * more efficient searching and insertion over them.
+   */
   struct SearchStruct
   {
-    void destroy();
-    bool isFixedSearchStruct() const { return true; }
-
+    /**
+     * Fills out pointer @b tgt where @b insertedOp should be
+     * (or is) inserted in the structure. If @b doInsert is true
+     * an entry is inserted if not found.
+     */
+    template<bool doInsert>
     bool getTargetOpPtr(const CodeOp& insertedOp, CodeOp**& tgt);
 
+    /**
+     * Returns code op in the structure matching the content
+     * of flat term entry @b ftPos.
+     */
     CodeOp* getTargetOp(const FlatTerm::Entry* ftPos);
+    inline size_t length() const { return targets.size(); }
 
     enum Kind
     {
@@ -269,50 +284,42 @@ public:
       GROUND_TERM_STRUCT
     };
 
+    /**
+     * Actual code op for this search structure. This construction
+     * implies that search structure operations cannot be stored
+     * in @b CodeBlock containers.
+     */
     CodeOp landingOp;
     Kind kind;
+    vvector<CodeOp*> targets;
+
   protected:
-    SearchStruct(Kind kind);
+    SearchStruct(Kind kind, size_t length);
   };
 
-  struct FixedSearchStruct
+  template<SearchStruct::Kind k>
+  struct SearchStructImpl
   : public SearchStruct
   {
-    FixedSearchStruct(Kind kind, size_t length);
-    ~FixedSearchStruct();
+    USE_ALLOCATOR(SearchStructImpl);
 
-    size_t length;
-    CodeOp** targets;
+    SearchStructImpl(size_t length);
+
+    using T = typename std::conditional<k==SearchStruct::FN_STRUCT,unsigned,Term*>::type;
+
+    /**
+     * Tries to find the code op in @b targets at position where @b val is in @b values.
+     * If exact code op is not found and @b doInsert is true, an entry is inserted
+     * into @b values and @b targets. Otherwise, some code op is returned where
+     * the entry should be (or is) stored as an alternative.
+     */
+    template<bool doInsert> CodeOp*& targetOp(const T& val);
+
+    vvector<T> values;
   };
 
-  struct FnSearchStruct
-  : public FixedSearchStruct
-  {
-    FnSearchStruct(size_t length);
-    ~FnSearchStruct();
-    CodeOp*& targetOp(unsigned fn);
-
-    USE_ALLOCATOR(FnSearchStruct);
-
-    struct OpComparator;
-
-    unsigned* values;
-  };
-
-  struct GroundTermSearchStruct
-  : public FixedSearchStruct
-  {
-    GroundTermSearchStruct(size_t length);
-    ~GroundTermSearchStruct();
-    CodeOp*& targetOp(const Term* trm);
-
-    USE_ALLOCATOR(GroundTermSearchStruct);
-
-    struct OpComparator;
-
-    Term** values;
-  };
-
+  using FnSearchStruct = SearchStructImpl<SearchStruct::FN_STRUCT>;
+  using GroundTermSearchStruct = SearchStructImpl<SearchStruct::GROUND_TERM_STRUCT>;
 
   typedef Vector<CodeOp> CodeBlock;
   typedef Stack<CodeOp> CodeStack;
@@ -350,12 +357,14 @@ public:
 
   //////// auxiliary methods //////////
 
-  inline bool isEmpty() { return !_entryPoint; }
-  inline CodeOp* getEntryPoint() { ASS(!isEmpty()); return &(*_entryPoint)[0]; }
+  inline bool isEmpty() const { return !_entryPoint; }
+  inline CodeOp* getEntryPoint() const { ASS(!isEmpty()); return &(*_entryPoint)[0]; }
   static CodeBlock* firstOpToCodeBlock(CodeOp* op);
 
   template<class Visitor>
-  void visitAllOps(Visitor visitor);
+  void visitAllOps(Visitor visitor) const;
+
+  friend std::ostream& operator<<(std::ostream& out, const CodeTree& ct);
 
   //////////// insertion //////////////
 
@@ -378,9 +387,10 @@ public:
   static CodeBlock* buildBlock(CodeStack& code, size_t cnt, ILStruct* prev);
   void incorporate(CodeStack& code);
 
-  void compressCheckOps(CodeOp* chainStart, SearchStruct::Kind kind);
+  template<SearchStruct::Kind k>
+  void compressCheckOps(CodeOp* chainStart);
 
-  static void compileTerm(Term* trm, CodeStack& code, CompileContext& cctx, bool addLitEnd);
+  static void compileTerm(const Term* trm, CodeStack& code, CompileContext& cctx, bool addLitEnd);
 
   //////////// removal //////////////
 
