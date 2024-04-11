@@ -73,8 +73,8 @@ CodeTree::LitInfo CodeTree::LitInfo::getOpposite(const LitInfo& li)
   FlatTerm* ft=FlatTerm::copy(li.ft);
   ft->changeLiteralPolarity();
 #if GROUND_TERM_CHECK
-  ASS_EQ((*ft)[1].tag(), FlatTerm::FUN_TERM_PTR);
-  (*ft)[1]._ptr=Literal::complementaryLiteral(static_cast<Literal*>((*ft)[1].ptr()));
+  ASS_EQ((*ft)[1]._tag(), FlatTerm::FUN_TERM_PTR);
+  (*ft)[1]._ptr=Literal::complementaryLiteral(static_cast<Literal*>((*ft)[1]._term()));
 #endif
 
   LitInfo res=li;
@@ -441,6 +441,18 @@ CodeTree::SearchStruct::SearchStruct(Kind kind, size_t length)
   targets.reserve(length);
 }
 
+void CodeTree::SearchStruct::destroy()
+{
+  switch(kind) {
+  case FN_STRUCT:
+    delete static_cast<FnSearchStruct*>(this);
+    break;
+  case GROUND_TERM_STRUCT:
+    delete static_cast<GroundTermSearchStruct*>(this);
+    break;
+  }
+}
+
 template<bool doInsert>
 bool CodeTree::SearchStruct::getTargetOpPtr(const CodeOp& insertedOp, CodeOp**& tgt)
 {
@@ -466,11 +478,11 @@ CodeTree::CodeOp* CodeTree::SearchStruct::getTargetOp(const FlatTerm::Entry* ftP
   if(!ftPos->isFun()) { return 0; }
   switch(kind) {
   case FN_STRUCT:
-    return static_cast<FnSearchStruct*>(this)->targetOp<false>(ftPos->number());
+    return static_cast<FnSearchStruct*>(this)->targetOp<false>(ftPos->_number());
   case GROUND_TERM_STRUCT:
     ftPos++;
-    ASS_EQ(ftPos->tag(), FlatTerm::FUN_TERM_PTR);
-    return static_cast<GroundTermSearchStruct*>(this)->targetOp<false>(ftPos->ptr());
+    ASS_EQ(ftPos->_tag(), FlatTerm::FUN_TERM_PTR);
+    return static_cast<GroundTermSearchStruct*>(this)->targetOp<false>(ftPos->_term());
   default:
     ASSERTION_VIOLATION;
   }
@@ -531,14 +543,14 @@ inline bool CodeTree::BaseMatcher::doCheckGroundTerm()
   Term* trm=op->getTargetTerm();
 
   fte++;
-  ASS_EQ(fte->tag(), FlatTerm::FUN_TERM_PTR);
-  ASS(fte->ptr());
-  if(trm!=fte->ptr()) {
+  ASS_EQ(fte->_tag(), FlatTerm::FUN_TERM_PTR);
+  ASS(fte->_term());
+  if(trm!=fte->_term()) {
     return false;
   }
   fte++;
-  ASS_EQ(fte->tag(), FlatTerm::FUN_RIGHT_OFS);
-  tp+=fte->number();
+  ASS_EQ(fte->_tag(), FlatTerm::FUN_RIGHT_OFS);
+  tp+=fte->_number();
   return true;
 }
 
@@ -572,7 +584,7 @@ CodeTree::~CodeTree()
           top_ops.push(ss->targets[i]);
         }
       }
-      delete ss;
+      ss->destroy();
     } else {
       CodeBlock* cb=firstOpToCodeBlock(top_op);
 
@@ -945,7 +957,7 @@ void CodeTree::compressCheckOps(CodeOp* chainStart)
             toDo.push(ss->targets[i]);
           }
         }
-        delete ss;
+        ss->destroy();
       } else {
         otherOps.push(op);
       }
@@ -1082,7 +1094,7 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp
       //if we're at this point, the SEARCH_STRUCT will be deleted
       firstOp=&ss->landingOp;
       alt=ss->landingOp.alternative();
-      delete ss;
+      ss->destroy();
 
       //now let's continue as if there wasn't any SEARCH_STRUCT operation:)
 
@@ -1276,7 +1288,7 @@ inline bool CodeTree::RemovingMatcher::doCheckFun()
     return false;
   }
   fte.expand();
-  tp+=FlatTerm::functionEntryCount;
+  tp+=FlatTerm::FUNCTION_ENTRY_COUNT;
   return true;
 }
 
@@ -1287,10 +1299,10 @@ inline bool CodeTree::RemovingMatcher::doAssignVar()
   //we are looking for variants and they match only other variables into variables
   unsigned var=op->arg();
   const FlatTerm::Entry* fte=&(*ft)[tp];
-  if(fte->tag()!=FlatTerm::VAR) {
+  if(fte->_tag()!=FlatTerm::VAR) {
     return false;
   }
-  bindings[var]=fte->number();
+  bindings[var]=fte->_number();
   tp++;
   return true;
 }
@@ -1302,7 +1314,7 @@ inline bool CodeTree::RemovingMatcher::doCheckVar()
   //we are looking for variants and they match only other variables into variables
   unsigned var=op->arg();
   const FlatTerm::Entry* fte=&(*ft)[tp];
-  if(fte->tag()!=FlatTerm::VAR || bindings[var]!=fte->number()) {
+  if(fte->_tag()!=FlatTerm::VAR || bindings[var]!=fte->_number()) {
     return false;
   }
   tp++;
@@ -1461,7 +1473,7 @@ inline bool CodeTree::Matcher::doCheckFun()
     return false;
   }
   fte.expand();
-  tp+=FlatTerm::functionEntryCount;
+  tp+=FlatTerm::FUNCTION_ENTRY_COUNT;
   return true;
 }
 
@@ -1471,19 +1483,19 @@ inline void CodeTree::Matcher::doAssignVar()
 
   unsigned var=op->arg();
   const FlatTerm::Entry* fte=&(*ft)[tp];
-  if(fte->tag()==FlatTerm::VAR) {
-    bindings[var]=TermList(fte->number(),false);
+  if(fte->_tag()==FlatTerm::VAR) {
+    bindings[var]=TermList(fte->_number(),false);
     tp++;
   }
   else {
     ASS(fte->isFun());
     fte++;
-    ASS_EQ(fte->tag(), FlatTerm::FUN_TERM_PTR);
-    ASS(fte->ptr());
-    bindings[var]=TermList(fte->ptr());
+    ASS_EQ(fte->_tag(), FlatTerm::FUN_TERM_PTR);
+    ASS(fte->_term());
+    bindings[var]=TermList(fte->_term());
     fte++;
-    ASS_EQ(fte->tag(), FlatTerm::FUN_RIGHT_OFS);
-    tp+=fte->number();
+    ASS_EQ(fte->_tag(), FlatTerm::FUN_RIGHT_OFS);
+    tp+=fte->_number();
   }
 }
 
@@ -1493,8 +1505,8 @@ inline bool CodeTree::Matcher::doCheckVar()
 
   unsigned var=op->arg();
   const FlatTerm::Entry* fte=&(*ft)[tp];
-  if(fte->tag()==FlatTerm::VAR) {
-    if(bindings[var]!=TermList(fte->number(),false)) {
+  if(fte->_tag()==FlatTerm::VAR) {
+    if(bindings[var]!=TermList(fte->_number(),false)) {
       return false;
     }
     tp++;
@@ -1502,13 +1514,13 @@ inline bool CodeTree::Matcher::doCheckVar()
   else {
     ASS(fte->isFun());
     fte++;
-    ASS_EQ(fte->tag(), FlatTerm::FUN_TERM_PTR);
-    if(bindings[var]!=TermList(fte->ptr())) {
+    ASS_EQ(fte->_tag(), FlatTerm::FUN_TERM_PTR);
+    if(bindings[var]!=TermList(fte->_term())) {
       return false;
     }
     fte++;
-    ASS_EQ(fte->tag(), FlatTerm::FUN_RIGHT_OFS);
-    tp+=fte->number();
+    ASS_EQ(fte->_tag(), FlatTerm::FUN_RIGHT_OFS);
+    tp+=fte->_number();
   }
   return true;
 }

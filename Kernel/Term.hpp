@@ -34,6 +34,7 @@
 #include "Debug/Assertion.hpp"
 
 #include "Lib/Allocator.hpp"
+#include "Lib/BitUtils.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Portability.hpp"
 #include "Lib/Comparison.hpp"
@@ -321,48 +322,12 @@ private:
   static_assert(sizeof(void *) <= sizeof(uint64_t), "must be able to fit a pointer into a 64-bit integer");
   static_assert(AO_INCOMPARABLE < 8, "must be able to squash orderings into 3 bits");
 
-  // compute a 64-bit mask starting at `lower` and ending just before `upper`
-  template<unsigned lower, unsigned upper>
-  static constexpr uint64_t bitmask64() {
-      static_assert(lower < upper, "empty range");
-      static_assert(upper - lower <= 64, "too many bits");
-      uint64_t mask = ~0;
-      mask >>= lower;
-      mask <<= lower;
-      mask <<= 64 - upper;
-      mask >>= 64 - upper;
-      return mask;
-  }
-
-  // get the bits of `_content` between `lower` and `upper`
-  template<unsigned lower, unsigned upper>
-  uint64_t getBits() const {
-      auto mask = bitmask64<lower, upper>();
-      return (_content & mask) >> lower;
-  }
-
-  // set the bits of `_content` between `lower` and `upper` to corresponding bits of `data`
-  template<unsigned lower, unsigned upper>
-  void setBits(uint64_t data) {
-      auto mask = bitmask64<lower, upper>();
-
-      // shift `data` into position
-      data <<= lower;
-
-      // mask out upper bits of `data`
-      // *probably* not strictly necessary if `data` always zero at `upper` and `above`,
-      // but doesn't cost us much (~2 instructions) to put this sanity check here
-      data &= mask;
-
-      // actually set the bits
-      _content &= ~mask;
-      _content |= data;
-  }
-
+  template<unsigned lower, unsigned upper, class T> friend uint64_t BitUtils::getBits(const T&);
+  template<unsigned lower, unsigned upper, class T> friend void BitUtils::setBits(T&, uint64_t);
   // getters and setters
 #define GET_AND_SET(type, name, Name, NAME) \
-  type _##name() const { return getBits<NAME##_BITS_START, NAME##_BITS_END>(); }\
-  void _set##Name(type val) { setBits<NAME##_BITS_START, NAME##_BITS_END>(val); }
+  type _##name() const { return BitUtils::getBits<NAME##_BITS_START, NAME##_BITS_END>(*this); }\
+  void _set##Name(type val) { BitUtils::setBits<NAME##_BITS_START, NAME##_BITS_END>(*this, val); }
   GET_AND_SET(unsigned, tag, Tag, TAG)
   GET_AND_SET(bool, polarity, Polarity, POLARITY)
   GET_AND_SET(bool, commutative, Commutative, COMMUTATIVE)
@@ -375,9 +340,9 @@ private:
   GET_AND_SET(uint32_t, id, Id, ID)
 #undef GET_AND_SET
   Term *_term() const
-  { return reinterpret_cast<Term *>(getBits<TERM_BITS_START, TERM_BITS_END>()); }
+  { return reinterpret_cast<Term *>(BitUtils::getBits<TERM_BITS_START, TERM_BITS_END>(*this)); }
   void _setTerm(Term *term)
-  { setBits<TERM_BITS_START, TERM_BITS_END>(reinterpret_cast<uint64_t>(term)); }
+  { BitUtils::setBits<TERM_BITS_START, TERM_BITS_END>(*this, reinterpret_cast<uint64_t>(term)); }
   // end bitfield
 
   friend class Indexing::TermSharing;

@@ -37,7 +37,7 @@ public:
 
   static FlatTerm* copy(const FlatTerm* ft);
 
-  static const size_t functionEntryCount=3;
+  static constexpr size_t FUNCTION_ENTRY_COUNT=3;
 
   enum EntryTag {
     FUN_TERM_PTR = 0,
@@ -55,16 +55,13 @@ public:
   struct Entry
   {
     Entry() = default;
-    Entry(EntryTag tag, unsigned num) { _info.tag=tag; _info.number=num; }
-    Entry(Term* ptr) : _ptr(ptr) { ASS_EQ(tag(), FUN_TERM_PTR); }
+    Entry(EntryTag tag, unsigned num) { _setTag(tag); _setNumber(num); }
+    Entry(Term* term) { _setTerm(term); ASS_EQ(_tag(), FUN_TERM_PTR); }
 
-    inline EntryTag tag() const { return static_cast<EntryTag>(_info.tag); }
-    inline unsigned number() const { return _info.number; }
-    inline Term* ptr() const { return _ptr; }
-    inline bool isVar() const { return tag()==VAR; }
-    inline bool isVar(unsigned num) const { return isVar() && number()==num; }
-    inline bool isFun() const { return tag()==FUN || tag()==FUN_UNEXPANDED; }
-    inline bool isFun(unsigned num) const { return isFun() && number()==num; }
+    inline bool isVar() const { return _tag()==VAR; }
+    inline bool isVar(unsigned num) const { return isVar() && _number()==num; }
+    inline bool isFun() const { return _tag()==FUN || _tag()==FUN_UNEXPANDED; }
+    inline bool isFun(unsigned num) const { return isFun() && _number()==num; }
     /**
      * Should be called when @b isFun() is true.
      * If @b tag()==FUN_UNEXPANDED, it fills out entries for the functions
@@ -72,13 +69,34 @@ public:
      */
     void expand();
 
-    union {
-      Term* _ptr;
-      struct {
-	unsigned tag : 4;
-	unsigned number : 28;
-      } _info;
-    };
+    uint64_t _content;
+
+    static constexpr unsigned
+      TAG_BITS_START = 0,
+      TAG_BITS_END = TAG_BITS_START + 3,
+      NUMBER_BITS_START = TAG_BITS_END,
+      NUMBER_BITS_END = NUMBER_BITS_START + 27,
+      TERM_BITS_START = 0,
+      TERM_BITS_END = CHAR_BIT * sizeof(Term *);
+
+    // various properties we want to check
+    static_assert(TAG_BITS_START == 0, "tag must be the least significant bits");
+    static_assert(TERM_BITS_START == 0, "term must be the least significant bits");
+    static_assert(sizeof(void *) <= sizeof(uint64_t), "must be able to fit a pointer into a 64-bit integer");
+    static_assert(FUN_UNEXPANDED < 8, "must be able to squash orderings into 3 bits");
+
+  // getters and setters
+#define GET_AND_SET(type, name, Name, NAME) \
+    type _##name() const { return BitUtils::getBits<NAME##_BITS_START, NAME##_BITS_END>(*this); }\
+    void _set##Name(type val) { BitUtils::setBits<NAME##_BITS_START, NAME##_BITS_END>(*this, val); }
+    GET_AND_SET(unsigned, tag, Tag, TAG)
+    GET_AND_SET(unsigned, number, Number, NUMBER)
+#undef GET_AND_SET
+    Term *_term() const
+    { return reinterpret_cast<Term *>(BitUtils::getBits<TERM_BITS_START, TERM_BITS_END>(*this)); }
+    void _setTerm(Term *term)
+    { BitUtils::setBits<TERM_BITS_START, TERM_BITS_END>(*this, reinterpret_cast<uint64_t>(term)); }
+    // end bitfield
   };
 
   inline Entry& operator[](size_t i) { ASS_L(i,_length); return _data[i]; }
@@ -86,7 +104,7 @@ public:
 
   void swapCommutativePredicateArguments();
   void changeLiteralPolarity()
-  { _data[0]._info.number^=1; }
+  { _data[0]._setNumber(_data[0]._number()^1); }
 
 private:
   static size_t getEntryCount(Term* t);

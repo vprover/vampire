@@ -263,6 +263,7 @@ public:
    */
   struct SearchStruct
   {
+    void destroy();
     /**
      * Fills out pointer @b tgt where @b insertedOp should be
      * (or is) inserted in the structure. If @b doInsert is true
@@ -301,8 +302,6 @@ public:
   struct SearchStructImpl
   : public SearchStruct
   {
-    USE_ALLOCATOR(SearchStructImpl);
-
     SearchStructImpl(size_t length);
 
     using T = typename std::conditional<k==SearchStruct::FN_STRUCT,unsigned,Term*>::type;
