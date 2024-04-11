@@ -16,6 +16,7 @@
 #ifndef __BitUtils__
 #define __BitUtils__
 
+#include <cstdint>
 #include <cstring>
 
 #include "Lib/Portability.hpp"
