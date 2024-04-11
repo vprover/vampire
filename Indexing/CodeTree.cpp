@@ -295,32 +295,23 @@ CodeTree::MatchInfo*& CodeTree::ILStruct::getMatch(unsigned matchIndex)
   return matches[matchIndex];
 }
 
-CodeTree::CodeOp CodeTree::CodeOp::getSuccess(void* ptr)
-{
-  ASS(ptr); //data has to be a non-zero pointer
-
-  CodeOp res;
-  res.setAlternative(0);
-  res._result=ptr;
-  ASS(res.isSuccess());
-  return res;
-}
 CodeTree::CodeOp CodeTree::CodeOp::getLitEnd(ILStruct* ils)
 {
   CodeOp res;
   res.setAlternative(0);
-  res._data=reinterpret_cast<size_t>(ils)|LIT_END;
+  res._setData(ils);
   ASS(res.isLitEnd());
   return res;
 }
-CodeTree::CodeOp CodeTree::CodeOp::getTermOp(InstructionSuffix i, unsigned num)
+
+CodeTree::CodeOp CodeTree::CodeOp::getTermOp(Instruction i, unsigned num)
 {
   ASS(i==CHECK_FUN || i==CHECK_VAR || i==ASSIGN_VAR);
 
   CodeOp res;
   res.setAlternative(0);
-  res.setLongInstr(i);
-  res.setArg(num);
+  res._setInstruction(i);
+  res._setArg(num);
   return res;
 }
 
@@ -330,7 +321,7 @@ CodeTree::CodeOp CodeTree::CodeOp::getGroundTermCheck(const Term* trm)
 
   CodeOp res;
   res.setAlternative(0);
-  res._data=reinterpret_cast<size_t>(trm)|CHECK_GROUND_TERM;
+  res._setData(trm);
   ASS(res.isCheckGroundTerm());
   return res;
 }
@@ -341,21 +332,22 @@ CodeTree::CodeOp CodeTree::CodeOp::getGroundTermCheck(const Term* trm)
  */
 bool CodeTree::CodeOp::equalsForOpMatching(const CodeOp& o) const
 {
-  if(instrPrefix()!=o.instrPrefix()) {
+  if(_instruction()!=o._instruction()) {
     return false;
   }
-  switch(instrPrefix()) {
+  switch(_instruction()) {
   case LIT_END:
     return getILS()->equalsForOpMatching(*o.getILS());
   case SUCCESS_OR_FAIL:
   case CHECK_GROUND_TERM:
-    return data()==o.data();
-  case SUFFIX_INSTR:
+    return _data<void>()==o._data<void>();
+  case CHECK_FUN:
+  case ASSIGN_VAR:
+  case CHECK_VAR:
+    return _instruction()==o._instruction() && _arg()==o._arg();
+  default:
     //SEARCH_STRUCT operations in the tree should be handled separately
     //during insertion into the code tree
-    ASS_NEQ(instrSuffix(), SEARCH_STRUCT);
-    return instrSuffix()==o.instrSuffix() && arg()==o.arg();
-  default:
     ASSERTION_VIOLATION;
   }
 }
@@ -368,30 +360,28 @@ CodeTree::SearchStruct* CodeTree::CodeOp::getSearchStruct() const
 
 std::ostream& operator<<(std::ostream& out, const CodeTree::CodeOp& op)
 {
-  switch (op.instrPrefix()) {
-  case CodeTree::SUCCESS_OR_FAIL:
-    if (op.isSuccess()) {
-      out << "success";
-    } else {
-      out << "fail";
-    }
-    break;
-  case CodeTree::LIT_END:
-    out << "lit end";
-    break;
-  case CodeTree::CHECK_GROUND_TERM:
-    out << "check ground term " << *op.getTargetTerm();
-    break;
-  case CodeTree::SUFFIX_INSTR:
-    switch(op.instrSuffix()) {
+  switch (op._instruction()) {
+    case CodeTree::SUCCESS_OR_FAIL:
+      if (op.isSuccess()) {
+        out << "success";
+      } else {
+        out << "fail";
+      }
+      break;
+    case CodeTree::LIT_END:
+      out << "lit end";
+      break;
+    case CodeTree::CHECK_GROUND_TERM:
+      out << "check ground term " << *op.getTargetTerm();
+      break;
     case CodeTree::CHECK_FUN:
-      out << "check fun " << env.signature->getFunction(op.arg())->name();
+      out << "check fun " << env.signature->getFunction(op._arg())->name();
       break;
     case CodeTree::ASSIGN_VAR:
-      out << "assign var X" << op.arg();
+      out << "assign var X" << op._arg();
       break;
     case CodeTree::CHECK_VAR:
-      out << "check var X" << op.arg();
+      out << "check var X" << op._arg();
       break;
     case CodeTree::SEARCH_STRUCT:
       out << "search struct ";
@@ -425,8 +415,6 @@ std::ostream& operator<<(std::ostream& out, const CodeTree::CodeOp& op)
         }
       }
       break;
-    }
-    break;
   }
   return out;
 }
@@ -435,7 +423,7 @@ CodeTree::SearchStruct::SearchStruct(Kind kind, size_t length)
 : kind(kind)
 {
   landingOp.setAlternative(0);
-  landingOp.setLongInstr(SEARCH_STRUCT);
+  landingOp._setInstruction(SEARCH_STRUCT);
   ASS(length);
 
   targets.reserve(length);
@@ -459,7 +447,7 @@ bool CodeTree::SearchStruct::getTargetOpPtr(const CodeOp& insertedOp, CodeOp**& 
   switch(kind) {
   case FN_STRUCT:
     if(!insertedOp.isCheckFun()) { return false; }
-    tgt=&static_cast<FnSearchStruct*>(this)->targetOp<doInsert>(insertedOp.arg());
+    tgt=&static_cast<FnSearchStruct*>(this)->targetOp<doInsert>(insertedOp._arg());
     return true;
   case GROUND_TERM_STRUCT:
     if(!insertedOp.isCheckGroundTerm()) { return false; }
@@ -533,7 +521,7 @@ CodeTree::CodeOp*& CodeTree::SearchStructImpl<k>::targetOp(const T& val)
 
 inline bool CodeTree::BaseMatcher::doCheckGroundTerm()
 {
-  ASS_EQ(op->instrPrefix(), CHECK_GROUND_TERM);
+  ASS_EQ(op->_instruction(), CHECK_GROUND_TERM);
 
   const FlatTerm::Entry* fte=&(*ft)[tp];
   if(!fte->isFun()) {
@@ -972,7 +960,7 @@ void CodeTree::compressCheckOps(CodeOp* chainStart)
 
   sort(chfOps.begin(), chfOps.end(), [](CodeOp* op1, CodeOp* op2) {
     if constexpr (k==SearchStruct::FN_STRUCT) {
-      return op1->arg() < op2->arg();
+      return op1->_arg() < op2->_arg();
     } else {
       return op1->getTargetTerm() < op2->getTargetTerm();
     }
@@ -981,7 +969,7 @@ void CodeTree::compressCheckOps(CodeOp* chainStart)
   for(size_t i=0;i<slen;i++) {
     if constexpr (k==SearchStruct::FN_STRUCT) {
       ASS(chfOps[i]->isCheckFun());
-      res->values.push_back(chfOps[i]->arg());
+      res->values.push_back(chfOps[i]->_arg());
     } else {
       ASS(chfOps[i]->isCheckGroundTerm());
       res->values.push_back(chfOps[i]->getTargetTerm());
@@ -1176,29 +1164,27 @@ bool CodeTree::RemovingMatcher::next()
     if(op->alternative()) {
       btStack.push(BTPoint(tp, op->alternative(), firstsInBlocks->size()));
     }
-    switch(op->instrPrefix()) {
-    case SUCCESS_OR_FAIL:
-      if(op->isFail()) {
-	shouldBacktrack=true;
-	break;
-      }
-      if(matchingClauses) {
-	//we can succeed only in certain depth and that will be handled separately
-	shouldBacktrack=true;
-      }
-      else {
-	//we are matching terms in a TermCodeTree
-	return true;
-      }
-      break;
-    case LIT_END:
-      ASS(matchingClauses);
-      return true;
-    case CHECK_GROUND_TERM:
-      shouldBacktrack=!doCheckGroundTerm();
-      break;
-    case SUFFIX_INSTR:
-      switch(op->instrSuffix()) {
+    switch(op->_instruction()) {
+      case SUCCESS_OR_FAIL:
+        if(op->isFail()) {
+          shouldBacktrack=true;
+          break;
+        }
+        if(matchingClauses) {
+          //we can succeed only in certain depth and that will be handled separately
+          shouldBacktrack=true;
+        }
+        else {
+          //we are matching terms in a TermCodeTree
+          return true;
+        }
+        break;
+      case LIT_END:
+        ASS(matchingClauses);
+        return true;
+      case CHECK_GROUND_TERM:
+        shouldBacktrack=!doCheckGroundTerm();
+        break;
       case CHECK_FUN:
         shouldBacktrack=!doCheckFun();
         break;
@@ -1217,8 +1203,6 @@ bool CodeTree::RemovingMatcher::next()
           shouldBacktrack=true;
         }
         break;
-      }
-      break;
     }
     if(shouldBacktrack) {
       if(!backtrack()) {
@@ -1266,7 +1250,7 @@ bool CodeTree::RemovingMatcher::prepareLiteral()
 
 inline bool CodeTree::RemovingMatcher::doSearchStruct()
 {
-  ASS_EQ(op->instrSuffix(), SEARCH_STRUCT);
+  ASS_EQ(op->_instruction(), SEARCH_STRUCT);
 
   const FlatTerm::Entry* fte=&(*ft)[tp];
   CodeOp* target=op->getSearchStruct()->getTargetOp(fte);
@@ -1280,9 +1264,9 @@ inline bool CodeTree::RemovingMatcher::doSearchStruct()
 
 inline bool CodeTree::RemovingMatcher::doCheckFun()
 {
-  ASS_EQ(op->instrSuffix(), CHECK_FUN);
+  ASS_EQ(op->_instruction(), CHECK_FUN);
 
-  unsigned functor=op->arg();
+  unsigned functor=op->_arg();
   FlatTerm::Entry& fte=(*ft)[tp];
   if(!fte.isFun(functor)) {
     return false;
@@ -1294,10 +1278,10 @@ inline bool CodeTree::RemovingMatcher::doCheckFun()
 
 inline bool CodeTree::RemovingMatcher::doAssignVar()
 {
-  ASS_EQ(op->instrSuffix(), ASSIGN_VAR);
+  ASS_EQ(op->_instruction(), ASSIGN_VAR);
 
   //we are looking for variants and they match only other variables into variables
-  unsigned var=op->arg();
+  unsigned var=op->_arg();
   const FlatTerm::Entry* fte=&(*ft)[tp];
   if(fte->_tag()!=FlatTerm::VAR) {
     return false;
@@ -1309,10 +1293,10 @@ inline bool CodeTree::RemovingMatcher::doAssignVar()
 
 inline bool CodeTree::RemovingMatcher::doCheckVar()
 {
-  ASS_EQ(op->instrSuffix(), CHECK_VAR);
+  ASS_EQ(op->_instruction(), CHECK_VAR);
 
   //we are looking for variants and they match only other variables into variables
-  unsigned var=op->arg();
+  unsigned var=op->_arg();
   const FlatTerm::Entry* fte=&(*ft)[tp];
   if(fte->_tag()!=FlatTerm::VAR || bindings[var]!=fte->_number()) {
     return false;
@@ -1364,28 +1348,26 @@ bool CodeTree::Matcher::execute()
     if(op->alternative()) {
       btStack.push(BTPoint(tp, op->alternative()));
     }
-    switch(op->instrPrefix()) {
-    case SUCCESS_OR_FAIL:
-      if(op->isFail()) {
-	shouldBacktrack=true;
-	break;
-      }
-      //yield successes only in the first round (we don't want to yield the
-      //same thing for each query literal)
-      if(curLInfo==0) {
-	return true;
-      }
-      else {
-	shouldBacktrack=true;
-      }
-      break;
-    case LIT_END:
-      return true;
-    case CHECK_GROUND_TERM:
-      shouldBacktrack=!doCheckGroundTerm();
-      break;
-    case SUFFIX_INSTR:
-      switch(op->instrSuffix()) {
+    switch(op->_instruction()) {
+      case SUCCESS_OR_FAIL:
+        if(op->isFail()) {
+          shouldBacktrack=true;
+          break;
+        }
+        //yield successes only in the first round (we don't want to yield the
+        //same thing for each query literal)
+        if(curLInfo==0) {
+          return true;
+        }
+        else {
+          shouldBacktrack=true;
+        }
+        break;
+      case LIT_END:
+        return true;
+      case CHECK_GROUND_TERM:
+        shouldBacktrack=!doCheckGroundTerm();
+        break;
       case CHECK_FUN:
         shouldBacktrack=!doCheckFun();
         break;
@@ -1396,16 +1378,14 @@ bool CodeTree::Matcher::execute()
         shouldBacktrack=!doCheckVar();
         break;
       case SEARCH_STRUCT:
-	if(doSearchStruct()) {
-	  //a new value of @b op is assigned, so restart the loop
-	  continue;
-	}
-	else {
-	  shouldBacktrack=true;
-	}
-	break;
-      }
-      break;
+        if(doSearchStruct()) {
+          //a new value of @b op is assigned, so restart the loop
+          continue;
+        }
+        else {
+          shouldBacktrack=true;
+        }
+        break;
     }
     if(shouldBacktrack) {
       if(!backtrack()) {
@@ -1456,7 +1436,7 @@ bool CodeTree::Matcher::prepareLiteral()
 
 inline bool CodeTree::Matcher::doSearchStruct()
 {
-  ASS_EQ(op->instrSuffix(), SEARCH_STRUCT);
+  ASS_EQ(op->_instruction(), SEARCH_STRUCT);
 
   const FlatTerm::Entry* fte=&(*ft)[tp];
   op=op->getSearchStruct()->getTargetOp(fte);
@@ -1465,9 +1445,9 @@ inline bool CodeTree::Matcher::doSearchStruct()
 
 inline bool CodeTree::Matcher::doCheckFun()
 {
-  ASS_EQ(op->instrSuffix(), CHECK_FUN);
+  ASS_EQ(op->_instruction(), CHECK_FUN);
 
-  unsigned functor=op->arg();
+  unsigned functor=op->_arg();
   FlatTerm::Entry& fte=(*ft)[tp];
   if(!fte.isFun(functor)) {
     return false;
@@ -1479,9 +1459,9 @@ inline bool CodeTree::Matcher::doCheckFun()
 
 inline void CodeTree::Matcher::doAssignVar()
 {
-  ASS_EQ(op->instrSuffix(), ASSIGN_VAR);
+  ASS_EQ(op->_instruction(), ASSIGN_VAR);
 
-  unsigned var=op->arg();
+  unsigned var=op->_arg();
   const FlatTerm::Entry* fte=&(*ft)[tp];
   if(fte->_tag()==FlatTerm::VAR) {
     bindings[var]=TermList(fte->_number(),false);
@@ -1501,9 +1481,9 @@ inline void CodeTree::Matcher::doAssignVar()
 
 inline bool CodeTree::Matcher::doCheckVar()
 {
-  ASS_EQ(op->instrSuffix(), CHECK_VAR);
+  ASS_EQ(op->_instruction(), CHECK_VAR);
 
-  unsigned var=op->arg();
+  unsigned var=op->_arg();
   const FlatTerm::Entry* fte=&(*ft)[tp];
   if(fte->_tag()==FlatTerm::VAR) {
     if(bindings[var]!=TermList(fte->_number(),false)) {

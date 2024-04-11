@@ -107,7 +107,7 @@ public:
   /**
    * Structure with information about an indexed literal
    */
-  struct ILStruct
+  struct alignas(8) ILStruct
   {
     ILStruct(const Literal* lit, unsigned varCnt, Stack<unsigned>& gvnStack);
     ~ILStruct();
@@ -154,29 +154,32 @@ public:
     DArray<MatchInfo*> matches;
   };
 
-  enum InstructionPrefix
+  enum Instruction
   {
     //it means fail if data==0
     SUCCESS_OR_FAIL = 0,
     CHECK_GROUND_TERM = 1,
     LIT_END = 2,
-    /** One of instructions that are determined by the instruction suffix */
-    SUFFIX_INSTR = 3
-  };
-  enum InstructionSuffix
-  {
-    CHECK_FUN = 0,
-    ASSIGN_VAR = 1,
-    CHECK_VAR = 2,
-    SEARCH_STRUCT = 3
+    CHECK_FUN = 3,
+    ASSIGN_VAR = 4,
+    CHECK_VAR = 5,
+    SEARCH_STRUCT = 6,
   };
 
   /** Structure containing a single instruction and its arguments */
   struct CodeOp
   {
-    static CodeOp getSuccess(void* data);
+    template<class T> static CodeOp getSuccess(T* ptr)
+    {
+      ASS(ptr); //data has to be a non-zero pointer
+      CodeOp res;
+      res.setAlternative(0);
+      res._setData(ptr);
+      ASS(res.isSuccess());
+      return res;
+    }
     static CodeOp getLitEnd(ILStruct* ils);
-    static CodeOp getTermOp(InstructionSuffix i, unsigned num);
+    static CodeOp getTermOp(Instruction i, unsigned num);
     static CodeOp getGroundTermCheck(const Term* trm);
 
     bool equalsForOpMatching(const CodeOp& o) const;
@@ -188,65 +191,76 @@ public:
      * on some architectures, pointers are only 4-byte aligned and
      * the instruction is stored in first three bits.
      */
-    inline bool isSuccess() const { return instrPrefix()==SUCCESS_OR_FAIL && data(); }
-    inline bool isFail() const { return !data(); }
-    inline bool isLitEnd() const { return instrPrefix()==LIT_END; }
-    inline bool isSearchStruct() const { return instrPrefix()==SUFFIX_INSTR && instrSuffix()==SEARCH_STRUCT; }
-    inline bool isCheckFun() const { return instrPrefix()==SUFFIX_INSTR && instrSuffix()==CHECK_FUN; }
-    inline bool isCheckGroundTerm() const { return instrPrefix()==CHECK_GROUND_TERM; }
+    inline bool isSuccess() const { return _instruction()==SUCCESS_OR_FAIL && _data<void>(); }
+    inline bool isFail() const { return !_data<void>(); }
+    inline bool isLitEnd() const { return _instruction()==LIT_END; }
+    inline bool isSearchStruct() const { return _instruction()==SEARCH_STRUCT; }
+    inline bool isCheckFun() const { return _instruction()==CHECK_FUN; }
+    inline bool isCheckGroundTerm() const { return _instruction()==CHECK_GROUND_TERM; }
 
     inline Term* getTargetTerm() const
     {
       ASS(isCheckGroundTerm());
-      return reinterpret_cast<Term*>(data()&~static_cast<size_t>(CHECK_GROUND_TERM));
+      return _data<Term>();
     }
 
-    inline void* getSuccessResult() { ASS(isSuccess()); return _result; }
+    template<class T> inline T* getSuccessResult() { ASS(isSuccess()); return _data<T>(); }
 
     inline ILStruct* getILS()
     {
       ASS(isLitEnd());
-      return reinterpret_cast<ILStruct*>(data()&~static_cast<size_t>(LIT_END));
+      return _data<ILStruct>();
     }
     inline const ILStruct* getILS() const
     {
-      return const_cast<CodeOp*>(this)->getILS();
+      return _data<ILStruct>();
     }
 
     SearchStruct* getSearchStruct() const;
 
-    inline InstructionPrefix instrPrefix() const { return static_cast<InstructionPrefix>(_info.prefix); }
-    inline InstructionSuffix instrSuffix() const
-    {
-      ASS_EQ(instrPrefix(), SUFFIX_INSTR);
-      return static_cast<InstructionSuffix>(_info.suffix);
-    }
-
-    inline unsigned arg() const { return _info.arg; }
     inline CodeOp* alternative() const { return _alternative; }
     inline CodeOp*& alternative() { return _alternative; }
 
     inline void setAlternative(CodeOp* op) { ASS_NEQ(op, this); _alternative=op; }
-    inline void setLongInstr(InstructionSuffix i) { _info.prefix=SUFFIX_INSTR; _info.suffix=i; }
 
-    void makeFail() { _data=0; }
+    void makeFail() { _setData<void>(0); }
 
     friend std::ostream& operator<<(std::ostream& out, const CodeOp& op);
 
+    static constexpr unsigned
+      INSTRUCTION_BITS_START = 0,
+      INSTRUCTION_BITS_END = INSTRUCTION_BITS_START + 3,
+      ARG_BITS_START = INSTRUCTION_BITS_END,
+      ARG_BITS_END = CHAR_BIT * sizeof(uint64_t),
+      DATA_BITS_START = 0,
+      DATA_BITS_END = CHAR_BIT * sizeof(void *);
+
+    static_assert(sizeof(void *) <= sizeof(uint64_t), "must be able to fit a pointer into a 64-bit integer");
+    static_assert(SEARCH_STRUCT < 8, "must be able to squash instructions into 3 bits");
+    static_assert(alignof(Term) == 8);
+
+    template<unsigned lower, unsigned upper, class T> friend uint64_t BitUtils::getBits(const T&);
+    template<unsigned lower, unsigned upper, class T> friend void BitUtils::setBits(T&, uint64_t);
+    // getters and setters
+#define GET_AND_SET(type, name, Name, NAME) \
+    type _##name() const { return BitUtils::getBits<NAME##_BITS_START, NAME##_BITS_END>(*this); }\
+    void _set##Name(type val) { BitUtils::setBits<NAME##_BITS_START, NAME##_BITS_END>(*this, val); }
+    GET_AND_SET(unsigned, instruction, Instruction, INSTRUCTION)
+    GET_AND_SET(unsigned, arg, Arg, ARG)
+#undef GET_AND_SET
+    template<class T> T* _data() const {
+      // static_assert(alignof(T)==8);
+      return reinterpret_cast<T*>(BitUtils::getBits<DATA_BITS_START, DATA_BITS_END>(*this));
+    }
+    template<class T> void _setData(T* data) {
+      // static_assert(alignof(T)==8);
+      BitUtils::setBits<DATA_BITS_START, DATA_BITS_END>(*this, reinterpret_cast<uint64_t>(data));
+    }
+    // end bitfield
+
   private:
-    inline size_t data() const { return _data; }
+    uint64_t _content;
 
-    inline void setArg(unsigned arg) { ASS_L(arg,1<<28); _info.arg=arg; }
-
-    union {
-      struct {
-        unsigned prefix : 2;
-        unsigned suffix : 2;
-        unsigned arg : 28;
-      } _info;
-      void* _result;
-      size_t _data;
-    };
     /**
      * Pointer to an alternative operation
      *

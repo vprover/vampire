@@ -369,7 +369,7 @@ std::ostream& operator<<(std::ostream& out, SpecialFunctor const& self);
  * Class to represent terms and lists of terms.
  * @since 19/02/2008 Manchester, changed to use class TermList
  */
-class Term
+class alignas(8) Term
 {
 public:
 

@@ -83,7 +83,7 @@ public:
     static_assert(TAG_BITS_START == 0, "tag must be the least significant bits");
     static_assert(TERM_BITS_START == 0, "term must be the least significant bits");
     static_assert(sizeof(void *) <= sizeof(uint64_t), "must be able to fit a pointer into a 64-bit integer");
-    static_assert(FUN_UNEXPANDED < 8, "must be able to squash orderings into 3 bits");
+    static_assert(FUN_UNEXPANDED < 8, "must be able to squash tags into 3 bits");
 
   // getters and setters
 #define GET_AND_SET(type, name, Name, NAME) \
