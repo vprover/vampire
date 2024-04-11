@@ -70,6 +70,45 @@ public:
     return bits;
 #endif
   }
+
+  // compute a 64-bit mask starting at `lower` and ending just before `upper`
+  template<unsigned lower, unsigned upper>
+  static constexpr uint64_t bitmask64() {
+      static_assert(lower < upper, "empty range");
+      static_assert(upper - lower <= 64, "too many bits");
+      uint64_t mask = ~0;
+      mask >>= lower;
+      mask <<= lower;
+      mask <<= 64 - upper;
+      mask >>= 64 - upper;
+      return mask;
+  }
+
+  // get the bits of `_content` between `lower` and `upper`
+  template<unsigned lower, unsigned upper, class T>
+  static uint64_t getBits(const T& t) {
+    auto mask = bitmask64<lower, upper>();
+    return (t._content & mask) >> lower;
+  }
+
+  // set the bits of `_content` between `lower` and `upper` to corresponding bits of `data`
+  template<unsigned lower, unsigned upper, class T>
+  static void setBits(T& t, uint64_t data) {
+    auto mask = bitmask64<lower, upper>();
+
+    // shift `data` into position
+    data <<= lower;
+
+    // mask out upper bits of `data`
+    // *probably* not strictly necessary if `data` always zero at `upper` and `above`,
+    // but doesn't cost us much (~2 instructions) to put this sanity check here
+    data &= mask;
+
+    // actually set the bits
+    t._content &= ~mask;
+    t._content |= data;
+  }
+
 };
 
 };
