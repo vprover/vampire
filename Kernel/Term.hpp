@@ -322,27 +322,21 @@ private:
   static_assert(sizeof(void *) <= sizeof(uint64_t), "must be able to fit a pointer into a 64-bit integer");
   static_assert(AO_INCOMPARABLE < 8, "must be able to squash orderings into 3 bits");
 
-  template<unsigned lower, unsigned upper, class T> friend uint64_t BitUtils::getBits(const T&);
-  template<unsigned lower, unsigned upper, class T> friend void BitUtils::setBits(T&, uint64_t);
   // getters and setters
-#define GET_AND_SET(type, name, Name, NAME) \
-  type _##name() const { return BitUtils::getBits<NAME##_BITS_START, NAME##_BITS_END>(*this); }\
-  void _set##Name(type val) { BitUtils::setBits<NAME##_BITS_START, NAME##_BITS_END>(*this, val); }
-  GET_AND_SET(unsigned, tag, Tag, TAG)
-  GET_AND_SET(bool, polarity, Polarity, POLARITY)
-  GET_AND_SET(bool, commutative, Commutative, COMMUTATIVE)
-  GET_AND_SET(bool, shared, Shared, SHARED)
-  GET_AND_SET(bool, literal, Literal, LITERAL)
-  GET_AND_SET(bool, sort, Sort, SORT)
-  GET_AND_SET(bool, hasTermVar, HasTermVar, HAS_TERM_VAR)
-  GET_AND_SET(unsigned, order, Order, ORDER)
-  GET_AND_SET(uint32_t, distinctVars, DistinctVars, DISTINCT_VAR)
-  GET_AND_SET(uint32_t, id, Id, ID)
-#undef GET_AND_SET
+  BITFIELD64_GET_AND_SET(unsigned, tag, Tag, TAG)
+  BITFIELD64_GET_AND_SET(bool, polarity, Polarity, POLARITY)
+  BITFIELD64_GET_AND_SET(bool, commutative, Commutative, COMMUTATIVE)
+  BITFIELD64_GET_AND_SET(bool, shared, Shared, SHARED)
+  BITFIELD64_GET_AND_SET(bool, literal, Literal, LITERAL)
+  BITFIELD64_GET_AND_SET(bool, sort, Sort, SORT)
+  BITFIELD64_GET_AND_SET(bool, hasTermVar, HasTermVar, HAS_TERM_VAR)
+  BITFIELD64_GET_AND_SET(unsigned, order, Order, ORDER)
+  BITFIELD64_GET_AND_SET(uint32_t, distinctVars, DistinctVars, DISTINCT_VAR)
+  BITFIELD64_GET_AND_SET(uint32_t, id, Id, ID)
   Term *_term() const
-  { return reinterpret_cast<Term *>(BitUtils::getBits<TERM_BITS_START, TERM_BITS_END>(*this)); }
+  { return reinterpret_cast<Term *>(BitUtils::getBits<TERM_BITS_START, TERM_BITS_END>(this->_content)); }
   void _setTerm(Term *term)
-  { BitUtils::setBits<TERM_BITS_START, TERM_BITS_END>(*this, reinterpret_cast<uint64_t>(term)); }
+  { BitUtils::setBits<TERM_BITS_START, TERM_BITS_END>(this->_content, reinterpret_cast<uint64_t>(term)); }
   // end bitfield
 
   friend class Indexing::TermSharing;

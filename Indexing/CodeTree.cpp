@@ -35,8 +35,11 @@
 namespace Indexing
 {
 
+#define GET_CONTAINING_OBJECT_CONST(ContainingClass,MemberField,object) \
+  reinterpret_cast<const ContainingClass*>(reinterpret_cast<const char*>(object)-offsetof(ContainingClass,MemberField))
+
 #define GET_CONTAINING_OBJECT(ContainingClass,MemberField,object) \
-  reinterpret_cast<ContainingClass*>(reinterpret_cast<size_t>(object)-offsetof(ContainingClass,MemberField))
+  reinterpret_cast<ContainingClass*>(reinterpret_cast<char*>(object)-offsetof(ContainingClass,MemberField))
 
 using namespace std;
 using namespace Lib;
@@ -352,7 +355,13 @@ bool CodeTree::CodeOp::equalsForOpMatching(const CodeOp& o) const
   }
 }
 
-CodeTree::SearchStruct* CodeTree::CodeOp::getSearchStruct() const
+const CodeTree::SearchStruct* CodeTree::CodeOp::getSearchStruct() const
+{
+  ASS(isSearchStruct());
+  return GET_CONTAINING_OBJECT_CONST(CodeTree::SearchStruct,landingOp,this);
+}
+
+CodeTree::SearchStruct* CodeTree::CodeOp::getSearchStruct()
 {
   ASS(isSearchStruct());
   return GET_CONTAINING_OBJECT(CodeTree::SearchStruct,landingOp,this);
@@ -388,7 +397,7 @@ std::ostream& operator<<(std::ostream& out, const CodeTree::CodeOp& op)
       auto ss = op.getSearchStruct();
       switch(ss->kind) {
         case CodeTree::SearchStruct::FN_STRUCT: {
-          auto fn_ss = static_cast<CodeTree::FnSearchStruct*>(ss);
+          auto fn_ss = static_cast<const CodeTree::FnSearchStruct*>(ss);
           out << "length " << fn_ss->length();
           for (unsigned i = 0; i < fn_ss->length(); i++) {
             out << " " << fn_ss->values[i] << " ";
@@ -401,7 +410,7 @@ std::ostream& operator<<(std::ostream& out, const CodeTree::CodeOp& op)
           break;
         }
         case CodeTree::SearchStruct::GROUND_TERM_STRUCT: {
-          auto gt_ss = static_cast<CodeTree::GroundTermSearchStruct*>(ss);
+          auto gt_ss = static_cast<const CodeTree::GroundTermSearchStruct*>(ss);
           out << "length " << gt_ss->length();
           for (unsigned i = 0; i < gt_ss->length(); i++) {
             out << " " << *gt_ss->values[i] << " ";

@@ -85,16 +85,21 @@ public:
       return mask;
   }
 
-  // get the bits of `_content` between `lower` and `upper`
-  template<unsigned lower, unsigned upper, class T>
-  static uint64_t getBits(const T& t) {
+  /**
+   * The functions below help set up classes containing bitfields
+   * and unions in a portable way. For an example @see TermList.
+   */
+
+  // get the bits of `bits` between `lower` and `upper`
+  template<unsigned lower, unsigned upper>
+  static uint64_t getBits(const uint64_t& bits) {
     auto mask = bitmask64<lower, upper>();
-    return (t._content & mask) >> lower;
+    return (bits & mask) >> lower;
   }
 
-  // set the bits of `_content` between `lower` and `upper` to corresponding bits of `data`
-  template<unsigned lower, unsigned upper, class T>
-  static void setBits(T& t, uint64_t data) {
+  // set `bits` between `lower` and `upper` to corresponding bits of `data`
+  template<unsigned lower, unsigned upper>
+  static void setBits(uint64_t& bits, uint64_t data) {
     auto mask = bitmask64<lower, upper>();
 
     // shift `data` into position
@@ -106,10 +111,13 @@ public:
     data &= mask;
 
     // actually set the bits
-    t._content &= ~mask;
-    t._content |= data;
+    bits &= ~mask;
+    bits |= data;
   }
 
+  #define BITFIELD64_GET_AND_SET(type, name, Name, NAME) \
+    type _##name() const { return BitUtils::getBits<NAME##_BITS_START, NAME##_BITS_END>(this->_content); } \
+    void _set##Name(type val) { BitUtils::setBits<NAME##_BITS_START, NAME##_BITS_END>(this->_content, val); }
 };
 
 };

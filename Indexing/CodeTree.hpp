@@ -216,7 +216,8 @@ public:
       return _data<ILStruct>();
     }
 
-    SearchStruct* getSearchStruct() const;
+    const SearchStruct* getSearchStruct() const;
+    SearchStruct* getSearchStruct();
 
     inline CodeOp* alternative() const { return _alternative; }
     inline CodeOp*& alternative() { return _alternative; }
@@ -239,23 +240,13 @@ public:
     static_assert(SEARCH_STRUCT < 8, "must be able to squash instructions into 3 bits");
     static_assert(alignof(Term) == 8);
 
-    template<unsigned lower, unsigned upper, class T> friend uint64_t BitUtils::getBits(const T&);
-    template<unsigned lower, unsigned upper, class T> friend void BitUtils::setBits(T&, uint64_t);
     // getters and setters
-#define GET_AND_SET(type, name, Name, NAME) \
-    type _##name() const { return BitUtils::getBits<NAME##_BITS_START, NAME##_BITS_END>(*this); }\
-    void _set##Name(type val) { BitUtils::setBits<NAME##_BITS_START, NAME##_BITS_END>(*this, val); }
-    GET_AND_SET(unsigned, instruction, Instruction, INSTRUCTION)
-    GET_AND_SET(unsigned, arg, Arg, ARG)
-#undef GET_AND_SET
-    template<class T> T* _data() const {
-      // static_assert(alignof(T)==8);
-      return reinterpret_cast<T*>(BitUtils::getBits<DATA_BITS_START, DATA_BITS_END>(*this));
-    }
-    template<class T> void _setData(T* data) {
-      // static_assert(alignof(T)==8);
-      BitUtils::setBits<DATA_BITS_START, DATA_BITS_END>(*this, reinterpret_cast<uint64_t>(data));
-    }
+    BITFIELD64_GET_AND_SET(unsigned, instruction, Instruction, INSTRUCTION)
+    BITFIELD64_GET_AND_SET(unsigned, arg, Arg, ARG)
+    template<class T> T* _data() const
+    { return reinterpret_cast<T*>(BitUtils::getBits<DATA_BITS_START, DATA_BITS_END>(this->_content)); }
+    template<class T> void _setData(T* data)
+    { BitUtils::setBits<DATA_BITS_START, DATA_BITS_END>(this->_content, reinterpret_cast<uint64_t>(data)); }
     // end bitfield
 
   private:
