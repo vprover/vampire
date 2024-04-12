@@ -35,6 +35,12 @@
 namespace Indexing
 {
 
+#define GET_CONTAINING_OBJECT_CONST(ContainingClass,MemberField,object) \
+  reinterpret_cast<const ContainingClass*>(reinterpret_cast<const char*>(object)-offsetof(ContainingClass,MemberField))
+
+#define GET_CONTAINING_OBJECT(ContainingClass,MemberField,object) \
+  reinterpret_cast<ContainingClass*>(reinterpret_cast<char*>(object)-offsetof(ContainingClass,MemberField))
+
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
@@ -70,8 +76,8 @@ CodeTree::LitInfo CodeTree::LitInfo::getOpposite(const LitInfo& li)
   FlatTerm* ft=FlatTerm::copy(li.ft);
   ft->changeLiteralPolarity();
 #if GROUND_TERM_CHECK
-  ASS_EQ((*ft)[1].tag(), FlatTerm::FUN_TERM_PTR);
-  (*ft)[1]._ptr=Literal::oppositeLiteral(static_cast<Literal*>((*ft)[1].ptr()));
+  ASS_EQ((*ft)[1]._tag(), FlatTerm::FUN_TERM_PTR);
+  (*ft)[1]._ptr=Literal::complementaryLiteral(static_cast<Literal*>((*ft)[1]._term()));
 #endif
 
   LitInfo res=li;
@@ -127,7 +133,7 @@ void CodeTree::MatchInfo::init(ILStruct* ils, unsigned liIndex_, DArray<TermList
 }
 
 
-CodeTree::ILStruct::ILStruct(Literal* lit, unsigned varCnt, Stack<unsigned>& gvnStack)
+CodeTree::ILStruct::ILStruct(const Literal* lit, unsigned varCnt, Stack<unsigned>& gvnStack)
 : varCnt(varCnt), sortedGlobalVarNumbers(0), globalVarPermutation(0), timestamp(0)
 {
   ASS_EQ(matches.size(), 0); //we don't want any uninitialized pointers in the array
@@ -292,42 +298,33 @@ CodeTree::MatchInfo*& CodeTree::ILStruct::getMatch(unsigned matchIndex)
   return matches[matchIndex];
 }
 
-CodeTree::CodeOp CodeTree::CodeOp::getSuccess(void* ptr)
-{
-  ASS(ptr); //data has to be a non-zero pointer
-
-  CodeOp res;
-  res.setAlternative(0);
-  res._result=ptr;
-  ASS(res.isSuccess());
-  return res;
-}
 CodeTree::CodeOp CodeTree::CodeOp::getLitEnd(ILStruct* ils)
 {
   CodeOp res;
   res.setAlternative(0);
-  res._data=reinterpret_cast<size_t>(ils)|LIT_END;
+  res._setData(ils);
   ASS(res.isLitEnd());
   return res;
 }
-CodeTree::CodeOp CodeTree::CodeOp::getTermOp(InstructionSuffix i, unsigned num)
+
+CodeTree::CodeOp CodeTree::CodeOp::getTermOp(Instruction i, unsigned num)
 {
   ASS(i==CHECK_FUN || i==CHECK_VAR || i==ASSIGN_VAR);
 
   CodeOp res;
   res.setAlternative(0);
-  res.setLongInstr(i);
-  res.setArg(num);
+  res._setInstruction(i);
+  res._setArg(num);
   return res;
 }
 
-CodeTree::CodeOp CodeTree::CodeOp::getGroundTermCheck(Term* trm)
+CodeTree::CodeOp CodeTree::CodeOp::getGroundTermCheck(const Term* trm)
 {
   ASS(trm->ground());
 
   CodeOp res;
   res.setAlternative(0);
-  res._data=reinterpret_cast<size_t>(trm)|CHECK_GROUND_TERM;
+  res._setData(trm);
   ASS(res.isCheckGroundTerm());
   return res;
 }
@@ -338,44 +335,107 @@ CodeTree::CodeOp CodeTree::CodeOp::getGroundTermCheck(Term* trm)
  */
 bool CodeTree::CodeOp::equalsForOpMatching(const CodeOp& o) const
 {
-  if(instrPrefix()!=o.instrPrefix()) {
+  if(_instruction()!=o._instruction()) {
     return false;
   }
-  switch(instrPrefix()) {
+  switch(_instruction()) {
   case LIT_END:
     return getILS()->equalsForOpMatching(*o.getILS());
   case SUCCESS_OR_FAIL:
   case CHECK_GROUND_TERM:
-    return data()==o.data();
-  case SUFFIX_INSTR:
+    return _data<void>()==o._data<void>();
+  case CHECK_FUN:
+  case ASSIGN_VAR:
+  case CHECK_VAR:
+    return _instruction()==o._instruction() && _arg()==o._arg();
+  default:
     //SEARCH_STRUCT operations in the tree should be handled separately
     //during insertion into the code tree
-    ASS_NEQ(instrSuffix(), SEARCH_STRUCT);
-    return instrSuffix()==o.instrSuffix() && arg()==o.arg();
-  default:
     ASSERTION_VIOLATION;
   }
 }
 
-CodeTree::SearchStruct* CodeTree::CodeOp::getSearchStruct()
+const CodeTree::SearchStruct* CodeTree::CodeOp::getSearchStruct() const
 {
-  //the following line gives warning for not being according
-  //to the standard, so we have to work around
-//  static const size_t opOfs=offsetof(SearchStruct,landingOp);
-  static const size_t opOfs=reinterpret_cast<size_t>(
-	&reinterpret_cast<SearchStruct*>(8)->landingOp)-8;
-
-  SearchStruct* res=reinterpret_cast<SearchStruct*>(
-      reinterpret_cast<size_t>(this)-opOfs);
-
-  return res;
+  ASS(isSearchStruct());
+  return GET_CONTAINING_OBJECT_CONST(CodeTree::SearchStruct,landingOp,this);
 }
 
-CodeTree::SearchStruct::SearchStruct(Kind kind)
+CodeTree::SearchStruct* CodeTree::CodeOp::getSearchStruct()
+{
+  ASS(isSearchStruct());
+  return GET_CONTAINING_OBJECT(CodeTree::SearchStruct,landingOp,this);
+}
+
+std::ostream& operator<<(std::ostream& out, const CodeTree::CodeOp& op)
+{
+  switch (op._instruction()) {
+    case CodeTree::SUCCESS_OR_FAIL:
+      if (op.isSuccess()) {
+        out << "success";
+      } else {
+        out << "fail";
+      }
+      break;
+    case CodeTree::LIT_END:
+      out << "lit end";
+      break;
+    case CodeTree::CHECK_GROUND_TERM:
+      out << "check ground term " << *op.getTargetTerm();
+      break;
+    case CodeTree::CHECK_FUN:
+      out << "check fun " << env.signature->getFunction(op._arg())->name();
+      break;
+    case CodeTree::ASSIGN_VAR:
+      out << "assign var X" << op._arg();
+      break;
+    case CodeTree::CHECK_VAR:
+      out << "check var X" << op._arg();
+      break;
+    case CodeTree::SEARCH_STRUCT:
+      out << "search struct ";
+      auto ss = op.getSearchStruct();
+      switch(ss->kind) {
+        case CodeTree::SearchStruct::FN_STRUCT: {
+          auto fn_ss = static_cast<const CodeTree::FnSearchStruct*>(ss);
+          out << "length " << fn_ss->length();
+          for (unsigned i = 0; i < fn_ss->length(); i++) {
+            out << " " << fn_ss->values[i] << " ";
+            if (fn_ss->targets[i]) {
+              out << *fn_ss->targets[i];
+            } else {
+              out << "nullptr";
+            }
+          }
+          break;
+        }
+        case CodeTree::SearchStruct::GROUND_TERM_STRUCT: {
+          auto gt_ss = static_cast<const CodeTree::GroundTermSearchStruct*>(ss);
+          out << "length " << gt_ss->length();
+          for (unsigned i = 0; i < gt_ss->length(); i++) {
+            out << " " << *gt_ss->values[i] << " ";
+            if (gt_ss->targets[i]) {
+              out << *gt_ss->targets[i];
+            } else {
+              out << "nullptr";
+            }
+          }
+          break;
+        }
+      }
+      break;
+  }
+  return out;
+}
+
+CodeTree::SearchStruct::SearchStruct(Kind kind, size_t length)
 : kind(kind)
 {
   landingOp.setAlternative(0);
-  landingOp.setLongInstr(SEARCH_STRUCT);
+  landingOp._setInstruction(SEARCH_STRUCT);
+  ASS(length);
+
+  targets.reserve(length);
 }
 
 void CodeTree::SearchStruct::destroy()
@@ -390,76 +450,56 @@ void CodeTree::SearchStruct::destroy()
   }
 }
 
+template<bool doInsert>
 bool CodeTree::SearchStruct::getTargetOpPtr(const CodeOp& insertedOp, CodeOp**& tgt)
 {
   switch(kind) {
   case FN_STRUCT:
     if(!insertedOp.isCheckFun()) { return false; }
-    tgt=&static_cast<FnSearchStruct*>(this)->targetOp(insertedOp.arg());
+    tgt=&static_cast<FnSearchStruct*>(this)->targetOp<doInsert>(insertedOp._arg());
     return true;
   case GROUND_TERM_STRUCT:
     if(!insertedOp.isCheckGroundTerm()) { return false; }
-    tgt=&static_cast<GroundTermSearchStruct*>(this)->targetOp(insertedOp.getTargetTerm());
+    tgt=&static_cast<GroundTermSearchStruct*>(this)->targetOp<doInsert>(insertedOp.getTargetTerm());
     return true;
   default:
     ASSERTION_VIOLATION;
   }
 }
+
+// expose for ClauseCodeTree.cpp
+template bool CodeTree::SearchStruct::getTargetOpPtr<false>(const CodeOp&, CodeOp**&);
 
 CodeTree::CodeOp* CodeTree::SearchStruct::getTargetOp(const FlatTerm::Entry* ftPos)
 {
   if(!ftPos->isFun()) { return 0; }
   switch(kind) {
   case FN_STRUCT:
-    return static_cast<FnSearchStruct*>(this)->targetOp(ftPos->number());
+    return static_cast<FnSearchStruct*>(this)->targetOp<false>(ftPos->_number());
   case GROUND_TERM_STRUCT:
     ftPos++;
-    ASS_EQ(ftPos->tag(), FlatTerm::FUN_TERM_PTR);
-    return static_cast<GroundTermSearchStruct*>(this)->targetOp(ftPos->ptr());
+    ASS_EQ(ftPos->_tag(), FlatTerm::FUN_TERM_PTR);
+    return static_cast<GroundTermSearchStruct*>(this)->targetOp<false>(ftPos->_term());
   default:
     ASSERTION_VIOLATION;
   }
 }
 
-CodeTree::FixedSearchStruct::FixedSearchStruct(Kind kind, size_t length)
-: SearchStruct(kind), length(length)
+template<CodeTree::SearchStruct::Kind k>
+CodeTree::SearchStructImpl<k>::SearchStructImpl(size_t length)
+: SearchStruct(k, length)
 {
-  ASS(length);
-
-  size_t tgtSize=sizeof(CodeOp*)*length;
-  targets=static_cast<CodeOp**>(
-      ALLOC_KNOWN(tgtSize, "CodeTree::FixedSearchStruct::targets"));
 }
 
-CodeTree::FixedSearchStruct::~FixedSearchStruct()
-{
-  size_t tgtSize=sizeof(CodeOp*)*length;
-    DEALLOC_KNOWN(targets, tgtSize, "CodeTree::FixedSearchStruct::targets");
-}
-
-CodeTree::GroundTermSearchStruct::GroundTermSearchStruct(size_t length)
-: FixedSearchStruct(GROUND_TERM_STRUCT, length)
-{
-  ASS(length);
-
-  size_t valSize=sizeof(Term*)*length;
-  values=static_cast<Term**>(
-      ALLOC_KNOWN(valSize, "CodeTree::GroundTermSearchStruct::values"));
-}
-
-CodeTree::GroundTermSearchStruct::~GroundTermSearchStruct()
-{
-  size_t valSize=sizeof(Term*)*length;
-  DEALLOC_KNOWN(values, valSize, "CodeTree::GroundTermSearchStruct::values");
-}
-
-CodeTree::CodeOp*& CodeTree::GroundTermSearchStruct::targetOp(const Term* trm)
+template<CodeTree::SearchStruct::Kind k>
+template<bool doInsert>
+CodeTree::CodeOp*& CodeTree::SearchStructImpl<k>::targetOp(const T& val)
 {
   size_t left=0;
-  size_t right=length-1;
+  size_t right=length()-1;
   while(left<right) {
     size_t mid=(left+right)/2;
-    switch(Int::compare(trm, values[mid])) {
+    switch(Int::compare(val, values[mid])) {
     case LESS:
       right=mid;
       break;
@@ -471,86 +511,26 @@ CodeTree::CodeOp*& CodeTree::GroundTermSearchStruct::targetOp(const Term* trm)
     }
   }
   ASS_EQ(left,right);
-  ASS(left==length-1 || trm<=values[left]);
+  ASS(left==length()-1 || val<=values[left]);
+
+  if constexpr (!doInsert) {
+    return targets[left];
+  }
+  if (val==values[left]) {
+    return targets[left];
+  }
+
+  if (val>=values[left]) {
+    left++;
+  }
+  targets.insert(targets.begin()+left,0);
+  values.insert(values.begin()+left,val);
   return targets[left];
 }
-
-/**
- * Comparator that compares two CHECK_GROUND_TERM operations for the
- * purpose of insertion into the FnSearchStruct.
- *
- * Is used in the @b compressCheckGroundTermOps function.
- */
-struct CodeTree::GroundTermSearchStruct::OpComparator
-{
-  static Comparison compare(CodeOp* op1, CodeOp* op2)
-  {
-    return Int::compare(op1->getTargetTerm(), op2->getTargetTerm());
-  }
-};
-
-CodeTree::FnSearchStruct::FnSearchStruct(size_t length)
-: FixedSearchStruct(FN_STRUCT, length)
-{
-  ASS(length);
-
-  size_t valSize=sizeof(unsigned)*length;
-  values=static_cast<unsigned*>(
-      ALLOC_KNOWN(valSize, "CodeTree::SearchStruct::values"));
-}
-
-CodeTree::FnSearchStruct::~FnSearchStruct()
-{
-  size_t valSize=sizeof(unsigned)*length;
-  DEALLOC_KNOWN(values, valSize, "CodeTree::SearchStruct::values");
-}
-
-CodeTree::CodeOp*& CodeTree::FnSearchStruct::targetOp(unsigned fn)
-{
-  size_t left=0;
-  size_t right=length-1;
-  while(left<right) {
-    size_t mid=(left+right)/2;
-    switch(Int::compare(fn, values[mid])) {
-    case LESS:
-      right=mid;
-      break;
-    case GREATER:
-      left=mid+1;
-      break;
-    case EQUAL:
-      return targets[mid];
-    }
-  }
-  ASS_EQ(left,right);
-  ASS(left==length-1 || fn<=values[left]);
-  return targets[left];
-//  if(fn>values[left]) {
-//    return &targets[length];
-//  }
-//  else {
-//    return &targets[left];
-//  }
-}
-
-/**
- * Comparator that compares two CHECK_FUN operations for the
- * purpose of insertion into the FnSearchStruct.
- *
- * Is used in the @b compressCheckFnOps function.
- */
-struct CodeTree::FnSearchStruct::OpComparator
-{
-  static Comparison compare(CodeOp* op1, CodeOp* op2)
-  {
-    return Int::compare(op1->arg(), op2->arg());
-  }
-};
-
 
 inline bool CodeTree::BaseMatcher::doCheckGroundTerm()
 {
-  ASS_EQ(op->instrPrefix(), CHECK_GROUND_TERM);
+  ASS_EQ(op->_instruction(), CHECK_GROUND_TERM);
 
   const FlatTerm::Entry* fte=&(*ft)[tp];
   if(!fte->isFun()) {
@@ -560,14 +540,14 @@ inline bool CodeTree::BaseMatcher::doCheckGroundTerm()
   Term* trm=op->getTargetTerm();
 
   fte++;
-  ASS_EQ(fte->tag(), FlatTerm::FUN_TERM_PTR);
-  ASS(fte->ptr());
-  if(trm!=fte->ptr()) {
+  ASS_EQ(fte->_tag(), FlatTerm::FUN_TERM_PTR);
+  ASS(fte->_term());
+  if(trm!=fte->_term()) {
     return false;
   }
   fte++;
-  ASS_EQ(fte->tag(), FlatTerm::FUN_RIGHT_OFS);
-  tp+=fte->number();
+  ASS_EQ(fte->_tag(), FlatTerm::FUN_RIGHT_OFS);
+  tp+=fte->_number();
   return true;
 }
 
@@ -595,9 +575,8 @@ CodeTree::~CodeTree()
         top_ops.push(top_op->alternative());
       }
       
-      FixedSearchStruct* ss = static_cast<FixedSearchStruct*> (top_op->getSearchStruct());
-      ASS(ss->isFixedSearchStruct());      
-      for (size_t i = 0; i < ss->length; i++) {
+      auto ss = top_op->getSearchStruct();
+      for (size_t i = 0; i < ss->length(); i++) {
         if (ss->targets[i]!=0) { // zeros are allowed as targets (they are holes after removals)
           top_ops.push(ss->targets[i]);
         }
@@ -627,45 +606,36 @@ CodeTree::~CodeTree()
 CodeTree::CodeBlock* CodeTree::firstOpToCodeBlock(CodeOp* op)
 {
   ASS(!op->isSearchStruct());
-
-  //the following line gives warning for not being according
-  //to the standard, so we have to work around
-//  static const size_t opOfs=offsetof(CodeBlock,_array);
-  static const size_t opOfs=reinterpret_cast<size_t>(
-	&reinterpret_cast<CodeBlock*>(8)->_array[0])-8;
-
-  CodeBlock* res=reinterpret_cast<CodeBlock*>(
-      reinterpret_cast<size_t>(op)-opOfs);
-  ASS_ALLOC_TYPE(res,"Vector");
-  return res;
+  return GET_CONTAINING_OBJECT(CodeTree::CodeBlock,_array,op);
 }
 
 
 template<class Visitor>
-void CodeTree::visitAllOps(Visitor visitor)
+void CodeTree::visitAllOps(Visitor visitor) const
 {
-  static Stack<CodeOp*> top_ops; 
+  static Stack<pair<CodeOp*,unsigned>> top_ops;
   // each top_op is either a first op of a Block or a SearchStruct
   // but it cannot be both since SearchStructs don't occur inside blocks
   top_ops.reset();
 
-  if(!isEmpty()) { top_ops.push(getEntryPoint()); }
+  if(!isEmpty()) { top_ops.push(make_pair(getEntryPoint(),0)); }
 
   while(top_ops.isNonEmpty()) {
-    CodeOp* top_op = top_ops.pop();
+    auto kv = top_ops.pop();
+    CodeOp* top_op = kv.first;
+    unsigned depth = kv.second;
             
     if (top_op->isSearchStruct()) {
-      visitor(top_op); // visit the landingOp inside the SearchStruct
+      visitor(top_op, depth); // visit the landingOp inside the SearchStruct
       
       if(top_op->alternative()) {
-        top_ops.push(top_op->alternative());
+        top_ops.push(make_pair(top_op->alternative(),depth));
       }
       
-      FixedSearchStruct* ss = static_cast<FixedSearchStruct*> (top_op->getSearchStruct());
-      ASS(ss->isFixedSearchStruct());      
-      for (size_t i = 0; i < ss->length; i++) {
+      auto ss = top_op->getSearchStruct();
+      for (size_t i = 0; i < ss->length(); i++) {
         if (ss->targets[i]!=0) { // zeros are allowed as targets (they are holes after removals)
-          top_ops.push(ss->targets[i]);
+          top_ops.push(make_pair(ss->targets[i],depth+1));
         }
       }              
     } else {
@@ -674,13 +644,24 @@ void CodeTree::visitAllOps(Visitor visitor)
       CodeOp* op=&(*cb)[0];
       ASS_EQ(top_op,op);
       for(size_t rem=cb->length(); rem; rem--,op++) {
-        visitor(op);        
+        visitor(op, depth+(cb->length()-rem));
         if(op->alternative()) {
-          top_ops.push(op->alternative());
+          top_ops.push(make_pair(op->alternative(),depth+(cb->length()-rem)));
         }
       }
     }
   }
+}
+
+std::ostream& operator<<(std::ostream& out, const CodeTree& ct)
+{
+  ct.visitAllOps([&out](const CodeTree::CodeOp* op, unsigned depth) {
+    for (unsigned i = 0; i < depth; i++) {
+      out << "  ";
+    }
+    out << *op << std::endl;
+  });
+  return out;
 }
 
 //////////////// insertion ////////////////////
@@ -714,19 +695,17 @@ void CodeTree::CompileContext::deinit(CodeTree* tree, bool discarded)
 }
 
 
-void CodeTree::compileTerm(Term* trm, CodeStack& code, CompileContext& cctx, bool addLitEnd)
+void CodeTree::compileTerm(const Term* trm, CodeStack& code, CompileContext& cctx, bool addLitEnd)
 {
   static Stack<unsigned> globalCounterparts;
   globalCounterparts.reset();
-
-  cctx.nextLit();
 
   if(GROUND_TERM_CHECK && trm->ground()) {
     code.push(CodeOp::getGroundTermCheck(trm));
   }
   else {
     if(trm->isLiteral()) {
-      Literal* lit=static_cast<Literal*>(trm);
+      auto lit=static_cast<const Literal*>(trm);
       code.push(CodeOp::getTermOp(CHECK_FUN, lit->header()));
     }
     else {
@@ -774,7 +753,7 @@ void CodeTree::compileTerm(Term* trm, CodeStack& code, CompileContext& cctx, boo
     ASS(trm->isLiteral());  //LIT_END operation makes sense only for literals
     unsigned varCnt=cctx.nextVarNum;
     ASS_EQ(varCnt, globalCounterparts.size());
-    ILStruct* ils=new ILStruct(static_cast<Literal*>(trm), varCnt, globalCounterparts);
+    ILStruct* ils=new ILStruct(static_cast<const Literal*>(trm), varCnt, globalCounterparts);
     code.push(CodeOp::getLitEnd(ils));
   }
 
@@ -841,7 +820,7 @@ void CodeTree::incorporate(CodeStack& code)
           //handle the SEARCH_STRUCT
           SearchStruct* ss = treeOp->getSearchStruct();
           CodeOp** toPtr;
-          if (ss->getTargetOpPtr(code[i], toPtr)) {
+          if (ss->getTargetOpPtr<true>(code[i], toPtr)) {
             if (!*toPtr) {
               tailTarget = toPtr;
               matchedCnt = i;
@@ -872,7 +851,7 @@ void CodeTree::incorporate(CodeStack& code)
           if (checkFunOps > checkFunOpThreshold) {
             //we put CHECK_FUN ops into the SEARCH_STRUCT op, and
             //restart with the chain
-            compressCheckOps(chainStart, SearchStruct::FN_STRUCT);
+            compressCheckOps<SearchStruct::FN_STRUCT>(chainStart);
             treeOp = chainStart;
             checkFunOps = 0;
             checkGroundTermOps = 0;
@@ -887,7 +866,7 @@ void CodeTree::incorporate(CodeStack& code)
           if (checkGroundTermOps > checkGroundTermOpThreshold) {
             //we put CHECK_GROUND_TERM ops into the SEARCH_STRUCT op, and
             //restart with the chain
-            compressCheckOps(chainStart, SearchStruct::GROUND_TERM_STRUCT);
+            compressCheckOps<SearchStruct::GROUND_TERM_STRUCT>(chainStart);
             treeOp = chainStart;
             checkFunOps = 0;
             checkGroundTermOps = 0;
@@ -940,7 +919,8 @@ matching_done:
   }
 }
 
-void CodeTree::compressCheckOps(CodeOp* chainStart, SearchStruct::Kind kind)
+template<CodeTree::SearchStruct::Kind k>
+void CodeTree::compressCheckOps(CodeOp* chainStart)
 {
   ASS(chainStart->alternative());
 
@@ -957,14 +937,19 @@ void CodeTree::compressCheckOps(CodeOp* chainStart, SearchStruct::Kind kind)
     if (op->alternative()) {
       toDo.push(op->alternative());
     }
-    if ((kind == SearchStruct::FN_STRUCT && op->isCheckFun()) ||
-            (kind == SearchStruct::GROUND_TERM_STRUCT && op->isCheckGroundTerm())) {
+    bool ofKind;
+    if constexpr (k == SearchStruct::FN_STRUCT) {
+      ofKind = op->isCheckFun();
+    } else {
+      ofKind = op->isCheckGroundTerm();
+    }
+
+    if (ofKind) {
       chfOps.push(op);
     } else if (op->isSearchStruct()) {
-      FixedSearchStruct* ss = static_cast<FixedSearchStruct*> (op->getSearchStruct());
-      ASS(ss->isFixedSearchStruct());
-      if (ss->kind == kind) {
-        for (size_t i = 0; i < ss->length; i++) {
+      auto ss = op->getSearchStruct();
+      if (ss->kind == k) {
+        for (size_t i = 0; i < ss->length(); i++) {
           if (ss->targets[i]) {
             toDo.push(ss->targets[i]);
           }
@@ -980,36 +965,29 @@ void CodeTree::compressCheckOps(CodeOp* chainStart, SearchStruct::Kind kind)
 
   ASS_G(chfOps.size(),1);
   size_t slen=chfOps.size();
-  SearchStruct* ss;
-  if(kind==SearchStruct::FN_STRUCT) {
-    FnSearchStruct* res=new FnSearchStruct(slen);
+  auto res=new SearchStructImpl<k>(slen);
 
-    sort<FnSearchStruct::OpComparator>(chfOps.begin(), chfOps.end());
+  sort(chfOps.begin(), chfOps.end(), [](CodeOp* op1, CodeOp* op2) {
+    if constexpr (k==SearchStruct::FN_STRUCT) {
+      return op1->_arg() < op2->_arg();
+    } else {
+      return op1->getTargetTerm() < op2->getTargetTerm();
+    }
+  });
 
-    for(size_t i=0;i<slen;i++) {
+  for(size_t i=0;i<slen;i++) {
+    if constexpr (k==SearchStruct::FN_STRUCT) {
       ASS(chfOps[i]->isCheckFun());
-      res->values[i]=chfOps[i]->arg();
-      res->targets[i]=chfOps[i];
-      chfOps[i]->setAlternative(0);
-    }
-    ss=res;
-  }
-  else {
-    ASS_EQ(kind, SearchStruct::GROUND_TERM_STRUCT);
-    GroundTermSearchStruct* res=new GroundTermSearchStruct(slen);
-
-    sort<GroundTermSearchStruct::OpComparator>(chfOps.begin(), chfOps.end());
-
-    for(size_t i=0;i<slen;i++) {
+      res->values.push_back(chfOps[i]->_arg());
+    } else {
       ASS(chfOps[i]->isCheckGroundTerm());
-      res->values[i]=chfOps[i]->getTargetTerm();
-      res->targets[i]=chfOps[i];
-      chfOps[i]->setAlternative(0);
+      res->values.push_back(chfOps[i]->getTargetTerm());
     }
-    ss=res;
+    res->targets.push_back(chfOps[i]);
+    chfOps[i]->setAlternative(0);
   }
 
-  CodeOp* op=&ss->landingOp;
+  CodeOp* op=&res->landingOp;
   chainStart->setAlternative(op);
   while(otherOps.isNonEmpty()) {
     CodeOp* next=otherOps.pop();
@@ -1092,10 +1070,9 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp
 	prevFirstOp->setAlternative(alt);
 	return;
       }
-      FixedSearchStruct* ss=static_cast<FixedSearchStruct*>(prevFirstOp->getSearchStruct());
-      ASS(ss->isFixedSearchStruct());
+      auto ss = prevFirstOp->getSearchStruct();
       CodeOp** tgtPtr;
-      ALWAYS(ss->getTargetOpPtr(firstOpCopy, tgtPtr));
+      ALWAYS(ss->getTargetOpPtr<false>(firstOpCopy, tgtPtr));
       ASS_EQ(*tgtPtr, firstOp);
       *tgtPtr=alt;
       if(alt) {
@@ -1103,7 +1080,7 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp
 	    (ss->kind==SearchStruct::GROUND_TERM_STRUCT && alt->isCheckGroundTerm()) );
 	return;
       }
-      for(size_t i=0; i<ss->length; i++) {
+      for(size_t i=0; i<ss->length(); i++) {
 	if(ss->targets[i]!=0) {
 	  //the SearchStruct still contains something, so we won't delete it
 	  //TODO: we might want to compress the SearchStruct, if there are too many zeroes
@@ -1196,29 +1173,27 @@ bool CodeTree::RemovingMatcher::next()
     if(op->alternative()) {
       btStack.push(BTPoint(tp, op->alternative(), firstsInBlocks->size()));
     }
-    switch(op->instrPrefix()) {
-    case SUCCESS_OR_FAIL:
-      if(op->isFail()) {
-	shouldBacktrack=true;
-	break;
-      }
-      if(matchingClauses) {
-	//we can succeed only in certain depth and that will be handled separately
-	shouldBacktrack=true;
-      }
-      else {
-	//we are matching terms in a TermCodeTree
-	return true;
-      }
-      break;
-    case LIT_END:
-      ASS(matchingClauses);
-      return true;
-    case CHECK_GROUND_TERM:
-      shouldBacktrack=!doCheckGroundTerm();
-      break;
-    case SUFFIX_INSTR:
-      switch(op->instrSuffix()) {
+    switch(op->_instruction()) {
+      case SUCCESS_OR_FAIL:
+        if(op->isFail()) {
+          shouldBacktrack=true;
+          break;
+        }
+        if(matchingClauses) {
+          //we can succeed only in certain depth and that will be handled separately
+          shouldBacktrack=true;
+        }
+        else {
+          //we are matching terms in a TermCodeTree
+          return true;
+        }
+        break;
+      case LIT_END:
+        ASS(matchingClauses);
+        return true;
+      case CHECK_GROUND_TERM:
+        shouldBacktrack=!doCheckGroundTerm();
+        break;
       case CHECK_FUN:
         shouldBacktrack=!doCheckFun();
         break;
@@ -1237,8 +1212,6 @@ bool CodeTree::RemovingMatcher::next()
           shouldBacktrack=true;
         }
         break;
-      }
-      break;
     }
     if(shouldBacktrack) {
       if(!backtrack()) {
@@ -1286,7 +1259,7 @@ bool CodeTree::RemovingMatcher::prepareLiteral()
 
 inline bool CodeTree::RemovingMatcher::doSearchStruct()
 {
-  ASS_EQ(op->instrSuffix(), SEARCH_STRUCT);
+  ASS_EQ(op->_instruction(), SEARCH_STRUCT);
 
   const FlatTerm::Entry* fte=&(*ft)[tp];
   CodeOp* target=op->getSearchStruct()->getTargetOp(fte);
@@ -1300,40 +1273,41 @@ inline bool CodeTree::RemovingMatcher::doSearchStruct()
 
 inline bool CodeTree::RemovingMatcher::doCheckFun()
 {
-  ASS_EQ(op->instrSuffix(), CHECK_FUN);
+  ASS_EQ(op->_instruction(), CHECK_FUN);
 
-  unsigned functor=op->arg();
-  const FlatTerm::Entry& fte=(*ft)[tp];
+  unsigned functor=op->_arg();
+  FlatTerm::Entry& fte=(*ft)[tp];
   if(!fte.isFun(functor)) {
     return false;
   }
-  tp+=FlatTerm::functionEntryCount;
+  fte.expand();
+  tp+=FlatTerm::FUNCTION_ENTRY_COUNT;
   return true;
 }
 
 inline bool CodeTree::RemovingMatcher::doAssignVar()
 {
-  ASS_EQ(op->instrSuffix(), ASSIGN_VAR);
+  ASS_EQ(op->_instruction(), ASSIGN_VAR);
 
   //we are looking for variants and they match only other variables into variables
-  unsigned var=op->arg();
+  unsigned var=op->_arg();
   const FlatTerm::Entry* fte=&(*ft)[tp];
-  if(fte->tag()!=FlatTerm::VAR) {
+  if(fte->_tag()!=FlatTerm::VAR) {
     return false;
   }
-  bindings[var]=fte->number();
+  bindings[var]=fte->_number();
   tp++;
   return true;
 }
 
 inline bool CodeTree::RemovingMatcher::doCheckVar()
 {
-  ASS_EQ(op->instrSuffix(), CHECK_VAR);
+  ASS_EQ(op->_instruction(), CHECK_VAR);
 
   //we are looking for variants and they match only other variables into variables
-  unsigned var=op->arg();
+  unsigned var=op->_arg();
   const FlatTerm::Entry* fte=&(*ft)[tp];
-  if(fte->tag()!=FlatTerm::VAR || bindings[var]!=fte->number()) {
+  if(fte->_tag()!=FlatTerm::VAR || bindings[var]!=fte->_number()) {
     return false;
   }
   tp++;
@@ -1383,28 +1357,26 @@ bool CodeTree::Matcher::execute()
     if(op->alternative()) {
       btStack.push(BTPoint(tp, op->alternative()));
     }
-    switch(op->instrPrefix()) {
-    case SUCCESS_OR_FAIL:
-      if(op->isFail()) {
-	shouldBacktrack=true;
-	break;
-      }
-      //yield successes only in the first round (we don't want to yield the
-      //same thing for each query literal)
-      if(curLInfo==0) {
-	return true;
-      }
-      else {
-	shouldBacktrack=true;
-      }
-      break;
-    case LIT_END:
-      return true;
-    case CHECK_GROUND_TERM:
-      shouldBacktrack=!doCheckGroundTerm();
-      break;
-    case SUFFIX_INSTR:
-      switch(op->instrSuffix()) {
+    switch(op->_instruction()) {
+      case SUCCESS_OR_FAIL:
+        if(op->isFail()) {
+          shouldBacktrack=true;
+          break;
+        }
+        //yield successes only in the first round (we don't want to yield the
+        //same thing for each query literal)
+        if(curLInfo==0) {
+          return true;
+        }
+        else {
+          shouldBacktrack=true;
+        }
+        break;
+      case LIT_END:
+        return true;
+      case CHECK_GROUND_TERM:
+        shouldBacktrack=!doCheckGroundTerm();
+        break;
       case CHECK_FUN:
         shouldBacktrack=!doCheckFun();
         break;
@@ -1415,16 +1387,14 @@ bool CodeTree::Matcher::execute()
         shouldBacktrack=!doCheckVar();
         break;
       case SEARCH_STRUCT:
-	if(doSearchStruct()) {
-	  //a new value of @b op is assigned, so restart the loop
-	  continue;
-	}
-	else {
-	  shouldBacktrack=true;
-	}
-	break;
-      }
-      break;
+        if(doSearchStruct()) {
+          //a new value of @b op is assigned, so restart the loop
+          continue;
+        }
+        else {
+          shouldBacktrack=true;
+        }
+        break;
     }
     if(shouldBacktrack) {
       if(!backtrack()) {
@@ -1475,7 +1445,7 @@ bool CodeTree::Matcher::prepareLiteral()
 
 inline bool CodeTree::Matcher::doSearchStruct()
 {
-  ASS_EQ(op->instrSuffix(), SEARCH_STRUCT);
+  ASS_EQ(op->_instruction(), SEARCH_STRUCT);
 
   const FlatTerm::Entry* fte=&(*ft)[tp];
   op=op->getSearchStruct()->getTargetOp(fte);
@@ -1484,61 +1454,62 @@ inline bool CodeTree::Matcher::doSearchStruct()
 
 inline bool CodeTree::Matcher::doCheckFun()
 {
-  ASS_EQ(op->instrSuffix(), CHECK_FUN);
+  ASS_EQ(op->_instruction(), CHECK_FUN);
 
-  unsigned functor=op->arg();
-  const FlatTerm::Entry& fte=(*ft)[tp];
+  unsigned functor=op->_arg();
+  FlatTerm::Entry& fte=(*ft)[tp];
   if(!fte.isFun(functor)) {
     return false;
   }
-  tp+=FlatTerm::functionEntryCount;
+  fte.expand();
+  tp+=FlatTerm::FUNCTION_ENTRY_COUNT;
   return true;
 }
 
 inline void CodeTree::Matcher::doAssignVar()
 {
-  ASS_EQ(op->instrSuffix(), ASSIGN_VAR);
+  ASS_EQ(op->_instruction(), ASSIGN_VAR);
 
-  unsigned var=op->arg();
+  unsigned var=op->_arg();
   const FlatTerm::Entry* fte=&(*ft)[tp];
-  if(fte->tag()==FlatTerm::VAR) {
-    bindings[var]=TermList(fte->number(),false);
+  if(fte->_tag()==FlatTerm::VAR) {
+    bindings[var]=TermList(fte->_number(),false);
     tp++;
   }
   else {
-    ASS_EQ(fte->tag(), FlatTerm::FUN);
+    ASS(fte->isFun());
     fte++;
-    ASS_EQ(fte->tag(), FlatTerm::FUN_TERM_PTR);
-    ASS(fte->ptr());
-    bindings[var]=TermList(fte->ptr());
+    ASS_EQ(fte->_tag(), FlatTerm::FUN_TERM_PTR);
+    ASS(fte->_term());
+    bindings[var]=TermList(fte->_term());
     fte++;
-    ASS_EQ(fte->tag(), FlatTerm::FUN_RIGHT_OFS);
-    tp+=fte->number();
+    ASS_EQ(fte->_tag(), FlatTerm::FUN_RIGHT_OFS);
+    tp+=fte->_number();
   }
 }
 
 inline bool CodeTree::Matcher::doCheckVar()
 {
-  ASS_EQ(op->instrSuffix(), CHECK_VAR);
+  ASS_EQ(op->_instruction(), CHECK_VAR);
 
-  unsigned var=op->arg();
+  unsigned var=op->_arg();
   const FlatTerm::Entry* fte=&(*ft)[tp];
-  if(fte->tag()==FlatTerm::VAR) {
-    if(bindings[var]!=TermList(fte->number(),false)) {
+  if(fte->_tag()==FlatTerm::VAR) {
+    if(bindings[var]!=TermList(fte->_number(),false)) {
       return false;
     }
     tp++;
   }
   else {
-    ASS_EQ(fte->tag(), FlatTerm::FUN);
+    ASS(fte->isFun());
     fte++;
-    ASS_EQ(fte->tag(), FlatTerm::FUN_TERM_PTR);
-    if(bindings[var]!=TermList(fte->ptr())) {
+    ASS_EQ(fte->_tag(), FlatTerm::FUN_TERM_PTR);
+    if(bindings[var]!=TermList(fte->_term())) {
       return false;
     }
     fte++;
-    ASS_EQ(fte->tag(), FlatTerm::FUN_RIGHT_OFS);
-    tp+=fte->number();
+    ASS_EQ(fte->_tag(), FlatTerm::FUN_RIGHT_OFS);
+    tp+=fte->_number();
   }
   return true;
 }

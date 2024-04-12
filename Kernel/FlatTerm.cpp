@@ -62,8 +62,8 @@ FlatTerm::FlatTerm(size_t length)
 
 size_t FlatTerm::getEntryCount(Term* t)
 {
-  //functionEntryCount entries per function and one per variable
-  return t->weight()*functionEntryCount-(functionEntryCount-1)*t->numVarOccs();
+  //FUNCTION_ENTRY_COUNT entries per function and one per variable
+  return t->weight()*FUNCTION_ENTRY_COUNT-(FUNCTION_ENTRY_COUNT-1)*t->numVarOccs();
 }
 
 FlatTerm* FlatTerm::create(Term* t)
@@ -111,6 +111,33 @@ FlatTerm* FlatTerm::create(TermList t)
   return res;
 }
 
+FlatTerm* FlatTerm::createUnexpanded(Term* t)
+{
+  size_t entries=getEntryCount(t);
+
+  FlatTerm* res=new(entries) FlatTerm(entries);
+
+  res->_data[0]=Entry(FUN_UNEXPANDED,
+      t->isLiteral() ? static_cast<Literal*>(t)->header() : t->functor());
+  res->_data[1]=Entry(t);
+  res->_data[2]=Entry(FUN_RIGHT_OFS, entries);
+
+  return res;
+}
+
+FlatTerm* FlatTerm::createUnexpanded(TermList t)
+{
+  if(t.isTerm()) {
+    return createUnexpanded(t.term());
+  }
+  ASS(t.isOrdinaryVar());
+
+  FlatTerm* res=new(1) FlatTerm(1);
+  res->_data[0]=Entry(VAR, t.var());
+
+  return res;
+}
+
 FlatTerm* FlatTerm::copy(const FlatTerm* ft)
 {
   size_t entries=ft->_length;
@@ -121,29 +148,29 @@ FlatTerm* FlatTerm::copy(const FlatTerm* ft)
 
 void FlatTerm::swapCommutativePredicateArguments()
 {
-  ASS_EQ((*this)[0].tag(), FUN);
-  ASS_EQ((*this)[0].number()|1, 1); //as for now, the only commutative predicate is equality
+  ASS_EQ((*this)[0]._tag(), FUN);
+  ASS_EQ((*this)[0]._number()|1, 1); //as for now, the only commutative predicate is equality
 
   size_t firstStart=3;
   size_t firstLen;
-  if((*this)[firstStart].tag()==FUN) {
-    ASS_EQ((*this)[firstStart+2].tag(), FUN_RIGHT_OFS);
-    firstLen=(*this)[firstStart+2].number();
+  if((*this)[firstStart]._tag()==FUN) {
+    ASS_EQ((*this)[firstStart+2]._tag(), FUN_RIGHT_OFS);
+    firstLen=(*this)[firstStart+2]._number();
   }
   else {
-    ASS_EQ((*this)[firstStart].tag(), VAR);
+    ASS_EQ((*this)[firstStart]._tag(), VAR);
     firstLen=1;
   }
 
   size_t secStart=firstStart+firstLen;
   size_t secLen;
 
-  if((*this)[secStart].tag()==FUN) {
-    ASS_EQ((*this)[secStart+2].tag(), FUN_RIGHT_OFS);
-    secLen=(*this)[secStart+2].number();
+  if((*this)[secStart]._tag()==FUN) {
+    ASS_EQ((*this)[secStart+2]._tag(), FUN_RIGHT_OFS);
+    secLen=(*this)[secStart+2]._number();
   }
   else {
-    ASS_EQ((*this)[secStart].tag(), VAR);
+    ASS_EQ((*this)[secStart]._tag(), VAR);
     secLen=1;
   }
   ASS_EQ(secStart+secLen,_length);
@@ -161,6 +188,34 @@ void FlatTerm::swapCommutativePredicateArguments()
     memcpy(&_data[firstStart+secLen], &_data[firstStart], firstLen*sizeof(Entry));
     memcpy(&_data[firstStart], buf.array(), secLen*sizeof(Entry));
   }
+}
+
+void FlatTerm::Entry::expand()
+{
+  if (_tag()==FUN) {
+    return;
+  }
+  ASS(_tag()==FUN_UNEXPANDED);
+  ASS(this[1]._tag()==FUN_TERM_PTR);
+  ASS(this[2]._tag()==FUN_RIGHT_OFS);
+  Term* t = this[1]._term();
+  size_t p = FlatTerm::FUNCTION_ENTRY_COUNT;
+  for (unsigned i = 0; i < t->arity(); i++) {
+    auto arg = t->nthArgument(i);
+    if (arg->isVar()) {
+      ASS(arg->isOrdinaryVar());
+      this[p++] = Entry(VAR, arg->var());
+    }
+    else {
+      ASS(arg->isTerm());
+      this[p] = Entry(FUN_UNEXPANDED, arg->term()->functor());
+      this[p+1] = Entry(arg->term());
+      this[p+2] = Entry(FUN_RIGHT_OFS, getEntryCount(arg->term()));
+      p += this[p+2]._number();
+    }
+  }
+  ASS_EQ(p,this[2]._number());
+  _setTag(FUN);
 }
 
 };
