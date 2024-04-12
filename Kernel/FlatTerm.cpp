@@ -62,8 +62,8 @@ FlatTerm::FlatTerm(size_t length)
 
 size_t FlatTerm::getEntryCount(Term* t)
 {
-  //functionEntryCount entries per function and one per variable
-  return t->weight()*functionEntryCount-(functionEntryCount-1)*t->numVarOccs();
+  //FUNCTION_ENTRY_COUNT entries per function and one per variable
+  return t->weight()*FUNCTION_ENTRY_COUNT-(FUNCTION_ENTRY_COUNT-1)*t->numVarOccs();
 }
 
 FlatTerm* FlatTerm::create(Term* t)
@@ -217,29 +217,29 @@ FlatTerm* FlatTerm::copy(const FlatTerm* ft)
 
 void FlatTerm::swapCommutativePredicateArguments()
 {
-  ASS_EQ((*this)[0].tag(), FUN);
-  ASS_EQ((*this)[0].number()|1, 1); //as for now, the only commutative predicate is equality
+  ASS_EQ((*this)[0]._tag(), FUN);
+  ASS_EQ((*this)[0]._number()|1, 1); //as for now, the only commutative predicate is equality
 
   size_t firstStart=3;
   size_t firstLen;
-  if((*this)[firstStart].tag()==FUN) {
-    ASS_EQ((*this)[firstStart+2].tag(), FUN_RIGHT_OFS);
-    firstLen=(*this)[firstStart+2].number();
+  if((*this)[firstStart]._tag()==FUN) {
+    ASS_EQ((*this)[firstStart+2]._tag(), FUN_RIGHT_OFS);
+    firstLen=(*this)[firstStart+2]._number();
   }
   else {
-    ASS_EQ((*this)[firstStart].tag(), VAR);
+    ASS_EQ((*this)[firstStart]._tag(), VAR);
     firstLen=1;
   }
 
   size_t secStart=firstStart+firstLen;
   size_t secLen;
 
-  if((*this)[secStart].tag()==FUN) {
-    ASS_EQ((*this)[secStart+2].tag(), FUN_RIGHT_OFS);
-    secLen=(*this)[secStart+2].number();
+  if((*this)[secStart]._tag()==FUN) {
+    ASS_EQ((*this)[secStart+2]._tag(), FUN_RIGHT_OFS);
+    secLen=(*this)[secStart+2]._number();
   }
   else {
-    ASS_EQ((*this)[secStart].tag(), VAR);
+    ASS_EQ((*this)[secStart]._tag(), VAR);
     secLen=1;
   }
   ASS_EQ(secStart+secLen,_length);
@@ -261,14 +261,14 @@ void FlatTerm::swapCommutativePredicateArguments()
 
 void FlatTerm::Entry::expand()
 {
-  if (tag()==FUN) {
+  if (_tag()==FUN) {
     return;
   }
-  ASS(tag()==FUN_UNEXPANDED);
-  ASS(this[1].tag()==FUN_TERM_PTR);
-  ASS(this[2].tag()==FUN_RIGHT_OFS);
-  Term* t = this[1].ptr();
-  size_t p = FlatTerm::functionEntryCount;
+  ASS(_tag()==FUN_UNEXPANDED);
+  ASS(this[1]._tag()==FUN_TERM_PTR);
+  ASS(this[2]._tag()==FUN_RIGHT_OFS);
+  Term* t = this[1]._term();
+  size_t p = FlatTerm::FUNCTION_ENTRY_COUNT;
   for (unsigned i = 0; i < t->arity(); i++) {
     auto arg = t->nthArgument(i);
     if (arg->isVar()) {
@@ -280,11 +280,11 @@ void FlatTerm::Entry::expand()
       this[p] = Entry(FUN_UNEXPANDED, arg->term()->functor());
       this[p+1] = Entry(arg->term());
       this[p+2] = Entry(FUN_RIGHT_OFS, getEntryCount(arg->term()));
-      p += this[p+2].number();
+      p += this[p+2]._number();
     }
   }
-  ASS_EQ(p,this[2].number());
-  _info.tag = FUN;
+  ASS_EQ(p,this[2]._number());
+  _setTag(FUN);
 }
 
 };

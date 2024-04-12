@@ -195,7 +195,7 @@ SubstitutionCoverTree::LeafData* SubstitutionCoverTree::SubstMatcher::next()
   }
 
   ASS(op->isSuccess());
-  return static_cast<LeafData*>(op->getSuccessResult());
+  return op->getSuccessResult<LeafData>();
 }
 
 }
