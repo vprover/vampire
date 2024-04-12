@@ -85,17 +85,13 @@ public:
     static_assert(sizeof(void *) <= sizeof(uint64_t), "must be able to fit a pointer into a 64-bit integer");
     static_assert(FUN_UNEXPANDED < 8, "must be able to squash tags into 3 bits");
 
-  // getters and setters
-#define GET_AND_SET(type, name, Name, NAME) \
-    type _##name() const { return BitUtils::getBits<NAME##_BITS_START, NAME##_BITS_END>(*this); }\
-    void _set##Name(type val) { BitUtils::setBits<NAME##_BITS_START, NAME##_BITS_END>(*this, val); }
-    GET_AND_SET(unsigned, tag, Tag, TAG)
-    GET_AND_SET(unsigned, number, Number, NUMBER)
-#undef GET_AND_SET
-    Term *_term() const
-    { return reinterpret_cast<Term *>(BitUtils::getBits<TERM_BITS_START, TERM_BITS_END>(*this)); }
-    void _setTerm(Term *term)
-    { BitUtils::setBits<TERM_BITS_START, TERM_BITS_END>(*this, reinterpret_cast<uint64_t>(term)); }
+    // getters and setters
+    BITFIELD64_GET_AND_SET(unsigned, tag, Tag, TAG)
+    BITFIELD64_GET_AND_SET(unsigned, number, Number, NUMBER)
+    Term* _term() const
+    { return reinterpret_cast<Term*>(BitUtils::getBits<TERM_BITS_START, TERM_BITS_END>(_content)); }
+    void _setTerm(Term* term)
+    { BitUtils::setBits<TERM_BITS_START, TERM_BITS_END>(_content, reinterpret_cast<uint64_t>(term)); }
     // end bitfield
   };
 
