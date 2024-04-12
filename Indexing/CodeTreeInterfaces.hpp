@@ -51,7 +51,7 @@ public:
   // TODO: get rid of NOT_IMPLEMENTED
   VirtualIterator<QueryRes<AbstractingUnifier*, TermLiteralClause>> getUwa(TypedTermList t, Options::UnificationWithAbstraction, bool fixedPointIteration) override { NOT_IMPLEMENTED; }
 
-  virtual void output(std::ostream& out) const final override { out << "CodeTree"; }
+  virtual void output(std::ostream& out) const final override { out << _ct; }
 
 private:
   void _insert(TypedTermList t, Literal* lit, Clause* cls);
