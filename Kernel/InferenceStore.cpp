@@ -533,10 +533,11 @@ protected:
     switch(rule) {
     case InferenceRule::INPUT:
       if (origin==UnitInputType::CONJECTURE) {
-	return "conjecture";
-      }
-      else {
-	return "axiom";
+	      return "conjecture";
+      } else if (origin==UnitInputType::NEGATED_CONJECTURE) {
+        return "negated_conjecture";
+      } else {
+	      return "axiom";
       }
     case InferenceRule::NEGATED_CONJECTURE:
       return "negated_conjecture";
