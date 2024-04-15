@@ -38,9 +38,6 @@ public:
   virtual ~AnswerExtractor() {}
   static void tryOutputAnswer(Clause* refutation);
   virtual bool tryGetAnswer(Clause* refutation, Stack<TermList>& answer) = 0;
-
-protected:
-  void getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits);
 };
 
 
@@ -90,6 +87,8 @@ public:
   Literal* makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit);
 
 private:
+  void getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits);
+
   class ConjectureSkolemReplacement : public TermTransformer {
    public:
     ConjectureSkolemReplacement() : _skolemToVar() {}

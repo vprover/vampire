@@ -82,35 +82,6 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
   std::cout << "]|_] for " << env.options->problemName() << endl;
 }
 
-void AnswerExtractor::getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits)
-{
-  InferenceStore& is = *InferenceStore::instance();
-
-  Stack<Unit*> toDo;
-  toDo.push(refutation);
-
-  while(toDo.isNonEmpty()) {
-    Unit* curr = toDo.pop();
-    if(!allProofUnits.insert(curr)) {
-      continue;
-    }
-    InferenceRule infRule;
-    UnitIterator parents = is.getParents(curr, infRule);
-    if(infRule==InferenceRule::NEGATED_CONJECTURE) {
-      conjectures.push(curr);
-    }
-    if(infRule==InferenceRule::CLAUSIFY ||
-	(curr->isClause() && (infRule==InferenceRule::INPUT || infRule==InferenceRule::NEGATED_CONJECTURE )) ){
-      ASS(curr->isClause());
-      premiseClauses.push(curr->asClause());
-    }
-    while(parents.hasNext()) {
-      Unit* premise = parents.next();
-      toDo.push(premise);
-    }
-  }
-}
-
 ///////////////////////
 // AnswerLiteralManager
 //
@@ -244,7 +215,7 @@ void AnswerLiteralManager::onNewClause(Clause* cl)
   }
 
   _answers.push(cl);
-  
+
   Clause* refutation = getRefutation(cl);
   throw MainLoop::RefutationFoundException(refutation);
 }
@@ -289,11 +260,44 @@ Clause* AnswerLiteralManager::getRefutation(Clause* answer)
   return refutation;
 }
 
+///////////////////////
+// SynthesisManager
+//
+
 SynthesisManager* SynthesisManager::getInstance()
 {
   static SynthesisManager instance;
 
   return &instance;
+}
+
+void SynthesisManager::getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits)
+{
+  InferenceStore& is = *InferenceStore::instance();
+
+  Stack<Unit*> toDo;
+  toDo.push(refutation);
+
+  while(toDo.isNonEmpty()) {
+    Unit* curr = toDo.pop();
+    if(!allProofUnits.insert(curr)) {
+      continue;
+    }
+    InferenceRule infRule;
+    UnitIterator parents = is.getParents(curr, infRule);
+    if(infRule==InferenceRule::NEGATED_CONJECTURE) {
+      conjectures.push(curr);
+    }
+    if(infRule==InferenceRule::CLAUSIFY ||
+	(curr->isClause() && (infRule==InferenceRule::INPUT || infRule==InferenceRule::NEGATED_CONJECTURE )) ){
+      ASS(curr->isClause());
+      premiseClauses.push(curr->asClause());
+    }
+    while(parents.hasNext()) {
+      Unit* premise = parents.next();
+      toDo.push(premise);
+    }
+  }
 }
 
 bool SynthesisManager::tryGetAnswer(Clause* refutation, Stack<TermList>& answer)
