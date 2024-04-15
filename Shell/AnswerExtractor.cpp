@@ -49,18 +49,9 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
 {
   Stack<TermList> answer;
 
-  bool hasALManager = false, hasSyntManager = false;
-  if (AnswerLiteralManager::getInstance()->tryGetAnswer(refutation, answer)) {
-    hasALManager = true;
-  } else if (SynthesisManager::getInstance()->tryGetAnswer(refutation, answer)) {
-    hasSyntManager = true;
-  } else {
+  if (!AnswerLiteralManager::getInstance()->tryGetAnswer(refutation, answer) &&
+      !SynthesisManager::getInstance()->tryGetAnswer(refutation, answer)) {
     return;
-  }
-  if (hasALManager) {
-    AnswerLiteralManager::getInstance()->tryOutputInputUnits();
-  } else if (hasSyntManager) {
-    SynthesisManager::getInstance()->tryOutputInputUnits();
   }
   std::cout << "% SZS answers Tuple [[";
   Stack<TermList>::BottomFirstIterator ait(answer);
@@ -89,16 +80,6 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
     }
   }
   std::cout << "]|_] for " << env.options->problemName() << endl;
-}
-
-void AnswerExtractor::tryOutputInputUnits() {
-  if (!UnitList::isEmpty(_inputs)) {
-    std::cout << "% Inputs for question answering:" << endl;
-    UnitList::Iterator it(_inputs);
-    while (it.hasNext()) {
-      std::cout << it.next()->toString() << endl;
-    }
-  }
 }
 
 void AnswerExtractor::getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits)

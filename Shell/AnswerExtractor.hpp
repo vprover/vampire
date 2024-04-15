@@ -36,18 +36,11 @@ using namespace Indexing;
 class AnswerExtractor {
 public:
   virtual ~AnswerExtractor() {}
-
   static void tryOutputAnswer(Clause* refutation);
-
   virtual bool tryGetAnswer(Clause* refutation, Stack<TermList>& answer) = 0;
 
-  void tryOutputInputUnits();
-
-  void addInputUnit(Unit* unit) { UnitList::push(unit, _inputs); }
 protected:
   void getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits);
-
-  UnitList* _inputs = nullptr;
 };
 
 
