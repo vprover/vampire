@@ -50,14 +50,6 @@ protected:
   UnitList* _inputs = nullptr;
 };
 
-class ConjunctionGoalAnswerExractor : public AnswerExtractor {
-public:
-  virtual bool tryGetAnswer(Clause* refutation, Stack<TermList>& answer);
-
-private:
-  class SubstBuilder;
-};
-
 
 class AnswerLiteralManager : public AnswerExtractor
 {
