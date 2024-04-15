@@ -3642,7 +3642,7 @@ void TPTP::endFof()
         g->vars(),
         g->sorts(),
         new BinaryFormula(IMP,g->subformula(),new AtomicFormula(a)));
-        unit = new FormulaUnit(f,FormulaTransformation(InferenceRule::ANSWER_LITERAL,unit));
+        unit = new FormulaUnit(f,FormulaTransformation(InferenceRule::ANSWER_LITERAL_INJECTION,unit));
     }
     else {
       VList* vs = freeVariables(f);

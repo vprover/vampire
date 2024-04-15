@@ -200,7 +200,7 @@ Formula* AnswerLiteralManager::tryGetQuantifiedFormulaForAnswerLiteral(Unit* uni
 
 Unit* AnswerLiteralManager::createUnitFromConjunctionWithAnswerLiteral(Formula* junction, VList* existsVars, Unit* originalUnit) {
   Formula* f = Flattening::flatten(new NegatedFormula(new QuantifiedFormula(EXISTS, existsVars, 0, junction)));
-  return new FormulaUnit(f, FormulaTransformation(InferenceRule::ANSWER_LITERAL, originalUnit));
+  return new FormulaUnit(f, FormulaTransformation(InferenceRule::ANSWER_LITERAL_INJECTION, originalUnit));
 }
 
 void AnswerLiteralManager::addAnswerLiterals(Problem& prb)
@@ -465,7 +465,7 @@ Unit* SynthesisManager::createUnitFromConjunctionWithAnswerLiteral(Formula* junc
     quant = SubstHelper::apply(quant, subst);
   }
   quant = Flattening::flatten(quant);
-  return new FormulaUnit(quant, FormulaTransformation(skolemise ? InferenceRule::ANSWER_LITERAL_INPUT_SKOLEMISATION : InferenceRule::ANSWER_LITERAL, originalUnit));
+  return new FormulaUnit(quant, FormulaTransformation(skolemise ? InferenceRule::ANSWER_LITERAL_INPUT_SKOLEMISATION : InferenceRule::ANSWER_LITERAL_INJECTION, originalUnit));
 }
 
 Formula* SynthesisManager::getConditionFromClause(Clause* cl) {

@@ -112,9 +112,8 @@ enum class InferenceRule : unsigned char {
   GENERIC_FORMULA_TRANSFORMATION,
   /** negated conjecture from the input */
   NEGATED_CONJECTURE,
-  /** introduction of answer literal into the conjecture,
-   * or the unit negation of answer literal used to obtain refutation */
-  ANSWER_LITERAL,
+  /** introduction of answer literal into the conjecture */
+  ANSWER_LITERAL_INJECTION,
   /** introduction of answer literal into the conjecture,
    * and skolemisation of input variables */
   ANSWER_LITERAL_INPUT_SKOLEMISATION,

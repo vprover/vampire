@@ -583,9 +583,10 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "input";
   case InferenceRule::NEGATED_CONJECTURE:
     return "negated conjecture";
-  case InferenceRule::ANSWER_LITERAL:
+  case InferenceRule::ANSWER_LITERAL_INJECTION:
+    return "answer literal injection";
   case InferenceRule::ANSWER_LITERAL_RESOLVER:
-    return "answer literal";
+    return "answer literal resolver";
   case InferenceRule::ANSWER_LITERAL_INPUT_SKOLEMISATION:
     return "answer literal with input var skolemisation";
   case InferenceRule::ANSWER_LITERAL_REMOVAL:
