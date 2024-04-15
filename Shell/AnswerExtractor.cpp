@@ -60,11 +60,11 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
     // try evaluating aLit (only if not special)
     if(aLit.isTerm() && !aLit.term()->isSpecial()){
       InterpretedLiteralEvaluator eval;
-      unsigned p = env.signature->addFreshPredicate(1,"p"); 
+      unsigned p = env.signature->addFreshPredicate(1,"p");
       TermList sort = SortHelper::getResultSort(aLit.term());
       OperatorType* type = OperatorType::getPredicateType({sort});
       env.signature->getPredicate(p)->setType(type);
-      Literal* l = Literal::create1(p,true,aLit); 
+      Literal* l = Literal::create1(p,true,aLit);
       Literal* res =0;
       bool constant, constTrue;
       Stack<Literal*> sideConditions;
@@ -199,7 +199,7 @@ Formula* AnswerLiteralManager::tryGetQuantifiedFormulaForAnswerLiteral(Unit* uni
 }
 
 Unit* AnswerLiteralManager::createUnitFromConjunctionWithAnswerLiteral(Formula* junction, VList* existsVars, Unit* originalUnit) {
-  Formula* f = Flattening::flatten(new NegatedFormula(new QuantifiedFormula(EXISTS, existsVars, 0, junction)));
+  Formula* f = new NegatedFormula(new QuantifiedFormula(EXISTS, existsVars, 0, junction));
   return new FormulaUnit(f, FormulaTransformation(InferenceRule::ANSWER_LITERAL_INJECTION, originalUnit));
 }
 
@@ -456,7 +456,7 @@ Unit* SynthesisManager::createUnitFromConjunctionWithAnswerLiteral(Formula* junc
       if (!SortHelper::tryGetVariableSort(var, form, sort)) {
         sort = AtomicSort::defaultSort();
       }
-      OperatorType* ot = OperatorType::getConstantsType(sort); 
+      OperatorType* ot = OperatorType::getConstantsType(sort);
       skSym->setType(ot);
       Term* skTerm = Term::create(skFun, /*arity=*/0, /*args=*/nullptr);
       subst.bind(var, skTerm);
