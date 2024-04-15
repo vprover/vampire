@@ -614,6 +614,7 @@ inline bool isSatRefutationRule(InferenceRule r) {
          (r == InferenceRule::GLOBAL_SUBSUMPTION);
 }
 
+vstring inputTypeName(UnitInputType type);
 vstring ruleName(InferenceRule rule);
 
 /*
@@ -856,8 +857,8 @@ public:
    */
   void minimizePremises();
 
-  // TODO why would we ever need this? replace it be appropriate output operator for InferenceRule
-  vstring name() const { return ruleName(_rule); }
+  // returns ruleName; with inputTypeName on top, in the case of ruleName == INPUT
+  vstring name() const;
 
   /** return the input type of the unit */
   UnitInputType inputType() const { return (UnitInputType)_inputType; }

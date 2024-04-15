@@ -361,7 +361,7 @@ protected:
       }
       out << fu->formula()->toString() << ' ';
 
-      out <<"["<<Kernel::ruleName(rule);
+      out <<"["<<cs->inference().name();
 
       if (outputAxiomNames && rule==InferenceRule::INPUT) {
         ASS(!parents.hasNext()); //input clauses don't have parents

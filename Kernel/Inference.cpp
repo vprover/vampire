@@ -492,6 +492,14 @@ Inference::Inference(const NonspecificInferenceMany& gi) {
   initMany(gi.rule,gi.premises);
 }
 
+vstring Inference::name() const {
+  if (_rule == InferenceRule::INPUT) {
+    return ruleName(_rule)+"("+inputTypeName(_inputType)+")";
+  } else {
+    return ruleName(_rule);
+  }
+}
+
 void Inference::minimizePremises()
 {
   if (_kind != Kind::INFERENCE_FROM_SAT_REFUTATION)
@@ -569,6 +577,26 @@ void Inference::computeTheoryRunningSums()
         all_ancestors += parent->inference().all_ancestors;
       }
     }
+  }
+}
+
+vstring Kernel::inputTypeName(UnitInputType type)
+{
+  switch (type) {
+    case UnitInputType::AXIOM:
+      return "axiom";
+    case UnitInputType::ASSUMPTION:
+      return "assumption";
+    case UnitInputType::CONJECTURE:
+      return "conjecture";
+    case UnitInputType::NEGATED_CONJECTURE:
+      return "negated conjecture";
+    case UnitInputType::CLAIM:
+      return "claim";
+    case UnitInputType::EXTENSIONALITY_AXIOM:
+      return "extensionality axiom";
+  default:
+      return "unknown";
   }
 }
 

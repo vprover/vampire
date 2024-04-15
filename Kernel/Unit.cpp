@@ -160,7 +160,7 @@ vstring Unit::inferenceAsString() const
   Unit* us = const_cast<Unit*>(this);
   parents = infS.getParents(us, rule);
 
-  vstring result = (vstring)"[" + ruleName(rule);
+  vstring result = (vstring)"[" + us->inference().name();
   bool first = true;
   while (parents.hasNext()) {
     Unit* parent = parents.next();
