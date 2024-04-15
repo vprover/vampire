@@ -2143,9 +2143,8 @@ void Options::init()
     _randomPolarities.tag(OptionTag::PREPROCESSING);
 
     _questionAnswering = ChoiceOptionValue<QuestionAnsweringMode>("question_answering","qa",QuestionAnsweringMode::OFF,
-                                                                  {"answer_literal","from_proof","synthesis","off"});
+                                                                  {"answer_literal","synthesis","off"});
     _questionAnswering.addHardConstraint(If(equal(QuestionAnsweringMode::ANSWER_LITERAL)).then(_splitting.is(notEqual(true))));
-    _questionAnswering.addHardConstraint(If(equal(QuestionAnsweringMode::FROM_PROOF)).then(_splitting.is(notEqual(true))));
     _questionAnswering.description="Determines whether (and how) we attempt to answer questions";
     _lookup.insert(&_questionAnswering);
     _questionAnswering.tag(OptionTag::OTHER);

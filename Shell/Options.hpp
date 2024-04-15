@@ -491,9 +491,8 @@ public:
 
   enum class QuestionAnsweringMode : unsigned int {
     ANSWER_LITERAL = 0,
-    FROM_PROOF = 1,
-    SYNTHESIS = 2,
-    OFF = 3
+    SYNTHESIS = 1,
+    OFF = 2
   };
 
   enum class InterpolantMode : unsigned int {
