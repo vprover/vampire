@@ -33,7 +33,7 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/AnswerExtractor.hpp"
+#include "Shell/AnswerLiteralManager.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 

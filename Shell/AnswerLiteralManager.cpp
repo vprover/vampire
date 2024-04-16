@@ -30,14 +30,13 @@
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
 
-// #include "Tabulation/TabulationAlgorithm.hpp" // MS: Tabulation discontinued, AnswerExtractor needs fixing
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndexingStructure.hpp"
 
 #include "Shell/Flattening.hpp"
 #include "Shell/Options.hpp"
 
-#include "AnswerExtractor.hpp"
+#include "AnswerLiteralManager.hpp"
 
 namespace Shell
 {
@@ -45,7 +44,11 @@ namespace Shell
 using namespace std;
 typedef List<pair<unsigned,pair<Clause*, Literal*>>> AnsList;
 
-void AnswerExtractor::tryOutputAnswer(Clause* refutation)
+///////////////////////
+// AnswerLiteralManager
+//
+
+void AnswerLiteralManager::tryOutputAnswer(Clause* refutation)
 {
   Stack<TermList> answer;
 
@@ -81,10 +84,6 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
   }
   std::cout << "]|_] for " << env.options->problemName() << endl;
 }
-
-///////////////////////
-// AnswerLiteralManager
-//
 
 AnswerLiteralManager* AnswerLiteralManager::getInstance()
 {

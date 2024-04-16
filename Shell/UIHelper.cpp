@@ -36,7 +36,7 @@
 #include "Parse/SMTLIB2.hpp"
 #include "Parse/TPTP.hpp"
 
-#include "AnswerExtractor.hpp"
+#include "AnswerLiteralManager.hpp"
 #include "InterpolantMinimizer.hpp"
 #include "Interpolants.hpp"
 #include "LaTeX.hpp"
@@ -443,7 +443,7 @@ void UIHelper::outputResult(ostream& out)
     }
     if (env.options->questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
       ASS(env.statistics->refutation->isClause());
-      AnswerExtractor::tryOutputAnswer(static_cast<Clause*>(env.statistics->refutation));
+      AnswerLiteralManager::tryOutputAnswer(static_cast<Clause*>(env.statistics->refutation));
     }
     if (env.options->proof() != Options::Proof::OFF) {
       if (szsOutputMode()) {

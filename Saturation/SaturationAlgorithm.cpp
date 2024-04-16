@@ -95,7 +95,7 @@
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
-#include "Shell/AnswerExtractor.hpp"
+#include "Shell/AnswerLiteralManager.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"

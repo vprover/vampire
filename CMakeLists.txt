@@ -533,7 +533,7 @@ set(VAMPIRE_SATURATION_SOURCES
 source_group(saturation_source_files FILES ${VAMPIRE_SATURATION_SOURCES})
 
 set(VAMPIRE_SHELL_SOURCES
-    Shell/AnswerExtractor.cpp
+    Shell/AnswerLiteralManager.cpp
     Shell/CommandLine.cpp
     Shell/CNF.cpp
     Shell/NewCNF.cpp
@@ -587,7 +587,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/VarManager.cpp
     Shell/Lexer.cpp
     Shell/Preprocess.cpp
-    Shell/AnswerExtractor.hpp
+    Shell/AnswerLiteralManager.hpp
     Shell/CommandLine.hpp
     Shell/CNF.hpp
     Shell/NewCNF.hpp

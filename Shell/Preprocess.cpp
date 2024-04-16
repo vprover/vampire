@@ -22,7 +22,7 @@
 #include "Kernel/Problem.hpp"
 
 #include "GoalGuessing.hpp"
-#include "AnswerExtractor.hpp"
+#include "AnswerLiteralManager.hpp"
 #include "CNF.hpp"
 #include "NewCNF.hpp"
 #include "DistinctGroupExpansion.hpp"

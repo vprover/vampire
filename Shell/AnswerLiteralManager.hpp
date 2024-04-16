@@ -8,12 +8,12 @@
  * and in the source directory
  */
 /**
- * @file AnswerExtractor.hpp
- * Defines class AnswerExtractor.
+ * @file AnswerLiteralManager.hpp
+ * Defines class AnswerLiteralManager.
  */
 
-#ifndef __AnswerExtractor__
-#define __AnswerExtractor__
+#ifndef __AnswerLiteralManager__
+#define __AnswerLiteralManager__
 
 #include "Forwards.hpp"
 
@@ -25,25 +25,17 @@
 #include "Kernel/RCClauseStack.hpp"
 #include "Kernel/TermTransformer.hpp"
 
-
-
 namespace Shell {
 
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 
-class AnswerExtractor {
-public:
-  virtual ~AnswerExtractor() {}
-  static void tryOutputAnswer(Clause* refutation);
-  virtual bool tryGetAnswer(Clause* refutation, Stack<TermList>& answer) = 0;
-};
-
-
-class AnswerLiteralManager : public AnswerExtractor
+class AnswerLiteralManager
 {
 public:
+  virtual ~AnswerLiteralManager() {}
+  static void tryOutputAnswer(Clause* refutation);
   static AnswerLiteralManager* getInstance();
 
   virtual bool tryGetAnswer(Clause* refutation, Stack<TermList>& answer);
@@ -52,7 +44,6 @@ public:
   bool addAnswerLiterals(UnitList*& units);
 
   virtual void onNewClause(Clause* cl);
-
   virtual Clause* recordAnswerAndReduce(Clause* cl) { return nullptr; };
 
 protected:
@@ -78,11 +69,10 @@ class SynthesisManager : public AnswerLiteralManager
 public:
   static SynthesisManager* getInstance();
 
-  virtual bool tryGetAnswer(Clause* refutation, Stack<TermList>& answer) override;
+  bool tryGetAnswer(Clause* refutation, Stack<TermList>& answer) override;
+  void onNewClause(Clause* cl) override;
 
-  virtual void onNewClause(Clause* cl) override;
-
-  virtual Clause* recordAnswerAndReduce(Clause* cl) override;
+  Clause* recordAnswerAndReduce(Clause* cl) override;
 
   Literal* makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit);
 
@@ -133,4 +123,4 @@ private:
 
 }
 
-#endif // __AnswerExtractor__
+#endif // __AnswerLiteralManager__

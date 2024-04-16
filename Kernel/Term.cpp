@@ -19,8 +19,6 @@
 #include "Indexing/TermSharing.hpp"
 #include "Lib/Metaiterators.hpp"
 
-#include "Shell/AnswerExtractor.hpp"
-
 #include "SubstHelper.hpp"
 #include "TermIterators.hpp"
 #include "RobSubstitution.hpp"
