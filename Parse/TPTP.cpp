@@ -49,6 +49,7 @@ using namespace Parse;
 #define DEBUG_SHOW_UNITS 0
 #define DEBUG_SOURCE 0
 DHMap<unsigned, vstring> TPTP::_axiomNames;
+DHMap<unsigned, Map<int,vstring>*> TPTP::_questionVariableNames;
 
 //Numbers chosen to avoid clashing with connectives.
 //Unlikely to ever have 100 connectives, so this should be ok.
@@ -2775,6 +2776,9 @@ void TPTP::varList()
       PARSE_ERROR("variable expected",tok);
     }
     int var = _vars.insert(tok.content);
+    if (_isQuestion) {
+      _curQuestionVarNames.insert(var,tok.content);
+    }
     vars.push(var);
     resetToks();
     bool sortDeclared = false;
@@ -3650,11 +3654,14 @@ void TPTP::endFof()
         f = new NegatedFormula(f);
       }
       else {
-        // TODO can we use sortOf to get the sorts of vs? 
+        // TODO can we use sortOf to get the sorts of vs?
         f = new NegatedFormula(new QuantifiedFormula(FORALL,vs,0,f));
       }
       unit = new FormulaUnit(f,
 			     FormulaTransformation(InferenceRule::NEGATED_CONJECTURE,unit));
+      if (_isQuestion) {
+        _questionVariableNames.insert(unit->number(),new Map<int,vstring>(std::move(_curQuestionVarNames)));
+      }
     }
     break;
 
