@@ -434,7 +434,7 @@ Formula* SynthesisManager::tryGetQuantifiedFormulaForAnswerLiteral(Unit* unit) {
 
   if(form->connective()!=NOT ||
       (form->uarg()->connective()!=EXISTS &&
-        (env.options->questionAnswering() == Options::QuestionAnsweringMode::ANSWER_LITERAL ||
+        (env.options->questionAnswering() == Options::QuestionAnsweringMode::PLAIN ||
          form->uarg()->connective()!=FORALL || form->uarg()->qarg()->connective()!=EXISTS))) {
     return nullptr;
   }

@@ -490,7 +490,7 @@ public:
   };
 
   enum class QuestionAnsweringMode : unsigned int {
-    ANSWER_LITERAL = 0,
+    PLAIN = 0,
     SYNTHESIS = 1,
     OFF = 2
   };
