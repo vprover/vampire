@@ -207,18 +207,12 @@ void Preprocess::preprocess(Problem& prb)
     SineSelector(_options).perform(prb);
   }
 
-  if (_options.questionAnswering()==Options::QuestionAnsweringMode::PLAIN) {
+  if (_options.questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
     env.statistics->phase=Statistics::ANSWER_LITERAL;
     if (env.options->showPreprocessing())
       std::cout << "answer literal addition" << std::endl;
 
     AnswerLiteralManager::getInstance()->addAnswerLiterals(prb);
-  } else if (_options.questionAnswering()==Options::QuestionAnsweringMode::SYNTHESIS) {
-    env.statistics->phase=Statistics::ANSWER_LITERAL;
-    if (env.options->showPreprocessing())
-      std::cout << "answer literal addition for synthesis" << std::endl;
-
-    SynthesisManager::getInstance()->addAnswerLiterals(prb);
   }
 
   // stop here if clausification is not required and still simplify not set

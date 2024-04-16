@@ -48,12 +48,64 @@ typedef List<pair<unsigned,pair<Clause*, Literal*>>> AnsList;
 // AnswerLiteralManager
 //
 
+AnswerLiteralManager* AnswerLiteralManager::getInstance()
+{
+  static AnswerLiteralManager* instance =
+    (env.options->questionAnswering() == Options::QuestionAnsweringMode::PLAIN) ? new AnswerLiteralManager() : new SynthesisManager();
+
+  return instance;
+}
+
+void AnswerLiteralManager::addAnswerLiterals(Problem& prb)
+{
+  if(addAnswerLiterals(prb.units())) {
+    prb.invalidateProperty();
+  }
+}
+
+/**
+ * Attempt adding answer literals into questions among the units
+ * in the list @c units. Return true is some answer literal was added.
+ */
+bool AnswerLiteralManager::addAnswerLiterals(UnitList*& units)
+{
+  bool someAdded = false;
+  UnitList::DelIterator uit(units);
+  while(uit.hasNext()) {
+    Unit* u = uit.next();
+    Unit* newU = tryAddingAnswerLiteral(u);
+    if(u!=newU) {
+      someAdded = true;
+      uit.replace(newU);
+    }
+  }
+  return someAdded;
+}
+
+Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
+{
+  Formula* quant = tryGetQuantifiedFormulaForAnswerLiteral(unit);
+  if (quant == nullptr) {
+    return unit;
+  }
+
+  VList* vars = quant->vars();
+  ASS(vars);
+
+  FormulaList* conjArgs = 0;
+  FormulaList::push(quant->qarg(), conjArgs);
+  Literal* ansLit = getAnswerLiteral(vars,quant);
+  FormulaList::push(new AtomicFormula(ansLit), conjArgs);
+
+  Formula* conj = new JunctionFormula(AND, conjArgs);
+  return createUnitFromConjunctionWithAnswerLiteral(conj, vars, unit);
+}
+
 void AnswerLiteralManager::tryOutputAnswer(Clause* refutation)
 {
   Stack<TermList> answer;
 
-  if (!AnswerLiteralManager::getInstance()->tryGetAnswer(refutation, answer) &&
-      !SynthesisManager::getInstance()->tryGetAnswer(refutation, answer)) {
+  if (!getInstance()->tryGetAnswer(refutation, answer)) {
     return;
   }
   std::cout << "% SZS answers Tuple [[";
@@ -83,13 +135,6 @@ void AnswerLiteralManager::tryOutputAnswer(Clause* refutation)
     }
   }
   std::cout << "]|_] for " << env.options->problemName() << endl;
-}
-
-AnswerLiteralManager* AnswerLiteralManager::getInstance()
-{
-  static AnswerLiteralManager instance;
-
-  return &instance;
 }
 
 bool AnswerLiteralManager::tryGetAnswer(Clause* refutation, Stack<TermList>& answer)
@@ -135,25 +180,6 @@ Literal* AnswerLiteralManager::getAnswerLiteral(VList* vars,Formula* f)
   return Literal::create(pred, vcnt, true, false, litArgs.begin());
 }
 
-Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
-{
-  Formula* quant = tryGetQuantifiedFormulaForAnswerLiteral(unit);
-  if (quant == nullptr) {
-    return unit;
-  }
-
-  VList* vars = quant->vars();
-  ASS(vars);
-
-  FormulaList* conjArgs = 0;
-  FormulaList::push(quant->qarg(), conjArgs);
-  Literal* ansLit = getAnswerLiteral(vars,quant);
-  FormulaList::push(new AtomicFormula(ansLit), conjArgs);
-
-  Formula* conj = new JunctionFormula(AND, conjArgs);
-  return createUnitFromConjunctionWithAnswerLiteral(conj, vars, unit);
-}
-
 Formula* AnswerLiteralManager::tryGetQuantifiedFormulaForAnswerLiteral(Unit* unit) {
   if (unit->isClause() || unit->inputType()!=UnitInputType::CONJECTURE) {
     return nullptr;
@@ -171,32 +197,6 @@ Formula* AnswerLiteralManager::tryGetQuantifiedFormulaForAnswerLiteral(Unit* uni
 Unit* AnswerLiteralManager::createUnitFromConjunctionWithAnswerLiteral(Formula* junction, VList* existsVars, Unit* originalUnit) {
   Formula* f = new NegatedFormula(new QuantifiedFormula(EXISTS, existsVars, 0, junction));
   return new FormulaUnit(f, FormulaTransformation(InferenceRule::ANSWER_LITERAL_INJECTION, originalUnit));
-}
-
-void AnswerLiteralManager::addAnswerLiterals(Problem& prb)
-{
-  if(addAnswerLiterals(prb.units())) {
-    prb.invalidateProperty();
-  }
-}
-
-/**
- * Attempt adding answer literals into questions among the units
- * in the list @c units. Return true is some answer literal was added.
- */
-bool AnswerLiteralManager::addAnswerLiterals(UnitList*& units)
-{
-  bool someAdded = false;
-  UnitList::DelIterator uit(units);
-  while(uit.hasNext()) {
-    Unit* u = uit.next();
-    Unit* newU = tryAddingAnswerLiteral(u);
-    if(u!=newU) {
-      someAdded = true;
-      uit.replace(newU);
-    }
-  }
-  return someAdded;
 }
 
 void AnswerLiteralManager::onNewClause(Clause* cl)
@@ -262,13 +262,6 @@ Clause* AnswerLiteralManager::getRefutation(Clause* answer)
 ///////////////////////
 // SynthesisManager
 //
-
-SynthesisManager* SynthesisManager::getInstance()
-{
-  static SynthesisManager instance;
-
-  return &instance;
-}
 
 void SynthesisManager::getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits)
 {

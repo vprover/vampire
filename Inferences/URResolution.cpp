@@ -156,7 +156,7 @@ struct URResolution::Item
         if (neg) {
           resolved = Literal::complementaryLiteral(resolved);
         }
-        _ansLit = SynthesisManager::getInstance()->makeITEAnswerLiteral(resolved, neg ? _ansLit : premAnsLit, neg ? premAnsLit : _ansLit);
+        _ansLit = AnswerLiteralManager::getInstance()->makeITEAnswerLiteral(resolved, neg ? _ansLit : premAnsLit, neg ? premAnsLit : _ansLit);
       }
     }
 

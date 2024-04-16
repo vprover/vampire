@@ -34,9 +34,17 @@ using namespace Indexing;
 class AnswerLiteralManager
 {
 public:
-  virtual ~AnswerLiteralManager() {}
-  static void tryOutputAnswer(Clause* refutation);
+  /**
+   * There should be at most one AnswerLiteralManager instance in the whole wide world.
+   * Depending on env.options this will be
+   * - either AnswerLiteralManager proper (for QuestionAnsweringMode::PLAIN)
+   * - or a SynthesisManager (for QuestionAnsweringMode::SYNTHESIS)
+   */
   static AnswerLiteralManager* getInstance();
+
+  static void tryOutputAnswer(Clause* refutation);
+
+  virtual ~AnswerLiteralManager() {}
 
   virtual bool tryGetAnswer(Clause* refutation, Stack<TermList>& answer);
 
@@ -44,7 +52,10 @@ public:
   bool addAnswerLiterals(UnitList*& units);
 
   virtual void onNewClause(Clause* cl);
+
+  // The following function currently only make sense in SYNTHESIS:
   virtual Clause* recordAnswerAndReduce(Clause* cl) { return nullptr; };
+  virtual Literal* makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit) { return nullptr; };
 
 protected:
   Clause* getRefutation(Clause* answer);
@@ -52,7 +63,6 @@ protected:
 
 private:
   Unit* tryAddingAnswerLiteral(Unit* unit);
-
   virtual Formula* tryGetQuantifiedFormulaForAnswerLiteral(Unit* unit);
 
   virtual Unit* createUnitFromConjunctionWithAnswerLiteral(Formula* junction, VList* existsVars, Unit* originalUnit);
@@ -67,14 +77,12 @@ private:
 class SynthesisManager : public AnswerLiteralManager
 {
 public:
-  static SynthesisManager* getInstance();
-
   bool tryGetAnswer(Clause* refutation, Stack<TermList>& answer) override;
   void onNewClause(Clause* cl) override;
 
   Clause* recordAnswerAndReduce(Clause* cl) override;
 
-  Literal* makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit);
+  Literal* makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit) override;
 
 private:
   void getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits);
@@ -93,9 +101,9 @@ private:
     DHMap<unsigned, unsigned> _condFnToPred;
   };
 
-  virtual Formula* tryGetQuantifiedFormulaForAnswerLiteral(Unit* unit) override;
+  Formula* tryGetQuantifiedFormulaForAnswerLiteral(Unit* unit) override;
 
-  virtual Unit* createUnitFromConjunctionWithAnswerLiteral(Formula* junction, VList* existsVars, Unit* originalUnit) override;
+  Unit* createUnitFromConjunctionWithAnswerLiteral(Formula* junction, VList* existsVars, Unit* originalUnit) override;
 
   Formula* getConditionFromClause(Clause* cl);
 
