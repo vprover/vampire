@@ -103,6 +103,26 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
   return createUnitFromConjunctionWithAnswerLiteral(conj, vars, unit);
 }
 
+TermList AnswerLiteralManager::possiblyEvaluateAnswerTerm(TermList aT)
+{
+  if(aT.isTerm() && !aT.term()->isSpecial()){
+    InterpretedLiteralEvaluator eval;
+    unsigned p = env.signature->addFreshPredicate(1,"p");
+    TermList sort = SortHelper::getResultSort(aT.term());
+    OperatorType* type = OperatorType::getPredicateType({sort});
+    env.signature->getPredicate(p)->setType(type);
+    Literal* l = Literal::create1(p,true,aT);
+    Literal* res =0;
+    bool constant, constTrue;
+    Stack<Literal*> sideConditions;
+    bool litMod = eval.evaluate(l,constant,res,constTrue,sideConditions);
+    if(litMod && res && sideConditions.isEmpty()){
+      aT.setTerm(res->nthArgument(0)->term());
+    }
+  }
+  return aT;
+}
+
 void AnswerLiteralManager::tryOutputAnswer(Clause* refutation)
 {
   Stack<TermList> answer;
@@ -113,25 +133,9 @@ void AnswerLiteralManager::tryOutputAnswer(Clause* refutation)
   std::cout << "% SZS answers Tuple [[";
   Stack<TermList>::BottomFirstIterator ait(answer);
   while(ait.hasNext()) {
-    TermList aLit = ait.next();
-    // try evaluating aLit (only if not special)
-    if(aLit.isTerm() && !aLit.term()->isSpecial()){
-      InterpretedLiteralEvaluator eval;
-      unsigned p = env.signature->addFreshPredicate(1,"p");
-      TermList sort = SortHelper::getResultSort(aLit.term());
-      OperatorType* type = OperatorType::getPredicateType({sort});
-      env.signature->getPredicate(p)->setType(type);
-      Literal* l = Literal::create1(p,true,aLit);
-      Literal* res =0;
-      bool constant, constTrue;
-      Stack<Literal*> sideConditions;
-      bool litMod = eval.evaluate(l,constant,res,constTrue,sideConditions);
-      if(litMod && res && sideConditions.isEmpty()){
-        aLit.setTerm(res->nthArgument(0)->term());
-      }
-    }
-
-    std::cout << aLit.toString();
+    TermList aT = ait.next();
+    aT = possiblyEvaluateAnswerTerm(aT);
+    std::cout << aT.toString();
     if(ait.hasNext()) {
       std::cout << ',';
     }

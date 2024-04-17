@@ -58,6 +58,8 @@ public:
   virtual Literal* makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit) { return nullptr; };
 
 protected:
+  static TermList possiblyEvaluateAnswerTerm(TermList);
+
   Clause* getRefutation(Clause* answer);
   Literal* getAnswerLiteral(VList* vars,Formula* f);
 
