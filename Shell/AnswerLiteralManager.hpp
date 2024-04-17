@@ -46,7 +46,7 @@ public:
 
   virtual ~AnswerLiteralManager() {}
 
-  virtual bool tryGetAnswer(Clause* refutation, Stack<TermList>& answer);
+  virtual bool tryGetAnswer(Clause* refutation, Stack<Literal*>& answer);
 
   void addAnswerLiterals(Problem& prb);
   bool addAnswerLiterals(UnitList*& units);
@@ -85,7 +85,7 @@ private:
 class SynthesisManager : public AnswerLiteralManager
 {
 public:
-  bool tryGetAnswer(Clause* refutation, Stack<TermList>& answer) override;
+  bool tryGetAnswer(Clause* refutation, Stack<Literal*>& answer) override;
   void onNewClause(Clause* cl) override;
 
   Clause* recordAnswerAndReduce(Clause* cl) override;

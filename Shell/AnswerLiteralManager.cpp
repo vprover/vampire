@@ -125,36 +125,44 @@ TermList AnswerLiteralManager::possiblyEvaluateAnswerTerm(TermList aT)
 
 void AnswerLiteralManager::tryOutputAnswer(Clause* refutation)
 {
-  Stack<TermList> answer;
+  Stack<Literal*> answer;
 
   if (!getInstance()->tryGetAnswer(refutation, answer)) {
     return;
   }
-  std::cout << "% SZS answers Tuple [[";
-  Stack<TermList>::BottomFirstIterator ait(answer);
+  std::cout << "% SZS answers Tuple [";
+  if (answer.size() > 1) {
+    std::cout << "(";
+  }
+  Stack<Literal*>::BottomFirstIterator ait(answer);
   while(ait.hasNext()) {
-    TermList aT = ait.next();
-    aT = possiblyEvaluateAnswerTerm(aT);
-    std::cout << aT.toString();
+    Literal* aLit = ait.next();
+    std::cout << "[";
+    unsigned arity = aLit->arity();
+    for(unsigned i=0; i<arity; i++) {
+      if(i > 0) {
+        std::cout << ',';
+      }
+      std::cout << possiblyEvaluateAnswerTerm(*aLit->nthArgument(i));
+    }
+    std::cout << "]";
     if(ait.hasNext()) {
-      std::cout << ',';
+      std::cout << "|";
     }
   }
-  std::cout << "]|_] for " << env.options->problemName() << endl;
+  if (answer.size() > 1) {
+    std::cout << ")";
+  }
+  std::cout << "|_] for " << env.options->problemName() << endl;
 }
 
-bool AnswerLiteralManager::tryGetAnswer(Clause* refutation, Stack<TermList>& answer)
+bool AnswerLiteralManager::tryGetAnswer(Clause* refutation, Stack<Literal*>& answer)
 {
   RCClauseStack::Iterator cit(_answers);
   while(cit.hasNext()) {
-    Clause* ansCl = cit.next();
-    if(ansCl->length()!=1) {
-      continue;
-    }
-    Literal* lit = (*ansCl)[0];
-    unsigned arity = lit->arity();
-    for(unsigned i=0; i<arity; i++) {
-      answer.push(*lit->nthArgument(i));
+    auto it = cit.next()->iterLits();
+    while(it.hasNext()) {
+      answer.push(it.next());
     }
     return true;
   }
@@ -298,7 +306,7 @@ void SynthesisManager::getNeededUnits(Clause* refutation, ClauseStack& premiseCl
   }
 }
 
-bool SynthesisManager::tryGetAnswer(Clause* refutation, Stack<TermList>& answer)
+bool SynthesisManager::tryGetAnswer(Clause* refutation, Stack<Literal*>& answer)
 {
   if (!_lastAnsLit && AnsList::isEmpty(_answerPairs)) {
     return false;
@@ -306,6 +314,8 @@ bool SynthesisManager::tryGetAnswer(Clause* refutation, Stack<TermList>& answer)
   if (_lastAnsLit) {
     AnsList::push(make_pair(0, make_pair(nullptr, _lastAnsLit)), _answerPairs);
   }
+
+  Stack<TermList> answerArgs;
 
   ClauseStack premiseClauses;
   Stack<Unit*> conjectures;
@@ -318,11 +328,12 @@ bool SynthesisManager::tryGetAnswer(Clause* refutation, Stack<TermList>& answer)
   AnsList::Iterator it(_answerPairs);
   ALWAYS(it.hasNext());
   pair<unsigned, pair<Clause*, Literal*>> p = it.next();
-  unsigned arity = p.second.second->arity();
+  Literal* origLit = p.second.second;
+  unsigned arity = origLit->arity();
   Stack<TermList> sorts(arity);
   for (unsigned i = 0; i < arity; i++) {
-    sorts.push(env.signature->getPredicate(p.second.second->functor())->predType()->arg(i));
-    answer.push(_skolemReplacement.transformTermList(*p.second.second->nthArgument(i), sorts[i]));
+    sorts.push(env.signature->getPredicate(origLit->functor())->predType()->arg(i));
+    answerArgs.push(_skolemReplacement.transformTermList(*origLit->nthArgument(i), sorts[i]));
   }
   while(it.hasNext()) {
     p = it.next();
@@ -336,9 +347,11 @@ bool SynthesisManager::tryGetAnswer(Clause* refutation, Stack<TermList>& answer)
     for (unsigned i = 0; i < arity; i++) {
       ASS_EQ(sorts[i], env.signature->getPredicate(p.second.second->functor())->predType()->arg(i));
       // Construct the answer using if-then-else
-      answer[i] = TermList(Term::createITE(condition, _skolemReplacement.transformTermList(*p.second.second->nthArgument(i), sorts[i]), answer[i], sorts[i]));
+      answerArgs[i] = TermList(Term::createITE(condition, _skolemReplacement.transformTermList(*p.second.second->nthArgument(i), sorts[i]), answerArgs[i], sorts[i]));
     }
   }
+  // just a single literal answer
+  answer.push(Literal::create(origLit,answerArgs.begin()));
   return true;
 }
 
