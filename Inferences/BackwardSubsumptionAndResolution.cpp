@@ -146,7 +146,7 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
       /***************************************************/
       auto it = _bwIndex->getInstances(lit, false, false);
       while (it.hasNext()) {
-        Clause *icl = it.next().clause;
+        Clause *icl = it.next().data->clause;
         if (!_checked.insert(icl)) {
           continue;
         }
@@ -161,11 +161,11 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
       auto it = _bwIndex->getInstances(lit, true, false);
       while (it.hasNext()) {
         auto res = it.next();
-        Clause *icl = res.clause;
+        Clause *icl = res.data->clause;
         if (subsumedSet.contains(icl) || !_checked.insert(icl)) {
           continue;
         }
-        Clause *conclusion = SATSubsumption::SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(icl, res.literal, cl);
+        Clause *conclusion = SATSubsumption::SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(icl, res.data->literal, cl);
         ASS(conclusion)
         List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, conclusion), simplificationBuffer);
       }
@@ -187,7 +187,7 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
       // find the positively matched literals
       auto it = _bwIndex->getInstances(lit, false, false);
       while (it.hasNext()) {
-        Clause *icl = it.next().clause;
+        Clause *icl = it.next().data->clause;
         if (!_checked.insert(icl)) {
           continue;
         }
@@ -221,7 +221,7 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
       // find the negatively matched literals
       auto it = _bwIndex->getInstances(lit, true, false);
       while (it.hasNext()) {
-        Clause *icl = it.next().clause;
+        Clause *icl = it.next().data->clause;
         if (!_checked.insert(icl)) {
           continue;
         }

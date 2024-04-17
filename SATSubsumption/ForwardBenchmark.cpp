@@ -238,7 +238,7 @@ bool ForwardBenchmark::perform(Clause *cl, Clause *&replacement, ClauseIterator 
   for (unsigned li = 0; li < clen; li++) {
     SLQueryResultIterator rit = _unitIndex->getGeneralizations((*cl)[li], false, false);
     while (rit.hasNext()) {
-      Clause *premise = rit.next().clause;
+      Clause *premise = rit.next().data->clause;
       if (ColorHelper::compatible(cl->color(), premise->color())) {
         premises = pvi(getSingletonIterator(premise));
         env.statistics->forwardSubsumed++;
@@ -291,7 +291,7 @@ bool ForwardBenchmark::perform(Clause *cl, Clause *&replacement, ClauseIterator 
         Literal *resLit = (*cl)[li];
         SLQueryResultIterator rit = _unitIndex->getGeneralizations(resLit, true, false);
         while (rit.hasNext()) {
-          Clause *mcl = rit.next().clause;
+          Clause *mcl = rit.next().data->clause;
           if (ColorHelper::compatible(cl->color(), mcl->color())) {
             resolutionClause = generateSubsumptionResolutionClause(cl, resLit, mcl);
             env.statistics->forwardSubsumptionResolution++;

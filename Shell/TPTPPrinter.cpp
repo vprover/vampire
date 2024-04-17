@@ -142,40 +142,6 @@ vstring TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
   return res.str();
 }
 
-void TPTPPrinter::writeBodyStr(std::ostream& out, Literal* lit)
-{
-  typedef DHMap<unsigned,TermList> SortMap;
-  static SortMap varSorts;
-  varSorts.reset();
-  SortHelper::collectVariableSorts(lit, varSorts);
-
-  SortMap::Iterator vit(varSorts);
-  bool quantified = vit.hasNext();
-  if (quantified) {
-    out << "![";
-    while (vit.hasNext()) {
-      unsigned var;
-      TermList varSort;
-      vit.next(var, varSort);
-
-      out << 'X' << var;
-      if (varSort != AtomicSort::defaultSort()) {
-        out << " : " << varSort.toString();
-      }
-      if (vit.hasNext()) {
-        out << ',';
-      }
-    }
-    out << "]: (";
-  }
-
-  out << lit->toString();
-
-  if (quantified) {
-    out << ')';
-  }
-}
-
 /**
  * Surround by tff() the body of the unit u
  * @param u
@@ -325,7 +291,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
 /**
  * Makes sure that only the needed headers in the @param u are printed out on the output
  */
-void TPTPPrinter::ensureHeadersPrinted()
+void TPTPPrinter::ensureHeadersPrinted(Unit* u)
 {
   if(_headersPrinted) {
     return;

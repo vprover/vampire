@@ -171,7 +171,7 @@ bool ForwardBenchmarkWrapper::perform(Clause *cl, Clause *&replacement, ClauseIt
       Literal *lit = (*cl)[li];
       auto it = _fwIndex->getGeneralizations(lit, false, false);
       while (it.hasNext()) {
-        Clause *mcl = it.next().clause;
+        Clause *mcl = it.next().data->clause;
         if (!seen.insert(mcl)) {
           continue;
         }
@@ -182,7 +182,7 @@ bool ForwardBenchmarkWrapper::perform(Clause *cl, Clause *&replacement, ClauseIt
       Literal *lit = (*cl)[li];
       auto it = _fwIndex->getGeneralizations(lit, true, false);
       while (it.hasNext()) {
-        Clause *mcl = it.next().clause;
+        Clause *mcl = it.next().data->clause;
         if (!seen.insert(mcl)) {
           continue;
         }

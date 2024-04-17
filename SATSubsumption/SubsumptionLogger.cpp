@@ -49,7 +49,10 @@ ForwardSubsumptionLogger::LitIdx ForwardSubsumptionLogger::logLiteral(Literal* l
   TimeoutProtector _tp;
   vostringstream id_stream;
   id_stream << "l_" << idx;
-  m_tptp.printWithRole(id_stream.str(), "hypothesis", lit);
+  // m_tptp.printWithRole(id_stream.str(), "hypothesis", lit);
+  cerr << "/!\\ /!\\ Warning: logging literals is disabled in the code /!\\ /!\\" << endl;
+  exit(1);
+  // todo since the merge with master, this does not work anymore, but it should be removed anyway
 
   return idx;
 }
@@ -85,7 +88,7 @@ ForwardSubsumptionLogger::ClauseIdx ForwardSubsumptionLogger::logClause(Clause* 
   }
   m_file_slog << " 0" << std::endl;
 
-  ALWAYS(m_logged_clauses.emplace(cl, std::move(info)));
+  ALWAYS(m_logged_clauses.insert(cl, std::move(info)));
   return clause_idx;
 }
 

@@ -476,12 +476,11 @@ void Preprocess::preprocess(Problem& prb)
 void Preprocess::preprocess_very_lightly(Problem& prb) {
 
   if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "preprocessing started" << std::endl;
+    std::cout << "preprocessing started" << std::endl;
     UnitList::Iterator uit(prb.units());
     while(uit.hasNext()) {
       Unit* u = uit.next();
-      env.out() << "[PP] input: " << u->toString() << std::endl;
+      std::cout << "[PP] input: " << u->toString() << std::endl;
     }
   }
 
@@ -497,7 +496,7 @@ void Preprocess::preprocess_very_lightly(Problem& prb) {
   if (_options.normalize()) { // reorder units
     env.statistics->phase=Statistics::NORMALIZATION;
     if (env.options->showPreprocessing())
-      env.out() << "normalization" << std::endl;
+      std::cout << "normalization" << std::endl;
 
     Normalisation().normalise(prb);
   }
@@ -511,7 +510,7 @@ void Preprocess::preprocess_very_lightly(Problem& prb) {
     if( _options.theoryAxioms() != Options::TheoryAxiomLevel::OFF){
       env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
       if (env.options->showPreprocessing())
-        env.out() << "adding theory axioms" << std::endl;
+        std::cout << "adding theory axioms" << std::endl;
       TheoryAxioms(prb).apply();
     }
   }
@@ -522,7 +521,7 @@ void Preprocess::preprocess_very_lightly(Problem& prb) {
 
     if (!_options.newCNF()) {
       if (env.options->showPreprocessing())
-        env.out() << "FOOL elimination" << std::endl;
+        std::cout << "FOOL elimination" << std::endl;
       TheoryAxioms(prb).applyFOOL();
       FOOLElimination().apply(prb);
     }
@@ -536,35 +535,35 @@ void Preprocess::preprocess_very_lightly(Problem& prb) {
 
   if (prb.mayHaveFormulas()) {
     if (env.options->showPreprocessing())
-      env.out() << "preprocess1 (rectify, simplify false true, flatten)" << std::endl;
+      std::cout << "preprocess1 (rectify, simplify false true, flatten)" << std::endl;
 
     preprocess1(prb);
   }
 
   if (prb.mayHaveFormulas()) {
     if (env.options->showPreprocessing())
-      env.out() << "preprocess 2 (ennf,flatten)" << std::endl;
+      std::cout << "preprocess 2 (ennf,flatten)" << std::endl;
 
     preprocess2(prb);
   }
 
   if (prb.mayHaveFormulas() && _options.naming()) {
     if (env.options->showPreprocessing())
-      env.out() << "naming" << std::endl;
+      std::cout << "naming" << std::endl;
 
     naming(prb);
   }
 
   if (prb.mayHaveFormulas()) {
     if (env.options->showPreprocessing())
-      env.out() << "preprocess3 (nnf, flatten, skolemize)" << std::endl;
+      std::cout << "preprocess3 (nnf, flatten, skolemize)" << std::endl;
 
     preprocess3(prb);
   }
 
   if (prb.mayHaveFormulas()) {
     if (env.options->showPreprocessing())
-      env.out() << "clausify" << std::endl;
+      std::cout << "clausify" << std::endl;
 
     clausify(prb);
   }
@@ -573,7 +572,7 @@ void Preprocess::preprocess_very_lightly(Problem& prb) {
     UnitList::Iterator uit(prb.units());
     while(uit.hasNext()) {
       Unit* u = uit.next();
-      env.out() << "[PP] final: " << u->toString() << std::endl;
+      std::cout << "[PP] final: " << u->toString() << std::endl;
     }
   }
 
@@ -582,8 +581,7 @@ void Preprocess::preprocess_very_lightly(Problem& prb) {
   }
 
   if (env.options->showPreprocessing()) {
-    env.out() << "preprocessing finished" << std::endl;
-    env.endOutput();
+    std::cout << "preprocessing finished" << std::endl;
   }
 } // Preprocess::preprocess_very_lightly()
 

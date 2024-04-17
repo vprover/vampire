@@ -218,28 +218,28 @@ void Statistics::explainRefutationNotFound(ostream &out)
 
 void Statistics::print(ostream &out)
 {
+  bool separable = false;
   if (env.options->statistics() != Options::Statistics::NONE) {
 
     SaturationAlgorithm::tryUpdateFinalClauseCount();
 
-    bool separable = false;
-#define HEADING(text, num)           \
-  if (num) {                         \
-    addCommentSignForSZS(out);       \
-    out << ">>> " << (text) << endl; \
-  }
-#define COND_OUT(text, num)                 \
-  if (num) {                                \
-    addCommentSignForSZS(out);              \
-    out << (text) << ": " << (num) << endl; \
-    separable = true;                       \
-  }
-#define SEPARATOR              \
-  if (separable) {             \
-    addCommentSignForSZS(out); \
-    out << endl;               \
-    separable = false;         \
-  }
+#define HEADING(text, num)             \
+    if (num) {                         \
+      addCommentSignForSZS(out);       \
+      out << ">>> " << (text) << endl; \
+    }
+#define COND_OUT(text, num)                  \
+    if (num) {                                \
+      addCommentSignForSZS(out);              \
+      out << (text) << ": " << (num) << endl; \
+      separable = true;                       \
+    }
+#define SEPARATOR                \
+    if (separable) {             \
+      addCommentSignForSZS(out); \
+      out << endl;               \
+      separable = false;         \
+    }
 
     addCommentSignForSZS(out);
     out << "------------------------------\n";

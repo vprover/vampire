@@ -380,54 +380,6 @@ void vampireMode(Problem* problem)
   }
 } // vampireMode
 
-
-/// Implements mode 'sreplay'
-void subsumptionReplayMode(Problem* problem)
-{
-  Timer::setLimitEnforcement(false);  // don't terminate in signal handler
-
-  // We need to set this option to make the parser save axiom names
-  env.options->setOutputAxiomNames(true);
-
-  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
-  Shell::Preprocess prepro(*env.options);
-  prepro.preprocess_very_lightly(*prb);
-
-  vstring const& tptp_file = env.options->inputFile();
-  vstring slog_file = tptp_file.substr(0, tptp_file.find_last_of('.')) + ".slog";
-
-  SATSubsumption::SubsumptionBenchmark b;
-  b.load_from(prb->units(), slog_file);
-
-  uint64_t num_s = 0;
-  uint64_t num_sr = 0;
-  for (auto const& l : b.fwd_loops) {
-    for (auto const& ssr : l.instances) {
-      if (ssr.do_subsumption)
-        num_s += 1;
-      if (ssr.do_subsumption_resolution)
-        num_sr += 1;
-    }
-  }
-
-  std::cout << "\% Loaded " << b.fwd_loops.size() << " forward loops with a total of " << num_s << " subsumptions and " << num_sr << " subsumption resolutions.\n";
-
-  SATSubsumption::SubsumptionReplay r;
-  r.run(b);
-
-  vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-}
-
-
-
-
-
-
-
-
-
-
-void spiderMode()
 void spiderMode(Problem* problem)
 {
   env.options->setBadOptionChoice(Options::BadOption::HARD);
