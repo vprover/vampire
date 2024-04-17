@@ -95,6 +95,8 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
   FormulaList* conjArgs = 0;
   FormulaList::push(quant->qarg(), conjArgs);
   Literal* ansLit = getAnswerLiteral(vars,quant);
+  _originUnits.insert(ansLit->functor(),unit);
+
   FormulaList::push(new AtomicFormula(ansLit), conjArgs);
 
   Formula* conj = new JunctionFormula(AND, conjArgs);

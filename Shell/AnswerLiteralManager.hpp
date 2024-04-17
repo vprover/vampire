@@ -69,6 +69,12 @@ private:
 
   Clause* getResolverClause(unsigned pred);
 
+  /**
+   * So that for every answer-predicate-symbol
+   * we can retrieve the unit for which it was introduced.
+   */
+  DHMap<unsigned, Unit*> _originUnits;
+
   RCClauseStack _answers;
 
   DHMap<unsigned, Clause*> _resolverClauses;
