@@ -722,7 +722,7 @@ vstring Literal::toString() const
     }
 
     vstring res = s + lhs->next()->toString();
-    if (env.getMainProblem()->isHigherOrder() ||
+    if (env.getMainProblem() == nullptr || env.getMainProblem()->isHigherOrder() ||
        (SortHelper::getEqualityArgumentSort(this) == AtomicSort::boolSort())){
       res = "("+res+")";
     }

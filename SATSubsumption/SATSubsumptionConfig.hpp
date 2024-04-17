@@ -66,9 +66,9 @@
 #define SAT_SR_IMPL 3
 #endif
 /// If 1, prints the SAT clauses added to the solver on the standard output
-#define PRINT_CLAUSES_SUBS 1
+#define PRINT_CLAUSES_SUBS 0
 /// If 1, prints some comments about the subsumption resolution process
-#define PRINT_CLAUSE_COMMENTS_SUBS 1
+#define PRINT_CLAUSE_COMMENTS_SUBS 0
 
 #if SAT_SR_IMPL == 0
 #   define SAT_SR_IMPL_NAME "no_sat"

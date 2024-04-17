@@ -267,17 +267,17 @@ TEST_FUN(PositiveSubsumptionResolution)
   M.push_back(clause({ p3(d, x6, d), ~p3(x6, e, c) }));
   expected.push_back(nullptr);
 
-  // Test 11
+  // Test 10
   L.push_back(clause({ p2(y7, x6), f2(y7, x6) == f2(f3(x5, y4, x4), x4), p2(y4, x4) }));
   M.push_back(clause({ ~p2(g2(h2(y3, x2), x2), x7), f2(g2(h2(y3, x2), x2), x7) == f2(f3(y6, g2(h2(y3, x2), x2), x7), x7) }));
   expected.push_back(nullptr);
 
-  // Test 12
+  // Test 11
   L.push_back(clause({ p2(y7, x6), ~q2(x5, x6), ~p2(y7, x5) }));
   M.push_back(clause({ p2(f2(y4, x6), y4), ~p2(x6, y7), ~r2(y4, y7), ~p2(x6, d), ~q2(y4, d), ~q2(y7, d) }));
   expected.push_back(nullptr);
 
-  // Test 13
+  // Test 12
   L.push_back(clause({ p(d) }));
   M.push_back(clause({ q(d), ~p(d) }));
   expected.push_back(nullptr);
