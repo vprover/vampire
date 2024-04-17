@@ -215,7 +215,7 @@ Unit* AnswerLiteralManager::createUnitFromConjunctionWithAnswerLiteral(Formula* 
 
 void AnswerLiteralManager::onNewClause(Clause* cl)
 {
-  if(!cl->noSplits()) {
+  if(!cl->noSplits() || cl->isEmpty()) {
     return;
   }
 
