@@ -665,6 +665,13 @@ set(
     )
 source_group(finitemodelbuilding_source_files FILES ${VAMPIRE_FINITEMODELBUILDING_SOURCES})
 
+set(
+    VAMPIRE_UPCOP_SOURCES
+    UPCoP/UPCoP.hpp
+    UPCoP/UPCoP.cpp
+)
+source_group(upcop_source_files FILES ${VAMPIRE_SOURCES})
+
 set(VAMPIRE_SMTCOMP_SOURCES
     SAT/Z3MainLoop.cpp
     SAT/Z3MainLoop.hpp
@@ -773,6 +780,7 @@ set(VAMPIRE_SOURCES
     ${VAMPIRE_SHELL_SOURCES}
     ${VAMPIRE_PARSE_SOURCES}
     ${VAMPIRE_FINITEMODELBUILDING_SOURCES}
+    ${VAMPIRE_UPCOP_SOURCES}
     ${VAMPIRE_SMTCOMP_SOURCES}
     ${VAMPIRE_MINISAT_SOURCES}
     ${VAMPIRE_CASC_SOURCES}
@@ -813,6 +821,9 @@ add_compile_definitions(VTIME_PROFILING=0)
 if (CYGWIN)
  add_compile_definitions(_BSD_SOURCE)
 endif()
+
+# CaDiCaL
+link_libraries(cadical)
 
 ################################################################
 # z3 stuff

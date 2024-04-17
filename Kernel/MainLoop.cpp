@@ -20,6 +20,7 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "FMB/FiniteModelBuilder.hpp"
+#include "UPCoP/UPCoP.hpp"
 
 #include "SAT/Z3MainLoop.hpp"
 
@@ -111,6 +112,9 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
     }
     //TODO should return inappropriate result instead of error
     res = new FiniteModelBuilder(prb,opt);
+    break;
+  case Options::SaturationAlgorithm::UPCOP:
+    res = new UPCoP(prb,opt);
     break;
 #if VZ3
   case Options::SaturationAlgorithm::Z3:
