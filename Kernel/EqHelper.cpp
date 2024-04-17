@@ -21,6 +21,7 @@
 #include "TermIterators.hpp"
 #include "ApplicativeHelper.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Matcher.hpp"
 
 #include "EqHelper.hpp"
 
@@ -28,13 +29,21 @@ namespace Kernel {
 
 using namespace Shell;
 
-/* turns an iterator with TermList elemenst to an iterator of TypedTermList elements 
- * with the sort of the provided equality literal 
+/*
+ * Turns an iterator with TermList elemenst to an iterator of TypedTermList elements
+ * with the sort of the provided equality literal.
+ *
+ * Computes the sort exactly once, so it's wastful to call if the the iterator is empty.
+ * (Or if the sort is already known.)
  */
 template<class TermListIter>
 auto withEqualitySort(Literal* eq, TermListIter iter)
-{ return pvi(iterTraits(std::move(iter))
-    .map([eq](TermList t) { return TypedTermList(t, SortHelper::getEqualityArgumentSort(eq)); })); }
+{
+  ASS(iter.hasNext());
+  auto sort = SortHelper::getEqualityArgumentSort(eq);
+  return pvi(iterTraits(std::move(iter))
+    .map([sort](TermList t) { return TypedTermList(t, sort); }));
+}
 
 /**
  * Return the other side of an equality @b eq than the @b lhs
@@ -278,18 +287,17 @@ VirtualIterator<TypedTermList> EqHelper::getLHSIterator(Literal* lit, const Orde
 {
   if (lit->isEquality()) {
     if (lit->isNegative()) {
-      return withEqualitySort(lit,TermIterator::getEmpty());
+      return VirtualIterator<TypedTermList>::getEmpty();
     }
     TermList t0=*lit->nthArgument(0);
     TermList t1=*lit->nthArgument(1);
     switch(ord.getEqualityArgumentOrder(lit))
     {
     case Ordering::INCOMPARABLE:
-      return withEqualitySort(lit, getConcatenatedIterator(getSingletonIterator(t0),
-	      getSingletonIterator(t1)) );
+      return withEqualitySort(lit, iterItems(t0, t1) );
     case Ordering::GREATER:
     case Ordering::GREATER_EQ:
-      return withEqualitySort(lit, getSingletonIterator(t0) );
+      return withEqualitySort(lit, iterItems(t0) );
     case Ordering::LESS:
     case Ordering::LESS_EQ:
       return withEqualitySort(lit, getSingletonIterator(t1) );
@@ -297,9 +305,9 @@ VirtualIterator<TypedTermList> EqHelper::getLHSIterator(Literal* lit, const Orde
     case Ordering::EQUAL:
       ASSERTION_VIOLATION;
     }
-    return withEqualitySort(lit,TermIterator::getEmpty());
+    return VirtualIterator<TypedTermList>::getEmpty();
   } else {
-    return withEqualitySort(lit,TermIterator::getEmpty());
+    return VirtualIterator<TypedTermList>::getEmpty();
   }
 }
 
@@ -338,7 +346,7 @@ VirtualIterator<TypedTermList> EqHelper::getSubVarSupLHSIterator(Literal* lit, c
 
   if (eqSort.isVar() || eqSort.isArrowSort()) {
     if (lit->isNegative()) {
-      return withEqualitySort(lit, TermIterator::getEmpty());
+      return VirtualIterator<TypedTermList>::getEmpty();
     }
 
     TermList t0=*lit->nthArgument(0);
@@ -351,25 +359,24 @@ VirtualIterator<TypedTermList> EqHelper::getSubVarSupLHSIterator(Literal* lit, c
     switch(ord.getEqualityArgumentOrder(lit))
     {
     case Ordering::INCOMPARABLE:
-      if(t0hisVarOrComb && t1hisVarOrComb){ 
-        return withEqualitySort(lit, getConcatenatedIterator(getSingletonIterator(t0),
-	        getSingletonIterator(t1)) );
+      if(t0hisVarOrComb && t1hisVarOrComb){
+        return pvi(iterItems(TypedTermList(t0,eqSort), TypedTermList(t1,eqSort)));
       } else if( t0hisVarOrComb ){
-        return withEqualitySort(lit, getSingletonIterator(t1) );      
+        return pvi(getSingletonIterator(TypedTermList(t1,eqSort)));
       } else if( t1hisVarOrComb ) {
-        return withEqualitySort(lit, getSingletonIterator(t0) );
+        return pvi(getSingletonIterator(TypedTermList(t0,eqSort)));
       }
       break;
     case Ordering::GREATER:
     case Ordering::GREATER_EQ:
       if(t1hisVarOrComb){
-        return withEqualitySort(lit, getSingletonIterator(t0) );
+        return pvi(getSingletonIterator(TypedTermList(t0,eqSort)));
       }
       break;
     case Ordering::LESS:
     case Ordering::LESS_EQ:
       if(t0hisVarOrComb){
-        return withEqualitySort(lit, getSingletonIterator(t1) );
+        return pvi(getSingletonIterator(TypedTermList(t1,eqSort)));
       }
       break;
     case Ordering::EQUAL:
@@ -377,10 +384,10 @@ VirtualIterator<TypedTermList> EqHelper::getSubVarSupLHSIterator(Literal* lit, c
     default:
       ASSERTION_VIOLATION;
     }
-    return withEqualitySort(lit, TermIterator::getEmpty());
+    return VirtualIterator<TypedTermList>::getEmpty();
   } else {
-    return withEqualitySort(lit, TermIterator::getEmpty());
-  }  
+    return VirtualIterator<TypedTermList>::getEmpty();
+  }
 }
 
 /**
@@ -389,25 +396,28 @@ VirtualIterator<TypedTermList> EqHelper::getSubVarSupLHSIterator(Literal* lit, c
  *
  * If the literal @b lit is not a positive equality, empty iterator is returned.
  */
-VirtualIterator<TypedTermList> EqHelper::getDemodulationLHSIterator(Literal* lit, bool forward, const Ordering& ord, const Options& opt)
+VirtualIterator<TypedTermList> EqHelper::getDemodulationLHSIterator(Literal* lit, bool preordered, const Ordering& ord)
 {
   if (lit->isEquality()) {
     if (lit->isNegative()) {
-      return withEqualitySort(lit, TermIterator::getEmpty());
+      return VirtualIterator<TypedTermList>::getEmpty();
     }
     TermList t0=*lit->nthArgument(0);
     TermList t1=*lit->nthArgument(1);
     switch(ord.getEqualityArgumentOrder(lit))
     {
     case Ordering::INCOMPARABLE:
-      if ( forward ? (opt.forwardDemodulation() == Options::Demodulation::PREORDERED)
-		  : (opt.backwardDemodulation() == Options::Demodulation::PREORDERED) ) {
-        return withEqualitySort(lit, TermIterator::getEmpty());
+      if ( preordered ) {
+        return VirtualIterator<TypedTermList>::getEmpty();
       }
       if (t0.containsAllVariablesOf(t1)) {
         if (t1.containsAllVariablesOf(t0)) {
-          return withEqualitySort(lit, getConcatenatedIterator(getSingletonIterator(t0),
-              getSingletonIterator(t1)) );
+          // If the equation is its own variant when oriented
+          // reversed, there's no need to index both sides
+          if (MatchingUtils::matchReversedArgs(lit, lit)) {
+            return withEqualitySort(lit, getSingletonIterator(t0) );
+          }
+          return withEqualitySort(lit, iterItems(t0, t1));
         }
         return withEqualitySort(lit, getSingletonIterator(t0) );
       }
@@ -427,9 +437,9 @@ VirtualIterator<TypedTermList> EqHelper::getDemodulationLHSIterator(Literal* lit
     case Ordering::EQUAL:
       ASSERTION_VIOLATION;
     }
-    return withEqualitySort(lit,TermIterator::getEmpty());
+    return VirtualIterator<TypedTermList>::getEmpty();
   } else {
-    return withEqualitySort(lit,TermIterator::getEmpty());
+    return VirtualIterator<TypedTermList>::getEmpty();
   }
 }
 
@@ -437,9 +447,7 @@ TermIterator EqHelper::getEqualityArgumentIterator(Literal* lit)
 {
   ASS(lit->isEquality());
 
-  return pvi( getConcatenatedIterator(
-	  getSingletonIterator(*lit->nthArgument(0)),
-	  getSingletonIterator(*lit->nthArgument(1))) );
+  return pvi( iterItems( *lit->nthArgument(0), *lit->nthArgument(1)) );
 }
 
 

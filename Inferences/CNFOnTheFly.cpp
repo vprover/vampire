@@ -549,9 +549,9 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
         if(index){
           auto results = index->getGeneralizations(TypedTermList(term.term()), true);
           if(results.hasNext()){
-            TermQueryResult tqr = results.next();
-            TermList skolemTerm = tqr.term;
-            skolemTerm=tqr.substitution->applyToBoundResult(skolemTerm);
+            auto tqr = results.next();
+            TermList skolemTerm = tqr.data->value;
+            skolemTerm = tqr.unifier->applyToBoundResult(skolemTerm);
             newTerm = AH::createAppTerm(srt, args[0], skolemTerm);
             newTermCreated = true;
           }

@@ -20,7 +20,7 @@
 
 #include "InferenceEngine.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Shell/UnificationWithAbstractionConfig.hpp"
+#include "Kernel/RobSubstitution.hpp"
 
 namespace Inferences
 {
@@ -34,14 +34,21 @@ class BinaryResolution
 {
 public:
   BinaryResolution() 
-    : _index(0),
-    _unificationWithAbstraction(false)
+    : _index(0)
   {  }
 
   void attach(SaturationAlgorithm* salg);
   void detach();
 
-  static Clause* generateClause(Clause* queryCl, Literal* queryLit, SLQueryResult res, const Options& opts, PassiveClauseContainer* passive=0, Ordering* ord=0, LiteralSelector* ls = 0);
+  static Clause* generateClause(Clause* queryCl, Literal* queryLit, 
+                                Clause* resultCl, Literal* resultLit, 
+                                ResultSubstitutionSP subs, const Options& opts);
+
+  template<class ComputeConstraints>
+  static Clause* generateClause(Clause* queryCl, Literal* queryLit, 
+                                Clause* resultCl, Literal* resultLit, 
+                                ResultSubstitutionSP subs, ComputeConstraints constraints, const Options& opts, PassiveClauseContainer* passive=0, Ordering* ord=0, LiteralSelector* ls = 0);
+
   ClauseIterator generateClauses(Clause* premise);
 
 private:
@@ -49,7 +56,6 @@ private:
   struct ResultFn;
 
   BinaryResolutionIndex* _index;
-  bool _unificationWithAbstraction;
 };
 
 };

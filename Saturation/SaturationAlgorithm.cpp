@@ -60,6 +60,7 @@
 #include "Inferences/FOOLParamodulation.hpp"
 #include "Inferences/Injectivity.hpp"
 #include "Inferences/Factoring.hpp"
+#include "Inferences/FunctionDefinitionRewriting.hpp"
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
@@ -80,7 +81,6 @@
 #include "Inferences/ElimLeibniz.hpp"
 #include "Inferences/SubVarSup.hpp"
 #include "Inferences/CNFOnTheFly.hpp"
-//#include "Inferences/RenamingOnTheFly.hpp"
 #include "Inferences/URResolution.hpp"
 #include "Inferences/Instantiation.hpp"
 #include "Inferences/TheoryInstAndSimp.hpp"
@@ -206,14 +206,14 @@ std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Optio
  * The @b passiveContainer object will be used as a passive clause container, and
  * @b selector object to select literals before clauses are activated.
  */
-SaturationAlgorithm::SaturationAlgorithm(Problem &prb, const Options &opt)
-    : MainLoop(prb, opt),
-      _clauseActivationInProgress(false),
-      _fwSimplifiers(0), _simplifiers(0), _bwSimplifiers(0), _splitter(0),
-      _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
-      _instantiation(0),
-      _generatedClauseCount(0),
-      _activationLimit(0)
+SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
+  : MainLoop(prb, opt),
+    _clauseActivationInProgress(false),
+    _fwSimplifiers(0), _simplifiers(0), _bwSimplifiers(0), _splitter(0),
+    _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
+    _instantiation(0), _fnDefHandler(prb.getFunctionDefinitionHandler()),
+    _generatedClauseCount(0),
+    _activationLimit(0)
 {
   ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
 
@@ -342,9 +342,7 @@ ClauseIterator SaturationAlgorithm::activeClauses()
 void SaturationAlgorithm::onActiveAdded(Clause *c)
 {
   if (env.options->showActive()) {
-    env.beginOutput();
-    env.out() << "[SA] active: " << c->toString() << std::endl;
-    env.endOutput();
+    std::cout << "[SA] active: " << c->toString() << std::endl;
   }
 }
 
@@ -381,13 +379,11 @@ void SaturationAlgorithm::onAllProcessed()
 void SaturationAlgorithm::onPassiveAdded(Clause *c)
 {
   if (env.options->showPassive()) {
-    env.beginOutput();
-    env.out() << "[SA] passive: " << c->toString() << std::endl;
-    env.endOutput();
+    std::cout << "[SA] passive: " << c->toString() << std::endl;
   }
 
-  // when a clause is added to the passive container,
-  // we know it is not redundant
+  //when a clause is added to the passive container,
+  //we know it is not redundant
   onNonRedundantClause(c);
 }
 
@@ -442,9 +438,7 @@ void SaturationAlgorithm::onNewClause(Clause *cl)
   }
 
   if (env.options->showNew()) {
-    env.beginOutput();
-    env.out() << "[SA] new: " << cl->toString() << std::endl;
-    env.endOutput();
+    std::cout << "[SA] new: " << cl->toString() << std::endl;
   }
 
   if (cl->isPropositional()) {
@@ -461,9 +455,7 @@ void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause *c)
   ASS(c->isPropositional());
 
   if (env.options->showNewPropositional()) {
-    env.beginOutput();
-    env.out() << "[SA] new propositional: " << c->toString() << std::endl;
-    env.endOutput();
+    std::cout << "[SA] new propositional: " << c->toString() << std::endl;
   }
 
   if (_consFinder) {
@@ -516,23 +508,17 @@ void SaturationAlgorithm::onClauseReduction(Clause *cl, Clause **replacements, u
   Clause *replacement = numOfReplacements ? *replacements : 0;
 
   if (env.options->showReductions()) {
-    env.beginOutput();
-    env.out() << "[SA] " << (forward ? "forward" : "backward") << " reduce: " << cl->toString() << endl;
-    for (unsigned i = 0; i < numOfReplacements; i++) {
-      Clause *replacement = *replacements;
-      if (replacement) {
-        env.out() << "      replaced by " << replacement->toString() << endl;
-      }
+    std::cout << "[SA] " << (forward ? "forward" : "backward") << " reduce: " << cl->toString() << endl;
+    for(unsigned i = 0; i < numOfReplacements; i++){
+      Clause* replacement = *replacements;
+      if(replacement){ std::cout << "      replaced by " << replacement->toString() << endl; }
       replacements++;
     }
     ClauseStack::Iterator pit(premStack);
-    while (pit.hasNext()) {
-      Clause *premise = pit.next();
-      if (premise) {
-        env.out() << "     using " << premise->toString() << endl;
-      }
+    while(pit.hasNext()){
+      Clause* premise = pit.next();
+      if(premise){ std::cout << "     using " << premise->toString() << endl; }
     }
-    env.endOutput();
   }
 
   if (_splitter) {
@@ -730,10 +716,9 @@ void SaturationAlgorithm::init()
 
     Stack<Clause *> aux;
     aux.loadFromIterator(_prb.clauseIterator());
-    Shuffling::shuffleArray(aux, aux.size());
-    toAdd = pvi(ownedArrayishIterator(std::move(aux)));
-  }
-  else {
+    Shuffling::shuffleArray(aux,aux.size());
+    toAdd = pvi(arrayIter(std::move(aux)));
+  } else {
     toAdd = _prb.clauseIterator();
   }
 
@@ -1193,7 +1178,7 @@ void SaturationAlgorithm::activate(Clause *cl)
   _active->add(cl);
 
   auto generated = TIME_TRACE_EXPR(TimeTrace::CLAUSE_GENERATION, _generator->generateSimplify(cl));
-  auto toAdd = timeTraceIter(TimeTrace::CLAUSE_GENERATION, generated.clauses);
+  auto toAdd = TIME_TRACE_ITER(TimeTrace::CLAUSE_GENERATION, generated.clauses);
 
   while (toAdd.hasNext()) {
     Clause *genCl = toAdd.next();
@@ -1572,6 +1557,10 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem &prb, const 
       gie->addFront(new InjectivityGIE());
     }
   }
+  if (env.options->functionDefinitionRewriting()) {
+    gie->addFront(new FunctionDefinitionRewriting());
+    res->addForwardSimplifierToFront(new FunctionDefinitionDemodulation());
+  }
 
   CompositeSGI *sgi = new CompositeSGI();
   sgi->push(gie);
@@ -1614,7 +1603,6 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem &prb, const 
        env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
       res->addSimplifierToFront(new LazyClausification());
     }
-    // res->addSimplifierToFront(new RenamingOnTheFly());
   }
 
   // create forward simplification engine

@@ -352,9 +352,7 @@ bool FunctionDefinition::removeAllDefinitions(UnitList*& units, bool inHigherOrd
     }
 
     if (env.options->showPreprocessing()) {
-      env.beginOutput();
-      env.out() << "[PP] fn def discovered: "<<(*d->defCl)<<"\n  unfolded: "<<(*d->rhs) << std::endl;
-      env.endOutput();
+      std::cout << "[PP] fn def discovered: "<<(*d->defCl)<<"\n  unfolded: "<<(*d->rhs) << std::endl;
     }
     env.statistics->functionDefinitions++;
   }
@@ -552,9 +550,7 @@ Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
   //cout << "applying definitions to " + lit->toString() << endl;
 
   if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] applying function definitions to literal "<<(*lit) << std::endl;
-    env.endOutput();
+    std::cout << "[PP] applying function definitions to literal "<<(*lit) << std::endl;
   }
   BindingMap bindings;
   UnfoldedSet unfolded;
@@ -659,13 +655,11 @@ Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
       ASS_EQ(d->mark, Def::UNFOLDED);
       usedDefs->push(d);
       if (env.options->showPreprocessing()) {
-        env.beginOutput();
-        env.out() << "[PP] definition of "<<(*t)<<"\n  expanded to "<<(*d->rhs) << std::endl;
-        env.endOutput();
+        std::cout << "[PP] definition of "<<(*t)<<"\n  expanded to "<<(*d->rhs) << std::endl;
       }
 
       defIndex=nextDefIndex++;
-      
+
       //bind arguments of definition lhs
       TermList* dargs=d->lhs->args();
       TermList* targs=t->args();

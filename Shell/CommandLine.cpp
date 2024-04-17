@@ -72,7 +72,7 @@ std::ostream& printVersion(std::ostream& out)
   return out;
 }
 
-CommandLine::CommandLine (int argc, char* argv [])
+CommandLine::CommandLine (int argc, const char * const argv [])
   : _next(argv+1),
     _last(argv+argc)
 {
@@ -103,16 +103,14 @@ void CommandLine::interpret (Options& options)
     if(strcmp(arg,"--help")==0 ||
        (strcmp(arg,"-h")==0 && _next==_last) //if -h and there is no more
       ){
-      // std::cout << _next << " " << _last << endl;
+      // cout << _next << " " << _last << endl;
       options.set("help","on");
-      env.beginOutput();
-      options.output(env.out());
-      env.endOutput();
+      options.output(std::cout);
       exit(0);
     }
     if (arg[0] == '-') {
       if (_next == _last) {
-	USER_ERROR((vstring)"no value specified for option " + arg);
+	      USER_ERROR((vstring)"no value specified for option " + arg);
       }
       else{
          if (arg[1] == '-') {
@@ -126,22 +124,11 @@ void CommandLine::interpret (Options& options)
     }
     else { // next is not an option but a file name
       if (fileGiven) {
-	USER_ERROR("two input file names specified");
+	      USER_ERROR("two input file names specified");
       }
       fileGiven = true;
       options.setInputFile(arg);
     }
-  }
-  // Don't force options if in Portfolio mode as the
-  // forced options should apply to inner strategies only
-  // Don't check global option constraints in Portoflio mode
-  // as these are checked oon each inner strategy
-  if(options.mode() != Options::Mode::PORTFOLIO){
-    options.setForcedOptionValues();
-    options.checkGlobalOptionConstraints();
-  }
-  if(options.encodeStrategy()){
-    std::cout << options.generateEncodedOptions() << "\n";
   }
 } // CommandLine::interpret
 

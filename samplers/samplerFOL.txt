@@ -1,14 +1,3 @@
-# An extension of samplerFOL.txt for dealing with theory reasoning
-# - this assumes compilation with z3
-
-# SMTLIB specific:
-
-# guess_the_goal
-> gtg ~cat off:20,all:1,exists_top:1,exists_all:1,exists_sym:1,position:1
-
-# guess_the_goal_limit
-gtg!=off > gtgl ~cat 1:10,2:2,3:1
-
 # PREPROCESSING
 
 # blocked_clause_elimination
@@ -40,7 +29,9 @@ $nm=Z > nm ~cat 0:1
 $nm=NZ > nm ~sgd 0.07,2
 
 # inequality_splitting
-> ins ~cat 0:20,1:4,2:3,3:2,4:1
+> $ins ~cat Z:2,NZ:1
+$ins=Z > ins ~cat 0:1
+$ins=NZ > ins ~sgd 0.4,1
 
 # random_polarities
 > rp ~cat off:3,on:1
@@ -49,16 +40,7 @@ $nm=NZ > nm ~sgd 0.07,2
 > tgt ~cat off:10,ground:6,full:5
 
 # set_of_support
-> sos ~cat off:80,on:17,all:10,theory:10
-
-# sos_theory_limit
-sos=theory > sstl ~cat 0:10,1:1,2:1,3:1
-
-# theory_axioms
-> tha ~cat on:10,off:1,some:3
-
-# theory_flattening
-> thf ~cat on:1,off:10
+> sos ~cat off:80,on:17,all:10
 
 # sine_selection
 > ss ~cat off:1182,included:135,axioms:392
@@ -78,7 +60,7 @@ ss!=off > st ~cat -1.0:50,1.0:150,1.5:37,2.0:60,2.5:20,3.0:70,3.5:15,4.0:60,4.5:
 # SATURATION
 
 # saturation_algorithms
-> sa     ~cat lrs:600,discount:572,otter:236,z3:10
+> sa     ~cat lrs:600,discount:572,otter:236
 
 # literal selection
 > $s_pos ~cat Y:4,N:1
@@ -104,8 +86,11 @@ $ls=on > lsd ~cat 0:20,1:1,5:1,10:1,20:1,50:1,100:1
 sa=lrs > lwlo ~cat off:5,on:1
 
 # lrs_estimate_correction_coef
-sa=lrs > lecc ~cat 1:10,666:1
-lecc!=1 > lecc ~uf 0.5,2.0
+# > $lecc ~cat 1:1
+# sa=lrs > $lecc ~cat 1:10,666:1
+# sa=lrs $lecc=1 > lecc ~cat 1.0:1
+# sa=lrs $lecc!=1 > lecc ~uf 0.5,2.0
+# TODO: leaving out weird timing dependent options
 
 # age_weight_ratio_shape
 > awrs ~cat constant:8,decay:1,converge:1
@@ -114,14 +99,10 @@ lecc!=1 > lecc ~uf 0.5,2.0
 awrs!=constant > awrsf ~ui 1,500
 
 # nongoal_weight_coefficient
-> nwc ~cat 1:2,2:1
-nwc!=1 > nwc ~ui 2,15
-
-# increased_numeral_weight
-> inw ~cat off:5,on:1
-
-# introduced_symbol_precedence
-> isp ~cat top:10,bottom:1
+> $nwc ~cat 1:2,666:1
+$nwc=1 > nwc ~cat 1:1
+$nwc!=1 > nwc ~uf 0.5,15.0
+# TODO: we will most likely want a new distribution here for ($nwc!=1) just above!
 
 # restrict_nwc_to_goal_constants
 nwc!=1 > rnwc ~cat off:5,on:1
@@ -186,9 +167,6 @@ bsd=on > bsdmm ~cat 0:10,1:3,2:2,3:1
 # condensation
 > cond ~cat off:500,on:89,fast:61
 
-# demodulation_redundancy_check
-> drc ~cat encompass:500,on:500,off:354
-
 # equational_tautology_removal
 > etr ~cat off:500,on:30
 
@@ -206,6 +184,12 @@ er!=off > erml ~cat 0:3,2:1,3:1
 
 # forward_demodulation
 > fd ~cat all:500,off:41,preordered:168
+
+# demodulation_redundancy_check
+> $drc ~cat 0:1
+fd!=off > $drc ~cat 1:1
+bd!=off > $drc ~cat 1:1
+$drc=1 > drc ~cat encompass:500,on:500,off:354
 
 # forward_literal_rewriting
 > flr ~cat off:8,on:1
@@ -305,13 +289,15 @@ av=on > alpa ~cat none:300,false:13,true:6,random:4
 av=on > anc ~cat known:300,all_dependent:38,all:45,none:48
 
 # avatar_turn_off_time_frac
-av=on > atotf ~cat 1.0:10,0.5:1
-# careful that 1.0 becomes "1" by the ->toFloat->toStr internal transformation
-atotf!=1 > atotf ~uf 0.0,0.5
+# av=on > $atotf ~cat 1:10,666:1
+# av=on $atotf=1 > atotf ~cat 1:1
+# av=on $atotf!=1 > atotf ~uf 0.0,0.7
+# TODO: leaving out weird timing dependent options
 
 # avatar_flush_period
-av=on > afp ~cat 0:15,1:1
-afp!=0 > afp ~cat 1:1,10:1,50:1,300:1,1000:1,2000:1,4000:1,10000:1,40000:1,100000:1,1000000:1
+av=on > $afp ~cat 0:15,666:1
+av=on $afp=0 > afp ~cat 0:1
+av=on $afp!=0 > afp ~cat 1:1,10:1,50:1,300:1,1000:1,2000:1,4000:1,10000:1,40000:1,100000:1,1000000:1
 
 # avatar_flush_quotient
 afp!=0 > afq ~uf 1.0,3.0
@@ -362,39 +348,8 @@ gs=on av=on > gsaa ~cat off:30,from_current:11,full_model:3
 
 > uhcvi ~cat off:1,on:1
 
-# sat_solver
-> sas ~cat minisat:1,z3:1
-
-# sat_fallback_for_smt
-av=on > sffsmt ~cat off:5,on:1
-
-# THEORY SPLIT QUEUE
-
-# theory_split_queue
-> thsq ~cat off:10,on:1
-
-# theory_split_queue_layered_arrangement
-thsq=on > thsql ~cat on:11,off:3
-
-# theory_split_queue_cutoffs
-thsq=on > thsqc ~cat 0:1,8:1,16:2,32:5,64:5,128:2
-
-# theory_split_queue_ratios
-thsq=on > thsqr ~u2r -3;3;,
-
-# theory_split_queue_expected_ratio_denom
-thsq=on > thsqd ~cat 2:1,4:1,8:7,32:5,64:2,128:1
-
-# MISSING, kind of, on purpose:
-
-# Any FMB - although that arguably does not make sense for theories
-# Any higher-order options - which is a different game
-
-
-
-
-# TODO - should still add:
-
-# 1) all options with the "Theories" tag
-
-# 2) any induction options - if that's relevant for your domain
+# MISSING:
+# Any theory reasoning options (including term algebras and sa=z3)
+# Any induction options
+# Any higher-order options (Higher-order options section)
+# Any FMB

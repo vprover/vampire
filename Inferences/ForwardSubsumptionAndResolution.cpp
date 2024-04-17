@@ -106,7 +106,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
     Literal *lit = (*cl)[li];
     auto it = _unitIndex->getGeneralizations(lit, false, false);
     if (it.hasNext()) {
-      mcl = it.next().clause;
+      mcl = it.next().data->clause;
       premise = mcl;
       ASS(ColorHelper::compatible(cl->color(), premise->color()))
       premises = pvi(getSingletonIterator(premise));
@@ -130,7 +130,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
     Literal *lit = (*cl)[li];
     auto it = _fwIndex->getGeneralizations(lit, false, false);
     while (it.hasNext()) {
-      mcl = it.next().clause;
+      mcl = it.next().data->clause;
       if (!checkedClauses.insert(mcl)) {
         continue;
       }
@@ -186,7 +186,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
     Literal *lit = (*cl)[li];
     auto it = _unitIndex->getGeneralizations(lit, true, false);
     if (it.hasNext()) {
-      mcl = it.next().clause;
+      mcl = it.next().data->clause;
       ASS(mcl->length() == 1)
       replacement = SATSubsumption::SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(cl, lit, mcl);
       premises = pvi(getSingletonIterator(mcl));
@@ -205,7 +205,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
       Literal *lit = (*cl)[li];
       auto it = _fwIndex->getGeneralizations(lit, false, false);
       while (it.hasNext()) {
-        mcl = it.next().clause;
+        mcl = it.next().data->clause;
         if (!checkedClauses.insert(mcl)) {
           continue;
         }
@@ -232,7 +232,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
     Literal *lit = (*cl)[li];
     auto it = _fwIndex->getGeneralizations(lit, true, false);
     while (it.hasNext()) {
-      mcl = it.next().clause;
+      mcl = it.next().data->clause;
       if (!checkedClauses.insert(mcl)) {
         continue;
       }

@@ -31,13 +31,13 @@ class Options;
 class CommandLine
 {
 public:
-  CommandLine(int argc, char* argv []);
+  CommandLine(int argc, const char* const argv []);
   void interpret(Options&);
 private:
   /** Next string to process */
-  char** _next;
+  const char* const * _next;
   /** (After) last string to process */
-  char** _last;
+  const char* const * _last;
 }; // class CommandLine
 
 std::ostream& printVersion(std::ostream& out);

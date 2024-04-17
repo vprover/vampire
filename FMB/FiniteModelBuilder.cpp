@@ -97,10 +97,8 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
       env.getMainProblem()->hasInterpretedOperations()) {
 
       if(outputAllowed()) {
-        env.beginOutput();
-        addCommentSignForSZS(env.out());
-        env.out() << "WARNING: trying to run FMB on interpreted or otherwise provably infinite-domain problem!" << endl;
-        env.endOutput();
+        addCommentSignForSZS(std::cout);
+        std::cout << "WARNING: trying to run FMB on interpreted or otherwise provably infinite-domain problem!" << endl;
       }
 
      _isAppropriate = false;
@@ -1875,7 +1873,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
   // Giles: In CASC mode we should only print GaveUp at the very end
   if(UIHelper::szsOutput) {
     env.beginOutput();
-    env.out() << "% SZS status GaveUp for " << _opt.problemName() << endl;
+    std::cout << "% SZS status GaveUp for " << _opt.problemName() << endl;
     env.endOutput();
   }
   */
@@ -1897,10 +1895,8 @@ void FiniteModelBuilder::onModelFound()
 
  //we need to print this early because model generating can take some time
  if(szsOutputMode()) {
-   env.beginOutput();
-   env.out() << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
+   std::cout << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
        << " for " << _opt.problemName() << endl << flush;
-   env.endOutput();
    UIHelper::satisfiableStatusWasAlreadyOutput = true;
  }
   // Prevent timing out whilst the model is being printed
@@ -2375,7 +2371,7 @@ bool FiniteModelBuilder::HackyDSAE::increaseModelSizes(DArray<unsigned>& newSort
 
       // test 2a -- generator constraints
       {
-        Constraint_Generator_Heap::Iterator it(_constraints_generators);
+        auto it = _constraints_generators.iter();
         while (it.hasNext()) {
           if (checkConstriant(newSortSizes,it.next()->_vals)) {
             goto next_candidate;
@@ -2572,14 +2568,12 @@ unsigned FiniteModelBuilder::SmtBasedDSAE::loadSizesFromSmt(DArray<unsigned>& sz
 
 void FiniteModelBuilder::SmtBasedDSAE::reportZ3OutOfMemory()
 {
-  env.beginOutput();
   reportSpiderStatus('m');
-  env.out() << "Z3 ran out of memory" << endl;
+  std::cout << "Z3 ran out of memory" << endl;
   if(env.statistics) {
-    env.statistics->print(env.out());
+    env.statistics->print(std::cout);
   }
-  Debug::Tracer::printStack(env.out());
-  env.endOutput();
+  Debug::Tracer::printStack(std::cout);
   System::terminateImmediately(1);
 }
 

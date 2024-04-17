@@ -48,6 +48,7 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Inferences;
+using namespace Shell;
 
 class ConsequenceFinder;
 class LabelFinder;
@@ -124,6 +125,7 @@ public:
   static void tryUpdateFinalClauseCount();
 
   Splitter* getSplitter() { return _splitter; }
+  FunctionDefinitionHandler& getFunctionDefinitionHandler() const { return _fnDefHandler; }
 
 protected:
   virtual void init();
@@ -215,7 +217,7 @@ protected:
   SymElOutput* _symEl;
   AnswerLiteralManager* _answerLiteralManager;
   Instantiation* _instantiation;
-
+  FunctionDefinitionHandler& _fnDefHandler;
 
   SubscriptionData _passiveContRemovalSData;
   SubscriptionData _activeContRemovalSData;

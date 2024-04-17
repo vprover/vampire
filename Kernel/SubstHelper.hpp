@@ -189,8 +189,8 @@ private:
   {
     for(unsigned i=0;i<len;i++) {
       TermList trm=terms[i];
-      if(trm.isVSpecialVar()||trm.isSpecialVar()||(trm.isTerm()&&!trm.term()->shared())) {
-	return false;
+      if(trm.isSpecialVar()||(trm.isTerm()&&!trm.term()->shared())) {
+	      return false;
       }
     }
     return true;
@@ -275,14 +275,14 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
   if(trm->isSpecial()) {
     Term::SpecialTermData* sd = trm->getSpecialData();
     switch(trm->specialFunctor()) {
-    case Term::SpecialFunctor::ITE:
+    case SpecialFunctor::ITE:
       return Term::createITE(
     applyImpl<ProcessSpecVars>(sd->getCondition(), applicator, noSharing),
     applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
     applyImpl<ProcessSpecVars>(*trm->nthArgument(1), applicator, noSharing),
     applyImpl<ProcessSpecVars>(sd->getSort(), applicator, noSharing)
     );
-    case Term::SpecialFunctor::LET:
+    case SpecialFunctor::LET:
       return Term::createLet(
     sd->getFunctor(),
     sd->getVariables(),
@@ -290,11 +290,11 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
     sd->getSort()
     );
-    case Term::SpecialFunctor::FORMULA:
+    case SpecialFunctor::FORMULA:
       return Term::createFormula(
       applyImpl<ProcessSpecVars>(sd->getFormula(), applicator, noSharing)
       );
-    case Term::SpecialFunctor::LET_TUPLE:
+    case SpecialFunctor::LET_TUPLE:
       return Term::createTupleLet(
         sd->getFunctor(),
         sd->getTupleSymbols(),
@@ -302,12 +302,12 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
         applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
         sd->getSort()
         );
-    case Term::SpecialFunctor::TUPLE:
+    case SpecialFunctor::TUPLE:
       return Term::createTuple(applyImpl<ProcessSpecVars>(sd->getTupleTerm(), applicator, noSharing));
-    case Term::SpecialFunctor::LAMBDA:
+    case SpecialFunctor::LAMBDA:
       // TODO in principle this should not be so difficult to handle
       ASSERTION_VIOLATION;
-    case Term::SpecialFunctor::MATCH: {
+    case SpecialFunctor::MATCH: {
       DArray<TermList> terms(trm->arity());
       for (unsigned i = 0; i < trm->arity(); i++) {
         terms[i] = applyImpl<ProcessSpecVars>(*trm->nthArgument(i), applicator, noSharing);
@@ -384,7 +384,7 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
       }
       continue;
     }
-    ASS(tl.isVSpecialVar() || tl.isTerm());
+    ASS(tl.isTerm());
     if(tl.isVar() || (tl.term()->shared() && tl.term()->ground())) {
       args->push(tl);
       continue;

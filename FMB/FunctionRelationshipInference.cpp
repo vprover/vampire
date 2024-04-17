@@ -60,7 +60,7 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
 
   ClauseList* checkingClauses = getCheckingClauses();
 
-  ClauseIterator cit = pvi(getConcatenatedIterator(clauses,pvi(ClauseList::Iterator(checkingClauses))));
+  ClauseIterator cit = pvi(concatIters(clauses,ClauseList::Iterator(checkingClauses)));
 
   Problem prb(cit,false);
   Options opt; // default saturation algorithm options
@@ -348,7 +348,7 @@ Formula* FunctionRelationshipInference::getName(TermList fromSrt, TermList toSrt
     else
       _labelMap_nonstrict.insert(label,make_pair(fsT,tsT));
 
-    return new AtomicFormula(Literal::create(label,0,true,false,0)); 
+    return new AtomicFormula(Literal::create(label, /* polarity */ true, {})); 
 }
 
 }

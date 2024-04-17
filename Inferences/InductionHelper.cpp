@@ -12,9 +12,11 @@
  * Implements class Induction.
  */
 
+#include "Forwards.hpp"
 #include "Indexing/Index.hpp"
 #include "Indexing/ResultSubstitution.hpp"
 
+#include "Kernel/SortHelper.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
 
@@ -35,12 +37,12 @@ namespace {
 
 struct SLQueryResultToTermQueryResultFn
 {
-  SLQueryResultToTermQueryResultFn(TermList v) : variable(v) {}
-  TermQueryResult operator() (const SLQueryResult slqr) {
-    return TermQueryResult(slqr.substitution->applyToQuery(variable), slqr.literal, slqr.clause);
+  SLQueryResultToTermQueryResultFn(TypedTermList v) : variable(v) {}
+  TermLiteralClause operator() (const QueryRes<ResultSubstitutionSP, LiteralClause> slqr) {
+    return TermLiteralClause{slqr.unifier->applyToQuery(variable), slqr.data->literal, slqr.data->clause};
   }
 
-  TermList variable;
+  TypedTermList variable;
 };
 
 bool isIntegerComparisonLiteral(Literal* lit) {
@@ -53,7 +55,10 @@ bool isIntegerComparisonLiteral(Literal* lit) {
     case Theory::INT_GREATER_EQUAL:
     case Theory::INT_GREATER:
       // All formulas should be normalized to only use INT_LESS and not other integer comparison predicates.
-      ASSERTION_VIOLATION;
+
+      // Equality proxy may generate useless congruence axioms for the likes of INT_GREATER
+      // (although they only appeared in the input and are eliminated by now -> but this also means they are safe to ingore)
+      ASS_EQ(env.options->equalityProxy(),Options::EqualityProxy::RSTC);
     default:
       // Not an integer comparison.
       return false;
@@ -63,34 +68,34 @@ bool isIntegerComparisonLiteral(Literal* lit) {
 
 };  // namespace
 
-TermQueryResultIterator InductionHelper::getComparisonMatch(
+VirtualIterator<TermLiteralClause> InductionHelper::getComparisonMatch(
     bool polarity, bool termIsLeft, Term* t) {
   static unsigned less = env.signature->getInterpretingSymbol(Theory::INT_LESS);
-  static TermList var(0, false);
+  static TypedTermList var(TermList::var(0), SortHelper::getResultSort(t));
   Literal* pattern = Literal::create2(less, polarity, termIsLeft ? TermList(t) : var, termIsLeft ? var : TermList(t));
   return pvi(getMappingIterator(_comparisonIndex->getUnifications(pattern, /*complementary=*/ false, /*retrieveSubstitution=*/ true),
                                 SLQueryResultToTermQueryResultFn(var)));
 }
 
-TermQueryResultIterator InductionHelper::getLess(Term* t)
+VirtualIterator<TermLiteralClause> InductionHelper::getLess(Term* t)
 {
-  return pvi(getConcatenatedIterator(
+  return pvi(concatIters(
     // x <= t  iff  ~ t < x
     getComparisonMatch(/*polarity=*/false, /*termIsLeft=*/true, t),
     // x < t
     getComparisonMatch(/*polarity=*/true, /*termIsLeft=*/false, t)));
 }
 
-TermQueryResultIterator InductionHelper::getGreater(Term* t)
+VirtualIterator<TermLiteralClause> InductionHelper::getGreater(Term* t)
 {
-  return pvi(getConcatenatedIterator(
+  return pvi(concatIters(
     // x >= t  iff  ~ x < t
     getComparisonMatch(/*polarity=*/false, /*termIsLeft=*/false, t),
     // x > t  iff  t < x
     getComparisonMatch(/*polarity=*/true, /*termIsLeft=*/true, t)));
 }
 
-TermQueryResultIterator InductionHelper::getTQRsForInductionTerm(Term* inductionTerm) {
+VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>> InductionHelper::getTQRsForInductionTerm(Term* inductionTerm) {
   ASS(_inductionTermIndex);
   return _inductionTermIndex->getUnifications(TypedTermList(inductionTerm));
 }
@@ -248,6 +253,19 @@ bool InductionHelper::isStructInductionTerm(Term* t) {
            // otherwise skip all constructors:
            !env.signature->getFunction(t->functor())->termAlgebraCons())
          );
+}
+
+Term* InductionHelper::getOtherTermFromComparison(Literal* l, Term* t) {
+  if (isIntegerComparisonLiteral(l)) {
+    ASS(l->ground());
+    ASS_EQ(l->arity(),2);
+    for (unsigned i = 0; i < 2; ++i) {
+      if (l->termArg(i).term() == t) {
+        return l->termArg(1-i).term();
+      }
+    }
+  }
+  return nullptr;
 }
 
 }  // namespace Inferences

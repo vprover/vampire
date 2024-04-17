@@ -92,7 +92,7 @@ SimplifyingGeneratingInference1::Result generalizeBottomUp(Clause* cl, EvalFn ev
         auto termArgs = termArgIter(lit)
           .map([&](TermList term) -> TermList { 
               auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getTermArgSort(lit, j++)));
-              auto res = evaluateBottomUp(norm, eval);
+              auto res = BottomUpEvaluation<typename EvalFn::Arg, typename EvalFn::Result>().function(eval).apply(norm);
               if (res != norm) {
                 DEBUG_CODE(anyChange = true);
                 DEBUG("generalized: ", norm, " -> ", res);
@@ -175,13 +175,13 @@ struct EvaluateAnyPoly
   PolyNf operator()(PolyNf term, PolyNf* evaluatedArgs) 
   {
     auto out = term.match(
-        [&](Perfect<FuncTerm> t) -> PolyNf
-        { return perfect(FuncTerm(t->function(), evaluatedArgs)); },
+        [&](Perfect<FuncTerm> t)
+        { return PolyNf(perfect(FuncTerm(t->function(), evaluatedArgs))); },
 
-        [&](Variable v) 
-        { return v; },
+        [&](Variable v)
+        { return PolyNf(v); },
 
-        [&](AnyPoly p) 
+        [&](AnyPoly p)
         { return PolyNf(eval(p, evaluatedArgs)); }
         );
     return out;

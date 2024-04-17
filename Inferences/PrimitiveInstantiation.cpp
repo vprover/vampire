@@ -82,10 +82,10 @@ struct PrimitiveInstantiation::ResultFn
 {
   ResultFn(Clause* cl): _cl(cl){}
   
-  Clause* operator() (TermQueryResult tqr){
+  Clause* operator() (QueryRes<ResultSubstitutionSP, TermWithoutValue> tqr){
     const int QUERY = 0;
 
-    ResultSubstitutionSP subst = tqr.substitution;
+    ResultSubstitutionSP subst = tqr.unifier;
 
     unsigned cLen = _cl->length(); 
    
@@ -107,9 +107,8 @@ private:
 
 struct PrimitiveInstantiation::ApplicableRewritesFn
 {
-  
   ApplicableRewritesFn(PrimitiveInstantiationIndex* index) : _index(index){}
-  VirtualIterator<TermQueryResult> operator()(Literal* l)
+  VirtualIterator<QueryRes<ResultSubstitutionSP, TermWithoutValue>> operator()(Literal* l)
   {
     TermList lhs = *l->nthArgument(0);
     TermList rhs = *l->nthArgument(1);

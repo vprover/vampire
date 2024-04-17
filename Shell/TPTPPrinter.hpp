@@ -54,11 +54,9 @@ private:
 
   void printTffWrapper(Unit* u, vstring bodyStr);
 
-  void beginOutput();
-  void endOutput();
   std::ostream& tgt();
 
-  /** if zero, we print to env.out() */
+  /** if zero, we print to std::cout */
   std::ostream* _tgtStream;
 
   bool _headersPrinted;

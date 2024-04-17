@@ -240,48 +240,47 @@ void Inference::updateStatistics()
   }
 }
 
-vstring Inference::toString() const
+std::ostream& Kernel::operator<<(std::ostream& out, Inference const& self)
 {
-  vstring result;
-
-  switch(_kind) {
-    case Kind::INFERENCE_012:
-      result = "INFERENCE_012, (";
+  switch(self._kind) {
+    case Inference::Kind::INFERENCE_012:
+      out << "INFERENCE_012, (";
       break;
-    case Kind::INFERENCE_MANY:
-      result = "INFERENCE_MANY, (";
+    case Inference::Kind::INFERENCE_MANY:
+      out << "INFERENCE_MANY, (";
       break;
-    case Kind::INFERENCE_FROM_SAT_REFUTATION:
-      result = "INFERENCE_FROM_SAT_REFUTATION, (";
+    case Inference::Kind::INFERENCE_FROM_SAT_REFUTATION:
+      out << "INFERENCE_FROM_SAT_REFUTATION, (";
       break;
   }
-  result += ruleName(_rule);
-  result += "), it: " + Int::toString(toNumber(_inputType));
+  // TODO get rid of intermediate string generation by ruleName
+  out << ruleName(self._rule);
+  out << "), it: " << toNumber(self._inputType);
 
-  result += ", incl: " + Int::toString(_included);
-  result += ", ptd: " + Int::toString(_isPureTheoryDescendant);
+  out << ", incl: " << self._included;
+  out << ", ptd: " << self._isPureTheoryDescendant;
   if(env.options->addCombAxioms()){
-    result += ", cad: " + Int::toString(_combAxiomsDescendant);
+    out << ", cad: " << self._combAxiomsDescendant;
   }
   if(env.options->addProxyAxioms()){
-   result += ", pad: " + Int::toString(_proxyAxiomsDescendant);
+     out << ", pad: " << self._proxyAxiomsDescendant;
   }
   if(env.options->addCombAxioms() && env.options->addProxyAxioms()){
-    result += ", had: " + Int::toString(_holAxiomsDescendant);
+    out << ", had: " << self._holAxiomsDescendant;
   }
-  result += ", id: " + Int::toString(_inductionDepth);
+  out << ", id: " << self._inductionDepth;
   if(env.options->maxXXNarrows() > 0){
-    result += ", xxNarrs " + Int::toString(_XXNarrows);
+    out << ", xxNarrs " << self._XXNarrows;
   }
   if(env.options->prioritiseClausesProducedByLongReduction()){
-    result += ", redLen " + Int::toString(_reductions);
+    out << ", redLen " << self._reductions;
   }
-  result += ", sl: " + Int::toString(_sineLevel);
-  result += ", age: " + Int::toString(_age);
-  result += ", thAx:" + Int::toString((int)(th_ancestors));
-  result += ", allAx:" + Int::toString((int)(all_ancestors));
+  out << ", sl: " << self._sineLevel;
+  out << ", age: " << self._age;
+  out << ", thAx:" << (int)(self.th_ancestors);
+  out << ", allAx:" << (int)(self.all_ancestors);
 
-  return result;
+  return out;
 }
 
 
@@ -687,6 +686,10 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "subsumption resolution";
   case InferenceRule::SUPERPOSITION:
     return "superposition";
+  case InferenceRule::FUNCTION_DEFINITION_REWRITING:
+    return "function definition rewriting";
+  case InferenceRule::FUNCTION_DEFINITION_DEMODULATION:
+    return "function definition demodulation";
   case InferenceRule::CONSTRAINED_SUPERPOSITION:
     return "constrained superposition";
   case InferenceRule::EQUALITY_FACTORING:
@@ -849,8 +852,14 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "finite model not found : exhaustively excluded all possible domain size assignments";
   case InferenceRule::ARITHMETIC_SUBTERM_GENERALIZATION:
     return "arithmetic subterm generalization";
-  case InferenceRule::STRUCT_INDUCTION_AXIOM:
-    return "structural induction hypothesis";
+  case InferenceRule::STRUCT_INDUCTION_AXIOM_ONE:
+    return "structural induction hypothesis (one)";
+  case InferenceRule::STRUCT_INDUCTION_AXIOM_TWO:
+    return "structural induction hypothesis (two)";
+  case InferenceRule::STRUCT_INDUCTION_AXIOM_THREE:
+    return "structural induction hypothesis (three)";
+  case InferenceRule::STRUCT_INDUCTION_AXIOM_RECURSION:
+    return "structural induction hypothesis (recursion)";
   case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
     return "integer induction hypothesis (up, infinite interval)";
   case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:

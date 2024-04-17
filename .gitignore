@@ -41,3 +41,6 @@ cmake-build
 
 # vim swap files
 **/.*.swp
+**/.*.swo
+.ccls-cache
+.cache/

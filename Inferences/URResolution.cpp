@@ -110,12 +110,12 @@ struct URResolution::Item
     _mustResolveAll = mustResolveAll || (selectedOnly ? true : (clen < 2 + (_ansLit ? 1 : 0)));
     unsigned litslen = clen - (_ansLit ? 1 : 0);
     _premises.init(litslen, 0);
-    _lits.ensure(litslen);
+    _lits.reserve(litslen);
     unsigned nonGroundCnt = 0;
     for(unsigned i=0; i<clen; i++) {
       if ((*cl)[i] != _ansLit) {
-        _lits[i] = (*cl)[i];
-        if(!_lits[i]->ground()) nonGroundCnt++;
+        _lits.push((*cl)[i]);
+        if(!_lits.top()->ground()) nonGroundCnt++;
       }
     }
     _atMostOneNonGround = nonGroundCnt<=1;
@@ -131,7 +131,7 @@ struct URResolution::Item
    * substitution is applied to the literals, otherwise the result
    * part is applied.
    */
-  void resolveLiteral(unsigned idx, SLQueryResult& unif, Clause* premise, bool useQuerySubstitution)
+  void resolveLiteral(unsigned idx, QueryRes<ResultSubstitutionSP, LiteralClause>& unif, Clause* premise, bool useQuerySubstitution)
   {
     Literal* rlit = _lits[idx];
     _lits[idx] = 0;
@@ -140,19 +140,19 @@ struct URResolution::Item
     ASS_NEQ(_color, COLOR_INVALID)
 
     if (_ansLit && !_ansLit->ground()) {
-      _ansLit = unif.substitution->apply(_ansLit, !useQuerySubstitution);
+      _ansLit = unif.unifier->apply(_ansLit, !useQuerySubstitution);
     }
     bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
     if (synthesis && premise->hasAnswerLiteral()) {
       Literal* premAnsLit = premise->getAnswerLiteral();
       if (!premAnsLit->ground()) {
-        premAnsLit = unif.substitution->apply(premAnsLit, useQuerySubstitution);
+        premAnsLit = unif.unifier->apply(premAnsLit, useQuerySubstitution);
       }
       if (!_ansLit) {
         _ansLit = premAnsLit;
       } else if (_ansLit != premAnsLit) {
         bool neg = rlit->isNegative();
-        Literal* resolved = unif.substitution->apply(rlit, !useQuerySubstitution);
+        Literal* resolved = unif.unifier->apply(rlit, !useQuerySubstitution);
         if (neg) {
           resolved = Literal::complementaryLiteral(resolved);
         }
@@ -171,7 +171,7 @@ struct URResolution::Item
       if(!lit) {
         continue;
       }
-      lit = unif.substitution->apply(lit, !useQuerySubstitution);
+      lit = unif.unifier->apply(lit, !useQuerySubstitution);
       if(!lit->ground()) {
         nonGroundCnt++;
       }
@@ -206,7 +206,7 @@ struct URResolution::Item
       if (!_ansLit || _ansLit->ground()) {
         single = Renaming::normalize(single);
       }
-      res = Clause::fromIterator(pvi(getConcatenatedIterator(getSingletonIterator(single), it)), inf);
+      res = Clause::fromIterator(concatIters(getSingletonIterator(single), it), inf);
     }
     else {
       res = Clause::fromIterator(it, inf);
@@ -269,7 +269,7 @@ struct URResolution::Item
    *
    * The unresolved literals have the substitutions from other resolutions
    * applied to themselves */
-  DArray<Literal*> _lits;
+  Stack<Literal*> _lits;
 
   Literal* _ansLit;
 
@@ -299,19 +299,19 @@ void URResolution::processLiteral(ItemList*& itms, unsigned idx)
       iit.insert(itm2);
     }
 
-    SLQueryResultIterator unifs = _unitIndex->getUnifications(lit, true, true);
+    auto unifs = _unitIndex->getUnifications(lit, true, true);
     while(unifs.hasNext()) {
-      SLQueryResult unif = unifs.next();
+      auto unif = unifs.next();
 
-      if( !ColorHelper::compatible(itm->_color, unif.clause->color()) ) {
+      if( !ColorHelper::compatible(itm->_color, unif.data->clause->color()) ) {
         continue;
       }
 
       Item* itm2 = new Item(*itm);
-      itm2->resolveLiteral(idx, unif, unif.clause, true);
+      itm2->resolveLiteral(idx, unif, unif.data->clause, true);
       iit.insert(itm2);
 
-      if(!_full && itm->_atMostOneNonGround && (!synthesis || !unif.clause->hasAnswerLiteral())) {
+      if(!_full && itm->_atMostOneNonGround && (!synthesis || !unif.data->clause->hasAnswerLiteral())) {
         /* if there is only one non-ground literal left, there is no need to retrieve all unifications.
            However, this does not hold under AVATAR where different empty clauses may close different
            splitting branches, that's why only "full" URR is complete under AVATAR (see Options::complete)
@@ -367,20 +367,20 @@ void URResolution::doBackwardInferences(Clause* cl, ClauseList*& acc)
     lit = (*cl)[1];
   }
 
-  SLQueryResultIterator unifs = _nonUnitIndex->getUnifications(lit, true, true);
+  auto unifs = _nonUnitIndex->getUnifications(lit, true, true);
   while(unifs.hasNext()) {
-    SLQueryResult unif = unifs.next();
-    Clause* ucl = unif.clause;
+    auto unif = unifs.next();
+    Clause* ucl = unif.data->clause;
 
     if( !ColorHelper::compatible(cl->color(), ucl->color()) ) {
       continue;
     }
 
     Item* itm = new Item(ucl, _selectedOnly, *this, _emptyClauseOnly);
-    unsigned pos = ucl->getLiteralPosition(unif.literal);
+    unsigned pos = ucl->getLiteralPosition(unif.data->literal);
     ASS(!_selectedOnly || pos<ucl->numSelected());
     swap(itm->_lits[0], itm->_lits[pos]);
-    itm->resolveLiteral(0, unif, cl, false);
+    itm->resolveLiteral(0, unif, cl, /* useQuerySubstitution */ false);
 
     processAndGetClauses(itm, 1, acc);
   }

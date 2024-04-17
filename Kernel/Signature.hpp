@@ -435,6 +435,17 @@ class Signature
   unsigned getApp();
   unsigned getDiff();
   unsigned getChoice();
+  /**
+   * For a function f with result type t, this introduces a predicate
+   * $def_f with the type t x t. This is used to track expressions of
+   * the form f(s) = s' as $def_f(f(s),s') through preprocessing.
+   */
+  unsigned getFnDef(unsigned fn);
+  /**
+   * For a predicate p, this introduces a predicate $def_p with the same signature,
+   * which is used to track a predicate definition "headers" through preprocessing.
+   */
+  unsigned getBoolDef(unsigned fn);
 
   // Interpreted symbol declarations
   unsigned addIntegerConstant(const vstring& number,bool defaultSort);
@@ -611,6 +622,14 @@ class Signature
     return (fun == _appFun && _appFun != UINT_MAX);
   }
 
+  bool isFnDefPred(unsigned p) const{
+    return _fnDefPreds.contains(p);
+  }
+
+  bool isBoolDefPred(unsigned p, unsigned& orig) const {
+    return _boolDefPreds.find(p, orig);
+  }
+
   bool tryGetFunctionNumber(const vstring& name, unsigned arity, unsigned& out) const;
   bool tryGetPredicateNumber(const vstring& name, unsigned arity, unsigned& out) const;
   unsigned getFunctionNumber(const vstring& name, unsigned arity) const;
@@ -626,6 +645,7 @@ class Signature
   Stack<DistinctGroupMembers> &distinctGroupMembers(){ return _distinctGroupMembers; }
 
   bool hasTermAlgebras() { return !_termAlgebras.isEmpty(); }
+  bool hasDefPreds() const { return !_fnDefPreds.isEmpty() || !_boolDefPreds.isEmpty(); }
       
   static vstring key(const vstring& name,int arity);
 
@@ -952,6 +972,8 @@ private:
   unsigned _arrayCon;
   unsigned _arrowCon;
   unsigned _appFun;
+  DHSet<unsigned> _fnDefPreds;
+  DHMap<unsigned,unsigned> _boolDefPreds;
 
   /**
    * Map from type constructor functor to the associated term algebra, if applicable for the sort.

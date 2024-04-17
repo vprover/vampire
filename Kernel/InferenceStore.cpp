@@ -305,7 +305,10 @@ protected:
     //     ;
     // }
     switch (rule) {
-      case InferenceRule::STRUCT_INDUCTION_AXIOM:
+      case InferenceRule::STRUCT_INDUCTION_AXIOM_ONE:
+      case InferenceRule::STRUCT_INDUCTION_AXIOM_TWO:
+      case InferenceRule::STRUCT_INDUCTION_AXIOM_THREE:
+      case InferenceRule::STRUCT_INDUCTION_AXIOM_RECURSION:
         env.statistics->structInductionInProof++;
         break;
       case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
@@ -517,7 +520,7 @@ struct InferenceStore::TPTPProofPrinter
   void print()
   {
     //outputSymbolDeclarations also deals with sorts for now
-    //UIHelper::outputSortDeclarations(env.out());
+    //UIHelper::outputSortDeclarations(out);
     UIHelper::outputSymbolDeclarations(out);
     ProofPrinter::print();
   }
@@ -569,7 +572,7 @@ protected:
     if (splits->size()==1) {
       return Saturation::Splitter::getFormulaStringFromName(splits->sval(),true /*negated*/);
     }
-    SplitSet::Iterator sit(*splits);
+    auto sit = splits->iter();
     vstring res("(");
     while(sit.hasNext()) {
       res+= Saturation::Splitter::getFormulaStringFromName(sit.next(),true /*negated*/);
@@ -795,11 +798,9 @@ protected:
 
     vstring compStr;
     List<unsigned>* compOnlyVars=0;
-    Clause::Iterator lits(*us->asClause());
     bool first=true;
     bool multiple=false;
-    while(lits.hasNext()) {
-      Literal* lit=lits.next();
+    for (Literal* lit : us->asClause()->iterLits()) {
       if (lit==nameLit) {
 	      continue;
       }

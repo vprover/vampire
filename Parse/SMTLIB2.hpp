@@ -35,7 +35,16 @@ using namespace Shell;
 
 class SMTLIB2 {
 public:
-  SMTLIB2(const Options& opts);
+  /**
+   * @brief Construct a new SMTLIB2 parser
+   *
+   * @param formulaBuffer is FIFO to which newly parsed Formulas will be added (via pushBack);
+   *
+   *  if left unspeficied, and empty fifo is created and used instead.
+   *  (use this default behaviour if you do not want to collect formulas
+   *  from multiple parser calls)
+   */
+  SMTLIB2(UnitList::FIFO formulaBuffer = UnitList::FIFO());
 
   /** Parse from an open stream */
   void parse(std::istream& str);
@@ -50,7 +59,9 @@ public:
    *
    *  We don't know what the conjecture is.
    **/
-  UnitList* getFormulas() const { return _formulas; }
+  UnitList* getFormulas() const { return _formulas.list(); }
+  /** Return the current formulaBuffer (on top of getFormulas() you also get a pointer to the last added unit in constant time). */
+  UnitList::FIFO formulaBuffer() const { return _formulas; }
 
   /**
    * Return the parsed logic (or LO_INVALID if not set).
@@ -237,11 +248,18 @@ private:
   void readDeclareFun(const vstring& name, LExprList* iSorts, LExpr* oSort, unsigned taArity);
 
   /**
-   * Handle "define-fun" entry.
+   * Handle "define-fun[-rec]" entry.
    *
    * Defining a function extends the signature and adds the new function's definition into _formulas.
+   * Additionally, the "define-fun-rec" variant allows the defined function to be present inside the definition, allowing recursion.
    */
   void readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort, LExpr* body, const TermStack& typeArgs, bool recursive);
+  /**
+   * Handle "define-funs-rec" entry.
+   *
+   * Same as "define-fun-rec" (see above), except it defines possibly multiple functions at the same time which can use each other.
+   */
+  void readDefineFunsRec(LExprList* declarations, LExprList* definitions);
 
   void readDeclareDatatype(LExpr* sort, LExprList* datatype);
 
@@ -486,7 +504,7 @@ private:
   /**
    * Units collected during parsing.
    */
-  UnitList* _formulas;
+  UnitList::FIFO _formulas;
 
   /**
    * To support a mechanism for dealing with large arithmetic constants.

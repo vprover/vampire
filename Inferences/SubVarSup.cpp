@@ -80,7 +80,7 @@ void SubVarSup::detach()
 struct SubVarSup::RewritableResultsFn
 {
   RewritableResultsFn(SubVarSupSubtermIndex* index) : _index(index) {}
-  VirtualIterator<pair<pair<Literal*, TypedTermList>, TermQueryResult> > operator()(pair<Literal*, TypedTermList> arg)
+  VirtualIterator<pair<pair<Literal*, TypedTermList>, QueryRes<ResultSubstitutionSP, TermLiteralClause>> > operator()(pair<Literal*, TypedTermList> arg)
   {
     return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second, /* retrieveSubstitutions */ true)) );
   }
@@ -107,7 +107,7 @@ private:
 struct SubVarSup::ApplicableRewritesFn
 {
   ApplicableRewritesFn(SubVarSupLHSIndex* index) : _index(index) {}
-  VirtualIterator<pair<pair<Literal*, TypedTermList>, TermQueryResult> > operator()(pair<Literal*, TypedTermList> arg)
+  VirtualIterator<pair<pair<Literal*, TypedTermList>, QueryRes<ResultSubstitutionSP, TermLiteralClause>> > operator()(pair<Literal*, TypedTermList> arg)
   {
     return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second, /* retrieveSubst */ false)) );
   }
@@ -119,11 +119,11 @@ private:
 struct SubVarSup::ForwardResultFn
 {
   ForwardResultFn(Clause* cl, SubVarSup& parent) : _cl(cl), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
+  Clause* operator()(pair<pair<Literal*, TermList>, QueryRes<ResultSubstitutionSP, TermLiteralClause>> arg)
   {
-    TermQueryResult& qr = arg.second;
+    QueryRes<ResultSubstitutionSP, TermLiteralClause>& qr = arg.second;
     return _parent.performSubVarSup(_cl, arg.first.first, arg.first.second,
-	    qr.clause, qr.literal, qr.term, true);
+	    qr.data->clause, qr.data->literal, qr.data->term, true);
   }
 private:
   Clause* _cl;
@@ -134,14 +134,15 @@ private:
 struct SubVarSup::BackwardResultFn
 {
   BackwardResultFn(Clause* cl, SubVarSup& parent) : _cl(cl), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
+  Clause* operator()(pair<pair<Literal*, TermList>, QueryRes<ResultSubstitutionSP, TermLiteralClause>> arg)
   {
-    if(_cl==arg.second.clause) {
+
+    if(_cl==arg.second.data->clause) {
       return 0;
     }
 
-    TermQueryResult& qr = arg.second;
-    return _parent.performSubVarSup(qr.clause, qr.literal, qr.term,
+    QueryRes<ResultSubstitutionSP, TermLiteralClause>& qr = arg.second;
+    return _parent.performSubVarSup(qr.data->clause, qr.data->literal, qr.data->term,
 	    _cl, arg.first.first, arg.first.second, false);
   }
 private:
@@ -154,37 +155,30 @@ ClauseIterator SubVarSup::generateClauses(Clause* premise)
 {
   //cout << "SubVarSup with " << premise->toString() << endl;
 
-  auto itf1 = premise->getSelectedLiteralIterator();
-
+  auto itf = iterTraits(premise->getSelectedLiteralIterator())
   // Get an iterator of pairs of selected literals and rewritable subterms of those literals
   // A subterm is rewritable (see EqHelper) if
   //  a) The literal is a positive equality t1=t2 and the subterm is max(t1,t2) wrt ordering
   //  b) The subterm is not a variable
-  auto itf2 = getMapAndFlattenIterator(itf1,RewriteableSubtermsFn(_salg->getOrdering(), premise));
+     .flatMap(RewriteableSubtermsFn(_salg->getOrdering(), premise))
 
   // Get clauses with a literal whose complement unifies with the rewritable subterm,
   // returns a pair with the original pair and the unification result (includes substitution)
-  auto itf3 = getMapAndFlattenIterator(itf2,ApplicableRewritesFn(_lhsIndex));
+     .flatMap(ApplicableRewritesFn(_lhsIndex))
 
   //Perform forward SubVarSup
-  auto itf4 = getMappingIterator(itf3,ForwardResultFn(premise, *this));
+     .map(ForwardResultFn(premise, *this));
 
-  auto itb1 = premise->getSelectedLiteralIterator();
-  auto itb2 = getMapAndFlattenIterator(itb1,EqHelper::SubVarSupLHSIteratorFn(_salg->getOrdering()));
-  auto itb3 = getMapAndFlattenIterator(itb2,RewritableResultsFn(_subtermIndex));
-
+  auto itb = iterTraits(premise->getSelectedLiteralIterator())
+             .flatMap(EqHelper::SubVarSupLHSIteratorFn(_salg->getOrdering()))
+             .flatMap(RewritableResultsFn(_subtermIndex))
   //Perform backward SubVarSup
-  auto itb4 = getMappingIterator(itb3,BackwardResultFn(premise, *this));
+             .map(BackwardResultFn(premise, *this));
 
   // Add the results of forward and backward together
-  auto it5 = getConcatenatedIterator(itf4,itb4);
-
+  return pvi(concatIters(std::move(itf),std::move(itb))
   // Remove null elements - these can come from performSubVarSup
-  auto it6 = getFilteredIterator(it5,NonzeroFn());
-
-  //cout << "out" << endl;
-
-  return pvi( it6 );
+          .filter(NonzeroFn()));
 }
 
 

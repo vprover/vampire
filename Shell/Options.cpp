@@ -21,6 +21,7 @@
 
 // Visual does not know the round function
 #include <cmath>
+#include <filesystem>
 #include <fstream>
 #include <random>
 
@@ -87,7 +88,7 @@ void Options::init()
     _memoryLimit.description="Memory limit in MB";
     _lookup.insert(&_memoryLimit);
 
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
   _instructionLimit = UnsignedOptionValue("instruction_limit","i",0);
   _instructionLimit.description="Limit the number (in millions) of executed instructions (excluding the kernel ones).";
   _lookup.insert(&_instructionLimit);
@@ -95,7 +96,7 @@ void Options::init()
   _simulatedInstructionLimit = UnsignedOptionValue("simulated_instruction_limit","sil",0);
   _simulatedInstructionLimit.description=
     "Instruction limit (in millions) of executed instructions for the purpose of reachability estimations of the LRS saturation algorithm (if 0, the actual instruction limit is used)";
-  _simulatedInstructionLimit.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
+  // _simulatedInstructionLimit.onlyUsefulWith(Or(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)),_splittingAvatimer.is(notEqual(1.0f))));
   _lookup.insert(&_simulatedInstructionLimit);
   _simulatedInstructionLimit.tag(OptionTag::LRS);
 
@@ -105,12 +106,16 @@ void Options::init()
   _parsingDoesNotCount.tag(OptionTag::DEVELOPMENT);
 #endif
 
+    _interactive = BoolOptionValue("interactive","",false);
+    _interactive.description = "An experimental interactive mode (commands to use: load <file to parse>, read <line to parse>, pop (to drop the last added set of formulas), run [options to supply], exit).";
+    _interactive.setExperimental();
+    _lookup.insert(&_interactive);
+
     _mode = ChoiceOptionValue<Mode>("mode","",Mode::VAMPIRE,
                                     {"axiom_selection",
                                         "casc",
                                         "casc_hol",
                                         "casc_sat",
-                                        "casc_ltb",
                                         "clausify",
                                         "consequence_elimination",
                                         "model_check",
@@ -160,6 +165,7 @@ void Options::init()
          "file",
          "induction",
          "integer_induction",
+         "intind_oeis",
          "ltb_default_2017",
          "ltb_hh4_2017",
          "ltb_hll_2017",
@@ -169,7 +175,8 @@ void Options::init()
          "smtcomp_2018",
          "snake_tptp_uns",
          "snake_tptp_sat",
-         "struct_induction"});
+         "struct_induction",
+         "struct_induction_tip"});
     _schedule.description = "Schedule to be run by the portfolio mode. casc and smtcomp usually point to the most recent schedule in that category. file loads the schedule from a file specified in --schedule_file. Note that some old schedules may contain option values that are no longer supported - see ignore_missing.";
     _lookup.insert(&_schedule);
     _schedule.reliesOn(UsingPortfolioTechnology());
@@ -193,16 +200,6 @@ void Options::init()
     _randomizSeedForPortfolioWorkers.description = "In portfolio mode, let each worker process start from its own independent random seed.";
     _lookup.insert(&_randomizSeedForPortfolioWorkers);
     _randomizSeedForPortfolioWorkers.onlyUsefulWith(UsingPortfolioTechnology());
-
-    _ltbLearning = ChoiceOptionValue<LTBLearning>("ltb_learning","ltbl",LTBLearning::OFF,{"on","off","biased"});
-    _ltbLearning.description = "Perform learning in LTB mode";
-    _lookup.insert(&_ltbLearning);
-    _ltbLearning.setExperimental();
-
-    _ltbDirectory = StringOptionValue("ltb_directory","","");
-    _ltbDirectory.description = "Directory for output from LTB mode. Default is to put output next to problem.";
-    _lookup.insert(&_ltbDirectory);
-    _ltbDirectory.setExperimental();
 
     _decode = DecodeOptionValue("decode","",this);
     _decode.description="Decodes an encoded strategy. Can be used to replay a strategy. To make Vampire output an encoded version of the strategy use the encode option.";
@@ -350,6 +347,11 @@ void Options::init()
     _lookup.insert(&_ignoreMissingInputsInUnsatCore);
     _ignoreMissingInputsInUnsatCore.tag(OptionTag::OUTPUT);
 
+    _traceback = BoolOptionValue("traceback","",false);
+    _traceback.description="Try decoding backtrace into a sequence of human readable function names using addr2line/atos/etc.";
+    _lookup.insert(&_traceback);
+    _traceback.tag(OptionTag::OUTPUT);
+
     _thanks = StringOptionValue("thanks","","Tanya");
     _thanks.description="";
     _lookup.insert(&_thanks);
@@ -379,11 +381,7 @@ void Options::init()
     _inputFile.tag(OptionTag::INPUT);
     _inputFile.setExperimental();
 
-    _inputSyntax= ChoiceOptionValue<InputSyntax>("input_syntax","",
-                                                 //in case we compile vampire with bpa, then the default input syntax is smtlib
-                                                 InputSyntax::AUTO,
-                                                 //{"simplify","smtlib","smtlib2","tptp"});//,"xhuman","xmps","xnetlib"});
-                                                 {"smtlib2","tptp","auto"});//,"xhuman","xmps","xnetlib"});
+    _inputSyntax= ChoiceOptionValue<InputSyntax>("input_syntax","",InputSyntax::AUTO,{"smtlib2","tptp","auto"});
     _inputSyntax.description=
     "Input syntax. Historic input syntaxes have been removed as they are not actively maintained. Contact developers for help with these.";
     _lookup.insert(&_inputSyntax);
@@ -1092,7 +1090,7 @@ void Options::init()
     _simulatedTimeLimit = TimeLimitOptionValue("simulated_time_limit","stl",0);
     _simulatedTimeLimit.description=
     "Time limit in seconds for the purpose of reachability estimations of the LRS saturation algorithm (if 0, the actual time limit is used)";
-    _simulatedTimeLimit.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
+    _simulatedTimeLimit.onlyUsefulWith(Or(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)),_splittingAvatimer.is(notEqual(1.0f))));
     _lookup.insert(&_simulatedTimeLimit);
     _simulatedTimeLimit.tag(OptionTag::LRS);
 
@@ -1160,7 +1158,7 @@ void Options::init()
 
     _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
                                      UnificationWithAbstraction::OFF,
-                                     {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground"});
+                                     {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "func_ext", "ac1", "ac2"});
     _unificationWithAbstraction.description=
       "During unification, if two terms s and t fail to unify we will introduce a constraint s!=t and carry on. For example, "
       "resolving p(1) \\/ C with ~p(a+2) would produce C \\/ 1 !=a+2. This is controlled by a check on the terms. The expected "
@@ -1174,6 +1172,12 @@ void Options::init()
       "See Unification with Abstraction and Theory Instantiation in Saturation-Based Reasoning for further details.";
     _unificationWithAbstraction.tag(OptionTag::THEORIES);
     _lookup.insert(&_unificationWithAbstraction);
+
+    _unificationWithAbstractionFixedPointIteration = BoolOptionValue("unification_with_abstraction_fixed_point_iteration","uwa_fpi",
+                                     false);
+    _unificationWithAbstractionFixedPointIteration.description="The order in which arguments are being processed in unification with absraction can yield different results. i.e. unnecessary unifiers. This can be resolved by applying unification with absraction multiple times. This option enables this fixed point iertation. For details have a look at the paper \"Refining Unification with Abstraction\" from LPAR 2023.";
+    _unificationWithAbstractionFixedPointIteration.tag(OptionTag::INFERENCES);
+    _lookup.insert(&_unificationWithAbstractionFixedPointIteration);
 
     _useACeval = BoolOptionValue("use_ac_eval","uace",true);
     _useACeval.description="Evaluate associative and commutative operators e.g. + and *.";
@@ -1274,10 +1278,14 @@ void Options::init()
     //_induction.setRandomChoices
 
     _structInduction = ChoiceOptionValue<StructuralInductionKind>("structural_induction_kind","sik",
-                         StructuralInductionKind::ONE,{"one","two","three","all"});
+                         StructuralInductionKind::ONE,{"one","two","three","recursion","all"});
     _structInduction.description="The kind of structural induction applied";
     _structInduction.tag(OptionTag::INDUCTION);
     _structInduction.onlyUsefulWith(Or(_induction.is(equal(Induction::STRUCTURAL)),_induction.is(equal(Induction::BOTH))));
+    _structInduction.addHardConstraint(If(equal(StructuralInductionKind::RECURSION)).then(_newCNF.is(equal(true))));
+    _structInduction.addHardConstraint(If(equal(StructuralInductionKind::RECURSION)).then(_equalityResolutionWithDeletion.is(equal(true))));
+    _structInduction.addHardConstraint(If(equal(StructuralInductionKind::ALL)).then(_newCNF.is(equal(true))));
+    _structInduction.addHardConstraint(If(equal(StructuralInductionKind::ALL)).then(_equalityResolutionWithDeletion.is(equal(true))));
     _lookup.insert(&_structInduction);
 
     _intInduction = ChoiceOptionValue<IntInductionKind>("int_induction_kind","iik",
@@ -1347,6 +1355,13 @@ void Options::init()
     _inductionOnComplexTerms.onlyUsefulWith(_induction.is(notEqual(Induction::NONE)));
     _lookup.insert(&_inductionOnComplexTerms);
 
+    _functionDefinitionRewriting = BoolOptionValue("function_definition_rewriting","fnrw",false);
+    _functionDefinitionRewriting.description = "Use function definitions as rewrite rules with the intended orientation rather than the term ordering one";
+    _functionDefinitionRewriting.tag(OptionTag::INFERENCES);
+    _functionDefinitionRewriting.addHardConstraint(If(equal(true)).then(_newCNF.is(equal(true))));
+    _functionDefinitionRewriting.addHardConstraint(If(equal(true)).then(_equalityResolutionWithDeletion.is(equal(true))));
+    _lookup.insert(&_functionDefinitionRewriting);
+
     _integerInductionDefaultBound = BoolOptionValue("int_induction_default_bound","intinddb",false);
     _integerInductionDefaultBound.description = "Always apply integer induction with bound 0";
     _integerInductionDefaultBound.tag(OptionTag::INDUCTION);
@@ -1384,7 +1399,7 @@ void Options::init()
       "  - not_in_both: t does not occur in both arguments of l\n"
       "  - always: induction on l is not allowed at all\n";
     _integerInductionStrictnessEq.tag(OptionTag::INDUCTION);
-    _integerInductionStrictnessEq.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
+    _integerInductionStrictnessEq.onlyUsefulWith(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
     _lookup.insert(&_integerInductionStrictnessEq);
 
     _integerInductionStrictnessComp = ChoiceOptionValue<IntegerInductionLiteralStrictness>(
@@ -1403,7 +1418,7 @@ void Options::init()
       "  - not_in_both: t does not occur in both arguments of l\n"
       "  - always: induction on l is not allowed at all\n";
     _integerInductionStrictnessComp.tag(OptionTag::INDUCTION);
-    _integerInductionStrictnessComp.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
+    _integerInductionStrictnessComp.onlyUsefulWith(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
     _lookup.insert(&_integerInductionStrictnessComp);
 
     _integerInductionStrictnessTerm = ChoiceOptionValue<IntegerInductionTermStrictness>(
@@ -1419,7 +1434,7 @@ void Options::init()
       "  - interpreted_constant: t is an interpreted constant\n"
       "  - no_skolems: t does not contain a skolem function";
     _integerInductionStrictnessTerm.tag(OptionTag::INDUCTION);
-    _integerInductionStrictnessTerm.reliesOn(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
+    _integerInductionStrictnessTerm.onlyUsefulWith(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
     _lookup.insert(&_integerInductionStrictnessTerm);
 
     _nonUnitInduction = BoolOptionValue("non_unit_induction","nui",false);
@@ -1427,6 +1442,12 @@ void Options::init()
     _nonUnitInduction.tag(OptionTag::INDUCTION);
     _nonUnitInduction.reliesOn(_induction.is(notEqual(Induction::NONE)));
     _lookup.insert(&_nonUnitInduction);
+
+    _inductionOnActiveOccurrences = BoolOptionValue("induction_on_active_occurrences","indao",false);
+    _inductionOnActiveOccurrences.description = "Only use induction terms from active occurrences, generalize over active occurrences";
+    _inductionOnActiveOccurrences.tag(OptionTag::INDUCTION);
+    _inductionOnActiveOccurrences.onlyUsefulWith(_induction.is(notEqual(Induction::NONE)));
+    _lookup.insert(&_inductionOnActiveOccurrences);
 
     _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
     _instantiation.description = "Heuristically instantiate variables. Often wastes a lot of effort. Consider using thi instead.";
@@ -1512,7 +1533,7 @@ void Options::init()
     _condensation.tag(OptionTag::INFERENCES);
     _condensation.onlyUsefulWith(ProperSaturationAlgorithm());
 
-    _demodulationRedundancyCheck = ChoiceOptionValue<DemodulationRedunancyCheck>("demodulation_redundancy_check","drc",DemodulationRedunancyCheck::ON,{"off","encompass","on"});
+    _demodulationRedundancyCheck = ChoiceOptionValue<DemodulationRedundancyCheck>("demodulation_redundancy_check","drc",DemodulationRedundancyCheck::ON,{"off","encompass","on"});
     _demodulationRedundancyCheck.description=
        "The following cases of backward and forward demodulation do not preserve completeness:\n"
        "s = t     s = t1 \\/ C \t s = t     s != t1 \\/ C\n"
@@ -1592,6 +1613,11 @@ void Options::init()
       "         sn = tn \\/ A";
     _lookup.insert(&_termAlgebraInferences);
     _termAlgebraInferences.tag(OptionTag::THEORIES);
+
+    _termAlgebraExhaustivenessAxiom = BoolOptionValue("term_algebra_exhaustiveness_axiom","taea",true);
+    _termAlgebraExhaustivenessAxiom.description="Enable term algebra exhaustiveness axiom";
+    _lookup.insert(&_termAlgebraExhaustivenessAxiom);
+    _termAlgebraExhaustivenessAxiom.tag(OptionTag::THEORIES);
 
     _termAlgebraCyclicityCheck = ChoiceOptionValue<TACyclicityCheck>("term_algebra_acyclicity","tac",
                                                                      TACyclicityCheck::OFF,{"off","axiom","rule","light"});
@@ -1751,6 +1777,9 @@ void Options::init()
     _maximumXXNarrows.addProblemConstraint(hasHigherOrder());
     _maximumXXNarrows.tag(OptionTag::HIGHER_ORDER);
 
+    // TODO we have two ways of enabling function extensionality abstraction atm:
+    // this option, and `-uwa`.
+    // We should sort this out before merging into master.
     _functionExtensionality = ChoiceOptionValue<FunctionExtensionality>("func_ext","fe",FunctionExtensionality::ABSTRACTION,
                                                                           {"off", "axiom", "abstraction"});
     _functionExtensionality.description="Deal with extensionality using abstraction, axiom or neither";
@@ -2336,10 +2365,8 @@ void Options::set(const char* name,const char* value, bool longOpt)
         break;
       case IgnoreMissing::WARN:
         if (outputAllowed()) {
-          env.beginOutput();
-          addCommentSignForSZS(env.out());
-          env.out() << "WARNING: invalid value "<< value << " for option " << name << endl;
-          env.endOutput();
+          addCommentSignForSZS(std::cout);
+          std::cout << "WARNING: invalid value "<< value << " for option " << name << endl;
         }
         break;
       case IgnoreMissing::ON:
@@ -2352,10 +2379,8 @@ void Options::set(const char* name,const char* value, bool longOpt)
       vstring msg = (vstring)name + (longOpt ? " is not a valid option" : " is not a valid short option (did you mean --?)");
       if (_ignoreMissing.actualValue == IgnoreMissing::WARN) {
         if (outputAllowed()) {
-          env.beginOutput();
-          addCommentSignForSZS(env.out());
-          env.out() << "WARNING: " << msg << endl;
-          env.endOutput();
+          addCommentSignForSZS(std::cout);
+          std::cout << "WARNING: " << msg << endl;
         }
         return;
       } // else:
@@ -2418,13 +2443,20 @@ Options::OptionProblemConstraintUP Options::isRandSat(){
  * @since 16/10/2003 Manchester, relativeName changed to string from char*
  * @since 07/08/2014 Manchester, relativeName changed to vstring
  */
+// TODO this behaviour isn't quite right, at least:
+// 1. we use the *root* file to resolve relative paths, which won't work if we have an axiom file that includes another
+// 2. checks current directory, which spec doesn't ask for
+// 3. checks our "-include" option, which isn't in the spec either (OK if someone relies on it, I guess)
+// cf https://tptp.org/TPTP/TR/TPTPTR.shtml#IncludeSection
+// probable solution: move all this logic into TPTP parser and do it properly there
+
 vstring Options::includeFileName (const vstring& relativeName)
 {
   if (relativeName[0] == '/') { // absolute name
     return relativeName;
   }
 
-  if (System::fileExists(relativeName)) {
+  if (std::filesystem::exists(relativeName)) {
     return relativeName;
   }
 
@@ -2438,7 +2470,7 @@ vstring Options::includeFileName (const vstring& relativeName)
     // i.e. the input file
     vstring currentFile = inputFile();
     System::extractDirNameFromPath(currentFile,dir);
-    if(System::fileExists(dir+"/"+relativeName)){
+    if(std::filesystem::exists(dir+"/"+relativeName)){
       return dir + "/" + relativeName;
     }
 
@@ -2478,40 +2510,39 @@ void Options::output (ostream& str) const
   }
 
   if(!explainOption().empty()){
-     AbstractOptionValue* option;
-     vstring name = explainOption();
-     try{
-       option = _lookup.findLong(name);
-     }
-     catch(const ValueNotFoundException&){
-       try{
-         option = _lookup.findShort(name);
-       }
-       catch(const ValueNotFoundException&){
-         option = 0;
-       }
-     }
-     if(!option){
-       str << name << " not a known option" << endl;
-       Stack<vstring> sim_s = getSimilarOptionNames(name,true);
-       Stack<vstring> sim_l = getSimilarOptionNames(name,false);
-       VirtualIterator<vstring> sit = pvi(getConcatenatedIterator(
-           Stack<vstring>::Iterator(sim_s),Stack<vstring>::Iterator(sim_l)));
-        if(sit.hasNext()){
-          vstring first = sit.next();
-          str << "\tMaybe you meant ";
-          if(sit.hasNext()) str << "one of:\n\t\t";
-          str << first;
-          while(sit.hasNext()){ str << "\n\t\t"+sit.next();}
-          str << endl;
-        }
-     }
-     else{
-       vstringstream vs;
-       option->output(vs,lineWrapInShowOptions());
-       str << vs.str();
-     }
-
+    AbstractOptionValue* option;
+    vstring name = explainOption();
+    try{
+      option = _lookup.findLong(name);
+    }
+    catch(const ValueNotFoundException&){
+      try{
+        option = _lookup.findShort(name);
+      }
+      catch(const ValueNotFoundException&){
+        option = 0;
+      }
+    }
+    if(!option){
+      str << name << " not a known option" << endl;
+      Stack<vstring> sim_s = getSimilarOptionNames(name,true);
+      Stack<vstring> sim_l = getSimilarOptionNames(name,false);
+      VirtualIterator<vstring> sit = pvi(concatIters(
+      Stack<vstring>::Iterator(sim_s),Stack<vstring>::Iterator(sim_l)));
+      if(sit.hasNext()){
+        vstring first = sit.next();
+        str << "\tMaybe you meant ";
+        if(sit.hasNext()) str << "one of:\n\t\t";
+        str << first;
+        while(sit.hasNext()){ str << "\n\t\t"+sit.next();}
+        str << endl;
+      }
+    }
+    else{
+      vstringstream vs;
+      option->output(vs,lineWrapInShowOptions());
+      str << vs.str();
+    }
   }
 
   if (showHelp()){
@@ -3156,10 +3187,8 @@ void Options::readOptionsString(vstring optionsString,bool assign)
                 break;
               case IgnoreMissing::WARN:
                 if (outputAllowed()) {
-                  env.beginOutput();
-                  addCommentSignForSZS(env.out());
-                  env.out() << "WARNING: value " << value << " for option "<< param <<" not known" << endl;
-                  env.endOutput();
+                  addCommentSignForSZS(std::cout);
+                  std::cout << "WARNING: value " << value << " for option "<< param <<" not known" << endl;
                 }
                 break;
               case IgnoreMissing::ON:
@@ -3180,12 +3209,9 @@ void Options::readOptionsString(vstring optionsString,bool assign)
         USER_ERROR("option "+param+" not known");
         break;
       case IgnoreMissing::WARN:
-        env.beginOutput();
         if (outputAllowed()) {
-          env.beginOutput();
-          addCommentSignForSZS(env.out());
-          env.out() << "WARNING: option "<< param << " not known." << endl;
-          env.endOutput();
+          addCommentSignForSZS(std::cout);
+          std::cout << "WARNING: option "<< param << " not known." << endl;
         }
         break;
       case IgnoreMissing::ON:
@@ -3331,7 +3357,7 @@ vstring Options::generateEncodedOptions() const
     forbidden.insert(&_memoryLimit);
     forbidden.insert(&_proof);
     forbidden.insert(&_inputSyntax);
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
     forbidden.insert(&_parsingDoesNotCount);
 #endif
     forbidden.insert(&_ignoreMissing); // or maybe we do!
@@ -3366,6 +3392,11 @@ bool Options::complete(const Problem& prb) const
 {
   if(prb.isHigherOrder()){
     //safer for competition
+    return false;
+  }
+
+  if (unificationWithAbstraction() != UnificationWithAbstraction::OFF) {
+    // unification with abstraction might cause in "spurious saturations"
     return false;
   }
 
@@ -3433,7 +3464,7 @@ bool Options::complete(const Problem& prb) const
     return prop.category() == Property::HNE; // enough URR is complete for Horn problems
   }
 
-  if (_demodulationRedundancyCheck.actualValue == DemodulationRedunancyCheck::OFF) {
+  if (_demodulationRedundancyCheck.actualValue == DemodulationRedundancyCheck::OFF) {
     return false;
   }
   if (!_superpositionFromVariables.actualValue) return false;
@@ -3466,7 +3497,6 @@ bool Options::checkGlobalOptionConstraints(bool fail_early)
   return result;
 }
 
-//TODO should not use cout, should use env.out
 template <typename T>
 bool Options::OptionValue<T>::checkConstraints()
 {

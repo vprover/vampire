@@ -74,38 +74,10 @@ public:
   static bool isExactApplied(TermList head, unsigned argNum);
   static bool isOverApplied(TermList head, unsigned argNum);
   static bool isSafe(TermStack& args);
-  // TODO is this right?
-  static TermList replaceFunctionalAndBooleanSubterms(TermList t, FuncSubtermMap* fsm)
-  { return t.isVar() ? t : replaceFunctionalAndBooleanSubterms(t.term(), fsm); }
-  static Literal* replaceFunctionalAndBooleanSubterms(Literal* l, FuncSubtermMap* fsm)
-  {
-    auto res = replaceFunctionalAndBooleanSubterms((Term*)l, fsm);
-    ASS(res.isTerm()) 
-    ASS(res.term()->isLiteral())
-    return (Literal*) res.term();
-  }
-  static TypedTermList replaceFunctionalAndBooleanSubterms(TypedTermList t, FuncSubtermMap* fsm)
-  { return TypedTermList(replaceFunctionalAndBooleanSubterms((TermList&)t, fsm), t.sort()); }
-  static TermList replaceFunctionalAndBooleanSubterms(Term* term, FuncSubtermMap* fsm);
   static bool isBool(TermList t);
   static bool isTrue(TermList term);
   static bool isFalse(TermList term);
 
-private:
-
-  static TermList getVSpecVar(Term* funcTerm, FuncSubtermMap* fsm)
-  {
-    unsigned vNum;
-    if(fsm->find(funcTerm, vNum)){
-      ASS(vNum > TermList::SPEC_UPPER_BOUND);
-      return TermList(vNum, true);
-    } else {
-      unsigned vNum = TermList::SPEC_UPPER_BOUND + fsm->size() + 1;
-      fsm->insert(vNum, funcTerm);
-      return TermList(vNum, true);
-    }
-  }
-  
 };
 
 #endif // __ApplicativeHelper__

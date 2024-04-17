@@ -17,16 +17,44 @@ Please provide as much information and detail as possible in either case.
 A statically-linked build suitable for running on StarExec is provided with each release; this may well run on your system also.
 If not, you will need to build Vampire from source, but this is not too onerous.
 
-## Usage
-See the website's [usage section](https://vprover.github.io/usage.html).
+## Basic Usage
+The basic usage of Vampire is to save your problem in [TPTP](https://tptp.org) format and run
+```shellsession
+$ vampire problem.p
+```
+which will run Vampire in its default mode with a 60 second time-limit.
+
+However, consider running Vampire in _portfolio_ mode:
+```shellsession
+$ vampire --mode casc problem.p
+```
+which will try lots of different _strategies_.
+This often performs better than the default mode.
+
+If you think the problem is satisfiable then you can also run
+```shellsession
+$ vampire --mode casc_sat problem.p
+```
+which will use a set of strategies suited to satisfiable problems.
+
+Note that all of these modes are really shortcuts for other combinations e.g. `--mode casc` is a shortcut for
+```shellsession
+$ vampire --mode portfolio --schedule casc -p tptp
+```
+
+## Advanced Usage
+To see a full list of options, run
+```shellsession
+$ vampire --show_options on
+```
 
 ## Source Build
-Vampire is built with the help of [CMake](cmake.org).
+Vampire is built with the help of [CMake](https://cmake.org).
 CMake does not run any build commands directly: instead, it can generate a number of different [output formats](https://cmake.org/cmake/help/latest/manual/cmake-generators.7.html), such as UNIX Makefiles.
 If you are completely new to CMake, there is a [tutorial](https://cmake.org/cmake/help/latest/guide/user-interaction/index.html) for end-users.
 
 A typical build on a UNIX-like system might look like this:
-```sh
+```shellsession
 # make a clean directory to build Vampire into
 $ mkdir /tmp/build && cd /tmp/build
 
@@ -71,7 +99,7 @@ If you wish to do this, [initialise the `z3` submodule](https://git-scm.com/book
 Then follow the Z3 [CMake instructions](https://github.com/Z3Prover/z3/blob/master/README-CMake.md) to build the Z3 libraries into Vampire's tree at `z3/build/`.
 This is where Vampire's build system will look for Z3: if it finds it, it will automatically link to Z3.
 A reasonable Z3 build might look like this:
-```sh
+```shellsession
 # Build Z3 into vampire/z3/build
 $ mkdir -p /path/to/vampire/z3/build && cd /path/to/vampire/z3/build
 

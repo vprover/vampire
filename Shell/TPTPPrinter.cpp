@@ -53,10 +53,8 @@ void TPTPPrinter::print(Unit* u)
 {
   vstring body = getBodyStr(u, true);
 
-  beginOutput();
-  ensureHeadersPrinted();
+  ensureHeadersPrinted(u);
   printTffWrapper(u, body);
-  endOutput();
 }
 
 /**
@@ -73,21 +71,8 @@ void TPTPPrinter::printWithRole(vstring name, vstring role, Unit* u, bool includ
 {
   vstring body = getBodyStr(u, includeSplitLevels);
 
-  beginOutput();
-  ensureHeadersPrinted();
-  tgt() << "tff(" << name << ", " << role << ", " << body << ")." << std::endl;
-  endOutput();
-}
-
-/** Print literal as if it were a unit clause. */
-void TPTPPrinter::printWithRole(vstring name, vstring role, Literal* lit)
-{
-  beginOutput();
-  ensureHeadersPrinted();
-  tgt() << "tff(" << name << ", " << role << ", ";
-  writeBodyStr(tgt(), lit);
-  tgt() << ")." << std::endl;
-  endOutput();
+  ensureHeadersPrinted(u);
+  tgt() << "tff(" << name << ", " << role << ", " << body << ")." << endl;
 }
 
 /**
@@ -127,7 +112,7 @@ vstring TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
     }
 
     Clause* cl = static_cast<Clause*>(u);
-    Clause::Iterator cit(*cl);
+    auto cit = cl->iterLits();
     if(!cit.hasNext()) {
       res << "$false";
     }
@@ -144,7 +129,7 @@ vstring TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
     }
 
     if(includeSplitLevels && !cl->noSplits()) {
-      SplitSet::Iterator sit(*cl->splits());
+      auto sit = cl->splits()->iter();
       while(sit.hasNext()) {
         SplitLevel split = sit.next();
         res << " | " << "$splitLevel" << split;
@@ -240,7 +225,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
     type = sym->fnType();
   } else if(symType == SymbolType::PRED){
     sym = env.signature->getPredicate(symNumber);
-    type = sym->predType();    
+    type = sym->predType();
   } else {
     sym = env.signature->getTypeCon(symNumber);
     type = sym->typeConType();
@@ -275,7 +260,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
 
   vstring st = "func";
   if(symType == SymbolType::PRED){
-    st = "pred"; 
+    st = "pred";
   } else if(symType == SymbolType::TYPE_CON){
     st = "sort";
   }
@@ -371,22 +356,8 @@ ostream& TPTPPrinter::tgt()
     return *_tgtStream;
   }
   else {
-    return env.out();
+    return std::cout;
   }
-}
-
-/**
- * In case there is no specified output stream, than print to the one
- * specified in the env.beginOutput();
- */
-void TPTPPrinter::beginOutput()
-{
-  if(!_tgtStream) { env.beginOutput(); }
-}
-
-void TPTPPrinter::endOutput()
-{
-  if(!_tgtStream) { env.endOutput(); }
 }
 
 /**

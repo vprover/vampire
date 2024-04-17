@@ -30,33 +30,45 @@ using namespace Indexing;
 using namespace Kernel;
 
 class InductionHelper {
+  using TermIndex               = Indexing::TermIndex<TermLiteralClause>;
 public:
-  InductionHelper(LiteralIndex* comparisonIndex, TermIndex* inductionTermIndex)
+  InductionHelper(LiteralIndex<LiteralClause>* comparisonIndex, TermIndex* inductionTermIndex)
       : _comparisonIndex(comparisonIndex), _inductionTermIndex(inductionTermIndex) {}
 
-  TermQueryResultIterator getLess(Term* t);
-  TermQueryResultIterator getGreater(Term* t);
+  VirtualIterator<TermLiteralClause> getLess(Term* t);
+  VirtualIterator<TermLiteralClause> getGreater(Term* t);
 
-  TermQueryResultIterator getTQRsForInductionTerm(Term* inductionTerm);
+  VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>> getTQRsForInductionTerm(Term* inductionTerm);
 
   static bool isIntegerComparison(Clause* c);
   static bool isIntInductionOn();
   static bool isIntInductionOneOn();
   static bool isIntInductionTwoOn();
   static bool isInductionForFiniteIntervalsOn();
-  static bool isInductionForInfiniteIntervalsOn(); static bool isStructInductionOn();
+  static bool isInductionForInfiniteIntervalsOn();
+  static bool isStructInductionOn();
   static bool isNonUnitStructInductionOn();
   static bool isInductionClause(Clause* c);
   static bool isInductionLiteral(Literal* l);
   static bool isInductionTermFunctor(unsigned f);
   static bool isIntInductionTermListInLiteral(Term* tl, Literal* l);
   static bool isStructInductionTerm(Term* t);
+  static bool isValidForDefaultBound(Term* t, Clause* c, const TermList& defaultBound) {
+    ASS(defaultBound.isTerm());
+    ASS(c != nullptr)
+    return t != defaultBound.term();
+  }
+  static bool isValidBound(Term* t, Clause* c, const TermLiteralClause& b) {
+    ASS(b.term.isTerm());
+    return ((b.clause != c) && (t != b.term.term()));
+  }
+  static Term* getOtherTermFromComparison(Literal* l, Term* t);
 
 private:
-  TermQueryResultIterator getComparisonMatch(bool polarity, bool termIsLeft, Term* t);
+  VirtualIterator<TermLiteralClause> getComparisonMatch(bool polarity, bool termIsLeft, Term* t);
 
   // The following pointers can be null if splitting or integer induction is off.
-  LiteralIndex* _comparisonIndex;  // not owned
+  LiteralIndex<LiteralClause>* _comparisonIndex;  // not owned
   TermIndex* _inductionTermIndex;  // not owned
 };
 

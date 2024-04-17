@@ -133,12 +133,12 @@ bool MatchingUtils::haveReversedVariantArgs(Term* l1, Term* l2)
     }
   }
 
-  auto it1 = getConcatenatedIterator(
+  auto it1 = concatIters(
       vi( new DisagreementSetIterator(*l1->nthArgument(0),*l2->nthArgument(1)) ),
       vi( new DisagreementSetIterator(*l1->nthArgument(1),*l2->nthArgument(0)) ));
 
   VirtualIterator<pair<TermList, TermList> > dsit =
-  sortUsed ? pvi(getConcatenatedIterator(vi(new DisagreementSetIterator(s1,s2)), it1)) :
+  sortUsed ? pvi(concatIters(vi(new DisagreementSetIterator(s1,s2)), it1)) :
              pvi(it1);
 
   while(dsit.hasNext()) {

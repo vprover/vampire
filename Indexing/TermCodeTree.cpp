@@ -34,8 +34,8 @@ using namespace Kernel;
 
 void TermCodeTree::onCodeOpDestroying(CodeOp* op)
 {
-  if (op->isSuccess()) {    
-    delete static_cast<TermInfo*>(op->getSuccessResult());
+  if (op->isSuccess()) {
+    delete op->getSuccessResult<TermInfo>();
   }
 }
 
@@ -51,7 +51,7 @@ void TermCodeTree::insert(TermInfo* ti)
   code.reset();
 
 
-  TermList t=ti->t;
+  TermList t=ti->term;
   if (t.isVar()) {
     code.push(CodeOp::getTermOp(ASSIGN_VAR,0));
   }
@@ -78,7 +78,7 @@ void TermCodeTree::remove(const TermInfo& ti)
   static Stack<CodeOp*> firstsInBlocks;
   firstsInBlocks.reset();
   
-  FlatTerm* ft=FlatTerm::create(ti.t);
+  FlatTerm* ft=FlatTerm::create(ti.term);
   rtm.init(ft, this, &firstsInBlocks);
   
   TermInfo* rti;
@@ -88,7 +88,7 @@ void TermCodeTree::remove(const TermInfo& ti)
       INVALID_OPERATION("term being removed was not found");
     }
     ASS(rtm.op->isSuccess());
-    rti=static_cast<TermInfo*>(rtm.op->getSuccessResult());
+    rti=rtm.op->getSuccessResult<TermInfo>();
     if (*rti==ti) {
       break;
     }
@@ -151,7 +151,7 @@ void TermCodeTree::TermMatcher::init(CodeTree* tree, TermList t)
   linfoCnt=0;
 
   ASS(!ft);
-  ft=FlatTerm::create(t);
+  ft = FlatTerm::createUnexpanded(t);
 
   op=entry;
   tp=0;
@@ -178,7 +178,7 @@ TermCodeTree::TermInfo* TermCodeTree::TermMatcher::next()
   }
 
   ASS(op->isSuccess());
-  return static_cast<TermInfo*>(op->getSuccessResult());
+  return op->getSuccessResult<TermInfo>();
 }
 
 };

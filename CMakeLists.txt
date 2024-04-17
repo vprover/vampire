@@ -1,11 +1,14 @@
 ################################################################
 # general configuration
 ################################################################
-cmake_minimum_required (VERSION 3.12.0)
+cmake_minimum_required (VERSION 3.14.0)
 project(Vampire)
 
-# require the compiler to use C++14
-set(CMAKE_CXX_STANDARD 14)
+include(CheckIPOSupported)
+include(CheckPIESupported)
+
+# require the compiler to use C++17
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -46,12 +49,6 @@ if (NOT BUILD_SHARED_LIBS)
   set(VAMPIRE_BINARY_STATIC _static)
 endif()
 
-# get symbol names in binary for backtraces
-set(CMAKE_ENABLE_EXPORTS ON)
-
-# link to libdl for dladdr() on POSIXy things, used for backtraces
-link_libraries(${CMAKE_DL_LIBS})
-
 # We compile tests only in debug mode, since in release mode assertions are NOPs anyways.
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
   SET(COMPILE_TESTS ON)
@@ -59,10 +56,11 @@ else()
   SET(COMPILE_TESTS OFF)
 endif()
 
+# options for inter-procedural optimisation, which you might know as "LTO"
 option(IPO "If supported, build with link-time optimisation." OFF)
 option(DEBUG_IPO "Print information about why IPO isn't supported" OFF)
+
 # check whether IPO is available
-include(CheckIPOSupported)
 check_ipo_supported(RESULT IPO_SUPPORTED OUTPUT IPO_ERROR)
 if (IPO_SUPPORTED)
   message(STATUS "IPO supported")
@@ -228,8 +226,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Environment.hpp
     Lib/Event.hpp
     Lib/Exception.hpp
-    Lib/fdstream.hpp
-    Lib/FreshnessGuard.hpp
     Lib/Hash.hpp
     Lib/Int.hpp
     Lib/IntNameTable.hpp
@@ -273,10 +269,8 @@ source_group(lib_source_files FILES ${VAMPIRE_LIB_SOURCES})
 set(VAMPIRE_LIB_SYS_SOURCES
     Lib/Sys/Multiprocessing.cpp
     Lib/Sys/Semaphore.cpp
-    Lib/Sys/SyncPipe.cpp
     Lib/Sys/Multiprocessing.hpp
     Lib/Sys/Semaphore.hpp
-    Lib/Sys/SyncPipe.hpp
     )
 source_group(lib_sys_source_files FILES ${VAMPIRE_LIB_SYS_SOURCES})
 
@@ -311,7 +305,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Problem.cpp
     Kernel/Renaming.cpp
     Kernel/RobSubstitution.cpp
-    Kernel/MismatchHandler.cpp
+    Kernel/UnificationWithAbstraction.cpp
     Kernel/Signature.cpp
     Kernel/SortHelper.cpp
     Kernel/OperatorType.cpp
@@ -358,7 +352,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/RCClauseStack.hpp
     Kernel/Renaming.hpp
     Kernel/RobSubstitution.hpp
-    Kernel/MismatchHandler.hpp
+    Kernel/UnificationWithAbstraction.hpp
     Kernel/Signature.hpp
     Kernel/SortHelper.hpp
     Kernel/OperatorType.hpp
@@ -430,16 +424,10 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/InductionFormulaIndex.cpp
     Indexing/LiteralIndex.cpp
     Indexing/LiteralMiniIndex.cpp
-    Indexing/LiteralSubstitutionTree.cpp
     Indexing/ResultSubstitution.cpp
-    Indexing/SubstitutionTree.cpp
-    Indexing/SubstitutionTree_FastGen.cpp
-    Indexing/SubstitutionTree_FastInst.cpp
-    Indexing/SubstitutionTree_Nodes.cpp
     Indexing/TermCodeTree.cpp
     Indexing/TermIndex.cpp
     Indexing/TermSharing.cpp
-    Indexing/TermSubstitutionTree.cpp
     Indexing/AcyclicityIndex.hpp
     Indexing/ClauseCodeTree.hpp
     Indexing/ClauseVariantIndex.hpp
@@ -469,6 +457,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/BackwardSubsumptionAndResolution.cpp
     Inferences/BinaryResolution.cpp
     Inferences/Condensation.cpp
+    Inferences/DemodulationHelper.cpp
     Inferences/DistinctEqualitySimplifier.cpp
     Inferences/EqualityFactoring.cpp
     Inferences/EqualityResolution.cpp
@@ -480,6 +469,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/ForwardLiteralRewriting.cpp
     Inferences/ForwardSubsumptionAndResolution.cpp
     Inferences/ForwardSubsumptionDemodulation.cpp
+    Inferences/FunctionDefinitionRewriting.cpp
     Inferences/GlobalSubsumption.cpp
     Inferences/InnerRewriting.cpp
     Inferences/EquationalTautologyRemoval.cpp
@@ -505,6 +495,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/BackwardSubsumptionAndResolution.hpp
     Inferences/BinaryResolution.hpp
     Inferences/Condensation.hpp
+    Inferences/DemodulationHelper.hpp
     Inferences/DistinctEqualitySimplifier.hpp
     Inferences/EqualityFactoring.hpp
     Inferences/EqualityResolution.hpp
@@ -515,6 +506,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/ForwardDemodulation.hpp
     Inferences/ForwardLiteralRewriting.hpp
     Inferences/ForwardSubsumptionAndResolution.hpp
+    Inferences/FunctionDefinitionRewriting.hpp
     Inferences/GlobalSubsumption.hpp
     Inferences/InnerRewriting.hpp
     Inferences/EquationalTautologyRemoval.hpp
@@ -623,6 +615,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/FunctionDefinition.cpp
     Shell/GeneralSplitting.cpp
     Shell/GoalGuessing.cpp
+    Shell/FunctionDefinitionHandler.cpp
     Shell/InequalitySplitting.cpp
     Shell/InterpolantMinimizer.cpp
     Shell/Interpolants.cpp
@@ -674,6 +667,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/EqualityProxyMono.hpp
     Shell/Flattening.hpp
     Shell/FunctionDefinition.hpp
+    Shell/FunctionDefinitionHandler.hpp
     Shell/GeneralSplitting.hpp
     Shell/InequalitySplitting.hpp
     Shell/InterpolantMinimizer.hpp
@@ -708,8 +702,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Token.hpp
     Shell/TPTPPrinter.hpp
     Shell/TweeGoalTransformation.hpp
-    Shell/UnificationWithAbstractionConfig.hpp
-    Shell/UnificationWithAbstractionConfig.cpp
     Shell/UIHelper.hpp
     Shell/VarManager.hpp
     Shell/Lexer.hpp
@@ -757,12 +749,8 @@ source_group(smt_comp_source_files FILES ${VAMPIRE_SMTCOMP_SOURCES})
 set(VAMPIRE_CASC_SOURCES
     CASC/PortfolioMode.cpp
     CASC/Schedules.cpp
-    CASC/CLTBMode.cpp
-    CASC/CLTBModeLearning.cpp
     CASC/PortfolioMode.hpp
     CASC/Schedules.hpp
-    CASC/CLTBMode.hpp
-    CASC/CLTBModeLearning.hpp
     )
 source_group(casc_source_files FILES ${VAMPIRE_CASC_SOURCES})
 
@@ -809,6 +797,7 @@ set(UNIT_TESTS
     UnitTests/tDHMap.cpp
     UnitTests/tQuotientE.cpp
     UnitTests/tUnificationWithAbstraction.cpp
+    UnitTests/tTermIndex.cpp
     UnitTests/tGaussianElimination.cpp
     UnitTests/tPushUnaryMinus.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
@@ -828,7 +817,6 @@ set(UNIT_TESTS
     UnitTests/tSKIKBO.cpp
     UnitTests/tLPO.cpp
     UnitTests/tRatioKeeper.cpp
-    UnitTests/tTwoVampires.cpp
     UnitTests/tOptionConstraints.cpp
     UnitTests/tDHMultiset.cpp
     UnitTests/tList.cpp
@@ -840,6 +828,10 @@ set(UNIT_TESTS
     UnitTests/tStack.cpp
     UnitTests/tSet.cpp
     UnitTests/tSATSubsumptionResolution.cpp
+    UnitTests/tDeque.cpp
+    UnitTests/tTermAlgebra.cpp
+    UnitTests/tFunctionDefinitionHandler.cpp
+    UnitTests/tFunctionDefinitionRewriting.cpp
     )
 source_group(unit_tests FILES ${UNIT_TESTS})
 
@@ -903,12 +895,6 @@ add_compile_definitions(VTIME_PROFILING=0)
 if (CYGWIN)
  add_compile_definitions(_BSD_SOURCE)
 endif()
-
-# configure warning flags
-if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
-  add_compile_options(-Wall)
-endif()
-
 
 ################################################################
 # z3 stuff
@@ -980,6 +966,17 @@ set(UNIT_TEST_OBJ   )
 set(UNIT_TEST_CASES )
 if (COMPILE_TESTS)
   include(CTest)
+
+  # switch on coverage options per-compiler if desired
+  option(COVERAGE "generate code coverage reports" OFF)
+  if(COVERAGE)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
+      set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} --coverage)
+      set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} --coverage)
+      set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} --coverage)
+    endif()
+  endif()
+
   foreach(test_file ${UNIT_TESTS})
     get_filename_component(test_name ${test_file} NAME_WE)
     string(REGEX REPLACE "^t" "" test_name ${test_name})
@@ -1007,7 +1004,7 @@ if (COMPILE_TESTS)
     add_test(${case} ${CMAKE_BINARY_DIR}/vtest run ${case})
     set_tests_properties(${case}
           PROPERTIES
-          TIMEOUT 20)
+          TIMEOUT 60)
   endforeach()
 
 endif() # COMPILE_TESTS
@@ -1082,8 +1079,26 @@ set_target_properties(vampire PROPERTIES
   )
 configure_file(version.cpp.in version.cpp)
 
+# enable IPO
 if(CMAKE_BUILD_TYPE STREQUAL Release AND IPO)
   message(STATUS "compiling Vampire with IPO: this might take a while")
   set_property(TARGET obj PROPERTY INTERPROCEDURAL_OPTIMIZATION true)
   set_property(TARGET vampire PROPERTY INTERPROCEDURAL_OPTIMIZATION true)
+endif()
+
+# do not generate position-independent code:
+# 1. it has some overhead
+# 2. it's used for ASLR, which isn't a huge concern for us and messes with our backtrace support
+check_pie_supported(OUTPUT_VARIABLE PIE_ERROR LANGUAGES CXX)
+if(NOT CMAKE_CXX_LINK_PIE_SUPPORTED)
+  message(STATUS "disabling position-independent code not supported, stack traces may be broken")
+  message(STATUS "${PIE_ERROR}")
+endif()
+
+# FIXME this guard should not be necessary but is currently because of how we do static linking above
+if(BUILD_SHARED_LIBS)
+  set_property(TARGET vampire PROPERTY POSITION_INDEPENDENT_CODE false)
+  if(COMPILE_TESTS)
+    set_property(TARGET vtest PROPERTY POSITION_INDEPENDENT_CODE false)
+  endif()
 endif()

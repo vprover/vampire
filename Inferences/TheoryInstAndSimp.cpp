@@ -32,6 +32,7 @@
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/Theory.hpp"
+#include "Kernel/FormulaVarIterator.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Saturation/Splitter.hpp"
@@ -78,9 +79,7 @@ Options::TheoryInstSimp manageDeprecations(Options::TheoryInstSimp mode)
     case Options::TheoryInstSimp::FULL:
     case Options::TheoryInstSimp::NEW:
       if(outputAllowed()) {
-        env.beginOutput();
-        env.out() << "WARNING: the modes full & new are deprecated for theory instantiation. using all instead." << std::endl;
-        env.endOutput();
+        std::cout << "WARNING: the modes full & new are deprecated for theory instantiation. using all instead." << std::endl;
       }
       return Options::TheoryInstSimp::ALL;
     default:
@@ -233,7 +232,7 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
 bool TheoryInstAndSimp::isXeqTerm(TermList left, TermList right) {
   bool r = left.isVar() &&
     right.isTerm() &&
-    !VList::member(left.var(), right.term()->freeVariables());
+    !VList::member(left.var(), freeVariables(right.term()));
   return r;
 }
 
@@ -248,7 +247,7 @@ unsigned TheoryInstAndSimp::varOfXeqTerm(const Literal* lit,bool flip) {
     if (isXeqTerm(right,left)){ return right.var();}
     ASS(lit->isTwoVarEquality());
     if(flip){
-      return left.var(); 
+      return left.var();
     }else{
       return right.var();
     }
@@ -299,7 +298,7 @@ Stack<Literal*> TheoryInstAndSimp::selectTrivialLiterals(Clause* cl)
   cout << "selecting trivial literals in " << cl->toString() << endl ;
 #endif
   /* find trivial candidates of the form x != t (x not occurring in t) */
-  Clause::Iterator it(*cl);
+  auto it = cl->iterLits();
   /* invariants:
        triv_candidates \cup nontriv_pure \cup impure = cl
        triv_candidates \cap nontriv_pure = 0
@@ -407,9 +406,7 @@ Stack<Literal*> TheoryInstAndSimp::selectTheoryLiterals(Clause* cl) {
   Stack<Literal*> trivial_lits = selectTrivialLiterals(cl);
   Stack<Literal*> out;
 
-  Clause::Iterator cl_it(*cl);
-  while (cl_it.hasNext()) {
-    auto lit = cl_it.next();
+  for (auto lit : cl->iterLits()) {
     // TODO this is O(n^2) runtime
     if (isPure(lit) && !trivial_lits.find(lit))
       out.push(lit);
@@ -644,10 +641,10 @@ template<class IterLits> TheoryInstAndSimp::SkolemizedLiterals TheoryInstAndSimp
 
 
 VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const& theoryLiterals, Stack<Literal*> const& guards, unsigned freshVar) {
-  auto skolemized = skolemize(iterTraits(getConcatenatedIterator(
-          theoryLiterals.iterFifo(),
-          guards.iterFifo()
-        )));
+  auto skolemized = skolemize(concatIters(
+        theoryLiterals.iterFifo(),
+        guards.iterFifo()
+        ));
   DEBUG("skolemized: ", iterTraits(skolemized.lits.iterFifo()).map([&](SATLiteral l){ return _naming.toFO(l)->toString(); }).collect<Stack>())
 
   // now we can call the solver
@@ -820,7 +817,7 @@ Stack<Literal*> computeGuards(Stack<Literal*> const& lits)
 
             case Theory::INT_QUOTIENT_F:
             case Theory::INT_REMAINDER_F:
-            case Theory::INT_QUOTIENT_E: 
+            case Theory::INT_QUOTIENT_E:
             case Theory::INT_QUOTIENT_T:
             case Theory::INT_REMAINDER_T:
             case Theory::INT_REMAINDER_E:
@@ -829,7 +826,7 @@ Stack<Literal*> computeGuards(Stack<Literal*> const& lits)
 
             default:; /* no guard */
           }
-        } else if (sym->termAlgebraDest()) { 
+        } else if (sym->termAlgebraDest()) {
           out.push(destructorGuard(term, sym->fnType()->arg(0), /* predicate */ false));
         }
       }
@@ -844,8 +841,8 @@ Stack<Literal*> filterLiterals(Stack<Literal*> lits, Options::TheoryInstSimp mod
   { return ( lit->isEquality() && lit->isNegative())
         || (!lit->isEquality() && theory->isInterpretedPredicate(lit->functor())); };
 
-  auto freeVars = [](Literal* lit) 
-  { return iterTraits(VList::Iterator(lit->freeVariables())); };
+  auto freeVars = [](Literal* lit)
+  { return iterTraits(VList::Iterator(freeVariables(lit))); };
 
   switch(mode) {
     case Options::TheoryInstSimp::ALL:
@@ -858,7 +855,7 @@ Stack<Literal*> filterLiterals(Stack<Literal*> lits, Options::TheoryInstSimp mod
 
     case Options::TheoryInstSimp::NEG_EQ:
       return iterTraits(lits.iterFifo())
-                            .filter([](Literal* lit) 
+                            .filter([](Literal* lit)
                                { return lit->isEquality() && lit->isNegative(); } )
                             .collect<Stack>();
 
@@ -904,7 +901,6 @@ unsigned getFreshVar(Clause& clause)
   }
   return freshVar;
 }
-static const char* THEORY_INST_SIMP = "theory instantiation and simplification";
 
 SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::generateSimplify(Clause* premise)
 {
@@ -928,6 +924,9 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
 
   // we have an eligable candidate
   env.statistics->theoryInstSimpCandidates++;
+#if VTIME_PROFILING
+  static const char* THEORY_INST_SIMP = "theory instantiation";
+#endif // VTIME_PROFILING
 
   auto guards = computeGuards(selectedLiterals);
 
@@ -953,7 +952,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
     })
     .filter([](Clause* cl) { return cl != nullptr; });
 
-  auto it2 = timeTraceIter(THEORY_INST_SIMP, it1);
+  auto it2 = TIME_TRACE_ITER(THEORY_INST_SIMP, it1);
 
   // we need to strictily evaluate the iterator to 
   auto clauses =  getPersistentIterator(it2);

@@ -17,13 +17,6 @@
 #include <sys/time.h>
 #include <sys/times.h>
 
-// for checking instruction count
-#ifdef __linux__
-#include <sys/ioctl.h>
-#include <linux/perf_event.h>
-#include <asm/unistd.h>
-#endif
-
 #include "Environment.hpp"
 #include "System.hpp"
 #include "Sys/Multiprocessing.hpp"
@@ -31,6 +24,13 @@
 #include "Shell/UIHelper.hpp"
 
 #include "Timer.hpp"
+
+// for checking instruction count
+#if VAMPIRE_PERF_EXISTS
+#include <sys/ioctl.h>
+#include <linux/perf_event.h>
+#include <asm/unistd.h>
+#endif
 
 #define DEBUG_TIMER_CHANGES 0
 #define MEGA (1 << 20)
@@ -44,7 +44,7 @@ std::atomic<int> timer_sigalrm_counter{-1};
 std::atomic<bool> Timer::s_limitEnforcement{true};
 
 // TODO probably these should also be atomics, but not sure
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
 char* error_to_report = nullptr;
 int perf_fd = -1; // the file descriptor we later read the info from
 long long last_instruction_count_read = -1;
@@ -54,7 +54,7 @@ long Timer::s_ticksPerSec;
 int Timer::s_initGuarantedMiliseconds;
 
 unsigned Timer::elapsedMegaInstructions() {
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
   return (last_instruction_count_read >= 0) ? last_instruction_count_read/MEGA : 0;
 #else
   return 0;
@@ -75,33 +75,31 @@ unsigned Timer::elapsedMegaInstructions() {
   // so any code below that allocates might corrupt the allocator state.
   // Therefore, the printing below should avoid allocations!
 
-  env.beginOutput();
   reportSpiderStatus('t');
   if (outputAllowed()) {
-    addCommentSignForSZS(env.out());
-    env.out() << REACHED[whichLimit];
+    addCommentSignForSZS(std::cout);
+    std::cout << REACHED[whichLimit];
 
     if (UIHelper::portfolioParent) { // the boss
-      addCommentSignForSZS(env.out());
-      env.out() << "Proof not found in time ";
-      Timer::printMSString(env.out(),env.timer->elapsedMilliseconds());
+      addCommentSignForSZS(std::cout);
+      std::cout << "Proof not found in time ";
+      Timer::printMSString(std::cout,env.timer->elapsedMilliseconds());
 
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
       if (last_instruction_count_read > -1) {
-        env.out() << " nor after " << last_instruction_count_read << " (user) instruction executed.";
+        std::cout << " nor after " << last_instruction_count_read << " (user) instruction executed.";
       }
 #endif
-      env.out() << endl;
+      std::cout << endl;
 
       if (szsOutputMode()) {
-        env.out() << STATUS[whichLimit] << (env.options ? env.options->problemName().c_str() : "unknown") << endl;
+        std::cout << STATUS[whichLimit] << (env.options ? env.options->problemName().c_str() : "unknown") << endl;
       }
     } else // the actual child
       if (env.statistics) {
-        env.statistics->print(env.out());
+        env.statistics->print(std::cout);
     }
   }
-  env.endOutput();
 
   System::terminateImmediately(1);
 }
@@ -126,7 +124,7 @@ timer_sigalrm_handler (int sig)
     }
   }
 
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
   if(Timer::s_limitEnforcement && (env.options->instructionLimit() || env.options->simulatedInstructionLimit())) {
     Timer::updateInstructionCount();
     if (env.options->instructionLimit() && last_instruction_count_read >= MEGA*(long long)env.options->instructionLimit()) {
@@ -151,7 +149,7 @@ timer_sigalrm_handler (int sig)
 
 void Timer::updateInstructionCount()
 {
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
   if (perf_fd >= 0) {
     // we could also decide not to guard this read by env.options->instructionLimit(),
     // to get info about instructions burned even when not instruction limiting
@@ -160,6 +158,7 @@ void Timer::updateInstructionCount()
     // however, we definitely want this to be guarded by env.options->instructionLimit()
     // not to bother with the error people who don't even know about instruction limiting
     cerr << "perf_event_open failed (instruction limiting will be disabled): " << error_to_report << endl;
+    cerr << "(If you are seeing 'Permission denied' ask your admin to run 'sudo sysctl -w kernel.perf_event_paranoid=-1' for you.)" << endl;
     error_to_report = nullptr;
   }
 #endif
@@ -219,7 +218,7 @@ void Timer::restoreTimerAfterFork()
   }
 }
 
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
 // conveniece wrapper around a syscall (cf. https://linux.die.net/man/2/perf_event_open )
 long perf_event_open(struct perf_event_attr *hw_event, pid_t pid, int cpu, int group_fd, unsigned long flags)
 {
@@ -256,8 +255,9 @@ void Timer::ensureTimerInitialized()
 
 void Timer::resetInstructionMeasuring()
 {
-#ifdef __linux__ // if available, initialize the perf reading
+#if VAMPIRE_PERF_EXISTS // if available, initialize the perf reading
   /*
+   *
    * NOTE: we need to do this before initializing the actual timer
    * (otherwise timer_sigalrm_handler could start asking the uninitialized perf_fd!)
    */
@@ -289,7 +289,7 @@ void Timer::resetInstructionMeasuring()
 
 bool Timer::instructionLimitingInPlace()
 {
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
   return (perf_fd >= 0);
 #else
   return false;

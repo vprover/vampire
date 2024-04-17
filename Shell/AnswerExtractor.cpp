@@ -62,13 +62,12 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
       }
     }
   }
-  env.beginOutput();
   if (hasALManager) {
     AnswerLiteralManager::getInstance()->tryOutputInputUnits();
   } else if (hasSyntManager) {
     SynthesisManager::getInstance()->tryOutputInputUnits();
   }
-  env.out() << "% SZS answers Tuple [[";
+  std::cout << "% SZS answers Tuple [[";
   Stack<TermList>::BottomFirstIterator ait(answer);
   while(ait.hasNext()) {
     TermList aLit = ait.next();
@@ -89,21 +88,20 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
       }
     }
 
-    env.out() << aLit.toString();
+    std::cout << aLit.toString();
     if(ait.hasNext()) {
-      env.out() << ',';
+      std::cout << ',';
     }
   }
-  env.out() << "]|_] for " << env.options->problemName() << endl;
-  env.endOutput();
+  std::cout << "]|_] for " << env.options->problemName() << endl;
 }
 
 void AnswerExtractor::tryOutputInputUnits() {
   if (!UnitList::isEmpty(_inputs)) {
-    env.out() << "% Inputs for question answering:" << endl;
+    std::cout << "% Inputs for question answering:" << endl;
     UnitList::Iterator it(_inputs);
     while (it.hasNext()) {
-      env.out() << it.next()->toString() << endl;
+      std::cout << it.next()->toString() << endl;
     }
   }
 }
@@ -141,7 +139,7 @@ void AnswerExtractor::getNeededUnits(Clause* refutation, ClauseStack& premiseCla
 class ConjunctionGoalAnswerExractor::SubstBuilder
 {
 public:
-  SubstBuilder(LiteralStack& goalLits, LiteralIndexingStructure& lemmas, RobSubstitution& subst)
+  SubstBuilder(LiteralStack& goalLits, LiteralIndexingStructure<LiteralClause>& lemmas, RobSubstitution& subst)
    : _goalLits(goalLits), _lemmas(lemmas), _subst(subst),
      _goalCnt(goalLits.size()), _btData(_goalCnt), _unifIts(_goalCnt), _triedEqUnif(_goalCnt)
   {}
@@ -196,9 +194,9 @@ public:
     Literal* goalLit = _goalLits[_depth];
 
     while(_unifIts[_depth].hasNext()) {
-      SLQueryResult qres = _unifIts[_depth].next();
-      ASS_EQ(goalLit->header(), qres.literal->header());
-      if(_subst.unifyArgs(goalLit, 0, qres.literal, 1)) {
+      auto qres = _unifIts[_depth].next();
+      ASS_EQ(goalLit->header(), qres.data->literal->header());
+      if(_subst.unifyArgs(goalLit, 0, qres.data->literal, 1)) {
 	return true;
       }
     }
@@ -213,12 +211,12 @@ public:
 
 private:
   LiteralStack& _goalLits;
-  LiteralIndexingStructure& _lemmas;
+  LiteralIndexingStructure<LiteralClause>& _lemmas;
   RobSubstitution& _subst;
 
   unsigned _goalCnt;
   DArray<BacktrackData> _btData;
-  DArray<SLQueryResultIterator> _unifIts;
+  DArray<VirtualIterator<QueryRes<ResultSubstitutionSP, LiteralClause>>> _unifIts;
   DArray<bool> _triedEqUnif;
 
   unsigned _depth;
@@ -281,9 +279,9 @@ bool ConjunctionGoalAnswerExractor::tryGetAnswer(Clause* refutation, Stack<TermL
 
   RobSubstitution subst;
 
-  SLQueryResultIterator alit = lemmas.getAll();
+  auto alit = lemmas.getAll();
   while(alit.hasNext()) {
-    SLQueryResult aqr = alit.next();
+    auto aqr = alit.next();
   }
 
   if(!SubstBuilder(goalLits, lemmas, subst).run()) {
@@ -665,7 +663,7 @@ Unit* SynthesisManager::createUnitFromConjunctionWithAnswerLiteral(Formula* junc
 Formula* SynthesisManager::getConditionFromClause(Clause* cl) {
   FormulaList* fl = FormulaList::empty();
   for (unsigned i = 0; i < cl->length(); ++i) {
-    Literal* newLit = Literal::complementaryLiteral(_skolemReplacement.transform((*cl)[i]));
+    Literal* newLit = Literal::complementaryLiteral(_skolemReplacement.transformLiteral((*cl)[i]));
     FormulaList::push(new AtomicFormula(newLit), fl);
   }
   return JunctionFormula::generalJunction(Connective::AND, fl);
