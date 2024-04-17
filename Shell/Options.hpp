@@ -481,7 +481,8 @@ public:
      FINITE_MODEL_BUILDING,
      LRS,
      OTTER,
-     Z3
+     UPCOP,
+     Z3,
    };
 
   /** Possible values for activity of some inference rules */

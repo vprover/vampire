@@ -734,7 +734,7 @@ void Options::init()
 //*********************** Saturation  ***********************
 
     _saturationAlgorithm = ChoiceOptionValue<SaturationAlgorithm>("saturation_algorithm","sa",SaturationAlgorithm::LRS,
-                                                                  {"discount","fmb","lrs","otter"
+                                                                  {"discount","fmb","lrs","otter","upcop"
 #if VZ3
       ,"z3"
 #endif
@@ -746,7 +746,8 @@ void Options::init()
     " - limited resource:\n"
     " - fmb : finite model building for satisfiable problems.\n"
     " - z3 : pass the preprocessed problem to z3, will terminate if the resulting problem is not ground.\n"
-    "z3 and fmb aren't influenced by options for the saturation algorithm, apart from those under the relevant heading";
+    "z3 and fmb aren't influenced by options for the saturation algorithm, apart from those under the relevant heading\n"
+    " - UPCoP: EXPERIMENTAL connection prover infiltrating Vampire ;-)";
     _lookup.insert(&_saturationAlgorithm);
     _saturationAlgorithm.tag(OptionTag::SATURATION);
 
