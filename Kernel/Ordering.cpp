@@ -16,6 +16,7 @@
 
 #include "Forwards.hpp"
 
+#include "Indexing/Index.hpp"
 #include "Indexing/TermSharing.hpp"
 
 #include "Lib/Environment.hpp"
@@ -29,15 +30,14 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
+#include "Shell/Shuffling.hpp"
 
 #include "LPO.hpp"
 #include "KBO.hpp"
 #include "SKIKBO.hpp"
-#include "KBOForEPR.hpp"
 #include "Problem.hpp"
 #include "Signature.hpp"
-#include "Kernel/NumTraits.hpp" 
-#include "Shell/Shuffling.hpp"
+#include "NumTraits.hpp"
 
 #include "Ordering.hpp"
 
@@ -117,23 +117,7 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
   Ordering* out;
   switch (env.options->termOrdering()) {
   case Options::TermOrdering::KBO:
-    // KBOForEPR does not support 
-    // - colors
-    // - user specified symbol weights
-    // TODO fix this! 
-    if(prb.getProperty()->maxFunArity()==0 
-        && prb.getProperty()->maxTypeConArity() == 0
-        && !env.colorUsed
-        && env.options->predicateWeights() == ""
-        && env.options->functionWeights() == ""
-        && env.options->kboWeightGenerationScheme() == Options::KboWeightGenerationScheme::CONST
-        && !env.options->kboMaxZero()
-        && !prb.hasInterpretedOperations()
-        ) {
-      out = new KBOForEPR(prb, opt);
-    } else {
-      out = new KBO(prb, opt);
-    }
+    out = new KBO(prb, opt);
     break;
   case Options::TermOrdering::LPO:
     out = new LPO(prb, opt);
@@ -288,6 +272,30 @@ Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
   }
   return comparePredicates(l1, l2);
 } // PrecedenceOrdering::compare()
+
+bool Ordering::containsVar(const AppliedTerm& s, TermList var)
+{
+  ASS(var.isVar());
+  if (!s.termAboveVar) {
+    return s.term.containsSubterm(var);
+  }
+  if (s.term.isVar()) {
+    return s.applicator(s.term.var()).containsSubterm(var);
+  }
+  VariableIterator vit(s.term.term());
+  while (vit.hasNext()) {
+    auto v = vit.next();
+    if (s.applicator(v.var()).containsSubterm(var)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Ordering::isGreater(AppliedTerm&& lhs, AppliedTerm&& rhs) const
+{
+  NOT_IMPLEMENTED;
+}
 
 /**
  * Return the predicate level. If @b pred is less than or equal to

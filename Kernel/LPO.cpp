@@ -22,6 +22,7 @@
 
 #include "Shell/Options.hpp"
 
+#include "TermIterators.hpp"
 #include "Term.hpp"
 #include "LPO.hpp"
 #include "Signature.hpp"
@@ -268,6 +269,80 @@ Ordering::Result LPO::majo(Term* s, TermList* tl, unsigned arity) const
     }
   }
   return GREATER;
+}
+
+// isGreater variants
+
+bool LPO::isGreater(AppliedTerm&& lhs, AppliedTerm&& rhs) const
+{
+  return lpo_gt(std::move(lhs),std::move(rhs))==GREATER;
+}
+
+// unidirectional comparison function (returns correct result if tt1 > tt2 or tt1 = tt2)
+Ordering::Result LPO::lpo_gt(AppliedTerm tt1, AppliedTerm tt2) const
+{
+  if (tt1.term.isVar()) {
+    return (tt1.term==tt2.term) ? EQUAL : INCOMPARABLE;
+  }
+
+  if (tt2.term.isVar()) {
+    return containsVar(tt1, tt2.term) ? GREATER : INCOMPARABLE;
+  }
+
+  Term* t1=tt1.term.term();
+  Term* t2=tt2.term.term();
+
+  switch (comparePrecedences(t1, t2)) {
+  case EQUAL:
+    return lexMAE_gt(tt1, tt2, t1->args(), t2->args(), t1->arity());
+  case GREATER:
+    return majo_gt(tt1, t2->args(), t2->arity(), tt2.termAboveVar, tt2.applicator);
+  default:
+    return alpha_gt(t1->args(), t1->arity(), tt1.termAboveVar, tt1.applicator, tt2);
+  }
+}
+
+Ordering::Result LPO::lexMAE_gt(AppliedTerm s, AppliedTerm t, TermList* sl, TermList* tl, unsigned arity) const
+{
+  for (unsigned i = 0; i < arity; i++) {
+    AppliedTerm sArg(*(sl - i),s.applicator,s.termAboveVar);
+    AppliedTerm tArg(*(tl - i),t.applicator,t.termAboveVar);
+
+    auto sres = lpo_gt(sArg, tArg);
+    if (sres == EQUAL) {
+      continue;
+    }
+    if (sres == GREATER) {
+      return majo_gt(s, tl - i - 1, arity - i - 1, t.termAboveVar, t.applicator);
+    }
+    return alpha_gt(sl - i - 1, arity - i - 1, s.termAboveVar, s.applicator, t);
+  }
+  return EQUAL;
+}
+
+// greater if s is greater than every term in tl
+Ordering::Result LPO::majo_gt(AppliedTerm s, TermList* tl, unsigned arity, bool argsAboveVar, const SubstApplicator& argApplicator) const
+{
+  for (unsigned i = 0; i < arity; i++) {
+    AppliedTerm t(*(tl - i), argApplicator, argsAboveVar);
+    if (lpo_gt(s, t) != GREATER) {
+      return INCOMPARABLE;
+    }
+  }
+  return GREATER;
+}
+
+// greater iff some exists s_i in sl such that s_i >= t
+Ordering::Result LPO::alpha_gt(TermList* sl, unsigned arity, bool argsAboveVar, const SubstApplicator& argApplicator, AppliedTerm t) const
+{
+  ASS(t.term.isTerm());
+  for (unsigned i = 0; i < arity; i++) {
+    AppliedTerm s(*(sl - i),argApplicator,argsAboveVar);
+    if (lpo_gt(s, t) != INCOMPARABLE) {
+      return GREATER;
+    }
+  }
+  return INCOMPARABLE;
 }
 
 void LPO::showConcrete(ostream&) const 

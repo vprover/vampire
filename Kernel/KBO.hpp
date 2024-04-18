@@ -108,7 +108,7 @@ struct KboWeightMap {
   /** Special weights that are only present for function/predicate symbols. */
   KboSpecialWeights<SigTraits> _specialWeights;
 
-  KboWeight symbolWeight(Term*    t      ) const;
+  KboWeight symbolWeight(const Term* t) const;
   KboWeight symbolWeight(unsigned functor) const;
 
   static KboWeightMap dflt();
@@ -155,13 +155,21 @@ public:
 
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
+
+  // exposed for unit testing
+  Result isGreaterOrEq(AppliedTerm&& tt1, AppliedTerm&& tt2) const;
+  unsigned computeWeight(const AppliedTerm& tt) const;
+
+  bool isGreater(AppliedTerm&& lhs, AppliedTerm&& rhs) const override;
+
 protected:
   Result comparePredicates(Literal* l1, Literal* l2) const override;
 
   class State;
+  class StateGreater;
 
   // int functionSymbolWeight(unsigned fun) const;
-  int symbolWeight(Term* t) const;
+  int symbolWeight(const Term* t) const;
 
 private:
 
@@ -181,6 +189,7 @@ private:
    * State used for comparing terms and literals
    */
   mutable State* _state;
+  mutable StateGreater* _stateGt;
 };
 
 }

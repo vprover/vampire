@@ -62,6 +62,8 @@ class TermList;
 typedef VirtualIterator<TermList> TermIterator;
 typedef Stack<TermList> TermStack;
 
+struct AppliedTerm;
+
 typedef List<unsigned> VList; // a list of variables (which are unsigned)
 typedef List<TermList> SList; // a list of sorts (which are now, with polymorphism, TermLists)
 typedef const SharedSet<unsigned> VarSet;

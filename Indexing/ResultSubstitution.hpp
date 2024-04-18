@@ -96,13 +96,7 @@ public:
   { return applyToResult(t); }
 
   /**
-   * Apply substitution to result term that fulfills the condition,
-   * that all its variables are bound to some term of the query.
-   *
-   * Applying this substitution makes sense, when
-   * @b isIdentityOnQueryWhenResultBound() method returns true,
-   * as then there is no need to apply the substitution to any
-   * query terms.
+   * Same as @b applyToBoundResult(TermList) with @b Literal argument.
    */
   virtual Literal* applyToBoundResult(Literal* lit)
   { return applyToResult(lit); }

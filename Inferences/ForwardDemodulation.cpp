@@ -53,6 +53,19 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+struct ForwardDemodulation::Applicator {
+  TermList operator()(unsigned v) const {
+    auto res = subst->applyToBoundResult(TermList(v,false));
+    if (vSubst) {
+      return vSubst->apply(res, 0);
+    } else {
+      return res;
+    }
+  }
+  ResultSubstitution* subst;
+  RobSubstitution* vSubst;
+};
+
 void ForwardDemodulation::attach(SaturationAlgorithm* salg)
 {
   ForwardSimplificationEngine::attach(salg);
@@ -116,6 +129,8 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           continue;
         }
 
+        auto lhs = qr.data->term;
+
         // TODO:
         // to deal with polymorphic matching
         // Ideally, we would like to extend the substitution
@@ -124,7 +139,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         // indexing mechanism, and it is not clear how to extend
         // the substitution returned by a code tree.
         Recycled<RobSubstitution> subst;
-        if(qr.data->term.isVar()){
+        if(lhs.isVar()){
           TermList querySort = trm.sort();
           TermList eqSort = SortHelper::getEqualityArgumentSort(qr.data->literal);
           if(!subst->match(eqSort, 0, querySort, 1)){
@@ -132,29 +147,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           }
         }
 
-        TermList rhs=EqHelper::getOtherEqualitySide(qr.data->literal,qr.data->term);
-        TermList rhsS;
-        auto subs = qr.unifier;
-        if(!subs->isIdentityOnQueryWhenResultBound()) {
-          //When we apply substitution to the rhs, we get a term, that is
-          //a variant of the term we'd like to get, as new variables are
-          //produced in the substitution application.
-          TermList lhsSBadVars = subs->applyToResult(qr.data->term);
-          TermList rhsSBadVars = subs->applyToResult(rhs);
-          Renaming rNorm, qNorm, qDenorm;
-          rNorm.normalizeVariables(lhsSBadVars);
-          qNorm.normalizeVariables(trm);
-          qDenorm.makeInverse(qNorm);
-          ASS_EQ(trm,qDenorm.apply(rNorm.apply(lhsSBadVars)));
-          rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
-        } else {
-          rhsS = subs->applyToBoundResult(rhs);
-        }
-
-        if (qr.data->term.isVar()) {
-          rhsS = subst->apply(rhsS, 0);
-        }
-
+        TermList rhs=EqHelper::getOtherEqualitySide(qr.data->literal,lhs);
         Ordering::Result argOrder = ordering.getEqualityArgumentOrder(qr.data->literal);
         bool preordered = argOrder==Ordering::LESS || argOrder==Ordering::GREATER;
   #if VDEBUG
@@ -167,8 +160,21 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           }
         }
   #endif
-        if(!preordered && (_preorderedOnly || ordering.compare(trm,rhsS)!=Ordering::GREATER) ) {
+
+        auto subs = qr.unifier;
+        ASS(subs->isIdentityOnQueryWhenResultBound());
+
+        auto id = [](unsigned v){ return TermList(v,false); };
+        Applicator appl{ subs.ptr(), lhs.isVar() ? subst.operator->() : nullptr };
+
+        if (!preordered && (_preorderedOnly || !ordering.isGreater(AppliedTerm(trm,id,false),AppliedTerm(rhs,appl,true)))) {
+          if (ordering.compare(trm,subs->applyToBoundResult(rhs))==Ordering::GREATER) {
+            USER_ERROR("is greater " + trm.toString() + " " + subs->applyToBoundResult(rhs).toString());
+          }
           continue;
+        }
+        if (ordering.compare(trm,subs->applyToBoundResult(rhs))!=Ordering::GREATER) {
+          USER_ERROR("is not greater " + trm.toString() + " " + subs->applyToBoundResult(rhs).toString());
         }
 
         // encompassing demodulation is fine when rewriting the smaller guy
@@ -183,7 +189,9 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           }
         }
 
-        if (redundancyCheck && !_helper.isPremiseRedundant(cl, lit, trm, rhsS, qr.data->term, subs.ptr(), true)) {
+        TermList rhsS = subs->applyToBoundResult(rhs);
+
+        if (redundancyCheck && !_helper.isPremiseRedundant(cl, lit, trm, rhsS, lhs, subs.ptr(), true)) {
           continue;
         }
 

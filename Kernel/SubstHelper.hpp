@@ -26,6 +26,23 @@ namespace Kernel {
 
 using namespace Lib;
 
+using SubstApplicator = std::function<TermList(unsigned)>;
+
+struct AppliedTerm
+{
+  TermList term;
+  bool termAboveVar;
+  const SubstApplicator& applicator;
+
+  AppliedTerm(TermList t, const SubstApplicator& applicator, bool aboveVar)
+    : term(aboveVar && t.isVar() ? applicator(t.var()) : t),
+      termAboveVar(aboveVar && t.isVar() ? false : aboveVar), applicator(applicator) {}
+
+  bool operator==(const AppliedTerm& other) const {
+    return termAboveVar==other.termAboveVar && term==other.term;
+  }
+};
+
 class SubstHelper
 {
 public:

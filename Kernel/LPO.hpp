@@ -20,6 +20,8 @@
 
 #include "Forwards.hpp"
 
+#include "SubstHelper.hpp"
+
 #include "Ordering.hpp"
 
 namespace Kernel {
@@ -45,6 +47,9 @@ public:
   using PrecedenceOrdering::compare;
   [[nodiscard]] Result compare(TermList tl1, TermList tl2) const override;
   void showConcrete(std::ostream&) const override;
+
+  bool isGreater(AppliedTerm&& lhs, AppliedTerm&& rhs) const override;
+
 protected:
   [[nodiscard]] Result comparePredicates(Literal* l1, Literal* l2) const override;
   [[nodiscard]] Result comparePrecedences(Term* t1, Term* t2) const;
@@ -58,6 +63,10 @@ protected:
   [[nodiscard]] Result lexMAE(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity) const;
   [[nodiscard]] Result majo(Term* s, TermList* tl, unsigned arity) const;
 
+  [[nodiscard]] Result alpha_gt(TermList* tl, unsigned arity, bool argsAboveVar, const SubstApplicator& argApplicator, AppliedTerm t) const;
+  [[nodiscard]] Result lpo_gt(AppliedTerm tl1, AppliedTerm tl2) const;
+  [[nodiscard]] Result lexMAE_gt(AppliedTerm s, AppliedTerm t, TermList* sl, TermList* tl, unsigned arity) const;
+  [[nodiscard]] Result majo_gt(AppliedTerm s, TermList* tl, unsigned arity, bool argsAboveVar, const SubstApplicator& argApplicator) const;
 };
 
 }

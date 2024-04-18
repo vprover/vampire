@@ -64,6 +64,10 @@ public:
    * @b t1 and @b t2 */
   virtual Result compare(TermList t1,TermList t2) const = 0;
 
+  /** Optimised function used for checking that @b lhs is greater than @b rhs,
+   * under substitution represented by @b applicator. */
+  virtual bool isGreater(AppliedTerm&& lhs, AppliedTerm&& rhs) const;
+
   virtual void show(std::ostream& out) const = 0;
 
   static bool isGorGEorE(Result r) { return (r == GREATER || r == GREATER_EQ || r == EQUAL); }
@@ -102,6 +106,8 @@ public:
 protected:
 
   Result compareEqualities(Literal* eq1, Literal* eq2) const;
+
+  static bool containsVar(const AppliedTerm& s, TermList var);
 
 private:
   void createEqualityComparator();

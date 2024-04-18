@@ -230,7 +230,7 @@ public:
   bool isArraySort();
   bool isTupleSort();
   bool isApplication() const;
-  bool containsSubterm(TermList v);
+  bool containsSubterm(TermList v) const;
   bool containsAllVariablesOf(TermList t);
   bool ground() const;
   bool isSafe() const;
@@ -694,6 +694,16 @@ public:
     return _maxRedLen;    
   }
 
+  int kboWeight() const
+  {
+    return _kboWeight;
+  }
+
+  void setKboWeight(int w)
+  {
+    _kboWeight = w;
+  }
+
   /** Mark term as shared */
   void markShared()
   {
@@ -811,7 +821,7 @@ public:
     return true;
   }
 
-  bool containsSubterm(TermList v);
+  bool containsSubterm(TermList v) const;
   bool containsAllVariablesOf(Term* t);
   size_t countSubtermOccurrences(TermList subterm);
 
@@ -905,6 +915,8 @@ protected:
   unsigned _isTwoVarEquality : 1;
   /** Weight of the symbol */
   unsigned _weight;
+  /** Cached weight of the term for KBO, otherwise -1 and invalid. */
+  int _kboWeight;
   /** length of maximum reduction length */
   int _maxRedLen;
   union {
