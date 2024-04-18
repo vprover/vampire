@@ -53,6 +53,19 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+struct ForwardDemodulation::Applicator {
+  TermList operator()(TermList t) const {
+    auto res = subst->applyToBoundResult(t);
+    if (vSubst) {
+      return vSubst->apply(res, 0);
+    } else {
+      return res;
+    }
+  }
+  ResultSubstitution* subst;
+  RobSubstitution* vSubst;
+};
+
 void ForwardDemodulation::attach(SaturationAlgorithm* salg)
 {
   ForwardSimplificationEngine::attach(salg);
@@ -117,6 +130,8 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           continue;
         }
 
+        auto lhs = qr.data->term;
+
         // TODO:
         // to deal with polymorphic matching
         // Ideally, we would like to extend the substitution
@@ -125,7 +140,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         // indexing mechanism, and it is not clear how to extend
         // the substitution returned by a code tree.
         Recycled<RobSubstitution> subst;
-        if(qr.data->term.isVar()){
+        if(lhs.isVar()){
           TermList querySort = trm.sort();
           TermList eqSort = SortHelper::getEqualityArgumentSort(qr.data->literal);
           if(!subst->match(eqSort, 0, querySort, 1)){
@@ -133,7 +148,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           }
         }
 
-        TermList rhs=EqHelper::getOtherEqualitySide(qr.data->literal,qr.data->term);
+        TermList rhs=EqHelper::getOtherEqualitySide(qr.data->literal,lhs);
         Ordering::Result argOrder = ordering.getEqualityArgumentOrder(qr.data->literal);
         bool preordered = argOrder==Ordering::LESS || argOrder==Ordering::GREATER;
   #if VDEBUG
@@ -150,28 +165,31 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         auto subs = qr.unifier;
         ASS(subs->isIdentityOnQueryWhenResultBound());
 
-        if (_precompiledComparison) {
-          if (!preordered && (_preorderedOnly || !ordering.isGreater(qr.data->term,rhs,BoundResultApplicator(subs.ptr()),qr.data->clause->demodulatorCompInstructions(qr.data->term))) ) {
-            // if (ordering.compare(trm,subs->applyToBoundResult(rhs))==Ordering::GREATER) {
-            //   USER_ERROR("is greater " + trm.toString() + " " + subs->applyToBoundResult(rhs).toString() + "\nFrom equation " + qr.literal->toString() + " side " + qr.term.toString());
-            // }
+        Applicator appl{ subs.ptr(), lhs.isVar() ? subst.operator->() : nullptr };
+
+        // if (_precompiledComparison) {
+        //   if (!preordered && (_preorderedOnly || !ordering.isGreater(lhs,rhs,appl,qr.data->clause->demodulatorCompInstructions(qr.data->term))) ) {
+        //     // if (ordering.compare(trm,subs->applyToBoundResult(rhs))==Ordering::GREATER) {
+        //     //   USER_ERROR("is greater " + trm.toString() + " " + subs->applyToBoundResult(rhs).toString() + "\nFrom equation " + qr.literal->toString() + " side " + qr.term.toString());
+        //     // }
+        //     continue;
+        //   }
+        //   // if (ordering.compare(trm,subs->applyToBoundResult(rhs))!=Ordering::GREATER) {
+        //   //   USER_ERROR("is not greater " + trm.toString() + " " + subs->applyToBoundResult(rhs).toString() + "\nFrom equation " + qr.literal->toString() + " side " + qr.term.toString());
+        //   // }
+        // } else {
+          if (!preordered && (_preorderedOnly || !ordering.isGreater(lhs,rhs,appl))) {
+            if (ordering.compare(trm,subs->applyToBoundResult(rhs))==Ordering::GREATER) {
+              USER_ERROR("is greater " + trm.toString() + " " + subs->applyToBoundResult(rhs).toString() + "\nFrom equation " + qr.data->literal->toString() + " side " + qr.data->term.toString());
+            }
             continue;
           }
-          // if (ordering.compare(trm,subs->applyToBoundResult(rhs))!=Ordering::GREATER) {
-          //   USER_ERROR("is not greater " + trm.toString() + " " + subs->applyToBoundResult(rhs).toString() + "\nFrom equation " + qr.literal->toString() + " side " + qr.term.toString());
-          // }
-        }
-
-        TermList rhsS = subs->applyToBoundResult(rhs);
-        if(qr.data->term.isVar()){
-          rhsS = subst->apply(rhsS, 0);
-        }
-
-        if (!_precompiledComparison) {
-          if (!preordered && (_preorderedOnly || ordering.compare(trm,rhsS)!=Ordering::GREATER) ) {
-            continue;
+          if (ordering.compare(trm,subs->applyToBoundResult(rhs))!=Ordering::GREATER) {
+            USER_ERROR("is not greater " + trm.toString() + " " + subs->applyToBoundResult(rhs).toString() + "\nFrom equation " + qr.data->literal->toString() + " side " + qr.data->term.toString());
           }
-        }
+        // }
+
+        TermList rhsS = appl(rhs);
 
         // encompassing demodulation is fine when rewriting the smaller guy
         if (redundancyCheck && _encompassing) {

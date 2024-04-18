@@ -278,6 +278,8 @@ Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
 template<class Applicator>
 bool Ordering::isGreater(TermList lhs, TermList rhs, const Applicator& applicator, Stack<Instruction>*& instructions) const
 {
+  auto lpo = static_cast<const LPO*>(this);
+  return lpo->isGreaterOrEq(AppliedTermLPO(lhs,applicator,true),AppliedTermLPO(rhs,applicator,true),applicator)==GREATER;
   // this function only works with KBO now
   auto kbo = static_cast<const KBO*>(this);
   if (!instructions) {
@@ -358,6 +360,11 @@ bool Ordering::isGreater(TermList lhs, TermList rhs, const Applicator& applicato
     }
   }
   return false;
+}
+
+bool Ordering::isGreater(TermList lhs, TermList rhs, const std::function<TermList(TermList)>& applicator) const
+{
+  NOT_IMPLEMENTED;
 }
 
 template bool Ordering::isGreater<Indexing::BoundResultApplicator>(TermList, TermList, const Indexing::BoundResultApplicator&, Stack<Instruction>*&) const;

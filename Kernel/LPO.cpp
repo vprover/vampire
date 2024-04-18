@@ -22,6 +22,9 @@
 
 #include "Shell/Options.hpp"
 
+#include "Indexing/ResultSubstitution.hpp"
+
+#include "TermIterators.hpp"
 #include "Term.hpp"
 #include "LPO.hpp"
 #include "Signature.hpp"
@@ -268,6 +271,169 @@ Ordering::Result LPO::majo(Term* s, TermList* tl, unsigned arity) const
     }
   }
   return GREATER;
+}
+
+// isGreater variants
+
+template<class Applicator>
+bool containsVar(const AppliedTermLPO<Applicator>& s, TermList var, const Applicator& applicator)
+{
+  ASS(var.isVar());
+  if (!s.termAboveVar) {
+    return s.term.containsSubterm(var);
+  }
+  if (s.term.isVar()) {
+    return applicator(s.term).containsSubterm(var);
+  }
+  VariableIterator vit(s.term.term());
+  while (vit.hasNext()) {
+    auto v = vit.next();
+    if (applicator(v).containsSubterm(var)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+template<class Applicator>
+Ordering::Result LPO::isGreaterOrEq(AppliedTermLPO<Applicator>&& tt1, AppliedTermLPO<Applicator>&& tt2, const Applicator& applicator) const
+{
+  // cout << endl << "isGreaterOrEq " << tt1.term << " " << tt2.term << endl;
+  if (tt1==tt2) {
+    return EQUAL;
+  }
+  if (tt1.term.isOrdinaryVar()) {
+    return INCOMPARABLE;
+  }
+  // if (tt2.term.isOrdinaryVar()) {
+  //   return containsVar(tt1, tt2.term, applicator) ? GREATER : INCOMPARABLE;
+  // }
+  ASS(tt1.term.isTerm());
+  return clpo_gt(tt1, tt2, applicator) ? GREATER : INCOMPARABLE;
+}
+
+bool LPO::isGreater(TermList lhs, TermList rhs, const std::function<TermList(TermList)>& applicator) const
+{
+  return isGreaterOrEq(AppliedTermLPO(lhs,applicator,true),AppliedTermLPO(rhs,applicator,true),applicator)==GREATER;
+}
+
+using BRApplicator = Indexing::BoundResultApplicator;
+using BQApplicator = Indexing::BoundQueryApplicator;
+
+template Ordering::Result LPO::isGreaterOrEq<BRApplicator>(AppliedTermLPO<BRApplicator>&&, AppliedTermLPO<BRApplicator>&&, const BRApplicator&) const;
+template Ordering::Result LPO::isGreaterOrEq<BQApplicator>(AppliedTermLPO<BQApplicator>&&, AppliedTermLPO<BQApplicator>&&, const BQApplicator&) const;
+template Ordering::Result LPO::isGreaterOrEq<IdentityApplicator>(AppliedTermLPO<IdentityApplicator>&&, AppliedTermLPO<IdentityApplicator>&&, const IdentityApplicator&) const;
+
+template<class Applicator>
+bool LPO::clpo_gt(AppliedTermLPO<Applicator> tt1, AppliedTermLPO<Applicator> tt2, const Applicator& applicator) const
+{
+  // cout << "clpo_gt " << tt1.term << " " << tt2.term << endl;
+  ASS(tt1.term.isTerm());
+
+  if (tt2.term.isOrdinaryVar()) {
+    return containsVar(tt1, tt2.term, applicator);
+  }
+
+  Term* t1=tt1.term.term();
+  Term* t2=tt2.term.term();
+
+  switch (comparePrecedences(t1, t2)) {
+  case EQUAL:
+    return lexMAE_gt(tt1, tt2, t1->args(), t2->args(), t1->arity(), applicator);
+  case GREATER:
+    return majo_gt(tt1, t2->args(), t2->arity(), tt2.termAboveVar, applicator);
+  case LESS:
+    return alpha_gt(t1->args(), t1->arity(), tt1.termAboveVar, tt2, applicator);
+  default:
+    ASSERTION_VIOLATION;
+  }
+}
+
+// greater iff some exists s_i in sl such that s_i >= t
+template<class Applicator>
+bool LPO::alpha_gt(TermList* sl, unsigned arity, bool argsAboveVar, AppliedTermLPO<Applicator> t, const Applicator& applicator) const
+{
+  // cout << "alpha_gt " << t.term << " " << endl;
+  ASS(t.term.isTerm());
+  for (unsigned i = 0; i < arity; i++) {
+    AppliedTermLPO s(*(sl - i),applicator,argsAboveVar);
+    // cout << "alpha compare " << s.term << " " << t.term << endl;
+    if (s == t || lpo_gt(s, t, applicator)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+template<class Applicator>
+bool LPO::lpo_gt(AppliedTermLPO<Applicator> tt1, AppliedTermLPO<Applicator> tt2, const Applicator& applicator) const
+{
+  // cout << "lpo_gt " << tt1.term << " " << tt2.term << endl;
+
+  ASS(tt1!=tt2); // we want to check this outside
+
+  if (tt1.term.isVar()) {
+    return false;
+  }
+
+  if (tt2.term.isVar()) {
+    return containsVar(tt1, tt2.term, applicator);
+  }
+
+
+  Term* t1=tt1.term.term();
+  Term* t2=tt2.term.term();
+
+  switch (comparePrecedences(t1, t2)) {
+  case EQUAL:
+    return lexMAE_gt(tt1, tt2, t1->args(), t2->args(), t1->arity(), applicator);
+  case GREATER:
+    return majo_gt(tt1, t2->args(), t2->arity(), tt2.termAboveVar, applicator);
+  default:
+    return alpha_gt(t1->args(), t1->arity(), tt1.termAboveVar, tt2, applicator);
+  }
+}
+
+template<class Applicator>
+bool LPO::lexMAE_gt(AppliedTermLPO<Applicator> s, AppliedTermLPO<Applicator> t, TermList* sl, TermList* tl, unsigned arity, const Applicator& applicator) const
+{
+  // cout << "lexMAE_gt " << s.term << " " << t.term << endl;
+
+  for (unsigned i = 0; i < arity; i++) {
+    // implement deep equals
+    AppliedTermLPO sArg(*(sl - i),applicator,s.termAboveVar);
+    AppliedTermLPO tArg(*(tl - i),applicator,t.termAboveVar);
+    // cout << "lex compare " << sArg.term << " " << tArg.term << endl;
+    if (sArg == tArg) {
+      // cout << "equal" << endl;
+      continue;
+    }
+    // cout << "not equal" << endl;
+    if (lpo_gt(sArg, tArg, applicator)) {
+      return majo_gt(s, tl - i - 1, arity - i - 1, t.termAboveVar, applicator);
+    } else {
+      return alpha_gt(sl - i - 1, arity - i - 1, s.termAboveVar, t, applicator);
+    }
+  }
+  // reached only when the terms are equal but this is checked already
+  // at the start of LPO::lpo, which is the only caller of this function
+  ASSERTION_VIOLATION;
+}
+
+// greater if s is greater than every term in tl
+template<class Applicator>
+bool LPO::majo_gt(AppliedTermLPO<Applicator> s, TermList* tl, unsigned arity, bool argsAboveVar, const Applicator& applicator) const
+{
+  // cout << "majo_gt " << s.term << endl;
+
+  for (unsigned i = 0; i < arity; i++) {
+    AppliedTermLPO t(*(tl - i), applicator, argsAboveVar);
+    // cout << "majo compare " << s.term << " " << t.term << endl;
+    if (s == t || !lpo_gt(s, t, applicator)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 void LPO::showConcrete(ostream&) const 

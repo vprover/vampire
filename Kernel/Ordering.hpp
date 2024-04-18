@@ -72,6 +72,7 @@ public:
   /** Optimised function used for checking that @b lhs is greater than @b rhs,
    * under substitution represented by @b applicator. */
   template<class Applicator> bool isGreater(TermList lhs, TermList rhs, const Applicator& applicator, Stack<Instruction>*& instructions) const;
+  virtual bool isGreater(TermList lhs, TermList rhs, const std::function<TermList(TermList)>& applicator) const;
 
   virtual void show(std::ostream& out) const = 0;
 

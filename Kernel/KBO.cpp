@@ -1151,6 +1151,11 @@ Ordering::Result KBO::isGreaterOrEq(AppliedTerm<Applicator>&& tt1, AppliedTerm<A
   ASSERTION_VIOLATION;
 }
 
+bool KBO::isGreater(TermList lhs, TermList rhs, const std::function<TermList(TermList)>& applicator) const
+{
+  return isGreaterOrEq(AppliedTerm(lhs,applicator,true),AppliedTerm(rhs,applicator,true),applicator)==GREATER;
+}
+
 int KBO::symbolWeight(const Term* t) const
 {
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__

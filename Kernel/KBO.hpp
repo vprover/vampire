@@ -180,6 +180,8 @@ public:
   template<class Applicator>
   unsigned computeWeight(const AppliedTerm<Applicator>& tt, const Applicator& applicator) const;
 
+  bool isGreater(TermList lhs, TermList rhs, const std::function<TermList(TermList)>& applicator) const override;
+
 protected:
   Result comparePredicates(Literal* l1, Literal* l2) const override;
 
