@@ -184,8 +184,9 @@ struct Matrix {
 
     // create selectors and demux
     int selector = demux.size();
-    demux.push_back({Action::SELECT, copy_index});
+    solver.add_observed_var(selector);
     solver.phase(-selector);
+    demux.push_back({Action::SELECT, copy_index});
     copies.push_back({selector, position_start, position_end});
 
     return selector;
@@ -246,9 +247,11 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
   }
 
   void notify_assignment(int assigned, bool fixed) final {
-    // do nothing on variables assigned false
-    // also do nothing when there is a conflict but we didn't tell CaDiCaL yet
-    if(assigned < 0 || !reason.empty())
+    // do nothing when:
+    // - variable is assigned false
+    // - when there is a conflict but we didn't tell CaDiCaL yet
+    // - when it's not a variable representing a connection
+    if(assigned < 0 || !reason.empty() || matrix.demux[assigned].action != Action::CONNECT)
       return;
 
     auto [k, l] = matrix.connection_literals(assigned);
@@ -296,7 +299,72 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
   }
 
   bool cb_check_found_model(const std::vector<int> &model) final {
-    return true;
+    ASS(reason.empty())
+    CaDiCaL::Solver final_;
+    std::unordered_set<unsigned> selected;
+
+    for(int assigned : model) {
+      if(assigned < 0)
+        continue;
+
+      auto [action, index] = matrix.demux[assigned];
+      if(action == Action::SELECT) {
+        reason.push_back(-assigned);
+        selected.insert(index);
+        const Copy &copy = matrix.copies[index];
+        for(unsigned i = copy.start; i < copy.end; i++)
+          final_.add(i + 1);
+        final_.add(0);
+      }
+      else {
+        const Connection &connection = matrix.connections[index];
+        for(auto position : connection.positions)
+          final_.add(-(position + 1));
+        final_.add(0);
+      }
+    }
+
+    // no path, we're done
+    if(final_.solve() == CaDiCaL::UNSATISFIABLE)
+      return true;
+
+    std::unordered_set<unsigned> path;
+    for(unsigned index : selected) {
+      const Copy &copy = matrix.copies[index];
+      for(unsigned i = copy.start; i < copy.end; i++)
+        if(final_.val(i + 1) == i + 1) {
+          path.insert(i);
+          break;
+        }
+    }
+
+    for(const Connection &connection : matrix.connections) {
+      auto [k, l] = connection.positions;
+      bool kpath = path.count(k);
+      bool lpath = path.count(l);
+      if(kpath && lpath)
+        reason.push_back(connection.var);
+      if(kpath == lpath)
+        continue;
+
+      // exactly one position is on the path
+      bool kselected = selected.count(matrix.positions[k].copy);
+      bool lselected = selected.count(matrix.positions[l].copy);
+      ASS(kselected || lselected)
+      // exclude connections within the matrix
+      if(kselected && lselected)
+        continue;
+
+      reason.push_back(connection.var);
+    }
+
+    /*
+    auto &out = log();
+    for(auto x : reason)
+      out <<  ' ' << x;
+    out << '\n';
+    */
+    return false;
   }
 
   bool cb_has_external_clause() final { return !reason.empty(); }
@@ -346,7 +414,8 @@ MainLoopResult UPCoP::runImpl() {
       solver.add(0);
     }
 
-  int result = solver.solve();
-  log() << "result: " << result << '\n';
+  if(solver.solve() == CaDiCaL::SATISFIABLE)
+    return Statistics::REFUTATION;
+
   return Statistics::REFUTATION_NOT_FOUND;
 }
