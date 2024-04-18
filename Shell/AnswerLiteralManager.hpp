@@ -42,7 +42,7 @@ public:
    */
   static AnswerLiteralManager* getInstance();
 
-  static void tryOutputAnswer(Clause* refutation);
+  void tryOutputAnswer(Clause* refutation);
 
   virtual ~AnswerLiteralManager() {}
 
@@ -72,10 +72,13 @@ private:
   Clause* getResolverClause(unsigned pred);
 
   /**
-   * So that for every answer-predicate-symbol
-   * we can retrieve the unit for which it was introduced.
+   * So that for every answer-predicate-symbol (key)
+   * we can retrieve the unit for which it was introduced
+   * and the Litera that got injected into the conjecture
+   * (which, in particular, has the variables for arguments
+   * as they were in the conecture).
    */
-  DHMap<unsigned, Unit*> _originUnits;
+  DHMap<unsigned, std::pair<Unit*,Literal*>> _originUnitsAndInjectedLiterals;
 
   RCClauseStack _answers;
 

@@ -36,6 +36,8 @@
 #include "Shell/Flattening.hpp"
 #include "Shell/Options.hpp"
 
+#include "Parse/TPTP.hpp"
+
 #include "AnswerLiteralManager.hpp"
 
 namespace Shell
@@ -95,7 +97,7 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
   FormulaList* conjArgs = 0;
   FormulaList::push(quant->qarg(), conjArgs);
   Literal* ansLit = getAnswerLiteral(vars,quant);
-  _originUnits.insert(ansLit->functor(),unit);
+  _originUnitsAndInjectedLiterals.insert(ansLit->functor(),make_pair(unit,ansLit));
 
   FormulaList::push(new AtomicFormula(ansLit), conjArgs);
 
@@ -139,9 +141,19 @@ void AnswerLiteralManager::tryOutputAnswer(Clause* refutation)
     Literal* aLit = ait.next();
     std::cout << "[";
     unsigned arity = aLit->arity();
+
+    Map<int,vstring>* questionVars = 0;
+    std::pair<Unit*,Literal*> unitAndLiteral;
+    if (_originUnitsAndInjectedLiterals.find(aLit->functor(),unitAndLiteral)) {
+      questionVars = Parse::TPTP::findQuestionVars(unitAndLiteral.first->number());
+    }
+
     for(unsigned i=0; i<arity; i++) {
       if(i > 0) {
         std::cout << ',';
+      }
+      if (questionVars) {
+        cout << questionVars->get(unitAndLiteral.second->nthArgument(i)->var()) << "->";
       }
       std::cout << possiblyEvaluateAnswerTerm(*aLit->nthArgument(i));
     }
