@@ -26,20 +26,37 @@ namespace Kernel {
 
 using namespace Lib;
 
-using SubstApplicator = std::function<TermList(unsigned)>;
+struct SubstApplicator {
+  virtual TermList operator()(unsigned v) const = 0;
+};
 
+/**
+ * Term with a substitution applied to it lazily.
+ */
 struct AppliedTerm
 {
   TermList term;
-  bool termAboveVar;
-  const SubstApplicator& applicator;
+  bool aboveVar;
+  const SubstApplicator* applicator;
 
-  AppliedTerm(TermList t, const SubstApplicator& applicator, bool aboveVar)
-    : term(aboveVar && t.isVar() ? applicator(t.var()) : t),
-      termAboveVar(aboveVar && t.isVar() ? false : aboveVar), applicator(applicator) {}
+  /**
+   * The substitution is only applied to the term @b t via @b applicator if @b t is a variable
+   * and @b aboveVar is true (i.e. we are still above the substitution). @b applicator can be
+   * null is @b aboveVar is false.
+   */
+  AppliedTerm(TermList t, const SubstApplicator* applicator = nullptr, bool aboveVar = false)
+    : term(aboveVar && t.isVar() ? (*applicator)(t.var()) : t),
+      aboveVar(aboveVar && t.isVar() ? false : aboveVar), applicator(applicator) {}
 
+  AppliedTerm(TermList t, const AppliedTerm& parent)
+    : term(parent.aboveVar && t.isVar() ? (*parent.applicator)(t.var()) : t),
+      aboveVar(parent.aboveVar && t.isVar() ? false : parent.aboveVar), applicator(parent.applicator) {}
+
+  /**
+   * Only allow comparisons if we can guarantee that the terms are the same.
+   */
   bool operator==(const AppliedTerm& other) const {
-    return termAboveVar==other.termAboveVar && term==other.term;
+    return !aboveVar && !other.aboveVar && term==other.term;
   }
 };
 

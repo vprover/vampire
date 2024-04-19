@@ -85,6 +85,13 @@ private:
   DemodulationSubtermIndex* _index;
 };
 
+struct Applicator : SubstApplicator {
+  Applicator(ResultSubstitution* subst) : subst(subst) {}
+  TermList operator()(unsigned v) const override {
+    return subst->applyToBoundQuery(TermList(v,false));
+  }
+  ResultSubstitution* subst;
+};
 
 struct BackwardDemodulation::ResultFn
 {
@@ -128,14 +135,11 @@ struct BackwardDemodulation::ResultFn
     auto subs = qr.unifier;
     ASS(subs->isIdentityOnResultWhenQueryBound());
 
-    auto id = [](unsigned v){ return TermList(v,false); };
-    auto appl = [subs](unsigned v) {
-      return subs->applyToBoundQuery(TermList(v,false));
-    };
+    Applicator appl(subs.ptr());
 
     TermList lhsS=qr.data->term;
 
-    if (!_ordering.isGreater(AppliedTerm(lhsS,id,false), AppliedTerm(rhs,appl,true))) {
+    if (!_ordering.isGreater(AppliedTerm(lhsS), AppliedTerm(rhs,&appl,true))) {
       return BwSimplificationRecord(0);
     }
 

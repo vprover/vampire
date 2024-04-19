@@ -16,7 +16,6 @@
 
 #include "Forwards.hpp"
 
-#include "Indexing/Index.hpp"
 #include "Indexing/TermSharing.hpp"
 
 #include "Lib/Environment.hpp"
@@ -276,16 +275,16 @@ Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
 bool Ordering::containsVar(const AppliedTerm& s, TermList var)
 {
   ASS(var.isVar());
-  if (!s.termAboveVar) {
+  if (!s.aboveVar) {
     return s.term.containsSubterm(var);
   }
   if (s.term.isVar()) {
-    return s.applicator(s.term.var()).containsSubterm(var);
+    return (*s.applicator)(s.term.var()).containsSubterm(var);
   }
   VariableIterator vit(s.term.term());
   while (vit.hasNext()) {
     auto v = vit.next();
-    if (s.applicator(v.var()).containsSubterm(var)) {
+    if ((*s.applicator)(v.var()).containsSubterm(var)) {
       return true;
     }
   }

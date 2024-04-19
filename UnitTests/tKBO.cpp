@@ -382,9 +382,8 @@ TEST_FUN(kbo_test23) {
 // isGreater tests
 
 bool isGreaterSymmetric(const KBO& ord, TermList t1, TermList t2) {
-  auto id = [](unsigned v) { return TermList(v,false); };
-  return ord.isGreater(AppliedTerm(t1,id,false),AppliedTerm(t2,id,false))
-    && !ord.isGreater(AppliedTerm(t2,id,false),AppliedTerm(t1,id,false));
+  return ord.isGreater(AppliedTerm(t1),AppliedTerm(t2))
+    && !ord.isGreater(AppliedTerm(t2),AppliedTerm(t1));
 }
 
 TEST_FUN(kbo_isGreater_test01) {
@@ -431,9 +430,8 @@ TEST_FUN(kbo_isGreater_test04) {
 
   auto ord = kbo(weights(make_pair(f, 10u)), weights());
 
-  auto id = [](unsigned v) { return TermList(v,false); };
-  ASS(!ord.isGreater(AppliedTerm(f(x),id,false), AppliedTerm(g(g(g(g(g(y))))),id,false)));
-  ASS(!ord.isGreater(AppliedTerm(g(g(g(g(g(y))))),id,false), AppliedTerm(f(x),id,false)));
+  ASS(!ord.isGreater(AppliedTerm(f(x)), AppliedTerm(g(g(g(g(g(y))))))));
+  ASS(!ord.isGreater(AppliedTerm(g(g(g(g(g(y)))))), AppliedTerm(f(x))));
 }
 
 TEST_FUN(kbo_isGreater_test05) {

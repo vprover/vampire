@@ -63,10 +63,10 @@ public:
   /** Return the result of comparing terms (not term lists!)
    * @b t1 and @b t2 */
   virtual Result compare(TermList t1,TermList t2) const = 0;
-
+  /** Same as @b compare, for applied (substituted) terms. */
   virtual Result compare(AppliedTerm&& t1, AppliedTerm&& t2) const;
-  /** Optimised function used for checking that @b lhs is greater than @b rhs,
-   * under substitution represented by @b applicator. */
+  /** Optimised function used for checking that @b t1 is greater than @b t2,
+   * under some substitutions captured by @b AppliedTerm. */
   virtual bool isGreater(AppliedTerm&& t1, AppliedTerm&& t2) const;
 
   virtual void show(std::ostream& out) const = 0;
