@@ -156,7 +156,7 @@ Problem *doProving(Problem* problem)
 
   // this will provide warning if options don't make sense for problem
   if (env.options->mode()!=Options::Mode::SPIDER) {
-    // env.options->checkProblemOptionConstraints(prb->getProperty(), /*before_preprocessing = */ false);
+    env.options->checkProblemOptionConstraints(prb->getProperty(), /*before_preprocessing = */ false);
   }
 
   ProvingHelper::runVampireSaturation(*prb, *env.options);

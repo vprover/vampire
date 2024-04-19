@@ -44,8 +44,8 @@ class Statistics {
 public:
   Statistics();
 
-  void print(std::ostream &out);
-  void explainRefutationNotFound(std::ostream &out);
+  void print(std::ostream& out);
+  void explainRefutationNotFound(std::ostream& out);
 
   // Input
   /** number of input clauses */
@@ -298,7 +298,7 @@ public:
     /** activation limit reached */
     ACTIVATION_LIMIT
   };
-  friend std::ostream &operator<<(std::ostream &out, TerminationReason const &self)
+  friend std::ostream& operator<<(std::ostream& out, TerminationReason const& self)
   {
     switch (self) {
       case REFUTATION:
@@ -378,7 +378,7 @@ public:
   ExecutionPhase phase;
 
 private:
-  static const char *phaseToString(ExecutionPhase p);
+  static const char* phaseToString(ExecutionPhase p);
 }; // class Statistics
 
 } // namespace Shell

@@ -513,17 +513,6 @@ void MLMatcher::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, Cl
     swapLits(mostDistVarsLit, singleAlts);
   }
 
-  // std::cout << "matchings:\n";
-  // for (unsigned i=0; i<baseLen; ++i) {
-  //   std::cout << s_baseLits[i]->toString() << "\t\t";
-  //   LiteralList::Iterator ait(s_altsArr[i]);
-  //   while(ait.hasNext()) {
-  //     std::cout << ait.next()->toString() << "  ";
-  //   }
-  // std::cout << std::endl;
-  // }
-  // std::cout << std::endl;
-
   s_boundVarNumData.ensure(baseLitVars);
   s_altBindingPtrs.ensure(altCnt);
   s_altBindingsData.ensure(altBindingsCnt);
@@ -598,28 +587,6 @@ bool MLMatcher::Impl::nextMatch()
         return false;
       }
     }
-
-/*
-    unsigned maxAlt = md->getRemainingInCurrent(s_currBLit);
-    while (md->nextAlts[s_currBLit] < maxAlt) {
-      // Reject the current alternative (i.e., nextAlts[currBLit]) if
-      // 1. We are multiset matching and the alt is already matched to a base literal, or
-      if (s_multiset && s_matchRecord[md->getAltRecordIndex(s_currBLit, md->nextAlts[s_currBLit])] < s_currBLit) {
-        md->nextAlts[s_currBLit]++;
-      }
-      // 2. The induced variable bindings would already lead to a conflict for some later base literal
-      else if (!md->bindAlt(s_currBLit, md->nextAlts[s_currBLit])) {
-        md->nextAlts[s_currBLit]++;
-        // In SMT-subsumption, this is discovered by decision + theory propagation + conflict with clause
-        // TODO: maybe we need to optimize this case in SMT-Subsumption?
-        stats.numDecisionsAdjusted += 1;
-      }
-      // otherwise: found a possible choice
-      else {
-        break;
-      }
-    }
-    */
 
     unsigned maxAlt = md->getRemainingInCurrent(s_currBLit);
     while (md->nextAlts[s_currBLit] < maxAlt &&

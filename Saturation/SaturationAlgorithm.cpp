@@ -126,14 +126,14 @@ using namespace Saturation;
 /** Print information about performed backward simplifications */
 #define REPORT_BW_SIMPL 0
 
-SaturationAlgorithm *SaturationAlgorithm::s_instance = 0;
+SaturationAlgorithm* SaturationAlgorithm::s_instance = 0;
 
-std::unique_ptr<PassiveClauseContainer> makeLevel0(bool isOutermost, const Options &opt, vstring name)
+std::unique_ptr<PassiveClauseContainer> makeLevel0(bool isOutermost, const Options& opt, vstring name)
 {
   return std::make_unique<AWPassiveClauseContainer>(isOutermost, opt, name + "AWQ");
 }
 
-std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Options &opt, vstring name)
+std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Options& opt, vstring name)
 {
   if (opt.useTheorySplitQueues()) {
     Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
@@ -149,7 +149,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Optio
   }
 }
 
-std::unique_ptr<PassiveClauseContainer> makeLevel2(bool isOutermost, const Options &opt, vstring name)
+std::unique_ptr<PassiveClauseContainer> makeLevel2(bool isOutermost, const Options& opt, vstring name)
 {
   if (opt.useAvatarSplitQueues()) {
     Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
@@ -165,7 +165,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel2(bool isOutermost, const Optio
   }
 }
 
-std::unique_ptr<PassiveClauseContainer> makeLevel3(bool isOutermost, const Options &opt, vstring name)
+std::unique_ptr<PassiveClauseContainer> makeLevel3(bool isOutermost, const Options& opt, vstring name)
 {
   if (opt.useSineLevelSplitQueues()) {
     Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
@@ -181,7 +181,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel3(bool isOutermost, const Optio
   }
 }
 
-std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Options &opt, vstring name)
+std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Options& opt, vstring name)
 {
   if (opt.usePositiveLiteralSplitQueues()) {
     Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
@@ -288,17 +288,17 @@ SaturationAlgorithm::~SaturationAlgorithm()
   }
 
   while (_fwSimplifiers) {
-    ForwardSimplificationEngine *fse = FwSimplList::pop(_fwSimplifiers);
+    ForwardSimplificationEngine* fse = FwSimplList::pop(_fwSimplifiers);
     fse->detach();
     delete fse;
   }
   while (_simplifiers) {
-    SimplificationEngine *fse = SimplList::pop(_simplifiers);
+    SimplificationEngine* fse = SimplList::pop(_simplifiers);
     fse->detach();
     delete fse;
   }
   while (_bwSimplifiers) {
-    BackwardSimplificationEngine *bse = BwSimplList::pop(_bwSimplifiers);
+    BackwardSimplificationEngine* bse = BwSimplList::pop(_bwSimplifiers);
     bse->detach();
     delete bse;
   }
@@ -336,7 +336,7 @@ ClauseIterator SaturationAlgorithm::activeClauses()
 /**
  * A function that is called when a clause is added to the active clause container.
  */
-void SaturationAlgorithm::onActiveAdded(Clause *c)
+void SaturationAlgorithm::onActiveAdded(Clause* c)
 {
   if (env.options->showActive()) {
     std::cout << "[SA] active: " << c->toString() << std::endl;
@@ -346,7 +346,7 @@ void SaturationAlgorithm::onActiveAdded(Clause *c)
 /**
  * A function that is called when a clause is removed from the active clause container.
  */
-void SaturationAlgorithm::onActiveRemoved(Clause *c)
+void SaturationAlgorithm::onActiveRemoved(Clause* c)
 {
   ASS(c->store()==Clause::ACTIVE);
   c->setStore(Clause::NONE);
@@ -373,7 +373,7 @@ void SaturationAlgorithm::onAllProcessed()
 /**
  * A function that is called when a clause is added to the passive clause container.
  */
-void SaturationAlgorithm::onPassiveAdded(Clause *c)
+void SaturationAlgorithm::onPassiveAdded(Clause* c)
 {
   if (env.options->showPassive()) {
     std::cout << "[SA] passive: " << c->toString() << std::endl;
@@ -389,7 +389,7 @@ void SaturationAlgorithm::onPassiveAdded(Clause *c)
  * The function is not called when a selected clause is removed from the passive container.
  * In this case the @b onPassiveSelected method is called.
  */
-void SaturationAlgorithm::onPassiveRemoved(Clause *c)
+void SaturationAlgorithm::onPassiveRemoved(Clause* c)
 {
   ASS(c->store()==Clause::PASSIVE);
   c->setStore(Clause::NONE);
@@ -403,32 +403,32 @@ void SaturationAlgorithm::onPassiveRemoved(Clause *c)
  * The clause @b c might not necessarily get to the activation, it can still be
  * removed by some simplification rule (in case of the Discount saturation algorithm).
  */
-void SaturationAlgorithm::onPassiveSelected(Clause *c)
+void SaturationAlgorithm::onPassiveSelected(Clause* c)
 {
 }
 
 /**
  * A function that is called when a clause is added to the unprocessed clause container.
  */
-void SaturationAlgorithm::onUnprocessedAdded(Clause *c)
+void SaturationAlgorithm::onUnprocessedAdded(Clause* c)
 {
 }
 
 /**
  * A function that is called when a clause is removed from the unprocessed clause container.
  */
-void SaturationAlgorithm::onUnprocessedRemoved(Clause *c)
+void SaturationAlgorithm::onUnprocessedRemoved(Clause* c)
 {
 }
 
-void SaturationAlgorithm::onUnprocessedSelected(Clause *c)
+void SaturationAlgorithm::onUnprocessedSelected(Clause* c)
 {
 }
 
 /**
  * A function that is called whenever a possibly new clause appears.
  */
-void SaturationAlgorithm::onNewClause(Clause *cl)
+void SaturationAlgorithm::onNewClause(Clause* cl)
 {
   if (_splitter) {
     _splitter->onNewClause(cl);
@@ -447,7 +447,7 @@ void SaturationAlgorithm::onNewClause(Clause *cl)
   }
 }
 
-void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause *c)
+void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
 {
   ASS(c->isPropositional());
 
@@ -466,7 +466,7 @@ void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause *c)
 /**
  * Called when a clause successfully passes the forward simplification
  */
-void SaturationAlgorithm::onClauseRetained(Clause *cl)
+void SaturationAlgorithm::onClauseRetained(Clause* cl)
 {
   //cout << "[SA] retained " << cl->toString() << endl;
 
@@ -476,8 +476,8 @@ void SaturationAlgorithm::onClauseRetained(Clause *cl)
  * Called whenever a clause is simplified or deleted at any point of the
  * saturation algorithm
  */
-void SaturationAlgorithm::onClauseReduction(Clause *cl, Clause **replacements, unsigned numOfReplacements,
-                                            Clause *premise, bool forward)
+void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause **replacements, unsigned numOfReplacements,
+                                            Clause* premise, bool forward)
 {
   ASS(cl);
 
@@ -493,7 +493,7 @@ void SaturationAlgorithm::onClauseReduction(Clause *cl, Clause **replacements, u
   onClauseReduction(cl, replacements, numOfReplacements, premises, forward);
 }
 
-void SaturationAlgorithm::onClauseReduction(Clause *cl, Clause **replacements, unsigned numOfReplacements,
+void SaturationAlgorithm::onClauseReduction(Clause* cl, Clause **replacements, unsigned numOfReplacements,
                                             ClauseIterator premises, bool forward)
 {
   ASS(cl);
@@ -537,7 +537,7 @@ void SaturationAlgorithm::onClauseReduction(Clause *cl, Clause **replacements, u
   }
 }
 
-void SaturationAlgorithm::onNonRedundantClause(Clause *c)
+void SaturationAlgorithm::onNonRedundantClause(Clause* c)
 {
   if (_symEl) {
     _symEl->onNonRedundantClause(c);
@@ -552,7 +552,7 @@ void SaturationAlgorithm::onNonRedundantClause(Clause *c)
  * clauses are always valid, however), also the function is not called
  * for clause merging (when the non-propositional parts would coincide).
  */
-void SaturationAlgorithm::onParenthood(Clause *cl, Clause *parent)
+void SaturationAlgorithm::onParenthood(Clause* cl, Clause *parent)
 {
   if (_symEl) {
     _symEl->onParenthood(cl, parent);
@@ -564,7 +564,7 @@ void SaturationAlgorithm::onParenthood(Clause *cl, Clause *parent)
  * instead of the @b onActiveRemoved function in the constructor, as the
  * @b onActiveRemoved function is virtual.
  */
-void SaturationAlgorithm::activeRemovedHandler(Clause *cl)
+void SaturationAlgorithm::activeRemovedHandler(Clause* cl)
 {
   onActiveRemoved(cl);
 }
@@ -574,7 +574,7 @@ void SaturationAlgorithm::activeRemovedHandler(Clause *cl)
  * instead of the @b onPassiveRemoved function in the constructor, as the
  * @b onPassiveRemoved function is virtual.
  */
-void SaturationAlgorithm::passiveRemovedHandler(Clause *cl)
+void SaturationAlgorithm::passiveRemovedHandler(Clause* cl)
 {
   onPassiveRemoved(cl);
 }
@@ -594,7 +594,7 @@ int SaturationAlgorithm::elapsedTime()
  * set-of-support option is enabled and @b cl has input type equal to
  * @b Clause::AXIOM. In this case, @b cl is put into the active container.
  */
-void SaturationAlgorithm::addInputClause(Clause *cl)
+void SaturationAlgorithm::addInputClause(Clause* cl)
 {
   ASS_LE(toNumber(cl->inputType()),toNumber(UnitInputType::CLAIM)); // larger input types should not appear in proof search
 
@@ -635,7 +635,7 @@ void SaturationAlgorithm::addInputClause(Clause *cl)
 /**
  * Return literal selector that is to be used for set-of-support clauses
  */
-LiteralSelector &SaturationAlgorithm::getSosLiteralSelector()
+LiteralSelector& SaturationAlgorithm::getSosLiteralSelector()
 {
   if (_opt.sos() == Options::Sos::ALL || _opt.sos() == Options::Sos::THEORY) {
     if (!_sosLiteralSelector) {
@@ -651,7 +651,7 @@ LiteralSelector &SaturationAlgorithm::getSosLiteralSelector()
 /**
  * Add an input set-of-support clause @b cl into the active container
  */
-void SaturationAlgorithm::addInputSOSClause(Clause *cl)
+void SaturationAlgorithm::addInputSOSClause(Clause* cl)
 {
   ASS_EQ(toNumber(cl->inputType()),toNumber(UnitInputType::AXIOM));
 
@@ -686,7 +686,7 @@ simpl_start:
 
   ASS(!cl->numSelected());
   {
-    LiteralSelector &sosSelector = getSosLiteralSelector();
+    LiteralSelector& sosSelector = getSosLiteralSelector();
     sosSelector.select(cl);
   }
 
@@ -720,7 +720,7 @@ void SaturationAlgorithm::init()
   }
 
   while (toAdd.hasNext()) {
-    Clause *cl = toAdd.next();
+    Clause* cl = toAdd.next();
     addInputClause(cl);
   }
 
@@ -738,7 +738,7 @@ void SaturationAlgorithm::init()
   _startInstrs = env.timer->elapsedMegaInstructions();
 }
 
-Clause *SaturationAlgorithm::doImmediateSimplification(Clause *cl0)
+Clause *SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
 {
   TIME_TRACE("immediate simplification");
 
@@ -753,7 +753,7 @@ Clause *SaturationAlgorithm::doImmediateSimplification(Clause *cl0)
     return 0;
   }
 
-  Clause *cl = cl0;
+  Clause* cl = cl0;
 
   Clause *simplCl = _immediateSimplifier->simplify(cl);
   if (simplCl != cl) {
@@ -793,7 +793,7 @@ Clause *SaturationAlgorithm::doImmediateSimplification(Clause *cl0)
  * function is called and all new clauses are added to the
  * unprocessed container.
  */
-void SaturationAlgorithm::addNewClause(Clause *cl)
+void SaturationAlgorithm::addNewClause(Clause* cl)
 {
   if (env.options->randomTraversals()) {
     TIME_TRACE(TimeTrace::SHUFFLING);
@@ -822,7 +822,7 @@ void SaturationAlgorithm::newClausesToUnprocessed()
   }
 
   while (_newClauses.isNonEmpty()) {
-    Clause *cl = _newClauses.popWithoutDec();
+    Clause* cl = _newClauses.popWithoutDec();
     switch (cl->store()) {
       case Clause::UNPROCESSED:
         break;
@@ -862,7 +862,7 @@ bool SaturationAlgorithm::clausesFlushed()
  *
  * Forward demodulation is also being performed on @b cl.
  */
-void SaturationAlgorithm::addUnprocessedClause(Clause *cl)
+void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 {
   _generatedClauseCount++;
   env.statistics->generatedClauses++;
@@ -891,7 +891,7 @@ void SaturationAlgorithm::addUnprocessedClause(Clause *cl)
  * if it can be derived from @b cl and previously derived empty clauses.
  * Otherwise it returns 0.
  */
-void SaturationAlgorithm::handleEmptyClause(Clause *cl)
+void SaturationAlgorithm::handleEmptyClause(Clause* cl)
 {
   ASS(cl->isEmpty());
 
@@ -942,7 +942,7 @@ void SaturationAlgorithm::handleEmptyClause(Clause *cl)
  * If a weight-limit is imposed on clauses, it is being checked
  * by this function as well.
  */
-bool SaturationAlgorithm::forwardSimplify(Clause *cl)
+bool SaturationAlgorithm::forwardSimplify(Clause* cl)
 {
   TIME_TRACE("forward simplification");
 
@@ -1030,7 +1030,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause *cl)
 /**
  * The the backward simplification with the clause @b cl.
  */
-void SaturationAlgorithm::backwardSimplify(Clause *cl)
+void SaturationAlgorithm::backwardSimplify(Clause* cl)
 {
   TIME_TRACE("backward simplification");
 
@@ -1075,7 +1075,7 @@ void SaturationAlgorithm::backwardSimplify(Clause *cl)
  * @b _postponedClauseRemovals stack, which is then checked at the end of the
  * @b activate function.
  */
-void SaturationAlgorithm::removeActiveOrPassiveClause(Clause *cl)
+void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
 {
   if (_clauseActivationInProgress) {
     // we cannot remove clause now, as there indexes might be traversed now,
@@ -1102,7 +1102,7 @@ void SaturationAlgorithm::removeActiveOrPassiveClause(Clause *cl)
 /**
  * Add clause @b c to the passive container
  */
-void SaturationAlgorithm::addToPassive(Clause *cl)
+void SaturationAlgorithm::addToPassive(Clause* cl)
 {
   ASS_EQ(cl->store(), Clause::UNPROCESSED);
 
@@ -1115,7 +1115,7 @@ void SaturationAlgorithm::addToPassive(Clause *cl)
   }
 }
 
-void SaturationAlgorithm::removeSelected(Clause *cl)
+void SaturationAlgorithm::removeSelected(Clause* cl)
 {
   ASS_EQ(cl->store(), Clause::SELECTED);
   beforeSelectedRemoved(cl);
@@ -1134,7 +1134,7 @@ void SaturationAlgorithm::removeSelected(Clause *cl)
  * function are postponed. During the clause activation, generalisation
  * indexes should not be modified.
  */
-void SaturationAlgorithm::activate(Clause *cl)
+void SaturationAlgorithm::activate(Clause* cl)
 {
       TIME_TRACE("activation")
 
@@ -1203,7 +1203,7 @@ void SaturationAlgorithm::activate(Clause *cl)
     Shuffling::shuffleArray(_postponedClauseRemovals.begin(), _postponedClauseRemovals.size());
   }
   while (_postponedClauseRemovals.isNonEmpty()) {
-    Clause *cl = _postponedClauseRemovals.pop();
+    Clause* cl = _postponedClauseRemovals.pop();
     if (cl->store() != Clause::ACTIVE && cl->store() != Clause::PASSIVE) {
       continue;
     }
@@ -1228,7 +1228,7 @@ start:
   newClausesToUnprocessed();
 
   while (!_unprocessed->isEmpty()) {
-    Clause *c = _unprocessed->pop();
+    Clause* c = _unprocessed->pop();
     ASS(!isRefutation(c));
 
     if (forwardSimplify(c)) {
@@ -1262,7 +1262,7 @@ start:
  * If false is returned, disposing of the clause is responsibility of
  * this function.
  */
-bool SaturationAlgorithm::handleClauseBeforeActivation(Clause *c)
+bool SaturationAlgorithm::handleClauseBeforeActivation(Clause* c)
 {
   return true;
 }
@@ -1282,7 +1282,7 @@ UnitList *SaturationAlgorithm::collectSaturatedSet()
   UnitList* res = 0;
   ClauseIterator it = _active->clauses();
   while (it.hasNext()) {
-    Clause *cl = it.next();
+    Clause* cl = it.next();
     cl->incRefCnt();
     UnitList::push(cl, res);
   }
@@ -1316,7 +1316,7 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     throw MainLoopFinishedException(res);
   }
 
-  Clause *cl = nullptr;
+  Clause* cl = nullptr;
   {
     TIME_TRACE(TimeTrace::PASSIVE_CONTAINER_MAINTENANCE);
     cl = _passive->popSelected();
@@ -1354,7 +1354,7 @@ MainLoopResult SaturationAlgorithm::runImpl()
       env.statistics->activations = l;
     }
   }
-  catch (ThrowableBase &) {
+  catch (ThrowableBase&) {
     tryUpdateFinalClauseCount();
     throw;
   }
@@ -1431,7 +1431,7 @@ void SaturationAlgorithm::addBackwardSimplifierToFront(BackwardSimplificationEng
  * @since 05/05/2013 Manchester, splitting changed to new values
  * @author Andrei Voronkov
  */
-SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem &prb, const Options &opt, IndexManager *indexMgr)
+SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const Options& opt, IndexManager *indexMgr)
 {
   SaturationAlgorithm* res;
   switch(opt.saturationAlgorithm()) {
@@ -1562,7 +1562,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem &prb, const 
   CompositeSGI *sgi = new CompositeSGI();
   sgi->push(gie);
 
-  auto &ordering = res->getOrdering();
+  auto& ordering = res->getOrdering();
 
   if (opt.evaluationMode() == Options::EvaluationMode::POLYNOMIAL_CAUTIOUS) {
     sgi->push(new PolynomialEvaluation(ordering));
@@ -1700,7 +1700,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem &prb, const 
 /**
  * Create local clause simplifier for problem @c prb according to options @c opt
  */
-ImmediateSimplificationEngine *SaturationAlgorithm::createISE(Problem &prb, const Options &opt, Ordering &ordering)
+ImmediateSimplificationEngine *SaturationAlgorithm::createISE(Problem& prb, const Options& opt, Ordering& ordering)
 {
   CompositeISE* res=new CompositeISE();
 

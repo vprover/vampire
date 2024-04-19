@@ -400,7 +400,7 @@ public:
     SPIDER,
     TCLAUSIFY,
     TPREPROCESS,
-    VAMPIRE,
+    VAMPIRE
   };
 
   enum class Schedule : unsigned int {

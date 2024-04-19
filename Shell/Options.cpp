@@ -128,9 +128,7 @@ void Options::init()
                                         "spider",
                                         "tclausify",
                                         "tpreprocess",
-                                        "vampire",
-                                        "sreplay",
-                                    });
+                                        "vampire"});
     _mode.description=
     "Select the mode of operation. Choices are:\n"
     "  -vampire: the standard mode of operation for first-order theorem proving\n"
@@ -2536,6 +2534,7 @@ void Options::output (ostream& str) const
       option->output(vs,lineWrapInShowOptions());
       str << vs.str();
     }
+
   }
 
   if (showHelp()){

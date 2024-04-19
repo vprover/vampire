@@ -183,7 +183,7 @@ Statistics::Statistics()
 {
 } // Statistics::Statistics
 
-void Statistics::explainRefutationNotFound(ostream &out)
+void Statistics::explainRefutationNotFound(ostream& out)
 {
   // should be a one-liner for each case!
   if (discardedNonRedundantClauses) {
@@ -203,7 +203,7 @@ void Statistics::explainRefutationNotFound(ostream &out)
   }
 }
 
-void Statistics::print(ostream &out)
+void Statistics::print(ostream& out)
 {
   bool separable = false;
   if (env.options->statistics() != Options::Statistics::NONE) {
