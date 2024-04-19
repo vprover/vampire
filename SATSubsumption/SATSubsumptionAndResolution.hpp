@@ -19,23 +19,20 @@
 
 #include "./subsat/subsat.hpp"
 
-// The compiler will not reorder instructions across a compiler fence.
-// See also https://stackoverflow.com/q/14449141
-#define COMPILER_FENCE             \
-  do {                             \
-    asm volatile("" ::: "memory"); \
-  } while (false)
-
-/// If 1, prints the SAT clauses added to the solver on the standard output
+/// @brief If 1, prints the SAT clauses added to the solver on the standard output
 #define PRINT_CLAUSES_SUBS 0
-/// If 1, prints some comments about the subsumption resolution process
+/// @brief If 1, prints some comments about the subsumption resolution process
 #define PRINT_CLAUSE_COMMENTS_SUBS 0
 
 namespace SATSubsumption {
 
 /**
- * Class implementing the simplifying rules of subsumption and subsumption resolution using
- * a SAT solver.
+ * Class implementing the simplifying rules of subsumption and subsumption resolution using a SAT solver.
+ *
+ * The subsumption and subsumption resolution are described in the papers:
+ * - 2022: "First-Order Subsumption via SAT Solving." by Jakob Rath, Armin Biere and Laura Kovács
+ * - 2023: "SAT-Based Subsumption Resolution" by Robin Coutelier, Jakob Rath, Michael Rawson and Laura Kovács
+ * - 2024: "SAT Solving for Variants of First-Order Subsumption" by Robin Coutelier, Jakob Rath, Michael Rawson, Armin Biere and Laura Kovács
  */
 class SATSubsumptionAndResolution {
 #if VDEBUG
@@ -80,13 +77,13 @@ private:
    * The binding can be either positive or negative
    */
   struct Match {
-    // The index of the literal in L (base clause for subsumption resolution)
+    /// @brief The index of the literal in L (base clause for subsumption resolution)
     unsigned i;
     // The index of the literal in M (instance clause for subsumption resolution)
     unsigned j;
-    // The variable associated in the sat solver
+    /// @brief The variable associated in the sat solver
     subsat::Var var;
-    // The polarity of the match (true for positive, false for negative)
+    /// @brief The polarity of the match (true for positive, false for negative)
     bool polarity;
 
     Match() : i(0),
@@ -191,7 +188,11 @@ private:
       return _matchesByI;
     }
 
-    /// @brief get the matches at row i
+    /**
+     * @brief get the matches at row i
+     * @param i the index of the row
+     * @return a slice of the matches at row i
+     */
     Slice<Match> getIMatches(unsigned i)
     {
       ASS_L(i, _indexI.size())
@@ -200,7 +201,11 @@ private:
           &_matchesByI[_indexI[i + 1]]);
     }
 
-    /// @brief get the matches at column j
+    /**
+     * @brief get the matches at column j
+     * @param j the index of the column
+     * @return a slice of the matches at column j
+     */
     Slice<Match> getJMatches(unsigned j)
     {
       ASS_L(j, _indexJ.size())

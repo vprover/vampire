@@ -11,6 +11,16 @@
  * @file ForwardSubsumptionAndResolution.cpp
  * Implements class ForwardSubsumptionAndResolution.
  */
+/**
+ * The subsumption and subsumption resolution are described in the papers:
+ * - 2022: "First-Order Subsumption via SAT Solving." by Jakob Rath, Armin Biere and Laura Kovács
+ * - 2023: "SAT-Based Subsumption Resolution" by Robin Coutelier, Jakob Rath, Michael Rawson and
+ *         Laura Kovács
+ * - 2024: "SAT Solving for Variants of First-Order Subsumption" by Robin Coutelier, Jakob Rath,
+ *         Michael Rawson, Armin Biere and Laura Kovács
+ *
+ * In particular, this file implements the loop optimization described in 2023 and 2024.
+ */
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -82,7 +92,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
   /*******************************************************/
   // In case of unit clauses, no need to check subsumption since
   // L = a where a is a single literal
-  // M = b v C where sigma(a) = b is a given from the index
+  // M = b v C where σ(a) = b is a given from the index
   // Therefore L subsumes M
   for (unsigned li = 0; li < clen; li++) {
     Literal *lit = (*cl)[li];
@@ -104,7 +114,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
   // largely compensated because the success rate of subsumption is fairly low, and
   // in case of failure, having the solver ready is a great saving on subsumption resolution
   //
-  // Since subsumption is stronger than subsumption, if a subsumption resolution check is found,
+  // Since subsumption is stronger than subsumption resolution, if a subsumption resolution is found,
   // keep it until the end of the loop to make sure no subsumption is possible.
   // Only when it has been checked that subsumption is not possible does the conclusion of
   // subsumption resolution become relevant
@@ -159,11 +169,14 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
   /*******************************************************/
   // In case of unit clauses, no need to check subsumption resolution since
   // L = a where a is a single literal
-  // M = ~b v C where sigma(a) = ~b is a given from the index
+  // M = ¬b v C where σ(a) = ¬b is a given from the index
   // Therefore M can be replaced by C
   //
   // This behavior can be chained and several resolution can happen at the same time
   // The negatively matching literals are stacked and removed at the same time
+  // However, some experiments showed that chaining subsumption resolutions yields poor performance
+  // The intuition for this problem is that the intermidiate clauses can sometimes be useful.
+  // This is why we do not chain subsumption resolutions.
   for (unsigned li = 0; li < clen; li++) {
     Literal *lit = (*cl)[li];
     auto it = _unitIndex->getGeneralizations(lit, true, false);

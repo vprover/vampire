@@ -12,6 +12,17 @@
  * Implements class BackwardSubsumptionAndResolution.
  */
 
+/**
+ * The subsumption and subsumption resolution are described in the papers:
+ * - 2022: "First-Order Subsumption via SAT Solving." by Jakob Rath, Armin Biere and Laura Kovács
+ * - 2023: "SAT-Based Subsumption Resolution" by Robin Coutelier, Jakob Rath, Michael Rawson and
+ *         Laura Kovács
+ * - 2024: "SAT Solving for Variants of First-Order Subsumption" by Robin Coutelier, Jakob Rath,
+ *         Michael Rawson, Armin Biere and Laura Kovács
+ *
+ * In particular, this file implements the loop optimization described in 2023 and 2024.
+ */
+
 #include "Debug/RuntimeStatistics.hpp"
 
 #include "Lib/DArray.hpp"
@@ -83,7 +94,7 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
   // The set of clauses that are subsumed by cl
   static DHSet<Clause *> subsumedSet;
   subsumedSet.reset();
-  // contains the list of simplification found so far
+  // contains the list of simplifications found so far
   List<BwSimplificationRecord> *simplificationBuffer = List<BwSimplificationRecord>::empty();
 
   /********************************************************/
@@ -101,9 +112,8 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
       auto it = _bwIndex->getInstances(lit, false, false);
       while (it.hasNext()) {
         Clause *icl = it.next().data->clause;
-        if (!_checked.insert(icl)) {
+        if (!_checked.insert(icl))
           continue;
-        }
         subsumedSet.insert(icl);
         List<BwSimplificationRecord>::push(BwSimplificationRecord(icl), simplificationBuffer);
       }
@@ -116,9 +126,8 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
       while (it.hasNext()) {
         auto res = it.next();
         Clause *icl = res.data->clause;
-        if (subsumedSet.contains(icl) || !_checked.insert(icl)) {
+        if (subsumedSet.contains(icl) || !_checked.insert(icl))
           continue;
-        }
         Clause *conclusion = SATSubsumption::SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(icl, res.data->literal, cl);
         ASS(conclusion)
         List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, conclusion), simplificationBuffer);
@@ -142,9 +151,8 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
       auto it = _bwIndex->getInstances(lit, false, false);
       while (it.hasNext()) {
         Clause *icl = it.next().data->clause;
-        if (!_checked.insert(icl)) {
+        if (!_checked.insert(icl))
           continue;
-        }
         // check subsumption and setup subsumption resolution at the same time
         bool checkS = _subsumption && !_subsumptionByUnitsOnly;
         bool checkSR = _subsumptionResolution && !_srByUnitsOnly;
@@ -158,9 +166,8 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
         if (checkSR) {
           // check subsumption resolution
           Clause *conclusion = satSubs.checkSubsumptionResolution(cl, icl, checkS); // use the previous setup only if subsumption was checked
-          if (conclusion) {
+          if (conclusion)
             List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, conclusion), simplificationBuffer);
-          }
         }
       }
     }
@@ -176,14 +183,12 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
       auto it = _bwIndex->getInstances(lit, true, false);
       while (it.hasNext()) {
         Clause *icl = it.next().data->clause;
-        if (!_checked.insert(icl)) {
+        if (!_checked.insert(icl))
           continue;
-        }
         // check subsumption resolution
         Clause *conclusion = satSubs.checkSubsumptionResolution(cl, icl, false);
-        if (conclusion) {
+        if (conclusion)
           List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, conclusion), simplificationBuffer);
-        }
       }
     }
   }
