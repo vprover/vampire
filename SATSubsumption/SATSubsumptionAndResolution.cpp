@@ -51,7 +51,6 @@
 #include "Lib/Environment.hpp"
 #include "Shell/Statistics.hpp"
 #include "Debug/RuntimeStatistics.hpp"
-#include "Util.hpp"
 #include <algorithm>
 #include <iostream>
 #include <type_traits>
@@ -66,6 +65,39 @@ using namespace SATSubsumption;
 using namespace std;
 
 const unsigned INVALID = std::numeric_limits<unsigned>::max();
+
+#define PRINT_CLAUSES_SUBS 0
+#define PRINT_CLAUSE_COMMENTS_SUBS 0
+
+/**
+ * @brief Check if an addition operation overflows
+ * @tparam T the type of the operands
+ * @param a the first operand
+ * @param b the second operand
+ * @return true if the addition overflows, false otherwise
+*/
+template <typename T>
+static bool isAdditionOverflow(T a, T b)
+{
+  static_assert(std::is_unsigned<T>::value, "overflow check is only defined for unsigned arithmetic types");
+  return static_cast<T>(a + b) < a;
+}
+
+/**
+ * @brief Check if all elements in a container satisfy a predicate
+ * @tparam Container the container type
+ * @tparam Predicate the predicate type
+ * @param xs the container
+ * @param p the predicate
+*/
+template <typename Container, typename Predicate>
+static bool allOf(Container const& xs, Predicate p)
+{
+  for (auto&& x : xs)
+    if (!p(x))
+      return false;
+  return true;
+}
 
 /****************************************************************************/
 /*               SATSubsumptionAndResolution::MatchSet                      */
@@ -192,11 +224,11 @@ bool SATSubsumptionAndResolution::pruneSubsumption()
 
   // multiset of signed predicates in M
   headerMultiset.resize(2 * env.signature->predicates(), 0);
-  ASS(all_of(headerMultiset, [&](prune_t x) { return x <= timestamp; }))
+  ASS(allOf(headerMultiset, [&](prune_t x) { return x <= timestamp; }))
 
   // Our relative zero for counting is the timestamp.
   // We need to reset the vector only if the counts could overflow.
-  if (is_addition_overflow<prune_t>(timestamp, _M->length())) {
+  if (isAdditionOverflow<prune_t>(timestamp, _M->length())) {
     // when timestamp wraps around, we reset the vector to 0.
     std::fill(headerMultiset.begin(), headerMultiset.end(), 0);
     timestamp = 0;
@@ -204,7 +236,7 @@ bool SATSubsumptionAndResolution::pruneSubsumption()
 
   prune_t const zero = timestamp;
   timestamp += _M->length();
-  ASS(all_of(headerMultiset, [&](prune_t x) { return x <= zero; }))
+  ASS(allOf(headerMultiset, [&](prune_t x) { return x <= zero; }))
 
   // fill in the multiset of functors in M
   for (unsigned i = 0; i < _M->length(); i++) {
@@ -257,7 +289,7 @@ bool SATSubsumptionAndResolution::pruneSubsumptionResolution()
   auto& timestamp = _pruneTimestamp;
 
   functorSet.resize(env.signature->predicates(), 0);
-  ASS(all_of(functorSet, [&](prune_t x) { return x <= timestamp; }))
+  ASS(allOf(functorSet, [&](prune_t x) { return x <= timestamp; }))
 
   timestamp++;
   if (timestamp == 0) {
@@ -265,7 +297,7 @@ bool SATSubsumptionAndResolution::pruneSubsumptionResolution()
     timestamp++;
     std::fill(functorSet.begin(), functorSet.end(), 0);
   }
-  ASS(all_of(functorSet, [&](prune_t x) { return x < timestamp; }));
+  ASS(allOf(functorSet, [&](prune_t x) { return x < timestamp; }));
 
   for (unsigned i = 0; i < _M->length(); i++)
     functorSet[(*_M)[i]->functor()] = timestamp;
@@ -296,17 +328,6 @@ void SATSubsumptionAndResolution::addBinding(BindingsManager::Binder* binder,
   if (!isNullary)
     _bindingsManager.commit_bindings(*binder, satVar, i, j);
 } // SATSubsumptionAndResolution::addBinding
-
-double SATSubsumption::SATSubsumptionAndResolution::getSparsity()
-{
-  return (double) _matchSet.allMatches().size() / (double) (_n * _m);
-}
-#if CORRELATE_LENGTH_TIME
-unsigned SATSubsumption::SATSubsumptionAndResolution::getNumMatches()
-{
-  return _matchSet.allMatches().size();
-}
-#endif
 
 bool SATSubsumptionAndResolution::checkAndAddMatch(Literal* l_i,
   Literal* m_j,
@@ -504,165 +525,6 @@ bool SATSubsumptionAndResolution::cnfForSubsumption()
   return !solver.inconsistent();
 } // SATSubsumptionAndResolution::cnfForSubsumption()
 
-SATSubsumptionAndResolution::EncodingMethod SATSubsumption::SATSubsumptionAndResolution::chooseEncoding()
-{
-  if (forceDirectEncoding)
-    return DIRECT;
-  if (forceIndirectEncoding)
-    return INDIRECT;
-  if (5 < _M->length() && _M->length() <= 9 && _L->length() <= 3)
-    return DIRECT;
-  if (_M->length() <= 5 && _L->length() <= 3 && getSparsity() <= 1.075)
-    return DIRECT;
-  return INDIRECT;
-}
-
-/**
- * Direct encoding of the sat subsumption resolution
- *
- * @pre assumes that base and instance literals are set, the match set is empty and the solver is empty
- *
- * Let the base clause be L and the instance clause be M.
- *  - We name the literals in L as L1, L2, ..., Ln
- *  - We name the literals in M as M1, M2, ..., Mk
- *
- * We introduce the variables
- *  - b_ij+ if l_i has a substitution s such that s(l_i) = m_j
- *    we will say that b_ij+ as a positive polarity
- *  - b_ij- if l_i has a substitution s such that s(l_i) = ~m_j
- *    we will say that b_ij- as a negative polarity
- * b_ij+ and b_ij- are mutually existentially exclusive, therefore, we only introduce one variable b_ij for the sat solver, and remember its polarity.
- * It may be that both b_ij+ and b_ij- do not exist.
- *
- *
- * We introduce the following subsumption resolution clauses clauses:
- *  - Existence
- *    At least one negative polarity match exists
- *      b_11- V ... V b_1m- V ... V b_n1 V ... V b_nm-
- *  - Uniqueness
- *    At most one m_j is matched by a negative polarity variable
- *      for each j : b_1j- V ... V b_nj- => ~b_ij', j' != j
- *  - Completeness
- *    Each l_i is matched by at least one m_j
- *        b_11 V ... V b_1k /\ b_21 V ... V b_2k
- *     /\ ...
- *     /\ b_n1 V ... V b_nk
- *  - Coherence
- *      for each j, forall i, forall i', ~b_ij+ V ~b_ij'-
- *
- *  - Substitution validity
- *    b_ij implies a certain substitution is valid
- *      for each i, j : b_ij => (s(l_i) = m_j V s(l_i) = ~m_j)
- *    (This rule is enforced by the match set)
- *
- */
-bool SATSubsumptionAndResolution::directEncodingForSubsumptionResolution()
-{
-  ASS(_L)
-  ASS(_M)
-  ASS_GE(_matchSet.allMatches().size(), _L->length())
-
-  _matchSet.indexMatrix();
-
-  Solver& solver = _solver;
-
-  /**** Existence ****/
-#if PRINT_CLAUSE_COMMENTS_SUBS
-  cout << "Existence" << endl;
-#endif
-#if PRINT_CLAUSES_SUBS
-  vstring s = "";
-#endif
-  const vvector<Match>& allMatches = _matchSet.allMatches();
-  solver.constraint_start();
-  for (Match match : allMatches) {
-    if (!match.polarity) {
-      solver.constraint_push_literal(match.var);
-#if PRINT_CLAUSES_SUBS
-      s += Int::toString(match.var.index()) + " V ";
-#endif
-    }
-  }
-#if PRINT_CLAUSES_SUBS
-  cout << s.substr(0, s.size() - 3) << endl;
-#endif
-  auto build = solver.constraint_end();
-  solver.add_clause_unsafe(build);
-
-  /**** Uniqueness ****/
-#if PRINT_CLAUSE_COMMENTS_SUBS
-  cout << "Uniqueness" << endl;
-#endif
-  for (unsigned it1 = 0; it1 < allMatches.size(); it1++) {
-    Match match1 = allMatches[it1];
-    if (match1.polarity) {
-      continue;
-    }
-    for (unsigned it2 = it1 + 1; it2 < allMatches.size(); it2++) {
-      Match match2 = allMatches[it2];
-      if (match2.polarity || match1.j == match2.j) {
-        continue;
-      }
-      solver.constraint_start();
-      solver.constraint_push_literal(~match1.var);
-      solver.constraint_push_literal(~match2.var);
-      auto build = solver.constraint_end();
-      solver.add_clause_unsafe(build);
-#if PRINT_CLAUSES_SUBS
-      cout << ~match1.var << " V " << ~match2.var << endl;
-#endif
-    }
-  }
-
-  /**** Completeness ****/
-#if PRINT_CLAUSE_COMMENTS_SUBS
-  cout << "Completeness" << endl;
-#endif
-  for (unsigned i = 0; i < _m; i++) {
-    solver.constraint_start();
-#if PRINT_CLAUSES_SUBS
-    s = "";
-#endif
-    for (Match match : _matchSet.getIMatches(i)) {
-      solver.constraint_push_literal(match.var);
-#if PRINT_CLAUSES_SUBS
-      s += Int::toString(match.var.index()) + " V ";
-#endif
-    }
-#if PRINT_CLAUSES_SUBS
-    cout << s.substr(0, s.size() - 3) << endl;
-#endif
-    auto build = solver.constraint_end();
-    solver.add_clause_unsafe(build);
-  }
-
-  /**** Coherence ****/
-#if PRINT_CLAUSE_COMMENTS_SUBS
-  cout << "Coherence" << endl;
-#endif
-  for (unsigned j = 0; j < _n; j++) {
-    Slice<Match> matches = _matchSet.getJMatches(j);
-    for (unsigned i1 = 0; i1 < matches.size(); i1++) {
-      Match match1 = matches[i1];
-      for (unsigned i2 = i1 + 1; i2 < matches.size(); i2++) {
-        Match match2 = matches[i2];
-        if (match2.polarity == match1.polarity) {
-          continue;
-        }
-        solver.constraint_start();
-        solver.constraint_push_literal(~match1.var);
-        solver.constraint_push_literal(~match2.var);
-        auto build = solver.constraint_end();
-        solver.add_clause_unsafe(build);
-#if PRINT_CLAUSES_SUBS
-        cout << ~match1.var << " V " << ~match2.var << endl;
-#endif
-      }
-    }
-  }
-  return !solver.inconsistent();
-}
-
 /// @brief a vector used to store the sat variables that are subjected to the at most one constraint (will hold the c_j)
 /// The unsigned value is the index of the literal in the instance clause
 static vvector<pair<unsigned, subsat::Var>> atMostOneVars;
@@ -679,6 +541,8 @@ static vvector<pair<unsigned, subsat::Var>> atMostOneVars;
  *  - b_ij- if l_i has a substitution s such that s(l_i) = ~m_j
  *    we will say that b_ij- as a negative polarity
  *  - c_j if m_j is matched by at least one negative polarity variable b_ij-
+ *    if only one b_ij- exist for some j, then we do not introduce c_j,
+ *    we use b_ij- directly
  * b_ij+ and b_ij- are mutually existentially exclusive, therefore, we only introduce one variable b_ij for the sat solver, and remember its polarity.
  * It may be that both b_ij+ and b_ij- do not exist.
  *
@@ -704,7 +568,7 @@ static vvector<pair<unsigned, subsat::Var>> atMostOneVars;
  *    (This rule is enforced by the match set)
  *
  */
-bool SATSubsumptionAndResolution::indirectEncodingForSubsumptionResolution()
+bool SATSubsumptionAndResolution::cnfForSubsumptionResolution()
 {
   ASS(_L)
   ASS(_M)
@@ -968,23 +832,10 @@ Clause* SATSubsumptionAndResolution::generateConclusion()
 } // SATSubsumptionResolution::generateConclusion
 
 bool SATSubsumptionAndResolution::checkSubsumption(Clause* L,
-  Clause* M,
-  bool setSR)
-{
-  bool result = checkSubsumptionImpl(L, M, setSR);
-#if LOG_SSR_CLAUSES
-  _logger->logSubsumption(L, M, result);
-#endif
-  return result;
-}
-
-bool SATSubsumptionAndResolution::checkSubsumptionImpl(Clause* L,
-  Clause* M,
-  bool setSR)
+                                                  Clause* M,
+                                                  bool setSR)
 {
   using namespace std::chrono_literals;
-
-  env.statistics->subsumptionTried++;
   ASS(L)
   ASS(M)
 
@@ -998,7 +849,6 @@ bool SATSubsumptionAndResolution::checkSubsumptionImpl(Clause* L,
     _subsumptionImpossible = _srImpossible || pruneSubsumption();
     if (_srImpossible) {
       assert(_subsumptionImpossible);
-      env.statistics->subsumptionPrunedWithSR++;
       return false;
     }
     else {
@@ -1006,94 +856,33 @@ bool SATSubsumptionAndResolution::checkSubsumptionImpl(Clause* L,
       fillMatchesSR();
     }
     if (_subsumptionImpossible) {
-      env.statistics->subsumptionPruned++;
       return false;
     }
   } // if (setSR)
   else if (pruneSubsumption() || !fillMatchesS()) {
-    env.statistics->subsumptionPrunedAfterMatching++;
     return false;
   }
 
   ASS_GE(_matchSet.allMatches().size(), _L->length())
 
-#if CORRELATE_LENGTH_TIME
-  COMPILER_FENCE;
-  start = clock::now();
-  COMPILER_FENCE;
-#endif
-
   // Create the constraints for the sat solver
   if (!cnfForSubsumption()) {
-#if CORRELATE_LENGTH_TIME
-    COMPILER_FENCE;
-    stop = clock::now();
-    COMPILER_FENCE;
-    auto const duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-    if (log /* && (duration_ns > 1ms || _solver.stats().ticks >= 100) */) {
-      logFile << 0 /* S */ << ","
-        << _L->length() << ","
-        << _M->length() << ","
-        << getNumMatches() << ","
-        << duration_ns.count() << ","
-        << 0 /* result */ << ","
-        << 0 /* no SAT call */ << ","
-        << 0 /* SAT ticks */ << std::endl;
-    }
-#endif
     return false;
   }
 
   // Solve the SAT problem
   _solver.theory().setBindings(&_bindingsManager);
-#if ENABLE_SAT_SR_CUTOFF
-  _solver.set_max_ticks(SAT_SR_CUTOFF_MAX_TICKS);
-#endif
   auto const result = _solver.solve();
-#if ENABLE_SAT_SR_CUTOFF
-  if (result == subsat::Result::Unknown) {
-    env.statistics->subsumptionCutoffAborted += 1;
-  }
-#endif
 
   bool const subsumed = result == subsat::Result::Sat;
 
-#if CORRELATE_LENGTH_TIME
-  COMPILER_FENCE;
-  stop = clock::now();
-  COMPILER_FENCE;
-  auto const duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-  if (log /* && (duration_ns > 1ms || _solver.stats().ticks >= 100) */) {
-    logFile << 0 /* S */ << ","
-      << _L->length() << ","
-      << _M->length() << ","
-      << getNumMatches() << ","
-      << duration_ns.count() << ","
-      << result << ","
-      << 1 /* SAT call */ << ","
-      << _solver.stats().ticks << std::endl;
-  }
-#endif
-  env.statistics->subsumptionSucceeded += subsumed;
   return subsumed;
 } // SATSubsumptionAndResolution::checkSubsumption
 
 Clause* SATSubsumptionAndResolution::checkSubsumptionResolution(Clause* L,
-  Clause* M,
-  bool usePreviousSetUp)
+                                                                Clause* M,
+                                                                bool usePreviousSetUp)
 {
-  Clause* result = checkSubsumptionResolutionImpl(L, M, usePreviousSetUp);
-#if LOG_SSR_CLAUSES
-  _logger->logSubsumptionResolution(L, M, result);
-#endif
-  return result;
-}
-
-Clause* SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause* L,
-  Clause* M,
-  bool usePreviousSetUp)
-{
-  env.statistics->subsumptionResolutionTried++;
   using namespace std::chrono_literals;
 
   ASS(L)
@@ -1105,7 +894,6 @@ Clause* SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause* L,
 #if PRINT_CLAUSES_SUBS
       cout << "SR impossible" << endl;
 #endif
-      env.statistics->subsumptionResolutionPruned++;
       return nullptr;
     }
     ASS_GE(_matchSet.allMatches().size(), _L->length())
@@ -1118,7 +906,6 @@ Clause* SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause* L,
 #if PRINT_CLAUSES_SUBS
       cout << "SR pruned" << endl;
 #endif
-      env.statistics->subsumptionResolutionPruned++;
       return nullptr;
     }
     fillMatchesSR();
@@ -1126,48 +913,14 @@ Clause* SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause* L,
 #if PRINT_CLAUSES_SUBS
       cout << "SR impossible" << endl;
 #endif
-      env.statistics->subsumptionResolutionPrunedAfterMatching++;
       return nullptr;
     }
   }
 
-#if CORRELATE_LENGTH_TIME
-  COMPILER_FENCE;
-  start = clock::now();
-  COMPILER_FENCE;
-#endif
   // set up the clauses
-  bool encodingSuccess;
-  switch (chooseEncoding()) {
-  case EncodingMethod::DIRECT:
-    encodingSuccess = directEncodingForSubsumptionResolution();
-    break;
-  case EncodingMethod::INDIRECT:
-    encodingSuccess = indirectEncodingForSubsumptionResolution();
-    break;
-  default:
-    ASS(false);
-  }
-
-  if (!encodingSuccess) {
+  if (!cnfForSubsumptionResolution()) {
 #if PRINT_CLAUSES_SUBS
     cout << "CNF building failed" << endl;
-#endif
-#if CORRELATE_LENGTH_TIME
-    COMPILER_FENCE;
-    stop = clock::now();
-    COMPILER_FENCE;
-    auto const duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-    if (log /* && (duration_ns > 1ms || _solver.stats().ticks >= 100) */) {
-      logFile << 1 /* SR */ << ","
-        << _L->length() << ","
-        << _M->length() << ","
-        << getNumMatches() << ","
-        << duration_ns.count() << ","
-        << 0 /* result */ << ","
-        << 0 /* no SAT call */ << ","
-        << 0 /* SAT ticks */ << std::endl;
-    }
 #endif
     return nullptr;
   }
@@ -1180,15 +933,8 @@ Clause* SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause* L,
     _solver.theory().setBindings(&_bindingsManager);
   }
   Clause* conclusion = nullptr;
-#if ENABLE_SAT_SR_CUTOFF
-  _solver.set_max_ticks(SAT_SR_CUTOFF_MAX_TICKS);
-#endif
+
   auto const result = _solver.solve();
-#if ENABLE_SAT_SR_CUTOFF
-  if (result == subsat::Result::Unknown) {
-    env.statistics->subsumptionResolutionCutoffAborted += 1;
-  }
-#endif
 
   if (result == subsat::Result::Sat) {
 #if PRINT_CLAUSES_SUBS
@@ -1199,28 +945,10 @@ Clause* SATSubsumptionAndResolution::checkSubsumptionResolutionImpl(Clause* L,
     conclusion = generateConclusion();
   }
 #if PRINT_CLAUSES_SUBS
-  else {
+  else
     cout << "SAT solver failed (" << result << ")" << endl;
-  }
 #endif
 
-#if CORRELATE_LENGTH_TIME
-  COMPILER_FENCE;
-  stop = clock::now();
-  COMPILER_FENCE;
-  auto const duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-  if (log /* && (duration_ns > 1ms || _solver.stats().ticks >= 100) */) {
-    logFile << 1 /* SR */ << ","
-      << _L->length() << ","
-      << _M->length() << ","
-      << getNumMatches() << ","
-      << duration_ns.count() << ","
-      << result << ","
-      << 1 /* SAT call */ << ","
-      << _solver.stats().ticks << std::endl;
-  }
-#endif
   // If the problem is SAT, then generate the conclusion clause
-  env.statistics->subsumptionResolutionSucceeded += !!conclusion;
   return conclusion;
 } // SATSubsumptionAndResolution::checkSubsumptionResolution

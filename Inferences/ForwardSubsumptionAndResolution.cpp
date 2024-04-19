@@ -9,8 +9,7 @@
  */
 /**
  * @file ForwardSubsumptionAndResolution.cpp
- * Implements class ForwardSubsumptionAndResolution. The oracle is used to ensure consistent
- * branching in the forward subsumption and resolution inference.
+ * Implements class ForwardSubsumptionAndResolution.
  */
 
 #include "Inferences/InferenceEngine.hpp"
@@ -29,13 +28,10 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(bool subsumptionResolution, bool log)
+ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(bool subsumptionResolution)
     : _subsumptionResolution(subsumptionResolution)
-    , satSubs(log)
+    , satSubs()
 {
-#if ENABLE_ROUNDS
-  max_rounds = env.options->maxRounds();
-#endif
 }
 
 void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
@@ -64,20 +60,6 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
                                               ClauseIterator &premises)
 {
   TIME_TRACE("forward subsumption");
-
-  satSubs.beginLoop(cl);
-
-#if ENABLE_ROUNDS
-  if (!_isOracle) {
-    env.statistics->forwardSubsumptionRounds++;
-    if (max_rounds && env.statistics->forwardSubsumptionRounds > max_rounds) {
-      env.statistics->forwardSubsumptionRounds--;
-      env.statistics->terminationReason = Shell::Statistics::TIME_LIMIT;
-      Timer::setLimitEnforcement(false);
-      throw TimeLimitExceededException();
-    }
-  }
-#endif
 
   ASS(replacement == nullptr)
 
@@ -135,8 +117,8 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
         continue;
       }
 
-      bool checkSR = _optimizedLoop && _subsumptionResolution && !conclusion &&
-          (_checkLongerClauses || mcl->length() <= clen);
+      bool checkSR = _subsumptionResolution && !conclusion &&
+                    (_checkLongerClauses || mcl->length() <= clen);
 
       // if mcl is longer than cl, then it cannot subsume cl but still could be resolved
       bool checkS = mcl->length() <= clen;
@@ -191,36 +173,6 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
       replacement = SATSubsumption::SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(cl, lit, mcl);
       premises = pvi(getSingletonIterator(mcl));
       return true;
-    }
-  }
-
-  if (!_optimizedLoop) {
-    /*******************************************************/
-    /*        SUBSUMPTION RESOLUTION MULTI-LITERAL         */
-    /*******************************************************/
-    // Check for the clauses positively matched in the index.
-    // If the loop is optimized, this would already have been done during subsumption
-    checkedClauses.reset();
-    for (unsigned li = 0; li < clen; li++) {
-      Literal *lit = (*cl)[li];
-      auto it = _fwIndex->getGeneralizations(lit, false, false);
-      while (it.hasNext()) {
-        mcl = it.next().data->clause;
-        if (!checkedClauses.insert(mcl)) {
-          continue;
-        }
-        if (!_checkLongerClauses && mcl->length() > clen) {
-          continue;
-        }
-        conclusion = satSubs.checkSubsumptionResolution(mcl, cl, false);
-        if (conclusion) {
-          ASS(premise == nullptr)
-          premise = mcl;
-          replacement = conclusion;
-          premises = pvi(getSingletonIterator(premise));
-          return true;
-        }
-      }
     }
   }
 

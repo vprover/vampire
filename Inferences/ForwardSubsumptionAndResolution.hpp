@@ -25,7 +25,7 @@ namespace Inferences {
 class ForwardSubsumptionAndResolution
     : public ForwardSimplificationEngine {
 public:
-  ForwardSubsumptionAndResolution(bool subsumptionResolution = true, bool log = false);
+  ForwardSubsumptionAndResolution(bool subsumptionResolution = true);
 
   /**
    * Attaches the inference engine to the saturation algorithm.
@@ -54,22 +54,6 @@ public:
                Kernel::Clause *&replacement,
                Kernel::ClauseIterator &premises) override;
 
-  void forceDirectEncodingForSubsumptionResolution() {
-    satSubs.forceDirectEncodingForSubsumptionResolution();
-  }
-
-  void forceIndirectEncodingForSubsumptionResolution() {
-    satSubs.forceIndirectEncodingForSubsumptionResolution();
-  }
-
-  void setOptimizedLoop(bool optimizedLoop) {
-    _optimizedLoop = optimizedLoop;
-  }
-
-  void setOracle() {
-    _isOracle = true;
-  }
-
 private:
   /// @brief Unit index of the saturation algorithm
   Indexing::UnitClauseLiteralIndex *_unitIndex;
@@ -82,16 +66,8 @@ private:
 
   bool _checkLongerClauses = true;
 
-  bool _optimizedLoop = true;
-
-  bool _isOracle = false;
-
   /// @brief Engine performing subsumption and subsumption resolution using a sat solver
   SATSubsumption::SATSubsumptionAndResolution satSubs;
-
-#if ENABLE_ROUNDS
-  unsigned max_rounds = 0;
-#endif
 };
 
 }; // namespace Inferences

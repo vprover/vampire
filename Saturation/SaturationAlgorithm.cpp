@@ -64,9 +64,6 @@
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
-#if USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION
-#include "SATSubsumption/ForwardBenchmarkWrapper.hpp"
-#endif
 #include "Inferences/InvalidAnswerLiteralRemoval.hpp"
 #include "Inferences/ForwardSubsumptionDemodulation.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
@@ -1645,53 +1642,14 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem &prb, const 
 
   if (opt.forwardSubsumption()) {
     if (opt.forwardSubsumptionResolution()) {
-      // res->addForwardSimplifierToFront(new CTFwSubsAndRes(true));
-#if USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION
-      cout << "Using wrapped forward subsumption and resolution" << endl;
-      res->addForwardSimplifierToFront(new ForwardBenchmarkWrapper(true));
-#else
-      cout << "Using forward subsumption and resolution: ";
-      ForwardSubsumptionAndResolution* fwd = new ForwardSubsumptionAndResolution(true, CORRELATE_LENGTH_TIME);
-      #if SAT_SR_IMPL == 1
-        fwd->forceDirectEncodingForSubsumptionResolution();
-        cout << "direct encoding";
-      #elif SAT_SR_IMPL == 2
-        fwd->forceIndirectEncodingForSubsumptionResolution();
-        cout << "indirect encoding";
-      #else
-        cout << "dynamic encoding";
-      #endif
-      #if USE_OPTIMIZED_FORWARD
-        fwd->setOptimizedLoop(true);
-        cout << " - optimized loop";
-      #else
-        fwd->setOptimizedLoop(false);
-      #endif
+      ForwardSubsumptionAndResolution* fwd = new ForwardSubsumptionAndResolution(true);
       res->addForwardSimplifierToFront(fwd);
       cout << endl;
-#endif
     }
     else {
-// res->addForwardSimplifierToFront(new CTFwSubsAndRes(false));
-#if USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION
-      res->addForwardSimplifierToFront(new ForwardBenchmarkWrapper(false));
-#else
-      cout << "Using forward subsumption: ";
-      ForwardSubsumptionAndResolution* fwd = new ForwardSubsumptionAndResolution(false, CORRELATE_LENGTH_TIME);
-      #if SAT_SR_IMPL == 1
-        fwd->forceDirectEncodingForSubsumptionResolution();
-      #elif SAT_SR_IMPL == 2
-        fwd->forceIndirectEncodingForSubsumptionResolution();
-      #endif
-      #if USE_OPTIMIZED_FORWARD
-        fwd->setOptimizedLoop(true);
-        cout << " - optimized loop";
-      #else
-        fwd->setOptimizedLoop(false);
-      #endif
+      ForwardSubsumptionAndResolution* fwd = new ForwardSubsumptionAndResolution(false);
       res->addForwardSimplifierToFront(fwd);
       cout << endl;
-#endif
     }
   }
   else if (opt.forwardSubsumptionResolution()) {
@@ -1716,7 +1674,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem &prb, const 
   if (prb.hasEquality() && opt.backwardSubsumptionDemodulation()) {
     res->addBackwardSimplifierToFront(new BackwardSubsumptionDemodulation());
   }
-#if USE_NEW_SUBSUMPTION_AND_RESOLUTION_BACKWARD
+
   bool backSubsumption = opt.backwardSubsumption() != Options::Subsumption::OFF;
   bool backSR = opt.backwardSubsumptionResolution() != Options::Subsumption::OFF;
   bool subsumptionUnitOnly = opt.backwardSubsumption() == Options::Subsumption::UNIT_ONLY;
@@ -1724,17 +1682,6 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem &prb, const 
   if (backSubsumption || backSR) {
     res->addBackwardSimplifierToFront(new BackwardSubsumptionAndResolution(backSubsumption, subsumptionUnitOnly, backSR, srUnitOnly));
   }
-
-#else
-  if (opt.backwardSubsumption() != Options::Subsumption::OFF) {
-    bool byUnitsOnly = opt.backwardSubsumption() == Options::Subsumption::UNIT_ONLY;
-    res->addBackwardSimplifierToFront(new SLQueryBackwardSubsumption(byUnitsOnly));
-  }
-  if (opt.backwardSubsumptionResolution() != Options::Subsumption::OFF) {
-    bool byUnitsOnly = opt.backwardSubsumptionResolution() == Options::Subsumption::UNIT_ONLY;
-    res->addBackwardSimplifierToFront(new BackwardSubsumptionResolution(byUnitsOnly));
-  }
-#endif
 
   if (opt.mode() == Options::Mode::CONSEQUENCE_ELIMINATION) {
     res->_consFinder = new ConsequenceFinder();

@@ -32,7 +32,6 @@
 #include "Inferences/BackwardSubsumptionAndResolution.hpp"
 
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
-#include "SATSubsumption/ForwardBenchmarkWrapper.hpp"
 
 #include "Options.hpp"
 #include "Statistics.hpp"
@@ -113,9 +112,6 @@ Statistics::Statistics()
       proxyEliminations(0),
       leibnizElims(0),
       booleanSimps(0),
-#if ENABLE_ROUNDS
-      forwardSubsumptionRounds(0),
-#endif
       duplicateLiterals(0),
       trivialInequalities(0),
       forwardSubsumptionResolution(0),
@@ -128,16 +124,7 @@ Statistics::Statistics()
       forwardSubsumptionDemodulationsToEqTaut(0),
       backwardSubsumptionDemodulations(0),
       backwardSubsumptionDemodulationsToEqTaut(0),
-      /* SAT Subsumption and subsumption resolution*/
-      subsumptionTried(0),
-      subsumptionSucceeded(0),
-      subsumptionPruned(0),
-      subsumptionPrunedWithSR(0),
-      subsumptionPrunedAfterMatching(0),
-      subsumptionResolutionTried(0),
-      subsumptionResolutionSucceeded(0),
-      subsumptionResolutionPruned(0),
-      subsumptionResolutionPrunedAfterMatching(0),
+
       forwardLiteralRewrites(0),
       condensations(0),
       globalSubsumption(0),
@@ -504,13 +491,6 @@ void Statistics::print(ostream &out)
       COND_OUT("Condensations", condensations);
       COND_OUT("Global subsumptions", globalSubsumption);
       COND_OUT("Interpreted simplifications", interpretedSimplifications);
-#if ENABLE_ROUNDS
-      addCommentSignForSZS(out);
-      out << "Fw subsumption rounds"
-          << ": " << forwardSubsumptionRounds << endl;
-      separable = true;
-#endif
-
       COND_OUT("asg count", asgCnt);
       COND_OUT("asg results not smaller than the premis", asgViolations);
 
@@ -619,18 +599,6 @@ void Statistics::print(ostream &out)
       COND_OUT("SAT solver binary clauses", binarySatClauses);
       COND_OUT("Pure propositional variables eliminated by SAT solver", satPureVarsEliminated);
       SEPARATOR;
-
-      HEADING("SAT Subsumption Resolution", subsumptionTried + subsumptionSucceeded + subsumptionPruned + subsumptionPrunedAfterMatching + subsumptionResolutionTried + subsumptionResolutionSucceeded + subsumptionResolutionPruned + subsumptionResolutionPrunedAfterMatching);
-      COND_OUT("Subsumption tried", subsumptionTried);
-      COND_OUT("Subsumption succeeded", subsumptionSucceeded);
-      COND_OUT("Subsumption pruned (" + to_string((double)subsumptionPruned / subsumptionTried * 100) + "% pruned)", subsumptionPruned);
-      COND_OUT("Subsumption pruned by SR (" + to_string((double)subsumptionPrunedWithSR / subsumptionTried * 100) + "% pruned)", subsumptionPrunedWithSR);
-      COND_OUT("Subsumption pruned after matching (" + to_string((double)subsumptionPrunedAfterMatching / subsumptionTried * 100) + "% pruned)", subsumptionPrunedAfterMatching);
-      COND_OUT("Subsumption resolution tried", subsumptionResolutionTried);
-      COND_OUT("Subsumption resolution succeeded", subsumptionResolutionSucceeded);
-      COND_OUT("Subsumption resolution pruned (" + to_string((double)subsumptionResolutionPruned / subsumptionResolutionTried * 100) + "% pruned)", subsumptionResolutionPruned);
-      COND_OUT("Subsumption resolution pruned after matching (" + to_string((double)subsumptionResolutionPrunedAfterMatching / subsumptionResolutionTried * 100) + "% pruned)", subsumptionResolutionPrunedAfterMatching);
-      SEPARATOR;
     }
 
     COND_OUT("Memory used [KB]", Lib::getUsedMemory() / 1024);
@@ -651,10 +619,6 @@ void Statistics::print(ostream &out)
     out << "------------------------------\n";
 
     RSTAT_PRINT(out);
-    addCommentSignForSZS(out);
-    out << "------------------------------\n";
-
-    ForwardBenchmarkWrapper::printStats(out);
     addCommentSignForSZS(out);
     out << "------------------------------\n";
 

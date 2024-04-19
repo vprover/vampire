@@ -25,7 +25,6 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Option.hpp"
-#include "SATSubsumption/SATSubsumptionConfig.hpp"
 
 extern const char *VERSION_STRING;
 
@@ -155,19 +154,6 @@ public:
   unsigned proxyEliminations;
   unsigned leibnizElims;
   unsigned booleanSimps;
-
-#if ENABLE_ROUNDS
-  /** number of forward subsumption (resolution) rounds */
-  unsigned forwardSubsumptionRounds;
-#endif
-
-#if ENABLE_SAT_SR_CUTOFF
-  /** number of subsumptions aborted because of cutoff */
-  unsigned subsumptionCutoffAborted;
-  /** number of subsumption resolutions aborted because of cutoff */
-  unsigned subsumptionResolutionCutoffAborted;
-#endif
-
   // Simplifying inferences
   /** number of duplicate literals deleted */
   unsigned duplicateLiterals;
@@ -177,24 +163,6 @@ public:
   unsigned forwardSubsumptionResolution;
   /** number of backward subsumption resolutions */
   unsigned backwardSubsumptionResolution;
-  /** Number of subsumption tried */
-  unsigned subsumptionTried;
-  /** Number of subsumption tried */
-  unsigned subsumptionSucceeded;
-  /** Number of subsumption pruned before matching */
-  unsigned subsumptionPruned;
-  /** Number of subsumption pruned by pruning SR */
-  unsigned subsumptionPrunedWithSR;
-  /** Number of subsumption pruned after matching */
-  unsigned subsumptionPrunedAfterMatching;
-  /** Number of subsumption tried */
-  unsigned subsumptionResolutionTried;
-  /** Number of subsumption tried */
-  unsigned subsumptionResolutionSucceeded;
-  /** Number of subsumption pruned before matching */
-  unsigned subsumptionResolutionPruned;
-  /** Number of subsumption pruned after matching */
-  unsigned subsumptionResolutionPrunedAfterMatching;
   /** number of forward demodulations */
   unsigned forwardDemodulations;
   /** number of forward demodulations into equational tautologies */

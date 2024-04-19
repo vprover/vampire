@@ -30,12 +30,7 @@ class BackwardSubsumptionAndResolution
 public:
   USE_ALLOCATOR(BackwardSubsumptionAndResolution);
 
-  BackwardSubsumptionAndResolution(bool subsumption, bool subsumptionByUnitsOnly, bool subsumptionResolution, bool srByUnitsOnly) : _subsumption(subsumption), _subsumptionResolution(subsumptionResolution), _subsumptionByUnitsOnly(subsumptionByUnitsOnly), _srByUnitsOnly(srByUnitsOnly),
-#if CHECK_CORRECTNESS_BACKWARD_SUBSUMPTION_AND_RESOLUTION || !USE_SAT_SUBSUMPTION_BACKWARD
-        _bwIndex(nullptr), _slqbs(subsumptionByUnitsOnly), _bsr(srByUnitsOnly)
-#else
-        _bwIndex(nullptr)
-#endif
+  BackwardSubsumptionAndResolution(bool subsumption, bool subsumptionByUnitsOnly, bool subsumptionResolution, bool srByUnitsOnly) : _subsumption(subsumption), _subsumptionResolution(subsumptionResolution), _subsumptionByUnitsOnly(subsumptionByUnitsOnly), _srByUnitsOnly(srByUnitsOnly)
   {
     // do nothing
   }
@@ -57,10 +52,6 @@ private:
   SATSubsumption::SATSubsumptionAndResolution satSubs;
   Lib::DHSet<Clause *> _checked;
 
-#if CHECK_CORRECTNESS_BACKWARD_SUBSUMPTION_AND_RESOLUTION || !USE_SAT_SUBSUMPTION_BACKWARD
-  Inferences::SLQueryBackwardSubsumption _slqbs;
-  Inferences::BackwardSubsumptionResolution _bsr;
-#endif
 };
 
 }; // namespace Inferences

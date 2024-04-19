@@ -48,23 +48,8 @@ std::ostream& printVersion(std::ostream& out)
   std::cout << "Linked with Z3 " << Z3Interfacing::z3_full_version() << "\n";
 #endif
   PRINT_VAR(out, VDEBUG);
-  PRINT_VAR(out << "\% (BENCHMARK_S_SR) ", USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION);
-  PRINT_VAR(out << "\% (S_SR_IMPL)      ", SAT_SR_IMPL);
-  PRINT_VAR(out << "\% (OPTIMIZE_S_SR)  ", USE_OPTIMIZED_FORWARD);
-  PRINT_VAR(out, USE_NEW_SUBSUMPTION_AND_RESOLUTION_BACKWARD);
-  PRINT_VAR(out, CORRELATE_LENGTH_TIME);
-  PRINT_VAR(out, LOG_SSR_CLAUSES);
-  PRINT_VAR(out, ENABLE_ROUNDS);
-  PRINT_VAR(out, ENABLE_SAT_SR_CUTOFF);
-  PRINT_VAR(out, SAT_SR_CUTOFF_MAX_TICKS);
   PRINT_VAR(out, PRINT_CLAUSES_SUBS);
   PRINT_VAR(out, PRINT_CLAUSE_COMMENTS_SUBS);
-  PRINT_VAR(out, CHECK_SAT_SUBSUMPTION);
-  PRINT_VAR(out, CHECK_SAT_SUBSUMPTION_RESOLUTION);
-  PRINT_VAR(out, CHECK_CORRECTNESS_BACKWARD_SUBSUMPTION_AND_RESOLUTION);
-  PRINT_VAR(out, USE_SAT_SUBSUMPTION_BACKWARD);
-  PRINT_VAR(out, USE_SAT_SUBSUMPTION_RESOLUTION_BACKWARD);
-  PRINT_VAR(out, SEPARATE_LOOPS_BACKWARD);
   std::cout << "\% high_resolution_clock: steady = " << std::chrono::high_resolution_clock::is_steady << ", tick period = " << std::chrono::high_resolution_clock::period::num << "/" << std::chrono::high_resolution_clock::period::den << "\n";
   std::cout << "\%          steady_clock: steady = " << std::chrono::steady_clock::is_steady << ", tick period = " << std::chrono::steady_clock::period::num << "/" << std::chrono::steady_clock::period::den << "\n";
   std::cout << "\%          system_clock: steady = " << std::chrono::system_clock::is_steady << ", tick period = " << std::chrono::system_clock::period::num << "/" << std::chrono::system_clock::period::den << "\n";

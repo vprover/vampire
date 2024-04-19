@@ -62,8 +62,6 @@
 
 #include "FMB/ModelCheck.hpp"
 
-#include "SATSubsumption/SubsumptionLogger.hpp"
-
 #if CHECK_LEAKS
 #include "Lib/MemoryLeak.hpp"
 #endif

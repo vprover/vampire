@@ -73,16 +73,6 @@ else()
   endif()
 endif()
 
-set(BENCHMARK_S_SR "0" CACHE STRING "If set to 1, then will benchmark the specified version of subsumption and subsumption resolution.")
-message(STATUS "BENCHMARK_S_SR=${BENCHMARK_S_SR}")
-if(${BENCHMARK_S_SR} STREQUAL "0")
-  add_compile_definitions(USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION=0)
-elseif(${BENCHMARK_S_SR} STREQUAL "1")
-  add_compile_definitions(USE_WRAPPED_FORWARD_SUBSUMPTION_AND_RESOLUTION=1)
-else()
-  message(FATAL_ERROR "Wrong option value (should be 0 or 1)")
-endif()
-
 set(S_SR_IMPL "3" CACHE STRING "Choose the implementation of S&SR. 0 is the old version, 1 is the direct encoding and 2 is the indirect encoding, 3 is with dynamically determined encoding.")
 message(STATUS "S_SR_IMPL=${S_SR_IMPL}")
 if(${S_SR_IMPL} STREQUAL "0")
@@ -102,42 +92,6 @@ if(${OPTIMIZE_S_SR} STREQUAL "0")
   add_compile_definitions(USE_OPTIMIZED_FORWARD=0)
 elseif(${OPTIMIZE_S_SR} STREQUAL "1")
   add_compile_definitions(USE_OPTIMIZED_FORWARD=1)
-else()
-  message(FATAL_ERROR "Wrong option value (should be 0 or 1)")
-endif()
-
-set(CORRELATE_LENGTH_TIME "0" CACHE STRING "Choose ...")
-if(${CORRELATE_LENGTH_TIME} STREQUAL "0")
-  add_compile_definitions(CORRELATE_LENGTH_TIME=0)
-elseif(${CORRELATE_LENGTH_TIME} STREQUAL "1")
-  add_compile_definitions(CORRELATE_LENGTH_TIME=1)
-else()
-  message(FATAL_ERROR "Wrong option value (should be 0 or 1)")
-endif()
-
-set(LOG_SSR_CLAUSES "0" CACHE STRING "Choose whether to write subsumption logs.")
-if(${LOG_SSR_CLAUSES} STREQUAL "0")
-  add_compile_definitions(LOG_SSR_CLAUSES=0)
-elseif(${LOG_SSR_CLAUSES} STREQUAL "1")
-  add_compile_definitions(LOG_SSR_CLAUSES=1)
-else()
-  message(FATAL_ERROR "Wrong option value (should be 0 or 1)")
-endif()
-
-set(ENABLE_ROUNDS "0" CACHE STRING "Choose whether to enable forward subsumption max rounds limit.")
-if(${ENABLE_ROUNDS} STREQUAL "0")
-  add_compile_definitions(ENABLE_ROUNDS=0)
-elseif(${ENABLE_ROUNDS} STREQUAL "1")
-  add_compile_definitions(ENABLE_ROUNDS=1)
-else()
-  message(FATAL_ERROR "Wrong option value (should be 0 or 1)")
-endif()
-
-set(ENABLE_SAT_SR_CUTOFF "0" CACHE STRING "Choose whether to enable cutoff in SAT solver for S/SR.")
-if(${ENABLE_SAT_SR_CUTOFF} STREQUAL "0")
-  add_compile_definitions(ENABLE_SAT_SR_CUTOFF=0)
-elseif(${ENABLE_SAT_SR_CUTOFF} STREQUAL "1")
-  add_compile_definitions(ENABLE_SAT_SR_CUTOFF=1)
 else()
   message(FATAL_ERROR "Wrong option value (should be 0 or 1)")
 endif()
@@ -757,14 +711,6 @@ source_group(casc_source_files FILES ${VAMPIRE_CASC_SOURCES})
 set(VAMPIRE_SAT_SUBSUMPTION_SOURCES
     SATSubsumption/SATSubsumptionAndResolution.cpp
     SATSubsumption/SATSubsumptionAndResolution.hpp
-    SATSubsumption/ForwardBenchmarkWrapper.cpp
-    SATSubsumption/ForwardBenchmarkWrapper.hpp
-    SATSubsumption/ForwardBenchmark.cpp
-    SATSubsumption/ForwardBenchmark.hpp
-    SATSubsumption/Util.cpp
-    SATSubsumption/Util.hpp
-    SATSubsumption/SubsumptionLogger.cpp
-    SATSubsumption/SubsumptionLogger.hpp
 
     SATSubsumption/subsat/constraint.cpp
     SATSubsumption/subsat/constraint.hpp

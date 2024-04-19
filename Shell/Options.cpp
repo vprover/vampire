@@ -1500,13 +1500,6 @@ void Options::init()
     _backwardSubsumptionDemodulationMaxMatches.onlyUsefulWith(_backwardSubsumptionDemodulation.is(equal(true)));
     _backwardSubsumptionDemodulationMaxMatches.tag(OptionTag::INFERENCES);
 
-#if ENABLE_ROUNDS
-    _maxRounds = UnsignedOptionValue("max_rounds", "maxrounds", 0);
-    _maxRounds.description = "Maximum number of forward subsumption rounds.";
-    _lookup.insert(&_maxRounds);
-    _maxRounds.tag(OptionTag::INFERENCES);
-#endif
-
     _binaryResolution = BoolOptionValue("binary_resolution","br",true);
     _binaryResolution.description=
     "Standard binary resolution i.e.\n"

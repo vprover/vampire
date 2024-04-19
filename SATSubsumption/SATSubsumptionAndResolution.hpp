@@ -19,20 +19,6 @@
 
 #include "./subsat/subsat.hpp"
 
-#include "SATSubsumption/SATSubsumptionConfig.hpp"
-
-#if LOG_SSR_CLAUSES
-#include "SATSubsumption/SubsumptionLogger.hpp"
-#include <memory>
-#endif
-
-#if CORRELATE_LENGTH_TIME
-#include <chrono>
-#include <iostream>
-#include <fstream>
-#endif
-
-
 // The compiler will not reorder instructions across a compiler fence.
 // See also https://stackoverflow.com/q/14449141
 #define COMPILER_FENCE             \
@@ -40,6 +26,10 @@
     asm volatile("" ::: "memory"); \
   } while (false)
 
+/// If 1, prints the SAT clauses added to the solver on the standard output
+#define PRINT_CLAUSES_SUBS 0
+/// If 1, prints some comments about the subsumption resolution process
+#define PRINT_CLAUSE_COMMENTS_SUBS 0
 
 namespace SATSubsumption {
 
@@ -357,20 +347,16 @@ private:
   /// @brief model of the SAT solver
   Lib::vvector<subsat::Lit> _model;
 
-  // remembers if the fillMatchesSR concluded that subsumption is impossible
+  /// @brief remembers if the fillMatchesSR concluded that subsumption is impossible
   bool _subsumptionImpossible;
-  // remembers if the fillMatchesSR concluded that subsumption resolution is impossible
+  /// remembers if the fillMatchesSR concluded that subsumption resolution is impossible
   bool _srImpossible;
 
-  // temporary storage, used by pruneSubsumption and pruneSubsumptionResolution
-  // invariant: for all x in _tmpStorage, x <= _tmpTimestamp
+  /// @brief temporary storage, used by pruneSubsumption and pruneSubsumptionResolution
+  /// invariant: for all x in _tmpStorage, x <= _tmpTimestamp
   using prune_t = unsigned;
   vvector<prune_t> _pruneStorage;
   prune_t _pruneTimestamp = 0;
-
-#if LOG_SSR_CLAUSES
-  std::unique_ptr<ForwardSubsumptionLogger> _logger;
-#endif
 
   /* Methods */
   /**
@@ -414,14 +400,6 @@ private:
                   bool polarity,
                   bool isNullary);
 
-  double getSparsity();
-#if CORRELATE_LENGTH_TIME
-public:
-  unsigned getNumMatches();
-
-private:
-#endif
-
   /**
    * Adds the clauses for the subsumption problem to the sat solver
    *
@@ -430,17 +408,6 @@ private:
    * @return false if no solution is possible and true if there may exist a solution.
    */
   bool cnfForSubsumption();
-
-  /**
-   * Allows to force using the direct encoding for subsumption resolution
-   */
-  bool forceDirectEncoding = false;
-  /**
-   * Allows to force using the indirect encoding for subsumption resolution
-   *
-   * @details if both forceDirectEncoding and forceIndirectEncoding are set to true, the direct encoding will be used
-   */
-  bool forceIndirectEncoding = false;
 
   /**
    * Function type for encoding the subsumption resolution problem to the sat solver
@@ -455,15 +422,6 @@ private:
   // using EncodingMethod = std::function<bool ()>;
 
   /**
-   * Heuristically chooses the encoding method for the subsumption resolution problem
-   *
-   * The heuristic uses the data available in the SATSubsumptionAndResolution object
-   *
-   * @return the encoding method
-   */
-  EncodingMethod chooseEncoding();
-
-  /**
    * Adds the clauses for the subsumption resolution problem to the sat solver
    *
    * @remark The BindingsManager is not required to be set up in this method.
@@ -471,17 +429,7 @@ private:
    * @pre the Match set is already filled
    * @return false if no solution is possible and true if there may exist a solution.
    */
-  bool directEncodingForSubsumptionResolution();
-
-  /**
-   * Adds the clauses for the subsumption resolution problem to the sat solver
-   *
-   * @remark The BindingsManager is not required to be set up in this method.
-   * @pre _L and _M must be set in the checker
-   * @pre the Match set is already filled
-   * @return false if no solution is possible and true if there may exist a solution.
-   */
-  bool indirectEncodingForSubsumptionResolution();
+  bool cnfForSubsumptionResolution();
 
   /**
    * Checks whether there exists a substitution from the literals @b l_i and @b m_j.
@@ -528,49 +476,9 @@ private:
 public:
   using clock = std::chrono::steady_clock;
 
-#if CORRELATE_LENGTH_TIME
-  clock::time_point start = clock::now();
-  clock::time_point stop = start;
-  std::ofstream logFile;
-  bool log;
-#endif
-
-  SATSubsumptionAndResolution(bool log = false) : _L(nullptr),
-                                                  _M(nullptr),
-                                                  _m(0),
-                                                  _n(0)
-  {
-#if CORRELATE_LENGTH_TIME
-    this->log = log;
-    if (log) {
-      vstring fileName = "outputs/data_" + env.options->problemName() + ("_" SAT_SR_IMPL_NAME);
-#if USE_OPTIMIZED_FORWARD
-      fileName += "_opt";
-#endif
-      fileName += ".csv";
-      logFile.open(fileName.c_str());
-      if (!logFile.is_open()) {
-        std::cout << "Could not open file " << fileName << std::endl;
-      }
-      else {
-        logFile << "s_or_sr,side_len,main_len,num_matches,time_ns,result,satcall,ticks";
-        logFile << std::endl;
-        std::cout << "Opened file " << fileName << std::endl;
-      }
-    }
-#endif
-#if LOG_SSR_CLAUSES
-    vstring filename = "slog/slog_" + env.options->problemName();
-    _logger = std::make_unique<ForwardSubsumptionLogger>(filename);
-#endif
-  }
-
-  void beginLoop(Kernel::Clause *main_premise)
-  {
-#if LOG_SSR_CLAUSES
-    _logger->beginLoop(main_premise);
-#endif
-  }
+  SATSubsumptionAndResolution() : _L(nullptr), _M(nullptr),
+                                 _m(0), _n(0)
+  { }
 
   /**
    * Checks whether the instance clause is subsumed by the base clause
@@ -588,35 +496,6 @@ public:
   bool checkSubsumption(Kernel::Clause *L,
                         Kernel::Clause *M,
                         bool setSR = false);
-
-  /**
-   * Forces the encoding to be direct for subsumption resolution
-   */
-  void forceDirectEncodingForSubsumptionResolution()
-  {
-    std::cout << "Forcing direct encoding for subsumption resolution" << std::endl;
-    forceDirectEncoding = true;
-    forceIndirectEncoding = false;
-  }
-
-  /**
-   * Forces the encoding to be indirect for subsumption resolution
-   */
-  void forceIndirectEncodingForSubsumptionResolution()
-  {
-    std::cout << "Forcing indirect encoding for subsumption resolution" << std::endl;
-    forceDirectEncoding = false;
-    forceIndirectEncoding = true;
-  }
-
-  /**
-   * Forces to use the heuristic encoding for subsumption resolution
-   */
-  void forceHeuristicEncodingForSubsumptionResolution()
-  {
-    forceDirectEncoding = false;
-    forceIndirectEncoding = false;
-  }
 
   /**
    * Checks whether a subsumption resolution can occur between the clauses @b L and @b M . If it is possible, returns the conclusion of the resolution, otherwise return NULL.
@@ -658,16 +537,7 @@ public:
   static Kernel::Clause *getSubsumptionResolutionConclusion(Kernel::Clause *M,
                                                             Kernel::Literal *m_j,
                                                             Kernel::Clause *L);
-
-private:
-  bool checkSubsumptionImpl(Kernel::Clause *L,
-                            Kernel::Clause *M,
-                            bool setSR = false);
-
-  Kernel::Clause *checkSubsumptionResolutionImpl(Kernel::Clause *L,
-                                                 Kernel::Clause *M,
-                                                 bool usePreviousMatchSet = false);
-};
+  };
 
 } // namespace SATSubsumption
 

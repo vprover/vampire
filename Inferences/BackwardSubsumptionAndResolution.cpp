@@ -40,11 +40,6 @@
 
 #include <chrono>
 
-#if CHECK_CORRECTNESS_BACKWARD_SUBSUMPTION_AND_RESOLUTION
-#include "BackwardSubsumptionResolution.hpp"
-#include "SLQueryBackwardSubsumption.hpp"
-#endif
-
 namespace Inferences {
 
 using namespace Lib;
@@ -60,59 +55,18 @@ void BackwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
 {
   BackwardSimplificationEngine::attach(salg);
   _bwIndex = static_cast<BackwardSubsumptionIndex *>(
-      _salg->getIndexManager()->request(BACKWARD_SUBSUMPTION_SUBST_TREE));
-#if CHECK_CORRECTNESS_BACKWARD_SUBSUMPTION_AND_RESOLUTION || !USE_SAT_SUBSUMPTION_BACKWARD
-  _slqbs.attach(salg);
-  _bsr.attach(salg);
-#endif
+      _salg->getIndexManager()->request(BACKWARD_SUBSUMPTION_SUBST_TREE)
+  );
 }
 
 void BackwardSubsumptionAndResolution::detach()
 {
   _bwIndex = 0;
   _salg->getIndexManager()->release(BACKWARD_SUBSUMPTION_SUBST_TREE);
-#if CHECK_CORRECTNESS_BACKWARD_SUBSUMPTION_AND_RESOLUTION || !USE_SAT_SUBSUMPTION_BACKWARD
-  _slqbs.detach();
-  _bsr.detach();
-#endif
   BackwardSimplificationEngine::detach();
 }
 
-#if !USE_SAT_SUBSUMPTION_BACKWARD
-void BackwardSubsumptionAndResolution::perform(Clause *cl,
-                                               BwSimplificationRecordIterator &simplifications)
-{
-  ASSERT_VALID(*cl);
-  ASS(_bwIndex);
-  simplifications = BwSimplificationRecordIterator::getEmpty();
 
-  List<BwSimplificationRecord> *simplificationBuffer = List<BwSimplificationRecord>::empty();
-
-  static DHSet<Clause *> subsumed;
-  subsumed.reset();
-
-  if (_subsumption) {
-    BwSimplificationRecordIterator subsumptions;
-    _slqbs.perform(cl, subsumptions);
-    while (subsumptions.hasNext()) {
-      BwSimplificationRecord rec = subsumptions.next();
-      subsumed.insert(rec.toRemove);
-      List<BwSimplificationRecord>::push(rec, simplificationBuffer);
-    }
-  }
-
-  if (_subsumptionResolution) {
-    BwSimplificationRecordIterator resolutions;
-    _bsr.perform(cl, resolutions);
-    while (resolutions.hasNext()) {
-      BwSimplificationRecord rec = resolutions.next();
-      if (!subsumed.contains(rec.toRemove)) {
-        List<BwSimplificationRecord>::push(rec, simplificationBuffer);
-      }
-    }
-  }
-}
-#else
 void BackwardSubsumptionAndResolution::perform(Clause *cl,
                                                BwSimplificationRecordIterator &simplifications)
 {
@@ -170,12 +124,12 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
         List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, conclusion), simplificationBuffer);
       }
     }
-    goto check_correctness;
+    goto finish;
   }
 
   if (_subsumptionByUnitsOnly && _srByUnitsOnly) {
     ASS(!simplificationBuffer)
-    goto check_correctness;
+    goto finish;
   }
 
   /*******************************************************/
@@ -234,111 +188,12 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
     }
   }
 
-check_correctness:
+finish:
   if (simplificationBuffer) {
     simplifications = pvi(List<BwSimplificationRecord>::Iterator(simplificationBuffer));
   }
 
-#if CHECK_CORRECTNESS_BACKWARD_SUBSUMPTION_AND_RESOLUTION
-  // The efficiency of this code is very terrible, but it is only used for debugging
-  // Get the results from the old implementation
-  DHSet<Clause *> checkedSimplifications;
-  if (_subsumption) {
-    BwSimplificationRecordIterator oldSimplifications = BwSimplificationRecordIterator::getEmpty();
-    _slqbs.perform(cl, oldSimplifications);
-    while (oldSimplifications.hasNext()) {
-      BwSimplificationRecord rec = oldSimplifications.next();
-      checkedSimplifications.insert(rec.toRemove);
-      auto it = List<BwSimplificationRecord>::Iterator(simplificationBuffer);
-      bool found = false;
-      while (it.hasNext()) {
-        BwSimplificationRecord rec2 = it.next();
-        if (rec2.replacement == nullptr && rec2.toRemove == rec.toRemove) {
-          found = true;
-          break;
-        }
-      }
-      if (!found) {
-        cout << "------ SUBSUMPTION FALSE NEGATIVE ------" << endl;
-        cout << "Clause: " << *cl << endl;
-        cout << "Subsumed: " << rec.toRemove->toNiceString() << endl;
-
-        if (_checked.contains(rec.toRemove)) {
-          cout << "Clause was checked" << endl;
-        }
-        else {
-          cout << "Clause was NOT checked" << endl;
-        }
-      }
-    }
-    auto it = List<BwSimplificationRecord>::Iterator(simplificationBuffer);
-    while (it.hasNext()) {
-      BwSimplificationRecord rec = it.next();
-      if (rec.replacement == nullptr && !checkedSimplifications.contains(rec.toRemove)) {
-        cout << "------ SUBSUMPTION FALSE POSITIVE ------" << endl;
-        cout << "Clause: " << *cl << endl;
-        cout << "Subsumed: " << rec.toRemove->toNiceString() << endl;
-
-        if (_checked.contains(rec.toRemove)) {
-          cout << "Clause was checked" << endl;
-        }
-        else {
-          cout << "Clause was NOT checked" << endl;
-        }
-      }
-    }
-  }
-
-  if (_subsumptionResolution) {
-    BwSimplificationRecordIterator oldSimplifications = BwSimplificationRecordIterator::getEmpty();
-    _bsr.perform(cl, oldSimplifications);
-    while (oldSimplifications.hasNext()) {
-      BwSimplificationRecord rec = oldSimplifications.next();
-      checkedSimplifications.insert(rec.toRemove);
-      auto it = List<BwSimplificationRecord>::Iterator(simplificationBuffer);
-      bool found = false;
-      while (it.hasNext()) {
-        BwSimplificationRecord rec2 = it.next();
-        if (rec2.replacement != nullptr && rec2.toRemove == rec.toRemove) {
-          found = true;
-          break;
-        }
-      }
-      if (!found && !subsumedSet.contains(rec.toRemove)) {
-        cout << "------ SR FALSE NEGATIVE ------" << endl;
-        cout << "base    : " << *cl << endl;
-        cout << "instance: " << rec.toRemove->toNiceString() << endl;
-        cout << "Resolution: " << rec.replacement->toNiceString() << endl;
-        if (_checked.contains(rec.toRemove)) {
-          cout << "Clause was checked" << endl;
-        }
-        else {
-          cout << "Clause was NOT checked" << endl;
-        }
-      }
-    }
-    auto it = List<BwSimplificationRecord>::Iterator(simplificationBuffer);
-    while (it.hasNext()) {
-      BwSimplificationRecord rec = it.next();
-      if (rec.replacement != nullptr && !checkedSimplifications.contains(rec.toRemove)) {
-        cout << "------ SR FALSE POSITIVE ------" << endl;
-        cout << "base    : " << *cl << endl;
-        cout << "instance: " << rec.toRemove->toNiceString() << endl;
-        cout << "Resolution: " << rec.replacement->toNiceString() << endl;
-
-        if (_checked.contains(rec.toRemove)) {
-          cout << "Clause was checked" << endl;
-        }
-        else {
-          cout << "Clause was NOT checked" << endl;
-        }
-      }
-    }
-  }
-
-#endif
   return;
 }
-#endif
 
 } // namespace Inferences

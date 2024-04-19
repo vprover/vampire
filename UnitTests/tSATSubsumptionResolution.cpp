@@ -13,7 +13,6 @@
 #include "Test/GenerationTester.hpp"
 
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
-#include "SATSubsumption/Util.hpp"
 #include "Kernel/Inference.hpp"
 
 using namespace std;
@@ -76,6 +75,32 @@ static void checkConsistency(SATSubsumptionAndResolution::MatchSet& matchSet, vv
     ASS(matchSet.getMatchForVar(match.var) == match);
     ASS(contains(matchSet.allMatches(), match));
   }
+}
+
+static bool checkClauseEquality(Literal const* const lits1[], unsigned len1, Literal const* const lits2[], unsigned len2)
+{
+  if (len1 != len2) {
+    return false;
+  }
+  // Copy given literals so we can sort them
+  vvector<Literal const*> c1(lits1, lits1 + len1);
+  vvector<Literal const*> c2(lits2, lits2 + len2);
+  // The equality tests only make sense for shared literals
+  std::for_each(c1.begin(), c1.end(), [](Literal const* lit) { ASS(lit->shared()); });
+  std::for_each(c2.begin(), c2.end(), [](Literal const* lit) { ASS(lit->shared()); });
+  // Sort input by pointer value
+  // NOTE: we use std::less<> because the C++ standard guarantees it is a total order on pointer types.
+  //       (the built-in operator< is not required to be a total order for pointer types.)
+  std::less<Literal const*> const lit_ptr_less{};
+  std::sort(c1.begin(), c1.end(), lit_ptr_less);
+  std::sort(c2.begin(), c2.end(), lit_ptr_less);
+  // Finally check the equality
+  return c1 == c2;
+}
+
+static bool checkClauseEquality(Clause* const cl1, Clause* const cl2)
+{
+  return checkClauseEquality(cl1->literals(), cl1->length(), cl2->literals(), cl2->length());
 }
 
 TEST_FUN(MatchSetIndexing)
@@ -284,28 +309,10 @@ TEST_FUN(PositiveSubsumptionResolution)
 
   bool success = true;
 
-  subsumption.forceDirectEncodingForSubsumptionResolution();
   for (unsigned i = 0; i < L.size(); i++) {
     conclusion = subsumption.checkSubsumptionResolution(L[i], M[i]);
     if (conclusion == nullptr) {
-      std::cerr << "Test " << i + 1 << " failed with direct encoding: no conclusion generated" << std::endl;
-      success = false;
-    }
-    if (expected[i] != nullptr && conclusion != nullptr) {
-      if (!checkClauseEquality(conclusion, expected[i])) {
-        std::cerr << "Test " << i << " failed: wrong conclusion" << std::endl;
-        std::cerr << "Expected: " << expected[i]->toString() << std::endl;
-        std::cerr << "Actual: " << conclusion->toString() << std::endl;
-        success = false;
-      }
-    }
-  }
-
-  subsumption.forceIndirectEncodingForSubsumptionResolution();
-  for (unsigned i = 0; i < L.size(); i++) {
-    conclusion = subsumption.checkSubsumptionResolution(L[i], M[i]);
-    if (conclusion == nullptr) {
-      std::cerr << "Test " << i + 1 << " failed with indirect encoding: no conclusion generated" << std::endl;
+      std::cerr << "Test " << i + 1 << " failed: no conclusion generated" << std::endl;
       success = false;
     }
     if (expected[i] != nullptr && conclusion != nullptr) {
@@ -380,21 +387,10 @@ TEST_FUN(NegativeSubsumptionResolution)
 
   bool success = true;
 
-  subsumption.forceDirectEncodingForSubsumptionResolution();
   for (unsigned i = 0; i < L.size(); i++) {
     conclusion = subsumption.checkSubsumptionResolution(L[i], M[i]);
     if (conclusion != nullptr) {
-      std::cerr << "Test " << i + 1 << " failed with direct encoding: conclusion generated" << std::endl;
-      std::cerr << "Conclusion: " << conclusion->toString() << std::endl;
-      success = false;
-    }
-  }
-
-  subsumption.forceIndirectEncodingForSubsumptionResolution();
-  for (unsigned i = 0; i < L.size(); i++) {
-    conclusion = subsumption.checkSubsumptionResolution(L[i], M[i]);
-    if (conclusion != nullptr) {
-      std::cerr << "Test " << i + 1 << " failed with indirect encoding: conclusion generated" << std::endl;
+      std::cerr << "Test " << i + 1 << " failed: conclusion generated" << std::endl;
       std::cerr << "Conclusion: " << conclusion->toString() << std::endl;
       success = false;
     }
@@ -462,28 +458,10 @@ TEST_FUN(PaperExample)
 
   bool success = true;
 
-  subsumption.forceDirectEncodingForSubsumptionResolution();
   for (unsigned i = 0; i < L.size(); i++) {
     conclusion = subsumption.checkSubsumptionResolution(L[i], M[i]);
     if (conclusion == nullptr) {
-      std::cerr << "Test " << i + 1 << " failed with direct encoding: no conclusion generated" << std::endl;
-      success = false;
-    }
-    if (expected[i] != nullptr && conclusion != nullptr) {
-      if (!checkClauseEquality(conclusion, expected[i])) {
-        std::cerr << "Test " << i << " failed: wrong conclusion" << std::endl;
-        std::cerr << "Expected: " << expected[i]->toString() << std::endl;
-        std::cerr << "Actual: " << conclusion->toString() << std::endl;
-        success = false;
-      }
-    }
-  }
-
-  subsumption.forceIndirectEncodingForSubsumptionResolution();
-  for (unsigned i = 0; i < L.size(); i++) {
-    conclusion = subsumption.checkSubsumptionResolution(L[i], M[i]);
-    if (conclusion == nullptr) {
-      std::cerr << "Test " << i + 1 << " failed with indirect encoding: no conclusion generated" << std::endl;
+      std::cerr << "Test " << i + 1 << " failed: no conclusion generated" << std::endl;
       success = false;
     }
     if (expected[i] != nullptr && conclusion != nullptr) {
