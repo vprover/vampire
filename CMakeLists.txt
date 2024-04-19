@@ -73,15 +73,6 @@ else()
   endif()
 endif()
 
-set(OPTIMIZE_S_SR "0" CACHE STRING "Choose whether to use the optimized forward S/SR loop.")
-if(${OPTIMIZE_S_SR} STREQUAL "0")
-  add_compile_definitions(USE_OPTIMIZED_FORWARD=0)
-elseif(${OPTIMIZE_S_SR} STREQUAL "1")
-  add_compile_definitions(USE_OPTIMIZED_FORWARD=1)
-else()
-  message(FATAL_ERROR "Wrong option value (should be 0 or 1)")
-endif()
-
 ################################################################
 # define all vampire sources,
 # generate the main target and
