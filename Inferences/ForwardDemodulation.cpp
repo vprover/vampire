@@ -53,18 +53,19 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+template<bool applyVSubst>
 struct ForwardDemodulation::Applicator : SubstApplicator {
-  Applicator(ResultSubstitution* subst, RobSubstitution* vSubst) : subst(subst), vSubst(vSubst) {}
+  Applicator(ResultSubstitution* subst, const RobSubstitution& vSubst) : subst(subst), vSubst(vSubst) {}
   TermList operator()(unsigned v) const override {
-    auto res = subst->applyToBoundResult(TermList(v,false));
-    if (vSubst) {
-      return vSubst->apply(res, 0);
+    auto res = subst->applyToBoundResult(v);
+    if constexpr (applyVSubst) {
+      return vSubst.apply(res, 0);
     } else {
       return res;
     }
   }
   ResultSubstitution* subst;
-  RobSubstitution* vSubst;
+  const RobSubstitution& vSubst;
 };
 
 void ForwardDemodulation::attach(SaturationAlgorithm* salg)
@@ -139,11 +140,12 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         // However, ForwardDemodulation uses a CodeTree as its
         // indexing mechanism, and it is not clear how to extend
         // the substitution returned by a code tree.
-        Recycled<RobSubstitution> subst;
+        static RobSubstitution subst;
         if(lhs.isVar()){
+          subst.reset();
           TermList querySort = trm.sort();
           TermList eqSort = SortHelper::getEqualityArgumentSort(qr.data->literal);
-          if(!subst->match(eqSort, 0, querySort, 1)){
+          if(!subst.match(eqSort, 0, querySort, 1)){
             continue;
           }
         }
@@ -165,9 +167,14 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         auto subs = qr.unifier;
         ASS(subs->isIdentityOnQueryWhenResultBound());
 
-        Applicator appl(subs.ptr(), lhs.isVar() ? subst.operator->() : nullptr);
+        ScopedPtr<SubstApplicator> appl;
+        if (lhs.isVar()) {
+          appl = new Applicator<true>(subs.ptr(), subst);
+        } else {
+          appl = new Applicator<false>(subs.ptr(), subst);
+        }
 
-        if (!preordered && (_preorderedOnly || !ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,&appl,true)))) {
+        if (!preordered && (_preorderedOnly || !ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl.ptr(),true)))) {
           // if (ordering.compare(AppliedTerm(trm),AppliedTerm(rhs,&appl,true))==Ordering::GREATER) {
           //   USER_ERROR("is greater " + trm.toString() + " " + subs->applyToBoundResult(rhs).toString());
           // }
@@ -190,6 +197,9 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         }
 
         TermList rhsS = subs->applyToBoundResult(rhs);
+        if (lhs.isVar()) {
+          rhsS = subst.apply(rhsS, 0);
+        }
 
         if (redundancyCheck && !_helper.isPremiseRedundant(cl, lit, trm, rhsS, lhs, subs.ptr(), true)) {
           continue;

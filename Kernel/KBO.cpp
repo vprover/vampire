@@ -64,11 +64,10 @@ public:
   template<bool unidirectional>
   Result traverseNonLex(const AppliedTerm& t1, const AppliedTerm& t2);
 
-  template<int coef> void traverse(const AppliedTerm& tt);
+  template<int coef, bool varsOnly> void traverse(const AppliedTerm& tt);
 
   Result result(const AppliedTerm& t1, const AppliedTerm& t2);
 protected:
-  template<int coef> void traverseVars(const AppliedTerm& tt);
   template<int coef> void recordVariable(unsigned var);
 
   bool checkVars() const { return _negNum <= 0; }
@@ -182,13 +181,15 @@ void KBO::State::recordVariable(unsigned var)
   }
 }
 
-template<int coef>
+template<int coef, bool varsOnly>
 void KBO::State::traverse(const AppliedTerm& tt)
 {
   static_assert(coef==1 || coef==-1);
 
   if (tt.term.isVar()) {
-    _weightDiff += _kbo._funcWeights._specialWeights._variableWeight * coef;
+    if constexpr (!varsOnly) {
+      _weightDiff += _kbo._funcWeights._specialWeights._variableWeight * coef;
+    }
     recordVariable<coef>(tt.term.var());
     return;
   }
@@ -196,27 +197,37 @@ void KBO::State::traverse(const AppliedTerm& tt)
     AppliedTerm t;
     unsigned arg;
   };
-  Recycled<Stack<State>> recState;
-  recState->push(State{ tt, 0 });
+  static Stack<State> recState;
+  recState.push(State{ tt, 0 });
 
-  _weightDiff += _kbo.symbolWeight(tt.term.term()) * coef;
+  if constexpr (!varsOnly) {
+    _weightDiff += _kbo.symbolWeight(tt.term.term()) * coef;
+  }
 
-  while (!recState->isEmpty()) {
-    auto& curr = recState->top();
+  while (recState.isNonEmpty()) {
+    auto& curr = recState.top();
     if (curr.arg >= curr.t.term.term()->arity()) {
-      recState->pop();
+      recState.pop();
       continue;
     }
     AppliedTerm t(*curr.t.term.term()->nthArgument(curr.arg++), curr.t);
     if (t.term.isVar()) {
       ASS(!t.aboveVar);
-      _weightDiff += _kbo._funcWeights._specialWeights._variableWeight * coef;
+      if constexpr (!varsOnly) {
+        _weightDiff += _kbo._funcWeights._specialWeights._variableWeight * coef;
+      }
       recordVariable<coef>(t.term.var());
       continue;
     }
 
-    _weightDiff += _kbo.symbolWeight(t.term.term()) * coef;
-    recState->push(State{ std::move(t), 0 });
+    if constexpr (varsOnly) {
+      if (!t.term.term()->ground()) {
+        recState.push(State{ std::move(t), 0 });
+      }
+    } else {
+      _weightDiff += _kbo.symbolWeight(t.term.term()) * coef;
+      recState.push(State{ std::move(t), 0 });
+    }
   }
 }
 
@@ -279,8 +290,8 @@ Ordering::Result KBO::State::traverseLex(const AppliedTerm& tl1, const AppliedTe
           return INCOMPARABLE;
         }
         if (ssw > ttw) {
-          traverseVars<1>(std::move(s));
-          traverseVars<-1>(std::move(t));
+          traverse<1,unidirectional>(std::move(s));
+          traverse<-1,unidirectional>(std::move(t));
           if (!checkVars()) {
             return INCOMPARABLE;
           }
@@ -309,8 +320,8 @@ Ordering::Result KBO::State::traverseLex(const AppliedTerm& tl1, const AppliedTe
           }
           case Ordering::GREATER:
           case Ordering::GREATER_EQ: {
-            traverseVars<1>(std::move(s));
-            traverseVars<-1>(std::move(t));
+            traverse<1,unidirectional>(std::move(s));
+            traverse<-1,unidirectional>(std::move(t));
             if (!checkVars()) {
               return INCOMPARABLE;
             }
@@ -325,8 +336,8 @@ Ordering::Result KBO::State::traverseLex(const AppliedTerm& tl1, const AppliedTe
           default: ASSERTION_VIOLATION;
         }
       } else {
-        traverseVars<1>(std::move(s));
-        traverseVars<-1>(std::move(t));
+        traverse<1,unidirectional>(std::move(s));
+        traverse<-1,unidirectional>(std::move(t));
       }
     } else {
       if(TermList::sameTopFunctor(s.term,t.term)) {
@@ -337,8 +348,8 @@ Ordering::Result KBO::State::traverseLex(const AppliedTerm& tl1, const AppliedTe
         stack.push(make_pair(t.term.term()->args(),t.aboveVar));
         depth++;
       } else {
-        traverse<1>(s);
-        traverse<-1>(t);
+        traverse<1,unidirectional>(s);
+        traverse<-1,unidirectional>(t);
         if(_lexResult==EQUAL) {
           _lexResult=innerResult(s, t);
           lexValidDepth=depth;
@@ -362,49 +373,13 @@ Ordering::Result KBO::State::traverseLex(const AppliedTerm& tl1, const AppliedTe
 template<bool unidirectional>
 Ordering::Result KBO::State::traverseNonLex(const AppliedTerm& tl1, const AppliedTerm& tl2)
 {
+  traverse<1,unidirectional>(tl1);
+  traverse<-1,unidirectional>(tl2);
+
   if constexpr (unidirectional) {
-    traverseVars<1>(tl1);
-    traverseVars<-1>(tl2);
     return checkVars() ? GREATER : INCOMPARABLE;
   } else {
-    traverse<1>(tl1);
-    traverse<-1>(tl2);
     return result(tl1,tl2);
-  }
-}
-
-template<int coef>
-void KBO::State::traverseVars(const AppliedTerm& tt)
-{
-  static_assert(coef==1 || coef==-1);
-
-  if (tt.term.isVar()) {
-    recordVariable<coef>(tt.term.var());
-    return;
-  }
-  struct State {
-    AppliedTerm t;
-    unsigned arg;
-  };
-  Recycled<Stack<State>> recState;
-  recState->push(State{ tt, 0 });
-
-  while (!recState->isEmpty()) {
-    auto& curr = recState->top();
-    if (curr.arg >= curr.t.term.term()->arity()) {
-      recState->pop();
-      continue;
-    }
-    AppliedTerm t(*curr.t.term.term()->nthArgument(curr.arg++), curr.t);
-    if (t.term.isVar()) {
-      ASS(!t.aboveVar);
-      recordVariable<coef>(t.term.var());
-      continue;
-    }
-
-    if (!t.term.term()->ground()) {
-      recState->push(State{ std::move(t), 0 });
-    }
   }
 }
 
@@ -799,22 +774,23 @@ Ordering::Result KBO::comparePredicates(Literal* l1, Literal* l2) const
   //this is to make sure _state isn't used while we're using it
   _state=0;
 #endif
+  constexpr bool unidirectional = false;
   state->init();
   if(p1!=p2) {
     TermList* ts;
     ts=l1->args();
     while(!ts->isEmpty()) {
-      state->traverse<1>(AppliedTerm(*ts));
+      state->traverse<1,unidirectional>(AppliedTerm(*ts));
       ts=ts->next();
     }
     ts=l2->args();
     while(!ts->isEmpty()) {
-      state->traverse<-1>(AppliedTerm(*ts));
+      state->traverse<-1,unidirectional>(AppliedTerm(*ts));
       ts=ts->next();
     }
     res=state->result(AppliedTerm(TermList(l1)),AppliedTerm(TermList(l2)));
   } else {
-    res=state->traverseLex<false>(AppliedTerm(TermList(l1)),AppliedTerm(TermList(l2)));
+    res=state->traverseLex<unidirectional>(AppliedTerm(TermList(l1)),AppliedTerm(TermList(l2)));
   }
 
 #if VDEBUG
@@ -972,12 +948,11 @@ unsigned KBO::computeWeight(const AppliedTerm& tt) const
     unsigned arg;
     unsigned weight;
   };
-  Recycled<Stack<State>> recState;
+  static Stack<State> recState;
+  recState.push(State{ tt, 0, (unsigned)symbolWeight(tt.term.term()) });
 
-  recState->push(State{ tt, 0, (unsigned)symbolWeight(tt.term.term()) });
-
-  while (recState->isNonEmpty()) {
-    auto& curr = recState->top();
+  while (recState.isNonEmpty()) {
+    auto& curr = recState.top();
     if (curr.arg < curr.t.term.term()->arity()) {
       AppliedTerm t(*curr.t.term.term()->nthArgument(curr.arg++), curr.t);
 
@@ -986,19 +961,19 @@ unsigned KBO::computeWeight(const AppliedTerm& tt) const
       } else if (!t.aboveVar && t.term.term()->kboWeight()!=-1) {
         curr.weight += t.term.term()->kboWeight();
       } else {
-        recState->push(State{ std::move(t), 0, (unsigned)symbolWeight(t.term.term()) });
+        recState.push(State{ std::move(t), 0, (unsigned)symbolWeight(t.term.term()) });
       }
 
     } else {
 
-      auto orig = recState->pop();
+      auto orig = recState.pop();
       if (!orig.t.aboveVar) {
         const_cast<Term*>(orig.t.term.term())->setKboWeight(orig.weight);
       }
-      if (recState->isEmpty()) {
+      if (recState.isEmpty()) {
         return orig.weight;
       }
-      recState->top().weight += orig.weight;
+      recState.top().weight += orig.weight;
     }
   }
   ASSERTION_VIOLATION;

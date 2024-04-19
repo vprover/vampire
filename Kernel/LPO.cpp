@@ -22,7 +22,6 @@
 
 #include "Shell/Options.hpp"
 
-#include "TermIterators.hpp"
 #include "Term.hpp"
 #include "LPO.hpp"
 #include "Signature.hpp"
@@ -195,6 +194,9 @@ Ordering::Result LPO::alpha(const TermList* sl, unsigned arity, const AppliedTer
 // unidirectional comparison function (returns correct result if tt1 > tt2 or tt1 = tt2)
 Ordering::Result LPO::lpo(const AppliedTerm& tt1, const AppliedTerm& tt2) const
 {
+  if(tt1==tt2) {
+    return EQUAL;
+  }
   if (tt1.term.isVar()) {
     return (tt1.term==tt2.term) ? EQUAL : INCOMPARABLE;
   }

@@ -27,6 +27,7 @@ namespace Kernel {
 using namespace Lib;
 
 struct SubstApplicator {
+  virtual ~SubstApplicator() = default;
   virtual TermList operator()(unsigned v) const = 0;
 };
 
