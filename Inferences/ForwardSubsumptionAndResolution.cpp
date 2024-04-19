@@ -4,7 +4,7 @@
  * copyright laws.
  *
  * This source code is distributed under the licence found here
- * https://vprover.github.io/license.htmlmatch2.
+ * https://vprover.github.io/license.html
  * and in the source directory
  */
 /**
