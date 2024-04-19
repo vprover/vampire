@@ -21,6 +21,16 @@
 #include "Lib/Backtrackable.hpp"
 
 std::ostream &log() { return std::cout << "% "; }
+template<typename T>
+std::ostream &operator<<(std::ostream &out, const std::vector<T> &v) {
+  out << '[';
+  if(!v.empty())
+    out << v[0];
+  for(unsigned i = 1; i < v.size(); i++)
+    out << ' ' << v[i];
+  out << ']';
+  return out;
+}
 
 // some data about a copy of a clause in the matrix
 struct Copy {
@@ -49,6 +59,8 @@ struct Connection {
   int var;
   // the positions connected, indexing into `Matrix::positions`
   unsigned positions[2];
+  // did we make this connection?
+  bool made;
 };
 
 enum class Action {
@@ -160,7 +172,7 @@ struct Matrix {
         solver.phase(-var);
 
         // add connection
-        connections.push_back({var, {other_index, position_index}});
+        connections.push_back({var, {other_index, position_index}, false});
 
         // add the new connection to both positions
         positions[other_index].connections.push_back(connection_index);
@@ -256,14 +268,14 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
 
     auto [k, l] = matrix.connection_literals(assigned);
     if(!substitution.unify(TermList(k), 0, TermList(l), 0)) {
-      compute_reason(assigned);
+      compute_unification_reason(assigned);
       return;
     }
     trail.push_back(assigned);
   }
 
   // fill out `reason` given that `assigned` caused a unification failure
-  void compute_reason(int assigned) {
+  void compute_unification_reason(int assigned) {
     // conflicting literal guaranteed to be a reason
     reason.push_back(-assigned);
 
@@ -300,8 +312,73 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
 
   bool cb_check_found_model(const std::vector<int> &model) final {
     ASS(reason.empty())
-    CaDiCaL::Solver final_;
-    std::unordered_set<unsigned> selected;
+
+    auto path = find_path(model);
+    // no path found, we're done
+    if(path.empty())
+      return true;
+
+    // set `made` field in connections for later
+    for(Connection &connection : matrix.connections)
+      connection.made = false;
+    for(int assigned : model)
+      if(assigned > 0 && matrix.demux[assigned].action == Action::CONNECT)
+        matrix.connections[matrix.demux[assigned].index].made = true;
+
+    // iterate through all combinations (k > 1) of the path
+    ASS_G(path.size(), 1)
+    std::vector<bool> combination(path.size(), false);
+    for(unsigned k = 2; k <= path.size(); k++) {
+      // set the first k bits 1, rest 0
+      for(unsigned i = 0; i < path.size(); i++) combination[i] = false;
+      for(unsigned i = 0; i < k; i++) combination[i] = true;
+
+      // iterate through all n-choose-k combinations by moving the bits around
+      while(true) {
+        // check whether this combination is a reason for the open path
+        std::vector<unsigned> subpath;
+        for(unsigned i = 0; i < path.size(); i++)
+          if(combination[i])
+            subpath.push_back(path[i]);
+        if(compute_connection_reason(subpath))
+          return false;
+
+        // find the first set bit
+        unsigned start = 0;
+        while(!combination[start]) start++;
+        // find the rightmost bit in this cluster of ones
+        unsigned end = start + 1;
+        while(end < path.size() && combination[end]) end++;
+        ASS(combination[start])
+        ASS(!combination[end])
+        ASS_LE(end - start, k)
+
+        // all the ones are at the end, done here
+        if(end == path.size())
+          break;
+
+        unsigned ones = end - start;
+        // move the rightmost bit over one position
+        combination[end - 1] = false;
+        combination[end] = true;
+        // reset all the other bits to the start
+        for(unsigned i = start; i < end - 1; i++) combination[i] = false;
+        for(unsigned i = 0; i < ones - 1; i++) combination[i] = true;
+      }
+    }
+
+    // ought to have found a reason by now
+    ASSERTION_VIOLATION
+  }
+
+  // find a path through the matrix, empty if there is no path
+  std::vector<unsigned> find_path(const std::vector<int> &model) {
+    // auxiliary CaDiCaL used to find the path
+    // TODO could do proof reconstruction here with Vampire's SAT solver
+    CaDiCaL::Solver pathfinder;
+
+    // selected clauses computed from `model`
+    std::vector<unsigned> selected;
 
     for(int assigned : model) {
       if(assigned < 0)
@@ -309,62 +386,83 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
 
       auto [action, index] = matrix.demux[assigned];
       if(action == Action::SELECT) {
-        reason.push_back(-assigned);
-        selected.insert(index);
+        selected.push_back(index);
         const Copy &copy = matrix.copies[index];
+        // at least one literal from every clause
         for(unsigned i = copy.start; i < copy.end; i++)
-          final_.add(i + 1);
-        final_.add(0);
+          // variables offset by 1 as 0 unusable
+          pathfinder.add(i + 1);
+        pathfinder.add(0);
       }
       else {
         const Connection &connection = matrix.connections[index];
+        // both sides of a connection cannot be selected
         for(auto position : connection.positions)
-          final_.add(-(position + 1));
-        final_.add(0);
+          // variables offset by 1 as 0 unusable
+          pathfinder.add(-(position + 1));
+        pathfinder.add(0);
       }
     }
 
-    // no path, we're done
-    if(final_.solve() == CaDiCaL::UNSATISFIABLE)
-      return true;
+    // no path exists
+    if(pathfinder.solve() == CaDiCaL::UNSATISFIABLE)
+      return std::vector<unsigned>();
 
-    std::unordered_set<unsigned> path;
+    // read the path off pathfinder's model
+    std::vector<unsigned> path;
     for(unsigned index : selected) {
       const Copy &copy = matrix.copies[index];
       for(unsigned i = copy.start; i < copy.end; i++)
-        if(final_.val(i + 1) == i + 1) {
-          path.insert(i);
+        if(pathfinder.val(i + 1) == i + 1) {
+          path.push_back(i);
           break;
         }
     }
+    return path;
+  }
 
-    for(const Connection &connection : matrix.connections) {
-      auto [k, l] = connection.positions;
-      bool kpath = path.count(k);
-      bool lpath = path.count(l);
-      if(kpath && lpath)
-        reason.push_back(connection.var);
-      if(kpath == lpath)
-        continue;
+  // set `reason` and return true if `subpath` is a reason why we don't have a proof
+  bool compute_connection_reason(std::vector<unsigned> &subpath) {
+    ASS(reason.empty())
 
-      // exactly one position is on the path
-      bool kselected = selected.count(matrix.positions[k].copy);
-      bool lselected = selected.count(matrix.positions[l].copy);
-      ASS(kselected || lselected)
-      // exclude connections within the matrix
-      if(kselected && lselected)
-        continue;
-
-      reason.push_back(connection.var);
+    // given the copies in the subpath...
+    std::vector<unsigned> copies;
+    for(unsigned position : subpath) {
+      unsigned copy = matrix.positions[position].copy;
+      copies.push_back(copy);
+      reason.push_back(-matrix.copies[copy].var);
     }
 
-    /*
-    auto &out = log();
-    for(auto x : reason)
-      out <<  ' ' << x;
-    out << '\n';
-    */
-    return false;
+    // some element in the subpath needs to connect to *something* more
+    for(unsigned i = 0; i < subpath.size(); i++) {
+      unsigned position_index = subpath[i];
+      const Position &position = matrix.positions[position_index];
+      for(unsigned connection_index : position.connections) {
+        const Connection &connection = matrix.connections[connection_index];
+        // the other end of the connection
+        unsigned other = connection.positions[0] == position_index
+          ? connection.positions[1]
+          : connection.positions[0];
+        unsigned other_copy = matrix.positions[other].copy;
+
+        // ignore connections within the submatrix
+        if(find(copies.begin(), copies.end(), other_copy) != copies.end())
+          // but not on the subpath
+          if(find(subpath.begin() + i + 1, subpath.end(), other) == subpath.end())
+            continue;
+
+        // check that we didn't already make the connection
+        if(connection.made) {
+          reason.clear();
+          return false;
+        }
+
+        reason.push_back(connection.var);
+      }
+    }
+
+    log() << reason << '\n';
+    return true;
   }
 
   bool cb_has_external_clause() final { return !reason.empty(); }
@@ -397,13 +495,12 @@ MainLoopResult UPCoP::runImpl() {
   solver.add(0);
 
   // add connection-implies-selector constraints
-  for(const Connection &connection : matrix.connections) {
+  for(const Connection &connection : matrix.connections)
     for(unsigned position : connection.positions) {
       solver.add(-connection.var);
       solver.add(matrix.copies[matrix.positions[position].copy].var);
       solver.add(0);
     }
-  }
 
   // add fully-connected constraints
   for(const Copy &copy : matrix.copies)
@@ -415,7 +512,9 @@ MainLoopResult UPCoP::runImpl() {
     }
 
   if(solver.solve() == CaDiCaL::SATISFIABLE)
-    return Statistics::REFUTATION;
+    log() << "SZS status Theorem\n";
+  else
+    log() << "SZS status Incomplete\n";
 
   return Statistics::REFUTATION_NOT_FOUND;
 }
