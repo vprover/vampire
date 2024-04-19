@@ -211,7 +211,7 @@ void UIHelper::tryParseTPTP(istream& input)
   try {
     parser.parse();
     curPiece._units = parser.unitBuffer();
-    curPiece._hasConjecture = parser.containsConjecture();
+    curPiece._hasConjecture |= parser.containsConjecture();
   } catch (ParsingRelatedException& exception) {
     UnitList::destroy(curPiece._units.clipAtLast()); // destroy units that perhaps got already parsed
     throw;
@@ -227,7 +227,6 @@ void UIHelper::tryParseSMTLIB2(istream& input)
     Unit::onParsingEnd(); // dubious in interactiveMetamode (influences SMT goal guessing and InferenceStore::ProofPropertyPrinter)
     curPiece._units = parser.formulaBuffer();
     curPiece._smtLibLogic = parser.getLogic();
-    curPiece._hasConjecture = false;
   } catch (ParsingRelatedException& exception) {
     UnitList::destroy(curPiece._units.clipAtLast()); // destroy units that perhaps got already parsed
     throw;
