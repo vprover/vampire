@@ -2144,7 +2144,6 @@ void Options::init()
 
     _questionAnswering = ChoiceOptionValue<QuestionAnsweringMode>("question_answering","qa",QuestionAnsweringMode::OFF,
                                                                   {"plain","synthesis","off"});
-    _questionAnswering.addHardConstraint(If(equal(QuestionAnsweringMode::PLAIN)).then(_splitting.is(notEqual(true))));
     _questionAnswering.description= "Determines whether (and how) we attempt to answer questions:"
        " plain - answer-literal-based, supports disjunctive answers; synthesis - designed for sythesising programs from proofs.";
     _lookup.insert(&_questionAnswering);

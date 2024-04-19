@@ -25,6 +25,24 @@
 #include "Kernel/RCClauseStack.hpp"
 #include "Kernel/TermTransformer.hpp"
 
+#include "Inferences/InferenceEngine.hpp"
+
+namespace Inferences {
+
+/*
+* If the given clause only contains answer literals, resolved them all away
+* (formally via URR) by using the into-the-search-space-not-inserted ANSWER_LITERAL_RESOLVERs.
+* the resulting clause is empty (modulo splits, which we tolarate).
+*/
+class AnswerLiteralResolver
+: public ImmediateSimplificationEngine
+{
+public:
+  Clause* simplify(Clause* cl) override;
+};
+
+}
+
 namespace Shell {
 
 using namespace Lib;
@@ -34,6 +52,7 @@ using namespace Indexing;
 class AnswerLiteralManager
 {
 public:
+  friend class Inferences::AnswerLiteralResolver;
   /**
    * There should be at most one AnswerLiteralManager instance in the whole wide world.
    * Depending on env.options this will be
@@ -46,12 +65,12 @@ public:
 
   virtual ~AnswerLiteralManager() {}
 
-  virtual bool tryGetAnswer(Clause* refutation, Stack<Literal*>& answer);
+  virtual bool tryGetAnswer(Clause* refutation, Stack<Clause*>& answer);
 
   void addAnswerLiterals(Problem& prb);
   bool addAnswerLiterals(UnitList*& units);
 
-  virtual void onNewClause(Clause* cl);
+  virtual void onNewClause(Clause* cl) {}
 
   // The following function currently only make sense in SYNTHESIS:
   virtual Clause* recordAnswerAndReduce(Clause* cl) { return nullptr; };
@@ -80,15 +99,13 @@ private:
    */
   DHMap<unsigned, std::pair<Unit*,Literal*>> _originUnitsAndInjectedLiterals;
 
-  RCClauseStack _answers;
-
   DHMap<unsigned, Clause*> _resolverClauses;
 };
 
 class SynthesisManager : public AnswerLiteralManager
 {
 public:
-  bool tryGetAnswer(Clause* refutation, Stack<Literal*>& answer) override;
+  bool tryGetAnswer(Clause* refutation, Stack<Clause*>& answer) override;
   void onNewClause(Clause* cl) override;
 
   Clause* recordAnswerAndReduce(Clause* cl) override;

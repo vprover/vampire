@@ -20,8 +20,8 @@
 
 namespace Inferences {
 
-/*   
-* Removes clauses containing answer literals with uncomputable symbols, 
+/*
+* Removes clauses containing answer literals with uncomputable symbols,
 * as synthesized programs cannot include such symbols.
 */
 class InvalidAnswerLiteralRemoval

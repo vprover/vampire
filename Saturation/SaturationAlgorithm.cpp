@@ -1812,7 +1812,7 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     }
 
     if (env.options->pushUnaryMinus()) {
-      res->addFront(new PushUnaryMinus()); 
+      res->addFront(new PushUnaryMinus());
     }
 
   }
@@ -1825,8 +1825,11 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
   }
   res->addFront(new DuplicateLiteralRemovalISE());
 
-  if (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS)
-     res->addFront(new InvalidAnswerLiteralRemoval());
+  if (env.options->questionAnswering() == Options::QuestionAnsweringMode::PLAIN) {
+    res->addFront(new AnswerLiteralResolver());
+  } else if (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) {
+    res->addFront(new InvalidAnswerLiteralRemoval());
+  }
   return res;
 }
 

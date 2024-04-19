@@ -40,6 +40,24 @@
 
 #include "AnswerLiteralManager.hpp"
 
+static bool isProperAnswerClause(Clause* cl) {
+  return !cl->isEmpty() && forAll(cl->iterLits(),[] (Literal* l) { return l->isAnswerLiteral(); } );
+}
+
+namespace Inferences
+{
+
+Clause* AnswerLiteralResolver::simplify(Clause* cl)
+{
+  if (isProperAnswerClause(cl)) {
+    return AnswerLiteralManager::getInstance()->getRefutation(cl);
+  }
+  return cl;
+}
+
+}
+
+
 namespace Shell
 {
 
@@ -127,7 +145,7 @@ TermList AnswerLiteralManager::possiblyEvaluateAnswerTerm(TermList aT)
 
 void AnswerLiteralManager::tryOutputAnswer(Clause* refutation)
 {
-  Stack<Literal*> answer;
+  Stack<Clause*> answer;
 
   if (!getInstance()->tryGetAnswer(refutation, answer)) {
     return;
@@ -136,29 +154,53 @@ void AnswerLiteralManager::tryOutputAnswer(Clause* refutation)
   if (answer.size() > 1) {
     std::cout << "(";
   }
-  Stack<Literal*>::BottomFirstIterator ait(answer);
-  while(ait.hasNext()) {
-    Literal* aLit = ait.next();
-    std::cout << "[";
-    unsigned arity = aLit->arity();
-
-    Map<int,vstring>* questionVars = 0;
-    std::pair<Unit*,Literal*> unitAndLiteral;
-    if (_originUnitsAndInjectedLiterals.find(aLit->functor(),unitAndLiteral)) {
-      questionVars = Parse::TPTP::findQuestionVars(unitAndLiteral.first->number());
-    }
-
-    for(unsigned i=0; i<arity; i++) {
-      if(i > 0) {
-        std::cout << ',';
+  Stack<Clause*>::BottomFirstIterator aIt(answer);
+  while(aIt.hasNext()) {
+    Clause* aCl = aIt.next();
+    auto varIt = aCl->getVariableIterator();
+    if (varIt.hasNext()) {
+      cout << "∀";
+      while(varIt.hasNext()) {
+        cout << TermList(varIt.next(),false).toString();
+        if (varIt.hasNext()) {
+          cout << ",";
+        }
       }
-      if (questionVars) {
-        cout << questionVars->get(unitAndLiteral.second->nthArgument(i)->var()) << "->";
-      }
-      std::cout << possiblyEvaluateAnswerTerm(*aLit->nthArgument(i));
+      cout << ".";
     }
-    std::cout << "]";
-    if(ait.hasNext()) {
+    if (aCl->size() > 1) {
+      cout << "(";
+    }
+    auto lIt = aCl->iterLits();
+    while (lIt.hasNext()) {
+      Literal* aLit = lIt.next();
+      std::cout << "[";
+      unsigned arity = aLit->arity();
+
+      Map<int,vstring>* questionVars = 0;
+      std::pair<Unit*,Literal*> unitAndLiteral;
+      if (_originUnitsAndInjectedLiterals.find(aLit->functor(),unitAndLiteral)) {
+        questionVars = Parse::TPTP::findQuestionVars(unitAndLiteral.first->number());
+      }
+
+      for(unsigned i=0; i<arity; i++) {
+        if(i > 0) {
+          std::cout << ',';
+        }
+        if (questionVars) {
+          cout << questionVars->get(unitAndLiteral.second->nthArgument(i)->var()) << "->";
+        }
+        std::cout << possiblyEvaluateAnswerTerm(*aLit->nthArgument(i));
+      }
+      std::cout << "]";
+      if(lIt.hasNext()) {
+        std::cout << "|";
+      }
+    }
+    if (aCl->size() > 1) {
+      cout << ")";
+    }
+    if(aIt.hasNext()) {
       std::cout << "|";
     }
   }
@@ -168,16 +210,48 @@ void AnswerLiteralManager::tryOutputAnswer(Clause* refutation)
   std::cout << "|_] for " << env.options->problemName() << endl;
 }
 
-bool AnswerLiteralManager::tryGetAnswer(Clause* refutation, Stack<Literal*>& answer)
+static bool pushFirstPremiseToAnswerIfFromResolver(Inference& inf, Stack<Clause*>& answer)
 {
-  RCClauseStack::Iterator cit(_answers);
-  while(cit.hasNext()) {
-    auto it = cit.next()->iterLits();
-    while(it.hasNext()) {
-      answer.push(it.next());
+  if (inf.rule() == InferenceRule::UNIT_RESULTING_RESOLUTION) {
+    auto it = inf.iterator();
+    ASS(inf.hasNext(it));
+    Clause* firstParent = inf.next(it)->asClause();
+    // cout << firstParent->toNiceString() << endl;
+    if (isProperAnswerClause(firstParent)) {
+      answer.push(firstParent);
+      return true;
     }
-    return true;
   }
+  return false;
+}
+
+bool AnswerLiteralManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer)
+{
+  ASS(refutation->isEmpty());
+
+  Inference& inf = refutation->inference();
+  inf.minimizePremises();
+
+  if (pushFirstPremiseToAnswerIfFromResolver(inf,answer)) {
+    return true;
+  } else if (inf.rule() == InferenceRule::AVATAR_REFUTATION) {
+    bool added = false;
+    auto it = inf.iterator();
+    while (inf.hasNext(it)) {
+      Unit* prem = inf.next(it);
+      Inference& inf2 = prem->inference();
+      if (inf2.rule() == InferenceRule::AVATAR_CONTRADICTION_CLAUSE) {
+        auto it2 = inf2.iterator();
+        Unit* anEmpty = inf2.next(it2);
+        ASS(!inf2.hasNext(it2));
+        Inference& inf3 = anEmpty->inference();
+        added |= pushFirstPremiseToAnswerIfFromResolver(inf3,answer);
+      }
+    }
+    return added;
+  }
+  // currently does nothing for AVATAR_REFUTATION_SMT (which does not get minimized)
+
   return false;
 }
 
@@ -225,26 +299,6 @@ Unit* AnswerLiteralManager::createUnitFromConjunctionWithAnswerLiteral(Formula* 
   return new FormulaUnit(f, FormulaTransformation(InferenceRule::ANSWER_LITERAL_INJECTION, originalUnit));
 }
 
-void AnswerLiteralManager::onNewClause(Clause* cl)
-{
-  if(!cl->noSplits() || cl->isEmpty()) {
-    return;
-  }
-
-  unsigned clen = cl->length();
-  for(unsigned i=0; i<clen; i++) {
-    Literal* lit = (*cl)[i];
-    if(!lit->isAnswerLiteral()) {
-      return;
-    }
-  }
-
-  _answers.push(cl);
-
-  Clause* refutation = getRefutation(cl);
-  throw MainLoop::RefutationFoundException(refutation);
-}
-
 Clause* AnswerLiteralManager::getResolverClause(unsigned pred)
 {
   Clause* res;
@@ -273,12 +327,14 @@ Clause* AnswerLiteralManager::getRefutation(Clause* answer)
 {
   unsigned clen = answer->length();
   UnitList* premises = 0;
-  UnitList::push(answer, premises);
 
   for(unsigned i=0; i<clen; i++) {
     Clause* resolvingPrem = getResolverClause((*answer)[i]->functor());
     UnitList::push(resolvingPrem, premises);
   }
+
+  // finally, put in the actual answer clause (for an easier retrieval later)
+  UnitList::push(answer, premises);
 
   Clause* refutation = Clause::fromIterator(LiteralIterator::getEmpty(),
       GeneratingInferenceMany(InferenceRule::UNIT_RESULTING_RESOLUTION, premises));
@@ -318,7 +374,7 @@ void SynthesisManager::getNeededUnits(Clause* refutation, ClauseStack& premiseCl
   }
 }
 
-bool SynthesisManager::tryGetAnswer(Clause* refutation, Stack<Literal*>& answer)
+bool SynthesisManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer)
 {
   if (!_lastAnsLit && AnsList::isEmpty(_answerPairs)) {
     return false;
@@ -363,7 +419,9 @@ bool SynthesisManager::tryGetAnswer(Clause* refutation, Stack<Literal*>& answer)
     }
   }
   // just a single literal answer
-  answer.push(Literal::create(origLit,answerArgs.begin()));
+  Clause* answerCl = new (1) Clause(1, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::INPUT));
+  (*answerCl)[0] = Literal::create(origLit,answerArgs.begin());
+  answer.push(answerCl);
   return true;
 }
 
