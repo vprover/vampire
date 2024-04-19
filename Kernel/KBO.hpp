@@ -156,17 +156,16 @@ public:
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
 
-  // exposed for unit testing
+  Result compare(AppliedTerm&& t1, AppliedTerm&& t2) const override;
+  bool isGreater(AppliedTerm&& t1, AppliedTerm&& t2) const override;
+
+protected:
   Result isGreaterOrEq(AppliedTerm&& tt1, AppliedTerm&& tt2) const;
   unsigned computeWeight(const AppliedTerm& tt) const;
 
-  bool isGreater(AppliedTerm&& lhs, AppliedTerm&& rhs) const override;
-
-protected:
   Result comparePredicates(Literal* l1, Literal* l2) const override;
 
   class State;
-  class StateGreater;
 
   // int functionSymbolWeight(unsigned fun) const;
   int symbolWeight(const Term* t) const;
@@ -189,7 +188,6 @@ private:
    * State used for comparing terms and literals
    */
   mutable State* _state;
-  mutable StateGreater* _stateGt;
 };
 
 }

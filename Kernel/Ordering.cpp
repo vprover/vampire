@@ -292,6 +292,11 @@ bool Ordering::containsVar(const AppliedTerm& s, TermList var)
   return false;
 }
 
+Ordering::Result Ordering::compare(AppliedTerm&& lhs, AppliedTerm&& rhs) const
+{
+  NOT_IMPLEMENTED;
+}
+
 bool Ordering::isGreater(AppliedTerm&& lhs, AppliedTerm&& rhs) const
 {
   NOT_IMPLEMENTED;
