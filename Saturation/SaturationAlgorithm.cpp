@@ -934,18 +934,10 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
       // this is a poor way of handling this in release mode but it prevents unsound proofs
       throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
     }
-    
-
-    // Global Subsumption doesn't set the input type the way we want so we can't do this for now
-    // TODO think of a better fix
-    //if(cl->inputType() == UnitInputType::AXIOM){
-    if(UIHelper::haveConjecture() && !cl->derivedFromGoalCheck()){
-      UIHelper::setConjectureInProof(false);
-    }
 
     throw RefutationFoundException(cl);
   }
-  // as Clauses no longer have prop parts the only reason for an empty 
+  // as Clauses no longer have prop parts the only reason for an empty
   // clause not being a refutation is if it has splits
 
   if (_splitter && _splitter->handleEmptyClause(cl)) {
