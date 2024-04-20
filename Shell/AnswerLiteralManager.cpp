@@ -147,7 +147,7 @@ void AnswerLiteralManager::tryOutputAnswer(Clause* refutation)
 {
   Stack<Clause*> answer;
 
-  if (!getInstance()->tryGetAnswer(refutation, answer)) {
+  if (!tryGetAnswer(refutation, answer)) {
     return;
   }
   std::cout << "% SZS answers Tuple [";
