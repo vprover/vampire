@@ -2146,6 +2146,7 @@ void Options::init()
                                                                   {"plain","synthesis","off"});
     _questionAnswering.description= "Determines whether (and how) we attempt to answer questions:"
        " plain - answer-literal-based, supports disjunctive answers; synthesis - designed for sythesising programs from proofs.";
+    _questionAnswering.addHardConstraint(If(notEqual(QuestionAnsweringMode::OFF)).then(ProperSaturationAlgorithm()));
     _lookup.insert(&_questionAnswering);
     _questionAnswering.tag(OptionTag::OTHER);
 
