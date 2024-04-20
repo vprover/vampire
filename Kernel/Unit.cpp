@@ -217,34 +217,6 @@ bool Unit::derivedFromInput() const
   return false;
 }
 
-typedef List<Inference*> InferenceList;
-
-// TODO this could be more efficient. Although expected cost is log(n) where n is length of proof
-bool Unit::derivedFromGoalCheck() const
-{
-  // Breadth-first search of derivation - it's likely that we'll hit a goal-related node
-  // close to the refutation... unless it doesn't exist of course
-  InferenceList* todo = InferenceList::empty();
-  Set<Inference*> seen;
-  InferenceList::push(&const_cast<Inference&>(_inference),todo);
-  while(!InferenceList::isEmpty(todo)){
-    Inference* inf = InferenceList::pop(todo);
-    if(inf->derivedFromGoal()) {
-      return true;
-    }
-    Inference::Iterator it = inf->iterator();
-    while(inf->hasNext(it)){ 
-      Inference* ninf = &inf->next(it)->inference();
-      if(!seen.contains(ninf)){
-       InferenceList::push(ninf,todo); 
-       seen.insert(ninf);
-      }
-    }
-  }
-
-  return false;
-}
-
 std::ostream& Kernel::operator<<(ostream& out, const Unit& u)
 {
   return out << u.toString();

@@ -920,6 +920,13 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
   if (isRefutation(cl)) {
     onNonRedundantClause(cl);
 
+    // TODO: these two checks below don't capture every refutation and should potentially be extended (by moving elsewhere)
+    // In particular, AVATAR, Global Subsumpiton's final empty clause, etc. are not covered!
+    // Note that before such checks are preformed, ideally, we should SAT-minimize the proof
+    // (i.e., making sure that the global subsumption inferences do not contain needlessly too many premises
+    // and the same would apply to the AVATAR ones, should we decided to cover them too)
+    // Note also that proof minimization requires a subsequent update for the relevant fields in inferences
+    // (most notably _isPureTheoryDescendant, but a cheaper check for derivedFromInput could be devised along similar lines).
     if(cl->isPureTheoryDescendant()) {
       ASSERTION_VIOLATION_REP("A pure theory descendant is empty, which means theory axioms are inconsistent");
       reportSpiderFail();
