@@ -153,20 +153,17 @@ Formula* Unit::getFormula()
 vstring Unit::inferenceAsString() const
 {
 #if 1
-  InferenceStore& infS = *InferenceStore::instance();
+  const Inference& inf = inference();
 
-  InferenceRule rule;
-  UnitIterator parents;
-  Unit* us = const_cast<Unit*>(this);
-  parents = infS.getParents(us, rule);
-
-  vstring result = (vstring)"[" + us->inference().name();
+  vstring result = (vstring)"[" + inf.name();
   bool first = true;
-  while (parents.hasNext()) {
-    Unit* parent = parents.next();
+
+  auto it = inf.iterator();
+  while (inf.hasNext(it)) {
+    Unit* parent = inf.next(it);
     result += first ? ' ' : ',';
     first = false;
-    result += infS.getUnitIdStr(parent);
+    result += Int::toString(parent->number());
   }
   // print Extra
   vstring extra;
@@ -203,8 +200,8 @@ bool Unit::derivedFromInput() const
 {
   // Depth-first search of derivation - it's likely that we'll hit an input clause as soon
   // as we hit the top
-  Stack<Inference*> todo; 
-  todo.push(&const_cast<Inference&>(_inference)); 
+  Stack<Inference*> todo;
+  todo.push(&const_cast<Inference&>(_inference));
   while(!todo.isEmpty()){
     Inference* inf = todo.pop();
     if(inf->rule() == InferenceRule::INPUT){
@@ -215,6 +212,19 @@ bool Unit::derivedFromInput() const
   }
 
   return false;
+}
+
+UnitIterator Unit::getParents() const
+{
+  // The unit itself stores the inference
+  UnitList* res = 0;
+  Inference::Iterator iit = _inference.iterator();
+  while(_inference.hasNext(iit)) {
+    Unit* premUnit = _inference.next(iit);
+    UnitList::push(premUnit, res);
+  }
+  res = UnitList::reverse(res); // we want items in the same order
+  return pvi(UnitList::DestructiveIterator(res));
 }
 
 std::ostream& Kernel::operator<<(ostream& out, const Unit& u)

@@ -62,20 +62,6 @@ void InferenceStore::FullInference::increasePremiseRefCounters()
   }
 }
 
-
-
-InferenceStore::InferenceStore()
-{
-}
-
-vstring InferenceStore::getUnitIdStr(Unit* cs)
-{
-  if (!cs->isClause()) {
-    return Int::toString(cs->number());
-  }
-  return Int::toString(cs->number());
-}
-
 /**
  * Records informations needed for outputting proofs of general splitting
  */
@@ -131,15 +117,6 @@ UnitIterator InferenceStore::getParents(Unit* us, InferenceRule& rule)
   rule = inf.rule();
   res = UnitList::reverse(res); //we want items in the same order
   return pvi(UnitList::DestructiveIterator(res));
-}
-
-/**
- * Get parents where we do not care about the generating rule
- */
-UnitIterator InferenceStore::getParents(Unit* us)
-{
-  InferenceRule aux;
-  return getParents(us, aux);
 }
 
 /**
@@ -354,7 +331,7 @@ protected:
       out << cl->toString() << vstring("\n");
     }
     else {
-      out << _is->getUnitIdStr(cs) << ". ";
+      out << Int::toString(cs->number()) << ". ";
       FormulaUnit* fu=static_cast<FormulaUnit*>(cs);
       if (env.colorUsed && fu->inheritedColor() != COLOR_INVALID) {
         out << " IC" << fu->inheritedColor() << " ";
@@ -375,7 +352,7 @@ protected:
       while(parents.hasNext()) {
         Unit* prem=parents.next();
         out << (first ? ' ' : ',');
-        out << _is->getUnitIdStr(prem);
+        out << Int::toString(prem->number());
         first=false;
       }
       out << "]" << endl;
@@ -558,7 +535,7 @@ protected:
 
   vstring tptpUnitId(Unit* us)
   {
-    return unitIdToTptp(_is->getUnitIdStr(us));
+    return unitIdToTptp(Int::toString(us->number()));
   }
 
   vstring tptpDefId(Unit* us)
@@ -884,19 +861,19 @@ protected:
     UIHelper::outputSymbolDeclarations(out);
 
     vstring kind = "fof";
-    if(env.getMainProblem()->hasNonDefaultSorts()){ kind="tff"; } 
+    if(env.getMainProblem()->hasNonDefaultSorts()){ kind="tff"; }
     if(env.getMainProblem()->isHigherOrder()){ kind="thf"; }
 
     out << kind
-        << "(r"<<_is->getUnitIdStr(cs)
+        << "(r"<< Int::toString(cs->number())
     	<< ",conjecture, "
     	<< getQuantifiedStr(cs)
     	<< " ). %"<<ruleName(rule)<<"\n";
 
     while(parents.hasNext()) {
       Unit* prem=parents.next();
-      out << kind 
-        << "(pr"<<_is->getUnitIdStr(prem)
+      out << kind
+        << "(pr"<<Int::toString(prem->number())
   	<< ",axiom, "
   	<< getQuantifiedStr(prem);
       out << " ).\n";

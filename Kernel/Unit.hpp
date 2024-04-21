@@ -91,6 +91,9 @@ public:
   /** true if the unit is read from a TPTP included file  */
   bool included() const { return _inference.included(); }
 
+  /** This is just a more convenient (but also less efficient) way
+   * for accessing the unit's parents than using its inferefence's iterator. */
+  UnitIterator getParents() const;
 
   /** Return the inherited color of the unit or COLOR_INVALID
    * if there isn't an inherited color.

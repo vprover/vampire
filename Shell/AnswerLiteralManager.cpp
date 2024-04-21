@@ -347,8 +347,6 @@ Clause* AnswerLiteralManager::getRefutation(Clause* answer)
 
 void SynthesisManager::getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits)
 {
-  InferenceStore& is = *InferenceStore::instance();
-
   Stack<Unit*> toDo;
   toDo.push(refutation);
 
@@ -357,18 +355,19 @@ void SynthesisManager::getNeededUnits(Clause* refutation, ClauseStack& premiseCl
     if(!allProofUnits.insert(curr)) {
       continue;
     }
-    InferenceRule infRule;
-    UnitIterator parents = is.getParents(curr, infRule);
+    Inference& inf = curr->inference();
+    InferenceRule infRule = inf.rule();
     if(infRule==InferenceRule::NEGATED_CONJECTURE) {
       conjectures.push(curr);
     }
     if(infRule==InferenceRule::CLAUSIFY ||
-	(curr->isClause() && (infRule==InferenceRule::INPUT || infRule==InferenceRule::NEGATED_CONJECTURE )) ){
+	    (curr->isClause() && (infRule==InferenceRule::INPUT || infRule==InferenceRule::NEGATED_CONJECTURE )) ){
       ASS(curr->isClause());
       premiseClauses.push(curr->asClause());
     }
-    while(parents.hasNext()) {
-      Unit* premise = parents.next();
+    auto it = inf.iterator();
+    while(inf.hasNext(it)) {
+      Unit* premise = inf.next(it);
       toDo.push(premise);
     }
   }
@@ -661,7 +660,7 @@ TermList SynthesisManager::ConjectureSkolemReplacement::transformTermList(TermLi
             if (!env.signature->tryGetFunctionNumber(name, 0, czfn)) {
               czfn = env.signature->addFreshFunction(0, name.c_str());
               env.signature->getFunction(czfn)->setType(OperatorType::getConstantsType(sort));
-            } 
+            }
             TermList res(Term::createConstant(czfn));
             s.bind(v, res);
           }
