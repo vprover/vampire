@@ -436,6 +436,299 @@ bool LPO::majo_gt(AppliedTermLPO<Applicator> s, TermList* tl, unsigned arity, bo
   return true;
 }
 
+
+struct ComparisonNode {
+  ComparisonNode() = default;
+  ComparisonNode(Ordering::Result t, TermList lhs, TermList rhs) : type(t), lhs(lhs), rhs(rhs) {}
+
+  Ordering::Result type;
+  TermList lhs;
+  TermList rhs;
+  Vector<ComparisonNode>* alternative = nullptr;
+};
+
+using CompVec = Vector<ComparisonNode>;
+using CompStack = Stack<ComparisonNode>;
+
+vstring typeToString(Ordering::Result t) {
+  switch(t) {
+    case Ordering::GREATER:
+      return ">";
+    // case ComparisonNode::GE:
+    //   return ">=";
+    case Ordering::EQUAL:
+      return "=";
+    default:
+      ASSERTION_VIOLATION;
+  }
+}
+
+ostream& operator<<(ostream& out, const ComparisonNode& n) {
+  out << n.lhs << " " << typeToString(n.type) << " " << n.rhs;
+  return out;
+}
+
+void outputComparisons(Vector<ComparisonNode>* root)
+{
+  static Stack<tuple<Vector<ComparisonNode>*,unsigned,unsigned>> todo;
+  todo.push(make_tuple(root,0,0));
+
+  while(todo.isNonEmpty()) {
+    auto [vec,index,depth] = todo.pop();
+    auto curr = (*vec)[index];
+
+    if (curr.alternative) {
+      todo.push(make_tuple(curr.alternative,0,depth+1));
+    }
+    if (index+1 < vec->length()) {
+      todo.push(make_tuple(vec,index+1,depth));
+    }
+    for (unsigned i = 0; i < depth; i++) {
+      cout << "  ";
+    }
+    cout << curr << endl;
+  }
+}
+
+void replaceWithChain(const CompStack& chain, CompVec*& ptr, unsigned index)
+{
+  // cout << "replaceWithChain" << endl;
+  // for (const auto& n : chain) {
+  //   cout << n << endl;
+  // }
+  // cout << endl;
+  ASS(ptr);
+  ASS_L(index,ptr->length());
+  auto newptr = CompVec::allocate(chain.size()+ptr->length()-1);
+  for (unsigned j = 0; j < index; j++) {
+    (*newptr)[j] = (*ptr)[j];
+  }
+  for (unsigned j = 0; j < chain.size(); j++) {
+    (*newptr)[j+index] = chain[j];
+  }
+  for (unsigned j = index+1; j < ptr->length(); j++) {
+    (*newptr)[j+chain.size()] = (*ptr)[j];
+  }
+  ptr->deallocate();
+  ptr = newptr;
+}
+
+void incorporateChain(const CompStack& chain, CompVec*& ptr)
+{
+  // cout << "incorporateChain" << endl;
+  // for (const auto& n : chain) {
+  //   cout << n << endl;
+  // }
+  // cout << endl;
+  ASS(!ptr);
+  ptr = CompVec::allocate(chain.size());
+  for (unsigned i = 0; i < chain.size(); i++) {
+    (*ptr)[i] = chain[i];
+  }
+}
+
+void deallocateSubtrees(CompVec*& ptr, unsigned index)
+{
+  Stack<CompVec*> todo;
+  for (unsigned i = index; i < ptr->length(); i++) {
+    todo.push((*ptr)[i].alternative);
+  }
+  while (todo.isNonEmpty()) {
+    auto curr = todo.pop();
+    if (!curr) {
+      continue;
+    }
+    for (unsigned i = 0; i < curr->length(); i++) {
+      todo.push((*curr)[i].alternative);
+    }
+    curr->deallocate();
+  }
+}
+
+void removeFalseElement(CompVec*& ptr, unsigned index)
+{
+  int prevAltIndex = -1;
+  for (int i = index; i >= 0; i--) {
+    if ((*ptr)[i].alternative) {
+      prevAltIndex = i;
+      break;
+    }
+  }
+  // cout << "prevAltIndex " << prevAltIndex << endl;
+  if (prevAltIndex == -1) {
+    // no alternative, delete entire vector
+    deallocateSubtrees(ptr, 0);
+    ptr->deallocate();
+    ptr = nullptr;
+  } else {
+    deallocateSubtrees(ptr, prevAltIndex+1);
+    auto other = (*ptr)[prevAltIndex].alternative;
+    ASS(other);
+    auto newSize = max(prevAltIndex+other->length(),ptr->length());
+    // cout << "newSize " << newSize << endl;
+    if (newSize > ptr->length()) {
+      auto newPtr = CompVec::allocate(newSize);
+      for (unsigned i = 0; i < prevAltIndex; i++) {
+        (*newPtr)[i] = (*ptr)[i];
+      }
+      ptr->deallocate();
+      ptr = newPtr;
+    }
+    for (unsigned i = 0; i < other->length(); i++) {
+      (*ptr)[prevAltIndex+i] = (*other)[i];
+    }
+    other->deallocate();
+  }
+}
+
+void LPO::preprocessComparison(TermList tl1, TermList tl2) const
+{
+  cout << "preprocessing " << tl1 << " > " << tl2 << endl;
+
+  auto rootVec = CompVec::allocate(1);
+  (*rootVec)[0] = ComparisonNode(GREATER, tl1, tl2);
+  // stack of (chain, index) pairs
+  Stack<reference_wrapper<CompVec*>> todo;
+  todo.push(ref(rootVec));
+
+  while (todo.isNonEmpty()) {
+    auto vec = todo.pop();
+    for (unsigned index = 0; index < (*vec).length();) {
+      // cout << "index " << index << " " << (*vec).length() << endl;
+      auto curr = (*vec)[index];
+      // cout << "subcase " << curr.lhs << " " << typeToString(curr.type) << " " << curr.rhs << endl;
+      auto comp = compare(curr.lhs,curr.rhs);
+      if (comp != INCOMPARABLE) {
+        if (comp != curr.type) {
+          // cout << "removing" << endl;
+          removeFalseElement(vec, index);
+          // cout << "after removal" << endl;
+          // outputComparisons(rootVec);
+          // cout << endl;
+          if (!vec) {
+            break;
+          }
+        } else {
+          // remove true element
+          index++;
+        }
+        continue;
+      }
+      if (curr.lhs.isVar() || curr.rhs.isVar()) {
+        // cout << "compare " << curr.lhs << " " << curr.rhs << endl;
+        index++;
+        continue;
+      }
+      auto s = curr.lhs.term();
+      auto t = curr.rhs.term();
+
+      if (curr.type==EQUAL) {
+        if (s->functor()==t->functor()) {
+          Stack<ComparisonNode> chain;
+          for (unsigned i = 0; i < s->arity(); i++) {
+            chain.push(ComparisonNode(EQUAL,*s->nthArgument(i),*t->nthArgument(i)));
+          }
+          replaceWithChain(chain, vec, index);
+        } else {
+          removeFalseElement(vec, index);
+          if (!vec) {
+            break;
+          }
+        }
+      } else {
+        auto currVec = vec;
+        auto currIndex = index;
+        switch (comparePrecedences(s, t)) {
+          case EQUAL: {
+            // cout << "lexMAE" << endl;
+            ASS(s->arity()); // constants cannot be incomparable
+
+            // lexicographic comparisons
+            for (unsigned i = 0; i < s->arity(); i++) {
+              Stack<ComparisonNode> chain;
+              for (unsigned j = 0; j < i; j++) {
+                chain.push(ComparisonNode(EQUAL,*s->nthArgument(j),*t->nthArgument(j)));
+              }
+              chain.push(ComparisonNode(GREATER,*s->nthArgument(i),*t->nthArgument(i)));
+              for (unsigned j = i+1; j < s->arity(); j++) {
+                chain.push(ComparisonNode(GREATER,curr.lhs,*t->nthArgument(j)));
+              }
+
+              if (i==0) {
+                replaceWithChain(chain, currVec, currIndex);
+              } else {
+                incorporateChain(chain, (*currVec)[currIndex].alternative);
+                currVec = (*currVec)[currIndex].alternative;
+                currIndex = 0;
+              }
+            }
+            // alpha comparisons
+            for (unsigned i = 0; i < s->arity(); i++) {
+              Stack<ComparisonNode> chain;
+              chain.push(ComparisonNode(GREATER,*s->nthArgument(i),curr.rhs));
+              incorporateChain(chain, (*currVec)[currIndex].alternative);
+              currVec = (*currVec)[currIndex].alternative;
+              currIndex = 0;
+
+              chain.reset();
+              chain.push(ComparisonNode(EQUAL,*s->nthArgument(i),curr.rhs));
+              incorporateChain(chain, (*currVec)[currIndex].alternative);
+              currVec = (*currVec)[currIndex].alternative;
+              currIndex = 0;
+            }
+            break;
+          }
+          case GREATER: {
+            // cout << "majo" << endl;
+            Stack<ComparisonNode> chain;
+            for (unsigned i = 0; i < s->arity(); i++) {
+              chain.push(ComparisonNode(GREATER,curr.lhs,*t->nthArgument(i)));
+            }
+            replaceWithChain(chain, currVec, currIndex);
+            break;
+          }
+          default: {
+            // cout << "alpha" << endl;
+            for (unsigned i = 0; i < s->arity(); i++) {
+              Stack<ComparisonNode> chain;
+              chain.push(ComparisonNode(GREATER,*s->nthArgument(i),curr.rhs));
+
+              if (i==0) {
+                replaceWithChain(chain, currVec, currIndex);
+              } else {
+                incorporateChain(chain, (*currVec)[currIndex].alternative);
+                currVec = (*currVec)[currIndex].alternative;
+                currIndex = 0;
+              }
+
+              chain.reset();
+              chain.push(ComparisonNode(EQUAL,*s->nthArgument(i),curr.rhs));
+              incorporateChain(chain, (*currVec)[currIndex].alternative);
+              currVec = (*currVec)[currIndex].alternative;
+              currIndex = 0;
+            }
+            break;
+          }
+        }
+      }
+      // outputComparisons(rootVec);
+      // cout << endl;
+    }
+    if (!vec) {
+      continue;
+    }
+    for (unsigned index = 0; index < (*vec).length(); index++) {
+      if ((*vec)[index].alternative) {
+        todo.push(ref((*vec)[index].alternative));
+      }
+    }
+  }
+  outputComparisons(rootVec);
+  cout << endl;
+}
+
+
+
 void LPO::showConcrete(ostream&) const 
 { /* lpo is fully defined by the precedence relation */ }
 

@@ -86,6 +86,7 @@ public:
   void showConcrete(std::ostream&) const override;
 
   bool isGreater(TermList lhs, TermList rhs, const std::function<TermList(TermList)>& applicator) const override;
+  void preprocessComparison(TermList tl1, TermList tl2) const;
 
 protected:
   [[nodiscard]] Result comparePredicates(Literal* l1, Literal* l2) const override;
