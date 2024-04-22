@@ -78,8 +78,6 @@ public:
   void outputProof(std::ostream& out, UnitList* units);
 
 private:
-  UnitIterator getParents(Unit* us, InferenceRule& rule);
-
   struct ProofPrinter;
   struct TPTPProofPrinter;
   struct ProofCheckPrinter;

@@ -230,8 +230,6 @@ bool AnswerLiteralManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answ
   ASS(refutation->isEmpty());
 
   Inference& inf = refutation->inference();
-  inf.minimizePremises();
-
   if (pushFirstPremiseToAnswerIfFromResolver(inf,answer)) {
     return true;
   } else if (inf.rule() == InferenceRule::AVATAR_REFUTATION) {
