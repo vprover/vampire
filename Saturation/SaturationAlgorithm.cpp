@@ -1644,12 +1644,10 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     if (opt.forwardSubsumptionResolution()) {
       ForwardSubsumptionAndResolution* fwd = new ForwardSubsumptionAndResolution(true);
       res->addForwardSimplifierToFront(fwd);
-      cout << endl;
     }
     else {
       ForwardSubsumptionAndResolution* fwd = new ForwardSubsumptionAndResolution(false);
       res->addForwardSimplifierToFront(fwd);
-      cout << endl;
     }
   }
   else if (opt.forwardSubsumptionResolution()) {

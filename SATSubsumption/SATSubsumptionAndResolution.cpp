@@ -22,7 +22,7 @@
    * - 2024: "SAT Solving for Variants of First-Order Subsumption" by Robin Coutelier, Jakob Rath,
    *         Michael Rawson, Armin Biere and Laura Kovács
    *
-   * Note that in this implementation, we removed the indirect encoding for subumption resolution
+   * Note that in this implementation, we removed the indirect encoding for subsumption resolution
    * because it does not bring a significant improvement.
    * The indirect encoding described in "SAT Solving for Variants of First-Order Subsumption" was
    * improved by ignoring the cⱼ variables for which there exists only b⁻ᵢⱼ variables. This reduces
