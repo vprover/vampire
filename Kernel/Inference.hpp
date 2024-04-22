@@ -954,7 +954,7 @@ public:
   void setProxyAxiomsDescendant(bool val) { _proxyAxiomsDescendant=val; }
 
   bool isHolAxiomsDescendant() const { return _holAxiomsDescendant; }
-  void setHolAxiomsDescendant(bool val) { _holAxiomsDescendant=val; }  
+  void setHolAxiomsDescendant(bool val) { _holAxiomsDescendant=val; }
 
   unsigned inductionDepth() const { return _inductionDepth; }
   void setInductionDepth(unsigned d) { _inductionDepth = d; }

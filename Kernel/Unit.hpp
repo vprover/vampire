@@ -84,10 +84,6 @@ public:
   /** see isTheoryAxiom in Inference.cpp */
   bool isTheoryAxiom() const { return _inference.isTheoryAxiom(); }
 
-  /** return true if there is an input node in the deriviation
-   * (Note: better call this only after derivation mimization). */
-  bool derivedFromInput() const;
-
   unsigned char getSineLevel() const { return _inference.getSineLevel(); }
   /** true if the unit is read from a TPTP included file  */
   bool included() const { return _inference.included(); }
@@ -103,9 +99,11 @@ public:
    * however, it pays off to call this anyway, to correctly set any required stats in the inference objects.)
    *
    * Could be extended further if more stats provided by the inference tree should be found
-   * to require some final touches before proof printing. Currently, we care about the InputType and the induction stats.
+   * to require some final touches before proof printing. Currently, we care about the InputType, the induction stats, and _isPureTheoryDescendant.
+   *
+   * returns true if the minimized tree traversal observed an INPUT inference (to facilitate a certain sanity check later).
   */
-  void minimizeAncestorsAndUpdateSelectedStats();
+  bool minimizeAncestorsAndUpdateSelectedStats();
 
   /** Return the inherited color of the unit or COLOR_INVALID
    * if there isn't an inherited color.

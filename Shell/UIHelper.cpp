@@ -450,7 +450,7 @@ void UIHelper::outputResult(ostream& out)
      *
      * Also induction statistics deserve to be correct even if we don't print a proof.
      */
-    refutation->minimizeAncestorsAndUpdateSelectedStats();
+    bool seenInputInference = refutation->minimizeAncestorsAndUpdateSelectedStats();
     // minimization might have cause inductionDepth to change (in fact, decrease)
     env.statistics->maxInductionDepth = refutation->inference().inductionDepth();
 
@@ -508,6 +508,18 @@ void UIHelper::outputResult(ostream& out)
 
       LaTeX formatter;
       latexOut << formatter.refutationToString(refutation);
+    }
+
+    // the following two sanity checks are performed only after the proof printing, so we can also have a look at the proof, when we get a report back
+
+    if(refutation->isPureTheoryDescendant()) {
+      INVALID_OPERATION("A pure theory descendant is empty, which means theory axioms are inconsistent.");
+      break;
+    }
+
+    if(!seenInputInference){
+      INVALID_OPERATION("The proof does not contain any input formulas.");
+      break;
     }
 
     ASS(!s_expecting_sat);

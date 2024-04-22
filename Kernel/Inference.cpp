@@ -336,7 +336,7 @@ void Inference::init2(InferenceRule r, Unit* premise1, Unit* premise2)
   computeTheoryRunningSums();
   _isPureTheoryDescendant = premise1->isPureTheoryDescendant() && premise2->isPureTheoryDescendant();
   _combAxiomsDescendant = premise1->isCombAxiomsDescendant() && premise2->isCombAxiomsDescendant() ;
-  _proxyAxiomsDescendant = premise1->isProxyAxiomsDescendant() && premise2->isProxyAxiomsDescendant();  
+  _proxyAxiomsDescendant = premise1->isProxyAxiomsDescendant() && premise2->isProxyAxiomsDescendant();
   _holAxiomsDescendant = premise1->isHolAxiomsDescendant() && premise2->isHolAxiomsDescendant();
   _sineLevel = min(premise1->getSineLevel(),premise2->getSineLevel());
 

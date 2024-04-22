@@ -197,25 +197,6 @@ void Unit::assertValid()
   }
 }
 
-// TODO this could be more efficient. Although expected cost is log(n) where n is length of proof
-bool Unit::derivedFromInput() const
-{
-  // Depth-first search of derivation - it's likely that we'll hit an input clause as soon
-  // as we hit the top
-  Stack<Inference*> todo;
-  todo.push(&const_cast<Inference&>(_inference));
-  while(!todo.isEmpty()){
-    Inference* inf = todo.pop();
-    if(inf->rule() == InferenceRule::INPUT){
-      return true;
-    }
-    Inference::Iterator it = inf->iterator();
-    while(inf->hasNext(it)){ todo.push(&(inf->next(it)->inference())); }
-  }
-
-  return false;
-}
-
 UnitIterator Unit::getParents() const
 {
   // The unit itself stores the inference
@@ -229,10 +210,11 @@ UnitIterator Unit::getParents() const
   return pvi(UnitList::DestructiveIterator(res));
 }
 
-void Unit::minimizeAncestorsAndUpdateSelectedStats()
+bool Unit::minimizeAncestorsAndUpdateSelectedStats()
 {
   Stack<std::pair<Unit*,bool>> todo;
-  DHSet<Unit*> seen;
+  DHSet<Unit*> done;
+  bool seenInputInference = false;
 
   todo.push(make_pair(this,false));
   while(!todo.isEmpty()) {
@@ -241,15 +223,25 @@ void Unit::minimizeAncestorsAndUpdateSelectedStats()
     std::tie(current,collecting) = todo.pop();
     if (collecting) {
       Inference& inf = current->inference();
+      seenInputInference |= (inf.rule() == InferenceRule::INPUT);
       Inference::Iterator iit = inf.iterator();
-      if (inf.hasNext(iit) || // don't touch input type if there are no premises
-            inf.rule() == InferenceRule::AVATAR_DEFINITION) { // unless its an AVATAR_DEFINITION, which might have inherited goaledness from its causal parent
-        UnitInputType uit = UnitInputType::AXIOM; // otherwise, we compute a maximum, so start from the smallest element
+      if (inf.hasNext(iit)) {
+        UnitInputType uit = UnitInputType::AXIOM; // we compute a maximum, so start from the smallest element
+        bool isPureTheoryDescendant = true; // see also Inference::initMany
         while(inf.hasNext(iit)) {
           Unit* premUnit = inf.next(iit);
           uit = getInputType(uit,premUnit->inputType());
+          isPureTheoryDescendant &= premUnit->isPureTheoryDescendant();
         }
         current->setInputType(uit);
+        inf.setPureTheoryDescendant(isPureTheoryDescendant);
+      } else if (inf.rule() == InferenceRule::AVATAR_DEFINITION) {
+        // don't touch _pureTheoryDescendant for AVATAR_DEFINITIONs (a split theory consequence is again a theory consequence)
+        current->setInputType(UnitInputType::AXIOM); // AVATAR_DEFINITION might have inherited goaledness from its causal parent, which we want to reset
+      } else {
+        // no premises and not InferenceRule::AVATAR_DEFINITION
+        // we leave input type unchanged and isPureTheoryDescendant is already correctly set to isTheoryAxiom
+        ASS_EQ(inf.isPureTheoryDescendant(),inf.isTheoryAxiom());
       }
       inf.updateStatistics(); // in particular, update inductionDepth (which could have decreased, since we might have fewer parents after miniminization)
 
@@ -299,7 +291,7 @@ void Unit::minimizeAncestorsAndUpdateSelectedStats()
       }
 
     } else {
-      if (!seen.insert(current)) {
+      if (!done.insert(current)) {
         continue;
       }
       todo.push(make_pair(current,true)); // to collect stuff when children done
@@ -312,6 +304,7 @@ void Unit::minimizeAncestorsAndUpdateSelectedStats()
       }
     }
   }
+  return seenInputInference;
 }
 
 std::ostream& Kernel::operator<<(ostream& out, const Unit& u)
