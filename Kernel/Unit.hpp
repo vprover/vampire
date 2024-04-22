@@ -84,7 +84,8 @@ public:
   /** see isTheoryAxiom in Inference.cpp */
   bool isTheoryAxiom() const { return _inference.isTheoryAxiom(); }
 
-  /** return true if there is an input node in the deriviation  */
+  /** return true if there is an input node in the deriviation
+   * (Note: better call this only after derivation mimization). */
   bool derivedFromInput() const;
 
   unsigned char getSineLevel() const { return _inference.getSineLevel(); }
@@ -94,6 +95,17 @@ public:
   /** This is just a more convenient (but also less efficient) way
    * for accessing the unit's parents than using its inferefence's iterator. */
   UnitIterator getParents() const;
+
+  /**
+   * Recursive minimization of ancestors for sat-based inferences (AVATAR_REFUTATION, GLOBAL_SUMSUPTION) triggered here.
+   *
+   * (Note that with minimizeSatProofs set to off, it's already too late to do this as we did not collect the necessary info,
+   * however, it pays off to call this anyway, to correctly set any required stats in the inference objects.)
+   *
+   * Could be extended further if more stats provided by the inference tree should be found
+   * to require some final touches before proof printing. Currently, we care about the InputType and the induction stats.
+  */
+  void minimizeAncestorsAndUpdateSelectedStats();
 
   /** Return the inherited color of the unit or COLOR_INVALID
    * if there isn't an inherited color.

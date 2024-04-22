@@ -227,6 +227,43 @@ UnitIterator Unit::getParents() const
   return pvi(UnitList::DestructiveIterator(res));
 }
 
+void Unit::minimizeAncestorsAndUpdateSelectedStats()
+{
+  Stack<std::pair<Unit*,bool>> todo;
+  DHSet<Unit*> seen;
+
+  todo.push(make_pair(this,false));
+  while(!todo.isEmpty()) {
+    Unit* current;
+    bool collecting;
+    std::tie(current,collecting) = todo.pop();
+    if (collecting) {
+      Inference& inf = current->inference();
+      Inference::Iterator iit = inf.iterator();
+      if (inf.hasNext(iit)) { // don't touch input type if there are no premises
+        UnitInputType uit = UnitInputType::AXIOM; // otherwise, we compute a maximum, so start from the smallest element
+        while(inf.hasNext(iit)) {
+          Unit* premUnit = inf.next(iit);
+          uit = getInputType(uit,premUnit->inputType());
+        }
+        current->setInputType(uit);
+      }
+    } else {
+      if (!seen.insert(current)) {
+        continue;
+      }
+      todo.push(make_pair(current,true)); // to collect stuff when children done
+      Inference& inf = current->inference();
+      inf.minimizePremises(); // here we do the minimization
+      Inference::Iterator iit = inf.iterator();
+      while(inf.hasNext(iit)) {
+        Unit* premUnit = inf.next(iit);
+        todo.push(make_pair(premUnit,false));
+      }
+    }
+  }
+}
+
 std::ostream& Kernel::operator<<(ostream& out, const Unit& u)
 {
   return out << u.toString();
