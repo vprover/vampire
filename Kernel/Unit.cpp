@@ -242,7 +242,8 @@ void Unit::minimizeAncestorsAndUpdateSelectedStats()
     if (collecting) {
       Inference& inf = current->inference();
       Inference::Iterator iit = inf.iterator();
-      if (inf.hasNext(iit)) { // don't touch input type if there are no premises
+      if (inf.hasNext(iit) || // don't touch input type if there are no premises
+            inf.rule() == InferenceRule::AVATAR_DEFINITION) { // unless its an AVATAR_DEFINITION, which might have inherited goaledness from its causal parent
         UnitInputType uit = UnitInputType::AXIOM; // otherwise, we compute a maximum, so start from the smallest element
         while(inf.hasNext(iit)) {
           Unit* premUnit = inf.next(iit);
