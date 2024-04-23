@@ -272,7 +272,7 @@ Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
   return comparePredicates(l1, l2);
 } // PrecedenceOrdering::compare()
 
-bool Ordering::containsVar(const AppliedTerm& s, TermList var)
+bool Ordering::containsVar(AppliedTerm s, TermList var)
 {
   ASS(var.isVar());
   if (!s.aboveVar) {
@@ -291,12 +291,12 @@ bool Ordering::containsVar(const AppliedTerm& s, TermList var)
   return false;
 }
 
-Ordering::Result Ordering::compare(AppliedTerm&& lhs, AppliedTerm&& rhs) const
+Ordering::Result Ordering::compare(AppliedTerm lhs, AppliedTerm rhs) const
 {
   NOT_IMPLEMENTED;
 }
 
-bool Ordering::isGreater(AppliedTerm&& lhs, AppliedTerm&& rhs) const
+bool Ordering::isGreater(AppliedTerm lhs, AppliedTerm rhs) const
 {
   NOT_IMPLEMENTED;
 }

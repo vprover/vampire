@@ -156,12 +156,12 @@ public:
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
 
-  Result compare(AppliedTerm&& t1, AppliedTerm&& t2) const override;
-  bool isGreater(AppliedTerm&& t1, AppliedTerm&& t2) const override;
+  Result compare(AppliedTerm t1, AppliedTerm t2) const override;
+  bool isGreater(AppliedTerm t1, AppliedTerm t2) const override;
 
 protected:
-  Result isGreaterOrEq(AppliedTerm&& tt1, AppliedTerm&& tt2) const;
-  unsigned computeWeight(const AppliedTerm& tt) const;
+  Result isGreaterOrEq(AppliedTerm tt1, AppliedTerm tt2) const;
+  unsigned computeWeight(AppliedTerm tt) const;
 
   Result comparePredicates(Literal* l1, Literal* l2) const override;
 

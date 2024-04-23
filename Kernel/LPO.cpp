@@ -83,9 +83,9 @@ Ordering::Result LPO::compare(TermList tl1, TermList tl2) const
   return compare(AppliedTerm(tl1),AppliedTerm(tl2));
 }
 
-Ordering::Result LPO::compare(AppliedTerm&& tl1, AppliedTerm&& tl2) const
+Ordering::Result LPO::compare(AppliedTerm tl1, AppliedTerm tl2) const
 {
-  if(tl1==tl2) {
+  if(tl1.equalsShallow(tl2)) {
     return EQUAL;
   }
   if(tl1.term.isVar()) {
@@ -95,12 +95,12 @@ Ordering::Result LPO::compare(AppliedTerm&& tl1, AppliedTerm&& tl2) const
   return clpo(tl1, tl2);
 }
 
-bool LPO::isGreater(AppliedTerm&& lhs, AppliedTerm&& rhs) const
+bool LPO::isGreater(AppliedTerm lhs, AppliedTerm rhs) const
 {
   return lpo(std::move(lhs),std::move(rhs))==GREATER;
 }
 
-Ordering::Result LPO::clpo(const AppliedTerm& tl1, const AppliedTerm& tl2) const
+Ordering::Result LPO::clpo(AppliedTerm tl1, AppliedTerm tl2) const
 {
   ASS(tl1.term.isTerm());
   if(tl2.term.isVar()) {
@@ -130,7 +130,7 @@ Ordering::Result LPO::clpo(const AppliedTerm& tl1, const AppliedTerm& tl2) const
  * All TermList* are stored in reverse order (by design in Term),
  * hence the weird pointer arithmetic
  */
-Ordering::Result LPO::cMA(const AppliedTerm& s, const AppliedTerm& t, const TermList* tl, unsigned arity) const
+Ordering::Result LPO::cMA(AppliedTerm s, AppliedTerm t, const TermList* tl, unsigned arity) const
 {
   for (unsigned i = 0; i < arity; i++) {
     switch(clpo(s, AppliedTerm(*(tl - i),t))) {
@@ -148,7 +148,7 @@ Ordering::Result LPO::cMA(const AppliedTerm& s, const AppliedTerm& t, const Term
   return GREATER;
 }
 
-Ordering::Result LPO::cLMA(const AppliedTerm& s, const AppliedTerm& t, const TermList* sl, const TermList* tl, unsigned arity) const
+Ordering::Result LPO::cLMA(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity) const
 {
   for (unsigned i = 0; i < arity; i++) {
     switch(compare(AppliedTerm(*(sl - i),s), AppliedTerm(*(tl - i),t))) {
@@ -167,7 +167,7 @@ Ordering::Result LPO::cLMA(const AppliedTerm& s, const AppliedTerm& t, const Ter
   return EQUAL;
 }
 
-Ordering::Result LPO::cAA(const AppliedTerm& s, const AppliedTerm& t, const TermList* sl, const TermList* tl, unsigned arity1, unsigned arity2) const
+Ordering::Result LPO::cAA(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity1, unsigned arity2) const
 {
   switch (alpha(sl, arity1, s, t)) {
   case GREATER:
@@ -180,7 +180,7 @@ Ordering::Result LPO::cAA(const AppliedTerm& s, const AppliedTerm& t, const Term
 }
 
 // greater iff some exists s_i in sl such that s_i >= t
-Ordering::Result LPO::alpha(const TermList* sl, unsigned arity, const AppliedTerm& s, const AppliedTerm& t) const
+Ordering::Result LPO::alpha(const TermList* sl, unsigned arity, AppliedTerm s, AppliedTerm t) const
 {
   ASS(t.term.isTerm());
   for (unsigned i = 0; i < arity; i++) {
@@ -192,9 +192,9 @@ Ordering::Result LPO::alpha(const TermList* sl, unsigned arity, const AppliedTer
 }
 
 // unidirectional comparison function (returns correct result if tt1 > tt2 or tt1 = tt2)
-Ordering::Result LPO::lpo(const AppliedTerm& tt1, const AppliedTerm& tt2) const
+Ordering::Result LPO::lpo(AppliedTerm tt1, AppliedTerm tt2) const
 {
-  if(tt1==tt2) {
+  if(tt1.equalsShallow(tt2)) {
     return EQUAL;
   }
   if (tt1.term.isVar()) {
@@ -218,7 +218,7 @@ Ordering::Result LPO::lpo(const AppliedTerm& tt1, const AppliedTerm& tt2) const
   }
 }
 
-Ordering::Result LPO::lexMAE(const AppliedTerm& s, const AppliedTerm& t, const TermList* sl, const TermList* tl, unsigned arity) const
+Ordering::Result LPO::lexMAE(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity) const
 {
   for (unsigned i = 0; i < arity; i++) {
     switch (lpo(AppliedTerm(*(sl - i),s), AppliedTerm(*(tl - i),t))) {
@@ -236,7 +236,7 @@ Ordering::Result LPO::lexMAE(const AppliedTerm& s, const AppliedTerm& t, const T
 }
 
 // greater if s is greater than every term in tl
-Ordering::Result LPO::majo(const AppliedTerm& s, const AppliedTerm& t, const TermList* tl, unsigned arity) const
+Ordering::Result LPO::majo(AppliedTerm s, AppliedTerm t, const TermList* tl, unsigned arity) const
 {
   for (unsigned i = 0; i < arity; i++) {
     if (lpo(s, AppliedTerm(*(tl - i), t)) != GREATER) {

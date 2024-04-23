@@ -54,7 +54,7 @@ using namespace Indexing;
 using namespace Saturation;
 
 template<bool applyVSubst>
-struct ForwardDemodulation::Applicator : SubstApplicator {
+struct Applicator : SubstApplicator {
   Applicator(ResultSubstitution* subst, const RobSubstitution& vSubst) : subst(subst), vSubst(vSubst) {}
   TermList operator()(unsigned v) const override {
     auto res = subst->applyToBoundResult(v);
@@ -167,14 +167,11 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         auto subs = qr.unifier;
         ASS(subs->isIdentityOnQueryWhenResultBound());
 
-        ScopedPtr<SubstApplicator> appl;
-        if (lhs.isVar()) {
-          appl = new Applicator<true>(subs.ptr(), subst);
-        } else {
-          appl = new Applicator<false>(subs.ptr(), subst);
-        }
+        Applicator<true> varSubst(subs.ptr(), subst);
+        Applicator<false> notVarSubst(subs.ptr(), subst);
+        auto appl = lhs.isVar() ? (SubstApplicator*)&varSubst : (SubstApplicator*)&notVarSubst;
 
-        if (!preordered && (_preorderedOnly || !ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl.ptr(),true)))) {
+        if (!preordered && (_preorderedOnly || !ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl,true)))) {
           // if (ordering.compare(AppliedTerm(trm),AppliedTerm(rhs,&appl,true))==Ordering::GREATER) {
           //   USER_ERROR("is greater " + trm.toString() + " " + subs->applyToBoundResult(rhs).toString());
           // }

@@ -46,23 +46,23 @@ public:
 
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
-  Result compare(AppliedTerm&& tl1, AppliedTerm&& tl2) const override;
+  Result compare(AppliedTerm tl1, AppliedTerm tl2) const override;
   void showConcrete(std::ostream&) const override;
 
-  bool isGreater(AppliedTerm&& tl1, AppliedTerm&& tl2) const override;
+  bool isGreater(AppliedTerm tl1, AppliedTerm tl2) const override;
 
 protected:
   Result comparePredicates(Literal* l1, Literal* l2) const override;
   Result comparePrecedences(const Term* t1, const Term* t2) const;
 
-  Result cLMA(const AppliedTerm& s, const AppliedTerm& t, const TermList* sl, const TermList* tl, unsigned arity) const;
-  Result cMA(const AppliedTerm& s, const AppliedTerm& t, const TermList* tl, unsigned arity) const;
-  Result cAA(const AppliedTerm& s, const AppliedTerm& t, const TermList* sl, const TermList* tl, unsigned arity1, unsigned arity2) const;
-  Result alpha(const TermList* sl, unsigned arity, const AppliedTerm& s, const AppliedTerm& t) const;
-  Result clpo(const AppliedTerm& tl1, const AppliedTerm& tl2) const;
-  Result lpo(const AppliedTerm& tl1, const AppliedTerm& tl2) const;
-  Result lexMAE(const AppliedTerm& s, const AppliedTerm& t, const TermList* sl, const TermList* tl, unsigned arity) const;
-  Result majo(const AppliedTerm& s, const AppliedTerm& t, const TermList* tl, unsigned arity) const;
+  Result cLMA(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity) const;
+  Result cMA(AppliedTerm s, AppliedTerm t, const TermList* tl, unsigned arity) const;
+  Result cAA(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity1, unsigned arity2) const;
+  Result alpha(const TermList* sl, unsigned arity, AppliedTerm s, AppliedTerm t) const;
+  Result clpo(AppliedTerm tl1, AppliedTerm tl2) const;
+  Result lpo(AppliedTerm tl1, AppliedTerm tl2) const;
+  Result lexMAE(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity) const;
+  Result majo(AppliedTerm s, AppliedTerm t, const TermList* tl, unsigned arity) const;
 };
 
 }

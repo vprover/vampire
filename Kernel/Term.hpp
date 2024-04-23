@@ -913,9 +913,10 @@ protected:
   unsigned _hasInterpretedConstants : 1;
   /** If true, the object is an equality literal between two variables */
   unsigned _isTwoVarEquality : 1;
-  /** Weight of the symbol */
+  /** Weight of the symbol, i.e. sum of symbol and variable occurrences. */
   unsigned _weight;
-  /** Cached weight of the term for KBO, otherwise -1 and invalid. */
+  /** Cached weight of the term for KBO, otherwise -1 and invalid. Note that
+   * KBO symbol weights are not necessarily 1, so this can differ from @b _weight. */
   int _kboWeight;
   /** length of maximum reduction length */
   int _maxRedLen;
