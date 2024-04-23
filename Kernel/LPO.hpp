@@ -85,8 +85,10 @@ public:
   Result isGreaterOrEq(AppliedTermLPO<Applicator>&& tt1, AppliedTermLPO<Applicator>&& tt2, const Applicator& applicator) const;
   void showConcrete(std::ostream&) const override;
 
+  struct Node;
+
   bool isGreater(TermList lhs, TermList rhs, const std::function<TermList(TermList)>& applicator) const override;
-  void preprocessComparison(TermList tl1, TermList tl2) const;
+  Node* preprocessComparison(TermList tl1, TermList tl2, Result expected) const;
 
 protected:
   [[nodiscard]] Result comparePredicates(Literal* l1, Literal* l2) const override;
@@ -111,6 +113,8 @@ protected:
   [[nodiscard]] bool lexMAE_gt(AppliedTermLPO<Applicator> s, AppliedTermLPO<Applicator> t, TermList* sl, TermList* tl, unsigned arity, const Applicator& applicator) const;
   template<class Applicator>
   [[nodiscard]] bool majo_gt(AppliedTermLPO<Applicator> s, TermList* tl, unsigned arity, bool argsAboveVar, const Applicator& applicator) const;
+
+  mutable DHMap<std::tuple<TermList,TermList,Result>,Node*> _comparisons;
 };
 
 }

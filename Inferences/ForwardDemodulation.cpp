@@ -180,12 +180,12 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         // } else {
           if (!preordered && (_preorderedOnly || !ordering.isGreater(lhs,rhs,appl))) {
             if (ordering.compare(trm,subs->applyToBoundResult(rhs))==Ordering::GREATER) {
-              USER_ERROR("is greater " + trm.toString() + " " + subs->applyToBoundResult(rhs).toString() + "\nFrom equation " + qr.data->literal->toString() + " side " + qr.data->term.toString());
+              USER_ERROR("is greater " + trm.toString() + " " + subs->applyToBoundResult(rhs).toString() + "\nFrom " + lhs.toString() + " > " + rhs.toString());
             }
             continue;
           }
           if (ordering.compare(trm,subs->applyToBoundResult(rhs))!=Ordering::GREATER) {
-            USER_ERROR("is not greater " + trm.toString() + " " + subs->applyToBoundResult(rhs).toString() + "\nFrom equation " + qr.data->literal->toString() + " side " + qr.data->term.toString());
+            USER_ERROR("is not greater " + trm.toString() + " " + subs->applyToBoundResult(rhs).toString() + "\nFrom " + lhs.toString() + " > " + rhs.toString());
           }
         // }
 

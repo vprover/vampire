@@ -23,6 +23,8 @@
 #include "Shell/Options.hpp"
 
 #include "Indexing/ResultSubstitution.hpp"
+#include "Kernel/EqHelper.hpp"
+#include "Kernel/SubstHelper.hpp"
 
 #include "TermIterators.hpp"
 #include "Term.hpp"
@@ -312,11 +314,6 @@ Ordering::Result LPO::isGreaterOrEq(AppliedTermLPO<Applicator>&& tt1, AppliedTer
   return clpo_gt(tt1, tt2, applicator) ? GREATER : INCOMPARABLE;
 }
 
-bool LPO::isGreater(TermList lhs, TermList rhs, const std::function<TermList(TermList)>& applicator) const
-{
-  return isGreaterOrEq(AppliedTermLPO(lhs,applicator,true),AppliedTermLPO(rhs,applicator,true),applicator)==GREATER;
-}
-
 using BRApplicator = Indexing::BoundResultApplicator;
 using BQApplicator = Indexing::BoundQueryApplicator;
 
@@ -436,295 +433,263 @@ bool LPO::majo_gt(AppliedTermLPO<Applicator> s, TermList* tl, unsigned arity, bo
   return true;
 }
 
+using Applicator = std::function<TermList(TermList)>;
 
-struct ComparisonNode {
-  ComparisonNode() = default;
-  ComparisonNode(Ordering::Result t, TermList lhs, TermList rhs) : type(t), lhs(lhs), rhs(rhs) {}
+struct LPO::Node {
+  enum Type {
+    RESULT,
+    JUNCTION,
+    COMPARISON,
+  };
+  Type t;
+  Node(Type t) : t(t) {}
+  virtual bool execute(const Applicator& applicator) const = 0;
+  virtual vvector<vstring> toString() const = 0;
+  virtual ~Node() = default;
+};
 
+struct ResultNode : public LPO::Node {
+  ResultNode(bool result) : Node(Node::RESULT), result(result) {}
+  bool result;
+  bool execute(const Applicator& applicator) const override { return result; }
+  vvector<vstring> toString() const override { return { result ? "true" : "false" }; }
+};
+
+struct JunctionNode : public LPO::Node {
+  enum JunctionType {
+    CONJUNCTION,
+    DISJUNCTION,
+  };
+  JunctionNode(JunctionType jt) : Node(Node::JUNCTION), jt(jt) {}
+  bool execute(const Applicator& applicator) const override {
+    if (jt==CONJUNCTION) {
+      for (const auto& ch : children) {
+        if (!ch->execute(applicator)) {
+          return false;
+        }
+      }
+      return true;
+    } else {
+      for (const auto& ch : children) {
+        if (ch->execute(applicator)) {
+          return true;
+        }
+      }
+      return false;
+    }
+  }
+  static Node* create(JunctionType jt, vvector<Node*>&& children) {
+    for (unsigned i = 0; i < children.size();) {
+      if (children[i]->t!=Node::RESULT) {
+        i++;
+        continue;
+      }
+      auto rn = static_cast<ResultNode*>(children[i]);
+      if (rn->result==(jt==CONJUNCTION)) {
+        swap(children[i],children.back());
+        children.pop_back();
+        continue;
+      }
+      return new ResultNode(rn->result);
+    }
+    if (children.empty()) {
+      return new ResultNode(jt==CONJUNCTION);
+    }
+    if (children.size()==1) {
+      return children[0];
+    }
+    auto res = new JunctionNode(jt);
+    res->children = children;
+    return res;
+  }
+  vvector<vstring> toString() const override {
+    vvector<vstring> res;
+    res.push_back(jt==CONJUNCTION ? "AND" : "OR");
+    for (const auto& ch : children) {
+      for (const auto& line : ch->toString()) {
+        res.push_back("  " + line);
+      }
+    }
+    return res;
+  }
+  JunctionType jt;
+  vvector<Node*> children;
+};
+
+struct ComparisonNode : public LPO::Node {
+  // ComparisonNode() = default;
+  ComparisonNode(const LPO& lpo, Ordering::Result t, TermList lhs, TermList rhs) : Node(Node::COMPARISON), lpo(lpo), type(t), lhs(lhs), rhs(rhs) {}
+  bool execute(const Applicator& applicator) const override {
+    return lpo.compare(applicator(lhs),applicator(rhs))==type;
+  }
+  vvector<vstring> toString() const override {
+    return { lhs.toString() + " " + Ordering::resultToString(type) + " " + rhs.toString() };
+  }
+  const LPO& lpo;
   Ordering::Result type;
   TermList lhs;
   TermList rhs;
-  Vector<ComparisonNode>* alternative = nullptr;
 };
 
-using CompVec = Vector<ComparisonNode>;
-using CompStack = Stack<ComparisonNode>;
-
-vstring typeToString(Ordering::Result t) {
-  switch(t) {
-    case Ordering::GREATER:
-      return ">";
-    // case ComparisonNode::GE:
-    //   return ">=";
-    case Ordering::EQUAL:
-      return "=";
-    default:
-      ASSERTION_VIOLATION;
-  }
-}
-
-ostream& operator<<(ostream& out, const ComparisonNode& n) {
-  out << n.lhs << " " << typeToString(n.type) << " " << n.rhs;
-  return out;
-}
-
-void outputComparisons(Vector<ComparisonNode>* root)
+LPO::Node* LPO::preprocessComparison(TermList tl1, TermList tl2, Result expected) const
 {
-  static Stack<tuple<Vector<ComparisonNode>*,unsigned,unsigned>> todo;
-  todo.push(make_tuple(root,0,0));
+  // cout << "preprocessing " << tl1 << " > " << tl2 << endl;
 
-  while(todo.isNonEmpty()) {
-    auto [vec,index,depth] = todo.pop();
-    auto curr = (*vec)[index];
+  Node** ptr;
+  if (!_comparisons.getValuePtr(make_tuple(tl1,tl2,expected),ptr)) {
+    return *ptr;
+  }
 
-    if (curr.alternative) {
-      todo.push(make_tuple(curr.alternative,0,depth+1));
-    }
-    if (index+1 < vec->length()) {
-      todo.push(make_tuple(vec,index+1,depth));
-    }
-    for (unsigned i = 0; i < depth; i++) {
-      cout << "  ";
-    }
-    cout << curr << endl;
+  auto comp = compare(tl1,tl2);
+  if (comp != INCOMPARABLE) {
+    *ptr = new ResultNode(comp == expected);
+    return *ptr;
   }
-}
+  if (tl1.isVar() || tl2.isVar()) {
+    *ptr = new ComparisonNode(*this,expected,tl1,tl2);
+    return *ptr;
+  }
 
-void replaceWithChain(const CompStack& chain, CompVec*& ptr, unsigned index)
-{
-  // cout << "replaceWithChain" << endl;
-  // for (const auto& n : chain) {
-  //   cout << n << endl;
-  // }
-  // cout << endl;
-  ASS(ptr);
-  ASS_L(index,ptr->length());
-  auto newptr = CompVec::allocate(chain.size()+ptr->length()-1);
-  for (unsigned j = 0; j < index; j++) {
-    (*newptr)[j] = (*ptr)[j];
-  }
-  for (unsigned j = 0; j < chain.size(); j++) {
-    (*newptr)[j+index] = chain[j];
-  }
-  for (unsigned j = index+1; j < ptr->length(); j++) {
-    (*newptr)[j+chain.size()] = (*ptr)[j];
-  }
-  ptr->deallocate();
-  ptr = newptr;
-}
+  auto s = tl1.term();
+  auto t = tl2.term();
 
-void incorporateChain(const CompStack& chain, CompVec*& ptr)
-{
-  // cout << "incorporateChain" << endl;
-  // for (const auto& n : chain) {
-  //   cout << n << endl;
-  // }
-  // cout << endl;
-  ASS(!ptr);
-  ptr = CompVec::allocate(chain.size());
-  for (unsigned i = 0; i < chain.size(); i++) {
-    (*ptr)[i] = chain[i];
-  }
-}
+  if (expected==EQUAL)
+  {
+    if (s->functor()!=t->functor()) {
+      *ptr = new ResultNode(false);
+      return *ptr;
+    }
+    vvector<Node*> subres;
+    bool equal = true;
+    SubtermIterator sstit(s);
+    SubtermIterator tstit(t);
+    while (sstit.hasNext()) {
+      ALWAYS(tstit.hasNext());
+      auto sst = sstit.next();
+      auto tst = tstit.next();
+      if (sst == tst) {
+        sstit.right();
+        tstit.right();
+        continue;
+      }
 
-void deallocateSubtrees(CompVec*& ptr, unsigned index)
-{
-  Stack<CompVec*> todo;
-  for (unsigned i = index; i < ptr->length(); i++) {
-    todo.push((*ptr)[i].alternative);
-  }
-  while (todo.isNonEmpty()) {
-    auto curr = todo.pop();
-    if (!curr) {
-      continue;
+      if (sst.isVar() || tst.isVar()) {
+        subres.push_back(new ComparisonNode(*this,EQUAL,sst,tst));
+        sstit.right();
+        tstit.right();
+        continue;
+      }
+      if (sst.term()->functor()!=tst.term()->functor()) {
+        equal = false;
+        break;
+      }
     }
-    for (unsigned i = 0; i < curr->length(); i++) {
-      todo.push((*curr)[i].alternative);
+    if (equal) {
+      auto res = new JunctionNode(JunctionNode::CONJUNCTION);
+      *ptr = res;
+      res->children = std::move(subres);
+      return *ptr;
+    } else {
+      for (const auto& n : subres) {
+        delete n;
+      }
+      *ptr = new ResultNode(false);
+      return *ptr;
     }
-    curr->deallocate();
-  }
-}
 
-void removeFalseElement(CompVec*& ptr, unsigned index)
-{
-  int prevAltIndex = -1;
-  for (int i = index; i >= 0; i--) {
-    if ((*ptr)[i].alternative) {
-      prevAltIndex = i;
-      break;
-    }
-  }
-  // cout << "prevAltIndex " << prevAltIndex << endl;
-  if (prevAltIndex == -1) {
-    // no alternative, delete entire vector
-    deallocateSubtrees(ptr, 0);
-    ptr->deallocate();
-    ptr = nullptr;
   } else {
-    deallocateSubtrees(ptr, prevAltIndex+1);
-    auto other = (*ptr)[prevAltIndex].alternative;
-    ASS(other);
-    auto newSize = max(prevAltIndex+other->length(),ptr->length());
-    // cout << "newSize " << newSize << endl;
-    if (newSize > ptr->length()) {
-      auto newPtr = CompVec::allocate(newSize);
-      for (unsigned i = 0; i < prevAltIndex; i++) {
-        (*newPtr)[i] = (*ptr)[i];
+    Substitution subst;
+    auto bind = [&subst](Node* n) {
+      if (n->t!=Node::COMPARISON) {
+        return;
       }
-      ptr->deallocate();
-      ptr = newPtr;
+      auto cn = static_cast<ComparisonNode*>(n);
+      if (cn->type!=EQUAL) {
+        return;
+      }
+      if (cn->lhs.isVar() || cn->rhs.isVar()) {
+        auto eqLHS = cn->lhs.isVar() ? cn->lhs : cn->rhs;
+        auto eqRHS = cn->lhs.isVar() ? cn->rhs : cn->lhs;
+        subst.bind(eqLHS.var(),eqRHS);
+      }
+    };
+    auto apply = [&subst](TermList t) {
+      return SubstHelper::apply(t,subst);
+    };
+    switch (comparePrecedences(s, t)) {
+      case EQUAL: {
+        ASS(s->arity()); // constants cannot be incomparable
+
+        vvector<Node*> subres;
+
+        // lexicographic comparisons
+        for (unsigned i = 0; i < s->arity(); i++) {
+          vvector<Node*> subsubres;
+          for (unsigned j = 0; j < i; j++) {
+            subsubres.push_back(preprocessComparison(apply(*s->nthArgument(j)),apply(*t->nthArgument(j)),EQUAL));
+            bind(subsubres.back());
+          }
+          subsubres.push_back(preprocessComparison(apply(*s->nthArgument(i)),apply(*t->nthArgument(i)),GREATER));
+          bind(subsubres.back());
+          for (unsigned j = i+1; j < s->arity(); j++) {
+            subsubres.push_back(preprocessComparison(apply(tl1),apply(*t->nthArgument(j)),GREATER));
+            bind(subsubres.back());
+          }
+          subres.push_back(JunctionNode::create(JunctionNode::CONJUNCTION,std::move(subsubres)));
+        }
+        // alpha comparisons
+        for (unsigned i = 0; i < s->arity(); i++) {
+          subres.push_back(preprocessComparison(*s->nthArgument(i),tl2,GREATER));
+          subres.push_back(preprocessComparison(*s->nthArgument(i),tl2,EQUAL));
+        }
+
+        auto res = JunctionNode::create(JunctionNode::DISJUNCTION,std::move(subres));
+        ALWAYS(!_comparisons.getValuePtr(make_tuple(tl1,tl2,expected),ptr));
+        ASS(!*ptr);
+        *ptr = res;
+        return res;
+      }
+      case GREATER: {
+        vvector<Node*> subres;
+        for (unsigned i = 0; i < t->arity(); i++) {
+          subres.push_back(preprocessComparison(apply(tl1),apply(*t->nthArgument(i)),GREATER));
+          bind(subres.back());
+        }
+        auto res = JunctionNode::create(JunctionNode::CONJUNCTION,std::move(subres));
+        ALWAYS(!_comparisons.getValuePtr(make_tuple(tl1,tl2,expected),ptr));
+        ASS(!*ptr);
+        *ptr = res;
+        return res;
+      }
+      case LESS: {
+        vvector<Node*> subres;
+        for (unsigned i = 0; i < s->arity(); i++) {
+          subres.push_back(preprocessComparison(*s->nthArgument(i),tl2,GREATER));
+          subres.push_back(preprocessComparison(*s->nthArgument(i),tl2,EQUAL));
+        }
+        auto res = JunctionNode::create(JunctionNode::DISJUNCTION,std::move(subres));
+        ALWAYS(!_comparisons.getValuePtr(make_tuple(tl1,tl2,expected),ptr));
+        ASS(!*ptr);
+        *ptr = res;
+        return res;
+      }
+      default:
+        ASSERTION_VIOLATION;
     }
-    for (unsigned i = 0; i < other->length(); i++) {
-      (*ptr)[prevAltIndex+i] = (*other)[i];
-    }
-    other->deallocate();
   }
+
 }
 
-void LPO::preprocessComparison(TermList tl1, TermList tl2) const
+bool LPO::isGreater(TermList lhs, TermList rhs, const std::function<TermList(TermList)>& applicator) const
 {
-  cout << "preprocessing " << tl1 << " > " << tl2 << endl;
-
-  auto rootVec = CompVec::allocate(1);
-  (*rootVec)[0] = ComparisonNode(GREATER, tl1, tl2);
-  // stack of (chain, index) pairs
-  Stack<reference_wrapper<CompVec*>> todo;
-  todo.push(ref(rootVec));
-
-  while (todo.isNonEmpty()) {
-    auto vec = todo.pop();
-    for (unsigned index = 0; index < (*vec).length();) {
-      // cout << "index " << index << " " << (*vec).length() << endl;
-      auto curr = (*vec)[index];
-      // cout << "subcase " << curr.lhs << " " << typeToString(curr.type) << " " << curr.rhs << endl;
-      auto comp = compare(curr.lhs,curr.rhs);
-      if (comp != INCOMPARABLE) {
-        if (comp != curr.type) {
-          // cout << "removing" << endl;
-          removeFalseElement(vec, index);
-          // cout << "after removal" << endl;
-          // outputComparisons(rootVec);
-          // cout << endl;
-          if (!vec) {
-            break;
-          }
-        } else {
-          // remove true element
-          index++;
-        }
-        continue;
-      }
-      if (curr.lhs.isVar() || curr.rhs.isVar()) {
-        // cout << "compare " << curr.lhs << " " << curr.rhs << endl;
-        index++;
-        continue;
-      }
-      auto s = curr.lhs.term();
-      auto t = curr.rhs.term();
-
-      if (curr.type==EQUAL) {
-        if (s->functor()==t->functor()) {
-          Stack<ComparisonNode> chain;
-          for (unsigned i = 0; i < s->arity(); i++) {
-            chain.push(ComparisonNode(EQUAL,*s->nthArgument(i),*t->nthArgument(i)));
-          }
-          replaceWithChain(chain, vec, index);
-        } else {
-          removeFalseElement(vec, index);
-          if (!vec) {
-            break;
-          }
-        }
-      } else {
-        auto currVec = vec;
-        auto currIndex = index;
-        switch (comparePrecedences(s, t)) {
-          case EQUAL: {
-            // cout << "lexMAE" << endl;
-            ASS(s->arity()); // constants cannot be incomparable
-
-            // lexicographic comparisons
-            for (unsigned i = 0; i < s->arity(); i++) {
-              Stack<ComparisonNode> chain;
-              for (unsigned j = 0; j < i; j++) {
-                chain.push(ComparisonNode(EQUAL,*s->nthArgument(j),*t->nthArgument(j)));
-              }
-              chain.push(ComparisonNode(GREATER,*s->nthArgument(i),*t->nthArgument(i)));
-              for (unsigned j = i+1; j < s->arity(); j++) {
-                chain.push(ComparisonNode(GREATER,curr.lhs,*t->nthArgument(j)));
-              }
-
-              if (i==0) {
-                replaceWithChain(chain, currVec, currIndex);
-              } else {
-                incorporateChain(chain, (*currVec)[currIndex].alternative);
-                currVec = (*currVec)[currIndex].alternative;
-                currIndex = 0;
-              }
-            }
-            // alpha comparisons
-            for (unsigned i = 0; i < s->arity(); i++) {
-              Stack<ComparisonNode> chain;
-              chain.push(ComparisonNode(GREATER,*s->nthArgument(i),curr.rhs));
-              incorporateChain(chain, (*currVec)[currIndex].alternative);
-              currVec = (*currVec)[currIndex].alternative;
-              currIndex = 0;
-
-              chain.reset();
-              chain.push(ComparisonNode(EQUAL,*s->nthArgument(i),curr.rhs));
-              incorporateChain(chain, (*currVec)[currIndex].alternative);
-              currVec = (*currVec)[currIndex].alternative;
-              currIndex = 0;
-            }
-            break;
-          }
-          case GREATER: {
-            // cout << "majo" << endl;
-            Stack<ComparisonNode> chain;
-            for (unsigned i = 0; i < s->arity(); i++) {
-              chain.push(ComparisonNode(GREATER,curr.lhs,*t->nthArgument(i)));
-            }
-            replaceWithChain(chain, currVec, currIndex);
-            break;
-          }
-          default: {
-            // cout << "alpha" << endl;
-            for (unsigned i = 0; i < s->arity(); i++) {
-              Stack<ComparisonNode> chain;
-              chain.push(ComparisonNode(GREATER,*s->nthArgument(i),curr.rhs));
-
-              if (i==0) {
-                replaceWithChain(chain, currVec, currIndex);
-              } else {
-                incorporateChain(chain, (*currVec)[currIndex].alternative);
-                currVec = (*currVec)[currIndex].alternative;
-                currIndex = 0;
-              }
-
-              chain.reset();
-              chain.push(ComparisonNode(EQUAL,*s->nthArgument(i),curr.rhs));
-              incorporateChain(chain, (*currVec)[currIndex].alternative);
-              currVec = (*currVec)[currIndex].alternative;
-              currIndex = 0;
-            }
-            break;
-          }
-        }
-      }
-      // outputComparisons(rootVec);
-      // cout << endl;
-    }
-    if (!vec) {
-      continue;
-    }
-    for (unsigned index = 0; index < (*vec).length(); index++) {
-      if ((*vec)[index].alternative) {
-        todo.push(ref((*vec)[index].alternative));
-      }
-    }
-  }
-  outputComparisons(rootVec);
-  cout << endl;
+  // return isGreaterOrEq(AppliedTermLPO(lhs,applicator,true),AppliedTermLPO(rhs,applicator,true),applicator)==GREATER;
+  auto n = preprocessComparison(lhs,rhs,GREATER);
+  // cout << "isGreater " << lhs << " " << rhs << endl;
+  // for (const auto& line : n->toString()) {
+  //   cout << line << endl;
+  // }
+  // cout << endl;
+  return n->execute(applicator);
 }
 
 
