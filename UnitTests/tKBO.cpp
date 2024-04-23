@@ -11,6 +11,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/KBO.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Kernel/SubstHelper.hpp"
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "tKBO.hpp"
@@ -381,9 +382,8 @@ TEST_FUN(kbo_test23) {
 // isGreater tests
 
 bool isGreaterSymmetric(const KBO& ord, TermList t1, TermList t2) {
-  IdentityApplicator id;
-  return ord.isGreaterOrEq(AppliedTerm(t1,id,false),AppliedTerm(t2,id,false),id)==Ordering::Result::GREATER
-    && ord.isGreaterOrEq(AppliedTerm(t2,id,false),AppliedTerm(t1,id,false),id)==Ordering::Result::INCOMPARABLE;
+  return ord.isGreater(AppliedTerm(t1),AppliedTerm(t2))
+    && !ord.isGreater(AppliedTerm(t2),AppliedTerm(t1));
 }
 
 TEST_FUN(kbo_isGreater_test01) {
@@ -430,9 +430,8 @@ TEST_FUN(kbo_isGreater_test04) {
 
   auto ord = kbo(weights(make_pair(f, 10u)), weights());
 
-  IdentityApplicator id;
-  ASS(ord.isGreaterOrEq(AppliedTerm(f(x),id,false), AppliedTerm(g(g(g(g(g(y))))),id,false), id)==Ordering::Result::INCOMPARABLE);
-  ASS(ord.isGreaterOrEq(AppliedTerm(g(g(g(g(g(y))))),id,false), AppliedTerm(f(x),id,false), id)==Ordering::Result::INCOMPARABLE);
+  ASS(!ord.isGreater(AppliedTerm(f(x)), AppliedTerm(g(g(g(g(g(y))))))));
+  ASS(!ord.isGreater(AppliedTerm(g(g(g(g(g(y)))))), AppliedTerm(f(x))));
 }
 
 TEST_FUN(kbo_isGreater_test05) {

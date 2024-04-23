@@ -22,7 +22,6 @@
 
 #include "Shell/Options.hpp"
 
-#include "Indexing/ResultSubstitution.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
 
@@ -68,7 +67,7 @@ Ordering::Result LPO::comparePredicates(Literal* l1, Literal *l2) const
   return (predicatePrecedence(p1) > predicatePrecedence(p2)) ? GREATER : LESS;
 } // LPO::comparePredicates()
 
-Ordering::Result LPO::comparePrecedences(Term* t1, Term* t2) const
+Ordering::Result LPO::comparePrecedences(const Term* t1, const Term* t2) const
 {
   if (t1->isSort() && t2->isSort()) {
     return compareTypeConPrecedences(t1->functor(), t2->functor());
@@ -85,34 +84,38 @@ Ordering::Result LPO::comparePrecedences(Term* t1, Term* t2) const
 
 Ordering::Result LPO::compare(TermList tl1, TermList tl2) const
 {
-  if(tl1==tl2) {
-    return EQUAL;
-  }
-  if(tl1.isOrdinaryVar()) {
-    return tl2.containsSubterm(tl1) ? LESS : INCOMPARABLE;
-  }
-  ASS(tl1.isTerm());
-  return clpo(tl1.term(), tl2);
+  return compare(AppliedTerm(tl1),AppliedTerm(tl2));
 }
 
-Ordering::Result LPO::clpo(Term* t1, TermList tl2) const
+Ordering::Result LPO::compare(AppliedTerm tl1, AppliedTerm tl2) const
 {
-  ASS(t1->shared());
-
-  if(tl2.isOrdinaryVar()) {
-    return t1->containsSubterm(tl2) ? GREATER : INCOMPARABLE;
+  if(tl1.equalsShallow(tl2)) {
+    return EQUAL;
   }
-  
-  ASS(tl2.isTerm());
-  Term* t2=tl2.term();
+  if(tl1.term.isVar()) {
+    return containsVar(tl2, tl1.term) ? LESS : INCOMPARABLE;
+  }
+  ASS(tl1.term.isTerm());
+  return clpo(tl1, tl2);
+}
+
+Ordering::Result LPO::clpo(AppliedTerm tl1, AppliedTerm tl2) const
+{
+  ASS(tl1.term.isTerm());
+  if(tl2.term.isVar()) {
+    return containsVar(tl1, tl2.term) ? GREATER : INCOMPARABLE;
+  }
+  ASS(tl2.term.isTerm());
+  auto t1=tl1.term.term();
+  auto t2=tl2.term.term();
 
   switch (comparePrecedences(t1, t2)) {
   case EQUAL:
-    return cLMA(t1, t2, t1->args(), t2->args(), t1->arity());
+    return cLMA(tl1, tl2, t1->args(), t2->args(), t1->arity());
   case GREATER:
-    return cMA(t1, t2->args(), t2->arity());
+    return cMA(tl1, tl2, t2->args(), t2->arity());
   case LESS:
-    return Ordering::reverse(cMA(t2, t1->args(), t1->arity()));
+    return Ordering::reverse(cMA(tl2, tl1, t1->args(), t1->arity()));
   default:
     ASSERTION_VIOLATION;
     // shouldn't happen because symbol precedence is assumed to be
@@ -126,17 +129,15 @@ Ordering::Result LPO::clpo(Term* t1, TermList tl2) const
  * All TermList* are stored in reverse order (by design in Term),
  * hence the weird pointer arithmetic
  */
-Ordering::Result LPO::cMA(Term *s, TermList* tl, unsigned arity) const
+Ordering::Result LPO::cMA(AppliedTerm s, AppliedTerm t, const TermList* tl, unsigned arity) const
 {
-  ASS(s->shared());
-
   for (unsigned i = 0; i < arity; i++) {
-    switch(clpo(s, *(tl - i))) {
+    switch(clpo(s, AppliedTerm(*(tl - i),t))) {
     case EQUAL:
     case LESS:
       return LESS;
     case INCOMPARABLE:
-      return reverse(alpha(tl - i - 1, arity - i - 1, s));
+      return reverse(alpha(tl - i - 1, arity - i - 1, t, s));
     case GREATER:
       break;
     default:
@@ -146,19 +147,16 @@ Ordering::Result LPO::cMA(Term *s, TermList* tl, unsigned arity) const
   return GREATER;
 }
 
-Ordering::Result LPO::cLMA(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity) const
+Ordering::Result LPO::cLMA(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity) const
 {
-  ASS(s->shared());
-  ASS(t->shared());
-
   for (unsigned i = 0; i < arity; i++) {
-    switch(compare(*(sl - i), *(tl - i))) {
+    switch(compare(AppliedTerm(*(sl - i),s), AppliedTerm(*(tl - i),t))) {
     case EQUAL:
       break;
     case GREATER:
-      return cMA(s, tl - i - 1, arity - i - 1);
+      return cMA(s, t, tl - i - 1, arity - i - 1);
     case LESS:
-      return reverse(cMA(t, sl - i - 1, arity - i - 1));
+      return reverse(cMA(t, s, sl - i - 1, arity - i - 1));
     case INCOMPARABLE:
       return cAA(s, t, sl - i - 1, tl - i - 1, arity - i - 1, arity - i - 1);
     default:
@@ -168,272 +166,84 @@ Ordering::Result LPO::cLMA(Term* s, Term* t, TermList* sl, TermList* tl, unsigne
   return EQUAL;
 }
 
-Ordering::Result LPO::cAA(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity1, unsigned arity2) const
+Ordering::Result LPO::cAA(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity1, unsigned arity2) const
 {
-  ASS(s->shared());
-  ASS(t->shared());
-
-  switch (alpha(sl, arity1, t)) {
+  switch (alpha(sl, arity1, s, t)) {
   case GREATER:
     return GREATER;
   case INCOMPARABLE:
-    return reverse(alpha(tl, arity2, s));
-  default:
-    ASSERTION_VIOLATION;
-  }
-}
-
-// greater iff some exists s_i in sl such that s_i >= t 
-Ordering::Result LPO::alpha(TermList* sl, unsigned arity, Term *t) const
-{
-  ASS(t->shared());
-
-  for (unsigned i = 0; i < arity; i++) {
-    switch (lpo(*(sl - i), TermList(t))) {
-    case EQUAL:
-    case GREATER:
-      return GREATER;
-    case LESS:
-    case INCOMPARABLE:
-      break;
-    default:
-      ASSERTION_VIOLATION;
-    }
-  }
-  return INCOMPARABLE;
-}
-
-// unidirectional comparison function (returns correct result if tl1 >
-// tl2 or tl1 = tl2)
-Ordering::Result LPO::lpo(TermList tl1, TermList tl2) const
-{
-  if(tl1==tl2) {
-    return EQUAL;
-  }
-  if(tl1.isOrdinaryVar()) {
-    return INCOMPARABLE;
-  }
-  ASS(tl1.isTerm());
-  Term* t1 = tl1.term();
-  ASS(t1->shared());
-
-  if(tl2.isOrdinaryVar()) {
-    return t1->containsSubterm(tl2) ? GREATER : INCOMPARABLE;
-  }
-
-  ASS(tl2.isTerm());
-  Term* t2=tl2.term();
-
-  switch (comparePrecedences(t1, t2)) {
-  case EQUAL:
-    return lexMAE(t1, t2, t1->args(), t2->args(), t1->arity());
-  case GREATER:
-    return majo(t1, t2->args(), t2->arity());
-  default:
-    return alpha(t1->args(), t1->arity(), t2);
-  }
-}
-
-Ordering::Result LPO::lexMAE(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity) const
-{
-  ASS(s->shared());
-  ASS(t->shared());
-
-  for (unsigned i = 0; i < arity; i++) {
-    switch (lpo(*(sl - i), *(tl - i))) {
-    case EQUAL:
-      break;
-    case GREATER:
-      return majo(s, tl - i - 1, arity - i - 1);
-    case INCOMPARABLE:
-      return alpha(sl - i - 1, arity - i - 1, t);
-    default:
-      ASSERTION_VIOLATION;
-    }
-  }
-  // reached only when the terms are equal but this is checked already
-  // at the start of LPO::lpo, which is the only caller of this function
-  ASSERTION_VIOLATION;
-}
-
-// greater if s is greater than every term in tl
-Ordering::Result LPO::majo(Term* s, TermList* tl, unsigned arity) const
-{
-  ASS(s->shared());
-
-  for (unsigned i = 0; i < arity; i++) {
-    switch(lpo(TermList(s), *(tl - i))) {
-    case GREATER:
-      break;
-    case EQUAL:
-    case INCOMPARABLE:
-      return INCOMPARABLE;
-    default:
-      ASSERTION_VIOLATION;
-    }
-  }
-  return GREATER;
-}
-
-// isGreater variants
-
-template<class Applicator>
-bool containsVar(const AppliedTermLPO<Applicator>& s, TermList var, const Applicator& applicator)
-{
-  ASS(var.isVar());
-  if (!s.termAboveVar) {
-    return s.term.containsSubterm(var);
-  }
-  if (s.term.isVar()) {
-    return applicator(s.term).containsSubterm(var);
-  }
-  VariableIterator vit(s.term.term());
-  while (vit.hasNext()) {
-    auto v = vit.next();
-    if (applicator(v).containsSubterm(var)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-template<class Applicator>
-Ordering::Result LPO::isGreaterOrEq(AppliedTermLPO<Applicator>&& tt1, AppliedTermLPO<Applicator>&& tt2, const Applicator& applicator) const
-{
-  // cout << endl << "isGreaterOrEq " << tt1.term << " " << tt2.term << endl;
-  if (tt1==tt2) {
-    return EQUAL;
-  }
-  if (tt1.term.isOrdinaryVar()) {
-    return INCOMPARABLE;
-  }
-  // if (tt2.term.isOrdinaryVar()) {
-  //   return containsVar(tt1, tt2.term, applicator) ? GREATER : INCOMPARABLE;
-  // }
-  ASS(tt1.term.isTerm());
-  return clpo_gt(tt1, tt2, applicator) ? GREATER : INCOMPARABLE;
-}
-
-using BRApplicator = Indexing::BoundResultApplicator;
-using BQApplicator = Indexing::BoundQueryApplicator;
-
-template Ordering::Result LPO::isGreaterOrEq<BRApplicator>(AppliedTermLPO<BRApplicator>&&, AppliedTermLPO<BRApplicator>&&, const BRApplicator&) const;
-template Ordering::Result LPO::isGreaterOrEq<BQApplicator>(AppliedTermLPO<BQApplicator>&&, AppliedTermLPO<BQApplicator>&&, const BQApplicator&) const;
-template Ordering::Result LPO::isGreaterOrEq<IdentityApplicator>(AppliedTermLPO<IdentityApplicator>&&, AppliedTermLPO<IdentityApplicator>&&, const IdentityApplicator&) const;
-
-template<class Applicator>
-bool LPO::clpo_gt(AppliedTermLPO<Applicator> tt1, AppliedTermLPO<Applicator> tt2, const Applicator& applicator) const
-{
-  // cout << "clpo_gt " << tt1.term << " " << tt2.term << endl;
-  ASS(tt1.term.isTerm());
-
-  if (tt2.term.isOrdinaryVar()) {
-    return containsVar(tt1, tt2.term, applicator);
-  }
-
-  Term* t1=tt1.term.term();
-  Term* t2=tt2.term.term();
-
-  switch (comparePrecedences(t1, t2)) {
-  case EQUAL:
-    return lexMAE_gt(tt1, tt2, t1->args(), t2->args(), t1->arity(), applicator);
-  case GREATER:
-    return majo_gt(tt1, t2->args(), t2->arity(), tt2.termAboveVar, applicator);
-  case LESS:
-    return alpha_gt(t1->args(), t1->arity(), tt1.termAboveVar, tt2, applicator);
+    return reverse(alpha(tl, arity2, t, s));
   default:
     ASSERTION_VIOLATION;
   }
 }
 
 // greater iff some exists s_i in sl such that s_i >= t
-template<class Applicator>
-bool LPO::alpha_gt(TermList* sl, unsigned arity, bool argsAboveVar, AppliedTermLPO<Applicator> t, const Applicator& applicator) const
+Ordering::Result LPO::alpha(const TermList* sl, unsigned arity, AppliedTerm s, AppliedTerm t) const
 {
-  // cout << "alpha_gt " << t.term << " " << endl;
   ASS(t.term.isTerm());
   for (unsigned i = 0; i < arity; i++) {
-    AppliedTermLPO s(*(sl - i),applicator,argsAboveVar);
-    // cout << "alpha compare " << s.term << " " << t.term << endl;
-    if (s == t || lpo_gt(s, t, applicator)) {
-      return true;
+    if (lpo(AppliedTerm(*(sl - i),s), t) != INCOMPARABLE) {
+      return GREATER;
     }
   }
-  return false;
+  return INCOMPARABLE;
 }
 
-template<class Applicator>
-bool LPO::lpo_gt(AppliedTermLPO<Applicator> tt1, AppliedTermLPO<Applicator> tt2, const Applicator& applicator) const
+// unidirectional comparison function (returns correct result if tt1 > tt2 or tt1 = tt2)
+Ordering::Result LPO::lpo(AppliedTerm tt1, AppliedTerm tt2) const
 {
-  // cout << "lpo_gt " << tt1.term << " " << tt2.term << endl;
-
-  ASS(tt1!=tt2); // we want to check this outside
-
+  if(tt1.equalsShallow(tt2)) {
+    return EQUAL;
+  }
   if (tt1.term.isVar()) {
-    return false;
+    return (tt1.term==tt2.term) ? EQUAL : INCOMPARABLE;
   }
 
   if (tt2.term.isVar()) {
-    return containsVar(tt1, tt2.term, applicator);
+    return containsVar(tt1, tt2.term) ? GREATER : INCOMPARABLE;
   }
 
-
-  Term* t1=tt1.term.term();
-  Term* t2=tt2.term.term();
+  auto t1=tt1.term.term();
+  auto t2=tt2.term.term();
 
   switch (comparePrecedences(t1, t2)) {
   case EQUAL:
-    return lexMAE_gt(tt1, tt2, t1->args(), t2->args(), t1->arity(), applicator);
+    return lexMAE(tt1, tt2, t1->args(), t2->args(), t1->arity());
   case GREATER:
-    return majo_gt(tt1, t2->args(), t2->arity(), tt2.termAboveVar, applicator);
+    return majo(tt1, tt2, t2->args(), t2->arity());
   default:
-    return alpha_gt(t1->args(), t1->arity(), tt1.termAboveVar, tt2, applicator);
+    return alpha(t1->args(), t1->arity(), tt1, tt2);
   }
 }
 
-template<class Applicator>
-bool LPO::lexMAE_gt(AppliedTermLPO<Applicator> s, AppliedTermLPO<Applicator> t, TermList* sl, TermList* tl, unsigned arity, const Applicator& applicator) const
+Ordering::Result LPO::lexMAE(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity) const
 {
-  // cout << "lexMAE_gt " << s.term << " " << t.term << endl;
-
   for (unsigned i = 0; i < arity; i++) {
-    // implement deep equals
-    AppliedTermLPO sArg(*(sl - i),applicator,s.termAboveVar);
-    AppliedTermLPO tArg(*(tl - i),applicator,t.termAboveVar);
-    // cout << "lex compare " << sArg.term << " " << tArg.term << endl;
-    if (sArg == tArg) {
-      // cout << "equal" << endl;
-      continue;
-    }
-    // cout << "not equal" << endl;
-    if (lpo_gt(sArg, tArg, applicator)) {
-      return majo_gt(s, tl - i - 1, arity - i - 1, t.termAboveVar, applicator);
-    } else {
-      return alpha_gt(sl - i - 1, arity - i - 1, s.termAboveVar, t, applicator);
+    switch (lpo(AppliedTerm(*(sl - i),s), AppliedTerm(*(tl - i),t))) {
+    case EQUAL:
+      break;
+    case GREATER:
+      return majo(s, t, tl - i - 1, arity - i - 1);
+    case INCOMPARABLE:
+      return alpha(sl - i - 1, arity - i - 1, s, t);
+    default:
+      ASSERTION_VIOLATION;
     }
   }
-  // reached only when the terms are equal but this is checked already
-  // at the start of LPO::lpo, which is the only caller of this function
-  ASSERTION_VIOLATION;
+  return EQUAL;
 }
 
 // greater if s is greater than every term in tl
-template<class Applicator>
-bool LPO::majo_gt(AppliedTermLPO<Applicator> s, TermList* tl, unsigned arity, bool argsAboveVar, const Applicator& applicator) const
+Ordering::Result LPO::majo(AppliedTerm s, AppliedTerm t, const TermList* tl, unsigned arity) const
 {
-  // cout << "majo_gt " << s.term << endl;
-
   for (unsigned i = 0; i < arity; i++) {
-    AppliedTermLPO t(*(tl - i), applicator, argsAboveVar);
-    // cout << "majo compare " << s.term << " " << t.term << endl;
-    if (s == t || !lpo_gt(s, t, applicator)) {
-      return false;
+    if (lpo(s, AppliedTerm(*(tl - i), t)) != GREATER) {
+      return INCOMPARABLE;
     }
   }
-  return true;
+  return GREATER;
 }
-
-using Applicator = std::function<TermList(TermList)>;
 
 struct LPO::Node {
   enum Type {
@@ -443,7 +253,7 @@ struct LPO::Node {
   };
   Type t;
   Node(Type t) : t(t) {}
-  virtual bool execute(const Applicator& applicator) const = 0;
+  virtual bool execute(const SubstApplicator* applicator) const = 0;
   virtual vvector<vstring> toString() const = 0;
   virtual ~Node() = default;
 };
@@ -451,7 +261,7 @@ struct LPO::Node {
 struct ResultNode : public LPO::Node {
   ResultNode(bool result) : Node(Node::RESULT), result(result) {}
   bool result;
-  bool execute(const Applicator& applicator) const override { return result; }
+  bool execute(const SubstApplicator* applicator) const override { return result; }
   vvector<vstring> toString() const override { return { result ? "true" : "false" }; }
 };
 
@@ -461,7 +271,7 @@ struct JunctionNode : public LPO::Node {
     DISJUNCTION,
   };
   JunctionNode(JunctionType jt) : Node(Node::JUNCTION), jt(jt) {}
-  bool execute(const Applicator& applicator) const override {
+  bool execute(const SubstApplicator* applicator) const override {
     if (jt==CONJUNCTION) {
       for (const auto& ch : children) {
         if (!ch->execute(applicator)) {
@@ -519,8 +329,8 @@ struct JunctionNode : public LPO::Node {
 struct ComparisonNode : public LPO::Node {
   // ComparisonNode() = default;
   ComparisonNode(const LPO& lpo, Ordering::Result t, TermList lhs, TermList rhs) : Node(Node::COMPARISON), lpo(lpo), type(t), lhs(lhs), rhs(rhs) {}
-  bool execute(const Applicator& applicator) const override {
-    return lpo.compare(applicator(lhs),applicator(rhs))==type;
+  bool execute(const SubstApplicator* applicator) const override {
+    return lpo.compare(AppliedTerm(lhs,applicator,true),AppliedTerm(rhs,applicator,true))==type;
   }
   vvector<vstring> toString() const override {
     return { lhs.toString() + " " + Ordering::resultToString(type) + " " + rhs.toString() };
@@ -680,19 +490,20 @@ LPO::Node* LPO::preprocessComparison(TermList tl1, TermList tl2, Result expected
 
 }
 
-bool LPO::isGreater(TermList lhs, TermList rhs, const std::function<TermList(TermList)>& applicator) const
+bool LPO::isGreater(AppliedTerm lhs, AppliedTerm rhs) const
 {
-  // return isGreaterOrEq(AppliedTermLPO(lhs,applicator,true),AppliedTermLPO(rhs,applicator,true),applicator)==GREATER;
-  auto n = preprocessComparison(lhs,rhs,GREATER);
+  // return lpo(std::move(lhs),std::move(rhs))==GREATER;
+  ASS_EQ(lhs.applicator,rhs.applicator);
+  ASS(lhs.aboveVar);
+  ASS(rhs.aboveVar);
+  auto n = preprocessComparison(lhs.term,rhs.term,GREATER);
   // cout << "isGreater " << lhs << " " << rhs << endl;
   // for (const auto& line : n->toString()) {
   //   cout << line << endl;
   // }
   // cout << endl;
-  return n->execute(applicator);
+  return n->execute(lhs.applicator);
 }
-
-
 
 void LPO::showConcrete(ostream&) const 
 { /* lpo is fully defined by the precedence relation */ }

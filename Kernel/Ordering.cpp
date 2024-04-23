@@ -16,7 +16,6 @@
 
 #include "Forwards.hpp"
 
-#include "Indexing/Index.hpp"
 #include "Indexing/TermSharing.hpp"
 
 #include "Lib/Environment.hpp"
@@ -51,8 +50,6 @@ using namespace Lib;
 using namespace Kernel;
 
 OrderingSP Ordering::s_globalOrdering;
-
-TermList IdentityApplicator::operator()(TermList t) const noexcept { return t; }
 
 Ordering::Ordering()
 {
@@ -275,14 +272,17 @@ Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
   return comparePredicates(l1, l2);
 } // PrecedenceOrdering::compare()
 
-template<class Applicator>
-bool Ordering::isGreater(TermList lhs, TermList rhs, const Applicator& applicator, Stack<Instruction>*& instructions) const
+bool Ordering::isGreater(AppliedTerm lhs, AppliedTerm rhs, Stack<Instruction>*& instructions) const
 {
+  ASS_EQ(lhs.applicator,rhs.applicator);
+  ASS(lhs.aboveVar);
+  ASS(rhs.aboveVar);
   // this function only works with KBO now
   auto kbo = static_cast<const KBO*>(this);
+  auto applicator = lhs.applicator;
   if (!instructions) {
     instructions = new Stack<Instruction>();
-    preprocessComparison(lhs,rhs,instructions);
+    preprocessComparison(lhs.term,rhs.term,instructions);
     // cout << lhs << " " << rhs << endl;
     // output(cout,*instructions);
   }
@@ -296,7 +296,7 @@ bool Ordering::isGreater(TermList lhs, TermList rhs, const Applicator& applicato
         for (unsigned j = i+2; j < i+2+arity; j++) {
           auto var = ins[j]._v1;
           auto coeff = ins[j]._v2._int;
-          AppliedTerm tt(var, applicator);
+          AppliedTerm tt(TermList(var,false), applicator, true);
 
           VariableIterator vit(tt.term);
           while (vit.hasNext()) {
@@ -306,7 +306,7 @@ bool Ordering::isGreater(TermList lhs, TermList rhs, const Applicator& applicato
               return false;
             }
           }
-          auto w = kbo->computeWeight(tt, applicator);
+          auto w = kbo->computeWeight(tt);
           weight += coeff*w;
           if (coeff<0 && weight<0) {
             return false;
@@ -323,8 +323,8 @@ bool Ordering::isGreater(TermList lhs, TermList rhs, const Applicator& applicato
       }
       case InstructionTag::COMPARE_VV: {
         auto res = kbo->isGreaterOrEq(
-          AppliedTerm(ins[i]._v2._uint, applicator),
-          AppliedTerm(ins[i+1]._v1, applicator), applicator);
+          AppliedTerm(TermList(ins[i]._v2._uint,false), applicator, true),
+          AppliedTerm(TermList(ins[i+1]._v1,false), applicator, true));
         if (res==EQUAL) {
             i += 2;
             break;
@@ -333,8 +333,8 @@ bool Ordering::isGreater(TermList lhs, TermList rhs, const Applicator& applicato
       }
       case InstructionTag::COMPARE_VT: {
         auto res = kbo->isGreaterOrEq(
-          AppliedTerm(ins[i]._v2._uint, applicator),
-          AppliedTerm(TermList(ins[i+1]._t), applicator, true), applicator);
+          AppliedTerm(TermList(ins[i]._v2._uint,false), applicator, true),
+          AppliedTerm(TermList(ins[i+1]._t), applicator, true));
         if (res==EQUAL) {
             i += 2;
             break;
@@ -343,8 +343,8 @@ bool Ordering::isGreater(TermList lhs, TermList rhs, const Applicator& applicato
       }
       case InstructionTag::COMPARE_TV: {
         auto res = kbo->isGreaterOrEq(
-          AppliedTerm(TermList(ins[i+1]._t),applicator,true),
-          AppliedTerm(ins[i]._v2._uint, applicator), applicator);
+          AppliedTerm(TermList(ins[i+1]._t), applicator, true),
+          AppliedTerm(TermList(ins[i]._v2._uint,false), applicator, true));
         if (res==EQUAL) {
             i += 2;
             break;
@@ -361,14 +361,29 @@ bool Ordering::isGreater(TermList lhs, TermList rhs, const Applicator& applicato
   return false;
 }
 
-bool Ordering::isGreater(TermList lhs, TermList rhs, const std::function<TermList(TermList)>& applicator) const
+bool Ordering::containsVar(AppliedTerm s, TermList var)
+{
+  ASS(var.isVar());
+  if (!s.aboveVar) {
+    return s.term.containsSubterm(var);
+  }
+  if (s.term.isVar()) {
+    return (*s.applicator)(s.term.var()).containsSubterm(var);
+  }
+  VariableIterator vit(s.term.term());
+  while (vit.hasNext()) {
+    auto v = vit.next();
+    if ((*s.applicator)(v.var()).containsSubterm(var)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+Ordering::Result Ordering::compare(AppliedTerm lhs, AppliedTerm rhs) const
 {
   NOT_IMPLEMENTED;
 }
-
-template bool Ordering::isGreater<Indexing::BoundResultApplicator>(TermList, TermList, const Indexing::BoundResultApplicator&, Stack<Instruction>*&) const;
-template bool Ordering::isGreater<Indexing::BoundQueryApplicator>(TermList, TermList, const Indexing::BoundQueryApplicator&, Stack<Instruction>*&) const;
-template bool Ordering::isGreater<IdentityApplicator>(TermList, TermList, const IdentityApplicator&, Stack<Instruction>*&) const;
 
 void Ordering::preprocessComparison(TermList, TermList, Stack<Instruction>*&) const { NOT_IMPLEMENTED; }
 
@@ -423,6 +438,11 @@ void Ordering::output(std::ostream& out, const Stack<Ordering::Instruction>& ptr
     }
   }
   out << endl;
+}
+
+bool Ordering::isGreater(AppliedTerm lhs, AppliedTerm rhs) const
+{
+  NOT_IMPLEMENTED;
 }
 
 /**

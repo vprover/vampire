@@ -36,8 +36,6 @@ public:
   void detach() override;
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override = 0;
 protected:
-  struct Applicator;
-
   bool _preorderedOnly;
   bool _encompassing;
   bool _precompiledComparison;

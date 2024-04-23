@@ -34,24 +34,6 @@
 
 namespace Kernel {
 
-template<class Applicator>
-struct AppliedTerm
-{
-  TermList term;
-  bool termAboveVar;
-
-  AppliedTerm(TermList t, const Applicator& applicator, bool aboveVar)
-    : term(aboveVar && t.isVar() ? applicator(t) : t),
-      termAboveVar(aboveVar && t.isVar() ? false : aboveVar) {}
-
-  AppliedTerm(unsigned var, const Applicator& applicator)
-    : term(applicator(TermList(var,false))), termAboveVar(false) {}
-
-  bool operator==(const AppliedTerm& other) const {
-    return termAboveVar==other.termAboveVar && term==other.term;
-  }
-};
-
 using namespace Lib;
 
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
@@ -174,13 +156,11 @@ public:
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
 
-  // exposed for unit testing
-  template<class Applicator>
-  Result isGreaterOrEq(AppliedTerm<Applicator>&& tt1, AppliedTerm<Applicator>&& tt2, const Applicator& applicator) const;
-  template<class Applicator>
-  unsigned computeWeight(const AppliedTerm<Applicator>& tt, const Applicator& applicator) const;
+  Result compare(AppliedTerm t1, AppliedTerm t2) const override;
+  bool isGreater(AppliedTerm t1, AppliedTerm t2) const override;
 
-  bool isGreater(TermList lhs, TermList rhs, const std::function<TermList(TermList)>& applicator) const override;
+  Result isGreaterOrEq(AppliedTerm tt1, AppliedTerm tt2) const;
+  unsigned computeWeight(AppliedTerm tt) const;
 
 protected:
   Result comparePredicates(Literal* l1, Literal* l2) const override;
@@ -188,7 +168,6 @@ protected:
   void preprocessComparison(TermList tl1, TermList tl2, Stack<Instruction>*& instructions) const override;
 
   class State;
-  class StateGreater;
 
   // int functionSymbolWeight(unsigned fun) const;
   int symbolWeight(const Term* t) const;
@@ -211,7 +190,6 @@ private:
    * State used for comparing terms and literals
    */
   mutable State* _state;
-  mutable StateGreater* _stateGt;
 };
 
 }

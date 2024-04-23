@@ -85,6 +85,13 @@ private:
   DemodulationSubtermIndex* _index;
 };
 
+struct Applicator : SubstApplicator {
+  Applicator(ResultSubstitution* subst) : subst(subst) {}
+  TermList operator()(unsigned v) const override {
+    return subst->applyToBoundQuery(TermList(v,false));
+  }
+  ResultSubstitution* subst;
+};
 
 struct BackwardDemodulation::ResultFn
 {
@@ -129,8 +136,10 @@ struct BackwardDemodulation::ResultFn
     auto subs = qr.unifier;
     ASS(subs->isIdentityOnResultWhenQueryBound());
 
+    Applicator appl(subs.ptr());
+
     if (_precompiledComparison) {
-      if (!_ordering.isGreater(lhs,rhs,BoundQueryApplicator(subs.ptr()),_cl->demodulatorCompInstructions(lhs))) {
+      if (!_ordering.isGreater(AppliedTerm(lhs,&appl,true),AppliedTerm(rhs,&appl,true),_cl->demodulatorCompInstructions(lhs))) {
         // if (_ordering.compare(qr.term,subs->applyToBoundQuery(rhs))==Ordering::GREATER) {
         //   USER_ERROR("is greater " + qr.term.toString() + " " + subs->applyToBoundQuery(rhs).toString() + "\nFrom equation " + _eqLit->toString() + " side " + lhs.toString());
         // }
@@ -142,16 +151,17 @@ struct BackwardDemodulation::ResultFn
     }
 
     TermList lhsS=qr.data->term;
-    TermList rhsS=subs->applyToBoundQuery(rhs);
 
     if (!_precompiledComparison) {
-      if (_ordering.compare(lhsS,rhsS)!=Ordering::GREATER) {
+      if (!_ordering.isGreater(AppliedTerm(lhsS), AppliedTerm(rhs,&appl,true))) {
         return BwSimplificationRecord(0);
       }
     }
 
-    if (_helper.redundancyCheckNeededForPremise(qr.data->clause,qr.data->literal,qr.data->term) &&
-      !_helper.isPremiseRedundant(qr.data->clause,qr.data->literal,qr.data->term,rhsS,lhs,subs.ptr(),false))
+    TermList rhsS=subs->applyToBoundQuery(rhs);
+
+    if (_helper.redundancyCheckNeededForPremise(qr.data->clause,qr.data->literal,lhsS) &&
+      !_helper.isPremiseRedundant(qr.data->clause,qr.data->literal,lhsS,rhsS,lhs,subs.ptr(),false))
     {
       return BwSimplificationRecord(0);
     }

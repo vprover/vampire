@@ -83,6 +83,9 @@ public:
     }
   }
 
+  virtual TermList applyToBoundResult(unsigned v)
+  { return applyToResult(TermList(v,false)); }
+
   /**
    * Apply substitution to result term that fulfills the condition,
    * that all its variables are bound to some term of the query.
@@ -132,22 +135,6 @@ public:
   virtual void output(std::ostream& ) const = 0;
   friend std::ostream& operator<<(std::ostream& out, ResultSubstitution const& self)
   { self.output(out); return out; }
-};
-
-struct BoundResultApplicator {
-  BoundResultApplicator(ResultSubstitution* subst) : subst(subst) {}
-  TermList operator()(TermList t) const {
-    return subst->applyToBoundResult(t);
-  }
-  ResultSubstitution* subst;
-};
-
-struct BoundQueryApplicator {
-  BoundQueryApplicator(ResultSubstitution* subst) : subst(subst) {}
-  TermList operator()(TermList t) const {
-    return subst->applyToBoundQuery(t);
-  }
-  ResultSubstitution* subst;
 };
 
 }; // namepace Indexing

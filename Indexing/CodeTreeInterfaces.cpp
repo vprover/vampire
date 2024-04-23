@@ -55,6 +55,11 @@ public:
     return res;
   }
 
+  TermList applyToBoundResult(unsigned v) override
+  {
+    return apply(v);
+  }
+
   TermList applyToBoundResult(TermList t) override
   {
     return SubstHelper::apply(t, *this);

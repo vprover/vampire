@@ -32,10 +32,6 @@ namespace Kernel {
 
 using namespace Shell;
 
-struct IdentityApplicator {
-  TermList operator()(TermList) const noexcept;
-};
-
 /**
  * An abstract class for simplification orderings
  * @since 30/04/2008 flight Brussels-Tel Aviv
@@ -67,12 +63,16 @@ public:
   /** Return the result of comparing terms (not term lists!)
    * @b t1 and @b t2 */
   virtual Result compare(TermList t1,TermList t2) const = 0;
+  /** Same as @b compare, for applied (substituted) terms. */
+  virtual Result compare(AppliedTerm t1, AppliedTerm t2) const;
+  /** Optimised function used for checking that @b t1 is greater than @b t2,
+   * under some substitutions captured by @b AppliedTerm. */
+  virtual bool isGreater(AppliedTerm t1, AppliedTerm t2) const;
 
   union Instruction;
   /** Optimised function used for checking that @b lhs is greater than @b rhs,
    * under substitution represented by @b applicator. */
-  template<class Applicator> bool isGreater(TermList lhs, TermList rhs, const Applicator& applicator, Stack<Instruction>*& instructions) const;
-  virtual bool isGreater(TermList lhs, TermList rhs, const std::function<TermList(TermList)>& applicator) const;
+  bool isGreater(AppliedTerm lhs, AppliedTerm rhs, Stack<Instruction>*& instructions) const;
 
   virtual void show(std::ostream& out) const = 0;
 
@@ -138,9 +138,11 @@ public:
 protected:
   virtual void preprocessComparison(TermList tl1, TermList tl2, Stack<Instruction>*& res) const;
 
-  void output(std::ostream& out, const Stack<Ordering::Instruction>& ptr) const;
+  void output(std::ostream& out, const Stack<Instruction>& ptr) const;
 
   Result compareEqualities(Literal* eq1, Literal* eq2) const;
+
+  static bool containsVar(AppliedTerm s, TermList var);
 
 private:
   void createEqualityComparator();

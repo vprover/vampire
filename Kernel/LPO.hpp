@@ -20,48 +20,13 @@
 
 #include "Forwards.hpp"
 
+#include "SubstHelper.hpp"
+
 #include "Ordering.hpp"
 
 namespace Kernel {
 
 using namespace Lib;
-
-template<class Applicator>
-struct AppliedTermLPO
-{
-  TermList term;
-  bool termAboveVar;
-  const Applicator& applicator;
-
-  AppliedTermLPO(TermList t, const Applicator& applicator, bool aboveVar)
-    : term(aboveVar && t.isVar() ? applicator(t) : t),
-      termAboveVar(aboveVar && t.isVar() ? false : aboveVar), applicator(applicator) {}
-
-  bool operator==(const AppliedTermLPO& other) const {
-    // std::cout << "operator==" << term << " " << other.term << std::endl;
-    // std::cout << "          " << (termAboveVar?applicator(term):term) << " " << (other.termAboveVar?other.applicator(other.term):other.term) << std::endl;
-    if (!termAboveVar && !other.termAboveVar) {
-      return term == other.term;
-    }
-    if (term.isVar() || other.term.isVar()) {
-      return false;
-    }
-    auto t = term.term();
-    auto o = other.term.term();
-    if (t->functor()!=o->functor()) {
-      return false;
-    }
-    for (unsigned i = 0; i < t->arity(); i++) {
-      if (!(AppliedTermLPO(*t->nthArgument(i),applicator,termAboveVar)==AppliedTermLPO(*o->nthArgument(i),other.applicator,other.termAboveVar))) {
-        return false;
-      }
-    }
-    return true;
-  }
-  bool operator!=(const AppliedTermLPO& other) const {
-    return !(*this==other);
-  }
-};
 
 /**
  * Class for instances of the lexicographic path orderings
@@ -80,39 +45,28 @@ public:
   ~LPO() override = default;
 
   using PrecedenceOrdering::compare;
-  [[nodiscard]] Result compare(TermList tl1, TermList tl2) const override;
-  template<class Applicator>
-  Result isGreaterOrEq(AppliedTermLPO<Applicator>&& tt1, AppliedTermLPO<Applicator>&& tt2, const Applicator& applicator) const;
-  void showConcrete(std::ostream&) const override;
-
   struct Node;
 
-  bool isGreater(TermList lhs, TermList rhs, const std::function<TermList(TermList)>& applicator) const override;
   Node* preprocessComparison(TermList tl1, TermList tl2, Result expected) const;
 
+  Result compare(TermList tl1, TermList tl2) const override;
+  Result compare(AppliedTerm tl1, AppliedTerm tl2) const override;
+  void showConcrete(std::ostream&) const override;
+
+  bool isGreater(AppliedTerm tl1, AppliedTerm tl2) const override;
+
 protected:
-  [[nodiscard]] Result comparePredicates(Literal* l1, Literal* l2) const override;
-  [[nodiscard]] Result comparePrecedences(Term* t1, Term* t2) const;
+  Result comparePredicates(Literal* l1, Literal* l2) const override;
+  Result comparePrecedences(const Term* t1, const Term* t2) const;
 
-  [[nodiscard]] Result cLMA(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity) const;
-  [[nodiscard]] Result cMA(Term* t, TermList* tl, unsigned arity) const;
-  [[nodiscard]] Result cAA(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity1, unsigned arity2) const;
-  [[nodiscard]] Result alpha(TermList* tl, unsigned arity, Term *t) const;
-  [[nodiscard]] Result clpo(Term* t1, TermList tl2) const;
-  [[nodiscard]] Result lpo(TermList tl1, TermList tl2) const;
-  [[nodiscard]] Result lexMAE(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity) const;
-  [[nodiscard]] Result majo(Term* s, TermList* tl, unsigned arity) const;
-
-  template<class Applicator>
-  [[nodiscard]] bool alpha_gt(TermList* tl, unsigned arity, bool argsAboveVar, AppliedTermLPO<Applicator> t, const Applicator& applicator) const;
-  template<class Applicator>
-  [[nodiscard]] bool clpo_gt(AppliedTermLPO<Applicator> t1, AppliedTermLPO<Applicator> tl2, const Applicator& applicator) const;
-  template<class Applicator>
-  [[nodiscard]] bool lpo_gt(AppliedTermLPO<Applicator> t1, AppliedTermLPO<Applicator> tl2, const Applicator& applicator) const;
-  template<class Applicator>
-  [[nodiscard]] bool lexMAE_gt(AppliedTermLPO<Applicator> s, AppliedTermLPO<Applicator> t, TermList* sl, TermList* tl, unsigned arity, const Applicator& applicator) const;
-  template<class Applicator>
-  [[nodiscard]] bool majo_gt(AppliedTermLPO<Applicator> s, TermList* tl, unsigned arity, bool argsAboveVar, const Applicator& applicator) const;
+  Result cLMA(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity) const;
+  Result cMA(AppliedTerm s, AppliedTerm t, const TermList* tl, unsigned arity) const;
+  Result cAA(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity1, unsigned arity2) const;
+  Result alpha(const TermList* sl, unsigned arity, AppliedTerm s, AppliedTerm t) const;
+  Result clpo(AppliedTerm tl1, AppliedTerm tl2) const;
+  Result lpo(AppliedTerm tl1, AppliedTerm tl2) const;
+  Result lexMAE(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity) const;
+  Result majo(AppliedTerm s, AppliedTerm t, const TermList* tl, unsigned arity) const;
 
   mutable DHMap<std::tuple<TermList,TermList,Result>,Node*> _comparisons;
 };

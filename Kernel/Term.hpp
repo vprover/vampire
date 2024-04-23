@@ -758,16 +758,6 @@ public:
     return _vars;
   } // vars()
 
-  unsigned varmap() const
-  {
-    return _varmap;
-  }
-
-  void setVarmap(unsigned v)
-  {
-    _varmap = v;
-  }
-
   /**
    * Return true iff the object is an equality between two variables.
    *
@@ -923,12 +913,11 @@ protected:
   unsigned _hasInterpretedConstants : 1;
   /** If true, the object is an equality literal between two variables */
   unsigned _isTwoVarEquality : 1;
-  /** Weight of the symbol */
+  /** Weight of the symbol, i.e. sum of symbol and variable occurrences. */
   unsigned _weight;
-  /** Cached weight of the term for KBO, otherwise -1 and invalid. */
+  /** Cached weight of the term for KBO, otherwise -1 and invalid. Note that
+   * KBO symbol weights are not necessarily 1, so this can differ from @b _weight. */
   int _kboWeight;
-  /** The ith bit of this bitvector is set if the term contains variable Xi. */
-  unsigned _varmap : 32;
   /** length of maximum reduction length */
   int _maxRedLen;
   union {
