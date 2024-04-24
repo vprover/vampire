@@ -32,11 +32,6 @@ bool LiteralMiniIndex::literalHeaderComparator(const Entry& e1, const Entry& e2)
   return e1._header<e2._header || ( e1._header==e2._header && e1._weight<e2._weight );
 }
 
-LiteralMiniIndex::LiteralMiniIndex()
-    : _cnt(0), _entries()
-{
-}
-
 void LiteralMiniIndex::init(Clause* cl)
 {
   _cnt = cl->length();

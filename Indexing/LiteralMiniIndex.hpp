@@ -32,7 +32,7 @@ class LiteralMiniIndex
 public:
   USE_ALLOCATOR(LiteralMiniIndex);
 
-  LiteralMiniIndex();
+  LiteralMiniIndex() = default;
   void init(Clause* cl);
 
   LiteralMiniIndex(Clause* cl);
@@ -53,7 +53,7 @@ private:
 
   static bool literalHeaderComparator(const Entry& e1, const Entry& e2);
 
-  unsigned _cnt;
+  unsigned _cnt = 0;
   DArray<Entry> _entries;
 
   // TODO: name is misleading, because "base" means something different when next to "instance"  (IteratorBase would already be better)

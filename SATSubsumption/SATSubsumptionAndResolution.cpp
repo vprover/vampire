@@ -104,22 +104,6 @@ static bool isAdditionOverflow(T a, T b)
   return static_cast<T>(a + b) < a;
 }
 
-/**
- * @brief Check if all elements in a container satisfy a predicate
- * @tparam Container the container type
- * @tparam Predicate the predicate type
- * @param xs the container
- * @param p the predicate
-*/
-template <typename Container, typename Predicate>
-static bool allOf(Container const& xs, Predicate p)
-{
-  for (auto&& x : xs)
-    if (!p(x))
-      return false;
-  return true;
-}
-
 /****************************************************************************/
 /*               SATSubsumptionAndResolution::MatchSet                      */
 /****************************************************************************/
@@ -241,7 +225,7 @@ bool SATSubsumptionAndResolution::pruneSubsumption()
 
   // multiset of signed predicates in M
   headerMultiset.resize(2 * env.signature->predicates(), 0);
-  ASS(allOf(headerMultiset, [&](prune_t x) { return x <= timestamp; }))
+  ASS(std::all_of(headerMultiset.begin(), headerMultiset.end(), [&](prune_t x) { return x <= timestamp; }))
 
   // Our relative zero for counting is the timestamp.
   // We need to reset the vector only if the counts could overflow.
@@ -253,7 +237,7 @@ bool SATSubsumptionAndResolution::pruneSubsumption()
 
   prune_t const zero = timestamp;
   timestamp += _M->length();
-  ASS(allOf(headerMultiset, [&](prune_t x) { return x <= zero; }))
+  ASS(std::all_of(headerMultiset.begin(), headerMultiset.end(), [&](prune_t x) { return x <= zero; }))
 
   // fill in the multiset of functors in M
   for (unsigned i = 0; i < _M->length(); i++) {
@@ -306,7 +290,7 @@ bool SATSubsumptionAndResolution::pruneSubsumptionResolution()
   auto& timestamp = _pruneTimestamp;
 
   functorSet.resize(env.signature->predicates(), 0);
-  ASS(allOf(functorSet, [&](prune_t x) { return x <= timestamp; }))
+  ASS(std::all_of(functorSet.begin(), functorSet.end(), [&](prune_t x) { return x <= timestamp; }))
 
   timestamp++;
   if (timestamp == 0) {
@@ -314,7 +298,7 @@ bool SATSubsumptionAndResolution::pruneSubsumptionResolution()
     timestamp++;
     std::fill(functorSet.begin(), functorSet.end(), 0);
   }
-  ASS(allOf(functorSet, [&](prune_t x) { return x < timestamp; }));
+  ASS(std::all_of(functorSet.begin(), functorSet.end(), [&](prune_t x) { return x < timestamp; }));
 
   for (unsigned i = 0; i < _M->length(); i++)
     functorSet[(*_M)[i]->functor()] = timestamp;
@@ -381,10 +365,10 @@ bool SATSubsumptionAndResolution::fillMatchesS()
 {
   ASS(_L)
   ASS(_M)
-  ASS(_m > 0)
-  ASS(_n > 0)
-  ASS(_matchSet._m == _m)
-  ASS(_matchSet._n == _n)
+  ASS_G(_m, 0)
+  ASS_G(_n, 0)
+  ASS_EQ(_matchSet._m, _m)
+  ASS_EQ(_matchSet._n, _n)
 
   Literal* l_i, * m_j;
 
@@ -423,10 +407,10 @@ void SATSubsumptionAndResolution::fillMatchesSR()
 {
   ASS(_L)
   ASS(_M)
-  ASS(_m > 0)
-  ASS(_n > 0)
-  ASS(_matchSet._m == _m)
-  ASS(_matchSet._n == _n)
+  ASS_G(_m, 0)
+  ASS_G(_n, 0)
+  ASS_EQ(_matchSet._m, _m)
+  ASS_EQ(_matchSet._n, _n)
 
   // stores whether on all the literals in L there is a negative match in M
   bool clauseHasNegativeMatch = false;
@@ -858,7 +842,6 @@ bool SATSubsumptionAndResolution::checkSubsumption(Clause* L,
                                                    Clause* M,
                                                    bool setSR)
 {
-  using namespace std::chrono_literals;
   ASS(L)
   ASS(M)
 
@@ -903,8 +886,6 @@ Clause* SATSubsumptionAndResolution::checkSubsumptionResolution(Clause* L,
                                                                 Clause* M,
                                                                 bool usePreviousSetUp)
 {
-  using namespace std::chrono_literals;
-
   ASS(L)
   ASS(M)
   if (usePreviousSetUp) {
