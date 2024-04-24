@@ -248,73 +248,119 @@ Ordering::Result LPO::majo(AppliedTerm s, AppliedTerm t, const TermList* tl, uns
 struct LPO::Node {
   enum Type {
     RESULT,
-    JUNCTION,
+    // JUNCTION,
     COMPARISON,
+    LEXMAE,
+    MAJO,
+    ALPHA,
   };
   Type t;
   Node(Type t) : t(t) {}
-  virtual bool execute(const SubstApplicator* applicator) const = 0;
+  virtual Result execute(const SubstApplicator* applicator) const = 0;
   virtual vvector<vstring> toString() const = 0;
   virtual ~Node() = default;
 };
 
-struct ResultNode : public LPO::Node {
-  ResultNode(bool result) : Node(Node::RESULT), result(result) {}
-  bool result;
-  bool execute(const SubstApplicator* applicator) const override { return result; }
-  vvector<vstring> toString() const override { return { result ? "true" : "false" }; }
+vstring nodeToString(LPO::Node* n) {
+  vstringstream str;
+  for (const auto& line : n->toString()) {
+    str << line << endl;
+  }
+  return str.str();
+}
+
+struct LexMAENode : public LPO::Node {
+  LexMAENode(Ordering::Result endResult) : Node(Node::LEXMAE), endResult(endResult) {}
+  Ordering::Result execute(const SubstApplicator* applicator) const override {
+    for (const auto& ch : children) {
+      switch(get<0>(ch)->execute(applicator)) {
+        case Ordering::EQUAL:
+          break;
+        case Ordering::GREATER:
+          return get<1>(ch)->execute(applicator);
+        case Ordering::INCOMPARABLE: {
+          if (Ordering::isGorGEorE(get<2>(ch)->execute(applicator))) {
+            return Ordering::GREATER;
+          }
+          return Ordering::INCOMPARABLE;
+        }
+        default:
+          ASS_REP(false,get<0>(ch)->execute(applicator));
+      }
+    }
+    return endResult;
+  }
+  vvector<vstring> toString() const override {
+    vvector<vstring> res;
+    res.push_back("LEXMAE");
+    for (const auto& ch : children) {
+      res.push_back("  SWITCH");
+      for (const auto& line : get<0>(ch)->toString()) {
+        res.push_back("    " + line);
+      }
+      res.push_back("  if GREATER");
+      for (const auto& line : get<1>(ch)->toString()) {
+        res.push_back("    " + line);
+      }
+      res.push_back("  if INCOMPARABLE");
+      for (const auto& line : get<2>(ch)->toString()) {
+        res.push_back("    " + line);
+      }
+    }
+    res.push_back(vstring("return ") + Ordering::resultToString(endResult));
+    return res;
+  }
+  vvector<tuple<Node*,Node*,Node*>> children;
+  Ordering::Result endResult;
 };
 
-struct JunctionNode : public LPO::Node {
-  enum JunctionType {
-    CONJUNCTION,
-    DISJUNCTION,
-  };
-  JunctionNode(JunctionType jt) : Node(Node::JUNCTION), jt(jt) {}
-  bool execute(const SubstApplicator* applicator) const override {
-    if (jt==CONJUNCTION) {
-      for (const auto& ch : children) {
-        if (!ch->execute(applicator)) {
-          return false;
-        }
+struct ResultNode : public LPO::Node {
+  ResultNode(Ordering::Result result) : Node(Node::RESULT), result(result) {}
+  Ordering::Result result;
+  Ordering::Result execute(const SubstApplicator* applicator) const override { return result; }
+  vvector<vstring> toString() const override { return { Ordering::resultToString(result) }; }
+};
+
+struct MajoNode : public LPO::Node {
+  MajoNode() : Node(Node::MAJO) {}
+  Ordering::Result execute(const SubstApplicator* applicator) const override {
+    for (const auto& ch : children) {
+      if (ch->execute(applicator)!=Ordering::GREATER) {
+        return Ordering::INCOMPARABLE;
       }
-      return true;
-    } else {
-      for (const auto& ch : children) {
-        if (ch->execute(applicator)) {
-          return true;
-        }
-      }
-      return false;
     }
+    return Ordering::GREATER;
   }
-  static Node* create(JunctionType jt, vvector<Node*>&& children) {
+
+  static Node* create(vvector<Node*>&& children) {
     for (unsigned i = 0; i < children.size();) {
       if (children[i]->t!=Node::RESULT) {
         i++;
         continue;
       }
       auto rn = static_cast<ResultNode*>(children[i]);
-      if (rn->result==(jt==CONJUNCTION)) {
+      if (rn->result==Ordering::GREATER) {
         swap(children[i],children.back());
         children.pop_back();
-        continue;
+      } else {
+        return new ResultNode(Ordering::INCOMPARABLE);
       }
-      return new ResultNode(rn->result);
     }
     if (children.empty()) {
-      return new ResultNode(jt==CONJUNCTION);
+      return new ResultNode(Ordering::GREATER);
     }
-    if (children.size()==1) {
-      return children[0];
-    }
-    auto res = new JunctionNode(jt);
+    // if (children.size()==1) {
+    //   cout << "replacing with " << nodeToString(children[0]) << endl; 
+    //   return children[0];
+    // }
+    auto res = new MajoNode();
     res->children = children;
     return res;
   }
+
   vvector<vstring> toString() const override {
     vvector<vstring> res;
-    res.push_back(jt==CONJUNCTION ? "AND" : "OR");
+    res.push_back("MAJO");
     for (const auto& ch : children) {
       for (const auto& line : ch->toString()) {
         res.push_back("  " + line);
@@ -322,172 +368,204 @@ struct JunctionNode : public LPO::Node {
     }
     return res;
   }
-  JunctionType jt;
+  vvector<Node*> children;
+};
+
+struct AlphaNode : public LPO::Node {
+  AlphaNode() : Node(Node::ALPHA) {}
+  Ordering::Result execute(const SubstApplicator* applicator) const override {
+    for (const auto& ch : children) {
+      switch (ch->execute(applicator)) {
+      case Ordering::GREATER:
+      case Ordering::EQUAL:
+        return Ordering::GREATER;
+      case Ordering::INCOMPARABLE:
+        break;
+      default:
+        ASSERTION_VIOLATION;
+      }
+    }
+    return Ordering::INCOMPARABLE;
+  }
+
+  static Node* create(vvector<Node*>&& children) {
+    for (unsigned i = 0; i < children.size();) {
+      if (children[i]->t!=Node::RESULT) {
+        i++;
+        continue;
+      }
+      auto rn = static_cast<ResultNode*>(children[i]);
+      if (rn->result==Ordering::GREATER || rn->result==Ordering::EQUAL) {
+        return new ResultNode(Ordering::GREATER);
+      } else {
+        swap(children[i],children.back());
+        children.pop_back();
+      }
+    }
+    if (children.empty()) {
+      return new ResultNode(Ordering::INCOMPARABLE);
+    }
+    // if (children.size()==1) {
+    //   return children[0];
+    // }
+    auto res = new AlphaNode();
+    res->children = children;
+    return res;
+  }
+
+  vvector<vstring> toString() const override {
+    vvector<vstring> res;
+    res.push_back("ALPHA");
+    for (const auto& ch : children) {
+      for (const auto& line : ch->toString()) {
+        res.push_back("  " + line);
+      }
+    }
+    return res;
+  }
   vvector<Node*> children;
 };
 
 struct ComparisonNode : public LPO::Node {
   // ComparisonNode() = default;
-  ComparisonNode(const LPO& lpo, Ordering::Result t, TermList lhs, TermList rhs) : Node(Node::COMPARISON), lpo(lpo), type(t), lhs(lhs), rhs(rhs) {}
-  bool execute(const SubstApplicator* applicator) const override {
-    return lpo.compare(AppliedTerm(lhs,applicator,true),AppliedTerm(rhs,applicator,true))==type;
+  ComparisonNode(const LPO& lpo, TermList lhs, TermList rhs) : Node(Node::COMPARISON), lpo(lpo), lhs(lhs), rhs(rhs) {}
+  Ordering::Result execute(const SubstApplicator* applicator) const override {
+    return lpo.lpo(AppliedTerm(lhs,applicator,true),AppliedTerm(rhs,applicator,true));
   }
   vvector<vstring> toString() const override {
-    return { lhs.toString() + " " + Ordering::resultToString(type) + " " + rhs.toString() };
+    return { lhs.toString() + " ? " + rhs.toString() };
   }
   const LPO& lpo;
-  Ordering::Result type;
   TermList lhs;
   TermList rhs;
 };
 
-LPO::Node* LPO::preprocessComparison(TermList tl1, TermList tl2, Result expected) const
+bool unify(TermList tl1, TermList tl2, Substitution& subst)
 {
-  // cout << "preprocessing " << tl1 << " > " << tl2 << endl;
+  Stack<pair<TermList,TermList>> todo;
+  todo.push({ tl1,tl2 });
+  while (todo.isNonEmpty()) {
+    auto [ss,tt] = todo.pop();
+    if (ss==tt) {
+      continue;
+    }
+    if (ss.isVar() || tt.isVar()) {
+      if (!ss.isVar()) {
+        swap(ss,tt);
+      }
+      if (tt.containsSubterm(ss)) {
+        return false;
+      }
+      subst.bind(ss.var(),tt);
+      for (auto& [t1,t2] : todo) {
+        t1 = SubstHelper::apply(t1,subst);
+        t2 = SubstHelper::apply(t2,subst);
+      }
+      continue;
+    }
+    auto s = ss.term();
+    auto t = tt.term();
+    if (s->functor()!=t->functor()) {
+      return false;
+    }
+    for (unsigned i = 0; i < s->arity(); i++) {
+      todo.push({ *s->nthArgument(i), *t->nthArgument(i) });
+    }
+  }
+  return true;
+}
 
+LPO::Node* LPO::preprocessComparison(TermList tl1, TermList tl2) const
+{
   Node** ptr;
-  if (!_comparisons.getValuePtr(make_tuple(tl1,tl2,expected),ptr)) {
+  if (!_comparisons.getValuePtr(make_pair(tl1,tl2),ptr)) {
     return *ptr;
   }
 
-  auto comp = compare(tl1,tl2);
+  auto comp = lpo(tl1,tl2);
+  ASS(comp != LESS && comp != LESS_EQ && comp != GREATER_EQ);
   if (comp != INCOMPARABLE) {
-    *ptr = new ResultNode(comp == expected);
+    *ptr = new ResultNode(comp);
     return *ptr;
   }
   if (tl1.isVar() || tl2.isVar()) {
-    *ptr = new ComparisonNode(*this,expected,tl1,tl2);
+    *ptr = new ComparisonNode(*this,tl1,tl2);
     return *ptr;
   }
 
   auto s = tl1.term();
   auto t = tl2.term();
 
-  if (expected==EQUAL)
-  {
-    if (s->functor()!=t->functor()) {
-      *ptr = new ResultNode(false);
-      return *ptr;
-    }
-    vvector<Node*> subres;
-    bool equal = true;
-    SubtermIterator sstit(s);
-    SubtermIterator tstit(t);
-    while (sstit.hasNext()) {
-      ALWAYS(tstit.hasNext());
-      auto sst = sstit.next();
-      auto tst = tstit.next();
-      if (sst == tst) {
-        sstit.right();
-        tstit.right();
-        continue;
+  switch (comparePrecedences(s, t)) {
+    case EQUAL: {
+      ASS(s->arity()); // constants cannot be incomparable
+
+      vvector<tuple<Node*,Node*,Node*>> subres;
+      Substitution subst;
+
+      // lexicographic comparisons
+      bool canBeEqual = true;
+      for (unsigned i = 0; i < s->arity(); i++) {
+        auto s_arg = SubstHelper::apply(*s->nthArgument(i),subst);
+        auto t_arg = SubstHelper::apply(*t->nthArgument(i),subst);
+        auto compNode = preprocessComparison(s_arg,t_arg);
+
+        vvector<Node*> majoChildren;
+        for (unsigned j = i+1; j < s->arity(); j++) {
+          majoChildren.push_back(preprocessComparison(SubstHelper::apply(tl1,subst),SubstHelper::apply(*t->nthArgument(j),subst)));
+        }
+        auto majoNode = MajoNode::create(std::move(majoChildren));
+
+        vvector<Node*> alphaChildren;
+        for (unsigned j = i+1; j < s->arity(); j++) {
+          alphaChildren.push_back(preprocessComparison(SubstHelper::apply(*s->nthArgument(j),subst),SubstHelper::apply(tl2,subst)));
+        }
+        auto alphaNode = AlphaNode::create(std::move(alphaChildren));
+        subres.push_back(make_tuple(compNode,majoNode,alphaNode));
+        if (!unify(s_arg,t_arg,subst)) {
+          canBeEqual = false;
+          break;
+        }
       }
 
-      if (sst.isVar() || tst.isVar()) {
-        subres.push_back(new ComparisonNode(*this,EQUAL,sst,tst));
-        sstit.right();
-        tstit.right();
-        continue;
-      }
-      if (sst.term()->functor()!=tst.term()->functor()) {
-        equal = false;
-        break;
-      }
-    }
-    if (equal) {
-      auto res = new JunctionNode(JunctionNode::CONJUNCTION);
-      *ptr = res;
+      auto res = new LexMAENode(canBeEqual ? EQUAL : INCOMPARABLE);
       res->children = std::move(subres);
-      return *ptr;
-    } else {
-      for (const auto& n : subres) {
-        delete n;
-      }
-      *ptr = new ResultNode(false);
-      return *ptr;
+      ALWAYS(!_comparisons.getValuePtr(make_tuple(tl1,tl2),ptr));
+      ASS(!*ptr);
+      *ptr = res;
+      // cout << "preprocessing " << tl1 << " > " << tl2 << endl;
+      // cout << nodeToString(res) << endl;
+      return res;
     }
-
-  } else {
-    Substitution subst;
-    auto bind = [&subst](Node* n) {
-      if (n->t!=Node::COMPARISON) {
-        return;
+    case GREATER: {
+      vvector<Node*> subres;
+      for (unsigned i = 0; i < t->arity(); i++) {
+        subres.push_back(preprocessComparison(tl1,*t->nthArgument(i)));
       }
-      auto cn = static_cast<ComparisonNode*>(n);
-      if (cn->type!=EQUAL) {
-        return;
-      }
-      if (cn->lhs.isVar() || cn->rhs.isVar()) {
-        auto eqLHS = cn->lhs.isVar() ? cn->lhs : cn->rhs;
-        auto eqRHS = cn->lhs.isVar() ? cn->rhs : cn->lhs;
-        subst.bind(eqLHS.var(),eqRHS);
-      }
-    };
-    auto apply = [&subst](TermList t) {
-      return SubstHelper::apply(t,subst);
-    };
-    switch (comparePrecedences(s, t)) {
-      case EQUAL: {
-        ASS(s->arity()); // constants cannot be incomparable
-
-        vvector<Node*> subres;
-
-        // lexicographic comparisons
-        for (unsigned i = 0; i < s->arity(); i++) {
-          vvector<Node*> subsubres;
-          for (unsigned j = 0; j < i; j++) {
-            subsubres.push_back(preprocessComparison(apply(*s->nthArgument(j)),apply(*t->nthArgument(j)),EQUAL));
-            bind(subsubres.back());
-          }
-          subsubres.push_back(preprocessComparison(apply(*s->nthArgument(i)),apply(*t->nthArgument(i)),GREATER));
-          bind(subsubres.back());
-          for (unsigned j = i+1; j < s->arity(); j++) {
-            subsubres.push_back(preprocessComparison(apply(tl1),apply(*t->nthArgument(j)),GREATER));
-            bind(subsubres.back());
-          }
-          subres.push_back(JunctionNode::create(JunctionNode::CONJUNCTION,std::move(subsubres)));
-        }
-        // alpha comparisons
-        for (unsigned i = 0; i < s->arity(); i++) {
-          subres.push_back(preprocessComparison(*s->nthArgument(i),tl2,GREATER));
-          subres.push_back(preprocessComparison(*s->nthArgument(i),tl2,EQUAL));
-        }
-
-        auto res = JunctionNode::create(JunctionNode::DISJUNCTION,std::move(subres));
-        ALWAYS(!_comparisons.getValuePtr(make_tuple(tl1,tl2,expected),ptr));
-        ASS(!*ptr);
-        *ptr = res;
-        return res;
-      }
-      case GREATER: {
-        vvector<Node*> subres;
-        for (unsigned i = 0; i < t->arity(); i++) {
-          subres.push_back(preprocessComparison(apply(tl1),apply(*t->nthArgument(i)),GREATER));
-          bind(subres.back());
-        }
-        auto res = JunctionNode::create(JunctionNode::CONJUNCTION,std::move(subres));
-        ALWAYS(!_comparisons.getValuePtr(make_tuple(tl1,tl2,expected),ptr));
-        ASS(!*ptr);
-        *ptr = res;
-        return res;
-      }
-      case LESS: {
-        vvector<Node*> subres;
-        for (unsigned i = 0; i < s->arity(); i++) {
-          subres.push_back(preprocessComparison(*s->nthArgument(i),tl2,GREATER));
-          subres.push_back(preprocessComparison(*s->nthArgument(i),tl2,EQUAL));
-        }
-        auto res = JunctionNode::create(JunctionNode::DISJUNCTION,std::move(subres));
-        ALWAYS(!_comparisons.getValuePtr(make_tuple(tl1,tl2,expected),ptr));
-        ASS(!*ptr);
-        *ptr = res;
-        return res;
-      }
-      default:
-        ASSERTION_VIOLATION;
+      auto res = MajoNode::create(std::move(subres));
+      ALWAYS(!_comparisons.getValuePtr(make_tuple(tl1,tl2),ptr));
+      ASS(!*ptr);
+      *ptr = res;
+      // cout << "preprocessing " << tl1 << " > " << tl2 << endl;
+      // cout << nodeToString(res) << endl;
+      return res;
     }
+    case LESS: {
+      vvector<Node*> subres;
+      for (unsigned i = 0; i < s->arity(); i++) {
+        subres.push_back(preprocessComparison(*s->nthArgument(i),tl2));
+      }
+      auto res = AlphaNode::create(std::move(subres));
+      ALWAYS(!_comparisons.getValuePtr(make_tuple(tl1,tl2),ptr));
+      ASS(!*ptr);
+      *ptr = res;
+      // cout << "preprocessing " << tl1 << " > " << tl2 << endl;
+      // cout << nodeToString(res) << endl;
+      return res;
+    }
+    default:
+      ASSERTION_VIOLATION;
   }
-
 }
 
 bool LPO::isGreater(AppliedTerm lhs, AppliedTerm rhs) const
@@ -496,13 +574,20 @@ bool LPO::isGreater(AppliedTerm lhs, AppliedTerm rhs) const
   ASS_EQ(lhs.applicator,rhs.applicator);
   ASS(lhs.aboveVar);
   ASS(rhs.aboveVar);
-  auto n = preprocessComparison(lhs.term,rhs.term,GREATER);
-  // cout << "isGreater " << lhs << " " << rhs << endl;
-  // for (const auto& line : n->toString()) {
-  //   cout << line << endl;
+  auto n = preprocessComparison(lhs.term,rhs.term);
+  auto res = n->execute(lhs.applicator);
+  // auto expected = lpo(lhs,rhs);
+  // if (res == LESS || res == LESS_EQ) {
+  //   res = INCOMPARABLE;
   // }
-  // cout << endl;
-  return n->execute(lhs.applicator);
+  // cout << "isGreater " << lhs.term << " " << rhs.term << " result " << res << " expected " << expected << endl;
+  // cout << nodeToString(n) << endl;
+  // if (res != expected) {
+  //   cout << "isGreater " << lhs.term << " " << rhs.term << " result " << res << " expected " << expected << endl;
+  //   cout << nodeToString(n) << endl;
+  //   USER_ERROR("x");
+  // }
+  return res==GREATER;
 }
 
 void LPO::showConcrete(ostream&) const 

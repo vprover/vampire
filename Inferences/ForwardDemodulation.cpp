@@ -172,14 +172,20 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         Applicator<false> notVarSubst(subs.ptr(), subst);
         auto appl = lhs.isVar() ? (SubstApplicator*)&varSubst : (SubstApplicator*)&notVarSubst;
 
-        if (!preordered && (_preorderedOnly || !ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl,true)))) {
-          // if (ordering.compare(AppliedTerm(trm),AppliedTerm(rhs,&appl,true))==Ordering::GREATER) {
-          //   USER_ERROR("is greater " + trm.toString() + " " + subs->applyToBoundResult(rhs).toString());
-          // }
-          continue;
-        }
-        // if (ordering.compare(AppliedTerm(trm),AppliedTerm(rhs,&appl,true))!=Ordering::GREATER) {
-        //   USER_ERROR("is not greater " + trm.toString() + " " + subs->applyToBoundResult(rhs).toString());
+        // if (_precompiledComparison) {
+          if (!preordered && (_preorderedOnly || !ordering.isGreater(AppliedTerm(lhs,appl,true),AppliedTerm(rhs,appl,true)))) {
+            if (ordering.compare(AppliedTerm(trm),AppliedTerm(rhs,appl,true))==Ordering::GREATER) {
+              USER_ERROR("is greater " + trm.toString() + " " + subs->applyToBoundResult(rhs).toString() + " from " + lhs.toString() + " > " + rhs.toString());
+            }
+            continue;
+          }
+          if (ordering.compare(AppliedTerm(trm),AppliedTerm(rhs,appl,true))!=Ordering::GREATER) {
+            USER_ERROR("is not greater " + trm.toString() + " " + subs->applyToBoundResult(rhs).toString() + " from " + lhs.toString() + " > " + rhs.toString());
+          }
+        // } else {
+        //   if (!preordered && (_preorderedOnly || !ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl,true)))) {
+        //     continue;
+        //   }
         // }
 
         // encompassing demodulation is fine when rewriting the smaller guy

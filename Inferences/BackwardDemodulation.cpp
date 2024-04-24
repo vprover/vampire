@@ -137,26 +137,23 @@ struct BackwardDemodulation::ResultFn
     ASS(subs->isIdentityOnResultWhenQueryBound());
 
     Applicator appl(subs.ptr());
-
-    if (_precompiledComparison) {
-      if (!_ordering.isGreater(AppliedTerm(lhs,&appl,true),AppliedTerm(rhs,&appl,true),_cl->demodulatorCompInstructions(lhs))) {
-        // if (_ordering.compare(qr.term,subs->applyToBoundQuery(rhs))==Ordering::GREATER) {
-        //   USER_ERROR("is greater " + qr.term.toString() + " " + subs->applyToBoundQuery(rhs).toString() + "\nFrom equation " + _eqLit->toString() + " side " + lhs.toString());
-        // }
-        return BwSimplificationRecord(0);
-      }
-      // if (_ordering.compare(qr.term,subs->applyToBoundQuery(rhs))!=Ordering::GREATER) {
-      //   USER_ERROR("is not greater " + qr.term.toString() + " " + subs->applyToBoundQuery(rhs).toString() + "\nFrom equation " + _eqLit->toString() + " side " + lhs.toString());
-      // }
-    }
-
     TermList lhsS=qr.data->term;
 
-    if (!_precompiledComparison) {
-      if (!_ordering.isGreater(AppliedTerm(lhsS), AppliedTerm(rhs,&appl,true))) {
+    // if (_precompiledComparison) {
+      if (!_ordering.isGreater(AppliedTerm(lhs,&appl,true),AppliedTerm(rhs,&appl,true))) {
+        if (_ordering.compare(AppliedTerm(lhs,&appl,true),AppliedTerm(rhs,&appl,true))==Ordering::GREATER) {
+          USER_ERROR("is greater " + lhs.toString() + " " + rhs.toString());
+        }
         return BwSimplificationRecord(0);
       }
-    }
+      if (_ordering.compare(AppliedTerm(lhs,&appl,true),AppliedTerm(rhs,&appl,true))!=Ordering::GREATER) {
+        USER_ERROR("is not greater " + lhs.toString() + " " + rhs.toString());
+      }
+    // } else {
+      // if (!_ordering.compare(AppliedTerm(lhsS), AppliedTerm(rhs,&appl,true))) {
+      //   return BwSimplificationRecord(0);
+      // }
+    // }
 
     TermList rhsS=subs->applyToBoundQuery(rhs);
 

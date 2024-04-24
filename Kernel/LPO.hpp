@@ -47,13 +47,14 @@ public:
   using PrecedenceOrdering::compare;
   struct Node;
 
-  Node* preprocessComparison(TermList tl1, TermList tl2, Result expected) const;
+  Node* preprocessComparison(TermList tl1, TermList tl2) const;
 
   Result compare(TermList tl1, TermList tl2) const override;
   Result compare(AppliedTerm tl1, AppliedTerm tl2) const override;
   void showConcrete(std::ostream&) const override;
 
   bool isGreater(AppliedTerm tl1, AppliedTerm tl2) const override;
+  Result lpo(AppliedTerm tl1, AppliedTerm tl2) const;
 
 protected:
   Result comparePredicates(Literal* l1, Literal* l2) const override;
@@ -64,11 +65,10 @@ protected:
   Result cAA(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity1, unsigned arity2) const;
   Result alpha(const TermList* sl, unsigned arity, AppliedTerm s, AppliedTerm t) const;
   Result clpo(AppliedTerm tl1, AppliedTerm tl2) const;
-  Result lpo(AppliedTerm tl1, AppliedTerm tl2) const;
   Result lexMAE(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity) const;
   Result majo(AppliedTerm s, AppliedTerm t, const TermList* tl, unsigned arity) const;
 
-  mutable DHMap<std::tuple<TermList,TermList,Result>,Node*> _comparisons;
+  mutable DHMap<std::pair<TermList,TermList>,Node*> _comparisons;
 };
 
 }
