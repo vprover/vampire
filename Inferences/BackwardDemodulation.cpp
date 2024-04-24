@@ -138,15 +138,17 @@ struct BackwardDemodulation::ResultFn
 
     Applicator appl(subs.ptr());
     TermList lhsS=qr.data->term;
+    Stack<Ordering::Instruction>* temp;
 
     // if (_precompiledComparison) {
-      if (!_ordering.isGreater(AppliedTerm(lhs,&appl,true),AppliedTerm(rhs,&appl,true))) {
-        if (_ordering.compare(AppliedTerm(lhs,&appl,true),AppliedTerm(rhs,&appl,true))==Ordering::GREATER) {
+      if (!_ordering.isGreater(lhs,rhs,&appl,temp)) {
+      // if (!_ordering.isGreater(AppliedTerm(lhsS),AppliedTerm(rhs,&appl,true))) {
+        if (_ordering.isGreater(AppliedTerm(lhsS),AppliedTerm(rhs,&appl,true))) {
           USER_ERROR("is greater " + lhs.toString() + " " + rhs.toString());
         }
         return BwSimplificationRecord(0);
       }
-      if (_ordering.compare(AppliedTerm(lhs,&appl,true),AppliedTerm(rhs,&appl,true))!=Ordering::GREATER) {
+      if (!_ordering.isGreater(AppliedTerm(lhsS),AppliedTerm(rhs,&appl,true))) {
         USER_ERROR("is not greater " + lhs.toString() + " " + rhs.toString());
       }
     // } else {

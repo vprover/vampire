@@ -272,17 +272,13 @@ Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
   return comparePredicates(l1, l2);
 } // PrecedenceOrdering::compare()
 
-bool Ordering::isGreater(AppliedTerm lhs, AppliedTerm rhs, Stack<Instruction>*& instructions) const
+bool Ordering::isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, Stack<Instruction>*& instructions) const
 {
-  ASS_EQ(lhs.applicator,rhs.applicator);
-  ASS(lhs.aboveVar);
-  ASS(rhs.aboveVar);
   // this function only works with KBO now
   auto kbo = static_cast<const KBO*>(this);
-  auto applicator = lhs.applicator;
   if (!instructions) {
     instructions = new Stack<Instruction>();
-    preprocessComparison(lhs.term,rhs.term,instructions);
+    preprocessComparison(lhs,rhs,instructions);
     // cout << lhs << " " << rhs << endl;
     // output(cout,*instructions);
   }

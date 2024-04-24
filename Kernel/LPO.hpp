@@ -54,9 +54,15 @@ public:
   void showConcrete(std::ostream&) const override;
 
   bool isGreater(AppliedTerm tl1, AppliedTerm tl2) const override;
-  Result lpo(AppliedTerm tl1, AppliedTerm tl2) const;
+  bool isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, Stack<Instruction>*& instructions) const override;
 
 protected:
+  struct ResultNode;
+  struct LexMAENode;
+  struct ComparisonNode;
+  struct MajoNode;
+  struct AlphaNode;
+
   Result comparePredicates(Literal* l1, Literal* l2) const override;
   Result comparePrecedences(const Term* t1, const Term* t2) const;
 
@@ -65,6 +71,7 @@ protected:
   Result cAA(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity1, unsigned arity2) const;
   Result alpha(const TermList* sl, unsigned arity, AppliedTerm s, AppliedTerm t) const;
   Result clpo(AppliedTerm tl1, AppliedTerm tl2) const;
+  Result lpo(AppliedTerm tl1, AppliedTerm tl2) const;
   Result lexMAE(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity) const;
   Result majo(AppliedTerm s, AppliedTerm t, const TermList* tl, unsigned arity) const;
 

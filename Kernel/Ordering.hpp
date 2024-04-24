@@ -72,7 +72,7 @@ public:
   union Instruction;
   /** Optimised function used for checking that @b lhs is greater than @b rhs,
    * under substitution represented by @b applicator. */
-  bool isGreater(AppliedTerm lhs, AppliedTerm rhs, Stack<Instruction>*& instructions) const;
+  virtual bool isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, Stack<Instruction>*& instructions) const;
 
   virtual void show(std::ostream& out) const = 0;
 

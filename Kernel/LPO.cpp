@@ -99,6 +99,11 @@ Ordering::Result LPO::compare(AppliedTerm tl1, AppliedTerm tl2) const
   return clpo(tl1, tl2);
 }
 
+bool LPO::isGreater(AppliedTerm lhs, AppliedTerm rhs) const
+{
+  return lpo(lhs,rhs)==GREATER;
+}
+
 Ordering::Result LPO::clpo(AppliedTerm tl1, AppliedTerm tl2) const
 {
   ASS(tl1.term.isTerm());
@@ -259,6 +264,8 @@ struct LPO::Node {
   virtual Result execute(const SubstApplicator* applicator) const = 0;
   virtual vvector<vstring> toString() const = 0;
   virtual ~Node() = default;
+
+  bool isResult(Result r) const;
 };
 
 vstring nodeToString(LPO::Node* n) {
@@ -269,20 +276,20 @@ vstring nodeToString(LPO::Node* n) {
   return str.str();
 }
 
-struct LexMAENode : public LPO::Node {
-  LexMAENode(Ordering::Result endResult) : Node(Node::LEXMAE), endResult(endResult) {}
-  Ordering::Result execute(const SubstApplicator* applicator) const override {
+struct LPO::LexMAENode : public LPO::Node {
+  LexMAENode(Result endResult) : Node(Node::LEXMAE), endResult(endResult) {}
+  Result execute(const SubstApplicator* applicator) const override {
     for (const auto& ch : children) {
       switch(get<0>(ch)->execute(applicator)) {
-        case Ordering::EQUAL:
+        case EQUAL:
           break;
-        case Ordering::GREATER:
+        case GREATER:
           return get<1>(ch)->execute(applicator);
-        case Ordering::INCOMPARABLE: {
-          if (Ordering::isGorGEorE(get<2>(ch)->execute(applicator))) {
-            return Ordering::GREATER;
+        case INCOMPARABLE: {
+          if (isGorGEorE(get<2>(ch)->execute(applicator))) {
+            return GREATER;
           }
-          return Ordering::INCOMPARABLE;
+          return INCOMPARABLE;
         }
         default:
           ASS_REP(false,get<0>(ch)->execute(applicator));
@@ -307,29 +314,37 @@ struct LexMAENode : public LPO::Node {
         res.push_back("    " + line);
       }
     }
-    res.push_back(vstring("return ") + Ordering::resultToString(endResult));
+    res.push_back(vstring("return ") + resultToString(endResult));
     return res;
   }
   vvector<tuple<Node*,Node*,Node*>> children;
-  Ordering::Result endResult;
+  Result endResult;
 };
 
-struct ResultNode : public LPO::Node {
-  ResultNode(Ordering::Result result) : Node(Node::RESULT), result(result) {}
-  Ordering::Result result;
-  Ordering::Result execute(const SubstApplicator* applicator) const override { return result; }
-  vvector<vstring> toString() const override { return { Ordering::resultToString(result) }; }
+struct LPO::ResultNode : public LPO::Node {
+  ResultNode(Result result) : Node(Node::RESULT), result(result) {}
+  Result result;
+  Result execute(const SubstApplicator* applicator) const override { return result; }
+  vvector<vstring> toString() const override { return { resultToString(result) }; }
 };
 
-struct MajoNode : public LPO::Node {
+bool LPO::Node::isResult(Result r) const {
+  if (t != RESULT) {
+    return false;
+  }
+  auto self = static_cast<const ResultNode*>(this);
+  return self->result==r;
+}
+
+struct LPO::MajoNode : public LPO::Node {
   MajoNode() : Node(Node::MAJO) {}
-  Ordering::Result execute(const SubstApplicator* applicator) const override {
+  Result execute(const SubstApplicator* applicator) const override {
     for (const auto& ch : children) {
-      if (ch->execute(applicator)!=Ordering::GREATER) {
-        return Ordering::INCOMPARABLE;
+      if (ch->execute(applicator)!=GREATER) {
+        return INCOMPARABLE;
       }
     }
-    return Ordering::GREATER;
+    return GREATER;
   }
 
   static Node* create(vvector<Node*>&& children) {
@@ -338,19 +353,17 @@ struct MajoNode : public LPO::Node {
         i++;
         continue;
       }
-      auto rn = static_cast<ResultNode*>(children[i]);
-      if (rn->result==Ordering::GREATER) {
+      if (children[i]->isResult(GREATER)) {
         swap(children[i],children.back());
         children.pop_back();
       } else {
-        return new ResultNode(Ordering::INCOMPARABLE);
+        return new ResultNode(INCOMPARABLE);
       }
     }
     if (children.empty()) {
-      return new ResultNode(Ordering::GREATER);
+      return new ResultNode(GREATER);
     }
     // if (children.size()==1) {
-    //   cout << "replacing with " << nodeToString(children[0]) << endl; 
     //   return children[0];
     // }
     auto res = new MajoNode();
@@ -371,21 +384,21 @@ struct MajoNode : public LPO::Node {
   vvector<Node*> children;
 };
 
-struct AlphaNode : public LPO::Node {
+struct LPO::AlphaNode : public LPO::Node {
   AlphaNode() : Node(Node::ALPHA) {}
-  Ordering::Result execute(const SubstApplicator* applicator) const override {
+  Result execute(const SubstApplicator* applicator) const override {
     for (const auto& ch : children) {
       switch (ch->execute(applicator)) {
-      case Ordering::GREATER:
-      case Ordering::EQUAL:
-        return Ordering::GREATER;
-      case Ordering::INCOMPARABLE:
+      case GREATER:
+      case EQUAL:
+        return GREATER;
+      case INCOMPARABLE:
         break;
       default:
         ASSERTION_VIOLATION;
       }
     }
-    return Ordering::INCOMPARABLE;
+    return INCOMPARABLE;
   }
 
   static Node* create(vvector<Node*>&& children) {
@@ -394,16 +407,15 @@ struct AlphaNode : public LPO::Node {
         i++;
         continue;
       }
-      auto rn = static_cast<ResultNode*>(children[i]);
-      if (rn->result==Ordering::GREATER || rn->result==Ordering::EQUAL) {
-        return new ResultNode(Ordering::GREATER);
+      if (children[i]->isResult(GREATER) || children[i]->isResult(EQUAL)) {
+        return new ResultNode(GREATER);
       } else {
         swap(children[i],children.back());
         children.pop_back();
       }
     }
     if (children.empty()) {
-      return new ResultNode(Ordering::INCOMPARABLE);
+      return new ResultNode(INCOMPARABLE);
     }
     // if (children.size()==1) {
     //   return children[0];
@@ -426,10 +438,10 @@ struct AlphaNode : public LPO::Node {
   vvector<Node*> children;
 };
 
-struct ComparisonNode : public LPO::Node {
+struct LPO::ComparisonNode : public LPO::Node {
   // ComparisonNode() = default;
   ComparisonNode(const LPO& lpo, TermList lhs, TermList rhs) : Node(Node::COMPARISON), lpo(lpo), lhs(lhs), rhs(rhs) {}
-  Ordering::Result execute(const SubstApplicator* applicator) const override {
+  Result execute(const SubstApplicator* applicator) const override {
     return lpo.lpo(AppliedTerm(lhs,applicator,true),AppliedTerm(rhs,applicator,true));
   }
   vvector<vstring> toString() const override {
@@ -482,9 +494,14 @@ LPO::Node* LPO::preprocessComparison(TermList tl1, TermList tl2) const
     return *ptr;
   }
 
-  auto comp = lpo(tl1,tl2);
-  ASS(comp != LESS && comp != LESS_EQ && comp != GREATER_EQ);
+  // use compare here to filter out as many
+  // precomputable comparisons as possible
+  auto comp = compare(tl1,tl2);
+  ASS(comp != LESS_EQ && comp != GREATER_EQ);
   if (comp != INCOMPARABLE) {
+    if (comp == LESS) {
+      comp = INCOMPARABLE;
+    }
     *ptr = new ResultNode(comp);
     return *ptr;
   }
@@ -509,6 +526,10 @@ LPO::Node* LPO::preprocessComparison(TermList tl1, TermList tl2) const
         auto s_arg = SubstHelper::apply(*s->nthArgument(i),subst);
         auto t_arg = SubstHelper::apply(*t->nthArgument(i),subst);
         auto compNode = preprocessComparison(s_arg,t_arg);
+        if (compNode->isResult(EQUAL)) {
+          ALWAYS(unify(s_arg,t_arg,subst));
+          continue;
+        }
 
         vvector<Node*> majoChildren;
         for (unsigned j = i+1; j < s->arity(); j++) {
@@ -568,14 +589,10 @@ LPO::Node* LPO::preprocessComparison(TermList tl1, TermList tl2) const
   }
 }
 
-bool LPO::isGreater(AppliedTerm lhs, AppliedTerm rhs) const
+bool LPO::isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, Stack<Instruction>*& instructions) const
 {
-  // return lpo(std::move(lhs),std::move(rhs))==GREATER;
-  ASS_EQ(lhs.applicator,rhs.applicator);
-  ASS(lhs.aboveVar);
-  ASS(rhs.aboveVar);
-  auto n = preprocessComparison(lhs.term,rhs.term);
-  auto res = n->execute(lhs.applicator);
+  auto n = preprocessComparison(lhs,rhs);
+  auto res = n->execute(applicator);
   // auto expected = lpo(lhs,rhs);
   // if (res == LESS || res == LESS_EQ) {
   //   res = INCOMPARABLE;

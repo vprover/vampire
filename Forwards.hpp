@@ -62,6 +62,7 @@ class TermList;
 typedef VirtualIterator<TermList> TermIterator;
 typedef Stack<TermList> TermStack;
 
+struct SubstApplicator;
 struct AppliedTerm;
 
 typedef List<unsigned> VList; // a list of variables (which are unsigned)
