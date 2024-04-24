@@ -253,11 +253,8 @@ Ordering::Result LPO::majo(AppliedTerm s, AppliedTerm t, const TermList* tl, uns
 struct LPO::Node {
   enum Type {
     RESULT,
-    // JUNCTION,
     COMPARISON,
-    LEXMAE,
-    MAJO,
-    ALPHA,
+    CONDITIONAL,
   };
   Type t;
   Node(Type t) : t(t) {}
@@ -276,49 +273,50 @@ vstring nodeToString(LPO::Node* n) {
   return str.str();
 }
 
-struct LPO::LexMAENode : public LPO::Node {
-  LexMAENode(Result endResult) : Node(Node::LEXMAE), endResult(endResult) {}
-  Result execute(const SubstApplicator* applicator) const override {
-    for (const auto& ch : children) {
-      switch(get<0>(ch)->execute(applicator)) {
-        case EQUAL:
-          break;
-        case GREATER:
-          return get<1>(ch)->execute(applicator);
-        case INCOMPARABLE: {
-          if (isGorGEorE(get<2>(ch)->execute(applicator))) {
-            return GREATER;
-          }
-          return INCOMPARABLE;
-        }
-        default:
-          ASS_REP(false,get<0>(ch)->execute(applicator));
-      }
+struct LPO::ConditionalNode : public LPO::Node {
+  ConditionalNode(Node* condition, Node* eqBranch, Node* gtBranch, Node* incBranch)
+    : Node(CONDITIONAL), condition(condition), eqBranch(eqBranch), gtBranch(gtBranch), incBranch(incBranch) {}
+
+  Result execute(const SubstApplicator* applicator) const
+  {
+    switch(condition->execute(applicator)) {
+      case EQUAL:
+        return eqBranch->execute(applicator);
+      case GREATER:
+        return gtBranch->execute(applicator);
+      case INCOMPARABLE:
+        return incBranch->execute(applicator);
+      default:
+        ASSERTION_VIOLATION;
     }
-    return endResult;
+    ASSERTION_VIOLATION;
   }
-  vvector<vstring> toString() const override {
+  vvector<vstring> toString() const {
     vvector<vstring> res;
-    res.push_back("LEXMAE");
-    for (const auto& ch : children) {
-      res.push_back("  SWITCH");
-      for (const auto& line : get<0>(ch)->toString()) {
-        res.push_back("    " + line);
-      }
-      res.push_back("  if GREATER");
-      for (const auto& line : get<1>(ch)->toString()) {
-        res.push_back("    " + line);
-      }
-      res.push_back("  if INCOMPARABLE");
-      for (const auto& line : get<2>(ch)->toString()) {
-        res.push_back("    " + line);
-      }
+    res.push_back("CONDITIONAL");
+    res.push_back("  CONDITION");
+    for (const auto& line : condition->toString()) {
+      res.push_back("    " + line);
     }
-    res.push_back(vstring("return ") + resultToString(endResult));
+    res.push_back("  if EQUAL");
+    for (const auto& line : eqBranch->toString()) {
+      res.push_back("    " + line);
+    }
+    res.push_back("  if GREATER");
+    for (const auto& line : gtBranch->toString()) {
+      res.push_back("    " + line);
+    }
+    res.push_back("  if INCOMPARABLE");
+    for (const auto& line : incBranch->toString()) {
+      res.push_back("    " + line);
+    }
     return res;
   }
-  vvector<tuple<Node*,Node*,Node*>> children;
-  Result endResult;
+
+  Node* condition;
+  Node* eqBranch;
+  Node* gtBranch;
+  Node* incBranch;
 };
 
 struct LPO::ResultNode : public LPO::Node {
@@ -335,108 +333,6 @@ bool LPO::Node::isResult(Result r) const {
   auto self = static_cast<const ResultNode*>(this);
   return self->result==r;
 }
-
-struct LPO::MajoNode : public LPO::Node {
-  MajoNode() : Node(Node::MAJO) {}
-  Result execute(const SubstApplicator* applicator) const override {
-    for (const auto& ch : children) {
-      if (ch->execute(applicator)!=GREATER) {
-        return INCOMPARABLE;
-      }
-    }
-    return GREATER;
-  }
-
-  static Node* create(vvector<Node*>&& children) {
-    for (unsigned i = 0; i < children.size();) {
-      if (children[i]->t!=Node::RESULT) {
-        i++;
-        continue;
-      }
-      if (children[i]->isResult(GREATER)) {
-        swap(children[i],children.back());
-        children.pop_back();
-      } else {
-        return new ResultNode(INCOMPARABLE);
-      }
-    }
-    if (children.empty()) {
-      return new ResultNode(GREATER);
-    }
-    // if (children.size()==1) {
-    //   return children[0];
-    // }
-    auto res = new MajoNode();
-    res->children = children;
-    return res;
-  }
-
-  vvector<vstring> toString() const override {
-    vvector<vstring> res;
-    res.push_back("MAJO");
-    for (const auto& ch : children) {
-      for (const auto& line : ch->toString()) {
-        res.push_back("  " + line);
-      }
-    }
-    return res;
-  }
-  vvector<Node*> children;
-};
-
-struct LPO::AlphaNode : public LPO::Node {
-  AlphaNode() : Node(Node::ALPHA) {}
-  Result execute(const SubstApplicator* applicator) const override {
-    for (const auto& ch : children) {
-      switch (ch->execute(applicator)) {
-      case GREATER:
-      case EQUAL:
-        return GREATER;
-      case INCOMPARABLE:
-        break;
-      default:
-        ASSERTION_VIOLATION;
-      }
-    }
-    return INCOMPARABLE;
-  }
-
-  static Node* create(vvector<Node*>&& children) {
-    for (unsigned i = 0; i < children.size();) {
-      if (children[i]->t!=Node::RESULT) {
-        i++;
-        continue;
-      }
-      if (children[i]->isResult(GREATER) || children[i]->isResult(EQUAL)) {
-        return new ResultNode(GREATER);
-      } else {
-        swap(children[i],children.back());
-        children.pop_back();
-      }
-    }
-    if (children.empty()) {
-      return new ResultNode(INCOMPARABLE);
-    }
-    // if (children.size()==1) {
-    //   return children[0];
-    // }
-    auto res = new AlphaNode();
-    res->children = children;
-    return res;
-  }
-
-  vvector<vstring> toString() const override {
-    vvector<vstring> res;
-    res.push_back("ALPHA");
-    for (const auto& ch : children) {
-      for (const auto& line : ch->toString()) {
-        res.push_back("  " + line);
-      }
-    }
-    return res;
-  }
-  vvector<Node*> children;
-};
 
 struct LPO::ComparisonNode : public LPO::Node {
   // ComparisonNode() = default;
@@ -494,15 +390,87 @@ LPO::Node* LPO::preprocessComparison(TermList tl1, TermList tl2) const
     return *ptr;
   }
 
+  static ResultNode eqNode(EQUAL);
+  static ResultNode gtNode(GREATER);
+  static ResultNode incNode(INCOMPARABLE);
+
+  auto majoChain = [this](TermList tl1, Term* t, unsigned i) -> Node* {
+    ConditionalNode* curr = nullptr;
+    ConditionalNode* prev = nullptr;
+    Node* res = nullptr;
+    for (unsigned j = i; j < t->arity(); j++) {
+      auto compNode = preprocessComparison(tl1,*t->nthArgument(j));
+      if (compNode->isResult(GREATER)) {
+        continue;
+      }
+      if (compNode->isResult(EQUAL) || compNode->isResult(INCOMPARABLE)) {
+        if (prev) {
+          prev->gtBranch = &incNode;
+        } else {
+          res = &incNode;
+        }
+        break;
+      }
+      curr = new ConditionalNode(compNode,&incNode,nullptr,&incNode);
+      if (prev) {
+        prev->gtBranch = curr;
+      } else {
+        res = curr;
+      }
+      prev = curr;
+    }
+    if (!res) {
+      return &gtNode;
+    }
+    curr->gtBranch = &gtNode;
+    return res;
+  };
+
+  auto alphaChain = [this](Term* s, unsigned i, TermList tl2) -> Node* {
+    ConditionalNode* curr = nullptr;
+    ConditionalNode* prev = nullptr;
+    Node* res = nullptr;
+    for (unsigned j = i; j < s->arity(); j++) {
+      auto compNode = preprocessComparison(*s->nthArgument(j),tl2);
+      if (compNode->isResult(INCOMPARABLE)) {
+        continue;
+      }
+      if (compNode->isResult(EQUAL) || compNode->isResult(GREATER)) {
+        if (prev) {
+          prev->incBranch = &gtNode;
+        } else {
+          res = &gtNode;
+        }
+        break;
+      }
+      curr = new ConditionalNode(compNode,&gtNode,&gtNode,nullptr);
+      if (prev) {
+        prev->incBranch = curr;
+      } else {
+        res = curr;
+      }
+      prev = curr;
+    }
+    if (!res) {
+      return &incNode;
+    }
+    curr->incBranch = &incNode;
+    return res;
+  };
+
   // use compare here to filter out as many
   // precomputable comparisons as possible
   auto comp = compare(tl1,tl2);
   ASS(comp != LESS_EQ && comp != GREATER_EQ);
   if (comp != INCOMPARABLE) {
     if (comp == LESS) {
-      comp = INCOMPARABLE;
+      *ptr = &incNode;
+    } else if (comp == GREATER) {
+      *ptr = &gtNode;
+    } else {
+      *ptr = &eqNode;
     }
-    *ptr = new ResultNode(comp);
+    // *ptr = new ResultNode(comp);
     return *ptr;
   }
   if (tl1.isVar() || tl2.isVar()) {
@@ -513,15 +481,19 @@ LPO::Node* LPO::preprocessComparison(TermList tl1, TermList tl2) const
   auto s = tl1.term();
   auto t = tl2.term();
 
+  Node* res = nullptr;
+
   switch (comparePrecedences(s, t)) {
     case EQUAL: {
       ASS(s->arity()); // constants cannot be incomparable
 
-      vvector<tuple<Node*,Node*,Node*>> subres;
       Substitution subst;
+      ConditionalNode* curr = nullptr;
+      ConditionalNode* prev = nullptr;
 
       // lexicographic comparisons
       bool canBeEqual = true;
+      bool earlyReturn = false;
       for (unsigned i = 0; i < s->arity(); i++) {
         auto s_arg = SubstHelper::apply(*s->nthArgument(i),subst);
         auto t_arg = SubstHelper::apply(*t->nthArgument(i),subst);
@@ -531,80 +503,77 @@ LPO::Node* LPO::preprocessComparison(TermList tl1, TermList tl2) const
           continue;
         }
 
-        vvector<Node*> majoChildren;
-        for (unsigned j = i+1; j < s->arity(); j++) {
-          majoChildren.push_back(preprocessComparison(SubstHelper::apply(tl1,subst),SubstHelper::apply(*t->nthArgument(j),subst)));
+        auto majoNode = majoChain(SubstHelper::apply(tl1,subst),SubstHelper::apply(tl2,subst).term(),i+1);
+        if (compNode->isResult(GREATER)) {
+          if (prev) {
+            prev->eqBranch = majoNode;
+          } else {
+            res = majoNode;
+          }
+          earlyReturn = true;
+          break;
         }
-        auto majoNode = MajoNode::create(std::move(majoChildren));
+        auto alphaNode = alphaChain(SubstHelper::apply(tl1,subst).term(),i+1,SubstHelper::apply(tl2,subst));
+        if (compNode->isResult(INCOMPARABLE)) {
+          if (prev) {
+            prev->eqBranch = alphaNode;
+          } else {
+            res = alphaNode;
+          }
+          earlyReturn = true;
+          break;
+        }
 
-        vvector<Node*> alphaChildren;
-        for (unsigned j = i+1; j < s->arity(); j++) {
-          alphaChildren.push_back(preprocessComparison(SubstHelper::apply(*s->nthArgument(j),subst),SubstHelper::apply(tl2,subst)));
+        curr = new ConditionalNode(compNode,nullptr,majoNode,alphaNode);
+        if (prev) {
+          prev->eqBranch = curr;
+        } else {
+          res = curr;
         }
-        auto alphaNode = AlphaNode::create(std::move(alphaChildren));
-        subres.push_back(make_tuple(compNode,majoNode,alphaNode));
+        prev = curr;
+
         if (!unify(s_arg,t_arg,subst)) {
           canBeEqual = false;
           break;
         }
       }
-
-      auto res = new LexMAENode(canBeEqual ? EQUAL : INCOMPARABLE);
-      res->children = std::move(subres);
-      ALWAYS(!_comparisons.getValuePtr(make_tuple(tl1,tl2),ptr));
-      ASS(!*ptr);
-      *ptr = res;
-      // cout << "preprocessing " << tl1 << " > " << tl2 << endl;
-      // cout << nodeToString(res) << endl;
-      return res;
+      if (!earlyReturn) {
+        curr->eqBranch = canBeEqual ? &eqNode : &incNode;
+      }
+      break;
     }
     case GREATER: {
-      vvector<Node*> subres;
-      for (unsigned i = 0; i < t->arity(); i++) {
-        subres.push_back(preprocessComparison(tl1,*t->nthArgument(i)));
-      }
-      auto res = MajoNode::create(std::move(subres));
-      ALWAYS(!_comparisons.getValuePtr(make_tuple(tl1,tl2),ptr));
-      ASS(!*ptr);
-      *ptr = res;
-      // cout << "preprocessing " << tl1 << " > " << tl2 << endl;
-      // cout << nodeToString(res) << endl;
-      return res;
+      res = majoChain(tl1,t,0);
+      break;
     }
     case LESS: {
-      vvector<Node*> subres;
-      for (unsigned i = 0; i < s->arity(); i++) {
-        subres.push_back(preprocessComparison(*s->nthArgument(i),tl2));
-      }
-      auto res = AlphaNode::create(std::move(subres));
-      ALWAYS(!_comparisons.getValuePtr(make_tuple(tl1,tl2),ptr));
-      ASS(!*ptr);
-      *ptr = res;
-      // cout << "preprocessing " << tl1 << " > " << tl2 << endl;
-      // cout << nodeToString(res) << endl;
-      return res;
+      res = alphaChain(s,0,tl2);
+      break;
     }
     default:
       ASSERTION_VIOLATION;
   }
+
+  ASS(res);
+  ALWAYS(!_comparisons.getValuePtr(make_tuple(tl1,tl2),ptr));
+  ASS(!*ptr);
+  *ptr = res;
+  if (res->t==Node::CONDITIONAL) {
+    auto cn = static_cast<ConditionalNode*>(res);
+    if (cn->eqBranch == &eqNode && cn->gtBranch == &gtNode && cn->incBranch == &incNode) {
+      res = cn->condition;
+    }
+  }
+
+  // cout << "preprocessing " << tl1 << " > " << tl2 << endl;
+  // cout << nodeToString(res) << endl;
+  return res;
 }
 
 bool LPO::isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, Stack<Instruction>*& instructions) const
 {
   auto n = preprocessComparison(lhs,rhs);
-  auto res = n->execute(applicator);
-  // auto expected = lpo(lhs,rhs);
-  // if (res == LESS || res == LESS_EQ) {
-  //   res = INCOMPARABLE;
-  // }
-  // cout << "isGreater " << lhs.term << " " << rhs.term << " result " << res << " expected " << expected << endl;
-  // cout << nodeToString(n) << endl;
-  // if (res != expected) {
-  //   cout << "isGreater " << lhs.term << " " << rhs.term << " result " << res << " expected " << expected << endl;
-  //   cout << nodeToString(n) << endl;
-  //   USER_ERROR("x");
-  // }
-  return res==GREATER;
+  return n->execute(applicator)==GREATER;
 }
 
 void LPO::showConcrete(ostream&) const 

@@ -58,10 +58,8 @@ public:
 
 protected:
   struct ResultNode;
-  struct LexMAENode;
   struct ComparisonNode;
-  struct MajoNode;
-  struct AlphaNode;
+  struct ConditionalNode;
 
   Result comparePredicates(Literal* l1, Literal* l2) const override;
   Result comparePrecedences(const Term* t1, const Term* t2) const;
