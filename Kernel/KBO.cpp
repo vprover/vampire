@@ -222,11 +222,11 @@ void KBO::State::traverse(AppliedTerm tt)
 
     if constexpr (varsOnly) {
       if (!t.term.term()->ground()) {
-        recState.push(State{ std::move(t), 0 });
+        recState.push(State{ t, 0 });
       }
     } else {
       _weightDiff += _kbo.symbolWeight(t.term.term()) * coef;
-      recState.push(State{ std::move(t), 0 });
+      recState.push(State{ t, 0 });
     }
   }
 }
@@ -290,8 +290,8 @@ Ordering::Result KBO::State::traverseLex(AppliedTerm tl1, AppliedTerm tl2)
           return INCOMPARABLE;
         }
         if (ssw > ttw) {
-          traverse<1,unidirectional>(std::move(s));
-          traverse<-1,unidirectional>(std::move(t));
+          traverse<1,unidirectional>(s);
+          traverse<-1,unidirectional>(t);
           if (!checkVars()) {
             return INCOMPARABLE;
           }
@@ -320,8 +320,8 @@ Ordering::Result KBO::State::traverseLex(AppliedTerm tl1, AppliedTerm tl2)
           }
           case Ordering::GREATER:
           case Ordering::GREATER_EQ: {
-            traverse<1,unidirectional>(std::move(s));
-            traverse<-1,unidirectional>(std::move(t));
+            traverse<1,unidirectional>(s);
+            traverse<-1,unidirectional>(t);
             if (!checkVars()) {
               return INCOMPARABLE;
             }
@@ -336,8 +336,8 @@ Ordering::Result KBO::State::traverseLex(AppliedTerm tl1, AppliedTerm tl2)
           default: ASSERTION_VIOLATION;
         }
       } else {
-        traverse<1,unidirectional>(std::move(s));
-        traverse<-1,unidirectional>(std::move(t));
+        traverse<1,unidirectional>(s);
+        traverse<-1,unidirectional>(t);
       }
     } else {
       if(TermList::sameTopFunctor(s.term,t.term)) {
@@ -917,7 +917,7 @@ Ordering::Result KBO::isGreaterOrEq(AppliedTerm tl1, AppliedTerm tl2) const
 
 bool KBO::isGreater(AppliedTerm lhs, AppliedTerm rhs) const
 {
-  return isGreaterOrEq(std::move(lhs),std::move(rhs))==GREATER;
+  return isGreaterOrEq(lhs,rhs)==GREATER;
 }
 
 int KBO::symbolWeight(const Term* t) const
@@ -961,7 +961,7 @@ unsigned KBO::computeWeight(AppliedTerm tt) const
       } else if (!t.aboveVar && t.term.term()->kboWeight()!=-1) {
         curr.weight += t.term.term()->kboWeight();
       } else {
-        recState.push(State{ std::move(t), 0, (unsigned)symbolWeight(t.term.term()) });
+        recState.push(State{ t, 0, (unsigned)symbolWeight(t.term.term()) });
       }
 
     } else {

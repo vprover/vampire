@@ -97,7 +97,7 @@ Ordering::Result LPO::compare(AppliedTerm tl1, AppliedTerm tl2) const
 
 bool LPO::isGreater(AppliedTerm lhs, AppliedTerm rhs) const
 {
-  return lpo(std::move(lhs),std::move(rhs))==GREATER;
+  return lpo(lhs,rhs)==GREATER;
 }
 
 Ordering::Result LPO::clpo(AppliedTerm tl1, AppliedTerm tl2) const

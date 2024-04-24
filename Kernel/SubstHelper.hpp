@@ -60,7 +60,8 @@ struct AppliedTerm
   bool operator==(AppliedTerm) const = delete;
   bool operator!=(AppliedTerm) const = delete;
   bool equalsShallow(AppliedTerm other) const {
-    return !aboveVar && !other.aboveVar && term==other.term;
+    return ((!aboveVar && !other.aboveVar) || (term.ground() && other.term.ground()))
+      && term==other.term;
   }
 };
 
