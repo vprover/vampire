@@ -258,7 +258,6 @@ struct LPO::Node {
   };
   Type t;
   Node(Type t) : t(t) {}
-  virtual Result execute(const SubstApplicator* applicator) const = 0;
   virtual vvector<vstring> toString() const = 0;
   virtual ~Node() = default;
 
@@ -277,20 +276,6 @@ struct LPO::ConditionalNode : public LPO::Node {
   ConditionalNode(Node* condition, Node* eqBranch, Node* gtBranch, Node* incBranch)
     : Node(CONDITIONAL), condition(condition), eqBranch(eqBranch), gtBranch(gtBranch), incBranch(incBranch) {}
 
-  Result execute(const SubstApplicator* applicator) const
-  {
-    switch(condition->execute(applicator)) {
-      case EQUAL:
-        return eqBranch->execute(applicator);
-      case GREATER:
-        return gtBranch->execute(applicator);
-      case INCOMPARABLE:
-        return incBranch->execute(applicator);
-      default:
-        ASSERTION_VIOLATION;
-    }
-    ASSERTION_VIOLATION;
-  }
   vvector<vstring> toString() const {
     vvector<vstring> res;
     res.push_back("CONDITIONAL");
@@ -322,7 +307,6 @@ struct LPO::ConditionalNode : public LPO::Node {
 struct LPO::ResultNode : public LPO::Node {
   ResultNode(Result result) : Node(Node::RESULT), result(result) {}
   Result result;
-  Result execute(const SubstApplicator* applicator) const override { return result; }
   vvector<vstring> toString() const override { return { resultToString(result) }; }
 };
 
@@ -335,11 +319,7 @@ bool LPO::Node::isResult(Result r) const {
 }
 
 struct LPO::ComparisonNode : public LPO::Node {
-  // ComparisonNode() = default;
   ComparisonNode(const LPO& lpo, TermList lhs, TermList rhs) : Node(Node::COMPARISON), lpo(lpo), lhs(lhs), rhs(rhs) {}
-  Result execute(const SubstApplicator* applicator) const override {
-    return lpo.lpo(AppliedTerm(lhs,applicator,true),AppliedTerm(rhs,applicator,true));
-  }
   vvector<vstring> toString() const override {
     return { lhs.toString() + " ? " + rhs.toString() };
   }
@@ -573,7 +553,49 @@ LPO::Node* LPO::preprocessComparison(TermList tl1, TermList tl2) const
 bool LPO::isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, Stack<Instruction>*& instructions) const
 {
   auto n = preprocessComparison(lhs,rhs);
-  return n->execute(applicator)==GREATER;
+  Stack<ConditionalNode*> conditionStack;
+  Node* curr = n;
+  while (true) {
+    switch (curr->t) {
+      case Node::CONDITIONAL: {
+        auto cn = static_cast<ConditionalNode*>(curr);
+        conditionStack.push(cn);
+        curr = cn->condition;
+        break;
+      }
+      case Node::COMPARISON:
+      case Node::RESULT:
+      {
+        Result comp;
+        if (curr->t == Node::RESULT) {
+          auto cn = static_cast<ResultNode*>(curr);
+          comp = cn->result;
+        } else {
+          auto cn = static_cast<ComparisonNode*>(curr);
+          comp = lpo(AppliedTerm(cn->lhs,applicator,true),AppliedTerm(cn->rhs,applicator,true));
+        }
+        if (conditionStack.isEmpty()) {
+          return comp==GREATER;
+        }
+        auto cond = conditionStack.pop();
+        switch (comp) {
+          case EQUAL:
+            curr = cond->eqBranch;
+            break;
+          case GREATER:
+            curr = cond->gtBranch;
+            break;
+          case INCOMPARABLE:
+            curr = cond->incBranch;
+            break;
+          default:
+            ASSERTION_VIOLATION;
+        }
+        break;
+      }
+    }
+  }
+  ASSERTION_VIOLATION;
 }
 
 void LPO::showConcrete(ostream&) const 
