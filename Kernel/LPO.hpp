@@ -45,9 +45,28 @@ public:
   ~LPO() override = default;
 
   using PrecedenceOrdering::compare;
-  struct Node;
 
-  Node* preprocessComparison(TermList tl1, TermList tl2) const;
+  struct Node {
+    enum class Tag {
+      T_GREATER,
+      T_EQUAL,
+      T_INCOMPARABLE,
+      T_JUMP,
+      T_COMPARISON,
+      T_CONDITIONAL,
+      T_TERM,
+    };
+
+    Tag tag;
+    TermList term;
+    unsigned offset;
+
+    explicit Node(Tag tag) : tag(tag) {}
+    explicit Node(TermList term) : tag(Tag::T_TERM), term(term) {}
+    explicit Node(unsigned o) : tag(Tag::T_JUMP), offset(o) {}
+  };
+
+  Stack<Node>* preprocessComparison(TermList tl1, TermList tl2) const;
 
   Result compare(TermList tl1, TermList tl2) const override;
   Result compare(AppliedTerm tl1, AppliedTerm tl2) const override;
@@ -73,7 +92,7 @@ protected:
   Result lexMAE(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity) const;
   Result majo(AppliedTerm s, AppliedTerm t, const TermList* tl, unsigned arity) const;
 
-  mutable DHMap<std::pair<TermList,TermList>,Node*> _comparisons;
+  mutable DHMap<std::pair<TermList,TermList>,Stack<Node>*> _comparisons;
 };
 
 }
