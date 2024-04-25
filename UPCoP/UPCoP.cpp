@@ -55,8 +55,6 @@ static struct {
 struct Copy {
   // original clause
   Clause *original;
-  // SAT variable representing selecting this clause
-  int var;
   // range of literal positions this clause occupies
   unsigned start, end;
 
@@ -69,7 +67,7 @@ struct Position {
   Literal *literal;
   // the clause copy this index belongs to, indexing into `Matrix::copies`
   unsigned copy;
-  // possible connections to this literal
+  // possible connections with this literal
   std::vector<unsigned> connections;
 
   Position(Literal *literal, unsigned copy)
@@ -78,24 +76,8 @@ struct Position {
 
 // a connection between two literals
 struct Connection {
-  // SAT variable representing making this connection
-  int var;
   // the positions connected, indexing into `Matrix::positions`
   unsigned positions[2];
-};
-
-enum class Action {
-  CONNECT,
-  SELECT,
-  UNUSED
-};
-
-// used to determine what a SAT variable means
-struct Demux {
-  // what does this do?
-  Action action;
-  // index into something depending on `action`
-  unsigned index;
 };
 
 // something to keep in the term index
@@ -126,8 +108,11 @@ struct Matrix {
   std::vector<Position> positions;
   // connections
   std::vector<Connection> connections;
-  // SAT variable information
-  std::vector<Demux> demux;
+
+  Matrix() {
+    // offset `connections` by 1 so it can be indexed by SAT variables
+    connections.push_back({0, 0});
+  }
 
   // number of first-order variables used so far
   unsigned offset = 0;
@@ -135,25 +120,17 @@ struct Matrix {
   // literal index
   Indexing::LiteralSubstitutionTree<Indexed> index;
 
-  Matrix() {
-    // offset all entries by one as SAT variable 0 is unused
-    demux.push_back({Action::UNUSED, 0});
-  }
-
   // get a pair of literals corresponding to a SAT variable
   std::pair<Literal *, Literal *> connection_literals(int assigned) {
     ASS_G(assigned, 0)
-    ASS(demux[assigned].action == Action::CONNECT);
-    unsigned index = demux[assigned].index;
-    const Connection &connection = connections[index];
-    ASS_EQ(connection.var, assigned)
+    const Connection &connection = connections[assigned];
     Literal *k = positions[connection.positions[0]].literal;
     Literal *l = positions[connection.positions[1]].literal;
     return {k, l};
   }
 
   // increase the number of copies of `cl` by one
-  int amplify(CaDiCaL::Solver &solver, Clause *cl) {
+  void amplify(CaDiCaL::Solver &solver, Clause *cl) {
     // the position in `copies` that this clause will occupy
     unsigned copy_index = copies.size();
     // the start of the literal positions that this clause will occupy
@@ -183,19 +160,14 @@ struct Matrix {
         // the new connection
         unsigned other_index = unifiers.next().data->position;
 
-        // add demux
-        int var = demux.size();
-        unsigned connection_index = connections.size();
-        demux.push_back({Action::CONNECT, connection_index});
-        solver.add_observed_var(var);
-        solver.phase(-var);
-
         // add connection
-        connections.push_back({var, {other_index, position_index}});
+        int connection = connections.size();
+        solver.add_observed_var(connection);
+        connections.push_back({other_index, position_index});
 
         // add the new connection to both positions
-        positions[other_index].connections.push_back(connection_index);
-        position.connections.push_back(connection_index);
+        positions[other_index].connections.push_back(connection);
+        position.connections.push_back(connection);
       }
       positions.emplace_back(std::move(position));
     }
@@ -213,14 +185,8 @@ struct Matrix {
       index.insert(indexed);
     }
 
-    // create selectors and demux
-    int selector = demux.size();
-    solver.add_observed_var(selector);
-    solver.phase(-selector);
-    demux.push_back({Action::SELECT, copy_index});
-    copies.push_back({cl, selector, position_start, position_end});
-
-    return selector;
+    // finally add the copy
+    copies.push_back({cl, position_start, position_end});
   }
 };
 
@@ -229,9 +195,7 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
   Matrix &matrix;
   // current substitution
   RobSubstitution substitution;
-  // SAT variables for selected clauses so far
-  std::vector<int> selected;
-  // SAT variables for connections made so far
+  // connections made so far
   std::vector<int> connections;
   // reason/conflict clause, if any
   std::vector<int> reason;
@@ -244,8 +208,6 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
   struct Level {
     // parent propagator
     Propagator &propagator;
-    // where to reset `propagator.selected` to
-    unsigned selected;
     // where to reset `propagator.connections` to
     unsigned connections;
     // for the substitution
@@ -256,7 +218,6 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
 
     Level(Propagator &propagator) :
       propagator(propagator),
-      selected(propagator.selected.size()),
       connections(propagator.connections.size()),
       substitution(new BacktrackData())
     {
@@ -268,8 +229,6 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
       if(!substitution)
         return;
 
-      ASS_LE(selected, propagator.selected.size())
-      propagator.selected.resize(selected);
       ASS_LE(connections, propagator.connections.size())
       propagator.connections.resize(connections);
       substitution->backtrack();
@@ -297,18 +256,12 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
     if(assigned < 0 || !reason.empty())
       return;
 
-    auto [action, index] = matrix.demux[assigned];
-    if(action == Action::SELECT)
-      selected.push_back(assigned);
-    else {
-      ASS(action == Action::CONNECT)
-      connections.push_back(assigned);
-      // unify the literals corresponding to the connection
-      auto [k, l] = matrix.connection_literals(assigned);
-      if(!substitution.unify(TermList(k), 0, TermList(l), 0))
-        // unification failed, learn a conflict clause
-        compute_unification_reason(assigned);
-    }
+    connections.push_back(assigned);
+    // unify the literals corresponding to the connection
+    auto [k, l] = matrix.connection_literals(assigned);
+    if(!substitution.unify(TermList(k), 0, TermList(l), 0))
+      // unification failed, learn a conflict clause
+      compute_unification_reason(assigned);
   }
 
   // fill out `reason` given that `assigned` caused a unification failure
@@ -355,40 +308,23 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
 
     // find a path through the fully-connected matrix
     auto path = find_path();
-    ASS_G(path.size(), 0)
+    ASS_EQ(path.size(), matrix.copies.size())
 
-    // set of copies selected
-    std::unordered_set<unsigned> members;
-    for(int selected : selected) {
-      // if we have selected these clauses...
-      reason.push_back(-selected);
-      members.insert(matrix.demux[selected].index);
-    }
-
-    // either there should be a connection on the path,
-    // or there should be a connection outside the selected copies
+    // at least one connection along this path
     for(unsigned position_index : path) {
       const Position &position = matrix.positions[position_index];
-      for(unsigned connection_index : position.connections) {
-        const Connection &connection = matrix.connections[connection_index];
+      for(unsigned var : position.connections) {
+        const Connection &connection = matrix.connections[var];
         auto [ki, ji] = connection.positions;
         ASS(position_index == ki || position_index == ji)
 
-        // intra-path connection, no further questions
-        if(path.count(ki) && path.count(ji)) {
+        if(
+          // connection along the path
+          path.count(ki) && path.count(ji) &&
           // avoid duplicate connections
-          if(ki == position_index)
-            reason.push_back(connection.var);
-          continue;
-        }
-
-        unsigned other_position = ki == position_index ? ji : ki;
-        unsigned other_copy = matrix.positions[other_position].copy;
-        // connection from the path to somewhere else in the selected copies, skip
-        if(members.count(other_copy))
-          continue;
-
-        reason.push_back(connection.var);
+          ki == position_index
+        )
+          reason.push_back(var);
       }
     }
 
@@ -399,10 +335,10 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
   // find a path through the matrix, returning the sequence of positions
   std::unordered_set<unsigned> find_path() {
     // grounded versions of the selected clauses
-    std::vector<std::pair<const Copy &, Clause *>> grounded;
-    // ground all selected clauses and feed them to `pathfinder`
-    for(int selected : selected) {
-      const Copy &copy = matrix.copies[matrix.demux[selected].index];
+    std::vector<Clause *> grounded;
+
+    // ground all clauses and feed them to `pathfinder`
+    for(const Copy &copy : matrix.copies) {
       // make a Vampire clause for grounding - useful for proof printing
       Clause *ground = new (copy.length()) Clause(
         copy.length(),
@@ -420,13 +356,13 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
         // (just barely avoids sortedness problems)
         (*ground)[i] = SubstHelper::apply(substituted, X0);
       }
-      grounded.push_back({copy, ground});
+      grounded.push_back(ground);
 
       // get a SAT version of `ground`
       SATClause *sat = sat2fo.toSAT(ground);
       pathfinder.ensureVarCount(sat2fo.maxSATVar());
-      // tautology
-      // TODO prevent this happening in the first place
+      // tautology: can happen even if tautologies eliminated
+      // consider e.g. p(Y) | ~p(Z), which is grounded to p(X0) | ~p(X0)
       if(sat)
         pathfinder.addClause(sat);
     }
@@ -445,21 +381,25 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
       );
       throw MainLoop::RefutationFoundException(empty);
     }
+    ASS_EQ(grounded.size(), matrix.copies.size())
 
     // read the path off pathfinder's model
     std::unordered_set<unsigned> path;
-    for(auto [copy, ground] : grounded)
-      for(unsigned i = 0; i < ground->length(); i++) {
-        SATLiteral lit = sat2fo.toSAT((*ground)[i]);
+    for(unsigned i = 0; i < matrix.copies.size(); i++) {
+      const Copy &copy = matrix.copies[i];
+      Clause *ground = grounded[i];
+      for(unsigned j = 0; j < ground->length(); j++) {
+        SATLiteral lit = sat2fo.toSAT((*ground)[j]);
         if(
           ( lit.polarity() && pathfinder.getAssignment(lit.var()) == SATSolver::TRUE) ||
           (!lit.polarity() && pathfinder.getAssignment(lit.var()) == SATSolver::FALSE)
           // ignore don't-cares and assume they have the wrong polarity
         ) {
-          path.insert(copy.start + i);
+          path.insert(copy.start + j);
           break;
         }
       }
+    }
     return path;
   }
 
@@ -486,31 +426,8 @@ MainLoopResult UPCoP::runImpl() {
 
   // add initial clauses and add start constraint
   UnitList::Iterator units(_prb.units());
-  while(units.hasNext()) {
-    Clause *cl = units.next()->asClause();
-    int selector = matrix.amplify(solver, cl);
-    if(cl->inference().derivedFromGoal()) {
-      solver.add(selector);
-    }
-  }
-  solver.add(0);
-
-  // add connection-implies-selector constraints
-  for(const Connection &connection : matrix.connections)
-    for(unsigned position : connection.positions) {
-      solver.add(-connection.var);
-      solver.add(matrix.copies[matrix.positions[position].copy].var);
-      solver.add(0);
-    }
-
-  // add fully-connected constraints
-  for(const Copy &copy : matrix.copies)
-    for(unsigned index = copy.start; index < copy.end; index++) {
-      solver.add(-copy.var);
-      for(unsigned connection : matrix.positions[index].connections)
-        solver.add(matrix.connections[connection].var);
-      solver.add(0);
-    }
+  while(units.hasNext())
+    matrix.amplify(solver, units.next()->asClause());
 
   // should throw if we find a proof
   ALWAYS(solver.solve() != CaDiCaL::SATISFIABLE)
