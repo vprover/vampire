@@ -84,7 +84,7 @@ public:
   }
 
   virtual TermList applyToBoundResult(unsigned v)
-  { return applyToResult(TermList(v,false)); }
+  { return applyToResult(TermList::var(v)); }
 
   /**
    * Apply substitution to result term that fulfills the condition,
