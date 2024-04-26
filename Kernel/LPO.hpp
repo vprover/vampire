@@ -59,11 +59,11 @@ public:
 
     Tag tag;
     TermList term;
-    unsigned offset;
+    unsigned jump_pos;
 
     explicit Node(Tag tag) : tag(tag) {}
     explicit Node(TermList term) : tag(Tag::T_TERM), term(term) {}
-    explicit Node(unsigned o) : tag(Tag::T_JUMP), offset(o) {}
+    explicit Node(unsigned jump_pos) : tag(Tag::T_JUMP), jump_pos(jump_pos) {}
   };
 
   Stack<Node>* preprocessComparison(TermList tl1, TermList tl2) const;
