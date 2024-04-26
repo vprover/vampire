@@ -303,7 +303,7 @@ Ordering::Result KBO::State::traverseLex(AppliedTerm tl1, AppliedTerm tl2)
           return INCOMPARABLE;
         }
         if (t.term.isVar()) {
-          if (!containsVar(s, t.term)) {
+          if (!s.containsVar(t.term)) {
             return INCOMPARABLE;
           }
           _lexResult = INCOMPARABLE;
@@ -810,10 +810,10 @@ Ordering::Result KBO::compare(AppliedTerm tl1, AppliedTerm tl2) const
     return EQUAL;
   }
   if(tl1.term.isVar()) {
-    return containsVar(tl2, tl1.term) ? LESS : INCOMPARABLE;
+    return tl2.containsVar(tl1.term) ? LESS : INCOMPARABLE;
   }
   if(tl2.term.isVar()) {
-    return containsVar(tl1, tl2.term) ? GREATER : INCOMPARABLE;
+    return tl1.containsVar(tl2.term) ? GREATER : INCOMPARABLE;
   }
 
   ASS(tl1.term.isTerm());
@@ -852,7 +852,7 @@ Ordering::Result KBO::isGreaterOrEq(AppliedTerm tl1, AppliedTerm tl2) const
     return INCOMPARABLE;
   }
   if (tl2.term.isVar()) {
-    return containsVar(tl1, tl2.term) ? GREATER : INCOMPARABLE;
+    return tl1.containsVar(tl2.term) ? GREATER : INCOMPARABLE;
   }
 
   ASS(tl1.term.isTerm());

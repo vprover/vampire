@@ -108,8 +108,6 @@ protected:
 
   Result compareEqualities(Literal* eq1, Literal* eq2) const;
 
-  static bool containsVar(AppliedTerm s, TermList var);
-
 private:
   void createEqualityComparator();
   void destroyEqualityComparator();

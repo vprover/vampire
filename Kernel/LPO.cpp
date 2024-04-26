@@ -89,7 +89,7 @@ Ordering::Result LPO::compare(AppliedTerm tl1, AppliedTerm tl2) const
     return EQUAL;
   }
   if(tl1.term.isVar()) {
-    return containsVar(tl2, tl1.term) ? LESS : INCOMPARABLE;
+    return tl2.containsVar(tl1.term) ? LESS : INCOMPARABLE;
   }
   ASS(tl1.term.isTerm());
   return clpo(tl1, tl2);
@@ -104,7 +104,7 @@ Ordering::Result LPO::clpo(AppliedTerm tl1, AppliedTerm tl2) const
 {
   ASS(tl1.term.isTerm());
   if(tl2.term.isVar()) {
-    return containsVar(tl1, tl2.term) ? GREATER : INCOMPARABLE;
+    return tl1.containsVar(tl2.term) ? GREATER : INCOMPARABLE;
   }
   ASS(tl2.term.isTerm());
   auto t1=tl1.term.term();
@@ -202,7 +202,7 @@ Ordering::Result LPO::lpo(AppliedTerm tt1, AppliedTerm tt2) const
   }
 
   if (tt2.term.isVar()) {
-    return containsVar(tt1, tt2.term) ? GREATER : INCOMPARABLE;
+    return tt1.containsVar(tt2.term) ? GREATER : INCOMPARABLE;
   }
 
   auto t1=tt1.term.term();
