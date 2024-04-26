@@ -11,7 +11,6 @@
 
 #include "UPCoP.hpp"
 
-#include <algorithm>
 #include "cadical.hpp"
 
 #include "Debug/Assertion.hpp"
@@ -121,7 +120,7 @@ struct Matrix {
   Indexing::LiteralSubstitutionTree<Indexed> index;
 
   // get a pair of literals corresponding to a SAT variable
-  std::pair<Literal *, Literal *> connection_literals(int assigned) {
+  std::pair<Literal *, Literal *> connection_literals(int assigned) const {
     ASS_G(assigned, 0)
     const Connection &connection = connections[assigned];
     Literal *k = positions[connection.positions[0]].literal;
@@ -192,7 +191,7 @@ struct Matrix {
 
 struct Propagator: public CaDiCaL::ExternalPropagator {
   // the matrix
-  Matrix &matrix;
+  const Matrix &matrix;
   // current substitution
   RobSubstitution substitution;
   // connections made so far
@@ -203,6 +202,8 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
   MinisatInterfacing pathfinder;
   // bijection from (substituted, grounded) literals to SAT variables
   SAT2FO sat2fo;
+  // random source
+  std::mt19937 rng;
 
   // create a decision level on construction, backtrack a decision level on destruction
   struct Level {
@@ -239,7 +240,7 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
   // decision levels
   std::vector<Level> levels;
 
-  Propagator(Matrix &matrix) : matrix(matrix), pathfinder(*env.options) {}
+  Propagator(const Matrix &matrix) : matrix(matrix), pathfinder(*env.options) {}
 
   ~Propagator() {
     // undo substitutions in order
@@ -306,23 +307,30 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
   bool cb_check_found_model(const std::vector<int> &model) final {
     ASS(reason.empty())
 
+    // ooooh stars pretty!
+#if 0
+    for(int assign : model)
+      std::cout << (assign < 0 ? ' ' : '*');
+    std::cout << '\n';
+#endif
+
     // find a path through the fully-connected matrix
     auto path = find_path();
     ASS_EQ(path.size(), matrix.copies.size())
 
-    // at least one connection along this path
+    // at least one connection must be made along this path
     for(unsigned position_index : path) {
       const Position &position = matrix.positions[position_index];
       for(unsigned var : position.connections) {
         const Connection &connection = matrix.connections[var];
-        auto [ki, ji] = connection.positions;
-        ASS(position_index == ki || position_index == ji)
+        auto [k, l] = connection.positions;
+        ASS(position_index == k || position_index == l)
 
         if(
           // connection along the path
-          path.count(ki) && path.count(ji) &&
+          path.count(k) && path.count(l) &&
           // avoid duplicate connections
-          ki == position_index
+          k == position_index
         )
           reason.push_back(var);
       }
@@ -367,6 +375,9 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
         pathfinder.addClause(sat);
     }
 
+    // randomise the next assignment as far as possible
+    pathfinder.randomizeForNextAssignment(sat2fo.maxSATVar());
+
     // no path exists, we're done - emit a proof
     if(pathfinder.solve(UINT_MAX) == SATSolver::UNSATISFIABLE) {
       SATClause* refutation = pathfinder.getRefutation();
@@ -383,17 +394,27 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
     }
     ASS_EQ(grounded.size(), matrix.copies.size())
 
+    // to choose a random satisfied literal in clauses
+    std::vector<unsigned> random_order;
+
     // read the path off pathfinder's model
     std::unordered_set<unsigned> path;
     for(unsigned i = 0; i < matrix.copies.size(); i++) {
       const Copy &copy = matrix.copies[i];
       Clause *ground = grounded[i];
-      for(unsigned j = 0; j < ground->length(); j++) {
+
+      // randomise order of iteration
+      random_order.clear();
+      while(random_order.size() < ground->length())
+        random_order.push_back(random_order.size());
+      shuffle(random_order.begin(), random_order.end(), rng);
+
+      for(unsigned j : random_order) {
         SATLiteral lit = sat2fo.toSAT((*ground)[j]);
+        ASS_NEQ(pathfinder.getAssignment(lit.var()), SATSolver::DONT_CARE)
         if(
           ( lit.polarity() && pathfinder.getAssignment(lit.var()) == SATSolver::TRUE) ||
           (!lit.polarity() && pathfinder.getAssignment(lit.var()) == SATSolver::FALSE)
-          // ignore don't-cares and assume they have the wrong polarity
         ) {
           path.insert(copy.start + j);
           break;
