@@ -1688,12 +1688,12 @@ bool Literal::computableOrVar() const {
   if (!env.signature->getPredicate(this->functor())->computable()) {
     return false;
   }
-  for (unsigned i = 0; i < arity(); ++i) { // Looping on args of ansLit (I guess it always has only one single arg)
+  for (unsigned i = 0; i < arity(); ++i) {
     const TermList* t = nthArgument(i);
     if (t->isTerm() && !t->term()->computableOrVar()) {
       return false;
     }
-  }  
+  }
   return true;
 }
 
@@ -1839,62 +1839,48 @@ bool Term::computable() const {
   return true;
 }
 
-bool Term::computableOrVarHelper(List<const Term*>* recAnces, List<unsigned int>* idx) const {
+bool Term::computableOrVarHelper(DHMap<unsigned, int>* recAncestors) const {
   Signature::Symbol* symbol = env.signature->getFunction(functor());
 
   if (!symbol->computable()) { // either symbol marked as uncomputable in the input, or a skolem
     if (!symbol->skolem() || !symbol->skolemFromStructIndAxiom()) {
       return false;
     } else {
-      // The symbol is a skolem. It can still be allowed if it occurs in a suitable argument of a rec-term.
-      List<const Term*>::Iterator rit(recAnces);
-      List<unsigned int>::Iterator iit(idx);
-      bool found = false;
-      while (!found && rit.hasNext() && iit.hasNext()) { // rit.hasNext() <==> iit.hasNext()
-        // Check if this skolem (this) is allowed in index _idx_ of _rec_
-        const Term* t = rit.next();
-        unsigned i = iit.next();
-        if (((int)t->functor() == symbol->recFnId()) && ((int)i == symbol->constructorId())) {
-          found = true;
-        }
-      }
-      if (!found) {
+      // The symbol is a skolem from induction. It can still be allowed if it occurs in a suitable argument of a rec-term.
+      ASS(symbol->recFnId() >= 0);
+      int idx = 0;
+      if (!recAncestors->find((unsigned)symbol->recFnId(), idx) || (idx != symbol->constructorId())) {
         return false;
       }
     }
   }
 
   // Top functor is computable, now recurse.
-  bool thisRec = SynthesisManager::getInstance()->isRecTerm(this);
-  if (thisRec) {
-    recAnces->push(this, recAnces);
+  int* idx = nullptr;
+  if (SynthesisManager::getInstance()->isRecTerm(this)) {
+    ALWAYS(recAncestors->getValuePtr(functor(), idx, -1));
   }
-  for (unsigned i = 0; i < _arity; i++) {
+  for (int i = 0; i < _arity; i++) {
     const TermList* t = nthArgument(i);
     if (t->isTerm()) { // else we have a variable, which needs no check
-      if (thisRec) {
-        idx->push(i, idx);
+      if (idx) {
+        *idx = i;
       }
-      bool result = t->term()->computableOrVarHelper(recAnces, idx);
-      if (thisRec) {
-        idx->pop(idx);
-      }
-      if (!result) {
+      if (!t->term()->computableOrVarHelper(recAncestors)) {
         return false;
       }
     }
   }
-  if (thisRec) {
-    recAnces->pop(recAnces);
+  if (idx) {
+    recAncestors->remove(functor());
   }
 
   return true;
 }
 
 bool Term::computableOrVar() const {
-  List<const Term*>* recAnces = List<const Term*>::empty();
-  List<unsigned int>* idx = List<unsigned int>::empty();
-  bool res = this->computableOrVarHelper(recAnces, idx);
+  DHMap<unsigned, int> recAncestors;
+  bool res = this->computableOrVarHelper(&recAncestors);
   return res;
 }
 

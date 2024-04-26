@@ -762,12 +762,13 @@ public:
 
   virtual bool computable() const;
   virtual bool computableOrVar() const;
-  virtual bool computableOrVarHelper(List<const Term*>* recAnces, List<unsigned int>* idx) const;
 
 protected:
   vstring headToString() const;
 
   unsigned computeDistinctVars() const;
+
+  virtual bool computableOrVarHelper(DHMap<unsigned, int>* recAncestors) const;
 
   /**
    * Return argument order value stored in term.

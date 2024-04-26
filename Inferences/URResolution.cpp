@@ -131,25 +131,31 @@ struct URResolution::Item
    * substitution is applied to the literals, otherwise the result
    * part is applied.
    */
-  void resolveLiteral(unsigned idx, SLQueryResult& unif, Clause* premise, bool useQuerySubstitution, bool ansLitIte)
+  bool resolveLiteral(unsigned idx, SLQueryResult& unif, Clause* premise, bool useQuerySubstitution, bool ansLitIte)
   {
+    if (_ansLit && !_ansLit->ground()) {
+      _ansLit = unif.substitution->apply(_ansLit, !useQuerySubstitution);
+    }
+    Literal* premAnsLit = nullptr;
+    bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
+    if (synthesis && premise->hasAnswerLiteral()) {
+      premAnsLit = premise->getAnswerLiteral();
+      if (!premAnsLit->ground()) {
+        premAnsLit = unif.substitution->apply(premAnsLit, useQuerySubstitution);
+      }
+    }
+    if (ansLitIte && (!_ansLit || !premAnsLit || (_ansLit == premAnsLit))) {
+      return false;
+    }
     Literal* rlit = _lits[idx];
     _lits[idx] = 0;
     _premises[idx] = premise;
     _color = static_cast<Color>(_color | premise->color());
     ASS_NEQ(_color, COLOR_INVALID)
 
-    if (_ansLit && !_ansLit->ground()) {
-      _ansLit = unif.substitution->apply(_ansLit, !useQuerySubstitution);
-    }
-    bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
     RobSubstitution rSubst;
     bool substUsed = false;
     if (synthesis && premise->hasAnswerLiteral()) {
-      Literal* premAnsLit = premise->getAnswerLiteral();
-      if (!premAnsLit->ground()) {
-        premAnsLit = unif.substitution->apply(premAnsLit, useQuerySubstitution);
-      }
       if (!_ansLit) {
         _ansLit = premAnsLit;
       } else if (_ansLit != premAnsLit) {
@@ -168,7 +174,7 @@ struct URResolution::Item
     }
 
     if(_atMostOneNonGround) {
-      return;
+      return true;
     }
 
     unsigned nonGroundCnt = _ansLit ? !_ansLit->ground() : 0;
@@ -185,6 +191,7 @@ struct URResolution::Item
       }
     }
     _atMostOneNonGround = nonGroundCnt<=1;
+    return true;
   }
 
   Clause* generateClause() const
@@ -316,7 +323,9 @@ void URResolution::processLiteral(ItemList*& itms, unsigned idx, bool ansLitIte)
       }
 
       Item* itm2 = new Item(*itm);
-      itm2->resolveLiteral(idx, unif, unif.clause, true, ansLitIte);
+      if (!itm2->resolveLiteral(idx, unif, unif.clause, true, ansLitIte)) {
+        continue;
+      }
       iit.insert(itm2);
 
       if(!_full && itm->_atMostOneNonGround && (!synthesis || !unif.clause->hasAnswerLiteral())) {
@@ -388,9 +397,9 @@ void URResolution::doBackwardInferences(Clause* cl, ClauseList*& acc, bool ansLi
     unsigned pos = ucl->getLiteralPosition(unif.literal);
     ASS(!_selectedOnly || pos<ucl->numSelected());
     swap(itm->_lits[0], itm->_lits[pos]);
-    itm->resolveLiteral(0, unif, cl, false, ansLitIte);
-
-    processAndGetClauses(itm, 1, acc, ansLitIte);
+    if (itm->resolveLiteral(0, unif, cl, false, ansLitIte)) {
+      processAndGetClauses(itm, 1, acc, ansLitIte);
+    }
   }
 }
 

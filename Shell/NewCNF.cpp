@@ -39,7 +39,7 @@ using namespace Kernel;
 
 namespace Shell {
 
-void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
+void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output, BindingList** bindingList)
 {
   _beingClausified = unit;
 
@@ -105,98 +105,9 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
 #endif
 
   for (SPGenClause gc : _genClauses) {
-    toClauses(gc, output);
-  }
-
-  _genClauses.clear();
-  _varSorts.reset();
-  _collectedVarSorts = false;
-  _maxVar = 0;
-  _freeVars.reset();
-
-  { // destroy the cached substitution entries
-    DHMap<BindingList*,Substitution*>::DelIterator dIt(_substitutionsByBindings);
-    while (dIt.hasNext()) {
-      delete dIt.next();
-      dIt.del();
+    if (bindingList) {
+      *bindingList = BindingList::append(gc->bindings, *bindingList);
     }
-  }
-
-  ASS(_queue.isEmpty());
-  ASS(_occurrences.isEmpty());
-}
-
-void NewCNF::clausifySynthesis(FormulaUnit* unit,Stack<Clause*>& output, BindingList* &bindingList) {
-    _beingClausified = unit;
-
-  Formula* f = unit->formula();
-
-#if LOGGING
-  cout << endl << "----------------- INPUT ------------------" << endl;
-  cout << f->toString() << endl;
-  cout << "----------------- INPUT ------------------" << endl;
-#endif
-
-  switch (f->connective()) {
-    case TRUE:
-      return;
-
-    case FALSE: {
-      // create an empty clause and push it in the stack
-      Clause* clause = new(0) Clause(0,FormulaTransformation(InferenceRule::CLAUSIFY,unit));
-      output.push(clause);
-      return;
-    }
-
-    default:
-      break;
-  }
-
-  ASS(_genClauses.empty());
-  ASS(_queue.isEmpty());
-  ASS(_occurrences.isEmpty());
-
-  enqueue(f);
-
-  introduceGenClause(GenLit(f, POSITIVE));
-
-  // process the generalized clauses until they contain only literals
-  while(_queue.isNonEmpty()) {
-    Formula* g;
-    Occurrences occurrences;
-    dequeue(g, occurrences);
-
-#if LOGGING
-    cout << endl << "---------------------------------------------" << endl;
-    for (SPGenClause gc : _genClauses) {
-      LOG1(gc->toString());
-    }
-    cout << "---------------------------------------------" << endl << endl;
-#endif
-
-    if ((_namingThreshold > 1) && occurrences.size() > _namingThreshold) {
-      nameSubformula(g, occurrences);
-    } else {
-      // TODO: currently we don't check for tautologies, as there should be none appearing (we use polarity based expansion of IFF and XOR)
-      process(g, occurrences);
-    }
-  }
-
-#if LOGGING
-  cout << endl << "----------------- OUTPUT -----------------" << endl;
-  for (SPGenClause gc : _genClauses) {
-    LOG1(gc->toString());
-  }
-  cout << "----------------- OUTPUT -----------------" << endl;
-#endif
-
-  for (SPGenClause gc : _genClauses) {
-    BindingList::Iterator bIt(gc->bindings);
-      while(bIt.hasNext()) {
-        Binding b = bIt.next();
-        Binding currentBinding = Binding(b.first, b.second);
-        bindingList->push(currentBinding, bindingList);
-      }
     toClauses(gc, output);
   }
 

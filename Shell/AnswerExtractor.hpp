@@ -41,8 +41,6 @@ public:
 
   virtual bool tryGetAnswer(Clause* refutation, Stack<TermList>& answer) = 0;
 
-  void tryOutputInputUnits();
-
   void addInputUnit(Unit* unit) { UnitList::push(unit, _inputs); }
 protected:
   void getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits);
@@ -95,13 +93,13 @@ typedef std::pair<unsigned, Term*> Binding;
 typedef List<Binding> BindingList;
 struct SkolemTracker { // used for tracking skolem terms in the structural induction axiom (recursive program synthesis)
     Binding binding;
-    // TODO: change the named (constructorIndex and constructorPos) & update the descriptions & fix the int/unsigned
+    // TODO(hzzv): change the named (constructorIndex and constructorPos) & update the descriptions & fix the int/unsigned
     unsigned constructorIndex; // a skolem constant will be considered computable in the j'th arg of rec(.), if j = constructorIndex
     bool recursiveCall; // E.g., BT(l, n, r) is recursive in arg 0 and 2, but not in arg 1
     int constructorPos; // -1 if not recursive, otherwise the position of the recursive argument
-    unsigned recFnID; // the ID of the rec(.) function in the structural induction axiom
+    unsigned recFnId; // the ID of the rec(.) function in the structural induction axiom
     int recConIndex;
-    SkolemTracker(Binding b, unsigned c, bool r, int pos, int rec_fn, int rci = -1) : binding(b), constructorIndex(c), recursiveCall(r), constructorPos(pos), recFnID(rec_fn), recConIndex(rci) {}
+    SkolemTracker(Binding b, unsigned c, bool r, int pos, int rec_fn, int rci = -1) : binding(b), constructorIndex(c), recursiveCall(r), constructorPos(pos), recFnId(rec_fn), recConIndex(rci) {}
     vstring toString() {
       vstring s;
       s += "SkolemTracker(";
@@ -114,8 +112,8 @@ struct SkolemTracker { // used for tracking skolem terms in the structural induc
       s += recursiveCall ? "true" : "false";
       s += ", cnstrPos=";
       s += Int::toString(constructorPos);
-      s += ", recFnID=";
-      s += Int::toString(recFnID);
+      s += ", recFnId=";
+      s += Int::toString(recFnId);
       s += ", recCnstrID=";
       s += Int::toString(recConIndex) + ")";
       return s;
@@ -130,7 +128,7 @@ class SynthesisManager : public AnswerLiteralManager
 {
 
 private:
-  typedef DHMap<unsigned /*recFnID*/, DHMap<unsigned /*constructorId*/, SkolemTrackerList*>> RecursionMappings;
+  typedef DHMap<unsigned /*recFnId*/, DHMap<unsigned /*constructorId*/, SkolemTrackerList*>> RecursionMappings;
   class ConjectureSkolemReplacement : public BottomUpTermTransformer {
    public:
     ConjectureSkolemReplacement() {}
@@ -236,13 +234,15 @@ public:
 
   virtual bool tryGetAnswer(Clause* refutation, Stack<TermList>& answer) override;
 
+  void tryOutputInputUnits();
+
   virtual void onNewClause(Clause* cl) override;
 
   virtual Clause* recordAnswerAndReduce(Clause* cl) override;
 
   Literal* makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit);
 
-  void storeSkolemMapping(unsigned int var, Term* skolem, unsigned int constructorIndex, bool recursiveCall, int constructorPos, int recFnID, int recConIndex);
+  void storeSkolemMapping(unsigned int var, Term* skolem, unsigned int constructorIndex, bool recursiveCall, int constructorPos, int recFnId, int recConIndex);
   void matchSkolemSymbols(BindingList* bindingList, SkolemTrackerList* tempSkolemMappings, List<TermList>* functionHeads); // called after skolemization has happened to fill _skolemMappings
   void storeRecTerm(unsigned int fnId) { _recTermIds->push(fnId, _recTermIds); }
   bool isRecTerm(const Term* t);

@@ -530,7 +530,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         resolveClauses(kv.first, ctx, kv.second);
       }
     }
-  } else if (lit->getDistinctVars() == 1) {
+  } else if (lit->getDistinctVars() == 1) { // TODO(hzzv): only when switched on
     NonVariableNonTypeIterator nvi(lit);
     while (nvi.hasNext()) {
       auto st = nvi.next();
@@ -682,7 +682,7 @@ ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, In
     env.out() << "[Induction] formula " << fu->toString() << endl;
     env.endOutput();
   }
-  cnf.clausifySynthesis(NNF::ennf(fu), hyp_clauses, bindingList); // Skolemization happens here (using new CNF)
+  cnf.clausify(NNF::ennf(fu), hyp_clauses, &bindingList); // Skolemization happens here (using new CNF)
 
   // Hyperresolution 
   Literal* indLit = context.getInductionLiteral();

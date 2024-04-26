@@ -162,7 +162,8 @@ class Signature
     /** Constructor id in which this Symbol appears (computability in recursive synthesis)*/
     int _constructorId;
     /** Functor of rec-term matching this skolem*/
-    int _recFnID;
+    // TODO(hzzv): change to unsigned?
+    int _recFnId;
     /** proxy type */
     Proxy _prox;
     /** combinator type */
@@ -206,7 +207,7 @@ class Signature
     /** set the constructor id in structural induction axiom in which this symbol appears */
     void setConstructorId(int cid) { _constructorId=cid; }
     /** set the rec-term function id (this symbol is a skolem obtained from the induction axiom containing that rec-term)*/
-    void setRecTermId(int rid) { _recFnID=rid;  }
+    void setRecTermId(int rid) { _recFnId=rid;  }
 
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
@@ -262,7 +263,7 @@ class Signature
     /** Return the constructor id in structural induction axiom in which this symbol appears */
     inline int constructorId() const { return _constructorId; }
     /** Return rec-term function id matching this skolem */
-    inline int recFnId() const { return _recFnID; }
+    inline int recFnId() const { return _recFnId; }
 
     /** Increase the usage count of this symbol **/
     inline void incUsageCnt(){ _usageCount++; }

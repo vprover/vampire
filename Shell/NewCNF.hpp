@@ -68,8 +68,7 @@ public:
     : _namingThreshold(namingThreshold), _iteInliningThreshold((unsigned)ceil(log2(namingThreshold))),
       _collectedVarSorts(false), _maxVar(0),_forInduction(false) {}
 
-  void clausify(FormulaUnit* unit, Stack<Clause*>& output);
-  void clausifySynthesis(FormulaUnit* unit, Stack<Clause*>& output, BindingList* &bindingList);
+  void clausify(FormulaUnit* unit, Stack<Clause*>& output, BindingList** bindingList = nullptr);
   void setForInduction(){ _forInduction=true; }
 private:
   unsigned _namingThreshold;

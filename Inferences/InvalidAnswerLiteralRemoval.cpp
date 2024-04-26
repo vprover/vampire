@@ -24,7 +24,6 @@ Clause* InvalidAnswerLiteralRemoval::simplify(Clause* cl)
   for (unsigned li = 0; li < cLen; li++) {
     Literal* lit = (*cl)[li];
     if (lit->isAnswerLiteral() && !lit->computableOrVar()) {
-      // std::cout << "InvalidAnswerLiteralRemoval " << cl->toString() << " due to uncomputablity of " << lit->toString() << std::endl;
       return nullptr;
     }
   }

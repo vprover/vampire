@@ -84,9 +84,9 @@ struct Superposition::ForwardResultFn
     TermQueryResult& qr = arg.second;
     return pvi(getConcatenatedIterator(
       getSingletonIterator(_parent.performSuperposition(_cl, arg.first.first, arg.first.second,
-	      qr.clause, qr.literal, qr.term, qr.substitution, true, _passiveClauseContainer, qr.constraints ,true)),
+	      qr.clause, qr.literal, qr.term, qr.substitution, true, _passiveClauseContainer, qr.constraints, true)),
       getSingletonIterator(_parent.performSuperposition(_cl, arg.first.first, arg.first.second,
-	      qr.clause, qr.literal, qr.term, qr.substitution, true, _passiveClauseContainer, qr.constraints ,false))));
+	      qr.clause, qr.literal, qr.term, qr.substitution, true, _passiveClauseContainer, qr.constraints, false))));
   }
 private:
   Clause* _cl;
@@ -322,7 +322,7 @@ Clause* Superposition::performSuperposition(
     Clause* rwClause, Literal* rwLit, TermList rwTerm,
     Clause* eqClause, Literal* eqLit, TermList eqLHS,
     ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer,
-    UnificationConstraintStackSP constraints, bool ite)
+    UnificationConstraintStackSP constraints, bool ansLitIte)
 {
   TIME_TRACE("perform superposition");
   // we want the rwClause and eqClause to be active
@@ -417,6 +417,9 @@ Clause* Superposition::performSuperposition(
   Literal* rwAnsLit = synthesis ? rwClause->getAnswerLiteral() : nullptr;
   Literal* eqAnsLit = synthesis ? eqClause->getAnswerLiteral() : nullptr;
   bool bothHaveAnsLit = (rwAnsLit != nullptr) && (eqAnsLit != nullptr);
+  if (ansLitIte && (!bothHaveAnsLit || (subst->apply(rwAnsLit, !eqIsResult) == subst->apply(eqAnsLit, eqIsResult)))) {
+    return 0; 
+  }
   unsigned newLength = rwLength+eqLength-1+conLength - (bothHaveAnsLit ? 1 : 0);
 
   static bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
@@ -570,7 +573,7 @@ Clause* Superposition::performSuperposition(
     Literal* newLitC = subst->apply(rwAnsLit, !eqIsResult);
     Literal* newLitD = subst->apply(eqAnsLit, eqIsResult);
 
-    if (ite == false) {
+    if (!ansLitIte) {
       RobSubstitution rSubst;
       if (rSubst.unifyArgs(newLitC, 0, newLitD, 0, nullptr)) {
         Literal* newLitCS = rSubst.apply(newLitC, 0);

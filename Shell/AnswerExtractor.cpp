@@ -63,9 +63,7 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
     }
   }
   env.beginOutput();
-  if (hasALManager) {
-    AnswerLiteralManager::getInstance()->tryOutputInputUnits();
-  } else if (hasSyntManager) {
+  if (hasSyntManager) {
     SynthesisManager::getInstance()->tryOutputInputUnits();
     SynthesisManager::getInstance()->outputRecursiveFunctions();
   }
@@ -97,16 +95,6 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
   }
   env.out() << "]|_] for " << env.options->problemName() << endl;
   env.endOutput();
-}
-
-void AnswerExtractor::tryOutputInputUnits() {
-  if (!UnitList::isEmpty(_inputs)) {
-    env.out() << "% Inputs for synthesis:" << endl;
-    UnitList::Iterator it(_inputs);
-    while (it.hasNext()) {
-      env.out() << it.next()->toString() << endl;
-    }
-  }
 }
 
 void AnswerExtractor::getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits)
@@ -544,6 +532,16 @@ bool SynthesisManager::tryGetAnswer(Clause* refutation, Stack<TermList>& answer)
   return true;
 }
 
+void SynthesisManager::tryOutputInputUnits() {
+  if (!UnitList::isEmpty(_inputs)) {
+    env.out() << "% Inputs for synthesis:" << endl;
+    UnitList::Iterator it(_inputs);
+    while (it.hasNext()) {
+      env.out() << it.next()->toString() << endl;
+    }
+  }
+}
+
 void SynthesisManager::onNewClause(Clause* cl)
 {
   if(!cl->noSplits() || cl->isEmpty() || (cl->length() != 1) || !(*cl)[0]->isAnswerLiteral()) {
@@ -754,23 +752,27 @@ void SynthesisManager::ConjectureSkolemReplacement::bindRecToFun(unsigned functo
   }
 }
 
+TermList getConstantForVariable(TermList sort) {
+  static TermList zero(theory->representConstant(IntegerConstantType(0)));
+  if (sort == AtomicSort::intSort()) {
+    return zero;
+  } else {
+    vstring name = "cz_" + sort.toString();
+    unsigned czfn;
+    if (!env.signature->tryGetFunctionNumber(name, 0, czfn)) {
+      czfn = env.signature->addFreshFunction(0, name.c_str());
+      env.signature->getFunction(czfn)->setType(OperatorType::getConstantsType(sort));
+    } 
+    return TermList(Term::createConstant(czfn));
+  }
+}
+
 TermList SynthesisManager::ConjectureSkolemReplacement::transformTermList(TermList tl, TermList sort) {
   // First replace free variables by 0-like constants
   if (tl.isVar() || (tl.isTerm() && !tl.term()->ground())) {
     TermList zero(theory->representConstant(IntegerConstantType(0)));
     if (tl.isVar()) {
-      if (sort == AtomicSort::intSort()) {
-        return zero;
-      } else {
-        vstring name = "cz_" + sort.toString();
-        unsigned czfn;
-        if (!env.signature->tryGetFunctionNumber(name, 0, czfn)) {
-          czfn = env.signature->addFreshFunction(0, name.c_str());
-          env.signature->getFunction(czfn)->setType(OperatorType::getConstantsType(sort));
-        } 
-        TermList res(Term::createConstant(czfn));
-        return res;
-      }
+      return getConstantForVariable(sort);
     } else {
       Substitution s;
       vset<unsigned> done;
@@ -778,21 +780,10 @@ TermList SynthesisManager::ConjectureSkolemReplacement::transformTermList(TermLi
       while (vit.hasNext()) {
         pair<TermList, TermList> p = vit.next();
         unsigned v = p.first.var();
-        TermList& vsort = p.second;
         if (done.count(v) == 0) {
           done.insert(v);
-          if (vsort == AtomicSort::intSort()) {
-            s.bind(v, zero);
-          } else {
-            vstring name = "cz_" + vsort.toString();
-            unsigned czfn;
-            if (!env.signature->tryGetFunctionNumber(name, 0, czfn)) {
-              czfn = env.signature->addFreshFunction(0, name.c_str());
-              env.signature->getFunction(czfn)->setType(OperatorType::getConstantsType(sort));
-            } 
-            TermList res(Term::createConstant(czfn));
-            s.bind(v, res);
-          }
+          TermList rep = getConstantForVariable(p.second);
+          s.bind(v, rep);
         }
       }
       tl = TermList(tl.term()->apply(s));
@@ -902,13 +893,13 @@ void SynthesisManager::ConjectureSkolemReplacement::Function::addCases(Term* t) 
   }
 }
 
-void SynthesisManager::storeSkolemMapping(unsigned int var, Term* skolem, unsigned int constructorIndex, bool recursiveCall, int constructorPos, int recFnID, int recConIndex) {
-  ASS(recFnID >= 0);
+void SynthesisManager::storeSkolemMapping(unsigned int var, Term* skolem, unsigned int constructorIndex, bool recursiveCall, int constructorPos, int recFnId, int recConIndex) {
+  ASS(recFnId >= 0);
   DHMap<unsigned, SkolemTrackerList*>* m;
-  _recursionMappings.getValuePtr((unsigned)recFnID, m);
+  _recursionMappings.getValuePtr((unsigned)recFnId, m);
   SkolemTrackerList** l;
   m->getValuePtr(constructorIndex, l);
-  SkolemTrackerList::push(SkolemTracker(Binding(var, skolem), constructorIndex, recursiveCall, constructorPos, (unsigned)recFnID, recConIndex), (*l));
+  SkolemTrackerList::push(SkolemTracker(Binding(var, skolem), constructorIndex, recursiveCall, constructorPos, (unsigned)recFnId, recConIndex), (*l));
 }
 
 void SynthesisManager::printSkolemMappings() {
@@ -944,11 +935,11 @@ void SynthesisManager::matchSkolemSymbols(BindingList* bindingList, SkolemTracke
     while(bIt.hasNext()) {
       Binding b = bIt.next();
       if (st.binding.first == b.first) {
-        recFnId = st.recFnID;
-        storeSkolemMapping(b.first, b.second, st.constructorIndex, st.recursiveCall, st.constructorPos, st.recFnID, st.recConIndex);
+        recFnId = st.recFnId;
+        storeSkolemMapping(b.first, b.second, st.constructorIndex, st.recursiveCall, st.constructorPos, st.recFnId, st.recConIndex);
         Signature::Symbol* s = env.signature->getFunction(b.second->functor());
         s->setConstructorId(st.constructorIndex);
-        s->setRecTermId(st.recFnID);
+        s->setRecTermId(st.recFnId);
         break;
       }
     }

@@ -183,6 +183,9 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
   Literal* cAnsLit = synthesis ? queryCl->getAnswerLiteral() : nullptr;
   Literal* dAnsLit = synthesis ? qr.clause->getAnswerLiteral() : nullptr;
   bool bothHaveAnsLit = (cAnsLit != nullptr) && (dAnsLit != nullptr);
+  if (ansLitIte && (!bothHaveAnsLit || (qr.substitution->applyToQuery(cAnsLit) == qr.substitution->applyToResult(dAnsLit)))) {
+    return 0;
+  }
 
   unsigned conlength = withConstraints ? constraints->size() : 0;
   unsigned newLength = clength+dlength-2+conlength-(bothHaveAnsLit ? 1 : 0);
@@ -315,7 +318,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, SLQ
     Literal* newLitC = qr.substitution->applyToQuery(cAnsLit);
     Literal* newLitD = qr.substitution->applyToResult(dAnsLit);
     if (!ansLitIte) {
-    RobSubstitution rSubst;
+      RobSubstitution rSubst;
       if (rSubst.unifyArgs(newLitC, 0, newLitD, 0, nullptr)) {
         Literal* newLitCS = rSubst.apply(newLitC, 0);
         for (unsigned i = 0; i < next; i++) {
