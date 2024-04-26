@@ -53,6 +53,8 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+namespace {
+
 struct Applicator : SubstApplicator {
   Applicator(ResultSubstitution* subst) : subst(subst) {}
   TermList operator()(unsigned v) const override {
@@ -69,6 +71,8 @@ struct ApplicatorWithEqSort : SubstApplicator {
   ResultSubstitution* subst;
   const RobSubstitution& vSubst;
 };
+
+} // end namespace
 
 void ForwardDemodulation::attach(SaturationAlgorithm* salg)
 {

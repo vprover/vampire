@@ -85,6 +85,8 @@ private:
   DemodulationSubtermIndex* _index;
 };
 
+namespace {
+
 struct Applicator : SubstApplicator {
   Applicator(ResultSubstitution* subst) : subst(subst) {}
   TermList operator()(unsigned v) const override {
@@ -92,6 +94,8 @@ struct Applicator : SubstApplicator {
   }
   ResultSubstitution* subst;
 };
+
+} // end namespace
 
 struct BackwardDemodulation::ResultFn
 {
