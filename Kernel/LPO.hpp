@@ -27,6 +27,7 @@
 namespace Kernel {
 
 using namespace Lib;
+using namespace std;
 
 /**
  * Class for instances of the lexicographic path orderings
@@ -47,26 +48,36 @@ public:
   using PrecedenceOrdering::compare;
 
   struct Node {
-    enum class Tag {
-      T_GREATER,
+    enum class BranchTag {
       T_EQUAL,
+      T_GREATER,
       T_INCOMPARABLE,
       T_JUMP,
-      T_COMPARISON,
-      T_CONDITIONAL,
-      T_TERM,
     };
 
-    Tag tag;
-    TermList term;
-    unsigned jump_pos;
+    struct Branch {
+      BranchTag tag;
+      unsigned jump_pos;
+      bool operator==(const Branch& other) const {
+        return tag == other.tag && jump_pos == other.jump_pos;
+      }
+    };
 
-    explicit Node(Tag tag) : tag(tag) {}
-    explicit Node(TermList term) : tag(Tag::T_TERM), term(term) {}
-    explicit Node(unsigned jump_pos) : tag(Tag::T_JUMP), jump_pos(jump_pos) {}
+    Node(TermList lhs, TermList rhs)
+      : lhs(lhs), rhs(rhs), eqBranch({ BranchTag::T_EQUAL, 0 }), gtBranch({ BranchTag::T_GREATER, 0 }), incBranch({ BranchTag::T_INCOMPARABLE, 0 }) {}
+
+    TermList lhs;
+    TermList rhs;
+    Branch eqBranch;
+    Branch gtBranch;
+    Branch incBranch;
+
+    friend ostream& operator<<(ostream& out, const Node& n);
+    friend ostream& operator<<(ostream& out, const Branch& b);
+    friend ostream& operator<<(ostream& out, const BranchTag& bt);
   };
 
-  Stack<Node>* preprocessComparison(TermList tl1, TermList tl2) const;
+  std::pair<Stack<Node>*,Node::BranchTag> preprocessComparison(TermList tl1, TermList tl2) const;
 
   Result compare(TermList tl1, TermList tl2) const override;
   Result compare(AppliedTerm tl1, AppliedTerm tl2) const override;
@@ -92,7 +103,7 @@ protected:
   Result lexMAE(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity) const;
   Result majo(AppliedTerm s, AppliedTerm t, const TermList* tl, unsigned arity) const;
 
-  mutable DHMap<std::pair<TermList,TermList>,Stack<Node>*> _comparisons;
+  mutable DHMap<std::pair<TermList,TermList>,std::pair<Stack<Node>*,Node::BranchTag>> _comparisons;
 };
 
 }
