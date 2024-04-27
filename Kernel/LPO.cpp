@@ -292,7 +292,7 @@ using namespace std;
 
 ostream& operator<<(ostream& out, const Node& n)
 {
-  out << "node " << n.lhs << " " << n.rhs << " " << n.eqBranch << " " << n.gtBranch << " " << n.incBranch;
+  out << "instr " << n.lhs << " " << n.rhs << " " << n.eqBranch << " " << n.gtBranch << " " << n.incBranch;
   return out;
 }
 
@@ -323,10 +323,24 @@ ostream& operator<<(ostream& out, const BranchTag& bt)
   return out;
 }
 
-void outputNodes(const Stack<LPO::Node>& st)
+void outputComparison(const pair<Stack<LPO::Node>,BranchTag>& ptr)
 {
-  for (const auto& n : st) {
-    cout << n << endl;
+  switch (ptr.second) {
+    case BranchTag::T_EQUAL:
+      cout << "equal" << endl;
+      return;
+    case BranchTag::T_GREATER:
+      cout << "greater" << endl;
+      return;
+    case BranchTag::T_INCOMPARABLE:
+      cout << "incomparable" << endl;
+      return;
+    case BranchTag::T_JUMP:
+      // fallthrough
+      break;
+  }
+  for (unsigned i = 0; i < ptr.first.size(); i++) {
+    cout << i << " " << ptr.first[i] << endl;
   }
 }
 
@@ -374,17 +388,9 @@ void pushNodes(Stack<LPO::Node>& st, const Stack<LPO::Node>& other, LPO::Node::B
   }
 }
 
-pair<Stack<Node>*,Node::BranchTag> LPO::preprocessComparison(TermList tl1, TermList tl2) const
+pair<Stack<Node>,BranchTag> LPO::preprocessComparison(TermList tl1, TermList tl2) const
 {
-  pair<Stack<Node>*,BranchTag>* ptr;
-  if (!_comparisons.getValuePtr(make_pair(tl1,tl2),ptr)) {
-    return *ptr;
-  }
-  // cout << "preprocessComparison " << tl1 << " " << tl2 << endl;
-
-  // auto ptr = make_pair(new Stack<Node>(),BranchTag::T_JUMP);
-  auto res = new Stack<Node>();
-  ptr->first = res;
+  auto res = make_pair(Stack<Node>(), BranchTag::T_JUMP);
 
   auto majoChain = [this](TermList tl1, Term* t, unsigned i) {
     Stack<Node> res;
@@ -400,13 +406,10 @@ pair<Stack<Node>*,Node::BranchTag> LPO::preprocessComparison(TermList tl1, TermL
       }
       if (prevIndex != -1) {
         updateBranchInRange(res, prevIndex, (unsigned)res.size(),
-          Branch{BranchTag::T_GREATER,0}, Branch{ BranchTag::T_JUMP, (unsigned)res.size() });
+          Branch::gt(), Branch::jump(res.size()));
       }
       prevIndex = res.size();
-      pushNodes(res,*compRes.first,
-        Branch{BranchTag::T_INCOMPARABLE,0},
-        Branch{BranchTag::T_GREATER,0},
-        Branch{BranchTag::T_INCOMPARABLE,0});
+      pushNodes(res,compRes.first, Branch::inc(), Branch::gt(), Branch::inc());
     }
     return make_pair(res,res.isEmpty() ? BranchTag::T_GREATER : BranchTag::T_JUMP);
   };
@@ -425,13 +428,10 @@ pair<Stack<Node>*,Node::BranchTag> LPO::preprocessComparison(TermList tl1, TermL
       }
       if (prevIndex != -1) {
         updateBranchInRange(res, prevIndex, (unsigned)res.size(),
-          Branch{BranchTag::T_INCOMPARABLE,0}, Branch{ BranchTag::T_JUMP, (unsigned)res.size() });
+          Branch::inc(), Branch::jump(res.size()));
       }
       prevIndex = res.size();
-      pushNodes(res,*compRes.first,
-        Branch{BranchTag::T_GREATER,0},
-        Branch{BranchTag::T_GREATER,0},
-        Branch{BranchTag::T_INCOMPARABLE,0});
+      pushNodes(res,compRes.first, Branch::gt(), Branch::gt(), Branch::inc());
     }
     return make_pair(res,res.isEmpty() ? BranchTag::T_INCOMPARABLE : BranchTag::T_JUMP);
   };
@@ -442,22 +442,17 @@ pair<Stack<Node>*,Node::BranchTag> LPO::preprocessComparison(TermList tl1, TermL
   ASS(comp != LESS_EQ && comp != GREATER_EQ);
   if (comp != INCOMPARABLE) {
     if (comp == LESS) {
-      ptr->second = BranchTag::T_INCOMPARABLE;
+      res.second = BranchTag::T_INCOMPARABLE;
     } else if (comp == GREATER) {
-      ptr->second = BranchTag::T_GREATER;
+      res.second = BranchTag::T_GREATER;
     } else {
-      ptr->second = BranchTag::T_EQUAL;
+      res.second = BranchTag::T_EQUAL;
     }
-    // cout << "res " << endl;
-    // outputNodes(*ptr.first);
-    return *ptr;
+    return res;
   }
-  ptr->second = BranchTag::T_JUMP;
   if (tl1.isVar() || tl2.isVar()) {
-    res->push(Node(tl1,tl2));
-    // cout << "res " << endl;
-    // outputNodes(*ptr.first);
-    return *ptr;
+    res.first.push(Node(tl1,tl2));
+    return res;
   }
 
   auto s = tl1.term();
@@ -476,172 +471,119 @@ pair<Stack<Node>*,Node::BranchTag> LPO::preprocessComparison(TermList tl1, TermL
         auto s_arg = SubstHelper::apply(*s->nthArgument(i),subst);
         auto t_arg = SubstHelper::apply(*t->nthArgument(i),subst);
         auto compRes = preprocessComparison(s_arg,t_arg);
-        // cout << "lex comp" << endl;
-        // outputNodes(*compRes.first);
         if (compRes.second == BranchTag::T_EQUAL) {
           ALWAYS(unify(s_arg,t_arg,subst));
           continue;
         }
 
         auto majoRes = majoChain(SubstHelper::apply(tl1,subst),SubstHelper::apply(tl2,subst).term(),i+1);
-        // cout << "lex majo" << endl;
-        // outputNodes(majoRes.first);
         if (compRes.second == BranchTag::T_GREATER) {
           // finish with majo branch
           if (majoRes.second != BranchTag::T_JUMP) {
             if (prevStartIndex != 1) {
-              updateBranchInRange(*res, prevStartIndex, prevEndIndex,
-                Branch{BranchTag::T_EQUAL,0}, Branch{ majoRes.second, 0 });
+              updateBranchInRange(res.first, prevStartIndex, prevEndIndex,
+                Branch::eq(), Branch{ majoRes.second, 0 });
             } else {
-              res->reset();
-              // update ptr value
-              NEVER(_comparisons.getValuePtr(make_pair(tl1,tl2),ptr));
-              ptr->second = majoRes.second;
+              res.first.reset();
+              res.second = majoRes.second;
             }
           } else {
             if (prevStartIndex != -1) {
-              updateBranchInRange(*res, prevStartIndex, prevEndIndex,
-                Branch{BranchTag::T_EQUAL,0}, Branch{ BranchTag::T_JUMP, (unsigned)res->size() });
+              updateBranchInRange(res.first, prevStartIndex, prevEndIndex,
+                Branch::eq(), Branch::jump(res.first.size()));
             }
-            pushNodes(*res,majoRes.first,
-              Branch{BranchTag::T_EQUAL,0},
-              Branch{BranchTag::T_GREATER,0},
-              Branch{BranchTag::T_INCOMPARABLE,0});
+            pushNodes(res.first,majoRes.first, Branch::eq(), Branch::gt(), Branch::inc());
           }
-          // cout << "reslex1 " << endl;
-          // outputNodes(*ptr.first);
-          NEVER(_comparisons.getValuePtr(make_pair(tl1,tl2),ptr));
-          return *ptr;
+          break;
         }
 
         auto alphaRes = alphaChain(SubstHelper::apply(tl1,subst).term(),i+1,SubstHelper::apply(tl2,subst));
-        // cout << "lex alpha" << endl;
-        // outputNodes(alphaRes.first);
         if (compRes.second == BranchTag::T_INCOMPARABLE) {
           // finish with alpha branch
           if (alphaRes.second != BranchTag::T_JUMP) {
             if (prevStartIndex != 1) {
-              updateBranchInRange(*res, prevStartIndex, prevEndIndex,
-                Branch{BranchTag::T_EQUAL,0}, Branch{ alphaRes.second, 0 });
+              updateBranchInRange(res.first, prevStartIndex, prevEndIndex,
+                Branch::eq(), Branch{ alphaRes.second, 0 });
             } else {
-              res->reset();
-              // update ptr value
-              NEVER(_comparisons.getValuePtr(make_pair(tl1,tl2),ptr));
-              ptr->second = alphaRes.second;
+              res.first.reset();
+              res.second = alphaRes.second;
             }
           } else {
             if (prevStartIndex != -1) {
-              updateBranchInRange(*res, prevStartIndex, prevEndIndex,
-                Branch{BranchTag::T_EQUAL,0}, Branch{ BranchTag::T_JUMP, (unsigned)res->size() });
+              updateBranchInRange(res.first, prevStartIndex, prevEndIndex,
+                Branch::eq(), Branch::jump(res.first.size()));
             }
-            pushNodes(*res,alphaRes.first,
-              Branch{BranchTag::T_EQUAL,0},
-              Branch{BranchTag::T_GREATER,0},
-              Branch{BranchTag::T_INCOMPARABLE,0});
+            pushNodes(res.first,alphaRes.first, Branch::eq(), Branch::gt(), Branch::inc());
           }
-          NEVER(_comparisons.getValuePtr(make_pair(tl1,tl2),ptr));
-          // cout << "reslex2 " << endl;
-          // outputNodes(*ptr.first);
-          return *ptr;
+          break;
         }
 
         if (prevStartIndex != 1) {
-          updateBranchInRange(*res, prevStartIndex, prevEndIndex,
-            Branch{BranchTag::T_EQUAL,0}, Branch{ BranchTag::T_JUMP, (unsigned)res->size() });
+          updateBranchInRange(res.first, prevStartIndex, prevEndIndex,
+            Branch::eq(), Branch::jump(res.first.size()));
         }
-        prevStartIndex = res->size();
-        prevEndIndex = res->size() + compRes.first->size();
+        prevStartIndex = res.first.size();
+        prevEndIndex = res.first.size() + compRes.first.size();
         Branch majoBranch{
           majoRes.second,
-          (unsigned)(majoRes.second == BranchTag::T_JUMP ? res->size() + compRes.first->size() : 0)
+          (unsigned)(majoRes.second == BranchTag::T_JUMP ? res.first.size() + compRes.first.size() : 0)
         };
         Branch alphaBranch{
           alphaRes.second,
-          (unsigned)(alphaRes.second == BranchTag::T_JUMP ? res->size() + compRes.first->size() + majoRes.first.size() : 0)
+          (unsigned)(alphaRes.second == BranchTag::T_JUMP ? res.first.size() + compRes.first.size() + majoRes.first.size() : 0)
         };
-        // cout << "prevStartIndex " << prevStartIndex << endl;
-        // cout << "prevEndIndex " << prevEndIndex << endl;
-        // cout << "majoBranch " << majoBranch << endl;
-        // cout << "alphaBranch " << alphaBranch << endl;
-        pushNodes(*res,*compRes.first,
-          Branch{BranchTag::T_EQUAL,0},
-          majoBranch,
-          alphaBranch);
+
+        pushNodes(res.first, compRes.first, Branch::eq(), majoBranch, alphaBranch);
 
         if (majoRes.second == BranchTag::T_JUMP) {
-          pushNodes(*res,majoRes.first,
-            Branch{BranchTag::T_EQUAL,0},
-            Branch{BranchTag::T_GREATER,0},
-            Branch{BranchTag::T_INCOMPARABLE,0});
+          pushNodes(res.first, majoRes.first, Branch::eq(), Branch::gt(), Branch::inc());
         }
 
         if (alphaRes.second == BranchTag::T_JUMP) {
-          pushNodes(*res,alphaRes.first,
-            Branch{BranchTag::T_EQUAL,0},
-            Branch{BranchTag::T_GREATER,0},
-            Branch{BranchTag::T_INCOMPARABLE,0});
+          pushNodes(res.first, alphaRes.first, Branch::eq(), Branch::gt(), Branch::inc());
         }
 
         if (!unify(s_arg,t_arg,subst)) {
-          updateBranchInRange(*res, prevStartIndex, prevEndIndex,
-            Branch{BranchTag::T_EQUAL,0}, Branch{ BranchTag::T_INCOMPARABLE, 0 });
-          NEVER(_comparisons.getValuePtr(make_pair(tl1,tl2),ptr));
-          // cout << "res " << endl;
-          // outputNodes(*ptr.first);
-          return *ptr;
+          updateBranchInRange(res.first, prevStartIndex, prevEndIndex, Branch::eq(), Branch::inc());
+          break;
         }
-        // cout << "lex " << endl;
-        // outputNodes(*ptr.first);
       }
-      // cout << "res " << endl;
-      // outputNodes(*ptr.first);
-      NEVER(_comparisons.getValuePtr(make_pair(tl1,tl2),ptr));
-      return *ptr;
       break;
     }
     case GREATER: {
       auto subres = majoChain(tl1,t,0);
-      NEVER(_comparisons.getValuePtr(make_pair(tl1,tl2),ptr));
       if (subres.second == BranchTag::T_JUMP) {
-        pushNodes(*res,subres.first,
-          Branch{BranchTag::T_EQUAL,0},
-          Branch{BranchTag::T_GREATER,0},
-          Branch{BranchTag::T_INCOMPARABLE,0});
+        pushNodes(res.first,subres.first, Branch::eq(), Branch::gt(), Branch::inc());
       } else {
-        ptr->second = subres.second;
+        res.second = subres.second;
       }
-      // cout << "res " << endl;
-      // outputNodes(*ptr.first);
-      return *ptr;
       break;
     }
     case LESS: {
       auto subres = alphaChain(s,0,tl2);
-      NEVER(_comparisons.getValuePtr(make_pair(tl1,tl2),ptr));
       if (subres.second == BranchTag::T_JUMP) {
-        pushNodes(*res,subres.first,
-          Branch{BranchTag::T_EQUAL,0},
-          Branch{BranchTag::T_GREATER,0},
-          Branch{BranchTag::T_INCOMPARABLE,0});
+        pushNodes(res.first,subres.first, Branch::eq(), Branch::gt(), Branch::inc());
       } else {
-        ptr->second = subres.second;
+        res.second = subres.second;
       }
-      // cout << "res " << endl;
-      // outputNodes(*ptr.first);
-      return *ptr;
       break;
     }
     default:
       ASSERTION_VIOLATION;
   }
-  ASSERTION_VIOLATION;
+  return res;
 }
 
 bool LPO::isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, Stack<Instruction>*& instructions) const
 {
-  auto x = preprocessComparison(lhs,rhs);
-  // cout << "preprocessing " << lhs << " " << rhs << endl;
-  switch (x.second) {
+  pair<Stack<Node>,BranchTag>* ptr;
+  if (_comparisons.getValuePtr(make_pair(lhs,rhs),ptr)) {
+    *ptr = preprocessComparison(lhs,rhs);
+    // cout << "preprocessing " << lhs << " " << rhs << endl;
+    // outputComparison(*ptr);
+    // cout << endl;
+  }
+  switch (ptr->second) {
     case BranchTag::T_EQUAL:
       return false;
     case BranchTag::T_GREATER:
@@ -653,54 +595,23 @@ bool LPO::isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicato
       break;
   }
   // return lpo(AppliedTerm(lhs,applicator,true),AppliedTerm(rhs,applicator,true))==GREATER;
-  const auto& st = x.first;
-
-  for (unsigned i = 0; i < x.first->size();) {
-    // cout << "AT " << i << " " << nodeToString(*st,i) << endl;
-    const auto& curr = (*st)[i];
+  const auto& st = ptr->first;
+  unsigned index = 0;
+  while (true) {
+    const auto& curr = st[index];
     auto comp = lpo(AppliedTerm(curr.lhs,applicator,true),AppliedTerm(curr.rhs,applicator,true));
-    // cout << "executing " << i << " " << resultToString(comp) << " " << curr << endl;
-    if (comp==EQUAL) {
-      // cout << "equal" << endl;
-      switch (curr.eqBranch.tag) {
-        case BranchTag::T_EQUAL:
-          return false;
-        case BranchTag::T_GREATER:
-          return true;
-        case BranchTag::T_INCOMPARABLE:
-          return false;
-        case BranchTag::T_JUMP:
-          i = curr.eqBranch.jump_pos;
-          break;
-      }
-    } else if (comp==GREATER) {
-      // cout << "greater" << endl;
-      switch (curr.gtBranch.tag) {
-        case BranchTag::T_EQUAL:
-          return false;
-        case BranchTag::T_GREATER:
-          return true;
-        case BranchTag::T_INCOMPARABLE:
-          return false;
-        case BranchTag::T_JUMP:
-          i = curr.gtBranch.jump_pos;
-          break;
-      }
-    } else if (comp==INCOMPARABLE) {
-      // cout << "incomparable" << endl;
-      switch (curr.incBranch.tag) {
-        case BranchTag::T_EQUAL:
-          return false;
-        case BranchTag::T_GREATER:
-          return true;
-        case BranchTag::T_INCOMPARABLE:
-          return false;
-        case BranchTag::T_JUMP:
-          i = curr.incBranch.jump_pos;
-          break;
-      }
-    } else {
-      ASSERTION_VIOLATION;
+    const auto& branch = curr.getBranch(comp);
+    switch (branch.tag) {
+      case BranchTag::T_EQUAL:
+        return false;
+      case BranchTag::T_GREATER:
+        return true;
+      case BranchTag::T_INCOMPARABLE:
+        return false;
+      case BranchTag::T_JUMP:
+        ASS_L(index,branch.jump_pos);
+        index = branch.jump_pos;
+        break;
     }
   }
   ASSERTION_VIOLATION;
