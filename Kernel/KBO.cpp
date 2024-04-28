@@ -21,6 +21,7 @@
 #include "Shell/Options.hpp"
 #include <fstream>
 
+#include "KBOComparator.hpp"
 #include "NumTraits.hpp"
 #include "Signature.hpp"
 #include "SubstHelper.hpp"
@@ -438,143 +439,6 @@ struct FuncSigTraits {
   { return env.signature->getFunction(functor); }
 };
 
-void KBO::preprocessComparison(TermList tl1, TermList tl2, Stack<Instruction>*& instructions) const
-{
-  Stack<pair<TermList,TermList>> todo;
-  todo.push(make_pair(tl1,tl2));
-
-  auto cntFn = [this](DHMap<unsigned,int>& vars, int& w, TermList t, int coeff) {
-    if (t.isVar()) {
-      int* vcnt;
-      vars.getValuePtr(t.var(), vcnt, 0);
-      (*vcnt) += coeff;
-    } else {
-      w += coeff*symbolWeight(t.term());
-      SubtermIterator sti(t.term());
-      while (sti.hasNext()) {
-        auto st = sti.next();
-        if (st.isVar()) {
-          int* vcnt;
-          vars.getValuePtr(st.var(), vcnt, 0);
-          (*vcnt) += coeff;
-        } else {
-          w += coeff*symbolWeight(st.term());
-        }
-      }
-    }
-  };
-
-  while (todo.isNonEmpty()) {
-    auto kv = todo.pop();
-    auto lhs = kv.first;
-    auto rhs = kv.second;
-    auto comp = compare(lhs,rhs);
-    // cout << "subcase " << lhs << " " << rhs << endl;
-
-    switch (comp) {
-      case LESS:
-      case LESS_EQ: {
-        return;
-      }
-      case GREATER:
-      case GREATER_EQ: {
-        instructions->push(Instruction(static_cast<unsigned>(InstructionTag::SUCCESS)));
-        return;
-      }
-      default:
-        break;
-    }
-    if (comp != Ordering::INCOMPARABLE) {
-      continue;
-    }
-    if (lhs.isVar() || rhs.isVar()) {
-      if (lhs.isVar() && rhs.isVar()) {
-        instructions->push(Instruction(static_cast<unsigned>(InstructionTag::COMPARE_VV),lhs.var()));
-        instructions->push(Instruction(rhs.var()));
-      } else if (lhs.isVar()) {
-        instructions->push(Instruction(static_cast<unsigned>(InstructionTag::COMPARE_VT),lhs.var()));
-        instructions->push(Instruction(rhs.term()));
-      } else if (rhs.isVar()) {
-        instructions->push(Instruction(static_cast<unsigned>(InstructionTag::COMPARE_TV),rhs.var()));
-        instructions->push(Instruction(lhs.term()));
-      }
-
-      // Prepare further cases if this is equal.
-      // Note that lhs and rhs are incomparable,
-      // so we don't need an occurs check.
-      Substitution subst;
-      if (lhs.isVar()) {
-        subst.bind(lhs.var(),rhs);
-      } else {
-        subst.bind(rhs.var(),lhs);
-      }
-      for (auto& kv : todo) {
-        kv.first = SubstHelper::apply(kv.first,subst);
-        kv.second = SubstHelper::apply(kv.second,subst);
-      }
-      continue;
-    }
-
-    DHMap<unsigned,int> vars;
-    int w = 0;
-    cntFn(vars, w, lhs, 1);
-    cntFn(vars, w, rhs, -1);
-
-    bool varInbalance = false;
-    DHMap<unsigned,int>::Iterator vit(vars);
-    Stack<pair<unsigned,int>> nonzeros;
-    while (vit.hasNext()) {
-      unsigned v;
-      int cnt;
-      vit.next(v,cnt);
-      if (cnt!=0) {
-        nonzeros.push(make_pair(v,cnt));
-      }
-      if (cnt<0) {
-        varInbalance = true;
-      }
-    }
-    if (w < 0 || varInbalance) {
-      instructions->push(Instruction(static_cast<unsigned>(InstructionTag::WEIGHT)));
-      instructions->push(Instruction((unsigned)nonzeros.size(),w));
-      sort(nonzeros.begin(),nonzeros.end(),[](const auto& e1, const auto& e2) {
-        return e1.second>e2.second;
-      });
-      for (const auto& [v,cnt] : nonzeros) {
-        instructions->push(Instruction(v,cnt));
-      }
-    }
-    auto lhst = lhs.term();
-    auto rhst = rhs.term();
-
-    Result prec = lhst->isSort()
-      ? compareTypeConPrecedences(lhst->functor(),rhst->functor())
-      : compareFunctionPrecedences(lhst->functor(),rhst->functor());
-    switch (prec)
-    {
-      case Ordering::LESS:
-      case Ordering::LESS_EQ: {
-        return;
-      }
-      case Ordering::GREATER:
-      case Ordering::GREATER_EQ: {
-        instructions->push(Instruction(static_cast<unsigned>(InstructionTag::SUCCESS)));
-        return;
-      }
-      case Ordering::EQUAL: {
-        for (unsigned i = 0; i < lhst->arity(); i++) {
-          auto lhsArg = *lhst->nthArgument(lhst->arity()-i-1);
-          auto rhsArg = *rhst->nthArgument(lhst->arity()-i-1);
-          todo.push(make_pair(lhsArg,rhsArg));
-        }
-        break;
-      }
-      default: {
-        ASSERTION_VIOLATION;
-      }
-    }
-  }
-}
 
 template<class SigTraits> 
 KboWeightMap<SigTraits> KBO::weightsFromOpts(const Options& opts, const DArray<int>& rawPrecedence) const
@@ -1055,6 +919,14 @@ Ordering::Result KBO::isGreaterOrEq(AppliedTerm tl1, AppliedTerm tl2) const
 bool KBO::isGreater(AppliedTerm lhs, AppliedTerm rhs) const
 {
   return isGreaterOrEq(std::move(lhs),std::move(rhs))==GREATER;
+}
+
+bool KBO::isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, OrderingComparator*& comparator) const
+{
+  if (!comparator) {
+    comparator = KBOComparator::create(lhs, rhs, *this);
+  }
+  return (*comparator)(applicator);
 }
 
 int KBO::symbolWeight(const Term* t) const

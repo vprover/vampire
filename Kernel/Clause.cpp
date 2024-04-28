@@ -76,7 +76,7 @@ Clause::Clause(unsigned length,const Inference& inf)
     _literalPositions(0),
     _numActiveSplits(0),
     _auxTimestamp(0),
-    _demodulatorCompInstructions(make_pair(nullptr,nullptr))
+    _demodulatorComparators({nullptr,nullptr})
 {
   // MS: TODO: not sure if this belongs here and whether EXTENSIONALITY_AXIOM input types ever appear anywhere (as a vampire-extension TPTP formula role)
   if(inference().inputType() == UnitInputType::EXTENSIONALITY_AXIOM){
@@ -124,11 +124,11 @@ void Clause::destroyExceptInferenceObject()
     delete _literalPositions;
   }
 
-  if (_demodulatorCompInstructions.first) {
-    delete _demodulatorCompInstructions.first;
+  if (_demodulatorComparators.first) {
+    delete _demodulatorComparators.first;
   }
-  if (_demodulatorCompInstructions.second) {
-    delete _demodulatorCompInstructions.second;
+  if (_demodulatorComparators.second) {
+    delete _demodulatorComparators.second;
   }
 
   RSTAT_CTR_INC("clauses deleted");
@@ -763,13 +763,13 @@ bool Clause::computable() {
   return true;
 }
 
-Stack<Ordering::Instruction>*& Clause::demodulatorCompInstructions(TermList side) {
+OrderingComparator*& Clause::demodulatorComparator(TermList side) {
   ASS_EQ(length(),1);
   if (_literals[0]->termArg(0)==side) {
-    return _demodulatorCompInstructions.first;
+    return _demodulatorComparators.first;
   }
   ASS(_literals[0]->termArg(1)==side);
-  return _demodulatorCompInstructions.second;
+  return _demodulatorComparators.second;
 }
 
 }

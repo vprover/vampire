@@ -32,6 +32,12 @@ namespace Kernel {
 
 using namespace Shell;
 
+struct OrderingComparator
+{
+  virtual ~OrderingComparator() = default;
+  virtual bool operator()(const SubstApplicator* applicator) const = 0;
+};
+
 /**
  * An abstract class for simplification orderings
  * @since 30/04/2008 flight Brussels-Tel Aviv
@@ -69,10 +75,9 @@ public:
    * under some substitutions captured by @b AppliedTerm. */
   virtual bool isGreater(AppliedTerm t1, AppliedTerm t2) const;
 
-  union Instruction;
   /** Optimised function used for checking that @b lhs is greater than @b rhs,
    * under substitution represented by @b applicator. */
-  virtual bool isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, Stack<Instruction>*& instructions) const;
+  virtual bool isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, OrderingComparator*& comparator) const = 0;
 
   virtual void show(std::ostream& out) const = 0;
 
@@ -109,36 +114,7 @@ public:
   static Ordering* tryGetGlobalOrdering();
 
   Result getEqualityArgumentOrder(Literal* eq) const;
-
-  enum class InstructionTag : unsigned {
-    WEIGHT,
-    COMPARE_VV,
-    COMPARE_VT,
-    COMPARE_TV,
-    SUCCESS,
-  };
-  union Instruction {
-    explicit Instruction(unsigned v1, unsigned v2) { _v1 = v1; _v2._uint = v2; }
-    explicit Instruction(unsigned v) { _v1 = v; }
-    explicit Instruction(Term* t) { _t = t; }
-    explicit Instruction(unsigned v1, int v2) { _v1 = v1; _v2._int = v2; }
-
-    struct {
-      unsigned _v1;
-      union {
-        int _int;
-        unsigned _uint;
-      } _v2;
-    };
-    Term* _t;
-
-    static_assert(sizeof(Term*)==2*sizeof(unsigned));
-    static_assert(sizeof(Term*)==2*sizeof(int));
-  };
 protected:
-  virtual void preprocessComparison(TermList tl1, TermList tl2, Stack<Instruction>*& res) const;
-
-  void output(std::ostream& out, const Stack<Instruction>& ptr) const;
 
   Result compareEqualities(Literal* eq1, Literal* eq2) const;
 

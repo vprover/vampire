@@ -138,10 +138,9 @@ struct BackwardDemodulation::ResultFn
 
     Applicator appl(subs.ptr());
     TermList lhsS=qr.data->term;
-    Stack<Ordering::Instruction>* temp;
 
     // if (_precompiledComparison) {
-      if (!_ordering.isGreater(lhs,rhs,&appl,temp)) {
+      if (!_ordering.isGreater(lhs,rhs,&appl,_cl->demodulatorComparator(lhs))) {
       // if (!_ordering.isGreater(AppliedTerm(lhsS),AppliedTerm(rhs,&appl,true))) {
         if (_ordering.isGreater(AppliedTerm(lhsS),AppliedTerm(rhs,&appl,true))) {
           USER_ERROR("is greater " + lhs.toString() + " " + rhs.toString());
