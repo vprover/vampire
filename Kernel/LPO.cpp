@@ -298,9 +298,10 @@ ostream& operator<<(ostream& out, const Node& n)
 
 ostream& operator<<(ostream& out, const Branch& b)
 {
-  out << b.tag;
   if (b.tag == BranchTag::T_JUMP) {
     out << b.jump_pos;
+  } else {
+    out << b.tag;
   }
   return out;
 }
@@ -323,7 +324,7 @@ ostream& operator<<(ostream& out, const BranchTag& bt)
   return out;
 }
 
-void outputComparison(const pair<Stack<LPO::Node>,BranchTag>& ptr)
+void outputComparison(const pair<Stack<Node>,BranchTag>& ptr)
 {
   switch (ptr.second) {
     case BranchTag::T_EQUAL:
@@ -362,7 +363,7 @@ void updateBranch(Branch& branch, Branch eqBranch, Branch gtBranch, Branch incBr
   }
 }
 
-void updateBranchInRange(Stack<LPO::Node>& st, unsigned startIndex, unsigned endIndex, LPO::Node::Branch prevBranch, LPO::Node::Branch newBranch)
+void updateBranchInRange(Stack<Node>& st, unsigned startIndex, unsigned endIndex, Branch prevBranch, Branch newBranch)
 {
   for (unsigned i = startIndex; i < endIndex; i++) {
     if (st[i].eqBranch == prevBranch) {
@@ -377,7 +378,7 @@ void updateBranchInRange(Stack<LPO::Node>& st, unsigned startIndex, unsigned end
   }
 }
 
-void pushNodes(Stack<LPO::Node>& st, const Stack<LPO::Node>& other, LPO::Node::Branch eqBranch, LPO::Node::Branch gtBranch, LPO::Node::Branch incBranch)
+void pushNodes(Stack<Node>& st, const Stack<Node>& other, Branch eqBranch, Branch gtBranch, Branch incBranch)
 {
   auto startIndex = st.size();
   for (const auto& n : other) {
@@ -386,6 +387,63 @@ void pushNodes(Stack<LPO::Node>& st, const Stack<LPO::Node>& other, LPO::Node::B
     updateBranch(st.top().gtBranch, eqBranch, gtBranch, incBranch, startIndex);
     updateBranch(st.top().incBranch, eqBranch, gtBranch, incBranch, startIndex);
   }
+}
+
+void deleteDuplicates(Stack<Node>& st)
+{
+  unsigned removedCnt = 0;
+  vmap<Node,unsigned> lastPos;
+  vvector<unsigned> removedAfter(st.size(),0);
+  for (int i = st.size()-1; i >= 0; i--) {
+    auto& curr = st[i];
+    if (curr.eqBranch.tag == BranchTag::T_JUMP) {
+      auto& jpos = curr.eqBranch.jump_pos;
+      jpos = lastPos[st[jpos]];
+    }
+    if (curr.gtBranch.tag == BranchTag::T_JUMP) {
+      auto& jpos = curr.gtBranch.jump_pos;
+      jpos = lastPos[st[jpos]];
+    }
+    if (curr.incBranch.tag == BranchTag::T_JUMP) {
+      auto& jpos = curr.incBranch.jump_pos;
+      jpos = lastPos[st[jpos]];
+    }
+
+    if (lastPos.insert({ curr, i }).second) {
+      removedAfter[i] = removedCnt;
+    } else {
+      removedCnt++;
+    }
+  }
+  ASS_EQ(lastPos[st[0]],0);
+  if (!removedCnt) {
+    return;
+  }
+
+  Stack<Node> res;
+  for (unsigned i = 0; i < st.size(); i++) {
+    auto curr = st[i];
+    if (lastPos[curr]!=i) {
+      continue;
+    }
+    if (curr.eqBranch.tag == BranchTag::T_JUMP) {
+      auto& jpos = curr.eqBranch.jump_pos;
+      jpos -= removedAfter[i]-removedAfter[jpos];
+      jpos -= i-res.size();
+    }
+    if (curr.gtBranch.tag == BranchTag::T_JUMP) {
+      auto& jpos = curr.gtBranch.jump_pos;
+      jpos -= removedAfter[i]-removedAfter[jpos];
+      jpos -= i-res.size();
+    }
+    if (curr.incBranch.tag == BranchTag::T_JUMP) {
+      auto& jpos = curr.incBranch.jump_pos;
+      jpos -= removedAfter[i]-removedAfter[jpos];
+      jpos -= i-res.size();
+    }
+    res.push(curr);
+  }
+  swap(res,st);
 }
 
 pair<Stack<Node>,BranchTag> LPO::preprocessComparison(TermList tl1, TermList tl2) const
@@ -526,11 +584,11 @@ pair<Stack<Node>,BranchTag> LPO::preprocessComparison(TermList tl1, TermList tl2
         prevEndIndex = res.first.size() + compRes.first.size();
         Branch majoBranch{
           majoRes.second,
-          (unsigned)(majoRes.second == BranchTag::T_JUMP ? res.first.size() + compRes.first.size() : 0)
+          (uint16_t)(majoRes.second == BranchTag::T_JUMP ? res.first.size() + compRes.first.size() : 0)
         };
         Branch alphaBranch{
           alphaRes.second,
-          (unsigned)(alphaRes.second == BranchTag::T_JUMP ? res.first.size() + compRes.first.size() + majoRes.first.size() : 0)
+          (uint16_t)(alphaRes.second == BranchTag::T_JUMP ? res.first.size() + compRes.first.size() + majoRes.first.size() : 0)
         };
 
         pushNodes(res.first, compRes.first, Branch::eq(), majoBranch, alphaBranch);
@@ -571,6 +629,8 @@ pair<Stack<Node>,BranchTag> LPO::preprocessComparison(TermList tl1, TermList tl2
     default:
       ASSERTION_VIOLATION;
   }
+  ASS(res.second == BranchTag::T_JUMP || res.first.isEmpty());
+  deleteDuplicates(res.first);
   return res;
 }
 

@@ -48,7 +48,7 @@ public:
   using PrecedenceOrdering::compare;
 
   struct Node {
-    enum class BranchTag {
+    enum class BranchTag : uint8_t {
       T_EQUAL,
       T_GREATER,
       T_INCOMPARABLE,
@@ -57,14 +57,17 @@ public:
 
     struct Branch {
       BranchTag tag;
-      unsigned jump_pos;
+      uint16_t jump_pos;
       bool operator==(const Branch& other) const {
-        return tag == other.tag && jump_pos == other.jump_pos;
+        return std::tie(tag, jump_pos) == std::tie(other.tag, other.jump_pos);
+      }
+      bool operator<(const Branch& other) const {
+        return std::tie(tag, jump_pos) < std::tie(other.tag, other.jump_pos);
       }
       static constexpr Branch eq() { return Branch{ BranchTag::T_EQUAL, 0 }; }
       static constexpr Branch gt() { return Branch{ BranchTag::T_GREATER, 0 }; }
       static constexpr Branch inc() { return Branch{ BranchTag::T_INCOMPARABLE, 0 }; }
-      static constexpr Branch jump(unsigned pos) { return Branch{ BranchTag::T_JUMP, pos }; }
+      static constexpr Branch jump(uint16_t pos) { return Branch{ BranchTag::T_JUMP, pos }; }
     };
 
     Node(TermList lhs, TermList rhs)
@@ -81,6 +84,11 @@ public:
         default:
           ASSERTION_VIOLATION;
       }
+    }
+
+    bool operator<(const Node& other) const {
+      return std::tie(lhs, rhs, eqBranch, gtBranch, incBranch) <
+        std::tie(other.lhs, other.rhs, other.eqBranch, other.gtBranch, other.incBranch);
     }
 
     TermList lhs;
