@@ -1496,6 +1496,9 @@ Term::Term(const Term& t) throw()
     _isTwoVarEquality(0),
     _weight(0),
     _kboWeight(-1),
+#if VDEBUG
+    _kboInstance(nullptr),
+#endif
     _vars(0)
 {
   ASS(!isSpecial()); //we do not copy special terms
@@ -1527,6 +1530,9 @@ Term::Term() throw()
    _isTwoVarEquality(0),
    _weight(0),
    _kboWeight(-1),
+#if VDEBUG
+   _kboInstance(nullptr),
+#endif
    _maxRedLen(0),
    _vars(0)
 {

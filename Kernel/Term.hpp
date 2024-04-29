@@ -694,13 +694,19 @@ public:
     return _maxRedLen;    
   }
 
-  int kboWeight() const
+  int kboWeight(const void* kboInstance) const
   {
+    ASS(_kboInstance || _kboWeight == -1);
+    ASS(!_kboInstance || _kboInstance == kboInstance);
     return _kboWeight;
   }
 
-  void setKboWeight(int w)
+  void setKboWeight(int w, const void* kboInstance)
   {
+#if VDEBUG
+    ASS(!_kboInstance);
+    _kboInstance = kboInstance;
+#endif
     _kboWeight = w;
   }
 
@@ -918,6 +924,10 @@ protected:
   /** Cached weight of the term for KBO, otherwise -1 and invalid. Note that
    * KBO symbol weights are not necessarily 1, so this can differ from @b _weight. */
   int _kboWeight;
+#if VDEBUG
+  /** KBO instance that uses the cached value @b _kboWeight. */
+  const void* _kboInstance;
+#endif
   /** length of maximum reduction length */
   int _maxRedLen;
   union {
