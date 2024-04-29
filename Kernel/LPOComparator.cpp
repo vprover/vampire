@@ -89,25 +89,26 @@ ostream& operator<<(ostream& out, const BranchTag& bt)
   return out;
 }
 
-void outputComparison(const pair<Stack<Node>,BranchTag>& ptr)
+ostream& operator<<(ostream& out, const LPOComparator& comparator)
 {
-  switch (ptr.second) {
+  switch (comparator._res) {
     case BranchTag::T_EQUAL:
-      cout << "equal" << endl;
-      return;
+      out << "equal" << endl;
+      return out;
     case BranchTag::T_GREATER:
-      cout << "greater" << endl;
-      return;
+      out << "greater" << endl;
+      return out;
     case BranchTag::T_INCOMPARABLE:
       cout << "incomparable" << endl;
-      return;
+      return out;
     case BranchTag::T_JUMP:
       // fallthrough
       break;
   }
-  for (unsigned i = 0; i < ptr.first.size(); i++) {
-    cout << i << " " << ptr.first[i] << endl;
+  for (unsigned i = 0; i < comparator._instructions.size(); i++) {
+    out << i << " " << comparator._instructions[i] << endl;
   }
+  return out;
 }
 
 void updateBranch(Branch& branch, Branch eqBranch, Branch gtBranch, Branch incBranch, unsigned jump_offset)
@@ -392,36 +393,19 @@ LPOComparator* LPOComparator::create(TermList tl1, TermList tl2, const LPO& lpo)
 
 bool LPOComparator::operator()(const SubstApplicator* applicator) const
 {
-  switch (_res) {
-    case BranchTag::T_EQUAL:
-    case BranchTag::T_INCOMPARABLE:
-      return false;
-    case BranchTag::T_GREATER:
-      return true;
-    case BranchTag::T_JUMP:
-      // fallthrough
-      break;
+  bool cond = _res == BranchTag::T_JUMP;
+  bool res = _res == BranchTag::T_GREATER;
+  auto curr = _instructions.begin();
+
+  while (cond) {
+    auto comp = _lpo.lpo(AppliedTerm(curr->lhs,applicator,true),AppliedTerm(curr->rhs,applicator,true));
+    const auto& branch = curr->getBranch(comp);
+
+    cond = branch.tag == BranchTag::T_JUMP;
+    res = branch.tag == BranchTag::T_GREATER;
+    curr = _instructions.begin() + branch.jump_pos;
   }
-  // return lpo(AppliedTerm(lhs,applicator,true),AppliedTerm(rhs,applicator,true))==Ordering::GREATER;
-  const auto& st = _instructions;
-  unsigned index = 0;
-  while (true) {
-    const auto& curr = st[index];
-    auto comp = _lpo.lpo(AppliedTerm(curr.lhs,applicator,true),AppliedTerm(curr.rhs,applicator,true));
-    const auto& branch = curr.getBranch(comp);
-    switch (branch.tag) {
-      case BranchTag::T_EQUAL:
-      case BranchTag::T_INCOMPARABLE:
-        return false;
-      case BranchTag::T_GREATER:
-        return true;
-      case BranchTag::T_JUMP:
-        ASS_L(index,branch.jump_pos);
-        index = branch.jump_pos;
-        break;
-    }
-  }
-  ASSERTION_VIOLATION;
+  return res;
 }
 
 }
