@@ -70,8 +70,8 @@ public:
       }
     }
 
-    bool operator<(const Node& other) const {
-      return std::tie(lhs, rhs, bs[0], bs[1], bs[2]) <
+    bool operator==(const Node& other) const {
+      return std::tie(lhs, rhs, bs[0], bs[1], bs[2]) ==
         std::tie(other.lhs, other.rhs, other.bs[0], other.bs[1], other.bs[2]);
     }
 
@@ -83,8 +83,10 @@ public:
     friend ostream& operator<<(ostream& out, const Branch& b);
     friend ostream& operator<<(ostream& out, const BranchTag& bt);
   };
-
-  static pair<Stack<Node>,Node::BranchTag> createHelper(TermList tl1, TermList tl2, const LPO& lpo);
+private:
+  static pair<Stack<Node>,Node::BranchTag> majoChain(const LPO& lpo, TermList tl1, Term* t, unsigned i);
+  static pair<Stack<Node>,Node::BranchTag> alphaChain(const LPO& lpo, Term* s, unsigned i, TermList tl2);
+  static pair<Stack<Node>,Node::BranchTag>* createHelper(TermList tl1, TermList tl2, const LPO& lpo);
 
   const LPO& _lpo;
   Stack<Node> _instructions;

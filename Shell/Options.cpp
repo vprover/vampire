@@ -1549,7 +1549,6 @@ void Options::init()
     _demodulationPrecompiledComparison.tag(OptionTag::INFERENCES);
     _demodulationPrecompiledComparison.onlyUsefulWith(ProperSaturationAlgorithm());
     _demodulationPrecompiledComparison.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
-    _demodulationPrecompiledComparison.onlyUsefulWith(_termOrdering.is(equal(TermOrdering::KBO)));
     _demodulationPrecompiledComparison.addProblemConstraint(hasEquality());
 
     _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","erape",false);

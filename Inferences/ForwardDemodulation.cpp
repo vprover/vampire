@@ -172,22 +172,21 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         Applicator<false> notVarSubst(subs.ptr(), subst);
         auto appl = lhs.isVar() ? (SubstApplicator*)&varSubst : (SubstApplicator*)&notVarSubst;
 
-        // if (_precompiledComparison) {
+        if (_precompiledComparison) {
           if (!preordered && (_preorderedOnly || !ordering.isGreater(lhs,rhs,appl,qr.data->clause->demodulatorComparator(lhs)))) {
-          // if (!preordered && (_preorderedOnly || !ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl,true)))) {
-            if (ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl,true))) {
-              USER_ERROR("is greater " + trm.toString() + " " + subs->applyToBoundResult(rhs).toString() + " from " + lhs.toString() + " > " + rhs.toString());
-            }
+            // if (ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl,true))) {
+            //   USER_ERROR("is greater " + trm.toString() + " " + subs->applyToBoundResult(rhs).toString() + " from " + lhs.toString() + " > " + rhs.toString());
+            // }
             continue;
           }
-          if (!ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl,true))) {
-            USER_ERROR("is not greater " + trm.toString() + " " + subs->applyToBoundResult(rhs).toString() + " from " + lhs.toString() + " > " + rhs.toString());
+          // if (!ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl,true))) {
+          //   USER_ERROR("is not greater " + trm.toString() + " " + subs->applyToBoundResult(rhs).toString() + " from " + lhs.toString() + " > " + rhs.toString());
+          // }
+        } else {
+          if (!preordered && (_preorderedOnly || !ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl,true)))) {
+            continue;
           }
-        // } else {
-        //   if (!preordered && (_preorderedOnly || !ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl,true)))) {
-        //     continue;
-        //   }
-        // }
+        }
 
         // encompassing demodulation is fine when rewriting the smaller guy
         if (redundancyCheck && _encompassing) {

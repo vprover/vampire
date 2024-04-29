@@ -139,22 +139,21 @@ struct BackwardDemodulation::ResultFn
     Applicator appl(subs.ptr());
     TermList lhsS=qr.data->term;
 
-    // if (_precompiledComparison) {
+    if (_precompiledComparison) {
       if (!_ordering.isGreater(lhs,rhs,&appl,_cl->demodulatorComparator(lhs))) {
-      // if (!_ordering.isGreater(AppliedTerm(lhsS),AppliedTerm(rhs,&appl,true))) {
-        if (_ordering.isGreater(AppliedTerm(lhsS),AppliedTerm(rhs,&appl,true))) {
-          USER_ERROR("is greater " + lhs.toString() + " " + rhs.toString());
-        }
+        // if (_ordering.isGreater(AppliedTerm(lhsS),AppliedTerm(rhs,&appl,true))) {
+        //   USER_ERROR("is greater " + lhs.toString() + " " + rhs.toString());
+        // }
         return BwSimplificationRecord(0);
       }
-      if (!_ordering.isGreater(AppliedTerm(lhsS),AppliedTerm(rhs,&appl,true))) {
-        USER_ERROR("is not greater " + lhs.toString() + " " + rhs.toString());
-      }
-    // } else {
-      // if (!_ordering.compare(AppliedTerm(lhsS), AppliedTerm(rhs,&appl,true))) {
-      //   return BwSimplificationRecord(0);
+      // if (!_ordering.isGreater(AppliedTerm(lhsS), AppliedTerm(rhs,&appl,true))) {
+      //   USER_ERROR("is not greater " + lhs.toString() + " " + rhs.toString());
       // }
-    // }
+    } else {
+      if (!_ordering.isGreater(AppliedTerm(lhsS), AppliedTerm(rhs,&appl,true))) {
+        return BwSimplificationRecord(0);
+      }
+    }
 
     TermList rhsS=subs->applyToBoundQuery(rhs);
 
