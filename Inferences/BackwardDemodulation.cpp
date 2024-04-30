@@ -136,6 +136,7 @@ struct BackwardDemodulation::ResultFn
     ASS(subs->isIdentityOnResultWhenQueryBound());
 
     Applicator appl(subs.ptr());
+
     TermList lhsS=qr.data->term;
 
     if (!_ordering.isGreater(AppliedTerm(lhsS), AppliedTerm(rhs,&appl,true))) {

@@ -123,8 +123,14 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
   Literal* lit=(*c)[0];
   auto lhsi = EqHelper::getDemodulationLHSIterator(lit,
                     _opt.forwardDemodulation()== Options::Demodulation::PREORDERED, _ord);
+  auto comp = _ord.getEqualityArgumentOrder(lit);
+  bool preordered = comp == Ordering::LESS || comp == Ordering::GREATER;
   while (lhsi.hasNext()) {
-    _is->handle(DemodulatorData{ lhsi.next(), lit, c }, adding);
+    auto lhs = lhsi.next();
+    Renaming r;
+    r.normalizeVariables(lhs);
+    _is->handle(DemodulatorData(TypedTermList(r.apply(lhs),r.apply(lhs.sort())),
+        r.apply(EqHelper::getOtherEqualitySide(lit, lhs)), c, preordered), adding);
   }
 }
 

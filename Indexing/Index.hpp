@@ -113,27 +113,47 @@ struct TermLiteralClause
 
 struct DemodulatorData
 {
+  DemodulatorData(TypedTermList term, TermList other, Clause* clause, bool preordered)
+    : term(term), other(other), clause(clause), preordered(preordered), comparator(nullptr)
+  {
+    ASS(term.containsAllVariablesOf(other))
+#if VDEBUG
+    Renaming r;
+    r.normalizeVariables(term);
+    ASS_EQ(term,r.apply(term));
+    ASS_EQ(other,r.apply(other));
+#endif
+  }
+
   TypedTermList term;
-  Literal* literal;
+  TermList other;
   Clause* clause;
-  OrderingComparator* comparator = nullptr;
+  bool preordered;
+  OrderingComparator* comparator;
 
   ~DemodulatorData() { if (comparator) { delete comparator; } }
 
   TypedTermList const& key() const { return term; }
 
   auto  asTuple() const
-  { return std::make_tuple(clause->number(), literal->getId(), term); }
+  { return std::make_tuple(clause->number(), term, other); }
 
   IMPL_COMPARISONS_FROM_TUPLE(DemodulatorData)
 
   friend std::ostream& operator<<(std::ostream& out, DemodulatorData const& self)
   { return out << "("
-               << self.term << ", "
-               << self.literal
+               << self.term << " = " << self.other
                << outputPtr(self.clause)
                << ")"; }
 };
+
+template<class T>
+struct is_data_normalized
+{ static constexpr bool value = false; };
+
+template<>
+struct is_data_normalized<DemodulatorData>
+{ static constexpr bool value = true; };
 
 /**
  * Class of objects which contain results of term queries.

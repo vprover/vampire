@@ -22,10 +22,6 @@
 
 #include "Shell/Options.hpp"
 
-#include "Kernel/EqHelper.hpp"
-#include "Kernel/SubstHelper.hpp"
-
-#include "TermIterators.hpp"
 #include "Term.hpp"
 #include "LPO.hpp"
 #include "LPOComparator.hpp"

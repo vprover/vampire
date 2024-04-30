@@ -35,6 +35,7 @@ namespace Indexing
 using namespace Lib;
 using namespace Kernel;
 
+template<class Data>
 class CodeTreeSubstitution
 : public ResultSubstitution
 {
@@ -47,12 +48,16 @@ public:
 
   TermList apply(unsigned var)
   {
-    ASS(_resultNormalizer->contains(var));
-    unsigned nvar=_resultNormalizer->get(var);
-    TermList res=(*_bindings)[nvar];
-    ASS(res.isTerm()||res.isOrdinaryVar());
-    ASSERT_VALID(res);
-    return res;
+    if constexpr (is_data_normalized<Data>::value) {
+      return (*_bindings)[var];
+    } else {
+      ASS(_resultNormalizer->contains(var));
+      unsigned nvar=_resultNormalizer->get(var);
+      TermList res=(*_bindings)[nvar];
+      ASS(res.isTerm()||res.isOrdinaryVar());
+      ASSERT_VALID(res);
+      return res;
+    }
   }
 
   TermList applyToBoundResult(unsigned v) override
@@ -93,7 +98,7 @@ public:
     _matcher->init(&_tree->_ct, t);
 
     if(_retrieveSubstitutions) {
-      _subst = new CodeTreeSubstitution(&_matcher->bindings, &*_resultNormalizer);
+      _subst = new CodeTreeSubstitution<Data>(&_matcher->bindings, &*_resultNormalizer);
     }
   }
 
@@ -127,8 +132,10 @@ public:
 
     ResultSubstitutionSP subs;
     if (_retrieveSubstitutions) {
-      _resultNormalizer->reset();
-      _resultNormalizer->normalizeVariables(_found->term);
+      if constexpr (!is_data_normalized<Data>::value) {
+        _resultNormalizer->reset();
+        _resultNormalizer->normalizeVariables(_found->term);
+      }
       subs = ResultSubstitutionSP(_subst, /* nondisposable */ true);
     }
     auto out = QueryRes<ResultSubstitutionSP, Data>(subs, _found);
@@ -137,7 +144,7 @@ public:
   }
 private:
 
-  CodeTreeSubstitution* _subst;
+  CodeTreeSubstitution<Data>* _subst;
   Recycled<Renaming> _resultNormalizer;
   bool _retrieveSubstitutions;
   Data* _found;
