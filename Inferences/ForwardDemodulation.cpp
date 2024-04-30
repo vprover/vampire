@@ -173,7 +173,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         auto appl = lhs.isVar() ? (SubstApplicator*)&varSubst : (SubstApplicator*)&notVarSubst;
 
         if (_precompiledComparison) {
-          if (!preordered && (_preorderedOnly || !ordering.isGreater(lhs,rhs,appl,qr.data->clause->demodulatorComparator(lhs)))) {
+          if (!preordered && (_preorderedOnly || !ordering.isGreater(lhs,rhs,appl,const_cast<OrderingComparator*&>(qr.data->comparator)))) {
             // if (ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl,true))) {
             //   USER_ERROR("is greater " + trm.toString() + " " + subs->applyToBoundResult(rhs).toString() + " from " + lhs.toString() + " > " + rhs.toString());
             // }

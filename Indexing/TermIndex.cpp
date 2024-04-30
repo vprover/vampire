@@ -124,7 +124,7 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
   auto lhsi = EqHelper::getDemodulationLHSIterator(lit,
                     _opt.forwardDemodulation()== Options::Demodulation::PREORDERED, _ord);
   while (lhsi.hasNext()) {
-    _is->handle(TermLiteralClause{ lhsi.next(), lit, c }, adding);
+    _is->handle(DemodulatorData{ lhsi.next(), lit, c }, adding);
   }
 }
 

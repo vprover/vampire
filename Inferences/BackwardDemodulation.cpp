@@ -103,7 +103,6 @@ struct BackwardDemodulation::ResultFn
     ASS_EQ(_cl->length(),1);
     _eqLit=(*_cl)[0];
     _removed=SmartPtr<ClauseSet>(new ClauseSet());
-    _precompiledComparison = parent.getOptions().demodulationPrecompiledComparison();
   }
 
   /**
@@ -139,20 +138,8 @@ struct BackwardDemodulation::ResultFn
     Applicator appl(subs.ptr());
     TermList lhsS=qr.data->term;
 
-    if (_precompiledComparison) {
-      if (!_ordering.isGreater(lhs,rhs,&appl,_cl->demodulatorComparator(lhs))) {
-        // if (_ordering.isGreater(AppliedTerm(lhsS),AppliedTerm(rhs,&appl,true))) {
-        //   USER_ERROR("is greater " + lhs.toString() + " " + rhs.toString());
-        // }
-        return BwSimplificationRecord(0);
-      }
-      // if (!_ordering.isGreater(AppliedTerm(lhsS), AppliedTerm(rhs,&appl,true))) {
-      //   USER_ERROR("is not greater " + lhs.toString() + " " + rhs.toString());
-      // }
-    } else {
-      if (!_ordering.isGreater(AppliedTerm(lhsS), AppliedTerm(rhs,&appl,true))) {
-        return BwSimplificationRecord(0);
-      }
+    if (!_ordering.isGreater(AppliedTerm(lhsS), AppliedTerm(rhs,&appl,true))) {
+      return BwSimplificationRecord(0);
     }
 
     TermList rhsS=subs->applyToBoundQuery(rhs);
@@ -193,7 +180,6 @@ private:
   Clause* _cl;
   SmartPtr<ClauseSet> _removed;
 
-  bool _precompiledComparison;
   const DemodulationHelper& _helper;
 
   Ordering& _ordering;

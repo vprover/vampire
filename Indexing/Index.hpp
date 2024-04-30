@@ -111,6 +111,30 @@ struct TermLiteralClause
                << ")"; }
 };
 
+struct DemodulatorData
+{
+  TypedTermList term;
+  Literal* literal;
+  Clause* clause;
+  OrderingComparator* comparator = nullptr;
+
+  ~DemodulatorData() { if (comparator) { delete comparator; } }
+
+  TypedTermList const& key() const { return term; }
+
+  auto  asTuple() const
+  { return std::make_tuple(clause->number(), literal->getId(), term); }
+
+  IMPL_COMPARISONS_FROM_TUPLE(DemodulatorData)
+
+  friend std::ostream& operator<<(std::ostream& out, DemodulatorData const& self)
+  { return out << "("
+               << self.term << ", "
+               << self.literal
+               << outputPtr(self.clause)
+               << ")"; }
+};
+
 /**
  * Class of objects which contain results of term queries.
  */
