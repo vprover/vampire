@@ -505,7 +505,6 @@ bool SynthesisManager::tryGetAnswer(Clause* refutation, Stack<TermList>& answer)
   pair<unsigned, pair<Clause*, Literal*>> p = it.next();
   while (p.first > 0 && !proofNums.contains(p.first) && it.hasNext()) p = it.next();
   ASS(p.first == 0 || proofNums.contains(p.first));
-  _skolemReplacement.initializeRecSkolems(p.second.second);
   unsigned arity = p.second.second->arity();
   Stack<TermList> sorts(arity);
   for (unsigned i = 0; i < arity; i++) {
@@ -519,8 +518,6 @@ bool SynthesisManager::tryGetAnswer(Clause* refutation, Stack<TermList>& answer)
     if (!proofNums.contains(p.first)) {
       continue;
     }
-    _skolemReplacement.initializeRecSkolems(p.second.first);
-    _skolemReplacement.initializeRecSkolems(p.second.second);
     // Create the condition for an if-then-else by negating the clause
     Formula* condition = getConditionFromClause(p.second.first);
     for (unsigned i = 0; i < arity; i++) {
@@ -746,12 +743,6 @@ void SynthesisManager::ConjectureSkolemReplacement::bindSkolemToTermList(Term* t
   _skolemToTermList.emplace(t, std::move(tl));
 }
 
-void SynthesisManager::ConjectureSkolemReplacement::bindRecToFun(unsigned functor, SynthesisManager::ConjectureSkolemReplacement::Function&& f) {
-  if (!_functions.find(functor)) {
-    _functions.emplace(functor, std::move(f));
-  }
-}
-
 TermList getConstantForVariable(TermList sort) {
   static TermList zero(theory->representConstant(IntegerConstantType(0)));
   if (sort == AtomicSort::intSort()) {
@@ -802,11 +793,40 @@ TermList SynthesisManager::ConjectureSkolemReplacement::transformSubterm(TermLis
     Term* t = trm.term();
     unsigned functor = t->functor();
     if (env.signature->getFunction(functor)->recursionAnswerSymbol()) {
-      ASS(_functions.find(functor));
-      Function& f = _functions.get(functor);
-      f.addCases(t);
-      f._used = true;
-      return TermList(Term::create(f._functor, {*t->nthArgument(t->arity()-1)}));
+      // Construct a new recursive function corresponding to 'trm'.
+      ASS(_recursionMappings->find(functor));
+      Function* recf = new Function(functor, this);
+      SimpleSkolemReplacement ssr(&recf->_skolemToTermList);
+      Term* transformed = ssr.transform(t);
+      recf->addCases(transformed);
+      // If the cases of the recursive function contain other recursive functions,
+      // their definitions might need skolem replacement corresponding to this function.
+      for (unsigned i = 0; i < transformed->arity()-1; ++i) {
+        // Iterate over cases and replace only the associated skolems in each.
+        TermList* narg = transformed->nthArgument(i);
+        DHMap<Term*, TermList>* m = recf->_skolemToTermListForCase.findPtr(i);
+        if (narg->isTerm() && m) {
+          ssr.setMap(m);
+          NonVariableIterator it(narg->term());
+          while (it.hasNext()) {
+            TermList tl = it.next();
+            ASS(tl.isTerm());
+            Function** fptr = _functions.findPtr(tl.term()->functor());
+            if (fptr) {
+              for (unsigned j = 0; j < (*fptr)->_cases.size(); ++j) {
+                TermList& t = (*fptr)->_cases[j];
+                if (t.isTerm()) {
+                  (*fptr)->_cases[j] = TermList(ssr.transform(t.term()));
+                }
+              }
+            }
+          }
+        }
+      }
+      unsigned rfunctor = recf->_functor;
+      _functions.insert(rfunctor, recf);
+      // Replace 'trm' by the function called on the last argument of this 'trm'.
+      return TermList(Term::create(rfunctor, {*t->nthArgument(t->arity()-1)}));
     } else if ((t->arity() == 3) && t->nthArgument(0)->isTerm()) {
       TermList sort = env.signature->getFunction(functor)->fnType()->arg(1);
       if (functor == getITEFunctionSymbol(sort)) {
@@ -828,33 +848,11 @@ TermList SynthesisManager::ConjectureSkolemReplacement::transformSubterm(TermLis
   return trm;
 }
 
-void SynthesisManager::ConjectureSkolemReplacement::initializeRecSkolems(Literal* l) {
-  NonVariableIterator it(l);
-  while (it.hasNext()) {
-    TermList tl = it.next();
-    ASS(tl.isTerm());
-    unsigned functor = tl.term()->functor();
-    if (env.signature->getFunction(functor)->recursionAnswerSymbol()) {
-      ASS(_recursionMappings->find(functor));
-      bindRecToFun(functor, Function(functor, this));
-    }
-  }
-}
-
-void SynthesisManager::ConjectureSkolemReplacement::initializeRecSkolems(Clause* cl) {
-  for (unsigned i = 0; i < cl->length(); ++i) {
-    initializeRecSkolems((*cl)[i]);
-  }
-}
-
 void SynthesisManager::ConjectureSkolemReplacement::outputRecursiveFunctions() {
-  VirtualIterator<Function> it = _functions.range();
+  VirtualIterator<Function*> it = _functions.range();
   vstring res = "";
   while (it.hasNext()) {
-    const Function& f = it.next();
-    if (f._used) {
-      res += f.toString();
-    }
+    res += it.next()->toString();
   }
   if (res != "") {
     env.out() << "% Recursive function definitions:" << endl;
@@ -865,6 +863,7 @@ void SynthesisManager::ConjectureSkolemReplacement::outputRecursiveFunctions() {
 SynthesisManager::ConjectureSkolemReplacement::Function::Function(unsigned recFunctor, ConjectureSkolemReplacement* replacement) {
   _replacement = replacement;
   ALWAYS(_replacement->_functionHeads->find(recFunctor, _caseHeads));
+  _cases.ensure(_caseHeads->length(_caseHeads));
   DHMap<unsigned, SkolemTrackerList*>& mapping = _replacement->_recursionMappings->get(recFunctor);
   OperatorType* ot = env.signature->getFunction(recFunctor)->fnType();
   TermList in = ot->arg(ot->arity()-1);
@@ -879,17 +878,23 @@ SynthesisManager::ConjectureSkolemReplacement::Function::Function(unsigned recFu
     SkolemTrackerList* st;
     it.next(consIdx, st);
     SkolemTrackerList::Iterator sit(st);
+    DHMap<Term*, TermList>* caseMap;
+    ALWAYS(_skolemToTermListForCase.getValuePtr(consIdx, caseMap));
     while (sit.hasNext()) {
       SkolemTracker s = sit.next();
-      _replacement->bindSkolemToTermList(s.binding.second, s.recursiveCall ? TermList(Term::create(_functor, {*_caseHeads->nth(_caseHeads, s.constructorIndex).term()->nthArgument(s.constructorPos)})) : TermList(s.binding.first, false));
+      ASS(!_skolemToTermList.find(s.binding.second));
+      ASS(consIdx == s.constructorIndex);
+      TermList replacement(s.recursiveCall ? TermList(Term::create(_functor, {*_caseHeads->nth(_caseHeads, s.constructorIndex).term()->nthArgument(s.constructorPos)})) : TermList(s.binding.first, false));
+      _skolemToTermList.insert(s.binding.second, replacement);
+      caseMap->insert(s.binding.second, replacement);
     }
   }
 }
 
 void SynthesisManager::ConjectureSkolemReplacement::Function::addCases(Term* t) {
+  ASS(_cases.size() == t->arity()-1);
   for (unsigned i = 0; i < t->arity()-1; ++i) {
-    List<TermList>::push(*t->nthArgument(t->arity()-2-i), _cases);
-    //List<TermList>::push(*t->nthArgument(i), _cases);
+    _cases[i] = *t->nthArgument(i);
   }
 }
 

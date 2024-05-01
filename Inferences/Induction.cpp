@@ -691,10 +691,10 @@ ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, In
   Stack<Clause*>::Iterator cit(hyp_clauses);
   Stack<Clause*> resolved_clauses;
 
-  #if VDEBUG
-    cout << "induction premise is " << premise->toString() << endl;
-    cout << "induction literal is " << indLit->toString() << endl;
-  #endif
+  //#if VDEBUG
+  //  cout << "induction premise is " << premise->toString() << endl;
+  //  cout << "induction literal is " << indLit->toString() << endl;
+  //#endif
   while(cit.hasNext()){
     Clause* c = cit.next();
     unsigned cLen = c->length();
@@ -1630,13 +1630,13 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   fnHeads = fnHeads->reverse(fnHeads);
   SynthesisManager::getInstance()->matchSkolemSymbols(bindingList, tempSkolemMappings, fnHeads);
   
-  #if VDEBUG
-    cout << "Clauses produced by structural induction axiom: " << endl;
-  #endif
+  //#if VDEBUG
+  //  cout << "Clauses produced by structural induction axiom: " << endl;
+  //#endif
   for (auto cl: cls) {
-    #if VDEBUG
-      cout << cl->toString() << endl;
-    #endif
+    //#if VDEBUG
+    //  cout << cl->toString() << endl;
+    //#endif
     //cout << cl->toString() << endl;
 
     _clauses.push(cl);

@@ -18,6 +18,8 @@
 #include "Forwards.hpp"
 
 #include "Lib/DHMap.hpp"
+#include "Lib/DArray.hpp"
+#include "Lib/List.hpp"
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -138,12 +140,12 @@ private:
       Function(unsigned recFunctor, ConjectureSkolemReplacement* replacement);
       void addCases(Term* t);
       vstring toString() const {
-        ASS(List<TermList>::length(_cases) == _ta->nConstructors());
+        ASS(_cases.size() == _ta->nConstructors());
         vstring s;
         vstring fname = env.signature->getFunction(_functor)->name();
         List<TermList>* fnh = _caseHeads;
-        ASS(List<TermList>::length(_cases) == List<TermList>::length(fnh));
-        List<TermList>::Iterator it(_cases);
+        ASS(_cases.size() == List<TermList>::length(fnh));
+        DArray<TermList>::ConstIterator it(_cases);
         List<TermList>::Iterator ith(fnh);
         //unsigned i = 0;
         //unsigned vars = _replacement->numInputSkolems();
@@ -159,26 +161,24 @@ private:
           //  }
           //}
           //s += (con->arity() > 0 ? ")" : "");
-          s += ") = " + it.next().toString() + "\n"; // TODO: fix to print endl
+          s += ") = " + it.next().toString() + "\n"; // TODO(hzzv): fix to print endl
           //++i;
         }
         return s;
       }
       unsigned _functor;
-      bool _used = false;
       TermAlgebra* _ta = nullptr;
-      List<TermList>* _cases = nullptr;
+      DArray<TermList> _cases;
       List<TermList>* _caseHeads = nullptr;
       ConjectureSkolemReplacement* _replacement;
+      DHMap<Term*, TermList> _skolemToTermList;
+      DHMap<unsigned, DHMap<Term*, TermList>> _skolemToTermListForCase;
     };
 
     void bindSkolemToTermList(Term* t, TermList&& tl);
-    void bindRecToFun(unsigned functor, Function&& f);
     TermList transformTermList(TermList tl, TermList sort);
     void addCondPair(unsigned fn, unsigned pred) { _condFnToPred.insert(fn, pred); }
     void associateRecMappings(RecursionMappings* m, DHMap<unsigned, List<TermList>*>* f) { _recursionMappings = m; _functionHeads = f;}
-    void initializeRecSkolems(Literal* l);
-    void initializeRecSkolems(Clause* cl);
     unsigned numInputSkolems() { return _numInputSkolems; }
     void outputRecursiveFunctions();
 
@@ -193,7 +193,26 @@ private:
     DHMap<Term*, TermList> _skolemToTermList;
     // Map from functions to predicates they represent in answer literal conditions
     DHMap<unsigned, unsigned> _condFnToPred;
-    DHMap<unsigned, Function> _functions; 
+    DHMap<unsigned, Function*> _functions; 
+
+    class SimpleSkolemReplacement : public TermTransformer {
+     public:
+      SimpleSkolemReplacement(DHMap<Term*, TermList>* m) : _skolemToTermList(m) {}
+      void setMap(DHMap<Term*, TermList>* m) { _skolemToTermList = m; }
+     protected:
+      TermList transformSubterm(TermList trm) override {
+        if (trm.isTerm()) {
+          TermList* res = _skolemToTermList->findPtr(trm.term());
+          if (res) {
+            return *res;
+          }
+        }
+        return trm;
+      }
+     private:
+      DHMap<Term*, TermList>* _skolemToTermList;
+    };
+
   };
 
 
