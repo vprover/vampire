@@ -272,35 +272,6 @@ Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
   return comparePredicates(l1, l2);
 } // PrecedenceOrdering::compare()
 
-bool Ordering::containsVar(AppliedTerm s, TermList var)
-{
-  ASS(var.isVar());
-  if (!s.aboveVar) {
-    return s.term.containsSubterm(var);
-  }
-  if (s.term.isVar()) {
-    return (*s.applicator)(s.term.var()).containsSubterm(var);
-  }
-  VariableIterator vit(s.term.term());
-  while (vit.hasNext()) {
-    auto v = vit.next();
-    if ((*s.applicator)(v.var()).containsSubterm(var)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-Ordering::Result Ordering::compare(AppliedTerm lhs, AppliedTerm rhs) const
-{
-  NOT_IMPLEMENTED;
-}
-
-bool Ordering::isGreater(AppliedTerm lhs, AppliedTerm rhs) const
-{
-  NOT_IMPLEMENTED;
-}
-
 /**
  * Return the predicate level. If @b pred is less than or equal to
  * @b _predicates, then the value is taken from the array _predicateLevels,
