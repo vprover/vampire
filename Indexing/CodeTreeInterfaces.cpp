@@ -35,6 +35,7 @@ namespace Indexing
 using namespace Lib;
 using namespace Kernel;
 
+template<class Data>
 class CodeTreeSubstitution
 : public ResultSubstitution
 {
@@ -47,12 +48,16 @@ public:
 
   TermList apply(unsigned var)
   {
-    ASS(_resultNormalizer->contains(var));
-    unsigned nvar=_resultNormalizer->get(var);
-    TermList res=(*_bindings)[nvar];
-    ASS(res.isTerm()||res.isOrdinaryVar());
-    ASSERT_VALID(res);
-    return res;
+    if constexpr (is_indexed_data_normalized<Data>::value) {
+      return (*_bindings)[var];
+    } else {
+      ASS(_resultNormalizer->contains(var));
+      unsigned nvar=_resultNormalizer->get(var);
+      TermList res=(*_bindings)[nvar];
+      ASS(res.isTerm()||res.isOrdinaryVar());
+      ASSERT_VALID(res);
+      return res;
+    }
   }
 
   TermList applyToBoundResult(unsigned v) override
@@ -81,9 +86,9 @@ private:
 
 ///////////////////////////////////////
 
-
-class CodeTreeTIS::ResultIterator
-: public IteratorCore<QueryRes<ResultSubstitutionSP, TermLiteralClause>>
+template<class Data>
+class CodeTreeTIS<Data>::ResultIterator
+: public IteratorCore<QueryRes<ResultSubstitutionSP, Data>>
 {
 public:
   ResultIterator(CodeTreeTIS* tree, TermList t, bool retrieveSubstitutions)
@@ -93,7 +98,7 @@ public:
     _matcher->init(&_tree->_ct, t);
 
     if(_retrieveSubstitutions) {
-      _subst = new CodeTreeSubstitution(&_matcher->bindings, &*_resultNormalizer);
+      _subst = new CodeTreeSubstitution<Data>(&_matcher->bindings, &*_resultNormalizer);
     }
   }
 
@@ -114,66 +119,69 @@ public:
     if(_finished) {
       return false;
     }
-    void* data=_matcher->next();
-    _found=static_cast<TermCodeTree::TermInfo*>(data);
+    _found = _matcher->next();
     if(!_found) {
       _finished=true;
     }
     return _found;
   }
 
-  QueryRes<ResultSubstitutionSP, TermLiteralClause> next()
+  QueryRes<ResultSubstitutionSP, Data> next()
   {
     ASS(_found);
 
     ResultSubstitutionSP subs;
     if (_retrieveSubstitutions) {
-      _resultNormalizer->reset();
-      _resultNormalizer->normalizeVariables(_found->term);
+      if constexpr (!is_indexed_data_normalized<Data>::value) {
+        _resultNormalizer->reset();
+        _resultNormalizer->normalizeVariables(_found->term);
+      }
       subs = ResultSubstitutionSP(_subst, /* nondisposable */ true);
     }
-    auto out = QueryRes<ResultSubstitutionSP, TermLiteralClause>(subs, _found);
+    auto out = QueryRes<ResultSubstitutionSP, Data>(subs, _found);
     _found=0;
     return out;
   }
 private:
 
-  CodeTreeSubstitution* _subst;
+  CodeTreeSubstitution<Data>* _subst;
   Recycled<Renaming> _resultNormalizer;
   bool _retrieveSubstitutions;
-  TermCodeTree::TermInfo* _found;
+  Data* _found;
   bool _finished;
   CodeTreeTIS* _tree;
-  Recycled<TermCodeTree::TermMatcher> _matcher;
+  Recycled<typename TermCodeTree<Data>::TermMatcher> _matcher;
 };
 
-void CodeTreeTIS::_insert(TypedTermList t, Literal* lit, Clause* cls)
+template<class Data>
+void CodeTreeTIS<Data>::handle(Data data, bool insert)
 {
-  auto ti = new TermLiteralClause{ t,lit,cls };
-  _ct.insert(ti);
+  if (insert) {
+    auto ti = new Data(data);
+    _ct.insert(ti);
+  } else {
+    _ct.remove(data);
+  }
 }
 
-void CodeTreeTIS::_remove(TypedTermList t, Literal* lit, Clause* cls)
-{
-  _ct.remove(TermLiteralClause{ t,lit,cls });
-}
-
-VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>> CodeTreeTIS::getGeneralizations(TypedTermList t, bool retrieveSubstitutions)
+template<class Data>
+VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> CodeTreeTIS<Data>::getGeneralizations(TypedTermList t, bool retrieveSubstitutions)
 {
   if(_ct.isEmpty()) {
-    return VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>>::getEmpty();
+    return VirtualIterator<QueryRes<ResultSubstitutionSP, Data>>::getEmpty();
   }
 
   return vi( new ResultIterator(this, t, retrieveSubstitutions) );
 }
 
-bool CodeTreeTIS::generalizationExists(TermList t)
+template<class Data>
+bool CodeTreeTIS<Data>::generalizationExists(TermList t)
 {
   if(_ct.isEmpty()) {
     return false;
   }
 
-  static TermCodeTree::TermMatcher tm;
+  static typename TermCodeTree<Data>::TermMatcher tm;
   
   tm.init(&_ct, t);
   bool res=tm.next();
@@ -181,6 +189,9 @@ bool CodeTreeTIS::generalizationExists(TermList t)
   
   return res;
 }
+
+template class CodeTreeTIS<TermLiteralClause>;
+template class CodeTreeTIS<DemodulatorData>;
 
 /////////////////   CodeTreeSubsumptionIndex   //////////////////////
 

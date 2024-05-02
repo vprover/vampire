@@ -37,29 +37,25 @@ using namespace Lib;
  * Term indexing structure using code trees to retrieve generalizations
  */
 
-class CodeTreeTIS : public TermIndexingStructure<TermLiteralClause>
+template<class Data>
+class CodeTreeTIS : public TermIndexingStructure<Data>
 {
 public:
   /* INFO: we ignore unifying the sort of the keys here */
-  virtual void handle(TermLiteralClause data, bool insert) final override
-  { if (insert) { _insert(data.term, data.literal, data.clause); }
-    else        { _remove(data.term, data.literal, data.clause); } }
+  void handle(Data data, bool insert) final override;
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) final override;
+  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) final override;
   // TODO use TypedTermList here too
   bool generalizationExists(TermList t) final override;
   // TODO: get rid of NOT_IMPLEMENTED
-  VirtualIterator<QueryRes<AbstractingUnifier*, TermLiteralClause>> getUwa(TypedTermList t, Options::UnificationWithAbstraction, bool fixedPointIteration) override { NOT_IMPLEMENTED; }
+  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t, Options::UnificationWithAbstraction, bool fixedPointIteration) override { NOT_IMPLEMENTED; }
 
   virtual void output(std::ostream& out) const final override { out << _ct; }
 
 private:
-  void _insert(TypedTermList t, Literal* lit, Clause* cls);
-  void _remove(TypedTermList t, Literal* lit, Clause* cls);
-
   class ResultIterator;
 
-  TermCodeTree _ct;
+  TermCodeTree<Data> _ct;
 };
 
 class CodeTreeSubsumptionIndex
