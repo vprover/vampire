@@ -27,7 +27,7 @@ public:
   LPOComparator(const LPO& lpo) : _lpo(lpo), _instructions(), _res(Node::BranchTag::T_JUMP) {}
   static LPOComparator* create(TermList tl1, TermList tl2, const LPO& lpo);
 
-  bool operator()(const SubstApplicator* applicator) const override;
+  bool check(const SubstApplicator* applicator) const;
   friend std::ostream& operator<<(std::ostream& out, const LPOComparator& comparator);
 
 // private:

@@ -450,5 +450,14 @@ TermIterator EqHelper::getEqualityArgumentIterator(Literal* lit)
   return pvi( iterItems( *lit->nthArgument(0), *lit->nthArgument(1)) );
 }
 
+bool EqHelper::isPreorderedForDemodulation(Literal* lit, const Ordering& ord)
+{
+  if (!lit->isEquality()) {
+    return false;
+  }
+  auto comp = ord.getEqualityArgumentOrder(lit);
+  return comp != Ordering::INCOMPARABLE && comp != Ordering::EQUAL;
+}
+
 
 }

@@ -254,7 +254,7 @@ bool LPO::isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicato
     // cout << "preprocessing " << lhs << " " << rhs << endl
     //      << *static_cast<LPOComparator*>(comparator) << endl;
   }
-  return (*comparator)(applicator);
+  return static_cast<LPOComparator*>(comparator)->check(applicator);
 }
 
 void LPO::showConcrete(ostream&) const 

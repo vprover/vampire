@@ -123,8 +123,7 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
   Literal* lit=(*c)[0];
   auto lhsi = EqHelper::getDemodulationLHSIterator(lit,
                     _opt.forwardDemodulation()== Options::Demodulation::PREORDERED, _ord);
-  auto comp = _ord.getEqualityArgumentOrder(lit);
-  bool preordered = comp == Ordering::LESS || comp == Ordering::GREATER;
+  bool preordered = EqHelper::isPreorderedForDemodulation(lit, _ord);
   while (lhsi.hasNext()) {
     auto lhs = lhsi.next();
     Renaming r;

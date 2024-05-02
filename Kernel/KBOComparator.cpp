@@ -139,7 +139,7 @@ KBOComparator* KBOComparator::create(TermList tl1, TermList tl2, const KBO& kbo)
   return res;
 }
 
-bool KBOComparator::operator()(const SubstApplicator* applicator) const
+bool KBOComparator::check(const SubstApplicator* applicator) const
 {
   for (unsigned i = 0; i < _instructions.size();) {
     switch (static_cast<InstructionTag>(_instructions[i]._v1)) {

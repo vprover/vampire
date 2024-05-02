@@ -420,7 +420,7 @@ LPOComparator* LPOComparator::create(TermList tl1, TermList tl2, const LPO& lpo)
   return res;
 }
 
-bool LPOComparator::operator()(const SubstApplicator* applicator) const
+bool LPOComparator::check(const SubstApplicator* applicator) const
 {
   bool cond = _res == BranchTag::T_JUMP;
   bool res = _res == BranchTag::T_GREATER;

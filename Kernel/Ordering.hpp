@@ -35,7 +35,6 @@ using namespace Shell;
 struct OrderingComparator
 {
   virtual ~OrderingComparator() = default;
-  virtual bool operator()(const SubstApplicator* applicator) const = 0;
 };
 
 /**

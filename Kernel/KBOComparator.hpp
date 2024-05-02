@@ -32,7 +32,7 @@ public:
   KBOComparator(const KBO& kbo) : _kbo(kbo) {}
   static KBOComparator* create(TermList tl1, TermList tl2, const KBO& kbo);
 
-  bool operator()(const SubstApplicator* applicator) const override;
+  bool check(const SubstApplicator* applicator) const;
   friend std::ostream& operator<<(std::ostream& out, const KBOComparator& comparator);
 
 private:
