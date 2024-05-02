@@ -40,66 +40,43 @@ class CodeTreeSubstitution
 {
 public:
   CodeTreeSubstitution(CodeTree::BindingArray* bindings, Renaming* resultNormalizer)
-  : _bindings(bindings), _resultNormalizer(resultNormalizer),
-  _applicator(0)
+  : _bindings(bindings), _resultNormalizer(resultNormalizer)
   {}
-  ~CodeTreeSubstitution()
-  {
-    if(_applicator) {
-      delete _applicator;
-    }
-  }
 
   USE_ALLOCATOR(CodeTreeSubstitution);
 
+  TermList apply(unsigned var)
+  {
+    ASS(_resultNormalizer->contains(var));
+    unsigned nvar=_resultNormalizer->get(var);
+    TermList res=(*_bindings)[nvar];
+    ASS(res.isTerm()||res.isOrdinaryVar());
+    ASSERT_VALID(res);
+    return res;
+  }
+
+  TermList applyToBoundResult(unsigned v) override
+  {
+    return apply(v);
+  }
+
   TermList applyToBoundResult(TermList t) override
   {
-    return SubstHelper::apply(t, *getApplicator());
+    return SubstHelper::apply(t, *this);
   }
 
   Literal* applyToBoundResult(Literal* lit) override
   {
-    return SubstHelper::apply(lit, *getApplicator());
+    return SubstHelper::apply(lit, *this);
   }
 
   bool isIdentityOnQueryWhenResultBound() override {return true;}
 private:
-  struct Applicator
-  {
-    inline
-    Applicator(CodeTree::BindingArray* bindings, Renaming* resultNormalizer)
-    : _bindings(bindings), _resultNormalizer(resultNormalizer) {}
-
-    TermList apply(unsigned var)
-    {
-      ASS(_resultNormalizer->contains(var));
-      unsigned nvar=_resultNormalizer->get(var);
-      TermList res=(*_bindings)[nvar];
-      ASS(res.isTerm()||res.isOrdinaryVar());
-      ASSERT_VALID(res);
-      return res;
-    }
-
-    USE_ALLOCATOR(Applicator);
-  private:
-    CodeTree::BindingArray* _bindings;
-    Renaming* _resultNormalizer;
-  };
-
-  Applicator* getApplicator()
-  {
-    if(!_applicator) {
-      _applicator=new Applicator(_bindings, _resultNormalizer);
-    }
-    return _applicator;
-  }
-
   virtual void output(std::ostream& out) const final override 
   { out << "CodeTreeSubstitution(<output unimplemented>)"; }
 
   CodeTree::BindingArray* _bindings;
   Renaming* _resultNormalizer;
-  Applicator* _applicator;
 };
 
 ///////////////////////////////////////

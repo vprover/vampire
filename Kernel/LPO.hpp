@@ -20,6 +20,8 @@
 
 #include "Forwards.hpp"
 
+#include "SubstHelper.hpp"
+
 #include "Ordering.hpp"
 
 namespace Kernel {
@@ -43,21 +45,24 @@ public:
   ~LPO() override = default;
 
   using PrecedenceOrdering::compare;
-  [[nodiscard]] Result compare(TermList tl1, TermList tl2) const override;
+  Result compare(TermList tl1, TermList tl2) const override;
+  Result compare(AppliedTerm tl1, AppliedTerm tl2) const override;
+  bool isGreater(AppliedTerm tl1, AppliedTerm tl2) const override;
+
   void showConcrete(std::ostream&) const override;
+
 protected:
-  [[nodiscard]] Result comparePredicates(Literal* l1, Literal* l2) const override;
-  [[nodiscard]] Result comparePrecedences(Term* t1, Term* t2) const;
+  Result comparePredicates(Literal* l1, Literal* l2) const override;
+  Result comparePrecedences(const Term* t1, const Term* t2) const;
 
-  [[nodiscard]] Result cLMA(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity) const;
-  [[nodiscard]] Result cMA(Term* t, TermList* tl, unsigned arity) const;
-  [[nodiscard]] Result cAA(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity1, unsigned arity2) const;
-  [[nodiscard]] Result alpha(TermList* tl, unsigned arity, Term *t) const;
-  [[nodiscard]] Result clpo(Term* t1, TermList tl2) const;
-  [[nodiscard]] Result lpo(TermList tl1, TermList tl2) const;
-  [[nodiscard]] Result lexMAE(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity) const;
-  [[nodiscard]] Result majo(Term* s, TermList* tl, unsigned arity) const;
-
+  Result cLMA(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity) const;
+  Result cMA(AppliedTerm s, AppliedTerm t, const TermList* tl, unsigned arity) const;
+  Result cAA(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity1, unsigned arity2) const;
+  Result alpha(const TermList* sl, unsigned arity, AppliedTerm s, AppliedTerm t) const;
+  Result clpo(AppliedTerm tl1, AppliedTerm tl2) const;
+  Result lpo(AppliedTerm tl1, AppliedTerm tl2) const;
+  Result lexMAE(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity) const;
+  Result majo(AppliedTerm s, AppliedTerm t, const TermList* tl, unsigned arity) const;
 };
 
 }

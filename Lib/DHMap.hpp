@@ -363,7 +363,6 @@ public:
    */
   bool getValuePtr(Key key, Val*& pval)
   {
-    ensureExpanded();
     Entry* e=findEntryToInsert(key);
     bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;
     if(!exists) {

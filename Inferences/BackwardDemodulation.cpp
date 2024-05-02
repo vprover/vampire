@@ -85,6 +85,17 @@ private:
   DemodulationSubtermIndex* _index;
 };
 
+namespace {
+
+struct Applicator : SubstApplicator {
+  Applicator(ResultSubstitution* subst) : subst(subst) {}
+  TermList operator()(unsigned v) const override {
+    return subst->applyToBoundQuery(TermList(v,false));
+  }
+  ResultSubstitution* subst;
+};
+
+} // end namespace
 
 struct BackwardDemodulation::ResultFn
 {
@@ -119,41 +130,27 @@ struct BackwardDemodulation::ResultFn
     }
 
     TermList lhs=arg.first;
+    TermList rhs=EqHelper::getOtherEqualitySide(_eqLit, lhs);
 
     // AYB there used to be a check here to ensure that the sorts
     // matched. This is no longer necessary, as sort matching / unification
     // is handled directly within the tree
 
-    TermList rhs=EqHelper::getOtherEqualitySide(_eqLit, lhs);
+    auto subs = qr.unifier;
+    ASS(subs->isIdentityOnResultWhenQueryBound());
+
+    Applicator appl(subs.ptr());
+
     TermList lhsS=qr.data->term;
-    TermList rhsS;
 
-    auto subs=qr.unifier;
-
-    if(!subs->isIdentityOnResultWhenQueryBound()) {
-      //When we apply substitution to the rhs, we get a term, that is
-      //a variant of the term we'd like to get, as new variables are
-      //produced in the substitution application.
-      //We'd rather rename variables in the rhs, than in the whole clause
-      //that we're simplifying.
-      TermList lhsSBadVars=subs->applyToQuery(lhs);
-      TermList rhsSBadVars=subs->applyToQuery(rhs);
-      Renaming rNorm, qNorm, qDenorm;
-      rNorm.normalizeVariables(lhsSBadVars);
-      qNorm.normalizeVariables(lhsS);
-      qDenorm.makeInverse(qNorm);
-      ASS_EQ(lhsS,qDenorm.apply(rNorm.apply(lhsSBadVars)));
-      rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
-    } else {
-      rhsS=subs->applyToBoundQuery(rhs);
-    }
-
-    if(_ordering.compare(lhsS,rhsS)!=Ordering::GREATER) {
+    if (!_ordering.isGreater(AppliedTerm(lhsS), AppliedTerm(rhs,&appl,true))) {
       return BwSimplificationRecord(0);
     }
 
-    if (_helper.redundancyCheckNeededForPremise(qr.data->clause,qr.data->literal,qr.data->term) &&
-      !_helper.isPremiseRedundant(qr.data->clause,qr.data->literal,qr.data->term,rhsS,lhs,subs.ptr(),false))
+    TermList rhsS=subs->applyToBoundQuery(rhs);
+
+    if (_helper.redundancyCheckNeededForPremise(qr.data->clause,qr.data->literal,lhsS) &&
+      !_helper.isPremiseRedundant(qr.data->clause,qr.data->literal,lhsS,rhsS,lhs,subs.ptr(),false))
     {
       return BwSimplificationRecord(0);
     }

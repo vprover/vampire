@@ -55,6 +55,11 @@ bool DemodulationHelper::isPremiseRedundant(Clause* rwCl, Literal* rwLit, TermLi
     return !subst->isRenamingOn(eqLHS,eqIsResult);
   }
 
+  // return early to avoid creation of eqLitS
+  if (rwCl->length()==1) {
+    return false;
+  }
+
   TermList eqSort = SortHelper::getEqualityArgumentSort(rwLit);
   Literal* eqLitS=Literal::createEquality(true, rwTerm, tgtTerm, eqSort);
 
