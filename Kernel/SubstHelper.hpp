@@ -21,10 +21,86 @@
 #include "Formula.hpp"
 #include "SortHelper.hpp"
 #include "Term.hpp"
+#include "TermIterators.hpp"
 
 namespace Kernel {
 
 using namespace Lib;
+
+struct SubstApplicator {
+  virtual ~SubstApplicator() = default;
+  virtual TermList operator()(unsigned v) const = 0;
+};
+
+/**
+ * Term with a substitution applied to it lazily. This is used in the context of
+ * evaluating some term in a top-down manner symbol by symbol without actually
+ * creating the result of the substitution in the process. For example, we might
+ * evaluate `f(x,y)` with substitution `\theta = { x -> a, y -> g(x) }` using the
+ * following @b AppliedTerm instances:
+ * - Construct @b AppliedTerm with `f(x,y)`, `\theta` and @b aboveVar=true
+ *   (as we are "above" a variable position in `f(x,y)\theta`).
+ *   We process the symbol `f` of the term.
+ * - Construct @b AppliedTerm with `x`, `\theta` and @b aboveVar=true.
+ *   Since @b aboveVar==true and `x` is a variable, the substitution is applied
+ *   and we get an @b AppliedTerm with `a` and @b aboveVar=false, as we are
+ *   now "at" (and not "above") a variable position. We process the symbol `a`.
+ * - Construct @b AppliedTerm with `y`, `\theta` and @b aboveVar=true.
+ *   Again, @b aboveVar==true and `y` is a variable, so we get an @b AppliedTerm
+ *   with `g(x)` and @b aboveVar=false. We process the symbol `f`.
+ * - Finally, construct @b AppliedTerm with `x`, `\theta` and @b aboveVar=false.
+ *   Since we are now "below" a variable position with @b aboveVar==false,
+ *   `\theta` is not applied again and we get `x`. We process `x`.
+ */
+struct AppliedTerm
+{
+  TermList term;
+  bool aboveVar;
+  const SubstApplicator* applicator;
+
+  AppliedTerm(TermList t) : term(t), aboveVar(false), applicator(nullptr) {}
+  /**
+   * The substitution is only applied to the term @b t via @b applicator if @b t is a variable
+   * and @b aboveVar is true (i.e. we are still above the substitution). @b applicator can be
+   * null is @b aboveVar is false.
+   */
+  AppliedTerm(TermList t, const SubstApplicator* applicator, bool aboveVar)
+    : term(aboveVar && t.isVar() ? (*applicator)(t.var()) : t),
+      aboveVar(aboveVar && t.isVar() ? false : aboveVar), applicator(applicator) {}
+
+  AppliedTerm(TermList t, AppliedTerm parent)
+    : term(parent.aboveVar && t.isVar() ? (*parent.applicator)(t.var()) : t),
+      aboveVar(parent.aboveVar && t.isVar() ? false : parent.aboveVar), applicator(parent.applicator) {}
+
+  /**
+   * Only allow comparisons if we can guarantee that the terms are the same.
+   */
+  bool operator==(AppliedTerm) const = delete;
+  bool operator!=(AppliedTerm) const = delete;
+  bool equalsShallow(AppliedTerm other) const {
+    return ((!aboveVar && !other.aboveVar) || (term.ground() && other.term.ground()))
+      && term==other.term;
+  }
+
+  bool containsVar(TermList var)
+  {
+    ASS(var.isVar());
+    if (!aboveVar) {
+      return term.containsSubterm(var);
+    }
+    if (term.isVar()) {
+      return (*applicator)(term.var()).containsSubterm(var);
+    }
+    VariableIterator vit(term.term());
+    while (vit.hasNext()) {
+      auto v = vit.next();
+      if ((*applicator)(v.var()).containsSubterm(var)) {
+        return true;
+      }
+    }
+    return false;
+  }
+};
 
 class SubstHelper
 {

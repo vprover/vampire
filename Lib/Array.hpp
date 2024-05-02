@@ -256,6 +256,11 @@ public:
     }
   }
 
+  inline
+  void reset()
+  {
+    fillInterval(0, Array<T>::_capacity);
+  }
 };
 
 } // namespace Lib
