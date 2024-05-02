@@ -112,10 +112,11 @@ struct URResolution::Item
     _premises.init(litslen, 0);
     _lits.ensure(litslen);
     unsigned nonGroundCnt = 0;
+    unsigned j = 0;
     for(unsigned i=0; i<clen; i++) {
       if(!(*cl)[i]->ground()) nonGroundCnt++;
       if ((*cl)[i] != _ansLit) {
-        _lits[i] = (*cl)[i];
+        _lits[j++] = (*cl)[i];
       }
     }
     _atMostOneNonGround = nonGroundCnt<=1;
