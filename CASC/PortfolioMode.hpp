@@ -21,10 +21,11 @@
 #include "Lib/Stack.hpp"
 
 #include "Lib/VString.hpp"
-#include "Lib/Sys/Semaphore.hpp"
 
 #include "Shell/Property.hpp"
 #include "Schedules.hpp"
+
+#include <filesystem>
 
 namespace CASC
 {
@@ -33,10 +34,6 @@ using namespace Lib;
 using namespace Shell;
 
 class PortfolioMode {
-  enum {
-    SEM_LOCK = 0,
-    SEM_PRINTED = 1
-  };
 
   PortfolioMode();
 public:
@@ -61,6 +58,8 @@ private:
   DHSet<pid_t> childIds;
 #endif
 
+  std::filesystem::path _path;
+
   unsigned _numWorkers;
   float _slowness;
 
@@ -73,8 +72,6 @@ private:
    * will be using the problem object.
    */
   ScopedPtr<Problem> _prb;
-
-  Semaphore _syncSemaphore; // semaphore for synchronizing proof printing
 };
 
 }
