@@ -239,52 +239,51 @@ void KBOComparator::countSymbols(const KBO& kbo, DHMap<unsigned,int>& vars, int&
   }
 }
 
-ostream& operator<<(std::ostream& out, const KBOComparator& comparator)
+vstring KBOComparator::toString() const
 {
-  using InstructionTag = KBOComparator::InstructionTag;
+  vstringstream str;
 
   unsigned cnt = 1;
-  const auto& instr = comparator._instructions;
-  for (unsigned i = 0; i < instr.size();) {
-    switch (static_cast<InstructionTag>(instr[i]._v1)) {
+  for (unsigned i = 0; i < _instructions.size();) {
+    switch (static_cast<InstructionTag>(_instructions[i]._v1)) {
       case InstructionTag::SUCCESS: {
-        out << Int::toString(cnt++) << " success" << endl;
+        str << Int::toString(cnt++) << " success" << endl;
         i += 1;
         break;
       }
       case InstructionTag::WEIGHT: {
-        auto arity = instr[i+1]._v1;
-        auto w = instr[i+1]._v2._int;
-        out << Int::toString(cnt++) << " weight " << Int::toString(w);
+        auto arity = _instructions[i+1]._v1;
+        auto w = _instructions[i+1]._v2._int;
+        str << Int::toString(cnt++) << " weight " << Int::toString(w);
 
         for (unsigned j = i+2; j < i+2+arity; j++) {
-          auto var = instr[j]._v1;
-          auto coeff = instr[j]._v2._int;
+          auto var = _instructions[j]._v1;
+          auto coeff = _instructions[j]._v2._int;
 
-          out << " w(X" << Int::toString(var) << ")*" << Int::toString(coeff);
+          str << " w(X" << Int::toString(var) << ")*" << Int::toString(coeff);
         }
-        out << endl;
+        str << endl;
         i += 2+arity;
         break;
       }
       case InstructionTag::COMPARE_VV: {
-        auto v1 = instr[i]._v2._uint;
-        auto v2 = instr[i+1]._v1;
-        out << Int::toString(cnt++) << " compare X" << Int::toString(v1) << " X" << Int::toString(v2) << endl;
+        auto v1 = _instructions[i]._v2._uint;
+        auto v2 = _instructions[i+1]._v1;
+        str << Int::toString(cnt++) << " compare X" << Int::toString(v1) << " X" << Int::toString(v2) << endl;
         i += 2;
         break;
       }
       case InstructionTag::COMPARE_VT: {
-        auto v1 = instr[i]._v2._uint;
-        auto t2 = instr[i+1]._t;
-        out << Int::toString(cnt++) << " compare X" << Int::toString(v1) << " " << *t2 << endl;
+        auto v1 = _instructions[i]._v2._uint;
+        auto t2 = _instructions[i+1]._t;
+        str << Int::toString(cnt++) << " compare X" << Int::toString(v1) << " " << *t2 << endl;
         i += 2;
         break;
       }
       case InstructionTag::COMPARE_TV: {
-        auto t1 = instr[i+1]._t;
-        auto v2 = instr[i]._v2._uint;
-        out << Int::toString(cnt++) << " compare " << *t1 << " X" << Int::toString(v2) << endl;
+        auto t1 = _instructions[i+1]._t;
+        auto v2 = _instructions[i]._v2._uint;
+        str << Int::toString(cnt++) << " compare " << *t1 << " X" << Int::toString(v2) << endl;
         i += 2;
         break;
       }
@@ -292,8 +291,8 @@ ostream& operator<<(std::ostream& out, const KBOComparator& comparator)
         ASSERTION_VIOLATION;
     }
   }
-  out << endl;
-  return out;
+  str << endl;
+  return str.str();
 }
 
 

@@ -29,7 +29,7 @@ using namespace std;
 using namespace Lib;
 using namespace Shell;
 
-bool unify(TermList tl1, TermList tl2, Substitution& subst)
+bool unify(TermList tl1, TermList tl2, TermList& orig1, TermList& orig2, Substitution& subst)
 {
   Stack<pair<TermList,TermList>> todo;
   todo.push({ tl1,tl2 });
@@ -50,6 +50,8 @@ bool unify(TermList tl1, TermList tl2, Substitution& subst)
         t1 = SubstHelper::apply(t1,subst);
         t2 = SubstHelper::apply(t2,subst);
       }
+      orig1 = SubstHelper::apply(orig1,subst);
+      orig2 = SubstHelper::apply(orig2,subst);
       continue;
     }
     auto s = ss.term();
@@ -102,26 +104,26 @@ ostream& operator<<(ostream& out, const BranchTag& bt)
   return out;
 }
 
-ostream& operator<<(ostream& out, const LPOComparator& comparator)
+vstring LPOComparator::toString() const
 {
-  switch (comparator._res) {
+  vstringstream str;
+  switch (_res) {
     case BranchTag::T_EQUAL:
-      out << "equal" << endl;
-      return out;
+      str << "equal" << endl;
+      break;
     case BranchTag::T_GREATER:
-      out << "greater" << endl;
-      return out;
+      str << "greater" << endl;
+      break;
     case BranchTag::T_INCOMPARABLE:
-      cout << "incomparable" << endl;
-      return out;
+      str << "incomparable" << endl;
+      break;
     case BranchTag::T_JUMP:
-      // fallthrough
+      for (unsigned i = 0; i < _instructions.size(); i++) {
+        str << i << " " << _instructions[i] << endl;
+      }
       break;
   }
-  for (unsigned i = 0; i < comparator._instructions.size(); i++) {
-    out << i << " " << comparator._instructions[i] << endl;
-  }
-  return out;
+  return str.str();
 }
 
 void updateBranch(Branch& branch, Branch eqBranch, Branch gtBranch, Branch incBranch, unsigned jump_offset)
@@ -185,10 +187,10 @@ void deleteDuplicates(Stack<Node>& st)
       removedCnt++;
     }
   }
-  ASS_EQ(lastPos.get(st[0]),0);
   if (!removedCnt) {
     return;
   }
+  ASS_EQ(lastPos.get(st[0]),0);
 
   Stack<Node> res;
   for (unsigned i = 0; i < st.size(); i++) {
@@ -208,10 +210,12 @@ void deleteDuplicates(Stack<Node>& st)
   swap(res,st);
 }
 
+#define INDEX_UNINITIALIZED -1
+
 pair<Stack<Node>,BranchTag> LPOComparator::majoChain(const LPO& lpo, TermList tl1, Term* t, unsigned i)
 {
   Stack<Node> res;
-  int prevIndex = -1;
+  int prevIndex = INDEX_UNINITIALIZED;
   for (unsigned j = i; j < t->arity(); j++) {
     auto compRes = createHelper(tl1,*t->nthArgument(j),lpo);
     if (compRes->second == BranchTag::T_GREATER) {
@@ -221,7 +225,7 @@ pair<Stack<Node>,BranchTag> LPOComparator::majoChain(const LPO& lpo, TermList tl
       res.reset();
       return make_pair(res,BranchTag::T_INCOMPARABLE);
     }
-    if (prevIndex != -1) {
+    if (prevIndex != INDEX_UNINITIALIZED) {
       updateBranchInRange(res, prevIndex, (unsigned)res.size(),
         Branch::gt(), Branch::jump(res.size()));
     }
@@ -234,7 +238,7 @@ pair<Stack<Node>,BranchTag> LPOComparator::majoChain(const LPO& lpo, TermList tl
 pair<Stack<Node>,BranchTag> LPOComparator::alphaChain(const LPO& lpo, Term* s, unsigned i, TermList tl2)
 {
   Stack<Node> res;
-  int prevIndex = -1;
+  int prevIndex = INDEX_UNINITIALIZED;
   for (unsigned j = i; j < s->arity(); j++) {
     auto compRes = createHelper(*s->nthArgument(j),tl2,lpo);
     if (compRes->second == BranchTag::T_INCOMPARABLE) {
@@ -244,7 +248,7 @@ pair<Stack<Node>,BranchTag> LPOComparator::alphaChain(const LPO& lpo, Term* s, u
       res.reset();
       return make_pair(res,BranchTag::T_GREATER);
     }
-    if (prevIndex != -1) {
+    if (prevIndex != INDEX_UNINITIALIZED) {
       updateBranchInRange(res, prevIndex, (unsigned)res.size(),
         Branch::inc(), Branch::jump(res.size()));
     }
@@ -295,24 +299,28 @@ pair<Stack<Node>,BranchTag>* LPOComparator::createHelper(TermList tl1, TermList 
       ASS(s->arity()); // constants cannot be incomparable
 
       Substitution subst;
-      int prevStartIndex = -1;
+      int prevStartIndex = INDEX_UNINITIALIZED;
       unsigned prevEndIndex;
+
+       // copies for unification
+      auto tl1s = tl1;
+      auto tl2s = tl2;
 
       // lexicographic comparisons
       for (unsigned i = 0; i < s->arity(); i++) {
-        auto s_arg = SubstHelper::apply(*s->nthArgument(i),subst);
-        auto t_arg = SubstHelper::apply(*t->nthArgument(i),subst);
+        auto s_arg = *tl1s.term()->nthArgument(i);
+        auto t_arg = *tl2s.term()->nthArgument(i);
         auto compRes = createHelper(s_arg,t_arg,lpo);
         if (compRes->second == BranchTag::T_EQUAL) {
-          ALWAYS(unify(s_arg,t_arg,subst));
+          ALWAYS(unify(s_arg,t_arg,tl1s,tl2s,subst));
           continue;
         }
 
-        auto majoRes = majoChain(lpo, SubstHelper::apply(tl1,subst),SubstHelper::apply(tl2,subst).term(),i+1);
+        auto majoRes = majoChain(lpo, tl1s, tl2s.term(), i+1);
         if (compRes->second == BranchTag::T_GREATER) {
           // finish with majo branch
           if (majoRes.second != BranchTag::T_JUMP) {
-            if (prevStartIndex != 1) {
+            if (prevStartIndex != INDEX_UNINITIALIZED) {
               updateBranchInRange(res->first, prevStartIndex, prevEndIndex,
                 Branch::eq(), Branch{ majoRes.second, 0 });
             } else {
@@ -320,7 +328,7 @@ pair<Stack<Node>,BranchTag>* LPOComparator::createHelper(TermList tl1, TermList 
               res->second = majoRes.second;
             }
           } else {
-            if (prevStartIndex != -1) {
+            if (prevStartIndex != INDEX_UNINITIALIZED) {
               updateBranchInRange(res->first, prevStartIndex, prevEndIndex,
                 Branch::eq(), Branch::jump(res->first.size()));
             }
@@ -329,11 +337,11 @@ pair<Stack<Node>,BranchTag>* LPOComparator::createHelper(TermList tl1, TermList 
           break;
         }
 
-        auto alphaRes = alphaChain(lpo, SubstHelper::apply(tl1,subst).term(),i+1,SubstHelper::apply(tl2,subst));
+        auto alphaRes = alphaChain(lpo, tl1s.term(), i+1, tl2s);
         if (compRes->second == BranchTag::T_INCOMPARABLE) {
           // finish with alpha branch
           if (alphaRes.second != BranchTag::T_JUMP) {
-            if (prevStartIndex != 1) {
+            if (prevStartIndex != INDEX_UNINITIALIZED) {
               updateBranchInRange(res->first, prevStartIndex, prevEndIndex,
                 Branch::eq(), Branch{ alphaRes.second, 0 });
             } else {
@@ -341,7 +349,7 @@ pair<Stack<Node>,BranchTag>* LPOComparator::createHelper(TermList tl1, TermList 
               res->second = alphaRes.second;
             }
           } else {
-            if (prevStartIndex != -1) {
+            if (prevStartIndex != INDEX_UNINITIALIZED) {
               updateBranchInRange(res->first, prevStartIndex, prevEndIndex,
                 Branch::eq(), Branch::jump(res->first.size()));
             }
@@ -350,7 +358,7 @@ pair<Stack<Node>,BranchTag>* LPOComparator::createHelper(TermList tl1, TermList 
           break;
         }
 
-        if (prevStartIndex != 1) {
+        if (prevStartIndex != INDEX_UNINITIALIZED) {
           updateBranchInRange(res->first, prevStartIndex, prevEndIndex,
             Branch::eq(), Branch::jump(res->first.size()));
         }
@@ -375,10 +383,12 @@ pair<Stack<Node>,BranchTag>* LPOComparator::createHelper(TermList tl1, TermList 
           pushNodes(res->first, alphaRes.first, Branch::eq(), Branch::gt(), Branch::inc());
         }
 
-        if (!unify(s_arg,t_arg,subst)) {
+        if (!unify(s_arg,t_arg,tl1s,tl2s,subst)) {
           updateBranchInRange(res->first, prevStartIndex, prevEndIndex, Branch::eq(), Branch::inc());
           break;
         }
+        tl1s = SubstHelper::apply(tl1s,subst);
+        tl2s = SubstHelper::apply(tl2s,subst);
       }
       break;
     }

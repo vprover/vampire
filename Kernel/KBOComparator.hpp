@@ -33,7 +33,7 @@ public:
   static KBOComparator* create(TermList tl1, TermList tl2, const KBO& kbo);
 
   bool check(const SubstApplicator* applicator) const;
-  friend std::ostream& operator<<(std::ostream& out, const KBOComparator& comparator);
+  vstring toString() const override;
 
 private:
   // TODO this could be done with KBO::State

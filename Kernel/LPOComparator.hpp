@@ -28,7 +28,7 @@ public:
   static LPOComparator* create(TermList tl1, TermList tl2, const LPO& lpo);
 
   bool check(const SubstApplicator* applicator) const;
-  friend std::ostream& operator<<(std::ostream& out, const LPOComparator& comparator);
+  vstring toString() const override;
 
 // private:
   struct Node {
