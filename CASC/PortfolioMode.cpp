@@ -701,15 +701,20 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   if (outputAllowed() && env.options->multicore() != 1)
     addCommentSignForSZS(cout) << "First to succeed." << endl;
 
-  std::ofstream output(_path);
-  if(_path.empty() || output.fail()) {
-    // failed to open file, fallback to stdout
-    addCommentSignForSZS(cout) << "Solution printing to a file '" << _path <<  "' failed. Outputting to stdout" << endl;
+  if (_path.empty()) {
+    // we already failed above in accesssing the file (let's not try opening or reporting the empty name)
     UIHelper::outputResult(cout);
   } else {
-    UIHelper::outputResult(output);
-    if(outputAllowed())
-      addCommentSignForSZS(cout) << "Solution written to " << _path << endl;
+    std::ofstream output(_path);
+    if(output.fail()) {
+      // failed to open file, fallback to stdout
+      addCommentSignForSZS(cout) << "Solution printing to a file '" << _path <<  "' failed. Outputting to stdout" << endl;
+      UIHelper::outputResult(cout);
+    } else {
+      UIHelper::outputResult(output);
+      if(outputAllowed())
+        addCommentSignForSZS(cout) << "Solution written to " << _path << endl;
+    }
   }
 
   // could be quick_exit if we flush output?
