@@ -115,13 +115,16 @@ void handleSignal (int sigNum)
     TERMINAL_SIGNAL_HANDLED = true;
     Shell::reportSpiderFail();
     if(Shell::outputAllowed(true)) {
-      std::cout << getpid() << " Aborted by signal " << signalToString(sigNum);
+      Shell::addCommentSignForSZS(std::cout);
+      std::cout << "Aborted by signal " << signalToString(sigNum);
       if(env.options)
         std::cout << " on " << env.options->inputFile();
-      std::cout << '\n';
-      if(env.statistics)
-        env.statistics->print(std::cout);
-      Debug::Tracer::printStack(std::cout);
+      std::cout << std::endl;
+      if (!Shell::UIHelper::portfolioParent) {
+        if(env.statistics)
+          env.statistics->print(std::cout);
+        Debug::Tracer::printStack(std::cout);
+      }
       System::terminateImmediately(VAMP_RESULT_STATUS_OTHER_SIGNAL);
     }
   default:
