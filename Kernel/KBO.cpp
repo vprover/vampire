@@ -964,9 +964,9 @@ bool KBO::isGreater(AppliedTerm lhs, AppliedTerm rhs) const
 bool KBO::isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, OrderingComparator*& comparator) const
 {
   if (!comparator) {
+    // cout << "preprocessing " << lhs << " " << rhs << endl;
     comparator = KBOComparator::create(lhs, rhs, *this);
-    // cout << "preprocessing " << lhs << " " << rhs << endl
-    //      << *static_cast<KBOComparator*>(comparator) << endl;
+    // cout << comparator->toString() << endl;
   }
   return static_cast<KBOComparator*>(comparator)->check(applicator);
 }

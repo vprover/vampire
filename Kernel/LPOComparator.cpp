@@ -10,6 +10,8 @@
 
 #include "LPOComparator.hpp"
 
+#include "RobSubstitution.hpp"
+
 namespace Kernel {
 
 struct NodeHash {
@@ -29,40 +31,33 @@ using namespace std;
 using namespace Lib;
 using namespace Shell;
 
-bool unify(TermList tl1, TermList tl2, TermList& orig1, TermList& orig2, Substitution& subst)
+bool unify(TermList tl1, TermList tl2, TermList& orig1, TermList& orig2)
 {
-  Stack<pair<TermList,TermList>> todo;
-  todo.push({ tl1,tl2 });
-  while (todo.isNonEmpty()) {
-    auto [ss,tt] = todo.pop();
-    if (ss==tt) {
-      continue;
-    }
-    if (ss.isVar() || tt.isVar()) {
-      if (!ss.isVar()) {
-        swap(ss,tt);
-      }
-      if (tt.containsSubterm(ss)) {
-        return false;
-      }
-      subst.bind(ss.var(),tt);
-      for (auto& [t1,t2] : todo) {
-        t1 = SubstHelper::apply(t1,subst);
-        t2 = SubstHelper::apply(t2,subst);
-      }
-      orig1 = SubstHelper::apply(orig1,subst);
-      orig2 = SubstHelper::apply(orig2,subst);
-      continue;
-    }
-    auto s = ss.term();
-    auto t = tt.term();
-    if (s->functor()!=t->functor()) {
-      return false;
-    }
-    for (unsigned i = 0; i < s->arity(); i++) {
-      todo.push({ *s->nthArgument(i), *t->nthArgument(i) });
+  RobSubstitution rsubst;
+  if (!rsubst.unify(tl1, 0, tl2, 0)) {
+    return false;
+  }
+  Substitution temp;
+  VariableIterator vit1(orig1);
+  while (vit1.hasNext()) {
+    auto v = vit1.next();
+    auto vS = rsubst.apply(v,0);
+    TermList t;
+    if (vS.isVar() && !temp.findBinding(vS.var(), t)) {
+      temp.bind(vS.var(), v);
     }
   }
+  VariableIterator vit2(orig2);
+  while (vit2.hasNext()) {
+    auto v = vit2.next();
+    auto vS = rsubst.apply(v,0);
+    TermList t;
+    if (vS.isVar() && !temp.findBinding(vS.var(), t)) {
+      temp.bind(vS.var(), v);
+    }
+  }
+  orig1 = SubstHelper::apply(rsubst.apply(orig1,0), temp);
+  orig2 = SubstHelper::apply(rsubst.apply(orig2,0), temp);
   return true;
 }
 
@@ -298,7 +293,6 @@ pair<Stack<Node>,BranchTag>* LPOComparator::createHelper(TermList tl1, TermList 
     case Ordering::EQUAL: {
       ASS(s->arity()); // constants cannot be incomparable
 
-      Substitution subst;
       int prevStartIndex = INDEX_UNINITIALIZED;
       unsigned prevEndIndex;
 
@@ -312,7 +306,7 @@ pair<Stack<Node>,BranchTag>* LPOComparator::createHelper(TermList tl1, TermList 
         auto t_arg = *tl2s.term()->nthArgument(i);
         auto compRes = createHelper(s_arg,t_arg,lpo);
         if (compRes->second == BranchTag::T_EQUAL) {
-          ALWAYS(unify(s_arg,t_arg,tl1s,tl2s,subst));
+          ALWAYS(unify(s_arg,t_arg,tl1s,tl2s));
           continue;
         }
 
@@ -383,12 +377,10 @@ pair<Stack<Node>,BranchTag>* LPOComparator::createHelper(TermList tl1, TermList 
           pushNodes(res->first, alphaRes.first, Branch::eq(), Branch::gt(), Branch::inc());
         }
 
-        if (!unify(s_arg,t_arg,tl1s,tl2s,subst)) {
+        if (!unify(s_arg,t_arg,tl1s,tl2s)) {
           updateBranchInRange(res->first, prevStartIndex, prevEndIndex, Branch::eq(), Branch::inc());
           break;
         }
-        tl1s = SubstHelper::apply(tl1s,subst);
-        tl2s = SubstHelper::apply(tl2s,subst);
       }
       break;
     }
@@ -413,8 +405,12 @@ pair<Stack<Node>,BranchTag>* LPOComparator::createHelper(TermList tl1, TermList 
     default:
       ASSERTION_VIOLATION;
   }
-  ASS(res->second == BranchTag::T_JUMP || res->first.isEmpty());
+  ASS((res->second != BranchTag::T_JUMP) == res->first.isEmpty());
   deleteDuplicates(res->first);
+  ASS((res->second != BranchTag::T_JUMP) == res->first.isEmpty());
+  ASS(res->second != BranchTag::T_GREATER || lpo.compare(tl1,tl2)==Ordering::GREATER);
+  ASS(res->second != BranchTag::T_EQUAL || lpo.compare(tl1,tl2)==Ordering::EQUAL);
+  ASS(res->second != BranchTag::T_INCOMPARABLE || lpo.compare(tl1,tl2)==Ordering::LESS || lpo.compare(tl1,tl2)==Ordering::INCOMPARABLE);
   ptr = _cache.findPtr(make_pair(tl1,tl2));
   ASS(ptr);
   *ptr = res;
