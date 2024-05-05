@@ -2467,8 +2467,8 @@ vstring Options::includeFileName (const vstring& relativeName)
   if (dir == "") { // include undefined
     // (b) search in the directory of the 'current file'
     // i.e. the input file
-    vstring currentFile = inputFile();
-    System::extractDirNameFromPath(currentFile,dir); 
+    std::filesystem::path currentFile(inputFile());
+    dir = currentFile.parent_path().string();
     if(std::filesystem::exists(dir+"/"+relativeName)){
       return dir + "/" + relativeName;
     }
