@@ -133,13 +133,13 @@ bool SubstitutionCoverTree::check(const TermStack& ts, const Ordering* ord)
       return true;
     }
     if (ord) {
-      struct Applicator {
-        TermList apply(unsigned v) { return matcher.bindings[v]; }
+      struct Applicator : public SubstApplicator {
+        TermList operator()(unsigned v) const override { return matcher.bindings[v]; }
       } applicator;
 
-      auto lhs = SubstHelper::apply(ld->lhs, applicator);
-      auto rhs = SubstHelper::apply(ld->rhs, applicator);
-      if (ord->compare(TermList(lhs),TermList(rhs))==Ordering::GREATER) {
+      if (ord->isGreater(
+            AppliedTerm(TermList(ld->lhs),&applicator,true),
+            AppliedTerm(TermList(ld->rhs),&applicator,true))) {
         return true;
       }
     }

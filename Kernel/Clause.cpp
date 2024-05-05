@@ -38,6 +38,8 @@
 #include "Term.hpp"
 #include "TermIterators.hpp"
 
+#include "Indexing/SubstitutionCoverTree.hpp"
+
 #include <cmath>
 
 #include "Clause.hpp"
@@ -122,6 +124,9 @@ void Clause::destroyExceptInferenceObject()
 {
   if (_literalPositions) {
     delete _literalPositions;
+  }
+  if (_supData) {
+    delete static_cast<SubstitutionCoverTree*>(_supData);
   }
 
   RSTAT_CTR_INC("clauses deleted");
