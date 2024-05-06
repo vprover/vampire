@@ -199,9 +199,7 @@ source_group(lib_source_files FILES ${VAMPIRE_LIB_SOURCES})
 
 set(VAMPIRE_LIB_SYS_SOURCES
     Lib/Sys/Multiprocessing.cpp
-    Lib/Sys/Semaphore.cpp
     Lib/Sys/Multiprocessing.hpp
-    Lib/Sys/Semaphore.hpp
     )
 source_group(lib_sys_source_files FILES ${VAMPIRE_LIB_SYS_SOURCES})
 
