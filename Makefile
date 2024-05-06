@@ -172,8 +172,7 @@ VL_OBJ= Lib/Allocator.o\
         Lib/System.o\
         Lib/Timer.o
 
-VLS_OBJ= Lib/Sys/Multiprocessing.o\
-         Lib/Sys/Semaphore.o
+VLS_OBJ= Lib/Sys/Multiprocessing.o
 
 VK_OBJ= Kernel/Clause.o\
         Kernel/ClauseQueue.o\
@@ -189,7 +188,6 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/InferenceStore.o\
         Kernel/KBO.o\
         Kernel/SKIKBO.o\
-        Kernel/KBOForEPR.o\
         Kernel/LiteralSelector.o\
         Kernel/LookaheadLiteralSelector.o\
 	Kernel/LPO.o\
@@ -456,7 +454,6 @@ OTHER_CL_DEP = Indexing/ResultSubstitution.o\
 	       Kernel/Matcher.o\
 	       Kernel/KBO.o\
          Kernel/SKIKBO.o\
-	       Kernel/KBOForEPR.o\
 	       Kernel/Ordering.o\
 	       Kernel/Ordering_Equality.o\
 	       Kernel/Problem.o\

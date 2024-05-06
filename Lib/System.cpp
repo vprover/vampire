@@ -18,7 +18,7 @@
 #include <csignal>
 
 // TODO these should probably be guarded
-// for getpid, _exit
+// for getpid
 #include <unistd.h>
 
 #ifdef __linux__
@@ -36,8 +36,6 @@
 #include "System.hpp"
 
 namespace Lib {
-
-using namespace std;
 
 const char* System::s_argv0 = 0;
 
@@ -75,88 +73,63 @@ const char* signalToString (int sigNum)
 } // signalToString
 
 
+// true if a terminal signal has been handled already,
+// avoids catching signals over and over again
+static std::sig_atomic_t TERMINAL_SIGNAL_HANDLED = false;
+
 /**
  * Signal handling function. Rewritten from the kernel standalone.
  *
  * @param sigNum signal number
  * @since 28/06/2003 Manchester, statistics result registration added
+ * @since 10/04/2024 Oxford, simplify
  */
 void handleSignal (int sigNum)
 {
-  // true if a terminal signal has been handled already.
-  // to avoid catching signals over and over again
-  static bool handled = false;
-  static bool haveSigInt = false;
-  const char* signalDescription = signalToString(sigNum);
+  if(TERMINAL_SIGNAL_HANDLED)
+    return;
 
-  switch (sigNum)
-    {
-    case SIGTERM:
+  switch(sigNum) {
+  // polite non-crashing interrupts, shut up and exit immediately
+  case SIGINT:
+  case SIGTERM:
+#ifndef _MSC_VER
+  case SIGHUP:
+  case SIGXCPU:
+#endif
+    TERMINAL_SIGNAL_HANDLED = true;
+    System::terminateImmediately(VAMP_RESULT_STATUS_INTERRUPTED);
 
-# ifndef _MSC_VER
-    case SIGQUIT:
-      if (handled) {
-	System::terminateImmediately(haveSigInt ? VAMP_RESULT_STATUS_SIGINT : VAMP_RESULT_STATUS_OTHER_SIGNAL);
-      }
-      handled = true;
-      if(Shell::outputAllowed(true)) {
-	if(env.options) {
-    cout << "Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
-	} else {
-	  cout << "Aborted by signal " << signalDescription << "\n";
-	}
-      }
-      return;
-    case SIGXCPU:
-      if(Shell::outputAllowed(true)) {
-	if(env.options) {
-    cout << "External time out (SIGXCPU) on " << env.options->inputFile() << "\n";
-	} else {
-	  cout << "External time out (SIGXCPU)\n";
-	}
+  // crashy or impolite interrupts, complain about it
+  case SIGABRT:
+  case SIGFPE:
+  case SIGILL:
+  case SIGSEGV:
+#ifndef _MSC_VER
+  case SIGQUIT:
+  case SIGBUS:
+  case SIGTRAP:
+#endif
+    // following is not standards-compliant as it calls functions that are not permitted in signal handlers
+    // but we're dying anyway, so try our best to report something
+    TERMINAL_SIGNAL_HANDLED = true;
+    Shell::reportSpiderFail();
+    if(Shell::outputAllowed(true)) {
+      Shell::addCommentSignForSZS(std::cout);
+      std::cout << "Aborted by signal " << signalToString(sigNum);
+      if(env.options)
+        std::cout << " on " << env.options->inputFile();
+      std::cout << std::endl;
+      if (!Shell::UIHelper::portfolioParent) {
+        if(env.statistics)
+          env.statistics->print(std::cout);
+        Debug::Tracer::printStack(std::cout);
       }
       System::terminateImmediately(VAMP_RESULT_STATUS_OTHER_SIGNAL);
-      break;
-# endif
-
-    case SIGINT:
-      haveSigInt=true;
-      System::terminateImmediately(VAMP_RESULT_STATUS_SIGINT);
-//      exit(0);
-//      return;
-
-    case SIGHUP:
-    case SIGILL:
-    case SIGFPE:
-    case SIGSEGV:
-
-# ifndef _MSC_VER
-    case SIGBUS:
-    case SIGTRAP:
-# endif
-    case SIGABRT:
-      {
-	if (handled) {
-	  System::terminateImmediately(haveSigInt ? VAMP_RESULT_STATUS_SIGINT : VAMP_RESULT_STATUS_OTHER_SIGNAL);
-	}
-	Shell::reportSpiderFail();
-	handled = true;
-	if(Shell::outputAllowed()) {
-	  if(env.options && env.statistics) {
-      cout << getpid() << " Aborted by signal " << signalDescription << " on " << env.options->inputFile() << "\n";
-	    env.statistics->print(cout);
-	    Debug::Tracer::printStack(cout);
-	  } else {
-	    cout << getpid() << "Aborted by signal " << signalDescription << "\n";
-	    Debug::Tracer::printStack(cout);
-	  }
-	}
-	System::terminateImmediately(haveSigInt ? VAMP_RESULT_STATUS_SIGINT : VAMP_RESULT_STATUS_OTHER_SIGNAL);
-      }
-
-    default:
-      break;
     }
+  default:
+    break;
+  }
 } // handleSignal
 
 void System::setSignalHandlers()
@@ -175,72 +148,6 @@ void System::setSignalHandlers()
   signal(SIGBUS,handleSignal);
   signal(SIGTRAP,handleSignal);
 #endif
-
-  errno=0;
-  // ensure that termination handlers are created _before_ the atexit() call
-  // C++ then guarantees that the array is destructed _after_ onTermination
-  terminationHandlersArray();
-  int res=atexit(onTermination);
-  if(res==-1) {
-    SYSTEM_FAIL("Call of atexit() function in System::setSignalHandlers failed.", errno);
-  }
-  ASS_EQ(res,0);
-}
-
-/**
- * Function that returns a reference to an array that contains
- * lists of termination handlers
- *
- * Using a function with a static variable inside is a way to ensure
- * that no matter how early we want to register a termination
- * handler, the array will be constructed.
- */
-ZIArray<List<VoidFunc>*>& System::terminationHandlersArray()
-{
-  static ZIArray<List<VoidFunc>*> arr(2);
-  return arr;
-}
-
-/**
- * Ensure that @b proc will be called before termination of the process.
- * Functions added with lower @b priority will be called first.
- *
- * We try to cover all possibilities how the process may terminate, but
- * some are probably impossible (such as receiving the signal 9). In these
- * cases the @b proc function is not called.
- */
-void System::addTerminationHandler(VoidFunc proc, unsigned priority)
-{
-  VoidFuncList::push(proc, terminationHandlersArray()[priority]);
-}
-
-/**
- * This function should be called as the last thing on every path that leads
- * to a process termination.
- */
-void System::onTermination()
-{
-  static bool called=false;
-  if(called) {
-    return;
-  }
-  called=true;
-
-  auto handlers = terminationHandlersArray();
-  size_t sz=handlers.size();
-  for(size_t i=0;i<sz;i++) {
-    VoidFuncList::Iterator thIter(handlers[i]);
-    while(thIter.hasNext()) {
-      VoidFunc func=thIter.next();
-      func();
-    }
-  }
-}
-
-void System::terminateImmediately(int resultStatus)
-{
-  onTermination();
-  _exit(resultStatus);
 }
 
 /**
@@ -254,22 +161,6 @@ void System::registerForSIGHUPOnParentDeath()
 #ifdef __linux__
   prctl(PR_SET_PDEATHSIG, SIGHUP);
 #endif
-}
-
-/**
- * If directory name can be extracted from @c path, assign it into
- * @c dir and return true; otherwise return false.
- *
- * The directory name is extracted without the final '/'.
- */
-bool System::extractDirNameFromPath(vstring path, vstring& dir)
-{
-  size_t index=path.find_last_of("\\/");
-  if(index==vstring::npos) {
-    return false;
-  }
-  dir = path.substr(0, index);
-  return true;
 }
 
 };

@@ -53,6 +53,27 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+namespace {
+
+struct Applicator : SubstApplicator {
+  Applicator(ResultSubstitution* subst) : subst(subst) {}
+  TermList operator()(unsigned v) const override {
+    return subst->applyToBoundResult(v);
+  }
+  ResultSubstitution* subst;
+};
+
+struct ApplicatorWithEqSort : SubstApplicator {
+  ApplicatorWithEqSort(ResultSubstitution* subst, const RobSubstitution& vSubst) : subst(subst), vSubst(vSubst) {}
+  TermList operator()(unsigned v) const override {
+    return vSubst.apply(subst->applyToBoundResult(v), 0);
+  }
+  ResultSubstitution* subst;
+  const RobSubstitution& vSubst;
+};
+
+} // end namespace
+
 void ForwardDemodulation::attach(SaturationAlgorithm* salg)
 {
   ForwardSimplificationEngine::attach(salg);
@@ -120,6 +141,8 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           continue;
         }
 
+        auto lhs = qr.data->term;
+
         // TODO:
         // to deal with polymorphic matching
         // Ideally, we would like to extend the substitution
@@ -127,38 +150,17 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         // However, ForwardDemodulation uses a CodeTree as its
         // indexing mechanism, and it is not clear how to extend
         // the substitution returned by a code tree.
-        Recycled<RobSubstitution> subst;
-        if(qr.data->term.isVar()){
+        static RobSubstitution eqSortSubs;
+        if(lhs.isVar()){
+          eqSortSubs.reset();
           TermList querySort = trm.sort();
           TermList eqSort = SortHelper::getEqualityArgumentSort(qr.data->literal);
-          if(!subst->match(eqSort, 0, querySort, 1)){
+          if(!eqSortSubs.match(eqSort, 0, querySort, 1)){
             continue;
           }
         }
 
-        TermList rhs=EqHelper::getOtherEqualitySide(qr.data->literal,qr.data->term);
-        TermList rhsS;
-        auto subs = qr.unifier;
-        if(!subs->isIdentityOnQueryWhenResultBound()) {
-          //When we apply substitution to the rhs, we get a term, that is
-          //a variant of the term we'd like to get, as new variables are
-          //produced in the substitution application.
-          TermList lhsSBadVars = subs->applyToResult(qr.data->term);
-          TermList rhsSBadVars = subs->applyToResult(rhs);
-          Renaming rNorm, qNorm, qDenorm;
-          rNorm.normalizeVariables(lhsSBadVars);
-          qNorm.normalizeVariables(trm);
-          qDenorm.makeInverse(qNorm);
-          ASS_EQ(trm,qDenorm.apply(rNorm.apply(lhsSBadVars)));
-          rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
-        } else {
-          rhsS = subs->applyToBoundResult(rhs);
-        }
-
-        if (qr.data->term.isVar()) {
-          rhsS = subst->apply(rhsS, 0);
-        }
-
+        TermList rhs=EqHelper::getOtherEqualitySide(qr.data->literal,lhs);
         Ordering::Result argOrder = ordering.getEqualityArgumentOrder(qr.data->literal);
         bool preordered = argOrder==Ordering::LESS || argOrder==Ordering::GREATER;
   #if VDEBUG
@@ -171,7 +173,15 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           }
         }
   #endif
-        if(!preordered && (_preorderedOnly || ordering.compare(trm,rhsS)!=Ordering::GREATER) ) {
+
+        auto subs = qr.unifier;
+        ASS(subs->isIdentityOnQueryWhenResultBound());
+
+        ApplicatorWithEqSort applWithEqSort(subs.ptr(), eqSortSubs);
+        Applicator applWithoutEqSort(subs.ptr());
+        auto appl = lhs.isVar() ? (SubstApplicator*)&applWithEqSort : (SubstApplicator*)&applWithoutEqSort;
+
+        if (!preordered && (_preorderedOnly || !ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl,true)))) {
           continue;
         }
 
@@ -187,7 +197,12 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           }
         }
 
-        if (redundancyCheck && !_helper.isPremiseRedundant(cl, lit, trm, rhsS, qr.data->term, subs.ptr(), true)) {
+        TermList rhsS = subs->applyToBoundResult(rhs);
+        if (lhs.isVar()) {
+          rhsS = eqSortSubs.apply(rhsS, 0);
+        }
+
+        if (redundancyCheck && !_helper.isPremiseRedundant(cl, lit, trm, rhsS, lhs, subs.ptr(), true)) {
           continue;
         }
 

@@ -13,9 +13,8 @@
  * Implements class PortfolioMode.
  */
 
-//only for detecting number of cores, no threading here!
-#include <thread>
 
+#include "Debug/Assertion.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Portability.hpp"
@@ -36,9 +35,11 @@
 #include <unistd.h>
 #include <signal.h>
 #include <fstream>
-#include <stdio.h>
 #include <cstdio>
 #include <random>
+#include <filesystem>
+//only for detecting number of cores, no threading here!
+#include <thread>
 
 #include "Saturation/ProvingHelper.hpp"
 
@@ -54,8 +55,9 @@ using Lib::Sys::Multiprocessing;
 using std::cout;
 using std::cerr;
 using std::endl;
+namespace fs = std::filesystem;
 
-PortfolioMode::PortfolioMode(Problem* problem) : _prb(problem), _slowness(env.options->slowness()), _syncSemaphore(2) {
+PortfolioMode::PortfolioMode(Problem* problem) : _prb(problem), _slowness(env.options->slowness()) {
   unsigned cores = std::thread::hardware_concurrency();
   cores = cores < 1 ? 1 : cores;
   _numWorkers = std::min(cores, env.options->multicore());
@@ -64,22 +66,27 @@ PortfolioMode::PortfolioMode(Problem* problem) : _prb(problem), _slowness(env.op
     _numWorkers = cores >= 8 ? cores - 2 : cores;
   }
 
-  // We need the following two values because the way the semaphore class is currently implemented:
-  // 1) dec is the only operation which is blocking
-  // 2) dec is done in the mode SEM_UNDO, so is undone when a process terminates
+  auto pathGiven = env.options->printProofToFile();
+  if(pathGiven.empty())
+    // no collision as we can't have the same PID as another Vampire *simultaneously*
+    _path = fs::temp_directory_path() / ("vampire-proof-" + Int::toString(getpid()));
+  else
+    _path = fs::path(pathGiven);
 
-  if(env.options->printProofToFile().empty()) {
-    /* if the user does not ask for printing the proof to a file,
-     * we generate a temp file name, in master,
-     * to be filled up in the winning worker with the proof
-     * and printed later by master to stdout
-     * when all the workers have shut up reporting status
-     * (not to get the status talking interrupt the proof printing)
-     */
-    _tmpFileNameForProof = tmpnam(NULL);
+  // the first Vampire to succeed creates the file
+  // therefore: remove it first
+  try {
+    fs::remove(_path);
+  } catch(const fs::filesystem_error &remove_error) {
+    // this is not good: we can't synchronise on _path
+    // attempt to output to stdout instead
+    std::cerr
+      << "WARNING: could not synchronise on " << _path
+      << " (will output to stdout, but proof may be garbled)\n"
+      << remove_error.what()
+      << std::endl;
+    _path.clear();
   }
-  _syncSemaphore.set(SEM_LOCK,1);    // to synchronize access to the second field
-  _syncSemaphore.set(SEM_PRINTED,0); // to indicate that a child has already printed result (it should only happen once)
 }
 
 /**
@@ -506,7 +513,7 @@ bool PortfolioMode::runScheduleAndRecoverProof(Schedule schedule)
      * the user didn't wish a proof in the file, so we printed it to the secret tmp file
      * now it's time to restore it.
      */
-    std::ifstream input(_tmpFileNameForProof);
+    std::ifstream input(_path);
 
     bool openSucceeded = !input.fail();
 
@@ -514,14 +521,14 @@ bool PortfolioMode::runScheduleAndRecoverProof(Schedule schedule)
       cout << input.rdbuf();
     } else {
       if (outputAllowed()) {
-        addCommentSignForSZS(cout) << "Failed to restore proof from tempfile " << _tmpFileNameForProof << endl;
+        addCommentSignForSZS(cout) << "Failed to restore proof from tempfile " << _path << endl;
       }
     }
 
     //If for some reason, the proof could not be opened
     //we don't delete the proof file
     if(openSucceeded){
-      remove(_tmpFileNameForProof);
+      fs::remove(_path);
     }
   }
 
@@ -618,7 +625,6 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   System::registerForSIGHUPOnParentDeath();
   UIHelper::portfolioParent=false;
 
-  int resultValue=1;
   env.timer->reset();
   env.timer->start();
 
@@ -643,60 +649,74 @@ void PortfolioMode::runSlice(Options& strategyOpt)
 
   Saturation::ProvingHelper::runVampire(*_prb, opt);
 
-  //set return value to zero if we were successful
-  if (env.statistics->terminationReason == Statistics::REFUTATION ||
-      env.statistics->terminationReason == Statistics::SATISFIABLE) {
-    resultValue=0;
+  bool succeeded =
+    env.statistics->terminationReason == Statistics::REFUTATION ||
+    env.statistics->terminationReason == Statistics::SATISFIABLE;
+
+  if(!succeeded) {
+    if(outputAllowed())
+      UIHelper::outputResult(cout);
+    exit(EXIT_FAILURE);
   }
 
+  // whether this Vampire should print a proof or not
   bool outputResult = false;
-  if (!resultValue) {
-    // only successfull vampires get here
 
-    _syncSemaphore.dec(SEM_LOCK); // will block for all accept the first to enter (make sure it's until it has finished printing!)
+  // FILE used to synchronise multiple Vampires
+  FILE *checkExists;
 
-    if (!_syncSemaphore.get(SEM_PRINTED)) {
-      _syncSemaphore.set(SEM_PRINTED,1);
-      outputResult = true;
-    }
+  // fall back to stdout if we failed to agree on `_path` above
+  if(_path.empty())
+    outputResult = true;
+  // output to file if we get a lock
+  // NB "wx": if we succeed opening here we're the first Vampire
+  else if((checkExists = std::fopen(_path.c_str(), "wx"))) {
+    std::fclose(checkExists);
+    outputResult = true;
+  }
+  // we're very likely the first but can't write a proof to file for some reason
+  // fall back to stdout, two proofs better than none
+  else if(errno != EEXIST) {
+    std::cerr
+      << "WARNING: could not open proof file << " << _path
+      << " - printing to stdout." << std::endl;
+    _path.clear();
+    outputResult = true;
   }
 
-  if(outputResult) { // this get only true for the first child to find a proof
-    ASS(!resultValue);
+  // can conclude we didn't get the lock
+  if(!outputResult) {
+    if (Lib::env.options && Lib::env.options->multicore() != 1)
+      addCommentSignForSZS(cout) << "Also succeeded, but the first one will report." << endl;
 
-    if (outputAllowed() && env.options->multicore() != 1) {
-      addCommentSignForSZS(cout) << "First to succeed." << endl;
-    }
+    // we succeeded in some sense, but we failed to print a proof
+    // (only because the other Vampire beat us to it)
+    // NB: this really cannot be EXIT_SUCCESS
+    // otherwise, the parent might kill the proof-printing Vampire!
+    exit(EXIT_FAILURE);
+  }
 
-    // At the moment we only save one proof. We could potentially
-    // allow multiple proofs
-    vstring fname(env.options->printProofToFile());
-    if (fname.empty()) {
-      fname = _tmpFileNameForProof;
-    }
+  // at this point, we should be go for launch
+  ASS(succeeded && outputResult)
+  if (outputAllowed() && env.options->multicore() != 1)
+    addCommentSignForSZS(cout) << "First to succeed." << endl;
 
-    std::ofstream output(fname.c_str());
-    if (output.fail()) {
-      // fallback to old printing method
-      addCommentSignForSZS(cout) << "Solution printing to a file '" << fname <<  "' failed. Outputting to stdout" << endl;
+  if (_path.empty()) {
+    // we already failed above in accesssing the file (let's not try opening or reporting the empty name)
+    UIHelper::outputResult(cout);
+  } else {
+    std::ofstream output(_path);
+    if(output.fail()) {
+      // failed to open file, fallback to stdout
+      addCommentSignForSZS(cout) << "Solution printing to a file '" << _path <<  "' failed. Outputting to stdout" << endl;
       UIHelper::outputResult(cout);
     } else {
       UIHelper::outputResult(output);
-      if (!env.options->printProofToFile().empty() && outputAllowed()) {
-        addCommentSignForSZS(cout) << "Solution written to " << fname << endl;
-      }
-    }
-  } else if (outputAllowed()) {
-    if (resultValue) {
-      UIHelper::outputResult(cout);
-    } else if (Lib::env.options && Lib::env.options->multicore() != 1) {
-      addCommentSignForSZS(cout) << "Also succeeded, but the first one will report." << endl;
+      if(outputAllowed())
+        addCommentSignForSZS(cout) << "Solution written to " << _path << endl;
     }
   }
 
-  if (outputResult) {
-    _syncSemaphore.inc(SEM_LOCK); // would be also released after the processes' death, but we are polite and do it already here
-  }
-
-  exit(resultValue);
+  // could be quick_exit if we flush output?
+  exit(EXIT_SUCCESS);
 } // runSlice
