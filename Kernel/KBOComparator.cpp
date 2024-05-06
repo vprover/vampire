@@ -23,6 +23,8 @@ using namespace Shell;
 KBOComparator* KBOComparator::create(TermList tl1, TermList tl2, const KBO& kbo)
 {
   auto res = new KBOComparator(kbo);
+
+  // stack of subcomparisons in lexicographic order (w.r.t. tl1 and tl2)
   Stack<pair<TermList,TermList>> todo;
   todo.push(make_pair(tl1,tl2));
 
@@ -30,35 +32,38 @@ KBOComparator* KBOComparator::create(TermList tl1, TermList tl2, const KBO& kbo)
     auto kv = todo.pop();
     auto lhs = kv.first;
     auto rhs = kv.second;
-    auto comp = kbo.compare(lhs,rhs);
-    // cout << "subcase " << lhs << " " << rhs << endl;
 
+    auto comp = kbo.compare(lhs,rhs);
     switch (comp) {
       case Ordering::LESS:
       case Ordering::LESS_EQ: {
+        // at this point the execution will fail, no further instructions
         return res;
       }
       case Ordering::GREATER:
       case Ordering::GREATER_EQ: {
-        res->_instructions.push(Instruction(static_cast<unsigned>(InstructionTag::SUCCESS)));
+        // at this point the execution will succeed, push SUCCESS
+        res->_instructions.push(Instruction::uintUint(InstructionTag::SUCCESS));
         return res;
       }
       default:
         break;
     }
+    // this essentially means the EQUAL case
     if (comp != Ordering::INCOMPARABLE) {
       continue;
     }
+    // if either term is a variable, we cannot preprocess them further
     if (lhs.isVar() || rhs.isVar()) {
       if (lhs.isVar() && rhs.isVar()) {
-        res->_instructions.push(Instruction(static_cast<unsigned>(InstructionTag::COMPARE_VV),lhs.var()));
-        res->_instructions.push(Instruction(rhs.var()));
+        res->_instructions.push(Instruction::uintUint(InstructionTag::COMPARE_VV,lhs.var(),rhs.var()));
       } else if (lhs.isVar()) {
-        res->_instructions.push(Instruction(static_cast<unsigned>(InstructionTag::COMPARE_VT),lhs.var()));
-        res->_instructions.push(Instruction(rhs.term()));
+        res->_instructions.push(Instruction::uintUint(InstructionTag::COMPARE_VT,lhs.var()));
+        res->_instructions.push(Instruction::term(rhs.term()));
       } else if (rhs.isVar()) {
-        res->_instructions.push(Instruction(static_cast<unsigned>(InstructionTag::COMPARE_TV),rhs.var()));
-        res->_instructions.push(Instruction(lhs.term()));
+        // note that lhs is the second argument in this case
+        res->_instructions.push(Instruction::uintUint(InstructionTag::COMPARE_TV,rhs.var()));
+        res->_instructions.push(Instruction::term(lhs.term()));
       }
 
       // Prepare further cases if this is equal.
@@ -77,11 +82,14 @@ KBOComparator* KBOComparator::create(TermList tl1, TermList tl2, const KBO& kbo)
       continue;
     }
 
+    // if both are proper terms, we calculate
+    // weight and variable balances first
     DHMap<unsigned,int> vars;
     int w = 0;
     countSymbols(kbo, vars, w, lhs, 1);
     countSymbols(kbo, vars, w, rhs, -1);
 
+    // we only care about the non-zero weights and counts
     bool varInbalance = false;
     DHMap<unsigned,int>::Iterator vit(vars);
     Stack<pair<unsigned,int>> nonzeros;
@@ -96,16 +104,19 @@ KBOComparator* KBOComparator::create(TermList tl1, TermList tl2, const KBO& kbo)
         varInbalance = true;
       }
     }
+    // if the condition below does not hold, the weight/var balances are satisfied
     if (w < 0 || varInbalance) {
-      res->_instructions.push(Instruction(static_cast<unsigned>(InstructionTag::WEIGHT)));
-      res->_instructions.push(Instruction((unsigned)nonzeros.size(),w));
+      res->_instructions.push(Instruction::uintInt(InstructionTag::WEIGHT, (unsigned)nonzeros.size(), w));
+      // sort the [var,count] pairs by count descending so that
+      // we can exit early during execution if needed
       sort(nonzeros.begin(),nonzeros.end(),[](const auto& e1, const auto& e2) {
         return e1.second>e2.second;
       });
       for (const auto& [v,cnt] : nonzeros) {
-        res->_instructions.push(Instruction(v,cnt));
+        res->_instructions.push(Instruction::uintInt(InstructionTag::DATA, v, cnt));
       }
     }
+
     auto lhst = lhs.term();
     auto rhst = rhs.term();
 
@@ -116,14 +127,18 @@ KBOComparator* KBOComparator::create(TermList tl1, TermList tl2, const KBO& kbo)
     {
       case Ordering::LESS:
       case Ordering::LESS_EQ: {
+        // again, this means the execution failed
         return res;
       }
       case Ordering::GREATER:
       case Ordering::GREATER_EQ: {
-        res->_instructions.push(Instruction(static_cast<unsigned>(InstructionTag::SUCCESS)));
+        // and this means the execution succeeded
+        res->_instructions.push(Instruction::uintUint(InstructionTag::SUCCESS));
         return res;
       }
       case Ordering::EQUAL: {
+        // push the arguments in reverse order to maintain
+        // left-to-right lexicographic order in todo
         for (unsigned i = 0; i < lhst->arity(); i++) {
           auto lhsArg = *lhst->nthArgument(lhst->arity()-i-1);
           auto rhsArg = *rhst->nthArgument(lhst->arity()-i-1);
@@ -142,26 +157,34 @@ KBOComparator* KBOComparator::create(TermList tl1, TermList tl2, const KBO& kbo)
 bool KBOComparator::check(const SubstApplicator* applicator) const
 {
   for (unsigned i = 0; i < _instructions.size();) {
-    switch (static_cast<InstructionTag>(_instructions[i]._v1)) {
+    switch (static_cast<InstructionTag>(_instructions[i]._tag())) {
       case InstructionTag::WEIGHT: {
-        auto arity = _instructions[i+1]._v1;
-        auto weight = _instructions[i+1]._v2._int;
+
+        // check weight and var balance
+        auto arity = _instructions[i]._firstUint();
+        auto weight = _instructions[i]._coeff();
         ZIArray<int> varDiffs;
-        for (unsigned j = i+2; j < i+2+arity; j++) {
-          auto var = _instructions[j]._v1;
-          auto coeff = _instructions[j]._v2._int;
+        for (unsigned j = i+1; j < i+1+arity; j++) {
+          ASS(_instructions[j]._tag()==InstructionTag::DATA);
+
+          auto var = _instructions[j]._firstUint();
+          auto coeff = _instructions[j]._coeff();
           AppliedTerm tt(TermList(var,false), applicator, true);
 
           VariableIterator vit(tt.term);
           while (vit.hasNext()) {
             auto v = vit.next();
             varDiffs[v.var()] += coeff;
+            // since the counts are sorted in descending order,
+            // this can only mean we will fail
             if (varDiffs[v.var()]<0) {
               return false;
             }
           }
           auto w = _kbo.computeWeight(tt);
           weight += coeff*w;
+          // due to descending order of counts,
+          // this also means failure
           if (coeff<0 && weight<0) {
             return false;
           }
@@ -172,23 +195,25 @@ bool KBOComparator::check(const SubstApplicator* applicator) const
         } else if (weight < 0) {
           return false;
         }
-        i += 2+arity;
+        // jump over the [var,count] pairs
+        i += 1+arity;
         break;
       }
       case InstructionTag::COMPARE_VV: {
         auto res = _kbo.isGreaterOrEq(
-          AppliedTerm(TermList(_instructions[i]._v2._uint,false), applicator, true),
-          AppliedTerm(TermList(_instructions[i+1]._v1,false), applicator, true));
+          AppliedTerm(TermList::var(_instructions[i]._firstUint()), applicator, true),
+          AppliedTerm(TermList::var(_instructions[i]._secondUint()), applicator, true));
         if (res==Ordering::EQUAL) {
-            i += 2;
+            i++;
             break;
         }
         return res==Ordering::GREATER;
       }
       case InstructionTag::COMPARE_VT: {
+        ASS(_instructions[i+1]._tag()==InstructionTag::DATA);
         auto res = _kbo.isGreaterOrEq(
-          AppliedTerm(TermList(_instructions[i]._v2._uint,false), applicator, true),
-          AppliedTerm(TermList(_instructions[i+1]._t), applicator, true));
+          AppliedTerm(TermList::var(_instructions[i]._firstUint()), applicator, true),
+          AppliedTerm(TermList(_instructions[i+1]._term()), applicator, true));
         if (res==Ordering::EQUAL) {
             i += 2;
             break;
@@ -196,9 +221,11 @@ bool KBOComparator::check(const SubstApplicator* applicator) const
         return res==Ordering::GREATER;
       }
       case InstructionTag::COMPARE_TV: {
+        ASS(_instructions[i+1]._tag()==InstructionTag::DATA);
+        // note that in this case the term is the second argument
         auto res = _kbo.isGreaterOrEq(
-          AppliedTerm(TermList(_instructions[i+1]._t), applicator, true),
-          AppliedTerm(TermList(_instructions[i]._v2._uint,false), applicator, true));
+          AppliedTerm(TermList(_instructions[i+1]._term()), applicator, true),
+          AppliedTerm(TermList::var(_instructions[i]._firstUint()), applicator, true));
         if (res==Ordering::EQUAL) {
             i += 2;
             break;
@@ -245,44 +272,47 @@ vstring KBOComparator::toString() const
 
   unsigned cnt = 1;
   for (unsigned i = 0; i < _instructions.size();) {
-    switch (static_cast<InstructionTag>(_instructions[i]._v1)) {
+    switch (static_cast<InstructionTag>(_instructions[i]._tag())) {
       case InstructionTag::SUCCESS: {
         str << Int::toString(cnt++) << " success" << endl;
         i += 1;
         break;
       }
       case InstructionTag::WEIGHT: {
-        auto arity = _instructions[i+1]._v1;
-        auto w = _instructions[i+1]._v2._int;
+        auto arity = _instructions[i]._firstUint();
+        auto w = _instructions[i]._coeff();
         str << Int::toString(cnt++) << " weight " << Int::toString(w);
 
-        for (unsigned j = i+2; j < i+2+arity; j++) {
-          auto var = _instructions[j]._v1;
-          auto coeff = _instructions[j]._v2._int;
+        for (unsigned j = i+1; j < i+1+arity; j++) {
+          ASS(_instructions[j]._tag()==InstructionTag::DATA);
+          auto var = _instructions[j]._firstUint();
+          auto coeff = _instructions[j]._coeff();
 
           str << " w(X" << Int::toString(var) << ")*" << Int::toString(coeff);
         }
         str << endl;
-        i += 2+arity;
+        i += 1+arity;
         break;
       }
       case InstructionTag::COMPARE_VV: {
-        auto v1 = _instructions[i]._v2._uint;
-        auto v2 = _instructions[i+1]._v1;
+        auto v1 = _instructions[i]._firstUint();
+        auto v2 = _instructions[i]._secondUint();
         str << Int::toString(cnt++) << " compare X" << Int::toString(v1) << " X" << Int::toString(v2) << endl;
-        i += 2;
+        i++;
         break;
       }
       case InstructionTag::COMPARE_VT: {
-        auto v1 = _instructions[i]._v2._uint;
-        auto t2 = _instructions[i+1]._t;
+        ASS(_instructions[i+1]._tag()==InstructionTag::DATA);
+        auto v1 = _instructions[i]._firstUint();
+        auto t2 = _instructions[i+1]._term();
         str << Int::toString(cnt++) << " compare X" << Int::toString(v1) << " " << *t2 << endl;
         i += 2;
         break;
       }
       case InstructionTag::COMPARE_TV: {
-        auto t1 = _instructions[i+1]._t;
-        auto v2 = _instructions[i]._v2._uint;
+        ASS(_instructions[i+1]._tag()==InstructionTag::DATA);
+        auto t1 = _instructions[i+1]._term();
+        auto v2 = _instructions[i]._firstUint();
         str << Int::toString(cnt++) << " compare " << *t1 << " X" << Int::toString(v2) << endl;
         i += 2;
         break;

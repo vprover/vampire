@@ -65,12 +65,6 @@ bool unify(TermList tl1, TermList tl2, TermList& orig1, TermList& orig2)
   return true;
 }
 
-ostream& operator<<(ostream& out, const Instruction& n)
-{
-  out << "instr " << n.lhs << " " << n.rhs << " " << n.bs[0] << " " << n.bs[1] << " " << n.bs[2];
-  return out;
-}
-
 ostream& operator<<(ostream& out, const Branch& b)
 {
   switch (b.tag) {
@@ -87,6 +81,12 @@ ostream& operator<<(ostream& out, const Branch& b)
       out << b.jump_pos;
       break;
   }
+  return out;
+}
+
+ostream& operator<<(ostream& out, const Instruction& n)
+{
+  out << "instr " << n.lhs << " " << n.rhs << " " << n.bs[0] << " " << n.bs[1] << " " << n.bs[2];
   return out;
 }
 

@@ -25,13 +25,20 @@ namespace Kernel {
 
 using namespace Lib;
 
+/**
+ * Runtime specialized KBO ordering check, based on the linear KBO check
+ * also implemented in @b KBO.
+ */
 class KBOComparator
 : public OrderingComparator
 {
 public:
   KBOComparator(const KBO& kbo) : _kbo(kbo) {}
+
+  /** This function performs the runtime specialization and creates a comparator object. */
   static KBOComparator* create(TermList tl1, TermList tl2, const KBO& kbo);
 
+  /** Executes the runtime specialized instructions with concrete substitution. */
   bool check(const SubstApplicator* applicator) const;
   vstring toString() const override;
 
@@ -39,30 +46,83 @@ private:
   // TODO this could be done with KBO::State
   static void countSymbols(const KBO& kbo, DHMap<unsigned,int>& vars, int& w, TermList t, int coeff);
 
-  enum class InstructionTag : unsigned {
-    WEIGHT,
-    COMPARE_VV,
-    COMPARE_VT,
-    COMPARE_TV,
-    SUCCESS,
+  enum InstructionTag {
+    DATA = 0u,
+    WEIGHT = 1u,
+    COMPARE_VV = 2u,
+    COMPARE_VT = 3u,
+    COMPARE_TV = 4u,
+    SUCCESS = 5u,
   };
-  union Instruction {
-    explicit Instruction(unsigned v1, unsigned v2) { _v1 = v1; _v2._uint = v2; }
-    explicit Instruction(unsigned v) { _v1 = v; }
-    explicit Instruction(Term* t) { _t = t; }
-    explicit Instruction(unsigned v1, int v2) { _v1 = v1; _v2._int = v2; }
 
-    struct {
-      unsigned _v1;
-      union {
-        int _int;
-        unsigned _uint;
-      } _v2;
-    };
-    Term* _t;
+  /**
+   * Stores atomic instructions for KBO.
+   * We have 64 bits per instruction, and the following combinations (where ?> denotes checking >):
+   * - success
+   * - weight check:          w + |var_i o \theta|_v * nvar_i ?> 0
+   * - compare var with var:  (var1 o \theta) ?> (var2 o \theta)
+   * - compare var with term: (var o \theta) ?> (term o \theta)
+   * - compare term with var: (term o \theta) ?> (var o \theta)
+   *
+   * and the following layout of instructions:
+   * |      first instruction         |      second instruction    | ...
+   * | 3 bits     | 29 bits | 32 bits | 3 bits | 29 bits | 32 bits |
+   * | SUCCESS    |
+   * | WEIGHT     |  arity  |    w    | DATA   | var_i   | nvar_i  | ... (this block `arity` times)
+   * | COMPARE_VV |  var1   |  var2   |
+   * | COMPARE_VT |  var    | <empty> |           term             |
+   * | COMPARE_TV |  var    | <empty> |           term             |
+   */
+  struct Instruction {
+    static Instruction term(Term* t) {
+      Instruction ins;
+      ins._setTag(InstructionTag::DATA);
+      ins._setTerm(t);
+      return ins;
+    }
+    static Instruction uintUint(InstructionTag t, unsigned v1 = 0, unsigned v2 = 0) {
+      Instruction ins;
+      ins._setTag(t);
+      ins._setFirstUint(v1);
+      ins._setSecondUint(v2);
+      return ins;
+    }
+    static Instruction uintInt(InstructionTag t, unsigned v1, int v2) {
+      Instruction ins;
+      ins._setTag(t);
+      ins._setFirstUint(v1);
+      ins._setCoeff(v2);
+      return ins;
+    }
 
-    static_assert(sizeof(Term*)==2*sizeof(unsigned));
-    static_assert(sizeof(Term*)==2*sizeof(int));
+    static constexpr unsigned
+      TAG_BITS_START = 0,
+      TAG_BITS_END = TAG_BITS_START + 3,
+      FIRST_UINT_BITS_START = TAG_BITS_END,
+      FIRST_UINT_BITS_END = FIRST_UINT_BITS_START + 29,
+      SECOND_UINT_BITS_START = FIRST_UINT_BITS_END,
+      SECOND_UINT_BITS_END = SECOND_UINT_BITS_START + 32,
+      COEFF_BITS_START = FIRST_UINT_BITS_END,
+      COEFF_BITS_END = COEFF_BITS_START + 32,
+      TERM_BITS_START = 0,
+      TERM_BITS_END = CHAR_BIT * sizeof(Term *);
+
+    static_assert(TAG_BITS_START == 0, "tag must be the least significant bits");
+    static_assert(TERM_BITS_START == 0, "term must be the least significant bits");
+    static_assert(sizeof(void *) <= sizeof(uint64_t), "must be able to fit a pointer into a 64-bit integer");
+    static_assert(InstructionTag::SUCCESS < 8, "must be able to squash tags into 3 bits");
+
+    BITFIELD64_GET_AND_SET(unsigned, tag, Tag, TAG)
+    BITFIELD64_GET_AND_SET(unsigned, firstUint, FirstUint, FIRST_UINT)
+    BITFIELD64_GET_AND_SET(unsigned, secondUint, SecondUint, SECOND_UINT)
+    BITFIELD64_GET_AND_SET(int, coeff, Coeff, COEFF)
+    Term *_term() const
+    { return reinterpret_cast<Term *>(BitUtils::getBits<TERM_BITS_START, TERM_BITS_END>(this->_content)); }
+    void _setTerm(Term *term)
+    { BitUtils::setBits<TERM_BITS_START, TERM_BITS_END>(this->_content, reinterpret_cast<uint64_t>(term)); }
+
+  private:
+    uint64_t _content;
   };
   const KBO& _kbo;
   Stack<Instruction> _instructions;
