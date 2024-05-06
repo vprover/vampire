@@ -32,6 +32,12 @@ namespace Kernel {
 
 using namespace Shell;
 
+/**
+ * Class implementing runtime specialized ordering check between two terms.
+ * The comparator is created and called from inside the respective ordering
+ * object, but owned by the caller, so the destructor is exposed as virtual.
+ * See @b KBOComparator and @b LPOComparator for implementation details.
+ */
 struct OrderingComparator
 {
   virtual ~OrderingComparator() = default;

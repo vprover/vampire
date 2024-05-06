@@ -20,18 +20,34 @@ namespace Kernel {
 using namespace Lib;
 using namespace std;
 
+/**
+ * Runtime specialized LPO ordering check, based on the LPO check
+ * that has quadratic time complexity @see LPO::lpo.
+ */
 class LPOComparator
 : public OrderingComparator
 {
 public:
-  LPOComparator(const LPO& lpo) : _lpo(lpo), _instructions(), _res(Node::BranchTag::T_JUMP) {}
+  LPOComparator(const LPO& lpo) : _lpo(lpo), _instructions(), _res(Instruction::BranchTag::T_JUMP) {}
+
+  /** This function performs the runtime specialization and creates a comparator object. */
   static LPOComparator* create(TermList tl1, TermList tl2, const LPO& lpo);
 
+  /** Executes the runtime specialized instructions with concrete substitution. */
   bool check(const SubstApplicator* applicator) const;
   vstring toString() const override;
 
-// private:
-  struct Node {
+  /**
+   * Represents comparing check between two terms and branching
+   * information based on the result. The comparison results in
+   * either @b GREATER, @b EQUAL or @b INCOMPARABLE, hence there
+   * are three branches.
+   */
+  struct Instruction {
+    /**
+     * Possible values for a branch, i.e. return the result
+     * of the comparison, or jump to a different instruction.
+     */
     enum class BranchTag : uint8_t {
       T_EQUAL,
       T_GREATER,
@@ -41,7 +57,8 @@ public:
 
     struct Branch {
       BranchTag tag;
-      uint16_t jump_pos;
+      uint16_t jump_pos; // jump positions are absolute
+
       bool operator==(const Branch& other) const {
         return std::tie(tag, jump_pos) == std::tie(other.tag, other.jump_pos);
       }
@@ -52,9 +69,11 @@ public:
       static constexpr Branch gt() { return Branch{ BranchTag::T_GREATER, 0 }; }
       static constexpr Branch inc() { return Branch{ BranchTag::T_INCOMPARABLE, 0 }; }
       static constexpr Branch jump(uint16_t pos) { return Branch{ BranchTag::T_JUMP, pos }; }
+
+      void update(Branch eqBranch, Branch gtBranch, Branch incBranch, unsigned jump_offset);
     };
 
-    Node(TermList lhs, TermList rhs)
+    Instruction(TermList lhs, TermList rhs)
       : lhs(lhs), rhs(rhs), bs() { bs[0] = Branch::eq(); bs[1] = Branch::gt(); bs[2] = Branch::inc(); }
 
     constexpr const auto& getBranch(Ordering::Result r) const {
@@ -70,27 +89,33 @@ public:
       }
     }
 
-    bool operator==(const Node& other) const {
+    bool operator==(const Instruction& other) const {
       return std::tie(lhs, rhs, bs[0], bs[1], bs[2]) ==
         std::tie(other.lhs, other.rhs, other.bs[0], other.bs[1], other.bs[2]);
     }
 
+    // two terms for the comparison
     TermList lhs;
     TermList rhs;
+    // three branches for the three possible comparison results
     Branch bs[3];
 
-    friend ostream& operator<<(ostream& out, const Node& n);
-    friend ostream& operator<<(ostream& out, const Branch& b);
-    friend ostream& operator<<(ostream& out, const BranchTag& bt);
   };
+
 private:
-  static pair<Stack<Node>,Node::BranchTag> majoChain(const LPO& lpo, TermList tl1, Term* t, unsigned i);
-  static pair<Stack<Node>,Node::BranchTag> alphaChain(const LPO& lpo, Term* s, unsigned i, TermList tl2);
-  static pair<Stack<Node>,Node::BranchTag>* createHelper(TermList tl1, TermList tl2, const LPO& lpo);
+  static pair<Stack<Instruction>,Instruction::BranchTag> majoChain(const LPO& lpo, TermList tl1, Term* t, unsigned i);
+  static pair<Stack<Instruction>,Instruction::BranchTag> alphaChain(const LPO& lpo, Term* s, unsigned i, TermList tl2);
+  static pair<Stack<Instruction>,Instruction::BranchTag>* createHelper(TermList tl1, TermList tl2, const LPO& lpo);
 
   const LPO& _lpo;
-  Stack<Node> _instructions;
-  Node::BranchTag _res;
+
+  /** This is non-empty if @b _res is @b BranchTag::T_JUMP */
+  Stack<Instruction> _instructions;
+
+  /** It contains the result of the comparison if the terms
+   * are comparable, otherwise it contains @b BranchTag::T_JUMP
+   * to indicate that @b _instructions have to be executed. */
+  Instruction::BranchTag _res;
 };
 
 }
