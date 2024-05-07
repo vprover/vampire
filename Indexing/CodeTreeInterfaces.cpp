@@ -154,17 +154,6 @@ private:
 };
 
 template<class Data>
-void CodeTreeTIS<Data>::handle(Data data, bool insert)
-{
-  if (insert) {
-    auto ti = new Data(data);
-    _ct.insert(ti);
-  } else {
-    _ct.remove(data);
-  }
-}
-
-template<class Data>
 VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> CodeTreeTIS<Data>::getGeneralizations(TypedTermList t, bool retrieveSubstitutions)
 {
   if(_ct.isEmpty()) {

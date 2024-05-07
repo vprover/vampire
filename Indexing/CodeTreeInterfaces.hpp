@@ -42,7 +42,15 @@ class CodeTreeTIS : public TermIndexingStructure<Data>
 {
 public:
   /* INFO: we ignore unifying the sort of the keys here */
-  void handle(Data data, bool insert) final override;
+  void handle(Data data, bool insert) final override
+  {
+    if (insert) {
+      auto ti = new Data(data);
+      _ct.insert(ti);
+    } else {
+      _ct.remove(data);
+    }
+  }
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) final override;
   // TODO use TypedTermList here too
