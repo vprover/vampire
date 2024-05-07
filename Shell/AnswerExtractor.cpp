@@ -792,7 +792,7 @@ TermList SynthesisManager::ConjectureSkolemReplacement::transformSubterm(TermLis
     }
     Term* t = trm.term();
     unsigned functor = t->functor();
-    if (env.signature->getFunction(functor)->recursionAnswerSymbol()) {
+    if (SynthesisManager::getInstance()->isRecTerm(t)) {
       // Construct a new recursive function corresponding to 'trm'.
       ASS(_recursionMappings->find(functor));
       Function* recf = new Function(functor, this);
@@ -850,44 +850,37 @@ TermList SynthesisManager::ConjectureSkolemReplacement::transformSubterm(TermLis
 
 void SynthesisManager::ConjectureSkolemReplacement::outputRecursiveFunctions() {
   VirtualIterator<Function*> it = _functions.range();
-  vstring res = "";
-  while (it.hasNext()) {
-    res += it.next()->toString();
-  }
-  if (res != "") {
+  if (it.hasNext()) {
     env.out() << "% Recursive function definitions:" << endl;
-    env.out() << res;
+    do {
+      env.out() << it.next()->toString();
+    } while (it.hasNext());
   }
 }
 
 SynthesisManager::ConjectureSkolemReplacement::Function::Function(unsigned recFunctor, ConjectureSkolemReplacement* replacement) {
-  _replacement = replacement;
-  ALWAYS(_replacement->_functionHeads->find(recFunctor, _caseHeads));
+  ALWAYS(replacement->_functionHeads->find(recFunctor, _caseHeads));
   _cases.ensure(_caseHeads->length(_caseHeads));
-  DHMap<unsigned, SkolemTrackerList*>& mapping = _replacement->_recursionMappings->get(recFunctor);
+  const std::pair<bool, DHMap<unsigned, SkolemTracker>>& p = replacement->_recursionMappings->get(recFunctor);
+  ASS(p.first);
   OperatorType* ot = env.signature->getFunction(recFunctor)->fnType();
   TermList in = ot->arg(ot->arity()-1);
   TermList out = ot->arg(0);
-  _ta = env.signature->getTermAlgebraOfSort(in);
+  ASS(env.signature->getTermAlgebraOfSort(in)->nConstructors() == _caseHeads->length(_caseHeads));
   _functor = env.signature->addFreshFunction(/*arity=*/1, "rf");
   Signature::Symbol* f = env.signature->getFunction(_functor);
   f->setType(OperatorType::getFunctionType({in}, out));
-  DHMap<unsigned, SkolemTrackerList*>::Iterator it(mapping);
+  DHMap<Term*, TermList>* caseMap;
+  DHMap<unsigned, SkolemTracker>::Iterator it(p.second /*mapping*/);
   while (it.hasNext()) {
-    unsigned consIdx;
-    SkolemTrackerList* st;
-    it.next(consIdx, st);
-    SkolemTrackerList::Iterator sit(st);
-    DHMap<Term*, TermList>* caseMap;
-    ALWAYS(_skolemToTermListForCase.getValuePtr(consIdx, caseMap));
-    while (sit.hasNext()) {
-      SkolemTracker s = sit.next();
-      ASS(!_skolemToTermList.find(s.binding.second));
-      ASS(consIdx == s.constructorIndex);
-      TermList replacement(s.recursiveCall ? TermList(Term::create(_functor, {*_caseHeads->nth(_caseHeads, s.constructorIndex).term()->nthArgument(s.constructorPos)})) : TermList(s.binding.first, false));
-      _skolemToTermList.insert(s.binding.second, replacement);
-      caseMap->insert(s.binding.second, replacement);
-    }
+    unsigned var;
+    SkolemTracker& st = it.nextRef(var);
+    ASS(var == st.binding.first);
+    ASS(!_skolemToTermList.find(st.binding.second));
+    TermList tl(st.recursiveCall ? TermList(Term::create(_functor, {*_caseHeads->nth(_caseHeads, st.constructorId).term()->nthArgument(st.indexInConstructor)})) : TermList(var, false));
+    _skolemToTermList.insert(st.binding.second, tl);
+    _skolemToTermListForCase.getValuePtr(st.constructorId, caseMap);
+    caseMap->insert(st.binding.second, tl);
   }
 }
 
@@ -898,74 +891,74 @@ void SynthesisManager::ConjectureSkolemReplacement::Function::addCases(Term* t) 
   }
 }
 
-void SynthesisManager::storeSkolemMapping(unsigned int var, Term* skolem, unsigned int constructorIndex, bool recursiveCall, int constructorPos, int recFnId, int recConIndex) {
-  ASS(recFnId >= 0);
-  DHMap<unsigned, SkolemTrackerList*>* m;
-  _recursionMappings.getValuePtr((unsigned)recFnId, m);
-  SkolemTrackerList** l;
-  m->getValuePtr(constructorIndex, l);
-  SkolemTrackerList::push(SkolemTracker(Binding(var, skolem), constructorIndex, recursiveCall, constructorPos, (unsigned)recFnId, recConIndex), (*l));
+void SynthesisManager::registerRecSymbol(unsigned recFnId) {
+  std::pair<bool, DHMap<unsigned, SkolemTracker>>* p;
+  ALWAYS(_recursionMappings.getValuePtr(recFnId, p));
+  p->first = false;
 }
 
-void SynthesisManager::printSkolemMappings() {
+void SynthesisManager::addInductionVarData(unsigned recFnId, unsigned var, unsigned consId, bool recCall, unsigned idxInCons) {
+  std::pair<bool, DHMap<unsigned, SkolemTracker>>* p = _recursionMappings.findPtr(recFnId);
+  ASS(p != nullptr);
+  ASS(!p->first);
+  ALWAYS(p->second.insert(var, SkolemTracker(Binding(var, nullptr), consId, recCall, idxInCons, recFnId)));
+}
+
+void SynthesisManager::printSkolemTrackers() {
   cout << "Skolem mappings:" << endl;
-  SkolemTrackerList::Iterator it(_skolemMappings);
+  DHMap<unsigned, SkolemTracker>::Iterator it(_skolemTrackers);
   while (it.hasNext()) {
     SkolemTracker st = it.next();
     cout << st.toString() << endl;
   }
 }
 
+
 void SynthesisManager::printRecursionMappings() {
   cout << "Recursion mappings:" << endl;
   RecursionMappings::Iterator rit(_recursionMappings);
+  unsigned v;
   while (rit.hasNext()) {
-    DHMap<unsigned, SkolemTrackerList*>::Iterator mit(rit.next());
+    unsigned recFn;
+    auto& p = rit.nextRef(recFn);
+    cout << "  recFn " << recFn << ":" << endl; 
+    DHMap<unsigned, SkolemTracker>::Iterator mit(p.second);
     while (mit.hasNext()) {
-      SkolemTrackerList::Iterator it(mit.next());
-      while (it.hasNext()) {
-        cout << it.next().toString() << endl;
-      }
+      SkolemTracker& s = mit.nextRef(v);
+      cout << v << ": " << s.toString() << endl;
     }
   }
 }
 
-void SynthesisManager::matchSkolemSymbols(BindingList* bindingList, SkolemTrackerList* tempSkolemMappings, List<TermList>* functionHeads) {
-  SkolemTrackerList::Iterator stIt(tempSkolemMappings);
-  unsigned recFnId = 0;
-  while (stIt.hasNext()) {
-    SkolemTracker st = stIt.next();
-
-    BindingList::Iterator bIt(bindingList);
-    while(bIt.hasNext()) {
-      Binding b = bIt.next();
-      if (st.binding.first == b.first) {
-        recFnId = st.recFnId;
-        storeSkolemMapping(b.first, b.second, st.constructorIndex, st.recursiveCall, st.constructorPos, st.recFnId, st.recConIndex);
-        Signature::Symbol* s = env.signature->getFunction(b.second->functor());
-        s->setConstructorId(st.constructorIndex);
-        s->setRecTermId(st.recFnId);
-        break;
-      }
-    }
-  }
-  ASS(recFnId != 0);
-  ALWAYS(_functionHeads.insert(recFnId, functionHeads));
-}
-
-bool SynthesisManager::isRecTerm(const Term* t) { // Checks if t is a _rec_ term
-  unsigned int fn = t->functor();
-  List<unsigned int>::Iterator it(_recTermIds);
+void SynthesisManager::matchSkolemSymbols(unsigned recFnId, BindingList* bindingList, List<TermList>* functionHeads) {
+  DHSet<Binding> bindings;
+  bindings.loadFromIterator(BindingList::Iterator(bindingList));
+  std::pair<bool, DHMap<unsigned, SkolemTracker>>* p = _recursionMappings.findPtr(recFnId);
+  ASS(!p->first);
+  DHSet<Binding>::Iterator it(bindings);
   while (it.hasNext()) {
-    unsigned int rec = it.next();
-    if (fn == rec) {
-      return true;
-    }
+    Binding b = it.next();
+    SkolemTracker* sptr = p->second.findPtr(b.first);
+    ASS(sptr != nullptr);
+    ASS_REP(sptr->binding.second == nullptr, sptr->binding.second->toString());
+    sptr->binding.second = b.second;
+    Signature::Symbol* s = env.signature->getFunction(b.second->functor());
+    _skolemTrackers.insert(b.second->functor(), *sptr);
+    ASS(recFnId == sptr->recFnId);
   }
-  return false;
+  ALWAYS(_functionHeads.insert(recFnId, functionHeads));
+  p->first = true;
 }
 
-bool SynthesisManager::hasRecTerm(Literal* lit) { // ToDo: rewrite it recursively
+bool SynthesisManager::isRecTerm(const Term* t) {
+  return (_recursionMappings.findPtr(t->functor()) != nullptr);
+}
+
+const SkolemTracker* SynthesisManager::getSkolemTracker(unsigned skolemFunctor) {
+  return _skolemTrackers.findPtr(skolemFunctor);
+}
+
+bool SynthesisManager::hasRecTerm(Literal* lit) {
   NonVariableIterator it(lit);
   while (it.hasNext()) {
     TermList tl = it.next();
@@ -975,37 +968,13 @@ bool SynthesisManager::hasRecTerm(Literal* lit) { // ToDo: rewrite it recursivel
     }
   }
   return false;
-
-  if (!lit->isEquality()) {
-    return false;
-  }
-  unsigned arity = lit->arity();
-  for (unsigned i = 0; i < arity; i++) {
-    TermList ts = *lit->nthArgument(i);
-    if (ts.isTerm()) {
-      Term* tst = ts.term();
-      if (SynthesisManager::getInstance()->isRecTerm(tst))
-        return true;
-      SubtermIterator sit(tst);
-      while (sit.hasNext()) { 
-        TermList t = sit.next();
-        if (t.isTerm()) {
-          if (SynthesisManager::getInstance()->isRecTerm(t.term())) {
-            return true;
-          }
-        }
-      }
-    }
-  }
-  return false;
 }
 
-unsigned int SynthesisManager::getResolventLiteralIdx(Clause* clause) {
+int SynthesisManager::getResolventLiteralIdx(Clause* clause) {
   unsigned len = clause->length();
   for (unsigned i = 0; i < len; i++) {
-    Literal* lit = (*clause)[i];
-    if (hasRecTerm(lit)) {
-      return i;
+    if (hasRecTerm((*clause)[i])) {
+      return (int)i;
     }
   }
   return -1;

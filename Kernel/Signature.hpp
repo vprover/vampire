@@ -137,8 +137,6 @@ class Signature
     unsigned _numericConstant : 1;
     /** predicate introduced for query answering */
     unsigned _answerPredicate : 1;
-    /** recursion answer function introduced for synthesis */
-    unsigned _recursionAnswer : 1;
     /** marks numbers too large to represent natively */
     unsigned _overflownConstant : 1;
     /** marks term algebra constructors */
@@ -159,11 +157,6 @@ class Signature
     unsigned _tuple : 1;
     /** if allowed in answer literals */
     unsigned _computable : 1;
-    /** Constructor id in which this Symbol appears (computability in recursive synthesis)*/
-    int _constructorId;
-    /** Functor of rec-term matching this skolem*/
-    // TODO(hzzv): change to unsigned?
-    int _recFnId;
     /** proxy type */
     Proxy _prox;
     /** combinator type */
@@ -190,8 +183,6 @@ class Signature
     void markLabel() { ASS_EQ(arity(), 0); _label=1; markProtected(); }
     /** mark symbol to be an answer predicate */
     void markAnswerPredicate() { _answerPredicate=1; markProtected(); }
-    /** mark symbol to be an recursion answer symbol */
-    void markRecursionAnswerSymbol() { _recursionAnswer=1; markProtected(); }
     /** mark predicate to be an equality proxy */
     void markEqualityProxy() { _equalityProxy=1; }
     /** mark predicate as (polarity) flipped */
@@ -204,10 +195,6 @@ class Signature
     void markTermAlgebraDest() { _termAlgebraDest=1; }
     /** mark the symbol as uncomputable and hence not allowed in answer literals */
     void markUncomputable() { _computable = 0; }
-    /** set the constructor id in structural induction axiom in which this symbol appears */
-    void setConstructorId(int cid) { _constructorId=cid; }
-    /** set the rec-term function id (this symbol is a skolem obtained from the induction axiom containing that rec-term)*/
-    void setRecTermId(int rid) { _recFnId=rid;  }
 
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
@@ -246,8 +233,6 @@ class Signature
     inline bool numericConstant() const { return _numericConstant; }
     /** Return true iff symbol is an answer predicate */
     inline bool answerPredicate() const { return _answerPredicate; }
-    /** Return true iff symbol is a recusion answer symbol */
-    inline bool recursionAnswerSymbol() const { return _recursionAnswer; }
     /** Return true iff symbol is an equality proxy */
     inline bool equalityProxy() const { return _equalityProxy; }
     /** Return true iff symbol was polarity flipped */
@@ -260,10 +245,6 @@ class Signature
     inline bool termAlgebraDest() const { return _termAlgebraDest; }
     /** Return true iff symbol is considered computable */
     inline bool computable() const { return _computable; }
-    /** Return the constructor id in structural induction axiom in which this symbol appears */
-    inline int constructorId() const { return _constructorId; }
-    /** Return rec-term function id matching this skolem */
-    inline int recFnId() const { return _recFnId; }
 
     /** Increase the usage count of this symbol **/
     inline void incUsageCnt(){ _usageCount++; }
@@ -312,10 +293,6 @@ class Signature
     /** return true if an interpreted number, note subtle but significant difference from numericConstant **/
     inline bool interpretedNumber() const
     { return integerConstant() || rationalConstant() || realConstant(); }
-
-    /** return true if a skolem constant from structural induction axiom */
-    inline bool skolemFromStructIndAxiom()
-    { return skolem() && _constructorId != -1; }
 
     /** Return value of an integer constant */
     inline IntegerConstantType integerValue() const

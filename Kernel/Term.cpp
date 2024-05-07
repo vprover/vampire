@@ -1841,23 +1841,26 @@ bool Term::computable() const {
 
 bool Term::computableOrVarHelper(DHMap<unsigned, int>* recAncestors) const {
   Signature::Symbol* symbol = env.signature->getFunction(functor());
+  SynthesisManager* synthMan = SynthesisManager::getInstance();
 
   if (!symbol->computable()) { // either symbol marked as uncomputable in the input, or a skolem
-    if (!symbol->skolem() || !symbol->skolemFromStructIndAxiom()) {
+    if (!symbol->skolem()) {
       return false;
-    } else {
-      // The symbol is a skolem from induction. It can still be allowed if it occurs in a suitable argument of a rec-term.
-      ASS(symbol->recFnId() >= 0);
-      int idx = 0;
-      if (!recAncestors->find((unsigned)symbol->recFnId(), idx) || (idx != symbol->constructorId())) {
-        return false;
-      }
     }
+    const Shell::SkolemTracker* st = synthMan->getSkolemTracker(functor());
+    if (st == nullptr) {
+       return false;
+    }
+    int idx = 0;
+    if (!recAncestors->find(st->recFnId, idx) || (idx != st->constructorId)) {
+      return false;
+    }
+    return true;
   }
 
   // Top functor is computable, now recurse.
   int* idx = nullptr;
-  if (SynthesisManager::getInstance()->isRecTerm(this)) {
+  if (synthMan->isRecTerm(this)) {
     ALWAYS(recAncestors->getValuePtr(functor(), idx, -1));
   }
   for (int i = 0; i < _arity; i++) {

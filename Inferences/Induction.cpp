@@ -678,7 +678,7 @@ ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, In
   inf.setInductionDepth(maxInductionDepth+1);
   FormulaUnit* fu = new FormulaUnit(hypothesis,inf);
   if(_opt.showInduction()){
-    env.beginOutput();// Stores SkolemTrackers before skolemization happens
+    env.beginOutput();
     env.out() << "[Induction] formula " << fu->toString() << endl;
     env.endOutput();
   }
@@ -695,11 +695,18 @@ ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, In
   //  cout << "induction premise is " << premise->toString() << endl;
   //  cout << "induction literal is " << indLit->toString() << endl;
   //#endif
+  SynthesisManager* synthMan = SynthesisManager::getInstance();
   while(cit.hasNext()){
     Clause* c = cit.next();
     unsigned cLen = c->length();
-
-    int resLitIdx = SynthesisManager::getInstance()->getResolventLiteralIdx(c); // The literal which contains a rec(.) term should be picked for resolution
+    // The literal which contains a rec(.) term should be picked for resolution
+    int resLitIdx = -1;
+    for (unsigned i = 0; i < cLen; ++i) {
+      if (synthMan->hasRecTerm((*c)[i])) {
+        resLitIdx = i;
+        break;
+      }
+    }
     if (resLitIdx == -1){ //ToDo: check why not finding correct literal in cut-off subtract. This if should not be needed when getResolventLiteralIdx is debugged.
       resLitIdx = cLen - 1;
       std::cout << "clause to resolve is " << c->toString() << std::endl;
@@ -717,7 +724,7 @@ ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, In
     while (!resolved && sit.hasNext()) {
       sit.next();
       TermList t = subst.apply(v, 0);
-      if (t.isTerm() && env.signature->getFunction(t.term()->functor())->recursionAnswerSymbol()) {
+      if (t.isTerm() && synthMan->isRecTerm(t.term())) {
         Stack<Literal*> lits;
         for (unsigned i = 0; i < cLen; i++) { // Apply resolution on rest of the literals
           if (i != (unsigned)resLitIdx) {
@@ -1408,7 +1415,8 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
 
   FormulaList* formulas = FormulaList::empty();
 
-  unsigned var = SynthesisManager::getInstance()->numInputSkolems();
+  SynthesisManager* synthMan = SynthesisManager::getInstance();
+  unsigned var = synthMan->numInputSkolems();
   Literal* L = Literal::complementaryLiteral(context._cls.begin()->second[0]);
   
   VList* free_vars = L->freeVariables();
@@ -1431,7 +1439,6 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   VList* ys = VList::empty(); 
   VList* nse = VList::empty(); 
   VList* nsf = VList::empty(); 
-  SkolemTrackerList* tempSkolemMappings = SkolemTrackerList::empty();  // Stores SkolemTrackers before skolemization happens
 
   unsigned recArity = ta->nConstructors() + 1;
   //Formula* baseCond = nullptr;
@@ -1473,6 +1480,7 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   //}
 
   unsigned rec_fn = env.signature->addFreshFunction(recArity, "rec");
+  synthMan->registerRecSymbol(rec_fn);
   TermAlgebraConstructor* nsBaseCon = nullptr;
   List<TermList>* fnHeads = List<TermList>::empty();
   for (unsigned i = 0; i < ta->nConstructors(); i++){
@@ -1519,7 +1527,7 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
         TermList w(var++, false);
         VList::push(w.var(), ws);
         // Stores SkolemTrackers before skolemization happens. Later (after skolemization), they will be used to match Skolem symbols.
-        tempSkolemMappings->push(SkolemTracker(Binding(w.var(), nullptr), i, true, j, rec_fn), tempSkolemMappings);
+        synthMan->addInductionVarData(rec_fn, w.var(), i, /*recCall=*/true, j);
 
         TermReplacement tr(context._indTerm, y);
         Literal* curLit = tr.transform(L);
@@ -1533,7 +1541,7 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
         FormulaList::push(new AtomicFormula(curLit), hyps); // L[y_j, w_j] or L[y_j, w_j] \/ y_j = cons1 \/ ... \/ y_j = consN
       }
       // Stores SkolemTrackers before skolemization happens. Later (after skolemization), they will be used to match Skolem symbols.
-      tempSkolemMappings->push(SkolemTracker(Binding(y.var(), nullptr), i, false, j, rec_fn), tempSkolemMappings);
+      synthMan->addInductionVarData(rec_fn, y.var(), i, /*recCall=*/false, j);
     }
     Formula* antecedent = JunctionFormula::generalJunction(Connective::AND, hyps); // /\_{j ∈ P_c}  L[y_j, w_j]
 
@@ -1552,7 +1560,7 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
         TermList* tl = nsOtherConTerm->nthArgument(vi);
         if (*tl != nsConVar) {
           ASS(tl->isVar());
-          tempSkolemMappings->push(SkolemTracker(Binding(tl->var(), nullptr), i, false, vi, rec_fn, 0), tempSkolemMappings);
+          synthMan->addInductionVarData(rec_fn, tl->var(), i, /*recCall=*/false, vi);
         }
       }
     }
@@ -1576,8 +1584,6 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   TermList z(var++, false);
   recFuncArgs.push(z);
 
-  SynthesisManager::getInstance()->storeRecTerm(rec_fn);
-
   auto synth_sort = SortHelper::getVariableSort(freshSynthVar, L);
   TermStack sortArgs(ta->nConstructors() + 1);
   for (unsigned i = 0; i < ta->nConstructors(); i++) {
@@ -1586,7 +1592,6 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   sortArgs.push(sort);
 
   env.signature->getFunction(rec_fn)->setType(OperatorType::getFunctionType(sortArgs.size(), sortArgs.begin(), synth_sort));
-  env.signature->getFunction(rec_fn)->markRecursionAnswerSymbol();
   TermList rec(Term::create(rec_fn, recFuncArgs.size(), recFuncArgs.begin()));
 
   TermReplacement tr(context._indTerm, z);
@@ -1628,7 +1633,7 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
   // cls contains the hyperresoluted clauses
 
   fnHeads = fnHeads->reverse(fnHeads);
-  SynthesisManager::getInstance()->matchSkolemSymbols(bindingList, tempSkolemMappings, fnHeads);
+  synthMan->matchSkolemSymbols(rec_fn, bindingList, fnHeads);
   
   //#if VDEBUG
   //  cout << "Clauses produced by structural induction axiom: " << endl;
