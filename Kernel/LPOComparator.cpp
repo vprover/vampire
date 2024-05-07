@@ -22,19 +22,6 @@ using Instruction = LPOComparator::Instruction;
 using Branch = Instruction::Branch;
 using BranchTag = Instruction::BranchTag;
 
-struct InstructionHash {
-  static unsigned hash(const Branch& b) {
-    return HashUtils::combine(DefaultHash::hash(b.tag),b.jump_pos);
-  }
-  static unsigned hash(const Instruction& other) {
-    return HashUtils::combine(other.lhs.defaultHash(), other.rhs.defaultHash(),
-      hash(other.bs[0]), hash(other.bs[1]), hash(other.bs[2]));
-  }
-  static bool equals(const Instruction& n1, const Instruction& n2) {
-    return n1==n2;
-  }
-};
-
 bool unify(TermList tl1, TermList tl2, TermList& orig1, TermList& orig2)
 {
   RobSubstitution rsubst;
@@ -160,7 +147,7 @@ void pushInstructions(Stack<Instruction>& st, const Stack<Instruction>& other, B
 void deleteDuplicates(Stack<Instruction>& st)
 {
   unsigned removedCnt = 0;
-  Map<Instruction,unsigned,InstructionHash> lastPos;
+  Map<Instruction,unsigned> lastPos;
   vvector<unsigned> removedAfter(st.size(),0);
 
   // First pass, remember the last position of

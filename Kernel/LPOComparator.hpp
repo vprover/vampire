@@ -59,12 +59,12 @@ public:
       BranchTag tag;
       uint16_t jump_pos; // jump positions are absolute
 
-      bool operator==(const Branch& other) const {
-        return std::tie(tag, jump_pos) == std::tie(other.tag, other.jump_pos);
-      }
-      bool operator<(const Branch& other) const {
-        return std::tie(tag, jump_pos) < std::tie(other.tag, other.jump_pos);
-      }
+      std::tuple<BranchTag,uint16_t> asTuple() const
+      { return std::make_tuple(tag, jump_pos); }
+
+      IMPL_COMPARISONS_FROM_TUPLE(Branch);
+      IMPL_HASH_FROM_TUPLE(Branch);
+
       static constexpr Branch eq() { return Branch{ BranchTag::T_EQUAL, 0 }; }
       static constexpr Branch gt() { return Branch{ BranchTag::T_GREATER, 0 }; }
       static constexpr Branch inc() { return Branch{ BranchTag::T_INCOMPARABLE, 0 }; }
@@ -89,10 +89,11 @@ public:
       }
     }
 
-    bool operator==(const Instruction& other) const {
-      return std::tie(lhs, rhs, bs[0], bs[1], bs[2]) ==
-        std::tie(other.lhs, other.rhs, other.bs[0], other.bs[1], other.bs[2]);
-    }
+    std::tuple<TermList,TermList,Branch,Branch,Branch> asTuple() const
+    { return std::make_tuple(lhs, rhs, bs[0], bs[1], bs[2]); }
+
+    IMPL_COMPARISONS_FROM_TUPLE(Instruction);
+    IMPL_HASH_FROM_TUPLE(Instruction);
 
     // two terms for the comparison
     TermList lhs;

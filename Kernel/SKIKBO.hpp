@@ -62,7 +62,7 @@ public:
   typedef SmartPtr<ApplicativeArgsIt> ArgsIt_ptr;
 
   using PrecedenceOrdering::compare;
-  Result compare(TermList tl1, TermList tl2) const override;  
+  Result compare(TermList tl1, TermList tl2) const override;
   Result compare(AppliedTerm tl1, AppliedTerm tl2) const override { NOT_IMPLEMENTED; }
   bool isGreater(AppliedTerm tl1, AppliedTerm tl2) const override { NOT_IMPLEMENTED; }
   bool isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, OrderingComparator*& comparator) const override;

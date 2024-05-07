@@ -116,10 +116,7 @@ private:
     BITFIELD64_GET_AND_SET(unsigned, firstUint, FirstUint, FIRST_UINT)
     BITFIELD64_GET_AND_SET(unsigned, secondUint, SecondUint, SECOND_UINT)
     BITFIELD64_GET_AND_SET(int, coeff, Coeff, COEFF)
-    Term *_term() const
-    { return reinterpret_cast<Term *>(BitUtils::getBits<TERM_BITS_START, TERM_BITS_END>(this->_content)); }
-    void _setTerm(Term *term)
-    { BitUtils::setBits<TERM_BITS_START, TERM_BITS_END>(this->_content, reinterpret_cast<uint64_t>(term)); }
+    BITFIELD64_GET_AND_SET_PTR(Term*, term, Term, TERM)
 
   private:
     uint64_t _content;
