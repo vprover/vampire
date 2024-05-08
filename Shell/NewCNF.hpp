@@ -23,6 +23,7 @@
 #include "Lib/STLAllocator.hpp"
 #include "Lib/SmartPtr.hpp"
 #include "Lib/DHMap.hpp"
+#include "Lib/DHSet.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/Formula.hpp" //TODO AYB remove, it is not required in master
@@ -68,7 +69,7 @@ public:
     : _namingThreshold(namingThreshold), _iteInliningThreshold((unsigned)ceil(log2(namingThreshold))),
       _collectedVarSorts(false), _maxVar(0),_forInduction(false) {}
 
-  void clausify(FormulaUnit* unit, Stack<Clause*>& output, BindingList** bindingList = nullptr);
+  void clausify(FormulaUnit* unit, Stack<Clause*>& output, DHSet<Binding>* bindings = nullptr);
   void setForInduction(){ _forInduction=true; }
 private:
   unsigned _namingThreshold;

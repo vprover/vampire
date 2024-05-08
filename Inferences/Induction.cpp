@@ -18,6 +18,7 @@
 
 #include "Lib/BitUtils.hpp"
 #include "Lib/DHMap.hpp"
+#include "Lib/DHSet.hpp"
 #include "Lib/IntUnionFind.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/PairUtils.hpp"
@@ -666,7 +667,7 @@ ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, Inferen
 }
 
 
-ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, InferenceRule rule, const InductionContext& context, BindingList* &bindingList) {
+ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, InferenceRule rule, const InductionContext& context, DHSet<Binding>& bindings) {
   NewCNF cnf(0);
   cnf.setForInduction();
   Stack<Clause*> hyp_clauses;
@@ -682,7 +683,7 @@ ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, In
     env.out() << "[Induction] formula " << fu->toString() << endl;
     env.endOutput();
   }
-  cnf.clausify(NNF::ennf(fu), hyp_clauses, &bindingList); // Skolemization happens here (using new CNF)
+  cnf.clausify(NNF::ennf(fu), hyp_clauses, &bindings); // Skolemization happens here (using new CNF)
 
   // Hyperresolution 
   Literal* indLit = context.getInductionLiteral();
@@ -1626,14 +1627,13 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
 
   //std::cout << "Synthesized induction formula: " << formula->toString() << std::endl;
 
-  BindingList* bindingList = BindingList::empty();
+  DHSet<Binding> bindings;
 
-
-  auto cls = produceClausesSynth(formula, InferenceRule::STRUCT_INDUCTION_AXIOM, context, bindingList);
+  auto cls = produceClausesSynth(formula, InferenceRule::STRUCT_INDUCTION_AXIOM, context, bindings);
   // cls contains the hyperresoluted clauses
 
   fnHeads = fnHeads->reverse(fnHeads);
-  synthMan->matchSkolemSymbols(rec_fn, bindingList, fnHeads);
+  synthMan->matchSkolemSymbols(rec_fn, bindings, fnHeads);
   
   //#if VDEBUG
   //  cout << "Clauses produced by structural induction axiom: " << endl;

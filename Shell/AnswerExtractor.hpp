@@ -249,7 +249,7 @@ public:
   // Add a new SkolemTracker before skolemization (without the corresponding skolem).
   void addInductionVarData(unsigned recFnId, unsigned var, unsigned consId, bool recCall, unsigned idxInCons);
   // Add skolem constant terms for the stored SkolemTrackers and finalize all SkolemTrackers for this recFnId.
-  void matchSkolemSymbols(unsigned recFnId, BindingList* bindingList, List<TermList>* functionHeads);
+  void matchSkolemSymbols(unsigned recFnId, const DHSet<Binding>& binding, List<TermList>* functionHeads);
 
   bool isRecTerm(const Term* t);
 

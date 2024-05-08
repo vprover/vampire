@@ -49,17 +49,13 @@ void AnswerExtractor::tryOutputAnswer(Clause* refutation)
 {
   Stack<TermList> answer;
 
-  bool hasALManager = false, hasSyntManager = false;
-  if (AnswerLiteralManager::getInstance()->tryGetAnswer(refutation, answer)) {
-    hasALManager = true;
-  } else {
-    if (SynthesisManager::getInstance()->tryGetAnswer(refutation, answer)) {
-      hasSyntManager = true;
-    } else {
-      ConjunctionGoalAnswerExractor cge;
-      if(!cge.tryGetAnswer(refutation, answer)) {
-        return;
-      }
+  bool hasSyntManager = false;
+  if (SynthesisManager::getInstance()->tryGetAnswer(refutation, answer)) {
+    hasSyntManager = true;
+  } else if (!AnswerLiteralManager::getInstance()->tryGetAnswer(refutation, answer)) {
+    ConjunctionGoalAnswerExractor cge;
+    if(!cge.tryGetAnswer(refutation, answer)) {
+      return;
     }
   }
   env.beginOutput();
@@ -930,9 +926,7 @@ void SynthesisManager::printRecursionMappings() {
   }
 }
 
-void SynthesisManager::matchSkolemSymbols(unsigned recFnId, BindingList* bindingList, List<TermList>* functionHeads) {
-  DHSet<Binding> bindings;
-  bindings.loadFromIterator(BindingList::Iterator(bindingList));
+void SynthesisManager::matchSkolemSymbols(unsigned recFnId, const DHSet<Binding>& bindings, List<TermList>* functionHeads) {
   std::pair<bool, DHMap<unsigned, SkolemTracker>>* p = _recursionMappings.findPtr(recFnId);
   ASS(!p->first);
   DHSet<Binding>::Iterator it(bindings);
@@ -942,7 +936,6 @@ void SynthesisManager::matchSkolemSymbols(unsigned recFnId, BindingList* binding
     ASS(sptr != nullptr);
     ASS_REP(sptr->binding.second == nullptr, sptr->binding.second->toString());
     sptr->binding.second = b.second;
-    Signature::Symbol* s = env.signature->getFunction(b.second->functor());
     _skolemTrackers.insert(b.second->functor(), *sptr);
     ASS(recFnId == sptr->recFnId);
   }

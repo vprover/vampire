@@ -1839,7 +1839,7 @@ bool Term::computable() const {
   return true;
 }
 
-bool Term::computableOrVarHelper(DHMap<unsigned, int>* recAncestors) const {
+bool Term::computableOrVarHelper(DHMap<unsigned, unsigned>* recAncestors) const {
   Signature::Symbol* symbol = env.signature->getFunction(functor());
   SynthesisManager* synthMan = SynthesisManager::getInstance();
 
@@ -1851,7 +1851,7 @@ bool Term::computableOrVarHelper(DHMap<unsigned, int>* recAncestors) const {
     if (st == nullptr) {
        return false;
     }
-    int idx = 0;
+    unsigned idx = 0;
     if (!recAncestors->find(st->recFnId, idx) || (idx != st->constructorId)) {
       return false;
     }
@@ -1859,11 +1859,11 @@ bool Term::computableOrVarHelper(DHMap<unsigned, int>* recAncestors) const {
   }
 
   // Top functor is computable, now recurse.
-  int* idx = nullptr;
+  unsigned* idx = nullptr;
   if (synthMan->isRecTerm(this)) {
     ALWAYS(recAncestors->getValuePtr(functor(), idx, -1));
   }
-  for (int i = 0; i < _arity; i++) {
+  for (unsigned i = 0; i < _arity; i++) {
     const TermList* t = nthArgument(i);
     if (t->isTerm()) { // else we have a variable, which needs no check
       if (idx) {
@@ -1882,9 +1882,8 @@ bool Term::computableOrVarHelper(DHMap<unsigned, int>* recAncestors) const {
 }
 
 bool Term::computableOrVar() const {
-  DHMap<unsigned, int> recAncestors;
-  bool res = this->computableOrVarHelper(&recAncestors);
-  return res;
+  DHMap<unsigned, unsigned> recAncestors;
+  return computableOrVarHelper(&recAncestors);
 }
 
 std::ostream& Kernel::operator<<(std::ostream& out, Term::SpecialFunctor const& self)
