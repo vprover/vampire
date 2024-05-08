@@ -172,8 +172,7 @@ VL_OBJ= Lib/Allocator.o\
         Lib/System.o\
         Lib/Timer.o
 
-VLS_OBJ= Lib/Sys/Multiprocessing.o\
-         Lib/Sys/Semaphore.o
+VLS_OBJ= Lib/Sys/Multiprocessing.o
 
 VK_OBJ= Kernel/Clause.o\
         Kernel/ClauseQueue.o\

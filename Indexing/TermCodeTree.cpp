@@ -84,7 +84,7 @@ void TermCodeTree<Data>::remove(const Data& data)
   FlatTerm* ft=FlatTerm::create(data.term);
   rtm.init(ft, this, &firstsInBlocks);
   
-  Data* dptr;
+  Data* dptr = nullptr;
   for(;;) {
     if (!rtm.next()) {
       ASSERTION_VIOLATION;
@@ -98,7 +98,8 @@ void TermCodeTree<Data>::remove(const Data& data)
   }
   
   rtm.op->makeFail();
-  
+
+  ASS(dptr);
   delete dptr;
   ft->destroy();
   

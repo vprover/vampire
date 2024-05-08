@@ -44,7 +44,7 @@ public:
   static VirtualIterator<TypedTermList> getLHSIterator(Literal* lit, const Ordering& ord);
   static VirtualIterator<TypedTermList> getSuperpositionLHSIterator(Literal* lit, const Ordering& ord, const Options& opt);
   static VirtualIterator<TypedTermList> getSubVarSupLHSIterator(Literal* lit, const Ordering& ord);
-  static VirtualIterator<TypedTermList> getDemodulationLHSIterator(Literal* lit, bool preordered, const Ordering& ord);
+  static std::pair<VirtualIterator<TypedTermList>,bool> getDemodulationLHSIterator(Literal* lit, bool onlyPreordered, const Ordering& ord);
   static TermIterator getEqualityArgumentIterator(Literal* lit);
   static bool isPreorderedForDemodulation(Literal* lit, const Ordering& ord);
 

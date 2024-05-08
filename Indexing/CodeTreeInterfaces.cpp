@@ -48,7 +48,7 @@ public:
 
   TermList apply(unsigned var)
   {
-    if constexpr (is_data_normalized<Data>::value) {
+    if constexpr (is_indexed_data_normalized<Data>::value) {
       return (*_bindings)[var];
     } else {
       ASS(_resultNormalizer->contains(var));
@@ -132,7 +132,7 @@ public:
 
     ResultSubstitutionSP subs;
     if (_retrieveSubstitutions) {
-      if constexpr (!is_data_normalized<Data>::value) {
+      if constexpr (!is_indexed_data_normalized<Data>::value) {
         _resultNormalizer->reset();
         _resultNormalizer->normalizeVariables(_found->term);
       }
@@ -152,17 +152,6 @@ private:
   CodeTreeTIS* _tree;
   Recycled<typename TermCodeTree<Data>::TermMatcher> _matcher;
 };
-
-template<class Data>
-void CodeTreeTIS<Data>::handle(Data data, bool insert)
-{
-  if (insert) {
-    auto ti = new Data(data);
-    _ct.insert(ti);
-  } else {
-    _ct.remove(data);
-  }
-}
 
 template<class Data>
 VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> CodeTreeTIS<Data>::getGeneralizations(TypedTermList t, bool retrieveSubstitutions)

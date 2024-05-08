@@ -111,48 +111,49 @@ struct TermLiteralClause
                << ")"; }
 };
 
+/** Custom leaf data for forward demodulation to store the demodulator
+ * left- and right-hand side normalized and cache preorderedness. */
 struct DemodulatorData
 {
-  DemodulatorData(TypedTermList term, TermList other, Clause* clause, bool preordered)
-    : term(term), other(other), clause(clause), preordered(preordered), comparator(nullptr)
+  DemodulatorData(TypedTermList term, TermList rhs, Clause* clause, bool preordered, const Ordering& ord)
+    : term(term), rhs(rhs), clause(clause), preordered(preordered), comparator(nullptr)
   {
-    ASS(term.containsAllVariablesOf(other))
 #if VDEBUG
+    ASS(term.containsAllVariablesOf(rhs));
+    ASS(!preordered || ord.compare(term,rhs)==Ordering::GREATER);
     Renaming r;
     r.normalizeVariables(term);
     ASS_EQ(term,r.apply(term));
-    ASS_EQ(other,r.apply(other));
+    ASS_EQ(rhs,r.apply(rhs));
 #endif
   }
 
+  // lhs, the identifier is required to be `term` by CodeTree
   TypedTermList term;
-  TermList other;
+  TermList rhs;
   Clause* clause;
-  bool preordered;
+  bool preordered; // whether term > rhs
   OrderingComparator* comparator;
 
   ~DemodulatorData() { if (comparator) { delete comparator; } }
 
   TypedTermList const& key() const { return term; }
 
-  auto  asTuple() const
-  { return std::make_tuple(clause->number(), term, other); }
+  auto asTuple() const
+  { return std::make_tuple(clause->number(), term, rhs); }
 
   IMPL_COMPARISONS_FROM_TUPLE(DemodulatorData)
 
   friend std::ostream& operator<<(std::ostream& out, DemodulatorData const& self)
-  { return out << "("
-               << self.term << " = " << self.other
-               << outputPtr(self.clause)
-               << ")"; }
+  { return out << "(" << self.term << " = " << self.rhs << outputPtr(self.clause) << ")"; }
 };
 
 template<class T>
-struct is_data_normalized
+struct is_indexed_data_normalized
 { static constexpr bool value = false; };
 
 template<>
-struct is_data_normalized<DemodulatorData>
+struct is_indexed_data_normalized<DemodulatorData>
 { static constexpr bool value = true; };
 
 /**

@@ -208,7 +208,7 @@ void BackwardDemodulation::perform(Clause* cl,
 		    getMapAndFlattenIterator(
 			    EqHelper::getDemodulationLHSIterator(lit,
             _salg->getOptions().backwardDemodulation() == Options::Demodulation::PREORDERED,
-            _salg->getOrdering()),
+            _salg->getOrdering()).first,
 			    RewritableClausesFn(_index)),
 		    ResultFn(cl, *this, _helper)),
  	    RemovedIsNonzeroFn()) );

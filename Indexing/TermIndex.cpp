@@ -121,15 +121,22 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
   TIME_TRACE("forward demodulation index maintenance");
 
   Literal* lit=(*c)[0];
-  auto lhsi = EqHelper::getDemodulationLHSIterator(lit,
-                    _opt.forwardDemodulation()== Options::Demodulation::PREORDERED, _ord);
-  bool preordered = EqHelper::isPreorderedForDemodulation(lit, _ord);
+  auto [lhsi, preordered] = EqHelper::getDemodulationLHSIterator(
+      lit, _opt.forwardDemodulation()== Options::Demodulation::PREORDERED, _ord);
+
   while (lhsi.hasNext()) {
     auto lhs = lhsi.next();
+
+    // DemodulatorData expects lhs and rhs to be normalized
     Renaming r;
     r.normalizeVariables(lhs);
-    _is->handle(DemodulatorData(TypedTermList(r.apply(lhs),r.apply(lhs.sort())),
-        r.apply(EqHelper::getOtherEqualitySide(lit, lhs)), c, preordered), adding);
+
+    DemodulatorData dd(
+      TypedTermList(r.apply(lhs),r.apply(lhs.sort())),
+      r.apply(EqHelper::getOtherEqualitySide(lit, lhs)),
+      c, preordered, _ord
+    );
+    _is->handle(dd, adding);
   }
 }
 

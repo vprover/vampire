@@ -157,7 +157,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           }
         }
 
-        TermList rhs = qr.data->other;
+        TermList rhs = qr.data->rhs;
         bool preordered = qr.data->preordered;
 
         auto subs = qr.unifier;

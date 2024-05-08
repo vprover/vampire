@@ -380,7 +380,10 @@ Problem* UIHelper::getInputProblem()
 {
   LoadedPiece& topPiece = _loadedPieces.top();
   Problem* res = new Problem(topPiece._units.list());
-  
+
+  // NB this must happen immediately, as the Property relies on it
+  res->setSMTLIBLogic(topPiece._smtLibLogic);
+
   if(res->isHigherOrder())
     USER_ERROR(
       "This version of Vampire is not yet HOLy.\n\n"
@@ -388,7 +391,6 @@ Problem* UIHelper::getInputProblem()
       "HOL should be coming to mainline 'soon'."
     );
 
-  res->setSMTLIBLogic(topPiece._smtLibLogic);
   env.setMainProblem(res);
   return res;
 }

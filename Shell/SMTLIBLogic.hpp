@@ -21,6 +21,9 @@ namespace Shell {
   * (I/R)DL - difference logic - we don't treat specially (fragment of L(I/R)A)
   * UF - uninterpreted function = first order we know and love
   * DT - datatypes (term algebras)
+  *
+  * VERY IMPORTANT if this is changed: must also update SMTLIB2::smtLogicNameStrings
+  * (which themselves must be in alphabetical order, so this is also alphabetic)
   */
 enum SMTLIBLogic {
   SMT_ALIA,
@@ -29,9 +32,9 @@ enum SMTLIBLogic {
   SMT_AUFDTLIA,
   SMT_AUFDTLIRA,
   SMT_AUFDTNIRA,
-  SMT_AUFNIA,
   SMT_AUFLIA,
   SMT_AUFLIRA,
+  SMT_AUFNIA,
   SMT_AUFNIRA,
   SMT_BV,
   SMT_LIA,
