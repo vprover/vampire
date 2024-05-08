@@ -150,25 +150,14 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         if(lhs.isVar()){
           eqSortSubs.reset();
           TermList querySort = trm.sort();
-          TermList eqSort = SortHelper::getEqualityArgumentSort(qr.data->literal);
+          TermList eqSort = qr.data->term.sort();
           if(!eqSortSubs.match(eqSort, 0, querySort, 1)){
             continue;
           }
         }
 
-        TermList rhs=EqHelper::getOtherEqualitySide(qr.data->literal,lhs);
-        Ordering::Result argOrder = ordering.getEqualityArgumentOrder(qr.data->literal);
-        bool preordered = argOrder==Ordering::LESS || argOrder==Ordering::GREATER;
-  #if VDEBUG
-        if(preordered) {
-          if(argOrder==Ordering::LESS) {
-            ASS_EQ(rhs, *qr.data->literal->nthArgument(0));
-          }
-          else {
-            ASS_EQ(rhs, *qr.data->literal->nthArgument(1));
-          }
-        }
-  #endif
+        TermList rhs = qr.data->rhs;
+        bool preordered = qr.data->preordered;
 
         auto subs = qr.unifier;
         ASS(subs->isIdentityOnQueryWhenResultBound());

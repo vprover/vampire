@@ -38,6 +38,7 @@ namespace Indexing {
 using namespace Lib;
 using namespace Kernel;
 
+template<class Data>
 class TermCodeTree : public CodeTree 
 {
 protected:
@@ -45,13 +46,10 @@ protected:
   
 public:
   TermCodeTree();
-  
-  using TermInfo = TermLiteralClause;
 
+  void insert(Data* data);
+  void remove(const Data& data);
 
-  void insert(TermInfo* ti);
-  void remove(const TermInfo& ti);
-  
 private:
   struct RemovingTermMatcher
   : public RemovingMatcher
@@ -60,7 +58,7 @@ private:
     void init(FlatTerm* ft_, TermCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_);
 
   };
-  
+
 public:
   struct TermMatcher
   : public Matcher
@@ -70,7 +68,7 @@ public:
     void init(CodeTree* tree, TermList t);
     void reset();
     
-    TermInfo* next();
+    Data* next();
     
     USE_ALLOCATOR(TermMatcher);
   };

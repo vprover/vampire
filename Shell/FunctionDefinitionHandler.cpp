@@ -44,7 +44,7 @@ bool canBeUsedForRewriting(Term* lhs, Clause* cl)
 void FunctionDefinitionHandler::initAndPreprocess(Problem& prb, const Options& opts)
 {
   // reset state
-  _is = new CodeTreeTIS();
+  _is = new CodeTreeTIS<TermLiteralClause>();
   _templates.reset();
 
   UnitList::DelIterator it(prb.units());
