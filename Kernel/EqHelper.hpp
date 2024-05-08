@@ -46,7 +46,6 @@ public:
   static VirtualIterator<TypedTermList> getSubVarSupLHSIterator(Literal* lit, const Ordering& ord);
   static std::pair<VirtualIterator<TypedTermList>,bool> getDemodulationLHSIterator(Literal* lit, bool onlyPreordered, const Ordering& ord);
   static TermIterator getEqualityArgumentIterator(Literal* lit);
-  static bool isPreorderedForDemodulation(Literal* lit, const Ordering& ord);
 
   //WARNING, this function cannot be used when @param t is a sort.
   static Term* replace(Term* t, TermList what, TermList by);

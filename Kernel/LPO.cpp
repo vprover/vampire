@@ -247,14 +247,14 @@ Ordering::Result LPO::majo(AppliedTerm s, AppliedTerm t, const TermList* tl, uns
   return GREATER;
 }
 
-bool LPO::isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, OrderingComparator*& comparator) const
+bool LPO::isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, OrderingComparatorUP& comparator) const
 {
   if (!comparator) {
     // cout << "preprocessing " << lhs << " " << rhs << endl;
-    comparator = LPOComparator::create(lhs, rhs, *this);
+    comparator = OrderingComparatorUP(LPOComparator::create(lhs, rhs, *this));
     // cout << comparator->toString() << endl;
   }
-  return static_cast<LPOComparator*>(comparator)->check(applicator);
+  return static_cast<LPOComparator*>(comparator.get())->check(applicator);
 }
 
 void LPO::showConcrete(ostream&) const 

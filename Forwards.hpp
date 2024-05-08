@@ -111,6 +111,7 @@ class LiteralSelector;
 class Ordering;
 typedef Lib::SmartPtr<Ordering> OrderingSP;
 struct OrderingComparator;
+typedef std::unique_ptr<OrderingComparator> OrderingComparatorUP;
 
 typedef unsigned SplitLevel;
 typedef const SharedSet<SplitLevel> SplitSet;

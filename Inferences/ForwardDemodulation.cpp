@@ -168,15 +168,9 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         auto appl = lhs.isVar() ? (SubstApplicator*)&applWithEqSort : (SubstApplicator*)&applWithoutEqSort;
 
         if (_precompiledComparison) {
-          if (!preordered && (_preorderedOnly || !ordering.isGreater(lhs,rhs,appl,const_cast<OrderingComparator*&>(qr.data->comparator)))) {
-            // if (ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl,true))) {
-            //   USER_ERROR("is greater " + trm.toString() + " " + subs->applyToBoundResult(rhs).toString() + " from " + lhs.toString() + " > " + rhs.toString());
-            // }
+          if (!preordered && (_preorderedOnly || !ordering.isGreater(lhs,rhs,appl,const_cast<OrderingComparatorUP&>(qr.data->comparator)))) {
             continue;
           }
-          // if (!ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl,true))) {
-          //   USER_ERROR("is not greater " + trm.toString() + " " + subs->applyToBoundResult(rhs).toString() + " from " + lhs.toString() + " > " + rhs.toString());
-          // }
         } else {
           if (!preordered && (_preorderedOnly || !ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl,true)))) {
             continue;

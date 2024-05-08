@@ -83,7 +83,7 @@ public:
 
   /** Optimised function used for checking that @b lhs is greater than @b rhs,
    * under substitution represented by @b applicator. */
-  virtual bool isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, OrderingComparator*& comparator) const = 0;
+  virtual bool isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, OrderingComparatorUP& comparator) const = 0;
 
   virtual void show(std::ostream& out) const = 0;
 
