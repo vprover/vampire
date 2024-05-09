@@ -45,6 +45,7 @@ private:
   struct LeafData {
     Term* lhs = nullptr;
     Term* rhs = nullptr;
+    OrderingComparatorUP comp;
   };
 
   struct SubstMatcher

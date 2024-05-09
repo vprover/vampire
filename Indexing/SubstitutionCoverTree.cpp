@@ -137,9 +137,7 @@ bool SubstitutionCoverTree::check(const TermStack& ts, const Ordering* ord)
         TermList operator()(unsigned v) const override { return matcher.bindings[v]; }
       } applicator;
 
-      if (ord->isGreater(
-            AppliedTerm(TermList(ld->lhs),&applicator,true),
-            AppliedTerm(TermList(ld->rhs),&applicator,true))) {
+      if (ord->isGreater(TermList(ld->lhs),TermList(ld->rhs),&applicator,ld->comp)) {
         return true;
       }
     }
