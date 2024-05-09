@@ -629,6 +629,11 @@ Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
   return res;
 }
 
+bool SKIKBO::isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, OrderingComparatorUP& comparator) const
+{
+  NOT_IMPLEMENTED;
+}
+
 int SKIKBO::symbolWeight(Term* t) const
 {
   if (t->isSort()){

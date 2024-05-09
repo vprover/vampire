@@ -45,7 +45,7 @@ public:
   void handle(Data data, bool insert) final override
   {
     if (insert) {
-      auto ti = new Data(data);
+      auto ti = new Data(std::move(data));
       _ct.insert(ti);
     } else {
       _ct.remove(data);

@@ -187,10 +187,12 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Inference.o\
         Kernel/InferenceStore.o\
         Kernel/KBO.o\
+        Kernel/KBOComparator.o\
         Kernel/SKIKBO.o\
         Kernel/LiteralSelector.o\
         Kernel/LookaheadLiteralSelector.o\
-	Kernel/LPO.o\
+        Kernel/LPO.o\
+        Kernel/LPOComparator.o\
         Kernel/MainLoop.o\
         Kernel/Matcher.o\
         Kernel/MaximalLiteralSelector.o\

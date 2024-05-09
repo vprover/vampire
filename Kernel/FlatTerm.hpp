@@ -90,10 +90,7 @@ public:
     // getters and setters
     BITFIELD64_GET_AND_SET(unsigned, tag, Tag, TAG)
     BITFIELD64_GET_AND_SET(unsigned, number, Number, NUMBER)
-    Term* _term() const
-    { return reinterpret_cast<Term*>(BitUtils::getBits<TERM_BITS_START, TERM_BITS_END>(_content)); }
-    void _setTerm(Term* term)
-    { BitUtils::setBits<TERM_BITS_START, TERM_BITS_END>(_content, reinterpret_cast<uint64_t>(term)); }
+    BITFIELD64_GET_AND_SET_PTR(Term*, term, Term, TERM)
     // end bitfield
   };
 

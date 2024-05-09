@@ -82,6 +82,7 @@ void ForwardDemodulation::attach(SaturationAlgorithm* salg)
 
   _preorderedOnly = getOptions().forwardDemodulation()==Options::Demodulation::PREORDERED;
   _encompassing = getOptions().demodulationRedundancyCheck()==Options::DemodulationRedundancyCheck::ENCOMPASS;
+  _precompiledComparison = getOptions().demodulationPrecompiledComparison();
   _helper = DemodulationHelper(getOptions(), &_salg->getOrdering());
 }
 
@@ -166,8 +167,14 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         Applicator applWithoutEqSort(subs.ptr());
         auto appl = lhs.isVar() ? (SubstApplicator*)&applWithEqSort : (SubstApplicator*)&applWithoutEqSort;
 
-        if (!preordered && (_preorderedOnly || !ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl,true)))) {
-          continue;
+        if (_precompiledComparison) {
+          if (!preordered && (_preorderedOnly || !ordering.isGreater(lhs,rhs,appl,const_cast<OrderingComparatorUP&>(qr.data->comparator)))) {
+            continue;
+          }
+        } else {
+          if (!preordered && (_preorderedOnly || !ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl,true)))) {
+            continue;
+          }
         }
 
         // encompassing demodulation is fine when rewriting the smaller guy
