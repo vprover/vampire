@@ -391,55 +391,63 @@ VirtualIterator<TypedTermList> EqHelper::getSubVarSupLHSIterator(Literal* lit, c
 }
 
 /**
- * Return iterator on sides of the equality @b lit that can be used as an LHS
- * for demodulation
+ * Return pair of (i) iterator on sides of the equality @b lit that can be used
+ * as an LHS for demodulation and (ii) a boolean representing whether the
+ * demodulator(s) are preordered. Note that (ii) can only be true if (i)
+ * contains only one element but it is not necessarily true in this case as
+ * e.g. the set of variables on one side of an incomparable equation can
+ * be a strict subset of the that of the other side.
  *
- * If the literal @b lit is not a positive equality, empty iterator is returned.
+ * If the literal @b lit is not a positive equality, empty iterator and false are returned.
  */
-VirtualIterator<TypedTermList> EqHelper::getDemodulationLHSIterator(Literal* lit, bool preordered, const Ordering& ord)
+std::pair<VirtualIterator<TypedTermList>,bool> EqHelper::getDemodulationLHSIterator(
+  Literal* lit, bool onlyPreordered, const Ordering& ord)
 {
+  bool isPreordered = false;
   if (lit->isEquality()) {
     if (lit->isNegative()) {
-      return VirtualIterator<TypedTermList>::getEmpty();
+      return { VirtualIterator<TypedTermList>::getEmpty(), isPreordered };
     }
     TermList t0=*lit->nthArgument(0);
     TermList t1=*lit->nthArgument(1);
     switch(ord.getEqualityArgumentOrder(lit))
     {
     case Ordering::INCOMPARABLE:
-      if ( preordered ) {
-        return VirtualIterator<TypedTermList>::getEmpty();
+      if ( onlyPreordered ) {
+        return { VirtualIterator<TypedTermList>::getEmpty(), isPreordered };
       }
       if (t0.containsAllVariablesOf(t1)) {
         if (t1.containsAllVariablesOf(t0)) {
           // If the equation is its own variant when oriented
           // reversed, there's no need to index both sides
           if (MatchingUtils::matchReversedArgs(lit, lit)) {
-            return withEqualitySort(lit, getSingletonIterator(t0) );
+            return { withEqualitySort(lit, getSingletonIterator(t0) ), isPreordered };
           }
-          return withEqualitySort(lit, iterItems(t0, t1));
+          return { withEqualitySort(lit, iterItems(t0, t1)), isPreordered };
         }
-        return withEqualitySort(lit, getSingletonIterator(t0) );
+        return { withEqualitySort(lit, getSingletonIterator(t0) ), isPreordered };
       }
       if (t1.containsAllVariablesOf(t0)) {
-        return withEqualitySort(lit, getSingletonIterator(t1) );
+        return { withEqualitySort(lit, getSingletonIterator(t1) ), isPreordered };
       }
       break;
     case Ordering::GREATER:
     case Ordering::GREATER_EQ:
       ASS(t0.containsAllVariablesOf(t1));
-      return withEqualitySort(lit, getSingletonIterator(t0) );
+      isPreordered = true;
+      return { withEqualitySort(lit, getSingletonIterator(t0) ), isPreordered };
     case Ordering::LESS:
     case Ordering::LESS_EQ:
       ASS(t1.containsAllVariablesOf(t0));
-      return withEqualitySort(lit, getSingletonIterator(t1) );
+      isPreordered = true;
+      return { withEqualitySort(lit, getSingletonIterator(t1) ), isPreordered };
     //there should be no equality literals of equal terms
     case Ordering::EQUAL:
       ASSERTION_VIOLATION;
     }
-    return VirtualIterator<TypedTermList>::getEmpty();
+    return { VirtualIterator<TypedTermList>::getEmpty(), isPreordered };
   } else {
-    return VirtualIterator<TypedTermList>::getEmpty();
+    return { VirtualIterator<TypedTermList>::getEmpty(), isPreordered };
   }
 }
 

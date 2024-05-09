@@ -102,7 +102,7 @@ public:
   }
 
 private:
-  ScopedPtr<CodeTreeTIS> _is;
+  ScopedPtr<CodeTreeTIS<TermLiteralClause>> _is;
   DHMap<std::pair<unsigned, SymbolType>, InductionTemplate> _templates;
 };
 
