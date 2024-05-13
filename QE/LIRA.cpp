@@ -231,7 +231,7 @@ public:
           auto newPer = 
                      res.off == 0 ? Numeral(0)
                    : res.per == 0 ? 1 / res.off.abs()
-                                  : 1 / (res.off.abs() * res.per);
+                                  : RealConstantType(RationalConstantType((res.off.abs() * res.per).numerator())) / res.off.abs();
           // auto br0 = [&]() 
           // { return arrayIter(*res.breaks)
           //     .flatMap([&](auto b) { return Grid(b, res.per).intersect(/*incl*/ true, R::constantTl(0), newPer, /* incl */ false); }); };
@@ -262,7 +262,7 @@ public:
                           auto b_plus_pZ = b_plus_pZ_.asFinite().unwrap();
                           auto b = b_plus_pZ.term();
                           auto maxDist = pmin.unwrap();
-                          return Grid((-1 / res.slope) * dlin(b), 1 / res.slope)
+                          return Grid((-1 / res.slope) * dlin(b), (1 / res.slope).abs())
                                   .intersect(/* incl */ false, b, maxDist,  /* incl */ false)
                                   .map([&](auto i) -> ElimTerm { return i + Period(newPer); });
                         })
@@ -277,8 +277,8 @@ public:
               .off = res.off,
               .per = newPer,
               .linBounds = {
-                .lower = res.linBounds.lower + -res.off.abs(), 
-                .delta = res.linBounds.delta + res.off.abs(), 
+                .lower = res.linBounds.lower - 1,
+                .delta = res.linBounds.delta + 1, 
               },
               .lim = res.slope >= 0 ? R::floor(res.lim) : -R::floor(-res.lim) - 1,
               .breaks = std::move(br),

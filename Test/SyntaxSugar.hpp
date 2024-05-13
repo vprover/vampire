@@ -388,6 +388,9 @@ public:
   }                                                                                                                 
 };
 
+inline std::ostream& operator<<(std::ostream& out, ExpressionSugar const& self)
+{ return out << TermList(self); }
+
 class SortedTermSugar : public TermSugar
 {
   SortSugar _sort;

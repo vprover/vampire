@@ -32,6 +32,9 @@ using namespace Test;
 RealConstantType simpl(RealConstantType t) 
 { return t; }
 
+int simpl(int t) 
+{ return t; }
+
 TermList simpl(TermList t) 
 { return testLascaState()->normalize(t).denormalize(); }
 
@@ -45,11 +48,29 @@ ElimTerm simpl(ElimTerm t)
   }
 }
 
+template<class A>
+Stack<A> simpl(Stack<A> const& t) 
+{ return arrayIter(t).map([](auto& x){ return simpl(x); }).template collect<Stack>(); }
+
+template<class A>
+A simpl(Recycled<A> const& a) 
+{ return simpl(*a); }
+
 bool eqModAC(RealConstantType const& l, RealConstantType const& r)
 { return l == r; }
 
+bool eqModAC(RealConstantType const& l, int r)
+{ return l == RealConstantType(r); }
+
 bool eqModAC(TermList l, TermList r)
 { return testLascaState()->equivalent(l,r); }
+
+// template<class A>
+// bool eqModAC(Stack<A> const& l_, Recycled<A> const& r_)
+// {
+//   TestUtils::eqModAC()
+// }
+
 
 bool eqModAC(ElimTerm const& l_, ElimTerm const& r_)
 { 
@@ -70,8 +91,8 @@ bool eqModAC(ElimTerm const& l_, ElimTerm const& r_)
 }
     //   }); }
 
-template<class ElimSetish1, class ElimSetish2>
-bool eqModAC(ElimSetish1 const& lhs_, ElimSetish2 const& rhs_)
+template<class ElimSetish>
+bool eqModAC(ElimSetish const& lhs_, ElimSetish const& rhs_)
 { 
   auto lhs = arrayIter(lhs_).map([](auto& x) -> ElimTerm { return x; }).template collect<Stack>().sorted().deduped();
   auto rhs = arrayIter(rhs_).map([](auto& x) -> ElimTerm { return x; }).template collect<Stack>().sorted().deduped();
@@ -87,6 +108,10 @@ bool eqModAC(ElimSetish1 const& lhs_, ElimSetish2 const& rhs_)
     }
       }); }
 
+
+template<class A>
+bool eqModAC(Recycled<Stack<A>> const& l, Recycled<A> const& r)
+{ return eqModAC(*l, r); }
 
 struct AllContainted {
   Stack<ElimTerm> expected;
@@ -191,8 +216,8 @@ constexpr Epsilon eps = Epsilon{};
   __ALLOW_UNUSED(                                                                         \
     NUMBER_SUGAR(Real)                                                                    \
     DECL_VAR(x, VAR_X)                                                                    \
-    DECL_VAR(y, 1)                                                                    \
-    DECL_VAR(z, 3)                                                                    \
+    DECL_VAR(y, 1)                                                                        \
+    DECL_VAR(z, 3)                                                                        \
     DECL_CONST(a, Real)                                                                   \
     DECL_CONST(b, Real)                                                                   \
     DECL_CONST(c, Real)                                                                   \
@@ -201,6 +226,21 @@ constexpr Epsilon eps = Epsilon{};
 
 #define RUN_TEST(name, ...)                                                               \
   TEST_FUN(name) { SUGAR; __VA_ARGS__.run(); }                                            \
+
+#define TEST_EQ(lhs, rhs)                                                                 \
+  [&](auto input, LiraTermSummary& result) {                                              \
+    if (!(eqModAC(simpl(lhs), simpl(rhs)))) {                                             \
+      std::cout << "[         case ] " << pretty(      input ) << std::endl;              \
+      std::cout << "[       result ] " << pretty(     result ) << std::endl;              \
+      std::cout << "[        check ] " << #lhs << " == " << pretty( rhs ) << std::endl;   \
+      std::cout << "[       result ] " << pretty( simpl(lhs) ) << "\t (simplified)" << std::endl; \
+      exit(-1);                                                                           \
+    }                                                                                     \
+  }                                                                                       \
+
+template<class... Tests> 
+auto allPass(Tests... ts) 
+{ return Stack<TermSummaryTest::TestFun> { TermSummaryTest::TestFun(ts)... }; }
 
 RUN_TEST(lra_01, 
     ElimSetTest {
@@ -324,35 +364,100 @@ RUN_TEST(motivating_test_2,
       .expected = containsAll( -floor(-a),  -floor(-a) + eps ), 
     })
 
+ 
+  // - k: -1
+  //   d: 1
+  //   floors: 
+  //   - { k: 1, l:  1, d: 0 }
+  //   # - { k: 1, l: -1, d: 0 }
+  //   color: blue
+  //   relation: Geq
+  //
+  //
+  // - k: 1
+  //   d: 3
+  //   floors: 
+  //   color: red
+  //   relation: Geq
+  //
+  //
+  // - k: -2
+  //   d: 3
+  //   floors: 
+  //   color: orange
+  //   relation: Eq
+
+template<class... As>
+auto breakSet(As... as)
+{ return Stack<ElimTerm> { as... }; }
+
+RUN_TEST(some_props, 
+    TermSummaryTest {
+      .term = -floor(-3 * x + a) - x,
+      .expected = allPass( TEST_EQ(result.linBounds.lower, -a)
+                         , TEST_EQ(result.linBounds.delta, 1)
+                         , TEST_EQ(result.lim,  floor(3 * x - a) + 1 - x)
+                         , TEST_EQ(result.breaks,  breakSet( frac(1,3) * a + Z(1,3)))
+                         , TEST_EQ(result.lowerX(), frac(1,2) * (a - 1)  )
+                         , TEST_EQ(result.deltaX(), frac(1,2)  )
+                         )
+      // .expected = allPass(TEST_EQ(result.lim, -x + floor(x) + 1))
+    })
+
+RUN_TEST(some_props_2, 
+    TermSummaryTest {
+      .term = floor(2 * (-floor(-3 * x + a) - x) - b),
+      .expected = allPass( 
+                           TEST_EQ(result.breaks,  breakSet( frac(1,3) * a + Z(1,3)))
+                         , TEST_EQ(result.per,     RealConstantType(1,3))
+                         )
+      // .expected = allPass(TEST_EQ(result.lim, -x + floor(x) + 1))
+    })
+
+
+RUN_TEST(motivating_props_1, 
+    TermSummaryTest {
+      .term = -x  - floor(-x),
+      .expected = allPass(TEST_EQ(result.lim, -x + floor(x) + 1))
+    })
+
 
 RUN_TEST(motivating, 
     ElimSetTest {
       .conj = { 
-        floor( x ) - a >= 0
-      , x - 2 * floor(frac(1,2) * x) - b > 0
+         -x  - floor(-x) >= c
+      ,  x >= floor(a) + frac(1,3)
+      , -x >= floor(a) + frac(2,3)
       // , floor(3 * x - c) + floor(-3 * x + c) == 0
       },
       .expected = containsAll( a + Z(1) ), 
     })
 
+
+// RUN_TEST(motivating, 
+//     ElimSetTest {
+//       .conj = { 
+//          floor( x ) - a >= 0
+//       ,  -x     >= 0
+//       , x - 2 * floor(frac(1,2) * x) - 1 > 0
+//       // , floor(3 * x - c) + floor(-3 * x + c) == 0
+//       },
+//       .expected = containsAll( a + Z(1) ), 
+//     })
+
+// RUN_TEST(motivating, 
+//     ElimSetTest {
+//       .conj = { 
+//         floor( x ) - a >= 0
+//       , x - 2 * floor(frac(1,2) * x) - b > 0
+//       // , floor(3 * x - c) + floor(-3 * x + c) == 0
+//       },
+//       .expected = containsAll( a + Z(1) ), 
+//     })
+
 //////////////////////////////////////////////////////////////////////////////////////
 // term property tests
 //////////////////////////////////////////////////////////////////////////////////////
-
-template<class... Tests> 
-auto allPass(Tests... ts) 
-{ return Stack<TermSummaryTest::TestFun> { TermSummaryTest::TestFun(ts)... }; }
-
-#define TEST_EQ(lhs, rhs) \
-  [](auto input, LiraTermSummary& result) { \
-    if (!(eqModAC(simpl(lhs), simpl(rhs)))) {  \
-      std::cout << "[         case ] " << pretty(      input ) << std::endl; \
-      std::cout << "[       result ] " << pretty(     result ) << std::endl; \
-      std::cout << "[        check ] " << #lhs << " == " << pretty( rhs ) << std::endl; \
-      std::cout << "[       result ] " << pretty( simpl(lhs) ) << "\t (simplified)" << std::endl; \
-      exit(-1); \
-    } \
-  } \
 
 RUN_TEST(props_0,
     TermSummaryTest {
@@ -393,6 +498,41 @@ RUN_TEST(props_4,
             TEST_EQ(result.linBounds.lower, TermList(num(-1)))
           , TEST_EQ(result.off, RealConstantType(1))
           , TEST_EQ(result.lowerX(), TermList(num(0)))
+          ),
+    })
+
+
+RUN_TEST(props_5_a,
+    TermSummaryTest {
+      .term     = floor(x),
+      .expected =  allPass(
+            // TEST_EQ(result.linBounds.lower, TermList(num(-1)))
+          // , TEST_EQ(result.off, RealConstantType(1))
+            TEST_EQ(result.lowerX(), TermList(num(0)))
+          , TEST_EQ(result.deltaX(), RealConstantType(1))
+          ),
+    })
+
+
+RUN_TEST(props_5_b,
+    TermSummaryTest {
+      .term     = 2 * floor(x),
+      .expected =  allPass(
+            // TEST_EQ(result.linBounds.lower, TermList(num(-1)))
+          // , TEST_EQ(result.off, RealConstantType(1))
+            TEST_EQ(result.lowerX(), TermList(num(0)))
+          , TEST_EQ(result.deltaX(), RealConstantType(1))
+          ),
+    })
+
+RUN_TEST(props_5_c,
+    TermSummaryTest {
+      .term     = frac(1,2) * floor(x),
+      .expected =  allPass(
+            // TEST_EQ(result.linBounds.lower, TermList(num(-1)))
+          // , TEST_EQ(result.off, RealConstantType(1))
+            TEST_EQ(result.lowerX(), TermList(num(0)))
+          , TEST_EQ(result.deltaX(), RealConstantType(1))
           ),
     })
 
