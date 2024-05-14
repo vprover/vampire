@@ -322,12 +322,13 @@ Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, u
   if (fun1 == fun2)
     return EQUAL;
 
-  if (theory->isInterpretedFunction(fun1, IntTraits::minusI)) { return GREATER; } 
-  if (theory->isInterpretedFunction(fun1, RatTraits::minusI)) { return GREATER; }
-  if (theory->isInterpretedFunction(fun1, RealTraits::minusI)) { return GREATER; }
-
+  if (theory->isInterpretedFunction(fun1, IntTraits::minusI)) { return GREATER; }
   if (theory->isInterpretedFunction(fun2, IntTraits::minusI)) { return LESS; }
+
+  if (theory->isInterpretedFunction(fun1, RatTraits::minusI)) { return GREATER; }
   if (theory->isInterpretedFunction(fun2, RatTraits::minusI)) { return LESS; }
+
+  if (theory->isInterpretedFunction(fun1, RealTraits::minusI)) { return GREATER; }
   if (theory->isInterpretedFunction(fun2, RealTraits::minusI)) { return LESS; }
 
   // $$false is the smallest
