@@ -37,11 +37,10 @@ class InequalityStrengthening
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(InequalityStrengthening);
   USE_ALLOCATOR(InequalityStrengthening);
 
   InequalityStrengthening(InequalityStrengthening&&) = default;
-  InequalityStrengthening(shared_ptr<LascaState> shared) 
+  InequalityStrengthening(std::shared_ptr<LascaState> shared) 
     : _shared(std::move(shared))
     , _lhsIndex()
     , _rhsIndex()
@@ -102,7 +101,7 @@ private:
 
   template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit, LascaLiteral<NumTraits> l1, Monom<NumTraits> j_s1) const;
 
-  shared_ptr<LascaState> _shared;
+  std::shared_ptr<LascaState> _shared;
   LascaIndex<Lhs>* _lhsIndex;
   LascaIndex<Rhs>* _rhsIndex;
 };

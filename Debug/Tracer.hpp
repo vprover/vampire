@@ -18,73 +18,18 @@
 
 
 #ifndef __Tracer__
-#  define __Tracer__
-
-#if VDEBUG
+#define __Tracer__
 
 #include <iostream>
 #include <iomanip>
 #include "Debug/Output.hpp"
 
-using namespace std;
-
 namespace Debug {
 
-/**
- * What kind of control point it is.
- */
-enum ControlPointKind {
-  /** Entry to a function */
-  CP_ENTRY,
-  /** Exit from a function */
-  CP_EXIT,
-  /** Point inside a function */
-  CP_MID
-}; // enum ControlPointKind
-
-class Tracer {
- public:
-  explicit Tracer (const char* fun);
-  virtual ~Tracer ();
-  static void printStack (ostream&);
-  static void printOnlyStack (ostream&);
-  static void controlPoint (const char* name);
-  static unsigned passedControlPoints () { return _passedControlPoints; }
-  /** start outputting the trace independently of the first and last
-   *  control point setting */
-  static void forceOutput() { _forced = true; }
-  /** stop outputting forced by startOutput */
-  static void stopOutput() { _forced = false; }
-  static bool canWatch;
- private:
-  const char* _fun;
-  Tracer* _previous;
-
-  static void printStackRec (Tracer* current, ostream&, int& depth);
-  static void spaces(ostream& str,int number);
-
-  /** current trace point */
-  static Tracer* _current;
-  /** current depth */
-  static unsigned _depth;
-  /** description of the last control point (function name) */
-  static const char* _lastControlPoint;
-  /** total number of passed control points */
-  static unsigned _passedControlPoints;
-  /** kind of the last point */
-  static ControlPointKind _lastPointKind;
-  /** forced by startTrace */
-  static bool _forced;
-  static void controlPoint (const char*, ControlPointKind);
-  static void outputLastControlPoint (ostream& str);
-public:
-  /* prints a message with indent in the of the same size as the current _depth */
-  template<class... A>
-  static void printDbg(const char* file_, int line, const A&... msg);
-  template<class A>
-  static A echoValue(const char* file_, int line, const char* prefix, A value);
+namespace Tracer {
+  // print the current stack
+  void printStack(std::ostream &out);
 };
-  
 
 template<class... As>
 struct _printDbg {
@@ -97,26 +42,14 @@ template<> struct _printDbg<>{
 
 template<class A, class... As> struct _printDbg<A, As...>{
   void operator()(const A& a, const As&... as) {
-    cout << a;
+    std::cout << a;
     _printDbg<As...>{}(as...);
   }
 };
 
-template<class A>
-A Tracer::echoValue(const char* file, int line, const char* prefix, A value) 
+template<class... A> void printDbg(const char* file, int line, const A&... msg)
 {
-  printDbg(file,line, prefix, value);
-  return std::move(value);
-}
-
-template<class... A> void Tracer::printDbg(const char* file, int line, const A&... msg)
-{
-
-  // struct limit_size {
-  //   const char* str;
-  //   unsigned limit;
-  // }
-  unsigned width = 35;
+  int width = 60;
   std::cout << "[ debug ] ";
   for (const char* c = file; *c != 0 && width > 0; c++, width--) {
     std::cout << *c;
@@ -124,21 +57,14 @@ template<class... A> void Tracer::printDbg(const char* file, int line, const A&.
   for (unsigned i = 0; i < width; i++) {
     std::cout << ' ';
   }
-  std::cout <<  "@" << setw(5) << line << ":";
-
-  for (unsigned i = 0; i< _depth; i++) {
-    cout << "  ";
-  }
-  // cout <<_current->_fun << ": ";
-  // cout << std::setw(30) <<_current->_fun << std::setw(0) << ": ";
-  // cout << _lastControlPoint << ": ";
-
+  std::cout <<  "@" << std::setw(5) << line << ":";
   _printDbg<A...>{}(msg...);
   std::cout << std::endl; 
 }
 
-
 } // namespace Debug
+
+#if VDEBUG
 
 #ifdef ABSOLUTE_SOURCE_DIR
 #define __REL_FILE__  (&__FILE__[sizeof(ABSOLUTE_SOURCE_DIR) / sizeof(ABSOLUTE_SOURCE_DIR[0])])
@@ -146,45 +72,13 @@ template<class... A> void Tracer::printDbg(const char* file, int line, const A&.
 #define __REL_FILE__  __FILE__
 #endif
 
-
-#  define AUX_CALL_(SEED,Fun) Debug::Tracer _tmp_##SEED##_(Fun);
-#  define AUX_CALL(SEED,Fun) AUX_CALL_(SEED,Fun)
-#  define CALL(Fun) AUX_CALL(__LINE__,Fun)
-#  define WARN(...) { Debug::Tracer::printDbg(__REL_FILE__, __LINE__, "WARNING: ", __VA_ARGS__); }
-#  define DBG(...) { Debug::Tracer::printDbg(__REL_FILE__, __LINE__, __VA_ARGS__); }
-#  define __ECHO_DBG(...) __VA_ARGS__
-#  define DBG_RETURN(msg, ...) { auto out = [&]() __VA_ARGS__ (); DBG(__ECHO_DBG(msg), out);  return out; }
+#  define DBG(...) { Debug::printDbg(__REL_FILE__, __LINE__, __VA_ARGS__); }
+#  define WARN(...) { DBG(__REL_FILE__, "WARNING: ", __VA_ARGS__); }
 #  define DBGE(x) DBG(#x, " = ", x)
-
-#  define WRAP_DBG(msg, ...)                                                                        \
-    auto __WRAP_DBG_FUNC = [&]() { __VA_ARGS__ };                                                   \
-    DBG(msg, " start")                                                                              \
-    auto out = __WRAP_DBG_FUNC();                                                                   \
-    DBG(msg, " end")                                                                                \
-    return out; 
-#  define ECHO(x) Debug::Tracer::echoValue(__FILENAME__, __LINE__, #x " = ", x)
-#  define CALLC(Fun,check) if (check){ AUX_CALL(__LINE__,Fun) }
-#  define CONTROL(description) Debug::Tracer::controlPoint(description)
-#  define AFTER(number,command)                                                                     \
-            if (Debug::Tracer::passedControlPoints() >= number) { command };
-#  define BETWEEN(number1,number2,command)                                                          \
-            if (Debug::Tracer::passedControlPoints() >= number1 &&	                                 \
-                Debug::Tracer::passedControlPoints() <= number2)	                                   \
-              { command };
-
 #else // ! VDEBUG
 #  define WARN(...) {}
 #  define DBG(...) {}
 #  define DBGE(x) {}
-#  define CALL(Fun) 
-#  define WRAP_DBG(msg, ...) __VA_ARGS__
-#  define CALLC(Fun,check) 
-#  define CONTROL(description)
-#  define DBG_RETURN(msg, ...) { __VA_ARGS__ }
-#endif
-
-#ifndef CALL
-#error BLIN
 #endif
 
 #endif // Tracer

@@ -14,9 +14,11 @@
 
 #include <iomanip>
 #include <fstream>
-#include "Debug/Tracer.hpp"
 
+#include "Lib/Environment.hpp"
+#include "Lib/System.hpp"
 #include "Lib/Sys/Multiprocessing.hpp"
+#include "Shell/Options.hpp"
 
 #include "Lib/Comparison.hpp"
 #include "Lib/Int.hpp"
@@ -27,6 +29,7 @@
 
 namespace Test {
 
+using namespace std;
 using namespace Lib;
 using namespace Lib::Sys;
 
@@ -146,7 +149,6 @@ bool TestUnit::runTestsWithNameSubstring(vstring const& pref, ostream& out)
       out.flush();
       bool ok;
       {
-        CALL(t.name);
         ok = spawnTest(t.proc);
       }
       out << "\r" << ( ok ? "[  OK  ]" : "[ FAIL ]" ) << " " << t.name << "          " << endl;
@@ -163,7 +165,7 @@ bool TestUnit::runTestsWithNameSubstring(vstring const& pref, ostream& out)
   return cnt_fail == 0;
 }
 
-bool TestUnit::run(ostream& out)
+bool TestUnit::run(std::ostream& out)
 { return runTestsWithNameSubstring("", out); }
 
 void TestUnit::add(Test t)
@@ -186,24 +188,13 @@ bool TestUnit::spawnTest(TestProc proc)
     try {
       proc();
     } catch (Lib::Exception& e) {
-      // e.cry(std::cout);
       e.cry(std::cerr);
-      _exit(-1);
-
+      exit(-1);
     } catch (std::exception& e) {
       std::cerr << e.what() << std::endl;
-      _exit(-1);
-
-    } catch (Lib::ThrowableBase& e) {
-      std::cerr << "some ThrowBase" << std::endl;
-      _exit(-1);
-
-    } catch (...) {
-      std::cerr << "some unknown type was" << std::endl;
-      _exit(-1);
-
+      exit(-1);
     }
-    _exit(0); // don't call parent's atexit! 
+    exit(0);
   } else {
     int childRes;
     Multiprocessing::instance()->waitForChildTermination(childRes);
@@ -224,16 +215,20 @@ bool UnitTesting::add(vstring const& testUnit, TestUnit::Test test)
   return true;
 }
 
-std::ostream& operator<<(ostream& out, TestUnit::Test const& t) 
+std::ostream& operator<<(std::ostream& out, TestUnit::Test const& t) 
 { return out << t.name; }
 
 } // namespace Test
 
 int main(int argc, const char** argv) 
 {
-  CALL("UnitTesting::main")
   using namespace Lib;
   using namespace std;
+
+  // enable tracebacks in failing unit tests by default
+  System::registerArgv0(argv[0]);
+  env.options->setTraceback(true);
+
   bool success;
   auto cmd = vstring(argv[1]);
   auto args = Stack<vstring>(argc - 2);

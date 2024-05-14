@@ -13,6 +13,8 @@
  * Implements class PortfolioMode.
  */
 
+
+#include "Debug/Assertion.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Portability.hpp"
@@ -33,9 +35,11 @@
 #include <unistd.h>
 #include <signal.h>
 #include <fstream>
-#include <stdio.h>
 #include <cstdio>
 #include <random>
+#include <filesystem>
+//only for detecting number of cores, no threading here!
+#include <thread>
 
 #include "Saturation/ProvingHelper.hpp"
 
@@ -47,44 +51,51 @@
 
 using namespace Lib;
 using namespace CASC;
+using Lib::Sys::Multiprocessing;
+using std::cout;
+using std::cerr;
+using std::endl;
+namespace fs = std::filesystem;
 
-PortfolioMode::PortfolioMode() : _slowness(1.0), _syncSemaphore(2) {
-  unsigned cores = System::getNumberOfCores();
+PortfolioMode::PortfolioMode(Problem* problem) : _prb(problem), _slowness(env.options->slowness()) {
+  unsigned cores = std::thread::hardware_concurrency();
   cores = cores < 1 ? 1 : cores;
-  _numWorkers = min(cores, env.options->multicore());
+  _numWorkers = std::min(cores, env.options->multicore());
   if(!_numWorkers)
   {
     _numWorkers = cores >= 8 ? cores - 2 : cores;
   }
 
-  // We need the following two values because the way the semaphore class is currently implemented:
-  // 1) dec is the only operation which is blocking
-  // 2) dec is done in the mode SEM_UNDO, so is undone when a process terminates
+  auto pathGiven = env.options->printProofToFile();
+  if(pathGiven.empty())
+    // no collision as we can't have the same PID as another Vampire *simultaneously*
+    _path = fs::temp_directory_path() / ("vampire-proof-" + Int::toString(getpid()));
+  else
+    _path = fs::path(pathGiven);
 
-  if(env.options->printProofToFile().empty()) {
-    /* if the user does not ask for printing the proof to a file,
-     * we generate a temp file name, in master,
-     * to be filled up in the winning worker with the proof
-     * and printed later by master to stdout
-     * when all the workers have shut up reporting status
-     * (not to get the status talking interrupt the proof printing)
-     */
-    _tmpFileNameForProof = tmpnam(NULL);
+  // the first Vampire to succeed creates the file
+  // therefore: remove it first
+  try {
+    fs::remove(_path);
+  } catch(const fs::filesystem_error &remove_error) {
+    // this is not good: we can't synchronise on _path
+    // attempt to output to stdout instead
+    std::cerr
+      << "WARNING: could not synchronise on " << _path
+      << " (will output to stdout, but proof may be garbled)\n"
+      << remove_error.what()
+      << std::endl;
+    _path.clear();
   }
-  _syncSemaphore.set(SEM_LOCK,1);    // to synchronize access to the second field
-  _syncSemaphore.set(SEM_PRINTED,0); // to indicate that a child has already printed result (it should only happen once)
 }
 
 /**
  * The function that does all the job: reads the input files and runs
  * Vampires to solve problems.
  */
-bool PortfolioMode::perform(float slowness)
+bool PortfolioMode::perform(Problem* problem)
 {
-  CALL("PortfolioMode::perform");
-
-  PortfolioMode pm;
-  pm._slowness = slowness;
+  PortfolioMode pm(problem);
 
   bool resValue;
   try {
@@ -96,32 +107,30 @@ bool PortfolioMode::perform(float slowness)
   }
 
   if (outputAllowed()) {
-    env.beginOutput();
     if (resValue) {
-      addCommentSignForSZS(env.out());
-      env.out()<<"Success in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
+      addCommentSignForSZS(cout);
+      cout<<"Success in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
     }
     else {
-      addCommentSignForSZS(env.out());
-      env.out()<<"Proof not found in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
+      addCommentSignForSZS(cout);
+      cout<<"Proof not found in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
       if (env.remainingTime()/100>0) {
-        addCommentSignForSZS(env.out());
-        env.out()<<"SZS status GaveUp for "<<env.options->problemName()<<endl;
+        addCommentSignForSZS(cout);
+        cout<<"SZS status GaveUp for "<<env.options->problemName()<<endl;
       }
       else {
         //From time to time we may also be terminating in the timeLimitReached()
         //function in Lib/Timer.cpp in case the time runs out. We, however, output
         //the same string there as well.
-        addCommentSignForSZS(env.out());
-        env.out()<<"SZS status Timeout for "<<env.options->problemName()<<endl;
+        addCommentSignForSZS(cout);
+        cout<<"SZS status Timeout for "<<env.options->problemName()<<endl;
       }
     }
 #if VTIME_PROFILING
     if (env.options && env.options->timeStatistics()) {
-      TimeTrace::instance().printPretty(env.out());
+      TimeTrace::instance().printPretty(cout);
     }
 #endif // VTIME_PROFILING
-    env.endOutput();
   }
 
   return resValue;
@@ -129,10 +138,6 @@ bool PortfolioMode::perform(float slowness)
 
 bool PortfolioMode::searchForProof()
 {
-  CALL("PortfolioMode::searchForProof");
-
-  _prb = UIHelper::getInputProblem(*env.options);
-
   /* CAREFUL: Make sure that the order
    * 1) getProperty, 2) normalise, 3) TheoryFinder::search
    * is the same as in profileMode (vampire.cpp)
@@ -155,7 +160,7 @@ bool PortfolioMode::searchForProof()
     } 
 
     //TheoryFinder cannot cope with polymorphic input
-    if(!env.property->hasPolymorphicSym()){
+    if(!env.getMainProblem()->hasPolymorphicSym()){
       TheoryFinder(_prb->units(),property).search();
     }
   }
@@ -168,8 +173,6 @@ bool PortfolioMode::searchForProof()
 
 bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
 {
-  CALL("PortfolioMode::prepareScheduleAndPerform");
-
   // this is the one and only schedule that will leave this function
   // we fill it up in various ways
   Schedule schedule;
@@ -192,8 +195,6 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
 
   // a (temporary) helper lambda that will go away as soon as we have new schedules from spider
   auto additionsSinceTheLastSpiderings = [&prop](const Schedule& sOrig, Schedule& sWithExtras) { 
-    CALL("PortfolioMode::prepareScheduleAndPerform-additionsSinceTheLastSpiderings");
-
     // Always try these
     addScheduleExtra(sOrig,sWithExtras,"si=on:rtra=on:rawr=on:rp=on"); // shuffling options
     addScheduleExtra(sOrig,sWithExtras,"sp=frequency");                // frequency sp; this is in casc19 but not smt18
@@ -295,8 +296,6 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
  */
 void PortfolioMode::rescaleScheduleLimits(const Schedule& sOld, Schedule& sNew, float limit_multiplier) 
 {
-  CALL("PortfolioMode::rescaleScheduleLimits");
-
   Schedule::BottomFirstIterator it(sOld);
   while(it.hasNext()){
     vstring s = it.next();
@@ -337,8 +336,6 @@ void PortfolioMode::rescaleScheduleLimits(const Schedule& sOld, Schedule& sNew, 
  */
 void PortfolioMode::addScheduleExtra(const Schedule& sOld, Schedule& sNew, vstring extra)
 {
-  CALL("PortfolioMode::addScheduleExtra");
-
   Schedule::BottomFirstIterator it(sOld);
   while(it.hasNext()){
     vstring s = it.next();
@@ -355,8 +352,6 @@ void PortfolioMode::addScheduleExtra(const Schedule& sOld, Schedule& sNew, vstri
 
 void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule& fallback)
 {
-  CALL("PortfolioMode::getSchedules");
-
   switch(env.options->schedule()) {
   case Options::Schedule::FILE:
     Schedules::getScheduleFromFile(env.options->scheduleFile(), quick);
@@ -369,13 +364,21 @@ void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule
     Schedules::getSnakeTptpSatSchedule(prop,quick);
     break;
 
-  case Options::Schedule::CASC_2019:
+  case Options::Schedule::CASC_2023:
   case Options::Schedule::CASC:
+    Schedules::getCasc2023Schedule(prop,quick,fallback);
+    break;
+
+  case Options::Schedule::CASC_2019:
     Schedules::getCasc2019Schedule(prop,quick,fallback);
     break;
 
-  case Options::Schedule::CASC_SAT_2019:
+  case Options::Schedule::CASC_SAT_2023:
   case Options::Schedule::CASC_SAT:
+    Schedules::getCascSat2023Schedule(prop,quick,fallback);
+    break;
+
+  case Options::Schedule::CASC_SAT_2019:
     Schedules::getCascSat2019Schedule(prop,quick,fallback);
     break;
 
@@ -409,14 +412,19 @@ void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule
   case Options::Schedule::INTEGER_INDUCTION:
     Schedules::getIntegerInductionSchedule(prop,quick,fallback);
     break;
+  case Options::Schedule::INTIND_OEIS:
+    Schedules::getIntindOeisSchedule(prop,quick,fallback);
+    break;
   case Options::Schedule::STRUCT_INDUCTION:
     Schedules::getStructInductionSchedule(prop,quick,fallback);
+    break;
+  case Options::Schedule::STRUCT_INDUCTION_TIP:
+    Schedules::getStructInductionTipSchedule(prop,quick,fallback);
     break;
   }
 }
 
 bool PortfolioMode::runSchedule(Schedule schedule) {
-  CALL("PortfolioMode::runSchedule");
   TIME_TRACE("run schedule");
 
   Schedule::BottomFirstIterator it(schedule);
@@ -472,10 +480,8 @@ bool PortfolioMode::runSchedule(Schedule schedule) {
       }
     } else if (signalled) {
       // killed by an external agency (could be e.g. a slurm cluster killing for too much memory allocated)
-      env.beginOutput();
-      Shell::addCommentSignForSZS(env.out());
-      env.out()<<"Child killed by signal " << code << endl;
-      env.endOutput();
+      Shell::addCommentSignForSZS(cout);
+      cout<<"Child killed by signal " << code << endl;
       ALWAYS(processes.remove(process));
     }
   }
@@ -483,7 +489,7 @@ bool PortfolioMode::runSchedule(Schedule schedule) {
   // kill all running processes first
   decltype(processes)::Iterator killIt(processes);
   while(killIt.hasNext())
-    Multiprocessing::instance()->killNoCheck(killIt.next(), SIGKILL);
+    Multiprocessing::instance()->killNoCheck(killIt.next(), SIGINT);
 
   return success;
 }
@@ -494,8 +500,6 @@ bool PortfolioMode::runSchedule(Schedule schedule) {
  */
 bool PortfolioMode::runScheduleAndRecoverProof(Schedule schedule)
 {
-  CALL("PortfolioMode::runScheduleAndRecoverProof");
-
   if (schedule.size() == 0)
     return false;
 
@@ -509,29 +513,22 @@ bool PortfolioMode::runScheduleAndRecoverProof(Schedule schedule)
      * the user didn't wish a proof in the file, so we printed it to the secret tmp file
      * now it's time to restore it.
      */
-
-    BYPASSING_ALLOCATOR; 
-    
-    ifstream input(_tmpFileNameForProof);
+    std::ifstream input(_path);
 
     bool openSucceeded = !input.fail();
 
     if (openSucceeded) {
-      env.beginOutput();
-      env.out() << input.rdbuf();
-      env.endOutput();
+      cout << input.rdbuf();
     } else {
       if (outputAllowed()) {
-        env.beginOutput();
-        addCommentSignForSZS(env.out()) << "Failed to restore proof from tempfile " << _tmpFileNameForProof << endl;
-        env.endOutput();
+        addCommentSignForSZS(cout) << "Failed to restore proof from tempfile " << _path << endl;
       }
     }
 
     //If for some reason, the proof could not be opened
     //we don't delete the proof file
     if(openSucceeded){
-      remove(_tmpFileNameForProof); 
+      fs::remove(_path);
     }
   }
 
@@ -543,8 +540,6 @@ bool PortfolioMode::runScheduleAndRecoverProof(Schedule schedule)
  */
 unsigned PortfolioMode::getSliceTime(const vstring &sliceCode)
 {
-  CALL("PortfolioMode::getSliceTime");
-
   unsigned pos = sliceCode.find_last_of('_');
   vstring sliceTimeStr = sliceCode.substr(pos+1);
   unsigned sliceTime;
@@ -552,10 +547,8 @@ unsigned PortfolioMode::getSliceTime(const vstring &sliceCode)
 
   if (sliceTime == 0 && !Timer::instructionLimitingInPlace()) {
     if (outputAllowed()) {
-      env.beginOutput();
-      addCommentSignForSZS(env.out());
-      env.out() << "WARNING: time unlimited strategy and instruction limiting not in place - attemping to translate instructions to time" << endl;
-      env.endOutput();
+      addCommentSignForSZS(cout);
+      cout << "WARNING: time unlimited strategy and instruction limiting not in place - attempting to translate instructions to time" << endl;
     }
 
     size_t bidx = sliceCode.find(":i=");
@@ -571,10 +564,9 @@ unsigned PortfolioMode::getSliceTime(const vstring &sliceCode)
     vstring sliceInstrStr = sliceCode.substr(bidx,eidx-bidx);
     unsigned sliceInstr;
     ALWAYS(Int::stringToUnsignedInt(sliceInstrStr,sliceInstr));
-    
+
     // sliceTime is in deci second, we assume a roughly 2GHz CPU here
-    sliceTime = sliceInstr / 200;
-    if (sliceTime == 0) { sliceTime = 1; }
+    sliceTime = 1 + sliceInstr / 200; // rather round up than down (and never return 0 here)
   }
 
   return _slowness * sliceTime;
@@ -585,7 +577,6 @@ unsigned PortfolioMode::getSliceTime(const vstring &sliceCode)
  */
 void PortfolioMode::runSlice(vstring sliceCode, int timeLimitInDeciseconds)
 {
-  CALL("PortfolioMode::runSlice");
   TIME_TRACE("run slice");
 
   int sliceTime = getSliceTime(sliceCode);
@@ -619,8 +610,8 @@ void PortfolioMode::runSlice(vstring sliceCode, int timeLimitInDeciseconds)
   {
     if(outputAllowed())
     {
-      std::cerr << "% Exception at run slice level" << std::endl;
-      e.cry(std::cerr);
+      cerr << "% Exception at run slice level" << endl;
+      e.cry(cerr);
     }
     System::terminateImmediately(1); // didn't find proof
   }
@@ -631,12 +622,9 @@ void PortfolioMode::runSlice(vstring sliceCode, int timeLimitInDeciseconds)
  */
 void PortfolioMode::runSlice(Options& strategyOpt)
 {
-  CALL("PortfolioMode::runSlice(Option&)");
-
   System::registerForSIGHUPOnParentDeath();
   UIHelper::portfolioParent=false;
 
-  int resultValue=1;
   env.timer->reset();
   env.timer->start();
 
@@ -651,91 +639,84 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   *env.options = opt; //just temporarily until we get rid of dependencies on env.options in solving
 
   if (outputAllowed()) {
-    env.beginOutput();
-    addCommentSignForSZS(env.out()) << opt.testId() << " on " << opt.problemName() << 
+    addCommentSignForSZS(cout) << opt.testId() << " on " << opt.problemName() <<
       " for (" << opt.timeLimitInDeciseconds() << "ds"<<
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
       "/" << opt.instructionLimit() << "Mi" <<
 #endif
       ")" << endl;
-    env.endOutput();
   }
 
   Saturation::ProvingHelper::runVampire(*_prb, opt);
 
-  //set return value to zero if we were successful
-  if (env.statistics->terminationReason == Statistics::REFUTATION ||
-      env.statistics->terminationReason == Statistics::SATISFIABLE) {
-    resultValue=0;
+  bool succeeded =
+    env.statistics->terminationReason == Statistics::REFUTATION ||
+    env.statistics->terminationReason == Statistics::SATISFIABLE;
 
-    /*
-     env.beginOutput();
-     lineOutput() << " found solution " << endl;
-     env.endOutput();
-    */
+  if(!succeeded) {
+    if(outputAllowed())
+      UIHelper::outputResult(cout);
+    exit(EXIT_FAILURE);
   }
 
-  System::ignoreSIGHUP(); // don't interrupt now, we need to finish printing the proof !
-
+  // whether this Vampire should print a proof or not
   bool outputResult = false;
-  if (!resultValue) {
-    // only successfull vampires get here
 
-    _syncSemaphore.dec(SEM_LOCK); // will block for all accept the first to enter (make sure it's until it has finished printing!)
+  // FILE used to synchronise multiple Vampires
+  FILE *checkExists;
 
-    if (!_syncSemaphore.get(SEM_PRINTED)) {
-      _syncSemaphore.set(SEM_PRINTED,1);
-      outputResult = true;
-    }
+  // fall back to stdout if we failed to agree on `_path` above
+  if(_path.empty())
+    outputResult = true;
+  // output to file if we get a lock
+  // NB "wx": if we succeed opening here we're the first Vampire
+  else if((checkExists = std::fopen(_path.c_str(), "wx"))) {
+    std::fclose(checkExists);
+    outputResult = true;
+  }
+  // we're very likely the first but can't write a proof to file for some reason
+  // fall back to stdout, two proofs better than none
+  else if(errno != EEXIST) {
+    std::cerr
+      << "WARNING: could not open proof file << " << _path
+      << " - printing to stdout." << std::endl;
+    _path.clear();
+    outputResult = true;
   }
 
-  if(outputResult) { // this get only true for the first child to find a proof
-    ASS(!resultValue);
+  // can conclude we didn't get the lock
+  if(!outputResult) {
+    if (Lib::env.options && Lib::env.options->multicore() != 1)
+      addCommentSignForSZS(cout) << "Also succeeded, but the first one will report." << endl;
 
-    if (outputAllowed() && env.options->multicore() != 1) {
-      env.beginOutput();
-      addCommentSignForSZS(env.out()) << "First to succeed." << endl;
-      env.endOutput();
-    }
+    // we succeeded in some sense, but we failed to print a proof
+    // (only because the other Vampire beat us to it)
+    // NB: this really cannot be EXIT_SUCCESS
+    // otherwise, the parent might kill the proof-printing Vampire!
+    exit(EXIT_FAILURE);
+  }
 
-    // At the moment we only save one proof. We could potentially
-    // allow multiple proofs
-    vstring fname(env.options->printProofToFile());
-    if (fname.empty()) {
-      fname = _tmpFileNameForProof;
-    }
+  // at this point, we should be go for launch
+  ASS(succeeded && outputResult)
+  if (outputAllowed() && env.options->multicore() != 1)
+    addCommentSignForSZS(cout) << "First to succeed." << endl;
 
-    BYPASSING_ALLOCATOR; 
-    
-    ofstream output(fname.c_str());
-    if (output.fail()) {
-      // fallback to old printing method
-      env.beginOutput();
-      addCommentSignForSZS(env.out()) << "Solution printing to a file '" << fname <<  "' failed. Outputting to stdout" << endl;
-      UIHelper::outputResult(env.out());
-      env.endOutput();
+  if (_path.empty()) {
+    // we already failed above in accesssing the file (let's not try opening or reporting the empty name)
+    UIHelper::outputResult(cout);
+  } else {
+    std::ofstream output(_path);
+    if(output.fail()) {
+      // failed to open file, fallback to stdout
+      addCommentSignForSZS(cout) << "Solution printing to a file '" << _path <<  "' failed. Outputting to stdout" << endl;
+      UIHelper::outputResult(cout);
     } else {
       UIHelper::outputResult(output);
-      if (!env.options->printProofToFile().empty() && outputAllowed()) {
-        env.beginOutput();
-        addCommentSignForSZS(env.out()) << "Solution written to " << fname << endl;
-        env.endOutput();
-      }
+      if(outputAllowed())
+        addCommentSignForSZS(cout) << "Solution written to " << _path << endl;
     }
-  } else if (outputAllowed()) {
-    env.beginOutput();
-    if (resultValue) {
-      UIHelper::outputResult(env.out());
-    } else if (Lib::env.options && Lib::env.options->multicore() != 1) {
-      addCommentSignForSZS(env.out()) << "Also succeeded, but the first one will report." << endl;
-    }
-    env.endOutput();
   }
 
-  if (outputResult) {
-    _syncSemaphore.inc(SEM_LOCK); // would be also released after the processes' death, but we are polite and do it already here
-  }
-
-  STOP_CHECKING_FOR_ALLOCATOR_BYPASSES;
-  exit(resultValue);
+  // could be quick_exit if we flush output?
+  exit(EXIT_SUCCESS);
 } // runSlice

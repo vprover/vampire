@@ -37,7 +37,7 @@ private:
   };
 
   struct CollectTask {
-    CollectTask() {}
+    CollectTask(CollectWhat what) : fncTag(what) {}
     CollectWhat fncTag;
     union {
       TermList ts;
@@ -53,8 +53,8 @@ public:
   static TermList getResultSort(const Term* t);
   static TermList getResultSortMono(const Term* t);
   static TermList getResultSort(TermList t, DHMap<unsigned,TermList>& varSorts);
-  static TermList getArgSort(Term* t, unsigned argIndex);
-  static TermList getTermArgSort(Term* t, unsigned argIndex);
+  static TermList getArgSort(Term const* t, unsigned argIndex);
+  static TermList getTermArgSort(Term const* t, unsigned argIndex);
 
   static bool tryGetResultSort(const Term* t, TermList& result);
   static bool tryGetResultSort(const TermList t, TermList& result);
@@ -65,6 +65,7 @@ public:
 
   static bool tryGetVariableSort(unsigned var, Formula* f, TermList& res);
   static TermList getVariableSort(TermList var, Term* t);
+  [[deprecated("This function is usually only used if we loose the information about the sort of a variable somewhere while over subterms. Recovering the information using this method iterating the literal/term again, is very inefficient and should be avoided. Make sure to use TermIterators that return TypedTermList instead, or raise a discussion on slack/github if you have a use case where this function is *really* needed.")]]
   static TermList getTermSort(TermList trm, Literal* lit);
 
   static void collectVariableSorts(Unit* u, DHMap<unsigned,TermList>& map);
@@ -83,7 +84,7 @@ public:
   static void normaliseArgSorts(TermStack& qVars, TermStack& argSorts);
   static void normaliseSort(TermStack qVars, TermList& sort);    
 
-  static OperatorType* getType(Term* t);
+  static OperatorType* getType(Term const* t);
 
   static void getTypeSub(const Term* t, Substitution& subst);
 
@@ -91,8 +92,7 @@ public:
   static bool areSortsValid(Term* t);
   static bool areSortsValid(Term* t, DHMap<unsigned,TermList>& varSorts);
 private:
-  // It is important this function is private, because it only works in cooperation with tryGetVariableSort(unsigned var, Formula* f, unsigned& res);
-  static bool tryGetVariableSort(TermList var, Term* t, TermList& result);
+  static bool tryGetVariableSortTerm(TermList var, Term* t, TermList& result, bool recurseToSubformulas);
 };
 
 }

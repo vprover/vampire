@@ -14,6 +14,7 @@
 #include "Inferences/LASCA/FourierMotzkin.hpp"
 #include "Inferences/InterpretedEvaluation.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Kernel/OrderingUtils.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Inferences/Cancellation.hpp"
 

@@ -29,8 +29,9 @@ public:
   IMPL_COMPARISONS_FROM_TUPLE(TypedTermList);
   IMPL_HASH_FROM_TUPLE(TypedTermList);
 
-  CLASS_NAME(TypedTermList)
 
+    // TODO get rid of default constructor
+  TypedTermList() {}
   TypedTermList(TermList t, SortId sort) : TermList(t), _sort(sort) 
   { 
     ASS_NEQ(sort, AtomicSort::superSort());

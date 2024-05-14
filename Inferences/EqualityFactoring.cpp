@@ -47,9 +47,10 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
+using std::pair;
 
 EqualityFactoring::EqualityFactoring()
-  : _mismatchHandler(MismatchHandler::createOnlyHigherOrder())
+  : _abstractionOracle(AbstractionOracle::createOnlyHigherOrder())
   , _uwaFixedPointIteration(env.options->unificationWithAbstractionFixedPointIteration())
 {
 
@@ -74,7 +75,7 @@ struct EqualityFactoring::FactorablePairsFn
   FactorablePairsFn(Clause* cl) : _cl(cl) {}
   VirtualIterator<pair<pair<Literal*,TermList>,pair<Literal*,TermList> > > operator() (pair<Literal*,TermList> arg)
   {
-    auto it1 = getContentIterator(*_cl);
+    auto it1 = _cl->iterLits();
 
     auto it2 = getFilteredIterator(it1,IsDifferentPositiveEqualityFn(arg.first));
 
@@ -94,8 +95,7 @@ struct EqualityFactoring::ResultFn
       : _self(self), _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ordering(ordering), _fixedPointIteration(fixedPointIteration) {}
   Clause* operator() (pair<pair<Literal*,TermList>,pair<Literal*,TermList> > arg)
   {
-    CALL("EqualityFactoring::ResultFn::operator()");
-    auto absUnif = AbstractingUnifier::empty(_self._mismatchHandler);
+    auto absUnif = AbstractingUnifier::empty(_self._abstractionOracle);
     Literal* sLit=arg.first.first;  // selected literal ( = factored-out literal )
     Literal* fLit=arg.second.first; // fairly boring side literal
     ASS(sLit->isEquality());
@@ -108,7 +108,6 @@ struct EqualityFactoring::ResultFn
       return 0;
     }
 
-    TermList srtS = absUnif.subs().apply(srt,0);
 
     TermList sLHS=arg.first.second;
     TermList sRHS=EqHelper::getOtherEqualitySide(sLit, sLHS);
@@ -124,6 +123,7 @@ struct EqualityFactoring::ResultFn
       return nullptr;
     }
 
+    TermList srtS = absUnif.subs().apply(srt,0);
     TermList sLHSS = absUnif.subs().apply(sLHS,0);
     TermList sRHSS = absUnif.subs().apply(sRHS,0);
     if(Ordering::isGorGEorE(_ordering.compare(sRHSS,sLHSS))) {
@@ -133,7 +133,7 @@ struct EqualityFactoring::ResultFn
     if(Ordering::isGorGEorE(_ordering.compare(fRHSS,sLHSS))) {
       return 0;
     }
-    auto constraints = absUnif.constr().literals(absUnif.subs());
+    auto constraints = absUnif.computeConstraintLiterals();
 
     unsigned newLen=_cLen+constraints->length();
     Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
@@ -184,8 +184,6 @@ private:
 
 ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
 {
-  CALL("EqualityFactoring::generateClauses");
-
   if(premise->length()<=1) {
     return ClauseIterator::getEmpty();
   }

@@ -35,11 +35,10 @@ class IsIntFactoring
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(IsIntFactoring);
   USE_ALLOCATOR(IsIntFactoring);
 
   IsIntFactoring(IsIntFactoring&&) = default;
-  IsIntFactoring(shared_ptr<LascaState> shared)
+  IsIntFactoring(std::shared_ptr<LascaState> shared)
     : _shared(std::move(shared))
   {  }
 
@@ -81,7 +80,7 @@ public:
 
 private:
 
-  shared_ptr<LascaState> _shared;
+  std::shared_ptr<LascaState> _shared;
 };
 
 } // namespace LASCA 

@@ -15,7 +15,6 @@
  */
 
 #include "Debug/RuntimeStatistics.hpp"
-#include "Debug/Tracer.hpp"
 
 #include "Kernel/Inference.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -36,8 +35,6 @@ namespace Shell
  */
 Formula* Flattening::getFlattennedNegation(Formula* f)
 {
-  CALL("Flattening::getFlattennedNegation");
-
   switch(f->connective()) {
   case NOT:
     return f->uarg();
@@ -61,7 +58,6 @@ Formula* Flattening::getFlattennedNegation(Formula* f)
  */
 FormulaUnit* Flattening::flatten (FormulaUnit* unit)
 {
-  CALL("Flattening::flatten (Unit*)");
   ASS(! unit->isClause());
 
   Formula* f = unit->formula();
@@ -73,10 +69,8 @@ FormulaUnit* Flattening::flatten (FormulaUnit* unit)
   FormulaUnit* res = new FormulaUnit(g,
       FormulaTransformation(InferenceRule::FLATTEN,unit));
   if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] flatten in: " << unit->toString() << std::endl;
-    env.out() << "[PP] flatten out: " << res->toString() << std::endl;
-    env.endOutput();
+    std::cout << "[PP] flatten in: " << unit->toString() << std::endl;
+    std::cout << "[PP] flatten out: " << res->toString() << std::endl;
   }
   return res;
 } // Flattening::flatten
@@ -92,8 +86,6 @@ FormulaUnit* Flattening::flatten (FormulaUnit* unit)
  */
 Formula* Flattening::innerFlatten (Formula* f)
 {
-  CALL("Flattening::innerFlatten(Formula*)");
-
   Connective con = f->connective();
   switch (con) {
   case TRUE:
@@ -104,8 +96,8 @@ Formula* Flattening::innerFlatten (Formula* f)
     {
       Literal* lit = f->literal();
 
-      if (env.options->newCNF() && !env.property->higherOrder() &&
-          !env.property->hasPolymorphicSym()) {
+      if (env.options->newCNF() && !env.getMainProblem()->isHigherOrder() &&
+          !env.getMainProblem()->hasPolymorphicSym()) {
         // Convert equality between boolean FOOL terms to equivalence
         if (lit->isEquality()) {
           TermList lhs = *lit->nthArgument(0);
@@ -214,8 +206,6 @@ Formula* Flattening::innerFlatten (Formula* f)
 
 Literal* Flattening::flatten(Literal* l)
 {
-  CALL("Flattening::flatten(Literal*)");
-
   if (l->shared()) {
     return l;
   }
@@ -241,8 +231,6 @@ Literal* Flattening::flatten(Literal* l)
 
 TermList Flattening::flatten (TermList ts)
 {
-  CALL("Flattening::flatten(TermList)");
-
   if (ts.isVar()) {
     return ts;
   }
@@ -255,8 +243,8 @@ TermList Flattening::flatten (TermList ts)
 
  if (term->isSpecial()) {
     Term::SpecialTermData* sd = term->getSpecialData();
-    switch (sd->getType()) {
-      case Term::SF_FORMULA: {
+    switch (sd->specialFunctor()) {
+      case SpecialFunctor::FORMULA: {
         Formula* f = sd->getFormula();
         Formula* flattenedF = flatten(f);
         if (f == flattenedF) {
@@ -266,7 +254,7 @@ TermList Flattening::flatten (TermList ts)
         }
       }
 
-      case Term::SF_ITE: {
+      case SpecialFunctor::ITE: {
         TermList thenBranch = *term->nthArgument(0);
         TermList elseBranch = *term->nthArgument(1);
         Formula* condition  = sd->getCondition();
@@ -284,7 +272,7 @@ TermList Flattening::flatten (TermList ts)
         }
       }
 
-      case Term::SF_LET: {
+      case SpecialFunctor::LET: {
         TermList binding = sd->getBinding();
         TermList body = *term->nthArgument(0);
 
@@ -298,7 +286,7 @@ TermList Flattening::flatten (TermList ts)
         }
       }
 
-      case Term::SF_LET_TUPLE: {
+      case SpecialFunctor::LET_TUPLE: {
         TermList binding = sd->getBinding();
         TermList body = *term->nthArgument(0);
 
@@ -312,7 +300,7 @@ TermList Flattening::flatten (TermList ts)
         }
       }
 
-      case Term::SF_TUPLE: {
+      case SpecialFunctor::TUPLE: {
         TermList tupleTerm = TermList(sd->getTupleTerm());
         TermList flattenedTupleTerm = flatten(tupleTerm);
 
@@ -324,7 +312,9 @@ TermList Flattening::flatten (TermList ts)
         }
       }
 
-      case Term::SF_MATCH: {
+      case SpecialFunctor::LAMBDA:
+        NOT_IMPLEMENTED;
+      case SpecialFunctor::MATCH: {
         DArray<TermList> terms(term->arity());
         bool unchanged = true;
         for (unsigned i = 0; i < term->arity(); i++) {
@@ -337,9 +327,6 @@ TermList Flattening::flatten (TermList ts)
         }
         return TermList(Term::createMatch(sd->getSort(), sd->getMatchedSort(), term->arity(), terms.begin()));
       }
-
-      default:
-        ASSERTION_VIOLATION;
     }
   }
 
@@ -374,7 +361,6 @@ TermList Flattening::flatten (TermList ts)
 FormulaList* Flattening::flatten (FormulaList* fs, 
 				  Connective con)
 {
-  CALL("Flattening::flatten (FormulaList*...)");
   ASS(con == OR || con == AND);
 
 #if 1

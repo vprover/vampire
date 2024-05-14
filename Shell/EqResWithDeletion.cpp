@@ -18,6 +18,7 @@
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
+#include "Kernel/FormulaVarIterator.hpp"
 
 #include "EqResWithDeletion.hpp"
 
@@ -29,8 +30,6 @@ using namespace Kernel;
 
 void EqResWithDeletion::apply(Problem& prb)
 {
-  CALL("EqResWithDeletion::apply");
-
   if(apply(prb.units())) {
     prb.invalidateByRemoval();
   }
@@ -42,8 +41,6 @@ void EqResWithDeletion::apply(Problem& prb)
  */
 bool EqResWithDeletion::apply(UnitList*& units)
 {
-  CALL("EqResWithDeletion::apply(UnitList*&)");
-
   bool modified = false;
 
   UnitList::DelIterator uit(units);
@@ -67,12 +64,13 @@ bool EqResWithDeletion::apply(UnitList*& units)
  */
 Clause* EqResWithDeletion::apply(Clause* cl)
 {
-  CALL("EqResWithDeletion::apply(Clause*)");
-
   //TODO: make the procedure linear time
 start_applying:
 
   unsigned clen=cl->length();
+  if (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) {
+    _ansLit = cl->getAnswerLiteral();
+  }
 
   _subst.reset();
 
@@ -118,17 +116,17 @@ TermList EqResWithDeletion::apply(unsigned var)
 
 bool EqResWithDeletion::scan(Literal* lit)
 {
-  CALL("EqResWithDeletion::scan(Literal*)");
+  using Kernel::isFreeVariableOf;
 
   if(lit->isEquality() && lit->isNegative()) {
     TermList t0=*lit->nthArgument(0);
     TermList t1=*lit->nthArgument(1);
-    if( t0.isVar() && !t1.containsSubterm(t0) ) {
+    if( t0.isVar() && !t1.containsSubterm(t0) && (!_ansLit || !t1.isTerm() || t1.term()->computableOrVar() || !isFreeVariableOf(_ansLit,t0.var()))) {
       if(_subst.insert(t0.var(), t1)) {
         return true;
       }
     }
-    if( t1.isVar() && !t0.containsSubterm(t1) ) {
+    if( t1.isVar() && !t0.containsSubterm(t1) && (!_ansLit || !t0.isTerm() || t0.term()->computableOrVar() || !isFreeVariableOf(_ansLit,t1.var()))) {
       if(_subst.insert(t1.var(), t0)) {
         return true;
       }

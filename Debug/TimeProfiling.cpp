@@ -18,22 +18,8 @@
 
 namespace Shell {
 
+using namespace std;
 using namespace Lib;
-
-// TODO: these should be dispensable with C++17 onwards
-const char* const TimeTrace::CLAUSE_GENERATION;
-const char* const TimeTrace::CONSEQUENCE_FINDING;
-const char* const TimeTrace::FMB_DEFINITION_INTRODUCTION;
-const char* const TimeTrace::HYPER_SUP;
-const char* const TimeTrace::LITERAL_ORDER_AFTERCHECK;
-const char* const TimeTrace::PARSING;
-const char* const TimeTrace::PASSIVE_CONTAINER_MAINTENANCE;
-const char* const TimeTrace::PREPROCESSING;
-const char* const TimeTrace::PROPERTY_EVALUATION;
-const char* const TimeTrace::AVATAR_SAT_SOLVER;
-const char* const TimeTrace::SHUFFLING;
-const char* const TimeTrace::SINE_SELECTION;
-const char* const TimeTrace::TERM_SHARING;
 
 TimeTrace::TimeTrace() 
   : _root("[root]")
@@ -58,7 +44,7 @@ TimeTrace::ScopedTimer::ScopedTimer(TimeTrace& trace, const char* name)
       .map([](auto& x) { return &*x; })
       .find([&](Node* n) { return n->name == name; })
       .unwrapOrElse([&]() { 
-          children.push(Lib::make_unique<Node>(name));
+          children.push(std::make_unique<Node>(name));
           return &*children.top();
       });
     auto start = Clock::now();
@@ -192,7 +178,6 @@ void TimeTrace::Node::printPrettyRec(std::ostream& out, NodeFormatOpts& opts)
   if (opts.parentDuration.isSome()) {
     out << "[" << setw(2) << percent(total, opts.parentDuration.unwrap()) << "%] ";
   }
-  BYPASSING_ALLOCATOR
   if (opts.nameWidth.isSome()) {
     out << msetw(opts.nameWidth.unwrap()) << left;
   }

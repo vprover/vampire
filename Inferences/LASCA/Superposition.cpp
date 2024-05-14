@@ -15,10 +15,13 @@
 
 #include "Superposition.hpp"
 #include "Indexing/SubstitutionTree.hpp"
+#include "Lib/Metaiterators.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Kernel/EqHelper.hpp"
+#include "Kernel/OrderingUtils.hpp"
+#include "Kernel/LASCA.hpp"
 
 #define DEBUG(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
 
@@ -27,7 +30,6 @@ namespace LASCA {
 
 void Superposition::attach(SaturationAlgorithm* salg) 
 { 
-  CALL("LASCA::Superposition::attach");
   ASS(!_rhs);
   ASS(!_lhs);
 
@@ -45,7 +47,6 @@ void Superposition::attach(SaturationAlgorithm* salg)
 
 void Superposition::detach() 
 {
-  CALL("LASCA::Superposition::detach");
   ASS(_salg);
 
   _lhs=0;
@@ -84,7 +85,6 @@ Option<Clause*> Superposition::applyRule(
     AbstractingUnifier& uwa
     ) const 
 {
-  CALL("LASCA::Superposition::applyRule(Lhs const&, unsigned, Rhs const&, unsigned, AbstractingUnifier&)")
   TIME_TRACE("lasca superposition application")
 
   ASS (lhs.literal()->isEquality() && lhs.literal()->isPositive())
@@ -96,7 +96,7 @@ Option<Clause*> Superposition::applyRule(
   ASS(!(s1.isVar() && lhs.isFracNum()))
   ASS(!s2.isVar())
 
-  auto cnst = uwa.constraintLiterals();
+  auto cnst = uwa.computeConstraintLiterals();
   auto sigma = [&](auto t, auto bank) { return uwa.subs().apply(t, bank); };
 
 #define check_side_condition(cond, cond_code)                                                       \
@@ -173,7 +173,7 @@ Option<Clause*> Superposition::applyRule(
   auto tσ  = sigma(lhs.smallerSide(), lhsVarBank);
   check_side_condition(
       "s1σ /⪯ tσ",
-      _shared->notLeq(s1σ, tσ))
+      _shared->notLeq(s1σ.untyped(), tσ))
 
 
   auto resolvent = EqHelper::replace(L2σ, s2σ, tσ);
@@ -193,7 +193,6 @@ Option<Clause*> Superposition::applyRule(
 
 ClauseIterator Superposition::generateClauses(Clause* premise) 
 {
-  CALL("LASCA::Superposition::generateClauses(Clause* premise)")
   ASS(_lhs)
   ASS(_rhs)
   ASS(_shared)
@@ -229,7 +228,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
       }
     }
   }
-  return pvi(ownedArrayishIterator(std::move(out)));
+  return pvi(arrayIter(std::move(out)));
 }
 
 // TODO move to appropriate place

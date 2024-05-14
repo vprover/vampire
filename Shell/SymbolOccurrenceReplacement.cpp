@@ -18,16 +18,15 @@ using namespace Kernel;
 using namespace Shell;
 
 Term* SymbolOccurrenceReplacement::process(Term* term) {
-  CALL("FOOLElimination::SymbolOccurrenceReplacement::process(Term*)");
   ASS(!term->isSort());
 
   if (term->isSpecial()) {
     Term::SpecialTermData* sd = term->getSpecialData();
-    switch (term->functor()) {
-      case Term::SF_ITE:
+    switch (term->specialFunctor()) {
+      case SpecialFunctor::ITE:
         return Term::createITE(process(sd->getCondition()), process(*term->nthArgument(0)), process(*term->nthArgument(1)), sd->getSort());
 
-        case Term::SF_LET:
+      case SpecialFunctor::LET:
           if (_isPredicate == (sd->getBinding().isTerm() && sd->getBinding().term()->isBoolean())) {
             // function symbols, defined inside $let are expected to be
             // disjoint and fresh symbols are expected to be fresh
@@ -36,10 +35,10 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
           }
           return Term::createLet(sd->getFunctor(), sd->getVariables(), process(sd->getBinding()), process(*term->nthArgument(0)), sd->getSort());
 
-        case Term::SF_FORMULA:
+      case SpecialFunctor::FORMULA:
           return Term::createFormula(process(sd->getFormula()));
 
-      case Term::SF_LET_TUPLE:
+      case SpecialFunctor::LET_TUPLE:
         if (_isPredicate == (sd->getBinding().isTerm() && sd->getBinding().term()->isBoolean())) {
           // function symbols, defined inside $let are expected to be
           // disjoint and fresh symbols are expected to be fresh
@@ -48,22 +47,20 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
         }
         return Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(), process(sd->getBinding()), process(*term->nthArgument(0)), sd->getSort());
 
-      case Term::SF_TUPLE:
+      case SpecialFunctor::TUPLE:
         return Term::createTuple(process(TermList(sd->getTupleTerm())).term());
 
-      case Term::SF_MATCH: {
+      case SpecialFunctor::LAMBDA:
+        NOT_IMPLEMENTED;
+      case SpecialFunctor::MATCH: {
         DArray<TermList> terms(term->arity());
         for (unsigned i = 0; i < term->arity(); i++) {
           terms[i] = process(*term->nthArgument(i));
         }
         return Term::createMatch(sd->getSort(), sd->getMatchedSort(), term->arity(), terms.begin());
       }
-
-#if VDEBUG
-        default:
-          ASSERTION_VIOLATION;
-#endif
     }
+    ASSERTION_VIOLATION;
   }
 
   bool renaming = !_isPredicate && (term->functor() == _symbol);
@@ -98,8 +95,6 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
 }
 
 TermList SymbolOccurrenceReplacement::process(TermList ts) {
-  CALL("SymbolOccurrenceReplacement::process(TermList)");
-
   if (!ts.isTerm()) {
     return ts;
   }
@@ -108,7 +103,6 @@ TermList SymbolOccurrenceReplacement::process(TermList ts) {
 }
 
 Formula* SymbolOccurrenceReplacement::process(Formula* formula) {
-  CALL("SymbolOccurrenceReplacement::process(Formula*)");
   switch (formula->connective()) {
     case LITERAL: {
       Literal* literal = formula->literal();
@@ -182,6 +176,5 @@ Formula* SymbolOccurrenceReplacement::process(Formula* formula) {
 }
 
 FormulaList* SymbolOccurrenceReplacement::process(FormulaList* formulas) {
-  CALL("SymbolOccurrenceReplacement::process(FormulaList*)");
   return FormulaList::isEmpty(formulas) ? formulas : new FormulaList(process(formulas->head()), process(formulas->tail()));
 }

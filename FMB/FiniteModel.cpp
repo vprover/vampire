@@ -40,14 +40,13 @@
 
 namespace FMB{
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
 FiniteModel::FiniteModel(unsigned size) : _size(size), _isPartial(false)
 {
-  CALL("FiniteModel::FiniteModel");
-
   (void)_isPartial; // to suppress unused warning
 
   f_offsets.ensure(env.signature->functions());
@@ -80,15 +79,12 @@ FiniteModel::FiniteModel(unsigned size) : _size(size), _isPartial(false)
 
 void FiniteModel::addConstantDefinition(unsigned f, unsigned res)
 {
-  CALL("FiniteModel::addConstantDefinition");
   static const DArray<unsigned> empty(0);
   addFunctionDefinition(f,empty,res);
 }
 
 void FiniteModel::addFunctionDefinition(unsigned f, const DArray<unsigned>& args, unsigned res)
 {
-  CALL("FiniteModel::addFunctionDefinition");
-
   ASS_EQ(env.signature->functionArity(f),args.size());
 
   unsigned var = f_offsets[f];
@@ -112,16 +108,12 @@ void FiniteModel::addFunctionDefinition(unsigned f, const DArray<unsigned>& args
 
 void FiniteModel::addPropositionalDefinition(unsigned p, bool res)
 {
-  CALL("FiniteModel::addPropositionalDefinition");
-  
   static const DArray<unsigned> empty(0);
   addPredicateDefinition(p,empty,res);
 }
 
 void FiniteModel::addPredicateDefinition(unsigned p, const DArray<unsigned>& args, bool res)
 {
-  CALL("FiniteModel::addPredicateDefinition");
-
   ASS_EQ(env.signature->predicateArity(p),args.size());
 
   unsigned var = p_offsets[p];
@@ -141,15 +133,12 @@ void FiniteModel::addPredicateDefinition(unsigned p, const DArray<unsigned>& arg
 
 bool FiniteModel::isPartial()
 {
-  CALL("FiniteModel::isPartial");
   //TODO
   return true;
 }
 
 vstring FiniteModel::toString()
 {
-  CALL("FiniteModel::toString");
-
   vostringstream modelStm;
 
   bool printIntroduced = false;
@@ -342,7 +331,6 @@ pModelLabel:
 
 unsigned FiniteModel::evaluateGroundTerm(Term* term)
 {
-  CALL("FiniteModel::evaluate(Term*)");
   ASS(term->ground());
 
 #if DEBUG_MODEL
@@ -374,7 +362,6 @@ unsigned FiniteModel::evaluateGroundTerm(Term* term)
 
 bool FiniteModel::evaluateGroundLiteral(Literal* lit)
 {
-  CALL("FiniteModel::evaluate(Literal*)");
   ASS(lit->ground());
 
 #if DEBUG_MODEL
@@ -427,8 +414,6 @@ bool FiniteModel::evaluateGroundLiteral(Literal* lit)
 
 bool FiniteModel::evaluate(Unit* unit)
 {
-  CALL("FiniteModel::evaluate(Unit*)");
-
   Formula* formula = 0;
   if(unit->isClause()){
     Clause* clause = unit->asClause();
@@ -454,8 +439,6 @@ bool FiniteModel::evaluate(Unit* unit)
  */
 bool FiniteModel::evaluate(Formula* formula,unsigned depth)
 {
-  CALL("FiniteModel::evaluate(Formula*)");
-
 #if DEBUG_MODEL
   for(unsigned i=0;i<depth;i++){ cout << "."; }
   cout << "Evaluating..." << formula->toString() << endl; 
@@ -568,8 +551,6 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
      */
     Formula* FiniteModel::partialEvaluate(Formula* formula)
     {
-        CALL("FiniteModel::partialEvaluate(Formula*)");
-        
 #if DEBUG_MODEL
         for(unsigned i=0;i<depth;i++){ cout << "."; }
         cout << "Evaluating..." << formula->toString() << endl;

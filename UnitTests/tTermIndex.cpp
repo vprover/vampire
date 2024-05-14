@@ -69,20 +69,20 @@ void check_gen(LiteralSubstitutionTree<Data>& tree, Literal* key, Stack<Data> ex
 
 
 template<class Data>
-void check_unify(TermSubstitutionTree<Data>& tree, TermList key, Stack<Data> expected)
-{ return __check("unify", tree, key, expected, [&](TermList key) 
+void check_unify(TermSubstitutionTree<Data>& tree, TypedTermList key, Stack<Data> expected)
+{ return __check("unify", tree, key, expected, [&](TypedTermList key) 
       { return tree.getUnifications(key, /* retrieveSubstitutions */ true); }); }
 
 // TODO write tests using this
 template<class Data>
-void check_gen(TermSubstitutionTree<Data>& tree, TermList key, Stack<Data> expected)
-{ return __check("getGen", tree, key, expected, [&](TermList key) 
+void check_gen(TermSubstitutionTree<Data>& tree, TypedTermList key, Stack<Data> expected)
+{ return __check("getGen", tree, key, expected, [&](TypedTermList key) 
       { return tree.getGeneralizations(key, /* retrieveSubstitutions */ true); }); }
 
 // TODO write tests using this
 template<class Data>
-void check_inst(TermSubstitutionTree<Data>& tree, TermList key, Stack<Data> expected)
-{ return __check("getInst", tree, key, expected, [&](TermList key) 
+void check_inst(TermSubstitutionTree<Data>& tree, TypedTermList key, Stack<Data> expected)
+{ return __check("getInst", tree, key, expected, [&](TypedTermList key) 
       { return tree.getInstances(key, /* retrieveSubstitutions */ true); }); }
 
 
@@ -96,19 +96,16 @@ TEST_FUN(basic01) {
   DECL_FUNC(f, {srt}, srt)
   DECL_PRED(g, {srt})
   
-  TermSubstitutionTree<TermLiteralClause> tree;
-  auto dat = [](TermList k, Literal* v)  { return TermLiteralClause(k, v, nullptr); };
+  TermSubstitutionTree<TermWithValue<Literal*>> tree;
+  auto dat = [](TypedTermList k, Literal* v)  { return TermWithValue<Literal*>(k, v); };
   tree.insert(dat(f(a), g(a)));
   tree.insert(dat(f(a), g(b)));
   tree.insert(dat(f(a), g(c)));
 
   check_unify(tree, f(a), { dat(f(a), g(a)), dat(f(a), g(b)), dat(f(a), g(c)), });
-  check_unify(tree, f(b), Stack<TermLiteralClause>{});
+  check_unify(tree, f(b), Stack<TermWithValue<Literal*>>{});
   check_unify(tree, f(x), { dat(f(a), g(a)), dat(f(a), g(b)), dat(f(a), g(c)), });
 }
-
-TermList getSort(TermList term) { return SortHelper::getResultSort(term.term()); }
-TermList getSort(Literal* term) { return TermList::empty(); }
 
 template<class Key>
 struct MyData {
@@ -117,8 +114,6 @@ struct MyData {
 
   MyData(Key t, vstring s)
     : term(t), str(s) {}
-
-  TermList sort() const  { return getSort(term); }
 
   auto asTuple() const 
   { return std::tie(term, str); }
@@ -142,14 +137,14 @@ TEST_FUN(custom_data_01) {
   DECL_CONST(b, srt)
   DECL_FUNC(f, {srt}, srt)
 
-  auto dat = [](auto l, auto r) { return MyData<TermList>(l,r); };
-  TermSubstitutionTree<MyData<TermList>> tree;
+  auto dat = [](auto l, auto r) { return MyData<TypedTermList>(l,r); };
+  TermSubstitutionTree<MyData<TypedTermList>> tree;
   tree.insert(dat(f(a), "a"));
   tree.insert(dat(f(a), "b"));
   tree.insert(dat(f(a), "c"));
 
   check_unify(tree, f(a), { dat(f(a), "a"), dat(f(a), "b"), dat(f(a), "c") });
-  check_unify(tree, f(b), Stack<MyData<TermList>>{});
+  check_unify(tree, f(b), Stack<MyData<TypedTermList>>{});
   check_unify(tree, f(x), { dat(f(a), "a"), dat(f(a), "b"), dat(f(a), "c") });
 }
 
@@ -184,20 +179,20 @@ TEST_FUN(custom_data_02) {
   DECL_CONST(b, srt)
   DECL_FUNC(f, {srt}, srt)
 
-  TermSubstitutionTree<TermIndexData<vstring>> tree;
-  auto dat = [](TermList t,vstring s) { return TermIndexData<vstring>(t.term(), std::move(s)); };
+  TermSubstitutionTree<TermWithValue<vstring>> tree;
+  auto dat = [](TermList t,vstring s) { return TermWithValue<vstring>(t.term(), std::move(s)); };
   tree.insert(dat(f(a), "a"));
   tree.insert(dat(f(a), "b"));
   tree.insert(dat(f(a), "c"));
 
   check_unify(tree, f(a), { dat(f(a), "a"), dat(f(a), "b"), dat(f(a), "c") });
-  check_unify(tree, f(b), Stack<TermIndexData<vstring>>{});
+  check_unify(tree, f(b), Stack<TermWithValue<vstring>>{});
   check_unify(tree, f(x), { dat(f(a), "a"), dat(f(a), "b"), dat(f(a), "c") });
 }
 
-struct MyData3 : public MyData<TermList> {
+struct MyData3 : public MyData<TypedTermList> {
   MyData3()  = delete;
-  MyData3(TermList t, vstring s) : MyData{t,s} {}
+  MyData3(TypedTermList t, vstring s) : MyData{t,s} {}
 };
 
 TEST_FUN(custom_data_03_no_default_constructor) {
@@ -209,7 +204,7 @@ TEST_FUN(custom_data_03_no_default_constructor) {
   DECL_FUNC(f, {srt}, srt)
 
   TermSubstitutionTree<MyData3> tree;
-  auto dat = [](TermList t,vstring s) { return MyData3(t, std::move(s)); };
+  auto dat = [](TypedTermList t,vstring s) { return MyData3(t, std::move(s)); };
   tree.insert(dat(f(a), "a"));
   tree.insert(dat(f(a), "b"));
   tree.insert(dat(f(a), "c"));
@@ -219,10 +214,10 @@ TEST_FUN(custom_data_03_no_default_constructor) {
   check_unify(tree, f(x), { dat(f(a), "a"), dat(f(a), "b"), dat(f(a), "c") });
 }
 
-struct MyData4 : public MyData<TermList> {
+struct MyData4 : public MyData<TypedTermList> {
   MyData4(MyData const&) = delete;
   MyData4 operator=(MyData const&) = delete;
-  MyData4(TermList t, vstring s) : MyData{t,s} {}
+  MyData4(TypedTermList t, vstring s) : MyData{t,s} {}
 };
 
 TEST_FUN(custom_data_04_no_copy_constructor) {
@@ -234,7 +229,7 @@ TEST_FUN(custom_data_04_no_copy_constructor) {
   DECL_FUNC(f, {srt}, srt)
 
   TermSubstitutionTree<MyData4> tree;
-  auto dat = [](TermList t,vstring s) { return MyData4(t, std::move(s)); };
+  auto dat = [](TypedTermList t,vstring s) { return MyData4(t, std::move(s)); };
   tree.insert(dat(f(a), "a"));
   tree.insert(dat(f(a), "b"));
   tree.insert(dat(f(a), "c"));
@@ -258,7 +253,6 @@ TEST_FUN(zero_arity_predicate) {
   DECL_SORT(srt)
   DECL_CONST(a, srt)
   DECL_CONST(b, srt)
-  DECL_FUNC(f, {srt}, srt)
   DECL_PRED(p0, {})
   DECL_PRED(p1, {srt})
 

@@ -83,24 +83,24 @@ class TestCase
 
   void testFail(vstring const& test, Lib::Exception& e) 
   {
-      cout  << endl;
-      cout << "[         test ]: " <<                  test  << endl;
-      cout << "[   toSimplify ]: " << pretty(  toSimplify()) << endl;
-      cout << "[ simplifyWith ]: " << pretty(simplifyWith()) << endl;
-      cout << "[    exception ]: " << endl;
-      e.cry(cout);
+      std::cout  << std::endl;
+      std::cout << "[         test ]: " <<                  test  << std::endl;
+      std::cout << "[   toSimplify ]: " << pretty(  toSimplify()) << std::endl;
+      std::cout << "[ simplifyWith ]: " << pretty(simplifyWith()) << std::endl;
+      std::cout << "[    exception ]: " << std::endl;
+      e.cry(std::cout);
       exit(-1);
   }
 
   template<class Is, class Expected>
   void testFail(vstring const& test, Is const& is, Expected const& expected) 
   {
-      cout  << endl;
-      cout << "[         test ]: " <<                  test  << endl;
-      cout << "[   toSimplify ]: " << pretty(  toSimplify()) << endl;
-      cout << "[ simplifyWith ]: " << pretty(simplifyWith()) << endl;
-      cout << "[           is ]: " << pretty(            is) << endl;
-      cout << "[     expected ]: " << pretty(      expected) << endl;
+      std::cout  << std::endl;
+      std::cout << "[         test ]: " <<                  test  << std::endl;
+      std::cout << "[   toSimplify ]: " << pretty(  toSimplify()) << std::endl;
+      std::cout << "[ simplifyWith ]: " << pretty(simplifyWith()) << std::endl;
+      std::cout << "[           is ]: " << pretty(            is) << std::endl;
+      std::cout << "[     expected ]: " << pretty(      expected) << std::endl;
       exit(-1);
   }
 

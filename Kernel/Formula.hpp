@@ -72,8 +72,6 @@ public:
   Literal* literal();
   const TermList getBooleanTerm() const;
   TermList getBooleanTerm();
-  VList* freeVariables () const;
-  bool isFreeVariable(unsigned var) const;
   VList* boundVariables () const;
 
   // output
@@ -105,7 +103,6 @@ public:
 
 
   // use allocator to (de)allocate objects of this class
-  CLASS_NAME(Formula);
   USE_ALLOCATOR(Formula);
 protected:
 
@@ -132,7 +129,6 @@ class NamedFormula
 public:
   explicit NamedFormula(vstring name) : Formula(NAME), _name(name) {}
 
-  CLASS_NAME(NamedFormula);
   USE_ALLOCATOR(NamedFormula);
 
   vstring name(){ return _name; }
@@ -162,7 +158,6 @@ public:
   Literal* getLiteral() { return _literal; }
 
   // use allocator to (de)allocate objects of this class
-  CLASS_NAME(AtomicFormula);
   USE_ALLOCATOR(AtomicFormula);
 protected:
   /** The literal of this formula */
@@ -206,7 +201,6 @@ class QuantifiedFormula
   SList** sortListPtr() { return &_sorts; }
 
   // use allocator to (de)allocate objects of this class
-  CLASS_NAME(QuantifiedFormula);
   USE_ALLOCATOR(QuantifiedFormula);
  protected:
   /** list of variables */
@@ -237,7 +231,6 @@ public:
   Formula* subformula() { return _arg; }
 
   // use allocator to (de)allocate objects of this class
-  CLASS_NAME(NegatedFormula);
   USE_ALLOCATOR(NegatedFormula);
 protected:
   /** The immediate subformula */
@@ -277,7 +270,6 @@ public:
   }
 
   // use allocator to (de)allocate objects of this class
-  CLASS_NAME(BinaryFormula);
   USE_ALLOCATOR(BinaryFormula);
 protected:
   /** The lhs subformula */
@@ -316,7 +308,6 @@ class JunctionFormula
   static Formula* generalJunction(Connective c, FormulaList* args);
 
   // use allocator to (de)allocate objects of this class
-  CLASS_NAME(JunctionFormula);
   USE_ALLOCATOR(JunctionFormula);
  protected:
   /** list of immediate subformulas */
@@ -350,8 +341,8 @@ class BoolTermFormula
     Term* term = ts.term();
     if (term->isSpecial()) {
       Term::SpecialTermData *sd = term->getSpecialData();
-      switch (sd->getType()) {
-        case Term::SF_FORMULA:
+      switch (sd->specialFunctor()) {
+        case SpecialFunctor::FORMULA:
           return sd->getFormula();
         default:
           return new BoolTermFormula(ts);
@@ -372,7 +363,6 @@ class BoolTermFormula
   TermList getTerm() { return _ts; }
 
   // use allocator to (de)allocate objects of this class
-  CLASS_NAME(BoolTermFormula);
   USE_ALLOCATOR(BoolTermFormula);
  protected:
   /** boolean term */
@@ -545,8 +535,8 @@ TermList Formula::getBooleanTerm()
   return static_cast<BoolTermFormula*>(this)->getTerm();
 }
 
-std::ostream& operator<< (ostream& out, const Formula& f);
-std::ostream& operator<< (ostream& out, const Formula* f);
+std::ostream& operator<< (std::ostream& out, const Formula& f);
+std::ostream& operator<< (std::ostream& out, const Formula* f);
 
 }
 

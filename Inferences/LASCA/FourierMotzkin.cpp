@@ -28,7 +28,6 @@ namespace LASCA {
 
 void FourierMotzkin::attach(SaturationAlgorithm* salg) 
 {
-  CALL("FourierMotzkin::attach");
   GeneratingInferenceEngine::attach(salg);
 
   ASS(!_lhsIndex);
@@ -42,7 +41,6 @@ void FourierMotzkin::attach(SaturationAlgorithm* salg)
 
 void FourierMotzkin::detach() 
 {
-  CALL("FourierMotzkin::detach");
   ASS(_salg);
   GeneratingInferenceEngine::detach();
 
@@ -66,7 +64,6 @@ using Rhs = FourierMotzkin::Rhs;
 ClauseIterator FourierMotzkin::generateClauses(Clause* premise) 
 {
   // TODO refactor so this function is not copied and pasted among all unifying lasca rules
-  CALL("FourierMotzkin::generateClauses(Clause* premise)")
   ASS(_lhsIndex)
   ASS(_rhsIndex)
   ASS(_shared)
@@ -101,7 +98,7 @@ ClauseIterator FourierMotzkin::generateClauses(Clause* premise)
     }
   }
 
-  return pvi(ownedArrayishIterator(std::move(out)));
+  return pvi(arrayIter(std::move(out)));
 }
 
 // Fourier Motzkin normal:
@@ -142,9 +139,8 @@ Option<Clause*> FourierMotzkin::applyRule(
 
 #define __LASCA_FM_DERIVE_EQUALITIES 1
 
-  CALL("FourierMotzkin::applyRule")
   TIME_TRACE("fourier motzkin")
-  auto cnst = uwa.constraintLiterals();
+  auto cnst = uwa.computeConstraintLiterals();
   auto sigma = [&](auto t, auto bank) { return uwa.subs().apply(t,bank); };
 
 

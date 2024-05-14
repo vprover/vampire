@@ -31,7 +31,6 @@ void BwdDemodulation::attach(SaturationAlgorithm* salg)
 void BwdDemodulation::detach()
 {
 
-  CALL("Superposition::detach");
   ASS(_salg);
 
   _index=0;
@@ -85,7 +84,7 @@ void BwdDemodulation::perform(Clause* premise, BwSimplificationRecordIterator& s
         }
     }
     if (!simpls.isEmpty()) {
-      simplifications = pvi(ownedArrayishIterator(std::move(simpls)));
+      simplifications = pvi(arrayIter(std::move(simpls)));
       return;
     }
   }

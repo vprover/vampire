@@ -33,9 +33,6 @@ using namespace Lib;
 
 class Renaming {
 public:
-  CLASS_NAME(Renaming);
-  USE_ALLOCATOR(Renaming);
-
   Renaming() :
     _nextVar(0), _identity(true) {
   }
@@ -79,11 +76,14 @@ public:
   void normalizeVariables(const Literal* t);
   void normalizeVariables(const Term* t);
   void normalizeVariables(TermList t);
-  void normalizeVariables(TypedTermList t);
   template<class A, class B>
   void normalizeVariables(Coproduct<A, B> t) 
   { return t.apply([&](auto& t){ return normalizeVariables(t); }); }
+  void normalizeVariables(TypedTermList t)
+  { normalizeVariables(TermList(t)); normalizeVariables(t.sort()); }
   void makeInverse(const Renaming& orig);
+  unsigned nextVar() const
+  { return _nextVar; }
 
 
   template<class A, class B>

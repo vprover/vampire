@@ -17,7 +17,8 @@
 #define __LiteralSubstitutionTree__
 
 #include "Indexing/Index.hpp"
-#include "Kernel/MismatchHandler.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
+#include "Lib/Metaiterators.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "LiteralIndexingStructure.hpp"
 #include "SubstitutionTree.hpp"
@@ -36,17 +37,11 @@ class LiteralSubstitutionTree
   using Node                        = typename SubstitutionTree::Node;
   using FastInstancesIterator       = typename SubstitutionTree::FastInstancesIterator;
   using FastGeneralizationsIterator = typename SubstitutionTree::FastGeneralizationsIterator;
-  template<class UnificationAlgorithm>
-  using UnificationsIterator        = typename SubstitutionTree::template UnificationsIterator<UnificationAlgorithm>;
   using LDIterator                  = typename SubstitutionTree::LDIterator;
   using Leaf                        = typename SubstitutionTree::Leaf;
   using LeafIterator                = typename SubstitutionTree::LeafIterator;
 
-
 public:
-  CLASS_NAME(LiteralSubstitutionTree);
-  USE_ALLOCATOR(LiteralSubstitutionTree);
-
   LiteralSubstitutionTree()
     : _trees(env.signature->predicates() * 2)
     { }
@@ -54,16 +49,11 @@ public:
   void handle(LeafData ld, bool insert) final override
   { getTree(ld.key(), /* complementary */ false).handle(std::move(ld), insert); }
 
-  void output(std::ostream& out, bool enableMultiline, unsigned indent) final override 
-  { enableMultiline ? out << multiline(*this, indent) : out << *this; }
-
   VirtualIterator<LeafData> getAll() final override
   {
-    CALL("LiteralSubstitutionTree::getAll");
-
     return pvi(
           iterTraits(getRangeIterator((unsigned long)0, _trees.size()))
-           .flatMap([this](auto i) { return LeafIterator(&_trees[i]); })
+           .flatMap([this](auto i) { return LeafIterator(_trees[i].get()); })
            .flatMap([](Leaf* l) { return l->allChildren(); })
            // TODO get rid of copying data here
            .map([](LeafData const* ld) { return *ld; })
@@ -71,55 +61,72 @@ public:
   }
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData_>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions) final override
-  { return getResultIterator<UnificationsIterator<UnificationAlgorithms::RobUnification>>(lit, complementary, retrieveSubstitutions); }
-
+  { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::RobUnification>>(lit, complementary, retrieveSubstitutions)); }
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions) final override
-  { return getResultIterator<FastGeneralizationsIterator>(lit, complementary, retrieveSubstitutions); }
+  { return pvi(getResultIterator<FastGeneralizationsIterator>(lit, complementary, retrieveSubstitutions)); }
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions) final override
-  { return getResultIterator<FastInstancesIterator>(lit, complementary, retrieveSubstitutions); }
+  { return pvi(getResultIterator<FastInstancesIterator>(lit, complementary, retrieveSubstitutions)); }
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getVariants(Literal* query, bool complementary, bool retrieveSubstitutions) final override
   {
-    return pvi(iterTraits(getTree(query, complementary).getVariants(query, retrieveSubstitutions))
-          .map([](auto qr) { return queryRes(std::move(qr.unif), qr.data); }));
+    return pvi(iterTraits(getTree(query, complementary).getVariants(query, retrieveSubstitutions)));
   }
 
-
 private:
-  static unsigned idxToFunctor(unsigned idx) { return idx / 2; }
-  static bool idxIsNegative(unsigned idx) { return idx % 2; }
+  /** encodes functor and polarity into one number, so it can be used as an index in the array _trees
+   * The inverse functions to this are `idxIsNegative` and `idxToFunctor` */
   static unsigned toIdx(unsigned f, bool isNegative) { return f * 2 + isNegative; }
+  /** `toIdx` encodes functor and polarity into one number, so it can be used as an index in the array _trees
+   * The inverse functions to this are `idxIsNegative` and `idxToFunctor` */
+  static unsigned idxToFunctor(unsigned idx) { return idx / 2; }
+  /** `toIdx` encodes functor and polarity into one number, so it can be used as an index in the array _trees
+   * The inverse functions to this are `idxIsNegative` and `idxToFunctor` */
+  static bool idxIsNegative(unsigned idx) { return idx % 2; }
 
+  template<class Iterator, class... Args>
+  auto getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, Args... args)
+  {
+    auto tree = &getTree(lit, complementary);
 
-  template<class Algo>
-  using UwaIter = typename Indexing::SubstitutionTree<LeafData_>::template UnificationsIterator<Algo>;
+    auto iter = [tree, lit, retrieveSubstitutions, &args...](bool reversed) 
+      { return tree->template iterator<Iterator>(lit, retrieveSubstitutions, reversed, args...); };
 
-  auto nopostproUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa)
-  { return getResultIterator<UwaIter<UnificationAlgorithms::UnificationWithAbstraction>>(lit, complementary, /* retrieveSubstitutions */ true, MismatchHandler(uwa)); }
+    return ifElseIter(
+        tree->isEmpty(), [&]() { return VirtualIterator<ELEMENT_TYPE(Iterator)>::getEmpty(); }, 
+                         [&]() { return ifElseIter(!lit->commutative(), 
+                                 [&]() { return iter(/* reverse */ false); },
+                                 [&]() { return concatIters(iter(/* reverse */ false), iter(/* reverse */ true)); }); }
+        );
+    // if (tree.isEmpty()) {
+    //
+    // }
 
-  auto postproUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa)
-  { return pvi(iterTraits(getResultIterator<UwaIter<UnificationAlgorithms::UnificationWithAbstractionWithPostprocessing>>(lit, complementary, /* retrieveSubstitutions */ true, MismatchHandler(uwa)))
-    .filterMap([](auto r)
-        { return r.unifier.fixedPointIteration().map([&](AbstractingUnifier* unif) { return queryRes(unif, r.data); }); })); }
-
+    // return ifElseIter(
+    //     !lit->commutative(),
+    //     [&]() { return iter( /* reversed */ false); },
+    //     [&]() { return concatIters(
+    //                 iter( /* reversed */ false),
+    //                 iter( /* reversed */ true)
+    //                 ); }
+    //     );
+  }
 
 public:
 
   VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) final override
-  { return fixedPointIteration ? pvi(  postproUwa(lit, complementary, uwa))
-                               : pvi(nopostproUwa(lit, complementary, uwa)); }
+  { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction>>(lit, complementary, /* retrieveSubstitutions */ true, AbstractionOracle(uwa), fixedPointIteration)); }
 
   friend std::ostream& operator<<(std::ostream& out, LiteralSubstitutionTree const& self)
   { 
     int i = 0;
     out << "{ ";
     for (auto& t : self._trees) {
-      if (!t.isEmpty()) {
+      if (!t->isEmpty()) {
         auto f = env.signature->getPredicate(idxToFunctor(i));
         if (idxIsNegative(i)) out << "~";
-        out << *f << "(" << t << "), "; 
+        out << *f << "(" << *t << "), "; 
       }
       i++;
     }
@@ -128,58 +135,39 @@ public:
   friend std::ostream& operator<<(std::ostream& out, OutputMultiline<LiteralSubstitutionTree<LeafData_>> const& self)
   { 
     int i = 0;
-    out << "{ " << endl;
+    out << "{ " << std::endl;
     for (auto& t : self.self._trees) {
-      if (!t.isEmpty()) {
+      if (!t->isEmpty()) {
         auto f = env.signature->getPredicate(idxToFunctor(i));
         OutputMultiline<LiteralSubstitutionTree>::outputIndent(out, self.indent);
-        out << (idxIsNegative(i) ? "~" : " ") << *f << "(" << multiline(t, self.indent + 1) << ")" << endl; 
+        out << (idxIsNegative(i) ? "~" : " ") << *f << "(" << multiline(*t, self.indent + 1) << ")" << std::endl; 
       }
       i++;
     }
     return out << "} ";
   }
 
+  virtual void output(std::ostream& out, Option<unsigned> multilineIndent) const override {
+    if (multilineIndent) {
+      out << multiline(*this, *multilineIndent);
+    } else {
+      out << *this;
+    }
+  }
+
+
 private:
   SubstitutionTree& getTree(Literal* lit, bool complementary)
   {
-    auto pos = lit->functor() * 2;
-    auto neg = pos + 1;
-    auto idx = complementary ? (lit->isPositive() ? neg : pos)
-                             : (lit->isPositive() ? pos : neg);
+    auto findNegative = complementary ? lit->isPositive() : lit->isNegative();
+    auto idx = toIdx(lit->functor(), findNegative);
     while (idx >= _trees.size()) {
-      auto p = _trees.size() / 2;
-      auto arity = env.signature->isEqualityPredicate(p) ? 3 // equality is special case because it has an implicit type argument not present in the signature
-                                                         : env.signature->getPredicate(p)->arity();
-      _trees.push(SubstitutionTree(arity));
+      _trees.push(std::make_unique<SubstitutionTree>());
     }
-    return _trees[idx];
+    return *_trees[idx];
   }
 
-
-  template<class Iterator, class... Args>
-  auto getResultIterator(Literal* lit, bool complementary, bool retrieveSubstitutions, Args... args)
-  {
-    CALL("LiteralSubstitutionTree::getResultIterator");
-
-    auto iter = [=](bool reversed) 
-      { return iterTraits(getTree(lit, complementary).template iterator<Iterator>(lit, retrieveSubstitutions, reversed, args...)) ; };
-
-    auto filterResults = [=](auto it) { 
-      return pvi(
-          std::move(it)
-          .map([](auto r) { return queryRes(std::move(r.unif), r.data); })
-          ); 
-    };
-    return !lit->commutative() 
-      ?  filterResults(iter( /* reversed */ false))
-      :  filterResults(concatIters(
-          iter( /* reversed */ false),
-          iter( /* reversed */ true)
-        ));
-  }
-
-  Stack<SubstitutionTree> _trees;
+  Stack<std::unique_ptr<SubstitutionTree>> _trees;
 };
 
 };

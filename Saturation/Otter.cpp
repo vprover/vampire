@@ -40,8 +40,6 @@ ClauseContainer* Otter::getSimplifyingClauseContainer()
 
 void Otter::onActiveRemoved(Clause* cl)
 {
-  CALL("Otter::onActiveRemoved");
-
   if(cl->store()==Clause::ACTIVE) {
     _simplCont.remove(cl);
   }
@@ -51,8 +49,6 @@ void Otter::onActiveRemoved(Clause* cl)
 
 void Otter::onPassiveAdded(Clause* cl)
 {
-  CALL("Otter::onPassiveAdded");
-
   SaturationAlgorithm::onPassiveAdded(cl);
 
   if(cl->store()==Clause::PASSIVE) {
@@ -62,8 +58,6 @@ void Otter::onPassiveAdded(Clause* cl)
 
 void Otter::onPassiveRemoved(Clause* cl)
 {
-  CALL("Otter::onPassiveRemoved");
-
   if(cl->store()==Clause::PASSIVE) {
     _simplCont.remove(cl);
   }
@@ -73,8 +67,6 @@ void Otter::onPassiveRemoved(Clause* cl)
 
 void Otter::onClauseRetained(Clause* cl)
 {
-  CALL("Otter::onClauseRetained");
-
   SaturationAlgorithm::onClauseRetained(cl);
 
   backwardSimplify(cl);
@@ -82,7 +74,6 @@ void Otter::onClauseRetained(Clause* cl)
 
 void Otter::onSOSClauseAdded(Clause* cl)
 {
-  CALL("Otter::onSOSClauseAdded");
   ASS(cl);
   ASS_EQ(cl->store(), Clause::ACTIVE);
 
@@ -93,7 +84,6 @@ void Otter::onSOSClauseAdded(Clause* cl)
 
 void Otter::beforeSelectedRemoved(Clause* cl) 
 {
-  CALL("Otter::beforeSelectedRemoved");
   ASS_EQ(cl->store(), Clause::SELECTED);
   _simplCont.remove(cl);
 }

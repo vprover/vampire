@@ -17,8 +17,6 @@ namespace Inferences {
 SimplifyingGeneratingLiteralSimplification::Result PolynomialMultiplication::simplifyLiteral(Literal* l)
 {
   // CHECK OUT:
-  // We use the CALL(...) macro to trace function calls. You will see a stack of calls when an assertio is being violated.
-  CALL("PolynomialMultiplication::simplifyLiteral(Literal* l)");
   
   Stack<TermList> simplArgs(l->arity());
   for (unsigned i = 0; i < l->arity(); i++) {
@@ -39,7 +37,6 @@ SimplifyingGeneratingLiteralSimplification::Result PolynomialMultiplication::sim
 
 Kernel::PolyNf PolynomialMultiplication::evaluateStep(Kernel::PolyNf origTerm, Kernel::PolyNf* evalutedArgs)
 {
-  CALL("evaluateStep(Kernel::PolyNf origTerm, Kernel::PolyNf* evalutedArgs)");
   // TODO implement me
   // 1) use the macros ASS, ASS_REP, ASS_EQ, ASS_L, and friends, defined in Lib/Assertion.hpp
   // 2) use the macros DBG to print debug output and DBGE to print an expression (`DBGE(x)` prints "x = <value of x>")

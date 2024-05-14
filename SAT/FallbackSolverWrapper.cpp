@@ -27,7 +27,6 @@ namespace SAT
 FallbackSolverWrapper::FallbackSolverWrapper(SATSolver* inner,SATSolver* fallback)
  : _inner(inner), _fallback(fallback), _usingFallback(false),  _varCnt(0) 
 {
-  CALL("FallbackSolverWrapper::FallbackSolverWrapper");
 }
 
 /**
@@ -37,8 +36,6 @@ FallbackSolverWrapper::FallbackSolverWrapper(SATSolver* inner,SATSolver* fallbac
  */
 void FallbackSolverWrapper::addClause(SATClause* cl)
 {
-  CALL("FallbackSolverWrapper::addClause");
-  
   _inner->addClause(cl);
   _fallback->addClause(cl);
 }
@@ -49,8 +46,6 @@ void FallbackSolverWrapper::addClause(SATClause* cl)
  */
 SATSolver::Status FallbackSolverWrapper::solve(unsigned conflictCountLimit)
 {
-  CALL("FallbackSolverWrapper::solve"); 
-  
   // Currently always run the _inner solver to see if we can use it
   Status status = _inner->solve(conflictCountLimit);
 
@@ -73,7 +68,6 @@ SATSolver::Status FallbackSolverWrapper::solve(unsigned conflictCountLimit)
  */
 SATSolver::VarAssignment FallbackSolverWrapper::getAssignment(unsigned var)
 {
-  CALL("FallbackSolverWrapper::getAssignment");
   ASS_G(var,0); ASS_LE(var,_varCnt);
 
   if(_usingFallback){

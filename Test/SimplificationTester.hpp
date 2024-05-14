@@ -59,17 +59,17 @@ public:
     auto res = simpl.simplify(_input);
 
     if (!res) {
-      cout  << endl;
-      cout << "[     case ]: " << pretty(*_input) << endl;
-      cout << "[       is ]: NULL (indicates the clause is a tautology)" << endl;
-      cout << "[ expected ]: " << pretty(_expected) << endl;
+      std::cout  << std::endl;
+      std::cout << "[     case ]: " << pretty(*_input) << std::endl;
+      std::cout << "[       is ]: NULL (indicates the clause is a tautology)" << std::endl;
+      std::cout << "[ expected ]: " << pretty(_expected) << std::endl;
       exit(-1);
 
     } else if (!_expected.unwrap().matches(simpl, res)) {
-      cout  << endl;
-      cout << "[     case ]: " << pretty(*_input) << endl;
-      cout << "[       is ]: " << pretty(*res) << endl;
-      cout << "[ expected ]: " << pretty(_expected) << endl;
+      std::cout  << std::endl;
+      std::cout << "[     case ]: " << pretty(*_input) << std::endl;
+      std::cout << "[       is ]: " << pretty(*res) << std::endl;
+      std::cout << "[ expected ]: " << pretty(_expected) << std::endl;
       exit(-1);
 
     }
@@ -93,10 +93,10 @@ public:
   void run(const SimplificationTester& simpl) {
     auto res = simpl.simplify(_input);
     if (res != _input ) {
-      cout  << endl;
-      cout << "[     case ]: " << pretty(*_input) << endl;
-      cout << "[       is ]: " << pretty(*res) << endl;
-      cout << "[ expected ]: < nop >" << endl;
+      std::cout  << std::endl;
+      std::cout << "[     case ]: " << pretty(*_input) << std::endl;
+      std::cout << "[       is ]: " << pretty(*res) << std::endl;
+      std::cout << "[ expected ]: < nop >" << std::endl;
       exit(-1);
     }
   }

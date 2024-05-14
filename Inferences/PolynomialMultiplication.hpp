@@ -26,7 +26,6 @@ public:
   // CHECK OUT: 
   // Vampire uses its on allocator. We need to add these two marcro 
   // calls to every class that will be heap allocated at some point.
-  CLASS_NAME(PolynomialMultiplication);
   USE_ALLOCATOR(PolynomialMultiplication);
 
   PolynomialMultiplication(Ordering& ord) : SimplifyingGeneratingLiteralSimplification(InferenceRule::POLYNOMIAL_MULTIPLICATION, ord) {}

@@ -48,11 +48,9 @@ class ForwardSubsumptionDemodulation
   : public ForwardSimplificationEngine
 {
   public:
-    CLASS_NAME(ForwardSubsumptionDemodulation);
-    USE_ALLOCATOR(ForwardSubsumptionDemodulation);
-
     ForwardSubsumptionDemodulation(bool doSubsumption, bool enableOrderingOptimizations)
-      : _doSubsumption(doSubsumption), _enableOrderingOptimizations(enableOrderingOptimizations)
+      : _doSubsumption(doSubsumption)
+      , _enableOrderingOptimizations(enableOrderingOptimizations)
     { }
 
     void attach(SaturationAlgorithm* salg) override;

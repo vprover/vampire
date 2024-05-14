@@ -22,7 +22,6 @@ struct EmptyStruct {};
 typedef void (*VoidFunc)();
 
 template<typename T> class VirtualIterator;
-template<typename T, template<class> class ref_t> class ArrayishObjectIterator;
 
 template<typename T> class ScopedPtr;
 template<typename T> class SmartPtr;
@@ -62,6 +61,8 @@ class TermList;
 typedef TermList SortId;
 typedef VirtualIterator<TermList> TermIterator;
 typedef Stack<TermList> TermStack;
+
+struct AppliedTerm;
 
 typedef List<unsigned> VList; // a list of variables (which are unsigned)
 typedef List<TermList> SList; // a list of sorts (which are now, with polymorphism, TermLists)
@@ -130,6 +131,8 @@ enum Color {
   COLOR_INVALID = 3u
 };
 
+enum class SymbolType{FUNC, PRED, TYPE_CON};
+
 };
 
 namespace Indexing
@@ -138,8 +141,6 @@ class Index;
 class IndexManager;
 template<class Data>
 class LiteralIndex;
-struct LiteralClause;
-struct TermLiteralClause;
 template<class Data>
 class TermIndex;
 template<class Data>
@@ -192,6 +193,6 @@ namespace Shell
 class Options;
 class Property;
 class Statistics;
+class FunctionDefinitionHandler;
 }
-
 #endif /* __Forwards__ */

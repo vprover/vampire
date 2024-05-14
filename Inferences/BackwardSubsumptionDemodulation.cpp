@@ -64,7 +64,6 @@ BackwardSubsumptionDemodulation::BackwardSubsumptionDemodulation(bool enableOrde
 
 void BackwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
 {
-  CALL("BackwardSubsumptionDemodulation::attach");
   BackwardSimplificationEngine::attach(salg);
 
   _index.request(salg->getIndexManager(), BACKWARD_SUBSUMPTION_SUBST_TREE);
@@ -73,48 +72,13 @@ void BackwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
 
 void BackwardSubsumptionDemodulation::detach()
 {
-  CALL("BackwardSubsumptionDemodulation::detach");
   _index.release();
   BackwardSimplificationEngine::detach();
 }
 
 
-template <typename Iterator>
-class STLIterator
-{
-  private:
-    Iterator begin;
-    Iterator end;
-
-  public:
-    using value_type = typename Iterator::value_type;
-    DECL_ELEMENT_TYPE(value_type);
-
-    STLIterator(Iterator begin, Iterator end)
-      : begin(begin), end(end)
-    { }
-
-    bool hasNext() {
-      return begin != end;
-    }
-
-    value_type next() {
-      value_type x = *begin;
-      ++begin;
-      return x;
-    }
-};
-
-template <typename Iterator>
-STLIterator<Iterator> getSTLIterator(Iterator begin, Iterator end)
-{
-  return STLIterator<Iterator>(begin, end);
-}
-
-
 void BackwardSubsumptionDemodulation::perform(Clause* sideCl, BwSimplificationRecordIterator& simplifications)
 {
-  CALL("BackwardSubsumptionDemodulation::perform");
   ASSERT_VALID(*sideCl);
 
   TIME_TRACE("backward subsumption demodulation");
@@ -192,9 +156,9 @@ void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Litera
   bool mustPredActive = false;
   unsigned mustPred;
 
-  SLQueryResultIterator rit = _index->getInstances(candidateQueryLit, false, false);
+  auto rit = _index->getInstances(candidateQueryLit, false, false);
   while (rit.hasNext()) {
-    SLQueryResult qr = rit.next();
+    auto qr = rit.next();
     Clause* candidate = qr.data->clause;
 
     // not enough literals to fit match and rewritten literal (performance)
@@ -493,7 +457,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
     ASS(!env.options->combinatorySup());
     NonVariableNonTypeIterator nvi(dlit);
     while (nvi.hasNext()) {
-      TermList lhsS = TermList(nvi.next());  // named 'lhsS' because it will be matched against 'lhs'
+      TypedTermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'
 
       if (!attempted.insert(lhsS)) {
         // We have already tried to demodulate the term lhsS and did not
@@ -504,7 +468,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
         continue;
       }
 
-      TermList const lhsSSort = SortHelper::getTermSort(lhsS, dlit);
+      TermList const lhsSSort = lhsS.sort();
 
       ASS_LE(lhsVector.size(), 2);
       for (TermList lhs : lhsVector) {
@@ -689,12 +653,11 @@ isRedundant:
         replacement = newCl;
 
 #if BSD_LOG_INFERENCES
-        env.beginOutput();
-        env.out() << "\% Begin Inference \"BSD-" << newCl->number() << "\"\n";
-        env.out() << "\% eqLit: " << eqLit->toString() << "\n";
-        env.out() << "\% eqLitS: " << binder.applyTo(eqLit)->toString() << "\n";
-        env.out() << "\% dlit: " << dlit->toString() << "\n";
-        // env.out() << "\% numMatches+1: success at match #" << (numMatches+1) << "\n";
+        std::cout << "\% Begin Inference \"BSD-" << newCl->number() << "\"\n";
+        std::cout << "\% eqLit: " << eqLit->toString() << "\n";
+        std::cout << "\% eqLitS: " << binder.applyTo(eqLit)->toString() << "\n";
+        std::cout << "\% dlit: " << dlit->toString() << "\n";
+        // std::cout << "\% numMatches+1: success at match #" << (numMatches+1) << "\n";
         TPTPPrinter tptp;
         // NOTE: do not output the splitLevels here, because those will be set for newCl only later
         tptp.printWithRole("side_premise", "hypothesis", sideCl, false);
@@ -706,8 +669,7 @@ isRedundant:
         //       Problem: how to detect that situation??
         //       probably if the input only contains FOF and no TFF
         // TODO: Also don't output type defs for $$false and $$true, see problem SYO091^5.p
-        env.out() << "\% End Inference \"BSD-" << newCl->number() << "\"" << std::endl;
-        env.endOutput();
+        std::cout << "\% End Inference \"BSD-" << newCl->number() << "\"" << std::endl;
 #endif
 
 #if VDEBUG && BSD_VDEBUG_REDUNDANCY_ASSERTIONS

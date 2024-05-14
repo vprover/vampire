@@ -29,6 +29,7 @@
 // #define DEBUG(...) DBG(__VA_ARGS__)
 // #endif
 
+using namespace std;
 using namespace Shell;
 using namespace SAT;
 
@@ -42,8 +43,6 @@ using FuncId = unsigned;
 /** runs z3 on a bunch of vampire literals as assumptions, and checks the status afterwards */
 void checkStatus(SAT::Z3Interfacing& z3, SAT2FO& s2f, SATSolver::Status expected, Stack<Literal*> assumptions) 
 {
-  CALL("checkStatus(..)")
-
   for (auto a : assumptions) {
     // Stack<SATLiteral> clause{s2f.toSAT(a)};
     // z3.addClause(SATClause::fromStack(clause));
@@ -312,8 +311,6 @@ TEST_FUN(solve__dty__03_03) {
 
 void checkInstantiation(SAT::Z3Interfacing& z3, SAT2FO& s2f, Stack<Literal*> assumptions, TermList toInstantiate, TermList expected)
 {
-  CALL("checkInstantiation(..)")
-
   for (auto a : assumptions) {
     z3.addAssumption(s2f.toSAT(a));
   }

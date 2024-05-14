@@ -56,7 +56,6 @@ Multiprocessing::~Multiprocessing()
 
 void Multiprocessing::registerForkHandlers(VoidFunc before, VoidFunc afterParent, VoidFunc afterChild)
 {
-  CALL("Multiprocessing::registerForkHandlers");
   if(before) {
     VoidFuncList::push(before, _preFork);
   }
@@ -70,8 +69,6 @@ void Multiprocessing::registerForkHandlers(VoidFunc before, VoidFunc afterParent
 
 void Multiprocessing::executeFuncList(VoidFuncList* lst)
 {
-  CALL("Multiprocessing::executeFuncList");
-
   VoidFuncList::Iterator fit(lst);
   while(fit.hasNext()) {
     VoidFunc func=fit.next();
@@ -82,9 +79,6 @@ void Multiprocessing::executeFuncList(VoidFuncList* lst)
 
 pid_t Multiprocessing::fork()
 {
-  CALL("Multiprocessing::fork");
-  ASS(!env.haveOutput());
-
   executeFuncList(_preFork);
   errno=0;
   pid_t res=::fork();
@@ -107,7 +101,6 @@ pid_t Multiprocessing::fork()
  */
 pid_t Multiprocessing::waitForChildTermination(int& resValue)
 {
-  CALL("Multiprocessing::waitForChildTermination");
   TIME_TRACE("waiting for child")
 
   int status;
@@ -133,8 +126,6 @@ pid_t Multiprocessing::waitForChildTermination(int& resValue)
 
 void Multiprocessing::kill(pid_t child, int signal)
 {
-  CALL("Multiprocessing::kill");
-
   int res = ::kill(child, signal);
   if(res!=0) {
     ASS_EQ(res,-1);
@@ -144,14 +135,11 @@ void Multiprocessing::kill(pid_t child, int signal)
 
 void Multiprocessing::killNoCheck(pid_t child, int signal)
 {
-  CALL("Multiprocessing::killNoCheck");
   ::kill(child, signal);
 }
 
 pid_t Multiprocessing::poll_children(bool &exited, bool &signalled, int &code)
 {
-  CALL("Multiprocessing::poll_child");
-
   int status;
   pid_t pid = waitpid(-1 /*wait for any child*/, &status, WUNTRACED);
 

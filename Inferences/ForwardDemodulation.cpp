@@ -43,6 +43,8 @@
 #include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
 
+#include "DemodulationHelper.hpp"
+
 #include "ForwardDemodulation.hpp"
 
 namespace Inferences {
@@ -52,20 +54,40 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+namespace {
+
+struct Applicator : SubstApplicator {
+  Applicator(ResultSubstitution* subst) : subst(subst) {}
+  TermList operator()(unsigned v) const override {
+    return subst->applyToBoundResult(v);
+  }
+  ResultSubstitution* subst;
+};
+
+struct ApplicatorWithEqSort : SubstApplicator {
+  ApplicatorWithEqSort(ResultSubstitution* subst, const RobSubstitution& vSubst) : subst(subst), vSubst(vSubst) {}
+  TermList operator()(unsigned v) const override {
+    return vSubst.apply(subst->applyToBoundResult(v), 0);
+  }
+  ResultSubstitution* subst;
+  const RobSubstitution& vSubst;
+};
+
+} // end namespace
+
 void ForwardDemodulation::attach(SaturationAlgorithm* salg)
 {
-  CALL("ForwardDemodulation::attach");
   ForwardSimplificationEngine::attach(salg);
   _index=static_cast<DemodulationLHSIndex*>(
 	  _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) );
 
-  _preorderedOnly=getOptions().forwardDemodulation()==Options::Demodulation::PREORDERED;
-  _encompassing = getOptions().demodulationEncompassment();
+  _preorderedOnly = getOptions().forwardDemodulation()==Options::Demodulation::PREORDERED;
+  _encompassing = getOptions().demodulationRedundancyCheck()==Options::DemodulationRedundancyCheck::ENCOMPASS;
+  _helper = DemodulationHelper(getOptions(), &_salg->getOrdering());
 }
 
 void ForwardDemodulation::detach()
 {
-  CALL("ForwardDemodulation::detach");
   _index=0;
   _salg->getIndexManager()->release(DEMODULATION_LHS_CODE_TREE);
   ForwardSimplificationEngine::detach();
@@ -74,7 +96,6 @@ void ForwardDemodulation::detach()
 template <bool combinatorySupSupport>
 bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
-  CALL("ForwardDemodulation::perform");
   TIME_TRACE("forward demodulation");
 
   Ordering& ordering = _salg->getOrdering();
@@ -89,11 +110,14 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
   unsigned cLen=cl->length();
   for(unsigned li=0;li<cLen;li++) {
     Literal* lit=(*cl)[li];
+    if (lit->isAnswerLiteral()) {
+      continue;
+    }
     typename std::conditional<!combinatorySupSupport,
       NonVariableNonTypeIterator,
       FirstOrderSubtermIt>::type it(lit);
     while(it.hasNext()) {
-      TermList trm = TermList(it.next());
+      TypedTermList trm = it.next();
       if(!attempted.insert(trm)) {
         //We have already tried to demodulate the term @b trm and did not
         //succeed (otherwise we would have returned from the function).
@@ -103,17 +127,9 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         continue;
       }
 
-      TermList querySort = SortHelper::getTermSort(trm, lit);
+      bool redundancyCheck = _helper.redundancyCheckNeededForPremise(cl, lit, trm);
 
-      bool toplevelCheck=getOptions().demodulationRedundancyCheck() && lit->isEquality() &&           
-	         (trm==*lit->nthArgument(0) || trm==*lit->nthArgument(1));
-
-      // encompassing demodulation is always fine into negative literals or into non-units
-      if (_encompassing) {
-        toplevelCheck &= lit->isPositive() && (cLen == 1);        
-      }
-
-      auto git=_index->getGeneralizations(trm, true);
+      auto git = _index->getGeneralizations(trm.term(), /* retrieveSubstitutions */ true);
       while(git.hasNext()) {
         auto qr=git.next();
         ASS_EQ(qr.data->clause->length(),1);
@@ -122,104 +138,58 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           continue;
         }
 
+        auto lhs = qr.data->term;
+
+        // TODO:
         // to deal with polymorphic matching
-        // Ideally, we would like to extend the substitution 
+        // Ideally, we would like to extend the substitution
         // returned by the index to carry out the sort match.
         // However, ForwardDemodulation uses a CodeTree as its
         // indexing mechanism, and it is not clear how to extend
         // the substitution returned by a code tree.
-        static RobSubstitution subst; 
-        bool resultTermIsVar = qr.data->term.isVar();
-        if(resultTermIsVar){
-          TermList eqSort = SortHelper::getEqualityArgumentSort(qr.data->literal);
-          subst.reset(); 
-          if(!subst.match(eqSort, 0, querySort, 1)){
-            continue;        
+        static RobSubstitution eqSortSubs;
+        if(lhs.isVar()){
+          eqSortSubs.reset();
+          TermList querySort = trm.sort();
+          TermList eqSort = qr.data->term.sort();
+          if(!eqSortSubs.match(eqSort, 0, querySort, 1)){
+            continue;
           }
         }
 
-        TermList rhs=EqHelper::getOtherEqualitySide(qr.data->literal,qr.data->term);
-        TermList rhsS;
+        TermList rhs = qr.data->rhs;
+        bool preordered = qr.data->preordered;
+
         auto subs = qr.unifier;
-        if(!subs->isIdentityOnQueryWhenResultBound()) {
-          //When we apply substitution to the rhs, we get a term, that is
-          //a variant of the term we'd like to get, as new variables are
-          //produced in the substitution application.
-          TermList lhsSBadVars = subs->applyToResult(qr.data->term);
-          TermList rhsSBadVars = subs->applyToResult(rhs);
-          Renaming rNorm, qNorm, qDenorm;
-          rNorm.normalizeVariables(lhsSBadVars);
-          qNorm.normalizeVariables(trm);
-          qDenorm.makeInverse(qNorm);
-          ASS_EQ(trm,qDenorm.apply(rNorm.apply(lhsSBadVars)));
-          rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
-        } else {
-          rhsS = subs->applyToBoundResult(rhs);
-        }
-        if(resultTermIsVar){
-          rhsS = subst.apply(rhsS, 0);
-        }
+        ASS(subs->isIdentityOnQueryWhenResultBound());
 
-        Ordering::Result argOrder = ordering.getEqualityArgumentOrder(qr.data->literal);
-        bool preordered = argOrder==Ordering::LESS || argOrder==Ordering::GREATER;
-  #if VDEBUG
-        if(preordered) {
-          if(argOrder==Ordering::LESS) {
-            ASS_EQ(rhs, *qr.data->literal->nthArgument(0));
-          }
-          else {
-            ASS_EQ(rhs, *qr.data->literal->nthArgument(1));
-          }
-        }
-  #endif
-        if(!preordered && (_preorderedOnly || ordering.compare(trm,rhsS)!=Ordering::GREATER) ) {
+        ApplicatorWithEqSort applWithEqSort(subs.ptr(), eqSortSubs);
+        Applicator applWithoutEqSort(subs.ptr());
+        auto appl = lhs.isVar() ? (SubstApplicator*)&applWithEqSort : (SubstApplicator*)&applWithoutEqSort;
+
+        if (!preordered && (_preorderedOnly || !ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl,true)))) {
           continue;
         }
 
         // encompassing demodulation is fine when rewriting the smaller guy
-        if (toplevelCheck && _encompassing) { 
-          // this will only run at most once; 
-          // could have been factored out of the getGeneralizations loop, 
+        if (redundancyCheck && _encompassing) {
+          // this will only run at most once;
+          // could have been factored out of the getGeneralizations loop,
           // but then it would run exactly once there
           Ordering::Result litOrder = ordering.getEqualityArgumentOrder(lit);
-          if ((trm==*lit->nthArgument(0) && litOrder == Ordering::LESS) || 
+          if ((trm==*lit->nthArgument(0) && litOrder == Ordering::LESS) ||
               (trm==*lit->nthArgument(1) && litOrder == Ordering::GREATER)) {
-            toplevelCheck = false;
+            redundancyCheck = false;
           }
         }
 
-        if(toplevelCheck) {
-          TermList other=EqHelper::getOtherEqualitySide(lit, trm);
-          Ordering::Result tord=ordering.compare(rhsS, other);
-          if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
-            if (_encompassing) {
-              // last chance, if the matcher is not a renaming
-              if (subs->isRenamingOn(qr.data->term,true /* we talk of result term */)) {
-                continue; // under _encompassing, we know there are no other literals in cl
-              }
-            } else {
-              Literal* eqLitS = subs->applyToBoundResult(qr.data->literal);
-              bool isMax=true;
-              for(unsigned li2=0;li2<cLen;li2++) {
-                if(li==li2) {
-                  continue;
-                }
-                if(ordering.compare(eqLitS, (*cl)[li2])==Ordering::LESS) {
-                  isMax=false;
-                  break;
-                }
-              }
-              if(isMax) {
-                //RSTAT_CTR_INC("tlCheck prevented");
-                //The demodulation is this case which doesn't preserve completeness:
-                //s = t     s = t1 \/ C
-                //---------------------
-                //     t = t1 \/ C
-                //where t > t1 and s = t > C
-                continue;
-              }
-            }
-          }
+        TermList rhsS = subs->applyToBoundResult(rhs);
+        if (lhs.isVar()) {
+          rhsS = eqSortSubs.apply(rhsS, 0);
+        }
+
+        if (redundancyCheck && !_helper.isPremiseRedundant(cl, lit, trm, rhsS, lhs, subs.ptr(), true)) {
+          continue;
         }
 
         Literal* resLit = EqHelper::replace(lit,trm,rhsS);

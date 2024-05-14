@@ -53,7 +53,6 @@ void EqFactoring::detach()
 
 Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEquality const& l2)
 {
-  CALL("EqFactoring::applyRule(SelectedEquality const& l1, SelectedEquality const& l2)")
   TIME_TRACE("lasca equality factoring application")
   DEBUG("============")
   DEBUG("l1: ", l1)
@@ -104,7 +103,7 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
       uwa.isSome())
   
   auto sigma = [&](auto t) { return uwa->subs().apply(t, /* varbank */ 0); };
-  auto cnst = uwa->constraintLiterals();
+  auto cnst = uwa->computeConstraintLiterals();
 
   Stack<Literal*> concl(l1.clause()->size() // <- (C \/ s1 ≈ t1 \/ t1  ̸≈ t2)σ
                       + cnst->size()); // <- Cnstσ
@@ -124,8 +123,8 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
   auto t1σ = sigma(t1);
   auto t2σ = sigma(t2);
 
-  check_side_condition( "s1σ /⪯ t1σ", _shared->notLeq(s1σ, t1σ))
-  check_side_condition( "s2σ /⪯ t2σ", _shared->notLeq(s2σ, t1σ))
+  check_side_condition( "s1σ /⪯ t1σ", _shared->notLeq(s1σ.untyped(), t1σ))
+  check_side_condition( "s2σ /⪯ t2σ", _shared->notLeq(s2σ.untyped(), t1σ))
 
 
   auto res = Literal::createEquality(false, t1σ, t2σ, srt);
@@ -180,7 +179,7 @@ ClauseIterator EqFactoring::generateClauses(Clause* premise)
                   // we use a symmetry breaking index comparison
                   // TODO we could replace this == by _shared.equivalent
                   max.literal() == other.literal() && other.litIdx() < max.litIdx(), 
-                  [&]() { return ownedArrayishIterator(Stack<Clause*>{}); },
+                  [&]() { return arrayIter(Stack<Clause*>{}); },
 
                   // only one is selected (= maximal)
                   [&]() { return concatIters(applyRule(other, max).intoIter()); });

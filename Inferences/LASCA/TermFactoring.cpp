@@ -65,13 +65,11 @@ using namespace Saturation;
 
 void TermFactoring::attach(SaturationAlgorithm* salg)
 {
-  CALL("TermFactoring::attach");
   GeneratingInferenceEngine::attach(salg);
 }
 
 void TermFactoring::detach()
 {
-  CALL("TermFactoring::detach");
   ASS(_salg);
   GeneratingInferenceEngine::detach();
 }
@@ -109,7 +107,6 @@ Option<Clause*> TermFactoring::applyRule(
     Stack<TermList> const& maxAtoms
     )
 {
-  CALL("LASCA::TermFactoring::applyRule(...)")
   TIME_TRACE("lasca term factoring")
   using Numeral = typename NumTraits::ConstantType;
   DEBUG("L1: ", sel1)
@@ -139,7 +136,7 @@ Option<Clause*> TermFactoring::applyRule(
   if (uwa.isNone())  
     return nothing();
 
-  auto cnst = uwa->constraintLiterals();
+  auto cnst = uwa->computeConstraintLiterals();
   auto sigma = [&](auto t) { return uwa->subs().apply(t, /* var bank */ 0); };
 
   // auto pivot_sigma = sigma(sel1.literal());
@@ -238,7 +235,6 @@ Option<Clause*> TermFactoring::applyRule(
 
 ClauseIterator TermFactoring::generateClauses(Clause* premise)
 {
-  CALL("TermFactoring::generateClauses");
   TIME_TRACE("lasca term factoring generate")
   DEBUG("in: ", *premise)
 
@@ -263,18 +259,18 @@ ClauseIterator TermFactoring::generateClauses(Clause* premise)
   }
 #endif
 
-  Stack<pair<unsigned, unsigned>> litRanges;
+  Stack<std::pair<unsigned, unsigned>> litRanges;
   unsigned last = 0;
   for (unsigned i = 1; i < selected->size(); i++) {
     if ((*selected)[last].literal() != (*selected)[i].literal()) {
-      litRanges.push(make_pair(last, i));
+      litRanges.push(std::make_pair(last, i));
       last = i;
     }
   }
   if (selected->size() > 0)
-    litRanges.push(make_pair(last, selected->size()));
+    litRanges.push(std::make_pair(last, selected->size()));
 
-  return pvi(iterTraits(ownedArrayishIterator(std::move(litRanges)))
+  return pvi(arrayIter(std::move(litRanges))
                 .flatMap([=] (auto r) {
                        ASS(r.first < r.second)
                        return range(r.first, r.second - 1)

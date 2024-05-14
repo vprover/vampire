@@ -91,7 +91,6 @@ template<class T> RationalConstantType rat(T n) { return RationalConstantType(n)
 
 QKbo::Result QKbo::compare(Literal* l1, Literal* l2) const 
 {
-  CALL("QKbo::compare(Literal* l1, Literal* l2) const ")
   if (l1 == l2) 
     return Result::EQUAL;
 
@@ -100,7 +99,7 @@ QKbo::Result QKbo::compare(Literal* l1, Literal* l2) const
        if ( i1 && !i2) return Result::LESS;
   else if (!i1 &&  i2) return Result::GREATER;
   else if (!i1 && !i2) return TIME_TRACE_EXPR("uninterpreted", OU::lexProductCapture(
-        [&]() { return _kbo.comparePrecedence(l1, l2); }
+        [&]() { return _kbo.comparePredicatePrecedences(l1->functor(), l2->functor()); }
       , [&]() { return OU::lexExt(termArgIter(l1), termArgIter(l2), this->asClosure()); }
       , [&]() { return OU::stdCompare(l1->isNegative(), l2->isNegative()); }
     ));
@@ -166,7 +165,7 @@ QKbo::Result QKbo::compare(Literal* l1, Literal* l2) const
               ASS(l2->isPositive())
               return Option<Ordering::Result>(OU::lexProductCapture(
                   [&]() { return this->compare(l1->termArg(0), l2->termArg(0)); }
-                , [&]() { return _kbo.comparePrecedence(l1, l2); }
+                , [&]() { return _kbo.comparePredicatePrecedences(l1->functor(), l2->functor()); }
               ));
             } 
           } 
@@ -194,9 +193,8 @@ bool uninterpretedFun(Term* t)
 
 
 auto toNumeralMul(TermList t) -> std::tuple<Option<TermList>, RationalConstantType> {
-  CALL("toNumeralMul(TermList t)")
   if (t.isVar()) {
-    return make_tuple(Option<TermList>(t), rat(1));
+    return std::make_tuple(Option<TermList>(t), rat(1));
   } else {
     auto term = t.term();
     auto f = term->functor();
@@ -207,21 +205,21 @@ auto toNumeralMul(TermList t) -> std::tuple<Option<TermList>, RationalConstantTy
 
         } else if (f == numTraits.mulF() && numTraits.isNumeral(*term->nthArgument(0))) {
           /* t = k * t' ( for some numeral k ) */
-          return some(make_tuple(
+          return some(std::make_tuple(
                 some(*term->nthArgument(1)),  /* <- t' */
                 rat(numTraits.tryNumeral(*term->nthArgument(0)).unwrap()) /* <- k */
                 ));
 
         } else if (numTraits.isNumeral(t)) {
           /* t is a numeral */
-          return some(make_tuple(
+          return some(std::make_tuple(
                 Option<TermList>(), 
                 rat(numTraits.tryNumeral(t).unwrap())
                 ));
 
         } else {
           /* t is uninterpreted */
-          return some( make_tuple(Option<TermList>(t), RationalConstantType(1)));
+          return some(std::make_tuple(Option<TermList>(t), RationalConstantType(1)));
         }
     }).unwrap();
   }
@@ -230,7 +228,6 @@ auto toNumeralMul(TermList t) -> std::tuple<Option<TermList>, RationalConstantTy
 
 Ordering::Result QKbo::compare(TermList s, TermList t) const 
 {
-  CALL("QKbo::compare(TermList, TermList) const")
   if (s.isVar() && t.isVar()) 
     return s == t ? Ordering::EQUAL : Ordering::INCOMPARABLE;
 
@@ -262,7 +259,6 @@ Ordering::Result QKbo::compare(TermList s, TermList t) const
 /// case 2. precondition: we know that abstr(t1) == abstr(t2)
 Ordering::Result QKbo::cmpNonAbstr(TermList t1, TermList t2) const 
 {
-  CALL("QKbo::cmpNonAbstr(TermList, TermList) const")
   if (t1 == t2) return Result::EQUAL;
   if (t1.isTerm() && t2.isTerm() 
       && t1.term()->functor() == t2.term()->functor() 
@@ -305,7 +301,6 @@ Ordering::Result QKbo::cmpNonAbstr(TermList t1, TermList t2) const
 
 Option<TermList> QKbo::abstr(TermList t) const 
 {
-  CALL("QKbo::abstr(TermList t) const ")
   using Out = Option<TermList>;
   if (t.isVar()) {
     return Option<TermList>(t);
@@ -376,7 +371,7 @@ Option<TermList> QKbo::abstr(TermList t) const
   }
 }
 
-void QKbo::show(ostream& out) const 
+void QKbo::show(std::ostream& out) const 
 { _kbo.show(out); }
 
 } // Kernel

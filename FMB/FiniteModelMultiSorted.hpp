@@ -35,9 +35,6 @@ using namespace Kernel;
  *
  */
 class FiniteModelMultiSorted {
- CLASS_NAME(FiniteModelMultiSorted);
- USE_ALLOCATOR(FiniteModelMultiSorted);
-
  DHMap<unsigned,unsigned> _sizes;
 
 public:
@@ -81,13 +78,13 @@ private:
  DArray<unsigned> p_interpretation; // 0 is undef, 1 false, 2 true
 
  // the pairs of <constant number, sort>
- DHMap<pair<unsigned,unsigned>,Term*> _domainConstants;
- DHMap<Term*,pair<unsigned,unsigned>> _domainConstantsRev;
+ DHMap<std::pair<unsigned,unsigned>,Term*> _domainConstants;
+ DHMap<Term*,std::pair<unsigned,unsigned>> _domainConstantsRev;
 public:
  Term* getDomainConstant(unsigned c, unsigned srt)
  {
    Term* t;
-   pair<unsigned,unsigned> pair = make_pair(c,srt);
+   std::pair<unsigned,unsigned> pair = std::make_pair(c,srt);
    if(_domainConstants.find(pair,t)) return t;
    vstring name = "domCon_"+env.signature->typeConName(srt)+"_"+Lib::Int::toString(c);
    unsigned f = env.signature->addFreshFunction(0,name.c_str()); 
@@ -99,9 +96,9 @@ public:
 
    return t;
  }
- pair<unsigned,unsigned> getDomainConstant(Term* t)
+ std::pair<unsigned,unsigned> getDomainConstant(Term* t)
  {
-   pair<unsigned,unsigned> pair;
+   std::pair<unsigned,unsigned> pair;
    if(_domainConstantsRev.find(t,pair)) return pair;
    USER_ERROR("Evaluated to "+t->toString()+" when expected a domain constant, probably a partial model");
  }
@@ -112,6 +109,8 @@ public:
  vstring prepend(const char* prefix, vstring name) {
    if (name.empty()) {
      return vstring(prefix);
+   } else if(name[0] == '$') {
+     return vstring("'") + prefix + name + "'";
    } else if (name[0] == '\'') {
      vstring dequoted = name.substr(1, name.length() - 1);
      return vstring("'") + prefix + dequoted;
@@ -122,6 +121,8 @@ public:
  vstring append(vstring name, const char* suffix) {
    if (name.empty()) {
      return vstring(suffix);
+   } else if(name[0] == '$') {
+     return vstring("'") + name + suffix + "'";
    } else if (name[0] == '\'') {
      vstring dequoted = name.substr(0, name.length() - 1);
      return dequoted + suffix + "'";

@@ -57,9 +57,6 @@ using namespace SAT;
 
 class FiniteModelBuilder : public MainLoop {
 public:
-  CLASS_NAME(FiniteModedlBuilder);
-  USE_ALLOCATOR(FiniteModelBuilder);    
-  
   FiniteModelBuilder(Problem& prb, const Options& opt);
   ~FiniteModelBuilder();
 
@@ -102,10 +99,10 @@ private:
       ASS(_sortedSignature);
     
     for(unsigned s=0;s<_sortedSignature->sorts;s++){
-      //cout << "SORT " << s << endl;
+      //std::cout << "SORT " << s << std::endl;
       unsigned modelSize = _sortModelSizes[s];
       for(unsigned m=1;m<=modelSize;m++){
-        //cout << "MSIZE " << m << endl;
+        //std::cout << "MSIZE " << m << std::endl;
         addNewSymmetryOrderingAxioms(m,_sortedGroundedTerms[s]);
         addNewSymmetryCanonicityAxioms(m,_sortedGroundedTerms[s],modelSize);
       }
@@ -237,7 +234,7 @@ private:
     STAR    // we don't care about this value
   };
 
-  typedef DArray<pair<ConstraintSign,unsigned>> Constraint_Generator_Vals;
+  typedef DArray<std::pair<ConstraintSign,unsigned>> Constraint_Generator_Vals;
 
   class DSAEnumerator { // Domain Size Assignment Enumerator - for the point-wise encoding case
   public:
@@ -252,9 +249,6 @@ private:
 
   class HackyDSAE : public DSAEnumerator {
     struct Constraint_Generator {
-      CLASS_NAME(FiniteModedlBuilder::HackyDSAE::Constraint_Generator);
-      USE_ALLOCATOR(FiniteModelBuilder::HackyDSAE::Constraint_Generator);
-
       Constraint_Generator_Vals _vals;
       unsigned _weight;
 
@@ -289,9 +283,6 @@ private:
     bool checkConstriant(DArray<unsigned>& newSortSizes, Constraint_Generator_Vals& constraint);
 
   public:
-    CLASS_NAME(FiniteModedlBuilder::HackyDSAE);
-    USE_ALLOCATOR(FiniteModelBuilder::HackyDSAE);
-
     HackyDSAE(bool keepOldGenerators) : _maxWeightSoFar(0), _keepOldGenerators(keepOldGenerators) {}
 
     bool init(unsigned _startSize, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>& dsc, Stack<std::pair<unsigned,unsigned>>& sdsc) override {
@@ -317,10 +308,6 @@ private:
     unsigned loadSizesFromSmt(DArray<unsigned>& szs);
     void reportZ3OutOfMemory();
   public:
-    // the following is not sufficient, since z3::solver and z3::context allocate internally
-    CLASS_NAME(FiniteModedlBuilder::SmtBasedDSAE);
-    USE_ALLOCATOR(FiniteModelBuilder::SmtBasedDSAE);
-
     SmtBasedDSAE() : _smtSolver(_context) {}
 
     bool init(unsigned, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>&, Stack<std::pair<unsigned,unsigned>>&) override;
@@ -345,30 +332,30 @@ private:
 
 public: // debugging
     static void output_cg(Constraint_Generator_Vals& cgv) {
-      cout << "[";
+      std::cout << "[";
       for (unsigned i = 0; i < cgv.size(); i++) {
-        cout << cgv[i].second;
+        std::cout << cgv[i].second;
         switch(cgv[i].first) {
         case EQ:
-          cout << "=";
+          std::cout << "=";
           break;
         case LEQ:
-          cout << ">";
+          std::cout << ">";
           break;
         case GEQ:
-          cout << "<";
+          std::cout << "<";
           break;
         case STAR:
-          cout << "*";
+          std::cout << "*";
           break;
         default:
           ASSERTION_VIOLATION;
         }
         if (i < cgv.size()-1) {
-          cout << ", ";
+          std::cout << ", ";
         }
       }
-      cout << "]";
+      std::cout << "]";
     }
 
 };

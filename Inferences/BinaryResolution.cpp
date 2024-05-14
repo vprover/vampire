@@ -15,7 +15,7 @@
 #include "Debug/RuntimeStatistics.hpp"
 
 #include "Indexing/ResultSubstitution.hpp"
-#include "Kernel/MismatchHandler.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -24,6 +24,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/ColorHelper.hpp"
+#include "Kernel/Formula.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/LiteralSelector.hpp"
@@ -37,6 +38,7 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#include "Shell/AnswerExtractor.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -45,17 +47,14 @@
 namespace Inferences
 {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-// TODO remove after refactor
-using BRQueryRes = QueryRes<AbstractingUnifier*, LiteralClause>;
-
 void BinaryResolution::attach(SaturationAlgorithm* salg)
 {
-  CALL("BinaryResolution::attach");
   ASS(!_index);
 
   GeneratingInferenceEngine::attach(salg);
@@ -65,7 +64,6 @@ void BinaryResolution::attach(SaturationAlgorithm* salg)
 
 void BinaryResolution::detach()
 {
-  CALL("BinaryResolution::detach");
   ASS(_salg);
 
   _index=0;
@@ -73,63 +71,20 @@ void BinaryResolution::detach()
   GeneratingInferenceEngine::detach();
 }
 
-
-struct BinaryResolution::UnificationsFn
-{
-  UnificationsFn(BinaryResolutionIndex* index)
-  : _index(index) {}
-  VirtualIterator<pair<Literal*, BRQueryRes> > operator()(Literal* lit)
-  {
-    if(lit->isEquality()) {
-      //Binary resolution is not performed with equality literals
-      return VirtualIterator<pair<Literal*, BRQueryRes> >::getEmpty();
-    }
-    return pvi( pushPairIntoRightIterator(lit, _index->getUwa(lit, /* complementary */ true, env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration())));
-  }
-private:
-  BinaryResolutionIndex* _index;
-};
-
-struct BinaryResolution::ResultFn
-{
-  ResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, bool afterCheck, Ordering* ord, LiteralSelector& selector, BinaryResolution& parent)
-  : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _afterCheck(afterCheck), _ord(ord), _selector(selector), _parent(parent) {}
-  Clause* operator()(pair<Literal*, BRQueryRes> arg)
-  {
-    CALL("BinaryResolution::ResultFn::operator()");
-
-    BRQueryRes& qr = arg.second;
-    Literal* resLit = arg.first;
-
-    auto subs = ResultSubstitution::fromSubstitution(&qr.unifier->subs(), QUERY_BANK, RESULT_BANK);
-    auto constraints = qr.unifier->constraintLiterals();
-    return BinaryResolution::generateClause(_cl, resLit, qr.data->clause, qr.data->literal, subs, *constraints, _parent.getOptions(), _passiveClauseContainer, _afterCheck ? _ord : 0, &_selector);
-  }
-private:
-  Clause* _cl;
-  PassiveClauseContainer* _passiveClauseContainer;
-  bool _afterCheck;
-  Ordering* _ord;
-  LiteralSelector& _selector;
-  BinaryResolution& _parent;
-};
-
 /**
  * Ordering aftercheck is performed iff ord is not 0,
  * in which case also ls is assumed to be not 0.
  */
+template<class ComputeConstraints>
 Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, 
-                                ResultSubstitutionSP subs, Stack<Literal*> const& constraints, const Options& opts, PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls)
+                                ResultSubstitutionSP subs, ComputeConstraints computeConstraints, const Options& opts, PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls)
 {
-  CALL("BinaryResolution::generateClause");
   ASS(resultCl->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses
 
   if(!ColorHelper::compatible(queryCl->color(),resultCl->color()) ) {
     env.statistics->inferencesSkippedDueToColors++;
     if(opts.showBlocked()) {
-      env.beginOutput();
-      env.out() << "Blocked resolution of " << *queryCl << " and " << * resultCl << endl;
-      env.endOutput();
+      std::cout << "Blocked resolution of " << *queryCl << " and " << * resultCl << endl;
     }
     if(opts.colorUnblocking()) {
       SaturationAlgorithm* salg = SaturationAlgorithm::tryGetInstance();
@@ -153,8 +108,9 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
       Int::max(queryLit->isPositive() ?  queryCl->numPositiveLiterals()-1 :  queryCl->numPositiveLiterals(),
               resultLit->isPositive() ? resultCl->numPositiveLiterals()-1 : resultCl->numPositiveLiterals());
 
-  Inference inf(GeneratingInference2(constraints.isNonEmpty() ?
-      InferenceRule::CONSTRAINED_RESOLUTION:InferenceRule::RESOLUTION,queryCl, resultCl));
+  auto constraints = computeConstraints();
+  auto nConstraints = constraints->size();
+  Inference inf(GeneratingInference2(nConstraints == 0 ?  InferenceRule::RESOLUTION : InferenceRule::CONSTRAINED_RESOLUTION, queryCl, resultCl));
   Inference::Destroyer inf_destroyer(inf); // will call destroy on inf when coming out of scope unless disabled
 
   bool needsToFulfilWeightLimit = passiveClauseContainer && !passiveClauseContainer->fulfilsAgeLimit(wlb, numPositiveLiteralsLowerBound, inf) && passiveClauseContainer->weightLimited();
@@ -179,7 +135,12 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     }
   }
 
-  unsigned newLength = clength+dlength-2+constraints.size();
+  bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
+  Literal* cAnsLit = synthesis ? queryCl->getAnswerLiteral() : nullptr;
+  Literal* dAnsLit = synthesis ? resultCl->getAnswerLiteral() : nullptr;
+  bool bothHaveAnsLit = (cAnsLit != nullptr) && (dAnsLit != nullptr);
+
+  unsigned newLength = clength + dlength - 2 + nConstraints - (bothHaveAnsLit ? 1 : 0) ;
 
   inf_destroyer.disable(); // ownership passed to the the clause below
   Clause* res = new(newLength) Clause(newLength, inf); // the inference object owned by res from now on
@@ -191,12 +152,12 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   }
 
   unsigned next = 0;
-  for(Literal* c : constraints){
+  for(Literal* c : *constraints){
       (*res)[next++] = c; 
   }
   for(unsigned i=0;i<clength;i++) {
     Literal* curr=(*queryCl)[i];
-    if(curr!=queryLit) {
+    if(curr!=queryLit && (!bothHaveAnsLit || curr!=cAnsLit)) {
       Literal* newLit = subs->applyToQuery(curr);
       if(needsToFulfilWeightLimit) {
         wlb+=newLit->weight() - curr->weight();
@@ -234,7 +195,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
 
   for(unsigned i=0;i<dlength;i++) {
     Literal* curr=(*resultCl)[i];
-    if(curr!=resultLit) {
+    if(curr!=resultLit && (!bothHaveAnsLit || curr!=dAnsLit)) {
       Literal* newLit = subs->applyToResult(curr);
       if(needsToFulfilWeightLimit) {
         wlb+=newLit->weight() - curr->weight();
@@ -264,7 +225,16 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     }
   }
 
-  if(constraints.isNonEmpty()){
+   if (bothHaveAnsLit) {
+     ASS(next == newLength-1);
+     Literal* newLitC = subs->applyToQuery(cAnsLit);
+     Literal* newLitD = subs->applyToResult(dAnsLit);
+     bool cNeg = queryLit->isNegative();
+     Literal* condLit = cNeg ? subs->applyToResult(resultLit) : subs->applyToQuery(queryLit);
+     (*res)[next] = SynthesisManager::getInstance()->makeITEAnswerLiteral(condLit, cNeg ? newLitC : newLitD, cNeg ? newLitD : newLitC);
+   }
+
+  if(nConstraints != 0){
     env.statistics->cResolution++;
   }
   else{ 
@@ -273,28 +243,39 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
 
   return res;
 }
+Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, 
+                                ResultSubstitutionSP subs, const Options& opts)
+{
+  return BinaryResolution::generateClause(queryCl, queryLit, resultCl, resultLit, subs, 
+      /* computeConstraints */ []() { return recycledStack<Literal*>(); },
+      opts);
+}
+
 
 ClauseIterator BinaryResolution::generateClauses(Clause* premise)
 {
-  CALL("BinaryResolution::generateClauses");
+  return pvi(TIME_TRACE_ITER("resolution", 
+      premise->getSelectedLiteralIterator()
+        .filter([](auto l) { return !l->isEquality(); })
+        .flatMap([this,premise](auto lit) { 
+            // find query results for literal `lit`
+            return iterTraits(_index->getUwa(lit, /* complementary */ true, 
+                                             env.options->unificationWithAbstraction(), 
+                                             env.options->unificationWithAbstractionFixedPointIteration()))
+                     .map([this,lit,premise](auto qr) {
+                        // perform binary resolution on query results
+                        auto subs = ResultSubstitution::fromSubstitution(&qr.unifier->subs(), QUERY_BANK, RESULT_BANK);
+                        bool doAfterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
+                        return BinaryResolution::generateClause(premise, lit, qr.data->clause, qr.data->literal, subs, 
+                            [&](){ return qr.unifier->computeConstraintLiterals(); }, 
+                            this->getOptions(), _salg->getPassiveClauseContainer(), 
+                            doAfterCheck ? &_salg->getOrdering() : nullptr, 
+                            &_salg->getLiteralSelector());
 
-  //cout << "BinaryResolution for " << premise->toString() << endl;
-
-  PassiveClauseContainer* passiveClauseContainer = _salg->getPassiveClauseContainer();
-
-  // generate pairs of the form (literal selected in premise, unifying object in index)
-  auto it1 = getMappingIterator(premise->getSelectedLiteralIterator(),UnificationsFn(_index));
-  // actually, we got one iterator per selected literal; we flatten the obtained iterator of iterators:
-  auto it2 = getFlattenedIterator(it1);
-  // perform binary resolution on these pairs
-  auto it3 = getMappingIterator(it2,ResultFn(premise, passiveClauseContainer,
-      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(), &_salg->getOrdering(),_salg->getLiteralSelector(),*this));
-  // filter out only non-zero results
-  auto it4 = getFilteredIterator(it3, NonzeroFn());
-  // measure time of the overall processing
-  auto it5 = timeTraceIter("resolution", it4);
-
-  return pvi(it5);
+                     });
+        })
+        .filter([](auto c) { return c != nullptr; })
+  ));
 }
 
 }

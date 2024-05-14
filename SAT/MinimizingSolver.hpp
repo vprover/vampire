@@ -20,6 +20,7 @@
 
 #include "Lib/DArray.hpp"
 #include "Lib/DHMap.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/Stack.hpp"
@@ -36,9 +37,6 @@ using namespace Lib;
 
 class MinimizingSolver : public SATSolver {
 public:
-  CLASS_NAME(MinimizingSolver);
-  USE_ALLOCATOR(MinimizingSolver);
-
   MinimizingSolver(SATSolver* inner);
 
   virtual SATClause* getRefutation() override { return _inner->getRefutation(); }
@@ -61,7 +59,6 @@ public:
   virtual void ensureVarCount(unsigned newVarCnt) override;
 
   virtual unsigned newVar() override {
-    CALL("MinimizingSolver::newVar");
     DEBUG_CODE(unsigned oldVC = _varCnt);
     ensureVarCount(_varCnt+1);
     ASS_EQ(_varCnt,oldVC+1);
@@ -72,7 +69,6 @@ public:
 
 private:
   bool admitsDontcare(unsigned var) { 
-    CALL("MinimizingSolver::admitsDontcare");
     ASS_G(var,0); ASS_LE(var,_varCnt);
 
     return _watcher[var].isEmpty() && !_inner->isZeroImplied(var);

@@ -87,9 +87,9 @@ class LascaGenTester : public Test::Generation::GenerationTester<Rule>
  public:
   LascaGenTester(Rule r) : Test::Generation::GenerationTester<Rule>(std::move(r)) { }
 
-  virtual bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs) override
+  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) override
   { 
-    auto toStack = [](Kernel::Clause* cl) {
+    auto toStack = [](auto cl) {
       return iterTraits(cl->iterLits())
         .flatMap([](auto l) { return arrayIter(Stack<Literal*>(*LascaState::globalState->normalizer.normalizeLiteral(l))); })
         .template collect<Stack<Literal*>>();

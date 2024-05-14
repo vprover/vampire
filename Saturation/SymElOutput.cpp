@@ -25,6 +25,7 @@
 namespace Saturation
 {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
@@ -36,31 +37,23 @@ SymElOutput::SymElOutput()
 
 void SymElOutput::init(SaturationAlgorithm* sa)
 {
-  CALL("SymElOutput::init");
-
   _sa=sa;
 }
 
 void SymElOutput::onAllProcessed()
 {
-  CALL("SymElOutput::onAllProcessed");
-
   _symElRewrites.reset();
   _symElColors.reset();
 }
 
 void SymElOutput::onInputClause(Clause* c)
 {
-  CALL("SymElOutput::onInputClause");
-
   checkForPreprocessorSymbolElimination(c);
 }
 
 
 void SymElOutput::onNonRedundantClause(Clause* c)
 {
-  CALL("SymElOutput::onNonRedundantClause");
-
   if(c->color()==COLOR_TRANSPARENT && !c->skip()) {
     Clause* tgt=c;
     Clause* src;
@@ -93,8 +86,6 @@ void SymElOutput::onNonRedundantClause(Clause* c)
  */
 void SymElOutput::onParenthood(Clause* cl, Clause* parent)
 {
-  CALL("SymElOutput::onParenthood");
-
   Color pcol=parent->color();
 //  Clause::Store pstore=parent->store();
 
@@ -115,7 +106,6 @@ void SymElOutput::onParenthood(Clause* cl, Clause* parent)
 void SymElOutput::onSymbolElimination(Color eliminated,
 					      Clause* c, bool nonRedundant)
 {
-  CALL("SymElOutput::onSymbolElimination");
   ASS_EQ(c->color(),COLOR_TRANSPARENT);
 
   if(!c->skip() && c->noSplits()) {
@@ -134,21 +124,17 @@ void SymElOutput::onSymbolElimination(Color eliminated,
 
 void SymElOutput::outputSymbolElimination(Color eliminated, Clause* c)
 {
-  CALL("SymElOutput::outputSymbolElimination");
   ASS_EQ(c->color(),COLOR_TRANSPARENT);
   ASS(!c->skip());
 
-  env.beginOutput();
-
-  //BDD::instance()->allowDefinitionOutput(false);
-  env.out()<<"%";
+  std::cout<<"%";
   if(eliminated==COLOR_LEFT) {
-    env.out()<<"Left";
+    std::cout<<"Left";
   } else {
     ASS_EQ(eliminated, COLOR_RIGHT);
-    env.out()<<"Right";
+    std::cout<<"Right";
   }
-  env.out()<<" symbol elimination"<<endl;
+  std::cout<<" symbol elimination"<<endl;
 
   vstring cname = "inv"+Int::toString(_symElNextClauseNumber);
   while(env.signature->isPredicateName(cname, 0)) {
@@ -158,17 +144,12 @@ void SymElOutput::outputSymbolElimination(Color eliminated, Clause* c)
 
   _printer.printAsClaim(cname, c);
 
-  //BDD::instance()->allowDefinitionOutput(true);
   _symElNextClauseNumber++;
-
-  env.endOutput();
 }
 
 
 void SymElOutput::checkForPreprocessorSymbolElimination(Clause* cl)
 {
-  CALL("SymElOutput::checkForPreprocessorSymbolElimination");
-
   if(!env.colorUsed || cl->color()!=COLOR_TRANSPARENT || cl->skip()) {
     return;
   }

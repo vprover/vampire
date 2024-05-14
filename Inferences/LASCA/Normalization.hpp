@@ -34,10 +34,9 @@ using namespace Saturation;
 class Normalization
 : public ImmediateSimplificationEngine 
 {
-  shared_ptr<LascaState> _shared;
+  std::shared_ptr<LascaState> _shared;
 public: 
-  Normalization(shared_ptr<LascaState> shared) : _shared(std::move(shared)) {}
-  CLASS_NAME(Normalization);
+  Normalization(std::shared_ptr<LascaState> shared) : _shared(std::move(shared)) {}
   USE_ALLOCATOR(Normalization);
 
   virtual Clause* simplify(Clause* cl) final override;

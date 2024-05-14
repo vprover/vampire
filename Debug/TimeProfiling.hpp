@@ -16,7 +16,6 @@
 #include "Lib/Option.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Debug/Assertion.hpp"
-#include "Kernel/Term.hpp"
 #include <chrono>
 #include "Lib/MacroUtils.hpp"
 
@@ -74,9 +73,7 @@ namespace Shell {
 
 #endif // VTIME_PROFILING
 
-
 #if VTIME_PROFILING
-
 
 /**
  * A class to trace time for particular blocks. this class shall never be used directly,
@@ -89,20 +86,19 @@ public:
   // Let's fake a big enum like the one we used to have using a bunch of constexpr's
   // (NB: TimeTrace can only group TIME_TRACE calls with identical identifiers as pointers
   //  so always going through one place to declare a TIME_TRACE-able call site sounds like a nice routine)
-  // Also: don't forget to add definition to the cpp file (until we swith to C++17)
-  static constexpr const char* const CLAUSE_GENERATION = "clause generation";
-  static constexpr const char* const CONSEQUENCE_FINDING = "consequence finding";
-  static constexpr const char* const FMB_DEFINITION_INTRODUCTION = "fmb definition introduction";
-  static constexpr const char* const HYPER_SUP = "hyper superposition";
-  static constexpr const char* const LITERAL_ORDER_AFTERCHECK = "literal order aftercheck";
-  static constexpr const char* const PARSING = "parsing";
-  static constexpr const char* const PASSIVE_CONTAINER_MAINTENANCE = "passive container maintenance";
-  static constexpr const char* const PREPROCESSING = "preprocessing";
-  static constexpr const char* const PROPERTY_EVALUATION = "property evaluation";
-  static constexpr const char* const AVATAR_SAT_SOLVER = "SAT solver";
-  static constexpr const char* const SHUFFLING = "shuffling things";
-  static constexpr const char* const SINE_SELECTION = "sine selection";
-  static constexpr const char* const TERM_SHARING = "term sharing";
+  static inline constexpr const char* const CLAUSE_GENERATION = "clause generation";
+  static inline constexpr const char* const CONSEQUENCE_FINDING = "consequence finding";
+  static inline constexpr const char* const FMB_DEFINITION_INTRODUCTION = "fmb definition introduction";
+  static inline constexpr const char* const HYPER_SUP = "hyper superposition";
+  static inline constexpr const char* const LITERAL_ORDER_AFTERCHECK = "literal order aftercheck";
+  static inline constexpr const char* const PARSING = "parsing";
+  static inline constexpr const char* const PASSIVE_CONTAINER_MAINTENANCE = "passive container maintenance";
+  static inline constexpr const char* const PREPROCESSING = "preprocessing";
+  static inline constexpr const char* const PROPERTY_EVALUATION = "property evaluation";
+  static inline constexpr const char* const AVATAR_SAT_SOLVER = "SAT solver";
+  static inline constexpr const char* const SHUFFLING = "shuffling things";
+  static inline constexpr const char* const SINE_SELECTION = "sine selection";
+  static inline constexpr const char* const TERM_SHARING = "term sharing";
   
 private:
   using Clock = std::chrono::steady_clock;
@@ -136,10 +132,9 @@ private:
 
 
   struct Node {
-    CLASS_NAME(Node)
     USE_ALLOCATOR(Node)
     const char* name;
-    Lib::Stack<unique_ptr<Node>> children;
+    Lib::Stack<std::unique_ptr<Node>> children;
     Measurements measurements;
     Node(const char* name) : name(name), children(), measurements() {}
     struct NodeFormatOpts ;
@@ -197,37 +192,6 @@ private:
   bool _enabled;
 };
 
-
-template<class Ord>
-class TimeTraceOrdering : public Kernel::Ordering
-{
-  const char* _nameLit;
-  const char* _nameTerm;
-  Ord _ord;
-public:
-  CLASS_NAME(TimeTraceOrdering);
-  USE_ALLOCATOR(TimeTraceOrdering);
-
-  TimeTraceOrdering(const char* nameLit, const char* nameTerm, Ord ord)
-  : _nameLit(nameLit)
-  , _nameTerm(nameTerm)
-  , _ord(std::move(ord))
-  { }
-
-  ~TimeTraceOrdering() override {  }
-
-  Result compare(Kernel::Literal* l1, Kernel::Literal* l2) const final override
-  { TIME_TRACE(_nameLit); return _ord.compare(l1,l2); }
-
-  Result compare(Kernel::TermList l1, Kernel::TermList l2) const final override
-  { TIME_TRACE(_nameTerm); return _ord.compare(l1,l2); }
-
-  void show(ostream& out) const final override
-  { _ord.show(out); }
-
-  Ord      & inner()       { return _ord; }
-  Ord const& inner() const { return _ord; }
-};
 #endif // VTIME_PROFILING
 
 } // namespace Shell

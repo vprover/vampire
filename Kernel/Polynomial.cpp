@@ -128,7 +128,7 @@ FuncTerm::FuncTerm(FuncId f, Stack<PolyNf>&& args)
 
 FuncTerm::FuncTerm(FuncId f, PolyNf* args) 
   : _fun(f)
-  , _args(Stack<PolyNf>::fromIterator(getArrayishObjectIterator(args, f.numTermArguments()))) 
+  , _args(Stack<PolyNf>::fromIterator(arrayIter(args, f.numTermArguments()))) 
 { }
 
 bool operator==(FuncTerm const& lhs, FuncTerm const& rhs) 
@@ -205,7 +205,6 @@ PolyNf::SubtermIter::SubtermIter(PolyNf p)
 
 PolyNf PolyNf::SubtermIter::next() 
 {
-  CALL("PolyNf::SubtermIter::next")
   ASS(_stack.size() != 0)
   while(_stack.top().hasNext()) {
     ASS(_stack.size() != 0)
@@ -217,7 +216,6 @@ PolyNf PolyNf::SubtermIter::next()
 
 bool PolyNf::SubtermIter::hasNext() const 
 { 
-  CALL("PolyNf::SubtermIter::hasNext")
   return !_stack.isEmpty(); 
 }
 

@@ -19,7 +19,6 @@
 #include "Forwards.hpp"
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
 #include "Allocator.hpp"
 #include "Exception.hpp"
@@ -83,9 +82,6 @@ public:
    */
   virtual size_t size() const { INVALID_OPERATION("This iterator cannot retrieve its size."); }
 
-  CLASS_NAME(IteratorCore);
-//  CLASS_NAME(typeid(IteratorCore).name());
-  USE_ALLOCATOR_UNK;
 private:
   /**
    * Reference counter field used by the @b VirtualIterator object
@@ -104,7 +100,6 @@ class EmptyIterator
 : public IteratorCore<T>
 {
 public:
-  CLASS_NAME(EmptyIterator);
   USE_ALLOCATOR(EmptyIterator);
 
   EmptyIterator() {}
@@ -129,7 +124,6 @@ public:
 template<typename T>
 class VirtualIterator {
 public:
-  CLASS_NAME(VirtualIterator);
   USE_ALLOCATOR(VirtualIterator);
 
   DECL_ELEMENT_TYPE(T);
@@ -167,7 +161,6 @@ public:
   inline
   VirtualIterator(const VirtualIterator& obj) : _core(obj._core)
   {
-    CALL("ViratualIterator(const&)")
     if(_core) {
       _core->_refCnt++;
     }
@@ -176,7 +169,6 @@ public:
   inline
   ~VirtualIterator()
   {
-    CALL("VirtualIterator::~VirtualIterator");
     if(_core) {
 	_core->_refCnt--;
 	if(!_core->_refCnt) {
@@ -186,8 +178,6 @@ public:
   }
   VirtualIterator& operator=(const VirtualIterator& obj)
   {
-    CALL("VirtualIterator::operator=");
-
     IteratorCore<T>* oldCore=_core;
     _core=obj._core;
     if(_core) {
@@ -214,8 +204,6 @@ public:
   inline
   bool drop()
   {
-    CALL("VirtualIterator::drop");
-
     if(_core) {
       _core->_refCnt--;
       if(_core->_refCnt) {
@@ -235,7 +223,6 @@ public:
   inline
   bool hasNext()
   {
-    CALL("VirtualIterator::hasNext");
     ASS(_core);
 
     return _core->hasNext();
@@ -249,7 +236,6 @@ public:
   inline
   T next()
   {
-    CALL("VirtualIterator::next");
     ASS(_core);
 
     return _core->next();
@@ -258,7 +244,6 @@ public:
   /** Return true if the function @b size() can be called */
   bool knowsSize() const
   {
-    CALL("VirtualIterator::knowsSize");
     ASS(_core);
 
     return _core->knowsSize();
@@ -275,7 +260,6 @@ public:
    */
   size_t size() const
   {
-    CALL("VirtualIterator::size");
     ASS(_core);
     ASS(knowsSize());
 
@@ -311,13 +295,13 @@ class ProxyIterator
 : public IteratorCore<T>
 {
 public:
-  CLASS_NAME(ProxyIterator);
   USE_ALLOCATOR(ProxyIterator);
   DEFAULT_CONSTRUCTORS(ProxyIterator)
+  virtual ~ProxyIterator() override {}
   
   explicit ProxyIterator(Inner inn) : _inn(std::move(inn)) {}
-  bool hasNext() { return _inn.hasNext(); };
-  T next() { return _inn.next(); };
+  bool hasNext() override { return _inn.hasNext(); };
+  T next() override { return _inn.next(); };
 private:
   Inner _inn;
 };

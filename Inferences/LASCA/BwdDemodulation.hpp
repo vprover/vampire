@@ -34,11 +34,10 @@ class BwdDemodulation
   using Rhs = Demodulation::Rhs;
   using Lhs = Demodulation::Lhs;
 public:
-  CLASS_NAME(BwdDemodulation);
   USE_ALLOCATOR(BwdDemodulation);
 
   BwdDemodulation(BwdDemodulation&&) = default;
-  BwdDemodulation(shared_ptr<LascaState> shared) 
+  BwdDemodulation(std::shared_ptr<LascaState> shared) 
     : _shared(shared)
     , _index(nullptr)
   {  }
@@ -53,7 +52,7 @@ public:
 #endif // VDEBUG
 
 private:
-  shared_ptr<LascaState> _shared;
+  std::shared_ptr<LascaState> _shared;
   LascaIndex<Rhs>* _index;
 };
 

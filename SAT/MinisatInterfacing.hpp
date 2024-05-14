@@ -25,9 +25,6 @@ namespace SAT{
 class MinisatInterfacing : public PrimitiveProofRecordingSATSolver
 {
 public: 
-  CLASS_NAME(MinisatInterfacing);
-  USE_ALLOCATOR(MinisatInterfacing);
-  
 	MinisatInterfacing(const Shell::Options& opts, bool generateProofs=false);
 
   /**
@@ -43,7 +40,6 @@ public:
    * (Minisat deletes unconditionally satisfied clauses.)
    */
   virtual void simplify() override {
-    CALL("MinisatInterfacing::simplify");
     _solver.simplify();
   }
 

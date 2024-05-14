@@ -67,9 +67,6 @@ public:
   ~SubscriptionObject();
   void unsubscribe();
   bool belongsTo(BaseEvent& evt);
-
-  CLASS_NAME(SubscriptionObject);
-  USE_ALLOCATOR(SubscriptionObject);
 private:
   BaseEvent* event;
   BaseEvent::HandlerStruct* hs;
@@ -111,8 +108,6 @@ protected:
     {
       (pObj->*pMethod)();
     }
-    CLASS_NAME(PlainEvent::MethodSpecificHandlerStruct<Cls>);
-    USE_ALLOCATOR(MethodSpecificHandlerStruct);
   };
 
   template<class Cls>
@@ -132,8 +127,6 @@ class SingleParamEvent
 public:
   void fire(T t)
   {
-    CALL("SingleParamEvent::fire");
-
     HandlerList* hit=_handlers;
     while(hit) {
       static_cast<SpecificHandlerStruct*>(hit->head())->fire(t);
@@ -163,9 +156,6 @@ protected:
     {
       (pObj->*pMethod)(t);
     }
-
-    CLASS_NAME(MethodSpecificHandlerStruct);
-    USE_ALLOCATOR(MethodSpecificHandlerStruct);
   };
 
   template<class Cls>
@@ -217,9 +207,6 @@ protected:
     {
       (pObj->*pMethod)(t1, t2);
     }
-
-    CLASS_NAME("TwoParamEvent::MethodSpecificHandlerStruct");
-    USE_ALLOCATOR(MethodSpecificHandlerStruct);
   };
 
   template<class Cls>

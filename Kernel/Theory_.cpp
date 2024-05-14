@@ -44,7 +44,6 @@ using namespace Lib;
 IntegerConstantType::IntegerConstantType(const vstring& str)
   : _val(mpz_class(str.c_str(), /* base */ 10))
 {
-  CALL("IntegerConstantType::IntegerConstantType(vstring)");
 
   // mpz_class::mpz_class
   // if (!Int::stringToInt(str, _val)) {
@@ -54,7 +53,6 @@ IntegerConstantType::IntegerConstantType(const vstring& str)
 
 IntegerConstantType IntegerConstantType::operator+(const IntegerConstantType& num) const
 {
-  CALL("IntegerConstantType::operator+");
 
   InnerType res;
   if (!Int::safePlus(_val, num._val, res)) {
@@ -65,7 +63,6 @@ IntegerConstantType IntegerConstantType::operator+(const IntegerConstantType& nu
 
 IntegerConstantType IntegerConstantType::operator-(const IntegerConstantType& num) const
 {
-  CALL("IntegerConstantType::operator-/1");
 
   InnerType res;
   if (!Int::safeMinus(_val, num._val, res)) {
@@ -76,7 +73,6 @@ IntegerConstantType IntegerConstantType::operator-(const IntegerConstantType& nu
 
 IntegerConstantType IntegerConstantType::operator-() const
 {
-  CALL("IntegerConstantType::operator-/0");
 
   InnerType res;
   if (!Int::safeUnaryMinus(_val, res)) {
@@ -87,7 +83,6 @@ IntegerConstantType IntegerConstantType::operator-() const
 
 IntegerConstantType IntegerConstantType::operator*(const IntegerConstantType& num) const
 {
-  CALL("IntegerConstantType::operator*");
 
   InnerType res;
   if (!Int::safeMultiply(_val, num._val, res)) {
@@ -110,14 +105,12 @@ inline typename IntegerConstantType::InnerType divideOrThrow(typename IntegerCon
 
 int IntegerConstantType::intDivide(const IntegerConstantType& num) const 
 {
-    CALL("IntegerConstantType::intDivide");
     ASS_REP(num.divides(*this),  num.toString() + " does not divide " + this->toString() );
     return IntegerConstantType(divideOrThrow(_val, num._val));
 }
 
 IntegerConstantType IntegerConstantType::remainderE(const IntegerConstantType& num) const
 {
-  CALL("IntegerConstantType::remainderE");
 
   if (num._val == 0) {
     throw DivByZeroException();
@@ -166,7 +159,6 @@ IntegerConstantType IntegerConstantType::abs() const
  */
 IntegerConstantType IntegerConstantType::quotientE(const IntegerConstantType& num) const
 { 
-  CALL("IntegerConstantType::quotientE");
 
 
 
@@ -228,7 +220,6 @@ IntegerConstantType IntegerConstantType::quotientT(const IntegerConstantType& nu
 
 bool IntegerConstantType::divides(const IntegerConstantType& num) const 
 {
-  CALL("IntegerConstantType:divides");
   if (_val == 0) { return false; }
   if (num._val == _val) { return true; }
   if (num._val == numeric_limits<decltype(num._val)>::min() && _val == -1) {
@@ -241,7 +232,6 @@ bool IntegerConstantType::divides(const IntegerConstantType& num) const
 //TODO remove this operator. We already have 3 other ways of computing the remainder, required by the semantics of TPTP and SMTCOMP.
 IntegerConstantType IntegerConstantType::operator%(const IntegerConstantType& num) const
 {
-  CALL("IntegerConstantType::operator%");
 
   //TODO: check if modulo corresponds to the TPTP semantic
   if (num._val==0) {
@@ -252,14 +242,12 @@ IntegerConstantType IntegerConstantType::operator%(const IntegerConstantType& nu
 
 bool IntegerConstantType::operator==(const IntegerConstantType& num) const
 {
-  CALL("IntegerConstantType::operator==");
 
   return _val==num._val;
 }
 
 bool IntegerConstantType::operator>(const IntegerConstantType& num) const
 {
-  CALL("IntegerConstantType::operator>");
 
   return _val>num._val;
 }
@@ -269,7 +257,6 @@ IntegerConstantType IntegerConstantType::floor(IntegerConstantType x)
 
 IntegerConstantType IntegerConstantType::floor(RationalConstantType rat)
 {
-  CALL("IntegerConstantType::floor");
 
   IntegerConstantType num = rat.numerator();
   IntegerConstantType den = rat.denominator();
@@ -308,7 +295,6 @@ Sign RationalConstantType::sign() const
  */
 IntegerConstantType IntegerConstantType::ceiling(RationalConstantType rat)
 {
-  CALL("IntegerConstantType::ceiling");
 
   IntegerConstantType num = rat.numerator();
   IntegerConstantType den = rat.denominator();
@@ -326,7 +312,6 @@ IntegerConstantType IntegerConstantType::ceiling(RationalConstantType rat)
 
 Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, IntegerConstantType n2)
 {
-  CALL("IntegerConstantType::comparePrecedence");
   try {
     if (n1 == numeric_limits<InnerType>::min()) {
       if (n2 == numeric_limits<InnerType>::min()) {
@@ -358,7 +343,6 @@ Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, Intege
 
 vstring IntegerConstantType::toString() const
 {
-  CALL("IntegerConstantType::toString");
 
   return Int::toString(_val);
 }
@@ -369,21 +353,18 @@ vstring IntegerConstantType::toString() const
 
 RationalConstantType::RationalConstantType(InnerType num, InnerType den)
 {
-  CALL("RationalConstantType::RationalConstantType");
 
   init(num, den);
 }
 
 RationalConstantType::RationalConstantType(const vstring& num, const vstring& den)
 {
-  CALL("RationalConstantType::RationalConstantType");
 
   init(InnerType(num), InnerType(den));
 }
 
 void RationalConstantType::init(InnerType num, InnerType den)
 {
-  CALL("RationalConstantType::init");
 
   _num = num;
   _den = den;
@@ -395,7 +376,6 @@ void RationalConstantType::init(InnerType num, InnerType den)
 
 RationalConstantType RationalConstantType::operator+(const RationalConstantType& o) const
 {
-  CALL("RationalConstantType::operator+");
 
   if (_den==o._den) {
     return RationalConstantType(_num + o._num, _den);
@@ -405,28 +385,24 @@ RationalConstantType RationalConstantType::operator+(const RationalConstantType&
 
 RationalConstantType RationalConstantType::operator-(const RationalConstantType& o) const
 {
-  CALL("RationalConstantType::operator-/1");
 
   return (*this) + (-o);
 }
 
 RationalConstantType RationalConstantType::operator-() const
 {
-  CALL("RationalConstantType::operator-/0");
 
   return RationalConstantType(-_num, _den);
 }
 
 RationalConstantType RationalConstantType::operator*(const RationalConstantType& o) const
 {
-  CALL("RationalConstantType::operator*");
 
   return RationalConstantType(_num*o._num, _den*o._den);
 }
 
 RationalConstantType RationalConstantType::operator/(const RationalConstantType& o) const
 {
-  CALL("RationalConstantType::operator/");
   auto lhs = *this;
   auto rhs = o;
   return RationalConstantType(
@@ -436,21 +412,18 @@ RationalConstantType RationalConstantType::operator/(const RationalConstantType&
 
 bool RationalConstantType::isInt() const
 {
-  CALL("RationalConstantType::isInt");
 
   return _den==1;
 }
 
 bool RationalConstantType::operator==(const RationalConstantType& o) const
 {
-  CALL("IntegerConstantType::operator==");
 
   return _num==o._num && _den==o._den;
 }
 
 bool RationalConstantType::operator>(const RationalConstantType& o) const
 {
-  CALL("IntegerConstantType::operator>");
   /* prevents overflows */
   auto toLong = [](IntegerConstantType t)  -> long int
   { return  t.toInner(); };
@@ -461,7 +434,6 @@ bool RationalConstantType::operator>(const RationalConstantType& o) const
 
 vstring RationalConstantType::toString() const
 {
-  CALL("RationalConstantType::toString");
 
   vstring numStr = _num.toString();
   vstring denStr = _den.toString();
@@ -487,7 +459,6 @@ IntegerConstantType IntegerConstantType::gcd(IntegerConstantType const& l, Integ
  */
 void RationalConstantType::cannonize()
 {
-  CALL("RationalConstantType::cannonize");
 
   unsigned gcd = Int::gcd(_num.toInner(), _den.toInner());
   if (gcd == (unsigned)(-(long long)(numeric_limits<int>::min()))) { // we are talking about 2147483648, but I can't take minus of it's int representation!
@@ -516,7 +487,6 @@ void RationalConstantType::cannonize()
  
 Comparison RationalConstantType::comparePrecedence(RationalConstantType n1, RationalConstantType n2)
 {
-  CALL("RationalConstantType::comparePrecedence");
   /* cannot overflow */
   auto prec = IntegerConstantType::comparePrecedence(n1._den, n2._den);
   if (prec != EQUAL) return prec;
@@ -581,14 +551,12 @@ Comparison RationalConstantType::comparePrecedence(RationalConstantType n1, Rati
 
 Comparison RealConstantType::comparePrecedence(RealConstantType n1, RealConstantType n2)
 {
-  CALL("RealConstantType::comparePrecedence");
 
   return RationalConstantType::comparePrecedence(n1, n2);
 }
 
 bool RealConstantType::parseDouble(const vstring& num, RationalConstantType& res)
 {
-  CALL("RealConstantType::parseDouble");
 
   try {
     vstring newNum;
@@ -635,7 +603,6 @@ bool RealConstantType::parseDouble(const vstring& num, RationalConstantType& res
 
 RealConstantType::RealConstantType(const vstring& number)
 {
-  CALL("RealConstantType::RealConstantType");
 
   RationalConstantType value;
   if (parseDouble(number, value)) {
@@ -670,7 +637,6 @@ RealConstantType::RealConstantType(const vstring& number)
 
 vstring RealConstantType::toNiceString() const
 {
-  CALL("RealConstantType::toNiceString");
 
   if (denominator().toInner()==1) {
     return numerator().toString()+".0";
@@ -719,7 +685,6 @@ Theory::Theory()
  */
 unsigned Theory::getArity(Interpretation i)
 {
-  CALL("Signature::InterpretedSymbol::getArity");
   ASS_L(i,INVALID_INTERPRETATION);
 
   switch(i) {
@@ -836,7 +801,6 @@ unsigned Theory::getArity(Interpretation i)
  */
 bool Theory::isFunction(Interpretation i)
 {
-  CALL("Signature::InterpretedSymbol::isFunction");
   ASS_L(i,INVALID_INTERPRETATION);
 
   switch(i) {
@@ -948,7 +912,6 @@ bool Theory::isFunction(Interpretation i)
  */
 bool Theory::isInequality(Interpretation i)
 {
-  CALL("Signature::InterpretedSymbol::isInequality");
   ASS_L(i,INVALID_INTERPRETATION);
 
   switch(i) {
@@ -979,7 +942,6 @@ bool Theory::isInequality(Interpretation i)
  */
 bool Theory::hasSingleSort(Interpretation i)
 {
-  CALL("Theory::hasSingleSort");
 
   switch(i) {
   case EQUAL:  // This not SingleSort because we don't know the sorts of its args
@@ -1002,7 +964,6 @@ bool Theory::hasSingleSort(Interpretation i)
 
 bool Theory::isPolymorphic(Interpretation i)
 {
-  CALL("Theory::isPolymorphic");
 
   if (i >= numberOfFixedInterpretations()) { // indexed are all polymorphic (for now)
     return true;
@@ -1026,7 +987,6 @@ bool Theory::isPolymorphic(Interpretation i)
  */
 TermList Theory::getOperationSort(Interpretation i)
 {
-  CALL("Theory::getOperationSort");
 
   ASS(hasSingleSort(i));
   ASS_L(i,INVALID_INTERPRETATION);
@@ -1120,7 +1080,6 @@ TermList Theory::getOperationSort(Interpretation i)
 
 bool Theory::isConversionOperation(Interpretation i)
 {
-  CALL("Theory::isConversionOperation");
 
   //we do not include operations as INT_TO_INT here because they actually
   //don't convert anything (they're identities)
@@ -1138,7 +1097,6 @@ bool Theory::isConversionOperation(Interpretation i)
 }
 bool Theory::isLinearOperation(Interpretation i)
 {
-  CALL("Theory::isLinearOperation");
 
   switch(i) {
   case INT_UNARY_MINUS:
@@ -1157,7 +1115,6 @@ bool Theory::isLinearOperation(Interpretation i)
 }
 bool Theory::isNonLinearOperation(Interpretation i)
 {
-  CALL("Theory::isNonLinearOperation");
 
   switch(i) {
   case INT_MULTIPLY:
@@ -1190,7 +1147,6 @@ bool Theory::isNonLinearOperation(Interpretation i)
 }
 
 bool Theory::isPartiallyInterpretedFunction(Term* t) {
-  CALL("Theory::isPartiallyInterpretedFunction(Term* t)")
   auto f = t->functor();
   ASS(!t->isLiteral())
   if(theory->isInterpretedFunction(f)) {
@@ -1235,7 +1191,6 @@ bool Theory::isPartiallyInterpretedFunction(Term* t) {
 }
 
 bool Theory::partiallyDefinedFunctionUndefinedForArgs(Term* t) {
-  CALL("Theory::partiallyDefinedFunctionUndefinedForArgs(Term* t)")
   ASS(isPartiallyInterpretedFunction(t))
   auto f = t->functor();
   ASS(!t->isLiteral())
@@ -1311,7 +1266,6 @@ bool Theory::partiallyDefinedFunctionUndefinedForArgs(Term* t) {
  * We want to have this function available e.g. in simplification rules.
  */
 unsigned Theory::getArrayExtSkolemFunction(TermList sort) {
-  CALL("Theory::getArrayExtSkolemFunction")
   ASS(sort.isArraySort());
 
   if(_arraySkolemFunctions.find(sort)){
@@ -1328,12 +1282,10 @@ unsigned Theory::getArrayExtSkolemFunction(TermList sort) {
 }
 
 unsigned Theory::Tuples::getFunctor(unsigned arity, TermList* sorts) {
-  CALL("Theory::Tuples::getFunctor(unsigned arity, unsigned* sorts)");
   return getFunctor(AtomicSort::tupleSort(arity, sorts));
 }
 
 unsigned Theory::Tuples::getFunctor(TermList tupleSort) {
-  CALL("Theory::Tuples::getFunctor(unsigned tupleSort)");
 
   ASS_REP(tupleSort.isTupleSort(), tupleSort.toString());
 
@@ -1348,13 +1300,11 @@ unsigned Theory::Tuples::getFunctor(TermList tupleSort) {
 }
 
 bool Theory::Tuples::isFunctor(unsigned functor) {
-  CALL("Theory::Tuples::isFunctor(unsigned)");
   TermList tupleSort = env.signature->getFunction(functor)->fnType()->result();
   return tupleSort.isTupleSort();
 }
 
 unsigned Theory::Tuples::getProjectionFunctor(unsigned proj, TermList tupleSort) {
-  CALL("Theory::Tuples::getProjectionFunctor");
 
   ASS_REP(tupleSort.isTupleSort(), tupleSort.toString());
 
@@ -1374,7 +1324,6 @@ unsigned Theory::Tuples::getProjectionFunctor(unsigned proj, TermList tupleSort)
 
 // TODO: replace with a constant time algorithm
 bool Theory::Tuples::findProjection(unsigned projFunctor, bool isPredicate, unsigned &proj) {
-  CALL("Theory::Tuples::findProjection");
  
   OperatorType* projType = isPredicate ? env.signature->getPredicate(projFunctor)->predType()
                                        : env.signature->getFunction(projFunctor)->fnType();
@@ -1412,7 +1361,6 @@ bool Theory::Tuples::findProjection(unsigned projFunctor, bool isPredicate, unsi
  */
 OperatorType* Theory::getConversionOperationType(Interpretation i)
 {
-  CALL("Theory::getConversionOperationType");
 
   TermList from, to;
   switch(i) {
@@ -1447,7 +1395,6 @@ OperatorType* Theory::getConversionOperationType(Interpretation i)
 }
 
 vstring Theory::getInterpretationName(Interpretation interp) {
-  CALL("Theory::getInterpretationName");
 
   switch (interp) {
     case INT_SUCCESSOR:
@@ -1563,7 +1510,6 @@ vstring Theory::getInterpretationName(Interpretation interp) {
 }
 
 OperatorType* Theory::getArrayOperatorType(TermList arraySort, Interpretation i) {
-  CALL("Theory::getArrayOperatorType");
   ASS(arraySort.isArraySort());
 
   TermList indexSort = SortHelper::getIndexSort(arraySort);
@@ -1589,7 +1535,6 @@ OperatorType* Theory::getArrayOperatorType(TermList arraySort, Interpretation i)
  */
 OperatorType* Theory::getNonpolymorphicOperatorType(Interpretation i)
 {
-  CALL("Theory::getNonpolymorphicOperationType");
   ASS(!isPolymorphic(i));
 
   if (isConversionOperation(i)) {
@@ -1612,7 +1557,6 @@ OperatorType* Theory::getNonpolymorphicOperatorType(Interpretation i)
 }
 
 void Theory::defineTupleTermAlgebra(unsigned arity, TermList* sorts) {
-  CALL("Signature::defineTupleTermAlgebra");
 
   TermList tupleSort = AtomicSort::tupleSort(arity, sorts);
 
@@ -1651,7 +1595,6 @@ void Theory::defineTupleTermAlgebra(unsigned arity, TermList* sorts) {
 
 bool Theory::isInterpretedConstant(unsigned func)
 {
-  CALL("Theory::isInterpretedConstant");
 
   if (func>=Term::SPECIAL_FUNCTOR_LOWER_BOUND) {
     return false;
@@ -1665,7 +1608,6 @@ bool Theory::isInterpretedConstant(unsigned func)
  */
 bool Theory::isInterpretedConstant(Term* t)
 {
-  CALL("Theory::isInterpretedConstant(Term*)");
 
   if (t->isSpecial()) { return false; }
 
@@ -1677,7 +1619,6 @@ bool Theory::isInterpretedConstant(Term* t)
  */
 bool Theory::isInterpretedConstant(TermList t)
 {
-  CALL("Theory::isInterpretedConstant(TermList)");
 
   return t.isTerm() && isInterpretedConstant(t.term());
 }
@@ -1687,7 +1628,6 @@ bool Theory::isInterpretedConstant(TermList t)
  */
 bool Theory::isInterpretedNumber(Term* t)
 {
-  CALL("Theory::isInterpretedNumber(TermList)");
 
   return isInterpretedConstant(t) && env.signature->getFunction(t->functor())->interpretedNumber();
 }
@@ -1697,7 +1637,6 @@ bool Theory::isInterpretedNumber(Term* t)
  */
 bool Theory::isInterpretedNumber(TermList t)
 {
-  CALL("Theory::isInterpretedNumber(TermList)");
 
   return isInterpretedConstant(t) && env.signature->getFunction(t.term()->functor())->interpretedNumber();
 }
@@ -1707,7 +1646,6 @@ bool Theory::isInterpretedNumber(TermList t)
  */
 bool Theory::isInterpretedPredicate(unsigned pred)
 {
-  CALL("Theory::isInterpretedPredicate(unsigned)");
 
   return env.signature->getPredicate(pred)->interpreted();
 }
@@ -1717,7 +1655,6 @@ bool Theory::isInterpretedPredicate(unsigned pred)
  */
 bool Theory::isInterpretedEquality(Literal* lit)
 {
-  CALL("Theory::isInterpretedEquality");
 
   if(lit->isEquality()){
     TermList srt = SortHelper::getEqualityArgumentSort(lit);
@@ -1734,7 +1671,6 @@ bool Theory::isInterpretedEquality(Literal* lit)
  */
 bool Theory::isInterpretedPredicate(Literal* lit)
 {
-  CALL("Theory::isInterpretedPredicate/1");
 
   return env.signature->getPredicate(lit->functor())->interpreted();
 }
@@ -1746,14 +1682,12 @@ bool Theory::isInterpretedPredicate(Literal* lit)
  */
 bool Theory::isInterpretedPredicate(Literal* lit, Interpretation itp)
 {
-  CALL("Theory::isInterpretedPredicate/2");
 
   return isInterpretedPredicate(lit) && interpretPredicate(lit)==itp;
 }
 
 bool Theory::isInterpretedFunction(unsigned func)
 {
-  CALL("Theory::isInterpretedFunction(unsigned)");
 
   if (func>=Term::SPECIAL_FUNCTOR_LOWER_BOUND) {
     return false;
@@ -1764,7 +1698,6 @@ bool Theory::isInterpretedFunction(unsigned func)
 
 bool Theory::isZero(TermList term)
 {
-  CALL("Theory::isZero");
 
 
   IntegerConstantType it;
@@ -1785,7 +1718,6 @@ bool Theory::isZero(TermList term)
  */
 bool Theory::isInterpretedFunction(Term* t)
 {
-  CALL("Theory::isInterpretedFunction(Term*)");
 
   return isInterpretedFunction(t->functor());
 }
@@ -1795,7 +1727,6 @@ bool Theory::isInterpretedFunction(Term* t)
  */
 bool Theory::isInterpretedFunction(TermList t)
 {
-  CALL("Theory::isInterpretedFunction(TermList)");
 
   return t.isTerm() && isInterpretedFunction(t.term());
 }
@@ -1806,7 +1737,6 @@ bool Theory::isInterpretedFunction(TermList t)
  */
 bool Theory::isInterpretedFunction(Term* t, Interpretation itp)
 {
-  CALL("Theory::isInterpretedFunction(Term*,Interpretation)");
 
   return isInterpretedFunction(t->functor()) &&
       interpretFunction(t)==itp;
@@ -1818,7 +1748,6 @@ bool Theory::isInterpretedFunction(Term* t, Interpretation itp)
  */
 bool Theory::isInterpretedFunction(TermList t, Interpretation itp)
 {
-  CALL("Theory::isInterpretedFunction(TermList,Interpretation)");
 
   return t.isTerm() && isInterpretedFunction(t.term(), itp);
 }
@@ -1826,7 +1755,6 @@ bool Theory::isInterpretedFunction(TermList t, Interpretation itp)
 
 Interpretation Theory::interpretFunction(unsigned func)
 {
-  CALL("Theory::interpretFunction");
   ASS(isInterpretedFunction(func));
 
   Signature::InterpretedSymbol* sym =
@@ -1840,7 +1768,6 @@ Interpretation Theory::interpretFunction(unsigned func)
  */
 Interpretation Theory::interpretFunction(Term* t)
 {
-  CALL("Theory::interpretFunction");
   ASS(isInterpretedFunction(t));
 
   return interpretFunction(t->functor());
@@ -1851,7 +1778,6 @@ Interpretation Theory::interpretFunction(Term* t)
  */
 Interpretation Theory::interpretFunction(TermList t)
 {
-  CALL("Theory::interpretFunction");
   ASS(t.isTerm());
 
   return interpretFunction(t.term());
@@ -1859,7 +1785,6 @@ Interpretation Theory::interpretFunction(TermList t)
 
 Interpretation Theory::interpretPredicate(unsigned pred)
 {
-  CALL("Theory::interpretPredicate");
   ASS(isInterpretedPredicate(pred));
 
   Signature::InterpretedSymbol* sym =
@@ -1874,7 +1799,6 @@ Interpretation Theory::interpretPredicate(unsigned pred)
  */
 Interpretation Theory::interpretPredicate(Literal* lit)
 {
-  CALL("Theory::interpretPredicate");
   ASS(isInterpretedPredicate(lit->functor()));
 
   return interpretPredicate(lit->functor());
@@ -1889,7 +1813,6 @@ Interpretation Theory::interpretPredicate(Literal* lit)
  */
 bool Theory::tryInterpretConstant(const Term* t, IntegerConstantType& res)
 {
-  CALL("Theory::tryInterpretConstant(Term*,IntegerConstantType)");
 
   if (t->numTermArguments() != 0 || t->isSpecial()) {
     return false;
@@ -1902,7 +1825,6 @@ bool Theory::tryInterpretConstant(const Term* t, IntegerConstantType& res)
 bool Theory::tryInterpretConstant(unsigned func, IntegerConstantType& res)
 {
   Signature::Symbol* sym = env.signature->getFunction(func);
-  CALL("Theory::tryInterpretConstant(Term*,IntegerConstantType)");
   if (!sym->integerConstant()) {
     return false;
   }
@@ -1921,7 +1843,6 @@ bool Theory::tryInterpretConstant(unsigned func, IntegerConstantType& res)
  */
 bool Theory::tryInterpretConstant(const Term* t, RationalConstantType& res)
 {
-  CALL("Theory::tryInterpretConstant(Term*,RationalConstantType)");
 
   if (t->numTermArguments() != 0 || t->isSpecial()) {
     return false;
@@ -1933,7 +1854,6 @@ bool Theory::tryInterpretConstant(const Term* t, RationalConstantType& res)
 bool Theory::tryInterpretConstant(unsigned func, RationalConstantType& res)
 {
   Signature::Symbol* sym = env.signature->getFunction(func);
-  CALL("Theory::tryInterpretConstant(Term*,RationalConstantType)");
   if (!sym->rationalConstant()) {
     return false;
   }
@@ -1951,7 +1871,6 @@ bool Theory::tryInterpretConstant(unsigned func, RationalConstantType& res)
  */
 bool Theory::tryInterpretConstant(const Term* t, RealConstantType& res)
 {
-  CALL("Theory::tryInterpretConstant(Term*,RealConstantType)");
 
   if (t->numTermArguments() != 0 || t->isSpecial()) {
     return false;
@@ -1963,7 +1882,6 @@ bool Theory::tryInterpretConstant(const Term* t, RealConstantType& res)
 bool Theory::tryInterpretConstant(unsigned func, RealConstantType& res)
 {
   Signature::Symbol* sym = env.signature->getFunction(func);
-  CALL("Theory::tryInterpretConstant(Term*,RealConstantType)");
   if (!sym->realConstant()) {
     return false;
   }
@@ -1973,7 +1891,6 @@ bool Theory::tryInterpretConstant(unsigned func, RealConstantType& res)
 
 Term* Theory::representConstant(const IntegerConstantType& num)
 {
-  CALL("Theory::representConstant(const IntegerConstantType&)");
 
   unsigned func = env.signature->addIntegerConstant(num);
   return Term::create(func, 0, 0);
@@ -1981,7 +1898,6 @@ Term* Theory::representConstant(const IntegerConstantType& num)
 
 Term* Theory::representConstant(const RationalConstantType& num)
 {
-  CALL("Theory::representConstant(const RationalConstantType&)");
 
   unsigned func = env.signature->addRationalConstant(num);
   return Term::create(func, 0, 0);
@@ -1989,7 +1905,6 @@ Term* Theory::representConstant(const RationalConstantType& num)
 
 Term* Theory::representConstant(const RealConstantType& num)
 {
-  CALL("Theory::representConstant(const RealConstantType&)");
 
   unsigned func = env.signature->addRealConstant(num);
   return Term::create(func, 0, 0);
@@ -1997,7 +1912,6 @@ Term* Theory::representConstant(const RealConstantType& num)
 
 Term* Theory::representIntegerConstant(vstring str)
 {
-  CALL("Theory::representIntegerConstant");
 
   try {
     return Theory::instance()->representConstant(IntegerConstantType(str));
@@ -2018,7 +1932,6 @@ Term* Theory::representIntegerConstant(vstring str)
 
 Term* Theory::representRealConstant(vstring str)
 {
-  CALL("Theory::representRealConstant");
   try {
     return Theory::instance()->representConstant(RealConstantType(str));
   } catch(ArithmeticException&) {
@@ -2032,7 +1945,6 @@ Term* Theory::representRealConstant(vstring str)
  */
 void Theory::registerLaTeXPredName(unsigned pred, bool polarity, vstring temp)
 {
-  CALL("Theory::registerPredLaTeXName");
   if(polarity){
     _predLaTeXnamesPos.insert(pred,temp);
   }else{
@@ -2045,7 +1957,6 @@ void Theory::registerLaTeXPredName(unsigned pred, bool polarity, vstring temp)
  */
 void Theory::registerLaTeXFuncName(unsigned func, vstring temp)
 {
-  CALL("Theory::registerFuncLaTeXName");
   _funcLaTeXnames.insert(func,temp);
 }
 
@@ -2158,7 +2069,6 @@ std::ostream& operator<<(std::ostream& out, Kernel::Theory::Interpretation const
  */
 vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarity)
 {
-  CALL("Theory::tryGetInterpretedLaTeXName");
 
    //cout << "Get LaTeX for " << func << endl;
 

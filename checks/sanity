@@ -3,18 +3,20 @@
 # Problems/, Axioms/ is for files from TPTP because of the include() scheme
 # anything else can be in a convenient folder
 # try and keep it minimal, reasonably clean to help debugging inevitable CI failures :-)
+# new rule: no portfolio modes! hard to debug if they fail
 
 # where is Vampire? passed by CI
-vampire=`pwd`/$1
+vampire="`pwd`/$1 --traceback on"
 
 # check the output is exactly what we expect: quite fragile by nature, be careful
 check_exact_output() {
-        expected=$1
-        shift
-        diff=`cd checks && $vampire $@ | diff $expected -`
+	expected=$1
+	shift
+	echo $@
+	diff=`cd checks && $vampire $@ | diff $expected -`
 	if test -n "$diff"
 	then
-		echo "$vampire $@ output check against $expected failed: diff follows"
+		echo "$output check against $expected failed: diff follows"
 		echo "$diff"
 		exit 1
 	fi
@@ -22,13 +24,14 @@ check_exact_output() {
 
 # check SZS status
 check_szs_status() {
-        status=$1
-        shift
+	status=$1
+	shift
+	echo $@
 	out=`cd checks && $vampire $@`
 	szs=`echo "$out" | egrep "^% SZS status $status for .+$"`
 	if test -z "$szs"
 	then
-		echo "$vampire $@ SZS check failed: should have been SZS $status"
+		echo "SZS check failed: should have been SZS $status"
 		echo "$out"
 		exit 1
 	fi
@@ -36,30 +39,37 @@ check_szs_status() {
 
 # check SMT status
 check_smtcomp_status() {
-        status=$1
-        shift
-        out=`cd checks && $vampire $@`
-        result=`echo "$out" | egrep "^$status$"`
-        if test -z "$result"
-        then
-                echo "$vampire $@ SMT check failed: should have been $status"
-                echo "$out"
-                exit 1
-        fi
+	status=$1
+	shift
+	echo $@
+	out=`cd checks && $vampire $@`
+	result=`echo "$out" | egrep "^$status$"`
+	if test -z "$result"
+	then
+		echo "$SMT check failed: should have been $status"
+		echo "$out"
+		exit 1
+	fi
 }
 
 # Some simple problems: fail early!
 check_szs_status Theorem Problems/PUZ/PUZ001+1.p
 
+# simple polymorphic problems
+check_szs_status Theorem Problems/PUZ/PUZ139_1.p
+check_szs_status Theorem Problems/LCL/LCL840_5.p
+
 # Unsat core problems
-check_smtcomp_status unsat --mode smtcomp ucore/test1.smt2
+# disabled until we have a known strategy
+# check_smtcomp_status unsat --mode smtcomp ucore/test1.smt2
 check_exact_output ucore/test2.out --input_syntax smtlib2 -om ucore ucore/test2.smt2
 
 # Integer induction problems
-check_szs_status Unsatisfiable --mode portfolio --schedule integer_induction --slowness 0.5 ind/int_invariant_infinite_geq3_val3.smt2
-check_szs_status Unsatisfiable --mode portfolio --schedule integer_induction --slowness 0.5 ind/int_invariant_finite_a_to_b.smt2
-check_szs_status Unsatisfiable --mode portfolio --schedule integer_induction --slowness 0.5 ind/int_power_0_all_0.smt2
-check_szs_status Unsatisfiable --mode portfolio --schedule integer_induction --slowness 0.5 ind/int_sum_y_geq_0.smt2
+# disabled until we have a known strategy
+#check_szs_status Unsatisfiable --mode portfolio --schedule integer_induction --slowness 0.5 ind/int_invariant_infinite_geq3_val3.smt2
+#check_szs_status Unsatisfiable --mode portfolio --schedule integer_induction --slowness 0.5 ind/int_invariant_finite_a_to_b.smt2
+#check_szs_status Unsatisfiable --mode portfolio --schedule integer_induction --slowness 0.5 ind/int_power_0_all_0.smt2
+#check_szs_status Unsatisfiable --mode portfolio --schedule integer_induction --slowness 0.5 ind/int_sum_y_geq_0.smt2
 
 # Structural induction problems
 check_szs_status Unsatisfiable -ind struct -nui on ind/mem_append.smt2
@@ -67,3 +77,5 @@ check_szs_status Unsatisfiable -ind struct -nui on ind/mem_append.smt2
 # Parser
 check_szs_status Unsatisfiable parse/types-funs.smt2
 check_szs_status Unsatisfiable -newcnf on parse/types-funs.smt2
+check_szs_status Unsatisfiable -t 2 parse/smtlib2-parametric-datatypes.smt2
+check_szs_status Unsatisfiable parse/smtlib2-mutual-recursion.smt2

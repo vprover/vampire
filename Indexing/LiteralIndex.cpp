@@ -35,36 +35,30 @@ using namespace Kernel;
 
 void BinaryResolutionIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("BinaryResolutionIndex::handleClause");
-
   TIME_TRACE("binary resolution index maintenance");
 
   int selCnt=c->numSelected();
   for(int i=0; i<selCnt; i++) {
     Literal* lit = (*c)[i];
     if (!lit->isEquality()) {
-      handleLiteral(lit, c, adding);
+      handle(LiteralClause{lit, c}, adding);
     }
   }
 }
 
 void BackwardSubsumptionIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("BackwardSubsumptionIndex::handleClause");
-
   TIME_TRACE("backward subsumption index maintenance");
 
   unsigned clen=c->length();
   for(unsigned i=0; i<clen; i++) {
-    handleLiteral((*c)[i], c, adding);
+    handle(LiteralClause{(*c)[i], c}, adding);
   }
 }
 
 
 void FwSubsSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("FwSubsSimplifyingLiteralIndex::handleClause");
-
   if (c->length() < 2) {
     return;
   }
@@ -72,13 +66,11 @@ void FwSubsSimplifyingLiteralIndex::handleClause(Clause* c, bool adding)
   TIME_TRACE("forward subsumption index maintenance");
 
   Literal* best = LiteralByMatchability::find_least_matchable_in(c).lit();
-  handleLiteral(best, c, adding);
+  handle(LiteralClause{best, c}, adding);
 }
 
 void FSDLiteralIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("FSDLiteralIndex::handleClause");
-
   if (c->length() < 2) {
     return;
   }
@@ -102,31 +94,37 @@ void FSDLiteralIndex::handleClause(Clause* c, bool adding)
   Literal* best = res.first.lit();
   Literal* secondBest = res.second.lit();
   if (!best->isEquality() || !best->isPositive()) {
-    handleLiteral(best, c, adding);
+    handle(LiteralClause{best, c}, adding);
   } else if (!secondBest->isEquality() || !secondBest->isPositive()) {
-    handleLiteral(secondBest, c, adding);
+    handle(LiteralClause{secondBest, c}, adding);
   } else {
     // both are positive equalities, so we need to add both
-    handleLiteral(best, c, adding);
-    handleLiteral(secondBest, c, adding);
+    handle(LiteralClause{best, c}, adding);
+    handle(LiteralClause{secondBest, c}, adding);
   }
 }
 
 void UnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("UnitClauseLiteralIndex::handleClause");
-
   if(c->length()==1) {
     TIME_TRACE("unit clause index maintenance");
     
-    handleLiteral((*c)[0], c, adding);
+    handle(LiteralClause{(*c)[0], c}, adding);
+  }
+}
+
+void UnitClauseWithALLiteralIndex::handleClause(Clause* c, bool adding)
+{
+  if(c->length()==1 || (c->hasAnswerLiteral() && c->length() == 2)) {
+    TIME_TRACE("unit clause with answer literals index maintenance");
+
+    Literal* al = c->getAnswerLiteral();
+    handle(LiteralClause{(*c)[(al == (*c)[0]) ? 1 : 0], c}, adding);
   }
 }
 
 void NonUnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("NonUnitClauseLiteralIndex::handleClause");
-
   unsigned clen=c->length();
   if(clen<2) {
     return;
@@ -134,7 +132,20 @@ void NonUnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
   TIME_TRACE("non unit clause index maintenance");
   unsigned activeLen = _selectedOnly ? c->numSelected() : clen;
   for(unsigned i=0; i<activeLen; i++) {
-    handleLiteral((*c)[i], c, adding);
+    handle(LiteralClause{(*c)[i], c}, adding);
+  }
+}
+
+void NonUnitClauseWithALLiteralIndex::handleClause(Clause* c, bool adding)
+{
+  unsigned clen=c->length();
+  if(clen<2 || (c->hasAnswerLiteral() && clen<3)) {
+    return;
+  }
+  TIME_TRACE("non unit clause with answer literals index maintenance");
+  unsigned activeLen = _selectedOnly ? c->numSelected() : clen;
+  for(unsigned i=0; i<activeLen; i++) {
+    handle(LiteralClause{(*c)[i], c}, adding);
   }
 }
 
@@ -160,7 +171,6 @@ RewriteRuleIndex::~RewriteRuleIndex()
  */
 Literal* RewriteRuleIndex::getGreater(Clause* c)
 {
-  CALL("RewriteRuleIndex::getGreater");
   ASS_EQ(c->length(), 2);
 
   static LiteralComparators::NormalizedLinearComparatorByWeight<true> comparator;
@@ -188,8 +198,6 @@ Literal* RewriteRuleIndex::getGreater(Clause* c)
 
 void RewriteRuleIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("RewriteRuleIndex::handleClause");
-
   if(c->length()!=2) {
     return;
   }
@@ -201,9 +209,9 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
   if(greater) {
     if(adding) {
       // true here means get complementary, false means do not get subs
-      SLQueryResultIterator vit=_partialIndex->getVariants(greater,true,false);
+      auto vit = _partialIndex->getVariants(greater,true,false);
       while(vit.hasNext()) {
-        SLQueryResult qr=vit.next();
+        auto qr = vit.next();
 
         // true here means complementary
         if(!MLVariant::isVariant(c, qr.data->clause, true)) {
@@ -215,7 +223,7 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
         return;
       }
       //there is no counterpart, so insert the clause into the partial index
-      _partialIndex->insert(LiteralClause(greater, c));
+      _partialIndex->insert(LiteralClause{ greater, c });
     }
     else {
       Clause* d;
@@ -225,7 +233,7 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
 	handleEquivalence(c, greater, d, dgr, false);
       }
       else {
-	_partialIndex->remove(LiteralClause(greater, c));
+	_partialIndex->remove(LiteralClause{ greater, c });
       }
     }
   }
@@ -234,11 +242,11 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
     //need to wait for the complementary clause
     if((*c)[0]->containsAllVariablesOf((*c)[1]) && (*c)[1]->containsAllVariablesOf((*c)[0])) {
       if((*c)[0]->isPositive()) {
-	handleLiteral((*c)[0], c, adding);
+        handle(LiteralClause{(*c)[0], c}, adding);
       }
       else {
 	ASS((*c)[1]->isPositive());
-	handleLiteral((*c)[1], c, adding);
+        handle(LiteralClause{(*c)[1], c}, adding);
       }
       if(adding) {
         _counterparts.insert(c, c);
@@ -252,8 +260,6 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
 
 void RewriteRuleIndex::handleEquivalence(Clause* c, Literal* cgr, Clause* d, Literal* dgr, bool adding)
 {
-  CALL("RewriteRuleIndex::handleEquivalence");
-
   Literal* csm = (cgr==(*c)[0]) ? (*c)[1] : (*c)[0];
   Literal* dsm = (dgr==(*d)[0]) ? (*d)[1] : (*d)[0];
 
@@ -273,10 +279,10 @@ void RewriteRuleIndex::handleEquivalence(Clause* c, Literal* cgr, Clause* d, Lit
   case Ordering::GREATER_EQ:
     if(cgr->containsAllVariablesOf(csm)) {
       if(cgr->isPositive()) {
-        handleLiteral(cgr, c, adding);
+        handle(LiteralClause{cgr, c}, adding);
       }
       else {
-        handleLiteral(dgr, d, adding);
+        handle(LiteralClause{dgr, d}, adding);
       }
     }
     break;
@@ -284,28 +290,28 @@ void RewriteRuleIndex::handleEquivalence(Clause* c, Literal* cgr, Clause* d, Lit
   case Ordering::LESS_EQ:
     if(csm->containsAllVariablesOf(cgr)) {
       if(csm->isPositive()) {
-        handleLiteral(csm, c, adding);
+        handle(LiteralClause{csm, c}, adding);
       }
       else {
-        handleLiteral(dsm, d, adding);
+        handle(LiteralClause{dsm, d}, adding);
       }
     }
     break;
   case Ordering::INCOMPARABLE:
     if(cgr->containsAllVariablesOf(csm)) {
       if(cgr->isPositive()) {
-	handleLiteral(cgr, c, adding);
+        handle(LiteralClause{cgr, c}, adding);
       }
       else {
-	handleLiteral(dgr, d, adding);
+        handle(LiteralClause{dgr, d}, adding);
       }
     }
     if(csm->containsAllVariablesOf(cgr)) {
       if(csm->isPositive()) {
-	handleLiteral(csm, c, adding);
+        handle(LiteralClause{csm, c}, adding);
       }
       else {
-	handleLiteral(dsm, d, adding);
+        handle(LiteralClause{dsm, d}, adding);
       }
     }
     break;
@@ -319,14 +325,14 @@ void RewriteRuleIndex::handleEquivalence(Clause* c, Literal* cgr, Clause* d, Lit
     ALWAYS(_counterparts.insert(d, c));
 
     //we can remove the literal from the index of partial definitions
-    _partialIndex->remove(LiteralClause(dgr, d));
+    _partialIndex->remove(LiteralClause{ dgr, d });
   }
   else {
     _counterparts.remove(c);
     _counterparts.remove(d);
 
     //we put the remaining counterpart into the index of partial definitions
-    _partialIndex->insert(LiteralClause(dgr, d));
+    _partialIndex->insert(LiteralClause{ dgr, d });
   }
 
 }
@@ -344,26 +350,21 @@ void RewriteRuleIndex::handleEquivalence(Clause* c, Literal* cgr, Clause* d, Lit
  */
 void DismatchingLiteralIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("DismatchingLiteralIndex::handleClause");
-
   //TODO add time counter for dismatching
 
   unsigned clen=c->length();
   for(unsigned i=0; i<clen; i++) {
-    handleLiteral((*c)[i], c, adding);
+    handle(LiteralClause{(*c)[i], c}, adding);
   }
 }
 void DismatchingLiteralIndex::addLiteral(Literal* l)
 {
-  CALL("DismatchingLiteralIndex::addLiteral");
   //TODO is it safe to pass 0 here?
-  handleLiteral(l,0,true);
+  handle(LiteralClause{l,0},true);
 }
 
 void UnitIntegerComparisonLiteralIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("UnitIntegerComparisonLiteralIndex::handleClause");
-
   TIME_TRACE("unit integer comparison literal index maintenance");
   
   if (!Inferences::InductionHelper::isIntegerComparison(c)) {
@@ -373,7 +374,7 @@ void UnitIntegerComparisonLiteralIndex::handleClause(Clause* c, bool adding)
   Literal* lit = (*c)[0];
   ASS(lit != nullptr);
 
-  _is->handle(LiteralClause(lit, c), adding);
+  _is->handle(LiteralClause{ lit, c }, adding);
 }
 
 }

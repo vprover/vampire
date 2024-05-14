@@ -54,7 +54,6 @@ using namespace Saturation;
 
 void BackwardSubsumptionResolution::attach(SaturationAlgorithm* salg)
 {
-  CALL("BackwardSubsumptionResolution::attach");
   BackwardSimplificationEngine::attach(salg);
   _index=static_cast<BackwardSubsumptionIndex*>(
 	  _salg->getIndexManager()->request(BACKWARD_SUBSUMPTION_SUBST_TREE) );
@@ -62,7 +61,6 @@ void BackwardSubsumptionResolution::attach(SaturationAlgorithm* salg)
 
 void BackwardSubsumptionResolution::detach()
 {
-  CALL("BackwardSubsumptionResolution::detach");
   _index=0;
   _salg->getIndexManager()->release(BACKWARD_SUBSUMPTION_SUBST_TREE);
   BackwardSimplificationEngine::detach();
@@ -70,7 +68,7 @@ void BackwardSubsumptionResolution::detach()
 
 struct BackwardSubsumptionResolution::ClauseExtractorFn
 {
-  Clause* operator()(const SLQueryResult& res)
+  Clause* operator()(const QueryRes<ResultSubstitutionSP, LiteralClause>& res)
   {
     return res.data->clause;
   }
@@ -88,7 +86,6 @@ struct BackwardSubsumptionResolution::ClauseToBwSimplRecordFn
 void BackwardSubsumptionResolution::perform(Clause* cl,
 	BwSimplificationRecordIterator& simplifications)
 {
-  CALL("BackwardSubsumptionResolution::perform");
   ASSERT_VALID(*cl);
 
   //we do all work in this method, so we can just measure time simply
@@ -110,9 +107,9 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
   if(clen==1) {
     List<BwSimplificationRecord>* simplRes=0;
 
-    SLQueryResultIterator rit=_index->getInstances( (*cl)[0], true, false);
+    auto rit = _index->getInstances( (*cl)[0], true, false);
     while(rit.hasNext()) {
-      SLQueryResult qr=rit.next();
+      auto qr = rit.next();
 
       if(!checkedClauses.insert(qr.data->clause)) {
 	continue;
@@ -157,9 +154,9 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
 
   List<BwSimplificationRecord>* simplRes=0;
 
-  SLQueryResultIterator rit=_index->getInstances( lmLit, true, false);
+  auto rit = _index->getInstances( lmLit, true, false);
   while(rit.hasNext()) {
-    SLQueryResult qr=rit.next();
+    auto qr = rit.next();
     Clause* icl=qr.data->clause;
     Literal* ilit=qr.data->literal;
     unsigned ilen=icl->length();
@@ -281,7 +278,7 @@ void BackwardSubsumptionResolution::perform(Clause* cl,
 
   rit=_index->getInstances( lmLit, false, false);
   while(rit.hasNext()) {
-    SLQueryResult qr=rit.next();
+    auto qr = rit.next();
     Clause* icl=qr.data->clause;
     Literal* ilit=qr.data->literal;
     unsigned ilen=icl->length();

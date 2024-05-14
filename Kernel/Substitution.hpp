@@ -29,7 +29,6 @@
 
 namespace Kernel {
 
-using namespace std;
 using namespace Lib;
 
 /**
@@ -39,7 +38,6 @@ using namespace Lib;
 class Substitution
 {
 public:
-  CLASS_NAME(Substitution);
   USE_ALLOCATOR(Substitution);
 
   Substitution() {}
@@ -49,7 +47,7 @@ public:
   void rebind(int v, Term* t);
   void rebind(int v, TermList t);
   bool findBinding(int var, TermList& res) const;
-  TermList apply(unsigned var);
+  TermList apply(unsigned var) const;
   void unbind(int var);
   void reset();
   bool isEmpty() const { return _map.isEmpty(); }

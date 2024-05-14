@@ -18,6 +18,7 @@
 #ifndef __QKBO__
 #define __QKBO__
 
+#include "Debug/Assertion.hpp"
 #include "Forwards.hpp"
 
 #include "Lib/DArray.hpp"
@@ -43,7 +44,6 @@ class QKbo
   : public Ordering
 {
 public:
-  CLASS_NAME(QKbo);
   USE_ALLOCATOR(QKbo);
 
   QKbo(QKbo&& kbo) = default;
@@ -51,14 +51,15 @@ public:
   explicit QKbo(KBO kbo);
 
   QKbo(Problem& prb, const Options& opts)
-    : QKbo(KBO(prb,opts, /* qkboPrecedence */ true)) {}
+    // : QKbo(KBO(prb,opts, /* qkboPrecedence */ true)) {}
+    : QKbo(KBO(prb,opts)) {}
 
   virtual ~QKbo() {}
 
   Result compare(Literal* l1, Literal* l2) const override;
   Result compare(TermList, TermList) const final override;
 
-  void show(ostream& out) const final override;
+  void show(std::ostream& out) const final override;
 
   void setState(std::shared_ptr<LascaState> s) { _shared = std::move(s); }
 
@@ -149,6 +150,16 @@ public:
       return Option<AtomsWithLvl>(std::make_tuple(std::move(multiset), level));
     };
   }
+
+  Result compare(AppliedTerm t1, AppliedTerm t2) const override
+  {
+    ASSERTION_VIOLATION // TODO
+  }
+
+  bool isGreater(AppliedTerm t1, AppliedTerm t2) const override
+  { 
+    // TODO more efficient impl (?)
+    return compare(t1, t2) == Result::GREATER; }
 
 private:
 

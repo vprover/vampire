@@ -9,12 +9,13 @@
  */
 
 #include "LASCA.hpp"
-#include "Kernel/MismatchHandler.hpp"
 #include "Lib/Recycled.hpp"
 #include "Lib/Stack.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Indexing/ResultSubstitution.hpp"
 #include "Kernel/QKbo.hpp"
 // #include "Kernel/LaLpo.hpp"
+
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 namespace Kernel {
@@ -96,7 +97,7 @@ bool LascaState::hasSubstitutionProperty(SignedAtoms const& l)
       auto& other = sign == Sign::Pos ? neg : pos;
 
       if (iterTraits(other.iterFifo())
-        .any([&](auto& s) { return maybeEquiv(s, term); })) 
+        .any([&](auto s) { return maybeEquiv(s, term); })) 
       {
           return false;
       }
@@ -109,7 +110,6 @@ bool LascaState::hasSubstitutionProperty(SignedAtoms const& l)
 
 Literal* InequalityNormalizer::normalizeUninterpreted(Literal* lit) const 
 {
-  CALL("InequalityNormalizer::normalizeUninterpreted(Literal* lit) const")
   Stack<TermList> args(lit->arity());
   args.loadFromIterator(typeArgIter(lit));
   for (auto orig : termArgIter(lit)) {
@@ -163,9 +163,9 @@ bool InequalityNormalizer::isNormalized(Clause* cl)  const
 }
 
 #if VDEBUG
-shared_ptr<LascaState> testLascaState(Options::UnificationWithAbstraction uwa, bool strongNormalization, Ordering* ordering, bool uwaFixedPointIteration) {
+std::shared_ptr<LascaState> testLascaState(Options::UnificationWithAbstraction uwa, bool strongNormalization, Ordering* ordering, bool uwaFixedPointIteration) {
 
-  auto qkbo = ordering == nullptr ? new QKbo(KBO::testKBO(/*rand*/ false, /*qkbo*/ true)) : nullptr;
+  auto qkbo = ordering == nullptr ? new QKbo(KBO::testKBO(/*qkbo*/ true)) : nullptr;
   auto& ord = ordering == nullptr ? *qkbo : *ordering;
   auto state = LascaState::create(InequalityNormalizer(strongNormalization), &ord, uwa, uwaFixedPointIteration);
   if (qkbo)

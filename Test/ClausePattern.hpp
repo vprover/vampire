@@ -24,17 +24,8 @@ class ClausePattern;
  */
 struct AnyOf 
 {
-  shared_ptr<ClausePattern> lhs;
-  shared_ptr<ClausePattern> rhs;
-// friend bool operator==( ClausePattern const& l, ClausePattern const& r)
-//   { return operator==((Copro const&)l,(Copro const&)r); }
-
-  friend bool operator==(AnyOf const& l, AnyOf const& r)
-  { return std::tie(l.lhs,l.rhs) == std::tie(r.lhs,r.rhs) ; }
-
-  friend bool operator<(AnyOf const& l, AnyOf const& r)
-  { return std::tie(l.lhs,l.rhs) < std::tie(r.lhs,r.rhs) ; }
-
+  std::shared_ptr<ClausePattern> lhs;
+  std::shared_ptr<ClausePattern> rhs;
 };
 
 /**
@@ -43,44 +34,38 @@ struct AnyOf
  * A Clause matches a pattern Clause, if they are equal.
  * A Clause matches an AnyOf pattern if it matches both of the subpatterns.
  */
-class ClausePattern : Coproduct<Kernel::Clause*, AnyOf>
+class ClausePattern : Coproduct<Kernel::Clause const*, AnyOf>
 {
-  using Copro =  Coproduct<Kernel::Clause*, AnyOf>;
+  using Copro =  Coproduct<Kernel::Clause const*, AnyOf>;
 public:
-  ClausePattern(Kernel::Clause* clause) 
+  ClausePattern(Kernel::Clause const* clause) 
     : Copro(clause) {}
 
   ClausePattern(ClausePattern l, ClausePattern r) : Copro(AnyOf {
-        Lib::make_unique<ClausePattern>(std::move(l)),
-        Lib::make_unique<ClausePattern>(std::move(r))
+        std::make_unique<ClausePattern>(std::move(l)),
+        std::make_unique<ClausePattern>(std::move(r))
       }) {}
 
   template<class EqualityOperator>
-  bool matches(EqualityOperator& equality, Kernel::Clause* result);
-  friend ostream& operator<<(ostream& out, ClausePattern const& self);
-
-  friend bool operator==( ClausePattern const& l, ClausePattern const& r)
-  { return operator==((Copro const&)l,(Copro const&)r); }
-
-  friend bool operator<( ClausePattern const& l, ClausePattern const& r)
-  { return operator<((Copro const&)l,(Copro const&)r); }
+  bool matches(EqualityOperator& equality, Kernel::Clause const* result);
+  friend std::ostream& operator<<(std::ostream& out, ClausePattern const& self);
 };
 
-inline ostream& operator<<(ostream& out, ClausePattern const& self) 
+inline std::ostream& operator<<(std::ostream& out, ClausePattern const& self) 
 {
   return self.match(
-      [&](Kernel::Clause* const& self) -> ostream&
-      { return out << pretty(*self); },
+      [&](Kernel::Clause const* const& self) -> std::ostream&
+      { return out << pretty(self); },
 
-      [&](AnyOf const& self)  -> ostream&
+      [&](AnyOf const& self)  -> std::ostream&
       { return out << pretty(self.lhs) << " or " << pretty(self.rhs); });
 }
 
 template<class EqualityOperator>
-bool ClausePattern::matches(EqualityOperator& equality, Kernel::Clause* result)
+bool ClausePattern::matches(EqualityOperator& equality, Kernel::Clause const* result)
 {
   return match(
-      [&](Kernel::Clause*& self) 
+      [&](Kernel::Clause const* self) 
       { return equality.eq(result, self); },
 
       [&](AnyOf& self) 

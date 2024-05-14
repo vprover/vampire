@@ -15,6 +15,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Inference.hpp"
@@ -28,9 +29,10 @@
 
 namespace FMB{
 
+using namespace std;
+
 bool ClauseFlattening::isShallow(Literal* lit)
 {
-  CALL("ClauseFlattening::isShallow(Literal)");
   // The term to check for variable arguments
   Term* check = 0;
 
@@ -65,8 +67,6 @@ bool ClauseFlattening::isShallow(Literal* lit)
  */
 Clause* ClauseFlattening::resolveNegativeVariableEqualities(Clause* cl)
 {
-  CALL("ClauseFlattening::resolveNegativeVariableEqualities");
-
   // a helper class to be passed to SubstHelper
   class SingleVar2VarSubst {
     unsigned _from;
@@ -128,7 +128,6 @@ Clause* ClauseFlattening::resolveNegativeVariableEqualities(Clause* cl)
  */
 Clause* ClauseFlattening::flatten(Clause* cl)
 {
-  CALL("ClauseFlattening::flatten");
   TIME_TRACE("fmb flattening");
 
   cl = resolveNegativeVariableEqualities(cl);

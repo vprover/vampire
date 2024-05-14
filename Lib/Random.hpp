@@ -20,7 +20,6 @@
 #ifndef __RANDOM__
 #  define __RANDOM__
 
-#include "Debug/Tracer.hpp"
 
 #include <cstdlib>
 #include <ctime>
@@ -51,12 +50,10 @@ class Random
 
 public:
   static inline int getInteger(int modulus) {
-    CALL("Random::getInt");
     return std::uniform_int_distribution<int>(0,modulus-1)(_eng);
   }
 
   static double getDouble(double min, double max) {
-    CALL("Random::getDouble");
     return std::uniform_real_distribution<double>(min,max)(_eng);
   }
   
@@ -72,8 +69,6 @@ public:
   /** Set random seed to s */
   inline static void setSeed(unsigned s)
   {
-    CALL("Random::setSeed");
-
     _seed = s;
     _eng.seed(_seed);
   }
@@ -84,8 +79,6 @@ public:
   /** Try hard to set the seed to something non-deterministic random. */
   inline static void resetSeed ()
   {
-    CALL("Random::resetSeed");
-
     setSeed(std::random_device()());
   }
 }; // class Random

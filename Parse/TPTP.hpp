@@ -19,6 +19,7 @@
 
 #include <iostream>
 
+#include "Kernel/RobSubstitution.hpp"
 #include "Lib/Array.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Stack.hpp"
@@ -32,7 +33,6 @@
 
 //#define DEBUG_SHOW_STATE
 
-using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
@@ -301,30 +301,42 @@ public:
   /**
    * Implements lexer and parser exceptions.
    */
-  class ParseErrorException 
-    : public ::Exception
+  class ParseErrorException
+    : public ParsingRelatedException
   {
   public:
     ParseErrorException(vstring message,unsigned ln) : _message(message), _ln(ln) {}
     ParseErrorException(vstring message,Token& tok,unsigned ln);
     ParseErrorException(vstring message,int position,unsigned ln);
-    void cry(ostream&) const;
+    void cry(std::ostream&) const;
     ~ParseErrorException() {}
   protected:
     vstring _message;
     unsigned _ln;
   }; // TPTP::ParseErrorException
-  friend class Exception;
 
 #define PARSE_ERROR(msg,tok) \
   throw ParseErrorException(msg,tok,_lineNumber)
 
-  TPTP(istream& in);
+  /**
+   * @brief Construct a new TPTP parser.
+   *
+   * @param in is the stream with the raw input to read
+   * @param unitBuffer is FIFO of units to which newly parsed Clauses/Formulas
+   *   will be added (via pushBack);
+   *
+   *  if left unspeficied, and empty fifo is created and used instead.
+   *  (use this default behaviour if you do not want to collect formulas
+   *   from multiple parser calls)
+   */
+  TPTP(std::istream& in, UnitList::FIFO unitBuffer = UnitList::FIFO());
   ~TPTP();
   void parse();
-  static UnitList* parse(istream& str);
+  static UnitList* parse(std::istream& str);
   /** Return the list of parsed units */
-  inline UnitList* units() { return _units.list(); }
+  UnitList* units() const { return _units.list(); }
+  /** Return the current unitBuffer (on top of units() you also get a pointer to the last added unit in constant time). */
+  UnitList::FIFO unitBuffer() const { return _units; }
   /**
    * Return true if there was a conjecture formula among the parsed units
    *
@@ -339,6 +351,7 @@ public:
   static void assignAxiomName(const Unit* unit, vstring& name);
   unsigned lineNumber(){ return _lineNumber; }
 private:
+  void parseImpl();
   /** Return the input string of characters */
   const char* input() { return _chars.content(); }
 
@@ -356,8 +369,6 @@ private:
    */
   class Type {
   public:
-    CLASS_NAME(Type);
-    USE_ALLOCATOR(Type);
     explicit Type(TypeTag tag) : _tag(tag) {}
     /** return the kind of this sort */
     TypeTag tag() const {return _tag;}
@@ -371,8 +382,6 @@ private:
     : public Type
   {
   public:
-    CLASS_NAME(AtomicType);
-    USE_ALLOCATOR(AtomicType);
     explicit AtomicType(TermList sort)
       : Type(TT_ATOMIC), _sort(sort)
     {}
@@ -388,8 +397,6 @@ private:
     : public Type
   {
   public:
-    CLASS_NAME(ArrowType);
-    USE_ALLOCATOR(ArrowType);
     ArrowType(Type* lhs,Type* rhs)
       : Type(TT_ARROW), _lhs(lhs), _rhs(rhs)
     {}
@@ -412,8 +419,6 @@ private:
     : public Type
   {
   public:
-    CLASS_NAME(ProductType);
-    USE_ALLOCATOR(ProductType);
     ProductType(Type* lhs,Type* rhs)
       : Type(TT_PRODUCT), _lhs(lhs), _rhs(rhs)
     {}
@@ -434,8 +439,6 @@ private:
     : public Type
   {
   public:
-    CLASS_NAME(QuantifiedType);
-    USE_ALLOCATOR(QuantifiedType);
     QuantifiedType(Type* t, VList* vars)
       : Type(TT_QUANTIFIED), _type(t), _vars(vars)
     {}
@@ -449,37 +452,6 @@ private:
     /** bound type variables */
      VList* _vars;
   }; // ProductType
-
-  /**
-   * Class that allows to create a list initially by pushing elements
-   * at the end of it.
-   * @since 10/05/2007 Manchester, updated from List::FIFO
-   */
-  class UnitStack {
-  public:
-    /** constructor */
-    inline explicit UnitStack()
-      : _initial(0),
-	_last(&_initial)
-    {}
-
-    /** add element at the end of the original list */
-    inline void push(Unit* u)
-    {
-      UnitList* newList = new UnitList(u);
-      *_last = newList;
-      _last = reinterpret_cast<UnitList**>(&newList->tailReference());
-    }
-
-    /** Return the collected list */
-    UnitList* list() { return _initial; }
-
-  private:
-    /** reference to the initial element */
-    UnitList* _initial;
-    /** last element */
-    UnitList** _last;
-  }; // class UnitStack
 
   enum TheorySort {
     /** $array theoy */
@@ -541,6 +513,9 @@ private:
     return tf;
   }
 
+  TermList* nLastTermLists(unsigned n) 
+  { return n == 0 ? nullptr : &_termLists[_termLists.size() - n]; }
+
   /** true if the input contains a conjecture */
   bool _containsConjecture;
   /** Allowed names of formulas.
@@ -554,9 +529,9 @@ private:
   /** set of files whose inclusion should be ignored */
   Set<vstring> _forbiddenIncludes;
   /** the input stream */
-  istream* _in;
+  std::istream* _in;
   /** in the case include() is used, previous streams will be saved here */
-  Stack<istream*> _inputs;
+  Stack<std::istream*> _inputs;
   /** the current include directory */
   vstring _includeDirectory;
   /** in the case include() is used, previous sequence of directories will be
@@ -576,8 +551,8 @@ private:
   int _tend;
   /** line number */
   unsigned _lineNumber;
-  /** The stack of units read */
-  UnitStack _units;
+  /** The list of units read (with additions directed to the end) */
+  UnitList::FIFO _units;
   /** stack of unprocessed states */
   Stack<State> _states;
   /** input type of the last read unit */ // it must be int since -1 can be used as a value
@@ -627,17 +602,19 @@ private:
   Set<vstring> _overflow;
   /** current color, if the input contains colors */
   Color _currentColor;
+  /** a robsubstitution object to be used temporarily that is kept around to safe memory allocation time  */
+  RobSubstitution _substScratchpad;
 
   /** a function name and arity */
-  typedef pair<vstring, unsigned> LetSymbolName;
+  typedef std::pair<vstring, unsigned> LetSymbolName;
 
   /** a symbol number with a predicate/function flag */
-  typedef pair<unsigned, bool> LetSymbolReference;
+  typedef std::pair<unsigned, bool> LetSymbolReference;
   #define SYMBOL(ref) (ref.first)
   #define IS_PREDICATE(ref) (ref.second)
 
   /** a definition of a function symbol, defined in $let */
-  typedef pair<LetSymbolName, LetSymbolReference> LetSymbol;
+  typedef std::pair<LetSymbolName, LetSymbolReference> LetSymbol;
 
   /** a scope of function definitions */
   typedef Stack<LetSymbol> LetSymbols;
@@ -668,11 +645,9 @@ private:
    */
   inline char getChar(int pos)
   {
-    CALL("TPTP::getChar");
-
     while (_cend <= pos) {
       int c = _in->get();
-      //      if (c == -1) { cout << "<EOF>"; } else {cout << char(c);}
+      //      if (c == -1) { std::cout << "<EOF>"; } else {std::cout << char(c);}
       _chars[_cend++] = c == -1 ? 0 : c;
     }
     return _chars[pos];
@@ -683,7 +658,6 @@ private:
    */
   inline void shiftChars(int n)
   {
-    CALL("TPTP::shiftChars");
     ASS(n > 0);
     ASS(n <= _cend);
 
@@ -709,8 +683,6 @@ private:
    */
   inline Token& getTok(int pos)
   {
-    CALL("TPTP::getTok");
-
     while (_tend <= pos) {
       Token& tok = _tokens[_tend++];
       readToken(tok);
@@ -723,8 +695,6 @@ private:
    */
   inline void shiftToks(int n)
   {
-    CALL("TPTP::shiftToks");
-
     ASS(n > 0);
     ASS(n <= _tend);
 
@@ -844,6 +814,9 @@ public:
   static unsigned addRationalConstant(const vstring&, Set<vstring>& overflow, bool defaultSort);
   static unsigned addRealConstant(const vstring&, Set<vstring>& overflow, bool defaultSort);
   static unsigned addUninterpretedConstant(const vstring& name, Set<vstring>& overflow, bool& added);
+
+  // also here, simply made public static to share the code with another use site
+  static Unit* processClaimFormula(Unit* unit, Formula* f, const vstring& nm);
 
   /**
    * Used to store the contents of the 'source' of an input formula

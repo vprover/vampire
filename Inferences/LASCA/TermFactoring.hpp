@@ -38,11 +38,10 @@ class TermFactoring
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(TermFactoring);
   USE_ALLOCATOR(TermFactoring);
 
   TermFactoring(TermFactoring&&) = default;
-  TermFactoring(shared_ptr<LascaState> shared)
+  TermFactoring(std::shared_ptr<LascaState> shared)
     : _shared(std::move(shared))
   {  }
 
@@ -63,7 +62,7 @@ private:
   InequalityNormalizer const& normalizer() const { return _shared->normalizer; }
   Ordering* ord() const { return _shared->ordering; }
   
-  shared_ptr<LascaState> _shared;
+  std::shared_ptr<LascaState> _shared;
 };
 
 } // namespace LASCA 

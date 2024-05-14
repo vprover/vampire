@@ -35,11 +35,10 @@ class FwdDemodulation
   using Rhs = Demodulation::Rhs;
   using Lhs = Demodulation::Lhs;
 public:
-  CLASS_NAME(FwdDemodulation);
   USE_ALLOCATOR(FwdDemodulation);
 
   FwdDemodulation(FwdDemodulation&&) = default;
-  FwdDemodulation(shared_ptr<LascaState> shared) 
+  FwdDemodulation(std::shared_ptr<LascaState> shared) 
     : _shared(shared)
     , _index(nullptr)
   { ASS(_shared); }
@@ -54,7 +53,7 @@ public:
 #endif // VDEBUG
 
 private:
-  shared_ptr<LascaState> _shared;
+  std::shared_ptr<LascaState> _shared;
   // FwdDemodulationIndex* _index;
   LascaIndex<Demodulation::Lhs>* _index;
 };

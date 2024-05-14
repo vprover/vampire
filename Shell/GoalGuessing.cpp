@@ -29,14 +29,14 @@
 namespace Shell
 {
 
+using namespace std;
+
 //////////////////////////
 // GoalGuessing
 //
 
 void GoalGuessing::apply(Problem& prb)
 {
-  CALL("GoalGuessing::apply(Problem&)");
-
   _lookInside = env.options->guessTheGoal() != Options::GoalGuess::POSITION;
   _checkTop = env.options->guessTheGoal() == Options::GoalGuess::EXISTS_TOP || env.options->guessTheGoal() == Options::GoalGuess::EXISTS_ALL;
   _checkSymbols = env.options->guessTheGoal() == Options::GoalGuess::EXISTS_SYM || env.options->guessTheGoal() == Options::GoalGuess::EXISTS_ALL;
@@ -55,8 +55,6 @@ void GoalGuessing::apply(Problem& prb)
 
 bool GoalGuessing::apply(UnitList*& units)
 {
-  CALL("GoalGuessing::apply(UnitList*& units)");
-
   bool modified = false;
 
   UnitList::Iterator uit(units);
@@ -86,8 +84,6 @@ bool GoalGuessing::apply(UnitList*& units)
 
 bool GoalGuessing::apply(Clause* cl)
 {
-  CALL("GoalGuessing::apply(Clause* cl)");
-
   if(cl->isPureTheoryDescendant()){ return false; }
 
   unsigned clen = cl->length();
@@ -101,8 +97,6 @@ bool GoalGuessing::apply(Clause* cl)
 }
 bool GoalGuessing::apply(FormulaUnit* fu)
 {
-  CALL("GoalGuessing::apply(FormulaUnit* fu)");
-
   bool looksLikeGoal = false;
 
   // existential quantification at the top-level is conjecture-like
@@ -127,8 +121,6 @@ bool GoalGuessing::apply(FormulaUnit* fu)
 
 bool GoalGuessing::apply(Literal* lit)
 {
-  CALL("GoalGuessing::apply(Literal* lit)");
-
   if(!_checkSymbols){ return false; }
 
      //if(lit->isSpecial()){ return false; }

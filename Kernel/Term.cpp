@@ -15,20 +15,11 @@
  * @since 06/05/2007 Manchester, changed into a single class instead of three
  */
 
-#include <ostream>
-#include "Kernel/NumTraits.hpp"
-
-#include "Debug/Tracer.hpp"
-
-#include "Lib/Allocator.hpp"
-#include "Lib/Environment.hpp"
-#include "Lib/Portability.hpp"
-#include "Lib/Stack.hpp"
-#include "Lib/Set.hpp"
-#include "Lib/Int.hpp"
-#include "Lib/STL.hpp"
-
+#include "Debug/Output.hpp"
 #include "Indexing/TermSharing.hpp"
+#include "Lib/Metaiterators.hpp"
+
+#include "Shell/AnswerExtractor.hpp"
 
 #include "SubstHelper.hpp"
 #include "TermIterators.hpp"
@@ -36,32 +27,21 @@
 #include "Lib/Metaiterators.hpp"
 
 #include "Term.hpp"
-#include "FormulaVarIterator.hpp"
-
-/** If non-zero, term ite functors will be always expanded to
- * the ( p ? x : y ) notation on output */
-#define ALWAYS_OUTPUT_TERM_ITE 0
-
-// changes whether theory terms are nicely formatted ($plus($uminus(s),t) vs (-(s) + t) )
-#define NICE_THEORY_OUTPUT 1
 
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
-const unsigned Term::SF_ITE;
-const unsigned Term::SF_LET;
-const unsigned Term::SF_FORMULA;
-const unsigned Term::SF_LAMBDA;
-const unsigned Term::SPECIAL_FUNCTOR_LOWER_BOUND;
+constexpr unsigned Term::SPECIAL_FUNCTOR_LOWER_BOUND;
 
 void Term::setId(unsigned id)
 {
-  CALL("Term::setId");
-  if (env.options->randomTraversals()) {
+  if (env.options->randomTraversals() &&
+      Random::seed() != 1) { // not until a proper seed has been set (i.e. after parsing!)
+      // (cf ProvingHelper::runVampire and getPreprocessedProblem in vampire.cpp)
     id += Random::getInteger(1 << 12) << 20; // the twelve most significant bits are randomized
   }
-   _args[0]._info.id = id;
+   _args[0]._setId(id);
 }
 
 /**
@@ -70,7 +50,6 @@ void Term::setId(unsigned id)
  */
 void* Term::operator new(size_t,unsigned arity, size_t preData)
 {
-  CALL("Term::new");
   //preData must be a multiple of pointer size to maintain alignment
   ASS_EQ(preData%sizeof(size_t), 0);
 
@@ -81,6 +60,9 @@ void* Term::operator new(size_t,unsigned arity, size_t preData)
 } // Term::operator new
 
 
+inline bool argSafeToShare(TermList t)
+{ return t.isSafe() && !t.isSpecialVar(); }
+
 /**
  * Destroy the term.
  * @since 01/05/2006 Bellevue
@@ -88,7 +70,6 @@ void* Term::operator new(size_t,unsigned arity, size_t preData)
  */
 void Term::destroy ()
 {
-  CALL("Term::destroy");
   ASS(CHECK_LEAKS || ! shared());
 
   size_t sz = sizeof(Term)+_arity*sizeof(TermList)+getPreDataSize();
@@ -102,8 +83,6 @@ void Term::destroy ()
  */
 void Term::destroyNonShared()
 {
-  CALL("Term::destroyNonShared");
-
   if (shared()) {
     return;
   }
@@ -139,55 +118,11 @@ void Term::destroyNonShared()
  */
 bool TermList::isSafe() const
 {
-  CALL("TermList::isSafe");
-
   return isVar() || term()->shared();
 }
 
 bool TermList::ground() const 
 { return !isVar() && term()->ground(); }
-
-/**
- * Return the list of all free variables of the term.
- * The result is only non-empty when there are quantified
- * formulas or $let-terms inside the term.
- *
- * Each variable in the term is returned just once.
- *
- * NOTE: don't use this function, if you don't actually need a List
- * (FormulaVarIterator is a better choice)
- *
- * NOTE: remember to free the list when done with it
- * (otherwise we leak memory!)
- *
- * @since 15/05/2015 Gothenburg
- */
-VList* TermList::freeVariables() const
-{
-  CALL("TermList::freeVariables");
-
-  FormulaVarIterator fvi(this);
-  VList* result = VList::empty();
-  VList::FIFO stack(result);
-  while (fvi.hasNext()) {
-    stack.pushBack(fvi.next());
-  }
-  return result;
-} // TermList::freeVariables
-
-
-bool TermList::isFreeVariable(unsigned var) const
-{
-  CALL("TermList::isFreeVariable");
-  FormulaVarIterator fvi(this);
-  while (fvi.hasNext()) {
-    if (var == fvi.next()) {
-      return true;
-    }
-  }
-  return false;
-}
-
 
 /**
  * Return true if @b ss and @b tt have the same top symbols, that is,
@@ -204,6 +139,15 @@ bool TermList::sameTop(TermList ss,TermList tt)
     return false;
   }
   return ss.term()->functor() == tt.term()->functor();
+}
+void TermList::Top::output(std::ostream& out) const
+{ 
+  if (this->var()) {
+    out << TermList::var(this->var());
+  } else {
+    ASS(this->functor())
+    out << *env.signature->getFunction(*this->functor());
+  }
 }
 
 /**
@@ -258,10 +202,6 @@ bool TermList::equals(TermList t1, TermList t2)
   return true;
 }
 
-TermList::Top TermList::top() const
-{ return isTerm() ? TermList::Top::functor(term()->functor()) 
-                  : TermList::Top::var(var());            }
-
 /**
  * Return true if all proper terms in the @ args list are shared
  */
@@ -283,70 +223,53 @@ unsigned TermList::weight() const
 
 bool TermList::isArrowSort()
 {
-  CALL("TermList::isArrowSort");
   return !isVar() && term()->isSort() && 
          static_cast<AtomicSort*>(term())->isArrowSort();
 }
 
 bool TermList::isBoolSort()
 {
-  CALL("TermList::isBoolSort");
   return !isVar() && term()->isSort() && 
          static_cast<AtomicSort*>(term())->isBoolSort();
 }
 
 bool TermList::isArraySort()
 {
-  CALL("TermList::isArraySort");  
   return !isVar() && term()->isSort() && 
          static_cast<AtomicSort*>(term())->isArraySort();
 }
 
 bool TermList::isTupleSort()
 {
-  CALL("TermList::isTupleSort");    
   return !isVar() && term()->isSort() && 
          static_cast<AtomicSort*>(term())->isTupleSort();
 }
 
 bool AtomicSort::isArrowSort() const { 
-  CALL("AtomicSort::isArrowSort");
-  
   return env.signature->isArrowCon(_functor);
 }
 
 bool AtomicSort::isBoolSort() const { 
-  CALL("AtomicSort::isBoolSort");
-  
   return env.signature->isBoolCon(_functor);
 }
 
 bool AtomicSort::isArraySort() const { 
-  CALL("AtomicSort::isArraySort");
-  
   return env.signature->isArrayCon(_functor);
 }
 
 bool AtomicSort::isTupleSort() const { 
-  CALL("AtomicSort::isTupleSort");
-  
   return env.signature->isTupleCon(_functor);
 }
 
 bool TermList::isApplication() const { 
-  CALL("Term::isApplication");
-  
   return !isVar() && term()->isApplication();
 }
 
 bool Term::isApplication() const {
-  CALL("Term::isApplication");
-  
   return !isSort() && !isLiteral() && env.signature->isAppFun(_functor);    
 }
 
 unsigned Term::numTypeArguments() const {
-  CALL("Term::numTypeArguments");
   ASS(!isSort());
 
   return isSpecial()
@@ -358,7 +281,6 @@ unsigned Term::numTypeArguments() const {
 
 TermList* Term::termArgs()
 {
-  CALL("Term::termArgs");
   ASS(!isSort());
 
   return _args + (_arity - numTypeArguments());
@@ -369,8 +291,6 @@ const TermList* Term::typeArgs() const
 
 unsigned Term::numTermArguments() const
 { 
-  CALL("Term::numTermArguments");
-
   if(isSuper() || isSort())
     return 0;
   
@@ -378,19 +298,16 @@ unsigned Term::numTermArguments() const
   return _arity - numTypeArguments(); 
 }
 
-bool TermList::containsSubterm(TermList trm)
+bool TermList::containsSubterm(TermList trm) const
 {
-  CALL("Term::containsSubterm");
-
   if (!isTerm()) {
     return trm==*this;
   }
   return term()->containsSubterm(trm);
 }
 
-bool Term::containsSubterm(TermList trm)
+bool Term::containsSubterm(TermList trm) const
 {
-  CALL("Term::containsSubterm");
   ASS(!trm.isTerm() || trm.term()->shared());
   ASS(shared());
 
@@ -402,8 +319,8 @@ bool Term::containsSubterm(TermList trm)
     return false;
   }
 
-  TermList* ts=args();
-  static Stack<TermList*> stack(4);
+  const TermList* ts=args();
+  static Stack<const TermList*> stack(4);
   stack.reset();
   for(;;) {
     if (*ts==trm) {
@@ -426,8 +343,6 @@ bool Term::containsSubterm(TermList trm)
 }
 
 size_t Term::countSubtermOccurrences(TermList subterm) {
-  CALL("Term::countSubtermOccurrences");
-
   size_t res = 0;
 
   unsigned stWeight = subterm.isTerm() ? subterm.term()->weight() : 1;
@@ -449,7 +364,6 @@ size_t Term::countSubtermOccurrences(TermList subterm) {
 
 bool TermList::containsAllVariablesOf(TermList t)
 {
-  CALL("TermList::containsAllVariablesOf");
   Set<TermList> vars;
   TermIterator oldVars=Term::getVariableIterator(*this);
   while (oldVars.hasNext()) {
@@ -466,7 +380,6 @@ bool TermList::containsAllVariablesOf(TermList t)
 
 bool Term::containsAllVariablesOf(Term* t)
 {
-  CALL("Term::containsAllVariablesOf");
   static DHSet<TermList> vars;
   vars.reset();
 
@@ -490,8 +403,6 @@ bool Term::containsAllVariablesOf(Term* t)
 
 bool Term::isShallow() const
 {
-  CALL("Term::isShallow");
-
   const TermList* t = args();
   while (!t->isEmpty()) {
     if (t->isTerm() && t->term()->arity()>0) {
@@ -504,8 +415,6 @@ bool Term::isShallow() const
 
 TermIterator Term::getVariableIterator(TermList tl)
 {
-  CALL("Term::getVariableIterator");
-
   if (tl.isVar()) {
     return pvi( getSingletonIterator(tl) );
   }
@@ -520,8 +429,6 @@ TermIterator Term::getVariableIterator(TermList tl)
  */
 vstring Term::variableToString(unsigned var)
 {
-  CALL("Term::variableToString");
-
   return (vstring)"X" + Int::toString(var);
 } // variableToString
 
@@ -531,7 +438,6 @@ vstring Term::variableToString(unsigned var)
  */
 vstring Term::variableToString(TermList var)
 {
-  CALL("Term::variableToString");
   ASS(var.isVar());
 
   if (var.isOrdinaryVar()) {
@@ -550,18 +456,16 @@ vstring Term::variableToString(TermList var)
  */
 vstring Term::headToString() const
 {
-  CALL("Term::headToString");
-
   if (isSpecial()) {
     const Term::SpecialTermData* sd = getSpecialData();
 
-    switch(functor()) {
-      case Term::SF_FORMULA: {
+    switch(specialFunctor()) {
+      case SpecialFunctor::FORMULA: {
         ASS_EQ(arity(), 0);
         vstring formula = sd->getFormula()->toString();
         return env.options->showFOOL() ? "$term{" + formula + "}" : formula;
       }
-      case Term::SF_LET: {
+      case SpecialFunctor::LET: {
         ASS_EQ(arity(), 1);
         TermList binding = sd->getBinding();
         bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
@@ -584,11 +488,11 @@ vstring Term::headToString() const
         }
         return "$let(" + functor + ": " + type->toString() + ", " + functor + variablesList + " := " + binding.toString() + ", ";
       }
-      case Term::SF_ITE: {
+      case SpecialFunctor::ITE: {
         ASS_EQ(arity(),2);
         return "$ite(" + sd->getCondition()->toString() + ", ";
       }
-      case Term::SF_TUPLE: {
+      case SpecialFunctor::TUPLE: {
         ASS_EQ(arity(), 0);
         Term* term = sd->getTupleTerm();
         vstring termList = "";
@@ -602,7 +506,7 @@ vstring Term::headToString() const
         }
         return "[" + termList + "]";
       }
-      case Term::SF_LET_TUPLE: {
+      case SpecialFunctor::LET_TUPLE: {
         ASS_EQ(arity(), 1);
         VList* symbols = sd->getTupleSymbols();
         unsigned tupleFunctor = sd->getFunctor();
@@ -626,16 +530,15 @@ vstring Term::headToString() const
 
         return "$let([" + typesList + "], [" + symbolsList + "] := " + binding.toString() + ", ";
       }
-      case Term:: SF_LAMBDA: {
+      case SpecialFunctor::LAMBDA: {
         VList* vars = sd->getLambdaVars();
         SList* sorts = sd->getLambdaVarSorts();
         TermList lambdaExp = sd->getLambdaExp();
-     
+
         vstring varList = "[";
-         
+
         VList::Iterator vs(vars);
         SList::Iterator ss(sorts);
-        TermList sort;
         bool first = true;
         while(vs.hasNext()) {
           if (!first){
@@ -647,7 +550,7 @@ vstring Term::headToString() const
         varList += "]";        
         return "(^" + varList + " : (" + lambdaExp.toString() + "))";
       }
-      case Term::SF_MATCH: {
+      case SpecialFunctor::MATCH: {
         // we simply let the arguments be written out
         return "$match(";
       }
@@ -665,7 +568,12 @@ vstring Term::headToString() const
     if(isLiteral()) {
       name = static_cast<const Literal *>(this)->predicateName();
     } else if (isSort()) {
-      name = static_cast<const AtomicSort *>(this)->typeConName();
+      const AtomicSort* asSort = static_cast<const AtomicSort *>(this);
+      if(env.options->showFOOL() && asSort->isBoolSort()){
+        name = "$bool";
+      } else {
+        name = asSort->typeConName();
+      }
     } else {
       name = functionName();
     }
@@ -682,8 +590,6 @@ vstring Term::headToString() const
  */
 vstring TermList::asArgsToString() const
 {
-  CALL("TermList::asArgsToString");
-
   vstring res;
 
   Stack<const TermList*> stack(64);
@@ -732,8 +638,6 @@ vstring TermList::asArgsToString() const
  */
 vstring TermList::toString(bool topLevel) const
 {
-  CALL("TermList::toString");
-
   if (isEmpty()) {
     return "<empty TermList>";
   }
@@ -750,8 +654,6 @@ vstring TermList::toString(bool topLevel) const
  */
 vstring Term::toString(bool topLevel) const
 {
-  CALL("Term::toString");
-
   bool printArgs = true;
 
   if(isSuper()){
@@ -830,8 +732,6 @@ vstring Term::toString(bool topLevel) const
  */
 vstring Literal::toString() const
 {
-  CALL("Literal::toString");
-
   if (isEquality()) {
     const TermList* lhs = args();
     vstring s = lhs->toString();
@@ -843,7 +743,7 @@ vstring Literal::toString() const
     }
 
     vstring res = s + lhs->next()->toString();
-    if (env.property->higherOrder() || 
+    if (env.getMainProblem() == nullptr || env.getMainProblem()->isHigherOrder() || 
        (SortHelper::getEqualityArgumentSort(this) == AtomicSort::boolSort())){
       res = "("+res+")";
     }
@@ -899,8 +799,6 @@ vstring Literal::toString() const
  */
 const vstring& Term::functionName() const
 {
-  CALL("Term::functionName");
-
 #if VDEBUG
   static vstring nonexisting("<function does not exists>");
   if (_functor>=static_cast<unsigned>(env.signature->functions())) {
@@ -916,8 +814,6 @@ const vstring& Term::functionName() const
  */
 const vstring& AtomicSort::typeConName() const
 {
-  CALL("AtomcicSort::typeConName");
-
 #if VDEBUG
   static vstring nonexisting("<type constructor does not exists>");
   if (_functor>=static_cast<unsigned>(env.signature->typeCons())) {
@@ -934,8 +830,6 @@ const vstring& AtomicSort::typeConName() const
  */
 const vstring& Literal::predicateName() const
 {
-  CALL("Literal::predicateName");
-
 #if VDEBUG
   static vstring nonexisting("<predicate does not exists>");
   if (_functor>=static_cast<unsigned>(env.signature->predicates())) {
@@ -947,14 +841,17 @@ const vstring& Literal::predicateName() const
 } // Literal::predicateName
 
 
+bool Literal::isAnswerLiteral() const {
+  return env.signature->getPredicate(functor())->answerPredicate();
+}
+
+
 /**
  * Apply @b subst to the term and return the result.
  * @since 28/12/2007 Manchester
  */
 Term* Term::apply(Substitution& subst)
 {
-  CALL("Term::apply");
-
   return SubstHelper::apply(this, subst);
 } // Term::apply
 
@@ -965,8 +862,6 @@ Term* Term::apply(Substitution& subst)
  */
 Literal* Literal::apply(Substitution& subst)
 {
-  CALL("Literal::apply");
-
   return SubstHelper::apply(this, subst);
 } // Literal::apply
 
@@ -990,24 +885,10 @@ Literal* Literal::complementaryLiteral(Literal* l)
  */
 Term* Term::create(Term* t,TermList* args)
 {
-  CALL("Term::create/2");
   ASS_EQ(t->getPreDataSize(), 0);
-
-  int arity = t->arity();
-  Term* s = new(arity) Term(*t);
-  bool share = true;
-  TermList* ss = s->args();
-  for (int i = 0;i < arity;i++) {
-    ASS(!args[i].isEmpty());
-    *ss-- = args[i];
-    if (!args[i].isSafe()) {
-      share = false;
-    }
-  }
-  if (share) {
-    s = env.sharing->insert(s);
-  }
-  return s;
+  ASS(!t->isLiteral())
+  ASS(!t->isSort())
+  return Term::create(t->functor(), t->arity(), args);
 }
 
 /** Create a new complex term, and insert it into the sharing
@@ -1015,29 +896,33 @@ Term* Term::create(Term* t,TermList* args)
  */
 Term* Term::create(unsigned function, unsigned arity, const TermList* args)
 {
-  CALL("Term::create/3");
   ASS_EQ(env.signature->functionArity(function), arity);
 
-  Term* s = new(arity) Term;
-  s->makeSymbol(function,arity);
+  bool share = range(0, arity).all([&](auto i) { return argSafeToShare(args[i]); });
 
-  bool share = true;
-  TermList* ss = s->args();
-
-  const TermList* curArg = args;
-  const TermList* argStopper = args+arity;
-  while (curArg!=argStopper) {
-    *ss = *curArg;
-    --ss;
-    if (!curArg->isSafe()) {
-      share = false;
+  auto allocTerm = [&]() {
+    Term* s = new(arity) Term;
+    s->makeSymbol(function,arity);
+    for (auto i : range(0, arity)) {
+      *s->nthArgument(i) = args[i];
     }
-    ++curArg;
-  }
+    return s;
+  };
+
   if (share) {
-    s = env.sharing->insert(s);
+    bool created = false;
+    auto shared = 
+      env.sharing->_terms.rawFindOrInsert(allocTerm, 
+        Term::termHash(function, [&](auto i){ return args[i]; }, arity), 
+        [&](Term* t) { return t->functor() == function && range(0, arity).all([&](auto i) { return args[i] == *t->nthArgument(i); }); },
+        created);
+    if (created) {
+      env.sharing->computeAndSetSharedTermData(shared);
+    }
+    return shared;
+  } else {
+    return allocTerm();
   }
-  return s;
 }
 
 
@@ -1046,8 +931,6 @@ Term* Term::create(unsigned function, unsigned arity, const TermList* args)
  */
 Term* Term::createConstant(const vstring& name)
 {
-  CALL("Term::createConstant");
-
   unsigned symbolNumber = env.signature->addFunction(name,0);
   return createConstant(symbolNumber);
 }
@@ -1059,7 +942,6 @@ Term* Term::createConstant(const vstring& name)
  */
 Term* Term::createNonShared(Term* t,TermList* args)
 {
-  CALL("Term::createNonShared/2");
   int arity = t->arity();
   Term* s = new(arity) Term(*t);
   TermList* ss = s->args();
@@ -1077,7 +959,6 @@ Term* Term::createNonShared(Term* t,TermList* args)
  */
 Term* Term::createNonShared(unsigned function, unsigned arity, TermList* args)
 {
-  CALL("Term::createNonShared/3");
   ASS_EQ(env.signature->functionArity(function), arity);
 
   Term* s = new(arity) Term;
@@ -1101,9 +982,8 @@ Term* Term::createNonShared(unsigned function, unsigned arity, TermList* args)
  */
 Term* Term::createITE(Formula * condition, TermList thenBranch, TermList elseBranch, TermList branchSort)
 {
-  CALL("Term::createITE");
   Term* s = new(2,sizeof(SpecialTermData)) Term;
-  s->makeSymbol(SF_ITE, 2);
+  s->makeSymbol(toNormalFunctor(SpecialFunctor::ITE), 2);
   TermList* ss = s->args();
   *ss = thenBranch;
   ss = ss->next();
@@ -1120,8 +1000,6 @@ Term* Term::createITE(Formula * condition, TermList thenBranch, TermList elseBra
  */
 Term* Term::createLet(unsigned functor, VList* variables, TermList binding, TermList body, TermList bodySort)
 {
-  CALL("Term::createLet");
-
 #if VDEBUG
   Set<unsigned> distinctVars;
   VList::Iterator vit(variables);
@@ -1137,7 +1015,7 @@ Term* Term::createLet(unsigned functor, VList* variables, TermList binding, Term
 #endif
 
   Term* s = new(1,sizeof(SpecialTermData)) Term;
-  s->makeSymbol(SF_LET, 1);
+  s->makeSymbol(toNormalFunctor(SpecialFunctor::LET), 1);
   TermList* ss = s->args();
   *ss = body;
   ASS(ss->next()->isEmpty());
@@ -1154,8 +1032,6 @@ Term* Term::createLet(unsigned functor, VList* variables, TermList binding, Term
  */
 Term* Term::createTupleLet(unsigned tupleFunctor, VList* symbols, TermList binding, TermList body, TermList bodySort)
 {
-  CALL("Term::createTupleLet");
-
 #if VDEBUG
   Signature::Symbol* tupleSymbol = env.signature->getFunction(tupleFunctor);
   ASS_EQ(tupleSymbol->arity(), VList::length(symbols));
@@ -1177,7 +1053,7 @@ Term* Term::createTupleLet(unsigned tupleFunctor, VList* symbols, TermList bindi
 #endif
 
   Term* s = new(1,sizeof(SpecialTermData)) Term;
-  s->makeSymbol(SF_LET_TUPLE, 1);
+  s->makeSymbol(toNormalFunctor(SpecialFunctor::LET_TUPLE), 1);
   TermList* ss = s->args();
   *ss = body;
   ASS(ss->next()->isEmpty());
@@ -1194,10 +1070,8 @@ Term* Term::createTupleLet(unsigned tupleFunctor, VList* symbols, TermList bindi
  */
 Term* Term::createFormula(Formula* formula)
 {
-  CALL("Term::createFormula");
-
   Term* s = new(0,sizeof(SpecialTermData)) Term;
-  s->makeSymbol(SF_FORMULA, 0);
+  s->makeSymbol(toNormalFunctor(SpecialFunctor::FORMULA), 0);
   s->getSpecialData()->_formulaData.formula = formula;
   return s;
 }
@@ -1208,10 +1082,8 @@ Term* Term::createFormula(Formula* formula)
  * expression and returns the resulting term
  */
 Term* Term::createLambda(TermList lambdaExp, VList* vars, SList* sorts, TermList expSort){
-  CALL("Term::createLambda");
-  
   Term* s = new(0, sizeof(SpecialTermData)) Term;
-  s->makeSymbol(SF_LAMBDA, 0);
+  s->makeSymbol(toNormalFunctor(SpecialFunctor::LAMBDA), 0);
   //should store body of lambda in args
   s->getSpecialData()->_lambdaData.lambdaExp = lambdaExp;
   s->getSpecialData()->_lambdaData._vars = vars;
@@ -1232,24 +1104,21 @@ Term* Term::createLambda(TermList lambdaExp, VList* vars, SList* sorts, TermList
 } 
 
 Term* Term::createTuple(unsigned arity, TermList* sorts, TermList* elements) {
-  CALL("Term::createTuple");
   unsigned tupleFunctor = Theory::tuples()->getFunctor(arity, sorts);
   Term* tupleTerm = Term::create(tupleFunctor, arity, elements);
   return createTuple(tupleTerm);
 }
 
 Term* Term::createTuple(Term* tupleTerm) {
-  CALL("Term::createTuple");
   Term* s = new(0, sizeof(SpecialTermData)) Term;
-  s->makeSymbol(SF_TUPLE, 0);
+  s->makeSymbol(toNormalFunctor(SpecialFunctor::TUPLE), 0);
   s->getSpecialData()->_tupleData.term = tupleTerm;
   return s;
 }
 
 Term *Term::createMatch(TermList sort, TermList matchedSort, unsigned int arity, TermList *elements) {
-  CALL("Term::createMatch");
   Term *s = new (arity, sizeof(SpecialTermData)) Term;
-  s->makeSymbol(SF_MATCH, arity);
+  s->makeSymbol(toNormalFunctor(SpecialFunctor::MATCH), arity);
   TermList *ss = s->args();
   s->getSpecialData()->_matchData.sort = sort;
   s->getSpecialData()->_matchData.matchedSort = matchedSort;
@@ -1269,7 +1138,6 @@ Term *Term::createMatch(TermList sort, TermList matchedSort, unsigned int arity,
  */
 Term* Term::createNonShared(Term* t)
 {
-  CALL("Term::createNonShared/1");
   int arity = t->arity();
   Term* s = new(arity) Term(*t);
   TermList* ss = s->args();
@@ -1284,7 +1152,6 @@ Term* Term::createNonShared(Term* t)
  */
 Term* Term::cloneNonShared(Term* t)
 {
-  CALL("Term::cloneNonShared");
   int arity = t->arity();
   TermList* args = t->args();
   Term* s = new(arity) Term(*t);
@@ -1296,39 +1163,24 @@ Term* Term::cloneNonShared(Term* t)
 } // Term::cloneNonShared(const Term* t,Term* args)
 
 Term* Term::create1(unsigned fn, TermList arg)
-{
-  CALL("Term::create1");
-
-  return Term::create(fn, 1, &arg);
-}
+{ return Term::create(fn, { arg }); }
 
 Term* Term::create2(unsigned fn, TermList arg1, TermList arg2)
-{
-  CALL("Term::create2");
-
-  TermList args[] = {arg1, arg2};
-  return Term::create(fn, 2, args);
-}
+{ return Term::create(fn, {arg1, arg2}); }
 
 
 Term* Term::create(unsigned fn, std::initializer_list<TermList> args)
-{
-  CALL("Term::create/initializer_list");
-
-  return Term::create(fn, args.size(), args.begin());
-}
+{ return Term::create(fn, args.size(), args.begin()); }
 
 /**
  * Create singleton FOOL constants
  */ 
 Term* Term::foolTrue(){
-  CALL("Term::foolTrue");
   static Term* _foolTrue = createConstant(env.signature->getFoolConstantSymbol(true));
   return _foolTrue;
 }
 
 Term* Term::foolFalse(){
-  CALL("Term::foolFalse");
   static Term* _foolFalse = createConstant(env.signature->getFoolConstantSymbol(false));
   return _foolFalse;
 }
@@ -1338,56 +1190,46 @@ Term* Term::foolFalse(){
  * and also is not linked to a symbol in the signature.
  */
 TermList AtomicSort::superSort(){
-  CALL("AtomicSort::superSort");
   static AtomicSort* _super = createNonSharedConstant(0);
   return TermList(_super);
 }
 
 TermList AtomicSort::defaultSort(){
-  CALL("AtomicSort::defaultSort");
   static AtomicSort* _default = createConstant(env.signature->getDefaultSort());
   return TermList(_default); 
 }
   
 TermList AtomicSort::boolSort(){
-  CALL("AtomicSort::boolSort");
   static AtomicSort* _bool = createConstant(env.signature->getBoolSort()); 
   return TermList(_bool); 
 }
 
 TermList AtomicSort::intSort(){
-  CALL("AtomicSort::intSort()");
   static AtomicSort* _int = createConstant(env.signature->getIntSort()); 
   return TermList(_int); 
 }
  
 TermList AtomicSort::realSort(){
-  CALL("AtomicSort::realSort()");
   static AtomicSort* _real = createConstant(env.signature->getRealSort()); 
   return TermList(_real); 
 }
 
 TermList AtomicSort::rationalSort(){
-  CALL("AtomicSort::rationalSort()");
   static AtomicSort* _rat = createConstant(env.signature->getRatSort());
   return TermList(_rat); 
 }
 
 TermList AtomicSort::arrowSort(TermList s1, TermList s2){
-  CALL("AtomicSort::arrowSort/1");
   unsigned arrow = env.signature->getArrowConstructor();
   return TermList(create2(arrow, s1, s2));
 }
 
 TermList AtomicSort::arrowSort(TermList s1, TermList s2, TermList s3){
-  CALL("AtomicSort::arrowSort/2"); 
   return arrowSort(s1, arrowSort(s2, s3));
 }
 
 TermList AtomicSort::arrowSort(TermStack& domSorts, TermList range)
 {
-  CALL("AtomicSort::arrowSort/3");
-  
   TermList res = range;
 
   for(unsigned i = 0; i < domSorts.size(); i++){
@@ -1398,8 +1240,6 @@ TermList AtomicSort::arrowSort(TermStack& domSorts, TermList range)
 
 AtomicSort* AtomicSort::createConstant(const vstring& name)
 {
-  CALL("AtomicSort::createConstant");
-
   bool added;
   unsigned newSort = env.signature->addTypeCon(name,0,added);
   if(added){
@@ -1411,59 +1251,13 @@ AtomicSort* AtomicSort::createConstant(const vstring& name)
 
 TermList AtomicSort::arraySort(TermList indexSort, TermList innerSort)
 {
-  CALL("AtomicSort::arraySort");
   unsigned array = env.signature->getArrayConstructor();
   TermList sort = TermList(create2(array, indexSort, innerSort));
   return sort;
 }
 
 TermList AtomicSort::tupleSort(unsigned arity, TermList* sorts)
-{
-  CALL("AtomicSort::tupleSort");
-  unsigned tuple = env.signature->getTupleConstructor(arity);
-  TermList sort = TermList(create(tuple, arity, sorts));
-  return sort;
-}
-
-
-/**
- * Return the list of all free variables of the term.
- * The result is only non-empty when there are quantified
- * formulas or $let-terms inside the term.
- * Each variable in the term is returned just once.
- *
- * NOTE: don't use this function, if you don't actually need a List
- * (FormulaVarIterator is a better choice)
- *
- * NOTE: remember to free the list when done with it
- * (otherwise we leak memory!)
- *
- * @since 07/05/2015 Gothenburg
- */
-VList* Term::freeVariables() const
-{
-  CALL("Term::freeVariables");
-
-  FormulaVarIterator fvi(this);
-  VList* result = VList::empty();
-  VList::FIFO stack(result);
-  while (fvi.hasNext()) {
-    stack.pushBack(fvi.next());
-  }
-  return result;
-} // Term::freeVariables
-
-bool Term::isFreeVariable(unsigned var) const
-{
-  CALL("Term::isFreeVariable");
-  FormulaVarIterator fvi(this);
-  while (fvi.hasNext()) {
-    if (var == fvi.next()) {
-      return true;
-    }
-  }
-  return false;
-}
+{ return TermList(Term::create(env.signature->getTupleConstructor(arity), arity, sorts)); }
 
 unsigned Term::computeDistinctVars() const
 {
@@ -1513,15 +1307,15 @@ bool Term::isBoolean() const {
       env.signature->getFunction(term->functor())->fnType()->result() == AtomicSort::boolSort();
       return val;
     }
-    switch (term->getSpecialData()->getType()) {
-      case SF_FORMULA:
+    switch (term->specialFunctor()) {
+      case SpecialFunctor::FORMULA:
         return true;
-      case SF_TUPLE:
-      case SF_LAMBDA:
+      case SpecialFunctor::TUPLE:
+      case SpecialFunctor::LAMBDA:
         return false;
-      case SF_ITE:
-      case SF_LET:
-      case SF_LET_TUPLE: {
+      case SpecialFunctor::ITE:
+      case SpecialFunctor::LET:
+      case SpecialFunctor::LET_TUPLE: {
         const TermList *ts = term->nthArgument(0);
         if (!ts->isTerm()) {
           return false;
@@ -1530,7 +1324,7 @@ bool Term::isBoolean() const {
           break;
         }
       }
-      case SF_MATCH: {
+      case SpecialFunctor::MATCH: {
         const TermList *ts = term->nthArgument(2);
         if (!ts->isTerm()) {
           return false;
@@ -1547,7 +1341,6 @@ bool Term::isBoolean() const {
 } // isBoolean
 
 bool Term::isSuper() const {
-  CALL("Term::isSuper")
   return this == AtomicSort::superSort().term(); 
 }
 
@@ -1556,29 +1349,34 @@ bool Term::isSuper() const {
  */
 AtomicSort* AtomicSort::create(unsigned typeCon, unsigned arity, const TermList* args)
 {
-  CALL("AtomicSort::create");
-
   ASS_EQ(env.signature->typeConArity(typeCon), arity);
 
-  AtomicSort* s = new(arity) AtomicSort(typeCon,arity);
+  bool share = range(0, arity).all([&](auto i) { return argSafeToShare(args[i]); });
 
-  bool share = true;
-  TermList* ss = s->args();
-
-  const TermList* curArg = args;
-  const TermList* argStopper = args+arity;
-  while (curArg!=argStopper) {
-    *ss = *curArg;
-    --ss;
-    if (!curArg->isSafe()) {
-      share = false;
+  auto allocTerm = [&]() {
+    AtomicSort* s = new(arity) AtomicSort(typeCon,arity);
+    s->makeSymbol(typeCon,arity);
+    for (auto i : range(0, arity)) {
+      *s->nthArgument(i) = args[i];
     }
-    ++curArg;
-  }
+    return s;
+  };
+
   if (share) {
-    s = env.sharing->insert(s);
+    bool created = false;
+    auto shared = 
+      env.sharing->_sorts.rawFindOrInsert(allocTerm, 
+        Term::termHash(typeCon, [&](auto i){ return args[i]; }, arity), 
+        [&](AtomicSort* t) { return t->functor() == typeCon && range(0, arity).all([&](auto i) { return args[i] == *t->nthArgument(i); }); },
+        created
+        );
+    if (created) {
+      env.sharing->computeAndSetSharedSortData(shared);
+    }
+    return shared;
+  } else {
+    return allocTerm();
   }
-  return s;
 }
 
 /** Create a new complex sort, copy from @b sort its function symbol and
@@ -1588,30 +1386,12 @@ AtomicSort* AtomicSort::create(unsigned typeCon, unsigned arity, const TermList*
  */
 AtomicSort* AtomicSort::create(AtomicSort const* sort,TermList* args)
 {
-  CALL("AtomicSort::create/2");
-
-  int arity = sort->arity();
-  AtomicSort* s = new(arity) AtomicSort(*sort);
-  bool share = true;
-  TermList* ss = s->args();
-  for (int i = 0;i < arity;i++) {
-    ASS(!args[i].isEmpty());
-    *ss-- = args[i];
-    if (!args[i].isSafe()) {
-      share = false;
-    }
-  }
-  if (share) {
-    s = env.sharing->insert(s);
-  }
-  return s;
+  return AtomicSort::create(sort->functor(), sort->arity(), args);
 }
 
 
 AtomicSort* AtomicSort::create2(unsigned tc, TermList arg1, TermList arg2)
 {
-  CALL("AtomicSort::create2");
-
   TermList args[] = {arg1, arg2};
   return AtomicSort::create(tc, 2, args);
 }
@@ -1622,7 +1402,6 @@ AtomicSort* AtomicSort::create2(unsigned tc, TermList arg1, TermList arg2)
  */
 AtomicSort* AtomicSort::createNonShared(unsigned typeCon, unsigned arity, TermList* args)
 {
-  CALL("AtomicSort::createNonShared");
   ASS_EQ(env.signature->typeConArity(typeCon), arity);
 
   AtomicSort* s = new(arity) AtomicSort(typeCon, arity);
@@ -1643,7 +1422,6 @@ AtomicSort* AtomicSort::createNonShared(unsigned typeCon, unsigned arity, TermLi
  */
 bool Literal::headersMatch(Literal* l1, Literal* l2, bool complementary)
 {
-  CALL("Literal::headersMatch");
   if (l1->_functor!=l2->_functor || (complementary?1:0)!=(l1->polarity()!=l2->polarity())) {
     return false;
   }
@@ -1654,29 +1432,53 @@ bool Literal::headersMatch(Literal* l1, Literal* l2, bool complementary)
 /** Create a new literal, and insert it into the sharing
  *  structure if all arguments are shared.
  */
-Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool commutative, const TermList* args)
+template<class GetArg>
+Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool commutative, GetArg getArg, Option<TermList> twoVarEqSort)
 {
-  CALL("Literal::create/4");
-  ASS_G(predicate, 0); //equality is to be created by createEquality
+  ASS(!twoVarEqSort || (predicate == 0 && arity == 2 && getArg(0).isVar() && getArg(1).isVar()))
+  ASS(predicate != 0 || commutative)
+  ASS(!commutative || arity == 2)
   ASS_EQ(env.signature->predicateArity(predicate), arity);
 
+  bool share = range(0, arity).all([&](auto i) { return argSafeToShare(getArg(i)); });
+  bool swapArgs = share && commutative && Indexing::TermSharing::argNormGt(getArg(0), getArg(1));
+  auto normArg = [&](auto i) { return swapArgs ? getArg(1 - i) : getArg(i); };
 
-  Literal* l = new(arity) Literal(predicate, arity, polarity, commutative);
-
-  bool share = true;
-  TermList* ss = l->args();
-  for (unsigned i = 0;i < arity;i++) {
-    *ss-- = args[i];
-    if (!args[i].isSafe()) {
-      share = false;
+  auto allocLiteral = [&]() {
+    Literal* l = new(arity) Literal(predicate, arity, polarity, commutative);
+    for (auto i : range(0, arity)) {
+      *l->nthArgument(i) = normArg(i);
     }
-  }
+    if (twoVarEqSort) {
+      l->markTwoVarEquality();
+      l->setTwoVarEqSort(*twoVarEqSort);
+    }
+    return l;
+  };
+
   if (share) {
-    l = env.sharing->insert(l);
+    bool created = false;
+    auto shared = 
+      env.sharing->_literals.rawFindOrInsert(allocLiteral, 
+        Literal::literalHash(predicate, polarity, normArg, arity, twoVarEqSort, commutative), 
+        [&](Literal* t) { return Literal::literalEquals(t, predicate, polarity, normArg, arity, twoVarEqSort, commutative); },
+        created);
+
+    if (created) {
+      if (twoVarEqSort) 
+        env.sharing->computeAndSetSharedVarEqData(shared, *twoVarEqSort);
+      else 
+        env.sharing->computeAndSetSharedLiteralData(shared);
+    }
+    ASS(!commutative || rightArgOrder(*shared->nthArgument(0), *shared->nthArgument(1)))
+    return shared;
+  } else {
+    return allocLiteral();
   }
-  return l;
 }
 
+Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool commutative, TermList* args)
+{ return create(predicate, arity, polarity, commutative, [&](auto i) { return args[i]; }); }
 
 /** Create a new literal, copy from @b l its predicate symbol and
  *  its arguments, and set its polarity to @b polarity. Insert it
@@ -1685,31 +1487,11 @@ Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, bool
  */
 Literal* Literal::create(Literal* l,bool polarity)
 {
-  CALL("Literal::create(Literal*,bool)");
   ASS_EQ(l->getPreDataSize(), 0);
 
-  if (l->isEquality()) {
-    return createEquality(polarity, *l->nthArgument(0), *l->nthArgument(1), SortHelper::getEqualityArgumentSort(l));
-  }
-
-  int arity = l->arity();
-  Literal* m = new(arity) Literal(*l);
-  m->setPolarity(polarity);
-
-  TermList* ts = m->args();
-  TermList* ss = l->args();
-  while (ss->isNonEmpty()) {
-    *ts-- = *ss--;
-  }
-  if (l->shared()) {
-    if (l->isTwoVarEquality()) {
-      m = env.sharing->insertVariableEquality(m, l->twoVarEqSort());
-    }
-    else {
-      m = env.sharing->insert(m);
-    }
-  }
-  return m;
+  return l->isEquality()
+    ? Literal::createEquality(polarity, *l->nthArgument(0), *l->nthArgument(1), SortHelper::getEqualityArgumentSort(l))
+    : Literal::create(l->functor(), l->arity(), polarity, l->commutative(), [&](auto i) { return *l->nthArgument(i); });
 } // Literal::create
 
 /** Create a new literal, copy from @b l its predicate symbol and
@@ -1719,28 +1501,9 @@ Literal* Literal::create(Literal* l,bool polarity)
  */
 Literal* Literal::create(Literal* l,TermList* args)
 {
-  CALL("Literal::create(Literal*,TermList*)");
-  ASS_EQ(l->getPreDataSize(), 0);
-
-  if (l->isEquality()) {
-    return createEquality(l->polarity(), args[0], args[1], SortHelper::getEqualityArgumentSort(l));
-  }
-
-  int arity = l->arity();
-  Literal* m = new(arity) Literal(*l);
-
-  bool share = true;
-  TermList* ts = m->args();
-  for (int i = 0;i < arity;i++) {
-    *ts-- = args[i];
-    if (!args[i].isSafe()) {
-      share = false;
-    }
-  }
-  if (share) {
-    m = env.sharing->insert(m);
-  }
-  return m;
+  return l->isEquality()
+    ? Literal::createEquality(l->polarity(), args[0], args[1], SortHelper::getEqualityArgumentSort(l))
+    : Literal::create(l->functor(), l->arity(), l->polarity(), l->commutative(), [&](auto i) { return args[i]; });
 } // Literal::create
 
 
@@ -1755,80 +1518,40 @@ Literal* Literal::create(Literal* l,TermList* args)
  */
 Literal* Literal::createEquality (bool polarity, TermList arg1, TermList arg2, TermList sort)
 {
-   CALL("Literal::createEquality/4");
-
-   TermList srt1, srt2;
 #if VDEBUG
+   TermList srt1, srt2;
    static RobSubstitution checkSortSubst;
    checkSortSubst.reset();
-#endif
 
    if (!SortHelper::tryGetResultSort(arg1, srt1)) {
      if (!SortHelper::tryGetResultSort(arg2, srt2)) {
        ASS_REP(arg1.isVar(), arg1.toString());
        ASS_REP(arg2.isVar(), arg2.toString());
-       return createVariableEquality(polarity, arg1, arg2, sort);
+     } else{
+       ASS(env.sharing->isWellSortednessCheckingDisabled() || checkSortSubst.match(sort, 0, srt2, 1));
      }
-     ASS(env.sharing->isWellSortednessCheckingDisabled() || checkSortSubst.match(sort, 0, srt2, 1));
    }
    else {    
     ASS_REP2(env.sharing->isWellSortednessCheckingDisabled() || checkSortSubst.match(sort, 0, srt1, 1), sort.toString(), srt1.toString());
-#if VDEBUG
      if (SortHelper::tryGetResultSort(arg2, srt2)) {
        checkSortSubst.reset();
        ASS_REP2(env.sharing->isWellSortednessCheckingDisabled() || checkSortSubst.match(sort, 0, srt2, 1), sort.toString(), arg2.toString() + " :  " + srt2.toString());
      }
-#endif
    }
-   Literal* lit=new(2) Literal(0,2,polarity,true);
-   *lit->nthArgument(0)=arg1;
-   *lit->nthArgument(1)=arg2;
-   if (arg1.isSafe() && arg2.isSafe()) {
-     lit = env.sharing->insert(lit);
-   }
-   return lit;
+#endif // VDEBUG
+
+   auto getArg = [&](auto i) { ASS_L(i, 2); return i == 0 ? arg1 : arg2; };
+   return Literal::create(/* predicate */ 0, /* arity */ 2, polarity, /* commutative */ true, getArg, someIf(arg1.isVar() && arg2.isVar(), [&](){ return sort; }));
 }
 
-/**
- * Create a literal that is equality between two variables.
- */
-Literal* Literal::createVariableEquality (bool polarity, TermList arg1, TermList arg2, TermList variableSort)
-{
-  CALL("Literal::createVariableEquality");
-  ASS(arg1.isVar());
-  ASS(arg2.isVar());
-
-  Literal* lit=new(2) Literal(0,2,polarity,true);
-  *lit->nthArgument(0)=arg1;
-  *lit->nthArgument(1)=arg2;
-  lit = env.sharing->insertVariableEquality(lit, variableSort);
-  return lit;
-}
+Literal* Literal::create(unsigned predicate, bool polarity, std::initializer_list<TermList> args, bool commutative)
+{ return Literal::create(predicate, args.size(), polarity, commutative, [&](auto i) { return args.begin()[i]; }); }
 
 Literal* Literal::create1(unsigned predicate, bool polarity, TermList arg)
-{
-  CALL("Literal::create1");
-
-  return Literal::create(predicate, 1, polarity, false, &arg);
-}
+{ return Literal::create(predicate, polarity, { arg }); }
 
 Literal* Literal::create2(unsigned predicate, bool polarity, TermList arg1, TermList arg2)
-{
-  CALL("Literal::create2");
-  ASS_NEQ(predicate, 0);
-
-  TermList args[] = {arg1, arg2};
-  return Literal::create(predicate, 2, polarity, false, args);
-}
-
-Literal* Literal::create(unsigned pred, bool polarity, std::initializer_list<TermList> args)
-{
-  CALL("Term::create/initializer_list");
-
-  return Literal::create(pred, args.size(), polarity, false, args.begin());
-}
-
-
+{ return Literal::create(predicate, polarity, { arg1, arg2 }); }
 
 /** create a new term and copy from t the relevant part of t's content */
 Term::Term(const Term& t) throw()
@@ -1838,29 +1561,30 @@ Term::Term(const Term& t) throw()
     _hasInterpretedConstants(0),
     _isTwoVarEquality(0),
     _weight(0),
+    _kboWeight(-1),
+#if VDEBUG
+    _kboInstance(nullptr),
+#endif
     _vars(0)
 {
-  CALL("Term::Term/1");
   ASS(!isSpecial()); //we do not copy special terms
 
   _args[0] = t._args[0];
-  _args[0]._info.shared = 0u;
-  _args[0]._info.order = 0u;
-  _args[0]._info.distinctVars = TERM_DIST_VAR_UNKNOWN;
+  _args[0]._setShared(false);
+  _args[0]._setOrder(AO_UNKNOWN);
+  _args[0]._setDistinctVars(TERM_DIST_VAR_UNKNOWN);
 } // Term::Term
 
 /** create a new literal and copy from l its content */
 Literal::Literal(const Literal& l) throw()
   : Term(l)
 {
-  CALL("Literal::Literal/1");
 }
 
 /** create a new AtomicSort and copy from l its content */
 AtomicSort::AtomicSort(const AtomicSort& p) throw()
   : Term(p)
 {
-  CALL("AtomicSort::AtomicSort/1");
 }
 
 /** dummy term constructor */
@@ -1871,30 +1595,50 @@ Term::Term() throw()
    _hasInterpretedConstants(0),
    _isTwoVarEquality(0),
    _weight(0),
+   _kboWeight(-1),
+#if VDEBUG
+   _kboInstance(nullptr),
+#endif
    _maxRedLen(0),
    _vars(0)
 {
-  CALL("Term::Term/0");
-
-  _args[0]._info.polarity = 0;
-  _args[0]._info.commutative = 0;
-  _args[0]._info.shared = 0;
-  _args[0]._info.literal = 0;
-  _args[0]._info.sort = 0;
-  _args[0]._info.hasTermVar = 0;
-  _args[0]._info.order = 0;
-  _args[0]._info.tag = FUN;
-  _args[0]._info.distinctVars = TERM_DIST_VAR_UNKNOWN;
+  _args[0].setContent(0);
+  _args[0]._setTag(FUN);
+  _args[0]._setDistinctVars(TERM_DIST_VAR_UNKNOWN);
 } // Term::Term
 
 Literal::Literal()
 {
-  CALL("Literal::Literal/0");
+}
+
+bool Literal::computable() const {
+  if (!env.signature->getPredicate(this->functor())->computable()) {
+    return false;
+  }
+  for (unsigned i = 0; i < arity(); ++i) {
+    const TermList* t = nthArgument(i);
+    if (!t->isTerm() || !t->term()->computable()) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool Literal::computableOrVar() const {
+  if (!env.signature->getPredicate(this->functor())->computable()) {
+    return false;
+  }
+  for (unsigned i = 0; i < arity(); ++i) {
+    const TermList* t = nthArgument(i);
+    if (t->isTerm() && !t->term()->computableOrVar()) {
+      return false;
+    }
+  }
+  return true;
 }
 
 AtomicSort::AtomicSort()
 {
-  CALL("AtomicSort::AtomicSort/0");
 }
 
 #if VDEBUG
@@ -1904,32 +1648,32 @@ vstring Term::headerToString() const
   s += Int::toString(_functor) + ", arity: " + Int::toString(_arity)
     + ", weight: " + Int::toString(_weight)
     + ", vars: " + Int::toString(_vars)
-    + ", polarity: " + Int::toString(_args[0]._info.polarity)
-    + ", commutative: " + Int::toString(_args[0]._info.commutative)
-    + ", shared: " + Int::toString(_args[0]._info.shared)
-    + ", literal: " + Int::toString(_args[0]._info.literal)
-    + ", order: " + Int::toString(_args[0]._info.order)
-    + ", tag: " + Int::toString(_args[0]._info.tag);
+    + ", polarity: " + Int::toString(_args[0]._polarity())
+    + ", commutative: " + Int::toString(_args[0]._commutative())
+    + ", shared: " + Int::toString(_args[0]._shared())
+    + ", literal: " + Int::toString(_args[0]._literal())
+    + ", order: " + Int::toString(_args[0]._order())
+    + ", tag: " + Int::toString(_args[0]._tag());
   return s;
 }
 
 void Term::assertValid() const
 {
   ASS_ALLOC_TYPE(this, "Term");
-  ASS_EQ(_args[0]._info.tag, FUN);
+  ASS_EQ(_args[0]._tag(), FUN);
 }
 
 void TermList::assertValid() const
 {
   if (this->isTerm()) {
     ASS_ALLOC_TYPE(_term, "Term");
-    ASS_EQ(_term->_args[0]._info.tag, FUN);
+    ASS_EQ(_term()->_args[0]._tag(), FUN);
   }
 }
 
 #endif
 
-std::ostream& Kernel::operator<< (ostream& out, TermList tl )
+std::ostream& Kernel::operator<<(std::ostream& out, TermList const& tl)
 {
   if (tl.isEmpty()) {
     return out<<"<empty TermList>";
@@ -1937,14 +1681,14 @@ std::ostream& Kernel::operator<< (ostream& out, TermList tl )
   if (tl.isVar()) {
     return out<<Term::variableToString(tl);
   }
-  return out<<tl.term()->toString();
+  return out << *tl.term();
 }
 
-std::ostream& Kernel::operator<< (ostream& out, const Term& t )
+std::ostream& Kernel::operator<<(std::ostream& out, const Term& t)
 {
   return out<<t.toString();
 }
-std::ostream& Kernel::operator<< (ostream& out, const Literal& l )
+std::ostream& Kernel::operator<<(std::ostream& out, const Literal& l)
 {
   return out<<l.toString();
 }
@@ -1968,9 +1712,11 @@ bool Kernel::operator<(const TermList& lhs, const TermList& rhs)
   }
 }
 
+bool Literal::rightArgOrder(TermList const& lhs, TermList const& rhs) 
+{ return !Indexing::TermSharing::argNormGt(lhs,rhs); }
+
 bool Kernel::positionIn(TermList& subterm,TermList* term,vstring& position)
 {
-  CALL("positionIn(TermList)");
    //cout << "positionIn " << subterm.toString() << " in " << term->toString() << endl;
 
   if(!term->isTerm()){
@@ -1986,7 +1732,6 @@ bool Kernel::positionIn(TermList& subterm,TermList* term,vstring& position)
 
 bool Kernel::positionIn(TermList& subterm,Term* term,vstring& position)
 {
-  CALL("positionIn(Term)");
   //cout << "positionIn " << subterm.toString() << " in " << term->toString() << endl;
 
   if(subterm.isTerm() && subterm.term()==term){
@@ -2026,4 +1771,46 @@ TermList Term::typeArg(unsigned n) const
   ASS_LE(0, n)
   ASS_L(n, numTypeArguments())
   return *nthArgument(n);
+}
+
+bool Term::computable() const {
+  if (!env.signature->getFunction(this->functor())->computable()) {
+    return false;
+  }
+  SubtermIterator sit(this);
+  while (sit.hasNext()) {
+    TermList t = sit.next();
+    if (!t.isTerm() || !env.signature->getFunction(t.term()->functor())->computable()) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool Term::computableOrVar() const {
+  if (!env.signature->getFunction(this->functor())->computable()) {
+    return false;
+  }
+  SubtermIterator sit(this);
+  while (sit.hasNext()) {
+    TermList t = sit.next();
+    if (t.isTerm() && !env.signature->getFunction(t.term()->functor())->computable()) {
+      return false;
+    }
+  }
+  return true;
+}
+
+std::ostream& Kernel::operator<<(std::ostream& out, SpecialFunctor const& self)
+{
+  switch (self) {
+    case SpecialFunctor::ITE: return out << "ITE";
+    case SpecialFunctor::LET: return out << "LET";
+    case SpecialFunctor::FORMULA: return out << "FORMULA";
+    case SpecialFunctor::TUPLE: return out << "TUPLE";
+    case SpecialFunctor::LET_TUPLE: return out << "LET_TUPLE";
+    case SpecialFunctor::LAMBDA: return out << "LAMBDA";
+    case SpecialFunctor::MATCH: return out << "SPECIAL_FUNCTOR_LAST ";
+  }
+  ASSERTION_VIOLATION
 }

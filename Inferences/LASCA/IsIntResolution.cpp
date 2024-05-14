@@ -29,7 +29,6 @@ namespace LASCA {
 
 void IsIntResolution::attach(SaturationAlgorithm* salg) 
 {
-  CALL("IsIntResolution::attach");
   GeneratingInferenceEngine::attach(salg);
 
   ASS(!_lhsIndex);
@@ -43,7 +42,6 @@ void IsIntResolution::attach(SaturationAlgorithm* salg)
 
 void IsIntResolution::detach() 
 {
-  CALL("IsIntResolution::detach");
   ASS(_salg);
   GeneratingInferenceEngine::detach();
 
@@ -67,7 +65,6 @@ using Rhs = IsIntResolution::Rhs;
 ClauseIterator IsIntResolution::generateClauses(Clause* premise) 
 {
   // TODO refactor so this function is not copied and pasted among all unifying lasca rules
-  CALL("IsIntResolution::generateClauses(Clause* premise)")
   ASS(_lhsIndex)
   ASS(_rhsIndex)
   ASS(_shared)
@@ -102,7 +99,7 @@ ClauseIterator IsIntResolution::generateClauses(Clause* premise)
     }
   }
 
-  return pvi(ownedArrayishIterator(std::move(out)));
+  return pvi(arrayIter(std::move(out)));
 }
 
 Option<Clause*> IsIntResolution::applyRule(
@@ -126,9 +123,8 @@ Option<Clause*> IsIntResolution::applyRule(NumTraits,
 {
 
 
-  CALL("IsIntResolution::applyRule")
   TIME_TRACE("isInt-resolution")
-  auto cnst = uwa.constraintLiterals();
+  auto cnst = uwa.computeConstraintLiterals();
   auto& sigma = uwa.subs();
 
 

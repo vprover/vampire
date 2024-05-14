@@ -34,11 +34,10 @@ class EqFactoring
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(EqFactoring);
   USE_ALLOCATOR(EqFactoring);
 
   EqFactoring(EqFactoring&&) = default;
-  EqFactoring(shared_ptr<LascaState> shared)
+  EqFactoring(std::shared_ptr<LascaState> shared)
     : _shared(std::move(shared))
   {  }
 
@@ -54,7 +53,7 @@ public:
 
 private:
 
-  shared_ptr<LascaState> _shared;
+  std::shared_ptr<LascaState> _shared;
 };
 
 } // namespace LASCA 

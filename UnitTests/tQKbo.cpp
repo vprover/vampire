@@ -100,7 +100,6 @@ void check_in_different_contexts(QKbo& ord, TermList l, QKbo::Result exp, TermLi
 }
 
 QKbo& qkbo(bool rand = false) {
-  CALL("qkbo(...)")
     
   auto out = new QKbo(KBO::testKBO(rand, /* qkboPrec */ true));
   auto shared = testLascaState(Options::UnificationWithAbstraction::ALASCA2, 

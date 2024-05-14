@@ -71,7 +71,6 @@ std::ostream& operator<<(std::ostream& out, Sign const& self);
 class IntegerConstantType
 {
 public:
-  CLASS_NAME(IntegerConstantType)
   static TermList getSort() { return AtomicSort::intSort(); }
 
 #if WITH_GMP
@@ -155,7 +154,7 @@ public:
   size_t hash() const;
 
   vstring toString() const;
-  friend std::ostream& operator<<(ostream& out, const IntegerConstantType& val);
+  friend std::ostream& operator<<(std::ostream& out, const IntegerConstantType& val);
 private:
   InnerType _val;
   IntegerConstantType operator/(const IntegerConstantType& num) const;
@@ -174,7 +173,6 @@ private:
  */
 struct RationalConstantType {
   typedef IntegerConstantType InnerType;
-  CLASS_NAME(RationalConstantType)
 
   static TermList getSort() { return AtomicSort::rationalSort(); }
 
@@ -237,7 +235,7 @@ struct RationalConstantType {
 
   static Comparison comparePrecedence(RationalConstantType n1, RationalConstantType n2);
 
-  friend std::ostream& operator<<(ostream& out, const RationalConstantType& val); 
+  friend std::ostream& operator<<(std::ostream& out, const RationalConstantType& val); 
 
 #if !WITH_GMP
 protected:
@@ -251,13 +249,12 @@ private:
   InnerType _den;
 };
 
-std::ostream& operator<<(ostream& out, const IntegerConstantType& val); 
+std::ostream& operator<<(std::ostream& out, const IntegerConstantType& val); 
 
 
 class RealConstantType : public RationalConstantType
 {
 public:
-  CLASS_NAME(RealConstantType)
   static TermList getSort() { return AtomicSort::realSort(); }
 
   RealConstantType() {}
@@ -309,7 +306,7 @@ public:
    */
   RationalConstantType representation() const;
 
-  friend std::ostream& operator<<(ostream& out, const RealConstantType& val);
+  friend std::ostream& operator<<(std::ostream& out, const RealConstantType& val);
 private:
   static bool parseDouble(const vstring& num, RationalConstantType& res);
 
@@ -477,8 +474,6 @@ public:
 
   Interpretation interpretationFromIndexedInterpretation(IndexedInterpretation ii, unsigned index)
   {
-    CALL("inpretationFromIndexedInterpretation");
-
     ConcreteIndexedInterpretation cii = std::make_pair(ii,index);
 
     Interpretation res;
@@ -574,7 +569,6 @@ public:
    */
   bool tryInterpretConstant(TermList trm, IntegerConstantType& res)
   {
-    CALL("Theory::tryInterpretConstant(TermList,IntegerConstantType)");
     if (!trm.isTerm()) {
       return false;
     }
@@ -590,7 +584,6 @@ public:
    */
   bool tryInterpretConstant(TermList trm, RationalConstantType& res)
   {
-    CALL("Theory::tryInterpretConstant(TermList,RationalConstantType)");
     if (!trm.isTerm()) {
       return false;
     }
@@ -605,7 +598,6 @@ public:
    */
   bool tryInterpretConstant(TermList trm, RealConstantType& res)
   {
-    CALL("Theory::tryInterpretConstant(TermList,RealConstantType)");
     if (!trm.isTerm()) {
       return false;
     }

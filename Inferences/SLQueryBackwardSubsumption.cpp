@@ -53,7 +53,6 @@ using namespace Saturation;
 
 void SLQueryBackwardSubsumption::attach(SaturationAlgorithm* salg)
 {
-  CALL("SLQueryBackwardSubsumption::attach");
   ASS(!_index);
 
   BackwardSimplificationEngine::attach(salg);
@@ -63,7 +62,6 @@ void SLQueryBackwardSubsumption::attach(SaturationAlgorithm* salg)
 
 void SLQueryBackwardSubsumption::detach()
 {
-  CALL("SLQueryBackwardSubsumption::detach");
   _index=0;
   _salg->getIndexManager()->release(BACKWARD_SUBSUMPTION_SUBST_TREE);
   BackwardSimplificationEngine::detach();
@@ -90,7 +88,6 @@ struct SLQueryBackwardSubsumption::ClauseToBwSimplRecordFn
 void SLQueryBackwardSubsumption::perform(Clause* cl,
 	BwSimplificationRecordIterator& simplifications)
 {
-  CALL("SLQueryBackwardSubsumption::perform");
   ASSERT_VALID(*cl);
 
   //we do all work in this method, so we can just measure time simply
@@ -106,7 +103,7 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
     ClauseIterator subsumedClauses=getUniquePersistentIterator(
 	    getFilteredIterator(
 		    getMappingIterator(rit,ClauseExtractorFn()),
-		    getNonequalFn(cl)));
+		    [=](auto c) { return c != cl; }));
     ASS(subsumedClauses.knowsSize());
     unsigned subsumedCnt=subsumedClauses.size();
     simplifications=pvi( getMappingIterator(
@@ -116,11 +113,11 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
   }
 
   if(clen==1) {
-    SLQueryResultIterator rit=_index->getInstances( (*cl)[0], false, false);
+    auto rit = _index->getInstances( (*cl)[0], false, false);
     ClauseIterator subsumedClauses=getUniquePersistentIterator(
 	    getFilteredIterator(
 		    getMappingIterator(rit,ClauseExtractorFn()),
-		    getNonequalFn(cl)));
+		    [=](auto c) { return c != cl; }));
     ASS(subsumedClauses.knowsSize());
     unsigned subsumedCnt=subsumedClauses.size();
     simplifications=pvi( getMappingIterator(
@@ -158,9 +155,9 @@ void SLQueryBackwardSubsumption::perform(Clause* cl,
   static DHSet<Clause*> checkedClauses;
   checkedClauses.reset();
 
-  SLQueryResultIterator rit=_index->getInstances( (*cl)[lmIndex], false, false);
+  auto rit = _index->getInstances( (*cl)[lmIndex], false, false);
   while(rit.hasNext()) {
-    SLQueryResult qr=rit.next();
+    auto qr = rit.next();
     Clause* icl=qr.data->clause;
     Literal* ilit=qr.data->literal;
     unsigned ilen=icl->length();

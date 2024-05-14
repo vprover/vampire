@@ -34,11 +34,10 @@ class VariableElimination
 : public SimplifyingGeneratingInference
 {
 public:
-  CLASS_NAME(VariableElimination);
   USE_ALLOCATOR(VariableElimination);
 
   VariableElimination(VariableElimination&&) = default;
-  VariableElimination(shared_ptr<LascaState> shared, bool simplify) 
+  VariableElimination(std::shared_ptr<LascaState> shared, bool simplify) 
     : _shared(std::move(shared))
     , _simplify(simplify)
   {  }
@@ -104,7 +103,7 @@ private:
 
   template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit) const;
 
-  shared_ptr<LascaState> _shared;
+  std::shared_ptr<LascaState> _shared;
   const bool _simplify;
 };
 

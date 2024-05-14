@@ -26,6 +26,7 @@
 #include "KBO.hpp"
 #include "Ordering.hpp"
 #include "Signature.hpp"
+#include "SubstHelper.hpp"
 #include "TermIterators.hpp"
 
 namespace Kernel {
@@ -40,11 +41,6 @@ class SKIKBO
 : public PrecedenceOrdering
 {
 public:
-  CLASS_NAME(SKIKBO);
-  USE_ALLOCATOR(SKIKBO);
-
-  SKIKBO(SKIKBO&&) = default;
-  SKIKBO& operator=(SKIKBO&&) = default;
   SKIKBO(Problem& prb, const Options& opt, bool basic_hol = false);
   SKIKBO(
         // KBO params
@@ -67,6 +63,8 @@ public:
 
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
+  Result compare(AppliedTerm tl1, AppliedTerm tl2) const override { NOT_IMPLEMENTED; }
+  bool isGreater(AppliedTerm tl1, AppliedTerm tl2) const override { NOT_IMPLEMENTED; }
   static unsigned maximumReductionLength(Term* t);
   static TermList reduce(TermStack& args, TermList& head);
 
@@ -89,7 +87,7 @@ protected:
     return Ordering::INCOMPARABLE;
   }
 
-  void showConcrete(ostream&) const override
+  void showConcrete(std::ostream&) const override
   { NOT_IMPLEMENTED; }
 
   //VarCondRes compareVariables(VarOccMap&, VarOccMap&, VarCondRes) const;

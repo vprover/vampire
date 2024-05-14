@@ -37,7 +37,6 @@ using namespace Saturation;
 class Demodulation
 {
 public:
-  CLASS_NAME(Demodulation);
   USE_ALLOCATOR(Demodulation);
 
   // ±ks + t ≈ 0          C[sσ]

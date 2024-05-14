@@ -10,6 +10,8 @@
 
 namespace AdditionGeneralizationImpl {
 
+using namespace std;
+
 /**
  * Rule' 2)
  *   generalize multiplication
@@ -56,7 +58,6 @@ public:
   }
 
   MonomSet intersect(MonomSet&& rhs) && {
-    CALL("MonomSet::intersect")
     auto& lhs = *this;
     return MonomSet(intersectSortedStack(std::move(lhs._cancellable), std::move(rhs._cancellable)));
   }
@@ -67,7 +68,7 @@ public:
   bool isBot() const 
   { return _cancellable.isEmpty(); }
 
-  friend ostream& operator<<(ostream& out, MonomSet const& self)
+  friend std::ostream& operator<<(std::ostream& out, MonomSet const& self)
   { return out << self._cancellable; }
 };
 
@@ -79,7 +80,6 @@ struct Preprocess
   template<class NumTraits> 
   void operator()(Perfect<Polynom<NumTraits>> poly)
   {
-    CALL("AdditionGeneralizationImpl::Preprocess::operator()")
     // a variable might occur twice within one sum.
     Set<Variable, StlHash> didOccur;
     for (auto monom : poly->iterSummands()) {
@@ -94,7 +94,7 @@ struct Preprocess
             { 
               auto old = old_.downcast<NumTraits>().unwrap();
               auto result = std::move(old).intersect(std::move(gen));
-              return AnyNumber<MonomSet>(std::move(result)); 
+              return AnyNumber<MonomSet>(std::move(result));
             },
             [&]() { return AnyNumber<MonomSet>(std::move(gen)); });
       } else {
@@ -123,7 +123,6 @@ struct Generalize
   template<class NumTraits>
   Perfect<Polynom<NumTraits>> operator()(Perfect<Polynom<NumTraits>> poly, PolyNf* generalizedArgs)  
   {
-    CALL("AdditionGeneralizationImpl::Generalize::operator()")
     using Monom = Kernel::Monom<NumTraits>;
 
     auto found = poly->iterSummands()

@@ -48,10 +48,8 @@ public:
   {}
   static FormulaUnit* rectify(FormulaUnit*, bool removeUnusedVars=true);
   static void rectify(UnitList*& units);
-  // for NameReuse
-  Formula* rectify(Formula*);
 private:
-  typedef pair<unsigned,bool> VarWithUsageInfo;
+  typedef std::pair<unsigned,bool> VarWithUsageInfo;
   typedef List<VarWithUsageInfo> VarUsageTrackingList;
   /** Renaming stores bindings for free and bound variables */
   class Renaming
@@ -84,6 +82,7 @@ private:
 
   unsigned rectifyVar(unsigned v);
 
+  Formula* rectify(Formula*);
   FormulaList* rectify(FormulaList*);
   void bindVars(VList*);
   void unbindVars(VList*);
@@ -94,7 +93,8 @@ private:
   Literal* rectify(Literal*);
   Literal* rectifyShared(Literal* lit);
   SList* rectifySortList(SList* from, bool& modified);
-  bool rectify(TermList* from,TermList* to);
+  template<class From, class To>
+  bool rectify(From from, To to, unsigned cnt);
 
   friend class Kernel::SubstHelper;
   /** This is to allow use of SubstHelper::apply with the rectify object as applicator*/
@@ -108,10 +108,6 @@ private:
   /** if true, unused quantified variables will be removed */
   bool _removeUnusedVars;
 
-//  /** next variable to bind to */
-//  int _nextVar;
-//  /** next row variable to bind to */
-//  int _nextRow;
 }; // class Rectify
 
 }

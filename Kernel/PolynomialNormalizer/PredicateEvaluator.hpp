@@ -12,7 +12,6 @@ template<Theory::Interpretation inter>
 struct PredicateEvaluator;
 
 template<class C> using Poly = Polynom<NumTraits<C>>;
-#include "Debug/Tracer.hpp"
 #include "Lib/STLAllocator.hpp"
 #include "Lib/Option.hpp"
 
@@ -24,7 +23,6 @@ using LitSimplResult = Inferences::SimplifyingGeneratingLiteralSimplification::R
   struct PredicateEvaluator<interpretation> {                                                                 \
     static Option<LitSimplResult> evaluate(Literal* orig, PolyNf* evaluatedArgs)                              \
     {                                                                                                         \
-      CALL("PredicateEvaluator<" #interpretation ">::evaluate(Literal*,PolyNf*)");                            \
       __VA_ARGS__                                                                                             \
     }                                                                                                         \
   };

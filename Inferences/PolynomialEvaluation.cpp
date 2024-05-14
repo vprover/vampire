@@ -9,13 +9,13 @@
  */
 
 #include "Inferences/PolynomialEvaluation.hpp"
+#include "Kernel/BottomUpEvaluation.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Shell/Statistics.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/BottomUpEvaluation/PolyNf.hpp"
 
 #define DEBUG(...)  // DBG(__VA_ARGS__)
 using namespace Lib;
@@ -31,14 +31,11 @@ PolynomialEvaluationRule::~PolynomialEvaluationRule() {}
 PolynomialEvaluationRule::PolynomialEvaluationRule(Ordering& ordering) 
   : SimplifyingGeneratingLiteralSimplification(InferenceRule::EVALUATION, ordering)
   // TODO we have an additional step of normalization here. simplify!
-  , _inner(/* removeZeros */ true) 
   , _alwaysEvaluate(env.options->lasca())
   {}
 
 
 Literal* createLiteral(Literal* orig, PolyNf* evaluatedArgs) {
-  CALL("createLiteral");
-
   if (orig->isEquality()) {
     return Literal::createEquality(
           orig->polarity(), 
@@ -61,7 +58,6 @@ Literal* createLiteral(Literal* orig, PolyNf* evaluatedArgs) {
 
 PolynomialEvaluationRule::Result PolynomialEvaluationRule::simplifyLiteral(Literal* lit) 
 {
-  CALL("PolynomialEvaluation::simplifyLiteral");
   TIME_TRACE("polynomial evaluation");
 
   Stack<PolyNf> terms(lit->numTermArguments());
@@ -86,7 +82,6 @@ PolynomialEvaluationRule::Result PolynomialEvaluationRule::simplifyLiteral(Liter
 #include "Kernel/PolynomialNormalizer/PredicateEvaluator.hpp"
 
 Option<LitSimplResult> PolynomialEvaluation::tryEvalPredicate(Literal* orig, PolyNf* evaluatedArgs) const {
-  CALL("PolynomialEvaluation::tryEvalPredicate(Literal* term)")
   DEBUG("evaluating: ", orig->toString());
 
 #define HANDLE_CASE(INTER) case Interpretation::INTER: return PredicateEvaluator<Interpretation::INTER>::evaluate(orig, evaluatedArgs); 
@@ -137,9 +132,8 @@ Option<LitSimplResult> PolynomialEvaluation::tryEvalPredicate(Literal* orig, Pol
 #include "Inferences/FunctionEvaluation.cpp"
 
 
-Option<PolyNf> trySimplify(FuncTerm const& orig, Theory::Interpretation i, PolyNf* evalArgs) 
+Option<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs) 
 {
-  CALL("trySimplify(FuncTerm orig, Theory::Interpretation i, PolyNf* evalArgs) ")
   switch (i) {
 
 #define CONSTANT_CASE_2(Num, func, expr)                                                                      \
@@ -211,52 +205,42 @@ PolyNf simplifyPoly(AnyPoly const& p, PolyNf* ts, bool removeZeros)
 
 Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const 
 {
-  CALL("PolynomialEvaluation::evaluate(TypedTermList term) const")
-  TIME_TRACE("evaluating polynomial")
-
   DEBUG("evaluating ", normalized)
-  struct Eval 
-  {
-    const PolynomialEvaluation& norm;
-    bool _removeZeros;
+  static Memo::Hashed<PolyNf, PolyNf, StlHash> memo;
+  auto out = BottomUpEvaluation<PolyNf, PolyNf>()
+    .function(
+        [&](PolyNf orig, PolyNf* ts) -> PolyNf 
+        { 
+          return orig.match(
+              [&](Perfect<FuncTerm> f)
+              { 
+                return f->function().tryInterpret()
+                  .andThen( [&](Theory::Interpretation && i)  -> Option<PolyNf>
+                    { return trySimplify(i, ts); })
+                  .unwrapOrElse([&]() -> PolyNf
+                    { return PolyNf(perfect(FuncTerm(f->function(), ts))); });
 
-    using Result = PolyNf;
-    using Arg    = PolyNf;
+              }, 
 
-    PolyNf operator()(PolyNf orig, PolyNf* ts) 
-    { 
-      return orig.match(
-          [&](Perfect<FuncTerm> f)  -> PolyNf
-          { 
-            auto itp = f->function().tryInterpret();
-            auto simpl = itp.isSome() ?  trySimplify(*f, itp.unwrap(), ts)
-                                      : none<PolyNf>();
+              [&](Variable v) 
+              { return PolyNf(v); },
 
-            return simpl || [&]() {
-              Stack<PolyNf> args(f->numTermArguments());
-              for (unsigned i = 0; i < f->numTermArguments(); i++)
-                args.push(std::move(ts[i]));
-              return PolyNf(perfect(FuncTerm(f->function(), std::move(args))));
-            };
-          }, 
-
-          [&](Variable v) 
-          { return PolyNf(v); },
-
-          [&](AnyPoly p) 
-          { return simplifyPoly(p, ts, _removeZeros); }
-      );
-    }
-  };
-  auto out = evaluateBottomUp(normalized, Eval{ *this, _removeZeros, }, _memo);
-  return out == normalized ? Option<PolyNf>()
-                           : Option<PolyNf>(std::move(out));
+              [&](AnyPoly p) 
+              { return PolyNf(simplifyPoly(p, ts, /*removeZeros=*/true)); }
+          );
+        })
+    .memo(memo)
+    .apply(normalized);
+  if (out == normalized) {
+    return Option<PolyNf>();
+  } else {
+    return Option<PolyNf>(out);
+  }
 }
 
 template<class Number>
 PolyNf PolynomialEvaluation::simplifySummation(Stack<Monom<Number>> summands, bool removeZeros)
 { 
-  CALL("simplifySummation(Stack<Monom<Number>>, bool removeZeros)") 
   using Monom   = Monom<Number>;
   using Polynom = Polynom<Number>;
 
@@ -302,7 +286,6 @@ template PolyNf PolynomialEvaluation::simplifySummation<RealTraits>(Stack<Monom<
 template<class Number>
 PolyNf simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs, bool removeZeros)
 {
-  CALL("simplify(Polynom<Number>const&, PolyNf* simplifiedArgs)") 
   using Monom   = Monom<Number>;
 
   // first we simplify all the monoms containted in this polynom

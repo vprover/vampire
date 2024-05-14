@@ -19,7 +19,6 @@
 #include "Options.hpp"
 #include "LaTeX.hpp"
 
-#include "Debug/Tracer.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
@@ -46,6 +45,7 @@
 namespace Shell
 {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
@@ -96,8 +96,6 @@ vstring LaTeX::footer()
  */
 vstring LaTeX::refutationToString(Unit* ref)
 {
-  CALL("LaTeX::refutationToString(Unit* ref)");
-
   vstring res = header(); 
 
   Stack<Unit*> outKernel;
@@ -164,8 +162,6 @@ vstring LaTeX::refutationToString(Unit* ref)
 
 vstring LaTeX::toString(Unit* u)
 {
-  CALL("LaTeX::toString(Unit* u)");
-
   if(u->isClause()) {
     return toString(static_cast<Clause*>(u));
   } else {
@@ -193,8 +189,6 @@ vstring replaceNeg(vstring s)
  */
 vstring LaTeX::toString (Formula* f) const
 {
-  CALL("LaTeX::toString(Formula* f)");
-
   static vstring names [] =
   { "", " \\Vand ", " \\Vor ", " \\Vimp ", " \\Viff ", " \\Vxor ",
 	  "\\neg ", "\\forall ", "\\exists ", "\bot", "\top", "", ""};
@@ -267,8 +261,6 @@ vstring LaTeX::toString (Formula* f) const
  */
 vstring LaTeX::toString (Formula* f, Connective outer) const
 {
-  CALL("LaTeX::toString (Formula* f, Connective outer)");
-
   return f->parenthesesRequired(outer) ?
 	  vstring("(") + toString(f) + ")" :
 	  toString(f);
@@ -282,13 +274,11 @@ vstring LaTeX::toString (Formula* f, Connective outer) const
  */
 vstring LaTeX::toString (Clause* c)
 {
-  CALL("LaTeX::toString (Clause* c)");
-
   vstring result;
 
   if (c->isEmpty()) {
     if(c->splits() && !c->splits()->isEmpty()){
-      SplitSet::Iterator sit(*c->splits());
+      auto sit = c->splits()->iter();
       result = "\\mathit{false}";
       while(sit.hasNext()){
         result += vstring(" \\Vor ") + replaceNeg(Saturation::Splitter::getFormulaStringFromName(sit.next(),true /*negated*/));
@@ -306,7 +296,7 @@ vstring LaTeX::toString (Clause* c)
       result += vstring(" \\Vor ") + toString((*c)[i]);
     }
     if(c->splits() && !c->splits()->isEmpty()){
-      SplitSet::Iterator sit(*c->splits());
+      auto sit = c->splits()->iter();
       while(sit.hasNext()){
         result += vstring(" \\Vor ") + replaceNeg(Saturation::Splitter::getFormulaStringFromName(sit.next(),true /*negated*/));
       }
@@ -323,8 +313,6 @@ vstring LaTeX::toString (Clause* c)
  */
 vstring LaTeX::toString (Literal* l) const
 {
-  CALL("LaTeX::toString (Literal* l)");
-
   if (l->isEquality()) {
     if (l->isNegative()) {
       return toString(l->nthArgument(0),true) + " \\neq " + toString(l->nthArgument(1),true);
@@ -378,8 +366,6 @@ vstring LaTeX::toString (Literal* l) const
  */
 vstring LaTeX::symbolToString (unsigned num, bool pred) const
 {
-  CALL("LaTeX::symbolToString (unsigned num, bool pred)");
-
   vstring symbolName; // the name of this symbol, if any
 
   if(pred) {
@@ -476,8 +462,6 @@ vstring LaTeX::symbolToString (unsigned num, bool pred) const
  */
 vstring LaTeX::toString (TermList* terms,bool single) const
 {
-  CALL("LaTeX::toString (TermList* terms)");
-
   if (terms->isEmpty()) {
     return "";
   }
@@ -567,8 +551,6 @@ vstring LaTeX::getClauseLatexId(Unit* cs)
 
 vstring LaTeX::toStringAsInference(Unit* cs, InferenceStore::FullInference* inf)
 {
-  CALL("LaTeX::toStringAsInference(ClauseSpec,FullInference*)");
-
   vstring res("\\begin{VampireStep}\n[$");
 
   bool hasParents=inf->premCnt;
@@ -614,8 +596,6 @@ vstring LaTeX::toStringAsInference(Unit* cs, InferenceStore::FullInference* inf)
  */
 vstring LaTeX::toStringAsInference(Unit* unit)
 {
-  CALL("LaTeX::toStringAsInference(Unit* unit)");
-
   Inference& inf = unit->inference();
 
   vstring res("\\begin{VampireStep}\n[$");
@@ -661,8 +641,6 @@ vstring LaTeX::toStringAsInference(Unit* unit)
 /*
 vstring LaTeX::splittingToString(InferenceStore::SplittingRecord* sr)
 {
-  CALL("LaTeX::splittingToString");
-
   vstring res("[$");
   res += getClauseLatexId(sr->premise);
 
@@ -714,8 +692,6 @@ vstring LaTeX::splittingToString(InferenceStore::SplittingRecord* sr)
  */
 vstring LaTeX::varToString (unsigned num) const
 {
-  CALL("LaTeX::varToString (unsigned num)");
-
 //  if (v.toInt() < 0) { // row variable
 //    return vstring("@_{") + Int::toString(-v.toInt()) + "}";
 //  }

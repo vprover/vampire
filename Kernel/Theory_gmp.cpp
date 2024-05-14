@@ -32,10 +32,7 @@
 #include "Theory.hpp"
 
 std::ostream& operator<<(std::ostream& out, mpz_class const& self)
-{ 
-  BYPASSING_ALLOCATOR;
-  return out << self.get_str(); 
-}
+{ return out << self.get_str(); }
 
 namespace Kernel
 {
@@ -49,7 +46,6 @@ using namespace Lib;
 IntegerConstantType::IntegerConstantType(vstring const& str)
   : _val()
 {
-  CALL("IntegerConstantType::IntegerConstantType(vstring const&)");
 
   if (-1 == mpz_set_str(_val.get_mpz_t(), str.c_str(), /* base */ 10)) {
     throw UserErrorException("not a valit string literal: ", str);
@@ -70,7 +66,6 @@ IntegerConstantType IntegerConstantType::operator-() const
 
 IntegerConstantType IntegerConstantType::intDivide(const IntegerConstantType& num) const 
 {
-  CALL("IntegerConstantType::intDivide");
   ASS_REP(num.divides(*this),  num.toString() + " does not divide " + this->toString() );
   ASS_REP(num._val != 0, "divisor must not be zero")
 
@@ -103,7 +98,6 @@ int Kernel::IntegerConstantType::unwrapInt() const
  */
 IntegerConstantType IntegerConstantType::quotientE(const IntegerConstantType& num) const
 {
-  CALL("IntegerConstantType::remainderE");
   auto& n = this->_val;
   auto& d = num._val;
   mpz_class out;
@@ -121,7 +115,6 @@ IntegerConstantType IntegerConstantType::quotientE(const IntegerConstantType& nu
 }
 IntegerConstantType IntegerConstantType::remainderE(const IntegerConstantType& num) const
 {
-  CALL("IntegerConstantType::remainderE");
   auto& n = this->_val;
   auto& d = num._val;
   mpz_class out;
@@ -206,7 +199,6 @@ IntegerConstantType IntegerConstantType::remainderT(const IntegerConstantType& n
 
 bool IntegerConstantType::divides(const IntegerConstantType& num) const 
 {
-  CALL("IntegerConstantType:divides");
   if (_val == 0) { return false; }
   if (num._val == _val) { return true; }
   mpz_class out;
@@ -216,7 +208,6 @@ bool IntegerConstantType::divides(const IntegerConstantType& num) const
 // //TODO remove this operator. We already have 3 other ways of computing the remainder, required by the semantics of TPTP and SMTCOMP.
 // IntegerConstantType IntegerConstantType::operator%(const IntegerConstantType& num) const
 // {
-//   CALL("IntegerConstantType::operator%");
 //
 //   //TODO: check if modulo corresponds to the TPTP semantic
 //   if (num._val==0) {
@@ -276,7 +267,6 @@ Sign RationalConstantType::sign() const
 //  */
 // IntegerConstantType IntegerConstantType::ceiling(RationalConstantType rat)
 // {
-//   CALL("IntegerConstantType::ceiling");
 //
 //   IntegerConstantType num = rat.numerator();
 //   IntegerConstantType den = rat.denominator();
@@ -294,7 +284,6 @@ Sign RationalConstantType::sign() const
 
 Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, IntegerConstantType n2)
 {
-  CALL("IntegerConstantType::comparePrecedence");
   auto cmp = ::cmp(n1.abs().toInner(), n2.abs().toInner());
   if (cmp > 0) return Comparison::GREATER;
   if (cmp < 0) return Comparison::LESS;
@@ -306,9 +295,7 @@ Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, Intege
 
 vstring IntegerConstantType::toString() const
 {
-  CALL("IntegerConstantType::toString");
-  BYPASSING_ALLOCATOR;
-  string s = _val.get_str();
+  auto s = _val.get_str();
   return vstring(s.c_str());
 }
 ///////////////////////
@@ -325,7 +312,6 @@ RationalConstantType::RationalConstantType(const vstring& num, const vstring& de
 
 RationalConstantType RationalConstantType::operator+(const RationalConstantType& o) const
 {
-  CALL("RationalConstantType::operator+");
 
   if (_den==o._den) {
     return RationalConstantType(_num + o._num, _den);
@@ -335,21 +321,18 @@ RationalConstantType RationalConstantType::operator+(const RationalConstantType&
 
 RationalConstantType RationalConstantType::operator-(const RationalConstantType& o) const
 {
-  CALL("RationalConstantType::operator-/1");
 
   return (*this) + (-o);
 }
 
 RationalConstantType RationalConstantType::operator-() const
 {
-  CALL("RationalConstantType::operator-/0");
 
   return RationalConstantType(-_num, _den);
 }
 
 RationalConstantType RationalConstantType::operator*(const RationalConstantType& o) const
 {
-  CALL("RationalConstantType::operator*");
 
   return RationalConstantType(_num*o._num, _den*o._den);
 }
@@ -370,7 +353,6 @@ bool RationalConstantType::isInt() const
 
 bool RationalConstantType::operator==(const RationalConstantType& o) const
 {
-  CALL("IntegerConstantType::operator==");
   return _num==o._num && _den==o._den;
 }
 
@@ -417,7 +399,6 @@ IntegerConstantType IntegerConstantType::gcd(IntegerConstantType const& l, Integ
  */
 void RationalConstantType::cannonize()
 {
-  CALL("RationalConstantType::cannonize");
   mpq_class q(_num.toInner(), _den.toInner());
   q.canonicalize();
   _num = IntegerConstantType(std::move(q.get_num()));
@@ -441,7 +422,6 @@ Comparison RealConstantType::comparePrecedence(RealConstantType n1, RealConstant
 
 bool RealConstantType::parseDouble(const vstring& num, RationalConstantType& res)
 {
-  CALL("RealConstantType::parseDouble");
 
   vstring newNum;
   IntegerConstantType denominator = IntegerConstantType(1);
@@ -485,7 +465,6 @@ bool RealConstantType::parseDouble(const vstring& num, RationalConstantType& res
 RealConstantType::RealConstantType(const vstring& number)
   : RealConstantType()
 {
-  CALL("RealConstantType::RealConstantType");
 
   RationalConstantType value;
   if (parseDouble(number, value))  {

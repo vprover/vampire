@@ -34,11 +34,10 @@ class InequalityFactoring
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(InequalityFactoring);
   USE_ALLOCATOR(InequalityFactoring);
 
   InequalityFactoring(InequalityFactoring&&) = default;
-  InequalityFactoring(shared_ptr<LascaState> shared)
+  InequalityFactoring(std::shared_ptr<LascaState> shared)
     : _shared(std::move(shared))
   {  }
 
@@ -70,7 +69,7 @@ public:
 
 private:
 
-  shared_ptr<LascaState> _shared;
+  std::shared_ptr<LascaState> _shared;
 };
 #define _lascaFactoring true
 

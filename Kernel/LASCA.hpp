@@ -18,15 +18,18 @@
 #ifndef __LASCA__
 #define __LASCA__
 
+#include "Debug/Assertion.hpp"
 #include "Indexing/Index.hpp"
 #include "Kernel/Formula.hpp"
 #include "Lib/Int.hpp"
 #include "Forwards.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Indexing/ResultSubstitution.hpp"
-#include "Kernel/MismatchHandler.hpp"
 
+#include "Lib/Metaiterators.hpp"
+#include "Lib/VirtualIterator.hpp"
 #include "Signature.hpp" 
 #include "SortHelper.hpp"
 #include "TermIterators.hpp"
@@ -45,8 +48,6 @@
 #include "Debug/Tracer.hpp"
 #include "Kernel/Polynomial.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
-#include "Kernel/BottomUpEvaluation/TermList.hpp"
-#include "Kernel/BottomUpEvaluation/PolyNf.hpp"
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
@@ -263,8 +264,7 @@ namespace Kernel {
      * t != 0 ==> t > 0 \/ -t > 0
      */
     InequalityNormalizer(bool strong) 
-      : _eval(/* removeZero */ true)
-      , _strong(strong) {  }
+      : _strong(strong) {  }
 
     template<class NumTraits> Option<Stack<LascaLiteral<NumTraits>>> normalizeLasca(Literal* lit) const;
     template<class NumTraits> Option<LascaLiteral<NumTraits>> renormalizeLasca(Literal* lit) const;
@@ -571,11 +571,13 @@ namespace Kernel {
       return _inner.template is<SelectedSummand>(); 
     }
 
-    TermList biggerSide() const 
-    { return _inner.match(
-        [](SelectedSummand               const& x) { return x.monom(); },
-        [](SelectedIntegerEquality       const& x) { return x.biggerSide(); },
-        [](SelectedUninterpretedEquality const& x) { return x.biggerSide(); }); }
+    TypedTermList biggerSide() const 
+    { return TypedTermList(
+        _inner.match(
+          [](SelectedSummand               const& x) { return x.monom(); },
+          [](SelectedIntegerEquality       const& x) { return x.biggerSide(); },
+          [](SelectedUninterpretedEquality const& x) { return x.biggerSide(); }), 
+        SortHelper::getEqualityArgumentSort(literal())); }
 
     TermList smallerSide() const 
     { return _inner.match(
@@ -668,7 +670,6 @@ namespace Kernel {
 
   struct LascaState 
   {
-    CLASS_NAME(LascaState);
     USE_ALLOCATOR(LascaState);
 
     // TODO get rid of this
@@ -801,7 +802,6 @@ namespace Kernel {
 
 
     auto maxLits(Clause* cl, SelectionCriterion sel) {
-      CALL("LascaState::maxLits")
       return OrderingUtils2::maxElems(
           cl->size(), 
           [=](unsigned l, unsigned r) 
@@ -845,7 +845,7 @@ namespace Kernel {
     {
       Stack<unsigned> is(2);
       auto iter = [](std::initializer_list<unsigned> out)  
-                  { return iterTraits(ownedArrayishIterator(Stack<unsigned>(out))); };
+                  { return arrayIter(Stack<unsigned>(out)); };
       switch (sel) {
         case SelectionCriterion::STRICTLY_MAX:
           switch (ordering->compare(lit->termArg(0), lit->termArg(1))) {
@@ -883,7 +883,7 @@ namespace Kernel {
           }
       }
 
-      return iterTraits(ownedArrayishIterator(std::move(is)));
+      return arrayIter(std::move(is));
     }
 
     auto selectUninterpretedEquality(SelectedLiteral lit, SelectionCriterion sel)
@@ -892,15 +892,34 @@ namespace Kernel {
 
     auto activePositions(Literal* l) -> IterTraits<VirtualIterator<TermList>>
     {
+      // return iterTraits(renormalize(l)
+      //   .match(
+      //     [=](AnyLascaLiteral l) -> VirtualIterator<TermList> {
+      //       return std::move(l).apply([=](auto l) -> VirtualIterator<TermList> {
+      //           return pvi(maxSummandIndices(l, SelectionCriterion::NOT_LEQ)
+      //                    .map([l](auto i) {
+      //                        return l.term().summandAt(i).factors->denormalize();
+      //                    }));
+      //       });
+      //     },
+      //     [=]() {
+      //       if (l->isEquality()) {
+      //         return pvi(maxEqIndices(l, SelectionCriterion::NOT_LEQ)
+      //           .map([=](auto i) { return l->termArg(i); }));
+      //       } else {
+      //           return pvi(termArgIter(l));
+      //       }
+      //     }));
+
       return iterTraits(renormalize(l)
         .match(
           [=](AnyLascaLiteral l) -> VirtualIterator<TermList> {
-            return std::move(l).apply([=](auto l) -> VirtualIterator<TermList> {
-                return pvi(maxSummandIndices(l, SelectionCriterion::NOT_LEQ)
-                         .map([=](auto i) {
+            return pvi(coproductIter(std::move(l).applyCo([=](auto l)  {
+                return maxSummandIndices(l, SelectionCriterion::NOT_LEQ)
+                         .map([l](auto i) {
                              return l.term().summandAt(i).factors->denormalize();
-                         }));
-            });
+                         });
+            })));
           },
           [=]() {
             if (l->isEquality()) {
@@ -920,9 +939,9 @@ namespace Kernel {
 
 
     auto maxSummands(SelectedLiteral sel_lit , SelectionCriterion sel) 
-    { return sel_lit.interpreted.unwrap()
-                .apply([&](auto& lit) 
-                       { return maxSummandIndices(lit, sel); })
+    { return coproductIter(sel_lit.interpreted.unwrap()
+                .applyCo([&](auto& lit) 
+                       { return maxSummandIndices(lit, sel); }))
                 .map([=](auto i) 
                      { return SelectedSummand(sel_lit, i); }); }
 
@@ -957,9 +976,13 @@ namespace Kernel {
         .filterMap([](auto x) -> Option<Out>
                    { return x.match(
                        [](SelectedSummand& x) {
-                          return x.isInequality() ? Option<Out>()
-                              : x.numTraits().template is<IntTraits>() ? Option<Out>(Out(SelectedIntegerEquality(std::move(x))))
-                              : Option<Out>(Out(std::move(x)));
+                       return Option<Out>();
+                          // return x.isInequality() ? Option<Out>()
+                          //     : x.numTraits().template is<IntTraits>() ? Option<Out>(Out(SelectedIntegerEquality(std::move(x))))
+                          //     : Option<Out>(Out(std::move(x)));
+                          // return x.isInequality() ? Option<Out>()
+                          //     : x.numTraits().template is<IntTraits>() ? Option<Out>(Out(SelectedIntegerEquality(std::move(x))))
+                          //     : Option<Out>(Out(std::move(x)));
                        },
 
                        [](SelectedUninterpretedEquality& x) 
@@ -1115,7 +1138,7 @@ namespace Kernel {
   };
 
 #if VDEBUG
-  shared_ptr<LascaState> testLascaState(
+  std::shared_ptr<LascaState> testLascaState(
     Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA1,
     bool strongNormalization = false,
     Ordering* ordering = nullptr,
@@ -1199,7 +1222,6 @@ Option<LascaLiteral<NumTraits>> InequalityNormalizer::renormalizeLasca(Literal* 
 template<class NumTraits>
 Option<Stack<LascaLiteral<NumTraits>>> InequalityNormalizer::normalizeLasca(Literal* lit) const
 {
-  CALL("InequalityLiteral<NumTraits>::fromLiteral(Literal*)")
   DEBUG("in: ", *lit, " (", NumTraits::name(), ")")
 
   auto impl = [&]() {
@@ -1355,11 +1377,11 @@ auto maxElements(GetElem getElem, unsigned size, Cmp compare, bool strictlyMax) 
 
 // template<class GetSummand> auto LascaState::iterSelectedTerms(GetSummand getSummand, unsigned litSize, bool strictlyMax)
 // {
-//   return iterTraits(ownedArrayishIterator(
+//   return arrayIter(
 //       maxElements([=](unsigned i) { return i; }, litSize,
 //                      [&](auto l, auto r) { return ordering->compare(getSummand(l).factors->denormalize(), getSummand(r).factors->denormalize()); },
 //                      strictlyMax)
-//       ))
+//       )
 //     .filter([=](unsigned i) { return !getSummand(i).isVar(); }) ;
 // }
 
@@ -1400,7 +1422,6 @@ auto maxElements(GetElem getElem, unsigned size, Cmp compare, bool strictlyMax) 
 //
 // template<class NumTraits> Stack<SelectedAtomicTerm<NumTraits>> LascaState::selectedTerms(Clause* cl, bool strictlyMaxLiterals, bool strictlyMaxTerms)
 // {
-//   CALL("LascaState::selectedTerms(Clause* cl)")
 //
 //   return iterTraits(getRangeIterator((unsigned)0, cl->numSelected()))
 //     .filterMap([&](auto i) {

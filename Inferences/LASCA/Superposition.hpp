@@ -37,11 +37,10 @@ class Superposition
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(Superposition);
   USE_ALLOCATOR(Superposition);
 
   Superposition(Superposition&&) = default;
-  Superposition(shared_ptr<LascaState> shared) 
+  Superposition(std::shared_ptr<LascaState> shared) 
     : _shared(std::move(shared))
     , _lhs(nullptr)
     , _rhs(nullptr)
@@ -68,7 +67,6 @@ public:
 
     static auto iter(LascaState& shared, Clause* cl)
     {
-      CALL("LASCA::Superposition::Lhs::iter")
       return shared.selectedEqualities(cl, /* literal */ SelectionCriterion::NOT_LEQ, 
                                            /* terms   */ SelectionCriterion::NOT_LEQ,
                                            /* include number vars */ false)
@@ -101,7 +99,6 @@ public:
 
     static auto iter(LascaState& shared, Clause* cl)
     { 
-      CALL("LASCA::Superposition::Rhs::iter")
       using Out = Rhs;
       return shared.selectedActivePositions(cl, 
           /* literals */ SelectionCriterion::NOT_LESS, 
@@ -109,7 +106,7 @@ public:
           /* include number vars */ false)
         .flatMap([&](auto sel_lit) -> VirtualIterator<Out> {
            auto tup = sel_lit.match(
-             [=](SelectedSummand& x) -> tuple<SelectedLiteral, TermList, bool, bool> 
+             [=](SelectedSummand& x) -> std::tuple<SelectedLiteral, TermList, bool, bool> 
              {
                 auto inLitPlus = 
                       x.isInequality() 
@@ -118,21 +115,21 @@ public:
                         // x =  `t ~ 0`
                         : x.literal()->isPositive();
                 auto term = x.monom();
-                return make_tuple(std::move(x), term, inLitPlus, /* includeSelf */ true);
+                return std::make_tuple(std::move(x), term, inLitPlus, /* includeSelf */ true);
              },
 
              [](SelectedUninterpretedEquality& x) 
              {  
                 auto inLitPlus = x.literal()->isPositive();
                 auto term = x.biggerSide();
-                return make_tuple(std::move(x), term, inLitPlus, /* includeSelf */ true); 
+                return std::make_tuple(std::move(x), term, inLitPlus, /* includeSelf */ true); 
              },
 
              [](SelectedUninterpretedPredicate& x)
              { 
                 auto inLitPlus = x.literal()->isPositive();
                 auto term = TermList(x.literal());
-                return make_tuple(std::move(x), term, inLitPlus, /* includeSelf */ false); 
+                return std::make_tuple(std::move(x), term, inLitPlus, /* includeSelf */ false); 
              });
 
            auto sel = std::get<0>(tup);
@@ -179,7 +176,7 @@ private:
   friend class LascaSuperpositionLhsIndex;
   friend class LascaSuperpositionRhsIndex;
 
-  shared_ptr<LascaState> _shared;
+  std::shared_ptr<LascaState> _shared;
   LascaIndex<Lhs>* _lhs;
   LascaIndex<Rhs>* _rhs;
 };
@@ -188,16 +185,15 @@ class InequalityTautologyDetection
 : public SimplifyingGeneratingInference
 {
 public:
-  CLASS_NAME(InequalityTautologyDetection);
   USE_ALLOCATOR(InequalityTautologyDetection);
 
-  InequalityTautologyDetection(shared_ptr<LascaState> shared) 
+  InequalityTautologyDetection(std::shared_ptr<LascaState> shared) 
     : _shared(std::move(shared)) {}
   virtual ~InequalityTautologyDetection() {}
 
   virtual ClauseGenerationResult generateSimplify(Clause* premise) override;
 private:
-  shared_ptr<LascaState> _shared;
+  std::shared_ptr<LascaState> _shared;
 };
 
 

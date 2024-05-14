@@ -31,10 +31,7 @@ class EqualityFactoring
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(EqualityFactoring);
-  USE_ALLOCATOR(EqualityFactoring);
   EqualityFactoring();
-
   ClauseIterator generateClauses(Clause* premise);
 private:
   struct IsPositiveEqualityFn;
@@ -43,7 +40,7 @@ private:
   struct ResultFn;
   friend struct ResultFn;
 
-  MismatchHandler _mismatchHandler;
+  AbstractionOracle _abstractionOracle;
   bool _uwaFixedPointIteration;
 };
 

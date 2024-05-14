@@ -32,7 +32,6 @@ void FwdDemodulation::attach(SaturationAlgorithm* salg)
 void FwdDemodulation::detach()
 {
 
-  CALL("Superposition::detach");
   ASS(_salg);
 
   _index=0;

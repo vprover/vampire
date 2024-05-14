@@ -27,8 +27,6 @@ using namespace Kernel;
 
 void MaximalLiteralSelector::doSelection(Clause* c, unsigned eligible)
 {
-  CALL("MaximalLiteralSelector::doSelection");
-
   LiteralList* sel=0;
   bool anyNegative=false;
 

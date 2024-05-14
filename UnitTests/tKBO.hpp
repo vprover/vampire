@@ -27,7 +27,7 @@ using namespace Kernel;
 template<class SigTraits>
 inline KboWeightMap<SigTraits> toWeightMap(unsigned introducedSymbolWeight, KboSpecialWeights<SigTraits> ws, const Map<unsigned, KboWeight>& xs, unsigned sz) 
 {
-  auto df = KboWeightMap<SigTraits>::dflt(/* qkbo */ false);
+  auto df = KboWeightMap<SigTraits>::dflt();
   df._specialWeights = ws;
 
   DArray<KboWeight> out(sz);
@@ -46,13 +46,13 @@ inline void __weights(Map<unsigned, KboWeight>& ws) {
 }
 
 template<class A, class... As>
-inline void __weights(Map<unsigned, KboWeight>& ws, pair<A, KboWeight> a, pair<As, KboWeight>... as) {
-  ws.insert(get<0>(a).functor(), get<1>(a));
+inline void __weights(Map<unsigned, KboWeight>& ws, std::pair<A, KboWeight> a, std::pair<As, KboWeight>... as) {
+  ws.insert(std::get<0>(a).functor(), std::get<1>(a));
   __weights(ws, as...);
 }
 
 template<class... As>
-inline Map<unsigned, KboWeight> weights(pair<As, KboWeight>... as) {
+inline Map<unsigned, KboWeight> weights(std::pair<As, KboWeight>... as) {
   Map<unsigned, KboWeight> out;
   __weights(out, as...);
   return out;

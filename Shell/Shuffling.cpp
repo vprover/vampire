@@ -28,6 +28,7 @@
 
 #include "Shuffling.hpp"
 
+using namespace std;
 using namespace Kernel;
 using namespace Shell;
 
@@ -36,14 +37,13 @@ using namespace Shell;
  */
 void Shuffling::polarityFlip(Problem& prb)
 {
-  CALL("Shuffling::polarityFlip (Problem&)");
-
   DArray<bool> flippage(env.signature->predicates());
 
   for (unsigned p = 0; p < flippage.size(); p++) {
     auto pSymb = env.signature->getPredicate(p);
-    if (!pSymb->protectedSymbol()) { 
+    if (!pSymb->protectedSymbol() && !pSymb->termAlgebraDest()) {
       // don't try to flip interpreted or otherwise protected predicates
+      // (this includes term algebra destructors which may go to bool and thus eventually become first-order predicates)
       ASS(p); // the equality predicate (at index 0) is protected
       flippage[p] = Random::getBit();
       if (flippage[p]) {
@@ -59,20 +59,20 @@ void Shuffling::polarityFlip(Problem& prb)
   while (us.hasNext()) {
     Unit* &u = us.next(); ASS(u->isClause()); Clause* cl = u->asClause();
 
-    // cout << "Before: " << cl->toString() << endl;
+    // cout << "Before: " << cl->toString() << std::endl;
     newLits.reset();
     bool modified = false;
     for (unsigned i = 0; i < cl->length(); i++) {
       Literal* l = (*cl)[i];
-      // cout << "  bef: " << l->toString() << endl;
+      // cout << "  bef: " << l->toString() << std::endl;
       if (flippage[l->functor()]) {
         l = Literal::complementaryLiteral(l);
         modified = true;
       }
       newLits.push(l);
-      // cout << "  aft: " << l->toString() << endl;
+      // cout << "  aft: " << l->toString() << std::endl;
     }
-    // cout << "After: " << cl->toString() << endl;
+    // cout << "After: " << cl->toString() << std::endl;
     if (modified) {
       Clause* nc = Clause::fromStack(newLits,
         NonspecificInferenceMany(InferenceRule::POLARITY_FLIPPING,UnitList::singleton(cl)));
@@ -86,8 +86,6 @@ void Shuffling::polarityFlip(Problem& prb)
  */
 void Shuffling::shuffle(Problem& prb)
 {
-  CALL("Shuffling::shuffle (Problem&)");
-
   shuffle(prb.units());
 }
 
@@ -98,8 +96,6 @@ void Shuffling::shuffle(Problem& prb)
  */
 void Shuffling::shuffle (UnitList*& units)
 {
-  CALL("Shuffling::shuffle (UnitList*&)");
-
   UnitList::Iterator us(units);
   while (us.hasNext()) {
     shuffle(us.next());
@@ -110,9 +106,7 @@ void Shuffling::shuffle (UnitList*& units)
 
 void Shuffling::shuffle(Unit* unit)
 {
-  CALL("Shuffling::shuffle (Unit*");
-
-  // cout << "Bef: " << unit->toString() << endl;
+  // cout << "Bef: " << unit->toString() << std::endl;
 
   if (unit->isClause()) {
     shuffle(unit->asClause());
@@ -120,13 +114,11 @@ void Shuffling::shuffle(Unit* unit)
     shuffle(static_cast<FormulaUnit*>(unit)->formula());
   }
 
-  // cout << "Aft: " << unit->toString() << endl;
+  // cout << "Aft: " << unit->toString() << std::endl;
 }
 
 void Shuffling::shuffle(Clause* clause)
 {
-  CALL("Shuffling::shuffle (Clause*)");
-
   unsigned s = clause->numSelected();
 
   // don't shuffle between selected and non-selected literals
@@ -140,8 +132,6 @@ void Shuffling::shuffle(Clause* clause)
 
 // iterative implementation of shuffling Formula* / Literal* / TermList
 void Shuffling::shuffleIter(Shufflable sh) {
-  CALL("Shuffling::shuffleIter");
-
   static Stack<Shufflable> todo;
   ASS(todo.isEmpty());
 
@@ -206,16 +196,20 @@ void Shuffling::shuffleIter(Shufflable sh) {
         case EXISTS:
         {
 
-          //cout << "Shuffling FORALL/EXISTS: " << fla->toString() << endl;
+          //cout << "Shuffling FORALL/EXISTS: " << fla->toString() << std::endl;
 
-          // can even shuffle the variables in the quantifier!
-          if (fla->sorts()) { // need to shuffle sorts in sync with vars, if they are there
-            shuffleTwoList(*fla->varsPtr(),*fla->sortsPtr());
-          } else {
-            shuffleList(*fla->varsPtr());
+          // can't naively shuffle variables in the polymorphic case
+          // as we require type variables to come before term variable in the list
+          if(!env.getMainProblem()->hasPolymorphicSym()){
+            // can even shuffle the variables in the quantifier!
+            if (fla->sorts()) { // need to shuffle sorts in sync with vars, if they are there
+              shuffleTwoList(*fla->varsPtr(),*fla->sortsPtr());
+            } else {
+              shuffleList(*fla->varsPtr());
+            }
           }
 
-          //cout << "getting: " << fla->toString() << endl;
+          //cout << "getting: " << fla->toString() << std::endl;
 
           fla = fla->qarg();
 
@@ -263,30 +257,44 @@ void Shuffling::shuffleIter(Shufflable sh) {
         if (!t->shared()) {
           if (t->isSpecial()) {
             Term::SpecialTermData* sd = t->getSpecialData();
-            switch (sd->getType()) {
-              case Term::SF_ITE:
+            switch (sd->specialFunctor()) {
+              case SpecialFunctor::ITE:
                 todo.push(Shufflable(sd->getCondition()));
                 todo.push(Shufflable(*t->nthArgument(0)));
                 tl = *t->nthArgument(1);
                 goto tl_updated;
                 break; // I know, unreachable;
 
-              case Term::SF_FORMULA:
+              case SpecialFunctor::FORMULA:
                 todo.push(Shufflable(sd->getFormula()));
                 break;
 
-              case Term::SF_LET:
-              case Term::SF_LET_TUPLE:
+              case SpecialFunctor::LET:
+              case SpecialFunctor::LET_TUPLE:
                 todo.push(Shufflable(sd->getBinding()));
                 tl = *t->nthArgument(0);
                 goto tl_updated;
                 break; // I know, unreachable;
 
-              case Term::SF_TUPLE:
+              case SpecialFunctor::TUPLE:
                 tl = TermList(sd->getTupleTerm());
                 goto tl_updated;
                 break; // I know, unreachable;
 
+              case SpecialFunctor::LAMBDA:
+                tl = sd->getLambdaExp();
+                goto tl_updated;
+                break; // I know, unreachable;
+
+              case SpecialFunctor::MATCH:
+                {
+                  // treat as non-special (and don't shuffle the MATCH specifics)
+                  Term::Iterator it(t);
+                  while (it.hasNext()) {
+                    todo.push(Shufflable(it.next()));
+                  }
+                }
+                break;
               default:
                 ASSERTION_VIOLATION_REP(tl.toString());
             }

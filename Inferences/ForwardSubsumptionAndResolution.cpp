@@ -46,7 +46,6 @@ using namespace Saturation;
 
 void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
 {
-  CALL("ForwardSubsumptionAndResolution::attach");
   ForwardSimplificationEngine::attach(salg);
   _unitIndex = static_cast<UnitClauseLiteralIndex *>(
       _salg->getIndexManager()->request(FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE));
@@ -56,7 +55,6 @@ void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
 
 void ForwardSubsumptionAndResolution::detach()
 {
-  CALL("ForwardSubsumptionAndResolution::detach");
   _unitIndex = 0;
   _fwIndex = 0;
   _salg->getIndexManager()->release(FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE);
@@ -65,7 +63,6 @@ void ForwardSubsumptionAndResolution::detach()
 }
 
 struct ClauseMatches {
-  CLASS_NAME(ForwardSubsumptionAndResolution::ClauseMatches);
   USE_ALLOCATOR(ClauseMatches);
 
 private:
@@ -156,7 +153,6 @@ typedef Stack<ClauseMatches *> CMStack;
 
 Clause *ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(Clause *cl, Literal *lit, Clause *baseClause)
 {
-  CALL("ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause");
   int clen = cl->length();
   int nlen = clen - 1;
 
@@ -215,8 +211,6 @@ bool checkForSubsumptionResolution(Clause *cl, ClauseMatches *cms, Literal *resL
 
 bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)
 {
-  CALL("ForwardSubsumptionAndResolution::perform");
-
   Clause *resolutionClause = 0;
 
   unsigned clen = cl->length();
@@ -234,7 +228,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
   ASS(cmStore.isEmpty());
 
   for (unsigned li = 0; li < clen; li++) {
-    SLQueryResultIterator rit = _unitIndex->getGeneralizations((*cl)[li], false, false);
+    auto rit = _unitIndex->getGeneralizations((*cl)[li], false, false);
     while (rit.hasNext()) {
       Clause *premise = rit.next().data->clause;
       if (ColorHelper::compatible(cl->color(), premise->color())) {
@@ -250,9 +244,9 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
     LiteralMiniIndex miniIndex(cl);
 
     for (unsigned li = 0; li < clen; li++) {
-      SLQueryResultIterator rit = _fwIndex->getGeneralizations((*cl)[li], false, false);
+      auto rit = _fwIndex->getGeneralizations((*cl)[li], false, false);
       while (rit.hasNext()) {
-        SLQueryResult res = rit.next();
+        auto res = rit.next();
         Clause *mcl = res.data->clause;
         if (mcl->hasAux()) {
           //we've already checked this clause
@@ -287,7 +281,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
 
       for (unsigned li = 0; li < clen; li++) {
         Literal *resLit = (*cl)[li];
-        SLQueryResultIterator rit = _unitIndex->getGeneralizations(resLit, true, false);
+        auto rit = _unitIndex->getGeneralizations(resLit, true, false);
         while (rit.hasNext()) {
           Clause *mcl = rit.next().data->clause;
           if (ColorHelper::compatible(cl->color(), mcl->color())) {
@@ -323,9 +317,9 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, 
 
       for (unsigned li = 0; li < clen; li++) {
         Literal *resLit = (*cl)[li]; //resolved literal
-        SLQueryResultIterator rit = _fwIndex->getGeneralizations(resLit, true, false);
+        auto rit = _fwIndex->getGeneralizations(resLit, true, false);
         while (rit.hasNext()) {
-          SLQueryResult res = rit.next();
+          auto res = rit.next();
           Clause *mcl = res.data->clause;
 
           ClauseMatches *cms = nullptr;

@@ -18,7 +18,7 @@
 
 #include "Forwards.hpp"
 #include "Index.hpp"
-#include "Kernel/MismatchHandler.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Shell/Options.hpp"
 
@@ -43,11 +43,13 @@ public:
 
   virtual size_t getUnificationCount(Literal* lit, bool complementary)
   {
-    CALL("LiteralIndexingStructure::getUnificationCount");
     return countIteratorElements(getUnifications(lit, complementary, false));
   }
 
-  virtual void output(std::ostream& out, bool multiline, unsigned indent) = 0;
+  virtual void output(std::ostream& out, Option<unsigned> multilineIndent) const = 0;
+
+  friend std::ostream& operator<<(std::ostream& out,                 LiteralIndexingStructure const& self) {      self.output(out, {}               ); return out; }
+  friend std::ostream& operator<<(std::ostream& out, OutputMultiline<LiteralIndexingStructure>const& self) { self.self.output(out, some(self.indent)); return out; }
 };
 
 };

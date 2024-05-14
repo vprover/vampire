@@ -45,6 +45,7 @@
 
 namespace Inferences {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
@@ -52,15 +53,14 @@ using namespace Saturation;
 
 void BackwardDemodulation::attach(SaturationAlgorithm* salg)
 {
-  CALL("BackwardDemodulation::attach");
   BackwardSimplificationEngine::attach(salg);
   _index=static_cast<DemodulationSubtermIndex*>(
 	  _salg->getIndexManager()->request(DEMODULATION_SUBTERM_SUBST_TREE) );
+  _helper = DemodulationHelper(getOptions(), &_salg->getOrdering());
 }
 
 void BackwardDemodulation::detach()
 {
-  CALL("BackwardDemodulation::detach");
   _index=0;
   _salg->getIndexManager()->release(DEMODULATION_SUBTERM_SUBST_TREE);
   BackwardSimplificationEngine::detach();
@@ -77,7 +77,7 @@ struct BackwardDemodulation::RemovedIsNonzeroFn
 struct BackwardDemodulation::RewritableClausesFn
 {
   RewritableClausesFn(DemodulationSubtermIndex* index) : _index(index) {}
-  VirtualIterator<pair<TermList,TermQueryResult> > operator() (TermList lhs)
+  VirtualIterator<pair<TypedTermList,QueryRes<ResultSubstitutionSP, TermLiteralClause>> > operator() (TypedTermList lhs)
   {
     return pvi( pushPairIntoRightIterator(lhs, _index->getInstances(lhs, true)) );
   }
@@ -85,30 +85,38 @@ private:
   DemodulationSubtermIndex* _index;
 };
 
+namespace {
+
+struct Applicator : SubstApplicator {
+  Applicator(ResultSubstitution* subst) : subst(subst) {}
+  TermList operator()(unsigned v) const override {
+    return subst->applyToBoundQuery(TermList(v,false));
+  }
+  ResultSubstitution* subst;
+};
+
+} // end namespace
 
 struct BackwardDemodulation::ResultFn
 {
   typedef DHMultiset<Clause*> ClauseSet;
 
-  ResultFn(Clause* cl, BackwardDemodulation& parent)
-  : _cl(cl), _parent(parent), _ordering(parent._salg->getOrdering())
+  ResultFn(Clause* cl, BackwardDemodulation& parent, const DemodulationHelper& helper)
+  : _cl(cl), _helper(helper), _ordering(parent._salg->getOrdering())
   {
     ASS_EQ(_cl->length(),1);
     _eqLit=(*_cl)[0];
-    _eqSort = SortHelper::getEqualityArgumentSort(_eqLit);
     _removed=SmartPtr<ClauseSet>(new ClauseSet());
-    _encompassing = parent.getOptions().demodulationEncompassment();
   }
+
   /**
    * Return pair of clauses. First clause is being replaced,
    * and the second is the clause, that replaces it. If no
    * replacement should occur, return pair of zeroes.
    */
-  BwSimplificationRecord operator() (pair<TermList,TermQueryResult> arg)
+  BwSimplificationRecord operator() (pair<TermList,QueryRes<ResultSubstitutionSP, TermLiteralClause>> arg)
   {
-    CALL("BackwardDemodulation::ResultFn::operator()");
-
-    TermQueryResult qr=arg.second;
+    auto qr=arg.second;
 
     if( !ColorHelper::compatible(_cl->color(), qr.data->clause->color()) ) {
       //colors of premises don't match
@@ -122,84 +130,29 @@ struct BackwardDemodulation::ResultFn
     }
 
     TermList lhs=arg.first;
-
-    TermList qrSort = SortHelper::getTermSort(qr.data->term, qr.data->literal);
-
-    /* The following check replaces the original:
-      "if(qrSort!=_eqSort) {
-         return BwSimplificationRecord(0);
-      }"
-      from the monomorphic setting */
-    if(lhs.isVar()){
-      if(!qr.unifier->matchSorts(_eqSort, qrSort)) {
-        return BwSimplificationRecord(0);        
-      }
-    }
-
     TermList rhs=EqHelper::getOtherEqualitySide(_eqLit, lhs);
+
+    // AYB there used to be a check here to ensure that the sorts
+    // matched. This is no longer necessary, as sort matching / unification
+    // is handled directly within the tree
+
+    auto subs = qr.unifier;
+    ASS(subs->isIdentityOnResultWhenQueryBound());
+
+    Applicator appl(subs.ptr());
+
     TermList lhsS=qr.data->term;
-    TermList rhsS;
 
-    if(!qr.unifier->isIdentityOnResultWhenQueryBound()) {
-      //When we apply substitution to the rhs, we get a term, that is
-      //a variant of the term we'd like to get, as new variables are
-      //produced in the substitution application.
-      //We'd rather rename variables in the rhs, than in the whole clause
-      //that we're simplifying.
-      TermList lhsSBadVars=qr.unifier->applyToQuery(lhs);
-      TermList rhsSBadVars=qr.unifier->applyToQuery(rhs);
-      Renaming rNorm, qNorm, qDenorm;
-      rNorm.normalizeVariables(lhsSBadVars);
-      qNorm.normalizeVariables(lhsS);
-      qDenorm.makeInverse(qNorm);
-      ASS_EQ(lhsS,qDenorm.apply(rNorm.apply(lhsSBadVars)));
-      rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
-    } else {
-      rhsS=qr.unifier->applyToBoundQuery(rhs);
-    }
-
-    if(_ordering.compare(lhsS,rhsS)!=Ordering::GREATER) {
+    if (!_ordering.isGreater(AppliedTerm(lhsS), AppliedTerm(rhs,&appl,true))) {
       return BwSimplificationRecord(0);
     }
 
-    if(_parent.getOptions().demodulationRedundancyCheck() && qr.data->literal->isEquality() &&
-      (qr.data->term==*qr.data->literal->nthArgument(0) || qr.data->term==*qr.data->literal->nthArgument(1)) && 
-      // encompassment has issues only with positive units
-      (!_encompassing || (qr.data->literal->isPositive() && qr.data->clause->length() == 1))) {
-      TermList other=EqHelper::getOtherEqualitySide(qr.data->literal, qr.data->term);
-      Ordering::Result tord=_ordering.compare(rhsS, other);
-      if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
-        if (_encompassing) {
-          if (qr.unifier->isRenamingOn(lhs,false /* we talk of a non-result, i.e., a query term */)) {
-            // under _encompassing, we know there are no other literals in qr.data->clause
-            return BwSimplificationRecord(0);
-          }
-        } else {
-          TermList eqSort = SortHelper::getEqualityArgumentSort(qr.data->literal);
-          Literal* eqLitS=Literal::createEquality(true, lhsS, rhsS, eqSort);
-          bool isMax=true;
-          Clause::Iterator cit(*qr.data->clause);
-          while(cit.hasNext()) {
-            Literal* lit2=cit.next();
-            if(qr.data->literal==lit2) {
-              continue;
-            }
-            if(_ordering.compare(eqLitS, lit2)==Ordering::LESS) {
-              isMax=false;
-              break;
-            }
-          }
-          if(isMax) {
-            //	  RSTAT_CTR_INC("bw subsumptions prevented by tlCheck");
-            //The demodulation is this case which doesn't preserve completeness:
-            //s = t     s = t1 \/ C
-            //---------------------
-            //     t = t1 \/ C
-            //where t > t1 and s = t > C
-            return BwSimplificationRecord(0);
-          }
-        }
-      }
+    TermList rhsS=subs->applyToBoundQuery(rhs);
+
+    if (_helper.redundancyCheckNeededForPremise(qr.data->clause,qr.data->literal,lhsS) &&
+      !_helper.isPremiseRedundant(qr.data->clause,qr.data->literal,lhsS,rhsS,lhs,subs.ptr(),false))
+    {
+      return BwSimplificationRecord(0);
     }
 
     Literal* resLit=EqHelper::replace(qr.data->literal,lhsS,rhsS);
@@ -228,14 +181,12 @@ struct BackwardDemodulation::ResultFn
     return BwSimplificationRecord(qr.data->clause,res);
   }
 private:
-  TermList _eqSort;
   Literal* _eqLit;
   Clause* _cl;
   SmartPtr<ClauseSet> _removed;
 
-  bool _encompassing;
+  const DemodulationHelper& _helper;
 
-  BackwardDemodulation& _parent;
   Ordering& _ordering;
 };
 
@@ -243,7 +194,6 @@ private:
 void BackwardDemodulation::perform(Clause* cl,
 	BwSimplificationRecordIterator& simplifications)
 {
-  CALL("BackwardDemodulation::perform");
   TIME_TRACE("backward demodulation");
 
   if(cl->length()!=1 || !(*cl)[0]->isEquality() || !(*cl)[0]->isPositive() ) {
@@ -256,9 +206,11 @@ void BackwardDemodulation::perform(Clause* cl,
     pvi( getFilteredIterator(
 	    getMappingIterator(
 		    getMapAndFlattenIterator(
-			    EqHelper::getDemodulationLHSIterator(lit, false, _salg->getOrdering(), _salg->getOptions()),
+			    EqHelper::getDemodulationLHSIterator(lit,
+            _salg->getOptions().backwardDemodulation() == Options::Demodulation::PREORDERED,
+            _salg->getOrdering()).first,
 			    RewritableClausesFn(_index)),
-		    ResultFn(cl, *this)),
+		    ResultFn(cl, *this, _helper)),
  	    RemovedIsNonzeroFn()) );
 
   //here we know that the getPersistentIterator evaluates all items of the

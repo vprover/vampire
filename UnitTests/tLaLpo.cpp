@@ -67,7 +67,6 @@ void check(LaLpo& ord, Literal* lhs, LaLpo::Result exp, Literal* rhs)
 { check__(ord, lhs,exp,rhs); }
 
 LaLpo laLpo() {
-  CALL("laLpo(...)")
 
   auto funcPrec = []() -> DArray<int> {
     unsigned num = env.signature->functions();

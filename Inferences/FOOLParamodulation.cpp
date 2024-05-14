@@ -32,8 +32,6 @@
 namespace Inferences {
 
 ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
-  CALL("FOOLParamodulation::generateClauses");
-
   /**
    * We are going to implement the following inference rule, taken from the paper:
    *
@@ -69,7 +67,7 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
   TermList booleanTerm;
   unsigned literalPosition = 0;
 
-  ArrayishObjectIterator<Clause> literals = premise->getSelectedLiteralIterator();
+  auto literals = premise->getSelectedLiteralIterator();
   while (literals.hasNext()) {
     Literal* literal = literals.next();
 
@@ -84,11 +82,11 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
       }
     }
 
-    // we shouldn't replace variables, hence NonVariableIterator
-    NonVariableIterator nvi(literal);
+    // we shouldn't replace variables, hence NonVariableIterator (also NonType, to support polymorphism)
+    NonVariableNonTypeIterator nvi(literal);
     while (nvi.hasNext()) {
-      TermList subterm = nvi.next();
-      unsigned functor = subterm.term()->functor();
+      Term* subterm = nvi.next();
+      unsigned functor = subterm->functor();
 
       // we shouldn't replace boolean constants
       if (env.signature->isFoolConstantSymbol(false,functor) || env.signature->isFoolConstantSymbol(true,functor)) {
@@ -97,7 +95,7 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
 
       TermList resultType = env.signature->getFunction(functor)->fnType()->result();
       if (resultType == AtomicSort::boolSort()) {
-        booleanTerm = subterm;
+        booleanTerm = TermList(subterm);
         goto substitution;
       }
     }

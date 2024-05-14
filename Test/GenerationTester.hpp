@@ -20,6 +20,7 @@
  * because it's rather unstable.
  */
 
+#include "Forwards.hpp"
 #include "Test/TestUtils.hpp"
 #include "Kernel/Clause.hpp"
 #include "Lib/Coproduct.hpp"
@@ -63,7 +64,7 @@ public:
     return iterTraits(_patterns.iter())
       .all([&](auto& p) {
           return iterTraits(sRes.iter())
-             .any([&](auto& cl) { return p.matches(simpl, cl); });
+             .any([&](Kernel::Clause const* cl) { return p.matches(simpl, cl); });
       });
   }
 
@@ -120,6 +121,7 @@ class SymmetricTest;
 template<class Rule>
 class GenerationTester
 {
+protected:
   Rule _rule;
 
 public:
@@ -128,7 +130,7 @@ public:
     : _rule(std::move(rule)) 
   {  }
 
-  virtual bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs)
+  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs)
   { return TestUtils::eqModACRect(lhs, rhs); }
 
   friend class AsymmetricTest;
@@ -138,27 +140,28 @@ public:
 class AsymmetricTest
 {
   using Clause = Kernel::Clause;
-  using OptionMap = Stack<pair<vstring,vstring>>;
+  using OptionMap = Stack<std::pair<vstring,vstring>>;
   using Condition = std::function<bool(vstring&, vstring&)>;
   Option<SimplifyingGeneratingInference*> _rule;
   Clause* _input;
   Option<StackMatcher> _expected;
   Stack<Clause*> _context;
   bool _premiseRedundant;
-  bool _selfApplications;
   Stack<std::function<Indexing::Index*()>> _indices;
+  std::function<void(SaturationAlgorithm&)> _setup = [](SaturationAlgorithm&){};
+  bool _selfApplications;
   OptionMap _options;
   Stack<Condition> _preConditions;
   Stack<Condition> _postConditions;
 
   template<class Is, class Expected>
   void testFail(Is const& is, Expected const& expected) {
-      cout  << endl;
-      cout << "[  context ]: " << pretty(_context) << endl;
-      cout << "[  options ]: " << pretty(_options) << endl;
-      cout << "[     case ]: " << pretty(*_input) << endl;
-      cout << "[       is ]: " << pretty(is) << endl;
-      cout << "[ expected ]: " << pretty(expected) << endl;
+      std::cout  << std::endl;
+      std::cout << "[  context ]: " << pretty(_context) << std::endl;
+      std::cout << "[  options ]: " << pretty(_options) << std::endl;
+      std::cout << "[     case ]: " << pretty(*_input) << std::endl;
+      std::cout << "[       is ]: " << pretty(is) << std::endl;
+      std::cout << "[ expected ]: " << pretty(expected) << std::endl;
       exit(-1);
   }
 
@@ -174,12 +177,13 @@ public:
   }                                                                                                 \
 
   BUILDER_METHOD(Clause*, input)
-  BUILDER_METHOD(Stack<Clause*>, context)
+  BUILDER_METHOD(ClauseStack, context)
   BUILDER_METHOD(StackMatcher, expected)
   BUILDER_METHOD(bool, premiseRedundant)
   BUILDER_METHOD(bool, selfApplications)
   BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
   BUILDER_METHOD(Stack<std::function<Indexing::Index*()>>, indices)
+  BUILDER_METHOD(std::function<void(SaturationAlgorithm&)>, setup)
   BUILDER_METHOD(OptionMap, options)
   BUILDER_METHOD(Stack<Condition>, preConditions)
   BUILDER_METHOD(Stack<Condition>, postConditions)
@@ -187,11 +191,22 @@ public:
   template<class Rule>
   void run(GenerationTester<Rule>& simpl) {
 
+    // set up saturation algorithm
+    auto container = ActiveClauseContainer();
+
+    // init problem
+    Problem p;
+    auto ul = UnitList::empty();
+    UnitList::pushFromIterator(ClauseStack::Iterator(_context), ul);
+    p.addUnits(ul);
+    env.setMainProblem(&p);
+
+    Options o;
     for (const auto& kv : _options) {
       env.options->set(kv.first, kv.second);
     }
-    // set up clause container and indexing strucure
-    auto container =  ActiveClauseContainer(*env.options);
+    MockedSaturationAlgorithm alg(p, o);
+    _setup(alg);
     SimplifyingGeneratingInference& rule = *_rule.unwrapOrElse([&](){ return &simpl._rule; });
     Stack<Indexing::Index*> indices;
     for (auto i : _indices) {
@@ -277,10 +292,10 @@ class SymmetricTest
 
   template<class Is, class Expected>
   void testFail(Is const& is, Expected const& expected) {
-      cout  << endl;
-      cout << "[     case ]: " << pretty(_inputs) << endl;
-      cout << "[       is ]: " << pretty(is) << endl;
-      cout << "[ expected ]: " << pretty(expected) << endl;
+      std::cout  << std::endl;
+      std::cout << "[     case ]: " << pretty(_inputs) << std::endl;
+      std::cout << "[       is ]: " << pretty(is) << std::endl;
+      std::cout << "[ expected ]: " << pretty(expected) << std::endl;
       exit(-1);
   }
 

@@ -14,7 +14,6 @@ struct FunctionEvaluator;
 template<class Number>
 Option<PolyNf> trySimplifyUnaryMinus(PolyNf* evalArgs)
 {
-  CALL("trySimplifyUnaryMinus(PolyNf*)")
   using Numeral = typename Number::ConstantType;
   using Polynom = Polynom<Number>;
 

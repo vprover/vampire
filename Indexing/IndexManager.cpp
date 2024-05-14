@@ -13,6 +13,7 @@
  */
 
 #include "Inferences/LASCA/IsIntResolution.hpp"
+#include "Indexing/Index.hpp"
 #include "Lib/Exception.hpp"
 
 #include "Kernel/Grounder.hpp"
@@ -20,6 +21,7 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "AcyclicityIndex.hpp"
+#include "Kernel/OrderingUtils.hpp"
 #include "CodeTreeInterfaces.hpp"
 #include "GroundingIndex.hpp"
 #include "LiteralIndex.hpp"
@@ -42,14 +44,12 @@ using namespace Indexing;
 
 IndexManager::IndexManager(SaturationAlgorithm* alg) 
   : _alg(alg) 
-  , _uwa(MismatchHandler::create())
+  , _uwa(AbstractionOracle::create())
   , _uwaFixedPointIteration(env.options->unificationWithAbstractionFixedPointIteration())
 { }
 
 Index* IndexManager::request(IndexType t)
 {
-  CALL("IndexManager::request");
-
   Entry e;
   if(_store.find(t,e)) {
     e.refCnt++;
@@ -63,8 +63,6 @@ Index* IndexManager::request(IndexType t)
 
 void IndexManager::release(IndexType t)
 {
-  CALL("IndexManager::release");
-
   Entry e=_store.get(t);
 
   e.refCnt--;
@@ -100,7 +98,6 @@ Index* IndexManager::get(IndexType t)
  */
 void IndexManager::provideIndex(IndexType t, Index* index)
 {
-  CALL("IndexManager::provideIndex");
   ASS(!_store.find(t));
 
   Entry e;
@@ -111,8 +108,6 @@ void IndexManager::provideIndex(IndexType t, Index* index)
 
 Index* IndexManager::create(IndexType t)
 {
-  CALL("IndexManager::create");
-
   Index* res;
   using TermSubstitutionTree    = Indexing::TermSubstitutionTree<TermLiteralClause>;
   using LiteralSubstitutionTree = Indexing::LiteralSubstitutionTree<LiteralClause>;
@@ -135,8 +130,16 @@ Index* IndexManager::create(IndexType t)
     res = new UnitClauseLiteralIndex(new LiteralSubstitutionTree());
     isGenerating = true;
     break;
+  case URR_UNIT_CLAUSE_WITH_AL_SUBST_TREE:
+    res=new UnitClauseWithALLiteralIndex(new LiteralSubstitutionTree());
+    isGenerating = true;
+    break;
   case URR_NON_UNIT_CLAUSE_SUBST_TREE:
     res  =new NonUnitClauseLiteralIndex(new LiteralSubstitutionTree());
+    isGenerating = true;
+    break;
+  case URR_NON_UNIT_CLAUSE_WITH_AL_SUBST_TREE:
+    res=new NonUnitClauseWithALLiteralIndex(new LiteralSubstitutionTree());
     isGenerating = true;
     break;
 
@@ -208,17 +211,17 @@ Index* IndexManager::create(IndexType t)
     break;
   
   case SKOLEMISING_FORMULA_INDEX:
-    res = new SkolemisingFormulaIndex(new Indexing::TermSubstitutionTree<TermIndexData<Kernel::TermList>>());
+    res = new SkolemisingFormulaIndex(new Indexing::TermSubstitutionTree<TermWithValue<Kernel::TermList>>());
     isGenerating = false;
     break;
 
   case NARROWING_INDEX:
-    res = new NarrowingIndex(new TermSubstitutionTree()); 
+    res = new NarrowingIndex(new Indexing::TermSubstitutionTree<TermWithValue<Literal*>>()); 
     isGenerating = true;
     break; 
 
   case PRIMITIVE_INSTANTIATION_INDEX:
-    res = new PrimitiveInstantiationIndex(new TermSubstitutionTree()); 
+    res = new PrimitiveInstantiationIndex(new Indexing::TermSubstitutionTree<TermWithoutValue>()); 
     isGenerating = true;
     break;  
    case ACYCLICITY_INDEX:
@@ -235,12 +238,7 @@ Index* IndexManager::create(IndexType t)
     isGenerating = false;
     break;
   case DEMODULATION_LHS_CODE_TREE:
-    res = new DemodulationLHSIndex(new CodeTreeTIS(), _alg->getOrdering(), _alg->getOptions());
-    isGenerating = false;
-    break;
-
-  case DEMODULATION_LHS_SUBST_TREE:
-    res = new DemodulationLHSIndex(new TermSubstitutionTree(), _alg->getOrdering(), _alg->getOptions());
+    res = new DemodulationLHSIndex(new CodeTreeTIS<DemodulatorData>(), _alg->getOrdering(), _alg->getOptions());
     isGenerating = false;
     break;
 

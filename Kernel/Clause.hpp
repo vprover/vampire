@@ -56,10 +56,7 @@ private:
   template<class VarIt>
   void collectVars2(DHSet<unsigned>& acc);
 public:
-  typedef ArrayishObjectIterator<const Clause> Iterator;
-
   DECL_ELEMENT_TYPE(Literal*);
-  DECL_ITERATOR_TYPE(Iterator);
 
   /** Storage kind */
   enum Store {
@@ -86,8 +83,6 @@ public:
   template<class Iter>
   static Clause* fromIterator(Iter litit, const Inference& inf)
   {
-    CALL("Clause::fromIterator");
-
     static Stack<Literal*> st;
     st.reset();
     st.loadFromIterator(litit);
@@ -211,8 +206,6 @@ public:
   void incRefCnt() { _refCnt++; }
   void decRefCnt()
   {
-    CALL("Clause::decRefCnt");
-
     ASS_G(_refCnt,0);
     _refCnt--;
     destroyIfUnnecessary();
@@ -230,17 +223,11 @@ public:
     return savedTimestamp == _reductionTimestamp;
   }
 
-  ArrayishObjectIterator<Clause> getSelectedLiteralIterator()
-  { return ArrayishObjectIterator<Clause>(*this,numSelected()); }
-
-  ArrayishObjectIterator<Clause> iterLits() &
-  { return ArrayishObjectIterator<Clause>(*this,size()); }
-
-  ArrayishObjectIterator<Clause, const_ref_t> iterLits() const&
-  { return ArrayishObjectIterator<Clause, const_ref_t>(*this,size()); }
-
-  ArrayishObjectIterator<Clause> getLiteralIterator()
-  { return ArrayishObjectIterator<Clause>(*this,size()); }
+  auto getSelectedLiteralIterator() { return arrayIter(*this,numSelected()); }
+  auto iterLits()                   { return arrayIter(*this,size()); }
+  auto iterLits() const             { return arrayIter(*this,size()); }
+  // TODO remove this
+  auto getLiteralIterator()         { return arrayIter(*this,size()); }
 
   bool isGround();
   bool isPropositional();
@@ -264,8 +251,6 @@ public:
    * computed and cached (which happens at the first call to weight())
    */
   void setSplits(SplitSet* splits) {
-    CALL("Clause::setSplits");
-
     ASS(_weight == 0);
     _inference.setSplits(splits);
   }
@@ -359,6 +344,14 @@ public:
 
   unsigned numPositiveLiterals(); // number of positive literals in the clause
 
+  Literal* getAnswerLiteral();
+
+  bool hasAnswerLiteral() {
+    return getAnswerLiteral() != nullptr;
+  }
+
+  bool computable();
+
 protected:
   /** number of literals */
   unsigned _length : 20;
@@ -400,7 +393,6 @@ protected:
   static bool _auxInUse;
 #endif
 
-//#endif
 
   /** Array of literals of this unit */
   Literal* _literals[1];

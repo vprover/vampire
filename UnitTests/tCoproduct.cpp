@@ -11,6 +11,7 @@
 #include "Lib/Coproduct.hpp"
 #include "Test/UnitTesting.hpp"
 
+using namespace std;
 using namespace Kernel;
 using namespace Lib;
 
@@ -162,7 +163,7 @@ struct NonCopy {
   bool operator==(const NonCopy& other) const {
     return content == other.content;
   }
-  friend ostream& operator<<(ostream& out, const NonCopy& x)  {
+  friend std::ostream& operator<<(std::ostream& out, const NonCopy& x)  {
     return out << "NonCopy(" << x.content << ")";
   }
 };
@@ -182,12 +183,55 @@ TEST_FUN(move_01) {
   ASS((y != Coproduct<int,NonCopy>::variant<0>(0)));
 }
 
+TEST_FUN(apply01) {
 
-TEST_FUN(constness_bug_01) {
-  struct Inner 
-  { void mutate() {} };
+  struct Bar {
+    int f() { return 42; }
+  } b;
 
-  auto co = Lib::Coproduct<Inner>(Inner{});
-  // did not compile due to bug
-  co.apply([&](auto& inner) { inner.mutate(); });
+  struct Foo {
+    int f() { return -42; }
+  } f;
+
+
+  using C = Coproduct<Foo,Bar>;
+  auto foo = C(f);
+  auto& fooRef = foo;
+  auto bar = C(b);
+
+  auto applyF = [](auto& x) { return x.f(); };
+  auto& applyFref = applyF;
+  static_assert( std::is_same<decltype(foo.template unwrap<0>()), Foo& >::value, "");
+  static_assert( std::is_same<decltype(foo.template unwrap<1>()), Bar& >::value, "");
+  static_assert( std::is_same<decltype(applyF((foo.template unwrap<1>()))), int >::value, "");
+  static_assert( std::is_same<decltype(applyF((foo.template unwrap<0>()))), int >::value, "");
+  static_assert( std::is_same<decltype(applyFref((fooRef.template unwrap<0>()))), int >::value, "");
+
+  auto doApply = [](auto f) {
+
+    auto foo = C(Foo{});
+    auto doApplication = [&]() {
+      return f(foo.template unwrap<0>());
+    };
+    return doApplication();
+  };
+  ASS_EQ(doApply(applyF), -42)
+
+  ASS_EQ( 42, bar.apply([](auto& x) { 
+  static_assert( std::is_same<decltype(x), Foo& >::value
+              || std::is_same<decltype(x), Bar& >::value, "");
+        return x.f(); }))
+  ASS_EQ(-42, foo.apply([](auto& x) { return x.f(); }))
+
+}
+
+TEST_FUN(map_01) {
+
+  auto c1 = Coproduct<int, string>::variant<1>("");
+  auto c2 = c1.map([](auto x) { return (unsigned)x; },
+             [](auto x) { return x; }
+        );
+
+  ASS_EQ(( Coproduct<unsigned, string>::variant<1>("") ), c2)
+
 }

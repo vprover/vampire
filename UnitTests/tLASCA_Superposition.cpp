@@ -94,9 +94,9 @@ using namespace Inferences::LASCA;
 
 #define UWA_MODE Options::UnificationWithAbstraction::ALASCA1
 
-shared_ptr<LascaState> state(Options::UnificationWithAbstraction uwa) 
+std::shared_ptr<LascaState> state(Options::UnificationWithAbstraction uwa) 
 { 
-  shared_ptr<LascaState> out = testLascaState(uwa, /* string norm */ false, /* ord */ nullptr, /* uwaFixedPointIteration */ true); 
+  std::shared_ptr<LascaState> out = testLascaState(uwa, /* string norm */ false, /* ord */ nullptr, /* uwaFixedPointIteration */ true); 
   return out;
 }
 

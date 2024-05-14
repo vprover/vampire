@@ -21,6 +21,7 @@
 #include "Term.hpp"
 #include "Signature.hpp"
 
+using namespace std;
 using namespace Kernel;
 
 /**
@@ -32,8 +33,6 @@ using namespace Kernel;
  */
 OperatorType::OperatorKey* OperatorType::setupKey(unsigned arity, const TermList* sorts)
 {
-  CALL("OperatorType::setupKey(unsigned,const unsigned*)");
-
   OperatorKey* key = OperatorKey::allocate(arity+1);
 
   if (!sorts) {
@@ -56,8 +55,6 @@ OperatorType::OperatorKey* OperatorType::setupKey(unsigned arity, const TermList
  */
 OperatorType::OperatorKey* OperatorType::setupKey(std::initializer_list<TermList> sorts)
 {
-  CALL("OperatorType::setupKey(std::initializer_list<unsigned>)");
-
   OperatorKey* key = OperatorKey::allocate(sorts.size()+1);
 
   // initialise all the argument types to those taken from sorts
@@ -75,7 +72,6 @@ OperatorType::OperatorKey* OperatorType::setupKey(std::initializer_list<TermList
  */
 OperatorType::OperatorKey* OperatorType::setupKeyUniformRange(unsigned arity, TermList argsSort)
 {
-  CALL("OperatorType::setupKeyUniformRange");
   ASS(argsSort.isVar() || argsSort.term()->isSort());
 
   OperatorKey* key = OperatorKey::allocate(arity+1);
@@ -107,8 +103,6 @@ OperatorType::OperatorTypes& OperatorType::operatorTypes() {
  */
 OperatorType* OperatorType::getTypeFromKey(OperatorType::OperatorKey* key, unsigned taArity)
 {
-  CALL("OperatorType::getTypeFromKey");
-
   /*
   cout << "getTypeFromKey(" << key->length() << "): ";
   for (unsigned i = 0; i < key->length(); i++) {
@@ -141,19 +135,16 @@ OperatorType* OperatorType::getTypeFromKey(OperatorType::OperatorKey* key, unsig
  */
 vstring OperatorType::argsToString() const
 {
-  CALL("OperatorType::argsToString");
-
   unsigned ar = arity();
-  vstring res = ar != 1 ? "(" : "";
   ASS(ar);
+  vstring res = ar != 1 ? "(" : "";
   for (unsigned i = _typeArgsArity; i < ar; i++) {
     res += arg(i).toString();
     if (i != ar-1) {
       res += " * ";
     }
   }
-  if (ar != 1)
-    res += ')';
+  res += ar > 1 ? ")" : "";
   return res;
 } // OperatorType::argsToString()
 
@@ -162,8 +153,6 @@ vstring OperatorType::argsToString() const
  */
 vstring OperatorType::toString() const
 {
-  CALL("OperatorType::toString");
-
   vstring res;
   bool bracket = false;
   if(_typeArgsArity){
@@ -187,8 +176,6 @@ vstring OperatorType::toString() const
  */
 bool OperatorType::isSingleSortType(TermList srt) const
 {
-  CALL("OperatorType::isSingleSortType");
-
   unsigned len = arity();
   for (unsigned i = 0; i <len; i++) {
     if (arg(i) != srt) { //term comparison with != should be OK on the basis that both are shared terms

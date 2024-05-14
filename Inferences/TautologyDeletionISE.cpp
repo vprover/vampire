@@ -28,8 +28,6 @@ using namespace Inferences;
 
 Clause* TautologyDeletionISE::simplify(Clause* c)
 {
-  CALL("TautologyDeletionISE::simplify");
-
   static DArray<Literal*> plits(32); // array of positive literals
   static DArray<Literal*> nlits(32); // array of negative literals
 
@@ -95,8 +93,6 @@ Clause* TautologyDeletionISE::simplify(Clause* c)
  */
 int TautologyDeletionISE::compare(Literal* l1,Literal* l2)
 {
-  CALL("TautologyDeletionISE::compare");
-
   unsigned f1 = l1->functor();
   unsigned f2 = l2->functor();
   if (f1 < f2) {
@@ -148,7 +144,6 @@ int TautologyDeletionISE::compare(Literal* l1,Literal* l2)
  */
 void TautologyDeletionISE::sort(Literal** lits,int to)
 {
-  CALL("TautologyDeletionISE::sort");
   ASS(to > 1);
 
   // array behaves as a stack of calls to quicksort

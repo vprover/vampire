@@ -27,7 +27,6 @@ public:
   Numbering() : _nextNum(Start) {}
   unsigned get(T obj)
   {
-    CALL("Numbering::get");
     unsigned* pres;
     if(_map.getValuePtr(obj, pres, _nextNum)) {
       ALWAYS(_rev.insert(_nextNum, obj));
@@ -37,7 +36,6 @@ public:
   }
   void assign(T obj, unsigned num)
   {
-    CALL("Numbering::assign");
     if(_map.insert(obj, num)) {
       ALWAYS(_rev.insert(num, obj));
       if(num>=_nextNum) {
@@ -55,12 +53,10 @@ public:
    */
   unsigned getSpareNum()
   {
-    CALL("Numbering::getSpareNum");
     return _nextNum++;
   }
   T obj(unsigned num) const
   {
-    CALL("Numbering::obj");
     return _rev.get(num);
   } 
   bool findObj(unsigned num, T& res) const
@@ -75,7 +71,6 @@ public:
    * to the result of this function */
   unsigned getNumberUpperBound() const
   {
-    CALL("Numbering::getNumberUpperBound");
     return _nextNum==0 ? 0 : (_nextNum-1);
   }
   void reset(){

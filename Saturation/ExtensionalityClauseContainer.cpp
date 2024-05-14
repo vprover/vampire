@@ -19,6 +19,7 @@
 namespace Saturation
 {
 
+using namespace std;
 using namespace Shell;
 
 /**
@@ -30,8 +31,6 @@ using namespace Shell;
  * X=Y, which is returned in case of a positive match, 0 otherwise.
  */
 Literal* ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
-  CALL("ExtensionalityClauseContainer::addIfExtensionality");
-  
   // Clause is already in extensionality container. We only have to search X=Y.
   if (c->isExtensionality()) {
     //cout << "Using " << c->toString() << endl;
@@ -64,8 +63,7 @@ Literal* ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
     static DHSet<TermList> negEqSorts;
     negEqSorts.reset();
   
-    for (Clause::Iterator ci(*c); ci.hasNext(); ) {
-      Literal* l = ci.next();
+    for (auto l : c->iterLits()) {
 
       if (l->isTwoVarEquality() && l->isPositive()) {
         if (varEq != 0)
@@ -107,8 +105,6 @@ Literal* ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
  * places where we already know that @c c is an extensionality clause.
  */
 Literal* ExtensionalityClauseContainer::getSingleVarEq(Clause* c) {
-  CALL("ExtensionalityClauseContainer::getSingleVarEq");
-  
   for (unsigned i = 0; i < c->length(); ++i) {
     Literal* varEq = (*c)[i];
     if (varEq->isTwoVarEquality() && varEq->isPositive()) {
@@ -120,8 +116,6 @@ Literal* ExtensionalityClauseContainer::getSingleVarEq(Clause* c) {
 }
 
 void ExtensionalityClauseContainer::add(ExtensionalityClause c) {
-  CALL("ExtensionalityClauseContainer::add");
-  
   ExtensionalityClauseList** l;
   _clausesBySort.getValuePtr(c.sort,l,ExtensionalityClauseList::empty());
   ExtensionalityClauseList::push(c,*l);
@@ -136,8 +130,6 @@ struct ExtensionalityClauseContainer::ActiveFilterFn
   ActiveFilterFn(ExtensionalityClauseContainer& parent) : _parent(parent) {}
   bool operator()(ExtensionalityClause extCl)
   {
-    CALL("ExtensionalityClauseContainer::ActiveFilterFn::operator()");
-    
     if (extCl.clause->store() != Clause::ACTIVE) {
       extCl.clause->setExtensionality(false);
       _parent._size--;
@@ -158,8 +150,6 @@ private:
  * this lazily during generating inferences.
  */
 ExtensionalityClauseIterator ExtensionalityClauseContainer::activeIterator(TermList sort) {
-  CALL("ExtensionalityClauseContainer::activeIterator");
-  
   if(_clausesBySort.find(sort)){
     return pvi(getFilteredDelIterator(
                ExtensionalityClauseList::DelIterator(_clausesBySort.get(sort)),
@@ -169,9 +159,7 @@ ExtensionalityClauseIterator ExtensionalityClauseContainer::activeIterator(TermL
   }
 }
 
-void ExtensionalityClauseContainer::print (ostream& out) {
-  CALL("ExtensionalityClauseContainer::print");
-  
+void ExtensionalityClauseContainer::print (std::ostream& out) {
   out << "#####################" << endl;
 
   ClausesBySort::Iterator cbs(_clausesBySort);

@@ -29,14 +29,11 @@ namespace SAT
  */
 unsigned SAT2FO::createSpareSatVar()
 {
-  CALL("SAT2FO::createSpareSatVar");
   return _posMap.getSpareNum();
 }
 
 SATLiteral SAT2FO::toSAT(Literal* l)
 {
-  CALL("SAT2FO::toSAT");
-
   bool pol = l->isPositive();
   Literal* posLit = Literal::positiveLiteral(l);
   unsigned var = _posMap.get(posLit);
@@ -48,8 +45,6 @@ SATLiteral SAT2FO::toSAT(Literal* l)
  */
 Literal* SAT2FO::toFO(SATLiteral sl) const
 {
-  CALL("SAT2FO::toFO");
-
   Literal* posLit;
   if(!_posMap.findObj(sl.var(), posLit)) {
     return 0;
@@ -66,15 +61,10 @@ Literal* SAT2FO::toFO(SATLiteral sl) const
  */
 SATClause* SAT2FO::toSAT(Clause* cl)
 {
-  CALL("SAT2FO::toSAT");
-
-  Clause::Iterator cit(*cl);
-
   static SATLiteralStack satLits;
   satLits.reset();
 
-  while (cit.hasNext()) {
-    Literal* lit = cit.next();
+  for (auto lit : cl->iterLits()) {
     //check if it is already in the map and/or add it
     SATLiteral slit = toSAT(lit);
     satLits.push(slit);
@@ -89,7 +79,6 @@ SATClause* SAT2FO::toSAT(Clause* cl)
 
 void SAT2FO::collectAssignment(SATSolver& solver, LiteralStack& res) const
 {
-  CALL("SAT2FO::collectAssignment");
   // ASS_EQ(solver.getStatus(), SATSolver::SATISFIABLE);
   ASS(res.isEmpty());
 
@@ -114,8 +103,6 @@ void SAT2FO::collectAssignment(SATSolver& solver, LiteralStack& res) const
 
 SATClause* SAT2FO::createConflictClause(LiteralStack& unsatCore, InferenceRule rule)
 {
-  CALL("SAT2FO::createConflictClause");
-
   static LiteralStack negStack;
   negStack.reset();
   LiteralStack::ConstIterator ucit(unsatCore);

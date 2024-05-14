@@ -21,8 +21,10 @@
 
 #include "Indexing/IndexManager.hpp"
 #include "Indexing/TermIndex.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Indexing/Index.hpp"
 #include "Indexing/TermSubstitutionTree.hpp"
+#include "Kernel/TypedTermList.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
@@ -32,7 +34,6 @@ template<class T>
 class LascaIndex : public Indexing::Index
 {
 public:
-  CLASS_NAME(LascaIndex);
   USE_ALLOCATOR(LascaIndex);
 
   LascaIndex()
@@ -40,24 +41,22 @@ public:
     , _shared()
   {}
 
-  void setShared(shared_ptr<Kernel::LascaState> shared) { _shared = std::move(shared); }
+  void setShared(std::shared_ptr<Kernel::LascaState> shared) { _shared = std::move(shared); }
 
   auto find(TypedTermList key)
   {
-    CALL("LascaIndex::find")
     return iterTraits(_index.getUwa(key, _shared->uwaMode(), _shared->uwaFixedPointIteration))
       .timeTraced(_lookupStr.c_str()); }
 
 
-  auto generalizations(TermList key, bool retrieveSubstitutions = true)
+  auto generalizations(TypedTermList key, bool retrieveSubstitutions = true)
   { return iterTraits(_index.getGeneralizations(key, retrieveSubstitutions)); }
 
-  auto instances(TermList key, bool retrieveSubstitutions = true)
+  auto instances(TypedTermList key, bool retrieveSubstitutions = true)
   { return iterTraits(_index.getInstances(key, retrieveSubstitutions)); }
 
   virtual void handleClause(Clause* c, bool adding) final override
   {
-    CALL("LascaIndex::handleClause")
     TIME_TRACE(_maintainanceStr.c_str())
     for (auto appl : T::iter(*_shared, c)) {
       if (adding) {
@@ -74,7 +73,7 @@ public:
 
 private:
   TermSubstitutionTree<T> _index;
-  shared_ptr<Kernel::LascaState> _shared;
+  std::shared_ptr<Kernel::LascaState> _shared;
   static vstring _lookupStr;
   static vstring _maintainanceStr;
 };

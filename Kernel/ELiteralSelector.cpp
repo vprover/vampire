@@ -27,8 +27,6 @@ using namespace Kernel;
 
 LiteralList* ELiteralSelector::getMaximalsInOrder(Clause* c, unsigned eligible)
 {
-  CALL("ELiteralSelector::getMaximalsInOrder");
-
   LiteralList* res = LiteralList::empty();
 
   for(int li=((int)eligible)-1; li>=0; li--) {
@@ -42,8 +40,6 @@ LiteralList* ELiteralSelector::getMaximalsInOrder(Clause* c, unsigned eligible)
 
 unsigned ELiteralSelector::lit_standard_diff(Literal* lit)
 {
-  CALL("ELiteralSelector::lit_standard_diff");
-
   if (lit->isEquality()) {
     unsigned w0 = lit->nthArgument(0)->weight();
     unsigned w1 = lit->nthArgument(1)->weight();
@@ -59,15 +55,11 @@ unsigned ELiteralSelector::lit_standard_diff(Literal* lit)
  */
 unsigned ELiteralSelector::lit_sel_diff_weight(Literal* lit)
 {
-  CALL("ELiteralSelector::lit_sel_diff_weight");
-
   return 100*lit_standard_diff(lit)+lit->weight();
 }
 
 void ELiteralSelector::doSelection(Clause* c, unsigned eligible)
 {
-  CALL("ELiteralSelector::doSelection");
-
   Literal* singleSel = nullptr;
   LiteralList* sel = LiteralList::empty();
 

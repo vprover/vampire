@@ -14,53 +14,37 @@
  * @since 16/08/2008 flight Sydney-San Francisco
  */
 
+#define DEBUG_INSERT(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
+#define DEBUG_REMOVE(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
+#include <utility>
+
+#include "Shell/Options.hpp"
+
+#include "Kernel/Matcher.hpp"
+#include "Kernel/Renaming.hpp"
+#include "Kernel/SubstHelper.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/ApplicativeHelper.hpp"
+
+#include "Lib/BinaryHeap.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Recycled.hpp"
+#include "Lib/DHMultiset.hpp"
+
+#include "TermSharing.hpp"
+
+#include <iostream>
+#include "Debug/Tracer.hpp"
+#if VDEBUG
+#include "Kernel/Signature.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Int.hpp"
+#endif
+
+#include "SubstitutionTree.hpp"
+
 namespace Indexing {
-
-/**
- * Initialise the substitution tree.
- * @since 16/08/2008 flight Sydney-San Francisco
- */
-template<class LeafData_>
-SubstitutionTree<LeafData_>::SubstitutionTree(unsigned reservedSpecialVars)
-  : _nextVar(reservedSpecialVars)
-  , _root(nullptr)
-{ }
-
-/**
- * Destroy the substitution tree.
- * @warning does not destroy nodes yet
- * @since 16/08/2008 flight Sydney-San Francisco
- */
-template<class LeafData_>
-SubstitutionTree<LeafData_>::~SubstitutionTree()
-{
-  CALL("SubstitutionTree::~SubstitutionTree");
-  ASS_EQ(_iterCnt,0);
-  delete _root;
-}
-
-/**
- * Store initial bindings of term @b t into @b bq.
- *
- * This method is used for insertions and deletions.
- */
-  // TODO get rid of this unused function
-template<class LeafData_>
-void SubstitutionTree<LeafData_>::getBindingsArgBindings(Term* t, BindingMap& svBindings)
-{
-  TermList* args=t->args();
-
-  int nextVar = 0;
-  while (! args->isEmpty()) {
-    if (_nextVar <= nextVar) {
-      ASS_EQ(_iterCnt,0);
-      _nextVar = nextVar+1;
-    }
-    svBindings.insert(nextVar++, *args);
-    args = args->next();
-  }
-}
-
 struct UnresolvedSplitRecord
 {
   UnresolvedSplitRecord() {}
@@ -107,7 +91,6 @@ struct BindingComparator
 template<class LeafData_>
 void SubstitutionTree<LeafData_>::insert(BindingMap& svBindings, LeafData ld)
 {
-  CALL("SubstitutionTree::insert");
   ASS_EQ(_iterCnt,0);
   auto pnode = &_root;
   DEBUG_INSERT(0, "insert: ", svBindings, " into ", *this)
@@ -155,7 +138,7 @@ start:
       if(svBindings.find(boundVar)) {
 	TermList term=svBindings.get(boundVar);
 	bool wouldDescendIntoChild = inode->childByTop(term.top(),false)!=0;
-	ASS_EQ(wouldDescendIntoChild, TermList::sameTop(term, child->term));
+	ASS_EQ(wouldDescendIntoChild, TermList::sameTop(term, child->term()));
 	if(!wouldDescendIntoChild) {
 	  //if we'd have to perform all postponed splitting due to
 	  //node with a single child, we rather remove that node
@@ -163,7 +146,7 @@ start:
 	  //later.
 	  removeProblematicNode=true;
 	}
-      } else if(!child->term.isTerm() || child->term.term()->shared()) {
+      } else if(!child->term().isTerm() || child->term().term()->shared()) {
 	//We can remove nodes binding to special variables undefined in our branch
 	//of the tree, as long as we're sure, that during split resolving we put these
 	//binding nodes below nodes that define spec. variables they bind.
@@ -172,8 +155,8 @@ start:
 	canPostponeSplits = false;
       }
       if(removeProblematicNode) {
-	unresolvedSplits.insert(UnresolvedSplitRecord(inode->childVar, child->term));
-	child->term=inode->term;
+	unresolvedSplits.insert(UnresolvedSplitRecord(inode->childVar, child->term()));
+	child->setTerm(inode->term());
 	*pnode=child;
 	inode->makeEmpty();
 	delete inode;
@@ -188,12 +171,12 @@ start:
       UnresolvedSplitRecord urr=unresolvedSplits.pop();
 
       Node* node=*pnode;
-      IntermediateNode* newNode = createIntermediateNode(node->term, urr.var);
-      node->term=urr.original;
+      IntermediateNode* newNode = createIntermediateNode(node->term(), urr.var);
+      node->setTerm(urr.original);
 
       *pnode=newNode;
 
-      Node** nodePosition=newNode->childByTop(node->term.top(), true);
+      Node** nodePosition=newNode->childByTop(node->top(), true);
       ASS(!*nodePosition);
       *nodePosition=node;
     }
@@ -242,7 +225,7 @@ start:
 
 
   TermList* tt = &term;
-  TermList* ss = &(*pnode)->term;
+  TermList* ss = &(*pnode)->term();
 
   ASS(TermList::sameTop(*ss, *tt));
 
@@ -330,7 +313,6 @@ start:
 template<class LeafData_>
 void SubstitutionTree<LeafData_>::remove(BindingMap& svBindings, LeafData ld)
 {
-  CALL("SubstitutionTree::remove");
   ASS_EQ(_iterCnt,0);
   auto pnode = &_root;
   DEBUG_REMOVE(0, "remove: ", svBindings, " from ", *this)
@@ -351,7 +333,7 @@ void SubstitutionTree<LeafData_>::remove(BindingMap& svBindings, LeafData ld)
     ASS(pnode);
 
 
-    TermList* s = &(*pnode)->term;
+    TermList* s = &(*pnode)->term();
     ASS(TermList::sameTop(*s,t));
 
     if(*s==t) {
@@ -404,7 +386,7 @@ void SubstitutionTree<LeafData_>::remove(BindingMap& svBindings, LeafData ld)
   ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode));
 
   while( (*pnode)->isEmpty() ) {
-    TermList term=(*pnode)->term;
+    TermList term=(*pnode)->term();
     if(history->isEmpty()) {
       delete *pnode;
       *pnode=0;
@@ -429,7 +411,6 @@ void SubstitutionTree<LeafData_>::remove(BindingMap& svBindings, LeafData ld)
 template<class LeafData_>
 typename SubstitutionTree<LeafData_>::Leaf* SubstitutionTree<LeafData_>::findLeaf(Node* root, BindingMap& svBindings)
 {
-  CALL("SubstitutionTree::findLeaf");
   ASS(root);
 
   Node* node=root;
@@ -447,7 +428,7 @@ typename SubstitutionTree<LeafData_>::Leaf* SubstitutionTree<LeafData_>::findLea
     node=*child;
 
 
-    TermList s = node->term;
+    TermList s = node->term();
     ASS(TermList::sameTop(s,t));
 
     if(s==t) {
@@ -499,10 +480,8 @@ typename SubstitutionTree<LeafData_>::Leaf* SubstitutionTree<LeafData_>::findLea
 template<class LeafData_>
 SubstitutionTree<LeafData_>::Node::~Node()
 {
-  CALL("SubstitutionTree::Node::~Node");
-
-  if(term.isTerm()) {
-    term.term()->destroyNonShared();
+  if(term().isTerm()) {
+    term().term()->destroyNonShared();
   }
 }
 
@@ -510,17 +489,15 @@ SubstitutionTree<LeafData_>::Node::~Node()
 template<class LeafData_>
 void SubstitutionTree<LeafData_>::Node::split(Node** pnode, TermList* where, int var)
 {
-  CALL("SubstitutionTree::Node::split");
-
   Node* node=*pnode;
 
-  IntermediateNode* newNode = createIntermediateNode(node->term, var);
-  node->term=*where;
+  IntermediateNode* newNode = createIntermediateNode(node->term(), var);
+  node->setTerm(*where);
   *pnode=newNode;
 
   where->makeSpecialVar(var);
 
-  Node** nodePosition=newNode->childByTop(node->term.top(), true);
+  Node** nodePosition=newNode->childByTop(node->top(), true);
   ASS(!*nodePosition);
   *nodePosition=node;
 }
@@ -528,11 +505,9 @@ void SubstitutionTree<LeafData_>::Node::split(Node** pnode, TermList* where, int
 template<class LeafData_>
 void SubstitutionTree<LeafData_>::IntermediateNode::loadChildren(NodeIterator children)
 {
-  CALL("SubstitutionTree::IntermediateNode::loadChildren");
-
   while(children.hasNext()) {
     Node* ext=*children.next();
-    Node** own=childByTop(ext->term.top(), true);
+    Node** own=childByTop(ext->top(), true);
     ASS(! *own);
     *own=ext;
   }
@@ -541,21 +516,11 @@ void SubstitutionTree<LeafData_>::IntermediateNode::loadChildren(NodeIterator ch
 template<class LeafData_>
 void SubstitutionTree<LeafData_>::Leaf::loadChildren(LDIterator children)
 {
-  CALL("SubstitutionTree::Leaf::loadClauses");
-
   while(children.hasNext()) {
     // TODO move instead of copying here
     insert(*children.next());
   }
 }
-
-template<class LeafData_>
-bool SubstitutionTree<LeafData_>::LeafIterator::hasNext()
-{
-  CALL("SubstitutionTree::Leaf::hasNext");
-  return _curr != nullptr;
-}
-
 template<class LeafData_>
 SubstitutionTree<LeafData_>::LeafIterator::LeafIterator(SubstitutionTree* st)
   : _curr()
@@ -602,18 +567,17 @@ void SubstitutionTree<LeafData_>::LeafIterator::skipToNextLeaf()
   }
 }
 
-
 template<class LeafData_>
 void SubstitutionTree<LeafData_>::Leaf::output(std::ostream& out, bool multiline, int indent) const 
-{ out << this->term; }
+{ out << this->term(); }
 
 template<class LeafData_>
 void SubstitutionTree<LeafData_>::IntermediateNode::output(std::ostream& out, bool multiline, int indent) const 
 {
   // TODO const version of allChildren
   auto childIter = iterTraits(((IntermediateNode*)this)->allChildren());
-  if (!this->term.isEmpty()) {
-    out << this->term
+  if (!this->term().isEmpty()) {
+    out << this->term()
         << " ; ";
   }
   out << "S" << this->childVar << " -> ";
@@ -625,7 +589,7 @@ void SubstitutionTree<LeafData_>::IntermediateNode::output(std::ostream& out, bo
 
     if (multiline) {
       auto outp = [&](Node** x) { 
-        out << endl; 
+        out << std::endl; 
         OutputMultiline<int>::outputIndent(out, indent + 1);
         out << "| ";
         (*x)->output(out, multiline, indent + 1);
@@ -635,7 +599,7 @@ void SubstitutionTree<LeafData_>::IntermediateNode::output(std::ostream& out, bo
       while (childIter.hasNext()) {
         outp(childIter.next());
       }
-      out << endl; 
+      out << std::endl; 
       OutputMultiline<int>::outputIndent(out, indent + 1);
       out << "]";
 

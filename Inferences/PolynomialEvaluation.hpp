@@ -30,28 +30,13 @@ using SortId = TermList;
 class PolynomialEvaluation
 {
 public:
-  using Result = SimplifyingGeneratingLiteralSimplification::Result;
-  CLASS_NAME(PolynomialEvaluation);
-  USE_ALLOCATOR(PolynomialEvaluation);
-  PolynomialEvaluation() = delete;
-  explicit PolynomialEvaluation(bool removeZeros) 
-    : _removeZeros(removeZeros) 
-  {  }
-
-  Option<PolyNf> evaluate(PolyNf in) const;
-  template<class NumTraits>
-  Option<Perfect<Polynom<NumTraits>>> evaluate(Perfect<Polynom<NumTraits>> in) const
-  { return evaluate(PolyNf(in))
-      .map([](auto overf) 
-          { return overf.map([](PolyNf p) 
-              { return p.template downcast<NumTraits>().unwrap(); }); });
-  }
 
   template<class NumTraits>
   static PolyNf simplifySummation(Stack<Monom<NumTraits>>, bool removeZeros);
   TermList evaluateToTerm(Term* in) const;
   TermList evaluateToTerm(TermList in) const { return in.isVar() ? in : evaluateToTerm(in.term()); }
-  Option<Result> tryEvalPredicate(Literal* orig, PolyNf* evaluatedArgs) const;
+  Option<Inferences::SimplifyingGeneratingLiteralSimplification::Result> tryEvalPredicate(Literal* orig, PolyNf* evaluatedArgs) const;
+  Option<PolyNf> evaluate(PolyNf normalized) const;
 private:
 
   Option<PolyNf> evaluate(TermList in, SortId sortNumber) const;
@@ -62,7 +47,6 @@ private:
   PolyNf evaluateStep(Term* orig, PolyNf* evaluatedArgs) const;
 
   mutable Memo::Hashed<PolyNf, PolyNf, StlHash> _memo;
-  bool _removeZeros;
 };
 
 
@@ -70,7 +54,6 @@ class PolynomialEvaluationRule
 : public SimplifyingGeneratingLiteralSimplification
 {
 public:
-  CLASS_NAME(PolynomialEvaluationRule);
   USE_ALLOCATOR(PolynomialEvaluationRule);
 
   PolynomialEvaluationRule(Ordering& ordering);

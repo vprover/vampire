@@ -153,7 +153,7 @@ struct NumTraits;
                                                                                                     \
     template<class I1, class I2, class... Is>                                                       \
     static TermList sum(I1 i1, I2 i2, Is... is)                                                     \
-    { return sum(getConcatenatedIterator(i1, i2), is...); };                                        \
+    { return sum(concatIters(i1, i2, is...)); };                                        \
                                                                                                     \
     static TermList mulSimpl(ConstantType c, TermList t)                                            \
     { return c == ConstantType(1) ? t                                                               \

@@ -58,7 +58,6 @@ using namespace Lib;
  */
 class OverlayBinder
 {
-  CLASS_NAME(OverlayBinder);
   USE_ALLOCATOR(OverlayBinder);
 
   public:
@@ -217,7 +216,6 @@ std::ostream& operator<<(std::ostream& o, OverlayBinder const& binder);
  */
 class SDClauseMatches
 {
-  CLASS_NAME(SDClauseMatches);
   USE_ALLOCATOR(SDClauseMatches);
 
   public:
@@ -344,8 +342,6 @@ class SDHelper
 template <typename Applicator>
 bool termContainsAllVariablesOfOtherUnderSubst(TermList term, TermList other, Applicator const& applicator)
 {
-  CALL("termContainsAllVariablesOfOtherUnderSubst");
-
   static vunordered_set<unsigned int> vars(16);
   vars.clear();
 

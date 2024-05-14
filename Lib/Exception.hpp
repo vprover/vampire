@@ -22,7 +22,6 @@
 
 namespace Lib {
 
-using namespace std;
 
 /**
  * Base for every class that is to be thrown
@@ -31,20 +30,20 @@ class ThrowableBase
 {
 };
 
-template<class... Ms> 
+template<class... Ms>
 struct OutputAll;
 
-template<class M, class... Ms> 
+template<class M, class... Ms>
 struct OutputAll<M,Ms...> {
-  static void apply(ostream& out, M m, Ms... ms) {
+  static void apply(std::ostream& out, M m, Ms... ms) {
     out << m;
     OutputAll<Ms...>::apply(out, ms...);
   }
 };
 
-template<> 
+template<>
 struct OutputAll<> {
-  static void apply(ostream& out) { }
+  static void apply(std::ostream& out) { }
 };
 
 /**
@@ -66,11 +65,11 @@ public:
   explicit Exception (const vstring msg) : _message(msg) {}
 
   template<class... Msg>
-  explicit Exception(Msg... msg) 
+  explicit Exception(Msg... msg)
    : Exception(toString(msg...))
   { }
 
-  virtual void cry (ostream&) const;
+  virtual void cry (std::ostream&) const;
   virtual ~Exception() {}
 
   const vstring& msg() { return _message; }
@@ -86,6 +85,7 @@ protected:
 
 }; // Exception
 
+class ParsingRelatedException : public Exception { using Exception::Exception; };
 
 /**
  * Class UserErrorException. A UserErrorException is thrown
@@ -94,20 +94,12 @@ protected:
  * was given, or there is a syntax error in the input file.
  */
 class UserErrorException
-  : public Exception
+  : public ParsingRelatedException
 {
  public:
-  UserErrorException (const char* msg)
-    : Exception(msg)
-  {}
-  template<class... Msgs>
-  UserErrorException (Msgs... ms)
-    : Exception(ms...)
-  {}
-  UserErrorException (const vstring msg)
-    : Exception(msg)
-  {}
-  void cry (ostream&) const;
+  using ParsingRelatedException::ParsingRelatedException;
+
+  void cry (std::ostream&) const;
 }; // UserErrorException
 
 /**
@@ -123,21 +115,6 @@ class ValueNotFoundException
     : Exception("")
   {}
 }; // UserErrorException
-
-/**
- * Class MemoryLimitExceededException.
- */
-class MemoryLimitExceededException
-: public Exception
-{
-public:
-//  MemoryLimitExceededException ()
-//  : Exception("The memory limit exceeded")
-//  {}
-  MemoryLimitExceededException (bool badAlloc=false)
-  : Exception(badAlloc?"bad_alloc received":"The memory limit exceeded")
-  {}
-}; // MemoryLimitExceededException
 
 /**
  * Class TimeLimitExceededException.
@@ -177,7 +154,7 @@ class InvalidOperationException
    InvalidOperationException (const vstring msg)
     : Exception(msg)
   {}
-  void cry (ostream&) const;
+  void cry (std::ostream&) const;
 }; // InvalidOperationException
 
 /**
@@ -188,7 +165,7 @@ class SystemFailException
 {
 public:
   SystemFailException (const vstring msg, int err);
-  void cry (ostream&) const;
+  void cry (std::ostream&) const;
 
   int err;
 }; // InvalidOperationException
@@ -203,7 +180,7 @@ class NotImplementedException
    NotImplementedException (const char* file,int line)
     : Exception(""), file(file), line(line)
   {}
-   void cry (ostream&) const;
+   void cry (std::ostream&) const;
  private:
    const char* file;
    int line;

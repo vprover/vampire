@@ -15,12 +15,12 @@
  */
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
 #include "Lib/Int.hpp"
 
 #include "Lexer.hpp"
 
+using namespace std;
 using namespace Shell;
 using namespace Lib;
 
@@ -48,8 +48,6 @@ Lexer::Lexer (istream& in)
  */
 bool Lexer::readNextChar ()
 {
-  CALL("Lexer::readNextChar");
-
   if (_lookAheadChar) {
     _lastCharacter = _lookAheadChar;
     _lookAheadChar = 0;
@@ -83,8 +81,6 @@ bool Lexer::readNextChar ()
  */
 void Lexer::readNumber (Token& token)
 {
-  CALL("Lexer::readNumber");
-
   if (_lastCharacter == '-') {
     saveLastChar();
     readNextChar();
@@ -115,7 +111,6 @@ void Lexer::readNumber (Token& token)
  */
 void Lexer::saveLastChar ()
 {
-  CALL("Lexer::saveLastChar");
   _charBuffer[_charCursor++]  = (char)_lastCharacter;
 } // Lexer::saveLastChar
 
@@ -126,8 +121,6 @@ void Lexer::saveLastChar ()
  */
 void Lexer::saveChar (int character)
 {
-  CALL("Lexer::saveChar");
-
   _charBuffer[_charCursor++]  = (char)character;
 } // Lexer::saveChar
 
@@ -139,8 +132,6 @@ void Lexer::saveChar (int character)
  */
 void Lexer::saveTokenText (Token& token)
 {
-  CALL("Lexer::saveTokenText");
-
   _charBuffer[_charCursor] = 0;
   token.text = _charBuffer.content();
 } // Lexer::saveTokenText
@@ -152,8 +143,6 @@ void Lexer::saveTokenText (Token& token)
  */
 void Lexer::readUnsignedInteger ()
 {
-  CALL("TPTPLexer::readUnsignedInteger");
-
   saveLastChar();
 
   while (readNextChar() && isDigit(_lastCharacter)) {
@@ -185,7 +174,7 @@ LexerException::LexerException (vstring message,const Lexer& lexer)
  * Write itself to an ostream.
  * @since 15/07/2004 Turku
  */
-void LexerException::cry (ostream& out) const
+void LexerException::cry (std::ostream& out) const
 {
   out << "Lexer exception: " << _message << '\n';
 } // LexerException::LexerException
@@ -215,7 +204,6 @@ void Lexer::readSequence (const char* cs)
  */
 int Lexer::lookAhead()
 {
-  CALL("Lexer::lookAhead");
   ASS(! _lookAheadChar); // cannot look ahead by two characters!
 
   _lookAheadChar = _stream.get();

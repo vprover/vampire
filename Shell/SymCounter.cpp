@@ -40,8 +40,6 @@ SymCounter::SymCounter (Signature& sig)
   _noOfFuns (sig.functions()),
   _noOfTypeCons(sig.typeCons())
 {
-  CALL("SymCounter::SymCounter");
-
   if (_noOfPreds) {
     void* mem = ALLOC_KNOWN(_noOfPreds*sizeof(Pred),"SymCounter::Pred[]");
     _preds = array_new<Pred>(mem, _noOfPreds);
@@ -65,8 +63,6 @@ SymCounter::SymCounter (Signature& sig)
  */
 SymCounter::~SymCounter ()
 {
-  CALL("SymCounter::~SymCounter");
-
   if (_noOfPreds) {
     array_delete(_preds,_noOfPreds);
     DEALLOC_KNOWN(_preds,_noOfPreds*sizeof(Pred),"SymCounter::Pred[]");
@@ -89,8 +85,6 @@ SymCounter::~SymCounter ()
  */
 void SymCounter::count (UnitList* units,int c)
 {
-  CALL("SymCounter::count (const UnitList*)");
-
   UnitList::Iterator us(units);
   while (us.hasNext()) {
     Unit* unit = us.next();
@@ -110,8 +104,6 @@ void SymCounter::count (UnitList* units,int c)
  */
 void SymCounter::count (Clause* clause,int add)
 {
-  CALL("SymCounter::count(const Clause*)");
-
   for (int n = clause->length()-1;n >= 0;n--) {
     count((*clause)[n],true,add);
   }
@@ -128,8 +120,6 @@ void SymCounter::count(Formula* f, int add)
  */
 void SymCounter::count (Formula* f,int polarity,int add)
 {
-  CALL("SymCounter::count(const Formula*)");
-
   switch (f->connective()) {
     case LITERAL:
       count (f->literal(), polarity, add);
@@ -188,8 +178,6 @@ void SymCounter::count (Formula* f,int polarity,int add)
  */
 void SymCounter::count(Literal* l,int polarity,int add)
 {
-  CALL("SymCounter::count(const Literal*)");
-
   int pred = l->functor();
   ASS(_noOfPreds > pred);
 
@@ -229,38 +217,36 @@ void SymCounter::count(Literal* l,int polarity,int add)
  */
 void SymCounter::count(Term* term, int polarity, int add)
 {
-  CALL("SymCounter::count(Term*)");
-
   if (!term->shared()) {
     if (term->isSpecial()) {
       Term::SpecialTermData *sd = term->getSpecialData();
-      switch (sd->getType()) {
-        case Term::SF_FORMULA:
+      switch (sd->specialFunctor()) {
+        case SpecialFunctor::FORMULA:
           count(sd->getFormula(), polarity, add);
               break;
-        case Term::SF_ITE:
+        case SpecialFunctor::ITE:
           count(sd->getCondition(), 0, add);
               break;
-        case Term::SF_LET:
-        case Term::SF_LET_TUPLE: {
+        case SpecialFunctor::LET:
+        case SpecialFunctor::LET_TUPLE: {
           TermList binding = sd->getBinding();
           if (binding.isTerm()) {
             count(binding.term(), 1, add);
           }
           break;
         }
-        case Term::SF_TUPLE: {
+        case SpecialFunctor::TUPLE: {
           count(sd->getTupleTerm(), 0, add);
           break;
         }
-        case Term::SF_LAMBDA: {
+        case SpecialFunctor::LAMBDA: {
           TermList lambdaExp = sd->getLambdaExp();
           if(lambdaExp.isTerm()){
             count(lambdaExp.term(), polarity, add);
           }
           break;
         }
-        case Term::SF_MATCH: {
+        case SpecialFunctor::MATCH: {
           for (unsigned i = 0; i < term->arity(); i++) {
             TermList t = *term->nthArgument(i);
             if (t.isTerm()) {
@@ -269,8 +255,6 @@ void SymCounter::count(Term* term, int polarity, int add)
           }
           break;
         }
-        default:
-          ASSERTION_VIOLATION;
       }
     } else {
       //There should never be a non-shared sort
@@ -317,8 +301,6 @@ void SymCounter::count(Term* term, int polarity, int add)
  */
 void SymCounter::Pred::add(int polarity, int add)
 {
-  CALL("SymCounter::add");
-
   switch (polarity) {
     case -1:
       _nocc += add;

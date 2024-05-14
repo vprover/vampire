@@ -20,8 +20,6 @@
 #include "Kernel/Signature.hpp"
 #include "Lib/Environment.hpp"
 
-#include "Api/FormulaBuilder.hpp"
-#include "Api/Problem.hpp"
 #include "Lib/Coproduct.hpp"
 #include "Lib/Map.hpp"
 #include "Kernel/Clause.hpp"
@@ -235,11 +233,11 @@ public:
 };
 
 template<class A>
-class Pretty<unique_ptr<A>> {
-  unique_ptr<A> const& _self;
+class Pretty<std::unique_ptr<A>> {
+  std::unique_ptr<A> const& _self;
 
 public:
-  Pretty(unique_ptr<A> const& self) : _self(self) {}
+  Pretty(std::unique_ptr<A> const& self) : _self(self) {}
 
   std::ostream& prettyPrint(std::ostream& out) const
   { return out << pretty(*_self); }
@@ -252,12 +250,12 @@ bool equalFrom(DArray<unsigned>& perm, unsigned idx, P equalAt) {
     return true;
 
   for (unsigned swapAt = idx; swapAt < perm.size(); swapAt++) {
-    swap(perm[swapAt], perm[idx]);
+    std::swap(perm[swapAt], perm[idx]);
     if (equalAt(perm, idx) && equalFrom(perm, idx + 1, equalAt)) {
         return true;
     }
 
-    swap(perm[swapAt], perm[idx]);
+    std::swap(perm[swapAt], perm[idx]);
   }
 
   return false;
@@ -288,12 +286,12 @@ bool __anyPerm(DArray<unsigned>& perm, P pred, unsigned idx) {
     return true;
   }
   for (unsigned i = idx; i < perm.size(); i++) {
-    swap(perm[i], perm[idx]);
+    std::swap(perm[i], perm[idx]);
 
     if (__anyPerm(perm, pred, idx+1)) 
       return true;
 
-    swap(perm[i], perm[idx]);
+    std::swap(perm[i], perm[idx]);
   }
 
   return false;

@@ -35,11 +35,10 @@ class IsIntResolution
 : public GeneratingInferenceEngine
 {
 public:
-  CLASS_NAME(IsIntResolution);
   USE_ALLOCATOR(IsIntResolution);
 
   IsIntResolution(IsIntResolution&&) = default;
-  IsIntResolution(shared_ptr<LascaState> shared) 
+  IsIntResolution(std::shared_ptr<LascaState> shared) 
     : _shared(std::move(shared))
     , _lhsIndex()
     , _rhsIndex()
@@ -55,7 +54,6 @@ public:
 
     static auto iter(LascaState& shared, Clause* cl)
     { 
-      CALL("Lasca::IsIntResolution::Lhs::iter")
       return shared.selectedSummands(cl, 
                         /* literal*/ SelectionCriterion::NOT_LEQ, 
                         /* term */ SelectionCriterion::NOT_LEQ,
@@ -75,7 +73,6 @@ public:
 
     static auto iter(LascaState& shared, Clause* cl) 
     { 
-      CALL("Lasca::IsIntResolution::Rhs::iter")
       return shared.selectedSummands(cl, 
                         /* literal*/ SelectionCriterion::NOT_LESS,
                         /* term */ SelectionCriterion::NOT_LEQ,
@@ -118,7 +115,7 @@ private:
 
   template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit, LascaLiteral<NumTraits> l1, Monom<NumTraits> j_s1) const;
 
-  shared_ptr<LascaState> _shared;
+  std::shared_ptr<LascaState> _shared;
   LascaIndex<Lhs>* _lhsIndex;
   LascaIndex<Rhs>* _rhsIndex;
 };

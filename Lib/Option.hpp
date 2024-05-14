@@ -19,7 +19,6 @@
 
 #include <type_traits>
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 #include <iostream>
 #include "Lib/Reflection.hpp"
 
@@ -64,7 +63,7 @@ template<
 T move_if_value(T && t) 
 { return std::move(t); }
 
-#define FOR_REF_QUALIFIER(macro)                                                                    \
+#define FOR_REF_QUALIFIER(macro)                                                          \
   macro(const &, ) macro(&, ) macro(&&, std::move)
 
 template<class T>
@@ -78,18 +77,18 @@ struct MaybeUninit {
    MaybeUninit() : _elem() {}
   ~MaybeUninit() {}
 // This macro will b expanded for (REF,MV) in { (`&&`, `std::move`), (`&`, ``), (`const &`, ``) }
-#define methods(REF, MV)                                                                            \
-  operator T REF() REF                                                                              \
-  { return MV(_elem.init); }                                                                        \
-                                                                                                    \
-  void init(T REF content)                                                                          \
-  { ::new(&_elem)T(MV(content)); }                                                                  \
-                                                                                                    \
-  MaybeUninit& operator=(T REF content)                                                             \
-  {                                                                                                 \
-    _elem.init = MV(content);                                                                       \
-    return *this;                                                                                   \
-  }                                                                                                 \
+#define methods(REF, MV)                                                                  \
+  operator T REF() REF                                                                    \
+  { return MV(_elem.init); }                                                              \
+                                                                                          \
+  void init(T REF content)                                                                \
+  { ::new(&_elem)T(MV(content)); }                                                        \
+                                                                                          \
+  MaybeUninit& operator=(T REF content)                                                   \
+  {                                                                                       \
+    _elem.init = MV(content);                                                             \
+    return *this;                                                                         \
+  }                                                                                       \
 
   FOR_REF_QUALIFIER(methods)
 
@@ -104,38 +103,35 @@ class OptionBase
   MaybeUninit<A> _elem;
 public:
 
-  OptionBase() : _isSome(false) {}
+  constexpr OptionBase() : _isSome(false) {}
 
   ~OptionBase() 
   { 
-    CALL("~OptionBase") 
     if (isSome()) { 
       unwrap().~A(); 
     }
   }
 
 #define methods(REF, MV)                                                                  \
-  explicit OptionBase(A REF content)                                                                \
-    : _isSome(true)                                                                                 \
-      , _elem()                                                                                     \
-  {                                                                                                 \
-    CALL("Option(A " #REF ")")                                                                      \
-    _elem.init(move_if_value<A>(content));                                                          \
-  }                                                                                                 \
-                                                                                                    \
-  A REF unwrap() REF                                                                                \
-  {                                                                                                 \
-    ASS(_isSome);                                                                                   \
-    return MV(_elem);                                                                               \
-  }                                                                                                 \
-                                                                                                    \
-  OptionBase(OptionBase REF a) : _isSome(a._isSome)                                                 \
-  {                                                                                                 \
-    CALL("OptionBase(OptionBase " #REF ")");                                                        \
-    if (isSome()) {                                                                                 \
-      _elem.init(MV(a).unwrap());                                                                   \
-    }                                                                                               \
-  }                                                                                                 \
+  constexpr explicit OptionBase(A REF content)                                            \
+    : _isSome(true)                                                                       \
+      , _elem()                                                                           \
+  {                                                                                       \
+    _elem.init(move_if_value<A>(content));                                                \
+  }                                                                                       \
+                                                                                          \
+  A REF unwrap() REF                                                                      \
+  {                                                                                       \
+    ASS(_isSome);                                                                         \
+    return MV(_elem);                                                                     \
+  }                                                                                       \
+                                                                                          \
+  OptionBase(OptionBase REF a) : _isSome(a._isSome)                                       \
+  {                                                                                       \
+    if (isSome()) {                                                                       \
+      _elem.init(MV(a).unwrap());                                                         \
+    }                                                                                     \
+  }                                                                                       \
 
   FOR_REF_QUALIFIER(methods)
 
@@ -143,7 +139,6 @@ public:
 
   OptionBase& operator=(OptionBase&& other)
   {
-    CALL("OptionBase& operator=(OptionBase&&)");
     if (_isSome) {
       unwrap().~A();
     }
@@ -156,7 +151,6 @@ public:
 
   OptionBase& operator=(OptionBase const& other)
   {
-    CALL("OptionBase& operator=(OptionBase const&)");
     if (_isSome) {
       unwrap().~A();
     }
@@ -196,9 +190,9 @@ class OptionBaseRef
   A* _elem;
 public:
 
-  OptionBaseRef(          ) : _elem(nullptr) {  }
-  OptionBaseRef(A const* content) : _elem(const_cast<A*>(content)) { }
-  OptionBaseRef(A* content) : _elem(content) { }
+  constexpr OptionBaseRef(                ) : _elem(nullptr) {  }
+  constexpr OptionBaseRef(A const* content) : _elem(const_cast<A*>(content)) { }
+  constexpr OptionBaseRef(A      * content) : _elem(content) { }
 
   bool isSome() const { return _elem != nullptr;   }
 
@@ -206,9 +200,9 @@ public:
   A     && unwrap()     && { ASS(isSome()); return std::move(*_elem); }
   A      & unwrap()      & { ASS(isSome()); return           *_elem ; }
 
-  OptionBaseRef(OptionBaseRef      & a) = default;
-  OptionBaseRef(OptionBaseRef     && a) = default;
-  OptionBaseRef(OptionBaseRef const& a) = default;
+  constexpr OptionBaseRef(OptionBaseRef      & a) = default;
+  constexpr OptionBaseRef(OptionBaseRef     && a) = default;
+  constexpr OptionBaseRef(OptionBaseRef const& a) = default;
 
   OptionBaseRef& operator=(OptionBaseRef      & a) = default;
   OptionBaseRef& operator=(OptionBaseRef     && a) = default;
@@ -219,7 +213,7 @@ public:
 
   friend bool operator==(OptionBaseRef const& lhs, OptionBaseRef const& rhs) 
   { return (lhs._elem == nullptr && rhs._elem == nullptr)
-        || (lhs._elem != nullptr && rhs._elem != nullptr && *lhs._elem == *rhs._elem); }
+        || (lhs._elem != nullptr && rhs._elem != nullptr && (lhs._elem == rhs._elem || *lhs._elem == *rhs._elem )); }
 
 };
 
@@ -227,18 +221,18 @@ template<class A>
 class OptionBase<A const&> : public OptionBaseRef<A>
 {
 public:
-  OptionBase() : OptionBaseRef<A>() {}
-  OptionBase(A const& item) : OptionBaseRef<A>(&item) {}
-  OptionBase(OptionBase const& b) : OptionBaseRef<A>(b) {}
+  constexpr OptionBase() : OptionBaseRef<A>() {}
+  constexpr OptionBase(A const& item) : OptionBaseRef<A>(&item) {}
+  constexpr OptionBase(OptionBase const& b) : OptionBaseRef<A>(b) {}
 };
 
 template<class A>
 class OptionBase<A&> : public OptionBaseRef<A>
 {
 public:
-  OptionBase() : OptionBaseRef<A>() {}
-  OptionBase(A& item) : OptionBaseRef<A>(&item) {}
-  OptionBase(OptionBase const& b) : OptionBaseRef<A>(b) {}
+  constexpr OptionBase() : OptionBaseRef<A>() {}
+  constexpr OptionBase(A& item) : OptionBaseRef<A>(&item) {}
+  constexpr OptionBase(OptionBase const& b) : OptionBaseRef<A>(b) {}
 };
 
 
@@ -246,9 +240,9 @@ template<class A>
 class OptionBase<A&&> : public OptionBaseRef<A>
 {
 public:
-  OptionBase() : OptionBaseRef<A>() {}
-  OptionBase(A&& item) : OptionBaseRef<A>(&item) {}
-  OptionBase(OptionBase const& b) : OptionBaseRef<A>(b) {}
+  constexpr OptionBase() : OptionBaseRef<A>() {}
+  constexpr OptionBase(A&& item) : OptionBaseRef<A>(&item) {}
+  constexpr OptionBase(OptionBase const& b) : OptionBaseRef<A>(b) {}
 };
 
 /** The actual Option class
@@ -262,7 +256,7 @@ public:
 template<class A>
 class Option : OptionBase<A> {
 
-  explicit Option(OptionBase<A>&& base) : OptionBase<A>(std::move(base)) {  }
+  explicit constexpr Option(OptionBase<A>&& base) : OptionBase<A>(std::move(base)) {  }
 public:
   using Content = A;
 
@@ -300,6 +294,12 @@ public:
   std::remove_reference_t<A> const* asPtr() const { return isSome() ? &unwrap() : nullptr; }
 
 
+  Option take() 
+  {
+    Option out;
+    std::swap(*this,out);
+    return out;
+  }
   /** 
    * returns the value held by this option if there is one, or calls the given function f without arguments, 
    * initializes the closuer with the returned value, and returns a reference to the value afterwards.
@@ -312,123 +312,116 @@ public:
     return this->unwrap();
   }
 
-#define ref_polymorphic(REF, MOVE)                                                                  \
-                                                                                                    \
-  /**                                                                                               \
+#define ref_polymorphic(REF, MOVE)                                                        \
+                                                                                          \
+  /**                                                                                     \
    * applies the given function to the value of this option and returns an option of the return type. \
-   * if the Option was None an empty option of the function's return type is returned.              \
-   */                                                                                               \
-  template<class Clsr>                                                                              \
-  Option<typename std::result_of<Clsr(A REF)>::type> map(Clsr clsr) REF {                           \
-    using OptOut = Option<typename std::result_of<Clsr(A REF)>::type>;                              \
-    return this->isSome() ? OptOut(clsr(MOVE(unwrap())))                                            \
-                          : OptOut();                                                               \
-  }                                                                                                 \
-                                                                                                    \
-  /**                                                                                               \
-   * if the Option holds a value the first function is applied to the value.                        \
+   * if the Option was None an empty option of the function's return type is returned.    \
+   */                                                                                     \
+  template<class Clsr>                                                                    \
+  Option<typename std::invoke_result<Clsr, A REF>::type> map(Clsr clsr) REF {                 \
+    using OptOut = Option<typename std::invoke_result<Clsr, A REF>::type>;                    \
+    return this->isSome() ? OptOut(clsr(MOVE(unwrap())))                                  \
+                          : OptOut();                                                     \
+  }                                                                                       \
+                                                                                          \
+  /**                                                                                     \
+   * if the Option holds a value the first function is applied to the value.              \
    * if the Option is none the second function is called without arguments and the result is returned.\
-   * \pre both CaseSome and CaseNone must have the same return type                                 \
-   */                                                                                               \
-  template<class CaseSome, class CaseNone>                                                          \
-  typename std::result_of<CaseSome( A REF)>::type match(CaseSome present, CaseNone none) REF {      \
-    if (this->isSome()) {                                                                           \
-      return present(MOVE((*this)).unwrap());                                                       \
-    } else {                                                                                        \
-      return none();                                                                                \
-    }                                                                                               \
-  }                                                                                                 \
-                                                                                                    \
-  /**                                                                                               \
+   * \pre both CaseSome and CaseNone must have the same return type                       \
+   */                                                                                     \
+  template<class CaseSome, class CaseNone>                                                \
+  typename std::invoke_result<CaseSome, A REF>::type match(CaseSome present, CaseNone none) REF {      \
+    if (this->isSome()) {                                                                 \
+      return present(MOVE((*this)).unwrap());                                             \
+    } else {                                                                              \
+      return none();                                                                      \
+    }                                                                                     \
+  }                                                                                       \
+                                                                                          \
+  /**                                                                                     \
    * returns the value held by this option if there is one, or returns the value alt otherwise      \
-   */                                                                                               \
-  A REF unwrapOr(A REF alt) REF {                                                                   \
-    if (this->isSome()) {                                                                           \
-      return MOVE(*this).unwrap();                                                                  \
-    } else {                                                                                        \
-      return MOVE(alt);                                                                             \
-    }                                                                                               \
-  }                                                                                                 \
-                                                                                                    \
-  /**                                                                                               \
+   */                                                                                     \
+  A REF unwrapOr(A REF alt) REF {                                                         \
+    if (this->isSome()) {                                                                 \
+      return MOVE(*this).unwrap();                                                        \
+    } else {                                                                              \
+      return MOVE(alt);                                                                   \
+    }                                                                                     \
+  }                                                                                       \
+                                                                                          \
+  /**                                                                                     \
    * returns the value held by this option if there is one, or calls the given function f without arguments   \
-   * and returns the value otherwise.                                                               \
-   */                                                                                               \
-  template<class Clsr>                                                                              \
-  A unwrapOrElse(Clsr f) REF {                                                                      \
-    if (this->isSome()) {                                                                           \
-      return MOVE(*this).unwrap();                                                                  \
-    } else {                                                                                        \
-      return f();                                                                                   \
-    }                                                                                               \
-  }                                                                                                 \
-                                                                                                    \
-  /**                                                                                               \
+   * and returns the value otherwise.                                                     \
+   */                                                                                     \
+  template<class Clsr>                                                                    \
+  A unwrapOrElse(Clsr f) REF {                                                            \
+    if (this->isSome()) {                                                                 \
+      return MOVE(*this).unwrap();                                                        \
+    } else {                                                                              \
+      return f();                                                                         \
+    }                                                                                     \
+  }                                                                                       \
+                                                                                          \
+  /**                                                                                     \
    * Returns this, if this is Some, or uses the closure to create an alternative option if this is None.      \
-   */                                                                                               \
-  template<class Clsr,                                                                              \
-           typename std::enable_if<std::is_same< typename std::result_of<Clsr()>::type              \
-                                      , Option                                                      \
-                                      >::value                                                      \
-                         , bool                                                                     \
-                         >::type = true                                                             \
-          >                                                                                         \
-  auto orElse(Clsr clsr) REF -> Option                                                              \
-  { return this->isSome() ? MOVE(*this) : clsr(); }                                                 \
-                                                                                                    \
+   */                                                                                     \
+  template<class Clsr,                                                                    \
+           typename std::enable_if<std::is_same< typename std::invoke_result<Clsr>::type    \
+                                      , Option                                            \
+                                      >::value                                            \
+                         , bool                                                           \
+                         >::type = true                                                   \
+          >                                                                               \
+  auto orElse(Clsr clsr) REF -> Option                                                    \
+  { return this->isSome() ? MOVE(*this) : clsr(); }                                       \
+                                                                                          \
   /** Returns the value of this, if this is Some, or uses the closure to create a value othewise. */\
-  template<class Clsr,                                                                              \
-           typename std::enable_if<std::is_same< typename std::result_of<Clsr()>::type              \
-                                      , A                                                           \
-                                      >::value                                                      \
-                         , bool                                                                     \
-                         >::type = true                                                             \
-          >                                                                                         \
-  auto orElse(Clsr clsr) REF -> A                                                                   \
-  { return this->isSome() ? MOVE(*this).unwrap() : clsr(); }                                        \
-                                                                                                    \
-   /**                                                                                              \
+  template<class Clsr,                                                                    \
+           typename std::enable_if<std::is_same< typename std::invoke_result<Clsr>::type    \
+                                      , A                                                 \
+                                      >::value                                            \
+                         , bool                                                           \
+                         >::type = true                                                   \
+          >                                                                               \
+  auto orElse(Clsr clsr) REF -> A                                                         \
+  { return this->isSome() ? MOVE(*this).unwrap() : clsr(); }                              \
+                                                                                          \
+   /**                                                                                    \
    * applies a function to the value of this closure if ther is one. the function is expected to return\
    * another option. the resulting Option<Option<Result>> will then be flattened to an Option<Result>.\
-   *                                                                                                \
+   *                                                                                      \
    * This function is the same as flatMap/andThen/(>>=)  in other programming languages with monads.\
-   */                                                                                               \
-  template<class Clsr>                                                                              \
-  typename std::result_of<Clsr(A REF)>::type andThen(Clsr clsr) REF {                               \
-    using OptOut = typename std::result_of<Clsr(A REF)>::type;                                      \
-    return this->isSome() ? clsr(MOVE(*this).unwrap())                                              \
-                          : OptOut();                                                               \
-  }                                                                                                 \
-                                                                                                    \
-  template<class Clsr> auto flatMap(Clsr clsr) REF { return andThen(clsr); }                        \
-                                                                                                    \
-  template<class Pred>                                                                              \
-  Option filter(Pred p) REF {                                                                       \
-    return isSome() && p(unwrap())                                                                  \
-                ? MOVE(*this)                                                                       \
-                : Option();                                                                         \
-  }                                                                                                 \
-                                                                                                    \
-  /**                                                                                               \
+   */                                                                                     \
+  template<class Clsr>                                                                    \
+  typename std::invoke_result<Clsr, A REF>::type andThen(Clsr clsr) REF {                     \
+    using OptOut = typename std::invoke_result<Clsr, A REF>::type;                            \
+    return this->isSome() ? clsr(MOVE(*this).unwrap())                                    \
+                          : OptOut();                                                     \
+  }                                                                                       \
+                                                                                          \
+  template<class Clsr> auto flatMap(Clsr clsr) REF { return andThen(clsr); }              \
+                                                                                          \
+  template<class Pred>                                                                    \
+  Option filter(Pred p) REF {                                                             \
+    return isSome() && p(unwrap())                                                        \
+                ? MOVE(*this)                                                             \
+                : Option();                                                               \
+  }                                                                                       \
+                                                                                          \
+  /**                                                                                     \
    * turns an Option<A&>, Option<A const&>, or Option<A&&> into an Option<A> by calling the appropriate move  \
-   * or copy constructor.                                                                           \
-   */                                                                                               \
+   * or copy constructor.                                                                 \
+   */                                                                                     \
   Option<typename std::remove_const<typename std::remove_reference<A>::type>::type>  toOwned() REF  \
-  {                                                                                                 \
-    using Out = typename std::remove_const<typename std::remove_reference<A>::type>::type;          \
-    return map([](A REF  elem) -> Out { return Out(MOVE(elem)); });                                 \
-  }                                                                                                 \
+  {                                                                                       \
+    using Out = typename std::remove_const<typename std::remove_reference<A>::type>::type;\
+    return map([](A REF  elem) -> Out { return Out(MOVE(elem)); });                       \
+  }                                                                                       \
 
   FOR_REF_QUALIFIER(ref_polymorphic)
 
 #undef ref_polymorphic
-
-  Option take() 
-  {
-    auto out = std::move(*this);
-    *this = Option();
-    return out;
-  }
 
   class OptionIter {
     Option _self;
@@ -436,9 +429,9 @@ public:
   public:
     friend class Option;
     DECL_ELEMENT_TYPE(A);
-    bool hasNext() const { return _self.isSome(); }
-    bool hasNext()       { return _self.isSome(); }
-    A next() { return _self.take().unwrap(); }
+    inline bool hasNext() const { return _self.isSome(); }
+    inline bool hasNext()       { return _self.isSome(); }
+    inline A next() { return _self.take().unwrap(); }
   };
   
   Option<A const&> asRef() const { return someIf(isSome(), [&]() -> decltype(auto) { return unwrap(); }); }
@@ -482,16 +475,14 @@ auto someIf(bool condition, F create) -> Option<decltype(create())>
                    : Option<decltype(create())>(); }
 
 
+template<class T> constexpr Option<T> some(T const& t) { return Option<T>(t);            }
+template<class T> constexpr Option<T> some(T      & t) { return Option<T>(t);            }
+template<class T> constexpr Option<T> some(T     && t) { return Option<T>(std::move(t)); }
 
+template<class T> constexpr Option<T> none() { return Option<T>(); }
 
-template<class T> Option<T> some(T const& t) { return Option<T>(t);            }
-template<class T> Option<T> some(T      & t) { return Option<T>(t);            }
-template<class T> Option<T> some(T     && t) { return Option<T>(std::move(t)); }
-
-template<class T> Option<T> none() { return Option<T>(); }
-
-template<class T> Option<T> optionalFromPtr(T* t) { return Option<T>::fromPtr(t); }
-template<class T> Option<T> optionFromPtr(T* t) { return Option<T>::fromPtr(t); }
+template<class T> constexpr Option<T> optionalFromPtr(T* t) { return Option<T>::fromPtr(t); }
+template<class T> constexpr Option<T> optionFromPtr(T* t) { return Option<T>::fromPtr(t); }
 
 template<class T>
 T operator||(Option<T> t, T c)

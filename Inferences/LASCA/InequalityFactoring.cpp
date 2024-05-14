@@ -14,6 +14,7 @@
  */
 
 #include "InequalityFactoring.hpp"
+#include "Debug/Assertion.hpp"
 #include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
 
@@ -56,7 +57,6 @@ Option<Clause*> InequalityFactoring::applyRule(
     )
 {
   using Numeral = typename NumTraits::ConstantType;
-  CALL("InequalityFactoring::applyRule(SelectedSummand const& l1, SelectedSummand const& l2)")
   TIME_TRACE("lasca inequality factoring application")
   DEBUG("l1: ", l1)
   DEBUG("l2: ", l2)
@@ -68,7 +68,7 @@ Option<Clause*> InequalityFactoring::applyRule(
   CHECK_CONDITION("⟨σ,Cnst⟩ = uwa(s1,s2)",
                   uwa.isSome())
 
-  auto cnst  = uwa->constraintLiterals();
+  auto cnst  = uwa->computeConstraintLiterals();
   auto sigma = [&](auto x){ return uwa->subs().apply(x, /* varbank */ 0); };
   auto j = l1.numeral().unwrap<Numeral>();
   auto k = l2.numeral().unwrap<Numeral>();
@@ -147,9 +147,9 @@ Option<Clause*> InequalityFactoring::applyRule(
 
   auto pivotSum = 
   //   ^^^^^^^^--> `(k t1 − j t2)σ`
-    NumTraits::sum(iterTraits(getConcatenatedIterator(
-        l1.contextTerms<NumTraits>().map([&](auto t) { return  sigma(( k * t).denormalize()); }),
-        l2.contextTerms<NumTraits>().map([&](auto t) { return  sigma((-j * t).denormalize()); }))));
+    NumTraits::sum(concatIters(
+          l1.contextTerms<NumTraits>().map([&](auto t) { return  sigma(( k * t).denormalize()); }),
+          l2.contextTerms<NumTraits>().map([&](auto t) { return  sigma((-j * t).denormalize()); })));
     
 
   // • (>3) = if (>1, >2) = (>=, >) then (>=) 
@@ -208,8 +208,8 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
 #endif
         .template collect<Stack>());
 
-  auto selIdx = make_shared(Set<pair<unsigned, unsigned>>());
-  auto key = [&](auto& s) { return make_pair(s.litIdx, s.termIdx()); };
+  auto selIdx = make_shared(Set<std::pair<unsigned, unsigned>>());
+  auto key = [&](auto& s) { return std::make_pair(s.litIdx, s.termIdx()); };
 
   DEBUG("selected summands:")
   for (auto& s : *selected) {
@@ -217,32 +217,33 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
     DEBUG("  ", s)
   }
 
-  return pvi(range(0, selected->size())
-      .flatMap([=](auto i) {
-        return range(0, rest->size())
-          .filter([=](auto j) { return (*selected)[i].litIdx != (*rest)[j].litIdx; })
-          .filter([=](auto j) { return (*selected)[i].numTraits() == (*rest)[j].numTraits(); })
-          .flatMap([=](auto j) {
-              auto& max = (*selected)[i];
-              auto& other = (*rest)[j];
-              return ifElseIter(
-
-                  // both literals are the same. 
-                  // we use a symmetry breaking index comparison
-                  // TODO we could replace this == by _shared.equivalent
-                  max.literal() == other.literal() && other.litIdx < max.litIdx, 
-                  [&]() { return ownedArrayishIterator(Stack<Clause*>{}); },
-
-                  // both are selected (= maximal)
-                  // we skip one of the applicaiton to avoid duplicate results
-                  selIdx->contains(key(other)), 
-                  [&]() { return applyRule(other, max).intoIter(); },
-
-                  // only one is selected (= maximal)
-                  [&]() { return concatIters(applyRule(max,other).intoIter(), 
-                                             applyRule(other, max).intoIter()); });
-          });
-      }));
+  ASSERTION_VIOLATION // TODO
+  // return pvi(range(0, selected->size())
+  //     .flatMap([=](auto i) {
+  //       return range(0, rest->size())
+  //         .filter([=](auto j) { return (*selected)[i].litIdx != (*rest)[j].litIdx; })
+  //         .filter([=](auto j) { return (*selected)[i].numTraits() == (*rest)[j].numTraits(); })
+  //         .flatMap([=](auto j) {
+  //             auto& max = (*selected)[i];
+  //             auto& other = (*rest)[j];
+  //             return ifElseIter(
+  //
+  //                 // both literals are the same. 
+  //                 // we use a symmetry breaking index comparison
+  //                 // TODO we could replace this == by _shared.equivalent
+  //                 max.literal() == other.literal() && other.litIdx < max.litIdx, 
+  //                 [&]() { return arrayIter(Stack<Clause*>{}); },
+  //
+  //                 // both are selected (= maximal)
+  //                 // we skip one of the applicaiton to avoid duplicate results
+  //                 selIdx->contains(key(other)), 
+  //                 [&]() { return applyRule(other, max).intoIter(); },
+  //
+  //                 // only one is selected (= maximal)
+  //                 [&]() { return concatIters(applyRule(max,other).intoIter(), 
+  //                                            applyRule(other, max).intoIter()); });
+  //         });
+  //     }));
 }
 
   

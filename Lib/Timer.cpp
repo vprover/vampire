@@ -17,13 +17,6 @@
 #include <sys/time.h>
 #include <sys/times.h>
 
-// for checking instruction count
-#ifdef __linux__
-#include <sys/ioctl.h>
-#include <linux/perf_event.h>
-#include <asm/unistd.h>
-#endif
-
 #include "Environment.hpp"
 #include "System.hpp"
 #include "Sys/Multiprocessing.hpp"
@@ -32,19 +25,26 @@
 
 #include "Timer.hpp"
 
+// for checking instruction count
+#if VAMPIRE_PERF_EXISTS
+#include <sys/ioctl.h>
+#include <linux/perf_event.h>
+#include <asm/unistd.h>
+#endif
+
 #define DEBUG_TIMER_CHANGES 0
 #define MEGA (1 << 20)
+
+using namespace std;
 
 // things that need to be signal-safe because they are used in timer_sigalrm_handler
 // in principle we also need is_lock_free() to avoid deadlock as well
 // not sure it's worth assertion-failing over
 std::atomic<int> timer_sigalrm_counter{-1};
-std::atomic<unsigned> protectingTimeout{0};
-std::atomic<unsigned char> callLimitReachedLater{0}; // 1 for a timelimit, 2 for an instruction limit
 std::atomic<bool> Timer::s_limitEnforcement{true};
 
 // TODO probably these should also be atomics, but not sure
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
 char* error_to_report = nullptr;
 int perf_fd = -1; // the file descriptor we later read the info from
 long long last_instruction_count_read = -1;
@@ -54,14 +54,14 @@ long Timer::s_ticksPerSec;
 int Timer::s_initGuarantedMiliseconds;
 
 unsigned Timer::elapsedMegaInstructions() {
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
   return (last_instruction_count_read >= 0) ? last_instruction_count_read/MEGA : 0;
 #else
   return 0;
 #endif
 }
 
-[[noreturn]] void limitReached(unsigned char whichLimit)
+[[noreturn]] void Timer::limitReached(unsigned char whichLimit)
 {
   using namespace Shell;
 
@@ -75,33 +75,31 @@ unsigned Timer::elapsedMegaInstructions() {
   // so any code below that allocates might corrupt the allocator state.
   // Therefore, the printing below should avoid allocations!
 
-  env.beginOutput();
   reportSpiderStatus('t');
   if (outputAllowed()) {
-    addCommentSignForSZS(env.out());
-    env.out() << REACHED[whichLimit];
+    addCommentSignForSZS(std::cout);
+    std::cout << REACHED[whichLimit];
 
     if (UIHelper::portfolioParent) { // the boss
-      addCommentSignForSZS(env.out());
-      env.out() << "Proof not found in time ";
-      Timer::printMSString(env.out(),env.timer->elapsedMilliseconds());
+      addCommentSignForSZS(std::cout);
+      std::cout << "Proof not found in time ";
+      Timer::printMSString(std::cout,env.timer->elapsedMilliseconds());
 
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
       if (last_instruction_count_read > -1) {
-        env.out() << " nor after " << last_instruction_count_read << " (user) instruction executed.";
+        std::cout << " nor after " << last_instruction_count_read << " (user) instruction executed.";
       }
 #endif
-      env.out() << endl;
+      std::cout << endl;
 
       if (szsOutputMode()) {
-        env.out() << STATUS[whichLimit] << (env.options ? env.options->problemName().c_str() : "unknown") << endl;
+        std::cout << STATUS[whichLimit] << (env.options ? env.options->problemName().c_str() : "unknown") << endl;
       }
     } else // the actual child
       if (env.statistics) {
-        env.statistics->print(env.out());
+        env.statistics->print(std::cout);
     }
   }
-  env.endOutput();
 
   System::terminateImmediately(1);
 }
@@ -119,33 +117,24 @@ timer_sigalrm_handler (int sig)
   timer_sigalrm_counter++;
 
   if(Timer::s_limitEnforcement && env.timeLimitReached()) {
-    if (protectingTimeout) {
-      callLimitReachedLater = 1; // 1 for a time limit
+    if (TimeoutProtector::protectingTimeout) {
+      TimeoutProtector::callLimitReachedLater = 1; // 1 for a time limit
     } else {
-      limitReached(1); // 1 for a time limit
+      Timer::limitReached(1); // 1 for a time limit
     }
   }
 
-#ifdef __linux__
-  if(Timer::s_limitEnforcement && env.options->instructionLimit()) {
-    if (perf_fd >= 0) {
-      // we could also decide not to guard this read by env.options->instructionLimit(),
-      // to get info about instructions burned even when not instruction limiting
-      read(perf_fd, &last_instruction_count_read, sizeof(long long));
-      
-      if (last_instruction_count_read >= MEGA*(long long)env.options->instructionLimit()) {
-        Timer::setLimitEnforcement(false);
-        if (protectingTimeout) {
-          callLimitReachedLater = 2; // 2 for an instr limit
-        } else {
-          limitReached(2); // 2 for an instr limit
-        }
+#if VAMPIRE_PERF_EXISTS
+  if(Timer::s_limitEnforcement && (env.options->instructionLimit() || env.options->simulatedInstructionLimit())) {
+    Timer::updateInstructionCount();
+    if (env.options->instructionLimit() && last_instruction_count_read >= MEGA*(long long)env.options->instructionLimit()) {
+      Timer::setLimitEnforcement(false);
+      env.statistics->terminationReason = Shell::Statistics::TIME_LIMIT;
+      if (TimeoutProtector::protectingTimeout) {
+        TimeoutProtector::callLimitReachedLater = 2; // 2 for an instr limit
+      } else {
+        Timer::limitReached(2); // 2 for an instr limit
       }
-    } else if (perf_fd == -1 && error_to_report) {
-      // however, we definitely want this to be guarded by env.options->instructionLimit()
-      // not to bother with the error people who don't even know about instruction limiting
-      cerr << "perf_event_open failed (instruction limiting will be disabled): " << error_to_report << endl;
-      error_to_report = nullptr;
     }
   }
 #endif
@@ -159,10 +148,26 @@ timer_sigalrm_handler (int sig)
 
 }
 
+void Timer::updateInstructionCount()
+{
+#if VAMPIRE_PERF_EXISTS
+  if (perf_fd >= 0) {
+    // we could also decide not to guard this read by env.options->instructionLimit(),
+    // to get info about instructions burned even when not instruction limiting
+    read(perf_fd, &last_instruction_count_read, sizeof(long long));
+  } else if (perf_fd == -1 && error_to_report) {
+    // however, we definitely want this to be guarded by env.options->instructionLimit()
+    // not to bother with the error people who don't even know about instruction limiting
+    cerr << "perf_event_open failed (instruction limiting will be disabled): " << error_to_report << endl;
+    cerr << "(If you are seeing 'Permission denied' ask your admin to run 'sudo sysctl -w kernel.perf_event_paranoid=-1' for you.)" << endl;
+    error_to_report = nullptr;
+  }
+#endif
+}
+
 /** number of miliseconds (of CPU time) passed since some moment */
 int Timer::miliseconds()
 {
-  CALL("Timer::miliseconds");
   ASS_GE(timer_sigalrm_counter, 0);
 
   return timer_sigalrm_counter;
@@ -214,7 +219,7 @@ void Timer::restoreTimerAfterFork()
   }
 }
 
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
 // conveniece wrapper around a syscall (cf. https://linux.die.net/man/2/perf_event_open )
 long perf_event_open(struct perf_event_attr *hw_event, pid_t pid, int cpu, int group_fd, unsigned long flags)
 {
@@ -225,8 +230,6 @@ long perf_event_open(struct perf_event_attr *hw_event, pid_t pid, int cpu, int g
 
 void Timer::ensureTimerInitialized()
 {
-  CALL("Timer::ensureTimerInitialized");
-  
   // When ensureTimerInitialized is called, env.options->instructionLimit() will not be set yet,
   // so we do this init unconditionally
   resetInstructionMeasuring();
@@ -253,10 +256,9 @@ void Timer::ensureTimerInitialized()
 
 void Timer::resetInstructionMeasuring()
 {
-#ifdef __linux__ // if available, initialize the perf reading
-  CALL("Timer::resetInstructionMeasuring");
-
+#if VAMPIRE_PERF_EXISTS // if available, initialize the perf reading
   /*
+   *
    * NOTE: we need to do this before initializing the actual timer
    * (otherwise timer_sigalrm_handler could start asking the uninitialized perf_fd!)
    */
@@ -288,7 +290,7 @@ void Timer::resetInstructionMeasuring()
 
 bool Timer::instructionLimitingInPlace()
 {
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
   return (perf_fd >= 0);
 #else
   return false;
@@ -297,8 +299,6 @@ bool Timer::instructionLimitingInPlace()
 
 void Timer::deinitializeTimer()
 {
-  CALL("Timer::deinitializeTimer");
-
   itimerval tv1, tv2;
   tv1.it_value.tv_usec=0;
   tv1.it_value.tv_sec=0;
@@ -344,11 +344,8 @@ vstring Timer::msToSecondsString(int ms)
 /**
  * Print string representing @b ms of milliseconds to @b str
  */
-void Timer::printMSString(ostream& str, int ms)
+void Timer::printMSString(std::ostream& str, int ms)
 {
-  //having the call macro here distorts the stacks printouts
-//  CALL("Timer::printMSString");
-
   if(ms<0) {
     str << '-';
     ms = -ms;
@@ -382,15 +379,4 @@ Timer* Timer::instance()
 
 }
 
-TimeoutProtector::TimeoutProtector() {
-  protectingTimeout++;
-}
-
-TimeoutProtector::~TimeoutProtector() {
-  protectingTimeout--;
-  if (!protectingTimeout && callLimitReachedLater) {
-    unsigned howToCall = callLimitReachedLater;
-    callLimitReachedLater = 0; // to prevent recursion (should limitReached itself reach TimeoutProtector)
-    limitReached(howToCall);
-  }
-}
+volatile std::sig_atomic_t TimeoutProtector::protectingTimeout = 0, TimeoutProtector::callLimitReachedLater = 0;

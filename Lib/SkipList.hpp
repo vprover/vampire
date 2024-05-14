@@ -19,7 +19,6 @@
 #  define __SkipList__
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
 #include "Allocator.hpp"
 #include "Backtrackable.hpp"
@@ -43,7 +42,6 @@ template <typename Value,class ValueComparator>
 class SkipList
 {
 public:
-  CLASS_NAME(SkipList);
   USE_ALLOCATOR(SkipList);
 
   class Node {
@@ -63,7 +61,6 @@ public:
   inline
   void insert(Value val)
   {
-    CALL("SkipList::insert");
     void* pval = insertPositionRaw(val);
     ::new(pval) Value(std::move(val));
   } // SkipList::insert
@@ -72,8 +69,6 @@ public:
   inline
   void insertFromIterator(Iterator it)
   {
-    CALL("SkipList::insertFromIterator");
-
     while(it.hasNext()) {
       insert(it.next());
     }
@@ -86,7 +81,6 @@ public:
   inline
   bool ensurePresent(Value val)
   {
-    CALL("SkipList::ensurePresent");
     Value* pval;
     if(!getPosition(val, pval, /* canCreate */ true)) {
       new(pval) Value(std::move(val));
@@ -108,7 +102,6 @@ public:
   template<typename Key>
   bool getPosition(Key key, Value*& pvalue, bool canCreate)
   {
-    CALL("SkipList::getPosition");
     pvalue = nullptr;
 
     if(_top==0) {
@@ -185,8 +178,6 @@ public:
   template<typename Key>
   void* insertPositionRaw(Key key)
   {
-    CALL("SkipList::insertPosition");
-
     // select a random height between 0 and top
     unsigned nodeHeight = 0;
     while (Random::getBit()) {
@@ -262,8 +253,6 @@ public:
   template<typename Key>
   bool findLeastGreater(Key key, Value& value)
   {
-    CALL("SkipList::findLeastGreater");
-
     if(_top==0) {
       return false;
     }
@@ -372,7 +361,6 @@ public:
    */
   Value pop()
   {
-    CALL("SkipList::pop");
     ASS(isNonEmpty());
 
     // find the height of the first
@@ -416,7 +404,6 @@ public:
   template<typename Key>
   void remove(Key key)
   {
-    CALL("SkipList::remove");
     ASS(_top > 0);
 
     Node* found = 0; // found node
@@ -529,7 +516,6 @@ public:
     : _left(allocate(SKIP_LIST_MAX_HEIGHT)),
       _top(0)
   {
-    CALL("SkipList::SkipList");
     for (int h = SKIP_LIST_MAX_HEIGHT-1;h >= 0;h--) {
       _left->nodes[h] = 0;
     }
@@ -540,8 +526,6 @@ public:
    */
   ~SkipList()
   {
-    CALL("SkipList::~SkipList");
-
     makeEmpty();
     deallocate(_left,SKIP_LIST_MAX_HEIGHT);
   }
@@ -555,8 +539,6 @@ private:
   inline
   static Node* allocate(unsigned h)
   {
-    CALL("SkipList::allocate");
-
     void* memory = ALLOC_KNOWN(sizeof(Node)+h*sizeof(Node*),"SkipList::Node");
 
     return reinterpret_cast<Node*>(memory);
@@ -566,7 +548,6 @@ private:
   inline
   static void deallocate(Node* node,unsigned h)
   {
-    CALL("SkipList::deallocate");
     DEALLOC_KNOWN(node,sizeof(Node)+h*sizeof(Node*),"SkipList::Node");
   }
 
@@ -664,41 +645,14 @@ public:
     Node* _cur;
   };
 
-  /**
-   * Iterator over the skip list elements,
-   * which yields pointers to elements.
-   */
-  class PtrIterator {
-  public:
-    DECL_ELEMENT_TYPE(Value*);
 
-    inline explicit
-    PtrIterator(const SkipList& l)
-      : _cur (l._left)
-    {}
+  auto iter() { return iterTraits(RefIterator(*this)); }
 
-    /** return the next element */
-    inline Value* next()
-    {
-      ASS(_cur->nodes[0]);
-      _cur=_cur->nodes[0];
-      return &_cur->value;
-    }
-
-    /** True if there is a next element. */
-    inline bool hasNext() const
-    {
-      return _cur->nodes[0];
-    }
-
-   private:
-    /** the node we're now pointing to */
-    Node* _cur;
-  };
+  auto ptrIter() { return iter().map([](auto& v) { return &v; }); }
 
   friend std::ostream& operator<<(std::ostream& out, SkipList const& self)
   { 
-    PtrIterator iter(self);
+    auto iter = self.iter();
     out << "[";
     if (iter.hasNext()) {
       out << " " << *iter.next();

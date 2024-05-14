@@ -20,6 +20,7 @@
 #include "FormulaUnit.hpp"
 #include "Inference.hpp"
 #include "SubformulaIterator.hpp"
+#include "FormulaVarIterator.hpp"
 #include "Term.hpp"
 
 using namespace std;
@@ -50,10 +51,8 @@ vstring FormulaUnit::toString() const
 
 unsigned FormulaUnit::varCnt()
 {
-  CALL("FormulaUnit::varCnt");
-
   Formula* frm = formula();
-  VList* fv = frm->freeVariables();
+  VList* fv = freeVariables(frm);
   VList* bv = frm->boundVariables();
 
   unsigned res = VList::length(fv) + VList::length(bv);
@@ -70,7 +69,6 @@ unsigned FormulaUnit::varCnt()
  */
 Color FormulaUnit::getColor()
 {
-  CALL("FormulaUnit::getColor");
   ASS_ALLOC_TYPE(this, "FormulaUnit");
 
   if (_cachedColor == COLOR_INVALID) {
@@ -81,7 +79,6 @@ Color FormulaUnit::getColor()
 
 unsigned FormulaUnit::weight()
 {
-  CALL("FormulaUnit::weight");
   ASS_ALLOC_TYPE(this, "FormulaUnit");
 
   if (!_cachedWeight) {

@@ -26,10 +26,13 @@ class Schedules
 {
 public:
   static void getScheduleFromFile(const vstring& filename, Schedule& quick);
-
+  
   static void getHigherOrderSchedule2020(Schedule& quick, Schedule& fallback);
-  static void getCasc2019Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
 
+  static void getCasc2023Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
+  static void getCascSat2023Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
+
+  static void getCasc2019Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
   static void getCascSat2019Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
 
   static void getSmtcomp2018Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
@@ -42,7 +45,9 @@ public:
 
   static void getInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
   static void getIntegerInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
+  static void getIntindOeisSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
   static void getStructInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
+  static void getStructInductionTipSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
 
   static void getSnakeTptpUnsSchedule(const Shell::Property& property, Schedule& quick);
   static void getSnakeTptpSatSchedule(const Shell::Property& property, Schedule& quick);

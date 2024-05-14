@@ -48,7 +48,6 @@ struct Generalize
   template<class NumTraits>
   Monom<NumTraits> operator()(Monom<NumTraits> monom, PolyNf* evaluatedArgs)  
   {
-    CALL("NumeralMultiplicationGeneralizationImpl::Generalize::operator()")
     using Monom = Monom<NumTraits>;
     auto newFactors = perfect(monom.factors->replaceTerms(evaluatedArgs));
     for (auto f : monom.factors->iter()) {

@@ -130,7 +130,6 @@ class TestCase
 
   bool eq(TermQueryResult& res, Lib::Stack<SubsElem> const& lhs, Indexing::ResultSubstitutionSP const& rhs) const
   { 
-    CALL("eq(TermQueryResult& res, Lib::Stack<SubsElem> const& lhs, Indexing::ResultSubstitutionSP const& rhs) const")
     for (auto& x : lhs) {
       auto appl = rhs->applyToQuery(x.var);
       if (!eq(res, appl, x.replace)) 
@@ -142,7 +141,6 @@ class TestCase
 
   bool eq(TermQueryResult& res, Lib::Stack<Kernel::Literal*> const& lhs, Kernel::UnificationConstraintStackSP const& rConst) const
   { 
-    CALL("eq(TermQueryResult& res, Lib::Stack<Kernel::Literal*> const&, Kernel::UnificationConstraintStackSP const&) const")
     if (!rConst) return lhs.size() == 0;
     if (lhs.size() != rConst->size()) return false;
     for (unsigned i = 0; i < lhs.size(); i++) {
@@ -168,7 +166,6 @@ class TestCase
 
   void run() 
   {
-    CALL("Test::TermIndex::TestCase::run()")
 
 #define UNWRAP(field)                                                                                         \
       this->field().isNone()                                                                                  \

@@ -30,7 +30,6 @@ namespace LASCA {
 
 void InequalityStrengthening::attach(SaturationAlgorithm* salg) 
 {
-  CALL("InequalityStrengthening::attach");
   GeneratingInferenceEngine::attach(salg);
 
   ASS(!_lhsIndex);
@@ -44,7 +43,6 @@ void InequalityStrengthening::attach(SaturationAlgorithm* salg)
 
 void InequalityStrengthening::detach() 
 {
-  CALL("InequalityStrengthening::detach");
   ASS(_salg);
   GeneratingInferenceEngine::detach();
 }
@@ -64,7 +62,6 @@ using Rhs = InequalityStrengthening::Rhs;
 
 ClauseIterator InequalityStrengthening::generateClauses(Clause* premise) 
 {
-  CALL("InequalityStrengthening::generateClauses(Clause* premise)")
   // TODO refactor so this function is not copied and pasted among all unifying lasca rules
   ASS(_lhsIndex)
   ASS(_rhsIndex)
@@ -100,7 +97,7 @@ ClauseIterator InequalityStrengthening::generateClauses(Clause* premise)
     }
   }
 
-  return pvi(ownedArrayishIterator(std::move(out)));
+  return pvi(arrayIter(std::move(out)));
 }
 
 Option<Clause*> InequalityStrengthening::applyRule(
@@ -124,7 +121,6 @@ Option<Clause*> InequalityStrengthening::applyRule(NumTraits,
 {
 
 
-  CALL("InequalityStrengthening::applyRule")
   TIME_TRACE("inequality strengthening")
 
 #define check_side_condition(cond, cond_code)                                                       \
@@ -139,7 +135,7 @@ Option<Clause*> InequalityStrengthening::applyRule(NumTraits,
     ASS_EQ(lhs.symbol(), LascaPredicate::IS_INT_POS)
     ASS_EQ(rhs.symbol(), LascaPredicate::GREATER)
     ASS_EQ(lhs.sort(), rhs.sort())
-    auto cnst = uwa.constraintLiterals();
+    auto cnst = uwa.computeConstraintLiterals();
     auto sigma = [&](auto t, auto bank) { return uwa.subs().apply(t, bank); };
 
     Stack<Literal*> out( lhs.clause()->size() - 1 // <- C1

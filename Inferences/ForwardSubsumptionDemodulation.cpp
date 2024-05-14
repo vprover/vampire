@@ -54,7 +54,6 @@ using namespace Saturation;
 
 void ForwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
 {
-  CALL("ForwardSubsumptionDemodulation::attach");
   ForwardSimplificationEngine::attach(salg);
 
   _index.request(salg->getIndexManager(), FSD_SUBST_TREE);
@@ -70,7 +69,6 @@ void ForwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
 
 void ForwardSubsumptionDemodulation::detach()
 {
-  CALL("ForwardSubsumptionDemodulation::detach");
   _index.release();
   ForwardSimplificationEngine::detach();
 }
@@ -78,8 +76,6 @@ void ForwardSubsumptionDemodulation::detach()
 
 bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
-  CALL("ForwardSubsumptionDemodulation::perform");
-
   //                        cl
   //                 vvvvvvvvvvvvvvvv
   //     mcl       matched      /-- only look for a term to demodulate in this part!
@@ -108,7 +104,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
   // Subsumption by unit clauses
   if (_doSubsumption) {
     for (unsigned sqli = 0; sqli < cl->length(); ++sqli) {
-      SLQueryResultIterator rit = _unitIndex->getGeneralizations((*cl)[sqli], false, false);
+      auto rit = _unitIndex->getGeneralizations((*cl)[sqli], false, false);
       while (rit.hasNext()) {
         Clause* premise = rit.next().data->clause;
 
@@ -138,9 +134,9 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
     /**
      * Step 1: find candidate clauses for subsumption
      */
-    SLQueryResultIterator rit = _index->getGeneralizations(subsQueryLit, false, false);
+    auto rit = _index->getGeneralizations(subsQueryLit, false, false);
     while (rit.hasNext()) {
-      SLQueryResult res = rit.next();
+      auto res = rit.next();
       Clause* mcl = res.data->clause;  // left premise of FSD
 
       ASS_NEQ(cl, mcl);  // this can't happen because cl isn't in the index yet
@@ -419,7 +415,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
           ASS(!env.options->combinatorySup());
           NonVariableNonTypeIterator nvi(dlit);
           while (nvi.hasNext()) {
-            TermList lhsS = TermList(nvi.next());  // named 'lhsS' because it will be matched against 'lhs'
+            TypedTermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'
 
             if (!attempted.insert(lhsS)) {
               // We have already tried to demodulate the term lhsS and did not
@@ -430,7 +426,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
               continue;
             }
 
-            TermList const lhsSSort = SortHelper::getTermSort(lhsS, dlit);
+            auto lhsSSort = lhsS.sort();
 
             ASS_LE(lhsVector.size(), 2);
             for (TermList lhs : lhsVector) {
@@ -651,12 +647,11 @@ isRedundant:
               replacement = newCl;
 
 #if FSD_LOG_INFERENCES
-              env.beginOutput();
-              env.out() << "\% Begin Inference \"FSD-" << newCl->number() << "\"\n";
-              env.out() << "\% eqLit: " << eqLit->toString() << "\n";
-              env.out() << "\% eqLitS: " << binder.applyTo(eqLit)->toString() << "\n";
-              env.out() << "\% dlit: " << dlit->toString() << "\n";
-              env.out() << "\% numMatches+1: success at match #" << (numMatches+1) << "\n";
+              std::cout << "\% Begin Inference \"FSD-" << newCl->number() << "\"\n";
+              std::cout << "\% eqLit: " << eqLit->toString() << "\n";
+              std::cout << "\% eqLitS: " << binder.applyTo(eqLit)->toString() << "\n";
+              std::cout << "\% dlit: " << dlit->toString() << "\n";
+              std::cout << "\% numMatches+1: success at match #" << (numMatches+1) << "\n";
               TPTPPrinter tptp;
               // NOTE: do not output the splitLevels here, because those will be set for newCl only later
               tptp.printWithRole("side_premise_mcl", "hypothesis", mcl,   false);
@@ -668,8 +663,7 @@ isRedundant:
               //       Problem: how to detect that situation??
               //       probably if the input only contains FOF and no TFF
               // TODO: Also don't output type defs for $$false and $$true, see problem SYO091^5.p
-              env.out() << "\% End Inference \"FSD-" << newCl->number() << "\"" << std::endl;
-              env.endOutput();
+              std::cout << "\% End Inference \"FSD-" << newCl->number() << "\"" << std::endl;
 #endif
 
               RSTAT_MCTR_INC("FSD, successes by MLMatch", numMatches + 1);  // +1 so it fits with the previous output

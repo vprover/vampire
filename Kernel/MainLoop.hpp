@@ -16,6 +16,7 @@
 #define __MainLoop__
 
 #include "Forwards.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
@@ -53,10 +54,7 @@ struct MainLoopResult
 
 
 class MainLoop {
-public:  
-  CLASS_NAME(MainLoop);
-  USE_ALLOCATOR(MainLoop);
-
+public:
   MainLoop(Problem& prb, const Options& opt) : _prb(prb), _opt(opt) {}
   virtual ~MainLoop() {}
 
@@ -72,7 +70,6 @@ public:
   {
     RefutationFoundException(Clause* ref) : refutation(ref)
     {
-      CALL("MainLoop::RefutationFoundException::RefutationFoundException");
       ASS(isRefutation(ref));
     }
 

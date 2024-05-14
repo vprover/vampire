@@ -32,6 +32,7 @@
 #include "Kernel/ApplicativeHelper.hpp"
 #include "Kernel/SKIKBO.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/FormulaVarIterator.hpp"
 
 #include "Skolem.hpp"
 #include "Options.hpp"
@@ -40,6 +41,7 @@
 
 #include "LambdaElimination.hpp"
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
@@ -56,8 +58,6 @@ typedef ApplicativeHelper AH;
  */
 bool LambdaElimination::TermListComparator::lessThan(TermList t1, TermList t2)
 {
-  CALL("TermListComparator::lessThan");
-
   if(t1.tag()!=t2.tag()) {
     return t1.tag() < t2.tag();
   }
@@ -112,8 +112,6 @@ bool LambdaElimination::TermListComparator::lessThan(TermList t1, TermList t2)
 
 TermList LambdaElimination::elimLambda(Formula* formula)
 {
-  CALL("LambdaElimination::elimLambda(Formula*)");
-
   TermList appTerm; //The resulting term to be pushed onto _toBeProcessed 
   TermList constant; //The HOL constant for various connectives
 
@@ -240,19 +238,17 @@ TermList LambdaElimination::elimLambda(Formula* formula)
 
 TermList LambdaElimination::elimLambda(TermList term)
 {
-  CALL("LambdaElimination::elimLambda(TermList)");
-
   if(term.isVar()){
     return term;
   }
 
   Term* t = term.term();
   if(t->isSpecial()){   
-    switch(t->functor()){
-      case Term::SF_FORMULA: 
+    switch(t->specialFunctor()){
+      case SpecialFunctor::FORMULA: 
         return elimLambda(t->getSpecialData()->getFormula());
 
-      case Term::SF_LAMBDA:{
+      case SpecialFunctor::LAMBDA:{
         Stack<int> vars;
         TermStack sorts;
         Term::SpecialTermData* sd = t->getSpecialData();
@@ -293,8 +289,6 @@ TermList LambdaElimination::elimLambda(TermList term)
 TermList LambdaElimination::elimLambda(Stack<int>& vars, TermStack& sorts, 
                                        TermList body, TermList sort)
 {
-  CALL("LambdaElimination::elimLambda(Stack<int>& vars...)");
-
   TermList bodye = elimLambda(body);
   // Lambda elimination should not change the sort
   // of a term
@@ -311,13 +305,13 @@ TermList LambdaElimination::elimLambda(Stack<int>& vars, TermStack& sorts,
 }
 
 
-TermList LambdaElimination::elimLambda(int var, TermList varSort, 
+TermList LambdaElimination::elimLambda(int var, TermList varSort,
                                        TermList body, TermList sort)
 {
-  CALL("LambdaElimination::elimLambda(int var...)");
+  using Kernel::isFreeVariableOf;
 
-  if(!body.isFreeVariable(var)){
-    return createKTerm(sort, varSort, body);    
+  if(!isFreeVariableOf(body,var)){
+    return createKTerm(sort, varSort, body);
   }
 
   if(body.isVar()){
@@ -329,17 +323,17 @@ TermList LambdaElimination::elimLambda(int var, TermList varSort,
   // Specials should already have been removed via earlier
   // recursive calls
   ASS_REP(!t->isSpecial(), t->toString());
-  
+
   //must be of the form app(s1, s2, arg1, arg2)
   TermList s1 = *t->nthArgument(0);
-  TermList s2 = *t->nthArgument(1);  
+  TermList s2 = *t->nthArgument(1);
   TermList arg1 = *t->nthArgument(2);
   TermList arg2 = *t->nthArgument(3);
   TermList a1sort = AtomicSort::arrowSort(s1, s2);
   TermList a2sort = s1;
 
-  bool freeInArg1 = arg1.isFreeVariable(var);
-  bool freeInArg2 = arg2.isFreeVariable(var);
+  bool freeInArg1 = isFreeVariableOf(arg1,var);
+  bool freeInArg2 = isFreeVariableOf(arg2,var);
 
   if(arg2.isVar() && (arg2.var() == (unsigned)var) && !freeInArg1){
     //This is the case [\x. exp @ x] wehere x is not free in exp.
@@ -350,7 +344,7 @@ TermList LambdaElimination::elimLambda(int var, TermList varSort,
     TermList arg1e = elimLambda(var, varSort, arg1, a1sort);
     TermList s1e = AtomicSort::arrowSort(varSort, a1sort);
     TermList arg2e = elimLambda(var, varSort, arg2, a2sort);
-    TermList s2e = AtomicSort::arrowSort(varSort, a2sort);     
+    TermList s2e = AtomicSort::arrowSort(varSort, a2sort);
     return createSCorBTerm(arg1e, s1e, arg2e, s2e, Signature::S_COMB);
   } else if (freeInArg1) {
     TermList arg1e = elimLambda(var, varSort, arg1, a1sort);
@@ -366,15 +360,11 @@ TermList LambdaElimination::elimLambda(int var, TermList varSort,
 
 TermList LambdaElimination::elimLambda(Term* lambdaTerm)
 {
-  CALL("LambdaElimination::elimLambda");
-  
   return elimLambda(TermList(lambdaTerm));
 }
 
 TermList LambdaElimination::createKTerm(TermList s1, TermList s2, TermList arg1)
 {
-  CALL("LambdaElimination::createKTerm");
-  
   unsigned kcomb = env.signature->getCombinator(Signature::K_COMB);
   TermList res = TermList(Term::create2(kcomb, s1, s2));
   return AH::createAppTerm(sortOf(res), res, arg1);             
@@ -383,8 +373,6 @@ TermList LambdaElimination::createKTerm(TermList s1, TermList s2, TermList arg1)
 TermList LambdaElimination::createSCorBTerm(TermList arg1, TermList arg1sort, 
                                             TermList arg2, TermList arg2sort, Signature::Combinator comb)
 {
-  CALL("LambdaElimination::createSCorBTerm");
-  
   TermList s1, s2, s3;
   unsigned cb = env.signature->getCombinator(comb);
   
@@ -405,16 +393,12 @@ TermList LambdaElimination::createSCorBTerm(TermList arg1, TermList arg1sort,
 
 TermList LambdaElimination::sortOf(TermList t)
 {
-  CALL("LambdaElimination::sortOf");
-  
   ASS(t.isTerm());
   return SortHelper::getResultSort(t.term());
 }
 
 void LambdaElimination::addCombinatorAxioms(Problem& prb)
 {
-  CALL("LambdaElimination::addCombinatorAxioms"); 
- 
   auto srtOf = [] (TermList t) { 
      ASS(t.isTerm());
      return SortHelper::getResultSort(t.term());
@@ -477,20 +461,18 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
   UnitList::push(iAxiom, prb.units());
 
   if (env.options->showPreprocessing()) {
-    env.out() << "Added combinator axioms: " << std::endl;
-    env.out() << sAxiom->toString() << std::endl;
-    env.out() << cAxiom->toString() << std::endl;
-    env.out() << bAxiom->toString() << std::endl;
-    env.out() << kAxiom->toString() << std::endl;  
-    env.out() << iAxiom->toString() << std::endl;        
+    std::cout << "Added combinator axioms: " << std::endl;
+    std::cout << sAxiom->toString() << std::endl;
+    std::cout << cAxiom->toString() << std::endl;
+    std::cout << bAxiom->toString() << std::endl;
+    std::cout << kAxiom->toString() << std::endl;
+    std::cout << iAxiom->toString() << std::endl;
   }
 }
 
 
 void LambdaElimination::addFunctionExtensionalityAxiom(Problem& prb)
 {
-  CALL("LambdaElimination::addFunctionExtensionalityAxiom"); 
- 
   auto srtOf = [] (TermList t) { 
      ASS(t.isTerm());
      return SortHelper::getResultSort(t.term());
@@ -514,15 +496,13 @@ void LambdaElimination::addFunctionExtensionalityAxiom(Problem& prb)
 
 
   if (env.options->showPreprocessing()) {
-    env.out() << "Added functional extensionality axiom: " << std::endl;
-    env.out() << funcExtAx->toString() << std::endl;       
+    std::cout << "Added functional extensionality axiom: " << std::endl;
+    std::cout << funcExtAx->toString() << std::endl;
   }
 }
 
 void LambdaElimination::addChoiceAxiom(Problem& prb)
 {
-  CALL("LambdaElimination::addChoiceAxiom"); 
- 
   TermList alpha = TermList(0, false);
   TermList boolS = AtomicSort::boolSort();
   TermList alphaBool = AtomicSort::arrowSort(alpha, AtomicSort::boolSort());
@@ -542,15 +522,13 @@ void LambdaElimination::addChoiceAxiom(Problem& prb)
 
 
   if (env.options->showPreprocessing()) {
-    env.out() << "Added Hilbert choice axiom: " << std::endl;
-    env.out() << choiceAx->toString() << std::endl;       
+    std::cout << "Added Hilbert choice axiom: " << std::endl;
+    std::cout << choiceAx->toString() << std::endl;
   }
 }
 
 void LambdaElimination::addProxyAxioms(Problem& prb)
 {
-  CALL("LambdaElimination::addProxyAxioms");   
-
   auto srtOf = [] (TermList t) { 
     ASS(t.isTerm());
     return SortHelper::getResultSort(t.term());
@@ -696,28 +674,27 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   //TODO iff and xor
 
   if (env.options->showPreprocessing()) {
-    env.out() << "Added proxy axioms: " << std::endl;
-    env.out() << eqAxiom1->toString() << std::endl;
-    env.out() << eqAxiom2->toString() << std::endl;
-    env.out() << notAxiom1->toString() << std::endl;
-    env.out() << notAxiom2->toString() << std::endl;  
-    env.out() << piAxiom1->toString() << std::endl;
-    env.out() << piAxiom2->toString() << std::endl;            
-    env.out() << sigmaAxiom1->toString() << std::endl;
-    env.out() << sigmaAxiom2->toString() << std::endl;
-    env.out() << impAxiom1->toString() << std::endl;  
-    env.out() << impAxiom2->toString() << std::endl;
-    env.out() << impAxiom3->toString() << std::endl;  
-    env.out() << andAxiom1->toString() << std::endl;  
-    env.out() << andAxiom2->toString() << std::endl;
-    env.out() << andAxiom3->toString() << std::endl;   
-    env.out() << orAxiom1->toString() << std::endl;  
-    env.out() << orAxiom2->toString() << std::endl;
-    env.out() << orAxiom3->toString() << std::endl;      
+    std::cout << "Added proxy axioms: " << std::endl;
+    std::cout << eqAxiom1->toString() << std::endl;
+    std::cout << eqAxiom2->toString() << std::endl;
+    std::cout << notAxiom1->toString() << std::endl;
+    std::cout << notAxiom2->toString() << std::endl;
+    std::cout << piAxiom1->toString() << std::endl;
+    std::cout << piAxiom2->toString() << std::endl;
+    std::cout << sigmaAxiom1->toString() << std::endl;
+    std::cout << sigmaAxiom2->toString() << std::endl;
+    std::cout << impAxiom1->toString() << std::endl;
+    std::cout << impAxiom2->toString() << std::endl;
+    std::cout << impAxiom3->toString() << std::endl;
+    std::cout << andAxiom1->toString() << std::endl;
+    std::cout << andAxiom2->toString() << std::endl;
+    std::cout << andAxiom3->toString() << std::endl;
+    std::cout << orAxiom1->toString() << std::endl;
+    std::cout << orAxiom2->toString() << std::endl;
+    std::cout << orAxiom3->toString() << std::endl;
   }
-    
 }
- 
+
 Literal* LambdaElimination::toEquality(TermList booleanTerm, bool polarity) {
   TermList boolVal = polarity ? TermList(Term::foolTrue()) : TermList(Term::foolFalse());
   return Literal::createEquality(true, booleanTerm, boolVal, AtomicSort::boolSort());

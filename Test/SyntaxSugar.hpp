@@ -32,7 +32,10 @@
 
 #include "Indexing/TermSharing.hpp"
 #include "Kernel/Signature.hpp"
+#include "Kernel/TermIterators.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Shell/TermAlgebra.hpp"
+#include "Shell/FunctionDefinitionHandler.hpp"
 
 #define __TO_SORT_RAT RationalConstantType::getSort()
 #define __TO_SORT_INT IntegerConstantType::getSort()
@@ -88,6 +91,7 @@
 #define DECL_PRED(f, ...)   auto f = PredSugar(#f, __VA_ARGS__);
 #define DECL_TYPE_CON(f, arity) auto f = TypeConSugar(#f, arity);    
 #define DECL_SORT(s)        auto s = TypeConstSugar(#s);
+#define DECL_SORT_BOOL      auto Bool = SortSugar(AtomicSort::boolSort());
 #define DECL_VAR(x, i) auto x = TermSugar(TermList::var(i));
 #define DECL_SORT_VAR(x, i) auto x = SortSugar(TermList::var(i));    
 #define DECL_VAR_SORTED(x, i, s) auto x = TermSugar(TermList::var(i), s);
@@ -96,6 +100,8 @@
 #define DECL_B_COMB(b) auto b = FuncSugar(env.signature->getCombinator(Signature::B_COMB));
 #define DECL_C_COMB(c) auto c = FuncSugar(env.signature->getCombinator(Signature::C_COMB));
 #define DECL_S_COMB(s) auto s = FuncSugar(env.signature->getCombinator(Signature::S_COMB));
+#define DECL_FUN_DEF(d, t)  auto d = PredSugar(env.signature->getFnDef(t.sugaredExpr().term()->functor()));
+#define DECL_PRED_DEF(d, t) auto d = PredSugar(env.signature->getBoolDef(((Literal*)t)->functor()));
 
 #define DECL_DEFAULT_VARS                                                                           \
   __ALLOW_UNUSED(                                                                                   \
@@ -294,9 +300,9 @@ class ExpressionSugar
 {
 public: 
   // TODO get rid of this default constructor. we never want to create uninitialized instances
-  ExpressionSugar(){
-    _sugaredExpr.makeEmpty();
-  }
+  ExpressionSugar() 
+   : _sugaredExpr(TermList::empty())
+  { }
 
   ExpressionSugar(TermList sugaredExpr) : 
     _sugaredExpr(sugaredExpr){}
@@ -355,9 +361,13 @@ public:
   { 
     ASS_REP(!_sugaredExpr.isEmpty(), _sugaredExpr);
     if (_sugaredExpr.isVar()) {
-      _srt.makeEmpty();
+      _srt = TermList::empty();
     } else {
-      _srt = SortHelper::getResultSort(_sugaredExpr.term());
+      if (_sugaredExpr.term()->isLiteral()) {
+        _srt = AtomicSort::boolSort();
+      } else {
+        _srt = SortHelper::getResultSort(_sugaredExpr.term());
+      }
     }
   }
 
@@ -381,6 +391,8 @@ public:
     }
     return TermSugar(TermList(Term::createConstant(f)));                                                          
   }                                                                                                                 
+
+  operator TypedTermList() const { return TypedTermList(TermList(*this), sort()); }
 };
 
 class SortedTermSugar : public TermSugar
@@ -411,6 +423,11 @@ public:
   {
     l._selected = true;
     return l;
+  }
+
+  TermSugar wrapInTerm()
+  {
+    return TermSugar(TermList(_lit));
   }
 };
 
@@ -548,7 +565,6 @@ public:
   }
 
   FuncSugar dtor(unsigned i) const {
-    CALL("FuncSugar::dtor(unsigned)")
     ASS_L(i, arity())
     ASS (symbol()->termAlgebraCons()) 
     return FuncSugar(
@@ -561,7 +577,6 @@ public:
 
   template<class... As>
   TermSugar operator()(As... args) const {
-    BYPASSING_ALLOCATOR
     Stack<TermList> as { TermSugar(args).sugaredExpr()... };
     return TermList(Term::create(_functor, 
         as.size(), 
@@ -590,10 +605,8 @@ class TypeConSugar {
   unsigned _functor;
 
 public:
-  TypeConSugar(const char* name, unsigned arity) 
+  TypeConSugar(const char* name, unsigned arity)
   {
-    BYPASSING_ALLOCATOR
-
     bool added = false;
     _functor = env.signature->addTypeCon(name, arity, added);
     if (added)
@@ -627,15 +640,15 @@ class PredSugar {
   unsigned _functor;
 
 public:
-  PredSugar(const char* name, std::initializer_list<SortSugar> args, unsigned taArity = 0) 
+  PredSugar(unsigned functor)  : _functor(functor) {}
+
+  PredSugar(const char* name, std::initializer_list<SortSugar> args, unsigned taArity = 0)
   {
-    BYPASSING_ALLOCATOR
     Stack<SortId> as;
     for (auto a : args) {
       as.push(a.sugaredExpr());
     }
-    
-    // TODO rename taArity to something more descriptfy like nTypeArgs
+
     if(taArity){
       // TODO don't haredcode these varible numbers?!
       TermStack vars = {TermList(101, false), TermList(102, false), TermList(103, false)};      
@@ -692,7 +705,11 @@ inline Stack<Clause*> clauses(std::initializer_list<std::initializer_list<Lit>> 
   return out;
 }
 
-inline void createTermAlgebra(SortSugar sort, initializer_list<FuncSugar> fs) {
+inline void createTermAlgebra(SortSugar sort, std::initializer_list<FuncSugar> fs) {
+  // avoid redeclaration
+  if (env.signature->isTermAlgebraSort(sort.sugaredExpr())) {
+    return;
+  }
 
   using namespace Shell;
 

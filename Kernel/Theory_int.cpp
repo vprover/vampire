@@ -43,7 +43,6 @@ using namespace Lib;
 
 IntegerConstantType::IntegerConstantType(const vstring& str)
 {
-  CALL("IntegerConstantType::IntegerConstantType(vstring)");
 
   if (!Int::stringToInt(str, _val)) {
     throw MachineArithmeticException();
@@ -52,7 +51,6 @@ IntegerConstantType::IntegerConstantType(const vstring& str)
 
 IntegerConstantType IntegerConstantType::operator+(const IntegerConstantType& num) const
 {
-  CALL("IntegerConstantType::operator+");
 
   InnerType res;
   if (!Int::safePlus(_val, num._val, res)) {
@@ -63,7 +61,6 @@ IntegerConstantType IntegerConstantType::operator+(const IntegerConstantType& nu
 
 IntegerConstantType IntegerConstantType::operator-(const IntegerConstantType& num) const
 {
-  CALL("IntegerConstantType::operator-/1");
 
   InnerType res;
   if (!Int::safeMinus(_val, num._val, res)) {
@@ -74,7 +71,6 @@ IntegerConstantType IntegerConstantType::operator-(const IntegerConstantType& nu
 
 IntegerConstantType IntegerConstantType::operator-() const
 {
-  CALL("IntegerConstantType::operator-/0");
 
   InnerType res;
   if (!Int::safeUnaryMinus(_val, res)) {
@@ -85,7 +81,6 @@ IntegerConstantType IntegerConstantType::operator-() const
 
 IntegerConstantType IntegerConstantType::operator*(const IntegerConstantType& num) const
 {
-  CALL("IntegerConstantType::operator*");
 
   InnerType res;
   if (!Int::safeMultiply(_val, num._val, res)) {
@@ -104,14 +99,12 @@ inline typename IntegerConstantType::InnerType divideOrThrow(typename IntegerCon
 
 IntegerConstantType IntegerConstantType::intDivide(const IntegerConstantType& num) const 
 {
-    CALL("IntegerConstantType::intDivide");
     ASS_REP(num.divides(*this),  num.toString() + " does not divide " + this->toString() );
     return divideOrThrow(_val, num._val);
 }
 
 IntegerConstantType IntegerConstantType::remainderE(const IntegerConstantType& num) const
 {
-  CALL("IntegerConstantType::remainderE");
 
   if (num._val == 0) {
     throw DivByZeroException();
@@ -182,7 +175,6 @@ IntegerConstantType IntegerConstantType::abs() const
  */
 IntegerConstantType IntegerConstantType::quotientE(const IntegerConstantType& num) const
 { 
-  CALL("IntegerConstantType::quotientE");
 
   if (num._val == 0) {
     throw DivByZeroException();
@@ -242,7 +234,6 @@ IntegerConstantType IntegerConstantType::remainderT(const IntegerConstantType& n
 
 bool IntegerConstantType::divides(const IntegerConstantType& num) const 
 {
-  CALL("IntegerConstantType:divides");
   if (_val == 0) { return false; }
   if (num._val == _val) { return true; }
   if (num._val == numeric_limits<decltype(num._val)>::min() && _val == -1) {
@@ -255,7 +246,6 @@ bool IntegerConstantType::divides(const IntegerConstantType& num) const
 //TODO remove this operator. We already have 3 other ways of computing the remainder, required by the semantics of TPTP and SMTCOMP.
 IntegerConstantType IntegerConstantType::operator%(const IntegerConstantType& num) const
 {
-  CALL("IntegerConstantType::operator%");
 
   //TODO: check if modulo corresponds to the TPTP semantic
   if (num._val==0) {
@@ -266,14 +256,12 @@ IntegerConstantType IntegerConstantType::operator%(const IntegerConstantType& nu
 
 bool IntegerConstantType::operator==(const IntegerConstantType& num) const
 {
-  CALL("IntegerConstantType::operator==");
 
   return _val==num._val;
 }
 
 bool IntegerConstantType::operator>(const IntegerConstantType& num) const
 {
-  CALL("IntegerConstantType::operator>");
 
   return _val>num._val;
 }
@@ -283,7 +271,6 @@ IntegerConstantType IntegerConstantType::floor(IntegerConstantType x)
 
 IntegerConstantType IntegerConstantType::floor(RationalConstantType rat)
 {
-  CALL("IntegerConstantType::floor");
 
   IntegerConstantType num = rat.numerator();
   IntegerConstantType den = rat.denominator();
@@ -322,7 +309,6 @@ Sign RationalConstantType::sign() const
  */
 IntegerConstantType IntegerConstantType::ceiling(RationalConstantType rat)
 {
-  CALL("IntegerConstantType::ceiling");
 
   IntegerConstantType num = rat.numerator();
   IntegerConstantType den = rat.denominator();
@@ -340,7 +326,6 @@ IntegerConstantType IntegerConstantType::ceiling(RationalConstantType rat)
 
 Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, IntegerConstantType n2)
 {
-  CALL("IntegerConstantType::comparePrecedence");
   try {
     if (n1 == numeric_limits<InnerType>::min()) {
       if (n2 == numeric_limits<InnerType>::min()) {
@@ -372,7 +357,6 @@ Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, Intege
 
 vstring IntegerConstantType::toString() const
 {
-  CALL("IntegerConstantType::toString");
 
   return Int::toString(_val);
 }
@@ -383,21 +367,18 @@ vstring IntegerConstantType::toString() const
 
 RationalConstantType::RationalConstantType(InnerType num, InnerType den)
 {
-  CALL("RationalConstantType::RationalConstantType");
 
   init(num, den);
 }
 
 RationalConstantType::RationalConstantType(const vstring& num, const vstring& den)
 {
-  CALL("RationalConstantType::RationalConstantType");
 
   init(InnerType(num), InnerType(den));
 }
 
 void RationalConstantType::init(InnerType num, InnerType den)
 {
-  CALL("RationalConstantType::init");
 
   _num = num;
   _den = den;
@@ -409,7 +390,6 @@ void RationalConstantType::init(InnerType num, InnerType den)
 
 RationalConstantType RationalConstantType::operator+(const RationalConstantType& o) const
 {
-  CALL("RationalConstantType::operator+");
 
   if (_den==o._den) {
     return RationalConstantType(_num + o._num, _den);
@@ -419,28 +399,24 @@ RationalConstantType RationalConstantType::operator+(const RationalConstantType&
 
 RationalConstantType RationalConstantType::operator-(const RationalConstantType& o) const
 {
-  CALL("RationalConstantType::operator-/1");
 
   return (*this) + (-o);
 }
 
 RationalConstantType RationalConstantType::operator-() const
 {
-  CALL("RationalConstantType::operator-/0");
 
   return RationalConstantType(-_num, _den);
 }
 
 RationalConstantType RationalConstantType::operator*(const RationalConstantType& o) const
 {
-  CALL("RationalConstantType::operator*");
 
   return RationalConstantType(_num*o._num, _den*o._den);
 }
 
 RationalConstantType RationalConstantType::operator/(const RationalConstantType& o) const
 {
-  CALL("RationalConstantType::operator/");
   auto lhs = *this;
   auto rhs = o;
   return RationalConstantType(
@@ -450,21 +426,18 @@ RationalConstantType RationalConstantType::operator/(const RationalConstantType&
 
 bool RationalConstantType::isInt() const
 {
-  CALL("RationalConstantType::isInt");
 
   return _den==1;
 }
 
 bool RationalConstantType::operator==(const RationalConstantType& o) const
 {
-  CALL("IntegerConstantType::operator==");
 
   return _num==o._num && _den==o._den;
 }
 
 bool RationalConstantType::operator>(const RationalConstantType& o) const
 {
-  CALL("IntegerConstantType::operator>");
   /* prevents overflows */
   auto toLong = [](IntegerConstantType t)  -> long int
   { return  t.toInner(); };
@@ -475,7 +448,6 @@ bool RationalConstantType::operator>(const RationalConstantType& o) const
 
 vstring RationalConstantType::toString() const
 {
-  CALL("RationalConstantType::toString");
 
   vstring numStr = _num.toString();
   vstring denStr = _den.toString();
@@ -501,7 +473,6 @@ IntegerConstantType IntegerConstantType::gcd(IntegerConstantType const& l, Integ
  */
 void RationalConstantType::cannonize()
 {
-  CALL("RationalConstantType::cannonize");
 
   unsigned gcd = Int::gcd(_num.toInner(), _den.toInner());
   if (gcd == (unsigned)(-(long long)(numeric_limits<int>::min()))) { // we are talking about 2147483648, but I can't take minus of it's int representation!
@@ -530,7 +501,6 @@ void RationalConstantType::cannonize()
  
 Comparison RationalConstantType::comparePrecedence(RationalConstantType n1, RationalConstantType n2)
 {
-  CALL("RationalConstantType::comparePrecedence");
   /* cannot overflow */
   auto prec = IntegerConstantType::comparePrecedence(n1._den, n2._den);
   if (prec != EQUAL) return prec;
@@ -595,14 +565,12 @@ Comparison RationalConstantType::comparePrecedence(RationalConstantType n1, Rati
 
 Comparison RealConstantType::comparePrecedence(RealConstantType n1, RealConstantType n2)
 {
-  CALL("RealConstantType::comparePrecedence");
 
   return RationalConstantType::comparePrecedence(n1, n2);
 }
 
 bool RealConstantType::parseDouble(const vstring& num, RationalConstantType& res)
 {
-  CALL("RealConstantType::parseDouble");
 
   try {
     vstring newNum;
@@ -649,7 +617,6 @@ bool RealConstantType::parseDouble(const vstring& num, RationalConstantType& res
 
 RealConstantType::RealConstantType(const vstring& number)
 {
-  CALL("RealConstantType::RealConstantType");
 
   RationalConstantType value;
   if (parseDouble(number, value)) {
@@ -684,7 +651,6 @@ RealConstantType::RealConstantType(const vstring& number)
 
 vstring RealConstantType::toNiceString() const
 {
-  CALL("RealConstantType::toNiceString");
 
   if (denominator().toInner()==1) {
     return numerator().toString()+".0";

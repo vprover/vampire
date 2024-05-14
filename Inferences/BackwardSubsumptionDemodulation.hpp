@@ -49,9 +49,6 @@ class BackwardSubsumptionDemodulation
   : public BackwardSimplificationEngine
 {
   public:
-    CLASS_NAME(BackwardSubsumptionDemodulation);
-    USE_ALLOCATOR(BackwardSubsumptionDemodulation);
-
     BackwardSubsumptionDemodulation(bool enableOrderingOptimizations);
 
     void attach(SaturationAlgorithm* salg) override;

@@ -14,6 +14,8 @@
 #define DEBUG(...) // DBG(__VA_ARGS__)
 namespace Inferences {
 
+using namespace std;
+
 enum class UMinus {
   Int,
   Rat,
@@ -21,7 +23,7 @@ enum class UMinus {
   None,
 };
 
-ostream& operator<<(ostream& out, UMinus const& self) {
+ostream& operator<<(std::ostream& out, UMinus const& self) {
   switch(self) {
     case UMinus::Int: return out << "UMinus::Int";
     case UMinus::Rat: return out << "UMinus::Rat";
@@ -36,7 +38,6 @@ ostream& operator<<(ostream& out, UMinus const& self) {
 
 TermList pushUMinus(UMinus outerMinus, TermList t) 
 {
-  CALL("pushUMinus(UMinus outerMinus, TermList t) ")
   auto wrapMinus = [&](TermList t) 
   {
     switch (outerMinus) {
@@ -95,7 +96,6 @@ PushUnaryMinus::~PushUnaryMinus() {}
 
 Clause* PushUnaryMinus::simplify(Clause* cl_) 
 {
-  CALL("PushUnaryMinus::simplify(Clause*)")
   DEBUG("in:  ", *cl_)
   if (cl_->isTheoryAxiom()) 
     return cl_;

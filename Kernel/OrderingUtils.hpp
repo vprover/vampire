@@ -11,9 +11,11 @@
 #ifndef __OrderingUtils__
 #define __OrderingUtils__
 
+#include "Debug/Assertion.hpp"
 #include "Lib/Option.hpp"
 #include "Kernel/Theory.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Lib/VirtualIterator.hpp"
 
 namespace Kernel {
   using namespace Lib;
@@ -26,7 +28,7 @@ namespace Kernel {
 #if VDEBUG
       ASS(std::is_sorted(_elems.begin(), _elems.end(), [](auto l, auto r) { return std::get<0>(l) < std::get<0>(r); }))
       for (auto e : _elems) {
-        ASS_G(get<1>(e), IntegerConstantType(0))
+        ASS_G(std::get<1>(e), IntegerConstantType(0))
       }
 #endif
     }
@@ -80,15 +82,15 @@ namespace Kernel {
     { 
       ASS(_elems.isEmpty())
        if (t1 == t2) {
-         _elems.push(make_pair(std::move(t1), IntegerConstantType(2)));
+         _elems.push(std::make_pair(std::move(t1), IntegerConstantType(2)));
        } else if (t1 < t2) {
          _elems.reserve(2);
-         _elems.push(make_pair(std::move(t1), IntegerConstantType(1)));
-         _elems.push(make_pair(std::move(t2), IntegerConstantType(1)));
+         _elems.push(std::make_pair(std::move(t1), IntegerConstantType(1)));
+         _elems.push(std::make_pair(std::move(t2), IntegerConstantType(1)));
        } else {
          _elems.reserve(2);
-         _elems.push(make_pair(std::move(t1), IntegerConstantType(1)));
-         _elems.push(make_pair(std::move(t2), IntegerConstantType(1)));
+         _elems.push(std::make_pair(std::move(t1), IntegerConstantType(1)));
+         _elems.push(std::make_pair(std::move(t2), IntegerConstantType(1)));
        }
     }
 
@@ -96,7 +98,7 @@ namespace Kernel {
     void init(T t)
     { 
       ASS(_elems.isEmpty())
-      _elems.push(make_pair(std::move(t), IntegerConstantType(1)));
+      _elems.push(std::make_pair(std::move(t), IntegerConstantType(1)));
     }
 
 
@@ -250,9 +252,8 @@ namespace Kernel {
     template<class Cmp, class GetElem>
     static auto maxElems(unsigned nElems, Cmp cmp_, GetElem get, SelectionCriterion sel)
     {
-      CALL("OrderingUtils::maxElems")
       auto cmpCache = make_shared(Map<std::pair<unsigned, unsigned>, Ordering::Result>());
-      return iterTraits(pvi(range(0, nElems)
+      return range(0, nElems)
         .filterMap([=](auto i) {
           if (sel == SelectionCriterion::ANY) 
             return some(i);
@@ -323,7 +324,7 @@ namespace Kernel {
             .all([&](auto j) { return matches(sel, cmp(i,j)); });
 
           return isMax ? Option<unsigned>(i) : Option<unsigned>();
-        })));
+        });
     }
 
 
@@ -376,7 +377,6 @@ namespace Kernel {
         MultiSet<B> const& rs, IntegerConstantType mulR, 
         Cmp cmp_, Option<MulExtMemo&> memo)
     {
-      CALL("mulExt")
       memo.andThen([&](auto& memo) {
           if (memo.size() == 0) 
             memo = MulExtMemo::initialized(ls.distinctElems() * rs.distinctElems());
@@ -524,7 +524,6 @@ namespace Kernel {
     template<class Cmp> 
     static Ordering::Result _mulExt(unsigned lsz, unsigned rsz, Cmp cmp_, Option<MulExtMemo&> memo)
     {
-      CALL("mulExt")
       memo.andThen([&](auto& memo){
           if (memo.size() == 0) 
             memo = MulExtMemo::initialized(lsz * rsz);

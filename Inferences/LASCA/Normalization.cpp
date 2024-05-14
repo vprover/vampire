@@ -54,7 +54,6 @@ using namespace Saturation;
 
 Clause* Normalization::simplify(Clause* cl) 
 {
-  CALL("LASCA::Normalization::simplify(...)")
   TIME_TRACE("perform lasca normalization")
   bool altered = false; 
   Recycled<Stack<Literal*>> out;

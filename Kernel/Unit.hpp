@@ -25,7 +25,6 @@
 
 namespace Kernel {
 
-using namespace std;
 using namespace Lib;
 
 /**
@@ -171,7 +170,7 @@ protected:
   static unsigned _lastParsingNumber;
 }; // class Unit
 
-std::ostream& operator<< (ostream& out, const Unit& u );
+std::ostream& operator<< (std::ostream& out, const Unit& u );
 
 }
 #endif

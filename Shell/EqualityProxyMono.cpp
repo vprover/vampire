@@ -46,7 +46,6 @@ DHMap<TermList, Unit*> EqualityProxyMono::s_proxyPremises;
 EqualityProxyMono::EqualityProxyMono(Options::EqualityProxy opt)
 : _opt(opt)
 {
-  CALL("EqualityProxyMono::EqualityProxyMono/1");
   ASS(opt != Options::EqualityProxy::OFF);
 } // EqualityProxy::EqualityProxy
 
@@ -58,8 +57,6 @@ EqualityProxyMono::EqualityProxyMono(Options::EqualityProxy opt)
  */
 void EqualityProxyMono::apply(Problem& prb)
 {
-  CALL("EqualityProxyMono::apply(Problem&)");
-
   bool hadEquality = prb.hasEquality();
 
   apply(prb.units());
@@ -89,8 +86,6 @@ void EqualityProxyMono::apply(Problem& prb)
  */
 void EqualityProxyMono::apply(UnitList*& units)
 {
-  CALL("EqualityProxyMono::apply(UnitList*&)");
-
   UnitList::DelIterator uit(units);
   while (uit.hasNext()) {
     Unit* unit = uit.next();
@@ -113,8 +108,6 @@ void EqualityProxyMono::apply(UnitList*& units)
  */
 void EqualityProxyMono::addLocalAxioms(UnitList*& units, TermList sort)
 {
-  CALL("EqualityProxyMono::addLocalAxioms");
-
   // reflexivity
   Stack<Literal*> lits;
   lits.push(makeProxyLiteral(true,TermList(0,false),TermList(0,false), sort));
@@ -147,8 +140,6 @@ void EqualityProxyMono::addLocalAxioms(UnitList*& units, TermList sort)
  */
 void EqualityProxyMono::addAxioms(UnitList*& units)
 {
-  CALL("EqualityProxyMono::addAxioms");
-
   // if we're adding congruence axioms, we need to add them before adding the local axioms.
   // Local axioms are added only for sorts on which equality is used, and the congruence axioms
   // may spread the equality use into new sorts
@@ -171,7 +162,6 @@ void EqualityProxyMono::addAxioms(UnitList*& units)
 bool EqualityProxyMono::getArgumentEqualityLiterals(unsigned cnt, LiteralStack& lits,
     Stack<TermList>& vars1, Stack<TermList>& vars2, OperatorType* symbolType, bool skipSortsWithoutEquality)
 {
-  CALL("EqualityProxyMono::getArgumentEqualityLiterals");
   ASS_EQ(cnt, symbolType->arity());
 
   lits.reset();
@@ -203,8 +193,6 @@ bool EqualityProxyMono::getArgumentEqualityLiterals(unsigned cnt, LiteralStack& 
  */
 void EqualityProxyMono::addCongruenceAxioms(UnitList*& units)
 {
-  CALL("EqualityProxyMono::addCongruenceAxioms");
-
   // This is Krystof Hoder's comment:
   // TODO: skip UPDR predicates!!!
   Stack<TermList> vars1;
@@ -214,6 +202,9 @@ void EqualityProxyMono::addCongruenceAxioms(UnitList*& units)
   unsigned funs = env.signature->functions();
   for (unsigned i=0; i<funs; i++) {
     Signature::Symbol* fnSym = env.signature->getFunction(i);
+    // can axiomatise equality _before_ preprocessing, so skip (some) introduced symbols
+    if(!fnSym->usageCnt() || fnSym->skipCongruence())
+      continue;
     unsigned arity = fnSym->arity();
     if (arity == 0) {
       continue;
@@ -231,8 +222,11 @@ void EqualityProxyMono::addCongruenceAxioms(UnitList*& units)
   unsigned preds = env.signature->predicates();
   for (unsigned i = 1; i < preds; i++) {
     Signature::Symbol* predSym = env.signature->getPredicate(i);
+    // can axiomatise equality _before_ preprocessing, so skip (some) introduced symbols
+    if(!predSym->usageCnt() || predSym->skipCongruence())
+      continue;
     unsigned arity = predSym->arity();
-    if (predSym->equalityProxy() || predSym->arity() == 0) {
+    if (arity == 0) {
       continue;
     }
     if (!getArgumentEqualityLiterals(arity, lits, vars1, vars2, predSym->predType(), true)) {
@@ -254,8 +248,6 @@ void EqualityProxyMono::addCongruenceAxioms(UnitList*& units)
  */
 Clause* EqualityProxyMono::apply(Clause* cl)
 {
-  CALL("EqualityProxyMono::apply(Clause*)");
-
   unsigned clen = cl->length();
 
   UnitStack proxyPremises;
@@ -310,8 +302,6 @@ Clause* EqualityProxyMono::apply(Clause* cl)
  */
 Literal* EqualityProxyMono::apply(Literal* lit)
 {
-  CALL("EqualityProxyMono::apply(Literal*)");
-
   if (!lit->isEquality()) {
     return lit;
   }
@@ -328,7 +318,6 @@ Literal* EqualityProxyMono::apply(Literal* lit)
  */
 bool EqualityProxyMono::haveProxyPredicate(TermList sort) const
 {
-  CALL("EqualityProxyMono::haveProxyPredicate");
   return s_proxyPredicates.find(sort);
 } // haveProxyPredicate
 
@@ -341,8 +330,6 @@ bool EqualityProxyMono::haveProxyPredicate(TermList sort) const
  */
 unsigned EqualityProxyMono::getProxyPredicate(TermList sort)
 {
-  CALL("EqualityProxyMono::getProxyPredicate");
-  
   unsigned pred;
   if (s_proxyPredicates.find(sort, pred)) {
     return pred;
@@ -353,6 +340,8 @@ unsigned EqualityProxyMono::getProxyPredicate(TermList sort)
   OperatorType* predType = OperatorType::getPredicateType({sort, sort});
   predSym->setType(predType);
   predSym->markEqualityProxy();
+  // don't need congruence axioms for the equality predicate itself
+  predSym->markSkipCongruence();
 
   ASS(sort.isTerm());
   ASS(sort.term()->shared());
@@ -369,7 +358,7 @@ unsigned EqualityProxyMono::getProxyPredicate(TermList sort)
   FormulaUnit* defUnit = new FormulaUnit(quantDefForm,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::EQUALITY_PROXY_AXIOM1));
 
   s_proxyPremises.insert(sort, defUnit);
-  InferenceStore::instance()->recordIntroducedSymbol(defUnit, false, newPred);
+  InferenceStore::instance()->recordIntroducedSymbol(defUnit, SymbolType::PRED, newPred);
   return newPred;
 }
 
@@ -381,8 +370,6 @@ unsigned EqualityProxyMono::getProxyPredicate(TermList sort)
  */
 Clause* EqualityProxyMono::createEqProxyAxiom(const LiteralStack& literalStack)
 {
-  CALL("EqualityProxyMono::createEqProxyAxiom(const LiteralStack&,unsigned)");
-
   DHSet<TermList> sorts;
   UnitList* prems = 0;
 
@@ -412,8 +399,6 @@ Clause* EqualityProxyMono::createEqProxyAxiom(const LiteralStack& literalStack)
  */
 Literal* EqualityProxyMono::makeProxyLiteral(bool polarity, TermList arg0, TermList arg1, TermList sort)
 {
-  CALL("EqualityProxyMono::createProxyLiteral/4");
-
   unsigned pred = getProxyPredicate(sort);
   TermList args[] = {arg0, arg1};
   return Literal::create(pred, 2, polarity, false, args);

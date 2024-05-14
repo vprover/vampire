@@ -39,7 +39,6 @@ template<typename C>
 class DArray
 {
 public:
-  CLASS_NAME(DArray<C>);
   USE_ALLOCATOR(DArray<C>);
 
   class Iterator;
@@ -54,8 +53,6 @@ public:
   DArray (size_t size=0)
     : _size(size), _capacity(size)
   {
-    CALL("DArray::DArray");
-
     if(size>0) {
       void* mem = ALLOC_KNOWN(sizeof(C)*_capacity,"DArray<>");
       _array = array_new<C>(mem, _capacity);
@@ -67,8 +64,6 @@ public:
   DArray(const DArray& o)
     : _size(o.size()), _capacity(o.size())
   {
-    CALL("DArray::DArray(const DArray&)");
-
     if(_size==0) {
       _array=0;
       return;
@@ -94,8 +89,6 @@ public:
   /** Delete array */
   inline ~DArray()
   {
-    CALL("DArray::~DArray");
-
     if(_array) {
       array_delete(_array, _capacity);
       DEALLOC_KNOWN(_array,sizeof(C)*_capacity,"DArray<>");
@@ -105,8 +98,6 @@ public:
   /** Return a reference to the n-th element of the array */
   inline C& operator[] (size_t n)
   {
-    CALL("DArray::operator[]");
-
     ASS_L(n,_size);
     return _array[n];
   } // operator[]
@@ -114,8 +105,6 @@ public:
   /** Return a reference to the n-th element of the array */
   inline const C& operator[](size_t n) const
   {
-    CALL("DArray::operator[] const");
-
     ASS_L(n,_size);
     return _array[n];
   }
@@ -125,7 +114,6 @@ public:
    */
   inline void shrink(size_t s)
   {
-    CALL("DArray::shrink");
     ASS_LE(s,_size);
 
     _size = s;
@@ -133,7 +121,6 @@ public:
   
   inline bool operator==(const DArray& o) const
   {
-    CALL("DArray::operator==");
     if(size()!=o.size()) { return false; }
     size_t sz = size();
     for(size_t i=0; i<sz; i++) {
@@ -164,14 +151,12 @@ public:
    */
   inline bool ensure(size_t s)
   {
-    CALL("DArray::ensure");
-
     if (_capacity >= s) {
       _size = s;
       return true;
     }
 
-    size_t newCapacity = max(s, _capacity*2);
+    size_t newCapacity = std::max(s, _capacity*2);
 
     void* mem = ALLOC_KNOWN(sizeof(C)*newCapacity,"DArray<>");
     C* newArray=array_new<C>(mem, newCapacity);
@@ -187,6 +172,8 @@ public:
   } // ensure
 
 
+  void reset() { ensure(0); }
+
   /**
    * Set array's size to @b s and that its capacity is at least @b s.
    * If the capacity is smaller, the array will expand, and all old
@@ -195,15 +182,13 @@ public:
    */
   void expand(size_t s)
   {
-    CALL("DArray::expand");
-
     if (_capacity >= s) {
       _size = s;
       return;
     }
 
     size_t oldCapacity=_capacity;
-    size_t newCapacity=max(s, oldCapacity*2);
+    size_t newCapacity=std::max(s, oldCapacity*2);
     void* mem = ALLOC_KNOWN(sizeof(C)*newCapacity,"DArray<>");
 
     C* oldArr = _array;
@@ -240,8 +225,6 @@ public:
    */
   void expand(size_t s, C defVal)
   {
-    CALL("DArray::expand/2");
-
     size_t oldSize = _size;
     expand(s);
 
@@ -259,7 +242,6 @@ public:
 
   /** Creates a new array that is initialized with @b value on every position */
   static DArray initialized(size_t count, const C& value=C()) {
-    CALL("DArray::initialized");
     DArray out(count);
     out.init(count, value);
     return out;
@@ -268,8 +250,6 @@ public:
   /** Ensure that the array's size is at least @b count and
    * initialize first @b count elements of the array to @b value. */
   void init(size_t count, const C& value=C()) {
-    CALL("DArray::init");
-
     ensure(count);
     C* ptr=_array+count;
     while(ptr!=_array) {
@@ -285,8 +265,6 @@ public:
    */
   template<typename Arr>
   void initFromArray(size_t count, const Arr& src) {
-    CALL("DArray::initFromArray");
-
     ensure(count);
     C* ptr=_array+count;
     while(count) {
@@ -294,8 +272,6 @@ public:
     }
   }
   void initFromArray(size_t count, const C* src) {
-    CALL("DArrayTKV::initFromArray");
-
     ensure(count);
     C* ptr=_array+count;
     while(count) {
@@ -309,8 +285,6 @@ public:
    */
   template<class It>
   void initFromIterator(It it, size_t count=0) {
-    CALL("DArray::initFromIterator");
-
     if(count) {
       ensure(count);
       C* ptr=_array;
@@ -332,8 +306,6 @@ public:
    */
   template<class It>
   static DArray fromIterator(It it, size_t count=0) {
-    CALL("DArray::fromIterator");
-
     DArray out;
     if (count != 0) {
       out.initFromIterator(it, count);
@@ -365,8 +337,6 @@ public:
   template<bool Inversed, typename Comparator>
   void sortGen(Comparator comp)
   {
-    CALL("DArray::sortGen");
-
     if(_size <= 1) {
       return;
     }

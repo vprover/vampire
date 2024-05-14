@@ -90,7 +90,6 @@ Ordering::Result cmpChained(A const& l, A const& r, Cs... cs)
 
 LaLpo::Result LaLpo::compare(Literal* l1_, Literal* l2_) const 
 {
-  CALL("LaLpo::compare(Literal* l1_, Literal* l2_) const")
   auto l1 = Lit(l1_);
   auto l2 = Lit(l2_);
 
@@ -144,9 +143,9 @@ LaLpo::Result LaLpo::compare(Literal* l1_, Literal* l2_) const
                       if (t.isTerm() 
                           && t.term()->functor() == numTraits.mulF()
                           && numTraits.isNumeral(*t.term()->nthArgument(0))) {
-                        return make_pair(*t.term()->nthArgument(1), Option<TermList>(*t.term()->nthArgument(0)));
+                        return std::make_pair(*t.term()->nthArgument(1), Option<TermList>(*t.term()->nthArgument(0)));
                       } else {
-                        return make_pair(t, Option<TermList>());
+                        return std::make_pair(t, Option<TermList>());
                       }
                     }));
             } else {
@@ -154,8 +153,8 @@ LaLpo::Result LaLpo::compare(Literal* l1_, Literal* l2_) const
             }
         })
       || Out {
-          make_pair(*s.orig->nthArgument(0), Option<TermList>()), 
-          make_pair(*s.orig->nthArgument(1), Option<TermList>()), 
+          std::make_pair(*s.orig->nthArgument(0), Option<TermList>()), 
+          std::make_pair(*s.orig->nthArgument(1), Option<TermList>()), 
         };
     };
 
@@ -163,17 +162,17 @@ LaLpo::Result LaLpo::compare(Literal* l1_, Literal* l2_) const
     auto ts2 = terms(l2);
     OrderingUtils::MulExtMemo memo;
 
-    auto mul = OrderingUtils::mulExt(ts1.size(), ts2.size(), [&](auto i, auto j) { return compare(get<0>(ts1[i]), get<0>(ts2[j])); }, memo);
+    auto mul = OrderingUtils::mulExt(ts1.size(), ts2.size(), [&](auto i, auto j) { return compare(std::get<0>(ts1[i]), std::get<0>(ts2[j])); }, memo);
     if (mul != Ordering::Result::EQUAL) {
       return mul;
 
     } else {
       auto mulWithNum = OrderingUtils::mulExtWithoutMemo(ts1.size(), ts2.size(), 
           [&](auto i, auto j) { 
-            auto t1 = get<0>(ts1[i]);
-            auto t2 = get<0>(ts2[i]);
-            auto n1 = get<1>(ts1[i]);
-            auto n2 = get<1>(ts2[i]);
+            auto t1 = std::get<0>(ts1[i]);
+            auto t2 = std::get<0>(ts2[i]);
+            auto n1 = std::get<1>(ts1[i]);
+            auto n2 = std::get<1>(ts2[i]);
 
             auto ct = memo[i + ts1.size() * j]
                .unwrapOrInit([&](){ return compare(t1, t2); });
@@ -201,6 +200,10 @@ LaLpo::Result LaLpo::compare(Literal* l1_, Literal* l2_) const
 
 
 
+Ordering::Result LaLpo::compare(AppliedTerm s, AppliedTerm t) const 
+{
+  ASSERTION_VIOLATION // TODO
+}
 Ordering::Result LaLpo::compare(TermList s, TermList t) const 
 {
   auto cmp = [&](TermList s, TermList t) { return compare(s, t); };
@@ -296,11 +299,11 @@ Ordering::Result LaLpo::compare(TermList s, TermList t) const
 }
 
 std::tuple<IntegerConstantType, IntegerConstantType, TermList> toIntPair(IntegerConstantType i)
-{ return make_tuple(i, IntegerConstantType(1), IntegerConstantType::getSort()); }
+{ return std::make_tuple(i, IntegerConstantType(1), IntegerConstantType::getSort()); }
 
 template<class C>
 std::tuple<IntegerConstantType, IntegerConstantType, TermList> toIntPair(C c)
-{ return make_tuple(c.numerator(), c.denominator(), C::getSort()); }
+{ return std::make_tuple(c.numerator(), c.denominator(), C::getSort()); }
 
 Comparison LaLpo::cmpFun(Term* l, Term* r) const
 {
@@ -319,9 +322,9 @@ Comparison LaLpo::cmpFun(Term* l, Term* r) const
   auto rNum = forAnyNumTraits([&](auto numTraits) { return numTraits.tryNumeral(r).map([](auto n){ return  toIntPair(n); }); });
 
   auto cmpNums = [&](auto l, auto r) {
-    auto ltied = std::tie(get<2>(l),get<1>(l),get<0>(l));
-    auto rtied = std::tie(get<2>(r),get<1>(r),get<0>(r));
-    //                    ^^sort^^  ^^denom^^ ^^^num^^^
+    auto ltied = std::tie(std::get<2>(l),std::get<1>(l),std::get<0>(l));
+    auto rtied = std::tie(std::get<2>(r),std::get<1>(r),std::get<0>(r));
+    //                    ^^^^^^^sort^^  ^^^^^^^denom^^ ^^^^^^^^num^^^
     if (ltied == rtied) return Comparison::EQUAL;
     if (ltied <  rtied) return Comparison::LESS;
     else        return Comparison::GREATER;
@@ -337,12 +340,11 @@ Comparison LaLpo::cmpFun(Term* l, Term* r) const
   else return _prec.cmpFun(f,g);
 }
 
-void LaLpo::show(ostream& out) const 
+void LaLpo::show(std::ostream& out) const 
 { _prec.show(out); }
 
-void Precedence::show(ostream& out) const 
+void Precedence::show(std::ostream& out) const 
 {
-  CALL("PrecedenceOrdering::show(ostream& out)")
   {
     out << "% Function precedences, smallest symbols first (line format: `<name> <arity>`) " << std::endl;
     out << "% ===== begin of function precedences ===== " << std::endl;

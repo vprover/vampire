@@ -20,6 +20,7 @@
 
 #include "Forwards.hpp"
 
+#include "Kernel/SubstHelper.hpp"
 #include "Lib/DArray.hpp"
 #include "Kernel/LASCA.hpp"
 
@@ -56,14 +57,13 @@ public:
 
   Comparison cmpFun(unsigned l, unsigned r) const;
   Comparison cmpPred(unsigned l, unsigned r) const;
-  void show(ostream& out) const;
+  void show(std::ostream& out) const;
 };
 
 class LaLpo 
   : public Ordering
 {
 public:
-  CLASS_NAME(LaLpo);
   USE_ALLOCATOR(LaLpo);
 
   LaLpo(LaLpo&& kbo) = default;
@@ -77,8 +77,13 @@ public:
 
   Result compare(Literal* l1, Literal* l2) const override;
   Result compare(TermList, TermList) const final override;
+  Result compare(AppliedTerm t1, AppliedTerm t2) const override;
+  bool isGreater(AppliedTerm t1, AppliedTerm t2) const override
+  { 
+    // TODO more efficient impl (?)
+    return compare(t1, t2) == Result::GREATER; }
 
-  void show(ostream& out) const final override;
+  void show(std::ostream& out) const final override;
 
   void setState(std::shared_ptr<LascaState> s) { _shared = std::move(s); }
 

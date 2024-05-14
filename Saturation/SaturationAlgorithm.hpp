@@ -48,6 +48,7 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Inferences;
+using namespace Shell;
 
 class ConsequenceFinder;
 class LabelFinder;
@@ -57,9 +58,6 @@ class Splitter;
 class SaturationAlgorithm : public MainLoop
 {
 public:
-  CLASS_NAME(SaturationAlgorithm);
-  USE_ALLOCATOR(SaturationAlgorithm);
-
   static SaturationAlgorithm* createFromOptions(Problem& prb, const Options& opt, IndexManager* indexMgr=0);
 
   SaturationAlgorithm(Problem& prb, const Options& opt);
@@ -127,6 +125,7 @@ public:
   static void tryUpdateFinalClauseCount();
 
   Splitter* getSplitter() { return _splitter; }
+  FunctionDefinitionHandler& getFunctionDefinitionHandler() const { return _fnDefHandler; }
 
 protected:
   virtual void init();
@@ -218,7 +217,7 @@ protected:
   SymElOutput* _symEl;
   AnswerLiteralManager* _answerLiteralManager;
   Instantiation* _instantiation;
-
+  FunctionDefinitionHandler& _fnDefHandler;
 
   SubscriptionData _passiveContRemovalSData;
   SubscriptionData _activeContRemovalSData;

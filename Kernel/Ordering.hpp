@@ -27,6 +27,7 @@
 #include "Kernel/Term.hpp"
 
 #include "Lib/Allocator.hpp"
+#include "Lib/Portability.hpp"
 
 namespace Kernel {
 
@@ -46,9 +47,6 @@ using namespace Shell;
 class Ordering
 {
 public:
-  CLASS_NAME(Ordering);
-  USE_ALLOCATOR(Ordering);
-
   /**
    * Represents the results of ordering comparisons
    *
@@ -56,7 +54,7 @@ public:
    * in the @c ArgumentOrderVals enum, so that one can convert between the
    * enums using static_cast.
    */
-  enum VWARN_UNUSED_TYPE Result {
+  enum [[nodiscard]] Result {
     GREATER=1,
     LESS=2,
     GREATER_EQ=3,
@@ -65,7 +63,7 @@ public:
     INCOMPARABLE=6
   };
 
-  friend ostream& operator<<(ostream& out, Kernel::Ordering::Result const& r)
+  friend std::ostream& operator<<(std::ostream& out, Kernel::Ordering::Result const& r)
   {
     switch (r) {
       case Kernel::Ordering::Result::GREATER: return out << "GREATER";
@@ -89,8 +87,13 @@ public:
   /** Return the result of comparing terms (not term lists!)
    * @b t1 and @b t2 */
   virtual Result compare(TermList t1,TermList t2) const = 0;
+  /** Same as @b compare, for applied (substituted) terms. */
+  virtual Result compare(AppliedTerm t1, AppliedTerm t2) const = 0;
+  /** Optimised function used for checking that @b t1 is greater than @b t2,
+   * under some substitutions captured by @b AppliedTerm. */
+  virtual bool isGreater(AppliedTerm t1, AppliedTerm t2) const = 0;
 
-  virtual void show(ostream& out) const = 0;
+  virtual void show(std::ostream& out) const = 0;
 
   static bool isGorGEorE(Result r) { return (r == GREATER || r == GREATER_EQ || r == EQUAL); }
 
@@ -101,8 +104,6 @@ public:
 
   static Result reverse(Result r)
   {
-    CALL("Ordering::reverse");
-    
     switch(r) {
     case GREATER:
       return LESS;
@@ -159,7 +160,6 @@ private:
   class EqCmp
   {
   public:
-    CLASS_NAME(EqCmp);
     USE_ALLOCATOR(EqCmp);
 
 #define BUF_SIZE 128
@@ -200,11 +200,9 @@ private:
     mutable TermList s1,s2,t1,t2;
    
   };
-  void createEqualityComparator();
-  void destroyEqualityComparator();
 
   /** Object used to compare equalities */
-  unique_ptr<EqCmp> _eqCmp;
+  std::unique_ptr<EqCmp> _eqCmp;
 
   /**
    * We store orientation of equalities in this ordering inside
@@ -224,8 +222,8 @@ public:
   PrecedenceOrdering(PrecedenceOrdering&&) = default;
   PrecedenceOrdering& operator=(PrecedenceOrdering&&) = default;
   Result compare(Literal* l1, Literal* l2) const override;
-  void show(ostream&) const override;
-  virtual void showConcrete(ostream&) const = 0;
+  void show(std::ostream&) const override;
+  virtual void showConcrete(std::ostream&) const = 0;
 
   static DArray<int> testLevels();
 
@@ -235,6 +233,7 @@ public:
   static DArray<int> funcPrecFromOpts(Problem& prb, const Options& opt);
   static DArray<int> predPrecFromOpts(Problem& prb, const Options& opt);
 
+  Result comparePredicatePrecedences(unsigned fun1, unsigned fun2) const;
 protected:
   // l1 and l2 are not equalities and have the same predicate
   virtual Result comparePredicates(Literal* l1,Literal* l2) const = 0;
@@ -273,7 +272,7 @@ protected:
   bool _qkboPrecedence;
 };
 
-} // namespace Kernel
 
+} // namespace Kernel
 
 #endif

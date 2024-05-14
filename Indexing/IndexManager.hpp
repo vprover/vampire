@@ -21,7 +21,7 @@
 #include "Index.hpp"
 
 #include "Lib/Allocator.hpp"
-#include "Kernel/MismatchHandler.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
 
 
 namespace Indexing
@@ -36,7 +36,9 @@ enum IndexType {
   FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE,
 
   URR_UNIT_CLAUSE_SUBST_TREE,
+  URR_UNIT_CLAUSE_WITH_AL_SUBST_TREE,
   URR_NON_UNIT_CLAUSE_SUBST_TREE,
+  URR_NON_UNIT_CLAUSE_WITH_AL_SUBST_TREE,
   
   SUPERPOSITION_SUBTERM_SUBST_TREE,
   SUPERPOSITION_LHS_SUBST_TREE,
@@ -54,7 +56,6 @@ enum IndexType {
 
   DEMODULATION_SUBTERM_SUBST_TREE,
   DEMODULATION_LHS_CODE_TREE,
-  DEMODULATION_LHS_SUBST_TREE,
 
   FW_SUBSUMPTION_CODE_TREE,
   FW_SUBSUMPTION_SUBST_TREE,
@@ -80,14 +81,10 @@ enum IndexType {
 class IndexManager
 {
 public:
-  CLASS_NAME(IndexManager);
-  USE_ALLOCATOR(IndexManager);
-
   /** alg can be zero, then it must be set by setSaturationAlgorithm */
   explicit IndexManager(SaturationAlgorithm* alg);
   void setSaturationAlgorithm(SaturationAlgorithm* alg) 
   { 
-    CALL("IndexManager::setSaturationAlgorithm");
     ASS(!_alg);
     ASS(alg);
     _alg = alg; 

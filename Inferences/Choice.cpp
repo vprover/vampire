@@ -46,13 +46,11 @@ using namespace Saturation;
 
 Clause* Choice::createChoiceAxiom(TermList op, TermList set)
 {
-  CALL("Choice::createChoiceAxiom");
-
   TermList opType = SortHelper::getResultSort(op.term());
   TermList setType = ApplicativeHelper::getNthArg(opType, 1);
 
   unsigned max = 0;
-  FormulaVarIterator fvi(&set);
+  FormulaVarIterator fvi(set);
   while (fvi.hasNext()) {
     unsigned var = fvi.next();
     if (var > max) {
@@ -77,8 +75,6 @@ struct Choice::AxiomsIterator
 {
   AxiomsIterator(Term* term)
   {
-    CALL("Choice::AxiomsIterator");
-
     _set = *term->nthArgument(3);
     _headSort = AtomicSort::arrowSort(*term->nthArgument(0),*term->nthArgument(1));
     _resultSort = ApplicativeHelper::getResultApplieadToNArgs(_headSort, 1);
@@ -94,8 +90,6 @@ struct Choice::AxiomsIterator
   DECL_ELEMENT_TYPE(Clause*);
 
   bool hasNext() {  
-    CALL("Choice::AxiomsIterator::hasNext()");
-    
     if(_inBetweenNextandHasNext){ return true; }
 
     while(!_choiceOps.isEmpty()){
@@ -128,7 +122,6 @@ struct Choice::AxiomsIterator
 
   OWN_ELEMENT_TYPE next()
   {
-    CALL("Choice::AxiomsIterator::next()");
     _inBetweenNextandHasNext = false;
     Clause* c = createChoiceAxiom(_opApplied, _setApplied); 
     env.statistics->choiceInstances++;
@@ -194,8 +187,6 @@ struct Choice::SubtermsFn
 
   VirtualIterator<Term*> operator()(Literal* lit)
   {
-    CALL("Choice::RewriteableSubtermsFn()");
-
     NonVariableNonTypeIterator nvi(lit);
     return pvi(getUniquePersistentIteratorFromPtr(&nvi));
   }
@@ -203,8 +194,6 @@ struct Choice::SubtermsFn
 
 ClauseIterator Choice::generateClauses(Clause* premise)
 {
-  CALL("PrimitiveInstantiation::generateClauses");
-
   //cout << "Choice with " << premise->toString() << endl;
   
   //is this correct?

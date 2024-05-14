@@ -15,7 +15,6 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/SharedSet.hpp"
-#include "Lib/SkipList.hpp"
 #include "Debug/TimeProfiling.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -29,13 +28,12 @@
 namespace Saturation
 {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
 void ConsequenceFinder::init(SaturationAlgorithm* sa)
 {
-  CALL("ConsequenceFinder::init");
-
   _sa=sa;
 
   ClauseContainer* cc=_sa->getSimplifyingClauseContainer();
@@ -45,16 +43,12 @@ void ConsequenceFinder::init(SaturationAlgorithm* sa)
 
 ConsequenceFinder::~ConsequenceFinder()
 {
-  CALL("ConsequenceFinder::~ConsequenceFinder");
-
   _sdInsertion->unsubscribe();
   _sdRemoval->unsubscribe();
 }
 
 void ConsequenceFinder::onNewPropositionalClause(Clause* cl)
 {
-  CALL("ConsequenceFinder::onNewPropositionalClause");
-
   TIME_TRACE(TimeTrace::CONSEQUENCE_FINDING);
 
   //remove duplicate literals (necessary for tautology deletion)
@@ -74,9 +68,7 @@ void ConsequenceFinder::onNewPropositionalClause(Clause* cl)
   }
   Literal* pos=0;
   bool horn=true;
-  Clause::Iterator it(*cl);
-  while(it.hasNext()) {
-    Literal* l=it.next();
+  for (auto l : cl->iterLits()) {
     if(!env.signature->getPredicate(l->functor())->label()) {
       return;
     }
@@ -90,9 +82,7 @@ void ConsequenceFinder::onNewPropositionalClause(Clause* cl)
     }
   }
 
-  env.beginOutput();
-  env.out() << "Pure cf clause: " << cl->toNiceString() <<endl;
-  env.endOutput();
+  std::cout << "Pure cf clause: " << cl->toNiceString() <<endl;
 
   if(!horn || !pos) {
     return;
@@ -108,15 +98,11 @@ void ConsequenceFinder::onNewPropositionalClause(Clause* cl)
   //of the saturation algorithm loop
   _redundantsToHandle.push(red);
 
-  env.beginOutput();
-  env.out() << "Consequence found: " << env.signature->predicateName(red) << endl;
-  env.endOutput();
+  std::cout << "Consequence found: " << env.signature->predicateName(red) << endl;
 }
 
 void ConsequenceFinder::onAllProcessed()
 {
-  CALL("ConsequenceFinder::onAllProcessed");
-
   TIME_TRACE(TimeTrace::CONSEQUENCE_FINDING);
 
   while(_redundantsToHandle.isNonEmpty()) {
@@ -148,11 +134,8 @@ void ConsequenceFinder::onAllProcessed()
  */
 bool ConsequenceFinder::isRedundant(Clause* cl)
 {
-  CALL("ConsequenceFinder::isRedundant");
-
-  Clause::Iterator it(*cl);
-  while(it.hasNext()) {
-    unsigned fn=it.next()->functor();
+  for (auto l : cl->iterLits()) {
+    unsigned fn = l->functor();
     if(!env.signature->getPredicate(fn)->label()) {
       continue;
     }
@@ -166,14 +149,11 @@ bool ConsequenceFinder::isRedundant(Clause* cl)
 
 void ConsequenceFinder::onClauseInserted(Clause* cl)
 {
-  CALL("ConsequenceFinder::onClauseInserted");
-
   TIME_TRACE(TimeTrace::CONSEQUENCE_FINDING);
 
   bool red=false;
-  Clause::Iterator it(*cl);
-  while(it.hasNext()) {
-    unsigned fn=it.next()->functor();
+  for (auto l : cl->iterLits()) {
+    unsigned fn = l->functor();
     if(!env.signature->getPredicate(fn)->label()) {
       continue;
     }
@@ -197,13 +177,10 @@ void ConsequenceFinder::onClauseInserted(Clause* cl)
 
 void ConsequenceFinder::onClauseRemoved(Clause* cl)
 {
-  CALL("ConsequenceFinder::onClauseRemoved");
-
   TIME_TRACE(TimeTrace::CONSEQUENCE_FINDING);
 
-  Clause::Iterator it(*cl);
-  while(it.hasNext()) {
-    unsigned fn=it.next()->functor();
+  for (auto l : cl->iterLits()) {
+    unsigned fn = l->functor();
     if(!env.signature->getPredicate(fn)->label()) {
       continue;
     }
@@ -219,8 +196,6 @@ void ConsequenceFinder::onClauseRemoved(Clause* cl)
  */
 void ConsequenceFinder::indexClause(unsigned indexNum, Clause* cl, bool add)
 {
-  CALL("ConsequenceFinder::indexClause");
-
   if(add) {
     if(!_index[indexNum]) {
       _index[indexNum]=new ClauseSL();

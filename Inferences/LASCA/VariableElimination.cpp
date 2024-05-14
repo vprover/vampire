@@ -56,7 +56,7 @@ Option<VariableElimination::AnyFoundVariable> VariableElimination::findUnshielde
     if (norm.isSome()) {
       norm.unwrap().apply([&](auto& lit) -> void {
       //                            ^^^-->  t1 + ... + tn <> 0 
-        using NumTraits = typename remove_reference<decltype(lit)>::type::NumTraits;
+        using NumTraits = typename std::remove_reference<decltype(lit)>::type::NumTraits;
         for (auto s : lit.term().iterSummands()) {
           // lit = t1 + ... + s + ... + tn <> 0 
           auto k = s.numeral;
@@ -198,7 +198,6 @@ template<class A> PartitionIter<A> partitionIter(Stack<A> orig) { return Partiti
 template<class NumTraits>
 ClauseIterator VariableElimination::applyRule(Clause* premise, FoundVariable<NumTraits> found) const
 {
-  CALL("LASCA::VampireElimination::applyRule")
   TIME_TRACE("lasca vampire elimination")
   using Numeral = typename NumTraits::ConstantType;
   auto x = found.var;

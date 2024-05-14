@@ -29,7 +29,6 @@ namespace Inferences
 
 void ForwardLiteralRewriting::attach(SaturationAlgorithm* salg)
 {
-  CALL("ForwardLiteralRewriting::attach");
   ForwardSimplificationEngine::attach(salg);
   _index=static_cast<RewriteRuleIndex*>(
     _salg->getIndexManager()->request(REWRITE_RULE_SUBST_TREE) );
@@ -37,7 +36,6 @@ void ForwardLiteralRewriting::attach(SaturationAlgorithm* salg)
 
 void ForwardLiteralRewriting::detach()
 {
-  CALL("ForwardLiteralRewriting::detach");
   _index=0;
   _salg->getIndexManager()->release(REWRITE_RULE_SUBST_TREE);
   ForwardSimplificationEngine::detach();
@@ -46,8 +44,6 @@ void ForwardLiteralRewriting::detach()
 
 bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
-  CALL("ForwardLiteralRewriting::perform");
-
   Ordering& ordering = _salg->getOrdering();
 
   TIME_TRACE("forward literal rewriting");
@@ -56,9 +52,9 @@ bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIt
 
   for(unsigned i=0;i<clen;i++) {
     Literal* lit=(*cl)[i];
-    SLQueryResultIterator git=_index->getGeneralizations(lit, lit->isNegative(), true);
+    auto git = _index->getGeneralizations(lit, lit->isNegative(), true);
     while(git.hasNext()) {
-      SLQueryResult qr=git.next();
+      auto qr = git.next();
       Clause* counterpart=_index->getCounterpart(qr.data->clause);
 
       if(!ColorHelper::compatible(cl->color(), qr.data->clause->color()) ||

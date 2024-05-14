@@ -19,7 +19,6 @@
 
 #if VDEBUG
 #include <ostream>
-using namespace std;
 #endif
 
 #include "Debug/Assertion.hpp"
@@ -47,9 +46,7 @@ public:
   /** True if the queue is empty */
   bool isEmpty() const
   { return _left->nodes[0] == 0; }
-#if VDEBUG
-  void output(ostream&) const;
-#endif
+  void output(std::ostream&) const;
 
   friend class Iterator;
 protected:
