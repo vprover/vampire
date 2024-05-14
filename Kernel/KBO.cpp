@@ -965,10 +965,10 @@ bool KBO::isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicato
 {
   if (!comparator) {
     // cout << "preprocessing " << lhs << " " << rhs << endl;
-    comparator = OrderingComparatorUP(KBOComparator::create(lhs, rhs, *this));
+    comparator = make_unique<KBOComparator>(lhs, rhs, *this);
     // cout << comparator->toString() << endl;
   }
-  return static_cast<KBOComparator*>(comparator.get())->check(applicator);
+  return static_cast<const KBOComparator*>(comparator.get())->check(applicator);
 }
 
 int KBO::symbolWeight(const Term* t) const

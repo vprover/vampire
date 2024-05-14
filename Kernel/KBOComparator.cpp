@@ -20,10 +20,9 @@ using namespace std;
 using namespace Lib;
 using namespace Shell;
 
-KBOComparator* KBOComparator::create(TermList tl1, TermList tl2, const KBO& kbo)
+KBOComparator::KBOComparator(TermList tl1, TermList tl2, const KBO& kbo)
+  : _kbo(kbo), _instructions()
 {
-  auto res = new KBOComparator(kbo);
-
   // stack of subcomparisons in lexicographic order (w.r.t. tl1 and tl2)
   Stack<pair<TermList,TermList>> todo;
   todo.push(make_pair(tl1,tl2));
@@ -38,13 +37,13 @@ KBOComparator* KBOComparator::create(TermList tl1, TermList tl2, const KBO& kbo)
       case Ordering::LESS:
       case Ordering::LESS_EQ: {
         // at this point the execution will fail, no further instructions
-        return res;
+        return;
       }
       case Ordering::GREATER:
       case Ordering::GREATER_EQ: {
         // at this point the execution will succeed, push SUCCESS
-        res->_instructions.push(Instruction::uintUint(InstructionTag::SUCCESS));
-        return res;
+        _instructions.push(Instruction::uintUint(InstructionTag::SUCCESS));
+        return;
       }
       default:
         break;
@@ -56,14 +55,14 @@ KBOComparator* KBOComparator::create(TermList tl1, TermList tl2, const KBO& kbo)
     // if either term is a variable, we cannot preprocess them further
     if (lhs.isVar() || rhs.isVar()) {
       if (lhs.isVar() && rhs.isVar()) {
-        res->_instructions.push(Instruction::uintUint(InstructionTag::COMPARE_VV,lhs.var(),rhs.var()));
+        _instructions.push(Instruction::uintUint(InstructionTag::COMPARE_VV,lhs.var(),rhs.var()));
       } else if (lhs.isVar()) {
-        res->_instructions.push(Instruction::uintUint(InstructionTag::COMPARE_VT,lhs.var()));
-        res->_instructions.push(Instruction::term(rhs.term()));
+        _instructions.push(Instruction::uintUint(InstructionTag::COMPARE_VT,lhs.var()));
+        _instructions.push(Instruction::term(rhs.term()));
       } else if (rhs.isVar()) {
         // note that lhs is the second argument in this case
-        res->_instructions.push(Instruction::uintUint(InstructionTag::COMPARE_TV,rhs.var()));
-        res->_instructions.push(Instruction::term(lhs.term()));
+        _instructions.push(Instruction::uintUint(InstructionTag::COMPARE_TV,rhs.var()));
+        _instructions.push(Instruction::term(lhs.term()));
       }
 
       // Prepare further cases if this is equal.
@@ -106,14 +105,14 @@ KBOComparator* KBOComparator::create(TermList tl1, TermList tl2, const KBO& kbo)
     }
     // if the condition below does not hold, the weight/var balances are satisfied
     if (w < 0 || varInbalance) {
-      res->_instructions.push(Instruction::uintInt(InstructionTag::WEIGHT, (unsigned)nonzeros.size(), w));
+      _instructions.push(Instruction::uintInt(InstructionTag::WEIGHT, (unsigned)nonzeros.size(), w));
       // sort the [var,count] pairs by count descending so that
       // we can exit early during execution if needed
       sort(nonzeros.begin(),nonzeros.end(),[](const auto& e1, const auto& e2) {
         return e1.second>e2.second;
       });
       for (const auto& [v,cnt] : nonzeros) {
-        res->_instructions.push(Instruction::uintInt(InstructionTag::DATA, v, cnt));
+        _instructions.push(Instruction::uintInt(InstructionTag::DATA, v, cnt));
       }
     }
 
@@ -128,13 +127,13 @@ KBOComparator* KBOComparator::create(TermList tl1, TermList tl2, const KBO& kbo)
       case Ordering::LESS:
       case Ordering::LESS_EQ: {
         // again, this means the execution failed
-        return res;
+        return;
       }
       case Ordering::GREATER:
       case Ordering::GREATER_EQ: {
         // and this means the execution succeeded
-        res->_instructions.push(Instruction::uintUint(InstructionTag::SUCCESS));
-        return res;
+        _instructions.push(Instruction::uintUint(InstructionTag::SUCCESS));
+        return;
       }
       case Ordering::EQUAL: {
         // push the arguments in reverse order to maintain
@@ -151,7 +150,6 @@ KBOComparator* KBOComparator::create(TermList tl1, TermList tl2, const KBO& kbo)
       }
     }
   }
-  return res;
 }
 
 bool KBOComparator::check(const SubstApplicator* applicator) const
