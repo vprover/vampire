@@ -81,6 +81,15 @@ bool uncanellableOccursCheck(AbstractingUnifier& au, VarSpec const& v, TermSpec 
   return false;
 }
 
+bool isAlascaInterpreted(unsigned f) {
+  return forAnyNumTraits([&](auto numTraits) -> bool {
+      return numTraits.isAdd(f)
+          || numTraits.isNumeral(f)
+          || numTraits.isMinus(f)
+          || numTraits.isMul(f);
+  });
+};
+
 bool isAlascaInterpreted(TermSpec const& t, AbstractingUnifier& au) {
   if (t.isVar()) return false;
   ASS(!t.term.isTerm() || !t.term.term()->isLiteral()) 
@@ -878,6 +887,9 @@ Option<Recycled<Stack<unsigned>>> AbstractingUnifier::unifiableSymbols(unsigned 
     case Options::UnificationWithAbstraction::FUNC_EXT: anything();
     case Options::UnificationWithAbstraction::AC1: return some(recycledStack(f));
     case Options::UnificationWithAbstraction::AC2: return some(recycledStack(f));
+    case Options::UnificationWithAbstraction::LPAR_CAN_ABSTRACT: 
+    case Options::UnificationWithAbstraction::LPAR_ONE_INTERP: 
+    case Options::UnificationWithAbstraction::LPAR_MAIN: return isAlascaInterpreted(f) ? anything() : some(recycledStack(f));
   }
   ASSERTION_VIOLATION
 }

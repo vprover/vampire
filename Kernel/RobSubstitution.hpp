@@ -370,7 +370,7 @@ public:
     Option<int> index;
     while (iter.hasNext()) {
       auto arg = iter.next();
-      if (arg.term.ground()) {
+      if (!arg.term.isVar() && arg.term.term()->shared() && arg.term.ground()) {
         args->push(arg.term);
 
       } else if (index.isNone()) {
