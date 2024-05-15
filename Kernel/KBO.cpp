@@ -21,6 +21,7 @@
 #include "Shell/Options.hpp"
 #include <fstream>
 
+#include "KBOComparator.hpp"
 #include "NumTraits.hpp"
 #include "Signature.hpp"
 #include "SubstHelper.hpp"
@@ -958,6 +959,16 @@ Ordering::Result KBO::isGreaterOrEq(AppliedTerm tl1, AppliedTerm tl2) const
 bool KBO::isGreater(AppliedTerm lhs, AppliedTerm rhs) const
 {
   return isGreaterOrEq(lhs,rhs)==GREATER;
+}
+
+bool KBO::isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, OrderingComparatorUP& comparator) const
+{
+  if (!comparator) {
+    // cout << "preprocessing " << lhs << " " << rhs << endl;
+    comparator = make_unique<KBOComparator>(lhs, rhs, *this);
+    // cout << comparator->toString() << endl;
+  }
+  return static_cast<const KBOComparator*>(comparator.get())->check(applicator);
 }
 
 int KBO::symbolWeight(const Term* t) const

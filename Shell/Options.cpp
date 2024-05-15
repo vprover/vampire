@@ -1541,6 +1541,15 @@ void Options::init()
     _demodulationRedundancyCheck.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
     _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
 
+    _demodulationPrecompiledComparison = BoolOptionValue("demodulation_precompiled_comparison","dpc",false);
+    _demodulationPrecompiledComparison.description=
+       "Precompiles ordering constraints on unorientable demodulators which results in less overhead when actually comparing.";
+    _lookup.insert(&_demodulationPrecompiledComparison);
+    _demodulationPrecompiledComparison.tag(OptionTag::INFERENCES);
+    _demodulationPrecompiledComparison.onlyUsefulWith(ProperSaturationAlgorithm());
+    _demodulationPrecompiledComparison.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
+    _demodulationPrecompiledComparison.addProblemConstraint(hasEquality());
+
     _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","erape",false);
     _extensionalityAllowPosEq.description="If extensionality resolution equals filter, this dictates"
       " whether we allow other positive equalities when recognising extensionality clauses";
