@@ -731,7 +731,10 @@ Option<AbstractionOracle::AbstractionResult> AbstractionOracle::tryAbstract(Abst
   } else if (_mode == Shell::Options::UnificationWithAbstraction::FUNC_EXT) {
     return funcExt(au, t1, t2);
 
-  } else if (_mode == Shell::Options::UnificationWithAbstraction::LPAR_MAIN) {
+  } else if (_mode == Shell::Options::UnificationWithAbstraction::LPAR_MAIN 
+      || _mode == Shell::Options::UnificationWithAbstraction::LPAR_CAN_ABSTRACT 
+      || _mode == Shell::Options::UnificationWithAbstraction::LPAR_ONE_INTERP
+      ) {
     return lpar(*au, t1, t2, _mode);
 
   } else {
@@ -916,9 +919,10 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
 
     while (toDo->isNonEmpty()) {
       auto cur = toDo->pop();
+      DEBUG_UNIFY(1, "popped: ", cur)
       auto& dt1 = subs().derefBound(cur.first);
       auto& dt2 = subs().derefBound(cur.second);
-      DEBUG_UNIFY(1, "popped: ", dt1, " = ", dt2)
+      DEBUG_UNIFY(1, "dereferenced: ", dt1, " ?= ", dt2)
       if (dt1.deepEqCheck(dt2)) {
         progress = true;
 

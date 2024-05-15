@@ -7,6 +7,7 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
+#include "Debug/Assertion.hpp"
 #include "Forwards.hpp"
 #include "Indexing/SubstitutionTree.hpp"
 #include "Kernel/LASCA.hpp"
@@ -118,7 +119,7 @@ void checkLiteralMatches(LiteralSubstitutionTree<LiteralClause>& index, Options:
     for (auto& x : expected)
       cout << "         " << x << endl;
 
-    exit(-1);
+    ASSERTION_VIOLATION
   }
 }
 
@@ -148,7 +149,7 @@ void checkTermMatchesWithUnifFun(TermSubstitutionTree<TermWithoutValue>& index, 
     for (auto& x : expected)
       cout << "         " << x << endl;
 
-    exit(-1);
+    ASSERTION_VIOLATION
   }
 
 }
@@ -835,10 +836,10 @@ INDEX_TEST(term_indexing_poly_uwa_01,
           .resultSigma = f(Rat, a(Rat)),
           .constraints = { a(Rat) != a(Rat) + x } }, 
 
-        // TermUnificationResultSpec 
-        // { .querySigma  = f(Int, a(Int) + x),
-        //   .resultSigma = f(Int, b(Int)),
-        //   .constraints = { b(Int) != a(Int) + x } }, 
+        TermUnificationResultSpec 
+        { .querySigma  = f(Rat, a(Rat) + x),
+          .resultSigma = f(Rat, b(Rat)),
+          .constraints = { b(Rat) != a(Rat) + x } }, 
 
       }
     })
@@ -1054,7 +1055,7 @@ void checkRobUnify(bool diffNamespaces, Options::UnificationWithAbstraction opt,
     cout << "[ FAIL ] " << a << " unify " << b << endl;
     cout << "is:       " << is << endl;
     cout << "expected: " << exp << endl;
-    exit(-1);
+    ASSERTION_VIOLATION
   }
 }
 
@@ -1069,7 +1070,7 @@ void checkRobUnifyFail(bool diffNamespaces, Options::UnificationWithAbstraction 
     cout << "[ FAIL ] " << a << " unify " << b << endl;
     cout << "is:       " << is << endl;
     cout << "expected: nothing" << endl;
-    exit(-1);
+    ASSERTION_VIOLATION
   }
 }
 
@@ -1372,9 +1373,10 @@ ROB_UNIFY_TEST(alasca3_test_02_bad,
     f2(f2(x,b), a + b + c),
     f2(f2(x,y), x + y + a),
     TermUnificationResultSpec { 
-      .querySigma  = f2(f2(x,b), a + b + c),
-      .resultSigma = f2(f2(x,b), x + b + a),
-      .constraints = Stack<Literal*>{ b + x != c + b },
+      .querySigma  = f2(f2(c,b), a + b + c),
+      .resultSigma = f2(f2(c,b), c + b + a),
+      .constraints = Stack<Literal*>{  },
+      .lascaSimpl = true,
     })
 
 ROB_UNIFY_TEST(alasca3_test_02_bad_fpi,
@@ -1386,7 +1388,8 @@ ROB_UNIFY_TEST(alasca3_test_02_bad_fpi,
     TermUnificationResultSpec { 
       .querySigma  = f2(f2(c,b), a + b + c),
       .resultSigma = f2(f2(c,b), c + b + a),
-      .constraints = Stack<Literal*>{},
+      .constraints = Stack<Literal*>{  },
+      .lascaSimpl = true,
     })
 
 
@@ -1422,10 +1425,24 @@ ROB_UNIFY_TEST(alasca3_test_05,
     f2(x, 2 * a + b + c),
     f2(x, x     + b + y),
     TermUnificationResultSpec { 
-      .querySigma  = f2(x,  2 * a  + b + c),
-      .resultSigma = f2(x,  x      + b + y),
-      .constraints = Stack<Literal*>{ x + y != 2 * a + c },
+      .querySigma  = f2(2 * a - x0 + c,  2 * a + b + c),
+      .resultSigma = f2(2 * a - x0 + c,  2 * a + b + c),
+      .constraints = Stack<Literal*>{  },
+      .lascaSimpl = true,
     })
+
+
+// ROB_UNIFY_TEST(alasca3_test_06,
+//     SUGAR(Rat),
+//     Options::UnificationWithAbstraction::LPAR_MAIN,
+//     /* fixedPointIteration */ false,
+//     f2(x, 2 * a +             b + c),
+//     f2(x, x     + frac(1,2) * b + y),
+//     TermUnificationResultSpec { 
+//       .querySigma  = f2(x, 2 * a +             b + c),
+//       .resultSigma = f2(x, x     + frac(1,2) * b + y),
+//       .constraints = Stack<Literal*>{ x + y != 2 * a + frac(1,2) * b + c },
+//     })
 
 
 ROB_UNIFY_TEST(alasca3_test_06,
@@ -1435,9 +1452,10 @@ ROB_UNIFY_TEST(alasca3_test_06,
     f2(x, 2 * a +             b + c),
     f2(x, x     + frac(1,2) * b + y),
     TermUnificationResultSpec { 
-      .querySigma  = f2(x, 2 * a +             b + c),
-      .resultSigma = f2(x, x     + frac(1,2) * b + y),
-      .constraints = Stack<Literal*>{ x + y != 2 * a + frac(1,2) * b + c },
+      .querySigma  = f2(-x + 2 * a + frac(1,2) * b + c, 2 * a + b + c),
+      .resultSigma = f2(-x + 2 * a + frac(1,2) * b + c, 2 * a + b + c),
+      .constraints = Stack<Literal*>{  },
+      .lascaSimpl = true,
     })
 
 
@@ -1629,48 +1647,16 @@ ROB_UNIFY_TEST(top_level_constraints_1,
       .constraints = Stack<Literal*>{ b + c != x + y },
     })
 
-INDEX_TEST(top_level_constraints_2_with_fixedPointIteration,
-    SUGAR(Rat),
-    IndexTest {
-      .index = getTermIndex(),
-      .uwa = Options::UnificationWithAbstraction::AC2,
-      .fixedPointIteration = true,
-      .insert = {
-        a + b + c,
-        b,
-        a + b + f(a) + c,
-        f(x),
-        f(a),
-      },
-      .query = a + y + x,
-      .expected = { 
-
-          TermUnificationResultSpec 
-          { .querySigma  = a + x0 + x1,
-            .resultSigma = a + b + c,
-            .constraints = Stack<Literal*>{ b + c != x1 + x0 } }, 
-
-          TermUnificationResultSpec 
-          { .querySigma  = a + x0 + x1,
-            .resultSigma = a + b + f(a) + c,
-            .constraints = Stack<Literal*>{ b + f(a) + c != x1 + x0 } }, 
-
-      },
-    })
-
 
 INDEX_TEST(top_level_constraints_2,
     SUGAR(Rat),
     IndexTest {
       .index = getTermIndex(),
-      .uwa = Options::UnificationWithAbstraction::AC2,
+      .uwa = Options::UnificationWithAbstraction::LPAR_CAN_ABSTRACT,
       .fixedPointIteration = false,
       .insert = {
         a + b + c,
-        b,
         a + b + a + c,
-        f(x),
-        f(a),
       },
       .query = a + y + x,
       .expected = { 

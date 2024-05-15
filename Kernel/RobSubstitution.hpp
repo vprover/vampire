@@ -339,24 +339,6 @@ public:
   TermSpec createTerm(unsigned functor)
   { return TermSpec(TermList(Term::create(functor, 0, nullptr)), /* index */ 0); }
 
-  /* creates a new TermSpec with the given arguments `args` which all need to be of type `TermSpec`. If any of the argumetns have different variable banks "glue" variable are introduced. See the function `introGlueVar` for that. */
-  template<class... Args>
-  TermSpec createTerm(unsigned functor, Args... args)
-  {
-    TermSpec out;
-    if (iterItems(args...).count() == 0) {
-      return TermSpec(TermList(Term::create(functor, 0, nullptr)), /* index */ 0);
-    }
-    auto firstIndex = iterItems(args...).tryNext().unwrap().index;
-    if (iterItems(args...).all([&](auto a) { return a.index == firstIndex; })) {
-      return TermSpec(TermList(Term::create(functor, {args.term...})), firstIndex);
-    } else {
-      return TermSpec(TermList(Term::create(functor, { 
-              (args.index == GLUE_INDEX ? args.term 
-                                        : TermList::var(introGlueVar(args).var))... 
-              })), GLUE_INDEX);
-    }
-  }
 
   /* TODO */
   template<class Iter>
@@ -370,7 +352,12 @@ public:
     Option<int> index;
     while (iter.hasNext()) {
       auto arg = iter.next();
-      if (!arg.term.isVar() && arg.term.term()->shared() && arg.term.ground()) {
+      if (
+          // ground term
+          (!arg.term.isVar() && arg.term.term()->shared() && arg.term.ground())
+          // special variable
+          || arg.term.isSpecialVar()
+          ) {
         args->push(arg.term);
 
       } else if (index.isNone()) {
@@ -397,6 +384,25 @@ public:
     return TermSpec(TermList(Term::create(functor, args->size(), args->begin())), index.unwrapOr(0));
   }
 
+  /* creates a new TermSpec with the given arguments `args` which all need to be of type `TermSpec`. If any of the argumetns have different variable banks "glue" variable are introduced. See the function `introGlueVar` for that. */
+  template<class... Args>
+  TermSpec createTerm(unsigned functor, Args... args)
+  {
+    return createTermFromIter(functor, iterItems(args...));
+    // TermSpec out;
+    // if (iterItems(args...).count() == 0) {
+    //   return TermSpec(TermList(Term::create(functor, 0, nullptr)), /* index */ 0);
+    // }
+    // auto firstIndex = iterItems(args...).tryNext().unwrap().index;
+    // if (iterItems(args...).all([&](auto a) { return a.index == firstIndex; })) {
+    //   return TermSpec(TermList(Term::create(functor, {args.term...})), firstIndex);
+    // } else {
+    //   return TermSpec(TermList(Term::create(functor, { 
+    //           (args.index == GLUE_INDEX ? args.term 
+    //                                     : TermList::var(introGlueVar(args).var))... 
+    //           })), GLUE_INDEX);
+    // }
+  }
   void reset()
   {
     _bindings.reset();
