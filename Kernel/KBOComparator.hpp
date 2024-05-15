@@ -85,13 +85,6 @@ private:
       ins._setSecondUint(v2);
       return ins;
     }
-    static Instruction uintInt(InstructionTag t, unsigned v1, int v2) {
-      Instruction ins;
-      ins._setTag(t);
-      ins._setFirstUint(v1);
-      ins._setCoeff(v2);
-      return ins;
-    }
 
     static constexpr unsigned
       TAG_BITS_START = 0,

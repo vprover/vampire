@@ -105,14 +105,20 @@ KBOComparator::KBOComparator(TermList tl1, TermList tl2, const KBO& kbo)
     }
     // if the condition below does not hold, the weight/var balances are satisfied
     if (w < 0 || varInbalance) {
-      _instructions.push(Instruction::uintInt(InstructionTag::WEIGHT, (unsigned)nonzeros.size(), w));
+      // reinterpret weight here to unsigned because the compiler might not do it
+      unsigned wu = reinterpret_cast<unsigned&>(w);
+
+      _instructions.push(Instruction::uintUint(InstructionTag::WEIGHT, (unsigned)nonzeros.size(), wu));
       // sort the [var,count] pairs by count descending so that
       // we can exit early during execution if needed
       sort(nonzeros.begin(),nonzeros.end(),[](const auto& e1, const auto& e2) {
         return e1.second>e2.second;
       });
       for (const auto& [v,cnt] : nonzeros) {
-        _instructions.push(Instruction::uintInt(InstructionTag::DATA, v, cnt));
+        // see same with weight above
+        unsigned cntu = reinterpret_cast<const unsigned&>(cnt);
+
+        _instructions.push(Instruction::uintUint(InstructionTag::DATA, v, cntu));
       }
     }
 
