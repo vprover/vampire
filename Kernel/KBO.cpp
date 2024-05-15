@@ -38,82 +38,6 @@ using namespace std;
 using namespace Lib;
 using namespace Shell;
 
-
-/**
- * Class to represent the current state of the KBO comparison.
- * Based on Bernd Loechner's "Things to Know when Implementing KBO"
- * (https://doi.org/10.1007/s10817-006-9031-4)
- * @since 30/04/2008 flight Brussels-Tel Aviv
- */
-class KBO::State
-{
-public:
-  /** Initialise the state */
-  State(KBO* kbo)
-    : _kbo(*kbo)
-  {}
-
-  void init()
-  {
-    _weightDiff=0;
-    _posNum=0;
-    _negNum=0;
-    _lexResult=EQUAL;
-    _varDiffs.reset();
-  }
-
-  /**
-   * Lexicographic traversal of two terms with same top symbol,
-   * i.e. traversing their symbols in lockstep, as descibed in
-   * the Loechner et al. paper above. It performs a bidirectional
-   * comparison between the two terms, i.e. we can get any value
-   * of @b Result.
-   */
-  Result traverseLexBidir(AppliedTerm t1, AppliedTerm t2);
-  /**
-   * Optimised, unidirectional version of @b traverseLexBidir
-   * where we only care about @b GREATER and @b EQUAL, otherwise
-   * it returns as early as possible with @b INCOMPARABLE.
-   */
-  Result traverseLexUnidir(AppliedTerm t1, AppliedTerm t2);
-  /**
-   * Performs a non-lexicographic (i.e. non-lockstep) traversal
-   * of two terms in case their top symbols are not the same.
-   */
-  template<bool unidirectional>
-  Result traverseNonLex(AppliedTerm t1, AppliedTerm t2);
-
-  template<int coef, bool varsOnly> void traverse(AppliedTerm tt);
-
-  Result result(AppliedTerm t1, AppliedTerm t2);
-protected:
-  template<int coef> void recordVariable(unsigned var);
-
-  bool checkVars() const { return _negNum <= 0; }
-  Result innerResult(TermList t1, TermList t2);
-  Result applyVariableCondition(Result res)
-  {
-    if(_posNum>0 && (res==LESS || res==LESS_EQ || res==EQUAL)) {
-      res=INCOMPARABLE;
-    } else if(_negNum>0 && (res==GREATER || res==GREATER_EQ || res==EQUAL)) {
-      res=INCOMPARABLE;
-    }
-    return res;
-  }
-
-  int _weightDiff;
-  /** The variable counters */
-  DHMap<unsigned, int, IdentityHash, DefaultHash> _varDiffs;
-  /** Number of variables, that occur more times in the first literal */
-  int _posNum;
-  /** Number of variables, that occur more times in the second literal */
-  int _negNum;
-  /** First comparison result */
-  Result _lexResult;
-  /** The ordering used */
-  KBO& _kbo;
-}; // class KBO::State
-
 /**
  * Return result of comparison between @b l1 and @b l2 under
  * an assumption, that @b traverse method have been called
@@ -121,7 +45,7 @@ protected:
  * traverse(Term*,int) for both terms/literals in case their
  * top functors are different.)
  */
-Ordering::Result KBO::State::result(AppliedTerm t1, AppliedTerm t2)
+Ordering::Result KBO::State::result(KBO const& kbo, AppliedTerm t1, AppliedTerm t2)
 {
   Result res;
   if(_weightDiff) {
@@ -129,16 +53,16 @@ Ordering::Result KBO::State::result(AppliedTerm t1, AppliedTerm t2)
   } else if(t1.term.term()->functor()!=t2.term.term()->functor()) {
     if(t1.term.term()->isLiteral()) {
       int prec1, prec2;
-      prec1=_kbo.predicatePrecedence(t1.term.term()->functor());
-      prec2=_kbo.predicatePrecedence(t2.term.term()->functor());
+      prec1=kbo.predicatePrecedence(t1.term.term()->functor());
+      prec2=kbo.predicatePrecedence(t2.term.term()->functor());
       ASS_NEQ(prec1,prec2);//precedence ordering must be total
       res=(prec1>prec2)?GREATER:LESS;
     } else if(t1.term.term()->isSort()){
       ASS(t2.term.term()->isSort()); //should only compare sorts with sorts
-      res=_kbo.compareTypeConPrecedences(t1.term.term()->functor(), t2.term.term()->functor());
+      res=kbo.compareTypeConPrecedences(t1.term.term()->functor(), t2.term.term()->functor());
       ASS_REP(res==GREATER || res==LESS, res);//precedence ordering must be total
     } else {
-      res=_kbo.compareFunctionPrecedences(t1.term.term()->functor(), t2.term.term()->functor());
+      res=kbo.compareFunctionPrecedences(t1.term.term()->functor(), t2.term.term()->functor());
       ASS_REP(res==GREATER || res==LESS, res); //precedence ordering must be total
     }
   } else {
@@ -148,7 +72,7 @@ Ordering::Result KBO::State::result(AppliedTerm t1, AppliedTerm t2)
   return res;
 }
 
-Ordering::Result KBO::State::innerResult(TermList tl1, TermList tl2)
+Ordering::Result KBO::State::innerResult(KBO const& kbo, TermList tl1, TermList tl2)
 {
   ASS(!TermList::sameTopFunctor(tl1,tl2));
 
@@ -167,10 +91,10 @@ Ordering::Result KBO::State::innerResult(TermList tl1, TermList tl2)
       ASS_EQ(_posNum,0);
       res=GREATER;
     } else if(tl1.term()->isSort()){
-      res=_kbo.compareTypeConPrecedences(tl1.term()->functor(), tl2.term()->functor());
+      res=kbo.compareTypeConPrecedences(tl1.term()->functor(), tl2.term()->functor());
       ASS_REP(res==GREATER || res==LESS, res);//precedence ordering must be total
     } else {
-      res=_kbo.compareFunctionPrecedences(tl1.term()->functor(), tl2.term()->functor());
+      res=kbo.compareFunctionPrecedences(tl1.term()->functor(), tl2.term()->functor());
       ASS_REP(res==GREATER || res==LESS, res);//precedence ordering must be total
     }
   }
@@ -201,13 +125,13 @@ void KBO::State::recordVariable(unsigned var)
 }
 
 template<int coef, bool varsOnly>
-void KBO::State::traverse(AppliedTerm tt)
+void KBO::State::traverse(KBO const& kbo, AppliedTerm tt)
 {
   static_assert(coef==1 || coef==-1);
 
   if (tt.term.isVar()) {
     if constexpr (!varsOnly) {
-      _weightDiff += _kbo._funcWeights._specialWeights._variableWeight * coef;
+      _weightDiff += kbo._funcWeights._specialWeights._variableWeight * coef;
     }
     recordVariable<coef>(tt.term.var());
     return;
@@ -220,7 +144,7 @@ void KBO::State::traverse(AppliedTerm tt)
   recState.push(State{ tt, 0 });
 
   if constexpr (!varsOnly) {
-    _weightDiff += _kbo.symbolWeight(tt.term.term()) * coef;
+    _weightDiff += kbo.symbolWeight(tt.term.term()) * coef;
   }
 
   while (recState.isNonEmpty()) {
@@ -233,7 +157,7 @@ void KBO::State::traverse(AppliedTerm tt)
     if (t.term.isVar()) {
       ASS(!t.aboveVar);
       if constexpr (!varsOnly) {
-        _weightDiff += _kbo._funcWeights._specialWeights._variableWeight * coef;
+        _weightDiff += kbo._funcWeights._specialWeights._variableWeight * coef;
       }
       recordVariable<coef>(t.term.var());
       continue;
@@ -244,13 +168,13 @@ void KBO::State::traverse(AppliedTerm tt)
         recState.push(State{ t, 0 });
       }
     } else {
-      _weightDiff += _kbo.symbolWeight(t.term.term()) * coef;
+      _weightDiff += kbo.symbolWeight(t.term.term()) * coef;
       recState.push(State{ t, 0 });
     }
   }
 }
 
-Ordering::Result KBO::State::traverseLexBidir(AppliedTerm tl1, AppliedTerm tl2)
+Ordering::Result KBO::State::traverseLexBidir(KBO const& kbo, AppliedTerm tl1, AppliedTerm tl2)
 {
   ASS(tl1.term.isTerm() && tl2.term.isTerm());
   auto t1 = tl1.term.term();
@@ -301,10 +225,10 @@ Ordering::Result KBO::State::traverseLexBidir(AppliedTerm tl1, AppliedTerm tl2)
       stack.push(make_pair(t.term.term()->args(),t.aboveVar));
       depth++;
     } else {
-      traverse<1,/*unidirectional=*/false>(s);
-      traverse<-1,/*unidirectional=*/false>(t);
+      traverse<1,/*unidirectional=*/false>(kbo, s);
+      traverse<-1,/*unidirectional=*/false>(kbo, t);
       if(_lexResult==EQUAL) {
-        _lexResult=innerResult(s.term, t.term);
+        _lexResult=innerResult(kbo, s.term, t.term);
         lexValidDepth=depth;
         ASS(_lexResult!=EQUAL);
         ASS(_lexResult!=GREATER_EQ);
@@ -312,10 +236,10 @@ Ordering::Result KBO::State::traverseLexBidir(AppliedTerm tl1, AppliedTerm tl2)
       }
     }
   }
-  return result(tl1,tl2);
+  return result(kbo, tl1, tl2);
 }
 
-Ordering::Result KBO::State::traverseLexUnidir(AppliedTerm tl1, AppliedTerm tl2)
+Ordering::Result KBO::State::traverseLexUnidir(KBO const& kbo, AppliedTerm tl1, AppliedTerm tl2)
 {
   ASS(tl1.term.isTerm() && tl2.term.isTerm());
   auto t1 = tl1.term.term();
@@ -352,14 +276,14 @@ Ordering::Result KBO::State::traverseLexUnidir(AppliedTerm tl1, AppliedTerm tl2)
       continue;
     }
     if (_lexResult==EQUAL) {
-      auto ssw = _kbo.computeWeight(s);
-      auto ttw = _kbo.computeWeight(t);
+      auto ssw = kbo.computeWeight(s);
+      auto ttw = kbo.computeWeight(t);
       if (ssw < ttw) {
         return INCOMPARABLE;
       }
       if (ssw > ttw) {
-        traverse<1,/*unidirectional=*/true>(s);
-        traverse<-1,/*unidirectional=*/true>(t);
+        traverse<1,/*unidirectional=*/true>(kbo, s);
+        traverse<-1,/*unidirectional=*/true>(kbo, t);
         if (!checkVars()) {
           return INCOMPARABLE;
         }
@@ -378,8 +302,8 @@ Ordering::Result KBO::State::traverseLexUnidir(AppliedTerm tl1, AppliedTerm tl2)
         continue;
       }
       Result comp = s.term.term()->isSort()
-        ? _kbo.compareTypeConPrecedences(s.term.term()->functor(),t.term.term()->functor())
-        : _kbo.compareFunctionPrecedences(s.term.term()->functor(),t.term.term()->functor());
+        ? kbo.compareTypeConPrecedences(s.term.term()->functor(),t.term.term()->functor())
+        : kbo.compareFunctionPrecedences(s.term.term()->functor(),t.term.term()->functor());
       switch (comp)
       {
         case Ordering::LESS:
@@ -388,8 +312,8 @@ Ordering::Result KBO::State::traverseLexUnidir(AppliedTerm tl1, AppliedTerm tl2)
         }
         case Ordering::GREATER:
         case Ordering::GREATER_EQ: {
-          traverse<1,/*unidirectional=*/true>(s);
-          traverse<-1,/*unidirectional=*/true>(t);
+          traverse<1,/*unidirectional=*/true>(kbo, s);
+          traverse<-1,/*unidirectional=*/true>(kbo, t);
           if (!checkVars()) {
             return INCOMPARABLE;
           }
@@ -404,8 +328,8 @@ Ordering::Result KBO::State::traverseLexUnidir(AppliedTerm tl1, AppliedTerm tl2)
         default: ASSERTION_VIOLATION;
       }
     } else {
-      traverse<1,/*unidirectional=*/true>(s);
-      traverse<-1,/*unidirectional=*/true>(t);
+      traverse<1,/*unidirectional=*/true>(kbo, s);
+      traverse<-1,/*unidirectional=*/true>(kbo, t);
     }
   }
   if (_lexResult==EQUAL) {
@@ -415,15 +339,15 @@ Ordering::Result KBO::State::traverseLexUnidir(AppliedTerm tl1, AppliedTerm tl2)
 }
 
 template<bool unidirectional>
-Ordering::Result KBO::State::traverseNonLex(AppliedTerm tl1, AppliedTerm tl2)
+Ordering::Result KBO::State::traverseNonLex(KBO const& kbo, AppliedTerm tl1, AppliedTerm tl2)
 {
-  traverse<1,unidirectional>(tl1);
-  traverse<-1,unidirectional>(tl2);
+  traverse<1,unidirectional>(kbo, tl1);
+  traverse<-1,unidirectional>(kbo, tl2);
 
   if constexpr (unidirectional) {
     return checkVars() ? GREATER : INCOMPARABLE;
   } else {
-    return result(tl1,tl2);
+    return result(kbo, tl1, tl2);
   }
 }
 
@@ -666,7 +590,7 @@ KBO::KBO(
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
   , _predWeights(predWeights)
 #endif
-  , _state(new State(this))
+  , _state(new State())
 { 
   checkAdmissibility(throwError);
 }
@@ -789,7 +713,7 @@ KBO::KBO(Problem& prb, const Options& opts, bool qkbo)
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
  , _predWeights(weightsFromOpts<PredSigTraits>(opts,_predicatePrecedences))
 #endif
- , _state(new State(this))
+ , _state(new State())
 {
   if (opts.kboMaxZero()) {
     zeroWeightForMaximalFunc();
@@ -799,11 +723,6 @@ KBO::KBO(Problem& prb, const Options& opts, bool qkbo)
     checkAdmissibility(throwError);
   else
     checkAdmissibility(warnError);
-}
-
-KBO::~KBO()
-{
-  delete _state;
 }
 
 /**
@@ -823,31 +742,32 @@ Ordering::Result KBO::comparePredicates(Literal* l1, Literal* l2) const
 
   Result res;
   ASS(_state);
-  State* state=_state;
+
+  State* state = _state.get();
 #if VDEBUG
   //this is to make sure _state isn't used while we're using it
-  _state=0;
+  auto __state = std::move(_state);
 #endif
   state->init();
   if(p1!=p2) {
     TermList* ts;
     ts=l1->args();
     while(!ts->isEmpty()) {
-      state->traverse<1,/*unidirectional=*/false>(AppliedTerm(*ts));
+      state->traverse<1,/*unidirectional=*/false>(*this, AppliedTerm(*ts));
       ts=ts->next();
     }
     ts=l2->args();
     while(!ts->isEmpty()) {
-      state->traverse<-1,/*unidirectional=*/false>(AppliedTerm(*ts));
+      state->traverse<-1,/*unidirectional=*/false>(*this, AppliedTerm(*ts));
       ts=ts->next();
     }
-    res=state->result(AppliedTerm(TermList(l1)),AppliedTerm(TermList(l2)));
+    res=state->result(*this, AppliedTerm(TermList(l1)),AppliedTerm(TermList(l2)));
   } else {
-    res=state->traverseLexBidir(AppliedTerm(TermList(l1)),AppliedTerm(TermList(l2)));
+    res=state->traverseLexBidir(*this, AppliedTerm(TermList(l1)),AppliedTerm(TermList(l2)));
   }
 
 #if VDEBUG
-  _state=state;
+  _state = std::move(__state);
 #endif
   return res;
 } // KBO::comparePredicates()
@@ -876,21 +796,21 @@ Ordering::Result KBO::compare(AppliedTerm tl1, AppliedTerm tl2) const
   Term* t2=tl2.term.term();
 
   ASS(_state);
-  State* state=_state;
+  State* state = _state.get();
 #if VDEBUG
   //this is to make sure _state isn't used while we're using it
-  _state=0;
+  auto __state = std::move(_state);
 #endif
 
   state->init();
   Result res;
   if(t1->functor()==t2->functor()) {
-    res = state->traverseLexBidir(tl1,tl2);
+    res = state->traverseLexBidir(*this, tl1, tl2);
   } else {
-    res = state->traverseNonLex</*unidirectional=*/false>(tl1,tl2);
+    res = state->traverseNonLex</*unidirectional=*/false>(*this, tl1, tl2);
   }
 #if VDEBUG
-  _state=state;
+  _state = std::move(__state);
 #endif
   return res;
 }
@@ -921,19 +841,19 @@ Ordering::Result KBO::isGreaterOrEq(AppliedTerm tl1, AppliedTerm tl2) const
   }
 
   ASS(_state);
-  State* state=_state;
+  State* state = _state.get();
 #if VDEBUG
   //this is to make sure _state isn't used while we're using it
-  _state=0;
+  auto __state = std::move(_state);
 #endif
 
   state->init();
   Result res;
   if (w1>w2) {
     // traverse variables
-    res = state->traverseNonLex</*unidirectional=*/true>(tl1,tl2);
+    res = state->traverseNonLex</*unidirectional=*/true>(*this, tl1, tl2);
 #if VDEBUG
-    _state=state;
+    _state = std::move(__state);
 #endif
     return res;
   }
@@ -950,18 +870,18 @@ Ordering::Result KBO::isGreaterOrEq(AppliedTerm tl1, AppliedTerm tl2) const
     }
     case Ordering::GREATER:
     case Ordering::GREATER_EQ: {
-      res = state->traverseNonLex</*unidirectional=*/true>(tl1,tl2);
+      res = state->traverseNonLex</*unidirectional=*/true>(*this, tl1, tl2);
       break;
     }
     case Ordering::EQUAL: {
-      res = state->traverseLexUnidir(tl1,tl2);
+      res = state->traverseLexUnidir(*this, tl1, tl2);
       break;
     }
     case Ordering::INCOMPARABLE:
       ASSERTION_VIOLATION;
   }
 #if VDEBUG
-  _state=state;
+  _state = std::move(__state);
 #endif
   return res;
 }

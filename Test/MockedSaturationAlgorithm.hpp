@@ -22,6 +22,9 @@ public:
   MockedSaturationAlgorithm(Kernel::Problem& p, Shell::Options& o) : Otter(p,o) 
   {
   }
+  ~MockedSaturationAlgorithm(){
+    Ordering::resetGlobalOrdering();
+  }
 };
 
 } // namespace Test

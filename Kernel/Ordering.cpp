@@ -65,6 +65,11 @@ Ordering::~Ordering()
 {
 }
 
+bool Ordering::resetGlobalOrdering()
+{
+  ASS(s_globalOrdering)
+  s_globalOrdering = OrderingSP();
+}
 
 /**
  * If there is no global ordering yet, assign @c ordering to be
@@ -78,6 +83,7 @@ Ordering::~Ordering()
  */
 bool Ordering::trySetGlobalOrdering(OrderingSP ordering)
 {
+
   if(s_globalOrdering) {
     return false;
   }

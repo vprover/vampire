@@ -22,6 +22,7 @@
 #include "Lib/DArray.hpp"
 
 #include "Ordering.hpp"
+#include <memory>
 
 #define SPECIAL_WEIGHT_IDENT_VAR            "$var"
 #define SPECIAL_WEIGHT_IDENT_INTRODUCED     "$introduced"
@@ -150,7 +151,6 @@ public:
 
   static KBO testKBO(bool rand = false, bool qkbo = false);
 
-  virtual ~KBO();
   void showConcrete(std::ostream&) const override;
   template<class HandleError>
   void checkAdmissibility(HandleError handle) const;
@@ -168,7 +168,75 @@ protected:
 
   Result comparePredicates(Literal* l1, Literal* l2) const override;
 
-  class State;
+  /**
+   * Class to represent the current state of the KBO comparison.
+   * Based on Bernd Loechner's "Things to Know when Implementing KBO"
+   * (https://doi.org/10.1007/s10817-006-9031-4)
+   * @since 30/04/2008 flight Brussels-Tel Aviv
+   */
+  class State
+  {
+  public:
+    void init()
+    {
+      _weightDiff=0;
+      _posNum=0;
+      _negNum=0;
+      _lexResult=EQUAL;
+      _varDiffs.reset();
+    }
+
+    /**
+     * Lexicographic traversal of two terms with same top symbol,
+     * i.e. traversing their symbols in lockstep, as descibed in
+     * the Loechner et al. paper above. It performs a bidirectional
+     * comparison between the two terms, i.e. we can get any value
+     * of @b Result.
+     */
+    Result traverseLexBidir(KBO const& kbo, AppliedTerm t1, AppliedTerm t2);
+    /**
+     * Optimised, unidirectional version of @b traverseLexBidir
+     * where we only care about @b GREATER and @b EQUAL, otherwise
+     * it returns as early as possible with @b INCOMPARABLE.
+     */
+    Result traverseLexUnidir(KBO const& kbo, AppliedTerm t1, AppliedTerm t2);
+    /**
+     * Performs a non-lexicographic (i.e. non-lockstep) traversal
+     * of two terms in case their top symbols are not the same.
+     */
+    template<bool unidirectional>
+    Result traverseNonLex(KBO const& kbo, AppliedTerm t1, AppliedTerm t2);
+
+    template<int coef, bool varsOnly> void traverse(KBO const& kbo, AppliedTerm tt);
+
+    Result result(KBO const& kbo, AppliedTerm t1, AppliedTerm t2);
+  protected:
+    template<int coef> void recordVariable(unsigned var);
+
+    bool checkVars() const { return _negNum <= 0; }
+    Result innerResult(KBO const& kbo, TermList t1, TermList t2);
+    Result applyVariableCondition(Result res)
+    {
+      if(_posNum>0 && (res==LESS || res==LESS_EQ || res==EQUAL)) {
+        res=INCOMPARABLE;
+      } else if(_negNum>0 && (res==GREATER || res==GREATER_EQ || res==EQUAL)) {
+        res=INCOMPARABLE;
+      }
+      return res;
+    }
+
+    int _weightDiff;
+    /** The variable counters */
+    DHMap<unsigned, int, IdentityHash, DefaultHash> _varDiffs;
+    /** Number of variables, that occur more times in the first literal */
+    int _posNum;
+    /** Number of variables, that occur more times in the second literal */
+    int _negNum;
+    /** First comparison result */
+    Result _lexResult;
+  }; // class State
+
+
 
   // int functionSymbolWeight(unsigned fun) const;
   int symbolWeight(const Term* t) const;
@@ -190,7 +258,7 @@ private:
   /**
    * State used for comparing terms and literals
    */
-  mutable State* _state;
+  mutable std::unique_ptr<State> _state;
 };
 
 } // namespace Kernel
