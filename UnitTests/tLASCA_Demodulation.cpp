@@ -54,7 +54,7 @@ using namespace Inferences::LASCA;
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
-#define UWA_MODE Options::UnificationWithAbstraction::ALASCA1
+#define UWA_MODE Options::UnificationWithAbstraction::LPAR_MAIN
 
 FwdDemodulation* testFwdDemodulation     () 
 { return new FwdDemodulation(testLascaState(UWA_MODE)); }

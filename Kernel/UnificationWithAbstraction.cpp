@@ -248,67 +248,10 @@ bool AbstractionOracle::canAbstract(AbstractingUnifier* au, TermSpec const& t1, 
     case Shell::Options::UnificationWithAbstraction::GROUND:
       if(!(t1.isTerm() && t2.isTerm())) return false;
       return true;
-    case Shell::Options::UnificationWithAbstraction::ALASCA1: 
-    case Shell::Options::UnificationWithAbstraction::ALASCA2: 
-      ASSERTION_VIOLATION
-    // case Shell::Options::UnificationWithAbstraction::ALASCA1: 
-    //   return isAlascaInterpreted(t1, *au) || isAlascaInterpreted(t2, *au);
-    // case Shell::Options::UnificationWithAbstraction::ALASCA2: {
-    //
-    //     TIME_TRACE("unification with abstraction ALASCA2")
-    //     // TODO get rid of globalState
-    //     auto shared = LascaState::globalState;
-    //
-    //     if (t1.isVar() && t2.isVar()) return true;
-    //     TermSpec sort;
-    //     if (t1.isTerm() && t2.isTerm()) {
-    //       sort = t1.sort();
-    //       if (t2.sort().old().term != sort.old().term) {
-    //         return false;
-    //       }
-    //
-    //     } else {
-    //       sort = t1.isTerm() ? t1.sort() : t2.sort();
-    //     }
-    //     ASS(!t1.isLiteral())
-    //     ASS(!t2.isLiteral())
-    //
-    //     if (!isAlascaInterpreted(t1, *au) && !isAlascaInterpreted(t2, *au))
-    //       return false;
-    //
-    //     auto canAbstract = forAnyNumTraits([&](auto numTraits) {
-    //         if (numTraits.sort() == sort.old().term) {
-    //             // TODO get rid of toTerm here
-    //             auto a1 = shared->signedAtoms<decltype(numTraits)>(t1.toTerm(au->subs()));
-    //             auto a2 = shared->signedAtoms<decltype(numTraits)>(t2.toTerm(au->subs()));
-    //
-    //             if (a1.isNone() || a2.isNone()) 
-    //               return Option<bool>(true);
-    //
-    //             // we have s or t being a sum `k x + ... `
-    //             if (concatIters(a1.unwrap()->elems.iter(), a2.unwrap()->elems.iter())
-    //                    .any([&](auto& x) { return get<0>(x).term.isVar(); }))
-    //               return Option<bool>(true);
-    //
-    //             return Option<bool>(Ordering::Result::EQUAL == OrderingUtils2::weightedMulExt(
-    //                 *a1.unwrap(),
-    //                 *a2.unwrap(),
-    //                 [](auto& l, auto& r) { return (l.sign == r.sign && l.term.term()->functor() == r.term.term()->functor())
-    //                   ? Ordering::Result::EQUAL
-    //                   : Ordering::Result::INCOMPARABLE; }));
-    //         } else {
-    //             return Option<bool>();
-    //         }
-    //     });
-    //
-    //     return canAbstract.unwrap();
-    //
-    // }
     case Shell::Options::UnificationWithAbstraction::OFF:
       return false;
     case Shell::Options::UnificationWithAbstraction::AC1: 
     case Shell::Options::UnificationWithAbstraction::AC2: 
-    case Shell::Options::UnificationWithAbstraction::ALASCA3: 
     case Shell::Options::UnificationWithAbstraction::LPAR_CAN_ABSTRACT: 
     case Shell::Options::UnificationWithAbstraction::LPAR_MAIN: 
     case Shell::Options::UnificationWithAbstraction::LPAR_ONE_INTERP: 
@@ -525,7 +468,7 @@ Option<AbstractionOracle::AbstractionResult> lpar(AbstractingUnifier& au, TermSp
 
 template<class NumTraits>
 AbstractionOracle::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, NumTraits n, Options::UnificationWithAbstraction uwa) {
-  TIME_TRACE("unification with abstraction ALASCA3")
+  TIME_TRACE("unification with abstraction ALASCA")
   using EqualIf = AbstractionOracle::EqualIf;
   using AbstractionResult = AbstractionOracle::AbstractionResult;
   using NeverEqual = AbstractionOracle::NeverEqual;

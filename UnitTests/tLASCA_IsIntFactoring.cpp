@@ -61,7 +61,7 @@ using namespace Inferences::LASCA;
 IsIntFactoring testIsIntFactoring(
     Ordering* ordering = nullptr,
     bool strongNorm = false,
-    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA1
+    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LPAR_MAIN
     )
 { return IsIntFactoring(testLascaState(uwa, strongNorm, ordering)); }
 

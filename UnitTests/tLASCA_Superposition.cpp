@@ -92,7 +92,7 @@ using namespace Inferences::LASCA;
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
-#define UWA_MODE Options::UnificationWithAbstraction::ALASCA1
+#define UWA_MODE Options::UnificationWithAbstraction::LPAR_MAIN
 
 std::shared_ptr<LascaState> state(Options::UnificationWithAbstraction uwa) 
 { 
@@ -693,7 +693,7 @@ TEST_GENERATION(bug06,
 TEST_GENERATION(abstraction_bug01a,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
-      .rule(new Superposition(testSuperposition(Options::UnificationWithAbstraction::ALASCA2)))
+      .rule(new Superposition(testSuperposition(Options::UnificationWithAbstraction::LPAR_MAIN)))
       .selfApplications(false)
       .inputs  ({ 
           clause({ 0 == f2(f(x), 0)  }),

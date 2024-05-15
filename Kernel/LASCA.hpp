@@ -1139,7 +1139,7 @@ namespace Kernel {
 
 #if VDEBUG
   std::shared_ptr<LascaState> testLascaState(
-    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA1,
+    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LPAR_MAIN,
     bool strongNormalization = false,
     Ordering* ordering = nullptr,
     bool uwaFixdPointIteration = false

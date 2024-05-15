@@ -238,9 +238,6 @@ public:
     FUNC_EXT,
     AC1,
     AC2,
-    ALASCA1,
-    ALASCA2,
-    ALASCA3,
     LPAR_ONE_INTERP,
     LPAR_CAN_ABSTRACT,
     LPAR_MAIN,
@@ -257,9 +254,6 @@ public:
       case UnificationWithAbstraction::FUNC_EXT:          return out << "func_ext";
       case UnificationWithAbstraction::AC1:               return out << "ac1";
       case UnificationWithAbstraction::AC2:               return out << "ac2";
-      case UnificationWithAbstraction::ALASCA1:           return out << "alasca1";
-      case UnificationWithAbstraction::ALASCA2:           return out << "alasca2";
-      case UnificationWithAbstraction::ALASCA3:           return out << "alasca3";
       case UnificationWithAbstraction::LPAR_ONE_INTERP:   return out << "lpar_one_interp";
       case UnificationWithAbstraction::LPAR_CAN_ABSTRACT: return out << "lpar_can_abstract";
       case UnificationWithAbstraction::LPAR_MAIN:         return out << "lpar_main";

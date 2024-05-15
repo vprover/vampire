@@ -102,7 +102,7 @@ void check_in_different_contexts(QKbo& ord, TermList l, QKbo::Result exp, TermLi
 QKbo& qkbo(bool rand = false) {
     
   auto out = new QKbo(KBO::testKBO(rand, /* qkboPrec */ true));
-  auto shared = testLascaState(Options::UnificationWithAbstraction::ALASCA2, 
+  auto shared = testLascaState(Options::UnificationWithAbstraction::LPAR_MAIN, 
     /* strongNormalization */ false, 
     /* ordering */ out);
   out->setState(shared);
