@@ -1169,7 +1169,7 @@ ROB_UNIFY_TEST(rob_unif_test_06,
     })
 
 ROB_UNIFY_TEST(over_approx_test_2_bad_AC1,
-    SUGAR(Rat),
+    SUGAR(Int),
     Options::UnificationWithAbstraction::AC1,
     /* withFixedPointIteration */ false,
     f2(x, a + x),
@@ -1181,7 +1181,7 @@ ROB_UNIFY_TEST(over_approx_test_2_bad_AC1,
     })
 
 ROB_UNIFY_TEST_FAIL(over_approx_test_2_bad_AC1_fixedPointIteration,
-    SUGAR(Rat),
+    SUGAR(Int),
     Options::UnificationWithAbstraction::AC1,
     /* withFixedPointIteration */ true,
     f2(x, a + x),
@@ -1189,14 +1189,14 @@ ROB_UNIFY_TEST_FAIL(over_approx_test_2_bad_AC1_fixedPointIteration,
     )
 
 ROB_UNIFY_TEST_FAIL(over_approx_test_2_good_AC1,
-    SUGAR(Rat),
+    SUGAR(Int),
     Options::UnificationWithAbstraction::AC1,
     /* withFixedPointIteration */ false,
     f2(a + x, x),
     f2(b + a, c))
 
 ROB_UNIFY_TEST(bottom_constraint_test_1_bad_AC1,
-    SUGAR(Rat),
+    SUGAR(Int),
     Options::UnificationWithAbstraction::AC1,
     /* withFixedPointIteration */ false,
     f2(f2(y, x), a + y + x),
@@ -1208,7 +1208,7 @@ ROB_UNIFY_TEST(bottom_constraint_test_1_bad_AC1,
     })
 
 ROB_UNIFY_TEST(bottom_constraint_test_1_bad_AC1_fixedPointIteration,
-    SUGAR(Rat),
+    SUGAR(Int),
     Options::UnificationWithAbstraction::AC1,
     /* withFixedPointIteration */ true,
     f2(f2(y, x), a + y + x),
@@ -1220,7 +1220,7 @@ ROB_UNIFY_TEST(bottom_constraint_test_1_bad_AC1_fixedPointIteration,
     })
 
 ROB_UNIFY_TEST(bottom_constraint_test_1_good_AC1,
-    SUGAR(Rat),
+    SUGAR(Int),
     Options::UnificationWithAbstraction::AC1,
     /* withFixedPointIteration */ false,
     f2(a + x + y, f2(x, y)),
@@ -1233,7 +1233,7 @@ ROB_UNIFY_TEST(bottom_constraint_test_1_good_AC1,
 
 
 ROB_UNIFY_TEST(ac_bug_01,
-    SUGAR(Rat),
+    SUGAR(Int),
     Options::UnificationWithAbstraction::AC1,
     /* withFixedPointIteration */ false,
     a + b + c + a,
@@ -1245,7 +1245,7 @@ ROB_UNIFY_TEST(ac_bug_01,
     })
 
 ROB_UNIFY_TEST(ac_test_01_AC1,
-    SUGAR(Rat),
+    SUGAR(Int),
     Options::UnificationWithAbstraction::AC1,
     /* withFixedPointIteration */ false,
     f2(b, a + b + c),
@@ -1257,7 +1257,7 @@ ROB_UNIFY_TEST(ac_test_01_AC1,
     })
 
 ROB_UNIFY_TEST(ac_test_02_AC1_good,
-    SUGAR(Rat),
+    SUGAR(Int),
     Options::UnificationWithAbstraction::AC1,
     /* withFixedPointIteration */ false,
     f2(a + b + c, c),
@@ -1269,7 +1269,7 @@ ROB_UNIFY_TEST(ac_test_02_AC1_good,
     })
 
 ROB_UNIFY_TEST(ac_test_02_AC1_bad,
-    SUGAR(Rat),
+    SUGAR(Int),
     Options::UnificationWithAbstraction::AC1,
     /* withFixedPointIteration */ false,
     f2(c, a + b + c),
@@ -1281,7 +1281,7 @@ ROB_UNIFY_TEST(ac_test_02_AC1_bad,
     })
 
 ROB_UNIFY_TEST(ac_test_02_AC1_bad_fixedPointIteration,
-    SUGAR(Rat),
+    SUGAR(Int),
     Options::UnificationWithAbstraction::AC1,
     /* withFixedPointIteration */ true,
     f2(c, a + b + c),
@@ -1293,7 +1293,7 @@ ROB_UNIFY_TEST(ac_test_02_AC1_bad_fixedPointIteration,
     })
 
 ROB_UNIFY_TEST(ac2_test_01,
-    SUGAR(Rat),
+    SUGAR(Int),
     Options::UnificationWithAbstraction::AC2,
     /* withFixedPointIteration */ false,
     f2(x, a + b + c),
@@ -1305,7 +1305,7 @@ ROB_UNIFY_TEST(ac2_test_01,
     })
 
 ROB_UNIFY_TEST(ac2_test_02,
-    SUGAR(Rat),
+    SUGAR(Int),
     Options::UnificationWithAbstraction::AC2,
     /* withFixedPointIteration */ false,
     f2(a + b + c, f2(x,b)),
@@ -1317,7 +1317,7 @@ ROB_UNIFY_TEST(ac2_test_02,
     })
 
 ROB_UNIFY_TEST(ac2_test_02_bad,
-    SUGAR(Rat),
+    SUGAR(Int),
     Options::UnificationWithAbstraction::AC2,
     /* withFixedPointIteration */ false,
     f2(f2(x,b), a + b + c),
@@ -1329,7 +1329,7 @@ ROB_UNIFY_TEST(ac2_test_02_bad,
     })
 
 ROB_UNIFY_TEST(ac2_test_02_bad_fixedPointIteration,
-    SUGAR(Rat),
+    SUGAR(Int),
     Options::UnificationWithAbstraction::AC2,
     /* withFixedPointIteration */ true,
     f2(f2(x,b), a + b + c),
@@ -1618,7 +1618,7 @@ ROB_UNIFY_TEST(constr_var_01,
     })
 
 ROB_UNIFY_TEST(top_level_constraints_1,
-    SUGAR(Rat),
+    SUGAR(Int),
     Options::UnificationWithAbstraction::AC2,
     /* withFixedPointIteration */ false,
     a + y + x,
@@ -1924,7 +1924,7 @@ ROB_UNIFY_TEST(lpar_main_constr_var_01,
     })
 
 ROB_UNIFY_TEST(lpar_main_top_level_constraints_1,
-    SUGAR(Rat),
+    SUGAR(Int),
     Options::UnificationWithAbstraction::AC2,
     /* fixedPointIteration */ false,
     a + y + x,
