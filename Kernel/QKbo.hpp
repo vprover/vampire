@@ -51,8 +51,7 @@ public:
   explicit QKbo(KBO kbo);
 
   QKbo(Problem& prb, const Options& opts)
-    // : QKbo(KBO(prb,opts, /* qkboPrecedence */ true)) {}
-    : QKbo(KBO(prb,opts)) {}
+    : QKbo(KBO(prb,opts, /* qkboPrecedence */ true)) {}
 
   virtual ~QKbo() {}
 

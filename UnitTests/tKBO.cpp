@@ -45,7 +45,8 @@ KBO kbo(unsigned introducedSymbolWeight,
              DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->typeCons())),
              DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->predicates())),
              PrecedenceOrdering::testLevels(),
-             /*revereseLCM*/ false);
+             /*revereseLCM*/ false,
+             /* qkbo */ false);
 }
 
 

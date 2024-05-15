@@ -165,7 +165,7 @@ bool InequalityNormalizer::isNormalized(Clause* cl)  const
 #if VDEBUG
 std::shared_ptr<LascaState> testLascaState(Options::UnificationWithAbstraction uwa, bool strongNormalization, Ordering* ordering, bool uwaFixedPointIteration) {
 
-  auto qkbo = ordering == nullptr ? new QKbo(KBO::testKBO(/*qkbo*/ true)) : nullptr;
+  auto qkbo = ordering == nullptr ? new QKbo(KBO::testKBO(/* rand */false, /*qkbo*/ true)) : nullptr;
   auto& ord = ordering == nullptr ? *qkbo : *ordering;
   auto state = LascaState::create(InequalityNormalizer(strongNormalization), &ord, uwa, uwaFixedPointIteration);
   if (qkbo)

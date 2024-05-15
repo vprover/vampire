@@ -659,8 +659,9 @@ KBO::KBO(
     DArray<int> predLevels, 
 
     // other
-    bool reverseLCM
-  ) : PrecedenceOrdering(funcPrec, typeConPrec, predPrec, predLevels, reverseLCM)
+    bool reverseLCM,
+    bool qkbo
+  ) : PrecedenceOrdering(funcPrec, typeConPrec, predPrec, predLevels, reverseLCM, qkbo)
   , _funcWeights(funcWeights)
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
   , _predWeights(predWeights)
@@ -676,6 +677,7 @@ KBO KBO::testKBO(bool rand, bool qkbo)
   auto predLevels = []() -> DArray<int>{
     DArray<int> out(env.signature->predicates());
     out.init(out.size(), 1);
+    out[0] = PredLevels::EQ;
     return out;
   };
 
@@ -695,7 +697,8 @@ KBO KBO::testKBO(bool rand, bool qkbo)
       prec(env.signature->typeCons()),
       prec(env.signature->predicates()),
       predLevels(),
-      /*reverseLCM=*/false);
+      /*reverseLCM=*/false,
+      qkbo);
 }
 
 void KBO::zeroWeightForMaximalFunc() {
@@ -780,8 +783,8 @@ void KBO::checkAdmissibility(HandleError handle) const
 /**
  * Create a KBO object.
  */
-KBO::KBO(Problem& prb, const Options& opts)
- : PrecedenceOrdering(prb, opts)
+KBO::KBO(Problem& prb, const Options& opts, bool qkbo)
+ : PrecedenceOrdering(prb, opts, qkbo)
  , _funcWeights(weightsFromOpts<FuncSigTraits>(opts,_functionPrecedences))
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
  , _predWeights(weightsFromOpts<PredSigTraits>(opts,_predicatePrecedences))

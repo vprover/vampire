@@ -911,7 +911,7 @@ void PrecedenceOrdering::checkLevelAssumptions(DArray<int> const& levels)
     if (theory->isInterpretedPredicate(i)) {
       auto itp = theory->interpretPredicate(i);
       if (itp == Kernel::Theory::EQUAL) {
-        ASS(levels[i] == PredLevels::EQ);
+        ASS_EQ(levels[i], PredLevels::EQ);
       } else if (theory->isInequality(itp)) {
         ASS(env.options->termOrdering() != Options::TermOrdering::LALPO || levels[i] == PredLevels::INEQ);
       } else {

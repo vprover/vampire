@@ -129,7 +129,7 @@ class KBO
 public:
   KBO(KBO&&) = default;
   KBO& operator=(KBO&&) = default;
-  KBO(Problem& prb, const Options& opt);
+  KBO(Problem& prb, const Options& opt, bool qkbo = false);
   KBO(
       // KBO params
       KboWeightMap<FuncSigTraits> funcWeights, 
@@ -145,7 +145,8 @@ public:
       DArray<int> predLevels,
 
       // other
-      bool reverseLCM);
+      bool reverseLCM,
+      bool qkbo = false);
 
   static KBO testKBO(bool rand = false, bool qkbo = false);
 

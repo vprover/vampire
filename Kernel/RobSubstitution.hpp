@@ -92,6 +92,8 @@ struct TermSpec {
    term.term()->arity()==0 ));
   }
 
+  TermSpec sort() const { return TermSpec(SortHelper::getResultSort(term.term()), index); }
+
   friend std::ostream& operator<<(std::ostream& out, TermSpec const& self);
 
   bool isVar() const { return term.isVar(); }
@@ -100,7 +102,7 @@ struct TermSpec {
 
   TermSpec termArgSort(unsigned i) const { return TermSpec(SortHelper::getTermArgSort(term.term(), i), index); }
 
-  unsigned nTypeArgs() const { return term.term()->numTermArguments(); }
+  unsigned nTypeArgs() const { return term.term()->numTypeArguments(); }
   unsigned nTermArgs() const { return term.term()->numTermArguments(); }
   unsigned nAllArgs() const { return term.term()->arity(); }
 
@@ -333,6 +335,10 @@ public:
    */
   VarSpec introGlueVar(TermSpec forTerm);
 
+  /* TODO */
+  TermSpec createTerm(unsigned functor)
+  { return TermSpec(TermList(Term::create(functor, 0, nullptr)), /* index */ 0); }
+
   /* creates a new TermSpec with the given arguments `args` which all need to be of type `TermSpec`. If any of the argumetns have different variable banks "glue" variable are introduced. See the function `introGlueVar` for that. */
   template<class... Args>
   TermSpec createTerm(unsigned functor, Args... args)
@@ -350,6 +356,45 @@ public:
                                         : TermList::var(introGlueVar(args).var))... 
               })), GLUE_INDEX);
     }
+  }
+
+  /* TODO */
+  template<class Iter>
+  TermSpec createTermFromIter(unsigned functor, Iter iter)
+  {
+    TermSpec out;
+    if (!iter.hasNext()) {
+      return TermSpec(TermList(Term::create(functor, 0, nullptr)), /* index */ 0);
+    }
+    Recycled<Stack<TermList>> args;
+    Option<int> index;
+    while (iter.hasNext()) {
+      auto arg = iter.next();
+      if (arg.term.ground()) {
+        args->push(arg.term);
+
+      } else if (index.isNone()) {
+        args->push(arg.term);
+        index = some(arg.index);
+
+      } else if (*index == GLUE_INDEX) {
+        args->push(arg.index == GLUE_INDEX 
+                    ? arg.term 
+                    : TermList::var(introGlueVar(arg).var));
+      } else {
+        if (arg.index == *index) {
+          args->push(arg.term);
+        } else {
+          // two different indices present
+          for (auto i : range(0, args->size())) {
+            (*args)[i] = TermList::var(introGlueVar(TermSpec((*args)[i], *index)).var);
+          }
+          index = some(GLUE_INDEX);
+          args->push(TermList::var(introGlueVar(arg).var));
+        }
+      }
+    }
+    return TermSpec(TermList(Term::create(functor, args->size(), args->begin())), index.unwrapOr(0));
   }
 
   void reset()
