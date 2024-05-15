@@ -13,6 +13,7 @@
  *
  */
 
+#include "Debug/Output.hpp"
 #include "Debug/Assertion.hpp"
 #include "Lib/Backtrackable.hpp"
 #include "Lib/Coproduct.hpp"
@@ -39,11 +40,11 @@
 #include "Kernel/TermIterators.hpp"
 #include "NumTraits.hpp"
 #include "Kernel/TermIterators.hpp"
-#include "Debug/Output.hpp"
 #include "Debug/Tracer.hpp"
 #define DEBUG(...) // DBG(__VA_ARGS__)
 #define DEBUG_FINALIZE(LVL, ...) if (LVL < 0) DBG(__VA_ARGS__)
 #define DEBUG_UNIFY(LVL, ...) if (LVL < 0) DBG(__VA_ARGS__)
+
 
 namespace Kernel
 {
@@ -379,7 +380,7 @@ TermSpec norm(TermSpec outer, AbstractingUnifier& au) {
     };
     auto cTerm = [&](auto... args) { return au.subs().createTerm(args...); };
     auto numResult = forAnyNumTraits([&](auto n){
-        return someIf(s == TermSpec(n.sort(), 0), [&](){
+        return someIf(s.term == n.sort(), [&](){
             using Numeral = typename decltype(n)::ConstantType;
             Recycled<Stack<std::pair<TermSpec, Numeral>>> sum;
             iterAtoms(t, au, n, [&](auto& term, auto num) {
@@ -493,14 +494,14 @@ Option<AbstractionOracle::AbstractionResult> lpar(AbstractingUnifier& au, TermSp
 
   if (i1 || i2) {
     using Mode = Options::UnificationWithAbstraction;
+    auto sort = i1 ? t1.sort() : t2.sort();
     if (uwa == Mode::LPAR_ONE_INTERP) {
       return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf()
-          .constr(UnificationConstraint(t1, t2, i1 ? t1.sort() : t2.sort()))));
+          .constr(UnificationConstraint(t1, t2, sort))));
     }
 
-    TermList sort = (i1 ? t1.sort() : t2.sort()).term;
     auto res = forAnyNumTraits([&](auto n) {
-        return someIf(sort == n.sort(), [&]() { 
+        return someIf(sort.term == n.sort(), [&]() { 
             return lpar(au, t1, t2, n, uwa); 
         });
     });
@@ -907,7 +908,7 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
 {
   TIME_TRACE("unification with abstraction")
   ASS_NEQ(_uwa._mode, Shell::Options::UnificationWithAbstraction::OFF) 
-  DEBUG_UNIFY(1, *this, ".unify(", t1, ",", t2, ")")
+  DEBUG_UNIFY(0, *this, ".unify(", t1, ",", t2, ")")
   progress = false;
 
   if(t1 == t2) {
@@ -927,10 +928,10 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
     Option<AbstractionOracle::AbstractionResult> absRes;
     auto doAbstract = [&](auto& l, auto& r) -> bool
     { 
-      if (absRes.isSome()) DEBUG_UNIFY(2, "uwa: ", absRes)
+      if (absRes.isSome()) DEBUG_UNIFY(1, "uwa: ", absRes)
       absRes = _uwa.tryAbstract(this, l, r);
       if (absRes) {
-        DEBUG_UNIFY(2, "abstraction result: ", absRes)
+        DEBUG_UNIFY(1, "abstraction result: ", absRes)
       }
       return absRes.isSome();
     };
@@ -974,16 +975,18 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
       auto cur = toDo->pop();
       auto& dt1 = subs().derefBound(cur.first);
       auto& dt2 = subs().derefBound(cur.second);
-      DEBUG_UNIFY(2, "popped: ", dt1, " = ", dt2)
+      DEBUG_UNIFY(1, "popped: ", dt1, " = ", dt2)
       if (dt1.deepEqCheck(dt2)) {
         progress = true;
 
       } else if(dt1.isVar() && !occurs(dt1, dt2)) {
         progress = true;
+        DEBUG_UNIFY(2, "binding: ", dt1, " -> ", dt2)
         subs().bind(dt1.varSpec(), dt2);
 
       } else if(dt2.isVar() && !occurs(dt2, dt1)) {
         progress = true;
+        DEBUG_UNIFY(2, "binding: ", dt2, " -> ", dt1)
         subs().bind(dt2.varSpec(), dt1);
 
       } else if(doAbstract(dt1, dt2)) {
@@ -1010,9 +1013,11 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
             auto pair = std::make_pair(x.lhs(), x.rhs());
             ASS_NEQ(pair, cur)
             pushTodo(pair);
+            DEBUG_UNIFY(2, "uwa adding unify : ", pair)
           }
           for (auto& x: conditions.constr()) {
             _constr->add(std::move(x), bd());
+            DEBUG_UNIFY(2, "uwa adding constr: ", x)
           }
         }
         absRes.take();
@@ -1045,7 +1050,7 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
     localBD.drop();
   }
 
-  DEBUG_UNIFY(1, *this, " (", success ? "success" : "fail", ")")
+  DEBUG_UNIFY(0, *this, " (", success ? "success" : "fail", ")")
   return success;
 }
 
