@@ -125,7 +125,7 @@ public:
   static Ordering* create(Problem& prb, const Options& opt);
 
   static bool trySetGlobalOrdering(OrderingSP ordering);
-  static bool resetGlobalOrdering();
+  static void resetGlobalOrdering();
   static Ordering* tryGetGlobalOrdering();
 
   Result getEqualityArgumentOrder(Literal* eq) const;

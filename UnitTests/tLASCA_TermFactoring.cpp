@@ -348,19 +348,6 @@ TEST_GENERATION(bug_01,
 
 
 
-// TEST_GENERATION(bug_02,
-//     Generation::SymmetricTest()
-//   // 0.0 != ((-23.0 * X24) + (lG113($product(-23.0,X22),X24) + (-(lG113($product(-23.0,X21),X22)) + lG113(X23,X21)))) | 0.0 = X23
-//       .inputs  ({          clause({ -23 * x0 + g(-23 * x1,x0) + -g(-23 * x2, x1) + g(x3, x2) > 0 })    })
-//       // ({x1 -> x0}, -23 * x0 != -23 * x2) = uwa( ^^^^^^^^^^^^^^ ,  ^^^^^^^^^^^^^^ ) (1)
-//       // ({x3 -> -23 * x1, x2 -> x1}, {})   =                   uwa( ^^^^^^^^^^^^^^ ,  ^^^^^^^^^) (2)
-//       // ({x3 -> -23 * x1, x2 -> x0}, {})   = uwa( ^^^^^^^^^^^^^^ ,                    ^^^^^^^^^) (3)
-//       .expected(exactly(  
-//      /* (1) */            clause({ -23 * x0                                     + g(x3, x2) > 0, -23 * x0 != -23 * x2 })   
-//      /* (2) */          , clause({ -23 * x0 + g(-23 * x1,x0)                                > 0 })    
-//      /* (3) */          , clause({ -23 * x0 + 2* g(-23 * x1,x0) + -g(-23 * x0, x1)          > 0 })
-//           )) //     )
-
 
 TEST_GENERATION(bug_02b,
     Generation::SymmetricTest()
@@ -372,13 +359,22 @@ TEST_GENERATION(bug_02b,
           )))
 
 
-TEST_GENERATION(bug_02,
+TEST_GENERATION(bug_02_one_interp,
     Generation::SymmetricTest()
+      .rule(new TermFactoring(testTermFactoring(Shell::Options::UnificationWithAbstraction::LPAR_ONE_INTERP)))
   // 0.0 != ((-23.0 * X24) + (lG113($product(-23.0,X22),X24) + (-(lG113($product(-23.0,X21),X22)) + lG113(X23,X21)))) | 0.0 = X23
       .inputs  ({    clause({ selected( -23 * x0 + g(-23 * x1,x0) + -g(-23 * x2, x1) > 0 ) })    })
       // ({x1 -> x0}, -23 * x0 != -23 * x2) = uwa( ^^^^^^^^^^^^^^ ,  ^^^^^^^^^^^^^^ ) 
       .expected(exactly(  
                                clause({ -23 * x0 +         0 * g(-23 * x0, x0)       > 0, -23 * x0 != -23 * x1 })   
+          )))
+
+TEST_GENERATION(bug_02,
+    Generation::SymmetricTest()
+      .inputs  ({    clause({ selected( -23 * x0 + g(-23 * x1,x0) + -g(-23 * x2, x1) > 0 ) })    })
+      // ({x1 -> x0}, -23 * x0 != -23 * x2) = uwa( ^^^^^^^^^^^^^^ ,  ^^^^^^^^^^^^^^ ) 
+      .expected(exactly(  
+                               clause({ -23 * x0 +         0 * g(-23 * x0, x0)       > 0 })   
           )))
 
 TEST_GENERATION(non_linear_tryout01,
@@ -394,10 +390,16 @@ TEST_GENERATION(non_linear_tryout01,
   //  clause({ -23 * x0 > 0, -23 * x0 != -23 * x1 })
 
 
+TEST_GENERATION(tricky_uwa_01_one_interp,
+    Generation::SymmetricTest()
+    .rule(move_to_heap(testTermFactoring(Shell::Options::UnificationWithAbstraction::LPAR_ONE_INTERP)))
+      .inputs  ({    clause({     f(x) + f(f(x) + y) > 0  })    })
+      .expected(exactly( clause({ 2 * f(x) > 0, f(x) + y != x }) )))
+
 TEST_GENERATION(tricky_uwa_01,
     Generation::SymmetricTest()
       .inputs  ({    clause({     f(x) + f(f(x) + y) > 0  })    })
-      .expected(exactly( clause({ 2 * f(x) > 0, f(x) + y != x }) )))
+      .expected(exactly( clause({ 2 * f(x) > 0 }) )))
 
 TEST_GENERATION(tricky_uwa_02,
     Generation::SymmetricTest()

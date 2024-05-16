@@ -65,7 +65,7 @@ Ordering::~Ordering()
 {
 }
 
-bool Ordering::resetGlobalOrdering()
+void Ordering::resetGlobalOrdering()
 {
   ASS(s_globalOrdering)
   s_globalOrdering = OrderingSP();
