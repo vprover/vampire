@@ -132,7 +132,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Int.cpp
     Lib/IntNameTable.cpp
     Lib/IntUnionFind.cpp
-    Lib/MemoryLeak.cpp
     Lib/NameArray.cpp
     Lib/Random.cpp
     Lib/StringUtils.cpp
@@ -165,7 +164,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/List.hpp
     Lib/Map.hpp
     Lib/MaybeBool.hpp
-    Lib/MemoryLeak.hpp
     Lib/Metaiterators.hpp
     Lib/MultiCounter.hpp
     Lib/NameArray.hpp

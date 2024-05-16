@@ -62,10 +62,6 @@
 
 #include "FMB/ModelCheck.hpp"
 
-#if CHECK_LEAKS
-#include "Lib/MemoryLeak.hpp"
-#endif
-
 using namespace std;
 
 /**
@@ -816,32 +812,20 @@ int main(int argc, char* argv[])
   catch (UserErrorException& exception) {
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
-#if CHECK_LEAKS
-    MemoryLeak::cancelReport();
-#endif
     explainException(exception);
   }
 catch (Parse::TPTP::ParseErrorException& exception) {
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
-#if CHECK_LEAKS
-    MemoryLeak::cancelReport();
-#endif
     explainException(exception);
   }
   catch (Exception& exception) {
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
-#if CHECK_LEAKS
-    MemoryLeak::cancelReport();
-#endif
     explainException(exception);
   } catch (std::bad_alloc& _) {
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
-#if CHECK_LEAKS
-    MemoryLeak::cancelReport();
-#endif
     std::cout << "Insufficient system memory" << '\n';
   }
 
