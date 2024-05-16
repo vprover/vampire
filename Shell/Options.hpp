@@ -2094,6 +2094,7 @@ public:
   bool backwardSubsumptionDemodulation() const { return _backwardSubsumptionDemodulation.actualValue; }
   unsigned backwardSubsumptionDemodulationMaxMatches() const { return _backwardSubsumptionDemodulationMaxMatches.actualValue; }
   bool forwardSubsumption() const { return _forwardSubsumption.actualValue; }
+  bool forwardIbUSubsumption() const { return _forwardIbUSubsumption.actualValue; }
   bool forwardLiteralRewriting() const { return _forwardLiteralRewriting.actualValue; }
   int lrsFirstTimeCheck() const { return _lrsFirstTimeCheck.actualValue; }
   int lrsWeightLimitOnly() const { return _lrsWeightLimitOnly.actualValue; }
@@ -2485,6 +2486,7 @@ private:
   BoolOptionValue _forwardSubsumption;
   BoolOptionValue _forwardSubsumptionResolution;
   BoolOptionValue _forwardSubsumptionDemodulation;
+  BoolOptionValue _forwardIbUSubsumption;
   UnsignedOptionValue _forwardSubsumptionDemodulationMaxMatches;
   ChoiceOptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
   UnsignedOptionValue _functionDefinitionIntroduction;

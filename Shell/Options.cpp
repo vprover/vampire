@@ -1668,8 +1668,12 @@ void Options::init()
     _lookup.insert(&_forwardSubsumptionResolution);
     _forwardSubsumptionResolution.tag(OptionTag::INFERENCES);
     _forwardSubsumptionResolution.addHardConstraint(If(equal(true)).then(_forwardSubsumption.is(equal(true))));
-
     _forwardSubsumptionResolution.onlyUsefulWith(ProperSaturationAlgorithm());
+
+    _forwardIbUSubsumption = BoolOptionValue("forward_identity_based_unit_subsumption","fibus",false);
+    _forwardIbUSubsumption.description="Perform cheap forward subsumption (resolution) for unit clauses based on term-idendity hash-table lookup.";
+    _lookup.insert(&_forwardIbUSubsumption);
+    _forwardIbUSubsumption.tag(OptionTag::INFERENCES);
 
     _forwardSubsumptionDemodulation = BoolOptionValue("forward_subsumption_demodulation", "fsd", false);
     _forwardSubsumptionDemodulation.description = "Perform forward subsumption demodulation.";
