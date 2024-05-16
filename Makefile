@@ -165,7 +165,6 @@ VL_OBJ= Lib/Allocator.o\
         Lib/Int.o\
         Lib/IntNameTable.o\
         Lib/IntUnionFind.o\
-        Lib/MemoryLeak.o\
         Lib/NameArray.o\
         Lib/Random.o\
         Lib/StringUtils.o\

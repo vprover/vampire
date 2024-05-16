@@ -73,13 +73,11 @@ Environment::~Environment()
 {
   Timer::setLimitEnforcement(false);
 
-// #if CHECK_LEAKS
   delete sharing;
   delete signature;
   delete statistics;
   if (predicateSineLevels) delete predicateSineLevels;
   delete options;
-// #endif
 }
 
 /**
