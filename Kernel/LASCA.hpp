@@ -976,13 +976,12 @@ namespace Kernel {
         .filterMap([](auto x) -> Option<Out>
                    { return x.match(
                        [](SelectedSummand& x) {
-                       return Option<Out>();
-                          // return x.isInequality() ? Option<Out>()
-                          //     : x.numTraits().template is<IntTraits>() ? Option<Out>(Out(SelectedIntegerEquality(std::move(x))))
-                          //     : Option<Out>(Out(std::move(x)));
-                          // return x.isInequality() ? Option<Out>()
-                          //     : x.numTraits().template is<IntTraits>() ? Option<Out>(Out(SelectedIntegerEquality(std::move(x))))
-                          //     : Option<Out>(Out(std::move(x)));
+                          return x.isInequality() ? Option<Out>()
+                              : x.numTraits().template is<IntTraits>() ? Option<Out>(Out(SelectedIntegerEquality(std::move(x))))
+                              : Option<Out>(Out(std::move(x)));
+                       //    return x.isInequality() ? Option<Out>()
+                       //        : x.numTraits().template is<IntTraits>() ? Option<Out>(Out(SelectedIntegerEquality(std::move(x))))
+                       //        : Option<Out>(Out(std::move(x)));
                        },
 
                        [](SelectedUninterpretedEquality& x) 
