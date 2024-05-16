@@ -2345,18 +2345,18 @@ void TPTP::endLetTypes()
   unsigned arity = type->arity();
   bool isPredicate = type->isPredicateType();
 
-  unsigned symbol = isPredicate
+  unsigned functor = isPredicate
                   ? env.signature->addFreshPredicate(arity, name.c_str())
                   : env.signature->addFreshFunction(arity,  name.c_str());
+  Signature::Symbol *symbol = isPredicate
+    ? env.signature->getPredicate(functor)
+    : env.signature->getFunction(functor);
 
-  if (isPredicate) {
-    env.signature->getPredicate(symbol)->setType(type);
-  } else {
-    env.signature->getFunction(symbol)->setType(type);
-  }
+  symbol->setType(type);
+  symbol->markLetBound();
 
   LetSymbolName symbolName(name, arity);
-  LetSymbolReference symbolReference(symbol, isPredicate);
+  LetSymbolReference symbolReference(functor, isPredicate);
 
   LetSymbols scope = _letTypedSymbols.pop();
 
