@@ -1191,7 +1191,7 @@ TermList AtomicSort::arraySort(TermList indexSort, TermList innerSort)
 }
 
 TermList AtomicSort::tupleSort(unsigned arity, TermList* sorts)
-{ return TermList(Term::create(env.signature->getTupleConstructor(arity), arity, sorts)); }
+{ return TermList(AtomicSort::create(env.signature->getTupleConstructor(arity), arity, sorts)); }
 
 unsigned Term::computeDistinctVars() const
 {
