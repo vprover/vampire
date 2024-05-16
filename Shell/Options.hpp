@@ -2224,6 +2224,8 @@ public:
   bool inductionStrengthenHypothesis() const { return _inductionStrengthenHypothesis.actualValue; }
   unsigned maxInductionGenSubsetSize() const { return _maxInductionGenSubsetSize.actualValue; }
   bool inductionOnComplexTerms() const {return _inductionOnComplexTerms.actualValue;}
+  bool inductionOnlyGround() const {return _inductionOnlyGround.actualValue;}
+  bool inductionNonstandardBase() const {return _inductionNonstandardBase.actualValue;}
   bool integerInductionDefaultBound() const { return _integerInductionDefaultBound.actualValue; }
   IntegerInductionInterval integerInductionInterval() const { return _integerInductionInterval.actualValue; }
   IntegerInductionLiteralStrictness integerInductionStrictnessEq() const {return _integerInductionStrictnessEq.actualValue; }
@@ -2515,6 +2517,8 @@ private:
   BoolOptionValue _inductionStrengthenHypothesis;
   UnsignedOptionValue _maxInductionGenSubsetSize;
   BoolOptionValue _inductionOnComplexTerms;
+  BoolOptionValue _inductionOnlyGround;
+  BoolOptionValue _inductionNonstandardBase;
   BoolOptionValue _integerInductionDefaultBound;
   ChoiceOptionValue<IntegerInductionInterval> _integerInductionInterval;
   ChoiceOptionValue<IntegerInductionLiteralStrictness> _integerInductionStrictnessEq;

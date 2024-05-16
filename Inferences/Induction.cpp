@@ -275,7 +275,7 @@ void InductionClauseIterator::processClause(Clause* premise)
     for (unsigned i=0;i<premise->length();i++) {
       Literal* lit = (*premise)[i];
       if (!lit->isAnswerLiteral()) {
-        processLiteral(premise,(*premise)[i]);
+        processLiteral(premise, lit);
       }
     }
   }
@@ -531,15 +531,20 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         resolveClauses(kv.first, ctx, kv.second);
       }
     }
-  } else if (lit->getDistinctVars() == 1) { // TODO(hzzv): only when switched on
+  } else if (((env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) || !env.options->inductionOnlyGround()) &&
+             (lit->getDistinctVars() == 1)) {
+    // TODO: can we generalize induction with a free variable to multiple free variables?
     NonVariableNonTypeIterator nvi(lit);
     while (nvi.hasNext()) {
       auto st = nvi.next();
       if (env.signature->getFunction(st->functor())->skolem()) {
         InductionContext ctx(st, lit, premise);
-        performStructInductionSynth(ctx); // clauses get resolved in the function
-        ctx._standardBase = false;
+        // Generate induction axioms, clausify and resolve them
         performStructInductionSynth(ctx);
+        if (env.options->inductionNonstandardBase()) {
+          ctx._standardBase = false;
+          performStructInductionSynth(ctx);
+        }
       }
     }
   }
@@ -602,11 +607,11 @@ void InductionClauseIterator::processIntegerComparison(Clause* premise, Literal*
   }
 }
 
-ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context)
+ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context, DHSet<Binding>* bindings)
 {
   NewCNF cnf(0);
   cnf.setForInduction();
-  Stack<Clause*> hyp_clauses;
+  ClauseStack hyp_clauses;
   Inference inf = NonspecificInference0(UnitInputType::AXIOM,rule);
   unsigned maxInductionDepth = 0;
   for (const auto& kv : context._cls) {
@@ -619,8 +624,9 @@ ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, Inferen
     env.out() << "[Induction] formula " << fu->toString() << endl;
     env.endOutput();
   }
-  cnf.clausify(NNF::ennf(fu), hyp_clauses);
+  cnf.clausify(NNF::ennf(fu), hyp_clauses, bindings);
 
+  // TODO: add separate stats for induction with an existentially quantified variable
   switch (rule) {
     case InferenceRule::STRUCT_INDUCTION_AXIOM:
       env.statistics->structInduction++;
@@ -667,130 +673,42 @@ ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, Inferen
 }
 
 
-ClauseStack InductionClauseIterator::produceClausesSynth(Formula* hypothesis, InferenceRule rule, const InductionContext& context, DHSet<Binding>& bindings) {
-  NewCNF cnf(0);
-  cnf.setForInduction();
-  Stack<Clause*> hyp_clauses;
-  Inference inf = NonspecificInference0(UnitInputType::AXIOM,rule);
-  unsigned maxInductionDepth = 0;
-  for (const auto& kv : context._cls) {
-    maxInductionDepth = max(maxInductionDepth,kv.first->inference().inductionDepth());
-  }
-  inf.setInductionDepth(maxInductionDepth+1);
-  FormulaUnit* fu = new FormulaUnit(hypothesis,inf);
-  if(_opt.showInduction()){
-    env.beginOutput();
-    env.out() << "[Induction] formula " << fu->toString() << endl;
-    env.endOutput();
-  }
-  cnf.clausify(NNF::ennf(fu), hyp_clauses, &bindings); // Skolemization happens here (using new CNF)
-
-  // Hyperresolution 
+ClauseStack InductionClauseIterator::resolveClausesSynth(ClauseStack& hyp_clauses, const InductionContext& context, Literal* conclusionLit) {
   Literal* indLit = context.getInductionLiteral();
   Clause* premise = context.getPremise();
+  VList* vars = indLit->freeVariables();
+  ASS(VList::length(vars) == 1);
+  unsigned freeVar = vars->head();
+  TermList v(freeVar, false);
 
-  Stack<Clause*>::Iterator cit(hyp_clauses);
-  Stack<Clause*> resolved_clauses;
+  ClauseStack::Iterator cit(hyp_clauses);
+  ClauseStack resolved_clauses;
 
-  //#if VDEBUG
-  //  cout << "induction premise is " << premise->toString() << endl;
-  //  cout << "induction literal is " << indLit->toString() << endl;
-  //#endif
-  SynthesisManager* synthMan = SynthesisManager::getInstance();
   while(cit.hasNext()){
     Clause* c = cit.next();
-    unsigned cLen = c->length();
-    // The literal which contains a rec(.) term should be picked for resolution
-    int resLitIdx = -1;
-    for (unsigned i = 0; i < cLen; ++i) {
-      if (synthMan->hasRecTerm((*c)[i])) {
-        resLitIdx = i;
-        break;
-      }
-    }
-    if (resLitIdx == -1){ //ToDo: check why not finding correct literal in cut-off subtract. This if should not be needed when getResolventLiteralIdx is debugged.
-      resLitIdx = cLen - 1;
-      std::cout << "clause to resolve is " << c->toString() << std::endl;
-      // USER_ERROR("No literal with rec(.) term found in the clause to resolve");
-    }
-    Literal* resLit = (*c)[resLitIdx]; 
-
-    VList* vars = indLit->freeVariables();
-    ASS(VList::length(vars) == 1);
-    unsigned freeVar = vars->head();
-    TermList v(freeVar, false);
+    ASS(c->contains(conclusionLit));
     RobSubstitution subst;
-    bool resolved = false;
-    SubstIterator sit = subst.unifiers(indLit, 0, resLit, 1, /*complementary=*/true);
-    while (!resolved && sit.hasNext()) {
-      sit.next();
-      TermList t = subst.apply(v, 0);
-      if (t.isTerm() && synthMan->isRecTerm(t.term())) {
-        Stack<Literal*> lits;
-        for (unsigned i = 0; i < cLen; i++) { // Apply resolution on rest of the literals
-          if (i != (unsigned)resLitIdx) {
-            lits.push(subst.apply((*c)[i], 1));
-          }
-        }
-        for (unsigned i = 0; i < premise->length(); i++) {
-          Literal* lit = (*premise)[i];
-          if (lit != indLit) {
-            lits.push(subst.apply(lit, 0));
-          }
-        }
-        Clause* resolvent = Clause::fromStack(lits, GeneratingInference2(InferenceRule::RESOLUTION, c, context.getPremise()));
-        resolved_clauses.push(resolvent);
-        resolved = true;
+    SubstIterator sit = subst.unifiers(indLit, 0, conclusionLit, 1, /*complementary=*/true);
+    ALWAYS(sit.hasNext());
+    sit.next();
+    TermList t = subst.apply(v, 0);
+    ASS(t.isTerm());
+    ASS(((env.options->questionAnswering() != Options::QuestionAnsweringMode::SYNTHESIS) || SynthesisManager::getInstance()->isRecTerm(t.term())));
+    Stack<Literal*> lits;
+    for (unsigned i = 0; i < c->length(); i++) {
+      if ((*c)[i] != conclusionLit) {
+        lits.push(subst.apply((*c)[i], 1));
       }
     }
-    if (!resolved) {
-      #if VDEBUG
-        cout << "could not unify " << indLit->toString() << " and " << resLit->toString() << endl;
-      #endif
+    for (unsigned i = 0; i < premise->length(); i++) {
+      Literal* lit = (*premise)[i];
+      if (lit != indLit) {
+        lits.push(subst.apply(lit, 0));
+      }
     }
-  }
-
-
-  switch (rule) {
-    case InferenceRule::STRUCT_INDUCTION_AXIOM:
-      env.statistics->structInduction++;
-      break;
-    case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
-    case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
-      env.statistics->intInfInduction++;
-      break;
-    case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
-    case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
-      env.statistics->intFinInduction++;
-      break;
-    case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
-    case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
-      env.statistics->intDBInduction++;
-      break;
-    default:
-      ;
-  }
-  switch (rule) {
-    case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
-      env.statistics->intInfUpInduction++;
-      break;
-    case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
-      env.statistics->intInfDownInduction++;
-      break;
-    case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
-      env.statistics->intFinUpInduction++;
-      break;
-    case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
-      env.statistics->intFinDownInduction++;
-      break;
-    case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
-      env.statistics->intDBUpInduction++;
-      break;
-    case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
-      env.statistics->intDBDownInduction++;
-      break;
-    default:
-      ;
+    Clause* resolvent = Clause::fromStack(lits, GeneratingInference2(InferenceRule::RESOLUTION, c, context.getPremise()));
+    resolved_clauses.push(resolvent);
+    ASS(!sit.hasNext());
   }
 
   return resolved_clauses;
@@ -840,7 +758,7 @@ void InductionClauseIterator::resolveClauses(InductionContext context, Induction
  * in the resulting clause. We find this partition and return it in form
  * of a union find structure.
  */
-IntUnionFind findDistributedVariants(const Stack<Clause*>& clauses, Substitution& subst, const InductionContext& context)
+IntUnionFind findDistributedVariants(const ClauseStack& clauses, Substitution& subst, const InductionContext& context)
 {
   const auto& toResolve = context._cls;
   IntUnionFind uf(clauses.size());
@@ -917,7 +835,7 @@ IntUnionFind findDistributedVariants(const Stack<Clause*>& clauses, Substitution
  *               it is stored separately so that we don't have to apply
  *               substitutions expensively in all cases.
  */
-Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause*>& cls, IntUnionFind::ElementIterator eIt, Substitution& subst, bool generalized, bool applySubst)
+Clause* resolveClausesHelper(const InductionContext& context, const ClauseStack& cls, IntUnionFind::ElementIterator eIt, Substitution& subst, bool generalized, bool applySubst)
 {
   // first create the clause with the required size
   ASS(eIt.hasNext());
@@ -1389,7 +1307,21 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
 }
 
 /*
-Creates the structural induction axiom for synthesis of recursive programs.
+Creates the structural induction axiom with an existentially quantified variable,
+possibly for synthesis of recursive programs.
+
+When synthesis is on, the axiom is:
+
+?y,w. !u0,us,z. (L[0, u0] & (L[y, w] -> L[s(y), us]) -> L[z, rec(u0, us, z)])
+
+The rec-term captures the programs for the individual cases of induction and is
+used in post-processing to construct the recursive program.
+
+When synthesis is off, and --induction_only_ground is off, we use the following axiom:
+
+?y,w. !u0,us,z. ?x. (L[0, u0] & (L[y, w] -> L[s(y), us]) -> L[z, x])
+
+In this variant the variable x is skolemized just as any other variable (not as a rec-term).
 */
 void InductionClauseIterator::performStructInductionSynth(const InductionContext& context)
 {
@@ -1416,105 +1348,51 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
 
   FormulaList* formulas = FormulaList::empty();
 
-  SynthesisManager* synthMan = SynthesisManager::getInstance();
-  unsigned var = synthMan->numInputSkolems();
-  Literal* L = Literal::complementaryLiteral(context._cls.begin()->second[0]);
+  SynthesisManager* synthMan = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) ? SynthesisManager::getInstance() : nullptr;
+  unsigned var = synthMan ? synthMan->numInputSkolems() : 0;
+  Literal* indLit = Literal::complementaryLiteral(context.getInductionLiteral());
   
-  VList* free_vars = L->freeVariables();
-
-  if (free_vars->length(free_vars) > 1) // ToDo: Do we need this?
-    return;
-
-  ASS(free_vars);
-  int synth_var = free_vars->head();
+  VList* freeVars = indLit->freeVariables();
+  ASS(freeVars->length(freeVars) == 1);
   TermList freshSynthVar(var++,false);
   Substitution s;
-  s.bind(synth_var, freshSynthVar);
-  L = SubstHelper::apply(L, s);
-
+  s.bind(freeVars->head(), freshSynthVar);
+  indLit = SubstHelper::apply(indLit, s);
 
   TermStack recFuncArgs(ta->nConstructors() + 1);
 
   VList* us = VList::empty(); 
   VList* ws = VList::empty(); 
   VList* ys = VList::empty(); 
-  VList* nse = VList::empty(); 
-  VList* nsf = VList::empty(); 
 
   unsigned recArity = ta->nConstructors() + 1;
-  //Formula* baseCond = nullptr;
-  //TermList baseVar(var++, false);
-  //TermList consVar(var++, false);
-  //if (!context._standardBase) {
-  //  unsigned numBase = 0;
-  //  for (unsigned i = 0; i < ta->nConstructors(); i++) {
-  //    if (!ta->constructor(i)->recursive()) {
-  //      ++numBase;
-  //    }
-  //  }
-  //  unsigned numDisjunctions = 0;
-  //  Literal* condLit = Literal::createEquality(/*polarity=*/true, baseVar, consVar, sort);
-  //  FormulaList* conds = FormulaList::empty();
-  //  VList* as = VList::empty();
-  //  for (unsigned i = 0; i < ta->nConstructors(); i++) {
-  //    TermAlgebraConstructor* con = ta->constructor(i);
-  //    TermStack argTerms(con->arity());
-  //    unsigned numRecArgs = 0;
-  //    for (unsigned j = 0; i < con->arity(); ++j) {
-  //      if (!con->recursive()) {
-  //        TermList a(var++, false);
-  //        argTerms.push(a);
-  //        VList::push(a.var(), as);
-  //      } else {
-  //        if (con->argSort(j) == con->rangeSort()) {
-  //          ++numRecArgs;
-  //        }
-  //      }
-  //    }
-  //    numDisjunctions += numRecArgs * (numBase + 1); // TOOD: how many?
-  //    TermList conTerm(Term::create(con->functor(), (unsigned)argTerms.size(), argTerms.begin()));
-  //    s.reset();
-  //    s.bind(consVar.var(), conTerm);
-  //    FormulaList::push(new AtomicFormula(SubstHelper::apply(condLit, s)), conds);
-  //  }
-  //  baseCond = new QuantifiedFormula(Connective::EXISTS, as, SList::empty(), new JunctionFormula(Connective::OR, conds));
-  //}
-
-  unsigned rec_fn = env.signature->addFreshFunction(recArity, "rec");
-  synthMan->registerRecSymbol(rec_fn);
-  TermAlgebraConstructor* nsBaseCon = nullptr;
+  unsigned recFn = synthMan ? env.signature->addFreshFunction(recArity, "rec") : 0;
+  if (synthMan) {
+    synthMan->registerRecSymbol(recFn);
+  }
+  // Constructors for the non-standard base case options
+  TermAlgebraConstructor* recCon = nullptr;
+  Term* nonRecBase = nullptr;
+  TermList nsbVar(var++, false);
+  if (!context._standardBase) {
+    if (ta->nConstructors() != 2) {
+      // Unsupported datatype.
+      return;
+    }
+    recCon = ta->constructor(ta->constructor(0)->recursive() ? 0 : 1);
+    TermAlgebraConstructor* nonRecCon = ta->constructor(ta->constructor(0)->recursive() ? 1 : 0);
+    if (nonRecCon->arity() > 0) {
+      // Unsupported datatype.
+      return;
+    }
+    nonRecBase = Term::createConstant(nonRecCon->functor());
+  }
   List<TermList>* fnHeads = List<TermList>::empty();
   for (unsigned i = 0; i < ta->nConstructors(); i++){
     TermAlgebraConstructor* con = ta->constructor(i);
-    TermAlgebraConstructor* nsOtherCon = nullptr;
-    TermList nsConVar(var++, false);
-    Term* nsOtherConTerm = nullptr;
-    if (!context._standardBase) {
-      ASS(ta->nConstructors() == 2);
-      nsOtherCon = ta->constructor(1-i);
-      TermStack argTerms(nsOtherCon->arity()); // y_1, ..., y_arity
-      unsigned recArgs = 0;
-      for (unsigned j = 0; j < nsOtherCon->arity(); j++) {
-        if (nsOtherCon->argSort(j) == nsOtherCon->rangeSort()) {
-          argTerms.push(nsConVar);
-          ++recArgs;
-        } else {
-          TermList y(var++, false);
-          argTerms.push(y);
-          VList::push(y.var(), (nsOtherCon->recursive() ? nse : nsf));
-        }
-      }
-      ASS(recArgs <= 1);
-      nsOtherConTerm = Term::create(nsOtherCon->functor(), (unsigned)argTerms.size(), argTerms.begin());
-      if (!con->recursive()) {
-        ASS(nsBaseCon == nullptr);
-        nsBaseCon = con;
-      }
-    }
     unsigned arity = con->arity();
     
-    TermStack argTerms(arity); // y_1, ..., y_arity
-    TermStack recTerms(arity); // y_j where j ∈ P_c 
+    TermStack argTerms(arity); // Arguments of the step case antecedent: y_1, ..., y_arity
     FormulaList* hyps = FormulaList::empty();
 
     for (unsigned j = 0; j < arity; j++){
@@ -1523,26 +1401,31 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
       VList::push(y.var(), ys);
 
       if (con->argSort(j) == con->rangeSort()){
-        recTerms.push(y);
-
         TermList w(var++, false);
         VList::push(w.var(), ws);
-        // Stores SkolemTrackers before skolemization happens. Later (after skolemization), they will be used to match Skolem symbols.
-        synthMan->addInductionVarData(rec_fn, w.var(), i, /*recCall=*/true, j);
+        if (synthMan) {
+          // Store SkolemTrackers before skolemization happens. Later (after skolemization), they will be used to match Skolem symbols.
+          synthMan->addInductionVarData(recFn, w.var(), i, /*recCall=*/true, j);
+        }
 
         TermReplacement tr(context._indTerm, y);
-        Literal* curLit = tr.transform(L);
+        Literal* curLit = tr.transform(indLit);
         s.reset();
         s.bind(freshSynthVar.var(), w);
         curLit = SubstHelper::apply(curLit, s); 
 
         if (!context._standardBase) {
-          FormulaList::push(new AtomicFormula(Literal::createEquality(/*polarity=*/false, TermList(nsOtherConTerm), y, sort)), hyps);
+          // Here con->recursive(), because y is a recursive argument.
+          // Further, the step case only needs to hold when the hypothesis is not the standard base.
+          // Hence we add an assumption that y != nonRecBase.
+          FormulaList::push(new AtomicFormula(Literal::createEquality(/*polarity=*/false, TermList(nonRecBase), y, sort)), hyps);
         }
         FormulaList::push(new AtomicFormula(curLit), hyps); // L[y_j, w_j] or L[y_j, w_j] \/ y_j = cons1 \/ ... \/ y_j = consN
       }
-      // Stores SkolemTrackers before skolemization happens. Later (after skolemization), they will be used to match Skolem symbols.
-      synthMan->addInductionVarData(rec_fn, y.var(), i, /*recCall=*/false, j);
+      if (synthMan) {
+        // Store SkolemTrackers before skolemization happens. Later (after skolemization), they will be used to match Skolem symbols.
+        synthMan->addInductionVarData(recFn, y.var(), i, /*recCall=*/false, j);
+      }
     }
     Formula* antecedent = JunctionFormula::generalJunction(Connective::AND, hyps); // /\_{j ∈ P_c}  L[y_j, w_j]
 
@@ -1550,100 +1433,104 @@ void InductionClauseIterator::performStructInductionSynth(const InductionContext
     recFuncArgs.push(u);
     VList::push(u.var(), us);
 
-    Term* tcons = Term::create(con->functor(), (unsigned)argTerms.size(), argTerms.begin());
-    if (!context._standardBase && !con->recursive()) {
-      ASS(nsOtherCon->recursive());
-      s.reset();
-      s.bind(nsConVar.var(), TermList(tcons));
-      tcons = SubstHelper::apply(nsOtherConTerm, s);
-      VList::Iterator it(nse);
-      for (unsigned vi = 0; vi < nsOtherConTerm->arity(); ++vi) {
-        TermList* tl = nsOtherConTerm->nthArgument(vi);
-        if (*tl != nsConVar) {
-          ASS(tl->isVar());
-          synthMan->addInductionVarData(rec_fn, tl->var(), i, /*recCall=*/false, vi);
+    Term* tcons;
+    if (context._standardBase || con->recursive()) {
+      tcons = Term::create(con->functor(), (unsigned)argTerms.size(), argTerms.begin());
+    } else {
+      // We construct the non-standard base case using the recursive constructor instead of the standard non-recursive one.
+      TermStack argTerms(recCon->arity());
+      unsigned recArgs = 0;
+      for (unsigned j = 0; j < recCon->arity(); j++) {
+        if (recCon->argSort(j) == recCon->rangeSort()) {
+          argTerms.push(TermList(nonRecBase));
+          recArgs++;
+        } else {
+          TermList y(var++, false);
+          argTerms.push(y);
+          VList::push(y.var(), ys);
+          if (synthMan) {
+            // Store SkolemTrackers before skolemization happens. Later (after skolemization), they will be used to match Skolem symbols.
+            synthMan->addInductionVarData(recFn, y.var(), i, /*recCall=*/false, j);
+          }
         }
       }
+      if (recArgs != 1) {
+        // Unsupported datatype.
+        return;
+      }
+      tcons = Term::create(recCon->functor(), (unsigned)argTerms.size(), argTerms.begin());
     }
     TermList cons(tcons);
     fnHeads->push(cons, fnHeads);
     TermReplacement tr(context._indTerm, cons);
-    Literal* curLit = tr.transform(L);
+    Literal* curLit = tr.transform(indLit);
     s.reset();
     s.bind(freshSynthVar.var(), u);
     curLit = SubstHelper::apply(curLit, s); 
-    Formula* succedent = new AtomicFormula(curLit); // L[cons(y_1, ..., y_n), u_i]
-    Formula* step = (VList::isEmpty(ws)) ? succedent : new BinaryFormula(Connective::IMP, antecedent, succedent); // (/\_{j ∈ P_c} L[y_j, w_j]) --> L[cons(y_1, ..., y_n), u_i]
+    Formula* consequent = new AtomicFormula(curLit); // L[cons(y_1, ..., y_n), u_i]
+    Formula* step = (VList::isEmpty(ws)) ? consequent : new BinaryFormula(Connective::IMP, antecedent, consequent); // (/\_{j ∈ P_c} L[y_j, w_j]) --> L[cons(y_1, ..., y_n), u_i]
     formulas->push(step, formulas);
   }
 
   Formula* formula = new JunctionFormula(Connective::AND, formulas);
 
-
-  // Construct conclusion: L[z, rec(u_1, ..., u_m, z)]
-
+  // Construct conclusion: either L[z, rec(u_1, ..., u_m, z)] (for synthesis) or L[z, x] (if synthesis is off)
+  if (synthMan) {
+    // First set up the rec-term. Sort of the new rec-symbol:
+    auto synthSort = SortHelper::getVariableSort(freshSynthVar, indLit);
+    TermStack sortArgs(ta->nConstructors() + 1);
+    for (unsigned i = 0; i < ta->nConstructors(); i++) {
+      sortArgs.push(synthSort);
+    }
+    sortArgs.push(sort);
+    env.signature->getFunction(recFn)->setType(OperatorType::getFunctionType(sortArgs.size(), sortArgs.begin(), synthSort));
+  }
+  // Create the rec-term:
   TermList z(var++, false);
   recFuncArgs.push(z);
-
-  auto synth_sort = SortHelper::getVariableSort(freshSynthVar, L);
-  TermStack sortArgs(ta->nConstructors() + 1);
-  for (unsigned i = 0; i < ta->nConstructors(); i++) {
-    sortArgs.push(synth_sort);
-  }
-  sortArgs.push(sort);
-
-  env.signature->getFunction(rec_fn)->setType(OperatorType::getFunctionType(sortArgs.size(), sortArgs.begin(), synth_sort));
-  TermList rec(Term::create(rec_fn, recFuncArgs.size(), recFuncArgs.begin()));
-
-  TermReplacement tr(context._indTerm, z);
-  Literal* curLit = tr.transform(L);
-
+  const unsigned xvar = var;
+  TermList rec = (synthMan ? TermList(Term::create(recFn, recFuncArgs.size(), recFuncArgs.begin())) : TermList(var++, false));
+  // Construct the conclusion:
   s.reset();
-
   s.bind(freshSynthVar.var(), rec);
-  Formula* conclusion = new AtomicFormula(SubstHelper::apply(curLit, s));
+  TermReplacement tr(context._indTerm, z);
+  Literal* conclusionLit = SubstHelper::apply(tr.transform(indLit), s);
+  Formula* conclusion = new AtomicFormula(conclusionLit);
   if (!context._standardBase) {
-    TermStack argTerms(nsBaseCon->arity()); // y_1, ..., y_arity
-    for (unsigned j = 0; j < nsBaseCon->arity(); j++) {
-      TermList y(var++, false);
-      argTerms.push(y);
-      VList::push(y.var(), nse);
-    }
-    TermList baseTerm(Term::create(nsBaseCon->functor(), (unsigned)argTerms.size(), argTerms.begin()));
     conclusion = new JunctionFormula(Connective::OR, new FormulaList(conclusion, FormulaList::singleton(
-            new AtomicFormula(Literal::createEquality(/*polarity=*/true, baseTerm, z, sort)))));
+        new AtomicFormula(Literal::createEquality(/*polarity=*/true, TermList(nonRecBase), z, sort)))));
   }
+  // Put together the whole induction axiom:
   formula = new BinaryFormula(Connective::IMP, formula, conclusion);
+  if (!synthMan) {
+    formula = new QuantifiedFormula(Connective::EXISTS, VList::singleton(xvar), SList::empty(), formula);
+  }
   formula = new QuantifiedFormula(Connective::FORALL, VList::singleton(z.var()), SList::empty(), formula);
   formula = new QuantifiedFormula(Connective::FORALL, us, SList::empty(), formula); 
-  if (VList::isNonEmpty(nsf)) {
-    formula = new QuantifiedFormula(Connective::FORALL, nsf, SList::empty(), formula); 
-  }
   formula = new QuantifiedFormula(Connective::EXISTS, ws, SList::empty(), formula);
   formula = new QuantifiedFormula(Connective::EXISTS, ys, SList::empty(), formula);
-  if (VList::isNonEmpty(nse)) {
-    formula = new QuantifiedFormula(Connective::EXISTS, nse, SList::empty(), formula);
-  }
 
-  //std::cout << "Synthesized induction formula: " << formula->toString() << std::endl;
-
+  // Clausify and resolve the induction axiom against the premise.
   DHSet<Binding> bindings;
-
-  auto cls = produceClausesSynth(formula, InferenceRule::STRUCT_INDUCTION_AXIOM, context, bindings);
-  // cls contains the hyperresoluted clauses
-
+  ClauseStack hyp_clauses = produceClauses(formula, InferenceRule::STRUCT_INDUCTION_AXIOM, context, &bindings);
   fnHeads = fnHeads->reverse(fnHeads);
-  synthMan->matchSkolemSymbols(rec_fn, bindings, fnHeads);
+  if (synthMan) {
+    synthMan->matchSkolemSymbols(recFn, bindings, fnHeads);
+  } else {
+    DHSet<Binding>::Iterator it(bindings);
+    while (it.hasNext()) {
+      Binding b = it.next();
+      if (b.first == xvar) {
+        s.reset();
+        s.bind(xvar, b.second);
+        conclusionLit = SubstHelper::apply(conclusionLit, s);
+        break;
+      }
+    }
+  }
+  ClauseStack res_clauses = resolveClausesSynth(hyp_clauses, context, conclusionLit);
   
-  //#if VDEBUG
-  //  cout << "Clauses produced by structural induction axiom: " << endl;
-  //#endif
-  for (auto cl: cls) {
-    //#if VDEBUG
-    //  cout << cl->toString() << endl;
-    //#endif
-    //cout << cl->toString() << endl;
-
+  for (auto cl : res_clauses) {
     _clauses.push(cl);
   }
 }

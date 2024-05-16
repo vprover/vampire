@@ -395,7 +395,17 @@ void URResolution::doBackwardInferences(Clause* cl, ClauseList*& acc, bool ansLi
     }
 
     Item* itm = new Item(ucl, _selectedOnly, *this, _emptyClauseOnly);
-    unsigned pos = ucl->getLiteralPosition(unif.literal);
+    unsigned pos;
+    if (!itm->_ansLit) {
+      pos = ucl->getLiteralPosition(unif.literal);
+    } else {
+      for (unsigned i = 0; i < itm->_lits.size(); ++i) {
+        if (itm->_lits[i] == unif.literal) {
+          pos = i;
+          break;
+        }
+      }
+    }
     ASS(!_selectedOnly || pos<ucl->numSelected());
     swap(itm->_lits[0], itm->_lits[pos]);
     if (itm->resolveLiteral(0, unif, cl, false, ansLitIte)) {

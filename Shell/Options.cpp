@@ -1345,6 +1345,18 @@ void Options::init()
     _inductionOnComplexTerms.onlyUsefulWith(_induction.is(notEqual(Induction::NONE)));
     _lookup.insert(&_inductionOnComplexTerms);
 
+    _inductionOnlyGround = BoolOptionValue("induction_only_ground","indog",true);
+    _inductionOnlyGround.description = "Apply induction only on ground literals vs. literals with at most one free variable";
+    _inductionOnlyGround.tag(OptionTag::INDUCTION);
+    _inductionOnlyGround.onlyUsefulWith(Or(_induction.is(equal(Induction::STRUCTURAL)),_induction.is(equal(Induction::BOTH))));
+    _lookup.insert(&_inductionOnlyGround);
+
+    _inductionNonstandardBase = BoolOptionValue("induction_nonstandard_base","indnsb",false);
+    _inductionNonstandardBase.description = "Use successor(0) and cons(x, nil) as base cases for natural numbers and lists";
+    _inductionNonstandardBase.tag(OptionTag::INDUCTION);
+    _inductionNonstandardBase.onlyUsefulWith(And(Or(_induction.is(equal(Induction::STRUCTURAL)),_induction.is(equal(Induction::BOTH))),_inductionOnlyGround.is(equal(true))));
+    _lookup.insert(&_inductionNonstandardBase);
+
     _integerInductionDefaultBound = BoolOptionValue("int_induction_default_bound","intinddb",false);
     _integerInductionDefaultBound.description = "Always apply integer induction with bound 0";
     _integerInductionDefaultBound.tag(OptionTag::INDUCTION);

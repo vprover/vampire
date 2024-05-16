@@ -91,10 +91,13 @@ struct InductionContext {
     VList** varList = nullptr, Substitution* subst = nullptr) const;
 
   Clause* getPremise() const { 
+    ASS(_cls.size() == 1);
     return _cls.begin()->first;
   }
 
   Literal* getInductionLiteral() const {
+    ASS(_cls.size() == 1);
+    ASS(_cls.begin()->second.size() == 1);
     return _cls.begin()->second[0];
   }
 
@@ -219,8 +222,8 @@ private:
   void processLiteral(Clause* premise, Literal* lit);
   void processIntegerComparison(Clause* premise, Literal* lit);
 
-  ClauseStack produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context);
-  ClauseStack produceClausesSynth(Formula* hypothesis, InferenceRule rule, const InductionContext& context, DHSet<Binding>& bindingList);
+  ClauseStack produceClauses(Formula* hypothesis, InferenceRule rule, const InductionContext& context, DHSet<Binding>* bindings = nullptr);
+  ClauseStack resolveClausesSynth(ClauseStack& hyp_clauses, const InductionContext& context, Literal* conclusionLit);
   void resolveClauses(InductionContext context, InductionFormulaIndex::Entry* e, const TermQueryResult* bound1, const TermQueryResult* bound2);
   void resolveClauses(const ClauseStack& cls, const InductionContext& context, Substitution& subst, bool applySubst = false);
 
