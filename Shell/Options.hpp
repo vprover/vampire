@@ -2085,6 +2085,7 @@ public:
   Demodulation backwardDemodulation() const { return _backwardDemodulation.actualValue; }
   DemodulationRedundancyCheck demodulationRedundancyCheck() const { return _demodulationRedundancyCheck.actualValue; }
   bool demodulationPrecompiledComparison() const { return _demodulationPrecompiledComparison.actualValue; }
+  bool demodulationOnlyEquational() const { return _demodulationOnlyEquational.actualValue; }
 
   //void setBackwardDemodulation(Demodulation newVal) { _backwardDemodulation = newVal; }
   Subsumption backwardSubsumption() const { return _backwardSubsumption.actualValue; }
@@ -2447,6 +2448,7 @@ private:
 
   ChoiceOptionValue<DemodulationRedundancyCheck> _demodulationRedundancyCheck;
   BoolOptionValue _demodulationPrecompiledComparison;
+  BoolOptionValue _demodulationOnlyEquational;
 
   ChoiceOptionValue<EqualityProxy> _equalityProxy;
   BoolOptionValue _useMonoEqualityProxy;
