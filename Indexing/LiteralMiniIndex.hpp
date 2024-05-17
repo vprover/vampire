@@ -56,10 +56,9 @@ private:
   unsigned _cnt = 0;
   DArray<Entry> _entries;
 
-  // TODO: name is misleading, because "base" means something different when next to "instance"  (IteratorBase would already be better)
-  struct BaseIterator
+  struct IteratorBase
   {
-    BaseIterator(LiteralMiniIndex const& index, Literal* query, bool complementary)
+    IteratorBase(LiteralMiniIndex const& index, Literal* query, bool complementary)
     : _ready(false), _hdr(complementary?query->complementaryHeader():query->header()),
     _query(query), _compl(complementary)
     {
@@ -101,14 +100,10 @@ private:
 
 public:
 
-  /*static int goodPred;
-  static int badPred;*/
-
-
   struct InstanceIterator
-      : BaseIterator {
+      : IteratorBase {
     InstanceIterator(LiteralMiniIndex const& index, Literal* base, bool complementary)
-        : BaseIterator(index, base, complementary)
+        : IteratorBase(index, base, complementary)
     {
     }
 
@@ -143,15 +138,15 @@ public:
 
     Literal* next()
     {
-      return BaseIterator::next();
+      return IteratorBase::next();
     }
   };
 
   struct VariantIterator
-  : BaseIterator
+  : IteratorBase
   {
     VariantIterator(LiteralMiniIndex& index, Literal* query, bool complementary)
-    : BaseIterator(index, query, complementary)
+    : IteratorBase(index, query, complementary)
     {}
 
     bool hasNext()
@@ -168,7 +163,7 @@ public:
     }
     Literal* next()
     {
-      return BaseIterator::next();
+      return IteratorBase::next();
     }
   };
 };
