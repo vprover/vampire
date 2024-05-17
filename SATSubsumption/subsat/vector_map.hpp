@@ -12,6 +12,7 @@
 
 #include <cstdint>
 #include <vector>
+#include "Debug/Assertion.hpp"
 
 namespace subsat { // TODO: remove namespace once I separate out Var/Lit from subsat.hpp
 
@@ -71,14 +72,14 @@ public:
   reference operator[](key_type key)
   {
     size_type const idx = index(key);
-    assert(idx < size());
+    ASS(idx < size());
     return m_data[idx];
   }
 
   const_reference operator[](key_type key) const
   {
     size_type const idx = index(key);
-    assert(idx < size());
+    ASS(idx < size());
     return m_data[idx];
   }
 

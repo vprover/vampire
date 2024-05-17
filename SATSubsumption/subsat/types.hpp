@@ -10,7 +10,6 @@
 #ifndef TYPES_HPP
 #define TYPES_HPP
 
-#include <cassert>
 #include <cstdint>
 #include <limits>
 #include <ostream>
@@ -95,7 +94,7 @@ public:
   explicit constexpr Var(index_type index) noexcept
       : m_index{index}
   {
-    // assert(m_index <= Var::max_index());  // TODO: how to assert in constexpr constructor?
+    // ASS(m_index <= Var::max_index());  // TODO: how to assert in constexpr constructor?
   }
 
   [[nodiscard]] constexpr index_type index() const noexcept
@@ -178,7 +177,7 @@ private:
   explicit constexpr Lit(index_type index) noexcept
       : m_index{index}
   {
-    // assert(m_index <= Lit::max_index()); // TODO: how to assert in constexpr constructor?
+    // ASS(m_index <= Lit::max_index()); // TODO: how to assert in constexpr constructor?
   }
 
 public:
@@ -191,7 +190,7 @@ public:
 
   [[nodiscard]] static constexpr Lit from_index(index_type index) noexcept
   {
-    assert(index <= Lit::max_index());
+    ASS(index <= Lit::max_index());
     return Lit{index};
   }
 

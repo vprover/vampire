@@ -844,7 +844,7 @@ bool SATSubsumptionAndResolution::checkSubsumption(Clause* L,
     // the check for subsumption.
     _subsumptionImpossible = _srImpossible || pruneSubsumption();
     if (_srImpossible) {
-      assert(_subsumptionImpossible);
+      ASS(_subsumptionImpossible);
       return false;
     }
     else {

@@ -50,13 +50,13 @@ public:
 
   Lit& operator[](size_type idx) noexcept
   {
-    assert(idx < m_size);
+    ASS(idx < m_size);
     return m_literals[idx];
   }
 
   Lit const& operator[](size_type idx) const noexcept
   {
-    assert(idx < m_size);
+    ASS(idx < m_size);
     return m_literals[idx];
   }
 
@@ -208,15 +208,15 @@ private:
 
   [[nodiscard]] void* deref_plain(ConstraintRef cr) noexcept
   {
-    assert(cr.is_valid());
-    assert(cr.m_arena_id == m_arena_id);
+    ASS(cr.is_valid());
+    ASS_EQ(cr.m_arena_id, m_arena_id);
     return &m_storage[cr.m_index];
   }
 
   [[nodiscard]] void const* deref_plain(ConstraintRef cr) const noexcept
   {
-    assert(cr.is_valid());
-    assert(cr.m_arena_id == m_arena_id);
+    ASS(cr.is_valid());
+    ASS_EQ(cr.m_arena_id, m_arena_id);
     return &m_storage[cr.m_index];
   }
 
@@ -244,12 +244,12 @@ public:
   /// May throw std::bad_alloc if the arena is exhausted, or reallocating the arena fails.
   [[nodiscard]] AllocatedConstraintHandle alloc(std::uint32_t capacity)
   {
-    assert(!m_dynamic_ref.is_valid());
+    ASS(!m_dynamic_ref.is_valid());
 
     ConstraintRef cr = make_ref();
 
     std::size_t const bytes = Constraint::bytes(capacity);
-    assert(bytes % sizeof(storage_type) == 0);
+    ASS_EQ(bytes % sizeof(storage_type), 0);
     std::size_t const elements = bytes / sizeof(storage_type);
     std::size_t const new_size = m_storage.size() + elements;
     LOG_TRACE("Allocating " << elements << " elements for capacity " << capacity << " (old storage size: " << m_storage.size() << ", new: " << new_size << ")");
@@ -258,23 +258,23 @@ public:
 
     void* p = deref_plain(cr);
     Constraint* c = new (p) Constraint{0};
-    assert(c);
+    ASS(c);
     (void)c;  // suppress "unused variable" warning
     return AllocatedConstraintHandle{cr, capacity};
   }
 
   void handle_push_literal(AllocatedConstraintHandle& handle, Lit lit) noexcept
   {
-    assert(handle.m_constraint_ref.is_valid());
+    ASS(handle.m_constraint_ref.is_valid());
     Constraint& c = deref(handle.m_constraint_ref);
-    assert(c.m_size < handle.m_capacity);
+    ASS(c.m_size < handle.m_capacity);
     c.m_literals[c.m_size] = lit;
     c.m_size += 1;
   }
 
   [[nodiscard]] ConstraintRef handle_build(AllocatedConstraintHandle& handle) noexcept
   {
-    assert(handle.m_constraint_ref.is_valid());
+    ASS(handle.m_constraint_ref.is_valid());
     ConstraintRef cr = handle.m_constraint_ref;
 #ifndef NDEBUG
     handle.m_constraint_ref = ConstraintRef::invalid();
@@ -286,7 +286,7 @@ public:
   /// Only one of these can be active at a time, and alloc cannot be used while this is active.
   void start()
   {
-    assert(!m_dynamic_ref.is_valid());
+    ASS(!m_dynamic_ref.is_valid());
 
     m_dynamic_ref = make_ref();
 
@@ -300,18 +300,18 @@ public:
 
   void push_literal(Lit lit)
   {
-    assert(m_dynamic_ref.is_valid());
-    assert(lit.is_valid());
+    ASS(m_dynamic_ref.is_valid());
+    ASS(lit.is_valid());
     m_storage.push_back(lit.index());
   }
 
   [[nodiscard]] ConstraintRef end() noexcept
   {
-    assert(m_dynamic_ref.is_valid());
+    ASS(m_dynamic_ref.is_valid());
 
     std::size_t const old_size = m_dynamic_ref.m_index;
     std::size_t constexpr header_elements = Constraint::header_bytes() / sizeof(storage_type);
-    assert(m_storage.size() >= old_size + header_elements);
+    ASS(m_storage.size() >= old_size + header_elements);
     std::size_t const c_size = m_storage.size() - old_size - header_elements;
 
     ConstraintRef cr = m_dynamic_ref;
@@ -325,9 +325,9 @@ public:
   /// Delete the given constraint and all that were added afterwards!
   void unsafe_delete(ConstraintRef cr)
   {
-    assert(cr.is_valid());
-    assert(cr.m_arena_id == m_arena_id);
-    assert(!m_dynamic_ref.is_valid());
+    ASS(cr.is_valid());
+    ASS_EQ(cr.m_arena_id, m_arena_id);
+    ASS(!m_dynamic_ref.is_valid());
     m_storage.resize(cr.m_index);
   }
 
@@ -341,14 +341,14 @@ public:
 #ifndef NDEBUG
     m_arena_id += 1;
 #endif
-    assert(empty());
+    ASS(empty());
   }
 
   [[nodiscard]] bool empty() const noexcept
   {
     bool const is_empty = m_storage.empty();
     if (is_empty) {
-      assert(!m_dynamic_ref.is_valid());
+      ASS(!m_dynamic_ref.is_valid());
     }
     return is_empty;
   }

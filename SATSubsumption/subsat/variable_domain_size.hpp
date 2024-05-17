@@ -53,7 +53,8 @@ public:
   {
     bool const is_empty = m_var_groups.empty();
     if (is_empty) {
-      assert(m_domain_sizes.size() == 1 && m_domain_sizes[0] == 0);
+      ASS_EQ(m_domain_sizes.size(), 1);
+      ASS_EQ(m_domain_sizes[0], 0);
     }
     return is_empty;
   }
@@ -63,7 +64,7 @@ public:
     m_var_groups.clear();
     m_domain_sizes.clear();
     m_domain_sizes.push_back(0);  // for the invalid group
-    assert(empty());
+    ASS(empty());
   }
 
   /// Like clear but keeps the variable groups.
@@ -82,7 +83,7 @@ public:
   /// Allocate space for variables up to 'v'.
   void ensure_var(Var v)
   {
-    assert(v.is_valid());
+    ASS(v.is_valid());
     while (v.index() >= m_var_groups.size()) {
       m_var_groups.push_back(InvalidInternalGroup);
     }
@@ -92,10 +93,10 @@ public:
   /// Group indices should be contiguous starting from 0.
   void set_group(Var v, Group g)
   {
-    assert(g != InvalidGroup);
-    assert(v.is_valid());
-    assert(v.index() < m_var_groups.size());
-    assert(m_var_groups[v] == InvalidInternalGroup);  // the group should be set only once, otherwise we have to correctly de-register from previous group
+    ASS(g != InvalidGroup);
+    ASS(v.is_valid());
+    ASS(v.index() < m_var_groups.size());
+    ASS_EQ(m_var_groups[v], InvalidInternalGroup);  // the group should be set only once, otherwise we have to correctly de-register from previous group
     InternalGroup const ig = g + 1;
     // while (ig >= m_domain_sizes.size()) {
     //   m_domain_sizes.push_back(0);
@@ -120,20 +121,20 @@ public:
   // TODO: rename on_assigned?
   void assigned(Var v)
   {
-    assert(v.is_valid());
-    assert(v.index() < m_var_groups.size());
+    ASS(v.is_valid());
+    ASS(v.index() < m_var_groups.size());
     InternalGroup ig = m_var_groups[v];
-    assert(ig < m_domain_sizes.size());
+    ASS(ig < m_domain_sizes.size());
     m_domain_sizes[ig] -= 1;
     LOG_DEBUG("Assigned variable " << v << " of group " << (ig - 1) << ", domain size now is " << m_domain_sizes[ig]);
   }
 
   void unassigned(Var v)
   {
-    assert(v.is_valid());
-    assert(v.index() < m_var_groups.size());
+    ASS(v.is_valid());
+    ASS(v.index() < m_var_groups.size());
     InternalGroup ig = m_var_groups[v];
-    assert(ig < m_domain_sizes.size());
+    ASS(ig < m_domain_sizes.size());
     m_domain_sizes[ig] += 1;
     LOG_DEBUG("Unassigned variable " << v << " of group " << (ig - 1) << ", domain size now is " << m_domain_sizes[ig]);
   }
@@ -141,7 +142,7 @@ public:
   /// Select variable with the smallest non-zero domain size.
   Var select_min_domain(subsat::vector_map<Lit, Value> const& values)
   {
-    assert(check_invariants(values));
+    ASS(check_invariants(values));
     // TODO: for now, we just do a simple linear search
     //       a smarter algorithm could mark the whole group as inactive as soon as one variable from it is assigned to TRUE (the others will be immediately propagated false by the theory propagator [this is because Vampire first applies duplicate literal removal -- so there cannot be another match with compatible bindings]).
     // TODO: for now, we choose the first unassigned variable from the group. Maybe we should choose the most "recent" one (recent in the VMTF sense), or something else?
@@ -179,7 +180,7 @@ public:
           unassigned_count += 1;
         }
       }
-      assert(m_domain_sizes[ig] == unassigned_count);
+      ASS_EQ(m_domain_sizes[ig], unassigned_count);
     }
     return true;
   }

@@ -26,7 +26,6 @@
 #define SUBSAT_HPP
 
 #include <algorithm>
-#include <cassert>
 #include <cstdint>
 #include <cstdlib>
 #include <initializer_list>
@@ -113,8 +112,8 @@ static inline std::ostream& operator<<(std::ostream& os, Statistics const& stats
 #endif
   os << "\n";
 #if SUBSAT_STATISTICS >= 2
-  assert(stats.conflicts == stats.conflicts_by_clause + stats.conflicts_by_amo);
-  assert(stats.propagations == stats.propagations_by_clause + stats.propagations_by_amo + stats.propagations_by_theory);
+  ASS_EQ(stats.conflicts, stats.conflicts_by_clause + stats.conflicts_by_amo);
+  ASS_EQ(stats.propagations, stats.propagations_by_clause + stats.propagations_by_amo + stats.propagations_by_theory);
 #endif
 #endif  // SUBSAT_STATISTICS
   return os;
@@ -125,7 +124,7 @@ static inline std::ostream& operator<<(std::ostream& os, Statistics const& stats
 #define SUBSAT_STAT_ADD(NAME, VALUE)                                                \
   do {                                                                              \
     auto v = static_cast<decltype(m_stats.NAME)>(VALUE);                            \
-    assert(m_stats.NAME <= std::numeric_limits<decltype(m_stats.NAME)>::max() - v); \
+    ASS(m_stats.NAME <= std::numeric_limits<decltype(m_stats.NAME)>::max() - v); \
     m_stats.NAME += v;                                                              \
   } while (false)
 
@@ -246,14 +245,14 @@ public:
     : type{Type::Binary}
     , binary_other_lit{other}
   {
-    assert(other.is_valid());
+    ASS(other.is_valid());
   }
 
   explicit Reason(ConstraintRef cr) noexcept
     : type{Type::ClauseRef}
     , clause_ref{cr}
   {
-    assert(cr.is_valid());
+    ASS(cr.is_valid());
   }
 
   static constexpr Reason invalid() noexcept
@@ -273,13 +272,13 @@ public:
 
   Lit get_binary_other_lit() const noexcept
   {
-    assert(type == Type::Binary);
+    ASS(type == Type::Binary);
     return binary_other_lit;
   }
 
   ConstraintRef get_clause_ref() const noexcept
   {
-    assert(type == Type::ClauseRef);
+    ASS(type == Type::ClauseRef);
     return clause_ref;
   }
 };
@@ -435,7 +434,7 @@ public:
   [[nodiscard]] Var new_variable(vdom_group group = vdom::InvalidGroup)
   {
     LOG_TRACE("new_variable");
-    assert(m_state == State::Unknown);
+    ASS_EQ(m_state, State::Unknown);
     // NOTE: most initialization is done at the time of solving.
     //       new_variable and add_clause(_unsafe) should be as lightweight as possible,
     //       to keep the overhead low for (relatively common) cases where we can bail out early.
@@ -456,7 +455,7 @@ public:
   /// but does not actually enable the new variables in the solver.
   void reserve_variables(uint32_t count)
   {
-    assert(m_state == State::Unknown);
+    ASS_EQ(m_state, State::Unknown);
     m_vars.reserve(count);
     m_marks.reserve(count);
     m_values.reserve(2 * count);
@@ -512,7 +511,7 @@ public:
   bool empty() const
   {
     bool const is_empty = (m_used_vars == 0);
-    if (is_empty) { assert(checkEmpty()); }
+    if (is_empty) { ASS(checkEmpty()); }
     return is_empty;
   }
 
@@ -548,7 +547,7 @@ public:
     m_original_constraints.clear();
 
     // Don't clear m_watches itself! We want to keep the nested vectors to save re-allocations.
-    assert(m_watches.size() == m_watches_amo.size());
+    ASS_EQ(m_watches.size(), m_watches_amo.size());
     uint32_t const used_watches = std::min(2 * old_used_vars, static_cast<uint32_t>(m_watches.size()));
     for (uint32_t i = 0; i < used_watches; ++i) {
       m_watches[Lit::from_index(i)].clear();
@@ -566,7 +565,7 @@ public:
     m_stats.reset();
     m_limits.reset();
 
-    assert(checkEmpty());
+    ASS(checkEmpty());
   }
 
   /// Reset the constraint database, but keep the variables and theories.
@@ -598,7 +597,7 @@ public:
     m_original_constraints.clear();
 
     // Don't clear m_watches itself! We want to keep the nested vectors to save re-allocations.
-    assert(m_watches.size() == m_watches_amo.size());
+    ASS_EQ(m_watches.size(), m_watches_amo.size());
     uint32_t const used_watches = std::min(2 * old_used_vars, static_cast<uint32_t>(m_watches.size()));
     for (uint32_t i = 0; i < used_watches; ++i) {
       m_watches[Lit::from_index(i)].clear();
@@ -690,8 +689,8 @@ public:
   /// Add constraint by copying the given literals (convenience method)
   void add_constraint(Constraint::Kind kind, std::initializer_list<Lit> literals)
   {
-    assert(m_state == State::Unknown);
-    assert(literals.size() <= std::numeric_limits<uint32_t>::max());
+    ASS_EQ(m_state, State::Unknown);
+    ASS(literals.size() <= std::numeric_limits<uint32_t>::max());
     auto literals_size = static_cast<uint32_t>(literals.size());
     add_constraint(kind, literals.begin(), literals_size);
   }
@@ -699,7 +698,7 @@ public:
   /// Add constraint by copying the given literals (convenience method)
   void add_constraint(Constraint::Kind kind, Lit const* literals, uint32_t count)
   {
-    assert(m_state == State::Unknown);
+    ASS_EQ(m_state, State::Unknown);
     auto alloc_handle = alloc_constraint(count);
     for (Lit const* p = literals; p < literals + count; ++p) {
       handle_push_literal(alloc_handle, *p);
@@ -711,11 +710,11 @@ public:
   /// Add constraint to the solver.
   void add_constraint(Constraint::Kind kind, ConstraintHandle& handle)
   {
-    assert(m_state == State::Unknown);
+    ASS_EQ(m_state, State::Unknown);
     ConstraintRef const cr = handle.m_ref;
     Constraint const& c = m_constraints.deref(cr);
     for (Lit lit : c) {
-      assert(lit.is_valid());
+      ASS(lit.is_valid());
       while (lit.var().index() >= m_used_vars) {
         (void)new_variable();
       }
@@ -727,11 +726,11 @@ public:
   /// Precondition: all variables in the clause have already been added to the solver.
   void add_constraint_unsafe(Constraint::Kind kind, ConstraintHandle& handle)
   {
-    assert(m_state == State::Unknown);
+    ASS(m_state == State::Unknown);
     ConstraintRef const cr = handle.m_ref;
 #ifndef NDEBUG
     Constraint const& c = m_constraints.deref(cr);
-    assert(std::all_of(c.begin(), c.end(), [this](Lit lit){ return lit.var().index() < m_used_vars; }));
+    ASS(std::all_of(c.begin(), c.end(), [this](Lit lit){ return lit.var().index() < m_used_vars; }));
 #endif
     if (kind == Constraint::Kind::Clause) { SUBSAT_STAT_INC(original_clauses); }
     if (kind == Constraint::Kind::AtMostOne) { SUBSAT_STAT_INC(original_amos); }
@@ -790,7 +789,7 @@ private:
   {
     set<Lit> lits;
     for (Lit lit : c) {
-      assert(lit.var().index() < m_used_vars);
+      ASS(lit.var().index() < m_used_vars);
       if (lits.find(~lit) != lits.end()) {
         // Clause contains complementary literals => tautology
         return false;
@@ -822,34 +821,34 @@ private:
   /// i.e., if we should skip it instead of adding it to the solver.
   bool simplifyClause(Constraint& c)
   {
-    assert(m_level == 0);
-    assert(std::all_of(m_marks.begin(), m_marks.end(), [](Mark m) { return m == 0; }));
+    ASS_EQ(m_level, 0);
+    ASS(std::all_of(m_marks.begin(), m_marks.end(), [](Mark m) { return m == 0; }));
     bool is_trivial = false;
     uint32_t i = 0;  // read iterator
     uint32_t j = 0;  // write iterator (will lag behind i if any literals have been removed)
     while (i < c.size()) {
       Lit const lit = c[i];
       Var const var = lit.var();
-      assert(var.index() < m_used_vars);
+      ASS(var.index() < m_used_vars);
 
       // copy literal by default
       c[j++] = c[i++];
-      assert(j <= i);
+      ASS(j <= i);
 
       Value const lit_value = m_values[lit];
       if (lit_value == Value::True) {
         LOG_INFO("Clause satisfied on root level due to literal: " << lit);
-        assert(get_level(var) == 0);
+        ASS_EQ(get_level(var), 0);
         is_trivial = true;
         break;
       }
       else if (lit_value == Value::False) {
         LOG_INFO("Literal false on root level: " << lit);
-        assert(get_level(var) == 0);
+        ASS_EQ(get_level(var), 0);
         j--;  // remove literal
       }
       else {
-        assert(lit_value == Value::Unassigned);
+        ASS_EQ(lit_value, Value::Unassigned);
         Mark const prev_mark = m_marks[var];
         Mark const lit_mark = lit.is_positive() ? 1 : -1;
         if (prev_mark == 0) {
@@ -860,20 +859,20 @@ private:
           j--;  // remove literal
         }
         else {
-          assert(prev_mark == -lit_mark);
+          ASS_EQ(prev_mark, -lit_mark);
           LOG_INFO("Clause is a tautology due to variable " << var);
           is_trivial = true;
           break;
         }
       }
     }
-    assert(j <= c.m_size);
+    ASS(j <= c.m_size);
     c.m_size = j;
     // Reset marks
     for (Lit lit : c) {
       m_marks[lit.var()] = 0;
     }
-    assert(std::all_of(m_marks.begin(), m_marks.end(), [](Mark m) { return m == 0; }));
+    ASS(std::all_of(m_marks.begin(), m_marks.end(), [](Mark m) { return m == 0; }));
     return is_trivial;
   }
 
@@ -881,8 +880,8 @@ private:
   void simplify_and_connect_clause(ConstraintRef cr)
   {
     LOG_INFO("New original clause " << SHOWREF(cr));
-    assert(m_state == State::Unknown);
-    assert(m_level == 0);
+    ASS_EQ(m_state, State::Unknown);
+    ASS_EQ(m_level, 0);
     Constraint& c = m_constraints.deref(cr);
 
     bool is_trivial = simplifyClause(c);
@@ -891,7 +890,7 @@ private:
       return; // skip clause
     }
     LOG_INFO("Adding simplified clause " << c);
-    assert(isClauseSimplified(c));
+    ASS(isClauseSimplified(c));
 
     if (c.size() == 0) {
       // Empty clause means inconsistent
@@ -900,7 +899,7 @@ private:
     else if (c.size() == 1) {
       // Units are assigned directly
       Lit lit = c[0];
-      assert(lit.var().index() < m_used_vars);
+      ASS(lit.var().index() < m_used_vars);
       switch (m_values[lit]) {
         case Value::True:
           LOG_INFO("Skipping redundant unit clause: " << lit);
@@ -918,7 +917,7 @@ private:
     else {
       // Long clauses will be added to the watch lists
       // TODO: special handling for binary clauses
-      assert(c.size() >= 2);
+      ASS(c.size() >= 2);
       connect_clause(cr);
     }
   }
@@ -953,7 +952,7 @@ private:
     }
     set<Lit> lits;
     for (Lit lit : c) {
-      assert(lit.var().index() < m_used_vars);
+      ASS(lit.var().index() < m_used_vars);
       if (lits.find(~lit) != lits.end()) {
         // AMO contains complementary literals
         // => either it is a tautology (when size 2), or we can propagate all other literals to false
@@ -986,8 +985,8 @@ private:
   /// i.e., if we should skip it instead of adding it to the solver.
   bool simplifyAmo(Constraint& c)
   {
-    assert(m_level == 0);
-    assert(std::all_of(m_marks.begin(), m_marks.end(), [](Mark m) { return m == 0; }));
+    ASS_EQ(m_level, 0);
+    ASS(std::all_of(m_marks.begin(), m_marks.end(), [](Mark m) { return m == 0; }));
     if (c.size() < 2) {
       // always satisfied
       return true;
@@ -998,16 +997,16 @@ private:
     while (i < c.size()) {
       Lit const lit = c[i];
       Var const var = lit.var();
-      assert(var.index() < m_used_vars);
+      ASS(var.index() < m_used_vars);
 
       // copy literal by default
       c[j++] = c[i++];
-      assert(j <= i);
+      ASS(j <= i);
 
       Value const lit_value = m_values[lit];
       if (lit_value == Value::True) {
         LOG_INFO("AtMostOne constraint has true literal on root level: " << lit);
-        assert(get_level(var) == 0);
+        ASS_EQ(get_level(var), 0);
         // One literal of the AMO is already true => propagate all others to be false
         for (uint32_t k = 0; k < c.size(); ++k) {
           Lit const other = c[k];
@@ -1025,7 +1024,7 @@ private:
             basic_assign(~other, Reason::invalid());
           }
           else {
-            assert(m_values[other] == Value::False);
+            ASS_EQ(m_values[other], Value::False);
             // other literal already false => nothing to do
           }
         }
@@ -1034,11 +1033,11 @@ private:
       }
       else if (lit_value == Value::False) {
         LOG_INFO("Literal false on root level: " << lit);
-        assert(get_level(var) == 0);
+        ASS_EQ(get_level(var), 0);
         j--;  // remove literal
       }
       else {
-        assert(lit_value == Value::Unassigned);
+        ASS_EQ(lit_value, Value::Unassigned);
         Mark const prev_mark = m_marks[var];
         Mark const lit_mark = lit.is_positive() ? 1 : -1;
         if (prev_mark == 0) {
@@ -1049,7 +1048,7 @@ private:
           j--;  // remove literal
         }
         else {
-          assert(prev_mark == -lit_mark);
+          ASS_EQ(prev_mark, -lit_mark);
           LOG_INFO("AtMostOne constraint contains both polarities of variable " << var);
           // For example: AtMostOne(x, ~x, y, z, ...)
           // In this case we can propagate all other literals to false.
@@ -1070,7 +1069,7 @@ private:
               basic_assign(~other, Reason::invalid());
             }
             else {
-              assert(m_values[other] == Value::False);
+              ASS_EQ(m_values[other], Value::False);
               // other literal already false => nothing to do
             }
           }
@@ -1079,7 +1078,7 @@ private:
         }
       }
     }
-    assert(j <= c.m_size);
+    ASS(j <= c.m_size);
     c.m_size = j;
     // AtMostOne constraints of sizes 0 and 1 are tautologies
     if (c.size() <= 1) {
@@ -1089,15 +1088,15 @@ private:
     for (Lit lit : c) {
       m_marks[lit.var()] = 0;
     }
-    assert(std::all_of(m_marks.begin(), m_marks.end(), [](Mark m) { return m == 0; }));
+    ASS(std::all_of(m_marks.begin(), m_marks.end(), [](Mark m) { return m == 0; }));
     return is_trivial;
   }
 
   void simplify_and_connect_atmostone_constraint(ConstraintRef cr)
   {
     LOG_INFO("Connecting AtMostOne constraint " << SHOWREF(cr));
-    assert(m_state == State::Unknown);
-    assert(m_level == 0);
+    ASS_EQ(m_state, State::Unknown);
+    ASS_EQ(m_level, 0);
     Constraint& c = m_constraints.deref(cr);
 
     bool is_trivial = simplifyAmo(c);
@@ -1106,7 +1105,7 @@ private:
       return; // skip constraint
     }
     LOG_INFO("Adding simplified AtMostOne constraint " << c);
-    assert(isAmoSimplified(c));
+    ASS(isAmoSimplified(c));
 
     if (c.size() <= 1) {
       // AtMostOne constraints of sizes 0 and 1 are tautologies => do nothing
@@ -1115,11 +1114,11 @@ private:
       // AtMostOne(p, q) == ~p \/ ~q
       c[0] = ~c[0];
       c[1] = ~c[1];
-      assert(isClauseSimplified(c));
+      ASS(isClauseSimplified(c));
       simplify_and_connect_clause(cr);
     } else {
       // Add proper AtMostOne constraint
-      assert(c.size() >= 3);
+      ASS(c.size() >= 3);
 #ifndef NDEBUG
       m_atmostone_constraint_refs.push_back(cr);
 #endif
@@ -1138,10 +1137,10 @@ public:
   /// Prepare internal data structures for solving.
   void prepare_for_solving()
   {
-    assert(m_state == State::Unknown);
-    assert(m_level == 0);
+    ASS_EQ(m_state, State::Unknown);
+    ASS_EQ(m_level, 0);
 
-    assert(m_values.size() == 0);
+    ASS_EQ(m_values.size(), 0);
     m_unassigned_vars = m_used_vars;
     m_vars.resize(m_used_vars);
     m_marks.resize(m_used_vars, 0);
@@ -1158,7 +1157,7 @@ public:
 #endif
 #if SUBSAT_VMTF
     m_queue.resize_and_init(m_used_vars);
-    assert(m_queue.checkInvariants(m_values));
+    ASS(m_queue.checkInvariants(m_values));
 #endif
 
     m_trail.reserve(m_used_vars);
@@ -1195,7 +1194,7 @@ public:
 
   Result solve()
   {
-    assert(m_state == State::Unknown || m_state == State::Sat);
+    ASS(m_state == State::Unknown || m_state == State::Sat);
 #if SUBSAT_STATISTICS
     LOG_INFO((m_state != State::Sat ? "Starting solving with " : "Resuming solving with ")
              << m_used_vars << " variables, "
@@ -1261,7 +1260,7 @@ public:
 
       ConstraintRef conflict = propagate();
 
-      assert(checkInvariants());
+      ASS(checkInvariants());
 
 #if SUBSAT_LIMITS
       if (m_stats.ticks > m_limits.max_ticks)
@@ -1279,7 +1278,7 @@ public:
 #endif
       }
       else if (m_unassigned_vars == 0) {
-        assert(checkModel());
+        ASS(checkModel());
         res = Result::Sat;
       }
 #if SUBSAT_RESTART
@@ -1305,16 +1304,16 @@ public:
   template < typename Alloc >
   void get_model(std::vector<Lit, Alloc>& model) const
   {
-    assert(m_state == State::Sat);
-    assert(m_unassigned_vars == 0);
+    ASS_EQ(m_state, State::Sat);
+    ASS_EQ(m_unassigned_vars, 0);
     model.assign(m_trail.begin(), m_trail.end());
   }
 
   /// Return the current value of the given literal.
   Value get_value(Lit lit) const
   {
-    assert(m_state == State::Sat);
-    assert(m_unassigned_vars == 0);
+    ASS_EQ(m_state, State::Sat);
+    ASS_EQ(m_unassigned_vars, 0);
     return m_values[lit];
   }
 
@@ -1329,12 +1328,12 @@ private:
     // TODO: kitten does phase-saving as well
 
     // precondition: not assigned
-    assert(m_values[lit] == Value::Unassigned);
-    assert(m_values[~lit] == Value::Unassigned);
+    ASS_EQ(m_values[lit], Value::Unassigned);
+    ASS_EQ(m_values[~lit], Value::Unassigned);
 
     // not assigned also means not on trail
-    assert(std::find(m_trail.begin(), m_trail.end(), lit) == m_trail.end());
-    assert(std::find(m_trail.begin(), m_trail.end(), ~lit) == m_trail.end());
+    ASS(std::find(m_trail.begin(), m_trail.end(), lit) == m_trail.end());
+    ASS(std::find(m_trail.begin(), m_trail.end(), ~lit) == m_trail.end());
 
     m_values[lit] = Value::True;
     m_values[~lit] = Value::False;
@@ -1349,7 +1348,7 @@ private:
     m_vdom.assigned(var);
 #endif
 
-    assert(m_unassigned_vars > 0);
+    ASS(m_unassigned_vars > 0);
     m_unassigned_vars -= 1;
   }
 
@@ -1364,7 +1363,7 @@ private:
   /// Since we are on level 0, such conflicts will immediately result in unsatisfiability.
   void theory_propagate_initial()
   {
-    assert(m_level == 0);
+    ASS_EQ(m_level, 0);
     if (m_theory.empty()) {
       m_theory_propagate_head = static_cast<uint32_t>(m_trail.size());
       return;
@@ -1387,7 +1386,7 @@ private:
                 SUBSAT_STAT2_INC(propagations_by_theory);
                 basic_assign(propagated, Reason{reason});
               } else {
-                assert(m_values[propagated] == Value::True);
+                ASS_EQ(m_values[propagated], Value::True);
               }
               return true;
             });
@@ -1411,7 +1410,7 @@ private:
     // - so we cannot simply choose in each iteration what we do,
     //   we need to theory-propagate after *each* call to enqueue
     // - Also note that we may already get a conflict on decision level 0 if we add two theory-conflicting unit clauses.
-    assert(m_propagate_head <= m_theory_propagate_head);
+    ASS(m_propagate_head <= m_theory_propagate_head);
     while (m_theory_propagate_head < m_trail.size()) {
       Lit p = m_trail[m_theory_propagate_head++];
       LOG_DEBUG("Theory-propagating " << p);
@@ -1424,11 +1423,11 @@ private:
                 SUBSAT_STAT2_INC(propagations_by_theory);
                 basic_assign(propagated, Reason{reason});
               } else {
-                assert(m_values[propagated] == Value::True);
+                ASS_EQ(m_values[propagated], Value::True);
               }
               return true;
             });
-        assert(enabled);
+        ASS(enabled);
         (void)enabled;  // suppress "unused variable" warning
       }
     }
@@ -1437,9 +1436,9 @@ private:
   /// Make a decision.
   void decide()
   {
-    assert(m_unassigned_vars > 0);
-    assert(!m_inconsistent);
-    assert(m_level < m_used_vars);
+    ASS(m_unassigned_vars > 0);
+    ASS(!m_inconsistent);
+    ASS(m_level < m_used_vars);
     SUBSAT_STAT_INC(decisions);
 
     m_level += 1;
@@ -1450,11 +1449,11 @@ private:
 #endif
 #if SUBSAT_VMTF
     if (!var.is_valid()) {
-      assert(m_queue.checkInvariants(m_values));
+      ASS(m_queue.checkInvariants(m_values));
       var = m_queue.next_unassigned_variable(m_values);
     }
 #endif
-    assert(var.is_valid());
+    ASS(var.is_valid());
 
     // TODO: phase saving (+ hints?)
     // for now, just use the positive phase always (works quite well for our type of problems, or at least much better than always-negative)
@@ -1470,7 +1469,7 @@ private:
   ConstraintRef propagate()
   {
     LOG_TRACE("propagate");
-    assert(m_theory_propagate_head == m_trail.size());
+    ASS_EQ(m_theory_propagate_head, m_trail.size());
 
     ConstraintRef conflict = ConstraintRef::invalid();
     uint64_t ticks = 0;
@@ -1501,7 +1500,7 @@ private:
       ConstraintRef const cr = watch.clause_ref;
       Constraint& c = m_constraints.deref(cr);
       ticks++;
-      assert(c.size() >= 3);
+      ASS(c.size() >= 3);
       for (Lit other_lit : c) {
         if (lit == other_lit) {
           continue;
@@ -1526,7 +1525,7 @@ private:
           return tmp_propagate_binary_conflict_ref;
         }
         else {
-          assert(other_value == Value::False);
+          ASS_EQ(other_value, Value::False);
           // nothing to do
         }
       }
@@ -1564,7 +1563,7 @@ private:
 
       ConstraintRef const clause_ref = watch.clause_ref;
       Constraint& clause = m_constraints.deref(clause_ref);
-      assert(clause.size() >= 2);
+      ASS(clause.size() >= 2);
 
       // We mainly count accesses to large clauses, which
       // can amount to up to 80% of solving time.
@@ -1574,7 +1573,7 @@ private:
       // The two watched literals of a clause are stored as the first two literals,
       // but we don't know which one is not_lit and which one is the other one.
       // We use this XOR trick to get other_lit without branching.
-      assert(clause[0] == not_lit || clause[1] == not_lit);
+      ASS(clause[0] == not_lit || clause[1] == not_lit);
       Lit const other_lit = Lit::from_index( clause[0].index() ^ clause[1].index() ^ not_lit.index() );
       Value const other_value = m_values[other_lit];
 
@@ -1622,13 +1621,13 @@ private:
       }
       else if (other_value != Value::Unassigned) {
         // All literals in the clause are false => conflict
-        assert(other_value == Value::False);
+        ASS_EQ(other_value, Value::False);
         SUBSAT_STAT2_INC(conflicts_by_clause);
         conflict = clause_ref;
       }
       else {
         // All literals except other_lit are false => propagate
-        assert(other_value == Value::Unassigned);
+        ASS_EQ(other_value, Value::Unassigned);
         LOG_TRACE("Assigning " << other_lit << " due to clause " << SHOWREF(clause_ref));
         SUBSAT_STAT_INC(propagations);
         SUBSAT_STAT2_INC(propagations_by_clause);
@@ -1642,9 +1641,9 @@ private:
       *q++ = *p++;
     }
     auto const remaining_watches = std::distance(watches.begin(), q);
-    assert(remaining_watches >= 0);
+    ASS(remaining_watches >= 0);
     watches.resize(static_cast<std::size_t>(remaining_watches));
-    assert(watches.end() == q);
+    ASS(watches.end() == q);
 
     return conflict;
   }  // propagate_literal_in_clauses
@@ -1654,7 +1653,7 @@ private:
   ConstraintRef propagate_literal(Lit const lit, uint64_t& ticks)
   {
     LOG_DEBUG("Propagating " << lit);
-    assert(m_values[lit] == Value::True);
+    ASS_EQ(m_values[lit], Value::True);
 
     ticks++;
 
@@ -1675,7 +1674,7 @@ private:
   {
     LOG_DEBUG("Watching " << lit << /* " blocked by " << blocking_lit << */ " in " << SHOWREF(clause_ref));
     auto& watches = m_watches[lit];
-    assert(std::all_of(watches.cbegin(), watches.cend(), [=](Watch w){ return w.clause_ref != clause_ref; }));
+    ASS(std::all_of(watches.cbegin(), watches.cend(), [=](Watch w){ return w.clause_ref != clause_ref; }));
     watches.push_back(Watch{clause_ref});
   }
 
@@ -1684,7 +1683,7 @@ private:
   void watch_clause(ConstraintRef clause_ref)
   {
     Constraint const& clause = m_constraints.deref(clause_ref);
-    assert(clause.size() >= 2);
+    ASS(clause.size() >= 2);
     watch_clause_literal(clause[0], /* TODO: clause[1], */ clause_ref);
     watch_clause_literal(clause[1], /* TODO: clause[0], */ clause_ref);
   }
@@ -1694,10 +1693,10 @@ private:
   void watch_atmostone_constraint(ConstraintRef cr)
   {
     Constraint const& c = m_constraints.deref(cr);
-    assert(c.size() >= 3);
+    ASS(c.size() >= 3);
     for (Lit lit : c) {
       auto& watches = m_watches_amo[lit];
-      assert(std::all_of(watches.cbegin(), watches.cend(), [=](Watch w) { return w.clause_ref != cr; }));
+      ASS(std::all_of(watches.cbegin(), watches.cend(), [=](Watch w) { return w.clause_ref != cr; }));
       watches.push_back(Watch{cr});
     }
   }
@@ -1709,9 +1708,9 @@ private:
   {
     LOG_INFO("Conflict clause " << SHOWREF(conflict_ref) << " on level " << m_level);
     LOG_TRACE("Assignment: " << SHOWASSIGNMENT());
-    assert(!m_inconsistent);
-    assert(conflict_ref.is_valid());
-    assert(checkInvariants());
+    ASS(!m_inconsistent);
+    ASS(conflict_ref.is_valid());
+    ASS(checkInvariants());
     SUBSAT_STAT_INC(conflicts);
 
     Level const conflict_level = m_level;
@@ -1727,11 +1726,11 @@ private:
     vector<Level>& blocks = tmp_analyze_blocks;  // the analyzed decision levels
     vector<Var>& seen = tmp_analyze_seen;        // the analyzed variables
     vector_map<Level, uint8_t>& frames = m_frames;    // for each decision level, whether it has been analyzed
-    assert(clause.empty());
-    assert(blocks.empty());
-    assert(seen.empty());
-    assert(frames.size() >= conflict_level);
-    assert(std::all_of(frames.cbegin(), frames.cend(), [](char x){ return x == 0; }));
+    ASS(clause.empty());
+    ASS(blocks.empty());
+    ASS(seen.empty());
+    ASS(frames.size() >= conflict_level);
+    ASS(std::all_of(frames.cbegin(), frames.cend(), [](char x){ return x == 0; }));
 
     // Reserve space for the first UIP
     clause.push_back(Lit::invalid());
@@ -1750,7 +1749,7 @@ private:
     uint64_t ticks = 0;
 
     while (true) {
-      assert(reason_ptr);
+      ASS(reason_ptr);
       LOG_TRACE("Reason: " << *reason_ptr << ", uip: " << uip << ", unresolved: " << unresolved_on_conflict_level);
       Constraint const& reason_clause = *reason_ptr;
       ticks++;
@@ -1763,7 +1762,7 @@ private:
 
         // Skip the resolved literal
         if (lit == uip) {
-          assert(m_values[uip] == Value::True);
+          ASS_EQ(m_values[uip], Value::True);
           continue;
         }
 
@@ -1774,7 +1773,7 @@ private:
         }
 
         Mark const mark = m_marks[var];
-        assert(mark == 0 || mark == MarkSeen);
+        ASS(mark == 0 || mark == MarkSeen);
         if (mark) {
           // Skip already-seen variables to prevent duplicates in the learned clause,
           // and to correctly count the unresolved variables on the conflict level
@@ -1783,7 +1782,7 @@ private:
         m_marks[var] = MarkSeen;
         seen.push_back(var);
 
-        assert(m_values[lit] == Value::False);
+        ASS_EQ(m_values[lit], Value::False);
         if (lit_level < conflict_level) {
           if (!frames[lit_level]) {
             blocks.push_back(lit_level);
@@ -1791,7 +1790,7 @@ private:
           }
           clause.push_back(lit);
         } else {
-          assert(lit_level == conflict_level);
+          ASS_EQ(lit_level, conflict_level);
           unresolved_on_conflict_level++;
         }
 
@@ -1803,12 +1802,12 @@ private:
       // We skip over unseen literals here because those are unrelated to the current conflict
       // (think of unit propagation branching out in an interleaved way).
       do {
-        assert(t > m_trail.cbegin());
+        ASS(t > m_trail.cbegin());
         uip = *(--t);
       } while (!m_marks[uip.var()]);
 
       // We have resolved away one literal on the highest decision level
-      assert(get_level(uip) == conflict_level);
+      ASS_EQ(get_level(uip), conflict_level);
       unresolved_on_conflict_level--;
       if (unresolved_on_conflict_level == 0) {
         // We would resolve away the last literal on the highest decision level
@@ -1825,12 +1824,12 @@ private:
     // TODO: analyze loop is a bit simpler in kitten, maybe we can do that too?
     //       kitten does not use any blocks/frames (we use them for minimization though)
 
-    assert(uip.is_valid());
+    ASS(uip.is_valid());
     Lit const not_uip = ~uip;
     clause[0] = not_uip;
     LOG_TRACE("Learning clause: " << ShowVec(clause));
 
-    assert(std::all_of(clause.begin(), clause.end(), [this](Lit lit) { return m_values[lit] == Value::False; }));
+    ASS(std::all_of(clause.begin(), clause.end(), [this](Lit lit) { return m_values[lit] == Value::False; }));
 
     // uint32_t const glue = blocks.size();
 
@@ -1849,25 +1848,25 @@ private:
 
     // TODO: sort analyzed vars by time stamp?
     for (Var var : seen) {
-      assert(m_values[var] != Value::Unassigned);  // precondition of DecisionQueue::move_to_front
+      ASS(m_values[var] != Value::Unassigned);  // precondition of DecisionQueue::move_to_front
 #if SUBSAT_VMTF
       m_queue.move_to_front(var);
 #endif
-      assert(m_marks[var]);
+      ASS(m_marks[var]);
       m_marks[var] = 0;
     }
     seen.clear();
 #if SUBSAT_VMTF
-    assert(m_queue.checkInvariants(m_values));
+    ASS(m_queue.checkInvariants(m_values));
 #endif
 
     backtrack(jump_level);
 
     uint32_t const size = static_cast<uint32_t>(clause.size());
-    assert(size > 0);
+    ASS(size > 0);
     if (size == 1) {
       // We learned a unit clause
-      assert(jump_level == 0);
+      ASS_EQ(jump_level, 0);
       LOG_INFO("Learned unit: " << not_uip);
       SUBSAT_STAT2_INC(learned_unit_clauses);
       SUBSAT_STAT2_ADD(learned_literals, 1);
@@ -1877,14 +1876,14 @@ private:
     //   // TODO: binary clause optimization
     // }
     else {
-      assert(size > 1);
-      assert(jump_level > 0);
+      ASS(size > 1);
+      ASS(jump_level > 0);
 
       // First literal at jump level becomes the other watch.
       for (auto it = clause.begin() + 1; ; ++it) {
-        assert(it != clause.end());
+        ASS(it != clause.end());
         Lit const lit = *it;
-        assert(get_level(lit) <= jump_level);
+        ASS(get_level(lit) <= jump_level);
         if (get_level(lit) == jump_level) {
           *it = clause[1];
           clause[1] = lit;
@@ -1915,11 +1914,11 @@ private:
 
   void unassign(Lit lit)
   {
-    assert(m_unassigned_vars < m_used_vars);
+    ASS(m_unassigned_vars < m_used_vars);
     m_unassigned_vars += 1;
 
-    assert(m_values[lit] == Value::True);
-    assert(m_values[~lit] == Value::False);
+    ASS_EQ(m_values[lit], Value::True);
+    ASS_EQ(m_values[~lit], Value::False);
     m_values[lit] = Value::Unassigned;
     m_values[~lit] = Value::Unassigned;
 
@@ -1937,9 +1936,9 @@ private:
   void backtrack(Level new_level)
   {
     LOG_INFO("Backtracking to level " << new_level);
-    assert(new_level <= m_level);
+    ASS(new_level <= m_level);
 #if SUBSAT_VMTF
-    assert(m_queue.checkInvariants(m_values));
+    ASS(m_queue.checkInvariants(m_values));
 #endif
 
     while (!m_trail.empty()) {
@@ -1957,7 +1956,7 @@ private:
     m_theory_propagate_head = static_cast<uint32_t>(m_trail.size());
     m_level = new_level;
 #if SUBSAT_VMTF
-    assert(m_queue.checkInvariants(m_values));
+    ASS(m_queue.checkInvariants(m_values));
 #endif
   }  // backtrack
 
@@ -1965,11 +1964,11 @@ private:
 #if SUBSAT_RESTART
   void restart()
   {
-    assert(checkInvariants());
+    ASS(checkInvariants());
     LOG_INFO("Restarting...");
     SUBSAT_STAT_INC(restarts);
     backtrack(0);
-    assert(checkInvariants());
+    ASS(checkInvariants());
   }
 #endif
 
@@ -2007,7 +2006,7 @@ private:
 
   Level get_level(Var var) const
   {
-    assert(m_values[var] != Value::Unassigned);
+    ASS(m_values[var] != Value::Unassigned);
     return m_vars[var].level;
   }
 
@@ -2018,8 +2017,8 @@ private:
 
   void get_binary_reason(Lit lit, Reason reason, Constraint& tmp_binary_clause) const
   {
-    assert(reason.is_binary());
-    assert(tmp_binary_clause.size() == 2);
+    ASS(reason.is_binary());
+    ASS(tmp_binary_clause.size() == 2);
     Lit other_lit = reason.get_binary_other_lit();
     tmp_binary_clause[0] = lit;
     tmp_binary_clause[1] = other_lit;
@@ -2027,7 +2026,7 @@ private:
 
   Constraint const& get_reason(Lit lit, Reason reason, Constraint& tmp_binary_clause) const
   {
-    assert(reason.is_valid());
+    ASS(reason.is_valid());
     if (reason.is_binary()) {
       get_binary_reason(lit, reason, tmp_binary_clause);
       return tmp_binary_clause;
@@ -2140,42 +2139,42 @@ inline std::ostream& operator<<(std::ostream& os, ShowAssignment sa)
 inline
 bool Solver::checkEmpty() const
 {
-  assert(m_state == State::Unknown);
-  assert(!m_inconsistent);
-  assert(m_used_vars == 0);
-  assert(m_unassigned_vars == 0);
-  assert(m_level == 0);
-  assert(m_values.empty());
-  assert(m_vars.empty());
-  assert(m_marks.empty());
+  ASS_EQ(m_state, State::Unknown);
+  ASS(!m_inconsistent);
+  ASS_EQ(m_used_vars, 0);
+  ASS_EQ(m_unassigned_vars, 0);
+  ASS_EQ(m_level, 0);
+  ASS(m_values.empty());
+  ASS(m_vars.empty());
+  ASS(m_marks.empty());
 #if SUBSAT_VDOM
-  assert(m_vdom.empty());
+  ASS(m_vdom.empty());
 #endif
 #if SUBSAT_VMTF
-  assert(m_queue.empty());
+  ASS(m_queue.empty());
 #endif
-  assert(m_constraints.empty());
-  assert(!tmp_propagate_binary_conflict_ref.is_valid());
+  ASS(m_constraints.empty());
+  ASS(!tmp_propagate_binary_conflict_ref.is_valid());
 #ifndef NDEBUG
-  assert(m_clause_refs.empty());
-  assert(m_atmostone_constraint_refs.empty());
+  ASS(m_clause_refs.empty());
+  ASS(m_atmostone_constraint_refs.empty());
 #endif
-  assert(m_original_constraints.empty());
-  assert(std::all_of(m_watches.begin(), m_watches.end(),
-                     [](vector<Watch> const& ws) { return ws.empty(); }));
-  assert(std::all_of(m_watches_amo.begin(), m_watches_amo.end(),
-                     [](vector<Watch> const& ws) { return ws.empty(); }));
-  assert(m_trail.empty());
-  assert(m_propagate_head == 0);
-  assert(m_theory_propagate_head == 0);
-  assert(tmp_analyze_clause.empty());
-  assert(tmp_analyze_blocks.empty());
-  assert(tmp_analyze_seen.empty());
-  assert(m_frames.empty());
-  assert(m_theory.empty());
+  ASS(m_original_constraints.empty());
+  ASS(std::all_of(m_watches.begin(), m_watches.end(),
+                  [](vector<Watch> const& ws) { return ws.empty(); }));
+  ASS(std::all_of(m_watches_amo.begin(), m_watches_amo.end(),
+                  [](vector<Watch> const& ws) { return ws.empty(); }));
+  ASS(m_trail.empty());
+  ASS_EQ(m_propagate_head, 0);
+  ASS_EQ(m_theory_propagate_head, 0);
+  ASS(tmp_analyze_clause.empty());
+  ASS(tmp_analyze_blocks.empty());
+  ASS(tmp_analyze_seen.empty());
+  ASS(m_frames.empty());
+  ASS(m_theory.empty());
   auto stats_ptr = reinterpret_cast<unsigned char const*>(&m_stats);
-  assert(std::all_of(stats_ptr, stats_ptr + sizeof(Statistics),
-                     [](unsigned char x) { return x == 0; }));
+  ASS(std::all_of(stats_ptr, stats_ptr + sizeof(Statistics),
+                  [](unsigned char x) { return x == 0; }));
   return true;
 }
 
@@ -2185,11 +2184,11 @@ bool Solver::checkConstraint(Constraint const& c) const
   // No duplicate variables in the constraint (this prevents duplicate literals and tautological clauses)
   set<Var> vars;
   for (Lit lit : c) {
-    assert(lit.is_valid());
+    ASS(lit.is_valid());
     bool inserted = vars.insert(lit.var()).second;
-    assert(inserted);
+    ASS(inserted);
   }
-  assert(vars.size() == c.size());
+  ASS_EQ(vars.size(), c.size());
   return true;
 }
 
@@ -2197,51 +2196,51 @@ inline
 bool Solver::checkInvariants() const
 {
   // assigned vars + unassiged vars = used vars
-  assert(m_trail.size() + m_unassigned_vars == m_used_vars);
+  ASS_EQ(m_trail.size() + m_unassigned_vars, m_used_vars);
 
-  assert(m_values.size() == 2 * m_used_vars);
-  assert(std::all_of(m_values.begin(), m_values.end(),
-                     [](Value v) { return v == Value::False || v == Value::True || v == Value::Unassigned; }));
+  ASS_EQ(m_values.size(), 2 * m_used_vars);
+  ASS(std::all_of(m_values.begin(), m_values.end(),
+                  [](Value v) { return v == Value::False || v == Value::True || v == Value::Unassigned; }));
 
   // m_unassigned_values is correct
-  assert(std::count(m_values.begin(), m_values.end(), Value::Unassigned) == 2 * m_unassigned_vars);
+  ASS(std::count(m_values.begin(), m_values.end(), Value::Unassigned) == 2 * m_unassigned_vars);
 
   // Opposite literals have opposite values
   for (uint32_t var_idx = 0; var_idx < m_used_vars; ++var_idx) {
     Var x{var_idx};
-    assert(m_values[x] == ~m_values[~x]);
+    ASS_EQ(m_values[x], ~m_values[~x]);
   }
 
   // Every variable is at most once on the trail
   set<Var> trail_vars;
   for (Lit lit : m_trail) {
-    assert(lit.is_valid());
+    ASS(lit.is_valid());
     bool inserted = trail_vars.insert(lit.var()).second;
-    assert(inserted);
+    ASS(inserted);
   }
-  assert(trail_vars.size() == m_trail.size());
-  assert(m_trail.size() <= m_used_vars);
+  ASS_EQ(trail_vars.size(), m_trail.size());
+  ASS(m_trail.size() <= m_used_vars);
 
   // Decision level is the number of decisions on the trail
   auto num_decisions = std::count_if(m_trail.rbegin(), m_trail.rend(),
                                      [this](Lit lit) { return m_vars[lit.var()].is_decision(); });
-  assert(m_level == num_decisions);
+  ASS_EQ(m_level, num_decisions);
 
-  assert(m_propagate_head <= m_trail.size());
-  assert(m_theory_propagate_head <= m_trail.size());
-  assert(m_propagate_head <= m_theory_propagate_head);
+  ASS(m_propagate_head <= m_trail.size());
+  ASS(m_theory_propagate_head <= m_trail.size());
+  ASS(m_propagate_head <= m_theory_propagate_head);
 
   // Check constraint invariants
   for (ConstraintRef cr : m_clause_refs) {
-    assert(checkConstraint(m_constraints.deref(cr)));
+    ASS(checkConstraint(m_constraints.deref(cr)));
   }
   for (ConstraintRef cr : m_atmostone_constraint_refs) {
-    assert(checkConstraint(m_constraints.deref(cr)));
+    ASS(checkConstraint(m_constraints.deref(cr)));
   }
 
   // Check watch invariants if we're in a fully propagated state
   if (m_propagate_head == m_trail.size()) {
-    assert(checkWatches());
+    ASS(checkWatches());
   }
 
   // Check reasons of assigned literals
@@ -2251,7 +2250,7 @@ bool Solver::checkInvariants() const
     if (reason.is_valid()) {
       Constraint const& c = get_reason(lit, reason, tmp_binary);
       for (Lit const other : c) {
-        assert(other == lit || m_values[other] == Value::False);
+        ASS(other == lit || m_values[other] == Value::False);
       }
     }
   }
@@ -2263,13 +2262,13 @@ inline
 bool Solver::checkWatches() const
 {
   // Some of the checks only make sense in a fully-propagated state
-  assert(m_propagate_head == m_trail.size());
-  assert(!m_inconsistent);
+  ASS_EQ(m_propagate_head, m_trail.size());
+  ASS(!m_inconsistent);
 
   // All allocated but unused watch lists are empty
   for (uint32_t lit_idx = 2 * m_used_vars; lit_idx < m_watches.size(); ++lit_idx) {
     Lit const lit = Lit::from_index(lit_idx);
-    assert(m_watches[lit].empty());
+    ASS(m_watches[lit].empty());
   }
 
   // Count how many times each clause is watched
@@ -2284,7 +2283,7 @@ bool Solver::checkWatches() const
       num_watches[watch.clause_ref.index()] += 1;
 
       // The watched literals are always the first two literals of the clause
-      assert(clause[0] == lit || clause[1] == lit);
+      ASS(clause[0] == lit || clause[1] == lit);
 
       // Check status of watch literals
       bool clause_satisfied = std::any_of(clause.begin(), clause.end(),
@@ -2298,12 +2297,12 @@ bool Solver::checkWatches() const
         }
         // If the clause is satisfied and a watched literal is assigned,
         // it must be on the same level or above one of the true literals.
-        assert(m_values[clause[0]] == Value::Unassigned || get_level(clause[0]) >= min_true_level);
-        assert(m_values[clause[1]] == Value::Unassigned || get_level(clause[1]) >= min_true_level);
+        ASS(m_values[clause[0]] == Value::Unassigned || get_level(clause[0]) >= min_true_level);
+        ASS(m_values[clause[1]] == Value::Unassigned || get_level(clause[1]) >= min_true_level);
       } else {
         // If the clause is not yet satisfied, both watched literals must be unassigned
         // (otherwise we would have propagated them)
-        assert(m_values[clause[0]] == Value::Unassigned && m_values[clause[1]] == Value::Unassigned);
+        ASS(m_values[clause[0]] == Value::Unassigned && m_values[clause[1]] == Value::Unassigned);
       }
     }
   }
@@ -2312,12 +2311,12 @@ bool Solver::checkWatches() const
     Constraint const& c = m_constraints.deref(cr);
     if (c.size() >= 2) {
       auto it = num_watches.find(cr.index());
-      assert(it != num_watches.end());
-      assert(it->second == 2);
+      ASS(it != num_watches.end());
+      ASS_EQ(it->second, 2);
       num_watches.erase(it);
     }
   }
-  assert(num_watches.empty());
+  ASS(num_watches.empty());
   return true;
 }
 
@@ -2343,7 +2342,7 @@ bool Solver::checkModel() const
       if (m_values[lit] == Value::Unassigned) { num_open += 1; }
       if (m_values[lit] == Value::False) { num_false += 1; }
     }
-    assert(num_true + num_open + num_false == c.size());
+    ASS_EQ(num_true + num_open + num_false, c.size());
     // AtMostOne constraint is satisfied if all or all but one literals are false
     bool satisfied = (num_false >= c.size() - 1);
     if (!satisfied) {
