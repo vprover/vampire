@@ -15,12 +15,10 @@
 #ifndef __BackwardSubsumptionAndResolution__
 #define __BackwardSubsumptionAndResolution__
 
+#include "Lib/DHSet.hpp"
 #include "InferenceEngine.hpp"
-#include "SATSubsumption/SATSubsumptionAndResolution.hpp"
-#include "Indexing/LiteralMiniIndex.hpp"
-#include "Lib/STL.hpp"
 #include "Indexing/LiteralIndex.hpp"
-
+#include "SATSubsumption/SATSubsumptionAndResolution.hpp"
 
 namespace Inferences {
 

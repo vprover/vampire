@@ -23,33 +23,13 @@
  * In particular, this file implements the loop optimization described in 2023 and 2024.
  */
 
-#include "Debug/RuntimeStatistics.hpp"
-
-#include "Lib/DArray.hpp"
-#include "Lib/DHSet.hpp"
-#include "Lib/Environment.hpp"
-#include "Lib/List.hpp"
-#include "Lib/Metaiterators.hpp"
-#include "Lib/VirtualIterator.hpp"
-
 #include "Kernel/Clause.hpp"
-#include "Kernel/Matcher.hpp"
-#include "Kernel/MLMatcher.hpp"
-#include "Kernel/Signature.hpp"
-#include "Kernel/Term.hpp"
-
+#include "Lib/List.hpp"
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
 #include "Indexing/IndexManager.hpp"
-
 #include "Saturation/SaturationAlgorithm.hpp"
-
-#include "Shell/Statistics.hpp"
-
-#include "ForwardSubsumptionAndResolution.hpp"
 #include "BackwardSubsumptionAndResolution.hpp"
-
-#include <chrono>
 
 namespace Inferences {
 
@@ -57,7 +37,6 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
-using namespace std::chrono;
 
 /***************************************************************/
 /*                        CORE METHODS                         */
