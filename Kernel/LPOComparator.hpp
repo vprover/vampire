@@ -28,10 +28,8 @@ class LPOComparator
 : public OrderingComparator
 {
 public:
-  LPOComparator(const LPO& lpo) : _lpo(lpo), _instructions(), _res(Instruction::BranchTag::T_JUMP) {}
-
-  /** This function performs the runtime specialization and creates a comparator object. */
-  static LPOComparator* create(TermList tl1, TermList tl2, const LPO& lpo);
+  /** The runtime specialization happens in the constructor. */
+  LPOComparator(TermList tl1, TermList tl2, const LPO& lpo);
 
   /** Executes the runtime specialized instructions with concrete substitution. */
   bool check(const SubstApplicator* applicator) const;

@@ -251,10 +251,10 @@ bool LPO::isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicato
 {
   if (!comparator) {
     // cout << "preprocessing " << lhs << " " << rhs << endl;
-    comparator = OrderingComparatorUP(LPOComparator::create(lhs, rhs, *this));
+    comparator = make_unique<const LPOComparator>(lhs, rhs, *this);
     // cout << comparator->toString() << endl;
   }
-  return static_cast<LPOComparator*>(comparator.get())->check(applicator);
+  return static_cast<const LPOComparator*>(comparator.get())->check(applicator);
 }
 
 void LPO::showConcrete(ostream&) const 

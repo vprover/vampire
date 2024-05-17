@@ -1543,8 +1543,7 @@ void Options::init()
 
     _demodulationPrecompiledComparison = BoolOptionValue("demodulation_precompiled_comparison","dpc",false);
     _demodulationPrecompiledComparison.description=
-       "Precompiles ordering constraints on unorientable demodulators which results in less overhead when actually comparing."
-       "Only works with KBO currently.";
+       "Precompiles ordering constraints on unorientable demodulators which results in less overhead when actually comparing.";
     _lookup.insert(&_demodulationPrecompiledComparison);
     _demodulationPrecompiledComparison.tag(OptionTag::INFERENCES);
     _demodulationPrecompiledComparison.onlyUsefulWith(ProperSaturationAlgorithm());

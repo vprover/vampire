@@ -33,10 +33,8 @@ class KBOComparator
 : public OrderingComparator
 {
 public:
-  KBOComparator(const KBO& kbo) : _kbo(kbo) {}
-
-  /** This function performs the runtime specialization and creates a comparator object. */
-  static KBOComparator* create(TermList tl1, TermList tl2, const KBO& kbo);
+  /** The runtime specialization happens in the constructor. */
+  KBOComparator(TermList tl1, TermList tl2, const KBO& kbo);
 
   /** Executes the runtime specialized instructions with concrete substitution. */
   bool check(const SubstApplicator* applicator) const;
@@ -85,13 +83,6 @@ private:
       ins._setTag(t);
       ins._setFirstUint(v1);
       ins._setSecondUint(v2);
-      return ins;
-    }
-    static Instruction uintInt(InstructionTag t, unsigned v1, int v2) {
-      Instruction ins;
-      ins._setTag(t);
-      ins._setFirstUint(v1);
-      ins._setCoeff(v2);
       return ins;
     }
 

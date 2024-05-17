@@ -92,7 +92,27 @@ TermList SortHelper::getResultSort(const Term* t)
   getTypeSub(t, subst);
   Signature::Symbol* sym = env.signature->getFunction(t->functor());
   TermList result = sym->fnType()->result();
-  ASS(!subst.isEmpty()  || (result.isTerm() && (result.term()->isSuper() || result.term()->ground())));  
+
+  /*
+  either
+  1. the substitution is non-empty
+  2. the result is ground (or $tType)
+  3. t is let-bound: consider the following TFF1
+
+      % polymorphic constant
+      tff(c_type, type, c: !>[A: $tType]: A).
+      % some polymorphic predicate, not important
+      tff(p_type, type, p: !>[A: $tType]: A > $o).
+
+      % let-bind a polymorphic identity function
+      tff(bug, axiom, ![A: $tType]: $let(id: A > A, id(X) := X, p(A, id(c(A))))).
+      % note that type of id is A > A, *not* !>[A: $tType]: A > A.
+  */
+  ASS(
+    !subst.isEmpty() ||
+    (result.isTerm() && (result.term()->isSuper() || result.term()->ground())) ||
+    sym->letBound()
+  )
   return SubstHelper::apply(result, subst);
 }
 

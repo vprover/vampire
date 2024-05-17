@@ -459,13 +459,12 @@ pair<Stack<Instruction>,BranchTag>* LPOComparator::createHelper(TermList tl1, Te
   return *ptr;
 }
 
-LPOComparator* LPOComparator::create(TermList tl1, TermList tl2, const LPO& lpo)
+LPOComparator::LPOComparator(TermList tl1, TermList tl2, const LPO& lpo)
+  : _lpo(lpo), _instructions(), _res()
 {
-  auto res = new LPOComparator(lpo);
   auto kv = createHelper(tl1, tl2, lpo);
-  res->_instructions = kv->first;
-  res->_res = kv->second;
-  return res;
+  _instructions = kv->first;
+  _res = kv->second;
 }
 
 bool LPOComparator::check(const SubstApplicator* applicator) const
