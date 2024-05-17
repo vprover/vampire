@@ -790,7 +790,6 @@ public:
    ********************************************************************/
 
 private:
-#if SUBSAT_SIMPLIFY_CLAUSES
 #ifndef NDEBUG
   /// Returns true if the given clause cannot be simplified further,
   /// that is, all of the following conditions hold:
@@ -887,7 +886,6 @@ private:
     assert(std::all_of(m_marks.begin(), m_marks.end(), [](Mark m) { return m == 0; }));
     return is_trivial;
   }
-#endif  // SUBSAT_SIMPLIFY_CLAUSES
 
   /// Simplify the given clause and insert it into the internal data structures.
   void simplify_and_connect_clause(ConstraintRef cr)
@@ -897,7 +895,6 @@ private:
     assert(m_level == 0);
     Constraint& c = m_constraints.deref(cr);
 
-#if SUBSAT_SIMPLIFY_CLAUSES
     bool is_trivial = simplifyClause(c);
     if (is_trivial) {
       LOG_DEBUG("Skipping clause.");
@@ -905,7 +902,6 @@ private:
     }
     LOG_INFO("Adding simplified clause " << c);
     assert(isClauseSimplified(c));
-#endif
 
     if (c.size() == 0) {
       // Empty clause means inconsistent
@@ -953,7 +949,6 @@ private:
    ********************************************************************/
 
 private:
-#if SUBSAT_SIMPLIFY_AMOS
 #ifndef NDEBUG
   /// Returns true if the given AtMostOne constraint cannot be simplified further,
   /// that is, all of the following conditions hold:
@@ -1107,7 +1102,6 @@ private:
     assert(std::all_of(m_marks.begin(), m_marks.end(), [](Mark m) { return m == 0; }));
     return is_trivial;
   }
-#endif  // SUBSAT_SIMPLIFY_AMOS
 
   void simplify_and_connect_atmostone_constraint(ConstraintRef cr)
   {
@@ -1116,7 +1110,6 @@ private:
     assert(m_level == 0);
     Constraint& c = m_constraints.deref(cr);
 
-#if SUBSAT_SIMPLIFY_AMOS
     bool is_trivial = simplifyAmo(c);
     if (is_trivial) {
       LOG_DEBUG("Skipping AtMostOne constraint.");
@@ -1124,7 +1117,6 @@ private:
     }
     LOG_INFO("Adding simplified AtMostOne constraint " << c);
     assert(isAmoSimplified(c));
-#endif
 
     if (c.size() <= 1) {
       // AtMostOne constraints of sizes 0 and 1 are tautologies => do nothing
@@ -1133,7 +1125,7 @@ private:
       // AtMostOne(p, q) == ~p \/ ~q
       c[0] = ~c[0];
       c[1] = ~c[1];
-      assert(!SUBSAT_SIMPLIFY_AMOS || isClauseSimplified(c));
+      assert(isClauseSimplified(c));
       simplify_and_connect_clause(cr);
     } else {
       // Add proper AtMostOne constraint

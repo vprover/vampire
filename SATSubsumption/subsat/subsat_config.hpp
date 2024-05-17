@@ -146,15 +146,5 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 #define SUBSAT_PHASE_SAVING 0
 #endif
 
-// Simplify clauses before solving
-#ifndef SUBSAT_SIMPLIFY_CLAUSES
-#define SUBSAT_SIMPLIFY_CLAUSES 1
-#endif
-
-// Simplify AtMostOne constraints before solving
-#ifndef SUBSAT_SIMPLIFY_AMOS
-#define SUBSAT_SIMPLIFY_AMOS 1
-#endif
-
 
 #endif /* !SUBSAT_CONFIG_HPP */
