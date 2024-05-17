@@ -303,6 +303,28 @@ int Int::min (int i,int j)
 }
 
 
+
+template <typename T>
+using disable_deduction = typename std::enable_if_t<true, T>;  // C++20: can use std::type_identity_t instead of this
+
+/**
+ * Check if an addition operation overflows.
+ * - This check is very sensitive to using the correct type,
+ *   and implicit conversions in C++ may easily destroy it
+ *   and lead to unexpected results.
+ *   For this reason, the type parameter should be given explicitly.
+ * - Wrap-around behaviour on overflow is only defined for
+ *   unsigned integer types in C++.
+ */
+template <typename T>
+inline bool isAdditionOverflow(disable_deduction<T> a, disable_deduction<T> b)
+{
+  static_assert(std::is_unsigned<T>::value, "overflow check is only defined for unsigned types");
+  return static_cast<T>(a + b) < a;
+}
+
+
+
 }
 
 #endif  // __INT__

@@ -70,6 +70,7 @@
 
 #include "Kernel/Matcher.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/Int.hpp"
 #include "Shell/Statistics.hpp"
 #include "Debug/RuntimeStatistics.hpp"
 #include <algorithm>
@@ -90,19 +91,6 @@ const unsigned INVALID = std::numeric_limits<unsigned>::max();
 #define PRINT_CLAUSES_SUBS 0
 #define PRINT_CLAUSE_COMMENTS_SUBS 0
 
-/**
- * @brief Check if an addition operation overflows
- * @tparam T the type of the operands
- * @param a the first operand
- * @param b the second operand
- * @return true if the addition overflows, false otherwise
-*/
-template <typename T>
-static bool isAdditionOverflow(T a, T b)
-{
-  static_assert(std::is_unsigned<T>::value, "overflow check is only defined for unsigned arithmetic types");
-  return static_cast<T>(a + b) < a;
-}
 
 /****************************************************************************/
 /*               SATSubsumptionAndResolution::MatchSet                      */
