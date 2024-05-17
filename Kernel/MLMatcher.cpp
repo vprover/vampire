@@ -87,12 +87,9 @@ bool createLiteralBindings(Literal* baseLit, LiteralList const* alts, Clause* in
     while(!varNums.isEmpty() && varNums.top()==var) {
       varNums.pop();
     }
-    if(variablePositions.insert(var,nextPos)) {
-      *(boundVarData++)=var;
-      nextPos++;
-    } else {
-      ASSERTION_VIOLATION;  // we remove all same variables above so how can this happen.
-    }
+    ALWAYS(variablePositions.insert(var, nextPos));
+    *(boundVarData++) = var;
+    nextPos++;
   }
   unsigned numVars=nextPos;
 
