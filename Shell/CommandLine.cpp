@@ -48,9 +48,6 @@ std::ostream& printVersion(std::ostream& out)
   std::cout << "Linked with Z3 " << Z3Interfacing::z3_full_version() << "\n";
 #endif
   PRINT_VAR(out, VDEBUG);
-  std::cout << "\% high_resolution_clock: steady = " << std::chrono::high_resolution_clock::is_steady << ", tick period = " << std::chrono::high_resolution_clock::period::num << "/" << std::chrono::high_resolution_clock::period::den << "\n";
-  std::cout << "\%          steady_clock: steady = " << std::chrono::steady_clock::is_steady << ", tick period = " << std::chrono::steady_clock::period::num << "/" << std::chrono::steady_clock::period::den << "\n";
-  std::cout << "\%          system_clock: steady = " << std::chrono::system_clock::is_steady << ", tick period = " << std::chrono::system_clock::period::num << "/" << std::chrono::system_clock::period::den << "\n";
   subsat::print_config(out << "\% ");
   return out;
 }
