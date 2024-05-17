@@ -19,13 +19,7 @@ namespace subsat { // TODO: remove namespace once I separate out Var/Lit from su
 template <typename Key>
 struct IndexMember {
   using key_type = Key;
-#if __cplusplus >= 201703L
   using index_type = std::invoke_result_t<decltype(&key_type::index), Key>;
-#else
-  // std::invoke_result_t is only defined for C++17 and later,
-  // while std::result_of is deprecated in C++17 and later
-  using index_type = typename std::result_of<decltype(&key_type::index)(Key)>::type;
-#endif
   index_type operator()(Key key) const
   {
     return key.index();
@@ -117,12 +111,7 @@ public:
   template <typename... Args>
   reference emplace_back(Args&&... args)
   {
-#if __cplusplus >= 201703L
     return m_data.emplace_back(std::forward<Args>(args)...);
-#else
-    m_data.emplace_back(std::forward<Args>(args)...);
-    return m_data.back();
-#endif
   }
 
   void resize(size_type count) { m_data.resize(count); }

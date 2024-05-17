@@ -68,27 +68,19 @@ public:
   /// Number of bytes required for the constraint header (without literals).
   static constexpr size_t header_bytes() noexcept
   {
-#if __cplusplus >= 201703L
     size_t constexpr embedded_literals = std::extent_v<decltype(m_literals)>;
     size_t constexpr header_bytes = sizeof(Constraint) - sizeof(Lit) * embedded_literals;
     static_assert(header_bytes == offsetof(Constraint, m_literals));
     return header_bytes;
-#else
-    return sizeof(Constraint) - sizeof(Lit) * std::extent<decltype(m_literals)>::value;
-#endif
   }
 
   /// Number of bytes required by a constraint containing 'size' literals.
   static constexpr size_t bytes(size_type size) noexcept
   {
-#if __cplusplus >= 201703L
     size_t const embedded_literals = std::extent_v<decltype(m_literals)>;
     size_t const additional_literals = (size >= embedded_literals) ? (size - embedded_literals) : 0;
     size_t const total_bytes = sizeof(Constraint) + sizeof(Lit) * additional_literals;
     return total_bytes;
-#else
-    return sizeof(Constraint) + sizeof(Lit) * ((size >= std::extent<decltype(m_literals)>::value) ? (size - std::extent<decltype(m_literals)>::value) : 0);
-#endif
   }
 
 private:

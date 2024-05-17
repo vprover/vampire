@@ -26,11 +26,7 @@
 
 namespace subsat {
 
-#if __cplusplus >= 201703L
 #define NODISCARD [[nodiscard]]
-#else
-#define NODISCARD
-#endif
 
 using std::uint8_t;
 using std::uint32_t;
@@ -196,13 +192,8 @@ public:
 
   NODISCARD static constexpr Lit from_index(index_type index) noexcept
   {
-#if __cplusplus >= 201703L
     assert(index <= Lit::max_index());
     return Lit{index};
-#else
-    // return assert(index <= Lit::max_index()), Lit{index};
-    return Lit{index};
-#endif
   }
 
   NODISCARD static constexpr Lit pos(Var var) noexcept
