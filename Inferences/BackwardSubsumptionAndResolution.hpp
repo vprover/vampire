@@ -26,8 +26,6 @@ class BackwardSubsumptionAndResolution
     : public BackwardSimplificationEngine {
 
 public:
-  USE_ALLOCATOR(BackwardSubsumptionAndResolution);
-
   BackwardSubsumptionAndResolution(bool subsumption, bool subsumptionByUnitsOnly, bool subsumptionResolution, bool srByUnitsOnly) : _subsumption(subsumption), _subsumptionResolution(subsumptionResolution), _subsumptionByUnitsOnly(subsumptionByUnitsOnly), _srByUnitsOnly(srByUnitsOnly)
   {
     // do nothing
@@ -38,8 +36,6 @@ public:
   void detach() override;
   void perform(Kernel::Clause *premise, Inferences::BwSimplificationRecordIterator &simplifications) override;
 
-  static Kernel::Clause *generateSubsumptionResolutionClause(Kernel::Clause *cl, Kernel::Literal *lit, Kernel::Clause *baseClause);
-
 private:
   bool _subsumption;
   bool _subsumptionResolution;
@@ -47,8 +43,9 @@ private:
   bool _srByUnitsOnly;
 
   Indexing::BackwardSubsumptionIndex *_bwIndex;
-  SATSubsumption::SATSubsumptionAndResolution satSubs;
+  SATSubsumption::SATSubsumptionAndResolution _satSubs;
   Lib::DHSet<Clause *> _checked;
+  Lib::DHSet<Clause *> _subsumedSet;
 
 };
 

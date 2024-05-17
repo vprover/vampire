@@ -71,8 +71,8 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
   _checked.reset();
 
   // The set of clauses that are subsumed by cl
-  static DHSet<Clause *> subsumedSet;
-  subsumedSet.reset();
+  _subsumedSet.reset();
+
   // contains the list of simplifications found so far
   List<BwSimplificationRecord> *simplificationBuffer = List<BwSimplificationRecord>::empty();
 
@@ -93,7 +93,7 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
         Clause *icl = it.next().data->clause;
         if (!_checked.insert(icl))
           continue;
-        subsumedSet.insert(icl);
+        _subsumedSet.insert(icl);
         List<BwSimplificationRecord>::push(BwSimplificationRecord(icl), simplificationBuffer);
       }
     }
@@ -105,7 +105,7 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
       while (it.hasNext()) {
         auto res = it.next();
         Clause *icl = res.data->clause;
-        if (subsumedSet.contains(icl) || !_checked.insert(icl))
+        if (_subsumedSet.contains(icl) || !_checked.insert(icl))
           continue;
         Clause *conclusion = SATSubsumption::SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(icl, res.data->literal, cl);
         ASS(conclusion)
@@ -136,15 +136,15 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
         bool checkS = _subsumption && !_subsumptionByUnitsOnly;
         bool checkSR = _subsumptionResolution && !_srByUnitsOnly;
         if (checkS) {
-          if (satSubs.checkSubsumption(cl, icl, checkSR)) {
+          if (_satSubs.checkSubsumption(cl, icl, checkSR)) {
             List<BwSimplificationRecord>::push(BwSimplificationRecord(icl), simplificationBuffer);
-            subsumedSet.insert(icl);
+            _subsumedSet.insert(icl);
             continue;
           }
         }
         if (checkSR) {
           // check subsumption resolution
-          Clause *conclusion = satSubs.checkSubsumptionResolution(cl, icl, checkS); // use the previous setup only if subsumption was checked
+          Clause *conclusion = _satSubs.checkSubsumptionResolution(cl, icl, checkS); // use the previous setup only if subsumption was checked
           if (conclusion)
             List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, conclusion), simplificationBuffer);
         }
@@ -165,7 +165,7 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
         if (!_checked.insert(icl))
           continue;
         // check subsumption resolution
-        Clause *conclusion = satSubs.checkSubsumptionResolution(cl, icl, false);
+        Clause *conclusion = _satSubs.checkSubsumptionResolution(cl, icl, false);
         if (conclusion)
           List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, conclusion), simplificationBuffer);
       }
