@@ -28,8 +28,6 @@
 
 #include "MLMatcher.hpp"
 
-#include "Debug/RuntimeStatistics.hpp"
-
 #if VDEBUG
 #include <iostream>
 #endif
@@ -715,16 +713,13 @@ void MLMatcher::Impl::getBindings(vunordered_map<unsigned, TermList>& outBinding
 
 
 MLMatcher::MLMatcher()
-  : m_impl{nullptr}
-{ }
+{
+  m_impl = std::make_unique<MLMatcher::Impl>();
+}
 
 void MLMatcher::init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const* alts, Literal* resolvedLit, bool multiset)
 {
-  if (!m_impl) {
-    RSTAT_CTR_INC("MLMatcher impl constructions");
-    m_impl = std::make_unique<MLMatcher::Impl>();
-  }
-  RSTAT_CTR_INC("MLMatcher init calls");
+  ASS(m_impl);
   m_impl->init(baseLits, baseLen, instance, alts, resolvedLit, multiset);
 }
 
@@ -733,7 +728,6 @@ MLMatcher::~MLMatcher() = default;
 bool MLMatcher::nextMatch()
 {
   ASS(m_impl);
-  RSTAT_CTR_INC("MLMatcher nextMatch calls");
   return m_impl->nextMatch();
 }
 
@@ -751,12 +745,8 @@ void MLMatcher::getBindings(vunordered_map<unsigned, TermList>& outBindings) con
 
 MLMatchStats MLMatcher::getStats() const
 {
-  if (m_impl) {
-    return m_impl->getStats();
-  }
-  else {
-    return {};
-  }
+  ASS(m_impl);
+  return m_impl->getStats();
 }
 
 
