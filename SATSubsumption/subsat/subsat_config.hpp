@@ -68,13 +68,6 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
  * Solving features
  ***********************************************************************/
 
-// Clause learning
-// ASSESSMENT: important
-// TODO: also try limiting the amount of memory that can be used for learning... once the limit is reached, only learn units and maybe binary clauses.
-#ifndef SUBSAT_LEARN
-#define SUBSAT_LEARN 1
-#endif
-
 // Restarting
 // Very simple heuristic: restart every fixed number of conflicts.
 // ASSESSMENT: doesn't seem to help with subsumption instances.

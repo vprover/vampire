@@ -232,9 +232,6 @@ class Reason final {
     Invalid,
     Binary,
     ClauseRef,
-#if !SUBSAT_LEARN
-    ClauseRefRedundant,
-#endif
   };
 
   // TODO: could take away a bit from Lit/ConstraintRef to discriminate the union and get rid of the type field
@@ -265,20 +262,6 @@ public:
     assert(cr.is_valid());
   }
 
-#if !SUBSAT_LEARN
-  explicit Reason(ConstraintRef cr, bool redundant) noexcept
-    : type{redundant ? Type::ClauseRefRedundant : Type::ClauseRef}
-    , clause_ref{cr}
-  {
-    assert(cr.is_valid());
-  }
-
-  constexpr bool is_redundant() const noexcept
-  {
-    return type == Type::ClauseRefRedundant;
-  }
-#endif
-
   static constexpr Reason invalid() noexcept
   {
     return Reason();
@@ -302,11 +285,7 @@ public:
 
   ConstraintRef get_clause_ref() const noexcept
   {
-#if SUBSAT_LEARN
     assert(type == Type::ClauseRef);
-#else
-    assert(type == Type::ClauseRef || type == Type::ClauseRefRedundant);
-#endif
     return clause_ref;
   }
 };
@@ -1941,7 +1920,6 @@ private:
         handle_push_literal(learned, learned_lit);
       }
       ConstraintRef learned_ref = handle_build(learned).m_ref;
-#if SUBSAT_LEARN
       LOG_INFO("Learned: size = " << size << ", literals = " << SHOWREF(learned_ref));
       if (size == 2) { SUBSAT_STAT2_INC(learned_binary_clauses); }  // TODO: move this when adding binary clause optimization
       if (size >= 3) { SUBSAT_STAT2_INC(learned_long_clauses); }
@@ -1949,12 +1927,6 @@ private:
       // TODO: call new_redundant_clause
       connect_clause(learned_ref);
       Reason reason{learned_ref};
-#else
-#ifndef NDEBUG
-      m_clause_refs.push_back(learned_ref);
-#endif
-      Reason reason{learned_ref, true};  // mark as redundant so we delete it on backtracking
-#endif
       assign(not_uip, reason);
     }
 
@@ -2072,20 +2044,6 @@ private:
     assert(m_values[~lit] == Value::False);
     m_values[lit] = Value::Unassigned;
     m_values[~lit] = Value::Unassigned;
-
-#if !SUBSAT_LEARN
-    // If we aren't doing clause learning, we need to delete the redundant reasons
-    Reason reason = m_vars[lit.var()].reason;
-    if (reason.is_redundant()) {
-      ConstraintRef cr = reason.get_clause_ref();
-#ifndef NDEBUG
-      assert(m_clause_refs.back() == cr);
-      m_clause_refs.pop_back();
-#endif
-      m_constraints.unsafe_delete(cr);
-      UPDATE_STORAGE_STATS();
-    }
-#endif
 
 #if SUBSAT_VDOM
     m_vdom.unassigned(lit.var());
@@ -2476,7 +2434,6 @@ bool Solver::checkWatches() const
       }
     }
   }
-#if SUBSAT_LEARN  // if we're not learning, some of the clauses won't be watched
   // Every clause of size >= 2 is watched twice
   for (ConstraintRef cr : m_clause_refs) {
     Constraint const& c = m_constraints.deref(cr);
@@ -2488,7 +2445,6 @@ bool Solver::checkWatches() const
     }
   }
   assert(num_watches.empty());
-#endif
   return true;
 }
 
