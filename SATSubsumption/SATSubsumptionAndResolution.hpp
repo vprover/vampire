@@ -69,11 +69,6 @@ private:
                                 var(satVar),
                                 polarity(isPositive) {}
 
-    std::string toString() const
-    {
-      return "Match(" + std::to_string(i) + ", " + std::to_string(j) + ", " + std::to_string(polarity) + ", " + std::to_string(var.index()) + ")";
-    }
-
     bool operator==(const Match &other) const
     {
       return i == other.i && j == other.j && polarity == other.polarity && var == other.var;
@@ -82,6 +77,11 @@ private:
     bool operator!=(const Match &other) const
     {
       return !(*this == other);
+    }
+
+    friend std::ostream& operator<<(std::ostream& out, Match const& m)
+    {
+      return out << "Match(" << m.i << ", " << m.j << ", " << m.polarity << + ", " << m.var.index() << ")";
     }
   };
 
