@@ -117,22 +117,22 @@ public:
   using index_type = std::uint32_t;
 
   /// Create an invalid ConstraintRef.
-  NODISCARD static constexpr ConstraintRef invalid() noexcept
+  [[nodiscard]] static constexpr ConstraintRef invalid() noexcept
   {
     return ConstraintRef{std::numeric_limits<index_type>::max()};
   }
 
-  NODISCARD static constexpr index_type max_index() noexcept
+  [[nodiscard]] static constexpr index_type max_index() noexcept
   {
     return std::numeric_limits<index_type>::max() - 1;
   }
 
-  NODISCARD constexpr bool is_valid() const noexcept
+  [[nodiscard]] constexpr bool is_valid() const noexcept
   {
     return m_index <= max_index();
   }
 
-  NODISCARD constexpr index_type index() const noexcept
+  [[nodiscard]] constexpr index_type index() const noexcept
   {
     return m_index;
   }
@@ -154,12 +154,12 @@ private:
 };
 static_assert(std::is_trivially_destructible<ConstraintRef>::value, "");
 
-NODISCARD constexpr bool operator==(ConstraintRef lhs, ConstraintRef rhs) noexcept
+[[nodiscard]] constexpr bool operator==(ConstraintRef lhs, ConstraintRef rhs) noexcept
 {
   return lhs.index() == rhs.index();
 }
 
-NODISCARD constexpr bool operator!=(ConstraintRef lhs, ConstraintRef rhs) noexcept
+[[nodiscard]] constexpr bool operator!=(ConstraintRef lhs, ConstraintRef rhs) noexcept
 {
   return !operator==(lhs, rhs);
 }
@@ -206,14 +206,14 @@ private:
   static_assert(alignof(storage_type) % alignof(Constraint) == 0, "Alignment of storage must imply alignment of Constraint");
   static_assert(std::is_trivially_destructible<Constraint>::value, "Constraint destructor must be trivial because we never call it");
 
-  NODISCARD void* deref_plain(ConstraintRef cr) noexcept
+  [[nodiscard]] void* deref_plain(ConstraintRef cr) noexcept
   {
     assert(cr.is_valid());
     assert(cr.m_arena_id == m_arena_id);
     return &m_storage[cr.m_index];
   }
 
-  NODISCARD void const* deref_plain(ConstraintRef cr) const noexcept
+  [[nodiscard]] void const* deref_plain(ConstraintRef cr) const noexcept
   {
     assert(cr.is_valid());
     assert(cr.m_arena_id == m_arena_id);
@@ -230,19 +230,19 @@ public:
 #endif
   }
 
-  NODISCARD Constraint& deref(ConstraintRef cr) noexcept
+  [[nodiscard]] Constraint& deref(ConstraintRef cr) noexcept
   {
     return *reinterpret_cast<Constraint*>(deref_plain(cr));
   }
 
-  NODISCARD Constraint const& deref(ConstraintRef cr) const noexcept
+  [[nodiscard]] Constraint const& deref(ConstraintRef cr) const noexcept
   {
     return *reinterpret_cast<Constraint const*>(deref_plain(cr));
   }
 
   /// Allocate a new constraint with enough space for 'capacity' literals.
   /// May throw std::bad_alloc if the arena is exhausted, or reallocating the arena fails.
-  NODISCARD AllocatedConstraintHandle alloc(std::uint32_t capacity)
+  [[nodiscard]] AllocatedConstraintHandle alloc(std::uint32_t capacity)
   {
     assert(!m_dynamic_ref.is_valid());
 
@@ -272,7 +272,7 @@ public:
     c.m_size += 1;
   }
 
-  NODISCARD ConstraintRef handle_build(AllocatedConstraintHandle& handle) noexcept
+  [[nodiscard]] ConstraintRef handle_build(AllocatedConstraintHandle& handle) noexcept
   {
     assert(handle.m_constraint_ref.is_valid());
     ConstraintRef cr = handle.m_constraint_ref;
@@ -305,7 +305,7 @@ public:
     m_storage.push_back(lit.index());
   }
 
-  NODISCARD ConstraintRef end() noexcept
+  [[nodiscard]] ConstraintRef end() noexcept
   {
     assert(m_dynamic_ref.is_valid());
 
@@ -344,7 +344,7 @@ public:
     assert(empty());
   }
 
-  NODISCARD bool empty() const noexcept
+  [[nodiscard]] bool empty() const noexcept
   {
     bool const is_empty = m_storage.empty();
     if (is_empty) {
@@ -361,19 +361,19 @@ public:
   }
 
   /// Returns the amount of storage used (actually used, not allocated).
-  NODISCARD std::size_t size() const noexcept
+  [[nodiscard]] std::size_t size() const noexcept
   {
     return m_storage.size();
   }
 
   /// Returns the amount of allocated storage.
-  NODISCARD std::size_t capacity() const noexcept
+  [[nodiscard]] std::size_t capacity() const noexcept
   {
     return m_storage.capacity();
   }
 
 private:
-  NODISCARD ConstraintRef make_ref()
+  [[nodiscard]] ConstraintRef make_ref()
   {
     std::size_t const size = m_storage.size();
     if (size > static_cast<std::size_t>(ConstraintRef::max_index())) {

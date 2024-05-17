@@ -458,7 +458,7 @@ public:
 
 
   /// Returns the next unused variable.
-  NODISCARD Var new_variable(vdom_group group = vdom::InvalidGroup)
+  [[nodiscard]] Var new_variable(vdom_group group = vdom::InvalidGroup)
   {
     LOG_TRACE("new_variable");
     assert(m_state == State::Unknown);
@@ -662,7 +662,7 @@ public:
   /// and finish it with 'handle_build'.
   ///
   /// May not be called while a constraint started by 'constraint_start' is active!
-  NODISCARD AllocatedConstraintHandle alloc_constraint(uint32_t capacity)
+  [[nodiscard]] AllocatedConstraintHandle alloc_constraint(uint32_t capacity)
   {
     LOG_TRACE("alloc_constraint: " << capacity);
     auto handle = m_constraints.alloc(capacity);
@@ -700,7 +700,7 @@ public:
 
   /// Finish the constraint started by 'constraint_start' and returns a handle to it.
   /// Call 'add_clause' to add it to the solver as a clause.
-  NODISCARD ConstraintHandle constraint_end() noexcept
+  [[nodiscard]] ConstraintHandle constraint_end() noexcept
   {
     UPDATE_STORAGE_STATS();
     return {m_constraints.end()};
@@ -1739,7 +1739,7 @@ private:
 
   /// Analyze conflict, learn a clause, backjump.
   /// Returns true if the search should continue.
-  NODISCARD bool analyze(ConstraintRef conflict_ref)
+  [[nodiscard]] bool analyze(ConstraintRef conflict_ref)
   {
     LOG_INFO("Conflict clause " << SHOWREF(conflict_ref) << " on level " << m_level);
     LOG_TRACE("Assignment: " << SHOWASSIGNMENT());
@@ -2134,11 +2134,11 @@ private:
 
 
 #ifndef NDEBUG
-  NODISCARD bool checkEmpty() const;
-  NODISCARD bool checkConstraint(Constraint const& c) const;
-  NODISCARD bool checkInvariants() const;
-  NODISCARD bool checkWatches() const;
-  NODISCARD bool checkModel() const;
+  [[nodiscard]] bool checkEmpty() const;
+  [[nodiscard]] bool checkConstraint(Constraint const& c) const;
+  [[nodiscard]] bool checkInvariants() const;
+  [[nodiscard]] bool checkWatches() const;
+  [[nodiscard]] bool checkModel() const;
 #endif
 
 #if SUBSAT_LOGGING_ENABLED

@@ -26,7 +26,6 @@
 
 namespace subsat {
 
-#define NODISCARD [[nodiscard]]
 
 using std::uint8_t;
 using std::uint32_t;
@@ -99,27 +98,27 @@ public:
     // assert(m_index <= Var::max_index());  // TODO: how to assert in constexpr constructor?
   }
 
-  NODISCARD constexpr index_type index() const noexcept
+  [[nodiscard]] constexpr index_type index() const noexcept
   {
     return m_index;
   }
 
-  NODISCARD static constexpr index_type max_index() noexcept
+  [[nodiscard]] static constexpr index_type max_index() noexcept
   {
     return (1u << 31) - 2;
   }
 
-  NODISCARD static constexpr Var invalid() noexcept
+  [[nodiscard]] static constexpr Var invalid() noexcept
   {
     return Var{std::numeric_limits<index_type>::max()};
   }
 
-  NODISCARD constexpr bool is_valid() const noexcept
+  [[nodiscard]] constexpr bool is_valid() const noexcept
   {
     return m_index <= max_index();
   }
 
-  NODISCARD constexpr Lit operator~() const noexcept;
+  [[nodiscard]] constexpr Lit operator~() const noexcept;
 
 private:
   index_type m_index;
@@ -135,19 +134,19 @@ static_assert(std::is_nothrow_move_constructible<Var>::value, "");
 static_assert(std::is_nothrow_move_assignable<Var>::value, "");
 static_assert(std::is_trivially_destructible<Var>::value, "");
 
-NODISCARD static constexpr bool operator==(Var lhs, Var rhs) noexcept
+[[nodiscard]] static constexpr bool operator==(Var lhs, Var rhs) noexcept
 {
   return lhs.index() == rhs.index();
 }
 
-NODISCARD static constexpr bool operator!=(Var lhs, Var rhs) noexcept
+[[nodiscard]] static constexpr bool operator!=(Var lhs, Var rhs) noexcept
 {
   return !operator==(lhs, rhs);
 }
 
 #ifndef NDEBUG
 // for std::set<Var> in debug assertions
-NODISCARD static constexpr bool operator<(Var lhs, Var rhs) noexcept
+[[nodiscard]] static constexpr bool operator<(Var lhs, Var rhs) noexcept
 {
   return lhs.index() < rhs.index();
 }
@@ -190,59 +189,59 @@ public:
   {
   }
 
-  NODISCARD static constexpr Lit from_index(index_type index) noexcept
+  [[nodiscard]] static constexpr Lit from_index(index_type index) noexcept
   {
     assert(index <= Lit::max_index());
     return Lit{index};
   }
 
-  NODISCARD static constexpr Lit pos(Var var) noexcept
+  [[nodiscard]] static constexpr Lit pos(Var var) noexcept
   {
     return Lit{var, true};
   }
 
-  NODISCARD static constexpr Lit neg(Var var) noexcept
+  [[nodiscard]] static constexpr Lit neg(Var var) noexcept
   {
     return Lit{var, false};
   }
 
-  NODISCARD constexpr index_type index() const noexcept
+  [[nodiscard]] constexpr index_type index() const noexcept
   {
     return m_index;
   }
 
-  NODISCARD static constexpr index_type max_index() noexcept
+  [[nodiscard]] static constexpr index_type max_index() noexcept
   {
     static_assert(Var::max_index() < (std::numeric_limits<index_type>::max() - 1) / 2, "cannot represent all literals");
     return 2 * Var::max_index() + 1;
   }
 
-  NODISCARD static constexpr Lit invalid() noexcept
+  [[nodiscard]] static constexpr Lit invalid() noexcept
   {
     return Lit{std::numeric_limits<index_type>::max()};
   }
 
-  NODISCARD constexpr bool is_valid() const noexcept
+  [[nodiscard]] constexpr bool is_valid() const noexcept
   {
     return m_index <= max_index();
   }
 
-  NODISCARD constexpr bool is_positive() const noexcept
+  [[nodiscard]] constexpr bool is_positive() const noexcept
   {
     return (m_index & 1) == 0;
   }
 
-  NODISCARD constexpr bool is_negative() const noexcept
+  [[nodiscard]] constexpr bool is_negative() const noexcept
   {
     return !is_positive();
   }
 
-  NODISCARD constexpr Lit operator~() const noexcept
+  [[nodiscard]] constexpr Lit operator~() const noexcept
   {
     return Lit{m_index ^ 1};
   }
 
-  NODISCARD constexpr Var var() const noexcept
+  [[nodiscard]] constexpr Var var() const noexcept
   {
     return Var{m_index / 2};
   }
@@ -264,19 +263,19 @@ static_assert(std::is_nothrow_move_constructible<Lit>::value, "");
 static_assert(std::is_nothrow_move_assignable<Lit>::value, "");
 static_assert(std::is_trivially_destructible<Lit>::value, "");
 
-NODISCARD static constexpr bool operator==(Lit lhs, Lit rhs) noexcept
+[[nodiscard]] static constexpr bool operator==(Lit lhs, Lit rhs) noexcept
 {
   return lhs.index() == rhs.index();
 }
 
-NODISCARD static constexpr bool operator!=(Lit lhs, Lit rhs) noexcept
+[[nodiscard]] static constexpr bool operator!=(Lit lhs, Lit rhs) noexcept
 {
   return !operator==(lhs, rhs);
 }
 
 #ifndef NDEBUG
 // for std::set<Lit> in debug assertions
-NODISCARD static constexpr bool operator<(Lit lhs, Lit rhs) noexcept
+[[nodiscard]] static constexpr bool operator<(Lit lhs, Lit rhs) noexcept
 {
   return lhs.index() < rhs.index();
 }
@@ -286,7 +285,7 @@ std::ostream& operator<<(std::ostream& os, Lit lit);
 
 
 
-NODISCARD constexpr Lit Var::operator~() const noexcept
+[[nodiscard]] constexpr Lit Var::operator~() const noexcept
 {
   return Lit{*this, false};
 }
