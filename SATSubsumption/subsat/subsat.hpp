@@ -7,6 +7,21 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
+///
+///
+/// This file implements the class subsat::Solver,
+/// which is a SAT solver especially for subsumption-type problems.
+///
+/// Native support for
+/// - boolean variables and clauses,
+/// - at-most-one constraints,
+/// - substitution theory.
+///
+/// Based on two solvers by Armin Biere:
+/// - satch, see https://github.com/arminbiere/satch
+/// - kitten, which is part of kissat, see https://github.com/arminbiere/kissat
+///
+///
 #ifndef SUBSAT_HPP
 #define SUBSAT_HPP
 
@@ -435,16 +450,6 @@ std::ostream& operator<<(std::ostream& os, ShowAssignment sa);
 
 
 
-/// SAT solver especially for subsumption-type problems.
-///
-/// Native support for
-/// - boolean variables and clauses,
-/// - at-most-one constraints,
-/// - substitution theory.
-///
-/// Based on two solvers by Armin Biere:
-/// - satch, see https://github.com/arminbiere/satch
-/// - kitten, which is part of kissat, see https://github.com/arminbiere/kissat
 class Solver {
 
 public:
