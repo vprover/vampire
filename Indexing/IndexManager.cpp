@@ -26,6 +26,7 @@
 #include "LiteralSubstitutionTree.hpp"
 #include "TermIndex.hpp"
 #include "TermSubstitutionTree.hpp"
+#include "UnitHashingIndex.hpp"
 
 #include "Shell/Statistics.hpp"
 
@@ -105,7 +106,7 @@ Index* IndexManager::create(IndexType t)
   using LiteralSubstitutionTree = Indexing::LiteralSubstitutionTree<LiteralClause>;
 
   bool isGenerating;
-                   
+
   switch(t) {
   case BINARY_RESOLUTION_SUBST_TREE:
     res = new BinaryResolutionIndex(new LiteralSubstitutionTree());
@@ -144,7 +145,7 @@ Index* IndexManager::create(IndexType t)
     res = new SuperpositionLHSIndex(new TermSubstitutionTree(), _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
-    
+
   case SUB_VAR_SUP_SUBTERM_SUBST_TREE:
     //using a substitution tree to store variable.
     //TODO update
@@ -155,25 +156,25 @@ Index* IndexManager::create(IndexType t)
     res = new SubVarSupLHSIndex(new TermSubstitutionTree(), _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
-  
+
   case SKOLEMISING_FORMULA_INDEX:
     res = new SkolemisingFormulaIndex(new Indexing::TermSubstitutionTree<TermWithValue<Kernel::TermList>>());
     isGenerating = false;
     break;
 
   case NARROWING_INDEX:
-    res = new NarrowingIndex(new Indexing::TermSubstitutionTree<TermWithValue<Literal*>>()); 
+    res = new NarrowingIndex(new Indexing::TermSubstitutionTree<TermWithValue<Literal*>>());
     isGenerating = true;
-    break; 
+    break;
 
   case PRIMITIVE_INSTANTIATION_INDEX:
-    res = new PrimitiveInstantiationIndex(new Indexing::TermSubstitutionTree<TermWithoutValue>()); 
+    res = new PrimitiveInstantiationIndex(new Indexing::TermSubstitutionTree<TermWithoutValue>());
     isGenerating = true;
-    break;  
+    break;
    case ACYCLICITY_INDEX:
     res = new AcyclicityIndex(new TermSubstitutionTree());
     isGenerating = true;
-    break; 
+    break;
 
   case DEMODULATION_SUBTERM_SUBST_TREE: {
     auto tis = new TermSubstitutionTree();
@@ -197,6 +198,11 @@ Index* IndexManager::create(IndexType t)
 
   case FW_SUBSUMPTION_SUBST_TREE:
     res = new FwSubsSimplifyingLiteralIndex(new LiteralSubstitutionTree());
+    isGenerating = false;
+    break;
+
+  case UNIT_HASHING_INDEX:
+    res = new UnitHashingIndex();
     isGenerating = false;
     break;
 

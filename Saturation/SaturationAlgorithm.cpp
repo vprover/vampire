@@ -92,6 +92,7 @@
 #include "Inferences/CasesSimp.hpp"
 #include "Inferences/Cases.hpp"
 #include "Inferences/DefinitionIntroduction.hpp"
+#include "Inferences/ForwardIdentitybasedUnitSubsumption.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -934,7 +935,7 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
       // this is a poor way of handling this in release mode but it prevents unsound proofs
       throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
     }
-    
+
 
     // Global Subsumption doesn't set the input type the way we want so we can't do this for now
     // TODO think of a better fix
@@ -1005,7 +1006,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
 
     {
       ClauseIterator results = se->perform(cl);
- 
+
       if (results.hasNext()) {
         while(results.hasNext()){
           Clause* simpedCl = results.next();
@@ -1198,7 +1199,7 @@ void SaturationAlgorithm::activate(Clause* cl)
   cl->setStore(Clause::ACTIVE);
   env.statistics->activeClauses++;
   _active->add(cl);
-    
+
   auto generated = TIME_TRACE_EXPR(TimeTrace::CLAUSE_GENERATION, _generator->generateSimplify(cl));
   auto toAdd = TIME_TRACE_ITER(TimeTrace::CLAUSE_GENERATION, generated.clauses);
 
@@ -1680,6 +1681,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   else if (opt.forwardSubsumptionResolution()) {
     USER_ERROR("Forward subsumption resolution requires forward subsumption to be enabled.");
+  }
+  if (opt.forwardIbUSubsumption()) {
+    res->addForwardSimplifierToFront(new ForwardIdentitybasedUnitSubsumption());
   }
 
   // create backward simplification engine
