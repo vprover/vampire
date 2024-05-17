@@ -100,6 +100,7 @@ private:
 
 public:
 
+  // Returns all literals in the given mini-index that are an instance of the given base literal.
   struct InstanceIterator
       : IteratorBase {
     InstanceIterator(LiteralMiniIndex const& index, Literal* base, bool complementary)
@@ -120,6 +121,9 @@ public:
       return false;
     }
 
+    // Same as hasNext(), but allows using a custom binder for matching:
+    // - see comments on MatchingUtils::match for information about binders
+    // - this can be used to extract variable bindings with the match
     template <class Binder>
     bool hasNext(Binder& binder)
     {
@@ -142,6 +146,7 @@ public:
     }
   };
 
+  // Returns all literals in the given mini-index that are a variant of the given base literal.
   struct VariantIterator
   : IteratorBase
   {
