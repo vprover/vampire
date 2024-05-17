@@ -97,7 +97,7 @@ class OverlayBinder
         || m_overlay.find(var) != m_overlay.end();
     }
 
-    void specVar(Var var, TermList term)
+    void specVar(Var var, TermList term) const
     {
       ASSERTION_VIOLATION;
     }
