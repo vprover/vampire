@@ -48,6 +48,7 @@ class ScopeGuard final
     // where the guard goes out of scope.
     ScopeGuard& operator=(ScopeGuard&& other) = delete;
 
+    // noexcept clause: throws an exception if Callable::operator() throws
     ~ScopeGuard() noexcept(noexcept(std::declval<Callable>()))
     {
       if (active) {
