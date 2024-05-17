@@ -107,7 +107,11 @@ void UnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
 {
   if(c->length()==1) {
     TIME_TRACE("unit clause index maintenance");
-    
+
+    if (_skipNonequational && !(*c)[0]->isEquality()) {
+      return;
+    }
+
     handle(LiteralClause{(*c)[0], c}, adding);
   }
 }

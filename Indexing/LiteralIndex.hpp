@@ -109,10 +109,12 @@ class UnitClauseLiteralIndex
 : public LiteralIndex<LiteralClause>
 {
 public:
-  UnitClauseLiteralIndex(LiteralIndexingStructure<LiteralClause>* is)
-  : LiteralIndex<LiteralClause>(is) {};
+  UnitClauseLiteralIndex(LiteralIndexingStructure<LiteralClause>* is,bool skipNonequational=false)
+  : LiteralIndex<LiteralClause>(is), _skipNonequational(skipNonequational) {};
 protected:
   void handleClause(Clause* c, bool adding);
+private:
+  bool _skipNonequational;
 };
 
 class UnitClauseWithALLiteralIndex

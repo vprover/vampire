@@ -29,6 +29,7 @@
 #include "UnitHashingIndex.hpp"
 
 #include "Shell/Statistics.hpp"
+#include "Shell/Options.hpp"
 
 #include "IndexManager.hpp"
 
@@ -117,7 +118,7 @@ Index* IndexManager::create(IndexType t)
     isGenerating = false;
     break;
   case FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE:
-    res = new UnitClauseLiteralIndex(new LiteralSubstitutionTree());
+    res = new UnitClauseLiteralIndex(new LiteralSubstitutionTree(),_alg->getOptions().forwardSubsumptionOnlyEquational());
     isGenerating = false;
     break;
   case URR_UNIT_CLAUSE_SUBST_TREE:

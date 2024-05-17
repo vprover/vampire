@@ -1670,6 +1670,15 @@ void Options::init()
     _forwardSubsumptionResolution.addHardConstraint(If(equal(true)).then(_forwardSubsumption.is(equal(true))));
     _forwardSubsumptionResolution.onlyUsefulWith(ProperSaturationAlgorithm());
 
+    _forwardSubsumptionOnlyEquational = BoolOptionValue("forward_subsumption_only_equational","fsoe",false);
+    _forwardSubsumptionOnlyEquational.description=
+       "Disables forward subsumption of non-equational literals. Meant to be used on UEQ problems in tandem with -doe and -fibus. "
+       "A helper option for simulating the effect of Waldmeister's `Enlarging the Hypothesis` trick.";
+    _lookup.insert(&_forwardSubsumptionOnlyEquational);
+    _forwardSubsumptionOnlyEquational.setExperimental();
+    _forwardSubsumptionOnlyEquational.tag(OptionTag::INFERENCES);
+    _forwardSubsumptionOnlyEquational.onlyUsefulWith(_forwardSubsumption.is(equal(true)));
+
     _forwardIbUSubsumption = BoolOptionValue("forward_identity_based_unit_subsumption","fibus",false);
     _forwardIbUSubsumption.description="Perform cheap forward subsumption (resolution) for unit clauses based on term-idendity hash-table lookup. "
        "A helper option for simulating the effect of Waldmeister's `Enlarging the Hypothesis` trick.";
