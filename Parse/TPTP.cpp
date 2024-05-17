@@ -105,7 +105,12 @@ TPTP::~TPTP()
 
 void TPTP::parse()
 {
-  parseImpl();
+  try {
+    parseImpl();
+  } catch (UserErrorException &e) {
+    e.line = lineNumber();
+    throw;
+  }
 }
 
 /**
