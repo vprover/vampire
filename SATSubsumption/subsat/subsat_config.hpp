@@ -133,12 +133,5 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 #error "Pure SAT problems need VMTF (or another pure SAT heuristic) as fallback!"
 #endif
 
-// Phase saving
-// CONJECTURE: probably not very helpful; always choosing true should be fine for our use case.
-// TODO: maybe implement and test
-#ifndef SUBSAT_PHASE_SAVING
-#define SUBSAT_PHASE_SAVING 0
-#endif
-
 
 #endif /* !SUBSAT_CONFIG_HPP */

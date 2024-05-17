@@ -34,7 +34,6 @@ std::ostream& subsat::print_config(std::ostream& os)
     if (SUBSAT_VDOM) { os << " VDOM"; }
     if (SUBSAT_VMTF) { os << " VMTF"; }
     if (SUBSAT_VMTF_BUMP) { os << " VMTF_BUMP"; }
-    if (SUBSAT_PHASE_SAVING) { os << " PHASE_SAVING"; }
     if (SUBSAT_STATISTICS) {
         os << " STATISTICS(level " << SUBSAT_STATISTICS;
 #if defined(SUBSAT_STATISTICS_INTERVAL)

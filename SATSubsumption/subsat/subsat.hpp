@@ -2071,11 +2071,6 @@ private:
   DecisionQueue m_queue;
 #endif
 
-#if SUBSAT_PHASE_SAVING
-  // TODO
-  // vector_map<Var, > m_phases;
-#endif
-
   ConstraintArena m_constraints;
   // TODO: merge these
   vector_map<Lit, vector<Watch>> m_watches;
