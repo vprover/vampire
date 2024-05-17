@@ -23,8 +23,8 @@ void UnitHashingIndex::handleClause(Clause* c, bool adding)
     return;
   }
   Literal* lit = (*c)[0];
-  if (lit->functor() > 0) { // we skip equational literals (let the standard subsuption do its job for them, if needed)
-    // we don't want to see the same unit twice
+  if (lit->functor() > 0) { // we skip equational literals (let the standard subsuption do its job for them, if needed, they are likely non-ground)
+    // we should not be getting the same unit twice
     ALWAYS(_lookup.insert(lit,c));
   }
 }

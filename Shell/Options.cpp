@@ -1550,7 +1550,7 @@ void Options::init()
     _demodulationPrecompiledComparison.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
     _demodulationPrecompiledComparison.addProblemConstraint(hasEquality());
 
-    _demodulationOnlyEquational = BoolOptionValue("demodulation_only_equaltional","doe",false);
+    _demodulationOnlyEquational = BoolOptionValue("demodulation_only_equational","doe",false);
     _demodulationOnlyEquational.description=
        "Disables demodulation of non-equational literals. A helper option for simulating the effect of Waldmeister's `Enlarging the Hypothesis` trick.";
     _lookup.insert(&_demodulationOnlyEquational);
@@ -1671,7 +1671,8 @@ void Options::init()
     _forwardSubsumptionResolution.onlyUsefulWith(ProperSaturationAlgorithm());
 
     _forwardIbUSubsumption = BoolOptionValue("forward_identity_based_unit_subsumption","fibus",false);
-    _forwardIbUSubsumption.description="Perform cheap forward subsumption (resolution) for unit clauses based on term-idendity hash-table lookup.";
+    _forwardIbUSubsumption.description="Perform cheap forward subsumption (resolution) for unit clauses based on term-idendity hash-table lookup. "
+       "A helper option for simulating the effect of Waldmeister's `Enlarging the Hypothesis` trick.";
     _lookup.insert(&_forwardIbUSubsumption);
     _forwardIbUSubsumption.tag(OptionTag::INFERENCES);
 
