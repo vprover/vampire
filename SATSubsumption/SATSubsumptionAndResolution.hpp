@@ -20,11 +20,6 @@
 
 #include "./subsat/subsat.hpp"
 
-/// @brief If 1, prints the SAT clauses added to the solver on the standard output
-#define PRINT_CLAUSES_SUBS 0
-/// @brief If 1, prints some comments about the subsumption resolution process
-#define PRINT_CLAUSE_COMMENTS_SUBS 0
-
 namespace SATSubsumption {
 
 /**
