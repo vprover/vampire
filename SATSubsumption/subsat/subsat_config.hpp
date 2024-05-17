@@ -59,9 +59,8 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 #define SUBSAT_LIMITS 1
 #endif
 
-// TODO: disable this by default in Vampire mode (to not slow down vampire's debug mode too much),
-//       but only when this is ready to merge.
-#define SUBSAT_EXPENSIVE_ASSERTIONS 1
+// Enables additional (expensive) sanity checks within the SAT solver
+#define SUBSAT_EXPENSIVE_ASSERTIONS 0
 
 
 /***********************************************************************
