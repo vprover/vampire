@@ -16,6 +16,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Lib/STL.hpp"
+#include "Lib/Slice.hpp"
 
 #include "./subsat/subsat.hpp"
 
@@ -45,32 +46,6 @@ private:
   static_assert(std::is_same<subsat::allocator_type<int>, STLAllocator<int>>::value, "unexpected subsat::allocator_type");
   using Solver = subsat::Solver;
   using BindingsManager = typename Solver::BindingsManager;
-
-  /**
-   * Slice type representing some contiguous range of memory.
-   */
-  template <typename T>
-  class Slice {
-  public:
-    Slice(T *begin, T *end) : _begin(begin), _end(end) {}
-    unsigned size() const { return _end - _begin; };
-    T operator[](unsigned i) const
-    {
-      ASS_L(i, size())
-      return _begin[i];
-    }
-    const T &back() const
-    {
-      ASS_G(size(), 0)
-      return *(_end - 1);
-    }
-    T *begin() const { return _begin; }
-    T *end() const { return _end; }
-
-  private:
-    T *_begin;
-    T *_end;
-  };
 
   /**
    * A Match represents a binding between two literals l_i and m_j of different clauses L and M.
