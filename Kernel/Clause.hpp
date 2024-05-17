@@ -146,7 +146,7 @@ public:
     notifyLiteralReorder();
   }
 
-  /** Return the weight = number of symbols */
+  /** Return the weight = sum of literal weights (usually the number of symbols) */
   unsigned weight() const
   {
     if(!_weight) {
