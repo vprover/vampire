@@ -29,7 +29,6 @@ std::ostream& subsat::print_config(std::ostream& os)
     if (VDEBUG) { os << " DEBUG"; }
     if (SUBSAT_LOGGING_ENABLED) { os << " LOG"; }
     if (SUBSAT_RESTART) { os << " RESTART(" << SUBSAT_RESTART_INTERVAL << ")"; }
-    if (SUBSAT_MINIMIZE) { os << " MINIMIZE"; }
     if (SUBSAT_BLOCKING) { os << " BLOCKING"; }
     if (SUBSAT_VIRTUAL) { os << " VIRTUAL"; }
     if (SUBSAT_VDOM) { os << " VDOM"; }

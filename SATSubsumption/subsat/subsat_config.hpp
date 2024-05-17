@@ -76,12 +76,6 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 #define SUBSAT_RESTART_INTERVAL 100
 #endif
 
-// Conflict clause minimization
-// ASSESSMENT: doesn't seem to help much with subsumption instances.
-#ifndef SUBSAT_MINIMIZE
-#define SUBSAT_MINIMIZE 0
-#endif
-
 // Blocking literal optimization
 // Stores the other watched literal in the watch lists, saves some dereferencing during solving at the cost of increased watch size.
 #ifndef SUBSAT_BLOCKING

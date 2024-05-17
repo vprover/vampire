@@ -74,9 +74,6 @@ struct Statistics {
   int learned_literals = 0;       ///< Sum of the sizes of all learned clauses.
 #endif
   std::size_t max_stored_literals = 0;    ///< Maximum number of literals in the m_constraints storage.
-#if SUBSAT_MINIMIZE && SUBSAT_STATISTICS >= 2
-  int minimized_literals = 0;     ///< Number of literals removed by learned clause minimization.
-#endif
   int original_clauses = 0;       ///< Total number of (non-unit) original clauses.
   int original_amos = 0;          ///< Total number of AtMostOne-constraints (proper AMO constraints, i.e., at least 3 literals).
 #if SUBSAT_RESTART
@@ -109,9 +106,6 @@ static inline std::ostream& operator<<(std::ostream& os, Statistics const& stats
   auto const total_learned_clauses = stats.learned_long_clauses + stats.learned_binary_clauses + stats.learned_unit_clauses;  // same as #conflicts during solving since we don't delete any
   os << "Learned clauses:  " << std::setw(8) << total_learned_clauses << " (" << stats.learned_long_clauses << " long, " << stats.learned_binary_clauses << " binary, " << stats.learned_unit_clauses << " unit)\n";
   os << "Learned literals: " << std::setw(8) << stats.learned_literals << " (on average " << std::setprecision(1) << std::fixed << (static_cast<double>(stats.learned_literals) / total_learned_clauses) << " literals/clause)\n";
-#endif
-#if SUBSAT_MINIMIZE && SUBSAT_STATISTICS >= 2
-  os << "Minimized literals:" << std::setw(7) << stats.minimized_literals << " (on average " << std::setprecision(1) << std::fixed << (static_cast<double>(stats.minimized_literals) / total_learned_clauses) << " literals/clause)\n";
 #endif
   os << "Max. storage used:" << std::setw(8) << stats.max_stored_literals << " literals";
 #if SUBSAT_STATISTICS >= 2
@@ -364,10 +358,6 @@ static_assert(std::is_trivially_destructible<Watch>::value, "");
 using Mark = signed char;
 enum : Mark {
   MarkSeen = 1,
-#if SUBSAT_MINIMIZE
-  MarkPoisoned = 2,
-  MarkRemovable = 4,
-#endif
 };
 
 
@@ -1842,11 +1832,6 @@ private:
 
     assert(std::all_of(clause.begin(), clause.end(), [this](Lit lit) { return m_values[lit] == Value::False; }));
 
-#if SUBSAT_MINIMIZE
-    minimize_learned_clause();
-    LOG_TRACE("Minimized clause: " << ShowVec(clause));
-#endif
-
     // uint32_t const glue = blocks.size();
 
     // We backjump to the second-highest decision level in the conflict clause
@@ -1927,105 +1912,6 @@ private:
     return true;
   }  // analyze
 
-#if SUBSAT_MINIMIZE
-  bool minimize_literal(Lit lit, uint32_t depth)
-  {
-    constexpr uint32_t max_depth = 100;
-    Var const var = lit.var();
-    Mark const mark = m_marks[var];
-    if (mark & MarkPoisoned) {
-      return false; // previously shown not to be removable
-    }
-    if (mark & MarkRemovable) {
-      return true; // previously shown to be removable
-    }
-    if (depth > 0 && (mark & MarkSeen)) {
-      // Analyzed and not at initial depth
-      // Why? We call this for all other literals of the reason for the caller's literal.
-      // If all reason literals have been analyzed, they are in the clause.
-      // Resolving with the reason is self-subsuming, so we can remove the caller's literal.
-      return true;
-    }
-    if (depth > max_depth) {
-      // Limit recursion depth (due to limited stack size)
-      LOG_WARN("reached max_depth");  // just to see whether we ever hit the limit
-      return false;
-    }
-    assert(m_values[lit] == Value::False);
-    Reason const reason = m_vars[var].reason;
-    if (!reason.is_valid()) {
-      return false;  // decision cannot be removed
-    }
-    Level const level = get_level(var);
-    if (level == 0) {
-      return true;  // root-level units can be removed
-    }
-    if (!m_frames[level]) {
-      assert(depth > 0);
-      // decision level of 'lit' not present in clause
-      // => resolving with reason of the caller's literal is not self-subsuming (it would pull in 'lit')
-      // => not removable
-      LOG_WARN("decision level not pulled into clause");  // just to see how common this is
-      return false;
-    }
-
-    // TODO: check out kissat's tail-recursive version for binary clauses
-    Constraint tmp_binary{2};  // a stack-allocated clause has space for two literals
-    Constraint const& reason_clause = get_reason(~lit, reason, tmp_binary);
-    LOG_TRACE("trying to remove " << lit << " at depth " << depth << " along " << reason_clause);
-    bool should_remove = true;
-    for (Lit other : reason_clause) {
-      if (other == ~lit) {
-        continue;
-      }
-      if (minimize_literal(other, depth + 1)) {
-        continue;
-      }
-      LOG_TRACE("could not remove literal " << other);
-      should_remove = false;
-      break;
-    }
-    if (depth > 0) {
-      m_marks[var] = mark | (should_remove ? MarkRemovable : MarkPoisoned);
-      m_marked.push_back(var);
-    }
-    LOG_TRACE("removing " << lit << " at depth " << depth << (should_remove ? " succeeded" : " failed"));
-    return should_remove;
-  }
-
-  bool minimize_literal(Lit lit)
-  {
-    bool const minimize = minimize_literal(lit, 0);
-    if (minimize) {
-      LOG_TRACE("minimized literal " << lit);
-    }
-    return minimize;
-  }
-
-  void minimize_learned_clause()
-  {
-    assert(m_marked.empty());
-
-    vector<Lit>& clause = tmp_analyze_clause; // the learned clause
-    assert(clause.size() > 0);
-
-    // Skip the first literal (the UIP on the highest decision level)
-    auto const new_end = std::remove_if(clause.begin() + 1, clause.end(),
-                                        [this](Lit lit) { return minimize_literal(lit); });
-
-    ptrdiff_t const minimized = clause.end() - new_end;
-
-    clause.erase(new_end, clause.end());
-    LOG_DEBUG("minimized " << minimized << " literals");
-    SUBSAT_STAT2_ADD(minimized_literals, minimized);
-
-    // Clear 'poisoned' and 'removable' marks
-    for (Var var : m_marked) {
-      m_marks[var] &= MarkSeen;
-    }
-    m_marked.clear();
-  }
-#endif
 
   void unassign(Lit lit)
   {
