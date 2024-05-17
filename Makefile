@@ -244,7 +244,7 @@ VI_OBJ = Indexing/AcyclicityIndex.o\
          Indexing/TermSharing.o\
 
 VINF_OBJ=Inferences/BackwardDemodulation.o\
-         Inferences/BackwardSubsumptionResolution.o\
+         Inferences/BackwardSubsumptionAndResolution.o\
          Inferences/BackwardSubsumptionDemodulation.o\
          Inferences/BinaryResolution.o\
          Inferences/Condensation.o\
@@ -274,13 +274,12 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/InnerRewriting.o\
          Inferences/EquationalTautologyRemoval.o\
          Inferences/InferenceEngine.o\
-	 Inferences/Instantiation.o\
+         Inferences/Instantiation.o\
          Inferences/InterpretedEvaluation.o\
          Inferences/PushUnaryMinus.o\
          Inferences/Cancellation.o\
          Inferences/PolynomialEvaluation.o\
          Inferences/ArithmeticSubtermGeneralization.o\
-         Inferences/SLQueryBackwardSubsumption.o\
          Inferences/Superposition.o\
          Inferences/TautologyDeletionISE.o\
          Inferences/TermAlgebraReasoning.o\
@@ -298,7 +297,12 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/GaussianVariableElimination.o\
          Inferences/InterpretedEvaluation.o\
          Inferences/InvalidAnswerLiteralRemoval.o\
-         Inferences/TheoryInstAndSimp.o
+         Inferences/TheoryInstAndSimp.o\
+         SATSubsumption/SATSubsumptionAndResolution.o\
+         SATSubsumption/subsat/constraint.o\
+         SATSubsumption/subsat/log.o\
+         SATSubsumption/subsat/subsat.o\
+         SATSubsumption/subsat/types.o
 
 VSAT_OBJ=SAT/MinimizingSolver.o\
          SAT/SAT2FO.o\
