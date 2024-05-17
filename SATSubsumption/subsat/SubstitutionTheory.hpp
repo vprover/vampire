@@ -17,11 +17,8 @@
 #include "./types.hpp"
 #include "./log.hpp"
 
-#include "Lib/DHMap.hpp"
-
-#if !SUBSAT_STANDALONE
 #include "Kernel/Term.hpp"
-#endif
+#include "Lib/DHMap.hpp"
 
 
 namespace subsat {
@@ -36,25 +33,10 @@ using VampireVar = unsigned;
 using VampireVarPos = std::uint32_t;
 
 
-#if !SUBSAT_STANDALONE
-
 /// Range of the substitution: Vampire's FOL terms
 using VampireTerm = ::Kernel::TermList;
 #define SHOWVAR(var) (VampireTerm{var, false})
 #define SHOWTERM(term) (term.toString())
-
-#else
-
-using VampireTerm = std::uint64_t;
-#define ASSERTION_VIOLATION assert(false)
-#define ASS(x) assert(x)
-#define ASS_EQ(x, y) assert(x == y)
-#define ASS_GE(x, y) assert(x >= y)
-#define SHOWVAR(var) (var)
-#define SHOWTERM(term) (term)
-
-#endif  // !SUBSAT_STANDALONE
-
 
 static_assert(sizeof(VampireTerm) == 8, "unexpected term size");
 
