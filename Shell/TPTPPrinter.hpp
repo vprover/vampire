@@ -27,7 +27,7 @@ using namespace Kernel;
 
 /**
  * All purpose TPTP printer class. It has two major roles:
-* 1. returns as a tptp string a Unit/Formula
+ * 1. returns as a TPTP string a Unit/Formula
  * 2. it outputs to the desired output stream any Unit specified
  */
 class TPTPPrinter {
@@ -37,7 +37,6 @@ public:
   void print(Unit* u);
   void printAsClaim(vstring name, Unit* u);
   void printWithRole(vstring name, vstring role, Unit* u, bool includeSplitLevels = true);
-  void printWithRole(vstring name, vstring role, Literal* u);
 
   static vstring toString(const Unit*);
   static vstring toString(const Formula*);
@@ -47,7 +46,6 @@ public:
 private:
 
   vstring getBodyStr(Unit* u, bool includeSplitLevels);
-  void writeBodyStr(std::ostream& out, Literal* lit);
 
   void ensureHeadersPrinted(Unit* u);
   void outputSymbolTypeDefinitions(unsigned symNumber, SymbolType symType);
