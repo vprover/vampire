@@ -62,8 +62,6 @@ static_assert(sizeof(VampireTerm) == 8, "unexpected term size");
 class BindingsManager final
 {
 public:
-  USE_ALLOCATOR(BindingsManager);
-
   // empty substitution theory
   BindingsManager()
   {
