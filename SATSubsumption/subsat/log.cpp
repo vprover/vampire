@@ -7,12 +7,12 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
-#include <unistd.h>
-#include <utility>
-
 #include "./log.hpp"
 
 #if SUBSAT_LOGGING_ENABLED
+
+#include <unistd.h>
+#include <utility>
 
 static LogLevel
 get_max_log_level(subsat::string const& fn, subsat::string const& pretty_fn)
