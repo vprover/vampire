@@ -39,11 +39,13 @@ void ForwardIdentitybasedUnitSubsumption::detach()
 
 bool ForwardIdentitybasedUnitSubsumption::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)
 {
+  TIME_TRACE("forward ibu subsumption");
+
   Clause* theOther = _units->getUnitLikeThis(cl,/* opposite = */ false);
 
   if (theOther) {
     premises = pvi(getSingletonIterator(theOther));
-    // TODO: add statistics
+    env.statistics->forwardIbuSubsumed++;
     return true;
   }
 
@@ -51,7 +53,7 @@ bool ForwardIdentitybasedUnitSubsumption::perform(Clause *cl, Clause *&replaceme
   if (theOther) {
     replacement = new (0) Clause(0,SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, cl, theOther));
     premises = pvi(getSingletonIterator(theOther));
-    // TODO: add statistics
+    env.statistics->forwardIbuSubsumed++;
     return true;
   }
 

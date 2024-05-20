@@ -139,6 +139,7 @@ Statistics::Statistics()
     simpleTautologies(0),
     equationalTautologies(0),
     forwardSubsumed(0),
+    forwardIbuSubsumed(0),
     backwardSubsumed(0),
     taDistinctnessSimplifications(0),
     taDistinctnessTautologyDeletions(0),
@@ -339,13 +340,14 @@ void Statistics::print(ostream& out)
   SEPARATOR;
 
   HEADING("Deletion Inferences",simpleTautologies+equationalTautologies+
-      forwardSubsumed+backwardSubsumed+forwardDemodulationsToEqTaut+
+      forwardSubsumed+forwardIbuSubsumed+backwardSubsumed+forwardDemodulationsToEqTaut+
       forwardSubsumptionDemodulationsToEqTaut+backwardSubsumptionDemodulationsToEqTaut+
       backwardDemodulationsToEqTaut+innerRewritesToEqTaut);
   COND_OUT("Simple tautologies", simpleTautologies);
   COND_OUT("Equational tautologies", equationalTautologies);
   COND_OUT("Deep equational tautologies", deepEquationalTautologies);
   COND_OUT("Forward subsumptions", forwardSubsumed);
+  COND_OUT("Forward IbU-subsumptions", forwardIbuSubsumed);
   COND_OUT("Backward subsumptions", backwardSubsumed);
   COND_OUT("Fw demodulations to eq. taut.", forwardDemodulationsToEqTaut);
   COND_OUT("Bw demodulations to eq. taut.", backwardDemodulationsToEqTaut);
