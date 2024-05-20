@@ -38,6 +38,7 @@ public:
 protected:
   bool _preorderedOnly;
   bool _encompassing;
+  bool _precompiledComparison;
   DemodulationHelper _helper;
   DemodulationLHSIndex* _index;
 };

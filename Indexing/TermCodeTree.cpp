@@ -32,26 +32,28 @@ namespace Indexing
 using namespace Lib;
 using namespace Kernel;
 
-void TermCodeTree::onCodeOpDestroying(CodeOp* op)
+template<class Data>
+void TermCodeTree<Data>::onCodeOpDestroying(CodeOp* op)
 {
   if (op->isSuccess()) {
-    delete op->getSuccessResult<TermInfo>();
+    delete op->getSuccessResult<Data>();
   }
 }
 
-TermCodeTree::TermCodeTree()
+template<class Data>
+TermCodeTree<Data>::TermCodeTree()
 {
   _clauseCodeTree=false;
   _onCodeOpDestroying = onCodeOpDestroying;
 }
 
-void TermCodeTree::insert(TermInfo* ti)
+template<class Data>
+void TermCodeTree<Data>::insert(Data* data)
 {
   static CodeStack code;
   code.reset();
 
-
-  TermList t=ti->term;
+  TermList t=data->term;
   if (t.isVar()) {
     code.push(CodeOp::getTermOp(ASSIGN_VAR,0));
   }
@@ -64,7 +66,7 @@ void TermCodeTree::insert(TermInfo* ti)
     cctx.deinit(this);
   }
 
-  code.push(CodeOp::getSuccess(ti));
+  code.push(CodeOp::getSuccess(data));
   incorporate(code);  
   //@b incorporate should empty the code stack
   ASS(code.isEmpty());
@@ -72,31 +74,33 @@ void TermCodeTree::insert(TermInfo* ti)
 
 //////////////// removal ////////////////////
 
-void TermCodeTree::remove(const TermInfo& ti)
+template<class Data>
+void TermCodeTree<Data>::remove(const Data& data)
 {
   static RemovingTermMatcher rtm;
   static Stack<CodeOp*> firstsInBlocks;
   firstsInBlocks.reset();
-  
-  FlatTerm* ft=FlatTerm::create(ti.term);
+
+  FlatTerm* ft=FlatTerm::create(data.term);
   rtm.init(ft, this, &firstsInBlocks);
   
-  TermInfo* rti;
+  Data* dptr = nullptr;
   for(;;) {
     if (!rtm.next()) {
       ASSERTION_VIOLATION;
       INVALID_OPERATION("term being removed was not found");
     }
     ASS(rtm.op->isSuccess());
-    rti=rtm.op->getSuccessResult<TermInfo>();
-    if (*rti==ti) {
+    dptr=rtm.op->template getSuccessResult<Data>();
+    if (*dptr==data) {
       break;
     }
   }
   
   rtm.op->makeFail();
-  
-  delete rti;
+
+  ASS(dptr);
+  delete dptr;
   ft->destroy();
   
   optimizeMemoryAfterRemoval(&firstsInBlocks, rtm.op);
@@ -122,7 +126,8 @@ void TermCodeTree::remove(const TermInfo& ti)
   */
 } // TermCodeTree::remove
 
-void TermCodeTree::RemovingTermMatcher::init(FlatTerm* ft_, 
+template<class Data>
+void TermCodeTree<Data>::RemovingTermMatcher::init(FlatTerm* ft_,
 					     TermCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_)
 {
   RemovingMatcher::init(tree_->getEntryPoint(), 0, 0, tree_, firstsInBlocks_);
@@ -136,14 +141,16 @@ void TermCodeTree::RemovingTermMatcher::init(FlatTerm* ft_,
 
 //////////////// retrieval ////////////////////
 
-TermCodeTree::TermMatcher::TermMatcher()
+template<class Data>
+TermCodeTree<Data>::TermMatcher::TermMatcher()
 {
 #if VDEBUG
   ft=0;
 #endif
 }
 
-void TermCodeTree::TermMatcher::init(CodeTree* tree, TermList t)
+template<class Data>
+void TermCodeTree<Data>::TermMatcher::init(CodeTree* tree, TermList t)
 {
   Matcher::init(tree,tree->getEntryPoint());
 
@@ -157,7 +164,8 @@ void TermCodeTree::TermMatcher::init(CodeTree* tree, TermList t)
   tp=0;
 }
 
-void TermCodeTree::TermMatcher::reset()
+template<class Data>
+void TermCodeTree<Data>::TermMatcher::reset()
 {
   ft->destroy();
 #if VDEBUG
@@ -165,7 +173,8 @@ void TermCodeTree::TermMatcher::reset()
 #endif
 }
 
-TermCodeTree::TermInfo* TermCodeTree::TermMatcher::next()
+template<class Data>
+Data* TermCodeTree<Data>::TermMatcher::next()
 {
   if (finished()) {
     //all possible matches are exhausted
@@ -178,7 +187,10 @@ TermCodeTree::TermInfo* TermCodeTree::TermMatcher::next()
   }
 
   ASS(op->isSuccess());
-  return op->getSuccessResult<TermInfo>();
+  return op->getSuccessResult<Data>();
 }
+
+template class TermCodeTree<TermLiteralClause>;
+template class TermCodeTree<DemodulatorData>;
 
 };

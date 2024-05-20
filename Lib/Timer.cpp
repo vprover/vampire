@@ -129,6 +129,7 @@ timer_sigalrm_handler (int sig)
     Timer::updateInstructionCount();
     if (env.options->instructionLimit() && last_instruction_count_read >= MEGA*(long long)env.options->instructionLimit()) {
       Timer::setLimitEnforcement(false);
+      env.statistics->terminationReason = Shell::Statistics::TIME_LIMIT;
       if (TimeoutProtector::protectingTimeout) {
         TimeoutProtector::callLimitReachedLater = 2; // 2 for an instr limit
       } else {

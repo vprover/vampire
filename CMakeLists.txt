@@ -132,7 +132,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Int.cpp
     Lib/IntNameTable.cpp
     Lib/IntUnionFind.cpp
-    Lib/MemoryLeak.cpp
     Lib/NameArray.cpp
     Lib/Random.cpp
     Lib/StringUtils.cpp
@@ -165,7 +164,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/List.hpp
     Lib/Map.hpp
     Lib/MaybeBool.hpp
-    Lib/MemoryLeak.hpp
     Lib/Metaiterators.hpp
     Lib/MultiCounter.hpp
     Lib/NameArray.hpp
@@ -199,9 +197,7 @@ source_group(lib_source_files FILES ${VAMPIRE_LIB_SOURCES})
 
 set(VAMPIRE_LIB_SYS_SOURCES
     Lib/Sys/Multiprocessing.cpp
-    Lib/Sys/Semaphore.cpp
     Lib/Sys/Multiprocessing.hpp
-    Lib/Sys/Semaphore.hpp
     )
 source_group(lib_sys_source_files FILES ${VAMPIRE_LIB_SYS_SOURCES})
 
@@ -222,7 +218,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/InterpretedLiteralEvaluator.cpp
     Kernel/Rebalancing.cpp
     Kernel/KBO.cpp
-    Kernel/KBOForEPR.cpp
+    Kernel/KBOComparator.cpp
     Kernel/LiteralSelector.cpp
     Kernel/LookaheadLiteralSelector.cpp
     Kernel/MainLoop.cpp
@@ -269,7 +265,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/InterpretedLiteralEvaluator.hpp
     Kernel/Rebalancing.cpp
     Kernel/KBO.hpp
-    Kernel/KBOForEPR.hpp
+    Kernel/KBOComparator.hpp
     Kernel/LiteralComparators.hpp
     Kernel/LiteralSelector.hpp
     Kernel/LookaheadLiteralSelector.hpp
@@ -300,6 +296,8 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Unit.hpp
     Kernel/LPO.cpp
     Kernel/LPO.hpp
+    Kernel/LPOComparator.cpp
+    Kernel/LPOComparator.hpp
     Kernel/Polynomial.hpp
     Kernel/Polynomial.cpp
     Kernel/PolynomialNormalizer.hpp

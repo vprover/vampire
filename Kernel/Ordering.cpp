@@ -29,15 +29,14 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
+#include "Shell/Shuffling.hpp"
 
 #include "LPO.hpp"
 #include "KBO.hpp"
 #include "SKIKBO.hpp"
-#include "KBOForEPR.hpp"
 #include "Problem.hpp"
 #include "Signature.hpp"
-#include "Kernel/NumTraits.hpp" 
-#include "Shell/Shuffling.hpp"
+#include "NumTraits.hpp"
 
 #include "Ordering.hpp"
 
@@ -117,23 +116,7 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
   Ordering* out;
   switch (env.options->termOrdering()) {
   case Options::TermOrdering::KBO:
-    // KBOForEPR does not support 
-    // - colors
-    // - user specified symbol weights
-    // TODO fix this! 
-    if(prb.getProperty()->maxFunArity()==0 
-        && prb.getProperty()->maxTypeConArity() == 0
-        && !env.colorUsed
-        && env.options->predicateWeights() == ""
-        && env.options->functionWeights() == ""
-        && env.options->kboWeightGenerationScheme() == Options::KboWeightGenerationScheme::CONST
-        && !env.options->kboMaxZero()
-        && !prb.hasInterpretedOperations()
-        ) {
-      out = new KBOForEPR(prb, opt);
-    } else {
-      out = new KBO(prb, opt);
-    }
+    out = new KBO(prb, opt);
     break;
   case Options::TermOrdering::LPO:
     out = new LPO(prb, opt);
@@ -339,12 +322,13 @@ Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, u
   if (fun1 == fun2)
     return EQUAL;
 
-  if (theory->isInterpretedFunction(fun1, IntTraits::minusI)) { return GREATER; } 
-  if (theory->isInterpretedFunction(fun1, RatTraits::minusI)) { return GREATER; }
-  if (theory->isInterpretedFunction(fun1, RealTraits::minusI)) { return GREATER; }
-
+  if (theory->isInterpretedFunction(fun1, IntTraits::minusI)) { return GREATER; }
   if (theory->isInterpretedFunction(fun2, IntTraits::minusI)) { return LESS; }
+
+  if (theory->isInterpretedFunction(fun1, RatTraits::minusI)) { return GREATER; }
   if (theory->isInterpretedFunction(fun2, RatTraits::minusI)) { return LESS; }
+
+  if (theory->isInterpretedFunction(fun1, RealTraits::minusI)) { return GREATER; }
   if (theory->isInterpretedFunction(fun2, RealTraits::minusI)) { return LESS; }
 
   // $$false is the smallest

@@ -62,6 +62,9 @@ class TermList;
 typedef VirtualIterator<TermList> TermIterator;
 typedef Stack<TermList> TermStack;
 
+struct SubstApplicator;
+struct AppliedTerm;
+
 typedef List<unsigned> VList; // a list of variables (which are unsigned)
 typedef List<TermList> SList; // a list of sorts (which are now, with polymorphism, TermLists)
 typedef const SharedSet<unsigned> VarSet;
@@ -107,6 +110,8 @@ class LiteralSelector;
 
 class Ordering;
 typedef Lib::SmartPtr<Ordering> OrderingSP;
+struct OrderingComparator;
+typedef std::unique_ptr<const OrderingComparator> OrderingComparatorUP;
 
 typedef unsigned SplitLevel;
 typedef const SharedSet<SplitLevel> SplitSet;

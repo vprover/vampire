@@ -62,10 +62,6 @@
 
 #include "FMB/ModelCheck.hpp"
 
-#if CHECK_LEAKS
-#include "Lib/MemoryLeak.hpp"
-#endif
-
 using namespace std;
 
 /**
@@ -75,8 +71,7 @@ using namespace std;
  * either found refutation or established satisfiability.
  *
  *
- * If Vampire was interrupted by a SIGINT, value
- * VAMP_RESULT_STATUS_SIGINT is returned,
+ * If Vampire was interrupted (e.g. SIGINT, SIGHUP), value VAMP_RESULT_STATUS_INTERRUPTED is returned,
  * and in case of other signal we return VAMP_RESULT_STATUS_OTHER_SIGNAL. For implementation
  * of these return values see Lib/System.hpp.
  *
@@ -817,32 +812,20 @@ int main(int argc, char* argv[])
   catch (UserErrorException& exception) {
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
-#if CHECK_LEAKS
-    MemoryLeak::cancelReport();
-#endif
     explainException(exception);
   }
 catch (Parse::TPTP::ParseErrorException& exception) {
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
-#if CHECK_LEAKS
-    MemoryLeak::cancelReport();
-#endif
     explainException(exception);
   }
   catch (Exception& exception) {
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
-#if CHECK_LEAKS
-    MemoryLeak::cancelReport();
-#endif
     explainException(exception);
   } catch (std::bad_alloc& _) {
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
-#if CHECK_LEAKS
-    MemoryLeak::cancelReport();
-#endif
     std::cout << "Insufficient system memory" << '\n';
   }
 
