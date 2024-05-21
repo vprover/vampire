@@ -19,6 +19,8 @@
 #include "./subsat_config.hpp"
 #include "./vector_map.hpp"
 
+#include "Debug/Assertion.hpp"
+
 #if !SUBSAT_STANDALONE
 #include "Lib/STLAllocator.hpp"
 #endif

@@ -1023,3 +1023,20 @@ if(BUILD_SHARED_LIBS)
     set_property(TARGET vtest PROPERTY POSITION_INDEPENDENT_CODE false)
   endif()
 endif()
+
+
+################################################################
+# subsat (standalone version of the SAT solver used for subsumption and subsumption resolution)
+################################################################
+
+add_executable(subsat
+    EXCLUDE_FROM_ALL  # only build when explicitly requested
+    SATSubsumption/subsat/subsat_main.cpp
+    $<TARGET_OBJECTS:obj>
+)
+
+set_target_properties(subsat PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)
+
+target_compile_definitions(subsat PRIVATE SUBSAT_STANDALONE=1)

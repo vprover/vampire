@@ -9,6 +9,7 @@
  */
 #include "./subsat.hpp"
 
+#include <cassert>
 #include <fstream>
 #include <initializer_list>
 #include <iostream>
