@@ -28,6 +28,7 @@
 #include "Kernel/ColorHelper.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/Environment.hpp"
+#include "Shell/Statistics.hpp"
 
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
 
@@ -102,6 +103,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
       premise = mcl;
       ASS(ColorHelper::compatible(cl->color(), premise->color()))
       premises = pvi(getSingletonIterator(premise));
+      env.statistics->forwardSubsumed++;
       return true;
     }
   }
@@ -136,6 +138,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
         if (satSubs.checkSubsumption(mcl, cl, checkSR)) {
           ASS(replacement == nullptr)
           premises = pvi(getSingletonIterator(mcl));
+          env.statistics->forwardSubsumed++;
           return true;
         }
       }
@@ -158,6 +161,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
   if (conclusion) {
     premises = pvi(getSingletonIterator(premise));
     replacement = conclusion;
+    env.statistics->forwardSubsumptionResolution++;
     return true;
   }
   else if (!_subsumptionResolution) {
@@ -185,6 +189,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
       ASS(mcl->length() == 1)
       replacement = SATSubsumption::SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(cl, lit, mcl);
       premises = pvi(getSingletonIterator(mcl));
+      env.statistics->forwardSubsumptionResolution++;
       return true;
     }
   }
@@ -210,6 +215,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
         premise = mcl;
         replacement = conclusion;
         premises = pvi(getSingletonIterator(premise));
+        env.statistics->forwardSubsumptionResolution++;
         return true;
       }
     }
