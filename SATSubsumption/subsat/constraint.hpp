@@ -68,8 +68,7 @@ public:
   /// Number of bytes required for the constraint header (without literals).
   static constexpr size_t header_bytes() noexcept
   {
-    size_t constexpr embedded_literals = std::extent_v<decltype(m_literals)>;
-    size_t constexpr header_bytes = sizeof(Constraint) - sizeof(Lit) * embedded_literals;
+    size_t const header_bytes = sizeof(m_size);
     static_assert(header_bytes == offsetof(Constraint, m_literals));
     return header_bytes;
   }
