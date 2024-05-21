@@ -297,10 +297,6 @@ private:
     }
   };
 
-  enum EncodingMethod {
-    DIRECT,
-    INDIRECT
-  };
 
   /* Variables */
 
@@ -393,7 +389,6 @@ private:
    * to the SAT solver, but the variables in the MatchSet must be used to interpret the model
    * and build the conclusion.
    */
-  // using EncodingMethod = std::function<bool ()>;
 
   /**
    * Adds the clauses for the subsumption resolution problem to the sat solver
