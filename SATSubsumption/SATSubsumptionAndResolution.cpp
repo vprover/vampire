@@ -317,7 +317,7 @@ void SATSubsumptionAndResolution::addBinding(BindingsManager::Binder* binder,
 #endif
   _matchSet.addMatch(i, j, polarity, satVar);
   if (!isNullary)
-    _bindingsManager.commit_bindings(*binder, satVar, i, j);
+    _bindingsManager.commit_bindings(*binder, satVar);
 } // SATSubsumptionAndResolution::addBinding
 
 bool SATSubsumptionAndResolution::checkAndAddMatch(Literal* l_i,
