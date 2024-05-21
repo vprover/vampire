@@ -17,8 +17,6 @@
 
 using namespace subsat;
 
-#if SUBSAT_STANDALONE
-
 /// DIMACS literals are 1, -1, 2, -2, ...
 static Lit from_dimacs(int dimacs_lit)
 {
@@ -198,5 +196,3 @@ int main(int argc, char* argv[])
 
   return static_cast<int>(res);
 }
-
-#endif  // SUBSAT_STANDALONE

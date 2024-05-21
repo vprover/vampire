@@ -20,15 +20,6 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 
 
 /***********************************************************************
- * Operation mode: stand-alone binary or embedded in Vampire
- ***********************************************************************/
-
-#ifndef SUBSAT_STANDALONE
-#define SUBSAT_STANDALONE 0
-#endif
-
-
-/***********************************************************************
  * Debugging features
  ***********************************************************************/
 
@@ -41,8 +32,8 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 #   endif
 #endif
 
-// By default, statistics are only enabled in standalone mode or if logging is enabled
-#if SUBSAT_STANDALONE || SUBSAT_LOGGING_ENABLED
+// By default, statistics are only enabled if logging is enabled
+#if SUBSAT_LOGGING_ENABLED
 #define SUBSAT_STATISTICS 2
 #else
 #define SUBSAT_STATISTICS 1
@@ -107,11 +98,7 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 // If both VDOM and VMTF are enabled, then VMTF is used as fallback (only useful if there are variables without an assigned group).
 // ASSESSMENT: can be removed for subsumption instances since all variables will be assigned to a group.
 #ifndef SUBSAT_VMTF
-#if SUBSAT_STANDALONE
 #define SUBSAT_VMTF 1
-#else
-#define SUBSAT_VMTF 1
-#endif
 #endif
 
 // Variable bumping (to update the decision heuristic)
@@ -128,7 +115,7 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 #error "At least one decision heuristic must be enabled!"
 #endif
 
-#if SUBSAT_STANDALONE && !SUBSAT_VMTF
+#if !SUBSAT_VMTF
 #error "Pure SAT problems need VMTF (or another pure SAT heuristic) as fallback!"
 #endif
 

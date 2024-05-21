@@ -1038,5 +1038,3 @@ add_executable(subsat
 set_target_properties(subsat PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
-
-target_compile_definitions(subsat PRIVATE SUBSAT_STANDALONE=1)

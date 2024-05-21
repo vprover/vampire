@@ -20,10 +20,7 @@
 #include "./vector_map.hpp"
 
 #include "Debug/Assertion.hpp"
-
-#if !SUBSAT_STANDALONE
 #include "Lib/STLAllocator.hpp"
-#endif
 
 namespace subsat {
 
@@ -31,13 +28,8 @@ namespace subsat {
 using std::uint8_t;
 using std::uint32_t;
 
-#if SUBSAT_STANDALONE
-template <typename T>
-using allocator_type = ::std::allocator<T>;
-#else
 template <typename T>
 using allocator_type = ::Lib::STLAllocator<T>;
-#endif
 
 using string = std::basic_string<char, std::char_traits<char>, allocator_type<char>>;
 

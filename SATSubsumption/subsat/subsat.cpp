@@ -25,7 +25,6 @@
 std::ostream& subsat::print_config(std::ostream& os)
 {
     os << "subsat features:";
-    if (SUBSAT_STANDALONE) { os << " STANDALONE"; }
     if (VDEBUG) { os << " DEBUG"; }
     if (SUBSAT_LOGGING_ENABLED) { os << " LOG"; }
     if (SUBSAT_RESTART) { os << " RESTART(" << SUBSAT_RESTART_INTERVAL << ")"; }

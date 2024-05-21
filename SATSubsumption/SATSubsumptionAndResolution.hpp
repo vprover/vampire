@@ -37,7 +37,6 @@ public:
 #else
 private:
 #endif
-  static_assert(!SUBSAT_STANDALONE, "expecting SUBSAT_STANDALONE=0 when integrating subsat into vampire");
   static_assert(std::is_same<subsat::allocator_type<int>, STLAllocator<int>>::value, "unexpected subsat::allocator_type");
   using Solver = subsat::Solver;
   using BindingsManager = typename Solver::BindingsManager;
