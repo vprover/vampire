@@ -119,12 +119,12 @@ static inline std::ostream& operator<<(std::ostream& os, Statistics const& stats
   return os;
 }
 
-#if SUBSAT_STATISTICS
+#if SUBSAT_STATISTICS >= 1
 
 #define SUBSAT_STAT_ADD(NAME, VALUE)                                                \
   do {                                                                              \
     auto v = static_cast<decltype(m_stats.NAME)>(VALUE);                            \
-    ASS(m_stats.NAME <= std::numeric_limits<decltype(m_stats.NAME)>::max() - v); \
+    ASS(m_stats.NAME <= std::numeric_limits<decltype(m_stats.NAME)>::max() - v);    \
     m_stats.NAME += v;                                                              \
   } while (false)
 
@@ -132,15 +132,6 @@ static inline std::ostream& operator<<(std::ostream& os, Statistics const& stats
   do {                                                                                         \
     m_stats.max_stored_literals = std::max(m_stats.max_stored_literals, m_constraints.size()); \
   } while (false)
-
-#if SUBSAT_STATISTICS >= 2
-#define SUBSAT_STAT2_ADD(NAME, VALUE) SUBSAT_STAT_ADD(NAME, VALUE)
-#else
-#define SUBSAT_STAT2_ADD(NAME, VALUE) \
-  do {                                \
-    /* do nothing */                  \
-  } while (false)
-#endif
 
 #else
 
@@ -153,7 +144,17 @@ static inline std::ostream& operator<<(std::ostream& os, Statistics const& stats
   do {                         \
     /* do nothing */           \
   } while (false)
+
 #endif  // SUBSAT_STATISTICS
+
+#if SUBSAT_STATISTICS >= 2
+#define SUBSAT_STAT2_ADD(NAME, VALUE) SUBSAT_STAT_ADD(NAME, VALUE)
+#else
+#define SUBSAT_STAT2_ADD(NAME, VALUE) \
+  do {                                \
+    /* do nothing */                  \
+  } while (false)
+#endif
 
 #define SUBSAT_STAT_INC(NAME)   SUBSAT_STAT_ADD(NAME, 1)
 #define SUBSAT_STAT2_INC(NAME)  SUBSAT_STAT2_ADD(NAME, 1)

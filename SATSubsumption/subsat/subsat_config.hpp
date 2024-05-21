@@ -36,7 +36,7 @@ static_assert(VDEBUG == 1, "VDEBUG and NDEBUG are not synchronized");
 #if SUBSAT_LOGGING_ENABLED
 #define SUBSAT_STATISTICS 2
 #else
-#define SUBSAT_STATISTICS 1
+#define SUBSAT_STATISTICS 0
 #endif
 
 // If SUBSAT_STATISTICS_INTERVAL is set, print statistics periodically
