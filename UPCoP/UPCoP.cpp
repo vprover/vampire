@@ -14,6 +14,7 @@
 #include "cadical.hpp"
 
 #include "Debug/Assertion.hpp"
+#include "DP/SimpleCongruenceClosure.hpp"
 #include "Indexing/LiteralSubstitutionTree.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/RobSubstitution.hpp"
@@ -207,6 +208,8 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
   std::vector<int> reason;
   // random source
   std::mt19937 rng;
+  // ordering (for SimpleCongruenceClosure?!)
+  OrderingSP ordering;
 
   // create a decision level on construction, backtrack a decision level on destruction
   struct Level {
@@ -243,7 +246,10 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
   // decision levels
   std::vector<Level> levels;
 
-  Propagator(const Matrix &matrix) : matrix(matrix) {}
+  Propagator(Problem &problem, const Matrix &matrix) :
+    matrix(matrix),
+    ordering(Kernel::Ordering::create(problem, *env.options))
+  {}
 
   ~Propagator() {
     // undo substitutions in order
@@ -393,6 +399,7 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
       }
     }
 
+conflict:
     // usually better to try lots of different paths
     pathfinder.randomizeForNextAssignment(sat2fo.maxSATVar());
 
@@ -411,6 +418,9 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
       throw MainLoop::RefutationFoundException(empty);
     }
     ASS_EQ(grounded.size(), matrix.copies.size())
+
+    // for checking the path is E-satisfiable
+    DP::SimpleCongruenceClosure cc(ordering.ptr());
 
     // to choose a random satisfied literal in clauses
     std::vector<unsigned> random_order;
@@ -434,10 +444,22 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
           ( lit.polarity() && pathfinder.getAssignment(lit.var()) == SATSolver::TRUE) ||
           (!lit.polarity() && pathfinder.getAssignment(lit.var()) == SATSolver::FALSE)
         ) {
+          cc.addLiteral((*ground)[j]);
           path.insert(copy.start + j);
           break;
         }
       }
+    }
+
+    if(cc.getStatus(false) == DP::DecisionProcedure::UNSATISFIABLE) {
+      ASS(cc.getUnsatCoreCount())
+      Stack<Literal *> core;
+      cc.getUnsatCore(core, 0);
+      SATClause *conflict = sat2fo.createConflictClause(core);
+      ASS(conflict)
+      pathfinder.addClause(conflict);
+      sats.push_back(conflict);
+      goto conflict;
     }
 
     // free clauses, we won't need them for a proof
@@ -467,7 +489,7 @@ MainLoopResult UPCoP::runImpl() {
   solver.set("chrono", 0);
 
   Matrix matrix;
-  Propagator propagator(matrix);
+  Propagator propagator(getProblem(), matrix);
   solver.connect_external_propagator(&propagator);
   log() << env.options->inputFile() << '\n';
 
