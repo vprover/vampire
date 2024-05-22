@@ -159,9 +159,14 @@ struct Matrix {
         // the new connection
         unsigned other_index = unifiers.next().data->position;
 
+        // skip ground connections, they do nothing
+        if(l->ground() && positions[other_index].literal->ground())
+          continue;
+
         // add connection
         int connection = connections.size();
         solver.add_observed_var(connection);
+        solver.phase(connection);
         connections.push_back({other_index, position_index});
 
         // add the new connection to both positions
@@ -196,12 +201,10 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
   RobSubstitution substitution;
   // connections made so far
   std::vector<int> connections;
-  // reason/conflict clause, if any
+  // if there is a reason/conflict clause to learn
+  bool reason_set = false;
+  // reason/conflict clause
   std::vector<int> reason;
-  // auxiliary SAT solver for finding paths
-  MinisatInterfacing pathfinder;
-  // bijection from (substituted, grounded) literals to SAT variables
-  SAT2FO sat2fo;
   // random source
   std::mt19937 rng;
 
@@ -240,7 +243,7 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
   // decision levels
   std::vector<Level> levels;
 
-  Propagator(const Matrix &matrix) : matrix(matrix), pathfinder(*env.options) {}
+  Propagator(const Matrix &matrix) : matrix(matrix) {}
 
   ~Propagator() {
     // undo substitutions in order
@@ -254,7 +257,7 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
 
     // do nothing when variable is assigned false,
     // or there is a conflict we didn't tell CaDiCaL about yet
-    if(assigned < 0 || !reason.empty())
+    if(assigned < 0 || reason_set)
       return;
 
     connections.push_back(assigned);
@@ -267,8 +270,10 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
 
   // fill out `reason` given that `assigned` caused a unification failure
   void compute_unification_reason(int assigned) {
+    ASS(!reason_set)
     ASS(reason.empty())
 
+    reason_set = true;
     // conflicting literal guaranteed to be a reason
     reason.push_back(-assigned);
 
@@ -299,19 +304,23 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
   void notify_new_decision_level() final { levels.emplace_back(*this); }
 
   void notify_backtrack(size_t level) final {
+    reason_set = false;
     reason.clear();
     while(levels.size() > level)
       levels.pop_back();
   }
 
   bool cb_check_found_model(const std::vector<int> &model) final {
+    ASS(!reason_set)
     ASS(reason.empty())
+    reason_set = true;
 
-    // ooooh stars pretty!
 #if 0
+    // ooooh stars pretty!
+    auto &out = log();
     for(int assign : model)
-      std::cout << (assign < 0 ? ' ' : '*');
-    std::cout << '\n';
+      out << (assign < 0 ? ' ' : '*');
+    out << '\n';
 #endif
 
     // find a path through the fully-connected matrix
@@ -340,10 +349,17 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
     return false;
   }
 
-  // find a path through the matrix, returning the sequence of positions
+  // find a path through the matrix, returning a set of positions
   std::unordered_set<unsigned> find_path() {
+    // auxiliary SAT solver for finding paths
+    MinisatInterfacing pathfinder(*env.options);
+    // bijection from (substituted, grounded) literals to SAT variables
+    SAT2FO sat2fo;
+
     // grounded versions of the selected clauses
     std::vector<Clause *> grounded;
+    // SAT versions of `grounded`
+    std::vector<SATClause *> sats;
 
     // ground all clauses and feed them to `pathfinder`
     for(const Copy &copy : matrix.copies) {
@@ -371,11 +387,13 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
       pathfinder.ensureVarCount(sat2fo.maxSATVar());
       // tautology: can happen even if tautologies eliminated
       // consider e.g. p(Y) | ~p(Z), which is grounded to p(X0) | ~p(X0)
-      if(sat)
+      if(sat) {
         pathfinder.addClause(sat);
+        sats.push_back(sat);
+      }
     }
 
-    // randomise the next assignment as far as possible
+    // usually better to try lots of different paths
     pathfinder.randomizeForNextAssignment(sat2fo.maxSATVar());
 
     // no path exists, we're done - emit a proof
@@ -421,12 +439,20 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
         }
       }
     }
+
+    // free clauses, we won't need them for a proof
+    for(SATClause *cl : sats)
+      cl->destroy();
+    for(Clause *cl : grounded)
+      cl->destroy();
+
     return path;
   }
 
-  bool cb_has_external_clause() final { return !reason.empty(); }
+  bool cb_has_external_clause() final { return reason_set; }
 
   int cb_add_external_clause_lit() final {
+    reason_set = false;
     if(reason.empty())
       return 0;
     int lit = reason.back();
@@ -445,7 +471,7 @@ MainLoopResult UPCoP::runImpl() {
   solver.connect_external_propagator(&propagator);
   log() << env.options->inputFile() << '\n';
 
-  // add initial clauses and add start constraint
+  // add initial clauses
   UnitList::Iterator units(_prb.units());
   while(units.hasNext())
     matrix.amplify(solver, units.next()->asClause());
