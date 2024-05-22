@@ -26,10 +26,11 @@ void UnitHashingIndex::handleClause(Clause* c, bool adding)
   if (lit->functor() > 0) { // we skip equational literals (let the standard subsuption do its job for them, if needed, they are likely non-ground)
     if (adding) {
       // we should not be getting the same unit twice
-      ALWAYS(_lookup.insert(lit,c));
+      // but with SaturationAlgorithm::addInputSOSClause, we skip forward reductions, so it's actually possible to insert twice
+      _lookup.insert(lit,c);
     }
     else {
-      ALWAYS(_lookup.remove(lit));
+      _lookup.remove(lit);
     }
   }
 }
