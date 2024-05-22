@@ -406,11 +406,22 @@ Clause* Superposition::performSuperposition(
       return 0;
     }
 
+    struct Applicator : SubstApplicator {
+      Applicator(ResultSubstitution* subst, bool result) : subst(subst) {}
+      TermList operator()(unsigned v) const override {
+        return subst->apply(TermList::var(v), result);
+      }
+      ResultSubstitution* subst;
+      bool result;
+    };
+
+    Applicator appl(subst.ptr(), !eqIsResult);
+
     auto doInsert = eqClause->length()==1 && eqClause->noSplits() &&
       ((instanceRedundancyCheck!=Options::InstanceRedundancyCheck::LAZY && rwTermS.containsAllVariablesOf(tgtTermS)) || comp == Ordering::LESS) &&
       (!_helper.redundancyCheckNeededForPremise(rwClause, rwLitS, rwTermS) ||
         // TODO for rwClause->length()!=1 the function isPremiseRedundant does not work yet
-        (rwClause->length()==1 && _helper.isPremiseRedundant(rwClause, rwLitS, rwTermS, tgtTermS, eqLHS, subst.ptr(), eqIsResult)));
+        (rwClause->length()==1 && _helper.isPremiseRedundant(rwClause, rwLitS, rwTermS, tgtTermS, eqLHS, &appl)));
 
     bool incompInserted = doInsert && comp != Ordering::LESS;
     auto rwSupData = static_cast<SubstitutionCoverTree*>(rwClause->getSupData());
