@@ -21,6 +21,7 @@
 #include "Lib/Backtrackable.hpp"
 #include "SAT/MinisatInterfacing.hpp"
 #include "SAT/SAT2FO.hpp"
+#include <cstdint>
 
 std::ostream &log() { return std::cout << "% "; }
 
@@ -51,147 +52,129 @@ static struct {
   TermList apply(unsigned x) { return TermList(0, false); }
 } X0;
 
-// some data about a copy of a clause in the matrix
+// a rigid copy of a clause
 struct Copy {
   // original clause
-  Clause *original;
-  // range of literal positions this clause occupies
-  unsigned start, end;
-
-  unsigned length() const { return end - start; }
+  Clause *original = nullptr;
+  // renamed literals
+  std::vector<Literal *> literals;
 };
 
-// some data about a literal in the matrix
-struct Position {
-  // the literal at this position in the matrix
-  Literal *literal;
-  // the clause copy this index belongs to, indexing into `Matrix::copies`
-  unsigned copy;
-  // possible connections with this literal
-  std::vector<unsigned> connections;
-
-  Position(Literal *literal, unsigned copy)
-    : literal(literal), copy(copy) {}
-};
-
-// a connection between two literals
+// a connection between two terms
 struct Connection {
-  // the positions connected, indexing into `Matrix::positions`
-  unsigned positions[2];
+  // the two terms to unify
+  TermList unify[2];
+};
+
+template<>
+struct std::hash<Connection> {
+  size_t operator()(const Connection &connection) const {
+    std::hash<uint64_t> hasher;
+    return
+      hasher(connection.unify[0].content()) ^
+      hasher(connection.unify[1].content());
+  }
+};
+
+template<>
+struct std::equal_to<Connection> {
+  bool operator()(const Connection &left, const Connection &right) const {
+    return
+      (left.unify[0] == right.unify[0] && left.unify[1] == right.unify[1]) ||
+      (left.unify[0] == right.unify[1] && left.unify[1] == right.unify[0]);
+  }
 };
 
 // something to keep in the term index
-struct Indexed {
+struct Predicate {
   // the indexed literal
   Literal *literal;
-  // index into `Matrix::positions`
-  unsigned position;
+  Predicate(Literal *literal) : literal(literal) {}
 
   // machinery for LiteralSubstitutionTree
   Literal *key() const { return literal; }
-  bool operator==(const Indexed &other) const
-  { return position == other.position; }
-  bool operator<(const Indexed &other) const
-  { return position < other.position; }
-  bool operator>(const Indexed &other) const
-  { return position > other.position; }
+  bool operator==(const Predicate &other) const
+  { return literal->getId() == other.literal->getId(); }
+  bool operator<(const Predicate &other) const
+  { return literal->getId() < other.literal->getId(); }
+  bool operator>(const Predicate &other) const
+  { return literal->getId() > other.literal->getId(); }
 };
 
-std::ostream &operator<<(std::ostream &out, Indexed indexed) {
-  return out << indexed.literal->toString() << " at position " << indexed.position;
+std::ostream &operator<<(std::ostream &out, const Predicate &indexed) {
+  return out << indexed.literal->toString();
 }
 
 struct Matrix {
   // clause copies
   std::vector<Copy> copies;
-  // literal positions
-  std::vector<Position> positions;
-  // connections
-  std::vector<Connection> connections;
-
-  Matrix() {
-    // offset `connections` by 1 so it can be indexed by SAT variables
-    connections.push_back({0, 0});
-  }
+  // map from connections to SAT variables
+  std::unordered_map<Connection, int> conn2sat;
+  // map from SAT variables to connections
+  std::vector<Connection> sat2conn;
 
   // number of first-order variables used so far
   unsigned offset = 0;
+  // index for non-equality predicates
+  Indexing::LiteralSubstitutionTree<Predicate> predicate_index;
 
-  // literal index
-  Indexing::LiteralSubstitutionTree<Indexed> index;
-
-  // get a pair of literals corresponding to a SAT variable
-  std::pair<Literal *, Literal *> connection_literals(int assigned) const {
-    ASS_G(assigned, 0)
-    const Connection &connection = connections[assigned];
-    Literal *k = positions[connection.positions[0]].literal;
-    Literal *l = positions[connection.positions[1]].literal;
-    return {k, l};
+  Matrix() {
+    // offset by 1 as 0 is not a valid SAT variable
+    sat2conn.push_back({TermList::empty(), TermList::empty()});
   }
 
   // increase the number of copies of `cl` by one
   void amplify(CaDiCaL::Solver &solver, Clause *cl) {
-    // the position in `copies` that this clause will occupy
-    unsigned copy_index = copies.size();
-    // the start of the literal positions that this clause will occupy
-    unsigned position_start = positions.size();
+    // the new clause
+    Copy copy;
+    copy.original = cl;
 
-    // variable renaming applied to clause to produce fresh variables
+    // variable renaming applied to produce fresh variables
     Renaming renaming(offset);
 
     // first pass: insert literals, find connections to others
     for(unsigned i = 0; i < cl->length(); i++) {
-      // normalise `l` to get `renamed`
+      // normalise `l` and insert it into `copy`
       Literal *l = (*cl)[i];
       renaming.normalizeVariables(l);
-      Literal *renamed = renaming.apply(l);
-      Position position(renamed, copy_index);
-
-      // the position this literal will occupy
-      unsigned position_index = positions.size();
+      l = renaming.apply(l);
+      copy.literals.push_back(l);
 
       // all the previous possible connections
-      auto unifiers = index.getUnifications(
+      auto unifiers = predicate_index.getUnifications(
         l,
         /*complementary=*/true,
         /*retrieveSubstitutions=*/false
       );
       while(unifiers.hasNext()) {
-        // the new connection
-        unsigned other_index = unifiers.next().data->position;
+        // the literal to connect to
+        Literal *k = unifiers.next().data->literal;
 
         // skip ground connections, they do nothing
-        if(l->ground() && positions[other_index].literal->ground())
+        if(l->ground() && k->ground())
           continue;
 
         // add connection
-        int connection = connections.size();
-        solver.add_observed_var(connection);
-        solver.phase(connection);
-        connections.push_back({other_index, position_index});
-
-        // add the new connection to both positions
-        positions[other_index].connections.push_back(connection);
-        position.connections.push_back(connection);
+        int fresh = sat2conn.size();
+        Connection connection {TermList(k), TermList(l)};
+        // if not seen before...
+        if(conn2sat.insert({connection, fresh}).second) {
+          sat2conn.push_back(connection);
+          // we want to know about assignments
+          solver.add_observed_var(fresh);
+          // heuristic: more connections good
+          solver.phase(fresh);
+        }
       }
-      positions.emplace_back(std::move(position));
     }
-    // the end of the literal positions
-    unsigned position_end = positions.size();
 
     // bump offset for the next clause
     offset = renaming.nextVar();
-
     // second pass: insert literals into the index
-    for(unsigned i = 0; i < cl->length(); i++) {
-      Literal *literal = (*cl)[i];
-      unsigned position = position_start + i;
-      Indexed indexed { literal, position };
-      index.insert(indexed);
-    }
-
+    for(Literal *l : copy.literals)
+      predicate_index.insert(l);
     // finally add the copy
-    copies.push_back({cl, position_start, position_end});
+    copies.emplace_back(std::move(copy));
   }
 };
 
@@ -268,7 +251,7 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
 
     connections.push_back(assigned);
     // unify the literals corresponding to the connection
-    auto [k, l] = matrix.connection_literals(assigned);
+    auto [k, l] = matrix.sat2conn[assigned].unify;
     if(!substitution.unify(TermList(k), 0, TermList(l), 0))
       // unification failed, learn a conflict clause
       compute_unification_reason(assigned);
@@ -286,17 +269,17 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
     while(true) {
       RobSubstitution attempt;
       for(int assigned : reason) {
-        auto [k, l] = matrix.connection_literals(-assigned);
+        auto [k, l] = matrix.sat2conn[-assigned].unify;
         if(!attempt.unify(TermList(k), 0, TermList(l), 0)) {
           // `reason` contradictory, exit
-          //log() << "unification: " << reason << '\n';
+          // log() << "unification: " << reason << '\n';
           return;
         }
       }
 
       // will always exit since the totality of connections cannot be unified
       for(int assigned : connections) {
-        auto [k, l] = matrix.connection_literals(assigned);
+        auto [k, l] = matrix.sat2conn[assigned].unify;
         if(!attempt.unify(TermList(k), 0, TermList(l), 0)) {
           // this index definitely necessary
           reason.push_back(-assigned);
@@ -329,34 +312,24 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
     out << '\n';
 #endif
 
-    // find a path through the fully-connected matrix
+    // find a path through the matrix
     auto path = find_path();
-    ASS_EQ(path.size(), matrix.copies.size())
-
-    // at least one connection must be made along this path
-    for(unsigned position_index : path) {
-      const Position &position = matrix.positions[position_index];
-      for(unsigned var : position.connections) {
-        const Connection &connection = matrix.connections[var];
-        auto [k, l] = connection.positions;
-        ASS(position_index == k || position_index == l)
-
-        if(
-          // connection along the path
-          path.count(k) && path.count(l) &&
-          // avoid duplicate connections
-          k == position_index
-        )
-          reason.push_back(var);
-      }
+    // at least one connection along the path must be made
+    for(int connection = 1; connection < matrix.sat2conn.size(); connection++) {
+      TermList s = matrix.sat2conn[connection].unify[0];
+      TermList t = matrix.sat2conn[connection].unify[1];
+      auto k = static_cast<Literal *>(s.term());
+      auto l = static_cast<Literal *>(t.term());
+      if(path.count(k) && path.count(l))
+        reason.push_back(connection);
     }
 
-    //log() << "final: " << reason << '\n';
+    // log() << "final: " << reason << '\n';
     return false;
   }
 
-  // find a path through the matrix, returning a set of positions
-  std::unordered_set<unsigned> find_path() {
+  // find a path through the matrix
+  std::unordered_set<Literal *> find_path() {
     // auxiliary SAT solver for finding paths
     MinisatInterfacing pathfinder(*env.options);
     // bijection from (substituted, grounded) literals to SAT variables
@@ -369,19 +342,19 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
 
     // ground all clauses and feed them to `pathfinder`
     for(const Copy &copy : matrix.copies) {
+      size_t length = copy.literals.size();
       // make a Vampire clause for grounding - useful for proof printing
-      Clause *ground = new (copy.length()) Clause(
-        copy.length(),
+      Clause *ground = new (length) Clause(
+        length,
         NonspecificInference1(InferenceRule::INSTANTIATION, copy.original)
       );
       // don't ask
       ground->incRefCnt();
 
       // fill out `ground`
-      for(unsigned i = 0; i < copy.length(); i++) {
-        const Position &position = matrix.positions[copy.start + i];
+      for(unsigned i = 0; i < length; i++) {
         // apply the substitution
-        Literal *substituted = substitution.apply(position.literal, 0);
+        Literal *substituted = substitution.apply(copy.literals[i], 0);
         // map all remaining variables to X0
         // (just barely avoids sortedness problems)
         (*ground)[i] = SubstHelper::apply(substituted, X0);
@@ -426,7 +399,7 @@ conflict:
     std::vector<unsigned> random_order;
 
     // read the path off pathfinder's model
-    std::unordered_set<unsigned> path;
+    std::unordered_set<Literal *> path;
     for(unsigned i = 0; i < matrix.copies.size(); i++) {
       const Copy &copy = matrix.copies[i];
       Clause *ground = grounded[i];
@@ -445,7 +418,7 @@ conflict:
           (!lit.polarity() && pathfinder.getAssignment(lit.var()) == SATSolver::FALSE)
         ) {
           cc.addLiteral((*ground)[j]);
-          path.insert(copy.start + j);
+          path.insert(copy.literals[j]);
           break;
         }
       }
