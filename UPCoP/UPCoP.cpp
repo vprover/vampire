@@ -11,11 +11,13 @@
 
 #include "UPCoP.hpp"
 
+#include "Kernel/TermIterators.hpp"
 #include "cadical.hpp"
 
 #include "Debug/Assertion.hpp"
 #include "DP/SimpleCongruenceClosure.hpp"
 #include "Indexing/LiteralSubstitutionTree.hpp"
+#include "Indexing/TermSubstitutionTree.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Lib/Backtrackable.hpp"
@@ -85,7 +87,7 @@ struct std::equal_to<Connection> {
   }
 };
 
-// something to keep in the term index
+// something to keep in the literal index
 struct Predicate {
   // the indexed literal
   Literal *literal;
@@ -94,7 +96,7 @@ struct Predicate {
   // machinery for LiteralSubstitutionTree
   Literal *key() const { return literal; }
   bool operator==(const Predicate &other) const
-  { return literal->getId() == other.literal->getId(); }
+  { return literal == other.literal; }
   bool operator<(const Predicate &other) const
   { return literal->getId() < other.literal->getId(); }
   bool operator>(const Predicate &other) const
@@ -104,6 +106,27 @@ struct Predicate {
 std::ostream &operator<<(std::ostream &out, const Predicate &indexed) {
   return out << indexed.literal->toString();
 }
+
+// something to keep in the subterm/eq index
+struct Subterm {
+  // the indexed term
+  TypedTermList term;
+  Subterm(TypedTermList term) : term(term) {}
+
+  // machinery for LiteralSubstitutionTree
+  TypedTermList key() const { return term; }
+  bool operator==(const Subterm &other) const
+  { return term == other.term; }
+  bool operator<(const Subterm &other) const
+  { return term < other.term; }
+  bool operator>(const Subterm &other) const
+  { return other.term < term; }
+};
+
+std::ostream &operator<<(std::ostream &out, const Subterm &indexed) {
+  return out << indexed.term;
+}
+
 
 struct Matrix {
   // clause copies
@@ -115,12 +138,35 @@ struct Matrix {
 
   // number of first-order variables used so far
   unsigned offset = 0;
+
   // index for non-equality predicates
   Indexing::LiteralSubstitutionTree<Predicate> predicate_index;
+  // index for sides of equations
+  Indexing::TermSubstitutionTree<Subterm> side_index;
+  // index for subterms
+  Indexing::TermSubstitutionTree<Subterm> subterm_index;
 
   Matrix() {
     // offset by 1 as 0 is not a valid SAT variable
     sat2conn.push_back({TermList::empty(), TermList::empty()});
+  }
+
+  void add_connection(CaDiCaL::Solver &solver, TermList s, TermList t) {
+    // skip ground connections, they do nothing
+    if(s.isTerm() && s.term()->ground() && t.isTerm() && t.term()->ground())
+      return;
+
+    // add connection
+    int fresh = sat2conn.size();
+    Connection connection {s, t};
+    // if not seen before...
+    if(conn2sat.insert({connection, fresh}).second) {
+      sat2conn.push_back(connection);
+      // we want to know about assignments
+      solver.add_observed_var(fresh);
+      // heuristic: more connections good
+      solver.phase(fresh);
+    }
   }
 
   // increase the number of copies of `cl` by one
@@ -132,7 +178,7 @@ struct Matrix {
     // variable renaming applied to produce fresh variables
     Renaming renaming(offset);
 
-    // first pass: insert literals, find connections to others
+    // first pass: find connections to others
     for(unsigned i = 0; i < cl->length(); i++) {
       // normalise `l` and insert it into `copy`
       Literal *l = (*cl)[i];
@@ -141,29 +187,45 @@ struct Matrix {
       copy.literals.push_back(l);
 
       // all the previous possible connections
-      auto unifiers = predicate_index.getUnifications(
-        l,
-        /*complementary=*/true,
-        /*retrieveSubstitutions=*/false
-      );
-      while(unifiers.hasNext()) {
-        // the literal to connect to
-        Literal *k = unifiers.next().data->literal;
+      if(l->isEquality()) {
+        if(l->polarity()) {
+          TermList sort = SortHelper::getEqualityArgumentSort(l);
+          for(unsigned side : {0, 1}) {
+            TypedTermList t((*l)[side], sort);
+            auto unifiers = subterm_index.getUnifications(
+              t,
+              /*retrieveSubstitutions=*/false
+            );
+            while(unifiers.hasNext()) {
+              TypedTermList subterm = unifiers.next().data->term;
+              add_connection(solver, t, subterm);
+            }
+          }
+        }
+      }
+      else {
+        auto unifiers = predicate_index.getUnifications(
+          l,
+          /*complementary=*/true,
+          /*retrieveSubstitutions=*/false
+        );
+        while(unifiers.hasNext()) {
+          // the literal to connect to
+          Literal *k = unifiers.next().data->literal;
+          add_connection(solver, TermList(l), TermList(k));
+        }
+      }
 
-        // skip ground connections, they do nothing
-        if(l->ground() && k->ground())
-          continue;
-
-        // add connection
-        int fresh = sat2conn.size();
-        Connection connection {TermList(k), TermList(l)};
-        // if not seen before...
-        if(conn2sat.insert({connection, fresh}).second) {
-          sat2conn.push_back(connection);
-          // we want to know about assignments
-          solver.add_observed_var(fresh);
-          // heuristic: more connections good
-          solver.phase(fresh);
+      NonVariableNonTypeIterator subterms(l);
+      while(subterms.hasNext()) {
+        TypedTermList subterm(subterms.next());
+        auto unifiers = side_index.getUnifications(
+          subterm,
+          /*retrieveSubstitutions=*/false
+        );
+        while(unifiers.hasNext()) {
+          TypedTermList side = unifiers.next().data->term;
+          add_connection(solver, side, subterm);
         }
       }
     }
@@ -171,8 +233,24 @@ struct Matrix {
     // bump offset for the next clause
     offset = renaming.nextVar();
     // second pass: insert literals into the index
-    for(Literal *l : copy.literals)
-      predicate_index.insert(l);
+    for(Literal *l : copy.literals) {
+      // their top-level parts
+      if(l->isEquality()) {
+        if(l->polarity()) {
+          TermList sort = SortHelper::getEqualityArgumentSort(l);
+          side_index.insert(TypedTermList((*l)[0], sort));
+          side_index.insert(TypedTermList((*l)[1], sort));
+        }
+      }
+      else
+        predicate_index.insert(l);
+
+      // and all subterms
+      NonVariableNonTypeIterator subterms(l);
+      while(subterms.hasNext())
+        subterm_index.insert(TypedTermList(subterms.next()));
+    }
+
     // finally add the copy
     copies.emplace_back(std::move(copy));
   }
@@ -251,8 +329,8 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
 
     connections.push_back(assigned);
     // unify the literals corresponding to the connection
-    auto [k, l] = matrix.sat2conn[assigned].unify;
-    if(!substitution.unify(TermList(k), 0, TermList(l), 0))
+    auto [s, t] = matrix.sat2conn[assigned].unify;
+    if(!substitution.unify(s, 0, t, 0))
       // unification failed, learn a conflict clause
       compute_unification_reason(assigned);
   }
@@ -269,8 +347,8 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
     while(true) {
       RobSubstitution attempt;
       for(int assigned : reason) {
-        auto [k, l] = matrix.sat2conn[-assigned].unify;
-        if(!attempt.unify(TermList(k), 0, TermList(l), 0)) {
+        auto [s, t] = matrix.sat2conn[-assigned].unify;
+        if(!attempt.unify(s, 0, t, 0)) {
           // `reason` contradictory, exit
           // log() << "unification: " << reason << '\n';
           return;
@@ -279,8 +357,8 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
 
       // will always exit since the totality of connections cannot be unified
       for(int assigned : connections) {
-        auto [k, l] = matrix.sat2conn[assigned].unify;
-        if(!attempt.unify(TermList(k), 0, TermList(l), 0)) {
+        auto [s, t] = matrix.sat2conn[assigned].unify;
+        if(!attempt.unify(s, 0, t, 0)) {
           // this index definitely necessary
           reason.push_back(-assigned);
           break;
@@ -314,13 +392,44 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
 
     // find a path through the matrix
     auto path = find_path();
+
+    DHSet<TermList> predicates, sides, subterms;
+    for(Literal *l : path) {
+      if(l->isEquality()) {
+        if(l->polarity()) {
+          sides.insert((*l)[0]);
+          sides.insert((*l)[1]);
+        }
+      }
+      else {
+        predicates.insert(TermList(l));
+      }
+      NonVariableNonTypeIterator it(l);
+      while(it.hasNext())
+        subterms.insert(TermList(it.next()));
+    }
+
+    // a set of positive connections: TODO track this ourselves
+    std::unordered_set<int> model_set;
+    for(int lit : model)
+      if(lit > 0)
+        model_set.insert(lit);
+
     // at least one connection along the path must be made
     for(int connection = 1; connection < matrix.sat2conn.size(); connection++) {
-      TermList s = matrix.sat2conn[connection].unify[0];
-      TermList t = matrix.sat2conn[connection].unify[1];
-      auto k = static_cast<Literal *>(s.term());
-      auto l = static_cast<Literal *>(t.term());
-      if(path.count(k) && path.count(l))
+      // we can ignore connections already set:
+      // 1. If the connection is between predicates, this wouldn't be a path
+      // 2. If the connection is between an equation and a subterm, it wasn't strong enough
+      if(model_set.count(connection))
+        continue;
+
+      auto [s, t] = matrix.sat2conn[connection].unify;
+      if(predicates.contains(s) && predicates.contains(t))
+        reason.push_back(connection);
+      else if(
+        (sides.contains(t) && subterms.contains(s)) ||
+        (sides.contains(s) && subterms.contains(t))
+      )
         reason.push_back(connection);
     }
 
@@ -403,6 +512,7 @@ conflict:
     for(unsigned i = 0; i < matrix.copies.size(); i++) {
       const Copy &copy = matrix.copies[i];
       Clause *ground = grounded[i];
+      ASS_EQ(copy.literals.size(), ground->length())
 
       // randomise order of iteration
       random_order.clear();
