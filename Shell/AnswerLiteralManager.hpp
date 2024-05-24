@@ -79,27 +79,33 @@ public:
 protected:
   static TermList possiblyEvaluateAnswerTerm(TermList);
 
+  virtual void recordSkolemBinding(Term*,unsigned) = 0;
+
   Clause* getRefutation(Clause* answer);
-  Literal* getAnswerLiteral(VList* vars,Formula* f);
+  Literal* getAnswerLiteral(VList* vars,SList* srts,Formula* f);
 
 private:
   Unit* tryAddingAnswerLiteral(Unit* unit);
-  virtual Formula* tryGetQuantifiedFormulaForAnswerLiteral(Unit* unit);
-
-  virtual Unit* createUnitFromConjunctionWithAnswerLiteral(Formula* junction, VList* existsVars, Unit* originalUnit);
 
   Clause* getResolverClause(unsigned pred);
 
   /**
    * So that for every answer-predicate-symbol (key)
    * we can retrieve the unit for which it was introduced
-   * and the Litera that got injected into the conjecture
+   * and the Literal that got injected into the conjecture
    * (which, in particular, has the variables for arguments
    * as they were in the conecture).
    */
   DHMap<unsigned, std::pair<Unit*,Literal*>> _originUnitsAndInjectedLiterals;
 
   DHMap<unsigned, Clause*> _resolverClauses;
+};
+
+class PlainManager : public AnswerLiteralManager
+{
+protected:
+  void recordSkolemBinding(Term*,unsigned) override;
+
 };
 
 class SynthesisManager : public AnswerLiteralManager
@@ -111,6 +117,9 @@ public:
   Clause* recordAnswerAndReduce(Clause* cl) override;
 
   Literal* makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit) override;
+
+protected:
+  void recordSkolemBinding(Term*,unsigned) override;
 
 private:
   void getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits);
@@ -128,10 +137,6 @@ private:
     // Map from functions to predicates they represent in answer literal conditions
     DHMap<unsigned, unsigned> _condFnToPred;
   };
-
-  Formula* tryGetQuantifiedFormulaForAnswerLiteral(Unit* unit) override;
-
-  Unit* createUnitFromConjunctionWithAnswerLiteral(Formula* junction, VList* existsVars, Unit* originalUnit) override;
 
   Formula* getConditionFromClause(Clause* cl);
 

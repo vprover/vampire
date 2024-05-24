@@ -71,7 +71,9 @@ typedef List<pair<unsigned,pair<Clause*, Literal*>>> AnsList;
 AnswerLiteralManager* AnswerLiteralManager::getInstance()
 {
   static AnswerLiteralManager* instance =
-    (env.options->questionAnswering() == Options::QuestionAnsweringMode::PLAIN) ? new AnswerLiteralManager() : new SynthesisManager();
+    (env.options->questionAnswering() == Options::QuestionAnsweringMode::PLAIN) ?
+      static_cast<AnswerLiteralManager*>(new PlainManager()) :
+      static_cast<AnswerLiteralManager*>(new SynthesisManager());
 
   return instance;
 }
@@ -85,7 +87,7 @@ void AnswerLiteralManager::addAnswerLiterals(Problem& prb)
 
 /**
  * Attempt adding answer literals into questions among the units
- * in the list @c units. Return true is some answer literal was added.
+ * in the list @c units. Return true if some answer literal was added.
  */
 bool AnswerLiteralManager::addAnswerLiterals(UnitList*& units)
 {
@@ -104,23 +106,73 @@ bool AnswerLiteralManager::addAnswerLiterals(UnitList*& units)
 
 Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
 {
-  Formula* quant = tryGetQuantifiedFormulaForAnswerLiteral(unit);
-  if (quant == nullptr) {
-    return unit;
+  if (unit->isClause() || (unit->inputType()!=UnitInputType::CONJECTURE && unit->inputType()!=UnitInputType::NEGATED_CONJECTURE)) {
+    return unit; // do nothing
   }
 
-  VList* vars = quant->vars();
-  ASS(vars);
+  Formula* topF = static_cast<FormulaUnit*>(unit)->formula();
+
+  // it must start with a not
+  if(topF->connective()!=NOT) {
+    return unit; // do nothing
+  }
+
+  Formula* subNot = topF->uarg();
+
+  bool skolemise = false;
+  Formula* eQuant;
+  if (subNot->connective() == EXISTS) {
+    eQuant = subNot;
+  } else if (subNot->connective() == FORALL) {
+    skolemise = true;
+    Formula* subForall = subNot->qarg();
+    if (subForall->connective() == EXISTS) {
+      eQuant = subForall;
+    } else {
+      return unit; // do nothing
+    }
+  } else {
+    return unit; // do nothing
+  }
+
+  VList* eVars = eQuant->vars();
+  SList* eSrts = eQuant->sorts();
+  ASS(eVars);
 
   FormulaList* conjArgs = 0;
-  FormulaList::push(quant->qarg(), conjArgs);
-  Literal* ansLit = getAnswerLiteral(vars,quant);
+  FormulaList::push(eQuant->qarg(), conjArgs);
+  Literal* ansLit = getAnswerLiteral(eVars,eSrts,eQuant);
   _originUnitsAndInjectedLiterals.insert(ansLit->functor(),make_pair(unit,ansLit));
-
   FormulaList::push(new AtomicFormula(ansLit), conjArgs);
 
-  Formula* conj = new JunctionFormula(AND, conjArgs);
-  return createUnitFromConjunctionWithAnswerLiteral(conj, vars, unit);
+  Formula* out = new NegatedFormula(new QuantifiedFormula(EXISTS, eVars, eSrts, new JunctionFormula(AND, conjArgs)));
+
+  if (skolemise) {
+    VList* fVars = subNot->vars();
+    SList* fSrts = subNot->sorts();
+    Substitution subst;
+    while (VList::isNonEmpty(fVars)) {
+      unsigned var = fVars->head();
+      fVars = fVars->tail();
+      unsigned skFun = env.signature->addSkolemFunction(/*arity=*/0, /*suffix=*/"in", /*computable=*/true);
+      Signature::Symbol* skSym = env.signature->getFunction(skFun);
+      TermList sort;
+      if (SList::isNonEmpty(fSrts)) {
+        sort = fSrts->head();
+        fSrts = fSrts->tail();
+      } else {
+        sort = AtomicSort::defaultSort();
+      }
+      OperatorType* ot = OperatorType::getConstantsType(sort);
+      skSym->setType(ot);
+      Term* skTerm = Term::create(skFun, /*arity=*/0, /*args=*/nullptr);
+      subst.bind(var, skTerm);
+      recordSkolemBinding(skTerm, var);
+    }
+    out = SubstHelper::apply(out, subst);
+  }
+
+  return new FormulaUnit(out, FormulaTransformation(skolemise ? InferenceRule::ANSWER_LITERAL_INPUT_SKOLEMISATION : InferenceRule::ANSWER_LITERAL_INJECTION, unit));
 }
 
 TermList AnswerLiteralManager::possiblyEvaluateAnswerTerm(TermList aT)
@@ -253,19 +305,23 @@ bool AnswerLiteralManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answ
   return false;
 }
 
-Literal* AnswerLiteralManager::getAnswerLiteral(VList* vars,Formula* f)
+Literal* AnswerLiteralManager::getAnswerLiteral(VList* vars,SList* srts,Formula* f)
 {
   static Stack<TermList> litArgs;
   litArgs.reset();
-  VList::Iterator vit(vars);
   TermStack sorts;
-  while(vit.hasNext()) {
-    unsigned var = vit.next();
+  while(VList::isNonEmpty(vars)) {
+    unsigned var = vars->head();
+    vars = vars->tail();
     TermList sort;
-    if(SortHelper::tryGetVariableSort(var,f,sort)){
-      sorts.push(sort);
-      litArgs.push(TermList(var, false));
+    if (SList::isNonEmpty(srts)) {
+      sort = srts->head();
+      srts = srts->tail();
+    } else {
+      sort = AtomicSort::defaultSort();
     }
+    litArgs.push(TermList(var, false));
+    sorts.push(sort);
   }
 
   unsigned vcnt = litArgs.size();
@@ -276,25 +332,6 @@ Literal* AnswerLiteralManager::getAnswerLiteral(VList* vars,Formula* f)
   // don't need equality proxy for answer literals
   predSym->markSkipCongruence();
   return Literal::create(pred, vcnt, true, false, litArgs.begin());
-}
-
-Formula* AnswerLiteralManager::tryGetQuantifiedFormulaForAnswerLiteral(Unit* unit) {
-  if (unit->isClause() || unit->inputType()!=UnitInputType::CONJECTURE) {
-    return nullptr;
-  }
-
-  Formula* form = static_cast<FormulaUnit*>(unit)->formula();
-
-  if (form->connective()!=NOT || form->uarg()->connective()!=EXISTS) {
-    return nullptr;
-  }
-
-  return form->uarg();
-}
-
-Unit* AnswerLiteralManager::createUnitFromConjunctionWithAnswerLiteral(Formula* junction, VList* existsVars, Unit* originalUnit) {
-  Formula* f = new NegatedFormula(new QuantifiedFormula(EXISTS, existsVars, 0, junction));
-  return new FormulaUnit(f, FormulaTransformation(InferenceRule::ANSWER_LITERAL_INJECTION, originalUnit));
 }
 
 Clause* AnswerLiteralManager::getResolverClause(unsigned pred)
@@ -340,6 +377,15 @@ Clause* AnswerLiteralManager::getRefutation(Clause* answer)
 }
 
 ///////////////////////
+// PlainManager
+//
+
+void PlainManager::recordSkolemBinding(Term*,unsigned)
+{
+
+}
+
+///////////////////////
 // SynthesisManager
 //
 
@@ -369,6 +415,11 @@ void SynthesisManager::getNeededUnits(Clause* refutation, ClauseStack& premiseCl
       toDo.push(premise);
     }
   }
+}
+
+void SynthesisManager::recordSkolemBinding(Term* skTerm, unsigned var)
+{
+  _skolemReplacement.bindSkolemToVar(skTerm, var);
 }
 
 bool SynthesisManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer)
@@ -502,52 +553,6 @@ Literal* SynthesisManager::makeITEAnswerLiteral(Literal* condition, Literal* the
     }
   }
   return Literal::create(thenLit->functor(), thenLit->arity(), thenLit->polarity(), /*commutative=*/false, litArgs.begin());
-}
-
-Formula* SynthesisManager::tryGetQuantifiedFormulaForAnswerLiteral(Unit* unit) {
-  if(unit->isClause() || (unit->inputType()!=UnitInputType::CONJECTURE && unit->inputType()!=UnitInputType::NEGATED_CONJECTURE)) {
-    return nullptr;
-  }
-
-  Formula* form = static_cast<FormulaUnit*>(unit)->formula();
-
-  if(form->connective()!=NOT ||
-      (form->uarg()->connective()!=EXISTS &&
-        (env.options->questionAnswering() == Options::QuestionAnsweringMode::PLAIN ||
-         form->uarg()->connective()!=FORALL || form->uarg()->qarg()->connective()!=EXISTS))) {
-    return nullptr;
-  }
-
-
-
-  return (form->uarg()->connective()==EXISTS) ? form->uarg() : form->uarg()->qarg();
-}
-
-Unit* SynthesisManager::createUnitFromConjunctionWithAnswerLiteral(Formula* junction, VList* existsVars, Unit* originalUnit) {
-  Formula* form = static_cast<FormulaUnit*>(originalUnit)->formula();
-  Formula* quant = new QuantifiedFormula(FORALL, existsVars, 0, new NegatedFormula(junction));
-  bool skolemise = (form->uarg()->connective()==FORALL);
-  if (skolemise) {
-    VList::Iterator it(form->uarg()->vars());
-    Substitution subst;
-    while (it.hasNext()) {
-      unsigned var = it.next();
-      unsigned skFun = env.signature->addSkolemFunction(/*arity=*/0, /*suffix=*/"in", /*computable=*/true);
-      Signature::Symbol* skSym = env.signature->getFunction(skFun);
-      TermList sort;
-      if (!SortHelper::tryGetVariableSort(var, form, sort)) {
-        sort = AtomicSort::defaultSort();
-      }
-      OperatorType* ot = OperatorType::getConstantsType(sort);
-      skSym->setType(ot);
-      Term* skTerm = Term::create(skFun, /*arity=*/0, /*args=*/nullptr);
-      subst.bind(var, skTerm);
-      _skolemReplacement.bindSkolemToVar(skTerm, var);
-    }
-    quant = SubstHelper::apply(quant, subst);
-  }
-  quant = Flattening::flatten(quant);
-  return new FormulaUnit(quant, FormulaTransformation(skolemise ? InferenceRule::ANSWER_LITERAL_INPUT_SKOLEMISATION : InferenceRule::ANSWER_LITERAL_INJECTION, originalUnit));
 }
 
 Formula* SynthesisManager::getConditionFromClause(Clause* cl) {
@@ -702,13 +707,3 @@ TermList SynthesisManager::ConjectureSkolemReplacement::transformSubterm(TermLis
 }
 
 }
-
-
-
-
-
-
-
-
-
-
