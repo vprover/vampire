@@ -16,6 +16,7 @@
 #ifndef __Metaiterators__
 #define __Metaiterators__
 
+#include <tuple>
 #include <utility>
 #include <functional>
 
@@ -1388,30 +1389,77 @@ template<class... Is>
 auto coproductIter(Coproduct<Is...> is)
 { return iterTraits(CoproductIter<Is...>(std::move(is))); }
 
+template<class Closure>
+struct ApplyClosure {
+   template<class A> 
+   using apply = std::invoke_result_t<Closure, A>;
+};
 
-template<class IfIterCons, class ElseIterCons>
-static auto ifElseIter(bool cond, IfIterCons ifCons, ElseIterCons elseCons) 
+template<unsigned N>
+struct Times {
+  template<class C>
+  using apply = Constant<C::value * N>;
+};
+
+template<unsigned N>
+struct Plus {
+  template<class C>
+  using apply = Constant<C::value + N>;
+};
+
+#define LAZY(...)  [&]() { return __VA_ARGS__; }
+
+template<class A
+  , std::enable_if_t<!std::is_invocable_v<A>, bool> = true
+  >
+auto makeLazy(A&& a) 
+{ return [a = std::forward<A>(a)](){ return a; }; }
+
+template<class A
+  , std::enable_if_t<std::is_invocable_v<A>, bool> = true
+  >
+auto makeLazy(A a) -> A
+{ return a; }
+
+template<class... Args>
+static auto __ifElseIter(Args... args)
 { 
-  using C = Coproduct<ResultOf<IfIterCons>, ResultOf<ElseIterCons>>;
-  return coproductIter(cond ? C::template variant<0>(ifCons()) : C::template variant<1>(elseCons()));
+  auto tuple = std::tie(args...);
+  constexpr unsigned total = TL::Size<TL::List<Args...>>::val;
+  auto tupleGetApplied = [&](auto N) -> decltype(auto) { return std::get<N.value>(tuple)(); };
+  static_assert(total % 2 == 1);
+
+  using Out = TL::Into<Coproduct, 
+        TL::Map<
+          TL::Closure<decltype(tupleGetApplied)>,
+          TL::Concat<
+            TL::Map<Plus<1>, TL::Map<Times<2>, TL::Range<0, total / 2>>>,
+            TL::List<Constant<total - 1>>
+          >>>;
+
+  Option<Out> out;
+  TL::Range<0, total / 2>::forEach([&](auto token){
+      constexpr unsigned i = TL::TokenType<decltype(token)>::value;
+      if (out.isNone()) {
+        if (tupleGetApplied(Constant<2*i>{})) {
+          out = some(Out::template variant<i>(tupleGetApplied(Constant<2*i + 1>{})));
+        }
+      }
+  });
+  return coproductIter(out ? *out : Out::template variant<total/2>(tupleGetApplied(Constant<total - 1>{})));
 }
 
-template<class IfIterCons, class ElseIterCons, class... Rest>
-static auto ifElseIter(
-    bool c1, IfIterCons if1, 
-    bool c2, IfIterCons if2, 
-    Rest... rest
-    ) 
-{ 
-  return ifElseIter(c1, std::move(if1), [=]() { return ifElseIter(c2, std::move(if2), std::move(rest)...); });
-}
+template<class... Args>
+static auto ifElseIter(Args&&... args) 
+{ return __ifElseIter(makeLazy(std::forward<Args>(args))...); }
 
-
+#define ifElseIter2(i0, t0, e) ifElseIter2(LAZY(i0), LAZY(t0), LAZY(e))
+#define ifElseIter3(i0, t0, i1, t1, e) ifElseIter(LAZY(i0), LAZY(t0), LAZY(i1), LAZY(t1), LAZY(e))
+#define ifElseIter4(i0, t0, i1, t1, i2, t2, e) ifElseIter(LAZY(i0), LAZY(t0), LAZY(i1), LAZY(t1), LAZY(i2), LAZY(t2), LAZY(e))
 
 template<class IfIterCons>
 static auto ifIter(bool cond, IfIterCons ifCons) 
 { return iterTraits(someIf(cond, std::move(ifCons)).intoIter()).flatten(); }
-
 
 template<class T>
 struct EmptyIter
@@ -1697,6 +1745,9 @@ public:
 template<class Iter> 
 IterTraits<Iter> iterTraits(Iter i) { return IterTraits<Iter>(std::move(i)); }
 
+static const auto range = [](auto from, auto to) 
+  { return iterTraits(getRangeIterator<decltype(to)>(from, to)); };
+
 template<class I1>
 static auto concatIters(I1 i1) 
 { return iterTraits(std::move(i1)); }
@@ -1710,9 +1761,6 @@ static auto concatIters(I1 i1, I2 i2, Is... is)
 template<class... Items>
 auto iterItems(Items... items)
 { return concatIters(getSingletonIterator(items)...); }
-
-static const auto range = [](auto from, auto to) 
-  { return iterTraits(getRangeIterator<decltype(to)>(from, to)); };
 
 template<class I1, class I2, class Cmp>
 auto iterSortedDiff(I1 i1, I2 i2, Cmp cmp) 

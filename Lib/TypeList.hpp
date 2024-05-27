@@ -22,12 +22,31 @@ namespace Lib {
 
 namespace TypeList {
 
+  template<class A>
+  struct Token { using inner = A; };
+
+  template<class Token>
+  using TokenType = typename Token::inner; 
+
+  template<class F>
+  auto __forEach(F& f) { }
+
+  template<class F, class A, class... As> 
+  auto __forEach(F& f) {
+    f(Token<A>{});
+    __forEach<F, As...>(f);
+  }
 
   /* Meta level type constructor.
    *
    * List : [class] -> class
    */
-  template<class... As> struct List {};
+  template<class... As> struct List
+  {
+    template<class F>
+    static auto forEach(F f) 
+    { __forEach<F, As...>(f); }
+  };
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   ////// FUNTIONS RETURNING TYPES
@@ -265,6 +284,22 @@ namespace TypeList {
 
   template<class As> using Indices = typename IndicesImpl<0, As>::type;
 
+  /*
+   * E.g. Range<0, 3> ==>  List<Constant<0>, Constant<1>, Constant<2>>
+   */
+  template<unsigned From, unsigned ToExcl> struct RangeImpl
+  { using type = Concat<List<Constant<From>>, typename RangeImpl<From + 1, ToExcl>::type>; };
+
+  template<unsigned From> struct RangeImpl<From, From>
+  { using type = List<>; };
+
+  template<unsigned From, unsigned ToExcl> 
+  using Range = typename RangeImpl<From,ToExcl>::type;
+
+   template<class F>
+   struct Closure {
+      template<class A> using apply = std::invoke_result_t<F, A>;
+   };
 
   /* 
    * Maps a list A using the function F
@@ -374,6 +409,25 @@ namespace TypeList {
        Map<TestFunctorFunction, List<A, B, A>>,
        List<TestFunctor<A>, TestFunctor<B>, TestFunctor<A>>)
 
+    inline void test_fun() {
+      auto tuple = std::make_tuple('a', 'b', 3);
+      auto tupleGet = [&](auto N) { return std::get<N.value>(tuple); };
+      STATIC_TEST_TYPE_EQ(
+          Map<Closure<decltype(tupleGet)>, List<Constant<0>, Constant<1>, Constant<2> >> ,
+          List<char, char, int> )
+    }
+
+    inline void test_fun2() {
+      auto clsr = [&](auto N) { return Constant<N.value + 1>{}; };
+      STATIC_TEST_TYPE_EQ(
+          Map<Closure<decltype(clsr)>, List<Constant<0>, Constant<1>, Constant<2> >> ,
+          List<Constant<1>, Constant<2>, Constant<3> > )
+    }
+
+    STATIC_TEST_TYPE_EQ(
+       Map<TestFunctorFunction, List<A, B, A>>,
+       List<TestFunctor<A>, TestFunctor<B>, TestFunctor<A>>)
+
     STATIC_TEST_TYPE_EQ(
        WithIndices<List<A, B, A>>,
        List<Indexed<0, A>, Indexed<1, B>, Indexed<2, A>>)
@@ -390,6 +444,10 @@ namespace TypeList {
     STATIC_TEST_TYPE_EQ(
        Repeat<5, A> ,
        List<A, A, A, A, A> )
+
+    STATIC_TEST_TYPE_EQ(
+       Range<5, 8> ,
+       List<Constant<5>, Constant<6>, Constant<7>> )
 
     STATIC_TEST_TYPE_EQ(
        Repeat<1, A> ,
