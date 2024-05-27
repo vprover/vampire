@@ -79,8 +79,15 @@ public:
 protected:
   static TermList possiblyEvaluateAnswerTerm(TermList);
 
-  virtual void recordSkolemBinding(Term*,unsigned) = 0;
+  /**
+   * Tell the concrete implemenation (our descentants) that we have just introduced
+   * a new skolem symbol term skT to replace var in the conjecture/question;
+   * Ideally ("the user might expect"), the var should be referred to as vName in the answers.
+   */
+  virtual void recordSkolemBinding(Term* skT,unsigned var,vstring vName) = 0;
   virtual bool closeFreeVariablesForPrinting() { return false; };
+  virtual void optionalAnswerPrefix(std::ostream& out) {};
+  virtual vstring postprocessAnswerString(vstring answer) { return answer; };
 
   Clause* getRefutation(Clause* answer);
   Literal* getAnswerLiteral(VList* vars,SList* srts,Formula* f);
@@ -105,9 +112,12 @@ private:
 class PlainALManager : public AnswerLiteralManager
 {
 protected:
-  void recordSkolemBinding(Term*,unsigned) override;
+  void recordSkolemBinding(Term*,unsigned,vstring) override;
   bool closeFreeVariablesForPrinting() override { return true; };
-
+  void optionalAnswerPrefix(std::ostream& out) override;
+  vstring postprocessAnswerString(vstring answer) override;
+private:
+  Stack<std::pair<Term*, vstring>> _skolemNames;
 };
 
 class SynthesisALManager : public AnswerLiteralManager
@@ -121,7 +131,7 @@ public:
   Literal* makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit) override;
 
 protected:
-  void recordSkolemBinding(Term*,unsigned) override;
+  void recordSkolemBinding(Term*,unsigned,vstring) override;
 
 private:
   void getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits);

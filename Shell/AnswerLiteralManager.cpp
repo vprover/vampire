@@ -15,6 +15,7 @@
 #include "Lib/DArray.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/StringUtils.hpp"
 
 #include "Kernel/Signature.hpp"
 #include "Kernel/Formula.hpp"
@@ -148,6 +149,8 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
   Formula* out = new NegatedFormula(new QuantifiedFormula(EXISTS, eVars, eSrts, new JunctionFormula(AND, conjArgs)));
 
   if (skolemise) {
+    Map<int,vstring>* questionVars = Parse::TPTP::findQuestionVars(unit->number());
+
     VList* fVars = subNot->vars();
     SList* fSrts = subNot->sorts();
     Substitution subst;
@@ -167,7 +170,7 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
       skSym->setType(ot);
       Term* skTerm = Term::create(skFun, /*arity=*/0, /*args=*/nullptr);
       subst.bind(var, skTerm);
-      recordSkolemBinding(skTerm, var);
+      recordSkolemBinding(skTerm, var, questionVars ? questionVars->get(var) : TermList(var,false).toString() );
     }
     out = SubstHelper::apply(out, subst);
   }
@@ -203,9 +206,10 @@ void AnswerLiteralManager::tryOutputAnswer(Clause* refutation, std::ostream& out
     return;
   }
 
-  vstringstream vss;
+  out << "% SZS answers Tuple [";
 
-  vss << "% SZS answers Tuple [";
+  vstringstream vss;
+  optionalAnswerPrefix(vss);
   if (answer.size() > 1) {
     vss << "(";
   }
@@ -264,9 +268,8 @@ void AnswerLiteralManager::tryOutputAnswer(Clause* refutation, std::ostream& out
   if (answer.size() > 1) {
     vss << ")";
   }
-  vss << "|_] for " << env.options->problemName() << endl;
-
-  out << vss.str() << std::flush;
+  out << postprocessAnswerString(vss.str());
+  out << "|_] for " << env.options->problemName() << endl;
 }
 
 static bool pushFirstPremiseToAnswerIfFromResolver(Inference& inf, Stack<Clause*>& answer)
@@ -387,9 +390,46 @@ Clause* AnswerLiteralManager::getRefutation(Clause* answer)
 // PlainALManager
 //
 
-void PlainALManager::recordSkolemBinding(Term*,unsigned)
+void PlainALManager::recordSkolemBinding(Term* skT,unsigned var,vstring vName)
 {
+  _skolemNames.push(std::make_pair(skT,vName));
+}
 
+void PlainALManager::optionalAnswerPrefix(std::ostream& out)
+{
+  if(!_skolemNames.isEmpty()) {
+    out << "λ";
+    auto it =  _skolemNames.iterFifo();
+    while (it.hasNext()) {
+      out << it.next().first->toString();
+      if (it.hasNext())
+        out << ",";
+    }
+    out << ".";
+  }
+}
+
+vstring PlainALManager::postprocessAnswerString(vstring answer)
+{
+  /** string replacement is not ideal:
+   * - substrings elsewhere could be rewritten (not just the intended skolems)
+   * - also, if the users chooses a unfortunate variable names
+   *   (with the "question" role, the TPTP parser is storing the original names for us)
+   *   new clashes might arise
+   *
+   * However, creating a symbol which looks like a variable
+   * (but is not, since vampire's variables are just unsigneds n, printed as "X<n>")
+   * and starts with an uppercase character (not allowed for anything else than variables in TPTP)
+   * sounded like too much pain.
+  */
+
+  auto it =  _skolemNames.iter();
+  while (it.hasNext()) {
+    auto [skT,vName] = it.next();
+    vstring to;
+    Lib::StringUtils::replaceAll(answer,skT->toString(),vName);
+  }
+  return answer;
 }
 
 ///////////////////////
@@ -424,7 +464,7 @@ void SynthesisALManager::getNeededUnits(Clause* refutation, ClauseStack& premise
   }
 }
 
-void SynthesisALManager::recordSkolemBinding(Term* skTerm, unsigned var)
+void SynthesisALManager::recordSkolemBinding(Term* skTerm, unsigned var, vstring)
 {
   _skolemReplacement.bindSkolemToVar(skTerm, var);
 }
