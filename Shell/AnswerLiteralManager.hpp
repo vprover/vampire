@@ -57,7 +57,7 @@ public:
    * There should be at most one AnswerLiteralManager instance in the whole wide world.
    * Depending on env.options this will be
    * - either AnswerLiteralManager proper (for QuestionAnsweringMode::PLAIN)
-   * - or a SynthesisManager (for QuestionAnsweringMode::SYNTHESIS)
+   * - or a SynthesisALManager (for QuestionAnsweringMode::SYNTHESIS)
    */
   static AnswerLiteralManager* getInstance();
 
@@ -101,14 +101,14 @@ private:
   DHMap<unsigned, Clause*> _resolverClauses;
 };
 
-class PlainManager : public AnswerLiteralManager
+class PlainALManager : public AnswerLiteralManager
 {
 protected:
   void recordSkolemBinding(Term*,unsigned) override;
 
 };
 
-class SynthesisManager : public AnswerLiteralManager
+class SynthesisALManager : public AnswerLiteralManager
 {
 public:
   bool tryGetAnswer(Clause* refutation, Stack<Clause*>& answer) override;

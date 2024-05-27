@@ -1695,7 +1695,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.questionAnswering()==Options::QuestionAnsweringMode::PLAIN) {
     res->_answerLiteralManager = AnswerLiteralManager::getInstance();
   } else if (opt.questionAnswering()==Options::QuestionAnsweringMode::SYNTHESIS) {
-    res->_answerLiteralManager = SynthesisManager::getInstance();
+    res->_answerLiteralManager = SynthesisALManager::getInstance();
   }
   return res;
 } // SaturationAlgorithm::createFromOptions

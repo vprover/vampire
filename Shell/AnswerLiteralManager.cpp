@@ -72,8 +72,8 @@ AnswerLiteralManager* AnswerLiteralManager::getInstance()
 {
   static AnswerLiteralManager* instance =
     (env.options->questionAnswering() == Options::QuestionAnsweringMode::PLAIN) ?
-      static_cast<AnswerLiteralManager*>(new PlainManager()) :
-      static_cast<AnswerLiteralManager*>(new SynthesisManager());
+      static_cast<AnswerLiteralManager*>(new PlainALManager()) :
+      static_cast<AnswerLiteralManager*>(new SynthesisALManager());
 
   return instance;
 }
@@ -377,19 +377,19 @@ Clause* AnswerLiteralManager::getRefutation(Clause* answer)
 }
 
 ///////////////////////
-// PlainManager
+// PlainALManager
 //
 
-void PlainManager::recordSkolemBinding(Term*,unsigned)
+void PlainALManager::recordSkolemBinding(Term*,unsigned)
 {
 
 }
 
 ///////////////////////
-// SynthesisManager
+// SynthesisALManager
 //
 
-void SynthesisManager::getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits)
+void SynthesisALManager::getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits)
 {
   Stack<Unit*> toDo;
   toDo.push(refutation);
@@ -417,12 +417,12 @@ void SynthesisManager::getNeededUnits(Clause* refutation, ClauseStack& premiseCl
   }
 }
 
-void SynthesisManager::recordSkolemBinding(Term* skTerm, unsigned var)
+void SynthesisALManager::recordSkolemBinding(Term* skTerm, unsigned var)
 {
   _skolemReplacement.bindSkolemToVar(skTerm, var);
 }
 
-bool SynthesisManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer)
+bool SynthesisALManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer)
 {
   if (!_lastAnsLit && AnsList::isEmpty(_answerPairs)) {
     return false;
@@ -473,7 +473,7 @@ bool SynthesisManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer)
   return true;
 }
 
-void SynthesisManager::onNewClause(Clause* cl)
+void SynthesisALManager::onNewClause(Clause* cl)
 {
   if(!cl->noSplits() || cl->isEmpty() || (cl->length() != 1) || !(*cl)[0]->isAnswerLiteral()) {
     return;
@@ -490,7 +490,7 @@ void SynthesisManager::onNewClause(Clause* cl)
   throw MainLoop::RefutationFoundException(refutation);
 }
 
-Clause* SynthesisManager::recordAnswerAndReduce(Clause* cl) {
+Clause* SynthesisALManager::recordAnswerAndReduce(Clause* cl) {
   if (!cl->noSplits() || !cl->hasAnswerLiteral() || !cl->computable()) {
     return nullptr;
   }
@@ -537,7 +537,7 @@ Clause* SynthesisManager::recordAnswerAndReduce(Clause* cl) {
   return newCl;
 }
 
-Literal* SynthesisManager::makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit) {
+Literal* SynthesisALManager::makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit) {
   ASS(Literal::headersMatch(thenLit, elseLit, /*complementary=*/false));
 
   Signature::Symbol* predSym = env.signature->getPredicate(thenLit->functor());
@@ -555,7 +555,7 @@ Literal* SynthesisManager::makeITEAnswerLiteral(Literal* condition, Literal* the
   return Literal::create(thenLit->functor(), thenLit->arity(), thenLit->polarity(), /*commutative=*/false, litArgs.begin());
 }
 
-Formula* SynthesisManager::getConditionFromClause(Clause* cl) {
+Formula* SynthesisALManager::getConditionFromClause(Clause* cl) {
   FormulaList* fl = FormulaList::empty();
   for (unsigned i = 0; i < cl->length(); ++i) {
     Literal* newLit = Literal::complementaryLiteral(_skolemReplacement.transformLiteral((*cl)[i]));
@@ -569,7 +569,7 @@ Formula* SynthesisManager::getConditionFromClause(Clause* cl) {
  *  from the array @b args its arguments. Insert it into the sharing
  *  structure if all arguments are shared.
  */
-Term* SynthesisManager::translateToSynthesisConditionTerm(Literal* l)
+Term* SynthesisALManager::translateToSynthesisConditionTerm(Literal* l)
 {
   ASS_EQ(l->getPreDataSize(), 0);
   ASS(!l->isSpecial());
@@ -617,18 +617,18 @@ Term* SynthesisManager::translateToSynthesisConditionTerm(Literal* l)
  * Create a (condition ? thenBranch : elseBranch) expression
  * and return the resulting term
  */
-Term* SynthesisManager::createRegularITE(Term* condition, TermList thenBranch, TermList elseBranch, TermList branchSort)
+Term* SynthesisALManager::createRegularITE(Term* condition, TermList thenBranch, TermList elseBranch, TermList branchSort)
 {
   unsigned itefn = getITEFunctionSymbol(branchSort);
   return Term::create(itefn, {TermList(condition), thenBranch, elseBranch});
 }
 
-void SynthesisManager::ConjectureSkolemReplacement::bindSkolemToVar(Term* t, unsigned v) {
+void SynthesisALManager::ConjectureSkolemReplacement::bindSkolemToVar(Term* t, unsigned v) {
   ASS(_skolemToVar.count(t) == 0);
   _skolemToVar[t] = v;
 }
 
-TermList SynthesisManager::ConjectureSkolemReplacement::transformTermList(TermList tl, TermList sort) {
+TermList SynthesisALManager::ConjectureSkolemReplacement::transformTermList(TermList tl, TermList sort) {
   // First replace free variables by 0-like constants
   if (tl.isVar() || (tl.isTerm() && !tl.term()->ground())) {
     TermList zero(theory->representConstant(IntegerConstantType(0)));
@@ -676,7 +676,7 @@ TermList SynthesisManager::ConjectureSkolemReplacement::transformTermList(TermLi
   return transform(tl);
 }
 
-TermList SynthesisManager::ConjectureSkolemReplacement::transformSubterm(TermList trm) {
+TermList SynthesisALManager::ConjectureSkolemReplacement::transformSubterm(TermList trm) {
   if (trm.isTerm()) {
     auto it = _skolemToVar.find(trm.term());
     if (it != _skolemToVar.end()) {
