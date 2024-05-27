@@ -209,16 +209,18 @@ void AnswerLiteralManager::tryOutputAnswer(Clause* refutation)
   Stack<Clause*>::BottomFirstIterator aIt(answer);
   while(aIt.hasNext()) {
     Clause* aCl = aIt.next();
-    auto varIt = aCl->getVariableIterator();
-    if (varIt.hasNext()) {
-      cout << "∀";
-      while(varIt.hasNext()) {
-        cout << TermList(varIt.next(),false).toString();
-        if (varIt.hasNext()) {
-          cout << ",";
+    if (closeFreeVariablesForPrinting()) {
+      auto varIt = aCl->getVariableIterator();
+      if (varIt.hasNext()) {
+        cout << "∀";
+        while(varIt.hasNext()) {
+          cout << TermList(varIt.next(),false).toString();
+          if (varIt.hasNext()) {
+            cout << ",";
+          }
         }
+        cout << ".";
       }
-      cout << ".";
     }
     if (aCl->size() > 1) {
       cout << "(";

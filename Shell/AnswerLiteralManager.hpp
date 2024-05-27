@@ -80,6 +80,7 @@ protected:
   static TermList possiblyEvaluateAnswerTerm(TermList);
 
   virtual void recordSkolemBinding(Term*,unsigned) = 0;
+  virtual bool closeFreeVariablesForPrinting() { return false; };
 
   Clause* getRefutation(Clause* answer);
   Literal* getAnswerLiteral(VList* vars,SList* srts,Formula* f);
@@ -105,6 +106,7 @@ class PlainALManager : public AnswerLiteralManager
 {
 protected:
   void recordSkolemBinding(Term*,unsigned) override;
+  bool closeFreeVariablesForPrinting() override { return true; };
 
 };
 
