@@ -774,7 +774,7 @@ const vstring& Literal::predicateName() const
 
 
 bool Literal::isAnswerLiteral() const {
-  return env.signature->getPredicate(functor())->answerPredicate();
+  return isNegative() && env.signature->getPredicate(functor())->answerPredicate();
 }
 
 
