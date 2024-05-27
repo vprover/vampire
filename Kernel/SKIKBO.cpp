@@ -288,7 +288,7 @@ void SKIKBO::State::traverse(ArgsIt_ptr aat1, ArgsIt_ptr aat2)
  */
 SKIKBO::SKIKBO(Problem& prb, const Options& opt, bool basic_hol)
  : PrecedenceOrdering(prb, opt),
-   _weights(KboWeightMap<FuncSigTraits>::dflt())
+   _weights(KboWeightMap<FuncSigTraits>::dflt(/* qkbo */ false))
 {
   _state=new State(this);
   _basic_hol = basic_hol;

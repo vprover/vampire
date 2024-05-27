@@ -8,7 +8,7 @@
 #include "Theory.hpp"
 #include "Debug/TimeProfiling.hpp"
 
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG_QKBO(lvl, ...) if (lvl < 0) {DBG(__VA_ARGS__)}
 
 namespace Kernel {
 
@@ -236,6 +236,8 @@ Ordering::Result QKbo::compare(TermList s, TermList t) const
 
   auto as = abstr(s);
   auto at = abstr(t);
+  DEBUG_QKBO(0, "abstr(s): ", as)
+  DEBUG_QKBO(0, "abstr(t): ", at)
   // TODO subterm modulo Tsigma
   if (as.isNone() || at.isNone()) {
     return Ordering::Result::INCOMPARABLE;

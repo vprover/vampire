@@ -60,7 +60,7 @@ struct KboSpecialWeights<PredSigTraits>
   inline bool tryAssign(const vstring& name, unsigned weight) 
   { return false; }
 
-  inline static KboSpecialWeights dflt()
+  inline static KboSpecialWeights dflt(bool qkbo)
   { return { }; }
 
   bool tryGetWeight(unsigned functor, unsigned& weight) const;
@@ -75,22 +75,25 @@ struct KboSpecialWeights<FuncSigTraits>
   KboWeight _numInt;
   KboWeight _numRat;
   KboWeight _numReal;
+  bool _qkbo;
+
   inline bool tryAssign(const vstring& name, unsigned weight) 
   {
     if (name == SPECIAL_WEIGHT_IDENT_VAR     ) { _variableWeight = weight; return true; } 
-    if (name == SPECIAL_WEIGHT_IDENT_NUM_INT ) { _numInt  = weight; return true; } 
-    if (name == SPECIAL_WEIGHT_IDENT_NUM_REAL) { _numReal = weight; return true; } 
-    if (name == SPECIAL_WEIGHT_IDENT_NUM_RAT ) { _numRat  = weight; return true; } 
+    if (name == SPECIAL_WEIGHT_IDENT_NUM_INT ) { if (_qkbo) { WARN("ignoring numeral weight in QKBO") } _numInt  = weight; return true; } 
+    if (name == SPECIAL_WEIGHT_IDENT_NUM_REAL) { if (_qkbo) { WARN("ignoring numeral weight in QKBO") } _numReal = weight; return true; } 
+    if (name == SPECIAL_WEIGHT_IDENT_NUM_RAT ) { if (_qkbo) { WARN("ignoring numeral weight in QKBO") } _numRat  = weight; return true; } 
     return false;
   }
 
-  inline static KboSpecialWeights dflt() 
+  inline static KboSpecialWeights dflt(bool qkbo) 
   { 
     return { 
       ._variableWeight = 1, 
       ._numInt  = 1,
       ._numRat  = 1,
       ._numReal = 1,
+      ._qkbo = qkbo,
     }; 
   }
 
@@ -112,12 +115,12 @@ struct KboWeightMap {
   KboWeight symbolWeight(const Term* t) const;
   KboWeight symbolWeight(unsigned functor) const;
 
-  static KboWeightMap dflt();
+  static KboWeightMap dflt(bool qkbo);
   template<class Extractor, class Fml>
-  static KboWeightMap fromSomeUnsigned(Extractor ex, Fml fml);
+  static KboWeightMap fromSomeUnsigned(Extractor ex, Fml fml, bool qkbo);
 private:
-  static KboWeightMap randomized();
-  template<class Random> static KboWeightMap randomized(unsigned maxWeight, Random random);
+  static KboWeightMap randomized(bool qkbo);
+  template<class Random> static KboWeightMap randomized(unsigned maxWeight, Random random, bool qkbo);
 };
 
 /**

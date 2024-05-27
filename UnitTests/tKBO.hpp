@@ -27,7 +27,7 @@ using namespace Kernel;
 template<class SigTraits>
 inline KboWeightMap<SigTraits> toWeightMap(unsigned introducedSymbolWeight, KboSpecialWeights<SigTraits> ws, const Map<unsigned, KboWeight>& xs, unsigned sz) 
 {
-  auto df = KboWeightMap<SigTraits>::dflt();
+  auto df = KboWeightMap<SigTraits>::dflt(/* qkbo */ false);
   df._specialWeights = ws;
 
   DArray<KboWeight> out(sz);

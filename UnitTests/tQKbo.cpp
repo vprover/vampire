@@ -13,6 +13,7 @@
  * @date 2020-04-29
  */
 
+#include "Debug/Assertion.hpp"
 #include "Kernel/LASCA.hpp"
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
@@ -56,7 +57,9 @@ void check___(Ordering& ord, T lhs, QKbo::Result exp, T rhs, bool silent) {
     auto res = ord.compare(lhs,rhs);
     if (res != exp) {
       std::cout << "\r[ fail ] " << pretty(lhs) << "\t" << res << "\t" << pretty(rhs)  << "\t(expected: " << exp << " )"<< std::endl;
-      exit(-1);
+      std::cout << "\r[  ord ] " << std::endl;
+      ord.show(std::cout);
+      ASSERTION_VIOLATION
     } else {
       if (!silent)
         std::cout << "\r[  ok  ] " << pretty(lhs) << "\t" << res << "\t" << pretty(rhs)  << std::endl;
