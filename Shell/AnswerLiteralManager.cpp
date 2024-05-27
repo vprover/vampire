@@ -195,16 +195,19 @@ TermList AnswerLiteralManager::possiblyEvaluateAnswerTerm(TermList aT)
   return aT;
 }
 
-void AnswerLiteralManager::tryOutputAnswer(Clause* refutation)
+void AnswerLiteralManager::tryOutputAnswer(Clause* refutation, std::ostream& out)
 {
   Stack<Clause*> answer;
 
   if (!tryGetAnswer(refutation, answer)) {
     return;
   }
-  std::cout << "% SZS answers Tuple [";
+
+  vstringstream vss;
+
+  vss << "% SZS answers Tuple [";
   if (answer.size() > 1) {
-    std::cout << "(";
+    vss << "(";
   }
   Stack<Clause*>::BottomFirstIterator aIt(answer);
   while(aIt.hasNext()) {
@@ -212,23 +215,23 @@ void AnswerLiteralManager::tryOutputAnswer(Clause* refutation)
     if (closeFreeVariablesForPrinting()) {
       auto varIt = aCl->getVariableIterator();
       if (varIt.hasNext()) {
-        cout << "∀";
+        vss << "∀";
         while(varIt.hasNext()) {
-          cout << TermList(varIt.next(),false).toString();
+          vss << TermList(varIt.next(),false).toString();
           if (varIt.hasNext()) {
-            cout << ",";
+            vss << ",";
           }
         }
-        cout << ".";
+        vss << ".";
       }
     }
     if (aCl->size() > 1) {
-      cout << "(";
+      vss << "(";
     }
     auto lIt = aCl->iterLits();
     while (lIt.hasNext()) {
       Literal* aLit = lIt.next();
-      std::cout << "[";
+      vss << "[";
       unsigned arity = aLit->arity();
 
       Map<int,vstring>* questionVars = 0;
@@ -239,29 +242,31 @@ void AnswerLiteralManager::tryOutputAnswer(Clause* refutation)
 
       for(unsigned i=0; i<arity; i++) {
         if(i > 0) {
-          std::cout << ',';
+          vss << ',';
         }
         if (questionVars) {
-          cout << questionVars->get(unitAndLiteral.second->nthArgument(i)->var()) << "->";
+          vss << questionVars->get(unitAndLiteral.second->nthArgument(i)->var()) << "->";
         }
-        std::cout << possiblyEvaluateAnswerTerm(*aLit->nthArgument(i));
+        vss << possiblyEvaluateAnswerTerm(*aLit->nthArgument(i));
       }
-      std::cout << "]";
+      vss << "]";
       if(lIt.hasNext()) {
-        std::cout << "|";
+        vss << "|";
       }
     }
     if (aCl->size() > 1) {
-      cout << ")";
+      vss << ")";
     }
     if(aIt.hasNext()) {
-      std::cout << "|";
+      vss << "|";
     }
   }
   if (answer.size() > 1) {
-    std::cout << ")";
+    vss << ")";
   }
-  std::cout << "|_] for " << env.options->problemName() << endl;
+  vss << "|_] for " << env.options->problemName() << endl;
+
+  out << vss.str() << std::flush;
 }
 
 static bool pushFirstPremiseToAnswerIfFromResolver(Inference& inf, Stack<Clause*>& answer)
@@ -643,7 +648,7 @@ TermList SynthesisALManager::ConjectureSkolemReplacement::transformTermList(Term
         if (!env.signature->tryGetFunctionNumber(name, 0, czfn)) {
           czfn = env.signature->addFreshFunction(0, name.c_str());
           env.signature->getFunction(czfn)->setType(OperatorType::getConstantsType(sort));
-        } 
+        }
         TermList res(Term::createConstant(czfn));
         return res;
       }

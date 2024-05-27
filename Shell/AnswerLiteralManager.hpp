@@ -61,7 +61,7 @@ public:
    */
   static AnswerLiteralManager* getInstance();
 
-  void tryOutputAnswer(Clause* refutation);
+  void tryOutputAnswer(Clause* refutation, std::ostream& out);
 
   virtual ~AnswerLiteralManager() {}
 
