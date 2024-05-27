@@ -1130,7 +1130,7 @@ TEST_GENERATION_INDUCTION(test_33,
 //
 
 auto setup = [](SaturationAlgorithm& salg) {
-  salg.getFunctionDefinitionHandler().initAndPreprocess(salg.getProblem(),salg.getOptions());
+  salg.getFunctionDefinitionHandler().initAndPreprocess2(salg.getProblem(),salg.getOptions());
 };
 
 ClauseStack fnDefContext() {

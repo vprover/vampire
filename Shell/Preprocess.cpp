@@ -93,6 +93,10 @@ void Preprocess::preprocess(Problem& prb)
   //enough
   prb.getProperty();
 
+  if (env.signature->hasDefPreds()) {
+    prb.getFunctionDefinitionHandler().initAndPreprocess1(prb,_options);
+  }
+
   /* CAREFUL, keep this at the beginning of the preprocessing pipeline,
    * so that it corresponds to how its done
    * in profileMode() in vampire.cpp and PortfolioMode::searchForProof()
@@ -365,7 +369,7 @@ void Preprocess::preprocess(Problem& prb)
    }
 
    if (env.signature->hasDefPreds()) {
-     prb.getFunctionDefinitionHandler().initAndPreprocess(prb,_options);
+     prb.getFunctionDefinitionHandler().initAndPreprocess2(prb,_options);
    }
 
    if (_options.generalSplitting()) {

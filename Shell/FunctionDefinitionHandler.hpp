@@ -83,7 +83,9 @@ public:
   USE_ALLOCATOR(FunctionDefinitionHandler);
 
   /* has to be called before using other functionality of the handler */
-  void initAndPreprocess(Problem& prb, const Options& opts);
+  void initAndPreprocess1(Problem& prb, const Options& opts);
+  void initAndPreprocess2(Problem& prb, const Options& opts);
+
   void addFunctionBranch(Term* header, TermList body);
   void addPredicateBranch(Literal* header, const LiteralStack& conditions);
 

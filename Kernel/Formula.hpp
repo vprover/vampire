@@ -159,7 +159,7 @@ public:
 
   // use allocator to (de)allocate objects of this class
   USE_ALLOCATOR(AtomicFormula);
-protected:
+// protected:
   /** The literal of this formula */
   Literal* _literal;
 }; // class AtomicFormula
