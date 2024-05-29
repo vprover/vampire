@@ -154,9 +154,11 @@ void Options::init()
 
     _schedule = ChoiceOptionValue<Schedule>("schedule","sched",Schedule::CASC,
         {"casc",
+         "casc_2024",
          "casc_2023",
          "casc_2019",
          "casc_sat",
+         "casc_hol_2024",
          "casc_hol_2023",
          "casc_sat_2019",
          "casc_hol_2020",
