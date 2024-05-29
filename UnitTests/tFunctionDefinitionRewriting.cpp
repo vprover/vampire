@@ -42,7 +42,7 @@ namespace FunctionDefinitionRewritingTest {
   DECL_PRED(p, {s})
 
 auto setup = [](SaturationAlgorithm& salg) {
-  salg.getFunctionDefinitionHandler().initAndPreprocess2(salg.getProblem(),salg.getOptions());
+  salg.getFunctionDefinitionHandler().initAndPreprocessLate(salg.getProblem(),salg.getOptions());
 };
 
 ClauseStack fnDefContext() {

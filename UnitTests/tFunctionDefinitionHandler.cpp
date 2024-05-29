@@ -53,7 +53,7 @@ inline void addFunctionDefs(FunctionDefinitionHandler& handler, std::initializer
   Options opts;
   opts.set("structural_induction_kind", "recursion");
 
-  handler.initAndPreprocess2(prb,opts);
+  handler.initAndPreprocessLate(prb,opts);
 }
 
 inline void checkTemplateBranches(FunctionDefinitionHandler& handler, TermSugar t, const vvector<pair<TermSugar, vvector<TermSugar>>>& expected) {
