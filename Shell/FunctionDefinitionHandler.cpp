@@ -89,7 +89,7 @@ void FunctionDefinitionHandler::initAndPreprocess1(Problem& prb, const Options& 
       while (sfit.hasNext()) {
         auto f = sfit.next();
         if (f->connective()==Connective::LITERAL) {
-          static_cast<AtomicFormula*>(f)->_literal = replaceDefinition(static_cast<AtomicFormula*>(f)->_literal);
+          static_cast<AtomicFormula*>(f)->setLiteral(replaceDefinition(static_cast<AtomicFormula*>(f)->getLiteral()));
         }
       }
     }

@@ -157,9 +157,15 @@ public:
   /** Return the literal of this formula */
   Literal* getLiteral() { return _literal; }
 
+  /** Set the literal of this formula.
+   * CAREFUL: This "forgets" the old literal (no memory reponsibitlity taken)
+   * and modifies this formula "in place"!
+  */
+  void setLiteral(Literal* lit) { _literal = lit; }
+
   // use allocator to (de)allocate objects of this class
   USE_ALLOCATOR(AtomicFormula);
-// protected:
+protected:
   /** The literal of this formula */
   Literal* _literal;
 }; // class AtomicFormula
