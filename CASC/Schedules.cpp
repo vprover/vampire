@@ -6146,3 +6146,30 @@ void Schedules::getCasc2023Schedule(const Property& property, Schedule& quick, S
     break;
   }
 } // getCasc2023Schedule
+
+void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, Schedule& fallback)
+{
+  unsigned atoms = property.atoms();
+  Property::Category cat = property.category();
+  unsigned long props = property.props();
+
+  if (property.hasNumerals() || property.hasInterpretedOperations()) {
+    // The TFA division: Typed (monomorphic) First-order with Arithmetic theorems (axioms with a provable conjecture).
+
+
+  } else if (cat == Property::Category::UEQ) {
+    // The UEQ division: Unit EQuality clause normal form theorems (unsatisfiable clause sets)
+
+  } else {
+    // The FOF division: First-Order Form theorems (axioms with a provable conjecture).
+
+  }
+}
+
+void Schedules::getCascSat2024Schedule(const Property& property, Schedule& quick, Schedule& fallback)
+{
+  Property::Category cat = property.category();
+
+  // The TFN division: Typed (monomorphic) First-order Non-theorems (axioms with a countersatisfiable conjecture, and satisfiable axiom sets).
+
+}
