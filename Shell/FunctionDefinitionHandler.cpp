@@ -43,13 +43,6 @@ bool canBeUsedForRewriting(Term* lhs, Clause* cl)
   return true;
 }
 
-bool isHandlerEnabled(const Options& opts)
-{
-  return opts.functionDefinitionRewriting() ||
-    opts.inductionOnActiveOccurrences() ||
-    opts.structInduction()==Options::StructuralInductionKind::RECURSION;
-}
-
 Literal* replaceDefinition(Literal* lit)
 {
   unsigned orig_fn;
@@ -68,13 +61,8 @@ Literal* replaceDefinition(Literal* lit)
   return lit;
 }
 
-void FunctionDefinitionHandler::initAndPreprocess1(Problem& prb, const Options& opts)
+void FunctionDefinitionHandler::initAndPreprocessEarly(Problem& prb)
 {
-  if (isHandlerEnabled(opts)) {
-    // we process them after clausification in this case
-    // see initAndPreprocess2
-    return;
-  }
   UnitList::RefIterator it(prb.units());
   while (it.hasNext()) {
     auto u = it.next();
@@ -96,13 +84,8 @@ void FunctionDefinitionHandler::initAndPreprocess1(Problem& prb, const Options& 
   }
 }
 
-void FunctionDefinitionHandler::initAndPreprocess2(Problem& prb, const Options& opts)
+void FunctionDefinitionHandler::initAndPreprocessLate(Problem& prb,const Options& opts)
 {
-  if (!isHandlerEnabled(opts)) {
-    // we process them at the start of preprocessing in this case
-    // see initAndPreprocess1
-    return;
-  }
   // reset state
   _is = new CodeTreeTIS<TermLiteralClause>();
   _templates.reset();
