@@ -74,7 +74,9 @@ AnswerLiteralManager* AnswerLiteralManager::getInstance()
   static AnswerLiteralManager* instance =
     (env.options->questionAnswering() == Options::QuestionAnsweringMode::PLAIN) ?
       static_cast<AnswerLiteralManager*>(new PlainALManager()) :
-      static_cast<AnswerLiteralManager*>(new SynthesisALManager());
+      ((env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) ?
+        static_cast<AnswerLiteralManager*>(new SynthesisALManager()) :
+        nullptr);
 
   return instance;
 }

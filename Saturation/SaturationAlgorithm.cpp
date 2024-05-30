@@ -1692,11 +1692,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.showSymbolElimination()) {
     res->_symEl=new SymElOutput();
   }
-  if (opt.questionAnswering()==Options::QuestionAnsweringMode::PLAIN) {
-    res->_answerLiteralManager = AnswerLiteralManager::getInstance();
-  } else if (opt.questionAnswering()==Options::QuestionAnsweringMode::SYNTHESIS) {
-    res->_answerLiteralManager = SynthesisALManager::getInstance();
-  }
+  res->_answerLiteralManager = AnswerLiteralManager::getInstance(); // selects the right one, according to options!
+  ASS(!res->_answerLiteralManager||opt.questionAnswering()!=Options::QuestionAnsweringMode::OFF);
+  ASS( res->_answerLiteralManager||opt.questionAnswering()==Options::QuestionAnsweringMode::OFF);
   return res;
 } // SaturationAlgorithm::createFromOptions
 
