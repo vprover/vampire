@@ -30,6 +30,7 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
+#include "Kernel/TermIterators.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndexingStructure.hpp"
@@ -208,6 +209,8 @@ void AnswerLiteralManager::tryOutputAnswer(Clause* refutation, std::ostream& out
     return;
   }
 
+  DHSet<unsigned> seenSkolems;
+
   out << "% SZS answers Tuple [";
 
   vstringstream vss;
@@ -253,7 +256,18 @@ void AnswerLiteralManager::tryOutputAnswer(Clause* refutation, std::ostream& out
         if (questionVars) {
           vss << questionVars->get(unitAndLiteral.second->nthArgument(i)->var()) << "->";
         }
-        vss << possiblyEvaluateAnswerTerm(*aLit->nthArgument(i));
+        TermList evalauted = possiblyEvaluateAnswerTerm(*aLit->nthArgument(i));
+        if (evalauted.isTerm()){ // just check which Skolems we might have used
+          NonVariableNonTypeIterator it(evalauted.term(),/*includeSelf=*/true);
+          while (it.hasNext()) {
+            unsigned f = it.next()->functor();
+            std::pair<unsigned,Unit*> dummy;
+            if (_skolemsOrigin.find(f,dummy)) {
+              seenSkolems.insert(f);
+            }
+          }
+        }
+        vss << evalauted;
       }
       vss << "]";
       if(lIt.hasNext()) {
@@ -272,6 +286,14 @@ void AnswerLiteralManager::tryOutputAnswer(Clause* refutation, std::ostream& out
   }
   out << postprocessAnswerString(vss.str());
   out << "|_] for " << env.options->problemName() << endl;
+
+  // recall what the skolems mean:
+  DHSet<unsigned>::Iterator it(seenSkolems);
+  while (it.hasNext()) {
+    unsigned f = it.next();
+    const std::pair<unsigned,Unit*>& origin = _skolemsOrigin.get(f);
+    out << "%    " << env.signature->getFunction(f)->name() << " introduced for " << TermList(origin.first,false).toString() << " in " << origin.second->toString() << endl;
+  }
 }
 
 static bool pushFirstPremiseToAnswerIfFromResolver(Inference& inf, Stack<Clause*>& answer)

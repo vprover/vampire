@@ -76,6 +76,13 @@ public:
   virtual Clause* recordAnswerAndReduce(Clause* cl) { return nullptr; };
   virtual Literal* makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit) { return nullptr; };
 
+  /**
+  * Record an assiciation between a skolem symbol and the pair <the variable it replaces, in which formula>
+  */
+  void recordSkolemsOrigin(unsigned skSymb, unsigned var, Unit* unit) {
+    ALWAYS(_skolemsOrigin.insert(skSymb,std::make_pair(var,unit)));
+  }
+
 protected:
   static TermList possiblyEvaluateAnswerTerm(TermList);
 
@@ -107,6 +114,8 @@ private:
   DHMap<unsigned, std::pair<Unit*,Literal*>> _originUnitsAndInjectedLiterals;
 
   DHMap<unsigned, Clause*> _resolverClauses;
+
+  DHMap<unsigned,std::pair<unsigned,Unit*>> _skolemsOrigin;
 };
 
 class PlainALManager : public AnswerLiteralManager
