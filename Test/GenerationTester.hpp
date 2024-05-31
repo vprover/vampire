@@ -201,13 +201,16 @@ public:
     p.addUnits(ul);
     env.setMainProblem(&p);
 
-    Options o;
+    // Options o;
+    env.options = new Options;
     for (const auto& kv : _options) {
+      // o.set(kv.first, kv.second);
       env.options->set(kv.first, kv.second);
     }
-    MockedSaturationAlgorithm alg(p, o);
+    MockedSaturationAlgorithm alg(p, *env.options);
     _setup(alg);
     SimplifyingGeneratingInference& rule = *_rule.unwrapOrElse([&](){ return &simpl._rule; });
+    rule.InferenceEngine::attach(&alg);
     Stack<Indexing::Index*> indices;
     for (auto i : _indices) {
       indices.push(i());
@@ -275,7 +278,7 @@ public:
     }
 
     // // tear down saturation algorithm
-    // rule.InferenceEngine::detach();
+    rule.InferenceEngine::detach();
 
   }
 };
