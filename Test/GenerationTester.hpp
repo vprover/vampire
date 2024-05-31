@@ -201,10 +201,9 @@ public:
     p.addUnits(ul);
     env.setMainProblem(&p);
 
-    // Options o;
+    delete env.options;
     env.options = new Options;
     for (const auto& kv : _options) {
-      // o.set(kv.first, kv.second);
       env.options->set(kv.first, kv.second);
     }
     MockedSaturationAlgorithm alg(p, *env.options);
