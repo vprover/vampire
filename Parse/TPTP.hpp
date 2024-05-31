@@ -333,6 +333,7 @@ public:
   ~TPTP();
   void parse();
   static UnitList* parse(std::istream& str);
+  static Clause* parseClauseFromString(const vstring& str);
   /** Return the list of parsed units */
   UnitList* units() const { return _units.list(); }
   /** Return the current unitBuffer (on top of units() you also get a pointer to the last added unit in constant time). */
@@ -356,7 +357,7 @@ public:
     return res ? *res : nullptr;
   }
 private:
-  void parseImpl();
+  void parseImpl(State initialState = State::UNIT_LIST);
   /** Return the input string of characters */
   const char* input() { return _chars.content(); }
 

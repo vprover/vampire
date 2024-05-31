@@ -8,12 +8,12 @@
  * and in the source directory
  */
 /**
- * @file InvalidAnswerLiteralRemoval.hpp
- * Defines class InvalidAnswerLiteral.
+ * @file InvalidAnswerLiteralRemovals.hpp
+ * Defines classes for removing clauses with invalid answer literals.
  */
 
-#ifndef __InvalidAnswerLiteralRemoval__
-#define __InvalidAnswerLiteralRemoval__
+#ifndef __InvalidAnswerLiteralRemovals__
+#define __InvalidAnswerLiteralRemovals__
 
 #include "Forwards.hpp"
 #include "InferenceEngine.hpp"
@@ -24,13 +24,27 @@ namespace Inferences {
 * Removes clauses containing answer literals with uncomputable symbols,
 * as synthesized programs cannot include such symbols.
 */
-class InvalidAnswerLiteralRemoval
+class UncomputableAnswerLiteralRemoval
 : public ImmediateSimplificationEngine
 {
 public:
   Clause* simplify(Clause* cl) override;
 };
 
+/*
+* Removes clauses containing answer literals that
+* the user specified should be avoided.
+*/
+class UndesiredAnswerLiteralRemoval
+: public ImmediateSimplificationEngine
+{
+public:
+  UndesiredAnswerLiteralRemoval(const vstring& avoidThese);
+  Clause* simplify(Clause* cl) override;
+private:
+  Clause* _avoiders;
+};
+
 }
 
-#endif // __InvalidAnswerLiteralRemoval__
+#endif // __InvalidAnswerLiteralRemovals__

@@ -74,6 +74,19 @@ UnitList* TPTP::parse(istream& input)
   return parser.units();
 }
 
+Clause* TPTP::parseClauseFromString(const vstring& str)
+{
+  vstringstream input(str+")."); // to fake endFOF, which creates the clause
+  Parse::TPTP parser(input);
+  parser._isFof = true;
+  parser._lastInputType = UnitInputType::AXIOM;
+  parser._bools.push(false);     // this is what cnf normally pushes (but we start "from the middle")
+  parser._strings.push("dummy_name");
+  parser._states.push(END_FOF);  // this is what does the clause building
+  parser.parseImpl(FORMULA);
+  return parser._units.list()->head()->asClause();
+}
+
 /**
  * Initialise a lexer.
  * @since 27/07/2004 Torrevieja
@@ -118,14 +131,14 @@ void TPTP::parse()
  * Read all tokens one by one 
  * @since 08/04/2011 Manchester
  */
-void TPTP::parseImpl()
+void TPTP::parseImpl(State initialState)
 {
   // bulding tokens one by one
   _gpos = 0;
   _cend = 0;
   _tend = 0;
   _lineNumber = 1;
-  _states.push(UNIT_LIST);
+  _states.push(initialState);
   while (!_states.isEmpty()) {
     State s = _states.pop();
 #ifdef DEBUG_SHOW_STATE

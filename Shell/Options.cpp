@@ -2150,6 +2150,13 @@ void Options::init()
     _lookup.insert(&_questionAnswering);
     _questionAnswering.tag(OptionTag::OTHER);
 
+    _questionAnsweringAvoidThese = StringOptionValue("question_answering_avoid_these","qaat","");
+    _questionAnsweringAvoidThese.description="A |-separated list of answer literal atoms (e.g., `ans0(sK1)|ans0(f(c))`) that should not be considered as answers to return."
+      " The atoms may contain variables. Matching against any of those disqualifies a potential answer.";
+    _lookup.insert(&_questionAnsweringAvoidThese);
+    _questionAnsweringAvoidThese.onlyUsefulWith(_questionAnswering.is(equal(QuestionAnsweringMode::PLAIN)));
+    _questionAnsweringAvoidThese.tag(OptionTag::OTHER);
+
     _randomSeed = UnsignedOptionValue("random_seed","",1 /* this should be the value of Random::_seed from Random.cpp */);
     _randomSeed.description="Some parts of vampire use random numbers. This seed allows for reproducibility of results. By default the seed is not changed.";
     _lookup.insert(&_randomSeed);

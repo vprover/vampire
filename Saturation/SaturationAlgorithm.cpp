@@ -65,7 +65,7 @@
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
-#include "Inferences/InvalidAnswerLiteralRemoval.hpp"
+#include "Inferences/InvalidAnswerLiteralRemovals.hpp"
 #include "Inferences/ForwardSubsumptionDemodulation.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/InnerRewriting.hpp"
@@ -1802,8 +1802,11 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
 
   if (env.options->questionAnswering() == Options::QuestionAnsweringMode::PLAIN) {
     res->addFront(new AnswerLiteralResolver());
+    if (env.options->questionAnsweringAvoidThese() != "") {
+      res->addFront(new UndesiredAnswerLiteralRemoval(env.options->questionAnsweringAvoidThese()));
+    }
   } else if (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) {
-    res->addFront(new InvalidAnswerLiteralRemoval());
+    res->addFront(new UncomputableAnswerLiteralRemoval());
   }
   return res;
 }
