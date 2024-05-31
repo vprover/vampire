@@ -11,6 +11,8 @@
 #include "FunctionDefinitionHandler.hpp"
 #include "Inferences/InductionHelper.hpp"
 
+#include "Kernel/FormulaUnit.hpp"
+#include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Problem.hpp"
@@ -41,7 +43,48 @@ bool canBeUsedForRewriting(Term* lhs, Clause* cl)
   return true;
 }
 
-void FunctionDefinitionHandler::initAndPreprocess(Problem& prb, const Options& opts)
+Literal* replaceDefinition(Literal* lit)
+{
+  unsigned orig_fn;
+  if (env.signature->isBoolDefPred(lit->functor(), orig_fn)) {
+    TermStack args;
+    for (unsigned i = 0; i < lit->arity(); i++) {
+      args.push(*lit->nthArgument(i));
+    }
+    return Literal::create(orig_fn, lit->arity(), lit->polarity(), false, args.begin());
+  } else if (env.signature->isFnDefPred(lit->functor())) {
+    ASS(env.signature->isFnDefPred(lit->functor()));
+    auto lhs = lit->termArg(0);
+    ASS(lhs.isTerm());
+    return Literal::createEquality(lit->polarity(), lhs, lit->termArg(1), SortHelper::getResultSort(lhs.term()));
+  }
+  return lit;
+}
+
+void FunctionDefinitionHandler::initAndPreprocessEarly(Problem& prb)
+{
+  UnitList::RefIterator it(prb.units());
+  while (it.hasNext()) {
+    auto u = it.next();
+    if (u->isClause()) {
+      auto cl = u->asClause();
+      for (unsigned i = 0; i < cl->length(); i++) {
+        (*cl)[i] = replaceDefinition((*cl)[i]);
+      }
+    } else {
+      auto f = static_cast<FormulaUnit*>(u)->formula();
+      SubformulaIterator sfit(f);
+      while (sfit.hasNext()) {
+        auto f = sfit.next();
+        if (f->connective()==Connective::LITERAL) {
+          static_cast<AtomicFormula*>(f)->setLiteral(replaceDefinition(static_cast<AtomicFormula*>(f)->getLiteral()));
+        }
+      }
+    }
+  }
+}
+
+void FunctionDefinitionHandler::initAndPreprocessLate(Problem& prb,const Options& opts)
 {
   // reset state
   _is = new CodeTreeTIS<TermLiteralClause>();
@@ -72,19 +115,7 @@ void FunctionDefinitionHandler::initAndPreprocess(Problem& prb, const Options& o
     // clause contains definitions, we need to replace them with equalities
     auto lits = condLits;
     for (const auto& lit : defLits) {
-      unsigned orig_fn;
-      if (env.signature->isBoolDefPred(lit->functor(), orig_fn)) {
-        TermStack args;
-        for (unsigned i = 0; i < lit->arity(); i++) {
-          args.push(*lit->nthArgument(i));
-        }
-        lits.push(Literal::create(orig_fn, lit->arity(), lit->polarity(), false, args.begin()));
-      } else {
-        ASS(env.signature->isFnDefPred(lit->functor()));
-        auto lhs = lit->termArg(0);
-        ASS(lhs.isTerm());
-        lits.push(Literal::createEquality(lit->polarity(), lhs, lit->termArg(1), SortHelper::getResultSort(lhs.term())));
-      }
+      lits.push(replaceDefinition(lit));
     }
     Clause* defCl = Clause::fromStack(lits, NonspecificInference1(InferenceRule::DEFINITION_UNFOLDING,u));
 
