@@ -6156,6 +6156,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
   if (property.hasNumerals() || property.hasInterpretedOperations()) {
     // The TFA division: Typed (monomorphic) First-order with Arithmetic theorems (axioms with a provable conjecture).
 
+    getSnakeTptpUnsSchedule(property,quick);
 
   } else if (cat == Property::Category::UEQ) {
     // The UEQ division: Unit EQuality clause normal form theo rems (unsatisfiable clause sets)
