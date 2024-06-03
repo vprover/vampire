@@ -126,4 +126,82 @@ IMPL_QUOTIENT_REMAINDER(E)
 IMPL_DIVISION(RatTraits)
 IMPL_DIVISION(RealTraits)
 
+
+template<class NumTraits>
+inline Option<PolyNf> simplFloor(PolyNf* evalArgs)
+{
+  using Numeral = typename NumTraits::ConstantType;
+  auto inner = evalArgs[0].tryNumeral<NumTraits>();
+  if (inner) {
+    return some(PolyNf::fromNumeral(inner->floor()));
+  }  else {
+    auto poly = evalArgs[0].wrapPoly<NumTraits>();
+    // floor(s1 + ... + sn + t1 + ... + tm) ===> s1 + ... + sn + floor(t1 + ... + tn)
+    //                              pulledOut <--^^^^^^^^^^^^^         ^^^^^^^^^^^^^--> keptIn
+    Recycled<Stack<Monom<NumTraits>>> pulledOut;
+    Recycled<Stack<Monom<NumTraits>>> keptIn;
+    auto isInteger = [](MonomFactors<NumTraits> const& m) -> bool {
+      return m.iter()
+        .all([](auto const& factor) { 
+            auto num = factor.term.template tryNumeral<NumTraits>();
+            if (num) {
+              return num->isInt();
+            } else if (factor.term.isFuncTerm()) {
+              return NumTraits::isFloor(factor.term.unwrapFuncTerm()->function().id());
+            } else {
+              ASS(factor.term.tryVar())
+              return false;
+            }
+        });
+    };
+    for (auto monom : poly->iterSummands()) {
+      auto k = monom.numeral;
+      auto t = monom.factors;
+      if (isInteger(*t)) {
+        // floor(t + k t) ==> floor(t + (k - i) t) + i t
+        //   where t is an integer and
+        //         i = floor(k)
+        auto i = k.floor();
+        if (i       != Numeral(0)) { pulledOut->push(Monom(i   , t)); }
+        if ((k - i) != Numeral(0)) { keptIn->   push(Monom(k -i, t)); }
+      }
+    }
+    if (pulledOut->size() == 0) {
+      return {};
+
+    } else {
+
+
+      if (keptIn->size() == 0) {
+
+      } else if (keptIn->size() == 1 && (*keptIn)[0].isNumeral()) { 
+        auto numFloor = (*keptIn)[0].tryNumeral()->floor();
+        if (numFloor != Numeral(0))
+          pulledOut->push(Monom<NumTraits>(numFloor));
+      } else {
+        auto innerSum = PolyNf(AnyPoly(perfect(Polynom<NumTraits>(std::move(*keptIn)))));
+        auto floorTerm = PolyNf(perfect(FuncTerm(FuncId::fromInterpretation(NumTraits::floorI), &innerSum)));
+        pulledOut->push(Monom<NumTraits>(Numeral(1), perfect(MonomFactors<NumTraits>(floorTerm))));
+      }
+
+
+      std::sort(pulledOut->begin(), pulledOut->end());
+
+      auto out = PolyNf(AnyPoly(perfect(Polynom<NumTraits>(std::move(*pulledOut)))));
+      return some(out);
+    }
+  }
+}
+
+#define IMPL_FLOOR(NumTraits)                                                             \
+  template<>                                                                              \
+  struct FunctionEvaluator<NumTraits::floorI>                                             \
+  {                                                                                       \
+    static Option<PolyNf> simplify(PolyNf* evalArgs)                                      \
+    { return simplFloor<NumTraits>(evalArgs); }                                           \
+  };                                                                                      \
+
+IMPL_FLOOR(RatTraits)
+IMPL_FLOOR(RealTraits)
+
 #undef IMPL_DIVISION

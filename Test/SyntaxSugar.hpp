@@ -189,6 +189,7 @@
     auto add = FuncSugar(NumTraits::addF());                                                        \
     auto mul = FuncSugar(NumTraits::mulF());                                                        \
     auto minus = FuncSugar(NumTraits::minusF());                                                    \
+    auto floor = FuncSugar(NumTraits::floorF());                                                    \
     auto Sort = SortSugar(NumTraits::sort());                                                       \
   )                                                                                                 \
 

@@ -82,6 +82,8 @@ class FuncId
   
   explicit FuncId(unsigned num, Stack<TermList> typeArgs);
 public: 
+  static FuncId fromInterpretation(Theory::Interpretation i)
+  { return FuncId(env.signature->getInterpretingSymbol(i), Stack<TermList>()); }
   static FuncId symbolOf(Term* term);
   unsigned numTermArguments() const;
   unsigned numTypeArguments() const;
@@ -144,6 +146,7 @@ struct Monom
   Perfect<MonomFactors<Number>> factors;
 
   Monom(Numeral numeral, Perfect<MonomFactors<Number>> factors);
+  // Monom(Numeral numeral, PolyNf t); //: Monom(numeral, perfect(MonomFactors(t))) {}
   Monom(Numeral numeral) : Monom(numeral, perfect(MonomFactors<Number>::one())) {}
   Monom(int num) : Monom(Numeral(num)) {}
   Monom(int n1, int n2) : Monom(Numeral(n1, n2)) {}
@@ -233,6 +236,10 @@ public:
   /** \see template<class N> Polynom<N>::replaceTerms */
   AnyPoly replaceTerms(PolyNf* newTs) const;
 
+  template<class Numeral>
+  static AnyPoly fromNumeral(Numeral n) 
+  { return perfect(Polynom<NumTraits<Numeral>>::fromNumeral(n)); }
+
   template<class F> AnyPoly mapVars(F f) const;
 
   /** \see template<class N> Polynom<N>::nSummands */
@@ -312,6 +319,10 @@ public:
   /** if this PolyNf is a numeral, the numeral is returned */
   template<class Number>
   Option<typename Number::ConstantType> tryNumeral() const;
+
+  template<class Num>
+  static PolyNf fromNumeral(Num n)
+  { return PolyNf(AnyPoly::fromNumeral(n)); }
 
   /** if this PolyNf is a Variable, the variable is returned */
   Option<Variable> tryVar() const;
@@ -492,6 +503,10 @@ public:
 
   /** creates a Polynom that consists of only one summand */
   explicit Polynom(Numeral constant);
+
+  
+  static Polynom fromNumeral(Numeral constant) 
+  { return Polynom(constant); }
 
   /** creates the empty Polynom that is interpreted as zero */
   static Polynom zero();

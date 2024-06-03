@@ -86,13 +86,13 @@ Option<LitSimplResult> PolynomialEvaluation::tryEvalPredicate(Literal* orig, Pol
 
 #define HANDLE_CASE(INTER) case Interpretation::INTER: return PredicateEvaluator<Interpretation::INTER>::evaluate(orig, evaluatedArgs); 
 #define IGNORE_CASE(INTER) case Interpretation::INTER: return Option<LitSimplResult>();
-#define HANDLE_NUM_CASES(NUM)                                                                                 \
-      HANDLE_CASE(NUM ## _IS_INT)                                                                             \
-      HANDLE_CASE(NUM ## _IS_RAT)                                                                             \
-      HANDLE_CASE(NUM ## _IS_REAL)                                                                            \
-      HANDLE_CASE(NUM ## _GREATER)                                                                            \
-      HANDLE_CASE(NUM ## _GREATER_EQUAL)                                                                      \
-      HANDLE_CASE(NUM ## _LESS)                                                                               \
+#define HANDLE_NUM_CASES(NUM)                                                             \
+      HANDLE_CASE(NUM ## _IS_INT)                                                         \
+      HANDLE_CASE(NUM ## _IS_RAT)                                                         \
+      HANDLE_CASE(NUM ## _IS_REAL)                                                        \
+      HANDLE_CASE(NUM ## _GREATER)                                                        \
+      HANDLE_CASE(NUM ## _GREATER_EQUAL)                                                  \
+      HANDLE_CASE(NUM ## _LESS)                                                           \
       HANDLE_CASE(NUM ## _LESS_EQUAL) 
 
   auto sym = env.signature->getPredicate(orig->functor());
@@ -136,24 +136,25 @@ Option<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs)
 {
   switch (i) {
 
-#define CONSTANT_CASE_2(Num, func, expr)                                                                      \
-    case Num##Traits:: func ## I:                                                                           \
-      {                                                                                                     \
-        using Const = typename Num##Traits::ConstantType;                                                   \
+#define CONSTANT_CASE_2(Num, func, expr)                                                  \
+    case Num##Traits:: func ## I:                                                         \
+      {                                                                                   \
+        using Const = typename Num##Traits::ConstantType;                                 \
         return trySimplifyConst2<Num##Traits>(evalArgs, [](Const l, Const r){ return expr; });              \
-      }                                                                                                     \
+      }                                                                                   \
 
-#define CASE(inter)                                                                                           \
+#define CASE(inter)                                                                       \
     case inter: return FunctionEvaluator<inter>::simplify(evalArgs);
 
-#define QUOTIENT_REMAINDER_CASES(X)                                                                           \
-    CASE(Theory::INT_QUOTIENT_  ## X)                                                                       \
+#define QUOTIENT_REMAINDER_CASES(X)                                                       \
+    CASE(Theory::INT_QUOTIENT_  ## X)                                                     \
     CASE(Theory::INT_REMAINDER_ ## X)
 
-#define FRAC_CASE(Num)                                                                                        \
-    CASE(Num##Traits::divI)
+#define FRAC_CASE(Num)                                                                    \
+    CASE(Num##Traits::divI)                                                               \
+    CASE(Num##Traits::floorI)                                                             \
 
-#define NUM_CASE(Num)                                                                                         \
+#define NUM_CASE(Num)                                                                     \
     case Num ## Traits::minusI: return trySimplifyUnaryMinus<Num ## Traits>(evalArgs);
 
     NUM_CASE(Int)

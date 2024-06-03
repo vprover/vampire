@@ -236,28 +236,28 @@ TEST_ALL(neq_06,
 
 TEST_INT(lax_01, 
     TestCase {
-      .in  =   f(a) <= 0, // TODO theory: we normalize to something bigger here...
+      .in  =   f(a) <= 0, 
       .out = { { 1 + -f(a) > 0 } },
       .strong = false,
     })
 
 TEST_INT(lax_02, 
     TestCase {
-      .in  =    0 >= x, // TODO theory: we normalize to something bigger here...
+      .in  =    0 >= x, 
       .out = { { -x + 1 > 0 } },
       .strong = false,
     })
 
 TEST_INT(lax_03, 
     TestCase {
-      .in  =   a >= b, // TODO theory: we normalize to something bigger here...
+      .in  =   a >= b, 
       .out = { { a - b + 1 > 0 } },
       .strong = false,
     })
 
 TEST_INT(lax_04, 
     TestCase {
-      .in  =   a + b >= 0, // TODO theory: we normalize to something bigger here...
+      .in  =   a + b >= 0, 
       .out = { { a + b + 1 > 0 } },
       .strong = false,
     })
@@ -516,3 +516,131 @@ TEST_ALL(misc_05,
       .out = { {    a * a  +                b * b                           > 0, } },
       .strong = false,
     })
+
+////////////////////////////////////////////////////////////////
+
+TEST_FRAC(floor_01, 
+    TestCase {
+      .in  =     floor(a + a) > 0,
+      .out = { {    floor(2 * a) > 0 } },
+      .strong = false,
+    })
+
+TEST_FRAC(floor_02, 
+    TestCase {
+      .in  =     floor(floor(a)) > 0,
+      .out = { {    floor(a) > 0 } },
+      .strong = false,
+    })
+
+TEST_FRAC(floor_03, 
+    TestCase {
+      .in  =     floor(floor(a) + 2 * floor(b)) > 0,
+      .out = { {    floor(a) + 2 * floor(b) > 0 } },
+      .strong = false,
+    })
+
+TEST_FRAC(floor_04, 
+    TestCase {
+      .in  =     floor(floor(a) + frac(3,2) * floor(b)) > 0,
+      .out = { {    floor(a) + floor(b) + floor(frac(1,2) * floor(b)) > 0 } },
+      .strong = false,
+    })
+
+TEST_FRAC(floor_05, 
+    TestCase {
+      .in  =     floor(floor(a) + -frac(3,2) * floor(b)) > 0,
+      .out = { {    floor(a) + -2 * floor(b) + floor(frac(1,2) * floor(b)) > 0 } },
+      .strong = false,
+    })
+
+TEST_FRAC(floor_06, 
+    TestCase {
+      .in  =     floor(floor(a) + frac(-1,2) * floor(b)) > 0,
+      .out = { {    floor(a) + -floor(b) + floor(frac(1,2) * floor(b)) > 0 } },
+      .strong = false,
+    })
+
+TEST_FRAC(floor_07, 
+    TestCase {
+      .in  =     floor(floor(a) + frac(1,2) * floor(b)) > 0,
+      .out = { {    floor(a) + floor(frac(1,2) * floor(b)) > 0 } },
+      .strong = false,
+    })
+
+TEST_FRAC(floor_08, 
+    TestCase {
+      .in  =     floor(floor(a) + -frac(1,2) * floor(b) + frac(3,2)) > 0,
+      .out = { {    floor(a) + -floor(b) + floor(frac(1,2) * floor(b) + frac(1,2)) + 1 > 0 } },
+      .strong = false,
+    })
+
+
+
+TEST_FRAC(floor_09, 
+    TestCase {
+      .in  =     floor(floor(a) + -frac(1,2) * floor(b) + frac(-3,2)) > 0,
+      .out = { {    floor(a) + -floor(b) + floor(frac(1,2) * floor(b) + frac(1,2)) + -2 > 0 } },
+      .strong = false,
+    })
+
+
+
+TEST_FRAC(floor_10, 
+    TestCase {
+      .in  =     floor(floor(a) + -frac(1,2) * floor(b) + frac(-1,2)) > 0,
+      .out = { {    floor(a) + -floor(b) + floor(frac(1,2) * floor(b) + frac(1,2)) + -1 > 0 } },
+      .strong = false,
+    })
+
+
+
+TEST_FRAC(floor_11, 
+    TestCase {
+      .in  =     floor(floor(a) + -frac(1,2) * floor(b) + frac(1,2)) > 0,
+      .out = { {    floor(a) + -floor(b) + floor(frac(1,2) * floor(b) + frac(1,2)) > 0 } },
+      .strong = false,
+    })
+
+
+
+TEST_FRAC(floor_12, 
+    TestCase {
+      .in  =     floor(frac(1,3)) > 0,
+      .out = { {     num(0) > 0 } },
+      .strong = false,
+    })
+
+TEST_FRAC(floor_13, 
+    TestCase {
+      .in  =     floor(frac(5,3)) > 0,
+      .out = { {     num(1) > 0 } },
+      .strong = false,
+    })
+
+
+
+TEST_FRAC(floor_14, 
+    TestCase {
+      .in  =     floor(frac(-1,3)) > 0,
+      .out = { {     num(-1) > 0 } },
+      .strong = false,
+    })
+
+
+
+TEST_FRAC(floor_15, 
+    TestCase {
+      .in  =     a + floor(2) > 0,
+      .out = { {   a +  num(2) > 0 } },
+      .strong = false,
+    })
+
+TEST_FRAC(floor_16, 
+    TestCase {
+      .in  =     floor(2 * floor(a) + frac(3,2)) > 0,
+      .out = { { 2 * floor(a) + 1 > 0 } },
+      .strong = false,
+    })
+
+
