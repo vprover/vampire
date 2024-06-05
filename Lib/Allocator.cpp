@@ -33,16 +33,25 @@ void Lib::setMemoryLimit(size_t limit) { LIMIT = limit; }
 
 // override global allocators to keep track of allocated memory, doing very little else
 // TODO does not support get_new_handler/set_new_handler as we don't use it, but we could
-void *operator new(size_t size) {
+void *operator new(size_t size, std::align_val_t align) {
   if(ALLOCATED + size > LIMIT)
     throw std::bad_alloc();
   ALLOCATED += size;
   {
     Lib::TimeoutProtector tp;
-    if(void *ptr = std::malloc(size))
+    if(void *ptr = std::aligned_alloc(static_cast<size_t>(align), size))
       return ptr;
   }
   throw std::bad_alloc();
+}
+
+// align-less operator new
+// forwards to the aligned version with alignof(max_align_t)
+void *operator new(size_t size) {
+  return operator new(
+    size,
+    static_cast<std::align_val_t>(alignof(std::max_align_t))
+  );
 }
 
 // normal delete, just decrements `ALLOCATED` and calls free()
@@ -53,6 +62,13 @@ void operator delete(void *ptr, size_t size) noexcept {
   std::free(ptr);
 }
 
+// aligned-and-sized delete
+// forwards to the sized delete as we don't use the alignment information
+void operator delete(void *ptr, size_t size, std::align_val_t align) noexcept {
+  operator delete(ptr, size);
+}
+
+// unsized (and unaligned) delete
 // called if we don't know the size of the deallocated object somehow,
 // occurs very rarely and usually from deep in the bowels of the standard library
 // TODO does cause us to slightly over-report allocated memory
