@@ -1941,9 +1941,6 @@ bool _hard;
        c->add(left);c->add(mid);c->add(right);
        return OptionProblemConstraintUP(c);
     }
-    
-    static OptionProblemConstraintUP isRandOn();
-    static OptionProblemConstraintUP isRandSat();
 
   //==========================================================
   // Getter functions
