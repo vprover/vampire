@@ -212,7 +212,7 @@ void Options::init()
     _encode.tag(OptionTag::DEVELOPMENT);
 
     _sampleStrategy = StringOptionValue("sample_strategy","","");
-    _sampleStrategy.description = "Specify a path to a filename (of homemade format) describing how to sample a random strategy (incompatible with the --random_strategy way).";
+    _sampleStrategy.description = "Specify a path to a filename (of homemade format) describing how to sample a random strategy.";
     _lookup.insert(&_sampleStrategy);
     _sampleStrategy.reliesOn(_mode.is(equal(Mode::VAMPIRE)));
     _sampleStrategy.setExperimental();
@@ -2442,17 +2442,6 @@ bool Options::HasTheories::actualCheck(Property*p)
 bool Options::HasTheories::check(Property*p) {
   // this was the condition used in Preprocess::preprocess guarding the addition of theory axioms
   return actualCheck(p);
-}
-
-/**
- * Static functions to help specify random choice values
- */
-
-Options::OptionProblemConstraintUP Options::isRandOn(){
-      return OptionProblemConstraintUP(new OptionHasValue("random_strategy","on"));
-}
-Options::OptionProblemConstraintUP Options::isRandSat(){
-      return OptionProblemConstraintUP(new OptionHasValue("random_strategy","sat"));
 }
 
 /**
