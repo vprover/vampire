@@ -271,6 +271,9 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
   std::mt19937 rng;
   // ordering (for SimpleCongruenceClosure?!)
   OrderingSP ordering;
+  // for checking the path is E-satisfiable
+  DP::SimpleCongruenceClosure congruence_closure;
+
 
   // create a decision level on construction, backtrack a decision level on destruction
   struct Level {
@@ -309,7 +312,8 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
 
   Propagator(Problem &problem, const Matrix &matrix) :
     matrix(matrix),
-    ordering(Kernel::Ordering::create(problem, *env.options))
+    ordering(Kernel::Ordering::create(problem, *env.options)),
+    congruence_closure(ordering.ptr())
   {}
 
   ~Propagator() {
@@ -393,6 +397,7 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
     // find a path through the matrix
     auto path = find_path();
 
+    // sets of predicates, sides of equations, and subterms in the path
     DHSet<TermList> predicates, sides, subterms;
     for(Literal *l : path) {
       if(l->isEquality()) {
@@ -429,11 +434,17 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
       else if(
         (sides.contains(t) && subterms.contains(s)) ||
         (sides.contains(s) && subterms.contains(t))
-      )
-        reason.push_back(connection);
+      ) {
+        ASS_NEQ(s, t)
+        TermList sg = SubstHelper::apply(substitution.apply(s, 0), X0);
+        TermList tg = SubstHelper::apply(substitution.apply(t, 0), X0);
+        // can skip those already in the same congruence
+        if(congruence_closure.getClassID(sg) != congruence_closure.getClassID(tg))
+          reason.push_back(connection);
+      }
     }
 
-    // log() << "final: " << reason << '\n';
+    //log() << "final: " << reason << '\n';
     return false;
   }
 
@@ -501,13 +512,11 @@ conflict:
     }
     ASS_EQ(grounded.size(), matrix.copies.size())
 
-    // for checking the path is E-satisfiable
-    DP::SimpleCongruenceClosure cc(ordering.ptr());
-
     // to choose a random satisfied literal in clauses
     std::vector<unsigned> random_order;
 
-    // read the path off pathfinder's model
+    // read the path off pathfinder's model and update the congruence closure
+    congruence_closure.reset();
     std::unordered_set<Literal *> path;
     for(unsigned i = 0; i < matrix.copies.size(); i++) {
       const Copy &copy = matrix.copies[i];
@@ -527,17 +536,19 @@ conflict:
           ( lit.polarity() && pathfinder.getAssignment(lit.var()) == SATSolver::TRUE) ||
           (!lit.polarity() && pathfinder.getAssignment(lit.var()) == SATSolver::FALSE)
         ) {
-          cc.addLiteral((*ground)[j]);
+          congruence_closure.addLiteral((*ground)[j]);
           path.insert(copy.literals[j]);
           break;
         }
       }
     }
 
-    if(cc.getStatus(false) == DP::DecisionProcedure::UNSATISFIABLE) {
-      ASS(cc.getUnsatCoreCount())
+    // check whether the path is E-satisfiable
+    // if not, try another path
+    if(congruence_closure.getStatus(false) == DP::DecisionProcedure::UNSATISFIABLE) {
+      ASS(congruence_closure.getUnsatCoreCount())
       Stack<Literal *> core;
-      cc.getUnsatCore(core, 0);
+      congruence_closure.getUnsatCore(core, 0);
       SATClause *conflict = sat2fo.createConflictClause(core);
       ASS(conflict)
       pathfinder.addClause(conflict);
