@@ -6165,7 +6165,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
         (atoms <= 10 ? std::tie(quick,fallback,fallback,fallback) : std::tie(fallback,quick,fallback,fallback)) :
         (atoms <= 14 ? std::tie(fallback,fallback,quick,fallback) : std::tie(fallback,fallback,fallback,quick));
 
-    propZsmall10.push("ott+10_4:13_drc=encompass:sil=256000:bsd=on:sp=reverse_frequency:norm=on:urr=on:i=125345:rawr=on_0");
+    propZsmall10.push("ott+10_4:13_drc=encompass:sil=256000:bsd=on:sp=reverse_frequency:urr=on:i=125345:rawr=on_0");
     propZsmall10.push("lrs+10_25:89_sil=256000:tgt=ground:lwlo=on:s2a=on:i=224446:s2at=5.0:fsr=off:awrs=converge:awrsf=90_0");
 
     propZsmall10.push("lrs+10_1:1_to=lpo:drc=encompass:sil=2000:fde=unused:sp=const_min:i=107:bs=unit_only:bd=preordered:ins=1:rawr=on:irc=lazy:sfv=off:plsq=on:plsql=on:plsqc=1_0");
@@ -6266,7 +6266,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     propZbig10.push("dis+10_1:64_sil=256000:tgt=full:sp=const_frequency:sos=on:i=57866:bs=on_0");
     propZbig10.push("lrs+10_1:1024_drc=encompass:sil=128000:tgt=ground:sp=frequency:i=58321:kws=precedence_0");
     propZbig10.push("dis+10_1:166_drc=encompass:sil=256000:tgt=full:i=78078:fsr=off:spb=non_intro:dpc=on:to=lpo:rawr=on_0");
-    propZbig10.push("ott+10_1:128_bsr=on:drc=encompass:sil=128000:sp=frequency:norm=on:i=98995:bd=preordered:dpc=on:rawr=on_0");
+    propZbig10.push("ott+10_1:128_bsr=on:drc=encompass:sil=128000:sp=frequency:i=98995:bd=preordered:dpc=on:rawr=on_0");
 
     // total_instr 838566
     // len(covered) 226
@@ -6313,7 +6313,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     propNZsmall14.push("lrs+10_1:128_drc=encompass:sil=16000:sp=const_frequency:i=11308:kws=precedence:slsq=on_0");
     propNZsmall14.push("dis+10_1:12_sil=256000:tgt=ground:fde=unused:i=6021:s2a=on:s2agt=8_0");
     propNZsmall14.push("lrs+10_16:1_to=lpo:sil=32000:urr=ec_only:fd=preordered:nwc=10.0:i=15430:bd=off:irc=lazy:drc=encompass_0");
-    propNZsmall14.push("ott+10_2:9_drc=encompass:sil=128000:tgt=full:sp=frequency:norm=on:nwc=5.0:st=3.0:i=57775:kws=precedence:bd=preordered:dpc=on:ss=axioms:rawr=on:rnwc=on_0");
+    propNZsmall14.push("ott+10_2:9_drc=encompass:sil=128000:tgt=full:sp=frequency:nwc=5.0:st=3.0:i=57775:kws=precedence:bd=preordered:dpc=on:ss=axioms:rawr=on:rnwc=on_0");
     propNZsmall14.push("dis+10_1:128_drc=encompass:sil=256000:nwc=6.0:i=21529:fsr=off_0");
     propNZsmall14.push("dis+10_1:1_drc=encompass:sil=256000:tgt=full:i=76551:to=lpo:fde=unused_0");
     propNZsmall14.push("dis+10_1:54_sil=256000:tgt=ground:plsq=on:plsqr=9145955,131072:sp=frequency:spb=goal_then_units:plsql=on:i=50725:doe=on:ins=3:rawr=on:slsq=on:slsqr=1,4:s2at=2.0:slsqc=1_0");
@@ -6323,7 +6323,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     // total_instr 925456
     // len(covered) 301
 
-    propNZbig14.push("dis+10_28091:1048576_to=lpo:drc=encompass:sil=128000:tgt=full:norm=on:erd=off:cond=on:i=107869:doe=on:ins=2:av=off:dpc=on:irc=eager:s2pl=on:s2agt=5:s2at=4.0:foolp=on_0");
+    propNZbig14.push("dis+10_28091:1048576_to=lpo:drc=encompass:sil=128000:tgt=full:erd=off:cond=on:i=107869:doe=on:ins=2:av=off:dpc=on:irc=eager:s2pl=on:s2agt=5:s2at=4.0:foolp=on_0");
     propNZbig14.push("lrs+10_1:1_drc=encompass:sil=256000:tgt=ground:sp=unary_first:sos=on:i=220312:kws=precedence:lwlo=on:irc=lazy_0");
 
     propNZbig14.push("lrs+10_16:1_sfv=off:sil=2000:sp=reverse_frequency:urr=ec_only:br=off:i=126:doe=on:irc=lazy:to=lpo:fd=preordered:bd=preordered:fsd=on:drc=encompass_0");
@@ -6358,7 +6358,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     propNZbig14.push("lrs+10_2:3_sil=128000:fde=none:s2a=on:i=13654:s2at=3.0:lwlo=on:bd=off_0");
     propNZbig14.push("lrs+10_1:16_drc=encompass:sil=256000:tgt=full:spb=intro:i=41528:kws=precedence:awrs=converge:awrsf=200:ss=axioms:irc=eager:st=3.0:sp=const_frequency_0");
     propNZbig14.push("dis+10_1:32_drc=encompass:sil=256000:tgt=ground:sp=const_frequency:spb=goal:i=32120:kws=precedence:bd=off:dpc=on:irc=lazy:s2a=on:s2at=3.0_0");
-    propNZbig14.push("ott+10_1:6_drc=encompass:sil=512000:tgt=ground:fde=unused:sp=const_min:norm=on:spb=goal:nwc=1.1:i=95210:kws=precedence:dpc=on_0");
+    propNZbig14.push("ott+10_1:6_drc=encompass:sil=512000:tgt=ground:fde=unused:sp=const_min:spb=goal:nwc=1.1:i=95210:kws=precedence:dpc=on_0");
     propNZbig14.push("lrs+10_1:32_sil=64000:tgt=full:sp=frequency:lwlo=on:i=51758:irc=eager_0");
     propNZbig14.push("lrs+10_2:23_drc=encompass:sil=256000:tgt=full:s2a=on:i=126830:s2at=2.0:irc=lazy:dpc=on_0");
     propNZbig14.push("lrs+10_1:24_bsr=unit_only:to=lpo:drc=encompass:sil=128000:fde=unused:sp=const_min:spb=goal:fd=preordered:i=67476:bs=on:dpc=on:rawr=on:irc=lazy:er=filter:erape=on:nwc=3.0:ss=axioms:st=6.0:urr=ec_only_0");
