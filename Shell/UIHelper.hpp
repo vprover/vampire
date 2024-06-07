@@ -40,9 +40,8 @@ private:
   struct LoadedPiece {
     vstring _id;
     UnitList::FIFO _units;
-    SMTLIBLogic _smtLibLogic;
-    bool _hasConjecture;
-    LoadedPiece() : _smtLibLogic(SMT_UNDEFINED), _hasConjecture(false) {}
+    SMTLIBLogic _smtLibLogic = SMT_UNDEFINED;
+    bool _hasConjecture = false;
   };
   static Stack<LoadedPiece> _loadedPieces;
 
