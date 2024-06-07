@@ -8,8 +8,8 @@
  * and in the source directory
  */
 /**
- * @file InvalidAnswerLiteralRemoval.cpp
- * Implements class UncomputableAnswerLiteralRemoval.
+ * @file InvalidAnswerLiteralRemovals.cpp
+ * Implements classes UncomputableAnswerLiteralRemoval and UndesiredAnswerLiteralRemoval.
  */
 
 #include "Kernel/Clause.hpp"
