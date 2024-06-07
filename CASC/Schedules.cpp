@@ -7166,4 +7166,35 @@ void Schedules::getCascSat2024Schedule(const Property& property, Schedule& quick
 
   // The TFN division: Typed (monomorphic) First-order Non-theorems (axioms with a countersatisfiable conjecture, and satisfiable axiom sets).
 
+  quick.push("fmb+10_1:1_sil=256000:i=98885:tgt=full:fmbsr=1.3:fmbss=10_0");
+  quick.push("fmb+10_1:1_sil=256000:fmbes=contour:i=214858:bce=on_0");
+
+  quick.push("ott+21_1:1_sil=4000:i=104:fsd=on:fd=off:newcnf=on_0");
+  quick.push("ott+11_8:59_sil=16000:sp=occurrence:lsd=20:abs=on:i=146:aac=none:nm=16:fdi=10:rawr=on:nicw=on_0");
+  quick.push("ott-4_1:1_sil=4000:sp=reverse_arity:lcm=predicate:newcnf=on:i=115:bce=on:fd=off:fs=off:fsr=off_0");
+  quick.push("dis+11_1:3_bsr=unit_only:sil=2000:rp=on:newcnf=on:i=404:kws=precedence:lsd=100_0");
+  quick.push("ott-21_1:1_sil=4000:sp=const_frequency:i=175:fsr=off:fs=off:av=off_0");
+  quick.push("ott+33_1:1_to=lpo:sil=8000:sp=weighted_frequency:rp=on:i=270:nm=3:fsr=off:sac=on_0");
+  quick.push("ott+4_1:1_sil=2000:i=900:bd=off:fsr=off_0");
+  quick.push("fmb+10_1:1_sil=8000:fde=unused:fmbes=contour:i=7859:nm=2:fmbswr=0_0");
+  quick.push("ott+11_1:2_anc=none:sil=2000:sp=const_max:spb=units:s2a=on:i=2145:s2at=5.0:awrs=converge:awrsf=170:rawr=on:gs=on:fsr=off_0");
+  quick.push("ott-30_1:1024_sil=4000:alpa=true:newcnf=on:i=1187:bs=unit_only:ins=1:amm=off_0");
+  quick.push("fmb+10_1:1_sil=32000:i=23580:newcnf=on_0");
+  quick.push("fmb+10_1:1_sil=32000:fmbss=17:fmbsr=2.0:i=2892_0");
+  quick.push("ott-10_1:1_sil=4000:i=1693_0");
+  quick.push("dis+21_1:1_sil=4000:gs=on:sac=on:newcnf=on:gsem=off:i=1735:gsaa=full_model:abs=on:anc=none_0");
+  quick.push("fmb+10_1:1_fmbas=expand:sil=128000:i=131798:nm=2:fmbksg=on:fmbss=4:fmbsr=1.77:rp=on_0");
+  quick.push("fmb+10_1:1_sil=16000:fmbss=16:i=3451:newcnf=on_0");
+  quick.push("ott+11_1:64_sil=4000:rp=on:i=3978:bd=off:fsr=off_0");
+  quick.push("dis+35_1:64_to=lpo:sil=32000:sp=occurrence:urr=on:sac=on:i=33091:fsr=off_0");
+  quick.push("dis-4_1:1_sil=16000:sp=const_frequency:sac=on:newcnf=on:i=9564_0");
+  quick.push("fmb+10_1:1_sil=64000:i=50409:nm=2:gsp=on_0");
+  quick.push("dis+2_3:1_bsr=on:sil=64000:abs=on:i=10852:gsp=on:fs=off:fsr=off_0");
+  quick.push("dis+11_61:31_bsr=unit_only:sil=16000:sp=frequency:rp=on:newcnf=on:i=11327:uhcvi=on:rawr=on:abs=on:lsd=5:add=off_0");
+  quick.push("fmb+10_1:1_fmbas=expand:sil=128000:i=17908:nm=2:fmbss=15:gsp=on_0");
+  quick.push("dis+11_1:1_anc=all:sil=64000:rp=on:newcnf=on:i=22636:alpa=false:atotf=0.1:gs=on_0");
+  quick.push("fmb+10_1:1_i=30223_0");
+  quick.push("ott+11_8:1_sil=64000:i=37350:fsr=off:bsr=unit_only:newcnf=on_0");
+  //total_instr 719535
+  //len(covered) 1059
 }
