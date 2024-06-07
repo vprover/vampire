@@ -154,7 +154,6 @@ Formula* Unit::getFormula()
  */
 vstring Unit::inferenceAsString() const
 {
-#if 1
   const Inference& inf = inference();
 
   vstring result = (vstring)"[" + inf.name();
@@ -174,17 +173,6 @@ vstring Unit::inferenceAsString() const
   }
 
   return result + ']';
-#else
-  vstring result = (vstring)"[" + _inference->name();
-   bool first = true;
-   Inference::Iterator it = _inference->iterator();
-   while (_inference->hasNext(it)) {
-     result += first ? ' ' : ',';
-     first = false;
-     result += Int::toString(_inference->next(it)->number());
-   }
-   return result + ']';
-#endif
 } // Unit::inferenceAsString()
 
 void Unit::assertValid()
