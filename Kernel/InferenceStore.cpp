@@ -242,7 +242,7 @@ protected:
       InferenceRule rule = cs->inference().rule();
       UnitIterator parents= cs->getParents();
 
-      out << Int::toString(cs->number()) << ". ";
+      out << cs->number() << ". ";
       FormulaUnit* fu=static_cast<FormulaUnit*>(cs);
       if (env.colorUsed && fu->inheritedColor() != COLOR_INVALID) {
         out << " IC" << fu->inheritedColor() << " ";
@@ -263,7 +263,7 @@ protected:
       while(parents.hasNext()) {
         Unit* prem=parents.next();
         out << (first ? ' ' : ',');
-        out << Int::toString(prem->number());
+        out << prem->number();
         first=false;
       }
       out << "]" << endl;
@@ -776,7 +776,7 @@ protected:
     if(env.getMainProblem()->isHigherOrder()){ kind="thf"; }
 
     out << kind
-        << "(r"<< Int::toString(cs->number())
+        << "(r"<< cs->number()
     	<< ",conjecture, "
     	<< getQuantifiedStr(cs)
     	<< " ). %"<<ruleName(rule)<<"\n";
@@ -784,7 +784,7 @@ protected:
     while(parents.hasNext()) {
       Unit* prem=parents.next();
       out << kind
-        << "(pr"<<Int::toString(prem->number())
+        << "(pr"<<prem->number()
   	<< ",axiom, "
   	<< getQuantifiedStr(prem);
       out << " ).\n";
