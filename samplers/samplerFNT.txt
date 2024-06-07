@@ -218,56 +218,56 @@ $s2a=on > s2at ~cat -1.0:50,1.0:150,1.5:37,2.0:60,2.5:20,3.0:70,3.5:15,4.0:60,4.
 sa!=fmb > av ~cat on:15,off:4
 
 # sat_solver
-$has_z3=true av=on > sas ~cat minisat:10,z3:1
+sa!=fmb $has_z3=true av=on > sas ~cat minisat:10,z3:1
 
 # avatar_add_complementary
-av=on > aac ~cat none:147,ground:600
+sa!=fmb av=on > aac ~cat none:147,ground:600
 
 # avatar_buffered_solver
-av=on > abs ~cat on:63,off:300
+sa!=fmb av=on > abs ~cat on:63,off:300
 
 # avatar_congruence_closure
-sas!=z3 av=on > acc ~cat off:600,model:24,on:58
+sa!=fmb sas!=z3 av=on > acc ~cat off:600,model:24,on:58
 
 # cc_unsat_cores
-acc!=off > ccuc ~cat first:1,small_ones:1,all:3
+sa!=fmb acc!=off > ccuc ~cat first:1,small_ones:1,all:3
 
 # avatar_minimize_model
-av=on  acc=model > amm ~cat all:600,off:69
-av=on acc!=model > amm ~cat all:600,sco:32,off:69
+sa!=fmb av=on  acc=model > amm ~cat all:600,off:69
+sa!=fmb av=on acc!=model > amm ~cat all:600,sco:32,off:69
 
 # avatar_eager_removal
-av=on amm=all > aer ~cat on:300,off:1
+sa!=fmb av=on amm=all > aer ~cat on:300,off:1
 
 # avatar_delete_deactivated
-av=on > add ~cat on:300,large:55,off:8
+sa!=fmb av=on > add ~cat on:300,large:55,off:8
 
 # avatar_fast_restart
-av=on > afr ~cat off:10,on:1
+sa!=fmb av=on > afr ~cat off:10,on:1
 
 # avatar_literal_polarity_advice
-av=on > alpa ~cat none:300,false:13,true:6,random:4
+sa!=fmb av=on > alpa ~cat none:300,false:13,true:6,random:4
 
 # avatar_nonsplittable_components
-av=on > anc ~cat known:300,all_dependent:38,all:45,none:48
+sa!=fmb av=on > anc ~cat known:300,all_dependent:38,all:45,none:48
 
 # avatar_turn_off_time_frac
-av=on > atotf ~cat 1.0:10,0.5:1
+sa!=fmb av=on > atotf ~cat 1.0:10,0.5:1
 # careful that 1.0 becomes "1" by the ->toFloat->toStr internal transformation
-atotf!=1 > atotf ~uf 0.0,0.5
+sa!=fmb atotf!=1 > atotf ~uf 0.0,0.5
 
 # avatar_flush_period
-av=on > afp ~cat 0:15,1:1
-afp!=0 > afp ~cat 1:1,10:1,50:1,300:1,1000:1,2000:1,4000:1,10000:1,40000:1,100000:1,1000000:1
+sa!=fmb av=on > afp ~cat 0:15,1:1
+sa!=fmb afp!=0 > afp ~cat 1:1,10:1,50:1,300:1,1000:1,2000:1,4000:1,10000:1,40000:1,100000:1,1000000:1
 
 # avatar_flush_quotient
-afp!=0 > afq ~uf 1.0,3.0
+sa!=fmb afp!=0 > afq ~uf 1.0,3.0
 
 # nonliterals_in_clause_weight
-av=on > nicw ~cat off:600,on:76
+sa!=fmb av=on > nicw ~cat off:600,on:76
 
 # split_at_activation
-av=on > sac ~cat off:3,on:1
+sa!=fmb av=on > sac ~cat off:3,on:1
 
 # Michael's clause cleaving
 # av=on > cm ~cat on:1
@@ -332,8 +332,9 @@ fmbdsb=on > fmbdsbt ~cat 1:5,2:2,3:1
 sa=fmb fmbes=sbeam > fmbksg ~cat off:2,on:1
 
 # fmb_start_size - setting this to values > 1 is making things "finite mode incomplete" (but could save time for some problems)
-sa=fmb > fmbss ~cat 1:5,666:1
-fmbss=666 > fmbss ~sgd 0.1,1
+sa=fmb > $fmbss ~cat 1:5,666:1
+$fmbss=1 > fmbss ~cat 1:1
+$fmbss=666 > fmbss ~sgd 0.1,1
 
 # fmb_symmetry_symbol_order
 sa=fmb > fmbsso ~cat occurence:22,input_usage:1,preprocessed_usage:1
