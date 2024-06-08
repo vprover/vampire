@@ -169,8 +169,14 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
         if (_precompiledComparison) {
           if (!preordered && (_preorderedOnly || !ordering.isGreater(lhs,rhs,appl,const_cast<OrderingComparatorUP&>(qr.data->comparator)))) {
+            // if (ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl,true))) {
+            //   USER_ERROR("greater");
+            // }
             continue;
           }
+          // if (!ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl,true))) {
+          //   USER_ERROR("not greater");
+          // }
         } else {
           if (!preordered && (_preorderedOnly || !ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl,true)))) {
             continue;

@@ -49,6 +49,7 @@ public:
   Result compare(AppliedTerm tl1, AppliedTerm tl2) const override;
   bool isGreater(AppliedTerm tl1, AppliedTerm tl2) const override;
   bool isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, OrderingComparatorUP& comparator) const override;
+  Result isGreaterOrEq(AppliedTerm tl1, AppliedTerm tl2) const override;
 
   void showConcrete(std::ostream&) const override;
 

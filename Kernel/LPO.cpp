@@ -27,6 +27,8 @@
 #include "LPOComparator.hpp"
 #include "Signature.hpp"
 
+#include <asmjit/a64.h>
+
 namespace Kernel {
 
 using namespace std;
@@ -99,6 +101,11 @@ Ordering::Result LPO::compare(AppliedTerm tl1, AppliedTerm tl2) const
 bool LPO::isGreater(AppliedTerm lhs, AppliedTerm rhs) const
 {
   return lpo(lhs,rhs)==GREATER;
+}
+
+Ordering::Result LPO::isGreaterOrEq(AppliedTerm lhs, AppliedTerm rhs) const
+{
+  return lpo(lhs,rhs);
 }
 
 Ordering::Result LPO::clpo(AppliedTerm tl1, AppliedTerm tl2) const
@@ -247,14 +254,194 @@ Ordering::Result LPO::majo(AppliedTerm s, AppliedTerm t, const TermList* tl, uns
   return GREATER;
 }
 
+template <class T>
+constexpr int VFnOffset(T func)
+{
+    union
+    {
+        T ptr;
+        int i;
+    };
+    ptr = func;
+
+    return i;
+}
+
 bool LPO::isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, OrderingComparatorUP& comparator) const
 {
   if (!comparator) {
     // cout << "preprocessing " << lhs << " " << rhs << endl;
     comparator = make_unique<const LPOComparator>(lhs, rhs, *this);
     // cout << comparator->toString() << endl;
+
+    using namespace asmjit;
+
+    static JitRuntime rt;
+
+    auto c = const_cast<LPOComparator*>(static_cast<const LPOComparator*>(comparator.get()));
+    // CodeHolder code;
+    c->code.init(rt.environment(), rt.cpuFeatures());
+
+    using namespace a64;
+
+    Assembler a(&c->code);
+
+    // prologue
+
+    a.stp(x29,x30,ptr_pre(sp,-96));             // save x29 (frame pointer) and x30 (link register / return address) to stack, also move stack cursor 96 units up
+    a.mov(x29,sp);                              // x29 <- sp  (x29 holds frame pointer)
+    a.stp(x19,x20,ptr(sp,16));
+    a.mov(x20,x0);                              // store 1st arg (const Ordering*) in x20
+    a.mov(x19,x1);                              // store 2nd arg (const SubstApplicator*) in x19
+
+    vvector<Label> labels(c->_instructions.size());
+    Label endLabel = a.newLabel();
+
+    for (unsigned i = 1; i < c->_instructions.size(); i++) {
+      labels[i] = a.newLabel();
+    }
+
+    for (unsigned i = 0; i < c->_instructions.size(); i++) {
+
+      if (i > 0) {
+        a.bind(labels[i]);
+      }
+
+      // (*applicator)(var1.var()) call
+
+      const auto& ins = static_cast<const LPOComparator*>(comparator.get())->_instructions[i];
+
+      if (ins.lhs.isVar()) {
+        a.mov(x0,x19);                              // new 1st arg is applicator
+        a.mov(x1,ins.lhs.var());                       // new 2nd arg is var1.var()
+        a.ldr(x2,ptr(x19));                         // load SubstApplicator vtable ptr into x2
+        a.ldr(x2,ptr(x2,                            // load SubstApplicator::operator() ptr into x2
+          VFnOffset(&SubstApplicator::operator())));
+        a.str(x21,ptr(sp,32));                      // store x21 value on stack+32
+        a.blr(x2);                                  // perform call
+        a.stp(x0,xzr,ptr(sp, 40));                  // store result of call and false on stack
+        a.str(x19,ptr(sp,
+          40+offsetof(AppliedTerm,applicator)));    // store appl (3rd arg to AppliedTerm) on stack
+      } else {
+        a.mov(x0,*reinterpret_cast<const uint64_t*>(&ins.lhs));
+        a.mov(x1,1);
+        a.stp(x0,x1,ptr(sp, 40));                   // store result of call and true on stack
+        a.str(x19,ptr(sp,
+          40+offsetof(AppliedTerm,applicator)));    // store appl (3rd arg to AppliedTerm) on stack
+      }
+
+      // (*applicator)(var2.var()) call
+
+      if (ins.rhs.isVar()) {
+        a.mov(x0,x19);                              // new 1st arg is applicator
+        a.mov(x1,ins.rhs.var());                       // new 2nd arg is var2.var()
+        a.ldr(x2,ptr(x19));                         // load SubstApplicator vtable ptr into x2
+        a.ldr(x2,ptr(x2,                            // load SubstApplicator::operator() ptr into x2
+          VFnOffset(&SubstApplicator::operator())));
+        a.blr(x2);                                  // perform call
+        a.stp(x0,xzr,ptr(sp,64));                   // store result of call and false on stack
+        a.str(x19,ptr(sp,
+          64+offsetof(AppliedTerm,applicator)));    // store appl (3rd arg to AppliedTerm) on stack
+      } else {
+        a.mov(x0,*reinterpret_cast<const uint64_t*>(&ins.rhs));
+        a.mov(x1,1);
+        a.stp(x0,x1,ptr(sp,64));                    // store result of call and true on stack
+        a.str(x19,ptr(sp,
+          64+offsetof(AppliedTerm,applicator)));    // store appl (3rd arg to AppliedTerm) on stack
+      }
+
+      // ord->isGreaterOrEq call
+      // TODO replace this with non-virtual LPO::lpo
+
+      a.mov(x0,x20);                              // new 1st arg is ordering
+      a.ldr(x3,ptr(x20));                         // load Ordering vtable ptr into x2
+      a.ldr(x21,ptr(x3,                           // load Ordering::isGreaterOrEq into x21
+        VFnOffset(&Ordering::isGreaterOrEq)));
+      a.add(x1,sp,40);                            // 2nd arg, AppliedTerm(var1,false,applicator)
+      a.add(x2,sp,64);                            // probably 3rd argument, AppliedTerm(var2,false,applicator)
+      a.blr(x21);                                 // perform call
+      // a.bl(Imm(&LPO::lpo));
+
+      a.mov(x1,x0);
+      // eq branch
+      a.cmp(x1,Ordering::EQUAL);
+      switch (ins.bs[0].tag) {
+        case LPOComparator::Instruction::BranchTag::T_JUMP: {
+          a.b_eq(labels[ins.bs[0].jump_pos]);
+          break;
+        }
+        case LPOComparator::Instruction::BranchTag::T_GREATER: {
+          a.mov(w0, 1);
+          a.b_eq(endLabel);
+          break;
+        }
+        default: {
+          a.mov(w0, 0);
+          a.b_eq(endLabel);
+          break;
+        }
+      }
+      // gt branch
+      // a.cmp(x1,Ordering::GREATER);
+      switch (ins.bs[1].tag) {
+        case LPOComparator::Instruction::BranchTag::T_JUMP: {
+          a.b_le(labels[ins.bs[1].jump_pos]);
+          break;
+        }
+        case LPOComparator::Instruction::BranchTag::T_GREATER: {
+          a.mov(w0, 1);
+          a.b_le(endLabel);
+          break;
+        }
+        default: {
+          a.mov(w0, 0);
+          a.b_le(endLabel);
+          break;
+        }
+      }
+      // incomparable branch
+      // a.cmp(x1,Ordering::INCOMPARABLE);
+      switch (ins.bs[2].tag) {
+        case LPOComparator::Instruction::BranchTag::T_JUMP: {
+          a.b(labels[ins.bs[2].jump_pos]);
+          break;
+        }
+        case LPOComparator::Instruction::BranchTag::T_GREATER: {
+          a.mov(w0, 1);
+          a.b(endLabel);
+          break;
+        }
+        default: {
+          a.mov(w0, 0);
+          a.b(endLabel);
+          break;
+        }
+      }
+    }
+
+    // epilogue
+
+    a.bind(endLabel);
+
+    a.ldr(x21,ptr(sp,32));
+    a.ldp(x19,x20,ptr(sp,16));
+    a.ldp(x29,x30,ptr_post(sp,96));
+    a.ret(x30);  // x30 holds *where* to return
+
+    // Func fn;
+    Error err = rt.add(&c->fn, &c->code);
+
+    if (err) {
+      printf("AsmJit failed: %s\n", DebugUtils::errorAsString(err));
+      USER_ERROR("jit assembling failed");
+    }
+
+    // TODO release code
+    // rt.release(c->fn);
   }
-  return static_cast<const LPOComparator*>(comparator.get())->check(applicator);
+  auto c = static_cast<const LPOComparator*>(comparator.get());
+  // return c->check(applicator);
+  return c->fn(this, applicator);
 }
 
 void LPO::showConcrete(ostream&) const 

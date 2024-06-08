@@ -30,6 +30,9 @@ using namespace Lib;
 struct SubstApplicator {
   virtual ~SubstApplicator() = default;
   virtual TermList operator()(unsigned v) const = 0;
+  virtual TermList apply(unsigned v) const {
+    return operator()(v);
+  }
 };
 
 /**
@@ -100,6 +103,8 @@ struct AppliedTerm
     }
     return false;
   }
+
+  friend std::ostream& operator<<(std::ostream& out, const AppliedTerm& t);
 };
 
 class SubstHelper
@@ -652,6 +657,15 @@ FormulaList* SubstHelper::applyImpl(FormulaList* fs, Applicator& applicator, boo
 
   return res;
 } // SubstHelper::applyImpl
+
+inline std::ostream& operator<<(std::ostream& out, const AppliedTerm& t) {
+  if (t.aboveVar) {
+    out << SubstHelper::apply(t.term, *t.applicator) << " " << t.aboveVar;
+  } else {
+    out << t.term << " " << t.aboveVar;
+  }
+  return out;
+}
 
 };
 

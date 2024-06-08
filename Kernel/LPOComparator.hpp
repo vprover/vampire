@@ -13,6 +13,8 @@
 
 #include "Forwards.hpp"
 
+#include <asmjit/asmjit.h>
+
 #include "LPO.hpp"
 
 namespace Kernel {
@@ -101,7 +103,7 @@ public:
 
   };
 
-private:
+// private:
   static pair<Stack<Instruction>,Instruction::BranchTag> majoChain(const LPO& lpo, TermList tl1, Term* t, unsigned i);
   static pair<Stack<Instruction>,Instruction::BranchTag> alphaChain(const LPO& lpo, Term* s, unsigned i, TermList tl2);
   static pair<Stack<Instruction>,Instruction::BranchTag>* createHelper(TermList tl1, TermList tl2, const LPO& lpo);
@@ -115,6 +117,10 @@ private:
    * are comparable, otherwise it contains @b BranchTag::T_JUMP
    * to indicate that @b _instructions have to be executed. */
   Instruction::BranchTag _res;
+
+  typedef bool (*Func)(const Ordering*, const SubstApplicator*);
+  Func fn;
+  asmjit::CodeHolder code;
 };
 
 }

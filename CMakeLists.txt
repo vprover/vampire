@@ -782,6 +782,22 @@ set(VAMPIRE_SOURCES
 # add top level directory to the search path of compiler
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
+include(ExternalProject)
+
+set(ASMJIT_DIR ${CMAKE_BINARY_DIR}/asmjit)
+
+ExternalProject_Add(asmjit
+    GIT_REPOSITORY https://github.com/asmjit/asmjit
+    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${ASMJIT_DIR} -DASMJIT_STATIC=ON -DASMJIT_NO_BUILDER=ON -DASMJIT_NO_COMPILER=ON
+)
+
+add_compile_definitions(ASMJIT_STATIC ASMJIT_NO_AARCH32 ASMJIT_NO_AARCH64 ASMJIT_NO_BUILDER ASMJIT_NO_COMPILER
+ASMJIT_NO_DEPRECATED ASMJIT_NO_INTROSPECTION ASMJIT_NO_LOGGING ASMJIT_NO_TEXT ASMJIT_NO_VALIDATION)
+
+include_directories(${ASMJIT_DIR}/include)
+link_directories(${ASMJIT_DIR}/lib)
+link_libraries(asmjit)
+
 # set preprocessor defines
 add_compile_definitions(CHECK_LEAKS=0)
 if(CMAKE_BUILD_TYPE STREQUAL Debug)

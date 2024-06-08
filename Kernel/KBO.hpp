@@ -159,9 +159,9 @@ public:
   Result compare(AppliedTerm t1, AppliedTerm t2) const override;
   bool isGreater(AppliedTerm t1, AppliedTerm t2) const override;
   bool isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, OrderingComparatorUP& comparator) const override;
+  Result isGreaterOrEq(AppliedTerm tt1, AppliedTerm tt2) const override;
 
 protected:
-  Result isGreaterOrEq(AppliedTerm tt1, AppliedTerm tt2) const;
   unsigned computeWeight(AppliedTerm tt) const;
 
   Result comparePredicates(Literal* l1, Literal* l2) const override;
