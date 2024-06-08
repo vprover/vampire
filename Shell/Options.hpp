@@ -2182,6 +2182,7 @@ public:
   bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames.actualValue = newVal; }
   QuestionAnsweringMode questionAnswering() const { return _questionAnswering.actualValue; }
+  bool questionAnsweringGroundOnly() const { return _questionAnsweringGroundOnly.actualValue; }
   vstring questionAnsweringAvoidThese() const { return _questionAnsweringAvoidThese.actualValue; }
   Output outputMode() const { return _outputMode.actualValue; }
   void setOutputMode(Output newVal) { _outputMode.actualValue = newVal; }
@@ -2582,6 +2583,7 @@ private:
   StringOptionValue _protectedPrefix;
 
   ChoiceOptionValue<QuestionAnsweringMode> _questionAnswering;
+  BoolOptionValue _questionAnsweringGroundOnly;
   StringOptionValue _questionAnsweringAvoidThese;
 
   UnsignedOptionValue _randomSeed;

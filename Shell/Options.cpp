@@ -2150,6 +2150,12 @@ void Options::init()
     _lookup.insert(&_questionAnswering);
     _questionAnswering.tag(OptionTag::OTHER);
 
+    _questionAnsweringGroundOnly = BoolOptionValue("question_answering_ground_only","qago",false);
+    _questionAnsweringGroundOnly.description = "In qa plain mode: if set, only ground answers will be considered.";
+    _questionAnsweringGroundOnly.onlyUsefulWith(_questionAnswering.is(equal(QuestionAnsweringMode::PLAIN)));
+    _lookup.insert(&_questionAnsweringGroundOnly);
+    _questionAnsweringGroundOnly.tag(OptionTag::OTHER);
+
     _questionAnsweringAvoidThese = StringOptionValue("question_answering_avoid_these","qaat","");
     _questionAnsweringAvoidThese.description="A |-separated list of answer literal atoms (e.g., `ans0(sK1)|ans0(f(c))`) that should not be considered as answers to return."
       " The atoms may contain variables. Matching against any of those disqualifies a potential answer.";
