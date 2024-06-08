@@ -7208,14 +7208,12 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
 
 void Schedules::getCascSat2024Schedule(const Property& property, Schedule& quick, Schedule& fallback)
 {
-  Property::Category cat = property.category();
-
   // The TFN division: Typed (monomorphic) First-order Non-theorems (axioms with a countersatisfiable conjecture, and satisfiable axiom sets).
 
-  quick.push("ott+4_64_acc=on:anc=none:bs=on:bsr=on:fsd=off:gs=on:gsem=off:irw=on:msp=off:nwc=2.5:nicw=on:sims=off:i=93915_0");
   quick.push("fmb+10_1:1_sil=256000:i=98885:tgt=full:fmbsr=1.3:fmbss=10_0");
   quick.push("ott+10_10:1_add=off:afr=on:amm=off:anc=all:bd=off:bs=on:fsr=off:irw=on:lma=on:msp=off:nm=4:nwc=4.0:sac=on:sp=reverse_frequency:i=99418_0");
   quick.push("fmb+10_1:1_sil=256000:fmbes=contour:i=214858:bce=on_0");
+  quick.push("fmb+10_1:1_sil=256000:fmbss=23:fmbes=contour:newcnf=on:fmbsr=1.14:i=152523:nm=2:gsp=on:rp=on_0");
 
   quick.push("ott+21_1:1_sil=4000:i=104:fsd=on:fd=off:newcnf=on_0");
   quick.push("ott+11_8:59_sil=16000:sp=occurrence:lsd=20:abs=on:i=146:aac=none:nm=16:fdi=10:rawr=on:nicw=on_0");
@@ -7247,7 +7245,8 @@ void Schedules::getCascSat2024Schedule(const Property& property, Schedule& quick
   quick.push("fmb+10_1:1_sil=128000:fmbss=21:newcnf=on:i=44200:gsp=on_0");
   quick.push("dis+2_11_add=large:afr=on:amm=off:bd=off:bce=on:fsd=off:fde=none:gs=on:gsaa=full_model:gsem=off:irw=on:msp=off:nm=4:nwc=1.3:sas=z3:sims=off:sac=on:sp=reverse_arity:i=55207_0");
   quick.push("dis+1_20_av=off:lcm=predicate:nm=2:nwc=2.0:i=81447_0");
-  
-  // total_instr 1174279
-  // len(covered) 1066
+  quick.push("ott+4_64_acc=on:anc=none:bs=on:bsr=on:fsd=off:gs=on:gsem=off:irw=on:msp=off:nwc=2.5:nicw=on:sims=off:i=93915_0");
+
+  //total_instr 1326802
+  // len(covered) 1067
 }
