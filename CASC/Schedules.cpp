@@ -6645,7 +6645,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsG2800.push("dis+1011_4_add=large:amm=off:sims=off:sac=on:sp=frequency:tgt=ground:i=61108_0");
 
     feqAtomsG2800.push("lrs-1010_54669:524288_sp=const_frequency:sac=on:cond=fast:i=98291:afp=300:aac=none:bd=off:sims=off:aer=off:flr=on:tgt=ground:sil=256000:sfv=off:kws=precedence:alpa=random:spb=intro:s2a=on:s2agt=50:s2at=5.0:updr=off_0");
-    
+
     // total_instr 1380668
     // len(covered) 466
 
@@ -7142,7 +7142,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
       fallback.loadFromIterator(feqAtomsL180propZ.iterFifo());
       fallback.loadFromIterator(feqAtomsL180propNZatomsG50.iterFifo());
       fallback.loadFromIterator(feqAtomsL180propNZtiny.iterFifo());
-      
+
     } else if (atoms > 18000) {
       quick = std::move(feqAtomsG18000);
 
@@ -7188,7 +7188,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
 
       fallback.loadFromIterator(feqAtomsL180propNZtiny.iterFifo());
       fallback.loadFromIterator(feqAtomsL180propZ.iterFifo());
-      fallback.loadFromIterator(feqAtomsG180.iterFifo());      
+      fallback.loadFromIterator(feqAtomsG180.iterFifo());
       fallback.loadFromIterator(feqAtomsG2800.iterFifo());
       fallback.loadFromIterator(feqAtomsG18000.iterFifo());
       fallback.loadFromIterator(fne.iterFifo());
