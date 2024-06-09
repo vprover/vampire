@@ -267,6 +267,8 @@ constexpr int VFnOffset(T func)
     return i;
 }
 
+#define MACHINE_CODE 1
+
 bool LPO::isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, OrderingComparatorUP& comparator) const
 {
   if (!comparator) {
@@ -274,6 +276,7 @@ bool LPO::isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicato
     comparator = make_unique<const LPOComparator>(lhs, rhs, *this);
     // cout << comparator->toString() << endl;
 
+#if MACHINE_CODE
     using namespace asmjit;
 
     static JitRuntime rt;
@@ -288,11 +291,20 @@ bool LPO::isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicato
 
     // prologue
 
+    // NOTE: the stack pointer does not like non-32 divisible increments
     a.stp(x29,x30,ptr_pre(sp,-96));             // save x29 (frame pointer) and x30 (link register / return address) to stack, also move stack cursor 96 units up
     a.mov(x29,sp);                              // x29 <- sp  (x29 holds frame pointer)
-    a.stp(x19,x20,ptr(sp,16));
+    a.stp(x19,x20,ptr(sp,16));                  // store x19 and x20 in first two 8 words of stack
+    a.stp(x21,x22,ptr(sp,32));                  // store x21 and x22 in second two 8 words of stack
     a.mov(x20,x0);                              // store 1st arg (const Ordering*) in x20
     a.mov(x19,x1);                              // store 2nd arg (const SubstApplicator*) in x19
+
+    a.ldr(x3,ptr(x20));                         // load Ordering vtable ptr into x3
+    a.ldr(x21,ptr(x3,                           // load Ordering::isGreaterOrEq into x21
+      VFnOffset(&Ordering::isGreaterOrEq)));
+    a.ldr(x3,ptr(x19));                         // load SubstApplicator vtable ptr into x3
+    a.ldr(x22,ptr(x3,                           // load SubstApplicator::operator() ptr into x22
+      VFnOffset(&SubstApplicator::operator())));
 
     vvector<Label> labels(c->_instructions.size());
     Label endLabel = a.newLabel();
@@ -311,55 +323,48 @@ bool LPO::isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicato
 
       const auto& ins = static_cast<const LPOComparator*>(comparator.get())->_instructions[i];
 
+      constexpr unsigned arg1StackLoc = 48;
+      constexpr unsigned arg2StackLoc = arg1StackLoc+sizeof(AppliedTerm);
+
       if (ins.lhs.isVar()) {
         a.mov(x0,x19);                              // new 1st arg is applicator
-        a.mov(x1,ins.lhs.var());                       // new 2nd arg is var1.var()
-        a.ldr(x2,ptr(x19));                         // load SubstApplicator vtable ptr into x2
-        a.ldr(x2,ptr(x2,                            // load SubstApplicator::operator() ptr into x2
-          VFnOffset(&SubstApplicator::operator())));
-        a.str(x21,ptr(sp,32));                      // store x21 value on stack+32
-        a.blr(x2);                                  // perform call
-        a.stp(x0,xzr,ptr(sp, 40));                  // store result of call and false on stack
-        a.str(x19,ptr(sp,
-          40+offsetof(AppliedTerm,applicator)));    // store appl (3rd arg to AppliedTerm) on stack
+        a.mov(x1,ins.lhs.var());                    // new 2nd arg is var1.var()
+        a.blr(x22);                                 // perform call
+        a.stp(x0,xzr,ptr(sp, arg1StackLoc));        // store result of call and false on stack
+        a.str(x19,ptr(sp,                           // store appl (3rd arg to AppliedTerm) on stack
+          arg1StackLoc+offsetof(AppliedTerm,applicator)));
       } else {
         a.mov(x0,*reinterpret_cast<const uint64_t*>(&ins.lhs));
         a.mov(x1,1);
-        a.stp(x0,x1,ptr(sp, 40));                   // store result of call and true on stack
-        a.str(x19,ptr(sp,
-          40+offsetof(AppliedTerm,applicator)));    // store appl (3rd arg to AppliedTerm) on stack
+        a.stp(x0,x1,ptr(sp, arg1StackLoc));         // store term and true on stack
+        a.str(x19,ptr(sp,                           // store appl (3rd arg to AppliedTerm) on stack
+          arg1StackLoc+offsetof(AppliedTerm,applicator)));
       }
 
       // (*applicator)(var2.var()) call
 
       if (ins.rhs.isVar()) {
         a.mov(x0,x19);                              // new 1st arg is applicator
-        a.mov(x1,ins.rhs.var());                       // new 2nd arg is var2.var()
-        a.ldr(x2,ptr(x19));                         // load SubstApplicator vtable ptr into x2
-        a.ldr(x2,ptr(x2,                            // load SubstApplicator::operator() ptr into x2
-          VFnOffset(&SubstApplicator::operator())));
-        a.blr(x2);                                  // perform call
-        a.stp(x0,xzr,ptr(sp,64));                   // store result of call and false on stack
-        a.str(x19,ptr(sp,
-          64+offsetof(AppliedTerm,applicator)));    // store appl (3rd arg to AppliedTerm) on stack
+        a.mov(x1,ins.rhs.var());                    // new 2nd arg is var2.var()
+        a.blr(x22);                                 // perform call
+        a.stp(x0,xzr,ptr(sp,arg2StackLoc));         // store result of call and false on stack
+        a.str(x19,ptr(sp,                           // store appl (3rd arg to AppliedTerm) on stack
+          arg2StackLoc+offsetof(AppliedTerm,applicator)));
       } else {
         a.mov(x0,*reinterpret_cast<const uint64_t*>(&ins.rhs));
         a.mov(x1,1);
-        a.stp(x0,x1,ptr(sp,64));                    // store result of call and true on stack
-        a.str(x19,ptr(sp,
-          64+offsetof(AppliedTerm,applicator)));    // store appl (3rd arg to AppliedTerm) on stack
+        a.stp(x0,x1,ptr(sp,arg2StackLoc));          // store term and true on stack
+        a.str(x19,ptr(sp,                           // store appl (3rd arg to AppliedTerm) on stack
+          arg2StackLoc+offsetof(AppliedTerm,applicator)));
       }
 
       // ord->isGreaterOrEq call
       // TODO replace this with non-virtual LPO::lpo
 
-      a.mov(x0,x20);                              // new 1st arg is ordering
-      a.ldr(x3,ptr(x20));                         // load Ordering vtable ptr into x2
-      a.ldr(x21,ptr(x3,                           // load Ordering::isGreaterOrEq into x21
-        VFnOffset(&Ordering::isGreaterOrEq)));
-      a.add(x1,sp,40);                            // 2nd arg, AppliedTerm(var1,false,applicator)
-      a.add(x2,sp,64);                            // probably 3rd argument, AppliedTerm(var2,false,applicator)
-      a.blr(x21);                                 // perform call
+      a.mov(x0,x20);                                // new 1st arg is ordering
+      a.add(x1,sp,arg1StackLoc);                    // 2nd arg AppliedTerm
+      a.add(x2,sp,arg2StackLoc);                    // 3rd arg AppliedTerm
+      a.blr(x21);                                   // perform call
       // a.bl(Imm(&LPO::lpo));
 
       a.mov(x1,x0);
@@ -423,7 +428,7 @@ bool LPO::isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicato
 
     a.bind(endLabel);
 
-    a.ldr(x21,ptr(sp,32));
+    a.ldp(x21,x22,ptr(sp,32));
     a.ldp(x19,x20,ptr(sp,16));
     a.ldp(x29,x30,ptr_post(sp,96));
     a.ret(x30);  // x30 holds *where* to return
@@ -438,10 +443,14 @@ bool LPO::isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicato
 
     // TODO release code
     // rt.release(c->fn);
+#endif
   }
   auto c = static_cast<const LPOComparator*>(comparator.get());
-  // return c->check(applicator);
+#if MACHINE_CODE
   return c->fn(this, applicator);
+#else
+  return c->check(applicator);
+#endif
 }
 
 void LPO::showConcrete(ostream&) const 
