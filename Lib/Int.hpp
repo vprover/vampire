@@ -23,7 +23,7 @@
 #include "VString.hpp"
 
 #include <iostream>
-
+#include <limits>
 
 #ifdef _MSC_VER // VC++
 #  undef max

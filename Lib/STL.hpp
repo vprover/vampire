@@ -20,7 +20,6 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
-#include "Lib/STLAllocator.hpp"
 
 namespace Lib {
 
@@ -29,13 +28,13 @@ template< typename Key
         , typename T
         , typename Compare = std::less<Key>
         >
-using vmap = std::map<Key, T, Compare, STLAllocator<std::pair<const Key, T>>>;
+using vmap = std::map<Key, T, Compare>;
 
 
 template< typename Key
         , typename Compare = std::less<Key>
         >
-using vset = std::set<Key, Compare, STLAllocator<Key>>;
+using vset = std::set<Key, Compare>;
 
 
 template< typename Key
@@ -43,18 +42,18 @@ template< typename Key
         , typename Hash = std::hash<Key>
         , typename KeyEqual = std::equal_to<Key>
         >
-using vunordered_map = std::unordered_map<Key, T, Hash, KeyEqual, STLAllocator<std::pair<const Key, T>>>;
+using vunordered_map = std::unordered_map<Key, T, Hash, KeyEqual>;
 
 
 template< typename Key
         , typename Hash = std::hash<Key>
         , typename KeyEqual = std::equal_to<Key>
         >
-using vunordered_set = std::unordered_set<Key, Hash, KeyEqual, STLAllocator<Key>>;
+using vunordered_set = std::unordered_set<Key, Hash, KeyEqual>;
 
 
 template< typename T >
-using vvector = std::vector<T, STLAllocator<T>>;
+using vvector = std::vector<T>;
 
 }  // namespace Lib
 

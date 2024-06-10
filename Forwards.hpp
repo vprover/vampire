@@ -15,6 +15,8 @@
 #ifndef __Forwards__
 #define __Forwards__
 
+#include <memory>
+
 #include "Lib/VString.hpp"
 
 namespace Lib

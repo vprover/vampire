@@ -28,7 +28,6 @@
 #include "Kernel/Term.hpp"
 #include "Lib/ScopeGuard.hpp"
 #include "Lib/STL.hpp"
-#include "Lib/STLAllocator.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Shell/TPTPPrinter.hpp"
 #include <array>
