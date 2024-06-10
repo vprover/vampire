@@ -43,14 +43,16 @@ void *operator new(size_t size, std::align_val_t align_val) {
   ALLOCATED += size;
   {
     Lib::TimeoutProtector tp;
-    if (static_cast<size_t>(align_val) > 1) {
-      if(void *ptr = std::aligned_alloc(align, size))
-        return ptr;
-    } else {
-      if(void *ptr = std::malloc(size))
-        return ptr;
-    }
+    if(void *ptr = std::aligned_alloc(align, size))
+      return ptr;
+
+    // we might be here because `aligned_alloc` is finicky (Apple, looking at you)
+    // so try again with `malloc` and hope for good alignment
+    if(void *ptr = std::malloc(size))
+      return ptr;
+
   }
+  // no, we're actually out of memory
   throw std::bad_alloc();
 }
 
