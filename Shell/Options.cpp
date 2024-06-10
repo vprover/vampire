@@ -1550,6 +1550,16 @@ void Options::init()
     _demodulationPrecompiledComparison.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
     _demodulationPrecompiledComparison.addProblemConstraint(hasEquality());
 
+    _demodulationOnlyEquational = BoolOptionValue("demodulation_only_equational","doe",false);
+    _demodulationOnlyEquational.description=
+       "Disables demodulation of non-equational literals. In combination with -ins > 0 simulates the effect of Waldmeister's `Enlarging the Hypothesis` trick.";
+    _lookup.insert(&_demodulationOnlyEquational);
+    _demodulationOnlyEquational.setExperimental();
+    _demodulationOnlyEquational.tag(OptionTag::INFERENCES);
+    _demodulationOnlyEquational.onlyUsefulWith(ProperSaturationAlgorithm());
+    _demodulationOnlyEquational.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
+    _demodulationOnlyEquational.addProblemConstraint(hasEquality());
+
     _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","erape",false);
     _extensionalityAllowPosEq.description="If extensionality resolution equals filter, this dictates"
       " whether we allow other positive equalities when recognising extensionality clauses";
