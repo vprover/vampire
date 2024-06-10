@@ -29,7 +29,9 @@ $nm=Z > nm ~cat 0:1
 $nm=NZ > nm ~sgd 0.07,2
 
 # inequality_splitting
-> ins ~cat 0:20,1:4,2:3,3:2,4:1
+> $ins ~cat Z:2,NZ:1
+$ins=Z > ins ~cat 0:1
+$ins=NZ > ins ~sgd 0.4,1
 
 # random_polarities
 > rp ~cat off:3,on:1
@@ -70,8 +72,10 @@ sa!=fmb > awrs ~cat constant:8,decay:1,converge:1
 sa!=fmb  awrs!=constant > awrsf ~ui 1,500
 
 # nongoal_weight_coefficient
-sa!=fmb > nwc ~cat 1:2,2:1
-sa!=fmb nwc!=1 > nwc ~ui 2,15
+sa!=fmb > $nwc ~cat 1:2,666:1
+sa!=fmb $nwc=1 > nwc ~cat 1:1
+sa!=fmb $nwc!=1 > nwc ~uf 0.5,15.0
+# TODO: we will most likely want a new distribution here for ($nwc!=1) just above!
 
 # restrict_nwc_to_goal_constants
 sa!=fmb nwc!=1 > rnwc ~cat off:5,on:1
@@ -130,6 +134,9 @@ sa!=fmb > cond ~cat off:500,on:89,fast:61
 # equational_tautology_removal
 sa!=fmb > etr ~cat off:500,on:30
 
+# instance_redundancy_check
+sa!=fmb > irc ~cat lazy:1,eager:1,off:5
+
 # extensionality_resolution
 sa!=fmb ins=0 > er ~cat off:500,known:25,filter:26
 
@@ -150,6 +157,12 @@ sa!=fmb > fd ~cat all:500,off:41,preordered:168
 fd!=off > $drc ~cat 1:1
 bd!=off > $drc ~cat 1:1
 sa!=fmb $drc=1 > drc ~cat on:643,encompass:554,off:520
+
+# demodulation_precompiled_comparison
+sa!=fmb $drc=1 > dpc ~cat on:1,off:1
+
+# demodulation_only_equational
+sa!=fmb $drc=1 > doe ~cat on:1,off:1
 
 # function_definition_introduction
 sa!=fmb > fdi ~cat 0:100,2:1,4:1,8:1,16:1,32:1,64:1,128:1,256:1,512:1,1024:1
@@ -252,13 +265,15 @@ sa!=fmb av=on > alpa ~cat none:300,false:13,true:6,random:4
 sa!=fmb av=on > anc ~cat known:300,all_dependent:38,all:45,none:48
 
 # avatar_turn_off_time_frac
-sa!=fmb av=on > atotf ~cat 1.0:10,0.5:1
-# careful that 1.0 becomes "1" by the ->toFloat->toStr internal transformation
-sa!=fmb atotf!=1 > atotf ~uf 0.0,0.5
+# sa!=fmb av=on > $atotf ~cat 1:10,666:1
+# sa!=fmb av=on $atotf=1 > atotf ~cat 1:1
+# sa!=fmb av=on $atotf!=1 > atotf ~uf 0.0,0.7
+# TODO: leaving out weird timing dependent options
 
 # avatar_flush_period
-sa!=fmb av=on > afp ~cat 0:15,1:1
-sa!=fmb afp!=0 > afp ~cat 1:1,10:1,50:1,300:1,1000:1,2000:1,4000:1,10000:1,40000:1,100000:1,1000000:1
+sa!=fmb av=on > $afp ~cat 0:15,666:1
+sa!=fmb av=on $afp=0 > afp ~cat 0:1
+sa!=fmb av=on $afp!=0 > afp ~cat 1:1,10:1,50:1,300:1,1000:1,2000:1,4000:1,10000:1,40000:1,100000:1,1000000:1
 
 # avatar_flush_quotient
 sa!=fmb afp!=0 > afq ~uf 1.0,3.0
@@ -331,7 +346,7 @@ fmbdsb=on > fmbdsbt ~cat 1:5,2:2,3:1
 # fmb_keep_sbeam_generators
 sa=fmb fmbes=sbeam > fmbksg ~cat off:2,on:1
 
-# fmb_start_size - setting this to values > 1 is making things "finite mode incomplete" (but could save time for some problems)
+# fmb_start_size - setting this to values > 1 is making things "finite model incomplete" (but could save time for some problems)
 sa=fmb > $fmbss ~cat 1:5,666:1
 $fmbss=1 > fmbss ~cat 1:1
 $fmbss=666 > fmbss ~sgd 0.1,1
