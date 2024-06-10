@@ -32,7 +32,9 @@ $nm=Z > nm ~cat 0:1
 $nm=NZ > nm ~sgd 0.07,2
 
 # inequality_splitting
-> ins ~cat 0:20,1:4,2:3,3:2,4:1
+> $ins ~cat Z:2,NZ:1
+$ins=Z > ins ~cat 0:1
+$ins=NZ > ins ~sgd 0.4,1
 
 # random_polarities
 > rp ~cat off:3,on:1
@@ -96,8 +98,11 @@ $ls=on > lsd ~cat 0:20,1:1,5:1,10:1,20:1,50:1,100:1
 sa=lrs > lwlo ~cat off:5,on:1
 
 # lrs_estimate_correction_coef
-sa=lrs > lecc ~cat 1:10,666:1
-lecc!=1 > lecc ~uf 0.5,2.0
+# > $lecc ~cat 1:1
+# sa=lrs > $lecc ~cat 1:10,666:1
+# sa=lrs $lecc=1 > lecc ~cat 1.0:1
+# sa=lrs $lecc!=1 > lecc ~uf 0.5,2.0
+# TODO: leaving out weird timing dependent options
 
 # age_weight_ratio_shape
 > awrs ~cat constant:8,decay:1,converge:1
@@ -106,8 +111,10 @@ lecc!=1 > lecc ~uf 0.5,2.0
 awrs!=constant > awrsf ~ui 1,500
 
 # nongoal_weight_coefficient
-> nwc ~cat 1:2,2:1
-nwc!=1 > nwc ~ui 2,15
+> $nwc ~cat 1:2,666:1
+$nwc=1 > nwc ~cat 1:1
+$nwc!=1 > nwc ~uf 0.5,15.0
+# TODO: we will most likely want a new distribution here for ($nwc!=1) just above!
 
 # increased_numeral_weight
 > inw ~cat off:5,on:1
@@ -181,6 +188,9 @@ bsd=on > bsdmm ~cat 0:10,1:3,2:2,3:1
 # equational_tautology_removal
 > etr ~cat off:500,on:30
 
+# instance_redundancy_check
+> irc ~cat lazy:1,eager:1,off:5
+
 # extensionality_resolution
 ins=0 > er ~cat off:500,known:25,filter:26
 
@@ -197,10 +207,16 @@ er!=off > erml ~cat 0:3,2:1,3:1
 > fd ~cat all:500,off:41,preordered:168
 
 # demodulation_redundancy_check
-> $set_drc ~cat N:1
-fd!=off > $set_drc ~cat Y:1
-bd!=off > $set_drc ~cat Y:1
-$set_drc=Y > drc ~cat encompass:500,on:500,off:354
+> $drc ~cat 0:1
+fd!=off > $drc ~cat 1:1
+bd!=off > $drc ~cat 1:1
+$drc=1 > drc ~cat encompass:500,on:500,off:354
+
+# demodulation_precompiled_comparison
+$drc=1 > dpc ~cat on:1,off:1
+
+# demodulation_only_equational
+$drc=1 > doe ~cat on:1,off:1
 
 # forward_literal_rewriting
 > flr ~cat off:8,on:1
@@ -310,13 +326,15 @@ av=on > alpa ~cat none:300,false:13,true:6,random:4
 av=on > anc ~cat known:300,all_dependent:38,all:45,none:48
 
 # avatar_turn_off_time_frac
-av=on > atotf ~cat 1.0:10,0.5:1
-# careful that 1.0 becomes "1" by the ->toFloat->toStr internal transformation
-atotf!=1 > atotf ~uf 0.0,0.5
+# av=on > $atotf ~cat 1:10,666:1
+# av=on $atotf=1 > atotf ~cat 1:1
+# av=on $atotf!=1 > atotf ~uf 0.0,0.7
+# TODO: leaving out weird timing dependent options
 
 # avatar_flush_period
-av=on > afp ~cat 0:15,1:1
-afp!=0 > afp ~cat 1:1,10:1,50:1,300:1,1000:1,2000:1,4000:1,10000:1,40000:1,100000:1,1000000:1
+av=on > $afp ~cat 0:15,666:1
+av=on $afp=0 > afp ~cat 0:1
+av=on $afp!=0 > afp ~cat 1:1,10:1,50:1,300:1,1000:1,2000:1,4000:1,10000:1,40000:1,100000:1,1000000:1
 
 # avatar_flush_quotient
 afp!=0 > afq ~uf 1.0,3.0
@@ -326,9 +344,6 @@ av=on > nicw ~cat off:600,on:76
 
 # split_at_activation
 av=on > sac ~cat off:3,on:1
-
-# TODO: consider enabling this for vampire_z3 compiles!
-# av=on > sas ~cat minisat:10,z3:1
 
 # BACK TO PREPROCESSING
 
@@ -393,6 +408,9 @@ thsq=on > thsqr ~u2r -3;3;,
 thsq=on > thsqd ~cat 2:1,4:1,8:7,32:5,64:2,128:1
 
 # TERM ALGEBRA REASONINING
+
+# term_algebra_exhaustiveness_axiom
+> taea ~cat off:1,on:1
 
 # term_algebra_acyclicity
 > tac ~cat off:3,axiom:1,rule:1,light:1
