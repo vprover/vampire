@@ -97,10 +97,12 @@ class DemodulationSubtermIndexImpl
 : public DemodulationSubtermIndex
 {
 public:
-  DemodulationSubtermIndexImpl(TermIndexingStructure<TermLiteralClause>* is)
-  : DemodulationSubtermIndex(is) {};
+  DemodulationSubtermIndexImpl(TermIndexingStructure<TermLiteralClause>* is, const Options& opt)
+  : DemodulationSubtermIndex(is), _opt(opt) {};
 protected:
   void handleClause(Clause* c, bool adding);
+private:
+  const Options& _opt;
 };
 
 /**
