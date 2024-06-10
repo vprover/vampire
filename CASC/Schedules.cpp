@@ -6189,17 +6189,17 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     propZsmall10.push("lrs+10_7:24_to=lpo:drc=encompass:sil=128000:fde=unused:sp=const_min:spb=goal:i=1061:irc=lazy:slsq=on:fdi=256:nwc=10.0:dpc=on:ss=included:st=2.0_0");
     propZsmall10.push("lrs+10_1:14_slsqr=3,4:drc=encompass:sil=4000:tgt=ground:sp=const_max:s2agt=16:slsqc=3:slsq=on:i=1157:kws=precedence:slsql=off:irc=lazy:rawr=on_0");
     propZsmall10.push("lrs+10_25:999_drc=encompass:sil=256000:tgt=full:spb=intro:i=1382:kws=precedence:awrs=converge:awrsf=53:irc=eager:bd=off:bs=unit_only_0");
-    propZsmall10.push("ott+10_21691:1048576_drc=encompass:sil=256000:tgt=ground:sims=off:sp=occurrence:spb=goal_then_units:fd=preordered:i=2271:fibus=on:kws=precedence:av=off:fsr=off:uhcvi=on:fsd=on:fsdmm=2:slsq=on:slsql=off:slsqc=1:slsqr=320859,1048576:s2at=3.0:irc=lazy:rawr=on:ss=axioms:sd=2_0");
+    propZsmall10.push("ott+10_21691:1048576_drc=encompass:sil=256000:tgt=ground:sims=off:sp=occurrence:spb=goal_then_units:fd=preordered:i=2271:kws=precedence:av=off:fsr=off:uhcvi=on:fsd=on:fsdmm=2:slsq=on:slsql=off:slsqc=1:slsqr=320859,1048576:s2at=3.0:irc=lazy:rawr=on:ss=axioms:sd=2_0");
     propZsmall10.push("lrs+10_1:128_drc=encompass:sil=256000:tgt=full:sp=unary_frequency:spb=non_intro:i=2392:kws=precedence:irc=eager_0");
     propZsmall10.push("ott+10_1:128_drc=encompass:sil=256000:plsq=on:s2a=on:i=2544:kws=precedence:dpc=on:bd=preordered:ss=axioms_0");
     propZsmall10.push("lrs+10_1:40_drc=encompass:sil=256000:tgt=full:sp=unary_frequency:spb=goal_then_units:i=5255:kws=frequency:rawr=on:irc=eager:fd=preordered_0");
     propZsmall10.push("ott+10_2:5_bsr=unit_only:to=lpo:drc=encompass:sil=256000:sp=reverse_frequency:i=2866:ins=1:dpc=on:rawr=on_0");
     propZsmall10.push("dis+10_1:1024_slsqr=5,2:sil=256000:tgt=ground:urr=on:slsqc=2:slsq=on:i=3253:ins=1:irc=lazy:rawr=on_0");
     propZsmall10.push("lrs+10_1:1024_slsqr=1,4:drc=encompass:sil=256000:tgt=full:sp=reverse_frequency:slsqc=4:slsq=on:s2a=on:i=7906:bd=off:irc=eager:ss=axioms:rawr=on:st=3.0:awrs=converge:foolp=on_0");
-    propZsmall10.push("ott+10_1:10_drc=encompass:sil=256000:sp=reverse_frequency:fsoe=on:fd=preordered:i=4168:ins=2:bd=off:ss=axioms_0");
+    propZsmall10.push("ott+10_1:10_drc=encompass:sil=256000:sp=reverse_frequency:fd=preordered:i=4168:ins=2:bd=off:ss=axioms_0");
     propZsmall10.push("lrs+10_1:6_drc=encompass:sil=32000:tgt=ground:s2agt=8:s2a=on:i=8705_0");
     propZsmall10.push("dis+10_1:16_sil=256000:i=5821:bs=unit_only:rawr=on:plsq=on:to=lpo_0");
-    propZsmall10.push("dis+10_8125:131072_drc=encompass:sil=256000:tgt=full:sp=occurrence:lma=on:fd=preordered:i=14311:fibus=on:kws=precedence:doe=on:awrs=decay:awrsf=50:dpc=on:uhcvi=on:ss=axioms:irc=lazy_0");
+    propZsmall10.push("dis+10_8125:131072_drc=encompass:sil=256000:tgt=full:sp=occurrence:lma=on:fd=preordered:i=14311:kws=precedence:doe=on:awrs=decay:awrsf=50:dpc=on:uhcvi=on:ss=axioms:irc=lazy_0");
     propZsmall10.push("ott+10_1:1_drc=encompass:sil=256000:plsq=on:fd=preordered:st=5.0:s2a=on:i=35818:ins=1:ss=axioms:rawr=on_0");
     propZsmall10.push("lrs+10_1:1_drc=encompass:sil=16000:fd=preordered:i=9154:bs=on:irc=lazy_0");
     propZsmall10.push("lrs+10_1:16_drc=encompass:sil=16000:tgt=full:lwlo=on:s2pl=no:i=10003:av=off:rawr=on_0");
@@ -6212,13 +6212,13 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     propZsmall10.push("dis+10_1:20_drc=encompass:sil=256000:tgt=full:sp=reverse_frequency:spb=intro:fd=preordered:i=22321:kws=precedence:irc=eager:ins=1_0");
     propZsmall10.push("dis+10_1:166_drc=encompass:sil=256000:tgt=full:i=26531:fsr=off:spb=non_intro:dpc=on:to=lpo:rawr=on_0");
     propZsmall10.push("ott+10_1:4_drc=encompass:sil=256000:st=3.0:i=32454:ss=axioms:dpc=on:bd=preordered:slsq=on:slsqc=1:slsqr=1,2_0");
-    propZsmall10.push("lrs+10_3:58_drc=encompass:sil=256000:tgt=full:bsd=on:sp=reverse_arity:lwlo=on:s2a=on:i=157761:s2at=2.0:kws=precedence:bsr=on:irw=on:dpc=on:fibus=on:doe=on:bs=on:br=off:erd=off:s2agt=20:nwc=8.95214440448525:cond=fast:foolp=on:spb=non_intro:sfv=off:irc=lazy:fde=unused:ins=3_0");
+    propZsmall10.push("lrs+10_3:58_drc=encompass:sil=256000:tgt=full:bsd=on:sp=reverse_arity:lwlo=on:s2a=on:i=157761:s2at=2.0:kws=precedence:bsr=on:irw=on:dpc=on:doe=on:bs=on:br=off:erd=off:s2agt=20:nwc=8.95214440448525:cond=fast:foolp=on:spb=non_intro:sfv=off:irc=lazy:fde=unused:ins=3_0");
     propZsmall10.push("lrs+10_1:6_drc=encompass:sil=256000:tgt=full:spb=non_intro:i=82574:ins=2:irc=eager:ss=included:bd=preordered_0");
 
     propZsmall10.push("lrs+10_1:16_drc=encompass:sil=256000:tgt=full:spb=intro:i=58527:kws=precedence:awrs=converge:awrsf=200:ss=axioms:irc=eager:st=3.0:sp=unary_first_0");
     propZsmall10.push("lrs+10_1:12_drc=encompass:sil=256000:tgt=full:spb=intro:i=72339:kws=precedence:awrs=converge:awrsf=500:irc=lazy_0");
     propZsmall10.push("ott+10_11413117:1048576_drc=encompass:sil=256000:tgt=ground:fde=unused:plsqc=2:plsq=on:plsqr=1149513,1048576:sp=occurrence:nwc=9.10417:i=125323:kws=precedence:doe=on:awrs=converge:awrsf=286:bd=off:dpc=on:irc=eager:uhcvi=on:rawr=on:ss=included:st=2.0_0");
-    propZsmall10.push("lrs+10_54503:1048576_drc=encompass:sil=256000:tgt=ground:bsd=on:sp=reverse_frequency:lwlo=on:st=3.5:s2a=on:i=174981:s2at=5.5:kws=precedence:ss=included:sgt=50:bsr=unit_only:irw=on:dpc=on:uhcvi=on:fibus=on:doe=on:bs=on:br=off:erd=off_0");
+    propZsmall10.push("lrs+10_54503:1048576_drc=encompass:sil=256000:tgt=ground:bsd=on:sp=reverse_frequency:lwlo=on:st=3.5:s2a=on:i=174981:s2at=5.5:kws=precedence:ss=included:sgt=50:bsr=unit_only:irw=on:dpc=on:uhcvi=on:doe=on:bs=on:br=off:erd=off_0");
     // total_instr 1391316
     // len(covered) 365
 
@@ -6333,7 +6333,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     propNZbig14.push("dis+10_577:524288_drc=encompass:sil=256000:sp=const_frequency:spb=units:i=214:doe=on:bd=off:av=off:dpc=on:irc=eager:uhcvi=on:ss=included:rawr=on:to=lpo:slsq=on:slsqr=8,31:s2agt=5:s2at=4.0:fdi=2_0");
     propNZbig14.push("lrs+10_1:64_sil=8000:tgt=full:spb=non_intro:i=204:kws=precedence:plsq=on:awrs=converge:awrsf=30:sp=weighted_frequency:drc=encompass:irc=eager_0");
     propNZbig14.push("lrs+10_1:1_to=lpo:drc=encompass:sil=2000:fde=unused:sp=const_min:i=444:fd=preordered:irc=eager:bd=preordered:ss=axioms_0");
-    propNZbig14.push("lrs+10_3:58_drc=encompass:sil=256000:tgt=full:bsd=on:sp=reverse_arity:lwlo=on:s2a=on:i=365:s2at=2.0:kws=precedence:bsr=on:irw=on:dpc=on:fibus=on:doe=on:bs=on:br=off:erd=off:s2agt=20:nwc=8.95214440448525:cond=fast:foolp=on:spb=non_intro:sfv=off:irc=lazy:fde=unused:ins=3_0");
+    propNZbig14.push("lrs+10_3:58_drc=encompass:sil=256000:tgt=full:bsd=on:sp=reverse_arity:lwlo=on:s2a=on:i=365:s2at=2.0:kws=precedence:bsr=on:irw=on:dpc=on:doe=on:bs=on:br=off:erd=off:s2agt=20:nwc=8.95214440448525:cond=fast:foolp=on:spb=non_intro:sfv=off:irc=lazy:fde=unused:ins=3_0");
     propNZbig14.push("lrs+10_3:4_to=lpo:drc=encompass:sil=4000:sp=reverse_frequency:i=390:ss=axioms:sgt=16:s2a=on:s2at=3.0:irc=lazy:bd=off_0");
     propNZbig14.push("lrs+10_1:4_to=lpo:drc=encompass:sil=4000:tgt=full:i=2789:bd=preordered:fd=preordered_0");
     propNZbig14.push("lrs+10_1:3_drc=encompass:sil=256000:tgt=ground:sp=unary_first:i=975:ss=axioms:sgt=10:rawr=on:urr=on:ins=1:plsq=on:dpc=on:spb=intro:sd=4:fsr=off:bs=on:kws=inv_arity:irc=lazy:nwc=5.0_0");
