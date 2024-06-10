@@ -25,7 +25,6 @@
 #include "Lib/STL.hpp"
 
 #include "Indexing/LiteralIndexingStructure.hpp"
-#include "Indexing/SubstitutionCoverTree.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/ColorHelper.hpp"
@@ -457,14 +456,6 @@ void SaturationAlgorithm::onNewClause(Clause* cl)
 
   if (env.options->showNew()) {
     std::cout << "[SA] new: " << cl->toString() << std::endl;
-  }
-
-  if (cl->getSupData()) {
-    // when using AVATAR, we could have performed
-    // generating inferences on the clause previously,
-    // so we need to reset the data. TODO find better place.
-    delete static_cast<SubstitutionCoverTree*>(cl->getSupData());
-    cl->setSupData(nullptr);
   }
 
   if (cl->isPropositional()) {

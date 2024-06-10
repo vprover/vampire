@@ -16,6 +16,8 @@
 
 #include "Debug/RuntimeStatistics.hpp"
 
+#include "Indexing/SubstitutionCoverTree.hpp"
+
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/IntUnionFind.hpp"
@@ -1520,20 +1522,13 @@ bool Splitter::allSplitLevelsActive(SplitSet* s)
 
 void Splitter::onNewClause(Clause* cl)
 {
-  //For now just record if cl is in the variant index
-  // i.e. is a component
-  //TODO - if it is then
-  // (a) if it is true it can be immediately frozen
-  // (b) if it is false it can be immediately passed to the SAT
-  //      solver and kill the current model
-  //bool isComponent = false;
-  //{
-  //  //TODO - would it be better to use tryGetExistingComponent here?
-  //  isComponent = _componentIdx->retrieveVariants(cl).hasNext();
-  //}
-  //if(isComponent){
-  //  RSTAT_CTR_INC("New Clause is a Component");
-  //}
+  if (cl->getSupData()) {
+    // when using AVATAR, we could have performed
+    // generating inferences on the clause previously,
+    // so we need to reset the data.
+    delete static_cast<SubstitutionCoverTree*>(cl->getSupData());
+    cl->setSupData(nullptr);
+  }
 
   if (cl->inference().rule() == InferenceRule::AVATAR_ASSERTION_REINTRODUCTION) {
     // Do not assign splits from premises if cl originated by re-introducing AVATAR assertions (avoids looping)
