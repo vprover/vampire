@@ -11,7 +11,6 @@
 
 #include "UPCoP.hpp"
 
-#include "Kernel/TermIterators.hpp"
 #include "cadical.hpp"
 
 #include "Debug/Assertion.hpp"
@@ -20,10 +19,8 @@
 #include "Indexing/TermSubstitutionTree.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/RobSubstitution.hpp"
-#include "Lib/Backtrackable.hpp"
 #include "SAT/MinisatInterfacing.hpp"
 #include "SAT/SAT2FO.hpp"
-#include <cstdint>
 
 std::ostream &log() { return std::cout << "% "; }
 
@@ -256,11 +253,138 @@ struct Matrix {
   }
 };
 
+struct RigidSubstitution {
+  struct Binding {
+    TermList term;
+    Binding() : term(0) {}
+    Binding(TermList term) : term(term) {}
+    operator bool() const { return term.content() != 0; }
+  };
+
+  // variable-term map
+  std::vector<Binding> bindings;
+  // trail of variables to unbind
+  std::vector<unsigned> trail;
+  // scratch space: pairs of terms to unify
+  std::vector<std::pair<TermList, TermList>> todo_unify;
+  // scratch space: occurs check
+  std::vector<TermList> todo_occurs;
+
+  // determine what a variable is bound to
+  TermList apply(unsigned var) {
+    while(bindings[var]) {
+      TermList bound = bindings[var].term;
+      if(bound.isTerm())
+        // TODO do this better
+        return SubstHelper::apply(bound, *this);
+      var = bound.var();
+    }
+    return TermList(var, false);
+  }
+
+  // check whether `var` occurs in `term` modulo bindings
+  // `term` is assumed to have already been `apply`'d
+  bool occurs(unsigned var, TermList term) {
+    todo_occurs.clear();
+    todo_occurs.push_back(term);
+    do {
+      TermList t = todo_occurs.back();
+      todo_occurs.pop_back();
+      if(t.isVar()) {
+        if(t.var() == var)
+          return true;
+        continue;
+      }
+      ASS(t.isTerm())
+      Term *tt = t.term();
+      for(unsigned i = 0; i < tt->arity(); i++) {
+        TermList arg = (*tt)[i];
+        if(arg.isVar())
+          arg = apply(arg.var());
+        todo_occurs.push_back(arg);
+      }
+    } while(!todo_occurs.empty());
+    return false;
+  }
+
+  // unify s and t, leaving bindings clean on failure
+  bool unify(int sat, TermList s, TermList t) {
+    // log() << sat << ": " << s << " ~ " << t << '\n';
+    todo_unify.clear();
+    todo_unify.push_back({s, t});
+    unsigned trail_start = trail.size();
+    do {
+      auto [s, t] = todo_unify.back();
+      todo_unify.pop_back();
+      if(s.isVar())
+        s = apply(s.var());
+      if(t.isVar())
+        t = apply(t.var());
+
+      // equal terms, do nothing
+      if(s == t)
+        continue;
+
+      // one is var, bind to the other
+      if(s.isVar() || t.isVar()) {
+        unsigned var = s.isVar() ? s.var() : t.var();
+        TermList term = s.isVar() ? t : s;
+
+        if(occurs(var, term)) {
+          // occurs failure, clean up
+          while(trail.size() > trail_start)
+            pop();
+          return false;
+        }
+
+        // OK, bind the variable
+        // log() << var << " -> " << term << '\n';
+        bindings[var] = term;
+        trail.push_back(var);
+        continue;
+      }
+
+      ASS(s.isTerm() && t.isTerm())
+      Term *st = s.term();
+      Term *tt = t.term();
+      if(st->functor() != tt->functor()) {
+        // functors don't match, clean up on failure
+        while(trail.size() > trail_start)
+          pop();
+        return false;
+      }
+
+      // matching-functor case, proceed
+      for(unsigned i = 0; i < st->arity(); i++)
+        todo_unify.push_back({(*st)[i], (*tt)[i]});
+
+    } while(!todo_unify.empty());
+    return true;
+  }
+
+  // undo the last variable binding
+  void pop() {
+    ASS(!trail.empty())
+    unsigned var = trail.back();
+    trail.pop_back();
+    ::new (&bindings[var]) Binding();
+    // log() << var << " -> *\n";
+  }
+};
+
+std::ostream &operator<<(std::ostream &out, const RigidSubstitution &substitution) {
+  out << '{';
+  for(unsigned i = 0; i < substitution.bindings.size(); i++)
+    if(substitution.bindings[i])
+      out << (i ? ", " : "") << i << " -> " << substitution.bindings[i].term;
+  return out << '}';
+}
+
 struct Propagator: public CaDiCaL::ExternalPropagator {
   // the matrix
   const Matrix &matrix;
   // current substitution
-  RobSubstitution substitution;
+  RigidSubstitution substitution;
   // connections made so far
   std::vector<int> connections;
   // if there is a reason/conflict clause to learn
@@ -272,38 +396,13 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
   // ordering (for SimpleCongruenceClosure?!)
   OrderingSP ordering;
 
-  // create a decision level on construction, backtrack a decision level on destruction
+  // store things to backtrack in a decision level
   struct Level {
-    // parent propagator
-    Propagator &propagator;
-    // where to reset `propagator.connections` to
-    unsigned connections;
-    // for the substitution
-    std::unique_ptr<BacktrackData> substitution;
-
-    // allow moves, setting `substitution` to be nullptr
-    Level(Level &&) = default;
-
-    Level(Propagator &propagator) :
-      propagator(propagator),
-      connections(propagator.connections.size()),
-      substitution(new BacktrackData())
-    {
-      propagator.substitution.bdRecord(*substitution);
-    }
-
-    ~Level() {
-      // have been moved-from, ignore
-      if(!substitution)
-        return;
-
-      ASS_LE(connections, propagator.connections.size())
-      propagator.connections.resize(connections);
-      substitution->backtrack();
-      propagator.substitution.bdDone();
-    }
+    // number of connections made
+    size_t connections;
+    // number of variables bound
+    size_t variables;
   };
-
   // decision levels
   std::vector<Level> levels;
 
@@ -311,12 +410,6 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
     matrix(matrix),
     ordering(Kernel::Ordering::create(problem, *env.options))
   {}
-
-  ~Propagator() {
-    // undo substitutions in order
-    while(!levels.empty())
-      levels.pop_back();
-  }
 
   void notify_assignment(int assigned, bool fixed) final {
     // should only get fixed assignments at decision level 0 (without chrono)
@@ -330,7 +423,7 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
     connections.push_back(assigned);
     // unify the literals corresponding to the connection
     auto [s, t] = matrix.sat2conn[assigned].unify;
-    if(!substitution.unify(s, 0, t, 0))
+    if(!substitution.unify(assigned, s, t))
       // unification failed, learn a conflict clause
       compute_unification_reason(assigned);
   }
@@ -368,13 +461,25 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
     }
   }
 
-  void notify_new_decision_level() final { levels.emplace_back(*this); }
+  void notify_new_decision_level() final {
+    levels.push_back({connections.size(), substitution.trail.size()});
+    // log() << "decision: " << levels.size() << '\n';
+  }
 
-  void notify_backtrack(size_t level) final {
+  void notify_backtrack(size_t decision_level) final {
+    // log() << "backtrack to: " << decision_level << '\n';
+    // this seems to happen sometimes: ignore it
+    if(decision_level >= levels.size())
+      return;
+
     reason_set = false;
     reason.clear();
-    while(levels.size() > level)
-      levels.pop_back();
+    // undo everything after this level
+    Level level = levels[decision_level];
+    levels.resize(decision_level);
+    connections.resize(level.connections);
+    while(substitution.trail.size() > level.variables)
+      substitution.pop();
   }
 
   bool cb_check_found_model(const std::vector<int> &model) final {
@@ -393,6 +498,7 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
     // find a path through the matrix
     auto path = find_path();
 
+    // sets of predicates, sides of equations, and subterms in the path
     DHSet<TermList> predicates, sides, subterms;
     for(Literal *l : path) {
       if(l->isEquality()) {
@@ -463,7 +569,7 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
       // fill out `ground`
       for(unsigned i = 0; i < length; i++) {
         // apply the substitution
-        Literal *substituted = substitution.apply(copy.literals[i], 0);
+        Literal *substituted = SubstHelper::apply(copy.literals[i], substitution);
         // map all remaining variables to X0
         // (just barely avoids sortedness problems)
         (*ground)[i] = SubstHelper::apply(substituted, X0);
@@ -534,6 +640,8 @@ conflict:
       }
     }
 
+    // check whether the path is E-satisfiable
+    // if not, try another path
     if(cc.getStatus(false) == DP::DecisionProcedure::UNSATISFIABLE) {
       ASS(cc.getUnsatCoreCount())
       Stack<Literal *> core;
@@ -580,6 +688,9 @@ MainLoopResult UPCoP::runImpl() {
   UnitList::Iterator units(_prb.units());
   while(units.hasNext())
     matrix.amplify(solver, units.next()->asClause());
+
+  // TODO fix this?
+  propagator.substitution.bindings.resize(matrix.offset);
 
   // should throw if we find a proof
   ALWAYS(solver.solve() != CaDiCaL::SATISFIABLE)
