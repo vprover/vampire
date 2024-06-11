@@ -38,7 +38,6 @@
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
 #include "Indexing/TermSharing.hpp"
-#include "Indexing/SubstitutionCoverTree.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -67,7 +66,7 @@ void Superposition::attach(SaturationAlgorithm* salg)
 	  _salg->getIndexManager()->request(SUPERPOSITION_SUBTERM_SUBST_TREE) );
   _lhsIndex=static_cast<SuperpositionLHSIndex*> (
 	  _salg->getIndexManager()->request(SUPERPOSITION_LHS_SUBST_TREE) );
-  _helper = DemodulationHelper(getOptions(),&_salg->getOrdering());
+  _instanceRedundancyHandler = InstanceRedundancyHandler(getOptions(),&_salg->getOrdering());
 }
 
 void Superposition::detach()
@@ -398,44 +397,10 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
-  auto instanceRedundancyCheck = getOptions().instanceRedundancyCheck();
-  if (instanceRedundancyCheck!=Options::InstanceRedundancyCheck::OFF) {
-    auto eqSupData = static_cast<SubstitutionCoverTree*>(eqClause->getSupData());
-    if (eqSupData && !eqSupData->checkAndInsert(&ordering, subst.ptr(), eqIsResult, /*doInsert=*/false)) {
-      env.statistics->skippedSuperposition++;
-      return 0;
-    }
-
-    struct Applicator : SubstApplicator {
-      Applicator(ResultSubstitution* subst, bool result) : subst(subst) {}
-      TermList operator()(unsigned v) const override {
-        return subst->apply(TermList::var(v), result);
-      }
-      ResultSubstitution* subst;
-      bool result;
-    };
-
-    Applicator appl(subst.ptr(), !eqIsResult);
-
-    auto doInsert = eqClause->length()==1 && eqClause->noSplits() &&
-      ((instanceRedundancyCheck!=Options::InstanceRedundancyCheck::LAZY && rwTermS.containsAllVariablesOf(tgtTermS)) || comp == Ordering::LESS) &&
-      (!_helper.redundancyCheckNeededForPremise(rwClause, rwLitS, rwTermS) ||
-        // TODO for rwClause->length()!=1 the function isPremiseRedundant does not work yet
-        (rwClause->length()==1 && _helper.isPremiseRedundant(rwClause, rwLitS, rwTermS, tgtTermS, eqLHS, &appl)));
-
-    bool incompInserted = doInsert && comp != Ordering::LESS;
-    auto rwSupData = static_cast<SubstitutionCoverTree*>(rwClause->getSupData());
-    if (rwSupData || doInsert) {
-      if (!rwSupData) {
-        rwSupData = new SubstitutionCoverTree(rwClause);
-        rwClause->setSupData(rwSupData);
-      }
-      if (!rwSupData->checkAndInsert(&ordering, subst.ptr(), !eqIsResult, doInsert,
-          incompInserted ? rwTermS.term() : nullptr, incompInserted ? tgtTermS.term() : nullptr)) {
-        env.statistics->skippedSuperposition++;
-        return 0;
-      }
-    }
+  if (!_instanceRedundancyHandler.handleSuperposition(
+    eqClause, rwClause, rwTermS, tgtTermS, eqLHS, rwLitS, comp, eqIsResult, subst.ptr()))
+  {
+    return 0;
   }
 
   Recycled<Stack<Literal*>> res;

@@ -249,8 +249,6 @@ public:
     { BitUtils::setBits<DATA_BITS_START, DATA_BITS_END>(this->_content, reinterpret_cast<uint64_t>(data)); }
     // end bitfield
 
-    friend std::ostream& operator<<(std::ostream& out, const CodeOp& op);
-
   private:
     uint64_t _content;
 

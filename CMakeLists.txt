@@ -354,7 +354,6 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/LiteralIndex.cpp
     Indexing/LiteralMiniIndex.cpp
     Indexing/ResultSubstitution.cpp
-    Indexing/SubstitutionCoverTree.cpp
     Indexing/TermCodeTree.cpp
     Indexing/TermIndex.cpp
     Indexing/TermSharing.cpp
@@ -372,7 +371,6 @@ set(VAMPIRE_INDEXING_SOURCES
     Indexing/LiteralMiniIndex.hpp
     Indexing/LiteralSubstitutionTree.hpp
     Indexing/ResultSubstitution.hpp
-    Indexing/SubstitutionCoverTree.hpp
     Indexing/SubstitutionTree.hpp
     Indexing/TermCodeTree.hpp
     Indexing/TermIndex.hpp
@@ -550,6 +548,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/GoalGuessing.cpp
     Shell/FunctionDefinitionHandler.cpp
     Shell/InequalitySplitting.cpp
+    Shell/InstanceRedundancyHandler.cpp
     Shell/InterpolantMinimizer.cpp
     Shell/Interpolants.cpp
     Shell/InterpretedNormalizer.cpp
@@ -603,6 +602,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/FunctionDefinitionHandler.hpp
     Shell/GeneralSplitting.hpp
     Shell/InequalitySplitting.hpp
+    Shell/InstanceRedundancyHandler.hpp
     Shell/InterpolantMinimizer.hpp
     Shell/Interpolants.hpp
     Shell/InterpretedNormalizer.hpp

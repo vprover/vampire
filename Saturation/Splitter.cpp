@@ -16,8 +16,6 @@
 
 #include "Debug/RuntimeStatistics.hpp"
 
-#include "Indexing/SubstitutionCoverTree.hpp"
-
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/IntUnionFind.hpp"
@@ -36,6 +34,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/MainLoop.hpp"
 
+#include "Shell/InstanceRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/Shuffling.hpp"
@@ -1522,13 +1521,10 @@ bool Splitter::allSplitLevelsActive(SplitSet* s)
 
 void Splitter::onNewClause(Clause* cl)
 {
-  if (cl->getSupData()) {
-    // when using AVATAR, we could have performed
-    // generating inferences on the clause previously,
-    // so we need to reset the data.
-    delete static_cast<SubstitutionCoverTree*>(cl->getSupData());
-    cl->setSupData(nullptr);
-  }
+  // when using AVATAR, we could have performed
+  // generating inferences on the clause previously,
+  // so we need to reset the data.
+  InstanceRedundancyHandler::destroyClauseData(cl);
 
   if (cl->inference().rule() == InferenceRule::AVATAR_ASSERTION_REINTRODUCTION) {
     // Do not assign splits from premises if cl originated by re-introducing AVATAR assertions (avoids looping)

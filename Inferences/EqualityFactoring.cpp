@@ -29,10 +29,9 @@
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
 
-#include "Indexing/SubstitutionCoverTree.hpp"
-
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#include "Shell/InstanceRedundancyHandler.hpp"
 #include "Shell/Statistics.hpp"
 
 #include "EqualityFactoring.hpp"
@@ -93,8 +92,8 @@ private:
 
 struct EqualityFactoring::ResultFn
 {
-  ResultFn(EqualityFactoring& self, Clause* cl, bool afterCheck, bool skipCheck, Ordering& ordering, bool fixedPointIteration)
-      : _self(self), _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _skipCheck(skipCheck), _ordering(ordering), _fixedPointIteration(fixedPointIteration) {}
+  ResultFn(EqualityFactoring& self, Clause* cl, bool afterCheck, bool instanceRedundancyCheck, Ordering& ordering, bool fixedPointIteration)
+      : _self(self), _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _instanceRedundancyCheck(instanceRedundancyCheck), _ordering(ordering), _fixedPointIteration(fixedPointIteration) {}
   Clause* operator() (pair<pair<Literal*,TermList>,pair<Literal*,TermList> > arg)
   {
     auto absUnif = AbstractingUnifier::empty(_self._abstractionOracle);
@@ -167,17 +166,11 @@ struct EqualityFactoring::ResultFn
       }
     }
 
-    if (_skipCheck) {
-      auto supData = static_cast<SubstitutionCoverTree*>(_cl->getSupData());
-      if (!supData) {
-        supData = new SubstitutionCoverTree(_cl);
-        _cl->setSupData(supData);
-      }
-      auto subst = ResultSubstitution::fromSubstitution(&absUnif.subs(), 0, 0);
-      if (!supData->checkAndInsert(&_ordering, subst.ptr(), false, /*doInsert=*/true)) {
-        env.statistics->skippedEqualityFactoring++;
-        return 0;
-      }
+    if (_instanceRedundancyCheck &&
+      !InstanceRedundancyHandler::handleReductiveUnaryInference(_cl, &absUnif.subs(), &_ordering))
+    {
+      env.statistics->skippedEqualityFactoring++;
+      return 0;
     }
 
     for(Literal* c : *constraints){
@@ -194,7 +187,7 @@ private:
   Clause* _cl;
   unsigned _cLen;
   bool _afterCheck;
-  bool _skipCheck;
+  bool _instanceRedundancyCheck;
   const Ordering& _ordering;
   bool _fixedPointIteration;
 };

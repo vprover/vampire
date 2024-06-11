@@ -1705,7 +1705,7 @@ void Options::init()
     _equationalTautologyRemoval.tag(OptionTag::INFERENCES);
 
     _instanceRedundancyCheck = ChoiceOptionValue<InstanceRedundancyCheck>("instance_redundancy_check","irc",
-      InstanceRedundancyCheck::OFF,{"lazy","eager","ground_eager","off"});
+      InstanceRedundancyCheck::OFF,{"lazy","eager","off"});
     _instanceRedundancyCheck.description=
     "Skip generating inferences on clause instances on which we already performed a reductive inference.";
     _lookup.insert(&_instanceRedundancyCheck);
@@ -3486,7 +3486,12 @@ bool Options::complete(const Problem& prb) const
   if (_demodulationRedundancyCheck.actualValue == DemodulationRedundancyCheck::OFF) {
     return false;
   }
-  if (!_superpositionFromVariables.actualValue) return false;
+  if (!_superpositionFromVariables.actualValue) {
+    return false;
+  }
+  if (_instanceRedundancyCheck.actualValue == InstanceRedundancyCheck::EAGER) {
+    return false;
+  }
 
   // only checking resolution rules remain
   bool pureEquality = (prop.atoms() == prop.equalityAtoms());

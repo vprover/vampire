@@ -18,10 +18,11 @@
 
 #include "Forwards.hpp"
 #include "Indexing/TermIndex.hpp"
-#include "DemodulationHelper.hpp"
 
 #include "InferenceEngine.hpp"
 #include "Kernel/RobSubstitution.hpp"
+
+#include "Shell/InstanceRedundancyHandler.hpp"
 
 namespace Inferences {
 
@@ -60,7 +61,7 @@ private:
 
   SuperpositionSubtermIndex* _subtermIndex;
   SuperpositionLHSIndex* _lhsIndex;
-  DemodulationHelper _helper;
+  InstanceRedundancyHandler _instanceRedundancyHandler;
 };
 
 

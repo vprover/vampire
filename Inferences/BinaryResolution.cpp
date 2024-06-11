@@ -35,11 +35,11 @@
 #include "Indexing/LiteralIndex.hpp"
 #include "Indexing/IndexManager.hpp"
 #include "Indexing/SubstitutionTree.hpp"
-#include "Indexing/SubstitutionCoverTree.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Shell/AnswerExtractor.hpp"
+#include "Shell/InstanceRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -227,35 +227,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     }
   }
 
-  if (opts.instanceRedundancyCheck()!=Options::InstanceRedundancyCheck::OFF) {
-    {
-      bool doInsert = resultLit->isPositive() && resultCl->size()==1 && resultCl->noSplits();
-      auto supData = static_cast<SubstitutionCoverTree*>(queryCl->getSupData());
-      if (supData || doInsert) {
-        if (!supData) {
-          supData = new SubstitutionCoverTree(queryCl);
-          queryCl->setSupData(supData);
-        }
-        if (!supData->checkAndInsert(ord, subs.ptr(), false, doInsert)) {
-          env.statistics->skippedResolution++;
-          return 0;
-        }
-      }
-    }
-    {
-      bool doInsert = queryLit->isPositive() && queryCl->size()==1 && queryCl->noSplits();
-      auto supData = static_cast<SubstitutionCoverTree*>(resultCl->getSupData());
-      if (supData || doInsert) {
-        if (!supData) {
-          supData = new SubstitutionCoverTree(resultCl);
-          resultCl->setSupData(supData);
-        }
-        if (!supData->checkAndInsert(ord, subs.ptr(), true, doInsert)) {
-          env.statistics->skippedResolution++;
-          return 0;
-        }
-      }
-    }
+  if (!InstanceRedundancyHandler::handleResolution(queryCl, queryLit, resultCl, resultLit, subs.ptr(), opts, ord)) {
+    return 0;
   }
 
    if (bothHaveAnsLit) {

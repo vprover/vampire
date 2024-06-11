@@ -765,8 +765,7 @@ public:
   enum class InstanceRedundancyCheck : unsigned int {
     LAZY = 0,
     EAGER = 1,
-    GROUND_EAGER = 2,
-    OFF = 3,
+    OFF = 2,
   };
 
     //==========================================================

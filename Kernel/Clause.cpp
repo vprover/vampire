@@ -31,14 +31,13 @@
 
 #include "SAT/SATClause.hpp"
 
+#include "Shell/InstanceRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 
 #include "Inference.hpp"
 #include "Signature.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
-
-#include "Indexing/SubstitutionCoverTree.hpp"
 
 #include <cmath>
 
@@ -125,9 +124,8 @@ void Clause::destroyExceptInferenceObject()
   if (_literalPositions) {
     delete _literalPositions;
   }
-  if (_supData) {
-    delete static_cast<SubstitutionCoverTree*>(_supData);
-  }
+
+  InstanceRedundancyHandler::destroyClauseData(this);
 
   RSTAT_CTR_INC("clauses deleted");
 
