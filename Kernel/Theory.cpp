@@ -1031,6 +1031,11 @@ bool Theory::isInterpretedPredicate(Literal* lit)
 }
 
 
+bool Theory::isInterpretedPredicate(unsigned lit, Interpretation itp)
+{
+  return isInterpretedPredicate(lit) && interpretPredicate(lit)==itp;
+}
+
 /**
  * Return true iff @b lit has an interpreted predicate interpreted
  * as @b itp

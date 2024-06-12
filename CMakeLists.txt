@@ -439,6 +439,8 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/LASCA/EqFactoring.hpp
     Inferences/LASCA/VariableElimination.cpp
     Inferences/LASCA/VariableElimination.hpp
+    Inferences/LASCA/VIRAS.cpp
+    Inferences/LASCA/VIRAS.hpp
     Inferences/LASCA/Superposition.cpp
     Inferences/LASCA/Superposition.hpp
     Inferences/LASCA/Demodulation.cpp
@@ -916,6 +918,10 @@ else ()
   set(VAMPIRE_BINARY_Z3 _z3)
   set(UNIT_TESTS ${UNIT_TESTS} ${UNIT_TESTS_Z3})
 endif()
+
+# add viras package source
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/viras/src)
+
 
 ################################################################
 # build objects

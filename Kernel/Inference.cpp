@@ -850,6 +850,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "instantiation";
   case InferenceRule::LASCA_VARIABLE_ELIMINATION:
     return "lasca variable elimination";
+  case InferenceRule::LASCA_VIRAS_QE:
+    return "lasca viras quantifier elimination";
   case InferenceRule::LASCA_SUPERPOSITION:
     return "lasca superposition";
   case InferenceRule::LASCA_LITERAL_FACTORING:

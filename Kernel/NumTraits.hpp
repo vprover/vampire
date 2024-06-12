@@ -65,6 +65,21 @@ namespace Kernel {
 template<class ConstantType>
 struct NumTraits;
 
+#define FOR_ARITY_RANGE_0(f)
+#define FOR_ARITY_RANGE_1(f) f(0)
+#define FOR_ARITY_RANGE_2(f) FOR_ARITY_RANGE_1(f), f(1)
+#define FOR_ARITY_RANGE_3(f) FOR_ARITY_RANGE_2(f), f(2)
+#define FOR_ARITY_RANGE_4(f) FOR_ARITY_RANGE_3(f), f(3)
+#define FOR_ARITY_RANGE_5(f) FOR_ARITY_RANGE_4(f), f(4)
+#define FOR_ARITY_RANGE_6(f) FOR_ARITY_RANGE_5(f), f(5)
+#define FOR_ARITY_RANGE_7(f) FOR_ARITY_RANGE_6(f), f(6)
+#define FOR_ARITY_RANGE_8(f) FOR_ARITY_RANGE_7(f), f(7)
+#define FOR_ARITY_RANGE_9(f) FOR_ARITY_RANGE_8(f), f(8)
+#define FOR_ARITY_RANGE_10(f) FOR_ARITY_RANGE_9(f), f(9)
+#define FOR_ARITY_RANGE_11(f) FOR_ARITY_RANGE_10(f), f(10)
+
+#define FOR_ARITY_RANGE(arity) FOR_ARITY_RANGE_ ## arity
+
 #define IMPL_NUM_TRAITS__ARG_DECL_1(Type) Type a1
 #define IMPL_NUM_TRAITS__ARG_DECL_2(Type) IMPL_NUM_TRAITS__ARG_DECL_1(Type), Type a2
 #define IMPL_NUM_TRAITS__ARG_DECL_3(Type) IMPL_NUM_TRAITS__ARG_DECL_2(Type), Type a3
@@ -109,6 +124,16 @@ struct NumTraits;
     static bool is ## Name(unsigned f)                                                              \
     { return theory->isInterpretedFunction(f, name ## I); }                                         \
                                                                                                     \
+    template<class F> \
+    static auto if ## Name(Term* t, F fun) {                              \
+      return someIf(is ## Name(t->functor()), \
+          [&]() { return fun(FOR_ARITY_RANGE(arity)(t->termArg)); }); \
+    }                                                                                               \
+    template<class F> \
+    static auto if ## Name(TermList t, F fun) {                              \
+      return someIf(t.isTerm(), [&]() { return if ## Name(t.term(), fun); }).flatten();\
+    } \
+    \
     static TermList name(IMPL_NUM_TRAITS__ARG_DECL(TermList, arity)) {                              \
       return TermList(                                                                              \
           Term::create(                                                                             \
@@ -227,6 +252,11 @@ struct NumTraits;
     }                                                                                               \
     template<class TermOrFunctor>                                                                   \
     static bool isNumeral(TermOrFunctor t) { return tryNumeral(t).isSome(); }                       \
+    template<class TermOrFunctor>                                                                   \
+    static bool isNumeral(TermOrFunctor t, ConstantType n) { return tryNumeral(t) == some(n); }     \
+    template<class Term, class F>                                                                   \
+    static auto ifNumeral(Term t, F fun) \
+    { return tryNumeral(t).map([&](auto n) { return fun(n); }); }     \
     static unsigned numeralF(ConstantType c) { return constantT(c)->functor(); }                    \
                                                                                                     \
     static const char* name() {return #CamelCase;}                                                  \
