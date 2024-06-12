@@ -52,8 +52,22 @@ public:
     }
     if (doInsert) {
       auto ld = new LeafData();
-      ld->lhs = lhs;
-      ld->rhs = rhs;
+      if (lhs) {
+        ASS(rhs);
+        ASS(lhs->containsAllVariablesOf(rhs));
+        Renaming r;
+        // normalize lhs and rhs, the same way as
+        // terms from ts are normalized upon insertion
+        for (const auto t : ts) {
+          r.normalizeVariables(t);
+        }
+        ld->lhs = r.apply(lhs);
+        ld->rhs = r.apply(rhs);
+      } else {
+        ASS(!rhs);
+        ld->lhs = nullptr;
+        ld->rhs = nullptr;
+      }
       insert(ts,ld);
     }
     return true;
