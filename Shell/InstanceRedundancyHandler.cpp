@@ -29,7 +29,7 @@
 namespace Indexing
 {
 
-class SubstitutionCoverTree
+class InstanceRedundancyHandler::SubstitutionCoverTree
   : public CodeTree
 {
 public:
@@ -194,6 +194,21 @@ private:
 
 // InstanceRedundancyHandler
 
+DHMap<Clause*,InstanceRedundancyHandler::SubstitutionCoverTree*> InstanceRedundancyHandler::clauseData;
+
+InstanceRedundancyHandler::SubstitutionCoverTree** InstanceRedundancyHandler::getDataPtr(Clause* cl, bool doAllocate)
+{
+  if (!doAllocate) {
+    return clauseData.findPtr(cl);
+  }
+  SubstitutionCoverTree** ptr;
+  clauseData.getValuePtr(cl, ptr, nullptr);
+  if (!*ptr) {
+    *ptr = new SubstitutionCoverTree(cl);
+  }
+  return ptr;
+}
+
 bool InstanceRedundancyHandler::handleSuperposition(Clause* eqClause, Clause* rwClause,
   TermList rwTermS, TermList tgtTermS, TermList eqLHS, Literal* rwLitS, Ordering::Result eqComp,
   bool eqIsResult, ResultSubstitution* subs) const
@@ -202,8 +217,8 @@ bool InstanceRedundancyHandler::handleSuperposition(Clause* eqClause, Clause* rw
     return true;
   }
 
-  auto eqSupData = static_cast<SubstitutionCoverTree*>(eqClause->getSupData());
-  if (eqSupData && !eqSupData->checkAndInsert(_ord, subs, eqIsResult, /*doInsert=*/false)) {
+  auto eqClDataPtr = getDataPtr(eqClause, /*doAllocate=*/false);
+  if (eqClDataPtr && !(*eqClDataPtr)->checkAndInsert(_ord, subs, eqIsResult, /*doInsert=*/false)) {
     env.statistics->skippedSuperposition++;
     return false;
   }
@@ -226,17 +241,13 @@ bool InstanceRedundancyHandler::handleSuperposition(Clause* eqClause, Clause* rw
       (rwClause->length()==1 && _demodulationHelper.isPremiseRedundant(rwClause, rwLitS, rwTermS, tgtTermS, eqLHS, &appl)));
 
   bool incompInserted = doInsert && eqComp != Ordering::LESS;
-  auto rwSupData = static_cast<SubstitutionCoverTree*>(rwClause->getSupData());
-  if (rwSupData || doInsert) {
-    if (!rwSupData) {
-      rwSupData = new SubstitutionCoverTree(rwClause);
-      rwClause->setSupData(rwSupData);
-    }
-    if (!rwSupData->checkAndInsert(_ord, subs, !eqIsResult, doInsert,
-        incompInserted ? rwTermS.term() : nullptr, incompInserted ? tgtTermS.term() : nullptr)) {
-      env.statistics->skippedSuperposition++;
-      return false;
-    }
+  auto rwClDataPtr = getDataPtr(rwClause, /*doAllocate=*/doInsert);
+
+  if (rwClDataPtr && !(*rwClDataPtr)->checkAndInsert(_ord, subs, !eqIsResult, doInsert,
+    incompInserted ? rwTermS.term() : nullptr, incompInserted ? tgtTermS.term() : nullptr))
+  {
+    env.statistics->skippedSuperposition++;
+    return false;
   }
   return true;
 }
@@ -249,32 +260,21 @@ bool InstanceRedundancyHandler::handleResolution(Clause* queryCl, Literal* query
     return true;
   }
 
+  // Note that we're inserting into the data of one clause based on the *other* clause
   {
     bool doInsert = resultLit->isPositive() && resultCl->size()==1 && resultCl->noSplits();
-    auto supData = static_cast<SubstitutionCoverTree*>(queryCl->getSupData());
-    if (supData || doInsert) {
-      if (!supData) {
-        supData = new SubstitutionCoverTree(queryCl);
-        queryCl->setSupData(supData);
-      }
-      if (!supData->checkAndInsert(ord, subs, false, doInsert)) {
-        env.statistics->skippedResolution++;
-        return false;
-      }
+    auto dataPtr = getDataPtr(queryCl, /*doAllocate=*/doInsert);
+    if (dataPtr && !(*dataPtr)->checkAndInsert(ord, subs, false, doInsert)) {
+      env.statistics->skippedResolution++;
+      return false;
     }
   }
   {
     bool doInsert = queryLit->isPositive() && queryCl->size()==1 && queryCl->noSplits();
-    auto supData = static_cast<SubstitutionCoverTree*>(resultCl->getSupData());
-    if (supData || doInsert) {
-      if (!supData) {
-        supData = new SubstitutionCoverTree(resultCl);
-        resultCl->setSupData(supData);
-      }
-      if (!supData->checkAndInsert(ord, subs, true, doInsert)) {
-        env.statistics->skippedResolution++;
-        return false;
-      }
+    auto dataPtr = getDataPtr(resultCl, /*doAllocate=*/doInsert);
+    if (dataPtr && !(*dataPtr)->checkAndInsert(ord, subs, true, doInsert)) {
+      env.statistics->skippedResolution++;
+      return false;
     }
   }
   return true;
@@ -283,13 +283,9 @@ bool InstanceRedundancyHandler::handleResolution(Clause* queryCl, Literal* query
 bool InstanceRedundancyHandler::handleReductiveUnaryInference(
   Clause* premise, RobSubstitution* subs, const Ordering* ord)
 {
-  auto supData = static_cast<SubstitutionCoverTree*>(premise->getSupData());
-  if (!supData) {
-    supData = new SubstitutionCoverTree(premise);
-    premise->setSupData(supData);
-  }
+  auto dataPtr = getDataPtr(premise, /*doAllocate=*/true);
   auto subst = ResultSubstitution::fromSubstitution(subs, 0, 0);
-  if (!supData->checkAndInsert(ord, subst.ptr(), false, /*doInsert=*/true)) {
+  if (!(*dataPtr)->checkAndInsert(ord, subst.ptr(), false, /*doInsert=*/true)) {
     return false;
   }
   return true;
@@ -297,10 +293,9 @@ bool InstanceRedundancyHandler::handleReductiveUnaryInference(
 
 void InstanceRedundancyHandler::destroyClauseData(Clause* cl)
 {
-  if (cl->getSupData()) {
-    delete static_cast<SubstitutionCoverTree*>(cl->getSupData());
-    cl->setSupData(nullptr);
-  }
+  SubstitutionCoverTree* ptr = nullptr;
+  clauseData.pop(cl, ptr);
+  delete ptr;
 }
 
 }

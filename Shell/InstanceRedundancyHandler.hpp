@@ -57,6 +57,13 @@ private:
   Options::InstanceRedundancyCheck _optVal;
   const Ordering* _ord;
   Inferences::DemodulationHelper _demodulationHelper;
+
+  class SubstitutionCoverTree;
+
+  static SubstitutionCoverTree** getDataPtr(Clause* cl, bool doAllocate);
+
+  // this contains the redundancy information associated with each clause
+  static DHMap<Clause*,SubstitutionCoverTree*> clauseData;
 };
 
 };
