@@ -168,7 +168,7 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
       if (SList::isNonEmpty(fSrts)) {
         sort = fSrts->head();
         fSrts = fSrts->tail();
-      } else {
+      } else if (!SortHelper::tryGetVariableSort(var, subNot, sort)) {
         sort = AtomicSort::defaultSort();
       }
       OperatorType* ot = OperatorType::getConstantsType(sort);
@@ -353,7 +353,7 @@ Literal* AnswerLiteralManager::getAnswerLiteral(VList* vars,SList* srts,Formula*
     if (SList::isNonEmpty(srts)) {
       sort = srts->head();
       srts = srts->tail();
-    } else {
+    } else if(!SortHelper::tryGetVariableSort(var, f, sort)) {
       sort = AtomicSort::defaultSort();
     }
     litArgs.push(TermList(var, false));
