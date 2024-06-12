@@ -88,6 +88,14 @@ void Preprocess::preprocess(Problem& prb)
     }
   }
 
+  if (_options.questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
+    env.statistics->phase=Statistics::ANSWER_LITERAL;
+    if (env.options->showPreprocessing())
+      std::cout << "answer literal addition" << std::endl;
+
+    AnswerLiteralManager::getInstance()->addAnswerLiterals(prb);
+  }
+
   //we ensure that in the beginning we have a valid property object, to
   //know that the queries to uncertain problem properties will be precise
   //enough
@@ -205,14 +213,6 @@ void Preprocess::preprocess(Problem& prb)
       std::cout << "sine selection" << std::endl;
 
     SineSelector(_options).perform(prb);
-  }
-
-  if (_options.questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
-    env.statistics->phase=Statistics::ANSWER_LITERAL;
-    if (env.options->showPreprocessing())
-      std::cout << "answer literal addition" << std::endl;
-
-    AnswerLiteralManager::getInstance()->addAnswerLiterals(prb);
   }
 
   // stop here if clausification is not required and still simplify not set
