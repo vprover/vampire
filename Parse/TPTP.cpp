@@ -49,6 +49,7 @@ using namespace Parse;
 #define DEBUG_SHOW_UNITS 0
 #define DEBUG_SOURCE 0
 DHMap<unsigned, vstring> TPTP::_axiomNames;
+DHMap<unsigned, Map<int,vstring>*> TPTP::_questionVariableNames;
 
 //Numbers chosen to avoid clashing with connectives.
 //Unlikely to ever have 100 connectives, so this should be ok.
@@ -71,6 +72,19 @@ UnitList* TPTP::parse(istream& input)
   Parse::TPTP parser(input);
   parser.parse();
   return parser.units();
+}
+
+Clause* TPTP::parseClauseFromString(const vstring& str)
+{
+  vstringstream input(str+")."); // to fake endFOF, which creates the clause
+  Parse::TPTP parser(input);
+  parser._isFof = true;
+  parser._lastInputType = UnitInputType::AXIOM;
+  parser._bools.push(false);     // this is what cnf normally pushes (but we start "from the middle")
+  parser._strings.push("dummy_name");
+  parser._states.push(END_FOF);  // this is what does the clause building
+  parser.parseImpl(FORMULA);
+  return parser._units.list()->head()->asClause();
 }
 
 /**
@@ -117,14 +131,14 @@ void TPTP::parse()
  * Read all tokens one by one 
  * @since 08/04/2011 Manchester
  */
-void TPTP::parseImpl()
+void TPTP::parseImpl(State initialState)
 {
   // bulding tokens one by one
   _gpos = 0;
   _cend = 0;
   _tend = 0;
   _lineNumber = 1;
-  _states.push(UNIT_LIST);
+  _states.push(initialState);
   while (!_states.isEmpty()) {
     State s = _states.pop();
 #ifdef DEBUG_SHOW_STATE
@@ -2775,6 +2789,9 @@ void TPTP::varList()
       PARSE_ERROR("variable expected",tok);
     }
     int var = _vars.insert(tok.content);
+    if (_isQuestion) {
+      _curQuestionVarNames.insert(var,tok.content);
+    }
     vars.push(var);
     resetToks();
     bool sortDeclared = false;
@@ -3642,7 +3659,7 @@ void TPTP::endFof()
         g->vars(),
         g->sorts(),
         new BinaryFormula(IMP,g->subformula(),new AtomicFormula(a)));
-        unit = new FormulaUnit(f,FormulaTransformation(InferenceRule::ANSWER_LITERAL,unit));
+        unit = new FormulaUnit(f,FormulaTransformation(InferenceRule::ANSWER_LITERAL_INJECTION,unit));
     }
     else {
       VList* vs = freeVariables(f);
@@ -3650,11 +3667,14 @@ void TPTP::endFof()
         f = new NegatedFormula(f);
       }
       else {
-        // TODO can we use sortOf to get the sorts of vs? 
+        // TODO can we use sortOf to get the sorts of vs?
         f = new NegatedFormula(new QuantifiedFormula(FORALL,vs,0,f));
       }
       unit = new FormulaUnit(f,
 			     FormulaTransformation(InferenceRule::NEGATED_CONJECTURE,unit));
+      if (_isQuestion) {
+        _questionVariableNames.insert(unit->number(),new Map<int,vstring>(std::move(_curQuestionVarNames)));
+      }
     }
     break;
 

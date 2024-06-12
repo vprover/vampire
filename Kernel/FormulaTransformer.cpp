@@ -207,7 +207,7 @@ Formula* FormulaTransformer::applyQuantified(Formula* f)
     return f;
   }
   // 0 is for the sorts list
-  return new QuantifiedFormula(f->connective(), f->vars(),0, newArg);
+  return new QuantifiedFormula(f->connective(), f->vars(),f->sorts(), newArg);
 }
 
 ///////////////////////////////////////

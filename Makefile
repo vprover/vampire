@@ -296,7 +296,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BoolEqToDiseq.o\
          Inferences/GaussianVariableElimination.o\
          Inferences/InterpretedEvaluation.o\
-         Inferences/InvalidAnswerLiteralRemoval.o\
+         Inferences/InvalidAnswerLiteralRemovals.o\
          Inferences/TheoryInstAndSimp.o
 
 VSAT_OBJ=SAT/MinimizingSolver.o\
@@ -324,7 +324,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/SymElOutput.o\
          Saturation/ManCSPassiveClauseContainer.o\
 
-VS_OBJ = Shell/AnswerExtractor.o\
+VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/CommandLine.o\
          Shell/CNF.o\
          Shell/NewCNF.o\

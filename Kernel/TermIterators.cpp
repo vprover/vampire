@@ -439,22 +439,33 @@ Term* NonVariableNonTypeIterator::next()
 {
   Term* t = _stack.pop();
   TermList* ts;
-  _added = 0;  
-  Signature::Symbol* sym;
-  if (t->isLiteral()) {
-    sym = env.signature->getPredicate(t->functor());
-  } else{
-    sym = env.signature->getFunction(t->functor());
-  }
+  _added = 0;
   unsigned taArity; 
   unsigned arity;
-
-  if(t->isLiteral() && static_cast<Literal*>(t)->isEquality()){
+  if (t->isSpecial()) {
+    // This is a very incomplete support for special terms (which normally get eliminated during preprocessing).
+    // This satisfies the a use in AnswerLiteralManager (the synthesis version) where $ite-s may have creeped in.
+    // (We don't mind being iteration-incomplete there so skip the $ite-condition,
+    // which is a formula and would make things much more complicated here.)
+    // TODO decide: is it worth extending this properly (as usually, we won't encounter specail terms here)?
+    Term::SpecialTermData* sd = t->getSpecialData();
+    ASS(sd->specialFunctor() == SpecialFunctor::ITE);
     taArity = 0;
     arity = 2;
   } else {
-    taArity = sym->numTypeArguments();
-    arity = sym->arity();
+    Signature::Symbol* sym;
+    if (t->isLiteral()) {
+      sym = env.signature->getPredicate(t->functor());
+    } else {
+      sym = env.signature->getFunction(t->functor());
+    }
+    if(t->isLiteral() && static_cast<Literal*>(t)->isEquality()){
+      taArity = 0;
+      arity = 2;
+    } else {
+      taArity = sym->numTypeArguments();
+      arity = sym->arity();
+    }
   }
 
   for(unsigned i = taArity; i < arity; i++){

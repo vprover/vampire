@@ -19,8 +19,6 @@
 #include "Indexing/TermSharing.hpp"
 #include "Lib/Metaiterators.hpp"
 
-#include "Shell/AnswerExtractor.hpp"
-
 #include "SubstHelper.hpp"
 #include "TermIterators.hpp"
 #include "RobSubstitution.hpp"
@@ -776,7 +774,7 @@ const vstring& Literal::predicateName() const
 
 
 bool Literal::isAnswerLiteral() const {
-  return env.signature->getPredicate(functor())->answerPredicate();
+  return isNegative() && env.signature->getPredicate(functor())->answerPredicate();
 }
 
 
