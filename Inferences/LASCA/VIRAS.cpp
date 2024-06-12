@@ -194,8 +194,6 @@ SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierEliminatio
       .clauses = pvi(
           intoVampireIter(viras.quantifier_elimination(var, analysed))
             .map([premise, otherLits = std::move(otherLits)](auto litIter) { 
-              // TODO inference rule VIRAS
-              
               return Clause::fromIterator(
                   concatIters(
                     intoVampireIter(litIter),
