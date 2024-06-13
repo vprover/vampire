@@ -53,9 +53,9 @@ struct VampireVirasConfig {
   bool less(Numeral l, Numeral r) { return l < r; }
   bool leq(Numeral l, Numeral r) { return l <= r; }
 
-  Term subs(Term term, Var var, Term by) 
-  { return EqHelper::replace(term, var, by); }
-
+  // Term subs(Term term, Var var, Term by) 
+  // { return EqHelper::replace(term, var, by); }
+  //
   std::pair<viras::PredSymbol, TermList> match_literal(Literal lit) {
     // we perform the complement of qunatifier elimination. instead of eliminating 
     // exists x. (L1 /\ L2 ...) we eliminated
@@ -149,7 +149,7 @@ auto intoVampireIter(VirasIter i)
 
 SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierElimination::generateSimplify(Clause* premise) {
   using NumTraits = RatTraits;
-  auto viras = viras::viras(VampireVirasConfig{});
+  auto viras = viras::viras(viras::simplifyingConfig(VampireVirasConfig{}));
   Recycled<DHSet<unsigned>> shieldedVars;
   Recycled<DHSet<unsigned>> candidateVars;
   Recycled<Stack<Literal*>> toElim;

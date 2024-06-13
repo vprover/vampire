@@ -583,13 +583,7 @@ public:
    * rational constant, return true and save the constant in @c res, otherwise
    * return false.
    */
-  bool tryInterpretConstant(TermList trm, RationalConstantType& res)
-  {
-    if (!trm.isTerm()) {
-      return false;
-    }
-    return tryInterpretConstant(trm.term(),res);
-  }
+  bool tryInterpretConstant(TermList trm, RationalConstantType& res);
   bool tryInterpretConstant(const Term* t, RationalConstantType& res);
   bool tryInterpretConstant(unsigned functor, RationalConstantType& res);
   /**

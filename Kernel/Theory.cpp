@@ -1191,6 +1191,13 @@ bool Theory::tryInterpretConstant(unsigned func, RationalConstantType& res)
   return true;
 }
 
+bool Theory::tryInterpretConstant(TermList trm, RationalConstantType& res)
+{
+  if (!trm.isTerm()) {
+    return false;
+  }
+  return tryInterpretConstant(trm.term(),res);
+}
 
 /**
  * Try to interpret the term as a real constant. If it is an

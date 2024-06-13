@@ -161,14 +161,28 @@ TEST_GENERATION(ported_lra_test_basic04,
       .premiseRedundant(true)
     )
 
-TEST_GENERATION(ported_lra_test_basic05,
+TEST_GENERATION(ported_lra_test_basic05_pos,
     Generation::SymmetricTest()
-      .inputs ({  clause({ x + a > 0, -x + b >= 0, - x - c >= 0 }) })
+      .inputs ({  clause({ -x + a > 0, x + b >= 0,  x - c >= 0 }) })
       .expected(exactly(
             clause({ a + b >= 0, a - c >= 0 })
       ))
       .premiseRedundant(true)
     )
+
+
+TEST_GENERATION(ported_lra_test_basic05_neg,
+    Generation::SymmetricTest()
+      .inputs ({  clause({ x + a > 0, -x + b >= 0, - x - c >= 0 }) })
+      .expected(exactly(
+          clause({ (a + b) >= 0, (-b + -c) > 0 }), 
+          clause({ (a + -c) >= 0, (b + c) > 0 })
+      ))
+      .premiseRedundant(true)
+    )
+  // TODO make optimized version that always selects the "better one" from phi[x] vs phi[-x]
+  // ported_lra_test_basic05_neg,
+  // ported_lra_test_basic05_pos,
 
 
 /////////////////////////////////////////////////////////
@@ -237,9 +251,34 @@ TEST_GENERATION(ported_lra_test_eq02b,
 TEST_GENERATION(ported_lra_test_eq03a,
     Generation::SymmetricTest()
       .inputs ({  clause({ -x + a > 0, x - b == 0, P(y) }) })
+      // elim set: { a, b + ε, -∞ }
       .expected(exactly(
-            clause({ P(y) }), // TODO can we detect redundancies of that kind?
-            clause({ a - b >= 0, P(y) })
+                  //   clause({ -x + a > 0, x - b == 0, P(y) })[x // -∞]
+                  // = clause({ true      , false     , P(y) })
+                  // ==> redundant
+                  //
+                  //   clause({ -x + a > 0, x - b == 0, P(y) })[x // a]
+                  // = clause({ -a + a > 0, a - b == 0, P(y) })
+                  // = clause({             a - b == 0, P(y) })
+                  clause({ a - b == 0, P(y) })
+                  //
+                  //   clause({ -x + a > 0, x - b == 0, P(y) })[x // b + ε]
+                  // = clause({ -b - ε + a > 0, b + ε - b == 0, P(y) })
+                  // = clause({ -b + a - ε > 0,     ε     == 0, P(y) })
+                  // = clause({ -b + a     > 0,                 P(y) })
+                , clause({ -b + a > 0, P(y) })
+      ))
+      .premiseRedundant(true)
+    )
+
+
+TEST_GENERATION(ported_lra_test_eq03a_neg,
+    Generation::SymmetricTest()
+      .inputs ({  clause({ x + a > 0, -x + b == 0, P(y) }) })
+      // elim set: { a, -∞ }
+      .expected(exactly(
+                  clause({             P(y) })
+                , clause({ b + a >= 0, P(y) }) // TODO can we somehow detect redundncies like this?
       ))
       .premiseRedundant(true)
     )
