@@ -134,7 +134,7 @@ struct Matrix {
   std::vector<Connection> sat2conn;
 
   // number of first-order variables used so far
-  unsigned offset = 0;
+  unsigned variables = 0;
 
   // index for non-equality predicates
   Indexing::LiteralSubstitutionTree<Predicate> predicate_index;
@@ -148,7 +148,7 @@ struct Matrix {
     sat2conn.push_back({TermList::empty(), TermList::empty()});
   }
 
-  void add_connection(CaDiCaL::Solver &solver, TermList s, TermList t) {
+  void add_connection(TermList s, TermList t) {
     // skip ground connections, they do nothing
     if(s.isTerm() && s.term()->ground() && t.isTerm() && t.term()->ground())
       return;
@@ -157,23 +157,18 @@ struct Matrix {
     int fresh = sat2conn.size();
     Connection connection {s, t};
     // if not seen before...
-    if(conn2sat.insert({connection, fresh}).second) {
+    if(conn2sat.insert({connection, fresh}).second)
       sat2conn.push_back(connection);
-      // we want to know about assignments
-      solver.add_observed_var(fresh);
-      // heuristic: more connections good
-      solver.phase(fresh);
-    }
   }
 
   // increase the number of copies of `cl` by one
-  void amplify(CaDiCaL::Solver &solver, Clause *cl) {
+  void amplify(Clause *cl) {
     // the new clause
     Copy copy;
     copy.original = cl;
 
     // variable renaming applied to produce fresh variables
-    Renaming renaming(offset);
+    Renaming renaming(variables);
 
     // first pass: find connections to others
     for(unsigned i = 0; i < cl->length(); i++) {
@@ -195,7 +190,7 @@ struct Matrix {
             );
             while(unifiers.hasNext()) {
               TypedTermList subterm = unifiers.next().data->term;
-              add_connection(solver, t, subterm);
+              add_connection(t, subterm);
             }
           }
         }
@@ -209,7 +204,7 @@ struct Matrix {
         while(unifiers.hasNext()) {
           // the literal to connect to
           Literal *k = unifiers.next().data->literal;
-          add_connection(solver, TermList(l), TermList(k));
+          add_connection(TermList(l), TermList(k));
         }
       }
 
@@ -222,13 +217,13 @@ struct Matrix {
         );
         while(unifiers.hasNext()) {
           TypedTermList side = unifiers.next().data->term;
-          add_connection(solver, side, subterm);
+          add_connection(side, subterm);
         }
       }
     }
 
-    // bump offset for the next clause
-    offset = renaming.nextVar();
+    // bump variables for the next clause
+    variables = renaming.nextVar();
     // second pass: insert literals into the index
     for(Literal *l : copy.literals) {
       // their top-level parts
@@ -253,6 +248,11 @@ struct Matrix {
   }
 };
 
+// scratch space: pairs of terms to unify
+static std::vector<std::pair<TermList, TermList>> UNIFY;
+// scratch space: occurs check
+static std::vector<TermList> OCCURS;
+
 struct RigidSubstitution {
   struct Binding {
     TermList term;
@@ -265,31 +265,37 @@ struct RigidSubstitution {
   std::vector<Binding> bindings;
   // trail of variables to unbind
   std::vector<unsigned> trail;
-  // scratch space: pairs of terms to unify
-  std::vector<std::pair<TermList, TermList>> todo_unify;
-  // scratch space: occurs check
-  std::vector<TermList> todo_occurs;
+
+  RigidSubstitution(size_t variables) : bindings(variables) {}
 
   // determine what a variable is bound to
-  TermList apply(unsigned var) {
+  TermList lookup(unsigned var) {
     while(bindings[var]) {
       TermList bound = bindings[var].term;
       if(bound.isTerm())
-        // TODO do this better
-        return SubstHelper::apply(bound, *this);
+        return bound;
       var = bound.var();
     }
     return TermList(var, false);
   }
 
+  // for SubstHelper
+  TermList apply(unsigned var) {
+    TermList bound = lookup(var);
+    if(bound.isTerm())
+      // TODO do this better
+      bound = SubstHelper::apply(bound, *this);
+    return bound;
+  }
+
   // check whether `var` occurs in `term` modulo bindings
-  // `term` is assumed to have already been `apply`'d
+  // `term` is assumed to have already been `lookup`'d
   bool occurs(unsigned var, TermList term) {
-    todo_occurs.clear();
-    todo_occurs.push_back(term);
+    OCCURS.clear();
+    OCCURS.push_back(term);
     do {
-      TermList t = todo_occurs.back();
-      todo_occurs.pop_back();
+      TermList t = OCCURS.back();
+      OCCURS.pop_back();
       if(t.isVar()) {
         if(t.var() == var)
           return true;
@@ -300,26 +306,30 @@ struct RigidSubstitution {
       for(unsigned i = 0; i < tt->arity(); i++) {
         TermList arg = (*tt)[i];
         if(arg.isVar())
-          arg = apply(arg.var());
-        todo_occurs.push_back(arg);
+          arg = lookup(arg.var());
+        OCCURS.push_back(arg);
       }
-    } while(!todo_occurs.empty());
+    } while(!OCCURS.empty());
     return false;
   }
 
   // unify s and t, leaving bindings clean on failure
-  bool unify(int sat, TermList s, TermList t) {
-    // log() << sat << ": " << s << " ~ " << t << '\n';
-    todo_unify.clear();
-    todo_unify.push_back({s, t});
+  bool unify(TermList s, TermList t) {
+    UNIFY.clear();
+    UNIFY.push_back({s, t});
     unsigned trail_start = trail.size();
     do {
-      auto [s, t] = todo_unify.back();
-      todo_unify.pop_back();
+      auto [s, t] = UNIFY.back();
+      UNIFY.pop_back();
+
+      // equal terms, do nothing
+      if(s == t)
+        continue;
+
       if(s.isVar())
-        s = apply(s.var());
+        s = lookup(s.var());
       if(t.isVar())
-        t = apply(t.var());
+        t = lookup(t.var());
 
       // equal terms, do nothing
       if(s == t)
@@ -339,7 +349,7 @@ struct RigidSubstitution {
 
         // OK, bind the variable
         // log() << var << " -> " << term << '\n';
-        bindings[var] = term;
+        bindings[var] = Binding(term);
         trail.push_back(var);
         continue;
       }
@@ -356,9 +366,9 @@ struct RigidSubstitution {
 
       // matching-functor case, proceed
       for(unsigned i = 0; i < st->arity(); i++)
-        todo_unify.push_back({(*st)[i], (*tt)[i]});
+        UNIFY.push_back({(*st)[i], (*tt)[i]});
 
-    } while(!todo_unify.empty());
+    } while(!UNIFY.empty());
     return true;
   }
 
@@ -374,9 +384,14 @@ struct RigidSubstitution {
 
 std::ostream &operator<<(std::ostream &out, const RigidSubstitution &substitution) {
   out << '{';
+  bool first = true;
   for(unsigned i = 0; i < substitution.bindings.size(); i++)
-    if(substitution.bindings[i])
-      out << (i ? ", " : "") << i << " -> " << substitution.bindings[i].term;
+    if(substitution.bindings[i]) {
+      out
+        << (first ? "" : ", ") <<
+        i << " -> " << substitution.bindings[i].term;
+      first = false;
+    }
   return out << '}';
 }
 
@@ -408,6 +423,7 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
 
   Propagator(Problem &problem, const Matrix &matrix) :
     matrix(matrix),
+    substitution(matrix.variables),
     ordering(Kernel::Ordering::create(problem, *env.options))
   {}
 
@@ -423,8 +439,7 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
     connections.push_back(assigned);
     // unify the literals corresponding to the connection
     auto [s, t] = matrix.sat2conn[assigned].unify;
-    if(!substitution.unify(assigned, s, t))
-      // unification failed, learn a conflict clause
+    if(!substitution.unify(s, t))
       compute_unification_reason(assigned);
   }
 
@@ -438,10 +453,10 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
     reason.push_back(-assigned);
 
     while(true) {
-      RobSubstitution attempt;
+      RigidSubstitution attempt(matrix.variables);
       for(int assigned : reason) {
         auto [s, t] = matrix.sat2conn[-assigned].unify;
-        if(!attempt.unify(s, 0, t, 0)) {
+        if(!attempt.unify(s, t)) {
           // `reason` contradictory, exit
           // log() << "unification: " << reason << '\n';
           return;
@@ -451,7 +466,7 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
       // will always exit since the totality of connections cannot be unified
       for(int assigned : connections) {
         auto [s, t] = matrix.sat2conn[assigned].unify;
-        if(!attempt.unify(s, 0, t, 0)) {
+        if(!attempt.unify(s, t)) {
           // this index definitely necessary
           reason.push_back(-assigned);
           break;
@@ -675,22 +690,25 @@ conflict:
 };
 
 MainLoopResult UPCoP::runImpl() {
-  CaDiCaL::Solver solver;
-  // chrono allows fixed assignments at non-zero decision levels - eek!
-  solver.set("chrono", 0);
-
   Matrix matrix;
-  Propagator propagator(getProblem(), matrix);
-  solver.connect_external_propagator(&propagator);
-  log() << env.options->inputFile() << '\n';
-
   // add initial clauses
   UnitList::Iterator units(_prb.units());
   while(units.hasNext())
-    matrix.amplify(solver, units.next()->asClause());
+    matrix.amplify(units.next()->asClause());
 
-  // TODO fix this?
-  propagator.substitution.bindings.resize(matrix.offset);
+  Propagator propagator(getProblem(), matrix);
+  CaDiCaL::Solver solver;
+  solver.connect_external_propagator(&propagator);
+  // chrono allows fixed assignments at non-zero decision levels - eek!
+  solver.set("chrono", 0);
+  for(int i = 1; i < matrix.sat2conn.size(); i++) {
+    // observe all variables
+    solver.add_observed_var(i);
+    // prefer setting them positively
+    solver.phase(i);
+  }
+
+  log() << env.options->inputFile() << '\n';
 
   // should throw if we find a proof
   ALWAYS(solver.solve() != CaDiCaL::SATISFIABLE)
