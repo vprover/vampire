@@ -756,6 +756,7 @@ set(UNIT_TESTS
     UnitTests/tLASCA_VariableElimination.cpp
     UnitTests/tLASCA_TermFactoring.cpp
     UnitTests/tLASCA_Demodulation.cpp
+    UnitTests/tLASCA_VIRAS.cpp
     UnitTests/tPushUnaryMinus.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
     UnitTests/tInterpretedFunctions.cpp
