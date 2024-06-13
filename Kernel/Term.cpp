@@ -617,7 +617,7 @@ vstring TermList::asArgsToString() const
     }
     const Term* t = ts->term();
 
-    if(!(t->isSort() && static_cast<AtomicSort*>(const_cast<Term*>(t))->isArrowSort())){
+    if(t->isSort() && static_cast<AtomicSort*>(const_cast<Term*>(t))->isArrowSort()){
       res += t->toString();
       continue;
     }
@@ -1191,7 +1191,7 @@ TermList AtomicSort::arraySort(TermList indexSort, TermList innerSort)
 }
 
 TermList AtomicSort::tupleSort(unsigned arity, TermList* sorts)
-{ return TermList(Term::create(env.signature->getTupleConstructor(arity), arity, sorts)); }
+{ return TermList(AtomicSort::create(env.signature->getTupleConstructor(arity), arity, sorts)); }
 
 unsigned Term::computeDistinctVars() const
 {

@@ -209,9 +209,9 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
 
     // If contains integers, rationals and reals
     if(prop.props() & (Property::PR_HAS_INTEGERS | Property::PR_HAS_RATS | Property::PR_HAS_REALS)){
-      addScheduleExtra(sOrig,sWithExtras,"hsm=on");             // Sets a sensible set of Joe's arithmetic rules (TACAS-21) 
+      addScheduleExtra(sOrig,sWithExtras,"hsm=on");             // Sets a sensible set of Joe's arithmetic rules (TACAS-21)
       addScheduleExtra(sOrig,sWithExtras,"gve=force:asg=force:canc=force:ev=force:pum=on"); // More drastic set of rules
-      addScheduleExtra(sOrig,sWithExtras,"sos=theory:sstl=5");  // theory sos with non-default limit 
+      addScheduleExtra(sOrig,sWithExtras,"sos=theory:sstl=5");  // theory sos with non-default limit
       addScheduleExtra(sOrig,sWithExtras,"thsq=on");            // theory split queues, default
       addScheduleExtra(sOrig,sWithExtras,"thsq=on:thsqd=16");   // theory split queues, other ratio
     }
@@ -241,16 +241,16 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
 
     schedule.loadFromIterator(main.iterFifo());
     schedule.loadFromIterator(fallback.iterFifo());
-    additionsSinceTheLastSpiderings(main,schedule);
-    additionsSinceTheLastSpiderings(fallback,schedule);
+    addScheduleExtra(main,schedule,"si=on:rtra=on");
+    addScheduleExtra(fallback,schedule,"si=on:rtra=on");
 
   } else if (env.options->schedule() == Options::Schedule::CASC_SAT) {
 
     schedule.loadFromIterator(main.iterFifo());
     schedule.loadFromIterator(fallback.iterFifo());
     // randomize and use the new fmb option
-    addScheduleExtra(main,schedule,"si=on:rtra=on:rawr=on:rp=on:fmbksg=on");
-    addScheduleExtra(fallback,schedule,"si=on:rtra=on:rawr=on:rp=on:fmbksg=on");
+    addScheduleExtra(main,schedule,"si=on:rtra=on");
+    addScheduleExtra(fallback,schedule,"si=on:rtra=on");
 
   } else if (env.options->schedule() == Options::Schedule::SMTCOMP) {
     // Normally we do main fallback main_extra fallback_extra
@@ -268,12 +268,12 @@ bool PortfolioMode::prepareScheduleAndPerform(const Shell::Property& prop)
 
     schedule.loadFromIterator(main.iterFifo());
     addScheduleExtra(main,schedule,"rp=on:de=on"); // random polarities, demodulation encompassment
-    
+
   } else if (env.options->schedule() == Options::Schedule::SNAKE_TPTP_SAT) {
     ASS(fallback.isEmpty());
 
     schedule.loadFromIterator(main.iterFifo());
-    addScheduleExtra(main,schedule,"rp=on:fmbksg=on:de=on"); // random polarities, demodulation encompassment for saturation, fmbksg for the fmb's    
+    addScheduleExtra(main,schedule,"rp=on:fmbksg=on:de=on"); // random polarities, demodulation encompassment for saturation, fmbksg for the fmb's
   } else {
     // all other schedules just get loaded plain
 
@@ -342,7 +342,7 @@ void PortfolioMode::addScheduleExtra(const Schedule& sOld, Schedule& sNew, vstri
 
     auto idx = s.find_last_of("_");
 
-    vstring prefix = s.substr(0,idx); 
+    vstring prefix = s.substr(0,idx);
     vstring suffix = s.substr(idx,vstring::npos);
     vstring new_s = prefix + ((prefix.back() != '_') ? ":" : "") + extra + suffix;
 
@@ -364,8 +364,12 @@ void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule
     Schedules::getSnakeTptpSatSchedule(prop,quick);
     break;
 
-  case Options::Schedule::CASC_2023:
+  case Options::Schedule::CASC_2024:
   case Options::Schedule::CASC:
+    Schedules::getCasc2024Schedule(prop,quick,fallback);
+    break;
+
+  case Options::Schedule::CASC_2023:
     Schedules::getCasc2023Schedule(prop,quick,fallback);
     break;
 
@@ -373,8 +377,12 @@ void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule
     Schedules::getCasc2019Schedule(prop,quick,fallback);
     break;
 
-  case Options::Schedule::CASC_SAT_2023:
+  case Options::Schedule::CASC_SAT_2024:
   case Options::Schedule::CASC_SAT:
+    Schedules::getCascSat2024Schedule(prop,quick,fallback);
+    break;
+
+  case Options::Schedule::CASC_SAT_2023:
     Schedules::getCascSat2023Schedule(prop,quick,fallback);
     break;
 

@@ -1214,6 +1214,13 @@ bool KboSpecialWeights<PredSigTraits>::tryGetWeight(unsigned functor, unsigned& 
 
 bool KboSpecialWeights<FuncSigTraits>::tryGetWeight(unsigned functor, unsigned& weight) const
 {
+  if (env.signature->isFoolConstantSymbol(false,functor) || env.signature->isFoolConstantSymbol(true,functor)) {
+    // the FOOL constants, $$false and $$true, introduced by us to deal with FOOL, have hard-coded weight of 1
+    // which, together with their lowest precendence (see PrecedenceOrdering::compareFunctionPrecedences),
+    // is a requirement for FOOL paramodulation being complete for them
+    // TODO: consider allowing the user to change this and at the same time automatically recognizing the incomplete versions
+    weight = 1;  return true;
+  }
   auto sym = env.signature->getFunction(functor);
   if (sym->integerConstant())  { weight = _numInt;  return true; }
   if (sym->rationalConstant()) { weight = _numRat;  return true; }

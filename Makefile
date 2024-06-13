@@ -343,6 +343,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/GeneralSplitting.o\
          Shell/GoalGuessing.o\
          Shell/InequalitySplitting.o\
+         Shell/InstanceRedundancyHandler.o\
          Shell/InterpolantMinimizer.o\
          Shell/Interpolants.o\
          Shell/InterpretedNormalizer.o\
@@ -486,7 +487,7 @@ all: #default make disabled
 ################################################################
 # automated generation of Vampire revision information
 
-VERSION_NUMBER = 4.8
+VERSION_NUMBER = 4.9
 
 # We extract the revision number from svn every time the svn meta-data are modified
 # (that's why there is the dependency on .svn/entries) 

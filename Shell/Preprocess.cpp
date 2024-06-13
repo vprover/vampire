@@ -93,6 +93,12 @@ void Preprocess::preprocess(Problem& prb)
   //enough
   prb.getProperty();
 
+  if (env.signature->hasDefPreds() &&
+      !FunctionDefinitionHandler::isHandlerEnabled(_options)) {
+      // if the handler is not requested by any of the relevant options, we preprocess away the special definition parsing immediately
+    prb.getFunctionDefinitionHandler().initAndPreprocessEarly(prb);
+  }
+
   /* CAREFUL, keep this at the beginning of the preprocessing pipeline,
    * so that it corresponds to how its done
    * in profileMode() in vampire.cpp and PortfolioMode::searchForProof()
@@ -364,8 +370,10 @@ void Preprocess::preprocess(Problem& prb)
      resolver.apply(prb);
    }
 
-   if (env.signature->hasDefPreds()) {
-     prb.getFunctionDefinitionHandler().initAndPreprocess(prb,_options);
+   if (env.signature->hasDefPreds() &&
+       FunctionDefinitionHandler::isHandlerEnabled(_options)) {
+       // if the handler is requested, we preprocess the special definition parsing only after clausification
+     prb.getFunctionDefinitionHandler().initAndPreprocessLate(prb,_options);
    }
 
    if (_options.generalSplitting()) {
