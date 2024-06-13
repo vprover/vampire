@@ -2172,6 +2172,7 @@ ffModelLabel:
   //}
 
   //Evaluate removed propositions and predicates
+#if 0
   f=env.signature->predicates()-1;
   while(f>0){
     f--;
@@ -2298,6 +2299,7 @@ ppModelLabel:
         }
       }
   }
+#endif
 
   env.statistics->model = model.toString();
 }

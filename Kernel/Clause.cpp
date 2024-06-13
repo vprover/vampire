@@ -31,6 +31,7 @@
 
 #include "SAT/SATClause.hpp"
 
+#include "Shell/InstanceRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 
 #include "Inference.hpp"
@@ -122,6 +123,8 @@ void Clause::destroyExceptInferenceObject()
   if (_literalPositions) {
     delete _literalPositions;
   }
+
+  InstanceRedundancyHandler::destroyClauseData(this);
 
   RSTAT_CTR_INC("clauses deleted");
 

@@ -25,6 +25,7 @@ class FlatTerm
 public:
   static FlatTerm* create(Term* t);
   static FlatTerm* create(TermList t);
+  static FlatTerm* create(TermStack ts);
   /**
    * Similar to @b create but only allocates the flat term,
    * and does not fill out its content. The caller has to
@@ -33,6 +34,7 @@ public:
    */
   static FlatTerm* createUnexpanded(Term* t);
   static FlatTerm* createUnexpanded(TermList t);
+  static FlatTerm* createUnexpanded(TermStack ts);
   void destroy();
 
   static FlatTerm* copy(const FlatTerm* ft);
