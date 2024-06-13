@@ -31,6 +31,7 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#include "Shell/InstanceRedundancyHandler.hpp"
 #include "Shell/Statistics.hpp"
 
 #include "EqualityFactoring.hpp"
@@ -91,8 +92,8 @@ private:
 
 struct EqualityFactoring::ResultFn
 {
-  ResultFn(EqualityFactoring& self, Clause* cl, bool afterCheck, Ordering& ordering, bool fixedPointIteration)
-      : _self(self), _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ordering(ordering), _fixedPointIteration(fixedPointIteration) {}
+  ResultFn(EqualityFactoring& self, Clause* cl, bool afterCheck, bool instanceRedundancyCheck, Ordering& ordering, bool fixedPointIteration)
+      : _self(self), _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _instanceRedundancyCheck(instanceRedundancyCheck), _ordering(ordering), _fixedPointIteration(fixedPointIteration) {}
   Clause* operator() (pair<pair<Literal*,TermList>,pair<Literal*,TermList> > arg)
   {
     auto absUnif = AbstractingUnifier::empty(_self._abstractionOracle);
@@ -164,6 +165,14 @@ struct EqualityFactoring::ResultFn
         (*res)[next++] = currAfter;
       }
     }
+
+    if (_instanceRedundancyCheck &&
+      !InstanceRedundancyHandler::handleReductiveUnaryInference(_cl, &absUnif.subs(), &_ordering))
+    {
+      env.statistics->skippedEqualityFactoring++;
+      return 0;
+    }
+
     for(Literal* c : *constraints){
       (*res)[next++] = c;
     }
@@ -178,7 +187,8 @@ private:
   Clause* _cl;
   unsigned _cLen;
   bool _afterCheck;
-  Ordering& _ordering;
+  bool _instanceRedundancyCheck;
+  const Ordering& _ordering;
   bool _fixedPointIteration;
 };
 
@@ -198,7 +208,9 @@ ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
   auto it4 = getMapAndFlattenIterator(it3,FactorablePairsFn(premise));
 
   auto it5 = getMappingIterator(it4,ResultFn(*this, premise,
-      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(), _salg->getOrdering(), _uwaFixedPointIteration));
+      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
+      getOptions().instanceRedundancyCheck()!=Options::InstanceRedundancyCheck::OFF,
+      _salg->getOrdering(), _uwaFixedPointIteration));
 
   auto it6 = getFilteredIterator(it5,NonzeroFn());
 

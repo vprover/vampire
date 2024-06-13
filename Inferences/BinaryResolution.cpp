@@ -39,6 +39,7 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Shell/AnswerExtractor.hpp"
+#include "Shell/InstanceRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -77,7 +78,8 @@ void BinaryResolution::detach()
  */
 template<class ComputeConstraints>
 Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, 
-                                ResultSubstitutionSP subs, ComputeConstraints computeConstraints, const Options& opts, PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls)
+          ResultSubstitutionSP subs, ComputeConstraints computeConstraints, const Options& opts, bool afterCheck,
+          PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls)
 {
   ASS(resultCl->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses
 
@@ -146,7 +148,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   Clause* res = new(newLength) Clause(newLength, inf); // the inference object owned by res from now on
 
   Literal* queryLitAfter = 0;
-  if (ord && queryCl->numSelected() > 1) {
+  if (afterCheck && queryCl->numSelected() > 1) {
     TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
     queryLitAfter = subs->applyToQuery(queryLit);
   }
@@ -188,7 +190,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   }
 
   Literal* qrLitAfter = 0;
-  if (ord && resultCl->numSelected() > 1) {
+  if (afterCheck && resultCl->numSelected() > 1) {
     TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
     qrLitAfter = subs->applyToResult(resultLit);
   }
@@ -223,6 +225,10 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
       (*res)[next] = newLit;
       next++;
     }
+  }
+
+  if (!InstanceRedundancyHandler::handleResolution(queryCl, queryLit, resultCl, resultLit, subs.ptr(), opts, ord)) {
+    return 0;
   }
 
    if (bothHaveAnsLit) {
@@ -268,9 +274,8 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
                         bool doAfterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
                         return BinaryResolution::generateClause(premise, lit, qr.data->clause, qr.data->literal, subs, 
                             [&](){ return qr.unifier->computeConstraintLiterals(); }, 
-                            this->getOptions(), _salg->getPassiveClauseContainer(), 
-                            doAfterCheck ? &_salg->getOrdering() : nullptr, 
-                            &_salg->getLiteralSelector());
+                            this->getOptions(), doAfterCheck, _salg->getPassiveClauseContainer(),
+                            &_salg->getOrdering(), &_salg->getLiteralSelector());
 
                      });
         })

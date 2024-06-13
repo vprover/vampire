@@ -1704,6 +1704,14 @@ void Options::init()
     _equationalTautologyRemoval.onlyUsefulWith(ProperSaturationAlgorithm());
     _equationalTautologyRemoval.tag(OptionTag::INFERENCES);
 
+    _instanceRedundancyCheck = ChoiceOptionValue<InstanceRedundancyCheck>("instance_redundancy_check","irc",
+      InstanceRedundancyCheck::OFF,{"lazy","eager","off"});
+    _instanceRedundancyCheck.description=
+    "Skip generating inferences on clause instances on which we already performed a reductive inference.";
+    _lookup.insert(&_instanceRedundancyCheck);
+    _instanceRedundancyCheck.onlyUsefulWith(ProperSaturationAlgorithm());
+    _instanceRedundancyCheck.tag(OptionTag::INFERENCES);
+
     _unitResultingResolution = ChoiceOptionValue<URResolution>("unit_resulting_resolution","urr",URResolution::OFF,{"ec_only","off","on","full"});
     _unitResultingResolution.description=
     "Uses unit resulting resolution only to derive empty clauses (may be useful for splitting)."
@@ -3478,7 +3486,12 @@ bool Options::complete(const Problem& prb) const
   if (_demodulationRedundancyCheck.actualValue == DemodulationRedundancyCheck::OFF) {
     return false;
   }
-  if (!_superpositionFromVariables.actualValue) return false;
+  if (!_superpositionFromVariables.actualValue) {
+    return false;
+  }
+  if (_instanceRedundancyCheck.actualValue == InstanceRedundancyCheck::EAGER) {
+    return false;
+  }
 
   // only checking resolution rules remain
   bool pureEquality = (prop.atoms() == prop.equalityAtoms());
