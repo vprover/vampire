@@ -62,7 +62,7 @@ struct Copy {
 // a connection between two terms
 struct Connection {
   // the two terms to unify
-  TermList unify[2];
+  std::array<TermList, 2> unify;
 };
 
 template<>
@@ -314,7 +314,8 @@ struct RigidSubstitution {
   }
 
   // unify s and t, leaving bindings clean on failure
-  bool unify(TermList s, TermList t) {
+  bool unify(std::array<TermList, 2> unify) {
+    auto [s, t] = unify;
     UNIFY.clear();
     UNIFY.push_back({s, t});
     unsigned trail_start = trail.size();
@@ -342,8 +343,7 @@ struct RigidSubstitution {
 
         if(occurs(var, term)) {
           // occurs failure, clean up
-          while(trail.size() > trail_start)
-            pop();
+          pop_to(trail_start);
           return false;
         }
 
@@ -359,8 +359,7 @@ struct RigidSubstitution {
       Term *tt = t.term();
       if(st->functor() != tt->functor()) {
         // functors don't match, clean up on failure
-        while(trail.size() > trail_start)
-          pop();
+        pop_to(trail_start);
         return false;
       }
 
@@ -372,13 +371,14 @@ struct RigidSubstitution {
     return true;
   }
 
-  // undo the last variable binding
-  void pop() {
-    ASS(!trail.empty())
-    unsigned var = trail.back();
-    trail.pop_back();
-    ::new (&bindings[var]) Binding();
-    // log() << var << " -> *\n";
+  // undo variable bindings until the trail is of length `size`
+  void pop_to(size_t size) {
+    while(trail.size() > size) {
+      unsigned var = trail.back();
+      trail.pop_back();
+      ::new (&bindings[var]) Binding();
+      // log() << var << " -> *\n";
+    }
   }
 };
 
@@ -400,6 +400,8 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
   const Matrix &matrix;
   // current substitution
   RigidSubstitution substitution;
+  // substitution used for minimizing unification conflicts
+  RigidSubstitution minimize;
   // connections made so far
   std::vector<int> connections;
   // if there is a reason/conflict clause to learn
@@ -424,6 +426,7 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
   Propagator(Problem &problem, const Matrix &matrix) :
     matrix(matrix),
     substitution(matrix.variables),
+    minimize(matrix.variables),
     ordering(Kernel::Ordering::create(problem, *env.options))
   {}
 
@@ -438,42 +441,41 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
 
     connections.push_back(assigned);
     // unify the literals corresponding to the connection
-    auto [s, t] = matrix.sat2conn[assigned].unify;
-    if(!substitution.unify(s, t))
+    if(!substitution.unify(matrix.sat2conn[assigned].unify))
       compute_unification_reason(assigned);
   }
 
-  // fill out `reason` given that `assigned` caused a unification failure
-  void compute_unification_reason(int assigned) {
+  // fill out `reason` given that `failed` caused a unification failure
+  void compute_unification_reason(int failed) {
     ASS(!reason_set)
     ASS(reason.empty())
 
     reason_set = true;
     // conflicting literal guaranteed to be a reason
-    reason.push_back(-assigned);
+    reason.push_back(-failed);
 
-    while(true) {
-      RigidSubstitution attempt(matrix.variables);
-      for(int assigned : reason) {
-        auto [s, t] = matrix.sat2conn[-assigned].unify;
-        if(!attempt.unify(s, t)) {
-          // `reason` contradictory, exit
-          // log() << "unification: " << reason << '\n';
-          return;
-        }
-      }
+    // unify this connection in a fresh substitution
+    minimize.pop_to(0);
+    // will always succeed as it has an MGU
+    ASS(minimize.unify(matrix.sat2conn[failed].unify))
 
-      // will always exit since the totality of connections cannot be unified
-      for(int assigned : connections) {
-        auto [s, t] = matrix.sat2conn[assigned].unify;
-        if(!attempt.unify(s, t)) {
-          // this index definitely necessary
-          reason.push_back(-assigned);
+    do {
+      size_t restore = minimize.trail.size();
+      failed = 0;
+      // will always exit early since the totality of connections cannot be unified
+      // NB does not repeat unifications from `reason`
+      for(int connection : connections)
+        if(!minimize.unify(matrix.sat2conn[connection].unify)) {
+          // this connection definitely necessary
+          failed = connection;
+          reason.push_back(-failed);
+          minimize.pop_to(restore);
           break;
         }
-      }
-      // TODO do this more efficiently, backtracking over attempts
-    }
+      // `failed` must have been set in the loop
+      ASS_NEQ(failed, 0)
+    } while(minimize.unify(matrix.sat2conn[failed].unify));
+    //log() << "unification: " << reason << '\n';
   }
 
   void notify_new_decision_level() final {
@@ -493,8 +495,7 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
     Level level = levels[decision_level];
     levels.resize(decision_level);
     connections.resize(level.connections);
-    while(substitution.trail.size() > level.variables)
-      substitution.pop();
+    substitution.pop_to(level.variables);
   }
 
   bool cb_check_found_model(const std::vector<int> &model) final {
