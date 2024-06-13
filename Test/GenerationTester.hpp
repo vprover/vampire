@@ -162,7 +162,7 @@ class AsymmetricTest
       std::cout << "[     case ]: " << pretty(*_input) << std::endl;
       std::cout << "[       is ]: " << pretty(is) << std::endl;
       std::cout << "[ expected ]: " << pretty(expected) << std::endl;
-      exit(-1);
+      ASSERTION_VIOLATION
   }
 
 public:
