@@ -557,7 +557,7 @@ public:
   void integrity() const;
 
   /** returns iterator over all summands of this Polyom */
-  auto iterSummands() const&
+  auto iterSummands() const
   { return arrayIter(_summands); }
 
   Stack<Monom>& raw();
