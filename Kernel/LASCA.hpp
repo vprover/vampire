@@ -788,7 +788,7 @@ namespace Kernel {
     }
 
     bool equivalent(Literal* lhs, Literal* rhs) 
-     { 
+    { 
        auto s1 = normalizer.normalizeLiteral(lhs);
        auto s2 = normalizer.normalizeLiteral(rhs);
        return s1 == s2;
@@ -1222,6 +1222,7 @@ template<class NumTraits>
 Option<Stack<LascaLiteral<NumTraits>>> InequalityNormalizer::normalizeLasca(Literal* lit) const
 {
   DEBUG("in: ", *lit, " (", NumTraits::name(), ")")
+    using Numeral = typename NumTraits::ConstantType;
 
   auto impl = [&]() {
 
@@ -1248,6 +1249,7 @@ Option<Stack<LascaLiteral<NumTraits>>> InequalityNormalizer::normalizeLasca(Lite
         return Opt(Stack<LascaLiteral<NumTraits>>{llit});
       }
 
+     
       case Interpretation::EQUAL:/* l == r or l != r */
         if (SortHelper::getEqualityArgumentSort(lit) != NumTraits::sort()) 
           return Opt();
@@ -1314,6 +1316,22 @@ Option<Stack<LascaLiteral<NumTraits>>> InequalityNormalizer::normalizeLasca(Lite
     auto simplValue = (simpl || norm).wrapPoly<NumTraits>();
     simplValue->integrity();
     auto factorsNormalized = normalizeFactors(simplValue);
+    switch(pred) {
+      case LascaPredicate::EQ:
+      case LascaPredicate::NEQ:
+        // normalizing s == t <-> -s == -t
+        if (factorsNormalized->nSummands() > 0) {
+          if (factorsNormalized->summandAt(0).numeral < Numeral(0)) {
+            factorsNormalized = perfect(-*factorsNormalized);
+          }
+        }
+      case LascaPredicate::GREATER:
+      case LascaPredicate::GREATER_EQ:
+      case LascaPredicate::IS_INT_POS:
+      case LascaPredicate::IS_INT_NEG:
+        break;
+    }
+
 
     Stack<LascaLiteral<NumTraits>> out;
     if (_strong && pred == LascaPredicate::GREATER_EQ) {
