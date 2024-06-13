@@ -36,13 +36,12 @@ class VirasQuantifierElimination
 public:
 
   VirasQuantifierElimination(VirasQuantifierElimination&&) = default;
-  VirasQuantifierElimination(std::shared_ptr<LascaState> shared, bool simplify) 
+  explicit VirasQuantifierElimination(std::shared_ptr<LascaState> shared) 
     : _shared(std::move(shared))
-    , _simplify(simplify)
   {  }
 
-  void attach(SaturationAlgorithm* salg) final override;
-  void detach() final override;
+  void attach(SaturationAlgorithm* salg) final override {}
+  void detach() final override {}
 
 
   // template<class NumTraits>
@@ -91,7 +90,7 @@ public:
   ClauseGenerationResult generateSimplify(Clause* premise) final override;
 
 #if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const&) final override;
+  virtual void setTestIndices(Stack<Indexing::Index*> const&) final override {}
 #endif
 
 private:
@@ -102,7 +101,6 @@ private:
   // template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit) const;
 
   std::shared_ptr<LascaState> _shared;
-  const bool _simplify;
 };
 
 } // namespace LASCA 

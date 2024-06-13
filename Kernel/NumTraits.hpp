@@ -108,6 +108,12 @@ struct NumTraits;
                                                                                                     \
     static bool is ## Name(unsigned f)                                                              \
     { return theory->isInterpretedPredicate(f, name ## I); }                                        \
+\
+    template<class F> \
+    static auto if ## Name(Literal* t, F fun) {                              \
+      return someIf(is ## Name(t->functor()), \
+          [&]() { return fun(t->isPositive(), FOR_ARITY_RANGE(arity)(t->termArg)); }); \
+    }                                                                                               \
                                                                                                     \
     static Literal* name(bool polarity, IMPL_NUM_TRAITS__ARG_DECL(TermList, arity)) {               \
       return Literal::create(                                                                       \
@@ -255,8 +261,8 @@ struct NumTraits;
     template<class TermOrFunctor>                                                                   \
     static bool isNumeral(TermOrFunctor t, ConstantType n) { return tryNumeral(t) == some(n); }     \
     template<class Term, class F>                                                                   \
-    static auto ifNumeral(Term t, F fun) \
-    { return tryNumeral(t).map([&](auto n) { return fun(n); }); }     \
+    static auto ifNumeral(Term t, F fun) -> Option<std::invoke_result_t<F, ConstantType&&>> \
+    { return tryNumeral(t).map([&](ConstantType n) { return fun(std::move(n)); }); }     \
     static unsigned numeralF(ConstantType c) { return constantT(c)->functor(); }                    \
                                                                                                     \
     static const char* name() {return #CamelCase;}                                                  \

@@ -269,6 +269,7 @@ enum class InferenceRule : unsigned char {
   COMBINATOR_NORMALISE,
   /* negative extnsionality */
   CASES_SIMP,
+  LASCA_VIRAS_QE,
 
   BOOL_SIMP,
 
@@ -327,7 +328,6 @@ enum class InferenceRule : unsigned char {
   LASCA_SUPERPOSITION,
   /** variable elimination rule of the Inequality Resolution Calculus */
   LASCA_VARIABLE_ELIMINATION,
-  LASCA_VIRAS_QE,
   /** the last generating inference marker --
         inferences between GENERIC_GENERATING_INFERNCE and INTERNAL_GENERATING_INFERNCE_LAST will be automatically understood generating
         (see also isGeneratingInferenceRule) */

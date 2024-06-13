@@ -64,7 +64,7 @@ struct VampireVirasConfig {
     if (lit->isEquality()) {
       auto sym = lit->isNegative() ? viras::PredSymbol::Eq 
                                    : viras::PredSymbol::Neq;
-      auto l = NumTraits::isNumeral(lit->termArg(0), Numeral(0)) ? 0 : 1;
+      auto l = NumTraits::isNumeral(lit->termArg(0), Numeral(0)) ? 1 : 0;
       auto r = 1 - l;
       ASS(NumTraits::isNumeral(lit->termArg(r), Numeral(0)));
       return std::make_pair(sym, NumTraits::minus(lit->termArg(l)));
@@ -109,7 +109,10 @@ struct VampireVirasConfig {
       IfFloor if_floor) -> decltype(if_one()) {
     return NumTraits::ifNumeral(t, [&](auto n) { return n == Numeral(1) ? if_one() : if_mul(n, term(numeral(1))); })
      .orElse([&]() { return NumTraits::ifAdd(t, [&](auto l, auto r) { return if_add(l, r); }); })
-     .orElse([&]() { return NumTraits::ifMul(t, [&](auto l, auto r) { return if_mul(NumTraits::tryNumeral(l).unwrap(), r); }); })
+     .orElse([&]() { return NumTraits::ifMinus(t, [&](auto t) { return if_mul(numeral(-1), t); }); })
+     .orElse([&]() { return NumTraits::ifMul(t, [&](auto l, auto r) { 
+                           return NumTraits::ifNumeral(l, [&](auto k) { return if_mul(k, r); });
+                     }).flatten(); })
      .orElse([&]() { return NumTraits::ifFloor(t, [&](auto t) { return if_floor(t); }); })
      .orElse([&]() { return if_var(t); });
   }
@@ -159,15 +162,16 @@ SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierEliminatio
 
   Recycled<DHSet<unsigned>> topLevelVars;
   for (auto l : premise->iterLits()) {
-    auto norm = _shared->renormalize(l)
-      .flatMap([](auto l) { return l.template as<LascaLiteral<NumTraits>>(); });
+    Option<LascaLiteral<RatTraits>> norm = _shared->renormalize(l)
+      .flatMap([](auto l) { return l.template as<LascaLiteral<NumTraits>>().toOwned(); });
 
     if (norm.isNone()) {
       otherLits->push(l);
       noteShielded(l);
     } else {
       toElim->push(l);
-      for (auto s : norm->term().iterSummands()) {
+      auto& t = norm->term();
+      for (auto s : t.iterSummands()) {
         auto v = s.factors->tryVar();
         if (v) {
           candidateVars->insert(v->id());
@@ -189,11 +193,11 @@ SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierEliminatio
     };
   } else {
     auto var = TermList::var(*unshielded);
-    auto analysed = viras.analyse(&*toElim, var);
+    auto analysed = std::make_unique<std::vector<typename decltype(viras)::LiraLiteral>>(viras.analyse(&*toElim, var));
     return ClauseGenerationResult {
       .clauses = pvi(
-          intoVampireIter(viras.quantifier_elimination(var, analysed))
-            .map([premise, otherLits = std::move(otherLits)](auto litIter) { 
+          intoVampireIter(viras.quantifier_elimination(var, *analysed))
+            .map([premise, analysed = std::move(analysed), otherLits = std::move(otherLits)](auto litIter) { 
               return Clause::fromIterator(
                   concatIters(
                     intoVampireIter(litIter),
