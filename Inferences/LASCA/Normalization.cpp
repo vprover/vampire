@@ -14,6 +14,8 @@
 
 #include "Debug/RuntimeStatistics.hpp"
 
+#include "Kernel/NumTraits.hpp"
+#include "Kernel/Theory.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -52,6 +54,27 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+
+template<class NumTraits, class CheckSymbol, class Semantics>
+Option<bool> groundEval(Literal* l, CheckSymbol checkSymbol, Semantics semantics) {
+  if (checkSymbol(l)) {
+    auto a0 = NumTraits::tryNumeral(l->termArg(0));
+    auto a1 = NumTraits::tryNumeral(l->termArg(1));
+    if (a0.isSome() && a1.isSome()) {
+      return some(semantics(*a0, *a1) == l->polarity());
+    }
+  }
+  return {};
+}
+
+Option<bool> trivial(Literal* l) {
+  return tryNumTraits([&](auto n){
+      return groundEval<decltype(n)>(l, [](auto l) { return decltype(n)::isGreater(l->functor()); }, [](auto l, auto r) { return l > r; })
+          || groundEval<decltype(n)>(l, [](auto l) { return decltype(n)::isGeq    (l->functor()); }, [](auto l, auto r) { return l >= r; })
+          || groundEval<decltype(n)>(l, [](auto l) { return l->isEquality()                     ; }, [](auto l, auto r) { return l == r; });
+  });
+}
+
 Clause* Normalization::simplify(Clause* cl) 
 {
   TIME_TRACE("perform lasca normalization")
@@ -59,8 +82,21 @@ Clause* Normalization::simplify(Clause* cl)
   Recycled<Stack<Literal*>> out;
   for (unsigned i = 0; i < cl->size(); i++) {
     auto lits = _shared->normalizer.normalizeLiteral((*cl)[i]);
-    out->loadFromIterator(lits->iterFifo());
     altered |= lits->size() != 1 || (*lits)[0] != (*cl)[i];
+    for (auto lit : *lits) {
+      auto triv = trivial(lit);
+      if (triv.isSome()) {
+        if (*triv) {
+          /* trivialy true literal makes the literal redundant */
+          return nullptr;
+        } else {
+          /* trivialy false literals don't have to be added to the output */
+          altered = true;
+        }
+      } else {
+        out->push(lit);
+      }
+    }
   }
   if (altered) {
     Inference inf(SimplifyingInference1(Kernel::InferenceRule::LASCA_NORMALIZATION, cl));
