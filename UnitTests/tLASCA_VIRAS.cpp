@@ -38,19 +38,19 @@ using namespace Inferences::LASCA;
 ////// TEST CASES 
 /////////////////////////////////////
 
-#define SUGAR(Num)                                                                                            \
-  NUMBER_SUGAR(Num)                                                                                           \
-  DECL_DEFAULT_VARS                                                                                           \
-  DECL_FUNC(f, {Num}, Num)                                                                                    \
-  DECL_FUNC(g, {Num}, Num)                                                                                    \
-  DECL_FUNC(f2, {Num, Num}, Num)                                                                               \
-  DECL_CONST(a, Num)                                                                                          \
-  DECL_CONST(b, Num)                                                                                          \
-  DECL_CONST(c, Num)                                                                                          \
-  DECL_CONST(d, Num)                                                                                          \
-  DECL_CONST(e, Num)                                                                                          \
-  DECL_PRED(R, {Num,Num})                                                                                     \
-  DECL_PRED(P, {Num})                                                                                         \
+#define SUGAR(Num)                                                                        \
+  NUMBER_SUGAR(Num)                                                                       \
+  DECL_DEFAULT_VARS                                                                       \
+  DECL_FUNC(f, {Num}, Num)                                                                \
+  DECL_FUNC(g, {Num}, Num)                                                                \
+  DECL_FUNC(f2, {Num, Num}, Num)                                                          \
+  DECL_CONST(a, Num)                                                                      \
+  DECL_CONST(b, Num)                                                                      \
+  DECL_CONST(c, Num)                                                                      \
+  DECL_CONST(d, Num)                                                                      \
+  DECL_CONST(e, Num)                                                                      \
+  DECL_PRED(R, {Num,Num})                                                                 \
+  DECL_PRED(P, {Num})                                                                     \
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
@@ -454,3 +454,29 @@ TEST_GENERATION(to_optimize_4,
 
 
   // TODO test -x + bla == 0 vs -x + -bla == 0
+
+
+
+#define NOT_APPLICABLE_TEST(i, lit)                                                       \
+  TEST_GENERATION(not_applicable_ ## i,                                                   \
+      Generation::SymmetricTest()                                                         \
+        .inputs ({         clause({ x > 0, lit })})                                       \
+        .expected(exactly())                                                              \
+        .premiseRedundant(false)                                                          \
+      )                                                                                   \
+
+NOT_APPLICABLE_TEST(1, P(x))
+NOT_APPLICABLE_TEST(2, f(x) + a > 0)
+NOT_APPLICABLE_TEST(4, (x * y) > 0)
+NOT_APPLICABLE_TEST(5, (x * x) > 0)
+NOT_APPLICABLE_TEST(6, isInt(x))
+
+TEST_GENERATION(lira_01,
+    Generation::SymmetricTest()
+      // .inputs ({         clause({ y - x >= 0, x - z >= 0, f(z) - f(y) > 0})})
+      .inputs ({         clause({ floor(a) + frac(1,3) - x > 0, x  -  floor(a) - frac(2,3) > 0 , b - ceil(x) + x > 0 })})
+      .expected(exactly( clause({ b > frac(2,3) }) ))
+      .premiseRedundant(true)
+    )
+
+

@@ -12,6 +12,7 @@
 #include "VIRAS.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/NumTraits.hpp"
 #include "Lib/Reflection.hpp"
 #include "Lib/Option.hpp"
 
@@ -53,9 +54,6 @@ struct VampireVirasConfig {
   bool less(Numeral l, Numeral r) { return l < r; }
   bool leq(Numeral l, Numeral r) { return l <= r; }
 
-  // Term subs(Term term, Var var, Term by) 
-  // { return EqHelper::replace(term, var, by); }
-  //
   std::pair<viras::PredSymbol, TermList> match_literal(Literal lit) {
     // we perform the complement of qunatifier elimination. instead of eliminating 
     // exists x. (L1 /\ L2 ...) we eliminated
@@ -147,6 +145,23 @@ template<class VirasIter>
 auto intoVampireIter(VirasIter i) 
 { return iterTraits(IntoVampireIter<VirasIter>(std::move(i))); }
 
+struct Void {};
+template<class F>
+void traverseLiraVars(TermList self, F f) {
+  VampireVirasConfig{}.
+    matchTerm(self, 
+      /* var v */ [&](auto y) { f(y); return Void {}; }, 
+      /* numeral 1 */ [&]() { return Void {}; }, 
+      /* k * t */ [&](auto k, auto t)  { traverseLiraVars(t, f); return Void {}; }, 
+      /* l + r */ [&](auto l, auto r)  { 
+        traverseLiraVars(l, f);
+        traverseLiraVars(r, f);
+        return Void {}; 
+      }, 
+      /* floor */ [&](auto t) { traverseLiraVars(t, f); return Void {}; }
+      );
+}
+
 SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierElimination::generateSimplify(Clause* premise) {
   using NumTraits = RatTraits;
   auto viras = viras::viras(viras::simplifyingConfig(VampireVirasConfig{}));
@@ -155,8 +170,9 @@ SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierEliminatio
   Recycled<Stack<Literal*>> toElim;
   Recycled<Stack<Literal*>> otherLits;
   auto noteShielded = [&](Term* t) {
+    DBG("shielding: ", *t)
     VariableIterator vars(t);
-    while (vars.hasNext())
+    while (vars.hasNext()) 
      shieldedVars->insert(vars.next().var());
   };
 
@@ -170,15 +186,14 @@ SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierEliminatio
       noteShielded(l);
     } else {
       toElim->push(l);
-      auto& t = norm->term();
-      for (auto s : t.iterSummands()) {
-        auto v = s.factors->tryVar();
-        if (v) {
-          candidateVars->insert(v->id());
-        } else {
-          noteShielded(s.factors->denormalize().term());
-        }
-      }
+      traverseLiraVars(norm->term().denormalize(), 
+          [&](TermList t) {
+            if (t.isVar()) {
+              candidateVars->insert(t.var());
+            } else {
+              noteShielded(t.term());
+            }
+          });
     }
   }
 
@@ -186,6 +201,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierEliminatio
     .filter([&](auto x) { return !shieldedVars->contains(x); })
     .tryNext();
 
+  DBGE(unshielded)
   if (unshielded.isNone()) {
     return ClauseGenerationResult {
       .clauses = VirtualIterator<Clause*>::getEmpty(),
