@@ -29,9 +29,9 @@ struct ProofTracer {
   // helper functions and subclasses
 
   static void printWithStore(Clause* cl) {
-    cout << cl->store() << " " << cl->toString() << endl;
+    std::cout << cl->store() << " " << cl->toString() << std::endl;
     if (cl->store() == Clause::PASSIVE) {
-      cout << "distance: " << cl->getPassiveDist() << " age: " << cl->age() << " weight: " << cl->weightForClauseSelection(*env.options) << endl;
+      std::cout << "distance: " << cl->getPassiveDist() << " age: " << cl->age() << " weight: " << cl->weightForClauseSelection(*env.options) << std::endl;
     }
   }
 
@@ -112,7 +112,6 @@ struct ProofTracer {
     }
 
     TracedClauseInfo* getInfo(Clause* cl) {
-      CALL("ProofTracer::TracedProof::getInfo");
       return _clInfo.get(cl);
     }
 
@@ -204,7 +203,6 @@ struct ProofTracer {
 
   void onPassiveNumbered()
   {
-    CALL("ProofTracer::onPassiveNumbered");
     _tp->onPassiveNumbered();
   }
 

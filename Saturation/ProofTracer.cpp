@@ -157,8 +157,6 @@ void ProofTracer::TracedProof::onNewClause(Clause* cl)
 
 void ProofTracer::TracedProof::onPassiveNumbered()
 {
-  CALL("ProofTracer::TracedProof::onPassiveNumbered");
-
   cout << "Currently expecting:" << endl;
   listExpectedsDetails();
   cout << endl;

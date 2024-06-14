@@ -148,8 +148,6 @@ void PassiveClauseContainer::updateLimits(long long estReachableCnt)
 
 void PassiveClauseContainer::numberPassive()
 {
-  CALL("PassiveClauseContainer::numberPassive");
-
   Clause::requestAux();
 
   simulationInit();
