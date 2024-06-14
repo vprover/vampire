@@ -25,6 +25,7 @@
 #include "TermIterators.hpp"
 #include "RobSubstitution.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Problem.hpp"
 
 #include "Term.hpp"
 

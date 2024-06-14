@@ -30,6 +30,7 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Clause.hpp"
+#include "Kernel/Problem.hpp"
 
 #include "Shell/Statistics.hpp"
 

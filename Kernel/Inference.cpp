@@ -240,6 +240,10 @@ void Inference::updateStatistics()
   }
 }
 
+std::ostream& Kernel::operator<<(std::ostream& out, InferenceRule self) {
+  return out << ruleName(self);
+}
+
 std::ostream& Kernel::operator<<(std::ostream& out, Inference const& self)
 {
   switch(self._kind) {

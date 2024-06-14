@@ -375,6 +375,11 @@ void Options::init()
     _lookup.insert(&_include);
     _include.tag(OptionTag::INPUT);
 
+    _traceProofs = StringOptionValue("trace_proofs","trp","");
+    _traceProofs.description="A (list of) proof(s) to be traced.";
+    _lookup.insert(&_traceProofs);
+    _traceProofs.tag(OptionTag::INPUT);
+
     _inputFile= InputFileOptionValue("input_file","","",this);
     _inputFile.description="Problem file to be solved (if not specified, standard input is used)";
     _lookup.insert(&_inputFile);

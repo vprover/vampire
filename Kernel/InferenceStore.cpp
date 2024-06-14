@@ -41,6 +41,7 @@
 #include "Term.hpp"
 #include "TermIterators.hpp"
 #include "SortHelper.hpp"
+#include "Problem.hpp"
 
 #include "InferenceStore.hpp"
 

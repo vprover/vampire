@@ -712,6 +712,7 @@ struct FromSatRefutation; // defined in SATInference.hpp
 
 class Inference;
 std::ostream& operator<<(std::ostream& out, Inference const& self);
+std::ostream& operator<<(std::ostream& out, InferenceRule self);
 
 /**
  * Class to represent inferences

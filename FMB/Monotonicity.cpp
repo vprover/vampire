@@ -20,6 +20,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/List.hpp"
 
+#include "Kernel/Problem.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"

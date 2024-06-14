@@ -22,7 +22,6 @@
 #include "Forwards.hpp"
 #include "Exception.hpp"
 #include "DHMap.hpp"
-#include "Kernel/Problem.hpp"
 
 namespace Lib {
 
@@ -48,6 +47,9 @@ public:
   Shell::Statistics* statistics;
   /** Currently used timer, this is used by all timers as a global clock */
   Timer* timer;
+
+  /** ProofTracer, either 0 or an initialized object*/
+  Kernel::ProofTracer* tracer;
 
   unsigned char maxSineLevel;
 

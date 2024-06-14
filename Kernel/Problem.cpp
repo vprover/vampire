@@ -26,12 +26,97 @@
 #include "Clause.hpp"
 #include "Term.hpp"
 
+#include "Kernel/Inference.hpp"
+
 #include "Problem.hpp"
 
 #undef LOGGING
 #define LOGGING 0
 
+// added for the sake of ProofTracer
+#include <fstream>
+#include "Lib/VString.hpp"
+#include "Kernel/Unit.hpp"
+#include "Parse/TPTP.hpp"
+
 using namespace Kernel;
+using namespace std;
+
+ProofTracer::TracedProof* ProofTracer::getProof(const vstring& proofFileName)
+{
+  TracedProof* resultProof = new TracedProof();
+
+  istream* input;
+  {
+    input=new ifstream(proofFileName.c_str());
+    if (input->fail()) {
+      USER_ERROR("Cannot open problem file: "+proofFileName);
+    }
+  }
+
+  Parse::TPTP parser(*input);
+
+  parser.setUnitSourceMap(&resultProof->sources);
+
+  // make the parser store axiomsNames for us here (for now)
+  ScopedLet<DHMap<unsigned, vstring>*> axiomNamesSwap(Parse::TPTP::_axiomNames,&resultProof->names);
+
+  try{
+    parser.parse();
+  }
+  catch (UserErrorException& exception) {
+    vstring msg = exception.msg();
+    throw Parse::TPTP::ParseErrorException(msg,parser.lineNumber());
+  }
+
+  resultProof->units = parser.units();
+
+  return resultProof;
+}
+
+void ProofTracer::init(const vstring& traceFileNames)
+{
+  ASS(Unit::noUnitYet());
+
+  // TODO: make this handle more then one trace file, i.e., start by splitting traceFileNames into pieces and calling getUnits more than once
+
+  TracedProof* p = getProof(traceFileNames);
+
+  for (UnitList* units = p->units; units != 0;units = units->tail()) {
+    Unit* u = units->head();
+    cout << "Proof unit: " << u->toString() << endl;
+    if (p->names.find(u->number())) {
+      cout << "Named: " << p->names.get(u->number()) << endl;
+    } else {
+      Inference& i = u->inference();
+      ASS_EQ(i.rule(),InferenceRule::NEGATED_CONJECTURE);
+      Inference::Iterator it = i.iterator();
+      ASS(i.hasNext(it));
+      u = i.next(it);
+      ASS(!i.hasNext(it));
+      units->setHead(u);
+      cout << "Corrected to: " << u->toString() << endl;
+      cout << "Named: " << p->names.get(u->number()) << endl;
+    }
+    Parse::TPTP::SourceRecord* rec = p->sources.get(u);
+    if (rec->isFile()) {
+      Parse::TPTP::FileSourceRecord* frec = static_cast<Parse::TPTP::FileSourceRecord*>(rec);
+      cout << "Has FSR: " << frec->fileName << " " << frec->nameInFile << endl;
+    } else {
+      Parse::TPTP::InferenceSourceRecord* irec = static_cast<Parse::TPTP::InferenceSourceRecord*>(rec);
+      cout << "Has ISR: " << irec->name << endl;
+      for (unsigned i = 0; i < irec->premises.size(); i++) {
+        cout << " p: " << irec->premises[i] << endl;
+      }
+    }
+
+    cout << endl;
+  }
+
+  cout << endl;
+
+  Unit::resetNumbering();
+}
 
 /**
  * Create a problem object.

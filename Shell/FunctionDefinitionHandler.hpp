@@ -20,6 +20,7 @@
 #include "Kernel/TermTransformer.hpp"
 #include "TermAlgebra.hpp"
 #include "Lib/STL.hpp"
+#include "Lib/ScopedPtr.hpp"
 
 namespace Shell {
 

@@ -23,6 +23,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/ApplicativeHelper.hpp"
+#include "Kernel/Problem.hpp"
 
 #include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"

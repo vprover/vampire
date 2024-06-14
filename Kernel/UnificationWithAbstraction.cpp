@@ -17,7 +17,7 @@
 #include "Lib/Coproduct.hpp"
 #include "Shell/Options.hpp"
 #include "Lib/Environment.hpp"
-
+#include "Kernel/Problem.hpp"
 
 #include "Forwards.hpp"
 #include "Signature.hpp"
