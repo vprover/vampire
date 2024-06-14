@@ -314,8 +314,6 @@ private:
   Set<SATClause *, DerefPtrHash<DefaultHash>> _already_added;
 
 public:
-  static vstring splPrefix;
-
   // for observing the current model
   SplitLevel splitLevelBound() { return _db.size(); }
   bool splitLevelActive(SplitLevel lev) {

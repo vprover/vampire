@@ -616,17 +616,10 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
 // Splitter
 //////////////
 
-vstring Splitter::splPrefix = "";
-
 Splitter::Splitter()
 : _deleteDeactivated(Options::SplittingDeleteDeactivated::ON), _branchSelector(*this),
   _clausesAdded(false), _haveBranchRefutation(false)
-{
-  if(env.options->proof()==Options::Proof::TPTP){
-    unsigned spl = env.signature->addFreshFunction(0,"spl");
-    splPrefix = env.signature->functionName(spl)+"_";
-  }
-}
+{}
 
 Splitter::~Splitter()
 {
@@ -727,17 +720,20 @@ SATLiteral Splitter::getLiteralFromName(SplitLevel compName)
   bool polarity = (compName&1)==0;
   return SATLiteral(var, polarity);
 }
+
 vstring Splitter::getFormulaStringFromName(SplitLevel compName, bool negated)
 {
   SATLiteral lit = getLiteralFromName(compName);
   if (negated) {
     lit = lit.opposite();
   }
-  if (lit.isPositive()) {
-    return splPrefix+Lib::Int::toString(lit.var());
-  } else {
-    return "~"+splPrefix+Lib::Int::toString(lit.var());
-  }
+
+  vstringstream result;
+  if(lit.isNegative())
+    result << '~';
+  // TPTP convention for new symbol names: this is a defined predicate
+  result << "sP" << lit.var() << "_split";
+  return result.str();
 }
 
 Unit* Splitter::getDefinitionFromName(SplitLevel compName) const
