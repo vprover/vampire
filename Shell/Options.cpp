@@ -19,6 +19,16 @@
  * IMPORTANT --> see .hpp file for instructions on how to add an option
  */
 
+/* this translation unit causes the optimiser to take a very long time,
+ * but it's not really performance-critical code:
+ * disable optimisation for this file with various compilers */
+#if defined(__clang__)
+#pragma clang optimize off
+#elif defined(__GNUC__)
+#pragma GCC optimize 0
+#endif
+
+
 // Visual does not know the round function
 #include <cmath>
 #include <filesystem>
