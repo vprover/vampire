@@ -13,7 +13,6 @@
 
 #include "cadical.hpp"
 
-#include "Debug/Assertion.hpp"
 #include "DP/SimpleCongruenceClosure.hpp"
 #include "Indexing/LiteralSubstitutionTree.hpp"
 #include "Indexing/TermSubstitutionTree.hpp"
@@ -27,10 +26,8 @@ std::ostream &log() { return std::cout << "% "; }
 template<typename T>
 std::ostream &operator<<(std::ostream &out, const std::vector<T> &v) {
   out << '[';
-  if(!v.empty())
-    out << v[0];
-  for(unsigned i = 1; i < v.size(); i++)
-    out << ' ' << v[i];
+  for(const T &t : v)
+    out << t << ' ';
   out << ']';
   return out;
 }
@@ -38,10 +35,8 @@ std::ostream &operator<<(std::ostream &out, const std::vector<T> &v) {
 template<typename T>
 std::ostream &operator<<(std::ostream &out, const std::unordered_set<T> &s) {
   out << '{';
-  if(!s.empty())
-    out << *s.begin();
-  for(auto &it = ++s.begin(); it != s.end(); it++)
-    out << ' ' << *it;
+  for(const T &t : s)
+    out << t << ' ';
   out << '}';
   return out;
 }
@@ -59,28 +54,31 @@ struct Copy {
   std::vector<Literal *> literals;
 };
 
-// a connection between two terms
-struct Connection {
-  // the two terms to unify
-  std::array<TermList, 2> unify;
+// an unordered pair of terms
+struct TermPair {
+  TermList one, other;
 };
 
+std::ostream &operator<<(std::ostream &out, const TermPair &pair) {
+  return out << '<' << pair.one << ", " << pair.other << '>';
+}
+
 template<>
-struct std::hash<Connection> {
-  size_t operator()(const Connection &connection) const {
+struct std::hash<TermPair> {
+  size_t operator()(const TermPair &connection) const {
     std::hash<uint64_t> hasher;
     return
-      hasher(connection.unify[0].content()) ^
-      hasher(connection.unify[1].content());
+      hasher(connection.one.content()) ^
+      hasher(connection.other.content());
   }
 };
 
 template<>
-struct std::equal_to<Connection> {
-  bool operator()(const Connection &left, const Connection &right) const {
+struct std::equal_to<TermPair> {
+  bool operator()(const TermPair &left, const TermPair &right) const {
     return
-      (left.unify[0] == right.unify[0] && left.unify[1] == right.unify[1]) ||
-      (left.unify[0] == right.unify[1] && left.unify[1] == right.unify[0]);
+      (left.one == right.one && left.other == right.other) ||
+      (left.one == right.other && left.other == right.one);
   }
 };
 
@@ -129,9 +127,11 @@ struct Matrix {
   // clause copies
   std::vector<Copy> copies;
   // map from connections to SAT variables
-  std::unordered_map<Connection, int> conn2sat;
+  std::unordered_map<TermPair, int> conn2sat;
   // map from SAT variables to connections
-  std::vector<Connection> sat2conn;
+  std::vector<TermPair> sat2conn;
+  // set of disequations to observe
+  std::unordered_set<TermPair> disequations;
 
   // number of first-order variables used so far
   unsigned variables = 0;
@@ -142,6 +142,8 @@ struct Matrix {
   Indexing::TermSubstitutionTree<Subterm> side_index;
   // index for subterms
   Indexing::TermSubstitutionTree<Subterm> subterm_index;
+  // used to test whether two terms could ever unify
+  RobSubstitution test_could_unify;
 
   Matrix() {
     // offset by 1 as 0 is not a valid SAT variable
@@ -155,14 +157,38 @@ struct Matrix {
 
     // add connection
     int fresh = sat2conn.size();
-    Connection connection {s, t};
+    TermPair connection {s, t};
     // if not seen before...
-    if(conn2sat.insert({connection, fresh}).second)
+    if(conn2sat.insert({connection, fresh}).second) {
+      // log() << fresh << '\t' << connection << '\n';
       sat2conn.push_back(connection);
+    }
+  }
+
+  void add_disequation(TermList s, TermList t) {
+    test_could_unify.reset();
+    if(test_could_unify.unify(s, 0, t, 0))
+      disequations.insert({s, t});
   }
 
   // increase the number of copies of `cl` by one
   void amplify(Clause *cl) {
+    // check `cl` is not a tautology:
+    // this happens sometimes and messes with the stuff that happens later
+    for(unsigned i = 0; i < cl->length(); i++) {
+      Literal *l = (*cl)[i];
+      for(unsigned j = i + 1; j < cl->length(); j++) {
+        Literal *k = (*cl)[j];
+        if(l == Literal::complementaryLiteral(k))
+          return;
+      }
+
+      if(!l->isEquality() || !l->polarity())
+        continue;
+      if((*l)[0] == (*l)[1])
+        return;
+    }
+
     // the new clause
     Copy copy;
     copy.original = cl;
@@ -222,9 +248,7 @@ struct Matrix {
       }
     }
 
-    // bump variables for the next clause
-    variables = renaming.nextVar();
-    // second pass: insert literals into the index
+   // second pass: insert literals into the index
     for(Literal *l : copy.literals) {
       // their top-level parts
       if(l->isEquality()) {
@@ -243,8 +267,26 @@ struct Matrix {
         subterm_index.insert(TypedTermList(subterms.next()));
     }
 
+    // add disequation constraints
+    for(unsigned i = 0; i < cl->length(); i++) {
+      Literal *l = copy.literals[i];
+      for(unsigned j = i + 1; j < cl->length(); j++) {
+        Literal *k = copy.literals[j];
+        if(l->polarity() == k->polarity() || l->functor() != k->functor())
+          continue;
+        add_disequation(TermList(l), TermList(k));
+      }
+
+      if(!l->isEquality() || !l->polarity())
+        continue;
+      add_disequation((*l)[0], (*l)[1]);
+    }
+
     // finally add the copy
     copies.emplace_back(std::move(copy));
+
+    // bump variables for the next clause
+    variables = renaming.nextVar();
   }
 };
 
@@ -269,7 +311,7 @@ struct RigidSubstitution {
   RigidSubstitution(size_t variables) : bindings(variables) {}
 
   // determine what a variable is bound to
-  TermList lookup(unsigned var) {
+  TermList lookup(unsigned var) const {
     while(bindings[var]) {
       TermList bound = bindings[var].term;
       if(bound.isTerm())
@@ -280,7 +322,7 @@ struct RigidSubstitution {
   }
 
   // for SubstHelper
-  TermList apply(unsigned var) {
+  TermList apply(unsigned var) const {
     TermList bound = lookup(var);
     if(bound.isTerm())
       // TODO do this better
@@ -290,7 +332,7 @@ struct RigidSubstitution {
 
   // check whether `var` occurs in `term` modulo bindings
   // `term` is assumed to have already been `lookup`'d
-  bool occurs(unsigned var, TermList term) {
+  bool occurs(unsigned var, TermList term) const {
     OCCURS.clear();
     OCCURS.push_back(term);
     do {
@@ -314,7 +356,7 @@ struct RigidSubstitution {
   }
 
   // unify s and t, leaving bindings clean on failure
-  bool unify(std::array<TermList, 2> unify) {
+  bool unify(TermPair unify) {
     auto [s, t] = unify;
     UNIFY.clear();
     UNIFY.push_back({s, t});
@@ -380,6 +422,40 @@ struct RigidSubstitution {
       // log() << var << " -> *\n";
     }
   }
+
+  bool equal(TermPair pair) const {
+    auto [s, t] = pair;
+    UNIFY.clear();
+    UNIFY.push_back({s, t});
+
+    do {
+      auto [s, t] = UNIFY.back();
+      UNIFY.pop_back();
+      if(s == t)
+        continue;
+
+      if(s.isVar())
+        s = lookup(s.var());
+      if(t.isVar())
+        t = lookup(t.var());
+
+      if(s == t)
+        continue;
+
+      if(s.isVar() || t.isVar())
+        return false;
+
+      ASS(s.isTerm())
+      ASS(t.isTerm())
+      Term *st = s.term();
+      Term *tt = t.term();
+      if(st->functor() != tt->functor())
+        return false;
+      for(unsigned i = 0; i < st->arity(); i++)
+        UNIFY.push_back({(*st)[i], (*tt)[i]});
+    } while(!UNIFY.empty());
+    return true;
+  }
 };
 
 std::ostream &operator<<(std::ostream &out, const RigidSubstitution &substitution) {
@@ -404,10 +480,10 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
   RigidSubstitution minimize;
   // connections made so far
   std::vector<int> connections;
-  // if there is a reason/conflict clause to learn
-  bool reason_set = false;
-  // reason/conflict clause
-  std::vector<int> reason;
+  // if there is a clause for CaDiCaL to learn
+  bool learn_set = false;
+  // the next learned clause
+  std::vector<int> learn;
   // random source
   std::mt19937 rng;
   // ordering (for SimpleCongruenceClosure?!)
@@ -434,30 +510,31 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
     // should only get fixed assignments at decision level 0 (without chrono)
     ASS(!fixed || levels.empty())
 
+    // log() << assigned << '\n';
     // do nothing when variable is assigned false,
     // or there is a conflict we didn't tell CaDiCaL about yet
-    if(assigned < 0 || reason_set)
+    if(assigned < 0 || learn_set)
       return;
 
     connections.push_back(assigned);
     // unify the literals corresponding to the connection
-    if(!substitution.unify(matrix.sat2conn[assigned].unify))
+    if(!substitution.unify(matrix.sat2conn[assigned]))
       compute_unification_reason(assigned);
   }
 
   // fill out `reason` given that `failed` caused a unification failure
   void compute_unification_reason(int failed) {
-    ASS(!reason_set)
-    ASS(reason.empty())
+    ASS(!learn_set)
+    ASS(learn.empty())
 
-    reason_set = true;
+    learn_set = true;
     // conflicting literal guaranteed to be a reason
-    reason.push_back(-failed);
+    learn.push_back(-failed);
 
     // unify this connection in a fresh substitution
     minimize.pop_to(0);
     // will always succeed as it has an MGU
-    ASS(minimize.unify(matrix.sat2conn[failed].unify))
+    ALWAYS(minimize.unify(matrix.sat2conn[failed]))
 
     do {
       size_t restore = minimize.trail.size();
@@ -465,18 +542,60 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
       // will always exit early since the totality of connections cannot be unified
       // NB does not repeat unifications from `reason`
       for(int connection : connections)
-        if(!minimize.unify(matrix.sat2conn[connection].unify)) {
+        if(!minimize.unify(matrix.sat2conn[connection])) {
           // this connection definitely necessary
           failed = connection;
-          reason.push_back(-failed);
+          learn.push_back(-failed);
           minimize.pop_to(restore);
           break;
         }
       // `failed` must have been set in the loop
       ASS_NEQ(failed, 0)
-    } while(minimize.unify(matrix.sat2conn[failed].unify));
-    //log() << "unification: " << reason << '\n';
+    } while(minimize.unify(matrix.sat2conn[failed]));
+    //log() << "unification: " << learn << '\n';
   }
+
+  void compute_disequation_reason(TermPair disequation) {
+    ASS(!learn_set)
+    ASS(learn.empty())
+    learn_set = true;
+
+    minimize.pop_to(0);
+    int failed;
+    do {
+      size_t restore = minimize.trail.size();
+      failed = 0;
+      // will always exit early since the totality of connections cause disequation failure
+      // NB does not repeat unifications from `reason`
+      for(int connection : connections) {
+        // will always succeed as the set of connections is consistent
+        ALWAYS(minimize.unify(matrix.sat2conn[connection]))
+        if(minimize.equal(disequation)) {
+          // this connection definitely necessary
+          failed = connection;
+          learn.push_back(-failed);
+          minimize.pop_to(restore);
+          break;
+        }
+      }
+      // `failed` must have been set in the loop
+      ASS_NEQ(failed, 0)
+      // will always succeed as the set of connections is consistent
+      ALWAYS(minimize.unify(matrix.sat2conn[failed]))
+    } while(!minimize.equal(disequation));
+    // log() << "disequation: " << learn << '\n';
+  }
+
+  bool check_disequations() {
+    for(TermPair disequation : matrix.disequations)
+      if(substitution.equal(disequation)) {
+        compute_disequation_reason(disequation);
+        return false;
+      }
+    return true;
+  }
+
+
 
   void notify_new_decision_level() final {
     levels.push_back({connections.size(), substitution.trail.size()});
@@ -489,8 +608,8 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
     if(decision_level >= levels.size())
       return;
 
-    reason_set = false;
-    reason.clear();
+    learn_set = false;
+    learn.clear();
     // undo everything after this level
     Level level = levels[decision_level];
     levels.resize(decision_level);
@@ -498,10 +617,27 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
     substitution.pop_to(level.variables);
   }
 
+  bool cb_has_external_clause() final {
+    if(learn_set)
+      return true;
+    if(!check_disequations())
+      return true;
+    return false;
+  }
+
+  int cb_add_external_clause_lit() final {
+    learn_set = false;
+    if(learn.empty())
+      return 0;
+    int lit = learn.back();
+    learn.pop_back();
+    return lit;
+  }
+
   bool cb_check_found_model(const std::vector<int> &model) final {
-    ASS(!reason_set)
-    ASS(reason.empty())
-    reason_set = true;
+    ASS(!learn_set)
+    ASS(learn.empty())
+    learn_set = true;
 
 #if 0
     // ooooh stars pretty!
@@ -545,14 +681,14 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
       if(model_set.count(connection))
         continue;
 
-      auto [s, t] = matrix.sat2conn[connection].unify;
+      auto [s, t] = matrix.sat2conn[connection];
       if(predicates.contains(s) && predicates.contains(t))
-        reason.push_back(connection);
+        learn.push_back(connection);
       else if(
         (sides.contains(t) && subterms.contains(s)) ||
         (sides.contains(s) && subterms.contains(t))
       )
-        reason.push_back(connection);
+        learn.push_back(connection);
     }
 
     // log() << "final: " << reason << '\n';
@@ -676,17 +812,6 @@ conflict:
       cl->destroy();
 
     return path;
-  }
-
-  bool cb_has_external_clause() final { return reason_set; }
-
-  int cb_add_external_clause_lit() final {
-    reason_set = false;
-    if(reason.empty())
-      return 0;
-    int lit = reason.back();
-    reason.pop_back();
-    return lit;
   }
 };
 
