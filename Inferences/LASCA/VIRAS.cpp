@@ -12,6 +12,7 @@
 #include "VIRAS.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/LASCA.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "Lib/Reflection.hpp"
 #include "Lib/Option.hpp"
@@ -170,7 +171,6 @@ SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierEliminatio
   Recycled<Stack<Literal*>> toElim;
   Recycled<Stack<Literal*>> otherLits;
   auto noteShielded = [&](Term* t) {
-    DBG("shielding: ", *t)
     VariableIterator vars(t);
     while (vars.hasNext()) 
      shieldedVars->insert(vars.next().var());
@@ -179,7 +179,15 @@ SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierEliminatio
   Recycled<DHSet<unsigned>> topLevelVars;
   for (auto l : premise->iterLits()) {
     Option<LascaLiteral<RatTraits>> norm = _shared->renormalize(l)
-      .flatMap([](auto l) { return l.template as<LascaLiteral<NumTraits>>().toOwned(); });
+      .flatMap([](auto l) { return l.template as<LascaLiteral<NumTraits>>().toOwned(); })
+      .filter([](auto l) { switch(l.symbol()) {
+          case LascaPredicate::EQ:
+          case LascaPredicate::NEQ:
+          case LascaPredicate::GREATER:
+          case LascaPredicate::GREATER_EQ: return true;
+          case LascaPredicate::IS_INT_POS:
+          case LascaPredicate::IS_INT_NEG: return false;
+          }});
 
     if (norm.isNone()) {
       otherLits->push(l);
@@ -201,7 +209,6 @@ SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierEliminatio
     .filter([&](auto x) { return !shieldedVars->contains(x); })
     .tryNext();
 
-  DBGE(unshielded)
   if (unshielded.isNone()) {
     return ClauseGenerationResult {
       .clauses = VirtualIterator<Clause*>::getEmpty(),

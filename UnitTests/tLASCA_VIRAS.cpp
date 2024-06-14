@@ -480,3 +480,24 @@ TEST_GENERATION(lira_01,
     )
 
 
+TEST_GENERATION(lia_01_1,
+    Generation::SymmetricTest()
+      .inputs ({         clause({ 3 * floor(x) - 1 == 0 })})
+      .expected(withoutDuplicates(exactly( 
+              clause({ }) 
+            , clause({ })
+            , clause({ })
+            , clause({ })
+            , clause({ }) // TODO somehow get rid of these duplicate results
+            )))
+      .premiseRedundant(true)
+    )
+
+TEST_GENERATION(lia_01_2,
+    Generation::SymmetricTest()
+      .inputs ({         clause({ 3 * floor(x) - 1 != 0 })})
+      .expected(withoutDuplicates(exactly()))
+      .premiseRedundant(true)
+    )
+
+

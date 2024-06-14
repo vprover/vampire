@@ -73,6 +73,9 @@ public:
 };
 
 
+class StackMatcher;
+std::ostream& operator<<(std::ostream& out, StackMatcher const& self);
+
 class ExactlyStackMatcher {
   Stack<ClausePattern> _patterns;
 
@@ -87,8 +90,24 @@ public:
   { return out << "exactly: " << self._patterns; }
 };
 
+class WithoutDuplicatesMatcher {
+  std::shared_ptr<StackMatcher> _inner;
+
+public:
+  WithoutDuplicatesMatcher(std::shared_ptr<StackMatcher> m) : _inner(std::move(m)) {}
+
+  template<class Rule>
+  bool matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester<Rule>& simpl) ;
+
+  friend std::ostream& operator<<(std::ostream& out, WithoutDuplicatesMatcher const& self)
+  { return out << "without duplicates: " << *self._inner; }
+};
+
+
 using AnyStackMatcher = Coproduct< ContainsStackMatcher
+                                 , WithoutDuplicatesMatcher
                                  , ExactlyStackMatcher>;
+
 class StackMatcher: public AnyStackMatcher {
 public:
   StackMatcher(std::initializer_list<ClausePattern> clauses) : StackMatcher(ExactlyStackMatcher(Stack<ClausePattern>(clauses))) {}
@@ -98,14 +117,24 @@ public:
   bool matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester<Rule>& simpl) 
   { return apply([&](auto& self) { return self.matches(sRes, simpl); }); }
 
-  // friend std::ostream& operator<<(std::ostream& out, StackMatcher const& self)
-  // { return self.apply([&](auto& inner) { return out << inner; }); }
+  friend std::ostream& operator<<(std::ostream& out, StackMatcher const& self)
+  { return self.apply([&](auto& inner) -> decltype(auto) { return out << inner; }); }
 };
 
+
+template<class Rule>
+bool WithoutDuplicatesMatcher::matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester<Rule>& simpl)
+{ sRes.sort();
+  sRes.dedup();
+  return _inner->matches(std::move(sRes), simpl); 
+}
 
 template<class... As>
 StackMatcher exactly(As... as) 
 { return ExactlyStackMatcher(Stack<ClausePattern>({ as... })); }
+
+inline StackMatcher withoutDuplicates(StackMatcher inner) 
+{ return WithoutDuplicatesMatcher(std::shared_ptr<StackMatcher>(move_to_heap(std::move(inner)))); }
 
 template<class... As>
 StackMatcher contains(As... as) 

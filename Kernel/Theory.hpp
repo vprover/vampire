@@ -198,7 +198,7 @@ struct RationalConstantType {
   RationalConstantType& operator-=(RationalConstantType const& r) { _num -= r._num; _den -= r._den;  cannonize(); return *this; }
   RationalConstantType& operator/=(RationalConstantType const& r) { _num *= r._den; _den *= r._num;  cannonize(); return *this; }
 
-  RationalConstantType inverse() const { return RationalConstantType(denominator(), numerator()); }
+  RationalConstantType inverse() const { return RationalConstantType(1) / *this; }
   RationalConstantType floor() const { 
     return RationalConstantType(IntegerConstantType::floor(*this));
   }
