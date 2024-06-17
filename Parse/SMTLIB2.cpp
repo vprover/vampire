@@ -14,6 +14,7 @@
 
 #include <climits>
 #include <fstream>
+#include <map>
 
 #include "Lib/Environment.hpp"
 #include "Lib/NameArray.hpp"
@@ -1747,7 +1748,7 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
 
   LOG2("CASE matched ", matchedTerm.toString());
 
-  vmap<unsigned, TermAlgebraConstructor *> ctorFunctors;
+  std::map<unsigned, TermAlgebraConstructor *> ctorFunctors;
   TermAlgebra *ta = env.signature->getTermAlgebraOfSort(matchedTermSort);
   if (ta == nullptr) {
     USER_ERROR_EXPR("Match term '" + matchedTerm.toString() + "' is not of a term algebra type in expression '" + exp->toString() + "'");

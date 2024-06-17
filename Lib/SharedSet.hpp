@@ -24,7 +24,6 @@
 #include "Set.hpp"
 #include "Sort.hpp"
 #include "Stack.hpp"
-#include "VString.hpp"
 
 namespace Lib {
 
@@ -303,7 +302,7 @@ public:
 
   vstring toString() const
   {
-    vostringstream res;
+    std::ostringstream res;
     res<<(*this);
     return res.str();
   }

@@ -19,9 +19,10 @@
 #include <atomic>
 #include <csignal>
 
+#include "Forwards.hpp"
+
 #include "Debug/Assertion.hpp"
 #include "Allocator.hpp"
-#include "VString.hpp"
 
 #define VAMPIRE_PERF_EXISTS 0
 #ifdef __linux__

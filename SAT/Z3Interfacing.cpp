@@ -521,7 +521,7 @@ z3::sort Z3Interfacing::getz3sort(SortId s)
 template<class A>
 vstring to_vstring(A const& a)
 {
-  vstringstream out;
+  std::stringstream out;
   out << a;
   return out.str();
 }
@@ -713,7 +713,7 @@ void Z3Interfacing::createTermAlgebra(TermList sort)
   outputln(" ) (");
 
   auto quote = [&](auto x){
-    vstringstream s;
+    std::stringstream s;
     s << x;
     auto str = s.str();
     if (str[0] == '\'') {

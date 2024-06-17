@@ -20,7 +20,6 @@
 #include "Forwards.hpp"
 
 #include "Lib/List.hpp"
-#include "Lib/VString.hpp"
 #include "Kernel/Inference.hpp"
 
 namespace Kernel {

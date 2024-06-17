@@ -39,7 +39,6 @@
 
 #include "Debug/Assertion.hpp"
 
-#include "Lib/VString.hpp"
 #include "Lib/StringUtils.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Timer.hpp"
@@ -2558,7 +2557,7 @@ void Options::output (ostream& str) const
         }
      }
      else{
-       vstringstream vs;
+       std::stringstream vs;
        option->output(vs,lineWrapInShowOptions());
        str << vs.str();
      }
@@ -3327,7 +3326,7 @@ void Options::setForcedOptionValues()
  */
 vstring Options::generateEncodedOptions() const
 {
-  vostringstream res;
+  std::ostringstream res;
   //saturation algorithm
   vstring sat;
   switch(_saturationAlgorithm.actualValue){
@@ -3592,10 +3591,10 @@ bool Options::checkProblemOptionConstraints(Property* prop, bool before_preproce
 }
 
 template<class A>
-Lib::vvector<A> parseCommaSeparatedList(vstring const& str) 
+std::vector<A> parseCommaSeparatedList(vstring const& str) 
 {
-  vstringstream stream(str);
-  Lib::vvector<A> parsed;
+  std::stringstream stream(str);
+  std::vector<A> parsed;
   vstring cur;
   while (std::getline(stream, cur, ',')) {
     parsed.push_back(StringUtils::parse<A>(cur));
@@ -3603,7 +3602,7 @@ Lib::vvector<A> parseCommaSeparatedList(vstring const& str)
   return parsed;
 }
 
-Lib::vvector<int> Options::theorySplitQueueRatios() const
+std::vector<int> Options::theorySplitQueueRatios() const
 {
   auto inputRatios = parseCommaSeparatedList<int>(_theorySplitQueueRatios.actualValue);
 
@@ -3620,10 +3619,10 @@ Lib::vvector<int> Options::theorySplitQueueRatios() const
   return inputRatios;
 }
 
-Lib::vvector<float> Options::theorySplitQueueCutoffs() const
+std::vector<float> Options::theorySplitQueueCutoffs() const
 {
   // initialize cutoffs
-  Lib::vvector<float> cutoffs;
+  std::vector<float> cutoffs;
 
   /*
   if (_theorySplitQueueCutoffs.isDefault()) {
@@ -3654,9 +3653,9 @@ Lib::vvector<float> Options::theorySplitQueueCutoffs() const
   return cutoffs;
 }
 
-Lib::vvector<int> Options::avatarSplitQueueRatios() const
+std::vector<int> Options::avatarSplitQueueRatios() const
 {
-  Lib::vvector<int> inputRatios = parseCommaSeparatedList<int>(_avatarSplitQueueRatios.actualValue);
+  std::vector<int> inputRatios = parseCommaSeparatedList<int>(_avatarSplitQueueRatios.actualValue);
 
   // sanity checks
   if (inputRatios.size() < 2) {
@@ -3671,7 +3670,7 @@ Lib::vvector<int> Options::avatarSplitQueueRatios() const
   return inputRatios;
 }
 
-Lib::vvector<float> Options::avatarSplitQueueCutoffs() const
+std::vector<float> Options::avatarSplitQueueCutoffs() const
 {
   // initialize cutoffs and add float-max as last value
   auto cutoffs = parseCommaSeparatedList<float>(_avatarSplitQueueCutoffs.actualValue);
@@ -3691,7 +3690,7 @@ Lib::vvector<float> Options::avatarSplitQueueCutoffs() const
   return cutoffs;
 }
 
-Lib::vvector<int> Options::sineLevelSplitQueueRatios() const
+std::vector<int> Options::sineLevelSplitQueueRatios() const
 {
   auto inputRatios = parseCommaSeparatedList<int>(_sineLevelSplitQueueRatios.actualValue);
 
@@ -3708,7 +3707,7 @@ Lib::vvector<int> Options::sineLevelSplitQueueRatios() const
   return inputRatios;
 }
 
-Lib::vvector<float> Options::sineLevelSplitQueueCutoffs() const
+std::vector<float> Options::sineLevelSplitQueueCutoffs() const
 {
   // initialize cutoffs and add float-max as last value
   auto cutoffs = parseCommaSeparatedList<float>(_sineLevelSplitQueueCutoffs.actualValue);
@@ -3728,7 +3727,7 @@ Lib::vvector<float> Options::sineLevelSplitQueueCutoffs() const
   return cutoffs;
 }
 
-Lib::vvector<int> Options::positiveLiteralSplitQueueRatios() const
+std::vector<int> Options::positiveLiteralSplitQueueRatios() const
 {
   auto inputRatios = parseCommaSeparatedList<int>(_positiveLiteralSplitQueueRatios.actualValue);
 
@@ -3745,7 +3744,7 @@ Lib::vvector<int> Options::positiveLiteralSplitQueueRatios() const
   return inputRatios;
 }
 
-Lib::vvector<float> Options::positiveLiteralSplitQueueCutoffs() const
+std::vector<float> Options::positiveLiteralSplitQueueCutoffs() const
 {
   // initialize cutoffs and add float-max as last value
   auto cutoffs = parseCommaSeparatedList<float>(_positiveLiteralSplitQueueCutoffs.actualValue);

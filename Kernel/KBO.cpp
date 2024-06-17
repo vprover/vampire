@@ -553,7 +553,7 @@ KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const
       for (vstring ln; getline(file, ln);) {
         unsigned dflt;
         vstring special_name;
-        bool err = !(vstringstream(ln) >> special_name >> dflt);
+        bool err = !(std::stringstream(ln) >> special_name >> dflt);
         if (!err && special_name == SPECIAL_WEIGHT_IDENT_DEFAULT_WEIGHT) {
           return dflt;
         }
@@ -564,7 +564,7 @@ KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const
 
   /** tries to parse line of the form `<special_name> <weight>` */
   auto tryParseSpecialLine = [](const vstring& ln, unsigned& introducedWeight, KboSpecialWeights<SigTraits>& specialWeights) -> bool {
-    vstringstream lnstr(ln);
+    std::stringstream lnstr(ln);
 
     vstring name;
     unsigned weight;
@@ -582,7 +582,7 @@ KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const
 
   /** tries to parse line of the form `<name> <arity> <weight>` */
   auto tryParseNormalLine = [&](const vstring& ln) -> bool {
-    vstringstream lnstr(ln);
+    std::stringstream lnstr(ln);
 
     vstring name;
     unsigned arity;

@@ -22,7 +22,6 @@
 
 #include "Lib/DHMap.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/VString.hpp"
 
 #include "Kernel/Connective.hpp"
 #include "Kernel/InferenceStore.hpp"

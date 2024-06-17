@@ -17,12 +17,13 @@
 
 #include <memory>
 
-#include "Lib/VString.hpp"
-
 namespace Lib
 {
 struct EmptyStruct {};
 typedef void (*VoidFunc)();
+
+// historical alias to std::string: do not use in new code
+using vstring = std::string;
 
 template<typename T> class VirtualIterator;
 

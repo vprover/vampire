@@ -22,8 +22,6 @@
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/Stack.hpp"
 
-#include "Lib/VString.hpp"
-
 #include "Kernel/Problem.hpp"
 
 #include "Shell/Property.hpp"

@@ -12,6 +12,8 @@
  * Implements class AnswerExtractor.
  */
 
+#include <set>
+
 #include "Lib/DArray.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Stack.hpp"
@@ -752,7 +754,7 @@ TermList SynthesisManager::ConjectureSkolemReplacement::transformTermList(TermLi
       }
     } else {
       Substitution s;
-      vset<unsigned> done;
+      std::set<unsigned> done;
       Kernel::VariableWithSortIterator vit(tl.term());
       while (vit.hasNext()) {
         pair<TermList, TermList> p = vit.next();

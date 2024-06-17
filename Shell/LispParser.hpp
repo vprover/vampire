@@ -24,7 +24,6 @@
 #include "Lib/List.hpp"
 #include "Lib/Portability.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/VString.hpp"
 
 namespace Shell {
 

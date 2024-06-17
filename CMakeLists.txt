@@ -189,8 +189,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/TriangularArray.hpp
     Lib/Vector.hpp
     Lib/VirtualIterator.hpp
-    Lib/VString.hpp
-    Lib/STL.hpp
     )
 source_group(lib_source_files FILES ${VAMPIRE_LIB_SOURCES})
 

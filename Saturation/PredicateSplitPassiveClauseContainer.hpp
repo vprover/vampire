@@ -16,14 +16,13 @@
 #include "Lib/Allocator.hpp"
 #include "ClauseContainer.hpp"
 #include "AWPassiveClauseContainer.hpp"
-#include "Lib/STL.hpp"
 
 namespace Saturation {
 class PredicateSplitPassiveClauseContainer
 : public PassiveClauseContainer
 {
 public:
-  PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues, Lib::vvector<float> cutoffs, Lib::vvector<int> ratios, bool layeredArrangement);
+  PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues, std::vector<float> cutoffs, std::vector<int> ratios, bool layeredArrangement);
   virtual ~PredicateSplitPassiveClauseContainer();
 
   void add(Clause* cl) override;
@@ -34,13 +33,13 @@ public:
 
 private:
   bool _randomize;
-  Lib::vvector<unsigned> _ratios;
+  std::vector<unsigned> _ratios;
   unsigned _ratioSum;
 
-  Lib::vvector<std::unique_ptr<PassiveClauseContainer>> _queues;
-  Lib::vvector<float> _cutoffs;
-  Lib::vvector<unsigned> _invertedRatios;  
-  Lib::vvector<unsigned> _balances;
+  std::vector<std::unique_ptr<PassiveClauseContainer>> _queues;
+  std::vector<float> _cutoffs;
+  std::vector<unsigned> _invertedRatios;  
+  std::vector<unsigned> _balances;
   bool _layeredArrangement; // if set to true, queues are arranged as multi-split-queues. if false, queues use a tammet-style arrangement.
 
   unsigned bestQueue(float featureValue) const;
@@ -64,7 +63,7 @@ public:
   void onLimitsUpdated() override;
 
 private:
-  Lib::vvector<unsigned> _simulationBalances;
+  std::vector<unsigned> _simulationBalances;
 
   /*
    * LRS specific methods and fields for usage of limits
@@ -90,7 +89,7 @@ public:
 class TheoryMultiSplitPassiveClauseContainer : public PredicateSplitPassiveClauseContainer
 {
 public:
-  TheoryMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues);
+  TheoryMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues);
 
 private:
   float evaluateFeature(Clause* cl) const override;
@@ -100,7 +99,7 @@ private:
 class AvatarMultiSplitPassiveClauseContainer : public PredicateSplitPassiveClauseContainer
 {
 public:
-  AvatarMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues);
+  AvatarMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues);
 
 private:
   float evaluateFeature(Clause* cl) const override;
@@ -110,7 +109,7 @@ private:
 class SineLevelMultiSplitPassiveClauseContainer : public PredicateSplitPassiveClauseContainer
 {
 public:
-  SineLevelMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues);
+  SineLevelMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues);
 
 private:
   float evaluateFeature(Clause* cl) const override;
@@ -120,7 +119,7 @@ private:
 class PositiveLiteralMultiSplitPassiveClauseContainer : public PredicateSplitPassiveClauseContainer
 {
 public:
-  PositiveLiteralMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues);
+  PositiveLiteralMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues);
 
 private:
   float evaluateFeature(Clause* cl) const override;

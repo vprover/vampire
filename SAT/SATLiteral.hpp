@@ -20,7 +20,6 @@
 
 #include "Shell/Options.hpp"
 #include "Debug/Assertion.hpp"
-#include "Lib/VString.hpp"
 #include "Kernel/Clause.hpp"
 
 namespace SAT {

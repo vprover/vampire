@@ -15,7 +15,6 @@
 #ifndef __StringUtils__
 #define __StringUtils__
 
-#include "VString.hpp"
 #include "DHMap.hpp"
 #include <cstdlib>
 

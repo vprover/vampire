@@ -16,7 +16,6 @@
 #include "IntNameTable.hpp"
 #include "Hash.hpp"
 #include "Exception.hpp"
-#include "VString.hpp"
 
 namespace Lib {
 

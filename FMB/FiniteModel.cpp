@@ -139,7 +139,7 @@ bool FiniteModel::isPartial()
 
 vstring FiniteModel::toString()
 {
-  vostringstream modelStm;
+  std::ostringstream modelStm;
 
   bool printIntroduced = false;
 

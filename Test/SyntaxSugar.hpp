@@ -722,7 +722,7 @@ inline void createTermAlgebra(SortSugar sort, std::initializer_list<FuncSugar> f
       ->markTermAlgebraCons();
 
     auto dtor = [&](unsigned i) {
-      vstringstream name;
+      std::stringstream name;
       name << f << "@" << i;
       auto d = FuncSugar(name.str(), { f.result() }, f.arg(i));
       env.signature->getFunction(d.functor())

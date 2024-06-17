@@ -96,7 +96,7 @@ TEST_FUN(examples__match_02) {
   auto x = Coproduct<int, float>(1);
 
   vstring str = x.apply([](auto const& c) {
-    vstringstream out;
+    std::stringstream out;
     out << c;
     return out.str(); 
   });

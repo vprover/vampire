@@ -17,8 +17,6 @@
 #ifndef __Token__
 #define __Token__
 
-#include "Lib/VString.hpp"
-
 namespace Shell {
 
 /**

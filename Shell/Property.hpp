@@ -25,7 +25,6 @@
 #include "Lib/DHSet.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Theory.hpp"
-#include "Lib/VString.hpp"
 #include "SMTLIBLogic.hpp"
 
 namespace Kernel {

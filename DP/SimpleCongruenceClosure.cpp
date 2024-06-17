@@ -37,7 +37,7 @@ const unsigned SimpleCongruenceClosure::NO_SIG_SYMBOL = 0xFFFFFFFF;
 
 vstring SimpleCongruenceClosure::CEq::toString() const
 {
-  vostringstream res;
+  std::ostringstream res;
   res << c1<<"="<<c2<<" implied by ";
   if(foOrigin) {
     if(foPremise) {
@@ -55,7 +55,7 @@ vstring SimpleCongruenceClosure::CEq::toString() const
 
 vstring SimpleCongruenceClosure::CEq::toString(SimpleCongruenceClosure& parent) const
 {
-  vostringstream res;
+  std::ostringstream res;
   res << c1<<"="<<c2<<" implied by ";
   if(foOrigin) {
     if(foPremise) {

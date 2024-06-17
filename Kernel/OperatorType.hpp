@@ -25,7 +25,6 @@
 #include "Lib/Stack.hpp"
 #include "Lib/Vector.hpp"
 #include "Lib/Allocator.hpp"
-#include "Lib/VString.hpp"
 
 #include "Term.hpp"
 

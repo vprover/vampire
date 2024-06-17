@@ -83,7 +83,7 @@ void TPTPPrinter::printWithRole(vstring name, vstring role, Unit* u, bool includ
  */
 vstring TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
 {
-  vostringstream res;
+  std::ostringstream res;
 
   typedef DHMap<unsigned,TermList> SortMap;
   static SortMap varSorts;

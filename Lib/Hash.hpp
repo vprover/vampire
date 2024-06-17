@@ -20,7 +20,6 @@
 #include <type_traits>
 
 #include "Forwards.hpp"
-#include "VString.hpp"
 #include "Kernel/Unit.hpp"
 #include "Lib/Option.hpp"
 

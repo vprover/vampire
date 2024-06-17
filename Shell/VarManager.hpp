@@ -15,8 +15,6 @@
 #ifndef __VarManager__
 #define __VarManager__
 
-#include "Lib/VString.hpp"
-
 #include "Forwards.hpp"
 
 namespace Shell {

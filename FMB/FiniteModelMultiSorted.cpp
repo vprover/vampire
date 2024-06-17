@@ -181,7 +181,7 @@ bool FiniteModelMultiSorted::isPartial()
 
 vstring FiniteModelMultiSorted::toString()
 {
-  vostringstream modelStm;
+  std::ostringstream modelStm;
 
   bool printIntroduced = false;
 

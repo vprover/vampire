@@ -19,7 +19,6 @@
 
 #include "Debug/Assertion.hpp"
 
-#include "Lib/VString.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
 #include "SAT/Z3Interfacing.hpp"

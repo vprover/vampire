@@ -22,7 +22,6 @@
 
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Reflection.hpp"
-#include "Lib/VString.hpp"
 
 #include "SATLiteral.hpp"
 

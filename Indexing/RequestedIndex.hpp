@@ -14,7 +14,6 @@
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
 #include "Lib/Allocator.hpp"
-#include "Lib/STL.hpp"
 
 namespace Indexing {
 

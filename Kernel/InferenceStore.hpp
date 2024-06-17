@@ -25,7 +25,6 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/DHMultiset.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/VString.hpp"
 
 #include "Kernel/Signature.hpp"
 #include "Kernel/Clause.hpp"

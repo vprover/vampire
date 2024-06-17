@@ -16,9 +16,10 @@
 #ifndef __Exception__
 #define __Exception__
 
-#include <iostream>
+#include "Forwards.hpp"
 
-#include "VString.hpp"
+#include <iostream>
+#include <sstream>
 
 namespace Lib {
 
@@ -54,7 +55,7 @@ class Exception : public ThrowableBase
 {
   template<class... Msg>
   vstring toString(Msg... msg){
-    vstringstream out;
+    std::stringstream out;
     OutputAll<Msg...>::apply(out, msg...);
     return out.str();
   }

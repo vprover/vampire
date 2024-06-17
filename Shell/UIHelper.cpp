@@ -24,7 +24,6 @@
 
 #include "Lib/Environment.hpp"
 #include "Debug/TimeProfiling.hpp"
-#include "Lib/VString.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/ScopedLet.hpp"
@@ -251,7 +250,7 @@ void UIHelper::parseSingleLine(const vstring& lineToParse, Options::InputSyntax 
 
   ScopedLet<Statistics::ExecutionPhase> localAssing(env.statistics->phase,Statistics::PARSING);
 
-  vistringstream stream(lineToParse);
+  std::istringstream stream(lineToParse);
   try {
     switch (inputSyntax) {
       case Options::InputSyntax::TPTP:

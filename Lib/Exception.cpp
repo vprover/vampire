@@ -18,7 +18,6 @@
 #include "Int.hpp"
 
 #include "Exception.hpp"
-#include "VString.hpp"
 
 namespace Lib
 {

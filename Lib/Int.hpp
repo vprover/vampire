@@ -18,9 +18,10 @@
 #ifndef __INT__
 #define __INT__
 
+#include "Forwards.hpp"
+
 #include "Comparison.hpp"
 #include "Portability.hpp"
-#include "VString.hpp"
 
 #include <iostream>
 #include <limits>

@@ -16,10 +16,6 @@
 #ifndef __Renaming__
 #define __Renaming__
 
-#if VDEBUG
-#include "Lib/VString.hpp"
-#endif
-
 #include "Lib/DHMap.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"

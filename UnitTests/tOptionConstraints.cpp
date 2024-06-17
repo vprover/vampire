@@ -8,7 +8,6 @@
  * and in the source directory
  */
 
-#include "Lib/VString.hpp"
 #include "Shell/Options.hpp"
 
 #include "Test/UnitTesting.hpp"

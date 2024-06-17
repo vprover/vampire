@@ -20,7 +20,6 @@
 #include "Debug/Assertion.hpp"
 
 #include "Allocator.hpp"
-#include "VString.hpp"
 #include "Hash.hpp"
 #include "Exception.hpp"
 #include "Option.hpp"

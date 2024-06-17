@@ -23,8 +23,6 @@
 
 #include "Array.hpp"
 #include "Map.hpp"
-#include "VString.hpp"
-
 
 namespace Lib {
 

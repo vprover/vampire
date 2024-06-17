@@ -638,7 +638,7 @@ protected:
   /** It is an iterator over SymbolId */
   template<class It>
   vstring getNewSymbols(vstring origin, It symIt) {
-    vostringstream symsStr;
+    std::ostringstream symsStr;
     while(symIt.hasNext()) {
       SymbolId sym = symIt.next();
       if (sym.first == SymbolType::FUNC ) {
@@ -831,7 +831,7 @@ protected:
     List<unsigned>::destroy(nameVars);
 
     SymbolId nameSymbol = SymbolId(SymbolType::PRED,nameLit->functor());
-    vostringstream originStm;
+    std::ostringstream originStm;
     originStm << "introduced(" << tptpRuleName(rule)
 	      << ",[" << getNewSymbols("naming",getSingletonIterator(nameSymbol))
 	      << "])";
@@ -856,7 +856,7 @@ protected:
     out<<getFofString(tptpUnitId(us), getFormulaString(us),
       "inference("+tptpRuleName(InferenceRule::CLAUSIFY)+",[],["+defId+"])", InferenceRule::CLAUSIFY)<<endl;
 
-    vstringstream originStm;
+    std::stringstream originStm;
     originStm << "introduced(" << tptpRuleName(rule)
         << ",[" << getNewSymbols("naming",splitPred)
         << "])";

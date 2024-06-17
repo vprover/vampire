@@ -44,7 +44,6 @@
 
 #include "Debug/Assertion.hpp"
 
-#include "Lib/VString.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/DArray.hpp"
@@ -52,7 +51,6 @@
 #include "Lib/Int.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/Comparison.hpp"
-#include "Lib/STL.hpp"
 #include "Lib/Timer.hpp"
 
 #include "Property.hpp"
@@ -2136,21 +2134,21 @@ public:
   void setAgeRatio(int v){ _ageWeightRatio.actualValue = v; }
   int weightRatio() const { return _ageWeightRatio.otherValue; }
   bool useTheorySplitQueues() const { return _useTheorySplitQueues.actualValue; }
-  Lib::vvector<int> theorySplitQueueRatios() const;
-  Lib::vvector<float> theorySplitQueueCutoffs() const;
+  std::vector<int> theorySplitQueueRatios() const;
+  std::vector<float> theorySplitQueueCutoffs() const;
   int theorySplitQueueExpectedRatioDenom() const { return _theorySplitQueueExpectedRatioDenom.actualValue; }
   bool theorySplitQueueLayeredArrangement() const { return _theorySplitQueueLayeredArrangement.actualValue; }
   bool useAvatarSplitQueues() const { return _useAvatarSplitQueues.actualValue; }
-  Lib::vvector<int> avatarSplitQueueRatios() const;
-  Lib::vvector<float> avatarSplitQueueCutoffs() const;
+  std::vector<int> avatarSplitQueueRatios() const;
+  std::vector<float> avatarSplitQueueCutoffs() const;
   bool avatarSplitQueueLayeredArrangement() const { return _avatarSplitQueueLayeredArrangement.actualValue; }
   bool useSineLevelSplitQueues() const { return _useSineLevelSplitQueues.actualValue; }
-  Lib::vvector<int> sineLevelSplitQueueRatios() const;
-  Lib::vvector<float> sineLevelSplitQueueCutoffs() const;
+  std::vector<int> sineLevelSplitQueueRatios() const;
+  std::vector<float> sineLevelSplitQueueCutoffs() const;
   bool sineLevelSplitQueueLayeredArrangement() const { return _sineLevelSplitQueueLayeredArrangement.actualValue; }
   bool usePositiveLiteralSplitQueues() const { return _usePositiveLiteralSplitQueues.actualValue; }
-  Lib::vvector<int> positiveLiteralSplitQueueRatios() const;
-  Lib::vvector<float> positiveLiteralSplitQueueCutoffs() const;
+  std::vector<int> positiveLiteralSplitQueueRatios() const;
+  std::vector<float> positiveLiteralSplitQueueCutoffs() const;
   bool positiveLiteralSplitQueueLayeredArrangement() const { return _positiveLiteralSplitQueueLayeredArrangement.actualValue; }
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
 	AgeWeightRatioShape ageWeightRatioShape() const { return _ageWeightRatioShape.actualValue; }

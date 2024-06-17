@@ -79,7 +79,7 @@ ostream& operator<<(ostream& out, const Instruction& n)
 
 vstring LPOComparator::toString() const
 {
-  vstringstream str;
+  std::stringstream str;
   switch (_res) {
     case BranchTag::T_EQUAL:
       str << "equal" << endl;
@@ -148,7 +148,7 @@ void deleteDuplicates(Stack<Instruction>& st)
 {
   unsigned removedCnt = 0;
   Map<Instruction,unsigned> lastPos;
-  vvector<unsigned> removedAfter(st.size(),0);
+  std::vector<unsigned> removedAfter(st.size(),0);
 
   // First pass, remember the last position of
   // any duplicate instruction, and update every

@@ -992,7 +992,7 @@ bool Splitter::handleNonSplittable(Clause* cl)
  */
 vstring Splitter::splitsToString(SplitSet* splits)
 {
-  vostringstream res;
+  std::ostringstream res;
 
   auto it = splits->iter();
   while(it.hasNext()) {

@@ -24,7 +24,6 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Random.hpp"
 #include "Lib/Timer.hpp"
-#include "Lib/VString.hpp"
 #include "Lib/List.hpp"
 #include "Lib/System.hpp"
 #include "Lib/Metaiterators.hpp"

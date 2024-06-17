@@ -21,7 +21,6 @@
 
 #include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/VString.hpp"
 
 #include "Lib/Allocator.hpp"
 

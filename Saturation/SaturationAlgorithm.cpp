@@ -22,7 +22,6 @@
 #include "Lib/Timer.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/System.hpp"
-#include "Lib/STL.hpp"
 
 #include "Indexing/LiteralIndexingStructure.hpp"
 
@@ -140,7 +139,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Optio
 {
   if (opt.useTheorySplitQueues())
   {
-    Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
+    std::vector<std::unique_ptr<PassiveClauseContainer>> queues;
     auto cutoffs = opt.theorySplitQueueCutoffs();
     for (unsigned i = 0; i < cutoffs.size(); i++)
     {
@@ -159,7 +158,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel2(bool isOutermost, const Optio
 {
   if (opt.useAvatarSplitQueues())
   {
-    Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
+    std::vector<std::unique_ptr<PassiveClauseContainer>> queues;
     auto cutoffs = opt.avatarSplitQueueCutoffs();
     for (unsigned i = 0; i < cutoffs.size(); i++)
     {
@@ -178,7 +177,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel3(bool isOutermost, const Optio
 {
   if (opt.useSineLevelSplitQueues())
   {
-    Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
+    std::vector<std::unique_ptr<PassiveClauseContainer>> queues;
     auto cutoffs = opt.sineLevelSplitQueueCutoffs();
     for (unsigned i = 0; i < cutoffs.size(); i++)
     {
@@ -197,8 +196,8 @@ std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Optio
 {
   if (opt.usePositiveLiteralSplitQueues())
   {
-    Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
-    Lib::vvector<float> cutoffs = opt.positiveLiteralSplitQueueCutoffs();
+    std::vector<std::unique_ptr<PassiveClauseContainer>> queues;
+    std::vector<float> cutoffs = opt.positiveLiteralSplitQueueCutoffs();
     for (unsigned i = 0; i < cutoffs.size(); i++)
     {
       auto queueName = name + "PLSQ" + Int::toString(cutoffs[i]) + ":";

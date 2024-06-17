@@ -17,7 +17,6 @@
 
 #include "List.hpp"
 #include "Int.hpp"
-#include "VString.hpp"
 #include "Lib/Stack.hpp"
 
 namespace Lib

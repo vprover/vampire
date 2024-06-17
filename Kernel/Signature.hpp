@@ -28,7 +28,6 @@
 #include "Lib/Map.hpp"
 #include "Lib/List.hpp"
 #include "Lib/DHMap.hpp"
-#include "Lib/VString.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/SmartPtr.hpp"
 
