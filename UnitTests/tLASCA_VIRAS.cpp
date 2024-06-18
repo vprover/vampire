@@ -16,6 +16,7 @@
 #include "Kernel/Ordering.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Inferences/Cancellation.hpp"
+#include "Inferences/LASCA/VirasInterfacing.hpp"
 
 #include "Test/SyntaxSugar.hpp"
 #include "Test/TestUtils.hpp"
@@ -539,6 +540,9 @@ TEST_GENERATION(lia_03,
     )
 
 
+// TEST_FUN(viras_internal) {
+//   auto viras = viras::Viras<VampireVirasConfig>{};
+// }
 
 //    deltaX(floor(2 * x) + floor(-x)) 
 // =  distX+(floor(2 * x) + floor(-x)) - distX-(floor(2 * x) + floor(-x)) 
