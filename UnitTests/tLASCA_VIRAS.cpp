@@ -500,4 +500,68 @@ TEST_GENERATION(lia_01_2,
       .premiseRedundant(true)
     )
 
+TEST_GENERATION(lia_02,
+    Generation::SymmetricTest()
+      .inputs ({         clause({ 3 * floor(x) - 1 != 0, x - floor(a) > 0, floor(b) - x > 0 })})
+      .expected(withoutDuplicates(exactly(  )))
+      .premiseRedundant(true)
+    )
 
+#define liraQuot(l,r) floor((l) / (r))
+#define liraRem(l,r) (l) - ((r) * liraQuot(l, r))
+
+// auto equivMod(TermList l, TermList r, TermList mod) {
+//   mod
+// }
+
+TEST_GENERATION(lia_03,
+    Generation::SymmetricTest()
+      .inputs ({         clause({ liraRem(x, 3)  - 1 != 0, x - 3 * floor(a) > 0, 3 * floor(b) - x > 0 })})
+      // elimSet = { 3 Z + 0, 3 Z + 1, 3 * floor(b), -infty }
+      .expected(withoutDuplicates(exactly( 
+          // clause({ liraRem(x, 3)  - 1 != 0, x - 3 * floor(a) > 0, 3 * floor(b) - x > 0 })[x // 3 Z]
+          //          ^^^^^^^^^^^^^^^^^^--> redundant 
+          //
+          // clause({ liraRem(x, 3)  - 1 != 0, x - 3 * floor(a) > 0, 3 * floor(b) - x > 0 })[x // 3 Z + 1]
+          // clause({                          x - 3 * floor(a) > 0, 3 * floor(b) - x > 0 })[x // 3 * floor(b) + 1]
+          // clause({           3 * floor(b) + 1 - 3 * floor(a) > 0                       })
+             clause({           3 * floor(b) + 1 - 3 * floor(a) > 0                       })
+          // clause({                          x - 3 * floor(a) > 0, 3 * floor(b) - x > 0 })[x // 3 * floor(b) + 4]
+          ,  clause({           3 * floor(b) + 4 - 3 * floor(a) > 0                       })  // TODO do we really need this one as well or can we optimize it away?
+
+          // clause({ liraRem(x, 3)  - 1 != 0, x - 3 * floor(a) > 0, 3 * floor(b) - x > 0 })[x // 3 * floor(b)]
+          //          ^^^^^^^^^^^^^^^^^^^^^^^--> redundant
+          //
+          // clause({ liraRem(x, 3)  - 1 != 0, x - 3 * floor(a) > 0, 3 * floor(b) - x > 0 })[x // -infty]
+          // redundant <---------------------------------------------^^^^^^^^^^^^^^^^^^^^
+           )))
+      .premiseRedundant(true)
+    )
+
+
+
+//    deltaX(floor(2 * x) + floor(-x)) 
+// =  distX+(floor(2 * x) + floor(-x)) - distX-(floor(2 * x) + floor(-x)) 
+//
+//   distX-(floor(2 * x) + floor(-x)) 
+// = distX-(floor(2 * x)) + distX-(floor(-x))
+// = 2 * x - 1 + -x - 1
+//
+//   distX+(floor(2 * x) + floor(-x)) 
+// = distX+(floor(2 * x)) + distX+(floor(-x))
+// = 2 * x + -x
+//
+//   distX-(floor(x + a) - floor(x + b)) 
+// = distX-(floor(x + a)) + distX-(-floor(x + b))
+// = x + a - 1 - distX+(floor(x + b))
+// = x + a - 1 - x + b
+//
+//   distX+(floor(x + a) - floor(x + b)) 
+// = distX+(floor(x + a)) + distX+(-floor(x + b))
+// =              x + a   - distX-(floor(x + b))
+// =              x + a   - (x + b - 1)
+//
+// deltaX(floor(x + a) - floor(x + b)) 
+// = x + a - (x + b - 1) - ( x + a - 1 - x + b )
+// =       - (x + b - 1) - (       - 1 - x + b )
+// =         -x - b + 1  +           1 + x - b  

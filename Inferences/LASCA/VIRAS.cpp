@@ -112,6 +112,9 @@ struct VampireVirasConfig {
      .orElse([&]() { return NumTraits::ifMul(t, [&](auto l, auto r) { 
                            return NumTraits::ifNumeral(l, [&](auto k) { return if_mul(k, r); });
                      }).flatten(); })
+     .orElse([&]() { return NumTraits::ifDiv(t, [&](auto l, auto r) { 
+                           return NumTraits::ifNumeral(r, [&](auto k) { return if_mul(k.inverse(), l); });
+                     }).flatten(); })
      .orElse([&]() { return NumTraits::ifFloor(t, [&](auto t) { return if_floor(t); }); })
      .orElse([&]() { return if_var(t); });
   }

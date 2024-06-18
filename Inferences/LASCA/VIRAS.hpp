@@ -86,8 +86,9 @@ public:
   //
   //                           ClauseIterator applyRule(Clause* premise, FoundVariable<IntTraits> found) const { return ClauseIterator::getEmpty(); };
   // template<class NumTraits> ClauseIterator applyRule(Clause* premise, FoundVariable<NumTraits> found) const;
-  //
+
   ClauseGenerationResult generateSimplify(Clause* premise) final override;
+
 
 #if VDEBUG
   virtual void setTestIndices(Stack<Indexing::Index*> const&) final override {}
