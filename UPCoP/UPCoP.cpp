@@ -478,8 +478,10 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
   RigidSubstitution substitution;
   // substitution used for minimizing unification conflicts
   RigidSubstitution minimize;
-  // connections made so far
-  std::vector<int> connections;
+  // assignments made so far
+  std::vector<int> trail;
+  // map from variables to 0 if not assigned, -1/+1 for assigned
+  std::vector<char> set;
   // if there is a clause for CaDiCaL to learn
   bool learn_set = false;
   // the next learned clause
@@ -491,8 +493,8 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
 
   // store things to backtrack in a decision level
   struct Level {
-    // number of connections made
-    size_t connections;
+    // size of the trail
+    size_t trail;
     // number of variables bound
     size_t variables;
   };
@@ -503,20 +505,25 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
     matrix(matrix),
     substitution(matrix.variables),
     minimize(matrix.variables),
+    set(matrix.sat2conn.size(), 0),
     ordering(Kernel::Ordering::create(problem, *env.options))
   {}
 
   void notify_assignment(int assigned, bool fixed) final {
+    // log() << "assign: " << assigned << '\n';
+
     // should only get fixed assignments at decision level 0 (without chrono)
     ASS(!fixed || levels.empty())
+    ASS_EQ(set[abs(assigned)], 0)
 
-    // log() << assigned << '\n';
+    trail.push_back(assigned);
+    set[abs(assigned)] = assigned > 0 ? 1 : -1;
+
     // do nothing when variable is assigned false,
     // or there is a conflict we didn't tell CaDiCaL about yet
     if(assigned < 0 || learn_set)
       return;
 
-    connections.push_back(assigned);
     // unify the literals corresponding to the connection
     if(!substitution.unify(matrix.sat2conn[assigned]))
       compute_unification_reason(assigned);
@@ -541,7 +548,9 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
       failed = 0;
       // will always exit early since the totality of connections cannot be unified
       // NB does not repeat unifications from `reason`
-      for(int connection : connections)
+      for(int connection : trail) {
+        if(connection < 0)
+          continue;
         if(!minimize.unify(matrix.sat2conn[connection])) {
           // this connection definitely necessary
           failed = connection;
@@ -549,10 +558,12 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
           minimize.pop_to(restore);
           break;
         }
+      }
       // `failed` must have been set in the loop
       ASS_NEQ(failed, 0)
     } while(minimize.unify(matrix.sat2conn[failed]));
-    //log() << "unification: " << learn << '\n';
+
+    // log() << "unification: " << learn << '\n';
   }
 
   void compute_disequation_reason(TermPair disequation) {
@@ -567,7 +578,9 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
       failed = 0;
       // will always exit early since the totality of connections cause disequation failure
       // NB does not repeat unifications from `reason`
-      for(int connection : connections) {
+      for(int connection : trail) {
+        if(connection < 0)
+          continue;
         // will always succeed as the set of connections is consistent
         ALWAYS(minimize.unify(matrix.sat2conn[connection]))
         if(minimize.equal(disequation)) {
@@ -595,10 +608,8 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
     return true;
   }
 
-
-
   void notify_new_decision_level() final {
-    levels.push_back({connections.size(), substitution.trail.size()});
+    levels.push_back({trail.size(), substitution.trail.size()});
     // log() << "decision: " << levels.size() << '\n';
   }
 
@@ -610,10 +621,14 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
 
     learn_set = false;
     learn.clear();
+
     // undo everything after this level
     Level level = levels[decision_level];
     levels.resize(decision_level);
-    connections.resize(level.connections);
+    while(trail.size() > level.trail) {
+      set[abs(trail.back())] = 0;
+      trail.pop_back();
+    }
     substitution.pop_to(level.variables);
   }
 
@@ -626,9 +641,10 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
   }
 
   int cb_add_external_clause_lit() final {
-    learn_set = false;
-    if(learn.empty())
+    if(learn.empty()) {
+      learn_set = false;
       return 0;
+    }
     int lit = learn.back();
     learn.pop_back();
     return lit;
@@ -667,18 +683,12 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
         subterms.insert(TermList(it.next()));
     }
 
-    // a set of positive connections: TODO track this ourselves
-    std::unordered_set<int> model_set;
-    for(int lit : model)
-      if(lit > 0)
-        model_set.insert(lit);
-
     // at least one connection along the path must be made
     for(int connection = 1; connection < matrix.sat2conn.size(); connection++) {
       // we can ignore connections already set:
       // 1. If the connection is between predicates, this wouldn't be a path
       // 2. If the connection is between an equation and a subterm, it wasn't strong enough
-      if(model_set.count(connection))
+      if(set[connection] > 0)
         continue;
 
       auto [s, t] = matrix.sat2conn[connection];
@@ -695,7 +705,7 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
     return false;
   }
 
-  // find a path through the matrix
+  // find a path through the matrix under the current substitution
   std::unordered_set<Literal *> find_path() {
     // auxiliary SAT solver for finding paths
     MinisatInterfacing pathfinder(*env.options);
