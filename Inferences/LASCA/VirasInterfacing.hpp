@@ -116,6 +116,13 @@ struct VampireVirasConfig {
      .orElse([&]() { return NumTraits::ifFloor(t, [&](auto t) { return if_floor(t); }); })
      .orElse([&]() { return if_var(t); });
   }
+#ifdef VDEBUG
+  Var test_var(const char* name) {
+    auto f = env.signature->addFunction(name, 0);
+    env.signature->getFunction(f)->setType(Kernel::OperatorType::getFunctionType({}, NumTraits::sort()));
+    return TermList(Kernel::Term::createConstant(f));                                                          
+  }
+#endif // VDEBUG
 };
 
 

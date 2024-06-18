@@ -539,10 +539,12 @@ TEST_GENERATION(lia_03,
       .premiseRedundant(true)
     )
 
+#include <viras/test.h>
 
-// TEST_FUN(viras_internal) {
-//   auto viras = viras::Viras<VampireVirasConfig>{};
-// }
+TEST_FUN(viras_internal) {
+  auto viras = viras::VirasTest<VampireVirasConfig>(VampireVirasConfig());
+  viras.run_tests();
+}
 
 //    deltaX(floor(2 * x) + floor(-x)) 
 // =  distX+(floor(2 * x) + floor(-x)) - distX-(floor(2 * x) + floor(-x)) 
