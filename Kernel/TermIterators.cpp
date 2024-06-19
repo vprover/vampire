@@ -440,7 +440,7 @@ Term* NonVariableNonTypeIterator::next()
   Term* t = _stack.pop();
   TermList* ts;
   _added = 0;
-  unsigned taArity; 
+  unsigned taArity;
   unsigned arity;
   if (t->isSpecial()) {
     // This is a very incomplete support for special terms (which normally get eliminated during preprocessing).
@@ -448,8 +448,10 @@ Term* NonVariableNonTypeIterator::next()
     // (We don't mind being iteration-incomplete there so skip the $ite-condition,
     // which is a formula and would make things much more complicated here.)
     // TODO decide: is it worth extending this properly (as usually, we won't encounter specail terms here)?
+#if VDEBUG
     Term::SpecialTermData* sd = t->getSpecialData();
     ASS(sd->specialFunctor() == SpecialFunctor::ITE);
+#endif
     taArity = 0;
     arity = 2;
   } else {
