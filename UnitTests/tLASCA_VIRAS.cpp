@@ -530,10 +530,6 @@ TEST_GENERATION(lia_02,
 #define liraQuot(l,r) floor((l) / (r))
 #define liraRem(l,r) (l) - ((r) * liraQuot(l, r))
 
-// auto equivMod(TermList l, TermList r, TermList mod) {
-//   mod
-// }
-
 TEST_GENERATION(lia_03,
     Generation::SymmetricTest()
       .inputs ({         clause({ liraRem(x, 3)  - 1 != 0, x - 3 * floor(a) > 0, 3 * floor(b) - x > 0 })})
@@ -563,29 +559,3 @@ TEST_FUN(viras_internal) {
   auto viras = viras::VirasTest<viras::SimplifyingConfig<VampireVirasConfig>>(viras::simplifyingConfig(VampireVirasConfig()));
   viras.auto_test();
 }
-
-//    deltaX(floor(2 * x) + floor(-x)) 
-// =  distX+(floor(2 * x) + floor(-x)) - distX-(floor(2 * x) + floor(-x)) 
-//
-//   distX-(floor(2 * x) + floor(-x)) 
-// = distX-(floor(2 * x)) + distX-(floor(-x))
-// = 2 * x - 1 + -x - 1
-//
-//   distX+(floor(2 * x) + floor(-x)) 
-// = distX+(floor(2 * x)) + distX+(floor(-x))
-// = 2 * x + -x
-//
-//   distX-(floor(x + a) - floor(x + b)) 
-// = distX-(floor(x + a)) + distX-(-floor(x + b))
-// = x + a - 1 - distX+(floor(x + b))
-// = x + a - 1 - x + b
-//
-//   distX+(floor(x + a) - floor(x + b)) 
-// = distX+(floor(x + a)) + distX+(-floor(x + b))
-// =              x + a   - distX-(floor(x + b))
-// =              x + a   - (x + b - 1)
-//
-// deltaX(floor(x + a) - floor(x + b)) 
-// = x + a - (x + b - 1) - ( x + a - 1 - x + b )
-// =       - (x + b - 1) - (       - 1 - x + b )
-// =         -x - b + 1  +           1 + x - b  
