@@ -27,6 +27,7 @@
 #include "Indexing/TermSubstitutionTree.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Inferences/LASCA/Normalization.hpp"
+#include "viras.h"
 
 using namespace std;
 using namespace Kernel;
@@ -542,8 +543,8 @@ TEST_GENERATION(lia_03,
 #include <viras/test.h>
 
 TEST_FUN(viras_internal) {
-  auto viras = viras::VirasTest<VampireVirasConfig>(VampireVirasConfig());
-  viras.run_tests();
+  auto viras = viras::VirasTest<viras::SimplifyingConfig<VampireVirasConfig>>(viras::simplifyingConfig(VampireVirasConfig()));
+  viras.auto_test();
 }
 
 //    deltaX(floor(2 * x) + floor(-x)) 
