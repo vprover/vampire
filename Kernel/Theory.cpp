@@ -1380,6 +1380,22 @@ std::ostream& operator<<(std::ostream& out, Kernel::Theory::Interpretation const
   }
   ASSERTION_VIOLATION
 }
+
+std::ostream& operator<<(std::ostream& out, IntegerConstantType const& self)
+{ return out << self.toString(); }
+
+std::ostream& operator<<(std::ostream& out, RationalConstantType const& self)
+#if NICE_THEORY_OUTPUT
+{ return self.isInt() ? out << self.numerator() 
+                      : out << self.numerator() << "/" << self.denominator(); }
+#else 
+{ return out << self.numerator() << "/" << self.denominator(); }
+#endif // NICE_THEORY_OUTPUT
+
+std::ostream& operator<<(std::ostream& out, RealConstantType const& self)
+{ return out << (RationalConstantType const&)self; }
+
+
 /**
  * We try and get a LaTeX special name for an interpeted function/predicate.
  * Note: the functions may not necessarily be interpreted in the sense that we treat

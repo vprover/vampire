@@ -677,36 +677,48 @@ vstring Term::toString(bool topLevel) const
 
 #if NICE_THEORY_OUTPUT
   auto theoryTerm = Kernel::tryNumTraits([&](auto numTraits) {
-    auto unary = [&](auto sym)  {
+    using NumTraits = decltype(numTraits);
+    auto uminus = [&]()  {
       vstringstream out;
-      // out << sym << "(" << termArg(0) << ")";
-      out << sym << termArg(0);
+      auto maybePar = [&](auto t) { 
+        auto needsPar = t.isTerm() && NumTraits::isAdd(t.term()->functor());
+        return t.toString(!needsPar);
+      };
+      out << "-" << maybePar(termArg(0));
       return Option<vstring>(out.str());
     };
     auto binary = [&](auto sym)  {
+      auto needsPar = !topLevel;
+      auto maybePar = [&](auto t) { 
+        return t.toString(
+            t.isTerm() && (
+              t.term()->functor() == _functor 
+              || (NumTraits::isAdd(_functor) && NumTraits::isMul(t.term()->functor()))
+              )
+            );
+      };
       vstringstream out;
-      out << "(" << termArg(0) 
-          << " " << sym << " " << termArg(1)
-          << ")";
+      out << (needsPar ? "(" : "");
+      out << maybePar(termArg(0)) << sym << maybePar(termArg(1));
+      out << (needsPar ? ")" : "");
       return Option<vstring>(out.str());
     };
-    using NumTraits = decltype(numTraits);
     if (isLiteral()) {
-      if (_functor == NumTraits::greaterF()) {
+      if (NumTraits::isGreater(_functor)) {
         return binary(">");
-      } else if (_functor == NumTraits::geqF()) {
+      } else if (NumTraits::isGeq(_functor)) {
         return binary(">=");
       }
       /* nothing */
     } else if (isSort()) {
       /* nothing */
     } else {
-      if (_functor == NumTraits::addF()) {
-        return binary("+");
-      } else if (_functor == NumTraits::mulF()) {
-        return binary("*");
-      } else if (_functor == NumTraits::minusF()) {
-        return unary("-");
+      if (NumTraits::isAdd(_functor)) {
+        return binary(" + ");
+      } else if (NumTraits::isMul(_functor)) {
+        return binary(" ");
+      } else if (NumTraits::isMinus(_functor)) {
+        return uminus();
       }
     }
     return Option<vstring>();

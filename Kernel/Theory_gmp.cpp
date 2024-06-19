@@ -365,16 +365,6 @@ bool RationalConstantType::operator>(const RationalConstantType& o) const
   return l > r;
 }
 
-std::ostream& operator<<(std::ostream& out, IntegerConstantType const& self)
-{ return out << self.toString(); }
-
-std::ostream& operator<<(std::ostream& out, RationalConstantType const& self)
-{ return out << self.numerator() << "/" << self.denominator(); }
-
-std::ostream& operator<<(std::ostream& out, RealConstantType const& self)
-{ return out << (RationalConstantType const&)self; }
-
-
 vstring RationalConstantType::toString() const
 { return Lib::toString(*this); }
 
