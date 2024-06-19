@@ -22,7 +22,6 @@ using namespace Inferences;
 using namespace LASCA;
 using namespace Lib;
 
-#include <viras.h>
 #include "VirasInterfacing.hpp"
 
 template<class VirasIter>

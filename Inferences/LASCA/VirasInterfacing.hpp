@@ -16,6 +16,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Theory.hpp"
 #include "Kernel/NumTraits.hpp"
+#define VIRAS_ASSERT(...) ASS(__VA_ARGS__)
 #include <viras.h>
 
 
@@ -116,6 +117,7 @@ struct VampireVirasConfig {
      .orElse([&]() { return NumTraits::ifFloor(t, [&](auto t) { return if_floor(t); }); })
      .orElse([&]() { return if_var(t); });
   }
+
 #ifdef VDEBUG
   Var test_var(const char* name) {
     auto f = env.signature->addFunction(name, 0);
@@ -123,6 +125,7 @@ struct VampireVirasConfig {
     return TermList(Kernel::Term::createConstant(f));                                                          
   }
 #endif // VDEBUG
+
 };
 
 

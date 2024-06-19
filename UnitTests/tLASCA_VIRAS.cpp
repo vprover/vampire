@@ -27,7 +27,9 @@
 #include "Indexing/TermSubstitutionTree.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Inferences/LASCA/Normalization.hpp"
-#include "viras.h"
+
+#include <viras.h>
+#include <viras/test.h>
 
 using namespace std;
 using namespace Kernel;
@@ -366,7 +368,6 @@ TEST_GENERATION(ported_lra_test_bug03,
       .inputs ({  clause({ 0 != -1 + -x + -3 * f(x) + y 
                              , 0 !=  1 +  x +  3 * f(x) - y })})
       .expected(exactly(
-            clause({  }),
             clause({  })
       ))
       .premiseRedundant(true)
@@ -490,6 +491,7 @@ TEST_GENERATION(lia_01_1,
             , clause({ })
             , clause({ })
             , clause({ })
+            , clause({ })
             , clause({ }) // TODO somehow get rid of these duplicate results
             )))
       .premiseRedundant(true)
@@ -505,7 +507,23 @@ TEST_GENERATION(lia_01_2,
 TEST_GENERATION(lia_02,
     Generation::SymmetricTest()
       .inputs ({         clause({ 3 * floor(x) - 1 != 0, x - floor(a) > 0, floor(b) - x > 0 })})
-      .expected(withoutDuplicates(exactly(  )))
+      // elimSet: 1, 1 + ε, 4/3, 1/3
+      //          -∞
+      //          floor(b)
+      .expected(withoutDuplicates(exactly( 
+             // clause({ 3 * floor(x) - 1 != 0, x - floor(a) > 0, floor(b) - x > 0 })[-inf]
+             // => redundant
+             // clause({ 3 * floor(x) - 1 != 0, x - floor(a) > 0, floor(b) - x > 0 })[floor(b)]
+                clause({ 3 * floor(b) - 1 != 0, floor(b) - floor(a) > 0                  })
+             // clause({ 3 * floor(x) - 1 != 0, x - floor(a) > 0, floor(b) - x > 0 })[1]
+             //          ^^^^^^^^^^^^^^^^^^^^^----> redundant
+             // clause({ 3 * floor(x) - 1 != 0, x - floor(a) > 0, floor(b) - x > 0 })[1 + epsilon]
+             //          ^^^^^^^^^^^^^^^^^^^^^----> redundant
+             // clause({ 3 * floor(x) - 1 != 0, x - floor(a) > 0, floor(b) - x > 0 })[4/3]
+             //          ^^^^^^^^^^^^^^^^^^^^^----> redundant
+             // clause({ 3 * floor(x) - 1 != 0, x - floor(a) > 0, floor(b) - x > 0 })[1/3]
+             //          ^^^^^^^^^^^^^^^^^^^^^----> redundant
+            )))
       .premiseRedundant(true)
     )
 
@@ -540,7 +558,6 @@ TEST_GENERATION(lia_03,
       .premiseRedundant(true)
     )
 
-#include <viras/test.h>
 
 TEST_FUN(viras_internal) {
   auto viras = viras::VirasTest<viras::SimplifyingConfig<VampireVirasConfig>>(viras::simplifyingConfig(VampireVirasConfig()));
