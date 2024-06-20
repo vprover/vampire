@@ -101,7 +101,7 @@ public:
     if(base.isTerm()) {
       Term* bt=base.term();
       if(!instance.isTerm() || base.term()->functor()!=instance.term()->functor()) {
-	return false;
+        return false;
       }
       Term* it=instance.term();
       if(bt->shared() && it->shared()) {

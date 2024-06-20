@@ -284,7 +284,7 @@ void Options::init()
     _badOption.description = "What should be done if a bad option value (wrt hard and soft constraints) is encountered:\n"
        " - hard: will cause a user error\n"
        " - soft: will only report the error (unless it is unsafe)\n"
-       " - forced: <under development> \n" 
+       " - forced: <under development> \n"
        " - off: will ignore safe errors\n"
        "Note that unsafe errors will always lead to a user error";
     _lookup.insert(&_badOption);
@@ -303,7 +303,7 @@ void Options::init()
       "- proofcheck will output proof as a sequence of TPTP problems to allow for proof-checking by external solvers\n"
       "- tptp gives TPTP output\n"
       "- property is a developmental option. It allows developers to output statistics about the proof using a ProofPrinter "
-      "object (see Kernel/InferenceStore::ProofPropertyPrinter\n"; 
+      "object (see Kernel/InferenceStore::ProofPropertyPrinter\n";
     _lookup.insert(&_proof);
     _proof.tag(OptionTag::OUTPUT);
 
@@ -321,7 +321,7 @@ void Options::init()
 
     _proofExtra = ChoiceOptionValue<ProofExtra>("proof_extra","",ProofExtra::OFF,{"off","free","full"});
     _proofExtra.description="Add extra detail to proofs:\n "
-      "- free uses known information only\n" 
+      "- free uses known information only\n"
       "- full may perform expensive operations to achieve this so may"
       " significantly impact on performance.\n"
       " The option is still under development and the format of extra information (mainly from full) may change between minor releases";
@@ -353,7 +353,7 @@ void Options::init()
 
     _ignoreMissingInputsInUnsatCore = BoolOptionValue("ignore_missing_inputs_in_unsat_core","",false);
     _ignoreMissingInputsInUnsatCore.description="When running in unsat core output mode we will complain if there is"
-    " an input formula that has no label. Set this on if you don't want this behaviour (which is default in smt-comp)."; 
+    " an input formula that has no label. Set this on if you don't want this behaviour (which is default in smt-comp).";
     _lookup.insert(&_ignoreMissingInputsInUnsatCore);
     _ignoreMissingInputsInUnsatCore.tag(OptionTag::OUTPUT);
 
@@ -1029,8 +1029,8 @@ void Options::init()
     _positiveLiteralSplitQueueLayeredArrangement.tag(OptionTag::SATURATION);
 
     _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
-    _literalMaximalityAftercheck.description = 
-                                   "For efficiency we perform maximality checks before applying substitutions. Sometimes this can " 
+    _literalMaximalityAftercheck.description =
+                                   "For efficiency we perform maximality checks before applying substitutions. Sometimes this can "
                                    "lead to generating more clauses than needed for completeness. Set this on to add the checks "
                                    "afterwards as well.";
     _lookup.insert(&_literalMaximalityAftercheck);
@@ -1765,7 +1765,7 @@ void Options::init()
     _lookup.insert(&_combinatorySuperposition);
     _combinatorySuperposition.addProblemConstraint(hasHigherOrder());
     _combinatorySuperposition.onlyUsefulWith(_addCombAxioms.is(equal(false))); //no point having two together
-    _combinatorySuperposition.onlyUsefulWith(ProperSaturationAlgorithm());    
+    _combinatorySuperposition.onlyUsefulWith(ProperSaturationAlgorithm());
     _combinatorySuperposition.tag(OptionTag::HIGHER_ORDER);
 
     _choiceAxiom = BoolOptionValue("choice_ax","cha",false);
@@ -1777,20 +1777,20 @@ void Options::init()
     _choiceReasoning = BoolOptionValue("choice_reasoning","chr",false);
     _choiceReasoning.description="Reason about choice by adding relevant instances of the axiom";
     _lookup.insert(&_choiceReasoning);
-    _choiceReasoning.addProblemConstraint(hasHigherOrder());    
+    _choiceReasoning.addProblemConstraint(hasHigherOrder());
     _choiceReasoning.onlyUsefulWith(_choiceAxiom.is(equal(false))); //no point having two together
     _choiceReasoning.tag(OptionTag::HIGHER_ORDER);
 
     _priortyToLongReducts = BoolOptionValue("priority_to_long_reducts","ptlr",false);
     _priortyToLongReducts.description="give priority to clauses produced by lengthy reductions";
     _lookup.insert(&_priortyToLongReducts);
-    _priortyToLongReducts.addProblemConstraint(hasHigherOrder());        
+    _priortyToLongReducts.addProblemConstraint(hasHigherOrder());
     _priortyToLongReducts.tag(OptionTag::HIGHER_ORDER);
 
     _injectivity = BoolOptionValue("injectivity","inj",false);
     _injectivity.description="Attempts to identify injective functions and postulates a left-inverse";
     _lookup.insert(&_injectivity);
-    _injectivity.addProblemConstraint(hasHigherOrder());            
+    _injectivity.addProblemConstraint(hasHigherOrder());
     _injectivity.tag(OptionTag::HIGHER_ORDER);
 
     _pragmatic = BoolOptionValue("pragmatic","prag",false);
@@ -1804,11 +1804,11 @@ void Options::init()
     _maximumXXNarrows.description="Maximum number of BXX', CXX' and SXX' narrows that"
                                   "can be carried out 0 means that there is no limit. ";
     _lookup.insert(&_maximumXXNarrows);
-    _maximumXXNarrows.addProblemConstraint(hasHigherOrder());    
+    _maximumXXNarrows.addProblemConstraint(hasHigherOrder());
     _maximumXXNarrows.tag(OptionTag::HIGHER_ORDER);
 
     // TODO we have two ways of enabling function extensionality abstraction atm:
-    // this option, and `-uwa`. 
+    // this option, and `-uwa`.
     // We should sort this out before merging into master.
     _functionExtensionality = ChoiceOptionValue<FunctionExtensionality>("func_ext","fe",FunctionExtensionality::ABSTRACTION,
                                                                           {"off", "axiom", "abstraction"});
@@ -1827,7 +1827,7 @@ void Options::init()
                                                                           "off"});
     _clausificationOnTheFly.description="Various options linked to clausification on the fly";
     _lookup.insert(&_clausificationOnTheFly);
-    _clausificationOnTheFly.addProblemConstraint(hasHigherOrder());    
+    _clausificationOnTheFly.addProblemConstraint(hasHigherOrder());
     _clausificationOnTheFly.tag(OptionTag::HIGHER_ORDER);
 
 
@@ -1838,7 +1838,7 @@ void Options::init()
                                                                         "small_set"});
     _piSet.description="Controls the set of equations to use in primitive instantiation";
     _lookup.insert(&_piSet);
-    _piSet.addProblemConstraint(hasHigherOrder());     
+    _piSet.addProblemConstraint(hasHigherOrder());
     _piSet.tag(OptionTag::HIGHER_ORDER);
 
 
@@ -1866,7 +1866,7 @@ void Options::init()
     "Switches on primitive instantiation and elimination of Leibniz equality";
     _complexBooleanReasoning.onlyUsefulWith(_addProxyAxioms.is(equal(false)));
     _lookup.insert(&_complexBooleanReasoning);
-    _complexBooleanReasoning.addProblemConstraint(hasHigherOrder());    
+    _complexBooleanReasoning.addProblemConstraint(hasHigherOrder());
     _complexBooleanReasoning.tag(OptionTag::HIGHER_ORDER);
 
     _booleanEqTrick = BoolOptionValue("bool_eq_trick","bet",false);
@@ -1875,13 +1875,13 @@ void Options::init()
     "t = s with a disequality t != vnot(s)"
     " The theory is that this can help with EqRes";
     _lookup.insert(&_booleanEqTrick);
-    // potentially could be useful for FOOL, so am not adding the HOL constraint    
+    // potentially could be useful for FOOL, so am not adding the HOL constraint
     _booleanEqTrick.tag(OptionTag::HIGHER_ORDER);
 
     _casesSimp = BoolOptionValue("cases_simp","cs",false);
     _casesSimp.description=
     "FOOL Paramodulation with two conclusion as a simplification";
-    _casesSimp.onlyUsefulWith(_cases.is(equal(false)));    
+    _casesSimp.onlyUsefulWith(_cases.is(equal(false)));
     _lookup.insert(&_casesSimp);
     // potentially could be useful for FOOL, so am not adding the HOL constraint
     _casesSimp.tag(OptionTag::HIGHER_ORDER);
@@ -1893,21 +1893,21 @@ void Options::init()
     "Alternative to FOOL Paramodulation that replaces all Boolean subterms in one step";
     _cases.onlyUsefulWith(_casesSimp.is(equal(false)));
     _lookup.insert(&_cases);
-    // potentially could be useful for FOOL, so am not adding the HOL constraint    
+    // potentially could be useful for FOOL, so am not adding the HOL constraint
     _cases.tag(OptionTag::HIGHER_ORDER);
 
     _newTautologyDel = BoolOptionValue("new_taut_del","ntd",false);
     _newTautologyDel.description=
     "Delete clauses with literals of the form false != true or t = true \\/ t = false";
     _lookup.insert(&_newTautologyDel);
-    // potentially could be useful for FOOL, so am not adding the HOL constraint    
+    // potentially could be useful for FOOL, so am not adding the HOL constraint
     _newTautologyDel.tag(OptionTag::HIGHER_ORDER);
 
     _lambdaFreeHol = BoolOptionValue("lam_free_hol","lfh",false);
     _lambdaFreeHol.description=
     "Reason about lambda-free hol. See paper by Vukmirovic et al.";
     _lookup.insert(&_lambdaFreeHol);
-    _lambdaFreeHol.addProblemConstraint(hasHigherOrder());    
+    _lambdaFreeHol.addProblemConstraint(hasHigherOrder());
     _lambdaFreeHol.tag(OptionTag::HIGHER_ORDER);
 
     _complexVarCondition = BoolOptionValue("complex_var_cond","cvc",false);
@@ -2305,14 +2305,14 @@ void Options::init()
     //******************************************************************
     //*********************** Vinter???  *******************************
     //******************************************************************
-    
+
     _colorUnblocking = BoolOptionValue("color_unblocking","",false);
     _colorUnblocking.description="";
     _lookup.insert(&_colorUnblocking);
     _colorUnblocking.setExperimental();
     _colorUnblocking.tag(OptionTag::OTHER);
-    
-    
+
+
     _showInterpolant = ChoiceOptionValue<InterpolantMode>("show_interpolant","",InterpolantMode::OFF,
                                                           {"new_heur",
 #if VZ3
@@ -2322,9 +2322,9 @@ void Options::init()
     _lookup.insert(&_showInterpolant);
     _showInterpolant.tag(OptionTag::OTHER);
     _showInterpolant.setExperimental();
-    
+
  // Declare tag names
-    
+
     _tagNames = {
                  "Unused",
                  "Other",
@@ -2529,39 +2529,39 @@ void Options::output (ostream& str) const
   }
 
   if(!explainOption().empty()){
-     AbstractOptionValue* option;
-     vstring name = explainOption();
-     try{
-       option = _lookup.findLong(name);
-     }
-     catch(const ValueNotFoundException&){ 
-       try{
-         option = _lookup.findShort(name);
-       }
-       catch(const ValueNotFoundException&){
-         option = 0;
-       }
-     }
-     if(!option){ 
-       str << name << " not a known option" << endl;
-       Stack<vstring> sim_s = getSimilarOptionNames(name,true);
-       Stack<vstring> sim_l = getSimilarOptionNames(name,false);
-       VirtualIterator<vstring> sit = pvi(concatIters(
-           Stack<vstring>::Iterator(sim_s),Stack<vstring>::Iterator(sim_l))); 
-        if(sit.hasNext()){
-          vstring first = sit.next();
-          str << "\tMaybe you meant ";
-          if(sit.hasNext()) str << "one of:\n\t\t";
-          str << first;
-          while(sit.hasNext()){ str << "\n\t\t"+sit.next();}
-          str << endl;
-        }
-     }
-     else{
-       vstringstream vs;
-       option->output(vs,lineWrapInShowOptions());
-       str << vs.str();
-     }
+    AbstractOptionValue* option;
+    vstring name = explainOption();
+    try{
+      option = _lookup.findLong(name);
+    }
+    catch(const ValueNotFoundException&){
+      try{
+        option = _lookup.findShort(name);
+      }
+      catch(const ValueNotFoundException&){
+        option = 0;
+      }
+    }
+    if(!option){
+      str << name << " not a known option" << endl;
+      Stack<vstring> sim_s = getSimilarOptionNames(name,true);
+      Stack<vstring> sim_l = getSimilarOptionNames(name,false);
+      VirtualIterator<vstring> sit = pvi(concatIters(
+      Stack<vstring>::Iterator(sim_s),Stack<vstring>::Iterator(sim_l)));
+      if(sit.hasNext()){
+        vstring first = sit.next();
+        str << "\tMaybe you meant ";
+        if(sit.hasNext()) str << "one of:\n\t\t";
+        str << first;
+        while(sit.hasNext()){ str << "\n\t\t"+sit.next();}
+        str << endl;
+      }
+    }
+    else{
+      vstringstream vs;
+      option->output(vs,lineWrapInShowOptions());
+      str << vs.str();
+    }
 
   }
 
@@ -2585,8 +2585,8 @@ void Options::output (ostream& str) const
   }
 
   bool normalshow = showOptions();
-  bool experimental = showExperimentalOptions();  
-  
+  bool experimental = showExperimentalOptions();
+
   if(normalshow || experimental) {
     Mode this_mode = _mode.actualValue;
     //str << "=========== Options ==========\n";
@@ -2605,8 +2605,8 @@ void Options::output (ostream& str) const
 
     while(options.hasNext()){
       AbstractOptionValue* option = options.next();
-      if(option->inMode(this_mode) && 
-              ((experimental && option->experimental) || 
+      if(option->inMode(this_mode) &&
+              ((experimental && option->experimental) ||
                (normalshow && !option->experimental) )){
         unsigned tag = static_cast<unsigned>(option->getTag());
         //option->output(*groups[tag]);
@@ -3281,7 +3281,7 @@ void Options::readFromEncodedOptions (vstring testId)
   }
   vstring timeString = testId.substr(index+1);
   _timeLimitInDeciseconds.set(timeString);
-  // setting assumes seconds as default, but encoded strings use deciseconds 
+  // setting assumes seconds as default, but encoded strings use deciseconds
   _timeLimitInDeciseconds.actualValue = _timeLimitInDeciseconds.actualValue/10;
 
   testId = testId.substr(3,index-3);
@@ -3338,7 +3338,7 @@ vstring Options::generateEncodedOptions() const
     default : ASSERTION_VIOLATION;
   }
 
-  res << sat; 
+  res << sat;
 
   //selection function
   res << (selection() < 0 ? "-" : "+") << abs(selection());
@@ -3400,7 +3400,7 @@ vstring Options::generateEncodedOptions() const
 
   if(!first){ res << "_"; }
   res << Lib::Int::toString(_timeLimitInDeciseconds.actualValue);
- 
+
   return res.str();
 }
 
@@ -3454,7 +3454,7 @@ bool Options::complete(const Problem& prb) const
   if (_sos.actualValue != Sos::OFF) return false;
   // run-time rule causing incompleteness
   if (_forwardLiteralRewriting.actualValue) return false;
-  
+
   bool unitEquality = prop.category() == Property::UEQ;
   bool hasEquality = (prop.equalityAtoms() != 0);
 
@@ -3510,13 +3510,13 @@ bool Options::checkGlobalOptionConstraints(bool fail_early)
 {
   //Check forbidden options
   readOptionsString(_forbiddenOptions.actualValue,false);
-    
+
   bool result = true;
 
   // Check recorded option constraints
   VirtualIterator<AbstractOptionValue*> options = _lookup.values();
-  while(options.hasNext()){ 
-    result = options.next()->checkConstraints() && result; 
+  while(options.hasNext()){
+    result = options.next()->checkConstraints() && result;
     if(fail_early && !result) return result;
   }
 
@@ -3592,7 +3592,7 @@ bool Options::checkProblemOptionConstraints(Property* prop, bool before_preproce
 }
 
 template<class A>
-Lib::vvector<A> parseCommaSeparatedList(vstring const& str) 
+Lib::vvector<A> parseCommaSeparatedList(vstring const& str)
 {
   vstringstream stream(str);
   Lib::vvector<A> parsed;
@@ -3633,7 +3633,7 @@ Lib::vvector<float> Options::theorySplitQueueCutoffs() const
     cutoffs.push_back(4.0f * d);
     cutoffs.push_back(10.0f * d);
     cutoffs.push_back(std::numeric_limits<float>::max());
-  } else */ 
+  } else */
   {
     // if custom cutoffs are set, parse them and add float-max as last value
     cutoffs = parseCommaSeparatedList<float>(_theorySplitQueueCutoffs.actualValue);

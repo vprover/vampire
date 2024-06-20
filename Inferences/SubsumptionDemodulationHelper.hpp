@@ -358,7 +358,7 @@ bool termContainsAllVariablesOfOtherUnderSubst(TermList term, TermList other, Ap
     }
   }
 
-  // check that all vars of other after substition have been collected
+  // check that all vars of other after substitution have been collected
   vit.reset(other);
   while (vit.hasNext()) {
     TermList t = applicator.apply(vit.next().var());
