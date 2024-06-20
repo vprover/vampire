@@ -24,10 +24,22 @@ namespace Inferences {
 namespace LASCA {
 
 struct VampireVirasConfig {
+  struct VarWrapper { 
+    Kernel::TermList inner; 
+    DERIVE_TUPLE(VarWrapper, inner)
+    DERIVE_TUPLE_EQ
+    DERIVE_TUPLE_LESS
+    auto defaultHash() { return inner.defaultHash(); }
+    auto defaultHash2() { return inner.defaultHash2(); }
+    friend std::ostream& operator<<(std::ostream& out, VarWrapper const& self)
+    { return out << self.inner; }
+  };
+  static constexpr bool optimizeBounds = true;
+  static constexpr bool optimizeGridIntersection = true;
 
   using Literals = Stack<Kernel::Literal*> const*;
   using Literal  = Kernel::Literal*;
-  using Var      = Kernel::TermList;
+  using Var      = VarWrapper;
   using Term     = Kernel::TermList;
   using Numeral  = Kernel::RationalConstantType;
   using NumTraits = Kernel::NumTraits<Numeral>;
@@ -43,7 +55,7 @@ struct VampireVirasConfig {
   Term simpl(Term t) { return t; } // TODO
 
   Term term(Numeral n) { return NumTraits::constantTl(n); }
-  Term term(Var v) { return v; }
+  Term term(Var v) { return v.inner; }
 
   Term mul(Numeral l, Term r) { return NumTraits::mul(term(l), r); }
   Term add(Term l, Term r) { return NumTraits::add(l,r); }
@@ -115,19 +127,18 @@ struct VampireVirasConfig {
                            return NumTraits::ifNumeral(r, [&](auto k) { return if_mul(k.inverse(), l); });
                      }).flatten(); })
      .orElse([&]() { return NumTraits::ifFloor(t, [&](auto t) { return if_floor(t); }); })
-     .orElse([&]() { return if_var(t); });
+     .orElse([&]() { return if_var(VarWrapper{t}); });
   }
 
 #ifdef VDEBUG
   Var test_var(const char* name) {
     auto f = env.signature->addFunction(name, 0);
     env.signature->getFunction(f)->setType(Kernel::OperatorType::getFunctionType({}, NumTraits::sort()));
-    return TermList(Kernel::Term::createConstant(f));                                                          
+    return VarWrapper {TermList(Kernel::Term::createConstant(f))};                                                          
   }
 #endif // VDEBUG
 
 };
-
 
 } // namespace LASCA 
 } // namespace Inferences 

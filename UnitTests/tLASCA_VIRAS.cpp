@@ -8,6 +8,7 @@
  */
 
 #include "Kernel/LASCA.hpp"
+#include "Kernel/Theory.hpp"
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Indexing/TermSharing.hpp"
@@ -558,4 +559,27 @@ TEST_GENERATION(lia_03,
 TEST_FUN(viras_internal) {
   auto viras = viras::VirasTest<viras::SimplifyingConfig<VampireVirasConfig>>(viras::simplifyingConfig(VampireVirasConfig()));
   viras.auto_test();
+}
+
+#include <viras/term_engine.h>
+
+TEST_FUN(misc) {
+  auto viras = VampireVirasConfig();
+  auto sviras = viras::simplifyingConfig(VampireVirasConfig());
+
+  DBGE(viras_eval_term(&viras, test_var("bla") / 2));
+  DBGE(viras_eval_term(&viras, test_var("bla") / (numeral(2) * 5)));
+  DBGE(viras_eval_term(&viras, (numeral(2) * 5)));
+  DBGE(viras_eval_numeral(&viras, (numeral(2) * 5)));
+  DBGE(outputPtr(viras_eval_literal(&viras, numeral(2) * 5 >= 0)));
+  DBGE(outputPtr(viras_eval_literal(&sviras, numeral(2) * 5 > 0)));
+  DBGE(outputPtr(viras_eval_literal(&sviras, numeral(2) * 5 >= 0)));
+  DBGE(outputPtr(viras_eval_literal(&sviras, numeral(2) * 5 != 0)));
+  DBGE(outputPtr(viras_eval_literal(&sviras, numeral(2) * 5 == 0)));
+  DBGE(outputPtr(viras_eval_literal(&sviras, test_var("a") < test_var("b"))));
+  TermList t = viras_eval_term(&viras, numeral(2));
+  RationalConstantType n = viras_eval_numeral(&viras, numeral(5));
+  DBGE(viras_eval_term(&viras, t + n))
+
+
 }
