@@ -72,7 +72,7 @@ void traverseLiraVars(TermList self, F f) {
 
 SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierElimination::generateSimplify(Clause* premise) {
   using NumTraits = RatTraits;
-  auto viras = viras::viras(viras::simplifyingConfig(VampireVirasConfig{}));
+  auto viras = viras::viras(VampireVirasConfig{});
   Recycled<DHSet<unsigned>> shieldedVars;
   Recycled<DHSet<unsigned>> candidateVars;
   Recycled<Stack<Literal*>> toElim;
@@ -123,11 +123,11 @@ SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierEliminatio
     };
   } else {
     auto var = VampireVirasConfig::VarWrapper {TermList::var(*unshielded)};
-    auto analysed = std::make_unique<std::vector<typename decltype(viras)::LiraLiteral>>(viras.analyse(&*toElim, var));
     return ClauseGenerationResult {
       .clauses = pvi(
-          intoVampireIter(viras.quantifier_elimination(var, *analysed))
-            .map([premise, analysed = std::move(analysed), otherLits = std::move(otherLits)](auto litIter) { 
+          intoVampireIter(viras.quantifier_elimination(var, &*toElim))
+          // intoVampireIter(viras.quantifier_elimination(var, *analysed))
+            .map([premise, otherLits = std::move(otherLits)](auto litIter) { 
               return Clause::fromIterator(
                   concatIters(
                     intoVampireIter(litIter),

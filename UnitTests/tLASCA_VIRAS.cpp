@@ -557,29 +557,50 @@ TEST_GENERATION(lia_03,
 
 
 TEST_FUN(viras_internal) {
-  auto viras = viras::VirasTest<viras::SimplifyingConfig<VampireVirasConfig>>(viras::simplifyingConfig(VampireVirasConfig()));
-  viras.auto_test();
+  auto conf = VampireVirasConfig();
+  auto viras = viras::viras_test(conf);
+  auto success = viras.auto_test();
+  ASS(success)
 }
 
 #include <viras/term_engine.h>
 
 TEST_FUN(misc) {
-  auto viras = VampireVirasConfig();
-  auto sviras = viras::simplifyingConfig(VampireVirasConfig());
+  auto viras = viras::Config<VampireVirasConfig, viras::DefaultOpts>(VampireVirasConfig(), viras::DefaultOpts());
 
   DBGE(viras_eval_term(&viras, test_var("bla") / 2));
   DBGE(viras_eval_term(&viras, test_var("bla") / (numeral(2) * 5)));
   DBGE(viras_eval_term(&viras, (numeral(2) * 5)));
   DBGE(viras_eval_numeral(&viras, (numeral(2) * 5)));
+  DBGE(viras_eval_term(&viras, -2_n / 5));
+  DBGE(outputPtr(viras_eval_literal(&viras, numeral(2) * 5 > 0)));
   DBGE(outputPtr(viras_eval_literal(&viras, numeral(2) * 5 >= 0)));
-  DBGE(outputPtr(viras_eval_literal(&sviras, numeral(2) * 5 > 0)));
-  DBGE(outputPtr(viras_eval_literal(&sviras, numeral(2) * 5 >= 0)));
-  DBGE(outputPtr(viras_eval_literal(&sviras, numeral(2) * 5 != 0)));
-  DBGE(outputPtr(viras_eval_literal(&sviras, numeral(2) * 5 == 0)));
-  DBGE(outputPtr(viras_eval_literal(&sviras, test_var("a") < test_var("b"))));
+  DBGE(outputPtr(viras_eval_literal(&viras, numeral(2) * 5 != 0)));
+  DBGE(outputPtr(viras_eval_literal(&viras, numeral(2) * 5 == 0)));
+  DBGE(outputPtr(viras_eval_literal(&viras, test_var("a") < test_var("b"))));
+  DBGE(outputPtr(viras_eval_literal(&viras, floor(test_var("a")) < test_var("b"))));
   TermList t = viras_eval_term(&viras, numeral(2));
   RationalConstantType n = viras_eval_numeral(&viras, numeral(5));
   DBGE(viras_eval_term(&viras, t + n))
+  DBGE(viras_eval_numeral(&viras, abs(-4)));
+  DBGE(viras_eval_term(&viras, abs(-4) * test_var("x")));
+  DBGE(viras_eval_term(&viras, abs(-4) + "bla"_v ));
+  DBGE(viras_eval_bool(&viras, numeral(3) < 4));
+  DBGE(viras_eval_numeral(&viras, numerator(3_n / 4)));
+  DBGE(viras_eval_numeral(&viras, denominator(3_n / 4)));
+  DBGE(viras_eval_term(&viras, 3_n));
+  DBGE(viras_eval_term(&viras, denominator(3_n / 4)));
+  DBGE(viras_eval_term(&viras, lcm(9_n, 12)));
+  DBGE(viras_eval_term(&viras, lcm(9_n/2, 12)));
+  DBGE(viras_eval_term(&viras, lcm(9_n/2, 12_n/4)));
+  DBGE(viras_eval_term(&viras, lcm(1_n/2, 1_n/4)));
+  DBGE(viras_eval_term(&viras, lcm(1_n/2, 1_n/4)));
+  // auto var = viras.test_var("bla");
+  // DBGE(subs(&viras, viras_eval_term(&viras, lcm(1_n/2, 1_n/4)), var, )
+  // DBGE(viras_eval_term(&viras, match(lcm(1_n/2, 1_n/4),
+  //         [](auto v) {},
+  //         )));
 
-
+  // DBGE(viras_eval(virtual_term, &viras, numeral(3)));
+  // DBGE(viras_eval(virtual_term, &viras, numeral(3) + infty));
 }
