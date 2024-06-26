@@ -41,6 +41,38 @@ public:
     }
   }
 
+  bool check(const Ordering* ord, ResultSubstitution* subst, bool result)
+  {
+    if (_varSorts.isEmpty()) {
+      return true;
+    }
+    auto ts = getInstances([subst,result](unsigned v) { return subst->applyTo(TermList::var(v),result); });
+    return !check(ts, ord);
+  }
+
+  void insert(const Ordering* ord, ResultSubstitution* subst, bool result, Term* lhs=nullptr, Term* rhs=nullptr)
+  {
+    auto ts = getInstances([subst,result](unsigned v) { return subst->applyTo(TermList::var(v),result); });
+    auto ld = new LeafData();
+    if (lhs) {
+      ASS(rhs);
+      ASS(lhs->containsAllVariablesOf(rhs));
+      Renaming r;
+      // normalize lhs and rhs, the same way as
+      // terms from ts are normalized upon insertion
+      for (const auto t : ts) {
+        r.normalizeVariables(t);
+      }
+      ld->lhs = r.apply(lhs);
+      ld->rhs = r.apply(rhs);
+    } else {
+      ASS(!rhs);
+      ld->lhs = nullptr;
+      ld->rhs = nullptr;
+    }
+    insert(ts,ld);
+  }
+
   bool checkAndInsert(const Ordering* ord, ResultSubstitution* subst, bool result, bool doInsert=false, Term* lhs=nullptr, Term* rhs=nullptr)
   {
     if (_varSorts.isEmpty()) {
@@ -209,18 +241,33 @@ InstanceRedundancyHandler::SubstitutionCoverTree** InstanceRedundancyHandler::ge
   return ptr;
 }
 
-bool InstanceRedundancyHandler::handleSuperposition(Clause* eqClause, Clause* rwClause,
-  TermList rwTermS, TermList tgtTermS, TermList eqLHS, Literal* rwLitS, Ordering::Result eqComp,
-  bool eqIsResult, ResultSubstitution* subs) const
+bool InstanceRedundancyHandler::checkSuperposition(Clause* eqClause, Clause* rwClause, bool eqIsResult, ResultSubstitution* subs) const
 {
   if (_optVal==Options::InstanceRedundancyCheck::OFF) {
     return true;
   }
 
   auto eqClDataPtr = getDataPtr(eqClause, /*doAllocate=*/false);
-  if (eqClDataPtr && !(*eqClDataPtr)->checkAndInsert(_ord, subs, eqIsResult, /*doInsert=*/false)) {
+  if (eqClDataPtr && !(*eqClDataPtr)->check(_ord, subs, eqIsResult)) {
     env.statistics->skippedSuperposition++;
     return false;
+  }
+
+  auto rwClDataPtr = getDataPtr(rwClause, /*doAllocate=*/false);
+  if (rwClDataPtr && !(*rwClDataPtr)->check(_ord, subs, !eqIsResult)) {
+    env.statistics->skippedSuperposition++;
+    return false;
+  }
+
+  return true;
+}
+
+void InstanceRedundancyHandler::insertSuperposition(Clause* eqClause, Clause* rwClause,
+  TermList rwTermS, TermList tgtTermS, TermList eqLHS, Literal* rwLitS, Ordering::Result eqComp,
+  bool eqIsResult, ResultSubstitution* subs) const
+{
+  if (_optVal==Options::InstanceRedundancyCheck::OFF) {
+    return;
   }
 
   struct Applicator : SubstApplicator {
@@ -240,16 +287,16 @@ bool InstanceRedundancyHandler::handleSuperposition(Clause* eqClause, Clause* rw
       // TODO for rwClause->length()!=1 the function isPremiseRedundant does not work yet
       (rwClause->length()==1 && _demodulationHelper.isPremiseRedundant(rwClause, rwLitS, rwTermS, tgtTermS, eqLHS, &appl)));
 
-  bool incompInserted = doInsert && eqComp != Ordering::LESS;
-  auto rwClDataPtr = getDataPtr(rwClause, /*doAllocate=*/doInsert);
-
-  if (rwClDataPtr && !(*rwClDataPtr)->checkAndInsert(_ord, subs, !eqIsResult, doInsert,
-    incompInserted ? rwTermS.term() : nullptr, incompInserted ? tgtTermS.term() : nullptr))
-  {
-    env.statistics->skippedSuperposition++;
-    return false;
+  if (!doInsert) {
+    return;
   }
-  return true;
+
+  bool incompInserted = doInsert && eqComp != Ordering::LESS;
+  auto rwClDataPtr = getDataPtr(rwClause, /*doAllocate=*/true);
+
+  (*rwClDataPtr)->insert(_ord, subs, !eqIsResult,
+    incompInserted ? rwTermS.term() : nullptr,
+    incompInserted ? tgtTermS.term() : nullptr);
 }
 
 bool InstanceRedundancyHandler::handleResolution(Clause* queryCl, Literal* queryLit,

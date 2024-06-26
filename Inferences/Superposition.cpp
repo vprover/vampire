@@ -350,19 +350,16 @@ Clause* Superposition::performSuperposition(
     }
   }
 
+  if (!_instanceRedundancyHandler.checkSuperposition(eqClause, rwClause, eqIsResult, subst.ptr())) {
+    return 0;
+  }
+
   const Ordering& ordering = _salg->getOrdering();
 
-  TermList eqLHSS = subst->apply(eqLHS, eqIsResult);
   TermList tgtTermS = subst->apply(tgtTerm, eqIsResult);
 
   Literal* rwLitS = subst->apply(rwLit, !eqIsResult);
   TermList rwTermS = subst->apply(rwTerm, !eqIsResult);
-
-#if VDEBUG
-  if(!unifier->usesUwa()){
-    ASS_EQ(rwTermS,eqLHSS);
-  }
-#endif
 
   //cout << "Check ordering on " << tgtTermS.toString() << " and " << rwTermS.toString() << endl;
 
@@ -388,6 +385,9 @@ Clause* Superposition::performSuperposition(
     }
   }
 
+  _instanceRedundancyHandler.insertSuperposition(
+    eqClause, rwClause, rwTermS, tgtTermS, eqLHS, rwLitS, comp, eqIsResult, subst.ptr());
+
   Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);
 
   static bool doSimS = getOptions().simulatenousSuperposition();
@@ -397,11 +397,13 @@ Clause* Superposition::performSuperposition(
     return 0;
   }
 
-  if (!_instanceRedundancyHandler.handleSuperposition(
-    eqClause, rwClause, rwTermS, tgtTermS, eqLHS, rwLitS, comp, eqIsResult, subst.ptr()))
-  {
-    return 0;
+  TermList eqLHSS = subst->apply(eqLHS, eqIsResult);
+
+#if VDEBUG
+  if(!unifier->usesUwa()){
+    ASS_EQ(rwTermS,eqLHSS);
   }
+#endif
 
   Recycled<Stack<Literal*>> res;
   res->reserve(rwLength + eqLength - 1 + unifier->maxNumberOfConstraints());

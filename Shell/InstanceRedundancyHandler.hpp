@@ -36,7 +36,10 @@ public:
     : _optVal(opts.instanceRedundancyCheck()), _ord(ord), _demodulationHelper(opts,ord) {}
 
   /** Returns false if superposition should be skipped. */
-  bool handleSuperposition(
+  bool checkSuperposition(
+    Clause* eqClause, Clause* rwClause, bool eqIsResult, ResultSubstitution* subs) const;
+
+  void insertSuperposition(
     Clause* eqClause, Clause* rwClause,
     TermList rwTermS, TermList tgtTermS, TermList eqLHS, Literal* rwLitS,
     Ordering::Result eqComp, bool eqIsResult, ResultSubstitution* subs) const;
