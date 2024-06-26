@@ -43,50 +43,6 @@ public:
   void attach(SaturationAlgorithm* salg) final override {}
   void detach() final override {}
 
-
-  // template<class NumTraits>
-  // struct FoundVarInLiteral {
-  //   FoundVarInLiteral(
-  //     unsigned idx,
-  //     typename NumTraits::ConstantType numeral,
-  //     LascaLiteral<NumTraits> literal) : idx(idx)
-  //         , numeral(numeral)
-  //         , literal(literal) {}
-  //
-  //   unsigned idx;
-  //   typename NumTraits::ConstantType numeral;
-  //   LascaLiteral<NumTraits> literal;
-  // };
-
-  // template<class NumTraits>
-  // struct FoundVariable 
-  // {
-  //   FoundVariable(Perfect<MonomFactors<NumTraits>> var) : var(var), posIneq(), negIneq(), eq(), neq() {}
-  //   FoundVariable(FoundVariable&&) = default;
-  //   FoundVariable& operator=(FoundVariable&&) = default;
-  //   Perfect<MonomFactors<NumTraits>> var;
-  //   Stack<FoundVarInLiteral<NumTraits>> posIneq;
-  //   Stack<FoundVarInLiteral<NumTraits>> negIneq;
-  //   Stack<FoundVarInLiteral<NumTraits>> eq;
-  //   Stack<FoundVarInLiteral<NumTraits>> neq;
-  //
-  //   bool isOneSideBounded() const
-  //   {
-  //     return (this->posIneq.size() != 0 && this->negIneq.size() == 0 && this->eq.size() == 0 && this->neq.size() == 0)
-  //         || (this->posIneq.size() == 0 && this->negIneq.size() != 0 && this->eq.size() == 0 && this->neq.size() == 0); }
-  // };
-
-
-  // using AnyFoundVariable = Coproduct< FoundVariable< IntTraits> 
-  //                                   , FoundVariable< RatTraits> 
-  //                                   , FoundVariable<RealTraits> 
-  //                                   >;
-  //
-  // Option<AnyFoundVariable> findUnshieldedVar(Clause* premise) const;
-  //
-  //                           ClauseIterator applyRule(Clause* premise, FoundVariable<IntTraits> found) const { return ClauseIterator::getEmpty(); };
-  // template<class NumTraits> ClauseIterator applyRule(Clause* premise, FoundVariable<NumTraits> found) const;
-
   ClauseGenerationResult generateSimplify(Clause* premise) final override;
 
 
@@ -95,11 +51,6 @@ public:
 #endif
 
 private:
-
-  // static auto isOneSideBounded(AnyFoundVariable const& v)
-  // { return v.apply([](auto& v) { return v.isOneSideBounded(); }); }
-  //
-  // template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit) const;
 
   std::shared_ptr<LascaState> _shared;
 };

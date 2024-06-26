@@ -44,6 +44,12 @@ struct VampireVirasConfig {
   using Numeral  = Kernel::RationalConstantType;
   using NumTraits = Kernel::NumTraits<Numeral>;
 
+  void output_literals(std::ostream& out, Stack<Kernel::Literal*> const* const& self) { out << Kernel::outputInterleaved(", ", arrayIter(*self).map([](auto x) -> Kernel::Literal& { return *x; })); }
+  void output_literal(std::ostream& out, Kernel::Literal* const& self) { out << *self; }
+  void output_var(std::ostream& out, VarWrapper const& self) { out << self.inner; }
+  void output_term(std::ostream& out, Kernel::TermList const& self) { out << self; }
+  void output_numeral(std::ostream& out, Kernel::RationalConstantType const& self) { out << self; }
+
   Numeral numeral(int i) { return Numeral(i); }
   Numeral lcm(Numeral l, Numeral r) { ASS(l.isInt() && r.isInt()); return Numeral(Kernel::IntegerConstantType::lcm(l.numerator(), r.numerator())); }
   Numeral gcd(Numeral l, Numeral r) { ASS(l.isInt() && r.isInt()); return Numeral(Kernel::IntegerConstantType::gcd(l.numerator(), r.numerator())); }

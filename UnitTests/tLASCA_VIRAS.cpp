@@ -555,6 +555,21 @@ TEST_GENERATION(lia_03,
       .premiseRedundant(true)
     )
 
+TEST_GENERATION(test_misc_01,
+    Generation::SymmetricTest()
+      .inputs ({         clause({ x + f(a) > 0 })})
+      .expected(withoutDuplicates(exactly( 
+             clause({  })
+           )))
+      .premiseRedundant(true)
+    )
+
+TEST_GENERATION(test_misc_02,
+    Generation::SymmetricTest()
+      .inputs ({         clause({ x + f(x) > 0 })})
+      .expected(withoutDuplicates(exactly( )))
+      .premiseRedundant(false)
+    )
 
 TEST_FUN(viras_internal) {
   auto conf = VampireVirasConfig();
