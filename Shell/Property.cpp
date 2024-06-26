@@ -34,6 +34,7 @@
 #include "FunctionDefinition.hpp"
 #include "Property.hpp"
 #include "SubexpressionIterator.hpp"
+#include "Kernel/NumTraits.hpp"
 
 using namespace std;
 using namespace Lib;
@@ -89,6 +90,12 @@ Property::Property()
     _allClausesGround(true),
     _allNonTheoryClausesGround(true),
     _allQuantifiersEssentiallyExistential(true),
+    _hasNumeralsInt(false),
+    _hasNumeralsRat(false),
+    _hasNumeralsReal(false),
+    _nonLinearInt(false),
+    _nonLinearRat(false),
+    _nonLinearReal(false),
     _smtlibLogic(SMTLIBLogic::SMT_UNDEFINED)
 {
   _interpretationPresence.init(Theory::instance()->numberOfFixedInterpretations(), false);
@@ -731,6 +738,16 @@ void Property::scan(TermList ts,bool unit,bool goal)
   }
 }
 
+
+struct Shell::Setter {
+  static void setNonLinear(Property& p,  IntTraits) { p._nonLinearInt  = true; }
+  static void setNonLinear(Property& p,  RatTraits) { p._nonLinearRat  = true; }
+  static void setNonLinear(Property& p, RealTraits) { p._nonLinearReal = true; }
+  static void setHasNumerals(Property& p,  IntTraits) { p._hasNumeralsInt  = true; }
+  static void setHasNumerals(Property& p,  RatTraits) { p._hasNumeralsRat  = true; }
+  static void setHasNumerals(Property& p, RealTraits) { p._hasNumeralsReal = true; }
+};
+
 void Property::scanForInterpreted(Term* t)
 {
   Interpretation itp;
@@ -746,7 +763,19 @@ void Property::scanForInterpreted(Term* t)
   else {
     if (!theory->isInterpretedFunction(t)) { return; }
     itp = theory->interpretFunction(t);
+    forEachNumTraits([&](auto n) {
+      n.ifMul(t,[&](auto l, auto r) { 
+        if (!n.isNumeral(l) && !n.isNumeral(r)) {
+          Setter::setNonLinear(*this, n);
+        }
+        return std::make_tuple();
+      });
+    });
   }
+
+  forEachNumTraits([&](auto n) {
+    n.ifNumeral(t, [&](auto) { Setter::setHasNumerals(*this, n); return std::make_tuple(); });
+  });
   _hasInterpreted = true;
 
   if(itp < _interpretationPresence.size()){

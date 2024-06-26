@@ -22,6 +22,7 @@
 #include "Lib/DArray.hpp"
 
 #include "Ordering.hpp"
+#include "Debug/Tracer.hpp"
 #include <memory>
 
 #define SPECIAL_WEIGHT_IDENT_VAR            "$var"

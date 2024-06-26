@@ -22,6 +22,7 @@
 #include "SortHelper.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
+#include "Kernel/BottomUpEvaluation.hpp"
 
 namespace Kernel {
 
@@ -30,6 +31,16 @@ using namespace Lib;
 struct SubstApplicator {
   virtual ~SubstApplicator() = default;
   virtual TermList operator()(unsigned v) const = 0;
+
+  TermList operator()(TermList t) const {
+    return BottomUpEvaluation<TermList, TermList>()
+      .context(TermListContext { .ignoreTypeArgs = false, })
+      .function([&](auto t, auto* args) {
+        return t.isVar() ? (*this)(t.var())
+                         : TermList(Term::create(t.term(), args));
+      })
+      .apply(t);
+  }
 };
 
 /**
@@ -57,6 +68,14 @@ struct AppliedTerm
   TermList term;
   bool aboveVar;
   const SubstApplicator* applicator;
+
+  TermList apply() const {
+    if (aboveVar) {
+      return (*applicator)(term);
+    } else {
+      return term;
+    }
+  }
 
   AppliedTerm(TermList t) : term(t), aboveVar(false), applicator(nullptr) {}
   /**

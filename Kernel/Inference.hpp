@@ -198,6 +198,7 @@ enum class InferenceRule : unsigned char {
 //     MINISCOPE,
   /** normalizing inference */
   THEORY_NORMALIZATION,
+  LASCA_INTEGER_TRANSFORMATION,
   /** skolemization */
   SKOLEMIZE,
   /** obtain clause from a formula */
@@ -509,6 +510,7 @@ enum class InferenceRule : unsigned char {
   THA_TRANSITIVITY,
   THA_ORDER_TOTALALITY,
   THA_ORDER_MONOTONICITY,
+  THA_LASCA,
   THA_PLUS_ONE_GREATER,
   THA_ORDER_PLUS_ONE_DICHOTOMY,
   THA_MINUS_MINUS_X,

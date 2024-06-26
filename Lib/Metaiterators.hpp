@@ -1696,10 +1696,8 @@ public:
   { return fold([](Elem l, Elem r) { return l + r; }) || []() { return Elem(0); }; }
 
   template<class Container>
-  Container collect()
-  { 
-    return Container::fromIterator(*this); 
-  }
+  auto collect()
+  { return Container::fromIterator(*this); }
   
   template<template<class> class Container>
   Container<Elem> collect()

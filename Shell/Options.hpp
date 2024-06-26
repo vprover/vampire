@@ -2333,6 +2333,7 @@ public:
   bool viras() const { return _viras.actualValue; }
   bool lascaDemodulation() const { return _lascaDemodulation.actualValue; }
   bool lascaStrongNormalization() const { return _lascaStrongNormalization.actualValue; }
+  bool lascaIntegerConversion() const { return _lascaIntegerConversion.actualValue; }
   bool pushUnaryMinus() const { return _pushUnaryMinus.actualValue || _highSchool.actualValue; }
   ArithmeticSimplificationMode cancellation() const { return _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _cancellation.actualValue; }
   ArithmeticSimplificationMode arithmeticSubtermGeneralizations() const { return  _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _arithmeticSubtermGeneralizations.actualValue; }
@@ -2776,6 +2777,7 @@ private:
   BoolOptionValue _viras;
   BoolOptionValue _lascaDemodulation;
   BoolOptionValue _lascaStrongNormalization;
+  BoolOptionValue _lascaIntegerConversion;
   ChoiceOptionValue<ArithmeticSimplificationMode> _cancellation;
   ChoiceOptionValue<ArithmeticSimplificationMode> _arithmeticSubtermGeneralizations;
 

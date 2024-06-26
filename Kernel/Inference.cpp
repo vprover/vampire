@@ -711,6 +711,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "inner rewriting";
   case InferenceRule::CONDENSATION:
     return "condensation";
+  case InferenceRule::LASCA_INTEGER_TRANSFORMATION:
+    return "lasca integer transformation";
   case InferenceRule::THEORY_NORMALIZATION:
     return "theory normalization";
   case InferenceRule::POLARITY_FLIPPING:
@@ -747,6 +749,7 @@ vstring Kernel::ruleName(InferenceRule rule)
   case InferenceRule::THA_TRANSITIVITY:
   case InferenceRule::THA_ORDER_TOTALALITY:
   case InferenceRule::THA_ORDER_MONOTONICITY:
+  case InferenceRule::THA_LASCA:
   case InferenceRule::THA_PLUS_ONE_GREATER:
   case InferenceRule::THA_ORDER_PLUS_ONE_DICHOTOMY:
   case InferenceRule::THA_MINUS_MINUS_X:

@@ -369,6 +369,110 @@ void TheoryAxioms::addAdditionAndOrderingAxioms(TermList sort, Interpretation pl
   addTheoryClauseFromLits({mmxEqx}, InferenceRule::THA_MINUS_MINUS_X, EXPENSIVE);
 }
 
+
+void _addLascaAxioms(IntTraits num, Problem& prb)
+{
+  Property* prop = prb.getProperty();
+  if (prop->hasInterpretedOperation(num.addI) 
+   || prop->hasInterpretedOperation(num.minusI)
+   || prop->hasInterpretedOperation(num.dividesI)
+   || prop->hasInterpretedOperation(num.mulI)) {
+    // TODO add axioms for addition
+  }
+}
+
+
+struct Shell::LascaAxioms {
+
+
+#define AXIOM_CONTEXT                                                                     \
+  auto x = TermList::var(0);                                                              \
+  auto y = TermList::var(1);                                                              \
+  auto z = TermList::var(2);                                                              \
+  auto addAx = [&](std::initializer_list<Literal*> clause) {                              \
+    ax.addTheoryClauseFromLits(clause,                                                    \
+        InferenceRule::THA_LASCA, TheoryAxioms::EXPENSIVE);                               \
+  };                                                                                      \
+  auto add = [&](auto l, auto r) -> TermList { return num.add(l,r); };                    \
+  auto mul = [&](auto l, auto r) -> TermList { return num.mul(l,r); };                    \
+  auto numeral = [&](auto x) -> TermList { return num.constantTl(x); };                        \
+  auto greater = [&](TermList x) { return num.greater(true, x, numeral(0)); };     \
+  auto geq     = [&](TermList x) { return num.geq    (true, x, numeral(0)); };     \
+  auto minus   = [&](auto x) -> TermList { return num.minus(x); };                        \
+  auto floor   = [&](auto x) -> TermList { return num.floor(x); };                        \
+   
+ 
+  template<class NumTraits>
+  static void addNonLinearAxioms(NumTraits num, Problem& prb, TheoryAxioms& ax) {
+    AXIOM_CONTEXT
+    addAx({num.eq(true, add(x,add(y,z)), add(add(x,y),z))});
+    addAx({num.eq(true, add(x,y), add(x,y))});
+    addAx({num.eq(true, mul(x, add(y,z)), add(mul(x, y),mul(x, z)))});
+    //      x >  0 /\  y <  z -> x * y < x * z
+    // <=> ~x >  0 \/ ~y <  z \/ x * y < x * z
+    // <=>  x <= 0 \/  y >= z \/ x * y < x * z
+    // <=> -x >= 0 \/  y - z >= 0 \/ x * z - x * y > 0
+    addAx({ geq(minus(x)), geq(add(y, minus(z))), greater(add(mul(x,z), minus(mul(x,y)))) });
+    //      x <  0 /\  y <  z -> x * y > x * z
+    // <=> ~x <  0 \/ ~y <  z \/ x * y > x * z
+    // <=>  x >= 0 \/  y >= z \/ x * y > x * z
+    // <=>  x >= 0 \/  y - z >= 0 \/ x * y - x * z > 0
+    addAx({ geq(x), geq(add(y, minus(z))), greater(add(mul(x,y), minus(mul(x,z)))) });
+  }
+  static void maybeAddFloorAxioms(RatTraits num, Problem& prb, TheoryAxioms& ax)
+  { /* TODO how do we deal with rationals? */ }
+  static void maybeAddFloorAxioms(IntTraits num, Problem& prb, TheoryAxioms& ax)
+  {  }
+  static void maybeAddFloorAxioms(RealTraits num, Problem& prb, TheoryAxioms& ax)
+  { 
+    if (prb.getProperty()->hasInterpretedOperation(RealTraits::floorI)) {
+      AXIOM_CONTEXT
+      //      x < y -> floor(x) <= floor(y)
+      // <=> ~x < y \/ floor(x) <= floor(y)
+      // <=> x >= y \/ floor(x) <= floor(y)
+      // <=> x - y >= 0 \/ floor(y) - floor(x) >= 0
+      addAx({geq(add(x, minus(y))), 
+             geq(add(floor(y), minus(floor(x)) ))});
+      //     floor(x) <= x 
+      // <=> x - floor(x) >= 0
+      addAx({ geq(add(x, minus(floor(x)))) });
+      //     x < floor(x) + 1
+      // <=> floor(x) + 1 - x > 0
+      addAx({ greater(add(add(floor(x), numeral(1)), minus(x))), });
+      // <=> floor(x) + 1 - x > 0
+      //      floor(x) <  floor(y) -> floor(x) <= floor(y) - 1
+      // <=> ~floor(x) <  floor(y) \/ floor(x) <= floor(y) - 1
+      // <=>  floor(x) >= floor(y) \/ floor(x) <= floor(y) - 1
+      // <=>  floor(x) - floor(y) >= 0 \/ floor(y) - 1 - floor(x) >= 0
+      addAx({ geq(add(floor(x), minus(floor(y)))), 
+              geq(add(add(floor(y), numeral(-1)), minus(floor(x)))) });
+      //      floor(z) <= x /\  x <  floor(z) + 1 -> floor(x) = floor(z)
+      // <=> ~floor(z) <= x \/ ~x <  floor(z) + 1 \/ floor(x) = floor(z)
+      // <=>  floor(z) >  x \/  x >= floor(z) + 1 \/ floor(x) = floor(z)
+      // <=>  floor(z) - x > 0 \/  x - floor(z) - 1 >= 0 \/ floor(x) = floor(z)
+      addAx({ greater(add(floor(z), minus(x))), 
+              geq(add(add(x, minus(floor(z))), numeral(-1))), 
+              num.eq(true, floor(x), floor(z)) });
+    }
+  }
+  template<class NumTraits>
+  static void addLascaAxioms(NumTraits num, Problem& prb, TheoryAxioms& ax)
+  {
+    Property* prop = prb.getProperty();
+    if (Shell::Getter::isNonLinear(*prop, num)) {
+      addNonLinearAxioms(num, prb, ax);
+    }
+    maybeAddFloorAxioms(num,prb,ax);
+  }
+};
+
+
+void TheoryAxioms::addLascaAxioms()
+{
+  forEachNumTraits([&](auto n) { return LascaAxioms::addLascaAxioms(n, _prb, *this); });
+}
+
+
 /**
  * Add axioms for addition, multiplication, unary minus and ordering
  */
@@ -894,6 +998,10 @@ void TheoryAxioms::addBooleanArrayWriteAxioms(TermList arraySort)
  */
 void TheoryAxioms::apply()
 {
+  if (env.options->lasca()) {
+    addLascaAxioms();
+    return;
+  }
   Property* prop = _prb.getProperty();
   bool modified = false;
   bool haveIntPlus =

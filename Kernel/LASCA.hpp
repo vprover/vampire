@@ -21,6 +21,7 @@
 #include "Debug/Assertion.hpp"
 #include "Indexing/Index.hpp"
 #include "Kernel/Formula.hpp"
+#include "Kernel/FormulaUnit.hpp"
 #include "Lib/Int.hpp"
 #include "Forwards.hpp"
 #include "Debug/TimeProfiling.hpp"
@@ -263,7 +264,7 @@ namespace Kernel {
      * t >= 0 ==> t > 0 \/ t == 0
      * t != 0 ==> t > 0 \/ -t > 0
      */
-    InequalityNormalizer(bool strong) 
+    InequalityNormalizer(bool strong)
       : _strong(strong) {  }
 
     template<class NumTraits> Option<Stack<LascaLiteral<NumTraits>>> normalizeLasca(Literal* lit) const;
@@ -1474,6 +1475,34 @@ auto maxElements(GetElem getElem, unsigned size, Cmp compare, bool strictlyMax) 
 
 Ordering::Result compare(LascaPredicate l, LascaPredicate r);
 
+
+class LascaPreprocessor {
+  Map<unsigned, unsigned> _preds;
+  Map<unsigned, unsigned> _funcs;
+
+  friend class IntegerConversionFT;
+  static constexpr InferenceRule INF_RULE = InferenceRule::LASCA_INTEGER_TRANSFORMATION;
+  Literal* integerConversion(Literal* unit); 
+  TermList integerConversion(TypedTermList t); 
+  unsigned integerPredicateConversion(unsigned f); 
+  unsigned integerFunctionConversion(unsigned f); 
+  unsigned integerTypeConsConversion(unsigned f); 
+  Clause* integerConversion(Clause* unit); 
+  FormulaUnit* integerConversion(FormulaUnit* unit);
+  Unit* integerConversion(Unit* unit) {
+    return unit->isClause() 
+      ? (Unit*)integerConversion(static_cast<Clause*>(unit))
+      : (Unit*)integerConversion(static_cast<FormulaUnit*>(unit));
+  }
+public:
+  LascaPreprocessor() : _preds() {}
+  void integerConversion(Problem& prb) {
+    for (auto& unit : iterTraits(prb.units()->iter())) {
+      unit = integerConversion(unit);
+    }
+  }
+};
+
 } // namespace Kernel
 
 template<class NumTraits> struct std::hash<Kernel::LascaLiteral<NumTraits>>
@@ -1486,6 +1515,7 @@ template<class NumTraits> struct std::hash<Kernel::LascaLiteral<NumTraits>>
     );
   }
 };
+
 
 
 #undef DEBUG

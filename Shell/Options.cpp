@@ -1282,6 +1282,16 @@ void Options::init()
     _lascaStrongNormalization.tag(OptionTag::INFERENCES);
     _lascaStrongNormalization.onlyUsefulWith2(_lasca.is(equal(true)));
 
+
+    _lascaIntegerConversion  = BoolOptionValue("lasca_integer_conversion","lascai",false);
+    _lascaIntegerConversion.description=
+            "enables converting integer problems into LIRA problems where there is only the sort of reals by"
+            "replacing integer variables with floor functions and transforming the signature appropriately"
+            "\n";
+    _lookup.insert(&_lascaIntegerConversion);
+    _lascaIntegerConversion.tag(OptionTag::INFERENCES);
+    _lascaIntegerConversion.onlyUsefulWith2(_lasca.is(equal(true)));
+
     _gaussianVariableElimination = choiceArithmeticSimplificationMode(
        "gaussian_variable_elimination", "gve",
        ArithmeticSimplificationMode::OFF);

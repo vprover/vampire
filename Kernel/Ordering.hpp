@@ -88,9 +88,11 @@ public:
    * @b t1 and @b t2 */
   virtual Result compare(TermList t1,TermList t2) const = 0;
   /** Same as @b compare, for applied (substituted) terms. */
+  [[deprecated("bla")]]
   virtual Result compare(AppliedTerm t1, AppliedTerm t2) const = 0;
   /** Optimised function used for checking that @b t1 is greater than @b t2,
    * under some substitutions captured by @b AppliedTerm. */
+  [[deprecated("bla")]]
   virtual bool isGreater(AppliedTerm t1, AppliedTerm t2) const = 0;
 
   virtual void show(std::ostream& out) const = 0;

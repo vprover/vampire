@@ -317,11 +317,16 @@ public:
   unsigned _sortsUsed;
   Array<bool> _usesSort;
 
+
+  friend struct Setter;
+  friend struct Getter;
+
   /** Makes sense for all interpretations, but for polymorphic ones we also keep
    *  the more precise information about which monomorphisations are present (see below).
    */
   DArray<bool> _interpretationPresence;
   DHSet<Theory::MonomorphisedInterpretation> _polymorphicInterpretations;
+
 
   bool _hasFOOL;
   bool _hasCombs;
@@ -341,6 +346,12 @@ public:
   bool _allClausesGround;
   bool _allNonTheoryClausesGround;
   bool _allQuantifiersEssentiallyExistential;
+  bool _hasNumeralsInt;
+  bool _hasNumeralsRat;
+  bool _hasNumeralsReal;
+  bool _nonLinearInt;
+  bool _nonLinearRat;
+  bool _nonLinearReal;
   SMTLIBLogic _smtlibLogic;
 }; // class Property
 

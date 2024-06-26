@@ -265,6 +265,7 @@ public:
 
   explicit RealConstantType(const vstring& number);
   explicit RealConstantType(const RationalConstantType& rat) : RationalConstantType(rat) {}
+  RealConstantType(IntegerConstantType num) : RationalConstantType(num) {}
   RealConstantType(int num, int den) : RationalConstantType(num, den) {}
   explicit RealConstantType(int number) : RealConstantType(RationalConstantType(number)) {}
   RealConstantType(typename RationalConstantType::InnerType  num, typename RationalConstantType::InnerType den) : RealConstantType(RationalConstantType(num, den)) {}

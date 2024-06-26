@@ -854,6 +854,13 @@ static const auto anyArgIter = [](Term* term)
            { return *term->nthArgument(i); }); };
 
 
+/** iterator over all type and term arguments of @code term */
+static const auto anyArgIterTyped = [](Term* term) 
+  { return range(0, term->arity())
+      .map([=](auto i)
+           { return TypedTermList(*term->nthArgument(i), SortHelper::getArgSort(term, i)); }); };
+
+
 } // namespace Kernel
 
 #endif // __TermIterators__

@@ -150,15 +150,13 @@ public:
     };
   }
 
+  // TODO optimize?
   Result compare(AppliedTerm t1, AppliedTerm t2) const override
-  {
-    ASSERTION_VIOLATION // TODO
-  }
+  { return compare(t1.apply(), t2.apply()); }
 
+  // TODO more efficient impl (?)
   bool isGreater(AppliedTerm t1, AppliedTerm t2) const override
-  { 
-    // TODO more efficient impl (?)
-    return compare(t1, t2) == Result::GREATER; }
+  { return compare(t1, t2) == Result::GREATER; }
 
 private:
 

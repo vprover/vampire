@@ -13,11 +13,13 @@
 #include "Lib/Stack.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Indexing/ResultSubstitution.hpp"
+#include "Kernel/FormulaTransformer.hpp"
 #include "Kernel/QKbo.hpp"
 // #include "Kernel/LaLpo.hpp"
 
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG_TRANSLATION(...) DBG(__VA_ARGS__)
 namespace Kernel {
 using Inferences::PolynomialEvaluation;
 
@@ -298,6 +300,206 @@ SelectedLiteral::SelectedLiteral(Clause* clause, unsigned litIdx, LascaState& sh
 {}
 
 std::shared_ptr<LascaState> LascaState::globalState = nullptr;
+
+/**
+ * Class that uses @c NLiteralTransformer to perform transformations on formulas
+ */
+class IntegerConversionFT : public FormulaTransformer
+{
+  LascaPreprocessor& _self;
+public:
+  IntegerConversionFT(LascaPreprocessor& self) : _self(self) {}
+
+protected:
+  /**
+   * Transfor atomic formula
+   *
+   * The rest of transformations is done by the @c FormulaTransformer ancestor.
+   */
+  virtual Formula* applyLiteral(Formula* f)
+  {
+    Literal* l = f->literal();
+    auto ll = _self.integerConversion(l);
+    return l == ll ? f : new AtomicFormula(ll);
+  }
+};
+
+unsigned LascaPreprocessor::integerFunctionConversion(unsigned f) {
+  return _funcs.getOrInit(f, [&]() { 
+    using Z = IntTraits;
+    using R = RealTraits;
+    if (Z::isAdd(f)) return R::addF();
+    if (Z::isMul(f)) return R::mulF();
+    if (Z::isMinus(f)) return R::minusF();
+    ASS(!R::isToInt(f))
+    // if (Z::isFloor(f)) return R::floorF();
+    // if (R::isToInt(f)) return R::floorF();
+    if (auto n = Z::tryNumeral(f)) return R::numeralF(typename R::ConstantType(*n));
+    // TODO 
+    // INT_SUCCESSOR,
+    // INT_MINUS, (binary minus)// difference in TPTP
+    // INT_QUOTIENT_E,
+    // INT_QUOTIENT_T,
+    // INT_QUOTIENT_F,
+    // INT_REMAINDER_E,
+    // INT_REMAINDER_T,
+    // INT_REMAINDER_F,
+    // INT_CEILING,
+    // INT_TRUNCATE,
+    // INT_ROUND,
+    // INT_ABS,
+
+    auto sorts_changed = false;
+    auto intConv= [&](auto x) { 
+      auto out = integerConversion(TypedTermList(x, AtomicSort::superSort())); 
+      sorts_changed |= out != x;
+      return out;
+    };
+
+    auto sym = env.signature->getFunction(f);
+    auto ty = sym->fnType();
+    Recycled<Stack<TermList>> sorts;
+    for (auto i : range(0, ty->arity())) {
+      sorts->push(intConv(ty->arg(i)));
+    }
+    auto res_sort = intConv(ty->result());
+    if (sorts_changed) {
+      unsigned nf = env.signature->addFreshFunction(sym->arity(), sym->name().c_str());
+      auto nsym = env.signature->getFunction(nf);
+      auto nty = OperatorType::getFunctionType(sym->arity(), sorts->begin(), res_sort, ty->numTypeArguments());
+      nsym->setType(nty);
+      DEBUG_TRANSLATION(*sym, ": ", ty->toString(), " -> ", *nsym, ": ", nty->toString());
+      return nf;
+    } else {
+      return f;
+    }
+  });
+}
+
+
+unsigned LascaPreprocessor::integerTypeConsConversion(unsigned f) {
+  if (env.signature->getIntSort() == f) { return env.signature->getRealSort(); }
+  return f;
+}
+
+
+unsigned LascaPreprocessor::integerPredicateConversion(unsigned f) {
+
+  return _preds.getOrInit(f, [&]() { 
+    using Z = IntTraits;
+    using R = RealTraits;
+    if (Z::isLess(f)) return R::lessF();
+    if (Z::isLeq(f)) return R::leqF();
+    if (Z::isGreater(f)) return R::greaterF();
+    if (Z::isGeq(f)) return R::geqF();
+    // TODO divides
+
+    auto sym = env.signature->getPredicate(f);
+    auto ty = sym->predType();
+    auto sorts_changed = false;
+    auto intConv= [&](auto x) { 
+      auto out = integerConversion(TypedTermList(x, AtomicSort::superSort())); 
+      sorts_changed |= out != x;
+      return out;
+    };
+    Recycled<Stack<TermList>> arg_sorts;
+    for (auto i : range(0, ty->arity())) {
+      arg_sorts->push(intConv(ty->arg(i)));
+    }
+    if (sorts_changed) {
+      unsigned nf = env.signature->addFreshPredicate(sym->arity(), sym->name().c_str());
+      auto nsym = env.signature->getPredicate(nf);
+      auto nty = OperatorType::getPredicateType(sym->arity(), arg_sorts->begin(), ty->numTypeArguments());
+      nsym->setType(nty);
+      DEBUG_TRANSLATION(*sym, ": ", ty->toString(), " -> ", *nsym, ": ", nty->toString());
+      return nf;
+    } else {
+      return f;
+    }
+  });
+}
+
+// unsigned LascaPreprocessor::integerFunctionConversion(unsigned f) {
+//
+// }
+// unsigned LascaPreprocessor::integerTypeConsConversion(unsigned f) {
+//
+// }
+
+
+TermList LascaPreprocessor::integerConversion(TypedTermList t)
+{
+  return BottomUpEvaluation<TypedTermList, TermList>()
+    .function([&](TypedTermList t, TermList* args) -> TermList {
+        if (t.isVar()) {
+          return t;
+        } else {
+          auto f = t.term()->functor();
+          if (t.sort() == AtomicSort::superSort()) {
+            return TermList(AtomicSort::create(integerTypeConsConversion(f), t.term()->arity(), args));
+          } else {
+            if (IntTraits::isToReal(f) || IntTraits::isToInt(f) || RealTraits::isToReal(f)) {
+              return args[0];
+            } if (RealTraits::isToInt(f)) {
+              return TermList(RealTraits::floor(args[0]));
+            } else {
+              auto out = TermList(Term::create(integerFunctionConversion(f), t.term()->arity(), args));
+              return t.sort() == IntTraits::sort() ? RealTraits::floor(out) : out;
+            }
+          }
+        }
+    })
+    .context(Lib::TermListContext{ .ignoreTypeArgs = false, })
+    .apply(t);
+}
+
+Literal* LascaPreprocessor::integerConversion(Literal* lit)
+{
+  auto impl = [&]() { 
+    if (lit->isEquality()) {
+      auto sort = SortHelper::getEqualityArgumentSort(lit);
+      return Literal::createEquality(lit->polarity(), 
+          integerConversion(TypedTermList(lit->termArg(0), sort)), 
+          integerConversion(TypedTermList(lit->termArg(1), sort)), 
+          integerConversion(TypedTermList(sort, AtomicSort::superSort())));
+    } else {
+      auto ff = integerPredicateConversion(lit->functor());
+      Recycled<Stack<TermList>> args;
+      for (auto a : anyArgIterTyped(lit)) {
+        args->push(integerConversion(a));
+      }
+      return Literal::create(ff, args->size(), lit->polarity(), lit->commutative(), args->begin());
+    }
+  };
+  auto out = impl();
+  if (out != lit) {
+    DEBUG_TRANSLATION(*lit, " ==> ", *out);
+  }
+  return out;
+}
+
+
+Clause* LascaPreprocessor::integerConversion(Clause* clause)
+{
+  auto change = false;
+  Recycled<Stack<Literal*>> res;
+  for (auto l : clause->iterLits()) {
+    auto ll = integerConversion(l);
+    change |= ll != l;
+    res->push(ll);
+  }
+  if (change) {
+    return Clause::fromStack(*res, Inference(FormulaTransformation(INF_RULE, clause)));
+  } else {
+    return clause;
+  }
+}
+FormulaUnit* LascaPreprocessor::integerConversion(FormulaUnit* unit)
+{
+  IntegerConversionFT ftrans(*this);
+  FTFormulaUnitTransformer<decltype(ftrans)> futrans(INF_RULE, ftrans);
+  return futrans.transform(unit);
+}
 
 } // namespace Kernel
 

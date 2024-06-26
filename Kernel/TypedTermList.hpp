@@ -34,7 +34,7 @@ public:
   TypedTermList() {}
   TypedTermList(TermList t, SortId sort) : TermList(t), _sort(sort) 
   { 
-    ASS_NEQ(sort, AtomicSort::superSort());
+    // ASS_NEQ(sort, AtomicSort::superSort());
     ASS(!sort.isEmpty())
   }
   TypedTermList(Term* t) : TypedTermList(TermList(t), SortHelper::getResultSort(t)) {}
