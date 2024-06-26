@@ -1258,6 +1258,13 @@ void Options::init()
             , equal(UnificationWithAbstraction::LPAR_ONE_INTERP)
             )));
 
+    _viras  = BoolOptionValue("virtual_integer_real_arithmetic_substitution","viras",true);
+    _viras.description= "Enables the VIRAS quantifier elimination to be used in LASCA\n";
+    _lookup.insert(&_viras);
+    _viras.tag(OptionTag::INFERENCES);
+    _viras.setExperimental();
+    _viras.onlyUsefulWith2(_lasca.is(equal(true)));
+
     _lascaDemodulation  = BoolOptionValue("lasca_demodulation","la_demod",false);
     _lascaDemodulation.description= "Enables the linear arithmetic demodulation rule\n";
     _lookup.insert(&_lascaDemodulation);

@@ -24,6 +24,7 @@ using namespace Lib;
 
 #include "VirasInterfacing.hpp"
 
+/* turns a viras::iter iterator into a Lib/Metaiterators.hpp iterator */
 template<class VirasIter>
 class IntoVampireIter {
   VirasIter _iter;
@@ -54,6 +55,7 @@ auto intoVampireIter(VirasIter i)
 { return iterTraits(IntoVampireIter<VirasIter>(std::move(i))); }
 
 struct Void {};
+
 template<class F>
 void traverseLiraVars(TermList self, F f) {
   VampireVirasConfig{}.
@@ -126,7 +128,6 @@ SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierEliminatio
     return ClauseGenerationResult {
       .clauses = pvi(
           intoVampireIter(viras.quantifier_elimination(var, &*toElim))
-          // intoVampireIter(viras.quantifier_elimination(var, *analysed))
             .map([premise, otherLits = std::move(otherLits)](auto litIter) { 
               return Clause::fromIterator(
                   concatIters(

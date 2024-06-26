@@ -14,6 +14,7 @@
 
 #include "Debug/RuntimeStatistics.hpp"
 
+#include "Inferences/LASCA/VIRAS.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -1633,10 +1634,8 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
         env.options->unificationWithAbstractionFixedPointIteration()
         );
 #define SET_ORD_STATE(Ord, getOrd)                                                                  \
-    try {                                                                                           \
-      auto* o = dynamic_cast<Ord*>(&ordering);                                                       \
-      getOrd(*o).setState(shared);                                                                   \
-    } catch (std::bad_cast&) { /* do nothing */ }
+    if(auto* o = dynamic_cast<Ord*>(&ordering)) { getOrd(*o).setState(shared); }
+
     SET_ORD_STATE(Kernel::QKbo, [](auto& o) -> decltype(auto) { return o; })
     SET_ORD_STATE(Kernel::LaLpo, [](auto& o) -> decltype(auto) { return o; })
     if (env.options->lascaDemodulation()) {
@@ -1647,8 +1646,11 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     ise->addFront(new LASCA::Normalization(shared)); 
     // TODO properly create an option for that, make it a simplifying rule
     sgi->push(new LASCA::InequalityTautologyDetection(shared));
-    // TODO properly create an option for that, make it a simplifying rule
-    sgi->push(new LASCA::VariableElimination(shared, /* simpl */ true ));
+    // TODO check when the other one is better
+    if (env.options->viras())
+      sgi->push(new LASCA::VirasQuantifierElimination(shared));
+    else 
+      sgi->push(new LASCA::VariableElimination(shared, /* simpl */ true ));
     sgi->push(new LASCA::TermFactoring(shared)); 
     sgi->push(new LASCA::InequalityFactoring(shared));
     sgi->push(new LASCA::EqFactoring(shared)); 
