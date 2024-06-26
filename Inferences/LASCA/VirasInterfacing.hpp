@@ -24,18 +24,10 @@ namespace Inferences {
 namespace LASCA {
 
 struct VampireVirasConfig {
-  struct VarWrapper { 
-    Kernel::TermList inner; 
-    DERIVE_TUPLE(VarWrapper, inner)
-    DERIVE_TUPLE_EQ
-    DERIVE_TUPLE_LESS
-    auto defaultHash() { return inner.defaultHash(); }
-    auto defaultHash2() { return inner.defaultHash2(); }
-    friend std::ostream& operator<<(std::ostream& out, VarWrapper const& self)
-    { return out << self.inner; }
+  struct VarWrapper : public TermList {
+    VarWrapper() : TermList() {}
+    VarWrapper(TermList t) : TermList(t) {}
   };
-  static constexpr bool optimizeBounds = true;
-  static constexpr bool optimizeGridIntersection = true;
 
   using Literals = Stack<Kernel::Literal*> const*;
   using Literal  = Kernel::Literal*;
@@ -46,7 +38,7 @@ struct VampireVirasConfig {
 
   void output_literals(std::ostream& out, Stack<Kernel::Literal*> const* const& self) { out << Kernel::outputInterleaved(", ", arrayIter(*self).map([](auto x) -> Kernel::Literal& { return *x; })); }
   void output_literal(std::ostream& out, Kernel::Literal* const& self) { out << *self; }
-  void output_var(std::ostream& out, VarWrapper const& self) { out << self.inner; }
+  void output_var(std::ostream& out, VarWrapper const& self) { out << self; }
   void output_term(std::ostream& out, Kernel::TermList const& self) { out << self; }
   void output_numeral(std::ostream& out, Kernel::RationalConstantType const& self) { out << self; }
 
@@ -58,10 +50,8 @@ struct VampireVirasConfig {
   Numeral add(Numeral l, Numeral r) { return l + r; }
   Numeral floor(Numeral t) { return t.floor(); }
 
-  Term simpl(Term t) { return t; } // TODO
-
   Term term(Numeral n) { return NumTraits::constantTl(n); }
-  Term term(Var v) { return v.inner; }
+  Term term(Var v) { return v; }
 
   Term mul(Numeral l, Term r) { return NumTraits::mul(term(l), r); }
   Term add(Term l, Term r) { return NumTraits::add(l,r); }
@@ -133,14 +123,14 @@ struct VampireVirasConfig {
                            return NumTraits::ifNumeral(r, [&](auto k) { return if_mul(k.inverse(), l); });
                      }).flatten(); })
      .orElse([&]() { return NumTraits::ifFloor(t, [&](auto t) { return if_floor(t); }); })
-     .orElse([&]() { return if_var(VarWrapper{t}); });
+     .orElse([&]() { return if_var(VarWrapper(t)); });
   }
 
 #ifdef VDEBUG
   Var test_var(const char* name) {
     auto f = env.signature->addFunction(name, 0);
     env.signature->getFunction(f)->setType(Kernel::OperatorType::getFunctionType({}, NumTraits::sort()));
-    return VarWrapper {TermList(Kernel::Term::createConstant(f))};                                                          
+    return VarWrapper(TermList(Kernel::Term::createConstant(f)));
   }
 #endif // VDEBUG
 

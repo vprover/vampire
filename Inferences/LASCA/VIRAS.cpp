@@ -58,7 +58,7 @@ template<class F>
 void traverseLiraVars(TermList self, F f) {
   VampireVirasConfig{}.
     matchTerm(self, 
-      /* var v */ [&](auto y) { f(y.inner); return Void {}; }, 
+      /* var v */ [&](auto y) { f(y); return Void {}; }, 
       /* numeral 1 */ [&]() { return Void {}; }, 
       /* k * t */ [&](auto k, auto t)  { traverseLiraVars(t, f); return Void {}; }, 
       /* l + r */ [&](auto l, auto r)  { 
@@ -122,7 +122,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierEliminatio
       .premiseRedundant = false,
     };
   } else {
-    auto var = VampireVirasConfig::VarWrapper {TermList::var(*unshielded)};
+    auto var = VampireVirasConfig::VarWrapper(TermList::var(*unshielded));
     return ClauseGenerationResult {
       .clauses = pvi(
           intoVampireIter(viras.quantifier_elimination(var, &*toElim))
