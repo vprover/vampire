@@ -83,14 +83,14 @@ KBOComparator::KBOComparator(TermList tl1, TermList tl2, const KBO& kbo)
 
     // if both are proper terms, we calculate
     // weight and variable balances first
-    DHMap<unsigned,int> vars;
-    int w = 0;
-    countSymbols(kbo, vars, w, lhs, 1);
-    countSymbols(kbo, vars, w, rhs, -1);
 
     // we only care about the non-zero weights and counts
     bool varInbalance = false;
-    DHMap<unsigned,int>::Iterator vit(vars);
+    // TODO _kbo.state could be nulled out until this
+    // to make sure no one overwrites the values
+    auto state = _kbo._state;
+    auto w = _kbo._state->_weightDiff;
+    decltype(state->_varDiffs)::Iterator vit(state->_varDiffs);
     Stack<pair<unsigned,int>> nonzeros;
     while (vit.hasNext()) {
       unsigned v;
@@ -98,6 +98,7 @@ KBOComparator::KBOComparator(TermList tl1, TermList tl2, const KBO& kbo)
       vit.next(v,cnt);
       if (cnt!=0) {
         nonzeros.push(make_pair(v,cnt));
+        w-=cnt; // we have to remove the variable weights from w
       }
       if (cnt<0) {
         varInbalance = true;
@@ -244,30 +245,6 @@ bool KBOComparator::check(const SubstApplicator* applicator) const
     }
   }
   return false;
-}
-
-
-void KBOComparator::countSymbols(const KBO& kbo, DHMap<unsigned,int>& vars, int& w, TermList t, int coeff)
-{
-  if (t.isVar()) {
-    int* vcnt;
-    vars.getValuePtr(t.var(), vcnt, 0);
-    (*vcnt) += coeff;
-    return;
-  }
-
-  w += coeff*kbo.symbolWeight(t.term());
-  SubtermIterator sti(t.term());
-  while (sti.hasNext()) {
-    auto st = sti.next();
-    if (st.isVar()) {
-      int* vcnt;
-      vars.getValuePtr(st.var(), vcnt, 0);
-      (*vcnt) += coeff;
-    } else {
-      w += coeff*kbo.symbolWeight(st.term());
-    }
-  }
 }
 
 vstring KBOComparator::toString() const

@@ -41,9 +41,6 @@ public:
   vstring toString() const override;
 
 private:
-  // TODO this could be done with KBO::State
-  static void countSymbols(const KBO& kbo, DHMap<unsigned,int>& vars, int& w, TermList t, int coeff);
-
   enum InstructionTag {
     DATA = 0u,
     WEIGHT = 1u,
