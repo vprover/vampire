@@ -104,7 +104,7 @@ public:
     unsigned blen = _cl->length();
 
     for (unsigned bi = 0; bi < blen; bi++) {
-      LiteralMiniIndex::InstanceIterator instIt(*miniIndex, (*_cl)[bi], false);
+      LiteralMiniIndex::InstanceIterator instIt(*miniIndex, (*_cl)[bi], /* complementary */ false);
       while (instIt.hasNext()) {
         Literal *matched = instIt.next();
         addMatch(bi, matched);
@@ -211,6 +211,9 @@ bool checkForSubsumptionResolution(Clause *cl, ClauseMatches *cms, Literal *resL
 
 bool ForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)
 {
+  ASS(range(0, cl->size()).all([&](auto i) { return 
+        range(i + 1, cl->size()).all([&](auto j) { return 
+            (*cl)[i] != (*cl)[j]; }); }));
   Clause *resolutionClause = 0;
 
   unsigned clen = cl->length();
