@@ -57,7 +57,7 @@ using namespace Inferences::LASCA;
   DECL_PRED(R, {Num,Num})                                                                 \
   DECL_PRED(P, {Num})                                                                     \
 
-#define MY_SYNTAX_SUGAR SUGAR(Rat)
+#define MY_SYNTAX_SUGAR SUGAR(Real)
 
 template<class Rule>
 struct LascaSimplRule 
@@ -595,7 +595,7 @@ TEST_FUN(misc) {
   DBGE(outputPtr(viras_eval_literal(&viras, test_var("a") < test_var("b"))));
   DBGE(outputPtr(viras_eval_literal(&viras, floor(test_var("a")) < test_var("b"))));
   TermList t = viras_eval_term(&viras, numeral(2));
-  RationalConstantType n = viras_eval_numeral(&viras, numeral(5));
+  RealConstantType n = viras_eval_numeral(&viras, numeral(5));
   DBGE(viras_eval_term(&viras, t + n))
   DBGE(viras_eval_numeral(&viras, abs(-4)));
   DBGE(viras_eval_term(&viras, abs(-4) * test_var("x")));

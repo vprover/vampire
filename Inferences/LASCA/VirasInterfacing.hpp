@@ -23,24 +23,25 @@
 namespace Inferences {
 namespace LASCA {
 
+
 struct VampireVirasConfig {
   struct VarWrapper : public TermList {
     VarWrapper() : TermList() {}
     VarWrapper(TermList t) : TermList(t) {}
   };
 
+  using NumTraits = Kernel::RealTraits;
   using Literals = Stack<Kernel::Literal*> const*;
   using Literal  = Kernel::Literal*;
   using Var      = VarWrapper;
   using Term     = Kernel::TermList;
-  using Numeral  = Kernel::RationalConstantType;
-  using NumTraits = Kernel::NumTraits<Numeral>;
+  using Numeral  = typename NumTraits::ConstantType;
 
   void output_literals(std::ostream& out, Stack<Kernel::Literal*> const* const& self) { out << Kernel::outputInterleaved(", ", arrayIter(*self).map([](auto x) -> Kernel::Literal& { return *x; })); }
   void output_literal(std::ostream& out, Kernel::Literal* const& self) { out << *self; }
   void output_var(std::ostream& out, VarWrapper const& self) { out << self; }
   void output_term(std::ostream& out, Kernel::TermList const& self) { out << self; }
-  void output_numeral(std::ostream& out, Kernel::RationalConstantType const& self) { out << self; }
+  void output_numeral(std::ostream& out, Numeral const& self) { out << self; }
 
   Numeral numeral(int i) { return Numeral(i); }
   Numeral lcm(Numeral l, Numeral r) { ASS(l.isInt() && r.isInt()); return Numeral(Kernel::IntegerConstantType::lcm(l.numerator(), r.numerator())); }

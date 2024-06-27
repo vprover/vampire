@@ -16,6 +16,7 @@
 #include "Kernel/NumTraits.hpp"
 #include "Lib/Reflection.hpp"
 #include "Lib/Option.hpp"
+#define DEBUG(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
 
 using namespace Kernel;
 using namespace Inferences;
@@ -73,7 +74,8 @@ void traverseLiraVars(TermList self, F f) {
 }
 
 SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierElimination::generateSimplify(Clause* premise) {
-  using NumTraits = RatTraits;
+  DEBUG(0, *premise)
+  using NumTraits = RealTraits;
   auto viras = viras::viras(VampireVirasConfig{});
   Recycled<DHSet<unsigned>> shieldedVars;
   Recycled<DHSet<unsigned>> candidateVars;
@@ -81,13 +83,15 @@ SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierEliminatio
   Recycled<Stack<Literal*>> otherLits;
   auto noteShielded = [&](Term* t) {
     VariableIterator vars(t);
-    while (vars.hasNext()) 
-     shieldedVars->insert(vars.next().var());
+    while (vars.hasNext()) {
+      auto v = vars.next();
+      shieldedVars->insert(v.var());
+    }
   };
 
   Recycled<DHSet<unsigned>> topLevelVars;
   for (auto l : premise->iterLits()) {
-    Option<LascaLiteral<RatTraits>> norm = _shared->renormalize(l)
+    Option<LascaLiteral<NumTraits>> norm = _shared->renormalize(l)
       .flatMap([](auto l) { return l.template as<LascaLiteral<NumTraits>>().toOwned(); })
       .filter([](auto l) { switch(l.symbol()) {
           case LascaPredicate::EQ:

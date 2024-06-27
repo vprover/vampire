@@ -307,6 +307,7 @@ public:
    * so we get a compiler error if we change the underlying datatype.
    */
   RationalConstantType representation() const;
+  RealConstantType inverse() const { return RealConstantType(1) / *this; }
 
   friend std::ostream& operator<<(std::ostream& out, const RealConstantType& val);
 private:
