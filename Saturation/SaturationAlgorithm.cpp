@@ -1625,7 +1625,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
   }
 
-  auto ise = new CompositeISE();
+  auto ise = createISE(prb, opt, ordering);
   if (env.options->lasca()) {
     auto shared = Kernel::LascaState::create(
         InequalityNormalizer(env.options->lascaStrongNormalization()), 
@@ -1649,7 +1649,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     // TODO check when the other one is better
     if (env.options->viras())
       sgi->push(new LASCA::VirasQuantifierElimination(shared));
-    else 
+    else
       sgi->push(new LASCA::VariableElimination(shared, /* simpl */ true ));
     sgi->push(new LASCA::TermFactoring(shared)); 
     sgi->push(new LASCA::InequalityFactoring(shared));
@@ -1779,7 +1779,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
  */
 CompositeISE* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, Ordering& ordering)
 {
-  CompositeISE* res=new CompositeISE();
+  CompositeISE* res =new CompositeISE();
 
   if(prb.hasEquality() && opt.equationalTautologyRemoval()) {
     res->addFront(new EquationalTautologyRemoval());
