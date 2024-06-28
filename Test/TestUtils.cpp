@@ -64,49 +64,50 @@ std::ostream& printOp(std::ostream& out, const Term* t, const char* op, bool par
 template<>
 std::ostream& Pretty<Kernel::TermList>::prettyPrint(std::ostream& out) const
 {
-  using namespace Kernel;
-
-  auto t = _self;
-  if (t.isVar()) {
-    return out << "X" << t.var();
-  } else {
-    auto term = t.term();
-    auto func = term->functor();
-    Signature::Symbol* sym;
-    if (term->isSort()) {
-      sym = env.signature->getTypeCon(func);
-    } else {
-      if (theory->isInterpretedFunction(func)) {
-        switch(theory->interpretFunction(func)) {
-#define NUM_CASE(oper) \
-          case Kernel::Theory::INT_  ## oper: \
-          case Kernel::Theory::REAL_ ## oper: \
-          case Kernel::Theory::RAT_  ## oper
-
-          NUM_CASE(PLUS):     
-            return printOp(out, term, "+");
-          NUM_CASE(MULTIPLY):
-            return printOp(out, term, "*");
-          // case Kernel::Theory::EQUAL:
-          //   return printOp("=")
-          default: {}
-#undef NUM_CASE
-        }
-      }
-      sym = env.signature->getFunction(func);
-    }
-
-
-    out << sym->name();
-    if (sym->arity() > 0) {
-      out << "(" << pretty(*term->nthArgument(0));
-      for (unsigned i = 1; i < sym->arity(); i++) {
-        out << ", " << pretty(*term->nthArgument(i));
-      }
-      out << ")";
-    }
-    return out;
-  }
+  return out << _self;
+//   using namespace Kernel;
+//
+//   auto t = _self;
+//   if (t.isVar()) {
+//     return out << "X" << t.var();
+//   } else {
+//     auto term = t.term();
+//     auto func = term->functor();
+//     Signature::Symbol* sym;
+//     if (term->isSort()) {
+//       sym = env.signature->getTypeCon(func);
+//     } else {
+//       if (theory->isInterpretedFunction(func)) {
+//         switch(theory->interpretFunction(func)) {
+// #define NUM_CASE(oper) \
+//           case Kernel::Theory::INT_  ## oper: \
+//           case Kernel::Theory::REAL_ ## oper: \
+//           case Kernel::Theory::RAT_  ## oper
+//
+//           NUM_CASE(PLUS):     
+//             return printOp(out, term, "+");
+//           NUM_CASE(MULTIPLY):
+//             return printOp(out, term, "*");
+//           // case Kernel::Theory::EQUAL:
+//           //   return printOp("=")
+//           default: {}
+// #undef NUM_CASE
+//         }
+//       }
+//       sym = env.signature->getFunction(func);
+//     }
+//
+//
+//     out << sym->name();
+//     if (sym->arity() > 0) {
+//       out << "(" << pretty(*term->nthArgument(0));
+//       for (unsigned i = 1; i < sym->arity(); i++) {
+//         out << ", " << pretty(*term->nthArgument(i));
+//       }
+//       out << ")";
+//     }
+//     return out;
+//   }
 }
 
 template<>
