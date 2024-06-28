@@ -35,8 +35,22 @@ template<class T>
 OutputPtr<T> outputPtr(T* self) { return { .self = self, }; }
 
 template<class T>
-void repeat(std::ostream& out, T const& c, int times) 
-{ for (int i = 0; i < times; i++) out << c; };
+struct RepeatOutput {
+  T const& to_repeat;
+  unsigned times;
+};
+
+template<class T>
+RepeatOutput<T> repeatOutput(T const& c, unsigned times)
+{ return RepeatOutput<T>{c, times}; }
+
+} // namespace Kernel
+
+template<class T>
+std::ostream& operator<<(std::ostream& out, Kernel::RepeatOutput<T> const& self)
+{ for (int i = 0; i < self.times; i++) out << self.to_repeat; return out; };
+
+namespace Kernel {
 
 
 /** Newtype for outputting a datatype that implements it in multiline format.
@@ -51,7 +65,7 @@ struct OutputMultiline {
   unsigned indent; 
 
   static void outputIndent(std::ostream& out, unsigned indent)
-  { repeat(out, "    ", indent); };
+  { out << repeatOutput("    ", indent); };
 };
 
 
