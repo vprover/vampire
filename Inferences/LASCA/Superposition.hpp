@@ -38,6 +38,8 @@ class Superposition
 {
 public:
   USE_ALLOCATOR(Superposition);
+  // TODO make option and test and double check
+  bool _simultaneousSuperposition = true;
 
   Superposition(Superposition&&) = default;
   Superposition(std::shared_ptr<LascaState> shared) 

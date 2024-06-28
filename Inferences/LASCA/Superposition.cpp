@@ -101,7 +101,7 @@ Option<Clause*> Superposition::applyRule(
 
 #define check_side_condition(cond, cond_code)                                                       \
     if (!(cond_code)) {                                                                             \
-      DEBUG(1, "side condition not fulfiled: ", cond)                                                  \
+      DEBUG(2, "side condition not fulfiled: ", cond)                                                  \
       return nothing();                                                                             \
     }                                                                                               \
 
@@ -141,6 +141,9 @@ Option<Clause*> Superposition::applyRule(
              return _shared->notLeq(L1σ, Lσ);
            }))
 
+  auto s2σ = sigma(s2, rhsVarBank);
+  auto tσ  = sigma(lhs.smallerSide(), lhsVarBank);
+
   // •    L[s2]σ  ∈ Lit+ and L[s2]σ /⪯ C2σ
   //   or L[s2]σ /∈ Lit+ and L[s2]σ /≺ C2σ
   auto L2σ = sigma(rhs.literal(), rhsVarBank);
@@ -151,12 +154,14 @@ Option<Clause*> Superposition::applyRule(
         rhs.contextLiterals()
            .all([&](auto L) {
              auto Lσ = sigma(L, rhsVarBank);
-             concl.push(Lσ);
+             if (_simultaneousSuperposition) {
+               concl.push(EqHelper::replace(Lσ, s2σ, tσ));
+             } else {
+               concl.push(Lσ);
+             }
              return inLitPlus ? _shared->notLeq(L2σ, Lσ)
                               : _shared->notLess(L2σ, Lσ);
            }));
-
-  auto s2σ = sigma(s2, rhsVarBank);
 
   check_side_condition(
       "s2σ ⊴ ti ∈ active(L[s2]σ)", 
@@ -170,7 +175,6 @@ Option<Clause*> Superposition::applyRule(
 
 
   auto s1σ = sigma(lhs.biggerSide() , lhsVarBank);
-  auto tσ  = sigma(lhs.smallerSide(), lhsVarBank);
   check_side_condition(
       "s1σ /⪯ tσ",
       _shared->notLeq(s1σ.untyped(), tσ))
@@ -178,7 +182,7 @@ Option<Clause*> Superposition::applyRule(
 
   auto resolvent = EqHelper::replace(L2σ, s2σ, tσ);
   //   ^^^^^^^^^--> L[t]σ
-  DEBUG(1, "replacing: ", *L2σ, " [ ", s2σ, " -> ", tσ, " ] ==> ", *resolvent);
+  DEBUG(3, "replacing: ", *L2σ, " [ ", s2σ, " -> ", tσ, " ] ==> ", *resolvent);
   concl.push(resolvent);
 
   // adding Cnst
