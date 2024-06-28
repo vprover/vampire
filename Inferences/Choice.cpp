@@ -63,9 +63,10 @@ Clause* Choice::createChoiceAxiom(TermList op, TermList set)
   TermList t2 = ApplicativeHelper::createAppTerm(opType, op, set);
   t2 =  ApplicativeHelper::createAppTerm(setType, set, t2);
 
-  return Clause::fromLiterals(NonspecificInference0(UnitInputType::AXIOM, InferenceRule::CHOICE_AXIOM),
-    Literal::createEquality(true, t1, TermList(Term::foolFalse()), AtomicSort::boolSort()),
-    Literal::createEquality(true, t2, TermList(Term::foolTrue()), AtomicSort::boolSort())
+  return Clause::fromLiterals(
+      { Literal::createEquality(true, t1, TermList(Term::foolFalse()), AtomicSort::boolSort()),
+        Literal::createEquality(true, t2, TermList(Term::foolTrue()), AtomicSort::boolSort())},
+       NonspecificInference0(UnitInputType::AXIOM, InferenceRule::CHOICE_AXIOM)
   );
 }
 

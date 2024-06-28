@@ -146,7 +146,7 @@ class Definizator : public BottomUpTermTransformer {
           // it is correct, because the lhs below is t and not key
           Literal* equation = Literal::createEquality(true, TermList(t), res, outSort);
           Inference inference(NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FUNCTION_DEFINITION));
-          newDef = Clause::fromLiterals(inference, equation);
+          newDef = Clause::fromLiterals({ equation }, inference);
 
           InferenceStore::instance()->recordIntroducedSymbol(newDef,SymbolType::FUNC,newSym);
         } else {

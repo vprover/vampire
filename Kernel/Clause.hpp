@@ -83,16 +83,11 @@ public:
   static Clause* fromArray(Literal*const* lits, unsigned size, Inference inf)
   { return new(size) Clause(lits, size, std::move(inf)); }
 
-  template<class... Args>
-  static Clause* fromLiterals(Inference inf, Args... lits)
-  { 
-    Literal* litArray[] = { lits... }; 
-    return fromArray(litArray, std::tuple_size_v<std::tuple<Args...>>, std::move(inf));
-  }
-
+  static Clause* fromLiterals(std::initializer_list<Literal*> lits, Inference inf)
+  { return fromArray(std::data(lits), lits.size(), std::move(inf)); }
 
   static Clause* empty(Inference inf)
-  { return fromLiterals(inf); }
+  { return fromLiterals({}, inf); }
 
 
   static Clause* fromStack(const Stack<Literal*>& lits, Inference inf)

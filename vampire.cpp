@@ -499,9 +499,11 @@ void clausifyMode(Problem* problem, bool theory)
   }
   if(!printed_conjecture && UIHelper::haveConjecture()){
     unsigned p = env.signature->addFreshPredicate(0,"p");
-    auto c = Clause::fromLiterals(NonspecificInference0(UnitInputType::NEGATED_CONJECTURE,InferenceRule::INPUT),
-      Literal::create(p, /* polarity */ true , {}),
-      Literal::create(p, /* polarity */ false, {}));
+    auto c = Clause::fromLiterals({
+        Literal::create(p, /* polarity */ true , {}),
+        Literal::create(p, /* polarity */ false, {})
+      }, 
+      NonspecificInference0(UnitInputType::NEGATED_CONJECTURE,InferenceRule::INPUT));
     std::cout << TPTPPrinter::toString(c) << "\n";
   }
 

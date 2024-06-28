@@ -417,8 +417,8 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
   TermList lhs = AH::createAppTerm(srtOf(constant), constant, x, y, z); //TODO fix
   TermList rhs = AH::createAppTerm3(AtomicSort::arrowSort(s1, s2, s3), x, z, AH::createAppTerm(AtomicSort::arrowSort(s1, s2), y, z));
 
-  Clause* sAxiom = Clause::fromLiterals(TheoryAxiom(InferenceRule::COMBINATOR_AXIOM), 
-    Literal::createEquality(true, lhs, rhs, s3));
+  Clause* sAxiom = Clause::fromLiterals({Literal::createEquality(true, lhs, rhs, s3)},
+      TheoryAxiom(InferenceRule::COMBINATOR_AXIOM) );
   sAxiom->inference().setCombAxiomsDescendant(true);
   UnitList::push(sAxiom, prb.units());
 
@@ -427,8 +427,8 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
   lhs = AH::createAppTerm(srtOf(constant), constant, x, y, z); //TODO fix
   rhs = AH::createAppTerm3(AtomicSort::arrowSort(s1, s2, s3), x, z, y);
 
-  Clause* cAxiom = Clause::fromLiterals(TheoryAxiom(InferenceRule::COMBINATOR_AXIOM), 
-    Literal::createEquality(true, lhs, rhs, s3));
+  Clause* cAxiom = Clause::fromLiterals({ Literal::createEquality(true, lhs, rhs, s3) },
+    TheoryAxiom(InferenceRule::COMBINATOR_AXIOM));
   cAxiom->inference().setCombAxiomsDescendant(true);
   UnitList::push(cAxiom, prb.units());
      
@@ -437,8 +437,8 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
   lhs = AH::createAppTerm(srtOf(constant), constant, x, y, z); //TODO fix
   rhs = AH::createAppTerm(AtomicSort::arrowSort(s2, s3), x, AH::createAppTerm(AtomicSort::arrowSort(s1, s2), y, z));
 
-  Clause* bAxiom = Clause::fromLiterals(TheoryAxiom(InferenceRule::COMBINATOR_AXIOM), 
-    Literal::createEquality(true, lhs, rhs, s3));
+  Clause* bAxiom = Clause::fromLiterals({Literal::createEquality(true, lhs, rhs, s3)}, 
+      TheoryAxiom(InferenceRule::COMBINATOR_AXIOM));
   bAxiom->inference().setCombAxiomsDescendant(true);
   UnitList::push(bAxiom, prb.units());
 
@@ -446,8 +446,8 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
   constant = TermList(Term::create2(k_comb, s1, s2));
   lhs = AH::createAppTerm3(srtOf(constant), constant, x, y);
   
-  Clause* kAxiom = Clause::fromLiterals(TheoryAxiom(InferenceRule::COMBINATOR_AXIOM), 
-    Literal::createEquality(true, lhs, x, s1));
+  Clause* kAxiom = Clause::fromLiterals({ Literal::createEquality(true, lhs, x, s1) }, 
+      TheoryAxiom(InferenceRule::COMBINATOR_AXIOM));
   bAxiom->inference().setCombAxiomsDescendant(true);
   UnitList::push(kAxiom, prb.units());
 
@@ -455,8 +455,8 @@ void LambdaElimination::addCombinatorAxioms(Problem& prb)
   constant = TermList(Term::create1(i_comb, s1));
   lhs = AH::createAppTerm(srtOf(constant), constant, x);
   
-  Clause* iAxiom = Clause::fromLiterals(TheoryAxiom(InferenceRule::COMBINATOR_AXIOM), 
-    Literal::createEquality(true, lhs, x, s1));
+  Clause* iAxiom = Clause::fromLiterals({ Literal::createEquality(true, lhs, x, s1) }, 
+      TheoryAxiom(InferenceRule::COMBINATOR_AXIOM));
   iAxiom->inference().setCombAxiomsDescendant(true);  
   UnitList::push(iAxiom, prb.units());
 
@@ -489,10 +489,10 @@ void LambdaElimination::addFunctionExtensionalityAxiom(Problem& prb)
   TermList lhs = AH::createAppTerm(alpha, beta, x, diffTApplied);
   TermList rhs = AH::createAppTerm(alpha, beta, y, diffTApplied);
 
-  Clause* funcExtAx = Clause::fromLiterals(NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FUNC_EXT_AXIOM),
-    Literal::createEquality(false, lhs, rhs, beta),
-    Literal::createEquality(true, x, y, AtomicSort::arrowSort(alpha, beta))
-      );
+  Clause* funcExtAx = Clause::fromLiterals(
+      { Literal::createEquality(false, lhs, rhs, beta),
+        Literal::createEquality(true, x, y, AtomicSort::arrowSort(alpha, beta)) },
+      NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FUNC_EXT_AXIOM));
   UnitList::push(funcExtAx, prb.units());
 
 
@@ -516,10 +516,10 @@ void LambdaElimination::addChoiceAxiom(Problem& prb)
   TermList px = AH::createAppTerm(alpha, boolS, p, x);
   TermList pchoiceT = AH::createAppTerm(alpha, boolS, p, choiceTApplied);
 
-  Clause* choiceAx = Clause::fromLiterals(NonspecificInference0(UnitInputType::AXIOM,InferenceRule::CHOICE_AXIOM), 
-    Literal::createEquality(true, px, TermList(Term::foolFalse()), boolS),
-    Literal::createEquality(true, pchoiceT, TermList(Term::foolTrue()), boolS)
-  );
+  Clause* choiceAx = Clause::fromLiterals(
+      { Literal::createEquality(true, px, TermList(Term::foolFalse()), boolS),
+        Literal::createEquality(true, pchoiceT, TermList(Term::foolTrue()), boolS) },
+      NonspecificInference0(UnitInputType::AXIOM,InferenceRule::CHOICE_AXIOM));
   UnitList::push(choiceAx, prb.units());
 
 
@@ -549,143 +549,143 @@ void LambdaElimination::addProxyAxioms(Problem& prb)
   unsigned eqProxy = env.signature->getEqualityProxy();
   TermList constant = TermList(Term::create1(eqProxy, s1));
 
-  Clause* eqAxiom1 = Clause::fromLiterals(TheoryAxiom(InferenceRule::EQUALITY_PROXY_AXIOM),
-    toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), true),
-    Literal::createEquality(false,x,y,s1)
-  );
+  Clause* eqAxiom1 = Clause::fromLiterals(
+    { toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), true),
+      Literal::createEquality(false,x,y,s1) },
+    TheoryAxiom(InferenceRule::EQUALITY_PROXY_AXIOM));
   eqAxiom1->inference().setProxyAxiomsDescendant(true);  
   UnitList::push(eqAxiom1, prb.units());
 
-  Clause* eqAxiom2 = Clause::fromLiterals(TheoryAxiom(InferenceRule::EQUALITY_PROXY_AXIOM),
-    toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), false),
-    Literal::createEquality(true,x,y,s1)
-  );
+  Clause* eqAxiom2 = Clause::fromLiterals(
+    { toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), false),
+      Literal::createEquality(true,x,y,s1) },
+    TheoryAxiom(InferenceRule::EQUALITY_PROXY_AXIOM));
   eqAxiom2->inference().setProxyAxiomsDescendant(true);   
   UnitList::push(eqAxiom2, prb.units());
 
   unsigned notProxy = env.signature->getNotProxy();
   constant = TermList(Term::createConstant(notProxy));
 
-  Clause* notAxiom1 = Clause::fromLiterals(TheoryAxiom(InferenceRule::NOT_PROXY_AXIOM),
-    toEquality(AH::createAppTerm(srtOf(constant), constant, x), true),
-    toEquality(x, true)
-  );
+  Clause* notAxiom1 = Clause::fromLiterals(
+    { toEquality(AH::createAppTerm(srtOf(constant), constant, x), true),
+      toEquality(x, true) },
+    TheoryAxiom(InferenceRule::NOT_PROXY_AXIOM));
   notAxiom1->inference().setProxyAxiomsDescendant(true);    
   UnitList::push(notAxiom1, prb.units());
 
-  Clause* notAxiom2 = Clause::fromLiterals(TheoryAxiom(InferenceRule::NOT_PROXY_AXIOM),
-    toEquality(AH::createAppTerm(srtOf(constant), constant, x), false),
-    toEquality(x, false)
-  );
+  Clause* notAxiom2 = Clause::fromLiterals(
+    { toEquality(AH::createAppTerm(srtOf(constant), constant, x), false),
+      toEquality(x, false) },
+    TheoryAxiom(InferenceRule::NOT_PROXY_AXIOM));
   notAxiom2->inference().setProxyAxiomsDescendant(true);    
   UnitList::push(notAxiom2, prb.units());  
 
   unsigned piProxy = env.signature->getPiSigmaProxy("vPI");
   constant = TermList(Term::create1(piProxy, s1));
 
-  Clause* piAxiom1 = Clause::fromLiterals(TheoryAxiom(InferenceRule::PI_PROXY_AXIOM),
-    toEquality(AH::createAppTerm(srtOf(constant), constant, x), true),
-    toEquality(AH::createAppTerm(s1, AtomicSort::boolSort(), x, AH::createAppTerm(srtOf(sk1), sk1, x)), false)
-  );
+  Clause* piAxiom1 = Clause::fromLiterals(
+    { toEquality(AH::createAppTerm(srtOf(constant), constant, x), true),
+      toEquality(AH::createAppTerm(s1, AtomicSort::boolSort(), x, AH::createAppTerm(srtOf(sk1), sk1, x)), false) },
+    TheoryAxiom(InferenceRule::PI_PROXY_AXIOM));
   piAxiom1->inference().setProxyAxiomsDescendant(true);    
   UnitList::push(piAxiom1, prb.units());
 
-  Clause* piAxiom2 = Clause::fromLiterals(TheoryAxiom(InferenceRule::PI_PROXY_AXIOM),
-    toEquality(AH::createAppTerm(srtOf(constant), constant, x), false),
-    toEquality(AH::createAppTerm(s1, AtomicSort::boolSort(), x, y), true)
-  );
+  Clause* piAxiom2 = Clause::fromLiterals(
+    { toEquality(AH::createAppTerm(srtOf(constant), constant, x), false),
+      toEquality(AH::createAppTerm(s1, AtomicSort::boolSort(), x, y), true) },
+    TheoryAxiom(InferenceRule::PI_PROXY_AXIOM));
   piAxiom2->inference().setProxyAxiomsDescendant(true);      
   UnitList::push(piAxiom2, prb.units());  
 
   unsigned sigmaProxy = env.signature->getPiSigmaProxy("vSIGMA");
   constant = TermList(Term::create1(sigmaProxy, s1));
 
-  Clause* sigmaAxiom1 = Clause::fromLiterals(TheoryAxiom(InferenceRule::SIGMA_PROXY_AXIOM),
-    toEquality(AH::createAppTerm(srtOf(constant), constant, x), true),
-    toEquality(AH::createAppTerm(s1, AtomicSort::boolSort(), x, y), false)
-  );
+  Clause* sigmaAxiom1 = Clause::fromLiterals(
+    { toEquality(AH::createAppTerm(srtOf(constant), constant, x), true),
+      toEquality(AH::createAppTerm(s1, AtomicSort::boolSort(), x, y), false) },
+    TheoryAxiom(InferenceRule::SIGMA_PROXY_AXIOM));
   sigmaAxiom1->inference().setProxyAxiomsDescendant(true);      
   UnitList::push(sigmaAxiom1, prb.units());
 
-  Clause* sigmaAxiom2 = Clause::fromLiterals(TheoryAxiom(InferenceRule::SIGMA_PROXY_AXIOM),
-    toEquality(AH::createAppTerm(srtOf(constant), constant, x), false),
-    toEquality(AH::createAppTerm(s1, AtomicSort::boolSort(), x, AH::createAppTerm(srtOf(sk2), sk2, x)), true)
-  );
+  Clause* sigmaAxiom2 = Clause::fromLiterals(
+    { toEquality(AH::createAppTerm(srtOf(constant), constant, x), false),
+      toEquality(AH::createAppTerm(s1, AtomicSort::boolSort(), x, AH::createAppTerm(srtOf(sk2), sk2, x)), true) },
+    TheoryAxiom(InferenceRule::SIGMA_PROXY_AXIOM));
   sigmaAxiom2->inference().setProxyAxiomsDescendant(true);    
   UnitList::push(sigmaAxiom2, prb.units()); 
 
   unsigned impProxy = env.signature->getBinaryProxy("vIMP");
   constant = TermList(Term::createConstant(impProxy));
 
-  Clause* impAxiom1 = Clause::fromLiterals(TheoryAxiom(InferenceRule::IMPLIES_PROXY_AXIOM),
-    toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), true),
-    toEquality(x, true)
-  );
+  Clause* impAxiom1 = Clause::fromLiterals(
+    { toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), true),
+      toEquality(x, true) },
+    TheoryAxiom(InferenceRule::IMPLIES_PROXY_AXIOM));
   impAxiom1->inference().setProxyAxiomsDescendant(true);    
   UnitList::push(impAxiom1, prb.units());
 
-  Clause* impAxiom2 = Clause::fromLiterals(TheoryAxiom(InferenceRule::IMPLIES_PROXY_AXIOM),
-    toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), true),
-    toEquality(y, false)
-  );
+  Clause* impAxiom2 = Clause::fromLiterals(
+    { toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), true),
+      toEquality(y, false) },
+    TheoryAxiom(InferenceRule::IMPLIES_PROXY_AXIOM));
   impAxiom2->inference().setProxyAxiomsDescendant(true);      
   UnitList::push(impAxiom2, prb.units());
 
-  Clause* impAxiom3 = Clause::fromLiterals(TheoryAxiom(InferenceRule::IMPLIES_PROXY_AXIOM),
-    toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), false),
-    toEquality(x, false)
-  );
-  (*impAxiom3)[2] = toEquality(y, true);
+  Clause* impAxiom3 = Clause::fromLiterals(
+    { toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), false),
+      toEquality(x, false) ,
+      toEquality(y, true) },
+    TheoryAxiom(InferenceRule::IMPLIES_PROXY_AXIOM));
   impAxiom3->inference().setProxyAxiomsDescendant(true);
   UnitList::push(impAxiom3, prb.units());
 
   unsigned andProxy = env.signature->getBinaryProxy("vAND");
   constant = TermList(Term::createConstant(andProxy));
 
-  Clause* andAxiom1 = Clause::fromLiterals(TheoryAxiom(InferenceRule::AND_PROXY_AXIOM),
-    toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), false),
-    toEquality(x, true)
-  );
+  Clause* andAxiom1 = Clause::fromLiterals(
+    { toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), false),
+      toEquality(x, true) },
+    TheoryAxiom(InferenceRule::AND_PROXY_AXIOM));
   andAxiom1->inference().setProxyAxiomsDescendant(true);
   UnitList::push(andAxiom1, prb.units());
 
-  Clause* andAxiom2 = Clause::fromLiterals(TheoryAxiom(InferenceRule::AND_PROXY_AXIOM),
-    toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), false),
-    toEquality(y, true)
-  );
+  Clause* andAxiom2 = Clause::fromLiterals(
+    { toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), false),
+      toEquality(y, true) },
+    TheoryAxiom(InferenceRule::AND_PROXY_AXIOM));
   andAxiom2->inference().setProxyAxiomsDescendant(true);
   UnitList::push(andAxiom2, prb.units());
 
-  Clause* andAxiom3 = Clause::fromLiterals(TheoryAxiom(InferenceRule::AND_PROXY_AXIOM),
-    toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), true),
-    toEquality(x, false),
-    toEquality(y, false)
-  );
+  Clause* andAxiom3 = Clause::fromLiterals(
+    { toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), true),
+      toEquality(x, false),
+      toEquality(y, false) },
+    TheoryAxiom(InferenceRule::AND_PROXY_AXIOM));
   andAxiom3->inference().setProxyAxiomsDescendant(true);  
   UnitList::push(andAxiom3, prb.units());
 
   unsigned orProxy = env.signature->getBinaryProxy("vOR");
   constant = TermList(Term::createConstant(orProxy));
 
-  Clause* orAxiom1 = Clause::fromLiterals(TheoryAxiom(InferenceRule::OR_PROXY_AXIOM),
-    toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), true),
-    toEquality(x, false)
-  );
+  Clause* orAxiom1 = Clause::fromLiterals(
+    { toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), true),
+      toEquality(x, false) },
+    TheoryAxiom(InferenceRule::OR_PROXY_AXIOM));
   orAxiom1->inference().setProxyAxiomsDescendant(true);
   UnitList::push(orAxiom1, prb.units());
 
-  Clause* orAxiom2 = Clause::fromLiterals(TheoryAxiom(InferenceRule::OR_PROXY_AXIOM),
-    toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), true),
-    toEquality(y, false)
-  );
+  Clause* orAxiom2 = Clause::fromLiterals(
+    { toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), true),
+      toEquality(y, false) },
+    TheoryAxiom(InferenceRule::OR_PROXY_AXIOM));
   orAxiom2->inference().setProxyAxiomsDescendant(true);
   UnitList::push(orAxiom2, prb.units());
 
-  Clause* orAxiom3 = Clause::fromLiterals(TheoryAxiom(InferenceRule::OR_PROXY_AXIOM),
-    toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), false),
-    toEquality(x, true),
-    toEquality(y, true)
-  );
+  Clause* orAxiom3 = Clause::fromLiterals(
+    { toEquality(AH::createAppTerm3(srtOf(constant), constant, x, y), false),
+      toEquality(x, true),
+      toEquality(y, true) },
+    TheoryAxiom(InferenceRule::OR_PROXY_AXIOM));
   orAxiom3->inference().setProxyAxiomsDescendant(true);
   UnitList::push(orAxiom3, prb.units()); 
   

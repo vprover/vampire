@@ -191,8 +191,8 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
   }
 
   RStack<Literal*> resLits;
-  auto defCl = Clause::fromLiterals(NonspecificInference0(inpType,InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION), 
-      makeNameLiteral(fun, t, false, vars));
+  auto defCl = Clause::fromLiterals({makeNameLiteral(fun, t, false, vars)}, 
+      NonspecificInference0(inpType,InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION));
   _predDefs.push(defCl);
 
   if(_appify){
