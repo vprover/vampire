@@ -94,7 +94,6 @@ Clause::Clause(Literal* const* lits, unsigned length, Inference inf)
   if (env.options->traceBackward() && env.options->traceBackward() == number()) {
     traverseParentsPost(
         [&](unsigned depth, Unit* unit) {
-          using ::operator<<; // TODO investigate why we need this import here
           std::cout << "backward trace " <<  number() << ": " << repeatOutput("| ", depth) << unit->toString() << std::endl;
       });
   }
