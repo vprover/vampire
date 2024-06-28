@@ -40,11 +40,6 @@ template<class T>
 RepeatOutput<T> repeatOutput(T const& c, unsigned times)
 { return RepeatOutput<T>{c, times}; }
 
-// } // namespace Kernel
-//
-// namespace Kernel {
-
-
 /** Newtype for outputting a datatype that implements it in multiline format.
  * Usage: `out << multiline(substitutioTree) << std::endl;` 
  *
