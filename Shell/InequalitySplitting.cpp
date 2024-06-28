@@ -96,34 +96,31 @@ Clause* InequalitySplitting::trySplitClause(Clause* cl)
     return cl;
   }
 
-  static DArray<Literal*> resLits(8);
-  resLits.ensure(clen);
+  // static DArray<Literal*> resLits(8);
+  RStack<Literal*> resLits;
 
   UnitInputType inpType = cl->inputType();
   UnitList* premises=0;
 
   for(unsigned i=0; i<firstSplittable; i++) {
-    resLits[i] = (*cl)[i];
+    resLits->push((*cl)[i]);
   }
   for(unsigned i=firstSplittable; i<clen; i++) {
     Literal* lit= (*cl)[i];
     if(i==firstSplittable || isSplittable(lit)) {
       Clause* prem;
-      resLits[i] = splitLiteral(lit, inpType , prem);
+      resLits->push(splitLiteral(lit, inpType , prem));
       UnitList::push(prem, premises);
     } else {
-      resLits[i] = lit;
+      resLits->push(lit);
     }
   }
 
   UnitList::push(cl, premises);
 
-  Clause* res = new(clen) Clause(clen,NonspecificInferenceMany(InferenceRule::INEQUALITY_SPLITTING, premises));
+  auto res = Clause::fromStack(*resLits,NonspecificInferenceMany(InferenceRule::INEQUALITY_SPLITTING, premises));
+  // TODO isn't this done automatically?
   res->setAge(cl->age()); // MS: this seems useless; as long as InequalitySplitting is only operating as a part of preprocessing, age is going to 0 anyway
-
-  for(unsigned i=0;i<clen;i++) {
-    (*res)[i] = resLits[i];
-  }
 
 #if TRACE_INEQUALITY_SPLITTING
   cout<<"---------"<<endl;
@@ -193,8 +190,9 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
     sym->markSkip();
   }
 
-  Clause* defCl=new(1) Clause(1,NonspecificInference0(inpType,InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION));
-  (*defCl)[0]=makeNameLiteral(fun, t, false, vars);
+  RStack<Literal*> resLits;
+  auto defCl = Clause::fromLiterals(NonspecificInference0(inpType,InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION), 
+      makeNameLiteral(fun, t, false, vars));
   _predDefs.push(defCl);
 
   if(_appify){

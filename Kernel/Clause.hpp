@@ -73,12 +73,30 @@ public:
     SELECTED = 4u
   };
 
-  Clause(unsigned length,const Inference& inf);
 
+private:
+  Clause(Literal* const* lits, unsigned length, Inference inf);
   void* operator new(size_t,unsigned length);
+public:
   void operator delete(void* ptr,unsigned length);
 
-  static Clause* fromStack(const Stack<Literal*>& lits, const Inference& inf);
+  static Clause* fromArray(Literal*const* lits, unsigned size, Inference inf)
+  { return new(size) Clause(lits, size, std::move(inf)); }
+
+  template<class... Args>
+  static Clause* fromLiterals(Inference inf, Args... lits)
+  { 
+    Literal* litArray[] = { lits... }; 
+    return fromArray(litArray, std::tuple_size_v<std::tuple<Args...>>, std::move(inf));
+  }
+
+
+  static Clause* empty(Inference inf)
+  { return fromLiterals(inf); }
+
+
+  static Clause* fromStack(const Stack<Literal*>& lits, Inference inf)
+  { return new(lits.size()) Clause(lits.begin(), lits.size(), std::move(inf)); }
 
   template<class Iter>
   static Clause* fromIterator(Iter litit, const Inference& inf)

@@ -60,8 +60,8 @@ bool Clause::_auxInUse = false;
 
 
 /** New clause */
-Clause::Clause(unsigned length,const Inference& inf)
-  : Unit(Unit::CLAUSE,inf),
+Clause::Clause(Literal* const* lits, unsigned length, Inference inf)
+  : Unit(Unit::CLAUSE, std::move(inf)),
     _length(length),
     _color(COLOR_INVALID),
     _extensionality(false),
@@ -83,6 +83,12 @@ Clause::Clause(unsigned length,const Inference& inf)
     _extensionalityTag = true;
     inference().setInputType(UnitInputType::AXIOM);
   }
+
+  for(unsigned i = 0; i < length; i++) {
+    (*this)[i] = lits[i];
+  }
+
+
 }
 
 /**
@@ -134,18 +140,6 @@ void Clause::destroyExceptInferenceObject()
   DEALLOC_KNOWN(this, size,"Clause");
 }
 
-
-Clause* Clause::fromStack(const Stack<Literal*>& lits, const Inference& inf)
-{
-  unsigned clen = lits.size();
-  Clause* res = new (clen) Clause(clen, inf);
-
-  for(unsigned i = 0; i < clen; i++) {
-    (*res)[i] = lits[i];
-  }
-
-  return res;
-}
 
 /**
  * Create a clause with the same content as @c c. The inference of the

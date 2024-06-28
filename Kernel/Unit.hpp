@@ -157,7 +157,7 @@ protected:
   /** inference used to obtain the unit */
   Inference _inference;
 
-  Unit(Kind kind, const Inference& inf);
+  Unit(Kind kind, Inference inf);
 
   /** Used to enumerate units */
   static unsigned _lastNumber;

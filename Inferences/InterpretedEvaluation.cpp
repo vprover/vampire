@@ -86,19 +86,17 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
     if(cl->isTheoryAxiom()) return cl;
 
 
-    static DArray<Literal*> newLits(32);
+    RStack<Literal*> resLits;
     unsigned clen=cl->length();
     bool modified=false;
-    newLits.ensure(clen);
-    unsigned next=0;
-    Stack<Literal*> sideConditions;
+    RStack<Literal*> sideConditions;
     for(unsigned li=0;li<clen; li++) {
       Literal* lit=(*cl)[li];
       Literal* res;
       bool constant, constTrue;
-      bool litMod=simplifyLiteral(lit, constant, res, constTrue,sideConditions);
+      bool litMod=simplifyLiteral(lit, constant, res, constTrue,*sideConditions);
       if(!litMod) {
-        newLits[next++]=lit;
+        resLits->push(lit);
         continue;
       }
       modified=true;
@@ -112,25 +110,17 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
         }
       }
       
-      newLits[next++]=res;
+      resLits->push(res);
     }
     if(!modified) {
       return cl;
     }
 
-    ASS(sideConditions.isEmpty())
-    Stack<Literal*>::Iterator side(sideConditions);
-    newLits.expand(clen+sideConditions.length());
-    while(side.hasNext()){ newLits[next++]=side.next();}
-    int newLength = next;
-    Clause* res = new(newLength) Clause(newLength,SimplifyingInference1(InferenceRule::EVALUATION, cl));
-
-    for(int i=0;i<newLength;i++) {
-      (*res)[i] = newLits[i];
-    }
+    ASS(sideConditions->isEmpty())
+    resLits->loadFromIterator(sideConditions->iterFifo());
 
     env.statistics->evaluationCnt++;
-    return res; 
+    return Clause::fromStack(*resLits,SimplifyingInference1(InferenceRule::EVALUATION, cl));
 
   } catch (MachineArithmeticException&) {
     /* overflow while evaluating addition, subtraction, etc. */

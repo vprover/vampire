@@ -74,8 +74,7 @@ start_applying:
 
   _subst.reset();
 
-  static Stack<Literal*> resLits(8);
-  resLits.reset();
+  RStack<Literal*> resLits;
 
   bool foundResolvable=false;
   for(unsigned i=0;i<clen;i++) {
@@ -83,24 +82,19 @@ start_applying:
     if(!foundResolvable && scan(lit)) {
       foundResolvable=true;
     } else {
-      resLits.push(lit);
+      resLits->push(lit);
     }
   }
   if(!foundResolvable) {
     return cl;
   }
 
-  unsigned nlen=resLits.size();
-  ASS_L(nlen, clen);
-
-  Clause* res = new(nlen) Clause(nlen,
-      SimplifyingInference1(InferenceRule::EQUALITY_RESOLUTION_WITH_DELETION, cl));
-
-  for(unsigned i=0;i<nlen;i++) {
-    (*res)[i] = SubstHelper::apply(resLits[i], *this);
+  for(unsigned i=0;i<resLits->size();i++) {
+    (*resLits)[i] = SubstHelper::apply((*resLits)[i], *this);
   }
 
-  cl=res;
+  cl = Clause::fromStack(*resLits,
+      SimplifyingInference1(InferenceRule::EQUALITY_RESOLUTION_WITH_DELETION, cl));
   goto start_applying;
 }
 

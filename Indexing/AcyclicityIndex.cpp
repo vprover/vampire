@@ -224,15 +224,14 @@ namespace Indexing
 
     Clause *applySubstitution(Clause *c, unsigned index)
     {
-      unsigned clen = c->length();
-      Clause* res = new(clen) Clause(clen,
-          GeneratingInference1(InferenceRule::INSTANTIATION, c));
+      RStack<Literal*> resLits;
 
-      for (unsigned i = 0; i < clen; i++) {
-        (*res)[i] = _subst->apply((*c)[i], index);
+      for (auto lit : c->iterLits()) {
+        resLits->push(_subst->apply(lit, index));
       }
 
-      return res;
+      return Clause::fromStack(*resLits,
+          GeneratingInference1(InferenceRule::INSTANTIATION, c));
     }
 
     CycleQueryResult *resultFromNode(CycleSearchTreeNode *node)

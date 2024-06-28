@@ -100,10 +100,7 @@ ClauseIterator Injectivity::generateClauses(Clause* premise) {
   TermList sort = SortHelper::getResultSort(newLhs.term());
   Literal* lit = Literal::createEquality(true, newLhs, differingArg, sort);
 
-  Clause* conclusion = new(1) Clause(1, GeneratingInference1(InferenceRule::INJECTIVITY, premise));
-
-  (*conclusion)[0] = lit;
-
+  Clause* conclusion = Clause::fromLiterals(GeneratingInference1(InferenceRule::INJECTIVITY, premise), lit);
   return pvi(getSingletonIterator(conclusion));
 }
 

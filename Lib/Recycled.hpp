@@ -224,6 +224,9 @@ bool Recycled<T, Reset, Keep>::memAlive = true;
 };
 
 template<class T>
+using RStack = Recycled<Stack<T>>;
+
+template<class T>
 Recycled<Stack<T>> recycledStack() 
 { return Recycled<Stack<T>>(); }
 
