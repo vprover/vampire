@@ -20,6 +20,7 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/DArray.hpp"
+#include "Debug/Output.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/SharedSet.hpp"
@@ -40,6 +41,8 @@
 
 #include <cmath>
 
+
+
 #include "Clause.hpp"
 
 #undef RSTAT_COLLECTION
@@ -57,7 +60,6 @@ size_t Clause::_auxCurrTimestamp = 0;
 #if VDEBUG
 bool Clause::_auxInUse = false;
 #endif
-
 
 /** New clause */
 Clause::Clause(Literal* const* lits, unsigned length, Inference inf)
@@ -88,7 +90,33 @@ Clause::Clause(Literal* const* lits, unsigned length, Inference inf)
     (*this)[i] = lits[i];
   }
 
+#if VAMPIRE_CLAUSE_TRACING
+  if (env.options->traceBackward() && env.options->traceBackward() == number()) {
+    traverseParentsPost(
+        [&](unsigned depth, Unit* unit) {
+          using ::operator<<; // TODO investigate why we need this import here
+          std::cout << "backward trace " <<  number() << ": " << repeatOutput("| ", depth) << unit->toString() << std::endl;
+      });
+  }
 
+  // forward tracing
+  static int traceFwd = env.options->traceForward();
+  if (traceFwd != -1) {
+
+    bool doTrace = false;
+    auto infit = inference().iterator();
+    while (inference().hasNext(infit)) {
+      if (inference().next(infit)->number() == traceFwd) {
+        doTrace = true;
+        break;
+      }
+    }
+    if (doTrace) {
+      std::cout << "forward trace " << traceFwd << ": " << toString() << std::endl;
+    }
+  }
+
+#endif // VAMPIRE_CLAUSE_TRACING
 }
 
 /**
