@@ -31,7 +31,7 @@ typedef void (*TestProc)();
 class TestUnit
 {
 public:
-  TestUnit(vstring const&);
+  TestUnit(std::string const&);
 
   struct Test
   {
@@ -50,20 +50,20 @@ public:
    * returns true iff all tests of the unit were successfull.
    */
   bool run(std::ostream& out);
-  bool runTestsWithNameSubstring(vstring const& pref, std::ostream& out);
-  bool runTest(vstring const& name);
+  bool runTestsWithNameSubstring(std::string const& pref, std::ostream& out);
+  bool runTest(std::string const& name);
 
 
-  bool hasTest(vstring const& name);
+  bool hasTest(std::string const& name);
 
   friend std::ostream& operator<<(std::ostream& out, TestUnit const& t)
   { return out << t._name << t._tests; }
 
-  vstring const& id() const { return _name; }
+  std::string const& id() const { return _name; }
 
   Stack<Test> const& tests() { return _tests; }
 private:
-  Test* findTest(vstring const& testCase);
+  Test* findTest(std::string const& testCase);
   /** Runs a test as a single process and awaits its termination.
    * This is to provide isolation when running multiple tests in one go.
    *
@@ -73,7 +73,7 @@ private:
 
   // TODO replace by Map as soon as integer-arithmetic PR with Map additions has landed
   Stack<Test> _tests;
-  vstring _name;
+  std::string _name;
 };
 
 /** Main class for running tests */
@@ -85,12 +85,12 @@ class UnitTesting
 public:
   static UnitTesting& instance();
 
-  bool add(vstring const& testUnit, TestUnit::Test test);
-  TestUnit* findUnit(vstring const& id);
-  bool listTests(Stack<vstring>const& args);
-  bool run(Stack<vstring>const& args);
-  bool runUnit(vstring const& args);
-  bool runTest(vstring const& unit, vstring const& testCase);
+  bool add(std::string const& testUnit, TestUnit::Test test);
+  TestUnit* findUnit(std::string const& id);
+  bool listTests(Stack<std::string>const& args);
+  bool run(Stack<std::string>const& args);
+  bool runUnit(std::string const& args);
+  bool runTest(std::string const& unit, std::string const& testCase);
 };
 
 std::ostream& operator<<(std::ostream& out, TestUnit::Test const& t);

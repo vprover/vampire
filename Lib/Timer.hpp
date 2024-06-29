@@ -90,7 +90,7 @@ public:
 
   static void ensureTimerInitialized();
   static void deinitializeTimer();
-  static vstring msToSecondsString(int ms);
+  static std::string msToSecondsString(int ms);
   static void printMSString(std::ostream& str, int ms);
 
   static void setLimitEnforcement(bool enabled)

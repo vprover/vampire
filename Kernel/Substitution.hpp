@@ -57,7 +57,7 @@ public:
   { return _map.mapValues(f); }
 
 #if VDEBUG
-  vstring toString() const;
+  std::string toString() const;
 #endif
   friend std::ostream& operator<<(std::ostream& out, Substitution const&);
 private:

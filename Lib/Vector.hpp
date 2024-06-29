@@ -104,9 +104,9 @@ public:
    * Convert the vector to its string representation. To use this function,
    * elements must have a toString() function too.
    */
-  vstring toString()
+  std::string toString()
   {
-    vstring res;
+    std::string res;
     for(size_t i=0;i<_length;i++) {
       if (i>0) {
 	res+=",";

@@ -87,7 +87,7 @@ public:
 
 #if VDEBUG
   void assertValid() const;
-  vstring toString() const;
+  std::string toString() const;
 #endif
 private:
   class Applicator

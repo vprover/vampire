@@ -91,17 +91,17 @@ void reportSpiderStatus(char status)
   UIHelper::spiderOutputDone = true;
 
   // compute Vampire Z3 version and commit
-  vstring version = VERSION_STRING;
+  std::string version = VERSION_STRING;
   size_t versionPosition = version.find("commit ") + strlen("commit ");
   size_t afterVersionPosition = version.find(" ",versionPosition + 1);
-  vstring commitNumber = version.substr(versionPosition,afterVersionPosition - versionPosition);
-  vstring z3Version = Z3Interfacing::z3_full_version();
+  std::string commitNumber = version.substr(versionPosition,afterVersionPosition - versionPosition);
+  std::string z3Version = Z3Interfacing::z3_full_version();
   size_t spacePosition = z3Version.find(" ");
   if (spacePosition != string::npos) {
     z3Version = z3Version.substr(0,spacePosition);
   }
 
-  vstring problemName = Lib::env.options->problemName();
+  std::string problemName = Lib::env.options->problemName();
   Timer* timer = Lib::env.timer;
 
   std::cout
@@ -140,7 +140,7 @@ bool UIHelper::satisfiableStatusWasAlreadyOutput=false;
 
 bool UIHelper::spiderOutputDone = false;
 
-void UIHelper::outputAllPremises(ostream& out, UnitList* units, vstring prefix)
+void UIHelper::outputAllPremises(ostream& out, UnitList* units, std::string prefix)
 {
 #if 1
   InferenceStore::instance()->outputProof(cerr, units);
@@ -195,7 +195,7 @@ void UIHelper::outputSaturatedSet(ostream& out, UnitIterator uit)
 } // outputSaturatedSet
 
 // String utility function that probably belongs elsewhere
-static bool hasEnding (vstring const &fullString, vstring const &ending) {
+static bool hasEnding (std::string const &fullString, std::string const &ending) {
   if (fullString.length() >= ending.length()) {
       return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
   } else {
@@ -233,7 +233,7 @@ void UIHelper::tryParseSMTLIB2(istream& input)
   }
 
 #if VDEBUG
-  const vstring& expected_status = parser.getStatus();
+  const std::string& expected_status = parser.getStatus();
   if (expected_status == "sat") {
     s_expecting_sat = true;
   } else if (expected_status == "unsat") {
@@ -242,7 +242,7 @@ void UIHelper::tryParseSMTLIB2(istream& input)
 #endif
 }
 
-void UIHelper::parseSingleLine(const vstring& lineToParse, Options::InputSyntax inputSyntax)
+void UIHelper::parseSingleLine(const std::string& lineToParse, Options::InputSyntax inputSyntax)
 {
   LoadedPiece newPiece = _loadedPieces.top();  // copy everything
   newPiece._id = lineToParse;
@@ -270,7 +270,7 @@ void UIHelper::parseSingleLine(const vstring& lineToParse, Options::InputSyntax 
 }
 
 // Call this function to report a parsing attempt has failed and to reset the input
-void resetParsing(ParsingRelatedException& exception, istream& input, vstring nowtry)
+void resetParsing(ParsingRelatedException& exception, istream& input, std::string nowtry)
 {
   if (env.options->mode()!=Options::Mode::SPIDER) {
     addCommentSignForSZS(std::cout);
@@ -342,7 +342,7 @@ void UIHelper::parseStandardInput(Options::InputSyntax inputSyntax)
   }
 }
 
-void UIHelper::parseFile(const vstring& inputFile, Options::InputSyntax inputSyntax, bool verbose)
+void UIHelper::parseFile(const std::string& inputFile, Options::InputSyntax inputSyntax, bool verbose)
 {
   LoadedPiece newPiece = _loadedPieces.top();  // copy everything
   newPiece._id = inputFile;
@@ -679,7 +679,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(ostream& out, bool function, 
   //out << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ", type, "
   //    << sym->name() << ": ";
 
-  vstring symName = sym->name();
+  std::string symName = sym->name();
   if(typeCon && env.signature->isBoolCon(symNumber)){
     ASS(env.options->showFOOL());
     symName = "$bool";

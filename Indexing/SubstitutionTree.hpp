@@ -924,7 +924,7 @@ public:
           ASS(!q || !t.isSpecialVar());
         }
 
-        vstring toString()
+        std::string toString()
         { return (q ? "q|" : "n|")+t.toString(); }
 
         /**

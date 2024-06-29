@@ -189,13 +189,13 @@ public:
     return (*_key)[arity() - numTypeArguments()];
   }
   
-  vstring toString() const;  
+  std::string toString() const;  
 
   bool isSingleSortType(TermList sort) const;
   bool isAllDefault() const { return isSingleSortType(AtomicSort::defaultSort()); }
 
 private:
-  vstring argsToString() const;
+  std::string argsToString() const;
 };
 
 }

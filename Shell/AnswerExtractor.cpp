@@ -682,7 +682,7 @@ Term* SynthesisManager::translateToSynthesisConditionTerm(Literal* l)
   ASS(!l->isSpecial());
 
   unsigned arity = l->arity();
-  vstring fnName = "cond_";
+  std::string fnName = "cond_";
   if (l->isNegative()) {
     fnName.append("not_");
   }
@@ -743,7 +743,7 @@ TermList SynthesisManager::ConjectureSkolemReplacement::transformTermList(TermLi
       if (sort == AtomicSort::intSort()) {
         return zero;
       } else {
-        vstring name = "cz_" + sort.toString();
+        std::string name = "cz_" + sort.toString();
         unsigned czfn;
         if (!env.signature->tryGetFunctionNumber(name, 0, czfn)) {
           czfn = env.signature->addFreshFunction(0, name.c_str());
@@ -765,7 +765,7 @@ TermList SynthesisManager::ConjectureSkolemReplacement::transformTermList(TermLi
           if (vsort == AtomicSort::intSort()) {
             s.bind(v, zero);
           } else {
-            vstring name = "cz_" + vsort.toString();
+            std::string name = "cz_" + vsort.toString();
             unsigned czfn;
             if (!env.signature->tryGetFunctionNumber(name, 0, czfn)) {
               czfn = env.signature->addFreshFunction(0, name.c_str());
@@ -795,7 +795,7 @@ TermList SynthesisManager::ConjectureSkolemReplacement::transformSubterm(TermLis
       if (t->functor() == getITEFunctionSymbol(sort)) {
         // Build condition
         Term* tcond = t->nthArgument(0)->term();
-        vstring condName = tcond->functionName();
+        std::string condName = tcond->functionName();
         unsigned pred = _condFnToPred.get(tcond->functor());
         Stack<TermList> args;
         for (unsigned i = 0; i < tcond->arity(); ++i) args.push(transform(*(tcond->nthArgument(i))));

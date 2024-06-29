@@ -132,7 +132,7 @@ private:
   static Term* createRegularITE(Term* condition, TermList thenBranch, TermList elseBranch, TermList branchSort);
 
   static unsigned getITEFunctionSymbol(TermList sort) {
-    vstring name = "$ite_" + sort.toString();
+    std::string name = "$ite_" + sort.toString();
     bool added = false;
     unsigned fn = env.signature->addFunction(name, 3, added);
     if (added) {

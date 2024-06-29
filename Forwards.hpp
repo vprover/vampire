@@ -22,9 +22,6 @@ namespace Lib
 struct EmptyStruct {};
 typedef void (*VoidFunc)();
 
-// historical alias to std::string: do not use in new code
-using vstring = std::string;
-
 template<typename T> class VirtualIterator;
 
 template<typename T> class ScopedPtr;
@@ -39,7 +36,7 @@ template<typename T> class List;
 template<typename T> class SharedSet;
 
 typedef List<int> IntList;
-typedef Stack<vstring> StringStack;
+typedef Stack<std::string> StringStack;
 typedef List<VoidFunc> VoidFuncList;
 
 class DefaultHash;

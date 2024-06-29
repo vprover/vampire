@@ -38,7 +38,7 @@ private:
   // a helper class to live on a stack of loaded pieces in interactive metamode
   // (in the standard modes, only a single instance lives on top of _loadedPieces)
   struct LoadedPiece {
-    vstring _id;
+    std::string _id;
     UnitList::FIFO _units;
     SMTLIBLogic _smtLibLogic;
     bool _hasConjecture;
@@ -50,11 +50,11 @@ private:
   static void tryParseTPTP(std::istream& input);
   static void tryParseSMTLIB2(std::istream& input);
 public:
-  static void parseSingleLine(const vstring& lineToParse, Options::InputSyntax inputSyntax);
+  static void parseSingleLine(const std::string& lineToParse, Options::InputSyntax inputSyntax);
 
   static void parseStream(std::istream& input, Options::InputSyntax inputSyntax, bool verbose, bool preferSMTonAuto);
   static void parseStandardInput(Options::InputSyntax inputSyntax);
-  static void parseFile(const vstring& inputFile, Options::InputSyntax inputSyntax, bool verbose);
+  static void parseFile(const std::string& inputFile, Options::InputSyntax inputSyntax, bool verbose);
 
   static Problem* getInputProblem();
 
@@ -75,7 +75,7 @@ public:
   static bool haveConjectureInProof() { return _loadedPieces.top()._proofHasConjecture; }
   static void setConjectureInProof(bool hasConjectureInProof) { _loadedPieces.top()._proofHasConjecture = hasConjectureInProof; }
 
-  static void outputAllPremises(std::ostream& out, UnitList* units, vstring prefix="");
+  static void outputAllPremises(std::ostream& out, UnitList* units, std::string prefix="");
 
   static void outputSatisfiableResult(std::ostream& out);
   static void outputSaturatedSet(std::ostream& out, UnitIterator uit);

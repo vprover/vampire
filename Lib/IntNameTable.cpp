@@ -34,7 +34,7 @@ IntNameTable::IntNameTable ()
 /**
  * Insert an element in the table and return its number.
  */
-int IntNameTable::insert (const vstring& str)
+int IntNameTable::insert (const std::string& str)
 {
 #if VDEBUG
   int result = 0;

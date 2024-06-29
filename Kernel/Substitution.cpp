@@ -96,7 +96,7 @@ bool Substitution::findBinding(int var, TermList& res) const
 
 
 #if VDEBUG
- vstring Substitution::toString() const
+ std::string Substitution::toString() const
  {
    std::stringstream out;
    out << *this;

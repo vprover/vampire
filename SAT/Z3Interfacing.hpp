@@ -56,8 +56,8 @@ namespace SAT{
 class Z3Interfacing : public PrimitiveProofRecordingSATSolver
 {
 public:
-  Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCoresForAssumptions, vstring const& exportSmtlib);
-  Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoresForAssumptions, vstring const& exportSmtlib);
+  Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCoresForAssumptions, std::string const& exportSmtlib);
+  Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoresForAssumptions, std::string const& exportSmtlib);
   ~Z3Interfacing();
 
   static char const* z3_full_version();

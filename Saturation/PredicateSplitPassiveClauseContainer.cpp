@@ -32,7 +32,7 @@ int computeLCM(int a, int b) {
   return (a*b)/Int::gcd(a, b);
 }
 
-PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name,
+PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, std::string name,
     std::vector<std::unique_ptr<PassiveClauseContainer>> queues,
     std::vector<float> cutoffs, std::vector<int> ratios, bool layeredArrangement)
   : PassiveClauseContainer(isOutermost, opt, name), _queues(std::move(queues)), _cutoffs(cutoffs), _layeredArrangement(layeredArrangement)
@@ -462,7 +462,7 @@ bool PredicateSplitPassiveClauseContainer::childrenPotentiallyFulfilLimits(Claus
   return false;
 }
 
-TheoryMultiSplitPassiveClauseContainer::TheoryMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues) :
+TheoryMultiSplitPassiveClauseContainer::TheoryMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, std::string name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues) :
 PredicateSplitPassiveClauseContainer(isOutermost, opt, name, std::move(queues), opt.theorySplitQueueCutoffs(), opt.theorySplitQueueRatios(), opt.theorySplitQueueLayeredArrangement()) {}
 
 float TheoryMultiSplitPassiveClauseContainer::evaluateFeature(Clause* cl) const
@@ -480,7 +480,7 @@ float TheoryMultiSplitPassiveClauseContainer::evaluateFeatureEstimate(unsigned, 
   return inf.th_ancestors * expectedRatioDenominator - inf.all_ancestors;
 }
 
-AvatarMultiSplitPassiveClauseContainer::AvatarMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues) :
+AvatarMultiSplitPassiveClauseContainer::AvatarMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, std::string name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues) :
 PredicateSplitPassiveClauseContainer(isOutermost, opt, name, std::move(queues), opt.avatarSplitQueueCutoffs(), opt.avatarSplitQueueRatios(), opt.avatarSplitQueueLayeredArrangement()) {}
 
 float AvatarMultiSplitPassiveClauseContainer::evaluateFeature(Clause* cl) const
@@ -496,7 +496,7 @@ float AvatarMultiSplitPassiveClauseContainer::evaluateFeatureEstimate(unsigned, 
   return (inf.splits() == nullptr) ? 0 : inf.splits()->size();
 }
 
-SineLevelMultiSplitPassiveClauseContainer::SineLevelMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues) :
+SineLevelMultiSplitPassiveClauseContainer::SineLevelMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, std::string name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues) :
 PredicateSplitPassiveClauseContainer(isOutermost, opt, name, std::move(queues), opt.sineLevelSplitQueueCutoffs(), opt.sineLevelSplitQueueRatios(), opt.sineLevelSplitQueueLayeredArrangement()) {}
 
 float SineLevelMultiSplitPassiveClauseContainer::evaluateFeature(Clause* cl) const
@@ -511,7 +511,7 @@ float SineLevelMultiSplitPassiveClauseContainer::evaluateFeatureEstimate(unsigne
   return inf.getSineLevel();
 }
 
-PositiveLiteralMultiSplitPassiveClauseContainer::PositiveLiteralMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues) :
+PositiveLiteralMultiSplitPassiveClauseContainer::PositiveLiteralMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, std::string name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues) :
 PredicateSplitPassiveClauseContainer(isOutermost, opt, name, std::move(queues), opt.positiveLiteralSplitQueueCutoffs(), opt.positiveLiteralSplitQueueRatios(), opt.positiveLiteralSplitQueueLayeredArrangement()) {}
 
 float PositiveLiteralMultiSplitPassiveClauseContainer::evaluateFeature(Clause* cl) const

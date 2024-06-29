@@ -30,7 +30,7 @@ unsigned VarManager::getVarAlias(unsigned var)
   return _fact->getVarAlias(var);
 }
 
-vstring VarManager::getVarName(unsigned var)
+std::string VarManager::getVarName(unsigned var)
 {
   ASS(_fact);
 

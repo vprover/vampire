@@ -353,7 +353,7 @@ void InductionTemplate::addBranch(std::vector<Term*>&& recursiveCalls, Term* hea
   _branches.push_back(std::move(branch));
 }
 
-vstring InductionTemplate::toString() const
+std::string InductionTemplate::toString() const
 {
   std::stringstream str;
   str << "Branches: ";

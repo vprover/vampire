@@ -183,8 +183,8 @@ public:
     );
   }
 
-  // vstrings hash the underlying C-style string
-  static unsigned hash(const vstring& str)
+  // strings hash the underlying C-style string
+  static unsigned hash(const std::string& str)
   { return DefaultHash::hashNulTerminated(str.c_str()); }
 
   // dispatch to VectorHash<DefaultHash>
@@ -299,8 +299,8 @@ public:
     return static_cast<unsigned>(val);
   }
 
-  // vstrings use their length
-  static unsigned hash(const vstring &str) {
+  // strings use their length
+  static unsigned hash(const std::string &str) {
     return str.length();
   }
 

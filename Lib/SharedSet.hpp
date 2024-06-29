@@ -300,7 +300,7 @@ public:
   }
 
 
-  vstring toString() const
+  std::string toString() const
   {
     std::ostringstream res;
     res<<(*this);

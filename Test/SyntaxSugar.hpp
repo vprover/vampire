@@ -540,7 +540,7 @@ public:
     : _functor(functor)
     , _arity(env.signature->getFunction(functor)->arity()) {}
 
-  FuncSugar(vstring const& name, std::initializer_list<SortSugar> as_, 
+  FuncSugar(std::string const& name, std::initializer_list<SortSugar> as_, 
     ExpressionSugar result, unsigned taArity = 0) 
   {
     Stack<SortId> as;

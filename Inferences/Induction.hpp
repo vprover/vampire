@@ -155,7 +155,7 @@ struct InductionContext {
   Formula* getFormulaWithSquashedSkolems(const std::vector<TermList>& r, bool opposite, unsigned& var,
     VList** varList = nullptr, Substitution* subst = nullptr) const;
 
-  vstring toString() const {
+  std::string toString() const {
     std::stringstream str;
     for (const auto& indt : _indTerms) {
       str << *indt << std::endl;

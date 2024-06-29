@@ -47,7 +47,7 @@ public:
   virtual void backtrack() = 0;
 
 #if VDEBUG
-  virtual vstring toString() const { return "(backtrack object)"; }
+  virtual std::string toString() const { return "(backtrack object)"; }
 #endif
   template<class F> 
   static BacktrackObject* fromClosure(F f);
@@ -187,9 +187,9 @@ public:
   }
 
 #if VDEBUG
-  vstring toString()
+  std::string toString()
   {
-    vstring res;
+    std::string res;
     unsigned cnt=0;
     BacktrackObject* bobj=_boList;
     while(bobj) {

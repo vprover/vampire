@@ -122,7 +122,7 @@ unsigned Skolem::addSkolemFunction(unsigned arity, TermList* domainSorts,
     TermList rangeSort, unsigned var, unsigned taArity)
 {
   if(VarManager::varNamePreserving()) {
-    vstring varName=VarManager::getVarName(var);
+    std::string varName=VarManager::getVarName(var);
     return addSkolemFunction(arity, taArity, domainSorts, rangeSort, varName.c_str());
   }
   else {
@@ -146,7 +146,7 @@ unsigned Skolem::addSkolemFunction(unsigned arity, unsigned taArity, TermList* d
 unsigned Skolem::addSkolemTypeCon(unsigned arity, unsigned var)
 {
   if(VarManager::varNamePreserving()) {
-    vstring varName=VarManager::getVarName(var);
+    std::string varName=VarManager::getVarName(var);
     return addSkolemTypeCon(arity, varName.c_str());
   }
   else {
@@ -166,7 +166,7 @@ unsigned Skolem::addSkolemTypeCon(unsigned arity, const char* suffix)
 unsigned Skolem::addSkolemPredicate(unsigned arity, TermList* domainSorts, unsigned var, unsigned taArity)
 {
   if(VarManager::varNamePreserving()) {
-    vstring varName=VarManager::getVarName(var);
+    std::string varName=VarManager::getVarName(var);
     return addSkolemPredicate(arity, taArity, domainSorts, varName.c_str());
   }
   else {

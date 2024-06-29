@@ -60,7 +60,7 @@ struct InductionTemplate {
 
   const std::vector<Branch>& branches() const { return _branches; }
 
-  vstring toString() const;
+  std::string toString() const;
 
   unsigned _functor;
   unsigned _arity;

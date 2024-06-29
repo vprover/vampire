@@ -91,7 +91,7 @@ public:
 
   void destroy();
 
-  vstring toString() const;
+  std::string toString() const;
 
   static SATClause* removeDuplicateLiterals(SATClause *cl);
 

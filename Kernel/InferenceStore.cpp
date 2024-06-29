@@ -68,7 +68,7 @@ InferenceStore::InferenceStore()
 {
 }
 
-vstring InferenceStore::getUnitIdStr(Unit* cs)
+std::string InferenceStore::getUnitIdStr(Unit* cs)
 {
   if (!cs->isClause()) {
     return Int::toString(cs->number());
@@ -99,7 +99,7 @@ void InferenceStore::recordIntroducedSymbol(Unit* u, SymbolType st, unsigned num
 /**
  * Record the introduction of a split name
  */
-void InferenceStore::recordIntroducedSplitName(Unit* u, vstring name)
+void InferenceStore::recordIntroducedSplitName(Unit* u, std::string name)
 {
   ALWAYS(_introducedSplitNames.insert(u->number(),name));
 }
@@ -148,13 +148,13 @@ UnitIterator InferenceStore::getParents(Unit* us)
  * It is caller's responsibility to ensure that variables in @b vars are unique.
  */
 template<typename VarContainer>
-vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned,TermList>& t_map, bool innerParentheses=true){
+std::string getQuantifiedStr(const VarContainer& vars, std::string inner, DHMap<unsigned,TermList>& t_map, bool innerParentheses=true){
   VirtualIterator<unsigned> vit=pvi( getContentIterator(vars) );
-  vstring varStr;
+  std::string varStr;
   bool first=true;
   while(vit.hasNext()) {
     unsigned var =vit.next();
-    vstring ty="";
+    std::string ty="";
     TermList t;
 
     if(t_map.find(var,t) && env.getMainProblem()->hasNonDefaultSorts()){
@@ -164,10 +164,10 @@ vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned
     }
     if(ty == " : $tType"){
       if (!first) { varStr = "," + varStr; }
-      varStr=vstring("X")+Int::toString(var)+ty + varStr;
+      varStr=std::string("X")+Int::toString(var)+ty + varStr;
     } else {
       if (!first) { varStr+=","; }
-      varStr+=vstring("X")+Int::toString(var)+ty;
+      varStr+=std::string("X")+Int::toString(var)+ty;
     }
     first=false;
   }
@@ -191,19 +191,19 @@ vstring getQuantifiedStr(const VarContainer& vars, vstring inner, DHMap<unsigned
  * It is caller's responsibility to ensure that variables in @b vars are unique.
  */
 template<typename VarContainer>
-vstring getQuantifiedStr(const VarContainer& vars, vstring inner, bool innerParentheses=true)
+std::string getQuantifiedStr(const VarContainer& vars, std::string inner, bool innerParentheses=true)
 {
   static DHMap<unsigned,TermList> d;
   return getQuantifiedStr(vars,inner,d,innerParentheses);
 }
 
 /**
- * Return vstring containing quantified unit @b u.
+ * Return std::string containing quantified unit @b u.
  */
-vstring getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
+std::string getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
 {
   Set<unsigned> vars;
-  vstring res;
+  std::string res;
   DHMap<unsigned,TermList> t_map;
   SortHelper::collectVariableSorts(u,t_map);
   if (u->isClause()) {
@@ -351,7 +351,7 @@ protected:
 
     if (cs->isClause()) {
       Clause* cl=cs->asClause();
-      out << cl->toString() << vstring("\n");
+      out << cl->toString() << std::string("\n");
     }
     else {
       out << _is->getUnitIdStr(cs) << ". ";
@@ -365,7 +365,7 @@ protected:
 
       if (outputAxiomNames && rule==InferenceRule::INPUT) {
         ASS(!parents.hasNext()); //input clauses don't have parents
-        vstring name;
+        std::string name;
         if (Parse::TPTP::findAxiomName(cs, name)) {
           out << " " << name;
         }
@@ -526,9 +526,9 @@ struct InferenceStore::TPTPProofPrinter
   }
 
 protected:
-  vstring splitPrefix;
+  std::string splitPrefix;
 
-  vstring getRole(InferenceRule rule, UnitInputType origin)
+  std::string getRole(InferenceRule rule, UnitInputType origin)
   {
     switch(rule) {
     case InferenceRule::INPUT:
@@ -545,27 +545,27 @@ protected:
     }
   }
 
-  vstring tptpRuleName(InferenceRule rule)
+  std::string tptpRuleName(InferenceRule rule)
   {
     return StringUtils::replaceChar(ruleName(rule), ' ', '_');
   }
 
-  vstring unitIdToTptp(vstring unitId)
+  std::string unitIdToTptp(std::string unitId)
   {
     return "f"+unitId;
   }
 
-  vstring tptpUnitId(Unit* us)
+  std::string tptpUnitId(Unit* us)
   {
     return unitIdToTptp(_is->getUnitIdStr(us));
   }
 
-  vstring tptpDefId(Unit* us)
+  std::string tptpDefId(Unit* us)
   {
     return unitIdToTptp(Int::toString(us->number())+"_D");
   }
 
-  vstring splitsToString(SplitSet* splits)
+  std::string splitsToString(SplitSet* splits)
   {
     ASS_G(splits->size(),0);
 
@@ -573,7 +573,7 @@ protected:
       return Saturation::Splitter::getFormulaStringFromName(splits->sval(),true /*negated*/);
     }
     auto sit = splits->iter();
-    vstring res("(");
+    std::string res("(");
     while(sit.hasNext()) {
       res+= Saturation::Splitter::getFormulaStringFromName(sit.next(),true /*negated*/);
       if (sit.hasNext()) {
@@ -584,21 +584,21 @@ protected:
     return res;
   }
 
-  vstring quoteAxiomName(vstring n)
+  std::string quoteAxiomName(std::string n)
   {
-    static vstring allowedFirst("0123456789abcdefghijklmnopqrstuvwxyz");
+    static std::string allowedFirst("0123456789abcdefghijklmnopqrstuvwxyz");
     const char* allowed="_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz";
 
-    if (n.size()==0 || allowedFirst.find(n[0])==vstring::npos ||
-	n.find_first_not_of(allowed)!=vstring::npos) {
+    if (n.size()==0 || allowedFirst.find(n[0])==std::string::npos ||
+	n.find_first_not_of(allowed)!=std::string::npos) {
       n='\''+n+'\'';
     }
     return n;
   }
 
-  vstring getFofString(vstring id, vstring formula, vstring inference, InferenceRule rule, UnitInputType origin=UnitInputType::AXIOM)
+  std::string getFofString(std::string id, std::string formula, std::string inference, InferenceRule rule, UnitInputType origin=UnitInputType::AXIOM)
   {
-    vstring kind = "fof";
+    std::string kind = "fof";
     if(env.getMainProblem()->hasNonDefaultSorts()){ kind="tff"; }
     if(env.getMainProblem()->isHigherOrder()){ kind="thf"; }
 
@@ -607,9 +607,9 @@ protected:
 	+"  "+inference+").";
   }
 
-  vstring getFormulaString(Unit* us)
+  std::string getFormulaString(Unit* us)
   {
-    vstring formulaStr;
+    std::string formulaStr;
     if (us->isClause()) {
       Clause* cl=us->asClause();
       formulaStr=getQuantifiedStr(cl);
@@ -632,12 +632,12 @@ protected:
     }
     return res;
   }
-  vstring getNewSymbols(vstring origin, vstring symStr) {
+  std::string getNewSymbols(std::string origin, std::string symStr) {
     return "new_symbols(" + origin + ",[" +symStr + "])";
   }
   /** It is an iterator over SymbolId */
   template<class It>
-  vstring getNewSymbols(vstring origin, It symIt) {
+  std::string getNewSymbols(std::string origin, It symIt) {
     std::ostringstream symsStr;
     while(symIt.hasNext()) {
       SymbolId sym = symIt.next();
@@ -654,7 +654,7 @@ protected:
     }
     return getNewSymbols(origin, symsStr.str());
   }
-  vstring getNewSymbols(vstring origin, Unit* u) {
+  std::string getNewSymbols(std::string origin, Unit* u) {
     ASS(hasNewSymbols(u));
 
     if(_is->_introducedSplitNames.find(u->number())){
@@ -683,31 +683,31 @@ protected:
     default: ;
     }
 
-    //get vstring representing the formula
+    //get std::string representing the formula
 
-    vstring formulaStr=getFormulaString(us);
+    std::string formulaStr=getFormulaString(us);
 
-    //get inference vstring
+    //get inference std::string
 
-    vstring inferenceStr;
+    std::string inferenceStr;
     if (rule==InferenceRule::INPUT) {
-      vstring fileName;
+      std::string fileName;
       if (env.options->inputFile()=="") {
 	      fileName="unknown";
       }
       else {
 	      fileName="'"+env.options->inputFile()+"'";
       }
-      vstring axiomName;
+      std::string axiomName;
       if (!outputAxiomNames || !Parse::TPTP::findAxiomName(us, axiomName)) {
 	      axiomName="unknown";
       }
       inferenceStr="file("+fileName+","+quoteAxiomName(axiomName)+")";
     }
     else if (!parents.hasNext()) {
-      vstring newSymbolInfo;
+      std::string newSymbolInfo;
       if (hasNewSymbols(us)) {
-        vstring newSymbOrigin;
+        std::string newSymbOrigin;
         if (rule == InferenceRule::FUNCTION_DEFINITION ||
           rule == InferenceRule::FOOL_ITE_DEFINITION || rule == InferenceRule::FOOL_LET_DEFINITION ||
           rule == InferenceRule::FOOL_FORMULA_DEFINITION || rule == InferenceRule::FOOL_MATCH_DEFINITION) {
@@ -721,7 +721,7 @@ protected:
     }
     else {
       ASS(parents.hasNext());
-      vstring statusStr;
+      std::string statusStr;
       if (rule==InferenceRule::SKOLEMIZE) {
 	      statusStr="status(esa),"+getNewSymbols("skolem",us);
       }
@@ -752,7 +752,7 @@ protected:
     UnitIterator parents=_is->getParents(us, rule);
     ASS(rule==InferenceRule::GENERAL_SPLITTING);
 
-    vstring inferenceStr="inference("+tptpRuleName(rule)+",[],[";
+    std::string inferenceStr="inference("+tptpRuleName(rule)+",[],[";
 
     //here we rely on the fact that the base premise is always put as the first premise in
     //GeneralSplitting::apply
@@ -782,7 +782,7 @@ protected:
 
     Literal* nameLit=_is->_splittingNameLiterals.get(us); //the name literal must always be stored
 
-    vstring defId=tptpDefId(us);
+    std::string defId=tptpDefId(us);
 
     out<<getFofString(tptpUnitId(us), getFormulaString(us),
 	    "inference("+tptpRuleName(InferenceRule::CLAUSIFY)+",[],["+defId+"])", InferenceRule::CLAUSIFY)<<endl;
@@ -796,7 +796,7 @@ protected:
       List<unsigned>::push(var,nameVars);
     }
 
-    vstring compStr;
+    std::string compStr;
     List<unsigned>* compOnlyVars=0;
     bool first=true;
     bool multiple=false;
@@ -826,7 +826,7 @@ protected:
     compStr=getQuantifiedStr(compOnlyVars, compStr, multiple);
     List<unsigned>::destroy(compOnlyVars);
 
-    vstring defStr=compStr+" <=> "+Literal::complementaryLiteral(nameLit)->toString();
+    std::string defStr=compStr+" <=> "+Literal::complementaryLiteral(nameLit)->toString();
     defStr=getQuantifiedStr(nameVars, defStr);
     List<unsigned>::destroy(nameVars);
 
@@ -849,9 +849,9 @@ protected:
 
     InferenceRule rule=InferenceRule::AVATAR_COMPONENT;
 
-    vstring defId=tptpDefId(us);
-    vstring splitPred = splitsToString(cl->splits());
-    vstring defStr=getQuantifiedStr(cl)+" <=> ~"+splitPred;
+    std::string defId=tptpDefId(us);
+    std::string splitPred = splitsToString(cl->splits());
+    std::string defStr=getQuantifiedStr(cl)+" <=> ~"+splitPred;
 
     out<<getFofString(tptpUnitId(us), getFormulaString(us),
       "inference("+tptpRuleName(InferenceRule::CLAUSIFY)+",[],["+defId+"])", InferenceRule::CLAUSIFY)<<endl;
@@ -882,7 +882,7 @@ protected:
     //UIHelper::outputSortDeclarations(out);
     UIHelper::outputSymbolDeclarations(out);
 
-    vstring kind = "fof";
+    std::string kind = "fof";
     if(env.getMainProblem()->hasNonDefaultSorts()){ kind="tff"; } 
     if(env.getMainProblem()->isHigherOrder()){ kind="thf"; }
 
@@ -982,7 +982,7 @@ void InferenceStore::outputUnsatCore(ostream& out, Unit* refutation)
     if(u->inference().rule() ==  InferenceRule::INPUT){
       if(!u->isClause()){
         if(u->getFormula()->hasLabel()){
-          vstring label =  u->getFormula()->getLabel();
+          std::string label =  u->getFormula()->getLabel();
           out << label << endl;
         }
         else{

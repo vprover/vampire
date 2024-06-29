@@ -77,7 +77,7 @@ ostream& operator<<(ostream& out, const Instruction& n)
   return out;
 }
 
-vstring LPOComparator::toString() const
+std::string LPOComparator::toString() const
 {
   std::stringstream str;
   switch (_res) {

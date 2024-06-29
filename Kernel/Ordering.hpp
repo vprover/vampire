@@ -41,7 +41,7 @@ using namespace Shell;
 struct OrderingComparator
 {
   virtual ~OrderingComparator() = default;
-  virtual vstring toString() const = 0;
+  virtual std::string toString() const = 0;
 };
 
 /**

@@ -178,8 +178,8 @@ private:
     // Position of a gen literal in _genClauses
     std::list<SmartPtr<GenClause>>::iterator iter;
 
-    vstring toString() {
-      vstring res = "GC("+Int::toString(size())+")";
+    std::string toString() {
+      std::string res = "GC("+Int::toString(size())+")";
       if (!valid) {
         res += " [INVALID]";
       }

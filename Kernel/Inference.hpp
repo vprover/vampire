@@ -615,7 +615,7 @@ inline bool isSatRefutationRule(InferenceRule r) {
          (r == InferenceRule::GLOBAL_SUBSUMPTION);
 }
 
-vstring ruleName(InferenceRule rule);
+std::string ruleName(InferenceRule rule);
 
 /*
 * The following structs are here just that we can have specialized overloads for the Inference constructor (see below)
@@ -858,7 +858,7 @@ public:
   void minimizePremises();
 
   // TODO why would we ever need this? replace it be appropriate output operator for InferenceRule
-  vstring name() const { return ruleName(_rule); }
+  std::string name() const { return ruleName(_rule); }
 
   /** return the input type of the unit */
   UnitInputType inputType() const { return (UnitInputType)_inputType; }

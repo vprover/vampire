@@ -56,7 +56,7 @@ public:
  unsigned evaluateGroundTerm(Term* term);
  bool evaluateGroundLiteral(Literal* literal);
 
- vstring toString();
+ std::string toString();
 
 private:
 
@@ -86,7 +86,7 @@ public:
    Term* t;
    std::pair<unsigned,unsigned> pair = std::make_pair(c,srt);
    if(_domainConstants.find(pair,t)) return t;
-   vstring name = "domCon_"+env.signature->typeConName(srt)+"_"+Lib::Int::toString(c);
+   std::string name = "domCon_"+env.signature->typeConName(srt)+"_"+Lib::Int::toString(c);
    unsigned f = env.signature->addFreshFunction(0,name.c_str()); 
    TermList srtT = TermList(AtomicSort::createConstant(srt));
    env.signature->getFunction(f)->setType(OperatorType::getConstantsType(srtT));
@@ -106,25 +106,25 @@ public:
  {
    return _domainConstantsRev.find(t);
  }
- vstring prepend(const char* prefix, vstring name) {
+ std::string prepend(const char* prefix, std::string name) {
    if (name.empty()) {
-     return vstring(prefix);
+     return std::string(prefix);
    } else if(name[0] == '$') {
-     return vstring("'") + prefix + name + "'";
+     return std::string("'") + prefix + name + "'";
    } else if (name[0] == '\'') {
-     vstring dequoted = name.substr(1, name.length() - 1);
-     return vstring("'") + prefix + dequoted;
+     std::string dequoted = name.substr(1, name.length() - 1);
+     return std::string("'") + prefix + dequoted;
    } else {
      return prefix + name;
    }
  }
- vstring append(vstring name, const char* suffix) {
+ std::string append(std::string name, const char* suffix) {
    if (name.empty()) {
-     return vstring(suffix);
+     return std::string(suffix);
    } else if(name[0] == '$') {
-     return vstring("'") + name + suffix + "'";
+     return std::string("'") + name + suffix + "'";
    } else if (name[0] == '\'') {
-     vstring dequoted = name.substr(0, name.length() - 1);
+     std::string dequoted = name.substr(0, name.length() - 1);
      return dequoted + suffix + "'";
    } else {
      return name + suffix;

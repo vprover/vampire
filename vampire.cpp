@@ -183,7 +183,7 @@ void profileMode(Problem* problem)
 // prints Unit u at an index to latexOut using the LaTeX object
 void outputUnitToLaTeX(LaTeX& latex, ofstream& latexOut, Unit* u,unsigned index)
 {
-    vstring stringform = latex.toString(u);
+    std::string stringform = latex.toString(u);
     latexOut << index++ << " & ";
     unsigned count = 0;
     for(const char* p = stringform.c_str();*p;p++){
@@ -679,7 +679,7 @@ void interactiveMetamode()
   prb = UIHelper::getInputProblem();
 
   while (true) {
-    vstring line;
+    std::string line;
     if (!getline(cin, line) || line.rfind("exit",0) == 0) {
       cout << "Bye." << endl;
       break;
@@ -691,7 +691,7 @@ void interactiveMetamode()
         // probably garbage at this point
         UIHelper::unsetExpecting();
 
-        Stack<vstring> pieces;
+        Stack<std::string> pieces;
         StringUtils::splitStr(line.c_str(),' ',pieces);
         StringUtils::dropEmpty(pieces);
         Stack<const char*> argv(pieces.size());
@@ -708,7 +708,7 @@ void interactiveMetamode()
         exit(vampireReturnValue);
       }
     } else if (line.rfind("load",0) == 0) {
-      Stack<vstring> pieces;
+      Stack<std::string> pieces;
       StringUtils::splitStr(line.c_str(),' ',pieces);
       StringUtils::dropEmpty(pieces);
       auto it = pieces.iterFifo();
@@ -734,7 +734,7 @@ void interactiveMetamode()
     } else if (line.rfind("list",0) == 0) {
       UIHelper::listLoadedPieces(cout);
     } else if (line.rfind("pop",0) == 0) {
-      Stack<vstring> pieces;
+      Stack<std::string> pieces;
       StringUtils::splitStr(line.c_str(),' ',pieces);
       StringUtils::dropEmpty(pieces);
       int numPops = 1;

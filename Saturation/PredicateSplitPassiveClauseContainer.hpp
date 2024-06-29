@@ -22,7 +22,7 @@ class PredicateSplitPassiveClauseContainer
 : public PassiveClauseContainer
 {
 public:
-  PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues, std::vector<float> cutoffs, std::vector<int> ratios, bool layeredArrangement);
+  PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, std::string name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues, std::vector<float> cutoffs, std::vector<int> ratios, bool layeredArrangement);
   virtual ~PredicateSplitPassiveClauseContainer();
 
   void add(Clause* cl) override;
@@ -89,7 +89,7 @@ public:
 class TheoryMultiSplitPassiveClauseContainer : public PredicateSplitPassiveClauseContainer
 {
 public:
-  TheoryMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues);
+  TheoryMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, std::string name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues);
 
 private:
   float evaluateFeature(Clause* cl) const override;
@@ -99,7 +99,7 @@ private:
 class AvatarMultiSplitPassiveClauseContainer : public PredicateSplitPassiveClauseContainer
 {
 public:
-  AvatarMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues);
+  AvatarMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, std::string name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues);
 
 private:
   float evaluateFeature(Clause* cl) const override;
@@ -109,7 +109,7 @@ private:
 class SineLevelMultiSplitPassiveClauseContainer : public PredicateSplitPassiveClauseContainer
 {
 public:
-  SineLevelMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues);
+  SineLevelMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, std::string name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues);
 
 private:
   float evaluateFeature(Clause* cl) const override;
@@ -119,7 +119,7 @@ private:
 class PositiveLiteralMultiSplitPassiveClauseContainer : public PredicateSplitPassiveClauseContainer
 {
 public:
-  PositiveLiteralMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, Lib::vstring name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues);
+  PositiveLiteralMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, std::string name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues);
 
 private:
   float evaluateFeature(Clause* cl) const override;

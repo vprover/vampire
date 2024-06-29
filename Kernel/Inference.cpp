@@ -576,7 +576,7 @@ void Inference::computeTheoryRunningSums()
  * Return the rule name, such as "binary resolution".
  * @since 04/01/2008 Torrevieja
  */
-vstring Kernel::ruleName(InferenceRule rule)
+std::string Kernel::ruleName(InferenceRule rule)
 {
   switch (rule) {
   case InferenceRule::INPUT:

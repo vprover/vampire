@@ -270,7 +270,7 @@ void KBOComparator::countSymbols(const KBO& kbo, DHMap<unsigned,int>& vars, int&
   }
 }
 
-vstring KBOComparator::toString() const
+std::string KBOComparator::toString() const
 {
   std::stringstream str;
 
