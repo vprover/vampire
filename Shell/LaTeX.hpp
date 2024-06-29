@@ -22,7 +22,6 @@
 
 #include "Lib/DHMap.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/VString.hpp"
 
 #include "Kernel/Connective.hpp"
 #include "Kernel/InferenceStore.hpp"
@@ -40,28 +39,28 @@ class LaTeX
 public:
   LaTeX() {}
 
-  vstring header();
-  vstring footer();
-  vstring refutationToString(Unit* ref);
+  std::string header();
+  std::string footer();
+  std::string refutationToString(Unit* ref);
 
-  vstring toString(const Term&) const;
-  vstring toString(const vstring& funOrPred,const TermList& args) const;
-  vstring toString(Unit*);
+  std::string toString(const Term&) const;
+  std::string toString(const std::string& funOrPred,const TermList& args) const;
+  std::string toString(Unit*);
 private:
-  vstring varToString(unsigned num) const;
-  vstring toString(TermList*,bool single=false) const;
-  vstring toString(Literal*) const;
-  vstring toString(Clause*);
-  vstring toString(Formula*) const;
-  vstring toString(Formula*, Connective c) const;
+  std::string varToString(unsigned num) const;
+  std::string toString(TermList*,bool single=false) const;
+  std::string toString(Literal*) const;
+  std::string toString(Clause*);
+  std::string toString(Formula*) const;
+  std::string toString(Formula*, Connective c) const;
 
-  vstring getClauseLatexId(Unit* cs);
+  std::string getClauseLatexId(Unit* cs);
 
-  //vstring splittingToString(InferenceStore::SplittingRecord*);
-  vstring toStringAsInference(Unit*);
-  vstring toStringAsInference(Unit* cs, InferenceStore::FullInference* inf);
+  //std::string splittingToString(InferenceStore::SplittingRecord*);
+  std::string toStringAsInference(Unit*);
+  std::string toStringAsInference(Unit* cs, InferenceStore::FullInference* inf);
 
-  vstring symbolToString (unsigned num, bool pred) const;
+  std::string symbolToString (unsigned num, bool pred) const;
 
 
 }; // class LaTeX

@@ -21,7 +21,6 @@
 
 #include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/VString.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -58,7 +57,7 @@ public:
   { return _map.mapValues(f); }
 
 #if VDEBUG
-  vstring toString() const;
+  std::string toString() const;
 #endif
   friend std::ostream& operator<<(std::ostream& out, Substitution const&);
 private:

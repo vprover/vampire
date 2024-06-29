@@ -56,7 +56,7 @@ inline void addFunctionDefs(FunctionDefinitionHandler& handler, std::initializer
   handler.initAndPreprocessLate(prb,opts);
 }
 
-inline void checkTemplateBranches(FunctionDefinitionHandler& handler, TermSugar t, const vvector<pair<TermSugar, vvector<TermSugar>>>& expected) {
+inline void checkTemplateBranches(FunctionDefinitionHandler& handler, TermSugar t, const std::vector<pair<TermSugar, std::vector<TermSugar>>>& expected) {
   auto templ = handler.getInductionTemplate(t.sugaredExpr().term());
   ASS(templ);
   auto actual = templ->branches();

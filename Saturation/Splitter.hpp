@@ -191,9 +191,9 @@ public:
   SplitLevel getNameFromLiteral(SATLiteral lit) const;
   Unit* getDefinitionFromName(SplitLevel compName) const;
 
-  static vstring splitsToString(SplitSet* splits);
+  static std::string splitsToString(SplitSet* splits);
   static SATLiteral getLiteralFromName(SplitLevel compName);
-  static vstring getFormulaStringFromName(SplitLevel compName, bool negated = false);
+  static std::string getFormulaStringFromName(SplitLevel compName, bool negated = false);
 
   bool isUsedName(SplitLevel name) const {
     ASS_L(name,_db.size());
@@ -314,7 +314,7 @@ private:
   Set<SATClause *, DerefPtrHash<DefaultHash>> _already_added;
 
 public:
-  static vstring splPrefix;
+  static std::string splPrefix;
 
   // for observing the current model
   SplitLevel splitLevelBound() { return _db.size(); }

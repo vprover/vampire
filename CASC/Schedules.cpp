@@ -34,7 +34,7 @@ using namespace Lib;
 using namespace Shell;
 using namespace CASC;
 
-void Schedules::getScheduleFromFile(const vstring& filename, Schedule& quick)
+void Schedules::getScheduleFromFile(const std::string& filename, Schedule& quick)
 {
   if (filename == "") {
     USER_ERROR("Schedule file was not set.");
@@ -44,7 +44,7 @@ void Schedules::getScheduleFromFile(const vstring& filename, Schedule& quick)
     USER_ERROR("Cannot open schedule file: " + filename);
   }
   ASS(schedule_file.is_open());
-  vstring line;
+  std::string line;
   while (getline(schedule_file, line)) {
     // Allow structuring the schedule file with empty lines.
     // Allow documenting the schedule file with line comments.

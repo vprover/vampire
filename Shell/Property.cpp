@@ -787,11 +787,11 @@ void Property::scanForInterpreted(Term* t)
 /**
  * Return the string representation of the CASC category.
  */
-vstring Property::categoryString() const
+std::string Property::categoryString() const
 {
   return categoryToString(_category);
 }
-vstring Property::categoryToString(Category cat)
+std::string Property::categoryToString(Category cat)
 {
   switch (cat)
     {
@@ -824,9 +824,9 @@ vstring Property::categoryToString(Category cat)
  * ARE CURRENTLY OUTPUT.
  * @since 27/08/2003 Vienna
  */
-vstring Property::toString() const
+std::string Property::toString() const
 {
-  vstring result("TPTP class: ");
+  std::string result("TPTP class: ");
   result += categoryString() + "\n";
 
   if (clauses() > 0) {
@@ -1037,9 +1037,9 @@ bool Property::hasXEqualsY(const Formula* f)
  *
  * @since 04/05/2005 Manchester
  */
-vstring Property::toSpider(const vstring& problemName) const
+std::string Property::toSpider(const std::string& problemName) const
 {
-  return (vstring)"UPDATE problem SET property="
+  return (std::string)"UPDATE problem SET property="
     + Int::toString((int)_props)
     + ",category='"
     + categoryString()

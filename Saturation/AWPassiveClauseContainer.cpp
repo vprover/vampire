@@ -43,7 +43,7 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
-AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name) :
+AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, std::string name) :
   PassiveClauseContainer(isOutermost, opt, name),
   _ageQueue(opt),
   _weightQueue(opt),

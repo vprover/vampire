@@ -531,23 +531,23 @@ Clause* Superposition::performSuperposition(
 
     // First find which literal it is in the clause, as selection has occured already
     // this should remain the same...?
-    vstring rwPlace = Lib::Int::toString(rwClause->getLiteralPosition(rwLit));
-    vstring eqPlace = Lib::Int::toString(eqClause->getLiteralPosition(eqLit));
+    std::string rwPlace = Lib::Int::toString(rwClause->getLiteralPosition(rwLit));
+    std::string eqPlace = Lib::Int::toString(eqClause->getLiteralPosition(eqLit));
 
-    vstring rwPos="_";
+    std::string rwPos="_";
     ALWAYS(Kernel::positionIn(rwTerm,rwLit,rwPos));
-    vstring eqPos = "("+eqPlace+").2";
+    std::string eqPos = "("+eqPlace+").2";
     rwPos = "("+rwPlace+")."+rwPos;
 
-    vstring eqClauseNum = Lib::Int::toString(eqClause->number());
-    vstring rwClauseNum = Lib::Int::toString(rwClause->number());
+    std::string eqClauseNum = Lib::Int::toString(eqClause->number());
+    std::string rwClauseNum = Lib::Int::toString(rwClause->number());
 
-    vstring extra = eqClauseNum + " into " + rwClauseNum+", unify on "+
+    std::string extra = eqClauseNum + " into " + rwClauseNum+", unify on "+
         eqPos+" in "+eqClauseNum+" and "+
         rwPos+" in "+rwClauseNum;
 
     if (!env.proofExtra) {
-      env.proofExtra = new DHMap<const Unit*,vstring>();
+      env.proofExtra = new DHMap<const Unit*,std::string>();
     }
     env.proofExtra->insert(clause,extra);
   }

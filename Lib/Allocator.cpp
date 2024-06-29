@@ -19,6 +19,8 @@
 #include "Allocator.hpp"
 #include "Lib/Timer.hpp"
 
+#include <limits>
+
 #ifndef INDIVIDUAL_ALLOCATIONS
 Lib::SmallObjectAllocator Lib::GLOBAL_SMALL_OBJECT_ALLOCATOR;
 #endif

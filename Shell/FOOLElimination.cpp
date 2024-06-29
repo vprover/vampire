@@ -1011,7 +1011,7 @@ unsigned FOOLElimination::introduceFreshSymbol(Context context, const char* pref
   return symbol;
 }
 
-void FOOLElimination::reportProcessed(vstring inputRepr, vstring outputRepr) {
+void FOOLElimination::reportProcessed(std::string inputRepr, std::string outputRepr) {
   if (inputRepr != outputRepr) {
     /**
      * If show_fool is set to off, the string representations of the input

@@ -54,7 +54,7 @@ public:
  unsigned evaluateGroundTerm(Term* term);
  bool evaluateGroundLiteral(Literal* literal);
 
- vstring toString();
+ std::string toString();
 
 private:
 
@@ -80,7 +80,7 @@ public:
  {
    Term* t;
    if(_domainConstants.find(c,t)) return t;
-   vstring name = "domainConstant";//+Lib::Int::toString(c);
+   std::string name = "domainConstant";//+Lib::Int::toString(c);
    unsigned f = env.signature->addFreshFunction(0,name.c_str()); 
    t = Term::createConstant(f);
    _domainConstants.insert(c,t);

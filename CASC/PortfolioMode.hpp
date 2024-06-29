@@ -22,8 +22,6 @@
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/Stack.hpp"
 
-#include "Lib/VString.hpp"
-
 #include "Kernel/Problem.hpp"
 
 #include "Shell/Property.hpp"
@@ -41,18 +39,18 @@ public:
   static bool perform(Kernel::Problem* problem);
 
   static void rescaleScheduleLimits(const Schedule& sOld, Schedule& sNew, float limit_multiplier);
-  static void addScheduleExtra(const Schedule& sOld, Schedule& sNew, vstring extra);
+  static void addScheduleExtra(const Schedule& sOld, Schedule& sNew, std::string extra);
 
 private:
   // some of these names are kind of arbitrary and should be perhaps changed
-  unsigned getSliceTime(const vstring &sliceCode);
+  unsigned getSliceTime(const std::string &sliceCode);
   bool searchForProof();
   bool prepareScheduleAndPerform(const Shell::Property& prop);
   void getSchedules(const Property& prop, Schedule& quick, Schedule& fallback);
 
   bool runSchedule(Schedule schedule);
   bool runScheduleAndRecoverProof(Schedule schedule);
-  [[noreturn]] void runSlice(vstring sliceCode, int remainingTime);
+  [[noreturn]] void runSlice(std::string sliceCode, int remainingTime);
   [[noreturn]] void runSlice(Options& strategyOpt);
 
 #if VDEBUG

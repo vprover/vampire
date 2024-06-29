@@ -75,8 +75,8 @@ public:
   VList* boundVariables () const;
 
   // output
-  vstring toString() const;
-  static vstring toString(Connective con);
+  std::string toString() const;
+  static std::string toString(Connective con);
   bool parenthesesRequired(Connective outer) const;
   // auxiliary functions
   void destroy();
@@ -87,8 +87,8 @@ public:
   bool getSkip();
 
   bool hasLabel(){ return _label != DEFAULT_LABEL; }
-  vstring getLabel(){ return _label;}
-  void label(vstring l){ _label=l; }
+  std::string getLabel(){ return _label;}
+  void label(std::string l){ _label=l; }
 
   static Formula* fromClause(Clause* cl);
 
@@ -114,8 +114,8 @@ protected:
   /** connective */
   Connective _connective;
 
-  static vstring DEFAULT_LABEL;
-  vstring _label;
+  static std::string DEFAULT_LABEL;
+  std::string _label;
 
 }; // class Formula
 
@@ -127,15 +127,15 @@ class NamedFormula
   : public Formula
 {
 public:
-  explicit NamedFormula(vstring name) : Formula(NAME), _name(name) {}
+  explicit NamedFormula(std::string name) : Formula(NAME), _name(name) {}
 
   USE_ALLOCATOR(NamedFormula);
 
-  vstring name(){ return _name; }
-  const vstring name() const { return _name;}
+  std::string name(){ return _name; }
+  const std::string name() const { return _name;}
 
 protected:
-  vstring _name;
+  std::string _name;
 
 }; // class NamedFormula
 

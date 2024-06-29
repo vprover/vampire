@@ -118,7 +118,7 @@ protected:
   bool _basic_hol;
 
 #if VDEBUG
-  static vstring vCondResToString(VarCondRes v)
+  static std::string vCondResToString(VarCondRes v)
   {
     if(v == INCOMP){ return "incomparable"; }
     if(v == LEFT){ return "left"; }

@@ -15,8 +15,6 @@
 #ifndef __VarManager__
 #define __VarManager__
 
-#include "Lib/VString.hpp"
-
 #include "Forwards.hpp"
 
 namespace Shell {
@@ -28,7 +26,7 @@ public:
   struct VarFactory
   {
     virtual unsigned getVarAlias(unsigned var) = 0;
-    virtual vstring getVarName(unsigned var) = 0;
+    virtual std::string getVarName(unsigned var) = 0;
   };
 
   static bool varNamePreserving() { return _fact; }
@@ -36,7 +34,7 @@ public:
   static VarFactory* varNamePreservingFactory() { return _fact; }
 
   static unsigned getVarAlias(unsigned var);
-  static vstring getVarName(unsigned var);
+  static std::string getVarName(unsigned var);
 private:
   static VarFactory* _fact;
 };

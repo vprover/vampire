@@ -51,7 +51,7 @@ static void doCheck(UnitList* units)
     while(uit.hasNext()){
       Unit* u = uit.next();
       if(u->inputType()!= UnitInputType::MODEL_DEFINITION) continue;
-      vstring name;
+      std::string name;
       ALWAYS(Parse::TPTP::findAxiomName(u,name));
       if(name == "finite_domain"){
         //std::cout << "Finite domain axiom found:" << std::endl << u->toString() << std::endl;
@@ -106,7 +106,7 @@ static void doCheck(UnitList* units)
     while(uit.hasNext()){
       Unit* u = uit.next();
       if(u->inputType()!= UnitInputType::MODEL_DEFINITION) continue;
-      vstring name;
+      std::string name;
       ALWAYS(Parse::TPTP::findAxiomName(u,name));
       if(name == "finite_domain" || name == "distinct_domain") continue;
 

@@ -133,11 +133,11 @@ OperatorType* OperatorType::getTypeFromKey(OperatorType::OperatorKey* key, unsig
  * @since 04/05/2013 bug fix (comma was used instead of *)
  * @author Andrei Voronkov
  */
-vstring OperatorType::argsToString() const
+std::string OperatorType::argsToString() const
 {
   unsigned ar = arity();
   ASS(ar);
-  vstring res =  ar > 1 ? "(" : "";  
+  std::string res =  ar > 1 ? "(" : "";  
   for (unsigned i = _typeArgsArity; i < ar; i++) {
     res += arg(i).toString();
     if (i != ar-1) {
@@ -151,9 +151,9 @@ vstring OperatorType::argsToString() const
 /**
  * Return the TPTP string representation of the OpertorType.
  */
-vstring OperatorType::toString() const
+std::string OperatorType::toString() const
 {
-  vstring res;
+  std::string res;
   bool bracket = false;
   if(_typeArgsArity){
     res = "!>[";

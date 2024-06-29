@@ -30,14 +30,14 @@ using namespace Lib;
  * @since 27/05/2003 Manchester
  * @since 27/08/2003 Vienna, changed to return a string
  * @since 06/12/2003 Manchester, changed to use sprintf
- * @since 07/08/2014 Manchester, changed to return a vstring
+ * @since 07/08/2014 Manchester, changed to return a std::string
  */
-vstring Int::toString (int i)
+std::string Int::toString (int i)
 {
   constexpr auto BUFSIZE = 20;
   char tmp [BUFSIZE];
   snprintf(tmp,BUFSIZE,"%d",i);
-  vstring result(tmp);
+  std::string result(tmp);
 
   return result;
 } // Int::toString (int i)
@@ -49,12 +49,12 @@ vstring Int::toString (int i)
  * @param d the double
  * @since 09/12/2003 Manchester
  */
-vstring Int::toString(double d)
+std::string Int::toString(double d)
 {
   constexpr auto BUFSIZE = 256;
   char tmp [BUFSIZE];
   snprintf(tmp,BUFSIZE,"%g",d);
-  vstring result(tmp);
+  std::string result(tmp);
 
   return result;
 } // Int::toString
@@ -66,12 +66,12 @@ vstring Int::toString(double d)
  * @param l the long
  * @since 10/02/2004 Manchester
  */
-vstring Int::toString(long l)
+std::string Int::toString(long l)
 {
   constexpr auto BUFSIZE = 256;
   char tmp [BUFSIZE];
   snprintf(tmp,BUFSIZE,"%ld",l);
-  vstring result(tmp);
+  std::string result(tmp);
 
   return result;
 } // Int::toString
@@ -81,12 +81,12 @@ vstring Int::toString(long l)
  * Return the string representation of an unsigned integer.
  * @since 10/02/2004 Manchester
  */
-vstring Int::toString(unsigned i)
+std::string Int::toString(unsigned i)
 {
   constexpr auto BUFSIZE = 256;
   char tmp [BUFSIZE];
   snprintf(tmp,BUFSIZE,"%u",i);
-  vstring result(tmp);
+  std::string result(tmp);
 
   return result;
 } // Int::toString
@@ -94,22 +94,22 @@ vstring Int::toString(unsigned i)
 /**
  * Return the string representation of an unsigned integer.
  */
-vstring Int::toString(unsigned long i)
+std::string Int::toString(unsigned long i)
 {
   constexpr auto BUFSIZE = 256;
   char tmp [BUFSIZE];
   snprintf(tmp,BUFSIZE,"%lu",i);
-  vstring result(tmp);
+  std::string result(tmp);
 
   return result;
 } // Int::toString
 
-vstring Int::toHexString(size_t i)
+std::string Int::toHexString(size_t i)
 {
   constexpr auto BUFSIZE = 256;
   char tmp [BUFSIZE];
   snprintf(tmp,BUFSIZE,"0x%zx",i);
-  vstring result(tmp);
+  std::string result(tmp);
 
   return result;
 } // Int::toString
@@ -142,19 +142,19 @@ bool Int::stringToLong (const char* str,long& result)
 
 
 /**
- * Convert a vstring to an integer value.
+ * Convert a std::string to an integer value.
  * @since 30/08/2004 Torrevieja
  */
-bool Int::stringToInt (const vstring& str,int& result)
+bool Int::stringToInt (const std::string& str,int& result)
 {
   return stringToInt(str.c_str(),result);
 } // Int::stringToInt
 
 /**
- * Convert a vstring to an unsigned integer value.
+ * Convert a std::string to an unsigned integer value.
  * @since 20/09/2009 Redmond
  */
-bool Int::stringToUnsignedInt (const vstring& str,unsigned& result)
+bool Int::stringToUnsignedInt (const std::string& str,unsigned& result)
 {
   return stringToUnsignedInt(str.c_str(),result);
 } // Int::stringToUnsignedInt
@@ -264,11 +264,11 @@ bool Int::stringToUnsigned64 (const char* str,long long unsigned& result)
 } // Int::stringToUnsigned64
 
 /**
- * Convert a vstring to a 64-bit unsigned. No overflow check is made.
+ * Convert a std::string to a 64-bit unsigned. No overflow check is made.
  *
  * @since 30/11/2006 Haifa
  */
-bool Int::stringToUnsigned64 (const vstring& str,long long unsigned& result)
+bool Int::stringToUnsigned64 (const std::string& str,long long unsigned& result)
 {
   return stringToUnsigned64(str.c_str(),result);
 } // Int::stringToUnsigned64

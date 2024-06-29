@@ -8,7 +8,6 @@
  * and in the source directory
  */
 
-#include "Lib/VString.hpp"
 #include "Shell/Options.hpp"
 
 #include "Test/UnitTesting.hpp"
@@ -27,7 +26,7 @@ bool testGlobal(Options& o)
   }
 }
 
-bool testOption(bool bad, vstring name,vstring value)
+bool testOption(bool bad, std::string name,std::string value)
 {
     //cout << (bad ? "Should be bad" : "Should be good") << endl;
     Options options;
@@ -36,8 +35,8 @@ bool testOption(bool bad, vstring name,vstring value)
     if(bad) res = !res;
     return res;
 }
-bool testOptionBad(vstring name, vstring value){ return testOption(true,name,value); }
-bool testOptionGood(vstring name, vstring value){ return testOption(false,name,value); }
+bool testOptionBad(std::string name, std::string value){ return testOption(true,name,value); }
+bool testOptionGood(std::string name, std::string value){ return testOption(false,name,value); }
 
 
 TEST_FUN(int_bounds)

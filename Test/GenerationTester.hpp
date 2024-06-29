@@ -33,13 +33,13 @@
 namespace Test {
 
 #define TEST_FN_ASS_EQ(VAL1, VAL2)                         \
-  [] (vstring& s1, vstring& s2) {                          \
+  [] (std::string& s1, std::string& s2) {                          \
     bool res = (VAL1 == VAL2);                             \
     if (!res) {                                            \
       s1 = Int::toString(VAL1);                            \
       s1.append(" != ");                                   \
       s1.append(Int::toString(VAL2));                      \
-      s2 = vstring(#VAL1);                                 \
+      s2 = std::string(#VAL1);                                 \
       s2.append(" == ");                                   \
       s2.append(#VAL2);                                    \
     }                                                      \
@@ -80,8 +80,8 @@ public:
 class TestCase
 {
   using Clause = Kernel::Clause;
-  using OptionMap = Stack<std::pair<vstring,vstring>>;
-  using Condition = std::function<bool(vstring&, vstring&)>;
+  using OptionMap = Stack<std::pair<std::string,std::string>>;
+  using Condition = std::function<bool(std::string&, std::string&)>;
   Option<SimplifyingGeneratingInference*> _rule;
   Clause* _input;
   Stack<ClausePattern> _expected;
@@ -160,7 +160,7 @@ public:
     }
 
     // check that the preconditions hold
-    vstring s1, s2;
+    std::string s1, s2;
     for (auto c : _preConditions) {
       if (!c(s1, s2)) {
         s2.append(" (precondition)");
@@ -182,7 +182,7 @@ public:
     }
 
     if (_premiseRedundant != res.premiseRedundant) {
-      auto wrapStr = [](bool b) -> vstring { return b ? "premise is redundant" : "premise is not redundant"; };
+      auto wrapStr = [](bool b) -> std::string { return b ? "premise is redundant" : "premise is not redundant"; };
       testFail( wrapStr(res.premiseRedundant), wrapStr(_premiseRedundant));
     }
 

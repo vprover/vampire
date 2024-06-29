@@ -51,7 +51,7 @@ TPTPPrinter::TPTPPrinter(ostream* tgtStream)
  */
 void TPTPPrinter::print(Unit* u)
 {
-  vstring body = getBodyStr(u, true);
+  std::string body = getBodyStr(u, true);
 
   ensureHeadersPrinted(u);
   printTffWrapper(u, body);
@@ -62,28 +62,28 @@ void TPTPPrinter::print(Unit* u)
  * @param name
  * @param u
  */
-void TPTPPrinter::printAsClaim(vstring name, Unit* u)
+void TPTPPrinter::printAsClaim(std::string name, Unit* u)
 {
   printWithRole(name, "claim", u);
 }
 
-void TPTPPrinter::printWithRole(vstring name, vstring role, Unit* u, bool includeSplitLevels)
+void TPTPPrinter::printWithRole(std::string name, std::string role, Unit* u, bool includeSplitLevels)
 {
-  vstring body = getBodyStr(u, includeSplitLevels);
+  std::string body = getBodyStr(u, includeSplitLevels);
 
   ensureHeadersPrinted(u);
   tgt() << "tff(" << name << ", " << role << ", " << body << ")." << endl;
 }
 
 /**
- * Return as a vstring the body of the Unit u
+ * Return as a std::string the body of the Unit u
  * @param u
  * @param includeSplitLevels
- * @return the body vstring
+ * @return the body std::string
  */
-vstring TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
+std::string TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
 {
-  vostringstream res;
+  std::ostringstream res;
 
   typedef DHMap<unsigned,TermList> SortMap;
   static SortMap varSorts;
@@ -147,10 +147,10 @@ vstring TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
  * @param u
  * @param bodyStr
  */
-void TPTPPrinter::printTffWrapper(Unit* u, vstring bodyStr)
+void TPTPPrinter::printTffWrapper(Unit* u, std::string bodyStr)
 {
   tgt() << "tff(";
-  vstring unitName;
+  std::string unitName;
   if(Parse::TPTP::findAxiomName(u, unitName)) {
     tgt() << unitName;
   }
@@ -219,12 +219,12 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
     }
   }
 
-  vstring cat = "tff(";
+  std::string cat = "tff(";
   if(env.getMainProblem()->isHigherOrder()){
     cat = "thf(";
   }
 
-  vstring st = "func";
+  std::string st = "func";
   if(symType == SymbolType::PRED){
     st = "pred"; 
   } else if(symType == SymbolType::TYPE_CON){
@@ -329,16 +329,16 @@ ostream& TPTPPrinter::tgt()
 }
 
 /**
- * Return the vstring representing the formula f.
+ * Return the std::string representing the formula f.
  */
-vstring TPTPPrinter::toString(const Formula* formula)
+std::string TPTPPrinter::toString(const Formula* formula)
 {
-  static vstring names [] =
+  static std::string names [] =
     { "", " & ", " | ", " => ", " <=> ", " <~> ",
       "~", "!", "?", "$term", "$false", "$true", "", ""};
-  ASS_EQ(sizeof(names)/sizeof(vstring), NOCONN+1);
+  ASS_EQ(sizeof(names)/sizeof(std::string), NOCONN+1);
 
-  vstring res;
+  std::string res;
 
   // render a connective if specified, and then a Formula (or ")" of formula is nullptr)
   typedef pair<Connective,const Formula*> Todo;
@@ -363,7 +363,7 @@ vstring TPTPPrinter::toString(const Formula* formula)
 
     switch (c) {
     case LITERAL: {
-      vstring result = f->literal()->toString();
+      std::string result = f->literal()->toString();
       if (f->literal()->isEquality()) {
         res += "(" + result + ")";
       } else {
@@ -416,7 +416,7 @@ vstring TPTPPrinter::toString(const Formula* formula)
     case FORALL:
     case EXISTS:
       {
-        vstring result = vstring("(") + names[c] + "[";
+        std::string result = std::string("(") + names[c] + "[";
         bool needsComma = false;
         VList::Iterator vs(f->vars());
         SList::Iterator ss(f->sorts());
@@ -471,23 +471,23 @@ vstring TPTPPrinter::toString(const Formula* formula)
 }
 
 /**
- * Output unit @param unit in TPTP format as a vstring
+ * Output unit @param unit in TPTP format as a std::string
  *
  * If the unit is a formula of type @b CONJECTURE, output the
  * negation of Vampire's internal representation with the
  * TPTP role conjecture. If it is a clause, just output it as
  * is, with the role negated_conjecture.
  */
-vstring TPTPPrinter::toString (const Unit* unit)
+std::string TPTPPrinter::toString (const Unit* unit)
 {
 //  const Inference* inf = unit->inference();
 //  Inference::Rule rule = inf->rule();
 
-  vstring prefix;
-  vstring main = "";
+  std::string prefix;
+  std::string main = "";
 
   bool negate_formula = false;
-  vstring kind;
+  std::string kind;
   switch (unit->inputType()) {
   case UnitInputType::ASSUMPTION:
     kind = "hypothesis";
@@ -550,7 +550,7 @@ vstring TPTPPrinter::toString (const Unit* unit)
     }
   }
 
-  vstring unitName;
+  std::string unitName;
   if(!Parse::TPTP::findAxiomName(unit, unitName)) {
     unitName="u" + Int::toString(unit->number());
   }
@@ -560,11 +560,11 @@ vstring TPTPPrinter::toString (const Unit* unit)
 }
 
 
-vstring TPTPPrinter::toString(const Term* t){
+std::string TPTPPrinter::toString(const Term* t){
   NOT_IMPLEMENTED;
 }
 
-vstring TPTPPrinter::toString(const Literal* l){
+std::string TPTPPrinter::toString(const Literal* l){
   NOT_IMPLEMENTED;
 }
 

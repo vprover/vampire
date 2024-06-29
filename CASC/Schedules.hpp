@@ -20,12 +20,12 @@
 
 namespace CASC {
 
-typedef Lib::Stack<Lib::vstring> Schedule;
+typedef Lib::Stack<std::string> Schedule;
 
 class Schedules
 {
 public:
-  static void getScheduleFromFile(const vstring& filename, Schedule& quick);
+  static void getScheduleFromFile(const std::string& filename, Schedule& quick);
 
   static void getHigherOrderSchedule2020(Schedule& quick, Schedule& fallback);
 

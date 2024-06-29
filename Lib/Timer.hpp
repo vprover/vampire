@@ -19,9 +19,10 @@
 #include <atomic>
 #include <csignal>
 
+#include "Forwards.hpp"
+
 #include "Debug/Assertion.hpp"
 #include "Allocator.hpp"
-#include "VString.hpp"
 
 #define VAMPIRE_PERF_EXISTS 0
 #ifdef __linux__
@@ -89,7 +90,7 @@ public:
 
   static void ensureTimerInitialized();
   static void deinitializeTimer();
-  static vstring msToSecondsString(int ms);
+  static std::string msToSecondsString(int ms);
   static void printMSString(std::ostream& str, int ms);
 
   static void setLimitEnforcement(bool enabled)

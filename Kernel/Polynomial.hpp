@@ -28,7 +28,6 @@
  * MonomFactor     ::= PolyNf int                   // the term of the factor, and its power
  */
 
-#include "Lib/STLAllocator.hpp"
 #include "Kernel/NumTraits.hpp"
 #include <cassert>
 #include "Lib/Coproduct.hpp"

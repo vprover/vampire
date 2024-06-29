@@ -17,6 +17,8 @@
 
 #include "Forwards.hpp"
 
+#include <map>
+
 #include "Lib/DHMap.hpp"
 
 #include "Kernel/Formula.hpp"
@@ -114,7 +116,7 @@ private:
    protected:
     TermList transformSubterm(TermList trm) override;
    private:
-    vmap<Term*, unsigned> _skolemToVar;
+    std::map<Term*, unsigned> _skolemToVar;
     // Map from functions to predicates they represent in answer literal conditions
     DHMap<unsigned, unsigned> _condFnToPred;
   };
@@ -130,7 +132,7 @@ private:
   static Term* createRegularITE(Term* condition, TermList thenBranch, TermList elseBranch, TermList branchSort);
 
   static unsigned getITEFunctionSymbol(TermList sort) {
-    vstring name = "$ite_" + sort.toString();
+    std::string name = "$ite_" + sort.toString();
     bool added = false;
     unsigned fn = env.signature->addFunction(name, 3, added);
     if (added) {

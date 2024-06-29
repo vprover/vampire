@@ -16,10 +16,6 @@
 #ifndef __Renaming__
 #define __Renaming__
 
-#if VDEBUG
-#include "Lib/VString.hpp"
-#endif
-
 #include "Lib/DHMap.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -91,7 +87,7 @@ public:
 
 #if VDEBUG
   void assertValid() const;
-  vstring toString() const;
+  std::string toString() const;
 #endif
 private:
   class Applicator

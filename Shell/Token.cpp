@@ -14,6 +14,7 @@
  * @since 25/07/2004 Torrevieja
  */
 
+#include "Forwards.hpp"
 #include "Debug/Assertion.hpp"
 #include "Token.hpp"
 
@@ -26,7 +27,7 @@ namespace Shell {
  * 
  * @since 25/07/2004 Torrevieja
  */
-Lib::vstring Token::toString (TokenType tt)
+std::string Token::toString (TokenType tt)
 {
   switch (tt) {
   case TT_INTEGER:

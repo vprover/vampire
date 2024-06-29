@@ -137,9 +137,9 @@ bool FiniteModel::isPartial()
   return true;
 }
 
-vstring FiniteModel::toString()
+std::string FiniteModel::toString()
 {
-  vostringstream modelStm;
+  std::ostringstream modelStm;
 
   bool printIntroduced = false;
 
@@ -179,7 +179,7 @@ vstring FiniteModel::toString()
     unsigned arity = env.signature->functionArity(f);
     if(arity>0) continue;
     if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;
-    vstring name = env.signature->functionName(f);
+    std::string name = env.signature->functionName(f);
     unsigned res = f_interpretation[f_offsets[f]];
     if(res>0){ 
       modelStm << "fof("<<name<<"_definition,axiom,"<<name<<" = fmb"<< res << ")."<<endl;
@@ -194,7 +194,7 @@ vstring FiniteModel::toString()
     unsigned arity = env.signature->functionArity(f);
     if(arity==0) continue;
     if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;
-    vstring name = env.signature->functionName(f);
+    std::string name = env.signature->functionName(f);
     modelStm << "fof(function_"<<name<<",axiom,"<<endl;
 
     unsigned offset = f_offsets[f];
@@ -253,7 +253,7 @@ fModelLabel:
     unsigned arity = env.signature->predicateArity(f);
     if(arity>0) continue;
     if(!printIntroduced && env.signature->getPredicate(f)->introduced()) continue;
-    vstring name = env.signature->predicateName(f);
+    std::string name = env.signature->predicateName(f);
     unsigned res = p_interpretation[p_offsets[f]];
     if(res==2){
       modelStm << "fof("<<name<<"_definition,axiom,"<<name<< ")."<<endl;
@@ -271,7 +271,7 @@ fModelLabel:
     unsigned arity = env.signature->predicateArity(f);
     if(arity==0) continue;
     if(!printIntroduced && env.signature->getPredicate(f)->introduced()) continue;
-    vstring name = env.signature->predicateName(f);
+    std::string name = env.signature->predicateName(f);
     modelStm << "fof(predicate_"<<name<<",axiom,"<<endl;
 
     unsigned offset = p_offsets[f];

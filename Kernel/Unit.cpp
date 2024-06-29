@@ -109,7 +109,7 @@ void Unit::destroy()
   }
 }
 
-vstring Unit::toString() const
+std::string Unit::toString() const
 {
   if(isClause()) {
     return static_cast<const Clause*>(this)->toString();
@@ -146,11 +146,11 @@ Formula* Unit::getFormula()
 }
 
 /**
- * Print the inference as a vstring (used in printing units in
+ * Print the inference as a std::string (used in printing units in
  * refutations).
  * @since 04/01/2008 Torrevieja
  */
-vstring Unit::inferenceAsString() const
+std::string Unit::inferenceAsString() const
 {
 #if 1
   InferenceStore& infS = *InferenceStore::instance();
@@ -160,7 +160,7 @@ vstring Unit::inferenceAsString() const
   Unit* us = const_cast<Unit*>(this);
   parents = infS.getParents(us, rule);
 
-  vstring result = (vstring)"[" + ruleName(rule);
+  std::string result = (std::string)"[" + ruleName(rule);
   bool first = true;
   while (parents.hasNext()) {
     Unit* parent = parents.next();
@@ -169,14 +169,14 @@ vstring Unit::inferenceAsString() const
     result += infS.getUnitIdStr(parent);
   }
   // print Extra
-  vstring extra;
+  std::string extra;
   if (env.proofExtra && env.proofExtra->find(this,extra) && extra != "") {
     result += ", " + extra;
   }
 
   return result + ']';
 #else
-  vstring result = (vstring)"[" + _inference->name();
+  std::string result = (std::string)"[" + _inference->name();
    bool first = true;
    Inference::Iterator it = _inference->iterator();
    while (_inference->hasNext(it)) {

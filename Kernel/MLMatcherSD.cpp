@@ -711,9 +711,9 @@ class MLMatcherSD::Impl final
 
     Literal* getEqualityForDemodulation() const;
 
-    void getMatchedAltsBitmap(vvector<bool>& outMatchedBitmap) const;
+    void getMatchedAltsBitmap(std::vector<bool>& outMatchedBitmap) const;
 
-    void getBindings(vunordered_map<unsigned, TermList>& outBindings) const;
+    void getBindings(std::unordered_map<unsigned, TermList>& outBindings) const;
 
     // Disallow copy and move because the internal implementation still uses pointers to the underlying storage and it seems hard to untangle that.
     Impl(Impl const&) = delete;
@@ -1093,7 +1093,7 @@ Literal* MLMatcherSD::Impl::getEqualityForDemodulation() const
   }
 }
 
-void MLMatcherSD::Impl::getMatchedAltsBitmap(vvector<bool>& outMatchedBitmap) const
+void MLMatcherSD::Impl::getMatchedAltsBitmap(std::vector<bool>& outMatchedBitmap) const
 {
   MatchingData const* const md = &s_matchingData;
 
@@ -1111,7 +1111,7 @@ void MLMatcherSD::Impl::getMatchedAltsBitmap(vvector<bool>& outMatchedBitmap) co
 }
 
 
-void MLMatcherSD::Impl::getBindings(vunordered_map<unsigned, TermList>& outBindings) const
+void MLMatcherSD::Impl::getBindings(std::unordered_map<unsigned, TermList>& outBindings) const
 {
   MatchingData const* const md = &s_matchingData;
 
@@ -1169,13 +1169,13 @@ Literal* MLMatcherSD::getEqualityForDemodulation() const
   return m_impl->getEqualityForDemodulation();
 }
 
-void MLMatcherSD::getMatchedAltsBitmap(vvector<bool>& outMatchedBitmap) const
+void MLMatcherSD::getMatchedAltsBitmap(std::vector<bool>& outMatchedBitmap) const
 {
   ASS(m_impl);
   m_impl->getMatchedAltsBitmap(outMatchedBitmap);
 }
 
-void MLMatcherSD::getBindings(vunordered_map<unsigned, TermList>& outBindings) const
+void MLMatcherSD::getBindings(std::unordered_map<unsigned, TermList>& outBindings) const
 {
   ASS(m_impl);
   m_impl->getBindings(outBindings);

@@ -18,6 +18,7 @@
 #include "Forwards.hpp"
 
 #include "Debug/Assertion.hpp"
+#include "Lib/Allocator.hpp"
 
 namespace Lib
 {

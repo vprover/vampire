@@ -22,7 +22,6 @@
 
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Reflection.hpp"
-#include "Lib/VString.hpp"
 
 #include "SATLiteral.hpp"
 
@@ -92,7 +91,7 @@ public:
 
   void destroy();
 
-  vstring toString() const;
+  std::string toString() const;
 
   static SATClause* removeDuplicateLiterals(SATClause *cl);
 

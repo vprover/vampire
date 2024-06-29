@@ -44,8 +44,8 @@ using namespace SAT;
     unsigned f;
     DArray<unsigned> grounding;
 
-    vstring toString(){
-      vstring ret = Lib::Int::toString(f)+"[";
+    std::string toString(){
+      std::string ret = Lib::Int::toString(f)+"[";
       for(unsigned i=0;i<grounding.size();i++){
         if(i>0) ret +=",";
         ret+=Lib::Int::toString(grounding[i]);

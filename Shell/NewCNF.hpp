@@ -20,7 +20,6 @@
 #include "Lib/List.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/Deque.hpp"
-#include "Lib/STLAllocator.hpp"
 #include "Lib/SmartPtr.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/SharedSet.hpp"
@@ -177,10 +176,10 @@ private:
     }
 
     // Position of a gen literal in _genClauses
-    std::list<SmartPtr<GenClause>,STLAllocator<SmartPtr<GenClause>>>::iterator iter;
+    std::list<SmartPtr<GenClause>>::iterator iter;
 
-    vstring toString() {
-      vstring res = "GC("+Int::toString(size())+")";
+    std::string toString() {
+      std::string res = "GC("+Int::toString(size())+")";
       if (!valid) {
         res += " [INVALID]";
       }
@@ -210,7 +209,7 @@ private:
   bool mapSubstitution(List<GenLit>* gc, Substitution subst, bool onlyFormulaLevel, List<GenLit>* &output);
   Clause* toClause(SPGenClause gc);
 
-  typedef std::list<SPGenClause,STLAllocator<SPGenClause>> GenClauses;
+  typedef std::list<SPGenClause> GenClauses;
 
   /**
    * pushLiteral is responsible for tautology elimination. Whenever it sees two

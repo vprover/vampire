@@ -17,7 +17,6 @@
 #include "Lib/DHSet.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/VString.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/IntUnionFind.hpp"
     

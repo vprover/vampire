@@ -110,9 +110,9 @@ TEST_FUN(basic01) {
 template<class Key>
 struct MyData {
   Key term;
-  vstring str;
+  std::string str;
 
-  MyData(Key t, vstring s)
+  MyData(Key t, std::string s)
     : term(t), str(s) {}
 
   auto asTuple() const 
@@ -179,20 +179,20 @@ TEST_FUN(custom_data_02) {
   DECL_CONST(b, srt)
   DECL_FUNC(f, {srt}, srt)
 
-  TermSubstitutionTree<TermWithValue<vstring>> tree;
-  auto dat = [](TermList t,vstring s) { return TermWithValue<vstring>(t.term(), std::move(s)); };
+  TermSubstitutionTree<TermWithValue<std::string>> tree;
+  auto dat = [](TermList t,std::string s) { return TermWithValue<std::string>(t.term(), std::move(s)); };
   tree.insert(dat(f(a), "a"));
   tree.insert(dat(f(a), "b"));
   tree.insert(dat(f(a), "c"));
 
   check_unify(tree, f(a), { dat(f(a), "a"), dat(f(a), "b"), dat(f(a), "c") });
-  check_unify(tree, f(b), Stack<TermWithValue<vstring>>{});
+  check_unify(tree, f(b), Stack<TermWithValue<std::string>>{});
   check_unify(tree, f(x), { dat(f(a), "a"), dat(f(a), "b"), dat(f(a), "c") });
 }
 
 struct MyData3 : public MyData<TypedTermList> {
   MyData3()  = delete;
-  MyData3(TypedTermList t, vstring s) : MyData{t,s} {}
+  MyData3(TypedTermList t, std::string s) : MyData{t,s} {}
 };
 
 TEST_FUN(custom_data_03_no_default_constructor) {
@@ -204,7 +204,7 @@ TEST_FUN(custom_data_03_no_default_constructor) {
   DECL_FUNC(f, {srt}, srt)
 
   TermSubstitutionTree<MyData3> tree;
-  auto dat = [](TypedTermList t,vstring s) { return MyData3(t, std::move(s)); };
+  auto dat = [](TypedTermList t,std::string s) { return MyData3(t, std::move(s)); };
   tree.insert(dat(f(a), "a"));
   tree.insert(dat(f(a), "b"));
   tree.insert(dat(f(a), "c"));
@@ -217,7 +217,7 @@ TEST_FUN(custom_data_03_no_default_constructor) {
 struct MyData4 : public MyData<TypedTermList> {
   MyData4(MyData const&) = delete;
   MyData4 operator=(MyData const&) = delete;
-  MyData4(TypedTermList t, vstring s) : MyData{t,s} {}
+  MyData4(TypedTermList t, std::string s) : MyData{t,s} {}
 };
 
 TEST_FUN(custom_data_04_no_copy_constructor) {
@@ -229,7 +229,7 @@ TEST_FUN(custom_data_04_no_copy_constructor) {
   DECL_FUNC(f, {srt}, srt)
 
   TermSubstitutionTree<MyData4> tree;
-  auto dat = [](TypedTermList t,vstring s) { return MyData4(t, std::move(s)); };
+  auto dat = [](TypedTermList t,std::string s) { return MyData4(t, std::move(s)); };
   tree.insert(dat(f(a), "a"));
   tree.insert(dat(f(a), "b"));
   tree.insert(dat(f(a), "c"));
@@ -258,7 +258,7 @@ TEST_FUN(zero_arity_predicate) {
 
   using Data = MyData<Literal*>;
   LiteralSubstitutionTree<Data> tree;
-  auto dat = [](Literal* k,vstring s) { return Data(k, std::move(s)); };
+  auto dat = [](Literal* k,std::string s) { return Data(k, std::move(s)); };
   tree.insert(dat( p0() , " p0()"));
   tree.insert(dat( p1(a), " p1(a)"));
   tree.insert(dat( p1(b), " p1(b)"));

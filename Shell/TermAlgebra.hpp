@@ -15,7 +15,6 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Array.hpp"
-#include "Lib/VString.hpp"
 #include "Kernel/OperatorType.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Set.hpp"
@@ -72,7 +71,7 @@ namespace Shell {
    
     friend std::ostream& operator<<(std::ostream& out, TermAlgebraConstructor const& self);
   private:
-    Lib::vstring discriminatorName();
+    std::string discriminatorName();
 
     Kernel::OperatorType* _type;
     unsigned _functor;
@@ -153,7 +152,7 @@ namespace Shell {
 
     /* The predicate of the subterm relation, used only if the option
        -tac is set to "axiom"*/
-    Lib::vstring getSubtermPredicateName();
+    std::string getSubtermPredicateName();
     unsigned getSubtermPredicate();
     void getTypeSub(Kernel::Term* t, Kernel::Substitution& subst);
 

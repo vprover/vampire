@@ -56,7 +56,7 @@ struct KboSpecialWeights;
 template<>
 struct KboSpecialWeights<PredSigTraits> 
 { 
-  inline bool tryAssign(const vstring& name, unsigned weight) 
+  inline bool tryAssign(const std::string& name, unsigned weight) 
   { return false; }
 
   inline static KboSpecialWeights dflt() 
@@ -74,7 +74,7 @@ struct KboSpecialWeights<FuncSigTraits>
   KboWeight _numInt;
   KboWeight _numRat;
   KboWeight _numReal;
-  inline bool tryAssign(const vstring& name, unsigned weight) 
+  inline bool tryAssign(const std::string& name, unsigned weight) 
   {
     if (name == SPECIAL_WEIGHT_IDENT_VAR     ) { _variableWeight = weight; return true; } 
     if (name == SPECIAL_WEIGHT_IDENT_NUM_INT ) { _numInt  = weight; return true; } 

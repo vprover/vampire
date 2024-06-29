@@ -25,7 +25,6 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/DHMultiset.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/VString.hpp"
 
 #include "Kernel/Signature.hpp"
 #include "Kernel/Clause.hpp"
@@ -71,7 +70,7 @@ public:
 
   void recordSplittingNameLiteral(Unit* us, Literal* lit);
   void recordIntroducedSymbol(Unit* u, SymbolType st, unsigned number);  
-  void recordIntroducedSplitName(Unit* u, vstring name);
+  void recordIntroducedSplitName(Unit* u, std::string name);
 
   void outputUnsatCore(std::ostream& out, Unit* refutation);
   void outputProof(std::ostream& out, Unit* refutation);
@@ -80,7 +79,7 @@ public:
   UnitIterator getParents(Unit* us, InferenceRule& rule);
   UnitIterator getParents(Unit* us);
 
-  vstring getUnitIdStr(Unit* cs);
+  std::string getUnitIdStr(Unit* cs);
 
 private:
   InferenceStore();
@@ -101,7 +100,7 @@ private:
   typedef std::pair<SymbolType,unsigned> SymbolId;  
   typedef Stack<SymbolId> SymbolStack;
   DHMap<unsigned,SymbolStack> _introducedSymbols;
-  DHMap<unsigned,vstring> _introducedSplitNames;
+  DHMap<unsigned,std::string> _introducedSplitNames;
 
 };
 

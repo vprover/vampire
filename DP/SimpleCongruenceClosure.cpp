@@ -35,9 +35,9 @@ using namespace std;
 
 const unsigned SimpleCongruenceClosure::NO_SIG_SYMBOL = 0xFFFFFFFF;
 
-vstring SimpleCongruenceClosure::CEq::toString() const
+std::string SimpleCongruenceClosure::CEq::toString() const
 {
-  vostringstream res;
+  std::ostringstream res;
   res << c1<<"="<<c2<<" implied by ";
   if(foOrigin) {
     if(foPremise) {
@@ -53,9 +53,9 @@ vstring SimpleCongruenceClosure::CEq::toString() const
   return res.str();
 }
 
-vstring SimpleCongruenceClosure::CEq::toString(SimpleCongruenceClosure& parent) const
+std::string SimpleCongruenceClosure::CEq::toString(SimpleCongruenceClosure& parent) const
 {
-  vostringstream res;
+  std::ostringstream res;
   res << c1<<"="<<c2<<" implied by ";
   if(foOrigin) {
     if(foPremise) {

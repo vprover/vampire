@@ -176,9 +176,9 @@ void Renaming::assertValid() const
   }
 }
 
-vstring Renaming::toString() const
+std::string Renaming::toString() const
 {
-  vstring res = "[";
+  std::string res = "[";
   VariableMap::Iterator mit(_data);
   while(mit.hasNext()) {
     unsigned from, to;
