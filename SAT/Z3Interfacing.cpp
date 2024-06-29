@@ -519,7 +519,7 @@ z3::sort Z3Interfacing::getz3sort(SortId s)
 }
 
 template<class A>
-std::string to_std::string(A const& a)
+std::string to_string(A const& a)
 {
   std::stringstream out;
   out << a;
