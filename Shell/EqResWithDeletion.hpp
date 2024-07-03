@@ -22,12 +22,14 @@
 
 #include "Kernel/Term.hpp"
 
+#include "Inferences/InferenceEngine.hpp"
+
 namespace Shell {
 
 using namespace Lib;
 using namespace Kernel;
 
-class EqResWithDeletion
+class EqResWithDeletion : public Inferences::ImmediateSimplificationEngine
 {
 public:
   void apply(Problem& prb);
@@ -35,10 +37,10 @@ public:
 
   TermList apply(unsigned var);
   Clause* apply(Clause* cl);
+
+  Clause* simplify(Clause* cl) override { return apply(cl); }
 private:
   bool scan(Literal* lit);
-
-
 
   /** The substitution induced by resolved inequalities
    * (It is reset with each clause). */

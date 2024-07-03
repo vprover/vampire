@@ -452,8 +452,8 @@ void Options::init()
     _useMonoEqualityProxy.onlyUsefulWith(_equalityProxy.is(notEqual(EqualityProxy::OFF)));
     _useMonoEqualityProxy.tag(OptionTag::PREPROCESSING);
 
-    _equalityResolutionWithDeletion = BoolOptionValue("equality_resolution_with_deletion","erd",true);
-    _equalityResolutionWithDeletion.description="Perform equality resolution with deletion.";
+    _equalityResolutionWithDeletion = ChoiceOptionValue<RuleActivity>("equality_resolution_with_deletion","erd",RuleActivity::ON,{"off","on","simplif"});
+    _equalityResolutionWithDeletion.description="Perform equality resolution with deletion. (`simplif` will also do this during saturation, as a simplification rule.)";
     _lookup.insert(&_equalityResolutionWithDeletion);
     _equalityResolutionWithDeletion.tag(OptionTag::PREPROCESSING);
     _equalityResolutionWithDeletion.addProblemConstraint(hasEquality());
@@ -1293,9 +1293,9 @@ void Options::init()
     _structInduction.tag(OptionTag::INDUCTION);
     _structInduction.onlyUsefulWith(Or(_induction.is(equal(Induction::STRUCTURAL)),_induction.is(equal(Induction::BOTH))));
     _structInduction.addHardConstraint(If(equal(StructuralInductionKind::RECURSION)).then(_newCNF.is(equal(true))));
-    _structInduction.addHardConstraint(If(equal(StructuralInductionKind::RECURSION)).then(_equalityResolutionWithDeletion.is(equal(true))));
+    _structInduction.addHardConstraint(If(equal(StructuralInductionKind::RECURSION)).then(_equalityResolutionWithDeletion.is(notEqual(RuleActivity::OFF))));
     _structInduction.addHardConstraint(If(equal(StructuralInductionKind::ALL)).then(_newCNF.is(equal(true))));
-    _structInduction.addHardConstraint(If(equal(StructuralInductionKind::ALL)).then(_equalityResolutionWithDeletion.is(equal(true))));
+    _structInduction.addHardConstraint(If(equal(StructuralInductionKind::ALL)).then(_equalityResolutionWithDeletion.is(notEqual(RuleActivity::OFF))));
     _lookup.insert(&_structInduction);
 
     _intInduction = ChoiceOptionValue<IntInductionKind>("int_induction_kind","iik",
@@ -1369,7 +1369,7 @@ void Options::init()
     _functionDefinitionRewriting.description = "Use function definitions as rewrite rules with the intended orientation rather than the term ordering one";
     _functionDefinitionRewriting.tag(OptionTag::INFERENCES);
     _functionDefinitionRewriting.addHardConstraint(If(equal(true)).then(_newCNF.is(equal(true))));
-    _functionDefinitionRewriting.addHardConstraint(If(equal(true)).then(_equalityResolutionWithDeletion.is(equal(true))));
+    _functionDefinitionRewriting.addHardConstraint(If(equal(true)).then(_equalityResolutionWithDeletion.is(notEqual(RuleActivity::OFF))));
     _lookup.insert(&_functionDefinitionRewriting);
 
     _integerInductionDefaultBound = BoolOptionValue("int_induction_default_bound","intinddb",false);
@@ -3459,6 +3459,8 @@ bool Options::complete(const Problem& prb) const
   bool hasEquality = (prop.equalityAtoms() != 0);
 
   if (hasEquality && !_superposition.actualValue) return false;
+
+  if (hasEquality && _equalityResolutionWithDeletion.actualValue == RuleActivity::SIMPLIF) return false;
 
   if((prop.hasCombs() || prop.hasAppliedVar())  &&
     !_addCombAxioms.actualValue && !_combinatorySuperposition.actualValue) {

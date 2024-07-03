@@ -100,6 +100,7 @@
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/Shuffling.hpp"
+#include "Shell/EqResWithDeletion.hpp"
 
 #include "Splitter.hpp"
 
@@ -1730,6 +1731,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, const Options& opt, Ordering& ordering)
 {
   CompositeISE* res=new CompositeISE();
+
+  if(prb.hasEquality() && opt.equalityResolutionWithDeletion() == Options::RuleActivity::SIMPLIF) {
+    res->addFront(new EqResWithDeletion());
+  }
 
   if(prb.hasEquality() && opt.equationalTautologyRemoval()) {
     res->addFront(new EquationalTautologyRemoval());
