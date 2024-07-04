@@ -12,7 +12,7 @@
 ep!=off > mep ~cat on:10,off:1
 
 # equality_resolution_with_deletion
-> erd ~cat on:10,off:1
+> erd ~cat on:10,off:1,simplif:5
 
 # function_definition_elimination
 > fde ~cat all:5,none:1,unused:1
