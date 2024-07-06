@@ -82,6 +82,8 @@ public:
    if(_domainConstants.find(c,t)) return t;
    std::string name = "domainConstant";//+Lib::Int::toString(c);
    unsigned f = env.signature->addFreshFunction(0,name.c_str()); 
+   Signature::Symbol* fSym = env.signature->getFunction(f);
+   fSym->setType(OperatorType::getConstantsType(AtomicSort::defaultSort()));
    t = Term::createConstant(f);
    _domainConstants.insert(c,t);
    _domainConstantsRev.insert(t,c);
