@@ -8,8 +8,8 @@
  * and in the source directory
  */
 /**
- * @file ModelCheck.hpp 
- * Defines checking of finite models 
+ * @file ModelCheck.hpp
+ * Defines checking of finite models
  *
  * @since 6/10/2015 Manchester
  * @author Giles
@@ -28,7 +28,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Term.hpp"
 
-#include "FiniteModel.hpp"
+#include "FiniteModelMultiSorted.hpp"
 
 namespace FMB{
 
@@ -44,11 +44,11 @@ public:
 static void doCheck(UnitList* units)
 {
   // find model size
-  // looking for a domain axiom
-  // Currently assume it is called 'finite_domain'
-  // TODO search for something of the right shape
-  unsigned modelSize = 0;
-  Set<Term*> domainConstants;
+  // looking for a domain axiom with a name starting 'finite_domain' (TODO search for something of the right shape)
+
+  DHMap<unsigned,unsigned> sortSizes;
+  DHMap<unsigned,std::unique_ptr<Set<Term*>>> domainConstantsPerSort;
+
   // first just search for finite_domain axiom (TODO: do this for every sort!)
   {
     UnitList::Iterator uit(units);
@@ -58,53 +58,74 @@ static void doCheck(UnitList* units)
       std::string name;
       ALWAYS(Parse::TPTP::findAxiomName(u,name));
       if(StringUtils::starts_with(name,"finite_domain")){
-        // std::cout << "Finite domain axiom found:" << std::endl << u->toString() << std::endl;
+        std::cout << "Finite domain axiom found:" << std::endl << u->toString() << std::endl;
         // Set model size and domainConstants
         // And check it is a finite domain axiom
-        if(u->isClause()){
-          Clause* c = u->asClause();
-          modelSize = c->length();
-          int single_var = -1;
-          for(unsigned i=0;i<c->length();i++){
-            Literal* l = (*c)[i];
-            checkIsDomainLiteral(l,single_var,domainConstants);
-          }
-        }else{
-          Formula* formula = u->getFormula();
-          if(formula->connective()!=Connective::FORALL) USER_ERROR("finite_domain is not a domain axiom");
-          Formula* subformula = formula->qarg();
-          if(subformula->connective()!=Connective::OR) USER_ERROR("finite_domain is not a domain axiom");
+        if(u->isClause()) USER_ERROR("finite_domain in cnf (use fof/tff instead)");
+
+        Formula* formula = u->getFormula();
+        if(formula->connective()!=Connective::FORALL) USER_ERROR("finite_domain is not a domain axiom");
+        Formula* subformula = formula->qarg();
+
+        if (VList::length(formula->vars()) != 1) USER_ERROR("finite_domain must start with forall over a single variable");
+        unsigned curSort = (formula->sorts()) ? formula->sorts()->head().term()->functor() : env.signature->getDefaultSort();
+
+        unsigned curModelSize = 0;
+        auto curDomainConstants = std::make_unique<Set<Term*>>();
+
+        int single_var = -1;
+        if (subformula->connective()==Connective::OR) {
           FormulaList* args = subformula->args();
           FormulaList::Iterator fit(args);
-          int single_var = -1;
           while(fit.hasNext()){
-            modelSize++;
+            curModelSize++;
             Formula* arg = fit.next();
             if(arg->connective()!=Connective::LITERAL) USER_ERROR("finite_domain is not a domain axiom");
             Literal* l = arg->literal();
-            checkIsDomainLiteral(l,single_var,domainConstants);
+            checkIsDomainLiteral(l,single_var,*curDomainConstants);
           }
-        }
+        } else if (subformula->connective()==Connective::LITERAL) {
+          curModelSize = 1;
+          checkIsDomainLiteral(subformula->literal(),single_var,*curDomainConstants);
+        } else USER_ERROR("finite_domain is not a domain axiom");
+
+        sortSizes.set(curSort,curModelSize);
+        domainConstantsPerSort.set(curSort,std::move(curDomainConstants));
       }
     }
   }
-  ASS_EQ(modelSize,(unsigned)domainConstants.size());
-  std::cout << "Detected model of size " << modelSize << std::endl;
-  std::cout << "Distinct domain assumed, domain elements are:" << std::endl;
+
+  if (sortSizes.size() == 0) {
+    USER_ERROR("No domain definition found!\n Use vampire(model_check,model_start). MODEL_DEFINITION_FORMULAS. vampire(model_check,model_end).");
+  }
 
   std::cout << "Loading model..." << std::endl;
-  FiniteModel model(modelSize);
+  FiniteModelMultiSorted model(sortSizes);
 
-  // number the domain constants
+  Set<Term*> domainConstants; // union of all the perSort ones
   DHMap<Term*,unsigned> domainConstantNumber;
-  Set<Term*>::Iterator dit(domainConstants);
-  unsigned count=1;
-  while(dit.hasNext()){
-    Term* con = dit.next();
-    std::cout << con->toString() << std::endl;
-    domainConstantNumber.insert(con,count);
-    model.addConstantDefinition(con->functor(),count);
-    count++;
+
+  std::cout << "Detected model with " << sortSizes.size() << " sorts." << std::endl;
+  auto it = sortSizes.items();
+  while (it.hasNext()) {
+    auto [sort,curModelSize] = it.next();
+    auto& curDomainConstants = *domainConstantsPerSort.get(sort);
+    ASS_EQ(curModelSize,(unsigned)curDomainConstants.size());
+
+    std::cout << "  domain for " + env.signature->getTypeCon(sort)->name() + " of size " << curModelSize;
+    std::cout << ", domain elements are:" << std::endl;
+
+    // number the domain constants
+    Set<Term*>::Iterator dit(curDomainConstants);
+    unsigned count=1;
+    while(dit.hasNext()){
+      Term* con = dit.next();
+      std::cout << "    " << con->toString() << std::endl;
+      domainConstants.insert(con);
+      domainConstantNumber.insert(con,count);
+      model.addConstantDefinition(con->functor(),count);
+      count++;
+    }
   }
 
   {
@@ -192,7 +213,7 @@ static void checkIsDomainLiteral(Literal* l, int& single_var, Set<Term*>& domain
             domainConstants.insert(constant);
 }
 
-static void addDefinition(FiniteModel& model,Literal* lit,bool negated,
+static void addDefinition(FiniteModelMultiSorted& model,Literal* lit,bool negated,
                           Set<Term*>& domainConstants,
                           DHMap<Term*,unsigned>& domainConstantNumber)
 {
@@ -205,7 +226,7 @@ static void addDefinition(FiniteModel& model,Literal* lit,bool negated,
             TermList* temp = left; left=right;right=temp;
           }
 
-          if(domainConstants.contains(left->term())) 
+          if(domainConstants.contains(left->term()))
             USER_ERROR("Cannot have equality between domain elements:\n"+lit->toString());
           unsigned res = domainConstantNumber.get(right->term());
           if(left->isVar()) USER_ERROR("Expect term on left of definition");
