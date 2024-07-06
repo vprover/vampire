@@ -21,6 +21,7 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/StringUtils.hpp"
 
 #include "Kernel/Problem.hpp"
 #include "Kernel/Unit.hpp"
@@ -29,11 +30,13 @@
 
 #include "FiniteModel.hpp"
 
-
 namespace FMB{
 
 using namespace Lib;
 using namespace Kernel;
+
+using std::cout;
+using std::endl;
 
 class ModelCheck{
 
@@ -46,6 +49,7 @@ static void doCheck(UnitList* units)
   // TODO search for something of the right shape
   unsigned modelSize = 0;
   Set<Term*> domainConstants;
+  // first just search for finite_domain axiom (TODO: do this for every sort!)
   {
     UnitList::Iterator uit(units);
     while(uit.hasNext()){
@@ -53,8 +57,8 @@ static void doCheck(UnitList* units)
       if(u->inputType()!= UnitInputType::MODEL_DEFINITION) continue;
       std::string name;
       ALWAYS(Parse::TPTP::findAxiomName(u,name));
-      if(name == "finite_domain"){
-        //std::cout << "Finite domain axiom found:" << std::endl << u->toString() << std::endl;
+      if(StringUtils::starts_with(name,"finite_domain")){
+        // std::cout << "Finite domain axiom found:" << std::endl << u->toString() << std::endl;
         // Set model size and domainConstants
         // And check it is a finite domain axiom
         if(u->isClause()){
@@ -108,11 +112,11 @@ static void doCheck(UnitList* units)
       if(u->inputType()!= UnitInputType::MODEL_DEFINITION) continue;
       std::string name;
       ALWAYS(Parse::TPTP::findAxiomName(u,name));
-      if(name == "finite_domain" || name == "distinct_domain") continue;
+      if(StringUtils::starts_with(name,"finite_domain") || StringUtils::starts_with(name,"distinct_domain")) continue;
 
       // All model formulas should be conjunctions of definitions
       // TODO allow for unit clause definitions in the future
-      if(u->isClause()) USER_ERROR("Expecting model to use formulas i.e. fof");
+      if(u->isClause()) USER_ERROR("Expecting model to use formulas i.e. fof/tff");
       Formula* formula = u->getFormula();
 
       if(formula->connective()==Connective::NOT){
@@ -184,8 +188,6 @@ static void checkIsDomainLiteral(Literal* l, int& single_var, Set<Term*>& domain
             if(domainConstants.contains(constant)) USER_ERROR("finite_domain is not a domain axiom");
 
             domainConstants.insert(constant);
-
-
 }
 
 static void addDefinition(FiniteModel& model,Literal* lit,bool negated,
