@@ -92,18 +92,20 @@ static void doCheck(UnitList* units)
   std::cout << "Detected model of size " << modelSize << std::endl;
   std::cout << "Distinct domain assumed, domain elements are:" << std::endl;
 
+  std::cout << "Loading model..." << std::endl;
+  FiniteModel model(modelSize);
+
   // number the domain constants
   DHMap<Term*,unsigned> domainConstantNumber;
   Set<Term*>::Iterator dit(domainConstants);
   unsigned count=1;
-  while(dit.hasNext()){ 
+  while(dit.hasNext()){
     Term* con = dit.next();
-    std::cout << con->toString() << std::endl; 
-    domainConstantNumber.insert(con,count++); 
+    std::cout << con->toString() << std::endl;
+    domainConstantNumber.insert(con,count);
+    model.addConstantDefinition(con->functor(),count);
+    count++;
   }
-
-  std::cout << "Loading model..." << std::endl;
-  FiniteModel model(modelSize);
 
   {
     UnitList::Iterator uit(units);
