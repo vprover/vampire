@@ -766,6 +766,10 @@ int main(int argc, char* argv[])
 
     Lib::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
 
+    if (opts.mode() == Options::Mode::MODEL_CHECK) {
+      opts.setOutputAxiomNames(true);
+    }
+
     if (opts.interactive()) {
       interactiveMetamode();
     } else {
