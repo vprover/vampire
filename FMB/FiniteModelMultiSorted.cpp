@@ -45,7 +45,7 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
-FiniteModelMultiSorted::FiniteModelMultiSorted(DHMap<unsigned,unsigned> sizes) : 
+FiniteModelMultiSorted::FiniteModelMultiSorted(DHMap<unsigned,unsigned> sizes) :
    _sizes(sizes), _isPartial(false)
 {
   (void)_isPartial; // to suppress unused warning
@@ -64,11 +64,11 @@ FiniteModelMultiSorted::FiniteModelMultiSorted(DHMap<unsigned,unsigned> sizes) :
     OperatorType* sig = env.signature->getFunction(f)->fnType();
     unsigned s = sig->result().term()->functor();
     unsigned add = _sizes.get(s);
-    for(unsigned i=0;i<arity;i++){ 
+    for(unsigned i=0;i<arity;i++){
       s = sig->arg(i).term()->functor();
-      add*= _sizes.get(s); 
+      add*= _sizes.get(s);
     }
-    
+
     ASS(UINT_MAX - add > offsets);
     offsets += add;
   }
@@ -82,9 +82,9 @@ FiniteModelMultiSorted::FiniteModelMultiSorted(DHMap<unsigned,unsigned> sizes) :
     OperatorType* sig = env.signature->getPredicate(p)->predType();
     unsigned add = 1;
 
-    for(unsigned i=0;i<arity;i++){ 
+    for(unsigned i=0;i<arity;i++){
       unsigned s = sig->arg(i).term()->functor();
-      int mult = _sizes.get(s); 
+      int mult = _sizes.get(s);
       ASS(mult>0);
       add*= (mult>0 ? mult : 1);
     }
@@ -96,6 +96,8 @@ FiniteModelMultiSorted::FiniteModelMultiSorted(DHMap<unsigned,unsigned> sizes) :
 
   sortRepr.ensure(env.signature->typeCons());
   for(unsigned s=0;s<env.signature->typeCons();s++){
+    if(env.signature->isInterpretedNonDefault(s))
+      continue;
     sortRepr[s].ensure(_sizes.get(s)+1);
     for(unsigned i=0;i<=_sizes.get(s);i++){
       sortRepr[s][i] = -1;
