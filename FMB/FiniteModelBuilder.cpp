@@ -69,7 +69,7 @@
 
 #define LOG(X) // cout << #X <<  X << endl;
 
-namespace FMB 
+namespace FMB
 {
 
 using namespace std;
@@ -572,8 +572,8 @@ void FiniteModelBuilder::init()
 
   // TODO: consider updating usage count by rescanning property
   // in particular, terms replaced by definitions have disappeared!
-  
-  // TODO: consider updating usage count by rescanning property as we have had to 
+
+  // TODO: consider updating usage count by rescanning property as we have had to
   //       OR ensure that usage count is updated for any introduced symbols e.g. in Monotonicity
 
   // record the deleted functions and predicates
@@ -606,7 +606,7 @@ void FiniteModelBuilder::init()
     //ClauseList* both = ClauseList::concat(_clauses,_groundClauses);
     SortInference inference(_clauses,del_f,del_p,equivalent_vampire_sorts,_distinct_sort_constraints);
     inference.doInference();
-    _sortedSignature = inference.getSignature(); 
+    _sortedSignature = inference.getSignature();
     ASS(_sortedSignature);
 #if VTRACE_FMB
     cout << "Done sort inference" << endl;
@@ -615,7 +615,7 @@ void FiniteModelBuilder::init()
     // now we have a mapping between vampire sorts and distinct sorts we can translate
     // the sort constraints, if any
     {
-      DHSet<std::pair<unsigned,unsigned>>::Iterator it(vampire_sort_constraints_nonstrict); 
+      DHSet<std::pair<unsigned,unsigned>>::Iterator it(vampire_sort_constraints_nonstrict);
       while(it.hasNext()){
         std::pair<unsigned,unsigned> vconstraint = it.next();
         ASS(_sortedSignature->vampireToDistinctParent.find(vconstraint.first));
@@ -1191,8 +1191,8 @@ unsigned FiniteModelBuilder::estimateFunctionalDefCount()
 
 void FiniteModelBuilder::addNewFunctionalDefs()
 {
-  // For each function f of arity n we add the constraint 
-  // f(x1,...,xn) != y | f(x1,...,xn) != z 
+  // For each function f of arity n we add the constraint
+  // f(x1,...,xn) != y | f(x1,...,xn) != z
   // they should be instantiated with groundings where y!=z
 
   for(unsigned f=0;f<env.signature->functions();f++){
@@ -1207,10 +1207,9 @@ void FiniteModelBuilder::addNewFunctionalDefs()
     static DArray<unsigned> maxVarSize;
     maxVarSize.ensure(arity+2);
 
-    // find max size of y and z 
+    // find max size of y and z
     unsigned returnSrt = f_signature[arity];
-    maxVarSize[0] = min(_sortedSignature->sortBounds[returnSrt],_sortModelSizes[returnSrt]);
-    maxVarSize[1] = min(_sortedSignature->sortBounds[returnSrt],_sortModelSizes[returnSrt]);
+    maxVarSize[0] = maxVarSize[1] = min(_sortedSignature->sortBounds[returnSrt],_sortModelSizes[returnSrt]);
 
     // we skip 0 and 1 as these are y and z
     for(unsigned var=2;var<arity+2;var++){
@@ -1251,9 +1250,9 @@ newFuncLabel:
           use.ensure(arity+1);
           for(unsigned k=0;k<arity;k++) use[k]=grounding[k+2];
           use[arity]=grounding[0];
-          satClauseLits.push(getSATLiteral(f,use,false,true)); 
+          satClauseLits.push(getSATLiteral(f,use,false,true));
           use[arity]=grounding[1];
-          satClauseLits.push(getSATLiteral(f,use,false,true)); 
+          satClauseLits.push(getSATLiteral(f,use,false,true));
 
           SATClause* satCl = SATClause::fromStack(satClauseLits);
           addSATClause(satCl);
@@ -1266,7 +1265,7 @@ newFuncLabel:
 void FiniteModelBuilder::addNewSymmetryOrderingAxioms(unsigned size,
                        Stack<GroundedTerm>& groundedTerms)
 {
-  // Add restricted totality 
+  // Add restricted totality
   // i.e. for constant a1 add { a1=1 } and for a2 add { a2=1, a2=2 } and so on
   if(groundedTerms.length() < size) return;
 
@@ -1280,7 +1279,7 @@ void FiniteModelBuilder::addNewSymmetryOrderingAxioms(unsigned size,
   //cout << "Add symmetry ordering for " << gt.toString() << endl;
 
   static SATLiteralStack satClauseLits;
-  satClauseLits.reset(); 
+  satClauseLits.reset();
   for(unsigned i=1;i<=size;i++){
     grounding[arity]=i;
     SATLiteral sl = getSATLiteral(gt.f,grounding,true,true);
@@ -1297,7 +1296,7 @@ void FiniteModelBuilder::addNewSymmetryCanonicityAxioms(unsigned size,
 {
   if(size<=1) return;
 
-  unsigned w = _symmetryRatio * maxSize; 
+  unsigned w = _symmetryRatio * maxSize;
   if(w > groundedTerms.length()){
      w = groundedTerms.length();
   }
@@ -1305,7 +1304,7 @@ void FiniteModelBuilder::addNewSymmetryCanonicityAxioms(unsigned size,
   for(unsigned i=1;i<w;i++){
       static SATLiteralStack satClauseLits;
       satClauseLits.reset();
-   
+
       GroundedTerm gti = groundedTerms[i];
       unsigned arityi = env.signature->functionArity(gti.f);
 
@@ -1316,7 +1315,6 @@ void FiniteModelBuilder::addNewSymmetryCanonicityAxioms(unsigned size,
       for(unsigned a=0;a<arityi;a++){ grounding_i[a]=gti.grounding[a];}
       grounding_i[arityi]=size;
       satClauseLits.push(getSATLiteral(gti.f,grounding_i,false,true));
- 
       //cout << "Adding cannon for " << gti.toString() << endl;
 
       for(unsigned j=0;j<i;j++){
@@ -1883,36 +1881,35 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
 void FiniteModelBuilder::onModelFound()
 {
- // Don't do any output if proof is off
- if(_opt.proof()==Options::Proof::OFF){ 
-   return; 
- }
+  // Don't do any output if proof is off
+  if(_opt.proof()==Options::Proof::OFF){
+    return;
+  }
 
- reportSpiderStatus('-');
- if(outputAllowed()){
-   cout << "Finite Model Found!" << endl;
- }
+  reportSpiderStatus('-');
+  if(outputAllowed()){
+    cout << "Finite Model Found!" << endl;
+  }
 
- //we need to print this early because model generating can take some time
- if(szsOutputMode()) {
-   std::cout << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
-       << " for " << _opt.problemName() << endl << flush;
-   UIHelper::satisfiableStatusWasAlreadyOutput = true;
- }
+  //we need to print this early because model generating can take some time
+  if(szsOutputMode()) {
+    std::cout << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
+        << " for " << _opt.problemName() << endl << flush;
+    UIHelper::satisfiableStatusWasAlreadyOutput = true;
+  }
   // Prevent timing out whilst the model is being printed
   Timer::setLimitEnforcement(false);
 
-
- DHMap<unsigned,unsigned> vampireSortSizes;
- for(unsigned vSort=0;vSort<env.signature->typeCons();vSort++){
-   unsigned size = 1;
-   if(env.signature->isInterpretedNonDefault(vSort) && !env.signature->isBoolCon(vSort)){ size=0;}
-   unsigned dsort;
-   if(_sortedSignature->vampireToDistinctParent.find(vSort,dsort)){
-     size = _distinctSortSizes[dsort];
-   }
-   vampireSortSizes.insert(vSort,size);
- }
+  DHMap<unsigned,unsigned> vampireSortSizes;
+  for(unsigned vSort=0;vSort<env.signature->typeCons();vSort++){
+    unsigned size = 1;
+    if(env.signature->isInterpretedNonDefault(vSort) && !env.signature->isBoolCon(vSort)){ size=0;}
+    unsigned dsort;
+    if(_sortedSignature->vampireToDistinctParent.find(vSort,dsort)){
+      size = _distinctSortSizes[dsort];
+    }
+    vampireSortSizes.insert(vSort,size);
+  }
 
   FiniteModelMultiSorted model(vampireSortSizes);
 
@@ -1922,7 +1919,9 @@ void FiniteModelBuilder::onModelFound()
     if(del_f[f]) continue;
 
     DEBUG_CODE(bool found=false;)
-    for(unsigned c=1;c<=_sortModelSizes[_sortedSignature->functionSignatures[f][0]];c++){
+    unsigned retSrt = _sortedSignature->functionSignatures[f][0];
+    unsigned maxRtSrtSize = min(_sortedSignature->sortBounds[retSrt],_sortModelSizes[retSrt]);
+    for(unsigned c=1;c<=maxRtSrtSize;c++){
       static DArray<unsigned> grounding(1);
       grounding[0]=c;
       SATLiteral slit = getSATLiteral(f,grounding,true,true);
@@ -1936,7 +1935,7 @@ void FiniteModelBuilder::onModelFound()
     ASS(found);
   }
 
-  //Record interpretation of functions 
+  //Record interpretation of functions
   for(unsigned f=0;f<env.signature->functions();f++){
     unsigned arity = env.signature->functionArity(f);
     if(arity==0) continue;
@@ -1954,7 +1953,7 @@ void FiniteModelBuilder::onModelFound()
     const DArray<unsigned>& f_signature = _sortedSignature->functionSignatures[f];
     static DArray<unsigned> maxVarSize;
     maxVarSize.ensure(arity);
-    for(unsigned var=0;var<arity;var++){ 
+    for(unsigned var=0;var<arity;var++){
       unsigned srt = f_signature[var];
       maxVarSize[var] = min(_sortedSignature->sortBounds[srt],_sortModelSizes[srt]);
     }
