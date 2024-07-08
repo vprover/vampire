@@ -28,6 +28,7 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Portability.hpp"
+#include "Kernel/SubstHelper.hpp"
 
 namespace Kernel {
 
@@ -96,20 +97,25 @@ public:
 
   /** Return the result of comparing @b l1 and @b l2 */
   virtual Result compare(Literal* l1,Literal* l2) const = 0;
+
   /** Return the result of comparing terms (not term lists!)
    * @b t1 and @b t2 */
   virtual Result compare(TermList t1,TermList t2) const = 0;
+
   /** Same as @b compare, for applied (substituted) terms. */
-  [[deprecated("bla")]]
-  virtual Result compare(AppliedTerm t1, AppliedTerm t2) const = 0;
+  virtual Result compare(AppliedTerm lhs, AppliedTerm rhs) const
+  { return compare(lhs.apply(), rhs.apply()); }
+
   /** Optimised function used for checking that @b t1 is greater than @b t2,
    * under some substitutions captured by @b AppliedTerm. */
-  [[deprecated("bla")]]
-  virtual bool isGreater(AppliedTerm t1, AppliedTerm t2) const = 0;
+  virtual bool isGreater(AppliedTerm t1, AppliedTerm t2) const
+  { return compare(t1, t2) == Result::GREATER; }
 
   /** Optimised function used for checking that @b lhs is greater than @b rhs,
    * under substitution represented by @b applicator. */
-  virtual bool isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, OrderingComparatorUP& comparator) const = 0;
+  virtual bool isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, OrderingComparatorUP& comparator) const
+  { return isGreater(AppliedTerm(lhs, applicator, /* aboveVar */ true),
+                     AppliedTerm(rhs, applicator, /* aboveVar */ true)); }
 
   virtual void show(std::ostream& out) const = 0;
 
