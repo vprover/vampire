@@ -111,7 +111,7 @@ std::ostream& operator<<(std::ostream& out, Kernel::OutputInterleaved<Sep, Iter>
 }
 template<class T>
 std::ostream& operator<<(std::ostream& out, Kernel::RepeatOutput<T> const& self)
-{ for (int i = 0; i < self.times; i++) out << self.to_repeat; return out; };
+{ for (unsigned i = 0; i < self.times; i++) out << self.to_repeat; return out; };
 
 template<class T>
 std::ostream& operator<<(std::ostream& out, Kernel::OutputPtr<T> const& self)
