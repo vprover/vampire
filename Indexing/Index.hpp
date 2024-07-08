@@ -28,6 +28,7 @@
 #include "ResultSubstitution.hpp"
 #include "Kernel/UnificationWithAbstraction.hpp"
 #include "Lib/Allocator.hpp"
+#include "Kernel/Ordering.hpp"
 
 /**
  * Indices are parametrized by a LeafData, i.e. the bit of data you want to store in the index.

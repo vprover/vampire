@@ -36,7 +36,6 @@
 #include "Kernel/Theory.hpp"
 #include "Lib/Perfect.hpp"
 #include "Kernel/NumTraits.hpp"
-#include "Kernel/Ordering.hpp"
 #include "Kernel/TypedTermList.hpp"
 #include <type_traits>
 

@@ -60,14 +60,6 @@ struct AppliedTerm
   bool aboveVar;
   const SubstApplicator* applicator;
 
-  TermList apply() const {
-    if (aboveVar) {
-      return (*applicator)(term);
-    } else {
-      return term;
-    }
-  }
-
   AppliedTerm(TermList t) : term(t), aboveVar(false), applicator(nullptr) {}
   /**
    * The substitution is only applied to the term @b t via @b applicator if @b t is a variable
