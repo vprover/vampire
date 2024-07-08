@@ -49,12 +49,11 @@ class TheoryInstAndSimp
 {
 public:
   using SortId = SAT::Z3Interfacing::SortId;
-  ~TheoryInstAndSimp();
   TheoryInstAndSimp() : TheoryInstAndSimp(*env.options) {}
   TheoryInstAndSimp(TheoryInstAndSimp&&) = default;
 
   TheoryInstAndSimp(Options& opts);
-  TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, vstring const& exportSmtlib);
+  TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, vstring const& exportFile, Options::ProblemExportSyntax syntax);
 
   void attach(SaturationAlgorithm* salg);
 
@@ -137,7 +136,7 @@ private:
   Options::TheoryInstSimp const _mode;
   bool const _thiTautologyDeletion;
   SAT2FO _naming;
-  unique_ptr<Z3Interfacing, DeleteBypassingAllocator> _solver;
+  std::unique_ptr<Z3Interfacing> _solver;
   Map<SortId, bool> _supportedSorts;
   bool _generalisation;
   ConstantCache _instantiationConstants;

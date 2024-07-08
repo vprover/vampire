@@ -75,6 +75,44 @@ struct BottomUpChildIter<z3::expr>
 
 } // namespace Lib
 
+
+auto quotient0_name(char c, z3::sort s) 
+{ return outputToString("quot-0-", c, "-", s); }
+
+auto remainder0_name(char c, z3::sort s) 
+{ return outputToString("rem-0-", c, "-", s); }
+
+template<class UInt64ToExpr>
+z3::expr int_to_z3_expr(IntegerConstantType const& val, UInt64ToExpr toExpr) {
+    auto sign = val.sign();
+    auto abs = val.abs().toInner();
+
+#if WITH_GMP
+    Stack<uint64_t> digits;
+    z3::expr base =  // <- == 2^64
+      toExpr(std::numeric_limits<uint64_t>::max()) + toExpr(1);
+    while(!abs.fits_ulong_p()) {
+      auto ui = mpz_get_ui(abs.get_mpz_t());
+      using ui_t = decltype(ui);
+      static_assert(std::is_same<ui_t, long unsigned int>::value, "unexpected number typtype");
+      static_assert(sizeof(ui_t) == sizeof(uint64_t), "unexpected number size");
+      static_assert(sizeof(ui_t) == 64 / 8, "unexpected number size");
+      static_assert(std::numeric_limits<ui_t>::max() == std::numeric_limits<uint64_t>::max(), "unexpected number size");
+      digits.push(uint64_t(ui));
+      mpz_tdiv_q_2exp(abs.get_mpz_t(), abs.get_mpz_t(), 64);
+    }
+    z3::expr res = toExpr(uint64_t(mpz_get_ui(abs.get_mpz_t())));
+    while(digits.isNonEmpty()) {
+      res = toExpr(digits.pop()) + (res * base);
+    }
+
+#else // !WITH_GMP
+    static_assert(sizeof(decltype(abs)) <= sizeof(uint64_t), "unexpected inner type for integers");
+    auto res = toExpr(abs);
+#endif
+    return sign == Sign::Neg ? -res : res;
+};
+
 namespace SAT
 {
 
@@ -85,8 +123,8 @@ using ProblemExportSyntax = Shell::Options::ProblemExportSyntax;
 
 //using namespace z3;
 
-Z3Interfacing::Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCore, vstring const& exportSmtlib,Shell::Options::ProblemExportSyntax s):
-  Z3Interfacing(s2f, opts.showZ3(), /* unsatCore */ unsatCore, exportSmtlib, s)
+Z3Interfacing::Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCore, vstring const& exportFile,Shell::Options::ProblemExportSyntax exportSyntax):
+  Z3Interfacing(s2f, opts.showZ3(), /* unsatCore */ unsatCore, exportFile, exportSyntax)
 { }
 
 const char* errToString(Z3_error_code code)
@@ -146,12 +184,12 @@ struct Z3Datatype
 
 struct Z3MkDatatypesCall
 {
-  z3::context& _context;
+  std::unique_ptr<z3::context>& _context;
   Stack<Z3_symbol> sortNames;               // <- needed for Z3_mk_datatypes(...)
   Stack<Stack<Z3MkConstructorCall>> mkConstrs;
 
 
-  Z3MkDatatypesCall(z3::context& context, Stack<TermAlgebra*> const& tas)
+  Z3MkDatatypesCall(decltype(_context) context, Stack<TermAlgebra*> const& tas)
     : _context(context)
     , sortNames(tas.size())
     , mkConstrs(tas.size())
@@ -170,30 +208,30 @@ struct Z3MkDatatypesCall
       for (auto& mkConstr : mks) {
         ctors.push(mkConstr());
       }
-      z3_ctor_lists.push(Z3_mk_constructor_list(_context, ctors.size(),  ctors.begin()));
+      z3_ctor_lists.push(Z3_mk_constructor_list(*_context, ctors.size(),  ctors.begin()));
       ctorss.push(std::move(ctors));
     }
 
-    Z3_mk_datatypes(_context, nDtys(), sortNames.begin(), sorts.begin(), z3_ctor_lists.begin());
+    Z3_mk_datatypes(*_context, nDtys(), sortNames.begin(), sorts.begin(), z3_ctor_lists.begin());
 
     /* querying result of Z3_mk_datatypes call */
     Stack<Z3Datatype> out(nDtys());
 
     for (unsigned i = 0; i < ctorss.size(); i++) {
-      auto sort = z3::sort(_context, sorts[i]);
+      auto sort = z3::sort(*_context, sorts[i]);
       Stack<Z3Constructor> ctors_res(ctorss[i].size());
       for (unsigned j = 0; j < ctorss[i].size(); j++) {
         Z3_func_decl func;
         Z3_func_decl tester;
         DArray<Z3_func_decl> args(mkConstrs[i][j].arity());
 
-        Z3_query_constructor(_context, ctorss[i][j], mkConstrs[i][j].arity(), &func, &tester, args.begin());
+        Z3_query_constructor(*_context, ctorss[i][j], mkConstrs[i][j].arity(), &func, &tester, args.begin());
 
         ctors_res.push(Z3Constructor {
-            .func   = z3::func_decl(_context, func),
-            .tester = z3::func_decl(_context, tester),
-            .args   = iterTraits(getArrayishObjectIterator(args))
-                         .map([&](auto arg) { return z3::func_decl(_context, arg); })
+            .func   = z3::func_decl(*_context, func),
+            .tester = z3::func_decl(*_context, tester),
+            .args   = arrayIter(args)
+                         .map([&](auto arg) { return z3::func_decl(*_context, arg); })
                          .template collect<Stack>(),
           });
       }
@@ -203,19 +241,17 @@ struct Z3MkDatatypesCall
     /* clean up */
 
     for (auto& lst : z3_ctor_lists) {
-      Z3_del_constructor_list(_context, lst);
+      Z3_del_constructor_list(*_context, lst);
     }
 
     for (auto& ctors : ctorss) {
       for (auto& ctor : ctors) {
-        Z3_del_constructor(_context, ctor);
+        Z3_del_constructor(*_context, ctor);
       }
     }
 
     return out;
   }
-
-  ~Z3MkDatatypesCall() { }
 };
 
 
@@ -225,19 +261,15 @@ void handleZ3Error(Z3_context ctxt, Z3_error_code code)
   throw z3::exception(errToString(code));
 }
 
-Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoresForAssumptions, vstring const& exportSmtlib):
+Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCore, vstring const& exportSmtlib, Options::ProblemExportSyntax exportSyntax):
   _hasSeenArrays(false),
   _varCnt(0),
   _sat2fo(s2f),
   _outSyntax(exportSyntax),
   _status(SATISFIABLE),
-  _config(),
-  _context(_config),
-  _solver(_context),
+  _context(),
+  _solver(*_context),
   _model((_solver.check(), _solver.get_model())),
-  _assumptions(),
-  _showZ3(showZ3),
-  _unsatCore(unsatCore),
   _assumptions([]() {
       if (ENABLE_Z3_PROOF_GENERATION) {
         // needs to be called before _context is initialized, therefore we call it in
@@ -246,9 +278,8 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoresForAssumpt
       }
       return decltype(_assumptions)();
       }()),
-  _context(new z3::context()),
-  _solver(*_context),
-  _model(*_context),
+  _showZ3(showZ3),
+  _unsatCore(unsatCore),
   _exporter([&](){
       using namespace ProblemExport;
       if (exportSmtlib == "") {
@@ -280,7 +311,7 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoresForAssumpt
   if (_unsatCore) {
     z3_set_param(":unsat-core", true);
   }
-  // Z3_set_error_handler(_context, handleZ3Error); // MS: a handled error only reveals Z3_error_code, a propragated z3::exception is typically more informative
+  // Z3_set_error_handler(*_context, handleZ3Error); // MS: a handled error only reveals Z3_error_code, a propragated z3::exception is typically more informative
 
 #if TRACE_Z3
   z3_enable_trace("arith");
@@ -1225,7 +1256,7 @@ void Z3Interfacing::createTermAlgebra(TermList sort)
   }
 
   auto new_string_symbol = [this](unsigned f, const vstring& typePostfix, bool pred = false)
-  { return Z3_mk_string_symbol(_context,
+  { return Z3_mk_string_symbol(*_context,
     ((pred ? env.signature->getPredicate(f) : env.signature->getFunction(f))->name()+'_'+typePostfix).c_str()); };
 
   // create the data needed for Z3_mk_datatypes(...)
@@ -1268,7 +1299,7 @@ void Z3Interfacing::createTermAlgebra(TermList sort)
         auto dtorName = new_string_symbol(cons->destructorFunctor(i-cons->numTypeArguments()),typePostfix);
         if (_out.isSome())
           serDtors.push(SerDtor {
-              .name = z3::symbol(_context, dtorName),
+              .name = z3::symbol(*_context, dtorName),
               .sort = argSort,
           });
         argNames.push(dtorName);
@@ -1287,17 +1318,17 @@ void Z3Interfacing::createTermAlgebra(TermList sort)
 
       DEBUG("\t", taSort.toString(), "::", env.signature->getFunction(cons->functor())->name(), ": ");//, SubstHelper::apply(cons->sort(), typeSubst));
 
-      Z3_symbol ctorName = Z3_mk_string_symbol(_context, env.signature->getFunction(cons->functor())->name().c_str());
+      Z3_symbol ctorName = Z3_mk_string_symbol(*_context, env.signature->getFunction(cons->functor())->name().c_str());
 
       ASS_EQ(argSortRefs.size(), consTermArity);
       ASS_EQ(   argSorts.size(), consTermArity);
       ASS_EQ(   argNames.size(), consTermArity);
       if (_out.isSome())
         serCtors.push(SerCtor{
-            .name = z3::symbol(_context, ctorName),
+            .name = z3::symbol(*_context, ctorName),
             .dtors = std::move(serDtors),
         });
-      ctors.push(Z3_mk_constructor(_context,
+      ctors.push(Z3_mk_constructor(*_context,
           ctorName,
           new_string_symbol(cons->discriminator(), typePostfix, true/*predicate*/),
           consTermArity,
@@ -1311,16 +1342,15 @@ void Z3Interfacing::createTermAlgebra(TermList sort)
 
     ctorss.push(std::move(ctors));
     ASS_EQ(ctorss.top().size(), ta->nConstructors());
-    ctorss_z3.push(Z3_mk_constructor_list(_context, ctorss.top().size(),  ctorss.top().begin()));
-    sortNames.push(Z3_mk_string_symbol(_context, taSort.toString().c_str()));
+    ctorss_z3.push(Z3_mk_constructor_list(*_context, ctorss.top().size(),  ctorss.top().begin()));
+    sortNames.push(Z3_mk_string_symbol(*_context, taSort.toString().c_str()));
     if (_out.isSome())
       toSerialize.push(SerDtype {
         .name = taSort,
         .ctors = std::move(serCtors),
       });
     }
-    mkDatatypes.sortNames.push(new_string_symbol(ta->sort().toString()));
-  }
+  //   mkDatatypes.sortNames.push(new_string_symbol(ta->sort().toString()));
 
   ASS_EQ(sortNames.size(), taSorts.size())
   ASS_EQ(ctorss.size()   , taSorts.size())
@@ -1329,39 +1359,39 @@ void Z3Interfacing::createTermAlgebra(TermList sort)
   Array<Z3_sort> sorts(taSorts.size());
 
   // actually created the datatypes
-  Z3_mk_datatypes(_context, taSorts.size(), sortNames.begin(), sorts.begin(), ctorss_z3.begin());
+  Z3_mk_datatypes(*_context, taSorts.size(), sortNames.begin(), sorts.begin(), ctorss_z3.begin());
 
   // register the `z3::func_decl`s created by `Z3_mk_datatypes` in indices to be queried when needed
   for (unsigned iSort = 0; iSort < sorts.size(); iSort++) {
-    _sorts.insert(taSorts[iSort], z3::sort(_context, sorts[iSort]));
+    _sorts.insert(taSorts[iSort], z3::sort(*_context, sorts[iSort]));
     auto ta = env.signature->getTermAlgebraOfSort(taSorts[iSort]);
     auto& ctors = ctorss[iSort];
     for (unsigned iCons = 0; iCons < ta->nConstructors(); iCons++) {
-      auto ctor = ta->constructor(iCons);
-      auto ctorTermArity = ctor->arity()-ctor->numTypeArguments();
+      auto ctor_v = ta->constructor(iCons);
+      auto ctorTermArity = ctor_v->arity() - ctor_v->numTypeArguments();
 
-      Z3_func_decl constr_;
-      Z3_func_decl discr_;
+      Z3_func_decl ctor_z3;
+      Z3_func_decl discr_z3;
       Array<Z3_func_decl> destr(ctorTermArity);
 
-      Z3_query_constructor(_context,
+      Z3_query_constructor(*_context,
                            ctors[iCons],
                            ctorTermArity,
-                           &constr_,
-                           &discr_,
+                           &ctor_z3,
+                           &discr_z3,
                            destr.begin());
 
       if (ctor_v->hasDiscriminator()) {
-        _toZ3  .insert(FuncOrPredId::monomorphicPredicate(ctor_v->discriminator()), ctor_z3.tester);
-        _fromZ3.insert(ctor_z3.tester, FuncOrPredId::monomorphicPredicate(ctor_v->discriminator()));
+        _toZ3  .insert(FuncOrPredId::monomorphicPredicate(ctor_v->discriminator()), z3::func_decl(*_context, discr_z3));
+        _fromZ3.insert(z3::func_decl(*_context, discr_z3), FuncOrPredId::monomorphicPredicate(ctor_v->discriminator()));
       }
       for (unsigned iDestr = 0; iDestr < ctorTermArity; iDestr++)  {
-        auto dtor = z3::func_decl(_context, destr[iDestr]);
+        auto dtor = z3::func_decl(*_context, destr[iDestr]);
 
         // careful: datatypes can have boolean fields!
         // NB: polymorphic destructors instantiated with booleans are still functions (?)
-        bool is_predicate = ctor->argSort(iDestr).isBoolSort();
-        auto id = FuncOrPredId(ctor->destructorFunctor(iDestr), is_predicate);
+        bool is_predicate = ctor_v->argSort(iDestr).isBoolSort();
+        auto id = FuncOrPredId(ctor_v->destructorFunctor(iDestr), is_predicate);
 
         _toZ3.insert(id, dtor);
         _fromZ3.insert(dtor, id);
@@ -1534,21 +1564,25 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
         if(trm->arity() == 0) {
           if(symb->integerConstant()){
             IntegerConstantType value = symb->integerValue();
-            return _context.int_val(value.toInner());
+            return int_to_z3_expr(symb->integerValue(), [&](uint64_t i) { return _context->int_val(i); });
           }
           if(symb->realConstant()) {
             RealConstantType value = symb->realValue();
-            return _context.real_val(value.numerator().toInner(),value.denominator().toInner());
+            auto num = int_to_z3_expr(value.numerator()  , [&](uint64_t i) { return _context->real_val(i); });
+            auto den = int_to_z3_expr(value.denominator(), [&](uint64_t i) { return _context->real_val(i); });
+            return num / den;
           }
           if(symb->rationalConstant()) {
             RationalConstantType value = symb->rationalValue();
-            return _context.real_val(value.numerator().toInner(),value.denominator().toInner());
+            auto num = int_to_z3_expr(value.numerator()  , [&](uint64_t i) { return _context->real_val(i); });
+            auto den = int_to_z3_expr(value.denominator(), [&](uint64_t i) { return _context->real_val(i); });
+            return num / den;
           }
           if(!isLit && env.signature->isFoolConstantSymbol(true,trm->functor())) {
-            return _context.bool_val(true);
+            return _context->bool_val(true);
           }
           if(!isLit && env.signature->isFoolConstantSymbol(false,trm->functor())) {
-            return _context.bool_val(false);
+            return _context->bool_val(false);
           }
           if(symb->termAlgebraCons()) {
             auto ctor = findConstructor(trm);
@@ -1559,11 +1593,11 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
             // too large for native representation, but z3 should cope
             auto s = symb->fnType()->result();
             if (s == IntTraits::sort()) {
-              return _context.int_val(symb->name().c_str());
+              return _context->int_val(symb->name().c_str());
             } else if (s == RatTraits::sort()) {
-              return _context.real_val(symb->name().c_str());
+              return _context->real_val(symb->name().c_str());
             } else if (s == RealTraits::sort()) {
-              return _context.real_val(symb->name().c_str());
+              return _context->real_val(symb->name().c_str());
             } else {
               ; // intentional fallthrough; the input is fof (and not tff), so let's just treat this as a constant
             }
@@ -1596,14 +1630,14 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
             }
 
           } else {
-            auto int_zero = _context.int_val(0);
-            auto real_zero = _context.real_val(0);
+            auto int_zero = _context->int_val(0);
+            auto real_zero = _context->real_val(0);
 
             switch(interp){
             // Numerical operations
             case Theory::INT_DIVIDES:
               {
-              auto k = getNamingConstantFor(toEval, _context.int_sort());
+              auto k = getNamingConstantFor(toEval, _context->int_sort());
               // a divides b <-> k * a ==  b
               return k * args[0] == args[1];
               }
@@ -1639,23 +1673,23 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
             case Theory::RAT_QUOTIENT_E:
             case Theory::REAL_QUOTIENT_E:  return                 tptp::quotient_e (args[0], args[1]);
             case Theory::RAT_REMAINDER_E:
-            case Theory::REAL_REMAINDER_E: return tptp::remainder(tptp::quotient_e)(args[0], args[1]);
+            case Theory::REAL_REMAINDER_E: return tptp::remainder('e', tptp::quotient_e)(args[0], args[1]);
 
              /** {quotient,remainder}_t */
             case Theory::INT_QUOTIENT_T:  return tptp::liftInt(                tptp::quotient_t )(args[0],args[1]);
-            case Theory::INT_REMAINDER_T: return tptp::liftInt(tptp::remainder(tptp::quotient_t))(args[0],args[1]);
+            case Theory::INT_REMAINDER_T: return tptp::liftInt(tptp::remainder('t', tptp::quotient_t))(args[0],args[1]);
             case Theory::RAT_QUOTIENT_T:
             case Theory::REAL_QUOTIENT_T: return                 tptp::quotient_t (args[0], args[1]);
             case Theory::REAL_REMAINDER_T:
-            case Theory::RAT_REMAINDER_T: return tptp::remainder(tptp::quotient_t)(args[0], args[1]);
+            case Theory::RAT_REMAINDER_T: return tptp::remainder('t', tptp::quotient_t)(args[0], args[1]);
 
             /** {quotient,remainder}_f */
             case Theory::INT_QUOTIENT_F:  return tptp::liftInt(                tptp::quotient_f )(args[0], args[1]);
-            case Theory::INT_REMAINDER_F: return tptp::liftInt(tptp::remainder(tptp::quotient_f))(args[0],args[1]);
+            case Theory::INT_REMAINDER_F: return tptp::liftInt(tptp::remainder('f', tptp::quotient_f))(args[0],args[1]);
             case Theory::RAT_QUOTIENT_F:
             case Theory::REAL_QUOTIENT_F: return                 tptp::quotient_f (args[0], args[1]);
             case Theory::REAL_REMAINDER_F:
-            case Theory::RAT_REMAINDER_F: return tptp::remainder(tptp::quotient_f)(args[0], args[1]);
+            case Theory::RAT_REMAINDER_F: return tptp::remainder('f', tptp::quotient_f)(args[0], args[1]);
 
 
             case Theory::RAT_TO_INT:
@@ -1687,7 +1721,7 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
             case Theory::REAL_ROUND: {
                 z3::expr t = args[0];
                 z3::expr i = to_int(t);
-                z3::expr i2 = i + _context.real_val(1,2);
+                z3::expr i2 = i + _context->real_val(1,2);
                 return ite(t > i2, i+1, ite(t==i2, ite(z3::mod(i, 2),i ,i+1 ),i));
               }
 

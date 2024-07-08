@@ -166,8 +166,8 @@ namespace ProblemExport {
 class Z3Interfacing : public PrimitiveProofRecordingSATSolver
 {
 public:
-  Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCoresForAssumptions, vstring const& exportSmtlib);
-  Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoresForAssumptions, vstring const& exportSmtlib);
+  Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCoresForAssumptions, vstring const& exportSmtlib,Shell::Options::ProblemExportSyntax s);
+  Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoresForAssumptions, vstring const& exportSmtlib, Shell::Options::ProblemExportSyntax s);
   ~Z3Interfacing();
 
   static char const* z3_full_version();
@@ -363,7 +363,7 @@ private:
   const bool _unsatCore;
   Stack<z3::expr> _assumptions;
 
-  std::unique_ptr<z3::context, DeleteBypassingAllocator> _context;
+  std::unique_ptr<z3::context> _context;
   z3::solver _solver;
   z3::model _model;
   BiMap<SATLiteral, z3::expr, DefaultHash, Z3Hash> _assumptionLookup;

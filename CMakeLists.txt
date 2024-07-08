@@ -887,8 +887,11 @@ find_package(
     NO_CMAKE_SYSTEM_PATH
     NO_CMAKE_SYSTEM_PACKAGE_REGISTRY
     PATHS
+      # ${Z3_DIR}
       ${CMAKE_SOURCE_DIR}/z3/build/
+      # ${CMAKE_SOURCE_DIR}/z3/build/
 )
+message(STATUS "bla ${Z3_DIR}")
 if (NOT Z3_FOUND)
   message(STATUS "No Z3 found -- Compiling without SMT support.")
   add_compile_definitions(VZ3=0)
