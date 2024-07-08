@@ -22,6 +22,8 @@
 #include "InferenceEngine.hpp"
 #include "Kernel/RobSubstitution.hpp"
 
+#include "Shell/InstanceRedundancyHandler.hpp"
+
 namespace Inferences {
 
 using namespace Kernel;
@@ -67,6 +69,7 @@ private:
 
   SuperpositionSubtermIndex* _subtermIndex;
   SuperpositionLHSIndex* _lhsIndex;
+  InstanceRedundancyHandler _instanceRedundancyHandler;
 };
 
 

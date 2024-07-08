@@ -17,24 +17,11 @@ ep!=off > mep ~cat on:10,off:1
 # general_splitting
 > gsp ~cat off:8,on:1
 
-# newcnf
-> newcnf ~cat on:9,off:25
-
-# inline_let -- this is probably irrelevant on TPTP anyway
-newcnf=on > ile ~cat off:10,on:1
-
-# naming
-> $nm ~cat Z:1,NZ:5
-$nm=Z > nm ~cat 0:1
-$nm=NZ > nm ~sgd 0.07,2
-
 # inequality_splitting
-> $ins ~cat Z:2,NZ:1
-$ins=Z > ins ~cat 0:1
-$ins=NZ > ins ~sgd 0.4,1
-
-# random_polarities
-> rp ~cat off:3,on:1
+> $ins ~cat ZERO:2,ONE:1,OTHER:1
+$ins=ZERO > ins ~cat 0:1
+$ins=ONE > ins ~cat 1:1
+$ins=OTHER > ins ~sgd 0.4,2
 
 # twee_goal_transformation
 > tgt ~cat off:10,ground:6,full:5
@@ -60,21 +47,10 @@ ss!=off > st ~cat -1.0:50,1.0:150,1.5:37,2.0:60,2.5:20,3.0:70,3.5:15,4.0:60,4.5:
 # SATURATION
 
 # saturation_algorithms
-> sa ~cat lrs:600,discount:572,otter:236
+> sa     ~cat lrs:600,discount:572,otter:236
 
 # literal selection
-> $s_pos ~cat Y:4,N:1
-$s_pos=Y > s ~cat 0:11,1:31,2:52,3:21,4:22,10:300,11:131,20:11,21:66,22:11,30:6,31:14,32:4,33:10,34:3,35:8,666:50,1002:141,1003:14,1004:23,1010:145,1011:357,1666:50
-$s_pos=N > s ~cat -1:31,-2:52,-3:21,-4:22,-10:300,-11:131,-20:11,-21:66,-22:11,-30:6,-31:14,-32:4,-33:10,-34:3,-35:8,-666:50,-1002:141,-1003:14,-1004:23,-1010:145,-1011:357,-1666:50
-
-# lookahaed_delay
-> $ls ~cat off:1
-s=11 > $ls ~cat on:1
-s=-11 > $ls ~cat on:1
-s=1011 > $ls ~cat on:1
-s=-1011 > $ls ~cat on:1
-
-$ls=on > lsd ~cat 0:20,1:1,5:1,10:1,20:1,50:1,100:1
+> s ~cat 10:1
 
 # age_weight_ratio
 > awr ~u2r -10;4;:
@@ -128,7 +104,7 @@ plsq=on > plsqr ~u2r -5;7;,
 > sup ~cat on:100,off:1
 
 # simultaneous_superposition
-sup=on > sims ~cat on:50,off:1
+sup=on > sims ~cat on:5,off:1
 
 # superposition_from_variables
 sup=on > sfv ~cat on:38,off:1
@@ -264,81 +240,12 @@ $s2a=on > s2agt ~cat 0:7,5:1,10:1,15:1,20:1,30:1,50:1,100:1
 $s2a=on > s2at ~cat -1.0:50,1.0:150,1.5:37,2.0:60,2.5:20,3.0:70,3.5:15,4.0:60,4.5:15,5.0:50,5.5:10,6.0:30,7.0:20
 
 # AVATAR
-> av ~cat on:15,off:4
-
-# avatar_add_complementary
-av=on > aac ~cat none:147,ground:600
-
-# avatar_buffered_solver
-av=on > abs ~cat on:63,off:300
-
-# avatar_congruence_closure
-av=on > acc ~cat off:600,model:24,on:58
-
-# cc_unsat_cores
-acc!=off > ccuc ~cat first:1,small_ones:1,all:3
-
-# avatar_minimize_model
-av=on  acc=model > amm ~cat all:600,off:69
-av=on acc!=model > amm ~cat all:600,sco:32,off:69
-
-# avatar_eager_removal
-av=on amm=all > aer ~cat on:300,off:1
-
-# avatar_delete_deactivated
-av=on > add ~cat on:300,large:55,off:8
-
-# avatar_fast_restart
-av=on > afr ~cat off:10,on:1
-
-# avatar_literal_polarity_advice
-av=on > alpa ~cat none:300,false:13,true:6,random:4
-
-# avatar_nonsplittable_components
-av=on > anc ~cat known:300,all_dependent:38,all:45,none:48
-
-# avatar_turn_off_time_frac
-# av=on > $atotf ~cat 1:10,666:1
-# av=on $atotf=1 > atotf ~cat 1:1
-# av=on $atotf!=1 > atotf ~uf 0.0,0.7
-# TODO: leaving out weird timing dependent options
-
-# avatar_flush_period
-av=on > $afp ~cat 0:15,666:1
-av=on $afp=0 > afp ~cat 0:1
-av=on $afp!=0 > afp ~cat 1:1,10:1,50:1,300:1,1000:1,2000:1,4000:1,10000:1,40000:1,100000:1,1000000:1
-
-# avatar_flush_quotient
-afp!=0 > afq ~uf 1.0,3.0
-
-# nonliterals_in_clause_weight
-av=on > nicw ~cat off:600,on:76
-
-# split_at_activation
-av=on > sac ~cat off:3,on:1
-
-# TODO: consider enabling this for vampire_z3 compiles!
-# av=on > sas ~cat minisat:10,z3:1
+> av ~cat off:1
 
 # BACK TO PREPROCESSING
 
 # unit_resulting_resolution
-av=on  > urr ~cat off:1200,ec_only:162,on:300,full:40
-av=off > urr ~cat off:1200,ec_only:162,on:340
-
-# AVATAR SPLIT QUEUE
-
-# avatar_split_queue
-av=on > avsq ~cat off:5,on:1
-
-# avatar_split_queue_layered_arrangement
-avsq=on > avsql ~cat off:4,on:1
-
-# avatar_split_queue_cutoffs
-avsq=on > avsqc ~cat 0:80,1:30,2:20,3:20,4:10,5:5
-
-# avatar_split_queue_ratios
-avsq=on > avsqr ~u2r -5;3;,
+> urr ~cat off:1200,ec_only:162,on:340
 
 # GLOBAL SUBSUMPTION (only after AVATAR -- careful of dependencies!)
 # global_subsumption

@@ -1,0 +1,101 @@
+<HR><!-------------------------------------------------------------------------------------------->
+<H2>Vampire 4.9</H2>
+Michael Rawson<BR>
+TU Wien, Austria
+
+<P>
+There have been a number of improvements since Vampire 4.8, although it is still the same beast.
+For the first time this year, Vampire's schedules were constructed mostly using the Snake strategy selection tool, although a return of the traditional Spider is still possible in future.
+Improvements from the past year include:
+<UL>
+<LI>A runtime-specialised version of unidirectional term ordering checks
+<LI>Improvements to unification with abstraction
+<LI>Surprising improvements to Vampire's basic routines such as renaming and unification
+<LI>A simple interactive mode
+<LI>Revitalisation of code trees
+<LI>Experimental features not yet fully understood, mostly aimed at unit-equational reasoning.
+<LI>Portability: Vampire is much more standards-compliant and portable than previously, with much-reduced dependence on platform-specific APIs and hardware architectures, aided by C++17
+</UL>
+</P>
+
+<P>
+Vampire's higher-order support remains very similar to last year, although a re-implementation intended for mainline Vampire is already underway.
+</P>
+
+<H3>Architecture</H3>
+Vampire
+[<A HREF="http://www.tptp.org/cgi-bin/SeeTPTP?Category=BibTeX&File=KV13">KV13</A>]
+is an automatic theorem prover for first-order logic with extensions to theory-reasoning and higher-order logic.
+Vampire implements the calculi of ordered binary resolution, and superposition for handling equality.
+It also implements a MACE-style finite model builder for finding finite counter-examples [<A HREF="http://www.tptp.org/cgi-bin/SeeTPTP?Category=BibTeX&File=RSV16">RSV16</A>].
+Splitting in resolution-based proof search is controlled by the AVATAR architecture which uses a SAT or SMT solver to make splitting decisions
+[<A HREF="http://www.tptp.org/cgi-bin/SeeTPTP?Category=BibTeX&File=Vor14">Vor14</A>,
+<A HREF="http://www.tptp.org/cgi-bin/SeeTPTP?Category=BibTeX&File=RB+16">RB+16</A>].
+A number of standard redundancy criteria and simplification techniques are used for pruning the
+search space: subsumption, tautology deletion, subsumption resolution and rewriting by ordered
+unit equalities.
+The reduction ordering is the Knuth-Bendix Ordering.
+Substitution tree and code tree indexes are used to implement all major operations on sets of
+terms, literals and clauses.
+Internally, Vampire works only with clausal normal form.
+Problems in the full first-order logic syntax are clausified during preprocessing
+[<A HREF="http://www.tptp.org/cgi-bin/SeeTPTP?Category=BibTeX&File=RSV16-GCAI">RSV16</A>].
+Vampire implements many useful preprocessing transformations including the SInE axiom selection
+algorithm.
+When a theorem is proved, the system produces a verifiable proof, which validates both the
+clausification phase and the refutation of the CNF.
+
+<H3>Strategies</H3>
+Vampire 4.8 provides a very large number of options for strategy selection.
+The most important ones are:
+<UL>
+<LI> Choices of saturation algorithm:
+     <UL>
+     <LI> Limited Resource Strategy
+         [<A HREF="http://www.tptp.org/cgi-bin/SeeTPTP?Category=BibTeX&File=RV03-JSC">RV03</A>]
+     <LI> DISCOUNT loop
+     <LI> Otter loop
+     <LI> MACE-style finite model building with sort inference
+     </UL>
+<LI> Splitting via AVATAR 
+     [<A HREF="http://www.tptp.org/cgi-bin/SeeTPTP?Category=BibTeX&File=Vor14">Vor14</A>]
+<LI> A variety of optional simplifications.
+<LI> Parameterized reduction orderings.
+<LI> A number of built-in literal selection functions and different modes of comparing literals 
+     [<A HREF="http://www.tptp.org/cgi-bin/SeeTPTP?Category=BibTeX&File=HR+16">HR+16</A>].
+<LI> Age-weight ratio that specifies how strongly lighter clauses are preferred for inference 
+     selection.
+     This has been extended with a layered clause selection approach
+     [<A HREF="http://www.tptp.org/cgi-bin/SeeTPTP?Category=BibTeX&File=GS20">GS20</A>].
+<LI> Set-of-support strategy with extensions for theory reasoning.
+<LI> For theory-reasoning:
+     <UL>
+     <LI> Ground equational reasoning via congruence closure.
+     <LI> Addition of theory axioms and evaluation of interpreted functions
+     [<A HREF="http://www.tptp.org/cgi-bin/SeeTPTP?Category=BibTeX&File=RSV21">RSV21</A>].
+     <LI> Use of Z3 with AVATAR to restrict search to ground-theory-consistent splitting branches
+          [<A HREF="http://www.tptp.org/cgi-bin/SeeTPTP?Category=BibTeX&File=RB+16">RB+16</A>].
+     <LI> Specialised theory instantiation and unification
+          [<A HREF="http://www.tptp.org/cgi-bin/SeeTPTP?Category=BibTeX&File=RSV18">RSV18</A>].
+     <LI> Extensionality resolution with detection of extensionality axioms
+     </UL>
+</UL>
+
+<H3>Implementation</H3>
+Vampire 4.9 is implemented in C++.
+It makes use of fixed versions of Minisat and Z3.
+See the <A HREF="https://github.com/vprover/vampire/">GitHub repository</A> and associated wiki for more information.
+
+<H3>Expected Competition Performance</H3>
+Vampire 4.9 should be an improvement on the previous version. A reasonably strong performance across all divisions is therefore expected.
+In the higher-order divisions, performance should be the same as last year.
+
+<H3>References</H3>
+<DL>
+<DT> Sud22
+<DD> Martin Suda (2022),
+     <STRONG>Vampire Getting Noisy: Will Random Bits Help Conquer Chaos? (System Description)</STRONG>,
+     <EM>IJCAR</EM> LNCS 13385,
+     pp.659-667,
+     Springer.
+</DL>

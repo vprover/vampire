@@ -81,10 +81,12 @@ void ForwardDemodulation::attach(SaturationAlgorithm* salg)
   _index=static_cast<DemodulationLHSIndex*>(
 	  _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) );
 
-  _preorderedOnly = getOptions().forwardDemodulation()==Options::Demodulation::PREORDERED;
-  _encompassing = getOptions().demodulationRedundancyCheck()==Options::DemodulationRedundancyCheck::ENCOMPASS;
-  _precompiledComparison = getOptions().demodulationPrecompiledComparison();
-  _helper = DemodulationHelper(getOptions(), &_salg->getOrdering());
+  auto opt = getOptions();
+  _preorderedOnly = opt.forwardDemodulation()==Options::Demodulation::PREORDERED;
+  _encompassing = opt.demodulationRedundancyCheck()==Options::DemodulationRedundancyCheck::ENCOMPASS;
+  _precompiledComparison = opt.demodulationPrecompiledComparison();
+  _skipNonequationalLiterals = opt.demodulationOnlyEquational();
+  _helper = DemodulationHelper(opt, &_salg->getOrdering());
 }
 
 void ForwardDemodulation::detach()
@@ -112,6 +114,9 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
   for(unsigned li=0;li<cLen;li++) {
     Literal* lit=(*cl)[li];
     if (lit->isAnswerLiteral()) {
+      continue;
+    }
+    if (_skipNonequationalLiterals && !lit->isEquality()) {
       continue;
     }
     typename std::conditional<!combinatorySupSupport,
@@ -195,7 +200,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           rhsS = eqSortSubs.apply(rhsS, 0);
         }
 
-        if (redundancyCheck && !_helper.isPremiseRedundant(cl, lit, trm, rhsS, lhs, subs.ptr(), true)) {
+        if (redundancyCheck && !_helper.isPremiseRedundant(cl, lit, trm, rhsS, lhs, appl)) {
           continue;
         }
 

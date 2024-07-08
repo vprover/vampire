@@ -428,9 +428,11 @@ public:
 
   enum class Schedule : unsigned int {
     CASC,
+    CASC_2024,
     CASC_2023,
     CASC_2019,
     CASC_SAT,
+    CASC_SAT_2024,
     CASC_SAT_2023,
     CASC_SAT_2019,
     CASC_HOL_2020,
@@ -794,6 +796,11 @@ public:
     API_CALLS = 1,
   };
 
+  enum class InstanceRedundancyCheck : unsigned int {
+    LAZY = 0,
+    EAGER = 1,
+    OFF = 2,
+  };
 
     //==========================================================
     // The Internals
@@ -1993,9 +2000,6 @@ bool _hard;
        c->add(left);c->add(mid);c->add(right);
        return OptionProblemConstraintUP(c);
     }
-    
-    static OptionProblemConstraintUP isRandOn();
-    static OptionProblemConstraintUP isRandSat();
 
   //==========================================================
   // Getter functions
@@ -2145,11 +2149,13 @@ public:
   bool simulatenousSuperposition() const { return _simultaneousSuperposition.actualValue; }
   bool innerRewriting() const { return _innerRewriting.actualValue; }
   bool equationalTautologyRemoval() const { return _equationalTautologyRemoval.actualValue; }
+  InstanceRedundancyCheck instanceRedundancyCheck() const { return _instanceRedundancyCheck.actualValue; }
   bool arityCheck() const { return _arityCheck.actualValue; }
   //void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation.actualValue; }
   DemodulationRedundancyCheck demodulationRedundancyCheck() const { return _demodulationRedundancyCheck.actualValue; }
   bool demodulationPrecompiledComparison() const { return _demodulationPrecompiledComparison.actualValue; }
+  bool demodulationOnlyEquational() const { return _demodulationOnlyEquational.actualValue; }
 
   //void setBackwardDemodulation(Demodulation newVal) { _backwardDemodulation = newVal; }
   Subsumption backwardSubsumption() const { return _backwardSubsumption.actualValue; }
@@ -2518,6 +2524,7 @@ private:
 
   ChoiceOptionValue<DemodulationRedundancyCheck> _demodulationRedundancyCheck;
   BoolOptionValue _demodulationPrecompiledComparison;
+  BoolOptionValue _demodulationOnlyEquational;
 
   ChoiceOptionValue<EqualityProxy> _equalityProxy;
   BoolOptionValue _useMonoEqualityProxy;
@@ -2570,6 +2577,7 @@ private:
   BoolOptionValue _simultaneousSuperposition;
   BoolOptionValue _innerRewriting;
   BoolOptionValue _equationalTautologyRemoval;
+  ChoiceOptionValue<InstanceRedundancyCheck> _instanceRedundancyCheck;
 
   /** if true, then calling set() on non-existing options will not result in a user error */
   ChoiceOptionValue<IgnoreMissing> _ignoreMissing;
@@ -2690,6 +2698,7 @@ private:
   BoolOptionValue _showInduction;
   BoolOptionValue _showSimplOrdering;
 #if VAMPIRE_CLAUSE_TRACING
+  // TODO make unsigned option value
   IntOptionValue _traceBackward;
   IntOptionValue _traceForward;
 #endif // VAMPIRE_CLAUSE_TRACING

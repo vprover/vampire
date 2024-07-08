@@ -672,13 +672,11 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const&
 
 Clause* instantiate(Clause* original, Substitution& subst, Stack<Literal*> const& theoryLits, Splitter* splitter)
 {
-  Clause* inst = new(original->length()) Clause(original->length(),GeneratingInference1(InferenceRule::INSTANTIATION,original));
-  unsigned newLen = original->length() - theoryLits.size();
-  Clause* res = new(newLen) Clause(newLen,SimplifyingInference1(InferenceRule::INTERPRETED_SIMPLIFICATION,inst));
 
-  unsigned j=0;
-  for(unsigned i=0;i<original->length();i++){
-    Literal* lit = (*original)[i];
+  RStack<Literal*> instLits;
+  RStack<Literal*> resLits;
+
+  for (Literal* lit : original->iterLits()) {
     ASS_REP(SortHelper::areSortsValid(lit), *lit);
     Literal* lit_inst = SubstHelper::apply(lit,subst);
     SubtermIterator iter(lit_inst);
@@ -688,18 +686,17 @@ Clause* instantiate(Clause* original, Substitution& subst, Stack<Literal*> const
     }
     ASS_REP(SortHelper::areSortsValid(lit_inst), *lit_inst);
     // ASS()
-    (*inst)[i] = lit_inst;
+    instLits->push(lit_inst);
     // we implicitly remove all theoryLits as the solution makes their combination false
     if(!theoryLits.find(lit)){
-      (*res)[j] = lit_inst;
-      j++;
+      resLits->push(lit_inst);
     }
   }
-  ASS_EQ(j,newLen);
+  Clause* inst = Clause::fromStack(*instLits, GeneratingInference1(InferenceRule::INSTANTIATION,original));
   if(splitter){
     splitter->onNewClause(inst);
   }
-  return res;
+  return Clause::fromStack(*resLits, SimplifyingInference1(InferenceRule::INTERPRETED_SIMPLIFICATION,inst));
 }
 
 

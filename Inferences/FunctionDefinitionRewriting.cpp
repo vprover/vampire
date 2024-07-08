@@ -22,6 +22,7 @@
 #include "Kernel/Ordering.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/SubstHelper.hpp"
 #include "Kernel/TermIterators.hpp"
 
 #include "Indexing/IndexManager.hpp"
@@ -38,6 +39,16 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Saturation;
 
+namespace {
+struct Applicator : SubstApplicator {
+  Applicator(ResultSubstitution* subst) : subst(subst) {}
+  TermList operator()(unsigned v) const override {
+    return subst->applyToBoundResult(v);
+  }
+  ResultSubstitution* subst;
+};
+}
+
 Clause* performRewriting(
     Clause *rwClause, Literal *rwLit, TermList rwTerm, Clause *eqClause,
     Literal *eqLit, TermList eqLHS, ResultSubstitutionSP subst,
@@ -51,7 +62,9 @@ Clause* performRewriting(
   ASS(subst->isIdentityOnQueryWhenResultBound());
   TermList tgtTermS = subst->applyToBoundResult(tgtTerm);
 
-  if (helper && !helper->isPremiseRedundant(rwClause,rwLit,rwTerm,tgtTermS,eqLHS,subst.ptr(),true)) {
+  Applicator appl(subst.ptr());
+
+  if (helper && !helper->isPremiseRedundant(rwClause,rwLit,rwTerm,tgtTermS,eqLHS,&appl)) {
     return 0;
   }
 

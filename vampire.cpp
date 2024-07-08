@@ -564,6 +564,7 @@ void dispatchByMode(Problem* problem)
   case Options::Mode::CASC:
     env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
     env.options->setSchedule(Options::Schedule::CASC);
+    env.options->setInputSyntax(Options::InputSyntax::TPTP);
     env.options->setOutputMode(Options::Output::SZS);
     env.options->setProof(Options::Proof::TPTP);
     env.options->setOutputAxiomNames(true);
@@ -578,6 +579,7 @@ void dispatchByMode(Problem* problem)
   case Options::Mode::CASC_HOL: {
     env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
     env.options->setSchedule(Options::Schedule::CASC_HOL_2020);
+    env.options->setInputSyntax(Options::InputSyntax::TPTP);
     env.options->setOutputMode(Options::Output::SZS);
     env.options->setProof(Options::Proof::TPTP);
     env.options->setOutputAxiomNames(true);
@@ -590,6 +592,7 @@ void dispatchByMode(Problem* problem)
   case Options::Mode::CASC_SAT:
     env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
     env.options->setSchedule(Options::Schedule::CASC_SAT);
+    env.options->setInputSyntax(Options::InputSyntax::TPTP);
     env.options->setOutputMode(Options::Output::SZS);
     env.options->setProof(Options::Proof::TPTP);
     env.options->setOutputAxiomNames(true);

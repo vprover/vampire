@@ -19,6 +19,16 @@
  * IMPORTANT --> see .hpp file for instructions on how to add an option
  */
 
+/* this translation unit causes the optimiser to take a very long time,
+ * but it's not really performance-critical code:
+ * disable optimisation for this file with various compilers */
+#if defined(__clang__)
+#pragma clang optimize off
+#elif defined(__GNUC__)
+#pragma GCC optimize 0
+#endif
+
+
 // Visual does not know the round function
 #include <cmath>
 #include <filesystem>
@@ -154,10 +164,12 @@ void Options::init()
 
     _schedule = ChoiceOptionValue<Schedule>("schedule","sched",Schedule::CASC,
         {"casc",
+         "casc_2024",
          "casc_2023",
          "casc_2019",
          "casc_sat",
-         "casc_hol_2023",
+         "casc_sat_2024",
+         "casc_sat_2023",
          "casc_sat_2019",
          "casc_hol_2020",
          "file",
@@ -210,7 +222,7 @@ void Options::init()
     _encode.tag(OptionTag::DEVELOPMENT);
 
     _sampleStrategy = StringOptionValue("sample_strategy","","");
-    _sampleStrategy.description = "Specify a path to a filename (of homemade format) describing how to sample a random strategy (incompatible with the --random_strategy way).";
+    _sampleStrategy.description = "Specify a path to a filename (of homemade format) describing how to sample a random strategy.";
     _lookup.insert(&_sampleStrategy);
     _sampleStrategy.reliesOn(_mode.is(equal(Mode::VAMPIRE)));
     _sampleStrategy.setExperimental();
@@ -865,7 +877,7 @@ void Options::init()
     _fmbDetectSortBoundsTimeLimit = UnsignedOptionValue("fmb_detect_sort_bounds_time_limit","fmbdsbt",1);
     _fmbDetectSortBoundsTimeLimit.description = "The time limit (in seconds) for performing sort bound detection";
     _lookup.insert(&_fmbDetectSortBoundsTimeLimit);
-    _fmbDetectSortBoundsTimeLimit.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
+    _fmbDetectSortBoundsTimeLimit.onlyUsefulWith(_fmbDetectSortBounds.is(equal(true)));
     _fmbDetectSortBoundsTimeLimit.tag(OptionTag::FMB);
 
     _fmbSizeWeightRatio = UnsignedOptionValue("fmb_size_weight_ratio","fmbswr",1);
@@ -1639,6 +1651,16 @@ void Options::init()
     _demodulationPrecompiledComparison.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
     _demodulationPrecompiledComparison.addProblemConstraint(hasEquality());
 
+    _demodulationOnlyEquational = BoolOptionValue("demodulation_only_equational","doe",false);
+    _demodulationOnlyEquational.description=
+       "Disables demodulation of non-equational literals. In combination with -ins > 0 simulates the effect of Waldmeister's `Enlarging the Hypothesis` trick.";
+    _lookup.insert(&_demodulationOnlyEquational);
+    _demodulationOnlyEquational.setExperimental();
+    _demodulationOnlyEquational.tag(OptionTag::INFERENCES);
+    _demodulationOnlyEquational.onlyUsefulWith(ProperSaturationAlgorithm());
+    _demodulationOnlyEquational.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
+    _demodulationOnlyEquational.addProblemConstraint(hasEquality());
+
     _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","erape",false);
     _extensionalityAllowPosEq.description="If extensionality resolution equals filter, this dictates"
       " whether we allow other positive equalities when recognising extensionality clauses";
@@ -1782,6 +1804,14 @@ void Options::init()
     _lookup.insert(&_equationalTautologyRemoval);
     _equationalTautologyRemoval.onlyUsefulWith(ProperSaturationAlgorithm());
     _equationalTautologyRemoval.tag(OptionTag::INFERENCES);
+
+    _instanceRedundancyCheck = ChoiceOptionValue<InstanceRedundancyCheck>("instance_redundancy_check","irc",
+      InstanceRedundancyCheck::OFF,{"lazy","eager","off"});
+    _instanceRedundancyCheck.description=
+    "Skip generating inferences on clause instances on which we already performed a reductive inference.";
+    _lookup.insert(&_instanceRedundancyCheck);
+    _instanceRedundancyCheck.onlyUsefulWith(ProperSaturationAlgorithm());
+    _instanceRedundancyCheck.tag(OptionTag::INFERENCES);
 
     _unitResultingResolution = ChoiceOptionValue<URResolution>("unit_resulting_resolution","urr",URResolution::OFF,{"ec_only","off","on","full"});
     _unitResultingResolution.description=
@@ -2535,17 +2565,6 @@ bool Options::HasTheories::actualCheck(Property*p)
 bool Options::HasTheories::check(Property*p) {
   // this was the condition used in Preprocess::preprocess guarding the addition of theory axioms
   return actualCheck(p);
-}
-
-/**
- * Static functions to help specify random choice values
- */
-
-Options::OptionProblemConstraintUP Options::isRandOn(){
-      return OptionProblemConstraintUP(new OptionHasValue("random_strategy","on"));
-}
-Options::OptionProblemConstraintUP Options::isRandSat(){
-      return OptionProblemConstraintUP(new OptionHasValue("random_strategy","sat"));
 }
 
 /**
@@ -3467,6 +3486,7 @@ vstring Options::generateEncodedOptions() const
     forbidden.insert(&_encode);
     forbidden.insert(&_decode);
     forbidden.insert(&_sampleStrategy);
+    forbidden.insert(&_normalize);
 
     forbidden.insert(&_memoryLimit);
     forbidden.insert(&_proof);
@@ -3581,7 +3601,12 @@ bool Options::complete(const Problem& prb) const
   if (_demodulationRedundancyCheck.actualValue == DemodulationRedundancyCheck::OFF) {
     return false;
   }
-  if (!_superpositionFromVariables.actualValue) return false;
+  if (!_superpositionFromVariables.actualValue) {
+    return false;
+  }
+  if (_instanceRedundancyCheck.actualValue == InstanceRedundancyCheck::EAGER) {
+    return false;
+  }
 
   // only checking resolution rules remain
   bool pureEquality = (prop.atoms() == prop.equalityAtoms());
