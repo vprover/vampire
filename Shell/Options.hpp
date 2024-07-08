@@ -2633,6 +2633,7 @@ private:
   BoolOptionValue _showInduction;
   BoolOptionValue _showSimplOrdering;
 #if VAMPIRE_CLAUSE_TRACING
+  // TODO make unsigned option value
   IntOptionValue _traceBackward;
   IntOptionValue _traceForward;
 #endif // VAMPIRE_CLAUSE_TRACING
