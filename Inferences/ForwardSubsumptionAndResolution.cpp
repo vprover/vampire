@@ -153,28 +153,23 @@ typedef Stack<ClauseMatches *> CMStack;
 
 Clause *ForwardSubsumptionAndResolution::generateSubsumptionResolutionClause(Clause *cl, Literal *lit, Clause *baseClause)
 {
-  int clen = cl->length();
-  int nlen = clen - 1;
+  RStack<Literal*> resLits;
 
-  Clause *res = new (nlen) Clause(nlen,
-                                  SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, cl, baseClause));
-
-  int next = 0;
   bool found = false;
-  for (int i = 0; i < clen; i++) {
-    Literal *curr = (*cl)[i];
+  for (Literal *curr : cl->iterLits()) {
     //As we will apply subsumption resolution after duplicate literal
     //deletion, the same literal should never occur twice.
     ASS(curr != lit || !found);
     if (curr != lit || found) {
-      (*res)[next++] = curr;
+      resLits->push(curr);
     }
     else {
       found = true;
     }
   }
 
-  return res;
+  return Clause::fromStack(*resLits, 
+      SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, cl, baseClause));
 }
 
 bool checkForSubsumptionResolution(Clause *cl, ClauseMatches *cms, Literal *resLit)

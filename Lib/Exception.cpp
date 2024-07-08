@@ -42,7 +42,10 @@ void Exception::cry (std::ostream& str) const
  */
 void UserErrorException::cry (std::ostream& str) const
 {
-  str << "User error: " << _message << endl;
+  str << "User error: " << _message;
+  if(line)
+    str << " (detected at or around line " << line << ")";
+  str << endl;
 } // UserErrorException::cry
 
 /**

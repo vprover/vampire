@@ -630,40 +630,40 @@ isRedundant:
                 return true;
               }
 
-              Clause* newCl = new(cl->length()) Clause(cl->length(),
-                  SimplifyingInference2(InferenceRule::FORWARD_SUBSUMPTION_DEMODULATION, cl, mcl));
+              RStack<Literal*> resLits;
 
               for (unsigned i = 0; i < cl->length(); ++i) {
                 if (i == dli) {
-                  (*newCl)[i] = newLit;
+                  resLits->push(newLit);
                 } else {
-                  (*newCl)[i] = (*cl)[i];
+                  resLits->push((*cl)[i]);
                 }
               }
 
               env.statistics->forwardSubsumptionDemodulations++;
 
               premises = pvi(getSingletonIterator(mcl));
-              replacement = newCl;
+              replacement = Clause::fromStack(*resLits,
+                 SimplifyingInference2(InferenceRule::FORWARD_SUBSUMPTION_DEMODULATION, cl, mcl));
 
 #if FSD_LOG_INFERENCES
-              std::cout << "\% Begin Inference \"FSD-" << newCl->number() << "\"\n";
+              std::cout << "\% Begin Inference \"FSD-" << replacement->number() << "\"\n";
               std::cout << "\% eqLit: " << eqLit->toString() << "\n";
               std::cout << "\% eqLitS: " << binder.applyTo(eqLit)->toString() << "\n";
               std::cout << "\% dlit: " << dlit->toString() << "\n";
               std::cout << "\% numMatches+1: success at match #" << (numMatches+1) << "\n";
               TPTPPrinter tptp;
-              // NOTE: do not output the splitLevels here, because those will be set for newCl only later
+              // NOTE: do not output the splitLevels here, because those will be set for replacement only later
               tptp.printWithRole("side_premise_mcl", "hypothesis", mcl,   false);
               tptp.printWithRole("main_premise_cl ", "hypothesis", cl,    false);
-              tptp.printWithRole("conclusion      ", "conjecture", newCl, false);
+              tptp.printWithRole("conclusion      ", "conjecture", replacement, false);
               // TODO: Some problems (seems to be only the CSR category; it happens, e.g., in CSR104+4)
               //       use integer constants as sort $i but vampire parses them as $int when using tff.
               //       For these formulas we should use fof, then it works again.
               //       Problem: how to detect that situation??
               //       probably if the input only contains FOF and no TFF
               // TODO: Also don't output type defs for $$false and $$true, see problem SYO091^5.p
-              std::cout << "\% End Inference \"FSD-" << newCl->number() << "\"" << std::endl;
+              std::cout << "\% End Inference \"FSD-" << replacement->number() << "\"" << std::endl;
 #endif
 
               RSTAT_MCTR_INC("FSD, successes by MLMatch", numMatches + 1);  // +1 so it fits with the previous output
@@ -672,9 +672,9 @@ isRedundant:
               if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE
                   && getOptions().termOrdering() != Shell::Options::TermOrdering::QKBO) {  // see note above
                 // TODO integrate this properly with LASCA/QKBO
-                // Check newCl < cl.
+                // Check replacement < cl.
                 // This is quite obvious, and there should be no problems with this.
-                ASS(SDHelper::clauseIsSmaller(newCl, cl, ordering));
+                ASS(SDHelper::clauseIsSmaller(replacement, cl, ordering));
               }
 #endif
 

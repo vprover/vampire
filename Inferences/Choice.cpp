@@ -63,12 +63,11 @@ Clause* Choice::createChoiceAxiom(TermList op, TermList set)
   TermList t2 = ApplicativeHelper::createAppTerm(opType, op, set);
   t2 =  ApplicativeHelper::createAppTerm(setType, set, t2);
 
-  Clause* axiom = new(2) Clause(2, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::CHOICE_AXIOM));
-
-  (*axiom)[0] = Literal::createEquality(true, t1, TermList(Term::foolFalse()), AtomicSort::boolSort());;
-  (*axiom)[1] = Literal::createEquality(true, t2, TermList(Term::foolTrue()), AtomicSort::boolSort());;
-
-  return axiom;
+  return Clause::fromLiterals(
+      { Literal::createEquality(true, t1, TermList(Term::foolFalse()), AtomicSort::boolSort()),
+        Literal::createEquality(true, t2, TermList(Term::foolTrue()), AtomicSort::boolSort())},
+       NonspecificInference0(UnitInputType::AXIOM, InferenceRule::CHOICE_AXIOM)
+  );
 }
 
 struct Choice::AxiomsIterator

@@ -163,22 +163,23 @@ struct BackwardDemodulation::ResultFn
     }
 
     unsigned cLen=qr.data->clause->length();
-    Clause* res = new(cLen) Clause(cLen, SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.data->clause, _cl));
+    RStack<Literal*> resLits;
 
-    (*res)[0]=resLit;
+    resLits->push(resLit);
 
-    unsigned next=1;
     for(unsigned i=0;i<cLen;i++) {
       Literal* curr=(*qr.data->clause)[i];
       if(curr!=qr.data->literal) {
-        (*res)[next++] = curr;
+        resLits->push(curr);
       }
     }
-    ASS_EQ(next,cLen);
 
     env.statistics->backwardDemodulations++;
     _removed->insert(qr.data->clause);
-    return BwSimplificationRecord(qr.data->clause,res);
+
+    return BwSimplificationRecord(
+      qr.data->clause,
+      Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.data->clause, _cl)));
   }
 private:
   Literal* _eqLit;

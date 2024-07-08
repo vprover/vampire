@@ -58,6 +58,8 @@
 
 #include "Property.hpp"
 
+#define VAMPIRE_CLAUSE_TRACING VDEBUG
+
 namespace Shell {
 
 using namespace Lib;
@@ -2080,6 +2082,10 @@ public:
   bool showFMBsortInfo() const { return showAll() || _showFMBsortInfo.actualValue; }
   bool showInduction() const { return showAll() || _showInduction.actualValue; }
   bool showSimplOrdering() const { return showAll() || _showSimplOrdering.actualValue; }
+#if VAMPIRE_CLAUSE_TRACING
+  int traceBackward() { return _traceBackward.actualValue; }
+  int traceForward() { return _traceForward.actualValue; }
+#endif // VAMPIRE_CLAUSE_TRACING
 
 #if VZ3
   bool showZ3() const { return showAll() || _showZ3.actualValue; }
@@ -2143,6 +2149,8 @@ public:
   //void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation.actualValue; }
   DemodulationRedundancyCheck demodulationRedundancyCheck() const { return _demodulationRedundancyCheck.actualValue; }
+  bool demodulationPrecompiledComparison() const { return _demodulationPrecompiledComparison.actualValue; }
+
   //void setBackwardDemodulation(Demodulation newVal) { _backwardDemodulation = newVal; }
   Subsumption backwardSubsumption() const { return _backwardSubsumption.actualValue; }
   //void setBackwardSubsumption(Subsumption newVal) { _backwardSubsumption = newVal; }
@@ -2509,6 +2517,7 @@ private:
   ChoiceOptionValue<Condensation> _condensation;
 
   ChoiceOptionValue<DemodulationRedundancyCheck> _demodulationRedundancyCheck;
+  BoolOptionValue _demodulationPrecompiledComparison;
 
   ChoiceOptionValue<EqualityProxy> _equalityProxy;
   BoolOptionValue _useMonoEqualityProxy;
@@ -2680,6 +2689,10 @@ private:
   BoolOptionValue _showFMBsortInfo;
   BoolOptionValue _showInduction;
   BoolOptionValue _showSimplOrdering;
+#if VAMPIRE_CLAUSE_TRACING
+  IntOptionValue _traceBackward;
+  IntOptionValue _traceForward;
+#endif // VAMPIRE_CLAUSE_TRACING
 #if VZ3
   BoolOptionValue _showZ3;
   ChoiceOptionValue<ProblemExportSyntax> _problemExportSyntax;

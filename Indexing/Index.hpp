@@ -134,6 +134,7 @@ struct DemodulatorData
   TermList rhs;
   Clause* clause;
   bool preordered; // whether term > rhs
+  OrderingComparatorUP comparator; // owned comparator for whether term > rhs
 
   TypedTermList const& key() const { return term; }
 

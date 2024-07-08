@@ -22,6 +22,7 @@
 #include "Shell/Options.hpp"
 #include <fstream>
 
+#include "KBOComparator.hpp"
 #include "NumTraits.hpp"
 #include "Signature.hpp"
 #include "SubstHelper.hpp"
@@ -887,6 +888,16 @@ bool KBO::isGreater(AppliedTerm lhs, AppliedTerm rhs) const
   return isGreaterOrEq(lhs,rhs)==GREATER;
 }
 
+bool KBO::isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, OrderingComparatorUP& comparator) const
+{
+  if (!comparator) {
+    // cout << "preprocessing " << lhs << " " << rhs << endl;
+    comparator = make_unique<KBOComparator>(lhs, rhs, *this);
+    // cout << comparator->toString() << endl;
+  }
+  return static_cast<const KBOComparator*>(comparator.get())->check(applicator);
+}
+
 int KBO::symbolWeight(const Term* t) const
 {
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
@@ -1131,6 +1142,13 @@ bool KboSpecialWeights<PredSigTraits>::tryGetWeight(unsigned functor, unsigned& 
 
 bool KboSpecialWeights<FuncSigTraits>::tryGetWeight(unsigned functor, unsigned& weight) const
 {
+  if (env.signature->isFoolConstantSymbol(false,functor) || env.signature->isFoolConstantSymbol(true,functor)) {
+    // the FOOL constants, $$false and $$true, introduced by us to deal with FOOL, have hard-coded weight of 1
+    // which, together with their lowest precendence (see PrecedenceOrdering::compareFunctionPrecedences),
+    // is a requirement for FOOL paramodulation being complete for them
+    // TODO: consider allowing the user to change this and at the same time automatically recognizing the incomplete versions
+    weight = 1;  return true;
+  }
   auto sym = env.signature->getFunction(functor);
   if (_qkbo) {
     if ( sym->integerConstant()

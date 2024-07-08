@@ -138,7 +138,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Int.cpp
     Lib/IntNameTable.cpp
     Lib/IntUnionFind.cpp
-    Lib/MemoryLeak.cpp
     Lib/NameArray.cpp
     Lib/Random.cpp
     Lib/StringUtils.cpp
@@ -171,7 +170,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/List.hpp
     Lib/Map.hpp
     Lib/MaybeBool.hpp
-    Lib/MemoryLeak.hpp
     Lib/Metaiterators.hpp
     Lib/MultiCounter.hpp
     Lib/NameArray.hpp
@@ -228,6 +226,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/KBO.cpp
     Kernel/QKbo.cpp
     Kernel/LaLpo.cpp
+    Kernel/KBOComparator.cpp
     Kernel/LiteralSelector.cpp
     Kernel/LookaheadLiteralSelector.cpp
     Kernel/MainLoop.cpp
@@ -276,6 +275,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/KBO.hpp
     Kernel/QKbo.hpp
     Kernel/LaLpo.hpp
+    Kernel/KBOComparator.hpp
     Kernel/LiteralComparators.hpp
     Kernel/LiteralSelector.hpp
     Kernel/LookaheadLiteralSelector.hpp
@@ -306,6 +306,8 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Unit.hpp
     Kernel/LPO.cpp
     Kernel/LPO.hpp
+    Kernel/LPOComparator.cpp
+    Kernel/LPOComparator.hpp
     Kernel/Polynomial.hpp
     Kernel/Polynomial.cpp
     Kernel/PolynomialNormalizer.hpp

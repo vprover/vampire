@@ -18,6 +18,8 @@
 #include <utility>
 #include <tuple>
 
+template<class... As> 
+std::ostream& operator<<(std::ostream& out, std::tuple<As...> const& self);
 
 namespace Kernel {
 
@@ -25,33 +27,17 @@ namespace Kernel {
  * Usage: `out << outputPtr(ptr) << std::endl;` 
  */
 template<class T>
-struct OutputPtr {
-  T* self;
-  friend std::ostream& operator<<(std::ostream& out, OutputPtr const& self)
-  { return self.self ? out << *self.self : out << "NULL"; }
-};
+struct OutputPtr { T* self; };
 
 template<class T>
 OutputPtr<T> outputPtr(T* self) { return { .self = self, }; }
 
 template<class T>
-struct RepeatOutput {
-  T const& to_repeat;
-  unsigned times;
-};
+struct RepeatOutput { T const& to_repeat; unsigned times; };
 
 template<class T>
 RepeatOutput<T> repeatOutput(T const& c, unsigned times)
 { return RepeatOutput<T>{c, times}; }
-
-} // namespace Kernel
-
-template<class T>
-std::ostream& operator<<(std::ostream& out, Kernel::RepeatOutput<T> const& self)
-{ for (int i = 0; i < self.times; i++) out << self.to_repeat; return out; };
-
-namespace Kernel {
-
 
 /** Newtype for outputting a datatype that implements it in multiline format.
  * Usage: `out << multiline(substitutioTree) << std::endl;` 
@@ -64,36 +50,23 @@ struct OutputMultiline {
   T const& self; 
   unsigned indent; 
 
-  static void outputIndent(std::ostream& out, unsigned indent)
-  // { repeat(out, "    ", indent); };
-  { out << repeatOutput("    ", indent); };
+  static void outputIndent(std::ostream& out, unsigned indent);
 };
-
 
 template<class T>
 OutputMultiline<T> multiline(T const& self, unsigned indent = 0)
 { return { self, indent, }; }
 
 template<class Sep, class Iter>
-struct OutputInterleaved { 
-  Sep const& sep; 
-  Iter iter; 
-};
+struct OutputInterleaved { Sep const& sep; Iter iter; };
 
 template<class Sep, class Iter>
 struct OutputInterleaved<Sep,Iter> outputInterleaved(Sep const& s, Iter i)
 { return OutputInterleaved<Sep, Iter>{s, std::move(i)}; }
 
-
 template<class Iter>
 auto commaSep(Iter i) { return outputInterleaved(", ", std::move(i)); }
 
-} // namespace Kernel
-
-template<class... As> 
-std::ostream& operator<<(std::ostream& out, std::tuple<As...> const& self);
-
-namespace Kernel {
 
 template<unsigned i, unsigned sz, class Tup> 
 struct __OutputTuple
@@ -124,16 +97,6 @@ struct __OutputTuple<0, sz, Tup>
   }
 };
 
-} // namespace Kernel
-
-template<class... As> 
-std::ostream& operator<<(std::ostream& out, std::tuple<As...> const& self)
-{ 
-  out << "(";
-  Kernel::__OutputTuple<0, std::tuple_size<std::tuple<As...>>::value, std::tuple<As...>>::apply(out, self);
-  out << ")";
-  return out;
-}
 
 template<class Sep, class Iter>
 std::ostream& operator<<(std::ostream& out, Kernel::OutputInterleaved<Sep, Iter> self)
@@ -146,10 +109,34 @@ std::ostream& operator<<(std::ostream& out, Kernel::OutputInterleaved<Sep, Iter>
   }
   return out;
 }
+template<class T>
+std::ostream& operator<<(std::ostream& out, Kernel::RepeatOutput<T> const& self)
+{ for (int i = 0; i < self.times; i++) out << self.to_repeat; return out; };
 
+template<class T>
+std::ostream& operator<<(std::ostream& out, Kernel::OutputPtr<T> const& self)
+{ return self.self ? out << *self.self : out << "NULL"; }
+template<class T>
+void Kernel::OutputMultiline<T>::outputIndent(std::ostream& out, unsigned indent)
+{ out << repeatOutput("    ", indent); };
+
+
+
+} // namespace Kernel
 
 template<class A, class B>
 std::ostream& operator<<(std::ostream& out, std::pair<A,B> const& self)
 { return out << "(" << self.first << ", " << self.second << ")"; }
+
+
+template<class... As> 
+std::ostream& operator<<(std::ostream& out, std::tuple<As...> const& self)
+{ 
+  out << "(";
+  Kernel::__OutputTuple<0, std::tuple_size<std::tuple<As...>>::value, std::tuple<As...>>::apply(out, self);
+  out << ")";
+  return out;
+}
+
 
 #endif // __Debug_Output_HPP__

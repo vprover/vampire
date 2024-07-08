@@ -109,6 +109,12 @@ void Preprocess::preprocess(Problem& prb)
   //enough
   prb.getProperty();
 
+  if (env.signature->hasDefPreds() &&
+      !FunctionDefinitionHandler::isHandlerEnabled(_options)) {
+      // if the handler is not requested by any of the relevant options, we preprocess away the special definition parsing immediately
+    prb.getFunctionDefinitionHandler().initAndPreprocessEarly(prb);
+  }
+
   /* CAREFUL, keep this at the beginning of the preprocessing pipeline,
    * so that it corresponds to how its done
    * in profileMode() in vampire.cpp and PortfolioMode::searchForProof()
@@ -123,7 +129,7 @@ void Preprocess::preprocess(Problem& prb)
 
   if (_options.shuffleInput()) {
     TIME_TRACE(TimeTrace::SHUFFLING);
-    env.statistics->phase=Statistics::SHUFFLING;    
+    env.statistics->phase=Statistics::SHUFFLING;
 
     if (env.options->showPreprocessing())
       std::cout << "shuffling1" << std::endl;
@@ -160,7 +166,7 @@ void Preprocess::preprocess(Problem& prb)
     if (!_options.newCNF() || prb.hasPolymorphicSym() || prb.isHigherOrder()) {
       if (env.options->showPreprocessing())
         std::cout << "FOOL elimination" << std::endl;
-  
+
       TheoryAxioms(prb).applyFOOL();
       FOOLElimination().apply(prb);
     }
@@ -380,8 +386,10 @@ void Preprocess::preprocess(Problem& prb)
      resolver.apply(prb);
    }
 
-   if (env.signature->hasDefPreds()) {
-     prb.getFunctionDefinitionHandler().initAndPreprocess(prb,_options);
+   if (env.signature->hasDefPreds() &&
+       FunctionDefinitionHandler::isHandlerEnabled(_options)) {
+       // if the handler is requested, we preprocess the special definition parsing only after clausification
+     prb.getFunctionDefinitionHandler().initAndPreprocessLate(prb,_options);
    }
 
    if (_options.generalSplitting()) {
@@ -426,7 +434,7 @@ void Preprocess::preprocess(Problem& prb)
      }
    }
 
-   
+
    if(_options.theoryFlattening()) {
      if (prb.hasPolymorphicSym()) { // TODO: extend theoryFlattening to support polymorphism?
        if (outputAllowed()) {

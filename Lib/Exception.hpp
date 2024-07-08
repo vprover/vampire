@@ -99,6 +99,8 @@ class UserErrorException
  public:
   using ParsingRelatedException::ParsingRelatedException;
 
+  // input line related to the error: non-zero if set
+  unsigned line = 0;
   void cry (std::ostream&) const;
 }; // UserErrorException
 

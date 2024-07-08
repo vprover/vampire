@@ -214,32 +214,23 @@ Clause* ExtensionalityResolution::performExtensionalityResolution(
     return 0;
   }
 
-  unsigned extLen = extCl->length();
-  unsigned otherLen = otherCl->length();
-  
-  unsigned newLength = otherLen + extLen - 2;
-  Clause* res = new(newLength) Clause(newLength, GeneratingInference2(InferenceRule::EXTENSIONALITY_RESOLUTION, extCl, otherCl));
+  RStack<Literal*> resLits;
 
-  unsigned next = 0;
-
-  for(unsigned i = 0; i < extLen; i++) {
-    Literal* curr = (*extCl)[i];
+  for (Literal* curr : extCl->iterLits()) {
     if (curr != extLit) {
-      (*res)[next++] = subst->apply(curr, 0);
+      resLits->push(subst->apply(curr, 0));
     }
   }
 
-  for(unsigned i = 0; i < otherLen; i++) {
-    Literal* curr = (*otherCl)[i];
+  for (Literal* curr : otherCl->iterLits()) {
     if (curr != otherLit) {
-      (*res)[next++] = subst->apply(curr, 1);
+      resLits->push(subst->apply(curr, 1));
     }
   }
     
-  ASS_EQ(next,newLength);
   counter++;
      
-  return res;
+  return Clause::fromStack(*resLits, GeneratingInference2(InferenceRule::EXTENSIONALITY_RESOLUTION, extCl, otherCl));
 }
   
 /**

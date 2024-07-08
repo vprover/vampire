@@ -281,14 +281,12 @@ struct Instantiation::ResultFn
   ResultFn(Clause* cl) : _cl(cl) {}
   Clause* operator()(Substitution sub)
   {
-    unsigned clen = _cl->length();
-    Clause* res = new(clen) Clause(clen,GeneratingInference1(InferenceRule::INSTANTIATION,_cl));
-
-    for(unsigned i=0;i<clen;i++){
-      (*res)[i] = SubstHelper::apply((*_cl)[i],sub);
+    RStack<Literal*> resLits;
+    for(Literal* curr : _cl->iterLits()){
+      resLits->push(SubstHelper::apply(curr,sub));
     }
 
-    return res; 
+    return Clause::fromStack(*resLits,GeneratingInference1(InferenceRule::INSTANTIATION,_cl));
   }
 private:
   Clause* _cl;

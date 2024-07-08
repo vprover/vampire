@@ -82,8 +82,17 @@ class FunctionDefinitionHandler
 public:
   USE_ALLOCATOR(FunctionDefinitionHandler);
 
+  bool static isHandlerEnabled(const Options& opts)
+  {
+    return opts.functionDefinitionRewriting() ||
+      opts.inductionOnActiveOccurrences() ||
+      opts.structInduction()==Options::StructuralInductionKind::RECURSION;
+  }
+
   /* has to be called before using other functionality of the handler */
-  void initAndPreprocess(Problem& prb, const Options& opts);
+  void initAndPreprocessEarly(Problem& prb);
+  void initAndPreprocessLate(Problem& prb,const Options& opts);
+
   void addFunctionBranch(Term* header, TermList body);
   void addPredicateBranch(Literal* header, const LiteralStack& conditions);
 

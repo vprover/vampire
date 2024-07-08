@@ -153,6 +153,8 @@ class Signature
     unsigned _tuple : 1;
     /** if allowed in answer literals */
     unsigned _computable : 1;
+    /** name that is bound by a $let-binder */
+    unsigned _letBound : 1;
     /** proxy type */
     Proxy _prox;
     /** combinator type */
@@ -191,6 +193,8 @@ class Signature
     void markTermAlgebraDest() { _termAlgebraDest=1; }
     /** mark the symbol as uncomputable and hence not allowed in answer literals */
     void markUncomputable() { _computable = 0; }
+    /** mark the symbol as let-bound */
+    void markLetBound() { _letBound = 1; }
 
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
@@ -238,6 +242,8 @@ class Signature
     inline bool termAlgebraDest() const { return _termAlgebraDest; }
     /** Return true iff symbol is considered computable */
     inline bool computable() const { return _computable; }
+    /** if bound by a $let-binder */
+    inline bool letBound() const { return _letBound; }
 
     /** Increase the usage count of this symbol **/
     inline void incUsageCnt(){ _usageCount++; }

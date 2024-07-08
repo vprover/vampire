@@ -684,14 +684,9 @@ inline Clause* clause(Stack<Lit> ls) {
         { return !l.selected(); })
     .unwrapOrElse( [&]() {return ls.size(); });
 
-  Clause& out = *new(ls.size()) Clause(ls.size(), testInf); 
+  Clause& out = *Clause::fromIterator(arrayIter(ls)
+      .map([](auto l) -> Literal* { return l; }), testInf);
 
-  auto l = ls.begin(); 
-  for (unsigned i = 0; i < ls.size(); i++) { 
-    Literal* lit = *l;
-    out[i] = lit; 
-    l++; 
-  }
   out.setSelected(nSelected);
   return &out; 
 }

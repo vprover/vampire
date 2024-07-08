@@ -20,6 +20,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/List.hpp"
+#include "Debug/Output.hpp"
 #include "Lib/VString.hpp"
 #include "Kernel/Inference.hpp"
 
@@ -157,7 +158,7 @@ protected:
   /** inference used to obtain the unit */
   Inference _inference;
 
-  Unit(Kind kind, const Inference& inf);
+  Unit(Kind kind, Inference inf);
 
   /** Used to enumerate units */
   static unsigned _lastNumber;
@@ -168,6 +169,35 @@ protected:
   static unsigned _firstNonPreprocessingNumber;
 
   static unsigned _lastParsingNumber;
+
+private:
+  template<class Pre, class Post>
+  void _traverseParents(Unit& self, unsigned& depth, Pre& pre, Post& post) {
+    pre(unsigned(depth), &self);
+    depth++;
+    auto infit = self.inference().iterator();
+    while (self.inference().hasNext(infit)) {
+      auto parent = self.inference().next(infit);
+      _traverseParents(*parent, depth, pre, post);
+    }
+    depth--;
+    post(unsigned(depth), &self);
+  }
+
+
+protected:
+  template<class Pre, class Post>
+  void traverseParents(Pre pre, Post post) {
+    unsigned depth = 0;
+    _traverseParents(*this, depth, pre, post);
+  }
+
+  template<class Pre>
+  void traverseParentsPre (Pre pre ) { traverseParents(pre , [](auto...) {}); }
+
+  template<class Post>
+  void traverseParentsPost(Post post) { traverseParents([](auto...) {}, post); }
+
 }; // class Unit
 
 std::ostream& operator<< (std::ostream& out, const Unit& u );

@@ -333,10 +333,7 @@ private:
   BITFIELD64_GET_AND_SET(unsigned, order, Order, ORDER)
   BITFIELD64_GET_AND_SET(uint32_t, distinctVars, DistinctVars, DISTINCT_VAR)
   BITFIELD64_GET_AND_SET(uint32_t, id, Id, ID)
-  Term *_term() const
-  { return reinterpret_cast<Term *>(BitUtils::getBits<TERM_BITS_START, TERM_BITS_END>(this->_content)); }
-  void _setTerm(Term *term)
-  { BitUtils::setBits<TERM_BITS_START, TERM_BITS_END>(this->_content, reinterpret_cast<uint64_t>(term)); }
+  BITFIELD64_GET_AND_SET_PTR(Term*, term, Term, TERM)
   // end bitfield
 
   friend class Indexing::TermSharing;

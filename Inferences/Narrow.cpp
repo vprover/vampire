@@ -230,35 +230,29 @@ Clause* Narrow::performNarrow(
 
   bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 
-  Clause* res = new(cLen) Clause(cLen, inf);
+  RStack<Literal*> resLits;
 
-  (*res)[0] = tgtLitS;
-  int next = 1;
+  resLits->push(tgtLitS);
   for(unsigned i=0;i<cLen;i++) {
     Literal* curr=(*nClause)[i];
     if(curr!=nLiteral) {
       Literal* currAfter = subst->apply(curr, 0);
 
       if(EqHelper::isEqTautology(currAfter)) {
-        goto construction_fail;
+        return nullptr;
       }
 
       if (afterCheck) {
         TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
         if (i < nClause->numSelected() && ordering.compare(currAfter,nLiteralS) == Ordering::GREATER) {
           env.statistics->inferencesBlockedForOrderingAftercheck++;
-          goto construction_fail;
+          return nullptr;
         }
       }
-      (*res)[next++] = currAfter;
+      resLits->push(currAfter);
     }
   }
 
   env.statistics->narrow++;
-  return res;
-
-construction_fail:
-  //cout << "failed" << endl;
-  res->destroy();
-  return 0;
+  return Clause::fromStack(*resLits, inf);
 }

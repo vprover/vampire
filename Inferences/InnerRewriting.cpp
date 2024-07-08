@@ -44,30 +44,29 @@ bool InnerRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& p
               return true;
             }
 
-            Clause* res = new(len) Clause(len,SimplifyingInference1(InferenceRule::INNER_REWRITING, cl));
+            RStack<Literal*> resLits;
 
             for (unsigned k = 0; k < len; k++) {
               if (k == i) {
-                (*res)[k] = rwLit;
+                resLits->push(rwLit);
               } else if (k < j) {
-                (*res)[k] = (*cl)[k];
+                resLits->push((*cl)[k]);
               } else if (k == j) {
-                (*res)[k] = nLit;
+                resLits->push(nLit);
               } else {
                 Literal* oLit = (*cl)[k];
                 Literal* rLit = EqHelper::replace(oLit,lhs,rhs);
                 if(EqHelper::isEqTautology(rLit)) {
                   env.statistics->innerRewritesToEqTaut++;
-                  res->destroy();
                   return true;
                 }
-                (*res)[k] = rLit;
+                resLits->push(rLit);
               }
             }
 
             env.statistics->innerRewrites++;
 
-            replacement = res;
+            replacement = Clause::fromStack(*resLits,SimplifyingInference1(InferenceRule::INNER_REWRITING, cl));
             return true;
           }
         }

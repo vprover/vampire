@@ -834,7 +834,10 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
   bool isTrueFun = fun.second==SymbolType::FUNCTION;
 
   Literal* lit;
+  Signature::Symbol* sym;
   if (isTrueFun) {
+    sym = env.signature->getFunction(symbIdx);
+
     TermList lhs(Term::create(symbIdx,args.size(),args.begin()));
     auto p = env.signature->getFnDef(symbIdx);
     auto defArgs = typeArgs;
@@ -842,11 +845,18 @@ void SMTLIB2::readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort,
     defArgs.push(rhs);
     lit = Literal::create(p,defArgs.size(),true,false,defArgs.begin());
   } else {
+    sym = env.signature->getPredicate(symbIdx);
+
     auto p = env.signature->getBoolDef(symbIdx);
     TermList lhs(Term::createFormula(new AtomicFormula(Literal::create(p,args.size(),true,false,args.begin()))));
     lit = Literal::createEquality(true, lhs, rhs, rangeSort);
   }
   Formula* fla = new AtomicFormula(lit);
+
+  // Mark original symbol protected to avoid
+  // erroneous unused symbol elimination later.
+  // TODO find a better way to do this
+  sym->markProtected();
 
   FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
 
@@ -930,7 +940,10 @@ void SMTLIB2::readDefineFunsRec(LExprList* declsExpr, LExprList* defsExpr)
     bool isTrueFun = decl.sym.second==SymbolType::FUNCTION;
 
     Literal* lit;
+    Signature::Symbol* sym;
     if (isTrueFun) {
+      sym = env.signature->getFunction(symbIdx);
+
       TermList lhs(Term::create(symbIdx,decl.args.size(),decl.args.begin()));
       auto p = env.signature->getFnDef(symbIdx);
       TermStack defArgs; // no type arguments (yet) in this case
@@ -938,11 +951,18 @@ void SMTLIB2::readDefineFunsRec(LExprList* declsExpr, LExprList* defsExpr)
       defArgs.push(rhs);
       lit = Literal::create(p,defArgs.size(),true,false,defArgs.begin());
     } else {
+      sym = env.signature->getPredicate(symbIdx);
+
       auto p = env.signature->getBoolDef(symbIdx);
       TermList lhs(Term::createFormula(new AtomicFormula(Literal::create(p,decl.args.size(),true,false,decl.args.begin()))));
       lit = Literal::createEquality(true, lhs, rhs, decl.rangeSort);
     }
     Formula* fla = new AtomicFormula(lit);
+
+    // Mark original symbol protected to avoid
+    // erroneous unused symbol elimination later.
+    // TODO find a better way to do this
+    sym->markProtected();
 
     FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
     _formulas.pushBack(fu);

@@ -165,6 +165,7 @@ public:
 
   Result compare(AppliedTerm t1, AppliedTerm t2) const override;
   bool isGreater(AppliedTerm t1, AppliedTerm t2) const override;
+  bool isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, OrderingComparatorUP& comparator) const override;
 
 protected:
   Result isGreaterOrEq(AppliedTerm tt1, AppliedTerm tt2) const;
@@ -241,6 +242,7 @@ protected:
   }; // class State
 
 
+  friend class KBOComparator;
 
   // int functionSymbolWeight(unsigned fun) const;
   int symbolWeight(const Term* t) const;

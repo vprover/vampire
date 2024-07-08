@@ -165,7 +165,6 @@ VL_OBJ= Lib/Allocator.o\
         Lib/Int.o\
         Lib/IntNameTable.o\
         Lib/IntUnionFind.o\
-        Lib/MemoryLeak.o\
         Lib/NameArray.o\
         Lib/Random.o\
         Lib/StringUtils.o\
@@ -187,10 +186,12 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Inference.o\
         Kernel/InferenceStore.o\
         Kernel/KBO.o\
+        Kernel/KBOComparator.o\
         Kernel/SKIKBO.o\
         Kernel/LiteralSelector.o\
         Kernel/LookaheadLiteralSelector.o\
-	Kernel/LPO.o\
+        Kernel/LPO.o\
+        Kernel/LPOComparator.o\
         Kernel/MainLoop.o\
         Kernel/Matcher.o\
         Kernel/MaximalLiteralSelector.o\

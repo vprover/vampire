@@ -69,13 +69,7 @@ const int TPTP::SIGMA = 103u;
 UnitList* TPTP::parse(istream& input)
 {
   Parse::TPTP parser(input);
-  try{
-    parser.parse();
-  }
-  catch (UserErrorException& exception) {
-    vstring msg = exception.msg();
-    throw ParseErrorException(msg,parser.lineNumber());
-  }
+  parser.parse();
   return parser.units();
 }
 
@@ -111,10 +105,11 @@ TPTP::~TPTP()
 
 void TPTP::parse()
 {
-  try{
+  try {
     parseImpl();
-  } catch (UserErrorException& exception) {
-    throw ParseErrorException(exception.msg(),lineNumber());
+  } catch (UserErrorException &e) {
+    e.line = lineNumber();
+    throw;
   }
 }
 
@@ -1345,7 +1340,7 @@ void TPTP::fof(bool fo)
   }
   else if (tp == "assumption" || tp == "unknown") {
     // MS: we were silently dropping these until now. I wonder why...
-    PARSE_ERROR((vstring)"Unsupported unit type '" + tp + "' found",start);
+    USER_ERROR("Unsupported unit type '", tp, "' found");
   }
   else {
     PARSE_ERROR((vstring)"unit type, such as axiom or definition expected but " + tp + " found",
@@ -1469,7 +1464,7 @@ void TPTP::tff()
   }
   else if (tp == "assumption" || tp == "unknown") {
     // MS: we were silently dropping these until now. I wonder why...
-    PARSE_ERROR((vstring)"Unsupported unit type '" + tp + "' found",start);
+    USER_ERROR("Unsupported unit type '", tp);
   }
   else if (tp == "claim") {
     _lastInputType = UnitInputType::CLAIM;
@@ -2345,18 +2340,18 @@ void TPTP::endLetTypes()
   unsigned arity = type->arity();
   bool isPredicate = type->isPredicateType();
 
-  unsigned symbol = isPredicate
+  unsigned functor = isPredicate
                   ? env.signature->addFreshPredicate(arity, name.c_str())
                   : env.signature->addFreshFunction(arity,  name.c_str());
+  Signature::Symbol *symbol = isPredicate
+    ? env.signature->getPredicate(functor)
+    : env.signature->getFunction(functor);
 
-  if (isPredicate) {
-    env.signature->getPredicate(symbol)->setType(type);
-  } else {
-    env.signature->getFunction(symbol)->setType(type);
-  }
+  symbol->setType(type);
+  symbol->markLetBound();
 
   LetSymbolName symbolName(name, arity);
-  LetSymbolReference symbolReference(symbol, isPredicate);
+  LetSymbolReference symbolReference(functor, isPredicate);
 
   LetSymbols scope = _letTypedSymbols.pop();
 
@@ -3180,7 +3175,7 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
     } else {
       _substScratchpad.reset();
       if(!_substScratchpad.match(sort, 0, tsSort, 1)) {
-        USER_ERROR("Failed to create predicate application for ", name, " of type ", type, "\n",
+        USER_ERROR("Failed to create predicate application for ", name, " of type ", type->toString(), "\n",
                    "The sort ", tsSort, " of the intended term argument ", ts, " (at index ", i, ") "
                    "is not an instance of sort ", sort);
       }

@@ -1054,14 +1054,9 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
   Inference inf(GeneratingInferenceMany(
     generalized ? InferenceRule::GEN_INDUCTION_HYPERRESOLUTION : InferenceRule::INDUCTION_HYPERRESOLUTION,
     premises));
-  Clause* res = new(newLength) Clause(newLength, inf);
+  RStack<Literal*> resLits;
 
-  unsigned next = 0;
-#if VDEBUG
-  unsigned cnt = next;
-#endif
-  for (unsigned i = 0; i < cl->length(); i++) {
-    Literal* curr=(*cl)[i];
+  for (Literal* curr : cl->iterLits()) {
     auto clit = SubstHelper::apply<Substitution>(Literal::complementaryLiteral(curr), subst);
     bool contains = false;
     for (const auto& kv : toResolve) {
@@ -1076,7 +1071,6 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
       }
     }
     if (!contains) {
-      ASS(next < newLength);
       Literal* resLit;
       if (applySubst) {
         TermReplacement tr(getContextReplacementMap(context, /*inverse=*/true));
@@ -1084,14 +1078,11 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
       } else {
         resLit = curr;
       }
-      (*res)[next] = renaming.apply(resLit,0);
-      next++;
+      resLits->push(renaming.apply(resLit,0));
     }
   }
-  ASS_EQ(next-cnt,cl->length()-toResolve.size());
 
   for (const auto& kv : toResolve) {
-    ASS(cnt = next);
     for (unsigned i = 0; i < kv.first->length(); i++) {
       bool copyCurr = true;
       for (const auto& lit : kv.second) {
@@ -1103,15 +1094,12 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
         }
       }
       if (copyCurr) {
-        (*res)[next] = renaming.apply((*kv.first)[i],1);
-        next++;
+        resLits->push(renaming.apply((*kv.first)[i],1));
       }
     }
-    ASS_EQ(next-cnt,kv.first->length()-kv.second.size());
   }
-  ASS_EQ(next,newLength);
 
-  return res;
+  return Clause::fromStack(*resLits, inf);
 }
 
 void InductionClauseIterator::resolveClauses(const ClauseStack& cls, const InductionContext& context, Substitution& subst, bool applySubst)

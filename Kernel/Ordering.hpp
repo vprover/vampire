@@ -41,6 +41,18 @@ namespace PredLevels {
 using namespace Shell;
 
 /**
+ * Class implementing runtime specialized ordering check between two terms.
+ * The comparator is created and called from inside the respective ordering
+ * object, but owned by the caller, so the destructor is exposed as virtual.
+ * See @b KBOComparator and @b LPOComparator for implementation details.
+ */
+struct OrderingComparator
+{
+  virtual ~OrderingComparator() = default;
+  virtual vstring toString() const = 0;
+};
+
+/**
  * An abstract class for simplification orderings
  * @since 30/04/2008 flight Brussels-Tel Aviv
  */
@@ -94,6 +106,10 @@ public:
    * under some substitutions captured by @b AppliedTerm. */
   [[deprecated("bla")]]
   virtual bool isGreater(AppliedTerm t1, AppliedTerm t2) const = 0;
+
+  /** Optimised function used for checking that @b lhs is greater than @b rhs,
+   * under substitution represented by @b applicator. */
+  virtual bool isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, OrderingComparatorUP& comparator) const = 0;
 
   virtual void show(std::ostream& out) const = 0;
 

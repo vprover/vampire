@@ -62,10 +62,6 @@
 
 #include "FMB/ModelCheck.hpp"
 
-#if CHECK_LEAKS
-#include "Lib/MemoryLeak.hpp"
-#endif
-
 using namespace std;
 
 /**
@@ -503,9 +499,11 @@ void clausifyMode(Problem* problem, bool theory)
   }
   if(!printed_conjecture && UIHelper::haveConjecture()){
     unsigned p = env.signature->addFreshPredicate(0,"p");
-    Clause* c = new(2) Clause(2,NonspecificInference0(UnitInputType::NEGATED_CONJECTURE,InferenceRule::INPUT));
-    (*c)[0] = Literal::create(p, /* polarity */ true , {});
-    (*c)[1] = Literal::create(p, /* polarity */ false, {});
+    auto c = Clause::fromLiterals({
+        Literal::create(p, /* polarity */ true , {}),
+        Literal::create(p, /* polarity */ false, {})
+      }, 
+      NonspecificInference0(UnitInputType::NEGATED_CONJECTURE,InferenceRule::INPUT));
     std::cout << TPTPPrinter::toString(c) << "\n";
   }
 
@@ -816,32 +814,20 @@ int main(int argc, char* argv[])
   catch (UserErrorException& exception) {
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
-#if CHECK_LEAKS
-    MemoryLeak::cancelReport();
-#endif
     explainException(exception);
   }
 catch (Parse::TPTP::ParseErrorException& exception) {
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
-#if CHECK_LEAKS
-    MemoryLeak::cancelReport();
-#endif
     explainException(exception);
   }
   catch (Exception& exception) {
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
-#if CHECK_LEAKS
-    MemoryLeak::cancelReport();
-#endif
     explainException(exception);
   } catch (std::bad_alloc& _) {
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
-#if CHECK_LEAKS
-    MemoryLeak::cancelReport();
-#endif
     std::cout << "Insufficient system memory" << '\n';
   }
 

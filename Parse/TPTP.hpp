@@ -312,7 +312,7 @@ public:
     ~ParseErrorException() {}
   protected:
     vstring _message;
-    unsigned _ln;
+    unsigned _ln = 0;
   }; // TPTP::ParseErrorException
 
 #define PARSE_ERROR(msg,tok) \

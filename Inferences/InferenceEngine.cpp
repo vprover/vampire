@@ -381,9 +381,8 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
   // there are duplicate literals, delete them from lits
   int newLength = length - skipped.length();
   // now lits[0 ... newLength-1] contain the remaining literals
-  Clause* d = new(newLength)
-		 Clause(newLength,
-			 SimplifyingInference1(InferenceRule::REMOVE_DUPLICATE_LITERALS,c));
+  Recycled<DArray<Literal*>> resLits;
+  resLits->ensure(newLength);
 
   int origIdx = length-1;
 
@@ -393,7 +392,7 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
       origIdx--;
       ASS_GE(origIdx,0);
     }
-    (*d)[newIdx] = (*c)[origIdx];
+    (*resLits)[newIdx] = (*c)[origIdx];
   }
   ASS(skipped.isEmpty());
   ASS_EQ(origIdx,-1);
@@ -412,7 +411,8 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
   }
 #endif
 
-  return d;
+  return Clause::fromArray(resLits->begin(), newLength,
+			 SimplifyingInference1(InferenceRule::REMOVE_DUPLICATE_LITERALS,c));
 }
 
 Clause* TautologyDeletionISE2::simplify(Clause* c)
@@ -509,14 +509,9 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
   }
 
   int newLength = length - found;
-  Clause* d = new(newLength) Clause(newLength,
-		            SimplifyingInference1(InferenceRule::TRIVIAL_INEQUALITY_REMOVAL,c));
-  for (int i = newLength-1;i >= 0;i--) {
-    (*d)[i] = lits[newLength-i-1];
-  }
   env.statistics->trivialInequalities += found;
-
-  return d;
+  return Clause::fromArray(lits.begin(), newLength,
+		            SimplifyingInference1(InferenceRule::TRIVIAL_INEQUALITY_REMOVAL,c));
 }
 
 Clause* SimplifyingGeneratingInference1::simplify(Clause* cl) 

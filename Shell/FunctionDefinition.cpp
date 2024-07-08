@@ -701,15 +701,14 @@ Clause* FunctionDefinition::applyDefinitions(Clause* cl)
   unsigned clen=cl->length();
 
   static Stack<Def*> usedDefs(8);
-  static Stack<Literal*> resLits(8);
+  RStack<Literal*> resLits;
   ASS(usedDefs.isEmpty());
-  resLits.reset();
 
   bool modified=false;
   for(unsigned i=0;i<clen;i++) {
     Literal* lit=(*cl)[i];
     Literal* rlit=static_cast<Literal*>(applyDefinitions(lit, &usedDefs));
-    resLits.push(rlit);
+    resLits->push(rlit);
     modified|= rlit!=lit;
   }
   if(!modified) {
@@ -723,13 +722,8 @@ Clause* FunctionDefinition::applyDefinitions(Clause* cl)
     UnitList::push(defCl, premises);
   }
   UnitList::push(cl, premises);
-  Clause* res = new(clen) Clause(clen, NonspecificInferenceMany(InferenceRule::DEFINITION_UNFOLDING, premises));
-  res->setAge(cl->age());
-
-  for(unsigned i=0;i<clen;i++) {
-    (*res)[i] = resLits[i];
-  }
-
+  auto res = Clause::fromStack(*resLits, NonspecificInferenceMany(InferenceRule::DEFINITION_UNFOLDING, premises));
+  res->setAge(cl->age()); // TODO isn't this dones automatically?
   return res;
 }
 

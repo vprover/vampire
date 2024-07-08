@@ -730,6 +730,21 @@ void Options::init()
     _lookup.insert(&_showSimplOrdering);
     _showSimplOrdering.tag(OptionTag::OUTPUT);
 
+#if VAMPIRE_CLAUSE_TRACING
+
+    _traceBackward = IntOptionValue("trace_bwd","",0);
+    _traceBackward.description = "The id of a clause you want to see all predecesors (unites used to derive the clause).";
+    _lookup.insert(&_traceBackward);
+    _traceBackward.tag(OptionTag::OUTPUT);
+
+    _traceForward = IntOptionValue("trace_fwd","",-1);
+    _traceForward.description = "The id of a clause you want to see all consequences of.";
+    _lookup.insert(&_traceForward);
+    _traceForward.tag(OptionTag::OUTPUT);
+
+#endif // VAMPIRE_CLAUSE_TRACING
+
+
     _manualClauseSelection = BoolOptionValue("manual_cs","",false);
     _manualClauseSelection.description="Run Vampire interactively by manually picking the clauses to be selected";
     _lookup.insert(&_manualClauseSelection);
@@ -1614,6 +1629,15 @@ void Options::init()
     _demodulationRedundancyCheck.onlyUsefulWith(ProperSaturationAlgorithm());
     _demodulationRedundancyCheck.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
     _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
+
+    _demodulationPrecompiledComparison = BoolOptionValue("demodulation_precompiled_comparison","dpc",false);
+    _demodulationPrecompiledComparison.description=
+       "Precompiles ordering constraints on unorientable demodulators which results in less overhead when actually comparing.";
+    _lookup.insert(&_demodulationPrecompiledComparison);
+    _demodulationPrecompiledComparison.tag(OptionTag::INFERENCES);
+    _demodulationPrecompiledComparison.onlyUsefulWith(ProperSaturationAlgorithm());
+    _demodulationPrecompiledComparison.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
+    _demodulationPrecompiledComparison.addProblemConstraint(hasEquality());
 
     _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","erape",false);
     _extensionalityAllowPosEq.description="If extensionality resolution equals filter, this dictates"
