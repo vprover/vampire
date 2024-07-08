@@ -137,5 +137,6 @@ std::ostream& operator<<(std::ostream& out, std::tuple<As...> const& self)
   return out;
 }
 
+namespace Kernel { using ::operator<<; }
 
 #endif // __Debug_Output_HPP__
