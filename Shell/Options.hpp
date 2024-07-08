@@ -66,6 +66,72 @@ using namespace Kernel;
 
 class Property;
 
+template<class T>
+struct OptionParser;
+
+#define NUMBER_OPTION_PARSER(num, parseFunction)                                          \
+  template<>                                                                              \
+  struct OptionParser<num> {                                                              \
+                                                                                          \
+    static Option<num> parse(vstring const& value) {                                      \
+      num out;                                                                            \
+      return someIf(parseFunction(value.c_str(),out), [&]() { return out; });             \
+    }                                                                                     \
+                                                                                          \
+    static vstring display(num value)                                                     \
+    { return Lib::Int::toString(value); }                                                 \
+  };                                                                                      \
+
+NUMBER_OPTION_PARSER(int, Int::stringToInt)
+NUMBER_OPTION_PARSER(long, Int::stringToLong)
+NUMBER_OPTION_PARSER(unsigned, Int::stringToUnsignedInt)
+NUMBER_OPTION_PARSER(float, Int::stringToFloat)
+
+template<>
+struct OptionParser<vstring> {
+  static Option<vstring> parse(vstring const& value) 
+  { return some(value == "<empty>" ? "" : vstring(value)); }
+
+  static vstring display(vstring const& value) 
+  { return value.empty() ? "<empty>" : value; }
+};
+
+
+/** For boolean options we use on/off rather than true/false */
+template<>
+struct OptionParser<bool> 
+{
+  static Option<bool> parse(vstring const& value) {
+    if (value == "on" || value == "true") {
+      return some(true);
+    } else if (value == "off" || value == "false") {
+      return some(false);
+    } else {
+      return {};
+    }
+  }
+  static vstring display(bool value) 
+  { return value ? "on" : "off"; }
+};
+
+template<class T>
+struct OptionParser<Option<T>> 
+{
+  static Option<Option<T>> parse(vstring const& value) {
+    if (value == "<nothing>") {
+      return some(Option<T>());
+    }
+    auto val = OptionParser<T>::parse(value);
+    if (val) {
+      return some(std::move(val));
+    } else {
+      return {};
+    }
+  }
+  static vstring display(Option<T> value) 
+  { return value ? OptionParser<T>::display(*value) : "<nothing>"; }
+};
+
 /**
  * Let us define a similarity measure for strings, used to compare option names 
  * 
@@ -839,7 +905,7 @@ private:
     typedef std::unique_ptr<AbstractWrappedConstraint> AbstractWrappedConstraintUP;
     struct OptionProblemConstraint;
     typedef std::unique_ptr<OptionProblemConstraint> OptionProblemConstraintUP;
-    
+
     /**
      * An AbstractOptionValue includes all the information and functionality that does not
      * depend on the type of the stored option. This is inherited by the templated OptionValue.
@@ -988,12 +1054,13 @@ private:
         
         // We store the defaultValue separately so that we can check if the actualValue is non-default
         T defaultValue;
+        // TODO make Option<T>
         T actualValue;
-        
+
         virtual bool isDefault() const { return defaultValue==actualValue;}
 
         // Getting the string versions of values, useful for output
-        virtual vstring getStringOfValue(T value) const{ ASSERTION_VIOLATION;}
+        virtual vstring getStringOfValue(T value) const = 0;
         virtual vstring getStringOfActual() const { return getStringOfValue(actualValue); }
         
         // Adding and checking constraints
@@ -1060,6 +1127,25 @@ private:
         Lib::Stack<OptionValueConstraintUP<T>> _constraints;
         Lib::Stack<OptionProblemConstraintUP> _prob_constraints;
     };
+
+    template<typename T>
+    struct CompositionalOptionValue : public OptionValue<T> {
+      using OptionValue<T>::OptionValue;
+
+      virtual bool setValue(const vstring& value) override 
+      {
+        auto res = OptionParser<T>::parse(value);
+        if (res.isSome()) {
+          this->actualValue = std::move(*res);
+        }
+        return res.isSome();
+      }
+
+      virtual vstring getStringOfValue(T value) const override
+      { return OptionParser<T>::display(value); }
+    };
+
+
     
     /**
      * We now define particular OptionValues, see NOTE on OptionValues for high level usage
@@ -1125,80 +1211,20 @@ private:
         OptionChoiceValues choices;
     };
 
-
-    /**
-     * For Booleans - we use on/off rather than true/false
-     * @author Giles
-     */
-    struct BoolOptionValue : public OptionValue<bool> {
-        BoolOptionValue(){}
-        BoolOptionValue(vstring l,vstring s, bool d) : OptionValue(l,s,d){}
-        bool setValue(const vstring& value){
-            if (! value.compare("on") || ! value.compare("true")) {
-                actualValue=true;
-                
-            }
-            else if (! value.compare("off") || ! value.compare("false")) {
-                actualValue=false;
-            }
-            else return false;
-            
-            return true;
-        }
-        
-        vstring getStringOfValue(bool value) const { return (value ? "on" : "off"); }
-    };
-
-    struct IntOptionValue : public OptionValue<int> {
-        IntOptionValue(){}
-        IntOptionValue(vstring l,vstring s, int d) : OptionValue(l,s,d){}
-        bool setValue(const vstring& value){
-            return Int::stringToInt(value.c_str(),actualValue);
-        }
-        vstring getStringOfValue(int value) const{ return Lib::Int::toString(value); }
+    // TODO remove this type alias?
+    using IntOptionValue = CompositionalOptionValue<int>;
+    using BoolOptionValue = CompositionalOptionValue<bool>;
+    using FloatOptionValue = CompositionalOptionValue<float>;
+    using LongOptionValue = CompositionalOptionValue<long>;
+    using UnsignedOptionValue = CompositionalOptionValue<unsigned>;
+    using StringOptionValue = CompositionalOptionValue<vstring>;
+    
+    template<class T>
+    struct OptionalOptionValue : public CompositionalOptionValue<Option<T>> {
+        OptionalOptionValue(){}
+        OptionalOptionValue(vstring l, vstring s) : CompositionalOptionValue<Option<T>>(l,s,Option<T>()){}
     };
     
-    struct UnsignedOptionValue : public OptionValue<unsigned> {
-        UnsignedOptionValue(){}
-        UnsignedOptionValue(vstring l,vstring s, unsigned d) : OptionValue(l,s,d){}
-
-        bool setValue(const vstring& value){
-            return Int::stringToUnsignedInt(value.c_str(),actualValue);
-        }
-        vstring getStringOfValue(unsigned value) const{ return Lib::Int::toString(value); }
-    };
-    
-    struct StringOptionValue : public OptionValue<vstring> {
-        StringOptionValue(){}
-        StringOptionValue(vstring l,vstring s, vstring d) : OptionValue(l,s,d){}
-        bool setValue(const vstring& value){
-            actualValue = (value=="<empty>") ? "" : value;
-            return true;
-        }
-        vstring getStringOfValue(vstring value) const{
-            if(value.empty()) return "<empty>";
-            return value;
-        }
-    };
-    
-    struct LongOptionValue : public OptionValue<long> {
-        LongOptionValue(){}
-        LongOptionValue(vstring l,vstring s, long d) : OptionValue(l,s,d){}
-        bool setValue(const vstring& value){
-            return Int::stringToLong(value.c_str(),actualValue);
-        }
-        vstring getStringOfValue(long value) const{ return Lib::Int::toString(value); }
-    };
-    
-struct FloatOptionValue : public OptionValue<float>{
-FloatOptionValue(){}
-FloatOptionValue(vstring l,vstring s, float d) : OptionValue(l,s,d){}
-bool setValue(const vstring& value){
-    return Int::stringToFloat(value.c_str(),actualValue);
-}
-vstring getStringOfValue(float value) const{ return Lib::Int::toString(value); }
-};
-
 /**
 * Ratios have two actual values and two default values
 * Therefore, we often need to tread them specially
@@ -2030,8 +2056,8 @@ public:
   bool showInduction() const { return showAll() || _showInduction.actualValue; }
   bool showSimplOrdering() const { return showAll() || _showSimplOrdering.actualValue; }
 #if VAMPIRE_CLAUSE_TRACING
-  int traceBackward() { return _traceBackward.actualValue; }
-  int traceForward() { return _traceForward.actualValue; }
+  auto traceBwd() { return _traceBwd.actualValue; }
+  auto traceFwd() { return _traceFwd.actualValue; }
 #endif // VAMPIRE_CLAUSE_TRACING
 
 #if VZ3
@@ -2633,9 +2659,8 @@ private:
   BoolOptionValue _showInduction;
   BoolOptionValue _showSimplOrdering;
 #if VAMPIRE_CLAUSE_TRACING
-  // TODO make unsigned option value
-  IntOptionValue _traceBackward;
-  IntOptionValue _traceForward;
+  OptionalOptionValue<unsigned> _traceBwd;
+  OptionalOptionValue<unsigned> _traceFwd;
 #endif // VAMPIRE_CLAUSE_TRACING
 #if VZ3
   BoolOptionValue _showZ3;

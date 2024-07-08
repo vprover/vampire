@@ -724,15 +724,15 @@ void Options::init()
 
 #if VAMPIRE_CLAUSE_TRACING
 
-    _traceBackward = IntOptionValue("trace_bwd","",0);
-    _traceBackward.description = "The id of a clause you want to see all predecesors (unites used to derive the clause).";
-    _lookup.insert(&_traceBackward);
-    _traceBackward.tag(OptionTag::OUTPUT);
+    _traceBwd = OptionalOptionValue<unsigned>("trace_bwd","");
+    _traceBwd.description = "The id of a clause you want to see all predecesors (unites used to derive the clause).";
+    _lookup.insert(&_traceBwd);
+    _traceBwd.tag(OptionTag::OUTPUT);
 
-    _traceForward = IntOptionValue("trace_fwd","",-1);
-    _traceForward.description = "The id of a clause you want to see all consequences of.";
-    _lookup.insert(&_traceForward);
-    _traceForward.tag(OptionTag::OUTPUT);
+    _traceFwd = OptionalOptionValue<unsigned>("trace_fwd","");
+    _traceFwd.description = "The id of a clause you want to see all consequences of.";
+    _lookup.insert(&_traceFwd);
+    _traceFwd.tag(OptionTag::OUTPUT);
 
 #endif // VAMPIRE_CLAUSE_TRACING
 
