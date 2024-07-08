@@ -34,6 +34,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/MainLoop.hpp"
 
+#include "Shell/InstanceRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/Shuffling.hpp"
@@ -1512,20 +1513,10 @@ bool Splitter::allSplitLevelsActive(SplitSet* s)
 
 void Splitter::onNewClause(Clause* cl)
 {
-  //For now just record if cl is in the variant index
-  // i.e. is a component
-  //TODO - if it is then
-  // (a) if it is true it can be immediately frozen
-  // (b) if it is false it can be immediately passed to the SAT
-  //      solver and kill the current model
-  //bool isComponent = false;
-  //{
-  //  //TODO - would it be better to use tryGetExistingComponent here?
-  //  isComponent = _componentIdx->retrieveVariants(cl).hasNext();
-  //}
-  //if(isComponent){
-  //  RSTAT_CTR_INC("New Clause is a Component");
-  //}
+  // when using AVATAR, we could have performed
+  // generating inferences on the clause previously,
+  // so we need to reset the data.
+  InstanceRedundancyHandler::destroyClauseData(cl);
 
   if (cl->inference().rule() == InferenceRule::AVATAR_ASSERTION_REINTRODUCTION) {
     // Do not assign splits from premises if cl originated by re-introducing AVATAR assertions (avoids looping)

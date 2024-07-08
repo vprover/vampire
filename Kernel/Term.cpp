@@ -616,8 +616,8 @@ vstring TermList::asArgsToString() const
       continue;
     }
     const Term* t = ts->term();
-  
-    if(!(t->isSort() && static_cast<AtomicSort*>(const_cast<Term*>(t))->isArrowSort())){
+
+    if(t->isSort() && static_cast<AtomicSort*>(const_cast<Term*>(t))->isArrowSort()){
       res += t->toString();
       continue;
     }
@@ -666,7 +666,7 @@ vstring Term::toString(bool topLevel) const
       vstring res;
       TermList arg1 = *(nthArgument(0));
       TermList arg2 = *(nthArgument(1));
-      res += topLevel ? "" : "("; 
+      res += topLevel ? "" : "(";
       res += arg1.toString(false) + " > " + arg2.toString();
       res += topLevel ? "" : ")";
       return res;

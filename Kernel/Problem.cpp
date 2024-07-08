@@ -53,7 +53,7 @@ Problem::Problem(UnitList* units)
  * clauses in the iterator.
  */
 Problem::Problem(ClauseIterator clauses, bool copy)
-: _units(0), _property(0)
+: _units(0), _fnDefHandler(new FunctionDefinitionHandler()), _property(0)
 {
   initValues();
 
