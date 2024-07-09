@@ -202,6 +202,9 @@ public:
     friend bool operator==(Top const& l, Top const& r) { return l._inner == r._inner; }
     friend bool operator!=(Top const& l, Top const& r) { return      !(l == r);       }
     void output(std::ostream& out) const;
+
+    friend std::ostream& operator<<(std::ostream& out, Kernel::TermList::Top const& self)
+    { self.output(out); return out; }
   };
 
   /* returns the Top of a function (a variable id, or a function symbol depending on whether the term is a variable or a complex term) */
@@ -1219,9 +1222,6 @@ bool positionIn(TermList& subterm,TermList* term, vstring& position);
 bool positionIn(TermList& subterm,Term* term, vstring& position);
 
 } // namespace Kernel
-
-inline std::ostream& operator<<(std::ostream& out, Kernel::TermList::Top const& self)
-{ self.output(out); return out; }
 
 template<>
 struct std::hash<Kernel::TermList> {
