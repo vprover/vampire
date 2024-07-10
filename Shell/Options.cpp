@@ -42,7 +42,6 @@
 #include "Lib/VString.hpp"
 #include "Lib/StringUtils.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Timer.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Random.hpp"

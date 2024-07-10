@@ -378,10 +378,6 @@ void spiderMode(Problem* problem)
   env.options->setBadOptionChoice(Options::BadOption::HARD);
   env.options->setOutputMode(Options::Output::SPIDER);
   env.options->setNormalize(true);
-  // to start counting instructions
-#if VAMPIRE_PERF_EXISTS
-  Timer::ensureTimerInitialized();
-#endif
 
   Exception* exception = 0;
 #if VZ3
@@ -545,7 +541,6 @@ void axiomSelectionMode(Problem* problem)
 
 void dispatchByMode(Problem* problem)
 {
-  Timer::instance()->start();
   switch (env.options->mode())
   {
   case Options::Mode::AXIOM_SELECTION:
@@ -783,6 +778,9 @@ int main(int argc, char* argv[])
       opts.output(std::cout);
       exit(0);
     }
+
+    // can only happen after reading options as it relies on `env.options`
+    Timer::reinitialise();
 
     Lib::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
 

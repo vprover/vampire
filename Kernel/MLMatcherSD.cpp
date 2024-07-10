@@ -741,8 +741,6 @@ class MLMatcherSD::Impl final
     DArray<pair<int,int> > s_intersectionData;
 
     MatchingData s_matchingData;
-
-    int s_counter;
 };
 
 
@@ -889,8 +887,6 @@ void MLMatcherSD::Impl::init(Literal** baseLits, unsigned baseLen, Clause* insta
     std::cerr << "\tinstance: " << instance->toString() << std::endl;
 #endif
   initMatchingData(baseLits, baseLen, instance, alts);
-
-  s_counter = 0;
 }
 
 
@@ -1058,16 +1054,6 @@ bool MLMatcherSD::Impl::nextMatch()
       if (!md->backtrack()) {
         // Conflict at decision level 0 => no more matches possible!
         return false;
-      }
-    }
-
-    // Ensure vampire exits timely in pathological cases instead of appearing to be stuck
-    s_counter++;
-    if(s_counter==50000) {
-      // std::cerr << "counter reached 50k" << std::endl;
-      s_counter=0;
-      if(env.timeLimitReached()) {
-        throw TimeLimitExceededException();
       }
     }
   } // while (true)

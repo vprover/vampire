@@ -601,14 +601,6 @@ void SaturationAlgorithm::passiveRemovedHandler(Clause* cl)
 }
 
 /**
- * Return time spent by the run of the saturation algorithm
- */
-int SaturationAlgorithm::elapsedTime()
-{
-  return env.timer->elapsedMilliseconds()-_startTime;
-}
-
-/**
  * Add input clause @b cl into the SaturationAlgorithm object
  *
  * The clause @b cl is added into the unprocessed container, unless the
@@ -755,8 +747,8 @@ void SaturationAlgorithm::init()
     _symEl->init(this);
   }
 
-  _startTime=env.timer->elapsedMilliseconds();
-  _startInstrs=env.timer->elapsedMegaInstructions();
+  _startTime=Timer::elapsedMilliseconds();
+  _startInstrs=Timer::elapsedMegaInstructions();
 }
 
 Clause* SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
@@ -888,8 +880,6 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 {
   _generatedClauseCount++;
   env.statistics->generatedClauses++;
-
-  env.checkTimeSometime<64>();
 
   cl=doImmediateSimplification(cl);
   if (!cl) {
@@ -1267,10 +1257,6 @@ start:
     }
 
     newClausesToUnprocessed();
-
-    if (env.timeLimitReached()) {
-      throw TimeLimitExceededException();
-    }
   }
 
   ASS(clausesFlushed());
@@ -1374,12 +1360,6 @@ MainLoopResult SaturationAlgorithm::runImpl()
       }
 
       doOneAlgorithmStep();
-
-      Timer::syncClock();
-      if (env.timeLimitReached()) {
-        throw TimeLimitExceededException();
-      }
-
       env.statistics->activations = l;
     }
   }

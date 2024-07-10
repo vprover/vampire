@@ -1601,9 +1601,6 @@ MainLoopResult FiniteModelBuilder::runImpl()
       }
       cout << "]" << endl;
     }
-    Timer::syncClock();
-    if(env.timeLimitReached()){ return MainLoopResult(Statistics::TIME_LIMIT); }
-
     {
     TIME_TRACE("fmb constraint creation");
 

@@ -53,7 +53,6 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/STL.hpp"
-#include "Lib/Timer.hpp"
 
 #include "Property.hpp"
 

@@ -109,11 +109,11 @@ bool PortfolioMode::perform(Problem* problem)
   if (outputAllowed()) {
     if (resValue) {
       addCommentSignForSZS(cout);
-      cout<<"Success in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
+      cout<<"Success in time "<<Timer::msToSecondsString(Timer::elapsedMilliseconds())<<endl;
     }
     else {
       addCommentSignForSZS(cout);
-      cout<<"Proof not found in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
+      cout<<"Proof not found in time "<<Timer::msToSecondsString(Timer::elapsedMilliseconds())<<endl;
       if (env.remainingTime()/100>0) {
         addCommentSignForSZS(cout);
         cout<<"SZS status GaveUp for "<<env.options->problemName()<<endl;
@@ -439,7 +439,7 @@ bool PortfolioMode::runSchedule(Schedule schedule) {
   Set<pid_t> processes;
   bool success = false;
   int remainingTime;
-  while(Timer::syncClock(), remainingTime = env.remainingTime() / 100, remainingTime > 0)
+  while(remainingTime = env.remainingTime() / 100, remainingTime > 0)
   {
     // running under capacity, wake up more tasks
     while(processes.size() < _numWorkers)
@@ -632,12 +632,7 @@ void PortfolioMode::runSlice(Options& strategyOpt)
 {
   System::registerForSIGHUPOnParentDeath();
   UIHelper::portfolioParent=false;
-
-  env.timer->reset();
-  env.timer->start();
-
-  Timer::resetInstructionMeasuring();
-  Timer::setLimitEnforcement(true);
+  Timer::reinitialise();
 
   Options opt = strategyOpt;
   //we have already performed the normalization (or don't care about it)

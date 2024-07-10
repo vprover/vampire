@@ -96,7 +96,7 @@ long long LRS::estimatedReachableCount()
   }
 #endif
 
-  int currTime=env.timer->elapsedMilliseconds();
+  int currTime=Timer::elapsedMilliseconds();
   // time spent in saturation (preprocessing is excluded)
   long long timeSpent=currTime-_startTime; // (in milliseconds) 
   int opt_timeLimitDeci = _opt.timeLimitInDeciseconds();
@@ -110,7 +110,7 @@ long long LRS::estimatedReachableCount()
     : _opt.instructionLimit();
 #endif
 
-  long int instrsBurned = env.timer->elapsedMegaInstructions();
+  long int instrsBurned = Timer::elapsedMegaInstructions();
 
   long long result = -1;
 

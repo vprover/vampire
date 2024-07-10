@@ -155,7 +155,6 @@ protected:
   /** called before the selected clause is deleted from the searchspace */
   virtual void beforeSelectedRemoved(Clause* cl) {};
   void onAllProcessed();
-  int elapsedTime();
   virtual bool isComplete();
 
 private:

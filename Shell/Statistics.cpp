@@ -460,7 +460,7 @@ void Statistics::print(ostream& out)
 
   addCommentSignForSZS(out);
   out << "Time elapsed: ";
-  Timer::printMSString(out,env.timer->elapsedMilliseconds());
+  Timer::printMSString(out,Timer::elapsedMilliseconds());
   out << endl;
   
   Timer::updateInstructionCount();
