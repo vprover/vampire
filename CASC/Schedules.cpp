@@ -14,6 +14,15 @@
  * @author Martin Suda
  */
 
+/* this translation unit causes the optimiser to take a very long time,
+ * but it's not really performance-critical code:
+ * disable optimisation for this file with various compilers */
+#if defined(__clang__)
+#pragma clang optimize off
+#elif defined(__GNUC__)
+#pragma GCC optimize 0
+#endif
+
 #include "Schedules.hpp"
 
 #include "Shell/Options.hpp"
@@ -6146,3 +6155,1107 @@ void Schedules::getCasc2023Schedule(const Property& property, Schedule& quick, S
     break;
   }
 } // getCasc2023Schedule
+
+void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, Schedule& fallback)
+{
+  unsigned atoms = property.atoms();
+  Property::Category cat = property.category();
+  unsigned long props = property.props();
+
+  if (property.hasNumerals() || property.hasInterpretedOperations()) {
+    // The TFA division: Typed (monomorphic) First-order with Arithmetic theorems (axioms with a provable conjecture).
+
+    getSnakeTptpUnsSchedule(property,quick);
+
+  } else if (cat == Property::Category::UEQ) {
+    // The UEQ division: Unit EQuality clause normal form theo rems (unsatisfiable clause sets)
+
+    auto [propZsmall10,propZbig10,propNZsmall14,propNZbig14] = (props == 0) ?
+        (atoms <= 10 ? std::tie(quick,fallback,fallback,fallback) : std::tie(fallback,quick,fallback,fallback)) :
+        (atoms <= 14 ? std::tie(fallback,fallback,quick,fallback) : std::tie(fallback,fallback,fallback,quick));
+
+    propZsmall10.push("ott+10_4:13_drc=encompass:sil=256000:bsd=on:sp=reverse_frequency:urr=on:i=125345:rawr=on_0");
+    propZsmall10.push("lrs+10_25:89_sil=256000:tgt=ground:lwlo=on:s2a=on:i=224446:s2at=5.0:fsr=off:awrs=converge:awrsf=90_0");
+
+    propZsmall10.push("lrs+10_1:1_to=lpo:drc=encompass:sil=2000:fde=unused:sp=const_min:i=107:bs=unit_only:bd=preordered:ins=1:rawr=on:irc=lazy:sfv=off:plsq=on:plsql=on:plsqc=1_0");
+    propZsmall10.push("lrs+10_1:32_drc=encompass:sil=256000:i=140:irc=lazy_0");
+    propZsmall10.push("lrs+10_85441:1048576_drc=encompass:sil=64000:i=401:awrs=converge:sp=reverse_frequency:dpc=on:bd=preordered:fsr=off:ss=included:st=3.0:fde=none_0");
+    propZsmall10.push("dis+10_1:128_drc=encompass:sil=256000:sp=occurrence:i=1122:kws=precedence:fsr=off_0");
+    propZsmall10.push("dis+10_1:24_drc=encompass:sil=256000:tgt=ground:spb=goal:i=313:bd=preordered:irc=eager_0");
+    propZsmall10.push("dis+10_1:9_bsr=unit_only:slsqr=31,32:sil=256000:tgt=full:urr=on:slsqc=2:slsq=on:i=1149:s2at=5.0:slsql=off:ins=1:rawr=on:fd=preordered:drc=encompass_0");
+    propZsmall10.push("lrs+10_1:10_drc=encompass:sil=2000:tgt=ground:plsq=on:plsqr=92626939,1048576:sp=occurrence:fd=preordered:i=1914:kws=precedence:ins=8:rawr=on_0");
+    propZsmall10.push("lrs+10_16:1_bsr=on:drc=encompass:sil=64000:i=281:bd=off:to=lpo_0");
+    propZsmall10.push("lrs+10_1:64_drc=encompass:sil=2000:fde=none:sp=reverse_arity:s2a=on:i=1826:ins=2:dpc=on:awrs=decay:awrsf=200_0");
+    propZsmall10.push("dis+10_1:1024_slsqr=7,2:to=lpo:sil=256000:tgt=full:s2agt=8:slsqc=1:slsq=on:s2a=on:i=807:rawr=on_0");
+    propZsmall10.push("dis+10_1:14_bsr=unit_only:to=lpo:drc=encompass:sil=256000:tgt=ground:urr=on:slsq=on:i=519:awrs=converge:awrsf=50:rawr=on:fsr=off_0");
+    propZsmall10.push("lrs+10_1:1_to=lpo:drc=encompass:sil=8000:tgt=full:sp=const_frequency:i=525:lwlo=on:nwc=10.0_0");
+    propZsmall10.push("lrs+10_1:32_drc=encompass:sil=256000:tgt=ground:sp=reverse_frequency:s2a=on:i=4287:s2at=5.0:kws=precedence_0");
+    propZsmall10.push("lrs+10_1:1024_sil=2000:tgt=ground:plsq=on:sp=frequency:s2a=on:i=1997:kws=precedence:rawr=on:bd=off:awrs=converge:awrsf=10:ins=2_0");
+    propZsmall10.push("dis+10_1:3_to=lpo:drc=encompass:sil=256000:tgt=ground:i=637:fsr=off_0");
+    propZsmall10.push("lrs+10_1:512_sil=4000:tgt=ground:sp=reverse_frequency:s2a=on:i=702:bs=unit_only:bd=off:ss=axioms:rawr=on:slsq=on:slsqc=3:slsqr=19,8_0");
+    propZsmall10.push("lrs+10_1:4_drc=encompass:sil=16000:lwlo=on:st=-1.0:i=6272:ss=axioms_0");
+    propZsmall10.push("lrs+10_1:10_drc=encompass:sil=16000:tgt=ground:plsq=on:fd=preordered:i=10171:bd=preordered:ins=1:rawr=on:ss=axioms:sgt=16_0");
+    propZsmall10.push("lrs+10_7:24_to=lpo:drc=encompass:sil=128000:fde=unused:sp=const_min:spb=goal:i=1061:irc=lazy:slsq=on:fdi=256:nwc=10.0:dpc=on:ss=included:st=2.0_0");
+    propZsmall10.push("lrs+10_1:14_slsqr=3,4:drc=encompass:sil=4000:tgt=ground:sp=const_max:s2agt=16:slsqc=3:slsq=on:i=1157:kws=precedence:slsql=off:irc=lazy:rawr=on_0");
+    propZsmall10.push("lrs+10_25:999_drc=encompass:sil=256000:tgt=full:spb=intro:i=1382:kws=precedence:awrs=converge:awrsf=53:irc=eager:bd=off:bs=unit_only_0");
+    propZsmall10.push("ott+10_21691:1048576_drc=encompass:sil=256000:tgt=ground:sims=off:sp=occurrence:spb=goal_then_units:fd=preordered:i=2271:kws=precedence:av=off:fsr=off:uhcvi=on:fsd=on:fsdmm=2:slsq=on:slsql=off:slsqc=1:slsqr=320859,1048576:s2at=3.0:irc=lazy:rawr=on:ss=axioms:sd=2_0");
+    propZsmall10.push("lrs+10_1:128_drc=encompass:sil=256000:tgt=full:sp=unary_frequency:spb=non_intro:i=2392:kws=precedence:irc=eager_0");
+    propZsmall10.push("ott+10_1:128_drc=encompass:sil=256000:plsq=on:s2a=on:i=2544:kws=precedence:dpc=on:bd=preordered:ss=axioms_0");
+    propZsmall10.push("lrs+10_1:40_drc=encompass:sil=256000:tgt=full:sp=unary_frequency:spb=goal_then_units:i=5255:kws=frequency:rawr=on:irc=eager:fd=preordered_0");
+    propZsmall10.push("ott+10_2:5_bsr=unit_only:to=lpo:drc=encompass:sil=256000:sp=reverse_frequency:i=2866:ins=1:dpc=on:rawr=on_0");
+    propZsmall10.push("dis+10_1:1024_slsqr=5,2:sil=256000:tgt=ground:urr=on:slsqc=2:slsq=on:i=3253:ins=1:irc=lazy:rawr=on_0");
+    propZsmall10.push("lrs+10_1:1024_slsqr=1,4:drc=encompass:sil=256000:tgt=full:sp=reverse_frequency:slsqc=4:slsq=on:s2a=on:i=7906:bd=off:irc=eager:ss=axioms:rawr=on:st=3.0:awrs=converge:foolp=on_0");
+    propZsmall10.push("ott+10_1:10_drc=encompass:sil=256000:sp=reverse_frequency:fd=preordered:i=4168:ins=2:bd=off:ss=axioms_0");
+    propZsmall10.push("lrs+10_1:6_drc=encompass:sil=32000:tgt=ground:s2agt=8:s2a=on:i=8705_0");
+    propZsmall10.push("dis+10_1:16_sil=256000:i=5821:bs=unit_only:rawr=on:plsq=on:to=lpo_0");
+    propZsmall10.push("dis+10_8125:131072_drc=encompass:sil=256000:tgt=full:sp=occurrence:lma=on:fd=preordered:i=14311:kws=precedence:doe=on:awrs=decay:awrsf=50:dpc=on:uhcvi=on:ss=axioms:irc=lazy_0");
+    propZsmall10.push("ott+10_1:1_drc=encompass:sil=256000:plsq=on:fd=preordered:st=5.0:s2a=on:i=35818:ins=1:ss=axioms:rawr=on_0");
+    propZsmall10.push("lrs+10_1:1_drc=encompass:sil=16000:fd=preordered:i=9154:bs=on:irc=lazy_0");
+    propZsmall10.push("lrs+10_1:16_drc=encompass:sil=16000:tgt=full:lwlo=on:s2pl=no:i=10003:av=off:rawr=on_0");
+    propZsmall10.push("ott+10_10:3_sil=256000:fde=unused:sp=frequency:spb=goal:i=11196:bs=on:kws=precedence:ins=1:dpc=on:rawr=on:nwc=3.0:drc=encompass_0");
+    propZsmall10.push("lrs+10_1:1_drc=encompass:sil=256000:tgt=ground:sp=unary_first:sos=on:i=36276:kws=precedence:lwlo=on:irc=lazy_0");
+    propZsmall10.push("lrs+10_13:1_bsr=on:drc=encompass:sil=64000:fd=preordered:i=12509:bd=off:irc=lazy_0");
+    propZsmall10.push("lrs+10_3:14_drc=encompass:sil=128000:sp=const_frequency:spb=goal:lwlo=on:i=27445:kws=precedence:irc=lazy:nwc=5.0:awrs=decay:awrsf=255:s2pl=no:s2agt=32:fsd=on:fsr=off:lma=on_0");
+    propZsmall10.push("lrs+10_1:1024_sil=256000:lwlo=on:i=31665:kws=precedence:awrs=converge:awrsf=240:drc=encompass:fd=preordered:tgt=ground_0");
+    propZsmall10.push("dis+10_1:256_to=lpo:drc=encompass:sil=256000:spb=goal:fd=preordered:i=18386:irc=eager:bs=unit_only_0");
+    propZsmall10.push("dis+10_1:20_drc=encompass:sil=256000:tgt=full:sp=reverse_frequency:spb=intro:fd=preordered:i=22321:kws=precedence:irc=eager:ins=1_0");
+    propZsmall10.push("dis+10_1:166_drc=encompass:sil=256000:tgt=full:i=26531:fsr=off:spb=non_intro:dpc=on:to=lpo:rawr=on_0");
+    propZsmall10.push("ott+10_1:4_drc=encompass:sil=256000:st=3.0:i=32454:ss=axioms:dpc=on:bd=preordered:slsq=on:slsqc=1:slsqr=1,2_0");
+    propZsmall10.push("lrs+10_3:58_drc=encompass:sil=256000:tgt=full:bsd=on:sp=reverse_arity:lwlo=on:s2a=on:i=157761:s2at=2.0:kws=precedence:bsr=on:irw=on:dpc=on:doe=on:bs=on:br=off:erd=off:s2agt=20:nwc=8.95214440448525:cond=fast:foolp=on:spb=non_intro:sfv=off:irc=lazy:fde=unused:ins=3_0");
+    propZsmall10.push("lrs+10_1:6_drc=encompass:sil=256000:tgt=full:spb=non_intro:i=82574:ins=2:irc=eager:ss=included:bd=preordered_0");
+
+    propZsmall10.push("lrs+10_1:16_drc=encompass:sil=256000:tgt=full:spb=intro:i=58527:kws=precedence:awrs=converge:awrsf=200:ss=axioms:irc=eager:st=3.0:sp=unary_first_0");
+    propZsmall10.push("lrs+10_1:12_drc=encompass:sil=256000:tgt=full:spb=intro:i=72339:kws=precedence:awrs=converge:awrsf=500:irc=lazy_0");
+    propZsmall10.push("ott+10_11413117:1048576_drc=encompass:sil=256000:tgt=ground:fde=unused:plsqc=2:plsq=on:plsqr=1149513,1048576:sp=occurrence:nwc=9.10417:i=125323:kws=precedence:doe=on:awrs=converge:awrsf=286:bd=off:dpc=on:irc=eager:uhcvi=on:rawr=on:ss=included:st=2.0_0");
+    propZsmall10.push("lrs+10_54503:1048576_drc=encompass:sil=256000:tgt=ground:bsd=on:sp=reverse_frequency:lwlo=on:st=3.5:s2a=on:i=174981:s2at=5.5:kws=precedence:ss=included:sgt=50:bsr=unit_only:irw=on:dpc=on:uhcvi=on:doe=on:bs=on:br=off:erd=off_0");
+    // total_instr 1391316
+    // len(covered) 365
+
+
+    propZbig10.push("lrs+10_1:12_drc=encompass:sil=256000:tgt=full:spb=intro:i=116130:kws=precedence:awrs=converge:awrsf=500:irc=lazy_0");
+    propZbig10.push("dis+10_5:2_drc=encompass:sil=256000:tgt=ground:sp=reverse_frequency:sos=all:i=207332:bd=off:fsr=off:dpc=on_0");
+
+    propZbig10.push("lrs+10_1:64_drc=encompass:sil=2000:i=105:plsq=on:ss=axioms_0");
+    propZbig10.push("lrs+10_3:4_to=lpo:drc=encompass:sil=4000:sp=reverse_frequency:i=126:ss=axioms:sgt=16:s2a=on:s2at=3.0:irc=lazy:bd=off_0");
+    propZbig10.push("ott+10_2:5_bsr=unit_only:to=lpo:drc=encompass:sil=256000:sp=reverse_frequency:i=150:ins=1:dpc=on:rawr=on_0");
+    propZbig10.push("lrs+10_1:8_drc=encompass:sil=16000:tgt=ground:i=123:bd=preordered:ss=axioms_0");
+    propZbig10.push("lrs+10_1:1_drc=encompass:sil=4000:i=209:ss=axioms:sgt=8:sp=occurrence_0");
+    propZbig10.push("lrs+10_1:4_drc=encompass:sil=16000:tgt=ground:lwlo=on:s2a=on:i=192:s2at=2.0_0");
+    propZbig10.push("lrs+10_1:7_drc=encompass:sil=64000:tgt=full:spb=non_intro:i=454:awrs=converge:awrsf=67:sp=reverse_frequency:nwc=1.5_0");
+    propZbig10.push("lrs+10_1:2_sil=2000:tgt=ground:spb=goal:i=359:kws=precedence:irc=eager_0");
+    propZbig10.push("lrs+10_1:1_sil=4000:sp=occurrence:i=163:ss=axioms:st=3.0:sd=2_0");
+    propZbig10.push("lrs+10_1:1024_drc=encompass:sil=4000:tgt=full:i=1030:kws=inv_frequency:awrs=converge_0");
+    propZbig10.push("lrs+10_3:1_sil=4000:tgt=ground:i=631:kws=frequency:bd=off:drc=encompass:irc=lazy_0");
+    propZbig10.push("lrs+10_1:3_to=lpo:drc=encompass:sil=4000:tgt=full:i=901:rawr=on:ins=4:bd=off:fd=preordered_0");
+    propZbig10.push("lrs+10_1:24_drc=encompass:sil=256000:tgt=full:sp=unary_frequency:spb=non_intro:i=312:ins=2:fsr=off:kws=precedence:irc=eager:bsr=unit_only:br=off:ss=included:sgt=16:bd=preordered_0");
+    propZbig10.push("lrs+10_1:1_drc=encompass:sil=2000:slsq=on:s2a=on:i=1363:s2at=7.0_0");
+    propZbig10.push("ott+10_8:1_drc=encompass:sil=256000:i=471:rawr=on:irc=lazy_0");
+    propZbig10.push("lrs+10_1:4_drc=encompass:sil=4000:tgt=full:sp=reverse_arity:st=-1.0:i=2897:kws=precedence:ss=included:lwlo=on:rawr=on:bd=off:urr=on:bsd=on_0");
+    propZbig10.push("lrs+10_1:12_sil=2000:tgt=full:sp=reverse_frequency:i=569:kws=inv_frequency:bd=off:fsr=off:rawr=on:awrs=converge_0");
+    propZbig10.push("lrs+10_1:1_drc=encompass:sil=2000:st=5.0:s2a=on:i=577:s2at=5.0:sd=1:bd=preordered:irc=lazy:ss=axioms:sgt=10_0");
+    propZbig10.push("lrs+10_8:1_drc=encompass:sil=4000:tgt=ground:spb=non_intro:i=843:bd=off:irc=lazy_0");
+    propZbig10.push("lrs+10_1:1_drc=encompass:sil=2000:tgt=ground:st=5.0:i=1015:bd=off:ss=axioms_0");
+    propZbig10.push("lrs+10_15:26_drc=encompass:sil=16000:i=4402:ins=4:irc=lazy_0");
+    propZbig10.push("lrs+10_16:1_to=lpo:sil=32000:urr=ec_only:fd=preordered:nwc=10.0:i=1315:bd=off:irc=lazy:drc=encompass_0");
+    propZbig10.push("lrs+10_8:1_drc=encompass:sil=256000:st=3.0:s2a=on:i=2957:s2at=1.2:ss=axioms:sd=15_0");
+    propZbig10.push("lrs+10_3:1_drc=encompass:sil=4000:tgt=full:sp=unary_first:sos=all:lwlo=on:i=3869:irc=lazy_0");
+    propZbig10.push("lrs+10_1:1_drc=encompass:sil=256000:tgt=ground:s2agt=8:s2a=on:i=2041_0");
+    propZbig10.push("ott+10_1:28_sil=256000:tgt=full:fd=preordered:i=6716:bd=off_0");
+    propZbig10.push("ott+10_1:14_bsr=unit_only:sil=256000:i=2510:sp=weighted_frequency:irc=lazy_0");
+    propZbig10.push("lrs+10_1:10_drc=encompass:sil=16000:tgt=ground:plsq=on:fd=preordered:i=3229:bd=preordered:ins=1:rawr=on:ss=axioms:sgt=16_0");
+    propZbig10.push("lrs+10_1:16_drc=encompass:sil=16000:sp=unary_frequency:i=7440:kws=precedence_0");
+    propZbig10.push("ott+10_1:64_sil=256000:tgt=full:i=10214:sp=reverse_frequency:bd=off:drc=encompass_0");
+    propZbig10.push("lrs+10_3:14_drc=encompass:sil=128000:sp=const_frequency:spb=goal:lwlo=on:i=29852:kws=precedence:irc=lazy:ins=4_0");
+    propZbig10.push("lrs+10_1:6_drc=encompass:sil=32000:tgt=ground:s2agt=8:s2a=on:i=24503_0");
+    propZbig10.push("dis+10_1:4_to=lpo:sil=256000:tgt=full:sp=reverse_frequency:spb=goal:i=11902:awrs=converge:awrsf=500:fd=preordered:irc=lazy:bd=off_0");
+    propZbig10.push("dis+10_1:4_drc=encompass:sil=256000:tgt=ground:sos=all:i=13038:kws=inv_arity_squared:fsr=off:dpc=on_0");
+    propZbig10.push("lrs+10_1:16_drc=encompass:sil=32000:sp=reverse_frequency:spb=goal:i=28291:kws=inv_arity_squared_0");
+    propZbig10.push("dis+10_1:166_drc=encompass:sil=256000:tgt=full:i=19584:fsr=off:spb=non_intro:kws=inv_frequency_0");
+    propZbig10.push("lrs+10_1:34_drc=encompass:sil=64000:tgt=ground:lwlo=on:i=37491:kws=frequency:irc=eager_0");
+    propZbig10.push("dis+10_1:64_sil=256000:tgt=full:sp=const_frequency:sos=on:i=57866:bs=on_0");
+    propZbig10.push("lrs+10_1:1024_drc=encompass:sil=128000:tgt=ground:sp=frequency:i=58321:kws=precedence_0");
+    propZbig10.push("dis+10_1:166_drc=encompass:sil=256000:tgt=full:i=78078:fsr=off:spb=non_intro:dpc=on:to=lpo:rawr=on_0");
+    propZbig10.push("ott+10_1:128_bsr=on:drc=encompass:sil=128000:sp=frequency:i=98995:bd=preordered:dpc=on:rawr=on_0");
+
+    // total_instr 838566
+    // len(covered) 226
+
+    propNZsmall14.push("ott+10_1:36_drc=encompass:sil=256000:tgt=full:fde=none:st=5.0:i=276418:ss=axioms:sgt=16:sp=occurrence:plsq=on_0");
+    propNZsmall14.push("dis+10_1:28_drc=encompass:sil=256000:tgt=ground:i=146946:dpc=on:bs=on_0");
+
+    propNZsmall14.push("dis+10_1:64_sil=256000:i=105:bd=off:fd=off_0");
+    propNZsmall14.push("lrs+10_1:1024_drc=encompass:sil=2000:i=149_0");
+    propNZsmall14.push("lrs+10_1:1_sil=2000:sos=on:urr=on:st=5.0:i=149:ep=RSTC:ss=axioms:flr=on:fsr=off:br=off_0");
+    propNZsmall14.push("lrs+10_1:1024_sil=64000:i=305:to=lpo:drc=encompass:bd=off_0");
+    propNZsmall14.push("lrs+10_1:32_slsqr=1,2:drc=encompass:sil=2000:slsqc=1:slsq=on:i=729:slsql=off:fd=preordered:lwlo=on_0");
+    propNZsmall14.push("lrs+10_1:7_drc=encompass:sil=64000:i=132:awrs=converge:sp=reverse_frequency:dpc=on:bd=preordered_0");
+    propNZsmall14.push("lrs+10_1:7_drc=encompass:sil=64000:tgt=full:spb=non_intro:i=134:awrs=converge:awrsf=67:sp=reverse_frequency:nwc=1.5_0");
+    propNZsmall14.push("lrs+10_16:7_drc=encompass:sil=128000:sp=weighted_frequency:lwlo=on:i=118:bs=on:to=lpo:tgt=full:bd=off_0");
+    propNZsmall14.push("dis+10_1:1_sil=256000:nwc=10.0:s2agt=32:s2a=on:i=156:fde=none:fd=off_0");
+    propNZsmall14.push("lrs+10_1:1024_sil=2000:slsqc=1:slsq=on:i=167:rawr=on:bd=off_0");
+    propNZsmall14.push("lrs+10_1:64_sil=32000:tgt=ground:spb=goal_then_units:urr=on:i=687:awrs=converge:awrsf=130:rawr=on:plsq=on:sp=const_frequency:bd=off:drc=encompass:irc=lazy:kws=precedence_0");
+    propNZsmall14.push("dis+10_5:1_to=lpo:sil=256000:tgt=ground:spb=intro:i=187:bd=off:irc=lazy:rawr=on:fd=preordered:drc=encompass_0");
+    propNZsmall14.push("lrs+10_2:1_to=lpo:drc=encompass:sil=8000:tgt=full:sp=const_frequency:i=189:lwlo=on:nwc=10.0:rawr=on_0");
+    propNZsmall14.push("dis+10_1:50_sil=256000:nwc=4.1:i=315:bd=off:irc=eager:fd=off_0");
+    propNZsmall14.push("ott+10_2:5_bsr=unit_only:to=lpo:drc=encompass:sil=256000:sp=reverse_frequency:i=323:ins=1:dpc=on:rawr=on_0");
+    propNZsmall14.push("lrs+10_1:16_drc=encompass:sil=32000:sp=reverse_frequency:spb=goal:i=252:kws=inv_arity_squared_0");
+    propNZsmall14.push("lrs+10_1:8_sil=2000:nwc=3.0:i=263:bd=off:fsr=off:rawr=on:sp=occurrence:fd=off:kws=inv_precedence_0");
+    propNZsmall14.push("ott+10_1:28_sil=256000:tgt=full:fd=preordered:i=1545:bd=off_0");
+    propNZsmall14.push("lrs+10_1:1_drc=encompass:sil=2000:st=5.0:s2a=on:i=303:s2at=5.0:sd=1:bd=preordered:irc=lazy:ss=axioms:sgt=10_0");
+    propNZsmall14.push("ott+10_1:4_drc=encompass:sil=256000:st=3.0:i=1804:ss=axioms:dpc=on:bd=preordered:slsq=on:slsqc=1:slsqr=1,2_0");
+    propNZsmall14.push("dis+10_1:12_slsqr=20,127:sil=256000:fd=off:slsqc=1:slsq=on:i=390:rawr=on:bsr=on_0");
+    propNZsmall14.push("dis+10_1:16_slsqr=167,244:drc=encompass:sil=256000:slsqc=1:slsq=on:i=480:kws=inv_arity:awrs=converge:slsql=off:awrsf=61:bd=off:ins=2:rawr=on_0");
+    propNZsmall14.push("dis+10_1:2_to=lpo:sil=256000:i=1649:irc=eager:fd=preordered_0");
+    propNZsmall14.push("dis+10_4:1_to=lpo:sil=256000:tgt=ground:spb=goal:fd=preordered:i=525:irc=lazy_0");
+    propNZsmall14.push("lrs+10_8:1_drc=encompass:sil=256000:st=3.0:s2a=on:i=585:s2at=1.2:ss=axioms:sd=15_0");
+    propNZsmall14.push("lrs+10_16:1_bsr=on:drc=encompass:sil=64000:i=715:bd=off:to=lpo_0");
+    propNZsmall14.push("lrs+10_1:1_slsqr=455249,524288:drc=encompass:sil=2000:tgt=ground:bsd=on:plsq=on:plsqr=32,1:urr=ec_only:slsqc=1:slsq=on:s2a=on:i=770:kws=precedence:slsql=off:rawr=on_0");
+    propNZsmall14.push("dis+10_4:27_drc=encompass:sil=256000:tgt=ground:plsq=on:sp=weighted_frequency:s2a=on:i=802:kws=precedence:bd=off:ins=4:rawr=on:fd=preordered:s2agt=8_0");
+    propNZsmall14.push("lrs+10_2:1_to=lpo:drc=encompass:sil=4000:tgt=full:sp=const_min:urr=on:nwc=5.0:i=839:rawr=on_0");
+    propNZsmall14.push("dis+10_1:16_to=lpo:drc=encompass:sil=256000:tgt=ground:plsq=on:plsqr=1,32:sp=unary_frequency:s2a=on:i=939:awrs=converge:awrsf=340:rawr=on:s2at=2.0_0");
+    propNZsmall14.push("lrs+10_1:1024_sil=2000:tgt=ground:plsq=on:sp=frequency:s2a=on:i=1017:kws=precedence:rawr=on:bd=off:awrs=converge:awrsf=10:ins=2_0");
+    propNZsmall14.push("dis+10_1:14_bsr=unit_only:to=lpo:drc=encompass:sil=256000:tgt=ground:urr=on:slsq=on:i=1831:awrs=converge:awrsf=50:rawr=on:fsr=off_0");
+    propNZsmall14.push("lrs+10_1:1_drc=encompass:sil=32000:tgt=ground:sp=unary_frequency:lwlo=on:i=22426:irc=eager:kws=precedence_0");
+    propNZsmall14.push("ott+10_1:6_drc=encompass:sil=256000:tgt=ground:fde=none:plsq=on:sp=weighted_frequency:s2a=on:i=2595:s2at=2.0:kws=precedence:bd=off:ins=4:dpc=on:ss=axioms:sgt=16:rawr=on_0");
+    propNZsmall14.push("ott+10_1:128_slsqr=1,2:drc=encompass:sil=256000:fde=unused:sp=frequency:slsq=on:i=2907:slsql=off_0");
+    propNZsmall14.push("dis+10_35:501_sil=256000:tgt=ground:sp=const_max:i=28204:kws=precedence:awrs=decay:awrsf=300_0");
+    propNZsmall14.push("lrs+10_1:128_drc=encompass:sil=16000:sp=const_frequency:i=11308:kws=precedence:slsq=on_0");
+    propNZsmall14.push("dis+10_1:12_sil=256000:tgt=ground:fde=unused:i=6021:s2a=on:s2agt=8_0");
+    propNZsmall14.push("lrs+10_16:1_to=lpo:sil=32000:urr=ec_only:fd=preordered:nwc=10.0:i=15430:bd=off:irc=lazy:drc=encompass_0");
+    propNZsmall14.push("ott+10_2:9_drc=encompass:sil=128000:tgt=full:sp=frequency:nwc=5.0:st=3.0:i=57775:kws=precedence:bd=preordered:dpc=on:ss=axioms:rawr=on:rnwc=on_0");
+    propNZsmall14.push("dis+10_1:128_drc=encompass:sil=256000:nwc=6.0:i=21529:fsr=off_0");
+    propNZsmall14.push("dis+10_1:1_drc=encompass:sil=256000:tgt=full:i=76551:to=lpo:fde=unused_0");
+    propNZsmall14.push("dis+10_1:54_sil=256000:tgt=ground:plsq=on:plsqr=9145955,131072:sp=frequency:spb=goal_then_units:plsql=on:i=50725:doe=on:ins=3:rawr=on:slsq=on:slsqr=1,4:s2at=2.0:slsqc=1_0");
+    propNZsmall14.push("lrs+10_1:28_drc=encompass:sil=256000:tgt=full:spb=intro:i=81856:kws=precedence:awrs=converge:awrsf=240:ss=axioms:rawr=on:irc=lazy:st=3.0:sp=const_frequency_0");
+    propNZsmall14.push("lrs+10_1:4_to=lpo:sil=256000:tgt=ground:sp=reverse_arity:spb=goal_then_units:i=106211:fdi=10:bs=unit_only:s2a=on_0");
+
+    // total_instr 925456
+    // len(covered) 301
+
+    propNZbig14.push("dis+10_28091:1048576_to=lpo:drc=encompass:sil=128000:tgt=full:erd=off:cond=on:i=107869:doe=on:ins=2:av=off:dpc=on:irc=eager:s2pl=on:s2agt=5:s2at=4.0:foolp=on_0");
+    propNZbig14.push("lrs+10_1:1_drc=encompass:sil=256000:tgt=ground:sp=unary_first:sos=on:i=220312:kws=precedence:lwlo=on:irc=lazy_0");
+
+    propNZbig14.push("lrs+10_16:1_sfv=off:sil=2000:sp=reverse_frequency:urr=ec_only:br=off:i=126:doe=on:irc=lazy:to=lpo:fd=preordered:bd=preordered:fsd=on:drc=encompass_0");
+    propNZbig14.push("lrs+10_3:107_sil=64000:i=143:ss=axioms:sgt=16:rawr=on:to=lpo:drc=encompass_0");
+    propNZbig14.push("lrs+10_2:1_to=lpo:drc=encompass:sil=4000:tgt=full:sp=const_min:urr=on:nwc=5.0:i=129:rawr=on_0");
+    propNZbig14.push("lrs+10_1:12_drc=encompass:sil=256000:tgt=full:spb=intro:i=735:kws=precedence:awrs=converge:awrsf=500:irc=lazy_0");
+    propNZbig14.push("dis+10_577:524288_drc=encompass:sil=256000:sp=const_frequency:spb=units:i=214:doe=on:bd=off:av=off:dpc=on:irc=eager:uhcvi=on:ss=included:rawr=on:to=lpo:slsq=on:slsqr=8,31:s2agt=5:s2at=4.0:fdi=2_0");
+    propNZbig14.push("lrs+10_1:64_sil=8000:tgt=full:spb=non_intro:i=204:kws=precedence:plsq=on:awrs=converge:awrsf=30:sp=weighted_frequency:drc=encompass:irc=eager_0");
+    propNZbig14.push("lrs+10_1:1_to=lpo:drc=encompass:sil=2000:fde=unused:sp=const_min:i=444:fd=preordered:irc=eager:bd=preordered:ss=axioms_0");
+    propNZbig14.push("lrs+10_3:58_drc=encompass:sil=256000:tgt=full:bsd=on:sp=reverse_arity:lwlo=on:s2a=on:i=365:s2at=2.0:kws=precedence:bsr=on:irw=on:dpc=on:doe=on:bs=on:br=off:erd=off:s2agt=20:nwc=8.95214440448525:cond=fast:foolp=on:spb=non_intro:sfv=off:irc=lazy:fde=unused:ins=3_0");
+    propNZbig14.push("lrs+10_3:4_to=lpo:drc=encompass:sil=4000:sp=reverse_frequency:i=390:ss=axioms:sgt=16:s2a=on:s2at=3.0:irc=lazy:bd=off_0");
+    propNZbig14.push("lrs+10_1:4_to=lpo:drc=encompass:sil=4000:tgt=full:i=2789:bd=preordered:fd=preordered_0");
+    propNZbig14.push("lrs+10_1:3_drc=encompass:sil=256000:tgt=ground:sp=unary_first:i=975:ss=axioms:sgt=10:rawr=on:urr=on:ins=1:plsq=on:dpc=on:spb=intro:sd=4:fsr=off:bs=on:kws=inv_arity:irc=lazy:nwc=5.0_0");
+    propNZbig14.push("lrs+10_1:24_drc=encompass:sil=256000:tgt=full:sp=unary_frequency:spb=non_intro:i=6970:ins=2:fsr=off:kws=precedence:irc=eager:bsr=unit_only:br=off:ss=included:sgt=16:bd=preordered_0");
+    propNZbig14.push("lrs+10_7:24_to=lpo:drc=encompass:sil=128000:fde=unused:sp=const_min:spb=goal:i=522:irc=lazy:slsq=on:fdi=256:nwc=10.0:dpc=on:ss=included:st=2.0_0");
+    propNZbig14.push("lrs+10_1:1024_drc=encompass:sil=8000:tgt=ground:fde=unused:sp=const_min:spb=goal:kmz=on:i=1381:kws=inv_arity:awrs=converge:awrsf=200:irc=eager_0");
+    propNZbig14.push("lrs+10_1:4_to=lpo:drc=encompass:sil=128000:fde=unused:sp=const_min:spb=goal:fd=preordered:i=589:irc=lazy:slsq=on:slsqr=1,4_0");
+    propNZbig14.push("lrs+10_1:4_bsr=on:slsqr=2,7:to=lpo:drc=encompass:sil=16000:tgt=full:sp=unary_first:spb=goal:slsq=on:i=659:slsql=off:ins=2:irc=eager:rawr=on:nwc=8.7296035496261:erd=off:s2pl=no:cond=fast:plsq=on:sims=off_0");
+    propNZbig14.push("lrs+10_1:1_sil=4000:sp=occurrence:i=1397:ss=axioms:st=3.0:sd=2_0");
+    propNZbig14.push("lrs+10_15:74_drc=encompass:sil=4000:tgt=full:fde=none:sp=const_min:i=856:kws=inv_frequency:awrs=converge:awrsf=120:rawr=on:nwc=0.9964432792968732:fsr=off:urr=on_0");
+    propNZbig14.push("lrs+10_1:28_drc=encompass:sil=256000:tgt=full:spb=intro:i=918:kws=precedence:awrs=converge:awrsf=240:ss=axioms:rawr=on:irc=lazy:st=3.0:sp=const_frequency_0");
+    propNZbig14.push("lrs+10_1:25_to=lpo:drc=encompass:sil=2000:fde=none:sp=const_min:fd=preordered:i=1093_0");
+    propNZbig14.push("ott+10_1:2_sil=256000:tgt=ground:sp=reverse_frequency:spb=goal:i=1333:kws=precedence:irc=lazy_0");
+    propNZbig14.push("lrs+10_1:1_drc=encompass:sil=32000:tgt=ground:sp=unary_frequency:lwlo=on:i=23534:irc=eager:kws=precedence_0");
+    propNZbig14.push("dis+10_1:1_sil=256000:nwc=10.0:s2agt=32:s2a=on:i=1724:fde=none:fd=off_0");
+    propNZbig14.push("lrs+10_11:1_sil=4000:fde=none:nwc=5.0:st=3.0:i=1762:bd=off:ss=axioms:fd=off_0");
+    propNZbig14.push("lrs+10_8:1_drc=encompass:sil=256000:st=3.0:s2a=on:i=3083:s2at=1.2:ss=axioms:sd=15_0");
+    propNZbig14.push("lrs+10_1:64_drc=encompass:sil=16000:tgt=full:sp=reverse_frequency:slsq=on:i=4105:kws=precedence:slsql=off:ss=axioms:bs=unit_only:irc=lazy:spb=goal_0");
+    propNZbig14.push("lrs+10_1:4_drc=encompass:sil=32000:tgt=full:fde=unused:sp=const_frequency:nwc=10.0:i=9762:dpc=on:rawr=on:bd=preordered:to=lpo_0");
+    propNZbig14.push("lrs+10_1:27_bsr=unit_only:to=lpo:drc=encompass:sil=128000:fde=unused:sp=const_min:spb=goal:fd=preordered:i=9874:bs=on:dpc=on:uhcvi=on:rawr=on:irc=lazy:er=filter:erape=on:erml=3_0");
+    propNZbig14.push("lrs+10_1:4_drc=encompass:sil=16000:tgt=ground:lwlo=on:s2a=on:i=7263:s2at=2.0_0");
+    propNZbig14.push("lrs+10_2:3_sil=128000:fde=none:s2a=on:i=13654:s2at=3.0:lwlo=on:bd=off_0");
+    propNZbig14.push("lrs+10_1:16_drc=encompass:sil=256000:tgt=full:spb=intro:i=41528:kws=precedence:awrs=converge:awrsf=200:ss=axioms:irc=eager:st=3.0:sp=const_frequency_0");
+    propNZbig14.push("dis+10_1:32_drc=encompass:sil=256000:tgt=ground:sp=const_frequency:spb=goal:i=32120:kws=precedence:bd=off:dpc=on:irc=lazy:s2a=on:s2at=3.0_0");
+    propNZbig14.push("ott+10_1:6_drc=encompass:sil=512000:tgt=ground:fde=unused:sp=const_min:spb=goal:nwc=1.1:i=95210:kws=precedence:dpc=on_0");
+    propNZbig14.push("lrs+10_1:32_sil=64000:tgt=full:sp=frequency:lwlo=on:i=51758:irc=eager_0");
+    propNZbig14.push("lrs+10_2:23_drc=encompass:sil=256000:tgt=full:s2a=on:i=126830:s2at=2.0:irc=lazy:dpc=on_0");
+    propNZbig14.push("lrs+10_1:24_bsr=unit_only:to=lpo:drc=encompass:sil=128000:fde=unused:sp=const_min:spb=goal:fd=preordered:i=67476:bs=on:dpc=on:rawr=on:irc=lazy:er=filter:erape=on:nwc=3.0:ss=axioms:st=6.0:urr=ec_only_0");
+    propNZbig14.push("lrs+10_1:3_drc=encompass:sil=256000:tgt=full:fd=preordered:s2a=on:i=85601:s2at=4.0_0");
+
+    // total_instr 925697
+    // len(covered) 138
+
+  } else {
+    // The FOF division: First-Order Form theorems (axioms with a provable conjecture).
+
+    Schedule fne;
+
+    fne.push("lrs+21_1:32_anc=all:to=lpo:sil=256000:plsq=on:plsqr=32,1:sp=occurrence:sos=on:plsql=on:sac=on:newcnf=on:i=222662:add=off:fsr=off:rawr=on_0");
+    fne.push("lrs+1011_4:1_sil=256000:rp=on:newcnf=on:i=257909:aac=none:gsp=on_0");
+    fne.push("dis+1002_1:1_tgt=full:sos=on:rp=on:sac=on:i=258102:ss=axioms:sd=3:cond=fast:add=off:abs=on:fde=none:sil=256000_0");
+
+    fne.push("lrs+21_8:1_to=lpo:sil=2000:sp=frequency:spb=units:s2a=on:s2pl=no:i=103:sd=2:ss=included:fsr=off:fs=off_0");
+    fne.push("lrs+1011_4:1_to=lpo:drc=off:sil=8000:sp=frequency:abs=on:urr=on:lsd=10:nwc=5.0:s2agt=4:newcnf=on:st=5.0:s2a=on:i=107:ss=axioms:aac=none:br=off:bd=preordered_0");
+    fne.push("lrs+10_8:1_to=lpo:drc=encompass:sil=4000:sos=on:urr=on:newcnf=on:i=116:sd=2:nm=2:ss=axioms:sgt=32:sup=off:bd=off_0");
+    fne.push("lrs+1011_1:13_sil=2000:tgt=full:sims=off:sp=occurrence:abs=on:newcnf=on:i=104:nm=4:ss=axioms:rawr=on:amm=off_0");
+    fne.push("lrs+2_1:1_sil=4000:plsqc=4:plsq=on:plsqr=2,1:rp=on:i=110:nm=10:fde=unused:ep=RS:slsq=on:slsql=off:slsqr=1,8:erd=off_0");
+    fne.push("lrs+1011_1:1_sil=8000:sp=occurrence:nwc=10.0:st=1.5:i=319:ss=axioms:sgt=4_0");
+    fne.push("ott+1010_1:3_sil=8000:tgt=full:sp=occurrence:urr=on:br=off:nicw=on:i=121:sd=2:ss=axioms:sgt=8:gsp=on_0");
+    fne.push("lrs+1002_1:1_sil=16000:sp=occurrence:sos=on:urr=on:i=440:ss=axioms:sgt=10_0");
+    fne.push("lrs+1011_1:128_sil=2000:i=230:fsr=off:nwc=2.0_0");
+    fne.push("dis+2_1:3_sil=8000:nwc=5.0:st=3.0:s2a=on:i=119:s2at=2.5:sd=3:nm=2:ss=axioms_0");
+    fne.push("lrs+11_1:32_sil=2000:sp=occurrence:lsd=20:rp=on:i=113:sd=1:nm=0:av=off:ss=included:nwc=10.0:flr=on_0");
+    fne.push("dis-1010_1:4_sil=2000:tgt=ground:i=128:sd=2:nm=6:av=off:gsp=on:ss=axioms:nwc=10.0_0");
+    fne.push("lrs+4_1:8_sil=32000:abs=on:nwc=5.0:updr=off:i=963:nm=6:plsq=on:plsql=on:plsqc=1:plsqr=2,1_0");
+    fne.push("dis+1002_1:128_to=lpo:sil=2000:fd=preordered:i=204:fsr=off:av=off:sos=on:s2a=on_0");
+    fne.push("lrs+1011_1:1_sil=2000:plsq=on:plsqr=32,1:fs=off:gs=on:i=516:nm=0:fsr=off:rawr=on:nwc=0.5744209687727792_0");
+    fne.push("lrs+21_9739:1048576_drc=off:sil=128000:tgt=ground:spb=non_intro:s2a=on:i=1028:s2at=2.0:kws=precedence:sp=reverse_arity:awrs=decay:awrsf=270_0");
+    fne.push("ott-1011_3:2_to=lpo:drc=off:sil=2000:sims=off:sos=on:lma=on:spb=goal_then_units:lcm=predicate:fd=preordered:rp=on:newcnf=on:avsq=on:i=340:ins=1:fsr=off:avsqc=4:aac=none:plsq=on:plsqc=1:plsqr=32,1:fs=off_0");
+    fne.push("dis+1011_3:8_bsr=unit_only:slsqr=1,16:sil=2000:plsq=on:plsqr=296,127:sp=reverse_frequency:lsd=5:nwc=10.0:slsqc=3:slsq=on:st=3.0:i=225:s2at=4.5:sd=4:slsql=off:nm=16:ins=5:ss=axioms:sgt=20:rawr=on:urr=ec_only:to=lpo_0");
+    fne.push("dis+1011_1:1_bsr=unit_only:slsqr=1,2:sil=2000:plsqc=1:plsq=on:plsqr=32,1:lsd=20:plsql=on:slsqc=1:slsq=on:i=732:slsql=off:nm=2:uhcvi=on:rawr=on:fsr=off:avsq=on:avsqr=9387,262144_0");
+    fne.push("dis+1011_3:1_sil=64000:lsd=10:slsq=on:s2a=on:i=231:ep=RS:nm=2:ss=axioms_0");
+    fne.push("lrs-32_1:1024_sil=8000:sos=on:i=752:nm=4:updr=off_0");
+    fne.push("lrs+10_1:2_sil=2000:spb=units:nwc=10.0:flr=on:i=1025:fsr=off:ss=axioms_0");
+    fne.push("lrs+1011_1:128_bsr=unit_only:sil=4000:plsq=on:plsqr=27,2:lsd=5:plsql=on:nwc=3.0:i=1583:rawr=on_0");
+    fne.push("lrs+1010_1:8_sil=4000:sos=on:urr=on:rnwc=on:nwc=10.0:i=398:sup=off:kws=frequency_0");
+    fne.push("dis+1002_1:85_sil=4000:nwc=10.0:i=404:s2at=2.0:av=off:slsq=on:slsqc=2:fsr=off_0");
+    fne.push("lrs+1010_1:32_bsr=on:sil=4000:i=483:nm=2:gsp=on_0");
+    fne.push("lrs+1011_4:1_sil=2000:sp=const_max:sos=on:bce=on:avsq=on:i=499:sd=4:kws=inv_frequency:avsqr=1,16:nm=2:ss=axioms:uhcvi=on:fs=off:fsr=off:s2a=on:etr=on:anc=none:avsqc=5_0");
+    fne.push("dis+11_1:64_bsr=unit_only:to=lpo:sil=16000:sp=frequency:flr=on:cond=on:i=560:awrs=converge:awrsf=200:rawr=on:sup=off:abs=on_0");
+    fne.push("lrs+1011_1:32_sil=2000:lsd=10:rp=on:newcnf=on:i=883:fsr=off:fs=off_0");
+    fne.push("lrs+1_1:1024_slsqr=7,4:sil=8000:sp=frequency:urr=on:nwc=2.0:slsqc=3:slsq=on:i=3281:slsql=off:nm=2:av=off:rawr=on:updr=off_0");
+    fne.push("lrs+1011_1:10_sil=2000:lsd=100:rp=on:sac=on:s2a=on:i=1175:nm=3:rawr=on:nicw=on_0");
+    fne.push("lrs+1011_1:1024_anc=all_dependent:sil=4000:plsqc=3:plsq=on:sp=unary_first:lsd=10:bce=on:i=2959:bs=unit_only:afp=50:nm=4:afq=3.79765_0");
+    fne.push("lrs+10_23:15_sil=2000:plsqc=1:plsq=on:plsqr=4106395,32768:plsql=on:nwc=3.0:flr=on:newcnf=on:i=2105:kws=precedence:fsr=off:ss=included_0");
+    fne.push("dis+1011_1:20_sil=16000:plsq=on:plsqr=62867,524288:sp=occurrence:lsd=20:rp=on:newcnf=on:i=3384:aac=none:rawr=on:uhcvi=on:fsr=off:fdi=5:alpa=false:anc=none_0");
+    fne.push("dis-1002_12_add=off:bs=on:bsr=on:cond=on:flr=on:gsp=on:gs=on:gsem=off:nm=4:sims=off:tgt=ground:i=3654_0");
+    fne.push("dis+22_1:8_sil=128000:abs=on:alpa=true:sac=on:i=10575:nm=2:amm=off:sup=off_0");
+    fne.push("dis+3_1024_av=off:fsr=off:gsp=on:lcm=predicate:nm=4:sos=all:sp=weighted_frequency:i=22214_0");
+    fne.push("lrs+1011_1:64_sil=16000:urr=on:br=off:i=8671:nm=2:gsp=on:fdi=1_0");
+    fne.push("dis+20_1:1_sil=32000:i=9754:nm=2:gsp=on:rawr=on:plsq=on:plsqr=2,7:lma=on:rp=on_0");
+    fne.push("lrs-1011_10:13_sil=32000:tgt=ground:plsq=on:plsqr=768,109:abs=on:urr=full:bce=on:i=11447:bs=unit_only:kws=precedence:awrs=converge:awrsf=500:rawr=on:lwlo=on:sp=frequency_0");
+
+    // total_instr 830728
+    // len(covered) 1262
+
+    Schedule feqAtomsG18000;
+
+    feqAtomsG18000.push("lrs-1002_12164383:1048576_anc=all_dependent:bsr=on:sil=256000:i=187735:bs=unit_only:awrs=decay:awrsf=132:ep=R:amm=off:uhcvi=on:abs=on_0");
+    feqAtomsG18000.push("lrs-1011_8:1_plsq=on:urr=on:nwc=10.0:sac=on:newcnf=on:s2a=on:i=235504:sd=2:ss=axioms:sil=256000:kws=inv_frequency:gsp=on_0");
+
+    feqAtomsG18000.push("dis+1011_1:1_sil=16000:nwc=7.0:s2agt=64:s2a=on:i=1102:ss=axioms:sgt=8:lsd=50:sd=7_0");
+    feqAtomsG18000.push("dis+1010_1:1_drc=off:sil=32000:rp=on:cond=fast:i=886:av=off:newcnf=on:bd=off:sfv=off:plsq=on:plsqr=1,32:erd=off_0");
+    feqAtomsG18000.push("lrs+1010_1:1_to=lpo:sil=8000:sos=on:spb=goal:rp=on:i=1785:nm=6:ss=included:sd=1_0");
+    feqAtomsG18000.push("ott-1010_16:1_bsr=unit_only:sil=64000:sos=on:urr=on:sac=on:i=3480:sd=2:kws=inv_frequency:ins=4:ss=axioms:br=off_0");
+    feqAtomsG18000.push("lrs+1011_1:1_sil=8000:nicw=on:i=1004:sd=1:ss=axioms:sgt=64_0");
+    feqAtomsG18000.push("lrs+1002_1:4_sil=2000:fde=unused:plsq=on:plsqr=32,1:sos=on:bce=on:i=307:sd=1:ss=included:rawr=on_0");
+    feqAtomsG18000.push("dis-1010_1:1_bsr=unit_only:to=lpo:sil=256000:fde=none:plsq=on:plsqr=205,29:sp=occurrence:sos=on:abs=on:newcnf=on:st=6.0:i=5784:sd=2:bd=off:amm=off:ss=axioms:rawr=on_0");
+    feqAtomsG18000.push("lrs+2_1:1_sil=256000:plsq=on:plsqr=17685,131072:sos=on:lcm=reverse:i=311:av=off:ss=axioms:ep=RST:sd=2_0");
+    feqAtomsG18000.push("lrs+1011_1:1_sil=8000:sp=occurrence:nwc=10.0:i=1126:ss=axioms:sgt=8_0");
+    feqAtomsG18000.push("ott-1011_11873131:1048576_drc=encompass:fde=unused:plsq=on:plsqr=3,59:sp=frequency:urr=on:nwc=13.753829265569435:sac=on:st=1.5:s2a=on:i=14494:sd=3:afp=10:bd=preordered:afq=2.759712924428805:ss=axioms:bs=on:sil=256000:kws=inv_frequency:bce=on:s2agt=8:sgt=8:awrs=decay:awrsf=80:nm=32:rawr=on_0");
+    feqAtomsG18000.push("lrs+2_1:1_sil=2000:tgt=ground:sos=on:i=867:sd=1:ss=included:to=lpo:plsq=on:plsqr=32,1_0");
+    feqAtomsG18000.push("dis-1010_1:8_sil=256000:i=7640:nm=16:av=off:erd=off:sfv=off:fd=off:bd=off_0");
+    feqAtomsG18000.push("lrs-1010_2:1_sil=4000:tgt=ground:sos=on:erd=off:bce=on:st=4.5:i=365:sd=1:kws=inv_frequency:ss=axioms:sgt=100:rawr=on:avsq=on:avsqr=17,12:plsq=on:plsqr=25,62:anc=all_dependent_0");
+    feqAtomsG18000.push("lrs-1010_1:1_to=lpo:sil=2000:i=369:sd=2:ss=axioms:av=off:sos=on_0");
+    feqAtomsG18000.push("dis-1011_1:1_sil=8000:nwc=5.0:slsqc=2:slsq=on:s2a=on:i=659:slsql=off:s2agt=16:ss=axioms_0");
+    feqAtomsG18000.push("lrs+1011_1:1024_slsqr=1,8:sil=2000:rp=on:nwc=10.0:newcnf=on:slsq=on:st=1.5:s2a=on:i=400:sd=1:awrs=converge:awrsf=390:ep=RST:ss=axioms:sac=on_0");
+    feqAtomsG18000.push("dis-1010_1:1024_sil=64000:tgt=full:i=11462:nm=0:av=off:ep=RST:fsr=off:bs=unit_only_0");
+    feqAtomsG18000.push("dis+2_8:1_sil=2000:fde=unused:s2a=on:i=417:sd=2:ss=included_0");
+    feqAtomsG18000.push("lrs+21_1:1_sil=16000:nwc=19.4924:s2agt=16:s2a=on:i=1369:sd=2:bd=off:ss=axioms:sgt=8:fs=off:fsr=off_0");
+    feqAtomsG18000.push("dis-1011_1785:1048576_bsr=unit_only:sil=4000:tgt=ground:plsqc=1:plsq=on:plsqr=125493,524288:sp=frequency:spb=goal:plsql=on:nwc=2.32086:updr=off:newcnf=on:cond=fast:st=2:s2a=on:i=1705:s2at=4:bd=off:nm=3:ins=3:aer=off:uhcvi=on:afr=on:ss=axioms:sgt=20:rawr=on:fsr=off_0");
+    feqAtomsG18000.push("dis-1010_8:1_sil=64000:sp=occurrence:sos=on:st=2.0:i=789:sd=3:bd=off:ss=axioms:acc=model:to=lpo:sup=off:fs=off:fsr=off:sgt=32_0");
+    feqAtomsG18000.push("dis+1010_2:1_sil=2000:sos=on:rp=on:st=1.5:i=1523:ins=7:fsr=off:amm=off:ss=axioms:sd=4:fs=off:kws=inv_frequency_0");
+    feqAtomsG18000.push("ott+10_107421:1048576_to=lpo:drc=off:sil=4000:fde=none:sos=on:lma=on:spb=intro:gs=on:nwc=24.2524:gsem=off:i=504:sd=3:afp=40000:awrs=decay:awrsf=1166:nm=6:afq=1.99252:uhcvi=on:ss=axioms:rawr=on:sp=const_max:add=off_0");
+    feqAtomsG18000.push("lrs+1002_1:1_to=lpo:sil=4000:sos=on:i=522:sd=1:ss=included_0");
+    feqAtomsG18000.push("lrs+11_1:1_to=lpo:sil=64000:sp=occurrence:nwc=2.0:st=6.0:s2a=on:i=550:s2at=5.0:sd=1:nm=3:gsp=on:ss=axioms:fsr=off_0");
+    feqAtomsG18000.push("dis+33_1930041:1048576_sil=4000:tgt=ground:plsqc=1:plsq=on:plsqr=4356867,524288:sp=frequency:sos=on:lma=on:spb=intro:lcm=reverse:rnwc=on:plsql=on:nwc=24.1115:sac=on:cond=fast:st=1.5:i=1480:bs=on:sd=2:kws=precedence:nm=40:uhcvi=on:ss=axioms:rawr=on:bd=off:nicw=on_0");
+    feqAtomsG18000.push("lrs-10_1:1_sil=16000:sos=on:st=3.0:i=2917:sd=2:ep=RST:fsr=off:ss=axioms_0");
+    feqAtomsG18000.push("dis+1011_16:1_sil=16000:tgt=full:nwc=10.0:alpa=random:sac=on:avsq=on:i=12988:sd=1:kws=inv_frequency:ss=included_0");
+    feqAtomsG18000.push("dis+10_52093:131072_drc=off:sil=2000:tgt=ground:irw=on:foolp=on:lma=on:urr=ec_only:nwc=5.20774:st=1.5:i=1235:sd=2:kws=inv_frequency:nm=7:ins=3:av=off:uhcvi=on:ss=axioms:rawr=on_0");
+    feqAtomsG18000.push("dis-21_1:1_drc=encompass:sos=on:urr=ec_only:i=2965:ins=1:av=off:ss=axioms:fde=none:sd=3:bsr=on:sil=8000:nm=3_0");
+    feqAtomsG18000.push("dis+34_1:1_sil=8000:tgt=full:plsqc=1:plsq=on:plsqr=32,1:rp=on:nwc=10.0:newcnf=on:i=686:sd=1:av=off:ss=axioms_0");
+    feqAtomsG18000.push("dis+1011_16:1_lsd=20:bce=on:i=2880:ep=R:ins=1:ss=axioms:newcnf=on:sos=on:sil=32000:rp=on:fsr=off:fs=off:awrs=converge:sd=2_0");
+    feqAtomsG18000.push("lrs+10_1:1_sos=on:abs=on:s2agt=16:slsq=on:st=1.5:i=1509:ep=R:fsr=off:ss=axioms:rawr=on:s2a=on:fs=off:sd=4:sil=8000_0");
+    feqAtomsG18000.push("ott-1010_3376641:1048576_anc=none:to=lpo:sil=4000:tgt=ground:fde=unused:sp=unary_frequency:sos=on:spb=intro:lcm=predicate:fd=preordered:st=3.0:i=807:sd=1:bd=off:nm=3:ins=2:fsr=off:uhcvi=on:fdi=64:ss=included:sgt=100:newcnf=on:nwc=3.871969461363868_0");
+    feqAtomsG18000.push("dis+1011_1:2_sil=2000:tgt=ground:rp=on:newcnf=on:st=7.0:i=818:sd=1:nm=0:ss=axioms:sgt=32_0");
+    feqAtomsG18000.push("ott+1002_2835555:1048576_to=lpo:sil=2000:sos=on:fs=off:nwc=10.3801:avsqc=3:updr=off:avsq=on:st=2:s2a=on:i=822:s2at=3:afp=10000:aac=none:avsqr=13357983,1048576:awrs=converge:awrsf=460:bd=off:nm=13:ins=2:fsr=off:amm=sco:afq=1.16719:ss=axioms:rawr=on:fd=off_0");
+    feqAtomsG18000.push("dis+1011_38921:131072_bsr=on:drc=encompass:sil=8000:tgt=full:sp=frequency:sos=on:spb=goal:lcm=reverse:nwc=23.4974:newcnf=on:cond=fast:st=1.5:i=4682:sd=2:bd=preordered:nm=16:av=off:ss=axioms:sgt=10:rawr=on:bsd=on:kws=arity_squared:rp=on:ins=1_0");
+    feqAtomsG18000.push("dis+2_1:3_sil=8000:nwc=5.0:st=3.0:s2a=on:i=885:s2at=2.5:sd=3:nm=2:ss=axioms_0");
+    feqAtomsG18000.push("lrs+10_1:1_sil=4000:sos=on:acc=on:st=2.5:i=918:bd=off:fsr=off:ss=axioms:sd=3:flr=on:fs=off:fd=off_0");
+    feqAtomsG18000.push("lrs+21_1:1_sil=16000:sos=all:lma=on:i=2583:sd=1:ep=R:ss=axioms_0");
+    feqAtomsG18000.push("dis-1011_3:1_sil=32000:fde=none:sos=all:nwc=5.0:i=26266:ep=R:aac=none_0");
+    feqAtomsG18000.push("dis+1002_1:1_sil=16000:tgt=ground:sac=on:i=8303:sd=2:aac=none:ss=axioms:nwc=10.0_0");
+    feqAtomsG18000.push("lrs-1010_1:128_tgt=ground:si=on:plsq=on:plsqr=2087559,524288:sos=on:st=1.5:i=1932:sd=2:rtra=on:ss=included:sil=128000:ins=1:gsp=on:anc=all_dependent_0");
+    feqAtomsG18000.push("lrs+1011_1:8_to=lpo:sil=2000:sos=all:urr=ec_only:br=off:nwc=10.0:newcnf=on:st=3.0:i=1083:sd=3:bd=off:nm=2:fdi=50:ss=axioms:sfv=off:sac=on_0");
+    feqAtomsG18000.push("lrs+4_5:1_anc=all_dependent:to=lpo:tgt=ground:sp=frequency:sos=on:spb=non_intro:s2a=on:i=2485:sd=2:aac=none:awrs=decay:awrsf=500:bd=off:fsr=off:amm=off:ss=axioms:fs=off:sil=32000_0");
+    feqAtomsG18000.push("lrs+10_1:2_bsr=unit_only:sil=64000:sos=on:s2agt=64:sac=on:s2a=on:s2pl=no:i=2541:sd=1:kws=inv_precedence:nm=3:ss=included:bd=off:avsq=on:avsqr=1,16_0");
+    feqAtomsG18000.push("ott+21_1:1_av=off:lcm=reverse:lma=on:sd=2:sos=all:ss=axioms:st=1.5:si=on:rawr=on:rtra=on:i=1374_0");
+    feqAtomsG18000.push("lrs+1011_1:1_sil=16000:sos=on:i=3167:sd=2:ss=axioms:sgt=16_0");
+    feqAtomsG18000.push("lrs+2_1:1024_to=lpo:drc=off:sil=128000:urr=on:nwc=3.0:i=1636:sd=1:awrs=converge:awrsf=270:nm=4:ins=1:ss=axioms:gsp=on:bd=preordered_0");
+    feqAtomsG18000.push("lrs+1011_2:3_sil=16000:sos=on:rp=on:newcnf=on:lwlo=on:st=1.5:i=1655:sd=2:bd=off:nm=2:fsr=off:gsp=on:ss=axioms:bce=on:anc=all:sac=on_0");
+    feqAtomsG18000.push("dis+10_8:1_to=lpo:sil=64000:tgt=ground:fde=unused:sp=const_max:sos=all:spb=goal:s2a=on:i=2033:sd=4:nm=32:ss=axioms:fs=off:fsr=off:sfv=off:alpa=true_0");
+    feqAtomsG18000.push("dis+10_1:7_si=on:nwc=3.0:random_seed=871647488:st=3.0:s2a=on:i=5899:s2at=2.5:sd=2:awrs=converge:awrsf=500:nm=2:rtra=on:ss=included:rawr=on:sil=64000_0");
+    feqAtomsG18000.push("dis-1002_1:1_to=lpo:sil=128000:sp=unary_first:abs=on:rp=on:nwc=5.0:flr=on:st=1.5:s2a=on:i=2097:sd=7:nm=4:fdi=5:ss=included_0");
+    feqAtomsG18000.push("lrs+11_1:128_st=2.0:i=129712:ss=axioms:to=lpo:sil=256000:sd=15:ep=RS_0");
+    feqAtomsG18000.push("lrs+1002_1624159:1048576_to=lpo:sil=64000:fde=none:sp=frequency:sos=on:spb=non_intro:nwc=15.7653:s2agt=30:avsqc=2:avsq=on:s2a=on:i=2438:s2at=3:sd=2:avsqr=6990209,1048576:awrs=decay:awrsf=762:bd=off:nm=4:ss=included:fd=off:rawr=on:fs=off:fsr=off:aac=none_0");
+    feqAtomsG18000.push("dis+1002_1:1_tgt=full:sos=on:rp=on:sac=on:i=12801:ss=axioms:sd=3:cond=on:add=off:abs=on:fde=none:sil=256000:rawr=on:newcnf=on:bsd=on:afp=1000:afq=1.7_0");
+    feqAtomsG18000.push("lrs+35_8:1_sos=all:s2a=on:i=5191:sd=2:ss=axioms:sil=128000:fde=none:gsp=on:av=off:nm=4:sfv=off_0");
+    feqAtomsG18000.push("dis+21_1:1_drc=encompass:sos=on:urr=ec_only:i=5645:ins=1:av=off:ss=axioms:gsp=on:sd=3:sil=8000:nm=3_0");
+    feqAtomsG18000.push("lrs+1011_1:3_sil=64000:sos=on:lsd=20:newcnf=on:st=2.0:s2a=on:i=3126:sd=1:nm=2:ss=included:s2agt=32:to=lpo:fd=off:bd=off:nicw=on:rp=on_0");
+    feqAtomsG18000.push("dis+1011_1:1_drc=off:sil=16000:tgt=full:fde=unused:nwc=2.0:st=1.5:i=6739:sd=3:fsr=off:ss=axioms:nm=2_0");
+    feqAtomsG18000.push("dis-21_1:4_to=lpo:sil=8000:tgt=ground:sp=unary_first:lcm=reverse:alpa=random:i=3443:sd=1:awrs=converge:awrsf=500:fsr=off:ss=axioms_0");
+    feqAtomsG18000.push("lrs-1011_8:1_sil=16000:sos=all:i=3472:sd=1:ep=R:ss=axioms_0");
+    feqAtomsG18000.push("ott-3_2:1_acc=on:add=large:anc=none:fde=none:gsp=on:irw=on:nm=0:s2a=on:sd=4:sos=on:ss=axioms:st=1.2:urr=on:si=on:rawr=on:rtra=on:i=10677_0");
+    feqAtomsG18000.push("lrs-1010_1:4_sil=256000:sp=occurrence:sos=on:s2a=on:i=43014:sd=1:kws=precedence:bd=off:ins=3:ss=included:sfv=off:amm=off_0");
+    feqAtomsG18000.push("ott+1010_1:3_sil=8000:tgt=full:sp=occurrence:urr=on:br=off:nicw=on:i=3725:sd=2:ss=axioms:sgt=8:gsp=on_0");
+    feqAtomsG18000.push("ott-1011_16:1_urr=on:nwc=10.0:sac=on:s2a=on:i=18730:sd=2:ss=axioms:bsr=on:sil=256000:kws=inv_frequency:anc=all:fs=off:fsr=off:alpa=true_0");
+    feqAtomsG18000.push("lrs+2_3:1_to=lpo:sil=256000:irw=on:fde=unused:sp=unary_first:bce=on:nwc=6.0:s2agt=30:newcnf=on:s2a=on:i=18973:nm=2_0");
+    feqAtomsG18000.push("lrs+1_4:1_cond=fast:fde=unused:lcm=predicate:nm=4:s2a=on:sd=3:sos=on:ss=axioms:st=2.0:sil=16000:si=on:rawr=on:rtra=on:i=4988_0");
+    feqAtomsG18000.push("lrs+1011_2:1_tgt=full:sos=on:urr=full:nwc=5.0:st=5.0:i=5744:sd=1:kws=precedence:ss=axioms:sil=128000:rnwc=on:sac=on_0");
+    feqAtomsG18000.push("dis+1010_5:1_sil=64000:sp=const_min:sos=on:acc=model:i=5912:kws=precedence:bd=off:nm=20:alpa=random:ss=axioms_0");
+    feqAtomsG18000.push("dis+1011_11:32_to=lpo:drc=off:sil=16000:sp=frequency:abs=on:lsd=10:rp=on:nwc=19.9405:newcnf=on:i=6939:sd=2:nm=3:ins=2:ss=axioms:rawr=on:bce=on:bd=preordered:fsr=off_0");
+    feqAtomsG18000.push("lrs+11_1:12_to=lpo:sil=128000:sp=const_min:i=18088:ss=included:sgt=16:av=off:fsd=on:nm=16_0");
+    feqAtomsG18000.push("lrs-1010_1:1_drc=off:sil=16000:sos=on:flr=on:i=9467:bd=off:nm=6:ss=included:alpa=false:fs=off:fsr=off_0");
+    feqAtomsG18000.push("dis-1011_2:7_sil=16000:tgt=ground:lsd=100:rp=on:nwc=5.0:st=1.5:i=9563:sd=2:ins=1:av=off:ss=axioms:sgt=100_0");
+    feqAtomsG18000.push("dis+1002_1:1_tgt=full:sos=on:rp=on:sac=on:i=45185:ss=axioms:sd=3:cond=fast:add=off:abs=on:fde=none:sil=256000_0");
+    feqAtomsG18000.push("lrs+1011_8:1_sil=128000:tgt=ground:fde=unused:sp=frequency:nwc=5.0:lwlo=on:i=11807:awrs=converge:awrsf=1385:av=off_0");
+    feqAtomsG18000.push("dis+1011_3:1_sil=256000:tgt=ground:sac=on:i=27305:sd=1:ss=included_0");
+    feqAtomsG18000.push("lrs+1011_1:1_tgt=full:sos=on:spb=goal_then_units:urr=full:st=5.5:i=14604:sd=1:kws=precedence:ss=axioms:nicw=on:sil=128000_0");
+    feqAtomsG18000.push("lrs+10_2:29_sil=64000:irw=on:fde=none:sp=unary_frequency:sos=on:fd=preordered:st=2.0:i=31370:sd=2:kws=frequency:bd=off:nm=6:fsr=off:ss=included:rawr=on:lma=on:sgt=20:cond=fast_0");
+    feqAtomsG18000.push("lrs-1011_6:1_sos=all:s2a=on:i=114836:sd=2:ss=included:bd=off:sil=128000:fde=none:abs=on:amm=off:gsp=on:sp=const_min:cond=fast:avsq=on:avsqc=1:avsqr=11,2:nm=5:sfv=off:plsq=on:plsqr=199691,1048576_0");
+    feqAtomsG18000.push("lrs+2_1:1_anc=all_dependent:bsr=unit_only:sil=32000:i=17658:bs=on:alpa=true_0");
+    feqAtomsG18000.push("lrs-1002_1:1_anc=all:sil=64000:tgt=full:sos=on:st=1.5:i=25368:sd=2:kws=inv_frequency:aac=none:fsr=off:ss=axioms:abs=on:fs=off_0");
+    feqAtomsG18000.push("dis+1011_3:7_to=lpo:sos=on:spb=goal_then_units:abs=on:lsd=20:st=1.5:i=85957:sd=2:aac=none:awrs=decay:bd=off:ss=axioms:sgt=32:flr=on:sil=256000:nm=26_0");
+    feqAtomsG18000.push("lrs+1011_1:1_drc=encompass:sil=128000:tgt=ground:i=58209:kws=frequency:ss=axioms:lwlo=on:fde=unused:sp=reverse_arity_0");
+
+    // total_instr 1341991
+    // len(covered) 867
+
+    Schedule feqAtomsG2800;
+
+    feqAtomsG2800.push("lrs+10_1:628_anc=all_dependent:bsr=unit_only:sil=256000:sp=frequency:i=136310:newcnf=on_0");
+    feqAtomsG2800.push("lrs+2_3:1_to=lpo:sil=256000:irw=on:fde=unused:sp=unary_first:bce=on:nwc=6.0:s2agt=30:newcnf=on:s2a=on:i=140573:nm=2_0");
+
+    feqAtomsG2800.push("lrs+11_1:12_to=lpo:sil=128000:sp=const_min:i=103397:ss=included:sgt=16:av=off:fsd=on:nm=16_0");
+    feqAtomsG2800.push("dis+2_1:50_sil=256000:flr=on:sac=on:i=218245:fsr=off:uhcvi=on_0");
+
+    feqAtomsG2800.push("lrs-1010_1:1_sil=2000:i=250:sd=1:ss=axioms:sgt=32:sos=on_0");
+    feqAtomsG2800.push("lrs-1011_8:1_sil=16000:sos=all:i=346:sd=1:ep=R:ss=axioms_0");
+    feqAtomsG2800.push("lrs+1002_1:1_to=lpo:sil=2000:sp=frequency:sos=on:st=3.0:i=282:sd=2:ss=axioms_0");
+    feqAtomsG2800.push("lrs+1010_1:1_sil=8000:sp=occurrence:urr=on:br=off:st=1.2:i=125:sd=7:ss=axioms:sgt=16_0");
+    feqAtomsG2800.push("lrs+1010_1:1_to=lpo:sil=2000:sos=on:fd=off:i=402:bd=off_0");
+    feqAtomsG2800.push("lrs+2_5:1_sil=2000:sos=on:acc=on:urr=on:alpa=false:i=325:sd=1:bd=off:nm=32:ss=axioms:br=off:sup=off:bs=on_0");
+    feqAtomsG2800.push("lrs+1011_1:1_to=lpo:drc=encompass:sil=4000:plsq=on:plsqr=32,1:sp=occurrence:sos=on:erd=off:urr=on:lsd=100:i=267:sd=1:nm=2:ss=axioms:flr=on:sup=off_0");
+    feqAtomsG2800.push("lrs+33_1:1_sil=4000:sp=reverse_frequency:sos=all:i=156:sd=2:bd=off:nm=2:av=off:fsr=off:ss=axioms:sgt=10:rawr=on:sup=off:to=lpo:fs=off_0");
+    feqAtomsG2800.push("dis+1011_1:1_to=lpo:sil=4000:sp=const_max:sos=all:spb=goal:st=1.5:i=200:av=off:ss=axioms:sfv=off:bd=off:sd=2:fd=off_0");
+    feqAtomsG2800.push("dis-1010_1:4_sil=2000:tgt=ground:fd=off:i=203:sd=1:nm=4:av=off:ss=axioms:sgt=64:newcnf=on_0");
+    feqAtomsG2800.push("lrs+1002_1:8_sil=4000:sos=on:nicw=on:st=2.5:i=1027:ss=included:sd=7:ep=RS:erd=off_0");
+    feqAtomsG2800.push("ott+10_107421:1048576_to=lpo:drc=off:sil=4000:fde=none:sos=on:lma=on:spb=intro:gs=on:nwc=24.2524:gsem=off:i=316:sd=3:afp=40000:awrs=decay:awrsf=1166:nm=6:afq=1.99252:uhcvi=on:ss=axioms:rawr=on:sp=const_max:add=off_0");
+    feqAtomsG2800.push("lrs+10_8:1_bsr=unit_only:sil=4000:urr=on:lcm=reverse:rp=on:i=426:sd=1:nm=6:av=off:ss=included:sup=off:sos=on_0");
+    feqAtomsG2800.push("dis+1011_1:1_sil=16000:nwc=7.0:s2agt=64:s2a=on:i=260:ss=axioms:sgt=8:lsd=50:sd=7_0");
+    feqAtomsG2800.push("lrs+2_1:1_drc=encompass:sil=2000:urr=on:nwc=10.0:i=160:sd=3:fsr=off:ss=axioms:fd=preordered:bd=off:sup=off_0");
+    feqAtomsG2800.push("dis+11_5603931:1048576_bsr=on:sfv=off:slsqr=176855,1048576:sil=2000:plsq=on:plsqr=4348351,262144:sp=occurrence:spb=units:lcm=predicate:fd=off:nwc=1.37809:s2agt=10:slsq=on:s2a=on:i=462:bs=unit_only:sd=3:kws=arity_squared:slsql=off:bd=off:nm=26:av=off:ss=axioms:sgt=15:fsr=off_0");
+    feqAtomsG2800.push("dis+1010_3:2_sil=4000:plsq=on:s2agt=100:sac=on:s2a=on:i=2185:s2at=2.0:ep=RS:tgt=full_0");
+    feqAtomsG2800.push("dis+1002_1:2_to=lpo:sil=2000:sos=on:abs=on:newcnf=on:i=308:sd=1:bd=off:ss=included:rawr=on:sp=const_frequency:fsr=off:fs=off_0");
+    feqAtomsG2800.push("dis+1010_1:1_to=lpo:sil=2000:plsq=on:plsqr=32,1:sos=on:spb=goal:rp=on:i=336:bd=off:ins=4:ss=axioms:sgt=32:acc=on:fde=none_0");
+    feqAtomsG2800.push("dis+1010_16550053:1048576_to=lpo:ccuc=small_ones:sil=4000:fde=none:plsq=on:avsql=on:plsqr=34063,1048576:sp=const_min:sos=on:acc=model:plsql=on:nwc=10.3787:avsq=on:i=349:sd=1:avsqr=1084175,1048576:nm=0:amm=off:ss=axioms:bce=on:rawr=on:sup=off:bd=off_0");
+    feqAtomsG2800.push("lrs+2_1:1_sil=2000:sos=all:st=5.0:i=193:bd=off:av=off:ss=axioms:sd=2:sup=off_0");
+    feqAtomsG2800.push("lrs+1002_1:1_sil=64000:sos=on:urr=ec_only:flr=on:st=3.0:i=632:sd=1:ep=RS:nm=16:ss=axioms_0");
+    feqAtomsG2800.push("lrs+1011_4801913:1048576_sfv=off:sil=2000:plsqc=1:plsq=on:plsqr=98277,1048576:etr=on:sp=const_max:lma=on:erape=on:urr=full:rp=on:nwc=23.4614:lwlo=on:st=2.5:i=440:add=large:bs=unit_only:sd=2:kws=inv_arity_squared:awrs=converge:awrsf=951:nm=17:amm=sco:ss=axioms:er=filter:sgt=50:rawr=on:anc=none_0");
+    feqAtomsG2800.push("lrs-1011_4:1_bsr=unit_only:sil=4000:sp=occurrence:lsd=20:newcnf=on:i=730:kws=inv_arity_squared:awrs=converge:rawr=on:rp=on:alpa=false:nwc=3.0_0");
+    feqAtomsG2800.push("lrs+1002_8:1_sil=16000:plsq=on:sos=on:urr=on:plsql=on:st=1.2:i=228:sd=2:ss=axioms_0");
+    feqAtomsG2800.push("lrs+10_8:1_to=lpo:drc=encompass:sil=4000:sos=on:urr=on:newcnf=on:i=1008:sd=2:nm=2:ss=axioms:sgt=32:sup=off:bd=off_0");
+    feqAtomsG2800.push("dis-1002_1:64_sil=2000:sos=on:nwc=10.0:i=231:nm=2:ss=axioms:ep=RST:sd=1_0");
+    feqAtomsG2800.push("lrs-1010_1:1_to=lpo:sil=2000:sp=reverse_arity:sos=on:urr=ec_only:i=501:sd=2:bd=off:ss=axioms:sgt=16_0");
+    feqAtomsG2800.push("dis-1011_100103:1048576_bsr=on:drc=encompass:sil=2000:tgt=full:bsd=on:ile=on:sp=const_min:rnwc=on:nwc=23.5528:s2agt=30:avsqc=2:avsq=on:s2a=on:i=411:s2at=6:avsqr=111405,262144:bsdmm=3:nm=40:uhcvi=on:afr=on:ss=axioms:sgt=5:rawr=on:add=large_0");
+    feqAtomsG2800.push("dis+1011_3:8_bsr=unit_only:slsqr=1,16:sil=2000:plsq=on:plsqr=296,127:sp=reverse_frequency:lsd=5:nwc=10.0:slsqc=3:slsq=on:st=3.0:i=412:s2at=4.5:sd=4:slsql=off:nm=16:ins=5:ss=axioms:sgt=20:rawr=on:urr=ec_only:to=lpo_0");
+    feqAtomsG2800.push("lrs+1002_1:16_sil=4000:sos=on:sac=on:i=886:bs=unit_only:gsp=on:ss=included:sgt=16:fsr=off:sfv=off:bd=off_0");
+    feqAtomsG2800.push("dis+1011_3:1_sil=2000:lsd=10:sac=on:s2a=on:i=258:fsr=off:fd=off:ss=axioms:sd=2:sgt=16_0");
+    feqAtomsG2800.push("lrs+21_1:1024_sil=2000:sp=frequency:spb=non_intro:st=3.5:i=420:sd=3:kws=precedence:bd=off:av=off:ss=axioms:sup=off:lcm=predicate_0");
+    feqAtomsG2800.push("lrs-1011_1:1_sil=16000:urr=ec_only:flr=on:i=262:ep=RST:ss=axioms:sd=1:lsd=50_0");
+    feqAtomsG2800.push("lrs+1002_1:1_to=lpo:sil=4000:sos=on:i=425:sd=1:ss=included_0");
+    feqAtomsG2800.push("lrs+1011_1:64_slsqr=117407,1048576:drc=encompass:sil=2000:plsqc=1:plsq=on:plsqr=32300765,1048576:urr=ec_only:rp=on:slsqc=3:slsq=on:i=619:slsql=off:bd=off:rawr=on:fsr=off:br=off:s2at=2.0_0");
+    feqAtomsG2800.push("lrs+2_1:1_sil=2000:tgt=ground:sos=on:i=274:sd=1:ss=included:to=lpo:plsq=on:plsqr=32,1_0");
+    feqAtomsG2800.push("lrs-1011_1:1_bsr=unit_only:sil=2000:sp=occurrence:sac=on:i=280:sd=3:ss=axioms:sgt=30:newcnf=on_0");
+    feqAtomsG2800.push("lrs+1010_1:2_sil=4000:tgt=ground:nwc=10.0:st=2.0:i=280:sd=1:bd=off:ss=axioms_0");
+    feqAtomsG2800.push("dis+1011_1:1_sil=2000:urr=ec_only:br=off:st=1.5:i=497:fsr=off:fsd=on:ss=axioms:slsq=on:slsql=off:slsqr=1,16:sup=off_0");
+    feqAtomsG2800.push("ott+1002_2835555:1048576_to=lpo:sil=2000:sos=on:fs=off:nwc=10.3801:avsqc=3:updr=off:avsq=on:st=2:s2a=on:i=321:s2at=3:afp=10000:aac=none:avsqr=13357983,1048576:awrs=converge:awrsf=460:bd=off:nm=13:ins=2:fsr=off:amm=sco:afq=1.16719:ss=axioms:rawr=on:fd=off_0");
+    feqAtomsG2800.push("lrs-10_1:1_to=lpo:drc=off:sil=8000:sos=on:i=550:ss=axioms:sd=1_0");
+    feqAtomsG2800.push("lrs-1002_3:2_sil=2000:sos=on:fd=off:nwc=10.0:flr=on:i=554:nm=16:fsr=off:sup=off:ss=axioms:fs=off:bd=off:fde=none:erd=off_0");
+    feqAtomsG2800.push("lrs+2_5:1_to=lpo:sil=2000:plsqc=1:plsq=on:plsqr=32,1:sp=occurrence:sos=all:lma=on:i=337:gsp=on:ss=axioms:rawr=on:sup=off:s2a=on:s2at=3.0_0");
+    feqAtomsG2800.push("lrs+11_1:8_sil=2000:fde=unused:sos=all:spb=goal_then_units:lsd=100:i=341:kws=precedence:aac=none:sfv=off_0");
+    feqAtomsG2800.push("dis+1002_1:28_sil=64000:sos=on:s2agt=8:sac=on:i=3780:s2a=on:s2at=2.5:ep=RSTC_0");
+    feqAtomsG2800.push("dis+1011_1:4_sil=8000:tgt=full:st=1.5:s2a=on:i=2134:s2at=1.2:sd=5:ss=axioms:ep=RS:av=off_0");
+    feqAtomsG2800.push("lrs-1002_1:1_anc=all:sil=64000:tgt=full:sos=on:st=1.5:i=371:sd=2:kws=inv_frequency:aac=none:fsr=off:ss=axioms:abs=on:fs=off_0");
+    feqAtomsG2800.push("dis+33_1:1_to=lpo:sil=16000:plsq=on:nwc=3.0:s2agt=16:s2a=on:i=3658:s2at=5.5:nm=2:av=off:fsr=off:s2pl=no:ep=RS:erd=off_0");
+    feqAtomsG2800.push("dis+1010_2:13_bsr=on:drc=off:sil=32000:fde=none:sos=on:nwc=10.0:sac=on:newcnf=on:s2a=on:i=663:s2at=1.5:awrs=decay:awrsf=8:nm=16:rawr=on:rnwc=on:kws=arity_squared:amm=sco:alpa=random_0");
+    feqAtomsG2800.push("lrs+1011_5:1_drc=encompass:sil=2000:urr=on:fd=preordered:i=2101:kws=inv_frequency:s2a=on:s2at=-1.0_0");
+    feqAtomsG2800.push("dis+1002_1:1_sil=16000:tgt=ground:sac=on:i=714:sd=2:aac=none:ss=axioms:nwc=10.0_0");
+    feqAtomsG2800.push("lrs+1011_4345945:1048576_bsr=unit_only:sil=8000:tgt=full:irw=on:fde=none:sos=on:lma=on:spb=intro:abs=on:urr=on:br=off:fd=preordered:rp=on:nwc=14.3155:s2agt=50:alpa=random:kmz=on:updr=off:s2a=on:i=423:add=off:bs=on:kws=inv_arity_squared:afp=100000:aac=none:awrs=decay:awrsf=1366:nm=2:ins=2:afq=4.07453:uhcvi=on:afr=on:rawr=on:sp=unary_first:bd=off:fsd=on:fsdmm=1:s2at=5.0:sup=off_0");
+    feqAtomsG2800.push("lrs+1010_1:28_sil=2000:s2agt=16:st=3.0:s2a=on:i=427:sd=3:ss=axioms:av=off:slsq=on_0");
+    feqAtomsG2800.push("lrs+11_2:1_to=lpo:sil=2000:tgt=ground:sp=const_frequency:i=456:bd=off:fsr=off:ss=axioms:av=off:s2a=on:s2at=-1.0_0");
+    feqAtomsG2800.push("dis+1011_2:1_sil=2000:fde=unused:plsqc=1:plsq=on:plsqr=36971,524288:nwc=5.0:i=479:ep=RS:nm=7_0");
+    feqAtomsG2800.push("dis+1011_1:1_drc=off:sil=2000:fde=unused:sp=const_min:spb=goal_then_units:lsd=20:s2agt=10:newcnf=on:s2a=on:i=869:nm=2:av=off:rawr=on:fsd=on_0");
+    feqAtomsG2800.push("dis+11_1:1024_to=lpo:sil=16000:sp=reverse_arity:sos=all:st=1.5:i=511:bd=off:av=off:ss=axioms:sfv=off:sd=4:fd=off_0");
+    feqAtomsG2800.push("ott-1010_1915907:1048576_to=lpo:sil=2000:plsq=on:ile=on:plsqr=319573,262144:sp=reverse_arity:sos=on:nwc=6.38626:s2agt=10:avsq=on:s2a=on:i=511:s2at=5.5:sd=1:afp=40000:avsqr=5709,524288:nm=9:ins=2:fsr=off:afq=1.49663:ss=included:rawr=on:acc=model:ccuc=small_ones:fs=off:spb=goal_0");
+    feqAtomsG2800.push("lrs+1011_1:8_to=lpo:sil=2000:sos=all:urr=ec_only:br=off:nwc=10.0:newcnf=on:st=3.0:i=548:sd=3:bd=off:nm=2:fdi=50:ss=axioms:sfv=off:sac=on_0");
+    feqAtomsG2800.push("lrs+1010_174643:1048576_anc=none:drc=off:sil=2000:tgt=full:sims=off:sp=frequency:lma=on:urr=on:nwc=0.442624:alpa=random:nicw=on:st=3:i=565:sd=4:awrs=decay:awrsf=1057:bd=off:nm=6:ins=1:ss=axioms:sgt=10:rawr=on:afp=2000:afq=1.0096899854800578:br=off_0");
+    feqAtomsG2800.push("dis+21_16:1_to=lpo:sil=2000:sp=frequency:urr=on:nwc=10.0:s2a=on:i=585:sd=1:nm=6:ss=included:fsr=off:gsp=on_0");
+    feqAtomsG2800.push("lrs-1010_1:128_tgt=ground:si=on:plsq=on:plsqr=2087559,524288:sos=on:st=1.5:i=590:sd=2:rtra=on:ss=included:sil=128000:ins=1:gsp=on:anc=all_dependent_0");
+    feqAtomsG2800.push("lrs+1002_1:1_sil=4000:plsq=on:sos=on:plsql=on:i=1095:ss=axioms:sgt=10:avsq=on:avsqr=1,16:ep=RS_0");
+    feqAtomsG2800.push("dis+1011_1869663:524288_anc=none:to=lpo:sil=2000:tgt=full:ile=on:sp=weighted_frequency:spb=goal:lsd=20:nwc=21.2407:i=600:sd=1:bd=preordered:nm=4:ins=1:uhcvi=on:gsp=on:ss=axioms_0");
+    feqAtomsG2800.push("lrs-1010_1:1024_anc=all_dependent:to=lpo:sp=const_frequency:sos=on:br=off:nwc=10.0:i=618:nm=30:newcnf=on:sil=8000:bd=off:fde=unused:ss=axioms_0");
+    feqAtomsG2800.push("lrs+1011_1:1_sil=16000:sos=all:i=619:sd=2:kws=frequency:bd=off:nm=2:ss=axioms:sup=off_0");
+    feqAtomsG2800.push("lrs+11_1:1_sos=on:urr=on:s2a=on:i=2202:sd=1:aac=none:ss=axioms:gsp=on:sil=128000:nm=3:bce=on:fd=preordered:alpa=true:etr=on:bd=off:lcm=predicate_0");
+    feqAtomsG2800.push("dis+1011_5:1_sil=2000:tgt=full:plsqc=1:plsq=on:plsqr=133465761,1048576:spb=non_intro:i=630:nm=2:ins=1:ss=axioms:rawr=on:alpa=true:kws=precedence:fsr=off_0");
+    feqAtomsG2800.push("dis-1011_113:472_sil=256000:nwc=10.0:i=1693:kws=precedence:awrs=decay:bd=off:ss=axioms:rawr=on:plsq=on:plsqr=73,255:amm=sco:ins=1:fsr=off:erd=off:sp=occurrence:fde=unused:lsd=60_0");
+    feqAtomsG2800.push("lrs+1002_1:7_drc=encompass:sil=64000:sos=on:urr=full:i=643:sd=2:ss=axioms:sgt=100_0");
+    feqAtomsG2800.push("lrs+1011_1:16_sil=2000:plsq=on:plsqr=1,15:urr=on:slsqc=1:slsq=on:st=6.0:i=1250:sd=3:fsr=off:ss=included:rawr=on:sup=off:bd=off_0");
+    feqAtomsG2800.push("lrs+1011_1:1_sil=16000:sos=on:i=1322:sd=2:ss=axioms:sgt=16_0");
+    feqAtomsG2800.push("lrs+11_1:1_drc=off:sil=4000:fde=unused:sp=unary_frequency:sos=on:fs=off:nwc=17.7715:flr=on:avsq=on:i=736:kws=precedence:avsqr=18,127:bd=off:nm=16:fsr=off:uhcvi=on:rawr=on:s2pl=no:s2agt=8:ss=axioms:sd=1:st=3.5:aac=none:afp=50:afq=2.0_0");
+    feqAtomsG2800.push("lrs-1011_1:8_sil=2000:nwc=5.0:flr=on:i=737:nm=2:sup=off:fde=unused:fsr=off:bd=off_0");
+    feqAtomsG2800.push("lrs+21_1:1_sil=4000:sos=on:flr=on:i=1407:sd=1:bd=off:nm=2:ss=included:sup=off:fs=off:fsr=off_0");
+    feqAtomsG2800.push("lrs+21_1:64_drc=encompass:sil=32000:bsd=on:lma=on:spb=goal:nwc=10.0:i=779:add=large:ss=axioms:sgt=16:irw=on_0");
+    feqAtomsG2800.push("lrs-1011_35909:1048576_drc=encompass:sil=2000:tgt=ground:sp=weighted_frequency:spb=goal:fd=preordered:nwc=0.953927:flr=on:s2a=on:i=779:s2at=3:kws=precedence:awrs=decay:awrsf=875:bd=off:nm=3:ins=14:uhcvi=on:rawr=on:s2pl=no:lwlo=on:av=off:fsr=off_0");
+    feqAtomsG2800.push("lrs+32_1:1_to=lpo:sil=8000:sp=const_frequency:sos=on:fs=off:fd=off:i=1461:sd=1:bd=off:nm=2:fsr=off:ss=included_0");
+    feqAtomsG2800.push("ott+1010_1_aac=none:bce=on:ep=RS:fsd=off:nm=4:nwc=2.0:nicw=on:sas=z3:sims=off:i=1557_0");
+    feqAtomsG2800.push("lrs+1010_1:128_sil=8000:sos=all:urr=full:sac=on:i=863:fsd=on:sup=off:ss=included:st=2.5:sd=7_0");
+    feqAtomsG2800.push("lrs+11_1:128_slsqr=1,16:sil=64000:slsq=on:st=2.5:i=7137:sd=7:nm=3:av=off:ss=axioms:bd=off_0");
+    feqAtomsG2800.push("dis-1010_1:12_sil=64000:tgt=ground:sp=const_max:bce=on:s2agt=100:cond=on:s2a=on:i=1872:s2at=1.5:nm=16:av=off:awrs=converge:awrsf=462:newcnf=on:br=off:bd=off:rawr=on:plsq=on:plsqr=34203,524288:spb=units_0");
+    feqAtomsG2800.push("lrs+11_1:16_sil=8000:plsq=on:plsqr=1,32:spb=goal:st=2.0:i=1087:bd=off:ss=axioms:av=off:sd=15:sup=off_0");
+    feqAtomsG2800.push("dis+21_1:6_sil=256000:i=1099:ss=included:sd=5:st=2.0:sp=unary_first:sgt=5:newcnf=on:kws=precedence:spb=non_intro:av=off:fd=off_0");
+    feqAtomsG2800.push("lrs+1011_6:11_bsr=on:slsqr=4477783,262144:sil=8000:tgt=ground:rp=on:nwc=1.2:slsqc=3:newcnf=on:slsq=on:s2a=on:i=2416:s2at=4.0:sd=5:slsql=off:nm=2:amm=off:ss=axioms:sgt=20:bd=off:updr=off_0");
+    feqAtomsG2800.push("lrs+4_1:35_sil=8000:sp=frequency:acc=on:rp=on:s2a=on:i=1331:nm=0:afr=on:aac=none_0");
+    feqAtomsG2800.push("lrs+10_1:1_sil=32000:sos=on:i=1340:sd=1:bd=off:ss=included:urr=on:sup=off_0");
+    feqAtomsG2800.push("lrs+1011_12:7_drc=off:tgt=ground:sp=frequency:spb=goal:fd=preordered:rp=on:nwc=10.0:newcnf=on:cond=fast:i=1429:kws=precedence:afp=50:afq=4.10402:rawr=on:ss=axioms:sd=2:sgt=50:st=3.5:add=off:ins=11:rnwc=on:sims=off:sil=256000_0");
+    feqAtomsG2800.push("dis+1_1:64_sil=16000:sp=reverse_frequency:fd=off:nwc=5.0:sac=on:newcnf=on:i=2895:ss=included:sd=7:st=4.0:fsr=off_0");
+    feqAtomsG2800.push("lrs-11_1:1_sil=8000:sos=on:st=2.0:i=1599:sd=2:nm=4:ss=axioms:ep=R_0");
+    feqAtomsG2800.push("lrs+2_1:1_sil=256000:plsq=on:plsqr=17685,131072:sos=on:lcm=reverse:i=3156:av=off:ss=axioms:ep=RST:sd=2_0");
+    feqAtomsG2800.push("lrs+10_8:1_drc=encompass:sil=256000:sp=reverse_frequency:i=1631:bs=unit_only:aac=none:nm=6:ss=axioms:sup=off:sos=on:acc=model:afp=50_0");
+    feqAtomsG2800.push("dis+22_1:1024_sil=8000:plsq=on:plsqr=1,32:fd=off:nwc=2.1:i=3201:av=off:ss=axioms:sgt=16:s2pl=on:sup=off_0");
+    feqAtomsG2800.push("lrs+1011_2:3_sil=16000:sos=on:rp=on:newcnf=on:lwlo=on:st=1.5:i=3447:sd=2:bd=off:nm=2:fsr=off:gsp=on:ss=axioms:bce=on:anc=all:sac=on_0");
+    feqAtomsG2800.push("lrs+10_1:1_sil=8000:fde=none:sos=on:nwc=10.0:i=1793:ep=RST:av=off:erd=off_0");
+    feqAtomsG2800.push("dis-1011_3:2_sil=8000:flr=on:i=1812:av=off:fsr=off:kws=arity_squared_0");
+    feqAtomsG2800.push("dis+1010_1:8_sil=16000:plsq=on:plsqr=4,1:s2a=on:i=10544:bd=off:sac=on_0");
+    feqAtomsG2800.push("lrs-10_1:1_sil=16000:sos=on:st=3.0:i=2021:sd=2:ep=RST:fsr=off:ss=axioms_0");
+    feqAtomsG2800.push("lrs-1010_1:1_drc=off:sil=16000:sos=on:flr=on:i=4790:bd=off:nm=6:ss=included:alpa=false:fs=off:fsr=off_0");
+    feqAtomsG2800.push("lrs+1002_1:16_to=lpo:sil=32000:sp=unary_frequency:sos=on:i=2592:bd=off:ss=axioms_0");
+    feqAtomsG2800.push("dis+11_1:64_bsr=on:sil=16000:fde=none:sos=all:lsd=10:st=5.5:i=2958:sd=4:av=off:sup=off:gsp=on:ss=axioms:cond=on:bce=on:plsq=on:plsqr=33373429,524288_0");
+    feqAtomsG2800.push("dis+1011_1:1_sil=16000:nwc=10.0:sac=on:i=5826:newcnf=on:fdi=20_0");
+    feqAtomsG2800.push("dis+1002_1:1_tgt=full:sos=on:rp=on:sac=on:i=3619:ss=axioms:sd=3:cond=fast:add=off:abs=on:fde=none:sil=256000_0");
+    feqAtomsG2800.push("lrs-31_1:1_drc=off:sil=4000:tgt=full:fd=preordered:nwc=5.0:lwlo=on:i=3633:ins=5:sac=on:bd=off:lcm=predicate_0");
+    feqAtomsG2800.push("dis+1002_25:43_bsr=unit_only:slsqr=1,2:sil=32000:tgt=full:plsq=on:plsqr=93,203:sp=const_min:sos=on:plsql=on:nwc=5.0:alpa=random:newcnf=on:slsq=on:nicw=on:i=3750:add=off:bs=on:slsql=off:fsr=off:uhcvi=on:acc=on_0");
+    feqAtomsG2800.push("lrs+1011_4:1_to=lpo:sil=16000:fde=none:plsq=on:plsqr=1,8:sp=occurrence:st=2.0:i=3957:sd=3:ss=axioms:er=known:av=off:awrs=converge:awrsf=500:fsr=off_0");
+    feqAtomsG2800.push("ott+10_2651049:1048576_drc=encompass:sil=8000:sp=const_min:sos=on:erd=off:spb=goal_then_units:acc=on:urr=on:rp=on:nwc=3.5019:nicw=on:st=1.5:i=4059:sd=2:kws=inv_frequency:afp=1000000:bd=off:nm=4:afq=2.89144:uhcvi=on:ss=axioms:rawr=on:sup=off_0");
+    feqAtomsG2800.push("dis-1002_1:1_sil=8000:sos=on:st=1.2:i=4457:ss=axioms:bd=off:sup=off:fsr=off:sd=5_0");
+    feqAtomsG2800.push("lrs+11_1:8_sp=reverse_arity:st=2.0:i=4587:ss=axioms:sil=256000:lcm=predicate:sd=10:av=off_0");
+    feqAtomsG2800.push("dis+22_1:8_sil=128000:abs=on:alpa=true:sac=on:i=6044:nm=2:amm=off:sup=off_0");
+    feqAtomsG2800.push("dis+11_6:5_sil=8000:plsqc=1:plsq=on:plsqr=2561,256:sp=occurrence:erd=off:urr=on:nwc=10.0:cond=on:s2a=on:i=6488:s2at=6.0:kws=inv_arity_squared:nm=9:av=off:rawr=on:lsd=100:ss=axioms:st=4.0:ep=R:sd=5_0");
+    feqAtomsG2800.push("dis+21_16:1_sil=128000:newcnf=on:i=8195:kws=inv_frequency:nm=2:bd=preordered:flr=on:sac=on:ins=1_0");
+    feqAtomsG2800.push("lrs-1011_6:1_sos=all:s2a=on:i=9398:sd=2:ss=included:bd=off:sil=128000:fde=none:abs=on:amm=off:gsp=on:sp=const_min:cond=fast:avsq=on:avsqc=1:avsqr=11,2:nm=5:sfv=off:plsq=on:plsqr=199691,1048576_0");
+    feqAtomsG2800.push("lrs+11_1:128_st=3.0:i=11271:ss=axioms:av=off:bd=off:to=lpo:sil=256000:nwc=5.0:newcnf=on:fsr=off_0");
+    feqAtomsG2800.push("dis+1010_5:1_sil=64000:sp=const_min:sos=on:acc=model:i=11437:kws=precedence:bd=off:nm=20:alpa=random:ss=axioms_0");
+    feqAtomsG2800.push("dis+10_71833:524288_drc=off:sil=256000:tgt=ground:nwc=10.0:i=12768:kws=inv_frequency:awrs=decay:nm=78:abs=on:flr=on:slsq=on:slsqc=3:slsqr=4,1:s2at=4.0_0");
+    feqAtomsG2800.push("lrs+11_1:128_st=2.0:i=276692:ss=axioms:to=lpo:sil=256000:sd=15:ep=RS_0");
+    feqAtomsG2800.push("dis+1010_1:1_av=off:newcnf=on:si=on:rawr=on:rtra=on:i=21387_0");
+    feqAtomsG2800.push("dis-1010_1:1_slsqr=3,4:sil=64000:tgt=full:fde=unused:slsqc=1:slsq=on:i=46074:sd=1:ss=included:fsr=off:plsq=on:plsqc=1:plsqr=32,1_0");
+    feqAtomsG2800.push("lrs+11_1:1024_sil=128000:plsqc=2:bsd=on:plsq=on:plsqr=5714633,65536:sp=frequency:spb=units:bce=on:rp=on:newcnf=on:i=61101:afp=1000:afq=4.53413:rawr=on:afr=on:uhcvi=on_0");
+    feqAtomsG2800.push("dis+1011_4_add=large:amm=off:sims=off:sac=on:sp=frequency:tgt=ground:i=61108_0");
+
+    feqAtomsG2800.push("lrs-1010_54669:524288_sp=const_frequency:sac=on:cond=fast:i=98291:afp=300:aac=none:bd=off:sims=off:aer=off:flr=on:tgt=ground:sil=256000:sfv=off:kws=precedence:alpa=random:spb=intro:s2a=on:s2agt=50:s2at=5.0:updr=off_0");
+
+    // total_instr 1380668
+    // len(covered) 466
+
+    Schedule feqAtomsG180;
+
+    feqAtomsG180.push("lrs+1011_1:12_anc=none:drc=off:sil=64000:sims=off:sp=unary_first:spb=goal_then_units:lsd=20:rnwc=on:nwc=2.0:i=53554:add=off:awrs=converge:bd=off:uhcvi=on:tgt=ground:afp=300:afq=1.63_0");
+    feqAtomsG180.push("dis+11_1:1_nwc=5.0:s2a=on:i=66616:s2at=3.0:sil=128000:bd=off_0");
+    feqAtomsG180.push("lrs+1010_2201:262144_anc=all:drc=encompass:sil=256000:sims=off:sp=frequency:spb=goal_then_units:rp=on:lwlo=on:st=3.0:i=179501:bs=unit_only:nm=6:ins=2:fsd=on:ss=axioms:sgt=16:afr=on:tgt=ground:awrs=decay:awrsf=200:acc=on:ccuc=first_0");
+    feqAtomsG180.push("lrs+10_1:3_drc=off:sil=256000:sp=unary_first:lwlo=on:i=216875:kws=precedence:ins=3:rawr=on:nwc=10.0_0");
+
+    feqAtomsG180.push("dis+1011_3:1_sil=256000:tgt=ground:sac=on:i=109:sd=1:ss=included_0");
+    feqAtomsG180.push("dis+1010_1:1_sil=2000:nwc=3.0:s2a=on:i=132:ins=5:fsr=off:ss=axioms:sd=2:fd=off_0");
+    feqAtomsG180.push("dis+1010_159245:1048576_to=lpo:sil=2000:etr=on:sp=unary_frequency:spb=goal:rnwc=on:nwc=10.9066:st=2:i=124:sd=1:nm=3:av=off:ss=axioms:rawr=on:drc=encompass:foolp=on:sgt=5:cond=fast:er=filter:erape=on:erml=2:s2a=on_0");
+    feqAtomsG180.push("lrs+1011_1:1_sil=16000:sos=on:erd=off:i=126:nm=2:ep=RST_0");
+    feqAtomsG180.push("lrs+1011_1:1_sil=8000:sp=occurrence:nwc=10.0:st=1.5:i=145:ss=axioms:sgt=4_0");
+    feqAtomsG180.push("ott+1002_2835555:1048576_to=lpo:sil=2000:sos=on:fs=off:nwc=10.3801:avsqc=3:updr=off:avsq=on:st=2:s2a=on:i=173:s2at=3:afp=10000:aac=none:avsqr=13357983,1048576:awrs=converge:awrsf=460:bd=off:nm=13:ins=2:fsr=off:amm=sco:afq=1.16719:ss=axioms:rawr=on:fd=off_0");
+    feqAtomsG180.push("lrs+2_3:1_to=lpo:sil=256000:irw=on:fde=unused:sp=unary_first:bce=on:nwc=6.0:s2agt=30:newcnf=on:s2a=on:i=226:nm=2_0");
+    feqAtomsG180.push("dis+1011_1:1_sil=16000:nwc=7.0:s2agt=64:s2a=on:i=247:ss=axioms:sgt=8:lsd=50:sd=7_0");
+    feqAtomsG180.push("lrs+2_1:1_sil=2000:sos=on:urr=on:i=230:kws=inv_frequency:ss=axioms:sd=3:avsq=on:br=off_0");
+    feqAtomsG180.push("dis-1010_76381:524288_drc=off:sil=4000:irw=on:sp=frequency:lma=on:spb=goal:rnwc=on:gs=on:nwc=13.9901:s2agt=10:kmz=on:updr=off:sac=on:newcnf=on:gsem=on:cond=fast:s2a=on:i=231:s2at=6:kws=inv_frequency:awrs=converge:awrsf=968:bd=off:nm=10:rawr=on:sfv=off:alpa=random_0");
+    feqAtomsG180.push("lrs+1011_1:1_sil=8000:nicw=on:i=532:sd=1:ss=axioms:sgt=64_0");
+    feqAtomsG180.push("dis-1010_1:2_bsr=unit_only:sil=32000:tgt=full:i=1280:nm=16:bd=off_0");
+    feqAtomsG180.push("dis+1011_1:16_sil=2000:plsq=on:sos=on:st=3.0:i=134:sd=1:av=off:ss=axioms:lsd=10:plsql=on_0");
+    feqAtomsG180.push("dis-1010_8:1_sil=64000:sp=occurrence:sos=on:st=2.0:i=135:sd=3:bd=off:ss=axioms:acc=model:to=lpo:sup=off:fs=off:fsr=off:sgt=32_0");
+    feqAtomsG180.push("lrs+21_1:16_sil=2000:sp=occurrence:urr=on:flr=on:i=139:sd=1:nm=0:ins=3:ss=included:rawr=on:br=off_0");
+    feqAtomsG180.push("ott+1011_1:3_drc=encompass:sil=256000:bsd=on:sp=occurrence:sos=on:newcnf=on:i=160:afp=1:aac=none:amm=off:afq=3.64962_0");
+    feqAtomsG180.push("dis-1002_1:1_to=lpo:drc=encompass:sil=2000:sp=const_max:nwc=10.0:s2a=on:i=194:s2at=2.0:afp=10:ins=16:afq=1.4:aac=none:rawr=on:fsr=off:alpa=true_0");
+    feqAtomsG180.push("lrs-1010_529157:524288_drc=off:sil=4000:fde=none:sp=occurrence:sos=on:lma=on:abs=on:rnwc=on:nwc=23.317:i=385:sd=12:bd=off:nm=27:ins=3:amm=off:ss=axioms:nicw=on_0");
+    feqAtomsG180.push("dis+1011_11:1_sil=2000:avsq=on:i=293:avsqr=1,16:ep=RS:rawr=on:aac=none:lsd=100:mep=off:fde=none:newcnf=on:bsr=unit_only_0");
+    feqAtomsG180.push("lrs+11_1:1_sos=on:urr=on:s2a=on:i=178:sd=1:aac=none:ss=axioms:gsp=on:sil=128000:nm=3:bce=on:fd=preordered:alpa=true:etr=on:bd=off:lcm=predicate_0");
+    feqAtomsG180.push("lrs+11_1:32_sil=2000:sp=occurrence:lsd=20:rp=on:i=163:sd=1:nm=0:av=off:ss=included:nwc=10.0:flr=on_0");
+    feqAtomsG180.push("lrs+1011_4:1_to=lpo:drc=off:sil=8000:sp=frequency:abs=on:urr=on:lsd=10:nwc=5.0:s2agt=4:newcnf=on:st=5.0:s2a=on:i=674:ss=axioms:aac=none:br=off:bd=preordered_0");
+    feqAtomsG180.push("dis-1011_1:1024_sil=2000:fde=unused:sos=on:nwc=10.0:i=152:uhcvi=on:ss=axioms:ep=RS:av=off:sp=occurrence:fsr=off:awrs=decay:awrsf=200_0");
+    feqAtomsG180.push("lrs+2_2742125:1048576_drc=encompass:sil=2000:sp=const_min:sos=on:lcm=reverse:fd=preordered:nwc=16.4028:newcnf=on:i=172:sd=2:kws=precedence:bd=off:uhcvi=on:ss=axioms:rawr=on:awrs=converge:awrsf=493:cond=fast:tgt=full_0");
+    feqAtomsG180.push("lrs+1002_1:128_to=lpo:sil=2000:plsq=on:plsqr=7,2:sos=on:spb=units:fd=preordered:nwc=5.0:i=176:bd=off:nm=4:av=off:rawr=on:newcnf=on:fs=off:fsr=off_0");
+    feqAtomsG180.push("dis+1011_2:3_sil=8000:tgt=ground:fde=none:spb=goal_then_units:acc=on:nwc=4.0:updr=off:i=813:kws=inv_frequency:nm=16:ins=3:rawr=on:amm=sco_0");
+    feqAtomsG180.push("lrs+1011_2:9_sil=2000:lsd=10:newcnf=on:i=198:sd=2:awrs=decay:ss=included:amm=off:ep=R_0");
+    feqAtomsG180.push("dis+2_1:5_to=lpo:drc=off:sil=8000:tgt=full:sp=reverse_frequency:spb=goal_then_units:urr=ec_only:i=154:rawr=on:fsr=off:ss=included_0");
+    feqAtomsG180.push("lrs+1011_1:1024_sil=8000:sp=unary_first:nwc=10.0:st=3.0:s2a=on:i=214:s2at=5.0:awrs=converge:awrsf=390:ep=R:av=off:ss=axioms:s2agt=32_0");
+    feqAtomsG180.push("lrs+1002_1:8_sil=16000:tgt=ground:fde=none:sp=const_frequency:sos=on:nwc=3.0:i=157_0");
+    feqAtomsG180.push("dis+1011_1:1_sil=2000:fd=off:nwc=10.0:s2a=on:i=542:bd=off:nm=2:sup=off:s2at=4.0_0");
+    feqAtomsG180.push("dis-1002_3:1_to=lpo:sil=4000:sp=occurrence:fd=off:nwc=6.0:st=2.0:i=162:sd=1:fsr=off:ss=axioms:sgt=16:fs=off_0");
+    feqAtomsG180.push("lrs+1002_1:1_sfv=off:drc=encompass:sil=2000:fde=unused:sp=frequency:nwc=10.0:flr=on:st=1.5:i=193:bd=off:nm=0:ins=4:fsr=off:fsd=on:ss=axioms:s2a=on:s2agt=32:to=lpo:aac=none:sims=off_0");
+    feqAtomsG180.push("lrs-1002_2:9_anc=none:sil=2000:plsqc=1:plsq=on:avsql=on:plsqr=2859761,1048576:erd=off:rp=on:nwc=21.7107:newcnf=on:avsq=on:i=164:aac=none:avsqr=6317,1048576:ep=RS:fsr=off:rawr=on:afp=50:afq=2.133940627822616:sac=on_0");
+    feqAtomsG180.push("dis+1011_1:1024_drc=off:sil=2000:urr=ec_only:br=off:sac=on:i=360:fsr=off_0");
+    feqAtomsG180.push("lrs+1011_8157881:1048576_to=lpo:drc=off:sil=2000:fde=unused:sos=on:spb=intro:urr=on:nwc=4.0:i=269:add=off:sd=1:nm=19:fsr=off:uhcvi=on:ss=axioms:sgt=100:ins=3:sup=off:afp=1000:s2pl=no:anc=none:acc=model:fs=off:lma=on_0");
+    feqAtomsG180.push("lrs+1010_1:1_to=lpo:sil=2000:plsq=on:plsqr=32,1:sos=on:i=467:sd=2:ss=axioms_0");
+    feqAtomsG180.push("dis+1011_1:1_sil=4000:s2agt=4:slsqc=3:slsq=on:i=211:bd=off:av=off:sup=off:ss=axioms:st=3.0_0");
+    feqAtomsG180.push("lrs+1_4:1_cond=fast:fde=unused:lcm=predicate:nm=4:s2a=on:sd=3:sos=on:ss=axioms:st=2.0:sil=16000:si=on:rawr=on:rtra=on:i=440_0");
+    feqAtomsG180.push("lrs+1011_1:2_drc=encompass:sil=4000:fde=unused:sos=on:sac=on:newcnf=on:i=139:sd=10:bd=off:ins=1:uhcvi=on:ss=axioms:spb=non_intro:st=3.0:erd=off:s2a=on:nwc=3.0_0");
+    feqAtomsG180.push("lrs+1011_1:4_sil=2000:tgt=ground:lsd=100:nwc=2.0:st=7.0:i=2264:bd=off:nm=16:av=off:ss=axioms:rawr=on_0");
+    feqAtomsG180.push("dis+1011_1:4_sil=4000:i=231:awrs=converge:ep=RS:fsr=off:s2a=on:s2agt=32_0");
+    feqAtomsG180.push("dis-1011_4948593:1048576_sfv=off:sil=4000:sp=frequency:sos=on:spb=goal:lsd=1:lcm=predicate:rnwc=on:nwc=16.7798:i=146:sd=2:kws=inv_frequency:awrs=converge:awrsf=336:nm=10:ins=2:av=off:ss=axioms:rawr=on_0");
+    feqAtomsG180.push("dis-1002_89073:262144_slsqr=91667,1048576:drc=off:sil=2000:sp=unary_frequency:spb=goal:urr=ec_only:bce=on:lcm=reverse:rp=on:nwc=9.0873:sac=on:slsq=on:nicw=on:cond=fast:i=943:s2at=5.5:kws=precedence:afp=100000:slsql=off:bd=off:nm=5:ins=3:sup=off:afq=1.99538:uhcvi=on:gsp=on:rawr=on:acc=model_0");
+    feqAtomsG180.push("lrs+1002_1:1024_drc=encompass:sil=2000:tgt=full:rp=on:i=336:nm=16:ss=axioms:sd=1:st=2.0_0");
+    feqAtomsG180.push("lrs+10_8:1_to=lpo:drc=encompass:sil=4000:sos=on:urr=on:newcnf=on:i=149:sd=2:nm=2:ss=axioms:sgt=32:sup=off:bd=off_0");
+    feqAtomsG180.push("ott+1011_47:51_anc=all_dependent:slsqr=853,231:sil=4000:sp=reverse_frequency:foolp=on:spb=non_intro:abs=on:s2agt=50:slsqc=1:slsq=on:st=4.0:i=152:s2at=1.5:sd=7:kws=inv_frequency:afp=2000:nm=14:ins=2:afq=1.2:uhcvi=on:afr=on:gsp=on:ss=axioms:sgt=100:rawr=on:tgt=ground:awrs=converge:awrsf=390:bs=unit_only:add=off:flr=on:plsq=on:plsqc=1:plsqr=6705511,1048576:bd=preordered:newcnf=on:nwc=5.0_0");
+    feqAtomsG180.push("dis+1011_1:59_slsqr=923,506:to=lpo:drc=encompass:sil=16000:tgt=ground:irw=on:fde=none:spb=goal:bce=on:nwc=5.0:slsqc=1:flr=on:slsq=on:s2a=on:i=206:s2at=6.0:sd=2:afp=1000:ss=axioms:er=filter:rawr=on:fdi=5:rp=on_0");
+    feqAtomsG180.push("dis+1010_1178033:262144_sil=2000:ile=on:sp=reverse_frequency:sos=on:erd=off:spb=goal:abs=on:bce=on:lcm=reverse:fd=preordered:nwc=11.49952179089034:kmz=on:i=229:add=large:bs=unit_only:kws=inv_arity:nm=20:amm=off:uhcvi=on:afr=on:rawr=on:fsr=off:bd=off:fde=unused:bsr=unit_only_0");
+    feqAtomsG180.push("dis+1011_3:2_drc=encompass:sil=8000:tgt=full:sp=frequency:nwc=10.0:i=831:nm=2:fde=none:ins=1_0");
+    feqAtomsG180.push("dis+1010_1:1_sil=4000:sims=off:sp=frequency:nwc=5.0:st=5.0:i=233:av=off:fsr=off:ss=axioms:sd=1:to=lpo:fdi=10_0");
+    feqAtomsG180.push("dis+1011_13623:1048576_drc=off:sil=2000:fde=unused:bsd=on:sp=const_min:br=off:fd=preordered:gs=on:nwc=17.1261:gsem=off:i=720:kws=inv_frequency:nm=4:rawr=on:bd=off:fsr=off:bsdmm=1:av=off_0");
+    feqAtomsG180.push("lrs+2_1:1_sil=2000:urr=on:flr=on:s2a=on:i=172:s2at=5.0:sd=1:ss=axioms:sgt=8:gsp=on:br=off_0");
+    feqAtomsG180.push("dis+1002_1:128_sil=2000:fde=none:i=532:plsq=on:plsqc=1:plsqr=6,1:bd=off:tgt=ground:sac=on:sfv=off:s2a=on:s2at=5.0_0");
+    feqAtomsG180.push("lrs+1011_1:1_sil=4000:sos=on:abs=on:fd=preordered:sac=on:st=7.0:i=403:kws=frequency:bd=off:ss=axioms:rawr=on:bs=unit_only:irw=on_0");
+    feqAtomsG180.push("lrs+1011_1:128_sil=2000:lsd=10:newcnf=on:i=178:bd=off:fsd=on:ss=axioms:plsq=on:plsqr=9200103,131072:sd=1:lma=on_0");
+    feqAtomsG180.push("dis+1011_5:1_sil=2000:fde=unused:nwc=10.0:i=647:ep=R:fs=off:fsr=off:awrs=converge_0");
+    feqAtomsG180.push("dis-1002_1:2_sil=2000:slsqc=3:sac=on:slsq=on:i=267:kws=frequency:fsr=off:bd=off:sfv=off_0");
+    feqAtomsG180.push("lrs+1011_1:1_to=lpo:drc=off:sil=2000:tgt=full:i=1947:fd=preordered_0");
+    feqAtomsG180.push("lrs-1010_1:8_sil=2000:spb=intro:acc=on:rp=on:i=282:sd=1:bd=off:uhcvi=on:ss=axioms:sgt=32:rawr=on:erd=off:alpa=true:anc=none:afp=2000_0");
+    feqAtomsG180.push("lrs-1010_1:8_sil=2000:sos=on:i=1837:sd=1:ins=3:ss=included_0");
+    feqAtomsG180.push("ott-1010_1032285:1048576_to=lpo:drc=off:sil=2000:tgt=ground:fde=unused:bsd=on:sp=reverse_arity:sos=on:rnwc=on:fd=preordered:nwc=3.32781:s2agt=15:s2a=on:s2pl=on:i=197:s2at=4.5:bs=unit_only:bd=off:nm=14:amm=off:uhcvi=on:rawr=on_0");
+    feqAtomsG180.push("dis-1004_1:32_sil=2000:tgt=ground:sos=on:spb=goal_then_units:fd=preordered:gs=on:nwc=12.720749687760888:i=198:gsaa=full_model:ins=1:sac=on:fsr=off:fs=off_0");
+    feqAtomsG180.push("lrs-34_1:1_sil=4000:erd=off:urr=on:nwc=3.0:s2agt=16:s2a=on:i=212:br=off:ep=R:ins=1_0");
+    feqAtomsG180.push("dis+22_1:32_sil=2000:fde=none:nwc=10.0:slsqc=3:slsq=on:i=213:slsql=off:nm=16:fsr=off:fsd=on:ss=axioms_0");
+    feqAtomsG180.push("dis-1003_1:1_drc=off:sil=2000:sos=all:i=329:av=off:irw=on:plsq=on:plsqc=1:plsqr=32,1:sfv=off_0");
+    feqAtomsG180.push("dis+1010_1:1_sil=2000:nwc=5.0:i=220:nm=4:av=off:rp=on:ep=R_0");
+    feqAtomsG180.push("lrs+1011_1555545:262144_anc=none:bsr=unit_only:sil=2000:ile=on:abs=on:fd=preordered:nwc=20.1634:lwlo=on:avsq=on:cond=fast:st=6:i=223:kws=precedence:avsqr=9293391,524288:nm=23:sup=off:ss=included:rawr=on:lsd=1:bd=preordered:etr=on:afp=100000:afq=2.9510012289029954_0");
+    feqAtomsG180.push("lrs+1666_1:1_sil=4000:sp=occurrence:sos=on:urr=on:newcnf=on:i=224:amm=off:ep=R:erd=off:nm=0:plsq=on:plsqr=14,1_0");
+    feqAtomsG180.push("dis-1010_1:1_bsr=unit_only:to=lpo:sil=256000:fde=none:plsq=on:plsqr=205,29:sp=occurrence:sos=on:abs=on:newcnf=on:st=6.0:i=227:sd=2:bd=off:amm=off:ss=axioms:rawr=on_0");
+    feqAtomsG180.push("dis+1011_1:1_sil=2000:sos=on:lsd=100:rp=on:nwc=10.0:s2agt=16:newcnf=on:i=739:bd=off:fsr=off:rawr=on:avsq=on:avsql=on:avsqr=117,449:s2a=on:bs=on_0");
+    feqAtomsG180.push("dis+1011_4:1_sil=2000:nwc=10.0:newcnf=on:i=228:sd=1:nm=2:ss=axioms:fde=unused:sup=off:av=off_0");
+    feqAtomsG180.push("lrs-1011_23:2_drc=encompass:fde=unused:plsq=on:urr=on:nwc=10.0:sac=on:s2a=on:i=359:sd=2:ss=axioms:sil=256000:kws=inv_frequency_0");
+    feqAtomsG180.push("dis+10_16:63_anc=none:to=lpo:sil=2000:fde=none:sos=on:nwc=10.0:i=236:sd=1:aac=none:ep=RS:fsr=off:ss=axioms:st=5.0_0");
+    feqAtomsG180.push("dis-1011_1:32_to=lpo:drc=off:sil=2000:sp=reverse_arity:sos=on:foolp=on:lsd=20:nwc=1.49509792053687:s2agt=30:avsq=on:s2a=on:s2pl=no:i=242:s2at=5.0:avsqr=5593,1048576:nm=0:fsr=off:amm=sco:rawr=on:awrs=converge:awrsf=427:ss=included:sd=1:slsq=on:fd=off_0");
+    feqAtomsG180.push("lrs+1011_7141:1048576_sil=2000:plsq=on:plsqr=2328305,1048576:sp=frequency:sos=on:plsql=on:fd=off:nwc=19.7177:cond=fast:st=3:i=531:bd=off:nm=2:ins=2:av=off:uhcvi=on:fdi=16:ss=included:lsd=5_0");
+    feqAtomsG180.push("lrs+1002_14319:131072_to=lpo:drc=encompass:sil=2000:tgt=ground:fde=none:sp=const_max:sos=on:spb=units:lcm=predicate:nwc=7.734471748972603:flr=on:newcnf=on:i=247:add=large:awrs=decay:awrsf=1079:bd=off:nm=2:ins=1:fsr=off:uhcvi=on:rawr=on:anc=all_dependent:aac=none:fs=off_0");
+    feqAtomsG180.push("lrs+1011_1:1_sil=4000:sos=on:st=3.0:i=406:sd=1:ss=axioms_0");
+    feqAtomsG180.push("lrs+11_4:1_sil=2000:tgt=full:sos=on:erd=off:spb=goal_then_units:sac=on:st=6.0:i=257:nm=3:ss=included:sd=1:s2pl=on:awrs=converge:awrsf=20:afp=50:afq=1.2_0");
+    feqAtomsG180.push("lrs+10_1:1_sil=16000:sp=frequency:nwc=10.0:s2agt=5:s2a=on:i=259:sd=2:nm=2:ss=axioms:sgt=8:bd=off_0");
+    feqAtomsG180.push("lrs+1010_1:7_slsqr=318,127:sil=8000:fde=none:bsd=on:spb=goal:bce=on:gs=on:nwc=4.0:slsqc=2:slsq=on:s2a=on:i=577:nm=3:av=off:fsr=off:rawr=on:bsdmm=2_0");
+    feqAtomsG180.push("lrs+1_1:1_sil=4000:plsqc=1:plsq=on:plsqr=108,31:sos=on:st=5.0:i=600:sd=2:bd=off:fsr=off:ss=axioms:rawr=on:bce=on:aac=none:afr=on_0");
+    feqAtomsG180.push("lrs+1010_1:1_anc=all_dependent:sil=2000:tgt=ground:nwc=5.0:s2agt=20:alpa=false:newcnf=on:avsq=on:s2a=on:i=271:avsqr=1,16:bd=off:sac=on:aac=none:erd=off_0");
+    feqAtomsG180.push("lrs-1002_6:7_sil=4000:sos=on:nwc=10.0:i=273:ep=R:ins=1:fsr=off:gsp=on:fs=off:fde=none:avsq=on:bce=on_0");
+    feqAtomsG180.push("lrs+1011_1:1_sil=2000:i=450:ep=RS:nm=32:ss=axioms:sos=on_0");
+    feqAtomsG180.push("lrs-1011_3:1_sil=2000:tgt=ground:sos=on:flr=on:i=292:bce=on:kws=inv_frequency_0");
+    feqAtomsG180.push("lrs-1011_1:64_slsqr=1674187,131072:sil=4000:plsq=on:lsd=50:plsql=on:slsq=on:i=293:slsql=off:bd=off:nm=3:amm=off:gsp=on:ss=axioms:fsr=off_0");
+    feqAtomsG180.push("lrs+1010_1:1_slsqr=430,487:sil=4000:fde=none:plsq=on:plsqr=7,29:erd=off:plsql=on:rp=on:nwc=14.055527276864483:slsqc=3:newcnf=on:slsq=on:i=295:bd=off:av=off:rawr=on_0");
+    feqAtomsG180.push("dis+1011_1:4_bsr=on:to=lpo:sil=2000:tgt=ground:plsqc=1:plsq=on:plsqr=4477983,65536:sp=frequency:erd=off:spb=goal:nwc=2.0:sac=on:newcnf=on:cond=fast:st=5.0:i=311:nm=16:ss=axioms:rawr=on:lsd=100:awrs=converge_0");
+    feqAtomsG180.push("dis+1011_4:1_slsqr=11827605,262144:sil=2000:sp=const_max:spb=non_intro:acc=on:newcnf=on:slsq=on:nicw=on:i=312:kws=precedence:bd=off:rawr=on:alpa=true:bsd=on:bsr=unit_only:urr=ec_only_0");
+    feqAtomsG180.push("dis+4_8:1_sil=2000:rp=on:nwc=10.0:alpa=true:sac=on:s2a=on:i=327:ep=R:ss=axioms:s2pl=on_0");
+    feqAtomsG180.push("lrs+10_1:14_bsr=on:sil=2000:sp=occurrence:sos=on:bce=on:gs=on:newcnf=on:nicw=on:i=330:gsaa=from_current:amm=off:rawr=on:avsq=on:avsqr=2,7:fsr=off_0");
+    feqAtomsG180.push("dis+1010_1:4_aac=none:abs=on:atotf=0.5:avsq=on:avsqc=2:avsqr=215,247:awrs=converge:awrsf=128:bsd=on:erd=off:fde=none:gve=cautious:newcnf=on:nwc=5.0:rnwc=on:sac=on:sas=z3:sp=const_min:tgt=ground:thsq=on:thsqc=64:thsqr=1,4:si=on:rawr=on:rtra=on:i=1844_0");
+    feqAtomsG180.push("lrs+3_1:1024_to=lpo:erd=off:spb=goal:urr=on:cond=fast:i=354:awrs=converge:awrsf=330:av=off:ss=axioms:sgt=16:sup=off:gsp=on:sd=1:sil=32000:nwc=5.0_0");
+    feqAtomsG180.push("dis+1011_4:1_sil=2000:fde=unused:lsd=100:nwc=5.0:newcnf=on:i=906:nm=2:ss=axioms_0");
+    feqAtomsG180.push("lrs+1011_1:1024_sil=4000:br=off:i=374:bd=off:fd=preordered:slsq=on:slsql=off:slsqc=2:slsqr=1,4:s2at=4.0_0");
+    feqAtomsG180.push("lrs+1002_4:3_sil=2000:nwc=5.0:i=1197:sd=2:nm=10:ss=axioms_0");
+    feqAtomsG180.push("lrs+33_8:7_anc=all:sil=4000:urr=full:br=off:st=3.0:i=381:sd=2:afp=10:afq=2.0:ss=axioms:rawr=on:fsr=off:gsp=on:nwc=0.9918136297139506_0");
+    feqAtomsG180.push("lrs+1010_1:4_sil=2000:tgt=ground:sp=reverse_frequency:nwc=5.0:i=1546:av=off:bd=off:kmz=on_0");
+    feqAtomsG180.push("lrs+1002_63:8_sil=4000:sp=frequency:urr=on:lcm=reverse:nwc=10.0:flr=on:i=396:fdi=1:fsr=off:br=off_0");
+    feqAtomsG180.push("lrs-21_7:15_sil=32000:sp=unary_first:sos=on:spb=units:urr=ec_only:newcnf=on:i=700:ep=RST:flr=on:gsp=on_0");
+    feqAtomsG180.push("lrs+21_1:1_sil=64000:sp=weighted_frequency:s2a=on:i=6386:s2at=4.0:kws=inv_frequency:aac=none:bd=off:bsr=on:amm=off:flr=on:abs=on:sac=on:bs=on_0");
+    feqAtomsG180.push("lrs+1011_1:1_sil=16000:fde=unused:plsqc=1:plsq=on:plsqr=32,1:sos=on:nwc=10.0:i=1055:kws=frequency:nm=2:lsd=1:bd=off_0");
+    feqAtomsG180.push("lrs+11_1:1_bsr=unit_only:to=lpo:sil=16000:sos=on:spb=goal:urr=on:sac=on:st=2.0:i=421:sd=2:bd=off:nm=6:ss=axioms:bce=on:sup=off:br=off_0");
+    feqAtomsG180.push("dis+1011_16:1_anc=all_dependent:sil=4000:tgt=ground:fde=unused:sos=on:acc=model:newcnf=on:avsq=on:i=747:bs=on:avsqr=32,501:uhcvi=on:rawr=on:nwc=10.0:alpa=true:slsq=on:slsqr=5,16_0");
+    feqAtomsG180.push("lrs-1011_1:2_nwc=10.0:s2agt=30:s2a=on:i=424:ep=RS:gsp=on:awrs=converge:awrsf=1354:rnwc=on:fsr=off:sil=16000_0");
+    feqAtomsG180.push("dis+1_8:1_to=lpo:sil=4000:sos=on:spb=goal_then_units:fd=off:gs=on:newcnf=on:st=5.0:i=431:sd=2:av=off:sup=off:ss=axioms:gsp=on:fde=none:s2a=on:s2agt=8_0");
+    feqAtomsG180.push("lrs+1002_1624159:1048576_to=lpo:sil=64000:fde=none:sp=frequency:sos=on:spb=non_intro:nwc=15.7653:s2agt=30:avsqc=2:avsq=on:s2a=on:i=1108:s2at=3:sd=2:avsqr=6990209,1048576:awrs=decay:awrsf=762:bd=off:nm=4:ss=included:fd=off:rawr=on:fs=off:fsr=off:aac=none_0");
+    feqAtomsG180.push("lrs-1011_34:69_slsqr=4313211,131072:sil=2000:sp=weighted_frequency:rp=on:nwc=10.0:slsqc=1:slsq=on:i=785:s2at=3.0:slsql=off:bd=off:nm=4:ins=1:rawr=on_0");
+    feqAtomsG180.push("lrs-35_1:128_anc=none:bsr=unit_only:fde=unused:sos=all:urr=on:fd=off:nwc=10.0:slsq=on:st=2.0:i=448:bs=unit_only:gsp=on:ss=axioms:sd=1:alpa=true:sil=8000_0");
+    feqAtomsG180.push("lrs+11_1:1_sil=8000:abs=on:lsd=10:nwc=10.0:sac=on:i=454:sd=1:bd=off:ss=axioms:newcnf=on:sup=off_0");
+    feqAtomsG180.push("dis+1011_5:2_to=lpo:sil=8000:tgt=ground:plsq=on:plsqr=65749,1048576:spb=goal:nwc=10.0:newcnf=on:i=480:rawr=on:av=off:nm=5:awrs=converge:awrsf=340:bsd=on:s2a=on:fdi=1_0");
+    feqAtomsG180.push("lrs+2_8:1_drc=encompass:sil=2000:tgt=ground:fde=unused:urr=full:i=861:sup=off:slsq=on:slsql=off:slsqc=1:slsqr=1,2:s2at=5.0:br=off_0");
+    feqAtomsG180.push("dis+1011_2:1_sil=2000:fde=unused:plsqc=1:plsq=on:plsqr=36971,524288:nwc=5.0:i=484:ep=RS:nm=7_0");
+    feqAtomsG180.push("lrs+1011_9:64_slsqr=1,4:sil=2000:fde=none:nwc=5.0:newcnf=on:slsq=on:i=2129:awrs=converge:awrsf=965:ep=R:av=off_0");
+    feqAtomsG180.push("lrs-1011_4:7_sil=2000:tgt=full:bsd=on:spb=goal:nwc=5.0:updr=off:newcnf=on:i=928:kws=arity_squared:rawr=on:bsdmm=2_0");
+    feqAtomsG180.push("dis+1002_1:1_sil=2000:tgt=full:spb=goal:avsq=on:i=545:avsqr=19,107:er=known:rawr=on:nwc=3.7:cond=fast:abs=on_0");
+    feqAtomsG180.push("lrs-1010_1:1_sil=4000:bsd=on:spb=goal_then_units:s2a=on:i=1465:s2at=2.0:bs=on:sd=4:aac=none:bd=off:nm=16:fsr=off:ss=axioms:sgt=8:kws=precedence:gsp=on_0");
+    feqAtomsG180.push("lrs-1011_1:2_to=lpo:sil=8000:fde=unused:rp=on:st=5.0:s2a=on:i=556:ep=R:ss=axioms:flr=on:newcnf=on_0");
+    feqAtomsG180.push("dis+21_1:1_to=lpo:sil=4000:plsq=on:sos=on:spb=units:i=574:sd=2:ss=axioms:sgt=8_0");
+    feqAtomsG180.push("ott+1010_1_aac=none:bce=on:ep=RS:fsd=off:nm=4:nwc=2.0:nicw=on:sas=z3:sims=off:i=2020_0");
+    feqAtomsG180.push("lrs-1002_51:127_bsr=unit_only:sil=16000:tgt=ground:acc=on:sac=on:avsq=on:st=5.0:i=1136:sd=2:avsqr=49633,1048576:ins=2:fsr=off:gsp=on:ss=axioms:rawr=on:awrs=converge:awrsf=220:bce=on:bd=off:fd=off:sfv=off_0");
+    feqAtomsG180.push("dis-1011_2:3_slsqr=879,448:irw=on:sp=reverse_frequency:slsqc=2:slsq=on:cond=fast:i=622:s2at=4.0:bs=unit_only:sup=off:ss=axioms:sgt=15:rawr=on:lsd=5:sil=8000:nicw=on_0");
+    feqAtomsG180.push("dis+1011_1:9_bsr=unit_only:sil=2000:plsq=on:plsqr=375,251:sp=const_frequency:sos=on:spb=intro:urr=on:flr=on:slsq=on:i=636:av=off:fsr=off:rawr=on:ss=axioms:sd=3:sgt=16:st=3.0:rp=on:to=lpo_0");
+    feqAtomsG180.push("ott+10_107421:1048576_to=lpo:drc=off:sil=4000:fde=none:sos=on:lma=on:spb=intro:gs=on:nwc=24.2524:gsem=off:i=664:sd=3:afp=40000:awrs=decay:awrsf=1166:nm=6:afq=1.99252:uhcvi=on:ss=axioms:rawr=on:sp=const_max:add=off_0");
+    feqAtomsG180.push("dis-1011_1:12_sil=4000:fde=unused:sp=occurrence:lsd=20:nwc=5.0:s2agt=10:updr=off:cond=fast:s2a=on:i=667:ep=RS:nm=3:ins=1:av=off:rawr=on:s2at=3.0_0");
+    feqAtomsG180.push("dis+1011_543:505_drc=encompass:sil=128000:tgt=full:etr=on:sp=frequency:nwc=4.8:avsqc=4:sac=on:avsq=on:st=7.0:i=3665:kws=precedence:avsqr=2669309,1048576:awrs=converge:awrsf=975:bd=off:nm=16:ss=axioms:rawr=on:bsd=on:add=large_0");
+    feqAtomsG180.push("lrs-1011_19:210_drc=encompass:sil=16000:sp=weighted_frequency:spb=non_intro:nwc=7.1:cond=fast:st=1.5:s2a=on:i=720:s2at=3.0:add=off:sd=2:kws=precedence:afp=10:bd=off:ins=1:afq=2.810910500672621:ss=axioms:sac=on:plsq=on:plsql=on:plsqr=2,17:plsqc=3_0");
+    feqAtomsG180.push("lrs+1011_722839:524288_sil=4000:tgt=ground:fde=none:plsq=on:plsqr=5516061,65536:sp=const_max:spb=goal:acc=on:lsd=5:fd=preordered:nwc=19.5454:avsqc=4:sac=on:newcnf=on:lwlo=on:avsq=on:i=802:afp=1000000:avsqr=2357819,1048576:bd=off:nm=0:afq=4.85051:uhcvi=on:rawr=on:avsql=on_0");
+    feqAtomsG180.push("dis+1011_16:1_slsqr=5605329,524288:to=lpo:sil=4000:rp=on:slsqc=1:slsq=on:i=803:bd=off:fsr=off:lsd=50_0");
+    feqAtomsG180.push("ott+10_2557:524288_anc=all_dependent:slsqr=1107323,1048576:drc=off:ccuc=first:sil=2000:tgt=ground:plsqc=5:plsq=on:plsqr=554689,1048576:sp=frequency:sos=on:acc=on:urr=on:plsql=on:gs=on:nwc=1.55306:s2agt=30:slsq=on:st=5:i=861:sd=2:awrs=converge:awrsf=1188:bd=off:nm=2:ins=3:fsr=off:fsd=on:ss=axioms:sgt=15:rawr=on:fsdmm=1_0");
+    feqAtomsG180.push("dis+1002_8:15_to=lpo:sil=4000:tgt=ground:sp=weighted_frequency:spb=goal_then_units:s2agt=16:nicw=on:st=1.5:s2a=on:i=901:aac=none:nm=32:ss=axioms:sims=off_0");
+    feqAtomsG180.push("dis+11_1:5_drc=encompass:sil=4000:sp=frequency:s2a=on:i=923:av=off:fsr=off:lcm=reverse:fde=none_0");
+    feqAtomsG180.push("lrs+1011_1:1_sil=2000:sos=on:erd=off:spb=units:st=3.0:i=929:kws=precedence:aac=none:nm=0:ss=axioms_0");
+    feqAtomsG180.push("lrs-1011_8:1_bsr=on:sil=4000:tgt=ground:sos=on:lsd=10:newcnf=on:i=948:bd=off:av=off:ss=axioms:rp=on_0");
+    feqAtomsG180.push("lrs+3_1:1_sil=2000:plsq=on:plsqr=23463,524288:sos=on:erd=off:urr=on:bce=on:rp=on:st=2.0:i=957:bs=unit_only:sd=2:bd=off:ss=axioms:rawr=on:anc=none:sac=on:slsq=on:bsr=on:lcm=reverse_0");
+    feqAtomsG180.push("dis+1011_3:1_anc=all_dependent:bsr=unit_only:drc=encompass:sil=2000:nwc=10.0:alpa=false:sac=on:i=1032:kws=precedence:gsp=on:erd=off:bd=off:afp=50:afq=1.276_0");
+    feqAtomsG180.push("lrs-1010_1:16_sfv=off:to=lpo:sil=2000:tgt=full:erd=off:rp=on:nwc=10.0:sac=on:newcnf=on:i=1039:flr=on:bd=off:updr=off_0");
+    feqAtomsG180.push("dis+1011_1:8_sil=8000:sos=on:bce=on:rp=on:i=1048:nm=6:av=off_0");
+    feqAtomsG180.push("lrs+1010_1:1_to=lpo:sil=2000:sos=on:fd=off:i=1089:bd=off_0");
+    feqAtomsG180.push("lrs+1011_4:1_to=lpo:sil=16000:fde=none:plsq=on:plsqr=1,8:sp=occurrence:st=2.0:i=1096:sd=3:ss=axioms:er=known:av=off:awrs=converge:awrsf=500:fsr=off_0");
+    feqAtomsG180.push("lrs-1010_1:32_sfv=off:sil=2000:fde=unused:sp=weighted_frequency:flr=on:s2a=on:i=1119:s2at=7.0:bd=off:kws=precedence_0");
+    feqAtomsG180.push("lrs-1002_9:13_sil=4000:tgt=ground:etr=on:spb=non_intro:rp=on:newcnf=on:i=1173:add=large:afp=50:bd=off:ins=1:fsr=off:afq=4.13736:gsp=on:ss=axioms:sgt=16:rawr=on:flr=on:bce=on_0");
+    feqAtomsG180.push("dis+1011_1:16_sil=2000:urr=ec_only:br=off:i=1186:ss=axioms:st=2.0:fsr=off:drc=encompass:anc=none_0");
+    feqAtomsG180.push("lrs+1010_3:1_anc=all_dependent:to=lpo:drc=encompass:sil=4000:plsqc=1:plsq=on:plsqr=5192987,65536:sp=occurrence:sos=on:urr=full:bce=on:rp=on:slsq=on:i=1202:bd=off:rawr=on:uhcvi=on:avsq=on:avsql=on:alpa=false_0");
+    feqAtomsG180.push("ott-1010_1915907:1048576_to=lpo:sil=2000:plsq=on:ile=on:plsqr=319573,262144:sp=reverse_arity:sos=on:nwc=6.38626:s2agt=10:avsq=on:s2a=on:i=1208:s2at=5.5:sd=1:afp=40000:avsqr=5709,524288:nm=9:ins=2:fsr=off:afq=1.49663:ss=included:rawr=on:acc=model:ccuc=small_ones:fs=off:spb=goal_0");
+    feqAtomsG180.push("lrs+1011_1:1_sil=8000:sp=occurrence:nwc=10.0:i=1212:ss=axioms:sgt=8_0");
+    feqAtomsG180.push("lrs+1010_1:1_sil=2000:flr=on:nicw=on:st=2.0:i=1258:sd=2:bd=off:fsr=off:ss=axioms_0");
+    feqAtomsG180.push("lrs-1011_1:1_sil=16000:plsq=on:plsqr=10230343,1048576:sos=on:lsd=20:sac=on:s2a=on:i=6152:bd=off:ss=axioms:rawr=on:bce=on_0");
+    feqAtomsG180.push("dis+1010_9:61_anc=all:drc=off:sil=16000:tgt=full:urr=ec_only:s2a=on:i=4987:s2at=3.0:nm=0:fsr=off:uhcvi=on:acc=model:aac=none:newcnf=on:bd=off:awrs=converge:awrsf=377:fs=off_0");
+    feqAtomsG180.push("dis-1011_1:5_sil=2000:tgt=full:sims=off:gs=on:nwc=5.0:newcnf=on:cond=fast:i=1377:sd=2:uhcvi=on:ss=axioms:sgt=8:rawr=on:gsp=on_0");
+    feqAtomsG180.push("lrs+1011_2:3_slsqr=4,1:slsqc=1:slsq=on:i=1391:ep=R:av=off:sil=4000:si=on:rtra=on:updr=off:ins=1:nwc=6.24494712:sp=const_min:mep=off:kws=frequency:fdi=1:rawr=on:lsd=5:slsql=off_0");
+    feqAtomsG180.push("dis+1011_1:4_afp=10010:amm=off:anc=none:awrs=decay:awrsf=50:ep=RSTC:fde=unused:lma=on:nm=16:nwc=5.0:s2a=on:sp=frequency:urr=ec_only:si=on:rawr=on:rtra=on:i=1441_0");
+    feqAtomsG180.push("lrs-31_1:1_drc=off:sil=4000:tgt=full:fd=preordered:nwc=5.0:lwlo=on:i=1544:ins=5:sac=on:bd=off:lcm=predicate_0");
+    feqAtomsG180.push("lrs+1011_1:13_sil=2000:tgt=full:sims=off:sp=occurrence:abs=on:newcnf=on:i=1571:nm=4:ss=axioms:rawr=on:amm=off_0");
+    feqAtomsG180.push("lrs+3_1083:1048576_anc=all_dependent:bsr=on:drc=encompass:sil=4000:fde=none:sims=off:plsq=on:plsqr=483329,262144:sp=occurrence:sos=on:lma=on:bce=on:lcm=reverse:fd=preordered:nwc=11.0613:s2agt=15:s2a=on:i=1576:kws=inv_frequency:awrs=decay:awrsf=833:nm=49:amm=sco:uhcvi=on:rawr=on:gs=on_0");
+    feqAtomsG180.push("dis+1_1:64_sil=16000:spb=goal_then_units:urr=on:sac=on:st=-1.0:i=15318:bd=off:ss=axioms:fsr=off_0");
+    feqAtomsG180.push("lrs-11_4:1_anc=all_dependent:slsqr=1,5:sil=2000:sos=all:spb=goal:br=off:alpa=true:newcnf=on:slsq=on:st=1.5:i=1714:aac=none:nm=16:ins=1:ss=axioms:bs=unit_only:drc=off_0");
+    feqAtomsG180.push("lrs-1010_54669:524288_sp=const_frequency:sac=on:cond=fast:i=1773:afp=300:aac=none:bd=off:sims=off:aer=off:flr=on:tgt=ground:sil=256000:sfv=off:kws=precedence:alpa=random:spb=intro:s2a=on:s2agt=50:s2at=5.0:updr=off_0");
+    feqAtomsG180.push("lrs-1002_1:1_sil=8000:urr=on:nwc=7.0:i=1782:nm=20:av=off:fsr=off:rp=on:bd=off_0");
+    feqAtomsG180.push("dis-1011_3:1_sil=32000:fde=none:sos=all:nwc=5.0:i=3557:ep=R:aac=none_0");
+    feqAtomsG180.push("dis+1011_1:1_aac=none:bs=unit_only:ep=RS:gsp=on:nwc=5.0:rnwc=on:s2a=on:s2at=3.0:slsq=on:slsqc=2:slsqr=1,8:si=on:rawr=on:rtra=on:i=2119_0");
+    feqAtomsG180.push("dis+1010_111341:524288_bsr=on:drc=encompass:sil=64000:sp=reverse_frequency:spb=units:bce=on:newcnf=on:s2a=on:i=4238:s2at=3.0:bs=on:afp=300:bd=off:afq=1.999_0");
+    feqAtomsG180.push("lrs+1010_2:5_anc=all_dependent:to=lpo:sil=32000:tgt=ground:spb=goal:abs=on:sac=on:i=2177:nm=16:amm=sco:fdi=10:avsq=on:avsqc=4_0");
+    feqAtomsG180.push("lrs+1010_2:5_bsr=on:to=lpo:sil=64000:bsd=on:sp=frequency:sos=on:urr=ec_only:nwc=4.4:updr=off:newcnf=on:i=2797:ins=2:fsr=off:uhcvi=on:afr=on:rawr=on_0");
+    feqAtomsG180.push("lrs+1011_1:2_to=lpo:sil=8000:plsqc=1:plsq=on:plsqr=326,59:sp=weighted_frequency:plsql=on:nwc=10.0:newcnf=on:i=5789:awrs=converge:awrsf=200:bd=off:ins=1:rawr=on:alpa=false:avsq=on:avsqr=1,16_0");
+    feqAtomsG180.push("ott+1002_2:5_acc=on:bd=preordered:bsr=on:er=known:flr=on:fsd=off:fde=none:msp=off:nm=64:sos=on:sac=on:sp=reverse_frequency:i=12100_0");
+    feqAtomsG180.push("dis+1002_3:2_to=lpo:tgt=full:sp=const_min:spb=non_intro:abs=on:rp=on:nwc=5.0:avsqc=1:avsq=on:i=3115:sd=1:avsqr=4,1:ss=axioms:sgt=20:alpa=true:sil=256000_0");
+    feqAtomsG180.push("dis+1011_1:99_anc=none:fde=unused:plsqc=2:bsd=on:plsq=on:plsqr=109,504:sp=reverse_frequency:spb=intro:rp=on:alpa=random:s2a=on:i=3258:s2at=-1.0:aac=none:nm=16:rawr=on:sil=256000:acc=model_0");
+    feqAtomsG180.push("dis+1010_1:1_slsqr=11392477,1048576:sil=128000:tgt=full:sims=off:sp=occurrence:nwc=9.0:slsqc=1:slsq=on:i=3273:s2at=5.0:slsql=off:nm=14:uhcvi=on:rawr=on:sac=on:newcnf=on:afp=300:afq=2.16348848191352:plsq=on:plsqc=1:plsqr=17849919,524288:ss=axioms:st=7.0:plsql=on:amm=off:rp=on_0");
+    feqAtomsG180.push("lrs+1011_1:1_to=lpo:drc=off:sil=16000:bsd=on:fs=off:lsd=5:nwc=2.0:avsq=on:i=4007:sd=3:afp=1000:avsqr=24555,524288:bd=preordered:nm=16:fsr=off:fsd=on:uhcvi=on:ss=axioms:sgt=15:rawr=on:irw=on:etr=on_0");
+    feqAtomsG180.push("lrs-1011_6:1_sos=all:s2a=on:i=4178:sd=2:ss=included:bd=off:sil=128000:fde=none:abs=on:amm=off:gsp=on:sp=const_min:cond=fast:avsq=on:avsqc=1:avsqr=11,2:nm=5:sfv=off:plsq=on:plsqr=199691,1048576_0");
+    feqAtomsG180.push("dis-1010_1:1_slsqr=3,4:sil=64000:tgt=full:fde=unused:slsqc=1:slsq=on:i=4226:sd=1:ss=included:fsr=off:plsq=on:plsqc=1:plsqr=32,1_0");
+    feqAtomsG180.push("lrs-10_1:3_urr=on:br=off:nwc=1.5:newcnf=on:st=2.0:s2a=on:i=4266:s2at=-1.0:bs=unit_only:sd=2:ss=axioms:sgt=32:sil=32000:gsp=on:bce=on:erd=off_0");
+    feqAtomsG180.push("dis-1002_6_acc=on:anc=none:bce=on:cond=fast:drc=off:fsd=off:fde=none:gsp=on:irw=on:sac=on:sp=scramble:tgt=ground:urr=ec_only:si=on:rtra=on:rawr=on:rp=on:i=22087_0");
+    feqAtomsG180.push("dis+10_1:1024_sil=16000:fs=off:gs=on:i=4835:ins=1:fsr=off:sac=on_0");
+    feqAtomsG180.push("lrs+1011_10574001:1048576_slsqr=8791195,262144:drc=off:sil=8000:tgt=full:fde=unused:etr=on:sp=const_min:foolp=on:spb=goal:urr=ec_only:rp=on:nwc=7.13168:s2agt=10:slsqc=1:updr=off:slsq=on:lwlo=on:i=5190:afp=2000:awrs=converge:slsql=off:awrsf=480:bd=off:nm=12:ins=7:amm=sco:afq=2.46635:rawr=on_0");
+    feqAtomsG180.push("lrs+1011_1:64_anc=all:plsq=on:plsqr=32,1:fs=off:sac=on:i=12193:fsr=off:avsq=on:avsqc=1:sil=256000:ins=1_0");
+    feqAtomsG180.push("lrs+1011_7:1_bsr=unit_only:drc=off:fde=none:sp=const_min:nwc=10.0:sac=on:i=12220:kws=inv_arity:ss=axioms:rawr=on:urr=ec_only:lsd=10:alpa=false:lwlo=on:sil=256000:nm=20:spb=intro:uhcvi=on:aer=off:etr=on:add=large:afp=40000:afq=2.7725255392834085:afr=on:ins=8:bce=on_0");
+    feqAtomsG180.push("lrs+1011_2605:524288_anc=none:drc=encompass:sil=128000:tgt=full:plsq=on:plsqr=195459,1048576:sp=occurrence:sos=on:abs=on:bce=on:lcm=predicate:plsql=on:st=5.5:i=6176:add=large:kws=frequency:awrs=decay:awrsf=149:uhcvi=on:ss=axioms:rawr=on:ins=2:flr=on:afp=50:afq=2.4020044236363103_0");
+    feqAtomsG180.push("dis-1002_6_acc=on:anc=none:bce=on:cond=fast:drc=off:fsd=off:fde=none:gsp=on:irw=on:sac=on:sp=scramble:tgt=ground:urr=ec_only:i=77470_0");
+    feqAtomsG180.push("ott+11_25:3_anc=all_dependent:bsr=unit_only:sil=64000:sp=occurrence:urr=on:rnwc=on:fd=preordered:nwc=10.0:newcnf=on:cond=fast:i=6961:sd=3:kws=inv_frequency:bd=preordered:sup=off:ss=axioms:rawr=on:avsq=on:avsqc=3:s2pl=no:s2at=2.0:fsr=off_0");
+    feqAtomsG180.push("dis+1011_2:3_av=off:cond=on:ep=RS:flr=on:fsd=off:lcm=reverse:nm=0:nwc=2.5:sp=frequency:i=7334_0");
+    feqAtomsG180.push("dis+11_12:7_sil=32000:sp=weighted_frequency:sos=on:urr=ec_only:lsd=1:sac=on:i=7605:bd=off:nm=2:rawr=on:nicw=on:bs=unit_only:flr=on:ss=axioms:st=2.5_0");
+    feqAtomsG180.push("dis-1011_1:1_sil=16000:i=7967:fsr=off:ep=R:nm=4:fde=none_0");
+    feqAtomsG180.push("dis+1002_25:43_bsr=unit_only:slsqr=1,2:sil=32000:tgt=full:plsq=on:plsqr=93,203:sp=const_min:sos=on:plsql=on:nwc=5.0:alpa=random:newcnf=on:slsq=on:nicw=on:i=31995:add=off:bs=on:slsql=off:fsr=off:uhcvi=on:acc=on_0");
+    feqAtomsG180.push("lrs+1011_1:1_sil=64000:acc=on:rp=on:sac=on:newcnf=on:cond=fast:i=8225:bs=on_0");
+    feqAtomsG180.push("lrs-1010_1590:949_si=on:sp=const_frequency:atotf=0.1:i=8829:nm=3:rtra=on:ss=axioms:sil=16000:kws=inv_arity_squared:sd=1:rawr=on:lcm=predicate:lma=on:spb=goal_then_units:uhcvi=on:sfv=off:awrs=decay:awrsf=40:sac=on:abs=on:bd=preordered_0");
+    feqAtomsG180.push("lrs+1011_8:1_sil=128000:tgt=ground:fde=unused:sp=frequency:nwc=5.0:lwlo=on:i=32492:awrs=converge:awrsf=1385:av=off_0");
+    feqAtomsG180.push("lrs-1011_2643:524288_drc=off:sil=16000:tgt=ground:plsqc=1:plsq=on:plsqr=12860815,1048576:sp=unary_first:spb=goal_then_units:urr=on:lsd=10:rnwc=on:plsql=on:nwc=5.34008:newcnf=on:cond=fast:st=4.5:i=12023:add=large:bs=unit_only:sd=5:aac=none:bd=off:nm=20:amm=sco:uhcvi=on:ss=included:alpa=false:sac=on_0");
+    feqAtomsG180.push("dis-1004_46:473_drc=encompass:sil=64000:fde=unused:plsqc=1:sims=off:plsq=on:plsqr=7134431,131072:erd=off:urr=on:br=off:rp=on:avsqc=1:newcnf=on:avsq=on:i=24297:kws=frequency:nm=2:afr=on:gsp=on:plsql=on:ins=1:alpa=true:afp=1000:afq=1.906_0");
+    feqAtomsG180.push("lrs+1002_1:7_drc=encompass:sil=64000:sos=on:urr=full:i=13414:sd=2:ss=axioms:sgt=100_0");
+    feqAtomsG180.push("lrs-1011_1:4_drc=off:sil=128000:plsq=on:plsqr=11166605,262144:lsd=20:s2agt=100:s2a=on:i=13704:awrs=converge:awrsf=200:bd=off:sp=reverse_frequency:erd=off:gsp=on_0");
+    feqAtomsG180.push("lrs+1010_1:1_sil=16000:sp=occurrence:sos=all:st=5.0:i=13774:ss=axioms:sgt=16:sd=12_0");
+    feqAtomsG180.push("lrs+1002_1:1_slsqr=2,1:sil=16000:urr=full:bce=on:nwc=2.0:slsq=on:st=5.0:i=14123:sd=2:ss=axioms_0");
+    feqAtomsG180.push("dis+1002_1:5_acc=on:afp=1010:fsr=off:gsp=on:nm=10:sac=on:sos=on:sp=unary_first:urr=ec_only:si=on:rawr=on:rtra=on:i=32323_0");
+    feqAtomsG180.push("dis+1002_1:1_sil=16000:tgt=ground:sac=on:i=16333:sd=2:aac=none:ss=axioms:nwc=10.0_0");
+    feqAtomsG180.push("dis+1010_1:3_si=on:acc=on:nwc=2.0:s2a=on:i=17452:kws=arity_squared:nm=3:rtra=on:sil=64000:bsr=unit_only:sp=frequency:alpa=false_0");
+    feqAtomsG180.push("lrs+1011_2:5_bs=unit_only:fsd=off:fde=none:nm=4:nwc=5.0:sac=on:sil=128000:i=19116_0");
+    feqAtomsG180.push("lrs+1011_43865:524288_sil=256000:gs=on:nwc=10.0:i=44570:av=off:rawr=on:drc=off:awrs=decay:awrsf=450_0");
+    feqAtomsG180.push("dis+1011_7:15_slsqr=36,31:drc=off:sil=64000:tgt=ground:plsq=on:sp=const_frequency:spb=goal_then_units:acc=on:fd=preordered:nwc=14.322396450954507:slsqc=1:slsq=on:st=4.0:i=53338:s2at=5.0:kws=precedence:ss=axioms:rawr=on:fsr=off_0");
+    feqAtomsG180.push("lrs-1011_1:16_anc=none:drc=off:sil=128000:fde=unused:rnwc=on:nwc=1.75:updr=off:s2a=on:i=37218:s2at=4.0:kws=precedence:afp=2000:bd=preordered:ins=1:afq=2.309736410117262:rawr=on:bsd=on:bsdmm=1_0");
+    feqAtomsG180.push("lrs+1011_55751:262144_sil=128000:sos=on:urr=on:s2a=on:i=43983:fdi=5:gsp=on_0");
+
+    // total_instr 1315990
+    // len(covered) 2170
+
+    Schedule feqAtomsL180propZ;
+
+    feqAtomsL180propZ.push("lrs-1011_16:31_bsr=on:drc=encompass:tgt=full:sp=unary_first:acc=on:updr=off:nicw=on:i=134284:sil=256000:si=on:rtra=on:to=lpo:spb=goal_then_units:nwc=5.23:urr=on:lwlo=on:fdi=20:fsd=on:awrs=decay_0");
+    feqAtomsL180propZ.push("ott+1011_1:3_drc=encompass:sil=256000:bsd=on:sp=occurrence:sos=on:newcnf=on:i=214065:afp=1:aac=none:amm=off:afq=3.64962_0");
+    feqAtomsL180propZ.push("lrs+1010_2201:262144_anc=all:drc=encompass:sil=256000:sims=off:sp=frequency:spb=goal_then_units:rp=on:lwlo=on:st=3.0:i=231451:bs=unit_only:nm=6:ins=2:fsd=on:ss=axioms:sgt=16:afr=on:tgt=ground:awrs=decay:awrsf=200:acc=on:ccuc=first_0");
+
+    feqAtomsL180propZ.push("dis+1011_1:1_to=lpo:sil=4000:sp=const_max:sos=all:spb=goal:st=1.5:i=103:av=off:ss=axioms:sfv=off:bd=off:sd=2:fd=off_0");
+    feqAtomsL180propZ.push("dis-1002_1:2_sil=4000:i=110:nm=2:ins=3:bd=off:fsr=off:rp=on:to=lpo:nwc=5.0:fd=off:sfv=off:fs=off_0");
+    feqAtomsL180propZ.push("lrs+1011_1:1_sil=32000:rnwc=on:nwc=10.0:lwlo=on:i=107:bd=off:av=off_0");
+    feqAtomsL180propZ.push("lrs-1011_4:7_sil=2000:tgt=full:bsd=on:spb=goal:nwc=5.0:updr=off:newcnf=on:i=121:kws=arity_squared:rawr=on:bsdmm=2_0");
+    feqAtomsL180propZ.push("lrs-21_1:1_sil=4000:sos=on:lcm=predicate:i=107:sd=2:ss=axioms_0");
+    feqAtomsL180propZ.push("lrs+1011_1166409:524288_bsr=unit_only:to=lpo:drc=off:sil=2000:fde=unused:avsql=on:etr=on:sp=occurrence:spb=goal_then_units:lsd=50:rp=on:nwc=6.05391:avsqc=5:sac=on:newcnf=on:avsq=on:i=132:bs=unit_only:afp=300:aac=none:avsqr=13677,1048576:nm=0:ins=3:fsr=off:fsd=on:afq=4.16901:uhcvi=on:afr=on:rawr=on:fsdmm=3:gsp=on_0");
+    feqAtomsL180propZ.push("dis-1010_1:12_sil=2000:sims=off:bce=on:nwc=2.0:newcnf=on:s2a=on:i=150:s2at=2.0:bd=off:fsr=off:irw=on:alpa=false:rawr=on:sp=occurrence_0");
+    feqAtomsL180propZ.push("dis+10_52093:131072_drc=off:sil=2000:tgt=ground:irw=on:foolp=on:lma=on:urr=ec_only:nwc=5.20774:st=1.5:i=124:sd=2:kws=inv_frequency:nm=7:ins=3:av=off:uhcvi=on:ss=axioms:rawr=on_0");
+    feqAtomsL180propZ.push("lrs+11_1:1024_sil=2000:spb=units:rp=on:updr=off:st=6.0:i=109:sd=3:ss=axioms:sac=on:ep=R_0");
+    feqAtomsL180propZ.push("dis+1011_3:7_to=lpo:sos=on:spb=goal_then_units:abs=on:lsd=20:st=1.5:i=113:sd=2:aac=none:awrs=decay:bd=off:ss=axioms:sgt=32:flr=on:sil=256000:nm=26_0");
+    feqAtomsL180propZ.push("dis+1002_1:1_sil=2000:tgt=full:spb=goal:avsq=on:i=173:avsqr=19,107:er=known:rawr=on:nwc=3.7:cond=fast:abs=on_0");
+    feqAtomsL180propZ.push("lrs+1011_1:128_sil=2000:sos=on:st=3.0:i=114:sd=5:bd=off:ss=axioms:av=off_0");
+    feqAtomsL180propZ.push("lrs+1011_1:1_sil=16000:fde=unused:plsqc=1:plsq=on:plsqr=32,1:sos=on:nwc=10.0:i=143:kws=frequency:nm=2:lsd=1:bd=off_0");
+    feqAtomsL180propZ.push("lrs+1011_649:65536_drc=encompass:sil=2000:tgt=ground:plsqc=1:plsq=on:plsqr=8,111:sp=reverse_frequency:plsql=on:newcnf=on:i=1659:afp=50:fsr=off:afq=3.63765:afr=on:ss=axioms:sgt=16:bd=off:cond=on_0");
+    feqAtomsL180propZ.push("dis-1011_1:3_nwc=10.0:s2agt=8:s2a=on:i=145:bs=on:av=off:sp=occurrence:sil=2000:si=on:rtra=on:random_seed=2126866997:updr=off:bd=off_0");
+    feqAtomsL180propZ.push("dis+1011_543:505_drc=encompass:sil=128000:tgt=full:etr=on:sp=frequency:nwc=4.8:avsqc=4:sac=on:avsq=on:st=7.0:i=151:kws=precedence:avsqr=2669309,1048576:awrs=converge:awrsf=975:bd=off:nm=16:ss=axioms:rawr=on:bsd=on:add=large_0");
+    feqAtomsL180propZ.push("lrs+21_1:5_sil=2000:sos=on:urr=on:newcnf=on:slsq=on:i=224:slsql=off:bd=off:nm=2:ss=axioms:st=1.5:sp=const_min:gsp=on:rawr=on_0");
+    feqAtomsL180propZ.push("lrs+1002_1:1_sfv=off:drc=encompass:sil=2000:fde=unused:sp=frequency:nwc=10.0:flr=on:st=1.5:i=226:bd=off:nm=0:ins=4:fsr=off:fsd=on:ss=axioms:s2a=on:s2agt=32:to=lpo:aac=none:sims=off_0");
+    feqAtomsL180propZ.push("lrs+1010_1:4_sil=2000:tgt=ground:sp=reverse_frequency:nwc=5.0:i=206:av=off:bd=off:kmz=on_0");
+    feqAtomsL180propZ.push("dis+1011_1:4_bsr=on:to=lpo:sil=2000:tgt=ground:plsqc=1:plsq=on:plsqr=4477983,65536:sp=frequency:erd=off:spb=goal:nwc=2.0:sac=on:newcnf=on:cond=fast:st=5.0:i=251:nm=16:ss=axioms:rawr=on:lsd=100:awrs=converge_0");
+    feqAtomsL180propZ.push("lrs-1011_1:1_to=lpo:drc=off:sil=2000:sp=const_min:sos=on:lsd=10:sac=on:i=271:br=off:newcnf=on_0");
+    feqAtomsL180propZ.push("lrs+1011_8:13_slsqr=96,997:drc=off:sil=64000:sp=const_max:spb=goal_then_units:rnwc=on:nwc=5.0:slsq=on:cond=on:i=285:kws=precedence:rawr=on:fd=preordered:av=off:bs=unit_only_0");
+    feqAtomsL180propZ.push("lrs+1011_16:1_to=lpo:sil=2000:spb=goal_then_units:urr=on:lsd=1:i=285:bd=off:ss=axioms:gsp=on:sac=on_0");
+    feqAtomsL180propZ.push("dis-1002_1:1_to=lpo:drc=encompass:sil=2000:sp=const_max:nwc=10.0:s2a=on:i=286:s2at=2.0:afp=10:ins=16:afq=1.4:aac=none:rawr=on:fsr=off:alpa=true_0");
+    feqAtomsL180propZ.push("lrs+1002_1:1_to=lpo:drc=encompass:sil=4000:sp=const_min:sos=on:spb=goal_then_units:acc=on:urr=on:sac=on:avsq=on:i=314:ins=2:br=off_0");
+    feqAtomsL180propZ.push("dis-11_101:15_to=lpo:sil=4000:tgt=full:fde=none:sp=const_frequency:acc=on:sac=on:avsq=on:i=332:avsqr=16429,1048576:bd=off:nm=16:er=filter:spb=goal:anc=all_dependent:slsq=on:slsql=off:slsqc=4:s2at=5.0:alpa=true_0");
+    feqAtomsL180propZ.push("dis-30_282927:1048576_sfv=off:sil=2000:etr=on:sp=unary_first:spb=goal_then_units:abs=on:nwc=11.1969:s2agt=100:kmz=on:cond=fast:st=3:s2a=on:i=641:s2at=1.5:add=large:sd=4:bd=off:nm=25:fsr=off:fsd=on:gsp=on:ss=axioms:er=known:rawr=on:alpa=random:lma=on_0");
+    feqAtomsL180propZ.push("lrs-10_1:40_bsr=unit_only:sil=4000:tgt=ground:lcm=reverse:fd=preordered:s2a=on:i=681:s2at=3.0:rawr=on:kws=inv_frequency:fsr=off_0");
+    feqAtomsL180propZ.push("lrs+1011_1:1024_sil=4000:br=off:i=757:bd=off:fd=preordered:slsq=on:slsql=off:slsqc=2:slsqr=1,4:s2at=4.0_0");
+    feqAtomsL180propZ.push("dis-1010_1:4_sil=2000:tgt=ground:i=906:sd=2:nm=6:av=off:gsp=on:ss=axioms:nwc=10.0_0");
+    feqAtomsL180propZ.push("lrs-32_2:11_drc=encompass:sil=4000:sp=reverse_frequency:nwc=10.0:s2a=on:i=2306:s2at=5.0:nm=16:amm=sco_0");
+    feqAtomsL180propZ.push("lrs+1011_1574893:524288_to=lpo:drc=encompass:sil=4000:sp=const_frequency:spb=goal:fd=preordered:nwc=7.0:alpa=false:sac=on:newcnf=on:cond=fast:s2a=on:i=688:s2at=4.0:bd=preordered:awrs=decay:awrsf=60:sfv=off_0");
+    feqAtomsL180propZ.push("lrs-32_1:4_to=lpo:drc=off:sil=2000:sp=reverse_arity:spb=goal_then_units:urr=on:nwc=2.0:i=1150:ss=included:st=2.0:bd=preordered_0");
+    feqAtomsL180propZ.push("dis+11_1:7_sil=2000:tgt=ground:sp=reverse_arity:i=1934:fd=preordered:fsr=off:drc=encompass_0");
+    feqAtomsL180propZ.push("lrs+2_5:1_slsqr=30,127:to=lpo:drc=off:sil=128000:tgt=full:sp=const_min:fd=preordered:nwc=5.0:slsq=on:i=6132:slsql=off:ins=2:ss=axioms:rawr=on:slsqc=1:plsq=on:plsqc=2:fdi=1:st=2.0:plsql=on_0");
+    feqAtomsL180propZ.push("lrs+1011_1:128_drc=encompass:sil=32000:tgt=full:fde=none:sp=weighted_frequency:nwc=1.5:i=7322:kws=inv_arity_squared:awrs=converge_0");
+    feqAtomsL180propZ.push("lrs-4_1:24_slsqr=493885,1048576:drc=encompass:sil=128000:tgt=full:sp=weighted_frequency:fd=preordered:flr=on:slsq=on:i=54457:bs=unit_only:av=off:fsr=off:rawr=on_0");
+    feqAtomsL180propZ.push("lrs+1011_4:1_to=lpo:sil=16000:fde=none:plsq=on:plsqr=1,8:sp=occurrence:st=2.0:i=9562:sd=3:ss=axioms:er=known:av=off:awrs=converge:awrsf=500:fsr=off_0");
+    feqAtomsL180propZ.push("lrs+21_1:6_to=lpo:drc=off:sil=64000:tgt=ground:fd=preordered:i=15240_0");
+    feqAtomsL180propZ.push("lrs+1011_1:6_to=lpo:drc=encompass:sil=256000:tgt=full:sp=unary_first:nwc=10.0:i=19986:aac=none:bd=preordered:ss=axioms:sgt=16_0");
+    feqAtomsL180propZ.push("lrs+21_1:64_drc=encompass:sil=32000:bsd=on:lma=on:spb=goal:nwc=10.0:i=22098:add=large:ss=axioms:sgt=16:irw=on_0");
+    feqAtomsL180propZ.push("lrs+35_1:1_to=lpo:sil=128000:tgt=full:fd=preordered:lwlo=on:i=119085:bd=preordered:drc=off:av=off_0");
+    feqAtomsL180propZ.push("lrs+11_1:20_drc=off:sil=128000:tgt=ground:fde=none:sp=const_min:spb=goal:nwc=1.08:i=126497:bd=off:rawr=on:fsr=off:ss=axioms:sgt=32:kws=frequency:bs=unit_only:urr=ec_only_0");
+    feqAtomsL180propZ.push("dis+1010_19:119_sil=256000:tgt=ground:sp=reverse_frequency:spb=units:acc=on:rp=on:nwc=0.74658:cond=on:i=74983:add=large:bs=on:kws=inv_arity:bd=off:ins=1:amm=sco:rawr=on:anc=none_0");
+
+    // total_instr 1050466
+    // len(covered) 274
+
+    Schedule feqAtomsL180propNZatomsG50;
+
+    feqAtomsL180propNZatomsG50.push("lrs+2_5:39_bsr=unit_only:to=lpo:drc=off:sil=128000:plsq=on:plsqr=2,19:sp=frequency:lcm=reverse:fd=preordered:s2a=on:i=38749:s2at=-1.0:fsr=off:uhcvi=on:rawr=on:aer=off:lwlo=on:add=off:bce=on:acc=model:afr=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1002_74:59_drc=off:tgt=full:sos=all:cond=fast:i=124987:kws=inv_frequency:afp=300:afq=2.0744697298148953:rawr=on:urr=full:sil=128000:si=on:rtra=on:random_seed=3250543_0");
+    feqAtomsL180propNZatomsG50.push("lrs+11_1:16_to=lpo:drc=off:bsd=on:sp=frequency:i=172350:bs=on:av=off:fsd=on:sil=256000:fdi=50_0");
+
+    feqAtomsL180propNZatomsG50.push("lrs+1011_1:1_sil=2000:i=103:ep=RS:nm=32:ss=axioms:sos=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1011_1:1_sil=32000:rnwc=on:nwc=10.0:lwlo=on:i=121:bd=off:av=off_0");
+    feqAtomsL180propNZatomsG50.push("dis-1011_2:1_sil=2000:lsd=20:nwc=5.0:flr=on:mep=off:st=3.0:i=113:sd=1:ep=RS:ss=axioms_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1010_1:1_to=lpo:sil=2000:plsq=on:plsqr=32,1:sp=reverse_arity:sos=on:spb=goal_then_units:i=128:ss=axioms:sgt=50:bd=off:sd=3_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1002_1:1024_drc=encompass:sil=2000:tgt=full:rp=on:i=123:nm=16:ss=axioms:sd=1:st=2.0_0");
+    feqAtomsL180propNZatomsG50.push("lrs+10_1:1_sil=8000:sp=occurrence:sos=on:urr=full:nwc=10.0:st=1.5:i=205:ss=axioms:rnwc=on:sgt=4_0");
+    feqAtomsL180propNZatomsG50.push("ott+1011_1:3_drc=off:sil=4000:tgt=ground:fde=unused:plsq=on:sp=unary_first:fd=preordered:nwc=10.0:i=180:ins=1:rawr=on:bd=preordered_0");
+    feqAtomsL180propNZatomsG50.push("ott+1002_2835555:1048576_to=lpo:sil=2000:sos=on:fs=off:nwc=10.3801:avsqc=3:updr=off:avsq=on:st=2:s2a=on:i=143:s2at=3:afp=10000:aac=none:avsqr=13357983,1048576:awrs=converge:awrsf=460:bd=off:nm=13:ins=2:fsr=off:amm=sco:afq=1.16719:ss=axioms:rawr=on:fd=off_0");
+    feqAtomsL180propNZatomsG50.push("lrs+2_1:1_sil=16000:fde=none:sos=all:nwc=5.0:i=113:ep=RS:s2pl=on:lma=on:afp=100000_0");
+    feqAtomsL180propNZatomsG50.push("dis-1011_3:14_sil=32000:rp=on:nwc=7.0:sac=on:mep=off:s2a=on:i=113:ep=R:gsp=on:rawr=on:awrs=converge:awrsf=47:s2agt=30:rnwc=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1011_1:1024_sil=2000:sos=on:lsd=10:i=114:sd=3:kws=frequency:bd=off:nm=6:av=off:gsp=on:ss=axioms:sgt=64:fde=unused_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1011_1:4_sil=2000:tgt=ground:lsd=100:nwc=2.0:st=7.0:i=253:bd=off:nm=16:av=off:ss=axioms:rawr=on_0");
+    feqAtomsL180propNZatomsG50.push("ott-32_5:1_sil=4000:sp=occurrence:urr=full:rp=on:nwc=5.0:newcnf=on:st=5.0:s2pl=on:i=150:sd=2:ins=2:ss=included:rawr=on:anc=none:sos=on:s2agt=8:spb=intro:ep=RS:avsq=on:avsqr=27,155:lma=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1010_1:1_tgt=ground:fde=unused:sp=const_frequency:nwc=5.0:sac=on:avsq=on:i=196:avsqr=1,8:fsd=on:sil=64000:gs=on:rnwc=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1002_1:1_sil=4000:i=107:sd=2:ep=RS:av=off:ss=axioms:sos=on:erd=off_0");
+    feqAtomsL180propNZatomsG50.push("lrs+10_1:1024_sil=2000:st=2.0:i=107:sd=2:ss=included:ep=R_0");
+    feqAtomsL180propNZatomsG50.push("ott+10_107421:1048576_to=lpo:drc=off:sil=4000:fde=none:sos=on:lma=on:spb=intro:gs=on:nwc=24.2524:gsem=off:i=147:sd=3:afp=40000:awrs=decay:awrsf=1166:nm=6:afq=1.99252:uhcvi=on:ss=axioms:rawr=on:sp=const_max:add=off_0");
+    feqAtomsL180propNZatomsG50.push("dis+1002_1:2_to=lpo:sil=2000:sos=on:abs=on:newcnf=on:i=116:sd=1:bd=off:ss=included:rawr=on:sp=const_frequency:fsr=off:fs=off_0");
+    feqAtomsL180propNZatomsG50.push("ott-1011_16:1_sil=2000:sp=const_max:urr=on:lsd=20:st=3.0:i=304:ss=axioms:gsp=on:rp=on:sos=on:fd=off:aac=none_0");
+    feqAtomsL180propNZatomsG50.push("ott+1011_9:29_slsqr=3,2:sil=2000:tgt=ground:lsd=10:lcm=predicate:avsqc=4:slsq=on:avsq=on:i=135:s2at=4.0:add=large:sd=1:avsqr=1,16:aer=off:ss=axioms:sgt=100:rawr=on:s2a=on:sac=on:afp=1:nwc=10.0:nm=64:bd=preordered:abs=on:rnwc=on:er=filter:nicw=on:spb=non_intro:lma=on_0");
+    feqAtomsL180propNZatomsG50.push("dis+1010_1:1_sil=2000:urr=on:lcm=predicate:i=261:ile=on:gs=on:br=off_0");
+    feqAtomsL180propNZatomsG50.push("lrs+21_1:1_to=lpo:sil=2000:sp=const_min:st=3.0:i=109:sd=1:erml=4:ss=axioms:er=filter:alpa=true:amm=sco:bd=off_0");
+    feqAtomsL180propNZatomsG50.push("dis+1011_5:1_sil=2000:fde=unused:nwc=10.0:i=118:ep=R:fs=off:fsr=off:awrs=converge_0");
+    feqAtomsL180propNZatomsG50.push("lrs-21_1:1_sil=4000:sos=on:lcm=predicate:i=109:sd=2:ss=axioms_0");
+    feqAtomsL180propNZatomsG50.push("lrs+32_1:128_drc=off:sil=2000:tgt=ground:flr=on:i=119:fsr=off_0");
+    feqAtomsL180propNZatomsG50.push("dis+1002_1:1_sil=2000:sos=on:sac=on:st=5.0:i=213:ss=axioms_0");
+    feqAtomsL180propNZatomsG50.push("dis+10_78677:524288_anc=all_dependent:sil=4000:irw=on:fde=unused:plsq=on:plsqr=4929279,131072:etr=on:sp=const_max:sos=all:spb=goal_then_units:lcm=predicate:fd=off:nwc=6.051592140664891:i=126:sd=3:kws=inv_arity_squared:afp=40000:bd=off:nm=6:afq=1.82720764930041:ss=axioms:rawr=on:bsr=on:newcnf=on:bs=unit_only:abs=on:ins=4:gsp=on:rnwc=on:awrs=decay:awrsf=179:s2a=on:s2agt=10:s2at=4.0:st=5.0:foolp=on:afr=on_0");
+    feqAtomsL180propNZatomsG50.push("dis+1011_1:20_sil=2000:tgt=full:fde=unused:sos=on:i=301:kws=inv_arity_squared:aac=none_0");
+    feqAtomsL180propNZatomsG50.push("dis+1010_3:2_sil=4000:plsq=on:s2agt=100:sac=on:s2a=on:i=115:s2at=2.0:ep=RS:tgt=full_0");
+    feqAtomsL180propNZatomsG50.push("dis+1011_5:2_to=lpo:sil=8000:tgt=ground:plsq=on:plsqr=65749,1048576:spb=goal:nwc=10.0:newcnf=on:i=335:rawr=on:av=off:nm=5:awrs=converge:awrsf=340:bsd=on:s2a=on:fdi=1_0");
+    feqAtomsL180propNZatomsG50.push("lrs+21_1:5_sil=2000:sos=on:urr=on:newcnf=on:slsq=on:i=484:slsql=off:bd=off:nm=2:ss=axioms:st=1.5:sp=const_min:gsp=on:rawr=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1010_1:512_sil=8000:tgt=ground:spb=units:gs=on:lwlo=on:nicw=on:gsem=on:st=1.5:i=120:nm=21:ss=included:nwc=5.3:afp=4000:afq=1.38:ins=1:bs=unit_only:awrs=converge:awrsf=10:bce=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs+21_2461:262144_anc=none:drc=off:sil=2000:sp=occurrence:nwc=6.0:updr=off:st=3.0:i=141:sd=2:afp=4000:erml=3:nm=14:afq=2.0:uhcvi=on:ss=included:er=filter:abs=on:nicw=on:ile=on:sims=off:s2a=on:s2agt=50:s2at=-1.0:plsq=on:plsql=on:plsqc=2:plsqr=1,32:newcnf=on:bd=off:to=lpo_0");
+    feqAtomsL180propNZatomsG50.push("dis+1010_3:1_sil=4000:bce=on:s2agt=15:st=5.0:s2a=on:i=168:sd=1:ep=RS:ss=axioms:plsq=on:plsqc=1:plsqr=24176865,524288:fsr=off_0");
+    feqAtomsL180propNZatomsG50.push("dis-1010_1:8_sil=256000:i=123:nm=16:av=off:erd=off:sfv=off:fd=off:bd=off_0");
+    feqAtomsL180propNZatomsG50.push("dis+1003_1:1024_sil=4000:urr=on:newcnf=on:i=172:av=off:fsr=off:bce=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1011_4:1_bsr=on:sil=32000:sos=all:urr=on:br=off:s2a=on:i=336:s2at=2.0:bd=off:gsp=on:ss=axioms:sgt=8:sd=1:fsr=off_0");
+    feqAtomsL180propNZatomsG50.push("lrs-1011_8:1_sil=2000:spb=goal:urr=on:sac=on:i=129:afp=10000:fsr=off:ss=axioms:avsq=on:avsqr=17819,524288:bd=off:bsd=on:fd=off:sims=off:rawr=on:alpa=true:bsr=on:aer=off_0");
+    feqAtomsL180propNZatomsG50.push("dis+10_3:31_sil=2000:sp=frequency:abs=on:acc=on:lcm=reverse:nwc=3.0:alpa=random:st=3.0:i=219:sd=1:nm=4:ins=1:aer=off:ss=axioms_0");
+    feqAtomsL180propNZatomsG50.push("lrs+10_1:52_anc=all:bsr=unit_only:to=lpo:sil=2000:sp=frequency:fd=preordered:flr=on:sac=on:i=571:bd=off:alpa=true:plsq=on:plsqr=1,32_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1011_2:3_sil=16000:sos=on:rp=on:newcnf=on:lwlo=on:st=1.5:i=205:sd=2:bd=off:nm=2:fsr=off:gsp=on:ss=axioms:bce=on:anc=all:sac=on_0");
+    feqAtomsL180propNZatomsG50.push("dis+10_8:1_to=lpo:sil=64000:tgt=ground:fde=unused:sp=const_max:sos=all:spb=goal:s2a=on:i=136:sd=4:nm=32:ss=axioms:fs=off:fsr=off:sfv=off:alpa=true_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1011_55751:262144_sil=128000:sos=on:urr=on:s2a=on:i=173:fdi=5:gsp=on_0");
+    feqAtomsL180propNZatomsG50.push("dis+10_1:4_to=lpo:sil=2000:sos=on:spb=goal:rp=on:sac=on:newcnf=on:i=247:ss=axioms:aac=none_0");
+    feqAtomsL180propNZatomsG50.push("lrs-21_1:1_to=lpo:sil=2000:sp=frequency:sos=on:lma=on:i=137:sd=2:ss=axioms:ep=R_0");
+    feqAtomsL180propNZatomsG50.push("dis+1010_12107:524288_anc=none:drc=encompass:sil=2000:bsd=on:rp=on:nwc=10.0:alpa=random:i=216:kws=precedence:awrs=decay:awrsf=2:nm=16:ins=3:rawr=on:s2a=on:s2at=4.5:acc=on:flr=on_0");
+    feqAtomsL180propNZatomsG50.push("dis-1002_1:12_to=lpo:sil=2000:sp=const_max:nwc=2.0:sac=on:i=278:nm=16:nicw=on:fsr=off_0");
+    feqAtomsL180propNZatomsG50.push("dis+1011_2:3_sil=2000:tgt=ground:fde=none:sos=on:lsd=1:alpa=random:i=234:kws=inv_arity_squared:gsp=on:bsd=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1002_1:8_sil=2000:tgt=ground:lcm=reverse:rp=on:i=336:sd=1:nm=6:ss=axioms:flr=on:bd=off_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1011_1:8_bsr=unit_only:drc=encompass:sil=128000:fde=none:avsql=on:sp=frequency:sos=all:spb=goal:rnwc=on:nwc=10.0:avsqc=3:avsq=on:s2a=on:i=148:kws=precedence:awrs=converge:awrsf=500:amm=off:rawr=on:bce=on:newcnf=on:ss=included:sd=1:sgt=20:bsd=on:fsr=off:nicw=on_0");
+    feqAtomsL180propNZatomsG50.push("dis+1002_1:1_sil=2000:tgt=full:spb=goal:avsq=on:i=206:avsqr=19,107:er=known:rawr=on:nwc=3.7:cond=fast:abs=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1011_1:4_bsr=unit_only:to=lpo:sil=2000:plsqc=4:plsq=on:sp=occurrence:plsql=on:alpa=false:i=156:afp=10:afq=2.0:ss=axioms:rawr=on:fd=off_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1010_1:4_sil=2000:tgt=ground:sp=reverse_frequency:nwc=5.0:i=374:av=off:bd=off:kmz=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1011_4:1_to=lpo:drc=off:sil=8000:sp=frequency:abs=on:urr=on:lsd=10:nwc=5.0:s2agt=4:newcnf=on:st=5.0:s2a=on:i=673:ss=axioms:aac=none:br=off:bd=preordered_0");
+    feqAtomsL180propNZatomsG50.push("lrs+11_1:1_sos=on:urr=on:s2a=on:i=318:sd=1:aac=none:ss=axioms:gsp=on:sil=128000:nm=3:bce=on:fd=preordered:alpa=true:etr=on:bd=off:lcm=predicate_0");
+    feqAtomsL180propNZatomsG50.push("lrs-1011_1:16_drc=off:sil=128000:fde=none:fs=off:abs=on:acc=on:lsd=50:flr=on:newcnf=on:s2a=on:i=248:sd=2:fsr=off:ss=included:awrs=decay:awrsf=200:nwc=2.0_0");
+    feqAtomsL180propNZatomsG50.push("lrs-1011_1:1_sil=2000:sos=on:urr=on:i=174:sd=1:bd=off:ins=3:av=off:ss=axioms:sgt=16:gsp=on:lsd=10_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1002_263:262144_sfv=off:to=lpo:drc=encompass:sil=2000:tgt=full:fde=none:bsd=on:sp=const_frequency:spb=units:fd=preordered:nwc=12.504039574721643:lwlo=on:i=180:awrs=converge:awrsf=1360:bsdmm=3:bd=off:nm=11:fsd=on:amm=off:uhcvi=on:afr=on:rawr=on:fsdmm=1:updr=off:sac=on:fdi=16_0");
+    feqAtomsL180propNZatomsG50.push("dis-11_4:1_to=lpo:sil=2000:fde=unused:sims=off:sp=occurrence:lma=on:spb=goal_then_units:abs=on:fd=off:flr=on:avsq=on:i=260:avsqr=1137305,524288:bd=off:uhcvi=on:awrs=decay:sos=on:bsd=on:afp=50:afq=1.3:nwc=10.053150171695567_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1011_1:2_drc=off:sil=16000:tgt=ground:sp=reverse_arity:spb=goal:nwc=10.0:lwlo=on:st=2.0:i=181:kws=precedence:ss=axioms_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1011_1:1_sil=64000:i=182:sd=2:ep=R:ss=axioms_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1010_1:28_plsqc=4:si=on:plsq=on:plsqr=22387283,262144:i=347:sd=2:rtra=on:ss=included:sgt=8:sil=2000:slsq=on:slsqc=1:nm=32:acc=model:aer=off:alpa=false:spb=intro:nicw=on:bd=off:sp=reverse_arity:kws=arity_0");
+    feqAtomsL180propNZatomsG50.push("dis+1002_1:2_to=lpo:sil=2000:sp=unary_first:newcnf=on:i=183:aac=none:nm=2:fsr=off_0");
+    feqAtomsL180propNZatomsG50.push("lrs+35_1:7_sil=2000:tgt=full:fde=unused:sp=occurrence:sos=on:st=3.5:s2pl=no:i=183:bd=off:nm=16:fsr=off:uhcvi=on:ss=axioms:rawr=on_0");
+    feqAtomsL180propNZatomsG50.push("dis-1011_1785:1048576_bsr=unit_only:sil=4000:tgt=ground:plsqc=1:plsq=on:plsqr=125493,524288:sp=frequency:spb=goal:plsql=on:nwc=2.32086:updr=off:newcnf=on:cond=fast:st=2:s2a=on:i=193:s2at=4:bd=off:nm=3:ins=3:aer=off:uhcvi=on:afr=on:ss=axioms:sgt=20:rawr=on:fsr=off_0");
+    feqAtomsL180propNZatomsG50.push("dis-1011_443601:1048576_to=lpo:drc=off:sil=2000:fde=unused:bsd=on:etr=on:sp=reverse_frequency:erd=off:spb=goal_then_units:bce=on:nwc=21.6966:newcnf=on:nicw=on:cond=on:i=195:bsdmm=2:nm=14:ins=2:uhcvi=on:fdi=2:rnwc=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs+11_857975:262144_bsr=unit_only:drc=encompass:sil=4000:tgt=ground:plsqc=1:sims=off:plsq=on:plsqr=18723,262144:sp=frequency:sos=on:foolp=on:spb=units:abs=on:rnwc=on:plsql=on:gs=on:nwc=4.36781:updr=off:sac=on:cond=on:i=197:bs=unit_only:gsaa=from_current:sd=1:kws=arity_squared:afp=300:aac=none:erml=2:awrs=decay:awrsf=763:bd=off:nm=3:fsr=off:afq=4.10223:ss=included:er=filter:sgt=50_0");
+    feqAtomsL180propNZatomsG50.push("lrs+10_4927:1048576_anc=none:sfv=off:slsqr=66837,32768:drc=encompass:sil=2000:tgt=full:fde=none:etr=on:sp=const_max:sos=on:erd=off:spb=goal_then_units:nwc=15.0003:s2agt=30:flr=on:avsqc=3:slsq=on:avsq=on:i=197:s2at=5.5:add=large:bs=unit_only:sd=1:aac=none:erml=3:avsqr=638249,524288:awrs=decay:awrsf=2:bd=off:nm=3:amm=sco:afr=on:gsp=on:ss=included:er=known:rawr=on:s2a=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs-1011_1:64_sil=2000:tgt=full:acc=on:urr=ec_only:sac=on:i=201:nm=2:ss=axioms:sgt=4:er=filter_0");
+    feqAtomsL180propNZatomsG50.push("lrs-1011_1:64_slsqr=1674187,131072:sil=4000:plsq=on:lsd=50:plsql=on:slsq=on:i=202:slsql=off:bd=off:nm=3:amm=off:gsp=on:ss=axioms:fsr=off_0");
+    feqAtomsL180propNZatomsG50.push("dis+1010_19:119_sil=256000:tgt=ground:sp=reverse_frequency:spb=units:acc=on:rp=on:nwc=0.74658:cond=on:i=204:add=large:bs=on:kws=inv_arity:bd=off:ins=1:amm=sco:rawr=on:anc=none_0");
+    feqAtomsL180propNZatomsG50.push("lrs+21_16:1_bsr=unit_only:to=lpo:sp=const_frequency:sos=on:urr=on:newcnf=on:i=311:fsr=off:ss=axioms:alpa=true:ep=RST:sil=8000:sac=on:spb=non_intro_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1002_1:4_bsr=unit_only:to=lpo:sil=2000:sos=all:rp=on:avsq=on:i=207:fsr=off:rawr=on:alpa=true:flr=on:lcm=reverse:avsqc=1:nicw=on:newcnf=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs+21_1:16_sil=2000:sp=occurrence:urr=on:flr=on:i=323:sd=1:nm=0:ins=3:ss=included:rawr=on:br=off_0");
+    feqAtomsL180propNZatomsG50.push("dis-1011_5:4_sil=4000:fde=unused:nwc=10.0:s2a=on:i=215:nm=16:ss=included:sd=2:fsr=off_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1011_1:64_sil=2000:fde=none:sos=on:urr=ec_only:nwc=10.0:i=218:nm=19:gsp=on:ss=axioms:bd=off_0");
+    feqAtomsL180propNZatomsG50.push("dis+1011_16:1_slsqr=5605329,524288:to=lpo:sil=4000:rp=on:slsqc=1:slsq=on:i=684:bd=off:fsr=off:lsd=50_0");
+    feqAtomsL180propNZatomsG50.push("lrs-1011_1:1_sil=16000:plsq=on:plsqr=10230343,1048576:sos=on:lsd=20:sac=on:s2a=on:i=248:bd=off:ss=axioms:rawr=on:bce=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1011_1:14_sil=4000:sos=on:lsd=20:i=412:nm=5:rawr=on:avsq=on:avsqc=1:avsqr=5,3:urr=on:lcm=predicate:alpa=random_0");
+    feqAtomsL180propNZatomsG50.push("lrs-21_1:28_sil=4000:tgt=full:sp=frequency:lma=on:urr=ec_only:nwc=3.0:sac=on:i=263:sd=1:bd=off:ss=axioms:sgt=4:rawr=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs+35_10:1_bsr=unit_only:to=lpo:sil=2000:bsd=on:sp=unary_first:abs=on:urr=on:s2agt=32:newcnf=on:s2a=on:i=644:gsp=on:rawr=on:sac=on:afp=1000:avsq=on:avsqr=63937,1048576:nwc=10.0_0");
+    feqAtomsL180propNZatomsG50.push("ott+2_27871:262144_drc=encompass:sil=2000:plsqc=1:plsq=on:ile=on:plsqr=9426019,262144:sp=const_frequency:foolp=on:bce=on:rnwc=on:gs=on:nwc=12.5427:i=297:gsaa=from_current:erml=3:bd=off:nm=10:uhcvi=on:gsp=on:er=known:rawr=on:fd=preordered:alpa=true_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1011_1:16_sil=2000:urr=on:gs=on:s2agt=8:slsqc=2:slsq=on:i=304:bd=off:rawr=on:s2a=on:fsr=off:bce=on:flr=on_0");
+    feqAtomsL180propNZatomsG50.push("dis+1010_1:4_aac=none:abs=on:atotf=0.5:avsq=on:avsqc=2:avsqr=215,247:awrs=converge:awrsf=128:bsd=on:erd=off:fde=none:gve=cautious:newcnf=on:nwc=5.0:rnwc=on:sac=on:sas=z3:sp=const_min:tgt=ground:thsq=on:thsqc=64:thsqr=1,4:si=on:rawr=on:rtra=on:i=1158_0");
+    feqAtomsL180propNZatomsG50.push("ott+21_2515:262144_drc=off:sil=4000:ile=on:sp=reverse_arity:lma=on:spb=goal_then_units:bce=on:nwc=1.56136:i=3621:add=large:kws=precedence:nm=34:afr=on:gsp=on:rawr=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs+32_1:4_sil=2000:sos=on:rp=on:i=328:bd=off:nm=16:awrs=decay:awrsf=500_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1011_1:2_to=lpo:sil=8000:plsqc=1:plsq=on:plsqr=326,59:sp=weighted_frequency:plsql=on:nwc=10.0:newcnf=on:i=332:awrs=converge:awrsf=200:bd=off:ins=1:rawr=on:alpa=false:avsq=on:avsqr=1,16_0");
+    feqAtomsL180propNZatomsG50.push("dis+1010_1:3_sil=2000:sos=on:erd=off:nwc=3.0:i=358:nm=0_0");
+    feqAtomsL180propNZatomsG50.push("ott+1011_170061:1048576_to=lpo:drc=encompass:sil=4000:tgt=full:fde=unused:sims=off:sp=unary_frequency:lma=on:gs=on:nwc=3.05078:sac=on:nicw=on:gsem=off:s2a=on:i=372:bs=on:nm=16:ins=7:fsr=off:amm=sco:uhcvi=on:fdi=4:rawr=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs+11_1:20_sil=2000:fde=none:sp=unary_first:sos=on:lma=on:spb=goal:lsd=20:i=1955:bd=off:nm=0:aer=off:kws=inv_arity_squared:rawr=on_0");
+    feqAtomsL180propNZatomsG50.push("dis-1002_1:1_to=lpo:drc=encompass:sil=2000:sp=const_max:nwc=10.0:s2a=on:i=432:s2at=2.0:afp=10:ins=16:afq=1.4:aac=none:rawr=on:fsr=off:alpa=true_0");
+    feqAtomsL180propNZatomsG50.push("dis+11_1:32_to=lpo:drc=encompass:sil=8000:i=1778:av=off:bs=on:bsd=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs+3_1:1024_to=lpo:erd=off:spb=goal:urr=on:cond=fast:i=1334:awrs=converge:awrsf=330:av=off:ss=axioms:sgt=16:sup=off:gsp=on:sd=1:sil=32000:nwc=5.0_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1011_3:25_anc=all_dependent:drc=off:sil=2000:tgt=full:bsd=on:spb=goal:bce=on:nwc=4.3:avsqc=1:avsq=on:st=3.0:i=586:afp=10:aer=off:afq=4.97351:afr=on:ss=axioms:rawr=on:acc=on:rp=on:bsr=on:sp=unary_frequency_0");
+    feqAtomsL180propNZatomsG50.push("lrs+10_23:15_sil=2000:plsqc=1:plsq=on:plsqr=4106395,32768:plsql=on:nwc=3.0:flr=on:newcnf=on:i=609:kws=precedence:fsr=off:ss=included_0");
+    feqAtomsL180propNZatomsG50.push("dis+1011_16447:524288_slsqr=7559,1048576:drc=encompass:sil=2000:tgt=ground:sp=const_max:spb=goal:urr=ec_only:rp=on:nwc=3.04172:s2agt=100:slsqc=1:flr=on:updr=off:slsq=on:st=6:i=1627:s2at=4.5:bd=off:nm=12:ins=2:uhcvi=on:ss=axioms:sgt=20:rawr=on:rnwc=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs-1011_16:1_bsr=unit_only:to=lpo:sil=64000:plsqc=1:plsq=on:plsqr=48239893,524288:sp=frequency:sos=on:urr=full:rnwc=on:fd=preordered:nwc=10.0:newcnf=on:slsq=on:cond=on:i=612:slsql=off:bd=off:rawr=on:alpa=false:nm=2:ins=1_0");
+    feqAtomsL180propNZatomsG50.push("dis-1010_1:1_drc=encompass:sil=2000:plsq=on:plsqr=128389,524288:sp=const_min:i=631_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1002_1:1024_slsqr=24,7:sil=4000:bsd=on:newcnf=on:slsq=on:st=2.0:i=691:s2at=2.5:awrs=converge:awrsf=340:ss=axioms:rawr=on:alpa=random:nicw=on:bs=unit_only_0");
+    feqAtomsL180propNZatomsG50.push("dis+11_1:50_to=lpo:sil=64000:fd=preordered:i=1927:av=off:sup=off:sp=const_frequency:bd=preordered_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1002_1:7_to=lpo:drc=encompass:sil=2000:tgt=full:sp=reverse_arity:spb=non_intro:fd=preordered:nwc=10.0:st=3.0:i=715:ins=2:ss=axioms_0");
+    feqAtomsL180propNZatomsG50.push("dis+2_1:1024_sil=8000:i=5884:kws=precedence:ss=included:sgt=32:rawr=on:sp=unary_frequency:drc=off_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1011_3:1_slsqr=1,2:sil=2000:tgt=full:plsq=on:plsqr=173,396:spb=goal:bce=on:newcnf=on:slsq=on:st=3.5:i=803:add=off:bs=on:fsr=off:ss=axioms:rawr=on:afp=1:afq=2.9664927043397338_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1010_1:56_slsqr=3,4:tgt=ground:slsqc=1:slsq=on:i=855:s2at=2.0:bd=off:amm=sco:sac=on:kws=inv_frequency:nwc=2.4:sil=4000:sfv=off:ss=axioms:sgt=32_0");
+    feqAtomsL180propNZatomsG50.push("lrs+21_6:7_to=lpo:drc=off:sil=32000:tgt=full:fde=unused:bsd=on:sp=const_frequency:fd=preordered:i=930:rawr=on:bd=preordered_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1011_1:32_sil=2000:tgt=ground:acc=model:lsd=10:nwc=1.1:flr=on:s2pl=no:i=1070:bd=off:gsp=on:rawr=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs+21_1:1_sil=64000:sos=all:urr=on:br=off:s2a=on:i=1184:sd=1:kws=inv_frequency:ss=included_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1011_24:11_drc=encompass:sil=2000:tgt=ground:fde=unused:spb=units:i=1212:kws=inv_arity:rawr=on:av=off:newcnf=on:erd=off:gsp=on:bsr=unit_only:plsq=on:plsqr=52,371_0");
+    feqAtomsL180propNZatomsG50.push("ott-1011_45995:1048576_anc=none:to=lpo:sil=4000:tgt=ground:fde=unused:sp=const_frequency:lma=on:spb=goal_then_units:acc=model:lcm=predicate:nwc=0.310817:avsq=on:cond=on:i=2431:avsqr=21767,262144:nm=3:ins=1:uhcvi=on:bsr=unit_only:afr=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs+34_1:128_sil=2000:tgt=full:fde=unused:sp=unary_first:sos=on:lcm=predicate:i=1296:sd=1:bd=off:av=off:ss=axioms:sgt=8_0");
+    feqAtomsL180propNZatomsG50.push("lrs+21_3:1_to=lpo:drc=encompass:sil=32000:spb=intro:flr=on:updr=off:i=2643:anc=all:bsd=on:fd=preordered:fsd=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1011_16:1_to=lpo:sil=2000:sos=on:spb=intro:st=2.0:i=1421:sd=2:afp=50:bd=off:nm=6:sup=off:afq=2.0:ss=axioms:ins=1:fs=off:fsr=off:alpa=true_0");
+    feqAtomsL180propNZatomsG50.push("dis+1011_4_add=large:amm=off:sims=off:sac=on:sp=frequency:tgt=ground:i=1580_0");
+    feqAtomsL180propNZatomsG50.push("dis+1011_1:20_anc=none:sil=2000:tgt=ground:bce=on:s2agt=16:newcnf=on:i=1730:kws=precedence:slsq=on:slsqc=3:slsqr=1,4_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1011_10195:1048576_to=lpo:sil=2000:fde=none:ile=on:sp=const_frequency:lma=on:lcm=reverse:nwc=22.1777:flr=on:st=1.5:i=1994:bs=on:sd=2:awrs=converge:awrsf=457:bd=preordered:nm=5:fsd=on:ss=axioms:sgt=20:rawr=on:etr=on:bsd=on:afp=10:afq=2.1644398980198307_0");
+    feqAtomsL180propNZatomsG50.push("dis-1010_1:2_bsr=unit_only:sil=32000:tgt=full:i=2027:nm=16:bd=off_0");
+    feqAtomsL180propNZatomsG50.push("lrs-1010_1:3_sil=4000:tgt=ground:sos=on:i=3991:nm=3:ss=axioms:nwc=2.0_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1010_1:2_sil=4000:tgt=ground:nwc=10.0:st=2.0:i=2059:sd=1:bd=off:ss=axioms_0");
+    feqAtomsL180propNZatomsG50.push("lrs+2_1:1_sil=2000:sos=all:st=5.0:i=2247:bd=off:av=off:ss=axioms:sd=2:sup=off_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1002_1:1_slsqr=2,1:sil=16000:urr=full:bce=on:nwc=2.0:slsq=on:st=5.0:i=2265:sd=2:ss=axioms_0");
+    feqAtomsL180propNZatomsG50.push("lrs-10_1:2_to=lpo:drc=encompass:sil=4000:sp=weighted_frequency:rp=on:flr=on:slsq=on:s2a=on:i=2268:av=off:rawr=on:fdi=1_0");
+    feqAtomsL180propNZatomsG50.push("lrs+11_1:1024_bsr=unit_only:drc=off:sil=4000:sp=unary_frequency:urr=ec_only:fd=preordered:gs=on:i=2862:kws=inv_arity_squared:av=off:fsr=off:nwc=10.0_0");
+    feqAtomsL180propNZatomsG50.push("lrs-1010_18:13_to=lpo:tgt=full:sos=all:avsqc=1:avsq=on:i=3175:avsqr=19,49:ss=axioms:sgt=32:rawr=on:nwc=3.0:sil=32000_0");
+    feqAtomsL180propNZatomsG50.push("lrs-1010_552419:524288_sfv=off:slsqr=21968697,524288:to=lpo:drc=off:plsq=on:plsqr=95593,524288:sp=frequency:rp=on:flr=on:slsq=on:i=3255:rawr=on:sil=16000_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1010_1:102_sil=4000:nwc=11.034643852242374:i=3568:nm=2:ile=on:fd=off:ss=axioms:st=5.0:to=lpo_0");
+    feqAtomsL180propNZatomsG50.push("lrs+11_1:1024_to=lpo:drc=off:sil=16000:tgt=full:sp=const_frequency:spb=intro:i=3720:awrs=converge:bd=preordered:av=off:rawr=on_0");
+    feqAtomsL180propNZatomsG50.push("dis+21_3:17_i=4535:kws=inv_frequency:slsq=on:slsql=off:slsqc=1:slsqr=247,761:s2agt=8:rawr=on:amm=off:fsr=off:awrs=converge:awrsf=283:uhcvi=on:sil=256000_0");
+    feqAtomsL180propNZatomsG50.push("dis+1010_1:4_tgt=ground:sp=weighted_frequency:spb=goal_then_units:br=off:i=6294:sd=1:nm=16:ins=4:av=off:fsd=on:ss=axioms:sgt=32:sil=128000:sims=off:flr=on:nwc=3.0_0");
+    feqAtomsL180propNZatomsG50.push("dis+11_1:9_drc=off:sil=32000:tgt=ground:sp=reverse_frequency:abs=on:st=-1.0:i=7070:kws=precedence:bd=off:fsr=off:amm=off:ss=included_0");
+    feqAtomsL180propNZatomsG50.push("lrs+2_1:32_drc=off:sil=16000:tgt=ground:sp=const_frequency:st=5.0:i=7115:ss=axioms:bd=preordered:to=lpo_0");
+    feqAtomsL180propNZatomsG50.push("lrs+11_1:64_bsr=unit_only:sil=16000:tgt=full:plsq=on:spb=goal_then_units:i=8565:ins=6:ss=axioms:sgt=32:rawr=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs+10_1:32_bsr=unit_only:drc=off:sil=32000:sp=const_frequency:flr=on:slsq=on:i=8717:bs=on:kws=precedence:sac=on:nicw=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs-1003_1:14_sil=256000:tgt=full:sp=unary_first:newcnf=on:s2a=on:i=17715:kws=inv_frequency:bd=off:uhcvi=on:rawr=on:sac=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs-1011_271883:1048576_slsqr=2858345,1048576:to=lpo:sil=128000:sp=frequency:gs=on:flr=on:slsq=on:i=9724:awrs=decay:slsql=off:awrsf=90:fsr=off:ss=axioms:sgt=32:bsr=unit_only_0");
+    feqAtomsL180propNZatomsG50.push("dis-1004_2_av=off:fsd=off:gsp=on:nm=4:nwc=1.5:sp=reverse_frequency:tgt=ground:i=15904_0");
+    feqAtomsL180propNZatomsG50.push("dis+1002_1:1_tgt=ground:sos=on:i=16287:urr=full:sil=128000:si=on:rtra=on:nm=32:ile=on:bs=on:sp=reverse_arity:add=large:ss=axioms:st=2.0:erd=off:lma=on:etr=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs-1010_2_av=off:bce=on:cond=on:er=filter:fde=unused:lcm=predicate:nm=2:nwc=3.0:sims=off:sp=frequency:urr=on:sil=256000:i=42157_0");
+    feqAtomsL180propNZatomsG50.push("dis+4_1:13_to=lpo:drc=off:sil=64000:bsd=on:sp=weighted_frequency:flr=on:cond=on:i=23291:rawr=on:av=off:fsd=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs+21_9739:1048576_drc=off:sil=128000:tgt=ground:spb=non_intro:s2a=on:i=25831:s2at=2.0:kws=precedence:sp=reverse_arity:awrs=decay:awrsf=270_0");
+    feqAtomsL180propNZatomsG50.push("lrs+21_1:6_to=lpo:drc=off:sil=64000:tgt=ground:fd=preordered:i=28283_0");
+    feqAtomsL180propNZatomsG50.push("lrs+2_5:4_anc=none:br=off:fde=unused:gsp=on:nm=32:nwc=1.3:sims=off:sos=all:urr=on:sil=128000:i=62728_0");
+
+    // total_instr 714368
+    // len(covered) 1134
+
+    Schedule feqAtomsL180propNZtiny;
+
+    feqAtomsL180propNZtiny.push("ott+4_40_av=off:bce=on:fsd=off:fde=unused:nm=4:nwc=1.1:sos=all:sp=frequency:i=69040_0");
+    feqAtomsL180propNZtiny.push("lrs+1011_8:1_sil=128000:tgt=ground:fde=unused:sp=frequency:nwc=5.0:lwlo=on:i=105338:awrs=converge:awrsf=1385:av=off_0");
+    feqAtomsL180propNZtiny.push("dis+1011_1:99_anc=none:fde=unused:plsqc=2:bsd=on:plsq=on:plsqr=109,504:sp=reverse_frequency:spb=intro:rp=on:alpa=random:s2a=on:i=257151:s2at=-1.0:aac=none:nm=16:rawr=on:sil=256000:acc=model_0");
+
+    feqAtomsL180propNZtiny.push("lrs+21_2461:262144_anc=none:drc=off:sil=2000:sp=occurrence:nwc=6.0:updr=off:st=3.0:i=109:sd=2:afp=4000:erml=3:nm=14:afq=2.0:uhcvi=on:ss=included:er=filter:abs=on:nicw=on:ile=on:sims=off:s2a=on:s2agt=50:s2at=-1.0:plsq=on:plsql=on:plsqc=2:plsqr=1,32:newcnf=on:bd=off:to=lpo_0");
+    feqAtomsL180propNZtiny.push("lrs-1011_37821:262144_bsr=unit_only:sil=2000:fde=none:plsq=on:plsqr=43543,131072:bce=on:rnwc=on:plsql=on:rp=on:nwc=10.0:newcnf=on:i=109:awrs=decay:awrsf=10:ep=R:mep=off:amm=sco_0");
+    feqAtomsL180propNZtiny.push("ott-1011_16:1_sil=2000:sp=const_max:urr=on:lsd=20:st=3.0:i=117:ss=axioms:gsp=on:rp=on:sos=on:fd=off:aac=none_0");
+    feqAtomsL180propNZtiny.push("lrs+1010_1:1_to=lpo:sil=2000:sos=on:fd=off:i=117:bd=off_0");
+    feqAtomsL180propNZtiny.push("lrs+21_1:64_drc=encompass:sil=32000:bsd=on:lma=on:spb=goal:nwc=10.0:i=123:add=large:ss=axioms:sgt=16:irw=on_0");
+    feqAtomsL180propNZtiny.push("lrs+2_1:1_sil=16000:fde=none:sos=all:nwc=5.0:i=117:ep=RS:s2pl=on:lma=on:afp=100000_0");
+    feqAtomsL180propNZtiny.push("lrs+1011_1:12_anc=none:drc=off:sil=64000:sims=off:sp=unary_first:spb=goal_then_units:lsd=20:rnwc=on:nwc=2.0:i=138:add=off:awrs=converge:bd=off:uhcvi=on:tgt=ground:afp=300:afq=1.63_0");
+    feqAtomsL180propNZtiny.push("dis+2_1:28_anc=none:sil=2000:plsqc=1:plsq=on:plsqr=87,4:sp=unary_first:spb=intro:plsql=on:st=2.0:i=117:afp=10:bd=off:nm=16:afr=on:ss=axioms:to=lpo:cond=fast:fsr=off:nwc=7.0_0");
+    feqAtomsL180propNZtiny.push("lrs+1011_1:4_to=lpo:sil=4000:plsq=on:plsqr=32,1:sp=reverse_frequency:fs=off:spb=goal:plsql=on:rp=on:i=108:nm=16:fsr=off:amm=off:rawr=on:drc=off:avsq=on:avsql=on:avsqr=31485,524288:plsqc=2:nwc=5.0_0");
+    feqAtomsL180propNZtiny.push("lrs-1002_1:1024_anc=none:slsqr=6559637,262144:sil=256000:tgt=ground:fde=unused:bsd=on:sp=const_min:sos=on:bce=on:rp=on:slsqc=3:slsq=on:cond=on:s2a=on:i=109:s2at=3.5:sd=3:kws=inv_arity:afp=300:slsql=off:bsdmm=3:afq=3.34235:uhcvi=on:ss=axioms:rawr=on:add=large:acc=model_0");
+    feqAtomsL180propNZtiny.push("lrs+11_1:1_sos=on:urr=on:s2a=on:i=124:sd=1:aac=none:ss=axioms:gsp=on:sil=128000:nm=3:bce=on:fd=preordered:alpa=true:etr=on:bd=off:lcm=predicate_0");
+    feqAtomsL180propNZtiny.push("lrs-1_1:1_drc=off:sil=4000:tgt=full:sp=occurrence:sos=on:urr=on:rp=on:i=247:bs=on:ins=1:av=off:rawr=on:to=lpo:br=off_0");
+    feqAtomsL180propNZtiny.push("lrs+21_1:6_to=lpo:drc=off:sil=64000:tgt=ground:fd=preordered:i=151_0");
+    feqAtomsL180propNZtiny.push("lrs+1011_1:32_sil=2000:tgt=ground:acc=model:lsd=10:nwc=1.1:flr=on:s2pl=no:i=113:bd=off:gsp=on:rawr=on_0");
+    feqAtomsL180propNZtiny.push("dis+1010_5:1_sil=64000:sp=const_min:sos=on:acc=model:i=120:kws=precedence:bd=off:nm=20:alpa=random:ss=axioms_0");
+    feqAtomsL180propNZtiny.push("dis+1002_1:128_sil=2000:fde=none:i=145:plsq=on:plsqc=1:plsqr=6,1:bd=off:tgt=ground:sac=on:sfv=off:s2a=on:s2at=5.0_0");
+    feqAtomsL180propNZtiny.push("lrs+1010_974213:1048576_nwc=9.0:s2a=on:i=123:bd=off:lwlo=on:fd=off:sil=256000:s2agt=10:sims=off:nm=9:sp=const_min:rp=on:er=known:cond=fast:bce=on:abs=on:irw=on:amm=sco:afp=2000:updr=off:add=off:to=lpo:awrs=decay:awrsf=260:rawr=on:afq=2.0:uhcvi=on_0");
+    feqAtomsL180propNZtiny.push("dis+11_1:7_sil=2000:tgt=ground:sp=reverse_arity:i=851:fd=preordered:fsr=off:drc=encompass_0");
+    feqAtomsL180propNZtiny.push("lrs-21_1:1_to=lpo:sil=2000:sp=frequency:sos=on:lma=on:i=126:sd=2:ss=axioms:ep=R_0");
+    feqAtomsL180propNZtiny.push("lrs+1010_1:16_sil=2000:plsq=on:plsqr=32,1:slsq=on:i=138:slsql=off:bd=off:er=filter:erml=3:slsqc=2:cond=on:alpa=false:fsr=off:acc=on_0");
+    feqAtomsL180propNZtiny.push("lrs+1011_1:6_to=lpo:drc=encompass:sil=256000:tgt=full:sp=unary_first:nwc=10.0:i=1458:aac=none:bd=preordered:ss=axioms:sgt=16_0");
+    feqAtomsL180propNZtiny.push("dis+1011_2809:262144_drc=off:sil=2000:tgt=ground:plsq=on:plsqr=450601,524288:sp=reverse_arity:sos=on:foolp=on:rnwc=on:plsql=on:fd=preordered:rp=on:nwc=4.574864195731069:i=172:bd=preordered:nm=6:fsr=off:ss=axioms:sgt=100:rawr=on:afp=1000:afq=2.7331722210582745_0");
+    feqAtomsL180propNZtiny.push("lrs+21_1:334_sil=64000:sp=frequency:spb=units:nwc=5.0:flr=on:s2a=on:i=246:s2at=3.0:bd=off:uhcvi=on:abs=on:alpa=true:lcm=predicate_0");
+    feqAtomsL180propNZtiny.push("lrs-32_1:4_to=lpo:drc=off:sil=2000:sp=reverse_arity:spb=goal_then_units:urr=on:nwc=2.0:i=480:ss=included:st=2.0:bd=preordered_0");
+    feqAtomsL180propNZtiny.push("lrs-1011_1:1_sil=4000:plsq=on:plsqr=32,1:sp=frequency:plsql=on:nwc=10.0:i=266:aac=none:afr=on:ss=axioms:er=filter:sgt=16:rawr=on:etr=on:lma=on_0");
+    feqAtomsL180propNZtiny.push("lrs+1010_1:128_sil=2000:tgt=ground:nwc=2.4:flr=on:i=185:bd=off:ins=2:av=off:rawr=on:plsq=on:plsql=on:plsqc=1:plsqr=1947,254:rnwc=on_0");
+    feqAtomsL180propNZtiny.push("lrs+2_1:1_to=lpo:drc=off:sil=4000:tgt=ground:sp=unary_first:spb=non_intro:urr=on:fd=preordered:i=1687:afp=1000:ins=3:rawr=on_0");
+    feqAtomsL180propNZtiny.push("lrs+1011_1:2_to=lpo:drc=off:sil=2000:sp=const_min:urr=on:lcm=predicate:nwc=16.7073:updr=off:newcnf=on:i=207:av=off:rawr=on:ss=included:st=5.0:erd=off:flr=on_0");
+    feqAtomsL180propNZtiny.push("lrs+1002_1:4_sil=2000:fde=unused:plsq=on:plsqr=32,1:sos=on:bce=on:i=208:sd=1:ss=included:rawr=on_0");
+    feqAtomsL180propNZtiny.push("ott+33_191939:1048576_drc=encompass:sil=4000:tgt=ground:sp=const_frequency:lma=on:spb=goal:gs=on:nwc=17.8226:gsem=off:cond=fast:i=502:kws=inv_arity:bd=preordered:nm=35:av=off:fsr=off:uhcvi=on:rawr=on:bs=unit_only:urr=ec_only:ins=1_0");
+    feqAtomsL180propNZtiny.push("lrs+1002_74:59_drc=off:tgt=full:sos=all:cond=fast:i=234:kws=inv_frequency:afp=300:afq=2.0744697298148953:rawr=on:urr=full:sil=128000:si=on:rtra=on:random_seed=3250543_0");
+    feqAtomsL180propNZtiny.push("dis-1011_1785:1048576_bsr=unit_only:sil=4000:tgt=ground:plsqc=1:plsq=on:plsqr=125493,524288:sp=frequency:spb=goal:plsql=on:nwc=2.32086:updr=off:newcnf=on:cond=fast:st=2:s2a=on:i=253:s2at=4:bd=off:nm=3:ins=3:aer=off:uhcvi=on:afr=on:ss=axioms:sgt=20:rawr=on:fsr=off_0");
+    feqAtomsL180propNZtiny.push("lrs+11_3:4_drc=off:sil=2000:tgt=ground:sp=occurrence:urr=on:nwc=5.0:st=3.0:i=327:kws=inv_frequency:av=off:ss=axioms:br=off:rawr=on:newcnf=on_0");
+    feqAtomsL180propNZtiny.push("lrs-32_2:11_drc=encompass:sil=4000:sp=reverse_frequency:nwc=10.0:s2a=on:i=1751:s2at=5.0:nm=16:amm=sco_0");
+    feqAtomsL180propNZtiny.push("dis+1011_1:24_drc=off:sil=4000:tgt=full:spb=goal:fd=preordered:avsq=on:i=347:fsr=off:rawr=on_0");
+    feqAtomsL180propNZtiny.push("lrs+1002_1:7_to=lpo:drc=encompass:sil=2000:tgt=full:sp=reverse_arity:spb=non_intro:fd=preordered:nwc=10.0:st=3.0:i=598:ins=2:ss=axioms_0");
+    feqAtomsL180propNZtiny.push("lrs+10_1:3_drc=off:sil=256000:sp=unary_first:lwlo=on:i=647:kws=precedence:ins=3:rawr=on:nwc=10.0_0");
+    feqAtomsL180propNZtiny.push("dis+1011_3:8_bsr=unit_only:slsqr=1,16:sil=2000:plsq=on:plsqr=296,127:sp=reverse_frequency:lsd=5:nwc=10.0:slsqc=3:slsq=on:st=3.0:i=649:s2at=4.5:sd=4:slsql=off:nm=16:ins=5:ss=axioms:sgt=20:rawr=on:urr=ec_only:to=lpo_0");
+    feqAtomsL180propNZtiny.push("dis+1011_986949:1048576_sil=2000:irw=on:fde=none:ile=on:etr=on:sp=unary_first:bce=on:fd=preordered:rp=on:nwc=22.6584:cond=fast:st=2.5:s2pl=on:i=492:s2at=2:sd=7:kws=precedence:nm=0:ins=1:av=off:gsp=on:ss=axioms:rawr=on:gs=on:lsd=20_0");
+    feqAtomsL180propNZtiny.push("lrs+2_1:1024_sil=2000:sos=all:urr=on:br=off:i=656:nm=2:updr=off:gsp=on_0");
+    feqAtomsL180propNZtiny.push("dis+1011_1:1_sil=4000:tgt=full:newcnf=on:i=715:sd=2:ss=axioms:sgt=16:rawr=on:fsr=off_0");
+    feqAtomsL180propNZtiny.push("dis+11_1:1024_sil=2000:tgt=ground:i=1463:awrs=converge:fd=preordered_0");
+    feqAtomsL180propNZtiny.push("dis+10_5375:524288_to=lpo:drc=off:sil=2000:tgt=ground:plsq=on:plsqr=2270675,65536:sp=const_min:foolp=on:spb=goal_then_units:urr=ec_only:lcm=reverse:fd=preordered:nwc=1.91851:nicw=on:s2a=on:i=869:s2at=1.5:add=off:nm=16:rawr=on_0");
+    feqAtomsL180propNZtiny.push("lrs+11_5:2_to=lpo:drc=encompass:sil=8000:tgt=full:sp=const_frequency:sos=all:lma=on:spb=goal_then_units:nwc=10.0:i=1705:fsr=off:rawr=on:fdi=5_0");
+    feqAtomsL180propNZtiny.push("lrs+2_1:128_drc=encompass:sil=32000:tgt=full:sp=unary_frequency:spb=non_intro:nwc=3.0:st=5.0:s2a=on:i=12192:s2at=5.0:kws=precedence:bd=preordered:ss=included:awrs=converge:awrsf=90_0");
+    feqAtomsL180propNZtiny.push("lrs+11_7:12_sil=2000:sp=occurrence:sos=on:erd=off:lcm=reverse:gs=on:st=5.0:i=1335:awrs=converge:bd=off:ss=axioms:fs=off:fsr=off:rawr=on_0");
+    feqAtomsL180propNZtiny.push("lrs+2_1:7_drc=encompass:sil=64000:tgt=full:sp=reverse_arity:i=54422:ins=6:rawr=on:kws=inv_frequency:fde=unused:slsq=on:slsqr=7,8_0");
+    feqAtomsL180propNZtiny.push("lrs+1011_1:1_drc=encompass:sil=128000:tgt=ground:i=30639:kws=frequency:ss=axioms:lwlo=on:fde=unused:sp=reverse_arity_0");
+    feqAtomsL180propNZtiny.push("lrs+10_2:7_bsr=unit_only:drc=off:sil=16000:sos=on:abs=on:fd=preordered:nicw=on:i=13991:uhcvi=on:rawr=on:nwc=0.8650794518795772_0");
+    feqAtomsL180propNZtiny.push("ott+11_1:32_sil=64000:tgt=full:sp=const_max:spb=units:slsqc=1:slsq=on:st=5.0:i=18307:s2at=5.0:sd=1:kws=precedence:ss=axioms_0");
+    feqAtomsL180propNZtiny.push("lrs+2_1:3_drc=encompass:sil=128000:tgt=full:sp=frequency:s2a=on:i=125595:kws=precedence:bd=preordered:ins=11:lwlo=on:s2at=1.5:ss=included:sgt=8:awrs=converge_0");
+    feqAtomsL180propNZtiny.push("dis+2_1:5_slsqr=331891,1048576:to=lpo:sil=128000:tgt=ground:sp=unary_first:spb=goal_then_units:s2agt=8:slsq=on:i=23437:awrs=converge:awrsf=1398:slsqc=4:plsq=on:plsql=on:plsqc=1:plsqr=5650705,131072_0");
+    feqAtomsL180propNZtiny.push("lrs+35_1:1_to=lpo:sil=128000:tgt=full:fd=preordered:lwlo=on:i=73025:bd=preordered:drc=off:av=off_0");
+    feqAtomsL180propNZtiny.push("lrs-4_1:24_slsqr=493885,1048576:drc=encompass:sil=128000:tgt=full:sp=weighted_frequency:fd=preordered:flr=on:slsq=on:i=113200:bs=unit_only:av=off:fsr=off:rawr=on_0");
+    feqAtomsL180propNZtiny.push("lrs+1011_1:1_drc=off:sil=128000:tgt=ground:sos=on:rnwc=on:rp=on:nwc=10.0:nicw=on:i=96173:nm=2:cond=on:bd=off_0");
+
+    // total_instr 1013264
+    // len(covered) 673
+
+    if (cat == Property::FNE) {
+      quick = std::move(fne);
+
+      fallback.loadFromIterator(feqAtomsG18000.iterFifo());
+      fallback.loadFromIterator(feqAtomsG2800.iterFifo());
+      fallback.loadFromIterator(feqAtomsG180.iterFifo());
+      fallback.loadFromIterator(feqAtomsL180propZ.iterFifo());
+      fallback.loadFromIterator(feqAtomsL180propNZatomsG50.iterFifo());
+      fallback.loadFromIterator(feqAtomsL180propNZtiny.iterFifo());
+
+    } else if (atoms > 18000) {
+      quick = std::move(feqAtomsG18000);
+
+      fallback.loadFromIterator(fne.iterFifo());
+      fallback.loadFromIterator(feqAtomsG2800.iterFifo());
+      fallback.loadFromIterator(feqAtomsG180.iterFifo());
+      fallback.loadFromIterator(feqAtomsL180propZ.iterFifo());
+      fallback.loadFromIterator(feqAtomsL180propNZatomsG50.iterFifo());
+      fallback.loadFromIterator(feqAtomsL180propNZtiny.iterFifo());
+
+    } else if (atoms > 2800) {
+      quick = std::move(feqAtomsG2800);
+
+      fallback.loadFromIterator(feqAtomsG18000.iterFifo());
+      fallback.loadFromIterator(feqAtomsG180.iterFifo());
+      fallback.loadFromIterator(fne.iterFifo());
+      fallback.loadFromIterator(feqAtomsL180propZ.iterFifo());
+      fallback.loadFromIterator(feqAtomsL180propNZatomsG50.iterFifo());
+      fallback.loadFromIterator(feqAtomsL180propNZtiny.iterFifo());
+
+    } else if (atoms > 180) {
+      quick = std::move(feqAtomsG180);
+
+      fallback.loadFromIterator(feqAtomsG2800.iterFifo());
+      fallback.loadFromIterator(feqAtomsL180propZ.iterFifo());
+      fallback.loadFromIterator(feqAtomsG18000.iterFifo());
+      fallback.loadFromIterator(feqAtomsL180propNZatomsG50.iterFifo());
+      fallback.loadFromIterator(feqAtomsL180propNZtiny.iterFifo());
+      fallback.loadFromIterator(fne.iterFifo());
+
+    } else if (props == 0) {
+      quick = std::move(feqAtomsL180propZ);
+
+      fallback.loadFromIterator(feqAtomsL180propNZatomsG50.iterFifo());
+      fallback.loadFromIterator(feqAtomsG180.iterFifo());
+      fallback.loadFromIterator(feqAtomsL180propNZtiny.iterFifo());
+      fallback.loadFromIterator(feqAtomsG2800.iterFifo());
+      fallback.loadFromIterator(feqAtomsG18000.iterFifo());
+      fallback.loadFromIterator(fne.iterFifo());
+
+    } else if (atoms > 50) {
+      quick = std::move(feqAtomsL180propNZatomsG50);
+
+      fallback.loadFromIterator(feqAtomsL180propNZtiny.iterFifo());
+      fallback.loadFromIterator(feqAtomsL180propZ.iterFifo());
+      fallback.loadFromIterator(feqAtomsG180.iterFifo());
+      fallback.loadFromIterator(feqAtomsG2800.iterFifo());
+      fallback.loadFromIterator(feqAtomsG18000.iterFifo());
+      fallback.loadFromIterator(fne.iterFifo());
+
+    } else {
+      quick = std::move(feqAtomsL180propNZtiny);
+
+      fallback.loadFromIterator(feqAtomsL180propNZatomsG50.iterFifo());
+      fallback.loadFromIterator(feqAtomsL180propZ.iterFifo());
+      fallback.loadFromIterator(feqAtomsG180.iterFifo());
+      fallback.loadFromIterator(feqAtomsG2800.iterFifo());
+      fallback.loadFromIterator(feqAtomsG18000.iterFifo());
+      fallback.loadFromIterator(fne.iterFifo());
+    }
+  }
+}
+
+void Schedules::getCascSat2024Schedule(const Property& property, Schedule& quick, Schedule& fallback)
+{
+  // The TFN division: Typed (monomorphic) First-order Non-theorems (axioms with a countersatisfiable conjecture, and satisfiable axiom sets).
+
+  quick.push("fmb+10_1:1_sil=256000:i=98885:tgt=full:fmbsr=1.3:fmbss=10_0");
+  quick.push("ott+10_10:1_add=off:afr=on:amm=off:anc=all:bd=off:bs=on:fsr=off:irw=on:lma=on:msp=off:nm=4:nwc=4.0:sac=on:sp=reverse_frequency:i=99418_0");
+  quick.push("fmb+10_1:1_sil=256000:fmbes=contour:i=214858:bce=on_0");
+  quick.push("fmb+10_1:1_sil=256000:fmbss=23:fmbes=contour:newcnf=on:fmbsr=1.14:i=152523:nm=2:gsp=on:rp=on_0");
+
+  quick.push("ott+21_1:1_sil=4000:i=104:fsd=on:fd=off:newcnf=on_0");
+  quick.push("ott+11_8:59_sil=16000:sp=occurrence:lsd=20:abs=on:i=146:aac=none:nm=16:fdi=10:rawr=on:nicw=on_0");
+  quick.push("ott-4_1:1_sil=4000:sp=reverse_arity:lcm=predicate:newcnf=on:i=115:bce=on:fd=off:fs=off:fsr=off_0");
+  quick.push("dis+11_1:3_bsr=unit_only:sil=2000:rp=on:newcnf=on:i=404:kws=precedence:lsd=100_0");
+  quick.push("ott-21_1:1_sil=4000:sp=const_frequency:i=175:fsr=off:fs=off:av=off_0");
+  quick.push("ott+33_1:1_to=lpo:sil=8000:sp=weighted_frequency:rp=on:i=270:nm=3:fsr=off:sac=on_0");
+  quick.push("ott+4_1:1_sil=2000:i=900:bd=off:fsr=off_0");
+  quick.push("fmb+10_1:1_sil=8000:fde=unused:fmbes=contour:i=7859:nm=2:fmbswr=0_0");
+  quick.push("ott+11_1:2_anc=none:sil=2000:sp=const_max:spb=units:s2a=on:i=2145:s2at=5.0:awrs=converge:awrsf=170:rawr=on:gs=on:fsr=off_0");
+  quick.push("ott-30_1:1024_sil=4000:alpa=true:newcnf=on:i=1187:bs=unit_only:ins=1:amm=off_0");
+  quick.push("fmb+10_1:1_sil=32000:i=23580:newcnf=on_0");
+  quick.push("fmb+10_1:1_sil=32000:fmbss=17:fmbsr=2.0:i=2892_0");
+  quick.push("ott-10_1:1_sil=4000:i=1693_0");
+  quick.push("dis+21_1:1_sil=4000:gs=on:sac=on:newcnf=on:gsem=off:i=1735:gsaa=full_model:abs=on:anc=none_0");
+  quick.push("fmb+10_1:1_fmbas=expand:sil=128000:i=131798:nm=2:fmbksg=on:fmbss=4:fmbsr=1.77:rp=on_0");
+  quick.push("fmb+10_1:1_sil=16000:fmbss=16:i=3451:newcnf=on_0");
+  quick.push("ott+11_1:64_sil=4000:rp=on:i=3978:bd=off:fsr=off_0");
+  quick.push("dis+35_1:64_to=lpo:sil=32000:sp=occurrence:urr=on:sac=on:i=33091:fsr=off_0");
+  quick.push("dis-4_1:1_sil=16000:sp=const_frequency:sac=on:newcnf=on:i=9564_0");
+  quick.push("fmb+10_1:1_sil=64000:i=50409:nm=2:gsp=on_0");
+  quick.push("dis+2_3:1_bsr=on:sil=64000:abs=on:i=10852:gsp=on:fs=off:fsr=off_0");
+  quick.push("dis+11_61:31_bsr=unit_only:sil=16000:sp=frequency:rp=on:newcnf=on:i=11327:uhcvi=on:rawr=on:abs=on:lsd=5:add=off_0");
+  quick.push("fmb+10_1:1_fmbas=expand:sil=128000:i=17908:nm=2:fmbss=15:gsp=on_0");
+  quick.push("dis+11_1:1_anc=all:sil=64000:rp=on:newcnf=on:i=22636:alpa=false:atotf=0.1:gs=on_0");
+  quick.push("fmb+10_1:1_i=30223_0");
+  quick.push("ott+11_8:1_sil=64000:i=37350:fsr=off:bsr=unit_only:newcnf=on_0");
+  quick.push("dis-2_2:3_amm=sco:anc=none:bce=on:fsr=off:gsp=on:nm=16:nwc=1.2:nicw=on:sac=on:sp=weighted_frequency:i=80557_0");
+  quick.push("fmb+10_1:1_sil=128000:fmbss=21:newcnf=on:i=44200:gsp=on_0");
+  quick.push("dis+2_11_add=large:afr=on:amm=off:bd=off:bce=on:fsd=off:fde=none:gs=on:gsaa=full_model:gsem=off:irw=on:msp=off:nm=4:nwc=1.3:sas=z3:sims=off:sac=on:sp=reverse_arity:i=55207_0");
+  quick.push("dis+1_20_av=off:lcm=predicate:nm=2:nwc=2.0:i=81447_0");
+  quick.push("ott+4_64_acc=on:anc=none:bs=on:bsr=on:fsd=off:gs=on:gsem=off:irw=on:msp=off:nwc=2.5:nicw=on:sims=off:i=93915_0");
+
+  //total_instr 1326802
+  // len(covered) 1067
+}

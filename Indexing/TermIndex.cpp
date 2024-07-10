@@ -75,6 +75,8 @@ void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c
 
   static DHSet<Term*> inserted;
 
+  bool skipNonequationalLiterals = _opt.demodulationOnlyEquational();
+
   unsigned cLen=c->length();
   for (unsigned i=0; i<cLen; i++) {
     // it is true (as stated below) that inserting only once per clause would be sufficient
@@ -84,6 +86,9 @@ void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c
     inserted.reset();
     Literal* lit=(*c)[i];
     if (lit->isAnswerLiteral()) {
+      continue;
+    }
+    if (skipNonequationalLiterals && !lit->isEquality()) {
       continue;
     }
     typename std::conditional<!combinatorySupSupport,

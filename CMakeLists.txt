@@ -548,6 +548,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/GoalGuessing.cpp
     Shell/FunctionDefinitionHandler.cpp
     Shell/InequalitySplitting.cpp
+    Shell/InstanceRedundancyHandler.cpp
     Shell/InterpolantMinimizer.cpp
     Shell/Interpolants.cpp
     Shell/InterpretedNormalizer.cpp
@@ -601,6 +602,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/FunctionDefinitionHandler.hpp
     Shell/GeneralSplitting.hpp
     Shell/InequalitySplitting.hpp
+    Shell/InstanceRedundancyHandler.hpp
     Shell/InterpolantMinimizer.hpp
     Shell/Interpolants.hpp
     Shell/InterpretedNormalizer.hpp
@@ -912,7 +914,7 @@ endif() # COMPILE_TESTS
 #################################################################
 # automated generation of Vampire revision information from git #
 #################################################################
-set(VAMPIRE_VERSION_NUMBER 4.8)
+set(VAMPIRE_VERSION_NUMBER 4.9)
 
 execute_process(
     COMMAND git rev-parse --is-inside-work-tree

@@ -150,7 +150,7 @@ struct BackwardDemodulation::ResultFn
     TermList rhsS=subs->applyToBoundQuery(rhs);
 
     if (_helper.redundancyCheckNeededForPremise(qr.data->clause,qr.data->literal,lhsS) &&
-      !_helper.isPremiseRedundant(qr.data->clause,qr.data->literal,lhsS,rhsS,lhs,subs.ptr(),false))
+      !_helper.isPremiseRedundant(qr.data->clause,qr.data->literal,lhsS,rhsS,lhs,&appl))
     {
       return BwSimplificationRecord(0);
     }
