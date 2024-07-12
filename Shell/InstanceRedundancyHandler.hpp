@@ -18,6 +18,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/Stack.hpp"
+#include "Kernel/Ordering.hpp"
 #include "Inferences/DemodulationHelper.hpp"
 
 #include "Options.hpp"

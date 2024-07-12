@@ -1801,7 +1801,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
           }
         } else {
           return MainLoopResult(Statistics::REFUTATION,
-              Clause::empty(NonspecificInference0(UnitInputType::AXIOM,InferenceRule::MODEL_NOT_FOUND)));
+              Clause::empty(NonspecificInferenceMany(InferenceRule::MODEL_NOT_FOUND,_prb.units()));
         }
       } else { // i.e. (!_xmass)
         static Constraint_Generator_Vals nogood;
@@ -1840,7 +1840,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
         if (!_dsaEnumerator->increaseModelSizes(_distinctSortSizes,_distinctSortMaxs)) {
           if (_dsaEnumerator->isFmbComplete(_distinctSortSizes.size())) {
             return MainLoopResult(Statistics::REFUTATION,
-                Clause::empty(NonspecificInference0(UnitInputType::AXIOM,InferenceRule::MODEL_NOT_FOUND)));
+                Clause::empty(NonspecificInferenceMany(InferenceRule::MODEL_NOT_FOUND,_prb.units())));
           } else {
             if(outputAllowed()) {
               cout << "Cannot enumerate next child to try in an incomplete setup" <<endl;

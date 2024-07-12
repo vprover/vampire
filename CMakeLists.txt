@@ -407,7 +407,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/InferenceEngine.cpp
     Inferences/Instantiation.cpp
     Inferences/InterpretedEvaluation.cpp
-    Inferences/InvalidAnswerLiteralRemoval.cpp
+    Inferences/InvalidAnswerLiteralRemovals.cpp
     Inferences/PushUnaryMinus.cpp
     Inferences/Cancellation.cpp
     Inferences/ArithmeticSubtermGeneralization.cpp
@@ -444,7 +444,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/InferenceEngine.hpp
     Inferences/Instantiation.hpp
     Inferences/InterpretedEvaluation.hpp
-    Inferences/InvalidAnswerLiteralRemoval.hpp
+    Inferences/InvalidAnswerLiteralRemovals.hpp
     Inferences/PushUnaryMinus.hpp
     Inferences/Cancellation.hpp
     Inferences/ArithmeticSubtermGeneralization.hpp
@@ -533,7 +533,7 @@ set(VAMPIRE_SATURATION_SOURCES
 source_group(saturation_source_files FILES ${VAMPIRE_SATURATION_SOURCES})
 
 set(VAMPIRE_SHELL_SOURCES
-    Shell/AnswerExtractor.cpp
+    Shell/AnswerLiteralManager.cpp
     Shell/CommandLine.cpp
     Shell/CNF.cpp
     Shell/NewCNF.cpp
@@ -588,7 +588,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/VarManager.cpp
     Shell/Lexer.cpp
     Shell/Preprocess.cpp
-    Shell/AnswerExtractor.hpp
+    Shell/AnswerLiteralManager.hpp
     Shell/CommandLine.hpp
     Shell/CNF.hpp
     Shell/NewCNF.hpp

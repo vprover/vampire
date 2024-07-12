@@ -45,6 +45,17 @@ vstring StringUtils::replaceChar(vstring str, char src, char target)
   return vstring(buf.array(), len);
 }
 
+void StringUtils::replaceAll(vstring& where, const vstring& from, const vstring& to)
+{
+  if(from.empty())
+    return;
+  size_t start_pos = 0;
+  while((start_pos = where.find(from, start_pos)) != std::string::npos) {
+    where.replace(start_pos, from.length(), to);
+    start_pos += to.length(); // don't recurse into "to" in case "from" would be its substring
+  }
+}
+
 /**
  * Sanitize vstring so that it can be used as a valid suffix in the
  * Signature::addFreshFunction() and Signature::addFreshPredicate()
