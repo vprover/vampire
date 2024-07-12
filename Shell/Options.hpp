@@ -489,10 +489,9 @@ public:
   };
 
   enum class QuestionAnsweringMode : unsigned int {
-    ANSWER_LITERAL = 0,
-    FROM_PROOF = 1,
-    SYNTHESIS = 2,
-    OFF = 3
+    PLAIN = 0,
+    SYNTHESIS = 1,
+    OFF = 2
   };
 
   enum class InterpolantMode : unsigned int {
@@ -2185,6 +2184,8 @@ public:
   bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames.actualValue = newVal; }
   QuestionAnsweringMode questionAnswering() const { return _questionAnswering.actualValue; }
+  bool questionAnsweringGroundOnly() const { return _questionAnsweringGroundOnly.actualValue; }
+  std::string questionAnsweringAvoidThese() const { return _questionAnsweringAvoidThese.actualValue; }
   Output outputMode() const { return _outputMode.actualValue; }
   void setOutputMode(Output newVal) { _outputMode.actualValue = newVal; }
   bool ignoreMissingInputsInUnsatCore() {  return _ignoreMissingInputsInUnsatCore.actualValue; }
@@ -2586,6 +2587,8 @@ private:
   StringOptionValue _protectedPrefix;
 
   ChoiceOptionValue<QuestionAnsweringMode> _questionAnswering;
+  BoolOptionValue _questionAnsweringGroundOnly;
+  StringOptionValue _questionAnsweringAvoidThese;
 
   UnsignedOptionValue _randomSeed;
 

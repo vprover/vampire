@@ -15,6 +15,7 @@
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/Ordering.hpp"
 
 #include "Shell/Options.hpp"
 

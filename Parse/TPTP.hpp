@@ -48,7 +48,7 @@ class TPTP;
  * Implements a TPTP parser
  * @since 08/04/2011 Manchester
  */
-class TPTP 
+class TPTP
 {
 public:
   /** Token types */
@@ -333,6 +333,7 @@ public:
   ~TPTP();
   void parse();
   static UnitList* parse(std::istream& str);
+  static Clause* parseClauseFromString(const std::string& str);
   /** Return the list of parsed units */
   UnitList* units() const { return _units.list(); }
   /** Return the current unitBuffer (on top of units() you also get a pointer to the last added unit in constant time). */
@@ -350,8 +351,13 @@ public:
   //this function is used also by the API
   static void assignAxiomName(const Unit* unit, std::string& name);
   unsigned lineNumber(){ return _lineNumber; }
+
+  static Map<int,std::string>* findQuestionVars(unsigned questionNumber) {
+    auto res = _questionVariableNames.findPtr(questionNumber);
+    return res ? *res : nullptr;
+  }
 private:
-  void parseImpl();
+  void parseImpl(State initialState = State::UNIT_LIST);
   /** Return the input string of characters */
   const char* input() { return _chars.content(); }
 
@@ -513,7 +519,7 @@ private:
     return tf;
   }
 
-  TermList* nLastTermLists(unsigned n) 
+  TermList* nLastTermLists(unsigned n)
   { return n == 0 ? nullptr : &_termLists[_termLists.size() - n]; }
 
   /** true if the input contains a conjecture */
@@ -557,10 +563,10 @@ private:
   Stack<State> _states;
   /** input type of the last read unit */ // it must be int since -1 can be used as a value
   UnitInputType _lastInputType;
-  /** true if the last read unit is a question */ 
+  /** true if the last read unit is a question */
   bool _isQuestion;
   /** true if the last read unit is fof() or cnf() due to a subtle difference
-   * between fof() and tff() in treating numeric constants */ 
+   * between fof() and tff() in treating numeric constants */
   bool _isFof;
   /** */
   bool _isThf;
@@ -590,6 +596,8 @@ private:
   Stack<TermList> _termLists;
   /** name table for variable names */
   IntNameTable _vars;
+  /** When parsing a question, make note of the inverse mapping to _vars, i.e. from the ints back to the vstrings, for better user reporting */
+  Map<int,std::string> _curQuestionVarNames;
   /** parsed types */
   Stack<Type*> _types;
   /** various type tags saved during parsing */
@@ -782,7 +790,7 @@ private:
   void endApp();
   void holFormula();
   void endHolFormula();
-  void holTerm();  
+  void holTerm();
   void foldl(TermStack*);
   TermList readArrowSort();
   void readTypeArgs(unsigned arity);
@@ -829,16 +837,16 @@ public:
   struct FileSourceRecord : SourceRecord {
     const std::string fileName;
     const std::string nameInFile;
-    bool isFile(){ return true; } 
+    bool isFile(){ return true; }
     FileSourceRecord(std::string fN, std::string nF) : fileName(fN), nameInFile(nF) {}
   };
   struct InferenceSourceRecord : SourceRecord{
     const std::string name;
-    Stack<std::string> premises; 
-    bool isFile(){ return false; } 
+    Stack<std::string> premises;
+    bool isFile(){ return false; }
     InferenceSourceRecord(std::string n) : name(n) {}
   };
-  
+
   void setUnitSourceMap(DHMap<Unit*,SourceRecord*>* m){
     _unitSources = m;
   }
@@ -852,6 +860,18 @@ private:
   /** This field stores names of input units if the
    * output_axiom_names option is enabled */
   static DHMap<unsigned, std::string> _axiomNames;
+
+  /**
+   * During question parsing, we store the mapping from int variables
+   * back to their original (v)string names, for nicer user reporting.
+   *
+   * This map stores, for each question (by unit number)
+   * a map of such parsed variable name bingings.
+   *
+   * (Can there be more than one question? Yes, e.g., in the interactive mode.)
+   */
+  static DHMap<unsigned, Map<int,std::string>*> _questionVariableNames;
+
   /** Stores the type arities of function symbols */
   DHMap<std::string, unsigned> _typeArities;
   DHMap<std::string, unsigned> _typeConstructorArities;

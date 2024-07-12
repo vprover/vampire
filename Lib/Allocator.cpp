@@ -19,6 +19,7 @@
 #include "Allocator.hpp"
 #include "Lib/Timer.hpp"
 
+#include <cstdlib>
 #include <limits>
 
 #ifndef INDIVIDUAL_ALLOCATIONS

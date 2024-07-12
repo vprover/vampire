@@ -17,6 +17,8 @@
 #ifndef __Token__
 #define __Token__
 
+#include <string>
+
 namespace Shell {
 
 /**

@@ -137,7 +137,7 @@ public:
     expand();
   } // Map::Map
 
-  explicit Map (Map const& other) 
+  explicit Map (Map const& other)
     : _capacity(other._capacity),
       _noOfEntries(other._noOfEntries),
       _entries((Entry*)ALLOC_KNOWN(sizeof(Entry)*_capacity,"Map<>")),
@@ -151,7 +151,7 @@ public:
   }
 
 
-  Map (Map && other) 
+  Map (Map && other)
     : _capacity   (other._capacity),
       _noOfEntries(other._noOfEntries),
       _entries    (other._entries),

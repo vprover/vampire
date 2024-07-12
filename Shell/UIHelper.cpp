@@ -35,7 +35,7 @@
 #include "Parse/SMTLIB2.hpp"
 #include "Parse/TPTP.hpp"
 
-#include "AnswerExtractor.hpp"
+#include "AnswerLiteralManager.hpp"
 #include "InterpolantMinimizer.hpp"
 #include "Interpolants.hpp"
 #include "LaTeX.hpp"
@@ -210,7 +210,7 @@ void UIHelper::tryParseTPTP(istream& input)
   try {
     parser.parse();
     curPiece._units = parser.unitBuffer();
-    curPiece._hasConjecture = parser.containsConjecture();
+    curPiece._hasConjecture |= parser.containsConjecture();
   } catch (ParsingRelatedException& exception) {
     UnitList::destroy(curPiece._units.clipAtLast()); // destroy units that perhaps got already parsed
     throw;
@@ -226,7 +226,6 @@ void UIHelper::tryParseSMTLIB2(istream& input)
     Unit::onParsingEnd(); // dubious in interactiveMetamode (influences SMT goal guessing and InferenceStore::ProofPropertyPrinter)
     curPiece._units = parser.formulaBuffer();
     curPiece._smtLibLogic = parser.getLogic();
-    curPiece._hasConjecture = false;
   } catch (ParsingRelatedException& exception) {
     UnitList::destroy(curPiece._units.clipAtLast()); // destroy units that perhaps got already parsed
     throw;
@@ -424,7 +423,7 @@ void UIHelper::popLoadedPiece(int numPops)
 void UIHelper::outputResult(ostream& out)
 {
   switch (env.statistics->terminationReason) {
-  case Statistics::REFUTATION:
+  case Statistics::REFUTATION: {
     if(env.options->outputMode() == Options::Output::SMTCOMP){
       out << "unsat" << endl;
       return;
@@ -435,31 +434,49 @@ void UIHelper::outputResult(ostream& out)
       return;
     }
     addCommentSignForSZS(out);
-    out << "Refutation found. Thanks to " << env.options->thanks() << "!\n";
+    out << "Refutation found. Thanks to " << env.options->thanks() << "!"
+      << endl; // let's have this flushed, as we might now take a bit of time to SAT-minimize the proof
+
+    Unit* refutation = env.statistics->refutation;
+
+    /**
+     * Making explicit what was previously only done during proof printing.
+     *
+     * However, we need to know the correct input type to decide whether to print "Theorem" vs "ContradictoryAxioms" below
+     * (and this is not correctly set in inference by Global subsumtions for heuristic reasons).
+     *
+     * So it makes sense to call this even if minimizeSatProofs is false.
+     *
+     * Also induction statistics deserve to be correct even if we don't print a proof.
+     */
+    bool seenInputInference = refutation->minimizeAncestorsAndUpdateSelectedStats();
+    // minimization might have cause inductionDepth to change (in fact, decrease)
+    env.statistics->maxInductionDepth = refutation->inference().inductionDepth();
+
     if (szsOutputMode()) {
-      out << "% SZS status " << (UIHelper::haveConjecture() ? ( UIHelper::haveConjectureInProof() ? "Theorem" : "ContradictoryAxioms" ) : "Unsatisfiable")
-	  << " for " << env.options->problemName() << endl;
+      out << "% SZS status " <<
+        (UIHelper::haveConjecture() ? ( refutation->derivedFromGoal() ? "Theorem" : "ContradictoryAxioms" ) : "Unsatisfiable")
+	      << " for " << env.options->problemName() << endl;
     }
     if (env.options->questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
-      ASS(env.statistics->refutation->isClause());
-      AnswerExtractor::tryOutputAnswer(static_cast<Clause*>(env.statistics->refutation));
+      ASS(refutation->isClause());
+      AnswerLiteralManager::getInstance()->tryOutputAnswer(static_cast<Clause*>(env.statistics->refutation),std::cout);
     }
     if (env.options->proof() != Options::Proof::OFF) {
       if (szsOutputMode()) {
         out << "% SZS output start Proof for " << env.options->problemName() << endl;
       }
-      InferenceStore::instance()->outputProof(out, env.statistics->refutation);
+      InferenceStore::instance()->outputProof(out, refutation);
       if (szsOutputMode()) {
         out << "% SZS output end Proof for " << env.options->problemName() << endl << flush;
       }
-      // outputProof could have triggered proof minimization which might have cause inductionDepth to change (in fact, decrease)
-      env.statistics->maxInductionDepth = env.statistics->refutation->inference().inductionDepth();
+
     }
     if (env.options->showInterpolant()!=Options::InterpolantMode::OFF) {
-      ASS(env.statistics->refutation->isClause());
+      ASS(refutation->isClause());
 
-      Interpolants::removeConjectureNodesFromRefutation(env.statistics->refutation);
-      Unit* formulifiedRefutation = Interpolants::formulifyRefutation(env.statistics->refutation);
+      Interpolants::removeConjectureNodesFromRefutation(refutation);
+      Unit* formulifiedRefutation = Interpolants::formulifyRefutation(refutation);
 
       Formula* interpolant = nullptr;
 
@@ -489,12 +506,24 @@ void UIHelper::outputResult(ostream& out)
       ofstream latexOut(env.options->latexOutput().c_str());
 
       LaTeX formatter;
-      latexOut << formatter.refutationToString(env.statistics->refutation);
+      latexOut << formatter.refutationToString(refutation);
+    }
+
+    // the following two sanity checks are performed only after the proof printing, so we can also have a look at the proof, when we get a report back
+
+    if(refutation->isPureTheoryDescendant()) {
+      INVALID_OPERATION("A pure theory descendant is empty, which means theory axioms are inconsistent.");
+      break;
+    }
+
+    if(!seenInputInference){
+      INVALID_OPERATION("The proof does not contain any input formulas.");
+      break;
     }
 
     ASS(!s_expecting_sat);
-
     break;
+  }
   case Statistics::TIME_LIMIT:
     if(env.options->outputMode() == Options::Output::SMTCOMP){
       out << "unknown" << endl;

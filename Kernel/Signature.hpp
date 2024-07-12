@@ -142,6 +142,8 @@ class Signature
     unsigned _termAlgebraCons : 1;
     /** marks term algebra destructors */
     unsigned _termAlgebraDest : 1;
+    /** marks term algebra discriminators */
+    unsigned _termAlgebraDiscriminator : 1;
     /** if used in the goal **/
     unsigned _inGoal : 1;
     /** if used in a unit **/
@@ -194,6 +196,8 @@ class Signature
     void markTermAlgebraCons() { _termAlgebraCons=1; }
     /** mark symbol as a term algebra destructor */
     void markTermAlgebraDest() { _termAlgebraDest=1; }
+    /** mark symbol as a term algebra discriminator */
+    void markTermAlgebraDiscriminator() { _termAlgebraDiscriminator=1; }
     /** mark the symbol as uncomputable and hence not allowed in answer literals */
     void markUncomputable() { _computable = 0; }
     /** mark the symbol as let-bound */
@@ -246,6 +250,8 @@ class Signature
     inline bool termAlgebraCons() const { return _termAlgebraCons; }
     /** Return true iff symbol is a term algebra destructor */
     inline bool termAlgebraDest() const { return _termAlgebraDest; }
+    /** Return true iff symbol is a term algebra destructor */
+    inline bool termAlgebraDiscriminator() const { return _termAlgebraDiscriminator; }
     /** Return true iff symbol is considered computable */
     inline bool computable() const { return _computable; }
     /** if bound by a $let-binder */

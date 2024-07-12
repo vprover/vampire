@@ -29,24 +29,25 @@ public:
   static std::string sanitizeSuffix(std::string str);
   static bool isPositiveInteger(std::string str);
   static bool isPositiveDecimal(std::string str);
+  static void replaceAll(std::string& where, const std::string& from, const std::string& to);
 
   static void splitStr(const char* str, char delimiter, Stack<std::string>& strings);
   static void dropEmpty(Stack<std::string>& strings);
   static bool readEquality(const char* str, char eqChar, std::string& lhs, std::string& rhs);
   static bool readEqualities(const char* str, char delimiter, char eqChar, DHMap<std::string,std::string>& pairs);
   template<class A>
-  static A parse(std::string const& str) 
+  static A parse(std::string const& str)
   { return StringParser<A>{}(str); }
 };
 
-template<> struct StringParser<int> 
+template<> struct StringParser<int>
 {
   int operator()(std::string const& str)
   { return atoi(str.c_str()); }
 };
 
 
-template<> struct StringParser<float> 
+template<> struct StringParser<float>
 {
   float operator()(std::string const& str)
   { return atof(str.c_str()); }

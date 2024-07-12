@@ -27,6 +27,7 @@
 #include "Lib/SharedSet.hpp"
 
 #include "Shell/Statistics.hpp"
+#include "Shell/AnswerLiteralManager.hpp"
 #include "Indexing/TermSharing.hpp"
 
 #include "Options.hpp"
@@ -85,7 +86,7 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
   ASS_EQ(_varOccs.size(),0);
 
   Formula* g = skolemise(f);
-  
+
   _beingSkolemised = 0;
 
   if (f == g) { // not changed
@@ -161,7 +162,7 @@ unsigned Skolem::addSkolemTypeCon(unsigned arity, const char* suffix)
   OperatorType* ot = OperatorType::getTypeConType(arity);
   tcSym->setType(ot);
   return typeCon;
-} 
+}
 
 unsigned Skolem::addSkolemPredicate(unsigned arity, TermList* domainSorts, unsigned var, unsigned taArity)
 {
@@ -331,7 +332,7 @@ void Skolem::preskolemise (Formula* f)
  * @since 28/06/2002 Manchester
  * @since 04/09/2002 Bolzano, changed
  * @since 05/09/2002 Trento, changed
- * @since 19/01/2002 Manchester, information about 
+ * @since 19/01/2002 Manchester, information about
  *        positions and inferences added.
  * @since 23/01/2004 Manchester, changed to use non-static functions
  * @since 31/01/2004 Manchester, simplified to work with rectified formulas
@@ -345,7 +346,7 @@ void Skolem::preskolemise (Formula* f)
 Formula* Skolem::skolemise (Formula* f)
 {
   switch (f->connective()) {
-  case LITERAL: 
+  case LITERAL:
     {
       Literal* l = f->literal();
       Literal* ll = l->apply(_subst);
@@ -356,7 +357,7 @@ Formula* Skolem::skolemise (Formula* f)
     }
 
   case AND:
-  case OR: 
+  case OR:
     {
       FormulaList* fs = skolemise(f->args());
       if (fs == f->args()) {
@@ -365,7 +366,7 @@ Formula* Skolem::skolemise (Formula* f)
       return new JunctionFormula(f->connective(),fs);
     }
 
-  case FORALL: 
+  case FORALL:
     {
       Formula* g = skolemise(f->qarg());
       if (g == f->qarg()) {
@@ -497,6 +498,11 @@ Formula* Skolem::skolemise (Formula* f)
             <<" in "<<f->toString()<<" in formula "<<_beingSkolemised->toString() << endl;
         }
 
+        AnswerLiteralManager* alm = AnswerLiteralManager::getInstance();
+        if (alm && !skolemisingTypeVar && !_appify) { // good-old first-order skolemization
+          alm->recordSkolemsOrigin(sym,v,_beingSkolemised);
+        }
+
         if (env.options->showNonconstantSkolemFunctionTrace() && arity!=0) {
           ostream& out = std::cout;
             out <<"Nonconstant skolem function introduced: "
@@ -544,7 +550,7 @@ Formula* Skolem::skolemise (Formula* f)
  *
  * @since 28/06/2002 Manchester
  * @since 04/09/2002 Bolzano, changed
- * @since 19/01/2002 Manchester, information about 
+ * @since 19/01/2002 Manchester, information about
  *        positions and inferences added.
  * @since 23/01/2004 Manchester, changed to use non-static functions
  * @since 12/12/2004 Manchester, optimised by quantifying only over

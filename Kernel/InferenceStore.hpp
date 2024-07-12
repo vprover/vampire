@@ -69,21 +69,14 @@ public:
   };
 
   void recordSplittingNameLiteral(Unit* us, Literal* lit);
-  void recordIntroducedSymbol(Unit* u, SymbolType st, unsigned number);  
+  void recordIntroducedSymbol(Unit* u, SymbolType st, unsigned number);
   void recordIntroducedSplitName(Unit* u, std::string name);
 
   void outputUnsatCore(std::ostream& out, Unit* refutation);
   void outputProof(std::ostream& out, Unit* refutation);
   void outputProof(std::ostream& out, UnitList* units);
 
-  UnitIterator getParents(Unit* us, InferenceRule& rule);
-  UnitIterator getParents(Unit* us);
-
-  std::string getUnitIdStr(Unit* cs);
-
 private:
-  InferenceStore();
-
   struct ProofPrinter;
   struct TPTPProofPrinter;
   struct ProofCheckPrinter;
@@ -97,7 +90,7 @@ private:
 
 
   /** first records the type of the symbol (PRED,FUNC or TYPE_CON), second is symbol number */
-  typedef std::pair<SymbolType,unsigned> SymbolId;  
+  typedef std::pair<SymbolType,unsigned> SymbolId;
   typedef Stack<SymbolId> SymbolStack;
   DHMap<unsigned,SymbolStack> _introducedSymbols;
   DHMap<unsigned,std::string> _introducedSplitNames;

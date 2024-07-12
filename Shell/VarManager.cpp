@@ -12,6 +12,8 @@
  * Implements class VarManager.
  */
 
+#include <string>
+
 #include "Debug/Assertion.hpp"
 
 #include "VarManager.hpp"
