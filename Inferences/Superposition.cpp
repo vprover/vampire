@@ -41,7 +41,7 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/AnswerExtractor.hpp"
+#include "Shell/AnswerLiteralManager.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -495,7 +495,7 @@ Clause* Superposition::performSuperposition(
     Literal* newLitC = subst->apply(rwAnsLit, !eqIsResult);
     Literal* newLitD = subst->apply(eqAnsLit, eqIsResult);
     Literal* condLit = subst->apply(eqLit, eqIsResult);
-    res->push(SynthesisManager::getInstance()->makeITEAnswerLiteral(condLit, newLitC, newLitD));
+    res->push(SynthesisALManager::getInstance()->makeITEAnswerLiteral(condLit, newLitC, newLitD));
   }
 
   if(needsToFulfilWeightLimit && !passiveClauseContainer->fulfilsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {

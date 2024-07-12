@@ -2173,12 +2173,25 @@ void Options::init()
     _randomPolarities.tag(OptionTag::PREPROCESSING);
 
     _questionAnswering = ChoiceOptionValue<QuestionAnsweringMode>("question_answering","qa",QuestionAnsweringMode::OFF,
-                                                                  {"answer_literal","from_proof","synthesis","off"});
-    _questionAnswering.addHardConstraint(If(equal(QuestionAnsweringMode::ANSWER_LITERAL)).then(_splitting.is(notEqual(true))));
-    _questionAnswering.addHardConstraint(If(equal(QuestionAnsweringMode::FROM_PROOF)).then(_splitting.is(notEqual(true))));
-    _questionAnswering.description="Determines whether (and how) we attempt to answer questions";
+                                                                  {"plain","synthesis","off"});
+    _questionAnswering.description= "Determines whether (and how) we attempt to answer questions:"
+       " plain - answer-literal-based, supports disjunctive answers; synthesis - designed for sythesising programs from proofs.";
+    _questionAnswering.addHardConstraint(If(notEqual(QuestionAnsweringMode::OFF)).then(ProperSaturationAlgorithm()));
     _lookup.insert(&_questionAnswering);
     _questionAnswering.tag(OptionTag::OTHER);
+
+    _questionAnsweringGroundOnly = BoolOptionValue("question_answering_ground_only","qago",false);
+    _questionAnsweringGroundOnly.description = "In qa plain mode: if set, only ground answers will be considered.";
+    _questionAnsweringGroundOnly.onlyUsefulWith(_questionAnswering.is(equal(QuestionAnsweringMode::PLAIN)));
+    _lookup.insert(&_questionAnsweringGroundOnly);
+    _questionAnsweringGroundOnly.tag(OptionTag::OTHER);
+
+    _questionAnsweringAvoidThese = StringOptionValue("question_answering_avoid_these","qaat","");
+    _questionAnsweringAvoidThese.description="A |-separated list of answer literal atoms (e.g., `ans0(sK1)|ans0(f(c))`) that should not be considered as answers to return."
+      " The atoms may contain variables. Matching against any of those disqualifies a potential answer.";
+    _lookup.insert(&_questionAnsweringAvoidThese);
+    _questionAnsweringAvoidThese.onlyUsefulWith(_questionAnswering.is(equal(QuestionAnsweringMode::PLAIN)));
+    _questionAnsweringAvoidThese.tag(OptionTag::OTHER);
 
     _randomSeed = UnsignedOptionValue("random_seed","",1 /* this should be the value of Random::_seed from Random.cpp */);
     _randomSeed.description="Some parts of vampire use random numbers. This seed allows for reproducibility of results. By default the seed is not changed.";
