@@ -336,7 +336,7 @@ void Timer::syncClock()
   }
 }
 
-vstring Timer::msToSecondsString(int ms)
+std::string Timer::msToSecondsString(int ms)
 {
   return Int::toString(static_cast<float>(ms)/1000)+" s";
 }

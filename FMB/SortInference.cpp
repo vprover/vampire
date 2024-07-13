@@ -755,7 +755,7 @@ void SortInference::doInference()
     cout << _sig->distinctSorts << " distinct sorts" << endl;
     for(unsigned s=0;s<_sig->distinctSorts;s++){
       unsigned children =0;
-      vstring res="";
+      std::string res="";
       for(unsigned i=0;i<_sig->sorts;i++){ 
         if(_sig->parents[i]==s){
           if(children>0) res+=",";

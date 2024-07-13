@@ -20,7 +20,6 @@
 #include "Forwards.hpp"
 
 #include "Lib/List.hpp"
-#include "Lib/VString.hpp"
 #include "Kernel/Inference.hpp"
 
 namespace Kernel {
@@ -47,10 +46,10 @@ public:
   };
 
   void destroy();
-  vstring toString() const;
+  std::string toString() const;
   unsigned varCnt();
 
-  vstring inferenceAsString() const;
+  std::string inferenceAsString() const;
 
   /** True if a clause unit */
   bool isClause() const

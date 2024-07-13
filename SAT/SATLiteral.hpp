@@ -20,7 +20,6 @@
 
 #include "Shell/Options.hpp"
 #include "Debug/Assertion.hpp"
-#include "Lib/VString.hpp"
 #include "Kernel/Clause.hpp"
 
 namespace SAT {
@@ -68,7 +67,7 @@ public:
   inline bool operator!=(const SATLiteral& l) const
   { return _content!=l._content; }
 
-  vstring toString() const;
+  std::string toString() const;
 
   /**
    * Return a dummy literal that is not equal to any

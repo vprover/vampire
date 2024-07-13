@@ -15,6 +15,8 @@
 #ifndef __AnswerLiteralManager__
 #define __AnswerLiteralManager__
 
+#include <map>
+
 #include "Forwards.hpp"
 
 #include "Lib/DHMap.hpp"
@@ -91,10 +93,10 @@ protected:
    * a new skolem symbol term skT to replace var in the conjecture/question;
    * Ideally ("the user might expect"), the var should be referred to as vName in the answers.
    */
-  virtual void recordSkolemBinding(Term* skT,unsigned var,vstring vName) = 0;
+  virtual void recordSkolemBinding(Term* skT,unsigned var,std::string vName) = 0;
   virtual bool closeFreeVariablesForPrinting() { return false; };
   virtual void optionalAnswerPrefix(std::ostream& out) {};
-  virtual vstring postprocessAnswerString(vstring answer) { return answer; };
+  virtual std::string postprocessAnswerString(std::string answer) { return answer; };
 
   Clause* getRefutation(Clause* answer);
   Literal* getAnswerLiteral(VList* vars,SList* srts,Formula* f);
@@ -121,12 +123,12 @@ private:
 class PlainALManager : public AnswerLiteralManager
 {
 protected:
-  void recordSkolemBinding(Term*,unsigned,vstring) override;
+  void recordSkolemBinding(Term*,unsigned,std::string) override;
   bool closeFreeVariablesForPrinting() override { return true; };
   void optionalAnswerPrefix(std::ostream& out) override;
-  vstring postprocessAnswerString(vstring answer) override;
+  std::string postprocessAnswerString(std::string answer) override;
 private:
-  Stack<std::pair<Term*, vstring>> _skolemNames;
+  Stack<std::pair<Term*, std::string>> _skolemNames;
 };
 
 class SynthesisALManager : public AnswerLiteralManager
@@ -140,7 +142,7 @@ public:
   Literal* makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit) override;
 
 protected:
-  void recordSkolemBinding(Term*,unsigned,vstring) override;
+  void recordSkolemBinding(Term*,unsigned,std::string) override;
 
 private:
   void getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits);
@@ -154,7 +156,7 @@ private:
    protected:
     TermList transformSubterm(TermList trm) override;
    private:
-    vmap<Term*, unsigned> _skolemToVar;
+    std::map<Term*, unsigned> _skolemToVar;
     // Map from functions to predicates they represent in answer literal conditions
     DHMap<unsigned, unsigned> _condFnToPred;
   };
@@ -166,7 +168,7 @@ private:
   static Term* createRegularITE(Term* condition, TermList thenBranch, TermList elseBranch, TermList branchSort);
 
   static unsigned getITEFunctionSymbol(TermList sort) {
-    vstring name = "$ite_" + sort.toString();
+    std::string name = "$ite_" + sort.toString();
     bool added = false;
     unsigned fn = env.signature->addFunction(name, 3, added);
     if (added) {

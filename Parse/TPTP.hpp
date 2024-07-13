@@ -294,8 +294,8 @@ public:
     /** position of the beginning of this token */
     int start;
     /** content */
-    vstring content;
-    vstring toString() const;
+    std::string content;
+    std::string toString() const;
   };
 
   /**
@@ -305,13 +305,13 @@ public:
     : public ParsingRelatedException
   {
   public:
-    ParseErrorException(vstring message,unsigned ln) : _message(message), _ln(ln) {}
-    ParseErrorException(vstring message,Token& tok,unsigned ln);
-    ParseErrorException(vstring message,int position,unsigned ln);
+    ParseErrorException(std::string message,unsigned ln) : _message(message), _ln(ln) {}
+    ParseErrorException(std::string message,Token& tok,unsigned ln);
+    ParseErrorException(std::string message,int position,unsigned ln);
     void cry(std::ostream&) const;
     ~ParseErrorException() {}
   protected:
-    vstring _message;
+    std::string _message;
     unsigned _ln = 0;
   }; // TPTP::ParseErrorException
 
@@ -333,7 +333,7 @@ public:
   ~TPTP();
   void parse();
   static UnitList* parse(std::istream& str);
-  static Clause* parseClauseFromString(const vstring& str);
+  static Clause* parseClauseFromString(const std::string& str);
   /** Return the list of parsed units */
   UnitList* units() const { return _units.list(); }
   /** Return the current unitBuffer (on top of units() you also get a pointer to the last added unit in constant time). */
@@ -346,13 +346,13 @@ public:
    * based on this value.
    */
   bool containsConjecture() const { return _containsConjecture; }
-  void addForbiddenInclude(vstring file);
-  static bool findAxiomName(const Unit* unit, vstring& result);
+  void addForbiddenInclude(std::string file);
+  static bool findAxiomName(const Unit* unit, std::string& result);
   //this function is used also by the API
-  static void assignAxiomName(const Unit* unit, vstring& name);
+  static void assignAxiomName(const Unit* unit, std::string& name);
   unsigned lineNumber(){ return _lineNumber; }
 
-  static Map<int,vstring>* findQuestionVars(unsigned questionNumber) {
+  static Map<int,std::string>* findQuestionVars(unsigned questionNumber) {
     auto res = _questionVariableNames.findPtr(questionNumber);
     return res ? *res : nullptr;
   }
@@ -463,11 +463,11 @@ private:
     /** $array theoy */
     TS_ARRAY,
   };
-  static bool findTheorySort(const vstring name, TheorySort &ts) {
-    static const vstring theorySortNames[] = {
+  static bool findTheorySort(const std::string name, TheorySort &ts) {
+    static const std::string theorySortNames[] = {
       "$array"
     };
-    static const unsigned theorySorts = sizeof(theorySortNames)/sizeof(vstring);
+    static const unsigned theorySorts = sizeof(theorySortNames)/sizeof(std::string);
     for (unsigned sort = 0; sort < theorySorts; sort++) {
       if (theorySortNames[sort] == name) {
         ts = static_cast<TheorySort>(sort);
@@ -476,7 +476,7 @@ private:
     }
     return false;
   }
-  static bool isTheorySort(const vstring name) {
+  static bool isTheorySort(const std::string name) {
     static TheorySort dummy;
     return findTheorySort(name, dummy);
   }
@@ -493,11 +493,11 @@ private:
     /** $array theory */
     TF_SELECT, TF_STORE
   };
-  static bool findTheoryFunction(const vstring name, TheoryFunction &tf) {
-    static const vstring theoryFunctionNames[] = {
+  static bool findTheoryFunction(const std::string name, TheoryFunction &tf) {
+    static const std::string theoryFunctionNames[] = {
       "$select", "$store"
     };
-    static const unsigned theoryFunctions = sizeof(theoryFunctionNames)/sizeof(vstring);
+    static const unsigned theoryFunctions = sizeof(theoryFunctionNames)/sizeof(std::string);
     for (unsigned fun = 0; fun < theoryFunctions; fun++) {
       if (theoryFunctionNames[fun] == name) {
         tf = static_cast<TheoryFunction>(fun);
@@ -506,7 +506,7 @@ private:
     }
     return false;
   }
-  static bool isTheoryFunction(const vstring name) {
+  static bool isTheoryFunction(const std::string name) {
     static TheoryFunction dummy;
     return findTheoryFunction(name, dummy);
   }
@@ -529,22 +529,22 @@ private:
    * This is to support the feature formula_selection of the include
    * directive of the TPTP format.
  */
-  Set<vstring>* _allowedNames;
+  Set<std::string>* _allowedNames;
   /** stacks of allowed names when include is used */
-  Stack<Set<vstring>*> _allowedNamesStack;
+  Stack<Set<std::string>*> _allowedNamesStack;
   /** set of files whose inclusion should be ignored */
-  Set<vstring> _forbiddenIncludes;
+  Set<std::string> _forbiddenIncludes;
   /** the input stream */
   std::istream* _in;
   /** in the case include() is used, previous streams will be saved here */
   Stack<std::istream*> _inputs;
   /** the current include directory */
-  vstring _includeDirectory;
+  std::string _includeDirectory;
   /** in the case include() is used, previous sequence of directories will be
    * saved here, this is required since TPTP requires the directory to be
    * relative to the "current directory, that is, the directory used by the last include()
    */
-  Stack<vstring> _includeDirectories;
+  Stack<std::string> _includeDirectories;
   /** input characters */
   Array<char> _chars;
   /** position in the input stream of the 0th character in _chars[] */
@@ -573,7 +573,7 @@ private:
   /** */
   bool _containsPolymorphism;
   /** various strings saved during parsing */
-  Stack<vstring> _strings;
+  Stack<std::string> _strings;
   /** various connectives saved during parsing */ // they must be int, since non-existing value -1 can be used
   Stack<int> _connectives;
   /** various boolean values saved during parsing */
@@ -597,7 +597,7 @@ private:
   /** name table for variable names */
   IntNameTable _vars;
   /** When parsing a question, make note of the inverse mapping to _vars, i.e. from the ints back to the vstrings, for better user reporting */
-  Map<int,vstring> _curQuestionVarNames;
+  Map<int,std::string> _curQuestionVarNames;
   /** parsed types */
   Stack<Type*> _types;
   /** various type tags saved during parsing */
@@ -607,14 +607,14 @@ private:
   /** bindings of variables to sorts */
   Map<unsigned,SList*> _variableSorts;
   /** overflown arithmetical constants for which uninterpreted constants are introduced */
-  Set<vstring> _overflow;
+  Set<std::string> _overflow;
   /** current color, if the input contains colors */
   Color _currentColor;
   /** a robsubstitution object to be used temporarily that is kept around to safe memory allocation time  */
   RobSubstitution _substScratchpad;
 
   /** a function name and arity */
-  typedef std::pair<vstring, unsigned> LetSymbolName;
+  typedef std::pair<std::string, unsigned> LetSymbolName;
 
   /** a symbol number with a predicate/function flag */
   typedef std::pair<unsigned, bool> LetSymbolReference;
@@ -731,7 +731,7 @@ private:
   Tag readNumber(Token&);
   int decimal(int pos);
   int positiveDecimal(int pos);
-  static vstring toString(Tag);
+  static std::string toString(Tag);
 
   // parser functions
   static Formula* makeJunction(Connective c,Formula* lhs,Formula* rhs);
@@ -740,7 +740,7 @@ private:
   void tff();
   void vampire();
   void consumeToken(Tag);
-  vstring name();
+  std::string name();
   void formula();
   void funApp();
   void simpleFormula();
@@ -754,9 +754,9 @@ private:
   void endTerm();
   void endArgs();
   Literal* createEquality(bool polarity,TermList& lhs,TermList& rhs);
-  Formula* createPredicateApplication(vstring name,unsigned arity);
-  TermList createFunctionApplication(vstring name,unsigned arity);
-  TermList createTypeConApplication(vstring name,unsigned arity);
+  Formula* createPredicateApplication(std::string name,unsigned arity);
+  TermList createFunctionApplication(std::string name,unsigned arity);
+  TermList createTypeConApplication(std::string name,unsigned arity);
   void endEquality();
   void midEquality();
   void formulaInfix();
@@ -800,31 +800,31 @@ private:
   void unbindVariables();
   void skipToRPAR();
   void skipToRBRA();
-  unsigned addFunction(vstring name,int arity,bool& added,TermList& someArgument);
-  int addPredicate(vstring name,int arity,bool& added,TermList& someArgument);
-  unsigned addOverloadedFunction(vstring name,int arity,int symbolArity,bool& added,TermList& arg,
+  unsigned addFunction(std::string name,int arity,bool& added,TermList& someArgument);
+  int addPredicate(std::string name,int arity,bool& added,TermList& someArgument);
+  unsigned addOverloadedFunction(std::string name,int arity,int symbolArity,bool& added,TermList& arg,
 				 Theory::Interpretation integer,Theory::Interpretation rational,
 				 Theory::Interpretation real);
-  unsigned addOverloadedPredicate(vstring name,int arity,int symbolArity,bool& added,TermList& arg,
+  unsigned addOverloadedPredicate(std::string name,int arity,int symbolArity,bool& added,TermList& arg,
 				  Theory::Interpretation integer,Theory::Interpretation rational,
 				  Theory::Interpretation real);
   TermList sortOf(TermList term);
   static bool higherPrecedence(int c1,int c2);
-  vstring convert(Tag t);
+  std::string convert(Tag t);
 
-  bool findInterpretedPredicate(vstring name, unsigned arity);
+  bool findInterpretedPredicate(std::string name, unsigned arity);
 
   OperatorType* constructOperatorType(Type* t, VList* vars = 0);
 
 public:
   // make the tptp routines for dealing with overflown constants available to other parsers
-  static unsigned addIntegerConstant(const vstring&, Set<vstring>& overflow, bool defaultSort);
-  static unsigned addRationalConstant(const vstring&, Set<vstring>& overflow, bool defaultSort);
-  static unsigned addRealConstant(const vstring&, Set<vstring>& overflow, bool defaultSort);
-  static unsigned addUninterpretedConstant(const vstring& name, Set<vstring>& overflow, bool& added);
+  static unsigned addIntegerConstant(const std::string&, Set<std::string>& overflow, bool defaultSort);
+  static unsigned addRationalConstant(const std::string&, Set<std::string>& overflow, bool defaultSort);
+  static unsigned addRealConstant(const std::string&, Set<std::string>& overflow, bool defaultSort);
+  static unsigned addUninterpretedConstant(const std::string& name, Set<std::string>& overflow, bool& added);
 
   // also here, simply made public static to share the code with another use site
-  static Unit* processClaimFormula(Unit* unit, Formula* f, const vstring& nm);
+  static Unit* processClaimFormula(Unit* unit, Formula* f, const std::string& nm);
 
   /**
    * Used to store the contents of the 'source' of an input formula
@@ -835,16 +835,16 @@ public:
     virtual bool isFile() = 0;
   };
   struct FileSourceRecord : SourceRecord {
-    const vstring fileName;
-    const vstring nameInFile;
+    const std::string fileName;
+    const std::string nameInFile;
     bool isFile(){ return true; }
-    FileSourceRecord(vstring fN, vstring nF) : fileName(fN), nameInFile(nF) {}
+    FileSourceRecord(std::string fN, std::string nF) : fileName(fN), nameInFile(nF) {}
   };
   struct InferenceSourceRecord : SourceRecord{
-    const vstring name;
-    Stack<vstring> premises;
+    const std::string name;
+    Stack<std::string> premises;
     bool isFile(){ return false; }
-    InferenceSourceRecord(vstring n) : name(n) {}
+    InferenceSourceRecord(std::string n) : name(n) {}
   };
 
   void setUnitSourceMap(DHMap<Unit*,SourceRecord*>* m){
@@ -859,7 +859,7 @@ private:
 
   /** This field stores names of input units if the
    * output_axiom_names option is enabled */
-  static DHMap<unsigned, vstring> _axiomNames;
+  static DHMap<unsigned, std::string> _axiomNames;
 
   /**
    * During question parsing, we store the mapping from int variables
@@ -870,19 +870,19 @@ private:
    *
    * (Can there be more than one question? Yes, e.g., in the interactive mode.)
    */
-  static DHMap<unsigned, Map<int,vstring>*> _questionVariableNames;
+  static DHMap<unsigned, Map<int,std::string>*> _questionVariableNames;
 
   /** Stores the type arities of function symbols */
-  DHMap<vstring, unsigned> _typeArities;
-  DHMap<vstring, unsigned> _typeConstructorArities;
+  DHMap<std::string, unsigned> _typeArities;
+  DHMap<std::string, unsigned> _typeConstructorArities;
 
   bool _filterReserved;
   bool _seenConjecture;
 
 
 #if VDEBUG
-  void printStates(vstring extra);
-  void printInts(vstring extra);
+  void printStates(std::string extra);
+  void printInts(std::string extra);
   const char* toString(State s);
 #endif
 #ifdef DEBUG_SHOW_STATE

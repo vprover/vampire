@@ -115,7 +115,7 @@ void BackwardSubsumptionDemodulation::perform(Clause* sideCl, BwSimplificationRe
   Literal* lmLit1 = best2.first.lit();
   Literal* lmLit2 = best2.second.lit();
 
-  static vvector<BwSimplificationRecord> simplificationsStorage;
+  static std::vector<BwSimplificationRecord> simplificationsStorage;
   ASS_EQ(simplificationsStorage.size(), 0);
 
   if (!lmLit1->isEquality() || !lmLit1->isPositive()) {
@@ -134,7 +134,7 @@ void BackwardSubsumptionDemodulation::perform(Clause* sideCl, BwSimplificationRe
 }  // perform
 
 
-void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Literal* candidateQueryLit, vvector<BwSimplificationRecord>& simplifications)
+void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Literal* candidateQueryLit, std::vector<BwSimplificationRecord>& simplifications)
 {
   //   sideCl
   // vvvvvvvvvv
@@ -258,9 +258,9 @@ void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Litera
 
 /// Handles the matching part.
 /// Returns true iff the main premise has been simplified.
-bool BackwardSubsumptionDemodulation::simplifyCandidate(Clause* sideCl, Clause* mainCl, vvector<BwSimplificationRecord>& simplifications)
+bool BackwardSubsumptionDemodulation::simplifyCandidate(Clause* sideCl, Clause* mainCl, std::vector<BwSimplificationRecord>& simplifications)
 {
-    static vvector<LiteralList*> alts;
+    static std::vector<LiteralList*> alts;
 
     alts.clear();
     alts.resize(sideCl->length(), LiteralList::empty());
@@ -383,7 +383,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
   }
 
   // isMatched[i] is true iff (*mainCl)[i] is matched by some literal in sideCl (other than eqLit)
-  static vvector<bool> isMatched;
+  static std::vector<bool> isMatched;
   matcher.getMatchedAltsBitmap(isMatched);
 
   static OverlayBinder binder;
@@ -391,7 +391,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
   matcher.getBindings(binder.base());
 
   // NOTE: for explanation see comments in ForwardSubsumptionDemodulation::perform
-  static vvector<TermList> lhsVector;
+  static std::vector<TermList> lhsVector;
   lhsVector.clear();
   {
     TermList t0 = *eqLit->nthArgument(0);

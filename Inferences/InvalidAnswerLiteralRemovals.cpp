@@ -31,7 +31,7 @@ Clause* UncomputableAnswerLiteralRemoval::simplify(Clause* cl)
   return cl;
 }
 
-UndesiredAnswerLiteralRemoval::UndesiredAnswerLiteralRemoval(const vstring& avoidThese)
+UndesiredAnswerLiteralRemoval::UndesiredAnswerLiteralRemoval(const std::string& avoidThese)
 {
   // TODO: catch parsing exceptions and complain properly
   _avoiders = Parse::TPTP::parseClauseFromString(avoidThese);

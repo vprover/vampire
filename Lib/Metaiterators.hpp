@@ -1224,13 +1224,13 @@ T minFn(T a1, T a2) { return std::min(a1,a2); }
 template<class It>
 struct StmJoinAuxStruct
 {
-  StmJoinAuxStruct(vstring glue, It it) : _glue(glue), _it(it) {}
-  vstring _glue;
+  StmJoinAuxStruct(std::string glue, It it) : _glue(glue), _it(it) {}
+  std::string _glue;
   It _it;
 };
 
 template<class It>
-StmJoinAuxStruct<It> join(vstring glue, It it)
+StmJoinAuxStruct<It> join(std::string glue, It it)
 {
   return StmJoinAuxStruct<It>(glue, it);
 }

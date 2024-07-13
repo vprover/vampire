@@ -108,7 +108,7 @@ private:
 
   // Report that a given formula or a term has been rewritten during defooling
   // The term or formula is passed as its string representation
-  static void reportProcessed(vstring inputRepr, vstring outputRepr);
+  static void reportProcessed(std::string inputRepr, std::string outputRepr);
 };
 
 #endif // __FOOLElimination__

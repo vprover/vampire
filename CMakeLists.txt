@@ -183,15 +183,12 @@ set(VAMPIRE_LIB_SOURCES
     Lib/SmartPtr.hpp
     Lib/Sort.hpp
     Lib/Stack.hpp
-    Lib/STLAllocator.hpp
     Lib/StringUtils.hpp
     Lib/System.hpp
     Lib/Timer.hpp
     Lib/TriangularArray.hpp
     Lib/Vector.hpp
     Lib/VirtualIterator.hpp
-    Lib/VString.hpp
-    Lib/STL.hpp
     )
 source_group(lib_source_files FILES ${VAMPIRE_LIB_SOURCES})
 

@@ -22,7 +22,6 @@
 #include "Lib/Timer.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/System.hpp"
-#include "Lib/STL.hpp"
 
 #include "Indexing/LiteralIndexingStructure.hpp"
 
@@ -131,16 +130,16 @@ using namespace Saturation;
 
 SaturationAlgorithm* SaturationAlgorithm::s_instance = 0;
 
-std::unique_ptr<PassiveClauseContainer> makeLevel0(bool isOutermost, const Options& opt, vstring name)
+std::unique_ptr<PassiveClauseContainer> makeLevel0(bool isOutermost, const Options& opt, std::string name)
 {
   return std::make_unique<AWPassiveClauseContainer>(isOutermost, opt, name + "AWQ");
 }
 
-std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Options& opt, vstring name)
+std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Options& opt, std::string name)
 {
   if (opt.useTheorySplitQueues())
   {
-    Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
+    std::vector<std::unique_ptr<PassiveClauseContainer>> queues;
     auto cutoffs = opt.theorySplitQueueCutoffs();
     for (unsigned i = 0; i < cutoffs.size(); i++)
     {
@@ -155,11 +154,11 @@ std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Optio
   }
 }
 
-std::unique_ptr<PassiveClauseContainer> makeLevel2(bool isOutermost, const Options& opt, vstring name)
+std::unique_ptr<PassiveClauseContainer> makeLevel2(bool isOutermost, const Options& opt, std::string name)
 {
   if (opt.useAvatarSplitQueues())
   {
-    Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
+    std::vector<std::unique_ptr<PassiveClauseContainer>> queues;
     auto cutoffs = opt.avatarSplitQueueCutoffs();
     for (unsigned i = 0; i < cutoffs.size(); i++)
     {
@@ -174,11 +173,11 @@ std::unique_ptr<PassiveClauseContainer> makeLevel2(bool isOutermost, const Optio
   }
 }
 
-std::unique_ptr<PassiveClauseContainer> makeLevel3(bool isOutermost, const Options& opt, vstring name)
+std::unique_ptr<PassiveClauseContainer> makeLevel3(bool isOutermost, const Options& opt, std::string name)
 {
   if (opt.useSineLevelSplitQueues())
   {
-    Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
+    std::vector<std::unique_ptr<PassiveClauseContainer>> queues;
     auto cutoffs = opt.sineLevelSplitQueueCutoffs();
     for (unsigned i = 0; i < cutoffs.size(); i++)
     {
@@ -193,12 +192,12 @@ std::unique_ptr<PassiveClauseContainer> makeLevel3(bool isOutermost, const Optio
   }
 }
 
-std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Options& opt, vstring name)
+std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Options& opt, std::string name)
 {
   if (opt.usePositiveLiteralSplitQueues())
   {
-    Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
-    Lib::vvector<float> cutoffs = opt.positiveLiteralSplitQueueCutoffs();
+    std::vector<std::unique_ptr<PassiveClauseContainer>> queues;
+    std::vector<float> cutoffs = opt.positiveLiteralSplitQueueCutoffs();
     for (unsigned i = 0; i < cutoffs.size(); i++)
     {
       auto queueName = name + "PLSQ" + Int::toString(cutoffs[i]) + ":";

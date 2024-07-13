@@ -20,10 +20,10 @@
 #include <cstdlib>
 
 #include "Lib/Allocator.hpp"
-#include "Lib/VString.hpp"
 #include "Forwards.hpp"
 
 #include <type_traits>
+#include <limits>
 
 using namespace Lib;
 
@@ -614,8 +614,8 @@ inline bool isSatRefutationRule(InferenceRule r) {
          (r == InferenceRule::GLOBAL_SUBSUMPTION);
 }
 
-vstring inputTypeName(UnitInputType type);
-vstring ruleName(InferenceRule rule);
+std::string inputTypeName(UnitInputType type);
+std::string ruleName(InferenceRule rule);
 
 /*
 * The following structs are here just that we can have specialized overloads for the Inference constructor (see below)
@@ -858,7 +858,7 @@ public:
   void minimizePremises();
 
   // returns ruleName; with inputTypeName on top, in the case of ruleName == INPUT
-  vstring name() const;
+  std::string name() const;
 
   /** return the input type of the unit */
   UnitInputType inputType() const { return (UnitInputType)_inputType; }

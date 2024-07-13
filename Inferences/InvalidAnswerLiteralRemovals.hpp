@@ -39,7 +39,7 @@ class UndesiredAnswerLiteralRemoval
 : public ImmediateSimplificationEngine
 {
 public:
-  UndesiredAnswerLiteralRemoval(const vstring& avoidThese);
+  UndesiredAnswerLiteralRemoval(const std::string& avoidThese);
   Clause* simplify(Clause* cl) override;
 private:
   Clause* _avoiders;

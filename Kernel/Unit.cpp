@@ -111,7 +111,7 @@ void Unit::destroy()
   }
 }
 
-vstring Unit::toString() const
+std::string Unit::toString() const
 {
   if(isClause()) {
     return static_cast<const Clause*>(this)->toString();
@@ -148,15 +148,15 @@ Formula* Unit::getFormula()
 }
 
 /**
- * Print the inference as a vstring (used in printing units in
+ * Print the inference as a std::string (used in printing units in
  * refutations).
  * @since 04/01/2008 Torrevieja
  */
-vstring Unit::inferenceAsString() const
+std::string Unit::inferenceAsString() const
 {
   const Inference& inf = inference();
 
-  vstring result = (vstring)"[" + inf.name();
+  std::string result = (std::string)"[" + inf.name();
   bool first = true;
 
   auto it = inf.iterator();
@@ -167,7 +167,7 @@ vstring Unit::inferenceAsString() const
     result += Int::toString(parent->number());
   }
   // print Extra
-  vstring extra;
+  std::string extra;
   if (env.proofExtra && env.proofExtra->find(this,extra) && extra != "") {
     result += ", " + extra;
   }
