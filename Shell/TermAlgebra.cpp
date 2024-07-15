@@ -117,12 +117,12 @@ bool TermAlgebraConstructor::recursive()
   return false;
 }
 
-Lib::vstring TermAlgebraConstructor::discriminatorName()
+std::string TermAlgebraConstructor::discriminatorName()
 {
   //Giles: the function name may contain quotes so we should remove them
   //       before appending $is.
-  vstring name = env.signature->functionName(_functor);
-  vstring ret = "$is";
+  std::string name = env.signature->functionName(_functor);
+  std::string ret = "$is";
   for(size_t i = 0; i < name.size(); i++){
     char c = name[i];
     if(c != '\''){ ret+=c;}
@@ -206,7 +206,7 @@ bool TermAlgebra::infiniteDomain()
   return false;
 }
   
-Lib::vstring TermAlgebra::getSubtermPredicateName() {
+std::string TermAlgebra::getSubtermPredicateName() {
   return "$subterm" + env.signature->getTypeCon(_sort.term()->functor())->name();
 }
 

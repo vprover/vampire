@@ -492,7 +492,7 @@ Inference::Inference(const NonspecificInferenceMany& gi) {
   initMany(gi.rule,gi.premises);
 }
 
-vstring Inference::name() const {
+std::string Inference::name() const {
   if (_rule == InferenceRule::INPUT) {
     return ruleName(_rule)+"("+inputTypeName(_inputType)+")";
   } else {
@@ -580,7 +580,7 @@ void Inference::computeTheoryRunningSums()
   }
 }
 
-vstring Kernel::inputTypeName(UnitInputType type)
+std::string Kernel::inputTypeName(UnitInputType type)
 {
   switch (type) {
     case UnitInputType::AXIOM:
@@ -604,7 +604,7 @@ vstring Kernel::inputTypeName(UnitInputType type)
  * Return the rule name, such as "binary resolution".
  * @since 04/01/2008 Torrevieja
  */
-vstring Kernel::ruleName(InferenceRule rule)
+std::string Kernel::ruleName(InferenceRule rule)
 {
   switch (rule) {
   case InferenceRule::INPUT:

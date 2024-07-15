@@ -39,7 +39,6 @@
 
 #include "Debug/Assertion.hpp"
 
-#include "Lib/VString.hpp"
 #include "Lib/StringUtils.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Timer.hpp"
@@ -1215,7 +1214,7 @@ void Options::init()
     _inequalityNormalization.addProblemConstraint(hasTheories());
     _inequalityNormalization.tag(OptionTag::THEORIES);
 
-    auto choiceArithmeticSimplificationMode = [&](vstring l, vstring s, ArithmeticSimplificationMode d)
+    auto choiceArithmeticSimplificationMode = [&](std::string l, std::string s, ArithmeticSimplificationMode d)
     { return ChoiceOptionValue<ArithmeticSimplificationMode>(l,s,d, {"force", "cautious", "off", }); };
     _cancellation = choiceArithmeticSimplificationMode(
        "cancellation", "canc",
@@ -2419,7 +2418,7 @@ void Options::set(const char* name,const char* value, bool longOpt)
         (!longOpt && !_lookup.findShort(name)->set(value))) {
       switch (ignoreMissing()) {
       case IgnoreMissing::OFF:
-        USER_ERROR((vstring) value +" is an invalid value for "+(vstring)name+"\nSee help or use explain i.e. vampire -explain mode");
+        USER_ERROR((std::string) value +" is an invalid value for "+(std::string)name+"\nSee help or use explain i.e. vampire -explain mode");
         break;
       case IgnoreMissing::WARN:
         if (outputAllowed()) {
@@ -2434,7 +2433,7 @@ void Options::set(const char* name,const char* value, bool longOpt)
   }
   catch (const ValueNotFoundException&) {
     if (_ignoreMissing.actualValue != IgnoreMissing::ON) {
-      vstring msg = (vstring)name + (longOpt ? " is not a valid option" : " is not a valid short option (did you mean --?)");
+      std::string msg = (std::string)name + (longOpt ? " is not a valid option" : " is not a valid short option (did you mean --?)");
       if (_ignoreMissing.actualValue == IgnoreMissing::WARN) {
         if (outputAllowed()) {
           addCommentSignForSZS(std::cout);
@@ -2442,10 +2441,10 @@ void Options::set(const char* name,const char* value, bool longOpt)
         }
         return;
       } // else:
-      Stack<vstring> sim = getSimilarOptionNames(name,false);
-      Stack<vstring>::Iterator sit(sim);
+      Stack<std::string> sim = getSimilarOptionNames(name,false);
+      Stack<std::string>::Iterator sit(sim);
       if(sit.hasNext()){
-        vstring first = sit.next();
+        std::string first = sit.next();
         msg += "\n\tMaybe you meant ";
         if(sit.hasNext()) msg += "one of:\n\t\t";
         msg += first;
@@ -2461,7 +2460,7 @@ void Options::set(const char* name,const char* value, bool longOpt)
  * Set option by its name and value.
  * @since 06/04/2005 Torrevieja
  */
-void Options::set(const vstring& name,const vstring& value)
+void Options::set(const std::string& name,const std::string& value)
 {
   set(name.c_str(),value.c_str(),true);
 } // Options::set/2
@@ -2488,7 +2487,7 @@ bool Options::HasTheories::check(Property*p) {
  * @param relativeName the relative name, must begin and end with "'"
  *        because of the TPTP syntax
  * @since 16/10/2003 Manchester, relativeName changed to string from char*
- * @since 07/08/2014 Manchester, relativeName changed to vstring
+ * @since 07/08/2014 Manchester, relativeName changed to std::string
  */
 // TODO this behaviour isn't quite right, at least:
 // 1. we use the *root* file to resolve relative paths, which won't work if we have an axiom file that includes another
@@ -2497,7 +2496,7 @@ bool Options::HasTheories::check(Property*p) {
 // cf https://tptp.org/TPTP/TR/TPTPTR.shtml#IncludeSection
 // probable solution: move all this logic into TPTP parser and do it properly there
 
-vstring Options::includeFileName (const vstring& relativeName)
+std::string Options::includeFileName (const std::string& relativeName)
 {
   if (relativeName[0] == '/') { // absolute name
     return relativeName;
@@ -2510,7 +2509,7 @@ vstring Options::includeFileName (const vstring& relativeName)
   // truncatedRelativeName is relative.
   // Use the conventions of Vampire:
   // (a) first search the value of "include"
-  vstring dir = include();
+  std::string dir = include();
 
   if (dir == "") { // include undefined
     // (b) search in the directory of the 'current file'
@@ -2558,7 +2557,7 @@ void Options::output (ostream& str) const
 
   if(!explainOption().empty()){
      AbstractOptionValue* option;
-     vstring name = explainOption();
+     std::string name = explainOption();
      try{
        option = _lookup.findLong(name);
      }
@@ -2572,12 +2571,12 @@ void Options::output (ostream& str) const
      }
      if(!option){ 
        str << name << " not a known option" << endl;
-       Stack<vstring> sim_s = getSimilarOptionNames(name,true);
-       Stack<vstring> sim_l = getSimilarOptionNames(name,false);
-       VirtualIterator<vstring> sit = pvi(concatIters(
-           Stack<vstring>::Iterator(sim_s),Stack<vstring>::Iterator(sim_l))); 
+       Stack<std::string> sim_s = getSimilarOptionNames(name,true);
+       Stack<std::string> sim_l = getSimilarOptionNames(name,false);
+       VirtualIterator<std::string> sit = pvi(concatIters(
+           Stack<std::string>::Iterator(sim_s),Stack<std::string>::Iterator(sim_l))); 
         if(sit.hasNext()){
-          vstring first = sit.next();
+          std::string first = sit.next();
           str << "\tMaybe you meant ";
           if(sit.hasNext()) str << "one of:\n\t\t";
           str << first;
@@ -2586,7 +2585,7 @@ void Options::output (ostream& str) const
         }
      }
      else{
-       vstringstream vs;
+       std::stringstream vs;
        option->output(vs,lineWrapInShowOptions());
        str << vs.str();
      }
@@ -2621,11 +2620,9 @@ void Options::output (ostream& str) const
 
     VirtualIterator<AbstractOptionValue*> options = _lookup.values();
 
-    //Stack<vstringstream*> groups;
     int num_tags = static_cast<int>(OptionTag::LAST_TAG);
     Stack<Stack<AbstractOptionValue*>> groups;
     for(int i=0; i<=num_tags;i++){
-    //  groups.push(new vstringstream);
         Stack<AbstractOptionValue*> stack;
         groups.push(stack);
     }
@@ -2645,10 +2642,10 @@ void Options::output (ostream& str) const
     //output them in reverse order
     for(int i=num_tags;i>=0;i--){
       if(groups[i].isEmpty()) continue;
-      vstring label = "  "+_tagNames[i]+"  ";
+      std::string label = "  "+_tagNames[i]+"  ";
       ASS(label.length() < 40);
-      vstring br = "******************************";
-      vstring br_gap = br.substr(0,(br.length()-(label.length()/2)));
+      std::string br = "******************************";
+      std::string br_gap = br.substr(0,(br.length()-(label.length()/2)));
       str << endl << br << br;
       if (label.length() % 2 == 0) {
         str << endl;
@@ -2764,7 +2761,7 @@ bool Options::RatioOptionValue::readRatio(const char* val, char separator)
   return true;
 }
 
-bool Options::NonGoalWeightOptionValue::setValue(const vstring& value)
+bool Options::NonGoalWeightOptionValue::setValue(const std::string& value)
 {
  float newValue;
  if(!Int::stringToFloat(value.c_str(),newValue)) return false;
@@ -2781,7 +2778,7 @@ bool Options::NonGoalWeightOptionValue::setValue(const vstring& value)
   return true;
 }
 
-bool Options::SelectionOptionValue::setValue(const vstring& value)
+bool Options::SelectionOptionValue::setValue(const std::string& value)
 {
   int sel;
   if(!Int::stringToInt(value,sel)) return false;
@@ -2843,7 +2840,7 @@ bool Options::SelectionOptionValue::setValue(const vstring& value)
   }
 }
 
-bool Options::InputFileOptionValue::setValue(const vstring& value)
+bool Options::InputFileOptionValue::setValue(const std::string& value)
 {
   actualValue=value;
   if(value.empty()) return true;
@@ -2874,11 +2871,11 @@ bool Options::InputFileOptionValue::setValue(const vstring& value)
 }
 
 
-bool Options::TimeLimitOptionValue::setValue(const vstring& value)
+bool Options::TimeLimitOptionValue::setValue(const std::string& value)
 {
   int length = value.size();
   if (length == 0 || length >= COPY_SIZE) {
-    USER_ERROR((vstring)"wrong value for time limit: " + value);
+    USER_ERROR((std::string)"wrong value for time limit: " + value);
   }
 
   char copy[COPY_SIZE];
@@ -2917,7 +2914,7 @@ bool Options::TimeLimitOptionValue::setValue(const vstring& value)
 
   float number;
   if (! Int::stringToFloat(copy,number)) {
-    USER_ERROR((vstring)"wrong value for time limit: " + value);
+    USER_ERROR((std::string)"wrong value for time limit: " + value);
   }
 
 #ifdef _MSC_VER
@@ -2937,7 +2934,7 @@ bool Options::TimeLimitOptionValue::setValue(const vstring& value)
  * An optname starting with $ is not meant to be a real option, but a fake one.
  * Fakes get stored in the map fakes and can be referenced later, during the sampling process.
  */
-void Options::strategySamplingAssign(vstring optname, vstring value, DHMap<vstring,vstring>& fakes)
+void Options::strategySamplingAssign(std::string optname, std::string value, DHMap<std::string,std::string>& fakes)
 {
   // dollar sign signifies fake options
   if (optname[0] == '$') {
@@ -2963,10 +2960,10 @@ void Options::strategySamplingAssign(vstring optname, vstring value, DHMap<vstri
  * An optname starting with $ is not meant to be a real option, but a fake one.
  * Fakes get read from the given map fakes.
  */
-vstring Options::strategySamplingLookup(vstring optname, DHMap<vstring,vstring>& fakes)
+std::string Options::strategySamplingLookup(std::string optname, DHMap<std::string,std::string>& fakes)
 {
   if (optname[0] == '$') {
-    vstring* foundVal = fakes.findPtr(optname);
+    std::string* foundVal = fakes.findPtr(optname);
     if (!foundVal) {
       USER_ERROR("Sampling file processing error -- unassigned fake option: " + optname);
     }
@@ -2982,7 +2979,7 @@ vstring Options::strategySamplingLookup(vstring optname, DHMap<vstring,vstring>&
   return "";
 }
 
-void Options::sampleStrategy(const vstring& strategySamplerFilename)
+void Options::sampleStrategy(const std::string& strategySamplerFilename)
 {
   std::ifstream input(strategySamplerFilename.c_str());
 
@@ -2993,10 +2990,10 @@ void Options::sampleStrategy(const vstring& strategySamplerFilename)
   // our local randomizing engine (randomly seeded)
   std::mt19937 rng((std::random_device())());
   // map of local variables (fake options)
-  DHMap<vstring,vstring> fakes;
+  DHMap<std::string,std::string> fakes;
 
-  vstring line; // parsed lines
-  Stack<vstring> pieces; // temp stack used for splitting
+  std::string line; // parsed lines
+  Stack<std::string> pieces; // temp stack used for splitting
   while (std::getline(input, line))
   {
     if (line.length() == 0 || line[0] == '#') { // empty lines and comments (starting with # as the first! character)
@@ -3008,8 +3005,8 @@ void Options::sampleStrategy(const vstring& strategySamplerFilename)
       USER_ERROR("Sampling file parse error -- each rule must contain exactly one >. Here: "+line);
     }
 
-    vstring cond = pieces[0];
-    vstring body = pieces[1];
+    std::string cond = pieces[0];
+    std::string body = pieces[1];
     pieces.reset();
 
     // evaluate condition, if false, will skip the rest
@@ -3018,22 +3015,22 @@ void Options::sampleStrategy(const vstring& strategySamplerFilename)
       StringUtils::splitStr(cond.c_str(),' ',pieces);
       StringUtils::dropEmpty(pieces);
 
-      Stack<vstring> pair;
-      Stack<vstring>::BottomFirstIterator it(pieces);
+      Stack<std::string> pair;
+      Stack<std::string>::BottomFirstIterator it(pieces);
       while(it.hasNext()) {
-        vstring equation = it.next();
+        std::string equation = it.next();
         StringUtils::splitStr(equation.c_str(),'=',pair);
         StringUtils::dropEmpty(pair);
         if (pair.size() != 2) {
           USER_ERROR("Sampling file parse error -- invalid equation: "+equation);
         }
         bool negated = false;
-        vstring optName = pair[0];
+        std::string optName = pair[0];
         if (optName.back() == '!') {
           negated = true;
           optName.pop_back();
         }
-        vstring storedVal = strategySamplingLookup(optName,fakes);
+        std::string storedVal = strategySamplingLookup(optName,fakes);
         if ((storedVal != pair[1]) != negated) {
           fireRule = false;
           break;
@@ -3057,23 +3054,23 @@ void Options::sampleStrategy(const vstring& strategySamplerFilename)
       USER_ERROR("Sampling file parse error -- rule body must consist of three space-separated parts. Here: "+body);
     }
 
-    vstring optname = pieces[0];
-    vstring sampler = pieces[1];
-    vstring args = pieces[2];
+    std::string optname = pieces[0];
+    std::string sampler = pieces[1];
+    std::string args = pieces[2];
     pieces.reset();
 
     if (sampler == "~cat") { // categorical sampling, e.g., "~cat group:36,predicate:4,expand:4,off:1,function:1" provides a list of value with frequencies
       StringUtils::splitStr(args.c_str(),',',pieces);
 
       unsigned total = 0;
-      Stack<std::pair<unsigned,vstring>> mulvals; //values with multiplicities, e.g. "off:5", or "on:1"
+      Stack<std::pair<unsigned,std::string>> mulvals; //values with multiplicities, e.g. "off:5", or "on:1"
 
       // parse the mulvals
       {
-        Stack<vstring> pair;
-        Stack<vstring>::BottomFirstIterator it(pieces);
+        Stack<std::string> pair;
+        Stack<std::string>::BottomFirstIterator it(pieces);
         while(it.hasNext()) {
-          vstring mulval = it.next();
+          std::string mulval = it.next();
           StringUtils::splitStr(mulval.c_str(),':',pair);
           // StringUtils::dropEmpty(pair);
           if (pair.size() != 2) {
@@ -3092,9 +3089,9 @@ void Options::sampleStrategy(const vstring& strategySamplerFilename)
       }
 
       // actual sampling
-      vstring value;
+      std::string value;
       unsigned sample = std::uniform_int_distribution<unsigned>(1,total)(rng);
-      Stack<std::pair<unsigned,vstring>>::BottomFirstIterator it(mulvals);
+      Stack<std::pair<unsigned,std::string>>::BottomFirstIterator it(mulvals);
       while (it.hasNext()) {
         auto mulval = it.next();
         if (sample <= mulval.first) {
@@ -3187,7 +3184,7 @@ void Options::sampleStrategy(const vstring& strategySamplerFilename)
     }
 
     /*
-    Stack<vstring>::BottomFirstIterator it(pieces);
+    Stack<std::string>::BottomFirstIterator it(pieces);
     while(it.hasNext()) {
       cout << "tok:" << it.next() << endl;
     }
@@ -3198,28 +3195,28 @@ void Options::sampleStrategy(const vstring& strategySamplerFilename)
 }
 
 /**
- * Assign option values as encoded in the option vstring if assign=true, otherwise check that
+ * Assign option values as encoded in the option std::string if assign=true, otherwise check that
  * the option values are not currently set to those values.
  * according to the argument in the format
  * opt1=val1:opt2=val2:...:optn=valN,
  * for example bs=off:cond=on:drc=off:nwc=1.5:nicw=on:sos=on:sio=off:spl=sat:ssnc=none
  */
-void Options::readOptionsString(vstring optionsString,bool assign)
+void Options::readOptionsString(std::string optionsString,bool assign)
 {
   // repeatedly look for param=value
   while (optionsString != "") {
     size_t index1 = optionsString.find('=');
-    if (index1 == vstring::npos) {
+    if (index1 == std::string::npos) {
       error: USER_ERROR("bad option specification '" + optionsString+"'");
     }
     size_t index = optionsString.find(':');
-    if (index!=vstring::npos && index1 > index) {
+    if (index!=std::string::npos && index1 > index) {
       goto error;
     }
 
-    vstring param = optionsString.substr(0,index1);
-    vstring value;
-    if (index==vstring::npos) {
+    std::string param = optionsString.substr(0,index1);
+    std::string value;
+    if (index==std::string::npos) {
       value = optionsString.substr(index1+1);
     }
     else {
@@ -3245,7 +3242,7 @@ void Options::readOptionsString(vstring optionsString,bool assign)
             }
         }
         else{
-            vstring current = opt->getStringOfActual();
+            std::string current = opt->getStringOfActual();
             if(value==current){
                 USER_ERROR("option "+param+" uses forbidden value "+value);
             }
@@ -3267,7 +3264,7 @@ void Options::readOptionsString(vstring optionsString,bool assign)
       }
     }
 
-    if (index==vstring::npos) {
+    if (index==std::string::npos) {
       return;
     }
     optionsString = optionsString.substr(index+1);
@@ -3281,11 +3278,11 @@ void Options::readOptionsString(vstring optionsString,bool assign)
  *        in deciseconds
  * @throws UserErrorException if the test id is incorrect
  */
-void Options::readFromEncodedOptions (vstring testId)
+void Options::readFromEncodedOptions (std::string testId)
 {
   _testId.actualValue = testId;
 
-  vstring ma(testId,0,3); // the first 3 characters
+  std::string ma(testId,0,3); // the first 3 characters
   if (ma == "dis") {
     _saturationAlgorithm.actualValue = SaturationAlgorithm::DISCOUNT;
   }
@@ -3304,10 +3301,10 @@ void Options::readFromEncodedOptions (vstring testId)
 
   // after last '_' we have time limit
   size_t index = testId.find_last_of('_');
-  if (index == vstring::npos) { // not found
+  if (index == std::string::npos) { // not found
     goto error;
   }
-  vstring timeString = testId.substr(index+1);
+  std::string timeString = testId.substr(index+1);
   _timeLimitInDeciseconds.set(timeString);
   // setting assumes seconds as default, but encoded strings use deciseconds 
   _timeLimitInDeciseconds.actualValue = _timeLimitInDeciseconds.actualValue/10;
@@ -3324,7 +3321,7 @@ void Options::readFromEncodedOptions (vstring testId)
   }
 
   index = testId.find('_');
-  vstring sel = testId.substr(0,index);
+  std::string sel = testId.substr(0,index);
   _selection.set(sel);
   testId = testId.substr(index+1);
 
@@ -3333,7 +3330,7 @@ void Options::readFromEncodedOptions (vstring testId)
   }
 
   index = testId.find('_');
-  vstring awr = testId.substr(0,index);
+  std::string awr = testId.substr(0,index);
   _ageWeightRatio.set(awr.c_str());
   if (index==string::npos) {
     //there are no extra options
@@ -3351,13 +3348,13 @@ void Options::setForcedOptionValues()
 }
 
 /**
- * Return testId vstring that represents current values of the options
+ * Return testId std::string that represents current values of the options
  */
-vstring Options::generateEncodedOptions() const
+std::string Options::generateEncodedOptions() const
 {
-  vostringstream res;
+  std::ostringstream res;
   //saturation algorithm
-  vstring sat;
+  std::string sat;
   switch(_saturationAlgorithm.actualValue){
     case SaturationAlgorithm::LRS : sat="lrs"; break;
     case SaturationAlgorithm::DISCOUNT : sat="dis"; break;
@@ -3419,7 +3416,7 @@ vstring Options::generateEncodedOptions() const
     AbstractOptionValue* option = options.next();
     // TODO do we want to also filter by !isDefault?
     if(!forbidden.contains(option) && option->is_set && !option->isDefault()){
-      vstring name = option->shortName;
+      std::string name = option->shortName;
       if(name.empty()) name = option->longName;
       if(!first){ res<<":";}else{first=false;}
       res << name << "=" << option->getStringOfActual();
@@ -3620,18 +3617,18 @@ bool Options::checkProblemOptionConstraints(Property* prop, bool before_preproce
 }
 
 template<class A>
-Lib::vvector<A> parseCommaSeparatedList(vstring const& str) 
+std::vector<A> parseCommaSeparatedList(std::string const& str) 
 {
-  vstringstream stream(str);
-  Lib::vvector<A> parsed;
-  vstring cur;
+  std::stringstream stream(str);
+  std::vector<A> parsed;
+  std::string cur;
   while (std::getline(stream, cur, ',')) {
     parsed.push_back(StringUtils::parse<A>(cur));
   }
   return parsed;
 }
 
-Lib::vvector<int> Options::theorySplitQueueRatios() const
+std::vector<int> Options::theorySplitQueueRatios() const
 {
   auto inputRatios = parseCommaSeparatedList<int>(_theorySplitQueueRatios.actualValue);
 
@@ -3648,10 +3645,10 @@ Lib::vvector<int> Options::theorySplitQueueRatios() const
   return inputRatios;
 }
 
-Lib::vvector<float> Options::theorySplitQueueCutoffs() const
+std::vector<float> Options::theorySplitQueueCutoffs() const
 {
   // initialize cutoffs
-  Lib::vvector<float> cutoffs;
+  std::vector<float> cutoffs;
 
   /*
   if (_theorySplitQueueCutoffs.isDefault()) {
@@ -3682,9 +3679,9 @@ Lib::vvector<float> Options::theorySplitQueueCutoffs() const
   return cutoffs;
 }
 
-Lib::vvector<int> Options::avatarSplitQueueRatios() const
+std::vector<int> Options::avatarSplitQueueRatios() const
 {
-  Lib::vvector<int> inputRatios = parseCommaSeparatedList<int>(_avatarSplitQueueRatios.actualValue);
+  std::vector<int> inputRatios = parseCommaSeparatedList<int>(_avatarSplitQueueRatios.actualValue);
 
   // sanity checks
   if (inputRatios.size() < 2) {
@@ -3699,7 +3696,7 @@ Lib::vvector<int> Options::avatarSplitQueueRatios() const
   return inputRatios;
 }
 
-Lib::vvector<float> Options::avatarSplitQueueCutoffs() const
+std::vector<float> Options::avatarSplitQueueCutoffs() const
 {
   // initialize cutoffs and add float-max as last value
   auto cutoffs = parseCommaSeparatedList<float>(_avatarSplitQueueCutoffs.actualValue);
@@ -3719,7 +3716,7 @@ Lib::vvector<float> Options::avatarSplitQueueCutoffs() const
   return cutoffs;
 }
 
-Lib::vvector<int> Options::sineLevelSplitQueueRatios() const
+std::vector<int> Options::sineLevelSplitQueueRatios() const
 {
   auto inputRatios = parseCommaSeparatedList<int>(_sineLevelSplitQueueRatios.actualValue);
 
@@ -3736,7 +3733,7 @@ Lib::vvector<int> Options::sineLevelSplitQueueRatios() const
   return inputRatios;
 }
 
-Lib::vvector<float> Options::sineLevelSplitQueueCutoffs() const
+std::vector<float> Options::sineLevelSplitQueueCutoffs() const
 {
   // initialize cutoffs and add float-max as last value
   auto cutoffs = parseCommaSeparatedList<float>(_sineLevelSplitQueueCutoffs.actualValue);
@@ -3756,7 +3753,7 @@ Lib::vvector<float> Options::sineLevelSplitQueueCutoffs() const
   return cutoffs;
 }
 
-Lib::vvector<int> Options::positiveLiteralSplitQueueRatios() const
+std::vector<int> Options::positiveLiteralSplitQueueRatios() const
 {
   auto inputRatios = parseCommaSeparatedList<int>(_positiveLiteralSplitQueueRatios.actualValue);
 
@@ -3773,7 +3770,7 @@ Lib::vvector<int> Options::positiveLiteralSplitQueueRatios() const
   return inputRatios;
 }
 
-Lib::vvector<float> Options::positiveLiteralSplitQueueCutoffs() const
+std::vector<float> Options::positiveLiteralSplitQueueCutoffs() const
 {
   // initialize cutoffs and add float-max as last value
   auto cutoffs = parseCommaSeparatedList<float>(_positiveLiteralSplitQueueCutoffs.actualValue);

@@ -23,7 +23,7 @@ namespace Lib
 
 using namespace std;
 
-vstring StringUtils::replaceChar(vstring str, char src, char target)
+std::string StringUtils::replaceChar(std::string str, char src, char target)
 {
   size_t len=str.size();
   static DArray<char> buf;
@@ -42,10 +42,10 @@ vstring StringUtils::replaceChar(vstring str, char src, char target)
     tptr++;
     sptr++;
   }
-  return vstring(buf.array(), len);
+  return std::string(buf.array(), len);
 }
 
-void StringUtils::replaceAll(vstring& where, const vstring& from, const vstring& to)
+void StringUtils::replaceAll(std::string& where, const std::string& from, const std::string& to)
 {
   if(from.empty())
     return;
@@ -57,11 +57,11 @@ void StringUtils::replaceAll(vstring& where, const vstring& from, const vstring&
 }
 
 /**
- * Sanitize vstring so that it can be used as a valid suffix in the
+ * Sanitize std::string so that it can be used as a valid suffix in the
  * Signature::addFreshFunction() and Signature::addFreshPredicate()
  * functions.
  */
-vstring StringUtils::sanitizeSuffix(vstring str)
+std::string StringUtils::sanitizeSuffix(std::string str)
 {
   size_t len=str.size();
   static DArray<char> buf;
@@ -91,10 +91,10 @@ vstring StringUtils::sanitizeSuffix(vstring str)
     tptr++;
     sptr++;
   }
-  return vstring(buf.array(), len);
+  return std::string(buf.array(), len);
 }
 
-bool StringUtils::isPositiveInteger(vstring str)
+bool StringUtils::isPositiveInteger(std::string str)
 {
   size_t sz = str.size();
 
@@ -109,7 +109,7 @@ bool StringUtils::isPositiveInteger(vstring str)
   return true;
 }
 
-bool StringUtils::isPositiveDecimal(vstring str)
+bool StringUtils::isPositiveDecimal(std::string str)
 {
   size_t sz = str.size();
 
@@ -132,7 +132,7 @@ bool StringUtils::isPositiveDecimal(vstring str)
   return true;
 }
 
-void StringUtils::splitStr(const char* str, char delimiter, Stack<vstring>& strings)
+void StringUtils::splitStr(const char* str, char delimiter, Stack<std::string>& strings)
 {
   static Stack<char> currPart;
   currPart.reset();
@@ -153,7 +153,7 @@ void StringUtils::splitStr(const char* str, char delimiter, Stack<vstring>& stri
   strings.push(currPart.begin());
 }
 
-void StringUtils::dropEmpty(Stack<vstring>& strings)
+void StringUtils::dropEmpty(Stack<std::string>& strings)
 {
   unsigned i = 0;
   for (unsigned j = 0; j < strings.size(); j++) {
@@ -164,9 +164,9 @@ void StringUtils::dropEmpty(Stack<vstring>& strings)
   strings.truncate(i);
 }
 
-bool StringUtils::readEquality(const char* str, char eqChar, vstring& lhs, vstring& rhs)
+bool StringUtils::readEquality(const char* str, char eqChar, std::string& lhs, std::string& rhs)
 {
-  static Stack<vstring> parts;
+  static Stack<std::string> parts;
   parts.reset();
   splitStr(str, eqChar, parts);
   if(parts.size()!=2) {
@@ -180,16 +180,16 @@ bool StringUtils::readEquality(const char* str, char eqChar, vstring& lhs, vstri
 /**
  * If str doesn't contain equalities, false is returned and the content of pairs is undefined.
  */
-bool StringUtils::readEqualities(const char* str, char delimiter, char eqChar, DHMap<vstring,vstring>& pairs)
+bool StringUtils::readEqualities(const char* str, char delimiter, char eqChar, DHMap<std::string,std::string>& pairs)
 {
-  static Stack<vstring> parts;
+  static Stack<std::string> parts;
   parts.reset();
   splitStr(str, delimiter, parts);
 
-  Stack<vstring>::TopFirstIterator pit(parts);
+  Stack<std::string>::TopFirstIterator pit(parts);
   while(pit.hasNext()) {
-    vstring part = pit.next();
-    vstring lhs, rhs;
+    std::string part = pit.next();
+    std::string lhs, rhs;
     if(!readEquality(part.c_str(), eqChar, lhs, rhs)) {
       return false;
     }

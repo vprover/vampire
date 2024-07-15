@@ -12,6 +12,8 @@
  * Implements class AnswerExtractor.
  */
 
+#include <set>
+
 #include "Lib/DArray.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Stack.hpp"
@@ -154,7 +156,7 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
   Formula* out = new NegatedFormula(new QuantifiedFormula(EXISTS, eVars, eSrts, new JunctionFormula(AND, conjArgs)));
 
   if (skolemise) {
-    Map<int,vstring>* questionVars = Parse::TPTP::findQuestionVars(unit->number());
+    Map<int,std::string>* questionVars = Parse::TPTP::findQuestionVars(unit->number());
 
     VList* fVars = subNot->vars();
     SList* fSrts = subNot->sorts();
@@ -215,7 +217,7 @@ void AnswerLiteralManager::tryOutputAnswer(Clause* refutation, std::ostream& out
 
   out << "% SZS answers Tuple [";
 
-  vstringstream vss;
+  std::stringstream vss;
   optionalAnswerPrefix(vss);
   if (answer.size() > 1) {
     vss << "(";
@@ -245,7 +247,7 @@ void AnswerLiteralManager::tryOutputAnswer(Clause* refutation, std::ostream& out
       vss << "[";
       unsigned arity = aLit->arity();
 
-      Map<int,vstring>* questionVars = 0;
+      Map<int,std::string>* questionVars = 0;
       std::pair<Unit*,Literal*> unitAndLiteral;
       if (_originUnitsAndInjectedLiterals.find(aLit->functor(),unitAndLiteral)) {
         questionVars = Parse::TPTP::findQuestionVars(unitAndLiteral.first->number());
@@ -416,7 +418,7 @@ Clause* AnswerLiteralManager::getRefutation(Clause* answer)
 // PlainALManager
 //
 
-void PlainALManager::recordSkolemBinding(Term* skT,unsigned var,vstring vName)
+void PlainALManager::recordSkolemBinding(Term* skT,unsigned var,std::string vName)
 {
   _skolemNames.push(std::make_pair(skT,vName));
 }
@@ -435,7 +437,7 @@ void PlainALManager::optionalAnswerPrefix(std::ostream& out)
   }
 }
 
-vstring PlainALManager::postprocessAnswerString(vstring answer)
+std::string PlainALManager::postprocessAnswerString(std::string answer)
 {
   /** string replacement is not ideal:
    * - substrings elsewhere could be rewritten (not just the intended skolems)
@@ -452,7 +454,7 @@ vstring PlainALManager::postprocessAnswerString(vstring answer)
   auto it =  _skolemNames.iter();
   while (it.hasNext()) {
     auto [skT,vName] = it.next();
-    vstring to;
+    std::string to;
     Lib::StringUtils::replaceAll(answer,skT->toString(),vName);
   }
   return answer;
@@ -490,7 +492,7 @@ void SynthesisALManager::getNeededUnits(Clause* refutation, ClauseStack& premise
   }
 }
 
-void SynthesisALManager::recordSkolemBinding(Term* skTerm, unsigned var, vstring)
+void SynthesisALManager::recordSkolemBinding(Term* skTerm, unsigned var, std::string)
 {
   _skolemReplacement.bindSkolemToVar(skTerm, var);
 }
@@ -540,9 +542,7 @@ bool SynthesisALManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer
     }
   }
   // just a single literal answer
-  Clause* answerCl = new (1) Clause(1, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::INPUT));
-  (*answerCl)[0] = Literal::create(origLit,answerArgs.begin());
-  answer.push(answerCl);
+  answer.push(Clause::fromLiterals({Literal::create(origLit,answerArgs.begin())}, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::INPUT)));
   return true;
 }
 
@@ -639,7 +639,7 @@ Term* SynthesisALManager::translateToSynthesisConditionTerm(Literal* l)
   ASS(!l->isSpecial());
 
   unsigned arity = l->arity();
-  vstring fnName = "cond_";
+  std::string fnName = "cond_";
   if (l->isNegative()) {
     fnName.append("not_");
   }
@@ -700,7 +700,7 @@ TermList SynthesisALManager::ConjectureSkolemReplacement::transformTermList(Term
       if (sort == AtomicSort::intSort()) {
         return zero;
       } else {
-        vstring name = "cz_" + sort.toString();
+        std::string name = "cz_" + sort.toString();
         unsigned czfn;
         if (!env.signature->tryGetFunctionNumber(name, 0, czfn)) {
           czfn = env.signature->addFreshFunction(0, name.c_str());
@@ -711,7 +711,7 @@ TermList SynthesisALManager::ConjectureSkolemReplacement::transformTermList(Term
       }
     } else {
       Substitution s;
-      vset<unsigned> done;
+      std::set<unsigned> done;
       Kernel::VariableWithSortIterator vit(tl.term());
       while (vit.hasNext()) {
         pair<TermList, TermList> p = vit.next();
@@ -722,7 +722,7 @@ TermList SynthesisALManager::ConjectureSkolemReplacement::transformTermList(Term
           if (vsort == AtomicSort::intSort()) {
             s.bind(v, zero);
           } else {
-            vstring name = "cz_" + vsort.toString();
+            std::string name = "cz_" + vsort.toString();
             unsigned czfn;
             if (!env.signature->tryGetFunctionNumber(name, 0, czfn)) {
               czfn = env.signature->addFreshFunction(0, name.c_str());
@@ -752,7 +752,7 @@ TermList SynthesisALManager::ConjectureSkolemReplacement::transformSubterm(TermL
       if (t->functor() == getITEFunctionSymbol(sort)) {
         // Build condition
         Term* tcond = t->nthArgument(0)->term();
-        vstring condName = tcond->functionName();
+        std::string condName = tcond->functionName();
         unsigned pred = _condFnToPred.get(tcond->functor());
         Stack<TermList> args;
         for (unsigned i = 0; i < tcond->arity(); ++i) args.push(transform(*(tcond->nthArgument(i))));

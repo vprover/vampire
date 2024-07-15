@@ -134,10 +134,10 @@ public:
 
   void destroy();
   void destroyExceptInferenceObject();
-  vstring literalsOnlyToString() const;
-  vstring toString() const;
-  vstring toTPTPString() const;
-  vstring toNiceString() const;
+  std::string literalsOnlyToString() const;
+  std::string toString() const;
+  std::string toTPTPString() const;
+  std::string toNiceString() const;
 
   /** Return the clause store */
   Store store() const { return _store; }
@@ -272,7 +272,7 @@ public:
   void incNumActiveSplits() { _numActiveSplits++; }
   void decNumActiveSplits() { _numActiveSplits--; }
 
-  VirtualIterator<vstring> toSimpleClauseStrings();
+  VirtualIterator<std::string> toSimpleClauseStrings();
 
   void setAux()
   {

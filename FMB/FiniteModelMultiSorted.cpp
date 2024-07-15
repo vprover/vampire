@@ -179,13 +179,13 @@ bool FiniteModelMultiSorted::isPartial()
   return true;
 }
 
-vstring FiniteModelMultiSorted::toString()
+std::string FiniteModelMultiSorted::toString()
 {
-  vostringstream modelStm;
+  std::ostringstream modelStm;
 
   bool printIntroduced = false;
 
-  static DArray<DArray<vstring>> cnames;
+  static DArray<DArray<std::string>> cnames;
   cnames.ensure(env.signature->typeCons());
 
   //Output sorts and their sizes 
@@ -197,8 +197,8 @@ vstring FiniteModelMultiSorted::toString()
     if(env.signature->isInterpretedNonDefault(s))
       continue;
 
-    vstring sortName = env.signature->typeConName(s);
-    vstring sortNameLabel = (env.signature->isBoolCon(s)) ? "bool" : sortName;
+    std::string sortName = env.signature->typeConName(s);
+    std::string sortNameLabel = (env.signature->isBoolCon(s)) ? "bool" : sortName;
 
     // skip declaring $i, we know what it is
     if(!env.signature->isDefaultSortCon(s))
@@ -212,7 +212,7 @@ vstring FiniteModelMultiSorted::toString()
     for(unsigned i=1;i<=size;i++){
       modelStm << "tff(" << append(prepend("declare_", sortNameLabel), Int::toString(i).c_str()) << ",type,";
       int frep = sortRepr[s][i];
-      vstring cname = prepend("fmb_", sortNameLabel+"_"+Lib::Int::toString(i));
+      std::string cname = prepend("fmb_", sortNameLabel+"_"+Lib::Int::toString(i));
       if(frep >= 0){
         cname = env.signature->functionName(frep);
       }
@@ -258,14 +258,14 @@ vstring FiniteModelMultiSorted::toString()
     unsigned arity = env.signature->functionArity(f);
     if(arity>0) continue;
     if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;
-    vstring name = env.signature->functionName(f);
+    std::string name = env.signature->functionName(f);
     unsigned res = f_interpretation[f_offsets[f]];
     TermList srtT = env.signature->getFunction(f)->fnType()->result();
     unsigned srt = srtT.term()->functor();
-    vstring cname = cnames[srt][res];
+    std::string cname = cnames[srt][res];
     if(name == cname) continue;
 
-    vstring sortName = env.signature->typeConName(srt);
+    std::string sortName = env.signature->typeConName(srt);
     modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<":"<<sortName<<")."<<endl;
     if(res>0){ 
       modelStm << "tff("<<append(name,"_definition")<<",axiom,"<<name<<" = " << cname << ")."<<endl;
@@ -281,7 +281,7 @@ vstring FiniteModelMultiSorted::toString()
     unsigned arity = env.signature->functionArity(f);
     if(arity==0) continue;
     if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;
-    vstring name = env.signature->functionName(f);
+    std::string name = env.signature->functionName(f);
 
     OperatorType* sig = env.signature->getFunction(f)->fnType();
     modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": (";
@@ -356,7 +356,7 @@ fModelLabel:
     unsigned arity = env.signature->predicateArity(f);
     if(arity>0) continue;
     if(!printIntroduced && env.signature->getPredicate(f)->introduced()) continue;
-    vstring name = env.signature->predicateName(f);
+    std::string name = env.signature->predicateName(f);
     modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": $o)."<<endl;
     unsigned res = p_interpretation[p_offsets[f]];
     if(res==2){
@@ -375,7 +375,7 @@ fModelLabel:
     unsigned arity = env.signature->predicateArity(f);
     if(arity==0) continue;
     if(!printIntroduced && env.signature->getPredicate(f)->introduced()) continue;
-    vstring name = env.signature->predicateName(f);
+    std::string name = env.signature->predicateName(f);
 
     OperatorType* sig = env.signature->getPredicate(f)->predType();
     modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": (";

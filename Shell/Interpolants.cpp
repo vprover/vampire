@@ -367,7 +367,7 @@ namespace Shell
         FormulaList* outerConjunction = FormulaList::empty();
 
         // statistics only
-        vstring nestednesses;
+        std::string nestednesses;
 
         for (auto& rootBuilderPair : contributions) {
           InterpolantBuilder& builder = rootBuilderPair.second;

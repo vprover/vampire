@@ -176,7 +176,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
   DArray<unsigned> sortPredicates(env.signature->typeCons());
   for(unsigned s=0;s<env.signature->typeCons();s++){
     if(!isMonotonic[s]){
-      vstring name = "sortPredicate_"+env.signature->typeConName(s);
+      std::string name = "sortPredicate_"+env.signature->typeConName(s);
       unsigned p = env.signature->addFreshPredicate(1,name.c_str());
       env.signature->getPredicate(p)->setType(OperatorType::getPredicateType({TermList(AtomicSort::createConstant(s))}));
       sortPredicates[s] = p;
@@ -329,7 +329,7 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
   DArray<unsigned> sortFunctions(env.signature->typeCons());
   for(unsigned s=0;s<env.signature->typeCons();s++){
     if(!isMonotonic[s]){
-      vstring name = "sortFunction_"+env.signature->typeConName(s);
+      std::string name = "sortFunction_"+env.signature->typeConName(s);
       unsigned f = env.signature->addFreshFunction(1,name.c_str());
       TermList sT = TermList(AtomicSort::createConstant(s));
       env.signature->getFunction(f)->setType(OperatorType::getFunctionType({sT},sT));

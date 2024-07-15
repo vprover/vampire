@@ -1557,8 +1557,8 @@ MainLoopResult FiniteModelBuilder::runImpl()
 #if VTRACE_FMB
       doPrinting = true;
 #endif
-      vstring min_res = "[";
-      vstring max_res = "[";
+      std::string min_res = "[";
+      std::string max_res = "[";
       for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){
         if(_distinctSortMaxs[s]==UINT_MAX){
           max_res+="max";
@@ -1801,7 +1801,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
           }
         } else {
           return MainLoopResult(Statistics::REFUTATION,
-              Clause::empty(NonspecificInferenceMany(InferenceRule::MODEL_NOT_FOUND,_prb.units()));
+              Clause::empty(NonspecificInferenceMany(InferenceRule::MODEL_NOT_FOUND,_prb.units())));
         }
       } else { // i.e. (!_xmass)
         static Constraint_Generator_Vals nogood;
@@ -2484,7 +2484,7 @@ bool FiniteModelBuilder::SmtBasedDSAE::init(unsigned _startModelSize, DArray<uns
     // _distinctSortSizes.size() - many int variables
     for(unsigned i=0;i<_sizeConstants.size();i++) {
       _sizeConstants[i] = new z3::expr(_context);
-      *_sizeConstants[i] = _context.int_const((vstring("s")+Int::toString(i)).c_str());
+      *_sizeConstants[i] = _context.int_const((std::string("s")+Int::toString(i)).c_str());
 
       // asserted to be greater than zero
       _smtSolver.add(*_sizeConstants[i] > zero);
