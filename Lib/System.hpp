@@ -38,16 +38,6 @@ public:
   }
 
   static void registerForSIGHUPOnParentDeath();
-
-  /**
-   * Register the value of the argv[0] argument of the main function, so that
-   * it can be later used to determine the executable directory
-   */
-  static void registerArgv0(const char* argv0) { s_argv0 = argv0; }
-  static const char *getArgv0() { return s_argv0; }
-
-private:
-  static const char* s_argv0;
 };
 
 }

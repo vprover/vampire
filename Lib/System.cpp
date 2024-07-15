@@ -17,10 +17,6 @@
 
 #include <csignal>
 
-// TODO these should probably be guarded
-// for getpid
-#include <unistd.h>
-
 #ifdef __linux__
 #include <sys/prctl.h>
 #endif
@@ -36,8 +32,6 @@
 #include "System.hpp"
 
 namespace Lib {
-
-const char* System::s_argv0 = 0;
 
 const char* signalToString (int sigNum)
 {
@@ -123,7 +117,7 @@ void handleSignal (int sigNum)
       if (!Shell::UIHelper::portfolioParent) {
         if(env.statistics)
           env.statistics->print(std::cout);
-        Debug::Tracer::printStack(std::cout);
+        Debug::Tracer::printStack();
       }
       System::terminateImmediately(VAMP_RESULT_STATUS_OTHER_SIGNAL);
     }
