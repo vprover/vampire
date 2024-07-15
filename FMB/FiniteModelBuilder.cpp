@@ -2603,7 +2603,7 @@ void FiniteModelBuilder::SmtBasedDSAE::reportZ3OutOfMemory()
   if(env.statistics) {
     env.statistics->print(std::cout);
   }
-  Debug::Tracer::printStack(std::cout);
+  Debug::Tracer::printStack();
   System::terminateImmediately(1);
 }
 
