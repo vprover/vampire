@@ -17,8 +17,9 @@
 #ifndef __Stack__
 #define __Stack__
 
-#include <cstdlib>
 #include <algorithm>
+#include <cstdlib>
+#include <ostream>
 
 #include "Forwards.hpp"
 #include "Lib/TypeList.hpp"

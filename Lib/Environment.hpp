@@ -51,7 +51,7 @@ public:
 
   DHMap<unsigned, unsigned>* predicateSineLevels;
 
-  DHMap<const Kernel::Unit*,vstring>* proofExtra; // maps Unit* pointers to the associated proof extra string, if available
+  DHMap<const Kernel::Unit*,std::string>* proofExtra; // maps Unit* pointers to the associated proof extra string, if available
 
   /** Time remaining until the end of the time-limit in miliseconds */
   int remainingTime() const;

@@ -79,9 +79,9 @@ TEST_FUN(safeRecMaxDeg)
 
 struct StrRepWorker : public SRWorkerBase
 {
-  vstring post(unsigned obj, size_t childCnt, vstring* childRes)
+  std::string post(unsigned obj, size_t childCnt, std::string* childRes)
   {
-    vstring res = Int::toString(obj);
+    std::string res = Int::toString(obj);
     if(childCnt==0) {
       return res;
     }
@@ -101,7 +101,7 @@ TEST_FUN(safeRecStrRep)
 {
   StrRepWorker wrk;
 
-  vstring res = SafeRecursion<unsigned,vstring,StrRepWorker>(wrk)(0);
+  std::string res = SafeRecursion<unsigned,std::string,StrRepWorker>(wrk)(0);
   ASS_EQ(res,"0(1,2,3(4,5,6(8,9),7))");
 }
 

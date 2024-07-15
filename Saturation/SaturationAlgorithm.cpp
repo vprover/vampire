@@ -22,7 +22,6 @@
 #include "Lib/Timer.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/System.hpp"
-#include "Lib/STL.hpp"
 
 #include "Indexing/LiteralIndexingStructure.hpp"
 
@@ -65,7 +64,7 @@
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/ForwardLiteralRewriting.hpp"
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
-#include "Inferences/InvalidAnswerLiteralRemoval.hpp"
+#include "Inferences/InvalidAnswerLiteralRemovals.hpp"
 #include "Inferences/ForwardSubsumptionDemodulation.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/InnerRewriting.hpp"
@@ -95,7 +94,7 @@
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
-#include "Shell/AnswerExtractor.hpp"
+#include "Shell/AnswerLiteralManager.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
@@ -131,16 +130,16 @@ using namespace Saturation;
 
 SaturationAlgorithm* SaturationAlgorithm::s_instance = 0;
 
-std::unique_ptr<PassiveClauseContainer> makeLevel0(bool isOutermost, const Options& opt, vstring name)
+std::unique_ptr<PassiveClauseContainer> makeLevel0(bool isOutermost, const Options& opt, std::string name)
 {
   return std::make_unique<AWPassiveClauseContainer>(isOutermost, opt, name + "AWQ");
 }
 
-std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Options& opt, vstring name)
+std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Options& opt, std::string name)
 {
   if (opt.useTheorySplitQueues())
   {
-    Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
+    std::vector<std::unique_ptr<PassiveClauseContainer>> queues;
     auto cutoffs = opt.theorySplitQueueCutoffs();
     for (unsigned i = 0; i < cutoffs.size(); i++)
     {
@@ -155,11 +154,11 @@ std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Optio
   }
 }
 
-std::unique_ptr<PassiveClauseContainer> makeLevel2(bool isOutermost, const Options& opt, vstring name)
+std::unique_ptr<PassiveClauseContainer> makeLevel2(bool isOutermost, const Options& opt, std::string name)
 {
   if (opt.useAvatarSplitQueues())
   {
-    Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
+    std::vector<std::unique_ptr<PassiveClauseContainer>> queues;
     auto cutoffs = opt.avatarSplitQueueCutoffs();
     for (unsigned i = 0; i < cutoffs.size(); i++)
     {
@@ -174,11 +173,11 @@ std::unique_ptr<PassiveClauseContainer> makeLevel2(bool isOutermost, const Optio
   }
 }
 
-std::unique_ptr<PassiveClauseContainer> makeLevel3(bool isOutermost, const Options& opt, vstring name)
+std::unique_ptr<PassiveClauseContainer> makeLevel3(bool isOutermost, const Options& opt, std::string name)
 {
   if (opt.useSineLevelSplitQueues())
   {
-    Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
+    std::vector<std::unique_ptr<PassiveClauseContainer>> queues;
     auto cutoffs = opt.sineLevelSplitQueueCutoffs();
     for (unsigned i = 0; i < cutoffs.size(); i++)
     {
@@ -193,12 +192,12 @@ std::unique_ptr<PassiveClauseContainer> makeLevel3(bool isOutermost, const Optio
   }
 }
 
-std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Options& opt, vstring name)
+std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Options& opt, std::string name)
 {
   if (opt.usePositiveLiteralSplitQueues())
   {
-    Lib::vvector<std::unique_ptr<PassiveClauseContainer>> queues;
-    Lib::vvector<float> cutoffs = opt.positiveLiteralSplitQueueCutoffs();
+    std::vector<std::unique_ptr<PassiveClauseContainer>> queues;
+    std::vector<float> cutoffs = opt.positiveLiteralSplitQueueCutoffs();
     for (unsigned i = 0; i < cutoffs.size(); i++)
     {
       auto queueName = name + "PLSQ" + Int::toString(cutoffs[i]) + ":";
@@ -910,32 +909,9 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
   if (isRefutation(cl)) {
     onNonRedundantClause(cl);
 
-    if(cl->isPureTheoryDescendant()) {
-      ASSERTION_VIOLATION_REP("A pure theory descendant is empty, which means theory axioms are inconsistent");
-      reportSpiderFail();
-      // this is a poor way of handling this in release mode but it prevents unsound proofs
-      throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
-    }
-
-    //TODO - warning, derivedFromInput potentially inefficient
-    if(!cl->derivedFromInput()){
-      ASSERTION_VIOLATION_REP("The proof does not contain any input clauses.");
-      reportSpiderFail();
-      // this is a poor way of handling this in release mode but it prevents unsound proofs
-      throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
-    }
-    
-
-    // Global Subsumption doesn't set the input type the way we want so we can't do this for now
-    // TODO think of a better fix
-    //if(cl->inputType() == UnitInputType::AXIOM){
-    if(UIHelper::haveConjecture() && !cl->derivedFromGoalCheck()){
-      UIHelper::setConjectureInProof(false);
-    }
-
     throw RefutationFoundException(cl);
   }
-  // as Clauses no longer have prop parts the only reason for an empty 
+  // as Clauses no longer have prop parts the only reason for an empty
   // clause not being a refutation is if it has splits
 
   if (_splitter && _splitter->handleEmptyClause(cl)) {
@@ -1695,11 +1671,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.showSymbolElimination()) {
     res->_symEl=new SymElOutput();
   }
-  if (opt.questionAnswering()==Options::QuestionAnsweringMode::ANSWER_LITERAL) {
-    res->_answerLiteralManager = AnswerLiteralManager::getInstance();
-  } else if (opt.questionAnswering()==Options::QuestionAnsweringMode::SYNTHESIS) {
-    res->_answerLiteralManager = SynthesisManager::getInstance();
-  }
+  res->_answerLiteralManager = AnswerLiteralManager::getInstance(); // selects the right one, according to options!
+  ASS(!res->_answerLiteralManager||opt.questionAnswering()!=Options::QuestionAnsweringMode::OFF);
+  ASS( res->_answerLiteralManager||opt.questionAnswering()==Options::QuestionAnsweringMode::OFF);
   return res;
 } // SaturationAlgorithm::createFromOptions
 
@@ -1792,7 +1766,7 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
     }
 
     if (env.options->pushUnaryMinus()) {
-      res->addFront(new PushUnaryMinus()); 
+      res->addFront(new PushUnaryMinus());
     }
 
   }
@@ -1805,8 +1779,14 @@ ImmediateSimplificationEngine* SaturationAlgorithm::createISE(Problem& prb, cons
   }
   res->addFront(new DuplicateLiteralRemovalISE());
 
-  if (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS)
-     res->addFront(new InvalidAnswerLiteralRemoval());
+  if (env.options->questionAnswering() == Options::QuestionAnsweringMode::PLAIN) {
+    res->addFront(new AnswerLiteralResolver());
+    if (env.options->questionAnsweringAvoidThese() != "") {
+      res->addFront(new UndesiredAnswerLiteralRemoval(env.options->questionAnsweringAvoidThese()));
+    }
+  } else if (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) {
+    res->addFront(new UncomputableAnswerLiteralRemoval());
+  }
   return res;
 }
 

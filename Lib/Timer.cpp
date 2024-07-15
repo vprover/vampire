@@ -216,7 +216,7 @@ void printMSString(std::ostream &str, int ms)
   str<<msonly<<" s";
 }
 
-vstring msToSecondsString(int ms)
+std::string msToSecondsString(int ms)
 {
   return Int::toString(static_cast<float>(ms)/1000)+" s";
 }

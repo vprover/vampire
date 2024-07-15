@@ -146,7 +146,7 @@ TermList LambdaElimination::elimLambda(Formula* formula)
       Formula* lhs = formula->left();
       Formula* rhs = formula->right();
                     
-      vstring name = (conn == IFF ? "vIFF" : (conn == IMP ? "vIMP" : "vXOR"));
+      std::string name = (conn == IFF ? "vIFF" : (conn == IMP ? "vIMP" : "vXOR"));
       constant = TermList(Term::createConstant(env.signature->getBinaryProxy(name)));
 
       TermList form1 = elimLambda(lhs);
@@ -165,7 +165,7 @@ TermList LambdaElimination::elimLambda(Formula* formula)
     case OR:{
       FormulaList::Iterator argsIt(formula->args());
       
-      vstring name = (conn == AND ? "vAND" : "vOR");
+      std::string name = (conn == AND ? "vAND" : "vOR");
       constant = TermList(Term::createConstant(env.signature->getBinaryProxy(name)));
       
       /*TermListComparator tlc;
@@ -209,7 +209,7 @@ TermList LambdaElimination::elimLambda(Formula* formula)
       VList* var = VList::singleton(0);
 
       TermList form = elimLambda(formula->qarg());
-      vstring name = (conn == FORALL ? "vPI" : "vSIGMA");
+      std::string name = (conn == FORALL ? "vPI" : "vSIGMA");
       unsigned proxy = env.signature->getPiSigmaProxy(name);
 
       TermList s;

@@ -17,9 +17,7 @@
 #define __Timer__
 
 #include <ostream>
-
-#include "Lib/Portability.hpp"
-#include "Lib/VString.hpp"
+#include <string>
 
 namespace Lib {
 namespace Timer {
@@ -40,7 +38,7 @@ namespace Timer {
 
   // output times in various formats (?!)
   void printMSString(std::ostream &, int);
-  vstring msToSecondsString(int);
+  std::string msToSecondsString(int);
 
   // instruction limiting stuff below - no-op if !VAMPIRE_PERF_EXISTS
 

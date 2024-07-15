@@ -21,6 +21,9 @@
 
 #include "Allocator.hpp"
 
+#include <cstdlib>
+#include <limits>
+
 #ifndef INDIVIDUAL_ALLOCATIONS
 Lib::SmallObjectAllocator Lib::GLOBAL_SMALL_OBJECT_ALLOCATOR;
 #endif

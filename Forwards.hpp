@@ -15,7 +15,7 @@
 #ifndef __Forwards__
 #define __Forwards__
 
-#include "Lib/VString.hpp"
+#include <memory>
 
 namespace Lib
 {
@@ -35,7 +35,7 @@ template<typename T> class List;
 template<typename T> class SharedSet;
 
 typedef List<int> IntList;
-typedef Stack<vstring> StringStack;
+typedef Stack<std::string> StringStack;
 
 class DefaultHash;
 class DefaultHash2;
