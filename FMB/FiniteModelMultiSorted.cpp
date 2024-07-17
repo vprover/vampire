@@ -123,7 +123,7 @@ void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsi
       //cout << env.sorts->sortName(srt) << " and " << res << endl;
       sortRepr[srtU][res]=f;
     }
-  } 
+  }
 
   unsigned var = f_offsets[f];
   unsigned mult = 1;
@@ -136,7 +136,7 @@ void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsi
 
   //TODO should be a zero array, should check if previously assigned
   //     check consistency and only update coverage if not defined already
-  
+
   ASS_L(var, f_interpretation.size());
   f_interpretation[var] = res;
 
@@ -242,7 +242,7 @@ std::string FiniteModelMultiSorted::toString()
     for(unsigned i=1;i<=size;i++){
       for(unsigned j=i+1;j<=size;j++){
         c++;
-        modelStm << cnames[s][i] <<" != " << cnames[s][j]; 
+        modelStm << cnames[s][i] <<" != " << cnames[s][j];
         if(!(i==size-1 && j==size)){
            modelStm << " & ";
            if(c%5==0){ modelStm << endl << "         "; }
@@ -269,7 +269,7 @@ std::string FiniteModelMultiSorted::toString()
 
     std::string sortName = env.signature->typeConName(srt);
     modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<":"<<sortName<<")."<<endl;
-    if(res>0){ 
+    if(res>0){
       modelStm << "tff("<<append(name,"_definition")<<",axiom,"<<name<<" = " << cname << ")."<<endl;
     }
     else{

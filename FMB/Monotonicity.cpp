@@ -154,7 +154,7 @@ bool Monotonicity::guards(Literal* l, unsigned var, Stack<SATLiteral>& slits)
 }
 
 
-void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<unsigned>& del_f)
+void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const DArray<unsigned>& del_f)
 {
   // First compute the monotonic sorts
   DArray<bool> isMonotonic(env.signature->typeCons());

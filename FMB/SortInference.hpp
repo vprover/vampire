@@ -43,7 +43,7 @@ struct SortedSignature{
 
     // gives the maximum size of a sort
     DArray<unsigned> sortBounds;
-    
+
     // the number of distinct sorts that might have different sizes
     unsigned distinctSorts;
 
@@ -88,25 +88,25 @@ public:
                   _print = env.options->showFMBsortInfo();
 
                    // ignore inference if there are no clauses
-                  _ignoreInference = !clauses; 
+                  _ignoreInference = !clauses;
                   _expandSubsorts = env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::EXPAND;
 
                   _usingMonotonicity = true;
-                  _collapsingMonotonicSorts = (env.options->fmbAdjustSorts() != Options::FMBAdjustSorts::OFF && 
+                  _collapsingMonotonicSorts = (env.options->fmbAdjustSorts() != Options::FMBAdjustSorts::OFF &&
                                                env.options->fmbAdjustSorts() != Options::FMBAdjustSorts::EXPAND);
-                  _assumeMonotonic = _collapsingMonotonicSorts && 
+                  _assumeMonotonic = _collapsingMonotonicSorts &&
                                      env.options->fmbAdjustSorts() != Options::FMBAdjustSorts::GROUP;
 
                   _distinctSorts=0;
                   _collapsed=0;
 
                   ASS(! (_expandSubsorts && _collapsingMonotonicSorts) );
-                  ASS( _collapsingMonotonicSorts || !_assumeMonotonic); 
+                  ASS( _collapsingMonotonicSorts || !_assumeMonotonic);
                 }
 
-   void doInference();                
+   void doInference();
 
-   SortedSignature* getSignature(){ return _sig; } 
+   SortedSignature* getSignature(){ return _sig; }
 
 private:
 

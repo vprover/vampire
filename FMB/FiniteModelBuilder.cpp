@@ -1988,8 +1988,8 @@ fModelLabel:
              // This means that there is no result for this input
              // This is a result of the finite sort bounding and the argument
              // says that we can equate this domain element to a smaller one below the bound
-             //TODO fix this 
-             //cout << "NOT FOUND for " << env.signature->functionName(f) << endl; 
+             //TODO fix this
+             //cout << "NOT FOUND for " << env.signature->functionName(f) << endl;
           }
 
           goto fModelLabel;
@@ -1998,7 +1998,7 @@ fModelLabel:
   }
 
 
-  //Record interpretation of prop symbols 
+  //Record interpretation of prop symbols
   static const DArray<unsigned> emptyG(0);
   for(unsigned f=1;f<env.signature->predicates();f++){
     if(env.signature->predicateArity(f)>0) continue;
@@ -2006,14 +2006,14 @@ fModelLabel:
     if(_partiallyDeletedPredicates.find(f)) continue;
 
     bool res;
-    if(!_trivialPredicates.find(f,res)){ 
+    if(!_trivialPredicates.find(f,res)){
       SATLiteral slit = getSATLiteral(f,emptyG,true,false);
-      res=_solver->trueInAssignment(slit); 
+      res=_solver->trueInAssignment(slit);
     }
     model.addPropositionalDefinition(f,res);
   }
 
-  //Record interpretation of predicates 
+  //Record interpretation of predicates
   for(unsigned f=1;f<env.signature->predicates();f++){
     unsigned arity = env.signature->predicateArity(f);
     if(arity==0) continue;
@@ -2040,7 +2040,7 @@ fModelLabel:
 
 pModelLabel:
       for(unsigned i=arity-1;i+1!=0;i--){
-    
+
         if(args[i]==_sortModelSizes[f_signature[i]]){
           grounding[i]=1;
           args[i]=1;

@@ -135,7 +135,7 @@ private:
   // are used to give the interpretation of the function/predicate if a model is found
   DHMap<unsigned,Literal*> _deletedFunctions;
   DHMap<unsigned,Unit*> _deletedPredicates;
-  DHMap<unsigned,Unit*> _partiallyDeletedPredicates; 
+  DHMap<unsigned,Unit*> _partiallyDeletedPredicates;
   DHMap<unsigned,bool> _trivialPredicates;
   // if del_f[i] (resp del_p[i]) is true then that function (resp predicate) should be ignored
   DArray<unsigned> del_f;
