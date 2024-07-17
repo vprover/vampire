@@ -26,6 +26,8 @@
 
 #include "Statistics.hpp"
 
+using namespace std;
+
 namespace Indexing
 {
 
@@ -36,6 +38,18 @@ public:
   SubstitutionCoverTree(Clause* cl) : _varSorts()
   {
     _clauseCodeTree=false;
+#if VDEBUG
+    _cl = cl;
+#endif
+
+#if LOG_LEAVES
+    _printLeaf = [](ostream& str, const CodeOp* op) {
+      auto ld = op->getSuccessResult<LeafData>();
+      if (ld->comp) {
+        str << " " << ld->comp->toString();
+      }
+    };
+#endif
     for (unsigned i = 0; i < cl->length(); i++) {
       SortHelper::collectVariableSorts((*cl)[i], _varSorts);
     }

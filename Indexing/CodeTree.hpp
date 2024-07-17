@@ -36,6 +36,8 @@
 //#define LOG_OP(x) std::cout<<x<<std::endl
 //#define LOG_OP(x) if(TimeCounter::isBeingMeasured(TC_FORWARD_SUBSUMPTION)) { std::cout<<x<<std::endl; }
 
+#define LOG_LEAVES 1
+
 namespace Indexing {
 
 using namespace Lib;
@@ -57,6 +59,9 @@ protected:
   * (the details are expected to be descendant specific)
   */
   void (*_onCodeOpDestroying)(CodeOp* op);
+#if LOG_LEAVES
+  void (*_printLeaf)(std::ostream& out, const CodeOp* op);
+#endif
       
 public:
   CodeTree();
@@ -204,7 +209,7 @@ public:
       return _data<Term>();
     }
 
-    template<class T> inline T* getSuccessResult() { ASS(isSuccess()); return _data<T>(); }
+    template<class T> inline T* getSuccessResult() const { ASS(isSuccess()); return _data<T>(); }
 
     inline ILStruct* getILS()
     {
