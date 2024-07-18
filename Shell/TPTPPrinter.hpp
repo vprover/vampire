@@ -35,22 +35,23 @@ public:
   TPTPPrinter(std::ostream* tgtStream=0);
 
   void print(Unit* u);
-  void printAsClaim(vstring name, Unit* u);
-  void printWithRole(vstring name, vstring role, Unit* u, bool includeSplitLevels = true);
+  void printAsClaim(std::string name, Unit* u);
+  void printWithRole(std::string name, std::string role, Unit* u, bool includeSplitLevels = true);
 
-  static vstring toString(const Unit*);
-  static vstring toString(const Formula*);
-  static vstring toString(const Term*);
-  static vstring toString(const Literal*);
+  static std::string toString(const Unit*);
+  static std::string toString(const Formula*);
+  static std::string toString(const Term*);
+  static std::string toString(const Literal*);
 
 private:
 
-  vstring getBodyStr(Unit* u, bool includeSplitLevels);
+  std::string getBodyStr(Unit* u, bool includeSplitLevels);
 
   void ensureHeadersPrinted(Unit* u);
   void outputSymbolTypeDefinitions(unsigned symNumber, SymbolType symType);
 
-  void printTffWrapper(Unit* u, vstring bodyStr);
+  void ensureNecesarySorts();
+  void printTffWrapper(Unit* u, std::string bodyStr);
 
   std::ostream& tgt();
 

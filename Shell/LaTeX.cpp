@@ -49,9 +49,9 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
-vstring LaTeX::header()
+std::string LaTeX::header()
 {
-    vstring res =  "\\documentclass[border=10pt,preview,multi,varwidth=\\maxdimen]{standalone}\n"
+    std::string res =  "\\documentclass[border=10pt,preview,multi,varwidth=\\maxdimen]{standalone}\n"
     "\\usepackage{latexsym}\n"
     "\\newenvironment{VampireStep}{}{}\n"
     "\\standaloneenv{VampireStep}\n"
@@ -84,7 +84,7 @@ vstring LaTeX::header()
     return res;
 }
 
-vstring LaTeX::footer()
+std::string LaTeX::footer()
 {
     return "\\end{document}\n";
 }
@@ -94,9 +94,9 @@ vstring LaTeX::footer()
  * Convert the refutation to LaTeX
  * @since 04/01/2004 Manchester
  */
-vstring LaTeX::refutationToString(Unit* ref)
+std::string LaTeX::refutationToString(Unit* ref)
 {
-  vstring res = header(); 
+  std::string res = header(); 
 
   Stack<Unit*> outKernel;
   Set<Unit*> handledKernel;
@@ -160,7 +160,7 @@ vstring LaTeX::refutationToString(Unit* ref)
 }
 
 
-vstring LaTeX::toString(Unit* u)
+std::string LaTeX::toString(Unit* u)
 {
   if(u->isClause()) {
     return toString(static_cast<Clause*>(u));
@@ -169,11 +169,11 @@ vstring LaTeX::toString(Unit* u)
   }
 }
 
-vstring replaceNeg(vstring s)
+std::string replaceNeg(std::string s)
 {
     size_t start_pos = s.find("~",0);
     if(start_pos != std::string::npos){
-      s.replace(start_pos,1,vstring(" \\neg "));
+      s.replace(start_pos,1,std::string(" \\neg "));
     }
     return s;
 }
@@ -187,14 +187,14 @@ vstring replaceNeg(vstring s)
  * @since 11/12/2004 Manchester, true and false added
  * @since 29/04/2005 Manchester, inequality instead of negation of equality
  */
-vstring LaTeX::toString (Formula* f) const
+std::string LaTeX::toString (Formula* f) const
 {
-  static vstring names [] =
+  static std::string names [] =
   { "", " \\Vand ", " \\Vor ", " \\Vimp ", " \\Viff ", " \\Vxor ",
 	  "\\neg ", "\\forall ", "\\exists ", "\bot", "\top", "", ""};
 
   Connective c = f->connective();
-  vstring con = names[(int)c];
+  std::string con = names[(int)c];
   switch (c) {
   case LITERAL:
     return toString(f->literal());
@@ -204,7 +204,7 @@ vstring LaTeX::toString (Formula* f) const
   {
     FormulaList::Iterator arg(f->args());
     ASS(arg.hasNext());
-    vstring result = toString(arg.next(),c);
+    std::string result = toString(arg.next(),c);
     while (arg.hasNext()) {
       result += con + toString(arg.next(),c);
     }
@@ -227,10 +227,10 @@ vstring LaTeX::toString (Formula* f) const
   case FORALL:
   case EXISTS:
   {
-    vstring result("(");
+    std::string result("(");
     VList::Iterator vs(f->vars());
     while (vs.hasNext()) {
-      result += con + varToString(vs.next()) + vstring(" ");
+      result += con + varToString(vs.next()) + std::string(" ");
     }
     return result + ")" + toString(f->qarg(),c);
   }
@@ -259,10 +259,10 @@ vstring LaTeX::toString (Formula* f) const
  * @param outer connective of the outer formula
  * @since 09/12/2003 Manchester
  */
-vstring LaTeX::toString (Formula* f, Connective outer) const
+std::string LaTeX::toString (Formula* f, Connective outer) const
 {
   return f->parenthesesRequired(outer) ?
-	  vstring("(") + toString(f) + ")" :
+	  std::string("(") + toString(f) + ")" :
 	  toString(f);
 } // LaTeX::toString (const Formula&, Connective outer)
 
@@ -272,16 +272,16 @@ vstring LaTeX::toString (Formula* f, Connective outer) const
  * @since 23/10/2003 Manchester, implemented as stream output function
  * @since 09/12/2003 Manchester
  */
-vstring LaTeX::toString (Clause* c)
+std::string LaTeX::toString (Clause* c)
 {
-  vstring result;
+  std::string result;
 
   if (c->isEmpty()) {
     if(c->splits() && !c->splits()->isEmpty()){
       auto sit = c->splits()->iter();
       result = "\\mathit{false}";
       while(sit.hasNext()){
-        result += vstring(" \\Vor ") + replaceNeg(Saturation::Splitter::getFormulaStringFromName(sit.next(),true /*negated*/));
+        result += std::string(" \\Vor ") + replaceNeg(Saturation::Splitter::getFormulaStringFromName(sit.next(),true /*negated*/));
       }
     }
     else{
@@ -293,12 +293,12 @@ vstring LaTeX::toString (Clause* c)
 
     unsigned clen=c->length();
     for(unsigned i=1;i<clen;i++) {
-      result += vstring(" \\Vor ") + toString((*c)[i]);
+      result += std::string(" \\Vor ") + toString((*c)[i]);
     }
     if(c->splits() && !c->splits()->isEmpty()){
       auto sit = c->splits()->iter();
       while(sit.hasNext()){
-        result += vstring(" \\Vor ") + replaceNeg(Saturation::Splitter::getFormulaStringFromName(sit.next(),true /*negated*/));
+        result += std::string(" \\Vor ") + replaceNeg(Saturation::Splitter::getFormulaStringFromName(sit.next(),true /*negated*/));
       }
     }
   }
@@ -311,7 +311,7 @@ vstring LaTeX::toString (Clause* c)
  * Convert literal to LaTeX.
  * @since 09/12/2003 Manchester
  */
-vstring LaTeX::toString (Literal* l) const
+std::string LaTeX::toString (Literal* l) const
 {
   if (l->isEquality()) {
     if (l->isNegative()) {
@@ -323,7 +323,7 @@ vstring LaTeX::toString (Literal* l) const
   }
 
 //   if (_map) {
-//     vstring result;
+//     std::string result;
 //     if (_map->toString(a,*this,result)) {
 //       return result;
 //     }
@@ -331,18 +331,18 @@ vstring LaTeX::toString (Literal* l) const
 
   //Check if this symbol has an interpreted LaTeX name
   // this should be true for all known interpreted symbols and any recorded symbols
-  vstring template_str = theory->tryGetInterpretedLaTeXName(l->functor(),true,l->isNegative());
+  std::string template_str = theory->tryGetInterpretedLaTeXName(l->functor(),true,l->isNegative());
 
   if(template_str.empty()){
-    vstring res;
+    std::string res;
     if (l->isNegative()) { res="\\neg ";}
     return res+symbolToString(l->functor(), true) + toString(l->args());
   }
   else{
     // replace arguments in the template, arg0 replaces a0 etc.
     for(unsigned i=0;i<l->arity();i++){
-      vstring from = "a"+Lib::Int::toString(i);
-      vstring to = toString(l->nthArgument(i),true);
+      std::string from = "a"+Lib::Int::toString(i);
+      std::string to = toString(l->nthArgument(i),true);
       size_t start_pos = 0;
       while((start_pos = template_str.find(from, start_pos)) != std::string::npos) {
          template_str.replace(start_pos, from.length(), to);
@@ -362,18 +362,18 @@ vstring LaTeX::toString (Literal* l) const
  * @since 23/10/2002 Manchester, changed to handle special KIF names
  * @since 09/09/2003 Manchester, changed to use string instead of char*
  * @since 25/07/2005 Tallinn, changed to parse the name symbol by symbol
- * @since 07/08/2014 Manchester, changed to use vstring
+ * @since 07/08/2014 Manchester, changed to use std::string
  */
-vstring LaTeX::symbolToString (unsigned num, bool pred) const
+std::string LaTeX::symbolToString (unsigned num, bool pred) const
 {
-  vstring symbolName; // the name of this symbol, if any
+  std::string symbolName; // the name of this symbol, if any
 
   if(pred) {
     symbolName = env.signature->predicateName(num);
   }
   else {
 //    if (f.isSkolemFunction()) {
-//      return (vstring)"\\sigma_{" + Int::toString(f.number()) + "}";
+//      return (std::string)"\\sigma_{" + Int::toString(f.number()) + "}";
 //    }
     symbolName = env.signature->functionName(num);
   }
@@ -437,7 +437,7 @@ vstring LaTeX::symbolToString (unsigned num, bool pred) const
   }
   if (digits == end) {
     *name = 0;
-    return vstring("\\mathit{") + newName + '}';
+    return std::string("\\mathit{") + newName + '}';
   }
   // copy digits as an index
   *name++ = '_';
@@ -447,7 +447,7 @@ vstring LaTeX::symbolToString (unsigned num, bool pred) const
   }
   *name++ = '}';
   *name = 0;
-  return vstring("\\mathit{") + newName + '}';
+  return std::string("\\mathit{") + newName + '}';
 }
 
 
@@ -460,13 +460,13 @@ vstring LaTeX::symbolToString (unsigned num, bool pred) const
  *
  * @since 09/12/2003 Manchester
  */
-vstring LaTeX::toString (TermList* terms,bool single) const
+std::string LaTeX::toString (TermList* terms,bool single) const
 {
   if (terms->isEmpty()) {
     return "";
   }
 
-  vstring result = single ? "" : " (";
+  std::string result = single ? "" : " (";
   bool first=true;
   TermList* t=terms;
   while(t->isNonEmpty()) {
@@ -479,7 +479,7 @@ vstring LaTeX::toString (TermList* terms,bool single) const
     }
 
 //   if (_map) {
-//     vstring result;
+//     std::string result;
 //     if (_map->toString(t,*this,result)) {
 //       return result;
 //     }
@@ -494,7 +494,7 @@ vstring LaTeX::toString (TermList* terms,bool single) const
 
      //Check if this symbol has an interpreted LaTeX name
      // this should be true for all known interpreted symbols and any recorded symbols
-      vstring template_str = theory->tryGetInterpretedLaTeXName(trm->functor(),false);
+      std::string template_str = theory->tryGetInterpretedLaTeXName(trm->functor(),false);
    
       if(template_str.empty()){
         result += symbolToString(trm->functor(), false) + toString(trm->args());
@@ -502,8 +502,8 @@ vstring LaTeX::toString (TermList* terms,bool single) const
       else{
         // replace arguments in the template, arg0 replaces a0 etc.
         for(unsigned i=0;i<trm->arity();i++){
-          vstring from = "a"+Lib::Int::toString(i);
-          vstring to = toString(trm->nthArgument(i),true);
+          std::string from = "a"+Lib::Int::toString(i);
+          std::string to = toString(trm->nthArgument(i),true);
           size_t start_pos = 0;
           while((start_pos = template_str.find(from, start_pos)) != std::string::npos) {
             template_str.replace(start_pos, from.length(), to);
@@ -525,12 +525,12 @@ vstring LaTeX::toString (TermList* terms,bool single) const
 //  * Convert unit to LaTeX.
 //  * @since 09/12/2003 Manchester
 //  */
-// vstring LaTeX::toString (const Unit& u) const
+// std::string LaTeX::toString (const Unit& u) const
 // {
 //   TRACER("LaTeX::toString (const Unit& u)");
 
-//   vstring prefix = Int::toString(u.number()) + ". ";
-//   vstring postfix = vstring("(") + Unit::toString(u.inputType()) + ")";
+//   std::string prefix = Int::toString(u.number()) + ". ";
+//   std::string postfix = std::string("(") + Unit::toString(u.inputType()) + ")";
 
 //   switch (u.unitType()) {
 //   case CLAUSE:
@@ -544,14 +544,14 @@ vstring LaTeX::toString (TermList* terms,bool single) const
 //   }
 // } // LaTeX::toString (const Unit& u)
 
-vstring LaTeX::getClauseLatexId(Unit* cs)
+std::string LaTeX::getClauseLatexId(Unit* cs)
 {
   return Int::toString(cs->number());
 }
 
-vstring LaTeX::toStringAsInference(Unit* cs, InferenceStore::FullInference* inf)
+std::string LaTeX::toStringAsInference(Unit* cs, InferenceStore::FullInference* inf)
 {
-  vstring res("\\begin{VampireStep}\n[$");
+  std::string res("\\begin{VampireStep}\n[$");
 
   bool hasParents=inf->premCnt;
   for(unsigned i=0;i<inf->premCnt;i++) {
@@ -594,11 +594,11 @@ vstring LaTeX::toStringAsInference(Unit* cs, InferenceStore::FullInference* inf)
  * @since 23/10/2002 Manchester, as stream output function
  * @since 09/12/2003 Manchester
  */
-vstring LaTeX::toStringAsInference(Unit* unit)
+std::string LaTeX::toStringAsInference(Unit* unit)
 {
   Inference& inf = unit->inference();
 
-  vstring res("\\begin{VampireStep}\n[$");
+  std::string res("\\begin{VampireStep}\n[$");
 
   bool hasParents=false;
   Inference::Iterator it = inf.iterator();
@@ -639,15 +639,15 @@ vstring LaTeX::toStringAsInference(Unit* unit)
 }
 
 /*
-vstring LaTeX::splittingToString(InferenceStore::SplittingRecord* sr)
+std::string LaTeX::splittingToString(InferenceStore::SplittingRecord* sr)
 {
-  vstring res("[$");
+  std::string res("[$");
   res += getClauseLatexId(sr->premise);
 
 
   Stack<pair<int,Clause*> >::Iterator ncit(sr->namedComps);
   while(ncit.hasNext()) {
-    res += vstring(",")+Int::toString(ncit.next().second->number())+"_D";
+    res += std::string(",")+Int::toString(ncit.next().second->number())+"_D";
   }
   res += "\\rightarrow ";
   res += getClauseLatexId(sr->result)
@@ -690,10 +690,10 @@ vstring LaTeX::splittingToString(InferenceStore::SplittingRecord* sr)
  * @since 09/12/2003 Manchester
  * @since 17/9/2005 flight Chicago-Frankfurt, row variables case added
  */
-vstring LaTeX::varToString (unsigned num) const
+std::string LaTeX::varToString (unsigned num) const
 {
 //  if (v.toInt() < 0) { // row variable
-//    return vstring("@_{") + Int::toString(-v.toInt()) + "}";
+//    return std::string("@_{") + Int::toString(-v.toInt()) + "}";
 //  }
 //#if KIF_EXPERIMENTS
 //  switch (v.toInt()) {
@@ -714,7 +714,7 @@ vstring LaTeX::varToString (unsigned num) const
 //  }
 //#endif
 
-  return vstring("x_{") + Int::toString(num) + "}";
+  return std::string("x_{") + Int::toString(num) + "}";
 } // LaTeX::toString (Var v)
 
 
@@ -727,11 +727,11 @@ vstring LaTeX::varToString (unsigned num) const
 // {
 //   TRACER("LaTeX::output (const Refutation& ref)");
 
-//   vstring fileName = _options.latexOutput();
+//   std::string fileName = _options.latexOutput();
 //   if (fileName == "off") {
 //     return;
 //   }
-//   vstring refutation = toString(ref);
+//   std::string refutation = toString(ref);
 //   if (fileName == "on") {
 //     cout << refutation;
 //     return;
@@ -750,7 +750,7 @@ vstring LaTeX::varToString (unsigned num) const
 //  * and arguments args.
 //  * @since 28/09/2005 Redmond
 //  */
-// vstring LaTeX::toString (const vstring& funOrPred,const TermList& args) const
+// std::string LaTeX::toString (const std::string& funOrPred,const TermList& args) const
 // {
 //   return funOrPred + toString(args);
 // }

@@ -20,7 +20,6 @@
 
 #include "Debug/Assertion.hpp"
 
-#include "Lib/VString.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
 #include "SAT/Z3Interfacing.hpp"
@@ -90,7 +89,7 @@ void CommandLine::interpret (Options& options)
     }
     if (arg[0] == '-') {
       if (_next == _last) {
-	      USER_ERROR((vstring)"no value specified for option " + arg);
+	      USER_ERROR((std::string)"no value specified for option " + arg);
       }
       else{
          if (arg[1] == '-') {

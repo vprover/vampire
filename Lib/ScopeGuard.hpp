@@ -11,7 +11,6 @@
 #ifndef SCOPEGUARD_HPP
 #define SCOPEGUARD_HPP
 
-#include "Lib/STL.hpp"
 #include <exception>
 #include <utility>
 

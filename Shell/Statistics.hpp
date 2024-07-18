@@ -340,7 +340,7 @@ public:
   Kernel::UnitList *saturatedSet;
   /** if problem is satisfiable and we obtained a model, contains its
    * representation; otherwise it is an empty string */
-  vstring model;
+  std::string model;
 
   enum ExecutionPhase {
     /** Whatever happens before we start parsing the problem */

@@ -19,8 +19,6 @@
 #include "Indexing/TermSharing.hpp"
 #include "Lib/Metaiterators.hpp"
 
-#include "Shell/AnswerExtractor.hpp"
-
 #include "SubstHelper.hpp"
 #include "TermIterators.hpp"
 #include "RobSubstitution.hpp"
@@ -427,34 +425,34 @@ TermIterator Term::getVariableIterator(TermList tl)
  * Return the string representation of variable var.
  * @since 16/05/2007
  */
-vstring Term::variableToString(unsigned var)
+std::string Term::variableToString(unsigned var)
 {
-  return (vstring)"X" + Int::toString(var);
+  return (std::string)"X" + Int::toString(var);
 } // variableToString
 
 /**
  * Return the string representation of variable term var.
  * @since 16/05/2007
  */
-vstring Term::variableToString(TermList var)
+std::string Term::variableToString(TermList var)
 {
   ASS(var.isVar());
 
   if (var.isOrdinaryVar()) {
-    return (vstring)"X" + Int::toString(var.var());
+    return (std::string)"X" + Int::toString(var.var());
   }
   else {
-    return (vstring)"S" + Int::toString(var.var());
+    return (std::string)"S" + Int::toString(var.var());
   }
 } // variableToString
 
 /**
- * Return the vstring representation of the terms "head"
+ * Return the std::string representation of the terms "head"
  * i.e., the function / predicate symbol name or the special term head.
  * Special term prints also '(' and the following arguments which are not args() and a comma
  * Normal term prints "(" if there are any args to follow
  */
-vstring Term::headToString() const
+std::string Term::headToString() const
 {
   if (isSpecial()) {
     const Term::SpecialTermData* sd = getSpecialData();
@@ -462,20 +460,20 @@ vstring Term::headToString() const
     switch(specialFunctor()) {
       case SpecialFunctor::FORMULA: {
         ASS_EQ(arity(), 0);
-        vstring formula = sd->getFormula()->toString();
+        std::string formula = sd->getFormula()->toString();
         return env.options->showFOOL() ? "$term{" + formula + "}" : formula;
       }
       case SpecialFunctor::LET: {
         ASS_EQ(arity(), 1);
         TermList binding = sd->getBinding();
         bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
-        vstring functor = isPredicate ? env.signature->predicateName(sd->getFunctor())
+        std::string functor = isPredicate ? env.signature->predicateName(sd->getFunctor())
                                       : env.signature->functionName(sd->getFunctor());
         OperatorType* type = isPredicate ? env.signature->getPredicate(sd->getFunctor())->predType()
                                          : env.signature->getFunction(sd->getFunctor())->fnType();
 
         const VList* variables = sd->getVariables();
-        vstring variablesList = "";
+        std::string variablesList = "";
         for (unsigned i = 0; i < VList::length(variables); i++) {
           unsigned var = VList::nth(variables, i);
           variablesList += Term::variableToString(var);
@@ -495,7 +493,7 @@ vstring Term::headToString() const
       case SpecialFunctor::TUPLE: {
         ASS_EQ(arity(), 0);
         Term* term = sd->getTupleTerm();
-        vstring termList = "";
+        std::string termList = "";
         Term::Iterator tit(term);
         unsigned i = term->arity();
         while (tit.hasNext()) {
@@ -514,8 +512,8 @@ vstring Term::headToString() const
 
         OperatorType* fnType = env.signature->getFunction(tupleFunctor)->fnType();
 
-        vstring symbolsList = "";
-        vstring typesList = "";
+        std::string symbolsList = "";
+        std::string typesList = "";
         for (unsigned i = 0; i < VList::length(symbols); i++) {
           Signature::Symbol* symbol = (fnType->arg(i) == AtomicSort::boolSort())
             ? env.signature->getPredicate(VList::nth(symbols, i))
@@ -535,7 +533,7 @@ vstring Term::headToString() const
         SList* sorts = sd->getLambdaVarSorts();
         TermList lambdaExp = sd->getLambdaExp();
 
-        vstring varList = "[";
+        std::string varList = "[";
 
         VList::Iterator vs(vars);
         SList::Iterator ss(sorts);
@@ -564,7 +562,7 @@ vstring Term::headToString() const
     }
     bool print = (isLiteral() || isSort() ||
                  (env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB)) && arity();
-    vstring name = "";
+    std::string name = "";
     if(isLiteral()) {
       name = static_cast<const Literal *>(this)->predicateName();
     } else if (isSort()) {
@@ -583,14 +581,14 @@ vstring Term::headToString() const
 
 /**
  * In combination with Term::headToString prepares
- * vstring representation of a term.
+ * std::string representation of a term.
  * (this) has to come from arguments of a term of non-zero arity,
  * possibly a special one.
  * Will close the term printed with ')'
  */
-vstring TermList::asArgsToString() const
+std::string TermList::asArgsToString() const
 {
-  vstring res;
+  std::string res;
 
   Stack<const TermList*> stack(64);
 
@@ -633,10 +631,10 @@ vstring TermList::asArgsToString() const
 }
 
 /**
- * Write as a vstring the head of the term list.
+ * Write as a std::string the head of the term list.
  * @since 27/02/2008 Manchester
  */
-vstring TermList::toString(bool topLevel) const
+std::string TermList::toString(bool topLevel) const
 {
   if (isEmpty()) {
     return "<empty TermList>";
@@ -649,10 +647,10 @@ vstring TermList::toString(bool topLevel) const
 
 
 /**
- * Return the result of conversion of a term into a vstring.
+ * Return the result of conversion of a term into a std::string.
  * @since 16/05/2007 Manchester
  */
-vstring Term::toString(bool topLevel) const
+std::string Term::toString(bool topLevel) const
 {
   bool printArgs = true;
 
@@ -663,7 +661,7 @@ vstring Term::toString(bool topLevel) const
   if(!isSpecial() && !isLiteral()){
     if(isSort() && static_cast<AtomicSort*>(const_cast<Term*>(this))->isArrowSort()){
       ASS(arity() == 2);
-      vstring res;
+      std::string res;
       TermList arg1 = *(nthArgument(0));
       TermList arg2 = *(nthArgument(1));
       res += topLevel ? "" : "(";
@@ -675,7 +673,7 @@ vstring Term::toString(bool topLevel) const
     printArgs = isSort() || env.signature->getFunction(_functor)->combinator() == Signature::NOT_COMB;
   }
 
-  vstring s = headToString();
+  std::string s = headToString();
 
   if (_arity && printArgs) {
     s += args()->asArgsToString(); // will also print the ')'
@@ -684,14 +682,14 @@ vstring Term::toString(bool topLevel) const
 } // Term::toString
 
 /**
- * Return the result of conversion of a literal into a vstring.
+ * Return the result of conversion of a literal into a std::string.
  * @since 16/05/2007 Manchester
  */
-vstring Literal::toString() const
+std::string Literal::toString() const
 {
   if (isEquality()) {
     const TermList* lhs = args();
-    vstring s = lhs->toString();
+    std::string s = lhs->toString();
     if (isPositive()) {
       s += " = ";
     }
@@ -699,8 +697,8 @@ vstring Literal::toString() const
       s += " != ";
     }
 
-    vstring res = s + lhs->next()->toString();
-    if (env.getMainProblem() == nullptr || env.getMainProblem()->isHigherOrder() ||
+    std::string res = s + lhs->next()->toString();
+    if (env.getMainProblem() == nullptr || env.getMainProblem()->isHigherOrder() || 
        (SortHelper::getEqualityArgumentSort(this) == AtomicSort::boolSort())){
       res = "("+res+")";
     }
@@ -712,7 +710,7 @@ vstring Literal::toString() const
   }
 
   Stack<const TermList*> stack(64);
-  vstring s = polarity() ? "" : "~";
+  std::string s = polarity() ? "" : "~";
   unsigned proj;
   if (Theory::tuples()->findProjection(functor(), true, proj)) {
     return s + "$proj(" + Int::toString(proj) + ", " + args()->asArgsToString();
@@ -731,10 +729,10 @@ vstring Literal::toString() const
  * Return the print name of the function symbol of this term.
  * @since 18/05/2007 Manchester
  */
-const vstring& Term::functionName() const
+const std::string& Term::functionName() const
 {
 #if VDEBUG
-  static vstring nonexisting("<function does not exists>");
+  static std::string nonexisting("<function does not exists>");
   if (_functor>=static_cast<unsigned>(env.signature->functions())) {
     return nonexisting;
   }
@@ -746,10 +744,10 @@ const vstring& Term::functionName() const
 /**
  * Return the print name of the type constructor symbol of this sort.
  */
-const vstring& AtomicSort::typeConName() const
+const std::string& AtomicSort::typeConName() const
 {
 #if VDEBUG
-  static vstring nonexisting("<type constructor does not exists>");
+  static std::string nonexisting("<type constructor does not exists>");
   if (_functor>=static_cast<unsigned>(env.signature->typeCons())) {
     return nonexisting;
   }
@@ -762,10 +760,10 @@ const vstring& AtomicSort::typeConName() const
  * Return the print name of the function symbol of this literal.
  * @since 18/05/2007 Manchester
  */
-const vstring& Literal::predicateName() const
+const std::string& Literal::predicateName() const
 {
 #if VDEBUG
-  static vstring nonexisting("<predicate does not exists>");
+  static std::string nonexisting("<predicate does not exists>");
   if (_functor>=static_cast<unsigned>(env.signature->predicates())) {
     return nonexisting;
   }
@@ -776,7 +774,7 @@ const vstring& Literal::predicateName() const
 
 
 bool Literal::isAnswerLiteral() const {
-  return env.signature->getPredicate(functor())->answerPredicate();
+  return isNegative() && env.signature->getPredicate(functor())->answerPredicate();
 }
 
 
@@ -863,7 +861,7 @@ Term* Term::create(unsigned function, unsigned arity, const TermList* args)
 /** Create a new constant and insert in into the sharing
  *  structure.
  */
-Term* Term::createConstant(const vstring& name)
+Term* Term::createConstant(const std::string& name)
 {
   unsigned symbolNumber = env.signature->addFunction(name,0);
   return createConstant(symbolNumber);
@@ -1172,7 +1170,7 @@ TermList AtomicSort::arrowSort(TermStack& domSorts, TermList range)
   return res;
 }
 
-AtomicSort* AtomicSort::createConstant(const vstring& name)
+AtomicSort* AtomicSort::createConstant(const std::string& name)
 {
   bool added;
   unsigned newSort = env.signature->addTypeCon(name,0,added);
@@ -1576,9 +1574,9 @@ AtomicSort::AtomicSort()
 }
 
 #if VDEBUG
-vstring Term::headerToString() const
+std::string Term::headerToString() const
 {
-  vstring s("functor: ");
+  std::string s("functor: ");
   s += Int::toString(_functor) + ", arity: " + Int::toString(_arity)
     + ", weight: " + Int::toString(_weight)
     + ", vars: " + Int::toString(_vars)
@@ -1649,7 +1647,7 @@ bool Kernel::operator<(const TermList& lhs, const TermList& rhs)
 bool Literal::rightArgOrder(TermList const& lhs, TermList const& rhs)
 { return !Indexing::TermSharing::argNormGt(lhs,rhs); }
 
-bool Kernel::positionIn(TermList& subterm,TermList* term,vstring& position)
+bool Kernel::positionIn(TermList& subterm,TermList* term,std::string& position)
 {
    //cout << "positionIn " << subterm.toString() << " in " << term->toString() << endl;
 
@@ -1664,7 +1662,7 @@ bool Kernel::positionIn(TermList& subterm,TermList* term,vstring& position)
   return positionIn(subterm,term->term(),position);
 }
 
-bool Kernel::positionIn(TermList& subterm,Term* term,vstring& position)
+bool Kernel::positionIn(TermList& subterm,Term* term,std::string& position)
 {
   //cout << "positionIn " << subterm.toString() << " in " << term->toString() << endl;
 
