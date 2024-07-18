@@ -108,43 +108,62 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
         List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, conclusion), simplificationBuffer);
       }
     }
-    goto finish;
+    if (simplificationBuffer)
+      simplifications = pvi(List<BwSimplificationRecord>::Iterator(simplificationBuffer));
+    return;
   }
 
   if (_subsumptionByUnitsOnly && _srByUnitsOnly) {
     ASS(!simplificationBuffer)
-    goto finish;
+    if (simplificationBuffer)
+      simplifications = pvi(List<BwSimplificationRecord>::Iterator(simplificationBuffer));
+    return;
   }
 
   /*******************************************************/
   /*       SUBSUMPTION & RESOLUTION MULTI-LITERAL        */
   /*******************************************************/
+  // We use the optimization from Krystof Hoder and only search the instances of the least matchable
+  // literal. Indeed, since for subsumption and subsumption resolution, each literal in the subsuming
+  // clause S must be matched at least one literal in the subsumed clause M (idem for SR).
+  // Therefore checking the instances of the least matchable literal will limit the number of candidates
+  // for both subsumption and subsumption resolution.
+  // For now, the least matchable literal is the heaviest literal in the clause. But this heuristic
+  // could probably be improved.
+  Literal* lit = (*cl)[0];
+  unsigned lmVal = lit->weight();
+  for(unsigned i = 1; i < cl->length(); i++) {
+    Literal* curr = (*cl)[i];
+    unsigned currVal = curr->weight();
+    if(currVal > lmVal) {
+      lit = curr;
+      lmVal = currVal;
+    }
+  }
+
   if (!_subsumptionByUnitsOnly) {
-    for (unsigned i = 0; i < cl->length(); i++) {
-      Literal *lit = (*cl)[i];
-      // find the positively matched literals
-      auto it = _bwIndex->getInstances(lit, false, false);
-      while (it.hasNext()) {
-        Clause *icl = it.next().data->clause;
-        if (!_checked.insert(icl))
+    // find the positively matched literals
+    auto it = _bwIndex->getInstances(lit, false, false);
+    while (it.hasNext()) {
+      Clause *icl = it.next().data->clause;
+      if (!_checked.insert(icl))
+        continue;
+      // check subsumption and setup subsumption resolution at the same time
+      bool checkS = _subsumption && !_subsumptionByUnitsOnly;
+      bool checkSR = _subsumptionResolution && !_srByUnitsOnly;
+      if (checkS) {
+        if (_satSubs.checkSubsumption(cl, icl, checkSR)) {
+          env.statistics->backwardSubsumed++;
+          List<BwSimplificationRecord>::push(BwSimplificationRecord(icl), simplificationBuffer);
           continue;
-        // check subsumption and setup subsumption resolution at the same time
-        bool checkS = _subsumption && !_subsumptionByUnitsOnly;
-        bool checkSR = _subsumptionResolution && !_srByUnitsOnly;
-        if (checkS) {
-          if (_satSubs.checkSubsumption(cl, icl, checkSR)) {
-            env.statistics->backwardSubsumed++;
-            List<BwSimplificationRecord>::push(BwSimplificationRecord(icl), simplificationBuffer);
-            continue;
-          }
         }
-        if (checkSR) {
-          // check subsumption resolution
-          Clause *conclusion = _satSubs.checkSubsumptionResolution(cl, icl, checkS); // use the previous setup only if subsumption was checked
-          if (conclusion) {
-            env.statistics->backwardSubsumptionResolution++;
-            List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, conclusion), simplificationBuffer);
-          }
+      }
+      if (checkSR) {
+        // check subsumption resolution
+        Clause *conclusion = _satSubs.checkSubsumptionResolution(cl, icl, checkS); // use the previous setup only if subsumption was checked
+        if (conclusion) {
+          env.statistics->backwardSubsumptionResolution++;
+          List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, conclusion), simplificationBuffer);
         }
       }
     }
@@ -154,25 +173,23 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
   /*       SUBSUMPTION RESOLUTION MULTI-LITERAL          */
   /*******************************************************/
   if (_subsumptionResolution && !_srByUnitsOnly) {
-    for (unsigned i = 0; i < cl->length(); i++) {
-      Literal *lit = (*cl)[i];
-      // find the negatively matched literals
-      auto it = _bwIndex->getInstances(lit, true, false);
-      while (it.hasNext()) {
-        Clause *icl = it.next().data->clause;
-        if (!_checked.insert(icl))
-          continue;
-        // check subsumption resolution
-        Clause *conclusion = _satSubs.checkSubsumptionResolution(cl, icl, false);
-        if (conclusion) {
-          env.statistics->backwardSubsumptionResolution++;
-          List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, conclusion), simplificationBuffer);
-        }
+    // find the negatively matched literals
+    // We can use the same least matchable literal as before since our method is agnostic to the
+    // flipped literal
+    auto it = _bwIndex->getInstances(lit, true, false);
+    while (it.hasNext()) {
+      Clause *icl = it.next().data->clause;
+      if (!_checked.insert(icl))
+        continue;
+      // check subsumption resolution
+      Clause *conclusion = _satSubs.checkSubsumptionResolution(cl, icl, false);
+      if (conclusion) {
+        env.statistics->backwardSubsumptionResolution++;
+        List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, conclusion), simplificationBuffer);
       }
     }
   }
 
-finish:
   if (simplificationBuffer) {
     simplifications = pvi(List<BwSimplificationRecord>::Iterator(simplificationBuffer));
   }
