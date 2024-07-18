@@ -20,10 +20,10 @@
 #include <cstdlib>
 
 #include "Lib/Allocator.hpp"
-#include "Lib/VString.hpp"
 #include "Forwards.hpp"
 
 #include <type_traits>
+#include <limits>
 
 using namespace Lib;
 
@@ -112,9 +112,8 @@ enum class InferenceRule : unsigned char {
   GENERIC_FORMULA_TRANSFORMATION,
   /** negated conjecture from the input */
   NEGATED_CONJECTURE,
-  /** introduction of answer literal into the conjecture,
-   * or the unit negation of answer literal used to obtain refutation */
-  ANSWER_LITERAL,
+  /** introduction of answer literal into the conjecture */
+  ANSWER_LITERAL_INJECTION,
   /** introduction of answer literal into the conjecture,
    * and skolemisation of input variables */
   ANSWER_LITERAL_INPUT_SKOLEMISATION,
@@ -615,7 +614,8 @@ inline bool isSatRefutationRule(InferenceRule r) {
          (r == InferenceRule::GLOBAL_SUBSUMPTION);
 }
 
-vstring ruleName(InferenceRule rule);
+std::string inputTypeName(UnitInputType type);
+std::string ruleName(InferenceRule rule);
 
 /*
 * The following structs are here just that we can have specialized overloads for the Inference constructor (see below)
@@ -857,8 +857,8 @@ public:
    */
   void minimizePremises();
 
-  // TODO why would we ever need this? replace it be appropriate output operator for InferenceRule
-  vstring name() const { return ruleName(_rule); }
+  // returns ruleName; with inputTypeName on top, in the case of ruleName == INPUT
+  std::string name() const;
 
   /** return the input type of the unit */
   UnitInputType inputType() const { return (UnitInputType)_inputType; }
@@ -954,7 +954,7 @@ public:
   void setProxyAxiomsDescendant(bool val) { _proxyAxiomsDescendant=val; }
 
   bool isHolAxiomsDescendant() const { return _holAxiomsDescendant; }
-  void setHolAxiomsDescendant(bool val) { _holAxiomsDescendant=val; }  
+  void setHolAxiomsDescendant(bool val) { _holAxiomsDescendant=val; }
 
   unsigned inductionDepth() const { return _inductionDepth; }
   void setInductionDepth(unsigned d) { _inductionDepth = d; }

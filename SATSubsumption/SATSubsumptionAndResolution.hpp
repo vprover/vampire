@@ -15,7 +15,6 @@
 #define SAT_SUBSUMPTION_RESOLUTION_HPP
 
 #include "Kernel/Clause.hpp"
-#include "Lib/STL.hpp"
 #include "Lib/Slice.hpp"
 
 #include "./subsat/subsat.hpp"
@@ -37,7 +36,6 @@ public:
 #else
 private:
 #endif
-  static_assert(std::is_same<subsat::allocator_type<int>, STLAllocator<int>>::value, "unexpected subsat::allocator_type");
   using Solver = subsat::Solver;
   using BindingsManager = typename Solver::BindingsManager;
 
@@ -127,7 +125,7 @@ private:
     /// After shifting 4 bits to the right (>> (2 * (j % 4)))
     /// 0b 00 00 00 10
     /// We know that m_2 does not have a positive match, but has a negative match
-    Lib::vvector<uint8_t> _jStates;
+    std::vector<uint8_t> _jStates;
 
     /// @brief number of literals in L
     unsigned _m;
@@ -137,22 +135,22 @@ private:
     /// @brief contains the list of all the the matches indexed in the match set
     /// Ordered by the index 'i', then by 'j'
     /// If the properties of AddMatch are respected, then _matchesByI[i] is the match with the sat variable i
-    Lib::vvector<Match> _matchesByI;
+    std::vector<Match> _matchesByI;
 
     /// @brief same as _matchesByI, but ordered by the index 'j', then by 'i'
     /// filled by fillMatchesByColumn based on _matchesByI
-    Lib::vvector<Match> _matchesByJ;
+    std::vector<Match> _matchesByJ;
 
     /// @brief indices allowing access into _matchesByI
     /// if you wish to access row i, [_indexI[i], _indexJ[i + 1]) is the range required
-    Lib::vvector<unsigned> _indexI;
+    std::vector<unsigned> _indexI;
 
     /// @brief indices allowing access into _matchesByJ
     /// if you wish to access column j, [_indexJ[j], _indexJ[j + 1]) is the range required
-    Lib::vvector<unsigned> _indexJ;
+    std::vector<unsigned> _indexJ;
 
     /// @brief all matches, ordered by row
-    vvector<Match> &allMatches()
+    std::vector<Match> &allMatches()
     {
       return _matchesByI;
     }
@@ -315,7 +313,7 @@ private:
   /// @brief the match set used to store the matches between the base and instance clauses
   MatchSet _matchSet;
   /// @brief model of the SAT solver
-  Lib::vvector<subsat::Lit> _model;
+  std::vector<subsat::Lit> _model;
 
   /// @brief remembers if the fillMatchesSR concluded that subsumption is impossible
   bool _subsumptionImpossible;
@@ -325,7 +323,7 @@ private:
   /// @brief temporary storage, used by pruneSubsumption and pruneSubsumptionResolution
   /// invariant: for all x in _tmpStorage, x <= _tmpTimestamp
   using prune_t = unsigned;
-  vvector<prune_t> _pruneStorage;
+  std::vector<prune_t> _pruneStorage;
   prune_t _pruneTimestamp = 0;
 
   /* Methods */

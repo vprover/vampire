@@ -364,9 +364,9 @@ class MLMatcher::Impl final
     void init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const* alts, Literal* resolvedLit, bool multiset);
     bool nextMatch();
 
-    void getMatchedAltsBitmap(vvector<bool>& outMatchedBitmap) const;
+    void getMatchedAltsBitmap(std::vector<bool>& outMatchedBitmap) const;
 
-    void getBindings(vunordered_map<unsigned, TermList>& outBindings) const;
+    void getBindings(std::unordered_map<unsigned, TermList>& outBindings) const;
 
     MLMatchStats getStats() const { return stats; }
 
@@ -661,7 +661,7 @@ bool MLMatcher::Impl::nextMatch()
 }
 
 
-void MLMatcher::Impl::getMatchedAltsBitmap(vvector<bool>& outMatchedBitmap) const
+void MLMatcher::Impl::getMatchedAltsBitmap(std::vector<bool>& outMatchedBitmap) const
 {
   MatchingData const* const md = &s_matchingData;
 
@@ -682,7 +682,7 @@ void MLMatcher::Impl::getMatchedAltsBitmap(vvector<bool>& outMatchedBitmap) cons
 }
 
 
-void MLMatcher::Impl::getBindings(vunordered_map<unsigned, TermList>& outBindings) const
+void MLMatcher::Impl::getBindings(std::unordered_map<unsigned, TermList>& outBindings) const
 {
   MatchingData const* const md = &s_matchingData;
 
@@ -731,13 +731,13 @@ bool MLMatcher::nextMatch()
   return m_impl->nextMatch();
 }
 
-void MLMatcher::getMatchedAltsBitmap(vvector<bool>& outMatchedBitmap) const
+void MLMatcher::getMatchedAltsBitmap(std::vector<bool>& outMatchedBitmap) const
 {
   ASS(m_impl);
   m_impl->getMatchedAltsBitmap(outMatchedBitmap);
 }
 
-void MLMatcher::getBindings(vunordered_map<unsigned, TermList>& outBindings) const
+void MLMatcher::getBindings(std::unordered_map<unsigned, TermList>& outBindings) const
 {
   ASS(m_impl);
   m_impl->getBindings(outBindings);

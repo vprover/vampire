@@ -25,7 +25,6 @@
 #include "Lib/Stack.hpp"
 #include "Lib/Vector.hpp"
 #include "Lib/Allocator.hpp"
-#include "Lib/VString.hpp"
 
 #include "Term.hpp"
 
@@ -190,13 +189,13 @@ public:
     return (*_key)[arity() - numTypeArguments()];
   }
   
-  vstring toString() const;  
+  std::string toString() const;  
 
   bool isSingleSortType(TermList sort) const;
   bool isAllDefault() const { return isSingleSortType(AtomicSort::defaultSort()); }
 
 private:
-  vstring argsToString() const;
+  std::string argsToString() const;
 };
 
 }

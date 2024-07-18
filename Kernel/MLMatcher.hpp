@@ -16,9 +16,8 @@
 #ifndef __MLMatcher__
 #define __MLMatcher__
 
-#include "Clause.hpp"
 #include "Forwards.hpp"
-#include "Lib/STL.hpp"
+#include "Clause.hpp"
 
 namespace Kernel {
 
@@ -116,13 +115,13 @@ class MLMatcher
      *
      * The given vector will be cleared before operating on it.
      */
-    void getMatchedAltsBitmap(vvector<bool>& outMatchedBitmap) const;
+    void getMatchedAltsBitmap(std::vector<bool>& outMatchedBitmap) const;
 
     /**
      * Returns the variable bindings due to the current match.
      * May only be called in a matched state (i.e., after nextMatch() has returned true).
      */
-    void getBindings(vunordered_map<unsigned, TermList>& outBindings) const;
+    void getBindings(std::unordered_map<unsigned, TermList>& outBindings) const;
 
     MLMatchStats getStats() const;
 

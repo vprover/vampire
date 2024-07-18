@@ -39,11 +39,11 @@ class LexerException
   : public ParsingRelatedException
 {
  public:
-  LexerException(vstring message,const Lexer&);
+  LexerException(std::string message,const Lexer&);
   void cry(std::ostream&) const;
   ~LexerException() {}
  protected:
-  vstring _message;
+  std::string _message;
 }; // LexerException
 
 

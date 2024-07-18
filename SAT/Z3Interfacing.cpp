@@ -75,7 +75,7 @@ using namespace Lib;
 
 //using namespace z3;
 
-Z3Interfacing::Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCoresForAssumptions, vstring const& exportSmtlib):
+Z3Interfacing::Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCoresForAssumptions, std::string const& exportSmtlib):
   Z3Interfacing(s2f, opts.showZ3(), /* unsatCoresForAssumptions = */ unsatCoresForAssumptions, exportSmtlib)
 { }
 
@@ -105,7 +105,7 @@ void handleZ3Error(Z3_context ctxt, Z3_error_code code)
   throw z3::exception(errToString(code));
 }
 
-Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoresForAssumptions, vstring const& exportSmtlib):
+Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoresForAssumptions, std::string const& exportSmtlib):
   _hasSeenArrays(false),
   _varCnt(0),
   _sat2fo(s2f),
@@ -519,9 +519,9 @@ z3::sort Z3Interfacing::getz3sort(SortId s)
 }
 
 template<class A>
-vstring to_vstring(A const& a)
+std::string to_string(A const& a)
 {
-  vstringstream out;
+  std::stringstream out;
   out << a;
   return out.str();
 }
@@ -544,7 +544,7 @@ void Z3Interfacing::createTermAlgebra(TermList sort)
     }
   }
 
-  auto new_string_symbol = [this](unsigned f, const vstring& typePostfix, bool pred = false)
+  auto new_string_symbol = [this](unsigned f, const std::string& typePostfix, bool pred = false)
   { return Z3_mk_string_symbol(_context,
     ((pred ? env.signature->getPredicate(f) : env.signature->getFunction(f))->name()+'_'+typePostfix).c_str()); };
 
@@ -565,7 +565,7 @@ void Z3Interfacing::createTermAlgebra(TermList sort)
     auto taSortT = taSort.term();
     auto ta = env.signature->getTermAlgebraOfSort(taSort);
     Substitution typeSubst;
-    vstring typePostfix = "$";
+    std::string typePostfix = "$";
     ta->getTypeSub(taSortT, typeSubst);
     for(unsigned i = 0; i < taSortT->arity(); i++) {
       // MS: Is it OK not to use any separator here?
@@ -713,7 +713,7 @@ void Z3Interfacing::createTermAlgebra(TermList sort)
   outputln(" ) (");
 
   auto quote = [&](auto x){
-    vstringstream s;
+    std::stringstream s;
     s << x;
     auto str = s.str();
     if (str[0] == '\'') {
@@ -809,7 +809,7 @@ z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
     auto type = functor.isPredicate ? symb->predType() : symb->fnType();
 
     // polymorphic symbol application: treat f(<sorts>, ...) as f<sorts>(...) for Z3
-    vstring namebuf = symb->name();
+    std::string namebuf = symb->name();
     Substitution typeSubst;
     if(functor.forSorts) {
       SortHelper::getTypeSub(functor.forSorts, typeSubst);
@@ -1149,7 +1149,7 @@ z3::expr Z3Interfacing::getNameExpr(unsigned var)
 {
   return _varNames.getOrInit(var, [&](){
       // this method is called very often in runs with a lot of avatar reasoning. Cache the constants to avoid that z3 has to search for the string name in its function index
-      vstring name = "v"+Lib::Int::toString(var);
+      std::string name = "v"+Lib::Int::toString(var);
       outputln("(declare-fun ", name, " () Bool)");
       return _context.bool_const(name.c_str());
   });
@@ -1169,7 +1169,7 @@ z3::expr Z3Interfacing::getConst(Signature::Symbol* symb, z3::sort sort)
 {
   return _constantNames.getOrInit(symb, [&]() {
     // careful: keep native constants' names distinct from the above ones (hence the "c"-prefix below)
-    vstring name("c" + symb->name());
+    std::string name("c" + symb->name());
     outputln("(declare-fun ", name, " () ", sort, ")");
     return _context.constant(name.c_str(), sort);
   });

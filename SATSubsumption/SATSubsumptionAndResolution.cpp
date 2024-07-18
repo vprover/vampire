@@ -521,7 +521,7 @@ bool SATSubsumptionAndResolution::cnfForSubsumption()
 
 /// @brief a vector used to store the sat variables that are subjected to the at most one constraint (will hold the cⱼ).
 /// The unsigned value is the index of the literal in the instance clause
-static vvector<pair<unsigned, subsat::Var>> atMostOneVars;
+static std::vector<pair<unsigned, subsat::Var>> atMostOneVars;
 /**
  * Indirect encoding of the sat subsumption resolution
  *

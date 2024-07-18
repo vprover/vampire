@@ -25,7 +25,6 @@
 #include "Lib/DHSet.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Theory.hpp"
-#include "Lib/VString.hpp"
 #include "SMTLIBLogic.hpp"
 
 namespace Kernel {
@@ -159,11 +158,11 @@ public:
 
   /** Return the CASC category of the problem */
   Category category() const { return _category;}
-  static vstring categoryToString(Category cat);
-  vstring categoryString() const;
+  static std::string categoryToString(Category cat);
+  std::string categoryString() const;
 
-  vstring toString() const;
-  vstring toSpider(const vstring& problemName) const;
+  std::string toString() const;
+  std::string toSpider(const std::string& problemName) const;
 
   /** Total number of clauses in the problem. */
   int clauses() const { return _goalClauses + _axiomClauses; }
