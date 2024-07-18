@@ -39,10 +39,13 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(bool subsumptionResolution)
+ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(bool subsumptionResolution, bool mutualSetupSR)
     : _subsumptionResolution(subsumptionResolution)
+    , _mutualSetupSR(mutualSetupSR)
     , satSubs()
 {
+  // The mutual setup does not make sense if subsumption resolution is not performed
+  ASS(!mutualSetupSR || subsumptionResolution)
 }
 
 void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
@@ -75,9 +78,8 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
   ASS(replacement == nullptr)
 
   unsigned clen = cl->length();
-  if (clen == 0) {
+  if (clen == 0)
     return false;
-  }
 
   /// @brief Conclusion of the subsumption resolution if successful
   Clause *conclusion = nullptr;
@@ -125,11 +127,12 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
     auto it = _fwIndex->getGeneralizations(lit, false, false);
     while (it.hasNext()) {
       mcl = it.next().data->clause;
-      if (!checkedClauses.insert(mcl)) {
+      // If we do not use the mutual setup, there is no need to store which clauses were already checked
+      if (_mutualSetupSR && !checkedClauses.insert(mcl))
         continue;
-      }
 
       bool checkSR = _subsumptionResolution && !conclusion &&
+                     _mutualSetupSR && // the mutual setup can be disabled when a lot of subsumptions should succeed. Reducing the optimization overhead
                     (_checkLongerClauses || mcl->length() <= clen);
 
       // if mcl is longer than cl, then it cannot subsume cl but still could be resolved
@@ -164,9 +167,8 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
     env.statistics->forwardSubsumptionResolution++;
     return true;
   }
-  else if (!_subsumptionResolution) {
+  else if (!_subsumptionResolution)
     return false;
-  }
 
   /*******************************************************/
   /*         SUBSUMPTION RESOLUTION UNIT CLAUSE          */
@@ -198,17 +200,19 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
   /*        SUBSUMPTION RESOLUTION MULTI-LITERAL         */
   /*******************************************************/
   // Check for the last clauses that are negatively matched in the index.
+  // When not using the mutual setup, we are still guaranteed to find all
+  // the good subsumption resolution candidates with the negative index
   for (unsigned li = 0; li < clen; li++) {
     Literal *lit = (*cl)[li];
     auto it = _fwIndex->getGeneralizations(lit, true, false);
     while (it.hasNext()) {
       mcl = it.next().data->clause;
-      if (!checkedClauses.insert(mcl)) {
+      // If we do not use the mutual setup, checkedClauses should be empty
+      ASS(_mutualSetupSR || checkedClauses.isEmpty())
+      if (_mutualSetupSR && !checkedClauses.insert(mcl))
         continue;
-      }
-      if (!_checkLongerClauses && mcl->length() > clen) {
+      if (!_checkLongerClauses && mcl->length() > clen)
         continue;
-      }
       conclusion = satSubs.checkSubsumptionResolution(mcl, cl);
       if (conclusion) {
         ASS(premise == nullptr)

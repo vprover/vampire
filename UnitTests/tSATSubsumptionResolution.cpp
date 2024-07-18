@@ -66,7 +66,7 @@ static bool contains(const HayStack& haystack, const Needle& needle)
   return false;
 }
 
-static void checkConsistency(SATSubsumptionAndResolution::MatchSet& matchSet, vvector<SATSubsumptionAndResolution::Match>& matches)
+static void checkConsistency(SATSubsumptionAndResolution::MatchSet& matchSet, vector<SATSubsumptionAndResolution::Match>& matches)
 {
   ASS_EQ(matchSet.allMatches().size(), matches.size());
   for (auto match : matches) {
@@ -83,8 +83,8 @@ static bool checkClauseEquality(Literal const* const lits1[], unsigned len1, Lit
     return false;
   }
   // Copy given literals so we can sort them
-  vvector<Literal const*> c1(lits1, lits1 + len1);
-  vvector<Literal const*> c2(lits2, lits2 + len2);
+  vector<Literal const*> c1(lits1, lits1 + len1);
+  vector<Literal const*> c2(lits2, lits2 + len2);
   // The equality tests only make sense for shared literals
   std::for_each(c1.begin(), c1.end(), [](Literal const* lit) { ASS(lit->shared()); });
   std::for_each(c2.begin(), c2.end(), [](Literal const* lit) { ASS(lit->shared()); });
@@ -108,7 +108,7 @@ TEST_FUN(MatchSetIndexing)
   SATSubsumptionAndResolution::MatchSet matchSet;
   matchSet.resize(3, 3);
 
-  vvector<SATSubsumptionAndResolution::Match> matches;
+  vector<SATSubsumptionAndResolution::Match> matches;
   SATSubsumptionAndResolution::Match match1 = matchSet.addMatch(0, 0, true, subsat::Var(0));
   SATSubsumptionAndResolution::Match match2 = matchSet.addMatch(2, 1, true, subsat::Var(1));
   SATSubsumptionAndResolution::Match match3 = matchSet.addMatch(2, 2, true, subsat::Var(2));
@@ -138,8 +138,8 @@ TEST_FUN(PositiveSubsumption)
   __ALLOW_UNUSED(SYNTAX_SUGAR_SUBSUMPTION_RESOLUTION)
     SATSubsumptionAndResolution subsumption;
 
-  vvector<Kernel::Clause*> L;
-  vvector<Kernel::Clause*> M;
+  vector<Kernel::Clause*> L;
+  vector<Kernel::Clause*> M;
 
   // Test 1
   L.push_back(clause({ p3(x1, x2, x3), p3(f(x2), x4, x4) }));
@@ -192,8 +192,8 @@ TEST_FUN(NegativeSubsumption)
   __ALLOW_UNUSED(SYNTAX_SUGAR_SUBSUMPTION_RESOLUTION)
     SATSubsumptionAndResolution subsumption;
 
-  vvector<Kernel::Clause*> L;
-  vvector<Kernel::Clause*> M;
+  vector<Kernel::Clause*> L;
+  vector<Kernel::Clause*> M;
 
   // Test 1
   L.push_back(clause({ p2(f2(g2(x1, x2), x3), x3), p2(f2(g2(x1, x2), x3), x2), g2(x1, x2) == x3 }));
@@ -243,9 +243,9 @@ TEST_FUN(PositiveSubsumptionResolution)
     Kernel::Clause* conclusion;
   SATSubsumptionAndResolution subsumption;
 
-  vvector<Kernel::Clause*> L;
-  vvector<Kernel::Clause*> M;
-  vvector<Kernel::Clause*> expected;
+  vector<Kernel::Clause*> L;
+  vector<Kernel::Clause*> M;
+  vector<Kernel::Clause*> expected;
 
   // Test 1
   L.push_back(clause({ ~p(x1), q(x1) }));
@@ -334,8 +334,8 @@ TEST_FUN(NegativeSubsumptionResolution)
     Kernel::Clause* conclusion;
   SATSubsumptionAndResolution subsumption;
 
-  vvector<Kernel::Clause*> L;
-  vvector<Kernel::Clause*> M;
+  vector<Kernel::Clause*> L;
+  vector<Kernel::Clause*> M;
 
   // Test 1
   L.push_back(clause({ ~p(x1), q(x1) }));
@@ -447,9 +447,9 @@ TEST_FUN(PaperExample)
     Kernel::Clause* conclusion;
   SATSubsumptionAndResolution subsumption;
 
-  vvector<Kernel::Clause*> L;
-  vvector<Kernel::Clause*> M;
-  vvector<Kernel::Clause*> expected;
+  vector<Kernel::Clause*> L;
+  vector<Kernel::Clause*> M;
+  vector<Kernel::Clause*> expected;
 
   // Test 1
   L.push_back(clause({ p2(f(x1), x2), ~p2(x2, x1), p2(f(x3), x1) }));

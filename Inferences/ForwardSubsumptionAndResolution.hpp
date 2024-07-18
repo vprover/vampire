@@ -24,7 +24,7 @@ namespace Inferences {
 class ForwardSubsumptionAndResolution
     : public ForwardSimplificationEngine {
 public:
-  ForwardSubsumptionAndResolution(bool subsumptionResolution = true);
+  ForwardSubsumptionAndResolution(bool subsumptionResolution = true, bool mutualSetupSR = false);
 
   /**
    * Attaches the inference engine to the saturation algorithm.
@@ -63,6 +63,11 @@ private:
   /// @note If the parameter is set to false, then the inference engine will only perform forward subsumption
   bool _subsumptionResolution;
 
+  /// @brief Parameter to enable or disable mutual setup for and subsumption resolution subsumption resolution
+  bool _mutualSetupSR;
+
+  /// @brief Parameter to enable or disable checking of longer clauses
+  /// @details If a clause is longer than the clause to be simplified, then the inference engine will not perform forward subsumption resolution
   bool _checkLongerClauses = true;
 
   /// @brief Engine performing subsumption and subsumption resolution using a sat solver
