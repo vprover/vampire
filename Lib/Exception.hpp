@@ -200,7 +200,7 @@ class NotImplementedException
 #define SYSTEM_FAIL(msg,err) \
   throw Lib::SystemFailException(msg,err)
 #define NOT_IMPLEMENTED \
-  throw Lib::NotImplementedException(__FILE__, __LINE__)
+  throw Lib::NotImplementedException(__FILE__, __LINE__); 
 
 #endif // __Exception__
 

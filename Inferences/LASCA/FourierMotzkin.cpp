@@ -136,7 +136,6 @@ Option<Clause*> FourierMotzkin::applyRule(
     AbstractingUnifier& uwa
     ) const 
 {
-
 #define __LASCA_FM_DERIVE_EQUALITIES 1
 
   TIME_TRACE("fourier motzkin")

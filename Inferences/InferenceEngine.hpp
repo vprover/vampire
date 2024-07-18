@@ -114,7 +114,11 @@ public:
     ClauseIterator clauses;
     /** tells whether the major premise of the application of the rule should be deleted from the search space. */
     bool premiseRedundant;
+    static ClauseGenerationResult nothing() {
+      return ClauseGenerationResult { .clauses = ClauseIterator::getEmpty(), .premiseRedundant = false, };
+    }
   };
+
 
   /**
    * Applies this rule to the clause, and returns an iterator over the resulting clauses, 

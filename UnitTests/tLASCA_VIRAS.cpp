@@ -571,6 +571,15 @@ TEST_GENERATION(test_misc_02,
       .premiseRedundant(false)
     )
 
+TEST_GENERATION(axiom_conseq_1,
+    Generation::SymmetricTest()
+      .inputs ({         clause({ P(y), -a - floor(z) + x >= 0, floor(z) - floor(x) + frac(1,2) * a > 0})})
+      .expected(withoutDuplicates(exactly( 
+            // TODO
+            )))
+      .premiseRedundant(true)
+    )
+
 TEST_FUN(viras_internal) {
   auto conf = VampireVirasConfig();
   auto viras = viras::viras_test(conf);

@@ -21,6 +21,7 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Indexing/LascaIndex.hpp"
+#include "Lib/Exception.hpp"
 #include "Shell/Options.hpp"
 
 namespace Inferences {
@@ -45,7 +46,6 @@ public:
 
   ClauseGenerationResult generateSimplify(Clause* premise) final override;
 
-
 #if VDEBUG
   virtual void setTestIndices(Stack<Indexing::Index*> const&) final override {}
 #endif
@@ -58,5 +58,4 @@ private:
 } // namespace LASCA 
 } // namespace Inferences 
 
-// lalalalala
 #endif /*__Inferences_LASCA_VIRAS__*/

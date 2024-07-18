@@ -55,15 +55,9 @@ void TheoryAxioms::addAndOutputTheoryUnit(Unit* unit, unsigned level)
   if(opt_level != Options::TheoryAxiomLevel::ON && level != CHEAP){ return; }
 
   if (env.options->showTheoryAxioms()) {
-    Unit* qunit = unit;
-    Formula* f = 0;
-    if(unit->isClause()){
-      f = Formula::fromClause(static_cast<Clause*>(unit));
-      qunit = new FormulaUnit(f,unit->inference());
-    }
-    cout << "% Theory " << (unit->isClause() ? "clause" : "formula" ) << ": " << qunit->toString() << "\n";
-    if(f){ f->destroy(); } 
+    cout << "% Theory " << (unit->isClause() ? "clause" : "formula" ) << ": " << unit->toString() << "\n";
   }
+
   if(!unit->isClause()){
     _prb.reportFormulasAdded();
   }

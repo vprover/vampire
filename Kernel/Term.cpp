@@ -729,13 +729,14 @@ vstring Term::toString(bool topLevel) const
   }
 #endif // NICE_THEORY_OUTPUT
 
-  vstring s = headToString();
+  vstringstream out;
+  out << headToString();
   
 
   if (_arity && printArgs) {
-    s += args()->asArgsToString(); // will also print the ')'
+    out << outputInterleaved(',', anyArgIter(this)) << ")";
   }
-  return s;
+  return out.str();
 } // Term::toString
 
 /**

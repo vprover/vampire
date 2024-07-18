@@ -836,26 +836,26 @@ public:
 
 
 /** iterator over all term arguments of @code term */
-static const auto termArgIter = [](Term* term) 
+static const auto termArgIter = [](Term const* term) 
   { return range((unsigned)0, term->numTermArguments())
       .map([=](auto i)
            { return term->termArg(i); }); };
 
 /** iterator over all type arguments of @code term */
-static const auto typeArgIter = [](Term* term) 
+static const auto typeArgIter = [](Term const* term) 
   { return range((unsigned)0, term->numTypeArguments())
       .map([=](auto i)
            { return term->typeArg(i); }); };
 
 /** iterator over all type and term arguments of @code term */
-static const auto anyArgIter = [](Term* term) 
+static const auto anyArgIter = [](Term const* term) 
   { return iterTraits(getRangeIterator<unsigned>(0, term->arity()))
       .map([=](auto i)
            { return *term->nthArgument(i); }); };
 
 
 /** iterator over all type and term arguments of @code term */
-static const auto anyArgIterTyped = [](Term* term) 
+static const auto anyArgIterTyped = [](Term const* term) 
   { return range(0, term->arity())
       .map([=](auto i)
            { return TypedTermList(*term->nthArgument(i), SortHelper::getArgSort(term, i)); }); };
