@@ -38,15 +38,21 @@ public:
   void perform(Kernel::Clause *premise, Inferences::BwSimplificationRecordIterator &simplifications) override;
 
 private:
+  /// @brief True if the inference engine should perform subsumption
   bool _subsumption;
+  /// @brief True if the inference engine should perform subsumption resolution
   bool _subsumptionResolution;
+  /// @brief True if the inference engine should perform subsumption by unit clauses only
   bool _subsumptionByUnitsOnly;
+  /// @brief True if the inference engine should perform subsumption resolution by unit clauses only
   bool _srByUnitsOnly;
 
+  /// @brief Backward index for subsumption and subsumption resolution candidates
   Indexing::BackwardSubsumptionIndex *_bwIndex;
+  /// @brief SAT-based subsumption and subsumption resolution engine
   SATSubsumption::SATSubsumptionAndResolution _satSubs;
+  /// @brief Set of clauses that have already been checked for subsumption and/or subsumption resolution
   Lib::DHSet<Clause *> _checked;
-  Lib::DHSet<Clause *> _subsumedSet;
 
 };
 

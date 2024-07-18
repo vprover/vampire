@@ -39,9 +39,6 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-/***************************************************************/
-/*                        CORE METHODS                         */
-/***************************************************************/
 void BackwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
 {
   BackwardSimplificationEngine::attach(salg);
@@ -71,9 +68,6 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
 
   _checked.reset();
 
-  // The set of clauses that are subsumed by cl
-  _subsumedSet.reset();
-
   // contains the list of simplifications found so far
   List<BwSimplificationRecord> *simplificationBuffer = List<BwSimplificationRecord>::empty();
 
@@ -94,7 +88,6 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
         Clause *icl = it.next().data->clause;
         if (!_checked.insert(icl))
           continue;
-        _subsumedSet.insert(icl);
         env.statistics->backwardSubsumed++;
         List<BwSimplificationRecord>::push(BwSimplificationRecord(icl), simplificationBuffer);
       }
@@ -107,7 +100,7 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
       while (it.hasNext()) {
         auto res = it.next();
         Clause *icl = res.data->clause;
-        if (_subsumedSet.contains(icl) || !_checked.insert(icl))
+        if (!_checked.insert(icl))
           continue;
         Clause *conclusion = SATSubsumption::SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(icl, res.data->literal, cl);
         ASS(conclusion)
@@ -142,7 +135,6 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
           if (_satSubs.checkSubsumption(cl, icl, checkSR)) {
             env.statistics->backwardSubsumed++;
             List<BwSimplificationRecord>::push(BwSimplificationRecord(icl), simplificationBuffer);
-            _subsumedSet.insert(icl);
             continue;
           }
         }
