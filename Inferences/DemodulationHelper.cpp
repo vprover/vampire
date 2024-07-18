@@ -34,6 +34,10 @@ DemodulationHelper::DemodulationHelper(const Options& opts, const Ordering* ord)
 
 bool DemodulationHelper::redundancyCheckNeededForPremise(Clause* rwCl, Literal* rwLit, TermList rwTerm) const
 {
+  if (!_redundancyCheck) {
+    return false;
+  }
+
   if (!rwLit->isEquality() || (rwTerm!=*rwLit->nthArgument(0) && rwTerm!=*rwLit->nthArgument(1))) {
     return false;
   }
