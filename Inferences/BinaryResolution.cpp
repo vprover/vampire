@@ -142,7 +142,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   Literal* dAnsLit = synthesis ? resultCl->getAnswerLiteral() : nullptr;
   bool bothHaveAnsLit = (cAnsLit != nullptr) && (dAnsLit != nullptr);
 
-  inf_destroyer.disable(); // ownership passed to the the clause below
   RStack<Literal*> resLits;
 
   Literal* queryLitAfter = 0;
@@ -233,7 +232,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     env.statistics->resolution++;
   }
 
-  return Clause::fromStack(*resLits, inf); // the inference object owned by res from now on
+  inf_destroyer.disable(); // ownership passed to the the clause below
+  return Clause::fromStack(*resLits, inf);
 }
 Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, 
                                 ResultSubstitutionSP subs, const Options& opts)
