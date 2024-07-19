@@ -76,8 +76,8 @@ struct SortedSignature{
 class SortInference {
 public:
   SortInference(ClauseList* clauses,
-                DArray<unsigned> del_f,
-                DArray<unsigned> del_p,
+                const DArray<unsigned>& del_f,
+                const DArray<unsigned>& del_p,
                 Stack<std::pair<unsigned,unsigned>>& cons) :
                 _clauses(clauses), _del_f(del_f), _del_p(del_p),
                 _sort_constraints(cons) {
@@ -124,8 +124,8 @@ private:
 
   SortedSignature* _sig;
   ClauseList* _clauses;
-  DArray<unsigned> _del_f;
-  DArray<unsigned> _del_p;
+  const DArray<unsigned>& _del_f;
+  const DArray<unsigned>& _del_p;
 
   Stack<std::pair<unsigned,unsigned>>& _sort_constraints;
 };

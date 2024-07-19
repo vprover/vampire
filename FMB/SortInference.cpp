@@ -664,9 +664,9 @@ void SortInference::doInference()
 #if DEBUG_SORT_INFERENCE
     cout << env.signature->predicateName(p) << " : ";
 #endif
-    //cout << env.signature->predicateName(p) <<" : "; 
+    //cout << env.signature->predicateName(p) <<" : ";
     unsigned arity = env.signature->predicateArity(p);
-    // Now set _signatures 
+    // Now set _signatures
     _sig->predicateSignatures[p].ensure(arity);
 
     Signature::Symbol* prSym = env.signature->getPredicate(p);
