@@ -196,9 +196,8 @@ TermList AnswerLiteralManager::possiblyEvaluateAnswerTerm(TermList aT)
     Literal* l = Literal::create1(p,true,aT);
     Literal* res =0;
     bool constant, constTrue;
-    Stack<Literal*> sideConditions;
-    bool litMod = eval.evaluate(l,constant,res,constTrue,sideConditions);
-    if(litMod && res && sideConditions.isEmpty()){
+    bool litMod = eval.evaluate(l,constant,res,constTrue);
+    if(litMod && res){
       aT.setTerm(res->nthArgument(0)->term());
     }
   }
