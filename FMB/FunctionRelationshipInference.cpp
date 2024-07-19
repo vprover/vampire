@@ -50,8 +50,7 @@ namespace FMB
 using namespace std;
 using namespace Shell;
 
-void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator clauses, 
-                 Stack<DHSet<unsigned>*>& eq_classes, 
+void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator clauses,
                  DHSet<std::pair<unsigned,unsigned>>& nonstrict_cons,
                  DHSet<std::pair<unsigned,unsigned>>& strict_cons)
 {
@@ -109,50 +108,6 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
     }
   }
 
-  // Find equalities
-/*
-  Stop this for now... broken (need to check no strict) and very uncommon 
-
-  IntUnionFind uf(env.sorts->sorts());
-  {
-    DHSet<std::pair<unsigned,unsigned>>::Iterator it1(nonstrict_constraints);
-    while(it1.hasNext()){
-      std::pair<unsigned,unsigned> con1 = it1.next();
-      if(con1.first==con1.second) continue;
-      DHSet<std::pair<unsigned,unsigned>>::Iterator it2(nonstrict_constraints);
-      while(it2.hasNext()){
-        std::pair<unsigned,unsigned> con2 = it2.next();
-        if(con1.second == con2.first && con1.first == con2.second){
-          uf.doUnion(con1.first,con1.second);
-        }
-      }
-    }
-  }
-  uf.evalComponents();
-
-  bool header_printed = false;
-  {
-    for(unsigned s=0;s<env.sorts->sorts();s++){
-      DHSet<unsigned>* cls = new DHSet<unsigned>();
-      for(unsigned t=0;t<env.sorts->sorts();t++){
-        if(uf.root(t)==s) cls->insert(t);
-      }
-      if(cls->size()>1){
-        if(print){
-           if(!header_printed){
-             cout << "Equalities:" << endl;
-             header_printed=true;
-           }
-           cout << "= ";
-           DHSet<unsigned>::Iterator it(*cls);
-           while(it.hasNext()) cout << it.next() << " ";
-           cout << endl;
-         }
-         eq_classes.push(cls);   
-      }
-    }
-  }
-*/
   // Normalise constraints
   unsigned constraint_count = 0;
   {

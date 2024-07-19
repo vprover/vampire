@@ -434,9 +434,8 @@ void FiniteModelBuilder::init()
     FunctionRelationshipInference inf;
     inf.findFunctionRelationships(
       _prb.clauseIterator(),
-      equivalent_vampire_sorts,
       vampire_sort_constraints_nonstrict,
-      vampire_sort_constraints_strict); 
+      vampire_sort_constraints_strict);
   }
 
   ClauseList* clist = 0;
