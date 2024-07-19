@@ -24,6 +24,22 @@ namespace Kernel {
 using namespace Lib;
 
 
+struct MLMatchStats
+{
+  uint64_t numDecisions = 0;
+  // int numDecisionsAdjusted = 0;  // adjusted to "smt-like decisions"
+  bool result = false;  // true iff match was found
+};
+
+inline std::ostream& operator<<(std::ostream& os, MLMatchStats const& stats)
+{
+  os << "{ \"numDecisions\": " << stats.numDecisions
+     << ", \"result\": " << stats.result
+     << " }";
+  return os;
+}
+
+
 /**
  * MLMatcher implements a solver for the multi-literal match problem.
  *
@@ -42,6 +58,7 @@ class MLMatcher
      * - alts must have length baseLen (for 0 <= bi < baseLen, the literal baseLits[bi] will be matched against the alternatives in the list alts[bi])
      * - All literals in 'alts' must appear in 'instance'.
      * - If resolvedLit is not null, multiset must be false. (Hypothesis; not 100% sure if the matching algorithm breaks in that case)
+     * - No duplicates in baseLits[]
      */
     void init(Literal** baseLits,
               unsigned baseLen,
@@ -106,6 +123,8 @@ class MLMatcher
      */
     void getBindings(std::unordered_map<unsigned, TermList>& outBindings) const;
 
+    MLMatchStats getStats() const;
+
     // Disallow copy because the internal implementation still uses pointers to the underlying storage and it seems hard to untangle that.
     MLMatcher(MLMatcher const&) = delete;
     MLMatcher& operator=(MLMatcher const&) = delete;
@@ -127,6 +146,8 @@ class MLMatcher
     {
       return canBeMatched(base->literals(), base->length(), instance, alts, resolvedLit, resolvedLit == nullptr);
     }
+
+    static MLMatchStats getStaticStats();
 };
 
 
