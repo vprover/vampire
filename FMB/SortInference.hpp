@@ -119,8 +119,8 @@ private:
 
   unsigned _distinctSorts;
   unsigned _collapsed;
-  DHSet<unsigned> monotonicVampireSorts;
-  ZIArray<unsigned> posEqualitiesOnSort;
+  DHSet<unsigned> _monotonicVampireSorts;
+  ZIArray<unsigned> _posEqualitiesOnSort;  // grows as needed, as new sorts are named
 
   SortedSignature* _sig;
   ClauseList* _clauses;
