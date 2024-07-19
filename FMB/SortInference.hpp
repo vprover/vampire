@@ -80,7 +80,6 @@ public:
                 DArray<unsigned> del_p,
                 Stack<std::pair<unsigned,unsigned>>& cons) :
                 _clauses(clauses), _del_f(del_f), _del_p(del_p),
-                _equiv_vs(env.signature->typeCons()),
                 _sort_constraints(cons) {
 
                   _sig = new SortedSignature();
@@ -127,7 +126,6 @@ private:
   ClauseList* _clauses;
   DArray<unsigned> _del_f;
   DArray<unsigned> _del_p;
-  IntUnionFind _equiv_vs;
 
   Stack<std::pair<unsigned,unsigned>>& _sort_constraints;
 };

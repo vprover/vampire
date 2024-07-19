@@ -855,21 +855,6 @@ unsigned SortInference::getDistinctSort(unsigned subsort, unsigned realVampireSo
       }
       _sig->monotonicSorts[ourSort]=true;
     }
-    else if(!_expandSubsorts && (unsigned)_equiv_vs.root(vampireSort)!=vampireSort){
-      unsigned rootSort = _equiv_vs.root(vampireSort);
-      if(!ourDistinctSorts.find(rootSort,ourSort)){
-          ourSort = _distinctSorts++;
-          if(!_sig->distinctToVampire.find(ourSort)){
-            _sig->distinctToVampire.insert(ourSort,new Stack<unsigned>());
-          }
-          ourDistinctSorts.insert(rootSort,ourSort);
-          _sig->distinctToVampire.get(ourSort)->push(rootSort);
-          if(!_sig->vampireToDistinct.find(rootSort)){
-            _sig->vampireToDistinct.insert(rootSort,new Stack<unsigned>());
-          }
-          _sig->vampireToDistinct.get(rootSort)->push(ourSort);
-      }
-    }
    else ourSort = _distinctSorts++;
 
    ourDistinctSorts.insert(vampireSort,ourSort);
