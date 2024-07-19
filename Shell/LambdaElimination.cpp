@@ -492,7 +492,7 @@ void LambdaElimination::addFunctionExtensionalityAxiom(Problem& prb)
   Clause* funcExtAx = Clause::fromLiterals(
       { Literal::createEquality(false, lhs, rhs, beta),
         Literal::createEquality(true, x, y, AtomicSort::arrowSort(alpha, beta)) },
-      NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FUNC_EXT_AXIOM));
+      NonspecificInference0(UnitInputType::AXIOM, InferenceRule::FUNC_EXT_AXIOM));
   UnitList::push(funcExtAx, prb.units());
 
 
@@ -519,7 +519,7 @@ void LambdaElimination::addChoiceAxiom(Problem& prb)
   Clause* choiceAx = Clause::fromLiterals(
       { Literal::createEquality(true, px, TermList(Term::foolFalse()), boolS),
         Literal::createEquality(true, pchoiceT, TermList(Term::foolTrue()), boolS) },
-      NonspecificInference0(UnitInputType::AXIOM,InferenceRule::CHOICE_AXIOM));
+      NonspecificInference0(UnitInputType::AXIOM, InferenceRule::CHOICE_AXIOM));
   UnitList::push(choiceAx, prb.units());
 
 

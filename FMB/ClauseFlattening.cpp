@@ -109,7 +109,7 @@ Clause* ClauseFlattening::resolveNegativeVariableEqualities(Clause* cl)
           resLits->push(subst.isId() ? (*cl)[i] : SubstHelper::apply((*cl)[i],subst));
         }
       }
-      cl = Clause::fromStack(*resLits, NonspecificInference1(InferenceRule::EQUALITY_RESOLUTION,cl));
+      cl = Clause::fromStack(*resLits, NonspecificInference1(InferenceRule::EQUALITY_RESOLUTION, cl, cl->age()));
       n--;
       // cout << "Update: " << cl->toString() << endl;
     } else {
@@ -248,7 +248,8 @@ Clause* ClauseFlattening::flatten(Clause* cl)
   // If no new literals were added just return cl
   if(!updated) return cl;
 
-  return Clause::fromStack(result,NonspecificInference1(InferenceRule::FMB_FLATTENING,cl));
+  // TODO really age 0?
+  return Clause::fromStack(result, NonspecificInference1(InferenceRule::FMB_FLATTENING,cl, /* age */ 0));
 }
 
 }

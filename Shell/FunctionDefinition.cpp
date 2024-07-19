@@ -722,9 +722,7 @@ Clause* FunctionDefinition::applyDefinitions(Clause* cl)
     UnitList::push(defCl, premises);
   }
   UnitList::push(cl, premises);
-  auto res = Clause::fromStack(*resLits, NonspecificInferenceMany(InferenceRule::DEFINITION_UNFOLDING, premises));
-  res->setAge(cl->age()); // TODO isn't this dones automatically?
-  return res;
+  return Clause::fromStack(*resLits, NonspecificInferenceMany(InferenceRule::DEFINITION_UNFOLDING, premises, cl->age()));
 }
 
 

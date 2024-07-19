@@ -114,7 +114,8 @@ Clause* ColorHelper::skolemizeColoredConstants(Clause* c)
       resStack[i] = EqHelper::replace(resStack[i], replaced, newTrm);
     }
   }
-  Clause* res = Clause::fromStack(resStack, NonspecificInference1(InferenceRule::COLOR_UNBLOCKING, c));
+  // TODO the age is set to 0 as this was the old behaviour. Does this make sense?
+  Clause* res = Clause::fromStack(resStack, NonspecificInference1(InferenceRule::COLOR_UNBLOCKING, c, /* age */ 0));
   return res;
 }
 
@@ -208,7 +209,8 @@ Clause* ColorHelper::skolemizeColoredTerms(Clause* c)
   }
 
   ASS_EQ(resStack.size(), clen);
-  Clause* res = Clause::fromStack(resStack, NonspecificInference1(InferenceRule::COLOR_UNBLOCKING, c));
+  // TODO the age is set to 0 as this was the old behaviour. Does this make sense?
+  Clause* res = Clause::fromStack(resStack, NonspecificInference1(InferenceRule::COLOR_UNBLOCKING, c, /* age */ 0));
   return res;
 }
 

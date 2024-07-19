@@ -189,9 +189,9 @@ void SplittingBranchSelector::handleSatRefutation()
   if (!env.colorUsed) { // color oblivious, simple approach
     UnitList* prems = SATInference::getFOPremises(satRefutation);
 
+    // TODO do we really want age 0 here?
     Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(),
-        FromSatRefutation(_solverIsSMT ? InferenceRule::AVATAR_REFUTATION_SMT : InferenceRule::AVATAR_REFUTATION, prems, satPremises));
-    // TODO: in principle, the user might be interested in this final clause's age (currently left 0)
+        FromSatRefutation(_solverIsSMT ? InferenceRule::AVATAR_REFUTATION_SMT : InferenceRule::AVATAR_REFUTATION, prems, satPremises, /* age */ 0));
     throw MainLoop::RefutationFoundException(foRef);
   } else { // we must produce a well colored proof
 
@@ -249,7 +249,8 @@ void SplittingBranchSelector::handleSatRefutation()
     }
 
     if (colorCnts[sndCol] == 0) { // this is a degenerate case, in which we don't need to interpolate at all
-      Inference foInf = NonspecificInferenceMany(InferenceRule::AVATAR_REFUTATION, first_prems);
+      // TODO do we really want age 0 here?
+      Inference foInf = NonspecificInferenceMany(InferenceRule::AVATAR_REFUTATION, first_prems, /* age */ 0);
       Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), foInf);
       throw MainLoop::RefutationFoundException(foRef);
     }
@@ -306,12 +307,14 @@ void SplittingBranchSelector::handleSatRefutation()
 
     // finish constructing the derivation
     {
-      Inference elInf = NonspecificInferenceMany(InferenceRule::SAT_COLOR_ELIMINATION, second_prems);
+      // TODO do we really want age 0 here?
+      Inference elInf = NonspecificInferenceMany(InferenceRule::SAT_COLOR_ELIMINATION, second_prems, /* age */ 0);
       FormulaUnit* interpolated = new FormulaUnit(interpolant,elInf);
 
       UnitList::push(interpolated,first_prems);
 
-      Inference finalInf = NonspecificInferenceMany(InferenceRule::SAT_COLOR_ELIMINATION,first_prems);
+      // TODO do we really want age 0 here?
+      Inference finalInf = NonspecificInferenceMany(InferenceRule::SAT_COLOR_ELIMINATION,first_prems, /* age */ 0);
       Clause* foRef = Clause::fromIterator(LiteralIterator::getEmpty(), finalInf);
 
       throw MainLoop::RefutationFoundException(foRef);
@@ -774,7 +777,8 @@ Clause* Splitter::reintroduceAvatarAssertions(Clause* cl) {
     ASS(compCl->length() == 1);
     resLits->push(Literal::complementaryLiteral((*compCl)[0]));
   }
-  return Clause::fromStack(*resLits, Inference(NonspecificInference1(InferenceRule::AVATAR_ASSERTION_REINTRODUCTION, cl)));
+  // TODO do we really want age 0 here?
+  return Clause::fromStack(*resLits, Inference(NonspecificInference1(InferenceRule::AVATAR_ASSERTION_REINTRODUCTION, cl, /* age */ 0)));
 }
 
 void Splitter::onAllProcessed()
@@ -962,7 +966,8 @@ bool Splitter::handleNonSplittable(Clause* cl)
     UnitList::push(cl,ps); // making sure this clause is the last one pushed (for the sake of colorFromAssumedFOConversion)
 
     Formula* f = JunctionFormula::generalJunction(OR,resLst);
-    FormulaUnit* scl = new FormulaUnit(f,NonspecificInferenceMany(InferenceRule::AVATAR_SPLIT_CLAUSE,ps));
+      // TODO do we really want age 0 here?
+    FormulaUnit* scl = new FormulaUnit(f, NonspecificInferenceMany(InferenceRule::AVATAR_SPLIT_CLAUSE,ps, /* age */ 0));
 
     nsClause->setInference(new FOConversionInference(scl));
 
@@ -1149,7 +1154,8 @@ bool Splitter::doSplitting(Clause* cl)
   UnitList::push(cl,ps); // making sure this clause is the last one pushed (for the sake of colorFromAssumedFOConversion)
 
   Formula* f = JunctionFormula::generalJunction(OR,resLst);
-  FormulaUnit* scl = new FormulaUnit(f,NonspecificInferenceMany(InferenceRule::AVATAR_SPLIT_CLAUSE,ps));
+      // TODO do we really want age 0 here?
+  FormulaUnit* scl = new FormulaUnit(f,NonspecificInferenceMany(InferenceRule::AVATAR_SPLIT_CLAUSE,ps, /* age */ 0));
 
   splitClause->setInference(new FOConversionInference(scl));
 
@@ -1226,7 +1232,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
 
     std::string formula_name = getFormulaStringFromName(posName);
     Clause* temp = Clause::fromIterator(arrayIter(possibly_flipped_lits, size),
-        NonspecificInference0(inpType,InferenceRule::AVATAR_DEFINITION));
+        NonspecificInference0(inpType, InferenceRule::AVATAR_DEFINITION));
     Formula* def_f = new BinaryFormula(IFF,
                  new NamedFormula(formula_name),
                  Formula::fromClause(temp));
@@ -1242,8 +1248,9 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
     ALWAYS(_defs.insert(posName,def_u));
   }
 
+  auto age = orig != nullptr ? orig->age() : AGE_NOT_FILLED;
   Clause* compCl = Clause::fromIterator(arrayIter(lits, size),
-          NonspecificInference1(InferenceRule::AVATAR_COMPONENT,def_u));
+          NonspecificInference1(InferenceRule::AVATAR_COMPONENT,def_u, age));
 
   // propagate running sums:
   // - we have certain values we propagate from the parents of a clause d to d. These values are mainly used to guide saturation.
@@ -1256,12 +1263,10 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   //   It seems that these invocations correspond to the splitting of a clause which was generated by some decision procedure
   //   outside the saturation loop.
   if (orig != nullptr) {
-    compCl->setAge(orig->age());
     compCl->inference().th_ancestors = orig->inference().th_ancestors;
     compCl->inference().all_ancestors = orig->inference().all_ancestors;
     compCl->inference().setSineLevel(orig->inference().getSineLevel());
   } else {
-    compCl->setAge(AGE_NOT_FILLED);
     // We don't know anything about the derivation of the clause, so we set values which are as neutral as possible.
     compCl->inference().th_ancestors = 0;
     compCl->inference().all_ancestors = 1;
@@ -1626,7 +1631,8 @@ bool Splitter::handleEmptyClause(Clause* cl)
   }
 
   Formula* f = JunctionFormula::generalJunction(OR,resLst);
-  FormulaUnit* scl = new FormulaUnit(f,NonspecificInference1(InferenceRule::AVATAR_CONTRADICTION_CLAUSE,cl));
+    // TODO do we really want age 0 here?
+  FormulaUnit* scl = new FormulaUnit(f, NonspecificInference1(InferenceRule::AVATAR_CONTRADICTION_CLAUSE,cl, /* age */ 0));
 
   confl->setInference(new FOConversionInference(scl));
   

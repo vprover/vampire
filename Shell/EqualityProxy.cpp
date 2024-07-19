@@ -261,11 +261,8 @@ Clause* EqualityProxy::apply(Clause* cl)
 
   ASS(_defUnit);
 
-  auto res = Clause::fromStack(*resLits, 
-    NonspecificInference2(InferenceRule::EQUALITY_PROXY_REPLACEMENT, cl, _defUnit));
-  // TODO isn't this done automatically?
-  res->setAge(cl->age());
-  return res;
+  return Clause::fromStack(*resLits, 
+    NonspecificInference2(InferenceRule::EQUALITY_PROXY_REPLACEMENT, cl, _defUnit, /* age */ cl->age()));
 } // EqualityProxy::apply(Clause*)
 
 /**
@@ -340,8 +337,8 @@ unsigned EqualityProxy::getProxyPredicate()
 Clause* EqualityProxy::createEqProxyAxiom(const LiteralStack& literalStack)
 {
   ASS(_defUnit);
-  Clause* res = Clause::fromStack(literalStack, NonspecificInference1(InferenceRule::EQUALITY_PROXY_AXIOM2,_defUnit));
-  return res;
+  // TODO do we really want age 0 here?
+  return Clause::fromStack(literalStack, NonspecificInference1(InferenceRule::EQUALITY_PROXY_AXIOM2,_defUnit, /* age */ 0));
 } // EqualityProxy::createEqProxyAxiom
 
 /**

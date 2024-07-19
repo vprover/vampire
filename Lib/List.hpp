@@ -536,6 +536,8 @@ public:
     List* _lst;
   };
 
+  auto iter() { return RefIterator(this); }
+
   /** Iterator that allows one to delete the current element */
   class DelIterator {
    public:

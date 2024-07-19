@@ -1800,8 +1800,9 @@ MainLoopResult FiniteModelBuilder::runImpl()
             _sortModelSizes[s] = _distinctSortSizes[_sortedSignature->parents[s]];
           }
         } else {
+          // TODO do we really want age 0 here?
           return MainLoopResult(Statistics::REFUTATION,
-              Clause::empty(NonspecificInferenceMany(InferenceRule::MODEL_NOT_FOUND,_prb.units())));
+              Clause::empty(NonspecificInferenceMany(InferenceRule::MODEL_NOT_FOUND,_prb.units(), /* age */ 0)));
         }
       } else { // i.e. (!_xmass)
         static Constraint_Generator_Vals nogood;
@@ -1840,7 +1841,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
         if (!_dsaEnumerator->increaseModelSizes(_distinctSortSizes,_distinctSortMaxs)) {
           if (_dsaEnumerator->isFmbComplete(_distinctSortSizes.size())) {
             return MainLoopResult(Statistics::REFUTATION,
-                Clause::empty(NonspecificInferenceMany(InferenceRule::MODEL_NOT_FOUND,_prb.units())));
+                Clause::empty(NonspecificInferenceMany(InferenceRule::MODEL_NOT_FOUND, _prb.units(), /* age */ 0)));
           } else {
             if(outputAllowed()) {
               cout << "Cannot enumerate next child to try in an incomplete setup" <<endl;

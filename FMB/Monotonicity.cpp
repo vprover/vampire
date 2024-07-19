@@ -269,8 +269,9 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, DArray<
          literals.push(guard);
        }
 
+       // TODO really age 0?
        Clause* replacement = Clause::fromStack(literals,
-                                   NonspecificInference1(InferenceRule::ADD_SORT_PREDICATES, cl));
+                                   NonspecificInference1(InferenceRule::ADD_SORT_PREDICATES, cl, /* age */ 0));
 
        ASS(SortHelper::areSortsValid(replacement));
        ClauseList::push(replacement,newAxioms);
@@ -362,8 +363,9 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
      }
 
      if(changed){
+       // TODO really age 0?
        Clause* replacement = Clause::fromStack(literals,
-                                   NonspecificInference1(InferenceRule::ADD_SORT_FUNCTIONS, cl));
+                                   NonspecificInference1(InferenceRule::ADD_SORT_FUNCTIONS, cl, /* age */ 0));
        //cout << "C " << cl->toString() << endl;
        //cout << "R " << replacement->toString() << endl;
        ASS(SortHelper::areSortsValid(replacement));

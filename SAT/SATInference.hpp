@@ -37,19 +37,20 @@ struct FromSatRefutation {
    * (no memory responsibility overtaken; the list must survive till the minimization call),
    * a stack of @b usedAssumptions is copied.
    */
-  FromSatRefutation(InferenceRule rule, UnitList* premises, SATClauseList* satPremises, const SATLiteralStack& usedAssumptions) :
-    _rule(rule), _premises(premises), _satPremises(satPremises), _usedAssumptions(usedAssumptions) {}
+  FromSatRefutation(InferenceRule rule, UnitList* premises, SATClauseList* satPremises, const SATLiteralStack& usedAssumptions, unsigned age) :
+    _rule(rule), _premises(premises), _satPremises(satPremises), _usedAssumptions(usedAssumptions), _age(age) {}
 
   /**
    * Constructor versions with no assumptions.
    */
-  FromSatRefutation(InferenceRule rule, UnitList* premises, SATClauseList* satPremises) :
-      _rule(rule), _premises(premises), _satPremises(satPremises) {}
+  FromSatRefutation(InferenceRule rule, UnitList* premises, SATClauseList* satPremises, unsigned age) :
+      _rule(rule), _premises(premises), _satPremises(satPremises), _age(age) {}
 
   InferenceRule _rule;
   UnitList* _premises;
   SATClauseList* _satPremises; // may be a nullptr, in which case no minimization will be possible
   SATLiteralStack _usedAssumptions; // possibly an empty stack
+  unsigned _age;
 };
 
 }

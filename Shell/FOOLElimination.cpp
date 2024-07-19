@@ -153,7 +153,7 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
   // add the master premise to the definitions and pass them to the inference object
   UnitList::push(rectifiedUnit,_currentDefs);
   FormulaUnit* processedUnit = new FormulaUnit(processedFormula,
-      NonspecificInferenceMany(InferenceRule::FOOL_ELIMINATION, _currentDefs));
+      NonspecificInferenceMany(InferenceRule::FOOL_ELIMINATION, _currentDefs, rectifiedUnit->inference().age()));
   _currentDefs = UnitList::empty();
 
   if (env.options->showPreprocessing()) {
@@ -664,7 +664,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // add the introduced definition
         FormulaUnit* defUnit = new FormulaUnit(freshSymbolDefinition,
-            NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FOOL_LET_DEFINITION));
+            NonspecificInference0(UnitInputType::AXIOM, InferenceRule::FOOL_LET_DEFINITION));
         addDefinition(defUnit);
 
         TermList contents = *term->nthArgument(0); // deliberately unprocessed here
@@ -742,7 +742,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
           // add the introduced definition
           FormulaUnit* defUnit = new FormulaUnit(freshSymbolDefinition,
-            NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FOOL_FORMULA_DEFINITION));
+            NonspecificInference0(UnitInputType::AXIOM, InferenceRule::FOOL_FORMULA_DEFINITION));
           addDefinition(defUnit);
 
           InferenceStore::instance()->recordIntroducedSymbol(defUnit,SymbolType::FUNC, freshSymbol);

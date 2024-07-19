@@ -125,7 +125,7 @@ namespace Shell
                         premise->decRefCnt();
                     }
                 }
-                current->inference() = NonspecificInferenceMany(current->inference().rule(), premises);
+                current->inference() = NonspecificInferenceMany(current->inference().rule(), premises, /* age */ 0);
             }
         }
     }
@@ -479,7 +479,8 @@ namespace Shell
         prems = List<Unit*>::reverse(prems);  //we want items in the same order
 
         Formula* f = Formula::fromClause(cur->asClause());
-        FormulaUnit* fu = new FormulaUnit(f,NonspecificInferenceMany(rule,prems));
+        // TODO do we really want age 0?
+        FormulaUnit* fu = new FormulaUnit(f, NonspecificInferenceMany(rule, prems, /* age */ 0));
 
         if (cur->inheritedColor() != COLOR_INVALID) {
             fu->setInheritedColor(cur->inheritedColor());

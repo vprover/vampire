@@ -145,8 +145,9 @@ public:
 
   /** Return the age */
   unsigned age() const { return inference().age(); }
+  [[deprecated("remove call")]]
   /** Set the age to @b a */
-  void setAge(unsigned a) { inference().setAge(a); }
+  void setAge(unsigned a) { ASS_EQ(age(), a) }
 
   /** Return the number of selected literals */
   unsigned numSelected() const { return _numSelected; }

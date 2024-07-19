@@ -271,7 +271,7 @@ Clause* EqualityProxyMono::apply(Clause* cl)
   ASS(proxyPremises.isNonEmpty());
   if (proxyPremises.size() == 1) {
     res = Clause::fromStack(*resLits,
-        NonspecificInference2(InferenceRule::EQUALITY_PROXY_REPLACEMENT, cl, proxyPremises.top()));
+        NonspecificInference2(InferenceRule::EQUALITY_PROXY_REPLACEMENT, cl, proxyPremises.top(), cl->age()));
   }
   else {
     UnitList* prems = 0;
@@ -279,10 +279,8 @@ Clause* EqualityProxyMono::apply(Clause* cl)
     UnitList::push(cl,prems);
 
     res = Clause::fromStack(*resLits,
-        NonspecificInferenceMany(InferenceRule::EQUALITY_PROXY_REPLACEMENT, prems));
+        NonspecificInferenceMany(InferenceRule::EQUALITY_PROXY_REPLACEMENT, prems, cl->age()));
   }
-  // TODO isn't this done atomatically
-  res->setAge(cl->age()); // MS: this seems useless; as long as EqualityProxy is only operating as a part of preprocessing, age is going to 0 anyway
 
   return res;
 } // EqualityProxy::apply(Clause*)
@@ -382,8 +380,8 @@ Clause* EqualityProxyMono::createEqProxyAxiom(const LiteralStack& literalStack)
     UnitList::push(prem, prems);
   }
   ASS(prems);
-  Clause* res = Clause::fromStack(literalStack,NonspecificInferenceMany(InferenceRule::EQUALITY_PROXY_AXIOM2,prems));
-  return res;
+  // TODO do we really want age 0 here?
+  return Clause::fromStack(literalStack, NonspecificInferenceMany(InferenceRule::EQUALITY_PROXY_AXIOM2, prems, /* age */ 0));
 } // EqualityProxy::createEqProxyAxiom
 
 /**

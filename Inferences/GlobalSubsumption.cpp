@@ -235,10 +235,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
         SATClauseList* satPremises = env.options->minimizeSatProofs() ?
             solver.getRefutationPremiseList() : nullptr; // getRefutationPremiseList may be nullptr already, if our solver does not support minimization
 
-        Inference inf(FromSatRefutation(InferenceRule::GLOBAL_SUBSUMPTION, premList, satPremises, failedFinal));
-        // CAREFUL:
-        // FromSatRefutation does not automatically propagate age
-        inf.setAge(cl->age());
+        Inference inf(FromSatRefutation(InferenceRule::GLOBAL_SUBSUMPTION, premList, satPremises, failedFinal, cl->age()));
         // also, let's not propagate inputType from the whole big (non-minimized) set of premises (which probably already contains a piece of the conjecture)
         inf.setInputType(cl->inputType());
         // Splitter will set replacement's splitSet, so we don't have to do it here

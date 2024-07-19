@@ -75,8 +75,9 @@ void Shuffling::polarityFlip(Problem& prb)
     }
     // cout << "After: " << cl->toString() << std::endl;
     if (modified) {
+      // TODO do we really want age 0 here?
       Clause* nc = Clause::fromStack(newLits,
-        NonspecificInferenceMany(InferenceRule::POLARITY_FLIPPING,UnitList::singleton(cl)));
+        NonspecificInferenceMany(InferenceRule::POLARITY_FLIPPING,UnitList::singleton(cl), /* age */ 0));
       u = nc; // replace the original in the Problem's list
     }
   }

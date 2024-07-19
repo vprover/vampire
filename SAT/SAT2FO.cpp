@@ -110,7 +110,7 @@ SATClause* SAT2FO::createConflictClause(LiteralStack& unsatCore, InferenceRule r
     Literal* ul = ucit.next();
     negStack.push(Literal::complementaryLiteral(ul));
   }
-  Clause* foConfl = Clause::fromStack(negStack,NonspecificInference0(UnitInputType::AXIOM,rule));
+  Clause* foConfl = Clause::fromStack(negStack, NonspecificInference0(UnitInputType::AXIOM, rule));
   return toSAT(foConfl);
 }
 

@@ -75,7 +75,7 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
         }
         // Currently we just say that these are from the Input, not $distinct or theory of ints
         UnitList::push(
-          new FormulaUnit(expansion,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::DISTINCTNESS_AXIOM)),
+          new FormulaUnit(expansion, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::DISTINCTNESS_AXIOM)),
           units);
       }
       else {

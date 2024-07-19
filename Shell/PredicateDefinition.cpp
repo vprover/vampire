@@ -363,7 +363,8 @@ FormulaUnit* PredicateDefinition::replacePurePredicates(FormulaUnit* u)
 {
   Formula* resf=replacePurePredicates(u->formula());
   if(resf!=u->formula()) {
-    return new FormulaUnit(resf,NonspecificInference1(InferenceRule::PURE_PREDICATE_REMOVAL, u));
+    // TODO here the age used to be set to constant 0. This didn't matter as we use PredicateDefinition only in preprocessing where everything is age 0. This should be changed though as someone might use this function in saturation in the future protentially...?
+    return new FormulaUnit(resf, NonspecificInference1(InferenceRule::PURE_PREDICATE_REMOVAL, u, u->inference().age()));
   }
   else {
     return u;
@@ -682,7 +683,8 @@ FormulaUnit* PredicateDefinition::makeImplFromDef(FormulaUnit* def, unsigned pre
   } else {
     resf0=resf;
   }
-  return new FormulaUnit(resf0,NonspecificInference1(InferenceRule::UNUSED_PREDICATE_DEFINITION_REMOVAL, def));
+  // TODO do we really want age  0?
+  return new FormulaUnit(resf0, NonspecificInference1(InferenceRule::UNUSED_PREDICATE_DEFINITION_REMOVAL, def, /* age */ 0));
 }
 
 void PredicateDefinition::scan(Unit* u)

@@ -95,8 +95,7 @@ namespace FMB {
       }
 
       if(anyUpdated){
-        Clause* cl = Clause::fromStack(lits,NonspecificInference1(InferenceRule::FMB_DEF_INTRO,c));
-         _processed.push(cl);
+         _processed.push(Clause::fromStack(lits,NonspecificInference1(InferenceRule::FMB_DEF_INTRO, c, c->age())));
       }else{
          _processed.push(c);
       }
@@ -146,7 +145,8 @@ namespace FMB {
           static Stack<Literal*> lstack;
           lstack.reset();
           lstack.push(l);
-          Clause* def = Clause::fromStack(lstack,NonspecificInference1(InferenceRule::FMB_DEF_INTRO,from));
+          // TODO really age 0?
+          Clause* def = Clause::fromStack(lstack,NonspecificInference1(InferenceRule::FMB_DEF_INTRO,from, /* age */ 0));
 
           //std::cout << "creating def " << def->toString() << std::endl;
           _processed.push(def); 

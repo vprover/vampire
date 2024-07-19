@@ -348,7 +348,8 @@ namespace Inferences {
 
       auto res = Clause::fromStack(*resLits,GeneratingInferenceMany(InferenceRule::TERM_ALGEBRA_ACYCLICITY, ulpremises));
       // MS: to preserve the original semantics (although it looks slightly suspicious)
-      res->setAge(_premise->age() + 1); 
+      // TODO let's break with old behaviour to get rid of code complexity
+      // res->setAge(_premise->age() + 1); 
       
       return res;
     }

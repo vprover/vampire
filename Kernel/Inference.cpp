@@ -105,8 +105,15 @@ void Inference::destroy()
   }
 }
 
+unsigned maxAge(UnitList* premises) {
+  return iterTraits(premises->iter())
+      .map([](auto x) { return x->inference().age(); })
+      .max()
+      .unwrap();
+}
+
 Inference::Inference(const FromSatRefutation& fsr) {
-  initMany(fsr._rule,fsr._premises);
+  initMany(fsr._rule, fsr._premises, fsr._age);
 
   ASS_REP(isSatRefutationRule(fsr._rule),ruleName(fsr._rule));
 
@@ -284,9 +291,9 @@ std::ostream& Kernel::operator<<(std::ostream& out, Inference const& self)
 }
 
 
-void Inference::init0(UnitInputType inputType, InferenceRule r)
+void Inference::init0(UnitInputType inputType, InferenceRule r, unsigned age)
 {
-  initDefault(inputType,r);
+  initDefault(inputType, r, age);
   _kind = Kind::INFERENCE_012;
   _ptr1 = nullptr;
   _ptr2 = nullptr;
@@ -302,9 +309,9 @@ void Inference::init0(UnitInputType inputType, InferenceRule r)
   //_sineLevel = MAX from initDefault (or set externally)
 }
 
-void Inference::init1(InferenceRule r, Unit* premise)
+void Inference::init1(InferenceRule r, Unit* premise, unsigned age)
 {
-  initDefault(premise->inputType(),r);
+  initDefault(premise->inputType(), r, age);
 
   _kind = Kind::INFERENCE_012;
   _ptr1 = premise;
@@ -322,9 +329,9 @@ void Inference::init1(InferenceRule r, Unit* premise)
   updateStatistics();
 }
 
-void Inference::init2(InferenceRule r, Unit* premise1, Unit* premise2)
+void Inference::init2(InferenceRule r, Unit* premise1, Unit* premise2, unsigned age)
 {
-  initDefault(getInputType(premise1->inputType(),premise2->inputType()),r);
+  initDefault(getInputType(premise1->inputType(),premise2->inputType()), r, age);
 
   _kind = Kind::INFERENCE_012;
   _ptr1 = premise1;
@@ -343,9 +350,9 @@ void Inference::init2(InferenceRule r, Unit* premise1, Unit* premise2)
   updateStatistics();
 }
 
-void Inference::initMany(InferenceRule r, UnitList* premises)
+void Inference::initMany(InferenceRule r, UnitList* premises, unsigned age)
 {
-  initDefault(UnitInputType::AXIOM /* the minimal element; we later compute maximum over premises*/,r);
+  initDefault(UnitInputType::AXIOM /* the minimal element; we later compute maximum over premises*/, r, age);
 
   _kind = Kind::INFERENCE_MANY;
   _ptr1 = premises;
@@ -386,16 +393,16 @@ void Inference::initMany(InferenceRule r, UnitList* premises)
 }
 
 Inference::Inference(const FromInput& fi) {
-  init0(fi.inputType,InferenceRule::INPUT);
+  init0(fi.inputType, InferenceRule::INPUT, /* age */ 0);
 }
 
 Inference::Inference(const TheoryAxiom& ta) {
-  init0(UnitInputType::AXIOM,ta.rule);
+  init0(UnitInputType::AXIOM,ta.rule, /* age */ 0);
   ASS_REP(isInternalTheoryAxiomRule(ta.rule) || isExternalTheoryAxiomRule(ta.rule), ruleName(ta.rule));
 }
 
 Inference::Inference(const FormulaTransformation& ft) {
-  init1(ft.rule,ft.premise);
+  init1(ft.rule, ft.premise, ft.premise->inference().age());
 
   ASS_REP(isFormulaTransformation(ft.rule),ruleName(ft.rule));
   ASS(!ft.premise->isClause());
@@ -404,7 +411,7 @@ Inference::Inference(const FormulaTransformation& ft) {
 }
 
 Inference::Inference(const FormulaTransformationMany& ft) {
-  initMany(ft.rule,ft.premises);
+  initMany(ft.rule,ft.premises,  maxAge(ft.premises));
 
   ASS_REP(isFormulaTransformation(ft.rule),ruleName(ft.rule));
   ASS_NEQ(ft.premises,UnitList::empty());
@@ -414,82 +421,63 @@ Inference::Inference(const FormulaTransformationMany& ft) {
 }
 
 Inference::Inference(const GeneratingInference1& gi) {
-  init1(gi.rule,gi.premise);
+  init1(gi.rule, gi.premise, gi.premise->age()+1);
 
   ASS_REP(isGeneratingInferenceRule(gi.rule),ruleName(gi.rule));
   ASS(gi.premise->isClause());
-
-  _age = gi.premise->age()+1;
 }
 
 Inference::Inference(const GeneratingInference2& gi) {
-  init2(gi.rule,gi.premise1,gi.premise2);
+  init2(gi.rule,gi.premise1,gi.premise2, std::max(gi.premise1->age(),gi.premise2->age())+1);
 
   ASS_REP(isGeneratingInferenceRule(gi.rule),ruleName(gi.rule));
   ASS(gi.premise1->isClause());
   ASS(gi.premise2->isClause());
-
-  _age = std::max(gi.premise1->age(),gi.premise2->age())+1;
 }
 
 Inference::Inference(const GeneratingInferenceMany& gi) {
-  initMany(gi.rule,gi.premises);
+  initMany(gi.rule, gi.premises, maxAge(gi.premises) + 1);
 
   ASS_REP(isGeneratingInferenceRule(gi.rule),ruleName(gi.rule));
-  _age = 0;
-  UnitList* it= gi.premises;
-  while(it) {
-    Unit* prem = it->head();
-    ASS(prem->isClause());
-    _age = std::max(_age,prem->inference().age());
-    it=it->tail();
-  }
-  _age++;
 }
 
 Inference::Inference(const SimplifyingInference1& si) {
-  init1(si.rule,si.premise);
+  init1(si.rule, si.premise, si.premise->age());
 
   ASS_REP(isSimplifyingInferenceRule(si.rule),ruleName(si.rule));
   ASS(si.premise->isClause());
-
-  _age = si.premise->age();
 }
 
 Inference::Inference(const SimplifyingInference2& si) {
-  init2(si.rule,si.premise1,si.premise2);
+  init2(si.rule, si.premise1,si.premise2, si.premise1->age());
 
   ASS_REP(isSimplifyingInferenceRule(si.rule),ruleName(si.rule));
   ASS(si.premise1->isClause());
   ASS(si.premise2->isClause());
-
-  _age = si.premise1->age();
 }
 
 Inference::Inference(const SimplifyingInferenceMany& si) {
-  initMany(si.rule,si.premises);
+  initMany(si.rule, si.premises, si.premises->head()->inference().age());
 
   ASS_REP(isSimplifyingInferenceRule(si.rule),ruleName(si.rule));
   ASS_NEQ(si.premises,UnitList::empty());
   ASS(si.premises->head()->isClause()); // TODO: assert also for all others?
-
-  _age = si.premises->head()->inference().age();
 }
 
 Inference::Inference(const NonspecificInference0& gi) {
-  init0(gi.inputType,gi.rule);
+  init0(gi.inputType, gi.rule, gi.age);
 }
 
 Inference::Inference(const NonspecificInference1& gi) {
-  init1(gi.rule,gi.premise);
+  init1(gi.rule, gi.premise, gi.age);
 }
 
 Inference::Inference(const NonspecificInference2& gi) {
-  init2(gi.rule,gi.premise1,gi.premise2);
+  init2(gi.rule,gi.premise1, gi.premise2, gi.age);
 }
 
 Inference::Inference(const NonspecificInferenceMany& gi) {
-  initMany(gi.rule,gi.premises);
+  initMany(gi.rule, gi.premises, gi.age);
 }
 
 std::string Inference::name() const {

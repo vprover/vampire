@@ -208,7 +208,8 @@ void Shell::TweeGoalTransformation::apply(Problem &prb, bool groundOnly)
     if (df.premises) {
       UnitList::push(c,df.premises);
       Clause* nc = Clause::fromStack(newLits,
-        NonspecificInferenceMany(InferenceRule::DEFINITION_FOLDING,df.premises));
+          // TODO do we really want age 0?
+        NonspecificInferenceMany(InferenceRule::DEFINITION_FOLDING, df.premises, /* age */ 0));
       u = nc; // replace the original in the Problem's list
     }
   }

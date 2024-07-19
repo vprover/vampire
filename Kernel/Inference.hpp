@@ -684,28 +684,33 @@ struct GeneratingInferenceMany {
 };
 
 struct NonspecificInference0 {
-  NonspecificInference0(UnitInputType it, InferenceRule r) : inputType(it), rule(r) {}
+  NonspecificInference0(UnitInputType it, InferenceRule r, unsigned age) : inputType(it), rule(r), age(age) {}
+  NonspecificInference0(UnitInputType it, InferenceRule r) : NonspecificInference0(it, r, /* age */ 0) {}
   UnitInputType inputType;
   InferenceRule rule;
+  unsigned age;
 };
 
 struct NonspecificInference1 {
-  NonspecificInference1(InferenceRule r, Unit* p) : rule(r), premise(p) {}
+  NonspecificInference1(InferenceRule r, Unit* p, unsigned age) : rule(r), premise(p), age(age) {}
   InferenceRule rule;
   Unit* premise;
+  unsigned age;
 };
 
 struct NonspecificInference2 {
-  NonspecificInference2(InferenceRule r, Unit* p1, Unit* p2) : rule(r), premise1(p1), premise2(p2) {}
+  NonspecificInference2(InferenceRule r, Unit* p1, Unit* p2, unsigned age) : rule(r), premise1(p1), premise2(p2), age(age) {}
   InferenceRule rule;
   Unit* premise1;
   Unit* premise2;
+  unsigned age;
 };
 
 struct NonspecificInferenceMany {
-  NonspecificInferenceMany(InferenceRule r, UnitList* prems) : rule(r), premises(prems) {}
+  NonspecificInferenceMany(InferenceRule r, UnitList* prems, unsigned age) : rule(r), premises(prems), age(age) {}
   InferenceRule rule;
   UnitList* premises;
+  unsigned age;
 };
 
 struct FromSatRefutation; // defined in SATInference.hpp
@@ -728,7 +733,7 @@ private:
     INFERENCE_FROM_SAT_REFUTATION
   };
 
-  void initDefault(UnitInputType inputType, InferenceRule r) {
+  void initDefault(UnitInputType inputType, InferenceRule r, unsigned age) {
     _inputType = inputType;
     _rule = r;
     _included = false;
@@ -737,17 +742,24 @@ private:
     _reductions = 0;
     _sineLevel = std::numeric_limits<decltype(_sineLevel)>::max();
     _splits = nullptr;
-    _age = 0;
+    _age = age;
   }
 
-  void init0(UnitInputType inputType, InferenceRule r);
-  void init1(InferenceRule r, Unit* premise);
-  void init2(InferenceRule r, Unit* premise1, Unit* premise2);
-  void initMany(InferenceRule r, UnitList* premises);
+  void init0(UnitInputType inputType, InferenceRule r, unsigned age);
+  void init1(InferenceRule r, Unit* premise, unsigned age);
+  void init2(InferenceRule r, Unit* premise1, Unit* premise2, unsigned age);
+  void initMany(InferenceRule r, UnitList* premises, unsigned age);
 
+  Inference() {}
 public:
   /* FromInput inferences are automatically InferenceRule::INPUT. */
   Inference(const FromInput& fi);
+
+  static Inference dummyInferenceDerivedFromGoal(unsigned age) {
+    Inference out;
+    out.init0(UnitInputType::CONJECTURE, InferenceRule::INPUT, age);
+    return out;
+  }
 
   /* Theory axioms are automatically of inputType AXIOM.
    * and the corresponding rule should satisfy isInternalTheoryAxiomRule or isExternalTheoryAxiomRule
@@ -979,8 +991,8 @@ public:
 
   /** Return the age */
   unsigned age() const { return _age; }
-  /** Set the age to @b a */
-  void setAge(unsigned a) { _age = a; }
+  // /** Set the age to @b a */
+  // void setAge(unsigned a) { _age = a; }
 
 private:
   Kind _kind : 2;

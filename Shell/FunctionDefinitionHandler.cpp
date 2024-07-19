@@ -119,7 +119,7 @@ void FunctionDefinitionHandler::initAndPreprocessLate(Problem& prb,const Options
     for (const auto& lit : defLits) {
       lits.push(replaceDefinition(lit));
     }
-    Clause* defCl = Clause::fromStack(lits, NonspecificInference1(InferenceRule::DEFINITION_UNFOLDING,u));
+    Clause* defCl = Clause::fromStack(lits, NonspecificInference1(InferenceRule::DEFINITION_UNFOLDING, u, /* age */ u->inference().age()));
 
     // multiple defining equations inside clause, skip
     if (defLits.size()!=1) {
