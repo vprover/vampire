@@ -8,8 +8,8 @@
  * and in the source directory
  */
 /**
- * @file InstanceRedundancyHandler.cpp
- * Implements class InstanceRedundancyHandler.
+ * @file ConditionalRedundancyHandler.cpp
+ * Implements class ConditionalRedundancyHandler.
  */
 
 #include "InstanceRedundancyHandler.hpp"
@@ -27,11 +27,12 @@
 #include "Statistics.hpp"
 
 using namespace std;
+using namespace Indexing;
 
-namespace Indexing
+namespace Shell
 {
 
-class InstanceRedundancyHandler::SubstitutionCoverTree
+class ConditionalRedundancyHandler::SubstitutionCoverTree
   : public CodeTree
 {
 public:
@@ -67,28 +68,13 @@ public:
   void insert(const Ordering* ord, ResultSubstitution* subst, bool result, Term* lhs=nullptr, Term* rhs=nullptr)
   {
     auto ts = getInstances([subst,result](unsigned v) { return subst->applyTo(TermList::var(v),result); });
-    auto ld = new LeafData();
-    if (lhs) {
-      ASS(rhs);
-      ASS(lhs->containsAllVariablesOf(rhs));
-      Renaming r;
-      // normalize lhs and rhs, the same way as
-      // terms from ts are normalized upon insertion
-      for (const auto t : ts) {
-        r.normalizeVariables(t);
-      }
-      ld->lhs = r.apply(lhs);
-      ld->rhs = r.apply(rhs);
-    } else {
-      ASS(!rhs);
-      ld->lhs = nullptr;
-      ld->rhs = nullptr;
-    }
+    auto ld = createEntry(ts, lhs, rhs);
     insert(ts,ld);
   }
 
   bool checkAndInsert(const Ordering* ord, ResultSubstitution* subst, bool result, bool doInsert=false, Term* lhs=nullptr, Term* rhs=nullptr)
   {
+    // TODO if this correct if we allow non-unit simplifications?
     if (_varSorts.isEmpty()) {
       return true;
     }
@@ -97,29 +83,17 @@ public:
       return false;
     }
     if (doInsert) {
-      auto ld = new LeafData();
-      if (lhs) {
-        ASS(rhs);
-        ASS(lhs->containsAllVariablesOf(rhs));
-        Renaming r;
-        // normalize lhs and rhs, the same way as
-        // terms from ts are normalized upon insertion
-        for (const auto t : ts) {
-          r.normalizeVariables(t);
-        }
-        ld->lhs = r.apply(lhs);
-        ld->rhs = r.apply(rhs);
-      } else {
-        ASS(!rhs);
-        ld->lhs = nullptr;
-        ld->rhs = nullptr;
-      }
+      auto ld = createEntry(ts, lhs, rhs);
       insert(ts,ld);
     }
     return true;
   }
 
 private:
+#if VDEBUG
+  Clause* _cl;
+#endif
+
   void insert(const TermStack& ts, void* ptr)
   {
     static CodeStack code;
@@ -199,6 +173,28 @@ private:
     OrderingComparatorUP comp;
   };
 
+  LeafData* createEntry(const TermStack& ts, Term* lhs, Term* rhs) const
+  {
+    auto ld = new LeafData();
+    if (lhs) {
+      ASS(rhs);
+      ASS(lhs->containsAllVariablesOf(rhs));
+      Renaming r;
+      // normalize lhs and rhs, the same way as
+      // terms from ts are normalized upon insertion
+      for (const auto t : ts) {
+        r.normalizeVariables(t);
+      }
+      ld->lhs = r.apply(lhs);
+      ld->rhs = r.apply(rhs);
+    } else {
+      ASS(!rhs);
+      ld->lhs = nullptr;
+      ld->rhs = nullptr;
+    }
+    return ld;
+  }
+
   struct SubstMatcher
   : public Matcher
   {
@@ -238,11 +234,48 @@ private:
   };
 };
 
-// InstanceRedundancyHandler
+// ConditionalRedundancyHandler
 
-DHMap<Clause*,InstanceRedundancyHandler::SubstitutionCoverTree*> InstanceRedundancyHandler::clauseData;
+ConditionalRedundancyHandler* ConditionalRedundancyHandler::create(const Options& opts, const Ordering* ord)
+{
+  if (!opts.conditionalRedundancyCheck()) {
+    return new ConditionalRedundancyHandlerImpl</*enabled*/false,false,false,false>(opts,ord);
+  }
+  auto ordC = opts.conditionalRedundancyOrderingConstraints();
+  auto avatarC = opts.conditionalRedundancyAvatarConstraints();
+  auto litC = opts.conditionalRedundancyLiteralConstraints();
+  if (ordC) {
+    if (avatarC) {
+      if (litC) {
+        return new ConditionalRedundancyHandlerImpl<true,/*ordC*/true,/*avatarC*/true,/*litC*/true>(opts,ord);
+      }
+      return new ConditionalRedundancyHandlerImpl<true,/*ordC*/true,/*avatarC*/true,/*litC*/false>(opts,ord);
+    }
+    if (litC) {
+      return new ConditionalRedundancyHandlerImpl<true,/*ordC*/true,/*avatarC*/false,/*litC*/true>(opts,ord);
+    }
+    return new ConditionalRedundancyHandlerImpl<true,/*ordC*/true,/*avatarC*/false,/*litC*/false>(opts,ord);
+  }
+  if (avatarC) {
+    if (litC) {
+      return new ConditionalRedundancyHandlerImpl<true,/*ordC*/false,/*avatarC*/true,/*litC*/true>(opts,ord);
+    }
+    return new ConditionalRedundancyHandlerImpl<true,/*ordC*/false,/*avatarC*/true,/*litC*/false>(opts,ord);
+  }
+  if (litC) {
+    return new ConditionalRedundancyHandlerImpl<true,/*ordC*/false,/*avatarC*/false,/*litC*/true>(opts,ord);
+  }
+  return new ConditionalRedundancyHandlerImpl<true,/*ordC*/false,/*avatarC*/false,/*litC*/false>(opts,ord);
+}
 
-InstanceRedundancyHandler::SubstitutionCoverTree** InstanceRedundancyHandler::getDataPtr(Clause* cl, bool doAllocate)
+void ConditionalRedundancyHandler::destroyClauseData(Clause* cl)
+{
+  SubstitutionCoverTree* ptr = nullptr;
+  clauseData.pop(cl, ptr);
+  delete ptr;
+}
+
+ConditionalRedundancyHandler::SubstitutionCoverTree** ConditionalRedundancyHandler::getDataPtr(Clause* cl, bool doAllocate)
 {
   if (!doAllocate) {
     return clauseData.findPtr(cl);
@@ -255,9 +288,15 @@ InstanceRedundancyHandler::SubstitutionCoverTree** InstanceRedundancyHandler::ge
   return ptr;
 }
 
-bool InstanceRedundancyHandler::checkSuperposition(Clause* eqClause, Clause* rwClause, bool eqIsResult, ResultSubstitution* subs) const
+DHMap<Clause*,typename ConditionalRedundancyHandler::SubstitutionCoverTree*> ConditionalRedundancyHandler::clauseData;
+
+// ConditionalRedundancyHandlerImpl
+
+template<bool enabled, bool ordC, bool avatarC, bool litC>
+bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperposition(
+  Clause* eqClause, Clause* rwClause, bool eqIsResult, ResultSubstitution* subs) const
 {
-  if (_optVal==Options::InstanceRedundancyCheck::OFF) {
+  if constexpr (!enabled) {
     return true;
   }
 
@@ -276,11 +315,12 @@ bool InstanceRedundancyHandler::checkSuperposition(Clause* eqClause, Clause* rwC
   return true;
 }
 
-void InstanceRedundancyHandler::insertSuperposition(Clause* eqClause, Clause* rwClause,
-  TermList rwTermS, TermList tgtTermS, TermList eqLHS, Literal* rwLitS, Ordering::Result eqComp,
-  bool eqIsResult, ResultSubstitution* subs) const
+template<bool enabled, bool ordC, bool avatarC, bool litC>
+void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuperposition(
+  Clause* eqClause, Clause* rwClause, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
+  Literal* rwLitS, Ordering::Result eqComp, bool eqIsResult, ResultSubstitution* subs) const
 {
-  if (_optVal==Options::InstanceRedundancyCheck::OFF) {
+  if constexpr (!enabled) {
     return;
   }
 
@@ -296,7 +336,7 @@ void InstanceRedundancyHandler::insertSuperposition(Clause* eqClause, Clause* rw
   Applicator appl(subs, !eqIsResult);
 
   auto doInsert = eqClause->length()==1 && eqClause->noSplits() &&
-    ((_optVal!=Options::InstanceRedundancyCheck::LAZY && rwTermS.containsAllVariablesOf(tgtTermS)) || eqComp == Ordering::LESS) &&
+    ((!ordC && rwTermS.containsAllVariablesOf(tgtTermS)) || eqComp == Ordering::LESS) &&
     (!_demodulationHelper.redundancyCheckNeededForPremise(rwClause, rwLitS, rwTermS) ||
       // TODO for rwClause->length()!=1 the function isPremiseRedundant does not work yet
       (rwClause->length()==1 && _demodulationHelper.isPremiseRedundant(rwClause, rwLitS, rwTermS, tgtTermS, eqLHS, &appl)));
@@ -313,11 +353,11 @@ void InstanceRedundancyHandler::insertSuperposition(Clause* eqClause, Clause* rw
     incompInserted ? tgtTermS.term() : nullptr);
 }
 
-bool InstanceRedundancyHandler::handleResolution(Clause* queryCl, Literal* queryLit,
-  Clause* resultCl, Literal* resultLit,
-  ResultSubstitution* subs, const Options& opts, const Ordering* ord)
+template<bool enabled, bool ordC, bool avatarC, bool litC>
+bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::handleResolution(
+  Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, ResultSubstitution* subs) const
 {
-  if (opts.instanceRedundancyCheck()==Options::InstanceRedundancyCheck::OFF) {
+  if constexpr (!enabled) {
     return true;
   }
 
@@ -325,7 +365,7 @@ bool InstanceRedundancyHandler::handleResolution(Clause* queryCl, Literal* query
   {
     bool doInsert = resultLit->isPositive() && resultCl->size()==1 && resultCl->noSplits();
     auto dataPtr = getDataPtr(queryCl, /*doAllocate=*/doInsert);
-    if (dataPtr && !(*dataPtr)->checkAndInsert(ord, subs, false, doInsert)) {
+    if (dataPtr && !(*dataPtr)->checkAndInsert(_ord, subs, false, doInsert)) {
       env.statistics->skippedResolution++;
       return false;
     }
@@ -333,7 +373,7 @@ bool InstanceRedundancyHandler::handleResolution(Clause* queryCl, Literal* query
   {
     bool doInsert = queryLit->isPositive() && queryCl->size()==1 && queryCl->noSplits();
     auto dataPtr = getDataPtr(resultCl, /*doAllocate=*/doInsert);
-    if (dataPtr && !(*dataPtr)->checkAndInsert(ord, subs, true, doInsert)) {
+    if (dataPtr && !(*dataPtr)->checkAndInsert(_ord, subs, true, doInsert)) {
       env.statistics->skippedResolution++;
       return false;
     }
@@ -341,22 +381,19 @@ bool InstanceRedundancyHandler::handleResolution(Clause* queryCl, Literal* query
   return true;
 }
 
-bool InstanceRedundancyHandler::handleReductiveUnaryInference(
-  Clause* premise, RobSubstitution* subs, const Ordering* ord)
+template<bool enabled, bool ordC, bool avatarC, bool litC>
+bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::handleReductiveUnaryInference(
+  Clause* premise, RobSubstitution* subs) const
 {
+  if constexpr (!enabled) {
+    return true;
+  }
   auto dataPtr = getDataPtr(premise, /*doAllocate=*/true);
   auto subst = ResultSubstitution::fromSubstitution(subs, 0, 0);
-  if (!(*dataPtr)->checkAndInsert(ord, subst.ptr(), false, /*doInsert=*/true)) {
+  if (!(*dataPtr)->checkAndInsert(_ord, subst.ptr(), false, /*doInsert=*/true)) {
     return false;
   }
   return true;
-}
-
-void InstanceRedundancyHandler::destroyClauseData(Clause* cl)
-{
-  SubstitutionCoverTree* ptr = nullptr;
-  clauseData.pop(cl, ptr);
-  delete ptr;
 }
 
 }

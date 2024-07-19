@@ -124,7 +124,7 @@ void Clause::destroyExceptInferenceObject()
     delete _literalPositions;
   }
 
-  InstanceRedundancyHandler::destroyClauseData(this);
+  ConditionalRedundancyHandler::destroyClauseData(this);
 
   RSTAT_CTR_INC("clauses deleted");
 

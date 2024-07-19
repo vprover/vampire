@@ -42,6 +42,7 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Shell/AnswerExtractor.hpp"
+#include "Shell/InstanceRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -66,7 +67,6 @@ void Superposition::attach(SaturationAlgorithm* salg)
 	  _salg->getIndexManager()->request(SUPERPOSITION_SUBTERM_SUBST_TREE) );
   _lhsIndex=static_cast<SuperpositionLHSIndex*> (
 	  _salg->getIndexManager()->request(SUPERPOSITION_LHS_SUBST_TREE) );
-  _instanceRedundancyHandler = InstanceRedundancyHandler(getOptions(),&_salg->getOrdering());
 }
 
 void Superposition::detach()
@@ -350,7 +350,8 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-  if (!_instanceRedundancyHandler.checkSuperposition(eqClause, rwClause, eqIsResult, subst.ptr())) {
+  auto condRedHandler = _salg->condRedHandler();
+  if (!condRedHandler->checkSuperposition(eqClause, rwClause, eqIsResult, subst.ptr())) {
     return 0;
   }
 
@@ -385,7 +386,7 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-  _instanceRedundancyHandler.insertSuperposition(
+  condRedHandler->insertSuperposition(
     eqClause, rwClause, rwTermS, tgtTermS, eqLHS, rwLitS, comp, eqIsResult, subst.ptr());
 
   Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);

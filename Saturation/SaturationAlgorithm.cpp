@@ -96,6 +96,7 @@
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
 #include "Shell/AnswerExtractor.hpp"
+#include "Shell/InstanceRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
@@ -224,7 +225,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _fwSimplifiers(0), _simplifiers(0), _bwSimplifiers(0), _splitter(0),
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
     _instantiation(0), _fnDefHandler(prb.getFunctionDefinitionHandler()),
-    _generatedClauseCount(0),
+    _conditionalRedundancyHandler(), _generatedClauseCount(0),
     _activationLimit(0)
 {
   ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
@@ -1720,6 +1721,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   } else if (opt.questionAnswering()==Options::QuestionAnsweringMode::SYNTHESIS) {
     res->_answerLiteralManager = SynthesisManager::getInstance();
   }
+
+  res->_conditionalRedundancyHandler.reset(ConditionalRedundancyHandler::create(opt, &ordering));
+
   return res;
 } // SaturationAlgorithm::createFromOptions
 
