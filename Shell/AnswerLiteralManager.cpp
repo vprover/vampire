@@ -590,7 +590,7 @@ Clause* SynthesisALManager::recordAnswerAndReduce(Clause* cl) {
       resLits->push(curr);
     }
   }
-  auto newCl = Clause::fromStack(*resLits, 
+  auto newCl = Clause::fromStack(*resLits,
       Inference(SimplifyingInference1(InferenceRule::ANSWER_LITERAL_REMOVAL, cl)));
   if (!removeDefaultAnsLit) {
     AnsList::push(make_pair(newCl->number(), make_pair(newCl, ansLit)), _answerPairs);

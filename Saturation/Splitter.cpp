@@ -774,7 +774,7 @@ Clause* Splitter::reintroduceAvatarAssertions(Clause* cl) {
     ASS(compCl->length() == 1);
     resLits->push(Literal::complementaryLiteral((*compCl)[0]));
   }
-  return Clause::fromStack(*resLits, Inference(NonspecificInference1(InferenceRule::AVATAR_ASSERTION_REINTRODUCTION, cl)));
+  return Clause::fromStack(*resLits, Inference(SimplifyingInference1(InferenceRule::AVATAR_ASSERTION_REINTRODUCTION, cl)));
 }
 
 void Splitter::onAllProcessed()
