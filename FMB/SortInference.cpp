@@ -51,8 +51,6 @@ using namespace std;
  */
 void SortInference::doInference()
 {
-  bool _print = env.options->showFMBsortInfo();
-
   if(_ignoreInference){
 #if DEBUG_SORT_INFERENCE
    cout << "Ignoring sort inference..." << endl;

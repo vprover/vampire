@@ -78,9 +78,9 @@ public:
   SortInference(ClauseList* clauses,
                 const DArray<unsigned>& del_f,
                 const DArray<unsigned>& del_p,
-                Stack<std::pair<unsigned,unsigned>>& cons) :
+                Stack<std::pair<unsigned,unsigned>>& distinct_sort_constraints) :
                 _clauses(clauses), _del_f(del_f), _del_p(del_p),
-                _sort_constraints(cons) {
+                _sort_constraints(distinct_sort_constraints) { // this is essentially an output argument; TODO: what's the spec?
 
                   _sig = new SortedSignature();
                   _print = env.options->showFMBsortInfo();

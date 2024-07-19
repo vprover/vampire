@@ -445,7 +445,7 @@ void FiniteModelBuilder::init()
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
     Monotonicity::addSortPredicates(true, clist,deleted_functions);
   }
-  if(env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::FUNCTION){ 
+  if(env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::FUNCTION){
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
     Monotonicity::addSortFunctions(true,clist);
   }
@@ -505,7 +505,7 @@ void FiniteModelBuilder::init()
               map->insert(rnum,set);
             }
             set->insert(lnum);
-          } 
+          }
         }
       }
     }
