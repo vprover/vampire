@@ -39,7 +39,7 @@
 #define DEBUG_SORT_INFERENCE 0
 
 
-namespace FMB 
+namespace FMB
 {
 
 using namespace std;
@@ -147,10 +147,10 @@ void SortInference::doInference()
       unsigned arity = env.signature->functionArity(f);
       OperatorType* ftype = env.signature->getFunction(f)->fnType();
       _sig->functionSignatures[f].ensure(arity+1);
-      for(unsigned i=0;i<arity;i++){ 
+      for(unsigned i=0;i<arity;i++){
         TermList argTypeT = ftype->arg(i);
         unsigned argType = argTypeT.term()->functor();
-        _sig->functionSignatures[f][i]=(*_sig->vampireToDistinct.get(argType))[0]; 
+        _sig->functionSignatures[f][i]=(*_sig->vampireToDistinct.get(argType))[0];
       }
       TermList resTypeT = ftype->result();
       unsigned resType = resTypeT.term()->functor();
@@ -162,27 +162,13 @@ void SortInference::doInference()
       unsigned arity = env.signature->predicateArity(p);
       OperatorType* ptype = env.signature->getPredicate(p)->predType();
       _sig->predicateSignatures[p].ensure(arity);
-      for(unsigned i=0;i<arity;i++){ 
+      for(unsigned i=0;i<arity;i++){
         TermList argTypeT = ptype->arg(i);
         unsigned argType = argTypeT.term()->functor();
-        _sig->predicateSignatures[p][i]=(*_sig->vampireToDistinct.get(argType))[0]; 
+        _sig->predicateSignatures[p][i]=(*_sig->vampireToDistinct.get(argType))[0];
       }
     }
     return;
-  }
-
-
-  // Add _equiv_v_sorts to a useful structure
-  {
-    Stack<DHSet<unsigned>*>::Iterator it(_equiv_v_sorts);
-    while(it.hasNext()){
-      DHSet<unsigned>* cls = it.next();
-      unsigned el = cls->getOneKey();
-      DHSet<unsigned>::Iterator els(*cls);
-      while(els.hasNext()){
-        _equiv_vs.doUnion(el,els.next());
-      } 
-    }
   }
 
   // Monotoniticy Detection
@@ -246,7 +232,7 @@ void SortInference::doInference()
 
   while(cit.hasNext()){
    Clause* c = cit.next();
-  
+
 #if DEBUG_SORT_INFERENCE
    cout << "CLAUSE " << c->toString() << endl;
 #endif
@@ -254,14 +240,14 @@ void SortInference::doInference()
   Array<Stack<unsigned>> varPositions(c->varCnt());
   ZIArray<unsigned> varsWithPosEq(c->varCnt());
   IntUnionFind localUF(c->varCnt()+1); // +1 to avoid it being 0.. last pos will not be used
-   
+
   // When scanning the clause, keep info about whether it could be of the form C : X = t_1 | ... | X = t_n , where t_i may be a variable as well
   // (however, we can't have X \in \Vars(t_i): think of the unit clause X = f(X) which does not restrict the domain size to 1)
   // If the first literal is X = Y we remember X in v[0] and Y in v[1], subsequent literals will be different and only at most one candidate for "X" will remain
   // Any literal of the form X = nonvar reduces the num_vars_consdired to 1 or 0 (depending on whether X is possibly one of the two vars we keep track of)
   unsigned v[2];
   short unsigned num_vars_always_in_equalities = 3; // 3 means we are still open to the possibility of assigning both v1 and v2, but they are uninitialized at the moment
-   
+
   for(unsigned i=0;i<c->length();i++){
     Literal* l = (*c)[i];
     if(l->isEquality()) {
@@ -280,18 +266,18 @@ void SortInference::doInference()
             if (l->nthArgument(i)->isVar() && !l->nthArgument(1-i)->containsSubterm(*l->nthArgument(i))) {
               unsigned var = l->nthArgument(i)->var();
               if (v[0] == var) {
-                num_vars_always_in_equalities = 1; 
+                num_vars_always_in_equalities = 1;
                 break; // and we are done
-              } 
+              }
               if (v[1] == var) {
                 v[0] = var;
-                num_vars_always_in_equalities = 1; 
+                num_vars_always_in_equalities = 1;
                 break; // and we are done
-              } 
+              }
               // this side is a completely different var (than v[0] or v[1])
             }
           }
-          if (num_vars_always_in_equalities == 2) { 
+          if (num_vars_always_in_equalities == 2) {
             // we didn't succeed for either side, so it's over for this clause
             num_vars_always_in_equalities = 0;
           }
@@ -301,8 +287,8 @@ void SortInference::doInference()
             if (l->nthArgument(i)->isVar() && !l->nthArgument(1-i)->containsSubterm(*l->nthArgument(i))) {
               if (v[0] == l->nthArgument(i)->var()) {
                 found = true;
-                break; 
-              } 
+                break;
+              }
               // this side is a different var than v[0]
             }
           }
@@ -311,7 +297,7 @@ void SortInference::doInference()
           }
         }
       } else {
-        num_vars_always_in_equalities = 0; 
+        num_vars_always_in_equalities = 0;
       }
 
       if(l->isTwoVarEquality()) {
@@ -327,7 +313,7 @@ void SortInference::doInference()
           cout << "varsWithPosEq X" << l->nthArgument(0)->var() << endl;
           cout << "varsWithPosEq X" << l->nthArgument(1)->var() << endl;
 #endif
-        }         
+        }
       } else {
         ASS(!l->nthArgument(0)->isVar());
         ASS(l->nthArgument(1)->isVar());
@@ -375,7 +361,7 @@ void SortInference::doInference()
      // If so, the first literal can be used to find the sort of X
      //  - if it is a two var equality we take the sort
      //  - otherwise, it will be of the form X = t and we get the sort of t
-     unsigned sort = SortHelper::getEqualityArgumentSort((*c)[0]).term()->functor();     
+     unsigned sort = SortHelper::getEqualityArgumentSort((*c)[0]).term()->functor();
      unsigned max = c->length();
      unsigned old;
      // set the new max if it is smaller than an existing max
@@ -459,7 +445,7 @@ void SortInference::doInference()
     if(f < _del_f.size() && _del_f[f]) continue;
 
     unsigned offset = offset_f[f];
-    unsigned arity = env.signature->functionArity(f); 
+    unsigned arity = env.signature->functionArity(f);
     int root = unionFind.root(offset);
     unsigned rangeSort;
     if(!translate.find(root,rangeSort)){
@@ -577,7 +563,7 @@ void SortInference::doInference()
 #endif
     // fresh constants are introduced for sorts with no constants
     // but that have function symbols, therefore these sorts cannot
-    // be bounded 
+    // be bounded
     // We need to treat them specially as they are functions that are added
     // after we do sort inference (so offsets/positions do not apply)
     if(f >= firstFreshConstant){
@@ -712,7 +698,7 @@ void SortInference::doInference()
 #if DEBUG_SORT_INFERENCE
       cout << argSort << " ";
 #endif
-    }    
+    }
 #if DEBUG_SORT_INFERENCE
    cout << "("<< offset_p[p] << ")"<< endl;
 #endif
@@ -734,7 +720,7 @@ void SortInference::doInference()
       _sig->vampireToDistinct.insert(vsort,stack);
       _sig->vampireToDistinctParent.insert(vsort,dsort);
     }
-  } 
+  }
   // allocate an extra sort per disinct sort for variable equalities
   _sig->varEqSorts.ensure(_distinctSorts);
   _sig->sortBounds.expand(_sig->sorts+_distinctSorts);
@@ -756,17 +742,17 @@ void SortInference::doInference()
     for(unsigned s=0;s<_sig->distinctSorts;s++){
       unsigned children =0;
       std::string res="";
-      for(unsigned i=0;i<_sig->sorts;i++){ 
+      for(unsigned i=0;i<_sig->sorts;i++){
         if(_sig->parents[i]==s){
           if(children>0) res+=",";
           res+=Lib::Int::toString(i);
-          children++; 
+          children++;
         }
       }
       cout << s << " has " << children << " inferred subsorts as members [" << res << "]" << endl;
     }
     cout << "Vampire to distinct sort mapping:" << endl;
-    cout << "["; 
+    cout << "[";
     for(unsigned i=0;i<_sig->distinctSorts;i++){
 
       Stack<unsigned>* vs = _sig->distinctToVampire.get(i);
@@ -784,7 +770,7 @@ void SortInference::doInference()
       if(!_sig->vampireToDistinct.find(s)){ continue; }
 
       // make sure it has a parent
-      if(!_sig->vampireToDistinctParent.find(s)){ 
+      if(!_sig->vampireToDistinctParent.find(s)){
 
         ASS(!_sig->vampireToDistinct.get(s)->isEmpty());
 
@@ -794,14 +780,14 @@ void SortInference::doInference()
       }
       // add those constraints between children and parent
       unsigned parent = _sig->vampireToDistinctParent.get(s);
-#if DEBUG_SORT_INFERENCE 
+#if DEBUG_SORT_INFERENCE
       cout << "Parent " << parent << " for " << env.signature->typeConName(s) << endl;
 #endif
       Stack<unsigned>::Iterator children(*_sig->vampireToDistinct.get(s));
       while(children.hasNext()){
         unsigned child = children.next();
         if(child==parent) continue;
-#if DEBUG_SORT_INFERENCE 
+#if DEBUG_SORT_INFERENCE
         cout << "Child " << child << " for " << env.signature->typeConName(s) << endl;
 #endif
         _sort_constraints.push(make_pair(parent,child));

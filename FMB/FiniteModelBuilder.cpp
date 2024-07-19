@@ -426,8 +426,6 @@ void FiniteModelBuilder::init()
 
   env.statistics->phase = Statistics::FMB_PREPROCESSING;
 
-  
-  Stack<DHSet<unsigned>*> equivalent_vampire_sorts; 
   DHSet<std::pair<unsigned,unsigned>> vampire_sort_constraints_nonstrict;
   DHSet<std::pair<unsigned,unsigned>> vampire_sort_constraints_strict;
   if(env.options->fmbDetectSortBounds()){
@@ -603,7 +601,7 @@ void FiniteModelBuilder::init()
   {
     TIME_TRACE("fmb sort inference");
     //ClauseList* both = ClauseList::concat(_clauses,_groundClauses);
-    SortInference inference(_clauses,del_f,del_p,equivalent_vampire_sorts,_distinct_sort_constraints);
+    SortInference inference(_clauses,del_f,del_p,_distinct_sort_constraints);
     inference.doInference();
     _sortedSignature = inference.getSignature();
     ASS(_sortedSignature);
