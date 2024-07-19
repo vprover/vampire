@@ -12,7 +12,7 @@
  * Implements class ConditionalRedundancyHandler.
  */
 
-#include "InstanceRedundancyHandler.hpp"
+#include "ConditionalRedundancyHandler.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/TermIterators.hpp"

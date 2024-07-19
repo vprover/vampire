@@ -34,7 +34,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/MainLoop.hpp"
 
-#include "Shell/InstanceRedundancyHandler.hpp"
+#include "Shell/ConditionalRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/Shuffling.hpp"

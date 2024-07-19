@@ -96,7 +96,7 @@
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
 #include "Shell/AnswerExtractor.hpp"
-#include "Shell/InstanceRedundancyHandler.hpp"
+#include "Shell/ConditionalRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"

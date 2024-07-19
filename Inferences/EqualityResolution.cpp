@@ -35,7 +35,7 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/InstanceRedundancyHandler.hpp"
+#include "Shell/ConditionalRedundancyHandler.hpp"
 
 #include "EqualityResolution.hpp"
 

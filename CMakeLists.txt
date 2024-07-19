@@ -548,7 +548,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/GoalGuessing.cpp
     Shell/FunctionDefinitionHandler.cpp
     Shell/InequalitySplitting.cpp
-    Shell/InstanceRedundancyHandler.cpp
+    Shell/ConditionalRedundancyHandler.cpp
     Shell/InterpolantMinimizer.cpp
     Shell/Interpolants.cpp
     Shell/InterpretedNormalizer.cpp
@@ -602,7 +602,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/FunctionDefinitionHandler.hpp
     Shell/GeneralSplitting.hpp
     Shell/InequalitySplitting.hpp
-    Shell/InstanceRedundancyHandler.hpp
+    Shell/ConditionalRedundancyHandler.hpp
     Shell/InterpolantMinimizer.hpp
     Shell/Interpolants.hpp
     Shell/InterpretedNormalizer.hpp
