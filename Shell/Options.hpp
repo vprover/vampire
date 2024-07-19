@@ -16,7 +16,7 @@
  * Firstly, the easiest thing to do is copy what's been done for an existing option
  *
  * In Options.hpp
- * - Add an OptionValue object (see NOTE on OptionValues below) 
+ * - Add an OptionValue object (see NOTE on OptionValues below)
  * - Add enum for choices if ChoiceOptionValue
  * - Add getter for OptionValue
  * - Only if necessary (usually not), add setter for OptionValue
@@ -62,8 +62,8 @@ using namespace Kernel;
 class Property;
 
 /**
- * Let us define a similarity measure for strings, used to compare option names 
- * 
+ * Let us define a similarity measure for strings, used to compare option names
+ *
  * This is a Levenshtein (edit) distance and therefore gives the number
  * of edits needed to change s1 into s2
  *
@@ -180,15 +180,15 @@ public:
     // standard ways of creating options
     void set(const std::string& name, const std::string& value); // implicitly the long version used here
     void set(const char* name, const char* value, bool longOpt);
-    
+
 public:
   //==========================================================
   // The Enums for Option Values
   //==========================================================
   //
   // If you create a ChoiceOptionValue you will also need to create an enum
-   
- 
+
+
     /**
      * Possible tags to group options by
      * Update _tagNames at the end of Options constructor if you add a tag
@@ -214,7 +214,7 @@ public:
         LAST_TAG // Used for counting the number of tags
     };
     // update _tagNames at the end of Options constructor if you add a tag
-    
+
   enum class TheoryInstSimp : unsigned int {
     OFF,
     ALL,    // select all interpreted
@@ -277,12 +277,12 @@ public:
     ON
   };
 
- 
+
   enum class InductionChoice : unsigned int {
     ALL,
     GOAL,                     // only apply induction to goal constants
                               // a goal constant is one appearing in an explicit goal, or if gtg is used
-                              // a constant that is used to lift a clause to a goal (uniqueness or Skolem) 
+                              // a constant that is used to lift a clause to a goal (uniqueness or Skolem)
     GOAL_PLUS,                // above plus skolem terms introduced in induction inferences
   };
 
@@ -367,10 +367,10 @@ public:
   enum class InputSyntax : unsigned int {
     SMTLIB2 = 0,
     /** syntax of the TPTP prover */
-    TPTP = 1, 
+    TPTP = 1,
     AUTO = 2
     //HUMAN = 4,
-    //MPS = 5, 
+    //MPS = 5,
     //NETLIB = 6
   };
 
@@ -398,7 +398,7 @@ public:
     TCLAUSIFY,
     TPREPROCESS,
     VAMPIRE
-};
+  };
 
   enum class Schedule : unsigned int {
     CASC,
@@ -554,7 +554,7 @@ public:
     REVERSE_WEIGHTED_FREQUENCY = 12
   };
   enum class SymbolPrecedenceBoost : unsigned int {
-    NONE = 0,    
+    NONE = 0,
     GOAL = 1,
     UNIT = 2,
     GOAL_UNIT = 3,
@@ -615,12 +615,12 @@ public:
     LARGE_ONLY,
     OFF
   };
-    
+
   enum class SplittingAddComplementary : unsigned int {
     GROUND = 0,
     NONE = 1
   };
-  
+
   enum class SplittingCongruenceClosure : unsigned int {
     MODEL = 0,
     OFF = 1,
@@ -675,7 +675,7 @@ public:
     INJECTGEN = 1,
     INJECTSIMPL = 2,
     INJECTOPT = 2,
-    FULL = 3  
+    FULL = 3
   };
 
   enum class TACyclicityCheck : unsigned int {
@@ -823,7 +823,7 @@ private:
     private:
         Stack<std::string> _names;
     };
-    
+
     // Declare constraints here so they can be referred to, but define them below
     template<typename T>
     struct OptionValueConstraint;
@@ -833,7 +833,7 @@ private:
     typedef std::unique_ptr<AbstractWrappedConstraint> AbstractWrappedConstraintUP;
     struct OptionProblemConstraint;
     typedef std::unique_ptr<OptionProblemConstraint> OptionProblemConstraintUP;
-    
+
     /**
      * An AbstractOptionValue includes all the information and functionality that does not
      * depend on the type of the stored option. This is inherited by the templated OptionValue.
@@ -883,32 +883,32 @@ private:
         // Checking constraits
         virtual bool checkConstraints() = 0;
         virtual bool checkProblemConstraints(Property* prop) = 0;
-        
+
         // Tagging: options can be filtered by mode and are organised by Tag in showOptions
         void tag(OptionTag tag){ ASS(_tag==OptionTag::LAST_TAG);_tag=tag; }
         void tag(Options::Mode mode){ _modes.push(mode); }
-        
+
         OptionTag getTag(){ return _tag;}
         bool inMode(Options::Mode mode){
             if(_modes.isEmpty()) return true;
             else return _modes.find(mode);
         }
-        
+
         // This allows us to get the actual value in string form
         virtual std::string getStringOfActual() const = 0;
         // Check if default value
         virtual bool isDefault() const = 0;
-        
+
         // For use in showOptions and explainOption
         virtual void output(std::ostream& out,bool linewrap) const {
             out << "--" << longName;
             if(!shortName.empty()){ out << " (-"<<shortName<<")"; }
             out << std::endl;
-            
+
             if (experimental) {
               out << "\t[experimental]" << std::endl;
             }
-            
+
 
             if(!description.empty()){
                 // Break a the description into lines where there have been at least 70 characters
@@ -928,7 +928,7 @@ private:
             }
             else{ out << "\tno description provided!" << std::endl; }
         }
-        
+
         // Used to determine wheter the value of an option should be copied when
         // the Options object is copied.
         bool _should_copy;
@@ -954,7 +954,7 @@ private:
         // Note has LIFO semantics so use BottomFirstIterator
         bool supress_problemconstraints;
     };
-    
+
     struct AbstractOptionValueCompatator{
       Comparison compare(AbstractOptionValue* o1, AbstractOptionValue* o2)
       {
@@ -978,11 +978,11 @@ private:
         OptionValue(){}
         OptionValue(std::string l, std::string s,T def) : AbstractOptionValue(l,s),
         defaultValue(def), actualValue(def){}
-        
+
         // We store the defaultValue separately so that we can check if the actualValue is non-default
         T defaultValue;
         T actualValue;
-        
+
         virtual bool isDefault() const { return defaultValue==actualValue;}
 
         // Getting the string versions of values, useful for output
@@ -1005,7 +1005,7 @@ private:
             _constraints.push(If(hasBeenSet<T>()).then(std::move(c)));
         }
 
-        // similar to onlyUsefulWith, except the trigger is a non-default value 
+        // similar to onlyUsefulWith, except the trigger is a non-default value
         // (as opposed to the explicitly-set flag)
         // we use it for selection and awr which cannot be not set via the decode string
         void onlyUsefulWith2(AbstractWrappedConstraintUP c){
@@ -1018,7 +1018,7 @@ private:
         virtual OptionValueConstraintUP<T> getNotDefault(){ return isNotDefault<T>(); }
 
         // similar to onlyUsefulWith2, except its a hard constraint,
-        // so that the user is strongly aware of situations when changing the 
+        // so that the user is strongly aware of situations when changing the
         // respective option has no effect
         void reliesOn(AbstractWrappedConstraintUP c){
             OptionValueConstraintUP<T> tc = If(getNotDefault()).then(unwrap<T>(c));
@@ -1032,18 +1032,18 @@ private:
         }
         // This checks the constraints and may cause a UserError
         bool checkConstraints();
-        
+
         // Produces a separate constraint object based on this option
         /// Useful for IfThen constraints and onlyUsefulWith i.e. _splitting.is(equal(true))
         AbstractWrappedConstraintUP is(OptionValueConstraintUP<T> c);
-        
+
         // Problem constraints place a restriction on problem properties and option values
         void addProblemConstraint(OptionProblemConstraintUP c){ _prob_constraints.push(std::move(c)); }
-        bool hasProblemConstraints(){ 
-          return !supress_problemconstraints && !_prob_constraints.isEmpty(); 
+        bool hasProblemConstraints(){
+          return !supress_problemconstraints && !_prob_constraints.isEmpty();
         }
         virtual bool checkProblemConstraints(Property* prop);
-        
+
         virtual void output(std::ostream& out, bool linewrap) const {
             AbstractOptionValue::output(out,linewrap);
             out << "\tdefault: " << getStringOfValue(defaultValue) << std::endl;
@@ -1053,11 +1053,11 @@ private:
         Lib::Stack<OptionValueConstraintUP<T>> _constraints;
         Lib::Stack<OptionProblemConstraintUP> _prob_constraints;
     };
-    
+
     /**
      * We now define particular OptionValues, see NOTE on OptionValues for high level usage
      */
-    
+
     /**
      * A ChoiceOptionValue is templated by an enum, which must be defined above
      *
@@ -1081,7 +1081,7 @@ private:
             this->actualValue = static_cast<T>(index);
             return true;
         }
-        
+
         virtual void output(std::ostream& out,bool linewrap) const {
             AbstractOptionValue::output(out,linewrap);
             out << "\tdefault: " << choices[static_cast<unsigned>(this->defaultValue)];
@@ -1113,7 +1113,7 @@ private:
             unsigned i = static_cast<unsigned>(value);
             return choices[i];
         }
-        
+
     private:
         OptionChoiceValues choices;
     };
@@ -1129,13 +1129,13 @@ private:
         bool setValue(const std::string& value){
             if (! value.compare("on") || ! value.compare("true")) {
                 actualValue=true;
-                
+
             }
             else if (! value.compare("off") || ! value.compare("false")) {
                 actualValue=false;
             }
             else return false;
-            
+
             return true;
         }
         
@@ -1150,7 +1150,7 @@ private:
         }
         std::string getStringOfValue(int value) const{ return Lib::Int::toString(value); }
     };
-    
+
     struct UnsignedOptionValue : public OptionValue<unsigned> {
         UnsignedOptionValue(){}
         UnsignedOptionValue(std::string l,std::string s, unsigned d) : OptionValue(l,s,d){}
@@ -1173,7 +1173,7 @@ private:
             return value;
         }
     };
-    
+
     struct LongOptionValue : public OptionValue<long> {
         LongOptionValue(){}
         LongOptionValue(std::string l,std::string s, long d) : OptionValue(l,s,d){}
@@ -1182,7 +1182,7 @@ private:
         }
         std::string getStringOfValue(long value) const{ return Lib::Int::toString(value); }
     };
-    
+
 struct FloatOptionValue : public OptionValue<float>{
 FloatOptionValue(){}
 FloatOptionValue(std::string l,std::string s, float d) : OptionValue(l,s,d){}
@@ -1404,7 +1404,7 @@ bool _hard;
     template<typename T>
     struct WrappedConstraint : AbstractWrappedConstraint {
         WrappedConstraint(const OptionValue<T>& v, OptionValueConstraintUP<T> c) : value(v), con(std::move(c)) {}
-        
+
         bool check() override {
             return con->check(value);
         }
@@ -1415,7 +1415,7 @@ bool _hard;
         const OptionValue<T>& value;
         OptionValueConstraintUP<T> con;
     };
-    
+
     struct WrappedConstraintOrWrapper : public AbstractWrappedConstraint {
         WrappedConstraintOrWrapper(AbstractWrappedConstraintUP l, AbstractWrappedConstraintUP r) : left(std::move(l)),right(std::move(r)) {}
         bool check() override {
@@ -1465,13 +1465,13 @@ bool _hard;
     template<typename T>
     struct UnWrappedConstraint : public OptionValueConstraint<T>{
         UnWrappedConstraint(AbstractWrappedConstraintUP c) : con(std::move(c)) {}
-        
+
         bool check(const OptionValue<T>&){ return con->check(); }
         std::string msg(const OptionValue<T>&){ return con->msg(); }
         
         AbstractWrappedConstraintUP con;
     };
-    
+
     template <typename T>
     static OptionValueConstraintUP<T> maybe_unwrap(OptionValueConstraintUP<T> c) { return c; }
 
@@ -1539,7 +1539,7 @@ bool _hard;
     static OptionValueConstraintUP<T> equal(T bv){
         return OptionValueConstraintUP<T>(new Equal<T>(bv));
     }
-    
+
     template<typename T>
     struct NotEqual : public OptionValueConstraint<T>{
         NotEqual(T bv) : _badvalue(bv) {}
@@ -1553,7 +1553,7 @@ bool _hard;
     static OptionValueConstraintUP<T> notEqual(T bv){
         return OptionValueConstraintUP<T>(new NotEqual<T>(bv));
     }
-    
+
     // Constraint that the value should be less than a given value
     // optionally we can allow it be equal to that value also
     template<typename T>
@@ -1566,7 +1566,7 @@ bool _hard;
             if(_orequal) return value.longName+"("+value.getStringOfActual()+") is less than or equal to " + value.getStringOfValue(_goodvalue);
             return value.longName+"("+value.getStringOfActual()+") is less than "+ value.getStringOfValue(_goodvalue);
         }
-        
+
         T _goodvalue;
         bool _orequal;
     };
@@ -1578,7 +1578,7 @@ bool _hard;
     static OptionValueConstraintUP<T> lessThanEq(T bv){
         return OptionValueConstraintUP<T>(new LessThan<T>(bv,true));
     }
-    
+
     // Constraint that the value should be greater than a given value
     // optionally we can allow it be equal to that value also
     template<typename T>
@@ -1592,7 +1592,7 @@ bool _hard;
             if(_orequal) return value.longName+"("+value.getStringOfActual()+") is greater than or equal to " + value.getStringOfValue(_goodvalue);
             return value.longName+"("+value.getStringOfActual()+") is greater than "+ value.getStringOfValue(_goodvalue);
         }
-        
+
         T _goodvalue;
         bool _orequal;
     };
@@ -1604,7 +1604,7 @@ bool _hard;
     static OptionValueConstraintUP<T> greaterThanEq(T bv){
         return OptionValueConstraintUP<T>(new GreaterThan<T>(bv,true));
     }
-    
+
     // Constraint that the value should be smaller than a given value
     // optionally we can allow it be equal to that value also
     template<typename T>
@@ -1634,15 +1634,15 @@ bool _hard;
     /**
      * If constraints
      */
-    
+
     template<typename T>
     struct IfConstraint;
-    
+
     template<typename T>
     struct IfThenConstraint : public OptionValueConstraint<T>{
         IfThenConstraint(OptionValueConstraintUP<T> ic, OptionValueConstraintUP<T> c) :
         if_con(std::move(ic)), then_con(std::move(c)) {}
-        
+
         bool check(const OptionValue<T>& value){
             ASS(then_con);
             return !if_con->check(value) || then_con->check(value);
@@ -1651,11 +1651,11 @@ bool _hard;
         std::string msg(const OptionValue<T>& value){
             return "if "+if_con->msg(value)+" then "+ then_con->msg(value);
         }
-        
+
         OptionValueConstraintUP<T> if_con;
         OptionValueConstraintUP<T> then_con;
     };
-    
+
     template<typename T>
     struct IfConstraint {
         IfConstraint(OptionValueConstraintUP<T> c) :if_con(std::move(c)) {}
@@ -1666,10 +1666,10 @@ bool _hard;
         OptionValueConstraintUP<T> then(AbstractWrappedConstraintUP c){
           return OptionValueConstraintUP<T>(new IfThenConstraint<T>(std::move(if_con),unwrap<T>(c)));
         }
-        
+
         OptionValueConstraintUP<T> if_con;
     };
-    
+
     template<typename T>
     static IfConstraint<T> If(OptionValueConstraintUP<T> c){
         return IfConstraint<T>(std::move(c));
@@ -1691,7 +1691,7 @@ bool _hard;
         }
         std::string msg(const OptionValue<T>& value) override { return value.longName+"("+value.getStringOfActual()+") has been set";}
     };
-    
+
     template<typename T>
     static OptionValueConstraintUP<T> hasBeenSet(){
         return OptionValueConstraintUP<T>(new HasBeenSet<T>());
@@ -1703,7 +1703,7 @@ bool _hard;
     template<typename T>
     struct NotDefaultConstraint : public OptionValueConstraint<T> {
         NotDefaultConstraint() {}
-        
+
         bool check(const OptionValue<T>& value){
             return value.defaultValue != value.actualValue;
         }
@@ -1711,7 +1711,7 @@ bool _hard;
     };
     struct NotDefaultRatioConstraint : public OptionValueConstraint<int> {
         NotDefaultRatioConstraint() {}
-        
+
         bool check(const OptionValue<int>& value){
             const RatioOptionValue& rvalue = static_cast<const RatioOptionValue&>(value);
             return (rvalue.defaultValue != rvalue.actualValue ||
@@ -1720,7 +1720,7 @@ bool _hard;
         std::string msg(const OptionValue<int>& value) { return value.longName+"("+value.getStringOfActual()+") is not default";}
         
     };
-    
+
     // You will need to provide the type, optionally use addConstraintIfNotDefault
     template<typename T>
     static OptionValueConstraintUP<T> isNotDefault(){
@@ -1740,8 +1740,8 @@ bool _hard;
             return value.longName+"("+value.getStringOfActual()+") is not lookahead selection";
         }
     };
-    
-    
+
+
     /**
      * NOTE on OptionProblemConstraint
      *
@@ -1751,13 +1751,13 @@ bool _hard;
      *
      * TODO - this element of Options is still under development
      */
-    
+
     struct OptionProblemConstraint{
       virtual bool check(Property* p) = 0;
       virtual std::string msg() = 0;
       virtual ~OptionProblemConstraint() {};
     };
-    
+
     struct CategoryCondition : OptionProblemConstraint{
       CategoryCondition(Property::Category c,bool h) : cat(c), has(h) {}
       bool check(Property*p){
@@ -1818,7 +1818,7 @@ bool _hard;
       AtomConstraint(int a,bool g) : atoms(a),greater(g) {}
       int atoms;
       bool greater;
-      bool check(Property*p){ 
+      bool check(Property*p){
         return greater ? p->atoms()>atoms : p->atoms()<atoms;
       }
           
@@ -1892,10 +1892,10 @@ bool _hard;
       bool check(Property*p){
         bool res = is_and;
         Stack<OptionProblemConstraintUP>::RefIterator it(cons);
-        while(it.hasNext()){ 
+        while(it.hasNext()){
           bool n=it.next()->check(p);res = is_and ? (res && n) : (res || n);}
         return res;
-      } 
+      }
 
       std::string msg(){
         std::string res="";
@@ -2028,7 +2028,7 @@ public:
   std::string const& exportAvatarProblem() const { return _exportAvatarProblem.actualValue; }
   std::string const& exportThiProblem() const { return _exportThiProblem.actualValue; }
 #endif
-  
+
   // end of show commands
 
   bool showNonconstantSkolemFunctionTrace() const { return _showNonconstantSkolemFunctionTrace.actualValue; }
@@ -2051,7 +2051,7 @@ public:
 #endif
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
   bool unificationWithAbstractionFixedPointIteration() const { return _unificationWithAbstractionFixedPointIteration.actualValue; }
-  void setUWA(UnificationWithAbstraction value){ _unificationWithAbstraction.actualValue = value; } 
+  void setUWA(UnificationWithAbstraction value){ _unificationWithAbstraction.actualValue = value; }
   bool fixUWA() const { return _fixUWA.actualValue; }
   bool useACeval() const { return _useACeval.actualValue;}
 
@@ -2266,7 +2266,6 @@ public:
   CCUnsatCores ccUnsatCores() const { return _ccUnsatCores.actualValue; }
 
   void setProof(Proof p) { _proof.actualValue = p; }
-    
   bool newCNF() const { return _newCNF.actualValue; }
   bool getIteInlineLet() const { return _inlineLet.actualValue; }
 
@@ -2302,24 +2301,24 @@ public:
   bool lambdaFreeHol() const { return _lambdaFreeHol.actualValue; }
   bool complexVarCondition() const { return _complexVarCondition.actualValue; }
   // For unit testing
-  void useCombSup() { 
+  void useCombSup() {
     _combinatorySuperposition.actualValue = true;
-    _complexVarCondition.actualValue = true; 
+    _complexVarCondition.actualValue = true;
   }
 
 private:
-    
+
     /**
      * A LookupWrapper is used to wrap up two maps for long and short names and query them
      */
     struct LookupWrapper {
-        
+
         LookupWrapper() {}
-        
+
         private:
           LookupWrapper operator=(const LookupWrapper&){ NOT_IMPLEMENTED;}
         public:
-        
+
         void insert(AbstractOptionValue* option_value){
             ASS(!option_value->longName.empty());
             bool new_long =  _longMap.insert(option_value->longName,option_value);
@@ -2338,18 +2337,18 @@ private:
             if(!_shortMap.find(shortName)){ throw ValueNotFoundException(); }
             return _shortMap.get(shortName);
         }
-        
+
         VirtualIterator<AbstractOptionValue*> values() const {
             return _longMap.range();
         }
-        
+
     private:
         DHMap<std::string,AbstractOptionValue*> _longMap;
         DHMap<std::string,AbstractOptionValue*> _shortMap;
     };
-    
+
     LookupWrapper _lookup;
-    
+
     // The const is a lie - we can alter the resulting OptionValue
     AbstractOptionValue* getOptionValueByName(std::string name) const{
         try{
@@ -2381,12 +2380,12 @@ private:
 
       return similar_names;
     }
-    
+
     //==========================================================
     // Variables holding option values
     //==========================================================
 
- /** 
+ /**
   * NOTE on OptionValues
   *
   * An OptionValue stores the value for an Option as well as all the meta-data
@@ -2403,7 +2402,7 @@ private:
   * For examples of how the different OptionValues are used see Options.cpp
   *
   * If an OptionValue needs custom assignment you will need to create a custom
-  *  OptionValue. See DecodeOptionValue and SelectionOptionValue for examples. 
+  *  OptionValue. See DecodeOptionValue and SelectionOptionValue for examples.
   *
   */
 
@@ -2434,7 +2433,7 @@ private:
 	BoolOptionValue _randomAWR;
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
-  
+
   BoolOptionValue _randomTraversals;
 
   ChoiceOptionValue<BadOption> _badOption;
@@ -2491,7 +2490,7 @@ private:
   ChoiceOptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
   UnsignedOptionValue _functionDefinitionIntroduction;
   ChoiceOptionValue<TweeGoalTransformation> _tweeGoalTransformation;
-  
+
   BoolOptionValue _generalSplitting;
   BoolOptionValue _globalSubsumption;
   ChoiceOptionValue<GlobalSubsumptionSatSolverPower> _globalSubsumptionSatSolverPower;
@@ -2635,8 +2634,8 @@ private:
   BoolOptionValue _thiGeneralise;
   BoolOptionValue _thiTautologyDeletion;
 #endif
-  ChoiceOptionValue<UnificationWithAbstraction> _unificationWithAbstraction; 
-  BoolOptionValue _unificationWithAbstractionFixedPointIteration; 
+  ChoiceOptionValue<UnificationWithAbstraction> _unificationWithAbstraction;
+  BoolOptionValue _unificationWithAbstractionFixedPointIteration;
   BoolOptionValue _fixUWA;
   BoolOptionValue _useACeval;
   TimeLimitOptionValue _simulatedTimeLimit;
@@ -2719,7 +2718,7 @@ private:
   ChoiceOptionValue<ArithmeticSimplificationMode> _cancellation;
   ChoiceOptionValue<ArithmeticSimplificationMode> _arithmeticSubtermGeneralizations;
 
- 
+
   //Higher-order options
   BoolOptionValue _addCombAxioms;
   BoolOptionValue _addProxyAxioms;

@@ -191,7 +191,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
     type = sym->fnType();
   } else if(symType == SymbolType::PRED){
     sym = env.signature->getPredicate(symNumber);
-    type = sym->predType();    
+    type = sym->predType();
   } else {
     sym = env.signature->getTypeCon(symNumber);
     type = sym->typeConType();
@@ -226,7 +226,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
 
   std::string st = "func";
   if(symType == SymbolType::PRED){
-    st = "pred"; 
+    st = "pred";
   } else if(symType == SymbolType::TYPE_CON){
     st = "sort";
   }
@@ -296,8 +296,6 @@ void TPTPPrinter::ensureHeadersPrinted(Unit* u)
   if(_headersPrinted) {
     return;
   }
-  
-  //ensureNecesarySorts();
 
   unsigned typeCons = env.signature->typeCons();
   for(unsigned i=Signature::FIRST_USER_CON; i<typeCons; i++) {

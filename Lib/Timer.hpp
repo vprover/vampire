@@ -43,10 +43,10 @@ class Timer
 {
   Timer() : _running(false), _elapsed(0) { ensureTimerInitialized(); }
   ~Timer() { deinitializeTimer(); }
- 
+
 public:
   static Timer* instance();
-  
+
   /** stop the timer and reset the clock */
   inline void reset()
   { _running = false;
