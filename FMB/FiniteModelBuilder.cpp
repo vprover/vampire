@@ -1941,7 +1941,7 @@ void FiniteModelBuilder::onModelFound()
     //cout << "For " << env.signature->getFunction(f)->name() << endl;
 
     static DArray<unsigned> grounding;
-    grounding.ensure(arity);
+    grounding.ensure(arity+1); // leave the last uninitialized until later in the loop
     for(unsigned i=0;i<arity;i++){
        grounding[i]=1;
     }
@@ -1958,42 +1958,30 @@ void FiniteModelBuilder::onModelFound()
     unsigned maxRtSrtSize = min(_sortedSignature->sortBounds[retSrt],_sortModelSizes[retSrt]);
 
 fModelLabel:
-      for(unsigned var=arity-1;var+1!=0;var--){
+    for(unsigned var=arity-1;var+1!=0;var--){
 
-        if(grounding[var] == maxVarSize[var]){
-          grounding[var]=1;
-        }
-        else{
-          grounding[var]++;
-
-          static DArray<unsigned> use;
-          use.ensure(arity+1);
-          for(unsigned k=0;k<arity;k++) use[k]=grounding[k];
-
-          bool found=false;
-          for(unsigned c=1;c<=maxRtSrtSize;c++){
-            use[arity]=c;
-            SATLiteral slit = getSATLiteral(f,use,true,true);
-            if(_solver->trueInAssignment(slit)){
-              //if(found){ cout << "Error: multiple interpretations of " << name << endl; }
-              ASS(!found);
-              found=true;
-              model.addFunctionDefinition(f,grounding,c);
-            }
-          }
-          if(!found){
-             // This means that there is no result for this input
-             // This is a result of the finite sort bounding and the argument
-             // says that we can equate this domain element to a smaller one below the bound
-             //TODO fix this
-             //cout << "NOT FOUND for " << env.signature->functionName(f) << endl;
-          }
-
-          goto fModelLabel;
-        }
+      if(grounding[var] == maxVarSize[var]){
+        grounding[var]=1;
       }
-  }
+      else{
+        grounding[var]++;
 
+        bool found=false;
+        for(unsigned c=1;c<=maxRtSrtSize;c++){
+          grounding[arity]=c;
+          SATLiteral slit = getSATLiteral(f,grounding,true,true);
+          if(_solver->trueInAssignment(slit)){
+            ASS(!found);
+            found=true;
+            model.addFunctionDefinition(f,grounding,c);
+            RELEASE_CODE(break);
+          }
+        }
+        ASS(found)
+        goto fModelLabel;
+      }
+    }
+  }
 
   //Record interpretation of prop symbols
   static const DArray<unsigned> emptyG(0);
@@ -2011,56 +1999,47 @@ fModelLabel:
   }
 
   //Record interpretation of predicates
-  for(unsigned f=1;f<env.signature->predicates();f++){
-    unsigned arity = env.signature->predicateArity(f);
+  for(unsigned p=1;p<env.signature->predicates();p++){
+    unsigned arity = env.signature->predicateArity(p);
     if(arity==0) continue;
-    if(del_p[f]) continue;
-    if(_partiallyDeletedPredicates.find(f)) continue;
+    if(del_p[p]) continue;
+    if(_partiallyDeletedPredicates.find(p)) continue;
 
     //cout << "Record for " << env.signature->getPredicate(f)->name() << endl;
 
     static DArray<unsigned> grounding;
-    static DArray<unsigned> args;
     grounding.ensure(arity);
-    args.ensure(arity);
-    for(unsigned i=0;i<arity-1;i++){grounding[i]=1;args[1]=1;}
+    for(unsigned i=0;i<arity-1;i++){grounding[i]=1;}
     grounding[arity-1]=0;
-    args[arity-1]=0;
 
-    const DArray<unsigned>& f_signature = _sortedSignature->predicateSignatures[f];
+    const DArray<unsigned>& p_signature = _sortedSignature->predicateSignatures[p];
     static DArray<unsigned> maxVarSize;
     maxVarSize.ensure(arity);
     for(unsigned var=0;var<arity;var++){
-      unsigned srt = f_signature[var];
-      maxVarSize[var] = _sortedSignature->sortBounds[srt];
+      unsigned srt = p_signature[var];
+      maxVarSize[var] = min(_sortedSignature->sortBounds[srt],_sortModelSizes[srt]);
     }
 
 pModelLabel:
-      for(unsigned i=arity-1;i+1!=0;i--){
+    for(unsigned var=arity-1;var+1!=0;var--){
 
-        if(args[i]==_sortModelSizes[f_signature[i]]){
-          grounding[i]=1;
-          args[i]=1;
-       }
-        else{
-          if(args[i]<maxVarSize[i]){
-            grounding[i]++;
-          }
-          args[i]++;
-          bool res;
-          if(!_trivialPredicates.find(f,res)){ 
-            SATLiteral slit = getSATLiteral(f,grounding,true,false);
-            res=_solver->trueInAssignment(slit); 
-          }
-          //for(unsigned j=0;j<arity;j++){ cout << grounding[j] << ", ";}; cout << " = " << res << endl;
-
-          model.addPredicateDefinition(f,grounding,res);
-
-          goto pModelLabel;
-        }
+      if(grounding[var]==maxVarSize[var]){
+        grounding[var]=1;
       }
-  }
+      else{
+        grounding[var]++;
+        bool res;
+        if(!_trivialPredicates.find(p,res)){
+          SATLiteral slit = getSATLiteral(p,grounding,true,false);
+          res=_solver->trueInAssignment(slit);
+        }
+        //for(unsigned j=0;j<arity;j++){ cout << grounding[j] << ", ";}; cout << " = " << res << endl;
 
+        model.addPredicateDefinition(p,grounding,res);
+        goto pModelLabel;
+      }
+    }
+  }
 
   //Evaluate removed functions and constants
   unsigned maxf = env.signature->functions(); // model evaluation can add new constants

@@ -113,7 +113,7 @@ void FiniteModelMultiSorted::addConstantDefinition(unsigned f, unsigned res)
 
 void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsigned>& args, unsigned res)
 {
-  ASS_EQ(env.signature->functionArity(f),args.size());
+  ASS_LE(env.signature->functionArity(f),args.size());
 
   if(env.signature->functionArity(f)==0 && !env.signature->getFunction(f)->introduced()){
     TermList srt = env.signature->getFunction(f)->fnType()->result();
@@ -156,7 +156,7 @@ void FiniteModelMultiSorted::addPredicateDefinition(unsigned p, const DArray<uns
 {
   ASS_EQ(env.signature->predicateArity(p),args.size());
 
-  //cout << "addPredicateDefinition for " << p << "(" << env.signature->predicateName(p) << ")" << endl;
+  cout << "addPredicateDefinition for " << p << "(" << env.signature->predicateName(p) << ")" << endl;
 
   unsigned var = p_offsets[p];
   unsigned mult = 1;
