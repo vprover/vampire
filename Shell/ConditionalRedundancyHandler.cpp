@@ -336,7 +336,7 @@ void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuper
   Applicator appl(subs, !eqIsResult);
 
   auto doInsert = eqClause->length()==1 && eqClause->noSplits() &&
-    ((!ordC && rwTermS.containsAllVariablesOf(tgtTermS)) || eqComp == Ordering::LESS) &&
+    // TODO this demodulation redundancy check could be added as constraints
     (!_demodulationHelper.redundancyCheckNeededForPremise(rwClause, rwLitS, rwTermS) ||
       // TODO for rwClause->length()!=1 the function isPremiseRedundant does not work yet
       (rwClause->length()==1 && _demodulationHelper.isPremiseRedundant(rwClause, rwLitS, rwTermS, tgtTermS, eqLHS, &appl)));
@@ -345,12 +345,16 @@ void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuper
     return;
   }
 
-  bool incompInserted = doInsert && eqComp != Ordering::LESS;
+  // if the equation is not oriented, consider adding ordering constraints
+  if (eqComp != Ordering::LESS && !(ordC && rwTermS.containsAllVariablesOf(tgtTermS))) {
+    return;
+  }
+
   auto rwClDataPtr = getDataPtr(rwClause, /*doAllocate=*/true);
 
   (*rwClDataPtr)->insert(_ord, subs, !eqIsResult,
-    incompInserted ? rwTermS.term() : nullptr,
-    incompInserted ? tgtTermS.term() : nullptr);
+    eqComp != Ordering::LESS ? rwTermS.term() : nullptr,
+    eqComp != Ordering::LESS ? tgtTermS.term() : nullptr);
 }
 
 template<bool enabled, bool ordC, bool avatarC, bool litC>
