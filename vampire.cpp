@@ -261,7 +261,7 @@ void outputProblemToLaTeX(Problem* prb)
  * per se or also for converting one syntax to another. For the latter, the input
  * and the output syntaxes must be set to different values. Note that for
  * simply translating one syntax to another, output mode is the right one.
- * 
+ *
  * @author Andrei Voronkov
  * @since 02/07/2013 Manchester
  */
@@ -831,4 +831,3 @@ catch (Parse::TPTP::ParseErrorException& exception) {
 
   return vampireReturnValue;
 } // main
-

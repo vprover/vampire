@@ -27,7 +27,7 @@ using namespace Kernel;
 
 /**
  * All purpose TPTP printer class. It has two major roles:
- * 1. returns as a tptp string a Unit/Formula
+ * 1. returns as a TPTP string a Unit/Formula
  * 2. it outputs to the desired output stream any Unit specified
  */
 class TPTPPrinter {

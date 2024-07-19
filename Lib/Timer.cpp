@@ -141,7 +141,6 @@ void reinitialise() {
    */
   LAST_INSTRUCTION_COUNT_READ = -1;
   PERF_FD = -1;
-
   struct perf_event_attr pe;
 
   memset(&pe, 0, sizeof(struct perf_event_attr));

@@ -41,7 +41,6 @@ namespace Timer {
   std::string msToSecondsString(int);
 
   // instruction limiting stuff below - no-op if !VAMPIRE_PERF_EXISTS
-
   // whether instruction limiting succeeded
   bool instructionLimitingInPlace();
   // elapsed instructions

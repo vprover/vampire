@@ -274,7 +274,7 @@ void Preprocess::preprocess(Problem& prb)
     Shuffling::shuffle(prb);
   }
 
-  if (prb.mayHaveFormulas() && _options.newCNF() && 
+  if (prb.mayHaveFormulas() && _options.newCNF() &&
      !prb.hasPolymorphicSym() && !prb.isHigherOrder()) {
     if (env.options->showPreprocessing())
       std::cout << "newCnf" << std::endl;
@@ -643,7 +643,7 @@ void Preprocess::newCnf(Problem& prb)
     prb.invalidateProperty();
   }
   prb.reportFormulasEliminated();
-} 
+}
 
 /**
  * Preprocess the unit using options from opt. Preprocessing may
