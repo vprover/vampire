@@ -218,7 +218,7 @@ std::string FiniteModelMultiSorted::toString()
       if(frep >= 0){
         cname = env.signature->functionName(frep);
       }
-      cnames[s][i]=cname; 
+      cnames[s][i]=cname;
       modelStm << cname << ":" << sortName << ")." << endl;
     }
 
@@ -227,7 +227,7 @@ std::string FiniteModelMultiSorted::toString()
     modelStm << "      ! [X:" << sortName << "] : (" << endl;
     modelStm << "         ";
     for(unsigned i=1;i<=size;i++){
-      modelStm << "X = " << cnames[s][i]; 
+      modelStm << "X = " << cnames[s][i];
       if(i<size) modelStm << " | ";
       if(i==size) modelStm << endl;
       else if(i%5==0) modelStm << endl << "         ";
@@ -383,7 +383,7 @@ fModelLabel:
     modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": (";
     for(unsigned i=0;i<arity;i++){
       TermList argST = sig->arg(i);
-      unsigned argS = argST.term()->functor();      
+      unsigned argS = argST.term()->functor();
       modelStm << env.signature->typeConName(argS);
       if(i+1 < arity) modelStm << " * ";
     }
@@ -408,7 +408,7 @@ pModelLabel:
         else{
           args[i]++;
 
-          //TODO could probably compute this directly, instead of via args 
+          //TODO could probably compute this directly, instead of via args
           // my mind isn't in the right place to do that now though!
           unsigned var = offset;
           unsigned mult=1;
@@ -432,7 +432,7 @@ pModelLabel:
             if(j!=0) modelStm << ",";
             TermList argSortT = sig->arg(j);
             unsigned argSort = argSortT.term()->functor();
-            modelStm << cnames[argSort][args[j]]; 
+            modelStm << cnames[argSort][args[j]];
           }
           modelStm << ")";
           if(res==0){
@@ -445,8 +445,6 @@ pModelLabel:
       modelStm << endl << ")." << endl << endl;
   }
 
-
-
   return modelStm.str();
 }
 
@@ -457,7 +455,7 @@ unsigned FiniteModelMultiSorted::evaluateGroundTerm(Term* term)
 #if DEBUG_MODEL
   cout << "evaluating ground term " << term->toString() << endl;
   cout << "domain constant status " << isDomainConstant(term) << endl;
-#endif  
+#endif
   if(isDomainConstant(term)) return getDomainConstant(term).first;
 
   unsigned arity = env.signature->functionArity(term->functor());
@@ -518,7 +516,7 @@ bool FiniteModelMultiSorted::evaluateGroundLiteral(Literal* lit)
     var += mult*(args[i]-1);
     unsigned s = sig->arg(i).term()->functor();
     mult *=_sizes.get(s);
-  }  
+  }
 
 #if VDEBUG
   if((lit->functor()+1)<p_offsets.size()) ASS_L(var,p_offsets[lit->functor()+1]);
@@ -527,14 +525,14 @@ bool FiniteModelMultiSorted::evaluateGroundLiteral(Literal* lit)
 
   unsigned res = p_interpretation[var];
 #if DEBUG_MODEL
-    cout << "res is " << res << " and polarity is " << lit->polarity() << endl; 
+    cout << "res is " << res << " and polarity is " << lit->polarity() << endl;
 #endif
 
-  if(res==0) 
+  if(res==0)
     USER_ERROR("Could not evaluate "+lit->toString()+", probably a partial model");
 
   if(lit->polarity()) return (res==2);
-  else return (res==1); 
+  else return (res==1);
 }
 
 bool FiniteModelMultiSorted::evaluate(Unit* unit)
@@ -560,13 +558,13 @@ bool FiniteModelMultiSorted::evaluate(Unit* unit)
 /**
  *
  * TODO: This is recursive, which could be problematic in the long run
- * 
+ *
  */
 bool FiniteModelMultiSorted::evaluate(Formula* formula,unsigned depth)
 {
 #if DEBUG_MODEL
   for(unsigned i=0;i<depth;i++){ cout << "."; }
-  cout << "Evaluating..." << formula->toString() << endl; 
+  cout << "Evaluating..." << formula->toString() << endl;
 #endif
 
   bool isAnd = false;

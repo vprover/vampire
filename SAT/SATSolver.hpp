@@ -40,7 +40,7 @@ public:
   };
 
   virtual ~SATSolver() {}
-  
+
   /**
    * Add a clause to the solver.
    *

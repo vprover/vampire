@@ -169,7 +169,7 @@ bool FiniteModelBuilder::reset(){
   // Start from 1 as SAT solver variables are 1-based
   unsigned offsets=1;
   for(unsigned f=0; f<env.signature->functions();f++){
-    if(del_f[f]) continue; 
+    if(del_f[f]) continue;
     f_offsets[f]=offsets;
 #if VTRACE_FMB
     cout << "offset for " << f << " is " << offsets << " (arity is " << env.signature->functionArity(f) << ") " << endl;
@@ -2041,17 +2041,18 @@ pModelLabel:
     }
   }
 
+#if 0
   //Evaluate removed functions and constants
   unsigned maxf = env.signature->functions(); // model evaluation can add new constants
   //bool unfinished=true;
   //while(unfinished){
   //unfinished=false;
   unsigned f=maxf;
-  while(f > 0){ 
+  while(f > 0){
     f--;
     //cout << "Consider " << f << endl;
     unsigned arity = env.signature->functionArity(f);
-    if(!del_f[f]) continue; 
+    if(!del_f[f]) continue;
     // For now, just skip unused functions!
     if(env.signature->getFunction(f)->usageCnt()==0) continue;
     //del_f[f]=false;
@@ -2063,7 +2064,7 @@ pModelLabel:
     //cout << def->toString() << endl;
 
     ASS(def->isEquality());
-    Term* funApp = 0; 
+    Term* funApp = 0;
     Term* funDef = 0;
 
     if(def->nthArgument(0)->term()->functor()==f){
@@ -2111,7 +2112,7 @@ ffModelLabel:
 
           Substitution subst;
           for(unsigned j=0;j<arity;j++){
-            TermList vs = env.signature->getFunction(f)->fnType()->arg(j); 
+            TermList vs = env.signature->getFunction(f)->fnType()->arg(j);
             unsigned vampireSrt = vs.term()->functor();
             //cout << grounding[j] << " is " << model.getDomainConstant(grounding[j],vampireSrt)->toString() << endl;
             subst.bind(vars[j],model.getDomainConstant(grounding[j],vampireSrt));
@@ -2139,7 +2140,7 @@ ffModelLabel:
       }
       catch(UserErrorException& exception){
         //cout << "Setting unfinished" << endl;
-        //unfinished=true;  
+        //unfinished=true;
         //del_f[f]=true;
       }
     }
@@ -2147,7 +2148,6 @@ ffModelLabel:
   //}
 
   //Evaluate removed propositions and predicates
-#if 0
   f=env.signature->predicates()-1;
   while(f>0){
     f--;
@@ -2163,7 +2163,7 @@ ffModelLabel:
       //cout << "For " << env.signature->getPredicate(f)->name() << endl;
       //cout << udef->toString() << endl;
     //}
-    Formula* def = udef->getFormula();   
+    Formula* def = udef->getFormula();
     Literal* predApp = 0;
     Formula* predDef = 0;
     bool polarity = true;
@@ -2175,7 +2175,7 @@ ffModelLabel:
         Formula* inner = def->qarg();
         ASS(inner->connective()==Connective::IFF);
         Formula* left = inner->left();
-        Formula* right = inner->right(); 
+        Formula* right = inner->right();
 
         if(left->connective()==Connective::NOT){
           polarity=!polarity;
@@ -2231,7 +2231,7 @@ ffModelLabel:
       grounding[i]=1;
       TermList vs = env.signature->getPredicate(f)->predType()->arg(i);
       unsigned vampireSrt = vs.term()->functor();
-      unsigned dsrt = _sortedSignature->vampireToDistinctParent.get(vampireSrt); 
+      unsigned dsrt = _sortedSignature->vampireToDistinctParent.get(vampireSrt);
       p_signature_distinct[i] = dsrt;
     }
     grounding[arity-1]=0;
@@ -2251,9 +2251,9 @@ ppModelLabel:
           }
           else{
             Substitution subst;
-            for(unsigned j=0;j<arity;j++){ 
+            for(unsigned j=0;j<arity;j++){
               //cout << grounding[j] << " is " << model.getDomainConstant(grounding[j])->toString() << endl;
-              TermList vs = env.signature->getPredicate(f)->predType()->arg(j); 
+              TermList vs = env.signature->getPredicate(f)->predType()->arg(j);
               unsigned vampireSrt = vs.term()->functor();
               subst.bind(vars[j],model.getDomainConstant(grounding[j],vampireSrt));
             }
@@ -2265,7 +2265,7 @@ ppModelLabel:
               if(!polarity) res=!res;
               model.addPredicateDefinition(f,grounding,res);
             }
-            catch(UserErrorException& exception){ 
+            catch(UserErrorException& exception){
               // TODO order symbols for partial evaluation
             }
           }

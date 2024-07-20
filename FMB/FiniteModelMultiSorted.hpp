@@ -45,10 +45,10 @@ public:
  // Assume def is an equality literal with a
  // function application on lhs and constant on rhs
  void addConstantDefinition(unsigned f, unsigned res);
- void addFunctionDefinition(unsigned f, const DArray<unsigned>& args, unsigned res); 
+ void addFunctionDefinition(unsigned f, const DArray<unsigned>& args, unsigned res);
  // Assume def is non-equality ground literal
  void addPropositionalDefinition(unsigned f, bool res);
- void addPredicateDefinition(unsigned f, const DArray<unsigned>& args, bool res); 
+ void addPredicateDefinition(unsigned f, const DArray<unsigned>& args, bool res);
 
  bool isPartial();
 
@@ -87,7 +87,7 @@ public:
    std::pair<unsigned,unsigned> pair = std::make_pair(c,srt);
    if(_domainConstants.find(pair,t)) return t;
    std::string name = "domCon_"+env.signature->typeConName(srt)+"_"+Lib::Int::toString(c);
-   unsigned f = env.signature->addFreshFunction(0,name.c_str()); 
+   unsigned f = env.signature->addFreshFunction(0,name.c_str());
    TermList srtT = TermList(AtomicSort::createConstant(srt));
    env.signature->getFunction(f)->setType(OperatorType::getConstantsType(srtT));
    t = Term::createConstant(f);
