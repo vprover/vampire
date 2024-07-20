@@ -168,7 +168,8 @@ bool Monotonicity::guards(Literal* l, unsigned var, Stack<SATLiteral>& slits)
 }
 
 
-void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const DArray<unsigned>& del_f)
+void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const DArray<unsigned>& del_f,
+  DHMap<unsigned,DArray<signed char>*>& monotonic_vampire_sorts) // may write into this
 {
   // First compute the monotonic sorts
   DArray<bool> isMonotonic(env.signature->typeCons());
@@ -176,8 +177,9 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const D
     if(env.getMainProblem()->getProperty()->usesSort(s) || env.signature->isNonDefaultCon(s)){
        if(withMon){
          Monotonicity m(clauses,s);
-         bool monotonic = m.check();
-         isMonotonic[s] = monotonic;
+         auto monot_info = m.check();
+         isMonotonic[s] = (bool)monot_info;
+         ALWAYS(monotonic_vampire_sorts.insert(s,monot_info));
        }
        else{
         isMonotonic[s] = false;
@@ -194,6 +196,12 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const D
       unsigned p = env.signature->addFreshPredicate(1,name.c_str());
       env.signature->getPredicate(p)->setType(OperatorType::getPredicateType({TermList(AtomicSort::createConstant(s))}));
       sortPredicates[s] = p;
+
+      auto monot_info = new DArray<signed char>(env.signature->predicates());
+      // when adding sort predicate, we assume all predicates false-extended
+      (*monot_info)[0] = 0; // except equality, which nobody should read anyway
+      for (unsigned p = 1; p< env.signature->predicates(); p++) { (*monot_info)[p] = -1; }
+      ALWAYS(monotonic_vampire_sorts.insert(s,monot_info));
     }
     else{ sortPredicates[s]=0; }
   }
@@ -241,61 +249,59 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const D
     auto nonEmpty = Clause::fromLiterals({ psk }, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::INPUT));
     ClauseList::push(nonEmpty,newAxioms);
     ASS(SortHelper::areSortsValid(nonEmpty));
-
   }
-
 
   // Go through previous clauses and
   // i) keep a clause if it only has variables of monotonic sort
   // ii) replace clauses with variables of non-monotic sort by adding literal(s) ~p(X)
-   ClauseList::DelIterator it(clauses);
-   while(it.hasNext()){
-     Clause* cl = it.next();
-     // pair(variable,variableSort)
-     static Stack<std::pair<unsigned,unsigned>> sortedVariables;
-     sortedVariables.reset();
+  ClauseList::DelIterator it(clauses);
+  while(it.hasNext()){
+    Clause* cl = it.next();
+    // pair(variable,variableSort)
+    static Stack<std::pair<unsigned,unsigned>> sortedVariables;
+    sortedVariables.reset();
 
-     DHMap<unsigned,TermList> varSorts;
-     SortHelper::collectVariableSorts(cl,varSorts);
-     for(unsigned v=0;v<cl->varCnt();v++){
-       TermList vsrt;
-       if(varSorts.find(v,vsrt)){
-        unsigned vsrtU = vsrt.term()->functor();
-         if(!isMonotonic[vsrtU]) sortedVariables.push(make_pair(v,vsrtU));
-       }
-       // else the var isn't used in the clause...they're not normalised
-     }
+    DHMap<unsigned,TermList> varSorts;
+    SortHelper::collectVariableSorts(cl,varSorts);
+    for(unsigned v=0;v<cl->varCnt();v++){
+      TermList vsrt;
+      if(varSorts.find(v,vsrt)){
+      unsigned vsrtU = vsrt.term()->functor();
+        if(!isMonotonic[vsrtU]) sortedVariables.push(make_pair(v,vsrtU));
+      }
+      // else the var isn't used in the clause...they're not normalised
+    }
 
-     if(!sortedVariables.isEmpty()){
+    if(!sortedVariables.isEmpty()){
 
-       Stack<Literal*> literals;
-       literals.loadFromIterator(cl->iterLits());
+      Stack<Literal*> literals;
+      literals.loadFromIterator(cl->iterLits());
 
-       Stack<std::pair<unsigned,unsigned>>::Iterator vit(sortedVariables);
-       while(vit.hasNext()){
-         std::pair<unsigned,unsigned> pair = vit.next();
-         unsigned var = pair.first;
-         unsigned varSort = pair.second;
-         unsigned p = sortPredicates[varSort];
-         ASS(p>0);
-         ASS(!isMonotonic[varSort]);
-         Literal* guard = Literal::create1(p,false,TermList(var,false));
-         literals.push(guard);
-       }
+      Stack<std::pair<unsigned,unsigned>>::Iterator vit(sortedVariables);
+      while(vit.hasNext()){
+        std::pair<unsigned,unsigned> pair = vit.next();
+        unsigned var = pair.first;
+        unsigned varSort = pair.second;
+        unsigned p = sortPredicates[varSort];
+        ASS(p>0);
+        ASS(!isMonotonic[varSort]);
+        Literal* guard = Literal::create1(p,false,TermList(var,false));
+        literals.push(guard);
+      }
 
-       Clause* replacement = Clause::fromStack(literals,
-                                   NonspecificInference1(InferenceRule::ADD_SORT_PREDICATES, cl));
+      Clause* replacement = Clause::fromStack(literals,
+                                  NonspecificInference1(InferenceRule::ADD_SORT_PREDICATES, cl));
 
-       ASS(SortHelper::areSortsValid(replacement));
-       ClauseList::push(replacement,newAxioms);
-       //cout << "REPLACING" << endl;
-       //cout << cl->toString() << endl;
-       //cout << replacement->toString() << endl;
-       it.del();
-     }
-   }
+      ASS(SortHelper::areSortsValid(replacement));
+      ClauseList::push(replacement,newAxioms);
+      //cout << "REPLACING" << endl;
+      //cout << cl->toString() << endl;
+      //cout << replacement->toString() << endl;
+      it.del();
+    }
+  }
 
-   clauses = ClauseList::concat(clauses,newAxioms);
+  clauses = ClauseList::concat(clauses,newAxioms);
 }
 
 class SortFunctionTransformer {
@@ -321,7 +327,8 @@ public:
   DArray<unsigned> const &_sf;
 };
 
-void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
+void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses,
+  DHMap<unsigned,DArray<signed char>*>& monotonic_vampire_sorts) // may write into this
 {
   // First compute the monotonic sorts
   DArray<bool> isMonotonic(env.signature->typeCons());
@@ -329,8 +336,9 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
     if(env.getMainProblem()->getProperty()->usesSort(s) || env.signature->isNonDefaultCon(s)){
        if(withMon){
          Monotonicity m(clauses,s);
-         bool monotonic = m.check();
-         isMonotonic[s] = monotonic;
+         auto monot_info = m.check();
+         isMonotonic[s] = (bool)monot_info;
+         ALWAYS(monotonic_vampire_sorts.insert(s,monot_info));
        }
        else{
         isMonotonic[s] = false;
@@ -350,6 +358,11 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
       // increment usage count so not treated as deleted
       env.signature->getFunction(f)->incUsageCnt();
       sortFunctions[s] = f;
+
+      auto monot_info = new DArray<signed char>(env.signature->predicates());
+      // when adding sort functions, we assume all predicates copy-extended
+      for (unsigned p = 0; p< env.signature->predicates(); p++) { (*monot_info)[p] = 0; }
+      ALWAYS(monotonic_vampire_sorts.insert(s,monot_info));
     }
     else{ sortFunctions[s]=0; }
   }
@@ -357,37 +370,35 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses)
   // The newAxioms clause list
   ClauseList* newAxioms = 0;
 
+  ClauseList::DelIterator it(clauses);
+  while(it.hasNext()){
+    Clause* cl = it.next();
 
-   ClauseList::DelIterator it(clauses);
-   while(it.hasNext()){
-     Clause* cl = it.next();
+    Stack<Literal*> literals;
 
-     Stack<Literal*> literals;
+    bool changed = false;
+    for (auto l : cl->iterLits()) {
+      Literal* lnew = l->arity() == 0 ? l : evaluateLiteralBottomUp(l, SortFunctionTransformer(isMonotonic,sortFunctions));
+      if(l!=lnew) {
+        changed=true;
+        // cout << "before " << l->toString() << endl;
+        // cout << "after " << lnew->toString() << endl;
+      }
+      literals.push(lnew);
+    }
 
-     bool changed = false;
-     for (auto l : cl->iterLits()) {
-       Literal* lnew = l->arity() == 0 ? l : evaluateLiteralBottomUp(l, SortFunctionTransformer(isMonotonic,sortFunctions));
-       if(l!=lnew) {
-         changed=true;
-         // cout << "before " << l->toString() << endl;
-         // cout << "after " << lnew->toString() << endl;
-       }
-       literals.push(lnew);
-     }
+    if(changed){
+      Clause* replacement = Clause::fromStack(literals,
+                                  NonspecificInference1(InferenceRule::ADD_SORT_FUNCTIONS, cl));
+      //cout << "C " << cl->toString() << endl;
+      //cout << "R " << replacement->toString() << endl;
+      ASS(SortHelper::areSortsValid(replacement));
+      ClauseList::push(replacement,newAxioms);
+      it.del();
+    }
+  }
 
-     if(changed){
-       Clause* replacement = Clause::fromStack(literals,
-                                   NonspecificInference1(InferenceRule::ADD_SORT_FUNCTIONS, cl));
-       //cout << "C " << cl->toString() << endl;
-       //cout << "R " << replacement->toString() << endl;
-       ASS(SortHelper::areSortsValid(replacement));
-       ClauseList::push(replacement,newAxioms);
-       it.del();
-     }
-   }
-
-   clauses = ClauseList::concat(clauses,newAxioms);
-
+  clauses = ClauseList::concat(clauses,newAxioms);
 }
 
 }

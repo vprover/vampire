@@ -443,11 +443,11 @@ void FiniteModelBuilder::init()
       deleted_functions[f] = _deletedFunctions.find(f) || env.signature->getFunction(f)->usageCnt()==0;
      }
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
-    Monotonicity::addSortPredicates(true, clist,deleted_functions);
+    Monotonicity::addSortPredicates(true,clist,deleted_functions,_monotonic_vampire_sorts);
   }
   if(env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::FUNCTION){
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
-    Monotonicity::addSortFunctions(true,clist);
+    Monotonicity::addSortFunctions(true,clist,_monotonic_vampire_sorts);
   }
 
 

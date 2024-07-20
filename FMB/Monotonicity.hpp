@@ -49,12 +49,14 @@ public:
    *
    * If the answer is positive, it will allocate a DArray to store
    * for every predicate symbol whether it should be treated (in sort srt)
-   * as false-extened (-1), copy-extended (0), or true-extended (+1).
+   * as false-extended (-1), copy-extended (0), or true-extended (+1).
    */
   DArray<signed char>* check();
 
-  static void addSortPredicates(bool withMon, ClauseList*& clauses, const DArray<unsigned>& del_f);
-  static void addSortFunctions(bool withMon, ClauseList*& clauses);
+  static void addSortPredicates(bool withMon, ClauseList*& clauses, const DArray<unsigned>& del_f,
+    DHMap<unsigned,DArray<signed char>*>& monotonic_vampire_sorts);
+  static void addSortFunctions(bool withMon, ClauseList*& clauses,
+    DHMap<unsigned,DArray<signed char>*>& monotonic_vampire_sorts);
 
 private:
   void monotone(Clause* c, Literal* l);
