@@ -97,7 +97,7 @@ private:
   // For each model size up to the maximum add both ordering and canonicity constraints for each (inferred) sort
   void addNewSymmetryAxioms(){
       ASS(_sortedSignature);
-    
+
     for(unsigned s=0;s<_sortedSignature->sorts;s++){
       //std::cout << "SORT " << s << std::endl;
       unsigned modelSize = _sortModelSizes[s];
@@ -141,6 +141,9 @@ private:
   DArray<unsigned> del_f;
   DArray<unsigned> del_p;
 
+  // Store monotonicity_info (see Monotonicity::check) for every sort detected (or made) monotonic
+  DHMap<unsigned,DArray<signed char>*> _monotonic_vampire_sorts;
+
   // Add a SATClause to the SAT solver
   void addSATClause(SATClause* cl);
   // Add a singleton SATClause in the form of a SATLiteral to the SAT solver
@@ -159,9 +162,9 @@ private:
   ClauseList* _groundClauses;
   ClauseList* _clauses;
 
-  // Record for function symbol the minimum bound of the return sort or any parameter sorts 
+  // Record for function symbol the minimum bound of the return sort or any parameter sorts
   DArray<unsigned> _fminbound;
-  // Record for each clause the sorts of the variables 
+  // Record for each clause the sorts of the variables
   // As clauses are normalized variables will be numbered 0,1,...
   DHMap<Clause*,DArray<unsigned>*> _clauseVariableSorts;
 

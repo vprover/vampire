@@ -78,10 +78,13 @@ public:
   SortInference(ClauseList* clauses,
                 const DArray<unsigned>& del_f,
                 const DArray<unsigned>& del_p,
-                Stack<std::pair<unsigned,unsigned>>& distinct_sort_constraints) :
+                Stack<std::pair<unsigned,unsigned>>& distinct_sort_constraints,
+                DHMap<unsigned,DArray<signed char>*>& monotonic_vampire_sorts) :
                 _clauses(clauses), _del_f(del_f), _del_p(del_p),
-                _sort_constraints(distinct_sort_constraints) { // this is essentially an output argument; TODO: what's the spec?
-
+                // these two are essentially output arguments
+                _sort_constraints(distinct_sort_constraints),
+                _monotonic_vampire_sorts(monotonic_vampire_sorts)
+                {
                   _sig = new SortedSignature();
                   _print = env.options->showFMBsortInfo();
 
@@ -119,7 +122,6 @@ private:
 
   unsigned _distinctSorts;
   unsigned _collapsed;
-  DHSet<unsigned> _monotonicVampireSorts;
   ZIArray<unsigned> _posEqualitiesOnSort;  // grows as needed, as new sorts are named
 
   SortedSignature* _sig;
@@ -128,6 +130,7 @@ private:
   const DArray<unsigned>& _del_p;
 
   Stack<std::pair<unsigned,unsigned>>& _sort_constraints;
+  DHMap<unsigned,DArray<signed char>*>& _monotonic_vampire_sorts;
 };
 
 }

@@ -180,11 +180,13 @@ void SortInference::doInference()
         bool monotonic = _assumeMonotonic;
         if(!monotonic){
           Monotonicity m(_clauses,s);
-          monotonic = m.check();
+          auto monot_info = m.check();
+          if (monot_info) {
+            _monotonic_vampire_sorts.insert(s,monot_info);
+          }
         }
-        if(monotonic){
-          _monotonicVampireSorts.insert(s);
-        }
+        // if we didn't just add the monot_info, it should have been there already from the _assumeMonotonic branch
+        ASS(!monotonic || _monotonic_vampire_sorts.findPtr(s))
         if(_print){
           if(monotonic && !_assumeMonotonic){
             cout << "Input sort " << env.signature->typeConName(s) << " is monotonic" << endl;
@@ -831,7 +833,7 @@ unsigned SortInference::getDistinctSort(unsigned subsort, unsigned realVampireSo
   //cout << "CREATE " << subsort << "," << env.sorts->sortName(realVampireSort) << endl;
   ASS(createNew);
 
-  if(_monotonicVampireSorts.contains(vampireSort)){
+  if(_monotonic_vampire_sorts.findPtr(vampireSort)){
     if(_collapsingMonotonicSorts){
       _collapsed++;
       if(firstMonotonicSortSeen){

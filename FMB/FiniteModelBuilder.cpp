@@ -601,7 +601,7 @@ void FiniteModelBuilder::init()
   {
     TIME_TRACE("fmb sort inference");
     //ClauseList* both = ClauseList::concat(_clauses,_groundClauses);
-    SortInference inference(_clauses,del_f,del_p,_distinct_sort_constraints);
+    SortInference inference(_clauses,del_f,del_p,_distinct_sort_constraints,_monotonic_vampire_sorts);
     inference.doInference();
     _sortedSignature = inference.getSignature();
     ASS(_sortedSignature);
