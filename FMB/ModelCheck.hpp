@@ -117,14 +117,15 @@ static void doCheck(UnitList* units)
 
     // number the domain constants
     Set<Term*>::Iterator dit(curDomainConstants);
-    unsigned count=1;
+    static DArray<unsigned> cval(1);
+    cval[0]=1;
     while(dit.hasNext()){
       Term* con = dit.next();
       std::cout << "    " << con->toString() << std::endl;
       domainConstants.insert(con);
-      domainConstantNumber.insert(con,count);
-      model.addConstantDefinition(con->functor(),count);
-      count++;
+      domainConstantNumber.insert(con,cval[0]);
+      model.addFunctionDefinition(con->functor(),cval);
+      cval[0]++;
     }
   }
 
@@ -153,7 +154,7 @@ static void doCheck(UnitList* units)
         addDefinition(model,formula->literal(),false,domainConstants,domainConstantNumber);
       }
       else{
-        if(formula->connective()!=Connective::AND) 
+        if(formula->connective()!=Connective::AND)
           USER_ERROR("Expecting conjunction of definitions in model:\n"+formula->toString());
         FormulaList* defs = formula->args();
         FormulaList::Iterator fit(defs);
@@ -190,27 +191,27 @@ private:
 
 static void checkIsDomainLiteral(Literal* l, int& single_var, Set<Term*>& domainConstants)
 {
-            if(!l->isEquality()) USER_ERROR("finite_domain is not a domain axiom");
+  if(!l->isEquality()) USER_ERROR("finite_domain is not a domain axiom");
 
-            // put var in left and constant in right
-            TermList* left = l->nthArgument(0);
-            TermList* right = l->nthArgument(1);
-            if(right->isVar()){
-              TermList* temp = left;left=right;right=temp;
-            }
-            if(right->isVar()) USER_ERROR("finite_domain is not a domain axiom");
+  // put var in left and constant in right
+  TermList* left = l->nthArgument(0);
+  TermList* right = l->nthArgument(1);
+  if(right->isVar()){
+    TermList* temp = left;left=right;right=temp;
+  }
+  if(right->isVar()) USER_ERROR("finite_domain is not a domain axiom");
 
-            // store and check the single variable used
-            if(single_var<0) single_var=left->var();
-            if(left->var()!=(unsigned)single_var) USER_ERROR("finite_domain is not a domain axiom");
+  // store and check the single variable used
+  if(single_var<0) single_var=left->var();
+  if(left->var()!=(unsigned)single_var) USER_ERROR("finite_domain is not a domain axiom");
 
-            // store and check the ground constant used
-            Term* constant = right->term();
-            unsigned f = constant->functor();
-            if(env.signature->functionArity(f)!=0) USER_ERROR("finite_domain is not a domain axiom");
-            if(domainConstants.contains(constant)) USER_ERROR("finite_domain is not a domain axiom");
+  // store and check the ground constant used
+  Term* constant = right->term();
+  unsigned f = constant->functor();
+  if(env.signature->functionArity(f)!=0) USER_ERROR("finite_domain is not a domain axiom");
+  if(domainConstants.contains(constant)) USER_ERROR("finite_domain is not a domain axiom");
 
-            domainConstants.insert(constant);
+  domainConstants.insert(constant);
 }
 
 static void addDefinition(FiniteModelMultiSorted& model,Literal* lit,bool negated,
@@ -218,50 +219,48 @@ static void addDefinition(FiniteModelMultiSorted& model,Literal* lit,bool negate
                           DHMap<Term*,unsigned>& domainConstantNumber)
 {
   if(lit->isEquality()){
-          if(!lit->polarity() || negated) USER_ERROR("Cannot have negated function definition");
-          // Defining a function or constant
-          TermList* left = lit->nthArgument(0);
-          TermList* right = lit->nthArgument(1);
-          if(domainConstants.contains(left->term())){
-            TermList* temp = left; left=right;right=temp;
-          }
+    if(!lit->polarity() || negated) USER_ERROR("Cannot have negated function definition");
+    // Defining a function or constant
+    TermList* left = lit->nthArgument(0);
+    TermList* right = lit->nthArgument(1);
+    if(domainConstants.contains(left->term())){
+      TermList* temp = left; left=right;right=temp;
+    }
 
-          if(domainConstants.contains(left->term()))
-            USER_ERROR("Cannot have equality between domain elements:\n"+lit->toString());
-          unsigned res = domainConstantNumber.get(right->term());
-          if(left->isVar()) USER_ERROR("Expect term on left of definition");
-          Term* fun = left->term();
-          unsigned f = fun->functor();
-          unsigned arity = env.signature->functionArity(f);
-          if(arity==0) model.addConstantDefinition(f,res);
-          else{
-            DArray<unsigned> args(arity);
-            for(unsigned i=0;i<arity;i++){
-              TermList* arg = fun->nthArgument(i);
-              if(arg->isVar() || !domainConstants.contains(arg->term()))
-                USER_ERROR("Expect term on left of definition to be grounded with domain constants");
-              args[i] = domainConstantNumber.get(arg->term());
-            }
-            model.addFunctionDefinition(f,args,res);
-          }
-        }else{
-          // not sure this makes sense but...
-          if(!lit->polarity()) negated=!negated;
-          // Defining a predicate or proposition
-          unsigned p = lit->functor();
-          unsigned arity = env.signature->predicateArity(p);
-          if(arity==0) model.addPropositionalDefinition(p,!negated);
-          else{
-            DArray<unsigned> args(arity);
-            for(unsigned i=0;i<arity;i++){
-              TermList* arg = lit->nthArgument(i);
-              if(arg->isVar() || !domainConstants.contains(arg->term()))
-                USER_ERROR("Expect term on left of definition to be grounded with domain constants");
-              args[i] = domainConstantNumber.get(arg->term());
-            }
-            model.addPredicateDefinition(p,args,!negated);
-          }
-        }
+    if(domainConstants.contains(left->term()))
+      USER_ERROR("Cannot have equality between domain elements:\n"+lit->toString());
+    unsigned res = domainConstantNumber.get(right->term());
+    if(left->isVar()) USER_ERROR("Expect term on left of definition");
+    Term* fun = left->term();
+    unsigned f = fun->functor();
+    unsigned arity = env.signature->functionArity(f);
+    DArray<unsigned> args_and_val(arity+1);
+    for(unsigned i=0;i<arity;i++){
+      TermList* arg = fun->nthArgument(i);
+      if(arg->isVar() || !domainConstants.contains(arg->term()))
+        USER_ERROR("Expect term on left of definition to be grounded with domain constants");
+      args_and_val[i] = domainConstantNumber.get(arg->term());
+    }
+    args_and_val[arity] = res;
+    model.addFunctionDefinition(f,args_and_val);
+  }else{
+    // not sure this makes sense but...
+    if(!lit->polarity()) negated=!negated;
+    // Defining a predicate or proposition
+    unsigned p = lit->functor();
+    unsigned arity = env.signature->predicateArity(p);
+    if(arity==0) model.addPropositionalDefinition(p,!negated);
+    else{
+      DArray<unsigned> args(arity);
+      for(unsigned i=0;i<arity;i++){
+        TermList* arg = lit->nthArgument(i);
+        if(arg->isVar() || !domainConstants.contains(arg->term()))
+          USER_ERROR("Expect term on left of definition to be grounded with domain constants");
+        args[i] = domainConstantNumber.get(arg->term());
+      }
+      model.addPredicateDefinition(p,args,!negated);
+    }
+  }
 }
 
 };

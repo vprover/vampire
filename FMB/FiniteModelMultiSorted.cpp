@@ -45,11 +45,9 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
-FiniteModelMultiSorted::FiniteModelMultiSorted(DHMap<unsigned,unsigned> sizes) :
-   _sizes(sizes), _isPartial(false)
+FiniteModelMultiSorted::FiniteModelMultiSorted(const DHMap<unsigned,unsigned>& sizes) :
+   _sizes(sizes)
 {
-  (void)_isPartial; // to suppress unused warning
-
   f_offsets.ensure(env.signature->functions());
   p_offsets.ensure(env.signature->predicates());
 
@@ -105,17 +103,14 @@ FiniteModelMultiSorted::FiniteModelMultiSorted(DHMap<unsigned,unsigned> sizes) :
   }
 }
 
-void FiniteModelMultiSorted::addConstantDefinition(unsigned f, unsigned res)
+void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsigned>& args_and_res)
 {
-  static const DArray<unsigned> empty(0);
-  addFunctionDefinition(f,empty,res);
-}
+  ASS_EQ(env.signature->functionArity(f)+1,args_and_res.size());
 
-void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsigned>& args, unsigned res)
-{
-  ASS_LE(env.signature->functionArity(f),args.size());
+  unsigned arity = args_and_res.size()-1;
+  unsigned res = args_and_res[arity];
 
-  if(env.signature->functionArity(f)==0 && !env.signature->getFunction(f)->introduced()){
+  if(arity==0 && !env.signature->getFunction(f)->introduced()){
     TermList srt = env.signature->getFunction(f)->fnType()->result();
     unsigned srtU = srt.term()->functor();
     if(sortRepr[srtU][res] == -1){
@@ -128,22 +123,14 @@ void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsi
   unsigned var = f_offsets[f];
   unsigned mult = 1;
   OperatorType* sig = env.signature->getFunction(f)->fnType();
-  for(unsigned i=0;i<args.size();i++){
-    var += mult*(args[i]-1);
+  for(unsigned i=0;i<arity;i++){
+    var += mult*(args_and_res[i]-1);
     unsigned s = sig->arg(i).term()->functor();
     mult *= _sizes.get(s);
   }
 
-  //TODO should be a zero array, should check if previously assigned
-  //     check consistency and only update coverage if not defined already
-
   ASS_L(var, f_interpretation.size());
   f_interpretation[var] = res;
-
-  unsigned previous = 0;
-  _functionCoverage.find(f,previous);
-  _functionCoverage.insert(f,previous+1);
-
 }
 
 void FiniteModelMultiSorted::addPropositionalDefinition(unsigned p, bool res)
@@ -169,16 +156,6 @@ void FiniteModelMultiSorted::addPredicateDefinition(unsigned p, const DArray<uns
 
   ASS_L(var, p_interpretation.size());
   p_interpretation[var] = (res ? 2 : 1);
-
-  unsigned previous = 0;
-  _predicateCoverage.find(p,previous);
-  _predicateCoverage.insert(p,previous+1);
-}
-
-bool FiniteModelMultiSorted::isPartial()
-{
-  //TODO
-  return true;
 }
 
 std::string FiniteModelMultiSorted::toString()
@@ -190,7 +167,7 @@ std::string FiniteModelMultiSorted::toString()
   static DArray<DArray<std::string>> cnames;
   cnames.ensure(env.signature->typeCons());
 
-  //Output sorts and their sizes 
+  //Output sorts and their sizes
   for(unsigned s=0;s<env.signature->typeCons();s++){
     unsigned size = _sizes.get(s);
     if(size==0) continue;
@@ -336,12 +313,12 @@ fModelLabel:
           for(unsigned j=0;j<arity;j++){
             if(j!=0) modelStm << ",";
             TermList argSortT = sig->arg(j);
-            unsigned argSort = argSortT.term()->functor(); 
+            unsigned argSort = argSortT.term()->functor();
             modelStm << cnames[argSort][args[j]];
           }
           if(res>0){
             TermList resultSortT = sig->result();
-            unsigned resultSort = resultSortT.term()->functor();    
+            unsigned resultSort = resultSortT.term()->functor();
             modelStm << ") = " << cnames[resultSort][res] << endl;
           }
           else{

@@ -1910,36 +1910,13 @@ void FiniteModelBuilder::onModelFound()
 
   FiniteModelMultiSorted model(vampireSortSizes);
 
-  //Record interpretation of constants
+  //Record interpretation of constants and functions
   for(unsigned f=0;f<env.signature->functions();f++){
-    if(env.signature->functionArity(f)>0) continue;
-    if(del_f[f]) continue;
-
-    DEBUG_CODE(bool found=false;)
-    unsigned retSrt = _sortedSignature->functionSignatures[f][0];
-    unsigned maxRtSrtSize = min(_sortedSignature->sortBounds[retSrt],_sortModelSizes[retSrt]);
-    for(unsigned c=1;c<=maxRtSrtSize;c++){
-      static DArray<unsigned> grounding(1);
-      grounding[0]=c;
-      SATLiteral slit = getSATLiteral(f,grounding,true,true);
-      if(_solver->trueInAssignment(slit)){
-        //if(found){ cout << "Error: multiple interpretations of " << name << endl;}
-        ASS(!found);
-        DEBUG_CODE(found=true;)
-        model.addConstantDefinition(f,c);
-      }
-    }
-    ASS(found);
-  }
-
-  //Record interpretation of functions
-  for(unsigned f=0;f<env.signature->functions();f++){
-    unsigned arity = env.signature->functionArity(f);
-    if(arity==0) continue;
     if(del_f[f]) continue;
 
     //cout << "For " << env.signature->getFunction(f)->name() << endl;
 
+    unsigned arity = env.signature->functionArity(f);
     static DArray<unsigned> grounding;
     grounding.ensure(arity+1); // leave the last uninitialized until later in the loop
     for(unsigned i=0;i<arity;i++){
@@ -1973,7 +1950,7 @@ fModelLabel:
           if(_solver->trueInAssignment(slit)){
             ASS(!found);
             found=true;
-            model.addFunctionDefinition(f,grounding,c);
+            model.addFunctionDefinition(f,grounding);
             RELEASE_CODE(break);
           }
         }
