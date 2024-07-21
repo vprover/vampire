@@ -1915,47 +1915,73 @@ void FiniteModelBuilder::onModelFound()
     if(del_f[f]) continue;
 
     //cout << "For " << env.signature->getFunction(f)->name() << endl;
-
     unsigned arity = env.signature->functionArity(f);
-    static DArray<unsigned> grounding;
-    grounding.ensure(arity+1); // leave the last uninitialized until later in the loop
-    for(unsigned i=0;i<arity;i++){
-       grounding[i]=1;
+
+    // bounding box for enumerating the arguments
+    static DArray<unsigned> maxVarSizeBig;
+    maxVarSizeBig.ensure(arity);
+
+    OperatorType* tp = env.signature->getFunction(f)->fnType();
+    ASS_EQ(tp->numTypeArguments(),0) // no polymorphic business in FMB
+    for(unsigned var=0;var<arity;var++){
+      unsigned vamp_srt = tp->arg(var).term()->functor();
+      maxVarSizeBig[var] = vampireSortSizes.get(vamp_srt);
     }
-    grounding[arity-1]=0;
+
+    // the actual representation of the enumeration
+    static DArray<unsigned> args;
+    args.ensure(arity);
+    // start with all 1s
+    for(unsigned i=0;i<arity;i++){
+       args[i]=1;
+    }
+
+    // bounding box for querying the solver
+    static DArray<unsigned> maxVarSizeSml;
+    maxVarSizeSml.ensure(arity+1); // +1 for the result bit
 
     const DArray<unsigned>& f_signature = _sortedSignature->functionSignatures[f];
-    static DArray<unsigned> maxVarSize;
-    maxVarSize.ensure(arity);
-    for(unsigned var=0;var<arity;var++){
+    for(unsigned var=0;var<=arity;var++){
       unsigned srt = f_signature[var];
-      maxVarSize[var] = min(_sortedSignature->sortBounds[srt],_sortModelSizes[srt]);
+      maxVarSizeSml[var] = min(_sortedSignature->sortBounds[srt],_sortModelSizes[srt]);
     }
-    unsigned retSrt = f_signature[arity];
-    unsigned maxRtSrtSize = min(_sortedSignature->sortBounds[retSrt],_sortModelSizes[retSrt]);
 
-fModelLabel:
-    for(unsigned var=arity-1;var+1!=0;var--){
+    // the actual representation of the query
+    static DArray<unsigned> grounding;
+    grounding.ensure(arity+1);
 
-      if(grounding[var] == maxVarSize[var]){
-        grounding[var]=1;
-      }
-      else{
-        grounding[var]++;
-
-        bool found=false;
-        for(unsigned c=1;c<=maxRtSrtSize;c++){
-          grounding[arity]=c;
-          SATLiteral slit = getSATLiteral(f,grounding,true,true);
-          if(_solver->trueInAssignment(slit)){
-            ASS(!found);
-            found=true;
-            model.addFunctionDefinition(f,grounding);
-            RELEASE_CODE(break);
-          }
+    for(;;) {
+      bool found=false;
+      for(unsigned c=1;c<=maxVarSizeSml[arity];c++){
+        // create a bounded copy of the changing args in grounding
+        // (while args live within the maxVarSizeBig box,
+        // grounding must only live in the maxVarSizeSml box,
+        // for which the sat solver computed values)
+        for(unsigned i=0;i<arity;i++) {
+          // for functions, we always copy the value from the smallest e, when out of the small bounds
+          grounding[i] = (args[i] <= maxVarSizeSml[i]) ? args[i] : 1;
         }
-        ASS(found)
-        goto fModelLabel;
+        grounding[arity]=c;
+        SATLiteral slit = getSATLiteral(f,grounding,true,true);
+        if(_solver->trueInAssignment(slit)){
+          ASS(!found);
+          found=true;
+          model.addFunctionDefinition(f,args,c);
+          RELEASE_CODE(break);
+        }
+      }
+      ASS(found)
+
+      unsigned i;
+      for(i=0;i<arity;i++) {
+        args[i]++;
+        if(args[i] <= maxVarSizeBig[i]){
+          break;
+        }
+        args[i]=1;
+      }
+      if (i == arity) {
+        break;
       }
     }
   }

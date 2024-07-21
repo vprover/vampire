@@ -117,15 +117,14 @@ static void doCheck(UnitList* units)
 
     // number the domain constants
     Set<Term*>::Iterator dit(curDomainConstants);
-    static DArray<unsigned> cval(1);
-    cval[0]=1;
+    unsigned count=1;
     while(dit.hasNext()){
       Term* con = dit.next();
       std::cout << "    " << con->toString() << std::endl;
       domainConstants.insert(con);
-      domainConstantNumber.insert(con,cval[0]);
-      model.addFunctionDefinition(con->functor(),cval);
-      cval[0]++;
+      domainConstantNumber.insert(con,count);
+      model.addFunctionDefinition(con->functor(),DArray<unsigned>(0),count);
+      count++;
     }
   }
 
@@ -234,15 +233,14 @@ static void addDefinition(FiniteModelMultiSorted& model,Literal* lit,bool negate
     Term* fun = left->term();
     unsigned f = fun->functor();
     unsigned arity = env.signature->functionArity(f);
-    DArray<unsigned> args_and_val(arity+1);
+    DArray<unsigned> args(arity);
     for(unsigned i=0;i<arity;i++){
       TermList* arg = fun->nthArgument(i);
       if(arg->isVar() || !domainConstants.contains(arg->term()))
         USER_ERROR("Expect term on left of definition to be grounded with domain constants");
-      args_and_val[i] = domainConstantNumber.get(arg->term());
+      args[i] = domainConstantNumber.get(arg->term());
     }
-    args_and_val[arity] = res;
-    model.addFunctionDefinition(f,args_and_val);
+    model.addFunctionDefinition(f,args,res);
   }else{
     // not sure this makes sense but...
     if(!lit->polarity()) negated=!negated;

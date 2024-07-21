@@ -103,12 +103,11 @@ FiniteModelMultiSorted::FiniteModelMultiSorted(const DHMap<unsigned,unsigned>& s
   }
 }
 
-void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsigned>& args_and_res)
+void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsigned>& args, unsigned res)
 {
-  ASS_EQ(env.signature->functionArity(f)+1,args_and_res.size());
+  ASS_EQ(env.signature->functionArity(f),args.size());
 
-  unsigned arity = args_and_res.size()-1;
-  unsigned res = args_and_res[arity];
+  unsigned arity = args.size();
 
   if(arity==0 && !env.signature->getFunction(f)->introduced()){
     TermList srt = env.signature->getFunction(f)->fnType()->result();
@@ -124,7 +123,7 @@ void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsi
   unsigned mult = 1;
   OperatorType* sig = env.signature->getFunction(f)->fnType();
   for(unsigned i=0;i<arity;i++){
-    var += mult*(args_and_res[i]-1);
+    var += mult*(args[i]-1);
     unsigned s = sig->arg(i).term()->functor();
     mult *= _sizes.get(s);
   }
@@ -143,7 +142,7 @@ void FiniteModelMultiSorted::addPredicateDefinition(unsigned p, const DArray<uns
 {
   ASS_EQ(env.signature->predicateArity(p),args.size());
 
-  cout << "addPredicateDefinition for " << p << "(" << env.signature->predicateName(p) << ")" << endl;
+  //cout << "addPredicateDefinition for " << p << "(" << env.signature->predicateName(p) << ")" << endl;
 
   unsigned var = p_offsets[p];
   unsigned mult = 1;

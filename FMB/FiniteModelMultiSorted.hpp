@@ -44,7 +44,7 @@ public:
 
   // Assume def is an equality literal with a
   // function application on lhs and constant on rhs
-  void addFunctionDefinition(unsigned f, const DArray<unsigned>& args_and_res);
+  void addFunctionDefinition(unsigned f, const DArray<unsigned>& args, unsigned res);
   // Assume def is non-equality ground literal
   void addPropositionalDefinition(unsigned f, bool res);
   void addPredicateDefinition(unsigned f, const DArray<unsigned>& args, bool res);
