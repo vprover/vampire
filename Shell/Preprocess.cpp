@@ -22,7 +22,7 @@
 #include "Kernel/Problem.hpp"
 
 #include "GoalGuessing.hpp"
-#include "AnswerExtractor.hpp"
+#include "AnswerLiteralManager.hpp"
 #include "CNF.hpp"
 #include "NewCNF.hpp"
 #include "DistinctGroupExpansion.hpp"
@@ -86,6 +86,14 @@ void Preprocess::preprocess(Problem& prb)
       Unit* u = uit.next();
       std::cout << "[PP] input: " << u->toString() << std::endl;
     }
+  }
+
+  if (_options.questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
+    env.statistics->phase=Statistics::ANSWER_LITERAL;
+    if (env.options->showPreprocessing())
+      std::cout << "answer literal addition" << std::endl;
+
+    AnswerLiteralManager::getInstance()->addAnswerLiterals(prb);
   }
 
   //we ensure that in the beginning we have a valid property object, to
@@ -207,20 +215,6 @@ void Preprocess::preprocess(Problem& prb)
     SineSelector(_options).perform(prb);
   }
 
-  if (_options.questionAnswering()==Options::QuestionAnsweringMode::ANSWER_LITERAL) {
-    env.statistics->phase=Statistics::ANSWER_LITERAL;
-    if (env.options->showPreprocessing())
-      std::cout << "answer literal addition" << std::endl;
-
-    AnswerLiteralManager::getInstance()->addAnswerLiterals(prb);
-  } else if (_options.questionAnswering()==Options::QuestionAnsweringMode::SYNTHESIS) {
-    env.statistics->phase=Statistics::ANSWER_LITERAL;
-    if (env.options->showPreprocessing())
-      std::cout << "answer literal addition for synthesis" << std::endl;
-
-    SynthesisManager::getInstance()->addAnswerLiterals(prb);
-  }
-
   // stop here if clausification is not required and still simplify not set
   if (!_clausify && !_stillSimplify) {
     return;
@@ -280,7 +274,7 @@ void Preprocess::preprocess(Problem& prb)
     Shuffling::shuffle(prb);
   }
 
-  if (prb.mayHaveFormulas() && _options.newCNF() && 
+  if (prb.mayHaveFormulas() && _options.newCNF() &&
      !prb.hasPolymorphicSym() && !prb.isHigherOrder()) {
     if (env.options->showPreprocessing())
       std::cout << "newCnf" << std::endl;
@@ -649,7 +643,7 @@ void Preprocess::newCnf(Problem& prb)
     prb.invalidateProperty();
   }
   prb.reportFormulasEliminated();
-} 
+}
 
 /**
  * Preprocess the unit using options from opt. Preprocessing may

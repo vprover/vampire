@@ -15,6 +15,7 @@
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/Ordering.hpp"
 
 #include "Shell/Options.hpp"
 
@@ -33,6 +34,10 @@ DemodulationHelper::DemodulationHelper(const Options& opts, const Ordering* ord)
 
 bool DemodulationHelper::redundancyCheckNeededForPremise(Clause* rwCl, Literal* rwLit, TermList rwTerm) const
 {
+  if (!_redundancyCheck) {
+    return false;
+  }
+
   if (!rwLit->isEquality() || (rwTerm!=*rwLit->nthArgument(0) && rwTerm!=*rwLit->nthArgument(1))) {
     return false;
   }

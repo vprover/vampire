@@ -42,7 +42,7 @@ public:
   {}
 
   void destroy();
-  vstring toString() const;
+  std::string toString() const;
 
   unsigned varCnt();
 

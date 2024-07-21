@@ -183,15 +183,12 @@ set(VAMPIRE_LIB_SOURCES
     Lib/SmartPtr.hpp
     Lib/Sort.hpp
     Lib/Stack.hpp
-    Lib/STLAllocator.hpp
     Lib/StringUtils.hpp
     Lib/System.hpp
     Lib/Timer.hpp
     Lib/TriangularArray.hpp
     Lib/Vector.hpp
     Lib/VirtualIterator.hpp
-    Lib/VString.hpp
-    Lib/STL.hpp
     )
 source_group(lib_source_files FILES ${VAMPIRE_LIB_SOURCES})
 
@@ -383,7 +380,7 @@ source_group(indexing_source_files FILES ${VAMPIRE_INDEXING_SOURCES})
 set(VAMPIRE_INFERENCE_SOURCES
     Inferences/BackwardDemodulation.cpp
     Inferences/BackwardSubsumptionDemodulation.cpp
-    Inferences/BackwardSubsumptionResolution.cpp
+    Inferences/BackwardSubsumptionAndResolution.cpp
     Inferences/BinaryResolution.cpp
     Inferences/Condensation.cpp
     Inferences/DemodulationHelper.cpp
@@ -407,7 +404,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/InferenceEngine.cpp
     Inferences/Instantiation.cpp
     Inferences/InterpretedEvaluation.cpp
-    Inferences/InvalidAnswerLiteralRemoval.cpp
+    Inferences/InvalidAnswerLiteralRemovals.cpp
     Inferences/PushUnaryMinus.cpp
     Inferences/Cancellation.cpp
     Inferences/ArithmeticSubtermGeneralization.cpp
@@ -415,14 +412,13 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/GaussianVariableElimination.cpp
     Kernel/Rebalancing.cpp
     Kernel/Rebalancing/Inverters.cpp
-    Inferences/SLQueryBackwardSubsumption.cpp
     Inferences/Superposition.cpp
     Inferences/TautologyDeletionISE.cpp
     Inferences/TermAlgebraReasoning.cpp
     Inferences/URResolution.cpp
     Inferences/DefinitionIntroduction.cpp
     Inferences/BackwardDemodulation.hpp
-    Inferences/BackwardSubsumptionResolution.hpp
+    Inferences/BackwardSubsumptionAndResolution.hpp
     Inferences/BinaryResolution.hpp
     Inferences/Condensation.hpp
     Inferences/DemodulationHelper.hpp
@@ -444,7 +440,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/InferenceEngine.hpp
     Inferences/Instantiation.hpp
     Inferences/InterpretedEvaluation.hpp
-    Inferences/InvalidAnswerLiteralRemoval.hpp
+    Inferences/InvalidAnswerLiteralRemovals.hpp
     Inferences/PushUnaryMinus.hpp
     Inferences/Cancellation.hpp
     Inferences/ArithmeticSubtermGeneralization.hpp
@@ -452,7 +448,6 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/GaussianVariableElimination.hpp
     Kernel/Rebalancing.hpp
     Kernel/Rebalancing/Inverters.hpp
-    Inferences/SLQueryBackwardSubsumption.hpp
     Inferences/SubsumptionDemodulationHelper.cpp
     Inferences/Superposition.hpp
     Inferences/TautologyDeletionISE.hpp
@@ -533,7 +528,7 @@ set(VAMPIRE_SATURATION_SOURCES
 source_group(saturation_source_files FILES ${VAMPIRE_SATURATION_SOURCES})
 
 set(VAMPIRE_SHELL_SOURCES
-    Shell/AnswerExtractor.cpp
+    Shell/AnswerLiteralManager.cpp
     Shell/CommandLine.cpp
     Shell/CNF.cpp
     Shell/NewCNF.cpp
@@ -588,7 +583,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/VarManager.cpp
     Shell/Lexer.cpp
     Shell/Preprocess.cpp
-    Shell/AnswerExtractor.hpp
+    Shell/AnswerLiteralManager.hpp
     Shell/CommandLine.hpp
     Shell/CNF.hpp
     Shell/NewCNF.hpp
@@ -687,6 +682,27 @@ set(VAMPIRE_CASC_SOURCES
     )
 source_group(casc_source_files FILES ${VAMPIRE_CASC_SOURCES})
 
+set(VAMPIRE_SAT_SUBSUMPTION_SOURCES
+    SATSubsumption/SATSubsumptionAndResolution.cpp
+    SATSubsumption/SATSubsumptionAndResolution.hpp
+
+    SATSubsumption/subsat/constraint.cpp
+    SATSubsumption/subsat/constraint.hpp
+    SATSubsumption/subsat/decision_queue.hpp
+    SATSubsumption/subsat/default_init_allocator.hpp
+    SATSubsumption/subsat/log.cpp
+    SATSubsumption/subsat/log.hpp
+    SATSubsumption/subsat/subsat.cpp
+    SATSubsumption/subsat/subsat.hpp
+    SATSubsumption/subsat/subsat_config.hpp
+    SATSubsumption/subsat/SubstitutionTheory.hpp
+    SATSubsumption/subsat/types.cpp
+    SATSubsumption/subsat/types.hpp
+    SATSubsumption/subsat/variable_domain_size.hpp
+    SATSubsumption/subsat/vector_map.hpp
+    )
+source_group(smt_subsumption_source_files FILES ${VAMPIRE_SAT_SUBSUMPTION_SOURCES})
+
 set(VAMPIRE_TESTING_SOURCES
     Test/UnitTesting.cpp
     Test/UnitTesting.hpp
@@ -731,6 +747,7 @@ set(UNIT_TESTS
     UnitTests/tOption.cpp
     UnitTests/tStack.cpp
     UnitTests/tSet.cpp
+    UnitTests/tSATSubsumptionResolution.cpp
     UnitTests/tDeque.cpp
     UnitTests/tTermAlgebra.cpp
     UnitTests/tFunctionDefinitionHandler.cpp
@@ -743,7 +760,6 @@ set(UNIT_TESTS_Z3
     UnitTests/tZ3Interfacing.cpp
     )
 source_group(unit_tests_z3 FILES ${UNIT_TESTS_Z3})
-
 
 
 # also include forwards.hpp?
@@ -763,6 +779,7 @@ set(VAMPIRE_SOURCES
     ${VAMPIRE_SMTCOMP_SOURCES}
     ${VAMPIRE_MINISAT_SOURCES}
     ${VAMPIRE_CASC_SOURCES}
+    ${VAMPIRE_SAT_SUBSUMPTION_SOURCES}
     Forwards.hpp
     "${CMAKE_CURRENT_BINARY_DIR}/version.cpp"
     )
@@ -804,7 +821,7 @@ endif()
 ################################################################
 
 # find Z3 automatically!
-# normally this is just in /z3/build/, but this can be overridden
+# normally this is just in /z3/build/, but this can be overridden using -DZ3_DIR
 find_package(
   Z3
   CONFIG
@@ -851,6 +868,7 @@ else ()
   set(VAMPIRE_BINARY_Z3 _z3)
   set(UNIT_TESTS ${UNIT_TESTS} ${UNIT_TESTS_Z3})
 endif()
+
 
 ################################################################
 # build objects
@@ -1004,3 +1022,18 @@ if(BUILD_SHARED_LIBS)
     set_property(TARGET vtest PROPERTY POSITION_INDEPENDENT_CODE false)
   endif()
 endif()
+
+
+################################################################
+# subsat (standalone version of the SAT solver used for subsumption and subsumption resolution)
+################################################################
+
+add_executable(subsat
+    EXCLUDE_FROM_ALL  # only build when explicitly requested
+    SATSubsumption/subsat/subsat_main.cpp
+    $<TARGET_OBJECTS:obj>
+)
+
+set_target_properties(subsat PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)

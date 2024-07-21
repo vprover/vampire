@@ -302,7 +302,7 @@ public:
      */
     CodeOp landingOp;
     Kind kind;
-    vvector<CodeOp*> targets;
+    std::vector<CodeOp*> targets;
 
   protected:
     SearchStruct(Kind kind, size_t length);
@@ -324,7 +324,7 @@ public:
      */
     template<bool doInsert> CodeOp*& targetOp(const T& val);
 
-    vvector<T> values;
+    std::vector<T> values;
   };
 
   using FnSearchStruct = SearchStructImpl<SearchStruct::FN_STRUCT>;

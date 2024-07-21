@@ -101,6 +101,8 @@ struct AppliedTerm
     }
     return false;
   }
+
+  TermList apply() const;
 };
 
 class SubstHelper
@@ -655,5 +657,10 @@ FormulaList* SubstHelper::applyImpl(FormulaList* fs, Applicator& applicator, boo
 } // SubstHelper::applyImpl
 
 };
+
+inline TermList AppliedTerm::apply() const {
+  return aboveVar ? SubstHelper::apply(term, *applicator) 
+                  : term;
+}
 
 #endif /* __SubstHelper__ */

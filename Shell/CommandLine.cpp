@@ -16,10 +16,10 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <chrono>
 
 #include "Debug/Assertion.hpp"
 
-#include "Lib/VString.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
 #include "SAT/Z3Interfacing.hpp"
@@ -28,9 +28,28 @@
 #include "Options.hpp"
 #include "Statistics.hpp"
 
+#include "SATSubsumption/SATSubsumptionAndResolution.hpp"
+
 namespace Shell {
 
-using namespace std;
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
+#define PRINT_VAR(out, VARNAME)                    \
+  do {                                             \
+    (out) << "\% " #VARNAME "=" STR(VARNAME) "\n"; \
+  } while (false)
+
+std::ostream& printVersion(std::ostream& out)
+{
+  out << VERSION_STRING << "\n";
+#if VZ3
+  std::cout << "Linked with Z3 " << Z3Interfacing::z3_full_version() << "\n";
+#endif
+  PRINT_VAR(out, VDEBUG);
+  subsat::print_config(out << "\% ");
+  return out;
+}
 
 CommandLine::CommandLine (int argc, const char * const argv [])
   : _next(argv+1),
@@ -54,10 +73,7 @@ void CommandLine::interpret (Options& options)
     ASS(_next < _last);
     const char* arg = *_next++;
     if (strcmp(arg, "--version")==0) {
-      cout << VERSION_STRING << endl;
-#if VZ3
-      cout << "Linked with Z3 " << Z3Interfacing::z3_full_version() << endl;
-#endif
+      printVersion(std::cout);
       exit(0);
     }
     // If --help or -h are used without arguments we still print help
@@ -73,7 +89,7 @@ void CommandLine::interpret (Options& options)
     }
     if (arg[0] == '-') {
       if (_next == _last) {
-	      USER_ERROR((vstring)"no value specified for option " + arg);
+	      USER_ERROR((std::string)"no value specified for option " + arg);
       }
       else{
          if (arg[1] == '-') {

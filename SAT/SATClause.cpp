@@ -208,9 +208,9 @@ SATClause* SATClause::fromStack(SATLiteralStack& stack)
 /**
  * Convert the clause to the string representation.
  */
-vstring SATClause::toString() const
+std::string SATClause::toString() const
 {
-  vstring result;
+  std::string result;
   if (_length == 0) {
     result = "#";
   } else {

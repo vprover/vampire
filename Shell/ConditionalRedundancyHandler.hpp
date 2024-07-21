@@ -17,6 +17,7 @@
 
 #include "Forwards.hpp"
 
+#include "Kernel/Ordering.hpp"
 #include "Lib/Stack.hpp"
 #include "Inferences/DemodulationHelper.hpp"
 

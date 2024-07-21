@@ -247,9 +247,9 @@ bool KBOComparator::check(const SubstApplicator* applicator) const
   return false;
 }
 
-vstring KBOComparator::toString() const
+std::string KBOComparator::toString() const
 {
-  vstringstream str;
+  std::stringstream str;
 
   unsigned cnt = 1;
   for (unsigned i = 0; i < _instructions.size();) {

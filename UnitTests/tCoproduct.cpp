@@ -95,8 +95,8 @@ TEST_FUN(examples__match_02) {
   // Further we can create polymorphic function structs if each match branch does the same thing
   auto x = Coproduct<int, float>(1);
 
-  vstring str = x.apply([](auto const& c) {
-    vstringstream out;
+  std::string str = x.apply([](auto const& c) {
+    std::stringstream out;
     out << c;
     return out.str(); 
   });
