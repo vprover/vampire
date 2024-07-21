@@ -356,11 +356,6 @@ void Options::init()
     _lookup.insert(&_ignoreMissingInputsInUnsatCore);
     _ignoreMissingInputsInUnsatCore.tag(OptionTag::OUTPUT);
 
-    _traceback = BoolOptionValue("traceback","",false);
-    _traceback.description="Try decoding backtrace into a sequence of human readable function names using addr2line/atos/etc.";
-    _lookup.insert(&_traceback);
-    _traceback.tag(OptionTag::OUTPUT);
-
     _thanks = StringOptionValue("thanks","","Tanya");
     _thanks.description="";
     _lookup.insert(&_thanks);

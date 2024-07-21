@@ -32,7 +32,7 @@ void reportSpiderFail();
 [[noreturn]] void Assertion::abortAfterViolation()
 {
   Shell::reportSpiderFail();
-  System::terminateImmediately(VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION);
+  std::abort();
 }
 
 /**
@@ -41,30 +41,22 @@ void reportSpiderFail();
  */
 void Assertion::violated(const char* file, int line, const char* cond)
 {
-  if (outputAllowed(true)) {
+  if (outputAllowed(true))
     std::cout << "Condition in file " << file << ", line " << line
          << " violated:\n"
-         << cond << "\n"
-         << "----- stack dump -----\n";
-    Tracer::printStack(std::cout);
-    std::cout << "----- end of stack dump -----" << std::endl;
-  }
+         << cond << "\n";
   abortAfterViolation();
 } // Assertion::violated
 
 void Assertion::violatedStrEquality(const char* file, int line, const char* val1Str,
                                     const char* val2Str, const char* val1, const char* val2)
 {
-  if (outputAllowed(true)) {
+  if (outputAllowed(true))
     std::cout << "Condition for string equality " << val1Str << " == " << val2Str
               << " in file " << file << ", line " << line
               << " was violated, as:\n"
               << val1Str << " == \"" << val1 << "\"\n"
-              << val2Str << " == \"" << val2 << "\"\n"
-              << "----- stack dump -----\n";
-    Tracer::printStack(std::cout);
-    std::cout << "----- end of stack dump -----\n";
-  }
+              << val2Str << " == \"" << val2 << "\"\n";
   abortAfterViolation();
 }
 

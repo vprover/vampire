@@ -26,11 +26,6 @@
 
 namespace Debug {
 
-namespace Tracer {
-  // print the current stack
-  void printStack(std::ostream &out);
-};
-
 template<class... As>
 struct _printDbg {
   void operator()(const As&... msg);

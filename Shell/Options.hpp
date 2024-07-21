@@ -1956,8 +1956,6 @@ public:
   Proof proof() const { return _proof.actualValue; }
   bool minimizeSatProofs() const { return _minimizeSatProofs.actualValue; }
   ProofExtra proofExtra() const { return _proofExtra.actualValue; }
-  bool traceback() const { return _traceback.actualValue; }
-  void setTraceback(bool traceback) { _traceback.actualValue = traceback; }
   std::string printProofToFile() const { return _printProofToFile.actualValue; }
   int naming() const { return _naming.actualValue; }
 
@@ -2581,7 +2579,6 @@ private:
   ChoiceOptionValue<Proof> _proof;
   BoolOptionValue _minimizeSatProofs;
   ChoiceOptionValue<ProofExtra> _proofExtra;
-  BoolOptionValue _traceback;
 
   StringOptionValue _protectedPrefix;
 
