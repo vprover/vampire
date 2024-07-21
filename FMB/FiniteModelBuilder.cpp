@@ -1945,7 +1945,7 @@ void FiniteModelBuilder::onModelFound()
     grounding.ensure(arity+1);
 
     for(;;) {
-      bool found=false;
+      DEBUG_CODE(bool found=false;)
       for(unsigned c=1;c<=maxVarSizeSml[arity];c++){
         // create a bounded copy of the changing args in grounding
         // (while args live within the maxVarSizeBig box,
@@ -1959,9 +1959,9 @@ void FiniteModelBuilder::onModelFound()
         SATLiteral slit = getSATLiteral(f,grounding,true,true);
         if(_solver->trueInAssignment(slit)){
           ASS(!found);
-          found=true;
+          DEBUG_CODE(found=true;)
           model.addFunctionDefinition(f,args,c);
-          RELEASE_CODE(break);
+          RELEASE_CODE(break;)
         }
       }
       ASS(found)
@@ -1980,54 +1980,96 @@ void FiniteModelBuilder::onModelFound()
     }
   }
 
-  //Record interpretation of prop symbols
-  static const DArray<unsigned> emptyG(0);
-  for(unsigned f=1;f<env.signature->predicates();f++){
-    if(env.signature->predicateArity(f)>0) continue;
-    if(del_p[f]) continue;
-
-    bool res;
-    SATLiteral slit = getSATLiteral(f,emptyG,true,false);
-    res=_solver->trueInAssignment(slit);
-    model.addPropositionalDefinition(f,res);
-  }
-
   //Record interpretation of predicates
   for(unsigned p=1;p<env.signature->predicates();p++){
-    unsigned arity = env.signature->predicateArity(p);
-    if(arity==0) continue;
     if(del_p[p]) continue;
 
-    //cout << "Record for " << env.signature->getPredicate(f)->name() << endl;
+    unsigned arity = env.signature->predicateArity(p);
+    //cout << "Record for " << env.signature->getPredicate(p)->name() << "/" << arity << endl;
 
-    static DArray<unsigned> grounding;
-    grounding.ensure(arity);
-    for(unsigned i=0;i<arity-1;i++){grounding[i]=1;}
-    grounding[arity-1]=0;
+    // bounding box for enumerating the arguments
+    static DArray<unsigned> maxVarSizeBig;
+    maxVarSizeBig.ensure(arity);
 
-    const DArray<unsigned>& p_signature = _sortedSignature->predicateSignatures[p];
-    static DArray<unsigned> maxVarSize;
-    maxVarSize.ensure(arity);
+    OperatorType* tp = env.signature->getPredicate(p)->fnType();
+    ASS_EQ(tp->numTypeArguments(),0) // no polymorphic business in FMB
     for(unsigned var=0;var<arity;var++){
-      unsigned srt = p_signature[var];
-      maxVarSize[var] = min(_sortedSignature->sortBounds[srt],_sortModelSizes[srt]);
+      unsigned vamp_srt = tp->arg(var).term()->functor();
+      maxVarSizeBig[var] = vampireSortSizes.get(vamp_srt);
     }
 
-pModelLabel:
-    for(unsigned var=arity-1;var+1!=0;var--){
+    // the actual representation of the enumeration
+    static DArray<unsigned> args;
+    args.ensure(arity);
+    // start with all 1s
+    for(unsigned i=0;i<arity;i++){
+       args[i]=1;
+    }
 
-      if(grounding[var]==maxVarSize[var]){
-        grounding[var]=1;
+    // bounding box for querying the solver
+    static DArray<unsigned> maxVarSizeSml;
+    maxVarSizeSml.ensure(arity);
+
+    const DArray<unsigned>& p_signature = _sortedSignature->predicateSignatures[p];
+    for(unsigned var=0;var<arity;var++){
+      unsigned srt = p_signature[var];
+      maxVarSizeSml[var] = min(_sortedSignature->sortBounds[srt],_sortModelSizes[srt]);
+    }
+
+    // the actual representation of the query
+    static DArray<unsigned> grounding;
+    grounding.ensure(arity);
+
+    static DArray<signed char> sort_extension_modes;
+    sort_extension_modes.ensure(arity);
+    for(unsigned i=0;i<arity;i++) {
+      unsigned vamp_srt = tp->arg(i).term()->functor();
+      DArray<signed char>* monot_info;
+      if (_monotonic_vampire_sorts.find(vamp_srt,monot_info)) {
+        auto mode = (*monot_info)[p];
+        sort_extension_modes[i] = mode;
+      } else {
+        // the simple monotonicity argument (from the Paradox paper already)
+        sort_extension_modes[i] = 0;
       }
-      else{
-        grounding[var]++;
-        bool res;
+    }
+
+    for(;;) {
+      // create a bounded copy of the changing args in grounding
+
+      signed char extension_mode = 0; // start as "copy extended" (meaning overshoots go back to 1)
+      for(unsigned i=0;i<arity;i++) {
+        if (args[i] <= maxVarSizeSml[i]) {
+          grounding[i] = args[i];
+        } else {
+          grounding[i] = 1;
+
+          ASS_EQ(extension_mode,0) // it should be fine to delete this, but Martin would like to know the counter-example to this ASS
+          extension_mode = sort_extension_modes[i];
+        }
+      }
+
+      bool res;
+      if (extension_mode == 1) {
+        res = true;
+      } else if (extension_mode == -1) {
+        res = false;
+      } else {
         SATLiteral slit = getSATLiteral(p,grounding,true,false);
         res=_solver->trueInAssignment(slit);
-        //for(unsigned j=0;j<arity;j++){ cout << grounding[j] << ", ";}; cout << " = " << res << endl;
+      }
+      model.addPredicateDefinition(p,args,res);
 
-        model.addPredicateDefinition(p,grounding,res);
-        goto pModelLabel;
+      unsigned i;
+      for(i=0;i<arity;i++) {
+        args[i]++;
+        if(args[i] <= maxVarSizeBig[i]){
+          break;
+        }
+        args[i]=1;
+      }
+      if (i == arity) {
+        break;
       }
     }
   }

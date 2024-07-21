@@ -247,17 +247,15 @@ static void addDefinition(FiniteModelMultiSorted& model,Literal* lit,bool negate
     // Defining a predicate or proposition
     unsigned p = lit->functor();
     unsigned arity = env.signature->predicateArity(p);
-    if(arity==0) model.addPropositionalDefinition(p,!negated);
-    else{
-      DArray<unsigned> args(arity);
-      for(unsigned i=0;i<arity;i++){
-        TermList* arg = lit->nthArgument(i);
-        if(arg->isVar() || !domainConstants.contains(arg->term()))
-          USER_ERROR("Expect term on left of definition to be grounded with domain constants");
-        args[i] = domainConstantNumber.get(arg->term());
-      }
-      model.addPredicateDefinition(p,args,!negated);
+
+    DArray<unsigned> args(arity);
+    for(unsigned i=0;i<arity;i++){
+      TermList* arg = lit->nthArgument(i);
+      if(arg->isVar() || !domainConstants.contains(arg->term()))
+        USER_ERROR("Expect term on left of definition to be grounded with domain constants");
+      args[i] = domainConstantNumber.get(arg->term());
     }
+    model.addPredicateDefinition(p,args,!negated);
   }
 }
 

@@ -132,12 +132,6 @@ void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsi
   f_interpretation[var] = res;
 }
 
-void FiniteModelMultiSorted::addPropositionalDefinition(unsigned p, bool res)
-{
-  static const DArray<unsigned> empty(0);
-  addPredicateDefinition(p,empty,res);
-}
-
 void FiniteModelMultiSorted::addPredicateDefinition(unsigned p, const DArray<unsigned>& args, bool res)
 {
   ASS_EQ(env.signature->predicateArity(p),args.size());
