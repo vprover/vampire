@@ -1717,21 +1717,22 @@ void Options::init()
     _conditionalRedundancyOrderingConstraints.description=
       "Strengthen conditional redundancy with ordering constraints.";
     _lookup.insert(&_conditionalRedundancyOrderingConstraints);
-    _conditionalRedundancyOrderingConstraints.addHardConstraint(If(equal(true)).then(_conditionalRedundancyCheck.is(equal(true))));
+    _conditionalRedundancyOrderingConstraints.onlyUsefulWith(_conditionalRedundancyCheck.is(equal(true)));
     _conditionalRedundancyOrderingConstraints.tag(OptionTag::INFERENCES);
 
     _conditionalRedundancyAvatarConstraints = BoolOptionValue("conditional_redundancy_avatar_constraints","crac",false);
     _conditionalRedundancyAvatarConstraints.description=
       "Strengthen conditional redundancy with AVATAR constraints.";
     _lookup.insert(&_conditionalRedundancyAvatarConstraints);
-    _conditionalRedundancyAvatarConstraints.addHardConstraint(If(equal(true)).then(_conditionalRedundancyCheck.is(equal(true))));
+    _conditionalRedundancyAvatarConstraints.onlyUsefulWith(_conditionalRedundancyCheck.is(equal(true)));
+    _conditionalRedundancyAvatarConstraints.onlyUsefulWith(_splitting.is(equal(true)));
     _conditionalRedundancyAvatarConstraints.tag(OptionTag::INFERENCES);
 
     _conditionalRedundancyLiteralConstraints = BoolOptionValue("conditional_redundancy_literal_constraints","crlc",false);
     _conditionalRedundancyLiteralConstraints.description=
       "Strengthen conditional redundancy with literals from clauses.";
     _lookup.insert(&_conditionalRedundancyLiteralConstraints);
-    _conditionalRedundancyLiteralConstraints.addHardConstraint(If(equal(true)).then(_conditionalRedundancyCheck.is(equal(true))));
+    _conditionalRedundancyLiteralConstraints.onlyUsefulWith(_conditionalRedundancyCheck.is(equal(true)));
     _conditionalRedundancyLiteralConstraints.tag(OptionTag::INFERENCES);
 
     _unitResultingResolution = ChoiceOptionValue<URResolution>("unit_resulting_resolution","urr",URResolution::OFF,{"ec_only","off","on","full"});

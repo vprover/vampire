@@ -36,11 +36,11 @@ public:
   virtual ~ConditionalRedundancyHandler() = default;
 
   virtual bool checkSuperposition(
-    Clause* eqClause, Clause* rwClause, bool eqIsResult, ResultSubstitution* subs) const = 0;
+    Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit, bool eqIsResult, ResultSubstitution* subs) const = 0;
 
   virtual void insertSuperposition(
     Clause* eqClause, Clause* rwClause, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
-    Literal* rwLitS, Ordering::Result eqComp, bool eqIsResult, ResultSubstitution* subs) const = 0;
+    Literal* rwLitS, Literal* eqLit, Ordering::Result eqComp, bool eqIsResult, ResultSubstitution* subs) const = 0;
 
   virtual bool handleResolution(
     Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, ResultSubstitution* subs) const = 0;
@@ -67,11 +67,11 @@ public:
 
   /** Returns false if superposition should be skipped. */
   bool checkSuperposition(
-    Clause* eqClause, Clause* rwClause, bool eqIsResult, ResultSubstitution* subs) const override;
+    Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit, bool eqIsResult, ResultSubstitution* subs) const override;
 
   void insertSuperposition(
     Clause* eqClause, Clause* rwClause, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
-    Literal* rwLitS, Ordering::Result eqComp, bool eqIsResult, ResultSubstitution* subs) const override;
+    Literal* rwLitS, Literal* eqLit, Ordering::Result eqComp, bool eqIsResult, ResultSubstitution* subs) const override;
 
   /** Returns false if resolution should be skipped. */
   bool handleResolution(

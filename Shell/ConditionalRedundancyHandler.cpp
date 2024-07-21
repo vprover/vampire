@@ -23,11 +23,14 @@
 #include "Indexing/ResultSubstitution.hpp"
 
 #include "Lib/Environment.hpp"
+#include "Lib/SharedSet.hpp"
 
 #include "Statistics.hpp"
 
 using namespace std;
 using namespace Indexing;
+
+using LiteralSet = SharedSet<Literal*>;
 
 namespace Shell
 {
@@ -46,6 +49,9 @@ public:
 #if LOG_LEAVES
     _printLeaf = [](ostream& str, const CodeOp* op) {
       auto ld = op->getSuccessResult<LeafData>();
+      ld->lits->iter().forEach([&str](Literal* lit) {
+        str << " " << *lit;
+      });
       if (ld->comp) {
         str << " " << ld->comp->toString();
       }
@@ -56,34 +62,35 @@ public:
     }
   }
 
-  bool check(const Ordering* ord, ResultSubstitution* subst, bool result)
+  bool check(const Ordering* ord, ResultSubstitution* subst, bool result, const LiteralSet* lits)
   {
     if (_varSorts.isEmpty()) {
       return true;
     }
     auto ts = getInstances([subst,result](unsigned v) { return subst->applyTo(TermList::var(v),result); });
-    return !check(ts, ord);
+    return !check(ts, ord, lits);
   }
 
-  void insert(const Ordering* ord, ResultSubstitution* subst, bool result, Term* lhs=nullptr, Term* rhs=nullptr)
+  void insert(const Ordering* ord, ResultSubstitution* subst, bool result, const LiteralSet* lits, Term* lhs=nullptr, Term* rhs=nullptr)
   {
     auto ts = getInstances([subst,result](unsigned v) { return subst->applyTo(TermList::var(v),result); });
-    auto ld = createEntry(ts, lhs, rhs);
+    auto ld = createEntry(ts, lhs, rhs, lits);
     insert(ts,ld);
   }
 
-  bool checkAndInsert(const Ordering* ord, ResultSubstitution* subst, bool result, bool doInsert=false, Term* lhs=nullptr, Term* rhs=nullptr)
+  bool checkAndInsert(const Ordering* ord, ResultSubstitution* subst, bool result, const LiteralSet* lits, bool doInsert=false, Term* lhs=nullptr, Term* rhs=nullptr)
   {
+    ASS(lits);
     // TODO if this correct if we allow non-unit simplifications?
     if (_varSorts.isEmpty()) {
       return true;
     }
     auto ts = getInstances([subst,result](unsigned v) { return subst->applyTo(TermList(v,false),result); });
-    if (check(ts, ord)) {
+    if (check(ts, ord, lits)) {
       return false;
     }
     if (doInsert) {
-      auto ld = createEntry(ts, lhs, rhs);
+      auto ld = createEntry(ts, lhs, rhs, lits);
       insert(ts,ld);
     }
     return true;
@@ -124,29 +131,39 @@ private:
     incorporate(code);
   }
 
-  bool check(const TermStack& ts, const Ordering* ord)
+  bool check(const TermStack& ts, const Ordering* ord, const LiteralSet* lits)
   {
     if (isEmpty()) {
       return false;
     }
 
     static SubstMatcher matcher;
+    struct Applicator : public SubstApplicator {
+      TermList operator()(unsigned v) const override { return matcher.bindings[v]; }
+    } applicator;
 
     matcher.init(this, ts);
     LeafData* ld;
     while ((ld = matcher.next())) {
-      if (!ld->lhs) {
-        return true;
-      }
-      if (ord) {
-        struct Applicator : public SubstApplicator {
-          TermList operator()(unsigned v) const override { return matcher.bindings[v]; }
-        } applicator;
 
-        if (ord->isGreater(TermList(ld->lhs),TermList(ld->rhs),&applicator,ld->comp)) {
-          return true;
+      // check literal conditions
+      auto subsetof = ld->lits->iter().all([lits,&applicator](Literal* lit) {
+        return lits->member(SubstHelper::apply(lit,applicator));
+      });
+      if (!subsetof) {
+        continue;
+      }
+
+      // check ordering constraints
+      if (ld->lhs) {
+        if (!ord || !ord->isGreater(TermList(ld->lhs),TermList(ld->rhs),&applicator,ld->comp)) {
+          continue;
         }
       }
+      if (!ld->lits->isEmpty()) {
+        env.statistics->inductionApplication++;
+      }
+      return true;
     }
     matcher.reset();
 
@@ -171,27 +188,30 @@ private:
     Term* lhs = nullptr;
     Term* rhs = nullptr;
     OrderingComparatorUP comp;
+    const LiteralSet* lits;
   };
 
-  LeafData* createEntry(const TermStack& ts, Term* lhs, Term* rhs) const
+  LeafData* createEntry(const TermStack& ts, Term* lhs, Term* rhs, const LiteralSet* lits) const
   {
     auto ld = new LeafData();
-    if (lhs) {
-      ASS(rhs);
-      ASS(lhs->containsAllVariablesOf(rhs));
-      Renaming r;
-      // normalize lhs and rhs, the same way as
+    Renaming r;
+    if (lhs || !lits->isEmpty()) {
+      // normalize constraints, the same way as
       // terms from ts are normalized upon insertion
       for (const auto t : ts) {
         r.normalizeVariables(t);
       }
-      ld->lhs = r.apply(lhs);
-      ld->rhs = r.apply(rhs);
-    } else {
-      ASS(!rhs);
-      ld->lhs = nullptr;
-      ld->rhs = nullptr;
     }
+
+    ASS_EQ(!lhs,!rhs);
+    ASS(!lhs || lhs->containsAllVariablesOf(rhs));
+    ld->lhs = lhs ? r.apply(lhs) : nullptr;
+    ld->rhs = lhs ? r.apply(rhs) : nullptr;
+  
+    ld->lits = LiteralSet::getFromIterator(lits->iter().map([&r](Literal* lit) {
+      return r.apply(lit);
+    }));
+  
     return ld;
   }
 
@@ -294,20 +314,38 @@ DHMap<Clause*,typename ConditionalRedundancyHandler::SubstitutionCoverTree*> Con
 
 template<bool enabled, bool ordC, bool avatarC, bool litC>
 bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperposition(
-  Clause* eqClause, Clause* rwClause, bool eqIsResult, ResultSubstitution* subs) const
+  Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit, bool eqIsResult, ResultSubstitution* subs) const
 {
   if constexpr (!enabled) {
     return true;
   }
 
+  auto rwLits = LiteralSet::getEmpty();
+  if constexpr (litC) {
+    rwLits = LiteralSet::getFromIterator(rwClause->iterLits().filter([rwLit](Literal* lit) {
+      return lit != rwLit && rwLit->containsAllVariablesOf(lit);
+    }).map([subs,eqIsResult](Literal* lit) {
+      return subs->applyTo(lit,!eqIsResult);
+    }));
+  }
+
   auto eqClDataPtr = getDataPtr(eqClause, /*doAllocate=*/false);
-  if (eqClDataPtr && !(*eqClDataPtr)->check(_ord, subs, eqIsResult)) {
+  if (eqClDataPtr && !(*eqClDataPtr)->check(_ord, subs, eqIsResult, rwLits)) {
     env.statistics->skippedSuperposition++;
     return false;
   }
 
+  auto eqLits = LiteralSet::getEmpty();
+  if constexpr (litC) {
+    eqLits = LiteralSet::getFromIterator(eqClause->iterLits().filter([eqLit](Literal* lit) {
+      return lit != eqLit && eqLit->containsAllVariablesOf(lit);
+    }).map([subs,eqIsResult](Literal* lit) {
+      return subs->applyTo(lit,eqIsResult);
+    }));
+  }
+
   auto rwClDataPtr = getDataPtr(rwClause, /*doAllocate=*/false);
-  if (rwClDataPtr && !(*rwClDataPtr)->check(_ord, subs, !eqIsResult)) {
+  if (rwClDataPtr && !(*rwClDataPtr)->check(_ord, subs, !eqIsResult, eqLits)) {
     env.statistics->skippedSuperposition++;
     return false;
   }
@@ -318,7 +356,7 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
 template<bool enabled, bool ordC, bool avatarC, bool litC>
 void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuperposition(
   Clause* eqClause, Clause* rwClause, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
-  Literal* rwLitS, Ordering::Result eqComp, bool eqIsResult, ResultSubstitution* subs) const
+  Literal* rwLitS, Literal* eqLit, Ordering::Result eqComp, bool eqIsResult, ResultSubstitution* subs) const
 {
   if constexpr (!enabled) {
     return;
@@ -335,7 +373,7 @@ void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuper
 
   Applicator appl(subs, !eqIsResult);
 
-  auto doInsert = eqClause->length()==1 && eqClause->noSplits() &&
+  auto doInsert = eqClause->noSplits() &&
     // TODO this demodulation redundancy check could be added as constraints
     (!_demodulationHelper.redundancyCheckNeededForPremise(rwClause, rwLitS, rwTermS) ||
       // TODO for rwClause->length()!=1 the function isPremiseRedundant does not work yet
@@ -350,9 +388,28 @@ void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuper
     return;
   }
 
+  auto lits = LiteralSet::getEmpty();
+  if constexpr (litC) {
+    if (eqClause->numSelected()!=1) {
+      return;
+    }
+    lits = LiteralSet::getFromIterator(eqClause->iterLits().filter([eqLit](Literal* lit) {
+      return lit != eqLit && eqLit->containsAllVariablesOf(lit);
+    }).map([subs,eqIsResult](Literal* lit) {
+      return subs->applyTo(lit,eqIsResult);
+    }));
+    if (eqClause->size()>lits->size()+1) {
+      return;
+    }
+  } else {
+    if (eqClause->length()!=1) {
+      return;
+    }
+  }
+
   auto rwClDataPtr = getDataPtr(rwClause, /*doAllocate=*/true);
 
-  (*rwClDataPtr)->insert(_ord, subs, !eqIsResult,
+  (*rwClDataPtr)->insert(_ord, subs, !eqIsResult, lits,
     eqComp != Ordering::LESS ? rwTermS.term() : nullptr,
     eqComp != Ordering::LESS ? tgtTermS.term() : nullptr);
 }
@@ -367,17 +424,51 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::handleResol
 
   // Note that we're inserting into the data of one clause based on the *other* clause
   {
-    bool doInsert = resultLit->isPositive() && resultCl->size()==1 && resultCl->noSplits();
+    bool doInsert = resultLit->isPositive() && resultCl->noSplits();
+
+    auto lits = LiteralSet::getEmpty();
+    if constexpr (litC) {
+      lits = LiteralSet::getFromIterator(resultCl->iterLits().filter([resultLit](Literal* lit) {
+        return lit != resultLit && resultLit->containsAllVariablesOf(lit);
+      }).map([subs](Literal* lit) {
+        return subs->applyToResult(lit);
+      }));
+      if (resultCl->numSelected()>1 || resultCl->length()>lits->size()+1) {
+        doInsert = false;
+      }
+    } else {
+      if (resultCl->length()!=1) {
+        doInsert = false;
+      }
+    }
+
     auto dataPtr = getDataPtr(queryCl, /*doAllocate=*/doInsert);
-    if (dataPtr && !(*dataPtr)->checkAndInsert(_ord, subs, false, doInsert)) {
+    if (dataPtr && !(*dataPtr)->checkAndInsert(_ord, subs, false, lits, doInsert)) {
       env.statistics->skippedResolution++;
       return false;
     }
   }
   {
-    bool doInsert = queryLit->isPositive() && queryCl->size()==1 && queryCl->noSplits();
+    bool doInsert = queryLit->isPositive() && queryCl->noSplits();
+
+    auto lits = LiteralSet::getEmpty();
+    if constexpr (litC) {
+      lits = LiteralSet::getFromIterator(queryCl->iterLits().filter([queryLit](Literal* lit) {
+        return lit != queryLit && queryLit->containsAllVariablesOf(lit);
+      }).map([subs](Literal* lit) {
+        return subs->applyToQuery(lit);
+      }));
+      if (queryCl->numSelected()>1 || queryCl->length()>lits->size()+1) {
+        doInsert = false;
+      }
+    } else {
+      if (queryCl->length()!=1) {
+        doInsert = false;
+      }
+    }
+
     auto dataPtr = getDataPtr(resultCl, /*doAllocate=*/doInsert);
-    if (dataPtr && !(*dataPtr)->checkAndInsert(_ord, subs, true, doInsert)) {
+    if (dataPtr && !(*dataPtr)->checkAndInsert(_ord, subs, true, lits, doInsert)) {
       env.statistics->skippedResolution++;
       return false;
     }
@@ -394,7 +485,8 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::handleReduc
   }
   auto dataPtr = getDataPtr(premise, /*doAllocate=*/true);
   auto subst = ResultSubstitution::fromSubstitution(subs, 0, 0);
-  if (!(*dataPtr)->checkAndInsert(_ord, subst.ptr(), false, /*doInsert=*/true)) {
+  auto lits = LiteralSet::getEmpty();
+  if (!(*dataPtr)->checkAndInsert(_ord, subst.ptr(), false, lits, /*doInsert=*/true)) {
     return false;
   }
   return true;

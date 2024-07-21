@@ -231,7 +231,7 @@ public:
   bool isTupleSort();
   bool isApplication() const;
   bool containsSubterm(TermList v) const;
-  bool containsAllVariablesOf(TermList t);
+  bool containsAllVariablesOf(TermList t) const;
   bool ground() const;
   bool isSafe() const;
 

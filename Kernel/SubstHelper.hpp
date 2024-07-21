@@ -30,6 +30,7 @@ using namespace Lib;
 struct SubstApplicator {
   virtual ~SubstApplicator() = default;
   virtual TermList operator()(unsigned v) const = 0;
+  TermList apply(unsigned v) const { return (*this)(v); }
 };
 
 /**
