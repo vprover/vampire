@@ -117,12 +117,6 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
   _startModelSize = opt.fmbStartSize();
   _symmetryRatio = opt.fmbSymmetryRatio();
 
-  // Load any symbols removed during preprocessing (and their definitions)
-  _deletedFunctions.loadFromMap(prb.getEliminatedFunctions());
-  _deletedPredicates.loadFromMap(prb.getEliminatedPredicates());
-  _partiallyDeletedPredicates.loadFromMap(prb.getPartiallyEliminatedPredicates());
-  _trivialPredicates.loadFromMap(prb.trivialPredicates());
-
   switch(opt.fmbEnumerationStrategy()) {
     case Options::FMBEnumerationStrategy::SBMEAM:
       _dsaEnumerator = new HackyDSAE(opt.keepSbeamGenerators());
@@ -440,7 +434,7 @@ void FiniteModelBuilder::init()
   if(env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::PREDICATE){
     DArray<unsigned> deleted_functions(env.signature->functions());
     for(unsigned f=0;f<env.signature->functions();f++){
-      deleted_functions[f] = _deletedFunctions.find(f) || env.signature->getFunction(f)->usageCnt()==0;
+      deleted_functions[f] =  _prb.getEliminatedFunctions().find(f) || env.signature->getFunction(f)->usageCnt()==0;
      }
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
     Monotonicity::addSortPredicates(true,clist,deleted_functions,_monotonic_vampire_sorts);
@@ -580,13 +574,13 @@ void FiniteModelBuilder::init()
   del_p.ensure(env.signature->predicates());
 
   for(unsigned f=0;f<env.signature->functions();f++){
-    del_f[f] = _deletedFunctions.find(f) || env.signature->getFunction(f)->usageCnt()==0;
+    del_f[f] = _prb.getEliminatedFunctions().find(f) || env.signature->getFunction(f)->usageCnt()==0;
 #if VTRACE_FMB
     if(del_f[f]) cout << "Mark " << env.signature->functionName(f)  << " as deleted" << endl;
 #endif
   }
   for(unsigned p=0;p<env.signature->predicates();p++){
-    del_p[p] = (_deletedPredicates.find(p) || _trivialPredicates.find(p));
+    del_p[p] = (_prb.getEliminatedPredicates().find(p) || _prb.getPartiallyEliminatedPredicates().find(p));
 #if VTRACE_FMB
     if(del_p[p]) cout << "Mark " << env.signature->predicateName(p) << " as deleted" << endl;
 #endif
@@ -1991,13 +1985,10 @@ void FiniteModelBuilder::onModelFound()
   for(unsigned f=1;f<env.signature->predicates();f++){
     if(env.signature->predicateArity(f)>0) continue;
     if(del_p[f]) continue;
-    if(_partiallyDeletedPredicates.find(f)) continue;
 
     bool res;
-    if(!_trivialPredicates.find(f,res)){
-      SATLiteral slit = getSATLiteral(f,emptyG,true,false);
-      res=_solver->trueInAssignment(slit);
-    }
+    SATLiteral slit = getSATLiteral(f,emptyG,true,false);
+    res=_solver->trueInAssignment(slit);
     model.addPropositionalDefinition(f,res);
   }
 
@@ -2006,7 +1997,6 @@ void FiniteModelBuilder::onModelFound()
     unsigned arity = env.signature->predicateArity(p);
     if(arity==0) continue;
     if(del_p[p]) continue;
-    if(_partiallyDeletedPredicates.find(p)) continue;
 
     //cout << "Record for " << env.signature->getPredicate(f)->name() << endl;
 
@@ -2032,10 +2022,8 @@ pModelLabel:
       else{
         grounding[var]++;
         bool res;
-        if(!_trivialPredicates.find(p,res)){
-          SATLiteral slit = getSATLiteral(p,grounding,true,false);
-          res=_solver->trueInAssignment(slit);
-        }
+        SATLiteral slit = getSATLiteral(p,grounding,true,false);
+        res=_solver->trueInAssignment(slit);
         //for(unsigned j=0;j<arity;j++){ cout << grounding[j] << ", ";}; cout << " = " << res << endl;
 
         model.addPredicateDefinition(p,grounding,res);

@@ -130,13 +130,6 @@ private:
   // SAT solver used to solve constraints (a new one is used for each model size)
   ScopedPtr<SATSolverWithAssumptions> _solver;
 
-  // Structures to record symbols removed during preprocessing i.e. via definition elimination
-  // These are ignored throughout finite model building and then the definitions (recorded here)
-  // are used to give the interpretation of the function/predicate if a model is found
-  DHMap<unsigned,Literal*> _deletedFunctions;
-  DHMap<unsigned,Unit*> _deletedPredicates;
-  DHMap<unsigned,Unit*> _partiallyDeletedPredicates;
-  DHMap<unsigned,bool> _trivialPredicates;
   // if del_f[i] (resp del_p[i]) is true then that function (resp predicate) should be ignored
   DArray<unsigned> del_f;
   DArray<unsigned> del_p;
