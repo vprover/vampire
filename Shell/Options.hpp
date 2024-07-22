@@ -54,6 +54,8 @@
 
 #include "Property.hpp"
 
+#define VAMPIRE_CLAUSE_TRACING VDEBUG
+
 namespace Shell {
 
 using namespace Lib;
@@ -2016,6 +2018,10 @@ public:
   bool showFMBsortInfo() const { return showAll() || _showFMBsortInfo.actualValue; }
   bool showInduction() const { return showAll() || _showInduction.actualValue; }
   bool showSimplOrdering() const { return showAll() || _showSimplOrdering.actualValue; }
+#if VAMPIRE_CLAUSE_TRACING
+  int traceBackward() { return _traceBackward.actualValue; }
+  int traceForward() { return _traceForward.actualValue; }
+#endif // VAMPIRE_CLAUSE_TRACING
 
 #if VZ3
   bool showZ3() const { return showAll() || _showZ3.actualValue; }
@@ -2624,6 +2630,11 @@ private:
   BoolOptionValue _showFMBsortInfo;
   BoolOptionValue _showInduction;
   BoolOptionValue _showSimplOrdering;
+#if VAMPIRE_CLAUSE_TRACING
+  // TODO make unsigned option value
+  IntOptionValue _traceBackward;
+  IntOptionValue _traceForward;
+#endif // VAMPIRE_CLAUSE_TRACING
 #if VZ3
   BoolOptionValue _showZ3;
   StringOptionValue _exportAvatarProblem;

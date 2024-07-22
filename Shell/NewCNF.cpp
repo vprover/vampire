@@ -57,8 +57,7 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
 
     case FALSE: {
       // create an empty clause and push it in the stack
-      Clause* clause = new(0) Clause(0,FormulaTransformation(InferenceRule::CLAUSIFY,unit));
-      output.push(clause);
+      output.push(Clause::empty(FormulaTransformation(InferenceRule::CLAUSIFY,unit)));
       return;
     }
 
@@ -1485,8 +1484,7 @@ Clause* NewCNF::toClause(SPGenClause gc)
     _substitutionsByBindings.insert(gc->bindings, subst);
   }
 
-  static Stack<Literal*> properLiterals;
-  ASS(properLiterals.isEmpty());
+  RStack<Literal*> resLits;
 
   GenClause::Iterator lit = gc->genLiterals();
   while (lit.hasNext()) {
@@ -1502,17 +1500,10 @@ Clause* NewCNF::toClause(SPGenClause gc)
       l = Literal::complementaryLiteral(l);
     }
 
-    properLiterals.push(l);
+    resLits->push(l);
   }
 
-  Clause* clause = new(gc->size()) Clause(gc->size(),FormulaTransformation(InferenceRule::CLAUSIFY,_beingClausified));
-  for (int i = gc->size() - 1; i >= 0; i--) {
-    (*clause)[i] = properLiterals[i];
-  }
-
-  properLiterals.reset();
-
-  return clause;
+  return Clause::fromStack(*resLits,FormulaTransformation(InferenceRule::CLAUSIFY,_beingClausified));
 }
 
 }

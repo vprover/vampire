@@ -285,7 +285,6 @@ pair<Stack<Instruction>,BranchTag>* LPOComparator::createHelper(TermList tl1, Te
   // Use compare here to filter out as many
   // precomputable comparisons as possible.
   auto comp = lpo.compare(tl1,tl2);
-  ASS(comp != Ordering::LESS_EQ && comp != Ordering::GREATER_EQ);
   if (comp != Ordering::INCOMPARABLE) {
     if (comp == Ordering::LESS) {
       (*ptr)->second = BranchTag::T_INCOMPARABLE;

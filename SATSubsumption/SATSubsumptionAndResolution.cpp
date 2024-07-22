@@ -755,21 +755,17 @@ Clause* SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(Clause* 
   Literal* m_j,
   Clause* L)
 {
+  RStack<Literal*> resLits;
+
   int mlen = M->length();
-  int nlen = mlen - 1;
-
-  Clause* res = new (nlen) Clause(nlen,
-    SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, M, L));
-
-  int next = 0;
   for (int i = 0; i < mlen; i++) {
     Literal* curr = (*M)[i];
     if (curr == m_j)
       continue;
-    (*res)[next++] = curr;
+    resLits->push(curr);
   }
-  ASS_EQ(next, nlen)
-  return res;
+
+  return Clause::fromStack(*resLits,SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, M, L));
 }
 
 Clause* SATSubsumptionAndResolution::generateConclusion()

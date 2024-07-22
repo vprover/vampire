@@ -103,14 +103,13 @@ Clause* ClauseFlattening::resolveNegativeVariableEqualities(Clause* cl)
     }
     if (idx < n) { // we found one
       // new clause one lit shorter
-      Clause* newcl = new(n-1) Clause(n-1,NonspecificInference1(InferenceRule::EQUALITY_RESOLUTION,cl));
-      unsigned j = 0; // for writing into newcl
+      RStack<Literal*> resLits;
       for (unsigned i = 0; i < n; i++) {
         if (i != idx) { // skipping literal found at idx
-          (*newcl)[j++] = subst.isId() ? (*cl)[i] : SubstHelper::apply((*cl)[i],subst);
+          resLits->push(subst.isId() ? (*cl)[i] : SubstHelper::apply((*cl)[i],subst));
         }
       }
-      cl = newcl;
+      cl = Clause::fromStack(*resLits, NonspecificInference1(InferenceRule::EQUALITY_RESOLUTION,cl));
       n--;
       // cout << "Update: " << cl->toString() << endl;
     } else {

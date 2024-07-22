@@ -141,10 +141,15 @@ bool TermList::sameTop(TermList ss,TermList tt)
 void TermList::Top::output(std::ostream& out) const
 {
   if (this->var()) {
-    out << TermList::var(this->var());
+    out << TermList::var(*this->var());
   } else {
     ASS(this->functor())
-    out << *env.signature->getFunction(*this->functor());
+    auto f = *this->functor();
+    switch (f.kind) {
+      case TermKind::LITERAL: out << *env.signature->getPredicate(f.functor);
+      case TermKind::TERM:    out << *env.signature->getFunction(f.functor);
+      case TermKind::SORT:    out << *env.signature->getTypeCon(f.functor);
+    }
   }
 }
 

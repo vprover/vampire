@@ -510,7 +510,7 @@ public:
                                      : LESS;
           } else {
             return r->term().isVar() ? GREATER
-                                     : Int::compare(*l.functor(), r->term().term()->functor());
+                                     : Int::compare(l.functor()->functor, r->term().term()->functor());
           }
         }
       };
@@ -1176,6 +1176,7 @@ public:
         }
       }
 
+
       template<class TermOrLit, class...AlgoArgs>
       void init(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, AlgoArgs... args) {
         _algo.init(args...);
@@ -1506,7 +1507,7 @@ public:
             if(top.var()) {
               return n->allChildren();
             } else {
-              auto syms = unif.unifiableSymbols(top.functor());
+              auto syms = unif.unifiableSymbols(*top.functor());
               if (syms) {
                 return pvi(concatIters(
                       arrayIter(std::move(*syms))

@@ -283,6 +283,8 @@ public:
   bool isNone() const { return !this->isSome(); }
 
   operator bool() const { return isSome(); }
+  template<class T, std::enable_if_t<!std::is_same_v<T, bool>, bool> = true>
+  operator T() const = delete;
 
   A const& operator*() const { return unwrap(); }
   A      & operator*()       { return unwrap(); }

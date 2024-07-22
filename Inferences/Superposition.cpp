@@ -366,7 +366,7 @@ Clause* Superposition::performSuperposition(
 
   //check that we're not rewriting smaller subterm with larger
   auto comp = ordering.compare(tgtTermS,rwTermS);
-  if(Ordering::isGorGEorE(comp)) {
+  if(Ordering::isGreaterOrEqual(comp)) {
     return 0;
   }
 
@@ -376,11 +376,11 @@ Clause* Superposition::performSuperposition(
     TermList arg1=*rwLitS->nthArgument(1);
 
     if(!arg0.containsSubterm(rwTermS)) {
-      if(Ordering::isGorGEorE(ordering.getEqualityArgumentOrder(rwLitS))) {
+      if(Ordering::isGreaterOrEqual(ordering.getEqualityArgumentOrder(rwLitS))) {
         return 0;
       }
     } else if(!arg1.containsSubterm(rwTermS)) {
-      if(Ordering::isGorGEorE(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
+      if(Ordering::isGreaterOrEqual(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
         return 0;
       }
     }
@@ -481,7 +481,7 @@ Clause* Superposition::performSuperposition(
 
           Ordering::Result o = ordering.compare(currAfter,eqLitS);
 
-          if (o == Ordering::GREATER || o == Ordering::GREATER_EQ || o == Ordering::EQUAL) { // where is GREATER_EQ ever coming from?
+          if (o == Ordering::GREATER || o == Ordering::EQUAL) {
             env.statistics->inferencesBlockedForOrderingAftercheck++;
             return nullptr;
           }

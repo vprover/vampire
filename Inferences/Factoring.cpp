@@ -105,11 +105,8 @@ public:
   : _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ord(ord) {}
   Clause* operator() (pair<Literal*,RobSubstitution*> arg)
   {
-    unsigned newLength = _cLen-1;
-    Clause* res = new(newLength) Clause(newLength,
-        GeneratingInference1(InferenceRule::FACTORING,_cl));
+    RStack<Literal*> resLits;
 
-    unsigned next = 0;
     Literal* skipped=arg.first;
 
     Literal* skippedAfter = 0;
@@ -129,18 +126,16 @@ public:
 
           if (i < _cl->numSelected() && _ord.compare(currAfter,skippedAfter) == Ordering::GREATER) {
             env.statistics->inferencesBlockedForOrderingAftercheck++;
-            res->destroy();
-            return 0;
+            return nullptr;
           }
         }
 
-        (*res)[next++] = currAfter;
+        resLits->push(currAfter);
       }
     }
-    ASS_EQ(next,newLength);
 
     env.statistics->factoring++;
-    return res;
+    return Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::FACTORING,_cl));
   }
 private:
   Clause* _cl;

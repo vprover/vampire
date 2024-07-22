@@ -88,10 +88,8 @@ struct EqualityResolution::ResultFn
     }
 
     auto constraints = absUnif->computeConstraintLiterals();
-    auto nConstraints = constraints->size();
-    unsigned newLen=_cLen - 1 + nConstraints;
 
-    Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
+    RStack<Literal*> resLits;
 
     Literal* litAfter = 0;
 
@@ -100,7 +98,6 @@ struct EqualityResolution::ResultFn
       litAfter = absUnif->subs().apply(lit, 0);
     }
 
-    unsigned next = 0;
     for(unsigned i=0;i<_cLen;i++) {
       Literal* curr=(*_cl)[i];
       if(curr!=lit) {
@@ -111,28 +108,24 @@ struct EqualityResolution::ResultFn
 
           if (i < _cl->numSelected() && _ord->compare(currAfter,litAfter) == Ordering::GREATER) {
             env.statistics->inferencesBlockedForOrderingAftercheck++;
-            res->destroy();
-            return 0;
+            return nullptr;
           }
         }
 
-        (*res)[next++] = currAfter;
+        resLits->push(currAfter);
       }
     }
 
     if (_condRedHandler && !_condRedHandler->handleReductiveUnaryInference(_cl, &absUnif->subs())) {
       env.statistics->skippedEqualityResolution++;
-      return 0;
+      return nullptr;
     }
 
-    for (auto l : *constraints) {
-      (*res)[next++] = l;
-    }
-    ASS_EQ(next,newLen);
+    resLits->loadFromIterator(constraints->iterFifo());
 
     env.statistics->equalityResolution++;
 
-    return res;
+    return Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
   }
 private:
   bool _afterCheck;

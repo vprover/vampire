@@ -243,13 +243,13 @@ Clause* EqualityProxy::apply(Clause* cl)
 {
   unsigned clen = cl->length();
 
-  Stack<Literal*> resLits(8);
+  RStack<Literal*> resLits;
 
   bool modified = false;
   for (unsigned i = 0; i < clen ; i++) {
     Literal* lit=(*cl)[i];
     Literal* rlit=apply(lit);
-    resLits.push(rlit);
+    resLits->push(rlit);
     if (rlit != lit) {
       ASS(lit->isEquality());
       modified = true;
@@ -261,14 +261,10 @@ Clause* EqualityProxy::apply(Clause* cl)
 
   ASS(_defUnit);
 
-  Clause* res = new(clen) Clause(clen, 
+  auto res = Clause::fromStack(*resLits, 
     NonspecificInference2(InferenceRule::EQUALITY_PROXY_REPLACEMENT, cl, _defUnit));
+  // TODO isn't this done automatically?
   res->setAge(cl->age());
-
-  for (unsigned i=0;i<clen;i++) {
-    (*res)[i] = resLits[i];
-  }
-
   return res;
 } // EqualityProxy::apply(Clause*)
 
