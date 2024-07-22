@@ -196,9 +196,8 @@ TermList AnswerLiteralManager::possiblyEvaluateAnswerTerm(TermList aT)
     Literal* l = Literal::create1(p,true,aT);
     Literal* res =0;
     bool constant, constTrue;
-    Stack<Literal*> sideConditions;
-    bool litMod = eval.evaluate(l,constant,res,constTrue,sideConditions);
-    if(litMod && res && sideConditions.isEmpty()){
+    bool litMod = eval.evaluate(l,constant,res,constTrue);
+    if(litMod && res){
       aT.setTerm(res->nthArgument(0)->term());
     }
   }
@@ -542,9 +541,7 @@ bool SynthesisALManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer
     }
   }
   // just a single literal answer
-  Clause* answerCl = new (1) Clause(1, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::INPUT));
-  (*answerCl)[0] = Literal::create(origLit,answerArgs.begin());
-  answer.push(answerCl);
+  answer.push(Clause::fromLiterals({Literal::create(origLit,answerArgs.begin())}, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::INPUT)));
   return true;
 }
 
@@ -572,7 +569,6 @@ Clause* SynthesisALManager::recordAnswerAndReduce(Clause* cl) {
   // Check if the answer literal has only distinct variables as arguments.
   // If yes, we do not need to record the clause, because the answer literal
   // represents any answer.
-  unsigned clen = cl->length();
   bool removeDefaultAnsLit = true;
   Literal* ansLit = cl->getAnswerLiteral();
   Set<unsigned> vars;
@@ -588,22 +584,14 @@ Clause* SynthesisALManager::recordAnswerAndReduce(Clause* cl) {
     removeDefaultAnsLit = false;
   }
 
-  unsigned nonAnsLits = 0;
-  for(unsigned i=0; i<clen; i++) {
-    if((*cl)[i] != ansLit) {
-      nonAnsLits++;
+  RStack<Literal*> resLits;
+  for (Literal* curr : cl->iterLits()) {
+    if (curr != ansLit) {
+      resLits->push(curr);
     }
   }
-  ASS_EQ(nonAnsLits, clen-1);
-
-  Inference inf(SimplifyingInference1(InferenceRule::ANSWER_LITERAL_REMOVAL, cl));
-  Clause* newCl = new(nonAnsLits) Clause(nonAnsLits, inf);
-  unsigned idx = 0;
-  for (unsigned i = 0; i < clen; i++) {
-    if ((*cl)[i] != ansLit) {
-      (*newCl)[idx++] = (*cl)[i];
-    }
-  }
+  auto newCl = Clause::fromStack(*resLits,
+      Inference(SimplifyingInference1(InferenceRule::ANSWER_LITERAL_REMOVAL, cl)));
   if (!removeDefaultAnsLit) {
     AnsList::push(make_pair(newCl->number(), make_pair(newCl, ansLit)), _answerPairs);
   } else {

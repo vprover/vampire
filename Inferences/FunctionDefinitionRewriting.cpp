@@ -74,17 +74,11 @@ Clause* performRewriting(
     return 0;
   }
 
-  unsigned rwLength = rwClause->length();
-  unsigned eqLength = eqClause->length();
-  unsigned newLength = rwLength + eqLength - 1;
+  RStack<Literal*> resLits;
 
-  Clause *res = new (newLength) Clause(newLength, inf);
+  resLits->push(tgtLitS);
 
-  (*res)[0] = tgtLitS;
-
-  unsigned next = 1;
-  for (unsigned i = 0; i < rwLength; i++) {
-    Literal *curr = (*rwClause)[i];
+  for (Literal *curr : rwClause->iterLits()) {
     if (curr == rwLit) {
       continue;
     }
@@ -92,15 +86,13 @@ Clause* performRewriting(
 
     if (EqHelper::isEqTautology(curr)) {
       isEqTautology = true;
-      res->destroy();
-      return 0;
+      return nullptr;
     }
 
-    (*res)[next++] = curr;
+    resLits->push(curr);
   }
 
-  for (unsigned i = 0; i < eqLength; i++) {
-    Literal* curr = (*eqClause)[i];
+  for (Literal* curr : eqClause->iterLits()) {
     if (curr == eqLit) {
       continue;
     }
@@ -108,14 +100,13 @@ Clause* performRewriting(
 
     if (EqHelper::isEqTautology(currAfter)) {
       isEqTautology = true;
-      res->destroy();
-      return 0;
+      return nullptr;
     }
 
-    (*res)[next++] = currAfter;
+    resLits->push(currAfter);
   }
 
-  return res;
+  return Clause::fromStack(*resLits, inf);
 }
 
 void FunctionDefinitionRewriting::attach(SaturationAlgorithm* salg)

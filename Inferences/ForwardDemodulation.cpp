@@ -210,23 +210,20 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           return true;
         }
 
-        Clause* res = new(cLen) Clause(cLen,
-          SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.data->clause));
-        (*res)[0]=resLit;
+        RStack<Literal*> resLits;
+        resLits->push(resLit);
 
-        unsigned next=1;
         for(unsigned i=0;i<cLen;i++) {
           Literal* curr=(*cl)[i];
           if(curr!=lit) {
-            (*res)[next++] = curr;
+            resLits->push(curr);
           }
         }
-        ASS_EQ(next,cLen);
 
         env.statistics->forwardDemodulations++;
 
         premises = pvi( getSingletonIterator(qr.data->clause));
-        replacement = res;
+        replacement = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.data->clause));
         return true;
       }
     }

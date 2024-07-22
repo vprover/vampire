@@ -53,11 +53,11 @@ void Unit::onPreprocessingEnd()
 }
 
 /** New unit of a given kind */
-Unit::Unit(Kind kind,const Inference& inf)
+Unit::Unit(Kind kind, Inference inf)
   : _number(++_lastNumber),
     _kind(kind),
     _inheritedColor(COLOR_INVALID),
-    _inference(inf)
+    _inference(std::move(inf))
 {
 } // Unit::Unit
 

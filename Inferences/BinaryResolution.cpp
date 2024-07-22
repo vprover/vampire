@@ -142,10 +142,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   Literal* dAnsLit = synthesis ? resultCl->getAnswerLiteral() : nullptr;
   bool bothHaveAnsLit = (cAnsLit != nullptr) && (dAnsLit != nullptr);
 
-  unsigned newLength = clength + dlength - 2 + nConstraints - (bothHaveAnsLit ? 1 : 0) ;
-
-  inf_destroyer.disable(); // ownership passed to the the clause below
-  Clause* res = new(newLength) Clause(newLength, inf); // the inference object owned by res from now on
+  RStack<Literal*> resLits;
 
   Literal* queryLitAfter = 0;
   if (afterCheck && queryCl->numSelected() > 1) {
@@ -153,21 +150,17 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     queryLitAfter = subs->applyToQuery(queryLit);
   }
 
-  unsigned next = 0;
-  for(Literal* c : *constraints){
-      (*res)[next++] = c; 
-  }
+  resLits->loadFromIterator(constraints->iterFifo());
   for(unsigned i=0;i<clength;i++) {
     Literal* curr=(*queryCl)[i];
     if(curr!=queryLit && (!bothHaveAnsLit || curr!=cAnsLit)) {
       Literal* newLit = subs->applyToQuery(curr);
       if(needsToFulfilWeightLimit) {
         wlb+=newLit->weight() - curr->weight();
-        if(!passiveClauseContainer->fulfilsWeightLimit(wlb, numPositiveLiteralsLowerBound, res->inference())) {
+        if(!passiveClauseContainer->fulfilsWeightLimit(wlb, numPositiveLiteralsLowerBound, inf)) {
           RSTAT_CTR_INC("binary resolutions skipped for weight limit while building clause");
           env.statistics->discardedNonRedundantClauses++;
-          res->destroy();
-          return 0;
+          return nullptr;
         }
       }
       if (queryLitAfter && i < queryCl->numSelected()) {
@@ -179,13 +172,10 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
             (ls->isPositiveForSelection(newLit)    // strict maximimality for positive literals
                 && o == Ordering::EQUAL)) {
           env.statistics->inferencesBlockedForOrderingAftercheck++;
-          res->destroy();
-          return 0;
+          return nullptr;
         }
       }
-      ASS(next < newLength);
-      (*res)[next] = newLit;
-      next++;
+      resLits->push(newLit);
     }
   }
 
@@ -201,11 +191,10 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
       Literal* newLit = subs->applyToResult(curr);
       if(needsToFulfilWeightLimit) {
         wlb+=newLit->weight() - curr->weight();
-        if(!passiveClauseContainer->fulfilsWeightLimit(wlb, numPositiveLiteralsLowerBound, res->inference())) {
+        if(!passiveClauseContainer->fulfilsWeightLimit(wlb, numPositiveLiteralsLowerBound, inf)) {
           RSTAT_CTR_INC("binary resolutions skipped for weight limit while building clause");
           env.statistics->discardedNonRedundantClauses++;
-          res->destroy();
-          return 0;
+          return nullptr;
         }
       }
       if (qrLitAfter && i < resultCl->numSelected()) {
@@ -217,13 +206,10 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
             (ls->isPositiveForSelection(newLit)   // strict maximimality for positive literals
                 && o == Ordering::EQUAL)) {
           env.statistics->inferencesBlockedForOrderingAftercheck++;
-          res->destroy();
-          return 0;
+          return nullptr;
         }
       }
-      ASS_L(next, newLength)
-      (*res)[next] = newLit;
-      next++;
+      resLits->push(newLit);
     }
   }
 
@@ -232,12 +218,11 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   }
 
    if (bothHaveAnsLit) {
-     ASS(next == newLength-1);
      Literal* newLitC = subs->applyToQuery(cAnsLit);
      Literal* newLitD = subs->applyToResult(dAnsLit);
      bool cNeg = queryLit->isNegative();
      Literal* condLit = cNeg ? subs->applyToResult(resultLit) : subs->applyToQuery(queryLit);
-     (*res)[next] = SynthesisALManager::getInstance()->makeITEAnswerLiteral(condLit, cNeg ? newLitC : newLitD, cNeg ? newLitD : newLitC);
+     resLits->push(SynthesisALManager::getInstance()->makeITEAnswerLiteral(condLit, cNeg ? newLitC : newLitD, cNeg ? newLitD : newLitC));
    }
 
   if(nConstraints != 0){
@@ -247,7 +232,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     env.statistics->resolution++;
   }
 
-  return res;
+  inf_destroyer.disable(); // ownership passed to the the clause below
+  return Clause::fromStack(*resLits, inf);
 }
 Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, 
                                 ResultSubstitutionSP subs, const Options& opts)

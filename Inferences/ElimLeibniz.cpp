@@ -80,21 +80,17 @@ ElimLeibniz::LeibEqRec ElimLeibniz::getLiteralInfo(Literal* lit){
 
 Clause* ElimLeibniz::createConclusion(Clause* premise, Literal* newLit, 
                                       Literal* posLit, Literal* negLit, RobSubstitution& subst){
-  unsigned newLen=premise->length() - 1;
-  Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::LEIBNIZ_ELIMINATION, premise));
+  RStack<Literal*> resLits;
   Literal* newLitAfter = subst.apply(newLit, 0);
 
-  unsigned next = 0;
-  for(unsigned i=0;i<premise->length();i++) {
-    Literal* curr=(*premise)[i];
+  for(Literal* curr : premise->iterLits()) {
     if(curr!=posLit && curr!=negLit){
       Literal* currAfter = subst.apply(curr, 0);
-      (*res)[next++] = currAfter;
+      resLits->push(currAfter);
     }
   }
-  (*res)[next++] = newLitAfter;
-  ASS_EQ(next,newLen);
-  return res;
+  resLits->push(newLitAfter);
+  return Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::LEIBNIZ_ELIMINATION, premise));
 }
 
 ClauseIterator ElimLeibniz::generateClauses(Clause* premise)

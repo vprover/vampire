@@ -138,24 +138,20 @@ bool SDHelper::checkForSubsumptionResolution(Clause* cl, SDClauseMatches const& 
  */
 Clause* SDHelper::generateSubsumptionResolutionClause(Clause* cl, Literal* resLit, Clause* mcl)
 {
-  unsigned newLen = cl->length() - 1;
-  Clause* newCl = new(newLen) Clause(newLen,
-      SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, cl, mcl));
+  RStack<Literal*> resLits;
 
-  unsigned j = 0;
   for (unsigned i = 0; i < cl->length(); ++i) {
     Literal* curLit = (*cl)[i];
 
     if (curLit != resLit) {
-      (*newCl)[j] = curLit;
-      j += 1;
+      resLits->push(curLit);
     }
   }
   // We should have skipped exactly one literal, namely resLit.
   // (it should never appear twice because we apply duplicate literal removal before subsumption resolution)
-  ASS_EQ(j, newLen);
+  ASS_EQ(resLits->length(), cl->length() - 1)
 
-  return newCl;
+  return Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, cl, mcl));
 }
 
 

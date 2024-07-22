@@ -20,6 +20,7 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/DArray.hpp"
+#include "Debug/Output.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/SharedSet.hpp"
@@ -41,6 +42,8 @@
 
 #include <cmath>
 
+
+
 #include "Clause.hpp"
 
 #undef RSTAT_COLLECTION
@@ -59,10 +62,9 @@ size_t Clause::_auxCurrTimestamp = 0;
 bool Clause::_auxInUse = false;
 #endif
 
-
 /** New clause */
-Clause::Clause(unsigned length,const Inference& inf)
-  : Unit(Unit::CLAUSE,inf),
+Clause::Clause(Literal* const* lits, unsigned length, Inference inf)
+  : Unit(Unit::CLAUSE, std::move(inf)),
     _length(length),
     _color(COLOR_INVALID),
     _extensionality(false),
@@ -84,6 +86,39 @@ Clause::Clause(unsigned length,const Inference& inf)
     _extensionalityTag = true;
     inference().setInputType(UnitInputType::AXIOM);
   }
+
+  for(unsigned i = 0; i < length; i++) {
+    (*this)[i] = lits[i];
+  }
+
+#if VAMPIRE_CLAUSE_TRACING
+  // TODO make unsigned
+  if (env.options->traceBackward() && unsigned(env.options->traceBackward()) == number()) {
+    traverseParentsPost(
+        [&](unsigned depth, Unit* unit) {
+          std::cout << "backward trace " <<  number() << ": " << repeatOutput("| ", depth) << unit->toString() << std::endl;
+      });
+  }
+
+  // forward tracing
+  // TODO make unsigned
+  static int traceFwd = env.options->traceForward();
+  if (traceFwd != -1) {
+
+    bool doTrace = false;
+    auto infit = inference().iterator();
+    while (inference().hasNext(infit)) {
+      if (inference().next(infit)->number() == unsigned(traceFwd)) {
+        doTrace = true;
+        break;
+      }
+    }
+    if (doTrace) {
+      std::cout << "forward trace " << traceFwd << ": " << toString() << std::endl;
+    }
+  }
+
+#endif // VAMPIRE_CLAUSE_TRACING
 }
 
 /**
@@ -137,18 +172,6 @@ void Clause::destroyExceptInferenceObject()
   DEALLOC_KNOWN(this, size,"Clause");
 }
 
-
-Clause* Clause::fromStack(const Stack<Literal*>& lits, const Inference& inf)
-{
-  unsigned clen = lits.size();
-  Clause* res = new (clen) Clause(clen, inf);
-
-  for(unsigned i = 0; i < clen; i++) {
-    (*res)[i] = lits[i];
-  }
-
-  return res;
-}
 
 /**
  * Create a clause with the same content as @c c. The inference of the

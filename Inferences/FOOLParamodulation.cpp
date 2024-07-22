@@ -109,20 +109,21 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
   substitution:
 
   // Found a boolean term! Create the C[true] \/ s = false clause
-  unsigned conclusionLength = premise->length() + 1;
-  Clause* conclusion = new(conclusionLength) Clause(conclusionLength,
-      GeneratingInference1(InferenceRule::FOOL_PARAMODULATION, premise));
+  RStack<Literal*> resLits;
 
   // Copy the literals from the premise except for the one at `literalPosition`,
   // that has the occurrence of `booleanTerm` replaced with false
-  for (unsigned i = 0; i < conclusion->length() - 1; i++) {
-    (*conclusion)[i] = i == literalPosition ? EqHelper::replace((*premise)[i], booleanTerm, troo) : (*premise)[i];
+  for (unsigned i = 0; i < premise->length(); i++) {
+    resLits->push(i == literalPosition 
+        ? EqHelper::replace((*premise)[i], booleanTerm, troo) 
+        : (*premise)[i]);
   }
 
   // Add s = false to the clause
-  (*conclusion)[conclusion->length() - 1] = Literal::createEquality(true, booleanTerm, fols, AtomicSort::boolSort());
+  resLits->push(Literal::createEquality(true, booleanTerm, fols, AtomicSort::boolSort()));
 
-  return pvi(getSingletonIterator(conclusion));
+  return pvi(getSingletonIterator(Clause::fromStack(*resLits,
+          GeneratingInference1(InferenceRule::FOOL_PARAMODULATION, premise))));
 }
 
 }
