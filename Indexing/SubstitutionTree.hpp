@@ -510,7 +510,7 @@ public:
                                      : LESS;
           } else {
             return r->term().isVar() ? GREATER
-                                     : Int::compare(*l.functor(), r->term().term()->functor());
+                                     : Int::compare(l.functor()->functor, r->term().term()->functor());
           }
         }
       };
@@ -1175,6 +1175,7 @@ public:
           _bdStack.pop().backtrack();
         }
       }
+
 
       template<class TermOrLit, class...AlgoArgs>
       void init(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, AlgoArgs... args) {
