@@ -175,11 +175,11 @@ Clause* Narrow::performNarrow(
   TermList arg1=*nLiteralS->nthArgument(1);
 
   if(!arg0.containsSubterm(nTermS)) {
-    if(Ordering::isGorE(ordering.getEqualityArgumentOrder(nLiteralS))) {
+    if(Ordering::isGreaterOrEqual(ordering.getEqualityArgumentOrder(nLiteralS))) {
       return 0;
     }
   } else if(!arg1.containsSubterm(nTermS)) {
-    if(Ordering::isGorE(Ordering::reverse(ordering.getEqualityArgumentOrder(nLiteralS)))) {
+    if(Ordering::isGreaterOrEqual(Ordering::reverse(ordering.getEqualityArgumentOrder(nLiteralS)))) {
       return 0;
     }
   }

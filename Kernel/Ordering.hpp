@@ -66,8 +66,7 @@ public:
     INCOMPARABLE=4
   };
 
-  Ordering();
-  virtual ~Ordering();
+  virtual ~Ordering() = default;
 
   /** Return the result of comparing @b l1 and @b l2 */
   virtual Result compare(Literal* l1,Literal* l2) const = 0;
@@ -93,7 +92,7 @@ public:
 
   virtual void show(std::ostream& out) const = 0;
 
-  static bool isGorE(Result r) { return (r == GREATER || r == EQUAL); }
+  static bool isGreaterOrEqual(Result r) { return (r == GREATER || r == EQUAL); }
 
   void removeNonMaximal(LiteralList*& lits) const;
 
@@ -127,12 +126,15 @@ protected:
   Result compareEqualities(Literal* eq1, Literal* eq2) const;
 
 private:
-  void createEqualityComparator();
-  void destroyEqualityComparator();
-
-  class EqCmp;
-  /** Object used to compare equalities */
-  EqCmp* _eqCmp;
+  /**
+   * Helper methods for comparing literals s1=s2 and t1=t2.
+   */
+  Result compare_s1Gt1(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1It1(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1It1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1Gt1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1Gt1_s2Lt2(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1Gt1_s1It2_s2It1(TermList s1,TermList s2,TermList t1,TermList t2) const;
 
   /**
    * We store orientation of equalities in this ordering inside

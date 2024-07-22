@@ -21,84 +21,15 @@
 namespace Kernel
 {
 
-class Ordering::EqCmp
-{
-public:
-  EqCmp(Ordering* ordering) : _ordering(ordering)
-  {
-#if VDEBUG
-  inUse=false;
-#endif
-  }
-
-  Result compareEqualities(Literal* eq1, Literal* eq2) const;
-
-#if VDEBUG
-  mutable bool inUse;
-#endif
-
-private:
-
-  Result compare(TermList trm1, TermList trm2) const
-  {
-    return _ordering->compare(trm1, trm2);
-  }
-
-  Result compare_s1Gt1(TermList s1,TermList s2,TermList t1,TermList t2) const;
-  Result compare_s1It1(TermList s1,TermList s2,TermList t1,TermList t2) const;
-  Result compare_s1It1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2) const;
-  Result compare_s1Gt1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2) const;
-  Result compare_s1Gt1_s2Lt2(TermList s1,TermList s2,TermList t1,TermList t2) const;
-  Result compare_s1Gt1_s1It2_s2It1(TermList s1,TermList s2,TermList t1,TermList t2) const;
-
-  mutable TermList s1,s2,t1,t2;
-
-  Ordering* _ordering;
-};
-
-void Ordering::createEqualityComparator()
-{
-  _eqCmp=new EqCmp(this);
-}
-
-void Ordering::destroyEqualityComparator()
-{
-  delete _eqCmp;
-#if VDEBUG
-  _eqCmp=0;
-#endif
-}
-
-
 Ordering::Result Ordering::compareEqualities(Literal* eq1, Literal* eq2) const
 {
   ASS(eq1->isEquality());
   ASS(eq2->isEquality());
 
-#if VDEBUG
-  ASS(!_eqCmp->inUse);
-  _eqCmp->inUse=true;
-#endif
-
-  Result res=_eqCmp->compareEqualities(eq1, eq2);
-
-#if VDEBUG
-  ASS(_eqCmp->inUse);
-  _eqCmp->inUse=false;
-#endif
-
-  return res;
-}
-
-Ordering::Result Ordering::EqCmp::compareEqualities(Literal* eq1, Literal* eq2) const
-{
-  ASS(eq1->isEquality());
-  ASS(eq2->isEquality());
-
-  s1=*eq1->nthArgument(0);
-  s2=*eq1->nthArgument(1);
-  t1=*eq2->nthArgument(0);
-  t2=*eq2->nthArgument(1);
+  auto s1=*eq1->nthArgument(0);
+  auto s2=*eq1->nthArgument(1);
+  auto t1=*eq2->nthArgument(0);
+  auto t2=*eq2->nthArgument(1);
 
   if (s1 == t1) {
     return compare(s2,t2);
@@ -128,7 +59,7 @@ Ordering::Result Ordering::EqCmp::compareEqualities(Literal* eq1, Literal* eq2) 
 /**
  * Return the result of comparison of literals s1=s2 and t1=t2, assuming s1 > t1
  */
-Ordering::Result Ordering::EqCmp::compare_s1Gt1(TermList s1,TermList s2,TermList t1,TermList t2) const
+Ordering::Result Ordering::compare_s1Gt1(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
   ASS_EQ(compare(s1,t1), GREATER);
 
@@ -147,7 +78,7 @@ Ordering::Result Ordering::EqCmp::compare_s1Gt1(TermList s1,TermList s2,TermList
 /**
  * Return the result of literal comparison assuming s1 inc t1
  */
-Ordering::Result Ordering::EqCmp::compare_s1It1(TermList s1,TermList s2,TermList t1,TermList t2) const
+Ordering::Result Ordering::compare_s1It1(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
   ASS_EQ(compare(s1,t1), INCOMPARABLE);
 
@@ -166,7 +97,7 @@ Ordering::Result Ordering::EqCmp::compare_s1It1(TermList s1,TermList s2,TermList
 /**
  * Return the result of literal comparison assuming s1 inc t1 and s2 inc t2
  */
-Ordering::Result Ordering::EqCmp::compare_s1It1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2) const
+Ordering::Result Ordering::compare_s1It1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
   ASS_EQ(compare(s1,t1), INCOMPARABLE);
   ASS_EQ(compare(s2,t2), INCOMPARABLE);
@@ -186,7 +117,7 @@ Ordering::Result Ordering::EqCmp::compare_s1It1_s2It2(TermList s1,TermList s2,Te
 /**
  * Return the result of literal comparison assuming s1 > t1 and s2 inc t2
  */
-Ordering::Result Ordering::EqCmp::compare_s1Gt1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2) const
+Ordering::Result Ordering::compare_s1Gt1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
   ASS_EQ(compare(s1,t1), GREATER);
   ASS_EQ(compare(s2,t2), INCOMPARABLE);
@@ -208,7 +139,7 @@ Ordering::Result Ordering::EqCmp::compare_s1Gt1_s2It2(TermList s1,TermList s2,Te
 /**
  * Return the result of literal comparison assuming s1 > t1 and s2 < t2
  */
-Ordering::Result Ordering::EqCmp::compare_s1Gt1_s2Lt2(TermList s1,TermList s2,TermList t1,TermList t2) const
+Ordering::Result Ordering::compare_s1Gt1_s2Lt2(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
   ASS_EQ(compare(s1,t1), GREATER);
   ASS_EQ(compare(s2,t2), LESS);
@@ -230,7 +161,7 @@ Ordering::Result Ordering::EqCmp::compare_s1Gt1_s2Lt2(TermList s1,TermList s2,Te
 /**
  * Return the result of literal comparison assuming s1 > t1, s1 inc t2, s2 inc t1
  */
-Ordering::Result Ordering::EqCmp::compare_s1Gt1_s1It2_s2It1(TermList s1,TermList s2,TermList t1,TermList t2) const
+Ordering::Result Ordering::compare_s1Gt1_s1It2_s2It1(TermList s1,TermList s2,TermList t1,TermList t2) const
 {
   ASS_EQ(compare(s1,t1), GREATER);
   ASS_EQ(compare(s1,t2), INCOMPARABLE);

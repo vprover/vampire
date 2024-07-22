@@ -51,18 +51,6 @@ using namespace Kernel;
 
 OrderingSP Ordering::s_globalOrdering;
 
-Ordering::Ordering()
-{
-  createEqualityComparator();
-  ASS(_eqCmp);
-}
-
-Ordering::~Ordering()
-{
-  destroyEqualityComparator();
-}
-
-
 /**
  * If there is no global ordering yet, assign @c ordering to be
  * it and return true. Otherwise return false.

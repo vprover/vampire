@@ -368,7 +368,7 @@ Clause* Superposition::performSuperposition(
 
   //check that we're not rewriting smaller subterm with larger
   auto comp = ordering.compare(tgtTermS,rwTermS);
-  if(Ordering::isGorE(comp)) {
+  if(Ordering::isGreaterOrEqual(comp)) {
     return 0;
   }
 
@@ -378,11 +378,11 @@ Clause* Superposition::performSuperposition(
     TermList arg1=*rwLitS->nthArgument(1);
 
     if(!arg0.containsSubterm(rwTermS)) {
-      if(Ordering::isGorE(ordering.getEqualityArgumentOrder(rwLitS))) {
+      if(Ordering::isGreaterOrEqual(ordering.getEqualityArgumentOrder(rwLitS))) {
         return 0;
       }
     } else if(!arg1.containsSubterm(rwTermS)) {
-      if(Ordering::isGorE(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
+      if(Ordering::isGreaterOrEqual(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
         return 0;
       }
     }
