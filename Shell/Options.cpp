@@ -926,7 +926,7 @@ void Options::init()
 
     _ageWeightRatioShape = ChoiceOptionValue<AgeWeightRatioShape>("age_weight_ratio_shape","awrs",AgeWeightRatioShape::CONSTANT,{"constant","decay", "converge"});
     _ageWeightRatioShape.description = "How to change the age/weight ratio during proof search.";
-    _ageWeightRatioShape.onlyUsefulWith(_ageWeightRatio.is(notEqual(Ratio{1,1})));
+    _ageWeightRatioShape.onlyUsefulWith(_ageWeightRatio.is(isNotDefault<Ratio>()));
     _lookup.insert(&_ageWeightRatioShape);
     _ageWeightRatioShape.tag(OptionTag::SATURATION);
 
@@ -2706,59 +2706,6 @@ template<typename T>
 Options::AbstractWrappedConstraintUP Options::OptionValue<T>::is(OptionValueConstraintUP<T> c)
 {
     return AbstractWrappedConstraintUP(new WrappedConstraint<T>(*this,std::move(c)));
-}
-
-/**
- * Read age-weight ratio from a string. The string can be an integer
- * or an expression "a:w", where a,w are integers.
- *
- * @since 25/05/2004 Manchester
- */
-bool Options::RatioOptionValue::readRatio(const char* val, char separator)
-{
-  // search the string for ":"
-  bool found = false;
-  int colonIndex = 0;
-  while (val[colonIndex]) {
-    if (val[colonIndex] == separator) {
-      found = true;
-      break;
-    }
-    colonIndex++;
-  }
-
-  if (found) {
-    if (strlen(val) >= COPY_SIZE) {
-      return false;
-    }
-    char copy[COPY_SIZE];
-    strncpy(copy,val,COPY_SIZE - 1); // leave space for trailing NUL
-    copy[colonIndex] = 0;
-    int age;
-    if (! Int::stringToInt(copy,age)) {
-      return false;
-    }
-    actualValue = age;
-    int weight;
-    if (! Int::stringToInt(copy+colonIndex+1,weight)) {
-      return false;
-    }
-    otherValue = weight;
-
-    // don't allow ratios 0:0
-    if (actualValue == 0 && otherValue == 0) {
-      return false;
-    }
-
-    return true;
-  }
-  actualValue = 1;
-  int weight;
-  if (! Int::stringToInt(val,weight)) {
-    return false;
-  }
-  otherValue = weight;
-  return true;
 }
 
 bool Options::NonGoalWeightOptionValue::setValue(const std::string& value)

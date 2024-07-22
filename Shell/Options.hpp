@@ -65,8 +65,8 @@ using namespace Kernel;
 class Property;
 
 struct Ratio {
-  int n0;
-  int n1;
+  unsigned n0;
+  unsigned n1;
   auto asTuple() const { return std::tie(n0, n1); }
   IMPL_COMPARISONS_FROM_TUPLE(Ratio)
 };
@@ -109,10 +109,13 @@ struct OptionParser<Ratio> {
     auto re = std::regex("([0-9]+):([0-9]+)");
     std::smatch match;
     if (std::regex_match(value, match, re)) {
-      return some(Ratio {
-          .n0 = OptionParser<int>::parse(match[1]).unwrap(),
-          .n1 = OptionParser<int>::parse(match[2]).unwrap(),
-          });
+      auto res = Ratio {
+        .n0 = OptionParser<unsigned>::parse(match[1]).unwrap(),
+          .n1 = OptionParser<unsigned>::parse(match[2]).unwrap(),
+      };
+      // don't allow ratios 0:0
+      if (res.n0 == 0 && res.n1 == 0) return {};
+      return some(res);
     } else {
       return {};
     }
@@ -1252,48 +1255,6 @@ private:
         OptionalOptionValue(){}
         OptionalOptionValue(std::string l, std::string s) : CompositionalOptionValue<Option<T>>(l,s,Option<T>()){}
     };
-    
-/**
-* Ratios have two actual values and two default values
-* Therefore, we often need to tread them specially
-* @author Giles
-*/
-struct RatioOptionValue : public OptionValue<int> {
-
-RatioOptionValue(){}
-RatioOptionValue(std::string l, std::string s, int def, int other, char sp=':') :
-OptionValue(l,s,def), sep(sp), defaultOtherValue(other), otherValue(other) {};
-
-virtual OptionValueConstraintUP<int> getNotDefault() override { return isNotDefaultRatio(); }
-
-virtual bool isDefault() const override { return defaultValue * otherValue == actualValue * defaultOtherValue; }
-
-void addConstraintIfNotDefault(AbstractWrappedConstraintUP c){
-    addConstraint(If(isNotDefaultRatio()).then(unwrap<int>(c)));
-}
-
-bool readRatio(const char* val,char seperator);
-bool setValue(const std::string& value) override {
-    return readRatio(value.c_str(),sep);
-}
-
-char sep;
-int defaultOtherValue;
-int otherValue;
-
-virtual void output(std::ostream& out,bool linewrap) const override {
-    AbstractOptionValue::output(out,linewrap);
-    out << "\tdefault left: " << defaultValue << std::endl;
-    out << "\tdefault right: " << defaultOtherValue << std::endl;
-}
-
-virtual std::string getStringOfValue(int value) const override { ASSERTION_VIOLATION;}
-virtual std::string getStringOfActual() const override {
-    return Lib::Int::toString(actualValue)+sep+Lib::Int::toString(otherValue);
-}
-
-};
-
 // We now have a number of option-specific values
 // These are necessary when the option needs to be read in a special way
 
@@ -1771,26 +1732,11 @@ bool _hard;
         }
         std::string msg(const OptionValue<T>& value) { return value.longName+"("+value.getStringOfActual()+") is not default("+value.getStringOfValue(value.defaultValue)+")";}
     };
-    struct NotDefaultRatioConstraint : public OptionValueConstraint<int> {
-        NotDefaultRatioConstraint() {}
-
-        bool check(const OptionValue<int>& value){
-            const RatioOptionValue& rvalue = static_cast<const RatioOptionValue&>(value);
-            return (rvalue.defaultValue != rvalue.actualValue ||
-                    rvalue.defaultOtherValue != rvalue.otherValue);
-        }
-        std::string msg(const OptionValue<int>& value) { return value.longName+"("+value.getStringOfActual()+") is not default";}
-        
-    };
 
     // You will need to provide the type, optionally use addConstraintIfNotDefault
     template<typename T>
     static OptionValueConstraintUP<T> isNotDefault(){
         return OptionValueConstraintUP<T>(new NotDefaultConstraint<T>());
-    }
-    // You will need to provide the type, optionally use addConstraintIfNotDefault
-    static OptionValueConstraintUP<int> isNotDefaultRatio(){
-        return OptionValueConstraintUP<int>(new NotDefaultRatioConstraint());
     }
 
     struct isLookAheadSelectionConstraint : public OptionValueConstraint<int>{
@@ -2462,7 +2408,6 @@ private:
   *  - IntOptionValue, UnsignedOptionValue, FloatOptionValue, LongOptionValue
   *  - StringOptionValue
   *  - ChoiceOptionValue
-  *  - RatioOptionValue
   *
   * ChoiceOptionValue requires you to define an enum for the choice values
   *
