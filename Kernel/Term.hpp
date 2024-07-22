@@ -88,10 +88,8 @@ enum ArgumentOrderVals {
   AO_UNKNOWN=0,
   AO_GREATER=1,
   AO_LESS=2,
-  AO_GREATER_EQ=3,
-  AO_LESS_EQ=4,
-  AO_EQUAL=5,
-  AO_INCOMPARABLE=6,
+  AO_EQUAL=3,
+  AO_INCOMPARABLE=4,
 };
 
 /**

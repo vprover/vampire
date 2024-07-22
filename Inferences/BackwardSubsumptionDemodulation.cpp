@@ -415,12 +415,10 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
         RSTAT_MCTR_INC("BSD, lhsVector.size() when INCOMPARABLE", lhsVector.size());
         break;
       case Ordering::GREATER:
-      case Ordering::GREATER_EQ:
         ASS(termContainsAllVariablesOfOtherUnderSubst(t0, t1, applicator));
         lhsVector.push_back(t0);
         break;
       case Ordering::LESS:
-      case Ordering::LESS_EQ:
         ASS(termContainsAllVariablesOfOtherUnderSubst(t1, t0, applicator));
         lhsVector.push_back(t1);
         break;
@@ -567,7 +565,6 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
             }
           }
           Ordering::Result r_cmp_t = ordering.compare(rhsS, t);
-          ASS_NEQ(r_cmp_t, Ordering::LESS_EQ);  // NOTE: LESS_EQ doesn't seem to occur in the code currently. It is unclear why the ordering is not simplified to LESS, EQUAL and GREATER.
           if (r_cmp_t == Ordering::LESS) {
             // rhsS < t implies eqLitS < dlit
             ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);

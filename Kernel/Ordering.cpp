@@ -51,18 +51,6 @@ using namespace Kernel;
 
 OrderingSP Ordering::s_globalOrdering;
 
-Ordering::Ordering()
-{
-  createEqualityComparator();
-  ASS(_eqCmp);
-}
-
-Ordering::~Ordering()
-{
-  destroyEqualityComparator();
-}
-
-
 /**
  * If there is no global ordering yet, assign @c ordering to be
  * it and return true. Otherwise return false.
@@ -162,12 +150,8 @@ const char* Ordering::resultToString(Result r)
   switch(r) {
   case GREATER:
     return "GREATER";
-  case GREATER_EQ:
-    return "GREATER_EQ";
   case LESS:
     return "LESS";
-  case LESS_EQ:
-    return "LESS_EQ";
   case EQUAL:
     return "EQUAL";
   case INCOMPARABLE:
@@ -190,11 +174,10 @@ void Ordering::removeNonMaximal(LiteralList*& lits) const
     while (*ptr2 && *ptr1) {
       Ordering::Result res = compare((*ptr1)->head(), (*ptr2)->head());
 
-      if (res == Ordering::GREATER || res == Ordering::GREATER_EQ
-          || res == Ordering::EQUAL) {
+      if (res == Ordering::GREATER || res == Ordering::EQUAL) {
         LiteralList::pop(*ptr2);
         continue;
-      } else if (res == Ordering::LESS || res == Ordering::LESS_EQ) {
+      } else if (res == Ordering::LESS) {
         LiteralList::pop(*ptr1);
         goto topLevelContinue;
       }

@@ -179,7 +179,7 @@ bool FunctionDefinitionDemodulation::perform(Clause* cl, Clause*& replacement, C
         }
         auto rhs = EqHelper::getOtherEqualitySide(qr.data->literal, qr.data->term);
         // TODO shouldn't allow demodulation with incomparables in the non-ground case
-        if (Ordering::isGorGEorE(ordering.compare(rhs,qr.data->term))) {
+        if (Ordering::isGreaterOrEqual(ordering.compare(rhs,qr.data->term))) {
           continue;
         }
         bool isEqTautology = false;

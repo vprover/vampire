@@ -599,13 +599,11 @@ SimplifyingGeneratingInference1::Result SimplifyingGeneratingLiteralSimplificati
             case Ordering::Result::LESS:
               oneLess = true;
               break;
-            case Ordering::Result::LESS_EQ:
             case Ordering::Result::EQUAL:
               ASSERTION_VIOLATION
               break;
             case Ordering::Result::INCOMPARABLE:
             case Ordering::Result::GREATER:
-            case Ordering::Result::GREATER_EQ:
               if (cmp == Ordering::Result::INCOMPARABLE) {
                 env.statistics->evaluationIncomp++;
               } else {

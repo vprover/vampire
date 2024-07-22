@@ -244,10 +244,6 @@ SDHelper::ClauseComparisonResult SDHelper::clauseCompare(Literal* const lits1[],
         case Ordering::EQUAL:
           // should not happen due to first part where we remove equal literals
           ASSERTION_VIOLATION;
-        case Ordering::LESS_EQ:
-        case Ordering::GREATER_EQ:
-          // those don't appear
-          ASSERTION_VIOLATION;
         default:
           ASSERTION_VIOLATION;
       }
