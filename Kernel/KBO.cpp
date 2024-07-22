@@ -93,9 +93,9 @@ protected:
   Result innerResult(TermList t1, TermList t2);
   Result applyVariableCondition(Result res)
   {
-    if(_posNum>0 && (res==LESS || res==LESS_EQ || res==EQUAL)) {
+    if(_posNum>0 && (res==LESS || res==EQUAL)) {
       res=INCOMPARABLE;
-    } else if(_negNum>0 && (res==GREATER || res==GREATER_EQ || res==EQUAL)) {
+    } else if(_negNum>0 && (res==GREATER || res==EQUAL)) {
       res=INCOMPARABLE;
     }
     return res;
@@ -307,8 +307,6 @@ Ordering::Result KBO::State::traverseLexBidir(AppliedTerm tl1, AppliedTerm tl2)
         _lexResult=innerResult(s.term, t.term);
         lexValidDepth=depth;
         ASS(_lexResult!=EQUAL);
-        ASS(_lexResult!=GREATER_EQ);
-        ASS(_lexResult!=LESS_EQ);
       }
     }
   }
@@ -382,12 +380,10 @@ Ordering::Result KBO::State::traverseLexUnidir(AppliedTerm tl1, AppliedTerm tl2)
         : _kbo.compareFunctionPrecedences(s.term.term()->functor(),t.term.term()->functor());
       switch (comp)
       {
-        case Ordering::LESS:
-        case Ordering::LESS_EQ: {
+        case Ordering::LESS: {
           return INCOMPARABLE;
         }
-        case Ordering::GREATER:
-        case Ordering::GREATER_EQ: {
+        case Ordering::GREATER: {
           traverse<1,/*unidirectional=*/true>(s);
           traverse<-1,/*unidirectional=*/true>(t);
           if (!checkVars()) {
@@ -933,13 +929,11 @@ Ordering::Result KBO::isGreaterOrEq(AppliedTerm tl1, AppliedTerm tl2) const
     : compareFunctionPrecedences(t1->functor(),t2->functor());
   switch (comp)
   {
-    case Ordering::LESS:
-    case Ordering::LESS_EQ: {
+    case Ordering::LESS: {
       res = INCOMPARABLE;
       break;
     }
-    case Ordering::GREATER:
-    case Ordering::GREATER_EQ: {
+    case Ordering::GREATER: {
       res = state->traverseNonLex</*unidirectional=*/true>(tl1,tl2);
       break;
     }

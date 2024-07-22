@@ -67,12 +67,10 @@ bool EqHelper::hasGreaterEqualitySide(Literal* eq, const Ordering& ord, TermList
     case Ordering::INCOMPARABLE:
       return false;
     case Ordering::GREATER:
-    case Ordering::GREATER_EQ:
       lhs = *eq->nthArgument(0);
       rhs = *eq->nthArgument(1);
       return true;
     case Ordering::LESS:
-    case Ordering::LESS_EQ:
       lhs = *eq->nthArgument(1);
       rhs = *eq->nthArgument(0);
       return true;
@@ -218,11 +216,9 @@ VirtualIterator<TypedTermList> EqHelper::getRewritableVarsIterator(DHSet<unsigne
   }
   case Ordering::EQUAL:
   case Ordering::GREATER:
-  case Ordering::GREATER_EQ:
     sel=*lit->nthArgument(0);
     break;
   case Ordering::LESS:
-  case Ordering::LESS_EQ:
     sel=*lit->nthArgument(1);
     break;
 #if VDEBUG
@@ -253,11 +249,9 @@ VirtualIterator<ELEMENT_TYPE(SubtermIterator)> EqHelper::getRewritableSubtermIte
     }
     case Ordering::EQUAL:
     case Ordering::GREATER:
-    case Ordering::GREATER_EQ:
       sel=*lit->nthArgument(0);
       break;
     case Ordering::LESS:
-    case Ordering::LESS_EQ:
       sel=*lit->nthArgument(1);
       break;
 #if VDEBUG
@@ -296,10 +290,8 @@ VirtualIterator<TypedTermList> EqHelper::getLHSIterator(Literal* lit, const Orde
     case Ordering::INCOMPARABLE:
       return withEqualitySort(lit, iterItems(t0, t1) );
     case Ordering::GREATER:
-    case Ordering::GREATER_EQ:
       return withEqualitySort(lit, iterItems(t0) );
     case Ordering::LESS:
-    case Ordering::LESS_EQ:
       return withEqualitySort(lit, getSingletonIterator(t1) );
     //there should be no equality literals of equal terms
     case Ordering::EQUAL:
@@ -368,13 +360,11 @@ VirtualIterator<TypedTermList> EqHelper::getSubVarSupLHSIterator(Literal* lit, c
       }
       break;
     case Ordering::GREATER:
-    case Ordering::GREATER_EQ:
       if(t1hisVarOrComb){
         return pvi(getSingletonIterator(TypedTermList(t0,eqSort)));
       }
       break;
     case Ordering::LESS:
-    case Ordering::LESS_EQ:
       if(t0hisVarOrComb){
         return pvi(getSingletonIterator(TypedTermList(t1,eqSort)));
       }
@@ -432,12 +422,10 @@ std::pair<VirtualIterator<TypedTermList>,bool> EqHelper::getDemodulationLHSItera
       }
       break;
     case Ordering::GREATER:
-    case Ordering::GREATER_EQ:
       ASS(t0.containsAllVariablesOf(t1));
       isPreordered = true;
       return { withEqualitySort(lit, getSingletonIterator(t0) ), isPreordered };
     case Ordering::LESS:
-    case Ordering::LESS_EQ:
       ASS(t1.containsAllVariablesOf(t0));
       isPreordered = true;
       return { withEqualitySort(lit, getSingletonIterator(t1) ), isPreordered };

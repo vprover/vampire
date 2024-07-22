@@ -62,10 +62,8 @@ public:
   enum [[nodiscard]] Result {
     GREATER=1,
     LESS=2,
-    GREATER_EQ=3,
-    LESS_EQ=4,
-    EQUAL=5,
-    INCOMPARABLE=6
+    EQUAL=3,
+    INCOMPARABLE=4
   };
 
   Ordering();
@@ -95,7 +93,7 @@ public:
 
   virtual void show(std::ostream& out) const = 0;
 
-  static bool isGorGEorE(Result r) { return (r == GREATER || r == GREATER_EQ || r == EQUAL); }
+  static bool isGorE(Result r) { return (r == GREATER || r == EQUAL); }
 
   void removeNonMaximal(LiteralList*& lits) const;
 
@@ -107,12 +105,8 @@ public:
     switch(r) {
     case GREATER:
       return LESS;
-    case GREATER_EQ:
-      return LESS_EQ;
     case LESS:
       return GREATER;
-    case LESS_EQ:
-      return GREATER_EQ;
     case EQUAL:
     case INCOMPARABLE:
       return r;
@@ -202,8 +196,6 @@ inline std::ostream& operator<<(std::ostream& out, Ordering::Result const& r)
   switch (r) {
     case Ordering::Result::GREATER: return out << "GREATER";
     case Ordering::Result::LESS: return out << "LESS";
-    case Ordering::Result::GREATER_EQ: return out << "GREATER_EQ";
-    case Ordering::Result::LESS_EQ: return out << "LESS_EQ";
     case Ordering::Result::EQUAL: return out << "EQUAL";
     case Ordering::Result::INCOMPARABLE: return out << "INCOMPARABLE";
     default:

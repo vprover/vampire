@@ -127,11 +127,11 @@ struct EqualityFactoring::ResultFn
     TermList srtS = absUnif.subs().apply(srt,0);
     TermList sLHSS = absUnif.subs().apply(sLHS,0);
     TermList sRHSS = absUnif.subs().apply(sRHS,0);
-    if(Ordering::isGorGEorE(_ordering.compare(sRHSS,sLHSS))) {
+    if(Ordering::isGorE(_ordering.compare(sRHSS,sLHSS))) {
       return 0;
     }
     TermList fRHSS = absUnif.subs().apply(fRHS,0);
-    if(Ordering::isGorGEorE(_ordering.compare(fRHSS,sLHSS))) {
+    if(Ordering::isGorE(_ordering.compare(fRHSS,sLHSS))) {
       return 0;
     }
     auto constraints = absUnif.computeConstraintLiterals();
