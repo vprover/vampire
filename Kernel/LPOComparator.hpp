@@ -33,7 +33,7 @@ public:
 
   /** Executes the runtime specialized instructions with concrete substitution. */
   bool check(const SubstApplicator* applicator) const;
-  vstring toString() const override;
+  std::string toString() const override;
 
   /**
    * Represents comparing check between two terms and branching

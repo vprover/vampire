@@ -77,9 +77,9 @@ ostream& operator<<(ostream& out, const Instruction& n)
   return out;
 }
 
-vstring LPOComparator::toString() const
+std::string LPOComparator::toString() const
 {
-  vstringstream str;
+  std::stringstream str;
   switch (_res) {
     case BranchTag::T_EQUAL:
       str << "equal" << endl;
@@ -148,7 +148,7 @@ void deleteDuplicates(Stack<Instruction>& st)
 {
   unsigned removedCnt = 0;
   Map<Instruction,unsigned> lastPos;
-  vvector<unsigned> removedAfter(st.size(),0);
+  std::vector<unsigned> removedAfter(st.size(),0);
 
   // First pass, remember the last position of
   // any duplicate instruction, and update every
@@ -285,7 +285,6 @@ pair<Stack<Instruction>,BranchTag>* LPOComparator::createHelper(TermList tl1, Te
   // Use compare here to filter out as many
   // precomputable comparisons as possible.
   auto comp = lpo.compare(tl1,tl2);
-  ASS(comp != Ordering::LESS_EQ && comp != Ordering::GREATER_EQ);
   if (comp != Ordering::INCOMPARABLE) {
     if (comp == Ordering::LESS) {
       (*ptr)->second = BranchTag::T_INCOMPARABLE;

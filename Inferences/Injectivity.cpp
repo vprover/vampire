@@ -113,7 +113,7 @@ TermList Injectivity::createNewLhs(TermList oldhead, TermStack& termArgs, unsign
   }
 
   Signature::Symbol* func = env.signature->getFunction(oldhead.term()->functor());
-  vstring pref = "inv_" + func->name() + "_";
+  std::string pref = "inv_" + func->name() + "_";
   unsigned iFunc = env.signature->addFreshFunction(func->arity(), pref.c_str() ); 
 
   OperatorType* funcType = func->fnType();

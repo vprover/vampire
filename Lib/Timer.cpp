@@ -262,11 +262,11 @@ void Timer::resetInstructionMeasuring()
    * NOTE: we need to do this before initializing the actual timer
    * (otherwise timer_sigalrm_handler could start asking the uninitialized perf_fd!)
    */
-  
+
   last_instruction_count_read = -1;
   error_to_report = nullptr;
   perf_fd = -1;
-  
+
   struct perf_event_attr pe;
 
   memset(&pe, 0, sizeof(struct perf_event_attr));
@@ -305,8 +305,8 @@ void Timer::deinitializeTimer()
   tv1.it_interval.tv_usec=0;
   tv1.it_interval.tv_sec=0;
   setitimer(ITIMER_REAL, &tv1, &tv2);
-  
-  signal (SIGALRM, SIG_IGN); // unregister the handler (and ignore the rest of SIGALRMs, should they still come) 
+
+  signal (SIGALRM, SIG_IGN); // unregister the handler (and ignore the rest of SIGALRMs, should they still come)
 }
 
 void Timer::syncClock()
@@ -336,7 +336,7 @@ void Timer::syncClock()
   }
 }
 
-vstring Timer::msToSecondsString(int ms)
+std::string Timer::msToSecondsString(int ms)
 {
   return Int::toString(static_cast<float>(ms)/1000)+" s";
 }

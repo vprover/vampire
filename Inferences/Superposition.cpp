@@ -41,7 +41,7 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/AnswerExtractor.hpp"
+#include "Shell/AnswerLiteralManager.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -368,7 +368,7 @@ Clause* Superposition::performSuperposition(
 
   //check that we're not rewriting smaller subterm with larger
   auto comp = ordering.compare(tgtTermS,rwTermS);
-  if(Ordering::isGorGEorE(comp)) {
+  if(Ordering::isGreaterOrEqual(comp)) {
     return 0;
   }
 
@@ -378,11 +378,11 @@ Clause* Superposition::performSuperposition(
     TermList arg1=*rwLitS->nthArgument(1);
 
     if(!arg0.containsSubterm(rwTermS)) {
-      if(Ordering::isGorGEorE(ordering.getEqualityArgumentOrder(rwLitS))) {
+      if(Ordering::isGreaterOrEqual(ordering.getEqualityArgumentOrder(rwLitS))) {
         return 0;
       }
     } else if(!arg1.containsSubterm(rwTermS)) {
-      if(Ordering::isGorGEorE(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
+      if(Ordering::isGreaterOrEqual(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
         return 0;
       }
     }
@@ -478,7 +478,7 @@ Clause* Superposition::performSuperposition(
 
           Ordering::Result o = ordering.compare(currAfter,eqLitS);
 
-          if (o == Ordering::GREATER || o == Ordering::GREATER_EQ || o == Ordering::EQUAL) { // where is GREATER_EQ ever coming from?
+          if (o == Ordering::GREATER || o == Ordering::EQUAL) {
             env.statistics->inferencesBlockedForOrderingAftercheck++;
             return nullptr;
           }
@@ -495,7 +495,7 @@ Clause* Superposition::performSuperposition(
     Literal* newLitC = subst->apply(rwAnsLit, !eqIsResult);
     Literal* newLitD = subst->apply(eqAnsLit, eqIsResult);
     Literal* condLit = subst->apply(eqLit, eqIsResult);
-    res->push(SynthesisManager::getInstance()->makeITEAnswerLiteral(condLit, newLitC, newLitD));
+    res->push(SynthesisALManager::getInstance()->makeITEAnswerLiteral(condLit, newLitC, newLitD));
   }
 
   if(needsToFulfilWeightLimit && !passiveClauseContainer->fulfilsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
@@ -531,23 +531,23 @@ Clause* Superposition::performSuperposition(
 
     // First find which literal it is in the clause, as selection has occured already
     // this should remain the same...?
-    vstring rwPlace = Lib::Int::toString(rwClause->getLiteralPosition(rwLit));
-    vstring eqPlace = Lib::Int::toString(eqClause->getLiteralPosition(eqLit));
+    std::string rwPlace = Lib::Int::toString(rwClause->getLiteralPosition(rwLit));
+    std::string eqPlace = Lib::Int::toString(eqClause->getLiteralPosition(eqLit));
 
-    vstring rwPos="_";
+    std::string rwPos="_";
     ALWAYS(Kernel::positionIn(rwTerm,rwLit,rwPos));
-    vstring eqPos = "("+eqPlace+").2";
+    std::string eqPos = "("+eqPlace+").2";
     rwPos = "("+rwPlace+")."+rwPos;
 
-    vstring eqClauseNum = Lib::Int::toString(eqClause->number());
-    vstring rwClauseNum = Lib::Int::toString(rwClause->number());
+    std::string eqClauseNum = Lib::Int::toString(eqClause->number());
+    std::string rwClauseNum = Lib::Int::toString(rwClause->number());
 
-    vstring extra = eqClauseNum + " into " + rwClauseNum+", unify on "+
+    std::string extra = eqClauseNum + " into " + rwClauseNum+", unify on "+
         eqPos+" in "+eqClauseNum+" and "+
         rwPos+" in "+rwClauseNum;
 
     if (!env.proofExtra) {
-      env.proofExtra = new DHMap<const Unit*,vstring>();
+      env.proofExtra = new DHMap<const Unit*,std::string>();
     }
     env.proofExtra->insert(clause,extra);
   }

@@ -115,7 +115,7 @@ void BackwardSubsumptionDemodulation::perform(Clause* sideCl, BwSimplificationRe
   Literal* lmLit1 = best2.first.lit();
   Literal* lmLit2 = best2.second.lit();
 
-  static vvector<BwSimplificationRecord> simplificationsStorage;
+  static std::vector<BwSimplificationRecord> simplificationsStorage;
   ASS_EQ(simplificationsStorage.size(), 0);
 
   if (!lmLit1->isEquality() || !lmLit1->isPositive()) {
@@ -134,7 +134,7 @@ void BackwardSubsumptionDemodulation::perform(Clause* sideCl, BwSimplificationRe
 }  // perform
 
 
-void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Literal* candidateQueryLit, vvector<BwSimplificationRecord>& simplifications)
+void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Literal* candidateQueryLit, std::vector<BwSimplificationRecord>& simplifications)
 {
   //   sideCl
   // vvvvvvvvvv
@@ -258,9 +258,9 @@ void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Litera
 
 /// Handles the matching part.
 /// Returns true iff the main premise has been simplified.
-bool BackwardSubsumptionDemodulation::simplifyCandidate(Clause* sideCl, Clause* mainCl, vvector<BwSimplificationRecord>& simplifications)
+bool BackwardSubsumptionDemodulation::simplifyCandidate(Clause* sideCl, Clause* mainCl, std::vector<BwSimplificationRecord>& simplifications)
 {
-    static vvector<LiteralList*> alts;
+    static std::vector<LiteralList*> alts;
 
     alts.clear();
     alts.resize(sideCl->length(), LiteralList::empty());
@@ -383,7 +383,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
   }
 
   // isMatched[i] is true iff (*mainCl)[i] is matched by some literal in sideCl (other than eqLit)
-  static vvector<bool> isMatched;
+  static std::vector<bool> isMatched;
   matcher.getMatchedAltsBitmap(isMatched);
 
   static OverlayBinder binder;
@@ -391,7 +391,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
   matcher.getBindings(binder.base());
 
   // NOTE: for explanation see comments in ForwardSubsumptionDemodulation::perform
-  static vvector<TermList> lhsVector;
+  static std::vector<TermList> lhsVector;
   lhsVector.clear();
   {
     TermList t0 = *eqLit->nthArgument(0);
@@ -415,12 +415,10 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
         RSTAT_MCTR_INC("BSD, lhsVector.size() when INCOMPARABLE", lhsVector.size());
         break;
       case Ordering::GREATER:
-      case Ordering::GREATER_EQ:
         ASS(termContainsAllVariablesOfOtherUnderSubst(t0, t1, applicator));
         lhsVector.push_back(t0);
         break;
       case Ordering::LESS:
-      case Ordering::LESS_EQ:
         ASS(termContainsAllVariablesOfOtherUnderSubst(t1, t0, applicator));
         lhsVector.push_back(t1);
         break;
@@ -567,7 +565,6 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
             }
           }
           Ordering::Result r_cmp_t = ordering.compare(rhsS, t);
-          ASS_NEQ(r_cmp_t, Ordering::LESS_EQ);  // NOTE: LESS_EQ doesn't seem to occur in the code currently. It is unclear why the ordering is not simplified to LESS, EQUAL and GREATER.
           if (r_cmp_t == Ordering::LESS) {
             // rhsS < t implies eqLitS < dlit
             ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);

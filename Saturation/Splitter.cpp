@@ -616,7 +616,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
 // Splitter
 //////////////
 
-vstring Splitter::splPrefix = "";
+std::string Splitter::splPrefix = "";
 
 Splitter::Splitter()
 : _deleteDeactivated(Options::SplittingDeleteDeactivated::ON), _branchSelector(*this),
@@ -727,7 +727,7 @@ SATLiteral Splitter::getLiteralFromName(SplitLevel compName)
   bool polarity = (compName&1)==0;
   return SATLiteral(var, polarity);
 }
-vstring Splitter::getFormulaStringFromName(SplitLevel compName, bool negated)
+std::string Splitter::getFormulaStringFromName(SplitLevel compName, bool negated)
 {
   SATLiteral lit = getLiteralFromName(compName);
   if (negated) {
@@ -774,7 +774,7 @@ Clause* Splitter::reintroduceAvatarAssertions(Clause* cl) {
     ASS(compCl->length() == 1);
     resLits->push(Literal::complementaryLiteral((*compCl)[0]));
   }
-  return Clause::fromStack(*resLits, Inference(NonspecificInference1(InferenceRule::AVATAR_ASSERTION_REINTRODUCTION, cl)));
+  return Clause::fromStack(*resLits, Inference(SimplifyingInference1(InferenceRule::AVATAR_ASSERTION_REINTRODUCTION, cl)));
 }
 
 void Splitter::onAllProcessed()
@@ -982,9 +982,9 @@ bool Splitter::handleNonSplittable(Clause* cl)
  * Since the component names in a clauses Splitset should be interpreted as propositional variables,
  * Splitter know how to do their proper printing.
  */
-vstring Splitter::splitsToString(SplitSet* splits)
+std::string Splitter::splitsToString(SplitSet* splits)
 {
-  vostringstream res;
+  std::ostringstream res;
 
   auto it = splits->iter();
   while(it.hasNext()) {
@@ -1224,7 +1224,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
       possibly_flipped_lits = &oplit;
     }
 
-    vstring formula_name = getFormulaStringFromName(posName);
+    std::string formula_name = getFormulaStringFromName(posName);
     Clause* temp = Clause::fromIterator(arrayIter(possibly_flipped_lits, size),
         NonspecificInference0(inpType,InferenceRule::AVATAR_DEFINITION));
     Formula* def_f = new BinaryFormula(IFF,

@@ -167,12 +167,12 @@ SDHelper::ClauseComparisonResult SDHelper::clauseCompare(Literal* const lits1[],
   ASS(env.options->literalComparisonMode() != Options::LiteralComparisonMode::REVERSE);
 
   // Copy given literals so we can sort them
-  vvector<Literal*> c1(lits1, lits1+n1);
-  vvector<Literal*> c2(lits2, lits2+n2);
+  std::vector<Literal*> c1(lits1, lits1+n1);
+  std::vector<Literal*> c2(lits2, lits2+n2);
 
   // These will contain literals from c1/c2 with equal occurrences removed
-  vvector<Literal*> v1;
-  vvector<Literal*> v2;
+  std::vector<Literal*> v1;
+  std::vector<Literal*> v2;
 
   // The equality tests below only make sense for shared literals
   std::for_each(c1.begin(), c1.end(), [](Literal* lit) { ASS(lit->shared()); });
@@ -239,10 +239,6 @@ SDHelper::ClauseComparisonResult SDHelper::clauseCompare(Literal* const lits1[],
           break;
         case Ordering::EQUAL:
           // should not happen due to first part where we remove equal literals
-          ASSERTION_VIOLATION;
-        case Ordering::LESS_EQ:
-        case Ordering::GREATER_EQ:
-          // those don't appear
           ASSERTION_VIOLATION;
         default:
           ASSERTION_VIOLATION;

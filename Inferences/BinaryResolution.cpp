@@ -38,7 +38,7 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/AnswerExtractor.hpp"
+#include "Shell/AnswerLiteralManager.hpp"
 #include "Shell/InstanceRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
@@ -142,7 +142,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   Literal* dAnsLit = synthesis ? resultCl->getAnswerLiteral() : nullptr;
   bool bothHaveAnsLit = (cAnsLit != nullptr) && (dAnsLit != nullptr);
 
-  inf_destroyer.disable(); // ownership passed to the the clause below
   RStack<Literal*> resLits;
 
   Literal* queryLitAfter = 0;
@@ -171,7 +170,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
 
         if (o == Ordering::GREATER ||
             (ls->isPositiveForSelection(newLit)    // strict maximimality for positive literals
-                && (o == Ordering::GREATER_EQ || o == Ordering::EQUAL))) { // where is GREATER_EQ ever coming from?
+                && o == Ordering::EQUAL)) {
           env.statistics->inferencesBlockedForOrderingAftercheck++;
           return nullptr;
         }
@@ -205,7 +204,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
 
         if (o == Ordering::GREATER ||
             (ls->isPositiveForSelection(newLit)   // strict maximimality for positive literals
-                && (o == Ordering::GREATER_EQ || o == Ordering::EQUAL))) { // where is GREATER_EQ ever coming from?
+                && o == Ordering::EQUAL)) {
           env.statistics->inferencesBlockedForOrderingAftercheck++;
           return nullptr;
         }
@@ -223,7 +222,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
      Literal* newLitD = subs->applyToResult(dAnsLit);
      bool cNeg = queryLit->isNegative();
      Literal* condLit = cNeg ? subs->applyToResult(resultLit) : subs->applyToQuery(queryLit);
-     resLits->push(SynthesisManager::getInstance()->makeITEAnswerLiteral(condLit, cNeg ? newLitC : newLitD, cNeg ? newLitD : newLitC));
+     resLits->push(SynthesisALManager::getInstance()->makeITEAnswerLiteral(condLit, cNeg ? newLitC : newLitD, cNeg ? newLitD : newLitC));
    }
 
   if(nConstraints != 0){
@@ -233,7 +232,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     env.statistics->resolution++;
   }
 
-  return Clause::fromStack(*resLits, inf); // the inference object owned by res from now on
+  inf_destroyer.disable(); // ownership passed to the the clause below
+  return Clause::fromStack(*resLits, inf);
 }
 Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, 
                                 ResultSubstitutionSP subs, const Options& opts)

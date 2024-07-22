@@ -34,13 +34,11 @@ KBOComparator::KBOComparator(TermList tl1, TermList tl2, const KBO& kbo)
 
     auto comp = kbo.compare(lhs,rhs);
     switch (comp) {
-      case Ordering::LESS:
-      case Ordering::LESS_EQ: {
+      case Ordering::LESS: {
         // at this point the execution will fail, no further instructions
         return;
       }
-      case Ordering::GREATER:
-      case Ordering::GREATER_EQ: {
+      case Ordering::GREATER: {
         // at this point the execution will succeed, push SUCCESS
         _instructions.push(Instruction::uintUint(InstructionTag::SUCCESS));
         return;
@@ -130,13 +128,11 @@ KBOComparator::KBOComparator(TermList tl1, TermList tl2, const KBO& kbo)
       : kbo.compareFunctionPrecedences(lhst->functor(),rhst->functor());
     switch (prec)
     {
-      case Ordering::LESS:
-      case Ordering::LESS_EQ: {
+      case Ordering::LESS: {
         // again, this means the execution failed
         return;
       }
-      case Ordering::GREATER:
-      case Ordering::GREATER_EQ: {
+      case Ordering::GREATER: {
         // and this means the execution succeeded
         _instructions.push(Instruction::uintUint(InstructionTag::SUCCESS));
         return;
@@ -270,9 +266,9 @@ void KBOComparator::countSymbols(const KBO& kbo, DHMap<unsigned,int>& vars, int&
   }
 }
 
-vstring KBOComparator::toString() const
+std::string KBOComparator::toString() const
 {
-  vstringstream str;
+  std::stringstream str;
 
   unsigned cnt = 1;
   for (unsigned i = 0; i < _instructions.size();) {

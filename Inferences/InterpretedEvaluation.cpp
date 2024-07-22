@@ -54,20 +54,14 @@ InterpretedEvaluation::~InterpretedEvaluation()
 
 
 bool InterpretedEvaluation::simplifyLiteral(Literal* lit,
-	bool& constant, Literal*& res, bool& constantTrue,Stack<Literal*>& sideConditions)
+	bool& constant, Literal*& res, bool& constantTrue)
 {
   if(lit->numTermArguments()==0) {
     //we have no interpreted predicates of zero arity
     return false;
   }
 
-  bool okay = _simpl->evaluate(lit, constant, res, constantTrue,sideConditions);
-
-  //if(okay && lit!=res){
-  //  cout << "evaluate " << lit->toString() << " to " << res->toString() << endl;
-  //}
-
-  return okay;
+  return _simpl->evaluate(lit, constant, res, constantTrue);
 }
 
 Clause* InterpretedEvaluation::simplify(Clause* cl)
@@ -89,12 +83,11 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
     RStack<Literal*> resLits;
     unsigned clen=cl->length();
     bool modified=false;
-    RStack<Literal*> sideConditions;
     for(unsigned li=0;li<clen; li++) {
       Literal* lit=(*cl)[li];
       Literal* res;
       bool constant, constTrue;
-      bool litMod=simplifyLiteral(lit, constant, res, constTrue,*sideConditions);
+      bool litMod=simplifyLiteral(lit, constant, res, constTrue);
       if(!litMod) {
         resLits->push(lit);
         continue;
@@ -115,9 +108,6 @@ Clause* InterpretedEvaluation::simplify(Clause* cl)
     if(!modified) {
       return cl;
     }
-
-    ASS(sideConditions->isEmpty())
-    resLits->loadFromIterator(sideConditions->iterFifo());
 
     env.statistics->evaluationCnt++;
     return Clause::fromStack(*resLits,SimplifyingInference1(InferenceRule::EVALUATION, cl));

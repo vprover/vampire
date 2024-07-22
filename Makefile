@@ -34,7 +34,7 @@ endif
 
 DBG_FLAGS = -g -DVTIME_PROFILING=0 -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider
 # DELETEMEin2017: the bug with gcc-6.2 and problems in ClauseQueue could be also fixed by adding -fno-tree-ch
-REL_FLAGS = -O3 -DVTIME_PROFILING=0 -DVDEBUG=0 # no debugging
+REL_FLAGS = -O3 -DVTIME_PROFILING=0 -DVDEBUG=0 -D NDEBUG # no debugging
 GCOV_FLAGS = -O0 --coverage #-pedantic
 
 MINISAT_DBG_FLAGS = -D DEBUG
@@ -243,7 +243,7 @@ VI_OBJ = Indexing/AcyclicityIndex.o\
          Indexing/TermSharing.o\
 
 VINF_OBJ=Inferences/BackwardDemodulation.o\
-         Inferences/BackwardSubsumptionResolution.o\
+         Inferences/BackwardSubsumptionAndResolution.o\
          Inferences/BackwardSubsumptionDemodulation.o\
          Inferences/BinaryResolution.o\
          Inferences/Condensation.o\
@@ -273,13 +273,12 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/InnerRewriting.o\
          Inferences/EquationalTautologyRemoval.o\
          Inferences/InferenceEngine.o\
-	 Inferences/Instantiation.o\
+         Inferences/Instantiation.o\
          Inferences/InterpretedEvaluation.o\
          Inferences/PushUnaryMinus.o\
          Inferences/Cancellation.o\
          Inferences/PolynomialEvaluation.o\
          Inferences/ArithmeticSubtermGeneralization.o\
-         Inferences/SLQueryBackwardSubsumption.o\
          Inferences/Superposition.o\
          Inferences/TautologyDeletionISE.o\
          Inferences/TermAlgebraReasoning.o\
@@ -296,8 +295,13 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BoolEqToDiseq.o\
          Inferences/GaussianVariableElimination.o\
          Inferences/InterpretedEvaluation.o\
-         Inferences/InvalidAnswerLiteralRemoval.o\
-         Inferences/TheoryInstAndSimp.o
+         Inferences/InvalidAnswerLiteralRemovals.o\
+         Inferences/TheoryInstAndSimp.o\
+         SATSubsumption/SATSubsumptionAndResolution.o\
+         SATSubsumption/subsat/constraint.o\
+         SATSubsumption/subsat/log.o\
+         SATSubsumption/subsat/subsat.o\
+         SATSubsumption/subsat/types.o
 
 VSAT_OBJ=SAT/MinimizingSolver.o\
          SAT/SAT2FO.o\
@@ -324,7 +328,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/SymElOutput.o\
          Saturation/ManCSPassiveClauseContainer.o\
 
-VS_OBJ = Shell/AnswerExtractor.o\
+VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/CommandLine.o\
          Shell/CNF.o\
          Shell/NewCNF.o\

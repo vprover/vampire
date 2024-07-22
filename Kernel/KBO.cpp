@@ -93,9 +93,9 @@ protected:
   Result innerResult(TermList t1, TermList t2);
   Result applyVariableCondition(Result res)
   {
-    if(_posNum>0 && (res==LESS || res==LESS_EQ || res==EQUAL)) {
+    if(_posNum>0 && (res==LESS || res==EQUAL)) {
       res=INCOMPARABLE;
-    } else if(_negNum>0 && (res==GREATER || res==GREATER_EQ || res==EQUAL)) {
+    } else if(_negNum>0 && (res==GREATER || res==EQUAL)) {
       res=INCOMPARABLE;
     }
     return res;
@@ -307,8 +307,6 @@ Ordering::Result KBO::State::traverseLexBidir(AppliedTerm tl1, AppliedTerm tl2)
         _lexResult=innerResult(s.term, t.term);
         lexValidDepth=depth;
         ASS(_lexResult!=EQUAL);
-        ASS(_lexResult!=GREATER_EQ);
-        ASS(_lexResult!=LESS_EQ);
       }
     }
   }
@@ -382,12 +380,10 @@ Ordering::Result KBO::State::traverseLexUnidir(AppliedTerm tl1, AppliedTerm tl2)
         : _kbo.compareFunctionPrecedences(s.term.term()->functor(),t.term.term()->functor());
       switch (comp)
       {
-        case Ordering::LESS:
-        case Ordering::LESS_EQ: {
+        case Ordering::LESS: {
           return INCOMPARABLE;
         }
-        case Ordering::GREATER:
-        case Ordering::GREATER_EQ: {
+        case Ordering::GREATER: {
           traverse<1,/*unidirectional=*/true>(s);
           traverse<-1,/*unidirectional=*/true>(t);
           if (!checkVars()) {
@@ -438,10 +434,10 @@ struct PredSigTraits {
   static bool isColored(unsigned functor) 
   { return env.signature->predicateColored(functor);}
 
-  static bool tryGetFunctor(const vstring& sym, unsigned arity, unsigned& out) 
+  static bool tryGetFunctor(const std::string& sym, unsigned arity, unsigned& out) 
   { return env.signature->tryGetPredicateNumber(sym,arity, out); }
 
-  static const vstring& weightFileName(const Options& opts) 
+  static const std::string& weightFileName(const Options& opts) 
   { return opts.predicateWeights(); } 
 
   static bool isUnaryFunction (unsigned functor) 
@@ -466,10 +462,10 @@ struct FuncSigTraits {
   static bool isColored(unsigned functor) 
   { return env.signature->functionColored(functor);}
 
-  static bool tryGetFunctor(const vstring& sym, unsigned arity, unsigned& out) 
+  static bool tryGetFunctor(const std::string& sym, unsigned arity, unsigned& out) 
   { return env.signature->tryGetFunctionNumber(sym,arity, out); }
 
-  static const vstring& weightFileName(const Options& opts) 
+  static const std::string& weightFileName(const Options& opts) 
   { return opts.functionWeights(); } 
 
   static bool isUnaryFunction (unsigned functor) 
@@ -539,7 +535,7 @@ KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const
   ///////////////////////// parsing helper functions ///////////////////////// 
  
   /** opens the file with name f or throws a UserError on failure  */
-  auto openFile = [](const vstring& f) -> ifstream {
+  auto openFile = [](const std::string& f) -> ifstream {
     ifstream file(f.c_str());
     if (!file.is_open()) {
       throw UserErrorException("failed to open file ", f);
@@ -547,13 +543,13 @@ KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const
     return file;
   };
 
-  auto parseDefaultSymbolWeight = [&openFile](const vstring& fname) -> unsigned {
+  auto parseDefaultSymbolWeight = [&openFile](const std::string& fname) -> unsigned {
     if (!fname.empty()) {
       auto file = openFile(fname);
-      for (vstring ln; getline(file, ln);) {
+      for (std::string ln; getline(file, ln);) {
         unsigned dflt;
-        vstring special_name;
-        bool err = !(vstringstream(ln) >> special_name >> dflt);
+        std::string special_name;
+        bool err = !(std::stringstream(ln) >> special_name >> dflt);
         if (!err && special_name == SPECIAL_WEIGHT_IDENT_DEFAULT_WEIGHT) {
           return dflt;
         }
@@ -563,10 +559,10 @@ KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const
   };
 
   /** tries to parse line of the form `<special_name> <weight>` */
-  auto tryParseSpecialLine = [](const vstring& ln, unsigned& introducedWeight, KboSpecialWeights<SigTraits>& specialWeights) -> bool {
-    vstringstream lnstr(ln);
+  auto tryParseSpecialLine = [](const std::string& ln, unsigned& introducedWeight, KboSpecialWeights<SigTraits>& specialWeights) -> bool {
+    std::stringstream lnstr(ln);
 
-    vstring name;
+    std::string name;
     unsigned weight;
     bool ok = !!(lnstr >> name >> weight);
     if (ok) {
@@ -581,10 +577,10 @@ KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const
   };
 
   /** tries to parse line of the form `<name> <arity> <weight>` */
-  auto tryParseNormalLine = [&](const vstring& ln) -> bool {
-    vstringstream lnstr(ln);
+  auto tryParseNormalLine = [&](const std::string& ln) -> bool {
+    std::stringstream lnstr(ln);
 
-    vstring name;
+    std::string name;
     unsigned arity;
     unsigned weight;
     bool ok = !!(lnstr >> name >> arity >> weight);
@@ -619,7 +615,7 @@ KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const
 
   auto file = openFile(filename);
 
-  for (vstring ln; getline(file, ln);) {
+  for (std::string ln; getline(file, ln);) {
     if (!tryParseNormalLine(ln) && !tryParseSpecialLine(ln, introducedWeight, specialWeights)) {
       throw Lib::UserErrorException(
              "failed to read line from file ",   filename, "\n",
@@ -933,13 +929,11 @@ Ordering::Result KBO::isGreaterOrEq(AppliedTerm tl1, AppliedTerm tl2) const
     : compareFunctionPrecedences(t1->functor(),t2->functor());
   switch (comp)
   {
-    case Ordering::LESS:
-    case Ordering::LESS_EQ: {
+    case Ordering::LESS: {
       res = INCOMPARABLE;
       break;
     }
-    case Ordering::GREATER:
-    case Ordering::GREATER_EQ: {
+    case Ordering::GREATER: {
       res = state->traverseNonLex</*unidirectional=*/true>(tl1,tl2);
       break;
     }

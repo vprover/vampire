@@ -87,7 +87,7 @@ Options::TheoryInstSimp manageDeprecations(Options::TheoryInstSimp mode)
   }
 }
 
-TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, vstring const& exportSmtlib) 
+TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, std::string const& exportSmtlib) 
   : _splitter(0)
   , _mode(manageDeprecations(mode))
   , _thiTautologyDeletion(thiTautologyDeletion)
@@ -929,10 +929,10 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
 
   DEBUG("input:             ", *premise);
   DEBUG("selected literals: ", iterTraits(selectedLiterals.iterFifo())
-                                 .map([](Literal* l) -> vstring { return l->toString(); })
+                                 .map([](Literal* l) -> std::string { return l->toString(); })
                                  .collect<Stack>())
   DEBUG("guards:            ", iterTraits(guards.iterFifo())
-                                 .map([](Literal* l) -> vstring { return l->toString(); })
+                                 .map([](Literal* l) -> std::string { return l->toString(); })
                                  .collect<Stack>())
   TIME_TRACE(THEORY_INST_SIMP);
 

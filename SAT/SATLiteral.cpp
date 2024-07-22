@@ -30,7 +30,7 @@ using namespace std;
 using namespace Lib;
 using namespace Shell;
 
-vstring SATLiteral::toString() const
+std::string SATLiteral::toString() const
 {
   if(isPositive()) {
     return Int::toString(var());

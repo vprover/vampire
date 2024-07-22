@@ -27,6 +27,7 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Portability.hpp"
+#include "Kernel/SubstHelper.hpp"
 
 namespace Kernel {
 
@@ -41,7 +42,7 @@ using namespace Shell;
 struct OrderingComparator
 {
   virtual ~OrderingComparator() = default;
-  virtual vstring toString() const = 0;
+  virtual std::string toString() const = 0;
 };
 
 /**
@@ -61,33 +62,37 @@ public:
   enum [[nodiscard]] Result {
     GREATER=1,
     LESS=2,
-    GREATER_EQ=3,
-    LESS_EQ=4,
-    EQUAL=5,
-    INCOMPARABLE=6
+    EQUAL=3,
+    INCOMPARABLE=4
   };
 
-  Ordering();
-  virtual ~Ordering();
+  virtual ~Ordering() = default;
 
   /** Return the result of comparing @b l1 and @b l2 */
   virtual Result compare(Literal* l1,Literal* l2) const = 0;
+
   /** Return the result of comparing terms (not term lists!)
    * @b t1 and @b t2 */
   virtual Result compare(TermList t1,TermList t2) const = 0;
+
   /** Same as @b compare, for applied (substituted) terms. */
-  virtual Result compare(AppliedTerm t1, AppliedTerm t2) const = 0;
+  virtual Result compare(AppliedTerm lhs, AppliedTerm rhs) const
+  { return compare(lhs.apply(), rhs.apply()); }
+
   /** Optimised function used for checking that @b t1 is greater than @b t2,
    * under some substitutions captured by @b AppliedTerm. */
-  virtual bool isGreater(AppliedTerm t1, AppliedTerm t2) const = 0;
+  virtual bool isGreater(AppliedTerm t1, AppliedTerm t2) const
+  { return compare(t1, t2) == Result::GREATER; }
 
   /** Optimised function used for checking that @b lhs is greater than @b rhs,
    * under substitution represented by @b applicator. */
-  virtual bool isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, OrderingComparatorUP& comparator) const = 0;
+  virtual bool isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, OrderingComparatorUP& comparator) const
+  { return isGreater(AppliedTerm(lhs, applicator, /* aboveVar */ true),
+                     AppliedTerm(rhs, applicator, /* aboveVar */ true)); }
 
   virtual void show(std::ostream& out) const = 0;
 
-  static bool isGorGEorE(Result r) { return (r == GREATER || r == GREATER_EQ || r == EQUAL); }
+  static bool isGreaterOrEqual(Result r) { return (r == GREATER || r == EQUAL); }
 
   void removeNonMaximal(LiteralList*& lits) const;
 
@@ -99,12 +104,8 @@ public:
     switch(r) {
     case GREATER:
       return LESS;
-    case GREATER_EQ:
-      return LESS_EQ;
     case LESS:
       return GREATER;
-    case LESS_EQ:
-      return GREATER_EQ;
     case EQUAL:
     case INCOMPARABLE:
       return r;
@@ -125,12 +126,15 @@ protected:
   Result compareEqualities(Literal* eq1, Literal* eq2) const;
 
 private:
-  void createEqualityComparator();
-  void destroyEqualityComparator();
-
-  class EqCmp;
-  /** Object used to compare equalities */
-  EqCmp* _eqCmp;
+  /**
+   * Helper methods for comparing literals s1=s2 and t1=t2.
+   */
+  Result compare_s1Gt1(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1It1(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1It1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1Gt1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1Gt1_s2Lt2(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1Gt1_s1It2_s2It1(TermList s1,TermList s2,TermList t1,TermList t2) const;
 
   /**
    * We store orientation of equalities in this ordering inside
@@ -194,8 +198,6 @@ inline std::ostream& operator<<(std::ostream& out, Ordering::Result const& r)
   switch (r) {
     case Ordering::Result::GREATER: return out << "GREATER";
     case Ordering::Result::LESS: return out << "LESS";
-    case Ordering::Result::GREATER_EQ: return out << "GREATER_EQ";
-    case Ordering::Result::LESS_EQ: return out << "LESS_EQ";
     case Ordering::Result::EQUAL: return out << "EQUAL";
     case Ordering::Result::INCOMPARABLE: return out << "INCOMPARABLE";
     default:

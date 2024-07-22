@@ -52,7 +52,7 @@ private:
   ~Clause() { ASSERTION_VIOLATION; }
   /** Should never be used, just that compiler requires it */
   void operator delete(void* ptr) { ASSERTION_VIOLATION; }
-  
+
   template<class VarIt>
   void collectVars2(DHSet<unsigned>& acc);
 public:
@@ -67,7 +67,7 @@ public:
     /** queue of unprocessed clauses */
     UNPROCESSED = 2u,
     /** anything else */
-    NONE = 3u,  
+    NONE = 3u,
     /** clause is selected from the passive container
      * and is not added to the active one yet */
     SELECTED = 4u
@@ -134,10 +134,10 @@ public:
 
   void destroy();
   void destroyExceptInferenceObject();
-  vstring literalsOnlyToString() const;
-  vstring toString() const;
-  vstring toTPTPString() const;
-  vstring toNiceString() const;
+  std::string literalsOnlyToString() const;
+  std::string toString() const;
+  std::string toTPTPString() const;
+  std::string toNiceString() const;
 
   /** Return the clause store */
   Store store() const { return _store; }
@@ -159,7 +159,7 @@ public:
     notifyLiteralReorder();
   }
 
-  /** Return the weight */
+  /** Return the weight = sum of literal weights (usually the number of symbols) */
   unsigned weight() const
   {
     if(!_weight) {
@@ -265,14 +265,13 @@ public:
     ASS(_weight == 0);
     _inference.setSplits(splits);
   }
-   
 
   int getNumActiveSplits() const { return _numActiveSplits; }
   void setNumActiveSplits(int newVal) { _numActiveSplits = newVal; }
   void incNumActiveSplits() { _numActiveSplits++; }
   void decNumActiveSplits() { _numActiveSplits--; }
 
-  VirtualIterator<vstring> toSimpleClauseStrings();
+  VirtualIterator<std::string> toSimpleClauseStrings();
 
   void setAux()
   {
@@ -349,7 +348,7 @@ public:
   void collectVars(DHSet<unsigned>& acc);
   void collectUnstableVars(DHSet<unsigned>& acc);
 
-  
+
   unsigned varCnt();
   unsigned maxVar(); // useful to create fresh variables w.r.t. the clause
 

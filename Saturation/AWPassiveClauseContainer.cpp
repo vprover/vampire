@@ -43,12 +43,12 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
-AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name) :
+AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, std::string name) :
   PassiveClauseContainer(isOutermost, opt, name),
   _ageQueue(opt),
   _weightQueue(opt),
-  _ageRatio(opt.ageRatio()),
-  _weightRatio(opt.weightRatio()),
+  _ageRatio(opt.ageWeightRatio().n0),
+  _weightRatio(opt.ageWeightRatio().n1),
   _balance(0),
   _size(0),
 
@@ -262,8 +262,8 @@ Clause* AWPassiveClauseContainer::popSelected()
   count++;
 
   bool is_converging = shape == Options::AgeWeightRatioShape::CONVERGE;
-  int targetAgeRatio = is_converging ? _opt.ageRatio() : 1;
-  int targetWeightRatio = is_converging ? _opt.weightRatio() : 1;
+  int targetAgeRatio = is_converging ? _opt.ageWeightRatio().n0 : 1;
+  int targetWeightRatio = is_converging ? _opt.ageWeightRatio().n1 : 1;
 
   if(count % frequency == 0) {
     switch(shape) {

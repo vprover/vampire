@@ -88,11 +88,26 @@ enum ArgumentOrderVals {
   AO_UNKNOWN=0,
   AO_GREATER=1,
   AO_LESS=2,
-  AO_GREATER_EQ=3,
-  AO_LESS_EQ=4,
-  AO_EQUAL=5,
-  AO_INCOMPARABLE=6,
+  AO_EQUAL=3,
+  AO_INCOMPARABLE=4,
 };
+
+enum class TermKind : unsigned {
+  LITERAL,
+  TERM,
+  SORT,
+};
+
+/* a function symbol of a composite term. in addition to the function symbol id (the functor in vampire terminology) we store what kind of term (i.e. term, literal or sort) it is. */
+struct SymbolId {
+  unsigned functor;
+  TermKind kind;
+  friend bool operator==(SymbolId const& l, SymbolId const& r) 
+  { return std::tie(l.functor, l.kind) == std::tie(r.functor, r.kind); }
+  friend bool operator<(SymbolId const& l, SymbolId const& r) 
+  { return std::tie(l.functor, l.kind) < std::tie(r.functor, r.kind); }
+};
+
 
 /**
  * Class containing either a pointer to a compound term or
@@ -167,7 +182,7 @@ public:
   unsigned defaultHash() const { return DefaultHash::hash(content()); }
   unsigned defaultHash2() const { return content(); }
 
-  vstring toString(bool topLevel = true) const;
+  std::string toString(bool topLevel = true) const;
 
   friend std::ostream& operator<<(std::ostream& out, Kernel::TermList const& tl);
   /** make the term into an ordinary variable with a given number */
@@ -181,9 +196,10 @@ public:
    */
   inline static TermList empty()
   { return TermList(); }
+
   /** the top of a term is either a function symbol or a variable id. this class is model this */
   class Top {
-    using Inner = Coproduct<unsigned, unsigned>;
+    using Inner = Coproduct<unsigned, SymbolId>;
     static constexpr unsigned VAR = 0;
     static constexpr unsigned FUN = 1;
     Inner _inner;
@@ -191,11 +207,11 @@ public:
     Top(Inner self) : _inner(self) {}
   public:
     static Top var    (unsigned v) { return Top(Inner::variant<VAR>(v)); }
-    static Top functor(unsigned f) { return Top(Inner::variant<FUN>(f)); }
+    // static Top functor(unsigned f) { return Top(Inner::variant<FUN>(f)); }
     template<class T>
-    static Top functor(T const* t) { return Top(Inner::variant<FUN>(t->functor())); }
+    static Top functor(T const* t) { return Top(Inner::variant<FUN>({ t->functor(), t->kind(), })); }
     Option<unsigned> var()     const { return _inner.as<VAR>().toOwned(); }
-    Option<unsigned> functor() const { return _inner.as<FUN>().toOwned(); }
+    Option<SymbolId> functor() const { return _inner.as<FUN>().toOwned(); }
     Lib::Comparison compare(Top const& other) const 
     { return _inner.compare(other._inner); }
     IMPL_COMPARISONS_FROM_COMPARE(Top);
@@ -250,7 +266,7 @@ public:
   friend bool operator<(const TermList& lhs, const TermList& rhs);
 
 private:
-  vstring asArgsToString() const;
+  std::string asArgsToString() const;
 
   // the actual content of a TermList
   // this packs several things in:
@@ -477,7 +493,7 @@ public:
   static Term* createNonShared(Term* t);
   static Term* cloneNonShared(Term* t);
 
-  static Term* createConstant(const vstring& name);
+  static Term* createConstant(const std::string& name);
   /** Create a new constant and insert in into the sharing structure */
   static Term* createConstant(unsigned symbolNumber) { return create(symbolNumber,0,0); }
   static Term* createITE(Formula * condition, TermList thenBranch, TermList elseBranch, TermList branchSort);
@@ -506,10 +522,10 @@ public:
 
   SpecialFunctor specialFunctor() const 
   { return toSpecialFunctor(functor()); }
-  vstring toString(bool topLevel = true) const;
+  std::string toString(bool topLevel = true) const;
   friend std::ostream& operator<<(std::ostream& out, Kernel::Term const& tl);
-  static vstring variableToString(unsigned var);
-  static vstring variableToString(TermList var);
+  static std::string variableToString(unsigned var);
+  static std::string variableToString(TermList var);
 
   /** return the arguments 
    *
@@ -776,12 +792,15 @@ public:
     return _isTwoVarEquality;
   }
 
-  const vstring& functionName() const;
+  const std::string& functionName() const;
 
   /** True if the term is, in fact, a literal */
   bool isLiteral() const { return _args[0]._literal(); }
   /** True if the term is, in fact, a sort */
   bool isSort() const { return _args[0]._sort(); }
+  TermKind kind() const { return isSort() ? TermKind::SORT 
+                               : isLiteral() ? TermKind::LITERAL
+                               : TermKind::TERM; }
   /** true if the term is an application */
   bool isApplication() const;
 
@@ -794,7 +813,7 @@ public:
   }
 
 #if VDEBUG
-  vstring headerToString() const;
+  std::string headerToString() const;
   void assertValid() const;
 #endif
 
@@ -877,7 +896,7 @@ public:
   virtual bool computableOrVar() const;
 
 protected:
-  vstring headToString() const;
+  std::string headToString() const;
 
   unsigned computeDistinctVars() const;
 
@@ -993,7 +1012,7 @@ public:
   static AtomicSort* create2(unsigned tc, TermList arg1, TermList arg2);
   static AtomicSort* create(AtomicSort const* t,TermList* args);
   static AtomicSort* createConstant(unsigned typeCon) { return create(typeCon,0,0); }
-  static AtomicSort* createConstant(const vstring& name); 
+  static AtomicSort* createConstant(const std::string& name); 
 
   /** True if the sort is a higher-order arrow sort */
   bool isArrowSort() const;
@@ -1004,7 +1023,7 @@ public:
   /** true if sort is the sort of an tuple */
   bool isTupleSort() const;
 
-  const vstring& typeConName() const;  
+  const std::string& typeConName() const;  
   
   static TermList arrowSort(TermStack& domSorts, TermList range);
   static TermList arrowSort(TermList s1, TermList s2);
@@ -1204,9 +1223,9 @@ public:
   bool isAnswerLiteral() const;
 
   friend std::ostream& operator<<(std::ostream& out, Kernel::Literal const& tl);
-  vstring toString() const;
+  std::string toString() const;
 
-  const vstring& predicateName() const;
+  const std::string& predicateName() const;
 
   virtual bool computable() const;
   virtual bool computableOrVar() const;
@@ -1218,8 +1237,8 @@ private:
 
 // TODO used in some proofExtra output
 //      find a better place for this?
-bool positionIn(TermList& subterm,TermList* term, vstring& position);
-bool positionIn(TermList& subterm,Term* term, vstring& position);
+bool positionIn(TermList& subterm,TermList* term, std::string& position);
+bool positionIn(TermList& subterm,Term* term, std::string& position);
 
 } // namespace Kernel
 

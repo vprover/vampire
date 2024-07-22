@@ -89,7 +89,7 @@ bool MatchingUtils::isVariant(Literal* l1, Literal* l2, bool complementary)
     TermList s2 = l2->twoVarEqSort();
     if(s1.isVar() && s2.isVar()){}
     else if(s1.isTerm() && s2.isTerm()){
-      if(s1.term()->functor() != s2.term()->functor() || 
+      if(s1.term()->functor() != s2.term()->functor() ||
         !haveVariantArgs(s1.term(), s2.term())){
         return false;
       }
@@ -126,11 +126,11 @@ bool MatchingUtils::haveReversedVariantArgs(Term* l1, Term* l2)
   {
     if(l2->isLiteral() && static_cast<Literal*>(l2)->isTwoVarEquality()){
        s1 = SortHelper::getEqualityArgumentSort(static_cast<Literal*>(l1));
-       s2 = SortHelper::getEqualityArgumentSort(static_cast<Literal*>(l2));  
-       sortUsed = true;     
+       s2 = SortHelper::getEqualityArgumentSort(static_cast<Literal*>(l2));
+       sortUsed = true;
     } else {
       return false;
-    }      
+    }
   }
 
   auto it1 = concatIters(
@@ -140,7 +140,7 @@ bool MatchingUtils::haveReversedVariantArgs(Term* l1, Term* l2)
   VirtualIterator<pair<TermList, TermList> > dsit =
   sortUsed ? pvi(concatIters(vi(new DisagreementSetIterator(s1,s2)), it1)) :
              pvi(it1);
-    
+
   while(dsit.hasNext()) {
     pair<TermList,TermList> dp=dsit.next(); //disagreement pair
     if(!dp.first.isVar() || !dp.second.isVar()) {
@@ -205,12 +205,7 @@ bool MatchingUtils::matchReversedArgs(Literal* base, Literal* instance)
   static MapBinder binder;
   binder.reset();
 
-  bool bTwoVarEq = base->isTwoVarEquality();
-
-  return matchTerms(*base->nthArgument(0), *instance->nthArgument(1), binder) &&
-    matchTerms(*base->nthArgument(1), *instance->nthArgument(0), binder) &&
-    (!bTwoVarEq || matchTerms(base->twoVarEqSort(), SortHelper::getEqualityArgumentSort(instance))
-   );
+  return matchReversedArgs(base, instance, binder);
 }
 
 bool MatchingUtils::matchArgs(Term* base, Term* instance)
@@ -253,7 +248,7 @@ bool MatchingUtils::matchTerms(TermList base, TermList instance)
 
 void OCMatchIterator::init(Literal* base, Literal* inst, bool complementary)
 {
-  //TODO we don't seem to use this iterator anywhere, so 
+  //TODO we don't seem to use this iterator anywhere, so
   //have not updated to polymorphism
   if(!Literal::headersMatch(base, inst, complementary)) {
     _finished=true;
