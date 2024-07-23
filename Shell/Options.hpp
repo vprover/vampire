@@ -71,7 +71,6 @@ struct Ratio {
   IMPL_COMPARISONS_FROM_TUPLE(Ratio)
 };
 
-
 struct Duration {
   unsigned deciseconds;
   static Duration decis(unsigned ds) { return Duration { .deciseconds = ds, }; }
@@ -1116,12 +1115,12 @@ private:
      * @author Giles
      */
     template<typename T>
-    struct OptionValue : public AbstractOptionValue {
+    struct TypedOptionValue : public AbstractOptionValue {
         // We need to include an empty constructor as all the OptionValue objects need to be initialized
         // with something when the Options object is created. They should then all be reconstructed
         // This is annoying but preferable to the alternative in my opinion
-        OptionValue(){}
-        OptionValue(std::string l, std::string s,T def) : AbstractOptionValue(l,s),
+        TypedOptionValue(){}
+        TypedOptionValue(std::string l, std::string s,T def) : AbstractOptionValue(l,s),
         defaultValue(def), actualValue(def){}
 
         // We store the defaultValue separately so that we can check if the actualValue is non-default
@@ -1201,8 +1200,8 @@ private:
     };
 
     template<typename T>
-    struct CompositionalOptionValue : public OptionValue<T> {
-      using OptionValue<T>::OptionValue;
+    struct OptionValue : public TypedOptionValue<T> {
+      using TypedOptionValue<T>::TypedOptionValue;
 
       virtual bool setValue(const std::string& value) override 
       {
@@ -1233,10 +1232,10 @@ private:
      * @author Giles
      */
     template<typename T >
-    struct ChoiceOptionValue : public OptionValue<T> {
+    struct ChoiceOptionValue : public TypedOptionValue<T> {
         ChoiceOptionValue(){}
         ChoiceOptionValue(std::string l, std::string s,T def,OptionChoiceValues c) :
-        OptionValue<T>(l,s,def), choices(c) {}
+        TypedOptionValue<T>(l,s,def), choices(c) {}
         ChoiceOptionValue(std::string l, std::string s,T d) : ChoiceOptionValue(l,s,d, T::optionChoiceValues()) {}
         
         bool setValue(const std::string& value){
@@ -1283,50 +1282,18 @@ private:
         OptionChoiceValues choices;
     };
 
-    // TODO remove this type alias?
-    using IntOptionValue = CompositionalOptionValue<int>;
-    using BoolOptionValue = CompositionalOptionValue<bool>;
-    using FloatOptionValue = CompositionalOptionValue<float>;
-    using LongOptionValue = CompositionalOptionValue<long>;
-    using UnsignedOptionValue = CompositionalOptionValue<unsigned>;
-    using StringOptionValue = CompositionalOptionValue<std::string>;
-    
-    template<class T>
-    struct OptionalOptionValue : public CompositionalOptionValue<Option<T>> {
-        OptionalOptionValue(){}
-        OptionalOptionValue(std::string l, std::string s) : CompositionalOptionValue<Option<T>>(l,s,Option<T>()){}
-    };
 // We now have a number of option-specific values
 // These are necessary when the option needs to be read in a special way
-
-/**
-* Oddly gets set with a float value and then creates a ratio of value*100/100
-* @author Giles
-*/
-struct NonGoalWeightOptionValue : public OptionValue<float>{
-NonGoalWeightOptionValue(){}
-NonGoalWeightOptionValue(std::string l, std::string s, float def) :
-OptionValue(l,s,def), numerator(1), denominator(1) {};
-
-bool setValue(const std::string& value);
-
-// output does not output numerator and denominator as they
-// are produced from defaultValue
-int numerator;
-int denominator;
-
-virtual std::string getStringOfValue(float value) const{ return Lib::Int::toString(value); }
-};
 
 /**
 * Selection is defined by a set of integers (TODO: make enum)
 * For now we need to check the integer is a valid one
 * @author Giles
 */
-struct SelectionOptionValue : public OptionValue<int>{
+struct SelectionOptionValue : public TypedOptionValue<int>{
 SelectionOptionValue(){}
 SelectionOptionValue(std::string l,std::string s, int def):
-OptionValue(l,s,def){};
+TypedOptionValue(l,s,def){};
 
 bool setValue(const std::string& value);
 
@@ -1346,10 +1313,10 @@ AbstractWrappedConstraintUP isLookAheadSelection(){
 * This also updates problemName
 * @author Giles
 */
-struct InputFileOptionValue : public OptionValue<std::string>{
+struct InputFileOptionValue : public TypedOptionValue<std::string>{
 InputFileOptionValue(){}
 InputFileOptionValue(std::string l,std::string s, std::string def,Options* p):
-OptionValue(l,s,def), parent(p){};
+TypedOptionValue(l,s,def), parent(p){};
 
 bool setValue(const std::string& value);
 
@@ -1366,10 +1333,10 @@ Options* parent;
 * We need to decode the encoded option string
 * @author Giles
 */
-struct DecodeOptionValue : public OptionValue<std::string>{
+struct DecodeOptionValue : public TypedOptionValue<std::string>{
 DecodeOptionValue(){ AbstractOptionValue::_should_copy=false;}
 DecodeOptionValue(std::string l,std::string s,Options* p):
-OptionValue(l,s,""), parent(p){ AbstractOptionValue::_should_copy=false;}
+TypedOptionValue(l,s,""), parent(p){ AbstractOptionValue::_should_copy=false;}
 
 bool setValue(const std::string& value){
     parent->readFromEncodedOptions(value);
@@ -1428,11 +1395,11 @@ OptionValueConstraint() : _hard(false) {}
 
 virtual ~OptionValueConstraint() {} // virtual methods present -> there should be virtual destructor
 
-virtual bool check(const OptionValue<T>& value) = 0;
-virtual std::string msg(const OptionValue<T>& value) = 0;
+virtual bool check(const TypedOptionValue<T>& value) = 0;
+virtual std::string msg(const TypedOptionValue<T>& value) = 0;
 
 // By default cannot force constraint
-virtual bool force(OptionValue<T>* value){ return false;}
+virtual bool force(TypedOptionValue<T>* value){ return false;}
 // TODO - allow for hard constraints
 bool isHard(){ return _hard; }
 void setHard(){ _hard=true;}
@@ -1449,7 +1416,7 @@ bool _hard;
 
     template<typename T>
     struct WrappedConstraint : AbstractWrappedConstraint {
-        WrappedConstraint(const OptionValue<T>& v, OptionValueConstraintUP<T> c) : value(v), con(std::move(c)) {}
+        WrappedConstraint(const TypedOptionValue<T>& v, OptionValueConstraintUP<T> c) : value(v), con(std::move(c)) {}
 
         bool check() override {
             return con->check(value);
@@ -1458,7 +1425,7 @@ bool _hard;
             return con->msg(value);
         }
 
-        const OptionValue<T>& value;
+        const TypedOptionValue<T>& value;
         OptionValueConstraintUP<T> con;
     };
 
@@ -1487,10 +1454,10 @@ bool _hard;
     template<typename T>
     struct OptionValueConstraintOrWrapper : public OptionValueConstraint<T>{
         OptionValueConstraintOrWrapper(OptionValueConstraintUP<T> l, OptionValueConstraintUP<T> r) : left(std::move(l)),right(std::move(r)) {}
-        bool check(const OptionValue<T>& value){
+        bool check(const TypedOptionValue<T>& value){
             return left->check(value) || right->check(value);
         }
-        std::string msg(const OptionValue<T>& value){ return left->msg(value) + " or " + right->msg(value); }
+        std::string msg(const TypedOptionValue<T>& value){ return left->msg(value) + " or " + right->msg(value); }
 
         OptionValueConstraintUP<T> left;
         OptionValueConstraintUP<T> right;
@@ -1499,10 +1466,10 @@ bool _hard;
     template<typename T>
     struct OptionValueConstraintAndWrapper : public OptionValueConstraint<T>{
         OptionValueConstraintAndWrapper(OptionValueConstraintUP<T> l, OptionValueConstraintUP<T> r) : left(std::move(l)),right(std::move(r)) {}
-        bool check(const OptionValue<T>& value){
+        bool check(const TypedOptionValue<T>& value){
             return left->check(value) && right->check(value);
         }
-        std::string msg(const OptionValue<T>& value){ return left->msg(value) + " and " + right->msg(value); }
+        std::string msg(const TypedOptionValue<T>& value){ return left->msg(value) + " and " + right->msg(value); }
 
         OptionValueConstraintUP<T> left;
         OptionValueConstraintUP<T> right;
@@ -1512,8 +1479,8 @@ bool _hard;
     struct UnWrappedConstraint : public OptionValueConstraint<T>{
         UnWrappedConstraint(AbstractWrappedConstraintUP c) : con(std::move(c)) {}
 
-        bool check(const OptionValue<T>&){ return con->check(); }
-        std::string msg(const OptionValue<T>&){ return con->msg(); }
+        bool check(const TypedOptionValue<T>&){ return con->check(); }
+        std::string msg(const TypedOptionValue<T>&){ return con->msg(); }
         
         AbstractWrappedConstraintUP con;
     };
@@ -1573,10 +1540,10 @@ bool _hard;
     template<typename T>
     struct Equal : public OptionValueConstraint<T>{
         Equal(T gv) : _goodvalue(gv) {}
-        bool check(const OptionValue<T>& value){
+        bool check(const TypedOptionValue<T>& value){
             return value.actualValue == _goodvalue;
         }
-        std::string msg(const OptionValue<T>& value){
+        std::string msg(const TypedOptionValue<T>& value){
             return value.longName+"("+value.getStringOfActual()+") is equal to " + value.getStringOfValue(_goodvalue);
         }
         T _goodvalue;
@@ -1589,10 +1556,10 @@ bool _hard;
     template<typename T>
     struct NotEqual : public OptionValueConstraint<T>{
         NotEqual(T bv) : _badvalue(bv) {}
-        bool check(const OptionValue<T>& value){
+        bool check(const TypedOptionValue<T>& value){
             return value.actualValue != _badvalue;
         }
-        std::string msg(const OptionValue<T>& value){ return value.longName+"("+value.getStringOfActual()+") is not equal to " + value.getStringOfValue(_badvalue); }
+        std::string msg(const TypedOptionValue<T>& value){ return value.longName+"("+value.getStringOfActual()+") is not equal to " + value.getStringOfValue(_badvalue); }
         T _badvalue;
     };
     template<typename T>
@@ -1605,10 +1572,10 @@ bool _hard;
     template<typename T>
     struct LessThan : public OptionValueConstraint<T>{
         LessThan(T gv,bool eq=false) : _goodvalue(gv), _orequal(eq) {}
-        bool check(const OptionValue<T>& value){
+        bool check(const TypedOptionValue<T>& value){
             return (value.actualValue < _goodvalue || (_orequal && value.actualValue==_goodvalue));
         }
-        std::string msg(const OptionValue<T>& value){
+        std::string msg(const TypedOptionValue<T>& value){
             if(_orequal) return value.longName+"("+value.getStringOfActual()+") is less than or equal to " + value.getStringOfValue(_goodvalue);
             return value.longName+"("+value.getStringOfActual()+") is less than "+ value.getStringOfValue(_goodvalue);
         }
@@ -1630,11 +1597,11 @@ bool _hard;
     template<typename T>
     struct GreaterThan : public OptionValueConstraint<T>{
         GreaterThan(T gv,bool eq=false) : _goodvalue(gv), _orequal(eq) {}
-        bool check(const OptionValue<T>& value){
+        bool check(const TypedOptionValue<T>& value){
             return (value.actualValue > _goodvalue || (_orequal && value.actualValue==_goodvalue));
         }
         
-        std::string msg(const OptionValue<T>& value){
+        std::string msg(const TypedOptionValue<T>& value){
             if(_orequal) return value.longName+"("+value.getStringOfActual()+") is greater than or equal to " + value.getStringOfValue(_goodvalue);
             return value.longName+"("+value.getStringOfActual()+") is greater than "+ value.getStringOfValue(_goodvalue);
         }
@@ -1656,11 +1623,11 @@ bool _hard;
     template<typename T>
     struct SmallerThan : public OptionValueConstraint<T>{
         SmallerThan(T gv,bool eq=false) : _goodvalue(gv), _orequal(eq) {}
-        bool check(const OptionValue<T>& value){
+        bool check(const TypedOptionValue<T>& value){
             return (value.actualValue < _goodvalue || (_orequal && value.actualValue==_goodvalue));
         }
 
-        std::string msg(const OptionValue<T>& value){
+        std::string msg(const TypedOptionValue<T>& value){
             if(_orequal) return value.longName+"("+value.getStringOfActual()+") is smaller than or equal to " + value.getStringOfValue(_goodvalue);
             return value.longName+"("+value.getStringOfActual()+") is smaller than "+ value.getStringOfValue(_goodvalue);
         }
@@ -1689,12 +1656,12 @@ bool _hard;
         IfThenConstraint(OptionValueConstraintUP<T> ic, OptionValueConstraintUP<T> c) :
         if_con(std::move(ic)), then_con(std::move(c)) {}
 
-        bool check(const OptionValue<T>& value){
+        bool check(const TypedOptionValue<T>& value){
             ASS(then_con);
             return !if_con->check(value) || then_con->check(value);
         }
         
-        std::string msg(const OptionValue<T>& value){
+        std::string msg(const TypedOptionValue<T>& value){
             return "if "+if_con->msg(value)+" then "+ then_con->msg(value);
         }
 
@@ -1732,10 +1699,10 @@ bool _hard;
     struct HasBeenSet : public OptionValueConstraint<T> {
       HasBeenSet() {}
 
-        bool check(const OptionValue<T>& value) override {
+        bool check(const TypedOptionValue<T>& value) override {
             return value.is_set;
         }
-        std::string msg(const OptionValue<T>& value) override { return value.longName+"("+value.getStringOfActual()+") has been set";}
+        std::string msg(const TypedOptionValue<T>& value) override { return value.longName+"("+value.getStringOfActual()+") has been set";}
     };
 
     template<typename T>
@@ -1750,10 +1717,10 @@ bool _hard;
     struct NotDefaultConstraint : public OptionValueConstraint<T> {
         NotDefaultConstraint() {}
 
-        bool check(const OptionValue<T>& value){
+        bool check(const TypedOptionValue<T>& value){
             return value.defaultValue != value.actualValue;
         }
-        std::string msg(const OptionValue<T>& value) { return value.longName+"("+value.getStringOfActual()+") is not default("+value.getStringOfValue(value.defaultValue)+")";}
+        std::string msg(const TypedOptionValue<T>& value) { return value.longName+"("+value.getStringOfActual()+") is not default("+value.getStringOfValue(value.defaultValue)+")";}
     };
 
     // You will need to provide the type, optionally use addConstraintIfNotDefault
@@ -1764,10 +1731,10 @@ bool _hard;
 
     struct isLookAheadSelectionConstraint : public OptionValueConstraint<int>{
         isLookAheadSelectionConstraint() {}
-        bool check(const OptionValue<int>& value){
+        bool check(const TypedOptionValue<int>& value){
             return value.actualValue == 11 || value.actualValue == 1011 || value.actualValue == -11 || value.actualValue == -1011;
         }
-        std::string msg(const OptionValue<int>& value){
+        std::string msg(const TypedOptionValue<int>& value){
             return value.longName+"("+value.getStringOfActual()+") is not lookahead selection";
         }
     };
@@ -2198,8 +2165,7 @@ public:
   TACyclicityCheck termAlgebraCyclicityCheck() const { return _termAlgebraCyclicityCheck.actualValue; }
   unsigned extensionalityMaxLength() const { return _extensionalityMaxLength.actualValue; }
   bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq.actualValue; }
-  unsigned nongoalWeightCoefficientNumerator() const { return _nonGoalWeightCoefficient.numerator; }
-  unsigned nongoalWeightCoefficientDenominator() const { return _nonGoalWeightCoefficient.denominator; }
+  Option<float> nongoalWeightCoefficient() const { return _nonGoalWeightCoefficient.actualValue; }
   bool restrictNWCtoGC() const { return _restrictNWCtoGC.actualValue; }
   Sos sos() const { return _sos.actualValue; }
   unsigned sosTheoryLimit() const { return _sosTheoryLimit.actualValue; }
@@ -2427,9 +2393,9 @@ private:
   * An OptionValue stores the value for an Option as well as all the meta-data
   * See the definitions of different OptionValue objects above for details
   * but the main OptionValuse are
-  *  - BoolOptionValue
-  *  - IntOptionValue, UnsignedOptionValue, FloatOptionValue, LongOptionValue
-  *  - StringOptionValue
+  *  - OptionValue<bool>
+  *  - OptionValue<int>, OptionValue<unsigned>, OptionValue<float>
+  *  - OptionValue<std::string>
   *  - ChoiceOptionValue
   *
   * ChoiceOptionValue requires you to define an enum for the choice values
@@ -2442,345 +2408,345 @@ private:
   */
 
   DecodeOptionValue _decode;
-  BoolOptionValue _encode;
+  OptionValue<bool> _encode;
 
-  CompositionalOptionValue<Ratio> _ageWeightRatio;
+  OptionValue<Ratio> _ageWeightRatio;
 	ChoiceOptionValue<AgeWeightRatioShape> _ageWeightRatioShape;
-	UnsignedOptionValue _ageWeightRatioShapeFrequency;
+	OptionValue<unsigned> _ageWeightRatioShapeFrequency;
 
-  BoolOptionValue _useTheorySplitQueues;
-  StringOptionValue _theorySplitQueueRatios;
-  StringOptionValue _theorySplitQueueCutoffs;
-  IntOptionValue _theorySplitQueueExpectedRatioDenom;
-  BoolOptionValue _theorySplitQueueLayeredArrangement;
-  BoolOptionValue _useAvatarSplitQueues;
-  StringOptionValue _avatarSplitQueueRatios;
-  StringOptionValue _avatarSplitQueueCutoffs;
-  BoolOptionValue _avatarSplitQueueLayeredArrangement;
-  BoolOptionValue _useSineLevelSplitQueues;
-  StringOptionValue _sineLevelSplitQueueRatios;
-  StringOptionValue _sineLevelSplitQueueCutoffs;
-  BoolOptionValue _sineLevelSplitQueueLayeredArrangement;
-  BoolOptionValue _usePositiveLiteralSplitQueues;
-  StringOptionValue _positiveLiteralSplitQueueRatios;
-  StringOptionValue _positiveLiteralSplitQueueCutoffs;
-  BoolOptionValue _positiveLiteralSplitQueueLayeredArrangement;
-	BoolOptionValue _randomAWR;
-  BoolOptionValue _literalMaximalityAftercheck;
-  BoolOptionValue _arityCheck;
+  OptionValue<bool> _useTheorySplitQueues;
+  OptionValue<std::string> _theorySplitQueueRatios;
+  OptionValue<std::string> _theorySplitQueueCutoffs;
+  OptionValue<int> _theorySplitQueueExpectedRatioDenom;
+  OptionValue<bool> _theorySplitQueueLayeredArrangement;
+  OptionValue<bool> _useAvatarSplitQueues;
+  OptionValue<std::string> _avatarSplitQueueRatios;
+  OptionValue<std::string> _avatarSplitQueueCutoffs;
+  OptionValue<bool> _avatarSplitQueueLayeredArrangement;
+  OptionValue<bool> _useSineLevelSplitQueues;
+  OptionValue<std::string> _sineLevelSplitQueueRatios;
+  OptionValue<std::string> _sineLevelSplitQueueCutoffs;
+  OptionValue<bool> _sineLevelSplitQueueLayeredArrangement;
+  OptionValue<bool> _usePositiveLiteralSplitQueues;
+  OptionValue<std::string> _positiveLiteralSplitQueueRatios;
+  OptionValue<std::string> _positiveLiteralSplitQueueCutoffs;
+  OptionValue<bool> _positiveLiteralSplitQueueLayeredArrangement;
+	OptionValue<bool> _randomAWR;
+  OptionValue<bool> _literalMaximalityAftercheck;
+  OptionValue<bool> _arityCheck;
 
-  BoolOptionValue _randomTraversals;
+  OptionValue<bool> _randomTraversals;
 
   ChoiceOptionValue<BadOption> _badOption;
   ChoiceOptionValue<Demodulation> _backwardDemodulation;
   ChoiceOptionValue<Subsumption> _backwardSubsumption;
   ChoiceOptionValue<Subsumption> _backwardSubsumptionResolution;
-  BoolOptionValue _backwardSubsumptionDemodulation;
-  UnsignedOptionValue _backwardSubsumptionDemodulationMaxMatches;
-  BoolOptionValue _binaryResolution;
+  OptionValue<bool> _backwardSubsumptionDemodulation;
+  OptionValue<unsigned> _backwardSubsumptionDemodulationMaxMatches;
+  OptionValue<bool> _binaryResolution;
 
-  BoolOptionValue _colorUnblocking;
+  OptionValue<bool> _colorUnblocking;
   ChoiceOptionValue<Condensation> _condensation;
 
   ChoiceOptionValue<DemodulationRedundancyCheck> _demodulationRedundancyCheck;
-  BoolOptionValue _demodulationPrecompiledComparison;
-  BoolOptionValue _demodulationOnlyEquational;
+  OptionValue<bool> _demodulationPrecompiledComparison;
+  OptionValue<bool> _demodulationOnlyEquational;
 
   ChoiceOptionValue<EqualityProxy> _equalityProxy;
-  BoolOptionValue _useMonoEqualityProxy;
-  BoolOptionValue _equalityResolutionWithDeletion;
-  BoolOptionValue _equivalentVariableRemoval;
+  OptionValue<bool> _useMonoEqualityProxy;
+  OptionValue<bool> _equalityResolutionWithDeletion;
+  OptionValue<bool> _equivalentVariableRemoval;
   ChoiceOptionValue<ExtensionalityResolution> _extensionalityResolution;
-  UnsignedOptionValue _extensionalityMaxLength;
-  BoolOptionValue _extensionalityAllowPosEq;
+  OptionValue<unsigned> _extensionalityMaxLength;
+  OptionValue<bool> _extensionalityAllowPosEq;
 
-  BoolOptionValue _FOOLParamodulation;
+  OptionValue<bool> _FOOLParamodulation;
 
-  BoolOptionValue _termAlgebraInferences;
+  OptionValue<bool> _termAlgebraInferences;
   ChoiceOptionValue<TACyclicityCheck> _termAlgebraCyclicityCheck;
-  BoolOptionValue _termAlgebraExhaustivenessAxiom;
+  OptionValue<bool> _termAlgebraExhaustivenessAxiom;
 
-  BoolOptionValue _fmbNonGroundDefs;
-  UnsignedOptionValue _fmbStartSize;
-  FloatOptionValue _fmbSymmetryRatio;
+  OptionValue<bool> _fmbNonGroundDefs;
+  OptionValue<unsigned> _fmbStartSize;
+  OptionValue<float> _fmbSymmetryRatio;
   ChoiceOptionValue<FMBWidgetOrders> _fmbSymmetryWidgetOrders;
   ChoiceOptionValue<FMBSymbolOrders> _fmbSymmetryOrderSymbols;
   ChoiceOptionValue<FMBAdjustSorts> _fmbAdjustSorts;
-  BoolOptionValue _fmbDetectSortBounds;
-  UnsignedOptionValue _fmbDetectSortBoundsTimeLimit;
-  UnsignedOptionValue _fmbSizeWeightRatio;
+  OptionValue<bool> _fmbDetectSortBounds;
+  OptionValue<unsigned> _fmbDetectSortBoundsTimeLimit;
+  OptionValue<unsigned> _fmbSizeWeightRatio;
   ChoiceOptionValue<FMBEnumerationStrategy> _fmbEnumerationStrategy;
-  BoolOptionValue _fmbKeepSbeamGenerators;
+  OptionValue<bool> _fmbKeepSbeamGenerators;
 
-  BoolOptionValue _flattenTopLevelConjunctions;
-  StringOptionValue _forbiddenOptions;
-  BoolOptionValue _forceIncompleteness;
-  StringOptionValue _forcedOptions;
+  OptionValue<bool> _flattenTopLevelConjunctions;
+  OptionValue<std::string> _forbiddenOptions;
+  OptionValue<bool> _forceIncompleteness;
+  OptionValue<std::string> _forcedOptions;
   ChoiceOptionValue<Demodulation> _forwardDemodulation;
-  BoolOptionValue _forwardLiteralRewriting;
-  BoolOptionValue _forwardSubsumption;
-  BoolOptionValue _forwardSubsumptionResolution;
-  BoolOptionValue _forwardSubsumptionDemodulation;
-  UnsignedOptionValue _forwardSubsumptionDemodulationMaxMatches;
+  OptionValue<bool> _forwardLiteralRewriting;
+  OptionValue<bool> _forwardSubsumption;
+  OptionValue<bool> _forwardSubsumptionResolution;
+  OptionValue<bool> _forwardSubsumptionDemodulation;
+  OptionValue<unsigned> _forwardSubsumptionDemodulationMaxMatches;
   ChoiceOptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
-  UnsignedOptionValue _functionDefinitionIntroduction;
+  OptionValue<unsigned> _functionDefinitionIntroduction;
   ChoiceOptionValue<TweeGoalTransformation> _tweeGoalTransformation;
 
-  BoolOptionValue _generalSplitting;
-  BoolOptionValue _globalSubsumption;
+  OptionValue<bool> _generalSplitting;
+  OptionValue<bool> _globalSubsumption;
   ChoiceOptionValue<GlobalSubsumptionSatSolverPower> _globalSubsumptionSatSolverPower;
   ChoiceOptionValue<GlobalSubsumptionExplicitMinim> _globalSubsumptionExplicitMinim;
   ChoiceOptionValue<GlobalSubsumptionAvatarAssumptions> _globalSubsumptionAvatarAssumptions;
   ChoiceOptionValue<GoalGuess> _guessTheGoal;
-  UnsignedOptionValue _guessTheGoalLimit;
+  OptionValue<unsigned> _guessTheGoalLimit;
 
-  BoolOptionValue _simultaneousSuperposition;
-  BoolOptionValue _innerRewriting;
-  BoolOptionValue _equationalTautologyRemoval;
+  OptionValue<bool> _simultaneousSuperposition;
+  OptionValue<bool> _innerRewriting;
+  OptionValue<bool> _equationalTautologyRemoval;
   ChoiceOptionValue<InstanceRedundancyCheck> _instanceRedundancyCheck;
 
   /** if true, then calling set() on non-existing options will not result in a user error */
   ChoiceOptionValue<IgnoreMissing> _ignoreMissing;
-  StringOptionValue _include;
+  OptionValue<std::string> _include;
   /** if this option is true, Vampire will add the numeral weight of a clause
    * to its weight. The weight is defined as the sum of binary sizes of all
    * integers occurring in this clause. This option has not been tested and
    * may be extensive, see Clause::getNumeralWeight()
    */
-  BoolOptionValue _increasedNumeralWeight;
+  OptionValue<bool> _increasedNumeralWeight;
 
-  BoolOptionValue _ignoreConjectureInPreprocessing;
+  OptionValue<bool> _ignoreConjectureInPreprocessing;
 
-  IntOptionValue _inequalitySplitting;
+  OptionValue<int> _inequalitySplitting;
   ChoiceOptionValue<InputSyntax> _inputSyntax;
   ChoiceOptionValue<Instantiation> _instantiation;
-  BoolOptionValue _useHashingVariantIndex;
+  OptionValue<bool> _useHashingVariantIndex;
 
   ChoiceOptionValue<Induction> _induction;
   ChoiceOptionValue<StructuralInductionKind> _structInduction;
   ChoiceOptionValue<IntInductionKind> _intInduction;
   ChoiceOptionValue<InductionChoice> _inductionChoice;
-  UnsignedOptionValue _maxInductionDepth;
-  BoolOptionValue _inductionNegOnly;
-  BoolOptionValue _inductionUnitOnly;
-  BoolOptionValue _inductionGen;
-  BoolOptionValue _inductionGenHeur;
-  BoolOptionValue _inductionStrengthenHypothesis;
-  UnsignedOptionValue _maxInductionGenSubsetSize;
-  BoolOptionValue _inductionOnComplexTerms;
-  BoolOptionValue _functionDefinitionRewriting;
-  BoolOptionValue _integerInductionDefaultBound;
+  OptionValue<unsigned> _maxInductionDepth;
+  OptionValue<bool> _inductionNegOnly;
+  OptionValue<bool> _inductionUnitOnly;
+  OptionValue<bool> _inductionGen;
+  OptionValue<bool> _inductionGenHeur;
+  OptionValue<bool> _inductionStrengthenHypothesis;
+  OptionValue<unsigned> _maxInductionGenSubsetSize;
+  OptionValue<bool> _inductionOnComplexTerms;
+  OptionValue<bool> _functionDefinitionRewriting;
+  OptionValue<bool> _integerInductionDefaultBound;
   ChoiceOptionValue<IntegerInductionInterval> _integerInductionInterval;
   ChoiceOptionValue<IntegerInductionLiteralStrictness> _integerInductionStrictnessEq;
   ChoiceOptionValue<IntegerInductionLiteralStrictness> _integerInductionStrictnessComp;
   ChoiceOptionValue<IntegerInductionTermStrictness> _integerInductionStrictnessTerm;
-  BoolOptionValue _nonUnitInduction;
-  BoolOptionValue _inductionOnActiveOccurrences;
+  OptionValue<bool> _nonUnitInduction;
+  OptionValue<bool> _inductionOnActiveOccurrences;
 
-  StringOptionValue _latexOutput;
-  BoolOptionValue _latexUseDefaultSymbols;
+  OptionValue<std::string> _latexOutput;
+  OptionValue<bool> _latexUseDefaultSymbols;
 
   ChoiceOptionValue<LiteralComparisonMode> _literalComparisonMode;
-  IntOptionValue _lookaheadDelay;
-  IntOptionValue _lrsFirstTimeCheck;
-  BoolOptionValue _lrsWeightLimitOnly;
+  OptionValue<int> _lookaheadDelay;
+  OptionValue<int> _lrsFirstTimeCheck;
+  OptionValue<bool> _lrsWeightLimitOnly;
 
 #if VAMPIRE_PERF_EXISTS
-  UnsignedOptionValue _instructionLimit;
-  UnsignedOptionValue _simulatedInstructionLimit;
-  BoolOptionValue _parsingDoesNotCount;
+  OptionValue<unsigned> _instructionLimit;
+  OptionValue<unsigned> _simulatedInstructionLimit;
+  OptionValue<bool> _parsingDoesNotCount;
 #endif
 
-  UnsignedOptionValue _memoryLimit; // should be size_t, making an assumption
+  OptionValue<unsigned> _memoryLimit; // should be size_t, making an assumption
 
-  BoolOptionValue _interactive;
+  OptionValue<bool> _interactive;
 
   ChoiceOptionValue<Mode> _mode;
   ChoiceOptionValue<Schedule> _schedule;
-  StringOptionValue _scheduleFile;
-  UnsignedOptionValue _multicore;
-  FloatOptionValue _slowness;
-  BoolOptionValue _randomizSeedForPortfolioWorkers;
+  OptionValue<std::string> _scheduleFile;
+  OptionValue<unsigned> _multicore;
+  OptionValue<float> _slowness;
+  OptionValue<bool> _randomizSeedForPortfolioWorkers;
 
-  IntOptionValue _naming;
-  BoolOptionValue _nonliteralsInClauseWeight;
-  BoolOptionValue _normalize;
-  BoolOptionValue _shuffleInput;
-  BoolOptionValue _randomPolarities;
+  OptionValue<int> _naming;
+  OptionValue<bool> _nonliteralsInClauseWeight;
+  OptionValue<bool> _normalize;
+  OptionValue<bool> _shuffleInput;
+  OptionValue<bool> _randomPolarities;
 
-  BoolOptionValue _outputAxiomNames;
+  OptionValue<bool> _outputAxiomNames;
 
-  StringOptionValue _printProofToFile;
-  BoolOptionValue _printClausifierPremises;
-  StringOptionValue _problemName;
+  OptionValue<std::string> _printProofToFile;
+  OptionValue<bool> _printClausifierPremises;
+  OptionValue<std::string> _problemName;
   ChoiceOptionValue<Proof> _proof;
-  BoolOptionValue _minimizeSatProofs;
+  OptionValue<bool> _minimizeSatProofs;
   ChoiceOptionValue<ProofExtra> _proofExtra;
-  BoolOptionValue _traceback;
+  OptionValue<bool> _traceback;
 
-  StringOptionValue _protectedPrefix;
+  OptionValue<std::string> _protectedPrefix;
 
   ChoiceOptionValue<QuestionAnsweringMode> _questionAnswering;
-  BoolOptionValue _questionAnsweringGroundOnly;
-  StringOptionValue _questionAnsweringAvoidThese;
+  OptionValue<bool> _questionAnsweringGroundOnly;
+  OptionValue<std::string> _questionAnsweringAvoidThese;
 
-  UnsignedOptionValue _randomSeed;
+  OptionValue<unsigned> _randomSeed;
 
-  StringOptionValue _sampleStrategy;
+  OptionValue<std::string> _sampleStrategy;
 
-  IntOptionValue _activationLimit;
+  OptionValue<int> _activationLimit;
 
   ChoiceOptionValue<SatSolver> _satSolver;
   ChoiceOptionValue<SaturationAlgorithm> _saturationAlgorithm;
-  BoolOptionValue _showAll;
-  BoolOptionValue _showActive;
-  BoolOptionValue _showBlocked;
-  BoolOptionValue _showDefinitions;
+  OptionValue<bool> _showAll;
+  OptionValue<bool> _showActive;
+  OptionValue<bool> _showBlocked;
+  OptionValue<bool> _showDefinitions;
   ChoiceOptionValue<InterpolantMode> _showInterpolant;
-  BoolOptionValue _showNew;
-  BoolOptionValue _sineToAge;
+  OptionValue<bool> _showNew;
+  OptionValue<bool> _sineToAge;
   ChoiceOptionValue<PredicateSineLevels> _sineToPredLevels;
-  BoolOptionValue _showSplitting;
-  BoolOptionValue _showNewPropositional;
-  BoolOptionValue _showNonconstantSkolemFunctionTrace;
-  BoolOptionValue _showOptions;
-  BoolOptionValue _showOptionsLineWrap;
-  BoolOptionValue _showExperimentalOptions;
-  BoolOptionValue _showHelp;
-  BoolOptionValue _printAllTheoryAxioms;
-  StringOptionValue _explainOption;
-  BoolOptionValue _showPassive;
-  BoolOptionValue _showReductions;
-  BoolOptionValue _showPreprocessing;
-  BoolOptionValue _showSkolemisations;
-  BoolOptionValue _showSymbolElimination;
-  BoolOptionValue _showTheoryAxioms;
-  BoolOptionValue _showFOOL;
-  BoolOptionValue _showFMBsortInfo;
-  BoolOptionValue _showInduction;
-  BoolOptionValue _showSimplOrdering;
+  OptionValue<bool> _showSplitting;
+  OptionValue<bool> _showNewPropositional;
+  OptionValue<bool> _showNonconstantSkolemFunctionTrace;
+  OptionValue<bool> _showOptions;
+  OptionValue<bool> _showOptionsLineWrap;
+  OptionValue<bool> _showExperimentalOptions;
+  OptionValue<bool> _showHelp;
+  OptionValue<bool> _printAllTheoryAxioms;
+  OptionValue<std::string> _explainOption;
+  OptionValue<bool> _showPassive;
+  OptionValue<bool> _showReductions;
+  OptionValue<bool> _showPreprocessing;
+  OptionValue<bool> _showSkolemisations;
+  OptionValue<bool> _showSymbolElimination;
+  OptionValue<bool> _showTheoryAxioms;
+  OptionValue<bool> _showFOOL;
+  OptionValue<bool> _showFMBsortInfo;
+  OptionValue<bool> _showInduction;
+  OptionValue<bool> _showSimplOrdering;
 #if VAMPIRE_CLAUSE_TRACING
-  OptionalOptionValue<unsigned> _traceBwd;
-  OptionalOptionValue<unsigned> _traceFwd;
+  OptionValue<Option<unsigned>> _traceBwd;
+  OptionValue<Option<unsigned>> _traceFwd;
 #endif // VAMPIRE_CLAUSE_TRACING
 #if VZ3
-  BoolOptionValue _showZ3;
-  StringOptionValue _exportAvatarProblem;
-  StringOptionValue _exportThiProblem;
-  BoolOptionValue _satFallbackForSMT;
-  BoolOptionValue _smtForGround;
+  OptionValue<bool> _showZ3;
+  OptionValue<std::string> _exportAvatarProblem;
+  OptionValue<std::string> _exportThiProblem;
+  OptionValue<bool> _satFallbackForSMT;
+  OptionValue<bool> _smtForGround;
   ChoiceOptionValue<TheoryInstSimp> _theoryInstAndSimp;
-  BoolOptionValue _thiGeneralise;
-  BoolOptionValue _thiTautologyDeletion;
+  OptionValue<bool> _thiGeneralise;
+  OptionValue<bool> _thiTautologyDeletion;
 #endif
   ChoiceOptionValue<UnificationWithAbstraction> _unificationWithAbstraction;
-  BoolOptionValue _unificationWithAbstractionFixedPointIteration;
-  BoolOptionValue _fixUWA;
-  BoolOptionValue _useACeval;
-  CompositionalOptionValue<Duration> _simulatedTimeLimit;
-  FloatOptionValue _lrsEstimateCorrectionCoef;
-  UnsignedOptionValue _sineDepth;
-  UnsignedOptionValue _sineGeneralityThreshold;
-  UnsignedOptionValue _sineToAgeGeneralityThreshold;
+  OptionValue<bool> _unificationWithAbstractionFixedPointIteration;
+  OptionValue<bool> _fixUWA;
+  OptionValue<bool> _useACeval;
+  OptionValue<Duration> _simulatedTimeLimit;
+  OptionValue<float> _lrsEstimateCorrectionCoef;
+  OptionValue<unsigned> _sineDepth;
+  OptionValue<unsigned> _sineGeneralityThreshold;
+  OptionValue<unsigned> _sineToAgeGeneralityThreshold;
   ChoiceOptionValue<SineSelection> _sineSelection;
-  FloatOptionValue _sineTolerance;
-  FloatOptionValue _sineToAgeTolerance;
+  OptionValue<float> _sineTolerance;
+  OptionValue<float> _sineToAgeTolerance;
   ChoiceOptionValue<Sos> _sos;
-  UnsignedOptionValue _sosTheoryLimit;
-  BoolOptionValue _splitting;
-  BoolOptionValue _splitAtActivation;
+  OptionValue<unsigned> _sosTheoryLimit;
+  OptionValue<bool> _splitting;
+  OptionValue<bool> _splitAtActivation;
   ChoiceOptionValue<SplittingAddComplementary> _splittingAddComplementary;
   ChoiceOptionValue<SplittingCongruenceClosure> _splittingCongruenceClosure;
   ChoiceOptionValue<CCUnsatCores> _ccUnsatCores;
-  BoolOptionValue _splittingEagerRemoval;
-  UnsignedOptionValue _splittingFlushPeriod;
-  FloatOptionValue _splittingFlushQuotient;
-  FloatOptionValue _splittingAvatimer;
+  OptionValue<bool> _splittingEagerRemoval;
+  OptionValue<unsigned> _splittingFlushPeriod;
+  OptionValue<float> _splittingFlushQuotient;
+  OptionValue<float> _splittingAvatimer;
   ChoiceOptionValue<SplittingNonsplittableComponents> _splittingNonsplittableComponents;
   ChoiceOptionValue<SplittingMinimizeModel> _splittingMinimizeModel;
   ChoiceOptionValue<SplittingLiteralPolarityAdvice> _splittingLiteralPolarityAdvice;
   ChoiceOptionValue<SplittingDeleteDeactivated> _splittingDeleteDeactivated;
-  BoolOptionValue _splittingFastRestart;
-  BoolOptionValue _splittingBufferedSolver;
+  OptionValue<bool> _splittingFastRestart;
+  OptionValue<bool> _splittingBufferedSolver;
 
   ChoiceOptionValue<Statistics> _statistics;
-  BoolOptionValue _superpositionFromVariables;
+  OptionValue<bool> _superpositionFromVariables;
   ChoiceOptionValue<TermOrdering> _termOrdering;
   ChoiceOptionValue<SymbolPrecedence> _symbolPrecedence;
   ChoiceOptionValue<SymbolPrecedenceBoost> _symbolPrecedenceBoost;
   ChoiceOptionValue<IntroducedSymbolPrecedence> _introducedSymbolPrecedence;
   ChoiceOptionValue<EvaluationMode> _evaluationMode;
   ChoiceOptionValue<KboWeightGenerationScheme> _kboWeightGenerationScheme;
-  BoolOptionValue _kboMaxZero;
+  OptionValue<bool> _kboMaxZero;
   ChoiceOptionValue<KboAdmissibilityCheck> _kboAdmissabilityCheck;
-  StringOptionValue _functionWeights;
-  StringOptionValue _predicateWeights;
-  StringOptionValue _typeConPrecedence;
-  StringOptionValue _functionPrecedence;
-  StringOptionValue _predicatePrecedence;
+  OptionValue<std::string> _functionWeights;
+  OptionValue<std::string> _predicateWeights;
+  OptionValue<std::string> _typeConPrecedence;
+  OptionValue<std::string> _functionPrecedence;
+  OptionValue<std::string> _predicatePrecedence;
 
-  StringOptionValue _testId;
+  OptionValue<std::string> _testId;
   ChoiceOptionValue<Output> _outputMode;
-  BoolOptionValue _ignoreMissingInputsInUnsatCore;
-  StringOptionValue _thanks;
+  OptionValue<bool> _ignoreMissingInputsInUnsatCore;
+  OptionValue<std::string> _thanks;
   ChoiceOptionValue<TheoryAxiomLevel> _theoryAxioms;
-  BoolOptionValue _theoryFlattening;
-  BoolOptionValue _ignoreUnrecognizedLogic;
+  OptionValue<bool> _theoryFlattening;
+  OptionValue<bool> _ignoreUnrecognizedLogic;
 
   /** Time limit in deciseconds */
-  CompositionalOptionValue<Duration> _timeLimitInDeciseconds;
-  BoolOptionValue _timeStatistics;
+  OptionValue<Duration> _timeLimitInDeciseconds;
+  OptionValue<bool> _timeStatistics;
 
   ChoiceOptionValue<URResolution> _unitResultingResolution;
-  BoolOptionValue _unusedPredicateDefinitionRemoval;
-  BoolOptionValue _blockedClauseElimination;
-  UnsignedOptionValue _distinctGroupExpansionLimit;
+  OptionValue<bool> _unusedPredicateDefinitionRemoval;
+  OptionValue<bool> _blockedClauseElimination;
+  OptionValue<unsigned> _distinctGroupExpansionLimit;
 
   OptionChoiceValues _tagNames;
 
-  NonGoalWeightOptionValue _nonGoalWeightCoefficient;
-  BoolOptionValue _restrictNWCtoGC;
+  OptionValue<Option<float>> _nonGoalWeightCoefficient;
+  OptionValue<bool> _restrictNWCtoGC;
 
   SelectionOptionValue _selection;
 
   InputFileOptionValue _inputFile;
 
-  BoolOptionValue _newCNF;
-  BoolOptionValue _inlineLet;
+  OptionValue<bool> _newCNF;
+  OptionValue<bool> _inlineLet;
 
-  BoolOptionValue _manualClauseSelection;
+  OptionValue<bool> _manualClauseSelection;
   // arithmeitc reasoning options
-  BoolOptionValue _inequalityNormalization;
-  BoolOptionValue _pushUnaryMinus;
-  BoolOptionValue _highSchool;
+  OptionValue<bool> _inequalityNormalization;
+  OptionValue<bool> _pushUnaryMinus;
+  OptionValue<bool> _highSchool;
   ChoiceOptionValue<ArithmeticSimplificationMode> _gaussianVariableElimination;
   ChoiceOptionValue<ArithmeticSimplificationMode> _cancellation;
   ChoiceOptionValue<ArithmeticSimplificationMode> _arithmeticSubtermGeneralizations;
 
 
   //Higher-order options
-  BoolOptionValue _addCombAxioms;
-  BoolOptionValue _addProxyAxioms;
-  BoolOptionValue _combinatorySuperposition;
-  BoolOptionValue _choiceAxiom;
-  BoolOptionValue _injectivity;
-  BoolOptionValue _pragmatic;
-  BoolOptionValue _choiceReasoning;
-  BoolOptionValue _priortyToLongReducts;
-  IntOptionValue  _maximumXXNarrows;
+  OptionValue<bool> _addCombAxioms;
+  OptionValue<bool> _addProxyAxioms;
+  OptionValue<bool> _combinatorySuperposition;
+  OptionValue<bool> _choiceAxiom;
+  OptionValue<bool> _injectivity;
+  OptionValue<bool> _pragmatic;
+  OptionValue<bool> _choiceReasoning;
+  OptionValue<bool> _priortyToLongReducts;
+  OptionValue<int>  _maximumXXNarrows;
   ChoiceOptionValue<FunctionExtensionality> _functionExtensionality;
   ChoiceOptionValue<CNFOnTheFly> _clausificationOnTheFly;
   ChoiceOptionValue<PISet> _piSet;
   ChoiceOptionValue<Narrow> _narrow;
-  BoolOptionValue _equalityToEquivalence;
-  BoolOptionValue _complexBooleanReasoning;
-  BoolOptionValue _booleanEqTrick;
-  BoolOptionValue _superposition;
-  BoolOptionValue _casesSimp;
-  BoolOptionValue _cases;
-  BoolOptionValue _newTautologyDel;
-  BoolOptionValue _lambdaFreeHol;
-  BoolOptionValue _complexVarCondition;
+  OptionValue<bool> _equalityToEquivalence;
+  OptionValue<bool> _complexBooleanReasoning;
+  OptionValue<bool> _booleanEqTrick;
+  OptionValue<bool> _superposition;
+  OptionValue<bool> _casesSimp;
+  OptionValue<bool> _cases;
+  OptionValue<bool> _newTautologyDel;
+  OptionValue<bool> _lambdaFreeHol;
+  OptionValue<bool> _complexVarCondition;
 
 }; // class Options
 

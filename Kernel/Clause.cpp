@@ -605,8 +605,9 @@ unsigned Clause::computeWeightForClauseSelection(const Options& opt) const
  */
 unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned splitWeight, unsigned numeralWeight, bool derivedFromGoal, const Shell::Options& opt)
 {
-  static unsigned nongoalWeightCoeffNum = opt.nongoalWeightCoefficientNumerator();
-  static unsigned nongoalWeightCoefDenom = opt.nongoalWeightCoefficientDenominator();
+  static Option<float> coeff = opt.nongoalWeightCoefficient();
+  static unsigned nongoalWeightCoeffNum = coeff.isSome() ? unsigned(100 * *coeff) : 1;
+  static unsigned nongoalWeightCoefDenom = coeff.isSome() ? 100 : 1;
 
   w += splitWeight;
 
