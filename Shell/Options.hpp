@@ -71,6 +71,18 @@ struct Ratio {
   IMPL_COMPARISONS_FROM_TUPLE(Ratio)
 };
 
+
+struct Duration {
+  unsigned deciseconds;
+  static Duration decis(unsigned ds) { return Duration { .deciseconds = ds, }; }
+  static Duration sec(unsigned s) { return Duration::decis(10 * s); }
+  static Duration min(unsigned m) { return Duration::sec(60 * m); }
+  static Duration hrs(unsigned h) { return Duration::min(60 * h); }
+  static Duration days(unsigned d) { return Duration::hrs(24 * d); }
+  auto asTuple() const { return std::tie(deciseconds); }
+  IMPL_COMPARISONS_FROM_TUPLE(Duration)
+};
+
 template<class T>
 struct OptionParser;
 
@@ -125,6 +137,35 @@ struct OptionParser<Ratio> {
   { 
     std::stringstream out;
     out << value.n0 << ":" << value.n1;
+    return out.str(); 
+  }
+};
+
+
+template<>
+struct OptionParser<Duration> {
+  static Option<Duration> parse(std::string const& value) 
+  { 
+    auto re = std::regex("([0-9]+)([dsmhD]?)");
+    std::smatch match;
+    if (std::regex_match(value, match, re)) {
+      auto num = OptionParser<unsigned>::parse(match[1]).unwrap();
+      auto suffix = match[2].str();
+      if ( suffix == "d") return some(Duration::decis(num));
+      else if ( suffix == "" ||  suffix == "s" ) return some(Duration::sec(num));
+      else if ( suffix == "m" ) return some(Duration::min(num));
+      else if ( suffix == "h" ) return some(Duration::hrs(num));
+      else if ( suffix == "D" ) return some(Duration::days(num));
+      else return {};
+    } else {
+      return {};
+    }
+  }
+
+  static std::string display(Duration const& value) 
+  { 
+    std::stringstream out;
+    out << value.deciseconds << "d";
     return out.str(); 
   }
 };
@@ -1340,24 +1381,6 @@ private:
 Options* parent;
 
 };
-/**
-* Need to read the time limit. By default it assumes seconds (and stores deciseconds) but you can give
-* a multiplier i.e. d,s,m,h,D for deciseconds,seconds,minutes,hours,Days
-* @author Giles
-*/
-struct TimeLimitOptionValue : public OptionValue<int>{
-TimeLimitOptionValue(){}
-TimeLimitOptionValue(std::string l, std::string s, float def) :
-OptionValue(l,s,def) {};
-
-bool setValue(const std::string& value);
-
-virtual void output(std::ostream& out,bool linewrap) const {
-    AbstractOptionValue::output(out,linewrap);
-    out << "\tdefault: " << defaultValue << "d" << std::endl;
-}
-virtual std::string getStringOfValue(int value) const{ return Lib::Int::toString(value)+"d"; }
-};
 
 /**
 * NOTE on OptionValueConstraints
@@ -2110,8 +2133,8 @@ public:
   int lrsFirstTimeCheck() const { return _lrsFirstTimeCheck.actualValue; }
   int lrsWeightLimitOnly() const { return _lrsWeightLimitOnly.actualValue; }
   int lookaheadDelay() const { return _lookaheadDelay.actualValue; }
-  int simulatedTimeLimit() const { return _simulatedTimeLimit.actualValue; }
-  void setSimulatedTimeLimit(int newVal) { _simulatedTimeLimit.actualValue = newVal; }
+  int simulatedTimeLimit() const { return _simulatedTimeLimit.actualValue.deciseconds; }
+  void setSimulatedTimeLimit(int newVal) { _simulatedTimeLimit.actualValue = Duration::decis(newVal); }
   float lrsEstimateCorrectionCoef() const { return _lrsEstimateCorrectionCoef.actualValue; }
   TermOrdering termOrdering() const { return _termOrdering.actualValue; }
   SymbolPrecedence symbolPrecedence() const { return _symbolPrecedence.actualValue; }
@@ -2126,7 +2149,7 @@ public:
   const std::string& typeConPrecedence() const { return _typeConPrecedence.actualValue; }
   const std::string& predicatePrecedence() const { return _predicatePrecedence.actualValue; }
   // Return time limit in deciseconds, or 0 if there is no time limit
-  int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds.actualValue; }
+  int timeLimitInDeciseconds() const { return _timeLimitInDeciseconds.actualValue.deciseconds; }
   size_t memoryLimit() const { return _memoryLimit.actualValue; }
   void setMemoryLimitOptionValue(size_t newVal) { _memoryLimit.actualValue = newVal; }
 #if VAMPIRE_PERF_EXISTS
@@ -2260,8 +2283,8 @@ public:
 
   bool useHashingVariantIndex() const { return _useHashingVariantIndex.actualValue; }
 
-  void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds.actualValue = 10*newVal; }
-  void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds.actualValue = newVal; }
+  void setTimeLimitInSeconds(int newVal) { _timeLimitInDeciseconds.actualValue = Duration::sec(newVal); }
+  void setTimeLimitInDeciseconds(int newVal) { _timeLimitInDeciseconds.actualValue.deciseconds = newVal; }
 
   bool splitAtActivation() const{ return _splitAtActivation.actualValue; }
   SplittingNonsplittableComponents splittingNonsplittableComponents() const { return _splittingNonsplittableComponents.actualValue; }
@@ -2654,7 +2677,7 @@ private:
   BoolOptionValue _unificationWithAbstractionFixedPointIteration;
   BoolOptionValue _fixUWA;
   BoolOptionValue _useACeval;
-  TimeLimitOptionValue _simulatedTimeLimit;
+  CompositionalOptionValue<Duration> _simulatedTimeLimit;
   FloatOptionValue _lrsEstimateCorrectionCoef;
   UnsignedOptionValue _sineDepth;
   UnsignedOptionValue _sineGeneralityThreshold;
@@ -2705,7 +2728,7 @@ private:
   BoolOptionValue _ignoreUnrecognizedLogic;
 
   /** Time limit in deciseconds */
-  TimeLimitOptionValue _timeLimitInDeciseconds;
+  CompositionalOptionValue<Duration> _timeLimitInDeciseconds;
   BoolOptionValue _timeStatistics;
 
   ChoiceOptionValue<URResolution> _unitResultingResolution;

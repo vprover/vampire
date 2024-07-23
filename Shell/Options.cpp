@@ -61,8 +61,6 @@ using namespace std;
 using namespace Lib;
 using namespace Shell;
 
-static const int COPY_SIZE = 128;
-
 /**
  * Initialize options to the default values.
  *
@@ -366,7 +364,7 @@ void Options::init()
     _lookup.insert(&_thanks);
     _thanks.setExperimental();
 
-    _timeLimitInDeciseconds = TimeLimitOptionValue("time_limit","t",600); // stores deciseconds, but reads seconds from the user by default
+    _timeLimitInDeciseconds = CompositionalOptionValue<Duration>("time_limit","t",Duration::sec(60)); // stores deciseconds, but reads seconds from the user by default
     _timeLimitInDeciseconds.description="Time limit in wall clock seconds, you can use d,s,m,h,D suffixes also i.e. 60s, 5m. Setting it to 0 effectively gives no time limit.";
     _lookup.insert(&_timeLimitInDeciseconds);
 
@@ -1111,7 +1109,7 @@ void Options::init()
     _lookup.insert(&_lrsWeightLimitOnly);
     _lrsWeightLimitOnly.tag(OptionTag::LRS);
 
-    _simulatedTimeLimit = TimeLimitOptionValue("simulated_time_limit","stl",0);
+    _simulatedTimeLimit = CompositionalOptionValue<Duration>("simulated_time_limit","stl",Duration::sec(0));
     _simulatedTimeLimit.description=
     "Time limit in seconds for the purpose of reachability estimations of the LRS saturation algorithm (if 0, the actual time limit is used)";
     _simulatedTimeLimit.onlyUsefulWith(Or(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)),_splittingAvatimer.is(notEqual(1.0f))));
@@ -2818,62 +2816,6 @@ bool Options::InputFileOptionValue::setValue(const std::string& value)
 }
 
 
-bool Options::TimeLimitOptionValue::setValue(const std::string& value)
-{
-  int length = value.size();
-  if (length == 0 || length >= COPY_SIZE) {
-    USER_ERROR((std::string)"wrong value for time limit: " + value);
-  }
-
-  char copy[COPY_SIZE];
-  strncpy(copy,value.c_str(),COPY_SIZE - 1); // leave space for trailing NUL
-  char* end = copy;
-  // search for the end of the string for
-  while (*end) {
-    end++;
-  }
-  end--;
-  float multiplier = 10.0; // by default assume seconds
-  switch (*end) {
-  case 'd': // deciseconds
-      multiplier = 1.0;
-      *end = 0;
-      break;
-  case 's': // seconds
-    multiplier = 10.0;
-    *end = 0;
-    break;
-  case 'm': // minutes
-    multiplier = 600.0;
-    *end = 0;
-    break;
-  case 'h': // minutes
-    multiplier = 36000.0;
-    *end = 0;
-    break;
-  case 'D': // days
-    multiplier = 864000.0;
-    *end = 0;
-    break;
-  default:
-    break;
-  }
-
-  float number;
-  if (! Int::stringToFloat(copy,number)) {
-    USER_ERROR((std::string)"wrong value for time limit: " + value);
-  }
-
-#ifdef _MSC_VER
-  // Visual C++ does not know the round function
-  actualValue= (int)floor(number * multiplier);
-#else
-  actualValue= (int)round(number * multiplier);
-#endif
-
-  return true;
-} // Options::readTimeLimit(const char* val)
-
 /**
  * During strategy sampling, this assigns a value to an option
  * (but checks these make sense and issues an error if not).
@@ -3251,10 +3193,10 @@ void Options::readFromEncodedOptions (std::string testId)
   if (index == std::string::npos) { // not found
     goto error;
   }
-  std::string timeString = testId.substr(index+1);
-  _timeLimitInDeciseconds.set(timeString);
-  // setting assumes seconds as default, but encoded strings use deciseconds
-  _timeLimitInDeciseconds.actualValue = _timeLimitInDeciseconds.actualValue/10;
+  auto deciseconds = OptionParser<unsigned>::parse(testId.substr(index+1));
+  if (deciseconds.isNone()) 
+    goto error;
+  _timeLimitInDeciseconds.actualValue.deciseconds = deciseconds.unwrap();
 
   testId = testId.substr(3,index-3);
   switch (testId[0]) {
@@ -3371,7 +3313,7 @@ std::string Options::generateEncodedOptions() const
   }
 
   if(!first){ res << "_"; }
-  res << Lib::Int::toString(_timeLimitInDeciseconds.actualValue);
+  res << _timeLimitInDeciseconds.actualValue.deciseconds;
 
   return res.str();
 }
