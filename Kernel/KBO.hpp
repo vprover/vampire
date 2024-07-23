@@ -239,9 +239,9 @@ private:
     Result innerResult(TermList t1, TermList t2);
     Result applyVariableCondition(Result res)
     {
-      if(_posNum>0 && (res==LESS || res==LESS_EQ || res==EQUAL)) {
+      if(_posNum>0 && (res==LESS || res==EQUAL)) {
         res=INCOMPARABLE;
-      } else if(_negNum>0 && (res==GREATER || res==GREATER_EQ || res==EQUAL)) {
+      } else if(_negNum>0 && (res==GREATER || res==EQUAL)) {
         res=INCOMPARABLE;
       }
       return res;

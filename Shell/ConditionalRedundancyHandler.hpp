@@ -21,6 +21,8 @@
 #include "Lib/Stack.hpp"
 #include "Inferences/DemodulationHelper.hpp"
 
+#include "Saturation/Splitter.hpp"
+
 #include "Options.hpp"
 
 namespace Shell {
@@ -31,22 +33,25 @@ using namespace Indexing;
 class ConditionalRedundancyHandler
 {
 public:
-  static ConditionalRedundancyHandler* create(const Options& opts, const Ordering* ord);
+  static ConditionalRedundancyHandler* create(const Options& opts, const Ordering* ord, const Splitter* splitter);
   static void destroyClauseData(Clause* cl);
 
   virtual ~ConditionalRedundancyHandler() = default;
 
   virtual bool checkSuperposition(
-    Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit, bool eqIsResult, ResultSubstitution* subs) const = 0;
+    Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit,
+    bool eqIsResult, ResultSubstitution* subs, SplitSet*& blockingSplits) const = 0;
 
   virtual void insertSuperposition(
     Clause* eqClause, Clause* rwClause, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
     Literal* rwLitS, Literal* eqLit, Ordering::Result eqComp, bool eqIsResult, ResultSubstitution* subs) const = 0;
 
   virtual bool handleResolution(
-    Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, ResultSubstitution* subs) const = 0;
+    Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit,
+    ResultSubstitution* subs, SplitSet*& blockingSplits) const = 0;
 
-  virtual bool handleReductiveUnaryInference(Clause* premise, RobSubstitution* subs) const = 0;
+  virtual bool handleReductiveUnaryInference(Clause* premise, RobSubstitution* subs,
+    SplitSet*& blockingSplits) const = 0;
 
 protected:
   class SubstitutionCoverTree;
@@ -63,12 +68,13 @@ class ConditionalRedundancyHandlerImpl
 {
 public:
   ConditionalRedundancyHandlerImpl() = default;
-  ConditionalRedundancyHandlerImpl(const Options& opts, const Ordering* ord)
-    : _ord(ord), _demodulationHelper(opts,ord) {}
+  ConditionalRedundancyHandlerImpl(const Options& opts, const Ordering* ord, const Splitter* splitter)
+    : _ord(ord), _splitter(splitter), _demodulationHelper(opts,ord) {}
 
   /** Returns false if superposition should be skipped. */
   bool checkSuperposition(
-    Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit, bool eqIsResult, ResultSubstitution* subs) const override;
+    Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit,
+    bool eqIsResult, ResultSubstitution* subs, SplitSet*& blockingSplits) const override;
 
   void insertSuperposition(
     Clause* eqClause, Clause* rwClause, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
@@ -76,13 +82,15 @@ public:
 
   /** Returns false if resolution should be skipped. */
   bool handleResolution(
-    Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, ResultSubstitution* subs) const override;
+    Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit,
+    ResultSubstitution* subs, SplitSet*& blockingSplits) const override;
 
   /** Returns false if inference should be skipped. */
-  bool handleReductiveUnaryInference(Clause* premise, RobSubstitution* subs) const override;
+  bool handleReductiveUnaryInference(Clause* premise, RobSubstitution* subs, SplitSet*& blockingSplits) const override;
 
 private:
   const Ordering* _ord;
+  const Splitter* _splitter;
   Inferences::DemodulationHelper _demodulationHelper;
 };
 

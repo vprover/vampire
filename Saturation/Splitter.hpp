@@ -163,11 +163,16 @@ private:
     ~SplitRecord();
 
     void addReduced(Clause* cl);
+    void addRedundantInference(std::function<Clause*()> fn) {
+      redInfs.push(fn);
+    }
 
     Clause* component;
     RCClauseStack children;
     Stack<ReductionRecord> reduced;
+    Stack<std::function<Clause*()>> redInfs;
     bool active;
+    unsigned active_ts;
 
     USE_ALLOCATOR(SplitRecord);
   };
@@ -184,6 +189,7 @@ public:
   bool doSplitting(Clause* cl);
 
   void onClauseReduction(Clause* cl, ClauseIterator premises, Clause* replacement);
+  void onRedundantInference(std::function<Clause*()> fn, Clause* premise0, Clause* premise1, SplitSet* blockingSet);
   void onNewClause(Clause* cl);
   void onAllProcessed();
   bool handleEmptyClause(Clause* cl);
@@ -313,6 +319,8 @@ private:
   // not just optimisation: also prevents the SAT solver oscillating between two models in some cases
   Set<SATClause *, DerefPtrHash<DefaultHash>> _already_added;
 
+  unsigned _activationTimestamp;
+
 public:
   static std::string splPrefix;
 
@@ -322,6 +330,8 @@ public:
     ASS_REP(lev<_db.size(), lev);
     return (_db[lev]!=0 && _db[lev]->active);
   }
+  unsigned getTimestamp() const { return _activationTimestamp; }
+  bool allSplitLevelsActivatedBefore(SplitSet* splits, unsigned timestamp) const;
 };
 
 }

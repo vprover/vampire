@@ -116,7 +116,8 @@ struct EqualityResolution::ResultFn
       }
     }
 
-    if (_condRedHandler && !_condRedHandler->handleReductiveUnaryInference(_cl, &absUnif->subs())) {
+    SplitSet* blockingSet;
+    if (_condRedHandler && !_condRedHandler->handleReductiveUnaryInference(_cl, &absUnif->subs(), blockingSet)) {
       env.statistics->skippedEqualityResolution++;
       return nullptr;
     }

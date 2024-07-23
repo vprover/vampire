@@ -30,6 +30,7 @@
 #include "Kernel/ApplicativeHelper.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
+#include "Saturation/Splitter.hpp"
 
 #include "Shell/ConditionalRedundancyHandler.hpp"
 #include "Shell/Statistics.hpp"
@@ -163,7 +164,8 @@ struct EqualityFactoring::ResultFn
       }
     }
 
-    if (!_condRedHandler->handleReductiveUnaryInference(_cl, &absUnif.subs())) {
+    SplitSet* blockingSet;
+    if (!_condRedHandler->handleReductiveUnaryInference(_cl, &absUnif.subs(), blockingSet)) {
       env.statistics->skippedEqualityFactoring++;
       return nullptr;
     }

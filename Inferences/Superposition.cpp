@@ -80,23 +80,22 @@ void Superposition::detach()
 
 struct Superposition::ForwardResultFn
 {
-  ForwardResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, Superposition& parent) : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _parent(parent) {}
+  ForwardResultFn(Clause* cl, Superposition& parent) : _cl(cl), _parent(parent) {}
   Clause* operator()(pair<pair<Literal*, TypedTermList>, QueryRes<AbstractingUnifier*, TermLiteralClause>> arg)
   {
     auto& qr = arg.second;
     return _parent.performSuperposition(_cl, arg.first.first, arg.first.second,
-	    qr.data->clause, qr.data->literal, qr.data->term, qr.unifier, true, _passiveClauseContainer);
+	    qr.data->clause, qr.data->literal, qr.data->term, qr.unifier, true);
   }
 private:
   Clause* _cl;
-  PassiveClauseContainer* _passiveClauseContainer;
   Superposition& _parent;
 };
 
 
 struct Superposition::BackwardResultFn
 {
-  BackwardResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, Superposition& parent) : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _parent(parent) {}
+  BackwardResultFn(Clause* cl, Superposition& parent) : _cl(cl), _parent(parent) {}
   Clause* operator()(pair<pair<Literal*, TermList>, QueryRes<AbstractingUnifier*, TermLiteralClause>> arg)
   {
     if(_cl==arg.second.data->clause) {
@@ -105,19 +104,16 @@ struct Superposition::BackwardResultFn
 
     auto& qr = arg.second;
     return _parent.performSuperposition(qr.data->clause, qr.data->literal, qr.data->term,
-	    _cl, arg.first.first, arg.first.second, qr.unifier, false, _passiveClauseContainer);
+	    _cl, arg.first.first, arg.first.second, qr.unifier, false);
   }
 private:
   Clause* _cl;
-  PassiveClauseContainer* _passiveClauseContainer;
   Superposition& _parent;
 };
 
 
 ClauseIterator Superposition::generateClauses(Clause* premise)
 {
-  PassiveClauseContainer* passiveClauseContainer = _salg->getPassiveClauseContainer();
-
   auto itf1 = premise->getSelectedLiteralIterator();
 
   // Get an iterator of pairs of selected literals and rewritable subterms of those literals
@@ -136,7 +132,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
       { return pushPairIntoRightIterator(arg, _lhsIndex->getUwa(arg.second, env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration())); });
 
   //Perform forward superposition
-  auto itf4 = getMappingIterator(itf3,ForwardResultFn(premise, passiveClauseContainer, *this));
+  auto itf4 = getMappingIterator(itf3,ForwardResultFn(premise, *this));
 
   auto itb1 = premise->getSelectedLiteralIterator();
   auto itb2 = getMapAndFlattenIterator(itb1,EqHelper::SuperpositionLHSIteratorFn(_salg->getOrdering(), _salg->getOptions()));
@@ -147,7 +143,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
               _subtermIndex->getUwa(TypedTermList(arg.second, SortHelper::getEqualityArgumentSort(arg.first)), env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration())); });
 
   //Perform backward superposition
-  auto itb4 = getMappingIterator(itb3,BackwardResultFn(premise, passiveClauseContainer, *this));
+  auto itb4 = getMappingIterator(itb3,BackwardResultFn(premise, *this));
 
   // Add the results of forward and backward together
   auto it5 = concatIters(itf4,itb4);
@@ -306,7 +302,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
 Clause* Superposition::performSuperposition(
     Clause* rwClause, Literal* rwLit, TermList rwTerm,
     Clause* eqClause, Literal* eqLit, TermList eqLHS,
-    AbstractingUnifier* unifier, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer)
+    AbstractingUnifier* unifier, bool eqIsResult)
 {
   TIME_TRACE("perform superposition");
   // we want the rwClause and eqClause to be active
@@ -343,6 +339,7 @@ Clause* Superposition::performSuperposition(
   Inference inf(GeneratingInference2(unifier->usesUwa() ? InferenceRule::CONSTRAINED_SUPERPOSITION : InferenceRule::SUPERPOSITION, rwClause, eqClause));
   Inference::Destroyer inf_destroyer(inf);
 
+  auto passiveClauseContainer = _salg->getPassiveClauseContainer();
   bool needsToFulfilWeightLimit = passiveClauseContainer && !passiveClauseContainer->fulfilsAgeLimit(0, numPositiveLiteralsLowerBound, inf) && passiveClauseContainer->weightLimited(); // 0 here denotes the current weight estimate
   if(needsToFulfilWeightLimit) {
     if(!earlyWeightLimitCheck(eqClause, eqLit, rwClause, rwLit, rwTerm, eqLHS, tgtTerm, subst, eqIsResult, passiveClauseContainer, numPositiveLiteralsLowerBound, inf)) {
@@ -351,7 +348,25 @@ Clause* Superposition::performSuperposition(
   }
 
   auto condRedHandler = _salg->condRedHandler();
-  if (!condRedHandler->checkSuperposition(eqClause, eqLit, rwClause, rwLit, eqIsResult, subst.ptr())) {
+  SplitSet* blockingSet;
+  if (!condRedHandler->checkSuperposition(eqClause, eqLit, rwClause, rwLit, eqIsResult, subst.ptr(), blockingSet)) {
+    auto splitter = _salg->getSplitter();
+    if (splitter) {
+      splitter->onRedundantInference([this,rwClause,rwLit,rwTerm,eqClause,eqLit,eqLHS]() -> Clause* {
+        if (rwClause->store()==Clause::NONE) {
+          return 0;
+        }
+        if (eqClause->store()==Clause::NONE) {
+          return 0;
+        }
+        auto unifier = AbstractingUnifier::unify(
+          TermList(rwTerm), 0, TermList(eqLHS), 1, AbstractionOracle(Options::UnificationWithAbstraction::OFF), false);
+        ASS(unifier);
+        auto subs = ResultSubstitution::fromSubstitution(&unifier->subs(), QUERY_BANK, RESULT_BANK);
+
+        return performSuperposition(rwClause, rwLit, rwTerm, eqClause, eqLit, eqLHS, &unifier.unwrap(), true);
+      }, rwClause, eqClause, blockingSet);
+    }
     return 0;
   }
 
