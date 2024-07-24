@@ -88,11 +88,26 @@ enum ArgumentOrderVals {
   AO_UNKNOWN=0,
   AO_GREATER=1,
   AO_LESS=2,
-  AO_GREATER_EQ=3,
-  AO_LESS_EQ=4,
-  AO_EQUAL=5,
-  AO_INCOMPARABLE=6,
+  AO_EQUAL=3,
+  AO_INCOMPARABLE=4,
 };
+
+enum class TermKind : unsigned {
+  LITERAL,
+  TERM,
+  SORT,
+};
+
+/* a function symbol of a composite term. in addition to the function symbol id (the functor in vampire terminology) we store what kind of term (i.e. term, literal or sort) it is. */
+struct SymbolId {
+  unsigned functor;
+  TermKind kind;
+  friend bool operator==(SymbolId const& l, SymbolId const& r) 
+  { return std::tie(l.functor, l.kind) == std::tie(r.functor, r.kind); }
+  friend bool operator<(SymbolId const& l, SymbolId const& r) 
+  { return std::tie(l.functor, l.kind) < std::tie(r.functor, r.kind); }
+};
+
 
 /**
  * Class containing either a pointer to a compound term or
@@ -181,9 +196,10 @@ public:
    */
   inline static TermList empty()
   { return TermList(); }
+
   /** the top of a term is either a function symbol or a variable id. this class is model this */
   class Top {
-    using Inner = Coproduct<unsigned, unsigned>;
+    using Inner = Coproduct<unsigned, SymbolId>;
     static constexpr unsigned VAR = 0;
     static constexpr unsigned FUN = 1;
     Inner _inner;
@@ -191,17 +207,20 @@ public:
     Top(Inner self) : _inner(self) {}
   public:
     static Top var    (unsigned v) { return Top(Inner::variant<VAR>(v)); }
-    static Top functor(unsigned f) { return Top(Inner::variant<FUN>(f)); }
+    // static Top functor(unsigned f) { return Top(Inner::variant<FUN>(f)); }
     template<class T>
-    static Top functor(T const* t) { return Top(Inner::variant<FUN>(t->functor())); }
+    static Top functor(T const* t) { return Top(Inner::variant<FUN>({ t->functor(), t->kind(), })); }
     Option<unsigned> var()     const { return _inner.as<VAR>().toOwned(); }
-    Option<unsigned> functor() const { return _inner.as<FUN>().toOwned(); }
+    Option<SymbolId> functor() const { return _inner.as<FUN>().toOwned(); }
     Lib::Comparison compare(Top const& other) const 
     { return _inner.compare(other._inner); }
     IMPL_COMPARISONS_FROM_COMPARE(Top);
     friend bool operator==(Top const& l, Top const& r) { return l._inner == r._inner; }
     friend bool operator!=(Top const& l, Top const& r) { return      !(l == r);       }
     void output(std::ostream& out) const;
+
+    friend std::ostream& operator<<(std::ostream& out, Kernel::TermList::Top const& self)
+    { self.output(out); return out; }
   };
 
   /* returns the Top of a function (a variable id, or a function symbol depending on whether the term is a variable or a complex term) */
@@ -779,6 +798,9 @@ public:
   bool isLiteral() const { return _args[0]._literal(); }
   /** True if the term is, in fact, a sort */
   bool isSort() const { return _args[0]._sort(); }
+  TermKind kind() const { return isSort() ? TermKind::SORT 
+                               : isLiteral() ? TermKind::LITERAL
+                               : TermKind::TERM; }
   /** true if the term is an application */
   bool isApplication() const;
 
@@ -1219,9 +1241,6 @@ bool positionIn(TermList& subterm,TermList* term, std::string& position);
 bool positionIn(TermList& subterm,Term* term, std::string& position);
 
 } // namespace Kernel
-
-inline std::ostream& operator<<(std::ostream& out, Kernel::TermList::Top const& self)
-{ self.output(out); return out; }
 
 template<>
 struct std::hash<Kernel::TermList> {

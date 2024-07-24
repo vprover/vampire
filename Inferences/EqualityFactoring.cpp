@@ -127,19 +127,18 @@ struct EqualityFactoring::ResultFn
     TermList srtS = absUnif.subs().apply(srt,0);
     TermList sLHSS = absUnif.subs().apply(sLHS,0);
     TermList sRHSS = absUnif.subs().apply(sRHS,0);
-    if(Ordering::isGorGEorE(_ordering.compare(sRHSS,sLHSS))) {
+    if(Ordering::isGreaterOrEqual(_ordering.compare(sRHSS,sLHSS))) {
       return 0;
     }
     TermList fRHSS = absUnif.subs().apply(fRHS,0);
-    if(Ordering::isGorGEorE(_ordering.compare(fRHSS,sLHSS))) {
+    if(Ordering::isGreaterOrEqual(_ordering.compare(fRHSS,sLHSS))) {
       return 0;
     }
     auto constraints = absUnif.computeConstraintLiterals();
 
-    unsigned newLen=_cLen+constraints->length();
-    Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
+    RStack<Literal*> resLits;
 
-    (*res)[0]=Literal::createEquality(false, sRHSS, fRHSS, srtS);
+    resLits->push(Literal::createEquality(false, sRHSS, fRHSS, srtS));
 
     Literal* sLitAfter = 0;
     if (_afterCheck && _cl->numSelected() > 1) {
@@ -147,7 +146,6 @@ struct EqualityFactoring::ResultFn
       sLitAfter = absUnif.subs().apply(sLit, 0);
     }
 
-    unsigned next = 1;
     for(unsigned i=0;i<_cLen;i++) {
       Literal* curr=(*_cl)[i];
       if(curr!=sLit) {
@@ -157,12 +155,11 @@ struct EqualityFactoring::ResultFn
           TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
           if (i < _cl->numSelected() && _ordering.compare(currAfter,sLitAfter) == Ordering::GREATER) {
             env.statistics->inferencesBlockedForOrderingAftercheck++;
-            res->destroy();
-            return 0;
+            return nullptr;
           }
         }
 
-        (*res)[next++] = currAfter;
+        resLits->push(currAfter);
       }
     }
 
@@ -170,17 +167,14 @@ struct EqualityFactoring::ResultFn
       !InstanceRedundancyHandler::handleReductiveUnaryInference(_cl, &absUnif.subs(), &_ordering))
     {
       env.statistics->skippedEqualityFactoring++;
-      return 0;
+      return nullptr;
     }
 
-    for(Literal* c : *constraints){
-      (*res)[next++] = c;
-    }
-    ASS_EQ(next,newLen);
+    resLits->loadFromIterator(constraints->iterFifo());
 
     env.statistics->equalityFactoring++;
 
-    return res;
+    return Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
   }
 private:
   EqualityFactoring& _self;

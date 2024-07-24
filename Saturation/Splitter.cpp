@@ -766,23 +766,15 @@ Clause* Splitter::getComponentClause(SplitLevel name) const
 Clause* Splitter::reintroduceAvatarAssertions(Clause* cl) {
   // This method can only be called when synthesizing programs
   ASS(env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
-  Inference inf(NonspecificInference1(InferenceRule::AVATAR_ASSERTION_REINTRODUCTION, cl));
-  unsigned newLen = cl->length() + cl->splits()->size();
-  Clause* newCl = new(newLen) Clause(newLen, inf);
-  unsigned i = 0;
-  while (i < cl->length()) {
-    (*newCl)[i] = (*cl)[i];
-    i++;
-  }
-  auto sit = cl->splits()->iter();
-  while (sit.hasNext()) {
-    SplitLevel nm = sit.next();
+  RStack<Literal*> resLits;
+  resLits->loadFromIterator(cl->iterLits());
+  for (SplitLevel nm : iterTraits(cl->splits()->iter())) {
     Clause* compCl = getComponentClause(nm);
     // When synthesizing programs, all components are ground and hence unit
     ASS(compCl->length() == 1);
-    (*newCl)[i++] = Literal::complementaryLiteral((*compCl)[0]);
+    resLits->push(Literal::complementaryLiteral((*compCl)[0]));
   }
-  return newCl;
+  return Clause::fromStack(*resLits, Inference(SimplifyingInference1(InferenceRule::AVATAR_ASSERTION_REINTRODUCTION, cl)));
 }
 
 void Splitter::onAllProcessed()

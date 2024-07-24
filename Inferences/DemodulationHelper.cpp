@@ -80,7 +80,7 @@ bool DemodulationHelper::isPremiseRedundant(Clause* rwCl, Literal* rwLit, TermLi
 
   TermList other=EqHelper::getOtherEqualitySide(rwLit, rwTerm);
   Ordering::Result tord = _ord->compare(tgtTerm, other);
-  if (tord == Ordering::LESS || tord == Ordering::LESS_EQ) {
+  if (tord == Ordering::LESS) {
     return true;
   }
 

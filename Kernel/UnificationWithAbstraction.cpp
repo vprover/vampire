@@ -314,8 +314,15 @@ bool AbstractingUnifier::fixedPointIteration()
   return true;
 }
 
-Option<Recycled<Stack<unsigned>>> AbstractingUnifier::unifiableSymbols(unsigned f)
+Option<Recycled<Stack<unsigned>>> AbstractingUnifier::unifiableSymbols(SymbolId fid)
 {
+  auto f = fid.functor;
+  if (fid.kind == TermKind::SORT)
+    // we don't perform UWA on sorts
+    return some(recycledStack(f));
+
+  ASS(fid.kind == TermKind::TERM) // not implemented for literals
+
   auto anything = []() -> Option<Recycled<Stack<unsigned>>> { return {}; };
   auto nothing  = []() -> Option<Recycled<Stack<unsigned>>> { return some(recycledStack<unsigned>()); };
   switch (_uwa._mode) {

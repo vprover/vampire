@@ -54,10 +54,7 @@ void CNF::clausify (Unit* unit,Stack<Clause*>& stack)
     return;
   case FALSE:
     {
-      // create an empty clause and push it in the stack
-      Clause* clause = new(0) Clause(0,
-				     FormulaTransformation(InferenceRule::CLAUSIFY,unit));
-      stack.push(clause);
+      stack.push(Clause::empty(FormulaTransformation(InferenceRule::CLAUSIFY,unit)));
     }
     return;
   default:
@@ -164,13 +161,8 @@ void CNF::clausify(Formula* f)
           _literals.push(f->literal());
           if (_formulas.isEmpty()) {
             // collect the clause
-            int length = _literals.length();
-            Clause* clause = new(length) Clause(length,
-                FormulaTransformation(InferenceRule::CLAUSIFY,_unit));
-            for (int i = length-1;i >= 0;i--) {
-              (*clause)[i] = _literals[i];
-            }
-            _result->push(clause);
+            _result->push(Clause::fromStack(_literals,
+                FormulaTransformation(InferenceRule::CLAUSIFY,_unit)));
             _literals.pop();
           }
           else {
