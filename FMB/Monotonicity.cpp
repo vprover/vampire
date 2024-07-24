@@ -168,7 +168,7 @@ bool Monotonicity::guards(Literal* l, unsigned var, Stack<SATLiteral>& slits)
 }
 
 
-void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const DArray<unsigned>& del_f,
+void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const DArray<bool>& del_f,
   DHMap<unsigned,DArray<signed char>*>& monotonic_vampire_sorts) // may write into this
 {
   // First compute the monotonic sorts

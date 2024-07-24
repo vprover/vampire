@@ -131,8 +131,8 @@ private:
   ScopedPtr<SATSolverWithAssumptions> _solver;
 
   // if del_f[i] (resp del_p[i]) is true then that function (resp predicate) should be ignored
-  DArray<unsigned> del_f;
-  DArray<unsigned> del_p;
+  DArray<bool> del_f;
+  DArray<bool> del_p;
 
   // Store monotonicity_info (see Monotonicity::check) for every sort detected (or made) monotonic
   DHMap<unsigned,DArray<signed char>*> _monotonic_vampire_sorts;

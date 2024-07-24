@@ -53,7 +53,7 @@ public:
    */
   DArray<signed char>* check();
 
-  static void addSortPredicates(bool withMon, ClauseList*& clauses, const DArray<unsigned>& del_f,
+  static void addSortPredicates(bool withMon, ClauseList*& clauses, const DArray<bool>& del_f,
     DHMap<unsigned,DArray<signed char>*>& monotonic_vampire_sorts);
   static void addSortFunctions(bool withMon, ClauseList*& clauses,
     DHMap<unsigned,DArray<signed char>*>& monotonic_vampire_sorts);

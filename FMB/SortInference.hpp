@@ -76,8 +76,8 @@ struct SortedSignature{
 class SortInference {
 public:
   SortInference(ClauseList* clauses,
-                const DArray<unsigned>& del_f,
-                const DArray<unsigned>& del_p,
+                const DArray<bool>& del_f,
+                const DArray<bool>& del_p,
                 Stack<std::pair<unsigned,unsigned>>& distinct_sort_constraints,
                 DHMap<unsigned,DArray<signed char>*>& monotonic_vampire_sorts) :
                 _clauses(clauses), _del_f(del_f), _del_p(del_p),
@@ -126,8 +126,8 @@ private:
 
   SortedSignature* _sig;
   ClauseList* _clauses;
-  const DArray<unsigned>& _del_f;
-  const DArray<unsigned>& _del_p;
+  const DArray<bool>& _del_f;
+  const DArray<bool>& _del_p;
 
   Stack<std::pair<unsigned,unsigned>>& _sort_constraints;
   DHMap<unsigned,DArray<signed char>*>& _monotonic_vampire_sorts;

@@ -432,9 +432,9 @@ void FiniteModelBuilder::init()
 
   ClauseList* clist = 0;
   if(env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::PREDICATE){
-    DArray<unsigned> deleted_functions(env.signature->functions());
+    DArray<bool> deleted_functions(env.signature->functions());
     for(unsigned f=0;f<env.signature->functions();f++){
-      deleted_functions[f] =  _prb.getEliminatedFunctions().find(f) || env.signature->getFunction(f)->usageCnt()==0;
+      deleted_functions[f] =  (bool)_prb.getEliminatedFunctions().findPtr(f) || env.signature->getFunction(f)->usageCnt()==0;
      }
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
     Monotonicity::addSortPredicates(true,clist,deleted_functions,_monotonic_vampire_sorts);
@@ -574,13 +574,13 @@ void FiniteModelBuilder::init()
   del_p.ensure(env.signature->predicates());
 
   for(unsigned f=0;f<env.signature->functions();f++){
-    del_f[f] = _prb.getEliminatedFunctions().find(f) || env.signature->getFunction(f)->usageCnt()==0;
+    del_f[f] = (bool)_prb.getEliminatedFunctions().findPtr(f) || env.signature->getFunction(f)->usageCnt()==0;
 #if VTRACE_FMB
     if(del_f[f]) cout << "Mark " << env.signature->functionName(f)  << " as deleted" << endl;
 #endif
   }
   for(unsigned p=0;p<env.signature->predicates();p++){
-    del_p[p] = (_prb.getEliminatedPredicates().find(p) || _prb.getPartiallyEliminatedPredicates().find(p));
+    del_p[p] = ((bool)_prb.getEliminatedPredicates().findPtr(p) || (bool)_prb.getPartiallyEliminatedPredicates().findPtr(p));
 #if VTRACE_FMB
     if(del_p[p]) cout << "Mark " << env.signature->predicateName(p) << " as deleted" << endl;
 #endif
