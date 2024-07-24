@@ -348,8 +348,8 @@ sa=fmb fmbes=sbeam > fmbksg ~cat off:2,on:1
 
 # fmb_start_size - setting this to values > 1 is making things "finite model incomplete" (but could save time for some problems)
 sa=fmb > $fmbss ~cat 1:5,666:1
-$fmbss=1 > fmbss ~cat 1:1
-$fmbss=666 > fmbss ~sgd 0.1,1
+sa=fmb $fmbss=1 > fmbss ~cat 1:1
+sa=fmb $fmbss=666 > fmbss ~sgd 0.1,1
 
 # fmb_symmetry_symbol_order
 sa=fmb > fmbsso ~cat occurence:22,input_usage:1,preprocessed_usage:1

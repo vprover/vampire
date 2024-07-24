@@ -446,6 +446,10 @@ void clausifyMode(Problem* problem, bool theory)
   simplifier.addFront(new TautologyDeletionISE());
   simplifier.addFront(new DuplicateLiteralRemovalISE());
 
+  if (!env.options->strategySamplerFilename().empty()) {
+    env.options->sampleStrategy(env.options->strategySamplerFilename());
+  }
+
   ScopedPtr<Problem> prb(preprocessProblem(problem));
 
   //outputSymbolDeclarations deals with sorts as well for now
