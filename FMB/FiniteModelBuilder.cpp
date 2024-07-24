@@ -532,7 +532,7 @@ void FiniteModelBuilder::init()
   }
   if(!_clauses){
     if(outputAllowed()){
-      cout << "The problem is propositional so there are no sorts!" << endl;
+      cout << "% The problem is propositional so there are no sorts!" << endl;
     }
   }
 
@@ -561,11 +561,15 @@ void FiniteModelBuilder::init()
 
   }
 
-  // TODO: consider updating usage count by rescanning property
-  // in particular, terms replaced by definitions have disappeared!
+  { // An ugly hack to cause a recomputation of usageCnts!
+    // (it's already ugly the usageCnts are stored with Symbols)
 
-  // TODO: consider updating usage count by rescanning property as we have had to
-  //       OR ensure that usage count is updated for any introduced symbols e.g. in Monotonicity
+    UnitList* units = 0; // we create a list just because ClauseList is not a UnitList in C++
+    UnitList::pushFromIterator(IterTraits(ClauseList::Iterator(_groundClauses)).map([](Clause* c) { return (Unit*)c; }),units);
+    UnitList::pushFromIterator(IterTraits(ClauseList::Iterator(_clauses)).map([](Clause* c) { return (Unit*)c; }),units);
+    ScopedPtr<Property> dummy_property(Property::scan(units));
+    UnitList::destroy(units);
+  }
 
   // record the deleted functions and predicates
   // we do this here so that there are slots for symbols introduce in previous
