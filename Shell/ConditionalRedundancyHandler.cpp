@@ -15,6 +15,7 @@
 #include "ConditionalRedundancyHandler.hpp"
 
 #include "Kernel/Clause.hpp"
+#include "Kernel/EqHelper.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
@@ -414,22 +415,40 @@ void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuper
   };
 
   Applicator appl(subs, !eqIsResult);
+  Ordering::Result otherComp;
 
-  auto doInsert =
+  auto redundancyCheck =
     // TODO this demodulation redundancy check could be added as constraints
     (!_demodulationHelper.redundancyCheckNeededForPremise(rwClause, rwLitS, rwTermS) ||
       // TODO for rwClause->length()!=1 the function isPremiseRedundant does not work yet
-      (rwClause->length()==1 && _demodulationHelper.isPremiseRedundant(rwClause, rwLitS, rwTermS, tgtTermS, eqLHS, &appl)));
+      (rwClause->length()==1 && _demodulationHelper.isPremiseRedundant(rwClause, rwLitS, rwTermS, tgtTermS, eqLHS, &appl, &otherComp)));
 
-  if (!doInsert) {
-    return;
+  // create ordering constraints
+  Term* ordLhs = nullptr;
+  Term* ordRhs = nullptr;
+  if constexpr (ordC) {
+    // TODO we cannot handle them together yet
+    if (eqComp != Ordering::LESS) {
+      if (!redundancyCheck || !rwTermS.containsAllVariablesOf(tgtTermS)) {
+        return;
+      }
+      ordLhs = rwTermS.term();
+      ordRhs = tgtTermS.term();
+    } else if (!redundancyCheck) {
+      TermList other = EqHelper::getOtherEqualitySide(rwLitS, rwTermS);
+      if (otherComp != Ordering::INCOMPARABLE || !other.containsAllVariablesOf(tgtTermS)) {
+        return;
+      }
+      ordLhs = other.term();
+      ordRhs = tgtTermS.term();
+    }
+  } else {
+    if (eqComp != Ordering::LESS || !redundancyCheck) {
+      return;
+    }
   }
 
-  // if the equation is not oriented, consider adding ordering constraints
-  if (eqComp != Ordering::LESS && !(ordC && rwTermS.containsAllVariablesOf(tgtTermS))) {
-    return;
-  }
-
+  // create literal constraints
   auto lits = LiteralSet::getEmpty();
   if constexpr (litC) {
     if (eqClause->numSelected()!=1) {
@@ -449,6 +468,7 @@ void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuper
     }
   }
 
+  // create AVATAR constraints
   auto splits = SplitSet::getEmpty();
   if constexpr (avatarC) {
     splits = eqClause->splits();
@@ -459,10 +479,7 @@ void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuper
   }
 
   auto rwClDataPtr = getDataPtr(rwClause, /*doAllocate=*/true);
-
-  (*rwClDataPtr)->insert(subs, !eqIsResult, lits, _splitter, splits,
-    eqComp != Ordering::LESS ? rwTermS.term() : nullptr,
-    eqComp != Ordering::LESS ? tgtTermS.term() : nullptr);
+  (*rwClDataPtr)->insert(subs, !eqIsResult, lits, _splitter, splits, ordLhs, ordRhs);
 }
 
 template<bool enabled, bool ordC, bool avatarC, bool litC>
@@ -477,6 +494,7 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::handleResol
   {
     bool doInsert = resultLit->isPositive();
 
+    // create literal constraints
     auto lits = LiteralSet::getEmpty();
     if constexpr (litC) {
       lits = LiteralSet::getFromIterator(resultCl->iterLits().filter([resultLit](Literal* lit) {
@@ -493,6 +511,7 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::handleResol
       }
     }
 
+    // create AVATAR constraints
     auto splits = SplitSet::getEmpty();
     if constexpr (avatarC) {
       splits = resultCl->splits();
@@ -511,6 +530,7 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::handleResol
   {
     bool doInsert = queryLit->isPositive();
 
+    // create literal constraints
     auto lits = LiteralSet::getEmpty();
     if constexpr (litC) {
       lits = LiteralSet::getFromIterator(queryCl->iterLits().filter([queryLit](Literal* lit) {
@@ -527,6 +547,7 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::handleResol
       }
     }
 
+    // create AVATAR constraints
     auto splits = SplitSet::getEmpty();
     if constexpr (avatarC) {
       splits = queryCl->splits();

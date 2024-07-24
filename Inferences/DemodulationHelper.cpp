@@ -74,12 +74,15 @@ bool isRenamingOn(const SubstApplicator* applicator, TermList t)
 }
 
 bool DemodulationHelper::isPremiseRedundant(Clause* rwCl, Literal* rwLit, TermList rwTerm,
-  TermList tgtTerm, TermList eqLHS, const SubstApplicator* eqApplicator) const
+  TermList tgtTerm, TermList eqLHS, const SubstApplicator* eqApplicator, Ordering::Result* comp) const
 {
   ASS(redundancyCheckNeededForPremise(rwCl, rwLit, rwTerm));
 
   TermList other=EqHelper::getOtherEqualitySide(rwLit, rwTerm);
   Ordering::Result tord = _ord->compare(tgtTerm, other);
+  if (comp) {
+    *comp = tord;
+  }
   if (tord == Ordering::LESS) {
     return true;
   }
