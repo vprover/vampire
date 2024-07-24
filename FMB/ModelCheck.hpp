@@ -173,6 +173,7 @@ static void doCheck(UnitList* units)
     std::cout << "Model loaded" << std::endl;
     std::cout << "Checking formulas..." << std::endl;
     {
+      bool allTrue = true;
       UnitList::Iterator uit(units);
       while(uit.hasNext()){
         Unit* u = uit.next();
@@ -180,7 +181,13 @@ static void doCheck(UnitList* units)
 
         std::cout << "Checking " << u->toString() << "..." << std::endl;
         bool res = model.evaluate(u);
+        allTrue &= res;
         std::cout << "Evaluates to " << (res ? "True" : "False") << std::endl;
+      }
+      if (allTrue) {
+        std::cout << "All formulas evaluated to True!" << std::endl;
+      } else {
+        std::cout << "There was a false formula!" << std::endl;
       }
     }
   }
