@@ -74,8 +74,8 @@ DArray<signed char>* Monotonicity::check() {
   DArray<signed char>* res = new DArray<signed char>(env.signature->predicates());
   (*res)[0] = 0; // pick a value for the 0-th = predicate (we don't really care here)
   for(unsigned p=1;p<env.signature->predicates();p++){
-    bool trueExt = _solver->getAssignment(_pT.get(p).var());
-    bool falseExt = _solver->getAssignment(_pF.get(p).var());
+    bool trueExt = _solver->trueInAssignment(_pT.get(p));
+    bool falseExt = _solver->trueInAssignment(_pF.get(p));
     ASS(!trueExt || !falseExt)
     (*res)[p] = trueExt ? 1 : (falseExt ? -1 : 0);
   }
