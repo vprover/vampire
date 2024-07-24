@@ -132,8 +132,8 @@ void Monotonicity::safe(Clause* c, Literal* parent, TermList* t,Stack<SATLiteral
           // if guards returns true it means true will be added to the clause
           // so don't bother creating it
           return;
-        } 
-      } 
+        }
+      }
       _solver->addClause(SATClause::fromStack(slits));
     }
   }
@@ -178,8 +178,9 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const D
        if(withMon){
          Monotonicity m(clauses,s);
          auto monot_info = m.check();
-         isMonotonic[s] = (bool)monot_info;
-         ALWAYS(monotonic_vampire_sorts.insert(s,monot_info));
+         if ((isMonotonic[s] = (bool)monot_info)) {
+           ALWAYS(monotonic_vampire_sorts.insert(s,monot_info));
+         }
        }
        else{
         isMonotonic[s] = false;
@@ -337,8 +338,9 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses,
        if(withMon){
          Monotonicity m(clauses,s);
          auto monot_info = m.check();
-         isMonotonic[s] = (bool)monot_info;
-         ALWAYS(monotonic_vampire_sorts.insert(s,monot_info));
+         if ((isMonotonic[s] = (bool)monot_info)) {
+           ALWAYS(monotonic_vampire_sorts.insert(s,monot_info));
+         }
        }
        else{
         isMonotonic[s] = false;
