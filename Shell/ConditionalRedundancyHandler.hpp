@@ -53,6 +53,8 @@ public:
   virtual bool handleReductiveUnaryInference(Clause* premise, RobSubstitution* subs,
     SplitSet*& blockingSplits) const = 0;
 
+  void checkEquations(Clause* cl) const;
+
 protected:
   class SubstitutionCoverTree;
 

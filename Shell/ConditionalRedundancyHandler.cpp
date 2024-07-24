@@ -72,7 +72,7 @@ public:
     return !check(ts, ord, lits, splitter, blockingSplits);
   }
 
-  void insert(const Ordering* ord, ResultSubstitution* subst, bool result, const LiteralSet* lits, const Splitter* splitter, SplitSet* splits, Term* lhs=nullptr, Term* rhs=nullptr)
+  void insert(ResultSubstitution* subst, bool result, const LiteralSet* lits, const Splitter* splitter, SplitSet* splits, Term* lhs=nullptr, Term* rhs=nullptr)
   {
     auto ts = getInstances([subst,result](unsigned v) { return subst->applyTo(TermList::var(v),result); });
     auto ld = createEntry(ts, lhs, rhs, lits, splitter, splits);
@@ -318,6 +318,24 @@ void ConditionalRedundancyHandler::destroyClauseData(Clause* cl)
   delete ptr;
 }
 
+void ConditionalRedundancyHandler::checkEquations(Clause* cl) const
+{
+  cl->iterLits().forEach([cl](Literal* lit){
+    if (!lit->isEquality() || lit->isNegative()) {
+      return;
+    }
+    auto t0 = lit->termArg(0);
+    auto t1 = lit->termArg(1);
+    RobSubstitution subs;
+    if (!subs.unify(t0,0,t1,0)) {
+      return;
+    }
+    auto clDataPtr = getDataPtr(cl, /*doAllocate=*/true);
+    auto rsubs = ResultSubstitution::fromSubstitution(&subs, 0, 0);
+    (*clDataPtr)->insert(rsubs.ptr(), false, LiteralSet::getEmpty(), nullptr, SplitSet::getEmpty());
+  });
+}
+
 ConditionalRedundancyHandler::SubstitutionCoverTree** ConditionalRedundancyHandler::getDataPtr(Clause* cl, bool doAllocate)
 {
   if (!doAllocate) {
@@ -442,7 +460,7 @@ void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuper
 
   auto rwClDataPtr = getDataPtr(rwClause, /*doAllocate=*/true);
 
-  (*rwClDataPtr)->insert(_ord, subs, !eqIsResult, lits, _splitter, splits,
+  (*rwClDataPtr)->insert(subs, !eqIsResult, lits, _splitter, splits,
     eqComp != Ordering::LESS ? rwTermS.term() : nullptr,
     eqComp != Ordering::LESS ? tgtTermS.term() : nullptr);
 }
