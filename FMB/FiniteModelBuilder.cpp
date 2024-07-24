@@ -579,10 +579,14 @@ void FiniteModelBuilder::init()
     if(del_f[f]) cout << "Mark " << env.signature->functionName(f)  << " as deleted" << endl;
 #endif
   }
-  for(unsigned p=0;p<env.signature->predicates();p++){
-    del_p[p] = ((bool)_prb.getEliminatedPredicates().findPtr(p) || (bool)_prb.getPartiallyEliminatedPredicates().findPtr(p));
+  for(unsigned p=1;p<env.signature->predicates();p++){ // skipping equality
+    del_p[p] = ((bool)_prb.getEliminatedPredicates().findPtr(p) || env.signature->getPredicate(p)->usageCnt()==0);
 #if VTRACE_FMB
-    if(del_p[p]) cout << "Mark " << env.signature->predicateName(p) << " as deleted" << endl;
+    if(del_p[p]) {
+      cout << "Mark " << env.signature->predicateName(p) << " as deleted" << endl;
+      cout << "  since (bool)_prb.getEliminatedPredicates().findPtr(p) = " << (bool)_prb.getEliminatedPredicates().findPtr(p) << endl;
+      cout << "  since env.signature->getPredicate(p)->usageCnt() = " << env.signature->getPredicate(p)->usageCnt() << endl;
+    }
 #endif
   }
 
