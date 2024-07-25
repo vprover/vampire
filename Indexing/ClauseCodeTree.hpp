@@ -58,7 +58,7 @@ private:
   bool removeOneOfAlternatives(CodeOp* op, Clause* cl, Stack<CodeOp*>* firstsInBlocks);
 
   struct RemovingLiteralMatcher
-  : public RemovingMatcher
+  : public Matcher</*removing*/true>
   {
     void init(CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_,
 	ClauseCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_);
@@ -72,7 +72,7 @@ private:
    *
    * Here the actual execution of the code of the tree takes place */
   struct LiteralMatcher
-  : public Matcher
+  : public Matcher</*removing*/false>
   {
     void init(CodeTree* tree, CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_, bool seekOnlySuccess=false);
     bool next();

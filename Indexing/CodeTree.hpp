@@ -332,10 +332,51 @@ public:
 
   typedef Vector<CodeOp> CodeBlock;
   typedef Stack<CodeOp> CodeStack;
+  typedef DArray<TermList> BindingArray;
 
-  struct BaseMatcher
+  /**
+   * Context for finding matches of literals
+   *
+   * Here the actual execution of the code of the tree takes place.
+   *
+   * The object is not initialized not only by constructor, but also by
+   * a call to the @b init function (inheritors should implement their
+   * own @b init function (possibly with other arguments) that will call
+   * this one. After use, the @b deinit function should be called (if
+   * present). This allows for reuse of a single object.
+   */
+  template<bool removing>
+  struct Matcher
   {
-  public:
+    /**
+     * Backtracking point for the interpretation of the code tree.
+     */
+    struct BTPoint
+    {
+      BTPoint(size_t tp, CodeOp* op) : tp(tp), op(op) {}
+
+      /** Position in the flat term */
+      size_t tp;
+      /** Pointer to the next operation */
+      CodeOp* op;
+    };
+
+    struct BTPointRemoving
+    {
+      BTPointRemoving(size_t tp, CodeOp* op, size_t fibDepth)
+      : tp(tp), op(op), fibDepth(fibDepth) {}
+
+      size_t tp;
+      CodeOp* op;
+      size_t fibDepth;
+    };
+
+    inline bool finished() const { return !fresh && !_matched; }
+    inline bool matched() const { return _matched && op->isLitEnd(); }
+    inline bool success() const { return _matched && op->isSuccess(); }
+
+    bool execute();
+
     /**
      * Pointer to the current operation
      *
@@ -343,9 +384,25 @@ public:
      * a call to the @b prepareLiteral function).
      */
     CodeOp* op;
-  protected:
 
+    BindingArray bindings;
+
+    bool keepRecycled() const
+    { return bindings.keepRecycled() 
+        || btStack.keepRecycled() 
+        || (firstsInBlocks && firstsInBlocks->keepRecycled()); }
+
+  protected:
+    void init(CodeTree* tree_, CodeOp* entry_, LitInfo* linfos_ = 0,
+      size_t linfoCnt_ = 0, Stack<CodeOp*>* firstsInBlocks_ = 0);
+
+    bool backtrack();
+    bool prepareLiteral();
+    bool doAssignVar();
+    bool doCheckVar();
+    bool doCheckFun();
     bool doCheckGroundTerm();
+    bool doSearchStruct();
 
     /**
      * Position in the flat term
@@ -362,6 +419,38 @@ public:
      */
     FlatTerm* ft;
 
+    /** the matcher object is initialized but no execution of code was done yet */
+    bool fresh;
+    bool _matched;
+
+    CodeOp* entry;
+    CodeTree* tree;
+
+    /**
+     * Currently matched LitInfo object in case LitInfo objects
+     * are used (they are not in TermCodeTree::TermMatcher).
+     */
+    size_t curLInfo;
+    /**
+     * Array of alternative LitInfo objects
+     *
+     * Must be initialized by inheritor.
+     */
+    LitInfo* linfos;
+    /**
+     * Length of the @b linfos array
+     *
+     * Must be initialized by inheritor.
+     */
+    size_t linfoCnt;
+
+    /** Stack containing backtracking points */
+    Stack<std::conditional_t<removing,BTPointRemoving,BTPoint>> btStack;
+
+    Stack<CodeOp*>* firstsInBlocks;
+    size_t initFIBDepth;
+
+    bool matchingClauses;
   };
 
   //////// auxiliary methods //////////
@@ -405,152 +494,9 @@ public:
 
   void optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp* removedOp);
 
-  struct RemovingMatcher
-  : public BaseMatcher
-  {
-  public:
-    bool next();
-
-    bool keepRecycled() const
-    { return bindings.keepRecycled() 
-        || btStack.keepRecycled() 
-        || (firstsInBlocks && firstsInBlocks->keepRecycled()); }
-
-  protected:
-    void init(CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_,
-	CodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_);
-
-
-    bool prepareLiteral();
-    bool backtrack();
-    bool doSearchStruct();
-    bool doCheckFun();
-    bool doAssignVar();
-    bool doCheckVar();
-
-
-    struct BTPoint
-    {
-      BTPoint(size_t tp, CodeOp* op, size_t fibDepth)
-      : tp(tp), op(op), fibDepth(fibDepth) {}
-
-      size_t tp;
-      CodeOp* op;
-      size_t fibDepth;
-    };
-
-    /** Variable bindings */
-    DArray<unsigned> bindings;
-
-    Stack<BTPoint> btStack;
-    Stack<CodeOp*>* firstsInBlocks;
-    bool fresh;
-    size_t curLInfo;
-
-    CodeOp* entry;
-    size_t initFIBDepth;
-
-    LitInfo* linfos;
-    size_t linfoCnt;
-
-    bool matchingClauses;
-    CodeTree* tree;
-  };
-
-  //////// retrieval //////////
-
-  /**
-   * Backtracking point for the interpretation of the code tree.
-   */
-  struct BTPoint
-  {
-    BTPoint() {}
-    BTPoint(size_t tp, CodeOp* op) : tp(tp), op(op) {}
-
-    /** Position in the flat term */
-    size_t tp;
-    /** Pointer to the next operation */
-    CodeOp* op;
-  };
-
-  typedef Stack<BTPoint> BTStack;
-  typedef DArray<TermList> BindingArray;
-
-  /**
-   * Context for finding matches of literals
-   *
-   * Here the actual execution of the code of the tree takes place.
-   *
-   * The object is not initialized not only by constructor, but also by
-   * a call to the @b init function (inheritors should implement their
-   * own @b init function (possibly with other arguments) that will call
-   * this one. After use, the @b deinit function should be called (if
-   * present). This allows for reuse of a single object.
-   */
-  struct Matcher
-  : public BaseMatcher
-  {
-    void init(CodeTree* tree, CodeOp* entry_);
-
-    inline bool finished() const { return !_fresh && !_matched; }
-    inline bool matched() const { return _matched && op->isLitEnd(); }
-    inline bool success() const { return _matched && op->isSuccess(); }
-
-
-
-  private:
-    bool backtrack();
-    bool doSearchStruct();
-    bool doCheckFun();
-    void doAssignVar();
-    bool doCheckVar();
-
-  protected:
-    bool execute();
-    bool prepareLiteral();
-
-  public:
-    /** Variable bindings */
-    BindingArray bindings;
-    bool keepRecycled() const { return bindings.keepRecycled(); }
-
-  protected:
-    /** the matcher object is initialized but no execution of code was done yet */
-    bool _fresh;
-    bool _matched;
-
-    /** Stack containing backtracking points */
-    BTStack btStack;
-
-    CodeOp* entry;
-
-    CodeTree* tree;
-    /**
-     * Array of alternative LitInfo objects
-     *
-     * Must be initialized by inheritor.
-     */
-    LitInfo* linfos;
-    /**
-     * Length of the @b linfos array
-     *
-     * Must be initialized by inheritor.
-     */
-    size_t linfoCnt;
-
-    /**
-     * Currently matched LitInfo object in case LitInfo objects
-     * are used (they are not in TermCodeTree::TermMatcher).
-     */
-    size_t curLInfo;
-
-  };
-
-
   void incTimeStamp();
 
   //////// member variables //////////
-
 
   bool _clauseCodeTree;
   unsigned _curTimeStamp;
@@ -559,10 +505,8 @@ public:
   unsigned _maxVarCnt;
 
   CodeBlock* _entryPoint;
-
 };
 
 }
 
 #endif // __CodeTree__
-

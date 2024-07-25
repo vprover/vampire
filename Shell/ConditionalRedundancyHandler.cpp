@@ -240,14 +240,11 @@ private:
   }
 
   struct SubstMatcher
-  : public Matcher
+  : public Matcher</*removing*/false>
   {
     void init(CodeTree* tree, const TermStack& ts)
     {
       Matcher::init(tree,tree->getEntryPoint());
-
-      linfos=0;
-      linfoCnt=0;
 
       ft = FlatTerm::createUnexpanded(ts);
 
