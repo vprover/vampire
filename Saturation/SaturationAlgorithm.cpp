@@ -52,6 +52,7 @@
 #include "Inferences/BackwardSubsumptionAndResolution.hpp"
 #include "Inferences/BackwardSubsumptionDemodulation.hpp"
 #include "Inferences/BinaryResolution.hpp"
+#include "Inferences/CodeTreeForwardSubsumptionAndResolution.hpp"
 #include "Inferences/EqualityFactoring.hpp"
 #include "Inferences/EqualityResolution.hpp"
 #include "Inferences/BoolEqToDiseq.hpp"
@@ -1620,7 +1621,16 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
   }
 
+#define CODE_TREE_SUBSUMPTION 1
+
   if (opt.forwardSubsumption()) {
+#if CODE_TREE_SUBSUMPTION
+    if (opt.forwardSubsumptionResolution()) {
+      res->addForwardSimplifierToFront(new CodeTreeForwardSubsumptionAndResolution(true));
+    } else {
+      res->addForwardSimplifierToFront(new CodeTreeForwardSubsumptionAndResolution(false));
+    }
+#else
     if (opt.forwardSubsumptionResolution()) {
       ForwardSubsumptionAndResolution* fwd = new ForwardSubsumptionAndResolution(true);
       res->addForwardSimplifierToFront(fwd);
@@ -1629,6 +1639,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
       ForwardSubsumptionAndResolution* fwd = new ForwardSubsumptionAndResolution(false);
       res->addForwardSimplifierToFront(fwd);
     }
+#endif
   }
   else if (opt.forwardSubsumptionResolution()) {
     USER_ERROR("Forward subsumption resolution requires forward subsumption to be enabled.");
@@ -1668,7 +1679,8 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     res->_symEl = new SymElOutput();
   }
 
-  res->_conditionalRedundancyHandler.reset(ConditionalRedundancyHandler::create(opt, &ordering, res->_splitter));
+  res->_conditionalRedundancyHandler.reset(ConditionalRedundancyHandler::create(opt, &ordering, res->_splitter,
+    static_cast<DemodulationLHSIndex*>(res->_imgr->request(DEMODULATION_LHS_CODE_TREE))));
 
   res->_answerLiteralManager = AnswerLiteralManager::getInstance(); // selects the right one, according to options!
   ASS(!res->_answerLiteralManager||opt.questionAnswering()!=Options::QuestionAnsweringMode::OFF);

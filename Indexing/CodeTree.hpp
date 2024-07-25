@@ -214,11 +214,11 @@ public:
     inline ILStruct* getILS()
     {
       ASS(isLitEnd());
-      return _data<ILStruct>();
+      return reinterpret_cast<ILStruct*>(reinterpret_cast<uint64_t>(_data<ILStruct>()) & ~(1UL << 1));
     }
     inline const ILStruct* getILS() const
     {
-      return _data<ILStruct>();
+      return reinterpret_cast<ILStruct*>(reinterpret_cast<uint64_t>(_data<ILStruct>()) & ~(1UL << 1));
     }
 
     const SearchStruct* getSearchStruct() const;
