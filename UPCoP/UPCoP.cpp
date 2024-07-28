@@ -486,8 +486,6 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
   bool learn_set = false;
   // the next learned clause
   std::vector<int> learn;
-  // random source
-  std::mt19937 rng;
   // ordering (for SimpleCongruenceClosure?!)
   OrderingSP ordering;
 
@@ -509,11 +507,10 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
     ordering(Kernel::Ordering::create(problem, *env.options))
   {}
 
-  void notify_assignment(int assigned, bool fixed) final {
+  void notify_assignment(int assigned) {
     // log() << "assign: " << assigned << '\n';
 
-    // should only get fixed assignments at decision level 0 (without chrono)
-    ASS(!fixed || levels.empty())
+    // should only get fixed assignments at decision level 0
     ASS_EQ(set[abs(assigned)], 0)
 
     trail.push_back(assigned);
@@ -527,6 +524,11 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
     // unify the literals corresponding to the connection
     if(!substitution.unify(matrix.sat2conn[assigned]))
       compute_unification_reason(assigned);
+  }
+
+  void notify_assignment(const std::vector<int> &lits) final  {
+    for(int assigned : lits)
+      notify_assignment(assigned);
   }
 
   // fill out `reason` given that `failed` caused a unification failure
@@ -614,7 +616,8 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
   }
 
   void notify_backtrack(size_t decision_level) final {
-    // log() << "backtrack to: " << decision_level << '\n';
+    //log() << "backtrack to: " << decision_level << '\n';
+    ASS(decision_level < levels.size())
     // this seems to happen sometimes: ignore it
     if(decision_level >= levels.size())
       return;
@@ -632,7 +635,7 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
     substitution.pop_to(level.variables);
   }
 
-  bool cb_has_external_clause() final {
+  bool cb_has_external_clause(bool &forgettable) final {
     if(learn_set)
       return true;
     if(!check_disequations())
@@ -650,7 +653,7 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
     return lit;
   }
 
-  bool cb_check_found_model(const std::vector<int> &model) final {
+  bool cb_check_found_model(const std::vector<int> &) final {
     ASS(!learn_set)
     ASS(learn.empty())
     learn_set = true;
@@ -658,7 +661,7 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
 #if 0
     // ooooh stars pretty!
     auto &out = log();
-    for(int assign : model)
+    for(int assign : set)
       out << (assign < 0 ? ' ' : '*');
     out << '\n';
 #endif
@@ -684,7 +687,7 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
     }
 
     // at least one connection along the path must be made
-    for(int connection = 1; connection < matrix.sat2conn.size(); connection++) {
+    for(unsigned connection = 1; connection < matrix.sat2conn.size(); connection++) {
       // we can ignore connections already set:
       // 1. If the connection is between predicates, this wouldn't be a path
       // 2. If the connection is between an equation and a subterm, it wasn't strong enough
@@ -692,9 +695,8 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
         continue;
 
       auto [s, t] = matrix.sat2conn[connection];
-      if(predicates.contains(s) && predicates.contains(t))
-        learn.push_back(connection);
-      else if(
+      if(
+        (predicates.contains(s) && predicates.contains(t)) ||
         (sides.contains(t) && subterms.contains(s)) ||
         (sides.contains(s) && subterms.contains(t))
       )
@@ -750,9 +752,6 @@ struct Propagator: public CaDiCaL::ExternalPropagator {
     }
 
 conflict:
-    // usually better to try lots of different paths
-    pathfinder.randomizeForNextAssignment(sat2fo.maxSATVar());
-
     // no path exists, we're done - emit a proof
     if(pathfinder.solve(UINT_MAX) == SATSolver::UNSATISFIABLE) {
       SATClause* refutation = pathfinder.getRefutation();
@@ -772,9 +771,6 @@ conflict:
     // for checking the path is E-satisfiable
     DP::SimpleCongruenceClosure cc(ordering.ptr());
 
-    // to choose a random satisfied literal in clauses
-    std::vector<unsigned> random_order;
-
     // read the path off pathfinder's model
     std::unordered_set<Literal *> path;
     for(unsigned i = 0; i < matrix.copies.size(); i++) {
@@ -782,13 +778,7 @@ conflict:
       Clause *ground = grounded[i];
       ASS_EQ(copy.literals.size(), ground->length())
 
-      // randomise order of iteration
-      random_order.clear();
-      while(random_order.size() < ground->length())
-        random_order.push_back(random_order.size());
-      shuffle(random_order.begin(), random_order.end(), rng);
-
-      for(unsigned j : random_order) {
+      for(unsigned j = 0; j < ground->length(); j++) {
         SATLiteral lit = sat2fo.toSAT((*ground)[j]);
         ASS_NEQ(pathfinder.getAssignment(lit.var()), SATSolver::DONT_CARE)
         if(
@@ -815,6 +805,41 @@ conflict:
       goto conflict;
     }
 
+    /*
+    // sets of predicates, sides of equations, and subterms in the path
+    DHSet<TermList> predicates, sides, subterms;
+    for(Literal *l : path) {
+      if(l->isEquality()) {
+        if(l->polarity()) {
+          sides.insert((*l)[0]);
+          sides.insert((*l)[1]);
+        }
+      }
+      else {
+        predicates.insert(TermList(l));
+      }
+      NonVariableNonTypeIterator it(l);
+      while(it.hasNext())
+        subterms.insert(TermList(it.next()));
+    }
+
+    // remove paths that have a connection unset
+    for(unsigned connection = 1; connection < matrix.sat2conn.size(); connection++) {
+      // ignore connections already set
+      if(set[connection])
+        continue;
+
+      auto [s, t] = matrix.sat2conn[connection];
+      if(
+        (predicates.contains(s) && predicates.contains(t)) ||
+        (sides.contains(t) && subterms.contains(s)) ||
+        (sides.contains(s) && subterms.contains(t))
+      ) {
+        ASSERTION_VIOLATION;
+      }
+    }
+    */
+
     // free clauses, we won't need them for a proof
     for(SATClause *cl : sats)
       cl->destroy();
@@ -835,15 +860,14 @@ MainLoopResult UPCoP::runImpl() {
   Propagator propagator(getProblem(), matrix);
   CaDiCaL::Solver solver;
   solver.connect_external_propagator(&propagator);
-  // chrono allows fixed assignments at non-zero decision levels - eek!
-  solver.set("chrono", 0);
-  for(int i = 1; i < matrix.sat2conn.size(); i++) {
+  for(unsigned i = 1; i < matrix.sat2conn.size(); i++) {
     // observe all variables
     solver.add_observed_var(i);
     // prefer setting them positively
     solver.phase(i);
   }
 
+  log() << solver.version() << '\n';
   log() << env.options->inputFile() << '\n';
 
   // should throw if we find a proof
