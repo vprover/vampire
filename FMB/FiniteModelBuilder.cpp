@@ -1916,6 +1916,9 @@ void FiniteModelBuilder::onModelFound()
   for(unsigned f=0;f<env.signature->functions();f++){
     if(del_f[f]) continue;
 
+    Signature::Symbol* sym = env.signature->getFunction(f);
+    if (sym->introduced()) continue;
+
     //cout << "For " << env.signature->getFunction(f)->name() << endl;
     unsigned arity = env.signature->functionArity(f);
 
@@ -1923,7 +1926,7 @@ void FiniteModelBuilder::onModelFound()
     static DArray<unsigned> maxVarSizeBig;
     maxVarSizeBig.ensure(arity);
 
-    OperatorType* tp = env.signature->getFunction(f)->fnType();
+    OperatorType* tp = sym->fnType();
     ASS_EQ(tp->numTypeArguments(),0) // no polymorphic business in FMB
     for(unsigned var=0;var<arity;var++){
       unsigned vamp_srt = tp->arg(var).term()->functor();
@@ -1992,6 +1995,9 @@ void FiniteModelBuilder::onModelFound()
   for(unsigned p=1;p<env.signature->predicates();p++){
     if(del_p[p]) continue;
 
+    Signature::Symbol* sym = env.signature->getPredicate(p);
+    if (sym->introduced()) continue;
+
     unsigned arity = env.signature->predicateArity(p);
     //cout << "Record for " << env.signature->getPredicate(p)->name() << "/" << arity << endl;
 
@@ -1999,7 +2005,7 @@ void FiniteModelBuilder::onModelFound()
     static DArray<unsigned> maxVarSizeBig;
     maxVarSizeBig.ensure(arity);
 
-    OperatorType* tp = env.signature->getPredicate(p)->fnType();
+    OperatorType* tp = sym->fnType();
     ASS_EQ(tp->numTypeArguments(),0) // no polymorphic business in FMB
     for(unsigned var=0;var<arity;var++){
       unsigned vamp_srt = tp->arg(var).term()->functor();
