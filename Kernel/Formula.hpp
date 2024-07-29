@@ -60,19 +60,16 @@ public:
   void leftRightSwap();
   const Formula* qarg() const;
   Formula* qarg();
-  const VList* vars() const;
-  VList* vars();
-  VList** varsPtr();
-  const SList* sorts() const;
-  SList* sorts();
-  SList** sortsPtr();
+  const VSList* vars() const;
+  VSList* vars();
+  VSList** varsPtr();
   const Formula* uarg() const;
   Formula* uarg();
   const Literal* literal() const;
   Literal* literal();
   const TermList getBooleanTerm() const;
   TermList getBooleanTerm();
-  VList* boundVariables () const;
+  VSList* boundVariables () const;
 
   // output
   std::string toString() const;
@@ -180,15 +177,13 @@ class QuantifiedFormula
 {
  public:
   /** Build a quantified formula */
-  QuantifiedFormula(Connective con, VList* vs, SList* ss, Formula* arg)
+  QuantifiedFormula(Connective con, VSList* vs, Formula* arg)
     : Formula(con),
       _vars(vs),
-      _sorts(ss),
       _arg(arg)
   {
     ASS(con == FORALL || con == EXISTS);
     ASS(vs);
-    ASS(!ss || VList::length(vs) == SList::length(ss));
   }
 
   /** Return the immediate subformula */
@@ -196,23 +191,16 @@ class QuantifiedFormula
   /** Return the immediate subformula */
   Formula* subformula () { return _arg; }
   /** Return the list of variables */
-  const VList* varList() const { return _vars; }
+  const VSList* varList() const { return _vars; }
   /** Return the list of variables */
-  VList* varList() { return _vars; }
-  VList** varListPtr() { return &_vars; }
-  /** Return the list of sorts */
-  const SList* sortList() const { return _sorts; }
-  /** Return the list of sorts */
-  SList* sortList() { return _sorts; }
-  SList** sortListPtr() { return &_sorts; }
+  VSList* varList() { return _vars; }
+  VSList** varListPtr() { return &_vars; }
 
   // use allocator to (de)allocate objects of this class
   USE_ALLOCATOR(QuantifiedFormula);
  protected:
-  /** list of variables */
-  VList* _vars;
-  /** list of sorts */
-  SList* _sorts;
+  /** list of variables with sorts */
+  VSList* _vars;
   /** argument */
   Formula* _arg;
 }; // class Formula::QuantifiedData
@@ -379,46 +367,24 @@ class BoolTermFormula
 
 /** Return the list of variables of a quantified formula */
 inline
-const VList* Formula::vars() const
+const VSList* Formula::vars() const
 {
   ASS(_connective == FORALL || _connective == EXISTS);
   return static_cast<const QuantifiedFormula*>(this)->varList();
 }
 /** Return the list of variables of a quantified formula */
 inline
-VList* Formula::vars()
+VSList* Formula::vars()
 {
   ASS(_connective == FORALL || _connective == EXISTS);
   return static_cast<QuantifiedFormula*>(this)->varList();
 }
 
 inline
-VList** Formula::varsPtr()
+VSList** Formula::varsPtr()
 {
   ASS(_connective == FORALL || _connective == EXISTS);
   return static_cast<QuantifiedFormula*>(this)->varListPtr();
-}
-
-/** Return the list of sorts of a quantified formula */
-inline
-const SList* Formula::sorts() const
-{
-  ASS(_connective == FORALL || _connective == EXISTS);
-  return static_cast<const QuantifiedFormula*>(this)->sortList();
-}
-/** Return the list of sorts of a quantified formula */
-inline
-SList* Formula::sorts()
-{
-  ASS(_connective == FORALL || _connective == EXISTS);
-  return static_cast<QuantifiedFormula*>(this)->sortList();
-}
-
-inline
-SList** Formula::sortsPtr()
-{
-  ASS(_connective == FORALL || _connective == EXISTS);
-  return static_cast<QuantifiedFormula*>(this)->sortListPtr();
 }
 
 /** Return the immediate subformula of a quantified formula */
