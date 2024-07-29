@@ -424,19 +424,16 @@ void Property::scan(Formula* f, int polarity)
     }
     case FORALL:
       if(!_quantifiesOverPolymorphicVar){
-        VList* vars = f->vars();
-        VList::Iterator vit(vars);
+        SList* sorts = f->sorts();
+        SList::Iterator sit(sorts);
 
-        TermList s;
-        while(vit.hasNext()){
-          int v = vit.next();
-          if(SortHelper::tryGetVariableSort(v, f->qarg(), s)){
-            if(s.isTerm() && s.term()->isSuper()){
-              _quantifiesOverPolymorphicVar = true;
-              break;
-            }
+        while(sit.hasNext()){
+          TermList s = sit.next();
+          if(s.isTerm() && s.term()->isSuper()){
+            _quantifiesOverPolymorphicVar = true;
+            break;
           }
-        }    
+        }
       }
       if (polarity != -1) {
         _allQuantifiersEssentiallyExistential = false;
@@ -444,19 +441,16 @@ void Property::scan(Formula* f, int polarity)
       break;
     case EXISTS:
       if(!_quantifiesOverPolymorphicVar){
-        VList* vars = f->vars();
-        VList::Iterator vit(vars);
+        SList* sorts = f->sorts();
+        SList::Iterator sit(sorts);
 
-        TermList s;
-        while(vit.hasNext()){
-          int v = vit.next();
-          if(SortHelper::tryGetVariableSort(v, f->qarg(), s)){
-            if(s.isTerm() && s.term()->isSuper()){
-              _quantifiesOverPolymorphicVar = true;
-              break;
-            }
+        while(sit.hasNext()){
+          TermList s = sit.next();
+          if(s.isTerm() && s.term()->isSuper()){
+            _quantifiesOverPolymorphicVar = true;
+            break;
           }
-        }    
+        }
       }
       if (polarity != 1) {
         _allQuantifiersEssentiallyExistential = false;
