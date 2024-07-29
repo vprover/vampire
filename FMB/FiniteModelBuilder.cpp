@@ -1568,8 +1568,8 @@ MainLoopResult FiniteModelBuilder::runImpl()
         if(s+1 < _sortedSignature->distinctSorts){ max_res+=","; min_res+=",";}
       }
       if(doPrinting){
-        cout << "Detected minimum model sizes of " << min_res << "]" << endl;
-        cout << "Detected maximum model sizes of " << max_res << "]" << endl;
+        cout << "% Detected minimum model sizes of " << min_res << "]" << endl;
+        cout << "% Detected maximum model sizes of " << max_res << "]" << endl;
       }
   }
 
