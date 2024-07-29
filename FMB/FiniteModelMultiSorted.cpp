@@ -184,7 +184,7 @@ std::string FiniteModelMultiSorted::toString()
     for(unsigned i=1;i<=size;i++){
       modelStm << "tff(" << append(prepend("declare_", sortNameLabel), Int::toString(i).c_str()) << ",type,";
       int frep = sortRepr[s][i];
-      std::string cname = prepend("fmb_", sortNameLabel+"_"+Lib::Int::toString(i));
+      std::string cname = append(prepend("fmb_", sortNameLabel),(std::string("_")+Lib::Int::toString(i)).c_str());
       if(frep >= 0){
         cname = env.signature->functionName(frep);
       }
