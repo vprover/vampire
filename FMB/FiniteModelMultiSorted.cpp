@@ -226,13 +226,14 @@ std::string FiniteModelMultiSorted::toString()
 
   //Constants
   for(unsigned f=0;f<env.signature->functions();f++){
-    if(env.signature->getFunction(f)->usageCnt()==0) continue;
-    unsigned arity = env.signature->functionArity(f);
+    Signature::Symbol* symb = env.signature->getFunction(f);
+    if(symb->usageCnt()==0) continue;
+    unsigned arity = symb->arity();
     if(arity>0) continue;
-    if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;
-    std::string name = env.signature->functionName(f);
+    if(!printIntroduced && symb->introduced()) continue;
+    std::string name = symb->name();
     unsigned res = f_interpretation[f_offsets[f]];
-    TermList srtT = env.signature->getFunction(f)->fnType()->result();
+    TermList srtT = symb->fnType()->result();
     unsigned srt = srtT.term()->functor();
     std::string cname = cnames[srt][res];
     if(name == cname) continue;
@@ -243,25 +244,25 @@ std::string FiniteModelMultiSorted::toString()
       modelStm << "tff("<<append(name,"_definition")<<",axiom,"<<name<<" = " << cname << ")."<<endl;
     }
     else{
-      modelStm << "% " << name << " undefined in model" << endl; 
+      modelStm << "% " << name << " undefined in model" << endl;
     }
   }
 
   //Functions
   for(unsigned f=0;f<env.signature->functions();f++){
-    if(env.signature->getFunction(f)->usageCnt()==0) continue;
-    unsigned arity = env.signature->functionArity(f);
+    Signature::Symbol* symb = env.signature->getFunction(f);
+    if(symb->usageCnt()==0) continue;
+    unsigned arity = symb->arity();
     if(arity==0) continue;
-    if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;
-    std::string name = env.signature->functionName(f);
-
-    OperatorType* sig = env.signature->getFunction(f)->fnType();
+    if(!printIntroduced && symb->introduced()) continue;
+    std::string name = symb->name();
+    OperatorType* sig = symb->fnType();
     modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": (";
     for(unsigned i=0;i<arity;i++){
       modelStm << sig->arg(i).toString();
       if(i+1 < arity) modelStm << " * ";
     }
-    modelStm << ") > " << sig->result().toString() << ")." << endl; 
+    modelStm << ") > " << sig->result().toString() << ")." << endl;
 
     modelStm << "tff("<<prepend("function_", name)<<",axiom,"<<endl;
 
@@ -327,8 +328,10 @@ fModelLabel:
   for(unsigned f=1;f<env.signature->predicates();f++){
     unsigned arity = env.signature->predicateArity(f);
     if(arity>0) continue;
-    if(!printIntroduced && env.signature->getPredicate(f)->introduced()) continue;
-    std::string name = env.signature->predicateName(f);
+    Signature::Symbol* symb = env.signature->getPredicate(f);
+    if(!printIntroduced && symb->introduced()) continue;
+    if(symb->usageCnt() == 0) continue;
+    std::string name = symb->name();
     modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": $o)."<<endl;
     unsigned res = p_interpretation[p_offsets[f]];
     if(res==2){
@@ -344,12 +347,13 @@ fModelLabel:
 
 //Predicates
   for(unsigned f=1;f<env.signature->predicates();f++){
-    unsigned arity = env.signature->predicateArity(f);
+    Signature::Symbol* symb = env.signature->getPredicate(f);
+    unsigned arity = symb->arity();
     if(arity==0) continue;
-    if(!printIntroduced && env.signature->getPredicate(f)->introduced()) continue;
-    std::string name = env.signature->predicateName(f);
-
-    OperatorType* sig = env.signature->getPredicate(f)->predType();
+    if(!printIntroduced && symb->introduced()) continue;
+    if(symb->usageCnt() == 0) continue;
+    std::string name = symb->name();
+    OperatorType* sig = symb->predType();
     modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": (";
     for(unsigned i=0;i<arity;i++){
       TermList argST = sig->arg(i);
