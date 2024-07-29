@@ -1038,7 +1038,7 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
   RobSubstitution renaming;
   ASS(eIt.hasNext());
   auto cl = cls[eIt.next()];
-  unsigned newLength = cl->length();
+  DEBUG_CODE(unsigned newLength = cl->length());
   auto premises = UnitList::singleton(cl);
   const auto& toResolve = context._cls;
   while (eIt.hasNext()) {
@@ -1048,7 +1048,7 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
   }
 
   for (const auto& kv : toResolve) {
-    newLength += kv.first->length() - kv.second.size() - 1;
+    // newLength += kv.first->length() - kv.second.size() - 1; // MS: unused
     UnitList::push(kv.first, premises);
   }
 
