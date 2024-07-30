@@ -214,11 +214,11 @@ public:
     inline ILStruct* getILS()
     {
       ASS(isLitEnd());
-      return reinterpret_cast<ILStruct*>(reinterpret_cast<uint64_t>(_data<ILStruct>()) & ~(1UL << 1));
+      return reinterpret_cast<ILStruct*>(reinterpret_cast<uint64_t>(_data<ILStruct>()) & ~LIT_END);
     }
     inline const ILStruct* getILS() const
     {
-      return reinterpret_cast<ILStruct*>(reinterpret_cast<uint64_t>(_data<ILStruct>()) & ~(1UL << 1));
+      return reinterpret_cast<ILStruct*>(reinterpret_cast<uint64_t>(_data<ILStruct>()) & ~LIT_END);
     }
 
     const SearchStruct* getSearchStruct() const;
@@ -485,6 +485,11 @@ public:
   static CodeBlock* buildBlock(CodeStack& code, size_t cnt, ILStruct* prev);
   void incorporate(CodeStack& code);
 
+  template<class Container, class Data>
+  static CodeBlock* buildBlock(CodeStack& code, size_t cnt, Data&& data);
+  template<class Container, class Data>
+  void incorporate(CodeStack& code, Data&& data);
+
   template<SearchStruct::Kind k>
   void compressCheckOps(CodeOp* chainStart);
 
@@ -506,6 +511,152 @@ public:
 
   CodeBlock* _entryPoint;
 };
+
+/**
+ * Build CodeBlock object from the last @b cnt instructions on the
+ * @b code stack.
+ *
+ * In this function is also set the value for the @b ILStruct::previous
+ * members.
+ */
+template<class Container, class Data>
+CodeTree::CodeBlock* CodeTree::buildBlock(CodeStack& code, size_t cnt, Data&& data)
+{
+  size_t clen=code.length();
+  ASS_LE(cnt,clen);
+
+  CodeBlock* res=CodeBlock::allocate(cnt+1); // one more for success
+  size_t sOfs=clen-cnt;
+  for(size_t i=0;i<cnt;i++) {
+    CodeOp& op=code[i+sOfs];
+    ASS_EQ(op.alternative(),0); //the ops should not have an alternative set yet
+    (*res)[i]=op;
+  }
+  auto ctr = new Container();
+  ctr->add(std::move(data));
+  (*res)[cnt] = CodeOp::getSuccess(ctr);
+  return res;
+}
+
+/**
+ * Incorporate the code in @b code CodeStack into the tree, empty the
+ * stack, and make sure all no longer necessary structures are freed.
+ */
+template<class Container, class Data>
+void CodeTree::incorporate(CodeStack& code, Data&& data)
+{
+  ASS(!code.top().isSuccess());
+
+  if(isEmpty()) {
+    _entryPoint=buildBlock<Container>(code, code.length(), data);
+    code.reset();
+    return;
+  }
+
+  static const unsigned checkFunOpThreshold=5; //must be greater than 1 or it would cause loops
+  static const unsigned checkGroundTermOpThreshold=3; //must be greater than 1 or it would cause loops
+
+  size_t clen=code.length();
+  CodeOp** tailTarget;
+  size_t matchedCnt;
+
+  {
+    CodeOp* treeOp = getEntryPoint();
+
+    for (size_t i = 0; i < clen; i++) {
+      ASS_NEQ(code[i]._instruction(),SUCCESS_OR_FAIL);
+      ASS_NEQ(code[i]._instruction(),LIT_END);
+
+      CodeOp* chainStart = treeOp;
+      size_t checkFunOps = 0;
+      size_t checkGroundTermOps = 0;
+      for (;;) {
+        ASS_NEQ(treeOp->_instruction(),SUCCESS_OR_FAIL);
+        ASS_NEQ(treeOp->_instruction(),LIT_END);
+
+        if (treeOp->isSearchStruct()) {
+          //handle the SEARCH_STRUCT
+          SearchStruct* ss = treeOp->getSearchStruct();
+          CodeOp** toPtr;
+          if (ss->getTargetOpPtr<true>(code[i], toPtr)) {
+            if (!*toPtr) {
+              tailTarget = toPtr;
+              matchedCnt = i;
+              goto matching_done;
+            }
+            treeOp = *toPtr;
+            continue;
+          }
+        } else if (code[i].equalsForOpMatching(*treeOp)) {
+          //matched, go to the next compiled instruction
+          break;
+        }
+
+        if (treeOp->alternative()) {
+          //try alternative if there is some
+          treeOp = treeOp->alternative();
+        } else {
+          //matching failed, we'll add the new branch here
+          tailTarget = &treeOp->alternative();
+          matchedCnt = i;
+          goto matching_done;
+        }
+
+        if (treeOp->isCheckFun()) {
+          checkFunOps++;
+          //if there were too many CHECK_FUN alternative operations, put them
+          //into a SEARCH_STRUCT
+          if (checkFunOps > checkFunOpThreshold) {
+            //we put CHECK_FUN ops into the SEARCH_STRUCT op, and
+            //restart with the chain
+            compressCheckOps<SearchStruct::FN_STRUCT>(chainStart);
+            treeOp = chainStart;
+            checkFunOps = 0;
+            checkGroundTermOps = 0;
+            continue;
+          }
+        }
+
+        if (treeOp->isCheckGroundTerm()) {
+          checkGroundTermOps++;
+          //if there were too many CHECK_GROUND_TERM alternative operations, put them
+          //into a SEARCH_STRUCT
+          if (checkGroundTermOps > checkGroundTermOpThreshold) {
+            //we put CHECK_GROUND_TERM ops into the SEARCH_STRUCT op, and
+            //restart with the chain
+            compressCheckOps<SearchStruct::GROUND_TERM_STRUCT>(chainStart);
+            treeOp = chainStart;
+            checkFunOps = 0;
+            checkGroundTermOps = 0;
+            continue;
+          }
+        }
+      } // for(;;) 
+
+      //the SEARCH_STRUCT operation does not occur in a CodeBlock
+      ASS(!treeOp->isSearchStruct());
+      //we can safely do increase because as long as we match and something
+      //remains in the @b code stack, we aren't at the end of the CodeBlock
+      //either (as each code block contains at least one FAIL or SUCCESS
+      //operation, and CodeStack contains at most one SUCCESS as the last
+      //operation)
+      treeOp++;
+    }
+    //We matched the whole CodeStack. If we are here, we are inserting an
+    //item multiple times. We will insert it anyway, because later we may
+    //be removing it multiple times as well.
+    matchedCnt = clen - 1;
+    ASS(treeOp->isSuccess());
+    treeOp->getSuccessResult<Container>()->add(std::move(data));
+    return;
+  }
+matching_done:
+  ASS_L(matchedCnt,clen);
+
+  CodeBlock* rem=buildBlock<Container>(code, clen-matchedCnt, data);
+  *tailTarget=&(*rem)[0];
+  LOG_OP(rem->toString()<<" incorporated, mismatch caused by "<<code[matchedCnt].toString());
+}
 
 }
 

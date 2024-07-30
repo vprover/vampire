@@ -162,6 +162,22 @@ const char* Ordering::resultToString(Result r)
   }
 }
 
+const char* Ordering::resultToStringInfix(Result r)
+{
+  switch(r) {
+  case GREATER:
+    return ">";
+  case LESS:
+    return "<";
+  case EQUAL:
+    return "=";
+  case INCOMPARABLE:
+    return "?";
+  default:
+    ASSERTION_VIOLATION;
+    return 0;
+  }
+}
 /**
  * Remove non-maximal literals from the list @b lits. The order
  * of remaining literals stays unchanged.

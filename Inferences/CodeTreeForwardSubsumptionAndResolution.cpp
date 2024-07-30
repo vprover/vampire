@@ -51,6 +51,7 @@ bool CodeTreeForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&repla
     if (resolvedQueryLit == -1) {
       premises = pvi(getSingletonIterator(resultCl));
       env.statistics->forwardSubsumed++;
+      cm.reset();
       return true;
     }
 
@@ -64,9 +65,11 @@ bool CodeTreeForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&repla
     replacement = Clause::fromStack(res, SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, cl, resultCl));
     premises = pvi(getSingletonIterator(resultCl));
     env.statistics->forwardSubsumptionResolution++;
+    cm.reset();
     return true;
   }
 
+  cm.reset();
   return false;
 }
 

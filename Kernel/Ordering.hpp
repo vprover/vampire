@@ -114,6 +114,7 @@ public:
     }
   }
   static const char* resultToString(Result r);
+  static const char* resultToStringInfix(Result r);
 
   static Ordering* create(Problem& prb, const Options& opt);
 
