@@ -151,7 +151,7 @@ private:
       }
 
       // check AVATAR constraints
-      if (!splits->isSubsetOf(ld->splits)) {
+      if (!ld->splits->isSubsetOf(splits)) {
         continue;
       }
 
@@ -415,7 +415,7 @@ void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuper
       ordRhs = tgtTermS.term();
     } else if (!redundancyCheck) {
       TermList other = EqHelper::getOtherEqualitySide(rwLitS, rwTermS);
-      if (otherComp != Ordering::INCOMPARABLE || !other.containsAllVariablesOf(tgtTermS)) {
+      if (otherComp != Ordering::INCOMPARABLE || !other.containsAllVariablesOf(tgtTermS) || !other.isTerm()) {
         return;
       }
       ordLhs = other.term();
