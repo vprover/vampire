@@ -18,7 +18,10 @@
 #include "Forwards.hpp"
 
 #include "Kernel/Ordering.hpp"
+
+#include "Lib/SharedSet.hpp"
 #include "Lib/Stack.hpp"
+
 #include "Inferences/DemodulationHelper.hpp"
 
 #include "Saturation/Splitter.hpp"
@@ -30,10 +33,39 @@ namespace Shell {
 using namespace Lib;
 using namespace Indexing;
 
+using LiteralSet = SharedSet<Literal*>;
+
+struct ConditionalRedundancyEntry {
+  Term* lhs;
+  Term* rhs;
+  OrderingComparatorUP comp;
+  const LiteralSet* lits;
+  SplitSet* splits;
+  bool active = true;
+  unsigned refcnt = 1;
+
+  void deactivate() {
+    ASS(!splits->isEmpty());
+    active = false;
+  }
+
+  void obtain() {
+    refcnt++;
+  }
+
+  void release() {
+    ASS(refcnt);
+    refcnt--;
+    if (!refcnt) {
+      delete this;
+    }
+  }
+};
+
 class ConditionalRedundancyHandler
 {
 public:
-  static ConditionalRedundancyHandler* create(const Options& opts, const Ordering* ord);
+  static ConditionalRedundancyHandler* create(const Options& opts, const Ordering* ord, Splitter* splitter);
   static void destroyClauseData(Clause* cl);
 
   virtual ~ConditionalRedundancyHandler() = default;
@@ -66,9 +98,8 @@ class ConditionalRedundancyHandlerImpl
   : public ConditionalRedundancyHandler
 {
 public:
-  ConditionalRedundancyHandlerImpl() = default;
-  ConditionalRedundancyHandlerImpl(const Options& opts, const Ordering* ord)
-    : _ord(ord), _demodulationHelper(opts,ord) {}
+  ConditionalRedundancyHandlerImpl(const Options& opts, const Ordering* ord, Splitter* splitter)
+    : _ord(ord), _demodulationHelper(opts,ord), _splitter(splitter) {}
 
   /** Returns false if superposition should be skipped. */
   bool checkSuperposition(
@@ -88,6 +119,7 @@ public:
 private:
   const Ordering* _ord;
   Inferences::DemodulationHelper _demodulationHelper;
+  Splitter* _splitter;
 };
 
 };
