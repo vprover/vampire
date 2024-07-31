@@ -195,5 +195,6 @@ class Options;
 class Property;
 class Statistics;
 class FunctionDefinitionHandler;
+class ConditionalRedundancyHandler;
 }
 #endif /* __Forwards__ */

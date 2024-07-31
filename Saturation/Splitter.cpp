@@ -34,7 +34,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/MainLoop.hpp"
 
-#include "Shell/InstanceRedundancyHandler.hpp"
+#include "Shell/ConditionalRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/Shuffling.hpp"
@@ -1516,7 +1516,7 @@ void Splitter::onNewClause(Clause* cl)
   // when using AVATAR, we could have performed
   // generating inferences on the clause previously,
   // so we need to reset the data.
-  InstanceRedundancyHandler::destroyClauseData(cl);
+  ConditionalRedundancyHandler::destroyClauseData(cl);
 
   if (cl->inference().rule() == InferenceRule::AVATAR_ASSERTION_REINTRODUCTION) {
     // Do not assign splits from premises if cl originated by re-introducing AVATAR assertions (avoids looping)

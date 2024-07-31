@@ -64,7 +64,8 @@ Clause* performRewriting(
 
   Applicator appl(subst.ptr());
 
-  if (helper && !helper->isPremiseRedundant(rwClause,rwLit,rwTerm,tgtTermS,eqLHS,&appl)) {
+  Ordering::Result temp;
+  if (helper && !helper->isPremiseRedundant(rwClause,rwLit,rwTerm,tgtTermS,eqLHS,&appl,temp)) {
     return 0;
   }
 
