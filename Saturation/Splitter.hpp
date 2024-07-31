@@ -167,6 +167,7 @@ private:
     Clause* component;
     RCClauseStack children;
     Stack<ReductionRecord> reduced;
+    Stack<ConditionalRedundancyEntry*> conditionalReductions;
     bool active;
 
     USE_ALLOCATOR(SplitRecord);
@@ -184,6 +185,7 @@ public:
   bool doSplitting(Clause* cl);
 
   void onClauseReduction(Clause* cl, ClauseIterator premises, Clause* replacement);
+  void addConditionalReduction(SplitSet* splits, ConditionalRedundancyEntry* e);
   void onNewClause(Clause* cl);
   void onAllProcessed();
   bool handleEmptyClause(Clause* cl);
