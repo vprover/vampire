@@ -365,7 +365,7 @@ size_t Term::countSubtermOccurrences(TermList subterm) {
   return res;
 }
 
-bool TermList::containsAllVariablesOf(TermList t)
+bool TermList::containsAllVariablesOf(TermList t) const
 {
   Set<TermList> vars;
   TermIterator oldVars=Term::getVariableIterator(*this);
