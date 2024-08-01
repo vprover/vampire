@@ -16,14 +16,11 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
-#include "Kernel/TermIterators.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
 
 #include "Indexing/CodeTreeInterfaces.hpp"
 #include "Indexing/ResultSubstitution.hpp"
-
-#include "Lib/Environment.hpp"
 
 #include "Statistics.hpp"
 
@@ -33,11 +30,11 @@ using namespace Indexing;
 namespace Shell
 {
 
-class ConditionalRedundancyHandler::SubstitutionCoverTree
+class ConditionalRedundancyHandler::ConstraintIndex
   : public CodeTree
 {
 public:
-  SubstitutionCoverTree(Clause* cl) : _varSorts()
+  ConstraintIndex(Clause* cl) : _varSorts()
   {
     _clauseCodeTree=false;
     _onCodeOpDestroying = onCodeOpDestroying;
@@ -295,7 +292,7 @@ ConditionalRedundancyHandler* ConditionalRedundancyHandler::create(const Options
 
 void ConditionalRedundancyHandler::destroyClauseData(Clause* cl)
 {
-  SubstitutionCoverTree* ptr = nullptr;
+  ConstraintIndex* ptr = nullptr;
   clauseData.pop(cl, ptr);
   delete ptr;
 }
@@ -314,24 +311,24 @@ void ConditionalRedundancyHandler::checkEquations(Clause* cl) const
     }
     auto clDataPtr = getDataPtr(cl, /*doAllocate=*/true);
     auto rsubs = ResultSubstitution::fromSubstitution(&subs, 0, 0);
-    (*clDataPtr)->insert(rsubs.ptr(), /*eqIsResult*/false, LiteralSet::getEmpty(), SplitSet::getEmpty(), /*splitter*/nullptr);
+    (*clDataPtr)->insert(rsubs.ptr(), /*result*/false, LiteralSet::getEmpty(), SplitSet::getEmpty(), /*splitter*/nullptr);
   });
 }
 
-ConditionalRedundancyHandler::SubstitutionCoverTree** ConditionalRedundancyHandler::getDataPtr(Clause* cl, bool doAllocate)
+ConditionalRedundancyHandler::ConstraintIndex** ConditionalRedundancyHandler::getDataPtr(Clause* cl, bool doAllocate)
 {
   if (!doAllocate) {
     return clauseData.findPtr(cl);
   }
-  SubstitutionCoverTree** ptr;
+  ConstraintIndex** ptr;
   clauseData.getValuePtr(cl, ptr, nullptr);
   if (!*ptr) {
-    *ptr = new SubstitutionCoverTree(cl);
+    *ptr = new ConstraintIndex(cl);
   }
   return ptr;
 }
 
-DHMap<Clause*,typename ConditionalRedundancyHandler::SubstitutionCoverTree*> ConditionalRedundancyHandler::clauseData;
+DHMap<Clause*,typename ConditionalRedundancyHandler::ConstraintIndex*> ConditionalRedundancyHandler::clauseData;
 
 // ConditionalRedundancyHandlerImpl
 
