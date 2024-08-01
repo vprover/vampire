@@ -85,12 +85,12 @@ public:
   void checkEquations(Clause* cl) const;
 
 protected:
-  class SubstitutionCoverTree;
+  class ConstraintIndex;
 
-  static SubstitutionCoverTree** getDataPtr(Clause* cl, bool doAllocate);
+  static ConstraintIndex** getDataPtr(Clause* cl, bool doAllocate);
 
   // this contains the redundancy information associated with each clause
-  static DHMap<Clause*,SubstitutionCoverTree*> clauseData;
+  static DHMap<Clause*,ConstraintIndex*> clauseData;
 };
 
 template<bool enabled, bool orderingConstraints, bool avatarConstraints, bool literalConstraints>
