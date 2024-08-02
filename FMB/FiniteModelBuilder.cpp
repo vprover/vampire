@@ -790,7 +790,7 @@ void FiniteModelBuilder::init()
   for(unsigned f=0;f<env.signature->functions();f++){
     if(del_f[f]) continue;
 
-    if(env.signature->functionArity(f)==0){ 
+    if(env.signature->functionArity(f)==0){
       TermList vsrtT = env.signature->getFunction(f)->fnType()->result();
       if(!vsrtT.isBoolSort()){
         unsigned vsrt = vsrtT.term()->functor();

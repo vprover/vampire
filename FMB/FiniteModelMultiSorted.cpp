@@ -64,7 +64,12 @@ void FiniteModelMultiSorted::initTables()
       add *= _sizes[sig->arg(i).term()->functor()];
     }
 
-    ASS(UINT_MAX - add > offsets);
+    if (UINT_MAX - add <= offsets) {
+      // the SAT solver skipped some functions as they are eliminated
+      // (the model, on the other hand, should be prepared to hold their values later too)
+      INVALID_OPERATION("Model too large to represent!");
+    }
+
     offsets += add;
   }
   _f_interpretation.expand(offsets,0);
@@ -82,7 +87,12 @@ void FiniteModelMultiSorted::initTables()
       add *= (mult>0 ? mult : 1);
     }
 
-    ASS(UINT_MAX - add > offsets);
+    if (UINT_MAX - add <= offsets) {
+      // the SAT solver skipped some functions as they are eliminated
+      // (the model, on the other hand, should be prepared to hold their values later too)
+      INVALID_OPERATION("Model too large to represent!");
+    }
+
     offsets += add;
   }
   _p_interpretation.expand(offsets,0);
