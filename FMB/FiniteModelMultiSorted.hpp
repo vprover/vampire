@@ -37,11 +37,15 @@ using namespace Kernel;
 class FiniteModelMultiSorted {
   DArray<unsigned> _sizes;
 
+  static const char INTP_UNDEF = 0;
+  static const char INTP_FALSE = 1;
+  static const char INTP_TRUE = 2;
+
   // two big tables waiting to be filled with the intrepreations (of functions and predicates)
   DArray<unsigned> _f_offsets;
   DArray<unsigned> _p_offsets;
   DArray<unsigned> _f_interpretation;
-  DArray<unsigned> _p_interpretation; // 0 is undef, 1 false, 2 true
+  DArray<char> _p_interpretation; // 0 is undef, 1 false, 2 true
 
   // candidates for the domain constants in the model printed (we use existing constants of the respective sort, but introduce a new symbol, if there is none)
   // this is not the same thing (although, maybe, these could be unified?) as _domainConstants, which are used for evaluation
