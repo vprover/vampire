@@ -172,7 +172,7 @@ bool FiniteModelBuilder::reset(){
     DArray<unsigned> f_signature = _sortedSignature->functionSignatures[f];
     ASS(f_signature.size() == env.signature->functionArity(f)+1);
 
-    unsigned add = _sortModelSizes[f_signature[0]]; 
+    unsigned add = _sortModelSizes[f_signature[0]];
     for(unsigned i=1;i<f_signature.size();i++){
       unsigned n_add = add * _sortModelSizes[f_signature[i]];
       if (n_add < add) { // additional overflow check - we multiply by positive integers!
@@ -644,18 +644,18 @@ void FiniteModelBuilder::init()
   cout << "Finding Min and Max Sort Sizes" << endl;
 #endif
 
-    // Record the maximum sort sizes detected during sort inference 
+    // Record the maximum sort sizes detected during sort inference
     _distinctSortMaxs.ensure(_sortedSignature->distinctSorts);
     _distinctSortMins.ensure(_sortedSignature->distinctSorts);
-    for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){ 
-      _distinctSortMaxs[s]=UINT_MAX; 
+    for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){
+      _distinctSortMaxs[s]=UINT_MAX;
       _distinctSortMins[s]=1;
     }
 
     DArray<unsigned> bfromSI(_sortedSignature->distinctSorts);
     DArray<unsigned> dConstants(_sortedSignature->distinctSorts);
     DArray<unsigned> dFunctions(_sortedSignature->distinctSorts);
-    for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){ 
+    for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){
       bfromSI[s]=0;
       dConstants[s]=0;
       dFunctions[s]=0;
@@ -668,17 +668,17 @@ void FiniteModelBuilder::init()
       dConstants[parent] += (_sortedSignature->sortedConstants[s]).size();
       dFunctions[parent] += (_sortedSignature->sortedFunctions[s]).size();
     }
-    for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){ 
-      _distinctSortMaxs[s] = min(_distinctSortMaxs[s],bfromSI[s]); 
+    for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){
+      _distinctSortMaxs[s] = min(_distinctSortMaxs[s],bfromSI[s]);
     }
 
 
     for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){
       bool epr = env.getMainProblem()->getProperty()->category()==Property::EPR
                  // if we have no functions we are epr in this sort
-                 || dFunctions[s]==0; 
+                 || dFunctions[s]==0;
       if(epr){
-        unsigned c = dConstants[s]; 
+        unsigned c = dConstants[s];
         if(c==0) continue; //size of 0 does not make sense... maybe we should set it to 1 here? TODO
         // TODO not sure about this second condition, if c < current max what would happen?
         // why are we looking for the 'biggest' max?
@@ -694,7 +694,7 @@ void FiniteModelBuilder::init()
       if((env.getMainProblem()->getProperty()->usesSort(s) || env.signature->isNonDefaultCon(s)) && _sortedSignature->vampireToDistinct.find(s)){
         Stack<unsigned>* dmembers = _sortedSignature->vampireToDistinct.get(s);
         ASS(dmembers);
-        if(dmembers->size() > 1){ 
+        if(dmembers->size() > 1){
           unsigned parent = _sortedSignature->vampireToDistinctParent.get(s);
           Stack<unsigned>::Iterator children(*dmembers);
           while(children.hasNext()){
@@ -1548,7 +1548,6 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
   env.statistics->phase = Statistics::FMB_CONSTRAINT_GEN;
 
-
   if(outputAllowed()){
       bool doPrinting = false;
 #if VTRACE_FMB
@@ -1577,6 +1576,12 @@ MainLoopResult FiniteModelBuilder::runImpl()
   _distinctSortSizes.ensure(_sortedSignature->distinctSorts);
   for(unsigned i=0;i<_distinctSortSizes.size();i++){
      _distinctSortSizes[i]=max(_startModelSize,_distinctSortMins[i]);
+     if (_startModelSize > _distinctSortMaxs[i]) {
+      if(outputAllowed()){
+        cout << "% fmb_start_size (= " << _startModelSize << ") larger than a detected sort maximum size!" << endl;
+      }
+      return MainLoopResult(Statistics::REFUTATION_NOT_FOUND);
+     }
   }
   for(unsigned s=0;s<_sortedSignature->sorts;s++) {
     _sortModelSizes[s] = _distinctSortSizes[_sortedSignature->parents[s]];
@@ -2487,7 +2492,7 @@ bool FiniteModelBuilder::HackyDSAE::increaseModelSizes(DArray<unsigned>& newSort
       delete _constraints_generators.pop();
 #if VTRACE_DOMAINS
       cout << "Deleted" << endl;
-#endif    
+#endif
     }
   }
 

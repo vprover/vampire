@@ -212,7 +212,7 @@ private:
 
   // Currently an experimental option allows you to start at larger model sizes
   // TODO in the future we could use this for a cheap way to 'pause' and 'restart' fmb
-  unsigned _startModelSize; 
+  unsigned _startModelSize;
   // If we detect that FMB is not an approprate sa at init we then terminate immediately at runImpl
   bool _isAppropriate;
   // Option used in symmetry breaking
