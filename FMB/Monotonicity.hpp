@@ -54,9 +54,9 @@ public:
   DArray<signed char>* check();
 
   static void addSortPredicates(bool withMon, ClauseList*& clauses, const DArray<bool>& del_f,
-    DHMap<unsigned,DArray<signed char>*>& monotonic_vampire_sorts);
+    DHMap<unsigned,DArray<signed char>*>& monotonic_vampire_sorts, Stack<unsigned>& sort_predicates);
   static void addSortFunctions(bool withMon, ClauseList*& clauses,
-    DHMap<unsigned,DArray<signed char>*>& monotonic_vampire_sorts);
+    DHMap<unsigned,DArray<signed char>*>& monotonic_vampire_sorts, Stack<unsigned>& sort_functions);
 
 private:
   void monotone(Clause* c, Literal* l);

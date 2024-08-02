@@ -100,7 +100,15 @@ static void doCheck(UnitList* units)
   }
 
   std::cout << "Loading model..." << std::endl;
-  FiniteModelMultiSorted model(sortSizes);
+  DArray<unsigned> sortSizesArray(env.signature->typeCons());
+  {
+    auto it = sortSizes.items();
+    while (it.hasNext()) {
+      auto [sort,curModelSize] = it.next();
+      sortSizesArray[sort] = curModelSize;
+    }
+  }
+  FiniteModelMultiSorted model(sortSizesArray);
 
   Set<Term*> domainConstants; // union of all the perSort ones
   DHMap<Term*,unsigned> domainConstantNumber;

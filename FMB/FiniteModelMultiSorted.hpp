@@ -35,12 +35,46 @@ using namespace Kernel;
  *
  */
 class FiniteModelMultiSorted {
-  const DHMap<unsigned,unsigned>& _sizes;
+  DArray<unsigned> _sizes;
+
+  // two big tables waiting to be filled with the intrepreations (of functions and predicates)
+  DArray<unsigned> _f_offsets;
+  DArray<unsigned> _p_offsets;
+  DArray<unsigned> _f_interpretation;
+  DArray<unsigned> _p_interpretation; // 0 is undef, 1 false, 2 true
+
+  // candidates for the domain constants in the model printed (we use existing constants of the respective sort, but introduce a new symbol, if there is none)
+  // this is not the same thing (although, maybe, these could be unified?) as _domainConstants, which are used for evaluation
+  DArray<DArray<int>> sortRepr;
+
+  // uses _sizes to fillup _f/p_offsets and _f/p_interpretation from scratch
+  // also cleans sortRepr (to be filled up from scratch)
+  void initTables();
+
+  // captures the encoding of the functions offetsand predicates in our tables
+  // - offets are either _f_offsets or _p_offsets
+  // - s is either an f or p index from env->signature
+  // - sig is the symbols corresponding type signature
+  // - var is an index to use into _f_interpretation/_p_interpretation
+  unsigned args2var(const DArray<unsigned>& args, const DArray<unsigned>& sizes,
+                    const DArray<unsigned>& offsets, unsigned s, OperatorType* sig)
+  {
+    unsigned var = offsets[s];
+    unsigned mult = 1;
+    for(unsigned i=0;i<args.size();i++){
+      var += mult*(args[i]-1);
+      unsigned s = sig->arg(i).term()->functor();
+      mult *=sizes[s];
+    }
+    return var;
+  }
 
 public:
 
   // sortSizes is a map from vampire sorts (defined in Kernel/Sorts) to the size of that sort
-  FiniteModelMultiSorted(const DHMap<unsigned,unsigned>& sortSizes);
+  FiniteModelMultiSorted(DArray<unsigned> sortSizes) : _sizes(sortSizes) {
+    initTables();
+  }
 
   // Assume def is an equality literal with a
   // function application on lhs and constant on rhs
@@ -52,19 +86,14 @@ public:
   unsigned evaluateGroundTerm(Term* term);
   bool evaluateGroundLiteral(Literal* literal);
 
+  void eliminateSortFunctionsAndPredicates(const Stack<unsigned>& sortFunctions, const Stack<unsigned>& sortPredicates);
+
   std::string toString();
 
 private:
   Formula* partialEvaluate(Formula* formula);
   // currently private as requires formula to be rectified
   bool evaluate(Formula* formula,unsigned depth=0);
-
-  DArray<DArray<int>> sortRepr;
-
-  DArray<unsigned> f_offsets;
-  DArray<unsigned> p_offsets;
-  DArray<unsigned> f_interpretation;
-  DArray<unsigned> p_interpretation; // 0 is undef, 1 false, 2 true
 
   // the pairs of <constant number, sort>
   DHMap<std::pair<unsigned,unsigned>,Term*> _domainConstants;

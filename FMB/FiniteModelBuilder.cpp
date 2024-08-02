@@ -437,11 +437,11 @@ void FiniteModelBuilder::init()
       deleted_functions[f] =  (bool)_prb.getEliminatedFunctions().findPtr(f) || env.signature->getFunction(f)->usageCnt()==0;
      }
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
-    Monotonicity::addSortPredicates(true,clist,deleted_functions,_monotonic_vampire_sorts);
+    Monotonicity::addSortPredicates(true,clist,deleted_functions,_monotonic_vampire_sorts,_sortPredicates);
   }
   if(env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::FUNCTION){
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
-    Monotonicity::addSortFunctions(true,clist,_monotonic_vampire_sorts);
+    Monotonicity::addSortFunctions(true,clist,_monotonic_vampire_sorts,_sortFunctions);
   }
 
 
@@ -1899,7 +1899,8 @@ void FiniteModelBuilder::onModelFound()
   // Prevent timing out whilst the model is being printed
   Timer::setLimitEnforcement(false);
 
-  DHMap<unsigned,unsigned> vampireSortSizes;
+  DArray<unsigned> vampireSortSizes;
+  vampireSortSizes.ensure(env.signature->typeCons());
   for(unsigned vSort=0;vSort<env.signature->typeCons();vSort++){
     unsigned size = 1;
     if(env.signature->isInterpretedNonDefault(vSort) && !env.signature->isBoolCon(vSort)){ size=0;}
@@ -1907,7 +1908,7 @@ void FiniteModelBuilder::onModelFound()
     if(_sortedSignature->vampireToDistinctParent.find(vSort,dsort)){
       size = _distinctSortSizes[dsort];
     }
-    vampireSortSizes.insert(vSort,size);
+    vampireSortSizes[vSort] = size;
   }
 
   FiniteModelMultiSorted model(vampireSortSizes);
@@ -1917,7 +1918,7 @@ void FiniteModelBuilder::onModelFound()
     if(del_f[f]) continue;
 
     Signature::Symbol* sym = env.signature->getFunction(f);
-    if (sym->introduced()) continue;
+    // if (sym->introduced()) continue; // so that a sort function may enter the model (to be elimintated later)
 
     //cout << "For " << env.signature->getFunction(f)->name() << endl;
     unsigned arity = env.signature->functionArity(f);
@@ -1930,7 +1931,7 @@ void FiniteModelBuilder::onModelFound()
     ASS_EQ(tp->numTypeArguments(),0) // no polymorphic business in FMB
     for(unsigned var=0;var<arity;var++){
       unsigned vamp_srt = tp->arg(var).term()->functor();
-      maxVarSizeBig[var] = vampireSortSizes.get(vamp_srt);
+      maxVarSizeBig[var] = vampireSortSizes[vamp_srt];
     }
 
     // the actual representation of the enumeration
@@ -1996,7 +1997,7 @@ void FiniteModelBuilder::onModelFound()
     if(del_p[p]) continue;
 
     Signature::Symbol* sym = env.signature->getPredicate(p);
-    if (sym->introduced()) continue;
+    // if (sym->introduced()) continue; // so that a sort predicate may enter the model (to be elimintated later)
 
     unsigned arity = env.signature->predicateArity(p);
     //cout << "Record for " << env.signature->getPredicate(p)->name() << "/" << arity << endl;
@@ -2009,7 +2010,7 @@ void FiniteModelBuilder::onModelFound()
     ASS_EQ(tp->numTypeArguments(),0) // no polymorphic business in FMB
     for(unsigned var=0;var<arity;var++){
       unsigned vamp_srt = tp->arg(var).term()->functor();
-      maxVarSizeBig[var] = vampireSortSizes.get(vamp_srt);
+      maxVarSizeBig[var] = vampireSortSizes[vamp_srt];
     }
 
     // the actual representation of the enumeration
@@ -2040,8 +2041,8 @@ void FiniteModelBuilder::onModelFound()
       unsigned vamp_srt = tp->arg(i).term()->functor();
       DArray<signed char>* monot_info;
       if (_monotonic_vampire_sorts.find(vamp_srt,monot_info)) {
-        auto mode = (*monot_info)[p];
-        sort_extension_modes[i] = mode;
+        // it's safe to extend symbols introduced after monotonicity analysis via the default mode 0
+        sort_extension_modes[i] = (p<monot_info->size()) ? (*monot_info)[p] : 0;
       } else {
         // the simple monotonicity argument (from the Paradox paper already)
         sort_extension_modes[i] = 0;
@@ -2087,6 +2088,8 @@ void FiniteModelBuilder::onModelFound()
       }
     }
   }
+
+  model.eliminateSortFunctionsAndPredicates(_sortFunctions,_sortPredicates);
 
 #if 0
   //Evaluate removed functions and constants

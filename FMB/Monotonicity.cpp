@@ -169,7 +169,7 @@ bool Monotonicity::guards(Literal* l, unsigned var, Stack<SATLiteral>& slits)
 
 
 void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const DArray<bool>& del_f,
-  DHMap<unsigned,DArray<signed char>*>& monotonic_vampire_sorts) // may write into this
+  DHMap<unsigned,DArray<signed char>*>& monotonic_vampire_sorts, Stack<unsigned>& sort_predicates) // may write into these
 {
   // First compute the monotonic sorts
   DArray<bool> isMonotonic(env.signature->typeCons());
@@ -197,6 +197,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const D
       unsigned p = env.signature->addFreshPredicate(1,name.c_str());
       env.signature->getPredicate(p)->setType(OperatorType::getPredicateType({TermList(AtomicSort::createConstant(s))}));
       sortPredicates[s] = p;
+      sort_predicates.push(p);
 
       auto monot_info = new DArray<signed char>(env.signature->predicates());
       // when adding sort predicate, we assume all predicates false-extended
@@ -329,7 +330,7 @@ public:
 };
 
 void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses,
-  DHMap<unsigned,DArray<signed char>*>& monotonic_vampire_sorts) // may write into this
+  DHMap<unsigned,DArray<signed char>*>& monotonic_vampire_sorts, Stack<unsigned>& sort_functions) // may write into these
 {
   // First compute the monotonic sorts
   DArray<bool> isMonotonic(env.signature->typeCons());
@@ -360,6 +361,7 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses,
       // increment usage count so not treated as deleted
       env.signature->getFunction(f)->incUsageCnt();
       sortFunctions[s] = f;
+      sort_functions.push(f);
 
       auto monot_info = new DArray<signed char>(env.signature->predicates());
       // when adding sort functions, we assume all predicates copy-extended

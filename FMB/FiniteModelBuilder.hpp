@@ -136,6 +136,8 @@ private:
 
   // Store monotonicity_info (see Monotonicity::check) for every sort detected (or made) monotonic
   DHMap<unsigned,DArray<signed char>*> _monotonic_vampire_sorts;
+  Stack<unsigned> _sortFunctions; // sort functions to remember - need to be eliminated from the model in the end
+  Stack<unsigned> _sortPredicates; // sort predicates to remember - need to be eliminated from the model in the end
 
   // Add a SATClause to the SAT solver
   void addSATClause(SATClause* cl);
