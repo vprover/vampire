@@ -2064,7 +2064,8 @@ void FiniteModelBuilder::onModelFound()
         } else {
           grounding[i] = 1;
 
-          ASS_EQ(extension_mode,0) // it should be fine to delete this, but Martin would like to know the counter-example to this ASS
+          // ASS_EQ(extension_mode,0) // it should be fine to delete this, but Martin would like to know the counter-example to this ASS
+          // these really occur (just uncomment above a search a bit over TPTP)
           extension_mode = sort_extension_modes[i];
         }
       }
