@@ -580,7 +580,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/TPTPPrinter.cpp
     Shell/TweeGoalTransformation.cpp
     Shell/UIHelper.cpp
-    Shell/VarManager.cpp
     Shell/Lexer.cpp
     Shell/Preprocess.cpp
     Shell/AnswerLiteralManager.hpp
@@ -631,7 +630,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/TPTPPrinter.hpp
     Shell/TweeGoalTransformation.hpp
     Shell/UIHelper.hpp
-    Shell/VarManager.hpp
     Shell/Lexer.hpp
     Shell/Preprocess.hpp
     Shell/SubexpressionIterator.cpp
