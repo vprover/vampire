@@ -347,8 +347,8 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-  auto condRedHandler = _salg->condRedHandler();
-  if (!condRedHandler->checkSuperposition(eqClause, eqLit, rwClause, rwLit, eqIsResult, subst.ptr())) {
+  const auto& condRedHandler = _salg->condRedHandler();
+  if (!condRedHandler.checkSuperposition(eqClause, eqLit, rwClause, rwLit, eqIsResult, subst.ptr())) {
     return 0;
   }
 
@@ -383,7 +383,7 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-  condRedHandler->insertSuperposition(
+  condRedHandler.insertSuperposition(
     eqClause, rwClause, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr());
 
   Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);

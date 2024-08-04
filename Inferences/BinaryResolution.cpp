@@ -218,7 +218,7 @@ Clause* BinaryResolution::generateClause(
     }
   }
 
-  if (!_salg->condRedHandler()->handleResolution(queryCl, queryLit, resultCl, resultLit, subs.ptr())) {
+  if (!_salg->condRedHandler().handleResolution(queryCl, queryLit, resultCl, resultLit, subs.ptr())) {
     return 0;
   }
 

@@ -107,7 +107,7 @@ public:
   IndexManager* getIndexManager() { return _imgr.ptr(); }
   Ordering& getOrdering() const {  return *_ordering; }
   LiteralSelector& getLiteralSelector() const { return *_selector; }
-  const ConditionalRedundancyHandler* condRedHandler() const { return _conditionalRedundancyHandler.get(); }
+  const ConditionalRedundancyHandler& condRedHandler() const { return *_conditionalRedundancyHandler; }
 
   /** Return the number of clauses that entered the passive container */
   unsigned getGeneratedClauseCount() { return _generatedClauseCount; }

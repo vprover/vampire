@@ -102,7 +102,7 @@ private:
 class Factoring::ResultsFn
 {
 public:
-  ResultsFn(Clause* cl, bool afterCheck, const ConditionalRedundancyHandler* condRedHandler, Ordering& ord)
+  ResultsFn(Clause* cl, bool afterCheck, const ConditionalRedundancyHandler& condRedHandler, Ordering& ord)
   : _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _condRedHandler(condRedHandler), _ord(ord) {}
   Clause* operator() (pair<Literal*,RobSubstitution*> arg)
   {
@@ -135,7 +135,7 @@ public:
       }
     }
 
-    if (!_condRedHandler->handleReductiveUnaryInference(_cl, arg.second)) {
+    if (!_condRedHandler.handleReductiveUnaryInference(_cl, arg.second)) {
       env.statistics->skippedFactoring++;
       return nullptr;
     }
@@ -148,7 +148,7 @@ private:
   ///length of the premise clause
   unsigned _cLen;
   bool _afterCheck;
-  const ConditionalRedundancyHandler* _condRedHandler;
+  const ConditionalRedundancyHandler& _condRedHandler;
   Ordering& _ord;
 };
 

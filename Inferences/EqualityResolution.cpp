@@ -148,7 +148,7 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
 
   auto it3 = getMappingIterator(it2,ResultFn(premise,
       getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
-      _salg->condRedHandler(), &_salg->getOrdering()));
+      &_salg->condRedHandler(), &_salg->getOrdering()));
 
   auto it4 = getFilteredIterator(it3,NonzeroFn());
 
