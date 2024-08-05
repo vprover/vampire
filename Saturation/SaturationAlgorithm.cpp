@@ -21,6 +21,9 @@
 #include "Lib/Timer.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/System.hpp"
+#include "Lib/StringUtils.hpp"
+
+#include "Parse/TPTP.hpp"
 
 #include "Indexing/LiteralIndexingStructure.hpp"
 
@@ -1154,8 +1157,90 @@ void SaturationAlgorithm::activate(Clause* cl)
   auto generated = TIME_TRACE_EXPR(TimeTrace::CLAUSE_GENERATION, _generator->generateSimplify(cl));
   auto toAdd = TIME_TRACE_ITER(TimeTrace::CLAUSE_GENERATION, generated.clauses);
 
-  while (toAdd.hasNext()) {
-    Clause *genCl = toAdd.next();
+  ClauseList* external_newcomers = 0;
+  { // external sources
+    unsigned selCnt=cl->numSelected();
+    for (unsigned i=0; i<selCnt; i++) {
+      Literal* lit=(*cl)[i];
+      if (lit->isPositive()) continue; // only negative literals can trigger external sourcery
+      // there should be an index for this...
+      ESList::RefIterator it(_prb.externals());
+      while (it.hasNext()) {
+        ExternalSource& es = it.next();
+        Formula* f = es.f;
+        VList* foralls = 0;
+        VList* exists = 0;
+        if (f->connective() == FORALL) {
+          foralls = f->vars();
+          f = f->qarg();
+        }
+        if (f->connective() == EXISTS) {
+          exists = f->vars();
+          f = f->qarg();
+        }
+        if (f->connective() != LITERAL) {
+          // Could check this beforehand
+          USER_ERROR("Wrongly shaped external declaration quantifiers: "+es.f->toString());
+        }
+        Literal* ext_lit = f->literal();
+        if (ext_lit->isNegative()) {
+          // Could check this beforehand
+          USER_ERROR("External declaration qantifiers should nest a positive literal and not "+f->toString());
+        }
+        if (lit->functor() == ext_lit->functor()) { // we have a pre-match
+          Signature::Symbol* symb = env.signature->getPredicate(lit->functor());
+          std::string query = "\""+symb->name()+"(";
+          unsigned j;
+          for (j = 0; j < symb->arity(); j++) {
+            TermList arg = (*lit)[j];
+            TermList ext_arg = (*ext_lit)[j];
+            if (!ext_arg.isVar()) {
+              Term* t = ext_arg.term();
+              if (!t->ground()) {
+                // Could check this beforehand
+                USER_ERROR("External declaration non-var arguments must be ground but one is "+t->toString());
+              }
+            } else {
+              unsigned ext_arg_var = ext_arg.var();
+              if (arg.isVar()) {
+                // the corresponding ext_arg should be part of the exists block
+                if (!VList::member(ext_arg_var,exists)) break;
+              } else {
+                // should be ground (ideally a constant, but let's not be that strict) and the corresponding ext_arg part of the forall block
+                Term* t = arg.term();
+                if (!t->ground() || !VList::member(ext_arg_var,foralls)) break;
+              }
+            }
+            if (j > 0) query += ",";
+            query += arg.toString();
+          }
+          if (j == symb->arity()) { // all went through nicely, let's do the question asking
+            query += ")\"";
+            // cout << "Would ask " +query+ " for " << lit->toString() << " through " << es.f->toString() << endl;
+            if (!List<std::string>::member(query,es.already_asked)) { // unless already asked
+              std::string answers = System::executeCommand((es.exec + " " + query).c_str());
+              // cout << "Got back " << answers << endl;
+              Stack<std::string> lines;
+              StringUtils::splitStr(answers.c_str(),'\n',lines);
+              StringUtils::dropEmpty(lines);
+
+              for (j=0; j < lines.size(); j++) {
+                Clause* ext_cl = Parse::TPTP::parseClauseFromString(lines[j]);
+                ext_cl->setInputType(UnitInputType::EXTERNAL_SOURCE);
+                //cout << "read " << ext_cl->toString() << endl;
+                ClauseList::push(ext_cl,external_newcomers);
+              }
+              List<std::string>::push(query,es.already_asked);
+            }
+          }
+        }
+      }
+    }
+  }
+  auto actualToAdd = concatIters(toAdd,ClauseList::DestructiveIterator(external_newcomers));
+
+  while (actualToAdd.hasNext()) {
+    Clause *genCl = actualToAdd.next();
     addNewClause(genCl);
 
     Inference::Iterator iit = genCl->inference().iterator();
