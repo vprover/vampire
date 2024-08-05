@@ -37,6 +37,8 @@
 
 #include "Indexing/TermSharing.hpp"
 
+#include "Saturation/SaturationAlgorithm.hpp"
+
 #include "Parse/TPTP.hpp"
 
 using namespace std;
@@ -79,6 +81,7 @@ Clause* TPTP::parseClauseFromString(const std::string& str)
   std::stringstream input(str+")."); // to fake endFOF, which creates the clause
   Parse::TPTP parser(input);
   parser._isFof = true;
+  parser._isExternal = false;
   parser._lastInputType = UnitInputType::AXIOM;
   parser._bools.push(false);     // this is what cnf normally pushes (but we start "from the middle")
   parser._strings.push("dummy_name");
@@ -1320,6 +1323,7 @@ void TPTP::fof(bool fo)
   int start = tok.start;
   std::string tp = name();
 
+  _isExternal = false;
   _isQuestion = false;
   if(_modelDefinition){
     _lastInputType = UnitInputType::MODEL_DEFINITION;
@@ -1330,6 +1334,10 @@ void TPTP::fof(bool fo)
   else if(tp == "extensionality"){
     // this will be transformed to just AXIOM after clausification
     _lastInputType = UnitInputType::EXTENSIONALITY_AXIOM;
+  }
+  else if (tp == "external") {
+    _isExternal = true;
+    _lastInputType = UnitInputType::AXIOM;
   }
   else if (tp == "definition") {
     _lastInputType = UnitInputType::AXIOM;
@@ -3560,6 +3568,14 @@ void TPTP::endFof()
   }
 #endif
 
+  string externSpec;
+  if (_isExternal) {
+    // TODO: make more fancy to allow for communicating more structured data
+    consumeToken(T_COMMA);
+    Token& externStuff = getTok(0);
+    externSpec = externStuff.content;
+  }
+
   skipToRPAR();
   consumeToken(T_DOT);
 
@@ -3567,6 +3583,11 @@ void TPTP::endFof()
   Formula* f = _formulas.pop();
   std::string nm = _strings.pop(); // unit name
   if (_allowedNames && !_allowedNames->contains(nm)) {
+    return;
+  }
+
+  if (_isExternal) {
+    ESList::push({f,externSpec},_externals);
     return;
   }
 

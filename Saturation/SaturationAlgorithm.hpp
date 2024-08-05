@@ -41,6 +41,12 @@
 
 namespace Shell { class AnswerLiteralManager; }
 
+struct ExternalSource {
+  Formula* f;
+  std::string exec;
+  List<std::string>* already_asked = 0;
+};
+
 namespace Saturation
 {
 

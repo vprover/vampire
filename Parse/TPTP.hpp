@@ -356,7 +356,12 @@ public:
     auto res = _questionVariableNames.findPtr(questionNumber);
     return res ? *res : nullptr;
   }
+
+  ESList* getExternals() { return _externals; }
+
 private:
+  ESList* _externals = 0;
+
   void parseImpl(State initialState = State::UNIT_LIST);
   /** Return the input string of characters */
   const char* input() { return _chars.content(); }
@@ -563,6 +568,8 @@ private:
   Stack<State> _states;
   /** input type of the last read unit */ // it must be int since -1 can be used as a value
   UnitInputType _lastInputType;
+  /** true if the last read unit is an external declaration */
+  bool _isExternal;
   /** true if the last read unit is a question */
   bool _isQuestion;
   /** true if the last read unit is fof() or cnf() due to a subtle difference

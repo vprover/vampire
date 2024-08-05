@@ -51,6 +51,9 @@ template <typename Val, class Hash=DefaultHash> class Set;
 class Timer;
 };
 
+struct ExternalSource;
+typedef Lib::List<ExternalSource> ESList;
+
 namespace Kernel
 {
 using namespace Lib;
