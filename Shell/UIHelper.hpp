@@ -40,6 +40,7 @@ private:
   struct LoadedPiece {
     std::string _id;
     UnitList::FIFO _units;
+    ESList* _externals = 0;
     SMTLIBLogic _smtLibLogic = SMT_UNDEFINED;
     bool _hasConjecture = false;
   };

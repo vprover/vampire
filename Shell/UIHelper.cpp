@@ -210,6 +210,7 @@ void UIHelper::tryParseTPTP(istream& input)
   try {
     parser.parse();
     curPiece._units = parser.unitBuffer();
+    curPiece._externals = parser.getExternals();
     curPiece._hasConjecture |= parser.containsConjecture();
   } catch (ParsingRelatedException& exception) {
     UnitList::destroy(curPiece._units.clipAtLast()); // destroy units that perhaps got already parsed
@@ -377,7 +378,7 @@ void UIHelper::parseFile(const std::string& inputFile, Options::InputSyntax inpu
 Problem* UIHelper::getInputProblem()
 {
   LoadedPiece& topPiece = _loadedPieces.top();
-  Problem* res = new Problem(topPiece._units.list());
+  Problem* res = new Problem(topPiece._units.list(),topPiece._externals);
 
   // NB this must happen immediately, as the Property relies on it
   res->setSMTLIBLogic(topPiece._smtLibLogic);

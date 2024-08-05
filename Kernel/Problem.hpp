@@ -50,7 +50,7 @@ private:
   Problem(const Problem&); //private and undefined copy constructor
   Problem& operator=(const Problem&); //private and undefined assignment operator
 public:
-  explicit Problem(UnitList* units=0);
+  explicit Problem(UnitList* units=0, ESList* externals = 0);
   explicit Problem(ClauseIterator clauses, bool copy);
   ~Problem();
 
@@ -58,6 +58,8 @@ public:
 
   UnitList*& units() { return _units; }
   const UnitList* units() const { return _units; }
+
+  ESList* externals() { return _externals; }
 
   ClauseIterator clauseIterator() const;
 
@@ -189,9 +191,11 @@ private:
   void readDetailsFromProperty() const;
 
   UnitList* _units;
+  ESList* _externals;
+
   DHMap<unsigned,Literal*> _deletedFunctions;
   DHMap<unsigned,Unit*> _deletedPredicates;
-  DHMap<unsigned,Unit*> _partiallyDeletedPredicates; 
+  DHMap<unsigned,Unit*> _partiallyDeletedPredicates;
   ScopedPtr<FunctionDefinitionHandler> _fnDefHandler;
 
   bool _hadIncompleteTransformation;
