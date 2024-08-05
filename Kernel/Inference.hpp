@@ -45,7 +45,9 @@ enum class UnitInputType : unsigned char {
   /** Used in parsing and preprocessing for extensionality clause tagging, should not appear in proof search */
   EXTENSIONALITY_AXIOM = 5,
   /** Used to seperate model definitions in model_check mode, should not appear in proof search */
-  MODEL_DEFINITION = 6
+  MODEL_DEFINITION = 6,
+  /** Used to mark axiom that arrived later from an external source */
+  EXTERNAL_SOURCE = 7
 };
 
 inline std::underlying_type<UnitInputType>::type toNumber(UnitInputType t) { return static_cast<std::underlying_type<UnitInputType>::type>(t); }

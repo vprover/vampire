@@ -595,6 +595,8 @@ std::string Kernel::inputTypeName(UnitInputType type)
       return "claim";
     case UnitInputType::EXTENSIONALITY_AXIOM:
       return "extensionality axiom";
+    case UnitInputType::EXTERNAL_SOURCE:
+      return "external";
   default:
       return "unknown";
   }
