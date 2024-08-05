@@ -1497,13 +1497,13 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   }
 }
 
-void Splitter::addConditionalReduction(SplitSet* splits, ConditionalRedundancyEntry* e)
+void Splitter::addConditionalRedundancyEntry(SplitSet* splits, ConditionalRedundancyEntry* e)
 {
   auto sit = splits->iter();
   while (sit.hasNext()) {
     SplitLevel slev=sit.next();
     e->obtain();
-    _db[slev]->conditionalReductions.push(e);
+    _db[slev]->conditionalRedundancyEntries.push(e);
   }
 }
 
@@ -1734,8 +1734,8 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
       sr->children.reset();
     }
 
-    while (sr->conditionalReductions.isNonEmpty()) {
-      auto cr = sr->conditionalReductions.pop();
+    while (sr->conditionalRedundancyEntries.isNonEmpty()) {
+      auto cr = sr->conditionalRedundancyEntries.pop();
       cr->deactivate();
       cr->release();
     }

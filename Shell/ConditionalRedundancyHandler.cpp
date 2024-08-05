@@ -7,10 +7,6 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
-/**
- * @file ConditionalRedundancyHandler.cpp
- * Implements class ConditionalRedundancyHandler.
- */
 
 #include "ConditionalRedundancyHandler.hpp"
 
@@ -208,7 +204,7 @@ private:
     e->splits = splits;
 
     if (!splits->isEmpty()) {
-      splitter->addConditionalReduction(splits, e);
+      splitter->addConditionalRedundancyEntry(splits, e);
     }
   
     return e;
