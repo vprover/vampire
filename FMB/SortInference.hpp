@@ -129,6 +129,8 @@ private:
   const DArray<bool>& _del_f;
   const DArray<bool>& _del_p;
 
+  // these two actually live in FiniteModelBuilder and serve as output arguments of this sort inference
+  // (see more explanations there)
   Stack<std::pair<unsigned,unsigned>>& _sort_constraints;
   DHMap<unsigned,DArray<signed char>*>& _monotonic_vampire_sorts;
 };
