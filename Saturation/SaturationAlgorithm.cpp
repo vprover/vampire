@@ -724,9 +724,6 @@ void SaturationAlgorithm::init()
   if (_symEl) {
     _symEl->init(this);
   }
-
-  _startTime=Timer::elapsedMilliseconds();
-  _startInstrs=Timer::elapsedMegaInstructions();
 }
 
 Clause *SaturationAlgorithm::doImmediateSimplification(Clause* cl0)

@@ -251,7 +251,3 @@ void updateInstructionCount()
 
 } //namespace Timer
 } //namespace Lib
-
-#if 0
-
-#endif

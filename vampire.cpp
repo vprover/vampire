@@ -26,7 +26,6 @@
 #include "Lib/Timer.hpp"
 #include "Lib/List.hpp"
 #include "Lib/System.hpp"
-#include "Lib/Metaiterators.hpp"
 #include "Lib/StringUtils.hpp"
 #include "Lib/Sys/Multiprocessing.hpp"
 #include "Lib/Int.hpp"
@@ -666,7 +665,7 @@ void interactiveMetamode()
       pid_t process = Lib::Sys::Multiprocessing::instance()->fork();
       ASS_NEQ(process, -1);
       if(process == 0) {
-        Timer::instance()->start(); // start our timer (in the child)
+        Timer::reinitialise(); // start our timer (in the child)
         UIHelper::unsetExpecting(); // probably garbage at this point
 
         Stack<std::string> pieces;
@@ -761,15 +760,13 @@ int main(int argc, char* argv[])
       exit(0);
     }
 
-    // can only happen after reading options as it relies on `env.options`
-    Timer::reinitialise();
-
     Lib::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
 
     if (opts.interactive()) {
       interactiveMetamode();
     } else {
-      Timer::instance()->start(); // start our timer, so that we also limit parsing
+      // can only happen after reading options as it relies on `env.options`
+      Timer::reinitialise(); // start our timer, so that we also limit parsing
 
 #if VAMPIRE_PERF_EXISTS
       unsigned saveInstrLimit = env.options->instructionLimit();

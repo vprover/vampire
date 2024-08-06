@@ -175,10 +175,7 @@ private:
   static SaturationAlgorithm* s_instance;
 protected:
 
-  int _startTime;
-  int _startInstrs;
-
-  bool _completeOptionSettings;  
+  bool _completeOptionSettings;
   bool _clauseActivationInProgress;
 
   RCClauseStack _newClauses;
