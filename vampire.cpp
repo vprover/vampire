@@ -91,25 +91,6 @@ int vampireReturnValue = VAMP_RESULT_STATUS_UNKNOWN;
 [[nodiscard]]
 Problem* preprocessProblem(Problem* prb)
 {
-#if VAMPIRE_PERF_EXISTS
-  unsigned saveInstrLimit = env.options->instructionLimit();
-  if (env.options->parsingDoesNotCount()) {
-    env.options->setInstructionLimit(0);
-  }
-#endif
-
-#if VAMPIRE_PERF_EXISTS
-  if (env.options->parsingDoesNotCount()) {
-    Timer::updateInstructionCount();
-    unsigned burnedParsing = Timer::elapsedMegaInstructions();
-
-    addCommentSignForSZS(std::cout);
-    std::cout << "Instructions burned parsing: " << burnedParsing << " (million)" << endl;
-
-    env.options->setInstructionLimit(saveInstrLimit+burnedParsing);
-  }
-#endif
-
   // Here officially starts preprocessing of vampireMode
   // and that's the moment we want to set the random seed (no randomness in parsing, for the peace of mind)
   // the main reason being that we want to stay in sync with what profolio mode will do
@@ -685,8 +666,8 @@ void interactiveMetamode()
       pid_t process = Lib::Sys::Multiprocessing::instance()->fork();
       ASS_NEQ(process, -1);
       if(process == 0) {
-        // probably garbage at this point
-        UIHelper::unsetExpecting();
+        Timer::instance()->start(); // start our timer (in the child)
+        UIHelper::unsetExpecting(); // probably garbage at this point
 
         Stack<std::string> pieces;
         StringUtils::splitStr(line.c_str(),' ',pieces);
@@ -788,12 +769,34 @@ int main(int argc, char* argv[])
     if (opts.interactive()) {
       interactiveMetamode();
     } else {
+      Timer::instance()->start(); // start our timer, so that we also limit parsing
+
+#if VAMPIRE_PERF_EXISTS
+      unsigned saveInstrLimit = env.options->instructionLimit();
+      if (env.options->parsingDoesNotCount()) {
+        env.options->setInstructionLimit(0);
+      }
+#endif
+
       if (opts.inputFile().empty()) {
         UIHelper::parseStandardInput(opts.inputSyntax());
       } else {
         UIHelper::parseFile(opts.inputFile(),opts.inputSyntax(),
                             opts.mode() != Options::Mode::SPIDER && opts.mode() != Options::Mode::PROFILE);
       }
+
+#if VAMPIRE_PERF_EXISTS
+      if (env.options->parsingDoesNotCount()) {
+        Timer::updateInstructionCount();
+        unsigned burnedParsing = Timer::elapsedMegaInstructions();
+
+        addCommentSignForSZS(std::cout);
+        std::cout << "Instructions burned parsing: " << burnedParsing << " (million)" << endl;
+
+        env.options->setInstructionLimit(saveInstrLimit+burnedParsing);
+      }
+#endif
+
       dispatchByMode(UIHelper::getInputProblem());
     }
 

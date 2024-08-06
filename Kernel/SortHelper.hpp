@@ -63,6 +63,7 @@ public:
 
   static TermList getEqualityArgumentSort(const Literal* lit);
 
+  // DEPRECATED: this function scans the whole formula to figure out a variable's sort and is very inefficient - moreover, such information is normally carried around (see QuantifiedFormula's sorts())
   static bool tryGetVariableSort(unsigned var, Formula* f, TermList& res);
   static TermList getVariableSort(TermList var, Term* t);
   [[deprecated("This function is usually only used if we loose the information about the sort of a variable somewhere while over subterms. Recovering the information using this method iterating the literal/term again, is very inefficient and should be avoided. Make sure to use TermIterators that return TypedTermList instead, or raise a discussion on slack/github if you have a use case where this function is *really* needed.")]]
@@ -72,7 +73,7 @@ public:
   static void collectVariableSorts(Term* t, DHMap<unsigned,TermList>& map);
   static void collectVariableSorts(Formula* f, DHMap<unsigned,TermList>& map, bool ignoreBound = false);
 
-  static bool areImmediateSortsValidPoly(Term* t); 
+  static bool areImmediateSortsValidPoly(Term* t);
   static bool areImmediateSortsValidMono(Term* t);
   static bool allTopLevelArgsAreSorts(AtomicSort* sort);
 
