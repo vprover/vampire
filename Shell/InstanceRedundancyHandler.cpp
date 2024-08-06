@@ -124,9 +124,9 @@ private:
           TermList operator()(unsigned v) const override { return matcher.bindings[v]; }
         } applicator;
 
-        if (ord->isGreater(TermList(ld->lhs),TermList(ld->rhs),&applicator,ld->comp)) {
-          return true;
-        }
+        // if (ord->isGreater(TermList(ld->lhs),TermList(ld->rhs),&applicator,ld->comp)) {
+        //   return true;
+        // }
       }
     }
     matcher.reset();

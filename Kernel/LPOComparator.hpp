@@ -29,10 +29,10 @@ class LPOComparator
 {
 public:
   /** The runtime specialization happens in the constructor. */
-  LPOComparator(TermList tl1, TermList tl2, const LPO& lpo);
+  LPOComparator(TermList lhs, TermList rhs, const LPO& lpo);
 
   /** Executes the runtime specialized instructions with concrete substitution. */
-  bool check(const SubstApplicator* applicator) const;
+  bool check(const SubstApplicator* applicator) override;
   std::string toString() const override;
 
   /**
@@ -106,7 +106,7 @@ private:
   static pair<Stack<Instruction>,Instruction::BranchTag> alphaChain(const LPO& lpo, Term* s, unsigned i, TermList tl2);
   static pair<Stack<Instruction>,Instruction::BranchTag>* createHelper(TermList tl1, TermList tl2, const LPO& lpo);
 
-  const LPO& _lpo;
+  bool _ready;
 
   /** This is non-empty if @b _res is @b BranchTag::T_JUMP */
   Stack<Instruction> _instructions;

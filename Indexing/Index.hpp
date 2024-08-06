@@ -116,7 +116,7 @@ struct TermLiteralClause
 struct DemodulatorData
 {
   DemodulatorData(TypedTermList term, TermList rhs, Clause* clause, bool preordered, const Ordering& ord)
-    : term(term), rhs(rhs), clause(clause), preordered(preordered)
+    : term(term), rhs(rhs), clause(clause), preordered(preordered), comparator(ord.createComparator(term, rhs))
   {
 #if VDEBUG
     ASS(term.containsAllVariablesOf(rhs));

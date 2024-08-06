@@ -458,16 +458,21 @@ pair<Stack<Instruction>,BranchTag>* LPOComparator::createHelper(TermList tl1, Te
   return *ptr;
 }
 
-LPOComparator::LPOComparator(TermList tl1, TermList tl2, const LPO& lpo)
-  : _lpo(lpo), _instructions(), _res()
+LPOComparator::LPOComparator(TermList lhs, TermList rhs, const LPO& lpo)
+  : OrderingComparator(lhs, rhs, lpo), _ready(false), _instructions(), _res(BranchTag::T_JUMP)
 {
-  auto kv = createHelper(tl1, tl2, lpo);
-  _instructions = kv->first;
-  _res = kv->second;
 }
 
-bool LPOComparator::check(const SubstApplicator* applicator) const
+bool LPOComparator::check(const SubstApplicator* applicator)
 {
+  const auto& lpo = static_cast<const LPO&>(_ord);
+  if (!_ready) {
+    auto kv = createHelper(_lhs, _rhs, lpo);
+    _res = kv->second;
+    _instructions = kv->first;
+    _ready = true;
+  }
+
   // we calculate all three values in each iteration
   // to optimise CPU branch prediction (the values are
   // computed regardless and hence no branching is needed)
@@ -476,7 +481,7 @@ bool LPOComparator::check(const SubstApplicator* applicator) const
   auto curr = _instructions.begin();
 
   while (cond) {
-    auto comp = _lpo.lpo(AppliedTerm(curr->lhs,applicator,true),AppliedTerm(curr->rhs,applicator,true));
+    auto comp = lpo.lpo(AppliedTerm(curr->lhs,applicator,true),AppliedTerm(curr->rhs,applicator,true));
     const auto& branch = curr->getBranch(comp);
 
     cond = branch.tag == BranchTag::T_JUMP;

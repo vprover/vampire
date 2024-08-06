@@ -20,12 +20,20 @@ using namespace std;
 using namespace Lib;
 using namespace Shell;
 
-KBOComparator::KBOComparator(TermList tl1, TermList tl2, const KBO& kbo)
-  : _kbo(kbo), _instructions()
+KBOComparator::KBOComparator(TermList lhs, TermList rhs, const KBO& kbo)
+  : OrderingComparator(lhs, rhs, kbo), _ready(false), _instructions()
 {
+}
+
+void KBOComparator::makeReady()
+{
+  ASS(!_ready);
+
+  const auto& kbo = static_cast<const KBO&>(_ord);
+
   // stack of subcomparisons in lexicographic order (w.r.t. tl1 and tl2)
   Stack<pair<TermList,TermList>> todo;
-  todo.push(make_pair(tl1,tl2));
+  todo.push(make_pair(_lhs,_rhs));
 
   while (todo.isNonEmpty()) {
     auto kv = todo.pop();
@@ -81,14 +89,14 @@ KBOComparator::KBOComparator(TermList tl1, TermList tl2, const KBO& kbo)
 
     // if both are proper terms, we calculate
     // weight and variable balances first
-    DHMap<unsigned,int> vars;
-    int w = 0;
-    countSymbols(kbo, vars, w, lhs, 1);
-    countSymbols(kbo, vars, w, rhs, -1);
 
     // we only care about the non-zero weights and counts
     bool varInbalance = false;
-    DHMap<unsigned,int>::Iterator vit(vars);
+    // TODO kbo.state could be nulled out until this
+    // to make sure no one overwrites the values
+    auto state = kbo._state;
+    auto w = kbo._state->_weightDiff;
+    decltype(state->_varDiffs)::Iterator vit(state->_varDiffs);
     Stack<pair<unsigned,int>> nonzeros;
     while (vit.hasNext()) {
       unsigned v;
@@ -96,6 +104,7 @@ KBOComparator::KBOComparator(TermList tl1, TermList tl2, const KBO& kbo)
       vit.next(v,cnt);
       if (cnt!=0) {
         nonzeros.push(make_pair(v,cnt));
+        w-=cnt; // we have to remove the variable weights from w
       }
       if (cnt<0) {
         varInbalance = true;
@@ -154,8 +163,15 @@ KBOComparator::KBOComparator(TermList tl1, TermList tl2, const KBO& kbo)
   }
 }
 
-bool KBOComparator::check(const SubstApplicator* applicator) const
+bool KBOComparator::check(const SubstApplicator* applicator)
 {
+  if (!_ready) {
+    makeReady();
+    _ready = true;
+  }
+
+  const auto& kbo = static_cast<const KBO&>(_ord);
+
   for (unsigned i = 0; i < _instructions.size();) {
     switch (static_cast<InstructionTag>(_instructions[i]._tag())) {
       case InstructionTag::WEIGHT: {
@@ -181,7 +197,7 @@ bool KBOComparator::check(const SubstApplicator* applicator) const
               return false;
             }
           }
-          auto w = _kbo.computeWeight(tt);
+          auto w = kbo.computeWeight(tt);
           weight += coeff*w;
           // due to descending order of counts,
           // this also means failure
@@ -200,7 +216,7 @@ bool KBOComparator::check(const SubstApplicator* applicator) const
         break;
       }
       case InstructionTag::COMPARE_VV: {
-        auto res = _kbo.isGreaterOrEq(
+        auto res = kbo.isGreaterOrEq(
           AppliedTerm(TermList::var(_instructions[i]._firstUint()), applicator, true),
           AppliedTerm(TermList::var(_instructions[i]._secondUint()), applicator, true));
         if (res==Ordering::EQUAL) {
@@ -211,7 +227,7 @@ bool KBOComparator::check(const SubstApplicator* applicator) const
       }
       case InstructionTag::COMPARE_VT: {
         ASS(_instructions[i+1]._tag()==InstructionTag::DATA);
-        auto res = _kbo.isGreaterOrEq(
+        auto res = kbo.isGreaterOrEq(
           AppliedTerm(TermList::var(_instructions[i]._firstUint()), applicator, true),
           AppliedTerm(TermList(_instructions[i+1]._term()), applicator, true));
         if (res==Ordering::EQUAL) {
@@ -223,7 +239,7 @@ bool KBOComparator::check(const SubstApplicator* applicator) const
       case InstructionTag::COMPARE_TV: {
         ASS(_instructions[i+1]._tag()==InstructionTag::DATA);
         // note that in this case the term is the second argument
-        auto res = _kbo.isGreaterOrEq(
+        auto res = kbo.isGreaterOrEq(
           AppliedTerm(TermList(_instructions[i+1]._term()), applicator, true),
           AppliedTerm(TermList::var(_instructions[i]._firstUint()), applicator, true));
         if (res==Ordering::EQUAL) {
@@ -240,30 +256,6 @@ bool KBOComparator::check(const SubstApplicator* applicator) const
     }
   }
   return false;
-}
-
-
-void KBOComparator::countSymbols(const KBO& kbo, DHMap<unsigned,int>& vars, int& w, TermList t, int coeff)
-{
-  if (t.isVar()) {
-    int* vcnt;
-    vars.getValuePtr(t.var(), vcnt, 0);
-    (*vcnt) += coeff;
-    return;
-  }
-
-  w += coeff*kbo.symbolWeight(t.term());
-  SubtermIterator sti(t.term());
-  while (sti.hasNext()) {
-    auto st = sti.next();
-    if (st.isVar()) {
-      int* vcnt;
-      vars.getValuePtr(st.var(), vcnt, 0);
-      (*vcnt) += coeff;
-    } else {
-      w += coeff*kbo.symbolWeight(st.term());
-    }
-  }
 }
 
 std::string KBOComparator::toString() const
