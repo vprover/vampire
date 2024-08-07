@@ -134,9 +134,6 @@ sa!=fmb > cond ~cat off:500,on:89,fast:61
 # equational_tautology_removal
 sa!=fmb > etr ~cat off:500,on:30
 
-# instance_redundancy_check
-sa!=fmb > irc ~cat lazy:1,eager:1,off:5
-
 # extensionality_resolution
 sa!=fmb ins=0 > er ~cat off:500,known:25,filter:26
 
@@ -229,6 +226,18 @@ $s2a=on > s2at ~cat -1.0:50,1.0:150,1.5:37,2.0:60,2.5:20,3.0:70,3.5:15,4.0:60,4.
 
 # AVATAR
 sa!=fmb > av ~cat on:15,off:4
+
+# conditional_redundancy_check
+sa!=fmb > crc ~cat on:3,off:5
+
+# conditional_redundancy_ordering_constraints
+crc=on > croc ~cat on:1,off:1
+
+# conditional_redundancy_avatar_constraints
+av=on crc=on > crac ~cat on:1,off:1
+
+# conditional_redundancy_literal_constraints
+crc=on > crlc ~cat on:1,off:1
 
 # sat_solver
 sa!=fmb $has_z3=true av=on > sas ~cat minisat:10,z3:1
