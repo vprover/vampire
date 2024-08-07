@@ -112,9 +112,9 @@ long long LRS::estimatedReachableCount()
 
   long long result = -1;
 
-  if (currTime < firstCheck*opt_timeLimitDeci
+  if ((opt_timeLimitDeci > 0 && currTime < firstCheck*opt_timeLimitDeci) ||
       // the above, unit-wise: cf milliseconds on the left, and deci * percent on the right
-      && instrsBurned*100 < firstCheck*opt_instruction_limit
+      (opt_instruction_limit > 0 && instrsBurned*100 < firstCheck*opt_instruction_limit)
   ) {
     goto finish;
   }
@@ -126,7 +126,7 @@ long long LRS::estimatedReachableCount()
       goto finish;
     }
 
-    long long timeLeft; // (in milliseconds) 
+    long long timeLeft; // (in milliseconds)
     if(_opt.simulatedTimeLimit()) {
       timeLeft=_opt.simulatedTimeLimit()*100 - currTime;
     } else {
@@ -137,10 +137,10 @@ long long LRS::estimatedReachableCount()
 
     // note that result is -1 here already
 
-    if(timeLeft > 0) {      
+    if(timeLeft > 0) {
       result = correction_coef*(processed*timeLeft)/currTime;
     } // otherwise, it's somehow past the deadline, or no timilimit set
-    
+
     if (instrsLeft > 0) {
       long long res_by_instr = correction_coef*(processed*instrsLeft)/instrsBurned;
       if (result > 0) {

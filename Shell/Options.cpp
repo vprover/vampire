@@ -1095,7 +1095,7 @@ void Options::init()
       _sineToPredLevels.is(notEqual(PredicateSineLevels::OFF)),
       _useSineLevelSplitQueues.is(equal(true))));
 
-    _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",5);
+    _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","lftc",5);
     _lrsFirstTimeCheck.description=
     "Percentage of time limit at which the LRS algorithm will for the first time estimate the number of reachable clauses.";
     _lookup.insert(&_lrsFirstTimeCheck);
