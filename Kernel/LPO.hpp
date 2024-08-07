@@ -66,6 +66,7 @@ protected:
   Result majo(AppliedTerm s, AppliedTerm t, const TermList* tl, unsigned arity) const;
 
   friend class LPOComparator;
+  friend class LPOComparator2;
 };
 
 }

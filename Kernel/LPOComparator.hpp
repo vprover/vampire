@@ -117,5 +117,70 @@ private:
   Instruction::BranchTag _res;
 };
 
+class LPOComparator2
+: public OrderingComparator
+{
+public:
+  /** The runtime specialization happens in the constructor. */
+  LPOComparator2(TermList lhs, TermList rhs, const LPO& lpo);
+  ~LPOComparator2() override;
+
+  /** Executes the runtime specialized instructions with concrete substitution. */
+  bool check(const SubstApplicator* applicator) override;
+  std::string toString() const override;
+
+  enum class BranchTag : uint8_t {
+    T_EQUAL,
+    T_GREATER,
+    T_INCOMPARABLE,
+    T_COMPARISON,
+    T_UNKNOWN,
+  };
+
+  struct Node;
+
+  struct Branch {
+    BranchTag tag;
+    Node* n;
+
+    explicit Branch(BranchTag t) : tag(t), n(nullptr) {}
+    explicit Branch(Node* n) : tag(BranchTag::T_UNKNOWN), n(n) {}
+  };
+
+  struct Node {
+    Node(TermList lhs, TermList rhs)
+      : lhs(lhs), rhs(rhs), eqBranch(BranchTag::T_EQUAL), gtBranch(BranchTag::T_GREATER), incBranch(BranchTag::T_INCOMPARABLE) {}
+
+    auto& getBranch(Ordering::Result r) {
+      switch (r) {
+        case Ordering::EQUAL:
+          return eqBranch;
+        case Ordering::GREATER:
+          return gtBranch;
+        case Ordering::INCOMPARABLE:
+          return incBranch;
+        default:
+          ASSERTION_VIOLATION;
+      }
+    }
+
+    TermList lhs;
+    TermList rhs;
+    Branch eqBranch;
+    Branch gtBranch;
+    Branch incBranch;
+  };
+  
+
+private:
+  static void majoChain(Branch* branch, TermList tl1, Term* t, unsigned i, Branch success, Branch fail);
+  static void alphaChain(Branch* branch, Term* s, unsigned i, TermList tl2, Branch success, Branch fail);
+  static void expand(Branch& branch, const LPO& lpo);
+
+  friend ostream& operator<<(ostream& str, const LPOComparator2& comp);
+
+  Branch _root;
+};
+
 }
 #endif
