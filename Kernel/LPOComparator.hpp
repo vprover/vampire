@@ -123,16 +123,14 @@ class LPOComparator2
 public:
   /** The runtime specialization happens in the constructor. */
   LPOComparator2(TermList lhs, TermList rhs, const LPO& lpo);
-  ~LPOComparator2() override;
 
   /** Executes the runtime specialized instructions with concrete substitution. */
   bool check(const SubstApplicator* applicator) override;
   std::string toString() const override;
 
   enum class BranchTag : uint8_t {
-    T_EQUAL,
     T_GREATER,
-    T_INCOMPARABLE,
+    T_NOT_GREATER,
     T_COMPARISON,
     T_UNKNOWN,
   };
@@ -143,13 +141,36 @@ public:
     BranchTag tag;
     Node* n;
 
-    explicit Branch(BranchTag t) : tag(t), n(nullptr) {}
-    explicit Branch(Node* n) : tag(BranchTag::T_UNKNOWN), n(n) {}
+    explicit Branch(BranchTag t) : tag(t), n(nullptr) { ASS(t==BranchTag::T_GREATER || t==BranchTag::T_NOT_GREATER); }
+    explicit Branch(Node* n) : tag(BranchTag::T_UNKNOWN), n(n) { ASS(n); n->acquire(); }
+    Branch(const Branch& other) : tag(other.tag), n(other.n) { if (n) { n->acquire(); } }
+    ~Branch() { if (n) { n->release(); } }
+    Branch& operator=(const Branch& other) {
+      if (this != &other) {
+        tag = other.tag;
+        if (n) { n->release(); }
+        n = other.n;
+        if (n) { n->acquire(); }
+      }
+      return *this;
+    }
   };
 
   struct Node {
     Node(TermList lhs, TermList rhs)
-      : lhs(lhs), rhs(rhs), eqBranch(BranchTag::T_EQUAL), gtBranch(BranchTag::T_GREATER), incBranch(BranchTag::T_INCOMPARABLE) {}
+      : refcnt(0), lhs(lhs), rhs(rhs), eqBranch(BranchTag::T_NOT_GREATER), gtBranch(BranchTag::T_GREATER), incBranch(BranchTag::T_NOT_GREATER) {}
+
+    void acquire() {
+      refcnt++;
+    }
+
+    void release() {
+      ASS(refcnt);
+      refcnt--;
+      if (!refcnt) {
+        delete this;
+      }
+    }
 
     auto& getBranch(Ordering::Result r) {
       switch (r) {
@@ -164,6 +185,7 @@ public:
       }
     }
 
+    unsigned refcnt;
     TermList lhs;
     TermList rhs;
     Branch eqBranch;

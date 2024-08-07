@@ -498,22 +498,14 @@ LPOComparator2::LPOComparator2(TermList lhs, TermList rhs, const LPO& lpo)
 {
 }
 
-LPOComparator2::~LPOComparator2()
-{
-  delete _root.n;
-}
-
 ostream& operator<<(ostream& out, const LPOComparator2::BranchTag& t)
 {
   switch (t) {
-    case LPOComparator2::BranchTag::T_EQUAL:
-      out << "=";
+    case LPOComparator2::BranchTag::T_NOT_GREATER:
+      out << "!>";
       break;
     case LPOComparator2::BranchTag::T_GREATER:
       out << ">";
-      break;
-    case LPOComparator2::BranchTag::T_INCOMPARABLE:
-      out << "!";
       break;
     case LPOComparator2::BranchTag::T_COMPARISON:
       out << "$";
@@ -539,8 +531,8 @@ std::ostream& operator<<(std::ostream& str, const LPOComparator2::Branch& branch
 ostream& operator<<(ostream& str, const LPOComparator2& comp)
 {
   str << "comparator for " << comp._lhs << " > " << comp._rhs << endl;
-  Stack<pair<LPOComparator2::Branch, unsigned>> todo;
-  todo.push(make_pair(comp._root,0));
+  Stack<pair<const LPOComparator2::Branch*, unsigned>> todo;
+  todo.push(make_pair(&comp._root,0));
   unsigned cnt = 1;
 
   while (todo.isNonEmpty()) {
@@ -549,11 +541,11 @@ ostream& operator<<(ostream& str, const LPOComparator2& comp)
     for (unsigned i = 0; i < kv.second; i++) {
       str << "  ";
     }
-    str << kv.first << endl;
-    if (kv.first.n) {
-      todo.push(make_pair(kv.first.n->incBranch,kv.second+1));
-      todo.push(make_pair(kv.first.n->gtBranch,kv.second+1));
-      todo.push(make_pair(kv.first.n->eqBranch,kv.second+1));
+    str << *kv.first << endl;
+    if (kv.first->n) {
+      todo.push(make_pair(&kv.first->n->incBranch,kv.second+1));
+      todo.push(make_pair(&kv.first->n->gtBranch,kv.second+1));
+      todo.push(make_pair(&kv.first->n->eqBranch,kv.second+1));
     }
   }
   return str;
@@ -571,6 +563,7 @@ std::string LPOComparator2::toString() const
  */
 void LPOComparator2::majoChain(Branch* branch, TermList tl1, Term* t, unsigned i, Branch success, Branch fail)
 {
+  ASS(branch);
   for (unsigned j = i; j < t->arity(); j++) {
     *branch = Branch(new Node(tl1,*t->nthArgument(j)));
     branch->n->eqBranch = fail;
@@ -585,6 +578,7 @@ void LPOComparator2::majoChain(Branch* branch, TermList tl1, Term* t, unsigned i
  */
 void LPOComparator2::alphaChain(Branch* branch, Term* s, unsigned i, TermList tl2, Branch success, Branch fail)
 {
+  ASS(branch);
   for (unsigned j = i; j < s->arity(); j++) {
     *branch = Branch(new Node(*s->nthArgument(j),tl2));
     branch->n->eqBranch = success;
@@ -600,6 +594,8 @@ void LPOComparator2::expand(Branch& branch, const LPO& lpo)
     // Use compare here to filter out as many
     // precomputable comparisons as possible.
     auto node = branch.n;
+    node->acquire();
+
     auto comp = lpo.compare(node->lhs,node->rhs);
     if (comp != Ordering::INCOMPARABLE) {
       if (comp == Ordering::LESS) {
@@ -609,67 +605,63 @@ void LPOComparator2::expand(Branch& branch, const LPO& lpo)
       } else {
         branch = node->eqBranch;
       }
-      continue;
+      goto loop_end;
     }
     // If we have a variable, we cannot preprocess further.
     if (node->lhs.isVar() || node->rhs.isVar()) {
       branch.tag = BranchTag::T_COMPARISON;
-      continue;
+      goto loop_end;
     }
 
-    auto s = node->lhs.term();
-    auto t = node->rhs.term();
+    {
+      auto s = node->lhs.term();
+      auto t = node->rhs.term();
 
-    // preserve original branches
-    auto eqBranch = node->eqBranch;
-    auto gtBranch = node->gtBranch;
-    auto incBranch = node->incBranch;
+      switch (lpo.comparePrecedences(s, t)) {
+      case Ordering::EQUAL: {
+        ASS(s->arity()); // constants cannot be incomparable
 
-    switch (lpo.comparePrecedences(s, t)) {
-    case Ordering::EQUAL: {
-      ASS(s->arity()); // constants cannot be incomparable
+        // copies for unification
+        auto lhs = node->lhs;
+        auto rhs = node->rhs;
 
-      // copies for unification
-      auto lhs = node->lhs;
-      auto rhs = node->rhs;
+        auto curr = &branch;
 
-      // TODO release branch->n somewhere
-      auto curr = &branch;
-
-      // lexicographic comparisons
-      for (unsigned i = 0; i < s->arity(); i++)
-      {
-        auto s_arg = *lhs.term()->nthArgument(i);
-        auto t_arg = *rhs.term()->nthArgument(i);
-        *curr = Branch(new Node(s_arg,t_arg));
-        // greater branch is a majo chain
-        majoChain(&curr->n->gtBranch, lhs, rhs.term(), i+1, gtBranch, incBranch);
-        // incomparable branch is an alpha chain
-        alphaChain(&curr->n->incBranch, lhs.term(), i+1, rhs, gtBranch, incBranch);
-        curr = &curr->n->eqBranch;
-        if (!unify(s_arg,t_arg,lhs,rhs)) {
-          *curr = incBranch;
-          goto loop_end;
+        // lexicographic comparisons
+        for (unsigned i = 0; i < s->arity(); i++)
+        {
+          auto s_arg = *lhs.term()->nthArgument(i);
+          auto t_arg = *rhs.term()->nthArgument(i);
+          *curr = Branch(new Node(s_arg,t_arg));
+          // greater branch is a majo chain
+          majoChain(&curr->n->gtBranch, lhs, rhs.term(), i+1, node->gtBranch, node->incBranch);
+          // incomparable branch is an alpha chain
+          alphaChain(&curr->n->incBranch, lhs.term(), i+1, rhs, node->gtBranch, node->incBranch);
+          curr = &curr->n->eqBranch;
+          if (!unify(s_arg,t_arg,lhs,rhs)) {
+            *curr = node->incBranch;
+            goto loop_end;
+          }
         }
+        *curr = node->eqBranch;
+        break;
       }
-      *curr = eqBranch;
-      break;
-    }
-    case Ordering::GREATER: {
-      ASS(t->arity());
-      majoChain(&branch, node->lhs, t, 0, gtBranch, incBranch);
-      break;
-    }
-    case Ordering::LESS: {
-      ASS(s->arity());
-      alphaChain(&branch, s, 0, node->rhs, gtBranch, incBranch);
-      break;
-    }
-    default:
-      ASSERTION_VIOLATION;
+      case Ordering::GREATER: {
+        ASS(t->arity());
+        majoChain(&branch, node->lhs, t, 0, node->gtBranch, node->incBranch);
+        break;
+      }
+      case Ordering::LESS: {
+        ASS(s->arity());
+        alphaChain(&branch, s, 0, node->rhs, node->gtBranch, node->incBranch);
+        break;
+      }
+      default:
+        ASSERTION_VIOLATION;
+      }
     }
 loop_end:
-    continue;
+    node->release();
   }
 }
 
@@ -678,9 +670,9 @@ bool LPOComparator2::check(const SubstApplicator* applicator)
   const auto& lpo = static_cast<const LPO&>(_ord);
   auto curr = &_root;
 
-  while (curr->tag == BranchTag::T_COMPARISON || curr->tag == BranchTag::T_UNKNOWN) {
+  while (curr->n) {
     expand(*curr, lpo);
-    if (curr->tag != BranchTag::T_COMPARISON) {
+    if (!curr->n) {
       break;
     }
     ASS(curr->n);
