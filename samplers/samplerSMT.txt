@@ -188,9 +188,6 @@ bsd=on > bsdmm ~cat 0:10,1:3,2:2,3:1
 # equational_tautology_removal
 > etr ~cat off:500,on:30
 
-# instance_redundancy_check
-> irc ~cat lazy:1,eager:1,off:5
-
 # extensionality_resolution
 ins=0 > er ~cat off:500,known:25,filter:26
 
@@ -283,6 +280,18 @@ $s2a=on > s2at ~cat -1.0:50,1.0:150,1.5:37,2.0:60,2.5:20,3.0:70,3.5:15,4.0:60,4.
 
 # AVATAR - main
 > av ~cat on:15,off:4
+
+# conditional_redundancy_check
+> crc ~cat on:3,off:5
+
+# conditional_redundancy_ordering_constraints
+crc=on > croc ~cat on:1,off:1
+
+# conditional_redundancy_avatar_constraints
+av=on crc=on > crac ~cat on:1,off:1
+
+# conditional_redundancy_literal_constraints
+crc=on > crlc ~cat on:1,off:1
 
 # SAT SOLVER
 
