@@ -260,7 +260,8 @@ ConditionalRedundancyHandler* ConditionalRedundancyHandler::create(const Options
     return new ConditionalRedundancyHandlerImpl</*enabled*/false,false,false,false>(opts,ord,splitter);
   }
   auto ordC = opts.conditionalRedundancyOrderingConstraints();
-  auto avatarC = opts.conditionalRedundancyAvatarConstraints();
+  // check for av=on here as otherwise we would have to null-check splits inside the handler
+  auto avatarC = opts.splitting() && opts.conditionalRedundancyAvatarConstraints();
   auto litC = opts.conditionalRedundancyLiteralConstraints();
   if (ordC) {
     if (avatarC) {
@@ -346,8 +347,13 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
     }));
   }
 
+  auto rwSplits = SplitSet::getEmpty();
+  if constexpr (avatarC) {
+    rwSplits = rwClause->splits();
+  }
+
   auto eqClDataPtr = getDataPtr(eqClause, /*doAllocate=*/false);
-  if (eqClDataPtr && !(*eqClDataPtr)->check(_ord, subs, eqIsResult, rwLits, rwClause->splits())) {
+  if (eqClDataPtr && !(*eqClDataPtr)->check(_ord, subs, eqIsResult, rwLits, rwSplits)) {
     env.statistics->skippedSuperposition++;
     return false;
   }
@@ -361,8 +367,13 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
     }));
   }
 
+  auto eqSplits = SplitSet::getEmpty();
+  if constexpr (avatarC) {
+    eqSplits = eqClause->splits();
+  }
+
   auto rwClDataPtr = getDataPtr(rwClause, /*doAllocate=*/false);
-  if (rwClDataPtr && !(*rwClDataPtr)->check(_ord, subs, !eqIsResult, eqLits, eqClause->splits())) {
+  if (rwClDataPtr && !(*rwClDataPtr)->check(_ord, subs, !eqIsResult, eqLits, eqSplits)) {
     env.statistics->skippedSuperposition++;
     return false;
   }
