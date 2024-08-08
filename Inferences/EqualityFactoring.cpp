@@ -163,9 +163,11 @@ struct EqualityFactoring::ResultFn
       }
     }
 
-    if (!_condRedHandler.handleReductiveUnaryInference(_cl, &absUnif.subs())) {
-      env.statistics->skippedEqualityFactoring++;
-      return nullptr;
+    if (!absUnif.usesUwa()) {
+      if (!_condRedHandler.handleReductiveUnaryInference(_cl, &absUnif.subs())) {
+        env.statistics->skippedEqualityFactoring++;
+        return nullptr;
+      }
     }
 
     resLits->loadFromIterator(constraints->iterFifo());
