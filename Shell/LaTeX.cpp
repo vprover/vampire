@@ -191,7 +191,7 @@ std::string LaTeX::toString (Formula* f) const
 {
   static std::string names [] =
   { "", " \\Vand ", " \\Vor ", " \\Vimp ", " \\Viff ", " \\Vxor ",
-	  "\\neg ", "\\forall ", "\\exists ", "\bot", "\top", "", ""};
+    "\\neg ", "\\forall ", "\\exists ", "", "\\bot", "\\top", "", ""};
 
   Connective c = f->connective();
   std::string con = names[(int)c];
