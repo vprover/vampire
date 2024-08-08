@@ -40,7 +40,7 @@ namespace LASCA {
 // • s1σ /⪯ tσ
 // • s1 is not a variable
 // • s2 is not a variable
-Option<Clause*> SuperpositionConf::applyRule(
+Option<Clause*> SuperpositionConf::applyRule_(
     Lhs const& lhs, unsigned lhsVarBank,
     Rhs const& rhs, unsigned rhsVarBank,
     AbstractingUnifier& uwa

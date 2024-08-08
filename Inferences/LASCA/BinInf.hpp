@@ -106,10 +106,11 @@ public:
         auto& sigma = rhs_sigma.unifier;
         DEBUG(1, "  rhs: ", rhs)
         auto res = _rule.applyRule(lhs, QUERY_BANK, rhs, RESULT_BANK, *sigma);
-        DEBUG(1, "")
-        if (res.isSome()) {
-          out.push(res.unwrap());
+        for (Clause* res : iterTraits(_rule.applyRule(lhs, QUERY_BANK, rhs, RESULT_BANK, *sigma))) {
+          DEBUG(1, "    result: ", *res)
+          out.push(res);
         }
+        DEBUG(1, "")
       }
     }
 
@@ -120,11 +121,11 @@ public:
         auto& sigma = lhs_sigma.unifier;
         if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop
           DEBUG(1, "  lhs: ", lhs)
-          auto res = _rule.applyRule(lhs, RESULT_BANK, rhs, QUERY_BANK, *sigma);
-          DEBUG(1, "")
-          if (res.isSome()) {
-            out.push(res.unwrap());
+          for (Clause* res : iterTraits(_rule.applyRule(lhs, RESULT_BANK, rhs, QUERY_BANK, *sigma))) {
+            DEBUG(1, "    result: ", *res)
+            out.push(res);
           }
+          DEBUG(1, "")
         }
       }
     }

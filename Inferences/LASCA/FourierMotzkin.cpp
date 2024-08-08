@@ -23,36 +23,7 @@ namespace Inferences {
 namespace LASCA {
 
 
-// Fourier Motzkin normal:
-//
-// C₁ \/ +j s₁ + t₁ >₁ 0         C₂ \/ -k s₂ + t₂ >₂ 0 
-// --------------------------------------------------
-//           (C₁ \/ C₂ \/ k t₁ + j t₂ > 0)σ \/ Cnst
-//
-// where 
-// • (σ, Cnst) = uwa(s₁, s₂)
-// • (+j s₁ + t₁ >₁ 0)σ /⪯ C₁σ
-// • (-k s₂ + t₂ >₂ 0)σ /≺ C₂σ
-// • s₁σ /⪯ t₁σ 
-// • s₂σ /⪯ t₂σ 
-// • s₁, s₂ are not variables
-// • {>} ⊆ {>₁,>₂} ⊆ {>,≥}
-//
-// Fourier Motzkin tight:
-//
-// C₁ \/ +j s₁ + t₁ ≥ 0                 C₂ \/ -k s₂ + t₂ ≥ 0 
-// --------------------------------------------------------
-// (C₁ \/ C₂ \/ k t₁ + j t₂ > 0 \/ -k s₂ + t₂ ≈ 0)σ \/ Cnst
-//
-// where 
-// • (σ, Cnst) = uwa(s₁, s₂)
-// • (+j s₁ + t₁ >₁ 0)σ /⪯ C₁σ
-// • (-k s₂ + t₂ >₂ 0)σ /≺ C₂σ
-// • s₁σ /⪯ t₁σ 
-// • s₂σ /⪯ t₂σ 
-// • s₁, s₂ are not variables
-//
-Option<Clause*> FourierMotzkinConf::applyRule(
+Option<Clause*> FourierMotzkinConf::applyRule_(
     Lhs const& lhs, unsigned lhsVarBank,
     Rhs const& rhs, unsigned rhsVarBank,
     AbstractingUnifier& uwa

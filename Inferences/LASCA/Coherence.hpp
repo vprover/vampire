@@ -42,6 +42,7 @@ public:
   struct Lhs
   {
     LASCA::SuperpositionConf::Lhs _self;
+    Perfect<Polynom<NumTraits>> smallerSide;
     TermList _summand;
 
     static const char* name() { return "lasca coherence lhs"; }
@@ -55,19 +56,17 @@ public:
       return iterTraits(LASCA::Superposition::Lhs::iter(shared, cl))
         .filterMap([&shared](auto lhs) { return NumTraits::ifFloor(lhs.key(), 
               [&shared, lhs](auto...) { 
-                auto ts = shared.normalize(lhs.smallerSide())
+                auto smallerSide = shared.normalize(lhs.smallerSide())
                         .template wrapPoly<NumTraits>();
-                // TODO we can choose *any* summand for the rule to work. which summand is important though as it is our primary filter to preselect the number of potential applications in indexing. Try out which terms are good here!!!
-                auto atoms = ts->iterSummands()
+                auto atoms = smallerSide->iterSummands()
                   .map([](auto m) { return m.factors->denormalize(); })
                   .filter([](auto f) { return !f.isVar(); });
+                // TODO we can choose *any* summand for the rule to work. which summand is important though as it is our primary filter to preselect the number of potential applications in indexing. Try out which terms are good here!!!
                 auto selectedAtom = atoms.tryNext();
-                return selectedAtom.map([lhs](auto t) { return Lhs { lhs, t }; });
+                return selectedAtom.map([=](auto t) { return Lhs { lhs, smallerSide, t }; });
               }).flatten(); 
             });
     }
-
-      
 
     friend std::ostream& operator<<(std::ostream& out, Lhs const& self)
     { return out << self._self << "[" << self._summand << "]"; }
@@ -80,6 +79,7 @@ public:
   struct Rhs 
   {
     LASCA::Superposition::Rhs _self;
+    Perfect<Polynom<NumTraits>> polynom;
     Monom<NumTraits> _summand;
 
     static const char* name() { return "lasca coherence rhs"; }
@@ -91,11 +91,11 @@ public:
     {
       return iterTraits(LASCA::Superposition::Rhs::iter(shared, cl))
         .filterMap([&shared](auto rhs) { return NumTraits::ifFloor(rhs.key(), 
-              [&shared, rhs](auto t) { return 
-                shared.normalize(t).template wrapPoly<NumTraits>()
-                      ->iterSummands()
-                      .map([rhs](auto& m) { return Rhs{rhs, m}; })
-              ; }); 
+              [&shared, rhs](auto t) { 
+                auto polynom = shared.normalize(t).template wrapPoly<NumTraits>();
+                return polynom->iterSummands()
+                      .map([=](auto& m) { return Rhs{ rhs, polynom, m}; }); 
+              }); 
             })
         .flatten();
     }
@@ -109,16 +109,35 @@ public:
     IMPL_COMPARISONS_FROM_TUPLE(Rhs)
   };
 
+  // Option<AbstractingUnifier> matchSubSum() {
+  // }
+  //
 
-  Option<Clause*> applyRule(
+  auto applyRule(
       Lhs const& lhs, unsigned lhsVarBank,
       Rhs const& rhs, unsigned rhsVarBank,
       AbstractingUnifier& uwa
       ) const 
   {
-    DBG(lhs)
-    DBG(rhs)
+    DBG("isInt: ", lhs.smallerSide)
+    DBG("floor term: ", rhs.polynom)
+    TermSubstitutionTree<TermWithValue<unsigned>> tree; 
+    for (auto m : rhs.polynom->iterSummands().zipWithIndex()) {
+      auto atom = m.first.factors->denormalize();
+      auto index = m.second;
+      tree.insert(TermWithValue<unsigned>(TypedTermList(atom, NumTraits::sort()), index));
+    }
+    DBGE(multiline(tree));
+    // auto σ_opt = matchSubSum(lhs.smallerSide, rhs.polynom);
+    // if (!σ_opt) {
+    //   return {};
+    // }
+    // auto σ = σ_opt;
+
+    DBGE(lhs)
+    DBGE(rhs)
     ASSERTION_VIOLATION
+    return VirtualIterator<Clause*>::getEmpty();
   }
 };
 

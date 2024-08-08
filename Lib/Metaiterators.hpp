@@ -1687,7 +1687,7 @@ public:
   { return map([other = std::move(other)](Elem x) mutable { return std::make_pair(std::move(x), other.next()); }); }
 
   auto zipWithIndex()
-  { return map([idx = 0](Elem x) mutable { return make_pair(std::move(x), idx++); }); }
+  { return map([idx = 0](Elem x) mutable { return std::make_pair(std::move(x), idx++); }); }
 
   auto reverse() &&
   { return iterTraits(std::move(_iter).reverse()); }
