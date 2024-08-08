@@ -60,10 +60,17 @@ using namespace Indexing;
 
 using LiteralSet = SharedSet<Literal*>;
 
-struct ConditionalRedundancyEntry {
-  Term* lhs;
-  Term* rhs;
+struct OrderingConstraint {
+  OrderingConstraint(TermList lhs, TermList rhs) : lhs(lhs), rhs(rhs), comp() {}
+  TermList lhs;
+  TermList rhs;
   OrderingComparatorUP comp;
+};
+
+using OrderingConstraints = Stack<OrderingConstraint>;
+
+struct ConditionalRedundancyEntry {
+  OrderingConstraints ordCons;
   const LiteralSet* lits;
   SplitSet* splits;
   bool active = true;
