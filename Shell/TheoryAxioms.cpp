@@ -379,21 +379,22 @@ void _addLascaAxioms(IntTraits num, Problem& prb)
 struct Shell::LascaAxioms {
 
 
-#define AXIOM_CONTEXT                                                                     \
-  auto x = TermList::var(0);                                                              \
-  auto y = TermList::var(1);                                                              \
-  auto z = TermList::var(2);                                                              \
-  auto addAx = [&](std::initializer_list<Literal*> clause) {                              \
-    ax.addTheoryClauseFromLits(clause,                                                    \
-        InferenceRule::THA_LASCA, TheoryAxioms::EXPENSIVE);                               \
-  };                                                                                      \
-  auto add = [&](auto l, auto r) -> TermList { return num.add(l,r); };                    \
-  auto mul = [&](auto l, auto r) -> TermList { return num.mul(l,r); };                    \
-  auto numeral = [&](auto x) -> TermList { return num.constantTl(x); };                        \
-  auto greater = [&](TermList x) { return num.greater(true, x, numeral(0)); };     \
-  auto geq     = [&](TermList x) { return num.geq    (true, x, numeral(0)); };     \
-  auto minus   = [&](auto x) -> TermList { return num.minus(x); };                        \
-  auto floor   = [&](auto x) -> TermList { return num.floor(x); };                        \
+#define AXIOM_CONTEXT __ALLOW_UNUSED(                                                     \
+    auto x = TermList::var(0);                                                            \
+    auto y = TermList::var(1);                                                            \
+    auto z = TermList::var(2);                                                            \
+    auto addAx = [&](std::initializer_list<Literal*> clause) {                            \
+      ax.addTheoryClauseFromLits(clause,                                                  \
+          InferenceRule::THA_LASCA, TheoryAxioms::EXPENSIVE);                             \
+    };                                                                                    \
+    auto add = [&](auto l, auto r) -> TermList { return num.add(l,r); };                  \
+    auto mul = [&](auto l, auto r) -> TermList { return num.mul(l,r); };                  \
+    auto numeral = [&](auto x) -> TermList { return num.constantTl(x); };                 \
+    auto greater = [&](TermList x) { return num.greater(true, x, numeral(0)); };          \
+    auto geq     = [&](TermList x) { return num.geq    (true, x, numeral(0)); };          \
+    auto minus   = [&](auto x) -> TermList { return num.minus(x); };                      \
+    auto floor   = [&](auto x) -> TermList { return num.floor(x); };                      \
+  )
    
  
   template<class NumTraits>
@@ -456,7 +457,11 @@ struct Shell::LascaAxioms {
     if (Shell::Getter::isNonLinear(*prop, num)) {
       addNonLinearAxioms(num, prb, ax);
     }
-    maybeAddFloorAxioms(num,prb,ax);
+    if (false) {
+      // we aren't adding the floor axioms as we got rules for that
+      // TODO remove this dead code (?)
+      maybeAddFloorAxioms(num,prb,ax);
+    }
   }
 };
 

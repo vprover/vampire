@@ -861,6 +861,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "lasca inequality literal factoring";
   case InferenceRule::LASCA_EQ_FACTORING:
     return "lasca equality factoring";
+  case InferenceRule::LASCA_AXIOM_RULE:
+    return "lasca axiom simulation";
   case InferenceRule::LASCA_TERM_FACTORING:
     return "lasca term factoring";
   case InferenceRule::LASCA_FOURIER_MOTZKIN:

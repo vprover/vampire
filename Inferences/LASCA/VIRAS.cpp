@@ -75,10 +75,6 @@ void traverseLiraVars(TermList self, F f) {
 
 SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierElimination::generateSimplify(Clause* premise) {
   DEBUG(0, *premise)
-  if (premise->isPureTheoryDescendant()) {
-    // TODO this is a hack, and we need to get rid of it. Ask joe
-    return ClauseGenerationResult::nothing();
-  }
   using NumTraits = RealTraits;
   auto viras = viras::viras(VampireVirasConfig{});
   Recycled<DHSet<unsigned>> shieldedVars;

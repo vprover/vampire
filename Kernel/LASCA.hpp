@@ -378,6 +378,12 @@ namespace Kernel {
     Literal* literal() const { return (*cl)[litIdx]; }
     Clause* clause() const { return cl; }
 
+    Option<LascaPredicate> lascaPredicate() const {
+      return interpreted.map([](auto& x) {
+          return x.apply([](auto& x){ return x.symbol(); });
+      });
+    }
+
 
     auto contextLiterals() const
     { return range(0, clause()->size())
@@ -465,6 +471,24 @@ namespace Kernel {
                 .map([&](unsigned i) { return lit.term().summandAt(i); });
     }
 
+
+    // TODO use this everywhere possible
+    TermList notSelectedTerm(LascaLiteral<IntTraits> const& lit) const { ASSERTION_VIOLATION }
+
+    template<class NumTraits>
+    TermList notSelectedTerm(LascaLiteral<NumTraits> const& lit) const { 
+      return TermList(NumTraits::sum(range(0, lit.term().nSummands()) 
+                .filter([&](unsigned i) { return i != _term; })
+                .map([&](unsigned i) { return lit.term().summandAt(i) / numeral<NumTraits>().abs(); })
+                .map([&](auto t) { return t.denormalize(); })
+            ));
+    }
+
+    // TODO use this everywhere possible
+    auto notSelectedTerm() const 
+    { return ircLiteral()
+        .apply([this](auto& x) { return notSelectedTerm(x); }); }
+
     bool isInequality() const
     { return ircLiteral().apply([](auto& lit)
                                { return lit.isInequality(); }); }
@@ -473,12 +497,17 @@ namespace Kernel {
     { return ircLiteral().apply([](auto& lit)
                                { return lit.isIsInt(); }); }
 
+          // TODO deprecate
     auto monom() const 
     { return ircLiteral()
           .apply([this](auto& lit) 
               { return lit.term().summandAt(_term).factors->denormalize(); }); }
 
+          // TODO deprecate
     TermList selectedAtom() const
+    { return monom(); }
+
+    TermList selectedTerm() const
     { return monom(); }
 
     auto sign() const 
@@ -546,6 +575,9 @@ namespace Kernel {
       ASS(!_inner.unwrap<0>().isInequality()) 
       ASS(_inner.unwrap<0>().numTraits().apply([](auto x) { return x.isFractional(); }))
     }
+
+    TermList selectedTerm() const
+    { return biggerSide(); }
 
 
     explicit SelectedEquality(SelectedIntegerEquality s) 

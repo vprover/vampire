@@ -322,6 +322,7 @@ enum class InferenceRule : unsigned char {
   LASCA_INEQUALITY_STRENGTHENING,
   /* factoring rules of the Inequality Resolution Calculs */
   LASCA_TERM_FACTORING,
+  LASCA_AXIOM_RULE,
   LASCA_EQ_FACTORING,
   LASCA_LITERAL_FACTORING,
   LASCA_IS_INT_FACTORING,

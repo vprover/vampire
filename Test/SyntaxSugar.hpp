@@ -44,25 +44,8 @@
 #define __CONSTANT_TYPE_INT  IntegerConstantType
 #define __CONSTANT_TYPE_REAL RealConstantType
 #define __CONSTANT_TYPE_RAT  RationalConstantType
-#if defined(__clang__)
-#  define __ALLOW_UNUSED(...)                                                             \
-    _Pragma("GCC diagnostic push")                                                        \
-    _Pragma("GCC diagnostic ignored \"-Wunused\"")                                        \
-    __VA_ARGS__                                                                           \
-    _Pragma("GCC diagnostic pop")                                                         \
 
-#elif defined(__GNUC__) || defined(__GNUG__)
 
-#  define __ALLOW_UNUSED(...)                                                             \
-    _Pragma("GCC diagnostic push")                                                        \
-    _Pragma("GCC diagnostic ignored \"-Wunused-but-set-variable\"")                       \
-    __VA_ARGS__                                                                           \
-    _Pragma("GCC diagnostic pop")                                                         \
-
-#else
-#  define __ALLOW_UNUSED(...) __VA_ARGS__             
-#endif
- 
 #define __ARGS_DECL(Type, arity) __ARGS_DECL_ ## arity(Type)
 #define __ARGS_DECL_1(Type) Type arg0_ 
 #define __ARGS_DECL_2(Type) Type arg0_ , Type arg1_ 

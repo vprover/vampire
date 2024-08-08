@@ -1453,7 +1453,7 @@ template<class... Args>
 static auto ifElseIter(Args&&... args) 
 { return __ifElseIter(makeLazy(std::forward<Args>(args))...); }
 
-#define ifElseIter2(i0, t0, e) ifElseIter2(LAZY(i0), LAZY(t0), LAZY(e))
+#define ifElseIter2(i0, t0, e) ifElseIter(LAZY(i0), LAZY(t0), LAZY(e))
 #define ifElseIter3(i0, t0, i1, t1, e) ifElseIter(LAZY(i0), LAZY(t0), LAZY(i1), LAZY(t1), LAZY(e))
 #define ifElseIter4(i0, t0, i1, t1, i2, t2, e) ifElseIter(LAZY(i0), LAZY(t0), LAZY(i1), LAZY(t1), LAZY(i2), LAZY(t2), LAZY(e))
 
