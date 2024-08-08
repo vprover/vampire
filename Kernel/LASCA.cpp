@@ -19,7 +19,7 @@
 
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
-#define DEBUG_TRANSLATION(...) DBG(__VA_ARGS__)
+#define DEBUG_TRANSLATION(...) // DBG(__VA_ARGS__)
 namespace Kernel {
 using Inferences::PolynomialEvaluation;
 
