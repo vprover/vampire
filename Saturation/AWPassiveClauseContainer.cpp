@@ -76,7 +76,7 @@ AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell
 AWPassiveClauseContainer::~AWPassiveClauseContainer()
 {
   ClauseQueue::Iterator cit(_ageQueue);
-  while (cit.hasNext()) 
+  while (cit.hasNext())
   {
     Clause* cl=cit.next();
     ASS(!_isOutermost || cl->store()==Clause::PASSIVE);
@@ -285,9 +285,9 @@ Clause* AWPassiveClauseContainer::popSelected()
   _size--;
 
   Clause* cl;
-  bool selByWeight = _opt.randomAWR() ? 
+  bool selByWeight = _opt.randomAWR() ?
     // we respect the ratio, but choose probabilistically
-    (Random::getInteger(_ageRatio+_weightRatio) < _weightRatio) : 
+    (Random::getInteger(_ageRatio+_weightRatio) < _weightRatio) :
     // the deterministic way
     byWeight(_balance);
 
@@ -685,103 +685,5 @@ bool AWPassiveClauseContainer::fulfilsWeightLimit(unsigned w, unsigned numPositi
   unsigned weightForClauseSelection = Clause::computeWeightForClauseSelection(w, splitWeight, numeralWeight, derivedFromGoal, _opt);
   return weightForClauseSelection <= _weightSelectionMaxWeight || (weightForClauseSelection == _weightSelectionMaxWeight && age <= _weightSelectionMaxAge);
 }
-
-AWClauseContainer::AWClauseContainer(const Options& opt)
-: _ageQueue(opt), _weightQueue(opt), _ageRatio(1), _weightRatio(1), _balance(0), _size(0), _randomized(opt.randomAWR())
-{
-}
-
-bool AWClauseContainer::isEmpty() const
-{
-  ASS(!_ageRatio || !_weightRatio || _ageQueue.isEmpty()==_weightQueue.isEmpty());
-  return _ageQueue.isEmpty() && _weightQueue.isEmpty();
-}
-
-/**
- * Add @b c clause in the queue.
- * @since 31/12/2007 Manchester
- */
-void AWClauseContainer::add(Clause* cl)
-{
-  ASS(_ageRatio > 0 || _weightRatio > 0);
-
-  if (_ageRatio) {
-    _ageQueue.insert(cl);
-  }
-  if (_weightRatio) {
-    _weightQueue.insert(cl);
-  }
-  _size++;
-  addedEvent.fire(cl);
-}
-
-/**
- * Remove Clause from the container.
- */
-bool AWClauseContainer::remove(Clause* cl)
-{
-  bool removed;
-  if (_ageRatio) {
-    removed = _ageQueue.remove(cl);
-    if (_weightRatio) {
-      ALWAYS(_weightQueue.remove(cl)==removed);
-    }
-  }
-  else {
-    ASS(_weightRatio);
-    removed = _weightQueue.remove(cl);
-  }
-
-  if (removed) {
-    _size--;
-    removedEvent.fire(cl);
-  }
-  return removed;
-}
-
-/**
- * Return the next selected clause and remove it from the queue.
- */
-Clause* AWClauseContainer::popSelected()
-{
-  ASS( ! isEmpty());
-
-  _size--;
-
-  bool byWeight;
-  if (! _ageRatio) {
-    byWeight = true;
-  }
-  else if (! _weightRatio) {
-    byWeight = false;
-  }
-  else if (_randomized) {
-    byWeight = (Random::getInteger(_ageRatio+_weightRatio) < _weightRatio);
-  } else if (_balance > 0) {
-    byWeight = true;
-  }
-  else if (_balance < 0) {
-    byWeight = false;
-  }
-  else {
-    byWeight = (_ageRatio <= _weightRatio);
-  }
-
-  Clause* cl;
-  if (byWeight) {
-    _balance -= _ageRatio;
-    cl = _weightQueue.pop();
-    ALWAYS(_ageQueue.remove(cl));
-  }
-  else {
-    _balance += _weightRatio;
-    cl = _ageQueue.pop();
-    ALWAYS(_weightQueue.remove(cl));
-  }
-  selectedEvent.fire(cl);
-  return cl;
-}
-
-
 
 }
