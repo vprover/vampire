@@ -190,6 +190,11 @@ Index* IndexManager::create(IndexType t)
     isGenerating = true;
     break;
 
+  case LASCA_COHERENCE_LHS_SUBST_TREE:
+    res = new LascaIndex<Inferences::LASCA::Coherence<RealTraits>::Lhs>();
+    isGenerating = true;
+    break;
+
   case LASCA_COHERENCE_RHS_SUBST_TREE:
     res = new LascaIndex<Inferences::LASCA::Coherence<RealTraits>::Rhs>();
     isGenerating = true;
