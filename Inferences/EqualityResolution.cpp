@@ -116,9 +116,11 @@ struct EqualityResolution::ResultFn
       }
     }
 
-    if (_condRedHandler && !_condRedHandler->handleReductiveUnaryInference(_cl, &absUnif->subs())) {
-      env.statistics->skippedEqualityResolution++;
-      return nullptr;
+    if (!absUnif->usesUwa()) {
+      if (_condRedHandler && !_condRedHandler->handleReductiveUnaryInference(_cl, &absUnif->subs())) {
+        env.statistics->skippedEqualityResolution++;
+        return nullptr;
+      }
     }
 
     resLits->loadFromIterator(constraints->iterFifo());

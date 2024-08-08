@@ -348,8 +348,10 @@ Clause* Superposition::performSuperposition(
   }
 
   const auto& condRedHandler = _salg->condRedHandler();
-  if (!condRedHandler.checkSuperposition(eqClause, eqLit, rwClause, rwLit, eqIsResult, subst.ptr())) {
-    return 0;
+  if (!unifier->usesUwa()) {
+    if (!condRedHandler.checkSuperposition(eqClause, eqLit, rwClause, rwLit, eqIsResult, subst.ptr())) {
+      return 0;
+    }
   }
 
   const Ordering& ordering = _salg->getOrdering();
@@ -383,8 +385,10 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-  condRedHandler.insertSuperposition(
-    eqClause, rwClause, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr());
+  if (!unifier->usesUwa()) {
+    condRedHandler.insertSuperposition(
+      eqClause, rwClause, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr());
+  }
 
   Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);
 

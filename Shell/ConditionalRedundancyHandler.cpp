@@ -26,6 +26,27 @@ using namespace Indexing;
 namespace Shell
 {
 
+template<class T>
+bool checkVars(const TermStack& ts, T s)
+{
+  DHSet<TermList> vars;
+  for (const auto& t : ts) {
+    VariableIterator vit(t);
+    while (vit.hasNext()) {
+      vars.insert(vit.next());
+    }
+  }
+
+  VariableIterator vit(s);
+  while (vit.hasNext()) {
+    auto var = vit.next();
+    if (!vars.contains(var)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 class ConditionalRedundancyHandler::ConstraintIndex
   : public CodeTree
 {
@@ -196,11 +217,19 @@ private:
 
     for (auto& ordCon : ordCons) {
       ASS(!ordCon.comp);
+      ASS(checkVars(ts,ordCon.lhs));
+      ASS(checkVars(ts,ordCon.rhs));
       ASS(ordCon.lhs.containsAllVariablesOf(ordCon.rhs));
       ordCon.lhs = r.apply(ordCon.lhs);
       ordCon.rhs = r.apply(ordCon.rhs);
     }
     e->ordCons = std::move(ordCons);
+
+#if VDEBUG
+    lits->iter().forEach([&ts](Literal* lit) {
+      ASS(checkVars(ts,lit));
+    });
+#endif
   
     e->lits = LiteralSet::getFromIterator(lits->iter().map([&r](Literal* lit) {
       return r.apply(lit);
@@ -442,8 +471,8 @@ void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuper
     if (eqClause->numSelected()!=1) {
       return;
     }
-    lits = LiteralSet::getFromIterator(eqClause->iterLits().filter([eqLit](Literal* lit) {
-      return lit != eqLit && eqLit->containsAllVariablesOf(lit);
+    lits = LiteralSet::getFromIterator(eqClause->iterLits().filter([eqLit,eqLHS](Literal* lit) {
+      return lit != eqLit && eqLHS.containsAllVariablesOf(TermList(lit));
     }).map([subs,eqIsResult](Literal* lit) {
       return subs->applyTo(lit,eqIsResult);
     }));

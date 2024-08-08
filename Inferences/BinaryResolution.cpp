@@ -218,8 +218,10 @@ Clause* BinaryResolution::generateClause(
     }
   }
 
-  if (!_salg->condRedHandler().handleResolution(queryCl, queryLit, resultCl, resultLit, subs.ptr())) {
-    return 0;
+  if (!absUnif->usesUwa()) {
+    if (!_salg->condRedHandler().handleResolution(queryCl, queryLit, resultCl, resultLit, subs.ptr())) {
+      return 0;
+    }
   }
 
    if (bothHaveAnsLit) {
