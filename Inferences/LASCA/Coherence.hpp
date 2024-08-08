@@ -114,7 +114,10 @@ public:
       Lhs const& lhs, unsigned lhsVarBank,
       Rhs const& rhs, unsigned rhsVarBank,
       AbstractingUnifier& uwa
-      ) const {
+      ) const 
+  {
+    DBG(lhs)
+    DBG(rhs)
     ASSERTION_VIOLATION
   }
 };
