@@ -35,11 +35,12 @@ using namespace Indexing;
 using namespace Saturation;
 
 template<class Rule>
-class BinInf
+struct BinInf
 : public GeneratingInferenceEngine
 {
   using Lhs = typename Rule::Lhs;
   using Rhs = typename Rule::Rhs;
+private:
   std::shared_ptr<LascaState> _shared;
   Rule _rule;
   LascaIndex<Lhs>* _lhs;

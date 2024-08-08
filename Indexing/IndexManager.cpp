@@ -32,6 +32,7 @@
 #include "Inferences/LASCA/FourierMotzkin.hpp"
 #include "Inferences/LASCA/InequalityStrengthening.hpp"
 #include "Inferences/LASCA/Superposition.hpp"
+#include "Inferences/LASCA/Coherence.hpp"
 
 #include "Shell/Statistics.hpp"
 
@@ -186,6 +187,11 @@ Index* IndexManager::create(IndexType t)
 
   case LASCA_SUPERPOSITION_RHS_SUBST_TREE:
     res = new LascaIndex<Inferences::LASCA::Superposition::Rhs>();
+    isGenerating = true;
+    break;
+
+  case LASCA_COHERENCE_RHS_SUBST_TREE:
+    res = new LascaIndex<Inferences::LASCA::Coherence<RealTraits>::Rhs>();
     isGenerating = true;
     break;
 

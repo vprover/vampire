@@ -22,84 +22,6 @@
 namespace Inferences {
 namespace LASCA {
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// INDEXING STUFF
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void FourierMotzkin::attach(SaturationAlgorithm* salg) 
-{
-  GeneratingInferenceEngine::attach(salg);
-
-  ASS(!_lhsIndex);
-  ASS(!_rhsIndex);
-
-  _lhsIndex = static_cast<decltype(_lhsIndex)>(_salg->getIndexManager()->request(LASCA_FOURIER_MOTZKIN_LHS_SUBST_TREE));
-  _rhsIndex = static_cast<decltype(_rhsIndex)>(_salg->getIndexManager()->request(LASCA_FOURIER_MOTZKIN_RHS_SUBST_TREE));
-  _rhsIndex->setShared(_shared);
-  _lhsIndex->setShared(_shared);
-}
-
-void FourierMotzkin::detach() 
-{
-  ASS(_salg);
-  GeneratingInferenceEngine::detach();
-
-  // _index=0;
-  // _salg->getIndexManager()->release(LASCA_INEQUALITY_RESOLUTION_SUBST_TREE);
-}
-
-#if VDEBUG
-void FourierMotzkin::setTestIndices(Stack<Indexing::Index*> const& indices)
-{
-  _lhsIndex = (decltype(_lhsIndex)) indices[0]; 
-  _rhsIndex = (decltype(_rhsIndex)) indices[1]; 
-  _lhsIndex->setShared(_shared);
-  _rhsIndex->setShared(_shared);
-}
-#endif
-
-using Lhs = FourierMotzkin::Lhs;
-using Rhs = FourierMotzkin::Rhs;
-
-ClauseIterator FourierMotzkin::generateClauses(Clause* premise) 
-{
-  // TODO refactor so this function is not copied and pasted among all unifying lasca rules
-  ASS(_lhsIndex)
-  ASS(_rhsIndex)
-  ASS(_shared)
-  Stack<Clause*> out;
-
-  for (auto const& lhs : Lhs::iter(*_shared, premise)) {
-    DEBUG_FM(1, "lhs: ", lhs)
-    for (auto rhs_sigma : _rhsIndex->find(lhs.key())) {
-      auto& rhs   = *rhs_sigma.data;
-      auto& sigma = rhs_sigma.unifier;
-      DEBUG_FM(1, "  rhs: ", rhs)
-      auto res = applyRule(lhs, 0, rhs, 1, *sigma);
-      if (res.isSome()) {
-        out.push(res.unwrap());
-      }
-    }
-  }
-
-  for (auto const& rhs : Rhs::iter(*_shared, premise)) {
-    DEBUG_FM(1, "rhs: ", rhs)
-
-    for (auto lhs_sigma : _lhsIndex->find(rhs.key())) {
-      auto& lhs   = *lhs_sigma.data;
-      auto& sigma = lhs_sigma.unifier;
-      if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop
-        DEBUG_FM(1, "  lhs: ", lhs)
-        auto res = applyRule(lhs, 1, rhs, 0, *sigma);
-        if (res.isSome()) {
-          out.push(res.unwrap());
-        }
-      }
-    }
-  }
-
-  return pvi(arrayIter(std::move(out)));
-}
 
 // Fourier Motzkin normal:
 //
@@ -130,7 +52,7 @@ ClauseIterator FourierMotzkin::generateClauses(Clause* premise)
 // • s₂σ /⪯ t₂σ 
 // • s₁, s₂ are not variables
 //
-Option<Clause*> FourierMotzkin::applyRule(
+Option<Clause*> FourierMotzkinConf::applyRule(
     Lhs const& lhs, unsigned lhsVarBank,
     Rhs const& rhs, unsigned rhsVarBank,
     AbstractingUnifier& uwa

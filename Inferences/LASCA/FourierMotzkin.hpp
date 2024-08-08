@@ -18,9 +18,11 @@
 
 #include "Forwards.hpp"
 
+#include "Indexing/IndexManager.hpp"
 #include "Inferences/InferenceEngine.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Indexing/LascaIndex.hpp"
+#include "BinInf.hpp"
 #include "Shell/Options.hpp"
 
 namespace Inferences {
@@ -30,22 +32,17 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-class FourierMotzkin
-: public GeneratingInferenceEngine
+struct FourierMotzkinConf
 {
-public:
-  USE_ALLOCATOR(FourierMotzkin);
-
-  FourierMotzkin(FourierMotzkin&&) = default;
-  FourierMotzkin(std::shared_ptr<LascaState> shared) 
+  FourierMotzkinConf(std::shared_ptr<LascaState> shared) 
     : _shared(std::move(shared))
-    , _lhsIndex()
-    , _rhsIndex()
   {  }
 
   class Lhs : public SelectedSummand { 
   public: 
     static const char* name() { return "lasca fourier motzkin lhs"; }
+    static IndexType indexType() { return Indexing::LASCA_FOURIER_MOTZKIN_LHS_SUBST_TREE; }
+
     explicit Lhs(Lhs const&) = default;
     Lhs(SelectedSummand s) : SelectedSummand(std::move(s)) {} 
     Lhs(Lhs&&) = default;
@@ -65,6 +62,7 @@ public:
   class Rhs : public SelectedSummand { 
   public: 
     static const char* name() { return "lasca fourier motzkin rhs"; }
+    static IndexType indexType() { return Indexing::LASCA_FOURIER_MOTZKIN_RHS_SUBST_TREE; }
 
     explicit Rhs(Rhs const&) = default;
     Rhs(SelectedSummand s) : SelectedSummand(std::move(s)) {} 
@@ -82,27 +80,18 @@ public:
               .map([&]   (auto selected)        { return Rhs(std::move(selected));     }); }
   };
 
-  void attach(SaturationAlgorithm* salg) final override;
-  void detach() final override;
-
-  ClauseIterator generateClauses(Clause* premise) final override;
-
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const&) final override;
-#endif
-    
-private:
   Option<Clause*> applyRule(
       Lhs const& lhs, unsigned lhsVarBank,
       Rhs const& rhs, unsigned rhsVarBank,
       AbstractingUnifier& uwa
       ) const;
 
-  template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit, LascaLiteral<NumTraits> l1, Monom<NumTraits> j_s1) const;
-
   std::shared_ptr<LascaState> _shared;
-  LascaIndex<Lhs>* _lhsIndex;
-  LascaIndex<Rhs>* _rhsIndex;
+};
+
+struct FourierMotzkin : public BinInf<FourierMotzkinConf>  {
+  FourierMotzkin(std::shared_ptr<LascaState> state) 
+    : BinInf<FourierMotzkinConf>(state, FourierMotzkinConf(state)) {}
 };
 
 } // namespace LASCA 

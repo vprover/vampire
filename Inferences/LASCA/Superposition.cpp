@@ -28,45 +28,6 @@
 namespace Inferences {
 namespace LASCA {
 
-void Superposition::attach(SaturationAlgorithm* salg) 
-{ 
-  ASS(!_rhs);
-  ASS(!_lhs);
-
-  GeneratingInferenceEngine::attach(salg);
-
-  _lhs=static_cast<decltype(_lhs)> (_salg->getIndexManager()
-      ->request(LASCA_SUPERPOSITION_LHS_SUBST_TREE) );
-  _lhs->setShared(_shared);
-
-  _rhs=static_cast<decltype(_rhs)>(_salg->getIndexManager()
-      ->request(LASCA_SUPERPOSITION_RHS_SUBST_TREE));
-  _rhs->setShared(_shared);
-
-}
-
-void Superposition::detach() 
-{
-  ASS(_salg);
-
-  _lhs=0;
-  _salg->getIndexManager()->release(LASCA_SUPERPOSITION_LHS_SUBST_TREE);
-  _rhs=0;
-  _salg->getIndexManager()->release(LASCA_SUPERPOSITION_RHS_SUBST_TREE);
-  GeneratingInferenceEngine::detach();
-}
-  
-
-#if VDEBUG
-void Superposition::setTestIndices(Stack<Indexing::Index*> const& indices) 
-{
-  _lhs = (decltype(_lhs)) indices[0]; 
-  _lhs->setShared(_shared);
-  _rhs = (decltype(_rhs)) indices[1]; 
-  _rhs->setShared(_shared);
-}
-#endif
-
 // C1 \/ s1 ≈ t             C2 \/ L[s2]
 // ====================================
 //   (C1 \/ C2 \/ L[t])σ \/ Cnst
@@ -79,7 +40,7 @@ void Superposition::setTestIndices(Stack<Indexing::Index*> const& indices)
 // • s1σ /⪯ tσ
 // • s1 is not a variable
 // • s2 is not a variable
-Option<Clause*> Superposition::applyRule(
+Option<Clause*> SuperpositionConf::applyRule(
     Lhs const& lhs, unsigned lhsVarBank,
     Rhs const& rhs, unsigned rhsVarBank,
     AbstractingUnifier& uwa
@@ -192,47 +153,6 @@ Option<Clause*> Superposition::applyRule(
   auto out = Clause::fromStack(concl, inf);
   DEBUG(1, "out: ", *out);
   return Option<Clause*>(out);
-}
-
-
-ClauseIterator Superposition::generateClauses(Clause* premise) 
-{
-  ASS(_lhs)
-  ASS(_rhs)
-  ASS(_shared)
-  // TODO get rid of stack and unify with FourierMotzkin
-  Stack<Clause*> out;
-
-  for (auto const& lhs : Lhs::iter(*_shared, premise)) {
-    DEBUG(1, "lhs: ", lhs)
-    for (auto rhs_sigma : _rhs->find(lhs.key())) {
-      auto& rhs   = *rhs_sigma.data;
-      auto& sigma = rhs_sigma.unifier;
-      DEBUG(1, "  rhs: ", rhs)
-      auto res = applyRule(lhs, QUERY_BANK, rhs, RESULT_BANK, *sigma);
-      DEBUG(1, "")
-      if (res.isSome()) {
-        out.push(res.unwrap());
-      }
-    }
-  }
-
-  for (auto const& rhs : Rhs::iter(*_shared, premise)) {
-    DEBUG(1, "rhs: ", rhs)
-    for (auto lhs_sigma : _lhs->find(rhs.key())) {
-      auto& lhs   = *lhs_sigma.data;
-      auto& sigma = lhs_sigma.unifier;
-      if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop
-        DEBUG(1, "  lhs: ", lhs)
-        auto res = applyRule(lhs, RESULT_BANK, rhs, QUERY_BANK, *sigma);
-        DEBUG(1, "")
-        if (res.isSome()) {
-          out.push(res.unwrap());
-        }
-      }
-    }
-  }
-  return pvi(arrayIter(std::move(out)));
 }
 
 // TODO move to appropriate place

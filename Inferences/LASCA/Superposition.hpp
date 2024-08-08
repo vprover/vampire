@@ -23,6 +23,7 @@
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Indexing/LascaIndex.hpp"
+#include "BinInf.hpp"
 #include "Shell/Options.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
@@ -34,33 +35,14 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-class Superposition
-: public GeneratingInferenceEngine
+struct SuperpositionConf
 {
-public:
-  USE_ALLOCATOR(Superposition);
+  std::shared_ptr<LascaState> _shared;
   // TODO make option and test and double check
   bool _simultaneousSuperposition = true;
 
-  Superposition(Superposition&&) = default;
-  Superposition(std::shared_ptr<LascaState> shared) 
-    : _shared(std::move(shared))
-    , _lhs(nullptr)
-    , _rhs(nullptr)
-  {  }
+  SuperpositionConf(std::shared_ptr<LascaState> shared) : _shared(shared) {  }
 
-  void attach(SaturationAlgorithm* salg) final override;
-  void detach() final override;
-
-
-  ClauseIterator generateClauses(Clause* premise) final override;
-
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const&) final override;
-#endif
-
-
-public:
   struct Lhs : public SelectedEquality
   {
     static const char* name() { return "lasca superposition lhs"; }
@@ -168,23 +150,17 @@ public:
   };
 
 
-private:
-
-
   Option<Clause*> applyRule(
       Lhs const& lhs, unsigned lhsVarBank,
       Rhs const& rhs, unsigned rhsVarBank,
       AbstractingUnifier& uwa
       ) const;
+};
 
-
-
-  friend class LascaSuperpositionLhsIndex;
-  friend class LascaSuperpositionRhsIndex;
-
-  std::shared_ptr<LascaState> _shared;
-  LascaIndex<Lhs>* _lhs;
-  LascaIndex<Rhs>* _rhs;
+struct Superposition 
+: public BinInf<SuperpositionConf> 
+{
+  Superposition(std::shared_ptr<LascaState> shared) : BinInf<SuperpositionConf>(shared, SuperpositionConf(shared)) {}
 };
 
 class InequalityTautologyDetection

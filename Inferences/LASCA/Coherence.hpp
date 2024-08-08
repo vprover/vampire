@@ -68,6 +68,9 @@ public:
 
     friend std::ostream& operator<<(std::ostream& out, Rhs const& self)
     { return out << self._self << "[" << self._summand << "]"; }
+
+    auto asTuple() const { return std::tie(_self, _summand); }
+    IMPL_COMPARISONS_FROM_TUPLE(Rhs)
   };
 
 
