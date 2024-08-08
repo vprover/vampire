@@ -26,7 +26,6 @@
 #include "Lib/Timer.hpp"
 #include "Lib/List.hpp"
 #include "Lib/System.hpp"
-#include "Lib/Metaiterators.hpp"
 #include "Lib/StringUtils.hpp"
 #include "Lib/Sys/Multiprocessing.hpp"
 #include "Lib/Int.hpp"
@@ -358,10 +357,6 @@ void spiderMode(Problem* problem)
   env.options->setBadOptionChoice(Options::BadOption::HARD);
   env.options->setOutputMode(Options::Output::SPIDER);
   env.options->setNormalize(true);
-  // to start counting instructions
-#if VAMPIRE_PERF_EXISTS
-  Timer::ensureTimerInitialized();
-#endif
 
   Exception* exception = 0;
 #if VZ3
@@ -670,7 +665,7 @@ void interactiveMetamode()
       pid_t process = Lib::Sys::Multiprocessing::instance()->fork();
       ASS_NEQ(process, -1);
       if(process == 0) {
-        Timer::instance()->start(); // start our timer (in the child)
+        Timer::reinitialise(); // start our timer (in the child)
         UIHelper::unsetExpecting(); // probably garbage at this point
 
         Stack<std::string> pieces;
@@ -770,7 +765,8 @@ int main(int argc, char* argv[])
     if (opts.interactive()) {
       interactiveMetamode();
     } else {
-      Timer::instance()->start(); // start our timer, so that we also limit parsing
+      // can only happen after reading options as it relies on `env.options`
+      Timer::reinitialise(); // start our timer, so that we also limit parsing
 
 #if VAMPIRE_PERF_EXISTS
       unsigned saveInstrLimit = env.options->instructionLimit();

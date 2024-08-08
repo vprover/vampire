@@ -13,20 +13,15 @@
  */
 
 #include <cerrno>
-
-#include "Lib/Portability.hpp"
-
 #include <csignal>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
-#include "Lib/Environment.hpp"
-#include "Lib/List.hpp"
-#include "Lib/Timer.hpp"
+#include "Debug/TimeProfiling.hpp"
+#include "Lib/Exception.hpp"
 
 #include "Multiprocessing.hpp"
-#include "Debug/TimeProfiling.hpp"
 
 namespace Lib
 {
@@ -39,55 +34,12 @@ Multiprocessing* Multiprocessing::instance()
   return &inst;
 }
 
-Multiprocessing::Multiprocessing()
-: _preFork(0), _postForkParent(0), _postForkChild(0)
-{
-
-}
-
-Multiprocessing::~Multiprocessing()
-{
-  VoidFuncList::destroy(_preFork);
-  VoidFuncList::destroy(_postForkParent);
-  VoidFuncList::destroy(_postForkChild);
-}
-
-void Multiprocessing::registerForkHandlers(VoidFunc before, VoidFunc afterParent, VoidFunc afterChild)
-{
-  if(before) {
-    VoidFuncList::push(before, _preFork);
-  }
-  if(afterParent) {
-    VoidFuncList::push(afterParent, _postForkParent);
-  }
-  if(afterChild) {
-    VoidFuncList::push(afterChild, _postForkChild);
-  }
-}
-
-void Multiprocessing::executeFuncList(VoidFuncList* lst)
-{
-  VoidFuncList::Iterator fit(lst);
-  while(fit.hasNext()) {
-    VoidFunc func=fit.next();
-    func();
-  }
-}
-
-
 pid_t Multiprocessing::fork()
 {
-  executeFuncList(_preFork);
   errno=0;
   pid_t res=::fork();
   if(res==-1) {
     SYSTEM_FAIL("Call to fork() function failed.", errno);
-  }
-  if(res==0) {
-    executeFuncList(_postForkChild);
-  }
-  else {
-    executeFuncList(_postForkParent);
   }
   return res;
 }

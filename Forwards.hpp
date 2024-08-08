@@ -20,7 +20,6 @@
 namespace Lib
 {
 struct EmptyStruct {};
-typedef void (*VoidFunc)();
 
 template<typename T> class VirtualIterator;
 
@@ -37,7 +36,6 @@ template<typename T> class SharedSet;
 
 typedef List<int> IntList;
 typedef Stack<std::string> StringStack;
-typedef List<VoidFunc> VoidFuncList;
 
 class DefaultHash;
 class DefaultHash2;
@@ -47,8 +45,6 @@ template <typename Key, typename Val, class Hash1=DefaultHash, class Hash2=Defau
 template <typename Val, class Hash1=DefaultHash, class Hash2=DefaultHash2> class DHSet;
 template <typename Val, class Hash1=DefaultHash, class Hash2=DefaultHash2> class DHMultiset;
 template <typename Val, class Hash=DefaultHash> class Set;
-
-class Timer;
 };
 
 namespace Kernel

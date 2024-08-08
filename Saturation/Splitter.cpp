@@ -1082,9 +1082,9 @@ bool Splitter::doSplitting(Clause* cl)
   if (synthesis && (cl->hasAnswerLiteral() || !cl->computable())) {
     return false;
   }
-  if ((_stopSplittingAtTime && (unsigned)env.timer->elapsedMilliseconds() >= _stopSplittingAtTime)
+  if ((_stopSplittingAtTime && (unsigned)Timer::elapsedMilliseconds() >= _stopSplittingAtTime)
 #if VAMPIRE_PERF_EXISTS
-    || (_stopSplittingAtInst && env.timer->elapsedMegaInstructions() >= _stopSplittingAtInst)
+    || (_stopSplittingAtInst && Timer::elapsedMegaInstructions() >= _stopSplittingAtInst)
 #endif
     ) {
     if (_showSplitting) {

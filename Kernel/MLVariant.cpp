@@ -410,8 +410,6 @@ bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, LiteralList** a
   md->nextAlts[0]=0;
   unsigned currBLit=0;
 
-  int counter=0;
-
   while(true) {
     MatchingData::InitResult ires=md->ensureInit(currBLit);
     if(ires!=MatchingData::OK) {
@@ -447,14 +445,6 @@ bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, LiteralList** a
     } else {
       if(currBLit==0) { return false; }
       currBLit--;
-    }
-
-    counter++;
-    if(counter==50000) {
-      counter=0;
-      if(env.timeLimitReached()) {
-        throw TimeLimitExceededException();
-      }
     }
   }
   return true;

@@ -20,7 +20,6 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
-#include "Lib/Timer.hpp"
 #include "Lib/Random.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"

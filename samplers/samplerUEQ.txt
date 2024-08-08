@@ -49,6 +49,10 @@ ss!=off > st ~cat -1.0:50,1.0:150,1.5:37,2.0:60,2.5:20,3.0:70,3.5:15,4.0:60,4.5:
 # saturation_algorithms
 > sa     ~cat lrs:600,discount:572,otter:236
 
+# lrs_first_time_check
+> $lftc ~cat N:5,Y:1
+sa=lrs $lftc=Y > lftc ~ui 5,95
+
 # literal selection
 > s ~cat 10:1
 

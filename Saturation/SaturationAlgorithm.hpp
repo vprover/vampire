@@ -156,7 +156,6 @@ protected:
   /** called before the selected clause is deleted from the searchspace */
   virtual void beforeSelectedRemoved(Clause* cl) {};
   void onAllProcessed();
-  int elapsedTime();
   virtual bool isComplete();
 
 private:
@@ -177,10 +176,7 @@ private:
   static SaturationAlgorithm* s_instance;
 protected:
 
-  int _startTime;
-  int _startInstrs;
-
-  bool _completeOptionSettings;  
+  bool _completeOptionSettings;
   bool _clauseActivationInProgress;
 
   RCClauseStack _newClauses;

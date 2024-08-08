@@ -33,8 +33,6 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "Minisat/mtl/IntTypes.h"
 #include "Minisat/mtl/XAlloc.h"
 
-#include "Lib/Timer.hpp"
-
 namespace Minisat {
 
 //=================================================================================================
