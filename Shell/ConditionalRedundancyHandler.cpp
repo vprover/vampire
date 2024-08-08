@@ -51,13 +51,15 @@ public:
     return !check(ts, ord, lits, splits);
   }
 
-  void insert(ResultSubstitution* subst, bool result, const LiteralSet* lits, SplitSet* splits, Splitter* splitter, Term* lhs=nullptr, Term* rhs=nullptr)
+  void insert(ResultSubstitution* subst, bool result, Splitter* splitter,
+    OrderingConstraints&& ordCons, const LiteralSet* lits, SplitSet* splits)
   {
     auto ts = getInstances([subst,result](unsigned v) { return subst->applyTo(TermList::var(v),result); });
-    insert(ts, createEntry(ts, lhs, rhs, lits, splits, splitter));
+    insert(ts, createEntry(ts, splitter, std::move(ordCons), lits, splits));
   }
 
-  bool checkAndInsert(const Ordering* ord, ResultSubstitution* subst, bool result, bool doInsert, const LiteralSet* lits, const SplitSet* splits, Splitter* splitter, Term* lhs=nullptr, Term* rhs=nullptr)
+  bool checkAndInsert(const Ordering* ord, ResultSubstitution* subst, bool result, bool doInsert, Splitter* splitter,
+    OrderingConstraints&& ordCons, const LiteralSet* lits, const SplitSet* splits)
   {
     ASS(lits);
     // TODO if this correct if we allow non-unit simplifications?
@@ -69,7 +71,7 @@ public:
       return false;
     }
     if (doInsert) {
-      insert(ts, createEntry(ts, lhs, rhs, lits, splits, splitter));
+      insert(ts, createEntry(ts, splitter, std::move(ordCons), lits, splits));
     }
     return true;
   }
@@ -142,14 +144,15 @@ private:
       }
 
       // check ordering constraints
-      if (e->lhs) {
-        if (!ord || !ord->isGreater(TermList(e->lhs),TermList(e->rhs),&applicator,e->comp)) {
-          continue;
-        }
+      auto ordCons_ok = iterTraits(e->ordCons.iter()).all([ord,&applicator](auto& ordCon) {
+        return ord->isGreater(ordCon.lhs, ordCon.rhs, &applicator, ordCon.comp);
+      });
+      if (!ordCons_ok) {
+        continue;
       }
 
       // collect statistics
-      if (e->lhs) {
+      if (e->ordCons.isNonEmpty()) {
         env.statistics->skippedInferencesDueToOrderingConstraints++;
       }
       if (!e->lits->isEmpty()) {
@@ -179,11 +182,11 @@ private:
 
   DHMap<unsigned,TermList> _varSorts;
 
-  ConditionalRedundancyEntry* createEntry(const TermStack& ts, Term* lhs, Term* rhs, const LiteralSet* lits, SplitSet* splits, Splitter* splitter) const
+  ConditionalRedundancyEntry* createEntry(const TermStack& ts, Splitter* splitter, OrderingConstraints&& ordCons, const LiteralSet* lits, SplitSet* splits) const
   {
     auto e = new ConditionalRedundancyEntry();
     Renaming r;
-    if (lhs || !lits->isEmpty()) {
+    if (ordCons.isNonEmpty() || !lits->isEmpty()) {
       // normalize constraints, the same way as
       // terms from ts are normalized upon insertion
       for (const auto t : ts) {
@@ -191,10 +194,13 @@ private:
       }
     }
 
-    ASS_EQ(!lhs,!rhs); // we are interested in the "null-ptrness"
-    ASS(!lhs || lhs->containsAllVariablesOf(rhs));
-    e->lhs = lhs ? r.apply(lhs) : nullptr;
-    e->rhs = lhs ? r.apply(rhs) : nullptr;
+    for (auto& ordCon : ordCons) {
+      ASS(!ordCon.comp);
+      ASS(ordCon.lhs.containsAllVariablesOf(ordCon.rhs));
+      ordCon.lhs = r.apply(ordCon.lhs);
+      ordCon.rhs = r.apply(ordCon.rhs);
+    }
+    e->ordCons = std::move(ordCons);
   
     e->lits = LiteralSet::getFromIterator(lits->iter().map([&r](Literal* lit) {
       return r.apply(lit);
@@ -308,7 +314,7 @@ void ConditionalRedundancyHandler::checkEquations(Clause* cl) const
     }
     auto clDataPtr = getDataPtr(cl, /*doAllocate=*/true);
     auto rsubs = ResultSubstitution::fromSubstitution(&subs, 0, 0);
-    (*clDataPtr)->insert(rsubs.ptr(), /*result*/false, LiteralSet::getEmpty(), SplitSet::getEmpty(), /*splitter*/nullptr);
+    (*clDataPtr)->insert(rsubs.ptr(), /*result*/false, /*splitter*/nullptr, OrderingConstraints(), LiteralSet::getEmpty(), SplitSet::getEmpty());
   });
 }
 
@@ -409,23 +415,20 @@ void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuper
       (rwClause->length()==1 && _demodulationHelper.isPremiseRedundant(rwClause, rwLitS, rwTermS, tgtTermS, eqLHS, &appl, otherComp)));
 
   // create ordering constraints
-  Term* ordLhs = nullptr;
-  Term* ordRhs = nullptr;
+  OrderingConstraints ordCons;
   if constexpr (ordC) {
     // TODO we cannot handle them together yet
     if (eqComp != Ordering::LESS) {
       if (!redundancyCheck || !rwTermS.containsAllVariablesOf(tgtTermS)) {
         return;
       }
-      ordLhs = rwTermS.term();
-      ordRhs = tgtTermS.term();
+      ordCons.push(OrderingConstraint(rwTermS, tgtTermS));
     } else if (!redundancyCheck) {
       TermList other = EqHelper::getOtherEqualitySide(rwLitS, rwTermS);
-      if (otherComp != Ordering::INCOMPARABLE || !other.containsAllVariablesOf(tgtTermS) || !other.isTerm()) {
+      if (otherComp != Ordering::INCOMPARABLE || !other.containsAllVariablesOf(tgtTermS)) {
         return;
       }
-      ordLhs = other.term();
-      ordRhs = tgtTermS.term();
+      ordCons.push(OrderingConstraint(other, tgtTermS));
     }
   } else {
     if (eqComp != Ordering::LESS || !redundancyCheck) {
@@ -464,7 +467,7 @@ void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuper
   }
 
   auto rwClDataPtr = getDataPtr(rwClause, /*doAllocate=*/true);
-  (*rwClDataPtr)->insert(subs, !eqIsResult, lits, splits, _splitter, ordLhs, ordRhs);
+  (*rwClDataPtr)->insert(subs, !eqIsResult, _splitter, std::move(ordCons), lits, splits);
 }
 
 template<bool enabled, bool ordC, bool avatarC, bool litC>
@@ -507,7 +510,9 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::handleResol
     }
 
     auto dataPtr = getDataPtr(queryCl, /*doAllocate=*/doInsert);
-    if (dataPtr && !(*dataPtr)->checkAndInsert(_ord, subs, /*result*/false, doInsert, lits, splits, _splitter)) {
+    if (dataPtr && !(*dataPtr)->checkAndInsert(
+      _ord, subs, /*result*/false, doInsert, _splitter, OrderingConstraints(), lits, splits))
+    {
       env.statistics->skippedResolution++;
       return false;
     }
@@ -543,7 +548,9 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::handleResol
     }
 
     auto dataPtr = getDataPtr(resultCl, /*doAllocate=*/doInsert);
-    if (dataPtr && !(*dataPtr)->checkAndInsert(_ord, subs, /*result*/true, doInsert, lits, splits, _splitter)) {
+    if (dataPtr && !(*dataPtr)->checkAndInsert(
+      _ord, subs, /*result*/true, doInsert, _splitter, OrderingConstraints(), lits, splits))
+    {
       env.statistics->skippedResolution++;
       return false;
     }
@@ -562,7 +569,9 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::handleReduc
   auto subst = ResultSubstitution::fromSubstitution(subs, 0, 0);
   auto lits = LiteralSet::getEmpty();
   auto splits = SplitSet::getEmpty();
-  if (!(*dataPtr)->checkAndInsert(_ord, subst.ptr(), /*result*/false, /*doInsert=*/true, lits, splits, _splitter)) {
+  if (!(*dataPtr)->checkAndInsert(
+    _ord, subst.ptr(), /*result*/false, /*doInsert=*/true, _splitter, OrderingConstraints(), lits, splits))
+  {
     return false;
   }
   return true;
