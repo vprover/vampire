@@ -53,6 +53,7 @@
 #include "Inferences/LASCA/EqFactoring.hpp"
 #include "Inferences/LASCA/InequalityFactoring.hpp"
 #include "Inferences/LASCA/Superposition.hpp"
+#include "Inferences/LASCA/Coherence.hpp"
 #include "Inferences/LASCA/Axioms.hpp"
 #include "Inferences/LASCA/VariableElimination.hpp"
 #include "Inferences/LASCA/FwdDemodulation.hpp"
@@ -1657,6 +1658,8 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     sgi->push(new LASCA::EqFactoring(shared)); 
     sgi->push(new LASCA::FourierMotzkin(shared)); 
     sgi->push(new LASCA::Superposition(shared)); 
+    // TODO also for rationals?
+    sgi->push(new LASCA::Coherence<RealTraits>(shared)); 
     sgi->push(new LASCA::AxiomRule(shared)); 
   }
 
