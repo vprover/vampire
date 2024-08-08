@@ -31,6 +31,9 @@ public:
   static bool isPositiveDecimal(std::string str);
   static void replaceAll(std::string& where, const std::string& from, const std::string& to);
 
+  static bool starts_with(const std::string& str, const std::string& what) {
+    return str.rfind(what,0) == 0;
+  }
   static void splitStr(const char* str, char delimiter, Stack<std::string>& strings);
   static void dropEmpty(Stack<std::string>& strings);
   static bool readEquality(const char* str, char eqChar, std::string& lhs, std::string& rhs);

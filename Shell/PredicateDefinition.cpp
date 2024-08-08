@@ -225,7 +225,7 @@ void PredicateDefinition::eliminatePredicateDefinition(unsigned pred, ReplMap& r
     repl = makeImplFromDef(def, pred, fwd);
 
     if(!repl) {
-      //the definition formula was simplified by other transformation to the      
+      //the definition formula was simplified by other transformation to the
       //point it is no longer definition that can be eliminated
       if (env.options->showPreprocessing()) {
         std::cout << "[PP] Formula " << (*def)

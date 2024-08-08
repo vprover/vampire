@@ -35,10 +35,9 @@ class FunctionRelationshipInference {
 
 public:
 
-void findFunctionRelationships(ClauseIterator clauses, 
-                               Stack<DHSet<unsigned>*>& eq_classes, 
+void findFunctionRelationships(ClauseIterator clauses,
                                DHSet<std::pair<unsigned,unsigned>>& nonstrict_cons,
-                               DHSet<std::pair<unsigned,unsigned>>& strict_cons); 
+                               DHSet<std::pair<unsigned,unsigned>>& strict_cons);
 
 private:
 

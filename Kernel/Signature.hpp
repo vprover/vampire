@@ -991,7 +991,7 @@ private:
    * If the term algebra is polymorphic, it contains the general type, ctors, dtors, etc.
    * For a term algebra instance, this map gives the general term algebra based on the top-level
    * functor of its sort, the ctors and dtors still have to be instantiated to the right instances.
-   */ 
+   */
   DHMap<unsigned, Shell::TermAlgebra*> _termAlgebras;
 
   //TODO Why are these here? They are not used anywhere. AYB

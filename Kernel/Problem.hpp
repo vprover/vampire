@@ -191,7 +191,7 @@ private:
   UnitList* _units;
   DHMap<unsigned,Literal*> _deletedFunctions;
   DHMap<unsigned,Unit*> _deletedPredicates;
-  DHMap<unsigned,Unit*> _partiallyDeletedPredicates; 
+  DHMap<unsigned,Unit*> _partiallyDeletedPredicates;
   ScopedPtr<FunctionDefinitionHandler> _fnDefHandler;
 
   bool _hadIncompleteTransformation;

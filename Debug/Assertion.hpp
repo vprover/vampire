@@ -164,6 +164,7 @@ template <typename T>
   catch (Exception& e) { e.cry(std::cout); ASSERTION_VIOLATION } \
   catch (...)          {                   ASSERTION_VIOLATION } \
 
+#define RELEASE_CODE(X) {}
 #define DEBUG_CODE(X) X
 #define ALWAYS(Cond) ASS(Cond)
 #define NEVER(Cond) ASS(!(Cond))
@@ -192,6 +193,7 @@ template <typename T>
   }
 #endif
 
+#define RELEASE_CODE(X) X
 #define DEBUG_CODE(X) {}
 
 #define ASS(Cond)  {}

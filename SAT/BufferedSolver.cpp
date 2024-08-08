@@ -22,7 +22,7 @@ namespace SAT
 {
 
 BufferedSolver::BufferedSolver(SATSolver* inner)
- : _inner(inner), _checkedIdx(0), _lastStatus(SATISFIABLE), _varCnt(0), _varCntInnerOld(0)
+ : _inner(inner), _checkedIdx(0), _lastStatus(Status::SATISFIABLE), _varCnt(0), _varCntInnerOld(0)
 {
 }
 /**
@@ -116,11 +116,11 @@ SATSolver::Status BufferedSolver::solve(unsigned conflictCountLimit)
   // it needs _inner to have either a model or to be provably unsat
   ASS_EQ(conflictCountLimit, UINT_MAX);
   
-  if (_lastStatus == UNSATISFIABLE) {
-    return UNSATISFIABLE;
+  if (_lastStatus == Status::UNSATISFIABLE) {
+    return Status::UNSATISFIABLE;
   }
   
-  ASS_EQ(_lastStatus,SATISFIABLE);
+  ASS_EQ(_lastStatus,Status::SATISFIABLE);
   
   // check if clauses are implied by current ground model and buffered literals
   size_t sz = _unadded.size();
@@ -134,7 +134,7 @@ SATSolver::Status BufferedSolver::solve(unsigned conflictCountLimit)
   }
 
   RSTAT_CTR_INC("solver_buffer_hit");
-  return SATSolver::SATISFIABLE;
+  return Status::SATISFIABLE;
 }
 
 /**
@@ -149,14 +149,14 @@ SATSolver::VarAssignment BufferedSolver::getAssignment(unsigned var)
 
   // check buffer
   if(!_literalBuffer.isEmpty() && _literalBuffer.find(var)) {
-    return _literalBuffer.get(var) ? SATSolver::TRUE : SATSolver::FALSE;
+    return _literalBuffer.get(var) ? VarAssignment::TRUE : VarAssignment::FALSE;
   }
 
   // refer to inner if variable not new
   if (var <= _varCntInnerOld) {
     return _inner->getAssignment(var); 
   } else {
-    return SATSolver::DONT_CARE; // If it is new and not yet assigned in buffer
+    return VarAssignment::DONT_CARE; // If it is new and not yet assigned in buffer
   }
 }
 

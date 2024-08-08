@@ -109,7 +109,7 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoresForAssumpt
   _hasSeenArrays(false),
   _varCnt(0),
   _sat2fo(s2f),
-  _status(SATISFIABLE),
+  _status(Status::SATISFIABLE),
   _config(),
   _context(_config),
   _solver(_context),
@@ -282,15 +282,15 @@ SATSolver::Status Z3Interfacing::solve()
 
   switch (result) {
     case z3::check_result::unsat:
-      _status = UNSATISFIABLE;
+      _status = Status::UNSATISFIABLE;
       break;
     case z3::check_result::sat:
-      _status = SATISFIABLE;
+      _status = Status::SATISFIABLE;
       _model = _solver.get_model();
       outputln("(get-model)");
       break;
     case z3::check_result::unknown:
-      _status = UNKNOWN;
+      _status = Status::UNKNOWN;
       break;
     default: ASSERTION_VIOLATION;
   }
@@ -316,22 +316,22 @@ SATSolver::Status Z3Interfacing::solveUnderAssumptions(const SATLiteralStack& as
 
 SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
 {
-  ASS_EQ(_status,SATISFIABLE);
+  ASS_EQ(_status,Status::SATISFIABLE);
   bool named = isNamedExpr(var);
   z3::expr rep = named ? getNameExpr(var) : getRepresentation(SATLiteral(var,1)).expr;
   outputln("(get-value (", rep, "))");
   z3::expr assignment = _model.eval(rep, true /*model_completion*/);
 
   if(assignment.bool_value()==Z3_L_TRUE){
-    return TRUE;
+    return VarAssignment::TRUE;
   } else if(assignment.bool_value()==Z3_L_FALSE){
-    return FALSE;
+    return VarAssignment::FALSE;
   } else {
 #if VDEBUG
     std::cout << rep << std::endl;
     ASSERTION_VIOLATION_REP(assignment);
 #endif
-    return NOT_KNOWN;
+    return VarAssignment::NOT_KNOWN;
   }
 }
 

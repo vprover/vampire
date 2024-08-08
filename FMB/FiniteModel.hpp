@@ -58,7 +58,7 @@ public:
 
 private:
 
- Formula* partialEvaluate(Formula* formula);
+ Formula* partialEvaluate(Formula* formula,unsigned depth);
  // currently private as requires formula to be rectified
  bool evaluate(Formula* formula,unsigned depth=0);
 
@@ -82,6 +82,8 @@ public:
    if(_domainConstants.find(c,t)) return t;
    std::string name = "domainConstant";//+Lib::Int::toString(c);
    unsigned f = env.signature->addFreshFunction(0,name.c_str()); 
+   Signature::Symbol* fSym = env.signature->getFunction(f);
+   fSym->setType(OperatorType::getConstantsType(AtomicSort::defaultSort()));
    t = Term::createConstant(f);
    _domainConstants.insert(c,t);
    _domainConstantsRev.insert(t,c);

@@ -77,9 +77,9 @@ SATSolver::VarAssignment MinimizingSolver::getAssignment(unsigned var)
   }
 
   if(admitsDontcare(var)) {
-    return SATSolver::DONT_CARE;
+    return VarAssignment::DONT_CARE;
   }
-  return _asgn[var] ? SATSolver::TRUE : SATSolver::FALSE;
+  return _asgn[var] ? VarAssignment::TRUE : VarAssignment::FALSE;
 }
 
 bool MinimizingSolver::isZeroImplied(unsigned var)
@@ -87,7 +87,7 @@ bool MinimizingSolver::isZeroImplied(unsigned var)
   ASS_G(var,0); ASS_LE(var,_varCnt);
 
   bool res = _inner->isZeroImplied(var);
-  ASS(!res || getAssignment(var)!=DONT_CARE); //zero-implied variables will not become a don't care
+  ASS(!res || getAssignment(var)!=VarAssignment::DONT_CARE); //zero-implied variables will not become a don't care
   return res;
 }
 
@@ -184,18 +184,18 @@ void MinimizingSolver::processInnerAssignmentChanges()
     VarAssignment va = _inner->getAssignment(v);
     bool changed;
     switch(va) {
-    case DONT_CARE:
+    case VarAssignment::DONT_CARE:
       changed = false;
       break;
-    case TRUE:
+    case VarAssignment::TRUE:
       changed = !_asgn[v];
       _asgn[v] = true;
       break;
-    case FALSE:
+    case VarAssignment::FALSE:
       changed = _asgn[v];
       _asgn[v] = false;
       break;
-    case NOT_KNOWN:
+    case VarAssignment::NOT_KNOWN:
     default:
       ASSERTION_VIOLATION;
       break;
