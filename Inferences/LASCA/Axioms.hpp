@@ -144,7 +144,7 @@ class AxiomRule
   auto generateClauses(Clause* premise) const {
     return iterTraits(RuleKind::iter(*_shared, premise))
       .filter([](auto x) { return NumTraits::ifFloor(x.selectedTerm(), [](auto...) { return true; }); })
-      .flatMap([this](auto x) { return generateClauses(x); });
+      .flatMap([this](auto x) { return this->generateClauses(x); });
   }
 
 public:
