@@ -1730,13 +1730,35 @@ void Options::init()
     _equationalTautologyRemoval.onlyUsefulWith(ProperSaturationAlgorithm());
     _equationalTautologyRemoval.tag(OptionTag::INFERENCES);
 
-    _instanceRedundancyCheck = ChoiceOptionValue<InstanceRedundancyCheck>("instance_redundancy_check","irc",
-      InstanceRedundancyCheck::OFF,{"lazy","eager","off"});
-    _instanceRedundancyCheck.description=
-    "Skip generating inferences on clause instances on which we already performed a reductive inference.";
-    _lookup.insert(&_instanceRedundancyCheck);
-    _instanceRedundancyCheck.onlyUsefulWith(ProperSaturationAlgorithm());
-    _instanceRedundancyCheck.tag(OptionTag::INFERENCES);
+    _conditionalRedundancyCheck = BoolOptionValue("conditional_redundancy_check","crc",false);
+    _conditionalRedundancyCheck.description=
+      "Skip generating inferences on clause instances on which we already performed a simplifying inference.";
+    _lookup.insert(&_conditionalRedundancyCheck);
+    _conditionalRedundancyCheck.onlyUsefulWith(ProperSaturationAlgorithm());
+    _conditionalRedundancyCheck.onlyUsefulWith(_unificationWithAbstraction.is(equal(UnificationWithAbstraction::OFF)));
+    _conditionalRedundancyCheck.tag(OptionTag::INFERENCES);
+
+    _conditionalRedundancyOrderingConstraints = BoolOptionValue("conditional_redundancy_ordering_constraints","croc",false);
+    _conditionalRedundancyOrderingConstraints.description=
+      "Strengthen conditional redundancy with ordering constraints.";
+    _lookup.insert(&_conditionalRedundancyOrderingConstraints);
+    _conditionalRedundancyOrderingConstraints.onlyUsefulWith(_conditionalRedundancyCheck.is(equal(true)));
+    _conditionalRedundancyOrderingConstraints.tag(OptionTag::INFERENCES);
+
+    _conditionalRedundancyAvatarConstraints = BoolOptionValue("conditional_redundancy_avatar_constraints","crac",false);
+    _conditionalRedundancyAvatarConstraints.description=
+      "Strengthen conditional redundancy with AVATAR constraints.";
+    _lookup.insert(&_conditionalRedundancyAvatarConstraints);
+    _conditionalRedundancyAvatarConstraints.onlyUsefulWith(_conditionalRedundancyCheck.is(equal(true)));
+    _conditionalRedundancyAvatarConstraints.onlyUsefulWith(_splitting.is(equal(true)));
+    _conditionalRedundancyAvatarConstraints.tag(OptionTag::INFERENCES);
+
+    _conditionalRedundancyLiteralConstraints = BoolOptionValue("conditional_redundancy_literal_constraints","crlc",false);
+    _conditionalRedundancyLiteralConstraints.description=
+      "Strengthen conditional redundancy with literals from clauses.";
+    _lookup.insert(&_conditionalRedundancyLiteralConstraints);
+    _conditionalRedundancyLiteralConstraints.onlyUsefulWith(_conditionalRedundancyCheck.is(equal(true)));
+    _conditionalRedundancyLiteralConstraints.tag(OptionTag::INFERENCES);
 
     _unitResultingResolution = ChoiceOptionValue<URResolution>("unit_resulting_resolution","urr",URResolution::OFF,{"ec_only","off","on","full"});
     _unitResultingResolution.description=
@@ -3514,9 +3536,6 @@ bool Options::complete(const Problem& prb) const
     return false;
   }
   if (!_superpositionFromVariables.actualValue) {
-    return false;
-  }
-  if (_instanceRedundancyCheck.actualValue == InstanceRedundancyCheck::EAGER) {
     return false;
   }
 

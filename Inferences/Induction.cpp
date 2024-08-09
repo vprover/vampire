@@ -1038,17 +1038,14 @@ Clause* resolveClausesHelper(const InductionContext& context, const Stack<Clause
   RobSubstitution renaming;
   ASS(eIt.hasNext());
   auto cl = cls[eIt.next()];
-  DEBUG_CODE(unsigned newLength = cl->length());
   auto premises = UnitList::singleton(cl);
   const auto& toResolve = context._cls;
   while (eIt.hasNext()) {
     auto other = cls[eIt.next()];
-    ASS_EQ(other->length(),newLength);
     UnitList::push(other,premises);
   }
 
   for (const auto& kv : toResolve) {
-    // newLength += kv.first->length() - kv.second.size() - 1; // MS: unused
     UnitList::push(kv.first, premises);
   }
 

@@ -30,6 +30,7 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#include "Shell/ConditionalRedundancyHandler.hpp"
 #include "Shell/Statistics.hpp"
 
 #include "Factoring.hpp"
@@ -101,8 +102,8 @@ private:
 class Factoring::ResultsFn
 {
 public:
-  ResultsFn(Clause* cl, bool afterCheck, Ordering& ord)
-  : _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ord(ord) {}
+  ResultsFn(Clause* cl, bool afterCheck, const ConditionalRedundancyHandler& condRedHandler, Ordering& ord)
+  : _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _condRedHandler(condRedHandler), _ord(ord) {}
   Clause* operator() (pair<Literal*,RobSubstitution*> arg)
   {
     RStack<Literal*> resLits;
@@ -134,6 +135,11 @@ public:
       }
     }
 
+    if (!_condRedHandler.handleReductiveUnaryInference(_cl, arg.second)) {
+      env.statistics->skippedFactoring++;
+      return nullptr;
+    }
+
     env.statistics->factoring++;
     return Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::FACTORING,_cl));
   }
@@ -142,6 +148,7 @@ private:
   ///length of the premise clause
   unsigned _cLen;
   bool _afterCheck;
+  const ConditionalRedundancyHandler& _condRedHandler;
   Ordering& _ord;
 };
 
@@ -175,7 +182,8 @@ ClauseIterator Factoring::generateClauses(Clause* premise)
   auto it2 = getMapAndFlattenIterator(it1,UnificationsOnPositiveFn(premise,_salg->getLiteralSelector()));
 
   auto it3 = getMappingIterator(it2,ResultsFn(premise,
-      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),_salg->getOrdering()));
+      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
+      _salg->condRedHandler(), _salg->getOrdering()));
 
   auto it4 = getFilteredIterator(it3, NonzeroFn());
 

@@ -107,6 +107,7 @@ public:
   IndexManager* getIndexManager() { return _imgr.ptr(); }
   Ordering& getOrdering() const {  return *_ordering; }
   LiteralSelector& getLiteralSelector() const { return *_selector; }
+  const ConditionalRedundancyHandler& condRedHandler() const { return *_conditionalRedundancyHandler; }
 
   /** Return the number of clauses that entered the passive container */
   unsigned getGeneratedClauseCount() { return _generatedClauseCount; }
@@ -218,6 +219,7 @@ protected:
   AnswerLiteralManager* _answerLiteralManager;
   Instantiation* _instantiation;
   FunctionDefinitionHandler& _fnDefHandler;
+  std::unique_ptr<ConditionalRedundancyHandler> _conditionalRedundancyHandler;
 
   SubscriptionData _passiveContRemovalSData;
   SubscriptionData _activeContRemovalSData;
