@@ -325,7 +325,8 @@ void SaturationAlgorithm::tryUpdateFinalClauseCount()
  */
 bool SaturationAlgorithm::isComplete()
 {
-  return _completeOptionSettings && !env.statistics->inferencesSkippedDueToColors;
+  return _completeOptionSettings && !env.statistics->inferencesSkippedDueToColors
+        && !env.statistics->discardedNonRedundantClauses; // this covers removals from LRS!
 }
 
 ClauseIterator SaturationAlgorithm::activeClauses()
