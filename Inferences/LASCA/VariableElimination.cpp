@@ -72,7 +72,6 @@ Option<VariableElimination::AnyFoundVariable> VariableElimination::findUnshielde
                                          })
                                        .template unwrap<FoundVariable<NumTraits>>();
               auto entry = FoundVarInLiteral<NumTraits>(i, k, lit);
-              ASS_REP(!lit.isIsInt(), "TODO: develop theory and come up with rule");
               switch(lit.symbol()) {
               case LascaPredicate:: EQ: found. eq.push(std::move(entry)); break;
               case LascaPredicate::NEQ: found.neq.push(std::move(entry)); break;
@@ -82,6 +81,10 @@ Option<VariableElimination::AnyFoundVariable> VariableElimination::findUnshielde
                  else if (k.isNegative()) found.negIneq.push(std::move(entry));
                  else { ASSERTION_VIOLATION_REP(*premise) }
                  break;
+                 // TODO remove
+              case LascaPredicate::IS_INT_NEG:
+              case LascaPredicate::IS_INT_POS:
+                 ASSERTION_VIOLATION_REP("the isInt predicate is legacy code. we use the floor function now instead. this code should be removed in the future")
               }
             }
           } else {

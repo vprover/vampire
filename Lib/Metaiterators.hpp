@@ -484,6 +484,80 @@ private:
   Inner _inner;
 };
 
+template<typename Iter>
+class IterTraits;
+
+template<typename Iter>
+IterTraits<Iter> iterTraits(Iter);
+
+template<typename Iter, typename Functor>
+class FlatMapStarIterTryNext
+{
+public:
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Iter));
+  DEFAULT_CONSTRUCTORS(FlatMapStarIterTryNext)
+
+  explicit FlatMapStarIterTryNext(Iter iter, Functor func)
+    : _func(std::move(func))
+    , _iter(std::move(iter)) {}
+
+  inline Option<OWN_ELEMENT_TYPE> tryNext() { 
+    auto tryNext = [&]() -> Option<OWN_ELEMENT_TYPE> { 
+      if(_iters->size() == 0) return _iter.tryNext();
+      else return _iters->top().tryNext(); };
+
+    auto out = tryNext();
+    while (out.isNone() && _iters->size() != 0) {
+      _iters->pop();
+      out = tryNext();
+    }
+    if (out) {
+      _iters->push(iterTraits(_func(*out)));
+    }
+    return out;
+  }
+
+private:
+  static_assert(std::is_same_v<ELEMENT_TYPE(Iter), ELEMENT_TYPE(std::invoke_result_t<Functor, ELEMENT_TYPE(Iter)>)>);
+  RStack<IterTraits<std::invoke_result_t<Functor, OWN_ELEMENT_TYPE>>> _iters;
+  Functor _func;
+  IterTraits<Iter> _iter;
+};
+
+template<typename I, typename F>
+FlatMapStarIterTryNext<I, F> flatMapStarIterTryNext(I iter, F func)
+{ return FlatMapStarIterTryNext<I, F>(std::move(iter), std::move(func)); }
+
+
+template<typename Iter>
+class IterFromTryNext
+{
+public:
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Iter));
+  DEFAULT_CONSTRUCTORS(IterFromTryNext)
+  IterFromTryNext(Iter iter)
+    : _iter(std::move(iter)) {}
+
+
+  bool hasNext() {
+    if (!_nextCached) { _nextCached = some(_iter.tryNext()); }
+    return _nextCached->isSome();
+  }
+
+  OWN_ELEMENT_TYPE next() {
+    if (!_nextCached) { _nextCached = some(_iter.tryNext()); }
+    return _nextCached.take()->unwrap();
+  }
+
+private:
+  Iter _iter;
+  Option<Option<OWN_ELEMENT_TYPE>> _nextCached;
+};
+
+template<typename Iter>
+IterFromTryNext<Iter> iterFromTryNext(Iter iter)
+{ return IterFromTryNext<Iter>(std::move(iter)); }
+
 
 /**
  * Return iterator that returns elements of @b it transformed by
@@ -1595,6 +1669,10 @@ public:
   template<class F>
   IterTraits<FlatMapIter<Iter, F>> flatMap(F f)
   { return iterTraits(getFlattenedIterator(getMappingIterator(std::move(_iter), std::move(f)))); }
+
+  template<class F>
+  auto flatMapStar(F f)
+  { return iterTraits(iterFromTryNext(flatMapStarIterTryNext(std::move(_iter), std::move(f)))); }
 
   auto flatten()
   { return iterTraits(getFlattenedIterator(std::move(_iter))); }

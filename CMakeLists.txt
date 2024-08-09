@@ -756,6 +756,7 @@ set(UNIT_TESTS
     UnitTests/tLASCA_IsIntFactoring.cpp
     UnitTests/tLASCA_Normalization.cpp
     UnitTests/tLASCA_Superposition.cpp
+    UnitTests/tLASCA_Coherence.cpp
     UnitTests/tLASCA_EqFactoring.cpp
     UnitTests/tLASCA_VariableElimination.cpp
     UnitTests/tLASCA_TermFactoring.cpp

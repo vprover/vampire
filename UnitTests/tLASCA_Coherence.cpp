@@ -1,0 +1,181 @@
+/*
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
+
+#include "Test/UnitTesting.hpp"
+#include "Test/SyntaxSugar.hpp"
+#include "Indexing/TermSharing.hpp"
+#include "Inferences/LASCA/Coherence.hpp"
+#include "Inferences/InterpretedEvaluation.hpp"
+#include "Kernel/Ordering.hpp"
+#include "Inferences/PolynomialEvaluation.hpp"
+#include "Inferences/Cancellation.hpp"
+
+#include "Test/SyntaxSugar.hpp"
+#include "Test/TestUtils.hpp"
+#include "Lib/Coproduct.hpp"
+#include "Test/SimplificationTester.hpp"
+#include "Test/GenerationTester.hpp"
+#include "Kernel/KBO.hpp"
+#include "Indexing/TermSubstitutionTree.hpp" 
+#include "Inferences/PolynomialEvaluation.hpp"
+#include "Test/LascaSimplRule.hpp"
+
+using namespace std;
+using namespace Kernel;
+using namespace Inferences;
+using namespace Test;
+using namespace Indexing;
+using namespace Inferences::LASCA;
+#define INT_TESTS 0
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////// TEST CASES 
+/////////////////////////////////////
+
+#define SUGAR(Num)                                                                        \
+  NUMBER_SUGAR(Num)                                                                       \
+                                                                                          \
+  DECL_DEFAULT_VARS                                                                       \
+                                                                                          \
+  DECL_FUNC(f, {Num}, Num)                                                                \
+  DECL_FUNC(f2, {Num,Num}, Num)                                                           \
+  DECL_FUNC(g, {Num}, Num)                                                                \
+  DECL_FUNC(h, {Num}, Num)                                                                \
+                                                                                          \
+  DECL_CONST(a, Num)                                                                      \
+  DECL_CONST(b, Num)                                                                      \
+  DECL_CONST(c, Num)                                                                      \
+                                                                                          \
+  DECL_PRED(p, {Num})                                                                     \
+  DECL_PRED(r, {Num,Num})                                                                 \
+                                                                                          \
+  auto isInteger = [&](auto t) { return t == floor(t); };                                 \
+
+
+#define MY_SYNTAX_SUGAR SUGAR(Real)
+
+#define UWA_MODE Options::UnificationWithAbstraction::LPAR_MAIN
+
+
+
+inline std::shared_ptr<LascaState> state(Options::UnificationWithAbstraction uwa) 
+{ 
+  std::shared_ptr<LascaState> out = testLascaState(uwa, /* string norm */ false, /* ord */ nullptr, /* uwaFixedPointIteration */ true); 
+  return out;
+}
+
+inline Stack<std::function<Indexing::Index*()>> lascaCoherenceIndices()
+{ return {
+    [](){ return new LascaIndex<CoherenceConf<RealTraits>::Lhs>();},
+    [](){ return new LascaIndex<CoherenceConf<RealTraits>::Rhs>();},
+  }; }
+
+inline Coherence<RealTraits> testCoherence(Options::UnificationWithAbstraction uwa)
+{ return Coherence<RealTraits>(state(uwa)); }
+
+
+
+REGISTER_GEN_TESTER(Test::Generation::GenerationTester<Coherence<RealTraits>>(testCoherence(UWA_MODE)))
+
+/////////////////////////////////////////////////////////
+// Basic tests
+//////////////////////////////////////
+
+TEST_GENERATION(basic01,
+    Generation::SymmetricTest()
+      .indices(lascaCoherenceIndices())
+      .inputs  ({ clause({ selected( a + b == floor(c) )  }) 
+                , clause({ selected(     p(floor(a + b)) )  }) })
+      .expected(exactly(
+            clause({ p(a + b + floor(0))  })
+      ))
+    )
+
+TEST_GENERATION(basic02,
+    Generation::SymmetricTest()
+      .indices(lascaCoherenceIndices())
+      .inputs  ({ clause({ selected( a + b == floor(c) )  }) 
+                , clause({ selected(     p(floor(2 * a + b)) )  }) })
+      .expected(exactly(
+            clause({ p(a + b + floor(a))  })
+      ))
+    )
+
+TEST_GENERATION(basic03,
+    Generation::SymmetricTest()
+      .indices(lascaCoherenceIndices())
+      .inputs  ({ clause({ selected( isInteger(a + b) )  }) 
+                , clause({ selected(     p(floor(2 * a + b)) )  }) })
+      .expected(exactly(
+            clause({ p(a + b + floor(a))  })
+      ))
+    )
+
+TEST_GENERATION(basic04,
+    Generation::SymmetricTest()
+      .indices(lascaCoherenceIndices())
+      .inputs  ({ clause({ selected( isInteger(a + b) )  }) 
+                , clause({ selected(     p(floor(2 * a + 2 * b)) )  }) })
+      .expected(exactly(
+            clause({ p(2 * a + 2 * b + floor(0))  })
+      ))
+    )
+
+TEST_GENERATION(basic05,
+    Generation::SymmetricTest()
+      .indices(lascaCoherenceIndices())
+      .inputs  ({ clause({ selected( 2 * a + b == floor(c) )  }) 
+                , clause({ selected(     p(floor(a + b)) )  }) })
+      .expected(exactly(
+          /* nothing */ 
+      ))
+    )
+
+TEST_GENERATION(basic06,
+    Generation::SymmetricTest()
+      .indices(lascaCoherenceIndices())
+      .inputs  ({ clause({ selected( f(x) + f(y) == floor(f2(x,y)) )  }) 
+                , clause({ selected(     p(floor(f(a) + f(b))) )  }) })
+      .expected(exactly(
+            clause({ p(f(a) + f(b) + floor(0))  })
+      ))
+    )
+
+TEST_GENERATION(basic07,
+    Generation::SymmetricTest()
+      .indices(lascaCoherenceIndices())
+      .inputs  ({ clause({ selected( isInteger(f2(a, y) + f2(y, b)) )  }) 
+                , clause({ selected(     p(floor(f2(a, x) + f2(y, b))) )  }) })
+      .expected(exactly(
+            clause({ p(f2(a, x) + f2(y, b) + floor(0))  })
+      ))
+    )
+
+TEST_GENERATION(basic08,
+    Generation::SymmetricTest()
+      .indices(lascaCoherenceIndices())
+      .inputs  ({ clause({ selected( isInteger(f2(a, y) + 2 * f2(y, b)) )  }) 
+                , clause({ selected(     p(floor(2 * f2(a, x) + f2(y, b))) )  }) })
+      .expected(exactly(
+            clause({ p(3 * f2(a, b) + floor(0))  })
+      ))
+    )
+
+TEST_GENERATION(basic09,
+    Generation::SymmetricTest()
+      .indices(lascaCoherenceIndices())
+      .inputs  ({ clause({ selected(  isInteger(f(x)) )  }) 
+                , clause({ selected(     p(floor(f(a) + f(b))) )  }) })
+      .expected(exactly(
+              clause({ p(f(a) + floor(f(b)))  })
+            , clause({ p(f(b) + floor(f(a)))  })
+      ))
+    )
+

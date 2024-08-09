@@ -16,6 +16,7 @@
 #ifndef __LASCA_Coherence__
 #define __LASCA_Coherence__
 
+#include "Debug/Assertion.hpp"
 #include "Forwards.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
@@ -24,7 +25,10 @@
 #include "Kernel/Ordering.hpp"
 #include "Indexing/LascaIndex.hpp"
 #include "BinInf.hpp"
+#include "Lib/Recycled.hpp"
 #include "Shell/Options.hpp"
+#include "Debug/Output.hpp"
+#include "Kernel/EqHelper.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
@@ -34,6 +38,15 @@ namespace LASCA {
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
+
+template<class A, class Iter>
+Iter assertIter(Iter iter) {
+  static_assert(std::is_same_v<A   ,ELEMENT_TYPE(Iter)> 
+             && std::is_same_v<A   , decltype(iter.next())>
+             && std::is_same_v<bool, decltype(iter.hasNext())>
+             );
+  return iter;
+}
 
 template<class NumTraits>
 struct CoherenceConf
@@ -109,9 +122,154 @@ public:
     IMPL_COMPARISONS_FROM_TUPLE(Rhs)
   };
 
-  // Option<AbstractingUnifier> matchSubSum() {
-  // }
-  //
+  // fancyMap :: (a -> Option (Iter a)) -> Iter a -> Iter a
+  // fancyMap f i = case (next i) of
+  //   x : xs  -> (f x) 
+  //   []      ->  []
+
+  struct IdxEntry {
+    IdxEntry(TermList t) : term(t) {}
+    TermList term;
+  };
+
+  struct LIdxEntry {
+    TermList term;
+    unsigned equalTo;
+    friend std::ostream& operator<<(std::ostream& out, LIdxEntry const& self)
+    { return out << self.term << " -> " << self.equalTo; }
+  };
+
+  struct MiniIndex {
+    unsigned lhsVarBank;
+
+    Map<unsigned, RStack<unsigned>> eqClasses;
+    Recycled<Stack<IdxEntry>> rhs;
+    unsigned rhsVarBank;
+    BacktrackData bd;
+
+    auto unify(AbstractingUnifier& uwa, TermList l, unsigned lIdx) {
+      return arrayIter(*rhs)
+        .zipWithIndex()
+        .filterMap([this, l, lIdx, &uwa](auto r) -> Option<AbstractingUnifier*> { 
+            uwa.bdRecord(bd);
+            if (uwa.unify(l, lhsVarBank, r.first.term, rhsVarBank)) {
+              eqClasses.getOrInit(r.second, []() { return RStack<unsigned>(); })
+                ->push(lIdx);
+              uwa.bdDone();
+              return some(&uwa);
+            } else {
+              return {};
+            }
+        });
+    }
+  };
+
+    using N = typename NumTraits::ConstantType;
+
+  struct SubSumUnif {
+      AbstractingUnifier* uwa;
+      // TODO change to ptr
+      Stack<std::pair<TermList, N>> sum0; 
+      unsigned bank0;
+      // TODO change to ptr
+      Stack<std::pair<TermList, N>> sum1;
+      unsigned bank1;
+      // on a return from next stack[i] = j means that sum0[i] has been unified with sum1[j - 1]
+      Stack<unsigned> crossEqual;
+
+      // Set<unsigned> sum1Classes;
+
+      struct Sum1Class {
+        Stack<unsigned> idx;
+        N numeral;
+
+      };
+
+      Map<unsigned, std::shared_ptr<Sum1Class>> sum1ClassMap;
+      Stack<unsigned> sum1ClassRoots;
+      Stack<std::pair<unsigned, unsigned>> merges;
+
+      SubSumUnif(
+        AbstractingUnifier* uwa, 
+        Stack<std::pair<TermList, N>> sum0,
+        unsigned bank0,
+        Stack<std::pair<TermList, N>> sum1,
+        unsigned bank1
+      ) 
+        : uwa(uwa)
+        , sum0(std::move(sum0))
+        , bank0(bank0)
+        , sum1(std::move(sum1))
+        , bank1(bank1)
+        , crossEqual({0}) 
+        , sum1ClassRoots()
+        , merges()
+        {}
+      DECL_ELEMENT_TYPE(SubSumUnif*);
+
+      Option<SubSumUnif*> tryNext() {
+        auto unify = [&](auto... args) {
+          auto result = uwa->unify(args...);
+          DBG("unify: ", std::tie(args...), " -> ", result);
+          return result;
+        };
+        while (!merges.isEmpty()) {
+          auto& pair = merges.top();
+          if (pair.first >= sum1ClassRoots.size()) {
+            merges.pop();
+
+          } else if (pair.second >= sum1ClassRoots.size()) {
+            pair.first++;
+            pair.second = pair.first + 1;
+
+          } else {
+
+            auto success = unify(sum1[pair.first].first, bank1, sum1[pair.second].first, bank1);
+            // TODO merge classes
+            // TODO undoing saving
+            pair.second++;
+            if (success) {
+              auto c1 = sum1ClassMap.get(sum1ClassRoots[pair.first]);
+              auto c2 = sum1ClassMap.get(sum1ClassRoots.swapRemove(pair.second - 1));
+              c1->numeral = c1->numeral + c2->numeral;
+              c2 = c1;
+              // TODO backup c1 and c2
+              merges.push(std::make_pair(0,1));
+              return some(this);
+            }
+          }
+        }
+
+
+        while (crossEqual.size() > 0) {
+          auto i0 = crossEqual.size() - 1;
+          auto i1 = crossEqual.top();
+          if (i1 >= sum1.size()) {
+            crossEqual.pop();
+          } else {
+            auto success = unify(
+                sum0[i0].first, bank0, 
+                sum1[i1].first, bank1);
+            // TODO undo/redo
+            sum1ClassMap.getOrInit(i1, [&]() {
+                sum1ClassRoots.push(i1);
+                return std::make_shared<Sum1Class>(Sum1Class{ .idx = { i1 }, .numeral = sum1[i1].second, });
+            });
+            // TODO reverting and stuff
+            crossEqual.top()++;
+            if (success) {
+              if (crossEqual.size() == sum0.size()) {
+                merges.push(std::make_pair(0,1));
+                return some(this);
+              } else {
+                crossEqual.push(0);
+              }
+            }
+          }
+        }
+        return {};
+      }
+  };
 
   auto applyRule(
       Lhs const& lhs, unsigned lhsVarBank,
@@ -121,23 +279,134 @@ public:
   {
     DBG("isInt: ", lhs.smallerSide)
     DBG("floor term: ", rhs.polynom)
-    TermSubstitutionTree<TermWithValue<unsigned>> tree; 
-    for (auto m : rhs.polynom->iterSummands().zipWithIndex()) {
-      auto atom = m.first.factors->denormalize();
-      auto index = m.second;
-      tree.insert(TermWithValue<unsigned>(TypedTermList(atom, NumTraits::sort()), index));
-    }
-    DBGE(multiline(tree));
-    // auto σ_opt = matchSubSum(lhs.smallerSide, rhs.polynom);
-    // if (!σ_opt) {
-    //   return {};
-    // }
-    // auto σ = σ_opt;
 
-    DBGE(lhs)
-    DBGE(rhs)
-    ASSERTION_VIOLATION
-    return VirtualIterator<Clause*>::getEmpty();
+    auto idx  = std::shared_ptr<MiniIndex>(move_to_heap(MiniIndex{
+      .lhsVarBank = lhsVarBank,
+      .rhs = RStack<IdxEntry>(),
+      .rhsVarBank = rhsVarBank,
+    }));
+
+    for (auto m : rhs.polynom->iterSummands()) {
+      auto atom = m.factors->denormalize();
+      idx->rhs->push(IdxEntry(atom));
+    }
+
+
+    auto toStack = [](auto& x) {
+      return x->iterSummands()
+          .map([](auto m) { return std::make_pair(m.factors->denormalize(), m.numeral); })
+          .template collect<Stack>();
+    };
+
+    struct State {
+
+    };
+
+    // TODO pre-compute these as stacks in the Lhs/Rhs struct
+    auto ls = toStack(lhs.smallerSide);
+    auto rs = toStack(rhs.polynom);
+
+    return iterTraits(iterFromTryNext(SubSumUnif(&uwa, ls, lhsVarBank, rs, rhsVarBank)))
+      .filter([&lhs, &rhs, lhsVarBank, rhsVarBank](SubSumUnif* state) {
+          DBG("atoms match: ")
+          DBG("lhs term: ", state->uwa->subs().apply(lhs.smallerSide->denormalize(), lhsVarBank));
+          DBG("rhs term: ", state->uwa->subs().apply(rhs.polynom->denormalize(), rhsVarBank));
+          if (state->uwa->maxNumberOfConstraints() != 0) {
+            DBG("modulo constarints: ", *state->uwa)
+          }
+          return true;
+      })
+      .map([&lhs, &rhs, lhsVarBank, rhsVarBank](auto* state) -> Clause* {
+
+          // TODO
+          // DBGE(*bla->uwa)
+          // DBG("lhs term: ", bla->uwa->subs().apply(lhs.smallerSide->denormalize(), lhsVarBank));
+          // DBG("rhs term: ", bla->uwa->subs().apply(rhs.polynom->denormalize(), rhsVarBank));
+          auto& subs = state->uwa->subs();
+          auto u = NumTraits::ifFloor(rhs._self.toRewrite(), [](auto t) { return t; }).unwrap();
+          auto t = lhs._self.smallerSide();
+
+          auto Lσ = subs.apply(rhs._self.literal(), rhsVarBank);
+          auto uσ = subs.apply(u, rhsVarBank);
+          auto tσ = subs.apply(t, lhsVarBank);
+          Literal* rLit = EqHelper::replace(Lσ, 
+              NumTraits::floor(uσ), 
+              NumTraits::add(tσ, NumTraits::floor(NumTraits::add(uσ, NumTraits::minus(tσ)))));
+          auto constr= state->uwa->computeConstraintLiterals();
+          
+          return Clause::fromIterator(
+              concatIters(
+                rhs._self.contextLiterals()
+                  .map([&](auto lit) { return subs.apply(lit, lhsVarBank); }),
+                rhs._self.contextLiterals()
+                  .map([&](auto lit) { return subs.apply(lit, rhsVarBank); }),
+                iterItems(rLit),
+                arrayIter(*constr)
+              ),
+              // TODO proper rule
+              Inference(TheoryAxiom(InferenceRule::THA_COMMUTATIVITY)));
+      });
+      // .flatMapStar([rhs, rhsVarBank, idx](AbstractingUnifier* uwa) mutable {
+      //     RStack<unsigned> eqClasses;
+      //     for (auto& e : iterTraits(idx->eqClasses.iter())) {
+      //       eqClasses->push(e.key());
+      //     }
+      //     return assertIter<AbstractingUnifier*>(range(0, eqClasses->size())
+      //        .flatMap([eqClasses = std::make_shared<RStack<unsigned>>(std::move(eqClasses)), uwa, rhs, rhsVarBank](auto i) mutable { return 
+      //            assertIter<AbstractingUnifier*>(range(i + 1, (*eqClasses)->size())
+      //              .filterMap([uwa, rhs, i, rhsVarBank, eqClasses](auto j) mutable -> Option<AbstractingUnifier*> { 
+      //                  auto unif = uwa->unify(
+      //                      rhs.polynom->summandAt((*eqClasses)[i]).factors->denormalize(), rhsVarBank, 
+      //                      rhs.polynom->summandAt((*eqClasses)[j]).factors->denormalize(), rhsVarBank); 
+      //                  return someIf(unif, [=](){ return uwa; });
+      //                  }));
+      //              ; }));
+      // });
+      //
+      // // TODO the flatMapStar stuff
+
+
+
+    // [summands] -> 
+
+    // return assertIter<AbstractingUnifier*>(lhs.smallerSide->iterSummands()
+    //   .zipWithIndex()
+    //   .flatMapStar([rhs, rhsVarBank, idx](AbstractingUnifier* uwa) mutable {
+    //       RStack<unsigned> eqClasses;
+    //       for (auto& e : iterTraits(idx->eqClasses.iter())) {
+    //         eqClasses->push(e.key());
+    //       }
+    //       return assertIter<AbstractingUnifier*>(range(0, eqClasses->size())
+    //          .flatMap([eqClasses = std::make_shared<RStack<unsigned>>(std::move(eqClasses)), uwa, rhs, rhsVarBank](auto i) mutable { return 
+    //              assertIter<AbstractingUnifier*>(range(i + 1, (*eqClasses)->size())
+    //                .filterMap([uwa, rhs, i, rhsVarBank, eqClasses](auto j) mutable -> Option<AbstractingUnifier*> { 
+    //                    auto unif = uwa->unify(
+    //                        rhs.polynom->summandAt((*eqClasses)[i]).factors->denormalize(), rhsVarBank, 
+    //                        rhs.polynom->summandAt((*eqClasses)[j]).factors->denormalize(), rhsVarBank); 
+    //                    return someIf(unif, [=](){ return uwa; });
+    //                    }));
+    //                ; }));
+    //   }))
+    //   .filterMap([idx, lhs,rhs](AbstractingUnifier* uwa) mutable -> Option<Clause*> {
+    //       DBGE(*uwa)
+    //       DBGE(idx->eqClasses)
+    //
+    //       // Recycled<Map<TermList, std::pair<N,N>>> coeffs;
+    //       // for (auto m : lhs.smallerSide->iterSummands()) {
+    //       //   auto atom = m.factors->denormalize();
+    //       //   auto& pair = coeffs->getOrInit(atom, 
+    //       //       [](){ return std::make_pair(N(0),N(0)); });
+    //       //   pair.first += m.numeral;
+    //       // }
+    //       //
+    //       // for (auto m : rhs.polynom->iterSummands()) {
+    //       //   auto atom = uwa.m.factors->denormalize();
+    //       //   auto& pair = coeffs->getOrInit(atom,
+    //       //       [](){ return std::make_pair(N(0),N(0)); });
+    //       //   pair.second += m.numeral;
+    //       // }
+    //       ASSERTION_VIOLATION
+    //   });
   }
 };
 

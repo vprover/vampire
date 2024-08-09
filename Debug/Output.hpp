@@ -18,8 +18,10 @@
 #include <utility>
 #include <tuple>
 
+namespace std {
 template<class... As> 
-std::ostream& operator<<(std::ostream& out, std::tuple<As...> const& self);
+std::ostream& operator<<(std::ostream& out, tuple<As...> const& self);
+} // namespace std
 
 namespace Kernel {
 
@@ -124,13 +126,15 @@ void Kernel::OutputMultiline<T>::outputIndent(std::ostream& out, unsigned indent
 
 } // namespace Kernel
 
+namespace std {
+
 template<class A, class B>
-std::ostream& operator<<(std::ostream& out, std::pair<A,B> const& self)
+std::ostream& operator<<(std::ostream& out, pair<A,B> const& self)
 { return out << "(" << self.first << ", " << self.second << ")"; }
 
 
 template<class... As> 
-std::ostream& operator<<(std::ostream& out, std::tuple<As...> const& self)
+std::ostream& operator<<(std::ostream& out, tuple<As...> const& self)
 { 
   out << "(";
   Kernel::__OutputTuple<0, std::tuple_size<std::tuple<As...>>::value, std::tuple<As...>>::apply(out, self);
@@ -138,6 +142,8 @@ std::ostream& operator<<(std::ostream& out, std::tuple<As...> const& self)
   return out;
 }
 
-namespace Kernel { using ::operator<<; }
+} // namespace std
+
+// namespace Kernel { using ::operator<<; }
 
 #endif // __Debug_Output_HPP__
