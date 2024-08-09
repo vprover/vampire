@@ -112,7 +112,7 @@ public:
 
   void onLimitsUpdated() override;
 private:
-  bool setLimits(unsigned newAgeSelectionMaxAge, unsigned newAgeSelectionMaxWeight, unsigned newWeightSelectionMaxWeight, unsigned newWeightSelectionMaxAge);
+  bool setLimits(unsigned newAgeSelectionMaxAge, unsigned newAgeSelectionMaxWeight, unsigned newWeightSelectionMaxWeight);
 
   int _simulationBalance;
   ClauseQueue::Iterator _simulationCurrAgeIt;
@@ -123,7 +123,10 @@ private:
   unsigned _ageSelectionMaxAge;
   unsigned _ageSelectionMaxWeight;
   unsigned _weightSelectionMaxWeight;
-  unsigned _weightSelectionMaxAge;
+  // experiment showed that maintaining the tiebreaker _weightSelectionMaxAge
+  // and doing the corresponding extra check (in fulfilsWeightLimit) didn't lead to a better performance
+  // (possible explanation: it's better to be careful on the weight queue about age as "all small clauses, no matter how old/young are potentially usefull"
+  // while at the same time, it's better to be more agressive with deletions on the age queue, as the large clauses there are probably useless)
 
   /*
    * LRS specific methods and fields for usage of limits
