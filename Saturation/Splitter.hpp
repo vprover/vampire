@@ -171,6 +171,7 @@ private:
     RCClauseStack children;
     Stack<ReductionRecord> reduced;
     Stack<std::function<Clause*()>> redInfs;
+    Stack<ConditionalRedundancyEntry*> conditionalRedundancyEntries;
     bool active;
     unsigned active_ts;
 
@@ -190,6 +191,7 @@ public:
 
   void onClauseReduction(Clause* cl, ClauseIterator premises, Clause* replacement);
   void onRedundantInference(std::function<Clause*()> fn, Clause* premise0, Clause* premise1, SplitSet* blockingSet);
+  void addConditionalRedundancyEntry(SplitSet* splits, ConditionalRedundancyEntry* e);
   void onNewClause(Clause* cl);
   void onAllProcessed();
   bool handleEmptyClause(Clause* cl);

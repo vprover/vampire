@@ -159,6 +159,7 @@ public:
   unsigned skippedResolution;
   unsigned skippedEqualityResolution;
   unsigned skippedEqualityFactoring;
+  unsigned skippedFactoring;
   unsigned skippedInferencesDueToOrderingConstraints;
   unsigned skippedInferencesDueToAvatarConstraints;
   unsigned skippedInferencesDueToLiteralConstraints;

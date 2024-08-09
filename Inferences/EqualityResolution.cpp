@@ -116,10 +116,12 @@ struct EqualityResolution::ResultFn
       }
     }
 
-    SplitSet* blockingSet;
-    if (_condRedHandler && !_condRedHandler->handleReductiveUnaryInference(_cl, &absUnif->subs(), blockingSet)) {
-      env.statistics->skippedEqualityResolution++;
-      return nullptr;
+    if (!absUnif->usesUwa()) {
+      SplitSet* blockingSet;
+      if (_condRedHandler && !_condRedHandler->handleReductiveUnaryInference(_cl, &absUnif->subs(), blockingSet)) {
+        env.statistics->skippedEqualityResolution++;
+        return nullptr;
+      }
     }
 
     resLits->loadFromIterator(constraints->iterFifo());
@@ -149,7 +151,7 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
 
   auto it3 = getMappingIterator(it2,ResultFn(premise,
       getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
-      _salg->condRedHandler(), &_salg->getOrdering()));
+      &_salg->condRedHandler(), &_salg->getOrdering()));
 
   auto it4 = getFilteredIterator(it3,NonzeroFn());
 

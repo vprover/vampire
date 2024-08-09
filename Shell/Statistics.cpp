@@ -111,6 +111,7 @@ Statistics::Statistics()
     skippedResolution(0),
     skippedEqualityResolution(0),
     skippedEqualityFactoring(0),
+    skippedFactoring(0),
     skippedInferencesDueToOrderingConstraints(0),
     skippedInferencesDueToAvatarConstraints(0),
     skippedInferencesDueToLiteralConstraints(0),
@@ -425,12 +426,13 @@ void Statistics::print(ostream& out)
 
   HEADING("Redundant Inferences",
     skippedSuperposition+skippedResolution+skippedEqualityResolution+skippedEqualityFactoring+
-    skippedInferencesDueToOrderingConstraints+skippedInferencesDueToAvatarConstraints+
-    skippedInferencesDueToLiteralConstraints);
+    skippedFactoring+skippedInferencesDueToOrderingConstraints+
+    skippedInferencesDueToAvatarConstraints+skippedInferencesDueToLiteralConstraints);
   COND_OUT("Skipped superposition", skippedSuperposition);
   COND_OUT("Skipped resolution", skippedResolution);
   COND_OUT("Skipped equality resolution", skippedEqualityResolution);
   COND_OUT("Skipped equality factoring", skippedEqualityFactoring);
+  COND_OUT("Skipped factoring", skippedFactoring);
   COND_OUT("Skipped inferences due to ordering constraints", skippedInferencesDueToOrderingConstraints);
   COND_OUT("Skipped inferences due to AVATAR constraints", skippedInferencesDueToAvatarConstraints);
   COND_OUT("Skipped inferences due to literal constraints", skippedInferencesDueToLiteralConstraints);

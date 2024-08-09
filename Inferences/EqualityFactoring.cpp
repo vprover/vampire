@@ -93,7 +93,7 @@ private:
 
 struct EqualityFactoring::ResultFn
 {
-  ResultFn(EqualityFactoring& self, Clause* cl, bool afterCheck, const ConditionalRedundancyHandler* condRedHandler, Ordering& ordering, bool fixedPointIteration)
+  ResultFn(EqualityFactoring& self, Clause* cl, bool afterCheck, const ConditionalRedundancyHandler& condRedHandler, Ordering& ordering, bool fixedPointIteration)
       : _self(self), _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _condRedHandler(condRedHandler), _ordering(ordering), _fixedPointIteration(fixedPointIteration) {}
   Clause* operator() (pair<pair<Literal*,TermList>,pair<Literal*,TermList> > arg)
   {
@@ -164,10 +164,12 @@ struct EqualityFactoring::ResultFn
       }
     }
 
-    SplitSet* blockingSet;
-    if (!_condRedHandler->handleReductiveUnaryInference(_cl, &absUnif.subs(), blockingSet)) {
-      env.statistics->skippedEqualityFactoring++;
-      return nullptr;
+    if (!absUnif.usesUwa()) {
+      SplitSet* blockingSet;
+      if (!_condRedHandler.handleReductiveUnaryInference(_cl, &absUnif.subs(), blockingSet)) {
+        env.statistics->skippedEqualityFactoring++;
+        return nullptr;
+      }
     }
 
     resLits->loadFromIterator(constraints->iterFifo());
@@ -181,7 +183,7 @@ private:
   Clause* _cl;
   unsigned _cLen;
   bool _afterCheck;
-  const ConditionalRedundancyHandler* _condRedHandler;
+  const ConditionalRedundancyHandler& _condRedHandler;
   const Ordering& _ordering;
   bool _fixedPointIteration;
 };

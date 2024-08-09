@@ -347,27 +347,29 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-  auto condRedHandler = _salg->condRedHandler();
-  SplitSet* blockingSet;
-  if (!condRedHandler->checkSuperposition(eqClause, eqLit, rwClause, rwLit, eqIsResult, subst.ptr(), blockingSet)) {
-    auto splitter = _salg->getSplitter();
-    if (splitter) {
-      splitter->onRedundantInference([this,rwClause,rwLit,rwTerm,eqClause,eqLit,eqLHS]() -> Clause* {
-        if (rwClause->store()==Clause::NONE) {
-          return 0;
-        }
-        if (eqClause->store()==Clause::NONE) {
-          return 0;
-        }
-        auto unifier = AbstractingUnifier::unify(
-          TermList(rwTerm), 0, TermList(eqLHS), 1, AbstractionOracle(Options::UnificationWithAbstraction::OFF), false);
-        ASS(unifier);
-        auto subs = ResultSubstitution::fromSubstitution(&unifier->subs(), QUERY_BANK, RESULT_BANK);
+  const auto& condRedHandler = _salg->condRedHandler();
+  if (!unifier->usesUwa()) {
+    SplitSet* blockingSet;
+    if (!condRedHandler.checkSuperposition(eqClause, eqLit, rwClause, rwLit, eqIsResult, subst.ptr(), blockingSet)) {
+      auto splitter = _salg->getSplitter();
+      if (splitter) {
+        splitter->onRedundantInference([this,rwClause,rwLit,rwTerm,eqClause,eqLit,eqLHS]() -> Clause* {
+          if (rwClause->store()==Clause::NONE) {
+            return 0;
+          }
+          if (eqClause->store()==Clause::NONE) {
+            return 0;
+          }
+          auto unifier = AbstractingUnifier::unify(
+            TermList(rwTerm), 0, TermList(eqLHS), 1, AbstractionOracle(Options::UnificationWithAbstraction::OFF), false);
+          ASS(unifier);
+          auto subs = ResultSubstitution::fromSubstitution(&unifier->subs(), QUERY_BANK, RESULT_BANK);
 
-        return performSuperposition(rwClause, rwLit, rwTerm, eqClause, eqLit, eqLHS, &unifier.unwrap(), true);
-      }, rwClause, eqClause, blockingSet);
+          return performSuperposition(rwClause, rwLit, rwTerm, eqClause, eqLit, eqLHS, &unifier.unwrap(), true);
+        }, rwClause, eqClause, blockingSet);
+      }
+      return 0;
     }
-    return 0;
   }
 
   const Ordering& ordering = _salg->getOrdering();
@@ -401,8 +403,10 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-  condRedHandler->insertSuperposition(
-    eqClause, rwClause, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr());
+  if (!unifier->usesUwa()) {
+    condRedHandler.insertSuperposition(
+      eqClause, rwClause, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr());
+  }
 
   Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);
 

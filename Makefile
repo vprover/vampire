@@ -330,6 +330,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
 
 VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/CommandLine.o\
+         Shell/ConditionalRedundancyHandler.o\
          Shell/CNF.o\
          Shell/NewCNF.o\
          Shell/DistinctProcessor.o\
@@ -343,7 +344,6 @@ VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/GeneralSplitting.o\
          Shell/GoalGuessing.o\
          Shell/InequalitySplitting.o\
-         Shell/ConditionalRedundancyHandler.o\
          Shell/InterpolantMinimizer.o\
          Shell/Interpolants.o\
          Shell/InterpretedNormalizer.o\
@@ -379,7 +379,6 @@ VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/Token.o\
          Shell/TPTPPrinter.o\
          Shell/UIHelper.o\
-         Shell/VarManager.o\
          Shell/Lexer.o\
          Shell/Preprocess.o\
          version.o

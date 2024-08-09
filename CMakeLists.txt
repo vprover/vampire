@@ -537,6 +537,7 @@ source_group(saturation_source_files FILES ${VAMPIRE_SATURATION_SOURCES})
 set(VAMPIRE_SHELL_SOURCES
     Shell/AnswerLiteralManager.cpp
     Shell/CommandLine.cpp
+    Shell/ConditionalRedundancyHandler.cpp
     Shell/CNF.cpp
     Shell/NewCNF.cpp
     Shell/DistinctProcessor.cpp
@@ -550,7 +551,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/GoalGuessing.cpp
     Shell/FunctionDefinitionHandler.cpp
     Shell/InequalitySplitting.cpp
-    Shell/ConditionalRedundancyHandler.cpp
     Shell/InterpolantMinimizer.cpp
     Shell/Interpolants.cpp
     Shell/InterpretedNormalizer.cpp
@@ -587,11 +587,11 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/TPTPPrinter.cpp
     Shell/TweeGoalTransformation.cpp
     Shell/UIHelper.cpp
-    Shell/VarManager.cpp
     Shell/Lexer.cpp
     Shell/Preprocess.cpp
     Shell/AnswerLiteralManager.hpp
     Shell/CommandLine.hpp
+    Shell/ConditionalRedundancyHandler.hpp
     Shell/CNF.hpp
     Shell/NewCNF.hpp
     Shell/DistinctProcessor.hpp
@@ -604,7 +604,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/FunctionDefinitionHandler.hpp
     Shell/GeneralSplitting.hpp
     Shell/InequalitySplitting.hpp
-    Shell/ConditionalRedundancyHandler.hpp
     Shell/InterpolantMinimizer.hpp
     Shell/Interpolants.hpp
     Shell/InterpretedNormalizer.hpp
@@ -638,7 +637,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/TPTPPrinter.hpp
     Shell/TweeGoalTransformation.hpp
     Shell/UIHelper.hpp
-    Shell/VarManager.hpp
     Shell/Lexer.hpp
     Shell/Preprocess.hpp
     Shell/SubexpressionIterator.cpp

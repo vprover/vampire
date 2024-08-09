@@ -220,26 +220,28 @@ Clause* BinaryResolution::generateClause(
     }
   }
 
-  SplitSet* blockingSet = nullptr;
-  if (!_salg->condRedHandler()->handleResolution(queryCl, queryLit, resultCl, resultLit, subs.ptr(), blockingSet)) {
-    auto splitter = _salg->getSplitter();
-    if (splitter) {
-      splitter->onRedundantInference([this,queryCl,queryLit,resultCl,resultLit]() -> Clause* {
-        if (queryCl->store()==Clause::NONE) {
-          return 0;
-        }
-        if (resultCl->store()==Clause::NONE) {
-          return 0;
-        }
-        auto unifier = AbstractingUnifier::unify(
-          TermList(queryLit), 0, TermList(resultLit), 1, AbstractionOracle(Options::UnificationWithAbstraction::OFF), false);
-        ASS(unifier);
-        auto subs = ResultSubstitution::fromSubstitution(&unifier->subs(), QUERY_BANK, RESULT_BANK);
+  if (!absUnif->usesUwa()) {
+    SplitSet* blockingSet = nullptr;
+    if (!_salg->condRedHandler().handleResolution(queryCl, queryLit, resultCl, resultLit, subs.ptr(), blockingSet)) {
+      auto splitter = _salg->getSplitter();
+      if (splitter) {
+        splitter->onRedundantInference([this,queryCl,queryLit,resultCl,resultLit]() -> Clause* {
+          if (queryCl->store()==Clause::NONE) {
+            return 0;
+          }
+          if (resultCl->store()==Clause::NONE) {
+            return 0;
+          }
+          auto unifier = AbstractingUnifier::unify(
+            TermList(queryLit), 0, TermList(resultLit), 1, AbstractionOracle(Options::UnificationWithAbstraction::OFF), false);
+          ASS(unifier);
+          auto subs = ResultSubstitution::fromSubstitution(&unifier->subs(), QUERY_BANK, RESULT_BANK);
 
-        return generateClause(queryCl, queryLit, resultCl, resultLit, subs, &unifier.unwrap());
-      }, queryCl, resultCl, blockingSet);
+          return generateClause(queryCl, queryLit, resultCl, resultLit, subs, &unifier.unwrap());
+        }, queryCl, resultCl, blockingSet);
+      }
+      return 0;
     }
-    return 0;
   }
 
    if (bothHaveAnsLit) {

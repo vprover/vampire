@@ -33,7 +33,6 @@
 #include "Options.hpp"
 #include "Rectify.hpp"
 #include "Skolem.hpp"
-#include "VarManager.hpp"
 
 using namespace std;
 using namespace Kernel;
@@ -119,18 +118,6 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
   return res;
 }
 
-unsigned Skolem::addSkolemFunction(unsigned arity, TermList* domainSorts,
-    TermList rangeSort, unsigned var, unsigned taArity)
-{
-  if(VarManager::varNamePreserving()) {
-    std::string varName=VarManager::getVarName(var);
-    return addSkolemFunction(arity, taArity, domainSorts, rangeSort, varName.c_str());
-  }
-  else {
-    return addSkolemFunction(arity, taArity, domainSorts, rangeSort);
-  }
-}
-
 unsigned Skolem::addSkolemFunction(unsigned arity, unsigned taArity, TermList* domainSorts,
     TermList rangeSort, const char* suffix)
 {
@@ -144,17 +131,6 @@ unsigned Skolem::addSkolemFunction(unsigned arity, unsigned taArity, TermList* d
   return fun;
 }
 
-unsigned Skolem::addSkolemTypeCon(unsigned arity, unsigned var)
-{
-  if(VarManager::varNamePreserving()) {
-    std::string varName=VarManager::getVarName(var);
-    return addSkolemTypeCon(arity, varName.c_str());
-  }
-  else {
-    return addSkolemTypeCon(arity);
-  }
-}
-
 unsigned Skolem::addSkolemTypeCon(unsigned arity, const char* suffix)
 {
   unsigned typeCon = env.signature->addSkolemTypeCon(arity, suffix);
@@ -164,21 +140,8 @@ unsigned Skolem::addSkolemTypeCon(unsigned arity, const char* suffix)
   return typeCon;
 }
 
-unsigned Skolem::addSkolemPredicate(unsigned arity, TermList* domainSorts, unsigned var, unsigned taArity)
-{
-  if(VarManager::varNamePreserving()) {
-    std::string varName=VarManager::getVarName(var);
-    return addSkolemPredicate(arity, taArity, domainSorts, varName.c_str());
-  }
-  else {
-    return addSkolemPredicate(arity, taArity, domainSorts);
-  }
-}
-
 unsigned Skolem::addSkolemPredicate(unsigned arity, unsigned taArity, TermList* domainSorts, const char* suffix)
 {
-  //ASS(arity==0 || domainSorts!=0);
-
   unsigned pred = env.signature->addSkolemPredicate(arity, suffix);
   Signature::Symbol* pSym = env.signature->getPredicate(pred);
   OperatorType* ot = OperatorType::getPredicateType(arity - taArity, domainSorts, taArity);
@@ -475,14 +438,14 @@ Formula* Skolem::skolemise (Formula* f)
             sym = addSkolemTypeCon(arity);
             skolemTerm = AtomicSort::create(sym, arity, allVars.begin());
           } else {
-            sym = addSkolemFunction(arity, termVarSorts.begin(), rangeSort, v, typeVars.size());
+            sym = addSkolemFunction(arity, typeVars.size(), termVarSorts.begin(), rangeSort);
             skolemTerm = Term::create(sym, arity, allVars.begin());
           }
         } else {
           //The higher-order case. Create the term
           //sk(typevars) @ termvar_1 @ termvar_2 @ ... @ termvar_n
           TermList skSymSort = AtomicSort::arrowSort(termVarSorts, rangeSort);
-          sym = addSkolemFunction(typeVars.size(), 0, skSymSort, v, typeVars.size());
+          sym = addSkolemFunction(typeVars.size(), typeVars.size(), nullptr, skSymSort);
           TermList head = TermList(Term::create(sym, typeVars.size(), typeVars.begin()));
           skolemTerm = ApplicativeHelper::createAppTerm(
             SortHelper::getResultSort(head.term()), head, termVars).term();

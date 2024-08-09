@@ -1519,6 +1519,16 @@ void Splitter::onRedundantInference(std::function<Clause*()> fn, Clause* premise
   }
 }
 
+void Splitter::addConditionalRedundancyEntry(SplitSet* splits, ConditionalRedundancyEntry* e)
+{
+  auto sit = splits->iter();
+  while (sit.hasNext()) {
+    SplitLevel slev=sit.next();
+    e->obtain();
+    _db[slev]->conditionalRedundancyEntries.push(e);
+  }
+}
+
 bool Splitter::allSplitLevelsActive(SplitSet* s)
 {
   auto sit = s->iter();
@@ -1754,6 +1764,12 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
     
     if (_deleteDeactivated == Options::SplittingDeleteDeactivated::ON) {
       sr->children.reset();
+    }
+
+    while (sr->conditionalRedundancyEntries.isNonEmpty()) {
+      auto cr = sr->conditionalRedundancyEntries.pop();
+      cr->deactivate();
+      cr->release();
     }
   }
 
