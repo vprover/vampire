@@ -581,7 +581,7 @@ bool AWPassiveClauseContainer::setLimitsFromSimulation()
 
 bool AWPassiveClauseContainer::childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const
 {
-  if (cl->age() == _ageSelectionMaxAge)
+  if (cl->age() >= _ageSelectionMaxAge)
   {
     // creating a fake inference to represent our current (pessimistic) estimate potential
     // FromInput - so that there is no Unit ownership issue
