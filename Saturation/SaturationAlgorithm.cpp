@@ -925,7 +925,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
   TIME_TRACE("forward simplification");
 
   if (!_passive->fulfilsAgeLimit(cl) && !_passive->fulfilsWeightLimit(cl)) {
-    RSTAT_CTR_INC("clauses discarded by weight limit in forward simplification");
+    RSTAT_CTR_INC("clauses discarded by limit in forward simplification");
     env.statistics->discardedNonRedundantClauses++;
     return false;
   }

@@ -339,7 +339,7 @@ void AWPassiveClauseContainer::onLimitsUpdated()
 
   while (toRemove.isNonEmpty()) {
     Clause* removed=toRemove.pop();
-    RSTAT_CTR_INC("clauses discarded from passive on weight limit update");
+    RSTAT_CTR_INC("clauses discarded from passive on age/weight limit update");
     env.statistics->discardedNonRedundantClauses++;
     remove(removed);
   }
