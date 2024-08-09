@@ -38,11 +38,6 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
-bool LRS::isComplete()
-{
-  return !_limitsEverActive && SaturationAlgorithm::isComplete();
-}
-
 
 void LRS::onUnprocessedSelected(Clause* c)
 {
@@ -54,9 +49,6 @@ void LRS::onUnprocessedSelected(Clause* c)
     long long estimatedReachable=estimatedReachableCount();
     if(estimatedReachable>=0) {
       _passive->updateLimits(estimatedReachable);
-      if(!_limitsEverActive) {
-        _limitsEverActive=_passive->weightLimited() || _passive->ageLimited();
-      }
     }
   }
 }
