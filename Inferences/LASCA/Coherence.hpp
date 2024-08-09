@@ -28,6 +28,7 @@
 #include "Lib/Recycled.hpp"
 #include "Shell/Options.hpp"
 #include "Debug/Output.hpp"
+#include "Test/LascaSimplRule.hpp"
 #include "Kernel/EqHelper.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
