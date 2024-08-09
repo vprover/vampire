@@ -631,6 +631,11 @@ bool AWPassiveClauseContainer::weightLimited() const
   return _weightRatio > 0 && _weightSelectionMaxWeight != UINT_MAX;
 }
 
+bool AWPassiveClauseContainer::someLimitActive() const
+{
+  return ageLimited() || weightLimited();
+}
+
 bool AWPassiveClauseContainer::fulfilsAgeLimit(Clause* cl) const
 {
   // don't want to reuse fulfilsAgeLimit(unsigned age,..) here, since we don't want to recompute weightForClauseSelection
@@ -671,6 +676,8 @@ bool AWPassiveClauseContainer::fulfilsWeightLimit(Clause* cl) const
 
 bool AWPassiveClauseContainer::fulfilsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const
 {
+  if (_weightSelectionMaxWeight == UINT_MAX) return true;
+
   const unsigned numeralWeight = 0; // heuristic: we don't want to compute the numeral weight during estimates and conservatively assume that it is 0.
   const unsigned splitWeight = 0; // also conservatively assuming 0
   /* In principle, we could compute this from the Inference (and it's not so expensive)

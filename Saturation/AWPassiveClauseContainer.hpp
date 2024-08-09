@@ -128,12 +128,15 @@ private:
   // (possible explanation: it's better to be careful on the weight queue about age as "all small clauses, no matter how old/young are potentially usefull"
   // while at the same time, it's better to be more agressive with deletions on the age queue, as the large clauses there are probably useless)
 
+protected:
+  bool ageLimited() const;
+  bool weightLimited() const;
+
   /*
    * LRS specific methods and fields for usage of limits
    */
 public:
-  bool ageLimited() const override;
-  bool weightLimited() const override;
+  bool someLimitActive() const override;
 
   bool fulfilsAgeLimit(Clause* c) const override;
   // note: w here denotes the weight as returned by weight().

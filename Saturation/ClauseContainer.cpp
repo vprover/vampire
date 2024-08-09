@@ -152,7 +152,7 @@ void ActiveClauseContainer::add(Clause* c)
   TIME_TRACE("add clause")
 
   ASS(c->store()==Clause::ACTIVE);
-  ALWAYS(_clauses.insert(c));  
+  ALWAYS(_clauses.insert(c));
   addedEvent.fire(c);
 }
 
@@ -173,7 +173,7 @@ void ActiveClauseContainer::onLimitsUpdated()
 {
   auto limits=getSaturationAlgorithm()->getPassiveClauseContainer();
   ASS(limits);
-  if (!limits->ageLimited() || !limits->weightLimited()) {
+  if (!limits->someLimitActive()) { // MS: was "both active" before!
     return;
   }
 
@@ -202,7 +202,7 @@ void ActiveClauseContainer::onLimitsUpdated()
     Clause* removed=toRemove.pop();
     ASS(removed->store()==Clause::ACTIVE);
 
-    RSTAT_CTR_INC("clauses discarded from active on weight limit update");
+    RSTAT_CTR_INC("clauses discarded from active on age/weight limit update");
     env.statistics->discardedNonRedundantClauses++;
 
     remove(removed);

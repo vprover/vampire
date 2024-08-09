@@ -38,7 +38,7 @@ private:
 
   std::vector<std::unique_ptr<PassiveClauseContainer>> _queues;
   std::vector<float> _cutoffs;
-  std::vector<unsigned> _invertedRatios;  
+  std::vector<unsigned> _invertedRatios;
   std::vector<unsigned> _balances;
   bool _layeredArrangement; // if set to true, queues are arranged as multi-split-queues. if false, queues use a tammet-style arrangement.
 
@@ -69,8 +69,7 @@ private:
    * LRS specific methods and fields for usage of limits
    */
 public:
-  bool ageLimited() const override;
-  bool weightLimited() const override;
+  bool someLimitActive() const override;
 
   bool fulfilsAgeLimit(Clause* cl) const override;
   // note: w here denotes the weight as returned by weight().

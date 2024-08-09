@@ -342,23 +342,11 @@ void PredicateSplitPassiveClauseContainer::onLimitsUpdated()
   }
 }
 
-bool PredicateSplitPassiveClauseContainer::ageLimited() const
+bool PredicateSplitPassiveClauseContainer::someLimitActive() const
 {
   for (const auto& queue : _queues)
   {
-    if (queue->ageLimited())
-    {
-      return true;
-    }
-  }
-  return false;
-}
-
-bool PredicateSplitPassiveClauseContainer::weightLimited() const
-{
-  for (const auto& queue : _queues)
-  {
-    if (queue->weightLimited())
+    if (queue->someLimitActive())
     {
       return true;
     }

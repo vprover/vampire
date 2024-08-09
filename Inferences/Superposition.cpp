@@ -340,7 +340,8 @@ Clause* Superposition::performSuperposition(
   Inference::Destroyer inf_destroyer(inf);
 
   auto passiveClauseContainer = _salg->getPassiveClauseContainer();
-  bool needsToFulfilWeightLimit = passiveClauseContainer && !passiveClauseContainer->fulfilsAgeLimit(0, numPositiveLiteralsLowerBound, inf) && passiveClauseContainer->weightLimited(); // 0 here denotes the current weight estimate
+  bool needsToFulfilWeightLimit = passiveClauseContainer && !passiveClauseContainer->fulfilsAgeLimit(0, numPositiveLiteralsLowerBound, inf) // 0 here denotes the current weight estimate
+                                                         && passiveClauseContainer->someLimitActive();
   if(needsToFulfilWeightLimit) {
     if(!earlyWeightLimitCheck(eqClause, eqLit, rwClause, rwLit, rwTerm, eqLHS, tgtTerm, subst, eqIsResult, passiveClauseContainer, numPositiveLiteralsLowerBound, inf)) {
       return 0;

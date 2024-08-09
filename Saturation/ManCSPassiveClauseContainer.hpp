@@ -61,8 +61,7 @@ public:
   /*
    * LRS specific methods and fields for usage of limits
    */
-  bool ageLimited() const override { return false; }
-  bool weightLimited() const override { return false; }
+  bool someLimitActive() const override { return false; }
 
   bool fulfilsAgeLimit(Clause* c) const override { return true; }
   // note: w here denotes the weight as returned by weight().

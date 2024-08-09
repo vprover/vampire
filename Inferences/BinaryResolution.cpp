@@ -118,7 +118,8 @@ Clause* BinaryResolution::generateClause(
   Inference::Destroyer inf_destroyer(inf); // will call destroy on inf when coming out of scope unless disabled
 
   auto passiveClauseContainer = _salg->getPassiveClauseContainer();
-  bool needsToFulfilWeightLimit = passiveClauseContainer && !passiveClauseContainer->fulfilsAgeLimit(wlb, numPositiveLiteralsLowerBound, inf) && passiveClauseContainer->weightLimited();
+  bool needsToFulfilWeightLimit = passiveClauseContainer && !passiveClauseContainer->fulfilsAgeLimit(wlb, numPositiveLiteralsLowerBound, inf)
+                                                         && passiveClauseContainer->someLimitActive();
 
   if(needsToFulfilWeightLimit) {
     for(unsigned i=0;i<clength;i++) {
