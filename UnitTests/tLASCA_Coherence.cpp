@@ -26,6 +26,7 @@
 #include "Indexing/TermSubstitutionTree.hpp" 
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Test/LascaSimplRule.hpp"
+#include "Inferences/LASCA/Coherence.hpp"
 
 using namespace std;
 using namespace Kernel;
@@ -77,12 +78,15 @@ inline Stack<std::function<Indexing::Index*()>> lascaCoherenceIndices()
     [](){ return new LascaIndex<CoherenceConf<RealTraits>::Rhs>();},
   }; }
 
-inline Coherence<RealTraits> testCoherence(Options::UnificationWithAbstraction uwa)
-{ return Coherence<RealTraits>(state(uwa)); }
+inline auto testCoherence(Options::UnificationWithAbstraction uwa)
+{ 
+  auto s = state(uwa);
+  return LascaSimplRule<Coherence<RealTraits>>(Coherence<RealTraits>(s), Normalization(s));
+}
 
 
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<Coherence<RealTraits>>(testCoherence(UWA_MODE)))
+REGISTER_GEN_TESTER(Test::Generation::GenerationTester<LascaSimplRule<Coherence<RealTraits>>>(testCoherence(UWA_MODE)))
 
 /////////////////////////////////////////////////////////
 // Basic tests
@@ -94,7 +98,7 @@ TEST_GENERATION(basic01,
       .inputs  ({ clause({ selected( a + b == floor(c) )  }) 
                 , clause({ selected(     p(floor(a + b)) )  }) })
       .expected(exactly(
-            clause({ p(a + b + floor(0))  })
+            clause({ p(a + b)  })
       ))
     )
 
@@ -124,7 +128,7 @@ TEST_GENERATION(basic04,
       .inputs  ({ clause({ selected( isInteger(a + b) )  }) 
                 , clause({ selected(     p(floor(2 * a + 2 * b)) )  }) })
       .expected(exactly(
-            clause({ p(2 * a + 2 * b + floor(0))  })
+            clause({ p(2 * a + 2 * b)  })
       ))
     )
 
@@ -144,7 +148,7 @@ TEST_GENERATION(basic06,
       .inputs  ({ clause({ selected( f(x) + f(y) == floor(f2(x,y)) )  }) 
                 , clause({ selected(     p(floor(f(a) + f(b))) )  }) })
       .expected(exactly(
-            clause({ p(f(a) + f(b) + floor(0))  })
+            clause({ p(f(a) + f(b))  })
       ))
     )
 
@@ -154,7 +158,7 @@ TEST_GENERATION(basic07,
       .inputs  ({ clause({ selected( isInteger(f2(a, y) + f2(y, b)) )  }) 
                 , clause({ selected(     p(floor(f2(a, x) + f2(y, b))) )  }) })
       .expected(exactly(
-            clause({ p(f2(a, x) + f2(y, b) + floor(0))  })
+            clause({ p(f2(a, x) + f2(y, b))  })
       ))
     )
 
@@ -164,7 +168,7 @@ TEST_GENERATION(basic08,
       .inputs  ({ clause({ selected( isInteger(f2(a, y) + 2 * f2(y, b)) )  }) 
                 , clause({ selected(     p(floor(2 * f2(a, x) + f2(y, b))) )  }) })
       .expected(exactly(
-            clause({ p(3 * f2(a, b) + floor(0))  })
+            clause({ p(3 * f2(a, b))  })
       ))
     )
 
