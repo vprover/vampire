@@ -437,16 +437,16 @@ public:
    * If there is a value stored under the @b key, remove
    * it and return true. Otherwise, return false.
    */
-  bool remove(Key const& key)
+  Option<std::pair<Key,Val>> remove(Key const& key)
   {
     Entry* e=findEntry(key);
     if(!e) {
-      return false;
+      return {};
     }
     e->_info.deleted=1;
     _size--;
     _deleted++;
-    return true;
+    return some(std::pair<Key,Val>(move_if_value<Key>(e->_key), move_if_value<Val>(e->_val)));
   }
 
 
@@ -775,6 +775,47 @@ public:
   {
     return VirtualIterator<Item>(new ItemIteratorCore(*this));
   }
+
+
+  // class ConstIter {
+  // public:
+  //   DECL_ELEMENT_TYPE(std::pair<Key const&, Val const&>)
+  //
+  //   inline ConstIter(DHMap const& map) : _base(map) {}
+  //
+  //   bool hasNext() { return _base.hasNext(); }
+  //
+  //   auto next()
+  //   {
+  //     Entry* e=_base.next();
+  //     return std::pair<Key const&, Val const&>(e->_key, e->_val);
+  //   }
+  //
+  // private:
+  //   IteratorBase _base;
+  // }; 
+  //
+  //
+  // class MutIter {
+  // public:
+  //   DECL_ELEMENT_TYPE(std::pair<Key const&, Val&>)
+  //
+  //   inline MutIter(DHMap& map) : _base(map) {}
+  //
+  //   bool hasNext() { return _base.hasNext(); }
+  //
+  //   auto next()
+  //   {
+  //     Entry* e=_base.next();
+  //     return std::pair<Key const&, Val&>(e->_key, e->_val);
+  //   }
+  //
+  // private:
+  //   IteratorBase _base;
+  // }; 
+  //
+  // auto iter()       { return iterTraits(MutIter(*this)); }
+  // auto iter() const { return iterTraits(ConstIter(*this)); }
 
 
   /**

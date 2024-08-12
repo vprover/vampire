@@ -13,8 +13,6 @@
  *
  */
 
-
-
 #ifndef __LASCA__
 #define __LASCA__
 
@@ -830,7 +828,8 @@ namespace Kernel {
     bool equivalent(TypedTermList lhs, TypedTermList rhs) 
      { return normalize(lhs) == normalize(rhs); }
 
-    bool isAtomic(Term* t) { return !interpretedFunction(t); }
+    bool isAtomic(Term* t) { return !interpretedFunction(t) || 
+      forAnyNumTraits([&](auto n) { return n.isFloor(t->functor()); }); }
     // bool isAtomic(TermList t) { return t.isVar() || isAtomic(t.term()); }
 
 

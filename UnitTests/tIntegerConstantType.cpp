@@ -77,15 +77,15 @@ TEST_FUN(divides) {
 }
 
 TEST_FUN(floor) {
-  ASS_EQ( rct(3,5).floor(), rct(0) )
-  ASS_EQ( rct(7,5).floor(), rct(1) )
-  ASS_EQ( rct(10,5).floor(), rct(2) )
-  ASS_EQ( rct(12,5).floor(), rct(2) )
+  ASS_EQ( rct(3,5).floorRat(), rct(0) )
+  ASS_EQ( rct(7,5).floorRat(), rct(1) )
+  ASS_EQ( rct(10,5).floorRat(), rct(2) )
+  ASS_EQ( rct(12,5).floorRat(), rct(2) )
 
-  ASS_EQ( rct(-12,5).floor(), rct(-3) )
-  ASS_EQ( rct(-10,5).floor(), rct(-2) )
-  ASS_EQ( rct( -7,5).floor(), rct(-2) )
-  ASS_EQ( rct( -3,5).floor(), rct(-1) )
+  ASS_EQ( rct(-12,5).floorRat(), rct(-3) )
+  ASS_EQ( rct(-10,5).floorRat(), rct(-2) )
+  ASS_EQ( rct( -7,5).floorRat(), rct(-2) )
+  ASS_EQ( rct( -3,5).floorRat(), rct(-1) )
 }
 
 TEST_FUN(ceiling) {

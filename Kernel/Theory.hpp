@@ -119,6 +119,7 @@ public:
   IntegerConstantType quotientF(const IntegerConstantType& num) const; 
   static IntegerConstantType gcd(IntegerConstantType const& lhs, IntegerConstantType const& rhs);
   static IntegerConstantType lcm(IntegerConstantType const& lhs, IntegerConstantType const& rhs);
+  IntegerConstantType gcd(IntegerConstantType const& rhs) { return IntegerConstantType::gcd(*this, rhs); }
 
   IntegerConstantType remainderT(const IntegerConstantType& num) const;
   IntegerConstantType remainderF(const IntegerConstantType& num) const;
@@ -195,13 +196,12 @@ struct RationalConstantType {
 
   RationalConstantType& operator*=(RationalConstantType const& r) { _num *= r._num; _den *= r._den;  cannonize(); return *this; }
   RationalConstantType& operator+=(RationalConstantType const& r) { *this = *this + r; return *this; }
-  RationalConstantType& operator-=(RationalConstantType const& r) { _num -= r._num; _den -= r._den;  cannonize(); return *this; }
+  RationalConstantType& operator-=(RationalConstantType const& r) { *this = *this - r; return *this; }
   RationalConstantType& operator/=(RationalConstantType const& r) { _num *= r._den; _den *= r._num;  cannonize(); return *this; }
 
   RationalConstantType inverse() const { return RationalConstantType(1) / *this; }
-  RationalConstantType floor() const { 
-    return RationalConstantType(IntegerConstantType::floor(*this));
-  }
+  IntegerConstantType floor() const { return IntegerConstantType::floor(*this); }
+  RationalConstantType floorRat() const { return RationalConstantType(floor()); }
   RationalConstantType ceiling() const { 
     return RationalConstantType(IntegerConstantType::ceiling(*this));
   }
@@ -281,7 +281,8 @@ public:
   RealConstantType operator/(const RealConstantType& num) const
   { return RealConstantType(RationalConstantType::operator/(num)); }
 
-  RealConstantType floor() const { return RealConstantType(RationalConstantType::floor()); }
+  IntegerConstantType floor() const { return RationalConstantType::floor(); }
+  RealConstantType floorRat() const { return RealConstantType(floor()); }
   RealConstantType truncate() const { return RealConstantType(RationalConstantType::truncate()); }
   RealConstantType ceiling() const { return RealConstantType(RationalConstantType::ceiling()); }
 

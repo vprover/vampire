@@ -95,6 +95,7 @@ REGISTER_GEN_TESTER(Test::Generation::GenerationTester<LascaSimplRule<Coherence<
 TEST_GENERATION(basic01,
     Generation::SymmetricTest()
       .indices(lascaCoherenceIndices())
+      .selfApplications(false)
       .inputs  ({ clause({ selected( a + b == floor(c) )  }) 
                 , clause({ selected(     p(floor(a + b)) )  }) })
       .expected(exactly(
@@ -105,6 +106,7 @@ TEST_GENERATION(basic01,
 TEST_GENERATION(basic02,
     Generation::SymmetricTest()
       .indices(lascaCoherenceIndices())
+      .selfApplications(false)
       .inputs  ({ clause({ selected( a + b == floor(c) )  }) 
                 , clause({ selected(     p(floor(2 * a + b)) )  }) })
       .expected(exactly(
@@ -115,6 +117,7 @@ TEST_GENERATION(basic02,
 TEST_GENERATION(basic03,
     Generation::SymmetricTest()
       .indices(lascaCoherenceIndices())
+      .selfApplications(false)
       .inputs  ({ clause({ selected( isInteger(a + b) )  }) 
                 , clause({ selected(     p(floor(2 * a + b)) )  }) })
       .expected(exactly(
@@ -122,9 +125,11 @@ TEST_GENERATION(basic03,
       ))
     )
 
+
 TEST_GENERATION(basic04,
     Generation::SymmetricTest()
       .indices(lascaCoherenceIndices())
+      .selfApplications(false)
       .inputs  ({ clause({ selected( isInteger(a + b) )  }) 
                 , clause({ selected(     p(floor(2 * a + 2 * b)) )  }) })
       .expected(exactly(
@@ -135,6 +140,7 @@ TEST_GENERATION(basic04,
 TEST_GENERATION(basic05,
     Generation::SymmetricTest()
       .indices(lascaCoherenceIndices())
+      .selfApplications(false)
       .inputs  ({ clause({ selected( 2 * a + b == floor(c) )  }) 
                 , clause({ selected(     p(floor(a + b)) )  }) })
       .expected(exactly(
@@ -145,6 +151,7 @@ TEST_GENERATION(basic05,
 TEST_GENERATION(basic06,
     Generation::SymmetricTest()
       .indices(lascaCoherenceIndices())
+      .selfApplications(false)
       .inputs  ({ clause({ selected( f(x) + f(y) == floor(f2(x,y)) )  }) 
                 , clause({ selected(     p(floor(f(a) + f(b))) )  }) })
       .expected(exactly(
@@ -155,7 +162,8 @@ TEST_GENERATION(basic06,
 TEST_GENERATION(basic07,
     Generation::SymmetricTest()
       .indices(lascaCoherenceIndices())
-      .inputs  ({ clause({ selected( isInteger(f2(a, y) + f2(y, b)) )  }) 
+      .selfApplications(false)
+      .inputs  ({ clause({ selected( isInteger(f2(a, x) + f2(y, b)) )  }) 
                 , clause({ selected(     p(floor(f2(a, x) + f2(y, b))) )  }) })
       .expected(exactly(
             clause({ p(f2(a, x) + f2(y, b))  })
@@ -165,7 +173,8 @@ TEST_GENERATION(basic07,
 TEST_GENERATION(basic08,
     Generation::SymmetricTest()
       .indices(lascaCoherenceIndices())
-      .inputs  ({ clause({ selected( isInteger(f2(a, y) + 2 * f2(y, b)) )  }) 
+      .selfApplications(false)
+      .inputs  ({ clause({ selected( isInteger(f2(a, x) + 2 * f2(y, b)) )  }) 
                 , clause({ selected(     p(floor(2 * f2(a, x) + f2(y, b))) )  }) })
       .expected(exactly(
             clause({ p(3 * f2(a, b))  })
@@ -175,6 +184,7 @@ TEST_GENERATION(basic08,
 TEST_GENERATION(basic09,
     Generation::SymmetricTest()
       .indices(lascaCoherenceIndices())
+      .selfApplications(false)
       .inputs  ({ clause({ selected(  isInteger(f(x)) )  }) 
                 , clause({ selected(     p(floor(f(a) + f(b))) )  }) })
       .expected(exactly(
@@ -183,3 +193,103 @@ TEST_GENERATION(basic09,
       ))
     )
 
+
+TEST_GENERATION(basic10,
+    Generation::SymmetricTest()
+      .indices(lascaCoherenceIndices())
+      .selfApplications(false)
+      .inputs  ({ clause({ selected( isInteger(a + b) )  }) 
+                , clause({ selected(p(floor(-a + -b)) )  }) })
+      .expected(exactly(
+          clause({ p(-a + -b) })
+      ))
+    )
+
+TEST_GENERATION(factors_0,
+    Generation::SymmetricTest()
+      .indices(lascaCoherenceIndices())
+      .selfApplications(false)
+      .inputs  ({ clause({ selected( isInteger(a + b + c) )  }) 
+                , clause({ selected(p(floor(a + b + c)) )  }) })
+      .expected(exactly(
+          clause({ p(a + b + c) })
+      ))
+    )
+
+TEST_GENERATION(factors_1,
+    Generation::SymmetricTest()
+      .indices(lascaCoherenceIndices())
+      .selfApplications(false)
+      .inputs  ({ clause({ selected( isInteger(a + b + c) )  }) 
+                , clause({ selected(p(floor(-a + -b + -c)) )  }) })
+      .expected(exactly(
+          clause({ p(-a + -b + -c) })
+      ))
+    )
+
+TEST_GENERATION(factors_2,
+    Generation::SymmetricTest()
+      .indices(lascaCoherenceIndices())
+      .selfApplications(false)
+      .inputs  ({ clause({ selected( isInteger(a + b + c) )  }) 
+                , clause({ selected(p(floor(-a + b + -c)) )  }) })
+      .expected(exactly(
+          /* nothing */
+      ))
+    )
+
+TEST_GENERATION(factors_3,
+    Generation::SymmetricTest()
+      .indices(lascaCoherenceIndices())
+      .selfApplications(false)
+      .inputs  ({ clause({ selected( isInteger(a + b + c) )  }) 
+                , clause({ selected(p(floor(-a + -b + 2 * c)) )  }) })
+      .expected(exactly(
+          /* nothing */
+      ))
+    )
+
+TEST_GENERATION(factors_4,
+    Generation::SymmetricTest()
+      .indices(lascaCoherenceIndices())
+      .selfApplications(false)
+      .inputs  ({ clause({ selected( isInteger(a + b + c) )  }) 
+                , clause({ selected(p(floor(-a + -b + -2 * c)) )  }) })
+      .expected(exactly(
+          clause({ p(-a + -b + -c + floor(-c)) })
+      ))
+    )
+
+TEST_GENERATION(factors_5,
+    Generation::SymmetricTest()
+      .indices(lascaCoherenceIndices())
+      .selfApplications(false)
+      .inputs  ({ clause({ selected( isInteger(a + b + c) )  }) 
+                , clause({ selected(p(floor(a + b + 2 * c)) )  }) })
+      .expected(exactly(
+          clause({ p(a + b + c + floor(c)) })
+      ))
+    )
+
+// TODO check theory whether we really should do this with factors != +-1
+TEST_GENERATION(factors_6,
+    Generation::SymmetricTest()
+      .indices(lascaCoherenceIndices())
+      .selfApplications(false)
+      .inputs  ({ clause({ selected( isInteger(a + b + c) )  }) 
+                , clause({ selected(p(floor(2 * a + 4 * b + 2 * c)) )  }) })
+      .expected(exactly(
+          clause({ p(2 * a + 2 * b + 2 * c + floor(2 * b)) })
+      ))
+    )
+
+TEST_GENERATION(factors_7,
+    Generation::SymmetricTest()
+      .indices(lascaCoherenceIndices())
+      .selfApplications(false)
+      .inputs  ({ clause({ selected( isInteger(a + b + c) )  }) 
+                , clause({ selected(p(floor(frac(1,2) * a + 4 * b + 2 * c)) )  }) })
+      .expected(exactly(
+          /* nothing */
+      ))
+    )

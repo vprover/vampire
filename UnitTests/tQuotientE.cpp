@@ -169,11 +169,11 @@ TEST_FUN(bug01)
 template<class Const>
 void checkFloor() 
 {
-  ASS_EQ(Const( 3, 2).floor(), Const( 1))
-  ASS_EQ(Const(-3, 2).floor(), Const(-2))
-  ASS_EQ(Const( 4, 2).floor(), Const( 2))
-  ASS_EQ(Const(-4, 2).floor(), Const(-2))
-  ASS_EQ(Const( 0, 2).floor(), Const( 0))
+  ASS_EQ(Const( 3, 2).floorRat(), Const( 1))
+  ASS_EQ(Const(-3, 2).floorRat(), Const(-2))
+  ASS_EQ(Const( 4, 2).floorRat(), Const( 2))
+  ASS_EQ(Const(-4, 2).floorRat(), Const(-2))
+  ASS_EQ(Const( 0, 2).floorRat(), Const( 0))
 }
 
 template<class Const>

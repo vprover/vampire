@@ -788,7 +788,7 @@ protected:
       res = -arg;
       return true;
     case Theory::RAT_FLOOR:
-      res = arg.floor();
+      res = arg.floorRat();
       return true;
     case Theory::RAT_CEILING:
       res = arg.ceiling();
@@ -877,7 +877,7 @@ protected:
       res = -arg;
       return true;
     case Theory::REAL_FLOOR:
-      res = arg.floor();
+      res = arg.floorRat();
       return true;
     case Theory::REAL_CEILING:
       res = arg.ceiling();
