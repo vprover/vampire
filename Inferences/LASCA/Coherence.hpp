@@ -66,9 +66,16 @@ struct CoherenceConf
     return SharedSum(move_to_heap(std::move(rstack)));
   }
 public:
-  struct Lhs
-  {
-    LASCA::SuperpositionConf::Lhs _self;
+
+  template<class Inner>
+  struct Side : public Inner {
+
+    Side(Inner inner, TermList sumTerm, SharedSum sum, unsigned idx) 
+      : Inner(std::move(inner)) 
+        , sumTerm(std::move(sumTerm))
+        , sum(std::move(sum))
+        , _summandIdx(idx) {}
+
     TermList sumTerm;
     SharedSum sum;
     unsigned _summandIdx;
@@ -81,7 +88,20 @@ public:
     static IndexType indexType() { return Indexing::LASCA_COHERENCE_LHS_SUBST_TREE; }
 
     TypedTermList key() const { return TypedTermList((*sum)[_summandIdx].first, NumTraits::sort()); }
-    Clause* clause() const { return _self.clause(); }
+
+    friend std::ostream& operator<<(std::ostream& out, Side const& self)
+    { return out << (Inner const&)self << "[" << self._summandIdx << "]"; }
+
+    auto asTuple() const { return std::tuple_cat(Inner::asTuple(), std::tie(_summandIdx)); }
+    IMPL_COMPARISONS_FROM_TUPLE(Side)
+  };
+
+
+  struct Lhs : public Side<LASCA::SuperpositionConf::Lhs>
+  {
+    using Side<LASCA::SuperpositionConf::Lhs>::Side;
+    static const char* name() { return "lasca coherence lhs"; }
+    static IndexType indexType() { return Indexing::LASCA_COHERENCE_LHS_SUBST_TREE; }
 
     static auto iter(LascaState& shared, Clause* cl)
     {
@@ -93,34 +113,17 @@ public:
                   .filter([=](auto i) { return !(**sum)[i].first.isVar(); });
                 // TODO we can choose *any* summand for the rule to work. which summand is important though as it is our primary filter to preselect the number of potential applications in indexing. Try out which terms are good here!!!
                 auto selectedAtom = atoms.tryNext();
-                return selectedAtom.map([=](auto i) { return Lhs { lhs, lhs.smallerSide(), sum, i }; });
+                return selectedAtom.map([=](auto i) { return Lhs( lhs, lhs.smallerSide(), sum, i ); });
               }).flatten(); 
             }) ;
     }
-
-    friend std::ostream& operator<<(std::ostream& out, Lhs const& self)
-    { return out << self._self << "[" << self._summandIdx << "]"; }
-
-    auto asTuple() const { return std::tie(_self, _summandIdx); }
-    IMPL_COMPARISONS_FROM_TUPLE(Lhs)
   };
 
-
-  struct Rhs 
+  struct Rhs : public Side<LASCA::Superposition::Rhs>
   {
-    LASCA::Superposition::Rhs _self;
-    TermList sumTerm;
-    SharedSum sum;
-    unsigned _summandIdx;
-
-    TermList atom(unsigned i) const { return (**sum)[i].first; }
-    N numeral(unsigned i) const { return (**sum)[i].second; }
-    unsigned nSummands() const { return (**sum).size(); }
-
+    using Side<LASCA::SuperpositionConf::Rhs>::Side;
     static const char* name() { return "lasca coherence rhs"; }
     static IndexType indexType() { return Indexing::LASCA_COHERENCE_RHS_SUBST_TREE; }
-
-    TypedTermList key() const { return TypedTermList((*sum)[_summandIdx].first, NumTraits::sort()); }
 
     static auto iter(LascaState& shared, Clause* cl)
     {
@@ -129,17 +132,11 @@ public:
               [&shared, rhs](auto t) { 
                 auto sum = toSum(shared, t);
                 return range(0, (*sum)->size())
-                      .map([=](unsigned i) { return Rhs { rhs, t, sum, i }; }); 
+                      .map([=](unsigned i) { return Rhs(LASCA::Superposition::Rhs(rhs), t, sum, i); }); 
               }); 
             })
         .flatten();
     }
-
-    friend std::ostream& operator<<(std::ostream& out, Rhs const& self)
-    { return out << self._self << "[" << self._summandIdx << "]"; }
-
-    auto asTuple() const { return std::tie(_self, _summandIdx); }
-    IMPL_COMPARISONS_FROM_TUPLE(Rhs)
   };
 
   // TODO coherence for varibles!!!
@@ -184,13 +181,13 @@ public:
       Option<SubSumUnif*> tryNext() {
 
 
-        auto DBG_CLASSES = [&](auto... msg) {
-          DBG(msg...)
-          for (auto c : sum1ClassRoots) {
-            auto& cls = *sum1ClassMap.get(c);
-            DBG("    ", sum1.atom(cls.idx1), ": ", cls.numeral0, " ", cls.numeral1)
-          }
-        };
+        // auto DBG_CLASSES = [&](auto... msg) {
+        //   DBG(msg...)
+        //   for (auto c : sum1ClassRoots) {
+        //     auto& cls = *sum1ClassMap.get(c);
+        //     DBG("    ", sum1.atom(cls.idx1), ": ", cls.numeral0, " ", cls.numeral1)
+        //   }
+        // };
         auto unify = [&](auto... args) {
           auto result = uwa->unify(args...);
           // DBG("unify: ", std::tie(args...), " -> ", result, "(subs: ", *uwa, ")");
@@ -199,15 +196,11 @@ public:
         while (!merges.isEmpty()) {
           auto& pair = merges.top();
           if (pair.first >= sum1ClassRoots.size()) {
-            // DBG_CLASSES("before backtrack: ", merges);
             bds.pop().backtrack();
-            // DBG_CLASSES("after backtrack: ", merges);
             merges.pop();
 
           } else if (pair.second >= sum1ClassRoots.size()) {
-            // DBG_CLASSES("before backtrack: ", merges);
             bds.top().backtrack();
-            // DBG_CLASSES("after backtrack: ", merges);
             pair.first++;
             pair.second = pair.first + 1;
 
@@ -290,9 +283,6 @@ public:
       AbstractingUnifier& uwa
       ) const 
   {
-    // DBG("isInt: ", lhs.smallerSide)
-    // DBG("floor term: ", rhs.polynom)
-
     return iterTraits(iterFromTryNext(SubSumUnif(&uwa, lhs, lhsVarBank, rhs, rhsVarBank)))
       .filter([&lhs, &rhs, lhsVarBank, rhsVarBank](SubSumUnif* state) {
           DEBUG_COHERENCE(2, "atoms match: ")
@@ -353,10 +343,10 @@ public:
           }
 
           auto& subs = state->uwa->subs();
-          auto u = NumTraits::ifFloor(rhs._self.toRewrite(), [](auto t) { return t; }).unwrap();
-          auto t = lhs._self.smallerSide();
+          auto u = NumTraits::ifFloor(rhs.toRewrite(), [](auto t) { return t; }).unwrap();
+          auto t = lhs.smallerSide();
 
-          auto Lσ = subs.apply(rhs._self.literal(), rhsVarBank);
+          auto Lσ = subs.apply(rhs.literal(), rhsVarBank);
           auto uσ = subs.apply(u, rhsVarBank);
           auto f_tσ = NumTraits::mul(NumTraits::constantTl(*factor), subs.apply(t, lhsVarBank));
           Literal* rLit = EqHelper::replace(Lσ, 
@@ -367,14 +357,14 @@ public:
           
           return some(Clause::fromIterator(
               concatIters(
-                rhs._self.contextLiterals()
+                rhs.contextLiterals()
                   .map([&](auto lit) { return subs.apply(lit, lhsVarBank); }),
-                rhs._self.contextLiterals()
+                rhs.contextLiterals()
                   .map([&](auto lit) { return subs.apply(lit, rhsVarBank); }),
                 iterItems(rLit),
                 arrayIter(*constr)
               ),
-              Inference(GeneratingInference2(InferenceRule::LASCA_COHERENCE, lhs.clause(), rhs._self.clause()))));
+              Inference(GeneratingInference2(InferenceRule::LASCA_COHERENCE, lhs.clause(), rhs.clause()))));
       });
   }
 };
