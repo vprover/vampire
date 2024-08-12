@@ -27,7 +27,7 @@
 using namespace Lib;
 using namespace Kernel;
 
-SoftmaxClauseQueue::SoftmaxClauseQueue(DHMap<Clause*,std::pair<float,unsigned>>& scores, bool talkative)
+SoftmaxClauseQueue::SoftmaxClauseQueue(const DHMap<Clause*,std::pair<float,unsigned>>& scores, bool talkative)
     : _talkative(talkative), _height(0), _total(0.0f), _scores(scores)
 {
   void* mem = ALLOC_KNOWN(sizeof(Node)+MAX_HEIGHT*sizeof(LinkInfo),"SoftmaxClauseQueue::Node");

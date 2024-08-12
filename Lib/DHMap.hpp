@@ -58,7 +58,7 @@ class DHMap
 {
 public:
   USE_ALLOCATOR(DHMap);
-  
+
   /** Create a new DHMap */
   DHMap()
   : _timestamp(1), _size(0), _deleted(0), _capacityIndex(0), _capacity(0),
@@ -76,7 +76,7 @@ public:
     }
   }
 
-  friend void swap(DHMap& l, DHMap& r) 
+  friend void swap(DHMap& l, DHMap& r)
   {
     std::swap(l._timestamp, r._timestamp);
     std::swap(l._size, r._size);

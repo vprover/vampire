@@ -112,6 +112,8 @@
 #include "LRS.hpp"
 #include "Otter.hpp"
 
+#include "NeuralPassiveClauseContainers.hpp"
+
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
@@ -196,6 +198,22 @@ std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Optio
   }
 }
 
+std::unique_ptr<PassiveClauseContainer> makeLevel5(bool isOutermost, const Options& opt, std::string name, NeuralClauseEvaluationModel& neuralModel)
+{
+  if (opt.useNeuralEvalSplitQueues()) {
+    std::vector<std::unique_ptr<PassiveClauseContainer>> queues;
+    std::vector<float> cutoffs = opt.neuralEvalSplitQueueCutoffs();
+    for (unsigned i = 0; i < cutoffs.size(); i++) {
+      auto queueName = name + "NLSQ" + Int::toString(cutoffs[i]) + ":";
+      queues.push_back(makeLevel4(false, opt, queueName));
+    }
+    return std::make_unique<NeuralEvalSplitPassiveClauseContainer>(isOutermost, opt, name + "NLSQ", std::move(queues), neuralModel);
+  }
+  else {
+    return makeLevel4(isOutermost, opt, name);
+  }
+}
+
 /**
  * Create a SaturationAlgorithm object
  *
@@ -226,21 +244,21 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
 
   _unprocessed = new UnprocessedClauseContainer();
 
-  const std::string& npcc = opt.neuralPassiveClauseContainer();
-  if (!npcc.empty())
-  {
-    if (npcc == "__NF12cLoop5") {
-       _passive = std::make_unique<LearnedPassiveClauseContainerExperNF12cLoop5>(true, opt);
-    } else {
-      _passive = std::make_unique<NeuralPassiveClauseContainer>(true, opt);
-    }
+  const std::string& ncem = opt.neuralClauseEvaluationModel();
+  if (!ncem.empty()) {
+    _neuralModel = new NeuralClauseEvaluationModel(ncem,
+      opt.neuralClauseEvaluationModelTweaks(),opt.randomSeed(),opt.numClauseFeatures(),opt.npccTemperature());
   }
-  else if (opt.useManualClauseSelection())
-  {
+
+  if (opt.neuralPassiveClauseContainer()) {
+    // could also be part of level0, so that neural queues can be combined with splits
+    _passive = std::make_unique<NeuralPassiveClauseContainer>(true, opt, *_neuralModel);
+  }
+  else if (opt.useManualClauseSelection()) {
     _passive = std::make_unique<ManCSPassiveClauseContainer>(true, opt);
   }
   else {
-    _passive = makeLevel4(true, opt, "");
+    _passive = makeLevel5(true, opt, "", *_neuralModel);
   }
   _active = new ActiveClauseContainer(opt);
 

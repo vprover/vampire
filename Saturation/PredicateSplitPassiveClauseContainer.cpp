@@ -525,4 +525,21 @@ float PositiveLiteralMultiSplitPassiveClauseContainer::evaluateFeatureEstimate(u
   return numPositiveLiterals;
 }
 
+NeuralEvalSplitPassiveClauseContainer::NeuralEvalSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt,
+  std::string name, vector<std::unique_ptr<PassiveClauseContainer>> queues, NeuralClauseEvaluationModel& model) :
+  PredicateSplitPassiveClauseContainer(isOutermost, opt, name, std::move(queues),
+      opt.neuralEvalSplitQueueCutoffs(),
+      opt.neuralEvalSplitQueueRatios(),
+      true /* monotone queue split hard-wired here */), _model(model) {}
+
+float NeuralEvalSplitPassiveClauseContainer::evaluateFeature(Clause* cl) const
+{
+  return -_model.evalClause(cl).first; // small is good, large is bad
+}
+
+float NeuralEvalSplitPassiveClauseContainer::evaluateFeatureEstimate(unsigned numPositiveLiterals, const Inference& inference) const
+{
+  return std::numeric_limits<float>::lowest(); // simply estimate that the clause is good
+}
+
 };

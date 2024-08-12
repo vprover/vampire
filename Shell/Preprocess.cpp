@@ -196,7 +196,7 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if (_options.sineToAge() || _options.useSineLevelSplitQueues() || (_options.sineToPredLevels() != Options::PredicateSineLevels::OFF) ||
-      ((_options.showPassiveTraffic() || !_options.neuralPassiveClauseContainer().empty()) && _options.numClauseFeatures() > 8)) { // our feature vector also includes the sine levels
+      ((_options.showPassiveTraffic() || !_options.neuralClauseEvaluationModel().empty()) && _options.numClauseFeatures() > 8)) { // our feature vector also includes the sine levels
     env.statistics->phase=Statistics::SINE_SELECTION;
 
     if (_options.sineToPredLevels() != Options::PredicateSineLevels::OFF) {

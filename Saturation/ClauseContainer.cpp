@@ -152,7 +152,7 @@ void ActiveClauseContainer::add(Clause* c)
   TIME_TRACE("add clause")
 
   ASS(c->store()==Clause::ACTIVE);
-  ALWAYS(_clauses.insert(c));  
+  ALWAYS(_clauses.insert(c));
   addedEvent.fire(c);
 }
 

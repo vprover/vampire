@@ -1075,7 +1075,7 @@ private:
         ChoiceOptionValue(std::string l, std::string s,T def,OptionChoiceValues c) :
         OptionValue<T>(l,s,def), choices(c) {}
         ChoiceOptionValue(std::string l, std::string s,T d) : ChoiceOptionValue(l,s,d, T::optionChoiceValues()) {}
-        
+
         bool setValue(const std::string& value){
             // makes reasonable assumption about ordering of every enum
             int index = choices.find(value.c_str());
@@ -1110,7 +1110,7 @@ private:
             }
             out << std::endl;
         }
-        
+
         std::string getStringOfValue(T value) const {
             unsigned i = static_cast<unsigned>(value);
             return choices[i];
@@ -1140,7 +1140,7 @@ private:
 
             return true;
         }
-        
+
         std::string getStringOfValue(bool value) const { return (value ? "on" : "off"); }
     };
 
@@ -1162,7 +1162,7 @@ private:
         }
         std::string getStringOfValue(unsigned value) const{ return Lib::Int::toString(value); }
     };
-    
+
     struct StringOptionValue : public OptionValue<std::string> {
         StringOptionValue(){}
         StringOptionValue(std::string l,std::string s, std::string d) : OptionValue(l,s,d){}
@@ -2007,9 +2007,12 @@ public:
   bool showPassiveTraffic() const { return _showPassiveTraffic.actualValue; }
   unsigned numClauseFeatures() const { return _numClauseFeatures.actualValue; }
 
-  const std::string& neuralPassiveClauseContainer() const { return _neuralPassiveClauseContainer.actualValue; }
+  const std::string& neuralClauseEvaluationModel() const { return _neuralClauseEvaluationModel.actualValue; }
+  const std::string& neuralClauseEvaluationModelTweaks() const { return _neuralClauseEvaluationModelTweaks.actualValue; }
+
+  bool neuralPassiveClauseContainer() const { return _neuralPassiveClauseContainer.actualValue; }
   float npccTemperature() const { return _npccTemperature.actualValue; }
-  const std::string& neuralPassiveClauseContainerTweaks() const { return _neuralPassiveClauseContainerTweaks.actualValue; }
+
   unsigned reshuffleAt() const { return _reshuffleAt.actualValue; }
 
   // IMPORTANT, if you add a showX command then include showAll
@@ -2161,6 +2164,9 @@ public:
   std::vector<int> positiveLiteralSplitQueueRatios() const;
   std::vector<float> positiveLiteralSplitQueueCutoffs() const;
   bool positiveLiteralSplitQueueLayeredArrangement() const { return _positiveLiteralSplitQueueLayeredArrangement.actualValue; }
+  bool useNeuralEvalSplitQueues() const { return _useNeuralEvalSplitQueues.actualValue; }
+  std::vector<int> neuralEvalSplitQueueRatios() const;
+  std::vector<float> neuralEvalSplitQueueCutoffs() const;
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
 	AgeWeightRatioShape ageWeightRatioShape() const { return _ageWeightRatioShape.actualValue; }
 	int ageWeightRatioShapeFrequency() const { return _ageWeightRatioShapeFrequency.actualValue; }
@@ -2444,6 +2450,9 @@ private:
   StringOptionValue _positiveLiteralSplitQueueRatios;
   StringOptionValue _positiveLiteralSplitQueueCutoffs;
   BoolOptionValue _positiveLiteralSplitQueueLayeredArrangement;
+  BoolOptionValue _useNeuralEvalSplitQueues;
+  StringOptionValue _neuralEvalSplitQueueRatios;
+  StringOptionValue _neuralEvalSplitQueueCutoffs;
 	BoolOptionValue _randomAWR;
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
@@ -2646,11 +2655,13 @@ private:
 #endif // VAMPIRE_CLAUSE_TRACING
 
   BoolOptionValue _showPassiveTraffic;
-  UnsignedOptionValue _numClauseFeatures;
 
-  StringOptionValue _neuralPassiveClauseContainer;
+  UnsignedOptionValue _numClauseFeatures;
+  StringOptionValue _neuralClauseEvaluationModel;
+
+  BoolOptionValue _neuralPassiveClauseContainer;
   FloatOptionValue _npccTemperature;
-  StringOptionValue _neuralPassiveClauseContainerTweaks;
+  StringOptionValue _neuralClauseEvaluationModelTweaks;
   UnsignedOptionValue _reshuffleAt;
 
 #if VZ3

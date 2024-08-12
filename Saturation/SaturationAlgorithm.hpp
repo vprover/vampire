@@ -54,6 +54,7 @@ class ConsequenceFinder;
 class LabelFinder;
 class SymElOutput;
 class Splitter;
+class NeuralClauseEvaluationModel;
 
 class SaturationAlgorithm : public MainLoop
 {
@@ -87,9 +88,9 @@ public:
 
   //Run when clause cl has been simplified. Replacement is the array of replacing
   //clauses which can be empty
-  void onClauseReduction(Clause* cl, Clause** replacements, unsigned numOfReplacements, 
+  void onClauseReduction(Clause* cl, Clause** replacements, unsigned numOfReplacements,
                          Clause* premise, bool forward=true);
-  void onClauseReduction(Clause* cl, Clause** replacements, unsigned numOfReplacements, 
+  void onClauseReduction(Clause* cl, Clause** replacements, unsigned numOfReplacements,
                          ClauseIterator premises,
       bool forward=true);
   void onNonRedundantClause(Clause* c);
@@ -178,11 +179,10 @@ private:
 
   static SaturationAlgorithm* s_instance;
 protected:
-
   int _startTime;
   int _startInstrs;
 
-  bool _completeOptionSettings;  
+  bool _completeOptionSettings;
   bool _clauseActivationInProgress;
 
   RCClauseStack _newClauses;
@@ -233,6 +233,7 @@ protected:
    */
   ScopedPtr<LiteralSelector> _sosLiteralSelector;
 
+  ScopedPtr<NeuralClauseEvaluationModel> _neuralModel;
 
   // counters
 

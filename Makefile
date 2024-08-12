@@ -333,6 +333,7 @@ VSAT_OBJ=SAT/MinimizingSolver.o\
 	 SAT/FallbackSolverWrapper.o
 
 VST_OBJ= Saturation/AWPassiveClauseContainer.o\
+         Saturation/NeuralPassiveClauseContainers.o\
          Saturation/PredicateSplitPassiveClauseContainer.o\
          Saturation/ClauseContainer.o\
          Saturation/ConsequenceFinder.o\

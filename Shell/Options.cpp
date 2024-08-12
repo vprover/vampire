@@ -920,15 +920,30 @@ void Options::init()
     _lookup.insert(&_lookaheadDelay);
     _lookaheadDelay.onlyUsefulWith(_selection.isLookAheadSelection());
 
-    _numClauseFeatures = UnsignedOptionValue("num_clause_features","ncf",2);
+    _neuralClauseEvaluationModel = StringOptionValue("neural_clause_evaluation_model","ncem","");
+    _neuralClauseEvaluationModel.description="If non-empty, specifies a path to a torch script model that can be used to assin logits to clauses."
+       " (Rule of thumb: the higher the logit value, the better should the clause be for clause selection.)";
+    _lookup.insert(&_neuralClauseEvaluationModel);
+    _neuralClauseEvaluationModel.tag(OptionTag::SATURATION);
+    _neuralClauseEvaluationModel.onlyUsefulWith(ProperSaturationAlgorithm());
+
+    _neuralClauseEvaluationModelTweaks = StringOptionValue("npcc_tweaks","npccw","");
+    _neuralClauseEvaluationModelTweaks.description="String representation of a vector passed as additional ``problem-tweak'' to the ncem at contruction";
+    _lookup.insert(&_neuralClauseEvaluationModelTweaks);
+    _neuralClauseEvaluationModelTweaks.setExperimental();
+    _neuralClauseEvaluationModelTweaks.tag(OptionTag::SATURATION);
+    _neuralClauseEvaluationModelTweaks.onlyUsefulWith(_neuralClauseEvaluationModel.is(notEqual(std::string(""))));
+
+    _numClauseFeatures = UnsignedOptionValue("num_clause_features","ncf",12);
     _numClauseFeatures.description="How many features do we ask a clause to provide? There are at most 15 features currently, the later ones more expensive to compute.";
     _lookup.insert(&_numClauseFeatures);
     _numClauseFeatures.tag(OptionTag::SATURATION);
-    _numClauseFeatures.onlyUsefulWith(Or(_showPassiveTraffic.is(notEqual(false)),_neuralPassiveClauseContainer.is(notEqual(std::string("")))));
+    _numClauseFeatures.onlyUsefulWith(Or(_showPassiveTraffic.is(notEqual(false)),_neuralClauseEvaluationModel.is(notEqual(std::string("")))));
 
-    _neuralPassiveClauseContainer = StringOptionValue("neural_passive_clause_container","npcc","");
-    _neuralPassiveClauseContainer.description="If non-empty, specifies a path to a torch script model that should be used instead of the standard passive containers";
+    _neuralPassiveClauseContainer = BoolOptionValue("neural_passive_clause_container","npcc",false);
+    _neuralPassiveClauseContainer.description="Use neural clause evaluation model as the sole basis for the main passive container.";
     _lookup.insert(&_neuralPassiveClauseContainer);
+    _neuralPassiveClauseContainer.reliesOn(_neuralClauseEvaluationModel.is(notEqual(std::string(""))));
     _neuralPassiveClauseContainer.tag(OptionTag::SATURATION);
     _neuralPassiveClauseContainer.onlyUsefulWith(ProperSaturationAlgorithm());
 
@@ -936,13 +951,7 @@ void Options::init()
     _npccTemperature.description="Temperature for softmaxing in the neural passive clause container. 1.0 is the std softmax; 0.0 will make it argmax. (Negative values flip everything around.)";
     _lookup.insert(&_npccTemperature);
     _npccTemperature.tag(OptionTag::SATURATION);
-    _npccTemperature.onlyUsefulWith(_neuralPassiveClauseContainer.is(notEqual(std::string(""))));
-
-    _neuralPassiveClauseContainerTweaks = StringOptionValue("npcc_tweaks","npccw","");
-    _neuralPassiveClauseContainerTweaks.description="String representation of a vector passed as addtional ``problem-tweak'' to the npcc at contruction";
-    _lookup.insert(&_neuralPassiveClauseContainerTweaks);
-    _neuralPassiveClauseContainerTweaks.tag(OptionTag::SATURATION);
-    _neuralPassiveClauseContainerTweaks.onlyUsefulWith(_neuralPassiveClauseContainer.is(notEqual(std::string(""))));
+    _npccTemperature.onlyUsefulWith(_neuralPassiveClauseContainer.is(equal(true)));
 
     _reshuffleAt = UnsignedOptionValue("reshuffle_at","ra",0);
     _reshuffleAt.description="Nonterministically pick a new random seed before the specified-th clause selection from the NeuralPassiveClauseContainer (counter starts from 1, 0 value means 'never do this')";
@@ -1073,6 +1082,25 @@ void Options::init()
     _lookup.insert(&_positiveLiteralSplitQueueLayeredArrangement);
     _positiveLiteralSplitQueueLayeredArrangement.onlyUsefulWith(_usePositiveLiteralSplitQueues.is(equal(true)));
     _positiveLiteralSplitQueueLayeredArrangement.tag(OptionTag::SATURATION);
+
+    _useNeuralEvalSplitQueues = BoolOptionValue("neural_eval_split_queue","nesq",false);
+    _useNeuralEvalSplitQueues.description = "Turn on the queue splitting based on neural evaluation (requires eval_for_karel to be on).";
+    _lookup.insert(&_useNeuralEvalSplitQueues);
+    _useNeuralEvalSplitQueues.reliesOn(_neuralClauseEvaluationModel.is(notEqual(std::string(""))));
+    _useNeuralEvalSplitQueues.tag(OptionTag::SATURATION);
+
+    _neuralEvalSplitQueueCutoffs = StringOptionValue("neural_eval_split_queue_cutoffs", "nesqc", "0");
+    _neuralEvalSplitQueueCutoffs.description = "The cutoff-values for the neural-eval-split-queues (the cutoff value for the last queue is omitted, since it has to be infinity).";
+    _lookup.insert(&_neuralEvalSplitQueueCutoffs);
+    _neuralEvalSplitQueueCutoffs.reliesOn(_useNeuralEvalSplitQueues.is(equal(true)));
+    _neuralEvalSplitQueueCutoffs.tag(OptionTag::SATURATION);
+
+    _neuralEvalSplitQueueRatios = StringOptionValue("neural_eval_split_queue_ratios", "nesqr", "10,1");
+    _neuralEvalSplitQueueRatios.description = "The ratios for picking clauses from the neural-eval-split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right."
+        " There should be exactly two numbers in the list.";
+    _lookup.insert(&_neuralEvalSplitQueueRatios);
+    _neuralEvalSplitQueueRatios.reliesOn(_useNeuralEvalSplitQueues.is(equal(true)));
+    _neuralEvalSplitQueueRatios.tag(OptionTag::SATURATION);
 
     _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
     _literalMaximalityAftercheck.description =
@@ -3816,6 +3844,54 @@ std::vector<float> Options::positiveLiteralSplitQueueCutoffs() const
     if (i > 0 && cutoff <= cutoffs[i-1])
     {
       USER_ERROR("The cutoff values (supplied by option '-plsqc') must be strictly increasing");
+    }
+  }
+
+  return cutoffs;
+}
+
+std::vector<int> Options::neuralEvalSplitQueueRatios() const
+{
+  std::stringstream inputRatiosStream(_neuralEvalSplitQueueRatios.actualValue);
+  std::vector<int> inputRatios;
+  std::string currentRatio;
+  while (std::getline(inputRatiosStream, currentRatio, ',')) {
+    inputRatios.push_back(std::stoi(currentRatio));
+  }
+
+  // sanity checks
+  if (inputRatios.size() != 2) {
+    USER_ERROR("Wrong usage of option '-nesqr'. Needs to have exactly two values (e.g. '10,1')");
+  }
+  for (unsigned i = 0; i < inputRatios.size(); i++) {
+    if(inputRatios[i] <= 0) {
+      USER_ERROR("Each ratio (supplied by option '-nesqr') needs to be a positive integer");
+    }
+  }
+
+  return inputRatios;
+}
+
+std::vector<float> Options::neuralEvalSplitQueueCutoffs() const
+{
+  // initialize cutoffs and add float-max as last value
+  std::vector<float> cutoffs;
+  std::stringstream cutoffsStream(_neuralEvalSplitQueueCutoffs.actualValue);
+  std::string currentCutoff;
+  while (std::getline(cutoffsStream, currentCutoff, ','))
+  {
+    cutoffs.push_back(std::stof(currentCutoff));
+  }
+  cutoffs.push_back(std::numeric_limits<float>::max());
+
+  // sanity checks
+  for (unsigned i = 0; i < cutoffs.size(); i++)
+  {
+    auto cutoff = cutoffs[i];
+
+    if (i > 0 && cutoff <= cutoffs[i-1])
+    {
+      USER_ERROR("The cutoff values (supplied by option '-nesqc') must be strictly increasing");
     }
   }
 

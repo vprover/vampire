@@ -99,7 +99,7 @@ public:
   static inline constexpr const char* const SINE_SELECTION = "sine selection";
   static inline constexpr const char* const TERM_SHARING = "term sharing";
   static inline constexpr const char* const DEEP_STUFF = "neural model evaluation";
-  
+
 private:
   using Clock = std::chrono::steady_clock;
   using Duration = typename Clock::duration;

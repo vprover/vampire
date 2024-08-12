@@ -16,6 +16,7 @@
 #include "Lib/Allocator.hpp"
 #include "ClauseContainer.hpp"
 #include "AWPassiveClauseContainer.hpp"
+#include "NeuralPassiveClauseContainers.hpp"
 
 namespace Saturation {
 class PredicateSplitPassiveClauseContainer
@@ -38,7 +39,7 @@ private:
 
   std::vector<std::unique_ptr<PassiveClauseContainer>> _queues;
   std::vector<float> _cutoffs;
-  std::vector<unsigned> _invertedRatios;  
+  std::vector<unsigned> _invertedRatios;
   std::vector<unsigned> _balances;
   bool _layeredArrangement; // if set to true, queues are arranged as multi-split-queues. if false, queues use a tammet-style arrangement.
 
@@ -124,6 +125,18 @@ public:
 private:
   float evaluateFeature(Clause* cl) const override;
   float evaluateFeatureEstimate(unsigned numPositiveLiterals, const Inference& inf) const override;
+};
+
+class NeuralEvalSplitPassiveClauseContainer : public PredicateSplitPassiveClauseContainer
+{
+public:
+  NeuralEvalSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, std::string name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues,
+    NeuralClauseEvaluationModel& model);
+private:
+  NeuralClauseEvaluationModel& _model;
+
+  float evaluateFeature(Clause* cl) const override;
+  float evaluateFeatureEstimate(unsigned, const Inference& inf) const override;
 };
 
 };

@@ -153,7 +153,7 @@ public:
   // age is to be recovered from inference
   // this method internally takes care of computing the corresponding weightForClauseSelection.
   virtual bool fulfilsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const = 0;
-  
+
   virtual bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const = 0;
 
 protected:

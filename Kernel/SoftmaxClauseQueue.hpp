@@ -49,7 +49,7 @@ class SoftmaxClauseQueue :
 protected:
   class Node;
 public:
-  SoftmaxClauseQueue(DHMap<Clause*,std::pair<float,unsigned>>& scores, bool talkative);
+  SoftmaxClauseQueue(const DHMap<Clause*,std::pair<float,unsigned>>& scores, bool talkative);
   virtual ~SoftmaxClauseQueue() override;
   void insert(Clause*) override;
   bool remove(Clause*) override;
