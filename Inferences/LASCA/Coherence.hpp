@@ -54,17 +54,33 @@ Iter assertIter(Iter iter) {
 template<class NumTraits>
 struct CoherenceConf
 {
+  using N = typename NumTraits::ConstantType;
+  using SharedSum =  std::shared_ptr<RStack<std::pair<TermList, N>>>;
+  static SharedSum toSum(LascaState& shared, TermList t) {
+    RStack<std::pair<TermList, N>> rstack; 
+    rstack->loadFromIterator( 
+        shared.normalize(t)
+          .template wrapPoly<NumTraits>()
+          ->iterSummands()
+          .map([](auto monom) { return std::make_pair(monom.factors->denormalize(), monom.numeral); }));
+    return SharedSum(move_to_heap(std::move(rstack)));
+  }
 public:
   struct Lhs
   {
     LASCA::SuperpositionConf::Lhs _self;
-    Perfect<Polynom<NumTraits>> smallerSide;
-    TermList _summand;
+    TermList sumTerm;
+    SharedSum sum;
+    unsigned _summandIdx;
+
+    TermList atom(unsigned i) const { return (**sum)[i].first; }
+    N numeral(unsigned i) const { return (**sum)[i].second; }
+    unsigned nSummands() const { return (**sum).size(); }
 
     static const char* name() { return "lasca coherence lhs"; }
     static IndexType indexType() { return Indexing::LASCA_COHERENCE_LHS_SUBST_TREE; }
 
-    TypedTermList key() const { return TypedTermList(_summand, NumTraits::sort()); }
+    TypedTermList key() const { return TypedTermList((*sum)[_summandIdx].first, NumTraits::sort()); }
     Clause* clause() const { return _self.clause(); }
 
     static auto iter(LascaState& shared, Clause* cl)
@@ -72,22 +88,20 @@ public:
       return iterTraits(LASCA::Superposition::Lhs::iter(shared, cl))
         .filterMap([&shared](auto lhs) { return NumTraits::ifFloor(lhs.key(), 
               [&shared, lhs](auto...) { 
-                auto smallerSide = shared.normalize(lhs.smallerSide())
-                        .template wrapPoly<NumTraits>();
-                auto atoms = smallerSide->iterSummands()
-                  .map([](auto m) { return m.factors->denormalize(); })
-                  .filter([](auto f) { return !f.isVar(); });
+                auto sum = toSum(shared, lhs.smallerSide());
+                auto atoms = range(0, unsigned((*sum)->size()))
+                  .filter([=](auto i) { return !(**sum)[i].first.isVar(); });
                 // TODO we can choose *any* summand for the rule to work. which summand is important though as it is our primary filter to preselect the number of potential applications in indexing. Try out which terms are good here!!!
                 auto selectedAtom = atoms.tryNext();
-                return selectedAtom.map([=](auto t) { return Lhs { lhs, smallerSide, t }; });
+                return selectedAtom.map([=](auto i) { return Lhs { lhs, lhs.smallerSide(), sum, i }; });
               }).flatten(); 
             }) ;
     }
 
     friend std::ostream& operator<<(std::ostream& out, Lhs const& self)
-    { return out << self._self << "[" << self._summand << "]"; }
+    { return out << self._self << "[" << self._summandIdx << "]"; }
 
-    auto asTuple() const { return std::tie(_self, _summand); }
+    auto asTuple() const { return std::tie(_self, _summandIdx); }
     IMPL_COMPARISONS_FROM_TUPLE(Lhs)
   };
 
@@ -95,46 +109,45 @@ public:
   struct Rhs 
   {
     LASCA::Superposition::Rhs _self;
-    Perfect<Polynom<NumTraits>> polynom;
-    Monom<NumTraits> _summand;
+    TermList sumTerm;
+    SharedSum sum;
+    unsigned _summandIdx;
+
+    TermList atom(unsigned i) const { return (**sum)[i].first; }
+    N numeral(unsigned i) const { return (**sum)[i].second; }
+    unsigned nSummands() const { return (**sum).size(); }
 
     static const char* name() { return "lasca coherence rhs"; }
     static IndexType indexType() { return Indexing::LASCA_COHERENCE_RHS_SUBST_TREE; }
 
-    TypedTermList key() const { return TypedTermList(_summand.factors->denormalize(), NumTraits::sort()); }
+    TypedTermList key() const { return TypedTermList((*sum)[_summandIdx].first, NumTraits::sort()); }
 
     static auto iter(LascaState& shared, Clause* cl)
     {
       return iterTraits(LASCA::Superposition::Rhs::iter(shared, cl))
         .filterMap([&shared](auto rhs) { return NumTraits::ifFloor(rhs.key(), 
               [&shared, rhs](auto t) { 
-                auto polynom = shared.normalize(t).template wrapPoly<NumTraits>();
-                return polynom->iterSummands()
-                      .map([=](auto& m) { return Rhs { rhs, polynom, m }; }); 
+                auto sum = toSum(shared, t);
+                return range(0, (*sum)->size())
+                      .map([=](unsigned i) { return Rhs { rhs, t, sum, i }; }); 
               }); 
             })
         .flatten();
     }
 
     friend std::ostream& operator<<(std::ostream& out, Rhs const& self)
-    { return out << self._self << "[" << self._summand << "]"; }
+    { return out << self._self << "[" << self._summandIdx << "]"; }
 
-    auto asTuple() const { return std::tie(_self, _summand); }
+    auto asTuple() const { return std::tie(_self, _summandIdx); }
     IMPL_COMPARISONS_FROM_TUPLE(Rhs)
   };
 
   // TODO coherence for varibles!!!
 
-  using N = typename NumTraits::ConstantType;
-
   struct SubSumUnif {
       AbstractingUnifier* uwa;
-      // TODO change to ptr
-      Stack<std::pair<TermList, N>> sum0; 
-      unsigned bank0;
-      // TODO change to ptr
-      Stack<std::pair<TermList, N>> sum1;
-      unsigned bank1;
+      Lhs const& sum0; unsigned bank0;
+      Rhs const& sum1; unsigned bank1;
       // on a return from next stack[i] = j means that sum0[i] has been unified with sum1[j - 1]
       Stack<unsigned> crossEqual;
       Stack<BacktrackData> bds;
@@ -155,16 +168,12 @@ public:
 
       SubSumUnif(
         AbstractingUnifier* uwa, 
-        Stack<std::pair<TermList, N>> sum0,
-        unsigned bank0,
-        Stack<std::pair<TermList, N>> sum1,
-        unsigned bank1
+        Lhs const& sum0, unsigned bank0,
+        Rhs const& sum1, unsigned bank1
       ) 
         : uwa(uwa)
-        , sum0(std::move(sum0))
-        , bank0(bank0)
-        , sum1(std::move(sum1))
-        , bank1(bank1)
+        , sum0(sum0), bank0(bank0)
+        , sum1(sum1), bank1(bank1)
         , crossEqual({0}) 
         , bds({ BacktrackData() })
         , sum1ClassRoots()
@@ -179,7 +188,7 @@ public:
           DBG(msg...)
           for (auto c : sum1ClassRoots) {
             auto& cls = *sum1ClassMap.get(c);
-            DBG("    ", sum1[cls.idx1].first, ": ", cls.numeral0, " ", cls.numeral1)
+            DBG("    ", sum1.atom(cls.idx1), ": ", cls.numeral0, " ", cls.numeral1)
           }
         };
         auto unify = [&](auto... args) {
@@ -207,7 +216,7 @@ public:
 
             uwa->bdRecord(bds.top());
 
-            auto success = unify(sum1[pair.first].first, bank1, sum1[pair.second].first, bank1);
+            auto success = unify(sum1.atom(pair.first), bank1, sum1.atom(pair.second), bank1);
             uwa->bdDone();
             pair.second++;
             if (success) {
@@ -229,7 +238,7 @@ public:
         while (crossEqual.size() > 0) {
           auto i0 = crossEqual.size() - 1;
           auto i1 = crossEqual.top();
-          if (i1 >= sum1.size()) {
+          if (i1 >= sum1.nSummands()) {
             crossEqual.pop();
             bds.pop().backtrack();
 
@@ -238,8 +247,8 @@ public:
             uwa->bdRecord(bds.top());
             DEBUG_COHERENCE(2, "matching ", std::make_pair(i0, i1))
             auto success = unify(
-                sum0[i0].first, bank0, 
-                sum1[i1].first, bank1);
+                sum0.atom(i0), bank0, 
+                sum1.atom(i1), bank1);
             uwa->bdDone();
             auto found = sum1ClassMap.find(i1);
             if (!found) {
@@ -251,16 +260,16 @@ public:
               sum1ClassMap.insert(i1, std::make_shared<Sum1Class>(Sum1Class{ 
                   .idx1 = i1, 
                   .numeral0 = N(0), 
-                  .numeral1 = sum1[i1].second, 
+                  .numeral1 = sum1.numeral(i1), 
               }));
             }
             auto& clas = *sum1ClassMap.find(i1);
-            auto num0 = sum0[i0].second;
+            auto num0 = sum0.numeral(i0);
             clas->numeral0 += num0;
             bds.top().addClosure([clas,num0]() { clas->numeral0 -= num0; });
             crossEqual.top()++;
             if (success) {
-              if (crossEqual.size() == sum0.size()) {
+              if (crossEqual.size() == sum0.nSummands()) {
                 merges.push(std::make_pair(0,1));
                 bds.push(BacktrackData());
                 return some(this);
@@ -284,22 +293,11 @@ public:
     // DBG("isInt: ", lhs.smallerSide)
     // DBG("floor term: ", rhs.polynom)
 
-
-    auto toStack = [](auto& x) {
-      return x->iterSummands()
-          .map([](auto m) { return std::make_pair(m.factors->denormalize(), m.numeral); })
-          .template collect<Stack>();
-    };
-
-    // TODO pre-compute these as stacks in the Lhs/Rhs struct
-    auto ls = toStack(lhs.smallerSide);
-    auto rs = toStack(rhs.polynom);
-
-    return iterTraits(iterFromTryNext(SubSumUnif(&uwa, ls, lhsVarBank, rs, rhsVarBank)))
+    return iterTraits(iterFromTryNext(SubSumUnif(&uwa, lhs, lhsVarBank, rhs, rhsVarBank)))
       .filter([&lhs, &rhs, lhsVarBank, rhsVarBank](SubSumUnif* state) {
           DEBUG_COHERENCE(2, "atoms match: ")
-          DEBUG_COHERENCE(2, "lhs term: ", state->uwa->subs().apply(lhs.smallerSide->denormalize(), lhsVarBank));
-          DEBUG_COHERENCE(2, "rhs term: ", state->uwa->subs().apply(rhs.polynom->denormalize(), rhsVarBank));
+          DEBUG_COHERENCE(2, "lhs term: ", state->uwa->subs().apply(lhs.sumTerm, lhsVarBank));
+          DEBUG_COHERENCE(2, "rhs term: ", state->uwa->subs().apply(rhs.sumTerm, rhsVarBank));
           if (state->uwa->maxNumberOfConstraints() != 0) {
             DEBUG_COHERENCE(2, "modulo constarints: ", *state->uwa)
           }
@@ -310,10 +308,10 @@ public:
           for (auto c : state->sum1ClassRoots) {
             auto& cls = *state->sum1ClassMap.get(c);
 
-            // DBG("class: ", state->sum1[cls.idx1].first, ": ", cls.numeral0, " ", cls.numeral1)
+            // DBG("class: ", state->sum1.atom(cls.idx1), ": ", cls.numeral0, " ", cls.numeral1)
             auto f = (cls.numeral1.abs() / cls.numeral0.abs()).floor();
             if (f == IntegerConstantType(0)) {
-              DEBUG_COHERENCE(2, "factors don't fit: ", state->sum1[cls.idx1].first, ": ", cls.numeral0, " ", cls.numeral1)
+              DEBUG_COHERENCE(2, "factors don't fit: ", state->sum1.atom(cls.idx1), ": ", cls.numeral0, " ", cls.numeral1)
               return {};
             }
             if (cls.numeral0.sign() != cls.numeral1.sign()) {
@@ -321,7 +319,7 @@ public:
             }
             if (factor) {
               if (factor->sign() != f.sign()) {
-                DEBUG_COHERENCE(2, "factors with wrong sign: ", state->sum1[cls.idx1].first, ": ", cls.numeral0, " ", cls.numeral1)
+                DEBUG_COHERENCE(2, "factors with wrong sign: ", state->sum1.atom(cls.idx1), ": ", cls.numeral0, " ", cls.numeral1)
                 return {};
               } else {
                 factor = some(f.abs().gcd(factor->abs()));
@@ -335,25 +333,24 @@ public:
           }
           DEBUG_COHERENCE(2, "factors match with gcd: ", factor)
           DEBUG_COHERENCE(0, "match: gcd ", factor)
-          DEBUG_COHERENCE(0, "lhs term: ", state->uwa->subs().apply(lhs.smallerSide->denormalize(), lhsVarBank));
-          DEBUG_COHERENCE(0, "rhs term: ", state->uwa->subs().apply(rhs.polynom->denormalize(), rhsVarBank));
+          DEBUG_COHERENCE(0, "lhs term: ", state->uwa->subs().apply(lhs.sumTerm, lhsVarBank));
+          DEBUG_COHERENCE(0, "rhs term: ", state->uwa->subs().apply(rhs.sumTerm, rhsVarBank));
           DEBUG_COHERENCE(1, "eq classes: ")
           for (auto c1 : state->sum1ClassRoots) {
             // auto term = state->uwa->subs().apply(state->sum1ClassMap.get(c1).idx1, rhsVarBank);
-            auto term = state->uwa->subs().apply(state->sum1[c1].first, rhsVarBank);
+            auto term = state->uwa->subs().apply(state->sum1.atom(c1), rhsVarBank);
             DEBUG_COHERENCE(1, "  ", term, "\t{ ", outputInterleaved(", ",
-            range(0, state->sum0.size())
+            range(0, state->sum0.nSummands())
               .filter([&](auto i) { return c1 == state->sum1ClassMap.get(state->crossEqual[i] - 1)->idx1; })
-              .map([&](auto i) { return state->sum0[i]; })
+              .map([&](auto i) { return (**state->sum0.sum)[i]; })
               ), " }", " <--> ", "{ ", 
                 outputInterleaved(", ", 
-            range(0, state->sum1.size())
+            range(0, state->sum1.nSummands())
             .filter([&](auto i) { return c1 == state->sum1ClassMap.get(i)->idx1; })
-              .map([&](auto i) { return state->sum1[i]; })
+              .map([&](auto i) { return (**state->sum1.sum)[i]; })
                   )
                 ," }");
           }
-
 
           auto& subs = state->uwa->subs();
           auto u = NumTraits::ifFloor(rhs._self.toRewrite(), [](auto t) { return t; }).unwrap();
