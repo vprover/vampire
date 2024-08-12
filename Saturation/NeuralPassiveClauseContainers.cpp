@@ -50,7 +50,7 @@ using namespace Kernel;
 NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string modelFilePath, const std::string& tweak_str,
   uint64_t random_seed, unsigned num_features, float temperature) : _numFeatures(num_features), _temp(temperature)
 {
-  TIME_TRACE(TimeTrace::DEEP_STUFF);
+  TIME_TRACE("neural model warmup");
 
 #if DEBUG_MODEL
   auto start = env.timer->elapsedMilliseconds();
@@ -107,24 +107,27 @@ NeuralClauseEvaluationModel::SaltedLogit NeuralClauseEvaluationModel::evalClause
     return *someVal;
   }
 
-  TIME_TRACE(TimeTrace::DEEP_STUFF);
+  float logit;
+  {
+    TIME_TRACE("neural model evaluation");
 
-  std::vector<torch::jit::IValue> inputs;
+    std::vector<torch::jit::IValue> inputs;
 
-  // argument 1 - the clause id
-  inputs.push_back((int64_t)cl->number());
+    // argument 1 - the clause id
+    inputs.push_back((int64_t)cl->number());
 
-  std::vector<float> features(_numFeatures);
-  unsigned i = 0;
-  Clause::FeatureIterator it(cl);
-  while (i < _numFeatures && it.hasNext()) {
-    features[i] = it.next();
-    i++;
+    std::vector<float> features(_numFeatures);
+    unsigned i = 0;
+    Clause::FeatureIterator it(cl);
+    while (i < _numFeatures && it.hasNext()) {
+      features[i] = it.next();
+      i++;
+    }
+    ASS_EQ(features.size(),_numFeatures);
+    inputs.push_back(torch::from_blob(features.data(), {_numFeatures}, torch::TensorOptions().dtype(torch::kFloat32)));
+
+    logit = _model.forward(std::move(inputs)).toDouble();
   }
-  ASS_EQ(features.size(),_numFeatures);
-  inputs.push_back(torch::from_blob(features.data(), {_numFeatures}, torch::TensorOptions().dtype(torch::kFloat32)));
-
-  float logit = _model.forward(std::move(inputs)).toDouble();
   unsigned salt = Random::getInteger(1073741824); // 2^30, because why not
 
   float score;
