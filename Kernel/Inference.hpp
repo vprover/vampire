@@ -328,6 +328,7 @@ enum class InferenceRule : unsigned char {
   LASCA_IS_INT_FACTORING,
   /** superposition rule of the Inequality Resolution Calculus */
   LASCA_SUPERPOSITION,
+  LASCA_COHERENCE,
   /** variable elimination rule of the Inequality Resolution Calculus */
   LASCA_VARIABLE_ELIMINATION,
   /** the last generating inference marker --

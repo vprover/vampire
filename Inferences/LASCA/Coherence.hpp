@@ -28,7 +28,6 @@
 #include "Lib/Recycled.hpp"
 #include "Shell/Options.hpp"
 #include "Debug/Output.hpp"
-#include "Test/LascaSimplRule.hpp"
 #include "Kernel/EqHelper.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
@@ -345,7 +344,7 @@ public:
                 arrayIter(*constr)
               ),
               // TODO proper rule
-              Inference(TheoryAxiom(InferenceRule::THA_COMMUTATIVITY)));
+              Inference(GeneratingInference2(InferenceRule::LASCA_COHERENCE, lhs.clause(), rhs.clause())));
       });
       // .flatMapStar([rhs, rhsVarBank, idx](AbstractingUnifier* uwa) mutable {
       //     RStack<unsigned> eqClasses;
@@ -370,44 +369,6 @@ public:
 
     // [summands] -> 
 
-    // return assertIter<AbstractingUnifier*>(lhs.smallerSide->iterSummands()
-    //   .zipWithIndex()
-    //   .flatMapStar([rhs, rhsVarBank, idx](AbstractingUnifier* uwa) mutable {
-    //       RStack<unsigned> eqClasses;
-    //       for (auto& e : iterTraits(idx->eqClasses.iter())) {
-    //         eqClasses->push(e.key());
-    //       }
-    //       return assertIter<AbstractingUnifier*>(range(0, eqClasses->size())
-    //          .flatMap([eqClasses = std::make_shared<RStack<unsigned>>(std::move(eqClasses)), uwa, rhs, rhsVarBank](auto i) mutable { return 
-    //              assertIter<AbstractingUnifier*>(range(i + 1, (*eqClasses)->size())
-    //                .filterMap([uwa, rhs, i, rhsVarBank, eqClasses](auto j) mutable -> Option<AbstractingUnifier*> { 
-    //                    auto unif = uwa->unify(
-    //                        rhs.polynom->summandAt((*eqClasses)[i]).factors->denormalize(), rhsVarBank, 
-    //                        rhs.polynom->summandAt((*eqClasses)[j]).factors->denormalize(), rhsVarBank); 
-    //                    return someIf(unif, [=](){ return uwa; });
-    //                    }));
-    //                ; }));
-    //   }))
-    //   .filterMap([idx, lhs,rhs](AbstractingUnifier* uwa) mutable -> Option<Clause*> {
-    //       DBGE(*uwa)
-    //       DBGE(idx->eqClasses)
-    //
-    //       // Recycled<Map<TermList, std::pair<N,N>>> coeffs;
-    //       // for (auto m : lhs.smallerSide->iterSummands()) {
-    //       //   auto atom = m.factors->denormalize();
-    //       //   auto& pair = coeffs->getOrInit(atom, 
-    //       //       [](){ return std::make_pair(N(0),N(0)); });
-    //       //   pair.first += m.numeral;
-    //       // }
-    //       //
-    //       // for (auto m : rhs.polynom->iterSummands()) {
-    //       //   auto atom = uwa.m.factors->denormalize();
-    //       //   auto& pair = coeffs->getOrInit(atom,
-    //       //       [](){ return std::make_pair(N(0),N(0)); });
-    //       //   pair.second += m.numeral;
-    //       // }
-    //       ASSERTION_VIOLATION
-    //   });
   }
 };
 
@@ -419,6 +380,7 @@ struct Coherence : public BinInf<CoherenceConf<NumTraits>> {
 };
 
 #undef DEBUG
+
 } // namespace LASCA 
 } // namespace Inferences
 
