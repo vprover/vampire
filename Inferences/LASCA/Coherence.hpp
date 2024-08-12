@@ -33,7 +33,7 @@
 #include "Debug/Output.hpp"
 #include "Kernel/EqHelper.hpp"
 
-#define DEBUG_COHERENCE(lvl, ...) if (lvl < 2) DBG(__VA_ARGS__)
+#define DEBUG_COHERENCE(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
 
 namespace Inferences {
 namespace LASCA {
