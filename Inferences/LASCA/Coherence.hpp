@@ -116,30 +116,11 @@ public:
         .flatten();
     }
 
-      
-
     friend std::ostream& operator<<(std::ostream& out, Rhs const& self)
     { return out << self._self << "[" << self._summand << "]"; }
 
     auto asTuple() const { return std::tie(_self, _summand); }
     IMPL_COMPARISONS_FROM_TUPLE(Rhs)
-  };
-
-  // fancyMap :: (a -> Option (Iter a)) -> Iter a -> Iter a
-  // fancyMap f i = case (next i) of
-  //   x : xs  -> (f x) 
-  //   []      ->  []
-
-  struct IdxEntry {
-    IdxEntry(TermList t) : term(t) {}
-    TermList term;
-  };
-
-  struct LIdxEntry {
-    TermList term;
-    unsigned equalTo;
-    friend std::ostream& operator<<(std::ostream& out, LIdxEntry const& self)
-    { return out << self.term << " -> " << self.equalTo; }
   };
 
   // TODO coherence for varibles!!!
@@ -157,17 +138,6 @@ public:
       // on a return from next stack[i] = j means that sum0[i] has been unified with sum1[j - 1]
       Stack<unsigned> crossEqual;
       Stack<BacktrackData> bds;
-
-      // Set<unsigned> sum1Classes;
-      //
-      struct ImplicitBacktrackData 
-        : public BacktrackData {
-          using BacktrackData::BacktrackData;
-        ~ImplicitBacktrackData() {
-          this->backtrack();
-          this->~BacktrackData();
-        }
-      };
 
       struct Sum1Class {
         unsigned idx1;
@@ -196,7 +166,7 @@ public:
         , sum1(std::move(sum1))
         , bank1(bank1)
         , crossEqual({0}) 
-        , bds({ImplicitBacktrackData()})
+        , bds({ BacktrackData() })
         , sum1ClassRoots()
         , merges()
         {}
