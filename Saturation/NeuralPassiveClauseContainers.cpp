@@ -101,6 +101,14 @@ NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string model
 #endif
 }
 
+float NeuralClauseEvaluationModel::getScore(Clause* cl) {
+  SaltedLogit* someVal = _scores.findPtr(cl);
+  if (someVal) {
+    return someVal->first;
+  }
+  return std::numeric_limits<float>::max();
+}
+
 NeuralClauseEvaluationModel::SaltedLogit NeuralClauseEvaluationModel::evalClause(Clause* cl) {
   SaltedLogit* someVal = _scores.findPtr(cl);
   if (someVal) {

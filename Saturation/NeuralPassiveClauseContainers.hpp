@@ -56,6 +56,10 @@ public:
   const DHMap<Clause*,SaltedLogit>& getScores() { return _scores; }
 
   SaltedLogit evalClause(Clause* cl);
+
+  // this is a low effort version of evalClause (used for delayedEvaluation deepire-style):
+  // namely: if there is no value in the _scores map, it just returns a very optimistic constant
+  float getScore(Clause* cl);
 };
 
 class ScoreQueue

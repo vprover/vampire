@@ -32,6 +32,10 @@ public:
   bool isEmpty() const override; /** True if there are no passive clauses */
   unsigned sizeEstimate() const override;
 
+protected:
+  virtual bool hasDelayedEval() { return false; }
+  virtual void doEvaluate(Clause* cl) {}
+
 private:
   bool _randomize;
   std::vector<unsigned> _ratios;
@@ -84,7 +88,6 @@ public:
   // this method internally takes care of computing the corresponding weightForClauseSelection.
   bool fulfilsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override;
   bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const override;
-  
 }; // class PredicateSplitPassiveClauseContainer
 
 class TheoryMultiSplitPassiveClauseContainer : public PredicateSplitPassiveClauseContainer
@@ -132,6 +135,9 @@ class NeuralEvalSplitPassiveClauseContainer : public PredicateSplitPassiveClause
 public:
   NeuralEvalSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, std::string name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues,
     NeuralClauseEvaluationModel& model);
+protected:
+  bool hasDelayedEval() override { return true; }
+  void doEvaluate(Clause* cl) override;
 private:
   NeuralClauseEvaluationModel& _model;
 

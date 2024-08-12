@@ -208,6 +208,8 @@ Clause* PredicateSplitPassiveClauseContainer::popSelected()
     }
   }
 
+search_for_an_appropriate_queue:
+
   // if chosen queue is empty, use the next queue to the right
   // this succeeds in a multi-split-queue-non-LRS-setting where we have the invariant that each clause from queue i is contained in queue j if i<j
   auto currIndex = queueIndex;
@@ -232,6 +234,17 @@ Clause* PredicateSplitPassiveClauseContainer::popSelected()
   // pop clause from selected queue
   auto cl = _queues[currIndex]->popSelected();
   ASS(cl->store() == Clause::PASSIVE);
+
+  if (currIndex < (long int)_queues.size()-1 && // not the last index
+      hasDelayedEval()) { // we can re-evaluate
+    doEvaluate(cl); // the expensive version
+
+    if (evaluateFeature(cl) > _cutoffs[currIndex]) {
+      // we don't like the clause here!
+      // cout << "Didn't like " << cl->number() << " in " << currIndex << endl;
+      goto search_for_an_appropriate_queue;
+    }
+  }
 
   // note: for a non-layered arrangement, the clause only occured in _queues[currIndex] (from which it was just removed using popSelected(), so we don't need any additional clause-removal
   if (_layeredArrangement)
@@ -532,9 +545,13 @@ NeuralEvalSplitPassiveClauseContainer::NeuralEvalSplitPassiveClauseContainer(boo
       opt.neuralEvalSplitQueueRatios(),
       true /* monotone queue split hard-wired here */), _model(model) {}
 
+void NeuralEvalSplitPassiveClauseContainer::doEvaluate(Clause* cl) {
+  (void)_model.evalClause(cl); // result will be read on the next call of getScore (in evaluateFeature below)
+}
+
 float NeuralEvalSplitPassiveClauseContainer::evaluateFeature(Clause* cl) const
 {
-  return -_model.evalClause(cl).first; // small is good, large is bad
+  return -_model.getScore(cl); // small is good, large is bad
 }
 
 float NeuralEvalSplitPassiveClauseContainer::evaluateFeatureEstimate(unsigned numPositiveLiterals, const Inference& inference) const
