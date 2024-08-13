@@ -17,6 +17,7 @@
 
 namespace Inferences {
 
+using namespace Lib;
 
 Cancellation::~Cancellation() {}
 

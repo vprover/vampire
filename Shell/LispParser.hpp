@@ -27,7 +27,6 @@
 
 namespace Shell {
 
-using namespace Lib;
 
 class LispLexer;
 
@@ -55,7 +54,7 @@ public:
     /** the value (for atoms and numbers) */
     std::string str;
     /** list of expressions */
-    List<Expression*>* list;
+    Lib::List<Expression*>* list;
     /** build a list expressions with the list initially empty */
     explicit Expression(Tag t)
       : tag(t),
@@ -108,7 +107,7 @@ private:
 }; // class LispParser
 
 typedef LispParser::Expression LExpr;
-typedef List<LExpr*> LExprList;
+typedef Lib::List<LExpr*> LExprList;
 
 
 class LispListReader {
@@ -201,7 +200,7 @@ public:
     ASS(!_destroyed);
 
     LExprList* res = 0;
-    LExprList::pushFromIterator(Stack<LExpr*>::TopFirstIterator(_elements), res);
+    LExprList::pushFromIterator(Lib::Stack<LExpr*>::TopFirstIterator(_elements), res);
     return res;
   }
 
@@ -216,7 +215,7 @@ private:
 #if VDEBUG
   bool _destroyed;
 #endif
-  Stack<LExpr*> _elements;
+  Lib::Stack<LExpr*> _elements;
 };
 
 }

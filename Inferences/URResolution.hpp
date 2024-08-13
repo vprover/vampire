@@ -41,7 +41,7 @@ public:
 
 private:
   struct Item;
-  typedef List<Item*> ItemList;
+  typedef Lib::List<Item*> ItemList;
 
   void processAndGetClauses(Item* itm, unsigned startIdx, ClauseList*& acc);
 

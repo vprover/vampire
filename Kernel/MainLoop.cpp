@@ -33,6 +33,7 @@
 #include "MainLoop.hpp"
 
 using namespace Kernel;
+using namespace Lib;
 using namespace Saturation;
 using namespace FMB;
 

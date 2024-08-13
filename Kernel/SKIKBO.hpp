@@ -31,7 +31,6 @@
 
 namespace Kernel {
 
-using namespace Lib;
 
 /**
  * Class for instances of the Knuth-Bendix orderings
@@ -47,19 +46,19 @@ public:
         KboWeightMap<FuncSigTraits> symbolWeights, 
 
         // precedence ordering params
-        DArray<int> funcPrec, 
-        DArray<int> typeConPrec,
+        Lib::DArray<int> funcPrec, 
+        Lib::DArray<int> typeConPrec,
         // pred prec and pred levels are useless
         // as in higher-order we treat all symbol as function symbols (or type cons)
-        DArray<int> predPrec, 
-        DArray<int> predLevels,
+        Lib::DArray<int> predPrec, 
+        Lib::DArray<int> predLevels,
 
         // other
         bool reverseLCM);
 
   virtual ~SKIKBO();
 
-  typedef SmartPtr<ApplicativeArgsIt> ArgsIt_ptr;
+  typedef Lib::SmartPtr<ApplicativeArgsIt> ArgsIt_ptr;
 
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
@@ -71,7 +70,7 @@ public:
   static TermList reduce(TermStack& args, TermList& head);
 
 protected:
-  typedef DHMap<unsigned, DArray<DArray<unsigned>*>*> VarOccMap;
+  typedef Lib::DHMap<unsigned, Lib::DArray<Lib::DArray<unsigned>*>*> VarOccMap;
 
   //Result comparePredicates(Literal* l1, Literal* l2) const override;
 
@@ -95,7 +94,7 @@ protected:
   //VarCondRes compareVariables(VarOccMap&, VarOccMap&, VarCondRes) const;
   VarCondRes compareVariables(TermList tl1, TermList tl2) const;
   unsigned getMaxRedLength(TermList t) const;
-  bool varConditionHolds(DHMultiset<Term*>& tlTerms1, DHMultiset<Term*>& tlTerms2) const;
+  bool varConditionHolds(Lib::DHMultiset<Term*>& tlTerms1, Lib::DHMultiset<Term*>& tlTerms2) const;
   bool safe(Term* t1, Term* t2) const;
 
   /** Weight of variables */

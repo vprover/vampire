@@ -224,17 +224,17 @@ bool Recycled<T, Reset, Keep>::memAlive = true;
 };
 
 template<class T>
-using RStack = Recycled<Stack<T>>;
+using RStack = Lib::Recycled<Lib::Stack<T>>;
 
 template<class T>
-Recycled<Stack<T>> recycledStack() 
-{ return Recycled<Stack<T>>(); }
+Lib::Recycled<Lib::Stack<T>> recycledStack() 
+{ return Lib::Recycled<Lib::Stack<T>>(); }
 
 
 template<class T, class... Ts>
-Recycled<Stack<T>> recycledStack(T t, Ts... ts) 
+Lib::Recycled<Lib::Stack<T>> recycledStack(T t, Ts... ts) 
 {
-  Recycled<Stack<T>> out;
+  Lib::Recycled<Lib::Stack<T>> out;
   out->pushMany(std::move(t), std::move(ts)...);
   return out;
 }

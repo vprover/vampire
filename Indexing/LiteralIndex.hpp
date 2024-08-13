@@ -30,19 +30,19 @@ class LiteralIndex
 : public Index
 {
 public:
-  VirtualIterator<LiteralClause> getAll()
+  Lib::VirtualIterator<LiteralClause> getAll()
   { return _is->getAll(); }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, LiteralClause>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
+  Lib::VirtualIterator<QueryRes<ResultSubstitutionSP, LiteralClause>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
   { return _is->getUnifications(lit, complementary, retrieveSubstitutions); }
 
-  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
+  Lib::VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
   { return _is->getUwa(lit, complementary, uwa, fixedPointIteration); }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, LiteralClause>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
+  Lib::VirtualIterator<QueryRes<ResultSubstitutionSP, LiteralClause>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
   { return _is->getGeneralizations(lit, complementary, retrieveSubstitutions); }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, LiteralClause>> getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
+  Lib::VirtualIterator<QueryRes<ResultSubstitutionSP, LiteralClause>> getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
   { return _is->getInstances(lit, complementary, retrieveSubstitutions); }
 
   size_t getUnificationCount(Literal* lit, bool complementary)
@@ -167,7 +167,7 @@ private:
   void handleEquivalence(Clause* c, Literal* cgr, Clause* d, Literal* dgr, bool adding);
 
   LiteralIndexingStructure<LiteralClause>* _partialIndex;
-  DHMap<Clause*,Clause*> _counterparts;
+  Lib::DHMap<Clause*,Clause*> _counterparts;
   Ordering& _ordering;
 };
 

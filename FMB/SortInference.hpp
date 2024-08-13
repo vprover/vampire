@@ -29,73 +29,72 @@
 namespace FMB {
 using namespace Kernel;
 using namespace Shell;
-using namespace Lib;
 
 struct SortedSignature{
     unsigned sorts;
-    DArray<Stack<unsigned>> sortedConstants;
-    DArray<Stack<unsigned>> sortedFunctions;
+    Lib::DArray<Lib::Stack<unsigned>> sortedConstants;
+    Lib::DArray<Lib::Stack<unsigned>> sortedFunctions;
 
     // for f(x,y) = z this will store sort(z),sort(x),sort(y)
-    DArray<DArray<unsigned>> functionSignatures;
+    Lib::DArray<Lib::DArray<unsigned>> functionSignatures;
     // for p(x,y) this will store sort(x),sort(y)
-    DArray<DArray<unsigned>> predicateSignatures;
+    Lib::DArray<Lib::DArray<unsigned>> predicateSignatures;
 
     // gives the maximum size of a sort
-    DArray<unsigned> sortBounds;
+    Lib::DArray<unsigned> sortBounds;
     
     // the number of distinct sorts that might have different sizes
     unsigned distinctSorts;
 
     // for each distinct sort gives a sort that can be used for variable equalities that are otherwise unsorted
     // some of these will not be used, we could detect these cases... but it is not interesting
-    DArray<unsigned> varEqSorts;
+    Lib::DArray<unsigned> varEqSorts;
 
     // the distinct parents of sorts
     // has length sorts with contents from distinctSorts
     // invariant: all monotonic sorts will have parent 0, the first non-monotonic sort
-    DArray<unsigned> parents;
+    Lib::DArray<unsigned> parents;
 
     // Map the distinct sorts back to their vampire parents
     // A distinct sort may merge multipe vampire sorts (due to monotonicity)
-    DHMap<unsigned,Stack<unsigned>*> distinctToVampire;
+    Lib::DHMap<unsigned,Lib::Stack<unsigned>*> distinctToVampire;
     // A vampire sort can only be mapped to more than one distinct sort under certain conditions i.e. when
     // (i) the option for fmbSortInference = expand
     // (ii) at most one sort has non-monotonic subsorts and that is called parent
     // (iii) additional constraints have been added making expanded <= parent
-    DHMap<unsigned,Stack<unsigned>*> vampireToDistinct;
+    Lib::DHMap<unsigned,Lib::Stack<unsigned>*> vampireToDistinct;
     // This maps to the distinct parent
     // invariant: domain of the two maps are the same and the second maps to something in the stack of the first
-    DHMap<unsigned,unsigned> vampireToDistinctParent;
+    Lib::DHMap<unsigned,unsigned> vampireToDistinctParent;
 
     // has size distinctSorts
     // is 1 if that distinct sort is monotonic
-    ZIArray<bool> monotonicSorts;
+    Lib::ZIArray<bool> monotonicSorts;
 };
 
 class SortInference {
 public:
   SortInference(ClauseList* clauses,
-                DArray<unsigned> del_f,
-                DArray<unsigned> del_p,
-                Stack<DHSet<unsigned>*> equiv_v_sorts,
-                Stack<std::pair<unsigned,unsigned>>& cons) :
+                Lib::DArray<unsigned> del_f,
+                Lib::DArray<unsigned> del_p,
+                Lib::Stack<Lib::DHSet<unsigned>*> equiv_v_sorts,
+                Lib::Stack<std::pair<unsigned,unsigned>>& cons) :
                 _clauses(clauses), _del_f(del_f), _del_p(del_p),
-                _equiv_v_sorts(equiv_v_sorts), _equiv_vs(env.signature->typeCons()),
+                _equiv_v_sorts(equiv_v_sorts), _equiv_vs(Lib::env.signature->typeCons()),
                 _sort_constraints(cons) {
 
                   _sig = new SortedSignature();
-                  _print = env.options->showFMBsortInfo();
+                  _print = Lib::env.options->showFMBsortInfo();
 
                    // ignore inference if there are no clauses
                   _ignoreInference = !clauses; 
-                  _expandSubsorts = env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::EXPAND;
+                  _expandSubsorts = Lib::env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::EXPAND;
 
                   _usingMonotonicity = true;
-                  _collapsingMonotonicSorts = (env.options->fmbAdjustSorts() != Options::FMBAdjustSorts::OFF && 
-                                               env.options->fmbAdjustSorts() != Options::FMBAdjustSorts::EXPAND);
+                  _collapsingMonotonicSorts = (Lib::env.options->fmbAdjustSorts() != Options::FMBAdjustSorts::OFF && 
+                                               Lib::env.options->fmbAdjustSorts() != Options::FMBAdjustSorts::EXPAND);
                   _assumeMonotonic = _collapsingMonotonicSorts && 
-                                     env.options->fmbAdjustSorts() != Options::FMBAdjustSorts::GROUP;
+                                     Lib::env.options->fmbAdjustSorts() != Options::FMBAdjustSorts::GROUP;
 
                   _distinctSorts=0;
                   _collapsed=0;
@@ -121,17 +120,17 @@ private:
 
   unsigned _distinctSorts;
   unsigned _collapsed;
-  DHSet<unsigned> monotonicVampireSorts;
-  ZIArray<unsigned> posEqualitiesOnSort;
+  Lib::DHSet<unsigned> monotonicVampireSorts;
+  Lib::ZIArray<unsigned> posEqualitiesOnSort;
 
   SortedSignature* _sig;
   ClauseList* _clauses;
-  DArray<unsigned> _del_f;
-  DArray<unsigned> _del_p;
-  Stack<DHSet<unsigned>*> _equiv_v_sorts;
-  IntUnionFind _equiv_vs;
+  Lib::DArray<unsigned> _del_f;
+  Lib::DArray<unsigned> _del_p;
+  Lib::Stack<Lib::DHSet<unsigned>*> _equiv_v_sorts;
+  Lib::IntUnionFind _equiv_vs;
 
-  Stack<std::pair<unsigned,unsigned>>& _sort_constraints;
+  Lib::Stack<std::pair<unsigned,unsigned>>& _sort_constraints;
 
 };
 

@@ -33,6 +33,7 @@ namespace Kernel
 {
 
 using namespace std;
+using namespace Lib;
 
 /**
  * Return true if symbol number @c functor is transparent. If @c predicate

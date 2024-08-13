@@ -22,6 +22,7 @@
 namespace SAT
 {
 
+using namespace Lib;
 ///////////////////////
 // SATInference
 //

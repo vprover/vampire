@@ -33,7 +33,6 @@
 
 namespace SAT {
 
-using namespace Lib;
 
 class FallbackSolverWrapper : public SATSolver {
 public:
@@ -105,8 +104,8 @@ public:
 
 private:
 
-  ScopedPtr<SATSolver> _inner;
-  ScopedPtr<SATSolver> _fallback;
+  Lib::ScopedPtr<SATSolver> _inner;
+  Lib::ScopedPtr<SATSolver> _fallback;
 
   bool _usingFallback;
 

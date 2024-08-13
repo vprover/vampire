@@ -22,7 +22,6 @@
 
 namespace Shell {
 
-using namespace Lib;
 using namespace Kernel;
 
 
@@ -43,7 +42,7 @@ private:
   bool isSplittable(Literal* lit);
   bool isSplittableEqualitySide(TermList t);
 
-  Stack<Clause*> _predDefs;
+  Lib::Stack<Clause*> _predDefs;
   unsigned _splittingTreshold;
   bool _appify; // do it the higher-order way
 };

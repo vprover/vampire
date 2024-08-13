@@ -36,11 +36,11 @@ public:
 
   void onNewPropositionalClause(Clause* cl);
 
-  Stack<unsigned> getFoundLabels(){ return _foundLabels;}
+  Lib::Stack<unsigned> getFoundLabels(){ return _foundLabels;}
 
 private:
 
-  Stack<unsigned> _foundLabels;
+  Lib::Stack<unsigned> _foundLabels;
 
 };
 

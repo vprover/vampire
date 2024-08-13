@@ -30,6 +30,8 @@
 namespace Shell
 {
 
+using namespace Lib;
+
 /**
  * Assuming formula @c f is flattened, return its negation which is also flattened.
  */

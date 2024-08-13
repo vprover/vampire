@@ -37,7 +37,7 @@ class RealConstantType;
  * Exception to be thrown when the requested operation cannot be performed,
  * e.g. because of overflow of a native type.
  */
-class ArithmeticException : public Exception {
+class ArithmeticException : public Lib::Exception {
 protected:
   ArithmeticException(const char* msg) : Exception(msg) {}
 };
@@ -110,7 +110,7 @@ public:
   static IntegerConstantType ceiling(IntegerConstantType rat);
   IntegerConstantType abs() const;
 
-  static Comparison comparePrecedence(IntegerConstantType n1, IntegerConstantType n2);
+  static Lib::Comparison comparePrecedence(IntegerConstantType n1, IntegerConstantType n2);
   size_t hash() const;
 
   std::string toString() const;
@@ -185,7 +185,7 @@ struct RationalConstantType {
   const InnerType& denominator() const { return _den; }
   size_t hash() const;
 
-  static Comparison comparePrecedence(RationalConstantType n1, RationalConstantType n2);
+  static Lib::Comparison comparePrecedence(RationalConstantType n1, RationalConstantType n2);
 
 protected:
   void init(InnerType num, InnerType den);
@@ -238,7 +238,7 @@ public:
   std::string toNiceString() const;
 
   size_t hash() const;
-  static Comparison comparePrecedence(RealConstantType n1, RealConstantType n2);
+  static Lib::Comparison comparePrecedence(RealConstantType n1, RealConstantType n2);
 
   /** 
    * returns the internal represenation of this RealConstantType. 
@@ -410,7 +410,7 @@ public:
   typedef std::pair<Interpretation, OperatorType*> MonomorphisedInterpretation;
 
 private:
-  DHMap<ConcreteIndexedInterpretation,Interpretation> _indexedInterpretations;
+  Lib::DHMap<ConcreteIndexedInterpretation,Interpretation> _indexedInterpretations;
 
 public:
 
@@ -501,9 +501,9 @@ public:
 
 private:
   // For recording the templates for predicate and function symbols
-  DHMap<unsigned,std::string> _predLaTeXnamesPos;
-  DHMap<unsigned,std::string> _predLaTeXnamesNeg;
-  DHMap<unsigned,std::string> _funcLaTeXnames;
+  Lib::DHMap<unsigned,std::string> _predLaTeXnamesPos;
+  Lib::DHMap<unsigned,std::string> _predLaTeXnamesNeg;
+  Lib::DHMap<unsigned,std::string> _funcLaTeXnames;
 
 public:
 
@@ -560,7 +560,7 @@ private:
   Theory();
   static OperatorType* getConversionOperationType(Interpretation i);
 
-  DHMap<TermList,unsigned> _arraySkolemFunctions;
+  Lib::DHMap<TermList,unsigned> _arraySkolemFunctions;
 
 public:
   class Tuples {

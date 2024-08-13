@@ -38,7 +38,7 @@ namespace Kernel {
  *   use VariableIterator2 below, having read its documentation.
  */
 class VariableIterator
-: public IteratorCore<TermList>
+: public Lib::IteratorCore<TermList>
 {
 public:
   DECL_ELEMENT_TYPE(TermList);
@@ -114,21 +114,21 @@ public:
     return *_stack.top();
   }
 private:
-  Stack<const TermList*> _stack;
+  Lib::Stack<const TermList*> _stack;
   bool _used;
   TermList _aux[2];
 };
 
 struct VariableIteratorFn
 {
-  VirtualIterator<TermList> operator()(Term* t)
+  Lib::VirtualIterator<TermList> operator()(Term* t)
   {
     return vi( new VariableIterator(t) );
   }
-  VirtualIterator<TermList> operator()(TermList t)
+  Lib::VirtualIterator<TermList> operator()(TermList t)
   {
     if(t.isVar()) {
-      return pvi( getSingletonIterator(t) );
+      return pvi( Lib::getSingletonIterator(t) );
     }
     else {
       return (*this)(t.term());
@@ -158,7 +158,7 @@ struct OrdVarNumberExtractorFn
  *   with SortHelper::collectVariableSorts as it is more efficient.
  */
 class VariableWithSortIterator
-: public IteratorCore<std::pair<TermList,TermList>>
+: public Lib::IteratorCore<std::pair<TermList,TermList>>
 {
 public:
 
@@ -182,9 +182,9 @@ public:
     return std::make_pair(*_stack.top(),  SortHelper::getArgSort(const_cast<Term*>(_terms.top()), _argNums.top()));
   }
 private:
-  Stack<const TermList*> _stack;
-  Stack<const Term*> _terms;
-  Stack<unsigned> _argNums;
+  Lib::Stack<const TermList*> _stack;
+  Lib::Stack<const Term*> _terms;
+  Lib::Stack<unsigned> _argNums;
   bool _used;
 };
 
@@ -193,7 +193,7 @@ private:
  * of @b term in DFS left to right order.
  */
 class SubtermIterator
-  : public IteratorCore<TermList>
+  : public Lib::IteratorCore<TermList>
 {
 public:
   SubtermIterator(const Term* term) : _used(false)
@@ -228,7 +228,7 @@ protected:
     }
   }
 
-  Recycled<Stack<const TermList*>> _stack;
+  Lib::Recycled<Lib::Stack<const TermList*>> _stack;
   bool _used;
 };
 
@@ -246,7 +246,7 @@ protected:
  * of @b applicative term
  */
 class ApplicativeArgsIt
-  : public IteratorCore<TermList>
+  : public Lib::IteratorCore<TermList>
 {
 public:
   ApplicativeArgsIt(const TermList term, bool returnTypeArgs = true)
@@ -305,7 +305,7 @@ protected:
 };
 
 class TopLevelVarLikeTermIterator
-  : public IteratorCore<Term*>
+  : public Lib::IteratorCore<Term*>
 {
 public:
   TopLevelVarLikeTermIterator(Term* term)
@@ -327,12 +327,12 @@ public:
   }
 
 private:
-  Stack<Term*> _stack;
+  Lib::Stack<Term*> _stack;
   Term* _next;
 };
 
 class TopLevelVarIterator
-  : public IteratorCore<TermList>
+  : public Lib::IteratorCore<TermList>
 {
 public:
   TopLevelVarIterator(TermList t);
@@ -357,7 +357,7 @@ class RewritableVarsIt
 {
 public: //includeSelf for compatibility
   DECL_ELEMENT_TYPE(TypedTermList);
-  RewritableVarsIt(DHSet<unsigned>* unstableVars, Term* t, bool includeSelf = false) :  _next(), _stack(8)
+  RewritableVarsIt(Lib::DHSet<unsigned>* unstableVars, Term* t, bool includeSelf = false) :  _next(), _stack(8)
   {
     _unstableVars = unstableVars;
     if(t->isLiteral()){
@@ -384,14 +384,14 @@ public: //includeSelf for compatibility
     return *_next.take();
   }
 private:
-  Option<TypedTermList> _next;
-  Stack<TermList> _stack;
-  Stack<TermList> _sorts;
-  DHSet<unsigned>* _unstableVars;
+  Lib::Option<TypedTermList> _next;
+  Lib::Stack<TermList> _stack;
+  Lib::Stack<TermList> _sorts;
+  Lib::DHSet<unsigned>* _unstableVars;
 };
 
 class UnstableVarIt
-  : public IteratorCore<TermList>
+  : public Lib::IteratorCore<TermList>
 {
 public: 
   UnstableVarIt(Term* t) : _stable(8), _stack(8)
@@ -419,12 +419,12 @@ public:
 
 private:
   TermList _next;
-  Stack<bool> _stable;
-  Stack<TermList> _stack;
+  Lib::Stack<bool> _stable;
+  Lib::Stack<TermList> _stack;
 };
 
 class FirstOrderSubtermIt
-: public IteratorCore<Term*>
+: public Lib::IteratorCore<Term*>
 {
 public:
   FirstOrderSubtermIt(Term* term, bool includeSelf=false) 
@@ -448,13 +448,13 @@ public:
   void right();
 
 private:
-  Stack<Term*> _stack;
+  Lib::Stack<Term*> _stack;
   int _added;
 };
 
 
 class NarrowableSubtermIt
-: public IteratorCore<TermList>
+: public Lib::IteratorCore<TermList>
 {
 public:
   NarrowableSubtermIt(Term* term, bool includeSelf=false) 
@@ -481,14 +481,14 @@ public:
 private:
   bool _used;
   TermList _next;
-  Stack<Term*> _stack;
+  Lib::Stack<Term*> _stack;
 };
 
 /*
  *  Returns Boolean subterms of a term.
  */
 class BooleanSubtermIt
-: public IteratorCore<TermList>
+: public Lib::IteratorCore<TermList>
 {
 public:
   BooleanSubtermIt(Term* term, bool includeSelf=false) 
@@ -514,7 +514,7 @@ public:
 private:
   bool _used;
   TermList _next;
-  Stack<Term*> _stack;
+  Lib::Stack<Term*> _stack;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -555,7 +555,7 @@ private:
  * its arguments left to right, and then the function itself.
  */
 class PolishSubtermIterator
-: public IteratorCore<TermList>
+: public Lib::IteratorCore<TermList>
 {
 public:
   PolishSubtermIterator(const Term* term) : _stack(8), _used(false)
@@ -584,7 +584,7 @@ private:
       t=t->term()->args();
     }
   }
-  Stack<const TermList*> _stack;
+  Lib::Stack<const TermList*> _stack;
   bool _used;
 };
 
@@ -598,7 +598,7 @@ private:
  *   are required. 
  */
 class NonVariableIterator
-  : public IteratorCore<TermList>
+  : public Lib::IteratorCore<TermList>
 {
 public:
   NonVariableIterator(const NonVariableIterator&);
@@ -625,7 +625,7 @@ public:
   void right();
 private:
   /** available non-variable subterms */
-  Stack<Term*> _stack;
+  Lib::Stack<Term*> _stack;
   /** the number of non-variable subterms added at the last iteration, used by right() */
   int _added;
 }; // NonVariableIterator
@@ -643,7 +643,7 @@ private:
  *     another
  */
 class NonVariableNonTypeIterator
-  : public IteratorCore<Term*>
+  : public Lib::IteratorCore<Term*>
 {
 public:
   NonVariableNonTypeIterator(const NonVariableNonTypeIterator&);
@@ -667,7 +667,7 @@ public:
   void right();
 private:
   /** available non-variable subterms */
-  Stack<Term*> _stack;
+  Lib::Stack<Term*> _stack;
   /** the number of non-variable subterms added at the last iteration, used by right() */
   int _added;
 }; // NonVariableIterator
@@ -677,7 +677,7 @@ private:
  * or literals in DFS left to right order.
  */
 class DisagreementSetIterator
-: public IteratorCore<std::pair<TermList, TermList> >
+: public Lib::IteratorCore<std::pair<TermList, TermList> >
 {
 public:
   /**
@@ -764,7 +764,7 @@ public:
     return res;
   }
 private:
-  Stack<TermList*> _stack;
+  Lib::Stack<TermList*> _stack;
   bool _disjunctVariables;
   TermList _arg1;
   TermList _arg2;
@@ -779,7 +779,7 @@ private:
  * @since 26/05/2007 Manchester, made from class TermVarIterator
  */
 class TermFunIterator
-: public IteratorCore<unsigned>
+: public Lib::IteratorCore<unsigned>
 {
 public:
   TermFunIterator (const Term*);
@@ -792,7 +792,7 @@ private:
   /** next symbol, previously found */
   unsigned _next;
   /** Stack of term lists (not terms!) */
-  Stack<const TermList*> _stack;
+  Lib::Stack<const TermList*> _stack;
 }; // class TermFunIterator
 
 
@@ -802,7 +802,7 @@ private:
  * @since 26/05/2007 Manchester, reimplemented for different data structures
  */
 class TermVarIterator
-: public IteratorCore<unsigned>
+: public Lib::IteratorCore<unsigned>
 {
 public:
   TermVarIterator (const Term*);
@@ -816,7 +816,7 @@ private:
   /** next variable, previously found */
   unsigned _next;
   /** Stack of term lists (not terms!) */
-  Stack<const TermList*> _stack;
+  Lib::Stack<const TermList*> _stack;
 }; // class TermVarIterator
 
 
@@ -837,19 +837,19 @@ public:
 
 /** iterator over all term arguments of @code term */
 static const auto termArgIter = [](Term* term) 
-  { return iterTraits(getRangeIterator<unsigned>(0, term->numTermArguments()))
+  { return iterTraits(Lib::getRangeIterator<unsigned>(0, term->numTermArguments()))
       .map([=](auto i)
            { return term->termArg(i); }); };
 
 /** iterator over all type arguments of @code term */
 static const auto typeArgIter = [](Term* term) 
-  { return iterTraits(getRangeIterator<unsigned>(0, term->numTypeArguments()))
+  { return iterTraits(Lib::getRangeIterator<unsigned>(0, term->numTypeArguments()))
       .map([=](auto i)
            { return term->typeArg(i); }); };
 
 /** iterator over all type and term arguments of @code term */
 static const auto anyArgIter = [](Term* term) 
-  { return iterTraits(getRangeIterator<unsigned>(0, term->arity()))
+  { return iterTraits(Lib::getRangeIterator<unsigned>(0, term->arity()))
       .map([=](auto i)
            { return *term->nthArgument(i); }); };
 

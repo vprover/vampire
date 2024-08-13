@@ -44,7 +44,6 @@ namespace Shell { class AnswerLiteralManager; }
 namespace Saturation
 {
 
-using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Inferences;
@@ -169,7 +168,7 @@ private:
   void handleEmptyClause(Clause* cl);
   Clause* doImmediateSimplification(Clause* cl);
   MainLoopResult saturateImpl();
-  SmartPtr<IndexManager> _imgr;
+  Lib::SmartPtr<IndexManager> _imgr;
 
   class TotalSimplificationPerformer;
   class PartialSimplificationPerformer;
@@ -192,24 +191,24 @@ protected:
   ActiveClauseContainer* _active;
   ExtensionalityClauseContainer* _extensionality;
 
-  ScopedPtr<SimplifyingGeneratingInference> _generator;
-  ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;
+  Lib::ScopedPtr<SimplifyingGeneratingInference> _generator;
+  Lib::ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;
 
-  typedef List<ForwardSimplificationEngine*> FwSimplList;
+  typedef Lib::List<ForwardSimplificationEngine*> FwSimplList;
   FwSimplList* _fwSimplifiers;
 
   //Simplification occurs at the same point in the loop
   //as forward and backward simplification, but does not involve
   //clauses in active. At the moment, the only simplification inference
   //is the higher-order cnfOnTheFly
-  typedef List<SimplificationEngine*> SimplList;
+  typedef Lib::List<SimplificationEngine*> SimplList;
   SimplList* _simplifiers;
 
-  typedef List<BackwardSimplificationEngine*> BwSimplList;
+  typedef Lib::List<BackwardSimplificationEngine*> BwSimplList;
   BwSimplList* _bwSimplifiers;
 
   OrderingSP _ordering;
-  ScopedPtr<LiteralSelector> _selector;
+  Lib::ScopedPtr<LiteralSelector> _selector;
 
   Splitter* _splitter;
 
@@ -221,8 +220,8 @@ protected:
   FunctionDefinitionHandler& _fnDefHandler;
   std::unique_ptr<ConditionalRedundancyHandler> _conditionalRedundancyHandler;
 
-  SubscriptionData _passiveContRemovalSData;
-  SubscriptionData _activeContRemovalSData;
+  Lib::SubscriptionData _passiveContRemovalSData;
+  Lib::SubscriptionData _activeContRemovalSData;
 
   /**
    * Literal selector for set-of-support.
@@ -230,7 +229,7 @@ protected:
    * This variable is initialized and used only by the
    * @c getSosLiteralSelector() function
    */
-  ScopedPtr<LiteralSelector> _sosLiteralSelector;
+  Lib::ScopedPtr<LiteralSelector> _sosLiteralSelector;
 
 
   // counters

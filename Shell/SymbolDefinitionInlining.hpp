@@ -17,7 +17,6 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Set.hpp"
 
-using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
@@ -32,7 +31,7 @@ class SymbolDefinitionInlining {
     FormulaList* process(FormulaList* formulas);
     TermList process(TermList ts);
 
-    List<std::pair<unsigned, unsigned>>* variableRenamings() { return _varRenames; };
+    Lib::List<std::pair<unsigned, unsigned>>* variableRenamings() { return _varRenames; };
 
   private:
     const bool _isPredicate;
@@ -47,13 +46,13 @@ class SymbolDefinitionInlining {
 
     unsigned _counter;
     unsigned _freshVarOffset;
-    List<std::pair<unsigned, unsigned>>* _varRenames;
+    Lib::List<std::pair<unsigned, unsigned>>* _varRenames;
 
     void collectBoundVariables(TermList);
     void collectBoundVariables(Term*);
     void collectBoundVariables(Formula*);
 
-    Set<Formula*> _superformulas;
+    Lib::Set<Formula*> _superformulas;
 };
 
 #endif // __SymbolDefinitionInlining__

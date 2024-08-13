@@ -32,7 +32,6 @@
 
 namespace Kernel {
 
-using namespace Lib;
 
 class Formula
 {
@@ -355,10 +354,10 @@ class BoolTermFormula
       }
     } else {
       unsigned functor = term->functor();
-      if (env.signature->isFoolConstantSymbol(true, functor)) {
+      if (Lib::env.signature->isFoolConstantSymbol(true, functor)) {
         return new Formula(true);
       } else {
-        ASS(env.signature->isFoolConstantSymbol(false, functor));
+        ASS(Lib::env.signature->isFoolConstantSymbol(false, functor));
         return new Formula(false);
       }
     }

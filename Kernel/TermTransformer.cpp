@@ -22,6 +22,7 @@ namespace Kernel
 {
 
 using namespace std;
+using namespace Lib;
 
 
 Literal* TermTransformerCommon::transformLiteral(Literal* lit)

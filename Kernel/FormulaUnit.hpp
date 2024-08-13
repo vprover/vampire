@@ -21,7 +21,6 @@
 
 #include "Unit.hpp"
 
-using namespace Lib;
 
 namespace Kernel {
 

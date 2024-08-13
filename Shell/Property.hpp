@@ -39,7 +39,6 @@ namespace Kernel {
 namespace Shell {
 
 using namespace Kernel;
-using namespace Lib;
 
 /**
  * Represents syntactic properties of problems.
@@ -301,7 +300,7 @@ public:
   /** Symbols in this formula, used during counting 
       Functions are positive, predicates stored in the negative part
   **/
-  DHSet<int> _symbolsInFormula;
+  Lib::DHSet<int> _symbolsInFormula;
 
   /** Bitwise OR of all properties of this problem */
   uint64_t _props;
@@ -314,13 +313,13 @@ public:
   /** Problem contains non-default sorts */
   bool _hasNonDefaultSorts;
   unsigned _sortsUsed;
-  Array<bool> _usesSort;
+  Lib::Array<bool> _usesSort;
 
   /** Makes sense for all interpretations, but for polymorphic ones we also keep
    *  the more precise information about which monomorphisations are present (see below).
    */
-  DArray<bool> _interpretationPresence;
-  DHSet<Theory::MonomorphisedInterpretation> _polymorphicInterpretations;
+  Lib::DArray<bool> _interpretationPresence;
+  Lib::DHSet<Theory::MonomorphisedInterpretation> _polymorphicInterpretations;
 
   bool _hasFOOL;
   bool _hasCombs;

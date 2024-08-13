@@ -37,12 +37,12 @@ private:
 
   Result simplifyLiteral(Literal*) override;
 
-  Option<PolyNf> evaluate(TermList in, SortId sortNumber) const;
-  Option<PolyNf> evaluate(Term* in) const;
-  Option<PolyNf> evaluate(PolyNf in) const;
-  Option<PolyNf> evaluate(TypedTermList in) const;
+  Lib::Option<PolyNf> evaluate(TermList in, SortId sortNumber) const;
+  Lib::Option<PolyNf> evaluate(Term* in) const;
+  Lib::Option<PolyNf> evaluate(PolyNf in) const;
+  Lib::Option<PolyNf> evaluate(TypedTermList in) const;
 
-  Option<Result> tryEvalPredicate(Literal* orig, PolyNf* evaluatedArgs) const;
+  Lib::Option<Result> tryEvalPredicate(Literal* orig, PolyNf* evaluatedArgs) const;
 
   PolyNf evaluateStep(Term* orig, PolyNf* evaluatedArgs) const;
 };

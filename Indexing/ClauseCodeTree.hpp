@@ -29,7 +29,6 @@
 
 namespace Indexing {
 
-using namespace Lib;
 using namespace Kernel;
 
 class ClauseCodeTree : public CodeTree
@@ -49,19 +48,19 @@ private:
 
   struct InitialLiteralOrderingComparator;
 
-  void optimizeLiteralOrder(DArray<Literal*>& lits);
+  void optimizeLiteralOrder(Lib::DArray<Literal*>& lits);
   void evalSharing(Literal* lit, CodeOp* startOp, size_t& sharedLen, size_t& unsharedLen, CodeOp*& nextOp);
   static void matchCode(CodeStack& code, CodeOp* startOp, size_t& matchedCnt, CodeOp*& nextOp);
 
   //////// removal //////////
 
-  bool removeOneOfAlternatives(CodeOp* op, Clause* cl, Stack<CodeOp*>* firstsInBlocks);
+  bool removeOneOfAlternatives(CodeOp* op, Clause* cl, Lib::Stack<CodeOp*>* firstsInBlocks);
 
   struct RemovingLiteralMatcher
   : public RemovingMatcher
   {
     void init(CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_,
-	ClauseCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_);
+	ClauseCodeTree* tree_, Lib::Stack<CodeOp*>* firstsInBlocks_);
 
     USE_ALLOCATOR(RemovingLiteralMatcher);
   };
@@ -87,7 +86,7 @@ private:
   private:
     bool _eagerlyMatched;
 
-    Stack<CodeOp*> eagerResults;
+    Lib::Stack<CodeOp*> eagerResults;
 
     void recordMatch();
   };
@@ -134,9 +133,9 @@ public:
      * [if sres] Ground literals negated
      * [if sres] Non-ground literals negated
      */
-    DArray<LitInfo> lInfos;
+    Lib::DArray<LitInfo> lInfos;
 
-    Stack<Recycled<LiteralMatcher, NoReset>> lms;
+    Lib::Stack<Lib::Recycled<LiteralMatcher, Lib::NoReset>> lms;
   };
 
 private:

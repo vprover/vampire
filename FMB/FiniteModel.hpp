@@ -27,7 +27,6 @@
 
 namespace FMB {
 
-using namespace Lib;
 using namespace Kernel;
 
 /**
@@ -43,10 +42,10 @@ public:
  // Assume def is an equality literal with a
  // function application on lhs and constant on rhs
  void addConstantDefinition(unsigned f, unsigned res);
- void addFunctionDefinition(unsigned f, const DArray<unsigned>& args, unsigned res); 
+ void addFunctionDefinition(unsigned f, const Lib::DArray<unsigned>& args, unsigned res); 
  // Assume def is non-equality ground literal
  void addPropositionalDefinition(unsigned f, bool res);
- void addPredicateDefinition(unsigned f, const DArray<unsigned>& args, bool res); 
+ void addPredicateDefinition(unsigned f, const Lib::DArray<unsigned>& args, bool res); 
 
  bool isPartial();
 
@@ -65,23 +64,23 @@ private:
  // The model is partial if there is a operation with arity n that does not have
  // coverage size^n in its related coverage map
  bool _isPartial;
- DHMap<unsigned,unsigned> _functionCoverage;
- DHMap<unsigned,unsigned> _predicateCoverage;
+ Lib::DHMap<unsigned,unsigned> _functionCoverage;
+ Lib::DHMap<unsigned,unsigned> _predicateCoverage;
 
- DArray<unsigned> f_offsets;
- DArray<unsigned> p_offsets;
- DArray<unsigned> f_interpretation;
- DArray<unsigned> p_interpretation; // 0 is undef, 1 false, 2 true
+ Lib::DArray<unsigned> f_offsets;
+ Lib::DArray<unsigned> p_offsets;
+ Lib::DArray<unsigned> f_interpretation;
+ Lib::DArray<unsigned> p_interpretation; // 0 is undef, 1 false, 2 true
 
- DHMap<unsigned,Term*> _domainConstants;
- DHMap<Term*,unsigned> _domainConstantsRev;
+ Lib::DHMap<unsigned,Term*> _domainConstants;
+ Lib::DHMap<Term*,unsigned> _domainConstantsRev;
 public:
  Term* getDomainConstant(unsigned c)
  {
    Term* t;
    if(_domainConstants.find(c,t)) return t;
    std::string name = "domainConstant";//+Lib::Int::toString(c);
-   unsigned f = env.signature->addFreshFunction(0,name.c_str()); 
+   unsigned f = Lib::env.signature->addFreshFunction(0,name.c_str()); 
    t = Term::createConstant(f);
    _domainConstants.insert(c,t);
    _domainConstantsRev.insert(t,c);

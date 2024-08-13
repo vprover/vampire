@@ -23,7 +23,6 @@
 #include "Kernel/Term.hpp"
 
 namespace Shell {
-  using namespace Lib;
   using namespace Kernel;
 
   class SubexpressionIterator {
@@ -93,7 +92,7 @@ namespace Shell {
       SubexpressionIterator(TermList ts);
 
     private:
-      Stack<Expression> _subexpressions;
+      Lib::Stack<Expression> _subexpressions;
   };
 }
 

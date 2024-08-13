@@ -17,7 +17,6 @@
 
 namespace Kernel {
 
-using namespace Lib;
 using namespace std;
 
 /**
@@ -102,14 +101,14 @@ public:
   };
 
 private:
-  static pair<Stack<Instruction>,Instruction::BranchTag> majoChain(const LPO& lpo, TermList tl1, Term* t, unsigned i);
-  static pair<Stack<Instruction>,Instruction::BranchTag> alphaChain(const LPO& lpo, Term* s, unsigned i, TermList tl2);
-  static pair<Stack<Instruction>,Instruction::BranchTag>* createHelper(TermList tl1, TermList tl2, const LPO& lpo);
+  static pair<Lib::Stack<Instruction>,Instruction::BranchTag> majoChain(const LPO& lpo, TermList tl1, Term* t, unsigned i);
+  static pair<Lib::Stack<Instruction>,Instruction::BranchTag> alphaChain(const LPO& lpo, Term* s, unsigned i, TermList tl2);
+  static pair<Lib::Stack<Instruction>,Instruction::BranchTag>* createHelper(TermList tl1, TermList tl2, const LPO& lpo);
 
   const LPO& _lpo;
 
   /** This is non-empty if @b _res is @b BranchTag::T_JUMP */
-  Stack<Instruction> _instructions;
+  Lib::Stack<Instruction> _instructions;
 
   /** It contains the result of the comparison if the terms
    * are comparable, otherwise it contains @b BranchTag::T_JUMP

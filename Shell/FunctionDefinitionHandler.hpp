@@ -24,7 +24,6 @@ namespace Shell {
 
 using namespace Indexing;
 using namespace Kernel;
-using namespace Lib;
 
 /**
  * Corresponds to the branches of a function definition,
@@ -98,7 +97,7 @@ public:
   auto getGeneralizations(TypedTermList t)
   {
     if (_is.isEmpty()) {
-      return VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>>::getEmpty();
+      return Lib::VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>>::getEmpty();
     }
     return _is->getGeneralizations(t, true);
   }
@@ -110,8 +109,8 @@ public:
   }
 
 private:
-  ScopedPtr<CodeTreeTIS<TermLiteralClause>> _is;
-  DHMap<std::pair<unsigned, SymbolType>, InductionTemplate> _templates;
+  Lib::ScopedPtr<CodeTreeTIS<TermLiteralClause>> _is;
+  Lib::DHMap<std::pair<unsigned, SymbolType>, InductionTemplate> _templates;
 };
 
 /**

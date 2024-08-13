@@ -73,6 +73,7 @@ namespace FMB
 {
 
 using namespace std;
+using namespace Lib;
 
 FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
 : MainLoop(prb, opt), _sortedSignature(0), _groundClauses(0), _clauses(0),

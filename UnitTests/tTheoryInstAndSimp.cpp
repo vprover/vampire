@@ -93,7 +93,7 @@ TheoryInstAndSimp* theoryInstAndSimp(Options::TheoryInstSimp mode, bool withGene
       /* export smtlib */ "");
 }
 
-using Shell::Int;
+using Lib::Int;
 REGISTER_GEN_TESTER(TheoryInstAndSimp)
 
 TEST_GENERATION(test_01,

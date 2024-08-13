@@ -27,6 +27,8 @@
 namespace Inferences
 {
 
+using namespace Lib;
+
 void ForwardLiteralRewriting::attach(SaturationAlgorithm* salg)
 {
   ForwardSimplificationEngine::attach(salg);

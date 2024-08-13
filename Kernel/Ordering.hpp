@@ -96,8 +96,8 @@ public:
 
   void removeNonMaximal(LiteralList*& lits) const;
 
-  static Result fromComparison(Comparison c);
-  static Comparison intoComparison(Result c);
+  static Result fromComparison(Lib::Comparison c);
+  static Lib::Comparison intoComparison(Result c);
 
   static Result reverse(Result r)
   {
@@ -159,16 +159,16 @@ protected:
   // l1 and l2 are not equalities and have the same predicate
   virtual Result comparePredicates(Literal* l1,Literal* l2) const = 0;
 
-  PrecedenceOrdering(const DArray<int>& funcPrec, const DArray<int>& typeConPrec, 
-                     const DArray<int>& predPrec, const DArray<int>& predLevels, bool reverseLCM);
-  PrecedenceOrdering(Problem& prb, const Options& opt, const DArray<int>& predPrec);
+  PrecedenceOrdering(const Lib::DArray<int>& funcPrec, const Lib::DArray<int>& typeConPrec, 
+                     const Lib::DArray<int>& predPrec, const Lib::DArray<int>& predLevels, bool reverseLCM);
+  PrecedenceOrdering(Problem& prb, const Options& opt, const Lib::DArray<int>& predPrec);
   PrecedenceOrdering(Problem& prb, const Options& opt);
 
 
-  static DArray<int> typeConPrecFromOpts(Problem& prb, const Options& opt);
-  static DArray<int> funcPrecFromOpts(Problem& prb, const Options& opt);
-  static DArray<int> predPrecFromOpts(Problem& prb, const Options& opt);
-  static DArray<int> predLevelsFromOptsAndPrec(Problem& prb, const Options& opt, const DArray<int>& predicatePrecedences);
+  static Lib::DArray<int> typeConPrecFromOpts(Problem& prb, const Options& opt);
+  static Lib::DArray<int> funcPrecFromOpts(Problem& prb, const Options& opt);
+  static Lib::DArray<int> predPrecFromOpts(Problem& prb, const Options& opt);
+  static Lib::DArray<int> predLevelsFromOptsAndPrec(Problem& prb, const Options& opt, const Lib::DArray<int>& predicatePrecedences);
 
   Result compareFunctionPrecedences(unsigned fun1, unsigned fun2) const;
   Result compareTypeConPrecedences(unsigned tyc1, unsigned tyc2) const;
@@ -181,13 +181,13 @@ protected:
   /** number of functions in the signature at the time the order was created */
   unsigned _functions;
   /** Array of predicate levels */
-  DArray<int> _predicateLevels;
+  Lib::DArray<int> _predicateLevels;
   /** Array of predicate precedences */
-  DArray<int> _predicatePrecedences;
+  Lib::DArray<int> _predicatePrecedences;
   /** Array of function precedences */
-  DArray<int> _functionPrecedences;
+  Lib::DArray<int> _functionPrecedences;
   /** Array of type con precedences */
-  DArray<int> _typeConPrecedences;
+  Lib::DArray<int> _typeConPrecedences;
 
   bool _reverseLCM;
 };

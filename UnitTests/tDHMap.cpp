@@ -11,6 +11,8 @@
 #include "Lib/DHMap.hpp"
 #include "Test/UnitTesting.hpp"
 
+using namespace Lib;
+
 typedef DHMap<unsigned, unsigned> MyMap;
 
 TEST_FUN(dhmap1)

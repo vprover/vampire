@@ -16,7 +16,6 @@
 
 namespace Kernel {
 
-using namespace Lib;
 
 
 /**

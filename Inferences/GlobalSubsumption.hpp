@@ -51,7 +51,7 @@ public:
   void detach() override;
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
   
-  Clause* perform(Clause* cl, Stack<Unit*>& prems);
+  Clause* perform(Clause* cl, Lib::Stack<Unit*>& prems);
  
 private:  
   struct Unit2ClFn;
@@ -90,12 +90,12 @@ private:
    * 
    * (Should this be rather a part of _index?)
    */
-  DHMap<unsigned, unsigned> _splits2vars;
+  Lib::DHMap<unsigned, unsigned> _splits2vars;
   
   /**
    * An inverse of the above map, for convenience.
    */  
-  DHMap<unsigned, unsigned> _vars2splits;
+  Lib::DHMap<unsigned, unsigned> _vars2splits;
       
 protected:  
   unsigned splitLevelToVar(SplitLevel lev) {        

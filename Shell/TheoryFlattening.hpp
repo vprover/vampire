@@ -35,17 +35,17 @@ public:
   void apply(Problem& prb);
   bool apply(UnitList*& units);
   bool apply(ClauseList*& units);
-  Clause* apply(Clause*& cl,Stack<Literal*>& target);
+  Clause* apply(Clause*& cl,Lib::Stack<Literal*>& target);
   Clause* apply(Clause*& cl){
-    static Stack<Literal*> dummy;
+    static Lib::Stack<Literal*> dummy;
     return apply(cl,dummy);
   }
 private:
-  Literal* replaceTopTerms(Literal* lit, Stack<Literal*>& newLits,unsigned& maxVar,
-                           DHMap<Term*,unsigned>& abstracted);
-  Term* replaceTopTermsInTerm(Term* term, Stack<Literal*>& newLits,
+  Literal* replaceTopTerms(Literal* lit, Lib::Stack<Literal*>& newLits,unsigned& maxVar,
+                           Lib::DHMap<Term*,unsigned>& abstracted);
+  Term* replaceTopTermsInTerm(Term* term, Lib::Stack<Literal*>& newLits,
                               unsigned& maxVar,bool interpreted,
-                              DHMap<Term*,unsigned>& abstracted);
+                              Lib::DHMap<Term*,unsigned>& abstracted);
 
   bool _recursive;
   bool _sharing;

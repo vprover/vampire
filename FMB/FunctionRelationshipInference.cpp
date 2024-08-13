@@ -48,6 +48,7 @@
 namespace FMB
 {
 using namespace std;
+using namespace Lib;
 using namespace Shell;
 
 void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator clauses, 

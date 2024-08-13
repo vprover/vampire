@@ -31,6 +31,7 @@
 #include "Rectify.hpp"
 
 using namespace std;
+using namespace Lib;
 using namespace Shell;
 
 bool Rectify::Renaming::tryGetBoundAndMarkUsed (int var,int& boundTo) const

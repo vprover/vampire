@@ -22,7 +22,6 @@
 
 #include "Lib/Allocator.hpp"
 
-using namespace Lib;
 using namespace Kernel;
 
 namespace Indexing {
@@ -59,9 +58,9 @@ public:
   static bool equals(const Literal* l1, const Literal* l2)
   { return Literal::literalEquals(l1, l2->functor(), l2->polarity() ^ opposite, 
         [&](auto i){ return *l2->nthArgument(i); }, 
-        l2->arity(), someIf(l2->isTwoVarEquality(), [&](){ return l2->twoVarEqSort(); }), l2->commutative()); }
+        l2->arity(), Lib::someIf(l2->isTwoVarEquality(), [&](){ return l2->twoVarEqSort(); }), l2->commutative()); }
 
-  DHSet<TermList>* getArraySorts(){
+  Lib::DHSet<TermList>* getArraySorts(){
     return &_arraySorts;
   }
 
@@ -100,15 +99,15 @@ private:
   static bool argNormGt(TermList t1, TermList t2);
 
   /** The set storing all terms */
-  Set<Term*,TermSharing> _terms;
+  Lib::Set<Term*,TermSharing> _terms;
   /** The set storing all literals */
-  Set<Literal*,TermSharing> _literals;
+  Lib::Set<Literal*,TermSharing> _literals;
   /** The set storing all sorts */
-  Set<AtomicSort*,TermSharing> _sorts;
+  Lib::Set<AtomicSort*,TermSharing> _sorts;
   /* Set containing all array sorts. 
    * Can be deleted once array axioms are made truly poltmorphic
    */  
-  DHSet<TermList> _arraySorts;
+  Lib::DHSet<TermList> _arraySorts;
 
   bool _poly;
   bool _wellSortednessCheckingDisabled;

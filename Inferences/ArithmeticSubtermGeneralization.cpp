@@ -23,6 +23,7 @@
 namespace Inferences {
 
 using namespace std;
+using namespace Lib;
 
 /** iterator over all subterms of a clause in polynomial normal form */
 static const auto iterTerms = [](Clause* cl) 

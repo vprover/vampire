@@ -93,10 +93,10 @@ public:
   unsigned id() const;
   Theory::Interpretation interpretation() const;
   bool isInterpreted() const;
-  Option<Theory::Interpretation> tryInterpret() const;
+  Lib::Option<Theory::Interpretation> tryInterpret() const;
 
   template<class Number>
-  Option<typename Number::ConstantType> tryNumeral() const;
+  Lib::Option<typename Number::ConstantType> tryNumeral() const;
 };
 
 } // namespace Kernel
@@ -137,13 +137,13 @@ struct Monom
   using Numeral = typename Number::ConstantType;
 
   Numeral numeral;
-  Perfect<MonomFactors<Number>> factors;
+  Lib::Perfect<MonomFactors<Number>> factors;
 
-  Monom(Numeral numeral, Perfect<MonomFactors<Number>> factors);
+  Monom(Numeral numeral, Lib::Perfect<MonomFactors<Number>> factors);
 
   static Monom zero();
 
-  Option<Variable> tryVar() const;
+  Lib::Option<Variable> tryVar() const;
 
   /** performs an integrity check on the datastructure, only has an effect in debug mode */
   void integrity() const;
@@ -156,11 +156,11 @@ struct Monom
 class FuncTerm 
 {
   FuncId _fun;
-  Stack<PolyNf> _args;
+  Lib::Stack<PolyNf> _args;
 public:
   USE_ALLOCATOR(FuncTerm)
 
-  FuncTerm(FuncId f, Stack<PolyNf>&& args);
+  FuncTerm(FuncId f, Lib::Stack<PolyNf>&& args);
   FuncTerm(FuncId f, PolyNf* args);
 
   unsigned numTermArguments() const;
@@ -168,7 +168,7 @@ public:
   PolyNf const& arg(unsigned i) const;
 
   template<class Number> 
-  Option<typename Number::ConstantType> tryNumeral() const;
+  Lib::Option<typename Number::ConstantType> tryNumeral() const;
 
   friend std::ostream& operator<<(std::ostream& out, const FuncTerm& self);
   friend bool operator==(FuncTerm const& lhs, FuncTerm const& rhs);
@@ -176,27 +176,27 @@ public:
   friend struct std::hash<FuncTerm>;
 };
 
-using AnyPolySuper = Coproduct< 
-    Perfect<Polynom< IntTraits>>
-  , Perfect<Polynom< RatTraits>>
-  , Perfect<Polynom<RealTraits>>
+using AnyPolySuper = Lib::Coproduct< 
+    Lib::Perfect<Polynom< IntTraits>>
+  , Lib::Perfect<Polynom< RatTraits>>
+  , Lib::Perfect<Polynom<RealTraits>>
   >;
 
 class AnyPoly : public AnyPolySuper
 {
 public:
   /** creates a new dynamically typed polynom from a statically typed one */
-  template<class NumTraits> AnyPoly(Perfect<Polynom<NumTraits>> x);
+  template<class NumTraits> AnyPoly(Lib::Perfect<Polynom<NumTraits>> x);
 
   /** tries to turn this polynom into a polynom of the given NumTraits. */
-  template<class NumTraits> Option<Perfect<Polynom<NumTraits>> const&> downcast() const&;
+  template<class NumTraits> Lib::Option<Lib::Perfect<Polynom<NumTraits>> const&> downcast() const&;
 
   /** returns wether this is a Polynom of the given NumTraits. */
   template<class NumTraits> bool isType() const;
 
   /** if this polynom has the right sort, and consist of a single summand that is a numeral, then this numeral
    * is returned. otherwise an empty Option is returned. */
-  template<class NumTraits> Option<typename NumTraits::ConstantType> tryNumeral() const&;
+  template<class NumTraits> Lib::Option<typename NumTraits::ConstantType> tryNumeral() const&;
 
   /** \see template<class N> Polynom<N>::replaceTerms */
   AnyPoly replaceTerms(PolyNf* newTs) const;
@@ -217,7 +217,7 @@ public:
   friend struct std::hash<AnyPoly>;
 };
 
-using PolyNfSuper = Lib::Coproduct<Perfect<FuncTerm>, Variable, AnyPoly>;
+using PolyNfSuper = Lib::Coproduct<Lib::Perfect<FuncTerm>, Variable, AnyPoly>;
 
 /**
  * Represents the polynomial normal form of a term, that is used for performing several simplifications and evaluations.
@@ -228,7 +228,7 @@ class PolyNf : public PolyNfSuper
 {
 public:
 
-  PolyNf(Perfect<FuncTerm> t);
+  PolyNf(Lib::Perfect<FuncTerm> t);
   PolyNf(Variable               t);
   PolyNf(AnyPoly                t);
 
@@ -239,7 +239,7 @@ public:
    * otherwise an empty Option is returned
    */
   template<class NumTraits>
-  Option<Perfect<Polynom<NumTraits>>> downcast() const;
+  Lib::Option<Lib::Perfect<Polynom<NumTraits>>> downcast() const;
 
   /** turns the normal form term PolyNf into an ordenary vampire term TermList. */
   TermList denormalize() const;
@@ -252,21 +252,21 @@ public:
    * wrapped in a polynom.
    */
   template<class Number> 
-  Perfect<Polynom<Number>> wrapPoly() const;
+  Lib::Perfect<Polynom<Number>> wrapPoly() const;
   
 
   /** if this PolyNf is a numeral, the numeral is returned */
   template<class Number>
-  Option<typename Number::ConstantType> tryNumeral() const;
+  Lib::Option<typename Number::ConstantType> tryNumeral() const;
 
   /** if this PolyNf is a Variable, the variable is returned */
-  Option<Variable> tryVar() const;
+  Lib::Option<Variable> tryVar() const;
 
   /** an iterator over all PolyNf s that are subterms of this one */
   class SubtermIter;
 
   /** returns an iterator over all PolyNf s that are subterms of this one */
-  IterTraits<SubtermIter> iterSubterms() const;
+  Lib::IterTraits<SubtermIter> iterSubterms() const;
 
   friend struct std::hash<PolyNf>;
   friend bool operator==(PolyNf const& lhs, PolyNf const& rhs);
@@ -293,7 +293,7 @@ struct MonomFactor
   MonomFactor(PolyNf term, int power);
    
   /** if this monomfactor is a Variable and has power one it is turned into a variable */
-  Option<Variable> tryVar() const;
+  Lib::Option<Variable> tryVar() const;
 };
 
 
@@ -308,7 +308,7 @@ class MonomFactors
   using Monom       = Kernel::Monom<Number>;
   using Polynom     = Kernel::Polynom<Number>;
   using Numeral = typename Number::ConstantType;
-  Stack<MonomFactor> _factors;
+  Lib::Stack<MonomFactor> _factors;
   friend struct std::hash<MonomFactors>;
 
 public:
@@ -318,7 +318,7 @@ public:
    * constructs a new MonomFactors. 
    * \pre factors must be sorted
    */
-  MonomFactors(Stack<MonomFactor>&& factors);
+  MonomFactors(Lib::Stack<MonomFactor>&& factors);
 
   /** constructs an empty product, which corresponds to the numeral one.  */
   MonomFactors();
@@ -347,7 +347,7 @@ public:
   /** turns this monom into a polynom. 
    * \pre isPolynom  must be true
    */
-  Perfect<Polynom> asPolynom() const;
+  Lib::Perfect<Polynom> asPolynom() const;
 
   /** returns the (empty) product one */
   static MonomFactors one();
@@ -357,7 +357,7 @@ public:
 
 
   /** if this MonomFactors consist of a single variable if will be returnd  */
-  Option<Variable> tryVar() const;
+  Lib::Option<Variable> tryVar() const;
 
   /** performs an integrity check on the datastructure, only has an effect in debug mode */
   void integrity() const;
@@ -368,7 +368,7 @@ public:
 
   /** returns an iterator over all factors */
   auto iter() const&
-  { return arrayIter(_factors); }
+  { return Lib::arrayIter(_factors); }
 
   explicit MonomFactors(const MonomFactors&) = default;
   explicit MonomFactors(MonomFactors&) = default;
@@ -382,7 +382,7 @@ public:
   /** helper function for PolyNf::denormalize() */
   TermList denormalize(TermList* results)  const;
 
-  Stack<MonomFactor>& raw();
+  Lib::Stack<MonomFactor>& raw();
 };
 
 template<class Number>
@@ -394,7 +394,7 @@ class Polynom
   using MonomFactors = Kernel::MonomFactors<Number>;
   using Monom        = Kernel::Monom<Number>;
 
-  Stack<Monom> _summands;
+  Lib::Stack<Monom> _summands;
 
 public:
   USE_ALLOCATOR(Polynom)
@@ -403,7 +403,7 @@ public:
    * constructs a new Polynom with a list of summands 
    * \pre summands must be sorted
    */
-  explicit Polynom(Stack<Monom>&& summands);
+  explicit Polynom(Lib::Stack<Monom>&& summands);
 
   /** creates a Polynom that consists of only one summand */
   explicit Polynom(Monom m);
@@ -421,7 +421,7 @@ public:
   static Polynom zero();
 
   /** if this Polynom consists only of one summand that is a numeral the numeral is returned */
-  Option<Numeral> toNumber() const&;
+  Lib::Option<Numeral> toNumber() const&;
 
   /** turns this Polynom into a numeral if it consists only of one summand that is a numeral, or throws an assertion violation 
    * \pre isNumeral is true*
@@ -463,9 +463,9 @@ public:
 
   /** returns iterator over all summands of this Polyom */
   auto iterSummands() const&
-  { return arrayIter(_summands); }
+  { return Lib::arrayIter(_summands); }
 
-  Stack<Monom>& raw();
+  Lib::Stack<Monom>& raw();
 
   template<class N> friend bool operator==(const Polynom<N>& lhs, const Polynom<N>& rhs);
   template<class N> friend std::ostream& operator<<(std::ostream& out, const Polynom<N>& self);
@@ -487,7 +487,7 @@ public:
 };
 
 /** convienent constructor for IterArgsPnf */
-IterTraits<IterArgsPnf> iterArgsPnf(Literal* lit);
+Lib::IterTraits<IterArgsPnf> iterArgsPnf(Literal* lit);
 
 } // namespace Kernel
 
@@ -497,7 +497,7 @@ IterTraits<IterArgsPnf> iterArgsPnf(Literal* lit);
 namespace Kernel {
 
 class PolyNf::SubtermIter {
-  Stack<BottomUpChildIter<PolyNf>> _stack;
+  Lib::Stack<Lib::BottomUpChildIter<PolyNf>> _stack;
 public:
   DECL_ELEMENT_TYPE(PolyNf);
 
@@ -525,21 +525,21 @@ public:
 namespace Kernel {
 
 template<class Number>
-Monom<Number>::Monom(Monom<Number>::Numeral numeral, Perfect<MonomFactors<Number>> factors) 
+Monom<Number>::Monom(Monom<Number>::Numeral numeral, Lib::Perfect<MonomFactors<Number>> factors) 
   : numeral(numeral), factors(factors)
 {}
 
 template<class Number>
 Monom<Number> Monom<Number>::zero() 
 { 
-  static Monom p = Monom(Numeral(0), perfect(MonomFactors<Number>()));
+  static Monom p = Monom(Numeral(0), Lib::perfect(MonomFactors<Number>()));
   return p; 
 }
 
 template<class Number>
-Option<Variable> Monom<Number>::tryVar() const 
+Lib::Option<Variable> Monom<Number>::tryVar() const 
 {
-  using Opt = Option<Variable>;
+  using Opt = Lib::Option<Variable>;
   if (numeral == Numeral(1)) {
     return  factors->tryVar();
   } else {
@@ -590,14 +590,14 @@ std::ostream& operator<<(std::ostream& out, const Monom<Number>& self)
 namespace Kernel {
 
 template<class Number>
-Option<typename Number::ConstantType> FuncId::tryNumeral() const
+Lib::Option<typename Number::ConstantType> FuncId::tryNumeral() const
 { 
   using Numeral = typename Number::ConstantType;
   Numeral out;
   if (theory->tryInterpretConstant(_num, out)) {
-    return Option<Numeral>(out);
+    return Lib::Option<Numeral>(out);
   } else {
-    return Option<Numeral>();
+    return Lib::Option<Numeral>();
   }
 }
 
@@ -612,7 +612,7 @@ Option<typename Number::ConstantType> FuncId::tryNumeral() const
 namespace Kernel {
 
 template<class Number>
-Option<typename Number::ConstantType> FuncTerm::tryNumeral() const
+Lib::Option<typename Number::ConstantType> FuncTerm::tryNumeral() const
 { return _fun.template tryNumeral<Number>(); }
 
 } // namespace Kernel
@@ -621,7 +621,7 @@ Option<typename Number::ConstantType> FuncTerm::tryNumeral() const
 template<> struct std::hash<Kernel::FuncTerm> 
 {
   size_t operator()(Kernel::FuncTerm const& f) const 
-  { return Lib::HashUtils::combine(std::hash<Kernel::FuncId>{}(f._fun), std::hash<Stack<Kernel::PolyNf>>{}(f._args));  }
+  { return Lib::HashUtils::combine(std::hash<Kernel::FuncId>{}(f._fun), std::hash<Lib::Stack<Kernel::PolyNf>>{}(f._args));  }
 };
 
 /////////////////////////////////////////////////////////
@@ -631,29 +631,29 @@ template<> struct std::hash<Kernel::FuncTerm>
 namespace Kernel {
 
 template<class NumTraits>
-AnyPoly::AnyPoly(Perfect<Polynom<NumTraits>> x) : Coproduct(std::move(x)) {  }
+AnyPoly::AnyPoly(Lib::Perfect<Polynom<NumTraits>> x) : Coproduct(std::move(x)) {  }
 
 template<class NumTraits> 
-Option<Perfect<Polynom<NumTraits>> const&>  AnyPoly::downcast() const& 
-{ return as<Perfect<Polynom<NumTraits>>>(); }
+Lib::Option<Lib::Perfect<Polynom<NumTraits>> const&>  AnyPoly::downcast() const& 
+{ return as<Lib::Perfect<Polynom<NumTraits>>>(); }
 
 template<class NumTraits> 
 bool AnyPoly::isType() const 
-{ return is<Perfect<Polynom<NumTraits>>>(); }
+{ return is<Lib::Perfect<Polynom<NumTraits>>>(); }
 
 /* helper function for AnyPoly::tryNumeral */
 template<class NumIn, class NumOut>
 struct __ToNumeralHelper 
 {
-  Option<typename NumOut::ConstantType> operator()(Perfect<Polynom<NumIn>>) const
-  { return Option<typename NumOut::ConstantType>(); }
+  Lib::Option<typename NumOut::ConstantType> operator()(Lib::Perfect<Polynom<NumIn>>) const
+  { return Lib::Option<typename NumOut::ConstantType>(); }
 };
 
 /* helper function for AnyPoly::tryNumeral */
 template<class Num>
 struct __ToNumeralHelper<Num,Num>
 {
-  Option<typename Num::ConstantType> operator()(Perfect<Polynom<Num>> p) const
+  Lib::Option<typename Num::ConstantType> operator()(Lib::Perfect<Polynom<Num>> p) const
   { return p->toNumber(); }
 };
 
@@ -661,13 +661,13 @@ template<class NumOut>
 struct PolymorphicToNumeral 
 {
   template<class NumIn>
-  Option<typename NumOut::ConstantType> operator()(Perfect<Polynom<NumIn>> const& p) const
+  Lib::Option<typename NumOut::ConstantType> operator()(Lib::Perfect<Polynom<NumIn>> const& p) const
   { return __ToNumeralHelper<NumIn, NumOut>{}(p); }
 };
 
 
 template<class NumTraits>
-Option<typename NumTraits::ConstantType> AnyPoly::tryNumeral() const&
+Lib::Option<typename NumTraits::ConstantType> AnyPoly::tryNumeral() const&
 { return apply(PolymorphicToNumeral<NumTraits>{}); }
 
 } // namespace Kernel
@@ -688,9 +688,9 @@ namespace Kernel {
 
 
 template<class NumTraits>
-Option<Perfect<Polynom<NumTraits>>> PolyNf::downcast()  const
+Lib::Option<Lib::Perfect<Polynom<NumTraits>>> PolyNf::downcast()  const
 {
-  using Result = Perfect<Polynom<NumTraits>>;
+  using Result = Lib::Perfect<Polynom<NumTraits>>;
   return as<AnyPoly>()
     .andThen([](AnyPoly const& p) { return p.as<Result>(); })
     .map([](Result const& p) -> Result { return p; });
@@ -698,23 +698,23 @@ Option<Perfect<Polynom<NumTraits>>> PolyNf::downcast()  const
 
 
 template<class Number> 
-Perfect<Polynom<Number>> PolyNf::wrapPoly() const
+Lib::Perfect<Polynom<Number>> PolyNf::wrapPoly() const
 {
   if (this->is<AnyPoly>()) {
     return this->unwrap<AnyPoly>()
-            .unwrap<Perfect<Polynom<Number>>>();
+            .unwrap<Lib::Perfect<Polynom<Number>>>();
   } else {
-    return perfect(Polynom<Number>(*this));
+    return Lib::perfect(Polynom<Number>(*this));
   }
 }
 
 template<class Number>
-Option<typename Number::ConstantType> PolyNf::tryNumeral() const
+Lib::Option<typename Number::ConstantType> PolyNf::tryNumeral() const
 { 
   using Numeral = typename Number::ConstantType;
   return match(
-      [](Perfect<FuncTerm> t) { return (*t).tryNumeral<Number>(); },
-      [](Variable               t) { return Option<Numeral>();              },
+      [](Lib::Perfect<FuncTerm> t) { return (*t).tryNumeral<Number>(); },
+      [](Variable               t) { return Lib::Option<Numeral>();              },
       [](AnyPoly                t) { return t.template tryNumeral<Number>(); }
     );
 }
@@ -760,8 +760,8 @@ std::ostream& operator<<(std::ostream& out, const MonomFactor<Number>& self) {
 }
 
 template<class Number>
-Option<Variable> MonomFactor<Number>::tryVar() const 
-{ return power == 1 ? term.tryVar() : none<Variable>(); }
+Lib::Option<Variable> MonomFactor<Number>::tryVar() const 
+{ return power == 1 ? term.tryVar() : Lib::none<Variable>(); }
 
 } // namespace Kernel
 
@@ -770,7 +770,8 @@ struct std::hash<Kernel::MonomFactor<NumTraits>>
 {
   size_t operator()(Kernel::MonomFactor<NumTraits> const& x) const noexcept 
   {
-    return HashUtils::combine(
+    using namespace Lib;
+    return Lib::HashUtils::combine(
       StlHash::hash(x.term),
       StlHash::hash(x.power)
     );
@@ -785,7 +786,7 @@ struct std::hash<Kernel::MonomFactor<NumTraits>>
 namespace Kernel {
 
 template<class Number>
-MonomFactors<Number>::MonomFactors(Stack<MonomFactor>&& factors) 
+MonomFactors<Number>::MonomFactors(Lib::Stack<MonomFactor>&& factors) 
   : _factors(std::move(factors)) { }
 
 template<class Number>
@@ -820,7 +821,7 @@ PolyNf const& MonomFactors<Number>::termAt(unsigned i) const
 { return _factors[i].term; }
 
 template<class Number>
-Stack<MonomFactor<Number>> & MonomFactors<Number>::raw()
+Lib::Stack<MonomFactor<Number>> & MonomFactors<Number>::raw()
 { return _factors; }
 
 template<class Number>
@@ -830,12 +831,12 @@ bool MonomFactors<Number>::isPolynom() const
     && _factors[0].term.template is<AnyPoly>(); }
 
 template<class Number>
-Perfect<Polynom<Number>> MonomFactors<Number>::asPolynom() const
+Lib::Perfect<Polynom<Number>> MonomFactors<Number>::asPolynom() const
 { 
   ASS(isPolynom());
   return _factors[0].term
     .template unwrap<AnyPoly>()
-    .template unwrap<Perfect<Polynom>>(); 
+    .template unwrap<Lib::Perfect<Polynom>>(); 
 }
 
 template<class Number>
@@ -897,9 +898,9 @@ TermList MonomFactors<Number>::denormalize(TermList* results)  const
 }
 
 template<class Number>
-Option<Variable> MonomFactors<Number>::tryVar() const 
+Lib::Option<Variable> MonomFactors<Number>::tryVar() const 
 {
-  using Opt = Option<Variable>;
+  using Opt = Lib::Option<Variable>;
   if (nFactors() == 1 ) {
 
     return _factors[0].tryVar();
@@ -944,6 +945,7 @@ struct std::hash<Kernel::MonomFactors<NumTraits>>
 {
   size_t operator()(Kernel::MonomFactors<NumTraits> const& x) const noexcept 
   {
+    using namespace Lib;
     return StackHash<StlHash>::hash(x._factors);
   }
 };
@@ -957,22 +959,22 @@ namespace Kernel {
 
 
 template<class Number>
-Polynom<Number>::Polynom(Stack<Monom>&& summands) 
+Polynom<Number>::Polynom(Lib::Stack<Monom>&& summands) 
   : _summands(
       summands.isEmpty() 
-        ? Stack<Monom>{Monom::zero()} 
+        ? Lib::Stack<Monom>{Monom::zero()} 
         : std::move(summands)) 
 { }
 
 template<class Number>
 Polynom<Number>::Polynom(Monom m) 
   : Polynom(
-      Stack<Monom>{m})
+      Lib::Stack<Monom>{m})
 {  }
 
 template<class Number>
 Polynom<Number>::Polynom(Numeral numeral, PolyNf term) 
-  : Polynom(Monom(numeral, perfect(MonomFactors(term))))
+  : Polynom(Monom(numeral, Lib::perfect(MonomFactors(term))))
 {  }
 
 template<class Number>
@@ -982,7 +984,7 @@ Polynom<Number>::Polynom(PolyNf t)
 
 template<class Number>
 Polynom<Number>::Polynom(Numeral constant) 
-  : Polynom(Monom(constant, perfect(MonomFactors::one()))) 
+  : Polynom(Monom(constant, Lib::perfect(MonomFactors::one()))) 
 {  }
 
 
@@ -1012,22 +1014,22 @@ std::ostream& operator<<(std::ostream& out, const Polynom<Number>& self) {
 template<class Number>
 Polynom<Number> Polynom<Number>::zero() 
 { 
-  auto out = Polynom(Stack<Monom>{Monom::zero()}); 
+  auto out = Polynom(Lib::Stack<Monom>{Monom::zero()}); 
   out.integrity();
   return std::move(out);
 }
 
 template<class Number>
-Option<typename Number::ConstantType> Polynom<Number>::toNumber() const& 
+Lib::Option<typename Number::ConstantType> Polynom<Number>::toNumber() const& 
 { 
   if ( _summands.size() == 0) {
-    return Option<Numeral>(Numeral(0));
+    return Lib::Option<Numeral>(Numeral(0));
 
   } else if (_summands.size() == 1 && _summands[0].factors->nFactors() == 0) {
-    return Option<Numeral>(_summands[0].numeral);
+    return Lib::Option<Numeral>(_summands[0].numeral);
 
   } else {
-    return Option<Numeral>();
+    return Lib::Option<Numeral>();
   }
 }
 
@@ -1077,20 +1079,20 @@ TermList Polynom<Number>::denormalize(TermList* results) const
 }
 
 template<class Number>
-Stack<Monom<Number>>& Polynom<Number>::raw()
+Lib::Stack<Monom<Number>>& Polynom<Number>::raw()
 { return _summands; }
 
 template<class Number>
 Polynom<Number> Polynom<Number>::replaceTerms(PolyNf* simplifiedTerms) const 
 {
   int offs = 0;
-  Stack<Monom> out;
+  Lib::Stack<Monom> out;
   out.reserve(nSummands());
 
   for (auto& monom : _summands) {
     out.push(Monom(
           monom.numeral, 
-          perfect(monom.factors->replaceTerms(&simplifiedTerms[offs]))));
+          Lib::perfect(monom.factors->replaceTerms(&simplifiedTerms[offs]))));
     offs += monom.factors->nFactors();
   }
   return Polynom(std::move(out));
@@ -1121,7 +1123,7 @@ void Polynom<Number>::integrity() const {
     auto iter = this->_summands.begin();
     auto last = iter++;
     while (iter != _summands.end()) {
-      // ASS_REP(std::less<Perfect<MonomFactors>>{}(last->factors, iter->factors), *this);
+      // ASS_REP(std::less<Lib::Perfect<MonomFactors>>{}(last->factors, iter->factors), *this);
       ASS_REP(last->factors <= iter->factors, *this);
       iter->integrity();
       last = iter++;
@@ -1133,7 +1135,7 @@ void Polynom<Number>::integrity() const {
 
 template<class Number> 
 TermList Polynom<Number>::denormalize()  const
-{ return PolyNf(AnyPoly(perfect(Polynom(*this)))).denormalize(); }
+{ return PolyNf(AnyPoly(Lib::perfect(Polynom(*this)))).denormalize(); }
 
 } // namespace Kernel
 
@@ -1142,12 +1144,12 @@ struct std::hash<Kernel::Polynom<NumTraits>>
 {
   size_t operator()(Kernel::Polynom<NumTraits> const& x) const noexcept 
   {
-    using namespace Lib;
     using namespace Kernel;
+    using namespace Lib;
 
-    unsigned out = HashUtils::combine(0,0);
+    unsigned out = Lib::HashUtils::combine(0,0);
     for (auto c : x._summands) {
-      out = HashUtils::combine(
+      out = Lib::HashUtils::combine(
         StlHash::hash(c.factors),
         StlHash::hash(c.numeral),
         out

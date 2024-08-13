@@ -23,7 +23,6 @@
 
 namespace Kernel {
 
-using namespace Lib;
 
 /**
  * A clause stack that enforces reference counting on inserted clauses

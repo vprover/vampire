@@ -29,6 +29,7 @@
 namespace FMB{
 
 using namespace std;
+using namespace Lib;
 
 bool ClauseFlattening::isShallow(Literal* lit)
 {

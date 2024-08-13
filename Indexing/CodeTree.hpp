@@ -38,7 +38,6 @@
 
 namespace Indexing {
 
-using namespace Lib;
 using namespace Kernel;
 
 class CodeTree
@@ -87,7 +86,7 @@ public:
     TermList bindings[1];
 
   private:
-    void init(ILStruct* ils, unsigned liIndex, DArray<TermList>& bindingArray);
+    void init(ILStruct* ils, unsigned liIndex, Lib::DArray<TermList>& bindingArray);
 
     static MatchInfo* alloc(unsigned bindCnt);
 
@@ -109,7 +108,7 @@ public:
    */
   struct alignas(8) ILStruct
   {
-    ILStruct(const Literal* lit, unsigned varCnt, Stack<unsigned>& gvnStack);
+    ILStruct(const Literal* lit, unsigned varCnt, Lib::Stack<unsigned>& gvnStack);
     ~ILStruct();
     void putIntoSequence(ILStruct* previous_);
 
@@ -140,7 +139,7 @@ public:
     unsigned timestamp;
     //from here on, the values are valid only if the timestamp is current
 
-    void addMatch(unsigned liIndex, DArray<TermList>& bindingArray);
+    void addMatch(unsigned liIndex, Lib::DArray<TermList>& bindingArray);
     void deleteMatch(unsigned matchIndex);
     MatchInfo*& getMatch(unsigned matchIndex);
 
@@ -151,7 +150,7 @@ public:
     bool finished;
     bool noNonOppositeMatches;
   private:
-    DArray<MatchInfo*> matches;
+    Lib::DArray<MatchInfo*> matches;
   };
 
   enum Instruction
@@ -244,9 +243,9 @@ public:
     BITFIELD64_GET_AND_SET(unsigned, instruction, Instruction, INSTRUCTION)
     BITFIELD64_GET_AND_SET(unsigned, arg, Arg, ARG)
     template<class T> T* _data() const
-    { return reinterpret_cast<T*>(BitUtils::getBits<DATA_BITS_START, DATA_BITS_END>(this->_content)); }
+    { return reinterpret_cast<T*>(Lib::BitUtils::getBits<DATA_BITS_START, DATA_BITS_END>(this->_content)); }
     template<class T> void _setData(T* data)
-    { BitUtils::setBits<DATA_BITS_START, DATA_BITS_END>(this->_content, reinterpret_cast<uint64_t>(data)); }
+    { Lib::BitUtils::setBits<DATA_BITS_START, DATA_BITS_END>(this->_content, reinterpret_cast<uint64_t>(data)); }
     // end bitfield
 
   private:
@@ -325,8 +324,8 @@ public:
   using FnSearchStruct = SearchStructImpl<SearchStruct::FN_STRUCT>;
   using GroundTermSearchStruct = SearchStructImpl<SearchStruct::GROUND_TERM_STRUCT>;
 
-  typedef Vector<CodeOp> CodeBlock;
-  typedef Stack<CodeOp> CodeStack;
+  typedef Lib::Vector<CodeOp> CodeBlock;
+  typedef Lib::Stack<CodeOp> CodeStack;
 
   struct BaseMatcher
   {
@@ -372,7 +371,7 @@ public:
 
   //////////// insertion //////////////
 
-  typedef DHMap<unsigned,unsigned> VarMap;
+  typedef Lib::DHMap<unsigned,unsigned> VarMap;
 
   /** Context for code compilation */
   struct CompileContext
@@ -398,7 +397,7 @@ public:
 
   //////////// removal //////////////
 
-  void optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp* removedOp);
+  void optimizeMemoryAfterRemoval(Lib::Stack<CodeOp*>* firstsInBlocks, CodeOp* removedOp);
 
   struct RemovingMatcher
   : public BaseMatcher
@@ -413,7 +412,7 @@ public:
 
   protected:
     void init(CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_,
-	CodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_);
+	CodeTree* tree_, Lib::Stack<CodeOp*>* firstsInBlocks_);
 
 
     bool prepareLiteral();
@@ -435,10 +434,10 @@ public:
     };
 
     /** Variable bindings */
-    DArray<unsigned> bindings;
+    Lib::DArray<unsigned> bindings;
 
-    Stack<BTPoint> btStack;
-    Stack<CodeOp*>* firstsInBlocks;
+    Lib::Stack<BTPoint> btStack;
+    Lib::Stack<CodeOp*>* firstsInBlocks;
     bool fresh;
     size_t curLInfo;
 
@@ -468,8 +467,8 @@ public:
     CodeOp* op;
   };
 
-  typedef Stack<BTPoint> BTStack;
-  typedef DArray<TermList> BindingArray;
+  typedef Lib::Stack<BTPoint> BTStack;
+  typedef Lib::DArray<TermList> BindingArray;
 
   /**
    * Context for finding matches of literals

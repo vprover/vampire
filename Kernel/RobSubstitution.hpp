@@ -55,8 +55,8 @@ struct VarSpec
   auto asTuple() const { return std::tie(var, index); }
   IMPL_COMPARISONS_FROM_TUPLE(VarSpec)
 
-  unsigned defaultHash () const { return HashUtils::combine(var  , index); }
-  unsigned defaultHash2() const { return HashUtils::combine(index, var  ); }
+  unsigned defaultHash () const { return Lib::HashUtils::combine(var  , index); }
+  unsigned defaultHash2() const { return Lib::HashUtils::combine(index, var  ); }
 };
 
 struct TermSpec {
@@ -107,9 +107,9 @@ struct TermSpec {
   TermSpec typeArg(unsigned i) const { return TermSpec(this->term.term()->typeArg(i), this->index); }
   TermSpec anyArg (unsigned i) const { return TermSpec(*this->term.term()->nthArgument(i), this->index); }
 
-  auto typeArgs() const { return range(0, nTypeArgs()).map([this](auto i) { return typeArg(i); }); }
-  auto termArgs() const { return range(0, nTermArgs()).map([this](auto i) { return termArg(i); }); }
-  auto allArgs()  const { return range(0, nAllArgs()).map([this](auto i) { return anyArg(i); }); }
+  auto typeArgs() const { return Lib::range(0, nTypeArgs()).map([this](auto i) { return typeArg(i); }); }
+  auto termArgs() const { return Lib::range(0, nTermArgs()).map([this](auto i) { return termArg(i); }); }
+  auto allArgs()  const { return Lib::range(0, nAllArgs()).map([this](auto i) { return anyArg(i); }); }
 
   bool deepEqCheck(const TermSpec& t2) const {
     TermSpec const& t1 = *this;
@@ -139,7 +139,7 @@ struct TermSpec {
   bool sortIsBoolOrVar() const
   { 
     if (!isTerm()) return false;
-    auto fun = env.signature->getFunction(functor());
+    auto fun = Lib::env.signature->getFunction(functor());
     auto op = fun->fnType();
     TermList res = op->result();
     return res.isVar() || res == AtomicSort::boolSort();
@@ -160,7 +160,7 @@ struct TermSpec {
 
   template<class Deref>
   static int compare(TermSpec const& lhs, TermSpec const& rhs, Deref deref) {
-    Recycled<Stack<std::pair<TermSpec, TermSpec>>> todo;
+    Lib::Recycled<Lib::Stack<std::pair<TermSpec, TermSpec>>> todo;
     todo->push(std::make_pair(lhs,rhs));
     while (todo->isNonEmpty()) {
       auto lhs_ = std::move(todo->top().first);
@@ -212,27 +212,27 @@ struct AutoDerefTermSpec
 template<class Result>
 class OnlyMemorizeNonVar 
 {
-  Map<TermSpec, Result> _memo;
+  Lib::Map<TermSpec, Result> _memo;
 public:
   OnlyMemorizeNonVar(OnlyMemorizeNonVar &&) = default;
   OnlyMemorizeNonVar& operator=(OnlyMemorizeNonVar &&) = default;
   OnlyMemorizeNonVar() : _memo() {}
 
-  auto memoKey(AutoDerefTermSpec const& arg) -> Option<TermSpec>
+  auto memoKey(AutoDerefTermSpec const& arg) -> Lib::Option<TermSpec>
   { 
     if (arg.term.term.isTerm()) {
-      return some(arg.term);
+      return Lib::some(arg.term);
     } else {
       return {};
     }
   }
 
-  Option<Result> get(AutoDerefTermSpec const& arg)
+  Lib::Option<Result> get(AutoDerefTermSpec const& arg)
   { 
     auto key = memoKey(arg);
     return key.isSome()
        ? _memo.tryGet(*key).toOwned()
-       : Option<Result>(); 
+       : Lib::Option<Result>(); 
   }
 
   template<class Init> Result getOrInit(AutoDerefTermSpec const& orig, Init init)
@@ -260,7 +260,7 @@ public:
   : _t1(std::move(t1)), _t2(std::move(t2)), _sort(std::move(sort))
   {}
 
-  Option<Literal*> toLiteral(RobSubstitution& s);
+  Lib::Option<Literal*> toLiteral(RobSubstitution& s);
 
   TermSpec const& lhs() const { return _t1; }
   TermSpec const& rhs() const { return _t2; }
@@ -269,23 +269,22 @@ public:
   { return out << self._t1 << " ?= " << self._t2; }
 };
 
-using namespace Lib;
 
 class AbstractingUnifier;
 class UnificationConstraint;
 
 class RobSubstitution
-:public Backtrackable
+:public Lib::Backtrackable
 {
   friend class AbstractingUnifier;
   friend class UnificationConstraint;
  
-  DHMap<VarSpec, TermSpec> _bindings;
-  mutable DHMap<VarSpec, unsigned> _outputVarBindings;
+  Lib::DHMap<VarSpec, TermSpec> _bindings;
+  mutable Lib::DHMap<VarSpec, unsigned> _outputVarBindings;
   mutable bool _startedBindingOutputVars;
   mutable unsigned _nextUnboundAvailable;
   mutable unsigned _nextGlueAvailable;
-  DHMap<TermSpec, unsigned> _gluedTerms;
+  Lib::DHMap<TermSpec, unsigned> _gluedTerms;
   mutable OnlyMemorizeNonVar<TermList> _applyMemo;
 
 public:
@@ -336,6 +335,7 @@ public:
   template<class... Args>
   TermSpec createTerm(unsigned functor, Args... args)
   {
+    using namespace Lib;
     TermSpec out;
     if (iterItems(args...).count() == 0) {
       return TermSpec(TermList(Term::create(functor, 0, nullptr)), /* index */ 0);
@@ -381,7 +381,7 @@ public:
   TermList apply(TermList t, int index) const;
   Literal* apply(Literal* lit, int index) const;
   TypedTermList apply(TypedTermList t, int index) const { return TypedTermList(apply(TermList(t), index), apply(t.sort(), index)); }
-  Stack<Literal*> apply(Stack<Literal*> cl, int index) const;
+  Lib::Stack<Literal*> apply(Lib::Stack<Literal*> cl, int index) const;
   size_t getApplicationResultWeight(TermList t, int index) const;
   size_t getApplicationResultWeight(Literal* lit, int index) const;
 
@@ -410,7 +410,7 @@ private:
   RobSubstitution& operator=(const RobSubstitution& obj) = delete;
 
   template<class T, class H1, class H2>
-  void bind(DHMap<VarSpec, T, H1, H2>& map, const VarSpec& v, T b);
+  void bind(Lib::DHMap<VarSpec, T, H1, H2>& map, const VarSpec& v, T b);
   void bind(const VarSpec& v, TermSpec b);
   void bindVar(const VarSpec& var, const VarSpec& to);
   bool match(TermSpec base, TermSpec instance);

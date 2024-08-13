@@ -41,7 +41,7 @@ namespace Kernel {
  *
  * https://link.springer.com/chapter/10.1007/978-3-030-51054-1_21
  *
- * The class stores data in a Vector<TermList>*, of length 
+ * The class stores data in a Lib::Vector<TermList>*, of length 
  * num_of_arg_sorts + 1. The number of bound variables is stored in
  * a field _typeArgsArity. It is assumed that the bound variables range from
  * 0 to _typeArgsArity - 1. In order for this assumption to be valid all sorts must
@@ -63,15 +63,15 @@ public:
     { 
       OperatorKey& key = *ot->key();
       unsigned typeArgsArity = ot->numTypeArguments();
-      return HashUtils::combine(
-        DefaultHash::hash(key),
-        DefaultHash::hash(typeArgsArity)
+      return Lib::HashUtils::combine(
+        Lib::DefaultHash::hash(key),
+        Lib::DefaultHash::hash(typeArgsArity)
       );
     }
   };
 
 private:
-  typedef Vector<TermList> OperatorKey; // Vector of argument sorts together with "0" appended for predicates and resultSort appended for functions
+  typedef Lib::Vector<TermList> OperatorKey; // Vector of argument sorts together with "0" appended for predicates and resultSort appended for functions
   OperatorKey* _key;
   unsigned _typeArgsArity; /** number of quantified variables of this type */
  
@@ -85,7 +85,7 @@ private:
   static OperatorKey* setupKey(std::initializer_list<TermList> sorts);
   static OperatorKey* setupKeyUniformRange(unsigned arity, TermList argsSort);
 
-  typedef Set<OperatorType*,TypeHash> OperatorTypes;
+  typedef Lib::Set<OperatorType*,TypeHash> OperatorTypes;
   static OperatorTypes& operatorTypes(); // just a wrapper around a static OperatorTypes object, to ensure a correct initialization order
 
   static OperatorType* getTypeFromKey(OperatorKey* key, unsigned taArity);

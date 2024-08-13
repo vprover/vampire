@@ -25,7 +25,6 @@
 
 namespace Shell {
 
-using namespace Lib;
 using namespace Kernel;
 
 // Monomorphic version of equality proxy transformation.
@@ -64,8 +63,8 @@ private:
   void addLocalAxioms(UnitList*& units, TermList sort);
   void addAxioms(UnitList*& units);
   void addCongruenceAxioms(UnitList*& units);
-  bool getArgumentEqualityLiterals(unsigned cnt, LiteralStack& lits, Stack<TermList>& vars1,
-      Stack<TermList>& vars2, OperatorType* symbolType, bool skipSortsWithoutEquality);
+  bool getArgumentEqualityLiterals(unsigned cnt, LiteralStack& lits, Lib::Stack<TermList>& vars1,
+      Lib::Stack<TermList>& vars2, OperatorType* symbolType, bool skipSortsWithoutEquality);
   Literal* apply(Literal* lit);
   Literal* makeProxyLiteral(bool polarity, TermList arg0, TermList arg1, TermList sort);
 
@@ -80,11 +79,11 @@ private:
    * Proxy predicate numbers for each sort (which can be a complex term, even in mono - think arrays)
    * but must be ground (and shared).
    */
-  static DHMap<TermList, unsigned> s_proxyPredicates;
+  static Lib::DHMap<TermList, unsigned> s_proxyPredicates;
   /** equality proxy predicate sorts */
-  static DHMap<unsigned,TermList> s_proxyPredicateSorts;
+  static Lib::DHMap<unsigned,TermList> s_proxyPredicateSorts;
   /** array of proxy definitions E(x,y) <=> x = y  */
-  static DHMap<TermList, Unit*> s_proxyPremises;
+  static Lib::DHMap<TermList, Unit*> s_proxyPremises;
 };
 
 };

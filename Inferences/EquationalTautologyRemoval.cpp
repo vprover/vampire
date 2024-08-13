@@ -23,6 +23,7 @@ namespace Inferences
 {
 
 using namespace std;
+using namespace Lib;
 
 Clause* EquationalTautologyRemoval::simplify(Clause* cl)
 {

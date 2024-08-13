@@ -27,6 +27,7 @@
 
 namespace Kernel {
 
+using namespace Lib;
 using namespace Shell;
 
 /*

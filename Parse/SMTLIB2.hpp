@@ -28,7 +28,6 @@
 
 namespace Parse {
 
-using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
@@ -137,7 +136,7 @@ private:
   /**
    * Maps smtlib name of a defined sort to its SortDefinition struct.
    */
-  DHMap<std::string,SortDefinition> _sortDefinitions;
+  Lib::DHMap<std::string,SortDefinition> _sortDefinitions;
 
   /**
    * Handle "define-sort" entry.
@@ -230,7 +229,7 @@ private:
   /** <vampire signature id, symbol type> */
   typedef std::pair<unsigned,SymbolType> DeclaredSymbol;
   /** symbols are implicitly declared also when they are defined (see below) */
-  DHMap<std::string, DeclaredSymbol> _declaredSymbols;
+  Lib::DHMap<std::string, DeclaredSymbol> _declaredSymbols;
 
   /**
    * Given a symbol name, range sort (which can be Bool) and argSorts,
@@ -266,7 +265,7 @@ private:
   void readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool codatatype = false);
 
   TermAlgebraConstructor* buildTermAlgebraConstructor(std::string constrName, TermList taSort,
-                                                      Stack<std::string> destructorNames, TermStack argSorts);
+                                                      Lib::Stack<std::string> destructorNames, TermStack argSorts);
 
   /**
    * Parse result of parsing an smtlib term (which can be of sort Bool and therefore represented in vampire by a formula)
@@ -339,8 +338,8 @@ private:
   /** < termlist, vampire sort id > */
   typedef std::pair<TermList,TermList> SortedTerm;
   /** mast an identifier to SortedTerm */
-  typedef DHMap<std::string,SortedTerm> TermLookup;
-  typedef Stack<TermLookup*> Scopes;
+  typedef Lib::DHMap<std::string,SortedTerm> TermLookup;
+  typedef Lib::Stack<TermLookup*> Scopes;
   /** Stack of parsing contexts:
    * for variables from quantifiers and
    * for symbols bound by let (which are variables from smtlib perspective,
@@ -351,7 +350,7 @@ private:
   /**
    * Stack of partial results used by parseTermOrFormula below.
    */
-  Stack<ParseResult> _results;
+  Lib::Stack<ParseResult> _results;
 
   /**
    * Possible operations during parsing a term.
@@ -379,7 +378,7 @@ private:
   /**
    * Main smtlib term parsing stack.
    */
-  Stack<std::pair<ParseOperation,LExpr*> > _todo;
+  Lib::Stack<std::pair<ParseOperation,LExpr*> > _todo;
 
   // global parsing data structures -- END
 
@@ -510,7 +509,7 @@ private:
    * To support a mechanism for dealing with large arithmetic constants.
    * Adapted from the tptp parser.
    */
-  Set<std::string> _overflow;
+  Lib::Set<std::string> _overflow;
 
   /**
    * Top-level expression that is parsed presently.

@@ -15,6 +15,7 @@
 namespace Inferences {
 
 using namespace std;
+using namespace Lib;
 
 enum class UMinus {
   Int,

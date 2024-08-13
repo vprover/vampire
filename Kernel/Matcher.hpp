@@ -30,7 +30,6 @@
 
 namespace Kernel {
 
-using namespace Lib;
 
 class MatchingUtils
 {
@@ -144,7 +143,7 @@ public:
   };
 
 private:
-  typedef DHMap<unsigned,TermList,IdentityHash,DefaultHash> BindingMap;
+  typedef Lib::DHMap<unsigned,TermList,Lib::IdentityHash,Lib::DefaultHash> BindingMap;
   struct MapBinder
   {
     bool bind(unsigned var, TermList term)
@@ -205,8 +204,8 @@ private:
   { ASSERTION_VIOLATION; }
 
 
-  typedef DHMap<unsigned,TermList> BindingMap;
-  typedef Stack<unsigned> BoundStack;
+  typedef Lib::DHMap<unsigned,TermList> BindingMap;
+  typedef Lib::Stack<unsigned> BoundStack;
 
   BindingMap _bindings;
   BoundStack _bound;
@@ -219,7 +218,7 @@ private:
 };
 
 class Matcher
-: public Backtrackable
+: public Lib::Backtrackable
 {
 public:
   Matcher() : _binder(*this) {}
@@ -235,7 +234,7 @@ private:
 
   bool matchReversedArgs(Literal* base, Literal* instance);
 
-  typedef DHMap<unsigned,TermList> BindingMap;
+  typedef Lib::DHMap<unsigned,TermList> BindingMap;
   struct MapBinder
   {
     MapBinder(Matcher& parent) : _parent(parent) {}
@@ -258,7 +257,7 @@ private:
     Matcher& _parent;
 
     class BindingBacktrackObject
-    : public BacktrackObject
+    : public Lib::BacktrackObject
     {
     public:
       BindingBacktrackObject(MapBinder* bnd, unsigned var)
@@ -325,7 +324,7 @@ bool MatchingUtils::matchArgs(Term* base, Term* instance, Binder& binder)
   TermList* bt=base->args();
   TermList* it=instance->args();
 
-  static Stack<TermList*> subterms(32);
+  static Lib::Stack<TermList*> subterms(32);
   subterms.reset();
 
   for (;;) {

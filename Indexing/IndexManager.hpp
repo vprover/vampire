@@ -27,7 +27,6 @@
 namespace Indexing
 {
 
-using namespace Lib;
 using namespace Saturation;
 
 enum IndexType {
@@ -93,7 +92,7 @@ private:
     int refCnt;
   };
   SaturationAlgorithm* _alg;
-  DHMap<IndexType,Entry> _store;
+  Lib::DHMap<IndexType,Entry> _store;
 
   Index* create(IndexType t);
   Shell::Options::UnificationWithAbstraction _uwa;

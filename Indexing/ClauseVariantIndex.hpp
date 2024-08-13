@@ -27,7 +27,6 @@
 
 namespace Indexing {
 
-using namespace Lib;
 using namespace Kernel;
 
 class ClauseVariantIndex
@@ -63,9 +62,9 @@ public:
 private:
   Literal* getMainLiteral(Literal* const * lits, unsigned length);
 
-  DHMap<Literal*, ClauseList*> _groundUnits;
+  Lib::DHMap<Literal*, ClauseList*> _groundUnits;
 
-  ZIArray<LiteralSubstitutionTree*> _strees;
+  Lib::ZIArray<LiteralSubstitutionTree*> _strees;
 
   ClauseList* _emptyClauses;
 };
@@ -82,12 +81,12 @@ public:
 private:
   struct VariableIgnoringComparator;
 
-  typedef DHMap<unsigned, unsigned char> VarCounts; // overflows allowed
+  typedef Lib::DHMap<unsigned, unsigned char> VarCounts; // overflows allowed
 
   unsigned termFunctorHash(Term* t, unsigned hash_begin) {
     unsigned func = t->functor();
     // std::cout << "will hash funtor " << func << std::endl;
-    return DefaultHash::hash(func, hash_begin);
+    return Lib::DefaultHash::hash(func, hash_begin);
   }
 
   unsigned computeHashAndCountVariables(unsigned var, VarCounts& varCnts, unsigned hash_begin) {
@@ -101,7 +100,7 @@ private:
     }
 
     // std::cout << "will hash variable" << std::endl;
-    return DefaultHash::hash(varHash, hash_begin);
+    return Lib::DefaultHash::hash(varHash, hash_begin);
   }
 
   unsigned computeHashAndCountVariables(TermList* tl, VarCounts& varCnts, unsigned hash_begin);
@@ -109,7 +108,7 @@ private:
 
   unsigned computeHash(Literal* const * lits, unsigned length);
 
-  DHMap<unsigned, ClauseList*> _entries;
+  Lib::DHMap<unsigned, ClauseList*> _entries;
 };
 
 };

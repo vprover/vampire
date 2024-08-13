@@ -64,7 +64,7 @@ public:
     : _namingThreshold(namingThreshold), _iteInliningThreshold((unsigned)ceil(log2(namingThreshold))),
       _collectedVarSorts(false), _maxVar(0),_forInduction(false) {}
 
-  void clausify(FormulaUnit* unit, Stack<Clause*>& output);
+  void clausify(FormulaUnit* unit, Lib::Stack<Clause*>& output);
   void setForInduction(){ _forInduction=true; }
 private:
   unsigned _namingThreshold;
@@ -81,11 +81,11 @@ private:
    * However, not merging distinct occurrences of a single subformula
    * from the input does not compromise correctness.
    */
-  Deque<Formula*> _queue;
+  Lib::Deque<Formula*> _queue;
 
   typedef std::pair<unsigned, Term*> Binding; // used for skolem bindings of the form <existential variable z, corresponding Skolem term f_z(U,V,...) >
 
-  typedef List<Binding> BindingList;
+  typedef Lib::List<Binding> BindingList;
 
   // all allocations of shared BindingLists should go via BindingStore so that they get destroyed in the end
   struct BindingStore {
@@ -95,14 +95,14 @@ private:
     }
     void pushAndRememberWhileApplying(Binding b, BindingList* &lst);
     ~BindingStore() {
-      Stack<BindingList*>::Iterator it(_stored);
+      Lib::Stack<BindingList*>::Iterator it(_stored);
       while(it.hasNext()) {
         BindingList* cell = it.next();
         delete cell;
       }
     }
   private:
-    Stack<BindingList*> _stored;
+    Lib::Stack<BindingList*> _stored;
   };
 
   BindingStore _bindingStore;
@@ -124,7 +124,7 @@ private:
 
   // generalized literal
   typedef std::pair<Formula*, SIGN> GenLit;
-  typedef std::pair<Literal*, List<GenLit>*> LPair;
+  typedef std::pair<Literal*, Lib::List<GenLit>*> LPair;
 
   inline static Formula* &formula(GenLit &gl) {
     return gl.first;
@@ -146,11 +146,11 @@ private:
     BindingList* foolBindings;
     // we could/should carry bindings on the GenLits-level; but GenClause seems sufficient as long as we are rectified
 
-    DArray<GenLit> _literals; // TODO: remove the extra indirection and allocate inside GenClause
+    Lib::DArray<GenLit> _literals; // TODO: remove the extra indirection and allocate inside GenClause
     unsigned _size;
 
     struct Iterator {
-      Iterator(DArray<GenLit>::Iterator iter, unsigned left) : _iter(iter), _left(left) {}
+      Iterator(Lib::DArray<GenLit>::Iterator iter, unsigned left) : _iter(iter), _left(left) {}
 
       bool hasNext() {
         if (_left == 0) return false;
@@ -163,12 +163,12 @@ private:
       }
 
       private:
-        DArray<GenLit>::Iterator _iter;
+        Lib::DArray<GenLit>::Iterator _iter;
         unsigned _left;
     };
 
     Iterator genLiterals() {
-      return Iterator(DArray<GenLit>::Iterator(_literals), _size);
+      return Iterator(Lib::DArray<GenLit>::Iterator(_literals), _size);
     }
 
     unsigned size() {
@@ -176,9 +176,10 @@ private:
     }
 
     // Position of a gen literal in _genClauses
-    std::list<SmartPtr<GenClause>>::iterator iter;
+    std::list<Lib::SmartPtr<GenClause>>::iterator iter;
 
     std::string toString() {
+      using namespace Lib;
       std::string res = "GC("+Int::toString(size())+")";
       if (!valid) {
         res += " [INVALID]";
@@ -203,10 +204,10 @@ private:
     }
   };
 
-  typedef SmartPtr<GenClause> SPGenClause;
+  typedef Lib::SmartPtr<GenClause> SPGenClause;
 
-  void toClauses(SPGenClause gc, Stack<Clause*>& output);
-  bool mapSubstitution(List<GenLit>* gc, Substitution subst, bool onlyFormulaLevel, List<GenLit>* &output);
+  void toClauses(SPGenClause gc, Lib::Stack<Clause*>& output);
+  bool mapSubstitution(Lib::List<GenLit>* gc, Substitution subst, bool onlyFormulaLevel, Lib::List<GenLit>* &output);
   Clause* toClause(SPGenClause gc);
 
   typedef std::list<SPGenClause> GenClauses;
@@ -225,8 +226,8 @@ private:
    * without it popping the first occurrence of a formula will invalidate the
    * entire generalised clause, and other occurrences will never be seen.
    */
-  DHMap<Literal*, SIGN> _literalsCache;
-  DHMap<Formula*, SIGN> _formulasCache;
+  Lib::DHMap<Literal*, SIGN> _literalsCache;
+  Lib::DHMap<Formula*, SIGN> _formulasCache;
   inline void pushLiteral(SPGenClause gc, GenLit gl) {
     if (formula(gl)->connective() == LITERAL) {
       /**
@@ -291,10 +292,10 @@ private:
 
   /**
    * Occurrences represents a list of occurrences in valid generalised clauses.
-   * Occurrences is used instead of an obvious List<Occurrence> because it
+   * Occurrences is used instead of an obvious Lib::List<Occurrence> because it
    * maintains a (1) convenient (2) constant time size() method.
    *
-   * (1) Occurrences maintains a List<Occurrence> * _occurrences, where each
+   * (1) Occurrences maintains a Lib::List<Occurrence> * _occurrences, where each
    *     Occurrence points to a generalised clause which can become invalid.
    *     We are only interested in occurrences in valid generalised clauses.
    *     It wouldn't be enough to call _occurrences->length(), as it might
@@ -311,7 +312,7 @@ private:
    */
   class Occurrences {
   private:
-    List<Occurrence>* _occurrences;
+    Lib::List<Occurrence>* _occurrences;
     unsigned _size;
 
   public:
@@ -322,23 +323,23 @@ private:
     unsigned size() { return _size; }
 
     inline void add(Occurrence occ) {
-      List<Occurrence>::push(occ, _occurrences);
+      Lib::List<Occurrence>::push(occ, _occurrences);
       _size++;
     }
 
     inline void append(Occurrences occs) {
-      _occurrences = List<Occurrence>::concat(_occurrences, occs._occurrences);
+      _occurrences = Lib::List<Occurrence>::concat(_occurrences, occs._occurrences);
       _size += occs.size();
     }
 
     bool isNonEmpty() {
       while (true) {
-        if (List<Occurrence>::isEmpty(_occurrences)) {
+        if (Lib::List<Occurrence>::isEmpty(_occurrences)) {
           ASS_EQ(_size, 0);
           return false;
         }
         if (!_occurrences->head().gc->valid) {
-          List<Occurrence>::pop(_occurrences);
+          Lib::List<Occurrence>::pop(_occurrences);
         } else {
           ASS_G(_size, 0);
           return true;
@@ -353,7 +354,7 @@ private:
 
     Occurrence pop() {
       ASS(isNonEmpty());
-      Occurrence occ = List<Occurrence>::pop(_occurrences);
+      Occurrence occ = Lib::List<Occurrence>::pop(_occurrences);
       ASS(occ.gc->valid);
       _size--;
       ASS_GE(_size, 0);
@@ -393,7 +394,7 @@ private:
 
     class Iterator {
     public:
-      Iterator(Occurrences &occurrences): _iterator(List<Occurrence>::DelIterator(occurrences._occurrences)) {}
+      Iterator(Occurrences &occurrences): _iterator(Lib::List<Occurrence>::DelIterator(occurrences._occurrences)) {}
 
       inline bool hasNext() {
         while (_iterator.hasNext()) {
@@ -402,7 +403,7 @@ private:
             _iterator.del();
             continue;
           }
-          _current = SmartPtr<Occurrence>(new Occurrence(occ.gc, occ.position));
+          _current = Lib::SmartPtr<Occurrence>(new Occurrence(occ.gc, occ.position));
           return true;
         }
         return false;
@@ -411,18 +412,18 @@ private:
         return *_current;
       }
     private:
-      List<Occurrence>::DelIterator _iterator;
-      SmartPtr<Occurrence> _current;
+      Lib::List<Occurrence>::DelIterator _iterator;
+      Lib::SmartPtr<Occurrence> _current;
     };
   };
 
-  SPGenClause makeGenClause(List<GenLit>* gls, BindingList* bindings, BindingList* foolBindings) {
-    SPGenClause gc = SPGenClause(new GenClause(List<GenLit>::length(gls), bindings, foolBindings));
+  SPGenClause makeGenClause(Lib::List<GenLit>* gls, BindingList* bindings, BindingList* foolBindings) {
+    SPGenClause gc = SPGenClause(new GenClause(Lib::List<GenLit>::length(gls), bindings, foolBindings));
 
     ASS(_literalsCache.isEmpty());
     ASS(_formulasCache.isEmpty());
 
-    List<GenLit>::Iterator glit(gls);
+    Lib::List<GenLit>::Iterator glit(gls);
     while (glit.hasNext()) {
       pushLiteral(gc, glit.next());
     }
@@ -433,11 +434,11 @@ private:
     return gc;
   }
 
-  void introduceGenClause(List<GenLit>* gls, BindingList* bindings, BindingList* foolBindings) {
+  void introduceGenClause(Lib::List<GenLit>* gls, BindingList* bindings, BindingList* foolBindings) {
     SPGenClause gc = makeGenClause(gls, bindings, foolBindings);
 
-    if (gc->size() != List<GenLit>::length(gls)) {
-      LOG4("Eliminated", List<GenLit>::length(gls) - gc->size(), "duplicate literal(s) from", gc->toString());
+    if (gc->size() != Lib::List<GenLit>::length(gls)) {
+      LOG4("Eliminated", Lib::List<GenLit>::length(gls) - gc->size(), "duplicate literal(s) from", gc->toString());
     }
 
     if (gc->valid) {
@@ -460,18 +461,18 @@ private:
   }
 
   void introduceGenClause(GenLit gl, BindingList* bindings=BindingList::empty(), BindingList* foolBindings=BindingList::empty()) {
-    introduceGenClause(new List<GenLit>(gl), bindings, foolBindings);
+    introduceGenClause(new Lib::List<GenLit>(gl), bindings, foolBindings);
   }
 
   void introduceGenClause(GenLit gl0, GenLit gl1, BindingList* bindings=BindingList::empty(), BindingList* foolBindings=BindingList::empty()) {
-    introduceGenClause(new List<GenLit>(gl0, new List<GenLit>(gl1)), bindings, foolBindings);
+    introduceGenClause(new Lib::List<GenLit>(gl0, new Lib::List<GenLit>(gl1)), bindings, foolBindings);
   }
 
-  void introduceExtendedGenClause(Occurrence occ, List<GenLit>* gls) {
+  void introduceExtendedGenClause(Occurrence occ, Lib::List<GenLit>* gls) {
     SPGenClause gc = occ.gc;
     unsigned position = occ.position;
 
-    unsigned size = gc->size() + List<GenLit>::length(gls) - 1;
+    unsigned size = gc->size() + Lib::List<GenLit>::length(gls) - 1;
     SPGenClause newGc = SPGenClause(new GenClause(size, gc->bindings, gc->foolBindings));
 
     ASS(_literalsCache.isEmpty());
@@ -482,7 +483,7 @@ private:
     while (gcit.hasNext()) {
       GenLit gl = gcit.next();
       if (i == position) {
-        List<GenLit>::Iterator glit(gls);
+        Lib::List<GenLit>::Iterator glit(gls);
         while (glit.hasNext()) {
           pushLiteral(newGc, glit.next());
         }
@@ -519,17 +520,17 @@ private:
   }
 
   void removeGenLit(Occurrence occ) {
-    introduceExtendedGenClause(occ, List<GenLit>::empty());
+    introduceExtendedGenClause(occ, Lib::List<GenLit>::empty());
   }
 
   void introduceExtendedGenClause(Occurrence occ, GenLit replacement) {
     // CHECK: leaking below?
-    introduceExtendedGenClause(occ, new List<GenLit>(replacement));
+    introduceExtendedGenClause(occ, new Lib::List<GenLit>(replacement));
   }
 
   void introduceExtendedGenClause(Occurrence occ, GenLit replacement, GenLit extension) {
     // CHECK: leaking below?
-    introduceExtendedGenClause(occ, new List<GenLit>(replacement, new List<GenLit>(extension)));
+    introduceExtendedGenClause(occ, new Lib::List<GenLit>(replacement, new Lib::List<GenLit>(extension)));
   }
 
   Occurrence pop(Occurrences &occurrences) {
@@ -553,10 +554,10 @@ private:
     return occ;
   }
 
-  DHMap<Formula*, Occurrences> _occurrences;
+  Lib::DHMap<Formula*, Occurrences> _occurrences;
 
   /** map var --> sort */
-  DHMap<unsigned,TermList> _varSorts;
+  Lib::DHMap<unsigned,TermList> _varSorts;
   bool _collectedVarSorts;
   unsigned _maxVar;
 
@@ -567,20 +568,20 @@ private:
   bool _forInduction;
 
   // caching of free variables for subformulas
-  DHMap<Formula*,VarSet*> _freeVars;
+  Lib::DHMap<Formula*,VarSet*> _freeVars;
   VarSet* freeVars(Formula* g);
 
   // two level caching scheme for quantifier bindings
   // reset after skolemizing a particular subformula
-  DHMap<BindingList*,BindingList*> _skolemsByBindings;
-  DHMap<VarSet*,BindingList*>      _skolemsByFreeVars;
+  Lib::DHMap<BindingList*,BindingList*> _skolemsByBindings;
+  Lib::DHMap<VarSet*,BindingList*>      _skolemsByFreeVars;
 
-  DHMap<BindingList*,BindingList*> _foolSkolemsByBindings;
-  DHMap<VarSet*,BindingList*>      _foolSkolemsByFreeVars;
+  Lib::DHMap<BindingList*,BindingList*> _foolSkolemsByBindings;
+  Lib::DHMap<VarSet*,BindingList*>      _foolSkolemsByFreeVars;
 
   // caching binding substitutions for the final phase of GenClause -> Clause transformation
   // this saves time, because bindings are potentially shared
-  DHMap<BindingList*,Substitution*> _substitutionsByBindings;
+  Lib::DHMap<BindingList*,Substitution*> _substitutionsByBindings;
 
   void skolemise(QuantifiedFormula* g, BindingList* &bindings, BindingList*& foolBindings);
 
@@ -634,10 +635,10 @@ private:
   TermList nameLetBinding(unsigned symbol, VList *bindingVariables, TermList binding, TermList contents);
   TermList inlineLetBinding(unsigned symbol, VList *bindingVariables, TermList binding, TermList contents);
 
-  TermList findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula*> &conditions,
-                    Stack<TermList> &thenBranches, Stack<TermList> &elseBranches,
-                    Stack<unsigned> &matchVariables, Stack<List<Formula*>*> &matchConditions,
-                    Stack<List<TermList>*> &matchBranches);
+  TermList findITEs(TermList ts, Lib::Stack<unsigned> &variables, Lib::Stack<Formula*> &conditions,
+                    Lib::Stack<TermList> &thenBranches, Lib::Stack<TermList> &elseBranches,
+                    Lib::Stack<unsigned> &matchVariables, Lib::Stack<Lib::List<Formula*>*> &matchConditions,
+                    Lib::Stack<Lib::List<TermList>*> &matchBranches);
 
   unsigned createFreshVariable(TermList sort);
   void createFreshVariableRenaming(unsigned oldVar, unsigned freshVar);

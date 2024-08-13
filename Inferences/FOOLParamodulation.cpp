@@ -31,6 +31,8 @@
 
 namespace Inferences {
 
+using namespace Lib;
+
 ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
   /**
    * We are going to implement the following inference rule, taken from the paper:

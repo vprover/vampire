@@ -21,7 +21,6 @@
 
 namespace Kernel {
 
-using namespace Lib;
 
 
 struct MLMatchStats

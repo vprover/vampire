@@ -27,7 +27,6 @@
 
 namespace Shell {
 
-using namespace Lib;
 using namespace Kernel;
 
 /**
@@ -41,7 +40,7 @@ using namespace Kernel;
 class PredicateDefinition
 {
 public:
-  typedef DHMap<Unit*, Unit*> ReplMap;
+  typedef Lib::DHMap<Unit*, Unit*> ReplMap;
 
   PredicateDefinition();
   ~PredicateDefinition();
@@ -84,10 +83,10 @@ private:
   unsigned _predCnt;
   PredData* _preds;
 
-  DHMap<unsigned, Def*> _defs;
-  DHMap<unsigned, bool> _purePreds;
-  Stack<int> _eliminable;
-  Stack<int> _pureToReplace;
+  Lib::DHMap<unsigned, Def*> _defs;
+  Lib::DHMap<unsigned, bool> _purePreds;
+  Lib::Stack<int> _eliminable;
+  Lib::Stack<int> _pureToReplace;
 };
 
 };

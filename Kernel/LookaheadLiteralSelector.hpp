@@ -46,7 +46,7 @@ protected:
 private:
   Literal* pickTheBest(Literal** lits, unsigned cnt);
   void removeVariants(LiteralStack& lits);
-  VirtualIterator<std::tuple<>> getGeneraingInferenceIterator(Literal* lit);
+  Lib::VirtualIterator<std::tuple<>> getGeneraingInferenceIterator(Literal* lit);
 
   struct GenIteratorIterator;
 

@@ -26,7 +26,6 @@
 
 namespace Kernel {
 
-using namespace Lib;
 
 /**
  * Class for instances of the lexicographic path orderings
@@ -38,8 +37,8 @@ public:
   LPO(Problem& prb, const Options& opt) :
     PrecedenceOrdering(prb, opt)
   {}
-  LPO(const DArray<int>& funcPrec, const DArray<int>& typeConPrec, 
-      const DArray<int>& predPrec, const DArray<int>& predLevels, bool reverseLCM) :
+  LPO(const Lib::DArray<int>& funcPrec, const Lib::DArray<int>& typeConPrec, 
+      const Lib::DArray<int>& predPrec, const Lib::DArray<int>& predLevels, bool reverseLCM) :
     PrecedenceOrdering(funcPrec, typeConPrec, predPrec, predLevels, reverseLCM)
   {}
   ~LPO() override = default;

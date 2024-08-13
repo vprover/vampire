@@ -16,6 +16,8 @@
 
 namespace Kernel {
 
+using namespace Lib;
+
 PolyNf PolyNf::normalize(TypedTermList t)  
 { return normalizeTerm(t); }
 

@@ -24,7 +24,6 @@
 
 namespace Test {
 
-using namespace Lib;
 
 typedef void (*TestProc)();
 
@@ -61,7 +60,7 @@ public:
 
   std::string const& id() const { return _name; }
 
-  Stack<Test> const& tests() { return _tests; }
+  Lib::Stack<Test> const& tests() { return _tests; }
 private:
   Test* findTest(std::string const& testCase);
   /** Runs a test as a single process and awaits its termination.
@@ -72,7 +71,7 @@ private:
   bool spawnTest(TestProc proc);
 
   // TODO replace by Map as soon as integer-arithmetic PR with Map additions has landed
-  Stack<Test> _tests;
+  Lib::Stack<Test> _tests;
   std::string _name;
 };
 
@@ -80,15 +79,15 @@ private:
 class UnitTesting 
 {
   static UnitTesting* _instance;
-  Stack<TestUnit> _units;
+  Lib::Stack<TestUnit> _units;
   UnitTesting() : _units() {}
 public:
   static UnitTesting& instance();
 
   bool add(std::string const& testUnit, TestUnit::Test test);
   TestUnit* findUnit(std::string const& id);
-  bool listTests(Stack<std::string>const& args);
-  bool run(Stack<std::string>const& args);
+  bool listTests(Lib::Stack<std::string>const& args);
+  bool run(Lib::Stack<std::string>const& args);
   bool runUnit(std::string const& args);
   bool runTest(std::string const& unit, std::string const& testCase);
 };

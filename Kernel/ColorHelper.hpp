@@ -24,7 +24,6 @@
 
 namespace Kernel {
 
-using namespace Lib;
 using namespace Saturation;
 
 class ColorHelper {
@@ -35,7 +34,7 @@ public:
    */
   static Color combine(Color c1, Color c2)
   {
-    ASS(env.colorUsed || (c1|c2)!=COLOR_INVALID);
+    ASS(Lib::env.colorUsed || (c1|c2)!=COLOR_INVALID);
     return static_cast<Color>(c1|c2);
   }
 
@@ -58,13 +57,13 @@ public:
   static void tryUnblock(Clause* c, SaturationAlgorithm* salg);
 
 private:
-  typedef DHMap<Term*, Term*> TermMap;
+  typedef Lib::DHMap<Term*, Term*> TermMap;
 
   static void ensureSkolemReplacement(Term* t, TermMap& map);
   static void collectSkolemReplacements(Clause* c, TermMap& map);
 
   static Term* applyReplacement(Term* t, TermMap& map);
-  static void collectColoredConstants(Clause* c, Stack<Term*>& acc);
+  static void collectColoredConstants(Clause* c, Lib::Stack<Term*>& acc);
 };
 
 }

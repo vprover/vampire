@@ -18,6 +18,7 @@ namespace DP
 {
 
 using namespace std;
+using namespace Lib;
 
 /**
  * Computes number of literals in core not implied at the zero level

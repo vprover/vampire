@@ -29,7 +29,6 @@
 
 namespace DP {
 
-using namespace Lib;
 using namespace Kernel;
 
 /**
@@ -163,7 +162,7 @@ private:
   void propagate();
 
   unsigned getProofDepth(unsigned c);
-  void collectUnifyingPath(unsigned c1, unsigned c2, Stack<unsigned>& path);
+  void collectUnifyingPath(unsigned c1, unsigned c2, Lib::Stack<unsigned>& path);
 
   static const unsigned NO_SIG_SYMBOL;
   struct ConstInfo
@@ -202,14 +201,14 @@ private:
 
     /** If reprConst==0, contains other constants whose representative
      * this constant is */
-    Stack<unsigned> classList;
+    Lib::Stack<unsigned> classList;
     /**
      * If reprConst==0, contains list of pair names in whose pairs this
      * constant appears as a representative of one of the arguments.
      * Irregardless of the value of reprConst, also contains representatives
      * of all pairs that have this very constant as one of arguments.
      */
-    Stack<unsigned> useList;
+    Lib::Stack<unsigned> useList;
         
     // needed for getModel:    
     /**
@@ -219,7 +218,7 @@ private:
     /**
      * Meaningful for representatives. A list of edges leaving the class "upwards".
      */
-    Stack<unsigned> upEdges;
+    Lib::Stack<unsigned> upEdges;
     /**
      * Meaningful for namedPairs. 
      * 
@@ -239,7 +238,7 @@ private:
   };
 
   struct ConstOrderingComparator;  
-  typedef DHMap<unsigned,TermList> NFMap;
+  typedef Lib::DHMap<unsigned,TermList> NFMap;
   void computeConstsNormalForm(unsigned c, NFMap& normalForms);
   
 #if VDEBUG
@@ -253,7 +252,7 @@ private:
    * of constants in special cases, such as to indicate that there is
    * no constant.
    */
-  DArray<ConstInfo> _cInfos;
+  Lib::DArray<ConstInfo> _cInfos;
 
   /** Positive literals are made equivalent to this constant */
   unsigned _posLitConst;
@@ -263,31 +262,31 @@ private:
   /**
    * Map from signature symbols to the local constant numbers.
    */
-  DHMap<std::pair<unsigned,SignatureKind>,unsigned> _sigConsts;
+  Lib::DHMap<std::pair<unsigned,SignatureKind>,unsigned> _sigConsts;
 
-  typedef DHMap<CPair,unsigned> PairMap;
+  typedef Lib::DHMap<CPair,unsigned> PairMap;
   /** Names of constant pairs (modulo the congruence!)*/
   PairMap _pairNames;
 
   /** Constants corresponding to terms */
-  DHMap<TermList,unsigned> _termNames;
+  Lib::DHMap<TermList,unsigned> _termNames;
   /** Constants corresponding to literals */
-  DHMap<Literal*,unsigned> _litNames;
+  Lib::DHMap<Literal*,unsigned> _litNames;
 
   /**
    * Equality that caused unsatisfiability; if CEq::isInvalid(), there isn't such.
    */
-  Stack<CEq> _unsatEqs;
-  Deque<CEq> _pendingEqualities;
-  Stack<CEq> _negEqualities;
+  Lib::Stack<CEq> _unsatEqs;
+  Lib::Deque<CEq> _pendingEqualities;
+  Lib::Stack<CEq> _negEqualities;
 
   struct DistinctEntry
   {
     DistinctEntry(Literal* l) : _lit(l) {}
     Literal* _lit;
-    Stack<unsigned> _consts;
+    Lib::Stack<unsigned> _consts;
   };
-  typedef Stack<DistinctEntry> DistinctStack;
+  typedef Lib::Stack<DistinctEntry> DistinctStack;
   DistinctStack _distinctConstraints;
   /** Negated distinct constraints, these can lead to an UNKNOWN satisfiability result 
    * 

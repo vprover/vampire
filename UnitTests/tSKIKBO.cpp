@@ -20,6 +20,7 @@
 //////////////////////////////////////////////////////////////////////////////// 
 
 using namespace std;
+using namespace Lib;
 using namespace Kernel;
 
 SKIKBO skikbo(unsigned introducedSymbolWeight, 

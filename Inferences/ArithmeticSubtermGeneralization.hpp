@@ -58,7 +58,7 @@ public:
   SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck);
 };
 
-Stack<SimplifyingGeneratingInference1*> allArithmeticSubtermGeneralizations();
+Lib::Stack<SimplifyingGeneratingInference1*> allArithmeticSubtermGeneralizations();
 
 
 } // namespace Inferences

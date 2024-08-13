@@ -34,7 +34,6 @@
 
 namespace Kernel {
 
-using namespace Lib;
 
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
 struct PredSigTraits;
@@ -100,7 +99,7 @@ struct KboSpecialWeights<FuncSigTraits>
 template<class SigTraits>
 struct KboWeightMap {
   friend class KBO;
-  DArray<KboWeight> _weights;
+  Lib::DArray<KboWeight> _weights;
 
   /** KboWeight of function symbols not occurring in the signature, i.e. that are introduced during proof search */
   KboWeight _introducedSymbolWeight;
@@ -137,10 +136,10 @@ public:
 #endif
 
       // precedence ordering params
-      DArray<int> funcPrec, 
-      DArray<int> typeConPrec,       
-      DArray<int> predPrec, 
-      DArray<int> predLevels,
+      Lib::DArray<int> funcPrec, 
+      Lib::DArray<int> typeConPrec,       
+      Lib::DArray<int> predPrec, 
+      Lib::DArray<int> predLevels,
 
       // other
       bool reverseLCM);
@@ -180,7 +179,7 @@ private:
 #endif
 
   template<class SigTraits> const KboWeightMap<SigTraits>& getWeightMap() const;
-  template<class SigTraits> KboWeightMap<SigTraits> weightsFromOpts(const Options& opts, const DArray<int>& rawPrecedence) const;
+  template<class SigTraits> KboWeightMap<SigTraits> weightsFromOpts(const Options& opts, const Lib::DArray<int>& rawPrecedence) const;
   template<class SigTraits> KboWeightMap<SigTraits> weightsFromFile(const Options& opts) const;
 
   template<class SigTraits> 

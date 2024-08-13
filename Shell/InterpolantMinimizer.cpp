@@ -27,6 +27,7 @@
 namespace Shell
 {
     using namespace std;
+    using namespace Lib;
     using namespace Kernel;
 
     std::unordered_map<Kernel::Unit*, Kernel::Color> InterpolantMinimizer::computeSplittingFunction(Kernel::Unit* refutation,  UnitWeight weightFunction)

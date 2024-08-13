@@ -45,6 +45,9 @@
 #include "SubstitutionTree.hpp"
 
 namespace Indexing {
+
+using namespace Lib;
+
 struct UnresolvedSplitRecord
 {
   UnresolvedSplitRecord() {}

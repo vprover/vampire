@@ -39,8 +39,8 @@ namespace Memo {
   template<class Arg, class Result>
   struct None
   {
-    Option<Result> get(Arg const&)
-    { return Option<Result>(); }
+    Lib::Option<Result> get(Arg const&)
+    { return Lib::Option<Result>(); }
 
     template<class Init> Result getOrInit(Arg const& orig, Init init)
     { return init(); }
@@ -50,7 +50,7 @@ namespace Memo {
   template<class Arg, class Result, class Hash = DefaultHash>
   class Hashed
   {
-    Map<Arg, Result, Hash> _memo;
+    Lib::Map<Arg, Result, Hash> _memo;
 
   public:
     Hashed() : _memo(decltype(_memo)()) {}
@@ -58,7 +58,7 @@ namespace Memo {
     template<class Init> Result getOrInit(Arg const& orig, Init init)
     { return _memo.getOrInit(Arg(orig), init); }
 
-    Option<Result> get(const Arg& orig)
+    Lib::Option<Result> get(const Arg& orig)
     { return _memo.tryGet(orig).toOwned(); }
   };
 
@@ -144,7 +144,7 @@ auto replaceTupleElem(std::tuple<As...> tup, B b) -> decltype(auto)
 template<class Type>
 struct ReturnNone {
   template<class... As>
-  constexpr Option<Type> operator()(As...) const { return Option<Type>(); }
+  constexpr Lib::Option<Type> operator()(As...) const { return Lib::Option<Type>(); }
 };
 
 template<class Arg, class Result>
@@ -303,7 +303,7 @@ public:
    *    // In this case we do it for shared terms if the function returns a value (non-empty Option) 
    *    // the evalution does not recurse but just use the result. If the returned option is empty 
    *    // the term is recursively evaluated as usual.
-   *    .evNonRec([](auto& t) { return t.shared() ? Option<size_t>(t.weight) : Option<size_t>()); })
+   *    .evNonRec([](auto& t) { return t.shared() ? Lib::Option<size_t>(t.weight) : Lib::Option<size_t>()); })
    *
    *    // (optional)
    *    // a memo can be used cache evaluated sub result. We need to explicitly specify to pass it as 
@@ -324,8 +324,8 @@ public:
   Result apply(Arg const& toEval) 
   {
     /* recursion state. Contains a stack of items that are being recursed on. */
-    Recycled<Stack<BottomUpChildIter<Arg>>> recState;
-    Recycled<Stack<Result>> recResults;
+    Lib::Recycled<Lib::Stack<BottomUpChildIter<Arg>>> recState;
+    Lib::Recycled<Lib::Stack<Result>> recResults;
 
     recState->push(BottomUpChildIter<Arg>(toEval, _context));
 
@@ -333,12 +333,12 @@ public:
       if (recState->top().hasNext(_context)) {
         Arg t = recState->top().next(_context);
 
-        Option<Result> nonRec = _evNonRec(t);
+        Lib::Option<Result> nonRec = _evNonRec(t);
         if (nonRec) {
           recResults->push(move_if_value<Result>(*nonRec));
 
         } else {
-          Option<Result> cached = _memo.get(t);
+          Lib::Option<Result> cached = _memo.get(t);
           if (cached.isSome()) {
             recResults->push(std::move(cached).unwrap());
           } else {
@@ -446,7 +446,7 @@ template<class EvalFn, class Memo>
 Kernel::Literal* evaluateLiteralBottomUp(Kernel::Literal* const& lit, EvalFn evaluateStep, Memo& memo)
 {
   using namespace Kernel;
-  Recycled<Stack<TermList>> args;
+  Lib::Recycled<Lib::Stack<TermList>> args;
   for (unsigned i = 0; i < lit->arity(); i++) {
     args->push(
         BottomUpEvaluation<typename EvalFn::Arg, typename EvalFn::Result>()
@@ -518,10 +518,10 @@ struct BottomUpChildIter<Kernel::PolyNf>
   struct FuncTermBottomUpChildIter
   {
 
-    Perfect<Kernel::FuncTerm> _self;
+    Lib::Perfect<Kernel::FuncTerm> _self;
     unsigned _idx;
 
-    FuncTermBottomUpChildIter(Perfect<Kernel::FuncTerm> self) : _self(self), _idx(0) {}
+    FuncTermBottomUpChildIter(Lib::Perfect<Kernel::FuncTerm> self) : _self(self), _idx(0) {}
 
     bool hasNext() const
     { return _idx < _self->numTermArguments(); }
@@ -555,11 +555,11 @@ struct BottomUpChildIter<Kernel::PolyNf>
     { return out << self._self; }
   };
 
-  using Inner = Coproduct<FuncTermBottomUpChildIter, VariableBottomUpChildIter, PolynomialBottomUpChildIter>;
+  using Inner = Lib::Coproduct<FuncTermBottomUpChildIter, VariableBottomUpChildIter, PolynomialBottomUpChildIter>;
   Inner _self;
 
   BottomUpChildIter(Kernel::PolyNf self, EmptyContext = EmptyContext()) : _self(self.match(
-        [&](Perfect<Kernel::FuncTerm> self) { return Inner(FuncTermBottomUpChildIter( self ));            },
+        [&](Lib::Perfect<Kernel::FuncTerm> self) { return Inner(FuncTermBottomUpChildIter( self ));            },
         [&](Kernel::Variable                  self) { return Inner(VariableBottomUpChildIter( self ));            },
         [&](Kernel::AnyPoly           self) { return Inner(PolynomialBottomUpChildIter(std::move(self))); }
       ))

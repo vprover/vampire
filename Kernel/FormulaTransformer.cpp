@@ -28,6 +28,8 @@
 namespace Kernel
 {
 
+using namespace Lib;
+
 Formula* FormulaTransformer::transform(Formula* f) {
   Formula* res = apply(f);
   return res;

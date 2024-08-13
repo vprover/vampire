@@ -70,9 +70,9 @@ public:
   virtual InfType getType() const = 0;
   
   template <typename Filter>
-  static void collectFilteredFOPremises(SATClause* cl, Stack<Unit*>& acc, Filter f);
+  static void collectFilteredFOPremises(SATClause* cl, Lib::Stack<Unit*>& acc, Filter f);
   
-  static void collectFOPremises(SATClause* cl, Stack<Unit*>& acc);
+  static void collectFOPremises(SATClause* cl, Lib::Stack<Unit*>& acc);
 
   static void collectPropAxioms(SATClause* cl, SATClauseStack& res);
 
@@ -135,12 +135,12 @@ public:
  * Only consider those SATClauses and their parents which pass the given Filter f.
  */
 template <typename Filter>
-void SATInference::collectFilteredFOPremises(SATClause* cl, Stack<Unit*>& acc, Filter f)
+void SATInference::collectFilteredFOPremises(SATClause* cl, Lib::Stack<Unit*>& acc, Filter f)
 {
   ASS_ALLOC_TYPE(cl, "SATClause");
 
-  static Stack<SATClause*> toDo;
-  static DHSet<SATClause*> seen;
+  static Lib::Stack<SATClause*> toDo;
+  static Lib::DHSet<SATClause*> seen;
   toDo.reset();
   seen.reset();
 

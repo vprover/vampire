@@ -27,7 +27,6 @@ namespace Kernel {
   class Unit;
 }
 
-using namespace Lib;
 using namespace Kernel;
 
 namespace Shell {
@@ -62,7 +61,7 @@ private:
   /** the collected substitution */
   Substitution _subst;
 
-  typedef List<bool> BoolList;
+  typedef Lib::List<bool> BoolList;
 
   /** In the first pass (preskolemise) we collect information 
    * for each variable and in each quantified subformula
@@ -81,7 +80,7 @@ private:
     BoolList* occurs_below;
   };
   // from vars to their VarOccInfo
-  typedef DHMap<unsigned,VarOccInfo> VarOccInfos;
+  typedef Lib::DHMap<unsigned,VarOccInfo> VarOccInfos;
   /* starts empty at the top level, and fininshes also empty 
      after bubbling up from the recursion;
      Only used temporarily during preskolemise! */
@@ -94,17 +93,17 @@ private:
     VarSet* exist;
   };
   // stored by the blocks, i.e. those Formulas* with the EXISTS connective
-  typedef DHMap<Formula*,ExVarDepInfo> ExVarDepInfos; 
+  typedef Lib::DHMap<Formula*,ExVarDepInfo> ExVarDepInfos; 
   ExVarDepInfos _varDeps;
 
   // map from an existential variable to its quantified formula (= block of quantifiers)
-  DHMap<unsigned, Formula*> _blockLookup;
+  Lib::DHMap<unsigned, Formula*> _blockLookup;
 
   /** map var --> sort */
-  DHMap<unsigned,TermList> _varSorts;
+  Lib::DHMap<unsigned,TermList> _varSorts;
 
   // for some heuristic evaluations after we are done
-  Stack<std::pair<bool, unsigned>> _introducedSkolemSyms;
+  Lib::Stack<std::pair<bool, unsigned>> _introducedSkolemSyms;
   
   FormulaUnit* _beingSkolemised;
 

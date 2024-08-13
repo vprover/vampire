@@ -22,14 +22,13 @@
 
 namespace Shell {
 
-using namespace Lib;
 using namespace Kernel;
 
 class SineSymbolExtractor
 {
 public:
   typedef unsigned SymId;
-  typedef VirtualIterator<SymId> SymIdIterator;
+  typedef Lib::VirtualIterator<SymId> SymIdIterator;
 
   SymId getSymIdBound();
 
@@ -38,9 +37,9 @@ public:
   static void decodeSymId(SymId s, bool& pred, unsigned& functor);
   bool validSymId(SymId s);
 private:
-  void addSymIds(Term* term,DHSet<SymId>& ids);
-  void addSymIds(Literal* lit,DHSet<SymId>& ids);
-  void extractFormulaSymbols(Formula* f,DHSet<SymId>& itms);
+  void addSymIds(Term* term,Lib::DHSet<SymId>& ids);
+  void addSymIds(Literal* lit,Lib::DHSet<SymId>& ids);
+  void extractFormulaSymbols(Formula* f,Lib::DHSet<SymId>& itms);
 };
 
 
@@ -53,7 +52,7 @@ protected:
   void initGeneralityFunction(UnitList* units);
 
   /** Stores symbol generality */
-  DArray<unsigned> _gen;
+  Lib::DArray<unsigned> _gen;
 
   SineSymbolExtractor _symExtr;
 };
@@ -73,7 +72,7 @@ public:
   void perform(Problem& prb);
 
   ~SineSelector() {
-    DArray<UnitList*>::Iterator it(_def);
+    Lib::DArray<UnitList*>::Iterator it(_def);
     while (it.hasNext()) {
       UnitList::destroy(it.next());
     }
@@ -92,14 +91,14 @@ private:
   bool _justForSineLevels;
 
   /** Stored the D-relation */
-  DArray<UnitList*> _def;
+  Lib::DArray<UnitList*> _def;
 
   /**
    * Stored formulas that don't contain any symbols
    *
    * These formulas are always selected.
    */
-  Stack<Unit*> _unitsWithoutSymbols;
+  Lib::Stack<Unit*> _unitsWithoutSymbols;
 };
 
 
@@ -141,17 +140,17 @@ private:
     unsigned short minTolerance;
     Unit* unit;
   };
-  typedef List<DEntry> DEntryList;
+  typedef Lib::List<DEntry> DEntryList;
 
   /** Stored the D-relation */
-  DArray<DEntryList*> _def;
+  Lib::DArray<DEntryList*> _def;
 
   /**
    * Stored formulas that don't contain any symbols
    *
    * These formulas are always selected.
    */
-  Stack<Unit*> _unitsWithoutSymbols;
+  Lib::Stack<Unit*> _unitsWithoutSymbols;
 
   const Options& _opt;
 };

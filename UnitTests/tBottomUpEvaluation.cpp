@@ -13,6 +13,7 @@
 #include "Kernel/BottomUpEvaluation.hpp"
 #include "Kernel/Term.hpp"
 
+using namespace Lib;
 using namespace Kernel;
 using namespace Inferences;
 using namespace Test;

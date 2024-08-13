@@ -25,6 +25,7 @@
 #include "Kernel/KBO.hpp"
 
 using namespace std;
+using namespace Lib;
 using namespace Kernel;
 using namespace Inferences;
 using namespace Test;

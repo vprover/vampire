@@ -32,7 +32,6 @@
 namespace Saturation
 {
 
-using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
@@ -78,7 +77,7 @@ protected:
   virtual void onLimitsUpdated() {}
 private:
   SaturationAlgorithm* _salg;
-  SubscriptionData _limitChangeSData;
+  Lib::SubscriptionData _limitChangeSData;
 };
 
 class PlainClauseContainer : public ClauseContainer {
@@ -101,10 +100,10 @@ public:
   bool isEmpty() const
   { return _data.isEmpty(); }
 private:
-  Deque<Clause*> _data;
+  Lib::Deque<Clause*> _data;
 };
 
-typedef PlainEvent LimitsChangeEvent;
+typedef Lib::PlainEvent LimitsChangeEvent;
 
 class PassiveClauseContainer
 : public RandomAccessClauseContainer
@@ -179,7 +178,7 @@ public:
 protected:
   void onLimitsUpdated() override;
 private:
-  Set<Clause*> _clauses;
+  Lib::Set<Clause*> _clauses;
   // const Shell::Options& _opt;
 };
 

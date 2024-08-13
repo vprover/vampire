@@ -160,10 +160,10 @@ private:
      * @param i the index of the row
      * @return a slice of the matches at row i
      */
-    Slice<Match> getIMatches(unsigned i)
+    Lib::Slice<Match> getIMatches(unsigned i)
     {
       ASS_L(i, _indexI.size())
-      return Slice<Match>(
+      return Lib::Slice<Match>(
           &_matchesByI[_indexI[i]],
           &_matchesByI[_indexI[i + 1]]);
     }
@@ -173,10 +173,10 @@ private:
      * @param j the index of the column
      * @return a slice of the matches at column j
      */
-    Slice<Match> getJMatches(unsigned j)
+    Lib::Slice<Match> getJMatches(unsigned j)
     {
       ASS_L(j, _indexJ.size())
-      return Slice<Match>(
+      return Lib::Slice<Match>(
           &_matchesByJ[_indexJ[j]],
           &_matchesByJ[_indexJ[j + 1]]);
     }

@@ -47,7 +47,6 @@ public:
 
 namespace Shell {
 
-using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 
@@ -57,7 +56,7 @@ public:
   friend class Inferences::AnswerLiteralResolver;
   /**
    * There should be at most one AnswerLiteralManager instance in the whole wide world.
-   * Depending on env.options this will be
+   * Depending on Lib::env.options this will be
    * - either AnswerLiteralManager proper (for QuestionAnsweringMode::PLAIN)
    * - or a SynthesisALManager (for QuestionAnsweringMode::SYNTHESIS)
    */
@@ -67,7 +66,7 @@ public:
 
   virtual ~AnswerLiteralManager() {}
 
-  virtual bool tryGetAnswer(Clause* refutation, Stack<Clause*>& answer);
+  virtual bool tryGetAnswer(Clause* refutation, Lib::Stack<Clause*>& answer);
 
   void addAnswerLiterals(Problem& prb);
   bool addAnswerLiterals(UnitList*& units);
@@ -113,11 +112,11 @@ private:
    * (which, in particular, has the variables for arguments
    * as they were in the conecture).
    */
-  DHMap<unsigned, std::pair<Unit*,Literal*>> _originUnitsAndInjectedLiterals;
+  Lib::DHMap<unsigned, std::pair<Unit*,Literal*>> _originUnitsAndInjectedLiterals;
 
-  DHMap<unsigned, Clause*> _resolverClauses;
+  Lib::DHMap<unsigned, Clause*> _resolverClauses;
 
-  DHMap<unsigned,std::pair<unsigned,Unit*>> _skolemsOrigin;
+  Lib::DHMap<unsigned,std::pair<unsigned,Unit*>> _skolemsOrigin;
 };
 
 class PlainALManager : public AnswerLiteralManager
@@ -128,13 +127,13 @@ protected:
   void optionalAnswerPrefix(std::ostream& out) override;
   std::string postprocessAnswerString(std::string answer) override;
 private:
-  Stack<std::pair<Term*, std::string>> _skolemNames;
+  Lib::Stack<std::pair<Term*, std::string>> _skolemNames;
 };
 
 class SynthesisALManager : public AnswerLiteralManager
 {
 public:
-  bool tryGetAnswer(Clause* refutation, Stack<Clause*>& answer) override;
+  bool tryGetAnswer(Clause* refutation, Lib::Stack<Clause*>& answer) override;
   void onNewClause(Clause* cl) override;
 
   Clause* recordAnswerAndReduce(Clause* cl) override;
@@ -145,7 +144,7 @@ protected:
   void recordSkolemBinding(Term*,unsigned,std::string) override;
 
 private:
-  void getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits);
+  void getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Lib::Stack<Unit*>& conjectures, Lib::DHSet<Unit*>& allProofUnits);
 
   class ConjectureSkolemReplacement : public TermTransformer {
    public:
@@ -158,7 +157,7 @@ private:
    private:
     std::map<Term*, unsigned> _skolemToVar;
     // Map from functions to predicates they represent in answer literal conditions
-    DHMap<unsigned, unsigned> _condFnToPred;
+    Lib::DHMap<unsigned, unsigned> _condFnToPred;
   };
 
   Formula* getConditionFromClause(Clause* cl);
@@ -170,9 +169,9 @@ private:
   static unsigned getITEFunctionSymbol(TermList sort) {
     std::string name = "$ite_" + sort.toString();
     bool added = false;
-    unsigned fn = env.signature->addFunction(name, 3, added);
+    unsigned fn = Lib::env.signature->addFunction(name, 3, added);
     if (added) {
-      Signature::Symbol* sym = env.signature->getFunction(fn);
+      Signature::Symbol* sym = Lib::env.signature->getFunction(fn);
       sym->setType(OperatorType::getFunctionType({AtomicSort::defaultSort(), sort, sort}, sort));
     }
     return fn;
@@ -180,7 +179,7 @@ private:
 
   ConjectureSkolemReplacement _skolemReplacement;
 
-  List<std::pair<unsigned,std::pair<Clause*, Literal*>>>* _answerPairs = nullptr;
+  Lib::List<std::pair<unsigned,std::pair<Clause*, Literal*>>>* _answerPairs = nullptr;
 
   Literal* _lastAnsLit = nullptr;
 };

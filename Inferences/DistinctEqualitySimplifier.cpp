@@ -23,6 +23,8 @@
 namespace Inferences
 {
 
+using namespace Lib;
+
 Clause* DistinctEqualitySimplifier::simplify(Clause* cl)
 {
   if(!canSimplify(cl)) {

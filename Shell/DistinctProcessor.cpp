@@ -26,6 +26,8 @@
 namespace Shell
 {
 
+using namespace Lib;
+
 //TODO: add expansion of non-top-level and negative distinct predicates
 
 /**

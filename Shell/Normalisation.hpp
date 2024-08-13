@@ -25,7 +25,6 @@
 
 namespace Shell {
 
-using namespace Lib;
 using namespace Kernel;
 
 /**
@@ -42,19 +41,20 @@ public:
   bool lessThan(Unit*, Unit*);
 private:
   void normalise(Unit*);
-  Comparison compare(Term*, Term*);
-  Comparison compare(Formula*, Formula*);
-  Comparison compare(Literal*, Literal*);
+  Lib::Comparison compare(Term*, Term*);
+  Lib::Comparison compare(Formula*, Formula*);
+  Lib::Comparison compare(Literal*, Literal*);
   bool lessThan(Formula*, Formula*);
   bool lessThan(Clause*, Clause*);
-  Comparison compare(TermList ss, TermList ts);
+  Lib::Comparison compare(TermList ss, TermList ts);
 
   /**
    * Return the result of comparison of two integers i1 and i2
    */
   inline static
-  Comparison compare (int i1, int i2)
+  Lib::Comparison compare (int i1, int i2)
   {
+    using namespace Lib;
     return i1 > i2
            ? GREATER
            : i1 == i2
@@ -63,16 +63,20 @@ private:
   }
 
   inline static
-  Comparison compare (unsigned i1, unsigned i2)
-  { return i1 > i2 ? GREATER : i1 == i2 ? EQUAL : LESS; }
+  Lib::Comparison compare (unsigned i1, unsigned i2)
+  {
+    using namespace Lib;
+    return i1 > i2 ? GREATER : i1 == i2 ? EQUAL : LESS;
+  }
 
   /**
    * Return the result of comparison of two booleans b1 and b2.
    * @since 30/04/2005 Manchester
    */
   inline static
-  Comparison compare (bool b1, bool b2)
+  Lib::Comparison compare (bool b1, bool b2)
   {
+    using namespace Lib;
     return b1 ? (b2 ? EQUAL : LESS) : (b2 ? GREATER : EQUAL);
   }
 

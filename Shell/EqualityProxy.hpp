@@ -26,7 +26,6 @@
 
 namespace Shell {
 
-using namespace Lib;
 using namespace Kernel;
 
 // Polymorphic version of equality proxy transformation.
@@ -65,8 +64,8 @@ private:
   void addLocalAxioms(UnitList*& units);
   void addAxioms(UnitList*& units);
   void addCongruenceAxioms(UnitList*& units);
-  void getArgumentEqualityLiterals(unsigned cnt, LiteralStack& lits, Stack<TermList>& vars1,
-      Stack<TermList>& vars2, OperatorType* symbolType);
+  void getArgumentEqualityLiterals(unsigned cnt, LiteralStack& lits, Lib::Stack<TermList>& vars1,
+      Lib::Stack<TermList>& vars2, OperatorType* symbolType);
   Literal* apply(Literal* lit);
   Literal* makeProxyLiteral(bool polarity, TermList arg0, TermList arg1, TermList sort);
 
@@ -80,7 +79,7 @@ private:
   unsigned _proxyPredicate;
 
   /** array of proxy definitions E(x,y) <=> x = y  */
-  //static ZIArray<Unit*> s_proxyPremises;
+  //static Lib::ZIArray<Unit*> s_proxyPremises;
   Unit* _defUnit;
 
 };

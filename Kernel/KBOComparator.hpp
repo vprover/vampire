@@ -23,7 +23,6 @@
 
 namespace Kernel {
 
-using namespace Lib;
 
 /**
  * Runtime specialized KBO ordering check, based on the linear KBO check
@@ -42,7 +41,7 @@ public:
 
 private:
   // TODO this could be done with KBO::State
-  static void countSymbols(const KBO& kbo, DHMap<unsigned,int>& vars, int& w, TermList t, int coeff);
+  static void countSymbols(const KBO& kbo, Lib::DHMap<unsigned,int>& vars, int& w, TermList t, int coeff);
 
   enum InstructionTag {
     DATA = 0u,
@@ -114,7 +113,7 @@ private:
     uint64_t _content;
   };
   const KBO& _kbo;
-  Stack<Instruction> _instructions;
+  Lib::Stack<Instruction> _instructions;
 };
 
 }

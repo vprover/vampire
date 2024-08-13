@@ -85,6 +85,7 @@ using namespace Indexing;
 using namespace Kernel;
 using namespace SATSubsumption;
 using namespace std;
+using namespace Lib;
 
 const unsigned INVALID = std::numeric_limits<unsigned>::max();
 

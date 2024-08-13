@@ -32,7 +32,7 @@ class LambdaElimination {
 public:
 
   LambdaElimination() {};
-//  LambdaElimination(DHMap<unsigned,TermList> varSorts) : _varSorts(varSorts){};
+//  LambdaElimination(Lib::DHMap<unsigned,TermList> varSorts) : _varSorts(varSorts){};
 
   /** Set of recursive functions that rconvert lambda terms to 
    *  combinatory terms and replace logical symbols by proxies.
@@ -40,7 +40,7 @@ public:
    */
   TermList elimLambda(Term* lambdaTerm);
   TermList elimLambda(TermList term);
-  TermList elimLambda(Stack<int>& vars, TermStack& sorts, TermList body, TermList sort);
+  TermList elimLambda(Lib::Stack<int>& vars, TermStack& sorts, TermList body, TermList sort);
   TermList elimLambda(int var, TermList varSort, TermList body, TermList sort);
   TermList elimLambda(Formula*);
   
@@ -66,21 +66,21 @@ private:
     
   TermList sortOf(TermList t);
 
-  void addToProcessed(TermList ts, TermList sort, Stack<unsigned> &_argNums);
+  void addToProcessed(TermList ts, TermList sort, Lib::Stack<unsigned> &_argNums);
   void dealWithApp(Term* app, const unsigned lambdaVar, 
-    TermStack &toBeProcessed, TermStack &sorts, Stack<unsigned> &argNums);
+    TermStack &toBeProcessed, TermStack &sorts, Lib::Stack<unsigned> &argNums);
 
   TermList createKTerm(TermList s1, TermList s2, TermList arg1);
   TermList createSCorBTerm(TermList arg1, TermList arg1sort, 
         TermList arg2, TermList arg2sort, Signature::Combinator comb);
   
-  void process(Stack<int> &vars, TermStack &varSorts, 
+  void process(Lib::Stack<int> &vars, TermStack &varSorts, 
                TermStack &toBeProcessed, TermStack &sorts);
   
   /** Lexical scope of the current unit */
   TermStack _processed;
   TermStack _processedSorts;
-  Stack<Signature::Combinator> _combinators;
+  Lib::Stack<Signature::Combinator> _combinators;
 };
 
 #endif // __LambdaElimination__

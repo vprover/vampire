@@ -36,6 +36,7 @@
 #define MEGA (1 << 20)
 
 using namespace std;
+using namespace Lib;
 
 // things that need to be signal-safe because they are used in timer_sigalrm_handler
 // in principle we also need is_lock_free() to avoid deadlock as well

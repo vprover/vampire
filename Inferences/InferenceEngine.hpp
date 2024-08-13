@@ -36,7 +36,6 @@
 namespace Inferences
 {
 
-using namespace Lib;
 using namespace Kernel;
 using namespace Saturation;
 using namespace Shell;
@@ -82,7 +81,7 @@ public:
    * machinery for unit testing a single rule if that rule uses a term index. In order to circumvent this
    * issue we add this method in debug mode.
    * */
-  virtual void setTestIndices(Stack<Indexing::Index*> const&) {}
+  virtual void setTestIndices(Lib::Stack<Indexing::Index*> const&) {}
 #endif // VDEBUG
 protected:
   SaturationAlgorithm* _salg;
@@ -287,7 +286,7 @@ struct BwSimplificationRecord
   Clause* toRemove;
   Clause* replacement;
 };
-typedef VirtualIterator<BwSimplificationRecord> BwSimplificationRecordIterator;
+typedef Lib::VirtualIterator<BwSimplificationRecord> BwSimplificationRecordIterator;
 
 class BackwardSimplificationEngine
 : public InferenceEngine
@@ -351,7 +350,7 @@ public:
   void attach(SaturationAlgorithm* salg);
   void detach();
 private:
-  typedef List<ImmediateSimplificationEngine*> ISList;
+  typedef Lib::List<ImmediateSimplificationEngine*> ISList;
   ISList* _inners;
   ISList* _innersMany;
 };
@@ -367,7 +366,7 @@ private:
 //  void attach(SaturationAlgorithm* salg);
 //  void detach();
 //private:
-//  typedef List<ForwardSimplificationEngineSP> FSList;
+//  typedef Lib::List<ForwardSimplificationEngineSP> FSList;
 //  FSList* _inners;
 //};
 
@@ -382,7 +381,7 @@ public:
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
 private:
-  typedef List<GeneratingInferenceEngine*> GIList;
+  typedef Lib::List<GeneratingInferenceEngine*> GIList;
   GIList* _inners;
 };
 
@@ -399,8 +398,8 @@ public:
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
 private:
-  Stack<SimplifyingGeneratingInference*> _simplifiers;
-  Stack<GeneratingInferenceEngine*> _generators;
+  Lib::Stack<SimplifyingGeneratingInference*> _simplifiers;
+  Lib::Stack<GeneratingInferenceEngine*> _generators;
 };
 
 //removes clauses which define choice operators

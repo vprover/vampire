@@ -25,7 +25,6 @@
 #include <type_traits>
 #include <limits>
 
-using namespace Lib;
 
 namespace Kernel {
 

@@ -24,6 +24,7 @@
 // #endif
 
 using namespace std;
+using namespace Lib;
 using namespace Shell;
 using namespace SAT;
 

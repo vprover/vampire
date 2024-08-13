@@ -27,7 +27,6 @@ namespace Kernel {
   class Literal;
 };
 
-using namespace Lib;
 using namespace Kernel;
 
 namespace Shell {
@@ -40,7 +39,7 @@ class CNF
 {
 public:
   CNF();
-  void clausify (Unit*,Stack<Clause*>& stack);
+  void clausify (Unit*,Lib::Stack<Clause*>& stack);
 private:
   void clausify(Formula*);
   // the original recurisive version (for documentation and reference)
@@ -48,11 +47,11 @@ private:
   /** The unit currently being processed */
   FormulaUnit* _unit;
   /** stack to collect the results */
-  Stack<Clause*>* _result;
+  Lib::Stack<Clause*>* _result;
   /** stack of literals collected so far */
-  Stack <Literal*> _literals;
+  Lib::Stack <Literal*> _literals;
   /** stack of formulas  */
-  Stack <Formula*> _formulas;
+  Lib::Stack <Formula*> _formulas;
 }; // class CNF
 
 }

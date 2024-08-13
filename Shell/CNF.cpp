@@ -21,6 +21,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "CNF.hpp"
 
+using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 

@@ -19,6 +19,8 @@
 namespace SAT
 {
 
+using namespace Lib;
+
 MinimizingSolver::MinimizingSolver(SATSolver* inner)
  : _varCnt(0), _inner(inner), _assignmentValid(false), _heap(CntComparator(_unsClCnt))
 {

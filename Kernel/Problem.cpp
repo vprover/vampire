@@ -31,6 +31,7 @@
 #undef LOGGING
 #define LOGGING 0
 
+using namespace Lib;
 using namespace Kernel;
 
 /**

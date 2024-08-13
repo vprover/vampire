@@ -27,6 +27,8 @@
 
 namespace Inferences {
 
+using namespace Lib;
+
 Clause* BoolSimp::simplify(Clause* premise) {
   TermList subTerm;
   TermList simpedSubTerm;

@@ -37,7 +37,6 @@
 namespace FMB {
   using namespace Kernel;
   using namespace SAT;
-  using namespace Lib;
 
 class Monotonicity{
 public:
@@ -46,7 +45,7 @@ public:
 
   bool check(){ return _result;}
 
-  static void addSortPredicates(bool withMon, ClauseList*& clauses, DArray<unsigned>& del_f);
+  static void addSortPredicates(bool withMon, ClauseList*& clauses, Lib::DArray<unsigned>& del_f);
   static void addSortFunctions(bool withMon, ClauseList*& clauses);
 
 private:
@@ -55,11 +54,11 @@ private:
   
   void safe(Clause* c, Literal* l, TermList* t); 
   void safe(Clause* c, Literal* l, TermList* t, SATLiteral add); 
-  void safe(Clause* c, Literal* l, TermList* t, Stack<SATLiteral>& slits);
+  void safe(Clause* c, Literal* l, TermList* t, Lib::Stack<SATLiteral>& slits);
 
   // returns true if the true literal should be added to slits
   // returns false otherwise (if false should be added or something else has been added)
-  bool guards(Literal* l, unsigned var, Stack<SATLiteral>& slits);
+  bool guards(Literal* l, unsigned var, Lib::Stack<SATLiteral>& slits);
 
  
   unsigned _srt; 
@@ -67,10 +66,10 @@ private:
   // the constructor computes the result
   bool _result;
 
-  DHMap<unsigned,SATLiteral> _pF;
-  DHMap<unsigned,SATLiteral> _pT;
+  Lib::DHMap<unsigned,SATLiteral> _pF;
+  Lib::DHMap<unsigned,SATLiteral> _pT;
 
-  ScopedPtr<SATSolver> _solver;
+  Lib::ScopedPtr<SATSolver> _solver;
 
 };
 

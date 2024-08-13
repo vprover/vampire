@@ -16,6 +16,7 @@
 namespace Kernel {
 
 using namespace std;
+using namespace Lib;
 
 /** a struct that normalizes an object of type MonomFactors to a Monom */
 struct RenderMonom {

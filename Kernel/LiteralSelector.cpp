@@ -39,6 +39,7 @@ namespace Kernel
 {
 
 using namespace std;
+using namespace Lib;
 
 /**
  * Return true if literal @b l is positive for the purpose of

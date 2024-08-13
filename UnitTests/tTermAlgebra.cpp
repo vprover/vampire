@@ -13,6 +13,7 @@
 
 #include "Shell/TermAlgebra.hpp"
 
+using namespace Lib;
 using namespace Shell;
 
 #define DECL_VARS \

@@ -23,7 +23,6 @@
 
 namespace Saturation {
 
-using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
@@ -63,7 +62,7 @@ private:
    * It is used so that we output symbol eliminating clauses
    * after they are simplified and shown to be non-redundant.
    */
-  DHMap<Clause*,Clause*> _symElRewrites;
+  Lib::DHMap<Clause*,Clause*> _symElRewrites;
 
   /**
    * Contains record of colors that were aliminated in
@@ -71,7 +70,7 @@ private:
    *
    * Is reset in the call to the @b onAllProcessed method.
    */
-  DHMap<Clause*,Color> _symElColors;
+  Lib::DHMap<Clause*,Color> _symElColors;
 
 
   SaturationAlgorithm* _sa;

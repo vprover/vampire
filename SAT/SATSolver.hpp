@@ -140,7 +140,7 @@ public:
    */
   virtual void randomizeForNextAssignment(unsigned maxVar) {
     for (unsigned var=1; var <= maxVar; var++) {
-      suggestPolarity(var,Random::getBit());
+      suggestPolarity(var,Lib::Random::getBit());
     }
   }
 
@@ -308,7 +308,7 @@ public:
       // randomly permute the content of _failedAssumptionBuffer
       // not to bias minimization from one side or another
       for(unsigned i=sz-1; i>0; i--) {
-        unsigned tgtPos=Random::getInteger(i+1);
+        unsigned tgtPos=Lib::Random::getInteger(i+1);
         std::swap(_failedAssumptionBuffer[i], _failedAssumptionBuffer[tgtPos]);
       }
     }

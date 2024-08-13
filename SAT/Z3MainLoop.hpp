@@ -33,7 +33,6 @@ namespace SAT{
 
 using namespace Kernel;
 using namespace Shell;
-using namespace Lib;
 
 class Z3MainLoop : public MainLoop 
 {

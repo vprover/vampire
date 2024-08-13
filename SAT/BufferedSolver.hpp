@@ -31,7 +31,6 @@
 
 namespace SAT {
 
-using namespace Lib;
 
 class BufferedSolver : public SATSolver {
 public:
@@ -79,12 +78,12 @@ private:
   // Add any clauses that have been buffered to _inner and solve.
   void flushUnadded();
 
-  ScopedPtr<SATSolver> _inner;
+  Lib::ScopedPtr<SATSolver> _inner;
 
  /**
   * A buffer for new literals that do not yet appear in the solver
   */
-  DHMap<unsigned, bool> _literalBuffer;
+  Lib::DHMap<unsigned, bool> _literalBuffer;
 
   /**
    * Clauses that have not been added to _inner as they are either implied by the assignment of _inner

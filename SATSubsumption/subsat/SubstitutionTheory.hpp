@@ -365,7 +365,7 @@ private:
   // TODO: replace bindings_by_pos by a single contiguous vector, and instead of VampireVarPos; use an index/length into that vector.
   //       (probably only makes sense if we construct that data lazily? in the current version we'd need an extra loop to determine counts for each variable first.)
   //       OTOH the current version isn't that bad, since we do map the vampire variables into a contiguous range first. so the vectors in m_bindings_by_pos are being reused anyway.
-  Lib::DHMap<VampireVar, VampireVarPos, Kernel::IdentityHash> m_var_pos;
+  Lib::DHMap<VampireVar, VampireVarPos, Lib::IdentityHash> m_var_pos;
   vector_map<VampireVarPos, vector<std::pair<subsat::Var, VampireTerm>>> m_bindings_by_pos;
 };
 

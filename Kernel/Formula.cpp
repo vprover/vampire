@@ -21,6 +21,7 @@
 namespace Kernel {
 
 using namespace std;
+using namespace Lib;
 
 std::string Formula::DEFAULT_LABEL = "none";
 

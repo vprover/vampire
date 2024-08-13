@@ -54,7 +54,7 @@ void Debug::Tracer::printStack(std::ostream& str) {
     str << ' ' << call_stack[sz - (i + 1)];
   str << std::endl;
 
-  if (env.options->traceback()) {
+  if (Lib::env.options->traceback()) {
 // UNIX-like systems, including BSD and Linux but not MacOS
 #if defined(__unix__)
   str << "invoking addr2line(1) ..." << std::endl;

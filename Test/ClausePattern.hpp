@@ -34,13 +34,13 @@ struct AnyOf
  * A Clause matches a pattern Clause, if they are equal.
  * A Clause matches an AnyOf pattern if it matches both of the subpatterns.
  */
-class ClausePattern : Coproduct<Kernel::Clause const*, AnyOf>
+class ClausePattern : Lib::Coproduct<Kernel::Clause const*, AnyOf>
 {
 public:
   ClausePattern(Kernel::Clause const* clause) 
-    : Coproduct<Kernel::Clause const*, AnyOf>(clause) {}
+    : Lib::Coproduct<Kernel::Clause const*, AnyOf>(clause) {}
 
-  ClausePattern(ClausePattern l, ClausePattern r) : Coproduct<Kernel::Clause const*, AnyOf>(AnyOf {
+  ClausePattern(ClausePattern l, ClausePattern r) : Lib::Coproduct<Kernel::Clause const*, AnyOf>(AnyOf {
         std::make_unique<ClausePattern>(std::move(l)),
         std::make_unique<ClausePattern>(std::move(r))
       }) {}

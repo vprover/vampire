@@ -20,7 +20,7 @@ using LitSimplResult = Inferences::SimplifyingGeneratingLiteralSimplification::R
 #define IMPL_EVALUATE_PRED(interpretation, ...)                                                               \
   template<>                                                                                                  \
   struct PredicateEvaluator<interpretation> {                                                                 \
-    static Option<LitSimplResult> evaluate(Literal* orig, PolyNf* evaluatedArgs)                              \
+    static Lib::Option<LitSimplResult> evaluate(Literal* orig, PolyNf* evaluatedArgs)                              \
     {                                                                                                         \
       __VA_ARGS__                                                                                             \
     }                                                                                                         \
@@ -32,15 +32,15 @@ using LitSimplResult = Inferences::SimplifyingGeneratingLiteralSimplification::R
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template<class ConstantType, class EvalGround>
-Option<LitSimplResult> tryEvalConstant2(Literal* orig, PolyNf* evaluatedArgs, EvalGround fun) 
+Lib::Option<LitSimplResult> tryEvalConstant2(Literal* orig, PolyNf* evaluatedArgs, EvalGround fun) 
 {
   using Number = NumTraits<ConstantType>;
   auto& lhs = *evaluatedArgs[0].downcast<Number>().unwrap();
   auto& rhs = *evaluatedArgs[1].downcast<Number>().unwrap();
   if (lhs.isNumber() && rhs.isNumber()) {
-    return Option<LitSimplResult>(LitSimplResult::constant(fun(lhs.unwrapNumber(), rhs.unwrapNumber())));
+    return Lib::Option<LitSimplResult>(LitSimplResult::constant(fun(lhs.unwrapNumber(), rhs.unwrapNumber())));
   } else {
-    return Option<LitSimplResult>();
+    return Lib::Option<LitSimplResult>();
   }
 }
 
@@ -48,13 +48,13 @@ Option<LitSimplResult> tryEvalConstant2(Literal* orig, PolyNf* evaluatedArgs, Ev
 /// Equality
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class Number> inline Option<LitSimplResult> interpretEquality(bool polarity, Perfect<Polynom<Number>> lhs, Perfect<Polynom<Number>> rhs) {
+template<class Number> inline Lib::Option<LitSimplResult> interpretEquality(bool polarity, Lib::Perfect<Polynom<Number>> lhs, Lib::Perfect<Polynom<Number>> rhs) {
   if (lhs->isNumber() && rhs->isNumber()) {
-    return Option<LitSimplResult>(LitSimplResult::constant(polarity == (lhs->unwrapNumber() == rhs->unwrapNumber())));
+    return Lib::Option<LitSimplResult>(LitSimplResult::constant(polarity == (lhs->unwrapNumber() == rhs->unwrapNumber())));
   } else if (lhs == rhs) {
-    return Option<LitSimplResult>(LitSimplResult::constant(polarity));
+    return Lib::Option<LitSimplResult>(LitSimplResult::constant(polarity));
   } else {
-    return Option<LitSimplResult>();
+    return Lib::Option<LitSimplResult>();
   }
 }
 
@@ -70,7 +70,7 @@ IMPL_EVALUATE_PRED(Interpretation::EQUAL,
   auto sort = SortHelper::getEqualityArgumentSort(orig);
 
   if (lhs == rhs) {
-    return Option<LitSimplResult>(LitSimplResult::constant(polarity));
+    return Lib::Option<LitSimplResult>(LitSimplResult::constant(polarity));
   }
   if (sort == IntTraits::sort())
     return interpretEquality(polarity, lhs.template wrapPoly<IntTraits >(), rhs.template wrapPoly<IntTraits >());
@@ -79,14 +79,14 @@ IMPL_EVALUATE_PRED(Interpretation::EQUAL,
   if (sort == RealTraits::sort())
     return interpretEquality(polarity, lhs.template wrapPoly<RealTraits>(), rhs.template wrapPoly<RealTraits>());
   else
-    return Option<LitSimplResult>();
+    return Lib::Option<LitSimplResult>();
 )
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Inequalities
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-template<class ConstantType, class EvalIneq> Option<LitSimplResult> evaluateInequality(Literal* orig, PolyNf* evaluatedArgs, bool strict, EvalIneq evalIneq) {
+template<class ConstantType, class EvalIneq> Lib::Option<LitSimplResult> evaluateInequality(Literal* orig, PolyNf* evaluatedArgs, bool strict, EvalIneq evalIneq) {
   ASS(orig->numTermArguments() == 2);
 
 
@@ -95,11 +95,11 @@ template<class ConstantType, class EvalIneq> Option<LitSimplResult> evaluateIneq
 
   auto polarity = orig->polarity();
   if (lhs->isNumber() && rhs->isNumber()) {
-    return Option<LitSimplResult>(LitSimplResult::constant(polarity == evalIneq(lhs->unwrapNumber(), rhs->unwrapNumber())));
+    return Lib::Option<LitSimplResult>(LitSimplResult::constant(polarity == evalIneq(lhs->unwrapNumber(), rhs->unwrapNumber())));
   } else if (lhs == rhs) {
-    return Option<LitSimplResult>(LitSimplResult::constant(polarity != strict));
+    return Lib::Option<LitSimplResult>(LitSimplResult::constant(polarity != strict));
   } else {
-    return Option<LitSimplResult>();
+    return Lib::Option<LitSimplResult>();
   }
 }
 

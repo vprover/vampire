@@ -27,7 +27,6 @@
 
 namespace FMB {
 
-using namespace Lib;
 using namespace Kernel;
 
 /**
@@ -35,20 +34,20 @@ using namespace Kernel;
  *
  */
 class FiniteModelMultiSorted {
- DHMap<unsigned,unsigned> _sizes;
+ Lib::DHMap<unsigned,unsigned> _sizes;
 
 public:
 
  // sortSizes is a map from vampire sorts (defined in Kernel/Sorts) to the size of that sort
- FiniteModelMultiSorted(DHMap<unsigned,unsigned> sortSizes);
+ FiniteModelMultiSorted(Lib::DHMap<unsigned,unsigned> sortSizes);
 
  // Assume def is an equality literal with a
  // function application on lhs and constant on rhs
  void addConstantDefinition(unsigned f, unsigned res);
- void addFunctionDefinition(unsigned f, const DArray<unsigned>& args, unsigned res); 
+ void addFunctionDefinition(unsigned f, const Lib::DArray<unsigned>& args, unsigned res); 
  // Assume def is non-equality ground literal
  void addPropositionalDefinition(unsigned f, bool res);
- void addPredicateDefinition(unsigned f, const DArray<unsigned>& args, bool res); 
+ void addPredicateDefinition(unsigned f, const Lib::DArray<unsigned>& args, bool res); 
 
  bool isPartial();
 
@@ -67,29 +66,29 @@ private:
  // The model is partial if there is a operation with arity n that does not have
  // coverage size^n in its related coverage map
  bool _isPartial;
- DHMap<unsigned,unsigned> _functionCoverage;
- DHMap<unsigned,unsigned> _predicateCoverage;
+ Lib::DHMap<unsigned,unsigned> _functionCoverage;
+ Lib::DHMap<unsigned,unsigned> _predicateCoverage;
 
- DArray<DArray<int>> sortRepr;
+ Lib::DArray<Lib::DArray<int>> sortRepr;
 
- DArray<unsigned> f_offsets;
- DArray<unsigned> p_offsets;
- DArray<unsigned> f_interpretation;
- DArray<unsigned> p_interpretation; // 0 is undef, 1 false, 2 true
+ Lib::DArray<unsigned> f_offsets;
+ Lib::DArray<unsigned> p_offsets;
+ Lib::DArray<unsigned> f_interpretation;
+ Lib::DArray<unsigned> p_interpretation; // 0 is undef, 1 false, 2 true
 
  // the pairs of <constant number, sort>
- DHMap<std::pair<unsigned,unsigned>,Term*> _domainConstants;
- DHMap<Term*,std::pair<unsigned,unsigned>> _domainConstantsRev;
+ Lib::DHMap<std::pair<unsigned,unsigned>,Term*> _domainConstants;
+ Lib::DHMap<Term*,std::pair<unsigned,unsigned>> _domainConstantsRev;
 public:
  Term* getDomainConstant(unsigned c, unsigned srt)
  {
    Term* t;
    std::pair<unsigned,unsigned> pair = std::make_pair(c,srt);
    if(_domainConstants.find(pair,t)) return t;
-   std::string name = "domCon_"+env.signature->typeConName(srt)+"_"+Lib::Int::toString(c);
-   unsigned f = env.signature->addFreshFunction(0,name.c_str()); 
+   std::string name = "domCon_"+Lib::env.signature->typeConName(srt)+"_"+Lib::Int::toString(c);
+   unsigned f = Lib::env.signature->addFreshFunction(0,name.c_str()); 
    TermList srtT = TermList(AtomicSort::createConstant(srt));
-   env.signature->getFunction(f)->setType(OperatorType::getConstantsType(srtT));
+   Lib::env.signature->getFunction(f)->setType(OperatorType::getConstantsType(srtT));
    t = Term::createConstant(f);
    _domainConstants.insert(pair,t);
    _domainConstantsRev.insert(t,pair);

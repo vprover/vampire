@@ -20,6 +20,8 @@
 namespace Inferences
 {
 
+using namespace Lib;
+
 struct IncompleteFunction {
   unsigned functor, arity, remaining;
 };

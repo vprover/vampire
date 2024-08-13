@@ -12,6 +12,8 @@
 #include "Test/UnitTesting.hpp"
 #include "UnitTests/dummyHash.hpp"
 
+using namespace Lib;
+
 TEST_FUN(find_remove_contains)
 {
   Set<int> *test_set = new Set<int>();

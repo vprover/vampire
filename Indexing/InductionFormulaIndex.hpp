@@ -31,9 +31,8 @@ namespace Inferences {
 
 namespace Indexing {
 
-using namespace Lib;
 using namespace Kernel;
-using Key = std::pair<Stack<LiteralStack>,std::pair<Literal*,Literal*>>;
+using Key = std::pair<Lib::Stack<LiteralStack>,std::pair<Literal*,Literal*>>;
 
 class InductionFormulaIndex
 {
@@ -56,18 +55,18 @@ public:
       }
       _st.push(std::make_pair(cls, subst));
     }
-    const Stack<std::pair<ClauseStack,Substitution>>& get() const {
+    const Lib::Stack<std::pair<ClauseStack,Substitution>>& get() const {
       return _st;
     }
   private:
-    Stack<std::pair<ClauseStack,Substitution>> _st;
+    Lib::Stack<std::pair<ClauseStack,Substitution>> _st;
   };
 
   static Key represent(const Inferences::InductionContext& context);
 
   bool findOrInsert(const Inferences::InductionContext& context, Entry*& e, Literal* bound1 = nullptr, Literal* bound2 = nullptr);
 private:
-  DHMap<Key,Entry> _map;
+  Lib::DHMap<Key,Entry> _map;
 };
 
 }

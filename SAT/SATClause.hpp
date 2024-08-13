@@ -27,7 +27,6 @@
 
 namespace SAT {
 
-using namespace Lib;
 using namespace Kernel;
 
 /**
@@ -39,7 +38,7 @@ class SATClause
 public:
   DECL_ELEMENT_TYPE(SATLiteral);
 
-  auto iter() const { return arrayIter(*this); }
+  auto iter() const { return Lib::arrayIter(*this); }
 
   /** New clause */
   SATClause(unsigned length);
@@ -53,7 +52,7 @@ public:
   unsigned defaultHash() const {
     unsigned hash = 0;
     for(unsigned i = 0; i < length(); i++)
-      hash ^= DefaultHash::hash(_literals[i]);
+      hash ^= Lib::DefaultHash::hash(_literals[i]);
     return hash;
   }
 

@@ -30,7 +30,6 @@
 namespace CASC
 {
 
-using namespace Lib;
 using namespace Shell;
 
 class PortfolioMode {
@@ -54,7 +53,7 @@ private:
   [[noreturn]] void runSlice(Options& strategyOpt);
 
 #if VDEBUG
-  DHSet<pid_t> childIds;
+  Lib::DHSet<pid_t> childIds;
 #endif
   unsigned _numWorkers;
   // file that will contain a proof
@@ -66,7 +65,7 @@ private:
    * Note that in the current process this child object is the only one that
    * will be using the problem object.
    */
-  ScopedPtr<Problem> _prb;
+  Lib::ScopedPtr<Problem> _prb;
   float _slowness;
 };
 

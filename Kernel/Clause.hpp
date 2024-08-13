@@ -33,7 +33,6 @@
 
 namespace Kernel {
 
-using namespace Lib;
 
 /**
  * Class to represent clauses.
@@ -54,7 +53,7 @@ private:
   void operator delete(void* ptr) { ASSERTION_VIOLATION; }
 
   template<class VarIt>
-  void collectVars2(DHSet<unsigned>& acc);
+  void collectVars2(Lib::DHSet<unsigned>& acc);
 public:
   DECL_ELEMENT_TYPE(Literal*);
 
@@ -90,13 +89,13 @@ public:
   { return fromLiterals({}, inf); }
 
 
-  static Clause* fromStack(const Stack<Literal*>& lits, Inference inf)
+  static Clause* fromStack(const Lib::Stack<Literal*>& lits, Inference inf)
   { return new(lits.size()) Clause(lits.begin(), lits.size(), std::move(inf)); }
 
   template<class Iter>
   static Clause* fromIterator(Iter litit, const Inference& inf)
   {
-    static Stack<Literal*> st;
+    static Lib::Stack<Literal*> st;
     st.reset();
     st.loadFromIterator(litit);
     return fromStack(st, inf);
@@ -234,17 +233,17 @@ public:
     return savedTimestamp == _reductionTimestamp;
   }
 
-  auto getSelectedLiteralIterator() { return arrayIter(*this,numSelected()); }
-  auto iterLits()                   { return arrayIter(*this,size()); }
-  auto iterLits() const             { return arrayIter(*this,size()); }
+  auto getSelectedLiteralIterator() { return Lib::arrayIter(*this,numSelected()); }
+  auto iterLits()                   { return Lib::arrayIter(*this,size()); }
+  auto iterLits() const             { return Lib::arrayIter(*this,size()); }
   // TODO remove this
-  auto getLiteralIterator()         { return arrayIter(*this,size()); }
+  auto getLiteralIterator()         { return Lib::arrayIter(*this,size()); }
 
   bool isGround();
   bool isPropositional();
   bool isHorn();
 
-  VirtualIterator<unsigned> getVariableIterator();
+  Lib::VirtualIterator<unsigned> getVariableIterator();
 
   bool contains(Literal* lit);
 #if VDEBUG
@@ -271,7 +270,7 @@ public:
   void incNumActiveSplits() { _numActiveSplits++; }
   void decNumActiveSplits() { _numActiveSplits--; }
 
-  VirtualIterator<std::string> toSimpleClauseStrings();
+  Lib::VirtualIterator<std::string> toSimpleClauseStrings();
 
   void setAux()
   {
@@ -345,8 +344,8 @@ public:
   unsigned splitWeight() const;
   unsigned getNumeralWeight() const;
 
-  void collectVars(DHSet<unsigned>& acc);
-  void collectUnstableVars(DHSet<unsigned>& acc);
+  void collectVars(Lib::DHSet<unsigned>& acc);
+  void collectUnstableVars(Lib::DHSet<unsigned>& acc);
 
 
   unsigned varCnt();
@@ -391,7 +390,7 @@ protected:
   /** for splitting: timestamp marking when has the clause been reduced or restored by splitting */
   unsigned _reductionTimestamp;
   /** a map that translates Literal* to its index in the clause */
-  InverseLookup<Literal>* _literalPositions;
+  Lib::InverseLookup<Literal>* _literalPositions;
 
   int _numActiveSplits;
 

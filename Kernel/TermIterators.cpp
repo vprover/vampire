@@ -23,6 +23,8 @@
 namespace Kernel
 {
 
+using namespace Lib;
+
 typedef ApplicativeHelper AH;
 
 /**

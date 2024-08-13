@@ -48,11 +48,11 @@ private:
     TermList contextSort; // only used by TERMLIST and SPECIALTERM
   };
 
-  static void collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermList>& map, bool ignoreBound = false);
+  static void collectVariableSortsIter(CollectTask task, Lib::DHMap<unsigned,TermList>& map, bool ignoreBound = false);
 public:
   static TermList getResultSort(const Term* t);
   static TermList getResultSortMono(const Term* t);
-  static TermList getResultSort(TermList t, DHMap<unsigned,TermList>& varSorts);
+  static TermList getResultSort(TermList t, Lib::DHMap<unsigned,TermList>& varSorts);
   static TermList getArgSort(Term const* t, unsigned argIndex);
   static TermList getTermArgSort(Term const* t, unsigned argIndex);
 
@@ -69,9 +69,9 @@ public:
   [[deprecated("This function is usually only used if we loose the information about the sort of a variable somewhere while over subterms. Recovering the information using this method iterating the literal/term again, is very inefficient and should be avoided. Make sure to use TermIterators that return TypedTermList instead, or raise a discussion on slack/github if you have a use case where this function is *really* needed.")]]
   static TermList getTermSort(TermList trm, Literal* lit);
 
-  static void collectVariableSorts(Unit* u, DHMap<unsigned,TermList>& map);
-  static void collectVariableSorts(Term* t, DHMap<unsigned,TermList>& map);
-  static void collectVariableSorts(Formula* f, DHMap<unsigned,TermList>& map, bool ignoreBound = false);
+  static void collectVariableSorts(Unit* u, Lib::DHMap<unsigned,TermList>& map);
+  static void collectVariableSorts(Term* t, Lib::DHMap<unsigned,TermList>& map);
+  static void collectVariableSorts(Formula* f, Lib::DHMap<unsigned,TermList>& map, bool ignoreBound = false);
 
   static bool areImmediateSortsValidPoly(Term* t);
   static bool areImmediateSortsValidMono(Term* t);
@@ -91,7 +91,7 @@ public:
 
   static bool areSortsValid(Clause* cl);
   static bool areSortsValid(Term* t);
-  static bool areSortsValid(Term* t, DHMap<unsigned,TermList>& varSorts);
+  static bool areSortsValid(Term* t, Lib::DHMap<unsigned,TermList>& varSorts);
 private:
   static bool tryGetVariableSortTerm(TermList var, Term* t, TermList& result, bool recurseToSubformulas);
 };

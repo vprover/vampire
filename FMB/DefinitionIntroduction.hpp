@@ -31,7 +31,7 @@ namespace FMB {
   class DefinitionIntroduction{
   public:
     DefinitionIntroduction(ClauseIterator cit) : _cit(cit) {
-      //_ng = env.options->fmbNonGroundDefs();
+      //_ng = Lib::env.options->fmbNonGroundDefs();
     }
 
 
@@ -59,7 +59,7 @@ namespace FMB {
     void process(Clause* c){
       //std::cout << "Process " << c->toString() << std::endl;
 
-      static Stack<Literal*> lits; // to rebuild the clause
+      static Lib::Stack<Literal*> lits; // to rebuild the clause
       lits.reset();
 
       bool anyUpdated = false;
@@ -70,7 +70,7 @@ namespace FMB {
 
         //std::cout << " process " << l->toString() << std::endl;
 
-        Stack<TermList> args; 
+        Lib::Stack<TermList> args; 
         for(TermList* ts = l->args(); ts->isNonEmpty(); ts = ts->next()){
           // do not add definitions for variables or constants
           if(ts->isVar() ||  ts->term()->arity()==0 || !ts->term()->ground()){
@@ -116,9 +116,9 @@ namespace FMB {
         //std::cout << "Considering " << t->toString() << std::endl;
         if(t->arity()==0) continue;
         if(!_introduced.find(t)){
-          unsigned newConstant = env.signature->addFreshFunction(0,"fmbdef");
+          unsigned newConstant = Lib::env.signature->addFreshFunction(0,"fmbdef");
           TermList srt = SortHelper::getResultSort(t);
-          Signature::Symbol* newConstantSymb = env.signature->getFunction(newConstant);
+          Signature::Symbol* newConstantSymb = Lib::env.signature->getFunction(newConstant);
           newConstantSymb->setType(OperatorType::getConstantsType(srt));
           newConstantSymb->incUsageCnt();
           Term* c = Term::createConstant(newConstant); 
@@ -127,7 +127,7 @@ namespace FMB {
 
           //Now apply definitions to t
           bool updated = false;
-          Stack<TermList> args;
+          Lib::Stack<TermList> args;
           for(TermList* ts = t->args(); ts->isNonEmpty(); ts = ts->next()){
             ASS(ts->term()->ground());
             // do not add definitions for constants
@@ -143,7 +143,7 @@ namespace FMB {
           }
           TermList sort = SortHelper::getResultSort(t); //TODO set sort of c as this
           Literal* l = Literal::createEquality(true,TermList(t),TermList(c),sort);
-          static Stack<Literal*> lstack;
+          static Lib::Stack<Literal*> lstack;
           lstack.reset();
           lstack.push(l);
           Clause* def = Clause::fromStack(lstack,NonspecificInference1(InferenceRule::FMB_DEF_INTRO,from));
@@ -184,13 +184,13 @@ namespace FMB {
         unsigned vars = t->vars();
 
         // then create a fresh function symbol for the definition
-        newf = env.signature->addFreshFunction(vars,"fmbdef");
+        newf = Lib::env.signature->addFreshFunction(vars,"fmbdef");
         // and save it
         _introducedNG.insert(t,newf);
         
 
         // next create the definition clause
-        Stack<TermList> varTerms;
+        Lib::Stack<TermList> varTerms;
         for(unsigned v=0;v<vars;v++){
           TermList vt(v,false);
           varTerms.push(vt);
@@ -200,7 +200,7 @@ namespace FMB {
         unsigned sort = SortHelper::getResultSort(t); //TODO set sort of newf
         Literal* l = Literal::createEquality(true,TermList(t),TermList(nt),sort);
 
-        static Stack<Literal*> lstack;
+        static Lib::Stack<Literal*> lstack;
         lstack.reset();
         lstack.push(l);
         Clause* def = Clause::fromStack(lstack,from->inputType(),
@@ -219,10 +219,10 @@ namespace FMB {
     bool _ng;
 */
     ClauseIterator _cit;
-    Stack<Clause*> _processed;
+    Lib::Stack<Clause*> _processed;
 
-    DHMap<Term*,Term*> _introduced;
-    DHMap<Term*,unsigned> _introducedNG;
+    Lib::DHMap<Term*,Term*> _introduced;
+    Lib::DHMap<Term*,unsigned> _introducedNG;
 
   };
 

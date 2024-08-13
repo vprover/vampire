@@ -27,7 +27,6 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/Formula.hpp"
 
-using namespace Lib;
 
 namespace Kernel {
 
@@ -74,19 +73,19 @@ private:
   unsigned _nextVar;
 
   /** Counter used to store bound variables, together with the number of times they are bound */
-  MultiCounter _bound;
+  Lib::MultiCounter _bound;
   /** To store previously found free variables */
-  MultiCounter _free;
+  Lib::MultiCounter _free;
   /** Stack of formulas to be processed */
-  Stack<const Formula*> _formulas;
+  Lib::Stack<const Formula*> _formulas;
   /** Stack of terms to process */
-  Stack<const Term*> _terms;
+  Lib::Stack<const Term*> _terms;
   /** Stack of term lists to process */
-  Stack<TermList> _termLists;
+  Lib::Stack<TermList> _termLists;
   /** Stack of instructions telling what to do next */
-  Stack<Instruction> _instructions;
+  Lib::Stack<Instruction> _instructions;
   /** Stack of lists of variables to process */
-  Stack<const VList*> _vars;
+  Lib::Stack<const VList*> _vars;
 }; // class FormulaVarIterator
 
 template<typename T> // a template to work with Term*, TermList*, and Formula*

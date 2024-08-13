@@ -45,6 +45,7 @@
 #include "AnswerLiteralManager.hpp"
 
 static bool isProperAnswerClause(Clause* cl) {
+  using namespace Lib;
   static bool ground_only = (env.options->questionAnswering() == Options::QuestionAnsweringMode::PLAIN) && (env.options->questionAnsweringGroundOnly());
 
   return !cl->isEmpty() && forAll(cl->iterLits(),[] (Literal* l) { return l->isAnswerLiteral() && (!ground_only || l->ground()); } );
@@ -52,6 +53,8 @@ static bool isProperAnswerClause(Clause* cl) {
 
 namespace Inferences
 {
+
+using namespace Lib;
 
 Clause* AnswerLiteralResolver::simplify(Clause* cl)
 {

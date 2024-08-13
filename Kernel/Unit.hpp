@@ -25,7 +25,6 @@
 
 namespace Kernel {
 
-using namespace Lib;
 
 /**
  * Class to represent units of inference (such as clauses and formulas).

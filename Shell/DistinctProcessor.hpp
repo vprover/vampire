@@ -23,7 +23,6 @@
 namespace Shell {
 
 using namespace Kernel;
-using namespace Lib;
 
 /**
  * Registers top-level distinct predicates in the Signature. Should be

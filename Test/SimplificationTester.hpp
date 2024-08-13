@@ -38,7 +38,7 @@ public:
 class Success
 {
   Kernel::Clause* _input;
-  Option<ClausePattern> _expected;
+  Lib::Option<ClausePattern> _expected;
 
 public:
   Success() : _input(nullptr) {}
@@ -51,7 +51,7 @@ public:
 
   Success expected(ClausePattern x)
   {
-    _expected = Option<ClausePattern>(x); 
+    _expected = Lib::Option<ClausePattern>(x); 
     return *this;
   }
 

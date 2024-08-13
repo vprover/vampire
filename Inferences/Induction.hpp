@@ -48,7 +48,6 @@ namespace Inferences
 using namespace Kernel;
 using namespace Saturation;
 using namespace Shell;
-using namespace Lib;
 
 /**
  * This class is similar to @b NonVariableNonTypeIterator and is
@@ -58,7 +57,7 @@ using namespace Lib;
  * instance.
  */
 class ActiveOccurrenceIterator
-  : public IteratorCore<Term*>
+  : public Lib::IteratorCore<Term*>
 {
 public:
   ActiveOccurrenceIterator(Literal* lit, FunctionDefinitionHandler& fnDefHandler)
@@ -72,7 +71,7 @@ public:
   bool hasNext() override { return !_stack.isEmpty(); }
   Term* next() override;
 private:
-  Stack<Term*> _stack;
+  Lib::Stack<Term*> _stack;
   FunctionDefinitionHandler& _fnDefHandler;
 };
 
@@ -120,7 +119,7 @@ public:
   SkolemSquashingTermReplacement(const std::map<Term*, TermList>& m, unsigned& var)
     : TermReplacement(m), _v(var) {}
   TermList transformSubterm(TermList trm) override;
-  DHMap<Term*, unsigned, SharedTermHash> _tv; // maps terms to their variable replacement
+  Lib::DHMap<Term*, unsigned, SharedTermHash> _tv; // maps terms to their variable replacement
 private:
   unsigned& _v; // fresh variable counter supported by caller
 };
@@ -194,7 +193,7 @@ private:
  * induction terms replaced with placeholders.
  */
 class ContextReplacement
-  : public TermReplacement, public IteratorCore<InductionContext> {
+  : public TermReplacement, public Lib::IteratorCore<InductionContext> {
 public:
   ContextReplacement(const InductionContext& context);
 
@@ -273,7 +272,7 @@ public:
   ClauseIterator generateClauses(Clause* premise) override;
 
 #if VDEBUG
-  void setTestIndices(const Stack<Index*>& indices) override {
+  void setTestIndices(const Lib::Stack<Index*>& indices) override {
     _comparisonIndex = static_cast<LiteralIndex<LiteralClause>*>(indices[0]);
     _inductionTermIndex = static_cast<TermIndex*>(indices[1]);
     _structInductionTermIndex = static_cast<TermIndex*>(indices[2]);
@@ -327,7 +326,7 @@ private:
   void performInfIntInduction(const InductionContext& context, bool increasing, const TermLiteralClause& bound);
 
   struct DefaultBound { TypedTermList term; };
-  using Bound = Coproduct<TermLiteralClause, DefaultBound>;
+  using Bound = Lib::Coproduct<TermLiteralClause, DefaultBound>;
   void performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, Bound bound1, const TermLiteralClause* optionalBound2);
 
   void performIntInduction(const InductionContext& context, InductionFormulaIndex::Entry* e, bool increasing, TermLiteralClause const& bound1, const TermLiteralClause* optionalBound2)
@@ -361,7 +360,7 @@ private:
   bool isValidBound(const InductionContext& context, const TermLiteralClause& bound)
   { return isValidBound(context, Bound(bound)); }
 
-  Stack<Clause*> _clauses;
+  Lib::Stack<Clause*> _clauses;
   InductionHelper _helper;
   const Options& _opt;
   TermIndex* _structInductionTermIndex;

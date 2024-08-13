@@ -61,6 +61,7 @@
 #include "Kernel/TermIterators.hpp"
 
 using namespace std;
+using namespace Lib;
 using namespace Shell;
 
 /**

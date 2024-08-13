@@ -49,7 +49,7 @@ class TheoryInstAndSimp
 public:
   using SortId = SAT::Z3Interfacing::SortId;
   ~TheoryInstAndSimp();
-  TheoryInstAndSimp() : TheoryInstAndSimp(*env.options) {}
+  TheoryInstAndSimp() : TheoryInstAndSimp(*Lib::env.options) {}
 
   TheoryInstAndSimp(Options& opts);
   TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, std::string const& exportSmtlib);
@@ -60,26 +60,26 @@ public:
 
 private:
   struct SkolemizedLiterals {
-    Stack<SATLiteral> lits;
-    Stack<unsigned> vars;
+    Lib::Stack<SATLiteral> lits;
+    Lib::Stack<unsigned> vars;
     Substitution subst;
   };
   template<class IterLits> SkolemizedLiterals skolemize(IterLits lits);
-  VirtualIterator<Solution> getSolutions(Stack<Literal*> const& theoryLiterals, Stack<Literal*> const& guards, unsigned freshVar);
+  Lib::VirtualIterator<Solution> getSolutions(Lib::Stack<Literal*> const& theoryLiterals, Lib::Stack<Literal*> const& guards, unsigned freshVar);
 
 
-  Option<Substitution> instantiateWithModel(SkolemizedLiterals skolemized);
-  Option<Substitution> instantiateGeneralised(SkolemizedLiterals skolemized, unsigned freshVar);
+  Lib::Option<Substitution> instantiateWithModel(SkolemizedLiterals skolemized);
+  Lib::Option<Substitution> instantiateGeneralised(SkolemizedLiterals skolemized, unsigned freshVar);
 
-  Stack<Literal*> selectTheoryLiterals(Clause* cl);
+  Lib::Stack<Literal*> selectTheoryLiterals(Clause* cl);
 
-  void originalSelectTheoryLiterals(Clause* cl, Stack<Literal*>& theoryLits,bool forZ3);
+  void originalSelectTheoryLiterals(Clause* cl, Lib::Stack<Literal*>& theoryLits,bool forZ3);
 
-  Stack<Literal*> applyFilters(Stack<Literal*> theoryLits);
-  void filterUninterpretedPartialFunctionDeep(Stack<Literal*>& theoryLits, Stack<Literal*>& filteredLits);
+  Lib::Stack<Literal*> applyFilters(Lib::Stack<Literal*> theoryLits);
+  void filterUninterpretedPartialFunctionDeep(Lib::Stack<Literal*>& theoryLits, Lib::Stack<Literal*>& filteredLits);
   
   /** returns the set of literals trivial in cl */
-  Stack<Literal*> selectTrivialLiterals(Clause* cl );
+  Lib::Stack<Literal*> selectTrivialLiterals(Clause* cl );
   bool isPure(Literal* lit);
 
   /**
@@ -113,7 +113,7 @@ private:
   {
     class SortedConstantCache {
       unsigned _used;
-      Stack<Term*> _constants;
+      Lib::Stack<Term*> _constants;
     public:
       SortedConstantCache() : _used(0), _constants() {}
       void reset();
@@ -121,7 +121,7 @@ private:
     };
 
     const char* _prefix;
-    Map<SortId, SortedConstantCache> _inner;
+    Lib::Map<SortId, SortedConstantCache> _inner;
 
   public:
     ConstantCache(const char* prefix) : _prefix(prefix), _inner() {}
@@ -138,7 +138,7 @@ private:
   volatile char padding00[1024];
   Z3Interfacing* _solver;
   volatile char padding01[1024];
-  Map<SortId, bool> _supportedSorts;
+  Lib::Map<SortId, bool> _supportedSorts;
   bool _generalisation;
   ConstantCache _instantiationConstants;
   ConstantCache _generalizationConstants;

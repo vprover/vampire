@@ -24,7 +24,6 @@
 
 #include "Token.hpp"
 
-using namespace Lib;
 
 
 namespace Shell {
@@ -36,7 +35,7 @@ class Lexer;
  * @since 14/07/2004 Turku
  */
 class LexerException
-  : public ParsingRelatedException
+  : public Lib::ParsingRelatedException
 {
  public:
   LexerException(std::string message,const Lexer&);
@@ -69,7 +68,7 @@ protected:
   /** Last read character */
   int  _lastCharacter;
   /** Character buffer, used to store currently read token */
-  Array<char> _charBuffer;
+  Lib::Array<char> _charBuffer;
   /** cursor to the current character */
   int _charCursor;
   /** the input stream */

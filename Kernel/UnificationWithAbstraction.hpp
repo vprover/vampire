@@ -32,7 +32,7 @@ namespace Kernel
 
 class UnificationConstraintStack
 {
-  Stack<UnificationConstraint> _cont;
+  Lib::Stack<UnificationConstraint> _cont;
 public:
   USE_ALLOCATOR(UnificationConstraintStack)
   UnificationConstraintStack() : _cont() {}
@@ -42,7 +42,7 @@ public:
   auto iter() const
   { return iterTraits(_cont.iter()); }
 
-  Recycled<Stack<Literal*>> literals(RobSubstitution& s);
+  Lib::Recycled<Lib::Stack<Literal*>> literals(RobSubstitution& s);
 
   // returns the maximum number of constraints of this stack. this is not equal to the actual number of constraints it will hold, as constraints 
   // might become trivial (i.e. of the form t != t) after applying the substitution, so they will be filtered out when calling literals(RobSubstitution&)
@@ -61,8 +61,8 @@ public:
   bool isEmpty() const
   { return _cont.isEmpty(); }
 
-  void add(UnificationConstraint c, Option<BacktrackData&> bd);
-  UnificationConstraint pop(Option<BacktrackData&> bd);
+  void add(UnificationConstraint c, Lib::Option<Lib::BacktrackData&> bd);
+  UnificationConstraint pop(Lib::Option<Lib::BacktrackData&> bd);
 };
 
 class AbstractionOracle final
@@ -73,8 +73,8 @@ public:
   AbstractionOracle(Shell::Options::UnificationWithAbstraction mode) : _mode(mode) {}
 
   struct EqualIf { 
-    Recycled<Stack<UnificationConstraint>> _unify; 
-    Recycled<Stack<UnificationConstraint>> _constr; 
+    Lib::Recycled<Lib::Stack<UnificationConstraint>> _unify; 
+    Lib::Recycled<Lib::Stack<UnificationConstraint>> _constr; 
 
     EqualIf() : _unify(), _constr() {}
 
@@ -110,7 +110,7 @@ public:
     { return out << "NeverEqual"; } 
   };
 
-  using AbstractionResult = Coproduct<NeverEqual, EqualIf>;
+  using AbstractionResult = Lib::Coproduct<NeverEqual, EqualIf>;
 
   /** main function that either returns nothing, which means that unification with abstraction will 
    * shall not be applied for the given terms, or an AbstractionResult, which tells wether the given 
@@ -123,7 +123,7 @@ public:
    *
    * For details check out the paper "Refining Unification with Absraction" from LPAR 2023.
    */
-  Option<AbstractionResult> tryAbstract(
+  Lib::Option<AbstractionResult> tryAbstract(
       AbstractingUnifier* au,
       TermSpec const& t1,
       TermSpec const& t2) const;
@@ -142,9 +142,9 @@ private:
 
 class AbstractingUnifier 
 {
-  Recycled<RobSubstitution> _subs;
-  Recycled<UnificationConstraintStack> _constr;
-  Option<BacktrackData&> _bd;
+  Lib::Recycled<RobSubstitution> _subs;
+  Lib::Recycled<UnificationConstraintStack> _constr;
+  Lib::Option<Lib::BacktrackData&> _bd;
   AbstractionOracle _uwa;
 
   friend class RobSubstitution;
@@ -167,26 +167,26 @@ public:
   bool fixedPointIteration();
 
   // TODO document
-  Option<Recycled<Stack<unsigned>>> unifiableSymbols(SymbolId f);
+  Lib::Option<Lib::Recycled<Lib::Stack<unsigned>>> unifiableSymbols(SymbolId f);
 
 
-  static Option<AbstractingUnifier> unify(TermList t1, unsigned bank1, TermList t2, unsigned bank2, AbstractionOracle uwa, bool fixedPointIteration)
+  static Lib::Option<AbstractingUnifier> unify(TermList t1, unsigned bank1, TermList t2, unsigned bank2, AbstractionOracle uwa, bool fixedPointIteration)
   {
     auto au = AbstractingUnifier::empty(uwa);
     if (!au.unify(t1, bank1, t2, bank2)) return {};
-    if (!fixedPointIteration || au.fixedPointIteration()) return some(std::move(au));
+    if (!fixedPointIteration || au.fixedPointIteration()) return Lib::some(std::move(au));
     else return {};
   }
 
   UnificationConstraintStack& constr() { return *_constr; }
-  Recycled<Stack<Literal*>> computeConstraintLiterals() { return _constr->literals(*_subs); }
+  Lib::Recycled<Lib::Stack<Literal*>> computeConstraintLiterals() { return _constr->literals(*_subs); }
   unsigned maxNumberOfConstraints() { return _constr->maxNumberOfConstraints(); }
 
   RobSubstitution      & subs()       { return *_subs; }
   RobSubstitution const& subs() const { return *_subs; }
-  Option<BacktrackData&> bd() { return someIf(_subs->bdIsRecording(), [&]() -> decltype(auto) { return _subs->bdGet(); }); }
-  BacktrackData& bdGet() { return _subs->bdGet(); }
-  void bdRecord(BacktrackData& bd) { _subs->bdRecord(bd); }
+  Lib::Option<Lib::BacktrackData&> bd() { return Lib::someIf(_subs->bdIsRecording(), [&]() -> decltype(auto) { return _subs->bdGet(); }); }
+  Lib::BacktrackData& bdGet() { return _subs->bdGet(); }
+  void bdRecord(Lib::BacktrackData& bd) { _subs->bdRecord(bd); }
   void bdDone() { _subs->bdDone(); }
   bool usesUwa() const { return _uwa._mode != Options::UnificationWithAbstraction::OFF; }
 

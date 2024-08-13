@@ -87,7 +87,6 @@ square's last digit:
 
 namespace Debug {
 
-using namespace Lib;
 
 class RSObject
 {
@@ -127,13 +126,13 @@ public:
   void print(std::ostream& out);
   void inc(size_t index) { _counters[index]++; }
 private:
-  ZIArray<size_t> _counters;
+  Lib::ZIArray<size_t> _counters;
 };
 
 class RSMultiStatistic
 : public RSObject
 {
-  typedef List<int> ValList;
+  typedef Lib::List<int> ValList;
 public:
   RSMultiStatistic(const char* name) : RSObject(name) {}
   ~RSMultiStatistic();
@@ -141,7 +140,7 @@ public:
   void print(std::ostream& out);
   void addRecord(size_t index, int value) { ValList::push(value, _values[index]); }
 private:
-  ZIArray<ValList* > _values;
+  Lib::ZIArray<ValList* > _values;
 };
 
 class RuntimeStatistics
@@ -151,8 +150,9 @@ public:
 
   struct RSObjComparator
   {
-    static Comparison compare(const char* name, RSObject* o2)
+    static Lib::Comparison compare(const char* name, RSObject* o2)
     {
+      using namespace Lib;
       int res=strcmp(name, o2->name());
       return (res>0) ? GREATER : ((res==0) ? EQUAL : LESS);
     }
@@ -175,7 +175,7 @@ private:
   RuntimeStatistics();
   ~RuntimeStatistics();
 
-  typedef SkipList<RSObject*,RSObjComparator> ObjSkipList;
+  typedef Lib::SkipList<RSObject*,RSObjComparator> ObjSkipList;
   ObjSkipList _objs;
 };
 

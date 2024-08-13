@@ -32,6 +32,7 @@ namespace Shell
 {
 
 using namespace std;
+using namespace Lib;
 
 /**
  * Base term transforming class

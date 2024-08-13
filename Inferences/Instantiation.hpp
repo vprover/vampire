@@ -42,15 +42,15 @@ public:
   void registerClause(Clause* cl);
 
 private:
-  VirtualIterator<Term*> getCandidateTerms(Clause* cl, unsigned var,TermList sort);
+  Lib::VirtualIterator<Term*> getCandidateTerms(Clause* cl, unsigned var,TermList sort);
   class AllSubstitutionsIterator;
   struct ResultFn;
 
-  void tryMakeLiteralFalse(Literal*, Stack<Substitution>& subs);
+  void tryMakeLiteralFalse(Literal*, Lib::Stack<Substitution>& subs);
   Term* tryGetDifferentValue(Term* t); 
 
-  DHMap<TermList,Lib::Set<Term*>*> sorted_candidates_check;
-  DHMap<TermList,Lib::Stack<Term*>*> sorted_candidates;
+  Lib::DHMap<TermList,Lib::Set<Term*>*> sorted_candidates_check;
+  Lib::DHMap<TermList,Lib::Stack<Term*>*> sorted_candidates;
 
 };
 

@@ -30,7 +30,6 @@ namespace Indexing
 {
 
 using namespace Kernel;
-using namespace Lib;
 
 
 /**
@@ -52,11 +51,11 @@ public:
     }
   }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) final override;
+  Lib::VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) final override;
   // TODO use TypedTermList here too
   bool generalizationExists(TermList t) final override;
   // TODO: get rid of NOT_IMPLEMENTED
-  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t, Options::UnificationWithAbstraction, bool fixedPointIteration) override { NOT_IMPLEMENTED; }
+  Lib::VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t, Options::UnificationWithAbstraction, bool fixedPointIteration) override { NOT_IMPLEMENTED; }
 
   virtual void output(std::ostream& out) const final override { out << _ct; }
 

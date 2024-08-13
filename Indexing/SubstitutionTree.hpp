@@ -60,7 +60,6 @@
 static constexpr int QUERY_BANK=0;
 static constexpr int RESULT_BANK=1;
 static constexpr int NORM_RESULT_BANK=3;
-using namespace Lib;
 using namespace Kernel;
 
 #define UARR_INTERMEDIATE_NODE_MAX_SIZE 4
@@ -208,21 +207,22 @@ public:
   friend std::ostream& operator<<(std::ostream& out, SubstitutionTree<T> const& self);
   template<class T>
   friend std::ostream& operator<<(std::ostream& out, OutputMultiline<SubstitutionTree<T>> const& self);
-  typedef VirtualIterator<LeafData*> LDIterator;
+  typedef Lib::VirtualIterator<LeafData*> LDIterator;
 
-  template<class I> using QueryResultIter = VirtualIterator<QueryRes<LeafData, typename I::Unifier>>;
+  template<class I> using QueryResultIter = Lib::VirtualIterator<QueryRes<LeafData, typename I::Unifier>>;
   template<class I, class TermOrLit, class... Args>
   auto iterator(TermOrLit query, bool retrieveSubstitutions, bool reversed, Args... args)
-  { return isEmpty() ? VirtualIterator<ELEMENT_TYPE(I)>::getEmpty()
-                     : pvi(iterPointer(Recycled<I>(this, _root, query, retrieveSubstitutions, reversed, std::move(args)...)));
+  { return isEmpty() ? Lib::VirtualIterator<ELEMENT_TYPE(I)>::getEmpty()
+                     : pvi(iterPointer(Lib::Recycled<I>(this, _root, query, retrieveSubstitutions, reversed, std::move(args)...)));
   }
 
   class LDComparator
   {
   public:
     template<class LD>
-    static Comparison compare(const LD& ld1, const LD& ld2)
+    static Lib::Comparison compare(const LD& ld1, const LD& ld2)
     {
+      using namespace Lib;
       return ld1 < ld2 ? Comparison::LESS 
            : ld1 > ld2 ? Comparison::GREATER
            : Comparison::EQUAL;
@@ -300,7 +300,7 @@ public:
   };
 
 
-    typedef VirtualIterator<Node**> NodeIterator;
+    typedef Lib::VirtualIterator<Node**> NodeIterator;
 
     class IntermediateNode
           : public Node
@@ -424,11 +424,11 @@ public:
       bool isEmpty() const { return !_size; }
       int size() const { return _size; }
       NodeIterator allChildren()
-      { return pvi( arrayIter(_nodes,_size).map([](Node *& n) { return &n; }) ); }
+      { return pvi( Lib::arrayIter(_nodes,_size).map([](Node *& n) { return &n; }) ); }
 
       NodeIterator variableChildren()
       {
-        return pvi( arrayIter(_nodes, _size)
+        return pvi( Lib::arrayIter(_nodes, _size)
               .filter([](auto& n) { return n->term().isVar(); })
               .map([](Node *& n) { return &n; }));
       }
@@ -503,18 +503,19 @@ public:
       class NodePtrComparator
       {
       public:
-        inline static Comparison compare(TermList::Top& l, Node* r)
+        inline static Lib::Comparison compare(TermList::Top& l, Node* r)
         { 
+          using namespace Lib;
           if(l.var()) {
-            return r->term().isVar() ? Int::compare(*l.var(), r->term().var())
+            return r->term().isVar() ? Lib::Int::compare(*l.var(), r->term().var())
                                      : LESS;
           } else {
             return r->term().isVar() ? GREATER
-                                     : Int::compare(l.functor()->functor, r->term().term()->functor());
+                                     : Lib::Int::compare(l.functor()->functor, r->term().term()->functor());
           }
         }
       };
-      typedef SkipList<Node*,NodePtrComparator> NodeSkipList;
+      typedef Lib::SkipList<Node*,NodePtrComparator> NodeSkipList;
       NodeSkipList _nodes;
     };
 
@@ -529,8 +530,8 @@ public:
       Binding(int v,TermList t) : var(v), term(t) {}
     }; // class SubstitutionTree::Binding
 
-    typedef DHMap<unsigned,TermList,IdentityHash,DefaultHash> BindingMap;
-    typedef Stack<unsigned> VarStack;
+    typedef Lib::DHMap<unsigned,TermList,Lib::IdentityHash,Lib::DefaultHash> BindingMap;
+    typedef Lib::Stack<unsigned> VarStack;
 
     Leaf* findLeaf(BindingMap& svBindings)
     { return _root ? findLeaf(_root, svBindings) : nullptr; }
@@ -564,7 +565,7 @@ public:
     void handle(LeafData ld, bool doInsert)
     {
       auto norm = Renaming::normalize(ld.key());
-      Recycled<BindingMap> bindings;
+      Lib::Recycled<BindingMap> bindings;
       createBindings(norm, /* reversed */ false,
           [&](int var, auto term) { 
             _nextVar = std::max(_nextVar, var + 1);
@@ -589,8 +590,8 @@ public:
     : public ResultSubstitution 
     {
     public:
-      Recycled<Renaming> _query;
-      Recycled<Renaming> _result;
+      Lib::Recycled<Renaming> _query;
+      Lib::Recycled<Renaming> _result;
       RenamingSubstitution(): _query(), _result() {}
       virtual ~RenamingSubstitution() override {}
       virtual TermList applyToQuery(TermList t) final override { return _query->apply(t); }
@@ -619,7 +620,7 @@ public:
     }
 
     template<class Query>
-    VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getVariants(Query query, bool retrieveSubstitutions)
+    Lib::VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getVariants(Query query, bool retrieveSubstitutions)
     {
       auto renaming = retrieveSubstitutions ? std::make_unique<RenamingSubstitution>() : std::unique_ptr<RenamingSubstitution>(nullptr);
       ResultSubstitutionSP resultSubst = retrieveSubstitutions ? ResultSubstitutionSP(&*renaming) : ResultSubstitutionSP();
@@ -632,14 +633,14 @@ public:
         normQuery = Renaming::normalize(query);
       }
 
-      Recycled<BindingMap> svBindings;
+      Lib::Recycled<BindingMap> svBindings;
       createBindings(normQuery, /* reversed */ false,
           [&](auto v, auto t) { {
             svBindings->insert(v, t);
           } });
       Leaf* leaf = findLeaf(*svBindings);
       if(leaf==0) {
-        return VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>>::getEmpty();
+        return Lib::VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>>::getEmpty();
       } else {
         return pvi(iterTraits(leaf->allChildren())
           .map([retrieveSubstitutions, renaming = std::move(renaming), resultSubst](LeafData* ld) 
@@ -668,7 +669,7 @@ public:
     private:
       void skipToNextLeaf();
       Node* _curr;
-      Stack<NodeIterator> _nodeIterators;
+      Lib::Stack<NodeIterator> _nodeIterators;
     };
 
 
@@ -755,7 +756,7 @@ public:
       class Substitution;
 
       VarStack _boundVars;
-      DArray<TermList> _specVars;
+      Lib::DArray<TermList> _specVars;
       /**
        * Inheritors must assign the maximal possible number of an ordinary
        * variable that can be bound during the retrievall process.
@@ -766,7 +767,7 @@ public:
        * Inheritors must ensure that the size of this map will
        * be at least @b _maxVar+1
        */
-      ArrayMap<TermList> _bindings;
+      Lib::ArrayMap<TermList> _bindings;
     };
 
     /**
@@ -883,9 +884,9 @@ public:
 
       Node* _root;
 
-      Stack<void*> _alternatives;
-      Stack<unsigned> _specVarNumbers;
-      Stack<NodeAlgorithm> _nodeTypes;
+      Lib::Stack<void*> _alternatives;
+      Lib::Stack<unsigned> _specVarNumbers;
+      Lib::Stack<NodeAlgorithm> _nodeTypes;
       InstanceCntr _iterCntr;
     public:
       bool keepRecycled() const 
@@ -1015,8 +1016,8 @@ public:
 
       TermSpec deref(TermList var);
 
-      typedef DHMap<TermList, TermSpec> BindingMap;
-      typedef Stack<TermList> TermStack;
+      typedef Lib::DHMap<TermList, TermSpec> BindingMap;
+      typedef Lib::Stack<TermList> TermStack;
 
       /** Stacks of bindings made on each backtrack level. Backtrack
        * levels are separated by empty terms. */
@@ -1029,7 +1030,7 @@ public:
        *
        * The map is reset whenever we enter a new leaf
        */
-      DHMap<TermList,TermList> _derefBindings;
+      Lib::DHMap<TermList,TermList> _derefBindings;
 
       struct DerefTask
       {
@@ -1128,9 +1129,9 @@ public:
       Renaming _resultDenormalizer;
       Node* _root;
 
-      Stack<void*> _alternatives;
-      Stack<unsigned> _specVarNumbers;
-      Stack<NodeAlgorithm> _nodeTypes;
+      Lib::Stack<void*> _alternatives;
+      Lib::Stack<unsigned> _specVarNumbers;
+      Lib::Stack<NodeAlgorithm> _nodeTypes;
       InstanceCntr _iterCntr;
 
     public:
@@ -1292,7 +1293,7 @@ public:
           Node* n=*_nodeIterators.top().next();
           DEBUG_QUERY(1, "trying S", _svStack.top(), " -> ", n->term())
 
-          _bdStack.push(BacktrackData());
+          _bdStack.push(Lib::BacktrackData());
 
           if (runRecording([&]() { return _algo.associate(_svStack.top(), n->term());})) {
             prepareChildren(n, /* backtrackable */ true);
@@ -1336,11 +1337,11 @@ public:
       RetrievalAlgorithm _algo;
       VarStack _svStack;
       bool _retrieveSubstitution;
-      Option<LDIterator> _leafData;
-      Stack<NodeIterator> _nodeIterators;
-      Stack<BacktrackData> _bdStack;
+      Lib::Option<LDIterator> _leafData;
+      Lib::Stack<NodeIterator> _nodeIterators;
+      Lib::Stack<Lib::BacktrackData> _bdStack;
       bool _normalizationRecording;
-      BacktrackData _normalizationBacktrackData;
+      Lib::BacktrackData _normalizationBacktrackData;
       InstanceCntr _iterCntr;
 
     public:
@@ -1411,7 +1412,7 @@ public:
         Unifier unifier() { return ResultSubstitution::fromSubstitution(&_subs, QUERY_BANK, RESULT_BANK); }
 
         /** same as in @Backtrackable */
-        void bdRecord(BacktrackData& bd) { _subs.bdRecord(bd); }
+        void bdRecord(Lib::BacktrackData& bd) { _subs.bdRecord(bd); }
 
         /** same as in @Backtrackable */
         void bdDone() { _subs.bdDone(); }
@@ -1448,7 +1449,7 @@ public:
             auto** match = n->childByTop(top, /* canCreate */ false);
             if(match) {
               return pvi(concatIters(
-                           getSingletonIterator(match),
+                           Lib::getSingletonIterator(match),
                            n->variableChildren()));
             } else {
               return n->variableChildren();
@@ -1485,7 +1486,7 @@ public:
         void bindQuerySpecialVar(unsigned var, TermList term)
         { _unif.subs().bindSpecialVar(var, term, QUERY_BANK); }
 
-        void bdRecord(BacktrackData& bd)
+        void bdRecord(Lib::BacktrackData& bd)
         { _unif.subs().bdRecord(bd); }
 
         void bdDone()
@@ -1510,7 +1511,7 @@ public:
               auto syms = unif.unifiableSymbols(*top.functor());
               if (syms) {
                 return pvi(concatIters(
-                      arrayIter(std::move(*syms))
+                      Lib::arrayIter(std::move(*syms))
                         .map   ([=](auto f) { return n->childByTop(top, /* canCreate */ false); })
                         .filter([ ](auto n) { return n != nullptr; }),
                       n->variableChildren()

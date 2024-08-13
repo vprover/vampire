@@ -37,7 +37,7 @@ namespace Kernel {
 
 using LitSimplResult = Inferences::SimplifyingGeneratingLiteralSimplification::Result;
 
-using NormalizationResult = Coproduct<PolyNf 
+using NormalizationResult = Lib::Coproduct<PolyNf 
         , Polynom< IntTraits>
         , Polynom< RatTraits>
         , Polynom<RealTraits>

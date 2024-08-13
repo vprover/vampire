@@ -21,23 +21,23 @@ namespace FMB {
 
   class CliqueFinder {
   public:
-    static unsigned findMaxCliqueSize(DHMap<unsigned,DHSet<unsigned>*>* Ngraph)
+    static unsigned findMaxCliqueSize(Lib::DHMap<unsigned,Lib::DHSet<unsigned>*>* Ngraph)
     {
       //std::cout << "findMaxCliqueSize with " << Ngraph->size() << std::endl;
 
       // at least stores the number of nodes with at least index neighbours
-      DArray<Stack<unsigned>> atleast;
+      Lib::DArray<Lib::Stack<unsigned>> atleast;
       atleast.ensure(Ngraph->size()+1); // the +1 is to protect against a self-loop sneaking in
 
-      DHMap<unsigned,DHSet<unsigned>*>::Iterator miter(*Ngraph);
+      Lib::DHMap<unsigned,Lib::DHSet<unsigned>*>::Iterator miter(*Ngraph);
       while(miter.hasNext()){
         unsigned c;
-        DHSet<unsigned>* nbs;
+        Lib::DHSet<unsigned>* nbs;
         miter.next(c,nbs);
         unsigned size = nbs->size();
         //std::cout << ">> " << c << ": " << size << std::endl;
 
-        //DHSet<unsigned>::Iterator dit(*nbs);
+        //Lib::DHSet<unsigned>::Iterator dit(*nbs);
         //while(dit.hasNext()){ std::cout << dit.next() << std::endl; }
 
         for(;size>0;size--){
@@ -61,13 +61,13 @@ namespace FMB {
         else if (atleast[i].size() > i+1){
           //std::cout << "CASE 2" << std::endl;
           unsigned left = atleast[i].size();
-          Stack<unsigned>::Iterator niter(atleast[i]);
+          Lib::Stack<unsigned>::Iterator niter(atleast[i]);
           while(niter.hasNext() && left >= i+1){
             unsigned c = niter.next();
             //std::cout << ">> " << c << std::endl;
             auto ns = Ngraph->get(c);
             if(ns->size()==i){
-              Stack<unsigned> clique;
+              Lib::Stack<unsigned> clique;
               clique.loadFromIterator(ns->iterator());
               clique.push(c);
               if(checkClique(Ngraph,clique)){
@@ -89,7 +89,7 @@ namespace FMB {
   private:
 
     // check if a clique is a clique
-    static bool checkClique(DHMap<unsigned,DHSet<unsigned>*>* Ngraph, Stack<unsigned>& clique)
+    static bool checkClique(Lib::DHMap<unsigned,Lib::DHSet<unsigned>*>* Ngraph, Lib::Stack<unsigned>& clique)
     {
       //std::cout << "CHECK "; for(unsigned j=0;j<clique.size();j++){ std::cout << clique[j] << " ";}; std::cout << std::endl;
 
@@ -97,7 +97,7 @@ namespace FMB {
         unsigned c1 = clique[i];
         auto ns = Ngraph->get(c1);
         //std::cout << c1 << " neighbours: "; 
-        //DHSet<unsigned>::Iterator pit(*ns);while(pit.hasNext()){std::cout << pit.next() << " ";};std::cout<<std::endl;
+        //Lib::DHSet<unsigned>::Iterator pit(*ns);while(pit.hasNext()){std::cout << pit.next() << " ";};std::cout<<std::endl;
         for(unsigned j=i+1;j<clique.size();j++){
           unsigned c2 = clique[j];
           //std::cout << "checking " << c2 << " is a neighbour of " << c1 << std::endl;

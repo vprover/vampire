@@ -32,7 +32,6 @@
 
 namespace SAT {
 
-using namespace Lib;
 
 class MinimizingSolver : public SATSolver {
 public:
@@ -88,7 +87,7 @@ private:
   void updateAssignment();
 
   unsigned _varCnt;
-  ScopedPtr<SATSolver> _inner;
+  Lib::ScopedPtr<SATSolver> _inner;
 
   /**
    * If true, _asgn assignment corresponds to the assignment in
@@ -111,7 +110,7 @@ private:
    * We define a literal "corresponding to variable var in _asgn"
    * as SATLiteral(var,_asgn[var]). Used below.
    */
-  DArray<bool> _asgn;
+  Lib::DArray<bool> _asgn;
 
   /**
    * Array of clauses made satisfied by giving up the don't-care value
@@ -119,9 +118,9 @@ private:
    *
    * The length of the array is _varCnt.
    */
-  DArray<SATClauseStack> _watcher;
+  Lib::DArray<SATClauseStack> _watcher;
 
-  typedef DArray<unsigned> CntArray;
+  typedef Lib::DArray<unsigned> CntArray;
   
   /**
    * Number of unsatisfied clauses for each literal
@@ -137,11 +136,11 @@ private:
   {
     CntComparator(CntArray& ctr) : _ctr(ctr) {}
 
-    Comparison compare(unsigned v1, unsigned v2)
+    Lib::Comparison compare(unsigned v1, unsigned v2)
     {
       // DynamicHeap is minimal and we want maximum, 
       // so we need to swap the arguments
-      return Int::compare(_ctr[v2], _ctr[v1]);
+      return Lib::Int::compare(_ctr[v2], _ctr[v1]);
     }
     CntArray& _ctr;
   };
@@ -151,7 +150,7 @@ private:
    * 
    * Heap is empty when _assignmentValid.
    */  
-  DynamicHeap<unsigned, CntComparator, ArrayMap<size_t> > _heap;
+  Lib::DynamicHeap<unsigned, CntComparator, Lib::ArrayMap<size_t> > _heap;
   
   /**
    * Not yet satisfied clauses indexed by each variable
@@ -162,14 +161,14 @@ private:
    *
    * The length of the array is _varCnt.
    */
-  DArray<SATClauseStack> _clIdx;
+  Lib::DArray<SATClauseStack> _clIdx;
 
   /**
    * A set of satisfied clauses. To correctly maintain
    * _unsClCnt, when there is more than one way to make clause
    * satisfied.
    */  
-  DHSet<SATClause*> _satisfiedClauses;
+  Lib::DHSet<SATClause*> _satisfiedClauses;
   
 };
 

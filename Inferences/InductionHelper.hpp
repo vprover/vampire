@@ -35,10 +35,10 @@ public:
   InductionHelper(LiteralIndex<LiteralClause>* comparisonIndex, TermIndex* inductionTermIndex)
       : _comparisonIndex(comparisonIndex), _inductionTermIndex(inductionTermIndex) {}
 
-  VirtualIterator<TermLiteralClause> getLess(Term* t);
-  VirtualIterator<TermLiteralClause> getGreater(Term* t);
+  Lib::VirtualIterator<TermLiteralClause> getLess(Term* t);
+  Lib::VirtualIterator<TermLiteralClause> getGreater(Term* t);
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>> getTQRsForInductionTerm(Term* inductionTerm);
+  Lib::VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>> getTQRsForInductionTerm(Term* inductionTerm);
 
   static bool isIntegerComparison(Clause* c);
   static bool isIntInductionOn();
@@ -65,7 +65,7 @@ public:
   static Term* getOtherTermFromComparison(Literal* l, Term* t);
 
 private:
-  VirtualIterator<TermLiteralClause> getComparisonMatch(bool polarity, bool termIsLeft, Term* t);
+  Lib::VirtualIterator<TermLiteralClause> getComparisonMatch(bool polarity, bool termIsLeft, Term* t);
 
   // The following pointers can be null if splitting or integer induction is off.
   LiteralIndex<LiteralClause>* _comparisonIndex;  // not owned

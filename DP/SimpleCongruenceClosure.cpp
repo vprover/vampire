@@ -32,6 +32,7 @@ namespace DP
 {
 
 using namespace std;
+using namespace Lib;
 
 const unsigned SimpleCongruenceClosure::NO_SIG_SYMBOL = 0xFFFFFFFF;
 

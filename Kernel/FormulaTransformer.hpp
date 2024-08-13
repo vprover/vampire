@@ -119,7 +119,7 @@ protected:
   TermList getVarSort(unsigned var) const;
 
 private:
-  Recycled<DHMap<unsigned,TermList>> _varSorts;
+  Lib::Recycled<Lib::DHMap<unsigned,TermList>> _varSorts;
   int _polarity;
 };
 

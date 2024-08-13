@@ -30,7 +30,6 @@ namespace Shell {
 
 namespace Kernel {
 
-using namespace Lib;
 using namespace Inferences;
 using namespace Shell;
 
@@ -65,7 +64,7 @@ public:
    * A struct that is thrown as an exception when a refutation is found
    * during the main loop.
    */
-  struct RefutationFoundException : public ThrowableBase
+  struct RefutationFoundException : public Lib::ThrowableBase
   {
     RefutationFoundException(Clause* ref) : refutation(ref)
     {
@@ -79,7 +78,7 @@ public:
    * A struct that is thrown as an exception when a refutation is found
    * during the main loop.
    */
-  struct MainLoopFinishedException : public ThrowableBase
+  struct MainLoopFinishedException : public Lib::ThrowableBase
   {
     MainLoopFinishedException(const MainLoopResult& res) : result(res)
     {

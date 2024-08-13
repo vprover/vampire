@@ -39,9 +39,9 @@ struct ExtensionalityClause
   TermList sort;
 };
 
-typedef List<ExtensionalityClause> ExtensionalityClauseList;
-typedef VirtualIterator<ExtensionalityClause> ExtensionalityClauseIterator;
-typedef DHMap<TermList, ExtensionalityClauseList*> ClausesBySort;
+typedef Lib::List<ExtensionalityClause> ExtensionalityClauseList;
+typedef Lib::VirtualIterator<ExtensionalityClause> ExtensionalityClauseIterator;
+typedef Lib::DHMap<TermList, ExtensionalityClauseList*> ClausesBySort;
 /**
  * Container for tracking extensionality-like clauses, i.e. clauses with exactly
  * one positive equality between variables.

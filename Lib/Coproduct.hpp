@@ -279,7 +279,7 @@ namespace CoproductImpl {
 #else //!VDEBUG
                                 size;
 #endif // VDEBUG
-    static constexpr unsigned bitMask = ::bitMask(nTags);
+    static constexpr unsigned bitMask = Lib::bitMask(nTags);
 
     static_assert(nTags == 0 || nTags - 1 == ((nTags - 1) & bitMask), "bug in function neededBits");
 

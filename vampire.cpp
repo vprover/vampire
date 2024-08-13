@@ -62,6 +62,7 @@
 #include "FMB/ModelCheck.hpp"
 
 using namespace std;
+using namespace Lib;
 
 /**
  * Return value is non-zero unless we were successful.

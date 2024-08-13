@@ -38,6 +38,8 @@
 namespace Kernel
 {
 
+using namespace Lib;
+
 Shell::Options::UnificationWithAbstraction AbstractionOracle::create()
 {
   if (env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF) {

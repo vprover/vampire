@@ -28,7 +28,7 @@ namespace Kernel {
  * Implements an iterator over subformulas of a formula or formula list.
  */
 class SubformulaIterator
-: public IteratorCore<Formula*>
+: public Lib::IteratorCore<Formula*>
 {
 public:
   SubformulaIterator (Formula*);

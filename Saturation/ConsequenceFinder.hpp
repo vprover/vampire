@@ -57,24 +57,24 @@ private:
 
   SaturationAlgorithm* _sa;
 
-  Stack<unsigned> _redundantsToHandle;
+  Lib::Stack<unsigned> _redundantsToHandle;
 
-  typedef SkipList<Clause*,Int> ClauseSL;
+  typedef Lib::SkipList<Clause*,Lib::Int> ClauseSL;
 
   /** Index of clauses that contain specific consequence-finding
    * name predicate */
-  ZIArray<ClauseSL*> _index;
+  Lib::ZIArray<ClauseSL*> _index;
   /** Keeps information on which claims have already been found
    * redundant (implied by others) */
-  ZIArray<bool> _redundant;
+  Lib::ZIArray<bool> _redundant;
 
   TautologyDeletionISE _td;
   DuplicateLiteralRemovalISE _dlr;
 
   /** SubscriptionData for the @b onClauseInserted method */
-  SubscriptionData _sdInsertion;
+  Lib::SubscriptionData _sdInsertion;
   /** SubscriptionData for the @b onClauseRemoved method */
-  SubscriptionData _sdRemoval;
+  Lib::SubscriptionData _sdRemoval;
 };
 
 }

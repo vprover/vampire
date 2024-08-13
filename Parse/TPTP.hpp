@@ -33,7 +33,6 @@
 
 //#define DEBUG_SHOW_STATE
 
-using namespace Lib;
 using namespace Kernel;
 
 namespace Kernel {
@@ -302,7 +301,7 @@ public:
    * Implements lexer and parser exceptions.
    */
   class ParseErrorException
-    : public ParsingRelatedException
+    : public Lib::ParsingRelatedException
   {
   public:
     ParseErrorException(std::string message,unsigned ln) : _message(message), _ln(ln) {}
@@ -352,7 +351,7 @@ public:
   static void assignAxiomName(const Unit* unit, std::string& name);
   unsigned lineNumber(){ return _lineNumber; }
 
-  static Map<int,std::string>* findQuestionVars(unsigned questionNumber) {
+  static Lib::Map<int,std::string>* findQuestionVars(unsigned questionNumber) {
     auto res = _questionVariableNames.findPtr(questionNumber);
     return res ? *res : nullptr;
   }
@@ -529,30 +528,30 @@ private:
    * This is to support the feature formula_selection of the include
    * directive of the TPTP format.
  */
-  Set<std::string>* _allowedNames;
+  Lib::Set<std::string>* _allowedNames;
   /** stacks of allowed names when include is used */
-  Stack<Set<std::string>*> _allowedNamesStack;
+  Lib::Stack<Lib::Set<std::string>*> _allowedNamesStack;
   /** set of files whose inclusion should be ignored */
-  Set<std::string> _forbiddenIncludes;
+  Lib::Set<std::string> _forbiddenIncludes;
   /** the input stream */
   std::istream* _in;
   /** in the case include() is used, previous streams will be saved here */
-  Stack<std::istream*> _inputs;
+  Lib::Stack<std::istream*> _inputs;
   /** the current include directory */
   std::string _includeDirectory;
   /** in the case include() is used, previous sequence of directories will be
    * saved here, this is required since TPTP requires the directory to be
    * relative to the "current directory, that is, the directory used by the last include()
    */
-  Stack<std::string> _includeDirectories;
+  Lib::Stack<std::string> _includeDirectories;
   /** input characters */
-  Array<char> _chars;
+  Lib::Array<char> _chars;
   /** position in the input stream of the 0th character in _chars[] */
   int _gpos;
   /** the position beyond the last read characters */
   int _cend;
   /** tokens currently at work */
-  Array<Token> _tokens;
+  Lib::Array<Token> _tokens;
   /** the position beyond the last processed token */
   int _tend;
   /** line number */
@@ -560,7 +559,7 @@ private:
   /** The list of units read (with additions directed to the end) */
   UnitList::FIFO _units;
   /** stack of unprocessed states */
-  Stack<State> _states;
+  Lib::Stack<State> _states;
   /** input type of the last read unit */ // it must be int since -1 can be used as a value
   UnitInputType _lastInputType;
   /** true if the last read unit is a question */
@@ -573,41 +572,41 @@ private:
   /** */
   bool _containsPolymorphism;
   /** various strings saved during parsing */
-  Stack<std::string> _strings;
+  Lib::Stack<std::string> _strings;
   /** various connectives saved during parsing */ // they must be int, since non-existing value -1 can be used
-  Stack<int> _connectives;
+  Lib::Stack<int> _connectives;
   /** various boolean values saved during parsing */
-  Stack<bool> _bools;
+  Lib::Stack<bool> _bools;
   /** various integer values saved during parsing */
-  Stack<int> _ints;
+  Lib::Stack<int> _ints;
   /** variable lists for building formulas */
-  Stack<VList*> _varLists;
+  Lib::Stack<VList*> _varLists;
   /** sort lists for building formulas */
-  Stack<SList*> _sortLists;
+  Lib::Stack<SList*> _sortLists;
   /** variable lists for binding variables */
-  Stack<VList*> _bindLists;
+  Lib::Stack<VList*> _bindLists;
   /** various tokens to consume */
-  Stack<Tag> _tags;
+  Lib::Stack<Tag> _tags;
   /** various formulas */
-  Stack<Formula*> _formulas;
+  Lib::Stack<Formula*> _formulas;
   /** various literals */
-  Stack<Literal*> _literals;
+  Lib::Stack<Literal*> _literals;
   /** term lists */
-  Stack<TermList> _termLists;
+  Lib::Stack<TermList> _termLists;
   /** name table for variable names */
-  IntNameTable _vars;
+  Lib::IntNameTable _vars;
   /** When parsing a question, make note of the inverse mapping to _vars, i.e. from the ints back to the vstrings, for better user reporting */
-  Map<int,std::string> _curQuestionVarNames;
+  Lib::Map<int,std::string> _curQuestionVarNames;
   /** parsed types */
-  Stack<Type*> _types;
+  Lib::Stack<Type*> _types;
   /** various type tags saved during parsing */
-  Stack<TypeTag> _typeTags;
+  Lib::Stack<TypeTag> _typeTags;
   /**  */
-  Stack<TheoryFunction> _theoryFunctions;
+  Lib::Stack<TheoryFunction> _theoryFunctions;
   /** bindings of variables to sorts */
-  Map<unsigned,SList*> _variableSorts;
+  Lib::Map<unsigned,SList*> _variableSorts;
   /** overflown arithmetical constants for which uninterpreted constants are introduced */
-  Set<std::string> _overflow;
+  Lib::Set<std::string> _overflow;
   /** current color, if the input contains colors */
   Color _currentColor;
   /** a robsubstitution object to be used temporarily that is kept around to safe memory allocation time  */
@@ -625,11 +624,11 @@ private:
   typedef std::pair<LetSymbolName, LetSymbolReference> LetSymbol;
 
   /** a scope of function definitions */
-  typedef Stack<LetSymbol> LetSymbols;
+  typedef Lib::Stack<LetSymbol> LetSymbols;
 
   /** a stack of scopes */
-  Stack<LetSymbols> _letSymbols;
-  Stack<LetSymbols> _letTypedSymbols;
+  Lib::Stack<LetSymbols> _letSymbols;
+  Lib::Stack<LetSymbols> _letTypedSymbols;
 
   /** Record wheter a formula or term has been pushed more recently */
   LastPushed _lastPushed;
@@ -638,8 +637,8 @@ private:
   bool findLetSymbol(LetSymbolName symbolName, LetSymbolReference& symbolReference);
   bool findLetSymbol(LetSymbolName symbolName, LetSymbols scope, LetSymbolReference& symbolReference);
 
-  typedef Stack<LetSymbolReference> LetDefinitions;
-  Stack<LetDefinitions> _letDefinitions;
+  typedef Lib::Stack<LetSymbolReference> LetDefinitions;
+  Lib::Stack<LetDefinitions> _letDefinitions;
 
   /** model definition formula */
   bool _modelDefinition;
@@ -818,10 +817,10 @@ private:
 
 public:
   // make the tptp routines for dealing with overflown constants available to other parsers
-  static unsigned addIntegerConstant(const std::string&, Set<std::string>& overflow, bool defaultSort);
-  static unsigned addRationalConstant(const std::string&, Set<std::string>& overflow, bool defaultSort);
-  static unsigned addRealConstant(const std::string&, Set<std::string>& overflow, bool defaultSort);
-  static unsigned addUninterpretedConstant(const std::string& name, Set<std::string>& overflow, bool& added);
+  static unsigned addIntegerConstant(const std::string&, Lib::Set<std::string>& overflow, bool defaultSort);
+  static unsigned addRationalConstant(const std::string&, Lib::Set<std::string>& overflow, bool defaultSort);
+  static unsigned addRealConstant(const std::string&, Lib::Set<std::string>& overflow, bool defaultSort);
+  static unsigned addUninterpretedConstant(const std::string& name, Lib::Set<std::string>& overflow, bool& added);
 
   // also here, simply made public static to share the code with another use site
   static Unit* processClaimFormula(Unit* unit, Formula* f, const std::string& nm);
@@ -842,12 +841,12 @@ public:
   };
   struct InferenceSourceRecord : SourceRecord{
     const std::string name;
-    Stack<std::string> premises;
+    Lib::Stack<std::string> premises;
     bool isFile(){ return false; }
     InferenceSourceRecord(std::string n) : name(n) {}
   };
 
-  void setUnitSourceMap(DHMap<Unit*,SourceRecord*>* m){
+  void setUnitSourceMap(Lib::DHMap<Unit*,SourceRecord*>* m){
     _unitSources = m;
   }
   SourceRecord* getSource();
@@ -855,11 +854,11 @@ public:
   void setFilterReserved(){ _filterReserved=true; }
 
 private:
-  DHMap<Unit*,SourceRecord*>* _unitSources;
+  Lib::DHMap<Unit*,SourceRecord*>* _unitSources;
 
   /** This field stores names of input units if the
    * output_axiom_names option is enabled */
-  static DHMap<unsigned, std::string> _axiomNames;
+  static Lib::DHMap<unsigned, std::string> _axiomNames;
 
   /**
    * During question parsing, we store the mapping from int variables
@@ -870,11 +869,11 @@ private:
    *
    * (Can there be more than one question? Yes, e.g., in the interactive mode.)
    */
-  static DHMap<unsigned, Map<int,std::string>*> _questionVariableNames;
+  static Lib::DHMap<unsigned, Lib::Map<int,std::string>*> _questionVariableNames;
 
   /** Stores the type arities of function symbols */
-  DHMap<std::string, unsigned> _typeArities;
-  DHMap<std::string, unsigned> _typeConstructorArities;
+  Lib::DHMap<std::string, unsigned> _typeArities;
+  Lib::DHMap<std::string, unsigned> _typeConstructorArities;
 
   bool _filterReserved;
   bool _seenConjecture;

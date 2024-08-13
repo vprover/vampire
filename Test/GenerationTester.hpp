@@ -36,7 +36,7 @@ namespace Test {
   [] (std::string& s1, std::string& s2) {                          \
     bool res = (VAL1 == VAL2);                             \
     if (!res) {                                            \
-      s1 = Int::toString(VAL1);                            \
+      s1 = Lib::Int::toString(VAL1);                            \
       s1.append(" != ");                                   \
       s1.append(Int::toString(VAL2));                      \
       s2 = std::string(#VAL1);                                 \
@@ -47,14 +47,14 @@ namespace Test {
   }
 
 template<class... As>
-Stack<ClausePattern> exactly(As... as) 
+Lib::Stack<ClausePattern> exactly(As... as) 
 {
-  Stack<ClausePattern> out { as... };
+  Lib::Stack<ClausePattern> out { as... };
   return out;
 }
 
-inline Stack<ClausePattern> none() {
-  return Stack<ClausePattern>();
+inline Lib::Stack<ClausePattern> none() {
+  return Lib::Stack<ClausePattern>();
 }
 
 namespace Generation {
@@ -80,18 +80,18 @@ public:
 class TestCase
 {
   using Clause = Kernel::Clause;
-  using OptionMap = Stack<std::pair<std::string,std::string>>;
+  using OptionMap = Lib::Stack<std::pair<std::string,std::string>>;
   using Condition = std::function<bool(std::string&, std::string&)>;
-  Option<SimplifyingGeneratingInference*> _rule;
+  Lib::Option<SimplifyingGeneratingInference*> _rule;
   Clause* _input;
-  Stack<ClausePattern> _expected;
-  Stack<Clause*> _context;
+  Lib::Stack<ClausePattern> _expected;
+  Lib::Stack<Clause*> _context;
   bool _premiseRedundant;
-  Stack<Indexing::Index*> _indices;
+  Lib::Stack<Indexing::Index*> _indices;
   std::function<void(SaturationAlgorithm&)> _setup = [](SaturationAlgorithm&){};
   OptionMap _options;
-  Stack<Condition> _preConditions;
-  Stack<Condition> _postConditions;
+  Lib::Stack<Condition> _preConditions;
+  Lib::Stack<Condition> _postConditions;
 
   template<class Is, class Expected>
   void testFail(Is const& is, Expected const& expected) {
@@ -117,14 +117,14 @@ public:
 
   BUILDER_METHOD(Clause*, input)
   BUILDER_METHOD(ClauseStack, context)
-  BUILDER_METHOD(Stack<ClausePattern>, expected)
+  BUILDER_METHOD(Lib::Stack<ClausePattern>, expected)
   BUILDER_METHOD(bool, premiseRedundant)
   BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
-  BUILDER_METHOD(Stack<Indexing::Index*>, indices)
+  BUILDER_METHOD(Lib::Stack<Indexing::Index*>, indices)
   BUILDER_METHOD(std::function<void(SaturationAlgorithm&)>, setup)
   BUILDER_METHOD(OptionMap, options)
-  BUILDER_METHOD(Stack<Condition>, preConditions)
-  BUILDER_METHOD(Stack<Condition>, postConditions)
+  BUILDER_METHOD(Lib::Stack<Condition>, preConditions)
+  BUILDER_METHOD(Lib::Stack<Condition>, postConditions)
 
   template<class Rule>
   void run(GenerationTester<Rule>& simpl) {
@@ -137,12 +137,12 @@ public:
     auto ul = UnitList::empty();
     UnitList::pushFromIterator(ClauseStack::Iterator(_context), ul);
     p.addUnits(ul);
-    env.setMainProblem(&p);
+    Lib::env.setMainProblem(&p);
 
     Options o;
     for (const auto& kv : _options) {
       o.set(kv.first, kv.second);
-      env.options->set(kv.first, kv.second);
+      Lib::env.options->set(kv.first, kv.second);
     }
     MockedSaturationAlgorithm alg(p, o);
     _setup(alg);
@@ -175,7 +175,7 @@ public:
 
     // run checks
     auto& sExp = this->_expected;
-    auto  sRes = Stack<Kernel::Clause*>::fromIterator(res.clauses);
+    auto  sRes = Lib::Stack<Kernel::Clause*>::fromIterator(res.clauses);
 
     if (!TestUtils::permEq(sExp, sRes, [&](auto exp, auto res) { return exp.matches(simpl, res); })) {
       testFail(sRes, sExp);

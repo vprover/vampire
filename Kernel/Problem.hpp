@@ -25,7 +25,6 @@
 
 namespace Kernel {
 
-using namespace Lib;
 using namespace Shell;
 
 /**
@@ -67,7 +66,7 @@ public:
   bool hadIncompleteTransformation() const { return _hadIncompleteTransformation; }
   void reportIncompleteTransformation() { _hadIncompleteTransformation = true; }
 
-  typedef DHMap<unsigned,bool> TrivialPredicateMap;
+  typedef Lib::DHMap<unsigned,bool> TrivialPredicateMap;
   void addTrivialPredicate(unsigned pred, bool assignment);
   /**
    * Return map of trivial predicates into their assignments.
@@ -81,9 +80,9 @@ public:
   void addEliminatedPredicate(unsigned pred, Unit* definition);
   void addPartiallyEliminatedPredicate(unsigned pred, Unit* definition);
  
-  DHMap<unsigned,Literal*> getEliminatedFunctions(){ return _deletedFunctions; }
-  DHMap<unsigned,Unit*> getEliminatedPredicates(){ return _deletedPredicates; }
-  DHMap<unsigned,Unit*> getPartiallyEliminatedPredicates(){ return _partiallyDeletedPredicates;}
+  Lib::DHMap<unsigned,Literal*> getEliminatedFunctions(){ return _deletedFunctions; }
+  Lib::DHMap<unsigned,Unit*> getEliminatedPredicates(){ return _deletedPredicates; }
+  Lib::DHMap<unsigned,Unit*> getPartiallyEliminatedPredicates(){ return _partiallyDeletedPredicates;}
   FunctionDefinitionHandler& getFunctionDefinitionHandler(){ return *_fnDefHandler; }
   
 
@@ -189,14 +188,14 @@ private:
   void readDetailsFromProperty() const;
 
   UnitList* _units;
-  DHMap<unsigned,Literal*> _deletedFunctions;
-  DHMap<unsigned,Unit*> _deletedPredicates;
-  DHMap<unsigned,Unit*> _partiallyDeletedPredicates; 
-  ScopedPtr<FunctionDefinitionHandler> _fnDefHandler;
+  Lib::DHMap<unsigned,Literal*> _deletedFunctions;
+  Lib::DHMap<unsigned,Unit*> _deletedPredicates;
+  Lib::DHMap<unsigned,Unit*> _partiallyDeletedPredicates; 
+  Lib::ScopedPtr<FunctionDefinitionHandler> _fnDefHandler;
 
   bool _hadIncompleteTransformation;
 
-  DHMap<unsigned,bool> _trivialPredicates;
+  Lib::DHMap<unsigned,bool> _trivialPredicates;
 
   mutable bool _mayHaveEquality;
   mutable bool _mayHaveFormulas;
@@ -204,20 +203,20 @@ private:
   mutable bool _mayHaveInequalityResolvableWithDeletion;
   mutable bool _mayHaveXEqualsY;
 
-  mutable MaybeBool _hasFormulas;
-  mutable MaybeBool _hasEquality;
-  mutable MaybeBool _hasInterpretedOperations;
-  mutable MaybeBool _hasNumerals;
-  mutable MaybeBool _hasFOOL;
-  mutable MaybeBool _hasCombs;
-  mutable MaybeBool _hasApp;
-  mutable MaybeBool _hasAppliedVar;
-  mutable MaybeBool _hasLogicalProxy;
-  mutable MaybeBool _hasPolymorphicSym;
-  mutable MaybeBool _quantifiesOverPolymorphicVar;
-  mutable MaybeBool _hasBoolVar;
-  mutable MaybeBool _higherOrder;
-  mutable MaybeBool _hasNonDefaultSorts;
+  mutable Lib::MaybeBool _hasFormulas;
+  mutable Lib::MaybeBool _hasEquality;
+  mutable Lib::MaybeBool _hasInterpretedOperations;
+  mutable Lib::MaybeBool _hasNumerals;
+  mutable Lib::MaybeBool _hasFOOL;
+  mutable Lib::MaybeBool _hasCombs;
+  mutable Lib::MaybeBool _hasApp;
+  mutable Lib::MaybeBool _hasAppliedVar;
+  mutable Lib::MaybeBool _hasLogicalProxy;
+  mutable Lib::MaybeBool _hasPolymorphicSym;
+  mutable Lib::MaybeBool _quantifiesOverPolymorphicVar;
+  mutable Lib::MaybeBool _hasBoolVar;
+  mutable Lib::MaybeBool _higherOrder;
+  mutable Lib::MaybeBool _hasNonDefaultSorts;
 
   SMTLIBLogic _smtlibLogic;
 

@@ -38,6 +38,10 @@
 
 #include "TweeGoalTransformation.hpp"
 
+using Lib::DHMap;
+using Lib::DHSet;
+using Lib::env;
+using Lib::Stack;
 using Kernel::Clause;
 using Kernel::Literal;
 using Kernel::Problem;

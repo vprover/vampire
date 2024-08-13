@@ -79,7 +79,7 @@ private:
   {
     class Inner {
       unsigned cnt = 0;
-      Map<unsigned, unsigned> _self;
+      Lib::Map<unsigned, unsigned> _self;
     public:
       unsigned get(unsigned var) 
       { return _self.getOrInit(std::move(var), [&](){ return cnt++; }); }
@@ -144,8 +144,8 @@ struct PrettyPrinter<A*> {
 };
 
 template<class A>
-struct PrettyPrinter<Stack<A>> {
-  void operator()(std::ostream& out, Stack<A> const& self)
+struct PrettyPrinter<Lib::Stack<A>> {
+  void operator()(std::ostream& out, Lib::Stack<A> const& self)
   {
     auto iter = self.iterFifo();
     out << "[ ";
@@ -160,8 +160,8 @@ struct PrettyPrinter<Stack<A>> {
 };
 
 template<class A>
-struct PrettyPrinter<Option<A>> {
-  void operator()(std::ostream& out, Option<A> const& self)
+struct PrettyPrinter<Lib::Option<A>> {
+  void operator()(std::ostream& out, Lib::Option<A> const& self)
   { self.isSome() ? out << pretty(self.unwrap()) : out << "none"; }
 };
 
@@ -227,7 +227,7 @@ struct PrettyPrinter<Kernel::Literal>
 #undef NUM_CASE
         }
       }
-      Signature::Symbol* sym = env.signature->getPredicate(func);
+      Signature::Symbol* sym = Lib::env.signature->getPredicate(func);
       out << sym->name();
       if (sym->arity() > 0) {
         out << "(" << pretty(*lit.nthArgument(0));
@@ -281,7 +281,7 @@ struct PrettyPrinter<Kernel::TermList>
         }
       }
 
-      Signature::Symbol* sym = env.signature->getFunction(func);
+      Signature::Symbol* sym = Lib::env.signature->getFunction(func);
       out << sym->name();
       if (sym->arity() > 0) {
         out << "(" << pretty(*term->nthArgument(0));
@@ -297,8 +297,8 @@ struct PrettyPrinter<Kernel::TermList>
 // Helper function for permEq -- checks whether lhs is a permutation of
 // rhs via initial permutation perm with elements [0,idx) fixed.
 template<class L1, class L2, class Eq>
-bool __permEq(L1& lhs, L2& rhs, Eq elemEq, DArray<unsigned>& perm, unsigned idx) {
-  auto checkPerm = [] (L1& lhs, L2& rhs, Eq elemEq, DArray<unsigned>& perm, unsigned idx) {
+bool __permEq(L1& lhs, L2& rhs, Eq elemEq, Lib::DArray<unsigned>& perm, unsigned idx) {
+  auto checkPerm = [] (L1& lhs, L2& rhs, Eq elemEq, Lib::DArray<unsigned>& perm, unsigned idx) {
     ASS_EQ(lhs.size(), perm.size());
     ASS_EQ(rhs.size(), perm.size());
 
@@ -335,7 +335,7 @@ template<class L1, class L2, class Eq>
 bool TestUtils::permEq(L1& lhs, L2& rhs, Eq elemEq)
 {
   if (lhs.size() != rhs.size()) return false;
-  DArray<unsigned> perm(lhs.size());
+  Lib::DArray<unsigned> perm(lhs.size());
   for (unsigned i = 0; i < lhs.size(); i++) {
     perm[i] = i;
   }

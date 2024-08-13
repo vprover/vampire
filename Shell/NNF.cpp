@@ -23,6 +23,7 @@
 
 #include "NNF.hpp"
 
+using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 

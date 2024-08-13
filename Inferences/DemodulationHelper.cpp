@@ -23,6 +23,7 @@
 
 namespace Inferences {
 
+using namespace Lib;
 using namespace Kernel;
 
 DemodulationHelper::DemodulationHelper(const Options& opts, const Ordering* ord)

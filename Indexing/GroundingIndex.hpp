@@ -40,8 +40,8 @@ protected:
   virtual void handleClause(Clause* c, bool adding);
 
 private:
-  ScopedPtr<SATSolverWithAssumptions> _solver;
-  ScopedPtr<GlobalSubsumptionGrounder> _grounder;
+  Lib::ScopedPtr<SATSolverWithAssumptions> _solver;
+  Lib::ScopedPtr<GlobalSubsumptionGrounder> _grounder;
 };
 
 }

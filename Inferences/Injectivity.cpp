@@ -29,6 +29,8 @@
 
 namespace Inferences {
 
+using namespace Lib;
+
 ClauseIterator Injectivity::generateClauses(Clause* premise) {
   if(premise->length() != 2){
     return ClauseIterator::getEmpty();

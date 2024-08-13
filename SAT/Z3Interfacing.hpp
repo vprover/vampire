@@ -46,7 +46,7 @@
 
 namespace SAT{
 
-  struct UninterpretedForZ3Exception : public ThrowableBase
+  struct UninterpretedForZ3Exception : public Lib::ThrowableBase
   {
     UninterpretedForZ3Exception()
     {
@@ -178,8 +178,8 @@ public:
       out << (self.isPredicate ? "pred " : "func ");
       out << (
         self.isPredicate
-          ? env.signature->getPredicate(self.id)->name()
-          : env.signature->getFunction(self.id)->name()
+          ? Lib::env.signature->getPredicate(self.id)->name()
+          : Lib::env.signature->getFunction(self.id)->name()
       );
       if(self.forSorts)
         for(unsigned i = 0; i < self.forSorts->numTypeArguments(); i++)
@@ -190,16 +190,16 @@ public:
 
 private:
 
-  Map<SortId, z3::sort> _sorts;
+  Lib::Map<SortId, z3::sort> _sorts;
   struct Z3Hash {
     static unsigned hash(z3::func_decl const& c) { return c.hash(); }
     static unsigned hash(z3::expr const& c) { return c.hash(); }
     static bool equals(z3::func_decl const& l, z3::func_decl const& r) { return z3::eq(l,r); }
     static bool equals(z3::expr const& l, z3::expr const& r) { return z3::eq(l,r); }
   };
-  Map<z3::func_decl, FuncOrPredId , Z3Hash > _fromZ3;
-  Map<FuncOrPredId,  z3::func_decl, StlHash> _toZ3;
-  Set<SortId> _createdTermAlgebras;
+  Lib::Map<z3::func_decl, FuncOrPredId , Z3Hash > _fromZ3;
+  Lib::Map<FuncOrPredId,  z3::func_decl, Lib::StlHash> _toZ3;
+  Lib::Set<SortId> _createdTermAlgebras;
 
   z3::func_decl const& findConstructor(Term* t);
   void createTermAlgebra(TermList sort);
@@ -220,10 +220,10 @@ private:
 
   struct Representation
   {
-    Representation(z3::expr expr, Stack<z3::expr> defs) : expr(expr), defs(defs) {}
+    Representation(z3::expr expr, Lib::Stack<z3::expr> defs) : expr(expr), defs(defs) {}
     Representation(Representation&&) = default;
     z3::expr expr;
-    Stack<z3::expr> defs;
+    Lib::Stack<z3::expr> defs;
   };
 
   Representation getRepresentation(Term* trm);
@@ -241,14 +241,14 @@ private:
   z3::context _context;
   z3::solver _solver;
   z3::model _model;
-  Stack<z3::expr> _assumptions;
-  BiMap<SATLiteral, z3::expr, DefaultHash, Z3Hash> _assumptionLookup;
+  Lib::Stack<z3::expr> _assumptions;
+  Lib::BiMap<SATLiteral, z3::expr, Lib::DefaultHash, Z3Hash> _assumptionLookup;
   const bool _showZ3;
   const bool _unsatCore;
-  Option<std::ofstream> _out;
-  Map<unsigned, z3::expr> _varNames;
-  Map<TermList, z3::expr> _termIndexedConstants;
-  Map<Signature::Symbol*, z3::expr> _constantNames;
+  Lib::Option<std::ofstream> _out;
+  Lib::Map<unsigned, z3::expr> _varNames;
+  Lib::Map<TermList, z3::expr> _termIndexedConstants;
+  Lib::Map<Signature::Symbol*, z3::expr> _constantNames;
 
   bool     isNamedExpr(unsigned var) const;
   z3::expr getNameExpr(unsigned var);

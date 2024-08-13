@@ -39,7 +39,6 @@ namespace Inferences {
 
 using namespace Indexing;
 using namespace Kernel;
-using namespace Lib;
 
 
 

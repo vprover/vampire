@@ -39,6 +39,7 @@ namespace FMB
 {
 
 using namespace std;
+using namespace Lib;
 
 Monotonicity::Monotonicity(ClauseList* clauses, unsigned srt) : _srt(srt)
 {

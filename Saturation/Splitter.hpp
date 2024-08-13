@@ -41,14 +41,13 @@
 
 namespace Saturation {
 
-using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 using namespace SAT;
 using namespace DP;
 using namespace Indexing;
 
-typedef Stack<SplitLevel> SplitLevelStack;
+typedef Lib::Stack<SplitLevel> SplitLevelStack;
 
 class Splitter;
 
@@ -97,10 +96,10 @@ private:
   Splitter& _parent;
 
   bool _solverIsSMT;
-  ScopedPtr<SATSolver> _solver;
-  ScopedPtr<DecisionProcedure> _dp;
+  Lib::ScopedPtr<SATSolver> _solver;
+  Lib::ScopedPtr<DecisionProcedure> _dp;
   // use a separate copy of the decision procedure for ccModel computations and fill it up only with equalities
-  ScopedPtr<SimpleCongruenceClosure> _dpModel;
+  Lib::ScopedPtr<SimpleCongruenceClosure> _dpModel;
   
   /**
    * Contains selected component names (splitlevels)
@@ -166,8 +165,8 @@ private:
 
     Clause* component;
     RCClauseStack children;
-    Stack<ReductionRecord> reduced;
-    Stack<ConditionalRedundancyEntry*> conditionalRedundancyEntries;
+    Lib::Stack<ReductionRecord> reduced;
+    Lib::Stack<ConditionalRedundancyEntry*> conditionalRedundancyEntries;
     bool active;
 
     USE_ALLOCATOR(SplitRecord);
@@ -209,7 +208,7 @@ public:
   SAT2FO& satNaming() { return _sat2fo; }
 
   UnitList* preprendCurrentlyAssumedComponentClauses(UnitList* clauses);
-  static bool getComponents(Clause* cl, Stack<LiteralStack>& acc, bool shuffle = false);
+  static bool getComponents(Clause* cl, Lib::Stack<LiteralStack>& acc, bool shuffle = false);
 
   /*
    * Clauses with answer literals cannot be split -- hence if we obtain a clause with
@@ -263,7 +262,7 @@ private:
 
   //utility objects
   SplittingBranchSelector _branchSelector;
-  ScopedPtr<ClauseVariantIndex> _componentIdx;
+  Lib::ScopedPtr<ClauseVariantIndex> _componentIdx;
   /**
    * Registers all the sat variables and keeps track
    * of associated ground literals for those variables
@@ -278,13 +277,13 @@ private:
    * Invariant: if there is a clause with a level in its splitting history,
    * the _db record of this level is non-null.
    */
-  Stack<SplitRecord*> _db;
+  Lib::Stack<SplitRecord*> _db;
 
   /**
    * Definitions of ground components C and ~C are shared and placed at the slot of C.
    * (So the key here is never odd!)
    **/
-  DHMap<SplitLevel,Unit*> _defs;
+  Lib::DHMap<SplitLevel,Unit*> _defs;
   
   //state variable used for flushing:  
   /** When this number of generated clauses is reached, it will cause flush */
@@ -313,7 +312,7 @@ private:
 
   // clauses we already added to the SAT solver
   // not just optimisation: also prevents the SAT solver oscillating between two models in some cases
-  Set<SATClause *, DerefPtrHash<DefaultHash>> _already_added;
+  Lib::Set<SATClause *, DerefPtrHash<DefaultHash>> _already_added;
 
 public:
   static std::string splPrefix;

@@ -35,9 +35,9 @@ template<class C> class Vector;
 template<typename T> class List;
 template<typename T> class SharedSet;
 
-typedef List<int> IntList;
-typedef Stack<std::string> StringStack;
-typedef List<VoidFunc> VoidFuncList;
+typedef Lib::List<int> IntList;
+typedef Lib::Stack<std::string> StringStack;
+typedef Lib::List<VoidFunc> VoidFuncList;
 
 class DefaultHash;
 class DefaultHash2;
@@ -53,46 +53,45 @@ class Timer;
 
 namespace Kernel
 {
-using namespace Lib;
 
 class Signature;
 
 class Term;
 class TermList;
-typedef VirtualIterator<TermList> TermIterator;
-typedef Stack<TermList> TermStack;
+typedef Lib::VirtualIterator<TermList> TermIterator;
+typedef Lib::Stack<TermList> TermStack;
 
 struct SubstApplicator;
 struct AppliedTerm;
 
-typedef List<unsigned> VList; // a list of variables (which are unsigned)
-typedef List<TermList> SList; // a list of sorts (which are now, with polymorphism, TermLists)
-typedef const SharedSet<unsigned> VarSet;
+typedef Lib::List<unsigned> VList; // a list of variables (which are unsigned)
+typedef Lib::List<TermList> SList; // a list of sorts (which are now, with polymorphism, TermLists)
+typedef const Lib::SharedSet<unsigned> VarSet;
 
 
 class Literal;
-typedef List<Literal*> LiteralList;
-typedef Stack<Literal*> LiteralStack;
-typedef VirtualIterator<Literal*> LiteralIterator;
+typedef Lib::List<Literal*> LiteralList;
+typedef Lib::Stack<Literal*> LiteralStack;
+typedef Lib::VirtualIterator<Literal*> LiteralIterator;
 
 class Inference;
 
 class Unit;
-typedef List<Unit*> UnitList;
-typedef Stack<Unit*> UnitStack;
-typedef VirtualIterator<Unit*> UnitIterator;
+typedef Lib::List<Unit*> UnitList;
+typedef Lib::Stack<Unit*> UnitStack;
+typedef Lib::VirtualIterator<Unit*> UnitIterator;
 
 class FormulaUnit;
 class Formula;
-typedef List<Formula*> FormulaList;
-typedef VirtualIterator<Formula*> FormulaIterator;
-typedef Stack<Formula*> FormulaStack;
+typedef Lib::List<Formula*> FormulaList;
+typedef Lib::VirtualIterator<Formula*> FormulaIterator;
+typedef Lib::Stack<Formula*> FormulaStack;
 
 class Clause;
-typedef VirtualIterator<Clause*> ClauseIterator;
-typedef SingleParamEvent<Clause*> ClauseEvent;
-typedef List<Clause*> ClauseList;
-typedef Stack<Clause*> ClauseStack;
+typedef Lib::VirtualIterator<Clause*> ClauseIterator;
+typedef Lib::SingleParamEvent<Clause*> ClauseEvent;
+typedef Lib::List<Clause*> ClauseList;
+typedef Lib::Stack<Clause*> ClauseStack;
 
 class Problem;
 
@@ -100,11 +99,11 @@ class Renaming;
 class Substitution;
 
 class RobSubstitution;
-typedef VirtualIterator<RobSubstitution*> SubstIterator;
+typedef Lib::VirtualIterator<RobSubstitution*> SubstIterator;
 typedef Lib::SmartPtr<RobSubstitution> RobSubstitutionSP;
 
 class Matcher;
-typedef VirtualIterator<Matcher*> MatchIterator;
+typedef Lib::VirtualIterator<Matcher*> MatchIterator;
 
 class LiteralSelector;
 
@@ -114,7 +113,7 @@ struct OrderingComparator;
 typedef std::unique_ptr<const OrderingComparator> OrderingComparatorUP;
 
 typedef unsigned SplitLevel;
-typedef const SharedSet<SplitLevel> SplitSet;
+typedef const Lib::SharedSet<SplitLevel> SplitSet;
 
 /**
  * Color of a term
@@ -176,17 +175,16 @@ class BackwardSimplificationEngine;
 
 namespace SAT
 {
-using namespace Lib;
 
 class SATClause;
 class SATLiteral;
 class SATInference;
 class SATSolver;
 
-typedef VirtualIterator<SATClause*> SATClauseIterator;
-typedef List<SATClause*> SATClauseList;
-typedef Stack<SATClause*> SATClauseStack;
-typedef Stack<SATLiteral> SATLiteralStack;
+typedef Lib::VirtualIterator<SATClause*> SATClauseIterator;
+typedef Lib::List<SATClause*> SATClauseList;
+typedef Lib::Stack<SATClause*> SATClauseStack;
+typedef Lib::Stack<SATLiteral> SATLiteralStack;
 }
 
 namespace Shell

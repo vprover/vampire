@@ -58,7 +58,6 @@
 
 namespace Shell {
 
-using namespace Lib;
 using namespace Kernel;
 
 class Property;
@@ -81,7 +80,7 @@ static size_t distance(const std::string &s1, const std::string &s2)
   if( m==0 ) return n;
   if( n==0 ) return m;
 
-  DArray<size_t> costs = DArray<size_t>(n+1);
+  Lib::DArray<size_t> costs = Lib::DArray<size_t>(n+1);
 
   for( size_t k=0; k<=n; k++ ) costs[k] = k;
 
@@ -777,8 +776,8 @@ public:
     // The details are explained in comments below
 private:
     // helper function of sampleStrategy
-    void strategySamplingAssign(std::string optname, std::string value, DHMap<std::string,std::string>& fakes);
-    std::string strategySamplingLookup(std::string optname, DHMap<std::string,std::string>& fakes);
+    void strategySamplingAssign(std::string optname, std::string value, Lib::DHMap<std::string,std::string>& fakes);
+    std::string strategySamplingLookup(std::string optname, Lib::DHMap<std::string,std::string>& fakes);
 
     /**
      * These store the names of the choices for an option.
@@ -797,7 +796,7 @@ private:
       }
     public:
         OptionChoiceValues() : _names() { };
-        OptionChoiceValues(Stack<std::string> names) : _names(std::move(names))  
+        OptionChoiceValues(Lib::Stack<std::string> names) : _names(std::move(names))  
         {
           check_names_are_short();
         }
@@ -817,7 +816,7 @@ private:
         const std::string operator[](int i) const{ return _names[i];}
 
     private:
-        Stack<std::string> _names;
+        Lib::Stack<std::string> _names;
     };
 
     // Declare constraints here so they can be referred to, but define them below
@@ -930,7 +929,7 @@ private:
         bool _should_copy;
         bool shouldCopy() const { return _should_copy; }
        
-        typedef std::unique_ptr<DArray<std::string>> stringDArrayUP;
+        typedef std::unique_ptr<Lib::DArray<std::string>> stringDArrayUP;
 
         typedef std::pair<OptionProblemConstraintUP,stringDArrayUP> RandEntry;
  
@@ -940,7 +939,7 @@ private:
         Lib::Stack<Options::Mode> _modes;
 
         stringDArrayUP toArray(std::initializer_list<std::string>& list){
-          DArray<std::string>* array = new DArray<std::string>(list.size());
+          Lib::DArray<std::string>* array = new Lib::DArray<std::string>(list.size());
           unsigned index=0;
           for(typename std::initializer_list<std::string>::iterator it = list.begin();
            it!=list.end();++it){ (*array)[index++] =*it; }
@@ -952,8 +951,9 @@ private:
     };
 
     struct AbstractOptionValueCompatator{
-      Comparison compare(AbstractOptionValue* o1, AbstractOptionValue* o2)
+      Lib::Comparison compare(AbstractOptionValue* o1, AbstractOptionValue* o2)
       {
+        using namespace Lib;
         int value = strcmp(o1->longName.c_str(),o2->longName.c_str());
         return value < 0 ? LESS : (value==0 ? EQUAL : GREATER);
       }
@@ -1142,7 +1142,7 @@ private:
         IntOptionValue(){}
         IntOptionValue(std::string l,std::string s, int d) : OptionValue(l,s,d){}
         bool setValue(const std::string& value){
-            return Int::stringToInt(value.c_str(),actualValue);
+            return Lib::Int::stringToInt(value.c_str(),actualValue);
         }
         std::string getStringOfValue(int value) const{ return Lib::Int::toString(value); }
     };
@@ -1152,7 +1152,7 @@ private:
         UnsignedOptionValue(std::string l,std::string s, unsigned d) : OptionValue(l,s,d){}
 
         bool setValue(const std::string& value){
-            return Int::stringToUnsignedInt(value.c_str(),actualValue);
+            return Lib::Int::stringToUnsignedInt(value.c_str(),actualValue);
         }
         std::string getStringOfValue(unsigned value) const{ return Lib::Int::toString(value); }
     };
@@ -1174,7 +1174,7 @@ private:
         LongOptionValue(){}
         LongOptionValue(std::string l,std::string s, long d) : OptionValue(l,s,d){}
         bool setValue(const std::string& value){
-            return Int::stringToLong(value.c_str(),actualValue);
+            return Lib::Int::stringToLong(value.c_str(),actualValue);
         }
         std::string getStringOfValue(long value) const{ return Lib::Int::toString(value); }
     };
@@ -1183,7 +1183,7 @@ struct FloatOptionValue : public OptionValue<float>{
 FloatOptionValue(){}
 FloatOptionValue(std::string l,std::string s, float d) : OptionValue(l,s,d){}
 bool setValue(const std::string& value){
-    return Int::stringToFloat(value.c_str(),actualValue);
+    return Lib::Int::stringToFloat(value.c_str(),actualValue);
 }
 std::string getStringOfValue(float value) const{ return Lib::Int::toString(value); }
 };
@@ -1868,7 +1868,7 @@ bool _hard;
     static OptionProblemConstraintUP hasTheories() { return OptionProblemConstraintUP(new HasTheories); }
     static OptionProblemConstraintUP hasGoal() { return OptionProblemConstraintUP(new HasGoal); }
 
-    //Cheating - we refer to env.options to ask about option values
+    //Cheating - we refer to Lib::env.options to ask about option values
     // There is an assumption that the option values used have been
     // set to their final values
     // These are used in randomisation where we guarantee a certain
@@ -1887,7 +1887,7 @@ bool _hard;
 
       bool check(Property*p){
         bool res = is_and;
-        Stack<OptionProblemConstraintUP>::RefIterator it(cons);
+        Lib::Stack<OptionProblemConstraintUP>::RefIterator it(cons);
         while(it.hasNext()){
           bool n=it.next()->check(p);res = is_and ? (res && n) : (res || n);}
         return res;
@@ -1895,14 +1895,14 @@ bool _hard;
 
       std::string msg(){
         std::string res="";
-        Stack<OptionProblemConstraintUP>::RefIterator it(cons);
+        Lib::Stack<OptionProblemConstraintUP>::RefIterator it(cons);
         if(it.hasNext()){ res=it.next()->msg();}
         while(it.hasNext()){ res+=",and\n"+it.next()->msg();}
         return res;
       }
 
       void add(OptionProblemConstraintUP& c){ cons.push(std::move(c));}
-      Stack<OptionProblemConstraintUP> cons;
+      Lib::Stack<OptionProblemConstraintUP> cons;
       bool is_and;
     };
 
@@ -2333,21 +2333,21 @@ private:
             ASS(new_long && new_short);
         }
         AbstractOptionValue* findLong(std::string longName) const{
-            if(!_longMap.find(longName)){ throw ValueNotFoundException(); }
+            if(!_longMap.find(longName)){ throw Lib::ValueNotFoundException(); }
             return _longMap.get(longName);
         }
         AbstractOptionValue* findShort(std::string shortName) const{
-            if(!_shortMap.find(shortName)){ throw ValueNotFoundException(); }
+            if(!_shortMap.find(shortName)){ throw Lib::ValueNotFoundException(); }
             return _shortMap.get(shortName);
         }
 
-        VirtualIterator<AbstractOptionValue*> values() const {
+        Lib::VirtualIterator<AbstractOptionValue*> values() const {
             return _longMap.range();
         }
 
     private:
-        DHMap<std::string,AbstractOptionValue*> _longMap;
-        DHMap<std::string,AbstractOptionValue*> _shortMap;
+        Lib::DHMap<std::string,AbstractOptionValue*> _longMap;
+        Lib::DHMap<std::string,AbstractOptionValue*> _shortMap;
     };
 
     LookupWrapper _lookup;
@@ -2357,21 +2357,21 @@ private:
         try{
           return _lookup.findLong(name);
         }
-        catch(ValueNotFoundException&){
+        catch(Lib::ValueNotFoundException&){
           try{
             return _lookup.findShort(name);
           }
-          catch(ValueNotFoundException&){
+          catch(Lib::ValueNotFoundException&){
             return 0;
           }
         }
     }
   
-    Stack<std::string> getSimilarOptionNames(std::string name, bool is_short) const{
+    Lib::Stack<std::string> getSimilarOptionNames(std::string name, bool is_short) const{
 
-      Stack<std::string> similar_names;
+      Lib::Stack<std::string> similar_names;
 
-      VirtualIterator<AbstractOptionValue*> options = _lookup.values();
+      Lib::VirtualIterator<AbstractOptionValue*> options = _lookup.values();
       while(options.hasNext()){
         AbstractOptionValue* opt = options.next();
         std::string opt_name = is_short ? opt->shortName : opt->longName;
