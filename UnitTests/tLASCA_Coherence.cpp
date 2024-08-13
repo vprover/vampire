@@ -205,6 +205,28 @@ TEST_GENERATION(basic10,
       ))
     )
 
+TEST_GENERATION(basic11,
+    Generation::SymmetricTest()
+      .indices(lascaCoherenceIndices())
+      .selfApplications(false)
+      .inputs  ({ clause({ selected( isInteger(3 * f(a)) )  }) 
+                , clause({ selected(p(floor(f(x) + f(y) + f(z))) )  }) })
+      .expected(exactly(
+          clause({ p(3 * f(a)) })
+      ))
+    )
+
+TEST_GENERATION(basic12,
+    Generation::SymmetricTest()
+      .indices(lascaCoherenceIndices())
+      .selfApplications(false)
+      .inputs  ({ clause({ selected( isInteger(f(x) + f(y) + f(z))) }) 
+                , clause({ selected(p(floor(3 * f(a)) )) }) })
+      .expected(exactly(
+          clause({ p(3 * f(a)) })
+      ))
+    )
+
 TEST_GENERATION(factors_0,
     Generation::SymmetricTest()
       .indices(lascaCoherenceIndices())

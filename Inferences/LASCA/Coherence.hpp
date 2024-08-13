@@ -33,7 +33,7 @@
 #include "Debug/Output.hpp"
 #include "Kernel/EqHelper.hpp"
 
-#define DEBUG_COHERENCE(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
+#define DEBUG_COHERENCE(lvl, ...) if (lvl < 4) DBG(__VA_ARGS__)
 
 namespace Inferences {
 namespace LASCA {
@@ -180,7 +180,6 @@ public:
 
       Option<SubSumUnif*> tryNext() {
 
-
         // auto DBG_CLASSES = [&](auto... msg) {
         //   DBG(msg...)
         //   for (auto c : sum1ClassRoots) {
@@ -195,6 +194,7 @@ public:
         };
         while (!merges.isEmpty()) {
           auto& pair = merges.top();
+          DBGE(sum1ClassRoots)
           if (pair.first >= sum1ClassRoots.size()) {
             bds.pop().backtrack();
             merges.pop();
@@ -238,7 +238,11 @@ public:
           } else {
             bds.top().backtrack();
             uwa->bdRecord(bds.top());
-            DEBUG_COHERENCE(2, "matching ", std::make_pair(i0, i1))
+            DEBUG_COHERENCE(2, "matching ", outputInterleaved(", ", 
+                  arrayIter(crossEqual, crossEqual.size() - 1)
+                    .zipWithIndex()
+                    .map([](auto x){ return std::make_tuple(x.second, x.first - 1); })),
+                ", ", std::make_pair(i0, i1));
             auto success = unify(
                 sum0.atom(i0), bank0, 
                 sum1.atom(i1), bank1);
