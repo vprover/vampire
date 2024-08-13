@@ -1256,8 +1256,15 @@ void SaturationAlgorithm::activate(Clause* cl)
 void SaturationAlgorithm::doUnprocessedLoop()
 {
 start:
-
   newClausesToUnprocessed();
+
+  // pre-evaluation incoming clauses ideally in one bulk
+  _neuralModel->evalClauses(*_unprocessed);
+  /* Note that this will not pre-evaluate all incoming clauses
+   * (and so a later call to _neuralModel->evalClause inside the container is needed).
+   * Namely, children of forward simplified unprocessed, will enter the below loop
+   * thanks to the newClausesToUnprocessed there.
+   */
 
   while (!_unprocessed->isEmpty()) {
     Clause* c = _unprocessed->pop();

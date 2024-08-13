@@ -27,7 +27,7 @@
 using namespace Lib;
 using namespace Kernel;
 
-SoftmaxClauseQueue::SoftmaxClauseQueue(const DHMap<Clause*,std::pair<float,unsigned>>& scores, bool talkative)
+SoftmaxClauseQueue::SoftmaxClauseQueue(const DHMap<unsigned,std::pair<float,unsigned>>& scores, bool talkative)
     : _talkative(talkative), _height(0), _total(0.0f), _scores(scores)
 {
   void* mem = ALLOC_KNOWN(sizeof(Node)+MAX_HEIGHT*sizeof(LinkInfo),"SoftmaxClauseQueue::Node");
@@ -51,7 +51,7 @@ SoftmaxClauseQueue::~SoftmaxClauseQueue ()
 bool SoftmaxClauseQueue::lessThan(Clause* c1, ScoreInfo sc1, Clause* c2)
 {
   // based on ShuffleScoreQueue's lessThan - how to best ensure code reuse?
-  auto sc2 = _scores.get(c2);
+  auto sc2 = _scores.get(c2->number());
   // reversing the order here: NNs think large is good, queues think small is good
   if (sc1.first > sc2.first) {
     return true;
@@ -73,7 +73,7 @@ bool SoftmaxClauseQueue::lessThan(Clause* c1, ScoreInfo sc1, Clause* c2)
 
 void SoftmaxClauseQueue::insert(Clause* c)
 {
-  ScoreInfo sc = _scores.get(c);
+  ScoreInfo sc = _scores.get(c->number());
 
   // zero score elements are evil for sampling
   ASS_G(sc.first,0);
@@ -195,7 +195,7 @@ bool SoftmaxClauseQueue::remove(Clause* c)
   // cout << "Before remove of " << c->toString() << endl;
   // output(cout);
 
-  ScoreInfo sc = _scores.get(c);
+  ScoreInfo sc = _scores.get(c->number());
 
   unsigned h = _height;
   Node* left = _left;
@@ -416,7 +416,7 @@ bool SoftmaxClauseQueue::consistentRec(Node* cur, Node* whatsSeen, float& sumLin
     return false;
   }
   // keep checking, everything was OK until now
-  ScoreInfo sc = (cur == _left) ? std::make_pair(0.0f,0u) : _scores.get(cur->clause);
+  ScoreInfo sc = (cur == _left) ? std::make_pair(0.0f,0u) : _scores.get(cur->clause->number());
   sumLinks += sc.first;
   for (unsigned h = 0; h <= _height; h++) {
     if (h > cur->height) {
@@ -470,7 +470,7 @@ void SoftmaxClauseQueue::output(ostream& str) const
     unsigned height;
     if (cl) {
       height = node->height;
-      str << "Node " << node->id << " of mass " << _scores.get(node->clause).first << " and with clause " << node->clause->toString() << std::endl;
+      str << "Node " << node->id << " of mass " << _scores.get(node->clause->number()).first << " and with clause " << node->clause->toString() << std::endl;
     } else {
       height = _height;
       str << "Node " << node->id << " with no clause" << std::endl;

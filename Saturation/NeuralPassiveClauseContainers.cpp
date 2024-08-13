@@ -102,7 +102,7 @@ NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string model
 }
 
 float NeuralClauseEvaluationModel::getScore(Clause* cl) {
-  SaltedLogit* someVal = _scores.findPtr(cl);
+  SaltedLogit* someVal = _scores.findPtr(cl->number());
   if (someVal) {
     return someVal->first;
   }
@@ -110,7 +110,7 @@ float NeuralClauseEvaluationModel::getScore(Clause* cl) {
 }
 
 NeuralClauseEvaluationModel::SaltedLogit NeuralClauseEvaluationModel::evalClause(Clause* cl) {
-  SaltedLogit* someVal = _scores.findPtr(cl);
+  SaltedLogit* someVal = _scores.findPtr(cl->number());
   if (someVal) {
     return *someVal;
   }
@@ -120,9 +120,6 @@ NeuralClauseEvaluationModel::SaltedLogit NeuralClauseEvaluationModel::evalClause
     TIME_TRACE("neural model evaluation");
 
     std::vector<torch::jit::IValue> inputs;
-
-    // argument 1 - the clause id
-    inputs.push_back((int64_t)cl->number());
 
     std::vector<float> features(_numFeatures);
     unsigned i = 0;
@@ -134,23 +131,124 @@ NeuralClauseEvaluationModel::SaltedLogit NeuralClauseEvaluationModel::evalClause
     ASS_EQ(features.size(),_numFeatures);
     inputs.push_back(torch::from_blob(features.data(), {_numFeatures}, torch::TensorOptions().dtype(torch::kFloat32)));
 
-    logit = _model.forward(std::move(inputs)).toDouble();
+    logit = _model.forward(std::move(inputs)).toTensor().item().toDouble();
   }
+
+  float score = (_temp == 0.0) ? logit : exp(logit/_temp);
   unsigned salt = Random::getInteger(1073741824); // 2^30, because why not
 
-  float score;
-  if (_temp == 0.0) {
-    score = logit;
-  } else {
-    score = exp(logit/_temp);
-  }
-
-  // cout << "New clause has " << make_pair(score,salt) << " with number " << cl->number() << endl;
   SaltedLogit res = make_pair(score,salt);
-  _scores.insert(cl,res);
+  // cout << "New clause has " << res << " with number " << cl->number() << endl;
+  _scores.insert(cl->number(),res);
   return res;
 }
 
+void NeuralClauseEvaluationModel::evalClauses(Saturation::UnprocessedClauseContainer& clauses) {
+  TIME_TRACE("neural model evaluation");
+
+  unsigned sz = clauses.size();
+  if (sz == 0) return;
+
+  std::vector<float> features(_numFeatures*sz);
+  {
+    unsigned idx = 0;
+    auto uIt = clauses.iter();
+    while (uIt.hasNext()) {
+      unsigned i = 0;
+      Clause* cl = uIt.next();
+      Clause::FeatureIterator cIt(cl);
+      while (i++ < _numFeatures && cIt.hasNext()) {
+        features[idx] = cIt.next();
+        idx++;
+      }
+    }
+  }
+
+  std::vector<torch::jit::IValue> inputs;
+  inputs.push_back(torch::from_blob(features.data(), {sz,_numFeatures}, torch::TensorOptions().dtype(torch::kFloat32)));
+  auto logits = _model.forward(std::move(inputs)).toTensor();
+
+  {
+    auto uIt = clauses.iter();
+    unsigned idx = 0;
+    while (uIt.hasNext()) {
+      Clause* cl = uIt.next();
+      float logit = logits[idx++].item().toDouble();
+      float score = (_temp == 0.0) ? logit : exp(logit/_temp);
+
+      SaltedLogit* someVal = _scores.findPtr(cl->number());
+      if (someVal) {
+        ASS_L(abs(someVal->first-score),0.00001);
+        // we don't insert, we don't want to change the salt
+      } else {
+        unsigned salt = Random::getInteger(1073741824); // 2^30, because why not
+        SaltedLogit res = make_pair(score,salt);
+        _scores.insert(cl->number(),res);
+      }
+    }
+  }
+}
+
+NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, NeuralClauseEvaluationModel& model)
+  : LRSIgnoringPassiveClauseContainer(isOutermost, opt), _model(model), _size(0), _reshuffleAt(opt.reshuffleAt())
+{
+  ASS(_isOutermost);
+
+  if (opt.npccTemperature() == 0.0) {
+    _queue = SmartPtr<AbstractClauseQueue>(new ShuffledScoreQueue(_model.getScores()));
+  } else {
+    _queue = SmartPtr<AbstractClauseQueue>(new SoftmaxClauseQueue(_model.getScores(), opt.showPassiveTraffic()));
+  }
+}
+
+void NeuralPassiveClauseContainer::add(Clause* cl)
+{
+  (void)_model.evalClause(cl); // make sure scores inside model know about this clauses (so that queue can insert it properly)
+
+  // cout << "Inserting " << cl->number() << endl;
+  _queue->insert(cl);
+  _size++;
+
+  ASS(cl->store() == Clause::PASSIVE);
+  addedEvent.fire(cl);
+}
+
+void NeuralPassiveClauseContainer::remove(Clause* cl)
+{
+  ASS(cl->store()==Clause::PASSIVE);
+
+  // cout << "Removing " << cl->number() << endl;
+  _queue->remove(cl);
+  _size--;
+
+  removedEvent.fire(cl);
+  ASS(cl->store()!=Clause::PASSIVE);
+}
+
+Clause* NeuralPassiveClauseContainer::popSelected()
+{
+  ASS(_size);
+
+  static unsigned popCount = 0;
+
+  if (++popCount == _reshuffleAt) {
+    // cout << "reshuffled at "<< popCount << endl;
+    Random::resetSeed();
+  }
+
+  // cout << "About to pop" << endl;
+  Clause* cl = _queue->pop();
+  // cout << "Got " << cl->number() << endl;
+  // cout << "popped from " << _size << " got " << cl->toString() << endl;
+  _size--;
+
+  if (popCount == _reshuffleAt) {
+    cout << "s: " << cl->number() << '\n';
+  }
+
+  selectedEvent.fire(cl);
+  return cl;
+}
 
 LearnedPassiveClauseContainer::LearnedPassiveClauseContainer(bool isOutermost, const Shell::Options& opt)
   : LRSIgnoringPassiveClauseContainer(isOutermost, opt), _scores(), _queue(_scores), _size(0), _temperature(opt.npccTemperature())
@@ -161,7 +259,7 @@ LearnedPassiveClauseContainer::LearnedPassiveClauseContainer(bool isOutermost, c
 void LearnedPassiveClauseContainer::add(Clause* cl)
 {
   std::pair<float,unsigned>* pair;
-  if (_scores.getValuePtr(cl,pair)) {
+  if (_scores.getValuePtr(cl->number(),pair)) {
     *pair = std::make_pair(scoreClause(cl),Random::getInteger(1073741824));
   }
   _queue.insert(cl);
@@ -240,67 +338,6 @@ float LearnedPassiveClauseContainerExperNF12cLoop5::scoreClause(Clause* cl)
       res += tmp*kweight[i];
   }
   return res;
-}
-
-NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, NeuralClauseEvaluationModel& model)
-  : LRSIgnoringPassiveClauseContainer(isOutermost, opt), _model(model), _size(0), _reshuffleAt(opt.reshuffleAt())
-{
-  ASS(_isOutermost);
-
-  if (opt.npccTemperature() == 0.0) {
-    _queue = SmartPtr<AbstractClauseQueue>(new ShuffledScoreQueue(_model.getScores()));
-  } else {
-    _queue = SmartPtr<AbstractClauseQueue>(new SoftmaxClauseQueue(_model.getScores(), opt.showPassiveTraffic()));
-  }
-}
-
-void NeuralPassiveClauseContainer::add(Clause* cl)
-{
-  (void)_model.evalClause(cl); // make sure scores inside model know about this clauses (so that queue can insert it properly)
-
-  // cout << "Inserting " << cl->number() << endl;
-  _queue->insert(cl);
-  _size++;
-
-  ASS(cl->store() == Clause::PASSIVE);
-  addedEvent.fire(cl);
-}
-
-void NeuralPassiveClauseContainer::remove(Clause* cl)
-{
-  ASS(cl->store()==Clause::PASSIVE);
-
-  // cout << "Removing " << cl->number() << endl;
-  _queue->remove(cl);
-  _size--;
-
-  removedEvent.fire(cl);
-  ASS(cl->store()!=Clause::PASSIVE);
-}
-
-Clause* NeuralPassiveClauseContainer::popSelected()
-{
-  ASS(_size);
-
-  static unsigned popCount = 0;
-
-  if (++popCount == _reshuffleAt) {
-    // cout << "reshuffled at "<< popCount << endl;
-    Random::resetSeed();
-  }
-
-  // cout << "About to pop" << endl;
-  Clause* cl = _queue->pop();
-  // cout << "Got " << cl->number() << endl;
-  // cout << "popped from " << _size << " got " << cl->toString() << endl;
-  _size--;
-
-  if (popCount == _reshuffleAt) {
-    cout << "s: " << cl->number() << '\n';
-  }
-
-  selectedEvent.fire(cl);
-  return cl;
 }
 
 } // namespace Saturation

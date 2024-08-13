@@ -48,52 +48,32 @@ private:
 
   // this is either the logits or the e^(logits/temp)
   // alogn with randomly assigned salts for each clause for tie breaking
-  DHMap<Clause*,SaltedLogit> _scores;
+  DHMap<unsigned,SaltedLogit> _scores;
 public:
   NeuralClauseEvaluationModel(const std::string modelFilePath, const std::string& tweak_str,
     uint64_t random_seed, unsigned num_features, float temperature);
 
-  const DHMap<Clause*,SaltedLogit>& getScores() { return _scores; }
+  const DHMap<unsigned,SaltedLogit>& getScores() { return _scores; }
 
   SaltedLogit evalClause(Clause* cl);
+
+  void evalClauses(UnprocessedClauseContainer& clauses);
 
   // this is a low effort version of evalClause (used for delayedEvaluation deepire-style):
   // namely: if there is no value in the _scores map, it just returns a very optimistic constant
   float getScore(Clause* cl);
 };
 
-class ScoreQueue
-  : public ClauseQueue
-{
-public:
-  ScoreQueue(const DHMap<Clause*,float>& scores) : _scores(scores) {}
-protected:
-  virtual bool lessThan(Clause* c1,Clause* c2) {
-    auto sc1 = _scores.get(c1);
-    auto sc2 = _scores.get(c2);
-    // reversing the order here: NNs think large is good, queues think small is good
-    if (sc1 > sc2) {
-      return true;
-    }
-    if (sc1 < sc2) {
-      return false;
-    }
-
-    return c1->number() < c2->number();
-  }
-private:
-  const DHMap<Clause*,float>& _scores;
-};
-
 class ShuffledScoreQueue
   : public ClauseQueue
 {
 public:
-  ShuffledScoreQueue(const DHMap<Clause*,std::pair<float,unsigned>>& scores) : _scores(scores) {}
+  ShuffledScoreQueue(const DHMap<unsigned,std::pair<float,unsigned>>& scores) : _scores(scores) {}
 protected:
   virtual bool lessThan(Clause* c1,Clause* c2) {
-    auto sc1 = _scores.get(c1);
-    auto sc2 = _scores.get(c2);
+    auto sc1 = _scores.get(c1->number());
+    auto sc2 = _scores.get(c2->number());
+
     // reversing the order here: NNs think large is good, queues think small is good
     if (sc1.first > sc2.first) {
       return true;
@@ -113,7 +93,8 @@ protected:
     return c1->number() < c2->number();
   }
 private:
-  const DHMap<Clause*,std::pair<float,unsigned>>& _scores;
+  // key = clause->number(), value = (actual_float_score,random_tiebreaker)
+  const DHMap<unsigned,std::pair<float,unsigned>>& _scores;
 };
 
 class LRSIgnoringPassiveClauseContainer
@@ -157,39 +138,6 @@ public:
   bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const override { return true; }
 };
 
-class LearnedPassiveClauseContainer
-: public LRSIgnoringPassiveClauseContainer
-{
-protected:
-  virtual float scoreClause(Clause*) = 0;
-public:
-  LearnedPassiveClauseContainer(bool isOutermost, const Shell::Options& opt);
-  virtual ~LearnedPassiveClauseContainer() {}
-
-  unsigned sizeEstimate() const override { return _size; }
-  bool isEmpty() const override { return _size == 0; }
-
-  void add(Clause* cl) override;
-  void remove(Clause* cl) override;
-  Clause* popSelected() override;
-private:
-  DHMap<Clause*,std::pair<float,unsigned>> _scores;
-  ShuffledScoreQueue _queue;
-  unsigned _size;
-  float _temperature;
-};
-
-class LearnedPassiveClauseContainerExperNF12cLoop5
-: public LearnedPassiveClauseContainer
-{
-public:
-  LearnedPassiveClauseContainerExperNF12cLoop5(bool isOutermost, const Shell::Options& opt) :
-    LearnedPassiveClauseContainer(isOutermost,opt) {}
-  ~LearnedPassiveClauseContainerExperNF12cLoop5() override {}
-protected:
-  float scoreClause(Clause*) override;
-};
-
 /**
  * A neural single queue solution to clause selection.
  */
@@ -216,6 +164,39 @@ private:
 
   unsigned _size;
   unsigned _reshuffleAt;
+};
+
+class LearnedPassiveClauseContainer
+: public LRSIgnoringPassiveClauseContainer
+{
+protected:
+  virtual float scoreClause(Clause*) = 0;
+public:
+  LearnedPassiveClauseContainer(bool isOutermost, const Shell::Options& opt);
+  virtual ~LearnedPassiveClauseContainer() {}
+
+  unsigned sizeEstimate() const override { return _size; }
+  bool isEmpty() const override { return _size == 0; }
+
+  void add(Clause* cl) override;
+  void remove(Clause* cl) override;
+  Clause* popSelected() override;
+private:
+  DHMap<unsigned,std::pair<float,unsigned>> _scores;
+  ShuffledScoreQueue _queue;
+  unsigned _size;
+  float _temperature;
+};
+
+class LearnedPassiveClauseContainerExperNF12cLoop5
+: public LearnedPassiveClauseContainer
+{
+public:
+  LearnedPassiveClauseContainerExperNF12cLoop5(bool isOutermost, const Shell::Options& opt) :
+    LearnedPassiveClauseContainer(isOutermost,opt) {}
+  ~LearnedPassiveClauseContainerExperNF12cLoop5() override {}
+protected:
+  float scoreClause(Clause*) override;
 };
 
 };

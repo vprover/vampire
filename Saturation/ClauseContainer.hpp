@@ -98,8 +98,9 @@ public:
   UnprocessedClauseContainer() : _data(64) {}
   void add(Clause* c) override;
   Clause* pop();
-  bool isEmpty() const
-  { return _data.isEmpty(); }
+  bool isEmpty() const { return _data.isEmpty(); }
+  unsigned size() const { return _data.size(); }
+  Deque<Clause*>::Iterator iter() { return Deque<Clause*>::Iterator(_data); }
 private:
   Deque<Clause*> _data;
 };

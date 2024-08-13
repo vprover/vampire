@@ -49,7 +49,7 @@ class SoftmaxClauseQueue :
 protected:
   class Node;
 public:
-  SoftmaxClauseQueue(const DHMap<Clause*,std::pair<float,unsigned>>& scores, bool talkative);
+  SoftmaxClauseQueue(const DHMap<unsigned,std::pair<float,unsigned>>& scores, bool talkative);
   virtual ~SoftmaxClauseQueue() override;
   void insert(Clause*) override;
   bool remove(Clause*) override;
@@ -97,7 +97,7 @@ protected:
   float _total;
 
   typedef std::pair<float,unsigned> ScoreInfo; // the pair means: (the actual score, distinguishing random salt)
-  const DHMap<Clause*,ScoreInfo>& _scores;
+  const DHMap<unsigned,ScoreInfo>& _scores;
 
   bool lessThan(Clause* c1, ScoreInfo sc1, Clause* c2);
 public:
