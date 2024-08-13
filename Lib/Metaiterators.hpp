@@ -626,67 +626,6 @@ FlatMapIter<Inner,Functor> getMapAndFlattenIterator(Inner it, Functor f)
 	  MappingIterator<Inner,Functor>(std::move(it), f) );
 }
 
-/**
- * Iterator that in its constructor stores elements of an inner iterator
- * and then returns these elements later in the same order
- *
- * The iterator object does not contain the copy constructor or
- * the operator=. If this behavior is required, it should be created
- * on the heap and pointer to it put inside a VirtualIterator object.
- *
- * This iterator should be used when a resource held by an iterator
- * needs to be released before the elements of the iterator are required.
- *
- * @see VirtualIterator
- */
-template<class Inner>
-class PersistentIterator
-: public IteratorCore<ELEMENT_TYPE(Inner)>
-{
-public:
-  typedef ELEMENT_TYPE(Inner) T;
-  explicit PersistentIterator(Inner inn)
-  : _items(0)
-  {
-    List<T>** ptr=&_items;
-    while(inn.hasNext()) {
-      *ptr=new List<T>(inn.next());
-      ptr=&(*ptr)->tailReference();
-    }
-  }
-  ~PersistentIterator()
-  {
-    if(_items) {
-      List<T>::destroy(_items);
-    }
-  }
-  inline bool hasNext() { return _items; };
-  inline
-  T next()
-  {
-    return List<T>::pop(_items);
-  };
-private:
-  List<T>* _items;
-};
-
-/**
- * Return iterator that stores values of @b it in its constructor,
- * and then yields them in the same order
- *
- * After the call to this function, the iterator @b it and any resources
- * it holds may be released, since the elements are stored independently
- * of it.
- *
- * @see PersistentIterator
- */
-template<class Inner>
-inline
-VirtualIterator<ELEMENT_TYPE(Inner)> getPersistentIterator(Inner it)
-{
-  return vi( new PersistentIterator<Inner>(it) );
-}
-
 
 /**
  * Iterator that in its constructor stores elements of an inner iterator
@@ -1750,5 +1689,19 @@ STLIterator<Iterator> getSTLIterator(Iterator begin, Iterator end)
 {
   return STLIterator<Iterator>(begin, end);
 }
+
+/**
+ * Return iterator that stores values of @b it in its constructor,
+ * and then yields them in the same order
+ *
+ * After the call to this function, the iterator @b it and any resources
+ * it holds may be released, since the elements are stored independently
+ * of it.
+ *
+ * @see PersistentIterator
+ */
+template<class Inner>
+auto getPersistentIterator(Inner it)
+{ return pvi(arrayIter(iterTraits(it).template collect<Stack>())); }
 
 #endif /* __Metaiterators__ */
