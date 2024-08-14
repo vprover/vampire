@@ -1187,6 +1187,7 @@ void SaturationAlgorithm::activate(Clause* cl)
           // Could check this beforehand
           USER_ERROR("External declaration qantifiers should nest a positive literal and not "+f->toString());
         }
+        (void)foralls; // shall we need the foralls?
         if (lit->functor() == ext_lit->functor()) { // we have a pre-match
           Signature::Symbol* symb = env.signature->getPredicate(lit->functor());
           std::string query = "\""+symb->name()+"(";
@@ -1204,11 +1205,16 @@ void SaturationAlgorithm::activate(Clause* cl)
               unsigned ext_arg_var = ext_arg.var();
               if (arg.isVar()) {
                 // the corresponding ext_arg should be part of the exists block
-                if (!VList::member(ext_arg_var,exists)) break;
+                if (!VList::member(ext_arg_var,exists)) {
+                  break;
+                }
               } else {
-                // should be ground (ideally a constant, but let's not be that strict) and the corresponding ext_arg part of the forall block
+                // should be ground (ideally a constant, but let's not be that strict)
+                // the corresponding ext_arg part does not necessarily be part of the forall block (if it's exists, all the better)
                 Term* t = arg.term();
-                if (!t->ground() || !VList::member(ext_arg_var,foralls)) break;
+                if (!t->ground()) {
+                  break;
+                }
               }
             }
             if (j > 0) query += ",";
@@ -1216,10 +1222,10 @@ void SaturationAlgorithm::activate(Clause* cl)
           }
           if (j == symb->arity()) { // all went through nicely, let's do the question asking
             query += ")\"";
-            // cout << "Would ask " +query+ " for " << lit->toString() << " through " << es.f->toString() << endl;
+            cout << "About to ask " +query+ " for " << lit->toString() << " through " << es.f->toString() << endl;
             if (!List<std::string>::member(query,es.already_asked)) { // unless already asked
               std::string answers = System::executeCommand((es.exec + " " + query).c_str());
-              // cout << "Got back " << answers << endl;
+              cout << "Got back " << answers << endl;
               Stack<std::string> lines;
               StringUtils::splitStr(answers.c_str(),'\n',lines);
               StringUtils::dropEmpty(lines);
@@ -1227,10 +1233,12 @@ void SaturationAlgorithm::activate(Clause* cl)
               for (j=0; j < lines.size(); j++) {
                 Clause* ext_cl = Parse::TPTP::parseClauseFromString(lines[j]);
                 ext_cl->setInputType(UnitInputType::EXTERNAL_SOURCE);
-                //cout << "read " << ext_cl->toString() << endl;
+                // cout << "read " << ext_cl->toString() << endl;
                 ClauseList::push(ext_cl,external_newcomers);
               }
               List<std::string>::push(query,es.already_asked);
+            } else {
+              cout << "... but already did." << endl;
             }
           }
         }
