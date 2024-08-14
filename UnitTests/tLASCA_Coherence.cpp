@@ -315,3 +315,14 @@ TEST_GENERATION(factors_7,
           /* nothing */
       ))
     )
+
+TEST_FUN(bla_bla) {
+  PartitionIter iter(6);
+  for (auto _ : range(0, 1000)) {
+    std::cout << iter << std::endl;
+    if (!iter.nextPartition())  {
+      std::cout << "finished" << std::endl;
+      break;
+    }
+  }
+}
