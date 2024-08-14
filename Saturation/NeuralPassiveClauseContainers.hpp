@@ -158,7 +158,7 @@ public:
 private:
   // this is either ShuffledScoreQueue (over the logits) for opt.npccTemperature()
   // or SoftmaxClauseQueue (for e^logits/temp) for opt.npccTemperature() > 0
-  SmartPtr<AbstractClauseQueue> _queue;
+  ScopedPtr<AbstractClauseQueue> _queue;
 
   NeuralClauseEvaluationModel& _model;
 

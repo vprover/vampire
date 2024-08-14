@@ -195,9 +195,9 @@ NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, con
   ASS(_isOutermost);
 
   if (opt.npccTemperature() == 0.0) {
-    _queue = SmartPtr<AbstractClauseQueue>(new ShuffledScoreQueue(_model.getScores()));
+    _queue = new ShuffledScoreQueue(_model.getScores());
   } else {
-    _queue = SmartPtr<AbstractClauseQueue>(new SoftmaxClauseQueue(_model.getScores(), opt.showPassiveTraffic()));
+    _queue = new SoftmaxClauseQueue(_model.getScores(), opt.showPassiveTraffic());
   }
 }
 
