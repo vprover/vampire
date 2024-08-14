@@ -315,14 +315,55 @@ TEST_GENERATION(factors_7,
           /* nothing */
       ))
     )
+//
+unsigned factorial(unsigned n) {
+  if (n <= 1) {
+    return 1;
+  } else {
+    return n * factorial(n - 1);
+  }
+}
+unsigned choices(unsigned n, unsigned k) {
+  ASS(n >= k)
+  return factorial(n) / factorial(n - k);
+}
+
+// unsigned bellNumber(unsigned n) {
+//   if (n == 0) {
+//     return 1;
+//   } else {
+//     return range(0, n)
+//       .map([n](auto k) { 
+//           return choices(n - 1, k) * bellNumber(k);
+//       }).sum();
+//   }
+// }
+
+
+unsigned bellNumber(unsigned n) {
+  ASS(n != 0)
+  RStack<unsigned> triangle;
+  triangle->push(1);
+  unsigned start0 = 0;
+  unsigned len0 = 1;
+  while (n != 1) {
+    unsigned start1 = triangle->size() - 1;
+    for (unsigned i : range(0, len0)) {
+      triangle->push(triangle[start0 + i] + triangle[start1 + i]);
+    }
+    len0 += 1;
+    start0 = start1;
+    n--;
+  }
+  return triangle->top();
+}
 
 TEST_FUN(bla_bla) {
-  PartitionIter iter(6);
-  for (auto _ : range(0, 1000)) {
+  auto N = 6;
+  PartitionIter iter(N);
+  for (auto i : range(1, bellNumber(N))) {
     std::cout << iter << std::endl;
-    if (!iter.nextPartition())  {
-      std::cout << "finished" << std::endl;
-      break;
-    }
+    ASS_REP(iter.nextPartition(), i)
   }
+  ASS(!iter.nextPartition())
 }

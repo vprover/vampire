@@ -53,174 +53,64 @@ Iter assertIter(Iter iter) {
 }
 
 struct PartitionIter {
-  struct Partition {
+  Stack<unsigned> elems;
+  Stack<unsigned> partitions;
+
+  struct Subset {
     PartitionIter const* parent;
-    unsigned startIdx;
-    Stack<unsigned> const* self;
-    friend std::ostream& operator<<(std::ostream& out, Partition const& self)
-    { return out << outputCatOwned(
-                "["
-                , outputInterleaved(", ", range(0, self.self->size() + 1)
-                  .map([&self](auto i) -> decltype(auto) { return self.parent->elems[self.startIdx + i]; }))
-                , "]"
-                ); 
+    unsigned idx;
+    friend std::ostream& operator<<(std::ostream& out, Subset const& self)
+    { return out << "[" << 
+      outputInterleaved(", ", 
+        range(0, self.parent->elems.size())
+        .filterMap([&](auto i) { return someIf(self.parent->partitions[i] == self.idx, [&]() { return self.parent->elems[i]; } ); })
+        )
+        << "]"; 
     }
   };
-  Stack<unsigned> elems;
 
   PartitionIter(unsigned N) 
     : elems(range(0, N).template collect<Stack>())
-    , partitions(range(0, N).map([](auto){ return Stack<unsigned>(); }).template collect<Stack>())
+    , partitions(range(0, N).template collect<Stack>())
   { }
 
-  auto currentPartitions() const {
-    return arrayIter(partitions)
-          .map([start = unsigned(0),this](auto& x) mutable { 
-            auto size = x.size() + 1;
-            auto out = Partition {
-              .parent = this,
-              .startIdx = start,
-              .self = &x,
-            };
-            start += size;
-            return out;
-          });
+  // TODO
+  auto maxPartition() const { return arrayIter(partitions).map([](auto& x) -> unsigned { return x; }).max().unwrap(); }
+
+  auto currentSubsets() const {
+    return range(0, maxPartition() +  1)
+      .map([this](auto i) { return Subset { .parent = this, .idx = i, };  });
   }
 
   friend std::ostream& operator<<(std::ostream& out, PartitionIter const& self)
-  { 
+  { return out << outputInterleaved("", self.currentSubsets()); }
 
-    return out 
-      // << std::endl 
-      << outputInterleaved(" ", self.currentPartitions())
-        // << std::endl 
-        // << outputInterleaved(" ", 
-        //     arrayIter(self.partitions)
-        //       .map([](auto& x) { 
-        //         auto out = outputCatOwned(
-        //             "["
-        //             // , outputInterleaved(", ", arrayIter(x))
-        //             , outputInterleaved(", ", concatIters(iterItems(0), arrayIter(x)))
-        //             , "]"
-        //             );
-        //         return out;
-        //       })
-        //     )
-        ;
-
-    return out 
-      // << std::endl 
-      << outputInterleaved(" ", 
-        arrayIter(self.partitions)
-          .map([start = 0,&self](auto& x) mutable { 
-            auto size = x.size() + 1;
-            auto out = outputCatOwned(
-                "["
-                , outputInterleaved(", ", range(0, size)
-                  .map([&self,start](auto i) -> decltype(auto) { return self.elems[start + i]; }))
-                , "]"
-                );
-            start += size;
-            return out;
-          })
-        )
-        // << std::endl 
-        // << outputInterleaved(" ", 
-        //     arrayIter(self.partitions)
-        //       .map([](auto& x) { 
-        //         auto out = outputCatOwned(
-        //             "["
-        //             // , outputInterleaved(", ", arrayIter(x))
-        //             , outputInterleaved(", ", concatIters(iterItems(0), arrayIter(x)))
-        //             , "]"
-        //             );
-        //         return out;
-        //       })
-        //     )
-        ;
-
+  void decrement(unsigned i) {
+    partitions[i]--;
+    auto max = maxPartition();
+    for (auto j : range(i + 1, partitions.size())) {
+      partitions[j] = ++max;
+    }
+    ASS_EQ(maxPartition(), max)
   }
 
-  // TODO use RStack everywhere
-  // every element is a sorted stack of indices. 
-  //
-  // partitions[0] subset {1 .. N}
-  // partitions[1] subset {1 .. N - partitions[0].size()}
-  // partitions[2] subset {1 .. N - partitions[0].size() - partitions[1].size()}
-  // ...
-  // partitions[n] subset {1 .. N - partitions[0].size() ... - partitions[n - 1].size()}
-  //
-  // They encode partittions as follows:
-  //
-  // - We have n partitions of the set {0 .. N}
-  // - i in partition 0 <=> i == 0 or i in partitions[0]
-  // - i in partition 1 <=>     i - partitions[0].size() - 1 == 0
-  //                        or  i - partitions[0].size() - 1 in partitions[1]
-  // - i in partition 2 <=>     i - partitions[0].size() - 1 - partitions[1].size() - 1 == 
-  //                        or  i - partitions[0].size() - 1 - partitions[1].size() - 1 in partitions[2]
-  // ...
-  // - i in partition j <=>     i - partitions[0].size() - 1 ... - partitions[j].size() - 1 == 
-  //                        or  i - partitions[0].size() - 1 ... - partitions[1].size() - 1 in partitions[2]
-  Stack<Stack<unsigned>> partitions;
+  bool isDecrementable(unsigned i) 
+  { return partitions[i] != 0; }
 
   bool nextPartition() {
-    auto swap = [&](auto& l, auto& r) {
-      std::swap(l, r);
-      // DBG("swap(", l, ",", r, "): ", elems)
-    };
-    while (partitions.size() != 0) {
-
-      DBG_PARTITION_ITER(0, "popping");
-      auto last = partitions.pop();
-      auto removed = last.size() + 1;
-      if (partitions.size() == 0) {
-        return false;
-      } else {
-        auto topStartIdx = elems.size() - removed - (partitions.top().size() + 1);
-        auto topSetSize = elems.size() - topStartIdx;
-        auto& top = partitions.top();
-        auto topSizeOld = top.size();
-      
-        /* trying to count up */
-
-        /* popping "overflowing digits" */
-        auto overflows = 0;
-        while(top.isNonEmpty() && top.top() >= top.size() + removed - overflows) {
-          auto idx = top.pop();
-          swap(elems[topStartIdx + top.size() + 1], elems[topStartIdx + idx]);
-          overflows++;
-        }
-
-        if (top.isEmpty()) {
-          DBG_PARTITION_ITER(0, "extending");
-          /* counting up not possible. we need to grow p */
-          top.loadFromIterator(range(1, topSizeOld + 2));
-          ASS_EQ(top.size(), topSizeOld + 1)
-        } else {
-          DBG_PARTITION_ITER(0, "incrementing");
-          /* actual counting up */
-          swap(elems[topStartIdx + top.size()], elems[topStartIdx + top.top()]);
-          top.top()++;
-          swap(elems[topStartIdx + top.size()], elems[topStartIdx + top.top()]);
-          while (overflows != 0) {
-            overflows--;
-            top.push(top.top() + 1);
-          }
-          ASS_EQ(top.size(), topSizeOld)
-        }
-        auto left = topSetSize - top.size() - 1;
-        if (left != 0) {
-          DBG_PARTITION_ITER(0, "filling up");
-          range(0, left)
-            .forEach([&](auto) { partitions.push(Stack<unsigned>()); });
-        }
+    ASS_EQ(partitions[0], 0)
+    if (maxPartition() == 0) {
+      return false;
+    }
+    for (unsigned i : range(0, partitions.size()).reverse()) {
+      if (isDecrementable(i)) {
+        decrement(i);
+        // DBGE(partitions)
         return true;
       }
     }
     return false;
   }
-
-
 };
 
 template<class NumTraits>
