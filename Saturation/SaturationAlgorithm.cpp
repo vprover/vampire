@@ -198,7 +198,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Optio
   }
 }
 
-std::unique_ptr<PassiveClauseContainer> makeLevel5(bool isOutermost, const Options& opt, std::string name, NeuralClauseEvaluationModel& neuralModel)
+std::unique_ptr<PassiveClauseContainer> makeLevel5(bool isOutermost, const Options& opt, std::string name, NeuralClauseEvaluationModel* neuralModel)
 {
   if (opt.useNeuralEvalSplitQueues()) {
     std::vector<std::unique_ptr<PassiveClauseContainer>> queues;
@@ -207,7 +207,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel5(bool isOutermost, const Optio
       auto queueName = name + "NLSQ" + Int::toString(cutoffs[i]) + ":";
       queues.push_back(makeLevel4(false, opt, queueName));
     }
-    return std::make_unique<NeuralEvalSplitPassiveClauseContainer>(isOutermost, opt, name + "NLSQ", std::move(queues), neuralModel);
+    return std::make_unique<NeuralEvalSplitPassiveClauseContainer>(isOutermost, opt, name + "NLSQ", std::move(queues), *neuralModel);
   }
   else {
     return makeLevel4(isOutermost, opt, name);
@@ -258,7 +258,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _passive = std::make_unique<ManCSPassiveClauseContainer>(true, opt);
   }
   else {
-    _passive = makeLevel5(true, opt, "", *_neuralModel);
+    _passive = makeLevel5(true, opt, "", _neuralModel.ptr());
   }
   _active = new ActiveClauseContainer(opt);
 
@@ -980,7 +980,7 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
   TIME_TRACE("forward simplification");
 
   if (!_passive->fulfilsAgeLimit(cl) && !_passive->fulfilsWeightLimit(cl)) {
-    RSTAT_CTR_INC("clauses discarded by weight limit in forward simplification");
+    RSTAT_CTR_INC("clauses discarded by limit in forward simplification");
     env.statistics->discardedNonRedundantClauses++;
     return false;
   }
@@ -1260,7 +1260,9 @@ start:
   newClausesToUnprocessed();
 
   // pre-evaluation incoming clauses ideally in one bulk
-  _neuralModel->evalClauses(*_unprocessed);
+  if (_neuralModel && _opt.neuralPassiveClauseContainer()) {
+    _neuralModel->evalClauses(*_unprocessed);
+  }
   /* Note that this will not pre-evaluate all incoming clauses
    * (and so a later call to _neuralModel->evalClause inside the container is needed).
    * Namely, children of forward simplified unprocessed, will enter the below loop

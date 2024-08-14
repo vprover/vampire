@@ -101,12 +101,13 @@ NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string model
 #endif
 }
 
-float NeuralClauseEvaluationModel::getScore(Clause* cl) {
+NeuralClauseEvaluationModel::SaltedLogit NeuralClauseEvaluationModel::tryGetScore(Clause* cl) {
   SaltedLogit* someVal = _scores.findPtr(cl->number());
   if (someVal) {
-    return someVal->first;
+    return *someVal;
   }
-  return std::numeric_limits<float>::max();
+  // a very optimistic constant (since large is good)
+  return std::make_pair(std::numeric_limits<float>::max(),std::numeric_limits<unsigned>::max());
 }
 
 NeuralClauseEvaluationModel::SaltedLogit NeuralClauseEvaluationModel::evalClause(Clause* cl) {
@@ -190,7 +191,8 @@ void NeuralClauseEvaluationModel::evalClauses(Saturation::UnprocessedClauseConta
 }
 
 NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, NeuralClauseEvaluationModel& model)
-  : LRSIgnoringPassiveClauseContainer(isOutermost, opt), _model(model), _size(0), _reshuffleAt(opt.reshuffleAt())
+  : LRSIgnoringPassiveClauseContainer(isOutermost, opt),
+  _model(model), _size(0), _reshuffleAt(opt.reshuffleAt())
 {
   ASS(_isOutermost);
 
@@ -249,6 +251,60 @@ Clause* NeuralPassiveClauseContainer::popSelected()
   selectedEvent.fire(cl);
   return cl;
 }
+
+bool NeuralPassiveClauseContainer::setLimits(std::pair<float,unsigned> newLimit)
+{
+  bool thighened = newLimit.first < _curLimit.first || (newLimit.first == _curLimit.first && newLimit.second < _curLimit.second);
+  _curLimit = newLimit;
+  return thighened;
+}
+
+void NeuralPassiveClauseContainer::simulationInit()
+{
+  ASS_EQ(env.options->npccTemperature(),0.0); // in other words, _queue must be a ShuffledScoreQueue
+  _simulationIt = new ClauseQueue::Iterator(*reinterpret_cast<ShuffledScoreQueue*>(_queue.ptr()));
+}
+
+bool NeuralPassiveClauseContainer::simulationHasNext()
+{
+  return _simulationIt->hasNext();
+}
+
+void NeuralPassiveClauseContainer::simulationPopSelected()
+{
+  _simulationIt->next();
+}
+
+bool NeuralPassiveClauseContainer::setLimitsFromSimulation()
+{
+  if (_simulationIt->hasNext()) {
+    return setLimits(_model.getScores().get(_simulationIt->next()->number()));
+  } else {
+    return setLimitsToMax();
+  }
+}
+
+void NeuralPassiveClauseContainer::onLimitsUpdated()
+{
+  static Stack<Clause*> toRemove(256);
+  simulationInit(); // abused to setup fresh _simulationIt
+  while (_simulationIt->hasNext()) {
+    Clause* cl = _simulationIt->next();
+    if (exceedsLimit(cl)) {
+      toRemove.push(cl);
+    }
+  }
+
+  // cout << "Will remove " << toRemove.size() << " from passive through LRS update" << endl;
+
+  while (toRemove.isNonEmpty()) {
+    Clause* removed=toRemove.pop();
+    RSTAT_CTR_INC("clauses discarded from passive on limit update");
+    env.statistics->discardedNonRedundantClauses++;
+    remove(removed);
+  }
+}
+
 
 LearnedPassiveClauseContainer::LearnedPassiveClauseContainer(bool isOutermost, const Shell::Options& opt)
   : LRSIgnoringPassiveClauseContainer(isOutermost, opt), _scores(), _queue(_scores), _size(0), _temperature(opt.npccTemperature())

@@ -56,12 +56,11 @@ public:
   const DHMap<unsigned,SaltedLogit>& getScores() { return _scores; }
 
   SaltedLogit evalClause(Clause* cl);
-
   void evalClauses(UnprocessedClauseContainer& clauses);
 
-  // this is a low effort version of evalClause (used for delayedEvaluation deepire-style):
+  // this is a low-effort version of evalClause (used, among other things, for delayedEvaluation deepire-style):
   // namely: if there is no value in the _scores map, it just returns a very optimistic constant
-  float getScore(Clause* cl);
+  SaltedLogit tryGetScore(Clause* cl);
 };
 
 class ShuffledScoreQueue
@@ -154,6 +153,50 @@ public:
   void remove(Clause* cl) override;
 
   Clause* popSelected() override;
+
+  /*
+   * LRS specific methods for computation of Limits
+   */
+private:
+  // we use min, because scores and salts are compared inverted (not as e.g. age and weigth)
+  static constexpr std::pair<float,unsigned> _minLimit = std::make_pair(-std::numeric_limits<float>::max(),std::numeric_limits<unsigned>::min());
+  std::pair<float,unsigned> _curLimit = _minLimit; // effectively no limit
+  ScopedPtr<ClauseQueue::Iterator> _simulationIt;
+
+  bool setLimits(std::pair<float,unsigned> newLimit);
+  bool exceedsLimit(Clause* cl) const {
+    auto score = _model.tryGetScore(cl);
+    // std::cout << "score "<<score.first << "," << score.second << "  " << _curLimit.first << "," << _curLimit.second << std::endl;
+    return score.first < _curLimit.first || (score.first == _curLimit.first && score.second < _curLimit.second);
+  }
+public:
+  void simulationInit() override;
+  bool simulationHasNext() override;
+  void simulationPopSelected() override;
+
+  // returns whether at least one of the limits was tightened
+  bool setLimitsToMax() override { _curLimit = _minLimit; return false; }
+  // returns whether at least one of the limits was tightened
+  bool setLimitsFromSimulation() override;
+  void onLimitsUpdated() override;
+
+  /*
+   * LRS specific methods and fields for usage of limits
+   */
+  bool ageLimited() const override { return _curLimit != _minLimit; }
+  bool weightLimited() const override { return _curLimit != _minLimit; }
+
+  bool fulfilsAgeLimit(Clause* cl) const override { return !exceedsLimit(cl); }
+  // note: w here denotes the weight as returned by weight().
+  // this method internally takes care of computing the corresponding weightForClauseSelection.
+
+  bool fulfilsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override { return true; }
+  bool fulfilsWeightLimit(Clause* cl) const override { return !exceedsLimit(cl); }
+  // note: w here denotes the weight as returned by weight().
+  // this method internally takes care of computing the corresponding weightForClauseSelection.
+  bool fulfilsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override { return true; }
+
+  bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const override { return true; }
 
 private:
   // this is either ShuffledScoreQueue (over the logits) for opt.npccTemperature()
