@@ -60,11 +60,6 @@ AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell
   _ageSelectionMaxWeight(UINT_MAX),
   _weightSelectionMaxWeight(UINT_MAX)
 {
-  if(_opt.ageWeightRatioShape() == Options::AgeWeightRatioShape::CONVERGE) {
-    _ageRatio = 1;
-    _weightRatio = 1;
-  }
-
   ASS_GE(_ageRatio, 0);
   ASS_GE(_weightRatio, 0);
   ASS(_ageRatio > 0 || _weightRatio > 0);
@@ -253,32 +248,6 @@ Clause* AWPassiveClauseContainer::popSelected()
 {
   ASS( ! isEmpty());
 
-  auto shape = _opt.ageWeightRatioShape();
-  unsigned frequency = _opt.ageWeightRatioShapeFrequency();
-  static unsigned count = 0;
-  count++;
-
-  bool is_converging = shape == Options::AgeWeightRatioShape::CONVERGE;
-  int targetAgeRatio = is_converging ? _opt.ageRatio() : 1;
-  int targetWeightRatio = is_converging ? _opt.weightRatio() : 1;
-
-  if(count % frequency == 0) {
-    switch(shape) {
-    case Options::AgeWeightRatioShape::CONSTANT:
-      break;
-    case Options::AgeWeightRatioShape::DECAY:
-    case Options::AgeWeightRatioShape::CONVERGE:
-      int ageDifference = targetAgeRatio - _ageRatio;
-      int weightDifference = targetWeightRatio - _weightRatio;
-      int bonus = is_converging ? 1 : -1;
-      int ageUpdate = (ageDifference + bonus) / 2;
-      int weightUpdate = (weightDifference + bonus) / 2;
-
-      _ageRatio += ageUpdate;
-      _weightRatio += weightUpdate;
-   }
-  }
-  //std::cerr << _ageRatio << "\t" << _weightRatio << std::endl;
   _size--;
 
   Clause* cl;
