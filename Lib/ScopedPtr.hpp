@@ -39,8 +39,7 @@ public:
    * Create a scoped pointer containing pointer @b obj
    */
   inline
-  explicit ScopedPtr(T* obj)
-  : _obj(obj) {ASS(obj);}
+  explicit ScopedPtr(T* obj) : _obj(obj) {}
   inline
   ~ScopedPtr()
   {
