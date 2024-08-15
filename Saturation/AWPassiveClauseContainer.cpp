@@ -42,6 +42,95 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
+/**
+ * Weight comparison of clauses.
+ * @return the result of comparison (LESS, EQUAL or GREATER)
+ * @warning if the option increased_numeral_weight is on, then each comparison
+ *          recomputes the numeral weight of clauses, see Clause::getNumeralWeight(), so it
+ *          it can be expensive
+ */
+static Comparison compareWeight(Clause* cl1, Clause* cl2, const Options& opt)
+{
+  return Int::compare(cl1->weightForClauseSelection(opt), cl2->weightForClauseSelection(opt));
+}
+
+/**
+ * Comparison of clauses. The comparison uses four orders in the
+ * following order:
+ * <ol><li>by age;</li>
+ *     <li>by weight;</li>
+ *     <li>by input type;</li>
+ *     <li>by number.</li>
+ * </ol>
+ * @since 30/12/2007 Manchester
+ */
+bool AgeQueue::lessThan(Clause* c1,Clause* c2)
+{
+  if (c1->age() < c2->age()) {
+    return true;
+  }
+  if (c2->age() < c1->age()) {
+    return false;
+  }
+
+  Comparison weightCmp=compareWeight(c1, c2, _opt);
+  if (weightCmp!=EQUAL) {
+    return weightCmp==LESS;
+  }
+
+  if (c1->inputType() < c2->inputType()) {
+    return false;
+  }
+  if (c2->inputType() < c1->inputType()) {
+    return true;
+  }
+
+  return c1->number() < c2->number();
+} // AgeQueue::lessThan
+
+/**
+ * Comparison of clauses. The comparison uses four orders in the
+ * following order:
+ * <ol><li>by weight;</li>
+ *     <li>by age;</li>
+ *     <li>by input type;</li>
+ *     <li>by number.</li>
+ * </ol>
+ * @since 30/12/2007 Manchester
+ */
+bool WeightQueue::lessThan(Clause* c1,Clause* c2)
+{
+  if(env.options->prioritiseClausesProducedByLongReduction()){
+    if(c1->inference().reductions() < c2->inference().reductions()){
+      return false;
+    }
+
+    if(c2->inference().reductions() < c1->inference().reductions()){
+      return true;
+    }
+  }
+
+  Comparison weightCmp=compareWeight(c1, c2, _opt);
+  if (weightCmp!=EQUAL) {
+    return weightCmp==LESS;
+  }
+
+  if (c1->age() < c2->age()) {
+    return true;
+  }
+  if (c2->age() < c1->age()) {
+    return false;
+  }
+  if (c1->inputType() < c2->inputType()) {
+    return false;
+  }
+  if (c2->inputType() < c1->inputType()) {
+    return true;
+  }
+  return c1->number() < c2->number();
+} // WeightQueue::lessThan
+
+
 AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, std::string name) :
   PassiveClauseContainer(isOutermost, opt, name),
   _ageQueue(opt),
@@ -75,96 +164,6 @@ AWPassiveClauseContainer::~AWPassiveClauseContainer()
     cl->setStore(Clause::NONE);
   }
 }
-
-
-/**
- * Weight comparison of clauses.
- * @return the result of comparison (LESS, EQUAL or GREATER)
- * @warning if the option increased_numeral_weight is on, then each comparison
- *          recomputes the numeral weight of clauses, see Clause::getNumeralWeight(), so it
- *          it can be expensive
- */
-Comparison AWPassiveClauseContainer::compareWeight(Clause* cl1, Clause* cl2, const Options& opt)
-{
-  return Int::compare(cl1->weightForClauseSelection(opt), cl2->weightForClauseSelection(opt));
-}
-
-/**
- * Comparison of clauses. The comparison uses four orders in the
- * following order:
- * <ol><li>by weight;</li>
- *     <li>by age;</li>
- *     <li>by input type;</li>
- *     <li>by number.</li>
- * </ol>
- * @since 30/12/2007 Manchester
- */
-bool WeightQueue::lessThan(Clause* c1,Clause* c2)
-{
-  if(env.options->prioritiseClausesProducedByLongReduction()){
-    if(c1->inference().reductions() < c2->inference().reductions()){
-      return false;
-    }
-
-    if(c2->inference().reductions() < c1->inference().reductions()){
-      return true;
-    }
-  }
-
-  Comparison weightCmp=AWPassiveClauseContainer::compareWeight(c1, c2, _opt);
-  if (weightCmp!=EQUAL) {
-    return weightCmp==LESS;
-  }
-
-  if (c1->age() < c2->age()) {
-    return true;
-  }
-  if (c2->age() < c1->age()) {
-    return false;
-  }
-  if (c1->inputType() < c2->inputType()) {
-    return false;
-  }
-  if (c2->inputType() < c1->inputType()) {
-    return true;
-  }
-  return c1->number() < c2->number();
-} // WeightQueue::lessThan
-
-
-/**
- * Comparison of clauses. The comparison uses four orders in the
- * following order:
- * <ol><li>by age;</li>
- *     <li>by weight;</li>
- *     <li>by input type;</li>
- *     <li>by number.</li>
- * </ol>
- * @since 30/12/2007 Manchester
- */
-bool AgeQueue::lessThan(Clause* c1,Clause* c2)
-{
-  if (c1->age() < c2->age()) {
-    return true;
-  }
-  if (c2->age() < c1->age()) {
-    return false;
-  }
-
-  Comparison weightCmp=AWPassiveClauseContainer::compareWeight(c1, c2, _opt);
-  if (weightCmp!=EQUAL) {
-    return weightCmp==LESS;
-  }
-
-  if (c1->inputType() < c2->inputType()) {
-    return false;
-  }
-  if (c2->inputType() < c1->inputType()) {
-    return true;
-  }
-
-  return c1->number() < c2->number();
-} // WeightQueue::lessThan
 
 /**
  * Add @b c clause in the queue.

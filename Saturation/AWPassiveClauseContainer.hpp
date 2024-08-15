@@ -35,11 +35,7 @@ class AgeQueue
 public:
   AgeQueue(const Options& opt) : _opt(opt) {}
 protected:
-
   virtual bool lessThan(Clause*,Clause*);
-
-  friend class AWPassiveClauseContainer;
-
 private:
   const Shell::Options& _opt;
 };
@@ -51,8 +47,6 @@ public:
   WeightQueue(const Options& opt) : _opt(opt) {}
 protected:
   virtual bool lessThan(Clause*,Clause*);
-
-  friend class AWPassiveClauseContainer;
 private:
   const Shell::Options& _opt;
 };
@@ -79,8 +73,6 @@ public:
   { return _ageQueue.isEmpty() && _weightQueue.isEmpty(); }
 
   unsigned sizeEstimate() const override { return _size; }
-
-  static Comparison compareWeight(Clause* cl1, Clause* cl2, const Shell::Options& opt);
 
 private:
   /** The age queue, empty if _ageRatio=0 */
