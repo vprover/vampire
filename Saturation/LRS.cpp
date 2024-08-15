@@ -14,6 +14,7 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/Timer.hpp"
+#include "Lib/ScopedPtr.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Kernel/Clause.hpp"
@@ -23,13 +24,7 @@
 
 #include "LRS.hpp"
 
-#define DETERMINISE_LRS_SAVE 0
-#define DETERMINISE_LRS_LOAD 0
-
-#if DETERMINISE_LRS_SAVE || DETERMINISE_LRS_LOAD
 #include <fstream>
-#endif
-
 namespace Saturation
 {
 
@@ -78,18 +73,18 @@ bool LRS::shouldUpdateLimits()
  */
 long long LRS::estimatedReachableCount()
 {
-#if DETERMINISE_LRS_LOAD
-  static std::ifstream infile("lrs_data.txt");
-  long long thing;
-  if (infile >> thing) {
-    cout << "reading " << thing << endl;
-    return thing;
+  static ScopedPtr<std::ifstream> infile((!env.options->lrsLoadTraceFile().empty()) ? new std::ifstream(env.options->lrsLoadTraceFile()) : 0);
+  if (infile) {
+    long long thing;
+    if (*infile >> thing) {
+      // cout << "reading " << thing << endl;
+      return thing;
+    }
   }
-#endif
 
   int currTime=env.timer->elapsedMilliseconds();
   // time spent in saturation (preprocessing is excluded)
-  long long timeSpent=currTime-_startTime; // (in milliseconds) 
+  long long timeSpent=currTime-_startTime; // (in milliseconds)
   int opt_timeLimitDeci = _opt.timeLimitInDeciseconds();
   float correction_coef = _opt.lrsEstimateCorrectionCoef();
   int firstCheck=_opt.lrsFirstTimeCheck(); // (in percent)!
@@ -105,7 +100,7 @@ long long LRS::estimatedReachableCount()
 
   long long result = -1;
 
-  if (timeSpent < firstCheck*opt_timeLimitDeci 
+  if (timeSpent < firstCheck*opt_timeLimitDeci
       // the above, unit-wise: cf milliseconds on the left, and deci * percent on the right
       && instrsBurned*100 < firstCheck*opt_instruction_limit
   ) {
@@ -119,7 +114,7 @@ long long LRS::estimatedReachableCount()
       goto finish;
     }
 
-    long long timeLeft; // (in milliseconds) 
+    long long timeLeft; // (in milliseconds)
     if(_opt.simulatedTimeLimit()) {
       timeLeft=_opt.simulatedTimeLimit()*100 - currTime;
     } else {
@@ -130,10 +125,10 @@ long long LRS::estimatedReachableCount()
 
     // note that result is -1 here already
 
-    if(timeLeft > 0) {      
+    if(timeLeft > 0) {
       result = correction_coef*(processed*timeLeft)/timeSpent;
     } // otherwise, it's somehow past the deadline, or no timilimit set
-    
+
     if (instrsLeft > 0) {
       long long res_by_instr = correction_coef*(processed*instrsLeft)/instrsBurned;
       if (result > 0) {
@@ -146,10 +141,10 @@ long long LRS::estimatedReachableCount()
 
   finish:
 
-#if DETERMINISE_LRS_SAVE
-  static std::ofstream outfile("lrs_data.txt");
-  outfile << result << endl;
-#endif
+  static ScopedPtr<std::ofstream> outfile((!env.options->lrsSaveTraceFile().empty()) ? new std::ofstream(env.options->lrsSaveTraceFile()) : 0);
+  if (outfile) {
+    (*outfile) << result << std::endl;
+  }
 
   return result;
 }
