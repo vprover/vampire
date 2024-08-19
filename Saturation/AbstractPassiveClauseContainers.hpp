@@ -17,10 +17,17 @@
 #ifndef __AbstractPassiveClauseContainers__
 #define __AbstractPassiveClauseContainers__
 
-namespace Saturation {
+#include "Lib/Allocator.hpp"
+#include "Lib/Environment.hpp"
+#include "Debug/RuntimeStatistics.hpp"
+#include "Debug/Assertion.hpp"
+
+#include "Shell/Statistics.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/ClauseQueue.hpp"
+
+namespace Saturation {
 
 using namespace Kernel;
 
@@ -84,10 +91,10 @@ public:
    */
 protected:
   ClauseQueue::Iterator _simulationIt;
-  static constexpr T::OrdVal MAX_LIMIT = T::maxOrdVal();
-  T::OrdVal _curLimit = MAX_LIMIT;
+  static constexpr typename T::OrdVal MAX_LIMIT = T::maxOrdVal;
+  typename T::OrdVal _curLimit = MAX_LIMIT;
 
-  bool setLimit(T::OrdVal newLimit) {
+  bool setLimit(typename T::OrdVal newLimit) {
     bool thighened = newLimit < _curLimit;
     _curLimit = newLimit;
     return thighened;
@@ -129,11 +136,11 @@ public:
     while (_simulationIt.hasNext()) {
       Clause* cl = _simulationIt.next();
       if (exceedsLimit(cl)) {
-        toRemove.push(cl);
+        toRemove->push(cl);
       }
     }
-    while (toRemove.isNonEmpty()) {
-      Clause* removed=toRemove.pop();
+    while (toRemove->isNonEmpty()) {
+      Clause* removed=toRemove->pop();
       RSTAT_CTR_INC("clauses discarded from passive on limit update");
       env.statistics->discardedNonRedundantClauses++;
       remove(removed);

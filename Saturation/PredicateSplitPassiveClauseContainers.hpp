@@ -8,14 +8,14 @@
  * and in the source directory
  */
 
-#ifndef __PredicateSplitPassiveClauseContainer__
-#define __PredicateSplitPassiveClauseContainer__
+#ifndef __PredicateSplitPassiveClauseContainers__
+#define __PredicateSplitPassiveClauseContainers__
 
 #include <memory>
 #include <vector>
 #include "Lib/Allocator.hpp"
 #include "ClauseContainer.hpp"
-#include "AWPassiveClauseContainer.hpp"
+#include "AWPassiveClauseContainers.hpp"
 
 namespace Saturation {
 class PredicateSplitPassiveClauseContainer
@@ -130,4 +130,4 @@ private:
 
 };
 
-#endif /* __PredicateSplitPassiveClauseContainer__ */
+#endif /* __PredicateSplitPassiveClauseContainers__ */

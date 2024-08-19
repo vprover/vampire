@@ -107,8 +107,8 @@
 #include "SymElOutput.hpp"
 #include "SaturationAlgorithm.hpp"
 #include "ManCSPassiveClauseContainer.hpp"
-#include "AWPassiveClauseContainer.hpp"
-#include "PredicateSplitPassiveClauseContainer.hpp"
+#include "AWPassiveClauseContainers.hpp"
+#include "PredicateSplitPassiveClauseContainers.hpp"
 #include "Discount.hpp"
 #include "LRS.hpp"
 #include "Otter.hpp"
@@ -130,6 +130,12 @@ SaturationAlgorithm* SaturationAlgorithm::s_instance = 0;
 
 std::unique_ptr<PassiveClauseContainer> makeLevel0(bool isOutermost, const Options& opt, std::string name)
 {
+  if (opt.weightRatio() == 0) {
+    ASS_G(opt.ageRatio(),0);
+    return std::make_unique<AgeBasedPassiveClauseContainer>(isOutermost, opt, name + "AgeQ");
+  } else if (opt.ageRatio() == 0) {
+    return std::make_unique<WeightBasedPassiveClauseContainer>(isOutermost, opt, name + "WeightQ");
+  }
   return std::make_unique<AWPassiveClauseContainer>(isOutermost, opt, name + "AWQ");
 }
 

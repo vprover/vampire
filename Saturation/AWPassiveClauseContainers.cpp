@@ -8,13 +8,12 @@
  * and in the source directory
  */
 /**
- * @file AWPassiveClauseContainer.cpp
+ * @file AWPassiveClauseContainers.cpp
  * Implements class AWPassiveClauseContainer for the queue of passive clauses.
  * @since 30/12/2007 Manchester
  */
 
 #include <cmath>
-#include <climits>
 
 #include "Debug/RuntimeStatistics.hpp"
 
@@ -34,7 +33,7 @@
 #include <iostream>
 #endif
 
-#include "AWPassiveClauseContainer.hpp"
+#include "AWPassiveClauseContainers.hpp"
 
 namespace Saturation
 {
@@ -88,6 +87,11 @@ bool AgeQueue::lessThan(Clause* c1,Clause* c2)
   return c1->number() < c2->number();
 } // AgeQueue::lessThan
 
+AgeQueue::OrdVal AgeQueue::getOrdVal(Clause* cl) const
+{
+  return std::make_pair(cl->age(),cl->weightForClauseSelection(_opt));
+}
+
 /**
  * Comparison of clauses. The comparison uses four orders in the
  * following order:
@@ -129,6 +133,11 @@ bool WeightQueue::lessThan(Clause* c1,Clause* c2)
   }
   return c1->number() < c2->number();
 } // WeightQueue::lessThan
+
+WeightQueue::OrdVal WeightQueue::getOrdVal(Clause* cl) const
+{
+  return std::make_pair(cl->weightForClauseSelection(_opt),cl->age());
+}
 
 
 AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, std::string name) :

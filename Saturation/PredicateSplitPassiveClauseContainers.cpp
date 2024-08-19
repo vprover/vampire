@@ -8,7 +8,7 @@
  * and in the source directory
  */
 
-#include "PredicateSplitPassiveClauseContainer.hpp"
+#include "PredicateSplitPassiveClauseContainers.hpp"
 
 #include <numeric>
 #include <string>
