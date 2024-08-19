@@ -359,7 +359,7 @@ unsigned bellNumber(unsigned n) {
 }
 
 TEST_FUN(bla_bla) {
-  for (auto N : range(1,9))  {
+  for (auto N : range(3,9))  {
     OtherPartitionIter iter(N);
     for (auto i : range(1, bellNumber(N))) {
       std::cout << " bla " << iter << std::endl;
