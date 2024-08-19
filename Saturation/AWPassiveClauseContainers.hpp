@@ -67,6 +67,17 @@ class AgeBasedPassiveClauseContainer
 public:
   AgeBasedPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, std::string name)
     : SingleQueuePassiveClauseContainer<AgeQueue>(isOutermost,opt,name) {}
+
+  bool mayBeAbleToDiscriminateClausesUnderConstructionOnLimits() const override { return true; }
+
+  bool exceedsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference, bool& andThatsIt) const override
+  {
+    andThatsIt = true; // we are the pure age queue container
+    return _curLimit < std::make_pair(inference.age(),w);
+  }
+  bool exceedsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override { ASSERTION_VIOLATION; return true; }
+
+
 };
 
 class WeightBasedPassiveClauseContainer
