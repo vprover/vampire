@@ -289,9 +289,9 @@ void AWPassiveClauseContainer::onLimitsUpdated()
   ClauseQueue::Iterator wit(_weightQueue);
   while (wit.hasNext()) {
     Clause* cl=wit.next();
-    if (!fulfilsAgeLimit(cl) && !fulfilsWeightLimit(cl)) {
+    if (exceedsAllLimits(cl)) {
       toRemove.push(cl);
-    } else if (!childrenPotentiallyFulfilLimits(cl, cl->length())) {
+    } else if (allChildrenNecessarilyExceedLimits(cl, cl->length())) {
       toRemove.push(cl);
     }
   }
@@ -540,7 +540,7 @@ bool AWPassiveClauseContainer::setLimitsFromSimulation()
   return setLimits(maxAgeQueueAge, maxAgeQueueWeight,maxWeightQueueWeight);
 }
 
-bool AWPassiveClauseContainer::childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const
+bool AWPassiveClauseContainer::allChildrenNecessarilyExceedLimits(Clause* cl, unsigned upperBoundNumSelLits) const
 {
   if (cl->age() >= _ageSelectionMaxAge)
   {
@@ -559,12 +559,12 @@ bool AWPassiveClauseContainer::childrenPotentiallyFulfilLimits(Clause* cl, unsig
     unsigned weightLowerBound = cl->weight() - maxSelWeight; // heuristic: we assume that at most one literal will be removed from the clause.
     unsigned numPositiveLiteralsParent = cl->numPositiveLiterals();
     unsigned numPositiveLiteralsLowerBound = numPositiveLiteralsParent > 0 ? numPositiveLiteralsParent-1 : numPositiveLiteralsParent; // heuristic: we assume that at most one literal will be removed from the clause
-    if (!fulfilsWeightLimit(weightLowerBound, numPositiveLiteralsLowerBound, inf)) {
+    if (exceedsWeightLimit(weightLowerBound, numPositiveLiteralsLowerBound, inf)) {
       //and also over weight limit
-      return false;
+      return true;
     }
   }
-  return true;
+  return false;
 }
 
 bool AWPassiveClauseContainer::setLimits(unsigned newAgeSelectionMaxAge, unsigned newAgeSelectionMaxWeight, unsigned newWeightSelectionMaxWeight)
@@ -598,24 +598,17 @@ bool AWPassiveClauseContainer::weightLimited() const
   return _weightRatio > 0 && _weightSelectionMaxWeight != UINT_MAX;
 }
 
-bool AWPassiveClauseContainer::fulfilsAgeLimit(Clause* cl) const
+bool AWPassiveClauseContainer::mayBeAbleToDiscriminateChildrenOnLimits() const
 {
-  // don't want to reuse fulfilsAgeLimit(unsigned age,..) here, since we don't want to recompute weightForClauseSelection
-  unsigned age = cl->age();
-
-  if (age < _ageSelectionMaxAge) return true;
-  if (age > _ageSelectionMaxAge) return false;
-
-  unsigned weightForClauseSelection = cl->weightForClauseSelection(_opt);
-  return weightForClauseSelection <= _ageSelectionMaxWeight;
+  return ageLimited() && weightLimited();
 }
 
-bool AWPassiveClauseContainer::fulfilsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const
+bool AWPassiveClauseContainer::exceedsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference, bool&) const
 {
   const unsigned age = inference.age();
 
-  if (age < _ageSelectionMaxAge) return true;
-  if (age > _ageSelectionMaxAge) return false;
+  if (age < _ageSelectionMaxAge) return false;
+  if (age > _ageSelectionMaxAge) return true;
 
   const unsigned numeralWeight = 0; // heuristic: we don't want to compute the numeral weight during estimates and conservatively assume that it is 0.
   const unsigned splitWeight = 0; // also conservatively assuming 0
@@ -626,30 +619,40 @@ bool AWPassiveClauseContainer::fulfilsAgeLimit(unsigned w, unsigned numPositiveL
   const bool derivedFromGoal = inference.derivedFromGoal();
   // If the caller was too lazy to supply an Inference object we conservatively assume that the result is a goal-clause.
   unsigned weightForClauseSelection = Clause::computeWeightForClauseSelection(w, splitWeight, numeralWeight, derivedFromGoal, _opt);
-  return weightForClauseSelection <= _ageSelectionMaxWeight;
+  return weightForClauseSelection > _ageSelectionMaxWeight;
 }
 
-bool AWPassiveClauseContainer::fulfilsWeightLimit(Clause* cl) const
+bool AWPassiveClauseContainer::exceedsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const
 {
-  // don't want to reuse fulfilsWeightLimit(unsigned w,..) here, since we don't want to recompute weightForClauseSelection
+  if (_weightSelectionMaxWeight == UINT_MAX) return false;
+
+  const unsigned numeralWeight = 0; // heuristic: we don't want to compute the numeral weight during estimates and conservatively assume that it is 0.
+  const unsigned splitWeight = 0; // also conservatively assuming 0
+  /* In principle, we could compute this from the Inference (and it's not so expensive)
+   * but it's only relevant with avatar on (and avatar would later compute the splitset of the new clause again)
+   * and nonliteralsInClauseWeight on, which is not the default. So keeping the cheap version for now.
+   */
+  const bool derivedFromGoal = inference.derivedFromGoal();
+  // If the caller was too lazy to supply an Inference object we conservatively assume that the result is a goal-clause.
+  unsigned weightForClauseSelection = Clause::computeWeightForClauseSelection(w, splitWeight, numeralWeight, derivedFromGoal, _opt);
+  return weightForClauseSelection > _weightSelectionMaxWeight;
+}
+
+bool AWPassiveClauseContainer::limitsActive() const
+{
+  return ageLimited() || weightLimited();
+}
+
+bool AWPassiveClauseContainer::exceedsAllLimits(Clause* cl) const
+{
+  // here we don't need to compute weightForClauseSelection (it's been established and stored)
+  unsigned age = cl->age();
+  if (age < _ageSelectionMaxAge) return false;
   unsigned weightForClauseSelection = cl->weightForClauseSelection(_opt);
-  return weightForClauseSelection <= _weightSelectionMaxWeight;
-}
-
-bool AWPassiveClauseContainer::fulfilsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const
-{
-  if (_weightSelectionMaxWeight == UINT_MAX) return true;
-
-  const unsigned numeralWeight = 0; // heuristic: we don't want to compute the numeral weight during estimates and conservatively assume that it is 0.
-  const unsigned splitWeight = 0; // also conservatively assuming 0
-  /* In principle, we could compute this from the Inference (and it's not so expensive)
-   * but it's only relevant with avatar on (and avatar would later compute the splitset of the new clause again)
-   * and nonliteralsInClauseWeight on, which is not the default. So keeping the cheap version for now.
-   */
-  const bool derivedFromGoal = inference.derivedFromGoal();
-  // If the caller was too lazy to supply an Inference object we conservatively assume that the result is a goal-clause.
-  unsigned weightForClauseSelection = Clause::computeWeightForClauseSelection(w, splitWeight, numeralWeight, derivedFromGoal, _opt);
-  return weightForClauseSelection <= _weightSelectionMaxWeight;
+  if (weightForClauseSelection <= _weightSelectionMaxWeight) return false;
+  if (age > _ageSelectionMaxAge) return true;
+  ASS_EQ(age,_ageSelectionMaxAge);
+  return weightForClauseSelection > _ageSelectionMaxWeight;
 }
 
 }

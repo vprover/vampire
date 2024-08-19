@@ -120,25 +120,32 @@ private:
   // (possible explanation: it's better to be careful on the weight queue about age as "all small clauses, no matter how old/young are potentially usefull"
   // while at the same time, it's better to be more agressive with deletions on the age queue, as the large clauses there are probably useless)
 
+  bool ageLimited() const;
+  bool weightLimited() const;
+
   /*
    * LRS specific methods and fields for usage of limits
    */
 public:
-  bool ageLimited() const override;
-  bool weightLimited() const override;
+  bool mayBeAbleToDiscriminateChildrenOnLimits() const override;
+  bool allChildrenNecessarilyExceedLimits(Clause* cl, unsigned upperBoundNumSelLits) const override;
 
-  bool fulfilsAgeLimit(Clause* c) const override;
+  bool mayBeAbleToDiscriminateClausesUnderConstructionOnLimits() const override { return true; }
+
   // note: w here denotes the weight as returned by weight().
   // age is to be recovered from inference
   // this method internally takes care of computing the corresponding weightForClauseSelection.
-  bool fulfilsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override;
-  bool fulfilsWeightLimit(Clause* cl) const override;
+  // andThatsIt not touched by AWPassive (as there is always also the weigtht queue to talk to)
+  bool exceedsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference, bool& andThatsIt) const override;
+
   // note: w here denotes the weight as returned by weight().
   // age is to be recovered from inference
   // this method internally takes care of computing the corresponding weightForClauseSelection.
-  bool fulfilsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override;
+  bool exceedsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override;
 
-  bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const override;
+  bool limitsActive() const override;
+
+  bool exceedsAllLimits(Clause* c) const override;
 }; // class AWPassiveClauseContainer
 
 

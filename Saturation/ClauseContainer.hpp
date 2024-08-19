@@ -139,23 +139,38 @@ public:
   /*
    * LRS specific methods and fields for usage of limits
    */
-  virtual bool ageLimited() const = 0;
-  virtual bool weightLimited() const = 0;
 
-  virtual bool fulfilsAgeLimit(Clause* c) const = 0;
+  // it this is true, there is a chance that allChildrenNecessarilyExceedLimits will ever return true
+  virtual bool mayBeAbleToDiscriminateChildrenOnLimits() const = 0;
+  // given a clause cl and an upper bound on the number of selected literals in that clause and taking into account the current LRS limits,
+  // this will return true whenever it can be esablished for cl that
+  virtual bool allChildrenNecessarilyExceedLimits(Clause* cl, unsigned upperBoundNumSelLits) const = 0;
+
+  // it this is true, an inference may try to establish whether a clause under construction can be discarded early
+  // by first checking, using exceedsAgeLimit(unsigned,unsigned,...), whether it exceeds the current ageLimit (if applicable)
+  // and second checking, using exceedsWeightLimit(unsigned,unsigned,...) wether it exceeds the current weight (if applicable)
+  virtual bool mayBeAbleToDiscriminateClausesUnderConstructionOnLimits() const = 0;
+  // this is basically a static property of the type (exceedsAgeLimit(unsigned,unsigned,...) may be used to check whether limiting is currently in place)
+
   // note: w here denotes the weight as returned by weight().
   // age is to be recovered from inference
   // this method internally takes care of computing the corresponding weightForClauseSelection.
-  virtual bool fulfilsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const = 0;
+  virtual bool exceedsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference, bool& andThatsIt) const = 0;
+  // if age limit is all there is, the function sets andThatsIt to true (and the clause under construction can be discarded immediately)
+  // if there is currently no weight limiting in place, yet the clause should later also be weight-limit-checked, this function should return false
 
-  virtual bool fulfilsWeightLimit(Clause* cl) const = 0;
   // note: w here denotes the weight as returned by weight().
   // age is to be recovered from inference
   // this method internally takes care of computing the corresponding weightForClauseSelection.
-  virtual bool fulfilsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const = 0;
-  
-  virtual bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const = 0;
+  virtual bool exceedsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const = 0;
 
+  // if limits are active, LRS checks more frequently what the reachables are
+  virtual bool limitsActive() const = 0;
+
+  // the calls to exceedsAllLimits establishes (in the SaturationAlgorithm) if the newly derived clause should be discarded
+  // (the method is called exceedsAllLimits, because if we alternate between more than one queue, such as with awr,
+  // all queues must agree that a clause is discardable, before that is done - in this regards, LRS is conservative)
+  virtual bool exceedsAllLimits(Clause* c) const = 0;
 protected:
   bool _isOutermost;
   const Shell::Options& _opt;

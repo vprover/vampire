@@ -78,7 +78,7 @@ void BinaryResolution::detach()
  * in which case also ls is assumed to be not 0.
  */
 template<class ComputeConstraints>
-Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, 
+Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit,
           ResultSubstitutionSP subs, ComputeConstraints computeConstraints, const Options& opts, bool afterCheck,
           PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls,
           ConditionalRedundancyHandler const* condRedHandler)
@@ -113,9 +113,16 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   Inference inf(GeneratingInference2(nConstraints == 0 ?  InferenceRule::RESOLUTION : InferenceRule::CONSTRAINED_RESOLUTION, queryCl, resultCl));
   Inference::Destroyer inf_destroyer(inf); // will call destroy on inf when coming out of scope unless disabled
 
-  bool needsToFulfilWeightLimit = passiveClauseContainer && !passiveClauseContainer->fulfilsAgeLimit(wlb, numPositiveLiteralsLowerBound, inf) && passiveClauseContainer->weightLimited();
+  bool andThatsIt = false;
+  bool hasAgeLimitStrike = passiveClauseContainer && passiveClauseContainer->mayBeAbleToDiscriminateClausesUnderConstructionOnLimits()
+                                              && passiveClauseContainer->exceedsAgeLimit(wlb, numPositiveLiteralsLowerBound, inf, andThatsIt);
+  if (hasAgeLimitStrike && andThatsIt) { // we are dealing with purely age-limited container (no need for weight-related investigations)
+    RSTAT_CTR_INC("binary resolutions skipped for (pure) age limit before building clause");
+    env.statistics->discardedNonRedundantClauses++;
+    return 0;
+  }
 
-  if(needsToFulfilWeightLimit) {
+  if(hasAgeLimitStrike) {
     for(unsigned i=0;i<clength;i++) {
       Literal* curr=(*queryCl)[i];
       if(curr!=queryLit) {
@@ -128,7 +135,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
         wlb+=curr->weight();
       }
     }
-    if(!passiveClauseContainer->fulfilsWeightLimit(wlb, numPositiveLiteralsLowerBound, inf)) {
+    if(passiveClauseContainer->exceedsWeightLimit(wlb, numPositiveLiteralsLowerBound, inf)) {
       RSTAT_CTR_INC("binary resolutions skipped for weight limit before building clause");
       env.statistics->discardedNonRedundantClauses++;
       return 0;
@@ -153,9 +160,9 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     Literal* curr=(*queryCl)[i];
     if(curr!=queryLit && (!bothHaveAnsLit || curr!=cAnsLit)) {
       Literal* newLit = subs->applyToQuery(curr);
-      if(needsToFulfilWeightLimit) {
+      if(hasAgeLimitStrike) {
         wlb+=newLit->weight() - curr->weight();
-        if(!passiveClauseContainer->fulfilsWeightLimit(wlb, numPositiveLiteralsLowerBound, inf)) {
+        if(passiveClauseContainer->exceedsWeightLimit(wlb, numPositiveLiteralsLowerBound, inf)) {
           RSTAT_CTR_INC("binary resolutions skipped for weight limit while building clause");
           env.statistics->discardedNonRedundantClauses++;
           return nullptr;
@@ -187,9 +194,9 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     Literal* curr=(*resultCl)[i];
     if(curr!=resultLit && (!bothHaveAnsLit || curr!=dAnsLit)) {
       Literal* newLit = subs->applyToResult(curr);
-      if(needsToFulfilWeightLimit) {
+      if(hasAgeLimitStrike) {
         wlb+=newLit->weight() - curr->weight();
-        if(!passiveClauseContainer->fulfilsWeightLimit(wlb, numPositiveLiteralsLowerBound, inf)) {
+        if(passiveClauseContainer->exceedsWeightLimit(wlb, numPositiveLiteralsLowerBound, inf)) {
           RSTAT_CTR_INC("binary resolutions skipped for weight limit while building clause");
           env.statistics->discardedNonRedundantClauses++;
           return nullptr;
@@ -242,28 +249,28 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
 }
 
 
-Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, 
-                                         Clause* resultCl, Literal* resultLit, 
+Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit,
+                                         Clause* resultCl, Literal* resultLit,
                                          AbstractingUnifier& uwa, const Options& opts, SaturationAlgorithm* salg) {
   // perform binary resolution on query results
   auto subs = ResultSubstitution::fromSubstitution(&uwa.subs(), RetrievalAlgorithms::DefaultVarBanks::query, RetrievalAlgorithms::DefaultVarBanks::internal);
   bool doAfterCheck = opts.literalMaximalityAftercheck() && salg->getLiteralSelector().isBGComplete();
-  return BinaryResolution::generateClause(queryCl, queryLit, resultCl, resultLit, subs, 
-      [&](){ return uwa.computeConstraintLiterals(); }, 
+  return BinaryResolution::generateClause(queryCl, queryLit, resultCl, resultLit, subs,
+      [&](){ return uwa.computeConstraintLiterals(); },
       opts, doAfterCheck, salg->getPassiveClauseContainer(),
       &salg->getOrdering(), &salg->getLiteralSelector(), &salg->condRedHandler());
 }
 
 ClauseIterator BinaryResolution::generateClauses(Clause* premise)
 {
-  return pvi(TIME_TRACE_ITER("resolution", 
+  return pvi(TIME_TRACE_ITER("resolution",
       premise->getSelectedLiteralIterator()
       // TODO filter out >= in alasca
         .filter([](auto l) { return !l->isEquality(); })
-        .flatMap([this,premise](auto lit) { 
+        .flatMap([this,premise](auto lit) {
             // find query results for literal `lit`
-            return iterTraits(_index->getUwa(lit, /* complementary */ true, 
-                                             env.options->unificationWithAbstraction(), 
+            return iterTraits(_index->getUwa(lit, /* complementary */ true,
+                                             env.options->unificationWithAbstraction(),
                                              env.options->unificationWithAbstractionFixedPointIteration()))
                      .map([this,lit,premise](auto qr) { return BinaryResolution::generateClause(premise, lit, qr.data->clause, qr.data->literal, *qr.unifier, this->getOptions(), _salg); });
         })

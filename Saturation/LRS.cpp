@@ -69,7 +69,7 @@ bool LRS::shouldUpdateLimits()
   cnt++;
 
   //when there are limits, we check more frequently so we don't skip too much inferences
-  if(cnt==500 || ((_passive->weightLimited() || _passive->ageLimited()) && cnt>50 ) ) {
+  if(cnt==500 || (_passive->limitsActive() && cnt>50 ) ) {
     cnt=0;
     return true;
   }

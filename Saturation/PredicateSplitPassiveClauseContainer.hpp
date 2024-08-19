@@ -38,7 +38,7 @@ private:
 
   std::vector<std::unique_ptr<PassiveClauseContainer>> _queues;
   std::vector<float> _cutoffs;
-  std::vector<unsigned> _invertedRatios;  
+  std::vector<unsigned> _invertedRatios;
   std::vector<unsigned> _balances;
   bool _layeredArrangement; // if set to true, queues are arranged as multi-split-queues. if false, queues use a tammet-style arrangement.
 
@@ -69,21 +69,23 @@ private:
    * LRS specific methods and fields for usage of limits
    */
 public:
-  bool ageLimited() const override;
-  bool weightLimited() const override;
+  bool mayBeAbleToDiscriminateChildrenOnLimits() const override;
+  bool allChildrenNecessarilyExceedLimits(Clause* cl, unsigned upperBoundNumSelLits) const override;
 
-  bool fulfilsAgeLimit(Clause* cl) const override;
+  bool mayBeAbleToDiscriminateClausesUnderConstructionOnLimits() const override;
+
   // note: w here denotes the weight as returned by weight().
   // age is to be recovered from inference
   // this method internally takes care of computing the corresponding weightForClauseSelection.
-  bool fulfilsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override;
-  bool fulfilsWeightLimit(Clause* cl) const override;
+  bool exceedsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference, bool& andThatsIt) const override;
   // note: w here denotes the weight as returned by weight().
   // age is to be recovered from inference
   // this method internally takes care of computing the corresponding weightForClauseSelection.
-  bool fulfilsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override;
-  bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const override;
-  
+  bool exceedsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override;
+
+  bool limitsActive() const override;
+
+  bool exceedsAllLimits(Clause* c) const override;
 }; // class PredicateSplitPassiveClauseContainer
 
 class TheoryMultiSplitPassiveClauseContainer : public PredicateSplitPassiveClauseContainer

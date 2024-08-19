@@ -173,7 +173,7 @@ void ActiveClauseContainer::onLimitsUpdated()
 {
   auto limits=getSaturationAlgorithm()->getPassiveClauseContainer();
   ASS(limits);
-  if (!limits->ageLimited() || !limits->weightLimited()) {
+  if (!limits->mayBeAbleToDiscriminateChildrenOnLimits()) {
     return;
   }
 
@@ -185,7 +185,7 @@ void ActiveClauseContainer::onLimitsUpdated()
     Clause* cl=rit.next();
     ASS(cl);
 
-    if (!limits->childrenPotentiallyFulfilLimits(cl, cl->numSelected()))
+    if (limits->allChildrenNecessarilyExceedLimits(cl, cl->numSelected()))
     {
       ASS(cl->store()==Clause::ACTIVE);
       toRemove.push(cl);

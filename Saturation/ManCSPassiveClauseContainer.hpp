@@ -61,20 +61,15 @@ public:
   /*
    * LRS specific methods and fields for usage of limits
    */
-  bool ageLimited() const override { return false; }
-  bool weightLimited() const override { return false; }
+  bool mayBeAbleToDiscriminateChildrenOnLimits() const override { return false; }
+  bool allChildrenNecessarilyExceedLimits(Clause*, unsigned) const override { return false; }
 
-  bool fulfilsAgeLimit(Clause* c) const override { return true; }
-  // note: w here denotes the weight as returned by weight().
-  // this method internally takes care of computing the corresponding weightForClauseSelection.
+  bool mayBeAbleToDiscriminateClausesUnderConstructionOnLimits() const override { return false; }
+  bool exceedsAgeLimit(unsigned, unsigned, const Inference&, bool&) const override { return false; }
+  bool exceedsWeightLimit(unsigned, unsigned, const Inference&) const override { return false; }
 
-  bool fulfilsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override { return true; }
-  bool fulfilsWeightLimit(Clause* cl) const override { return true; }
-  // note: w here denotes the weight as returned by weight().
-  // this method internally takes care of computing the corresponding weightForClauseSelection.
-  bool fulfilsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override { return true; }
-
-  bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const override { return true; }
+  bool limitsActive() const override { return false; }
+  bool exceedsAllLimits(Clause*) const override { return false; }
 };
 
 }
