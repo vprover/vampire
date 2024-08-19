@@ -52,15 +52,20 @@ Iter assertIter(Iter iter) {
   return iter;
 }
 
-struct OtherPartitionIter {
+// template<class MergeFilter>
+struct MergingPartitionIter 
+{
   Stack<unsigned> elems;
   Recycled<DArray<unsigned>> _history;
-  Stack<std::pair<unsigned, unsigned>> merges;
+  RStack<std::pair<unsigned, unsigned>> merges;
   bool finished;
+  // MergeFilter _filter;
+#if VDEBUG
   Set<Stack<unsigned>> set;
+#endif // VDEBUG
 
   struct Subset {
-    OtherPartitionIter const* parent;
+    MergingPartitionIter const* parent;
     unsigned idx;
     friend std::ostream& operator<<(std::ostream& out, Subset const& self)
     { return out << "[" << 
@@ -72,10 +77,12 @@ struct OtherPartitionIter {
     }
   };
 
-  OtherPartitionIter(unsigned N) 
+  // MergingPartitionIter(MergeFilter filter, unsigned N) 
+  MergingPartitionIter(unsigned N) 
     : elems(range(0, N).template collect<Stack>())
     , _history()
     , finished(false)
+    // , _filter(std::move(filter))
   { 
     _history->ensure(N * N);
     for (auto i : range(0, N)) {
@@ -88,7 +95,7 @@ struct OtherPartitionIter {
       .map([this](auto i) { return Subset { .parent = this, .idx = i, };  });
   }
 
-  friend std::ostream& operator<<(std::ostream& out, OtherPartitionIter const& self)
+  friend std::ostream& operator<<(std::ostream& out, MergingPartitionIter const& self)
   { return out << outputInterleaved("", self.currentSubsets()); }
 
   auto merge(std::pair<unsigned, unsigned> pair) 
@@ -115,12 +122,12 @@ struct OtherPartitionIter {
   { return partition(depth()); }
 
   bool merge_(unsigned p0, unsigned p1) {
-    ASS(std::make_pair(p0,p1) == merges.top())
+    ASS(std::make_pair(p0,p1) == merges->top())
     // symmetry breaking: TODO explain
-    if (merges.size() >= 2 && merges[merges.size() - 2].first > p0) {
+    if (merges->size() >= 2 && (*merges)[merges.size() - 2].first > p0) {
       return false;
     }
-    if (p0 < merges.top().first)
+    if (p0 < merges->top().first)
     ASS(p0 < p1)
     ASS(depth() >= 1)
     auto p1Found = false;
@@ -143,9 +150,11 @@ struct OtherPartitionIter {
       }
     }
     ASS_EQ(p1Found, 1)
+#if VDEBUG
     auto lastPart = lastPartition(). template collect<Stack>();
     ASS_REP(!set.contains(lastPart),  outputToString("duplicate value: ",lastPart))
     set.insert(lastPart);
+#endif // VDEBUG
     return true;
   }
 
@@ -166,87 +175,27 @@ struct OtherPartitionIter {
     }
   }
 
-  unsigned depth() const { return merges.size(); }
+  unsigned depth() const { return merges->size(); }
 
   bool nextPartition() 
   {
     if (finished) return false;
     if (depth() != maxDepth()) {
-      merges.push(std::pair<unsigned, unsigned>(0, 1));
-      if (merge(merges.top())) {
+      merges->push(std::pair<unsigned, unsigned>(0, 1));
+      if (merge(merges->top())) {
         return true;
       }
     }
-    while (merges.isNonEmpty()) {
-      if (increment(merges.top())) {
-        if (merge(merges.top())) {
+    while (merges->isNonEmpty()) {
+      if (increment(merges->top())) {
+        if (merge(merges->top())) {
           return true;
         }
       } else {
-        merges.pop();
+        merges->pop();
       }
     }
     finished = true;
-    return false;
-  }
-};
-
-struct PartitionIter {
-  Stack<unsigned> elems;
-  Stack<unsigned> partitions;
-
-  struct Subset {
-    PartitionIter const* parent;
-    unsigned idx;
-    friend std::ostream& operator<<(std::ostream& out, Subset const& self)
-    { return out << "[" << 
-      outputInterleaved(", ", 
-        range(0, self.parent->elems.size())
-        .filterMap([&](auto i) { return someIf(self.parent->partitions[i] == self.idx, [&]() { return self.parent->elems[i]; } ); })
-        )
-        << "]"; 
-    }
-  };
-
-  PartitionIter(unsigned N) 
-    : elems(range(0, N).template collect<Stack>())
-    , partitions(range(0, N).template collect<Stack>())
-  { }
-
-  // TODO
-  auto maxPartition() const { return arrayIter(partitions).map([](auto& x) -> unsigned { return x; }).max().unwrap(); }
-
-  auto currentSubsets() const {
-    return range(0, maxPartition() +  1)
-      .map([this](auto i) { return Subset { .parent = this, .idx = i, };  });
-  }
-
-  friend std::ostream& operator<<(std::ostream& out, PartitionIter const& self)
-  { return out << outputInterleaved("", self.currentSubsets()); }
-
-  void decrement(unsigned i) {
-    partitions[i]--;
-    auto max = maxPartition();
-    for (auto j : range(i + 1, partitions.size())) {
-      partitions[j] = ++max;
-    }
-    ASS_EQ(maxPartition(), max)
-  }
-
-  bool isDecrementable(unsigned i) 
-  { return partitions[i] != 0; }
-
-  bool nextPartition() {
-    ASS_EQ(partitions[0], 0)
-    if (maxPartition() == 0) {
-      return false;
-    }
-    for (unsigned i : range(0, partitions.size()).reverse()) {
-      if (isDecrementable(i)) {
-        decrement(i);
-        return true;
-      }
-    }
     return false;
   }
 };
