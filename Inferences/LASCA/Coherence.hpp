@@ -56,8 +56,8 @@ struct OtherPartitionIter {
   Stack<unsigned> elems;
   Recycled<DArray<unsigned>> _history;
   Stack<std::pair<unsigned, unsigned>> merges;
+  bool finished;
   Set<Stack<unsigned>> set;
-  unsigned depth;
 
   struct Subset {
     OtherPartitionIter const* parent;
@@ -66,7 +66,7 @@ struct OtherPartitionIter {
     { return out << "[" << 
       outputInterleaved(", ", 
         range(0, self.parent->elems.size())
-        .filterMap([&](auto i) { return someIf(self.parent->partitionOf(self.parent->depth, i) == self.idx, [&]() { return self.parent->elems[i]; } ); })
+        .filterMap([&](auto i) { return someIf(self.parent->partitionOf(self.parent->depth(), i) == self.idx, [&]() { return self.parent->elems[i]; } ); })
         )
         << "]"; 
     }
@@ -75,13 +75,12 @@ struct OtherPartitionIter {
   OtherPartitionIter(unsigned N) 
     : elems(range(0, N).template collect<Stack>())
     , _history()
-    , depth(0)
+    , finished(false)
   { 
     _history->ensure(N * N);
     for (auto i : range(0, N)) {
       partitionOf(0, i) = i;
     }
-    // _history->reserve(N * N - 1);  
   }
 
   auto currentSubsets() const {
@@ -100,7 +99,7 @@ struct OtherPartitionIter {
     return res;
   }
 
-  unsigned maxPartition() const { return elems.size() - 1 - depth; }
+  unsigned maxPartition() const { return elems.size() - 1 - depth(); }
 
   unsigned& partitionOf(unsigned depth, unsigned elem) 
   { return (*_history)[depth * elems.size() + elem]; }
@@ -113,7 +112,7 @@ struct OtherPartitionIter {
 
 
   auto lastPartition() 
-  { return partition(depth); }
+  { return partition(depth()); }
 
   bool merge_(unsigned p0, unsigned p1) {
     ASS(std::make_pair(p0,p1) == merges.top())
@@ -123,10 +122,10 @@ struct OtherPartitionIter {
     }
     if (p0 < merges.top().first)
     ASS(p0 < p1)
-    ASS(depth >= 1)
+    ASS(depth() >= 1)
     auto p1Found = false;
     for (auto i : range(0, elems.size())) {
-      auto oldVal = partitionOf(depth - 1,i);
+      auto oldVal = partitionOf(depth() - 1,i);
       if (oldVal == p0 && p1Found == 1) {
         // symmetry breaking: TODO explain
         return false;
@@ -135,12 +134,12 @@ struct OtherPartitionIter {
         if (p1Found) 
           return false;
         p1Found = true;
-        partitionOf(depth,i) = p0;
+        partitionOf(depth(),i) = p0;
       } else if (oldVal > p1) {
-        partitionOf(depth,i) = oldVal - 1;
+        partitionOf(depth(),i) = oldVal - 1;
       } else {
         ASS(oldVal < p1)
-        partitionOf(depth,i) = oldVal;
+        partitionOf(depth(),i) = oldVal;
       }
     }
     ASS_EQ(p1Found, 1)
@@ -167,9 +166,12 @@ struct OtherPartitionIter {
     }
   }
 
-  bool nextPartition() {
-    if (depth != maxDepth()) {
-      depth++;
+  unsigned depth() const { return merges.size(); }
+
+  bool nextPartition() 
+  {
+    if (finished) return false;
+    if (depth() != maxDepth()) {
       merges.push(std::pair<unsigned, unsigned>(0, 1));
       if (merge(merges.top())) {
         return true;
@@ -182,9 +184,9 @@ struct OtherPartitionIter {
         }
       } else {
         merges.pop();
-        depth--;
       }
     }
+    finished = true;
     return false;
   }
 };
