@@ -359,11 +359,12 @@ unsigned bellNumber(unsigned n) {
 }
 
 TEST_FUN(bla_bla) {
-  auto N = 6;
-  PartitionIter iter(N);
-  for (auto i : range(1, bellNumber(N))) {
-    std::cout << iter << std::endl;
-    ASS_REP(iter.nextPartition(), i)
+  for (auto N : range(1,9))  {
+    OtherPartitionIter iter(N);
+    for (auto i : range(1, bellNumber(N))) {
+      std::cout << " bla " << iter << std::endl;
+      ASS_REP(iter.nextPartition(), i)
+    }
+    ASS(!iter.nextPartition())
   }
-  ASS(!iter.nextPartition())
 }

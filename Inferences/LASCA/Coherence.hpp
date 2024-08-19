@@ -52,6 +52,131 @@ Iter assertIter(Iter iter) {
   return iter;
 }
 
+struct OtherPartitionIter {
+  Stack<unsigned> elems;
+  Stack<Stack<unsigned>> _history;
+  Stack<std::pair<unsigned, unsigned>> merges;
+  Set<Stack<unsigned>> set;
+  unsigned depth;
+
+  struct Subset {
+    OtherPartitionIter const* parent;
+    unsigned idx;
+    friend std::ostream& operator<<(std::ostream& out, Subset const& self)
+    { return out << "[" << 
+      outputInterleaved(", ", 
+        range(0, self.parent->elems.size())
+        .filterMap([&](auto i) { return someIf(self.parent->_history.top()[i] == self.idx, [&]() { return self.parent->elems[i]; } ); })
+        )
+        << "]"; 
+    }
+  };
+
+  OtherPartitionIter(unsigned N) 
+    : elems(range(0, N).template collect<Stack>())
+    , _history({range(0, N).template collect<Stack>()})
+    , depth(0)
+  {  }
+
+  unsigned maxPartition() const { return elems.size() - _history.size(); }
+
+  auto currentSubsets() const {
+    return range(0, maxPartition() + 1) // TODO
+      .map([this](auto i) { return Subset { .parent = this, .idx = i, };  });
+  }
+
+  friend std::ostream& operator<<(std::ostream& out, OtherPartitionIter const& self)
+  { return out << outputInterleaved("", self.currentSubsets()); }
+
+  unsigned parentPartAt(unsigned i) 
+  { return _history.size() == 1 ? i : _history[_history.size() - 2][i]; } 
+
+  auto merge(std::pair<unsigned, unsigned> pair) 
+  { return merge(pair.first, pair.second); }
+
+
+  bool merge(unsigned p0, unsigned p1) {
+    auto res = merge_(p0,p1);
+    return res;
+  }
+
+  bool merge_(unsigned p0, unsigned p1) {
+    ASS(std::make_pair(p0,p1) == merges.top())
+    // symmetry breaking: TODO explain
+    if (merges.size() >= 2 && merges[merges.size() - 2].first > p0) {
+      return false;
+    }
+    if (p0 < merges.top().first)
+    ASS(p0 < p1)
+    ASS(depth >= 1)
+    auto p1Found = false;
+    for (auto i : range(0, elems.size())) {
+      auto oldVal = _history[depth - 1][i];
+      if (oldVal == p0 && p1Found == 1) {
+        // symmetry breaking: TODO explain
+        return false;
+      } else if (oldVal == p1) {
+        // symmetry breaking: only allow merging singletons to partition p0
+        if (p1Found) 
+          return false;
+        p1Found = true;
+        _history[depth][i] = p0;
+      } else if (oldVal > p1) {
+        _history[depth][i] = oldVal - 1;
+      } else {
+        ASS(oldVal < p1)
+        _history[depth][i] = oldVal;
+      }
+    }
+    ASS_EQ(p1Found, 1)
+    ASS_REP(!set.contains(_history.top()),  outputToString("duplicate value: ",_history.top()))
+    set.insert(_history.top());
+    return true;
+  }
+
+  auto maxDepth() 
+  { return _history.top().size() - 1; }
+
+  auto maxPartition() 
+  { return _history.top().size() - depth; }
+
+  bool increment(std::pair<unsigned, unsigned>& pair) {
+    auto maxPartition = this->maxPartition();
+    if (pair.second < maxPartition) {
+      pair.second++;
+      return true;
+    } else {
+      ASS_EQ(pair.second, maxPartition)
+      pair.first++;
+      pair.second = pair.first + 1;
+      return pair.second <= maxPartition;
+    }
+  }
+
+  bool nextPartition() {
+    if (depth != maxDepth()) {
+      depth++;
+      _history.push(_history.top());
+      merges.push(std::pair<unsigned, unsigned>(0, 1));
+      if (merge(merges.top())) {
+        return true;
+      }
+    }
+    while (merges.isNonEmpty()) {
+      if (increment(merges.top())) {
+        if (merge(merges.top())) {
+          return true;
+        }
+      } else {
+        merges.pop();
+        _history.pop();
+        depth--;
+      }
+    }
+    return false;
+  }
+};
+
 struct PartitionIter {
   Stack<unsigned> elems;
   Stack<unsigned> partitions;
@@ -105,7 +230,6 @@ struct PartitionIter {
     for (unsigned i : range(0, partitions.size()).reverse()) {
       if (isDecrementable(i)) {
         decrement(i);
-        // DBGE(partitions)
         return true;
       }
     }
