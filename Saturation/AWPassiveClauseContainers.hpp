@@ -68,6 +68,11 @@ public:
   AgeBasedPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, std::string name)
     : SingleQueuePassiveClauseContainer<AgeQueue>(isOutermost,opt,name) {}
 
+  bool mayBeAbleToDiscriminateChildrenOnLimits() const override { return limitsActive(); }
+  bool allChildrenNecessarilyExceedLimits(Clause* cl, unsigned upperBoundNumSelLits) const override {
+    return cl->age() >= _curLimit.first;
+  }
+
   bool mayBeAbleToDiscriminateClausesUnderConstructionOnLimits() const override { return true; }
 
   bool exceedsAgeLimit(unsigned numPositiveLiterals, const Inference& inference, bool& andThatsIt) const override
@@ -76,8 +81,6 @@ public:
     return inference.age() > _curLimit.first;
   }
   bool exceedsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override { ASSERTION_VIOLATION; return true; }
-
-
 };
 
 class WeightBasedPassiveClauseContainer
