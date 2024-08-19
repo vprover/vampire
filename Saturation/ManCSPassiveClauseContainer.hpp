@@ -65,7 +65,7 @@ public:
   bool allChildrenNecessarilyExceedLimits(Clause*, unsigned) const override { return false; }
 
   bool mayBeAbleToDiscriminateClausesUnderConstructionOnLimits() const override { return false; }
-  bool exceedsAgeLimit(unsigned, unsigned, const Inference&, bool&) const override { return false; }
+  bool exceedsAgeLimit(unsigned, const Inference&, bool&) const override { return false; }
   bool exceedsWeightLimit(unsigned, unsigned, const Inference&) const override { return false; }
 
   bool limitsActive() const override { return false; }

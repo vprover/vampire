@@ -155,7 +155,7 @@ public:
   // note: w here denotes the weight as returned by weight().
   // age is to be recovered from inference
   // this method internally takes care of computing the corresponding weightForClauseSelection.
-  virtual bool exceedsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference, bool& andThatsIt) const = 0;
+  virtual bool exceedsAgeLimit(unsigned numPositiveLiterals, const Inference& inference, bool& andThatsIt) const = 0;
   // if age limit is all there is, the function sets andThatsIt to true (and the clause under construction can be discarded immediately)
   // if there is currently no weight limiting in place, yet the clause should later also be weight-limit-checked, this function should return false
 

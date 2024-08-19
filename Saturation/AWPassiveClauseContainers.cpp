@@ -612,23 +612,11 @@ bool AWPassiveClauseContainer::mayBeAbleToDiscriminateChildrenOnLimits() const
   return ageLimited() && weightLimited();
 }
 
-bool AWPassiveClauseContainer::exceedsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference, bool&) const
+bool AWPassiveClauseContainer::exceedsAgeLimit(unsigned, const Inference& inference, bool&) const
 {
   const unsigned age = inference.age();
-
-  if (age < _ageSelectionMaxAge) return false;
-  if (age > _ageSelectionMaxAge) return true;
-
-  const unsigned numeralWeight = 0; // heuristic: we don't want to compute the numeral weight during estimates and conservatively assume that it is 0.
-  const unsigned splitWeight = 0; // also conservatively assuming 0
-  /* In principle, we could compute this from the Inference (and it's not so expensive)
-   * but it's only relevant with avatar on (and avatar would later compute the splitset of the new clause again)
-   * and nonliteralsInClauseWeight on, which is not the default. So keeping the cheap version for now.
-   */
-  const bool derivedFromGoal = inference.derivedFromGoal();
-  // If the caller was too lazy to supply an Inference object we conservatively assume that the result is a goal-clause.
-  unsigned weightForClauseSelection = Clause::computeWeightForClauseSelection(w, splitWeight, numeralWeight, derivedFromGoal, _opt);
-  return weightForClauseSelection > _ageSelectionMaxWeight;
+  return age > _ageSelectionMaxAge;
+  // can't do more refined check, as we always estimate weight only by 0 the moment this function is called
 }
 
 bool AWPassiveClauseContainer::exceedsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const

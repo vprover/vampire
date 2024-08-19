@@ -369,17 +369,14 @@ bool PredicateSplitPassiveClauseContainer::mayBeAbleToDiscriminateClausesUnderCo
   return false;
 }
 
-// returns true if the cl fulfills at least one age-limit of a queue it is in
-// note: w here denotes the weight as returned by weight().
-// this method internally takes care of computing the corresponding weightForClauseSelection.
-bool PredicateSplitPassiveClauseContainer::exceedsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference, bool& andThatsIt) const
+bool PredicateSplitPassiveClauseContainer::exceedsAgeLimit(unsigned numPositiveLiterals, const Inference& inference, bool& andThatsIt) const
 {
   auto bestQueueIndex = bestQueue(evaluateFeatureEstimate(numPositiveLiterals, inference));
   // note: even for non-layered-arrangements, we need to go through all queues, since the values for age, w, ... are only lower bounds (in the sense that the actual value could lead to a worse bestQueueIndex)
   for (unsigned i = bestQueueIndex; i < _queues.size(); i++) {
     auto& queue = _queues[i];
 
-    if (!queue->exceedsAgeLimit(w, numPositiveLiterals, inference, andThatsIt))
+    if (!queue->exceedsAgeLimit(numPositiveLiterals, inference, andThatsIt))
       return false;
   }
   return true;

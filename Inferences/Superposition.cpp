@@ -336,7 +336,7 @@ Clause* Superposition::performSuperposition(
   auto passiveClauseContainer = _salg->getPassiveClauseContainer();
   bool andThatsIt = false;
   bool hasAgeLimitStrike = passiveClauseContainer && passiveClauseContainer->mayBeAbleToDiscriminateClausesUnderConstructionOnLimits()
-                        && passiveClauseContainer->exceedsAgeLimit(0 /* denotes the current weight estimate */, numPositiveLiteralsLowerBound, inf, andThatsIt);
+                        && passiveClauseContainer->exceedsAgeLimit(numPositiveLiteralsLowerBound, inf, andThatsIt);
 
   if(hasAgeLimitStrike && andThatsIt) { // we are dealing with purely age-limited container (no need for weight-related investigations)
     env.statistics->discardedNonRedundantClauses++;

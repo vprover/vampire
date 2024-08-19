@@ -160,7 +160,7 @@ public:
 
   // the following two are used in BinaryResolution and Superposition to terminate resulting clause construction early,
   // should it become clear that the final clause will not fulfill the current limits in the PassiveClauseContainer
-  bool exceedsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference, bool& andThatsIt) const override { ASSERTION_VIOLATION; return false; }
+  bool exceedsAgeLimit(unsigned numPositiveLiterals, const Inference& inference, bool& andThatsIt) const override { ASSERTION_VIOLATION; return false; }
   bool exceedsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override { ASSERTION_VIOLATION; return false; }
 
   bool limitsActive() const override { return _curLimit != MAX_LIMIT; }

@@ -74,10 +74,8 @@ public:
 
   bool mayBeAbleToDiscriminateClausesUnderConstructionOnLimits() const override;
 
-  // note: w here denotes the weight as returned by weight().
   // age is to be recovered from inference
-  // this method internally takes care of computing the corresponding weightForClauseSelection.
-  bool exceedsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference, bool& andThatsIt) const override;
+  bool exceedsAgeLimit(unsigned numPositiveLiterals, const Inference& inference, bool& andThatsIt) const override;
   // note: w here denotes the weight as returned by weight().
   // age is to be recovered from inference
   // this method internally takes care of computing the corresponding weightForClauseSelection.

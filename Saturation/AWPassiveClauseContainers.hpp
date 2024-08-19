@@ -70,10 +70,10 @@ public:
 
   bool mayBeAbleToDiscriminateClausesUnderConstructionOnLimits() const override { return true; }
 
-  bool exceedsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference, bool& andThatsIt) const override
+  bool exceedsAgeLimit(unsigned numPositiveLiterals, const Inference& inference, bool& andThatsIt) const override
   {
-    andThatsIt = true; // we are the pure age queue container
-    return _curLimit < std::make_pair(inference.age(),w);
+    andThatsIt = true; // we are the pure age-queue container
+    return inference.age() > _curLimit.first;
   }
   bool exceedsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override { ASSERTION_VIOLATION; return true; }
 
@@ -169,11 +169,9 @@ public:
 
   bool mayBeAbleToDiscriminateClausesUnderConstructionOnLimits() const override { return true; }
 
-  // note: w here denotes the weight as returned by weight().
   // age is to be recovered from inference
-  // this method internally takes care of computing the corresponding weightForClauseSelection.
   // andThatsIt not touched by AWPassive (as there is always also the weigtht queue to talk to)
-  bool exceedsAgeLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference, bool& andThatsIt) const override;
+  bool exceedsAgeLimit(unsigned numPositiveLiterals, const Inference& inference, bool& andThatsIt) const override;
 
   // note: w here denotes the weight as returned by weight().
   // age is to be recovered from inference
