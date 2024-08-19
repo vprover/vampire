@@ -3083,7 +3083,10 @@ void Options::sampleStrategy(const std::string& strategySamplerFilename)
     std::string args = pieces[2];
     pieces.reset();
 
-    if (sampler == "~cat") { // categorical sampling, e.g., "~cat group:36,predicate:4,expand:4,off:1,function:1" provides a list of value with frequencies
+    if (sampler == "~set") {
+      ASS_NEQ(args,"");
+      strategySamplingAssign(optname,args,fakes);
+    } else if (sampler == "~cat") { // categorical sampling, e.g., "~cat group:36,predicate:4,expand:4,off:1,function:1" provides a list of value with frequencies
       StringUtils::splitStr(args.c_str(),',',pieces);
 
       unsigned total = 0;
