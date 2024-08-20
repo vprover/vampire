@@ -362,7 +362,7 @@ struct FilterNone {
   friend std::ostream& operator<<(std::ostream& out, FilterNone const& self)
   { return out << "FilterNone"; }
   void undoLastMerge() {}
-  bool tryMerge(unsigned p0, unsigned p1) { return true; }
+  bool tryMerge(unsigned p0,unsigned i0, unsigned i1, unsigned p1) { return true; }
 };
 
 struct TestFilter {
@@ -401,15 +401,15 @@ struct TestFilter {
   //   }
   // }
 
-  bool tryMerge(unsigned p0, unsigned p1) { 
+  bool tryMerge(unsigned part0, unsigned elem0, unsigned part1, unsigned elem1) { 
     auto& lastPart = partitionHistory.top();
     auto setOf = [&](auto p) {
       return arrayIter(lastPart)
               .findPosition([&](auto& set) 
                   { return arrayIter(set).find([&](auto& x) { return x == p; }).isSome(); });
     };
-    auto i0 = setOf(p0).unwrap();
-    auto i1 = setOf(p1).unwrap();
+    auto i0 = setOf(elem0).unwrap();
+    auto i1 = setOf(elem1).unwrap();
     auto newPart = lastPart;
     newPart[i0].loadFromIterator(arrayIter(newPart[i1]));
     newPart.swapRemove(i1);
@@ -440,12 +440,12 @@ TEST_FUN(filtered_partitions_test) {
     { make_pair(1, 3), },
     { make_pair(1, 3), make_pair(4, 1) },
       })  {
-    DBGE(disallowed)
+    // DBGE(disallowed)
 
     // Stack<std::pair<unsigned, unsigned>> disallowed = 
 
-    auto all = mergingPartitionIter(N, FilterNone{});
-    auto filtered = mergingPartitionIter(N, TestFilter(disallowed, N));
+    auto all = mergingPartitionIterRaw(N, FilterNone{});
+    auto filtered = mergingPartitionIterRaw(N, TestFilter(disallowed, N));
 
     auto subsetStack =[](auto& iter) 
     { return iter.currentSubsets().map([](auto s) { return s.toStack(); }).template collect<Stack>(); };
@@ -466,7 +466,7 @@ TEST_FUN(filtered_partitions_test) {
       auto s_all = subsetStack(all);
       auto s_fil = subsetStack(filtered);
       if (s_all == s_fil) {
-        DBG("ok: ", s_all)
+        // DBG("ok: ", s_all)
       } else {
         ASS_EQ(s_all, s_fil)
       }
@@ -486,9 +486,9 @@ TEST_FUN(filtered_partitions_test) {
 TEST_FUN(all_partitions) {
 
   for (auto N : range(1,9))  {
-    auto iter = mergingPartitionIter(N, FilterNone{});
+    auto iter = mergingPartitionIterRaw(N, FilterNone{});
     for (auto i : range(1, bellNumber(N))) {
-      std::cout << "bla " << iter << std::endl;
+      // std::cout << "bla " << iter << std::endl;
       ASS_REP(iter.nextPartition(), i)
     }
     ASS(!iter.nextPartition())
