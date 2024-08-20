@@ -33,7 +33,7 @@
 #include "Debug/Output.hpp"
 #include "Kernel/EqHelper.hpp"
 
-#define DEBUG_COHERENCE(lvl, ...) if (lvl < 2) DBG(__VA_ARGS__)
+#define DEBUG_COHERENCE(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
 #define DBG_PARTITION_ITER(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
 
 namespace Inferences {
@@ -378,16 +378,6 @@ public:
   // TODO coherence for varibles!!!
   struct SubSumUnif {
 
-      // struct Sum1Class {
-      //   unsigned idx1;
-      //   N numeral0;
-      //   N numeral1;
-      //   auto asTuple() const { return std::tie(idx1,numeral0,numeral1); }
-      //   IMPL_COMPARISONS_FROM_TUPLE(Sum1Class);
-      //   friend std::ostream& operator<<(std::ostream& out, Sum1Class const& self)
-      //   { return out << self.asTuple(); }
-      // };
-
       struct UnificationMergeFilter {
         AbstractingUnifier* unifier;
         Rhs const& sum1;
@@ -457,22 +447,50 @@ public:
       // crossEqualNumSum[i] = n means the sum of all sum0 that are matched to currentSum1Partition[i] is n
       Stack<N> crossEqualNumSum;
       Stack<BacktrackData> bds;
+      Option<std::pair<unsigned, unsigned>> preUnif;
 
       SubSumUnif(
         AbstractingUnifier* uwa, 
         Lhs const& sum0, unsigned bank0,
         Rhs const& sum1, unsigned bank1
+      ) : SubSumUnif(uwa, 
+        sum0, bank0,
+        sum1, bank1,
+        Option<std::pair<unsigned, unsigned>>()
+        )
+      { }
+
+
+      SubSumUnif(
+        AbstractingUnifier* uwa, 
+        Lhs const& sum0, unsigned bank0,
+        Rhs const& sum1, unsigned bank1,
+        Option<std::pair<unsigned, unsigned>> preUnif
       ) 
         : uwa(uwa)
         , sum0(sum0), bank0(bank0)
         , sum1(sum1), bank1(bank1)
         , sum1Partitions(mergingPartitionIterRaw(sum1.nSummands(), UnificationMergeFilter{uwa, sum1, bank1}))
         , partitionsFinished(false)
-        , crossEqual({0}) 
+        , crossEqual() 
         , crossEqualNumSum(range(0, sum1.nSummands()).map([](auto) { return N(0); }).template collect<Stack>())
-        , bds({ BacktrackData() })
-        {
+        , bds()
+        , preUnif(std::move(preUnif))
+      {
+        pushCrossEqual();
+      }
+
+      void pushCrossEqual() {
+        if (preUnif.isSome() && crossEqual.size() == preUnif->first) {
+          crossEqual.push(sum1Partitions.partitionOf(sum1Partitions.depth(), preUnif->second));
+          bds.push(BacktrackData());
+        } else {
+          crossEqual.push(0);
+          bds.push(BacktrackData());
         }
+      }
+
+
       DECL_ELEMENT_TYPE(SubSumUnif*);
 
       Option<SubSumUnif*> tryNext() {
@@ -488,22 +506,30 @@ public:
           while (crossEqual.size() > 0) {
             auto i0 = crossEqual.size() - 1;
             auto i1 = crossEqual.top();
-            if (i1 >= sum1Partitions._filter.nPartitions()) {
+            if (i1 >= sum1Partitions._filter.nPartitions() 
+                || (preUnif.isSome() && preUnif->first == i0 && i1 == 1 + sum1Partitions.partitionOf(sum1Partitions.depth(), preUnif->second))) {
               crossEqual.pop();
               bds.pop().backtrack();
 
             } else {
               bds.top().backtrack();
-              uwa->bdRecord(bds.top());
-              DEBUG_COHERENCE(2, "matching ", outputInterleaved(", ", 
-                    arrayIter(crossEqual, crossEqual.size() - 1)
-                      .zipWithIndex()
-                      .map([](auto x){ return std::make_tuple(x.second, x.first - 1); })),
-                  ", ", std::make_pair(i0, i1));
-              auto success = unify(
-                  sum0.atom(i0), bank0, 
-                  sum1Partitions._filter.atom(i1), bank1);
-              uwa->bdDone();
+
+              bool success;
+              if (preUnif.isSome() && preUnif->first == i0) {
+                /* we already know that they two are unified */
+                success = true;
+              } else {
+                uwa->bdRecord(bds.top());
+                DEBUG_COHERENCE(2, "matching ", outputInterleaved(", ", 
+                      arrayIter(crossEqual, crossEqual.size() - 1)
+                        .zipWithIndex()
+                        .map([](auto x){ return std::make_tuple(x.second, x.first - 1); })),
+                    ", ", std::make_pair(i0, i1));
+                success = unify(
+                    sum0.atom(i0), bank0, 
+                    sum1Partitions._filter.atom(i1), bank1);
+                uwa->bdDone();
+              }
 
               auto num0 = sum0.numeral(i0);
               crossEqualNumSum[i1] += num0;
@@ -513,8 +539,7 @@ public:
                 if (crossEqual.size() == sum0.nSummands()) {
                   return some(this);
                 } else {
-                  crossEqual.push(0);
-                  bds.push(BacktrackData());
+                  pushCrossEqual();
                 }
               }
             }
@@ -529,8 +554,7 @@ public:
             ASS(crossEqualNumSum.size() == sum1Partitions._filter.nPartitions())
             ASS_EQ(crossEqual.size(), 0)
             ASS_EQ(bds.size(), 0)
-            crossEqual.push(0);
-            bds.push(BacktrackData());
+            pushCrossEqual();
           }
         }
         ASS_EQ(bds.size(), 0)
@@ -548,7 +572,8 @@ public:
       AbstractingUnifier& uwa
       ) const 
   {
-    return iterTraits(iterFromTryNext(SubSumUnif(&uwa, lhs, lhsVarBank, rhs, rhsVarBank)))
+    return iterTraits(iterFromTryNext(SubSumUnif(&uwa, lhs, lhsVarBank, rhs, rhsVarBank, 
+            some(std::make_pair(lhs._summandIdx, rhs._summandIdx)))))
       .filterMap([&lhs, &rhs, lhsVarBank, rhsVarBank](SubSumUnif* state) -> Option<Clause*> {
 
           // DBGE(state->sum1Partitions)
