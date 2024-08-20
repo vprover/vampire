@@ -52,14 +52,15 @@ Iter assertIter(Iter iter) {
   return iter;
 }
 
-// template<class MergeFilter>
+template<class MergeFilter>
 struct MergingPartitionIter 
 {
   Stack<unsigned> elems;
   Recycled<DArray<unsigned>> _history;
   RStack<std::pair<unsigned, unsigned>> merges;
   bool finished;
-  // MergeFilter _filter;
+  MergeFilter _filter;
+  unsigned  _filterMerges;
 #if VDEBUG
   Set<Stack<unsigned>> set;
 #endif // VDEBUG
@@ -67,22 +68,30 @@ struct MergingPartitionIter
   struct Subset {
     MergingPartitionIter const* parent;
     unsigned idx;
+    unsigned depth;
     friend std::ostream& operator<<(std::ostream& out, Subset const& self)
     { return out << "[" << 
-      outputInterleaved(", ", 
-        range(0, self.parent->elems.size())
-        .filterMap([&](auto i) { return someIf(self.parent->partitionOf(self.parent->depth(), i) == self.idx, [&]() { return self.parent->elems[i]; } ); })
-        )
+      outputInterleaved(", ", self.toIter())
         << "]"; 
+    }
+
+    auto toStack() const 
+    { return toIter().template collect<Stack>(); }
+
+    auto toIter() const
+    {
+      return range(0, parent->elems.size())
+        .filterMap([&](auto i) { return someIf(parent->partitionOf(depth, i) == idx, [&]() { return parent->elems[i]; } ); });
     }
   };
 
-  // MergingPartitionIter(MergeFilter filter, unsigned N) 
-  MergingPartitionIter(unsigned N) 
+  MergingPartitionIter(unsigned N, MergeFilter filter) 
+  // MergingPartitionIter(unsigned N) 
     : elems(range(0, N).template collect<Stack>())
     , _history()
     , finished(false)
-    // , _filter(std::move(filter))
+    , _filter(std::move(filter))
+    , _filterMerges(0)
   { 
     _history->ensure(N * N);
     for (auto i : range(0, N)) {
@@ -90,10 +99,14 @@ struct MergingPartitionIter
     }
   }
 
-  auto currentSubsets() const {
-    return range(0, maxPartition() + 1) // TODO
-      .map([this](auto i) { return Subset { .parent = this, .idx = i, };  });
+  auto subsets(unsigned depth) const {
+    return range(0, maxPartition(depth) + 1)
+      .map([this, depth](auto i) { return Subset { .parent = this, .idx = i, .depth = depth, };  });
   }
+
+
+  auto currentSubsets() const 
+  { return subsets(depth()); }
 
   friend std::ostream& operator<<(std::ostream& out, MergingPartitionIter const& self)
   { return out << outputInterleaved("", self.currentSubsets()); }
@@ -106,7 +119,8 @@ struct MergingPartitionIter
     return res;
   }
 
-  unsigned maxPartition() const { return elems.size() - 1 - depth(); }
+  unsigned currentMaxPartition() const { return maxPartition(depth()); }
+  unsigned maxPartition(unsigned depth) const { return elems.size() - 1 - depth; }
 
   unsigned& partitionOf(unsigned depth, unsigned elem) 
   { return (*_history)[depth * elems.size() + elem]; }
@@ -115,8 +129,7 @@ struct MergingPartitionIter
   { return (*_history)[depth * elems.size() + elem]; }
 
   auto partition(unsigned depth) 
-  { return range(0, elems.size()).map([this,depth](auto i) { return partitionOf(depth, i); }); }
-
+  { return range(0, elems.size()).map([this,depth](auto i) { return this->partitionOf(depth, i); }); }
 
   auto lastPartition() 
   { return partition(depth()); }
@@ -130,17 +143,22 @@ struct MergingPartitionIter
     if (p0 < merges->top().first)
     ASS(p0 < p1)
     ASS(depth() >= 1)
-    auto p1Found = false;
-    for (auto i : range(0, elems.size())) {
+    // auto p1Found = false;
+    Option<unsigned> i0 = {};
+    Option<unsigned> i1 = {};
+    for (auto i : range(0, unsigned(elems.size()))) {
       auto oldVal = partitionOf(depth() - 1,i);
-      if (oldVal == p0 && p1Found == 1) {
+      if (oldVal == p0 && i0.isNone()) {
+        i0 = some(i);
+      }
+      if (oldVal == p0 && i1.isSome()) {
         // symmetry breaking: TODO explain
         return false;
       } else if (oldVal == p1) {
         // symmetry breaking: only allow merging singletons to partition p0
-        if (p1Found) 
+        if (i1) 
           return false;
-        p1Found = true;
+        i1 = some(i);
         partitionOf(depth(),i) = p0;
       } else if (oldVal > p1) {
         partitionOf(depth(),i) = oldVal - 1;
@@ -149,21 +167,34 @@ struct MergingPartitionIter
         partitionOf(depth(),i) = oldVal;
       }
     }
-    ASS_EQ(p1Found, 1)
+    ASS(i0.isSome())
+    ASS(i1.isSome())
 #if VDEBUG
-    auto lastPart = lastPartition(). template collect<Stack>();
-    ASS_REP(!set.contains(lastPart),  outputToString("duplicate value: ",lastPart))
-    set.insert(lastPart);
+    { /* compute set of all partitions for debugging purposes */
+      auto lastPart = lastPartition().template collect<Stack>();
+      ASS_REP(!set.contains(lastPart),  outputToString("duplicate value: ",lastPart))
+      set.insert(lastPart);
+    }
 #endif // VDEBUG
-    return true;
+    // DBG(outputInterleaved("", subsets(depth() - 1)), ".merge(", p0, ", ",  p1, ") -> ", outputInterleaved("", subsets(depth())))
+    while (_filterMerges != depth() - 1) {
+      _filter.undoLastMerge();
+      _filterMerges--;
+    }
+    if (_filter.tryMerge(*i0, *i1)) {
+      _filterMerges++;
+      return true;
+    } else {
+      return false;
+    }
+    // return true;
   }
 
   auto maxDepth() 
   { return elems.size() - 1; }
 
-
   bool increment(std::pair<unsigned, unsigned>& pair) {
-    auto oldMaxPartition = this->maxPartition() + 1;
+    auto oldMaxPartition = this->currentMaxPartition() + 1;
     if (pair.second < oldMaxPartition) {
       pair.second++;
       return true;
@@ -180,6 +211,46 @@ struct MergingPartitionIter
   bool nextPartition() 
   {
     if (finished) return false;
+
+    if (depth() != maxDepth()) {
+      merges->push(std::pair<unsigned, unsigned>(0, 1));
+      do {
+        if (merge(merges->top())) {
+          return true;
+        }
+      } while (increment(merges->top()));
+      merges->pop();
+    }
+
+    while (merges->isNonEmpty()) {
+      if (increment(merges->top())) {
+        if (merge(merges->top())) {
+          return true;
+        }
+      } else {
+        merges->pop();
+        // if (merges->isNonEmpty()) {
+        //   _filter.undoLastMerge();
+        // }
+      }
+    }
+    finished = true;
+    return false;
+
+    
+    // while (merges->isNonEmpty()) {
+    //   if (merge(merges->top())) {
+    //     return true;
+    //   } else {
+    //     if (!increment(merges->top())) {
+    //       merges->pop();
+    //       if (merges->isNonEmpty()) {
+    //         _filter.undoLastMerge();
+    //       }
+    //     }
+    //   }
+    // }
+
     if (depth() != maxDepth()) {
       merges->push(std::pair<unsigned, unsigned>(0, 1));
       if (merge(merges->top())) {
@@ -199,6 +270,10 @@ struct MergingPartitionIter
     return false;
   }
 };
+
+template<class MergeFilter>
+MergingPartitionIter<MergeFilter> mergingPartitionIter(unsigned N, MergeFilter filter)
+{ return MergingPartitionIter<MergeFilter>(N, std::move(filter)); }
 
 template<class NumTraits>
 struct CoherenceConf
@@ -519,7 +594,6 @@ public:
           for (auto c : state->sum1ClassRoots) {
             auto& cls = *state->sum1ClassMap.get(c);
 
-            // DBG("class: ", state->sum1.atom(cls.idx1), ": ", cls.numeral0, " ", cls.numeral1)
             auto f = (cls.numeral1.abs() / cls.numeral0.abs()).floor();
             if (f == IntegerConstantType(0)) {
               DEBUG_COHERENCE(2, "factors don't fit: ", state->sum1.atom(cls.idx1), ": ", cls.numeral0, " ", cls.numeral1)
