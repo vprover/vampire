@@ -158,9 +158,8 @@ AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell
   _ageSelectionMaxWeight(UINT_MAX),
   _weightSelectionMaxWeight(UINT_MAX)
 {
-  ASS_GE(_ageRatio, 0);
-  ASS_GE(_weightRatio, 0);
-  ASS(_ageRatio > 0 || _weightRatio > 0);
+  ASS_G(_ageRatio, 0);
+  ASS_G(_weightRatio, 0);
 }
 
 AWPassiveClauseContainer::~AWPassiveClauseContainer()
@@ -180,19 +179,13 @@ AWPassiveClauseContainer::~AWPassiveClauseContainer()
  */
 void AWPassiveClauseContainer::add(Clause* cl)
 {
-  ASS(_ageRatio > 0 || _weightRatio > 0);
   ASS(cl->store() == Clause::PASSIVE);
 
-  if (_ageRatio) {
-    _ageQueue.insert(cl);
-  }
-  if (_weightRatio) {
-    _weightQueue.insert(cl);
-  }
+  _ageQueue.insert(cl);
+  _weightQueue.insert(cl);
   _size++;
 
-  if (_isOutermost)
-  {
+  if (_isOutermost) {
     addedEvent.fire(cl);
   }
 } // AWPassiveClauseContainer::add
@@ -205,25 +198,15 @@ void AWPassiveClauseContainer::add(Clause* cl)
  */
 void AWPassiveClauseContainer::remove(Clause* cl)
 {
-  if (_isOutermost)
-  {
+  if (_isOutermost) {
     ASS(cl->store()==Clause::PASSIVE);
   }
-  ASS(_ageRatio > 0 || _weightRatio > 0);
-  bool wasRemoved = false;
-  if (_ageRatio) {
-    wasRemoved = _ageQueue.remove(cl);
-  }
-  if (_weightRatio) {
-    wasRemoved = _weightQueue.remove(cl);
-  }
-
-  if (wasRemoved) {
+  _ageQueue.remove(cl);
+  if (_weightQueue.remove(cl)) { // _ageQueue could be used for the question too
     _size--;
   }
 
-  if (_isOutermost)
-  {
+  if (_isOutermost) {
     removedEvent.fire(cl);
     ASS(cl->store()!=Clause::PASSIVE);
   }
@@ -231,19 +214,11 @@ void AWPassiveClauseContainer::remove(Clause* cl)
 
 bool AWPassiveClauseContainer::byWeight(int balance)
 {
-  if (! _ageRatio) {
+  if (balance > 0) {
     return true;
-  }
-  else if (! _weightRatio) {
+  } else if (balance < 0) {
     return false;
-  }
-  else if (balance > 0) {
-    return true;
-  }
-  else if (balance < 0) {
-    return false;
-  }
-  else {
+  } else {
     return (_ageRatio <= _weightRatio);
   }
 }
@@ -254,7 +229,7 @@ bool AWPassiveClauseContainer::byWeight(int balance)
  */
 Clause* AWPassiveClauseContainer::popSelected()
 {
-  ASS( ! isEmpty());
+  ASS(!isEmpty());
 
   _size--;
 
@@ -284,8 +259,7 @@ Clause* AWPassiveClauseContainer::popSelected()
 
 void AWPassiveClauseContainer::onLimitsUpdated()
 {
-  if ( (_ageRatio > 0 && !ageLimited()) || (_weightRatio > 0 && !weightLimited()) )
-  {
+  if (!ageLimited() || !weightLimited()) {
     return;
   }
 
@@ -324,107 +298,58 @@ void AWPassiveClauseContainer::simulationInit()
   _simulationBalance = _balance;
 
   // initialize iterators
-  if (_ageRatio > 0)
-  {
-    _simulationCurrAgeIt = ClauseQueue::Iterator(_ageQueue);
-    _simulationCurrAgeCl = _simulationCurrAgeIt.hasNext() ? _simulationCurrAgeIt.next() : nullptr;
-  }
-  if (_weightRatio > 0)
-  {
-    _simulationCurrWeightIt = ClauseQueue::Iterator(_weightQueue);
-    _simulationCurrWeightCl = _simulationCurrWeightIt.hasNext() ? _simulationCurrWeightIt.next() : nullptr;
-  }
+  _simulationCurrAgeIt = ClauseQueue::Iterator(_ageQueue);
+  _simulationCurrAgeCl = _simulationCurrAgeIt.hasNext() ? _simulationCurrAgeIt.next() : nullptr;
 
-  if (_ageRatio > 0 && _weightRatio > 0)
-  {
-    // have to consider two possibilities for simulation:
-    // standard case: both container are initially non-empty, then have invariants
-    // - _simulationCurrAgeCl != nullptr
-    // - _simulationCurrWeightCl != nullptr
-    // degenerate case: both containers are initially empty (e.g. happens sometimes if layered clause selection is used), then have invariant
-    // - _simulationCurrAgeCl == nullptr
-    // - _simulationCurrWeightCl == nullptr
-    ASS(_simulationCurrAgeCl != nullptr || _simulationCurrWeightCl == nullptr);
-    ASS(_simulationCurrAgeCl == nullptr || _simulationCurrWeightCl != nullptr);
-  }
+  _simulationCurrWeightIt = ClauseQueue::Iterator(_weightQueue);
+  _simulationCurrWeightCl = _simulationCurrWeightIt.hasNext() ? _simulationCurrWeightIt.next() : nullptr;
+
+  // have to consider two possibilities for simulation:
+  // standard case: both container are initially non-empty, then have invariants
+  // - _simulationCurrAgeCl != nullptr
+  // - _simulationCurrWeightCl != nullptr
+  // degenerate case: both containers are initially empty (e.g. happens sometimes if layered clause selection is used), then have invariant
+  // - _simulationCurrAgeCl == nullptr
+  // - _simulationCurrWeightCl == nullptr
+  ASS(_simulationCurrAgeCl != nullptr || _simulationCurrWeightCl == nullptr);
+  ASS(_simulationCurrAgeCl == nullptr || _simulationCurrWeightCl != nullptr);
 }
 
 bool AWPassiveClauseContainer::simulationHasNext()
 {
-  // Part 1: Return false if aw-container is empty
-  if (_ageRatio == 0)
-  {
-    if (_simulationCurrWeightCl == nullptr)
-    {
-      // degenerate case: weight-container is empty (and we don't use the age-container), so return false
-      return false;
-    }
-  }
-  else if (_weightRatio == 0)
-  {
-    if (_simulationCurrAgeCl == nullptr)
-    {
-      // degenerate case: age-container is empty (and we don't use the weight-container), so return false
-      return false;
-    }
-  }
-  else
-  {
-    ASS(_ageRatio > 0 && _weightRatio > 0);
-    ASS(_simulationCurrAgeCl != nullptr || _simulationCurrWeightCl == nullptr);
-    ASS(_simulationCurrAgeCl == nullptr || _simulationCurrWeightCl != nullptr);
+  ASS(_simulationCurrAgeCl != nullptr || _simulationCurrWeightCl == nullptr);
+  ASS(_simulationCurrAgeCl == nullptr || _simulationCurrWeightCl != nullptr);
 
-    if (_simulationCurrAgeCl == nullptr)
-    {
-      // degenerate case: both containers are empty, so return false
-      return false;
-    }
+  if (_simulationCurrAgeCl == nullptr)
+  {
+    // degenerate case: both containers are empty, so return false
+    return false;
   }
 
-  // if we reach this point, we know that there is at least one clause in the aw-container (but it could already been deleted in the simulation)
-  // Part 2: advance each iterator to point to a clause not deleted in the simulation (if possible)
-  if (_ageRatio > 0)
+  // advance _simulationCurrAgeIt, until _simulationCurrAgeCl points to a
+  // clause which has not been deleted in the simulation or _simulationCurrAgeIt
+  // reaches the end of the age-queue
+  // establishes invariant: if there is a clause which is not deleted in the simulation, then _simulationCurrAgeCl is not deleted.
+  while (_simulationCurrAgeCl->hasAux() && _simulationCurrAgeIt.hasNext())
   {
-    // advance _simulationCurrAgeIt, until _simulationCurrAgeCl points to a
-    // clause which has not been deleted in the simulation or _simulationCurrAgeIt
-    // reaches the end of the age-queue
-    // establishes invariant: if there is a clause which is not deleted in the simulation, then _simulationCurrAgeCl is not deleted.
-    while (_simulationCurrAgeCl->hasAux() && _simulationCurrAgeIt.hasNext())
-    {
-      _simulationCurrAgeCl = _simulationCurrAgeIt.next();
-    }
-    ASS(_simulationCurrAgeCl != nullptr);
+    _simulationCurrAgeCl = _simulationCurrAgeIt.next();
   }
-  if (_weightRatio > 0)
-  {
-    // advance _simulationCurrWeightIt, until _simulationCurrWeightCl points to a
-    // clause which has not been deleted in the simulation or _simulationCurrWeightIt
-    // reaches the end of the weight-queue
-    // establishes invariant: if there is a clause which is not deleted in the simulation, then _simulationCurrWeightCl is not deleted.
-    while (_simulationCurrWeightCl->hasAux() && _simulationCurrWeightIt.hasNext())
-    {
-      _simulationCurrWeightCl = _simulationCurrWeightIt.next();
-    }
-    ASS(_simulationCurrWeightCl != nullptr);
-  }
+  ASS(_simulationCurrAgeCl != nullptr);
 
-  // Part 3: return whether clause was found which is not deleted in the simulation
-  if (_ageRatio == 0)
+  // advance _simulationCurrWeightIt, until _simulationCurrWeightCl points to a
+  // clause which has not been deleted in the simulation or _simulationCurrWeightIt
+  // reaches the end of the weight-queue
+  // establishes invariant: if there is a clause which is not deleted in the simulation, then _simulationCurrWeightCl is not deleted.
+  while (_simulationCurrWeightCl->hasAux() && _simulationCurrWeightIt.hasNext())
   {
-    return !_simulationCurrWeightCl->hasAux();
+    _simulationCurrWeightCl = _simulationCurrWeightIt.next();
   }
-  else if (_weightRatio == 0)
-  {
-    return !_simulationCurrAgeCl->hasAux();
-  }
-  else
-  {
-    ASS(_ageRatio > 0 && _weightRatio > 0);
-    ASS(!_simulationCurrAgeCl->hasAux() || _simulationCurrWeightCl->hasAux());
-    ASS(_simulationCurrAgeCl->hasAux() || !_simulationCurrWeightCl->hasAux());
+  ASS(_simulationCurrWeightCl != nullptr);
 
-    return !_simulationCurrAgeCl->hasAux();
-  }
+  ASS(!_simulationCurrAgeCl->hasAux() || _simulationCurrWeightCl->hasAux());
+  ASS(_simulationCurrAgeCl->hasAux() || !_simulationCurrWeightCl->hasAux());
+
+  return !_simulationCurrAgeCl->hasAux();
 }
 
 // assumes that simulationHasNext() has been called before and returned true,
@@ -433,8 +358,7 @@ void AWPassiveClauseContainer::simulationPopSelected()
 {
   // invariants:
   // - both queues share the aux-field which denotes whether a clause was deleted during the simulation
-  // - if _ageRatio > 0 and _weightRatio > 0, then both queues contain the same clauses
-  // note: byWeight() already takes care of the cases where _ageRatio == 0 or _weightRatio == 0
+  // - both queues contain the same clauses
   if (byWeight(_simulationBalance)) {
     // simulate selection by weight
     _simulationBalance -= _ageRatio;
@@ -455,38 +379,18 @@ bool AWPassiveClauseContainer::setLimitsToMax()
 
 bool AWPassiveClauseContainer::setLimitsFromSimulation()
 {
-  if (_ageRatio == 0)
+  ASS(_simulationCurrAgeCl != nullptr || _simulationCurrWeightCl == nullptr);
+  ASS(_simulationCurrAgeCl == nullptr || _simulationCurrWeightCl != nullptr);
+
+  if (_simulationCurrAgeCl == nullptr)
   {
-    if (_simulationCurrWeightCl == nullptr)
-    {
-      // degenerate case: weight-container is empty (and we don't use the age-container), so set limits to max.
-      return setLimitsToMax();
-    }
-  }
-  else if (_weightRatio == 0)
-  {
-    if (_simulationCurrAgeCl == nullptr)
-    {
-      // degenerate case: age-container is empty (and we don't use the weight-container), so set limits to max.
-      return setLimitsToMax();
-    }
+    // degenerate case: both containers are empty, so set limits to max.
+    return setLimitsToMax();
   }
   else
   {
-    ASS(_ageRatio > 0 && _weightRatio > 0);
-    ASS(_simulationCurrAgeCl != nullptr || _simulationCurrWeightCl == nullptr);
-    ASS(_simulationCurrAgeCl == nullptr || _simulationCurrWeightCl != nullptr);
-
-    if (_simulationCurrAgeCl == nullptr)
-    {
-      // degenerate case: both containers are empty, so set limits to max.
-      return setLimitsToMax();
-    }
-    else
-    {
-      ASS(!_simulationCurrAgeCl->hasAux() || _simulationCurrWeightCl->hasAux());
-      ASS(_simulationCurrAgeCl->hasAux() || !_simulationCurrWeightCl->hasAux());
-    }
+    ASS(!_simulationCurrAgeCl->hasAux() || _simulationCurrWeightCl->hasAux());
+    ASS(_simulationCurrAgeCl->hasAux() || !_simulationCurrWeightCl->hasAux());
   }
 
   unsigned maxAgeQueueAge;
@@ -494,51 +398,33 @@ bool AWPassiveClauseContainer::setLimitsFromSimulation()
   unsigned maxWeightQueueWeight;
 
   // compute limits for age-queue
-  if (_ageRatio > 0)
+  if (_simulationCurrAgeIt.hasNext())
   {
-    if (_simulationCurrAgeIt.hasNext())
-    {
-      // the age-queue is in use and the simulation didn't get to the end of the age-queue => set limits on age-queue
-      maxAgeQueueAge = _simulationCurrAgeCl->age();
-      maxAgeQueueWeight = _simulationCurrAgeCl->weightForClauseSelection(_opt);
-    }
-    else
-    {
-      // the age-queue is in use and the simulation got to the end of the age-queue => set no limits on age-queue
-      maxAgeQueueAge = UINT_MAX;
-      maxAgeQueueWeight = UINT_MAX;
-    }
+    // the age-queue is in use and the simulation didn't get to the end of the age-queue => set limits on age-queue
+    maxAgeQueueAge = _simulationCurrAgeCl->age();
+    maxAgeQueueWeight = _simulationCurrAgeCl->weightForClauseSelection(_opt);
   }
   else
   {
-    // the age-queue is not in use, so no clause will be selected from the age-queue => set tighest possible bound on age-queue
-    maxAgeQueueAge = 0;
-    maxAgeQueueWeight = 0;
+    // the age-queue is in use and the simulation got to the end of the age-queue => set no limits on age-queue
+    maxAgeQueueAge = UINT_MAX;
+    maxAgeQueueWeight = UINT_MAX;
   }
 
   // compute limits for weight-queue
-  if (_weightRatio > 0)
+  if (_simulationCurrWeightIt.hasNext())
   {
-    if (_simulationCurrWeightIt.hasNext())
-    {
-      // the weight-queue is in use and the simulation didn't get to the end of the weight-queue => set limits on weight-queue
-      maxWeightQueueWeight = _simulationCurrWeightCl->weightForClauseSelection(_opt);
-    }
-    else
-    {
-      // the weight-queue is in use and the simulation got to the end of the weight-queue => set no limits on weight-queue
-      maxWeightQueueWeight = UINT_MAX;
-    }
+    // the weight-queue is in use and the simulation didn't get to the end of the weight-queue => set limits on weight-queue
+    maxWeightQueueWeight = _simulationCurrWeightCl->weightForClauseSelection(_opt);
   }
   else
   {
-    // the weight-queue is not in use, so no clause will be selected from the weight-queue => set tighest possible bound on weight-queue
-    maxWeightQueueWeight = 0;
+    // the weight-queue is in use and the simulation got to the end of the weight-queue => set no limits on weight-queue
+    maxWeightQueueWeight = UINT_MAX;
   }
 
-  // note: we ignore the option lrsWeightLimitOnly() if weightRatio is set to 0
   // TODO: force in Options that weightRatio is positive if lrsWeightLimitOnly() is set to 'on'.
-  if (_opt.lrsWeightLimitOnly() && _weightRatio > 0)
+  if (_opt.lrsWeightLimitOnly())
   {
     // if the option lrsWeightLimitOnly() is set, we want to discard all clauses which are too heavy, regardless of the age.
     // we therefore make sure that fulfilsAgeLimit() always fails.
@@ -599,17 +485,19 @@ bool AWPassiveClauseContainer::setLimits(unsigned newAgeSelectionMaxAge, unsigne
 
 bool AWPassiveClauseContainer::ageLimited() const
 {
-  return _ageRatio > 0 && _ageSelectionMaxAge != UINT_MAX && _ageSelectionMaxWeight != UINT_MAX;
+  return _ageSelectionMaxAge != UINT_MAX && _ageSelectionMaxWeight != UINT_MAX;
 }
 
 bool AWPassiveClauseContainer::weightLimited() const
 {
-  return _weightRatio > 0 && _weightSelectionMaxWeight != UINT_MAX;
+  return _weightSelectionMaxWeight != UINT_MAX;
 }
 
 bool AWPassiveClauseContainer::mayBeAbleToDiscriminateChildrenOnLimits() const
 {
-  return ageLimited() && weightLimited();
+  ASS(!ageLimited() || weightLimited());
+  ASS(!weightLimited() || ageLimited());
+  return ageLimited();
 }
 
 bool AWPassiveClauseContainer::exceedsAgeLimit(unsigned, const Inference& inference, bool&) const
@@ -637,7 +525,9 @@ bool AWPassiveClauseContainer::exceedsWeightLimit(unsigned w, unsigned numPositi
 
 bool AWPassiveClauseContainer::limitsActive() const
 {
-  return ageLimited() || weightLimited();
+  ASS(!ageLimited() || weightLimited());
+  ASS(!weightLimited() || ageLimited());
+  return ageLimited();
 }
 
 bool AWPassiveClauseContainer::exceedsAllLimits(Clause* cl) const

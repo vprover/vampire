@@ -177,9 +177,9 @@ public:
   unsigned sizeEstimate() const override { return _size; }
 
 private:
-  /** The age queue, empty if _ageRatio=0 */
+  /** The age queue */
   AgeQueue _ageQueue;
-  /** The weight queue, empty if _weightRatio=0 */
+  /** The weight queue */
   WeightQueue _weightQueue;
   /** the age ratio */
   int _ageRatio;
