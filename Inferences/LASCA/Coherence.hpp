@@ -33,7 +33,7 @@
 #include "Debug/Output.hpp"
 #include "Kernel/EqHelper.hpp"
 
-#define DEBUG_COHERENCE(lvl, ...) if (lvl < 4) DBG(__VA_ARGS__)
+#define DEBUG_COHERENCE(lvl, ...) if (lvl < 2) DBG(__VA_ARGS__)
 #define DBG_PARTITION_ITER(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
 
 namespace Inferences {
@@ -86,7 +86,6 @@ struct MergingPartitionsIterRaw
   };
 
   MergingPartitionsIterRaw(unsigned N, MergeFilter filter) 
-  // MergingPartitionIter(unsigned N) 
     : _elems(range(0, N).template collect<Stack>())
     , _history()
     , _finished(false)
@@ -193,7 +192,6 @@ struct MergingPartitionsIterRaw
     } else {
       return false;
     }
-    // return true;
   }
 
   auto maxDepth() 
@@ -235,27 +233,10 @@ struct MergingPartitionsIterRaw
         }
       } else {
         _merges->pop();
-        // if (merges->isNonEmpty()) {
-        //   _filter.undoLastMerge();
-        // }
       }
     }
     _finished = true;
     return false;
-
-    
-    // while (merges->isNonEmpty()) {
-    //   if (merge(merges->top())) {
-    //     return true;
-    //   } else {
-    //     if (!increment(merges->top())) {
-    //       merges->pop();
-    //       if (merges->isNonEmpty()) {
-    //         _filter.undoLastMerge();
-    //       }
-    //     }
-    //   }
-    // }
 
     if (depth() != maxDepth()) {
       _merges->push(std::pair<unsigned, unsigned>(0, 1));
@@ -395,7 +376,7 @@ public:
   };
 
   // TODO coherence for varibles!!!
-  struct SubSumUnif2 {
+  struct SubSumUnif {
 
       struct Sum1Class {
         unsigned idx1;
@@ -470,7 +451,6 @@ public:
       Rhs const& sum1; unsigned bank1;
       MergingPartitionsIterRaw<UnificationMergeFilter> sum1Partitions;
       bool partitionsFinished;
-      // Option<UnificationMergeFilter const*> currentSum1Partition;
 
       // on a return from next stack[i] = j means that sum0[i] has been unified with sum1[j - 1]
       Stack<unsigned> crossEqual;
@@ -478,7 +458,7 @@ public:
       Stack<N> crossEqualNumSum;
       Stack<BacktrackData> bds;
 
-      SubSumUnif2(
+      SubSumUnif(
         AbstractingUnifier* uwa, 
         Lhs const& sum0, unsigned bank0,
         Rhs const& sum1, unsigned bank1
@@ -488,15 +468,14 @@ public:
         , sum1(sum1), bank1(bank1)
         , sum1Partitions(mergingPartitionIterRaw(sum1.nSummands(), UnificationMergeFilter{uwa, sum1, bank1}))
         , partitionsFinished(false)
-        // , currentSum1Partition(sum1Partitions.tryNext())
         , crossEqual({0}) 
         , crossEqualNumSum(range(0, sum1.nSummands()).map([](auto) { return N(0); }).template collect<Stack>())
         , bds({ BacktrackData() })
         {
         }
-      DECL_ELEMENT_TYPE(SubSumUnif2*);
+      DECL_ELEMENT_TYPE(SubSumUnif*);
 
-      Option<SubSumUnif2*> tryNext() {
+      Option<SubSumUnif*> tryNext() {
 
         auto unify = [&](auto... args) {
           auto result = uwa->unify(args...);
@@ -563,184 +542,17 @@ public:
   };
 
 
-  struct SubSumUnif {
-
-      struct Sum1Class {
-        unsigned idx1;
-        N numeral0;
-        N numeral1;
-        auto asTuple() const { return std::tie(idx1,numeral0,numeral1); }
-        IMPL_COMPARISONS_FROM_TUPLE(Sum1Class);
-        friend std::ostream& operator<<(std::ostream& out, Sum1Class const& self)
-        { return out << self.asTuple(); }
-      };
-
-      AbstractingUnifier* uwa;
-      Lhs const& sum0; unsigned bank0;
-      Rhs const& sum1; unsigned bank1;
-      // on a return from next stack[i] = j means that sum0[i] has been unified with sum1[j - 1]
-      Stack<unsigned> crossEqual;
-      Stack<BacktrackData> bds;
-
-      // TODO use RStack everywhere
-      // every element is a sorted stack of indices. 
-      //
-      // partitions[0] subset {1 .. N}
-      // partitions[1] subset {1 .. N - partitions[0].size()}
-      // partitions[2] subset {1 .. N - partitions[0].size() - partitions[1].size()}
-      // ...
-      // partitions[n] subset {1 .. N - partitions[0].size() ... - partitions[n - 1].size()}
-      //
-      // They encode partittions as follows:
-      //
-      // - We have n partitions of the set {0 .. N}
-      // - i in partition 0 <=> i == 0 or i in partitions[0]
-      // - i in partition 1 <=>     i - partitions[0].size() - 1 == 0
-      //                        or  i - partitions[0].size() - 1 in partitions[1]
-      // - i in partition 2 <=>     i - partitions[0].size() - 1 - partitions[1].size() - 1 == 
-      //                        or  i - partitions[0].size() - 1 - partitions[1].size() - 1 in partitions[2]
-      // ...
-      // - i in partition j <=>     i - partitions[0].size() - 1 ... - partitions[j].size() - 1 == 
-      //                        or  i - partitions[0].size() - 1 ... - partitions[1].size() - 1 in partitions[2]
-      Stack<Stack<unsigned>> partitions;
-
-
-      BdDHMap<unsigned, std::shared_ptr<Sum1Class>> sum1ClassMap;
-      BdStack<unsigned> sum1ClassRoots;
-      Stack<std::pair<unsigned, unsigned>> merges;
-
-      SubSumUnif(
-        AbstractingUnifier* uwa, 
-        Lhs const& sum0, unsigned bank0,
-        Rhs const& sum1, unsigned bank1
-      ) 
-        : uwa(uwa)
-        , sum0(sum0), bank0(bank0)
-        , sum1(sum1), bank1(bank1)
-        , crossEqual({0}) 
-        , bds({ BacktrackData() })
-        , partitions()
-        , sum1ClassRoots()
-        , merges()
-        {
-        }
-      DECL_ELEMENT_TYPE(SubSumUnif*);
-
-      
-
-      Option<SubSumUnif*> tryNext() {
-        
-        auto unify = [&](auto... args) {
-          auto result = uwa->unify(args...);
-          // DBG("unify: ", std::tie(args...), " -> ", result, "(subs: ", *uwa, ")");
-          return result;
-        };
-        while (!merges.isEmpty()) {
-          auto& pair = merges.top();
-          if (pair.first >= sum1ClassRoots.size()) {
-            bds.pop().backtrack();
-            merges.pop();
-
-          } else if (pair.second >= sum1ClassRoots.size()) {
-            bds.top().backtrack();
-            pair.first++;
-            pair.second = pair.first + 1;
-
-          } else {
-            DEBUG_COHERENCE(2, "merging: ", merges.top())
-
-            uwa->bdRecord(bds.top());
-
-            auto success = unify(sum1.atom(pair.first), bank1, sum1.atom(pair.second), bank1);
-            uwa->bdDone();
-            pair.second++;
-            if (success) {
-              auto c1 = sum1ClassMap.get(sum1ClassRoots[pair.first]);
-              auto c2 = sum1ClassMap.replace(sum1ClassRoots.swapRemove(pair.second - 1, bds.top()), c1, bds.top());
-              bds.top().addClosure([c1, origC1 = *c1]() {
-                  *c1 = origC1;
-              });
-              c1->numeral0 = c1->numeral0 + c2->numeral0;
-              c1->numeral1 = c1->numeral1 + c2->numeral1;
-              merges.push(std::make_pair(0,1));
-              bds.push(BacktrackData());
-              return some(this);
-            }
-          }
-        }
-
-
-        while (crossEqual.size() > 0) {
-          auto i0 = crossEqual.size() - 1;
-          auto i1 = crossEqual.top();
-          if (i1 >= sum1.nSummands()) {
-            crossEqual.pop();
-            bds.pop().backtrack();
-
-          } else {
-            bds.top().backtrack();
-            uwa->bdRecord(bds.top());
-            DEBUG_COHERENCE(2, "matching ", outputInterleaved(", ", 
-                  arrayIter(crossEqual, crossEqual.size() - 1)
-                    .zipWithIndex()
-                    .map([](auto x){ return std::make_tuple(x.second, x.first - 1); })),
-                ", ", std::make_pair(i0, i1));
-            auto success = unify(
-                sum0.atom(i0), bank0, 
-                sum1.atom(i1), bank1);
-            uwa->bdDone();
-            auto found = sum1ClassMap.find(i1);
-            if (!found) {
-              sum1ClassRoots.push(i1, bds.top());
-              bds.top().addClosure([this,i1]() {
-                  auto res = sum1ClassMap.remove(i1);
-                  ASS_EQ(res.unwrap().second->numeral0, N(0));
-              });
-              sum1ClassMap.insert(i1, std::make_shared<Sum1Class>(Sum1Class{ 
-                  .idx1 = i1, 
-                  .numeral0 = N(0), 
-                  .numeral1 = sum1.numeral(i1), 
-              }));
-            }
-            auto& clas = *sum1ClassMap.find(i1);
-            auto num0 = sum0.numeral(i0);
-            clas->numeral0 += num0;
-            bds.top().addClosure([clas,num0]() { clas->numeral0 -= num0; });
-            crossEqual.top()++;
-            if (success) {
-              if (crossEqual.size() == sum0.nSummands()) {
-                merges.push(std::make_pair(0,1));
-                bds.push(BacktrackData());
-                return some(this);
-              } else {
-                crossEqual.push(0);
-                bds.push(BacktrackData());
-              }
-            }
-          }
-        }
-        return {};
-      }
-  };
-
   auto applyRule(
       Lhs const& lhs, unsigned lhsVarBank,
       Rhs const& rhs, unsigned rhsVarBank,
       AbstractingUnifier& uwa
       ) const 
   {
-    return iterTraits(iterFromTryNext(SubSumUnif2(&uwa, lhs, lhsVarBank, rhs, rhsVarBank)))
-      .filterMap([&lhs, &rhs, lhsVarBank, rhsVarBank](SubSumUnif2* state) -> Option<Clause*> {
-          DEBUG_COHERENCE(2, "atoms match: ")
+    return iterTraits(iterFromTryNext(SubSumUnif(&uwa, lhs, lhsVarBank, rhs, rhsVarBank)))
+      .filterMap([&lhs, &rhs, lhsVarBank, rhsVarBank](SubSumUnif* state) -> Option<Clause*> {
 
-          DEBUG_COHERENCE(2, "lhs term: ", state->uwa->subs().apply(lhs.sumTerm, lhsVarBank));
-          DEBUG_COHERENCE(2, "rhs term: ", state->uwa->subs().apply(rhs.sumTerm, rhsVarBank));
-          if (state->uwa->maxNumberOfConstraints() != 0) {
-            DEBUG_COHERENCE(2, "modulo constarints: ", *state->uwa)
-          }
-
-          DBGE(state->sum1Partitions)
-          DBGE(state->crossEqual)
+          // DBGE(state->sum1Partitions)
+          // DBGE(state->crossEqual)
 
           Option<IntegerConstantType> factor;
           for (auto i : range(0, state->sum1Partitions._filter.nPartitions())) {
@@ -770,14 +582,16 @@ public:
               }
             }
           }
-          DEBUG_COHERENCE(2, "factors match with gcd: ", factor)
-          DEBUG_COHERENCE(0, "match: gcd ", factor)
+
+          DEBUG_COHERENCE(0, "atoms match: ")
           DEBUG_COHERENCE(0, "lhs term: ", state->uwa->subs().apply(lhs.sumTerm, lhsVarBank));
           DEBUG_COHERENCE(0, "rhs term: ", state->uwa->subs().apply(rhs.sumTerm, rhsVarBank));
+          if (state->uwa->maxNumberOfConstraints() != 0) {
+            DEBUG_COHERENCE(0, "modulo constarints: ", *state->uwa)
+          }
+          DEBUG_COHERENCE(1, "factors match with gcd: ", factor)
           DEBUG_COHERENCE(1, "eq classes: ")
           for (auto p : range(0, state->sum1Partitions._filter.nPartitions())) {
-            // auto term = state->uwa->subs().apply(state->sum1ClassMap.get(c1).idx1, rhsVarBank);
-            // auto term = state->uwa->subs().apply(state->sum1.atom(c1), rhsVarBank);
             DEBUG_COHERENCE(1, "  ", "\t{ ", 
               outputInterleaved(", ",
                 range(0, state->sum0.nSummands())
@@ -788,11 +602,6 @@ public:
                   state->sum1Partitions.subset(state->sum1Partitions.depth(), p).toIter()
                     .map([&](auto i) { return (**state->sum1.sum)[i]; })
                   )
-                  
-            // range(0, state->sum1.nSummands())
-            // .filter([&](auto i) { return c1 == state->sum1ClassMap.get(i)->idx1; })
-            //   .map([&](auto i) { return (**state->sum1.sum)[i]; })
-            //       )
                 ," }");
           }
 
@@ -807,7 +616,6 @@ public:
               NumTraits::floor(uσ), 
               NumTraits::add(f_tσ, NumTraits::floor(NumTraits::add(uσ, NumTraits::minus(f_tσ)))));
           auto constr = state->uwa->computeConstraintLiterals();
-
           
           return some(Clause::fromIterator(
               concatIters(
@@ -816,8 +624,7 @@ public:
                 rhs.contextLiterals()
                   .map([&](auto lit) { return subs.apply(lit, rhsVarBank); }),
                 iterItems(rLit),
-                arrayIter(*constr)
-              ),
+                arrayIter(*constr)),
               Inference(GeneratingInference2(InferenceRule::LASCA_COHERENCE, lhs.clause(), rhs.clause()))));
       });
   }
