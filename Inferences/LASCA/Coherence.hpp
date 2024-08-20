@@ -378,15 +378,15 @@ public:
   // TODO coherence for varibles!!!
   struct SubSumUnif {
 
-      struct Sum1Class {
-        unsigned idx1;
-        N numeral0;
-        N numeral1;
-        auto asTuple() const { return std::tie(idx1,numeral0,numeral1); }
-        IMPL_COMPARISONS_FROM_TUPLE(Sum1Class);
-        friend std::ostream& operator<<(std::ostream& out, Sum1Class const& self)
-        { return out << self.asTuple(); }
-      };
+      // struct Sum1Class {
+      //   unsigned idx1;
+      //   N numeral0;
+      //   N numeral1;
+      //   auto asTuple() const { return std::tie(idx1,numeral0,numeral1); }
+      //   IMPL_COMPARISONS_FROM_TUPLE(Sum1Class);
+      //   friend std::ostream& operator<<(std::ostream& out, Sum1Class const& self)
+      //   { return out << self.asTuple(); }
+      // };
 
       struct UnificationMergeFilter {
         AbstractingUnifier* unifier;
