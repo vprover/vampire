@@ -63,7 +63,7 @@ bool FwdDemodulation::perform(Clause* toSimplify, Clause*& replacement, ClauseIt
       auto simplified = Demodulation::apply(*_shared, *lhs.data, rhs);
       if (simplified.isSome()) {
         replacement = simplified.unwrap();
-        premises    = pvi(getSingletonIterator(lhs.data->clause()));
+        premises    = pvi(iterItems(lhs.data->clause()));
         return true;
       }
     }

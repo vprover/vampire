@@ -1486,8 +1486,8 @@ struct Plus {
 template<class A
   , std::enable_if_t<!std::is_invocable_v<A>, bool> = true
   >
-auto makeLazy(A&& a) 
-{ return [a = std::forward<A>(a)](){ return a; }; }
+auto makeLazy(A a) 
+{ return [a = std::move(a)]() mutable -> A { return std::move(a); }; }
 
 template<class A
   , std::enable_if_t<std::is_invocable_v<A>, bool> = true
@@ -1524,8 +1524,8 @@ static auto __ifElseIter(Args... args)
 }
 
 template<class... Args>
-static auto ifElseIter(Args&&... args) 
-{ return __ifElseIter(makeLazy(std::forward<Args>(args))...); }
+static auto ifElseIter(Args... args) 
+{ return __ifElseIter(makeLazy(std::move(args))...); }
 
 #define ifElseIter2(i0, t0, e) ifElseIter(LAZY(i0), LAZY(t0), LAZY(e))
 #define ifElseIter3(i0, t0, i1, t1, e) ifElseIter(LAZY(i0), LAZY(t0), LAZY(i1), LAZY(t1), LAZY(e))
@@ -1832,12 +1832,6 @@ template<class I1, class I2, class... Is>
 static auto concatIters(I1 i1, I2 i2, Is... is) 
 { return iterTraits(CatIterator<I1, decltype(concatIters(std::move(i2), std::move(is)...))>(std::move(i1), concatIters(std::move(i2), std::move(is)...))); }
 
-// TODO optimize (?)
-/** returns an itertor that returns exatly `items` as elements */
-template<class... Items>
-auto iterItems(Items... items)
-{ return concatIters(getSingletonIterator(items)...); }
-
 template<class I1, class I2, class Cmp>
 auto iterSortedDiff(I1 i1, I2 i2, Cmp cmp) 
 { return iterTraits(SortedIterDiff<I1,I2, Cmp>(std::move(i1), std::move(i2), std::move(cmp))); }
@@ -1869,7 +1863,15 @@ template<class Array> auto arrayIter(Array const& a) { return arrayIter(        
 template<class Array> auto arrayIter(Array     && a) { return arrayIter(std::move(a), a.size()); }
 template<class Array> auto arrayIter(Array      & a) { return arrayIter(          a , a.size()); }
 
-}
+template<class Item, class... Items>
+auto iterItems(Item item, Items... items) 
+{ return arrayIter(Stack<Item>{std::move(item), std::move(items)...}); }
+
+template<class Item>
+auto iterItems()
+{ return iterTraits(Stack<Item>{}); }
+
+} // namespace Lib
 
 template <typename Iterator>
 class STLIterator

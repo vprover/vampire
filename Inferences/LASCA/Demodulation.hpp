@@ -52,7 +52,7 @@ public:
     TypedTermList key() { return TypedTermList(SelectedEquality::biggerSide().term()); }
 
     static auto iter(LascaState& shared, Clause* simplifyWith) {
-      return iterTraits(getSingletonIterator(simplifyWith))
+      return iterTraits(iterItems(simplifyWith))
         .filter([](Clause* cl) { return cl->size() == 1 && (*cl)[0]->isEquality() && (*cl)[0]->isPositive(); })
         .flatMap([&](Clause* cl)
             { return shared.selectedEqualities(cl,

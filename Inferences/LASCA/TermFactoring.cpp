@@ -189,7 +189,7 @@ Option<Clause*> TermFactoring::applyRule(
   //               && _shared->notLess(s2_sigma, tiσ);
   //         }))
   //
-  // auto resSum = NumTraits::sum(concatIters(getSingletonIterator(resTerm), t_sigma.iterFifo()));
+  // auto resSum = NumTraits::sum(concatIters(iterItems(resTerm), t_sigma.iterFifo()));
   // //   ^^^^^^---> ((k₁ + s₁)s₂ + t)σ
     
   auto t_sigma = range(0, sel1.ircLiteral<NumTraits>().term().nSummands())
@@ -200,7 +200,7 @@ Option<Clause*> TermFactoring::applyRule(
             return NumTraits::mulSimpl(ki_ti.numeral, tiσ);
           });
 
-  auto resSum = NumTraits::sum(concatIters(getSingletonIterator(resTerm), t_sigma));
+  auto resSum = NumTraits::sum(concatIters(iterItems(resTerm), t_sigma));
   //   ^^^^^^---> ((k₁ + s₁)s₂ + t)σ
     
   auto resLit = LascaPredicateCreateLiteral<NumTraits>(sel1.symbol(), resSum);

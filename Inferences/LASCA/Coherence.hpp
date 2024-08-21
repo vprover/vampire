@@ -608,27 +608,30 @@ public:
             }
           }
 
-          DEBUG_COHERENCE(0, "atoms match: ")
-          DEBUG_COHERENCE(0, "lhs term: ", state->uwa->subs().apply(lhs.sumTerm, lhsVarBank));
-          DEBUG_COHERENCE(0, "rhs term: ", state->uwa->subs().apply(rhs.sumTerm, rhsVarBank));
-          if (state->uwa->maxNumberOfConstraints() != 0) {
-            DEBUG_COHERENCE(0, "modulo constarints: ", *state->uwa)
-          }
-          DEBUG_COHERENCE(1, "factors match with gcd: ", factor)
-          DEBUG_COHERENCE(1, "eq classes: ")
-          for (auto p : range(0, state->sum1Partitions._filter.nPartitions())) {
-            DEBUG_COHERENCE(1, "  ", "\t{ ", 
-              outputInterleaved(", ",
-                range(0, state->sum0.nSummands())
-                  .filter([&](auto i) { return p == state->crossEqual[i] - 1; })
-              .map([&](auto i) { return (**state->sum0.sum)[i]; })
-              ), " }", " <--> ", "{ ", 
-                outputInterleaved(", ", 
-                  state->sum1Partitions.subset(state->sum1Partitions.depth(), p).toIter()
-                    .map([&](auto i) { return (**state->sum1.sum)[i]; })
-                  )
-                ," }");
-          }
+          DEBUG_CODE(
+            DEBUG_COHERENCE(0, "atoms match: ")
+            DEBUG_COHERENCE(0, "lhs term: ", state->uwa->subs().apply(lhs.sumTerm, lhsVarBank));
+            DEBUG_COHERENCE(0, "rhs term: ", state->uwa->subs().apply(rhs.sumTerm, rhsVarBank));
+            if (state->uwa->maxNumberOfConstraints() != 0) {
+              DEBUG_COHERENCE(0, "modulo constarints: ", *state->uwa)
+            }
+            DEBUG_COHERENCE(1, "factors match with gcd: ", factor)
+            DEBUG_COHERENCE(1, "eq classes: ")
+
+            for (auto p : range(0, state->sum1Partitions._filter.nPartitions())) {
+              DEBUG_COHERENCE(1, "  ", "\t{ ", 
+                outputInterleaved(", ",
+                  range(0, state->sum0.nSummands())
+                    .filter([&](auto i) { return p == state->crossEqual[i] - 1; })
+                .map([&](auto i) { return (**state->sum0.sum)[i]; })
+                ), " }", " <--> ", "{ ", 
+                  outputInterleaved(", ", 
+                    state->sum1Partitions.subset(state->sum1Partitions.depth(), p).toIter()
+                      .map([&](auto i) { return (**state->sum1.sum)[i]; })
+                    )
+                  ," }");
+            }
+          ) // DEBUG_CODE
 
           auto& subs = state->uwa->subs();
           auto u = NumTraits::ifFloor(rhs.toRewrite(), [](auto t) { return t; }).unwrap();

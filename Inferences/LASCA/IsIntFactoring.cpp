@@ -117,11 +117,11 @@ Option<Clause*> IsIntFactoring::applyRule(NumTraits,
 
   auto L1σ = sigma(l1.literal()); // <- isInt(j s1 + t1)σ
   auto L2σ = sigma(l2.literal()); // <- isInt(k s2 + t2)σ
-  auto cond1 = concatIters(concl.iterCloned(), getSingletonIterator(L2σ))
+  auto cond1 = concatIters(concl.iterCloned(), iterItems(L2σ))
     .all([&](auto Lσ) 
         { return  _shared->notLess(L1σ, Lσ); });
 
-  auto cond2 = concatIters(concl.iterCloned(), getSingletonIterator(L1σ))
+  auto cond2 = concatIters(concl.iterCloned(), iterItems(L1σ))
     .all([&](auto Lσ) 
         { return  _shared->notLess(L2σ, Lσ); });
 

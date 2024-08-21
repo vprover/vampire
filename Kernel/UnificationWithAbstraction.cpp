@@ -344,8 +344,8 @@ TermSpec norm(TermSpec outer, AbstractingUnifier& au) {
             };
 
             auto sumUp = [](auto& diff, auto cmp) {
-              auto i1 = 0;
-              auto i2 = 1;
+              unsigned i1 = 0;
+              unsigned i2 = 1;
               while (i2 < diff.size()) {
                 ASS(i1 < i2);
                 auto c = cmp(diff[i1].first, diff[i2].first);
