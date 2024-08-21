@@ -85,7 +85,7 @@ Clause* TPTP::parseClauseFromString(const std::string& str)
   parser._lastInputType = UnitInputType::AXIOM;
   parser._bools.push(false);     // this is what cnf normally pushes (but we start "from the middle")
   parser._strings.push("dummy_name");
-  parser._states.push(END_TFF);  // this is what does the clause building
+  parser._states.push(END_FOF);  // this is what does the clause building
   parser.parseImpl(FORMULA);
   return parser._units.list()->head()->asClause();
 }
