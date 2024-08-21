@@ -100,7 +100,9 @@ SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierEliminatio
           case LascaPredicate::GREATER_EQ: return true;
           case LascaPredicate::IS_INT_POS:
           case LascaPredicate::IS_INT_NEG: return false;
-          }});
+          }
+          ASSERTION_VIOLATION
+          });
 
     if (norm.isNone()) {
       otherLits->push(l);

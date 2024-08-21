@@ -74,8 +74,7 @@ struct VampireVirasConfig {
       auto sym = lit->isNegative() ? viras::PredSymbol::Eq 
                                    : viras::PredSymbol::Neq;
       auto l = NumTraits::isNumeral(lit->termArg(0), Numeral(0)) ? 1 : 0;
-      auto r = 1 - l;
-      ASS(NumTraits::isNumeral(lit->termArg(r), Numeral(0)));
+      ASS(NumTraits::isNumeral(lit->termArg(1 - l), Numeral(0)));
       return std::make_pair(sym, NumTraits::minus(lit->termArg(l)));
     } else if (NumTraits::isGeq(lit->functor())) {
       ASS(NumTraits::isNumeral(lit->termArg(1), Numeral(0)));
@@ -100,6 +99,7 @@ struct VampireVirasConfig {
       case viras::PredSymbol::Neq: return NumTraits::eq     (true , t, NumTraits::zero());
       case viras::PredSymbol::Eq:  return NumTraits::eq     (false, t, NumTraits::zero());
     }
+    ASSERTION_VIOLATION
   }
 
   Numeral num(Numeral l) { return Numeral(l.numerator()); }
