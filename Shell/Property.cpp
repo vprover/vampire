@@ -39,7 +39,8 @@
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
-using namespace Shell;
+namespace Shell {
+
 
 /**
  * Initialize Property. Must be applied to the preprocessed problem.
@@ -738,8 +739,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
   }
 }
 
-
-struct Shell::Setter {
+struct Setter {
   static void setNonLinear(Property& p,  IntTraits) { p._nonLinearInt  = true; }
   static void setNonLinear(Property& p,  RatTraits) { p._nonLinearRat  = true; }
   static void setNonLinear(Property& p, RealTraits) { p._nonLinearReal = true; }
@@ -1077,3 +1077,4 @@ vstring Property::toSpider(const vstring& problemName) const
     + "';";
 } // Property::toSpider
 
+} // namespace Shell

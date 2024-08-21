@@ -39,8 +39,8 @@
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
-using namespace Shell;
 
+namespace Shell {
 
 /**
  * Add the unit @c to @c problem and output it, if the option show_theory_axioms is on.
@@ -376,7 +376,7 @@ void _addLascaAxioms(IntTraits num, Problem& prb)
 }
 
 
-struct Shell::LascaAxioms {
+struct LascaAxioms {
 
 
 #define AXIOM_CONTEXT __ALLOW_UNUSED(                                                     \
@@ -1466,3 +1466,5 @@ bool TheoryAxioms::addSubtermDefinitions(unsigned subtermPredicate, TermAlgebraC
   }
   return added;
 }
+
+} // namespace Shell
