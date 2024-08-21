@@ -80,12 +80,12 @@ Clause* TPTP::parseClauseFromString(const std::string& str)
 {
   std::stringstream input(str+")."); // to fake endFOF, which creates the clause
   Parse::TPTP parser(input);
-  parser._isFof = true;
+  parser._isFof = false;
   parser._isExternal = false;
   parser._lastInputType = UnitInputType::AXIOM;
   parser._bools.push(false);     // this is what cnf normally pushes (but we start "from the middle")
   parser._strings.push("dummy_name");
-  parser._states.push(END_FOF);  // this is what does the clause building
+  parser._states.push(END_TFF);  // this is what does the clause building
   parser.parseImpl(FORMULA);
   return parser._units.list()->head()->asClause();
 }
@@ -1459,12 +1459,17 @@ void TPTP::tff()
 
   _bools.push(true); // to denote that it is an FOF formula
   _isQuestion = false;
+  _isExternal = false;
   if (tp == "axiom" || tp == "plain") {
     _lastInputType = UnitInputType::AXIOM;
   }
   else if (tp == "extensionality"){
     // this will be transformed to just AXIOM after clausification
     _lastInputType = UnitInputType::EXTENSIONALITY_AXIOM;
+  }
+  else if (tp == "external") {
+    _isExternal = true;
+    _lastInputType = UnitInputType::AXIOM;
   }
   else if (tp == "definition") {
     _lastInputType = UnitInputType::AXIOM;
