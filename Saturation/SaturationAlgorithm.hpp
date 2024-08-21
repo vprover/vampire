@@ -103,6 +103,7 @@ public:
 
   ClauseIterator activeClauses();
 
+  ActiveClauseContainer* getActiveClauseContainer() { return _active; }
   PassiveClauseContainer* getPassiveClauseContainer() { return _passive.get(); }
   IndexManager* getIndexManager() { return _imgr.ptr(); }
   Ordering& getOrdering() const {  return *_ordering; }
@@ -180,7 +181,6 @@ private:
 
   static SaturationAlgorithm* s_instance;
 protected:
-
   bool _completeOptionSettings;
   bool _clauseActivationInProgress;
 

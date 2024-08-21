@@ -35,52 +35,6 @@ namespace Saturation
 using namespace Kernel;
 using namespace Indexing;
 
-void ClauseContainer::addClauses(ClauseIterator cit)
-{
-  while (cit.hasNext()) {
-    add(cit.next());
-  }
-}
-
-
-/////////////////   RandomAccessClauseContainer   //////////////////////
-
-void RandomAccessClauseContainer::removeClauses(ClauseIterator cit)
-{
-  while (cit.hasNext()) {
-    remove(cit.next());
-  }
-}
-
-/**
- * Attach to the SaturationAlgorithm object.
- *
- * This method is being called in the SaturationAlgorithm constructor,
- * so no virtual methods of SaturationAlgorithm should be called.
- */
-void RandomAccessClauseContainer::attach(SaturationAlgorithm* salg)
-{
-  ASS(!_salg);
-
-  _salg=salg;
-  _limitChangeSData=_salg->getPassiveClauseContainer()->changedEvent.subscribe(
-      this, &RandomAccessClauseContainer::onLimitsUpdated);
-}
-/**
- * Detach from the SaturationAlgorithm object.
- *
- * This method is being called in the SaturationAlgorithm destructor,
- * so no virtual methods of SaturationAlgorithm should be called.
- */
-void RandomAccessClauseContainer::detach()
-{
-  ASS(_salg);
-
-  _limitChangeSData->unsubscribe();
-  _salg=0;
-}
-
-
 /////////////////   UnprocessedClauseContainer   //////////////////////
 
 UnprocessedClauseContainer::~UnprocessedClauseContainer()
@@ -140,8 +94,10 @@ void PassiveClauseContainer::updateLimits(long long estReachableCnt)
   }
 
   if (atLeastOneLimitTightened) {
-    // trigger a change event, in order to notify both passive and active clause-containers
-    changedEvent.fire();
+    // let's notify ourselves (the PassiveClauseContainer) ...
+    onLimitsUpdated();
+    // ... and also the getActiveClauseContainer, about the tightening limits
+    getSaturationAlgorithm()->getActiveClauseContainer()->onLimitsUpdated(this);
   }
 }
 
@@ -152,7 +108,7 @@ void ActiveClauseContainer::add(Clause* c)
   TIME_TRACE("add clause")
 
   ASS(c->store()==Clause::ACTIVE);
-  ALWAYS(_clauses.insert(c));  
+  ALWAYS(_clauses.insert(c));
   addedEvent.fire(c);
 }
 
@@ -169,9 +125,8 @@ void ActiveClauseContainer::remove(Clause* c)
   removedEvent.fire(c);
 } // Active::ClauseContainer::remove
 
-void ActiveClauseContainer::onLimitsUpdated()
+void ActiveClauseContainer::onLimitsUpdated(PassiveClauseContainer* limits)
 {
-  auto limits=getSaturationAlgorithm()->getPassiveClauseContainer();
   ASS(limits);
   if (!limits->mayBeAbleToDiscriminateChildrenOnLimits()) {
     return;

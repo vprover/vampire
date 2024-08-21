@@ -57,28 +57,53 @@ public:
    */
   ClauseEvent selectedEvent;
   virtual void add(Clause* c) = 0;
-  void addClauses(ClauseIterator cit);
+  void addClauses(ClauseIterator cit) {
+    while (cit.hasNext()) {
+      add(cit.next());
+    }
+  }
 };
 
 class RandomAccessClauseContainer
 : public ClauseContainer
 {
 public:
-  virtual void attach(SaturationAlgorithm* salg);
-  virtual void detach();
+  /**
+   * Attach to the SaturationAlgorithm object.
+   *
+   * This method is being called in the SaturationAlgorithm constructor,
+   * so no virtual methods of SaturationAlgorithm should be called.
+   */
+  void attach(SaturationAlgorithm* salg) {
+    ASS(!_salg);
+    _salg=salg;
+  }
+
+  /**
+   * Detach from the SaturationAlgorithm object.
+   *
+   * This method is being called in the SaturationAlgorithm destructor,
+   * so no virtual methods of SaturationAlgorithm should be called.
+   */
+  void detach() {
+    ASS(_salg);
+    _salg=0;
+  }
 
   virtual unsigned sizeEstimate() const = 0;
   virtual void remove(Clause* c) = 0;
-  void removeClauses(ClauseIterator cit);
+
+  void removeClauses(ClauseIterator cit) {
+    while (cit.hasNext()) {
+      remove(cit.next());
+    }
+  }
 
 protected:
   RandomAccessClauseContainer() :_salg(0) {}
   SaturationAlgorithm* getSaturationAlgorithm() { return _salg; }
-
-  virtual void onLimitsUpdated() {}
 private:
   SaturationAlgorithm* _salg;
-  SubscriptionData _limitChangeSData;
 };
 
 class PlainClauseContainer : public ClauseContainer {
@@ -112,8 +137,6 @@ class PassiveClauseContainer
 public:
   PassiveClauseContainer(bool isOutermost, const Shell::Options& opt, std::string name = "") : _isOutermost(isOutermost), _opt(opt), _name(name) {}
   virtual ~PassiveClauseContainer(){};
-
-  LimitsChangeEvent changedEvent;
 
   virtual bool isEmpty() const = 0;
   virtual Clause* popSelected() = 0;
@@ -192,7 +215,8 @@ public:
   ClauseIterator clauses() const { return pvi(_clauses.iter()); }
 
 protected:
-  void onLimitsUpdated() override;
+  friend PassiveClauseContainer;
+  void onLimitsUpdated(PassiveClauseContainer* limits);
 private:
   Set<Clause*> _clauses;
   // const Shell::Options& _opt;
