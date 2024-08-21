@@ -359,19 +359,20 @@ private:
 
   Shell::Options::ProblemExportSyntax const _outSyntax;
   Status _status;
-  const bool _showZ3;
-  const bool _unsatCore;
-  Stack<z3::expr> _assumptions;
-
   std::unique_ptr<z3::context> _context;
   z3::solver _solver;
   z3::model _model;
+  Stack<z3::expr> _assumptions;
+  const bool _showZ3;
+  const bool _unsatCore;
+  Coproduct<ProblemExport::NoExport, ProblemExport::Smtlib, ProblemExport::ApiCalls> _exporter;
+
+
   BiMap<SATLiteral, z3::expr, DefaultHash, Z3Hash> _assumptionLookup;
   Option<std::ofstream> _out;
   Map<unsigned, z3::expr> _varNames;
   Map<TermList, z3::expr> _termIndexedConstants;
   Map<Signature::Symbol*, z3::expr> _constantNames;
-  Coproduct<ProblemExport::NoExport, ProblemExport::Smtlib, ProblemExport::ApiCalls> _exporter;
 
   bool     isNamedExpr(unsigned var) const;
   z3::expr getNameExpr(unsigned var);

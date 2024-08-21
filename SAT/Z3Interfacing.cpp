@@ -395,7 +395,7 @@ void ProblemExport::Smtlib::Z3_mk_datatypes(Z3MkDatatypesCall const& call) {
     out << "    ( ;-- datatype " << z3::symbol(_ctxt, call.sortNames[i]) << std::endl;
     for (auto& ctor : call.mkConstrs[i]) {
       out << "        ( " << quote(z3::symbol(_ctxt, ctor.name));
-      for (auto j = 0; j < ctor.field_names.size(); j++) {
+      for (unsigned j = 0; j < ctor.field_names.size(); j++) {
         out << " ( " << quote(z3::symbol(_ctxt, ctor.field_names[j])) << " ";
         if (ctor.sorts[j] == nullptr) out << quote(z3::symbol(_ctxt, call.sortNames[ctor.sort_refs[j]]));
         else                          out << z3::sort(_ctxt, ctor.sorts[j]);
