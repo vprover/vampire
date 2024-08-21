@@ -49,7 +49,7 @@ template<class A, class... As> struct _printDbg<A, As...>{
 
 template<class... A> void printDbg(const char* file, int line, const A&... msg)
 {
-  int width = 60;
+  unsigned width = 60;
   std::cout << "[ debug ] ";
   for (const char* c = file; *c != 0 && width > 0; c++, width--) {
     std::cout << *c;
