@@ -137,6 +137,9 @@ public:
       Clause* cl = _simulationIt.next();
       if (exceedsLimit(cl)) {
         toRemove->push(cl);
+      } else if (mayBeAbleToDiscriminateChildrenOnLimits() // children might override this to return non-false
+        && allChildrenNecessarilyExceedLimits(cl, cl->length())) {
+        toRemove->push(cl);
       }
     }
     while (toRemove->isNonEmpty()) {
