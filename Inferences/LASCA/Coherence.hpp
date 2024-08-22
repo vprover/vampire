@@ -147,8 +147,8 @@ struct MergingPartitionsIterRaw
     ASS(p0 < p1)
     ASS(depth() >= 1)
     // auto p1Found = false;
-    Option<unsigned> i0 = {};
-    Option<unsigned> i1 = {};
+    Option<unsigned> i0;
+    Option<unsigned> i1;
     for (auto i : range(0, unsigned(_elems.size()))) {
       auto oldVal = partitionOf(depth() - 1,i);
       if (oldVal == p0 && i0.isNone()) {

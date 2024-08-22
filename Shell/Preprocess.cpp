@@ -91,6 +91,7 @@ void Preprocess::preprocess(Problem& prb)
     }
   };
 
+
   if(env.options->choiceReasoning()){
     env.signature->addChoiceOperator(env.signature->getChoice());
   }
@@ -144,20 +145,11 @@ void Preprocess::preprocess(Problem& prb)
     GoalGuessing().apply(prb);
   }
 
-  // If there are interpreted operations
-  if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
-    // Normalizer is needed, because the TheoryAxioms code assumes Normalized problem
-    normalizeInterpreted();
-
-    // Add theory axioms if needed
-    if( _options.theoryAxioms() != Options::TheoryAxiomLevel::OFF){
-      env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
-      if (env.options->showPreprocessing())
-        std::cout << "adding theory axioms" << std::endl;
-
-      TheoryAxioms(prb).apply();
-    }
-  }
+  // // If there are interpreted operations
+  // if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
+  //   // Normalizer is needed, because the TheoryAxioms code assumes Normalized problem
+  //   normalizeInterpreted();
+  // }
 
   if (prb.hasFOOL() || prb.isHigherOrder()) {
     // This is the point to extend the signature with $$true and $$false
@@ -191,6 +183,17 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
+
+    // Add theory axioms if needed
+    if( _options.theoryAxioms() != Options::TheoryAxiomLevel::OFF){
+      env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
+      if (env.options->showPreprocessing())
+        std::cout << "adding theory axioms" << std::endl;
+
+      TheoryAxioms(prb).apply();
+    }
+
+
     // Some axioms needed to be normalized, so we call InterpretedNormalizer twice
     normalizeInterpreted();
   }

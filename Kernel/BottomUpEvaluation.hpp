@@ -352,6 +352,7 @@ public:
 
         BottomUpChildIter<Arg> orig = recState->pop();
 
+        ASS_GE(recResults.size(), orig.nChildren(_context))
         Result* argLst = orig.nChildren(_context) == 0 
           ? nullptr 
           : static_cast<Result*>(&((*recResults)[recResults->size() - orig.nChildren(_context)]));
@@ -459,7 +460,9 @@ struct BottomUpChildIter<Kernel::TypedTermList>
 
   bool hasNext(EmptyContext) const { return hasNext(TermListContext()); }
   bool hasNext(TermListContext ctx) const
-  { return _self.isTerm() && _idx < _self.term()->numTermArguments(); }
+  { return _self.isTerm() && (ctx.ignoreTypeArgs 
+      ? _idx < _self.term()->numTermArguments()
+      : _idx < _self.term()->arity()); }
 
   unsigned nChildren(EmptyContext) const { return nChildren(TermListContext()); }
   unsigned nChildren(TermListContext ctx = TermListContext{}) const

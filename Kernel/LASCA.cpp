@@ -430,20 +430,20 @@ unsigned LascaPreprocessor::integerPredicateConversion(unsigned f) {
 TermList LascaPreprocessor::integerConversion(TypedTermList t)
 {
   return BottomUpEvaluation<TypedTermList, TermList>()
-    .function([&](TypedTermList t, TermList* args) -> TermList {
+    .function([this](TypedTermList t, TermList* args) -> TermList {
         if (t.isVar()) {
           return t;
         } else {
           auto f = t.term()->functor();
           if (t.sort() == AtomicSort::superSort()) {
-            return TermList(AtomicSort::create(integerTypeConsConversion(f), t.term()->arity(), args));
+            return TermList(AtomicSort::create(this->integerTypeConsConversion(f), t.term()->arity(), args));
           } else {
             if (IntTraits::isToReal(f) || IntTraits::isToInt(f) || RealTraits::isToReal(f)) {
               return args[0];
             } if (RealTraits::isToInt(f)) {
               return TermList(RealTraits::floor(args[0]));
             } else {
-              auto out = TermList(Term::create(integerFunctionConversion(f), t.term()->arity(), args));
+              auto out = TermList(Term::create(this->integerFunctionConversion(f), t.term()->arity(), args));
               return t.sort() == IntTraits::sort() ? RealTraits::floor(out) : out;
             }
           }
