@@ -647,7 +647,7 @@ public:
           
           return some(Clause::fromIterator(
               concatIters(
-                rhs.contextLiterals()
+                lhs.contextLiterals()
                   .map([&](auto lit) { return subs.apply(lit, lhsVarBank); }),
                 rhs.contextLiterals()
                   .map([&](auto lit) { return subs.apply(lit, rhsVarBank); }),

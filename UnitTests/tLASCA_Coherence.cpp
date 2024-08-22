@@ -315,7 +315,7 @@ TEST_GENERATION(factors_7,
           /* nothing */
       ))
     )
-//
+
 unsigned factorial(unsigned n) {
   if (n <= 1) {
     return 1;
