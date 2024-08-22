@@ -23,6 +23,7 @@
 #include "Exception.hpp"
 #include "DHMap.hpp"
 #include "Kernel/Problem.hpp"
+#include "Lib/DArray.hpp"
 
 namespace Lib {
 
@@ -54,6 +55,8 @@ public:
   DHMap<unsigned, unsigned>* predicateSineLevels;
 
   DHMap<const Kernel::Unit*,std::string>* proofExtra; // maps Unit* pointers to the associated proof extra string, if available
+
+  DArray<float> inferenceAgeCorrections; // for each inference rule, what is the age correction of the clause we obtain using that rule?
 
   bool timeLimitReached() const;
 

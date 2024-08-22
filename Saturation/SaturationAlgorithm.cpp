@@ -670,7 +670,7 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
       // cout << " -> " << level;
     }
     // cout << endl;
-    cl->setAge(level);
+    cl->adaptAgeFrom(level);
   }
 
   if (sosForAxioms || (cl->isPureTheoryDescendant() && sosForTheory)) {

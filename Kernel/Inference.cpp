@@ -419,7 +419,7 @@ Inference::Inference(const GeneratingInference1& gi) {
   ASS_REP(isGeneratingInferenceRule(gi.rule),ruleName(gi.rule));
   ASS(gi.premise->isClause());
 
-  _age = gi.premise->age()+1;
+  _age = gi.premise->age()+env.inferenceAgeCorrections[toNumber(gi.rule)];
 }
 
 Inference::Inference(const GeneratingInference2& gi) {
@@ -429,14 +429,14 @@ Inference::Inference(const GeneratingInference2& gi) {
   ASS(gi.premise1->isClause());
   ASS(gi.premise2->isClause());
 
-  _age = std::max(gi.premise1->age(),gi.premise2->age())+1;
+  _age = std::max(gi.premise1->age(),gi.premise2->age())+env.inferenceAgeCorrections[toNumber(gi.rule)];
 }
 
 Inference::Inference(const GeneratingInferenceMany& gi) {
   initMany(gi.rule,gi.premises);
 
   ASS_REP(isGeneratingInferenceRule(gi.rule),ruleName(gi.rule));
-  _age = 0;
+  _age = 0.0;
   UnitList* it= gi.premises;
   while(it) {
     Unit* prem = it->head();
@@ -444,7 +444,7 @@ Inference::Inference(const GeneratingInferenceMany& gi) {
     _age = std::max(_age,prem->inference().age());
     it=it->tail();
   }
-  _age++;
+  _age += env.inferenceAgeCorrections[toNumber(gi.rule)];
 }
 
 Inference::Inference(const SimplifyingInference1& si) {
@@ -453,7 +453,7 @@ Inference::Inference(const SimplifyingInference1& si) {
   ASS_REP(isSimplifyingInferenceRule(si.rule),ruleName(si.rule));
   ASS(si.premise->isClause());
 
-  _age = si.premise->age();
+  _age = si.premise->age()+env.inferenceAgeCorrections[toNumber(si.rule)];
 }
 
 Inference::Inference(const SimplifyingInference2& si) {
@@ -463,7 +463,7 @@ Inference::Inference(const SimplifyingInference2& si) {
   ASS(si.premise1->isClause());
   ASS(si.premise2->isClause());
 
-  _age = si.premise1->age();
+  _age = si.premise1->age()+env.inferenceAgeCorrections[toNumber(si.rule)];
 }
 
 Inference::Inference(const SimplifyingInferenceMany& si) {
@@ -473,7 +473,7 @@ Inference::Inference(const SimplifyingInferenceMany& si) {
   ASS_NEQ(si.premises,UnitList::empty());
   ASS(si.premises->head()->isClause()); // TODO: assert also for all others?
 
-  _age = si.premises->head()->inference().age();
+  _age = si.premises->head()->inference().age()+env.inferenceAgeCorrections[toNumber(si.rule)];
 }
 
 Inference::Inference(const NonspecificInference0& gi) {
@@ -578,6 +578,10 @@ void Inference::computeTheoryRunningSums()
       }
     }
   }
+}
+
+void Inference::adaptAgeFrom(float fromAge) {
+  _age = fromAge + env.inferenceAgeCorrections[toNumber(_rule)];
 }
 
 std::string Kernel::inputTypeName(UnitInputType type)
@@ -983,18 +987,19 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "cases simplifying";
     /* this cases are no actual inference rules but only markeres to separatea groups of rules */
   case InferenceRule::PROXY_AXIOM:
-  case InferenceRule::GENERIC_FORMULA_TRANSFORMATION: 
-  case InferenceRule::INTERNAL_FORMULA_TRANSFORMATION_LAST: 
+  case InferenceRule::GENERIC_FORMULA_TRANSFORMATION:
+  case InferenceRule::INTERNAL_FORMULA_TRANSFORMATION_LAST:
   case InferenceRule::GENERIC_SIMPLIFYING_INFERNCE:
-  case InferenceRule::INTERNAL_SIMPLIFYING_INFERNCE_LAST: 
+  case InferenceRule::INTERNAL_SIMPLIFYING_INFERNCE_LAST:
   case InferenceRule::GENERIC_GENERATING_INFERNCE:
   case InferenceRule::INTERNAL_GENERATING_INFERNCE_LAST:
   case InferenceRule::TERM_ALGEBRA_DIRECT_SUBTERMS_AXIOM:
   case InferenceRule::TERM_ALGEBRA_SUBTERMS_TRANSITIVE_AXIOM:
   case InferenceRule::INTERNAL_THEORY_AXIOM_LAST:
+  case InferenceRule::INTERNAL_INFERNCE_LAST:
     { /* explicitly ignoring this cases */ }
   }
-  
+
   ASSERTION_VIOLATION;
   /* moved outside of the case statement to get a compiler warning */
   return "!UNKNOWN INFERENCE RULE!";

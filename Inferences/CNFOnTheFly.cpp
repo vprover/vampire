@@ -598,7 +598,7 @@ Clause* replaceLits(Clause *c, Literal *a, Literal *b, InferenceRule r, bool inc
   auto out = Clause::fromStack(*lits, NonspecificInference1(r, c));
   // Can be either generating or simplifying. Therefore use NonspecificInference
   // Age is updated in some instances, but not in others based on empirical evaluation
-  out->setAge(incAge? c->age() + 1 : c->age());
+  out->adaptAgeFrom(incAge? c->age() + 1 : c->age());
   return out;
 }
 

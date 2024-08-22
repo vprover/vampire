@@ -250,13 +250,13 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
   otherLits.push(nnLit);
 
   Clause* mdvCl=Clause::fromStack(mdvLits, NonspecificInference0(cl->inputType(),InferenceRule::GENERAL_SPLITTING_COMPONENT));
-  mdvCl->setAge(cl->age());
+  mdvCl->adaptAgeFrom(cl->age());
   UnitList::push(mdvCl, resultStack);
 
   InferenceStore::instance()->recordSplittingNameLiteral(mdvCl, pnLit);
 
   Clause* otherCl=Clause::fromStack(otherLits, NonspecificInference2(InferenceRule::GENERAL_SPLITTING, cl, mdvCl));
-  otherCl->setAge(cl->age());
+  otherCl->adaptAgeFrom(cl->age());
 
   cl=otherCl;
 

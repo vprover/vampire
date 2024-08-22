@@ -587,7 +587,7 @@ bool AWPassiveClauseContainer::childrenPotentiallyFulfilLimits(Clause* cl, unsig
     // creating a fake inference to represent our current (pessimistic) estimate potential
     // FromInput - so that there is no Unit ownership issue
     Inference inf = FromInput(UnitInputType::CONJECTURE); // CONJECTURE, so that derivedFromGoal is estimated as true
-    inf.setAge(cl->age() + 1); // clauses inferred from the clause as generating inferences will be over age limit...
+    inf.adaptAgeFrom(cl->age() + 1.0); // clauses inferred from the clause as generating inferences will be over age limit...
 
     int maxSelWeight=0;
     for(unsigned i=0;i<upperBoundNumSelLits;i++) {

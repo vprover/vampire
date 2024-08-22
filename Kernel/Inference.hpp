@@ -557,7 +557,8 @@ enum class InferenceRule : unsigned char {
     axioms between THEORY_AXIOM and INTERNAL_THEORY_AXIOM_LAST will be automatically making their respective clauses isTheoryAxiom() true */
   INTERNAL_THEORY_AXIOM_LAST,
   /** a theory axiom which is not generated internally in Vampire */
-  EXTERNAL_THEORY_AXIOM
+  EXTERNAL_THEORY_AXIOM,
+  INTERNAL_INFERNCE_LAST
 }; // class InferenceRule
 
 inline std::underlying_type<InferenceRule>::type toNumber(InferenceRule r) { return static_cast<std::underlying_type<InferenceRule>::type>(r); }
@@ -737,7 +738,7 @@ private:
     _reductions = 0;
     _sineLevel = std::numeric_limits<decltype(_sineLevel)>::max();
     _splits = nullptr;
-    _age = 0;
+    _age = 0.0;
   }
 
   void init0(UnitInputType inputType, InferenceRule r);
@@ -978,9 +979,9 @@ public:
   }
 
   /** Return the age */
-  unsigned age() const { return _age; }
+  float age() const { return _age; }
   /** Set the age to @b a */
-  void setAge(unsigned a) { _age = a; }
+  void adaptAgeFrom(float newAge);
 
 private:
   Kind _kind : 2;
@@ -1017,7 +1018,7 @@ private:
   // aligned to 64 bits
 
   /** age */
-  unsigned _age;
+  float _age;
 
   SplitSet* _splits;
 

@@ -252,9 +252,9 @@ public:
   void setStore(Store s);
 
   /** Return the age */
-  unsigned age() const { return inference().age(); }
+  float age() const { return inference().age(); }
   /** Set the age to @b a */
-  void setAge(unsigned a) { inference().setAge(a); }
+  void adaptAgeFrom(float fromAge) { inference().adaptAgeFrom(fromAge); }
 
   /** Return the number of selected literals */
   unsigned numSelected() const { return _numSelected; }

@@ -43,6 +43,7 @@ Environment::Environment()
     sharing(0),
     maxSineLevel(1),
     predicateSineLevels(nullptr),
+    inferenceAgeCorrections(toNumber(InferenceRule::INTERNAL_INFERNCE_LAST)),
     colorUsed(false),
     _problem(0)
 {
@@ -55,10 +56,15 @@ Environment::Environment()
   signature = new Signature;
   sharing = new TermSharing;
 
+  for (unsigned i = toNumber(InferenceRule::GENERIC_GENERATING_INFERNCE); i < toNumber(InferenceRule::INTERNAL_GENERATING_INFERNCE_LAST); i++) {
+    inferenceAgeCorrections[i] = 1.0;
+  }
+  // inferenceAgeCorrections[toNumber(InferenceRule::TERM_ALGEBRA_ACYCLICITY)] = 1.0;
+
   //view comment in Signature.cpp
   signature->addEquality();
   // These functions are called here in order to ensure the order
-  // of creation of these sorts. The order is VITAL. 
+  // of creation of these sorts. The order is VITAL.
   //
   // A number of places in the code rely on the type constructor for
   // $i being 0, that for $o being 1 and so on.

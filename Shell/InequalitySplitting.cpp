@@ -120,7 +120,7 @@ Clause* InequalitySplitting::trySplitClause(Clause* cl)
 
   auto res = Clause::fromStack(*resLits,NonspecificInferenceMany(InferenceRule::INEQUALITY_SPLITTING, premises));
   // TODO isn't this done automatically?
-  res->setAge(cl->age()); // MS: this seems useless; as long as InequalitySplitting is only operating as a part of preprocessing, age is going to 0 anyway
+  res->adaptAgeFrom(cl->age()); // MS: this seems useless; as long as InequalitySplitting is only operating as a part of preprocessing, age is going to 0 anyway
 
 #if TRACE_INEQUALITY_SPLITTING
   cout<<"---------"<<endl;

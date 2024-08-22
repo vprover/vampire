@@ -85,7 +85,7 @@ private:
   void updateSelection(unsigned satVar, SATSolver::VarAssignment asgn,
       SplitLevelStack& addedComps, SplitLevelStack& removedComps);
 
-  int assertedGroundPositiveEqualityCompomentMaxAge();
+  float assertedGroundPositiveEqualityCompomentMaxAge();
 
   //options
   bool _eagerRemoval;

@@ -309,7 +309,7 @@ namespace Inferences {
     DECL_ELEMENT_TYPE(Clause *);
 
     bool hasNext() { return _queryResults.hasNext(); }
-    
+
     OWN_ELEMENT_TYPE next()
     {
       Indexing::CycleQueryResult *qres = _queryResults.next();
@@ -320,7 +320,7 @@ namespace Inferences {
       LiteralList::Iterator literals(qres->literals);
       ClauseList::Iterator premises(qres->premises);
       ClauseList::Iterator clausesTheta(qres->clausesTheta);
-      
+
       UnitList* ulpremises = UnitList::empty();
       while (premises.hasNext()) {
         UnitList::push(premises.next(), ulpremises);
@@ -329,7 +329,7 @@ namespace Inferences {
 
       premises.reset(qres->premises);
 
-      while(literals.hasNext() && premises.hasNext() && clausesTheta.hasNext()) {              
+      while(literals.hasNext() && premises.hasNext() && clausesTheta.hasNext()) {
         Literal *l = literals.next();
         Clause *p = premises.next();
         Clause *c = clausesTheta.next();
@@ -347,9 +347,6 @@ namespace Inferences {
       ASS (!clausesTheta.hasNext());
 
       auto res = Clause::fromStack(*resLits,GeneratingInferenceMany(InferenceRule::TERM_ALGEBRA_ACYCLICITY, ulpremises));
-      // MS: to preserve the original semantics (although it looks slightly suspicious)
-      res->setAge(_premise->age() + 1); 
-      
       return res;
     }
   private:

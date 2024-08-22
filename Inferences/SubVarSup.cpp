@@ -206,13 +206,13 @@ Clause* SubVarSup::performSubVarSup(
   unsigned rwLength = rwClause->length();
   unsigned eqLength = eqClause->length();
 
-  int newAge=Int::max(rwClause->age(),eqClause->age())+1; // TODO isn't this set automatically?
+  float newAge=std::max(rwClause->age(),eqClause->age());
 
   Literal* rwLitS = subst.apply(rwLit, 0);
   TermList rwTermS = subst.apply(rwTerm, 0);
   Literal* eqLitS = subst.apply(eqLit, 1);
   TermList eqLHSS = subst.apply(eqLHS, 1);
-  TermList freshVarS = subst.apply(freshVar, 0); 
+  TermList freshVarS = subst.apply(freshVar, 0);
 
   TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLitS, eqLHSS);
 
@@ -322,6 +322,5 @@ Clause* SubVarSup::performSubVarSup(
 
   //cout << "SUBVARSUP " + res->toString() << endl;
   auto res = Clause::fromStack(*resLits, inf);
-  res->setAge(newAge);
   return res;
 }
