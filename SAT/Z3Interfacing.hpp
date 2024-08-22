@@ -60,6 +60,7 @@ struct Z3MkDatatypesCall;
 
 namespace ProblemExport {
 
+
   struct NoExport {
     NoExport() {}
     NoExport(NoExport &&) = default;
@@ -145,6 +146,7 @@ namespace ProblemExport {
     template<class A>
     friend std::ostream& operator<<(std::ostream& out, Serialize<A> const& self);
     friend std::ostream& operator<<(std::ostream& out, Serialize<z3::symbol> const& self);
+
     void declareSort(z3::sort sort);
     void eval(z3::expr const& x);
     void unsatCore();
@@ -160,6 +162,14 @@ namespace ProblemExport {
     void enableTrace(const char*);
     void instantiate_expression(z3::expr const& e);
   };
+
+
+  std::ostream& operator<<(std::ostream& out, ApiCalls::Serialize<vstring> const& self);
+  std::ostream& operator<<(std::ostream& out, ApiCalls::Serialize<bool> const& self);
+  std::ostream& operator<<(std::ostream& out, ApiCalls::Serialize<z3::expr> const& self);
+  template<class A>
+  std::ostream& operator<<(std::ostream& out, ApiCalls::Serialize<A> const& self);
+  std::ostream& operator<<(std::ostream& out, ApiCalls::Serialize<z3::symbol> const& self);
 } // namespace ProblemExport
 
 

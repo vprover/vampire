@@ -260,6 +260,7 @@ public:
       case UnificationWithAbstraction::LPAR_CAN_ABSTRACT: return out << "lpar_can_abstract";
       case UnificationWithAbstraction::LPAR_MAIN:         return out << "lpar_main";
     }
+    ASSERTION_VIOLATION
   }
 
   enum class Induction : unsigned int {
