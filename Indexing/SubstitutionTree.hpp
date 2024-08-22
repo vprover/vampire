@@ -82,6 +82,11 @@ namespace Indexing {
     Cntr() : self(0) {}
     int self;
     operator int() const { return self; }
+    friend std::ostream& operator<<(std::ostream& out, Cntr const& self)
+    { return out << "Cntr(" << self.self << ")"; }
+#else
+    friend std::ostream& operator<<(std::ostream& out, Cntr const& self)
+    { return out << "Cntr(<optimized away>)"; }
 #endif 
   };
 
