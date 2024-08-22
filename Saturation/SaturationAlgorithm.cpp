@@ -421,6 +421,18 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
       }
       cout << '\n';
 
+      // information about parents (to support age correction inferencing)
+      cout << "p: " << c->number() << " " << (unsigned)toNumber(c->inference().rule());
+      if (!c->isFromPreprocessing()) {
+        Inference& inf = c->inference();
+        auto it = inf.iterator();
+        while (inf.hasNext(it)) {
+          Unit* p = inf.next(it);
+          cout << " " << p->number();
+        }
+      }
+      cout << '\n';
+
       ALWAYS(_shown.insert(c));
     }
 
