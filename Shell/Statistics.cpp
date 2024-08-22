@@ -15,6 +15,7 @@
  */
 
 #include <iostream>
+#include <iomanip>
 
 #include "Debug/RuntimeStatistics.hpp"
 
@@ -477,6 +478,12 @@ void Statistics::print(ostream& out)
   RSTAT_PRINT(out);
   addCommentSignForSZS(out);
   out << "------------------------------\n";
+
+  if (env.options->showInferenceRuleTable()) {
+    for (unsigned i = 0; i < toNumber(InferenceRule::INTERNAL_INFERNCE_LAST); i++) {
+      out << std::setw(3) << std::right << i << "  " << ruleName(static_cast<InferenceRule>(i)) << endl;
+    }
+  }
 
 #undef SEPARATOR
 #undef COND_OUT

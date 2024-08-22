@@ -1000,8 +1000,7 @@ std::string Kernel::ruleName(InferenceRule rule)
     { /* explicitly ignoring this cases */ }
   }
 
-  ASSERTION_VIOLATION;
   /* moved outside of the case statement to get a compiler warning */
-  return "!UNKNOWN INFERENCE RULE!";
+  return "UNNAMED INFERENCE RULE!";
 } // Inference::name()
 

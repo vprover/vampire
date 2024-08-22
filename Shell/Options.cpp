@@ -342,6 +342,12 @@ void Options::init()
     _lookup.insert(&_statistics);
     _statistics.tag(OptionTag::OUTPUT);
 
+    _showInferenceRuleTable = BoolOptionValue("show_inference_rule_table","sirt",false);
+    _showInferenceRuleTable.description="In statistics, print a table revealing the internal numbering of inference rules.";
+    _lookup.insert(&_showInferenceRuleTable);
+    _showInferenceRuleTable.onlyUsefulWith(_statistics.is(notEqual(Statistics::NONE)));
+    _showInferenceRuleTable.tag(OptionTag::OUTPUT);
+
     _testId = StringOptionValue("test_id","","unspecified_test"); // Used by spider mode
     _testId.description="";
     _lookup.insert(&_testId);
