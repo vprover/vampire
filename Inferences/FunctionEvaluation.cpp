@@ -164,6 +164,8 @@ inline Option<PolyNf> simplFloor(PolyNf* evalArgs)
         auto i = k.floorRat();
         if (i       != Numeral(0)) { pulledOut->push(Monom(i   , t)); }
         if ((k - i) != Numeral(0)) { keptIn->   push(Monom(k -i, t)); }
+      } else {
+        keptIn->push(monom);
       }
     }
     if (pulledOut->size() == 0) {

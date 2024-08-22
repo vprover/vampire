@@ -65,12 +65,9 @@ struct TestCase
   template<class NumTraits>
   void run() {
     auto norm = InequalityNormalizer(strong);
-    auto results_ = norm.normalizeLasca<NumTraits>(in).unwrap();
-    auto results = Stack<Literal*>();
-    for (auto& r : results_) {
-      results.push(r.denormalize());
-    }
-    if (!iterTraits(out.iterFifo()).any([&](auto const& out){ return TestUtils::eqModACRect(out, results); })) {
+    
+    auto results = norm.normalizeLiteral(in);
+    if (!iterTraits(out.iterFifo()).any([&](auto const& out){ return TestUtils::eqModACRect(out, *results); })) {
       std::cout << "\r" << endl;
       std::cout << "\r[    input ]" << pretty(in) << endl;
       std::cout << "\r[ expected ]" << pretty(out) << endl;
@@ -640,6 +637,13 @@ TEST_FRAC(floor_16,
     TestCase {
       .in  =     floor(2 * floor(a) + frac(3,2)) > 0,
       .out = { { 2 * floor(a) + 1 > 0 } },
+      .strong = false,
+    })
+
+TEST_FRAC(floor_17, 
+    TestCase {
+      .in  =    p(floor(a + floor(1))),
+      .out = { { p(floor(a) + 1) } },
       .strong = false,
     })
 

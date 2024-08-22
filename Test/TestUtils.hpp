@@ -143,7 +143,6 @@ template<class U>
 Pretty<U> pretty(const U& t) 
 { return Pretty<U>(t); }
 
-
 template<class U>
 std::ostream& operator<<(std::ostream& out, const Pretty<U>& self)
 {  return self.prettyPrint(out); }
@@ -171,6 +170,19 @@ public:
 
   std::ostream& prettyPrint(std::ostream& out) const
   { return out << "(" << _self.first << ", " << _self.second << ")"; }
+};
+
+
+template<class A>
+class Pretty<Recycled<A>> 
+{
+  Recycled<A> const& _self;
+
+public:
+  Pretty(Recycled<A> const& self) : _self(self) { }
+
+  std::ostream& prettyPrint(std::ostream& out) const
+  { return out << pretty(*_self); }
 };
 
 
