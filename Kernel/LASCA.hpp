@@ -1254,7 +1254,7 @@ template<class NumTraits>
 Option<Stack<LascaLiteral<NumTraits>>> InequalityNormalizer::normalizeLasca(Literal* lit) const
 {
   DEBUG("in: ", *lit, " (", NumTraits::name(), ")")
-    using Numeral = typename NumTraits::ConstantType;
+  using Numeral = typename NumTraits::ConstantType;
 
   auto impl = [&]() {
 

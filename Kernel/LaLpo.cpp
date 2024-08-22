@@ -26,7 +26,7 @@ template<class F>
 auto flat(TermList t, F f) -> Stack<std::result_of_t<F(TermList)>>
 {
   Stack<TermList> work;
-  Stack<std::result_of_t<F(TermList)>> out;
+  Stack<std::invoke_result_t<F, TermList>> out;
 
   if (t.isTerm() && isPlus(t.term()->functor())) {
     ASS(t.isTerm())
