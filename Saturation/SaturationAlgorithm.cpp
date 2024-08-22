@@ -398,6 +398,41 @@ void SaturationAlgorithm::onAllProcessed()
   }
 }
 
+void SaturationAlgorithm::showPredecessors(Clause* c) {
+  if (_predecessorsShown.find(c)) return;
+
+  if (c->isFromPreprocessing()) {
+    std::cout << "p: " << c->number() << " " << (unsigned)toNumber(c->inference().rule()) << " " << c->age() << '\n';
+    // we don't chase predecessor links for clauses from preprocessing (for now)
+  } else if (c->isComponent()) {
+    Clause* p = _splitter->getCausalParent(c);
+    if (p) { // CAREFUL: causal parent can be none; for the ccModel thingie
+      showPredecessors(p);
+    }
+    std::cout << "p: " << c->number() << " " << (unsigned)toNumber(c->inference().rule());
+    if (p) {
+      std::cout << " " << p->number();
+    }
+    std::cout << " " << c->age() << '\n';
+  } else {
+    Inference& inf = c->inference();
+
+    auto it1 = inf.iterator();
+    while (inf.hasNext(it1)) {
+      Unit* p = inf.next(it1);
+      showPredecessors(p->asClause());
+    }
+    std::cout << "p: " << c->number() << " " << (unsigned)toNumber(c->inference().rule());
+    auto it2 = inf.iterator();
+    while (inf.hasNext(it2)) {
+      Unit* p = inf.next(it2);
+      std::cout << " " << p->number();
+    }
+    std::cout << " " << c->age() << '\n';
+  }
+  ALWAYS(_predecessorsShown.insert(c));
+}
+
 /**
  * A function that is called when a clause is added to the passive clause container.
  */
@@ -421,17 +456,7 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
       }
       cout << '\n';
 
-      // information about parents (to support age correction inferencing)
-      cout << "p: " << c->number() << " " << (unsigned)toNumber(c->inference().rule());
-      if (!c->isFromPreprocessing()) {
-        Inference& inf = c->inference();
-        auto it = inf.iterator();
-        while (inf.hasNext(it)) {
-          Unit* p = inf.next(it);
-          cout << " " << p->number();
-        }
-      }
-      cout << '\n';
+      showPredecessors(c);
 
       ALWAYS(_shown.insert(c));
     }
