@@ -406,6 +406,7 @@ Formula* InterpretedNormalizer::NLiteralTransformer::transform(Formula* f)
 
 InterpretedNormalizer::InterpretedNormalizer(InequalityNormalizer* norm)
 : _litTransf(new NLiteralTransformer())
+, _inequalityNormalizer(norm)
 {
 }
 
