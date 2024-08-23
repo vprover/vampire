@@ -310,7 +310,7 @@ Option<TermList> QKbo::abstr(TermList t) const
     auto term = t.term();
     auto f = term->functor();
     auto res = tryNumTraits([&](auto numTraits) -> Option<Option<TermList>> {
-      using NumTraits = decltype(numTraits);
+        using NumTraits = decltype(numTraits);
         auto noAbstraction = []() { return Option<Option<TermList>>(Option<TermList>()); };
         if (numTraits.isNumeral(t)) {
           return some(some(NumTraits::one()));
@@ -322,34 +322,40 @@ Option<TermList> QKbo::abstr(TermList t) const
           || ( numTraits.mulF() == f && numTraits.isNumeral(*term->nthArgument(0)) )
           ) {
           auto norm = _shared->normalize(TypedTermList(term)).wrapPoly<NumTraits>();
-          auto abstracted = norm->iterSummands()
-            .map([&](Monom<NumTraits> monom) { return abstr(monom.factors->denormalize()); });
-          ASS(abstracted.hasNext())
-          auto _max = abstracted.next();
-          if (_max.isNone()) {
-            return noAbstraction();
-          }
-          auto max = _max.unwrap();
-          for (auto a : abstracted) {
+          RStack<TermList> abstracted_;
+          auto& abstracted = *abstracted_;
+          abstracted.reserve(norm->nSummands());
+          for (auto monom : norm->iterSummands()) {
+            auto a = abstr(monom.factors->denormalize());
             if (a.isNone()) {
               return noAbstraction();
             } else {
-              switch(_kbo.compare(max, a.unwrap())) {
-                case Result::INCOMPARABLE: return noAbstraction();
-                case Result::GREATER: 
-                case Result::EQUAL: 
-                  break;
-                case Result::LESS:
-                  max = a.unwrap();
-                  break;
-                default:
-                  ASSERTION_VIOLATION
-              }
+              abstracted.push(*a);
             }
           }
-
-          return Option<Option<TermList>>(Option<TermList>(max));
-
+          ASS(abstracted.size() > 0)
+            // TODO optimize
+          for (auto i : range(0, abstracted.size())) {
+            for (auto j : range(0, abstracted.size())) {
+              auto cmp = _kbo.compare(abstracted[i], abstracted[j]);
+              switch(cmp) {
+                case Ordering::GREATER:
+                case Ordering::GREATER_EQ:
+                case Ordering::EQUAL:
+                  /* ok */
+                  break; 
+                case Ordering::LESS_EQ:
+                  ASSERTION_VIOLATION
+                case Ordering::LESS:
+                case Ordering::INCOMPARABLE:
+                  goto try_next_max;
+                  break;
+              }
+            }
+            return Option<Option<TermList>>(Option<TermList>(abstracted[i]));
+try_next_max: {}
+          }
+          return noAbstraction();
         } else {
           // wrong number type or uninterpreted function
           return Option<Option<TermList>>();

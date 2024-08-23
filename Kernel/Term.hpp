@@ -94,6 +94,20 @@ enum ArgumentOrderVals {
   AO_INCOMPARABLE=6,
 };
 
+inline std::ostream& operator<<(std::ostream& out, ArgumentOrderVals const& self)
+{ 
+  switch(self) {
+    case AO_UNKNOWN: return out << "UNKNOWN";
+    case AO_GREATER: return out << "GREATER";
+    case AO_LESS: return out << "LESS";
+    case AO_GREATER_EQ: return out << "GREATER_EQ";
+    case AO_LESS_EQ: return out << "LESS_EQ";
+    case AO_EQUAL: return out << "EQUAL";
+    case AO_INCOMPARABLE: return out << "INCOMPARABLE";
+  }
+  ASSERTION_VIOLATION
+}
+
 /**
  * Class containing either a pointer to a compound term or
  * a variable number or a functor.
