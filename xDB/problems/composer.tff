@@ -1,11 +1,13 @@
 tff(t1,type,attribute:($i * $i) > $o).
 tff(t2,type,birthdate:($i * $int) > $o).
 
-tff(a1,external,![Arg2:$i]:?[Arg1:$i]:attribute(Arg1,Arg2),"~/workspace/vampire/xDB/problems/externSql.py").
-tff(a2,external,![Arg1:$i]:?[Arg2:$i]:attribute(Arg1,Arg2),"~/workspace/vampire/xDB/problems/externSql.py").
-tff(a3,external,![Arg2:$int]:?[Arg1:$i]:birthdate(Arg1,Arg2),"~/workspace/vampire/xDB/problems/externSql.py").
-tff(a4,external,![Arg1:$i]:?[Arg2:$int]:birthdate(Arg1,Arg2),"~/workspace/vampire/xDB/problems/externSql.py").
+tff(a1,external,![Arg2:$i]:?[Arg1:$i]:attribute(Arg1,Arg2),"$XDB/scripts/externSql.py").
+tff(a2,external,![Arg1:$i]:?[Arg2:$i]:attribute(Arg1,Arg2),"$XDB/scripts/externSql.py").
+tff(a3,external,![Arg2:$int]:?[Arg1:$i]:birthdate(Arg1,Arg2),"$XDB/scripts/externSql.py").
+tff(a4,external,![Arg1:$i]:?[Arg2:$int]:birthdate(Arg1,Arg2),"$XDB/scripts/externSql.py").
 
 tff(who,conjecture,
     ? [Composer:$i,BirthYear:$int] :
-      ( attribute(Composer,composer) & birthdate(Composer,BirthYear) & $greatereq(BirthYear,1700) & $lesseq(BirthYear,1750) ) ).
+      ( attribute(Composer,composer) & birthdate(Composer,BirthYear))).
+      
+      % & $greatereq(BirthYear,1700) & $lesseq(BirthYear,1750) ) ).
