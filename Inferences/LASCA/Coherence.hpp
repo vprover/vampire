@@ -607,6 +607,10 @@ public:
               }
             }
           }
+          if (factor.isNone()) {
+            /* all lhs factors summed up are 0, zero terms don't need to be pulled out */
+            return {};
+          }
 
           DEBUG_CODE(
             DEBUG_COHERENCE(0, "atoms match: ")
