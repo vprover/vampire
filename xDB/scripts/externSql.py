@@ -7,8 +7,13 @@ from typing import Iterable, Sequence
 #CREATE TABLE stmts(pred text NOT NULL, arg1 text NOT NULL, arg2 text NOT NULL, arg3 text, arg4 text, arg5 text);
 #CREATE TABLE arity (pred text NOT NULL, value integer NOT NULL);
 
+debug = False
+
 def init():
-  sqliteConnection = sqlite3.connect('/Users/msuda/Projects/vampire/xDB/stmts-composers.db')
+  path = os.getenv('XDB')
+  if debug:
+    print(path)
+  sqliteConnection = sqlite3.connect(path + '/db/stmts.db')
   cursor = sqliteConnection.cursor()
   return sqliteConnection, cursor
     
@@ -23,7 +28,8 @@ def buildQuery(pred:str, args:Sequence):
   query = 'SELECT '
   hasArg = 0
   for n in range(0,len(args)):
-    #print(n)
+    if debug:
+      print("n:",n)
     if (args[n].istitle()):
       query = query + 'arg' + str(n+1) + ', '
       hasArg = 1
@@ -32,46 +38,56 @@ def buildQuery(pred:str, args:Sequence):
   else:
     query = 'SELECT *'
   query = query + ' FROM stmts'
-  selection = ""
+  selection = "pred='" + pred + "'"
   hasArg = 0
   for n in range(0,len(args)):
     if not (args[n].istitle()):
-      selection = selection + 'arg' + str(n+1) + '="' + args[n] + '" AND '
-      hasArg = 1
-  if hasArg:
-    selection = selection[0:(len(selection)-5)]        
+      selection = selection + 'AND arg' + str(n+1) + '="' + args[n] + '" '
+      hasArg = 1       
   if selection:
     query = query + " WHERE " + selection + ";"
   return query
 
 def processResults(results:Iterable, pred:str, args:Sequence):
-    for res in results:
-      resstr = pred + "("
-      resindx = 0
-      for n in range(0,len(args)):
-        #print('result: ',result)
-        #print('in progress: ',resstr)
-        if (args[n].istitle()):
-          resstr = resstr + res[resindx]
-          resindx = resindx + 1
-        else:
-          resstr = resstr + args[n]
-        if n == len(args)-1:
-          resstr = resstr + ")"
-        else:
-          resstr = resstr + ","
-    return resstr
+  if results == []:
+    return ""
+  resstr = ""
+  for res in results:
+    if debug:
+      print('result: ',res)
+    resstr = resstr + pred + "("
+    resindx = 0
+    for n in range(0,len(args)):
+      if debug:
+        print('in progress: ',resstr)
+      if (args[n].istitle()):
+        resstr = resstr + res[resindx]
+        resindx = resindx + 1
+      else:
+        resstr = resstr + args[n]
+      if n == len(args)-1:
+        resstr = resstr + ")\n"
+      else:
+        resstr = resstr + ","
+  return resstr
     
 if __name__ == "__main__":
+  sqliteConnection = None
   try:
     sqliteConnection, cursor = init()
     pred,args = decompQuery(sys.argv[1])
-    #print('DB Init')
+    if debug:
+      print('DB Init')
     query = buildQuery(pred,args)
-    #print("query: ",query)
+    if debug:
+      print("query: ",query)
     cursor.execute(query)
     results = cursor.fetchall()
+    if debug:
+      print("results:", results)
     resstr = processResults(results,pred,args)
+    if debug:
+      print("results: ")
     print(resstr)
     cursor.close()
 
