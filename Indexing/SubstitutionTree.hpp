@@ -1521,7 +1521,7 @@ public:
             if(top.var()) {
               return n->allChildren();
             } else {
-              auto syms = unif.unifiableSymbols(top.functor());
+              auto syms = unif.unifiableSymbols(*top.functor());
               if (syms) {
                 return pvi(concatIters(
                       arrayIter(std::move(*syms))

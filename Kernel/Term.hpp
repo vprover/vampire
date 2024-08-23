@@ -1232,10 +1232,10 @@ private:
 bool positionIn(TermList& subterm,TermList* term, vstring& position);
 bool positionIn(TermList& subterm,Term* term, vstring& position);
 
-} // namespace Kernel
-
 inline std::ostream& operator<<(std::ostream& out, Kernel::TermList::Top const& self)
 { self.output(out); return out; }
+
+} // namespace Kernel
 
 template<>
 struct std::hash<Kernel::TermList> {
