@@ -433,7 +433,8 @@ vstring ProblemExport::ApiCalls::_escapeVarName(Outputable const& sym) {
       if (std::isalnum(toEscape[iter]) || toEscape[iter] == '_') break;
       else iter++;
     }
-    if (toEscape[iter] == toEscape.length()) {
+    if (iter == toEscape.length()) {
+      /* none alphanumeric or _ */
       cvar << "_";
     } else {
       if ('0' <= toEscape[iter] && toEscape[iter] <= '9')
