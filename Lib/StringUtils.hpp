@@ -38,6 +38,8 @@ public:
   template<class A>
   static A parse(vstring const& str) 
   { return StringParser<A>{}(str); }
+
+  static size_t distance(const vstring &s1, const vstring &s2);
 };
 
 template<> struct StringParser<int> 
@@ -66,6 +68,8 @@ vstring toString(A const& a) {
   out << a;
   return out.str();
 }
+
+
 
 }
 

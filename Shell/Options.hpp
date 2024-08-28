@@ -40,6 +40,7 @@
 #include <cstring>
 #include <memory>
 #include <sys/stat.h>
+#include "Lib/StringUtils.hpp"
 
 #include "Forwards.hpp"
 
@@ -66,50 +67,6 @@ using namespace Lib;
 using namespace Kernel;
 
 class Property;
-
-/**
- * Let us define a similarity measure for strings, used to compare option names 
- * 
- * This is a Levenshtein (edit) distance and therefore gives the number
- * of edits needed to change s1 into s2
- *
- * TODO does not really belong here!
- *
- * @author Giles
- */
-static size_t distance(const vstring &s1, const vstring &s2)
-{
-  const size_t m(s1.size());
-  const size_t n(s2.size());
-
-  if( m==0 ) return n;
-  if( n==0 ) return m;
-
-  DArray<size_t> costs = DArray<size_t>(n+1);
-
-  for( size_t k=0; k<=n; k++ ) costs[k] = k;
-
-  size_t i = 0;
-  for ( vstring::const_iterator it1 = s1.begin(); it1 != s1.end(); ++it1, ++i )
-  {
-    costs[0] = i+1;
-    size_t corner = i;
-
-    size_t j = 0;
-    for ( vstring::const_iterator it2 = s2.begin(); it2 != s2.end(); ++it2, ++j )
-    {
-      size_t upper = costs[j+1];
-      if( *it1 == *it2 ){costs[j+1] = corner;}
-      else{
-        size_t t(upper<corner?upper:corner);
-        costs[j+1] = (costs[j]<t?costs[j]:t)+1;
-      }
-      corner = upper;
-    }
-  }
-
-  return costs[n];
-}
 
 /**
  * Class that represents Vampire's options.
@@ -2440,22 +2397,7 @@ private:
         }
     }
   
-    Stack<vstring> getSimilarOptionNames(vstring name, bool is_short) const{
-
-      Stack<vstring> similar_names;
-
-      VirtualIterator<AbstractOptionValue*> options = _lookup.values();
-      while(options.hasNext()){
-        AbstractOptionValue* opt = options.next();
-        vstring opt_name = is_short ? opt->shortName : opt->longName;
-        size_t dif = 2;
-        if(!is_short) dif += name.size()/4;
-        if(name.size()!=0 && distance(name,opt_name) < dif)
-          similar_names.push(opt_name);
-      }
-
-      return similar_names;
-    }
+    Stack<vstring> getSimilarOptionNames(vstring name, bool is_short) const;
     
     //==========================================================
     // Variables holding option values

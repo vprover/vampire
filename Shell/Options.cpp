@@ -3877,3 +3877,21 @@ Lib::vvector<float> Options::positiveLiteralSplitQueueCutoffs() const
 
   return cutoffs;
 }
+
+
+Stack<vstring> Options::getSimilarOptionNames(vstring name, bool is_short) const {
+
+  Stack<vstring> similar_names;
+
+  VirtualIterator<AbstractOptionValue*> options = _lookup.values();
+  while(options.hasNext()){
+    AbstractOptionValue* opt = options.next();
+    vstring opt_name = is_short ? opt->shortName : opt->longName;
+    size_t dif = 2;
+    if(!is_short) dif += name.size()/4;
+    if(name.size()!=0 && StringUtils::distance(name,opt_name) < dif)
+      similar_names.push(opt_name);
+  }
+
+  return similar_names;
+}
