@@ -190,7 +190,10 @@ public:
     return (*_key)[arity() - numTypeArguments()];
   }
   
-  vstring toString() const;  
+  vstring toString() const;
+
+  friend std::ostream& operator<<(std::ostream& out, OperatorType const& self)
+  { return out << self.toString(); }
 
   bool isSingleSortType(TermList sort) const;
   bool isAllDefault() const { return isSingleSortType(AtomicSort::defaultSort()); }

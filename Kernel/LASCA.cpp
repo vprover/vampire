@@ -432,7 +432,7 @@ TermList LascaPreprocessor::integerConversion(TypedTermList t)
   return BottomUpEvaluation<TypedTermList, TermList>()
     .function([this](TypedTermList t, TermList* args) -> TermList {
         if (t.isVar()) {
-          return t;
+          return t.sort() == IntTraits::sort() ?  RealTraits::floor(t) : t;
         } else {
           auto f = t.term()->functor();
           if (t.sort() == AtomicSort::superSort()) {

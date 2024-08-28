@@ -307,7 +307,16 @@ class Signature
     /** This takes the symbol number of this symbol as the symbol doesn't know it
         Note that this should only be called on a constant **/
     void addToDistinctGroup(unsigned group,unsigned this_number);
-    friend std::ostream& operator<<(std::ostream& out, const Signature::Symbol& self){ return out << self.name(); };
+    friend std::ostream& operator<<(std::ostream& out, const Signature::Symbol& self)
+    { 
+      out << self.name() << ": "; 
+      if (self._type) {
+        out << *self._type;
+      } else {
+        out << "<type not (yet) set>";
+      }
+      return out;
+    }
 
     void setType(OperatorType* type);
     void forceType(OperatorType* type);

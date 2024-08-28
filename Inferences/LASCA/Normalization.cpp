@@ -42,7 +42,7 @@
 #include "Kernel/LASCA.hpp"
 #include "Indexing/TermIndexingStructure.hpp"
 
-#define DEBUG(...) // DBG(__VA_ARGS__)
+#define DEBUG_NORMALIZE(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
 
 using Kernel::InequalityLiteral;
 
@@ -101,10 +101,10 @@ Clause* Normalization::simplify(Clause* cl)
   if (altered) {
     Inference inf(SimplifyingInference1(Kernel::InferenceRule::LASCA_NORMALIZATION, cl));
     auto outCl = Clause::fromStack(*out, inf);
-    DEBUG(*cl, " ==> ", *outCl)
+    DEBUG_NORMALIZE(0, *cl, " ==> ", *outCl)
     return outCl;
   } else {
-    DEBUG(*cl, " stays the same")
+    DEBUG_NORMALIZE(1, *cl, " stays the same")
     return cl;
   }
 

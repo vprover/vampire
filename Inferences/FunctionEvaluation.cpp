@@ -126,6 +126,50 @@ IMPL_QUOTIENT_REMAINDER(E)
 IMPL_DIVISION(RatTraits)
 IMPL_DIVISION(RealTraits)
 
+template<class NumTraits>
+bool isInteger(MonomFactors<NumTraits> const& m);
+
+template<class NumTraits>
+bool isInteger(Polynom<NumTraits> const& m) {
+  return m.iterSummands()
+    .all([](auto const& monom) 
+        { return monom.numeral.isInt() && isInteger(*monom.factors); });
+}
+
+template<class NumTraits>
+bool isInteger(FuncTerm const& term, NumTraits) 
+{ return NumTraits::isFloor(term.function().id()); }
+
+bool isInteger(FuncTerm const& term, IntTraits) 
+{ return true; }
+
+template<class NumTraits>
+bool isInteger(PolyNf const& term) {
+  if (auto num = term.template tryNumeral<NumTraits>()) {
+    return num->isInt();
+
+  } else if (auto ft = term.tryFuncTerm()) {
+    return isInteger(**ft, NumTraits{});
+
+  } else if (auto var = term.tryVar()) {
+    return std::is_same_v<IntTraits, NumTraits>;
+
+  } else {
+      return term.downcast<NumTraits>()
+        .map([](auto poly){ return isInteger(*poly); })
+        .unwrap();
+  }
+}
+
+template<class NumTraits>
+bool isInteger(MonomFactors<NumTraits> const& m) {
+  return m.iter()
+    .all([](auto const& factor) { 
+        return factor.power == 0 || 
+          (factor.power > 0 && isInteger<NumTraits>(factor.term));
+    });
+};
+
 
 template<class NumTraits>
 inline Option<PolyNf> simplFloor(PolyNf* evalArgs)
@@ -140,20 +184,6 @@ inline Option<PolyNf> simplFloor(PolyNf* evalArgs)
     //                              pulledOut <--^^^^^^^^^^^^^         ^^^^^^^^^^^^^--> keptIn
     Recycled<Stack<Monom<NumTraits>>> pulledOut;
     Recycled<Stack<Monom<NumTraits>>> keptIn;
-    auto isInteger = [](MonomFactors<NumTraits> const& m) -> bool {
-      return m.iter()
-        .all([](auto const& factor) { 
-            auto num = factor.term.template tryNumeral<NumTraits>();
-            if (num) {
-              return num->isInt();
-            } else if (factor.term.isFuncTerm()) {
-              return NumTraits::isFloor(factor.term.unwrapFuncTerm()->function().id());
-            } else {
-              ASS(factor.term.tryVar())
-              return false;
-            }
-        });
-    };
     for (auto monom : poly->iterSummands()) {
       auto k = monom.numeral;
       auto t = monom.factors;
@@ -168,6 +198,7 @@ inline Option<PolyNf> simplFloor(PolyNf* evalArgs)
         keptIn->push(monom);
       }
     }
+
     if (pulledOut->size() == 0) {
       return {};
 

@@ -83,6 +83,7 @@ class FuncId
 public: 
   static FuncId fromInterpretation(Theory::Interpretation i)
   { return FuncId(env.signature->getInterpretingSymbol(i), Stack<TermList>()); }
+
   static FuncId symbolOf(Term* term);
   unsigned numTermArguments() const;
   unsigned numTypeArguments() const;
@@ -189,6 +190,9 @@ public:
 
   FuncTerm(FuncId f, Stack<PolyNf>&& args);
   FuncTerm(FuncId f, PolyNf* args);
+
+  template<class NumTraits>
+  bool isSort() const { return _fun.symbol()->fnType()->result() == NumTraits::sort(); }
 
   unsigned numTermArguments() const;
   FuncId function() const;
@@ -334,8 +338,7 @@ public:
 
   template<class F> PolyNf mapVars(F f) const;
 
-  bool isFuncTerm() const { return is<Perfect<FuncTerm>>(); }
-  Perfect<FuncTerm> unwrapFuncTerm() const { return unwrap<Perfect<FuncTerm>>(); }
+  Option<Perfect<FuncTerm>> tryFuncTerm() const { return as<Perfect<FuncTerm>>().toOwned(); }
 
   void integrity() const {  apply([](auto const& x) -> void { deref(x).integrity(); }); }
 
