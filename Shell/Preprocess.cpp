@@ -182,22 +182,6 @@ void Preprocess::preprocess(Problem& prb)
     LambdaElimination::addProxyAxioms(prb);
   }
 
-  if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
-
-    // Add theory axioms if needed
-    if( _options.theoryAxioms() != Options::TheoryAxiomLevel::OFF){
-      env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
-      if (env.options->showPreprocessing())
-        std::cout << "adding theory axioms" << std::endl;
-
-      TheoryAxioms(prb).apply();
-    }
-
-
-    // Some axioms needed to be normalized, so we call InterpretedNormalizer twice
-    normalizeInterpreted();
-  }
-
   // Expansion of distinct groups happens before other preprocessing
   // If a distinct group is small enough it will add inequality to describe it
   if(env.signature->hasDistinctGroups()){
@@ -337,6 +321,25 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   prb.getProperty();
+
+  // interpreted normalizations are not prepeared for "special" terms, thus it must happen after clausification
+  if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
+
+    // Add theory axioms if needed
+    if( _options.theoryAxioms() != Options::TheoryAxiomLevel::OFF){
+      env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
+      if (env.options->showPreprocessing())
+        std::cout << "adding theory axioms" << std::endl;
+
+      TheoryAxioms(prb).apply();
+    }
+
+
+    // Some axioms needed to be normalized, so we call InterpretedNormalizer twice
+    normalizeInterpreted();
+  }
+
+
 
   if (prb.mayHaveFunctionDefinitions()) {
     env.statistics->phase=Statistics::FUNCTION_DEFINITION_ELIMINATION;
