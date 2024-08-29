@@ -434,10 +434,10 @@ TermList LascaPreprocessor::integerConversion(TypedTermList t)
         if (t.isVar()) {
           return t.sort() == IntTraits::sort() ?  RealTraits::floor(t) : t;
         } else {
-          ASS_REP(!t.term()->isSpecial(), t)
           auto f = t.term()->functor();
           if (t.sort() == AtomicSort::superSort()) {
-            return TermList(AtomicSort::create(this->integerTypeConsConversion(f), t.term()->arity(), args));
+            return  t == AtomicSort::superSort() ? t
+                  : TermList(AtomicSort::create(this->integerTypeConsConversion(f), t.term()->arity(), args));
           } else {
             if (IntTraits::isToReal(f) || IntTraits::isToInt(f) || RealTraits::isToReal(f)) {
               return args[0];
