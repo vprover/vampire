@@ -114,6 +114,8 @@
 
 #include "NeuralPassiveClauseContainers.hpp"
 
+#include <iomanip>
+
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
@@ -402,7 +404,7 @@ void SaturationAlgorithm::showPredecessors(Clause* c) {
   if (_predecessorsShown.find(c)) return;
 
   if (c->isFromPreprocessing()) {
-    std::cout << "p: " << c->number() << " " << (unsigned)toNumber(c->inference().rule()) << " " << c->age() << '\n';
+    std::cout << "p: " << c->number() << " " << (unsigned)toNumber(c->inference().rule()) << " " << std::setprecision(15) << c->age() << '\n';
     // we don't chase predecessor links for clauses from preprocessing (for now)
   } else if (c->isComponent()) {
     Clause* p = _splitter->getCausalParent(c);
@@ -413,7 +415,7 @@ void SaturationAlgorithm::showPredecessors(Clause* c) {
     if (p) {
       std::cout << " " << p->number();
     }
-    std::cout << " " << c->age() << '\n';
+    std::cout << " " << std::setprecision(15) << c->age() << '\n';
   } else {
     Inference& inf = c->inference();
 
@@ -428,7 +430,7 @@ void SaturationAlgorithm::showPredecessors(Clause* c) {
       Unit* p = inf.next(it2);
       std::cout << " " << p->number();
     }
-    std::cout << " " << c->age() << '\n';
+    std::cout << " " << std::setprecision(15) << c->age() << '\n';
   }
   ALWAYS(_predecessorsShown.insert(c));
 }
