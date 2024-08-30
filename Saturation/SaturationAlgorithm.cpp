@@ -1298,11 +1298,16 @@ void SaturationAlgorithm::doOneAlgorithmStep()
 MainLoopResult SaturationAlgorithm::runImpl()
 {
   unsigned l = 0;
+
+  // could be more precise, but we don't care too much
+  unsigned startTime = Timer::elapsedDeciseconds();
   try {
     for (;; l++) {
       if (_activationLimit && l > _activationLimit) {
         throw ActivationLimitExceededException();
       }
+      if(_softTimeLimit && Timer::elapsedDeciseconds() - startTime > _softTimeLimit)
+        throw TimeLimitExceededException();
 
       doOneAlgorithmStep();
       env.statistics->activations = l;

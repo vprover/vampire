@@ -127,6 +127,11 @@ public:
   Splitter* getSplitter() { return _splitter; }
   FunctionDefinitionHandler& getFunctionDefinitionHandler() const { return _fnDefHandler; }
 
+  // set a "soft" time limit to be checked periodically
+  // separate to, and not as carefully checked as, Lib::Timer
+  // used by FMB's FunctionRelationshipInference
+  void setSoftTimeLimit(unsigned deciseconds) { _softTimeLimit = deciseconds; }
+
 protected:
   virtual void init();
   virtual MainLoopResult runImpl();
@@ -235,6 +240,9 @@ protected:
   unsigned _activationLimit;
 private:
   static ImmediateSimplificationEngine* createISE(Problem& prb, const Options& opt, Ordering& ordering);
+
+  // a "soft" time limit in deciseconds, checked manually: 0 is no limit
+  unsigned _softTimeLimit = 0;
 };
 
 
