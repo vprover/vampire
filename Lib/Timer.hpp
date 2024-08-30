@@ -28,8 +28,10 @@ namespace Timer {
   // should be called exactly once per process as it internally spawns a std::thread
   void reinitialise();
 
-  // sets whether to exit on resource out - true after `reinitialise()`
-  void setLimitEnforcement(bool);
+  // disables exit on resource out: call when a proof has been found!
+  // permanently disabled per-process
+  // blocks if a resource limit was already reached and we are exiting
+  void disableLimitEnforcement();
 
   // elapsed time
   long elapsedMilliseconds();

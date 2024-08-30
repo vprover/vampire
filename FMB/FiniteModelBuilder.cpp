@@ -1897,7 +1897,7 @@ void FiniteModelBuilder::onModelFound()
    UIHelper::satisfiableStatusWasAlreadyOutput = true;
  }
   // Prevent timing out whilst the model is being printed
-  Timer::setLimitEnforcement(false);
+  Timer::disableLimitEnforcement();
 
 
  DHMap<unsigned,unsigned> vampireSortSizes;

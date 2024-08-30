@@ -71,7 +71,8 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
   unsigned useTimeLimit = env.options->fmbDetectSortBoundsTimeLimit();
   env.options->setTimeLimitInSeconds(useTimeLimit);
   opt.setSplitting(false);
-  Timer::setLimitEnforcement(false);
+  // TODO figure out time limits here
+  // Timer::setLimitEnforcement(false);
 
   LabelFinder* labelFinder = new LabelFinder();
 
@@ -84,7 +85,8 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
     // This is expected behaviour
   }
 
-  Timer::setLimitEnforcement(true);
+  // TODO figure out time limits here
+  // Timer::setLimitEnforcement(true);
   env.options->setTimeLimitInDeciseconds(oldTimeLimit);
   env.setMainProblem(inputProblem);
 

@@ -166,7 +166,7 @@ bool PortfolioMode::searchForProof()
   }
 
   // now all the cpu usage will be in children, we'll just be waiting for them
-  Timer::setLimitEnforcement(false);
+  Timer::disableLimitEnforcement();
 
   return prepareScheduleAndPerform(*property);
 }

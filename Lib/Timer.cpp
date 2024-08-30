@@ -13,6 +13,7 @@
  */
 
 #include <iostream>
+#include <mutex>
 #include <thread>
 
 #include "Lib/Environment.hpp"
@@ -53,6 +54,9 @@ enum LimitType {
   INSTRUCTION_LIMIT
 };
 
+// ensures that exactly one of the timer thread and the parent process tries to exit
+static std::mutex EXIT_LOCK;
+
 // called by timer_thread to exit the entire process
 // functions called here should be thread-safe
 [[noreturn]] static void limitReached(LimitType whichLimit)
@@ -64,6 +68,9 @@ enum LimitType {
 
   const char* REACHED[2] = {"Time limit reached!\n","Instruction limit reached!\n"};
   const char* STATUS[2] = {"% SZS status Timeout for ","% SZS status InstrOut for "};
+
+  // if we get this lock we can assume that the parent won't also try to exit
+  EXIT_LOCK.lock();
 
   // NB unsynchronised output:
   // probably OK as we don't output anything in other parts of Vampire during search
@@ -96,7 +103,6 @@ enum LimitType {
   System::terminateImmediately(1);
 }
 
-static bool ENFORCING_LIMIT = false;
 static std::chrono::time_point<std::chrono::steady_clock> START_TIME;
 
 // TODO could maybe be more efficient if we special-case the no-instruction-limit case:
@@ -105,12 +111,12 @@ static std::chrono::time_point<std::chrono::steady_clock> START_TIME;
 {
   unsigned limit = env.options->timeLimitInDeciseconds();
   while(true) {
-    if(ENFORCING_LIMIT && limit && Timer::elapsedDeciseconds() >= limit) {
+    if(limit && Timer::elapsedDeciseconds() >= limit) {
       limitReached(TIME_LIMIT);
     }
 
 #if VAMPIRE_PERF_EXISTS
-    if(ENFORCING_LIMIT && (env.options->instructionLimit() || env.options->simulatedInstructionLimit())) {
+    if(env.options->instructionLimit() || env.options->simulatedInstructionLimit()) {
       Timer::updateInstructionCount();
       // TODO this looks like it exits with only a simulated instruction limit?
       if (env.options->instructionLimit() && LAST_INSTRUCTION_COUNT_READ >= MEGA*(long long)env.options->instructionLimit()) {
@@ -131,6 +137,12 @@ namespace Lib {
 namespace Timer {
 
 void reinitialise() {
+  // might (probably have) locked this in the parent process, release it for the child
+  //
+  // I am not sure of the semantics of placement-new for std::mutex,
+  // but nobody else seems to be either - if you know, tell me! - Michael
+  ::new (&EXIT_LOCK) std::mutex;
+
   START_TIME = std::chrono::steady_clock::now();
 
 #if VAMPIRE_PERF_EXISTS // if available, (re)initialize the perf reading
@@ -168,12 +180,11 @@ void reinitialise() {
   }
 #endif
 
-  ENFORCING_LIMIT = true;
   std::thread(timer_thread).detach();
 }
 
-void setLimitEnforcement(bool enforce) {
-  ENFORCING_LIMIT = enforce;
+void disableLimitEnforcement() {
+  EXIT_LOCK.lock();
 }
 
 // return elapsed time after `START_TIME`
