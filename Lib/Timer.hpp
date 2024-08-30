@@ -22,7 +22,7 @@
 namespace Lib {
 namespace Timer {
   // (re)initialise the timer - from this point onwards:
-  // 1. resource limits are enforced, unless `setTimeLimitEnforcement(false);`
+  // 1. resource limits are enforced, unless `disableLimitEnforcement();`
   // 2. elapsed time (instructions) data should be live
   //
   // should be called exactly once per process as it internally spawns a std::thread
