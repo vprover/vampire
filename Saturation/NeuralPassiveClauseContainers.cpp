@@ -65,6 +65,14 @@ NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string model
   _model = torch::jit::load(modelFilePath);
   _model.eval();
 
+  if (auto m = _model.find_method("getAgeCorrections")) {
+    std::vector<torch::jit::IValue> inputs;
+    auto corrections = (*m)(std::move(inputs)).toTensor();
+    for (unsigned i = 0; i < toNumber(InferenceRule::INTERNAL_INFERNCE_LAST); i++) {
+      env.inferenceAgeCorrections[i] = corrections[i].item().toDouble();
+    }
+  }
+
   if (!tweak_str.empty()) {
     if (auto m = _model.find_method("eatMyTweaks")) { // if the model is not interested in tweaks, it will get none!
       std::vector<float> tweaks;
