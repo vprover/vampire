@@ -2476,7 +2476,7 @@ private:
   ChoiceOptionValue<FMBSymbolOrders> _fmbSymmetryOrderSymbols;
   ChoiceOptionValue<FMBAdjustSorts> _fmbAdjustSorts;
   BoolOptionValue _fmbDetectSortBounds;
-  UnsignedOptionValue _fmbDetectSortBoundsTimeLimit;
+  TimeLimitOptionValue _fmbDetectSortBoundsTimeLimit;
   UnsignedOptionValue _fmbSizeWeightRatio;
   ChoiceOptionValue<FMBEnumerationStrategy> _fmbEnumerationStrategy;
   BoolOptionValue _fmbKeepSbeamGenerators;
