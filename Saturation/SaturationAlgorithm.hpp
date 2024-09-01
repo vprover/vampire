@@ -236,6 +236,8 @@ protected:
    */
   ScopedPtr<LiteralSelector> _sosLiteralSelector;
 
+  // external sources indexed by their predicate symbol
+  DHMap<unsigned,ESList*> _indexedExternals;
 
   // counters
 

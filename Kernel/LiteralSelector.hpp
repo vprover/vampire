@@ -46,7 +46,8 @@ public:
   /** if eligible is 0, all literals are eligible */
   void select(Clause* c, unsigned eligible=0);
 
-  static LiteralSelector* getSelector(const Ordering& ordering, const Options& options, int selectorNumber);
+  static LiteralSelector* getSelector(const Ordering& ordering, const Options& options,
+                    int selectorNumber, std::function<bool(Literal*)> matchesExternal);
 
   static void ensureSomeColoredSelected(Clause* c, unsigned eligible);
 
@@ -78,6 +79,8 @@ public:
    * Does the selection maintain completeness in the Bachmair-Ganzinger sense?
    */
   virtual bool isBGComplete() const = 0;
+
+  virtual bool matchesExternal(Literal* l) { return false; }
 
   /**
    * Should this selector treat polarity (of non-equational literals) as reversed?

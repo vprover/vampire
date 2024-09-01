@@ -99,6 +99,22 @@ struct ColoredFirst : public LiteralComparator
   }
 };
 
+struct ExternalFirst : public LiteralComparator
+{
+  Comparison compare(Literal* l1, Literal* l2)
+  {
+    bool l1ext = _selector->matchesExternal(l1);
+    bool l2ext = _selector->matchesExternal(l2);
+    if (l1ext && !l2ext) {
+      return GREATER;
+    } else if (!l1ext && l2ext) {
+      return LESS;
+    } else {
+      return EQUAL;
+    }
+  }
+};
+
 struct NoPositiveEquality : public LiteralComparator
 {
   Comparison compare(Literal* l1, Literal* l2)
