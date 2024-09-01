@@ -632,7 +632,6 @@ void PortfolioMode::runSlice(Options& strategyOpt)
 {
   System::registerForSIGHUPOnParentDeath();
   UIHelper::portfolioParent=false;
-  Timer::reinitialise();
 
   Options opt = strategyOpt;
   //we have already performed the normalization (or don't care about it)
@@ -649,6 +648,8 @@ void PortfolioMode::runSlice(Options& strategyOpt)
 #endif
       ")" << endl;
   }
+
+  Timer::reinitialise(); // timer only when done talking (otherwise output may get mangled)
 
   Saturation::ProvingHelper::runVampire(*_prb, opt);
 
