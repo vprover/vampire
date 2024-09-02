@@ -1779,7 +1779,7 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
     // Now translate it into an SMT object
     try{
       auto repr = getRepresentation(lit);
-      _exporter.apply([&](auto& exp){ exp.instantiate_expression(repr.expr); });
+      _exporter.apply([&expr = repr.expr](auto& exp){ exp.instantiate_expression(expr); });
 
       /* we name all literals in order to make z3 cache their truth values.
        * this gives a massive performance boost in many cases.              */
@@ -1797,7 +1797,7 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
 
       if(slit.isNegative()) {
         repr.expr = !repr.expr;
-        _exporter.apply([&](auto& exp){ exp.instantiate_expression(repr.expr); });
+        _exporter.apply([&expr = repr.expr](auto& exp){ exp.instantiate_expression(expr); });
       }
 
 
