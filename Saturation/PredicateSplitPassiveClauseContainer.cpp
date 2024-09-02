@@ -188,7 +188,7 @@ Clause* PredicateSplitPassiveClauseContainer::popSelected()
     unsigned toss = Random::getInteger(_ratioSum);
     // cout << "metaqueue " << _name << " toss " << toss << " (below: " << _ratioSum << ")";
     queueIndex = 0;
-    while (toss > _ratios[queueIndex]) {
+    while (toss >= _ratios[queueIndex]) {
       toss -= _ratios[queueIndex];
       queueIndex++;
     }
