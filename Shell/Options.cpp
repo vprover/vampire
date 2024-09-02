@@ -2444,7 +2444,7 @@ void Options::set(const char* name,const char* value, bool longOpt)
       case IgnoreMissing::WARN:
         if (outputAllowed()) {
           addCommentSignForSZS(std::cout);
-          std::cout << "WARNING: invalid value "<< value << " for option " << name << endl;
+          std::cout << "% WARNING: invalid value "<< value << " for option " << name << endl;
         }
         break;
       case IgnoreMissing::ON:
@@ -2458,7 +2458,7 @@ void Options::set(const char* name,const char* value, bool longOpt)
       if (_ignoreMissing.actualValue == IgnoreMissing::WARN) {
         if (outputAllowed()) {
           addCommentSignForSZS(std::cout);
-          std::cout << "WARNING: " << msg << endl;
+          std::cout << "% WARNING: " << msg << endl;
         }
         return;
       } // else:
@@ -2709,13 +2709,13 @@ bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){
 
          if (env.options->mode() == Mode::SPIDER){
            reportSpiderFail();
-           USER_ERROR("WARNING: " + longName + con->msg());
+           USER_ERROR("% WARNING: " + longName + con->msg());
          }
 
          switch(env.options->getBadOptionChoice()){
          case BadOption::OFF: break;
          default:
-           cout << "WARNING: " << longName << con->msg() << endl;
+           cout << "% WARNING: " << longName << con->msg() << endl;
          }
          return false;
       }
@@ -3212,7 +3212,7 @@ void Options::sampleStrategy(const std::string& strategySamplerFilename)
     */
   }
 
-  cout << "Random strategy: " + generateEncodedOptions() << endl;
+  cout << "% Random strategy: " + generateEncodedOptions() << endl;
 }
 
 /**
@@ -3254,7 +3254,7 @@ void Options::readOptionsString(std::string optionsString,bool assign)
               case IgnoreMissing::WARN:
                 if (outputAllowed()) {
                   addCommentSignForSZS(std::cout);
-                  std::cout << "WARNING: value " << value << " for option "<< param <<" not known" << endl;
+                  std::cout << "% WARNING: value " << value << " for option "<< param <<" not known" << endl;
                 }
                 break;
               case IgnoreMissing::ON:
@@ -3277,7 +3277,7 @@ void Options::readOptionsString(std::string optionsString,bool assign)
       case IgnoreMissing::WARN:
         if (outputAllowed()) {
           addCommentSignForSZS(std::cout);
-          std::cout << "WARNING: option "<< param << " not known." << endl;
+          std::cout << "% WARNING: option "<< param << " not known." << endl;
         }
         break;
       case IgnoreMissing::ON:

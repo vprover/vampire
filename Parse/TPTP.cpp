@@ -1443,7 +1443,10 @@ void TPTP::tff()
 
   _bools.push(true); // to denote that it is an FOF formula
   _isQuestion = false;
-  if (tp == "axiom" || tp == "plain") {
+  if(_modelDefinition){
+    _lastInputType = UnitInputType::MODEL_DEFINITION;
+  }
+  else if (tp == "axiom" || tp == "plain") {
     _lastInputType = UnitInputType::AXIOM;
   }
   else if (tp == "extensionality"){

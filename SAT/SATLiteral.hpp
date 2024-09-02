@@ -36,7 +36,7 @@ public:
    *
    * @b var must be greater than 0 and @b polarity either 1 or 0 (for positive or negative)
    */
-  inline SATLiteral(unsigned var, unsigned polarity) :_polarity(polarity), _var(var) 
+  inline SATLiteral(unsigned var, unsigned polarity) :_polarity(polarity), _var(var)
   { ASS_G(var,0); ASS_NEQ(var,0x7FFFFFFF); }
 
 

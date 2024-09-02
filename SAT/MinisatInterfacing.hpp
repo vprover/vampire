@@ -89,7 +89,7 @@ public:
   
   virtual void retractAllAssumptions() override {
     _assumptions.clear();
-    _status = UNKNOWN;
+    _status = Status::UNKNOWN;
   };
   
   virtual bool hasAssumptions() const override {

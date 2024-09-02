@@ -300,8 +300,7 @@ void preprocessMode(Problem* problem, bool theory)
 void modelCheckMode(Problem* problem)
 {
   ScopedPtr<Problem> prb(problem);
-  env.options->setOutputAxiomNames(true);
-
+  
   if(env.getMainProblem()->hasPolymorphicSym() || env.getMainProblem()->isHigherOrder()){
     USER_ERROR("Polymorphic Vampire is not yet compatible with theory reasoning");
   }
@@ -441,6 +440,10 @@ void clausifyMode(Problem* problem, bool theory)
   simplifier.addFront(new TrivialInequalitiesRemovalISE());
   simplifier.addFront(new TautologyDeletionISE());
   simplifier.addFront(new DuplicateLiteralRemovalISE());
+
+  if (!env.options->strategySamplerFilename().empty()) {
+    env.options->sampleStrategy(env.options->strategySamplerFilename());
+  }
 
   ScopedPtr<Problem> prb(preprocessProblem(problem));
 
@@ -761,6 +764,10 @@ int main(int argc, char* argv[])
     }
 
     Lib::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
+
+    if (opts.mode() == Options::Mode::MODEL_CHECK) {
+      opts.setOutputAxiomNames(true);
+    }
 
     if (opts.interactive()) {
       interactiveMetamode();
