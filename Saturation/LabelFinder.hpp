@@ -20,10 +20,7 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Allocator.hpp"
 #include "Lib/Stack.hpp"
-
-#include "Kernel/Clause.hpp"
 
 namespace Saturation {
 

@@ -1601,9 +1601,6 @@ MainLoopResult FiniteModelBuilder::runImpl()
       }
       cout << "]" << endl;
     }
-    Timer::syncClock();
-    if(env.timeLimitReached()){ return MainLoopResult(Statistics::TIME_LIMIT); }
-
     {
     TIME_TRACE("fmb constraint creation");
 
@@ -1900,7 +1897,7 @@ void FiniteModelBuilder::onModelFound()
    UIHelper::satisfiableStatusWasAlreadyOutput = true;
  }
   // Prevent timing out whilst the model is being printed
-  Timer::setLimitEnforcement(false);
+  Timer::disableLimitEnforcement();
 
 
  DHMap<unsigned,unsigned> vampireSortSizes;

@@ -399,7 +399,6 @@ class MLMatcher::Impl final
     // For backtracking support
     DArray<unsigned> s_matchRecord;
     unsigned s_currBLit;
-    int s_counter;
     bool s_multiset;
 
     MLMatchStats stats;
@@ -560,7 +559,6 @@ void MLMatcher::Impl::init(Literal** baseLits, unsigned baseLen, Clause* instanc
 
   s_matchingData.nextAlts[0] = 0;
   s_currBLit = 0;
-  s_counter = 0;
   s_multiset = multiset;
 
   stats = MLMatchStats{};
@@ -646,15 +644,6 @@ bool MLMatcher::Impl::nextMatch()
       if(s_currBLit==0) { return false; }
       s_currBLit--;
     }
-
-    s_counter++;
-    if(s_counter==50000) {
-      s_counter=0;
-      if(env.timeLimitReached()) {
-        throw TimeLimitExceededException();
-      }
-    }
-
   } // while (true)
 
   ASSERTION_VIOLATION; // unreachable

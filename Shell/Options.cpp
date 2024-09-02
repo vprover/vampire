@@ -41,7 +41,6 @@
 
 #include "Lib/StringUtils.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Timer.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Random.hpp"
@@ -853,8 +852,8 @@ void Options::init()
     _fmbDetectSortBounds.addHardConstraint(If(equal(true)).then(_fmbAdjustSorts.is(notEqual(FMBAdjustSorts::FUNCTION))));
     _fmbDetectSortBounds.tag(OptionTag::FMB);
 
-    _fmbDetectSortBoundsTimeLimit = UnsignedOptionValue("fmb_detect_sort_bounds_time_limit","fmbdsbt",1);
-    _fmbDetectSortBoundsTimeLimit.description = "The time limit (in seconds) for performing sort bound detection";
+    _fmbDetectSortBoundsTimeLimit = TimeLimitOptionValue("fmb_detect_sort_bounds_time_limit","fmbdsbt",10);
+    _fmbDetectSortBoundsTimeLimit.description = "The time limit for performing sort bound detection";
     _lookup.insert(&_fmbDetectSortBoundsTimeLimit);
     _fmbDetectSortBoundsTimeLimit.onlyUsefulWith(_fmbDetectSortBounds.is(equal(true)));
     _fmbDetectSortBoundsTimeLimit.tag(OptionTag::FMB);
@@ -1096,7 +1095,7 @@ void Options::init()
       _sineToPredLevels.is(notEqual(PredicateSineLevels::OFF)),
       _useSineLevelSplitQueues.is(equal(true))));
 
-    _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",5);
+    _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","lftc",5);
     _lrsFirstTimeCheck.description=
     "Percentage of time limit at which the LRS algorithm will for the first time estimate the number of reachable clauses.";
     _lookup.insert(&_lrsFirstTimeCheck);

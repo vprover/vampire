@@ -1224,14 +1224,6 @@ int TPTP::positiveDecimal(int pos)
  */
 void TPTP::unitList()
 {
-  if (env.timeLimitReached()) {
-    // empty states to avoid infinite loop
-    while (!_states.isEmpty()) {
-      _states.pop();
-    }
-    return;
-  }
-
   Token& tok = getTok(0);
   if (tok.tag == T_EOF) {
     resetToks();

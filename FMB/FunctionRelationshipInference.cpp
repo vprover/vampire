@@ -17,7 +17,6 @@
 #include "Lib/DHSet.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Timer.hpp"
 #include "Lib/IntUnionFind.hpp"
     
 #include "Kernel/Problem.hpp"
@@ -64,28 +63,22 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
   Problem prb(cit,false);
   Options opt; // default saturation algorithm options
 
-  // because of bad things the time limit is actually taken from env!
-  int oldTimeLimit = env.options->timeLimitInDeciseconds();
   Problem* inputProblem = env.getMainProblem();
   env.setMainProblem(&prb);
   unsigned useTimeLimit = env.options->fmbDetectSortBoundsTimeLimit();
-  env.options->setTimeLimitInSeconds(useTimeLimit);
   opt.setSplitting(false);
-  Timer::setLimitEnforcement(false);
 
   LabelFinder* labelFinder = new LabelFinder();
 
   try{
     SaturationAlgorithm* salg = SaturationAlgorithm::createFromOptions(prb,opt);
     salg->setLabelFinder(labelFinder);
-    MainLoopResult sres(salg->run());
-    (void)sres; //TODO do we even care about sres?
+    salg->setSoftTimeLimit(useTimeLimit);
+    salg->run();
   }catch (TimeLimitExceededException&){
     // This is expected behaviour
   }
 
-  Timer::setLimitEnforcement(true);
-  env.options->setTimeLimitInDeciseconds(oldTimeLimit);
   env.setMainProblem(inputProblem);
 
   Stack<unsigned> foundLabels = labelFinder->getFoundLabels();
