@@ -473,10 +473,24 @@ AbstractionOracle::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const
   using AbstractionResult = AbstractionOracle::AbstractionResult;
   using NeverEqual = AbstractionOracle::NeverEqual;
   using Numeral = typename NumTraits::ConstantType;
-
   
   auto cTerm = [&](auto... args) { return au.subs().createTerm(args...); };
   auto constraint = [&](auto lhs, auto rhs) { return UnificationConstraint(lhs, rhs, TermSpec(n.sort(), 0)); };
+
+#define CHECK_SORTS(t1, t2)                                                               \
+  if (t1.isTerm()) {                                                                      \
+    auto sort = SortHelper::getResultSort(t1.term.term());                                \
+    if (sort.isVar()) {                                                                   \
+      return AbstractionResult(EqualIf().unify(                                           \
+              constraint(TermSpec(sort, t1.index), TermSpec(NumTraits::sort(), t1.index)),\
+              constraint(t1, t2)));                                                       \
+    } else if (sort != NumTraits::sort()) {                                               \
+      return AbstractionResult(NeverEqual{});                                             \
+    }                                                                                     \
+  }                                                                                       \
+
+  CHECK_SORTS(t1, t2)
+  CHECK_SORTS(t2, t1)
 
   Recycled<Stack<std::pair<TermSpec, Numeral>>> _diff;
   auto& diff = *_diff;
