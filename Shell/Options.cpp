@@ -41,7 +41,6 @@
 
 #include "Lib/StringUtils.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Timer.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Random.hpp"
@@ -853,8 +852,8 @@ void Options::init()
     _fmbDetectSortBounds.addHardConstraint(If(equal(true)).then(_fmbAdjustSorts.is(notEqual(FMBAdjustSorts::FUNCTION))));
     _fmbDetectSortBounds.tag(OptionTag::FMB);
 
-    _fmbDetectSortBoundsTimeLimit = UnsignedOptionValue("fmb_detect_sort_bounds_time_limit","fmbdsbt",1);
-    _fmbDetectSortBoundsTimeLimit.description = "The time limit (in seconds) for performing sort bound detection";
+    _fmbDetectSortBoundsTimeLimit = TimeLimitOptionValue("fmb_detect_sort_bounds_time_limit","fmbdsbt",10);
+    _fmbDetectSortBoundsTimeLimit.description = "The time limit for performing sort bound detection";
     _lookup.insert(&_fmbDetectSortBoundsTimeLimit);
     _fmbDetectSortBoundsTimeLimit.onlyUsefulWith(_fmbDetectSortBounds.is(equal(true)));
     _fmbDetectSortBoundsTimeLimit.tag(OptionTag::FMB);
@@ -1096,7 +1095,7 @@ void Options::init()
       _sineToPredLevels.is(notEqual(PredicateSineLevels::OFF)),
       _useSineLevelSplitQueues.is(equal(true))));
 
-    _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",5);
+    _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","lftc",5);
     _lrsFirstTimeCheck.description=
     "Percentage of time limit at which the LRS algorithm will for the first time estimate the number of reachable clauses.";
     _lookup.insert(&_lrsFirstTimeCheck);
@@ -1730,13 +1729,35 @@ void Options::init()
     _equationalTautologyRemoval.onlyUsefulWith(ProperSaturationAlgorithm());
     _equationalTautologyRemoval.tag(OptionTag::INFERENCES);
 
-    _instanceRedundancyCheck = ChoiceOptionValue<InstanceRedundancyCheck>("instance_redundancy_check","irc",
-      InstanceRedundancyCheck::OFF,{"lazy","eager","off"});
-    _instanceRedundancyCheck.description=
-    "Skip generating inferences on clause instances on which we already performed a reductive inference.";
-    _lookup.insert(&_instanceRedundancyCheck);
-    _instanceRedundancyCheck.onlyUsefulWith(ProperSaturationAlgorithm());
-    _instanceRedundancyCheck.tag(OptionTag::INFERENCES);
+    _conditionalRedundancyCheck = BoolOptionValue("conditional_redundancy_check","crc",false);
+    _conditionalRedundancyCheck.description=
+      "Skip generating inferences on clause instances on which we already performed a simplifying inference.";
+    _lookup.insert(&_conditionalRedundancyCheck);
+    _conditionalRedundancyCheck.onlyUsefulWith(ProperSaturationAlgorithm());
+    _conditionalRedundancyCheck.onlyUsefulWith(_unificationWithAbstraction.is(equal(UnificationWithAbstraction::OFF)));
+    _conditionalRedundancyCheck.tag(OptionTag::INFERENCES);
+
+    _conditionalRedundancyOrderingConstraints = BoolOptionValue("conditional_redundancy_ordering_constraints","croc",false);
+    _conditionalRedundancyOrderingConstraints.description=
+      "Strengthen conditional redundancy with ordering constraints.";
+    _lookup.insert(&_conditionalRedundancyOrderingConstraints);
+    _conditionalRedundancyOrderingConstraints.onlyUsefulWith(_conditionalRedundancyCheck.is(equal(true)));
+    _conditionalRedundancyOrderingConstraints.tag(OptionTag::INFERENCES);
+
+    _conditionalRedundancyAvatarConstraints = BoolOptionValue("conditional_redundancy_avatar_constraints","crac",false);
+    _conditionalRedundancyAvatarConstraints.description=
+      "Strengthen conditional redundancy with AVATAR constraints.";
+    _lookup.insert(&_conditionalRedundancyAvatarConstraints);
+    _conditionalRedundancyAvatarConstraints.onlyUsefulWith(_conditionalRedundancyCheck.is(equal(true)));
+    _conditionalRedundancyAvatarConstraints.onlyUsefulWith(_splitting.is(equal(true)));
+    _conditionalRedundancyAvatarConstraints.tag(OptionTag::INFERENCES);
+
+    _conditionalRedundancyLiteralConstraints = BoolOptionValue("conditional_redundancy_literal_constraints","crlc",false);
+    _conditionalRedundancyLiteralConstraints.description=
+      "Strengthen conditional redundancy with literals from clauses.";
+    _lookup.insert(&_conditionalRedundancyLiteralConstraints);
+    _conditionalRedundancyLiteralConstraints.onlyUsefulWith(_conditionalRedundancyCheck.is(equal(true)));
+    _conditionalRedundancyLiteralConstraints.tag(OptionTag::INFERENCES);
 
     _unitResultingResolution = ChoiceOptionValue<URResolution>("unit_resulting_resolution","urr",URResolution::OFF,{"ec_only","off","on","full"});
     _unitResultingResolution.description=
@@ -2423,7 +2444,7 @@ void Options::set(const char* name,const char* value, bool longOpt)
       case IgnoreMissing::WARN:
         if (outputAllowed()) {
           addCommentSignForSZS(std::cout);
-          std::cout << "WARNING: invalid value "<< value << " for option " << name << endl;
+          std::cout << "% WARNING: invalid value "<< value << " for option " << name << endl;
         }
         break;
       case IgnoreMissing::ON:
@@ -2437,7 +2458,7 @@ void Options::set(const char* name,const char* value, bool longOpt)
       if (_ignoreMissing.actualValue == IgnoreMissing::WARN) {
         if (outputAllowed()) {
           addCommentSignForSZS(std::cout);
-          std::cout << "WARNING: " << msg << endl;
+          std::cout << "% WARNING: " << msg << endl;
         }
         return;
       } // else:
@@ -2688,13 +2709,13 @@ bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){
 
          if (env.options->mode() == Mode::SPIDER){
            reportSpiderFail();
-           USER_ERROR("WARNING: " + longName + con->msg());
+           USER_ERROR("% WARNING: " + longName + con->msg());
          }
 
          switch(env.options->getBadOptionChoice()){
          case BadOption::OFF: break;
          default:
-           cout << "WARNING: " << longName << con->msg() << endl;
+           cout << "% WARNING: " << longName << con->msg() << endl;
          }
          return false;
       }
@@ -3191,7 +3212,7 @@ void Options::sampleStrategy(const std::string& strategySamplerFilename)
     */
   }
 
-  cout << "Random strategy: " + generateEncodedOptions() << endl;
+  cout << "% Random strategy: " + generateEncodedOptions() << endl;
 }
 
 /**
@@ -3233,7 +3254,7 @@ void Options::readOptionsString(std::string optionsString,bool assign)
               case IgnoreMissing::WARN:
                 if (outputAllowed()) {
                   addCommentSignForSZS(std::cout);
-                  std::cout << "WARNING: value " << value << " for option "<< param <<" not known" << endl;
+                  std::cout << "% WARNING: value " << value << " for option "<< param <<" not known" << endl;
                 }
                 break;
               case IgnoreMissing::ON:
@@ -3256,7 +3277,7 @@ void Options::readOptionsString(std::string optionsString,bool assign)
       case IgnoreMissing::WARN:
         if (outputAllowed()) {
           addCommentSignForSZS(std::cout);
-          std::cout << "WARNING: option "<< param << " not known." << endl;
+          std::cout << "% WARNING: option "<< param << " not known." << endl;
         }
         break;
       case IgnoreMissing::ON:
@@ -3514,9 +3535,6 @@ bool Options::complete(const Problem& prb) const
     return false;
   }
   if (!_superpositionFromVariables.actualValue) {
-    return false;
-  }
-  if (_instanceRedundancyCheck.actualValue == InstanceRedundancyCheck::EAGER) {
     return false;
   }
 

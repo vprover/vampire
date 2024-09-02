@@ -96,6 +96,7 @@
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
 #include "Shell/AnswerLiteralManager.hpp"
+#include "Shell/ConditionalRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
@@ -624,14 +625,6 @@ void SaturationAlgorithm::passiveRemovedHandler(Clause* cl)
 }
 
 /**
- * Return time spent by the run of the saturation algorithm
- */
-int SaturationAlgorithm::elapsedTime()
-{
-  return env.timer->elapsedMilliseconds() - _startTime;
-}
-
-/**
  * Add input clause @b cl into the SaturationAlgorithm object
  *
  * The clause @b cl is added into the unprocessed container, unless the
@@ -809,9 +802,6 @@ void SaturationAlgorithm::init()
       ESList::push(es,*bySymbol);
     }
   }
-
-  _startTime = env.timer->elapsedMilliseconds();
-  _startInstrs = env.timer->elapsedMegaInstructions();
 }
 
 Clause *SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
@@ -942,8 +932,6 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 {
   _generatedClauseCount++;
   env.statistics->generatedClauses++;
-
-  env.checkTimeSometime<64>();
 
   cl=doImmediateSimplification(cl);
   if (!cl) {
@@ -1228,6 +1216,8 @@ void SaturationAlgorithm::activate(Clause* cl)
   env.statistics->activeClauses++;
   _active->add(cl);
 
+  _conditionalRedundancyHandler->checkEquations(cl);
+
   auto generated = TIME_TRACE_EXPR(TimeTrace::CLAUSE_GENERATION, _generator->generateSimplify(cl));
   auto toAdd = TIME_TRACE_ITER(TimeTrace::CLAUSE_GENERATION, generated.clauses);
 
@@ -1368,10 +1358,6 @@ start:
     }
 
     newClausesToUnprocessed();
-
-    if (env.timeLimitReached()) {
-      throw TimeLimitExceededException();
-    }
   }
 
   ASS(clausesFlushed());
@@ -1464,19 +1450,18 @@ void SaturationAlgorithm::doOneAlgorithmStep()
 MainLoopResult SaturationAlgorithm::runImpl()
 {
   unsigned l = 0;
+
+  // could be more precise, but we don't care too much
+  unsigned startTime = Timer::elapsedDeciseconds();
   try {
     for (;; l++) {
       if (_activationLimit && l > _activationLimit) {
         throw ActivationLimitExceededException();
       }
+      if(_softTimeLimit && Timer::elapsedDeciseconds() - startTime > _softTimeLimit)
+        throw TimeLimitExceededException();
 
       doOneAlgorithmStep();
-
-      Timer::syncClock();
-      if (env.timeLimitReached()) {
-        throw TimeLimitExceededException();
-      }
-
       env.statistics->activations = l;
     }
   }
@@ -1813,6 +1798,9 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.showSymbolElimination()) {
     res->_symEl = new SymElOutput();
   }
+
+  res->_conditionalRedundancyHandler.reset(ConditionalRedundancyHandler::create(opt, &ordering, res->_splitter));
+
   res->_answerLiteralManager = AnswerLiteralManager::getInstance(); // selects the right one, according to options!
   ASS(!res->_answerLiteralManager||opt.questionAnswering()!=Options::QuestionAnsweringMode::OFF);
   ASS( res->_answerLiteralManager||opt.questionAnswering()==Options::QuestionAnsweringMode::OFF);

@@ -113,6 +113,7 @@ public:
   IndexManager* getIndexManager() { return _imgr.ptr(); }
   Ordering& getOrdering() const {  return *_ordering; }
   LiteralSelector& getLiteralSelector() const { return *_selector; }
+  const ConditionalRedundancyHandler& condRedHandler() const { return *_conditionalRedundancyHandler; }
 
   /** Return the number of clauses that entered the passive container */
   unsigned getGeneratedClauseCount() { return _generatedClauseCount; }
@@ -132,6 +133,11 @@ public:
 
   Splitter* getSplitter() { return _splitter; }
   FunctionDefinitionHandler& getFunctionDefinitionHandler() const { return _fnDefHandler; }
+
+  // set a "soft" time limit to be checked periodically
+  // separate to, and not as carefully checked as, Lib::Timer
+  // used by FMB's FunctionRelationshipInference
+  void setSoftTimeLimit(unsigned deciseconds) { _softTimeLimit = deciseconds; }
 
 protected:
   virtual void init();
@@ -161,7 +167,6 @@ protected:
   /** called before the selected clause is deleted from the searchspace */
   virtual void beforeSelectedRemoved(Clause* cl) {};
   void onAllProcessed();
-  int elapsedTime();
   virtual bool isComplete();
 
 private:
@@ -182,10 +187,7 @@ private:
   static SaturationAlgorithm* s_instance;
 protected:
 
-  int _startTime;
-  int _startInstrs;
-
-  bool _completeOptionSettings;  
+  bool _completeOptionSettings;
   bool _clauseActivationInProgress;
 
   RCClauseStack _newClauses;
@@ -224,6 +226,7 @@ protected:
   AnswerLiteralManager* _answerLiteralManager;
   Instantiation* _instantiation;
   FunctionDefinitionHandler& _fnDefHandler;
+  std::unique_ptr<ConditionalRedundancyHandler> _conditionalRedundancyHandler;
 
   SubscriptionData _passiveContRemovalSData;
   SubscriptionData _activeContRemovalSData;
@@ -247,6 +250,9 @@ protected:
   unsigned _activationLimit;
 private:
   static ImmediateSimplificationEngine* createISE(Problem& prb, const Options& opt, Ordering& ordering);
+
+  // a "soft" time limit in deciseconds, checked manually: 0 is no limit
+  unsigned _softTimeLimit = 0;
 };
 
 

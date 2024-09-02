@@ -941,7 +941,7 @@ Ordering::Result KBO::isGreaterOrEq(AppliedTerm tl1, AppliedTerm tl2) const
       res = state->traverseLexUnidir(tl1,tl2);
       break;
     }
-    case Ordering::INCOMPARABLE:
+    default:
       ASSERTION_VIOLATION;
   }
 #if VDEBUG

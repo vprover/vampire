@@ -310,7 +310,7 @@ pair<Stack<Instruction>,BranchTag>* LPOComparator::createHelper(TermList tl1, Te
       ASS(s->arity()); // constants cannot be incomparable
 
       int prevStartIndex = INDEX_UNINITIALIZED;
-      unsigned prevEndIndex;
+      unsigned prevEndIndex = 0; // to silence a gcc warning (we overwrite the value below anyway, at least where it matters)
 
        // copies for unification
       auto tl1s = tl1;

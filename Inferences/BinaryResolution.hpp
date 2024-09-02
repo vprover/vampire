@@ -40,21 +40,12 @@ public:
   void attach(SaturationAlgorithm* salg);
   void detach();
 
-  static Clause* generateClause(Clause* queryCl, Literal* queryLit, 
-                                Clause* resultCl, Literal* resultLit, 
-                                ResultSubstitutionSP subs, const Options& opts);
-
-  template<class ComputeConstraints>
-  static Clause* generateClause(Clause* queryCl, Literal* queryLit, 
-                                Clause* resultCl, Literal* resultLit, 
-                                ResultSubstitutionSP subs, ComputeConstraints constraints, const Options& opts,
-                                bool afterCheck = false, PassiveClauseContainer* passive=0, Ordering* ord=0, LiteralSelector* ls = 0);
-
   ClauseIterator generateClauses(Clause* premise);
 
 private:
-  struct UnificationsFn;
-  struct ResultFn;
+  Clause* generateClause(
+    Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit,
+    ResultSubstitutionSP subs, AbstractingUnifier* absUnif);
 
   BinaryResolutionIndex* _index;
 };

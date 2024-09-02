@@ -80,6 +80,7 @@ private:
     }
     static Instruction uintUint(InstructionTag t, unsigned v1 = 0, unsigned v2 = 0) {
       Instruction ins;
+      ins._content = 0; // to silence a gcc warning (we set all bits below anyway)
       ins._setTag(t);
       ins._setFirstUint(v1);
       ins._setSecondUint(v2);

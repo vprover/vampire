@@ -563,13 +563,13 @@ Option<Substitution> TheoryInstAndSimp::instantiateGeneralised(
     }
 
     DEBUG_CODE(auto res =) _solver->solveUnderAssumptions(theoryLits, 0, false);
-    ASS_EQ(res, SATSolver::UNSATISFIABLE)
+    ASS_EQ(res, SATSolver::Status::UNSATISFIABLE)
 
     Set<TermList> usedDefs;
     for (auto& x : _solver->failedAssumptions()) {
       definitionLiterals
         .tryGet(x)
-        .andThen([&](TermList t) 
+        .andThen([&](TermList t)
             { usedDefs.insert(t); });
     }
 
@@ -650,13 +650,13 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const&
   // now we can call the solver
   SATSolver::Status status = _solver->solveUnderAssumptions(skolemized.lits, 0, false);
 
-  if(status == SATSolver::UNSATISFIABLE) {
+  if(status == SATSolver::Status::UNSATISFIABLE) {
     DEBUG("unsat")
     return pvi(getSingletonIterator(Solution::unsat()));
 
-  } else if(status == SATSolver::SATISFIABLE) {
+  } else if(status == SATSolver::Status::SATISFIABLE) {
     DEBUG("found model: ", _solver->getModel())
-    auto subst = _generalisation ? instantiateGeneralised(skolemized, freshVar) 
+    auto subst = _generalisation ? instantiateGeneralised(skolemized, freshVar)
                                  : instantiateWithModel(skolemized);
     if (subst.isSome()) {
       return pvi(getSingletonIterator(Solution(std::move(subst).unwrap())));
@@ -720,7 +720,7 @@ struct InstanceFn
         auto skolem = parent->skolemize(iterTraits(invertedLits.iterFifo() /* without guards !! */));
         auto status = parent->_solver->solveUnderAssumptions(skolem.lits, 0, false);
         // we have an unsat solution without guards
-        redundant = status == SATSolver::UNSATISFIABLE;
+        redundant = status == SATSolver::Status::UNSATISFIABLE;
       }
 
       if (redundant) {
