@@ -118,7 +118,6 @@ static std::chrono::time_point<std::chrono::steady_clock> START_TIME;
 #if VAMPIRE_PERF_EXISTS
     if(env.options->instructionLimit() || env.options->simulatedInstructionLimit()) {
       Timer::updateInstructionCount();
-      // TODO this looks like it exits with only a simulated instruction limit?
       if (env.options->instructionLimit() && LAST_INSTRUCTION_COUNT_READ >= MEGA*(long long)env.options->instructionLimit()) {
         // in principle could have a race on terminationReason, seems unlikely/harmless in practice
         env.statistics->terminationReason = Shell::Statistics::TIME_LIMIT;
