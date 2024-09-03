@@ -18,7 +18,6 @@
 
 #include "Debug/RuntimeStatistics.hpp"
 
-#include "Lib/Allocator.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Timer.hpp"
 #include "SAT/Z3Interfacing.hpp"
@@ -469,13 +468,11 @@ void Statistics::print(ostream& out)
 
   }
 
-  COND_OUT("Memory used [KB]", Lib::getUsedMemory()/1024);
-
   addCommentSignForSZS(out);
   out << "Time elapsed: ";
   Timer::printMSString(out,Timer::elapsedMilliseconds());
   out << endl;
-  
+
   Timer::updateInstructionCount();
   unsigned instr = Timer::elapsedMegaInstructions();
   if (instr) {
@@ -483,7 +480,7 @@ void Statistics::print(ostream& out)
     out << "Instructions burned: " << instr << " (million)";
     out << endl;
   }
-  
+
   addCommentSignForSZS(out);
   out << "------------------------------\n";
 

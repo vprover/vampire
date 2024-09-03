@@ -24,7 +24,6 @@
 #include <new>
 
 #include "Debug/Assertion.hpp"
-#include "Portability.hpp"
 
 /*
  * uncomment the following to use Valgrind more profitably
@@ -34,15 +33,8 @@
 // #define INDIVIDUAL_ALLOCATIONS
 
 namespace Lib {
-
-// get the amount of memory used by global operator new so far
-size_t getUsedMemory();
-
-// get the memory limit for global operator new
-size_t getMemoryLimit();
-// set the memory limit for global operator new
+// attempt to set a memory limit for this process by system call
 void setMemoryLimit(size_t bytes);
-
 }
 
 #ifdef INDIVIDUAL_ALLOCATIONS
