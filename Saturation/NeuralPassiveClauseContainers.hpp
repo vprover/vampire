@@ -38,62 +38,50 @@ using namespace Kernel;
 
 class NeuralClauseEvaluationModel
 {
-public:
-  typedef std::pair<float,unsigned> SaltedLogit;
 private:
   torch::jit::script::Module _model;
 
   unsigned _numFeatures;
   float _temp;
 
-  // this is either the logits or the e^(logits/temp)
-  // alogn with randomly assigned salts for each clause for tie breaking
-  DHMap<unsigned,SaltedLogit> _scores;
+  // this stored the computed logits + _temp * gumbel_noise
+  DHMap<unsigned,float> _scores;
 public:
   NeuralClauseEvaluationModel(const std::string modelFilePath, const std::string& tweak_str,
     uint64_t random_seed, unsigned num_features, float temperature);
 
-  const DHMap<unsigned,SaltedLogit>& getScores() { return _scores; }
+  const DHMap<unsigned,float>& getScores() { return _scores; }
 
-  SaltedLogit evalClause(Clause* cl);
+  float evalClause(Clause* cl);
   void evalClauses(UnprocessedClauseContainer& clauses);
 
   // this is a low-effort version of evalClause (used, among other things, for delayedEvaluation deepire-style):
   // namely: if there is no value in the _scores map, it just returns a very optimistic constant
-  SaltedLogit tryGetScore(Clause* cl);
+  float tryGetScore(Clause* cl);
 };
 
 class ShuffledScoreQueue
   : public ClauseQueue
 {
 public:
-  ShuffledScoreQueue(const DHMap<unsigned,std::pair<float,unsigned>>& scores) : _scores(scores) {}
+  ShuffledScoreQueue(const DHMap<unsigned,float>& scores) : _scores(scores) {}
 protected:
   virtual bool lessThan(Clause* c1,Clause* c2) {
     auto sc1 = _scores.get(c1->number());
     auto sc2 = _scores.get(c2->number());
 
     // reversing the order here: NNs think large is good, queues think small is good
-    if (sc1.first > sc2.first) {
+    if (sc1 > sc2) {
       return true;
     }
-    if (sc1.first < sc2.first) {
-      return false;
-    }
-
-    // here, the second coord are just fixed random numbers for breaking ties (before we go down to number())
-    if (sc1.second > sc2.second) {
-      return true;
-    }
-    if (sc1.second < sc2.second) {
+    if (sc1 < sc2) {
       return false;
     }
 
     return c1->number() < c2->number();
   }
 private:
-  // key = clause->number(), value = (actual_float_score,random_tiebreaker)
-  const DHMap<unsigned,std::pair<float,unsigned>>& _scores;
+  const DHMap<unsigned,float>& _scores;
 };
 
 class LRSIgnoringPassiveClauseContainer
@@ -159,15 +147,15 @@ public:
    */
 private:
   // we use min, because scores and salts are compared inverted (not as e.g. age and weigth)
-  static constexpr std::pair<float,unsigned> _minLimit = std::make_pair(-std::numeric_limits<float>::max(),std::numeric_limits<unsigned>::min());
-  std::pair<float,unsigned> _curLimit = _minLimit; // effectively no limit
+  static constexpr float _minLimit = -std::numeric_limits<float>::max();
+  float _curLimit = _minLimit; // effectively no limit
   ScopedPtr<ClauseQueue::Iterator> _simulationIt;
 
-  bool setLimits(std::pair<float,unsigned> newLimit);
+  bool setLimits(float newLimit);
   bool exceedsLimit(Clause* cl) const {
     auto score = _model.tryGetScore(cl);
-    // std::cout << "score "<<score.first << "," << score.second << "  " << _curLimit.first << "," << _curLimit.second << std::endl;
-    return score.first < _curLimit.first || (score.first == _curLimit.first && score.second < _curLimit.second);
+    // std::cout << "score "<<score << "  " << _curLimit << std::endl;
+    return score < _curLimit;
   }
 public:
   void simulationInit() override;
@@ -199,11 +187,8 @@ public:
   bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const override { return true; }
 
 private:
-  // this is either ShuffledScoreQueue (over the logits) for opt.npccTemperature()
-  // or SoftmaxClauseQueue (for e^logits/temp) for opt.npccTemperature() > 0
-  ScopedPtr<AbstractClauseQueue> _queue;
-
   NeuralClauseEvaluationModel& _model;
+  ShuffledScoreQueue _queue;
 
   unsigned _size;
   unsigned _reshuffleAt;
@@ -225,7 +210,7 @@ public:
   void remove(Clause* cl) override;
   Clause* popSelected() override;
 private:
-  DHMap<unsigned,std::pair<float,unsigned>> _scores;
+  DHMap<unsigned,float> _scores;
   ShuffledScoreQueue _queue;
   unsigned _size;
   float _temperature;

@@ -109,17 +109,17 @@ NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string model
 #endif
 }
 
-NeuralClauseEvaluationModel::SaltedLogit NeuralClauseEvaluationModel::tryGetScore(Clause* cl) {
-  SaltedLogit* someVal = _scores.findPtr(cl->number());
+float NeuralClauseEvaluationModel::tryGetScore(Clause* cl) {
+  float* someVal = _scores.findPtr(cl->number());
   if (someVal) {
     return *someVal;
   }
   // a very optimistic constant (since large is good)
-  return std::make_pair(std::numeric_limits<float>::max(),std::numeric_limits<unsigned>::max());
+  return std::numeric_limits<float>::max();
 }
 
-NeuralClauseEvaluationModel::SaltedLogit NeuralClauseEvaluationModel::evalClause(Clause* cl) {
-  SaltedLogit* someVal = _scores.findPtr(cl->number());
+float NeuralClauseEvaluationModel::evalClause(Clause* cl) {
+  float* someVal = _scores.findPtr(cl->number());
   if (someVal) {
     return *someVal;
   }
@@ -143,13 +143,14 @@ NeuralClauseEvaluationModel::SaltedLogit NeuralClauseEvaluationModel::evalClause
     logit = _model.forward(std::move(inputs)).toTensor().item().toDouble();
   }
 
-  float score = (_temp == 0.0) ? logit : exp(logit/_temp);
-  unsigned salt = Random::getInteger(1073741824); // 2^30, because why not
+  if (_temp > 0.0) {
+    // adding the gumbel noise
+    logit += -_temp*log(-log(Random::getFloat(0.0,1.0)));
+  }
 
-  SaltedLogit res = make_pair(score,salt);
   // cout << "New clause has " << res << " with number " << cl->number() << endl;
-  _scores.insert(cl->number(),res);
-  return res;
+  _scores.insert(cl->number(),logit);
+  return logit;
 }
 
 void NeuralClauseEvaluationModel::evalClauses(Saturation::UnprocessedClauseContainer& clauses) {
@@ -183,16 +184,15 @@ void NeuralClauseEvaluationModel::evalClauses(Saturation::UnprocessedClauseConta
     while (uIt.hasNext()) {
       Clause* cl = uIt.next();
       float logit = logits[idx++].item().toDouble();
-      float score = (_temp == 0.0) ? logit : exp(logit/_temp);
+      if (_temp > 0.0) {
+        // adding the gumbel noise
+        logit += -_temp*log(-log(Random::getFloat(0.0,1.0)));
+      }
 
-      SaltedLogit* someVal = _scores.findPtr(cl->number());
-      if (someVal) {
-        ASS_L(abs(someVal->first-score),0.00001);
-        // we don't insert, we don't want to change the salt
-      } else {
-        unsigned salt = Random::getInteger(1073741824); // 2^30, because why not
-        SaltedLogit res = make_pair(score,salt);
-        _scores.insert(cl->number(),res);
+      float* score;
+      // only overwrite, if not present
+      if (_scores.getValuePtr(cl->number(),score)) {
+        *score = logit;
       }
     }
   }
@@ -200,15 +200,9 @@ void NeuralClauseEvaluationModel::evalClauses(Saturation::UnprocessedClauseConta
 
 NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, NeuralClauseEvaluationModel& model)
   : LRSIgnoringPassiveClauseContainer(isOutermost, opt),
-  _model(model), _size(0), _reshuffleAt(opt.reshuffleAt())
+  _model(model), _queue(_model.getScores()), _size(0), _reshuffleAt(opt.reshuffleAt())
 {
   ASS(_isOutermost);
-
-  if (opt.npccTemperature() == 0.0) {
-    _queue = new ShuffledScoreQueue(_model.getScores());
-  } else {
-    _queue = new SoftmaxClauseQueue(_model.getScores(), opt.showPassiveTraffic());
-  }
 }
 
 void NeuralPassiveClauseContainer::add(Clause* cl)
@@ -216,7 +210,7 @@ void NeuralPassiveClauseContainer::add(Clause* cl)
   (void)_model.evalClause(cl); // make sure scores inside model know about this clauses (so that queue can insert it properly)
 
   // cout << "Inserting " << cl->number() << endl;
-  _queue->insert(cl);
+  _queue.insert(cl);
   _size++;
 
   ASS(cl->store() == Clause::PASSIVE);
@@ -228,7 +222,7 @@ void NeuralPassiveClauseContainer::remove(Clause* cl)
   ASS(cl->store()==Clause::PASSIVE);
 
   // cout << "Removing " << cl->number() << endl;
-  _queue->remove(cl);
+  _queue.remove(cl);
   _size--;
 
   removedEvent.fire(cl);
@@ -247,7 +241,7 @@ Clause* NeuralPassiveClauseContainer::popSelected()
   }
 
   // cout << "About to pop" << endl;
-  Clause* cl = _queue->pop();
+  Clause* cl = _queue.pop();
   // cout << "Got " << cl->number() << endl;
   // cout << "popped from " << _size << " got " << cl->toString() << endl;
   _size--;
@@ -260,17 +254,16 @@ Clause* NeuralPassiveClauseContainer::popSelected()
   return cl;
 }
 
-bool NeuralPassiveClauseContainer::setLimits(std::pair<float,unsigned> newLimit)
+bool NeuralPassiveClauseContainer::setLimits(float newLimit)
 {
-  bool thighened = newLimit.first < _curLimit.first || (newLimit.first == _curLimit.first && newLimit.second < _curLimit.second);
+  bool thighened = newLimit < _curLimit;
   _curLimit = newLimit;
   return thighened;
 }
 
 void NeuralPassiveClauseContainer::simulationInit()
 {
-  ASS_EQ(env.options->npccTemperature(),0.0); // in other words, _queue must be a ShuffledScoreQueue
-  _simulationIt = new ClauseQueue::Iterator(*reinterpret_cast<ShuffledScoreQueue*>(_queue.ptr()));
+  _simulationIt = new ClauseQueue::Iterator(_queue);
 }
 
 bool NeuralPassiveClauseContainer::simulationHasNext()
@@ -322,9 +315,9 @@ LearnedPassiveClauseContainer::LearnedPassiveClauseContainer(bool isOutermost, c
 
 void LearnedPassiveClauseContainer::add(Clause* cl)
 {
-  std::pair<float,unsigned>* pair;
-  if (_scores.getValuePtr(cl->number(),pair)) {
-    *pair = std::make_pair(scoreClause(cl),Random::getInteger(1073741824));
+  float* score;
+  if (_scores.getValuePtr(cl->number(),score)) {
+    *score = scoreClause(cl);
   }
   _queue.insert(cl);
   _size++;

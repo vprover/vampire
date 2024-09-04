@@ -551,7 +551,7 @@ void NeuralEvalSplitPassiveClauseContainer::doEvaluate(Clause* cl) {
 
 float NeuralEvalSplitPassiveClauseContainer::evaluateFeature(Clause* cl) const
 {
-  return -_model.tryGetScore(cl).first; // small is good, large is bad
+  return -_model.tryGetScore(cl); // small is good, large is bad
 }
 
 float NeuralEvalSplitPassiveClauseContainer::evaluateFeatureEstimate(unsigned numPositiveLiterals, const Inference& inference) const
