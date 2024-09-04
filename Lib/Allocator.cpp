@@ -29,9 +29,11 @@ Lib::SmallObjectAllocator Lib::GLOBAL_SMALL_OBJECT_ALLOCATOR;
 #define HAVE_RLIMIT
 #endif
 
+const size_t MIN_MEMORY = 20971520;
+
 void Lib::setMemoryLimit(size_t limit) {
-  // zero means no limit
-  if(!limit)
+  // if limit is less than floor, ignore it
+  if(limit < MIN_MEMORY)
     return;
 
 #ifdef HAVE_RLIMIT

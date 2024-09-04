@@ -93,7 +93,7 @@ void Options::init()
                                        131072   // 128 GB (current max on the StarExecs)
 #endif
                                        );
-    _memoryLimit.description="Memory limit in MB";
+    _memoryLimit.description="Attempt to limit memory use (in MB). Limits less than 20MB are ignored to allow Vampire to start.";
     _lookup.insert(&_memoryLimit);
 
 #if VAMPIRE_PERF_EXISTS
