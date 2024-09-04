@@ -142,7 +142,7 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
 
   MainLoopResult sres(salg->run());
   env.statistics->phase=Statistics::FINALIZATION;
-  Timer::setLimitEnforcement(false);
+  Timer::disableLimitEnforcement();
   sres.updateStatistics();
 }
 

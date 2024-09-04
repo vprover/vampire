@@ -97,7 +97,7 @@ private:
   // For each model size up to the maximum add both ordering and canonicity constraints for each (inferred) sort
   void addNewSymmetryAxioms(){
       ASS(_sortedSignature);
-    
+
     for(unsigned s=0;s<_sortedSignature->sorts;s++){
       //std::cout << "SORT " << s << std::endl;
       unsigned modelSize = _sortModelSizes[s];
@@ -130,16 +130,14 @@ private:
   // SAT solver used to solve constraints (a new one is used for each model size)
   ScopedPtr<SATSolverWithAssumptions> _solver;
 
-  // Structures to record symbols removed during preprocessing i.e. via definition elimination
-  // These are ignored throughout finite model building and then the definitions (recorded here)
-  // are used to give the interpretation of the function/predicate if a model is found
-  DHMap<unsigned,Literal*> _deletedFunctions;
-  DHMap<unsigned,Unit*> _deletedPredicates;
-  DHMap<unsigned,Unit*> _partiallyDeletedPredicates; 
-  DHMap<unsigned,bool> _trivialPredicates;
   // if del_f[i] (resp del_p[i]) is true then that function (resp predicate) should be ignored
-  DArray<unsigned> del_f;
-  DArray<unsigned> del_p;
+  DArray<bool> del_f;
+  DArray<bool> del_p;
+
+  // Store monotonicity_info (see Monotonicity::check) for every sort detected (or made) monotonic
+  DHMap<unsigned,DArray<signed char>*> _monotonic_vampire_sorts;
+  Stack<unsigned> _sortFunctions; // sort functions to remember - need to be eliminated from the model in the end
+  Stack<unsigned> _sortPredicates; // sort predicates to remember - need to be eliminated from the model in the end
 
   // Add a SATClause to the SAT solver
   void addSATClause(SATClause* cl);
@@ -159,9 +157,9 @@ private:
   ClauseList* _groundClauses;
   ClauseList* _clauses;
 
-  // Record for function symbol the minimum bound of the return sort or any parameter sorts 
+  // Record for function symbol the minimum bound of the return sort or any parameter sorts
   DArray<unsigned> _fminbound;
-  // Record for each clause the sorts of the variables 
+  // Record for each clause the sorts of the variables
   // As clauses are normalized variables will be numbered 0,1,...
   DHMap<Clause*,DArray<unsigned>*> _clauseVariableSorts;
 
@@ -214,7 +212,7 @@ private:
 
   // Currently an experimental option allows you to start at larger model sizes
   // TODO in the future we could use this for a cheap way to 'pause' and 'restart' fmb
-  unsigned _startModelSize; 
+  unsigned _startModelSize;
   // If we detect that FMB is not an approprate sa at init we then terminate immediately at runImpl
   bool _isAppropriate;
   // Option used in symmetry breaking

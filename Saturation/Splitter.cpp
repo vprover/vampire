@@ -57,7 +57,6 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
-
 /////////////////////////////
 // SplittingBranchSelector
 //
@@ -70,7 +69,7 @@ void SplittingBranchSelector::init()
   switch(_parent.getOptions().satSolver()){
     case Options::SatSolver::MINISAT:
       _solver = new MinisatInterfacing(_parent.getOptions(),true);
-      break;      
+      break;
 #if VZ3
     case Options::SatSolver::Z3:
       {
@@ -327,10 +326,10 @@ SATSolver::VarAssignment SplittingBranchSelector::getSolverAssimentConsideringCC
 
     if (lit && lit->isEquality() && lit->ground()) {
       if (_trueInCCModel.find(var)) {
-        ASS(_solver->getAssignment(var) != SATSolver::FALSE || var > lastCheckedVar);
+        ASS(_solver->getAssignment(var) != SATSolver::VarAssignment::FALSE || var > lastCheckedVar);
         // only a newly introduced variable can be false in the SATSolver for no good reason
 
-        return SATSolver::TRUE;
+        return SATSolver::VarAssignment::TRUE;
       }
       // else we can force neither FALSE not DONT_CARE here, because
       // the former could introduce a disequality that shouldn't be in FO anymore
@@ -353,10 +352,10 @@ int SplittingBranchSelector::assertedGroundPositiveEqualityCompomentMaxAge()
   unsigned maxSatVar = _parent.maxSatVar();
   for(unsigned i=1; i<=maxSatVar; i++) {
     SATSolver::VarAssignment asgn = _solver->getAssignment(i);
-    if(asgn==SATSolver::DONT_CARE) {
+    if(asgn==SATSolver::VarAssignment::DONT_CARE) {
       continue;
     }
-    SATLiteral sl(i, asgn==SATSolver::TRUE);
+    SATLiteral sl(i, asgn==SATSolver::VarAssignment::TRUE);
     SplitLevel name = _parent.getNameFromLiteral(sl);
     if (!_parent.isUsedName(name)) {
       continue;
@@ -383,7 +382,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
   // ASS(_solver->getStatus()==SATSolver::SATISFIABLE);
 
   if(!_dp) {
-    return SATSolver::SATISFIABLE;
+    return SATSolver::Status::SATISFIABLE;
   }
   
   SAT2FO& s2f = _parent.satNaming();
@@ -427,8 +426,8 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
     {
       TIME_TRACE(TimeTrace::AVATAR_SAT_SOLVER);
       
-      if (_solver->solve() == SATSolver::UNSATISFIABLE) {
-        return SATSolver::UNSATISFIABLE;
+      if (_solver->solve() == SATSolver::Status::UNSATISFIABLE) {
+        return SATSolver::Status::UNSATISFIABLE;
       }
     }
   }
@@ -502,19 +501,19 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
     }
   }
   
-  return SATSolver::SATISFIABLE;
+  return SATSolver::Status::SATISFIABLE;
 }
 
 void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAssignment asgn,
     SplitLevelStack& addedComps, SplitLevelStack& removedComps)
 {
-  ASS_NEQ(asgn, SATSolver::NOT_KNOWN); //we always do full SAT solving, so there shouldn't be unknown variables
+  ASS_NEQ(asgn, SATSolver::VarAssignment::NOT_KNOWN); //we always do full SAT solving, so there shouldn't be unknown variables
 
   SplitLevel posLvl = _parent.getNameFromLiteral(SATLiteral(satVar, true));
   SplitLevel negLvl = _parent.getNameFromLiteral(SATLiteral(satVar, false));
 
   switch(asgn) {
-  case SATSolver::TRUE: 
+  case SATSolver::VarAssignment::TRUE:
     if(!_selected.find(posLvl) && _parent.isUsedName(posLvl)) {
       _selected.insert(posLvl);
       addedComps.push(posLvl);
@@ -524,7 +523,7 @@ void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAss
       removedComps.push(negLvl);
     }
     break;
-  case SATSolver::FALSE:    
+  case SATSolver::VarAssignment::FALSE:
     if(!_selected.find(negLvl) && _parent.isUsedName(negLvl)) {
       _selected.insert(negLvl);
       addedComps.push(negLvl);
@@ -534,7 +533,7 @@ void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAss
       removedComps.push(posLvl);
     }
     break;
-  case SATSolver::DONT_CARE:
+  case SATSolver::VarAssignment::DONT_CARE:
     if(_eagerRemoval) {
       if(_selected.find(posLvl)) {
         _selected.remove(posLvl);
@@ -583,17 +582,17 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
     }
     stat = _solver->solve();
   }
-  if (stat == SATSolver::SATISFIABLE) {
+  if (stat == SATSolver::Status::SATISFIABLE) {
     stat = processDPConflicts();
   }
-  if(stat == SATSolver::UNSATISFIABLE) {
+  if(stat == SATSolver::Status::UNSATISFIABLE) {
     handleSatRefutation(); // noreturn!
   }
-  if(stat == SATSolver::UNKNOWN){
+  if(stat == SATSolver::Status::UNKNOWN){
     env.statistics->smtReturnedUnknown=true;
     throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
   }
-  ASS_EQ(stat,SATSolver::SATISFIABLE);
+  ASS_EQ(stat,SATSolver::Status::SATISFIABLE);
 
   for(unsigned i=1; i<=maxSatVar; i++) {
     SATSolver::VarAssignment asgn = getSolverAssimentConsideringCCModel(i);
@@ -603,7 +602,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
      * A bug report / feature request has been sent to the z3 people, but this will make us stay sound in release mode.
      * (While violating an assertion in debug - see getAssignment in Z3Interfacing).
      */
-    if (asgn == SATSolver::NOT_KNOWN) {
+    if (asgn == SATSolver::VarAssignment::NOT_KNOWN) {
       env.statistics->smtDidNotEvaluate=true;
       throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
     }
@@ -1082,9 +1081,9 @@ bool Splitter::doSplitting(Clause* cl)
   if (synthesis && (cl->hasAnswerLiteral() || !cl->computable())) {
     return false;
   }
-  if ((_stopSplittingAtTime && (unsigned)env.timer->elapsedMilliseconds() >= _stopSplittingAtTime)
+  if ((_stopSplittingAtTime && (unsigned)Timer::elapsedMilliseconds() >= _stopSplittingAtTime)
 #if VAMPIRE_PERF_EXISTS
-    || (_stopSplittingAtInst && env.timer->elapsedMegaInstructions() >= _stopSplittingAtInst)
+    || (_stopSplittingAtInst && Timer::elapsedMegaInstructions() >= _stopSplittingAtInst)
 #endif
     ) {
     if (_showSplitting) {

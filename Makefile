@@ -32,9 +32,8 @@ else
 LINK_ONLY = -no-pie
 endif
 
-DBG_FLAGS = -g -DVTIME_PROFILING=0 -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider
-# DELETEMEin2017: the bug with gcc-6.2 and problems in ClauseQueue could be also fixed by adding -fno-tree-ch
-REL_FLAGS = -O3 -DVTIME_PROFILING=0 -DVDEBUG=0 -D NDEBUG # no debugging
+DBG_FLAGS = -fsized-deallocation -g -DVTIME_PROFILING=0 -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider
+REL_FLAGS = -fsized-deallocation -O3 -DVTIME_PROFILING=0 -DVDEBUG=0 -D NDEBUG # no debugging
 GCOV_FLAGS = -O0 --coverage #-pedantic
 
 MINISAT_DBG_FLAGS = -D DEBUG
@@ -119,7 +118,7 @@ endif
 
 OS = $(shell uname)
 ifeq ($(OS),Darwin)
-STATIC = -static-libgcc -static-libstdc++ 
+STATIC = -static-libgcc -static-libstdc++
 else
 STATIC = -static
 endif

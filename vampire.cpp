@@ -26,7 +26,6 @@
 #include "Lib/Timer.hpp"
 #include "Lib/List.hpp"
 #include "Lib/System.hpp"
-#include "Lib/Metaiterators.hpp"
 #include "Lib/StringUtils.hpp"
 #include "Lib/Sys/Multiprocessing.hpp"
 #include "Lib/Int.hpp"
@@ -301,8 +300,7 @@ void preprocessMode(Problem* problem, bool theory)
 void modelCheckMode(Problem* problem)
 {
   ScopedPtr<Problem> prb(problem);
-  env.options->setOutputAxiomNames(true);
-
+  
   if(env.getMainProblem()->hasPolymorphicSym() || env.getMainProblem()->isHigherOrder()){
     USER_ERROR("Polymorphic Vampire is not yet compatible with theory reasoning");
   }
@@ -358,10 +356,6 @@ void spiderMode(Problem* problem)
   env.options->setBadOptionChoice(Options::BadOption::HARD);
   env.options->setOutputMode(Options::Output::SPIDER);
   env.options->setNormalize(true);
-  // to start counting instructions
-#if VAMPIRE_PERF_EXISTS
-  Timer::ensureTimerInitialized();
-#endif
 
   Exception* exception = 0;
 #if VZ3
@@ -446,6 +440,10 @@ void clausifyMode(Problem* problem, bool theory)
   simplifier.addFront(new TrivialInequalitiesRemovalISE());
   simplifier.addFront(new TautologyDeletionISE());
   simplifier.addFront(new DuplicateLiteralRemovalISE());
+
+  if (!env.options->strategySamplerFilename().empty()) {
+    env.options->sampleStrategy(env.options->strategySamplerFilename());
+  }
 
   ScopedPtr<Problem> prb(preprocessProblem(problem));
 
@@ -670,7 +668,7 @@ void interactiveMetamode()
       pid_t process = Lib::Sys::Multiprocessing::instance()->fork();
       ASS_NEQ(process, -1);
       if(process == 0) {
-        Timer::instance()->start(); // start our timer (in the child)
+        Timer::reinitialise(); // start our timer (in the child)
         UIHelper::unsetExpecting(); // probably garbage at this point
 
         Stack<std::string> pieces;
@@ -767,10 +765,15 @@ int main(int argc, char* argv[])
 
     Lib::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
 
+    if (opts.mode() == Options::Mode::MODEL_CHECK) {
+      opts.setOutputAxiomNames(true);
+    }
+
     if (opts.interactive()) {
       interactiveMetamode();
     } else {
-      Timer::instance()->start(); // start our timer, so that we also limit parsing
+      // can only happen after reading options as it relies on `env.options`
+      Timer::reinitialise(); // start our timer, so that we also limit parsing
 
 #if VAMPIRE_PERF_EXISTS
       unsigned saveInstrLimit = env.options->instructionLimit();

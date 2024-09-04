@@ -1224,14 +1224,6 @@ int TPTP::positiveDecimal(int pos)
  */
 void TPTP::unitList()
 {
-  if (env.timeLimitReached()) {
-    // empty states to avoid infinite loop
-    while (!_states.isEmpty()) {
-      _states.pop();
-    }
-    return;
-  }
-
   Token& tok = getTok(0);
   if (tok.tag == T_EOF) {
     resetToks();
@@ -1451,7 +1443,10 @@ void TPTP::tff()
 
   _bools.push(true); // to denote that it is an FOF formula
   _isQuestion = false;
-  if (tp == "axiom" || tp == "plain") {
+  if(_modelDefinition){
+    _lastInputType = UnitInputType::MODEL_DEFINITION;
+  }
+  else if (tp == "axiom" || tp == "plain") {
     _lastInputType = UnitInputType::AXIOM;
   }
   else if (tp == "extensionality"){

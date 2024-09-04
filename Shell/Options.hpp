@@ -38,7 +38,6 @@
 #include <type_traits>
 #include <cstring>
 #include <memory>
-#include <sys/stat.h>
 
 #include "Forwards.hpp"
 
@@ -50,7 +49,6 @@
 #include "Lib/Stack.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Comparison.hpp"
-#include "Lib/Timer.hpp"
 
 #include "Property.hpp"
 
@@ -2475,7 +2473,7 @@ private:
   ChoiceOptionValue<FMBSymbolOrders> _fmbSymmetryOrderSymbols;
   ChoiceOptionValue<FMBAdjustSorts> _fmbAdjustSorts;
   BoolOptionValue _fmbDetectSortBounds;
-  UnsignedOptionValue _fmbDetectSortBoundsTimeLimit;
+  TimeLimitOptionValue _fmbDetectSortBoundsTimeLimit;
   UnsignedOptionValue _fmbSizeWeightRatio;
   ChoiceOptionValue<FMBEnumerationStrategy> _fmbEnumerationStrategy;
   BoolOptionValue _fmbKeepSbeamGenerators;

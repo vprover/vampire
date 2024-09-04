@@ -122,7 +122,7 @@ public:
 
     _size = s;
   }
-  
+
   inline bool operator==(const DArray& o) const
   {
     if(size()!=o.size()) { return false; }
@@ -141,8 +141,6 @@ public:
 
   inline C* begin() { return _array; }
   inline C* end() { return _array+_size; }
-
-
 
   /**
    * Set array's size to @b s and that its capacity is at least @b s.

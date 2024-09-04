@@ -128,6 +128,11 @@ public:
   Splitter* getSplitter() { return _splitter; }
   FunctionDefinitionHandler& getFunctionDefinitionHandler() const { return _fnDefHandler; }
 
+  // set a "soft" time limit to be checked periodically
+  // separate to, and not as carefully checked as, Lib::Timer
+  // used by FMB's FunctionRelationshipInference
+  void setSoftTimeLimit(unsigned deciseconds) { _softTimeLimit = deciseconds; }
+
 protected:
   virtual void init();
   virtual MainLoopResult runImpl();
@@ -156,7 +161,6 @@ protected:
   /** called before the selected clause is deleted from the searchspace */
   virtual void beforeSelectedRemoved(Clause* cl) {};
   void onAllProcessed();
-  int elapsedTime();
   virtual bool isComplete();
 
 private:
@@ -177,10 +181,7 @@ private:
   static SaturationAlgorithm* s_instance;
 protected:
 
-  int _startTime;
-  int _startInstrs;
-
-  bool _completeOptionSettings;  
+  bool _completeOptionSettings;
   bool _clauseActivationInProgress;
 
   RCClauseStack _newClauses;
@@ -241,6 +242,9 @@ protected:
   unsigned _activationLimit;
 private:
   static ImmediateSimplificationEngine* createISE(Problem& prb, const Options& opt, Ordering& ordering);
+
+  // a "soft" time limit in deciseconds, checked manually: 0 is no limit
+  unsigned _softTimeLimit = 0;
 };
 
 
