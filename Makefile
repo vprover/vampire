@@ -32,8 +32,10 @@ else
 LINK_ONLY = -no-pie
 endif
 
-DBG_FLAGS = -fsized-deallocation -g -DVTIME_PROFILING=0 -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider
-REL_FLAGS = -fsized-deallocation -O3 -DVTIME_PROFILING=0 -DVDEBUG=0 -D NDEBUG # no debugging
+COMMON_FLAGS = -DVTIME_PROFILING=0
+
+DBG_FLAGS = $(COMMON_FLAGS) -g  -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider
+REL_FLAGS = $(COMMON_FLAGS) -O3 -DVDEBUG=0 -D NDEBUG # no debugging
 GCOV_FLAGS = -O0 --coverage #-pedantic
 
 MINISAT_DBG_FLAGS = -D DEBUG
@@ -527,7 +529,7 @@ obj/%X: | obj
 
 $(CONF_ID)/%.o : %.cpp | $(CONF_ID)
 	mkdir -p `dirname $@`
-	$(CXX) $(CXXFLAGS) $(COMPILE_ONLY) -c -o $@ $*.cpp -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
+	$(CXX) $(CXXFLAGS) $(COMPILE_ONLY) -c -o $@ $*.cpp -MMD -MF $(CONF_ID)/$*.d
 
 %.o : %.c 
 $(CONF_ID)/%.o : %.c | $(CONF_ID)
@@ -535,7 +537,7 @@ $(CONF_ID)/%.o : %.c | $(CONF_ID)
 
 %.o : %.cc
 $(CONF_ID)/%.o : %.cc | $(CONF_ID)
-	$(CXX) $(CXXFLAGS) $(COMPILE_ONLY) -c -o $@ $*.cc $(MINISAT_FLAGS) -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
+	$(CXX) $(CXXFLAGS) $(COMPILE_ONLY) -c -o $@ $*.cc $(MINISAT_FLAGS) -MMD -MF $(CONF_ID)/$*.d
 
 ################################################################
 # targets for executables
