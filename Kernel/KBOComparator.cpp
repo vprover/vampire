@@ -92,10 +92,12 @@ void KBOComparator::makeReady()
 
     // we only care about the non-zero weights and counts
     bool varInbalance = false;
-    // TODO kbo.state could be nulled out until this
-    // to make sure no one overwrites the values
     auto state = kbo._state;
-    auto w = kbo._state->_weightDiff;
+#if VDEBUG
+    // we make sure kbo._state is not used while we're using it
+    kbo._state = nullptr;
+#endif
+    auto w = state->_weightDiff;
     decltype(state->_varDiffs)::Iterator vit(state->_varDiffs);
     Stack<pair<unsigned,int>> nonzeros;
     while (vit.hasNext()) {
@@ -110,6 +112,11 @@ void KBOComparator::makeReady()
         varInbalance = true;
       }
     }
+#if VDEBUG
+    kbo._state = state;
+    state = nullptr;
+#endif
+
     // if the condition below does not hold, the weight/var balances are satisfied
     if (w < 0 || varInbalance) {
       // reinterpret weight here to unsigned because the compiler might not do it
@@ -185,7 +192,7 @@ bool KBOComparator::check(const SubstApplicator* applicator)
 
           auto var = _instructions[j]._firstUint();
           auto coeff = _instructions[j]._coeff();
-          AppliedTerm tt(TermList(var,false), applicator, true);
+          AppliedTerm tt(TermList::var(var), applicator, true);
 
           VariableIterator vit(tt.term);
           while (vit.hasNext()) {
