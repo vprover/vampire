@@ -93,7 +93,7 @@ void Options::init()
                                        131072   // 128 GB (current max on the StarExecs)
 #endif
                                        );
-    _memoryLimit.description="Attempt to limit memory use (in MB). Limits less than 20MB are ignored to allow Vampire to start.";
+    _memoryLimit.description="Attempt to limit memory use (in MB). Limits less than 20MB are ignored to allow Vampire to start. Known not to work on MacOS for mysterious reasons: https://forums.developer.apple.com/forums/thread/702803";
     _lookup.insert(&_memoryLimit);
 
 #if VAMPIRE_PERF_EXISTS
