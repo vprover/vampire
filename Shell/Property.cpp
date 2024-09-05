@@ -89,7 +89,7 @@ Property::Property()
     _allClausesGround(true),
     _allNonTheoryClausesGround(true),
     _allQuantifiersEssentiallyExistential(true),
-    _smtlibLogic(SMTLIBLogic::SMT_UNDEFINED)
+    _smtlibLogic(SMTLIBLogic::UNDEFINED)
 {
   _interpretationPresence.init(Theory::instance()->numberOfFixedInterpretations(), false);
 } // Property::Property
