@@ -55,7 +55,7 @@ TEST_FUN(skiplist1)
     sl1.remove(arr[i]);
   }
 
-  sort<Int>(darr.begin(), darr.end());
+  std::sort(darr.begin(), darr.end());
   for(int i=0;i<cnt;i++)
   {
     ASS_EQ(sl2.pop(),darr[i]);
