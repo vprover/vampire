@@ -36,39 +36,60 @@ namespace Saturation {
 
 using namespace Kernel;
 
+static constexpr unsigned MAX_STAGES = 2; // basically, it's either 1 or 2 (at the moment)
+typedef std::array<float,MAX_STAGES> Scores;
+
+// Helper function to fill the array recursively
+template<std::size_t... I>
+constexpr std::array<float, sizeof...(I)> fillArrayImpl(float value, std::index_sequence<I...>) {
+    // Use a fold expression or initializer list to fill the array with the constant value
+    return {{ ((void)I, value)... }};
+}
+
+// Main function to generate the array
+constexpr Scores constScores(float value) {
+    return fillArrayImpl(value, std::make_index_sequence<MAX_STAGES>{});
+}
+
 class NeuralClauseEvaluationModel
 {
 private:
   torch::jit::script::Module _model;
 
+  unsigned _numStages; // if < MAX_STAGES, the higher indices of Scores will remain ignored
   unsigned _numFeatures;
   float _temp;
 
   // this stored the computed logits + _temp * gumbel_noise
-  DHMap<unsigned,float> _scores;
+  DHMap<unsigned,Scores> _scores;
 public:
+  unsigned getNumStages() const { return _numStages; }
+
   NeuralClauseEvaluationModel(const std::string modelFilePath, const std::string& tweak_str,
     uint64_t random_seed, unsigned num_features, float temperature);
 
-  const DHMap<unsigned,float>& getScores() { return _scores; }
+  const DHMap<unsigned,Scores>& getScoresMap() { return _scores; }
 
-  float evalClause(Clause* cl);
+  Scores evalClause(Clause* cl);
   void evalClauses(UnprocessedClauseContainer& clauses);
 
   // this is a low-effort version of evalClause (used, among other things, for delayedEvaluation deepire-style):
   // namely: if there is no value in the _scores map, it just returns a very optimistic constant
-  float tryGetScore(Clause* cl);
+  Scores tryGetScores(Clause* cl);
 };
 
 class ShuffledScoreQueue
   : public ClauseQueue
 {
 public:
-  ShuffledScoreQueue(const DHMap<unsigned,float>& scores) : _scores(scores) {}
+  ShuffledScoreQueue() : _idx(0), _scoresMap(nullptr) {}
+
+  void setScoresMap(const DHMap<unsigned,Scores>& map) { _scoresMap = &map; }
+  void setIdx(unsigned i) { _idx = i; }
 protected:
   virtual bool lessThan(Clause* c1,Clause* c2) {
-    auto sc1 = _scores.get(c1->number());
-    auto sc2 = _scores.get(c2->number());
+    auto sc1 = _scoresMap->get(c1->number())[_idx];
+    auto sc2 = _scoresMap->get(c2->number())[_idx];
 
     // reversing the order here: NNs think large is good, queues think small is good
     if (sc1 > sc2) {
@@ -81,7 +102,8 @@ protected:
     return c1->number() < c2->number();
   }
 private:
-  const DHMap<unsigned,float>& _scores;
+  unsigned _idx;
+  const DHMap<unsigned,Scores>* _scoresMap;
 };
 
 class LRSIgnoringPassiveClauseContainer
@@ -148,15 +170,19 @@ public:
 private:
   // we use min, because scores and salts are compared inverted (not as e.g. age and weigth)
   static constexpr float _minLimit = -std::numeric_limits<float>::max();
+  unsigned _limitedAtStage = 0;
   float _curLimit = _minLimit; // effectively no limit
-  ScopedPtr<ClauseQueue::Iterator> _simulationIt;
 
-  bool setLimits(float newLimit);
+  bool setLimits(float newLimit, unsigned newStage);
   bool exceedsLimit(Clause* cl) const {
-    auto score = _model.tryGetScore(cl);
-    // std::cout << "score "<<score << "  " << _curLimit << std::endl;
-    return score < _curLimit;
+    auto scores = _model.tryGetScores(cl);
+    return scores[_limitedAtStage] < _curLimit;
   }
+
+  ScopedPtr<ClauseQueue::Iterator> _simulationIt;
+  unsigned _simulationStage;
+  unsigned _simulationSelectionsSoFar;
+
 public:
   void simulationInit() override;
   bool simulationHasNext() override;
@@ -188,7 +214,14 @@ public:
 
 private:
   NeuralClauseEvaluationModel& _model;
-  ShuffledScoreQueue _queue;
+
+  unsigned _numStages;
+  DArray<ShuffledScoreQueue> _queues;
+
+  unsigned _curStage;
+
+  unsigned _selectionsSoFar;
+  unsigned _nextRestageAt;
 
   unsigned _size;
   unsigned _reshuffleAt;
@@ -210,7 +243,7 @@ public:
   void remove(Clause* cl) override;
   Clause* popSelected() override;
 private:
-  DHMap<unsigned,float> _scores;
+  DHMap<unsigned,Scores> _scores;
   ShuffledScoreQueue _queue;
   unsigned _size;
   float _temperature;

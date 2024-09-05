@@ -48,7 +48,7 @@ using namespace Lib;
 using namespace Kernel;
 
 NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string modelFilePath, const std::string& tweak_str,
-  uint64_t random_seed, unsigned num_features, float temperature) : _numFeatures(num_features), _temp(temperature)
+  uint64_t random_seed, unsigned num_features, float temperature) : _numStages(1), _numFeatures(num_features), _temp(temperature)
 {
   TIME_TRACE("neural model warmup");
 
@@ -71,6 +71,12 @@ NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string model
     for (unsigned i = 0; i < toNumber(InferenceRule::INTERNAL_INFERNCE_LAST); i++) {
       env.inferenceAgeCorrections[i] = corrections[i].item().toDouble();
     }
+  }
+
+  if (auto m = _model.find_method("num_stages")) {
+    std::vector<torch::jit::IValue> inputs;
+    auto res = (*m)(std::move(inputs));
+    _numStages = res.toInt();
   }
 
   if (!tweak_str.empty()) {
@@ -109,22 +115,21 @@ NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string model
 #endif
 }
 
-float NeuralClauseEvaluationModel::tryGetScore(Clause* cl) {
-  float* someVal = _scores.findPtr(cl->number());
+Scores NeuralClauseEvaluationModel::tryGetScores(Clause* cl) {
+  Scores* someVal = _scores.findPtr(cl->number());
   if (someVal) {
     return *someVal;
   }
-  // a very optimistic constant (since large is good)
-  return std::numeric_limits<float>::max();
+  return constScores(std::numeric_limits<float>::max());
 }
 
-float NeuralClauseEvaluationModel::evalClause(Clause* cl) {
-  float* someVal = _scores.findPtr(cl->number());
+Scores NeuralClauseEvaluationModel::evalClause(Clause* cl) {
+  Scores* someVal = _scores.findPtr(cl->number());
   if (someVal) {
     return *someVal;
   }
 
-  float logit;
+  Scores logits;
   {
     TIME_TRACE("neural model evaluation");
 
@@ -140,17 +145,20 @@ float NeuralClauseEvaluationModel::evalClause(Clause* cl) {
     ASS_EQ(features.size(),_numFeatures);
     inputs.push_back(torch::from_blob(features.data(), {_numFeatures}, torch::TensorOptions().dtype(torch::kFloat32)));
 
-    logit = _model.forward(std::move(inputs)).toTensor().item().toDouble();
-  }
+    auto vals = _model.forward(std::move(inputs)).toTensor();
+    for (unsigned i = 0; i < _numStages; i++) {
+      logits[i] = vals[i].item().toDouble();
 
-  if (_temp > 0.0) {
-    // adding the gumbel noise
-    logit += -_temp*log(-log(Random::getFloat(0.0,1.0)));
+      if (_temp > 0.0) {
+        // adding the gumbel noise
+        logits[i] += -_temp*log(-log(Random::getFloat(0.0,1.0)));
+      }
+    }
   }
 
   // cout << "New clause has " << res << " with number " << cl->number() << endl;
-  _scores.insert(cl->number(),logit);
-  return logit;
+  _scores.insert(cl->number(),logits);
+  return logits;
 }
 
 void NeuralClauseEvaluationModel::evalClauses(Saturation::UnprocessedClauseContainer& clauses) {
@@ -176,23 +184,28 @@ void NeuralClauseEvaluationModel::evalClauses(Saturation::UnprocessedClauseConta
 
   std::vector<torch::jit::IValue> inputs;
   inputs.push_back(torch::from_blob(features.data(), {sz,_numFeatures}, torch::TensorOptions().dtype(torch::kFloat32)));
-  auto logits = _model.forward(std::move(inputs)).toTensor();
+  auto vals = _model.forward(std::move(inputs)).toTensor();
 
   {
     auto uIt = clauses.iter();
     unsigned idx = 0;
     while (uIt.hasNext()) {
       Clause* cl = uIt.next();
-      float logit = logits[idx++].item().toDouble();
-      if (_temp > 0.0) {
-        // adding the gumbel noise
-        logit += -_temp*log(-log(Random::getFloat(0.0,1.0)));
-      }
+      Scores logits;
 
-      float* score;
+      for (unsigned i = 0; i < _numStages; i++) {
+        logits[i] = vals[idx][i].item().toDouble();
+        if (_temp > 0.0) {
+          // adding the gumbel noise
+          logits[i] += -_temp*log(-log(Random::getFloat(0.0,1.0)));
+        }
+      }
+      idx++;
+
+      Scores* scores;
       // only overwrite, if not present
-      if (_scores.getValuePtr(cl->number(),score)) {
-        *score = logit;
+      if (_scores.getValuePtr(cl->number(),scores)) {
+        *scores = logits;
       }
     }
   }
@@ -200,9 +213,15 @@ void NeuralClauseEvaluationModel::evalClauses(Saturation::UnprocessedClauseConta
 
 NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, NeuralClauseEvaluationModel& model)
   : LRSIgnoringPassiveClauseContainer(isOutermost, opt),
-  _model(model), _queue(_model.getScores()), _size(0), _reshuffleAt(opt.reshuffleAt())
+  _model(model), _numStages(_model.getNumStages()), _queues(_numStages), _curStage(0),
+  _selectionsSoFar(0), _nextRestageAt(0), _size(0), _reshuffleAt(opt.reshuffleAt())
 {
   ASS(_isOutermost);
+
+  for (unsigned i = 0; i < _numStages; i++) {
+    _queues[i].setIdx(i);
+    _queues[i].setScoresMap(_model.getScoresMap());
+  }
 }
 
 void NeuralPassiveClauseContainer::add(Clause* cl)
@@ -210,7 +229,9 @@ void NeuralPassiveClauseContainer::add(Clause* cl)
   (void)_model.evalClause(cl); // make sure scores inside model know about this clauses (so that queue can insert it properly)
 
   // cout << "Inserting " << cl->number() << endl;
-  _queue.insert(cl);
+  for (unsigned i = _curStage; i < _numStages; i++) {
+    _queues[i].insert(cl);
+  }
   _size++;
 
   ASS(cl->store() == Clause::PASSIVE);
@@ -222,7 +243,9 @@ void NeuralPassiveClauseContainer::remove(Clause* cl)
   ASS(cl->store()==Clause::PASSIVE);
 
   // cout << "Removing " << cl->number() << endl;
-  _queue.remove(cl);
+  for (unsigned i = _curStage; i < _numStages; i++) {
+    _queues[i].remove(cl);
+  }
   _size--;
 
   removedEvent.fire(cl);
@@ -240,11 +263,24 @@ Clause* NeuralPassiveClauseContainer::popSelected()
     Random::resetSeed();
   }
 
+  if (_selectionsSoFar == 0) {
+    _nextRestageAt = _size;
+  }
+
   // cout << "About to pop" << endl;
-  Clause* cl = _queue.pop();
+  Clause* cl = _queues[_curStage].pop();
+  for (unsigned i = _curStage+1; i < _numStages; i++) {
+    _queues[i].remove(cl);
+  }
   // cout << "Got " << cl->number() << endl;
   // cout << "popped from " << _size << " got " << cl->toString() << endl;
   _size--;
+
+  _selectionsSoFar++;
+  if (_selectionsSoFar == _nextRestageAt && _curStage+1 < _numStages) {
+    _queues[_curStage].removeAll(); // no need for this queue from now on!
+    _curStage++;
+  }
 
   if (popCount == _reshuffleAt) {
     cout << "s: " << cl->number() << '\n';
@@ -254,32 +290,48 @@ Clause* NeuralPassiveClauseContainer::popSelected()
   return cl;
 }
 
-bool NeuralPassiveClauseContainer::setLimits(float newLimit)
+bool NeuralPassiveClauseContainer::setLimits(float newLimit, unsigned newStage)
 {
-  bool tighened = newLimit > _curLimit;
+  bool tighened = _limitedAtStage != newStage || newLimit > _curLimit;
   _curLimit = newLimit;
+  _limitedAtStage = newStage;
   return tighened;
 }
 
 void NeuralPassiveClauseContainer::simulationInit()
 {
-  _simulationIt = new ClauseQueue::Iterator(_queue);
+  _simulationStage = _curStage;
+  _simulationSelectionsSoFar = _selectionsSoFar;
+  _simulationIt = new ClauseQueue::Iterator(_queues[_simulationStage]);
 }
 
 bool NeuralPassiveClauseContainer::simulationHasNext()
 {
+  while (_simulationIt->hasNext() && _simulationIt->peekNext()->hasAux()) {
+    _simulationIt->next();
+  }
   return _simulationIt->hasNext();
 }
 
 void NeuralPassiveClauseContainer::simulationPopSelected()
 {
-  _simulationIt->next();
+  Clause* cl = _simulationIt->next();
+  ASS(!cl->hasAux());
+  cl->setAux();
+  _simulationSelectionsSoFar++;
+  if (_simulationSelectionsSoFar == _nextRestageAt && _simulationStage+1 < _numStages) {
+    _simulationStage++;
+    _simulationIt = new ClauseQueue::Iterator(_queues[_simulationStage]);
+  }
 }
 
 bool NeuralPassiveClauseContainer::setLimitsFromSimulation()
 {
   if (_simulationIt->hasNext()) {
-    return setLimits(_model.getScores().get(_simulationIt->next()->number()));
+    return setLimits(
+      _model.getScoresMap().get(_simulationIt->next()->number())[_simulationStage],
+      _simulationStage
+      );
   } else {
     return setLimitsToMax();
   }
@@ -288,9 +340,9 @@ bool NeuralPassiveClauseContainer::setLimitsFromSimulation()
 void NeuralPassiveClauseContainer::onLimitsUpdated()
 {
   static Stack<Clause*> toRemove(256);
-  simulationInit(); // abused to setup fresh _simulationIt
-  while (_simulationIt->hasNext()) {
-    Clause* cl = _simulationIt->next();
+  ClauseQueue::Iterator it(_queues[_limitedAtStage]);
+  while (it.hasNext()) {
+    Clause* cl = it.next();
     if (exceedsLimit(cl)) {
       toRemove.push(cl);
     }
@@ -308,16 +360,18 @@ void NeuralPassiveClauseContainer::onLimitsUpdated()
 
 
 LearnedPassiveClauseContainer::LearnedPassiveClauseContainer(bool isOutermost, const Shell::Options& opt)
-  : LRSIgnoringPassiveClauseContainer(isOutermost, opt), _scores(), _queue(_scores), _size(0), _temperature(opt.npccTemperature())
+  : LRSIgnoringPassiveClauseContainer(isOutermost, opt), _size(0), _temperature(opt.npccTemperature())
 {
   ASS(_isOutermost);
+
+  _queue.setScoresMap(_scores);
 }
 
 void LearnedPassiveClauseContainer::add(Clause* cl)
 {
-  float* score;
-  if (_scores.getValuePtr(cl->number(),score)) {
-    *score = scoreClause(cl);
+  Scores* scores;
+  if (_scores.getValuePtr(cl->number(),scores)) {
+    (*scores)[0] = scoreClause(cl);
   }
   _queue.insert(cl);
   _size++;

@@ -96,6 +96,11 @@ public:
     /** true if there is a next clause */
     inline bool hasNext() const
     { return _current->nodes[0]; }
+    inline Clause* peekNext()
+    {
+      ASS(hasNext());
+      return _current->nodes[0]->clause;
+    }
     /** return the next clause */
     inline Clause* next()
     {
