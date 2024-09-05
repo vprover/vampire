@@ -586,7 +586,7 @@ compile_commands:
 
 compile_commands/%.o: compile_commands
 	mkdir -p $(dir $@)
-	echo $(CXX) $(CXXFLAGS) -c $*.cpp -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d > $@
+	echo $(CXX) $(CXXFLAGS) -c $*.cpp -MMD -MF $(CONF_ID)/$*.d > $@
 
 compile_commands.json: $(foreach x, $(VAMPIRE_DEP), compile_commands/$x)
 	echo '[' > $@
