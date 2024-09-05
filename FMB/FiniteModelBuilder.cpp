@@ -40,7 +40,6 @@
 #include "Lib/List.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/System.hpp"
-#include "Lib/Sort.hpp"
 #include "Lib/Random.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/ArrayMap.hpp"
@@ -298,11 +297,11 @@ bool FiniteModelBuilder::reset(){
 // Compare function symbols by their usage in the problem
 struct FMBSymmetryFunctionComparator
 {
-  static Comparison compare(unsigned f1, unsigned f2)
+  static bool compare(unsigned f1, unsigned f2)
   {
     unsigned c1 = env.signature->getFunction(f1)->usageCnt();
     unsigned c2 = env.signature->getFunction(f2)->usageCnt();
-    return Int::compare(c2,c1);
+    return c2 < c1;
   }
 };
 
@@ -764,8 +763,8 @@ void FiniteModelBuilder::init()
       for(unsigned s=0;s<_sortedSignature->sorts;s++){
         Stack<unsigned> sortedConstants =  _sortedSignature->sortedConstants[s];
         Stack<unsigned> sortedFunctions = _sortedSignature->sortedFunctions[s];
-        sort<FMBSymmetryFunctionComparator>(sortedConstants.begin(),sortedConstants.end());
-        sort<FMBSymmetryFunctionComparator>(sortedFunctions.begin(),sortedFunctions.end());
+        sort(sortedConstants.begin(),sortedConstants.end(), FMBSymmetryFunctionComparator::compare);
+        sort(sortedFunctions.begin(),sortedFunctions.end(), FMBSymmetryFunctionComparator::compare);
       }
     }
   }
