@@ -106,7 +106,6 @@ void reportSpiderStatus(char status)
     << (problemName.length() == 0 ? "unknown" : problemName) << " "
     << Timer::elapsedDeciseconds() << " "
     << Timer::elapsedMegaInstructions() << " "
-    << Lib::getUsedMemory()/1048576 << " "
     << (Lib::env.options ? Lib::env.options->testId() : "unknown") << " "
     << commitNumber << ':' << z3Version << endl;
 #endif
