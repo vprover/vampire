@@ -16,6 +16,8 @@
  * @since 24/07/2023, mostly replaced by a small-object allocator
  */
 
+#include <cstdio>
+
 #include "Allocator.hpp"
 
 #ifndef INDIVIDUAL_ALLOCATIONS
@@ -37,7 +39,13 @@ void Lib::setMemoryLimit(size_t limit) {
 #ifdef HAVE_RLIMIT
   struct rlimit rlimit;
   rlimit.rlim_cur = rlimit.rlim_max = limit;
-  setrlimit(RLIMIT_DATA, &rlimit);
+  if(setrlimit(RLIMIT_DATA, &rlimit) != 0)
+// silence buggy failure on OSX
+#ifndef __OSX__
+    std::perror("memory limiting failed")
+#endif
+    ;
+
 #else
   // TODO should we warn here?
 #endif

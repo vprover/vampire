@@ -94,16 +94,16 @@ LispParser::Expression* LispParser::parse()
 /**
  * @since 26/08/2009 Redmond
  */
-void LispParser::parse(List** expr0)
+void LispParser::parse(EList** expr0)
 {
-  static Stack<List**> stack;
+  static Stack<EList**> stack;
   stack.reset();
 
   stack.push(expr0);
 
   Token t;
 
-  List** expr = expr0;
+  EList** expr = expr0;
   for(;;) {
   new_parsing_level:
     for (;;) {
@@ -119,7 +119,7 @@ void LispParser::parse(List** expr0)
         _balance++;
         {
 	  Expression* subexpr = new Expression(LIST);
-	  List* sub = new List(subexpr);
+	  EList* sub = new EList(subexpr);
 	  *expr = sub;
 	  expr = sub->tailPtr();
 	  stack.push(expr);
@@ -132,7 +132,7 @@ void LispParser::parse(List** expr0)
       case TT_REAL:
       {
         Expression* subexpr = new Expression(ATOM,t.text);
-        List* sub = new List(subexpr);
+        EList* sub = new EList(subexpr);
         *expr = sub;
         expr = sub->tailPtr();
         break;
@@ -169,7 +169,7 @@ std::string LispParser::Expression::toString(bool outerParentheses) const
       if(outerParentheses) {
 	result = "(";
       }
-      for (List* l = list;l;l = l->tail()) {
+      for (EList* l = list;l;l = l->tail()) {
 	result += l->head()->toString();
 	if (l->tail()) {
 	  result += outerParentheses ? ' ' : '\n';
@@ -194,7 +194,7 @@ bool LispParser::Expression::get1Arg(std::string functionName, Expression*& arg)
     return false;
   }
 
-  List::Iterator args(list);
+  EList::Iterator args(list);
   if(!args.hasNext()) { return false; }
   std::string name = args.next()->str;
   if(name!=functionName) { return false; }
@@ -219,7 +219,7 @@ bool LispParser::Expression::get2Args(std::string functionName, Expression*& arg
     return false;
   }
 
-  List::Iterator args(list);
+  EList::Iterator args(list);
   if(!args.hasNext()) { return false; }
   std::string name = args.next()->str;
   if(name!=functionName) { return false; }
@@ -247,7 +247,7 @@ bool LispParser::Expression::getPair(Expression*& el1, Expression*& el2)
     return false;
   }
 
-  List::Iterator args(list);
+  EList::Iterator args(list);
   if(!args.hasNext()) { return false; }
   Expression* tmpEl1 = args.next();
 
@@ -267,7 +267,7 @@ bool LispParser::Expression::getSingleton(Expression*& el)
     return false;
   }
 
-  List::Iterator args(list);
+  EList::Iterator args(list);
   if(!args.hasNext()) { return false; }
   Expression* tmpEl = args.next();
 
