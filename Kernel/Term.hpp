@@ -46,7 +46,7 @@
 #include "Lib/Recycled.hpp"
 
 // the number of bits used for "TermList::_info::distinctVars"
-#define TERM_DIST_VAR_BITS 21
+#define TERM_DIST_VAR_BITS 22
 // maximum number that fits in a TERM_DIST_VAR_BITS-bit unsigned integer
 #define TERM_DIST_VAR_UNKNOWN ((1 << TERM_DIST_VAR_BITS)-1)
 
@@ -88,8 +88,7 @@ enum ArgumentOrderVals {
   AO_UNKNOWN=0,
   AO_GREATER=1,
   AO_LESS=2,
-  AO_EQUAL=3,
-  AO_INCOMPARABLE=4,
+  AO_INCOMPARABLE=3,
 };
 
 enum class TermKind : unsigned {
@@ -326,7 +325,7 @@ private:
     HAS_TERM_VAR_BITS_START = SORT_BITS_END,
     HAS_TERM_VAR_BITS_END = HAS_TERM_VAR_BITS_START + 1,
     ORDER_BITS_START = HAS_TERM_VAR_BITS_END,
-    ORDER_BITS_END = ORDER_BITS_START + 3,
+    ORDER_BITS_END = ORDER_BITS_START + 2,
     DISTINCT_VAR_BITS_START = ORDER_BITS_END,
     DISTINCT_VAR_BITS_END = DISTINCT_VAR_BITS_START + TERM_DIST_VAR_BITS,
     ID_BITS_START = DISTINCT_VAR_BITS_END,
