@@ -19,7 +19,6 @@
 
 #include "Debug/RuntimeStatistics.hpp"
 
-#include "Lib/Allocator.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Timer.hpp"
 #include "SAT/Z3Interfacing.hpp"
@@ -469,8 +468,6 @@ void Statistics::print(ostream& out)
   SEPARATOR;
 
   }
-
-  COND_OUT("Memory used [KB]", Lib::getUsedMemory()/1024);
 
   addCommentSignForSZS(out);
   out << "Time elapsed: ";
