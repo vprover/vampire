@@ -43,9 +43,10 @@ else
 LINK_ONLY = -no-pie $(TORCHLINK)
 endif
 
-DBG_FLAGS = -g -DVTIME_PROFILING=0 -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider
-# DELETEMEin2017: the bug with gcc-6.2 and problems in ClauseQueue could be also fixed by adding -fno-tree-ch
-REL_FLAGS = -O3 -DVTIME_PROFILING=1 -DVDEBUG=0 -D NDEBUG # no debugging
+COMMON_FLAGS = -DVTIME_PROFILING=0
+
+DBG_FLAGS = $(COMMON_FLAGS) -g  -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider
+REL_FLAGS = $(COMMON_FLAGS) -O3 -DVDEBUG=0 -D NDEBUG # no debugging
 GCOV_FLAGS = -O0 --coverage #-pedantic
 
 MINISAT_DBG_FLAGS = -D DEBUG
@@ -106,14 +107,13 @@ endif
 
 Z3FLAG= -DVZ3=0
 Z3LIB=
-ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g')) 
-INCLUDES := $(INCLUDES) -I./z3/src/api -I./z3/src/api/c++ 
-ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*static.*//g'))
-Z3LIB= -Lz3/build -lz3 -lgomp -pthread  -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive -ldl
-else
+ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g'))
+INCLUDES := -I. -Iz3/src/api -Iz3/src/api/c++ $(INCLUDES)
+# ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*static.*//g'))
+# Z3LIB= -Lz3/build -lz3 -lgomp -pthread  -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive -ldl
+# else
 Z3LIB= -Lz3/build -lz3
-endif
-
+# endif
 Z3FLAG= -DVZ3=1
 endif
 
@@ -137,7 +137,7 @@ MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
 
 ifeq ($(OS),Darwin)
-STATIC = -static-libgcc -static-libstdc++ 
+STATIC = -static-libgcc -static-libstdc++
 else
 STATIC = -static
 endif
@@ -350,6 +350,7 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
 
 VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/CommandLine.o\
+         Shell/ConditionalRedundancyHandler.o\
          Shell/CNF.o\
          Shell/NewCNF.o\
          Shell/DistinctProcessor.o\
@@ -363,7 +364,6 @@ VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/GeneralSplitting.o\
          Shell/GoalGuessing.o\
          Shell/InequalitySplitting.o\
-         Shell/InstanceRedundancyHandler.o\
          Shell/InterpolantMinimizer.o\
          Shell/Interpolants.o\
          Shell/InterpretedNormalizer.o\
@@ -541,22 +541,22 @@ obj:
 	-mkdir obj
 obj/%X: | obj
 	-mkdir $@
-	-cd $@ ; mkdir $(VAMP_DIRS); cd .. 
+	-cd $@ ; mkdir $(VAMP_DIRS); cd ..
 
 #cancel the implicit rule
 %.o : %.cpp
 
 $(CONF_ID)/%.o : %.cpp | $(CONF_ID)
 	mkdir -p `dirname $@`
-	$(CXX) $(CXXFLAGS) $(COMPILE_ONLY) -c -o $@ $*.cpp -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
+	$(CXX) $(CXXFLAGS) $(COMPILE_ONLY) -c -o $@ $*.cpp -MMD -MF $(CONF_ID)/$*.d
 
-%.o : %.c 
+%.o : %.c
 $(CONF_ID)/%.o : %.c | $(CONF_ID)
 	$(CC) $(CCFLAGS) $(COMPILE_ONLY) -c -o $@ $*.c -MMD -MF $(CONF_ID)/$*.d
 
 %.o : %.cc
 $(CONF_ID)/%.o : %.cc | $(CONF_ID)
-	$(CXX) $(CXXFLAGS) $(COMPILE_ONLY) -c -o $@ $*.cc $(MINISAT_FLAGS) -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
+	$(CXX) $(CXXFLAGS) $(COMPILE_ONLY) -c -o $@ $*.cc $(MINISAT_FLAGS) -MMD -MF $(CONF_ID)/$*.d
 
 ################################################################
 # targets for executables
@@ -606,7 +606,7 @@ compile_commands:
 
 compile_commands/%.o: compile_commands
 	mkdir -p $(dir $@)
-	echo $(CXX) $(CXXFLAGS) -c $*.cpp -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d > $@
+	echo $(CXX) $(CXXFLAGS) -c $*.cpp -MMD -MF $(CONF_ID)/$*.d > $@
 
 compile_commands.json: $(foreach x, $(VAMPIRE_DEP), compile_commands/$x)
 	echo '[' > $@

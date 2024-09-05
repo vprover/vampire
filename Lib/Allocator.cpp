@@ -16,11 +16,17 @@
  * @since 24/07/2023, mostly replaced by a small-object allocator
  */
 
+#include <cstdlib>
+#include <limits>
+
 #include "Allocator.hpp"
-#include "Lib/Timer.hpp"
 
 #include <cstdlib>
 #include <limits>
+
+#ifdef __APPLE__
+#include <AvailabilityMacros.h>
+#endif
 
 #ifndef INDIVIDUAL_ALLOCATIONS
 Lib::SmallObjectAllocator Lib::GLOBAL_SMALL_OBJECT_ALLOCATOR;
@@ -45,9 +51,11 @@ void *operator new(size_t size, std::align_val_t align_val) {
     throw std::bad_alloc();
   ALLOCATED += size;
   {
-    Lib::TimeoutProtector tp;
+// aligned_alloc is not supported prior to macOS 10.13
+#if !defined(__APPLE__) || (defined(__APPLE__) && MAC_OS_X_VERSION_MIN_REQUIRED >= 101300)
     if(void *ptr = std::aligned_alloc(align, size))
       return ptr;
+#endif
 
     // we might be here because `aligned_alloc` is finicky (Apple, looking at you)
     // so try again with `malloc` and hope for good alignment
@@ -65,7 +73,6 @@ void *operator new(size_t size) {
     throw std::bad_alloc();
   ALLOCATED += size;
   {
-    Lib::TimeoutProtector tp;
     if(void *ptr = std::malloc(size))
       return ptr;
   }
@@ -76,7 +83,6 @@ void *operator new(size_t size) {
 void operator delete(void *ptr, size_t size) noexcept {
   ASS_GE(ALLOCATED, size)
   ALLOCATED -= size;
-  Lib::TimeoutProtector tp;
   std::free(ptr);
 }
 
@@ -91,6 +97,5 @@ void operator delete(void *ptr, size_t size, std::align_val_t align) noexcept {
 // occurs very rarely and usually from deep in the bowels of the standard library
 // TODO does cause us to slightly over-report allocated memory
 void operator delete(void *ptr) noexcept {
-  Lib::TimeoutProtector tp;
   std::free(ptr);
 }

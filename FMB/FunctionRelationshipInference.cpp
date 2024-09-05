@@ -17,7 +17,6 @@
 #include "Lib/DHSet.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Timer.hpp"
 #include "Lib/IntUnionFind.hpp"
     
 #include "Kernel/Problem.hpp"
@@ -50,8 +49,7 @@ namespace FMB
 using namespace std;
 using namespace Shell;
 
-void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator clauses, 
-                 Stack<DHSet<unsigned>*>& eq_classes, 
+void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator clauses,
                  DHSet<std::pair<unsigned,unsigned>>& nonstrict_cons,
                  DHSet<std::pair<unsigned,unsigned>>& strict_cons)
 {
@@ -64,28 +62,22 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
   Problem prb(cit,false);
   Options opt; // default saturation algorithm options
 
-  // because of bad things the time limit is actually taken from env!
-  int oldTimeLimit = env.options->timeLimitInDeciseconds();
   Problem* inputProblem = env.getMainProblem();
   env.setMainProblem(&prb);
   unsigned useTimeLimit = env.options->fmbDetectSortBoundsTimeLimit();
-  env.options->setTimeLimitInSeconds(useTimeLimit);
   opt.setSplitting(false);
-  Timer::setLimitEnforcement(false);
 
   LabelFinder* labelFinder = new LabelFinder();
 
   try{
     SaturationAlgorithm* salg = SaturationAlgorithm::createFromOptions(prb,opt);
     salg->setLabelFinder(labelFinder);
-    MainLoopResult sres(salg->run());
-    (void)sres; //TODO do we even care about sres?
+    salg->setSoftTimeLimit(useTimeLimit);
+    salg->run();
   }catch (TimeLimitExceededException&){
     // This is expected behaviour
   }
 
-  Timer::setLimitEnforcement(true);
-  env.options->setTimeLimitInDeciseconds(oldTimeLimit);
   env.setMainProblem(inputProblem);
 
   Stack<unsigned> foundLabels = labelFinder->getFoundLabels();
@@ -109,50 +101,6 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
     }
   }
 
-  // Find equalities
-/*
-  Stop this for now... broken (need to check no strict) and very uncommon 
-
-  IntUnionFind uf(env.sorts->sorts());
-  {
-    DHSet<std::pair<unsigned,unsigned>>::Iterator it1(nonstrict_constraints);
-    while(it1.hasNext()){
-      std::pair<unsigned,unsigned> con1 = it1.next();
-      if(con1.first==con1.second) continue;
-      DHSet<std::pair<unsigned,unsigned>>::Iterator it2(nonstrict_constraints);
-      while(it2.hasNext()){
-        std::pair<unsigned,unsigned> con2 = it2.next();
-        if(con1.second == con2.first && con1.first == con2.second){
-          uf.doUnion(con1.first,con1.second);
-        }
-      }
-    }
-  }
-  uf.evalComponents();
-
-  bool header_printed = false;
-  {
-    for(unsigned s=0;s<env.sorts->sorts();s++){
-      DHSet<unsigned>* cls = new DHSet<unsigned>();
-      for(unsigned t=0;t<env.sorts->sorts();t++){
-        if(uf.root(t)==s) cls->insert(t);
-      }
-      if(cls->size()>1){
-        if(print){
-           if(!header_printed){
-             cout << "Equalities:" << endl;
-             header_printed=true;
-           }
-           cout << "= ";
-           DHSet<unsigned>::Iterator it(*cls);
-           while(it.hasNext()) cout << it.next() << " ";
-           cout << endl;
-         }
-         eq_classes.push(cls);   
-      }
-    }
-  }
-*/
   // Normalise constraints
   unsigned constraint_count = 0;
   {

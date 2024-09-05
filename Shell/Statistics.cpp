@@ -63,10 +63,6 @@ Statistics::Statistics()
     cForwardSuperposition(0),
     cBackwardSuperposition(0),
     selfSuperposition(0),
-    skippedSuperposition(0),
-    skippedResolution(0),
-    skippedEqualityResolution(0),
-    skippedEqualityFactoring(0),
     equalityFactoring(0),
     equalityResolution(0),
     forwardExtensionalityResolution(0),
@@ -112,6 +108,14 @@ Statistics::Statistics()
     proxyEliminations(0),
     leibnizElims(0),
     booleanSimps(0),
+    skippedSuperposition(0),
+    skippedResolution(0),
+    skippedEqualityResolution(0),
+    skippedEqualityFactoring(0),
+    skippedFactoring(0),
+    skippedInferencesDueToOrderingConstraints(0),
+    skippedInferencesDueToAvatarConstraints(0),
+    skippedInferencesDueToLiteralConstraints(0),
     duplicateLiterals(0),
     trivialInequalities(0),
     forwardSubsumptionResolution(0),
@@ -361,7 +365,6 @@ void Statistics::print(ostream& out)
 
   HEADING("Generating Inferences",resolution+urResolution+cResolution+factoring+
       forwardSuperposition+backwardSuperposition+selfSuperposition+
-      skippedSuperposition+skippedResolution+skippedEqualityResolution+skippedEqualityFactoring+
       cForwardSuperposition+cBackwardSuperposition+cSelfSuperposition+leibnizElims+
       equalityFactoring+equalityResolution+forwardExtensionalityResolution+
       backwardExtensionalityResolution+argumentCongruence+negativeExtensionality+
@@ -374,10 +377,6 @@ void Statistics::print(ostream& out)
   COND_OUT("Forward superposition", forwardSuperposition);
   COND_OUT("Backward superposition", backwardSuperposition);
   COND_OUT("Self superposition", selfSuperposition);
-  COND_OUT("Skipped superposition", skippedSuperposition);
-  COND_OUT("Skipped resolution", skippedResolution);
-  COND_OUT("Skipped equality resolution", skippedEqualityResolution);
-  COND_OUT("Skipped equality factoring", skippedEqualityFactoring);
   COND_OUT("Forward superposition with abstraction", cForwardSuperposition);
   COND_OUT("Backward superposition with abstraction", cBackwardSuperposition);
   COND_OUT("Self superposition with abstraction", cSelfSuperposition);
@@ -426,6 +425,20 @@ void Statistics::print(ostream& out)
   COND_OUT("Self sub-variable superposition", selfSubVarSup);
   SEPARATOR;
 
+  HEADING("Redundant Inferences",
+    skippedSuperposition+skippedResolution+skippedEqualityResolution+skippedEqualityFactoring+
+    skippedFactoring+skippedInferencesDueToOrderingConstraints+
+    skippedInferencesDueToAvatarConstraints+skippedInferencesDueToLiteralConstraints);
+  COND_OUT("Skipped superposition", skippedSuperposition);
+  COND_OUT("Skipped resolution", skippedResolution);
+  COND_OUT("Skipped equality resolution", skippedEqualityResolution);
+  COND_OUT("Skipped equality factoring", skippedEqualityFactoring);
+  COND_OUT("Skipped factoring", skippedFactoring);
+  COND_OUT("Skipped inferences due to ordering constraints", skippedInferencesDueToOrderingConstraints);
+  COND_OUT("Skipped inferences due to AVATAR constraints", skippedInferencesDueToAvatarConstraints);
+  COND_OUT("Skipped inferences due to literal constraints", skippedInferencesDueToLiteralConstraints);
+  SEPARATOR;
+
   HEADING("Term algebra simplifications",taDistinctnessSimplifications+
       taDistinctnessTautologyDeletions+taInjectivitySimplifications+
       taAcyclicityGeneratedDisequalities+taNegativeInjectivitySimplifications);
@@ -461,7 +474,7 @@ void Statistics::print(ostream& out)
 
   addCommentSignForSZS(out);
   out << "Time elapsed: ";
-  Timer::printMSString(out,env.timer->elapsedMilliseconds());
+  Timer::printMSString(out,Timer::elapsedMilliseconds());
   out << endl;
 
   Timer::updateInstructionCount();

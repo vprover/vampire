@@ -39,7 +39,7 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Shell/AnswerLiteralManager.hpp"
-#include "Shell/InstanceRedundancyHandler.hpp"
+#include "Shell/ConditionalRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -76,12 +76,14 @@ void BinaryResolution::detach()
  * Ordering aftercheck is performed iff ord is not 0,
  * in which case also ls is assumed to be not 0.
  */
-template<class ComputeConstraints>
-Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, 
-          ResultSubstitutionSP subs, ComputeConstraints computeConstraints, const Options& opts, bool afterCheck,
-          PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls)
+Clause* BinaryResolution::generateClause(
+  Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit,
+  ResultSubstitutionSP subs, AbstractingUnifier* absUnif)
 {
   ASS(resultCl->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses
+
+  const auto& opts = getOptions();
+  const bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 
   if(!ColorHelper::compatible(queryCl->color(),resultCl->color()) ) {
     env.statistics->inferencesSkippedDueToColors++;
@@ -110,11 +112,12 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
       Int::max(queryLit->isPositive() ?  queryCl->numPositiveLiterals()-1 :  queryCl->numPositiveLiterals(),
               resultLit->isPositive() ? resultCl->numPositiveLiterals()-1 : resultCl->numPositiveLiterals());
 
-  auto constraints = computeConstraints();
+  auto constraints = absUnif->computeConstraintLiterals();
   auto nConstraints = constraints->size();
   Inference inf(GeneratingInference2(nConstraints == 0 ?  InferenceRule::RESOLUTION : InferenceRule::CONSTRAINED_RESOLUTION, queryCl, resultCl));
   Inference::Destroyer inf_destroyer(inf); // will call destroy on inf when coming out of scope unless disabled
 
+  auto passiveClauseContainer = _salg->getPassiveClauseContainer();
   bool needsToFulfilWeightLimit = passiveClauseContainer && !passiveClauseContainer->fulfilsAgeLimit(wlb, numPositiveLiteralsLowerBound, inf) && passiveClauseContainer->weightLimited();
 
   if(needsToFulfilWeightLimit) {
@@ -150,6 +153,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     queryLitAfter = subs->applyToQuery(queryLit);
   }
 
+  auto& ls = _salg->getLiteralSelector();
+
   resLits->loadFromIterator(constraints->iterFifo());
   for(unsigned i=0;i<clength;i++) {
     Literal* curr=(*queryCl)[i];
@@ -166,10 +171,10 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
       if (queryLitAfter && i < queryCl->numSelected()) {
         TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
 
-        Ordering::Result o = ord->compare(newLit,queryLitAfter);
+        Ordering::Result o = _salg->getOrdering().compare(newLit,queryLitAfter);
 
         if (o == Ordering::GREATER ||
-            (ls->isPositiveForSelection(newLit)    // strict maximimality for positive literals
+            (ls.isPositiveForSelection(newLit)    // strict maximimality for positive literals
                 && o == Ordering::EQUAL)) {
           env.statistics->inferencesBlockedForOrderingAftercheck++;
           return nullptr;
@@ -200,10 +205,10 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
       if (qrLitAfter && i < resultCl->numSelected()) {
         TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
 
-        Ordering::Result o = ord->compare(newLit,qrLitAfter);
+        Ordering::Result o = _salg->getOrdering().compare(newLit,qrLitAfter);
 
         if (o == Ordering::GREATER ||
-            (ls->isPositiveForSelection(newLit)   // strict maximimality for positive literals
+            (ls.isPositiveForSelection(newLit)   // strict maximimality for positive literals
                 && o == Ordering::EQUAL)) {
           env.statistics->inferencesBlockedForOrderingAftercheck++;
           return nullptr;
@@ -213,8 +218,10 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     }
   }
 
-  if (!InstanceRedundancyHandler::handleResolution(queryCl, queryLit, resultCl, resultLit, subs.ptr(), opts, ord)) {
-    return 0;
+  if (!absUnif->usesUwa()) {
+    if (!_salg->condRedHandler().handleResolution(queryCl, queryLit, resultCl, resultLit, subs.ptr())) {
+      return 0;
+    }
   }
 
    if (bothHaveAnsLit) {
@@ -235,14 +242,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   inf_destroyer.disable(); // ownership passed to the the clause below
   return Clause::fromStack(*resLits, inf);
 }
-Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, 
-                                ResultSubstitutionSP subs, const Options& opts)
-{
-  return BinaryResolution::generateClause(queryCl, queryLit, resultCl, resultLit, subs, 
-      /* computeConstraints */ []() { return recycledStack<Literal*>(); },
-      opts);
-}
-
 
 ClauseIterator BinaryResolution::generateClauses(Clause* premise)
 {
@@ -257,15 +256,10 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
                      .map([this,lit,premise](auto qr) {
                         // perform binary resolution on query results
                         auto subs = ResultSubstitution::fromSubstitution(&qr.unifier->subs(), QUERY_BANK, RESULT_BANK);
-                        bool doAfterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
-                        return BinaryResolution::generateClause(premise, lit, qr.data->clause, qr.data->literal, subs, 
-                            [&](){ return qr.unifier->computeConstraintLiterals(); }, 
-                            this->getOptions(), doAfterCheck, _salg->getPassiveClauseContainer(),
-                            &_salg->getOrdering(), &_salg->getLiteralSelector());
-
+                        return BinaryResolution::generateClause(premise, lit, qr.data->clause, qr.data->literal, subs, qr.unifier);
                      });
         })
-        .filter([](auto c) { return c != nullptr; })
+        .filter(NonzeroFn())
   ));
 }
 

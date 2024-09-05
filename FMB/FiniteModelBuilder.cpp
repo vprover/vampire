@@ -69,7 +69,7 @@
 
 #define LOG(X) // cout << #X <<  X << endl;
 
-namespace FMB 
+namespace FMB
 {
 
 using namespace std;
@@ -117,12 +117,6 @@ FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
   _startModelSize = opt.fmbStartSize();
   _symmetryRatio = opt.fmbSymmetryRatio();
 
-  // Load any symbols removed during preprocessing (and their definitions)
-  _deletedFunctions.loadFromMap(prb.getEliminatedFunctions());
-  _deletedPredicates.loadFromMap(prb.getEliminatedPredicates());
-  _partiallyDeletedPredicates.loadFromMap(prb.getPartiallyEliminatedPredicates());
-  _trivialPredicates.loadFromMap(prb.trivialPredicates());
-
   switch(opt.fmbEnumerationStrategy()) {
     case Options::FMBEnumerationStrategy::SBMEAM:
       _dsaEnumerator = new HackyDSAE(opt.keepSbeamGenerators());
@@ -169,7 +163,7 @@ bool FiniteModelBuilder::reset(){
   // Start from 1 as SAT solver variables are 1-based
   unsigned offsets=1;
   for(unsigned f=0; f<env.signature->functions();f++){
-    if(del_f[f]) continue; 
+    if(del_f[f]) continue;
     f_offsets[f]=offsets;
 #if VTRACE_FMB
     cout << "offset for " << f << " is " << offsets << " (arity is " << env.signature->functionArity(f) << ") " << endl;
@@ -178,7 +172,7 @@ bool FiniteModelBuilder::reset(){
     DArray<unsigned> f_signature = _sortedSignature->functionSignatures[f];
     ASS(f_signature.size() == env.signature->functionArity(f)+1);
 
-    unsigned add = _sortModelSizes[f_signature[0]]; 
+    unsigned add = _sortModelSizes[f_signature[0]];
     for(unsigned i=1;i<f_signature.size();i++){
       unsigned n_add = add * _sortModelSizes[f_signature[i]];
       if (n_add < add) { // additional overflow check - we multiply by positive integers!
@@ -426,31 +420,28 @@ void FiniteModelBuilder::init()
 
   env.statistics->phase = Statistics::FMB_PREPROCESSING;
 
-  
-  Stack<DHSet<unsigned>*> equivalent_vampire_sorts; 
   DHSet<std::pair<unsigned,unsigned>> vampire_sort_constraints_nonstrict;
   DHSet<std::pair<unsigned,unsigned>> vampire_sort_constraints_strict;
   if(env.options->fmbDetectSortBounds()){
     FunctionRelationshipInference inf;
     inf.findFunctionRelationships(
       _prb.clauseIterator(),
-      equivalent_vampire_sorts,
       vampire_sort_constraints_nonstrict,
-      vampire_sort_constraints_strict); 
+      vampire_sort_constraints_strict);
   }
 
   ClauseList* clist = 0;
   if(env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::PREDICATE){
-    DArray<unsigned> deleted_functions(env.signature->functions());
+    DArray<bool> deleted_functions(env.signature->functions());
     for(unsigned f=0;f<env.signature->functions();f++){
-      deleted_functions[f] = _deletedFunctions.find(f) || env.signature->getFunction(f)->usageCnt()==0;
+      deleted_functions[f] =  (bool)_prb.getEliminatedFunctions().findPtr(f) || env.signature->getFunction(f)->usageCnt()==0;
      }
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
-    Monotonicity::addSortPredicates(true, clist,deleted_functions);
+    Monotonicity::addSortPredicates(true,clist,deleted_functions,_monotonic_vampire_sorts,_sortPredicates);
   }
-  if(env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::FUNCTION){ 
+  if(env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::FUNCTION){
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
-    Monotonicity::addSortFunctions(true,clist);
+    Monotonicity::addSortFunctions(true,clist,_monotonic_vampire_sorts,_sortFunctions);
   }
 
 
@@ -508,7 +499,7 @@ void FiniteModelBuilder::init()
               map->insert(rnum,set);
             }
             set->insert(lnum);
-          } 
+          }
         }
       }
     }
@@ -541,7 +532,7 @@ void FiniteModelBuilder::init()
   }
   if(!_clauses){
     if(outputAllowed()){
-      cout << "The problem is propositional so there are no sorts!" << endl;
+      cout << "% The problem is propositional so there are no sorts!" << endl;
     }
   }
 
@@ -570,11 +561,15 @@ void FiniteModelBuilder::init()
 
   }
 
-  // TODO: consider updating usage count by rescanning property
-  // in particular, terms replaced by definitions have disappeared!
-  
-  // TODO: consider updating usage count by rescanning property as we have had to 
-  //       OR ensure that usage count is updated for any introduced symbols e.g. in Monotonicity
+  { // An ugly hack to cause a recomputation of usageCnts!
+    // (it's already ugly the usageCnts are stored with Symbols)
+
+    UnitList* units = 0; // we create a list just because ClauseList is not a UnitList in C++
+    UnitList::pushFromIterator(IterTraits(ClauseList::Iterator(_groundClauses)).map([](Clause* c) { return (Unit*)c; }),units);
+    UnitList::pushFromIterator(IterTraits(ClauseList::Iterator(_clauses)).map([](Clause* c) { return (Unit*)c; }),units);
+    ScopedPtr<Property> dummy_property(Property::scan(units));
+    UnitList::destroy(units);
+  }
 
   // record the deleted functions and predicates
   // we do this here so that there are slots for symbols introduce in previous
@@ -583,15 +578,19 @@ void FiniteModelBuilder::init()
   del_p.ensure(env.signature->predicates());
 
   for(unsigned f=0;f<env.signature->functions();f++){
-    del_f[f] = _deletedFunctions.find(f) || env.signature->getFunction(f)->usageCnt()==0;
+    del_f[f] = (bool)_prb.getEliminatedFunctions().findPtr(f) || env.signature->getFunction(f)->usageCnt()==0;
 #if VTRACE_FMB
     if(del_f[f]) cout << "Mark " << env.signature->functionName(f)  << " as deleted" << endl;
 #endif
   }
-  for(unsigned p=0;p<env.signature->predicates();p++){
-    del_p[p] = (_deletedPredicates.find(p) || _trivialPredicates.find(p));
+  for(unsigned p=1;p<env.signature->predicates();p++){ // skipping equality
+    del_p[p] = ((bool)_prb.getEliminatedPredicates().findPtr(p) || env.signature->getPredicate(p)->usageCnt()==0);
 #if VTRACE_FMB
-    if(del_p[p]) cout << "Mark " << env.signature->predicateName(p) << " as deleted" << endl;
+    if(del_p[p]) {
+      cout << "Mark " << env.signature->predicateName(p) << " as deleted" << endl;
+      cout << "  since (bool)_prb.getEliminatedPredicates().findPtr(p) = " << (bool)_prb.getEliminatedPredicates().findPtr(p) << endl;
+      cout << "  since env.signature->getPredicate(p)->usageCnt() = " << env.signature->getPredicate(p)->usageCnt() << endl;
+    }
 #endif
   }
 
@@ -604,9 +603,9 @@ void FiniteModelBuilder::init()
   {
     TIME_TRACE("fmb sort inference");
     //ClauseList* both = ClauseList::concat(_clauses,_groundClauses);
-    SortInference inference(_clauses,del_f,del_p,equivalent_vampire_sorts,_distinct_sort_constraints);
+    SortInference inference(_clauses,del_f,del_p,_distinct_sort_constraints,_monotonic_vampire_sorts);
     inference.doInference();
-    _sortedSignature = inference.getSignature(); 
+    _sortedSignature = inference.getSignature();
     ASS(_sortedSignature);
 #if VTRACE_FMB
     cout << "Done sort inference" << endl;
@@ -615,7 +614,7 @@ void FiniteModelBuilder::init()
     // now we have a mapping between vampire sorts and distinct sorts we can translate
     // the sort constraints, if any
     {
-      DHSet<std::pair<unsigned,unsigned>>::Iterator it(vampire_sort_constraints_nonstrict); 
+      DHSet<std::pair<unsigned,unsigned>>::Iterator it(vampire_sort_constraints_nonstrict);
       while(it.hasNext()){
         std::pair<unsigned,unsigned> vconstraint = it.next();
         ASS(_sortedSignature->vampireToDistinctParent.find(vconstraint.first));
@@ -645,18 +644,18 @@ void FiniteModelBuilder::init()
   cout << "Finding Min and Max Sort Sizes" << endl;
 #endif
 
-    // Record the maximum sort sizes detected during sort inference 
+    // Record the maximum sort sizes detected during sort inference
     _distinctSortMaxs.ensure(_sortedSignature->distinctSorts);
     _distinctSortMins.ensure(_sortedSignature->distinctSorts);
-    for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){ 
-      _distinctSortMaxs[s]=UINT_MAX; 
+    for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){
+      _distinctSortMaxs[s]=UINT_MAX;
       _distinctSortMins[s]=1;
     }
 
     DArray<unsigned> bfromSI(_sortedSignature->distinctSorts);
     DArray<unsigned> dConstants(_sortedSignature->distinctSorts);
     DArray<unsigned> dFunctions(_sortedSignature->distinctSorts);
-    for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){ 
+    for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){
       bfromSI[s]=0;
       dConstants[s]=0;
       dFunctions[s]=0;
@@ -669,17 +668,17 @@ void FiniteModelBuilder::init()
       dConstants[parent] += (_sortedSignature->sortedConstants[s]).size();
       dFunctions[parent] += (_sortedSignature->sortedFunctions[s]).size();
     }
-    for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){ 
-      _distinctSortMaxs[s] = min(_distinctSortMaxs[s],bfromSI[s]); 
+    for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){
+      _distinctSortMaxs[s] = min(_distinctSortMaxs[s],bfromSI[s]);
     }
 
 
     for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){
       bool epr = env.getMainProblem()->getProperty()->category()==Property::EPR
                  // if we have no functions we are epr in this sort
-                 || dFunctions[s]==0; 
+                 || dFunctions[s]==0;
       if(epr){
-        unsigned c = dConstants[s]; 
+        unsigned c = dConstants[s];
         if(c==0) continue; //size of 0 does not make sense... maybe we should set it to 1 here? TODO
         // TODO not sure about this second condition, if c < current max what would happen?
         // why are we looking for the 'biggest' max?
@@ -695,7 +694,7 @@ void FiniteModelBuilder::init()
       if((env.getMainProblem()->getProperty()->usesSort(s) || env.signature->isNonDefaultCon(s)) && _sortedSignature->vampireToDistinct.find(s)){
         Stack<unsigned>* dmembers = _sortedSignature->vampireToDistinct.get(s);
         ASS(dmembers);
-        if(dmembers->size() > 1){ 
+        if(dmembers->size() > 1){
           unsigned parent = _sortedSignature->vampireToDistinctParent.get(s);
           Stack<unsigned>::Iterator children(*dmembers);
           while(children.hasNext()){
@@ -791,7 +790,7 @@ void FiniteModelBuilder::init()
   for(unsigned f=0;f<env.signature->functions();f++){
     if(del_f[f]) continue;
 
-    if(env.signature->functionArity(f)==0){ 
+    if(env.signature->functionArity(f)==0){
       TermList vsrtT = env.signature->getFunction(f)->fnType()->result();
       if(!vsrtT.isBoolSort()){
         unsigned vsrt = vsrtT.term()->functor();
@@ -1191,8 +1190,8 @@ unsigned FiniteModelBuilder::estimateFunctionalDefCount()
 
 void FiniteModelBuilder::addNewFunctionalDefs()
 {
-  // For each function f of arity n we add the constraint 
-  // f(x1,...,xn) != y | f(x1,...,xn) != z 
+  // For each function f of arity n we add the constraint
+  // f(x1,...,xn) != y | f(x1,...,xn) != z
   // they should be instantiated with groundings where y!=z
 
   for(unsigned f=0;f<env.signature->functions();f++){
@@ -1207,10 +1206,9 @@ void FiniteModelBuilder::addNewFunctionalDefs()
     static DArray<unsigned> maxVarSize;
     maxVarSize.ensure(arity+2);
 
-    // find max size of y and z 
+    // find max size of y and z
     unsigned returnSrt = f_signature[arity];
-    maxVarSize[0] = min(_sortedSignature->sortBounds[returnSrt],_sortModelSizes[returnSrt]);
-    maxVarSize[1] = min(_sortedSignature->sortBounds[returnSrt],_sortModelSizes[returnSrt]);
+    maxVarSize[0] = maxVarSize[1] = min(_sortedSignature->sortBounds[returnSrt],_sortModelSizes[returnSrt]);
 
     // we skip 0 and 1 as these are y and z
     for(unsigned var=2;var<arity+2;var++){
@@ -1251,9 +1249,9 @@ newFuncLabel:
           use.ensure(arity+1);
           for(unsigned k=0;k<arity;k++) use[k]=grounding[k+2];
           use[arity]=grounding[0];
-          satClauseLits.push(getSATLiteral(f,use,false,true)); 
+          satClauseLits.push(getSATLiteral(f,use,false,true));
           use[arity]=grounding[1];
-          satClauseLits.push(getSATLiteral(f,use,false,true)); 
+          satClauseLits.push(getSATLiteral(f,use,false,true));
 
           SATClause* satCl = SATClause::fromStack(satClauseLits);
           addSATClause(satCl);
@@ -1266,7 +1264,7 @@ newFuncLabel:
 void FiniteModelBuilder::addNewSymmetryOrderingAxioms(unsigned size,
                        Stack<GroundedTerm>& groundedTerms)
 {
-  // Add restricted totality 
+  // Add restricted totality
   // i.e. for constant a1 add { a1=1 } and for a2 add { a2=1, a2=2 } and so on
   if(groundedTerms.length() < size) return;
 
@@ -1280,7 +1278,7 @@ void FiniteModelBuilder::addNewSymmetryOrderingAxioms(unsigned size,
   //cout << "Add symmetry ordering for " << gt.toString() << endl;
 
   static SATLiteralStack satClauseLits;
-  satClauseLits.reset(); 
+  satClauseLits.reset();
   for(unsigned i=1;i<=size;i++){
     grounding[arity]=i;
     SATLiteral sl = getSATLiteral(gt.f,grounding,true,true);
@@ -1297,7 +1295,7 @@ void FiniteModelBuilder::addNewSymmetryCanonicityAxioms(unsigned size,
 {
   if(size<=1) return;
 
-  unsigned w = _symmetryRatio * maxSize; 
+  unsigned w = _symmetryRatio * maxSize;
   if(w > groundedTerms.length()){
      w = groundedTerms.length();
   }
@@ -1305,7 +1303,7 @@ void FiniteModelBuilder::addNewSymmetryCanonicityAxioms(unsigned size,
   for(unsigned i=1;i<w;i++){
       static SATLiteralStack satClauseLits;
       satClauseLits.reset();
-   
+
       GroundedTerm gti = groundedTerms[i];
       unsigned arityi = env.signature->functionArity(gti.f);
 
@@ -1316,7 +1314,6 @@ void FiniteModelBuilder::addNewSymmetryCanonicityAxioms(unsigned size,
       for(unsigned a=0;a<arityi;a++){ grounding_i[a]=gti.grounding[a];}
       grounding_i[arityi]=size;
       satClauseLits.push(getSATLiteral(gti.f,grounding_i,false,true));
- 
       //cout << "Adding cannon for " << gti.toString() << endl;
 
       for(unsigned j=0;j<i;j++){
@@ -1551,7 +1548,6 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
   env.statistics->phase = Statistics::FMB_CONSTRAINT_GEN;
 
-
   if(outputAllowed()){
       bool doPrinting = false;
 #if VTRACE_FMB
@@ -1571,8 +1567,8 @@ MainLoopResult FiniteModelBuilder::runImpl()
         if(s+1 < _sortedSignature->distinctSorts){ max_res+=","; min_res+=",";}
       }
       if(doPrinting){
-        cout << "Detected minimum model sizes of " << min_res << "]" << endl;
-        cout << "Detected maximum model sizes of " << max_res << "]" << endl;
+        cout << "% Detected minimum model sizes of " << min_res << "]" << endl;
+        cout << "% Detected maximum model sizes of " << max_res << "]" << endl;
       }
   }
 
@@ -1580,6 +1576,12 @@ MainLoopResult FiniteModelBuilder::runImpl()
   _distinctSortSizes.ensure(_sortedSignature->distinctSorts);
   for(unsigned i=0;i<_distinctSortSizes.size();i++){
      _distinctSortSizes[i]=max(_startModelSize,_distinctSortMins[i]);
+     if (_startModelSize > _distinctSortMaxs[i]) {
+      if(outputAllowed()){
+        cout << "% fmb_start_size (= " << _startModelSize << ") larger than a detected sort maximum size!" << endl;
+      }
+      return MainLoopResult(Statistics::REFUTATION_NOT_FOUND);
+     }
   }
   for(unsigned s=0;s<_sortedSignature->sorts;s++) {
     _sortModelSizes[s] = _distinctSortSizes[_sortedSignature->parents[s]];
@@ -1594,16 +1596,13 @@ MainLoopResult FiniteModelBuilder::runImpl()
   if (reset()) {
   while(true){
     if(outputAllowed()) {
-      cout << "TRYING " << "["; 
+      cout << "% TRYING " << "[";
       for(unsigned i=0;i<_distinctSortSizes.size();i++){
         cout << _distinctSortSizes[i];
         if(i+1 < _distinctSortSizes.size()) cout << ",";
       }
       cout << "]" << endl;
     }
-    Timer::syncClock();
-    if(env.timeLimitReached()){ return MainLoopResult(Statistics::TIME_LIMIT); }
-
     {
     TIME_TRACE("fmb constraint creation");
 
@@ -1637,7 +1636,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 #endif
     //TODO consider adding clauses directly to SAT solver in new interface?
     // pass clauses and assumption to SAT Solver
-    SATSolver::Status satResult = SATSolver::UNKNOWN;
+    SATSolver::Status satResult = SATSolver::Status::UNKNOWN;
     {
       if (_opt.randomTraversals()) {
         TIME_TRACE(TimeTrace::SHUFFLING);
@@ -1673,7 +1672,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
     }
 
     // if the clauses are satisfiable then we have found a finite model
-    if(satResult == SATSolver::SATISFIABLE){
+    if(satResult == SATSolver::Status::SATISFIABLE){
 
       if (_xmass) { // for CONTOUR
         // before printing possibly retract _distinctSortSizes (and the corresponding _sortModelSizes) according to the set assumptions
@@ -1883,200 +1882,230 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
 void FiniteModelBuilder::onModelFound()
 {
- // Don't do any output if proof is off
- if(_opt.proof()==Options::Proof::OFF){ 
-   return; 
- }
+  // Don't do any output if proof is off
+  if(_opt.proof()==Options::Proof::OFF){
+    return;
+  }
 
- reportSpiderStatus('-');
- if(outputAllowed()){
-   cout << "Finite Model Found!" << endl;
- }
+  reportSpiderStatus('-');
+  if(outputAllowed()){
+    cout << "% Finite Model Found!" << endl;
+  }
 
- //we need to print this early because model generating can take some time
- if(szsOutputMode()) {
-   std::cout << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
-       << " for " << _opt.problemName() << endl << flush;
-   UIHelper::satisfiableStatusWasAlreadyOutput = true;
- }
+  //we need to print this early because model generating can take some time
+  if(szsOutputMode()) {
+    std::cout << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
+        << " for " << _opt.problemName() << endl << flush;
+    UIHelper::satisfiableStatusWasAlreadyOutput = true;
+  }
   // Prevent timing out whilst the model is being printed
-  Timer::setLimitEnforcement(false);
+  Timer::disableLimitEnforcement();
 
-
- DHMap<unsigned,unsigned> vampireSortSizes;
- for(unsigned vSort=0;vSort<env.signature->typeCons();vSort++){
-   unsigned size = 1;
-   if(env.signature->isInterpretedNonDefault(vSort) && !env.signature->isBoolCon(vSort)){ size=0;}
-   unsigned dsort;
-   if(_sortedSignature->vampireToDistinctParent.find(vSort,dsort)){
-     size = _distinctSortSizes[dsort];
-   }
-   vampireSortSizes.insert(vSort,size);
- }
+  DArray<unsigned> vampireSortSizes;
+  vampireSortSizes.ensure(env.signature->typeCons());
+  for(unsigned vSort=0;vSort<env.signature->typeCons();vSort++){
+    unsigned size = 1;
+    if(env.signature->isInterpretedNonDefault(vSort) && !env.signature->isBoolCon(vSort)){ size=0;}
+    unsigned dsort;
+    if(_sortedSignature->vampireToDistinctParent.find(vSort,dsort)){
+      size = _distinctSortSizes[dsort];
+    }
+    vampireSortSizes[vSort] = size;
+  }
 
   FiniteModelMultiSorted model(vampireSortSizes);
 
-  //Record interpretation of constants
+  //Record interpretation of constants and functions
   for(unsigned f=0;f<env.signature->functions();f++){
-    if(env.signature->functionArity(f)>0) continue;
     if(del_f[f]) continue;
 
-    DEBUG_CODE(bool found=false;)
-    for(unsigned c=1;c<=_sortModelSizes[_sortedSignature->functionSignatures[f][0]];c++){
-      static DArray<unsigned> grounding(1);
-      grounding[0]=c;
-      SATLiteral slit = getSATLiteral(f,grounding,true,true);
-      if(_solver->trueInAssignment(slit)){
-        //if(found){ cout << "Error: multiple interpretations of " << name << endl;}
-        ASS(!found);
-        DEBUG_CODE(found=true;)
-        model.addConstantDefinition(f,c);
-      }
-    }
-    ASS(found);
-  }
-
-  //Record interpretation of functions 
-  for(unsigned f=0;f<env.signature->functions();f++){
-    unsigned arity = env.signature->functionArity(f);
-    if(arity==0) continue;
-    if(del_f[f]) continue;
+    Signature::Symbol* sym = env.signature->getFunction(f);
+    // if (sym->introduced()) continue; // so that a sort function may enter the model (to be elimintated later)
 
     //cout << "For " << env.signature->getFunction(f)->name() << endl;
+    unsigned arity = env.signature->functionArity(f);
 
-    static DArray<unsigned> grounding;
-    grounding.ensure(arity);
-    for(unsigned i=0;i<arity;i++){
-       grounding[i]=1;
+    // bounding box for enumerating the arguments
+    static DArray<unsigned> maxVarSizeBig;
+    maxVarSizeBig.ensure(arity);
+
+    OperatorType* tp = sym->fnType();
+    ASS_EQ(tp->numTypeArguments(),0) // no polymorphic business in FMB
+    for(unsigned var=0;var<arity;var++){
+      unsigned vamp_srt = tp->arg(var).term()->functor();
+      maxVarSizeBig[var] = vampireSortSizes[vamp_srt];
     }
-    grounding[arity-1]=0;
+
+    // the actual representation of the enumeration
+    static DArray<unsigned> args;
+    args.ensure(arity);
+    // start with all 1s
+    for(unsigned i=0;i<arity;i++){
+       args[i]=1;
+    }
+
+    // bounding box for querying the solver
+    static DArray<unsigned> maxVarSizeSml;
+    maxVarSizeSml.ensure(arity+1); // +1 for the result bit
 
     const DArray<unsigned>& f_signature = _sortedSignature->functionSignatures[f];
-    static DArray<unsigned> maxVarSize;
-    maxVarSize.ensure(arity);
-    for(unsigned var=0;var<arity;var++){ 
+    for(unsigned var=0;var<=arity;var++){
       unsigned srt = f_signature[var];
-      maxVarSize[var] = min(_sortedSignature->sortBounds[srt],_sortModelSizes[srt]);
+      maxVarSizeSml[var] = min(_sortedSignature->sortBounds[srt],_sortModelSizes[srt]);
     }
-    unsigned retSrt = f_signature[arity];
-    unsigned maxRtSrtSize = min(_sortedSignature->sortBounds[retSrt],_sortModelSizes[retSrt]);
 
-fModelLabel:
-      for(unsigned var=arity-1;var+1!=0;var--){
-
-        if(grounding[var] == maxVarSize[var]){
-          grounding[var]=1;
-        }
-        else{
-          grounding[var]++;
-
-          static DArray<unsigned> use;
-          use.ensure(arity+1);
-          for(unsigned k=0;k<arity;k++) use[k]=grounding[k];
-
-          bool found=false;
-          for(unsigned c=1;c<=maxRtSrtSize;c++){
-            use[arity]=c;
-            SATLiteral slit = getSATLiteral(f,use,true,true);
-            if(_solver->trueInAssignment(slit)){
-              //if(found){ cout << "Error: multiple interpretations of " << name << endl; }
-              ASS(!found);
-              found=true;
-              model.addFunctionDefinition(f,grounding,c);
-            }
-          }
-          if(!found){
-             // This means that there is no result for this input
-             // This is a result of the finite sort bounding and the argument
-             // says that we can equate this domain element to a smaller one below the bound
-             //TODO fix this 
-             //cout << "NOT FOUND for " << env.signature->functionName(f) << endl; 
-          }
-
-          goto fModelLabel;
-        }
-      }
-  }
-
-
-  //Record interpretation of prop symbols 
-  static const DArray<unsigned> emptyG(0);
-  for(unsigned f=1;f<env.signature->predicates();f++){
-    if(env.signature->predicateArity(f)>0) continue;
-    if(del_p[f]) continue;
-    if(_partiallyDeletedPredicates.find(f)) continue;
-
-    bool res;
-    if(!_trivialPredicates.find(f,res)){ 
-      SATLiteral slit = getSATLiteral(f,emptyG,true,false);
-      res=_solver->trueInAssignment(slit); 
-    }
-    model.addPropositionalDefinition(f,res);
-  }
-
-  //Record interpretation of predicates 
-  for(unsigned f=1;f<env.signature->predicates();f++){
-    unsigned arity = env.signature->predicateArity(f);
-    if(arity==0) continue;
-    if(del_p[f]) continue;
-    if(_partiallyDeletedPredicates.find(f)) continue;
-
-    //cout << "Record for " << env.signature->getPredicate(f)->name() << endl;
-
+    // the actual representation of the query
     static DArray<unsigned> grounding;
-    static DArray<unsigned> args;
-    grounding.ensure(arity);
-    args.ensure(arity);
-    for(unsigned i=0;i<arity-1;i++){grounding[i]=1;args[1]=1;}
-    grounding[arity-1]=0;
-    args[arity-1]=0;
+    grounding.ensure(arity+1);
 
-    const DArray<unsigned>& f_signature = _sortedSignature->predicateSignatures[f];
-    static DArray<unsigned> maxVarSize;
-    maxVarSize.ensure(arity);
-    for(unsigned var=0;var<arity;var++){
-      unsigned srt = f_signature[var];
-      maxVarSize[var] = _sortedSignature->sortBounds[srt];
-    }
-
-pModelLabel:
-      for(unsigned i=arity-1;i+1!=0;i--){
-    
-        if(args[i]==_sortModelSizes[f_signature[i]]){
-          grounding[i]=1;
-          args[i]=1;
-       }
-        else{
-          if(args[i]<maxVarSize[i]){
-            grounding[i]++;
-          }
-          args[i]++;
-          bool res;
-          if(!_trivialPredicates.find(f,res)){ 
-            SATLiteral slit = getSATLiteral(f,grounding,true,false);
-            res=_solver->trueInAssignment(slit); 
-          }
-          //for(unsigned j=0;j<arity;j++){ cout << grounding[j] << ", ";}; cout << " = " << res << endl;
-
-          model.addPredicateDefinition(f,grounding,res);
-
-          goto pModelLabel;
+    for(;;) {
+      DEBUG_CODE(bool found=false;)
+      for(unsigned c=1;c<=maxVarSizeSml[arity];c++){
+        // create a bounded copy of the changing args in grounding
+        // (while args live within the maxVarSizeBig box,
+        // grounding must only live in the maxVarSizeSml box,
+        // for which the sat solver computed values)
+        for(unsigned i=0;i<arity;i++) {
+          // for functions, we always copy the value from the smallest e, when out of the small bounds
+          grounding[i] = (args[i] <= maxVarSizeSml[i]) ? args[i] : 1;
+        }
+        grounding[arity]=c;
+        SATLiteral slit = getSATLiteral(f,grounding,true,true);
+        if(_solver->trueInAssignment(slit)){
+          ASS(!found);
+          DEBUG_CODE(found=true;)
+          model.addFunctionDefinition(f,args,c);
+          RELEASE_CODE(break;)
         }
       }
+      ASS(found)
+
+      unsigned i;
+      for(i=0;i<arity;i++) {
+        args[i]++;
+        if(args[i] <= maxVarSizeBig[i]){
+          break;
+        }
+        args[i]=1;
+      }
+      if (i == arity) {
+        break;
+      }
+    }
   }
 
+  //Record interpretation of predicates
+  for(unsigned p=1;p<env.signature->predicates();p++){
+    if(del_p[p]) continue;
 
+    Signature::Symbol* sym = env.signature->getPredicate(p);
+    // if (sym->introduced()) continue; // so that a sort predicate may enter the model (to be elimintated later)
+
+    unsigned arity = env.signature->predicateArity(p);
+    //cout << "Record for " << env.signature->getPredicate(p)->name() << "/" << arity << endl;
+
+    // bounding box for enumerating the arguments
+    static DArray<unsigned> maxVarSizeBig;
+    maxVarSizeBig.ensure(arity);
+
+    OperatorType* tp = sym->fnType();
+    ASS_EQ(tp->numTypeArguments(),0) // no polymorphic business in FMB
+    for(unsigned var=0;var<arity;var++){
+      unsigned vamp_srt = tp->arg(var).term()->functor();
+      maxVarSizeBig[var] = vampireSortSizes[vamp_srt];
+    }
+
+    // the actual representation of the enumeration
+    static DArray<unsigned> args;
+    args.ensure(arity);
+    // start with all 1s
+    for(unsigned i=0;i<arity;i++){
+       args[i]=1;
+    }
+
+    // bounding box for querying the solver
+    static DArray<unsigned> maxVarSizeSml;
+    maxVarSizeSml.ensure(arity);
+
+    const DArray<unsigned>& p_signature = _sortedSignature->predicateSignatures[p];
+    for(unsigned var=0;var<arity;var++){
+      unsigned srt = p_signature[var];
+      maxVarSizeSml[var] = min(_sortedSignature->sortBounds[srt],_sortModelSizes[srt]);
+    }
+
+    // the actual representation of the query
+    static DArray<unsigned> grounding;
+    grounding.ensure(arity);
+
+    static DArray<signed char> sort_extension_modes;
+    sort_extension_modes.ensure(arity);
+    for(unsigned i=0;i<arity;i++) {
+      unsigned vamp_srt = tp->arg(i).term()->functor();
+      DArray<signed char>* monot_info;
+      if (_monotonic_vampire_sorts.find(vamp_srt,monot_info)) {
+        // it's safe to extend symbols introduced after monotonicity analysis via the default mode 0
+        sort_extension_modes[i] = (p<monot_info->size()) ? (*monot_info)[p] : 0;
+      } else {
+        // the simple monotonicity argument (from the Paradox paper already)
+        sort_extension_modes[i] = 0;
+      }
+    }
+
+    for(;;) {
+      // create a bounded copy of the changing args in grounding
+
+      signed char extension_mode = 0; // start as "copy extended" (meaning overshoots go back to 1)
+      for(unsigned i=0;i<arity;i++) {
+        if (args[i] <= maxVarSizeSml[i]) {
+          grounding[i] = args[i];
+        } else {
+          grounding[i] = 1;
+
+          // ASS_EQ(extension_mode,0) // it should be fine to delete this, but Martin would like to know the counter-example to this ASS
+          // these really occur (just uncomment above a search a bit over TPTP)
+          extension_mode = sort_extension_modes[i];
+        }
+      }
+
+      bool res;
+      if (extension_mode == 1) {
+        res = true;
+      } else if (extension_mode == -1) {
+        res = false;
+      } else {
+        SATLiteral slit = getSATLiteral(p,grounding,true,false);
+        res=_solver->trueInAssignment(slit);
+      }
+      model.addPredicateDefinition(p,args,res);
+
+      unsigned i;
+      for(i=0;i<arity;i++) {
+        args[i]++;
+        if(args[i] <= maxVarSizeBig[i]){
+          break;
+        }
+        args[i]=1;
+      }
+      if (i == arity) {
+        break;
+      }
+    }
+  }
+
+  model.eliminateSortFunctionsAndPredicates(_sortFunctions,_sortPredicates);
+
+#if 0
   //Evaluate removed functions and constants
   unsigned maxf = env.signature->functions(); // model evaluation can add new constants
   //bool unfinished=true;
   //while(unfinished){
   //unfinished=false;
   unsigned f=maxf;
-  while(f > 0){ 
+  while(f > 0){
     f--;
     //cout << "Consider " << f << endl;
     unsigned arity = env.signature->functionArity(f);
-    if(!del_f[f]) continue; 
+    if(!del_f[f]) continue;
     // For now, just skip unused functions!
     if(env.signature->getFunction(f)->usageCnt()==0) continue;
     //del_f[f]=false;
@@ -2088,7 +2117,7 @@ pModelLabel:
     //cout << def->toString() << endl;
 
     ASS(def->isEquality());
-    Term* funApp = 0; 
+    Term* funApp = 0;
     Term* funDef = 0;
 
     if(def->nthArgument(0)->term()->functor()==f){
@@ -2136,7 +2165,7 @@ ffModelLabel:
 
           Substitution subst;
           for(unsigned j=0;j<arity;j++){
-            TermList vs = env.signature->getFunction(f)->fnType()->arg(j); 
+            TermList vs = env.signature->getFunction(f)->fnType()->arg(j);
             unsigned vampireSrt = vs.term()->functor();
             //cout << grounding[j] << " is " << model.getDomainConstant(grounding[j],vampireSrt)->toString() << endl;
             subst.bind(vars[j],model.getDomainConstant(grounding[j],vampireSrt));
@@ -2164,7 +2193,7 @@ ffModelLabel:
       }
       catch(UserErrorException& exception){
         //cout << "Setting unfinished" << endl;
-        //unfinished=true;  
+        //unfinished=true;
         //del_f[f]=true;
       }
     }
@@ -2172,7 +2201,6 @@ ffModelLabel:
   //}
 
   //Evaluate removed propositions and predicates
-#if 0
   f=env.signature->predicates()-1;
   while(f>0){
     f--;
@@ -2188,7 +2216,7 @@ ffModelLabel:
       //cout << "For " << env.signature->getPredicate(f)->name() << endl;
       //cout << udef->toString() << endl;
     //}
-    Formula* def = udef->getFormula();   
+    Formula* def = udef->getFormula();
     Literal* predApp = 0;
     Formula* predDef = 0;
     bool polarity = true;
@@ -2200,7 +2228,7 @@ ffModelLabel:
         Formula* inner = def->qarg();
         ASS(inner->connective()==Connective::IFF);
         Formula* left = inner->left();
-        Formula* right = inner->right(); 
+        Formula* right = inner->right();
 
         if(left->connective()==Connective::NOT){
           polarity=!polarity;
@@ -2256,7 +2284,7 @@ ffModelLabel:
       grounding[i]=1;
       TermList vs = env.signature->getPredicate(f)->predType()->arg(i);
       unsigned vampireSrt = vs.term()->functor();
-      unsigned dsrt = _sortedSignature->vampireToDistinctParent.get(vampireSrt); 
+      unsigned dsrt = _sortedSignature->vampireToDistinctParent.get(vampireSrt);
       p_signature_distinct[i] = dsrt;
     }
     grounding[arity-1]=0;
@@ -2276,9 +2304,9 @@ ppModelLabel:
           }
           else{
             Substitution subst;
-            for(unsigned j=0;j<arity;j++){ 
+            for(unsigned j=0;j<arity;j++){
               //cout << grounding[j] << " is " << model.getDomainConstant(grounding[j])->toString() << endl;
-              TermList vs = env.signature->getPredicate(f)->predType()->arg(j); 
+              TermList vs = env.signature->getPredicate(f)->predType()->arg(j);
               unsigned vampireSrt = vs.term()->functor();
               subst.bind(vars[j],model.getDomainConstant(grounding[j],vampireSrt));
             }
@@ -2290,7 +2318,7 @@ ppModelLabel:
               if(!polarity) res=!res;
               model.addPredicateDefinition(f,grounding,res);
             }
-            catch(UserErrorException& exception){ 
+            catch(UserErrorException& exception){
               // TODO order symbols for partial evaluation
             }
           }
@@ -2462,7 +2490,7 @@ bool FiniteModelBuilder::HackyDSAE::increaseModelSizes(DArray<unsigned>& newSort
       delete _constraints_generators.pop();
 #if VTRACE_DOMAINS
       cout << "Deleted" << endl;
-#endif    
+#endif
     }
   }
 
