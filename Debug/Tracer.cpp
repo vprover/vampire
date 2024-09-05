@@ -20,6 +20,7 @@
  * @since 25/07/2024 Oxford invoke debugger for general sanity
  */
 
+#include <csignal>
 #include <cstdlib>
 #include <sstream>
 
@@ -66,13 +67,16 @@ static bool try_lldb(pid_t pid) {
  */
 void Debug::Tracer::printStack() {
   std::cout << "Version : " << VERSION_STRING << "\n";
-  if(!env.options->traceback()) {
-    std::cout << "(use '--traceback on' to invoke a debugger and get a human-readable stack trace)\n";
-    return;
+  if(env.options->traceback()) {
+    pid_t pid = getpid();
+    // is your favourite debugger not here? add it!
+    if(!try_gdb(pid) && !try_lldb(pid))
+      std::cout << "(neither GDB nor LLDB worked: perhaps you need to install one of them?)\n";
   }
+  else
+    std::cout << "(use '--traceback on' to invoke a debugger and get a human-readable stack trace)\n";
 
-  pid_t pid = getpid();
-  // is your favourite debugger not here? add it!
-  if(!try_gdb(pid) && !try_lldb(pid))
-    std::cout << "(neither GDB nor LLDB worked: perhaps you need to install one of them?)\n";
+  // usually causes debuggers to break here
+  // if not under a debugger, ignored
+  std::raise(SIGTRAP);
 }

@@ -102,7 +102,6 @@ void handleSignal (int sigNum)
 #ifndef _MSC_VER
   case SIGQUIT:
   case SIGBUS:
-  case SIGTRAP:
 #endif
     // following is not standards-compliant as it calls functions that are not permitted in signal handlers
     // but we're dying anyway, so try our best to report something
