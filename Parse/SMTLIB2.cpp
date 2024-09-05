@@ -64,7 +64,7 @@ static const char* TYPECON_POSTFIX = "()";
 
 SMTLIB2::SMTLIB2(UnitList::FIFO formulaBuffer)
 : _logicSet(false),
-  _logic(SMT_UNDEFINED),
+  _logic(SMTLIBLogic::UNDEFINED),
   _numeralsAreReal(false),
   _formulas(formulaBuffer),
   _topLevelExpr(nullptr)
@@ -430,66 +430,18 @@ void SMTLIB2::readBenchmark(LExprList* bench)
 
 //  ----------------------------------------------------------------------
 
+#define X(N) #N,
 const char * SMTLIB2::s_smtlibLogicNameStrings[] = {
-    "ALIA",
-    "ALL",
-    "ANIA",
-    "AUFDTLIA",
-    "AUFDTLIRA",
-    "AUFDTNIRA",
-    "AUFLIA",
-    "AUFLIRA",
-    "AUFNIA",
-    "AUFNIRA",
-    "BV",
-    "LIA",
-    "LRA",
-    "NIA",
-    "NRA",
-    "QF_ABV",
-    "QF_ALIA",
-    "QF_ANIA",
-    "QF_AUFBV",
-    "QF_AUFLIA",
-    "QF_AUFNIA",
-    "QF_AX",
-    "QF_BV",
-    "QF_IDL",
-    "QF_LIA",
-    "QF_LIRA",
-    "QF_LRA",
-    "QF_NIA",
-    "QF_NIRA",
-    "QF_NRA",
-    "QF_RDL",
-    "QF_UF",
-    "QF_UFBV",
-    "QF_UFIDL",
-    "QF_UFLIA",
-    "QF_UFLRA",
-    "QF_UFNIA",
-    "QF_UFNRA",
-    "UF",
-    "UFBV",
-    "UFDT",
-    "UFDTLIA",
-    "UFDTLIRA",
-    "UFDTNIA",
-    "UFDTNIRA",
-    "UFIDL",
-    "UFLIA",
-    "UFLRA",
-    "UFNIA"
+  SMTLIBLogic_X
 };
+#undef X
 
 SMTLIBLogic SMTLIB2::getLogicFromString(const std::string& str)
 {
   static NameArray smtlibLogicNames(s_smtlibLogicNameStrings, sizeof(s_smtlibLogicNameStrings)/sizeof(char*));
-  ASS_EQ(smtlibLogicNames.length, SMT_UNDEFINED);
-
   int res = smtlibLogicNames.tryToFind(str.c_str());
   if(res==-1) {
-    return SMT_UNDEFINED;
+    return SMTLIBLogic::UNDEFINED;
   }
   return static_cast<SMTLIBLogic>(res);
 }
@@ -500,64 +452,64 @@ void SMTLIB2::readLogic(const std::string& logicStr)
   _logicSet = true;
 
   switch (_logic) {
-  case SMT_ALL:
-  case SMT_ALIA:
-  case SMT_ANIA:
-  case SMT_AUFDTLIA:
-  case SMT_AUFDTLIRA:
-  case SMT_AUFDTNIRA:
-  case SMT_AUFLIA:
-  case SMT_AUFNIA:
-  case SMT_AUFLIRA:
-  case SMT_AUFNIRA:
-  case SMT_LIA:
-  case SMT_NIA:
-  case SMT_QF_ALIA:
-  case SMT_QF_ANIA:
-  case SMT_QF_AUFLIA:
-  case SMT_QF_AUFNIA:
-  case SMT_QF_AX:
-  case SMT_QF_IDL:
-  case SMT_QF_LIA:
-  case SMT_QF_LIRA:
-  case SMT_QF_NIA:
-  case SMT_QF_NIRA:
-  case SMT_QF_UF:
-  case SMT_QF_UFIDL:
-  case SMT_QF_UFLIA:
-  case SMT_QF_UFNIA:
-  case SMT_UF:
-  case SMT_UFDT:
-  case SMT_UFDTLIA:
-  case SMT_UFDTLIRA:
-  case SMT_UFDTNIA:
-  case SMT_UFDTNIRA:
-  case SMT_UFIDL:
-  case SMT_UFLIA:
-  case SMT_UFNIA:
+  case SMTLIBLogic::ALL:
+  case SMTLIBLogic::ALIA:
+  case SMTLIBLogic::ANIA:
+  case SMTLIBLogic::AUFDTLIA:
+  case SMTLIBLogic::AUFDTLIRA:
+  case SMTLIBLogic::AUFDTNIRA:
+  case SMTLIBLogic::AUFLIA:
+  case SMTLIBLogic::AUFNIA:
+  case SMTLIBLogic::AUFLIRA:
+  case SMTLIBLogic::AUFNIRA:
+  case SMTLIBLogic::LIA:
+  case SMTLIBLogic::NIA:
+  case SMTLIBLogic::QF_ALIA:
+  case SMTLIBLogic::QF_ANIA:
+  case SMTLIBLogic::QF_AUFLIA:
+  case SMTLIBLogic::QF_AUFNIA:
+  case SMTLIBLogic::QF_AX:
+  case SMTLIBLogic::QF_IDL:
+  case SMTLIBLogic::QF_LIA:
+  case SMTLIBLogic::QF_LIRA:
+  case SMTLIBLogic::QF_NIA:
+  case SMTLIBLogic::QF_NIRA:
+  case SMTLIBLogic::QF_UF:
+  case SMTLIBLogic::QF_UFIDL:
+  case SMTLIBLogic::QF_UFLIA:
+  case SMTLIBLogic::QF_UFNIA:
+  case SMTLIBLogic::UF:
+  case SMTLIBLogic::UFDT:
+  case SMTLIBLogic::UFDTLIA:
+  case SMTLIBLogic::UFDTLIRA:
+  case SMTLIBLogic::UFDTNIA:
+  case SMTLIBLogic::UFDTNIRA:
+  case SMTLIBLogic::UFIDL:
+  case SMTLIBLogic::UFLIA:
+  case SMTLIBLogic::UFNIA:
     break;
 
   // pure real arithmetic theories treat decimals as Real constants
-  case SMT_LRA:
-  case SMT_NRA:
-  case SMT_QF_LRA:
-  case SMT_QF_NRA:
-  case SMT_QF_RDL:
-  case SMT_QF_UFLRA:
-  case SMT_QF_UFNRA:
-  case SMT_UFLRA:
+  case SMTLIBLogic::LRA:
+  case SMTLIBLogic::NRA:
+  case SMTLIBLogic::QF_LRA:
+  case SMTLIBLogic::QF_NRA:
+  case SMTLIBLogic::QF_RDL:
+  case SMTLIBLogic::QF_UFLRA:
+  case SMTLIBLogic::QF_UFNRA:
+  case SMTLIBLogic::UFLRA:
     _numeralsAreReal = true;
     break;
 
   // we don't support bit vectors
-  case SMT_BV:
-  case SMT_QF_ABV:
-  case SMT_QF_AUFBV:
-  case SMT_QF_BV:
-  case SMT_QF_UFBV:
-  case SMT_UFBV:
+  case SMTLIBLogic::BV:
+  case SMTLIBLogic::QF_ABV:
+  case SMTLIBLogic::QF_AUFBV:
+  case SMTLIBLogic::QF_BV:
+  case SMTLIBLogic::QF_UFBV:
+  case SMTLIBLogic::UFBV:
     USER_ERROR_EXPR("unsupported logic "+logicStr);
-  default:
+  case SMTLIBLogic::UNDEFINED:
     if (env.options->ignoreUnrecognizedLogic()) {
       break;
     } else {
