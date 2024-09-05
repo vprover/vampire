@@ -456,7 +456,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
     _trueInCCModel.reset();
 
     // cout << "Obtained a model " << endl;
-    unsigned parentMaxAge = AGE_NOT_FILLED;
+    float parentMaxAge = AGE_NOT_FILLED;
     LiteralStack::Iterator it(model);
     while(it.hasNext()) {
       Literal* lit = it.next();
