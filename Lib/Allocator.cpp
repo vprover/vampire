@@ -39,12 +39,12 @@ void Lib::setMemoryLimit(size_t limit) {
 #ifdef HAVE_RLIMIT
   struct rlimit rlimit;
   rlimit.rlim_cur = rlimit.rlim_max = limit;
-  if(setrlimit(RLIMIT_DATA, &rlimit) != 0)
-// silence buggy failure on OSX
-#ifndef __OSX__
-    std::perror("memory limiting failed")
+  if (setrlimit(RLIMIT_DATA, &rlimit) != 0) {
+#if defined(__APPLE__) && defined(__MACH__)
+    if (errno != EINVAL) // silence buggy failure on OSX
 #endif
-    ;
+      std::perror("memory limiting failed");
+  }
 
 #else
   // TODO should we warn here?
