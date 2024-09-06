@@ -225,10 +225,6 @@ int main(int argc, const char** argv)
   using namespace Lib;
   using namespace std;
 
-  // enable tracebacks in failing unit tests by default
-  System::registerArgv0(argv[0]);
-  env.options->setTraceback(true);
-
   bool success;
   auto cmd = std::string(argv[1]);
   auto args = Stack<std::string>(argc - 2);
