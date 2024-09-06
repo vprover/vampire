@@ -256,9 +256,9 @@ Clause* NeuralPassiveClauseContainer::popSelected()
 
 bool NeuralPassiveClauseContainer::setLimits(float newLimit)
 {
-  bool thighened = newLimit < _curLimit;
+  bool tighened = newLimit > _curLimit;
   _curLimit = newLimit;
-  return thighened;
+  return tighened;
 }
 
 void NeuralPassiveClauseContainer::simulationInit()
