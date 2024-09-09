@@ -40,7 +40,7 @@ private:
   struct LoadedPiece {
     std::string _id;
     UnitList::FIFO _units;
-    SMTLIBLogic _smtLibLogic = SMT_UNDEFINED;
+    SMTLIBLogic _smtLibLogic = SMTLIBLogic::UNDEFINED;
     bool _hasConjecture = false;
   };
   static Stack<LoadedPiece> _loadedPieces;

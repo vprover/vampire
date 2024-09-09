@@ -360,7 +360,10 @@ public:
       }
     }
     if(!sorted) {
-      sort<DefaultComparator>(is.begin(), is.end());
+      std::sort(
+        is.begin(), is.end(),
+        [](const T &l, const T &r) -> bool { return DefaultComparator::compare(l, r) == LESS; }
+      );
       unique = false; //maybe they are unique, we just need to check
     }
     if(!unique) {

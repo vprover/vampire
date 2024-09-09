@@ -24,7 +24,6 @@
 #include <new>
 
 #include "Debug/Assertion.hpp"
-#include "Portability.hpp"
 
 /*
  * uncomment the following to use Valgrind more profitably
@@ -34,25 +33,18 @@
 // #define INDIVIDUAL_ALLOCATIONS
 
 namespace Lib {
-
-// get the amount of memory used by global operator new so far
-size_t getUsedMemory();
-
-// get the memory limit for global operator new
-size_t getMemoryLimit();
-// set the memory limit for global operator new
+// attempt to set a memory limit for this process by system call
 void setMemoryLimit(size_t bytes);
-
 }
 
 #ifdef INDIVIDUAL_ALLOCATIONS
 namespace Lib {
 inline void *alloc(size_t size, size_t align = alignof(std::max_align_t)) {
-  return ::operator new(size, (std::max_align_t)align);
+  return ::operator new(size, (std::align_val_t)align);
 }
 
 inline void free(void *pointer, size_t size, size_t align = alignof(std::max_align_t)) {
-  ::operator delete(pointer);
+  ::operator delete(pointer, (std::align_val_t)align);
 }
 } // namespace Lib
 #define USE_GLOBAL_SMALL_OBJECT_ALLOCATOR(C)
@@ -215,7 +207,7 @@ public:
     if(size <= 8 * sizeof(void *))
       return FSA8.free(pointer);
 
-    ::operator delete(pointer, size, (std::align_val_t)align);
+    ::operator delete(pointer, (std::align_val_t)align);
   }
 
 private:

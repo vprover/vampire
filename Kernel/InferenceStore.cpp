@@ -21,7 +21,6 @@
 #include "Lib/Stack.hpp"
 #include "Lib/StringUtils.hpp"
 #include "Lib/ScopedPtr.hpp"
-#include "Lib/Sort.hpp"
 
 #include "Shell/LaTeX.hpp"
 #include "Shell/Options.hpp"
@@ -184,14 +183,6 @@ std::string getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
   return getQuantifiedStr(vars, res, t_map);
 }
 
-struct UnitNumberComparator
-{
-  static Comparison compare(Unit* u1, Unit* u2)
-  {
-    return Int::compare(u1->number(), u2->number());
-  }
-};
-
 struct InferenceStore::ProofPrinter
 {
   ProofPrinter(ostream& out, InferenceStore* is)
@@ -290,7 +281,10 @@ protected:
   void printDelayed()
   {
     // Sort
-    sort<UnitNumberComparator>(delayed.begin(),delayed.end());
+    sort(
+      delayed.begin(), delayed.end(),
+      [](Unit *u1, Unit *u2) -> bool { return u1->number() < u2->number(); }
+    );
 
     // Print
     for(unsigned i=0;i<delayed.size();i++){

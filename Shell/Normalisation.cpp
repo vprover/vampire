@@ -60,14 +60,17 @@ UnitList* Normalisation::normalise (UnitList* units)
   unsigned length = UnitList::length(units);
 
   // more than one literal
-  Sort<Unit*,Normalisation> srt(length,*this);
+  std::vector<Unit *> srt;
   UnitList::Iterator us(units);
   while (us.hasNext()) {
     Unit* unit = us.next();
     normalise(unit);
-    srt.add(unit);
+    srt.push_back(unit);
   }
-  srt.sort();
+  sort(
+    srt.begin(), srt.end(),
+    [this](Unit *u1, Unit *u2) -> bool { return lessThan(u1, u2); }
+  );
   UnitList* result = UnitList::empty();
   for (int k = length-1;k >= 0;k--) {
     result = new UnitList(srt[k],result);
@@ -96,11 +99,15 @@ void Normalisation::normalise (Unit* unit)
   }
 
   // more than one literal
-  Sort<Literal*,Normalisation> srt(length,*this);
+  std::vector<Literal *> srt;
   for (int i = 0;i < length;i++) {
-    srt.add(clause[i]);
+    srt.push_back(clause[i]);
   }
-  srt.sort();
+
+  sort(
+    srt.begin(), srt.end(),
+    [this](Literal *l, Literal *k) -> bool { return lessThan(l, k); }
+  );
   for (int i=0;i < length;i++) {
     clause[i] = srt[i];
   }
