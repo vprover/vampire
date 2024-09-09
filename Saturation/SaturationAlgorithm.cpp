@@ -89,6 +89,7 @@
 #include "Inferences/CasesSimp.hpp"
 #include "Inferences/Cases.hpp"
 #include "Inferences/DefinitionIntroduction.hpp"
+#include "Inferences/SubsumptionDemodulationHelper.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -542,6 +543,7 @@ void SaturationAlgorithm::onNonRedundantClause(Clause* c)
   if (_symEl) {
     _symEl->onNonRedundantClause(c);
   }
+
 }
 
 /**
@@ -1133,6 +1135,23 @@ void SaturationAlgorithm::activate(Clause* cl)
 
     _selector->select(cl);
   }
+
+  static DHSet<Clause *> clauses;
+  DHSet<Clause *>::Iterator it(clauses);
+  std::cout << cl->toString() << '\n';
+  while(it.hasNext()) {
+    Clause *other = it.next();
+    if(Inferences::SDHelper::clauseCompare(
+      other->literals(),
+      other->length(),
+      cl->literals(),
+      cl->length(),
+      *_ordering
+    ) == Inferences::SDHelper::ClauseComparisonResult::Smaller)
+      std::cout << "smaller: " << other->toString() << '\n';
+  }
+  std::cout << "------------------------------------------\n";
+  clauses.insert(cl);
 
   ASS_EQ(cl->store(), Clause::SELECTED);
   cl->setStore(Clause::ACTIVE);

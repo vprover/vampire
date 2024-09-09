@@ -276,7 +276,7 @@ class SDHelper
     static Clause* generateSubsumptionResolutionClause(Clause* cl, Literal* resLit, Clause* mcl);
 
 #if VDEBUG  // these function are slow and should only be used in debug mode
-  private:
+  //private:
     enum class ClauseComparisonResult
     {
       Smaller,
