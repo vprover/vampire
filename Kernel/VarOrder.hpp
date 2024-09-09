@@ -31,11 +31,11 @@ public:
   size_t rel_size() const;
   bool subseteq(const VarOrder& other) const;
 
-  static DHMap<std::tuple<const VarOrder*,unsigned,unsigned>,const VarOrder*> _eqBank;
-  static DHMap<std::tuple<const VarOrder*,unsigned,unsigned>,const VarOrder*> _gtBank;
+  static DHMap<std::pair<const VarOrder*,Edge>,const VarOrder*> _bank;
   static const VarOrder* get_empty();
   static const VarOrder* add_gt(const VarOrder* vo, unsigned x, unsigned y);
   static const VarOrder* add_eq(const VarOrder* vo, unsigned x, unsigned y);
+  static const VarOrder* add_edge(const VarOrder* vo, Edge e);
   static const VarOrder* tryExtendWith(const VarOrder* vo, const VarOrder* other);
 
   class EqApplicator
@@ -55,6 +55,7 @@ public:
 private:
   bool add_gt(unsigned x, unsigned y);
   bool add_eq(unsigned x, unsigned y);
+  bool add_edge(Edge e);
   bool tryExtendWith(const VarOrder& other);
 
   PartialOrdering<unsigned> _po;

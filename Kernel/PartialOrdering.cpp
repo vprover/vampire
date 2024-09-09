@@ -536,18 +536,17 @@ string PartialOrdering<T>::to_string_raw() const
 template<typename T>
 VirtualIterator<std::tuple<T,T,PoComp>> PartialOrdering<T>::iter_relations() const
 {
-  ASSERTION_VIOLATION;
-  // auto res = VirtualIterator<std::tuple<T,T,PoComp>>::getEmpty();
-  // for (size_t idx_x = 0; idx_x < _size; idx_x++) {
-  //   for (size_t idx_y = idx_x+1; idx_y < _size; idx_y++) {
-  //     auto v = idx_of(idx_x,idx_y);
-  //     if (v == PoComp::INCOMPARABLE) {
-  //       continue;
-  //     }
-  //     res = pvi(getConcatenatedIterator(res,pvi(getSingletonIterator(make_tuple(_inverse.get(idx_x),_inverse.get(idx_y),v)))));
-  //   }
-  // }
-  // return res;
+  auto res = VirtualIterator<std::tuple<T,T,PoComp>>::getEmpty();
+  for (size_t idx_x = 0; idx_x < _size; idx_x++) {
+    for (size_t idx_y = idx_x+1; idx_y < _size; idx_y++) {
+      auto v = idx_of(idx_x,idx_y);
+      if (v == PoComp::INCOMPARABLE) {
+        continue;
+      }
+      res = pvi(concatIters(res,pvi(getSingletonIterator(make_tuple(_inverse.get(idx_x),_inverse.get(idx_y),v)))));
+    }
+  }
+  return res;
 }
 
 template<typename T>

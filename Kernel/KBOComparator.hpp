@@ -18,6 +18,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/Stack.hpp"
+#include "Kernel/VarOrder.hpp"
 
 #include "KBO.hpp"
 
@@ -39,6 +40,7 @@ public:
   /** Executes the runtime specialized instructions with concrete substitution. */
   bool check(const SubstApplicator* applicator) const;
   std::string toString() const override;
+  bool extractVarOrders(const VarOrder* base, Stack<const VarOrder*>& vos) const;
 
 private:
   enum InstructionTag {

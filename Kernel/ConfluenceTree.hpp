@@ -30,52 +30,94 @@ public:
     deleteNode(root);
   }
 
-  void add(const VarOrder& vo) {
-    auto tr = vo.transitive_reduction();
+  void add(const VarOrder* vo) {
     // the location where we should add new nodes
-    Node** prevPtr = &root;
-    DHSet<Edge> done;
-    auto curr = root;
-    while (curr) {
-      if (curr->success) {
-        // entirely covered, we can return
-        return;
-      }
-      auto c = vo.query(curr->x, curr->y);
-      auto i = Node::branchIndex(c);
-      if (c != PoComp::INCOMPARABLE) {
-        Edge e;
-        e.c = c;
-        e.x = curr->x;
-        e.y = curr->y;
-        done.insert(e);
+    struct State {
+      const VarOrder* toAdd;
+      const VarOrder* prefix;
+      Node* node;
+      Node* prev;
+      unsigned prevIndex;
+    };
 
-        e.c = Ordering::reverse(c);
-        e.x = curr->y;
-        e.y = curr->x;
-        done.insert(e);
-      }
-      prevPtr = &curr->branches[i];
-      curr = curr->branches[i];
-    }
+    Stack<State> todo;
+    todo.push({ vo, VarOrder::get_empty(), root, nullptr, 0 });
 
-    while (tr) {
-      auto edge = tr->head();
-      if (done.contains(edge)) {
-        tr = tr->tail();
+    while (todo.isNonEmpty()) {
+      auto st = todo.pop();
+
+      if (!st.node) {
+        // insert here
+        DHSet<Edge> done;
+        auto prevTr = st.prefix->transitive_reduction();
+        while (prevTr) {
+          done.insert(prevTr->head());
+          prevTr = prevTr->tail();
+        }
+        auto tr = st.toAdd->transitive_reduction();
+        while (tr) {
+          auto edge = tr->head();
+          if (done.contains(edge)) {
+            tr = tr->tail();
+            continue;
+          }
+          auto curr = new Node();
+          curr->x = edge.x;
+          curr->y = edge.y;
+          st.prefix = VarOrder::add_edge(st.prefix,edge);
+
+          if (st.prev) {
+            st.prev->branches[st.prevIndex] = curr;
+          } else {
+            root = curr;
+          }
+          st.prev = curr;
+          st.prevIndex = Node::branchIndex(edge.c);
+          tr = tr->tail();
+        }
+        auto successNode = new Node();
+        successNode->success = true;
+        st.prev->branches[st.prevIndex] = successNode;
         continue;
-      } 
-      auto curr = new Node();
-      curr->x = edge.x;
-      curr->y = edge.y;
+      }
 
-      *prevPtr = curr;
-      prevPtr = &curr->branches[Node::branchIndex(edge.c)];
-      tr = tr->tail();
+      if (st.node->success) {
+        // this branch is covered, done
+        continue;
+      }
+      auto c = st.toAdd->query(st.node->x, st.node->y);
+      // check if we intersect with current node
+      if (c != PoComp::INCOMPARABLE) {
+        auto i = Node::branchIndex(c);
+        auto prefix = VarOrder::add_edge(st.prefix,Edge{st.node->x,st.node->y,c});
+        todo.push({ st.toAdd, prefix, st.node->branches[i], st.node, i });
+      } else {
+        { // GREATER
+          auto ext = VarOrder::add_gt(st.toAdd, st.node->x, st.node->y);
+          auto prefix = VarOrder::add_gt(st.prefix, st.node->x, st.node->y);
+          if (ext) {
+            todo.push({ ext, prefix, st.node->branches[0], st.node, 0 });
+          }
+        }
+        { // LESS
+          auto ext = VarOrder::add_gt(st.toAdd, st.node->y, st.node->x);
+          auto prefix = VarOrder::add_gt(st.prefix, st.node->y, st.node->x);
+          if (ext) {
+            todo.push({ ext, prefix, st.node->branches[1], st.node, 1 });
+          }
+        }
+        { // EQUAL
+          auto ext = VarOrder::add_eq(st.toAdd, st.node->x, st.node->y);
+          auto prefix = VarOrder::add_eq(st.prefix, st.node->x, st.node->y);
+          if (ext) {
+            todo.push({ ext, prefix, st.node->branches[2], st.node, 2 });
+          }
+        }
+        { // INCOMPARABLE
+          todo.push({ st.toAdd, st.prefix, st.node->branches[3], st.node, 3 });
+        }
+      }
     }
-    auto successNode = new Node();
-    successNode->success = true;
-    *prevPtr = successNode;
   }
 
   bool evaluate(const Ordering* ord, const SubstApplicator* applicator) const

@@ -31,6 +31,24 @@ bool VarOrder::add_eq(unsigned x, unsigned y)
   return _po.set(x, y, PoComp::EQUAL);
 }
 
+bool VarOrder::add_edge(Edge e)
+{
+  if (e.c == PoComp::EQUAL) {
+    if (!add_eq(e.x,e.y)) {
+      return false;
+    }
+  } else if (e.c == PoComp::GREATER) {
+    if (!add_gt(e.x,e.y)) {
+      return false;
+    }
+  } else if (e.c == PoComp::LESS) {
+    if (!add_gt(e.y,e.x)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 PoComp VarOrder::query(unsigned x, unsigned y) const
 {
   return _po.get(x, y);
@@ -81,18 +99,8 @@ bool VarOrder::tryExtendWith(const VarOrder& other)
   auto tr = other.transitive_reduction();
   while (List<Edge>::isNonEmpty(tr)) {
     auto e = tr->head();
-    if (e.c == PoComp::EQUAL) {
-      if (!add_eq(e.x,e.y)) {
-        return false;
-      }
-    } else if (e.c == PoComp::GREATER) {
-      if (!add_gt(e.x,e.y)) {
-        return false;
-      }
-    } else if (e.c == PoComp::LESS) {
-      if (!add_gt(e.y,e.x)) {
-        return false;
-      }
+    if (!add_edge(e)) {
+      return false;
     }
     tr = tr->tail();
   }
@@ -193,8 +201,7 @@ Stack<const VarOrder*> VarOrder::order_diff_nonrecursive(const VarOrder* vo, con
   return res;
 }
 
-DHMap<tuple<const VarOrder*,unsigned,unsigned>,const VarOrder*> VarOrder::_eqBank;
-DHMap<tuple<const VarOrder*,unsigned,unsigned>,const VarOrder*> VarOrder::_gtBank;
+DHMap<pair<const VarOrder*,Edge>,const VarOrder*> VarOrder::_bank;
 
 const VarOrder* VarOrder::get_empty()
 {
@@ -206,7 +213,7 @@ const VarOrder* VarOrder::add_gt(const VarOrder* vo, unsigned x, unsigned y)
 {
   // cout << "querying " << vo->to_string() << " " << x << " > " << y << endl;
   const VarOrder** ptr;
-  if (!_gtBank.getValuePtr(make_tuple(vo,x,y),ptr)) {
+  if (!_bank.getValuePtr(make_pair(vo,Edge{x,y,PoComp::GREATER}),ptr)) {
     return *ptr;
   }
   if (vo->query(x,y)==PoComp::GREATER) {
@@ -227,7 +234,7 @@ const VarOrder* VarOrder::add_eq(const VarOrder* vo, unsigned x, unsigned y)
 {
   // cout << "querying " << vo->to_string() << " " << x << " = " << y << endl;
   const VarOrder** ptr;
-  if (!_eqBank.getValuePtr(make_tuple(vo,x,y),ptr)) {
+  if (!_bank.getValuePtr(make_pair(vo,Edge{x,y,PoComp::EQUAL}),ptr)) {
     return *ptr;
   }
   if (vo->query(x,y)==PoComp::EQUAL) {
@@ -236,6 +243,26 @@ const VarOrder* VarOrder::add_eq(const VarOrder* vo, unsigned x, unsigned y)
   }
   auto res = new VarOrder(*vo);
   if (!res->add_eq(x,y)) {
+    delete res;
+    *ptr = nullptr;
+  } else {
+    *ptr = res;
+  }
+  return *ptr;
+}
+
+const VarOrder* VarOrder::add_edge(const VarOrder* vo, Edge e)
+{
+  const VarOrder** ptr;
+  if (!_bank.getValuePtr(make_pair(vo,e),ptr)) {
+    return *ptr;
+  }
+  if (vo->query(e.x,e.y)==e.c) {
+    *ptr = vo;
+    return vo;
+  }
+  auto res = new VarOrder(*vo);
+  if (!res->add_edge(e)) {
     delete res;
     *ptr = nullptr;
   } else {

@@ -249,9 +249,12 @@ std::string KBOComparator::toString() const
 
   unsigned cnt = 1;
   for (unsigned i = 0; i < _instructions.size();) {
+    if (cnt>1) {
+      str << ",";
+    }
     switch (static_cast<InstructionTag>(_instructions[i]._tag())) {
       case InstructionTag::SUCCESS: {
-        str << Int::toString(cnt++) << " success" << endl;
+        str << Int::toString(cnt++) << " success";
         i += 1;
         break;
       }
@@ -267,14 +270,13 @@ std::string KBOComparator::toString() const
 
           str << " w(X" << Int::toString(var) << ")*" << Int::toString(coeff);
         }
-        str << endl;
         i += 1+arity;
         break;
       }
       case InstructionTag::COMPARE_VV: {
         auto v1 = _instructions[i]._firstUint();
         auto v2 = _instructions[i]._secondUint();
-        str << Int::toString(cnt++) << " compare X" << Int::toString(v1) << " X" << Int::toString(v2) << endl;
+        str << Int::toString(cnt++) << " compare X" << Int::toString(v1) << " X" << Int::toString(v2);
         i++;
         break;
       }
@@ -282,7 +284,7 @@ std::string KBOComparator::toString() const
         ASS(_instructions[i+1]._tag()==InstructionTag::DATA);
         auto v1 = _instructions[i]._firstUint();
         auto t2 = _instructions[i+1]._term();
-        str << Int::toString(cnt++) << " compare X" << Int::toString(v1) << " " << *t2 << endl;
+        str << Int::toString(cnt++) << " compare X" << Int::toString(v1) << " " << *t2;
         i += 2;
         break;
       }
@@ -290,7 +292,7 @@ std::string KBOComparator::toString() const
         ASS(_instructions[i+1]._tag()==InstructionTag::DATA);
         auto t1 = _instructions[i+1]._term();
         auto v2 = _instructions[i]._firstUint();
-        str << Int::toString(cnt++) << " compare " << *t1 << " X" << Int::toString(v2) << endl;
+        str << Int::toString(cnt++) << " compare " << *t1 << " X" << Int::toString(v2);
         i += 2;
         break;
       }
@@ -298,9 +300,35 @@ std::string KBOComparator::toString() const
         ASSERTION_VIOLATION;
     }
   }
-  str << endl;
   return str.str();
 }
 
+bool KBOComparator::extractVarOrders(const VarOrder* base, Stack<const VarOrder*>& vos) const
+{
+  for (unsigned i = 0; i < _instructions.size();) {
+    switch (static_cast<InstructionTag>(_instructions[i]._tag())) {
+      case InstructionTag::COMPARE_VV: {
+        auto gt = VarOrder::add_gt(base,_instructions[i]._firstUint(),_instructions[i]._secondUint());
+        if (gt) {
+          vos.push(gt);
+        }
+        base = VarOrder::add_eq(base,_instructions[i]._firstUint(),_instructions[i]._secondUint());
+        if (base) {
+          i++;
+          break;
+        }
+        return false;
+      }
+      case InstructionTag::SUCCESS: {
+        vos.push(base);
+        return true;
+      }
+      default: {
+        return false;
+      }
+    }
+  }
+  return true;
+}
 
 }
