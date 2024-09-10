@@ -6,13 +6,15 @@ A port of SPASS-XDB to Vampire for use with SUMO.  The first step is to replicat
 Three directories below this one are
   - problems - TPTP language problem files with the new 'external' formula tag.
   - scripts - programs invoked from the 'external' tag
-  - db - for sample databases that can be accessed from the scripts
+  - db - for sample databases that can be accessed from the scripts.  Currently just
+     has small sample data that needs to be expanded with YAGO content for proper performance
+     testing
 
 
 ### Test Problems
   - `problems/composer.tff` - working
   - `problems/capitalCity.p` - working
-  - `Lincoln.p`
+  - `Lincoln.p` - working
   - `problems/curie.p` - not tested
   - `problems/flood.p` - not tested
 
