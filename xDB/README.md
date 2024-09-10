@@ -5,7 +5,7 @@ A port of SPASS-XDB to Vampire for use with SUMO.  The first step is to replicat
 
 Three directories below this one are
   - problems - TPTP language problem files with the new 'external' formula tag.
-  - scripts - programs invoked from the 'extenal' tag
+  - scripts - programs invoked from the 'external' tag
   - db - for sample databases that can be accessed from the scripts
 
 
@@ -21,7 +21,8 @@ Three directories below this one are
   - compile vampire XDB - check out the martin-XDB branch then compiles as usual with cmake and make
   - set `$XDB` environment variable to point to your local vampire github repository plus `/xDB`
   - run vampire with options '~/workspace/vampire/vampire-xdb --input_syntax tptp -qa plain -tha off -s 0 $XDB/problems/composer.tff'
-
+  - problems that make heavy use of arithmetic may benefit from the options
+    `--decode lrs+10_1:1_canc=force:tha=some:to=lpo_10`
 
 ## Examples
 ```
