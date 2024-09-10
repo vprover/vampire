@@ -33,13 +33,13 @@
 namespace Test {
 
 #define TEST_FN_ASS_EQ(VAL1, VAL2)                         \
-  [] (vstring& s1, vstring& s2) {                          \
+  [] (std::string& s1, std::string& s2) {                          \
     bool res = (VAL1 == VAL2);                             \
     if (!res) {                                            \
       s1 = Int::toString(VAL1);                            \
       s1.append(" != ");                                   \
       s1.append(Int::toString(VAL2));                      \
-      s2 = vstring(#VAL1);                                 \
+      s2 = std::string(#VAL1);                                 \
       s2.append(" == ");                                   \
       s2.append(#VAL2);                                    \
     }                                                      \
@@ -63,6 +63,7 @@ class TestCase;
 template<class Rule>
 class GenerationTester
 {
+protected:
   Rule _rule;
 
 public:
@@ -79,14 +80,15 @@ public:
 class TestCase
 {
   using Clause = Kernel::Clause;
-  using OptionMap = Stack<std::pair<vstring,vstring>>;
-  using Condition = std::function<bool(vstring&, vstring&)>;
+  using OptionMap = Stack<std::pair<std::string,std::string>>;
+  using Condition = std::function<bool(std::string&, std::string&)>;
   Option<SimplifyingGeneratingInference*> _rule;
   Clause* _input;
   Stack<ClausePattern> _expected;
   Stack<Clause*> _context;
   bool _premiseRedundant;
   Stack<Indexing::Index*> _indices;
+  std::function<void(SaturationAlgorithm&)> _setup = [](SaturationAlgorithm&){};
   OptionMap _options;
   Stack<Condition> _preConditions;
   Stack<Condition> _postConditions;
@@ -114,11 +116,12 @@ public:
   }                                                                                                           \
 
   BUILDER_METHOD(Clause*, input)
-  BUILDER_METHOD(Stack<Clause*>, context)
+  BUILDER_METHOD(ClauseStack, context)
   BUILDER_METHOD(Stack<ClausePattern>, expected)
   BUILDER_METHOD(bool, premiseRedundant)
   BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
   BUILDER_METHOD(Stack<Indexing::Index*>, indices)
+  BUILDER_METHOD(std::function<void(SaturationAlgorithm&)>, setup)
   BUILDER_METHOD(OptionMap, options)
   BUILDER_METHOD(Stack<Condition>, preConditions)
   BUILDER_METHOD(Stack<Condition>, postConditions)
@@ -128,14 +131,21 @@ public:
 
     // set up saturation algorithm
     auto container = PlainClauseContainer();
+
+    // init problem
     Problem p;
-    Options o;
+    auto ul = UnitList::empty();
+    UnitList::pushFromIterator(ClauseStack::Iterator(_context), ul);
+    p.addUnits(ul);
     env.setMainProblem(&p);
+
+    Options o;
     for (const auto& kv : _options) {
       o.set(kv.first, kv.second);
       env.options->set(kv.first, kv.second);
     }
     MockedSaturationAlgorithm alg(p, o);
+    _setup(alg);
     SimplifyingGeneratingInference& rule = *_rule.unwrapOrElse([&](){ return &simpl._rule; });
     rule.setTestIndices(_indices);
     rule.InferenceEngine::attach(&alg);
@@ -150,7 +160,7 @@ public:
     }
 
     // check that the preconditions hold
-    vstring s1, s2;
+    std::string s1, s2;
     for (auto c : _preConditions) {
       if (!c(s1, s2)) {
         s2.append(" (precondition)");
@@ -172,7 +182,7 @@ public:
     }
 
     if (_premiseRedundant != res.premiseRedundant) {
-      auto wrapStr = [](bool b) -> vstring { return b ? "premise is redundant" : "premise is not redundant"; };
+      auto wrapStr = [](bool b) -> std::string { return b ? "premise is redundant" : "premise is not redundant"; };
       testFail( wrapStr(res.premiseRedundant), wrapStr(_premiseRedundant));
     }
 

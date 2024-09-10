@@ -20,8 +20,8 @@
 #include <type_traits>
 
 #include "Forwards.hpp"
-#include "VString.hpp"
 #include "Kernel/Unit.hpp"
+#include "Lib/Option.hpp"
 
 // the 32-bit FNV prime
 static const unsigned FNV32_PRIME = 16777619;
@@ -93,9 +93,8 @@ struct StackHash {
   // TODO equals()?
   template<typename T>
   static unsigned hash(const Stack<T>& s, unsigned hash = FNV32_OFFSET_BASIS) {
-    typename Stack<T>::ConstIterator it(s);
-    while(it.hasNext()) {
-      hash = HashUtils::combine(hash, ElementHash::hash(it.next()));
+    for (auto& x : s) {
+      hash = HashUtils::combine(hash, ElementHash::hash(x));
     }
     return hash;
   }
@@ -113,6 +112,14 @@ struct VectorHash {
     }
     return res;
   }
+};
+
+template<class InnerHash> 
+struct TupleHash 
+{
+  template<typename... T>
+  static unsigned hash(std::tuple<T...> const& s) 
+  { return std::apply([](auto... args) { return HashUtils::combine(InnerHash::hash(args)...); }, s); }
 };
 
 /**
@@ -133,8 +140,7 @@ public:
   template<typename T>
   static typename std::enable_if<
     std::is_same<
-      //C++17: repace with std::invoke_result
-      typename std::result_of<decltype(&T::defaultHash)(T)>::type,
+      typename std::invoke_result<decltype(&T::defaultHash), T>::type,
       unsigned
     >::value,
     unsigned
@@ -177,8 +183,8 @@ public:
     );
   }
 
-  // vstrings hash the underlying C-style string
-  static unsigned hash(const vstring& str)
+  // strings hash the underlying C-style string
+  static unsigned hash(const std::string& str)
   { return DefaultHash::hashNulTerminated(str.c_str()); }
 
   // dispatch to VectorHash<DefaultHash>
@@ -200,6 +206,7 @@ public:
     );
   }
 
+
   /**
    * FNV-1a with initial value @b hash.
    * @since 31/03/2006
@@ -215,6 +222,17 @@ public:
     return hash;
   }
 
+  template<class Iter>
+  static unsigned hashIter(
+      Iter iter,
+      unsigned hash = FNV32_OFFSET_BASIS
+      ) {
+    while (iter.hasNext()) {
+      hash = (hash ^ iter.next()) * FNV32_PRIME;
+    }
+    return hash;
+  }
+
   /**
    * FNV-1a applied to a NUL-terminated C-style string
    */
@@ -226,6 +244,17 @@ public:
     }
     return hash;
   }
+
+
+
+  template<typename... T>
+  static unsigned hash(std::tuple<T...> const& s) 
+  { return TupleHash<DefaultHash>::hash(s); }
+
+  template<typename T>
+  static unsigned hash(Lib::Option<T> const& o) 
+  { return o.isSome() ? Lib::DefaultHash::hash(*o)
+                      : Lib::DefaultHash::hash(0); }
 };
 
 // a default secondary hash for doubly-hashed containers
@@ -237,8 +266,7 @@ public:
   template<typename T>
   static typename std::enable_if<
     std::is_same<
-      //C++17: repace with std::invoke_result
-      typename std::result_of<decltype(&T::defaultHash2)(T)>::type,
+      typename std::invoke_result<decltype(&T::defaultHash2), T>::type,
       unsigned
     >::value,
     unsigned
@@ -246,7 +274,7 @@ public:
     return ref.defaultHash2();
   }
 
-  // special-case for Units (and their descendants) as they have a unique incrementing identifier  
+  // special-case for Units (and their descendants) as they have a unique incrementing identifier
   template<typename T>
   static typename std::enable_if<
     std::is_base_of<Kernel::Unit, T>::value,
@@ -271,8 +299,8 @@ public:
     return static_cast<unsigned>(val);
   }
 
-  // vstrings use their length
-  static unsigned hash(const vstring &str) {
+  // strings use their length
+  static unsigned hash(const std::string &str) {
     return str.length();
   }
 
@@ -294,6 +322,14 @@ public:
       DefaultHash2::hash(pp.second)
     );
   }
+  template<typename... T>
+  static unsigned hash(std::tuple<T...> const& s) 
+  { return TupleHash<DefaultHash2>::hash(s); }
+
+  template<typename T>
+  static unsigned hash(Lib::Option<T> const& o) 
+  { return o.isSome() ? Lib::DefaultHash2::hash(*o)
+                      : Lib::DefaultHash2::hash(0); }
 };
 
 } // namespace Lib
@@ -306,6 +342,12 @@ template<class T> struct hash<Lib::Stack<T>>
   { return Lib::StackHash<Lib::StlHash>::hash(s); }
 };
 
-}
+
+template<class... T> struct hash<std::tuple<T...>> 
+{
+  size_t operator()(std::tuple<T...> const& s) const 
+  { return Lib::DefaultHash::hash(s); }
+};
+} // std
 
 #endif

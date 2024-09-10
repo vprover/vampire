@@ -20,14 +20,17 @@
 
 namespace CASC {
 
-typedef Lib::Stack<Lib::vstring> Schedule;
+typedef Lib::Stack<std::string> Schedule;
 
 class Schedules
 {
 public:
-  static void getScheduleFromFile(const vstring& filename, Schedule& quick);
-  
+  static void getScheduleFromFile(const std::string& filename, Schedule& quick);
+
   static void getHigherOrderSchedule2020(Schedule& quick, Schedule& fallback);
+
+  static void getCasc2024Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
+  static void getCascSat2024Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
 
   static void getCasc2023Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
   static void getCascSat2023Schedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
@@ -45,7 +48,9 @@ public:
 
   static void getInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
   static void getIntegerInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
+  static void getIntindOeisSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
   static void getStructInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
+  static void getStructInductionTipSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback);
 
   static void getSnakeTptpUnsSchedule(const Shell::Property& property, Schedule& quick);
   static void getSnakeTptpSatSchedule(const Shell::Property& property, Schedule& quick);

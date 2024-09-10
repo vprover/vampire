@@ -34,6 +34,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/MainLoop.hpp"
 
+#include "Shell/ConditionalRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/Shuffling.hpp"
@@ -56,7 +57,6 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
-
 /////////////////////////////
 // SplittingBranchSelector
 //
@@ -69,7 +69,7 @@ void SplittingBranchSelector::init()
   switch(_parent.getOptions().satSolver()){
     case Options::SatSolver::MINISAT:
       _solver = new MinisatInterfacing(_parent.getOptions(),true);
-      break;      
+      break;
 #if VZ3
     case Options::SatSolver::Z3:
       {
@@ -326,10 +326,10 @@ SATSolver::VarAssignment SplittingBranchSelector::getSolverAssimentConsideringCC
 
     if (lit && lit->isEquality() && lit->ground()) {
       if (_trueInCCModel.find(var)) {
-        ASS(_solver->getAssignment(var) != SATSolver::FALSE || var > lastCheckedVar);
+        ASS(_solver->getAssignment(var) != SATSolver::VarAssignment::FALSE || var > lastCheckedVar);
         // only a newly introduced variable can be false in the SATSolver for no good reason
 
-        return SATSolver::TRUE;
+        return SATSolver::VarAssignment::TRUE;
       }
       // else we can force neither FALSE not DONT_CARE here, because
       // the former could introduce a disequality that shouldn't be in FO anymore
@@ -352,10 +352,10 @@ int SplittingBranchSelector::assertedGroundPositiveEqualityCompomentMaxAge()
   unsigned maxSatVar = _parent.maxSatVar();
   for(unsigned i=1; i<=maxSatVar; i++) {
     SATSolver::VarAssignment asgn = _solver->getAssignment(i);
-    if(asgn==SATSolver::DONT_CARE) {
+    if(asgn==SATSolver::VarAssignment::DONT_CARE) {
       continue;
     }
-    SATLiteral sl(i, asgn==SATSolver::TRUE);
+    SATLiteral sl(i, asgn==SATSolver::VarAssignment::TRUE);
     SplitLevel name = _parent.getNameFromLiteral(sl);
     if (!_parent.isUsedName(name)) {
       continue;
@@ -382,7 +382,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
   // ASS(_solver->getStatus()==SATSolver::SATISFIABLE);
 
   if(!_dp) {
-    return SATSolver::SATISFIABLE;
+    return SATSolver::Status::SATISFIABLE;
   }
   
   SAT2FO& s2f = _parent.satNaming();
@@ -426,8 +426,8 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
     {
       TIME_TRACE(TimeTrace::AVATAR_SAT_SOLVER);
       
-      if (_solver->solve() == SATSolver::UNSATISFIABLE) {
-        return SATSolver::UNSATISFIABLE;
+      if (_solver->solve() == SATSolver::Status::UNSATISFIABLE) {
+        return SATSolver::Status::UNSATISFIABLE;
       }
     }
   }
@@ -501,19 +501,19 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
     }
   }
   
-  return SATSolver::SATISFIABLE;
+  return SATSolver::Status::SATISFIABLE;
 }
 
 void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAssignment asgn,
     SplitLevelStack& addedComps, SplitLevelStack& removedComps)
 {
-  ASS_NEQ(asgn, SATSolver::NOT_KNOWN); //we always do full SAT solving, so there shouldn't be unknown variables
+  ASS_NEQ(asgn, SATSolver::VarAssignment::NOT_KNOWN); //we always do full SAT solving, so there shouldn't be unknown variables
 
   SplitLevel posLvl = _parent.getNameFromLiteral(SATLiteral(satVar, true));
   SplitLevel negLvl = _parent.getNameFromLiteral(SATLiteral(satVar, false));
 
   switch(asgn) {
-  case SATSolver::TRUE: 
+  case SATSolver::VarAssignment::TRUE:
     if(!_selected.find(posLvl) && _parent.isUsedName(posLvl)) {
       _selected.insert(posLvl);
       addedComps.push(posLvl);
@@ -523,7 +523,7 @@ void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAss
       removedComps.push(negLvl);
     }
     break;
-  case SATSolver::FALSE:    
+  case SATSolver::VarAssignment::FALSE:
     if(!_selected.find(negLvl) && _parent.isUsedName(negLvl)) {
       _selected.insert(negLvl);
       addedComps.push(negLvl);
@@ -533,7 +533,7 @@ void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAss
       removedComps.push(posLvl);
     }
     break;
-  case SATSolver::DONT_CARE:
+  case SATSolver::VarAssignment::DONT_CARE:
     if(_eagerRemoval) {
       if(_selected.find(posLvl)) {
         _selected.remove(posLvl);
@@ -582,17 +582,17 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
     }
     stat = _solver->solve();
   }
-  if (stat == SATSolver::SATISFIABLE) {
+  if (stat == SATSolver::Status::SATISFIABLE) {
     stat = processDPConflicts();
   }
-  if(stat == SATSolver::UNSATISFIABLE) {
+  if(stat == SATSolver::Status::UNSATISFIABLE) {
     handleSatRefutation(); // noreturn!
   }
-  if(stat == SATSolver::UNKNOWN){
+  if(stat == SATSolver::Status::UNKNOWN){
     env.statistics->smtReturnedUnknown=true;
     throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
   }
-  ASS_EQ(stat,SATSolver::SATISFIABLE);
+  ASS_EQ(stat,SATSolver::Status::SATISFIABLE);
 
   for(unsigned i=1; i<=maxSatVar; i++) {
     SATSolver::VarAssignment asgn = getSolverAssimentConsideringCCModel(i);
@@ -602,7 +602,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
      * A bug report / feature request has been sent to the z3 people, but this will make us stay sound in release mode.
      * (While violating an assertion in debug - see getAssignment in Z3Interfacing).
      */
-    if (asgn == SATSolver::NOT_KNOWN) {
+    if (asgn == SATSolver::VarAssignment::NOT_KNOWN) {
       env.statistics->smtDidNotEvaluate=true;
       throw MainLoop::MainLoopFinishedException(Statistics::REFUTATION_NOT_FOUND);
     }
@@ -615,7 +615,7 @@ void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitL
 // Splitter
 //////////////
 
-vstring Splitter::splPrefix = "";
+std::string Splitter::splPrefix = "";
 
 Splitter::Splitter()
 : _deleteDeactivated(Options::SplittingDeleteDeactivated::ON), _branchSelector(*this),
@@ -675,13 +675,21 @@ void Splitter::init(SaturationAlgorithm* sa)
 #endif
 
   if (opts.splittingAvatimer() < 1.0) {
-    _stopSplittingAtTime = opts.splittingAvatimer() * opts.timeLimitInDeciseconds() * 100;
-#ifdef __linux__
-    _stopSplittingAtInst = opts.splittingAvatimer() * opts.instructionLimit();
+    unsigned timeLimit = opts.simulatedTimeLimit(); // is also stored in deciseconds
+    if (timeLimit == 0) {
+      timeLimit = opts.timeLimitInDeciseconds();
+    }
+    _stopSplittingAtTime = opts.splittingAvatimer() * timeLimit * 100;
+#if VAMPIRE_PERF_EXISTS
+    unsigned instrLimit = opts.simulatedInstructionLimit();
+    if (instrLimit == 0) {
+      instrLimit = opts.instructionLimit();
+    }
+    _stopSplittingAtInst = opts.splittingAvatimer() * instrLimit;
 #endif
   } else {
     _stopSplittingAtTime = 0;
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
     _stopSplittingAtInst = 0;
 #endif
   }
@@ -718,7 +726,7 @@ SATLiteral Splitter::getLiteralFromName(SplitLevel compName)
   bool polarity = (compName&1)==0;
   return SATLiteral(var, polarity);
 }
-vstring Splitter::getFormulaStringFromName(SplitLevel compName, bool negated)
+std::string Splitter::getFormulaStringFromName(SplitLevel compName, bool negated)
 {
   SATLiteral lit = getLiteralFromName(compName);
   if (negated) {
@@ -739,7 +747,7 @@ Unit* Splitter::getDefinitionFromName(SplitLevel compName) const
 
 void Splitter::collectDependenceLits(SplitSet* splits, SATLiteralStack& acc) const
 {
-  SplitSet::Iterator sit(*splits);
+  auto sit = splits->iter();
   while(sit.hasNext()) {
     SplitLevel nm = sit.next();
     acc.push(getLiteralFromName(nm).opposite());
@@ -757,23 +765,15 @@ Clause* Splitter::getComponentClause(SplitLevel name) const
 Clause* Splitter::reintroduceAvatarAssertions(Clause* cl) {
   // This method can only be called when synthesizing programs
   ASS(env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
-  Inference inf(NonspecificInference1(InferenceRule::AVATAR_ASSERTION_REINTRODUCTION, cl));
-  unsigned newLen = cl->length() + cl->splits()->size();
-  Clause* newCl = new(newLen) Clause(newLen, inf);
-  unsigned i = 0;
-  while (i < cl->length()) {
-    (*newCl)[i] = (*cl)[i];
-    i++;
-  }
-  SplitSet::Iterator sit(*cl->splits());
-  while (sit.hasNext()) {
-    SplitLevel nm = sit.next();
+  RStack<Literal*> resLits;
+  resLits->loadFromIterator(cl->iterLits());
+  for (SplitLevel nm : iterTraits(cl->splits()->iter())) {
     Clause* compCl = getComponentClause(nm);
     // When synthesizing programs, all components are ground and hence unit
     ASS(compCl->length() == 1);
-    (*newCl)[i++] = Literal::complementaryLiteral((*compCl)[0]);
+    resLits->push(Literal::complementaryLiteral((*compCl)[0]));
   }
-  return newCl;
+  return Clause::fromStack(*resLits, Inference(SimplifyingInference1(InferenceRule::AVATAR_ASSERTION_REINTRODUCTION, cl)));
 }
 
 void Splitter::onAllProcessed()
@@ -805,17 +805,15 @@ void Splitter::onAllProcessed()
   _branchSelector.recomputeModel(toAdd, toRemove, flushing);
   
   if (_showSplitting) { // TODO: this is just one of many ways Splitter could report about changes
-    env.beginOutput();
-    env.out() << "[AVATAR] recomputeModel: + ";
+    std::cout << "[AVATAR] recomputeModel: + ";
     for (unsigned i = 0; i < toAdd.size(); i++) {
-      env.out() << getLiteralFromName(toAdd[i]) << ",";
+      std::cout << getLiteralFromName(toAdd[i]) << ",";
     }
-    env.out() << "\t - ";
+    std::cout << "\t - ";
     for (unsigned i = 0; i < toRemove.size(); i++) {
-      env.out() << getLiteralFromName(toRemove[i]) << ",";
+      std::cout << getLiteralFromName(toRemove[i]) << ",";
     }
-    env.out() << std::endl;
-    env.endOutput();
+    std::cout << std::endl;
   }
 
   {
@@ -938,6 +936,12 @@ bool Splitter::handleNonSplittable(Clause* cl)
     satLits.push(getLiteralFromName(compName));
 
     SATClause* nsClause = SATClause::fromStack(satLits);
+    nsClause->sort();
+    if(_already_added.contains(nsClause)) {
+      delete nsClause;
+      return true;
+    }
+    _already_added.insert(nsClause);
 
     UnitList* ps = 0;
 
@@ -945,9 +949,9 @@ bool Splitter::handleNonSplittable(Clause* cl)
     // do compName first
     UnitList::push(getDefinitionFromName(compName),ps);
     FormulaList::push(new NamedFormula(getFormulaStringFromName(compName)),resLst);
- 
+
     // now do splits
-    SplitSet::Iterator sit(*cl->splits());
+    auto sit = cl->splits()->iter();
     while(sit.hasNext()) {
       SplitLevel nm = sit.next();
       UnitList::push(getDefinitionFromName(nm),ps);
@@ -962,9 +966,7 @@ bool Splitter::handleNonSplittable(Clause* cl)
     nsClause->setInference(new FOConversionInference(scl));
 
     if (_showSplitting) {
-      env.beginOutput();
-      env.out() << "[AVATAR] registering a non-splittable: "<< cl->toString() << std::endl;
-      env.endOutput();
+      std::cout << "[AVATAR] registering a non-splittable: "<< cl->toString() << std::endl;
     }
 
     addSatClauseToSolver(nsClause, false);
@@ -979,11 +981,11 @@ bool Splitter::handleNonSplittable(Clause* cl)
  * Since the component names in a clauses Splitset should be interpreted as propositional variables,
  * Splitter know how to do their proper printing.
  */
-vstring Splitter::splitsToString(SplitSet* splits)
+std::string Splitter::splitsToString(SplitSet* splits)
 {
-  vostringstream res;
+  std::ostringstream res;
 
-  typename SplitSet::Iterator it(*splits);
+  auto it = splits->iter();
   while(it.hasNext()) {
     res << getLiteralFromName(it.next());
     if(it.hasNext()) {
@@ -1079,15 +1081,13 @@ bool Splitter::doSplitting(Clause* cl)
   if (synthesis && (cl->hasAnswerLiteral() || !cl->computable())) {
     return false;
   }
-  if ((_stopSplittingAtTime && (unsigned)env.timer->elapsedMilliseconds() >= _stopSplittingAtTime)
-#ifdef __linux__
-    || (_stopSplittingAtInst && env.timer->elapsedMegaInstructions() >= _stopSplittingAtInst)
+  if ((_stopSplittingAtTime && (unsigned)Timer::elapsedMilliseconds() >= _stopSplittingAtTime)
+#if VAMPIRE_PERF_EXISTS
+    || (_stopSplittingAtInst && Timer::elapsedMegaInstructions() >= _stopSplittingAtInst)
 #endif
     ) {
     if (_showSplitting) {
-      env.beginOutput();
-      env.out() << "[AVATAR] Stopping the splitting process."<< std::endl;
-      env.endOutput();
+      std::cout << "[AVATAR] Stopping the splitting process."<< std::endl;
     }
     hasStopped = true;
     return false;
@@ -1134,13 +1134,11 @@ bool Splitter::doSplitting(Clause* cl)
   SATClause* splitClause = SATClause::fromStack(satClauseLits);
 
   if (_showSplitting) {
-    env.beginOutput();
-    env.out() << "[AVATAR] split a clause: "<< cl->toString() << std::endl;
-    env.endOutput();
+    std::cout << "[AVATAR] split a clause: "<< cl->toString() << std::endl;
   }
 
   // now do splits
-  SplitSet::Iterator sit(*cl->splits());
+  auto sit = cl->splits()->iter();
   while(sit.hasNext()) {
     SplitLevel nm = sit.next();
     UnitList::push(getDefinitionFromName(nm),ps);
@@ -1225,8 +1223,8 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
       possibly_flipped_lits = &oplit;
     }
 
-    vstring formula_name = getFormulaStringFromName(posName);
-    Clause* temp = Clause::fromIterator(getArrayishObjectIterator(possibly_flipped_lits, size),
+    std::string formula_name = getFormulaStringFromName(posName);
+    Clause* temp = Clause::fromIterator(arrayIter(possibly_flipped_lits, size),
         NonspecificInference0(inpType,InferenceRule::AVATAR_DEFINITION));
     Formula* def_f = new BinaryFormula(IFF,
                  new NamedFormula(formula_name),
@@ -1243,7 +1241,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
     ALWAYS(_defs.insert(posName,def_u));
   }
 
-  Clause* compCl = Clause::fromIterator(getArrayishObjectIterator(lits, size),
+  Clause* compCl = Clause::fromIterator(arrayIter(lits, size),
           NonspecificInference1(InferenceRule::AVATAR_COMPONENT,def_u));
 
   // propagate running sums:
@@ -1291,7 +1289,7 @@ SplitLevel Splitter::addNonGroundComponent(unsigned size, Literal* const * lits,
 {
   ASS_REP(_db.size()%2==0, _db.size());
   ASS_G(size,0);
-  ASS(forAll(getArrayishObjectIterator(lits, size), 
+  ASS(forAll(arrayIter(lits, size), 
           [] (Literal* l) { return !l->ground(); } )); //none of the literals can be ground
 
   SATLiteral posLit(_sat2fo.createSpareSatVar(), true);
@@ -1398,7 +1396,7 @@ void Splitter::assignClauseSplitSet(Clause* cl, SplitSet* splits)
   cl->setSplits(splits);
 
   //update "children" field of relevant SplitRecords
-  SplitSet::Iterator bsit(*splits);
+  auto bsit = splits->iter();
   bool should_reintroduce = false;
   unsigned cl_weight = cl->weight();
   while(bsit.hasNext()) {
@@ -1445,7 +1443,7 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
               //SplitSet* difference = premise->splits()->subtract(replacement->splits());
               //if(difference->isEmpty()) return true; // isSubsetOf true
               // Now check if those in the difference are zero implied
-              //SplitSet::Iterator dsit(*difference);
+              //auto dsit = difference->iter();
               //while(dsit.hasNext()){
               //  SplitLevel sl = dsit.next();
                 // check if zero-implied
@@ -1491,16 +1489,26 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
 //#endif
 
   cl->invalidateMyReductionRecords();
-  SplitSet::Iterator dit(*diff);
+  auto dit = diff->iter();
   while(dit.hasNext()) {
     SplitLevel slev=dit.next();
     _db[slev]->addReduced(cl);
   }
 }
 
+void Splitter::addConditionalRedundancyEntry(SplitSet* splits, ConditionalRedundancyEntry* e)
+{
+  auto sit = splits->iter();
+  while (sit.hasNext()) {
+    SplitLevel slev=sit.next();
+    e->obtain();
+    _db[slev]->conditionalRedundancyEntries.push(e);
+  }
+}
+
 bool Splitter::allSplitLevelsActive(SplitSet* s)
 {
-  SplitSet::Iterator sit(*s);
+  auto sit = s->iter();
   while(sit.hasNext()) {
     SplitLevel lev=sit.next();
     ASS_REP(lev<_db.size(), lev);
@@ -1514,20 +1522,10 @@ bool Splitter::allSplitLevelsActive(SplitSet* s)
 
 void Splitter::onNewClause(Clause* cl)
 {
-  //For now just record if cl is in the variant index
-  // i.e. is a component
-  //TODO - if it is then
-  // (a) if it is true it can be immediately frozen
-  // (b) if it is false it can be immediately passed to the SAT
-  //      solver and kill the current model
-  //bool isComponent = false;
-  //{
-  //  //TODO - would it be better to use tryGetExistingComponent here?
-  //  isComponent = _componentIdx->retrieveVariants(cl).hasNext();
-  //}
-  //if(isComponent){
-  //  RSTAT_CTR_INC("New Clause is a Component");
-  //}
+  // when using AVATAR, we could have performed
+  // generating inferences on the clause previously,
+  // so we need to reset the data.
+  ConditionalRedundancyHandler::destroyClauseData(cl);
 
   if (cl->inference().rule() == InferenceRule::AVATAR_ASSERTION_REINTRODUCTION) {
     // Do not assign splits from premises if cl originated by re-introducing AVATAR assertions (avoids looping)
@@ -1543,7 +1541,7 @@ void Splitter::onNewClause(Clause* cl)
 
       Color color = cl->color();
 
-      SplitSet::Iterator it(*splits);
+      auto it = splits->iter();
       while(it.hasNext()) {
         SplitLevel lv=it.next();
         SplitRecord* sr=_db[lv];
@@ -1630,7 +1628,7 @@ bool Splitter::handleEmptyClause(Clause* cl)
 
   FormulaList* resLst=0;
 
-  SplitSet::Iterator sit(*cl->splits());
+  auto sit = cl->splits()->iter();
   while(sit.hasNext()) {
     SplitLevel nm = sit.next();
     FormulaList::push(new NamedFormula(getFormulaStringFromName(nm,true /*negated*/)),resLst);
@@ -1646,15 +1644,13 @@ bool Splitter::handleEmptyClause(Clause* cl)
   addSatClauseToSolver(confl,true);
 
     if (_showSplitting) {
-      env.beginOutput();
-      env.out() << "[AVATAR] proved ";
-      SplitSet::Iterator sit(*cl->splits());
+      std::cout << "[AVATAR] proved ";
+      auto sit = cl->splits()->iter();
       while(sit.hasNext()){
-        env.out() << (_db[sit.next()]->component)->toString();
-        if(sit.hasNext()){ env.out() << " | "; }
+        std::cout << (_db[sit.next()]->component)->toString();
+        if(sit.hasNext()){ std::cout << " | "; }
       }
-      env.out() << endl; 
-      env.endOutput();
+      std::cout << endl;
     }
 
 
@@ -1710,7 +1706,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
 
   // ensure all children are backtracked
   // i.e. removed from _sa and reference counter dec
-  SplitSet::Iterator blit(*backtracked);
+  auto blit = backtracked->iter();
   while(blit.hasNext()) {
     SplitLevel bl=blit.next();
     SplitRecord* sr=_db[bl];
@@ -1736,13 +1732,19 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
     if (_deleteDeactivated == Options::SplittingDeleteDeactivated::ON) {
       sr->children.reset();
     }
+
+    while (sr->conditionalRedundancyEntries.isNonEmpty()) {
+      auto cr = sr->conditionalRedundancyEntries.pop();
+      cr->deactivate();
+      cr->release();
+    }
   }
 
   // perform unfreezing  
     
   // pick all reduced clauses (if the record relates to most recent reduction)
   // and them add back to _sa using addNewClause - this will get put to unprocessed
-  SplitSet::Iterator blit2(*backtracked);
+  auto blit2 = backtracked->iter();
   while(blit2.hasNext()) {
     SplitLevel bl=blit2.next();
     SplitRecord* sr=_db[bl];
@@ -1785,9 +1787,8 @@ UnitList* Splitter::preprendCurrentlyAssumedComponentClauses(UnitList* clauses)
 {
   DHSet<Clause*> seen;
 
-  UnitList*   res = nullptr;
   // to keep the nice order
-  UnitList::FIFO fifo(res);
+  UnitList::FIFO res;
 
   ArraySet::Iterator ait(_branchSelector._selected);
   while(ait.hasNext()) {
@@ -1796,8 +1797,7 @@ UnitList* Splitter::preprendCurrentlyAssumedComponentClauses(UnitList* clauses)
 
     //cout << "selected level: " level << " has clause: " << cl->toString() << endl;
     seen.insert(cl);
-
-    fifo.pushBack(cl);
+    res.pushBack(cl);
   }
 
   // OK, for simplicity's sake, let's not even try keeping any of the old links
@@ -1808,13 +1808,13 @@ UnitList* Splitter::preprendCurrentlyAssumedComponentClauses(UnitList* clauses)
 
     if (seen.insert(cl)) {
       // cout << "a new guy: " << cl->toString() << endl;
-      fifo.pushBack(cl);
+      res.pushBack(cl);
     } else {
       // cout << "seen already: " << cl->toString() << endl;
     }
   }
 
-  return res;
+  return res.list();
 }
 
 }

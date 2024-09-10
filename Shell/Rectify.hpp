@@ -71,11 +71,6 @@ private:
     virtual void fillInterval (size_t start,size_t end);
     /** next variable to rename to */
     unsigned _nextVar;
-    /** Variables that already appeared in the formula
-     *
-     * This field is used only when VarManager::varNamePreserving()
-     * is true. */
-    Recycled<DHSet<unsigned>> _used;
   };
 
   void reset();
@@ -93,7 +88,8 @@ private:
   Literal* rectify(Literal*);
   Literal* rectifyShared(Literal* lit);
   SList* rectifySortList(SList* from, bool& modified);
-  bool rectify(TermList* from,TermList* to);
+  template<class From, class To>
+  bool rectify(From from, To to, unsigned cnt);
 
   friend class Kernel::SubstHelper;
   /** This is to allow use of SubstHelper::apply with the rectify object as applicator*/
@@ -107,10 +103,6 @@ private:
   /** if true, unused quantified variables will be removed */
   bool _removeUnusedVars;
 
-//  /** next variable to bind to */
-//  int _nextVar;
-//  /** next row variable to bind to */
-//  int _nextRow;
 }; // class Rectify
 
 }

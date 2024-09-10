@@ -26,6 +26,7 @@
 #include "LiteralSubstitutionTree.hpp"
 
 #include "ClauseVariantIndex.hpp"
+#include "Indexing/IndexManager.hpp"
 
 namespace Indexing
 {
@@ -103,15 +104,6 @@ private:
   SmartPtr<LiteralMiniIndex> _queryIndex;
 };
 
-class SubstitutionTreeClauseVariantIndex::SLQueryResultToClauseFn
-{
-public:
-
-  Clause* operator()(SLQueryResult res) {
-    return res.clause;
-  }
-};
-
 ClauseIterator SubstitutionTreeClauseVariantIndex::retrieveVariants(Literal* const * lits, unsigned length)
 {
   if(length==0) {
@@ -137,7 +129,7 @@ ClauseIterator SubstitutionTreeClauseVariantIndex::retrieveVariants(Literal* con
   return pvi( getFilteredIterator(
     getMappingIterator(
       index->getVariants(mainLit, false, false),
-      getCompositionFn(ResultClauseToVariantClauseFn(lits, length),SLQueryResultToClauseFn())),
+      getCompositionFn(ResultClauseToVariantClauseFn(lits, length),[](auto qr) { return qr.data->clause; })),
     NonzeroFn()) );
 }
 
@@ -182,10 +174,10 @@ void SubstitutionTreeClauseVariantIndex::insert(Clause* cl)
   }
 
   if(!_strees[clen]) {
-    _strees[clen]=new LiteralSubstitutionTree();
+    _strees[clen] = new LiteralSubstitutionTree();
   }
   Literal* mainLit=getMainLiteral(cl->literals(), clen);
-  _strees[clen]->insert(mainLit, cl);
+  _strees[clen]->insert(LiteralClause{ mainLit, cl });
 }
 
 Literal* SubstitutionTreeClauseVariantIndex::getMainLiteral(Literal* const * lits, unsigned length)

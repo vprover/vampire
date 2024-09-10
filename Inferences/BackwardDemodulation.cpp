@@ -58,6 +58,7 @@ void BackwardDemodulation::attach(SaturationAlgorithm* salg)
   BackwardSimplificationEngine::attach(salg);
   _index=static_cast<DemodulationSubtermIndex*>(
 	  _salg->getIndexManager()->request(DEMODULATION_SUBTERM_SUBST_TREE) );
+  _helper = DemodulationHelper(getOptions(), &_salg->getOrdering());
 }
 
 void BackwardDemodulation::detach()
@@ -78,7 +79,7 @@ struct BackwardDemodulation::RemovedIsNonzeroFn
 struct BackwardDemodulation::RewritableClausesFn
 {
   RewritableClausesFn(DemodulationSubtermIndex* index) : _index(index) {}
-  VirtualIterator<pair<TypedTermList,TermQueryResult> > operator() (TypedTermList lhs)
+  VirtualIterator<pair<TypedTermList,QueryRes<ResultSubstitutionSP, TermLiteralClause>> > operator() (TypedTermList lhs)
   {
     return pvi( pushPairIntoRightIterator(lhs, _index->getInstances(lhs, true)) );
   }
@@ -86,20 +87,28 @@ private:
   DemodulationSubtermIndex* _index;
 };
 
+namespace {
+
+struct Applicator : SubstApplicator {
+  Applicator(ResultSubstitution* subst) : subst(subst) {}
+  TermList operator()(unsigned v) const override {
+    return subst->applyToBoundQuery(TermList(v,false));
+  }
+  ResultSubstitution* subst;
+};
+
+} // end namespace
 
 struct BackwardDemodulation::ResultFn
 {
   typedef DHMultiset<Clause*> ClauseSet;
 
-  ResultFn(Clause* cl, BackwardDemodulation& parent)
-  : _cl(cl), _ordering(parent._salg->getOrdering())
+  ResultFn(Clause* cl, BackwardDemodulation& parent, const DemodulationHelper& helper)
+  : _cl(cl), _helper(helper), _ordering(parent._salg->getOrdering())
   {
     ASS_EQ(_cl->length(),1);
     _eqLit=(*_cl)[0];
-    _eqSort = SortHelper::getEqualityArgumentSort(_eqLit);
     _removed=SmartPtr<ClauseSet>(new ClauseSet());
-    _redundancyCheck = parent.getOptions().demodulationRedundancyCheck() != Options::DemodulationRedunancyCheck::OFF;
-    _encompassing = parent.getOptions().demodulationRedundancyCheck() == Options::DemodulationRedunancyCheck::ENCOMPASS;
     _diamondBreaking = parent.getOptions().diamondBreakingSuperposition();
   }
 
@@ -108,146 +117,45 @@ struct BackwardDemodulation::ResultFn
    * and the second is the clause, that replaces it. If no
    * replacement should occur, return pair of zeroes.
    */
-  BwSimplificationRecord operator() (pair<TermList,TermQueryResult> arg)
+  BwSimplificationRecord operator() (pair<TermList,QueryRes<ResultSubstitutionSP, TermLiteralClause>> arg)
   {
-    TermQueryResult qr=arg.second;
+    auto qr=arg.second;
 
-    if( !ColorHelper::compatible(_cl->color(), qr.clause->color()) ) {
+    if( !ColorHelper::compatible(_cl->color(), qr.data->clause->color()) ) {
       //colors of premises don't match
       return BwSimplificationRecord(0);
     }
 
-    if(_cl==qr.clause || _removed->find(qr.clause)) {
+    if(_cl==qr.data->clause || _removed->find(qr.data->clause)) {
       //the retreived clause was already replaced during this
       //backward demodulation
       return BwSimplificationRecord(0);
     }
 
     TermList lhs=arg.first;
+    TermList rhs=EqHelper::getOtherEqualitySide(_eqLit, lhs);
 
     // AYB there used to be a check here to ensure that the sorts
     // matched. This is no longer necessary, as sort matching / unification
     // is handled directly within the tree
 
-    TermList rhs=EqHelper::getOtherEqualitySide(_eqLit, lhs);
-    TermList lhsS=qr.term;
-    TermList rhsS;
+    auto subs = qr.unifier;
+    ASS(subs->isIdentityOnResultWhenQueryBound());
 
-    if(!qr.substitution->isIdentityOnResultWhenQueryBound()) {
-      //When we apply substitution to the rhs, we get a term, that is
-      //a variant of the term we'd like to get, as new variables are
-      //produced in the substitution application.
-      //We'd rather rename variables in the rhs, than in the whole clause
-      //that we're simplifying.
-      TermList lhsSBadVars=qr.substitution->applyToQuery(lhs);
-      TermList rhsSBadVars=qr.substitution->applyToQuery(rhs);
-      Renaming rNorm, qNorm, qDenorm;
-      rNorm.normalizeVariables(lhsSBadVars);
-      qNorm.normalizeVariables(lhsS);
-      qDenorm.makeInverse(qNorm);
-      ASS_EQ(lhsS,qDenorm.apply(rNorm.apply(lhsSBadVars)));
-      rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
-    } else {
-      rhsS=qr.substitution->applyToBoundQuery(rhs);
-    }
+    Applicator appl(subs.ptr());
 
-    auto toplevelCheck = _redundancyCheck && qr.literal->isEquality() && (qr.term==*qr.literal->nthArgument(0) || qr.term==*qr.literal->nthArgument(1)) &&
-      // encompassment has issues only with positive units
-      (!_encompassing || (qr.literal->isPositive() && qr.clause->length() == 1));
+    TermList lhsS=qr.data->term;
 
-#if CONDITIONAL_MODE
-    VarOrderBV bits = getRemaining(qr.clause->reducedUnder());
-    if (!_ordering.isGreater(lhsS,rhsS,nullptr,&bits)) {
-      auto bits2 = (qr.clause->reducedUnder() | bits);
-      if (isReducedUnderAny(bits2) && !toplevelCheck) {
-        if (_diamondBreaking) {
-          TIME_TRACE("diamond-breaking");
-          if (_cl->rewritingData() && !_cl->rewritingData()->subsumes(qr.clause->rewritingData(), [qr](TermList t) {
-            return qr.substitution->applyToBoundQuery(t);
-          }, lhsS.term()))
-          {
-            return BwSimplificationRecord(0);
-          }
-        }
-
-        Literal* resLit=EqHelper::replace(qr.literal,lhsS,rhsS);
-        if(EqHelper::isEqTautology(resLit)) {
-          env.statistics->backwardDemodulationsToEqTaut++;
-          _removed->insert(qr.clause);
-          return BwSimplificationRecord(qr.clause);
-        }
-
-        unsigned cLen=qr.clause->length();
-        Clause* res = new(cLen) Clause(cLen, SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.clause, _cl));
-
-        (*res)[0]=resLit;
-        unsigned next=1;
-        for(unsigned i=0;i<cLen;i++) {
-          Literal* curr=(*qr.clause)[i];
-          if(curr!=qr.literal) {
-            (*res)[next++] = curr;
-          }
-        }
-        ASS_EQ(next,cLen);
-
-        if (_diamondBreaking) {
-          TIME_TRACE("diamond-breaking");
-          if (qr.clause->rewritingData()) {
-            res->setRewritingData(new RewritingData(_ordering));
-            res->rewritingData()->copyRewriteRules(qr.clause->rewritingData());
-          }
-        }
-
-        env.statistics->backwardDemodulations++;
-        _removed->insert(qr.clause);
-        TIME_TRACE("conditionally bw demodulated");
-        return BwSimplificationRecord(qr.clause,res);
-      }
+    if (!_ordering.isGreater(AppliedTerm(lhsS), AppliedTerm(rhs,&appl,true))) {
       return BwSimplificationRecord(0);
     }
-#else
-    if(_ordering.compare(lhsS,rhsS)!=Ordering::GREATER) {
-      return BwSimplificationRecord(0);
-    }
-#endif
 
-    if(_redundancyCheck && qr.literal->isEquality() && (qr.term==*qr.literal->nthArgument(0) || qr.term==*qr.literal->nthArgument(1)) &&
-      // encompassment has issues only with positive units
-      (!_encompassing || (qr.literal->isPositive() && qr.clause->length() == 1))) {
-      TermList other=EqHelper::getOtherEqualitySide(qr.literal, qr.term);
-      Ordering::Result tord=_ordering.compare(rhsS, other);
-      if(tord!=Ordering::LESS && tord!=Ordering::LESS_EQ) {
-        if (_encompassing) {
-          if (qr.substitution->isRenamingOn(lhs,false /* we talk of a non-result, i.e., a query term */)) {
-            // under _encompassing, we know there are no other literals in qr.clause
-            return BwSimplificationRecord(0);
-          }
-        } else {
-          TermList eqSort = SortHelper::getEqualityArgumentSort(qr.literal);
-          Literal* eqLitS=Literal::createEquality(true, lhsS, rhsS, eqSort);
-          bool isMax=true;
-          Clause::Iterator cit(*qr.clause);
-          while(cit.hasNext()) {
-            Literal* lit2=cit.next();
-            if(qr.literal==lit2) {
-              continue;
-            }
-            if(_ordering.compare(eqLitS, lit2)==Ordering::LESS) {
-              isMax=false;
-              break;
-            }
-          }
-          if(isMax) {
-            //	  RSTAT_CTR_INC("bw subsumptions prevented by tlCheck");
-            //The demodulation is this case which doesn't preserve completeness:
-            //s = t     s = t1 \/ C
-            //---------------------
-            //     t = t1 \/ C
-            //where t > t1 and s = t > C
-            return BwSimplificationRecord(0);
-          }
-        }
-      }
+    TermList rhsS=subs->applyToBoundQuery(rhs);
+
+    if (_helper.redundancyCheckNeededForPremise(qr.data->clause,qr.data->literal,lhsS) &&
+      !_helper.isPremiseRedundant(qr.data->clause,qr.data->literal,lhsS,rhsS,lhs,&appl))
+    {
+      return BwSimplificationRecord(0);
     }
 
     if (_diamondBreaking) {
@@ -260,26 +168,24 @@ struct BackwardDemodulation::ResultFn
       }
     }
 
-
-    Literal* resLit=EqHelper::replace(qr.literal,lhsS,rhsS);
+    Literal* resLit=EqHelper::replace(qr.data->literal,lhsS,rhsS);
     if(EqHelper::isEqTautology(resLit)) {
       env.statistics->backwardDemodulationsToEqTaut++;
-      _removed->insert(qr.clause);
-      return BwSimplificationRecord(qr.clause);
+      _removed->insert(qr.data->clause);
+      return BwSimplificationRecord(qr.data->clause);
     }
 
-    unsigned cLen=qr.clause->length();
-    Clause* res = new(cLen) Clause(cLen, SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.clause, _cl));
+    unsigned cLen=qr.data->clause->length();
+    RStack<Literal*> resLits;
 
-    (*res)[0]=resLit;
-    unsigned next=1;
+    resLits->push(resLit);
+
     for(unsigned i=0;i<cLen;i++) {
-      Literal* curr=(*qr.clause)[i];
-      if(curr!=qr.literal) {
-        (*res)[next++] = curr;
+      Literal* curr=(*qr.data->clause)[i];
+      if(curr!=qr.data->literal) {
+        resLits->push(curr);
       }
     }
-    ASS_EQ(next,cLen);
 
     if (_diamondBreaking) {
       TIME_TRACE("diamond-breaking");
@@ -290,18 +196,19 @@ struct BackwardDemodulation::ResultFn
     }
 
     env.statistics->backwardDemodulations++;
-    _removed->insert(qr.clause);
-    return BwSimplificationRecord(qr.clause,res);
+    _removed->insert(qr.data->clause);
+
+    return BwSimplificationRecord(
+      qr.data->clause,
+      Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.data->clause, _cl)));
   }
 private:
-  TermList _eqSort;
   Literal* _eqLit;
   Clause* _cl;
   SmartPtr<ClauseSet> _removed;
 
-  bool _redundancyCheck;
-  bool _encompassing;
   bool _diamondBreaking;
+  const DemodulationHelper& _helper;
 
   Ordering& _ordering;
 };
@@ -322,9 +229,11 @@ void BackwardDemodulation::perform(Clause* cl,
     pvi( getFilteredIterator(
 	    getMappingIterator(
 		    getMapAndFlattenIterator(
-			    EqHelper::getDemodulationLHSIterator(lit, false, _salg->getOrdering(), _salg->getOptions()),
+			    EqHelper::getDemodulationLHSIterator(lit,
+            _salg->getOptions().backwardDemodulation() == Options::Demodulation::PREORDERED,
+            _salg->getOrdering()).first,
 			    RewritableClausesFn(_index)),
-		    ResultFn(cl, *this)),
+		    ResultFn(cl, *this, _helper)),
  	    RemovedIsNonzeroFn()) );
 
   //here we know that the getPersistentIterator evaluates all items of the

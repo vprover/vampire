@@ -16,10 +16,6 @@
 #ifndef __Renaming__
 #define __Renaming__
 
-#if VDEBUG
-#include "Lib/VString.hpp"
-#endif
-
 #include "Lib/DHMap.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -50,6 +46,7 @@ public:
     _nextVar = 0;
     _identity = true;
   }
+  bool keepRecycled() const { return _data.keepRecycled() > 0; }
 
   unsigned getOrBind(unsigned v)
   {
@@ -72,9 +69,14 @@ public:
   TermList apply(TermList l);
   bool identity() const;
 
+  void normalizeVariables(const Literal* t);
   void normalizeVariables(const Term* t);
   void normalizeVariables(TermList t);
+  void normalizeVariables(TypedTermList t)
+  { normalizeVariables(TermList(t)); normalizeVariables(t.sort()); }
   void makeInverse(const Renaming& orig);
+  unsigned nextVar() const
+  { return _nextVar; }
 
   static Literal* normalize(Literal* l);
   static TypedTermList normalize(TypedTermList l);
@@ -85,7 +87,7 @@ public:
 
 #if VDEBUG
   void assertValid() const;
-  vstring toString() const;
+  std::string toString() const;
 #endif
 private:
   class Applicator

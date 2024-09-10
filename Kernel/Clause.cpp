@@ -20,6 +20,7 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/DArray.hpp"
+#include "Debug/Output.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/SharedSet.hpp"
@@ -31,6 +32,7 @@
 
 #include "SAT/SATClause.hpp"
 
+#include "Shell/ConditionalRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 
 #include "Inference.hpp"
@@ -40,6 +42,8 @@
 #include "TermIterators.hpp"
 
 #include <cmath>
+
+
 
 #include "Clause.hpp"
 
@@ -59,10 +63,9 @@ size_t Clause::_auxCurrTimestamp = 0;
 bool Clause::_auxInUse = false;
 #endif
 
-
 /** New clause */
-Clause::Clause(unsigned length,const Inference& inf)
-  : Unit(Unit::CLAUSE,inf),
+Clause::Clause(Literal* const* lits, unsigned length, Inference inf)
+  : Unit(Unit::CLAUSE, std::move(inf)),
     _length(length),
     _color(COLOR_INVALID),
     _extensionality(false),
@@ -87,6 +90,39 @@ Clause::Clause(unsigned length,const Inference& inf)
     _extensionalityTag = true;
     inference().setInputType(UnitInputType::AXIOM);
   }
+
+  for(unsigned i = 0; i < length; i++) {
+    (*this)[i] = lits[i];
+  }
+
+#if VAMPIRE_CLAUSE_TRACING
+  // TODO make unsigned
+  if (env.options->traceBackward() && unsigned(env.options->traceBackward()) == number()) {
+    traverseParentsPost(
+        [&](unsigned depth, Unit* unit) {
+          std::cout << "backward trace " <<  number() << ": " << repeatOutput("| ", depth) << unit->toString() << std::endl;
+      });
+  }
+
+  // forward tracing
+  // TODO make unsigned
+  static int traceFwd = env.options->traceForward();
+  if (traceFwd != -1) {
+
+    bool doTrace = false;
+    auto infit = inference().iterator();
+    while (inference().hasNext(infit)) {
+      if (inference().next(infit)->number() == unsigned(traceFwd)) {
+        doTrace = true;
+        break;
+      }
+    }
+    if (doTrace) {
+      std::cout << "forward trace " << traceFwd << ": " << toString() << std::endl;
+    }
+  }
+
+#endif // VAMPIRE_CLAUSE_TRACING
 }
 
 /**
@@ -127,6 +163,8 @@ void Clause::destroyExceptInferenceObject()
     delete _literalPositions;
   }
 
+  ConditionalRedundancyHandler::destroyClauseData(this);
+
   RSTAT_CTR_INC("clauses deleted");
 
   //We have to get sizeof(Clause) + (_length-1)*sizeof(Literal*)
@@ -139,18 +177,6 @@ void Clause::destroyExceptInferenceObject()
 }
 
 
-Clause* Clause::fromStack(const Stack<Literal*>& lits, const Inference& inf)
-{
-  unsigned clen = lits.size();
-  Clause* res = new (clen) Clause(clen, inf);
-
-  for(unsigned i = 0; i < clen; i++) {
-    (*res)[i] = lits[i];
-  }
-
-  return res;
-}
-
 /**
  * Create a clause with the same content as @c c. The inference of the
  * created clause refers to @c c using the REORDER_LITERALS inference.
@@ -161,7 +187,7 @@ Clause* Clause::fromStack(const Stack<Literal*>& lits, const Inference& inf)
  */
 Clause* Clause::fromClause(Clause* c)
 {
-  Clause* res = fromIterator(Clause::Iterator(*c), SimplifyingInference1(InferenceRule::REORDER_LITERALS, c));
+  Clause* res = fromIterator(c->iterLits(), SimplifyingInference1(InferenceRule::REORDER_LITERALS, c));
 
   if (c->splits()) {
     res->setSplits(c->splits());
@@ -248,13 +274,7 @@ void Clause::setStore(Store s)
  */
 bool Clause::isGround()
 {
-  Iterator it(*this);
-  while (it.hasNext()) {
-    if (!it.next()->ground()) {
-      return false;
-    }
-  }
-  return true;
+  return iterLits().all([](auto l) { return l->ground(); });
 }
 
 /**
@@ -262,13 +282,7 @@ bool Clause::isGround()
  */
 bool Clause::isPropositional()
 {
-  Iterator it(*this);
-  while (it.hasNext()) {
-    if (it.next()->arity() > 0) {
-      return false;
-    }
-  }
-  return true;
+  return iterLits().all([](auto l) { return l->arity() == 0; });
 }
 
 /**
@@ -277,9 +291,8 @@ bool Clause::isPropositional()
 bool Clause::isHorn()
 {
   bool posFound=false;
-  Iterator it(*this);
-  while (it.hasNext()) {
-    if (it.next()->isPositive()) {
+  for (Literal* l : iterLits()) {
+    if (l->isPositive()) {
       if (posFound) {
         return false;
       }
@@ -299,7 +312,7 @@ VirtualIterator<unsigned> Clause::getVariableIterator()
   return pvi( getUniquePersistentIterator(
       getMappingIterator(
 	  getMapAndFlattenIterator(
-	      Iterator(*this),
+	      iterLits(),
 	      VariableIteratorFn()),
 	  OrdVarNumberExtractorFn())));
 }
@@ -314,14 +327,14 @@ bool Clause::noSplits() const
 }
 
 /**
- * Convert non-propositional part of the clause to vstring.
+ * Convert non-propositional part of the clause to std::string.
  */
-vstring Clause::literalsOnlyToString() const
+std::string Clause::literalsOnlyToString() const
 {
   if (_length == 0) {
     return "$false";
   } else {
-    vstring result;
+    std::string result;
     result += _literals[0]->toString();
     for(unsigned i = 1; i < _length; i++) {
       result += " | ";
@@ -332,43 +345,43 @@ vstring Clause::literalsOnlyToString() const
 }
 
 /**
- * Convert the clause to the TPTP-compatible vstring representation.
+ * Convert the clause to the TPTP-compatible std::string representation.
  *
  * The split history is omitted.
  */
-vstring Clause::toTPTPString() const
+std::string Clause::toTPTPString() const
 {
-  vstring result = literalsOnlyToString();
+  std::string result = literalsOnlyToString();
 
   return result;
 }
 
 /**
- * Convert the clause to easily readable vstring representation.
+ * Convert the clause to easily readable std::string representation.
  */
-vstring Clause::toNiceString() const
+std::string Clause::toNiceString() const
 {
-  vstring result = literalsOnlyToString();
+  std::string result = literalsOnlyToString();
 
   if (splits() && !splits()->isEmpty()) {
-    result += vstring(" {") + splits()->toString() + "}";
+    result += std::string(" {") + splits()->toString() + "}";
   }
 
   return result;
 }
 
 /**
- * Convert the clause to the vstring representation
+ * Convert the clause to the std::string representation
  * Includes splitting, age, weight, selected and inference
  */
-vstring Clause::toString() const
+std::string Clause::toString() const
 {
   // print id and literals of clause
-  vstring result = Int::toString(_number) + ". " + literalsOnlyToString();
+  std::string result = Int::toString(_number) + ". " + literalsOnlyToString();
 
   // print avatar components clause depends on
   if (splits() && !splits()->isEmpty()) {
-    result += vstring(" <- (") + Splitter::splitsToString(splits()) + ")";
+    result += std::string(" <- (") + Splitter::splitsToString(splits()) + ")";
   }
 
   // print inference and ids of parent clauses
@@ -376,44 +389,44 @@ vstring Clause::toString() const
 
   if(env.options->proofExtra()!=Options::ProofExtra::OFF){
     // print statistics: each entry should have the form key:value
-    result += vstring(" {");
+    result += std::string(" {");
       
-    result += vstring("a:") + Int::toString(age());
+    result += std::string("a:") + Int::toString(age());
     unsigned weight = (_weight ? _weight : computeWeight());
-    result += vstring(",w:") + Int::toString(weight);
+    result += std::string(",w:") + Int::toString(weight);
     
     unsigned weightForClauseSelection = (_weightForClauseSelection ? _weightForClauseSelection : computeWeightForClauseSelection(*env.options));
     if(weightForClauseSelection!=weight){
-      result += vstring(",wCS:") + Int::toString(weightForClauseSelection);
+      result += std::string(",wCS:") + Int::toString(weightForClauseSelection);
     }
 
     if (numSelected()>0) {
-      result += vstring(",nSel:") + Int::toString(numSelected());
+      result += std::string(",nSel:") + Int::toString(numSelected());
     }
 
     if (env.colorUsed) {
-      result += vstring(",col:") + Int::toString(color());
+      result += std::string(",col:") + Int::toString(color());
     }
 
     if(derivedFromGoal()){
-      result += vstring(",goal:1");
+      result += std::string(",goal:1");
     }
     if(env.maxSineLevel > 1) { // this is a cryptic way of saying "did we run Sine to compute sine levels?"
-      result += vstring(",sine:")+Int::toString((unsigned)_inference.getSineLevel());
+      result += std::string(",sine:")+Int::toString((unsigned)_inference.getSineLevel());
     }
 
     if(isPureTheoryDescendant()){
-      result += vstring(",ptD:1");
+      result += std::string(",ptD:1");
     }
 
     if(env.options->induction() != Shell::Options::Induction::NONE){
-      result += vstring(",inD:") + Int::toString(_inference.inductionDepth());
+      result += std::string(",inD:") + Int::toString(_inference.inductionDepth());
     }
     result += ",thAx:" + Int::toString((int)(_inference.th_ancestors));
     result += ",allAx:" + Int::toString((int)(_inference.all_ancestors));
 
     result += ",thDist:" + Int::toString( _inference.th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference.all_ancestors);
-    result += vstring("}");
+    result += std::string("}");
     result += " rewritingData: [ " + (_rwData ? _rwData->toString() : "") + " ]";
   }
 
@@ -424,10 +437,9 @@ vstring Clause::toString() const
  * Convert the clause into sequence of strings, each containing
  * a proper clause
  */
-VirtualIterator<vstring> Clause::toSimpleClauseStrings()
+VirtualIterator<std::string> Clause::toSimpleClauseStrings()
 {
     return pvi(getSingletonIterator(literalsOnlyToString()));
-
 }
 
 /**
@@ -522,9 +534,7 @@ unsigned Clause::splitWeight() const
 
 unsigned Clause::getNumeralWeight() const {
   unsigned res = 0;
-  Iterator litIt(*this);
-  while (litIt.hasNext()) {
-    Literal* lit = litIt.next();
+  for (Literal* lit : iterLits()) {
     if (!lit->hasInterpretedConstants()) {
       continue;
     }
@@ -638,9 +648,7 @@ void Clause::collectVars(DHSet<unsigned>& acc)
 template<class VarIt>
 void Clause::collectVars2(DHSet<unsigned>& acc)
 {
-  Iterator it(*this);
-  while (it.hasNext()) {
-    Literal* lit = it.next();
+  for (Literal* lit : iterLits()) {
     VarIt vit(lit);
     while (vit.hasNext()) {
       TermList var = vit.next();

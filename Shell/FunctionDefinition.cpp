@@ -352,9 +352,7 @@ bool FunctionDefinition::removeAllDefinitions(UnitList*& units, bool inHigherOrd
     }
 
     if (env.options->showPreprocessing()) {
-      env.beginOutput();
-      env.out() << "[PP] fn def discovered: "<<(*d->defCl)<<"\n  unfolded: "<<(*d->rhs) << std::endl;
-      env.endOutput();
+      std::cout << "[PP] fn def discovered: "<<(*d->defCl)<<"\n  unfolded: "<<(*d->rhs) << std::endl;
     }
     env.statistics->functionDefinitions++;
   }
@@ -552,9 +550,7 @@ Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
   //cout << "applying definitions to " + lit->toString() << endl;
 
   if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] applying function definitions to literal "<<(*lit) << std::endl;
-    env.endOutput();
+    std::cout << "[PP] applying function definitions to literal "<<(*lit) << std::endl;
   }
   BindingMap bindings;
   UnfoldedSet unfolded;
@@ -659,13 +655,11 @@ Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
       ASS_EQ(d->mark, Def::UNFOLDED);
       usedDefs->push(d);
       if (env.options->showPreprocessing()) {
-        env.beginOutput();
-        env.out() << "[PP] definition of "<<(*t)<<"\n  expanded to "<<(*d->rhs) << std::endl;
-        env.endOutput();
+        std::cout << "[PP] definition of "<<(*t)<<"\n  expanded to "<<(*d->rhs) << std::endl;
       }
 
       defIndex=nextDefIndex++;
-      
+
       //bind arguments of definition lhs
       TermList* dargs=d->lhs->args();
       TermList* targs=t->args();
@@ -707,15 +701,14 @@ Clause* FunctionDefinition::applyDefinitions(Clause* cl)
   unsigned clen=cl->length();
 
   static Stack<Def*> usedDefs(8);
-  static Stack<Literal*> resLits(8);
+  RStack<Literal*> resLits;
   ASS(usedDefs.isEmpty());
-  resLits.reset();
 
   bool modified=false;
   for(unsigned i=0;i<clen;i++) {
     Literal* lit=(*cl)[i];
     Literal* rlit=static_cast<Literal*>(applyDefinitions(lit, &usedDefs));
-    resLits.push(rlit);
+    resLits->push(rlit);
     modified|= rlit!=lit;
   }
   if(!modified) {
@@ -729,13 +722,8 @@ Clause* FunctionDefinition::applyDefinitions(Clause* cl)
     UnitList::push(defCl, premises);
   }
   UnitList::push(cl, premises);
-  Clause* res = new(clen) Clause(clen, NonspecificInferenceMany(InferenceRule::DEFINITION_UNFOLDING, premises));
-  res->setAge(cl->age());
-
-  for(unsigned i=0;i<clen;i++) {
-    (*res)[i] = resLits[i];
-  }
-
+  auto res = Clause::fromStack(*resLits, NonspecificInferenceMany(InferenceRule::DEFINITION_UNFOLDING, premises));
+  res->setAge(cl->age()); // TODO isn't this dones automatically?
   return res;
 }
 

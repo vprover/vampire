@@ -103,7 +103,7 @@ private:
   State _initState;
   ChoiceArr _choices;
   size_t _chLen;
-  Stack<std::result_of_t<Fn(State)> > _chits; //choice iterators
+  Stack<std::invoke_result_t<Fn, State>> _chits; //choice iterators
   Stack<State> _states;
   Fn _functor;
 };
@@ -118,54 +118,6 @@ VirtualIterator<State> getBacktrackingIterator(State initState,
   }
   return VirtualIterator<State>(new BacktrackingIterator<State,ChoiceArr,Fn>
 	  (initState, choices, chLen, functor));
-}
-
-template<typename State, class Fn, class ChPntIterable>
-class BtrFnForIterable
-{
-  class FnMapper
-  {
-  public:
-    FnMapper(State s, Fn functor) : _state(s), _functor(functor) {}
-
-    template<typename ChoicePoint>
-    VirtualIterator<State> operator() (ChoicePoint cp)
-    { return _functor(_state, cp); }
-  private:
-    State _state;
-    Fn _functor;
-  };
-
-public:
-  BtrFnForIterable(Fn functor) : _functor(functor) {}
-
-  FlatteningIterator<MappingIterator<ITERATOR_TYPE(ChPntIterable),FnMapper> >
-  operator() (State curr, ChPntIterable cPItb) //cPItb=Choice Point ITeraBle
-  {
-    return getFlattenedIterator(
-	    getMappingIterator(
-		    getContentIterator(cPItb),
-		    FnMapper(curr, _functor)) );
-  }
-private:
-  Fn _functor;
-};
-
-template<typename State, typename ChoiceArr, class IFn>
-VirtualIterator<State> getIteratorBacktrackingOnIterable(State initState,
-	ChoiceArr choices, IFn innerFunctor)
-{
-  size_t chLen=choices.size();
-  if(chLen==0) {
-    return pvi( getSingletonIterator(initState) );
-  }
-
-  typedef BtrFnForIterable<State,IFn,ELEMENT_TYPE(ChoiceArr)> Fn;
-
-  return vi( new BacktrackingIterator<State,ChoiceArr,Fn>
-	  (initState, choices, chLen,
-		  Fn(innerFunctor)
-	  ) );
 }
 
 ///@}

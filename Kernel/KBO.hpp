@@ -56,7 +56,7 @@ struct KboSpecialWeights;
 template<>
 struct KboSpecialWeights<PredSigTraits> 
 { 
-  inline bool tryAssign(const vstring& name, unsigned weight) 
+  inline bool tryAssign(const std::string& name, unsigned weight) 
   { return false; }
 
   inline static KboSpecialWeights dflt() 
@@ -74,7 +74,7 @@ struct KboSpecialWeights<FuncSigTraits>
   KboWeight _numInt;
   KboWeight _numRat;
   KboWeight _numReal;
-  inline bool tryAssign(const vstring& name, unsigned weight) 
+  inline bool tryAssign(const std::string& name, unsigned weight) 
   {
     if (name == SPECIAL_WEIGHT_IDENT_VAR     ) { _variableWeight = weight; return true; } 
     if (name == SPECIAL_WEIGHT_IDENT_NUM_INT ) { _numInt  = weight; return true; } 
@@ -108,7 +108,7 @@ struct KboWeightMap {
   /** Special weights that are only present for function/predicate symbols. */
   KboSpecialWeights<SigTraits> _specialWeights;
 
-  KboWeight symbolWeight(Term*    t      ) const;
+  KboWeight symbolWeight(const Term* t) const;
   KboWeight symbolWeight(unsigned functor) const;
 
   static KboWeightMap dflt();
@@ -155,30 +155,22 @@ public:
 
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
-  bool isGreater(TermList tl1, TermList tl2, void* tl1State, VarOrderBV* constraints, const Indexing::TermQueryResult* qr) const override;
-  bool makeGreater(TermList tl1, TermList tl2, VarOrder& vo) const override;
-  bool isGreater(TermList tl1, TermList tl2, const VarOrder& vo) const override;
 
-  void* createState() const override;
-  void initStateForTerm(void* state, Term* t) const override;
-  void destroyState(void* state) const override;
+  Result compare(AppliedTerm t1, AppliedTerm t2) const override;
+  bool isGreater(AppliedTerm t1, AppliedTerm t2) const override;
+  bool isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, OrderingComparatorUP& comparator) const override;
 
-  KboWeightMap<FuncSigTraits> _funcWeights;
 protected:
+  Result isGreaterOrEq(AppliedTerm tt1, AppliedTerm tt2) const;
+  unsigned computeWeight(AppliedTerm tt) const;
+
   Result comparePredicates(Literal* l1, Literal* l2) const override;
 
   class State;
-  class StateGreater;
-  class StateGreaterVO;
-  class StateGreaterSubst;
+  friend class KBOComparator;
 
   // int functionSymbolWeight(unsigned fun) const;
-  int symbolWeight(Term* t) const;
-  void computeWeight(Term* t) const;
-  void computeWeight2(Term* t, Indexing::ResultSubstitution* subst) const;
-  bool weightsOk(TermList lhs, TermList rhs) const;
-  unsigned weight(TermList t) const;
-  unsigned weight2(TermList t, Indexing::ResultSubstitution* subst, bool underSubst) const;
+  int symbolWeight(const Term* t) const;
 
 private:
   bool isGreaterHelper(TermList tl1, TermList tl2, void* tl1State, VarOrderBV* constraints, VarOrderBV* newConstraints) const;

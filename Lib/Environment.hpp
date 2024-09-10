@@ -26,12 +26,6 @@
 
 namespace Lib {
 
-namespace Sys {
-  class SyncPipe;
-}
-
-using namespace Sys;
-
 /**
  * Class Environment.
  * Implements environment used by the top-level run procedures.
@@ -52,40 +46,13 @@ public:
   Indexing::TermSharing* sharing;
   /** Currently used statistics */
   Shell::Statistics* statistics;
-  /** Currently used timer, this is used by all timers as a global clock */
-  Timer* timer;
 
   unsigned char maxSineLevel;
 
   DHMap<unsigned, unsigned>* predicateSineLevels;
 
-  DHMap<const Kernel::Unit*,vstring>* proofExtra; // maps Unit* pointers to the associated proof extra string, if available
+  DHMap<const Kernel::Unit*,std::string>* proofExtra; // maps Unit* pointers to the associated proof extra string, if available
 
-  bool haveOutput();
-  void beginOutput();
-  void endOutput();
-  std::ostream& out();
-
-  void setPipeOutput(SyncPipe* pipe);
-  SyncPipe* getOutputPipe() { return _pipe; }
-
-  void setPriorityOutput(std::ostream* stm);
-  std::ostream* getPriorityOutput() { return _priorityOutput; }
-
-  bool timeLimitReached() const;
-
-  template<int Period>
-  void checkTimeSometime() const
-  {
-    static int counter=0;
-    counter++;
-    if(counter==Period) {
-      counter=0;
-      if(timeLimitReached()) {
-        throw TimeLimitExceededException();
-      }
-    }
-  }
   /** Time remaining until the end of the time-limit in miliseconds */
   int remainingTime() const;
   /** set to true when coloring is used for symbol elimination or interpolation */
@@ -103,11 +70,6 @@ public:
   void setMainProblem(Kernel::Problem* p) { _problem = p; }
 
 private:
-  int _outputDepth;
-  /** if non-zero, all output will go here */
-  std::ostream* _priorityOutput;
-  SyncPipe* _pipe;
-
   Kernel::Problem* _problem;
 }; // class Environment
 

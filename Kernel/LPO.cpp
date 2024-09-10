@@ -24,6 +24,7 @@
 
 #include "Term.hpp"
 #include "LPO.hpp"
+#include "LPOComparator.hpp"
 #include "Signature.hpp"
 #include "TermIterators.hpp"
 #include "VarOrder.hpp"
@@ -65,7 +66,7 @@ Ordering::Result LPO::comparePredicates(Literal* l1, Literal *l2) const
   return (predicatePrecedence(p1) > predicatePrecedence(p2)) ? GREATER : LESS;
 } // LPO::comparePredicates()
 
-Ordering::Result LPO::comparePrecedences(Term* t1, Term* t2) const
+Ordering::Result LPO::comparePrecedences(const Term* t1, const Term* t2) const
 {
   if (t1->isSort() && t2->isSort()) {
     return compareTypeConPrecedences(t1->functor(), t2->functor());
@@ -82,34 +83,43 @@ Ordering::Result LPO::comparePrecedences(Term* t1, Term* t2) const
 
 Ordering::Result LPO::compare(TermList tl1, TermList tl2) const
 {
-  if(tl1==tl2) {
-    return EQUAL;
-  }
-  if(tl1.isOrdinaryVar()) {
-    return tl2.containsSubterm(tl1) ? LESS : INCOMPARABLE;
-  }
-  ASS(tl1.isTerm());
-  return clpo(tl1.term(), tl2);
+  return compare(AppliedTerm(tl1),AppliedTerm(tl2));
 }
 
-Ordering::Result LPO::clpo(Term* t1, TermList tl2) const
+Ordering::Result LPO::compare(AppliedTerm tl1, AppliedTerm tl2) const
 {
-  ASS(t1->shared());
-
-  if(tl2.isOrdinaryVar()) {
-    return t1->containsSubterm(tl2) ? GREATER : INCOMPARABLE;
+  if(tl1.equalsShallow(tl2)) {
+    return EQUAL;
   }
-  
-  ASS(tl2.isTerm());
-  Term* t2=tl2.term();
+  if(tl1.term.isVar()) {
+    return tl2.containsVar(tl1.term) ? LESS : INCOMPARABLE;
+  }
+  ASS(tl1.term.isTerm());
+  return clpo(tl1, tl2);
+}
+
+bool LPO::isGreater(AppliedTerm lhs, AppliedTerm rhs) const
+{
+  return lpo(lhs,rhs)==GREATER;
+}
+
+Ordering::Result LPO::clpo(AppliedTerm tl1, AppliedTerm tl2) const
+{
+  ASS(tl1.term.isTerm());
+  if(tl2.term.isVar()) {
+    return tl1.containsVar(tl2.term) ? GREATER : INCOMPARABLE;
+  }
+  ASS(tl2.term.isTerm());
+  auto t1=tl1.term.term();
+  auto t2=tl2.term.term();
 
   switch (comparePrecedences(t1, t2)) {
   case EQUAL:
-    return cLMA(t1, t2, t1->args(), t2->args(), t1->arity());
+    return cLMA(tl1, tl2, t1->args(), t2->args(), t1->arity());
   case GREATER:
-    return cMA(t1, t2->args(), t2->arity());
+    return cMA(tl1, tl2, t2->args(), t2->arity());
   case LESS:
-    return Ordering::reverse(cMA(t2, t1->args(), t1->arity()));
+    return Ordering::reverse(cMA(tl2, tl1, t1->args(), t1->arity()));
   default:
     ASSERTION_VIOLATION;
     // shouldn't happen because symbol precedence is assumed to be
@@ -123,17 +133,15 @@ Ordering::Result LPO::clpo(Term* t1, TermList tl2) const
  * All TermList* are stored in reverse order (by design in Term),
  * hence the weird pointer arithmetic
  */
-Ordering::Result LPO::cMA(Term *s, TermList* tl, unsigned arity) const
+Ordering::Result LPO::cMA(AppliedTerm s, AppliedTerm t, const TermList* tl, unsigned arity) const
 {
-  ASS(s->shared());
-
   for (unsigned i = 0; i < arity; i++) {
-    switch(clpo(s, *(tl - i))) {
+    switch(clpo(s, AppliedTerm(*(tl - i),t))) {
     case EQUAL:
     case LESS:
       return LESS;
     case INCOMPARABLE:
-      return reverse(alpha(tl - i - 1, arity - i - 1, s));
+      return reverse(alpha(tl - i - 1, arity - i - 1, t, s));
     case GREATER:
       break;
     default:
@@ -143,19 +151,16 @@ Ordering::Result LPO::cMA(Term *s, TermList* tl, unsigned arity) const
   return GREATER;
 }
 
-Ordering::Result LPO::cLMA(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity) const
+Ordering::Result LPO::cLMA(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity) const
 {
-  ASS(s->shared());
-  ASS(t->shared());
-
   for (unsigned i = 0; i < arity; i++) {
-    switch(compare(*(sl - i), *(tl - i))) {
+    switch(compare(AppliedTerm(*(sl - i),s), AppliedTerm(*(tl - i),t))) {
     case EQUAL:
       break;
     case GREATER:
-      return cMA(s, tl - i - 1, arity - i - 1);
+      return cMA(s, t, tl - i - 1, arity - i - 1);
     case LESS:
-      return reverse(cMA(t, sl - i - 1, arity - i - 1));
+      return reverse(cMA(t, s, sl - i - 1, arity - i - 1));
     case INCOMPARABLE:
       return cAA(s, t, sl - i - 1, tl - i - 1, arity - i - 1, arity - i - 1);
     default:
@@ -165,111 +170,93 @@ Ordering::Result LPO::cLMA(Term* s, Term* t, TermList* sl, TermList* tl, unsigne
   return EQUAL;
 }
 
-Ordering::Result LPO::cAA(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity1, unsigned arity2) const
+Ordering::Result LPO::cAA(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity1, unsigned arity2) const
 {
-  ASS(s->shared());
-  ASS(t->shared());
-
-  switch (alpha(sl, arity1, t)) {
+  switch (alpha(sl, arity1, s, t)) {
   case GREATER:
     return GREATER;
   case INCOMPARABLE:
-    return reverse(alpha(tl, arity2, s));
+    return reverse(alpha(tl, arity2, t, s));
   default:
     ASSERTION_VIOLATION;
   }
 }
 
-// greater iff some exists s_i in sl such that s_i >= t 
-Ordering::Result LPO::alpha(TermList* sl, unsigned arity, Term *t) const
+// greater iff some exists s_i in sl such that s_i >= t
+Ordering::Result LPO::alpha(const TermList* sl, unsigned arity, AppliedTerm s, AppliedTerm t) const
 {
-  ASS(t->shared());
-
+  ASS(t.term.isTerm());
   for (unsigned i = 0; i < arity; i++) {
-    switch (lpo(*(sl - i), TermList(t))) {
-    case EQUAL:
-    case GREATER:
+    if (lpo(AppliedTerm(*(sl - i),s), t) != INCOMPARABLE) {
       return GREATER;
-    case LESS:
-    case INCOMPARABLE:
-      break;
-    default:
-      ASSERTION_VIOLATION;
     }
   }
   return INCOMPARABLE;
 }
 
-// unidirectional comparison function (returns correct result if tl1 >
-// tl2 or tl1 = tl2)
-Ordering::Result LPO::lpo(TermList tl1, TermList tl2) const
+// unidirectional comparison function (returns correct result if tt1 > tt2 or tt1 = tt2)
+Ordering::Result LPO::lpo(AppliedTerm tt1, AppliedTerm tt2) const
 {
-  if(tl1==tl2) {
+  if(tt1.equalsShallow(tt2)) {
     return EQUAL;
   }
-  if(tl1.isOrdinaryVar()) {
-    return INCOMPARABLE;
-  }
-  ASS(tl1.isTerm());
-  Term* t1 = tl1.term();
-  ASS(t1->shared());
-
-  if(tl2.isOrdinaryVar()) {
-    return t1->containsSubterm(tl2) ? GREATER : INCOMPARABLE;
+  if (tt1.term.isVar()) {
+    return (tt1.term==tt2.term) ? EQUAL : INCOMPARABLE;
   }
 
-  ASS(tl2.isTerm());
-  Term* t2=tl2.term();
+  if (tt2.term.isVar()) {
+    return tt1.containsVar(tt2.term) ? GREATER : INCOMPARABLE;
+  }
+
+  auto t1=tt1.term.term();
+  auto t2=tt2.term.term();
 
   switch (comparePrecedences(t1, t2)) {
   case EQUAL:
-    return lexMAE(t1, t2, t1->args(), t2->args(), t1->arity());
+    return lexMAE(tt1, tt2, t1->args(), t2->args(), t1->arity());
   case GREATER:
-    return majo(t1, t2->args(), t2->arity());
+    return majo(tt1, tt2, t2->args(), t2->arity());
   default:
-    return alpha(t1->args(), t1->arity(), t2);
+    return alpha(t1->args(), t1->arity(), tt1, tt2);
   }
 }
 
-Ordering::Result LPO::lexMAE(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity) const
+Ordering::Result LPO::lexMAE(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity) const
 {
-  ASS(s->shared());
-  ASS(t->shared());
-
   for (unsigned i = 0; i < arity; i++) {
-    switch (lpo(*(sl - i), *(tl - i))) {
+    switch (lpo(AppliedTerm(*(sl - i),s), AppliedTerm(*(tl - i),t))) {
     case EQUAL:
       break;
     case GREATER:
-      return majo(s, tl - i - 1, arity - i - 1);
+      return majo(s, t, tl - i - 1, arity - i - 1);
     case INCOMPARABLE:
-      return alpha(sl - i - 1, arity - i - 1, t);
+      return alpha(sl - i - 1, arity - i - 1, s, t);
     default:
       ASSERTION_VIOLATION;
     }
   }
-  // reached only when the terms are equal but this is checked already
-  // at the start of LPO::lpo, which is the only caller of this function
-  ASSERTION_VIOLATION;
+  return EQUAL;
 }
 
 // greater if s is greater than every term in tl
-Ordering::Result LPO::majo(Term* s, TermList* tl, unsigned arity) const
+Ordering::Result LPO::majo(AppliedTerm s, AppliedTerm t, const TermList* tl, unsigned arity) const
 {
-  ASS(s->shared());
-
   for (unsigned i = 0; i < arity; i++) {
-    switch(lpo(TermList(s), *(tl - i))) {
-    case GREATER:
-      break;
-    case EQUAL:
-    case INCOMPARABLE:
+    if (lpo(s, AppliedTerm(*(tl - i), t)) != GREATER) {
       return INCOMPARABLE;
-    default:
-      ASSERTION_VIOLATION;
     }
   }
   return GREATER;
+}
+
+bool LPO::isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, OrderingComparatorUP& comparator) const
+{
+  if (!comparator) {
+    // cout << "preprocessing " << lhs << " " << rhs << endl;
+    comparator = make_unique<const LPOComparator>(lhs, rhs, *this);
+    // cout << comparator->toString() << endl;
+  }
+  return static_cast<const LPOComparator*>(comparator.get())->check(applicator);
 }
 
 void LPO::showConcrete(ostream&) const 

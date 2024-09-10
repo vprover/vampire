@@ -221,32 +221,32 @@ void SymCounter::count(Term* term, int polarity, int add)
     if (term->isSpecial()) {
       Term::SpecialTermData *sd = term->getSpecialData();
       switch (sd->specialFunctor()) {
-        case Term::SpecialFunctor::FORMULA:
+        case SpecialFunctor::FORMULA:
           count(sd->getFormula(), polarity, add);
               break;
-        case Term::SpecialFunctor::ITE:
+        case SpecialFunctor::ITE:
           count(sd->getCondition(), 0, add);
               break;
-        case Term::SpecialFunctor::LET:
-        case Term::SpecialFunctor::LET_TUPLE: {
+        case SpecialFunctor::LET:
+        case SpecialFunctor::LET_TUPLE: {
           TermList binding = sd->getBinding();
           if (binding.isTerm()) {
             count(binding.term(), 1, add);
           }
           break;
         }
-        case Term::SpecialFunctor::TUPLE: {
+        case SpecialFunctor::TUPLE: {
           count(sd->getTupleTerm(), 0, add);
           break;
         }
-        case Term::SpecialFunctor::LAMBDA: {
+        case SpecialFunctor::LAMBDA: {
           TermList lambdaExp = sd->getLambdaExp();
           if(lambdaExp.isTerm()){
             count(lambdaExp.term(), polarity, add);
           }
           break;
         }
-        case Term::SpecialFunctor::MATCH: {
+        case SpecialFunctor::MATCH: {
           for (unsigned i = 0; i < term->arity(); i++) {
             TermList t = *term->nthArgument(i);
             if (t.isTerm()) {

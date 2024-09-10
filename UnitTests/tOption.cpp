@@ -39,7 +39,7 @@ TEST_FUN(examples__match) {
   // we can also match on Options instead of testing with isSome and unwrap
   auto opt = Option<int>();
   auto result = opt.match(
-        [](int i) -> vstring { return "some integer"; },
+        [](int i) -> std::string { return "some integer"; },
         [](     )            { return "nothing";      }
         );
   ASS_EQ("nothing", result)
@@ -63,9 +63,9 @@ TEST_FUN(examples__unwrapOrInit) {
 
 TEST_FUN(examples__toOwned) {
   // an option of a reference type can be turned into an option of the corresponding value, by coping it:
-  vstring str ("lala");
-  auto opt = Option<vstring&>(str);
-  auto opt2 = Option<vstring>("lala");
+  std::string str ("lala");
+  auto opt = Option<std::string&>(str);
+  auto opt2 = Option<std::string>("lala");
   // ASS_NEQ(opt, opt2) // <- does not compile. different types!!
   ASS_EQ(opt.toOwned(), opt2);
 }

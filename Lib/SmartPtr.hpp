@@ -17,6 +17,8 @@
 #ifndef __SmartPtr__
 #define __SmartPtr__
 
+#include <ostream>
+
 #include "Forwards.hpp"
 
 #include "Debug/Assertion.hpp"

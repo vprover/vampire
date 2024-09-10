@@ -14,6 +14,7 @@
 
 #include "Debug/RuntimeStatistics.hpp"
 
+#include "Forwards.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -71,20 +72,6 @@ void Narrow::detach()
   GeneratingInferenceEngine::detach();
 }
 
-struct Narrow::ApplicableNarrowsFn
-{
-  ApplicableNarrowsFn(NarrowingIndex* index) : _index(index) {}
-  VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> > operator()(pair<Literal*, TermList> arg)
-  {
-    ASS(arg.second.isTerm());
-
-    TypedTermList tt(arg.second.term());
-    return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(tt, true)) );
-  }
-private:
-  NarrowingIndex* _index;
-};
-
 struct Narrow::RewriteableSubtermsFn
 {
   RewriteableSubtermsFn(Ordering& ord) : _ord(ord) {}
@@ -103,11 +90,10 @@ private:
 struct Narrow::ResultFn
 {
   ResultFn(Clause* cl, Narrow& parent) : _cl(cl), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
+  Clause* operator()(pair<pair<Literal*, TermList>, QueryRes<ResultSubstitutionSP, TermWithValue<Literal*>>> arg)
   {
-    TermQueryResult& qr = arg.second;
-    return _parent.performNarrow(_cl, arg.first.first, arg.first.second, qr.term, 
-                                 qr.literal, qr.substitution);
+    auto& qr = arg.second;
+    return _parent.performNarrow(_cl, arg.first.first, arg.first.second, qr.data->key(), qr.data->value, qr.unifier);
   }
 private:
   Clause* _cl;
@@ -121,7 +107,7 @@ ClauseIterator Narrow::generateClauses(Clause* premise)
   auto it1 = premise->getSelectedLiteralIterator();
 
   auto it2 = getMapAndFlattenIterator(it1,RewriteableSubtermsFn(_salg->getOrdering()));
-  auto it3 = getMapAndFlattenIterator(it2,ApplicableNarrowsFn(_index));
+  auto it3 = getMapAndFlattenIterator(it2,[this](auto arg) { return pushPairIntoRightIterator(arg, _index->getUnifications(TypedTermList(arg.second.term()), /* retrieveSubstitutions */ true)); });
 
   //Perform  Narrow
   auto it4 = getMappingIterator(it3,ResultFn(premise, *this));
@@ -189,11 +175,11 @@ Clause* Narrow::performNarrow(
   TermList arg1=*nLiteralS->nthArgument(1);
 
   if(!arg0.containsSubterm(nTermS)) {
-    if(Ordering::isGorGEorE(ordering.getEqualityArgumentOrder(nLiteralS))) {
+    if(Ordering::isGreaterOrEqual(ordering.getEqualityArgumentOrder(nLiteralS))) {
       return 0;
     }
   } else if(!arg1.containsSubterm(nTermS)) {
-    if(Ordering::isGorGEorE(Ordering::reverse(ordering.getEqualityArgumentOrder(nLiteralS)))) {
+    if(Ordering::isGreaterOrEqual(Ordering::reverse(ordering.getEqualityArgumentOrder(nLiteralS)))) {
       return 0;
     }
   }
@@ -244,35 +230,29 @@ Clause* Narrow::performNarrow(
 
   bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 
-  Clause* res = new(cLen) Clause(cLen, inf);
+  RStack<Literal*> resLits;
 
-  (*res)[0] = tgtLitS;
-  int next = 1;
+  resLits->push(tgtLitS);
   for(unsigned i=0;i<cLen;i++) {
     Literal* curr=(*nClause)[i];
     if(curr!=nLiteral) {
       Literal* currAfter = subst->apply(curr, 0);
 
       if(EqHelper::isEqTautology(currAfter)) {
-        goto construction_fail;
+        return nullptr;
       }
 
       if (afterCheck) {
         TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
         if (i < nClause->numSelected() && ordering.compare(currAfter,nLiteralS) == Ordering::GREATER) {
           env.statistics->inferencesBlockedForOrderingAftercheck++;
-          goto construction_fail;
+          return nullptr;
         }
       }
-      (*res)[next++] = currAfter;
+      resLits->push(currAfter);
     }
   }
 
   env.statistics->narrow++;
-  return res;
-
-construction_fail:
-  //cout << "failed" << endl;
-  res->destroy();
-  return 0;
+  return Clause::fromStack(*resLits, inf);
 }

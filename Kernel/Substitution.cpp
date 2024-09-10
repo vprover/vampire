@@ -76,7 +76,7 @@ void Substitution::reset()
  * This function is to allow use of the @c Substitution class in the
  * methods of the @c SubstHelper class for applying substitutions.
  */
-TermList Substitution::apply(unsigned var)
+TermList Substitution::apply(unsigned var) const
 {
   TermList res;
   if(!findBinding(var, res)) {
@@ -96,9 +96,9 @@ bool Substitution::findBinding(int var, TermList& res) const
 
 
 #if VDEBUG
- vstring Substitution::toString() const
+ std::string Substitution::toString() const
  {
-   vstringstream out;
+   std::stringstream out;
    out << *this;
    return out.str();
  } // Substitution::toString()

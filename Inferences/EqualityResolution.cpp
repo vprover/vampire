@@ -36,10 +36,9 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#include "Shell/ConditionalRedundancyHandler.hpp"
 
 #include "EqualityResolution.hpp"
-#include "ReducibilityChecker.hpp"
-#include "Shell/UnificationWithAbstractionConfig.hpp"
 
 #if VDEBUG
 #include <iostream>
@@ -62,80 +61,42 @@ struct EqualityResolution::IsNegativeEqualityFn
 
 struct EqualityResolution::ResultFn
 {
-  ResultFn(Clause* cl, bool afterCheck = false, Ordering* ord = nullptr/* , ReducibilityChecker* checker = nullptr */)
-      : _afterCheck(afterCheck), _ord(ord), _cl(cl), _cLen(cl->length())/* , _checker(checker) */ {}
+  ResultFn(Clause* cl, bool afterCheck = false, const ConditionalRedundancyHandler* condRedHandler = nullptr, Ordering* ord = nullptr)
+      : _afterCheck(afterCheck), _condRedHandler(condRedHandler), _ord(ord), _cl(cl), _cLen(cl->length()) {}
+
   Clause* operator() (Literal* lit)
   {
     ASS(lit->isEquality());
     ASS(lit->isNegative());
 
-    FuncSubtermMap funcSubtermMap;
+    static AbstractionOracle _abstractionOracle = AbstractionOracle::create();
+    auto abstractionOracle = _abstractionOracle;
 
     TermList arg0 = *lit->nthArgument(0);
     TermList arg1 = *lit->nthArgument(1);
 
-    static Options::UnificationWithAbstraction uwa = env.options->unificationWithAbstraction();
-    static Options::FunctionExtensionality ext = env.options->functionExtensionality();
-    bool use_uwa_handler = uwa != Options::UnificationWithAbstraction::OFF;
-    bool use_ho_handler = (ext == Options::FunctionExtensionality::ABSTRACTION) &&
-                          env.getMainProblem()->isHigherOrder();
-
-    if(use_ho_handler){
-      TermList sort = SortHelper::getEqualityArgumentSort(lit);
-      if(!arg0.isVar() && !arg1.isVar() && 
-         !sort.isVar() && !sort.isArrowSort()){
-        arg0 = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(arg0.term(), &funcSubtermMap);
-        arg1 = ApplicativeHelper::replaceFunctionalAndBooleanSubterms(arg1.term(), &funcSubtermMap);
-      }
-    }
-
-    //cout << "arg0 " + arg0.toString() << endl;
-    //cout << "arg1 " + arg1.toString() << endl;
-
     // We only care about non-trivial constraints where the top-sybmol of the two literals are the same
     // and therefore a constraint can be created between arguments
-    if(use_uwa_handler &&  arg0.isTerm() && arg1.isTerm() &&
-       arg0.term()->functor() == arg1.term()->functor()){
-      use_uwa_handler = false;
+    if(arg0.isTerm() && arg1.isTerm() &&
+       arg0.term()->functor() != arg1.term()->functor()){
+      abstractionOracle = AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF);
     }
 
-    static RobSubstitution subst;
-    static UnificationConstraintStack constraints;
-    subst.reset();
-    constraints.reset();
-    subst.setMap(&funcSubtermMap);
+    auto absUnif = AbstractingUnifier::unify(arg0, 0, arg1, 0, abstractionOracle, env.options->unificationWithAbstractionFixedPointIteration());
 
-    if(use_uwa_handler){
-      UWAMismatchHandler hndlr(constraints);
-      if(!subst.unify(arg0,0,arg1,0,&hndlr)){ 
-        return 0; 
-      }
+    if(absUnif.isNone()){ 
+      return 0; 
     }
 
-    if(use_ho_handler){
-      HOMismatchHandler hndlr(constraints);
-      if(!subst.unify(arg0,0,arg1,0,&hndlr)){ 
-        return 0; 
-      }    
-    }
+    auto constraints = absUnif->computeConstraintLiterals();
 
-    if(!use_uwa_handler && !use_ho_handler && !subst.unify(arg0,0,arg1,0)){
-      return 0;    
-    }
-
-    //cout << "equalityResolution with " + _cl->toString() << endl;
-    //cout << "The literal is " + lit->toString() << endl;
-    //cout << "cLength " << cLength << endl;
-
-    unsigned newLen=_cLen-1+ constraints.length();
-
-    Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
+    RStack<Literal*> resLits;
 
     Literal* litAfter = 0;
 
     if (_afterCheck && _cl->numSelected() > 1) {
       TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
-      litAfter = subst.apply(lit, 0);
+      litAfter = absUnif->subs().apply(lit, 0);
     }
     // if (_checker) {
     //   _checker->reset();
@@ -146,19 +107,17 @@ struct EqualityResolution::ResultFn
     //   }
     // }
 
-    unsigned next = 0;
     for(unsigned i=0;i<_cLen;i++) {
       Literal* curr=(*_cl)[i];
       if(curr!=lit) {
-        Literal* currAfter = subst.apply(curr, 0);
+        Literal* currAfter = absUnif->subs().apply(curr, 0);
 
         if (litAfter) {
           TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
 
           if (i < _cl->numSelected() && _ord->compare(currAfter,litAfter) == Ordering::GREATER) {
             env.statistics->inferencesBlockedForOrderingAftercheck++;
-            res->destroy();
-            return 0;
+            return nullptr;
           }
         }
         // if (i < _cl->numSelected() && _checker && _checker->checkLiteral(currAfter)) {
@@ -167,30 +126,18 @@ struct EqualityResolution::ResultFn
         //   return 0;
         // }
 
-        (*res)[next++] = currAfter;
+        resLits->push(currAfter);
       }
     }
-    for(unsigned i=0;i<constraints.length();i++){
-      UnificationConstraint con = (constraints)[i];
-      TermList qT = subst.apply(con.first.first,0);
-      TermList rT = subst.apply(con.second.first,0);
 
-      TermList sort = SortHelper::getResultSort(rT.term());
-      Literal* constraint = Literal::createEquality(false,qT,rT,sort);      
-
-      if(use_uwa_handler && uwa==Options::UnificationWithAbstraction::GROUND &&
-         !constraint->ground() &&
-         !UnificationWithAbstractionConfig::isInterpreted(qT) && 
-         !UnificationWithAbstractionConfig::isInterpreted(rT) ) {
-
-        // the unification was between two uninterpreted things that were not ground 
-        res->destroy();
-        return 0;
+    if (!absUnif->usesUwa()) {
+      if (_condRedHandler && !_condRedHandler->handleReductiveUnaryInference(_cl, &absUnif->subs())) {
+        env.statistics->skippedEqualityResolution++;
+        return nullptr;
       }
-
-      (*res)[next++] = constraint;
     }
-    ASS_EQ(next,newLen);
+
+    resLits->loadFromIterator(constraints->iterFifo());
 
     if (env.options->diamondBreakingSuperposition()) {
       TIME_TRACE("diamond-breaking");
@@ -214,11 +161,12 @@ struct EqualityResolution::ResultFn
 
     env.statistics->equalityResolution++;
 
-    return res;
+    return Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
   }
 private:
   bool _afterCheck;
-  Ordering* _ord;
+  const ConditionalRedundancyHandler* _condRedHandler;
+  const Ordering* _ord;
   Clause* _cl;
   unsigned _cLen;
   // ReducibilityChecker* _checker;
@@ -237,7 +185,7 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
 
   auto it3 = getMappingIterator(it2,ResultFn(premise,
       getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
-      &_salg->getOrdering()/* , _salg->getReducibilityChecker() */));
+      &_salg->condRedHandler(), &_salg->getOrdering()));
 
   auto it4 = getFilteredIterator(it3,NonzeroFn());
 

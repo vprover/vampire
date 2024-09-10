@@ -72,13 +72,11 @@ public:
   Literal* literal();
   const TermList getBooleanTerm() const;
   TermList getBooleanTerm();
-  VList* freeVariables () const;
-  bool isFreeVariable(unsigned var) const;
   VList* boundVariables () const;
 
   // output
-  vstring toString() const;
-  static vstring toString(Connective con);
+  std::string toString() const;
+  static std::string toString(Connective con);
   bool parenthesesRequired(Connective outer) const;
   // auxiliary functions
   void destroy();
@@ -89,8 +87,8 @@ public:
   bool getSkip();
 
   bool hasLabel(){ return _label != DEFAULT_LABEL; }
-  vstring getLabel(){ return _label;}
-  void label(vstring l){ _label=l; }
+  std::string getLabel(){ return _label;}
+  void label(std::string l){ _label=l; }
 
   static Formula* fromClause(Clause* cl);
 
@@ -116,8 +114,8 @@ protected:
   /** connective */
   Connective _connective;
 
-  static vstring DEFAULT_LABEL;
-  vstring _label;
+  static std::string DEFAULT_LABEL;
+  std::string _label;
 
 }; // class Formula
 
@@ -129,15 +127,15 @@ class NamedFormula
   : public Formula
 {
 public:
-  explicit NamedFormula(vstring name) : Formula(NAME), _name(name) {}
+  explicit NamedFormula(std::string name) : Formula(NAME), _name(name) {}
 
   USE_ALLOCATOR(NamedFormula);
 
-  vstring name(){ return _name; }
-  const vstring name() const { return _name;}
+  std::string name(){ return _name; }
+  const std::string name() const { return _name;}
 
 protected:
-  vstring _name;
+  std::string _name;
 
 }; // class NamedFormula
 
@@ -158,6 +156,12 @@ public:
   const Literal* getLiteral() const { return _literal; }
   /** Return the literal of this formula */
   Literal* getLiteral() { return _literal; }
+
+  /** Set the literal of this formula.
+   * CAREFUL: This "forgets" the old literal (no memory reponsibitlity taken)
+   * and modifies this formula "in place"!
+  */
+  void setLiteral(Literal* lit) { _literal = lit; }
 
   // use allocator to (de)allocate objects of this class
   USE_ALLOCATOR(AtomicFormula);
@@ -344,7 +348,7 @@ class BoolTermFormula
     if (term->isSpecial()) {
       Term::SpecialTermData *sd = term->getSpecialData();
       switch (sd->specialFunctor()) {
-        case Term::SpecialFunctor::FORMULA:
+        case SpecialFunctor::FORMULA:
           return sd->getFormula();
         default:
           return new BoolTermFormula(ts);

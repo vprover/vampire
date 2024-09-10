@@ -11,13 +11,13 @@
 #ifndef SUBSUMPTIONDEMODULATIONHELPER_HPP
 #define SUBSUMPTIONDEMODULATIONHELPER_HPP
 
+#include <unordered_set>
+
 #include "Indexing/LiteralMiniIndex.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
-#include "Lib/STL.hpp"
-
 
 
 // Set to true to output FSD inferences on stdout
@@ -62,7 +62,7 @@ class OverlayBinder
 
   public:
     using Var = unsigned int;
-    using BindingsMap = vunordered_map<Var, TermList>;
+    using BindingsMap = std::unordered_map<Var, TermList>;
 
     OverlayBinder()
       : m_base(16)
@@ -262,7 +262,7 @@ class SDClauseMatches
 
   private:
     Clause* m_base;
-    vvector<LiteralList*> m_alts;
+    std::vector<LiteralList*> m_alts;
     unsigned m_basePosEqs;
     unsigned m_baseLitsWithoutAlts;
     unsigned m_basePosEqsWithoutAlts;
@@ -290,7 +290,7 @@ class SDHelper
     template <typename Applicator>
     static ClauseComparisonResult substClauseCompare(Clause* mcl, Applicator const& applicator, Clause* cl, Ordering const& ordering)
     {
-      vvector<Literal*> mclS(mcl->literals(), mcl->literals() + mcl->length());
+      std::vector<Literal*> mclS(mcl->literals(), mcl->literals() + mcl->length());
       ASS_EQ(mcl->length(), mclS.size());
       for (auto it = mclS.begin(); it != mclS.end(); ++it) {
         *it = applicator.applyTo(*it);
@@ -342,7 +342,7 @@ class SDHelper
 template <typename Applicator>
 bool termContainsAllVariablesOfOtherUnderSubst(TermList term, TermList other, Applicator const& applicator)
 {
-  static vunordered_set<unsigned int> vars(16);
+  static std::unordered_set<unsigned int> vars(16);
   vars.clear();
 
   static VariableIterator vit;
@@ -358,7 +358,7 @@ bool termContainsAllVariablesOfOtherUnderSubst(TermList term, TermList other, Ap
     }
   }
 
-  // check that all vars of other after substition have been collected
+  // check that all vars of other after substitution have been collected
   vit.reset(other);
   while (vit.hasNext()) {
     TermList t = applicator.apply(vit.next().var());

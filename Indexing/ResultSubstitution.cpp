@@ -60,46 +60,6 @@ private:
 };
 
 ResultSubstitutionSP ResultSubstitution::fromSubstitution(RobSubstitution* s, int queryBank, int resultBank)
-{
-  return ResultSubstitutionSP(new RSProxy(s, queryBank, resultBank));
-}
-
-/**
- * Test whether this substitution object is a renaming on the variables of @param t
- * @param result indicates whether we mean the "bank" applied 
- * to a result term or a query one (cf. applyToQuery/applyToResult)
- */
-bool ResultSubstitution::isRenamingOn(TermList t, bool result) 
-{
-  DHSet<TermList> renamingDomain;
-  DHSet<TermList> renamingRange;
-
-  VariableIterator it(t);
-  while(it.hasNext()) {
-    TermList v = it.next();
-    ASS(v.isVar());
-    if (!renamingDomain.insert(v)) {
-      continue;
-    }
-
-    TermList vSubst;
-    if (result) {
-      ASS(isIdentityOnQueryWhenResultBound());
-      // code trees don't implement general apply, but satisfy the assertion which makes the following OK
-      vSubst = applyToBoundResult(v);
-    } else {
-      ASS(isIdentityOnResultWhenQueryBound());
-      // the above holds, for a change, for the used substitution trees
-      vSubst = applyToBoundQuery(v);
-    }
-    if (!vSubst.isVar()) {
-      return false;
-    }
-    if (!renamingRange.insert(vSubst)) {
-      return false;
-    }
-  }
-  return true;
-}
+{ return ResultSubstitutionSP(new RSProxy(s, queryBank, resultBank)); }
 
 } // namespace Indexing

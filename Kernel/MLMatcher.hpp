@@ -16,13 +16,28 @@
 #ifndef __MLMatcher__
 #define __MLMatcher__
 
-#include "Clause.hpp"
 #include "Forwards.hpp"
-#include "Lib/STL.hpp"
+#include "Clause.hpp"
 
 namespace Kernel {
 
 using namespace Lib;
+
+
+struct MLMatchStats
+{
+  uint64_t numDecisions = 0;
+  // int numDecisionsAdjusted = 0;  // adjusted to "smt-like decisions"
+  bool result = false;  // true iff match was found
+};
+
+inline std::ostream& operator<<(std::ostream& os, MLMatchStats const& stats)
+{
+  os << "{ \"numDecisions\": " << stats.numDecisions
+     << ", \"result\": " << stats.result
+     << " }";
+  return os;
+}
 
 
 /**
@@ -43,6 +58,7 @@ class MLMatcher
      * - alts must have length baseLen (for 0 <= bi < baseLen, the literal baseLits[bi] will be matched against the alternatives in the list alts[bi])
      * - All literals in 'alts' must appear in 'instance'.
      * - If resolvedLit is not null, multiset must be false. (Hypothesis; not 100% sure if the matching algorithm breaks in that case)
+     * - No duplicates in baseLits[]
      */
     void init(Literal** baseLits,
               unsigned baseLen,
@@ -99,13 +115,15 @@ class MLMatcher
      *
      * The given vector will be cleared before operating on it.
      */
-    void getMatchedAltsBitmap(vvector<bool>& outMatchedBitmap) const;
+    void getMatchedAltsBitmap(std::vector<bool>& outMatchedBitmap) const;
 
     /**
      * Returns the variable bindings due to the current match.
      * May only be called in a matched state (i.e., after nextMatch() has returned true).
      */
-    void getBindings(vunordered_map<unsigned, TermList>& outBindings) const;
+    void getBindings(std::unordered_map<unsigned, TermList>& outBindings) const;
+
+    MLMatchStats getStats() const;
 
     // Disallow copy because the internal implementation still uses pointers to the underlying storage and it seems hard to untangle that.
     MLMatcher(MLMatcher const&) = delete;
@@ -128,6 +146,8 @@ class MLMatcher
     {
       return canBeMatched(base->literals(), base->length(), instance, alts, resolvedLit, resolvedLit == nullptr, subst);
     }
+
+    static MLMatchStats getStaticStats();
 };
 
 

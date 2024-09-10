@@ -194,13 +194,13 @@ void LispLexer::readQuotedString(Token& token, char opening, char closing, char 
     }
     else {
       if (escape && _lastCharacter!=closing && _lastCharacter!=escapeChar) {
-	throw LexerException((vstring)"invalid escape sequence in quoted string ", *this);
+	throw LexerException((std::string)"invalid escape sequence in quoted string ", *this);
       }
       escape=false;
       saveLastChar();
     }
   }
-  throw LexerException((vstring)"file ended while reading quoted string ", *this);
+  throw LexerException((std::string)"file ended while reading quoted string ", *this);
 } // LispLexer::readQuotedString
 
 

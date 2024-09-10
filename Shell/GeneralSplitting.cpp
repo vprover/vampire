@@ -98,7 +98,7 @@ bool GeneralSplitting::apply(ClauseList*& clauses)
   }
   ASS_EQ(modified, UnitList::isNonEmpty(splitRes));
   ClauseList* splitResC = 0;
-  ClauseList::pushFromIterator(getStaticCastIterator<Clause*>(UnitList::Iterator(splitRes)),splitResC);
+  ClauseList::pushFromIterator(iterTraits(UnitList::Iterator(splitRes)).map([](Unit* u) { return (Clause*)u; }),splitResC);
   clauses=ClauseList::concat(splitResC, clauses);
   return modified;
 }
@@ -165,7 +165,7 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
   }
 
 
-  unsigned minDegVar;
+  unsigned minDegVar = 0; // to silence a gcc warning (we overwrite the value below anyway, at least where it matters)
   unsigned minDeg=varCnt-1;
   Set<unsigned>::Iterator vit(vars);
   while(vit.hasNext()) {

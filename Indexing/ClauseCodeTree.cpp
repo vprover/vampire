@@ -74,6 +74,7 @@ void ClauseCodeTree::insert(Clause* cl)
   cctx.init();
 
   for(unsigned i=0;i<clen;i++) {
+    cctx.nextLit();
     compileTerm(lits[i], code, cctx, true);
   }
   code.push(CodeOp::getSuccess(cl));
@@ -185,7 +186,7 @@ void ClauseCodeTree::matchCode(CodeStack& code, CodeOp* startOp, size_t& matched
       if(treeOp->isSearchStruct()) {
 	SearchStruct* ss=treeOp->getSearchStruct();
 	CodeOp** toPtr;
-	if(ss->getTargetOpPtr(code[i], toPtr) && *toPtr) {
+	if(ss->getTargetOpPtr<false>(code[i], toPtr) && *toPtr) {
 	  treeOp=*toPtr;
 	  continue;
 	}
@@ -311,7 +312,7 @@ bool ClauseCodeTree::removeOneOfAlternatives(CodeOp* op, Clause* cl, Stack<CodeO
 {
   unsigned initDepth=firstsInBlocks->size();
 
-  while(!op->isSuccess() || op->getSuccessResult()!=cl) {
+  while(!op->isSuccess() || op->getSuccessResult<Clause>()!=cl) {
     op=op->alternative();
     if(!op) {
       firstsInBlocks->truncate(initDepth);
@@ -573,7 +574,7 @@ Clause* ClauseCodeTree::ClauseMatcher::next(int& resolvedQueryLit)
       }
     }
     else if(lm->op->isSuccess()) {
-      Clause* candidate=static_cast<Clause*>(lm->op->getSuccessResult());
+      Clause* candidate=lm->op->getSuccessResult<Clause>();
       RSTAT_MCTR_INC("candidates", lms.size()-1);
       if(checkCandidate(candidate, resolvedQueryLit)) {
 	RSTAT_MCTR_INC("candidates (success)", lms.size()-1);

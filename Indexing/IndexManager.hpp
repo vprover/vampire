@@ -21,6 +21,7 @@
 #include "Index.hpp"
 
 #include "Lib/Allocator.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
 
 
 namespace Indexing
@@ -46,7 +47,6 @@ enum IndexType {
 
   DEMODULATION_SUBTERM_SUBST_TREE,
   DEMODULATION_LHS_CODE_TREE,
-  DEMODULATION_LHS_SUBST_TREE,
   BLOCKED_TERM_INDEX,
 
   FW_SUBSUMPTION_CODE_TREE,
@@ -74,7 +74,7 @@ class IndexManager
 {
 public:
   /** alg can be zero, then it must be set by setSaturationAlgorithm */
-  explicit IndexManager(SaturationAlgorithm* alg) : _alg(alg) {}
+  explicit IndexManager(SaturationAlgorithm* alg);
   void setSaturationAlgorithm(SaturationAlgorithm* alg) 
   { 
     ASS(!_alg);
@@ -97,6 +97,8 @@ private:
   DHMap<IndexType,Entry> _store;
 
   Index* create(IndexType t);
+  Shell::Options::UnificationWithAbstraction _uwa;
+  bool _uwaFixedPointIteration;
 };
 
 };

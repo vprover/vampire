@@ -30,15 +30,14 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
+#include "Shell/Shuffling.hpp"
 
 #include "LPO.hpp"
 #include "KBO.hpp"
 #include "SKIKBO.hpp"
-#include "KBOForEPR.hpp"
 #include "Problem.hpp"
 #include "Signature.hpp"
-#include "Kernel/NumTraits.hpp" 
-#include "Shell/Shuffling.hpp"
+#include "NumTraits.hpp"
 
 #include "Ordering.hpp"
 
@@ -52,18 +51,6 @@ using namespace Lib;
 using namespace Kernel;
 
 OrderingSP Ordering::s_globalOrdering;
-
-Ordering::Ordering()
-{
-  createEqualityComparator();
-  ASS(_eqCmp);
-}
-
-Ordering::~Ordering()
-{
-  destroyEqualityComparator();
-}
-
 
 /**
  * If there is no global ordering yet, assign @c ordering to be
@@ -118,23 +105,7 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
   Ordering* out;
   switch (env.options->termOrdering()) {
   case Options::TermOrdering::KBO:
-    // KBOForEPR does not support 
-    // - colors
-    // - user specified symbol weights
-    // TODO fix this! 
-    if(prb.getProperty()->maxFunArity()==0 
-        && prb.getProperty()->maxTypeConArity() == 0
-        && !env.colorUsed
-        && env.options->predicateWeights() == ""
-        && env.options->functionWeights() == ""
-        && env.options->kboWeightGenerationScheme() == Options::KboWeightGenerationScheme::CONST
-        && !env.options->kboMaxZero()
-        && !prb.hasInterpretedOperations()
-        ) {
-      out = new KBOForEPR(prb, opt);
-    } else {
-      out = new KBO(prb, opt);
-    }
+    out = new KBO(prb, opt);
     break;
   case Options::TermOrdering::LPO:
     out = new LPO(prb, opt);
@@ -144,9 +115,7 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
   }
   //TODO currently do not show SKIKBO
   if (opt.showSimplOrdering()) {
-    env.beginOutput();
-    out->show(env.out());
-    env.endOutput();
+    out->show(std::cout);
   }
   return out;
 }
@@ -182,12 +151,8 @@ const char* Ordering::resultToString(Result r)
   switch(r) {
   case GREATER:
     return "GREATER";
-  case GREATER_EQ:
-    return "GREATER_EQ";
   case LESS:
     return "LESS";
-  case LESS_EQ:
-    return "LESS_EQ";
   case EQUAL:
     return "EQUAL";
   case INCOMPARABLE:
@@ -210,11 +175,10 @@ void Ordering::removeNonMaximal(LiteralList*& lits) const
     while (*ptr2 && *ptr1) {
       Ordering::Result res = compare((*ptr1)->head(), (*ptr2)->head());
 
-      if (res == Ordering::GREATER || res == Ordering::GREATER_EQ
-          || res == Ordering::EQUAL) {
+      if (res == Ordering::GREATER || res == Ordering::EQUAL) {
         LiteralList::pop(*ptr2);
         continue;
-      } else if (res == Ordering::LESS || res == Ordering::LESS_EQ) {
+      } else if (res == Ordering::LESS) {
         LiteralList::pop(*ptr1);
         goto topLevelContinue;
       }
@@ -342,12 +306,13 @@ Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, u
   if (fun1 == fun2)
     return EQUAL;
 
-  if (theory->isInterpretedFunction(fun1, IntTraits::minusI)) { return GREATER; } 
-  if (theory->isInterpretedFunction(fun1, RatTraits::minusI)) { return GREATER; }
-  if (theory->isInterpretedFunction(fun1, RealTraits::minusI)) { return GREATER; }
-
+  if (theory->isInterpretedFunction(fun1, IntTraits::minusI)) { return GREATER; }
   if (theory->isInterpretedFunction(fun2, IntTraits::minusI)) { return LESS; }
+
+  if (theory->isInterpretedFunction(fun1, RatTraits::minusI)) { return GREATER; }
   if (theory->isInterpretedFunction(fun2, RatTraits::minusI)) { return LESS; }
+
+  if (theory->isInterpretedFunction(fun1, RealTraits::minusI)) { return GREATER; }
   if (theory->isInterpretedFunction(fun2, RealTraits::minusI)) { return LESS; }
 
   // $$false is the smallest
@@ -592,7 +557,7 @@ using UnaryFirstComparator = SpecAriFirstComparator<1,revert,InnerComparator>;
 template<bool revert = false, typename InnerComparator = OccurenceTiebreak>
 using ConstFirstComparator = SpecAriFirstComparator<0,revert,InnerComparator>;
 
-static void loadPermutationFromString(DArray<unsigned>& p, const vstring& str) {
+static void loadPermutationFromString(DArray<unsigned>& p, const std::string& str) {
   std::stringstream ss(str.c_str());
   unsigned i = 0;
   unsigned val;
@@ -740,7 +705,7 @@ DArray<int> PrecedenceOrdering::typeConPrecFromOpts(Problem& prb, const Options&
     aux.initFromIterator(getRangeIterator(0u, nTypeCons), nTypeCons);
 
     if (!opt.typeConPrecedence().empty()) {
-      vstring precedence;
+      std::string precedence;
       ifstream precedence_file (opt.typeConPrecedence().c_str());
       if (precedence_file.is_open() && getline(precedence_file, precedence)) {
         loadPermutationFromString(aux,precedence);
@@ -766,7 +731,7 @@ DArray<int> PrecedenceOrdering::funcPrecFromOpts(Problem& prb, const Options& op
     aux.initFromIterator(getRangeIterator(0u, nFunctions), nFunctions);
 
     if (!opt.functionPrecedence().empty()) {
-      vstring precedence;
+      std::string precedence;
       ifstream precedence_file (opt.functionPrecedence().c_str());
       if (precedence_file.is_open() && getline(precedence_file, precedence)) {
         loadPermutationFromString(aux,precedence);
@@ -790,7 +755,7 @@ DArray<int> PrecedenceOrdering::predPrecFromOpts(Problem& prb, const Options& op
   aux.initFromIterator(getRangeIterator(0u, nPredicates), nPredicates);
 
   if (!opt.predicatePrecedence().empty()) {
-    vstring precedence;
+    std::string precedence;
     ifstream precedence_file (opt.predicatePrecedence().c_str());
     if (precedence_file.is_open() && getline(precedence_file, precedence)) {
       loadPermutationFromString(aux,precedence);

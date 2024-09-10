@@ -21,10 +21,89 @@
 #include "Formula.hpp"
 #include "SortHelper.hpp"
 #include "Term.hpp"
+#include "TermIterators.hpp"
 
 namespace Kernel {
 
 using namespace Lib;
+
+struct SubstApplicator {
+  virtual ~SubstApplicator() = default;
+  virtual TermList operator()(unsigned v) const = 0;
+  TermList apply(unsigned v) const { return (*this)(v); }
+};
+
+/**
+ * Term with a substitution applied to it lazily. This is used in the context of
+ * evaluating some term in a top-down manner symbol by symbol without actually
+ * creating the result of the substitution in the process. For example, we might
+ * evaluate `f(x,y)` with substitution `\theta = { x -> a, y -> g(x) }` using the
+ * following @b AppliedTerm instances:
+ * - Construct @b AppliedTerm with `f(x,y)`, `\theta` and @b aboveVar=true
+ *   (as we are "above" a variable position in `f(x,y)\theta`).
+ *   We process the symbol `f` of the term.
+ * - Construct @b AppliedTerm with `x`, `\theta` and @b aboveVar=true.
+ *   Since @b aboveVar==true and `x` is a variable, the substitution is applied
+ *   and we get an @b AppliedTerm with `a` and @b aboveVar=false, as we are
+ *   now "at" (and not "above") a variable position. We process the symbol `a`.
+ * - Construct @b AppliedTerm with `y`, `\theta` and @b aboveVar=true.
+ *   Again, @b aboveVar==true and `y` is a variable, so we get an @b AppliedTerm
+ *   with `g(x)` and @b aboveVar=false. We process the symbol `f`.
+ * - Finally, construct @b AppliedTerm with `x`, `\theta` and @b aboveVar=false.
+ *   Since we are now "below" a variable position with @b aboveVar==false,
+ *   `\theta` is not applied again and we get `x`. We process `x`.
+ */
+struct AppliedTerm
+{
+  TermList term;
+  bool aboveVar;
+  const SubstApplicator* applicator;
+
+  AppliedTerm(TermList t) : term(t), aboveVar(false), applicator(nullptr) {}
+  /**
+   * The substitution is only applied to the term @b t via @b applicator if @b t is a variable
+   * and @b aboveVar is true (i.e. we are still above the substitution). @b applicator can be
+   * null is @b aboveVar is false.
+   */
+  AppliedTerm(TermList t, const SubstApplicator* applicator, bool aboveVar)
+    : term(aboveVar && t.isVar() ? (*applicator)(t.var()) : t),
+      aboveVar(aboveVar && t.isVar() ? false : aboveVar), applicator(applicator) {}
+
+  AppliedTerm(TermList t, AppliedTerm parent)
+    : term(parent.aboveVar && t.isVar() ? (*parent.applicator)(t.var()) : t),
+      aboveVar(parent.aboveVar && t.isVar() ? false : parent.aboveVar), applicator(parent.applicator) {}
+
+  /**
+   * Only allow comparisons if we can guarantee that the terms are the same.
+   */
+  bool operator==(AppliedTerm) const = delete;
+  bool operator!=(AppliedTerm) const = delete;
+  bool equalsShallow(AppliedTerm other) const {
+    return ((!aboveVar && !other.aboveVar) || (term.ground() && other.term.ground()))
+      && term==other.term;
+  }
+
+  bool containsVar(TermList var)
+  {
+    ASS(var.isVar());
+    if (!aboveVar) {
+      return term.containsSubterm(var);
+    }
+    if (term.isVar()) {
+      return (*applicator)(term.var()).containsSubterm(var);
+    }
+    VariableIterator vit(term.term());
+    while (vit.hasNext()) {
+      auto v = vit.next();
+      if ((*applicator)(v.var()).containsSubterm(var)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  TermList apply() const;
+};
 
 class SubstHelper
 {
@@ -189,8 +268,8 @@ private:
   {
     for(unsigned i=0;i<len;i++) {
       TermList trm=terms[i];
-      if(trm.isVSpecialVar()||trm.isSpecialVar()||(trm.isTerm()&&!trm.term()->shared())) {
-	return false;
+      if(trm.isSpecialVar()||(trm.isTerm()&&!trm.term()->shared())) {
+	      return false;
       }
     }
     return true;
@@ -275,14 +354,14 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
   if(trm->isSpecial()) {
     Term::SpecialTermData* sd = trm->getSpecialData();
     switch(trm->specialFunctor()) {
-    case Term::SpecialFunctor::ITE:
+    case SpecialFunctor::ITE:
       return Term::createITE(
     applyImpl<ProcessSpecVars>(sd->getCondition(), applicator, noSharing),
     applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
     applyImpl<ProcessSpecVars>(*trm->nthArgument(1), applicator, noSharing),
     applyImpl<ProcessSpecVars>(sd->getSort(), applicator, noSharing)
     );
-    case Term::SpecialFunctor::LET:
+    case SpecialFunctor::LET:
       return Term::createLet(
     sd->getFunctor(),
     sd->getVariables(),
@@ -290,11 +369,11 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
     sd->getSort()
     );
-    case Term::SpecialFunctor::FORMULA:
+    case SpecialFunctor::FORMULA:
       return Term::createFormula(
       applyImpl<ProcessSpecVars>(sd->getFormula(), applicator, noSharing)
       );
-    case Term::SpecialFunctor::LET_TUPLE:
+    case SpecialFunctor::LET_TUPLE:
       return Term::createTupleLet(
         sd->getFunctor(),
         sd->getTupleSymbols(),
@@ -302,12 +381,12 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
         applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
         sd->getSort()
         );
-    case Term::SpecialFunctor::TUPLE:
+    case SpecialFunctor::TUPLE:
       return Term::createTuple(applyImpl<ProcessSpecVars>(sd->getTupleTerm(), applicator, noSharing));
-    case Term::SpecialFunctor::LAMBDA:
+    case SpecialFunctor::LAMBDA:
       // TODO in principle this should not be so difficult to handle
       ASSERTION_VIOLATION;
-    case Term::SpecialFunctor::MATCH: {
+    case SpecialFunctor::MATCH: {
       DArray<TermList> terms(trm->arity());
       for (unsigned i = 0; i < trm->arity(); i++) {
         terms[i] = applyImpl<ProcessSpecVars>(*trm->nthArgument(i), applicator, noSharing);
@@ -384,7 +463,7 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
       }
       continue;
     }
-    ASS(tl.isVSpecialVar() || tl.isTerm());
+    ASS(tl.isTerm());
     if(tl.isVar() || (tl.term()->shared() && tl.term()->ground())) {
       args->push(tl);
       continue;
@@ -578,5 +657,10 @@ FormulaList* SubstHelper::applyImpl(FormulaList* fs, Applicator& applicator, boo
 } // SubstHelper::applyImpl
 
 };
+
+inline TermList AppliedTerm::apply() const {
+  return aboveVar ? SubstHelper::apply(term, *applicator) 
+                  : term;
+}
 
 #endif /* __SubstHelper__ */

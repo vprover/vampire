@@ -30,7 +30,7 @@
 #include "Debug/Assertion.hpp"
 
 /*
- * note that formulas are implemented as both formulas (usual formulas) and 
+ * note that formulas are implemented as both formulas (usual formulas) and
  * clauses (vectors of literals) for efficiency. If we don't care about the
  * difference (as in this class), we use the class Unit, which wraps around
  * formulas and clauses, abstracting away the differences.
@@ -42,7 +42,7 @@
  * Due to performance reasons, a proof nonetheless consists not of inferences,
  * but of the conclusions of those inferences (and these
  * conclusions are not formulas but more generally units).
- * Each such conclusion c (conceptually of an inference inf_c) points to the 
+ * Each such conclusion c (conceptually of an inference inf_c) points to the
  * conclusions of each parent inference of inf_c.
  * ========================================================================
  * Additionally to the proof-information, we use coloring information,
@@ -66,9 +66,9 @@ namespace Shell
     using namespace std;
     using namespace Kernel;
 
-    
+
 //preprocessing proof
-    
+
     void Interpolants::removeTheoryInferences(Unit* refutation)
     {
         ProofIteratorPostOrder it(refutation);
@@ -77,17 +77,17 @@ namespace Shell
             Unit* current = it.next();
 
             // sanity check
-            ASS((!InferenceStore::instance()->getParents(current).hasNext() &&  (   current->inheritedColor() == COLOR_LEFT
+            ASS((!current->getParents().hasNext() &&  (   current->inheritedColor() == COLOR_LEFT
                                                                                         || current->inheritedColor() == COLOR_RIGHT
                                                                                         || current->inheritedColor() == COLOR_TRANSPARENT
                                                                                         ))
-                   || (InferenceStore::instance()->getParents(current).hasNext() &&  current->inheritedColor() == COLOR_INVALID));
+                   || (current->getParents().hasNext() &&  current->inheritedColor() == COLOR_INVALID));
 
             // compute whether inference has grey and non-grey parent inferences
             bool hasGreyParents = false;
             bool hasNonGreyParents = false;
-            
-            VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(current);
+
+            VirtualIterator<Unit*> parents = current->getParents();
             while (parents.hasNext())
             {
                 Unit* premise = parents.next();
@@ -100,19 +100,19 @@ namespace Shell
                     hasNonGreyParents = true;
                 }
             }
-            
+
             // whenever a non-input-inference has only grey parents, color it grey too (needed to compute which inferences are derived only from theory axioms)
             if (current->inheritedColor() == COLOR_INVALID && !hasNonGreyParents)
             {
                 current->setInheritedColor(COLOR_TRANSPARENT);
             }
-            
+
             // whenever an inference has both grey parents and non-grey parents, remove the grey parents
             if (hasGreyParents && hasNonGreyParents)
             {
                 UnitList* premises = UnitList::empty();
 
-                VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(current);
+                VirtualIterator<Unit*> parents = current->getParents();
                 while (parents.hasNext())
                 {
                     Unit* premise = parents.next();
@@ -125,13 +125,10 @@ namespace Shell
                         premise->decRefCnt();
                     }
                 }
-                
                 current->inference() = NonspecificInferenceMany(current->inference().rule(), premises);
             }
         }
     }
-    
-    
 //main method
 
     /*
@@ -144,28 +141,28 @@ namespace Shell
          * compute coloring for the inferences, i.e. compute splitting function in the words of the thesis
          */
         const SplittingFunction splittingFunction = computeSplittingFunction(refutation, weightFunction);
-        
+
         /*
          * compute A-subproofs
          */
         const SubproofsUnionFind unitsToRepresentative = computeSubproofs(refutation, splittingFunction);
-        
+
         /*
          * collect all boundaries of the subproofs
          */
         const Boundary boundary = computeBoundary(refutation, splittingFunction);
-        
+
         /*
          * generate the interpolant (i.e. the splitting formula in the words of the thesis, cf. Definition 3.1.2. of the thesis)
          */
         const auto interpolant = generateInterpolant(refutation, boundary, splittingFunction, unitsToRepresentative);
-        
+
         return interpolant;
     }
-    
-    
+
+
 //main helper methods
-    
+
     /*
      * compute the maximal A-subproofs of the proofs using standard union-find ideas as described in the thesis
      * Note: can't just use depth-first-search, since edge information is only saved in one direction in the nodes
@@ -175,21 +172,21 @@ namespace Shell
     {
         std::unordered_map<Unit*, Unit*> unitsToRepresentative; // maps each unit u1 (belonging to a red subproof) to the representative unit u2 of that subproof
         std::unordered_map<Unit*, int> unitsToSize; // needed for weighted quick-union: for each unit, counts number of elements rooted in that unit
-        
+
         ProofIteratorBFSPreOrder it(refutation); // traverse the proof in breadth-first pre-order
         while (it.hasNext())
         {
             Unit* current = it.next();
-            
+
             // standard union-find: if current inference is assigned to A-part of the proof,
             if (splittingFunction.at(current) == COLOR_LEFT)
             {
                 // then for each parent inference,
-                VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(current);
+                VirtualIterator<Unit*> parents = current->getParents();
                 while (parents.hasNext())
                 {
                     Unit* premise = parents.next();
-                    
+
                     // the parent may be from the B-part, this is to induce connectedness over a common parent
                     // (Even then we want to merge, so that this parent appears only once in the final interpolant.)
                     {
@@ -199,11 +196,11 @@ namespace Shell
                 }
             }
         }
-        
+
         return unitsToRepresentative;
     }
-    
-    
+
+
     /*
      * computes the boundaries of the A-subproofs using Breadth-first search (BFS)
      * Using idea from the thesis: a unit occurs as boundary of a subproof, if it has a different color than of its parents/ one of its children.
@@ -212,22 +209,22 @@ namespace Shell
     {
         std::unordered_set<Kernel::Unit*> inputNodes;   // input is a blue premise of a red inference
         std::unordered_set<Kernel::Unit*> outputNodes;  // output is a red premise of a blue inference or a red refutation
-        
+
         ProofIteratorBFSPreOrder it(refutation); // traverse the proof in breadth-first pre-order
         while (it.hasNext())
         {
             Unit* current = it.next();
-            
+
             // if current inference is assigned to A-part
             ASS(splittingFunction.at(current) == COLOR_LEFT || splittingFunction.at(current) == COLOR_RIGHT);
             if (splittingFunction.at(current) == COLOR_LEFT)
             {
                 // then for each parent inference,
-                VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(current);
+                VirtualIterator<Unit*> parents = current->getParents();
                 while (parents.hasNext())
                 {
                     Unit* premise = parents.next();
-                    
+
                     // if it is assigned to the B-part
                     ASS(splittingFunction.at(premise) == COLOR_LEFT || splittingFunction.at(premise) == COLOR_RIGHT);
                     if (splittingFunction.at(premise) != COLOR_LEFT)
@@ -236,16 +233,16 @@ namespace Shell
                     }
                 }
             }
-            
+
             // if current inference is assigned to B-part
             else
             {
                 // then for each parent inference,
-                VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(current);
+                VirtualIterator<Unit*> parents = current->getParents();
                 while (parents.hasNext())
                 {
                     Unit* premise = parents.next();
-                    
+
                     // if it is assigned to the A-part
                     ASS(splittingFunction.at(premise) == COLOR_LEFT || splittingFunction.at(premise) == COLOR_RIGHT);
                     if (splittingFunction.at(premise) == COLOR_LEFT)
@@ -264,10 +261,10 @@ namespace Shell
 
         return make_pair(std::move(inputNodes), std::move(outputNodes));
     }
-    
+
     /*
      * generate the interpolant from the boundary
-     * Note: we already have collected all relevant information before calling this function, 
+     * Note: we already have collected all relevant information before calling this function,
      * we now just need to build (and simplify) a formula out of the information.
      */
     Formula* Interpolants::generateInterpolant(Kernel::Unit* refutation, const Boundary& boundary,
@@ -275,7 +272,7 @@ namespace Shell
     {
         const std::unordered_set<Unit*>& inputNodes = boundary.first;
         const std::unordered_set<Unit*>& outputNodes = boundary.second;
-        
+
         struct InterpolantBuilder {
           int implCnt; // for statistics only
 
@@ -370,7 +367,7 @@ namespace Shell
         FormulaList* outerConjunction = FormulaList::empty();
 
         // statistics only
-        vstring nestednesses;
+        std::string nestednesses;
 
         for (auto& rootBuilderPair : contributions) {
           InterpolantBuilder& builder = rootBuilderPair.second;
@@ -384,7 +381,7 @@ namespace Shell
         // finally conjoin all generated implications and return the simplified result, which is the interpolant
         //Formula* interpolant = JunctionFormula::generalJunction(Connective::AND, outerConjunction);
         Formula* interpolant = justOneNoodle.finalise();
-        
+
         // print number of pieces
         // print the depth of each ...
 
@@ -409,7 +406,7 @@ namespace Shell
             }
 
             if (cur->inference().rule() == InferenceRule::NEGATED_CONJECTURE) {
-            VirtualIterator<Unit*> pars = InferenceStore::instance()->getParents(cur);
+            VirtualIterator<Unit*> pars = cur->getParents();
 
             // negating the conjecture is not a sound inference,
             // we want to consider the proof only from the point where it has been done already
@@ -428,7 +425,7 @@ namespace Shell
             cur->inference() = Inference(NonspecificInference0(UnitInputType::NEGATED_CONJECTURE,InferenceRule::NEGATED_CONJECTURE)); // negated conjecture without a parent (non-standard, but nobody will see it)
             }
 
-            todo.loadFromIterator(InferenceStore::instance()->getParents(cur));
+            todo.loadFromIterator(cur->getParents());
         }
     }
 
@@ -504,27 +501,27 @@ namespace Shell
 
 
     // splitting function
- 
+
     /*
      * implements local splitting function from the thesis (improved version of approach #2, cf. section 3.3)
      */
     std::unordered_map<Kernel::Unit*, Kernel::Color> Interpolants::computeSplittingFunction(Kernel::Unit* refutation, UnitWeight weightFunction)
     {
         std::unordered_map<Kernel::Unit*, Kernel::Color> splittingFunction;
-        
+
         ProofIteratorPostOrder it(refutation);
         while (it.hasNext()) // traverse the proof in depth-first post order
         {
             Unit* current = it.next();
-            ASS((!InferenceStore::instance()->getParents(current).hasNext() && (current->inheritedColor() == COLOR_LEFT || current->inheritedColor() == COLOR_RIGHT)) || (InferenceStore::instance()->getParents(current).hasNext() &&  current->inheritedColor() == COLOR_INVALID));
+            ASS((!current->getParents().hasNext() && (current->inheritedColor() == COLOR_LEFT || current->inheritedColor() == COLOR_RIGHT)) || (current->getParents().hasNext() &&  current->inheritedColor() == COLOR_INVALID));
 
             // if the inference is an axiom, assign it to the corresponding partition
-            if (!InferenceStore::instance()->getParents(current).hasNext())
+            if (!current->getParents().hasNext())
             {
                 splittingFunction[current] = current->inheritedColor();
                 continue;
             }
-            
+
             // if the inference contains a colored symbol, assign it to the corresponding partition (this
             // ensures requirement of a LOCAL splitting function in the words of the thesis):
             // - this is the case if either the conclusion contains a colored symbol
@@ -533,14 +530,14 @@ namespace Shell
                 splittingFunction[current] = current->getColor();
                 continue;
             }
-            
+
             // - or if any premise contains a colored symbol
             Color containedColor = COLOR_TRANSPARENT;
-            VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(current);
+            VirtualIterator<Unit*> parents = current->getParents();
             while (parents.hasNext())
             {
                 Unit* premise= parents.next();
-                
+
                 if (premise->getColor() == COLOR_LEFT || premise->getColor() == COLOR_RIGHT)
                 {
                     containedColor = premise->getColor();
@@ -552,20 +549,20 @@ namespace Shell
                 splittingFunction[current] = containedColor;
                 continue;
             }
-            
+
             /* otherwise we choose the following heuristic
              * if the weighted sum of the conclusions of all parent inferences assigned
              * to the red partition is greater than the weighted sum of the conclusions
              * of all parent inferences assigned to the blue partition, then
              * assign the inference to red, otherwise to blue
              */
-            parents = InferenceStore::instance()->getParents(current);
-            
+            parents = current->getParents();
+
             double difference = 0;
             while (parents.hasNext())
             {
                 Unit* premise= parents.next();
-                
+
                 ASS(splittingFunction.at(premise) == COLOR_LEFT || splittingFunction.at(premise) == COLOR_RIGHT);
                 if (splittingFunction.at(premise) == COLOR_LEFT)
                 {
@@ -578,7 +575,7 @@ namespace Shell
             }
             splittingFunction[current] = difference > 0 ? COLOR_LEFT : COLOR_RIGHT;
         }
-        
+
         return splittingFunction;
     }
 
@@ -599,16 +596,16 @@ namespace Shell
 
 
 // union find helper methods
-    
+
   /*
    * standard implementation of union-find following
    * https://www.cs.princeton.edu/~rs/AlgsDS07/01UnionFind.pdf
    * Note: we keep the invariant that we omit from the map the units which map to themselves
-   * Note: we don't apply path compression. That would possibly be a little 
-   * bit faster, but then we couldn't make the unitsToRepresentative-argument 
+   * Note: we don't apply path compression. That would possibly be a little
+   * bit faster, but then we couldn't make the unitsToRepresentative-argument
    * of the root-function const.
    */
-    
+
     Kernel::Unit* Interpolants::root(const UnionFindMap& unitsToRepresentative, Unit* unit)
     {
         Unit* root = unit;
@@ -617,15 +614,14 @@ namespace Shell
             ASS_NEQ(unitsToRepresentative.at(root), root);
             root = unitsToRepresentative.at(root);
         }
-        
         return root;
     }
-    
+
     bool Interpolants::find(UnionFindMap& unitsToRepresentative, Unit* unit1, Unit* unit2)
     {
         return root(unitsToRepresentative, unit1) == root(unitsToRepresentative, unit2);
     }
-    
+
     void Interpolants::merge(UnionFindMap& unitsToRepresentative,
                                 std::unordered_map<Unit*, int> unitsToSize,
                                 Unit* unit1,
@@ -634,7 +630,7 @@ namespace Shell
         ASS_NEQ(unit1, unit2);
         Unit* root1 = root(unitsToRepresentative, unit1);
         Unit* root2 = root(unitsToRepresentative, unit2);
-        
+
         if (root1 != root2)
         {
             if (unitsToSize[root1] < unitsToSize[root2]) // weighted version
@@ -685,7 +681,7 @@ namespace Shell
             if (visited.find(current) == visited.end())
             {
                 // add unprocessed premises to queue for BFS:
-                VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(current);
+                VirtualIterator<Unit*> parents = current->getParents();
 
                 while (parents.hasNext())
                 {
@@ -734,7 +730,7 @@ namespace Shell
 
                 // add unprocessed premises to stack for DFS. If there is at least one unprocessed premise, don't compute the result
                 // for currentUnit now, but wait until those unprocessed premises are processed.
-                VirtualIterator<Unit*> parents = InferenceStore::instance()->getParents(currentUnit);
+                VirtualIterator<Unit*> parents = currentUnit->getParents();
                 while (parents.hasNext())
                 {
                     Unit* premise= parents.next();

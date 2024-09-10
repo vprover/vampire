@@ -14,6 +14,8 @@
  * @since 16/08/2008 flight Sydney-San Francisco
  */
 
+#define DEBUG_INSERT(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
+#define DEBUG_REMOVE(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
 #include <utility>
 
 #include "Shell/Options.hpp"
@@ -33,66 +35,16 @@
 #include "TermSharing.hpp"
 
 #include <iostream>
+#include "Debug/Tracer.hpp"
 #if VDEBUG
 #include "Kernel/Signature.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
-
 #endif
 
 #include "SubstitutionTree.hpp"
 
-using namespace std;
-using namespace Indexing;
-
-
-/**
- * Initialise the substitution tree.
- * @since 16/08/2008 flight Sydney-San Francisco
- */
-SubstitutionTree::SubstitutionTree(bool useC, bool rfSubs)
-  : _nextVar(0)
-  , _useC(useC)
-  , _functionalSubtermMap(someIf(rfSubs, [](){ return FuncSubtermMap(); }))
-  , _root(nullptr)
-#if VDEBUG
-  , _tag(false)
-#endif
-{
-} // SubstitutionTree::SubstitutionTree
-
-/**
- * Destroy the substitution tree.
- * @warning does not destroy nodes yet
- * @since 16/08/2008 flight Sydney-San Francisco
- */
-SubstitutionTree::~SubstitutionTree()
-{
-  ASS_EQ(_iterCnt,0);
-
-  delete _root;
-} // SubstitutionTree::~SubstitutionTree
-
-/**
- * Store initial bindings of term @b t into @b bq.
- *
- * This method is used for insertions and deletions.
- */
-void SubstitutionTree::getBindingsArgBindings(Term* t, BindingMap& svBindings)
-{
-  TermList* args=t->args();
-
-  int nextVar = 0;
-  while (! args->isEmpty()) {
-    if (_nextVar <= nextVar) {
-      ASS_EQ(_iterCnt,0);
-      _nextVar = nextVar+1;
-    }
-    svBindings.insert(nextVar++, *args);
-    args = args->next();
-  }
-}
-
+namespace Indexing {
 struct UnresolvedSplitRecord
 {
   UnresolvedSplitRecord() {}
@@ -103,6 +55,7 @@ struct UnresolvedSplitRecord
   TermList original;
 };
 
+template<class LeafData_>
 struct BindingComparator
 {
   static Comparison compare(const UnresolvedSplitRecord& r1, const UnresolvedSplitRecord& r2)
@@ -117,7 +70,7 @@ struct BindingComparator
     }
     return Int::compare(r2.var,r1.var);
   }
-  static Comparison compare(const SubstitutionTree::Binding& b1, const SubstitutionTree::Binding& b2)
+  static Comparison compare(const typename SubstitutionTree<LeafData_>::Binding& b1, const typename SubstitutionTree<LeafData_>::Binding& b2)
   {
 #if REORDERING
     return Int::compare(b2.var,b1.var);
@@ -135,26 +88,33 @@ struct BindingComparator
  * top symbol of the term/literal being inserted, and
  * @b bh contains its arguments.
  */
-void SubstitutionTree::insert(BindingMap& svBindings, LeafData ld)
+template<class LeafData_>
+void SubstitutionTree<LeafData_>::insert(BindingMap& svBindings, LeafData ld)
 {
-#define DEBUG_INSERT(...) // DBG(__VA_ARGS__)
   ASS_EQ(_iterCnt,0);
   auto pnode = &_root;
-  DEBUG_INSERT("insert: ", svBindings, " into ", *this)
+  DEBUG_INSERT(0, "insert: ", svBindings, " into ", *this)
 
   if(*pnode == 0) {
-    ASS(!svBindings.isEmpty())
-    *pnode=createIntermediateNode(svBindings.getOneKey(),_useC);
+    if (svBindings.isEmpty()) {
+      auto leaf = createLeaf();
+      leaf->insert(std::move(ld));
+      *pnode = leaf;
+      DEBUG_INSERT(0, "out: ", *this);
+      return;
+    } else {
+      *pnode=createIntermediateNode(svBindings.getOneKey());
+    }
   }
   if(svBindings.isEmpty()) {
     ASS((*pnode)->isLeaf());
     ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode));
     static_cast<Leaf*>(*pnode)->insert(ld);
-    DEBUG_INSERT("out: ", *this);
+    DEBUG_INSERT(0, "out: ", *this);
     return;
   }
 
-  typedef BinaryHeap<UnresolvedSplitRecord, BindingComparator> SplitRecordHeap;
+  typedef BinaryHeap<UnresolvedSplitRecord, BindingComparator<LeafData_>> SplitRecordHeap;
   static SplitRecordHeap unresolvedSplits;
   unresolvedSplits.reset();
 
@@ -177,8 +137,8 @@ start:
       bool removeProblematicNode=false;
       if(svBindings.find(boundVar)) {
 	TermList term=svBindings.get(boundVar);
-	bool wouldDescendIntoChild = inode->childByTop(term,false)!=0;
-	ASS_EQ(wouldDescendIntoChild, TermList::sameTop(term, child->term));
+	bool wouldDescendIntoChild = inode->childByTop(term.top(),false)!=0;
+	ASS_EQ(wouldDescendIntoChild, TermList::sameTop(term, child->term()));
 	if(!wouldDescendIntoChild) {
 	  //if we'd have to perform all postponed splitting due to
 	  //node with a single child, we rather remove that node
@@ -186,7 +146,7 @@ start:
 	  //later.
 	  removeProblematicNode=true;
 	}
-      } else if(!child->term.isTerm() || child->term.term()->shared()) {
+      } else if(!child->term().isTerm() || child->term().term()->shared()) {
 	//We can remove nodes binding to special variables undefined in our branch
 	//of the tree, as long as we're sure, that during split resolving we put these
 	//binding nodes below nodes that define spec. variables they bind.
@@ -195,8 +155,8 @@ start:
 	canPostponeSplits = false;
       }
       if(removeProblematicNode) {
-	unresolvedSplits.insert(UnresolvedSplitRecord(inode->childVar, child->term));
-	child->term=inode->term;
+	unresolvedSplits.insert(UnresolvedSplitRecord(inode->childVar, child->term()));
+	child->setTerm(inode->term());
 	*pnode=child;
 	inode->makeEmpty();
 	delete inode;
@@ -211,12 +171,12 @@ start:
       UnresolvedSplitRecord urr=unresolvedSplits.pop();
 
       Node* node=*pnode;
-      IntermediateNode* newNode = createIntermediateNode(node->term, urr.var,_useC);
-      node->term=urr.original;
+      IntermediateNode* newNode = createIntermediateNode(node->term(), urr.var);
+      node->setTerm(urr.original);
 
       *pnode=newNode;
 
-      Node** nodePosition=newNode->childByTop(node->term, true);
+      Node** nodePosition=newNode->childByTop(node->top(), true);
       ASS(!*nodePosition);
       *nodePosition=node;
     }
@@ -235,11 +195,11 @@ start:
   //So in the case we do insert, we might check whether this node
   //needs expansion.
   Node** pparent=pnode;
-  pnode=inode->childByTop(term,true);
+  pnode=inode->childByTop(term.top(),true);
 
   if (*pnode == 0) {
     BindingMap::Iterator svit(svBindings);
-    BinaryHeap<Binding, BindingComparator> remainingBindings;
+    BinaryHeap<Binding, BindingComparator<LeafData_>> remainingBindings;
     while (svit.hasNext()) {
       unsigned var;
       TermList term;
@@ -248,24 +208,24 @@ start:
     }
     while (!remainingBindings.isEmpty()) {
       Binding b=remainingBindings.pop();
-      IntermediateNode* inode = createIntermediateNode(term, b.var,_useC);
+      IntermediateNode* inode = createIntermediateNode(term, b.var);
       term=b.term;
 
       *pnode = inode;
-      pnode = inode->childByTop(term,true);
+      pnode = inode->childByTop(term.top(),true);
     }
     Leaf* lnode=createLeaf(term);
     *pnode=lnode;
     lnode->insert(ld);
 
     ensureIntermediateNodeEfficiency(reinterpret_cast<IntermediateNode**>(pparent));
-    DEBUG_INSERT("out: ", *this);
+    DEBUG_INSERT(0, "out: ", *this);
     return;
   }
 
 
   TermList* tt = &term;
-  TermList* ss = &(*pnode)->term;
+  TermList* ss = &(*pnode)->term();
 
   ASS(TermList::sameTop(*ss, *tt));
 
@@ -333,12 +293,12 @@ start:
     ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode));
     Leaf* leaf = static_cast<Leaf*>(*pnode);
     leaf->insert(ld);
-    DEBUG_INSERT("out: ", *this);
+    DEBUG_INSERT(0, "out: ", *this);
     return;
   }
 
   goto start;
-} // // SubstitutionTree::insert
+} // // SubstitutionTree<LeafData_>::insert
 
 /*
  * Remove an entry from the substitution tree.
@@ -350,29 +310,30 @@ start:
  * If the removal results in a chain of nodes containing
  * no terms/literals, all those nodes are removed as well.
  */
-void SubstitutionTree::remove(BindingMap& svBindings, LeafData ld)
+template<class LeafData_>
+void SubstitutionTree<LeafData_>::remove(BindingMap& svBindings, LeafData ld)
 {
   ASS_EQ(_iterCnt,0);
   auto pnode = &_root;
+  DEBUG_REMOVE(0, "remove: ", svBindings, " from ", *this)
 
   ASS(*pnode);
 
-  static Stack<Node**> history(1000);
-  history.reset();
+  Recycled<Stack<Node**>> history;
 
   while (! (*pnode)->isLeaf()) {
-    history.push(pnode);
+    history->push(pnode);
 
     IntermediateNode* inode=static_cast<IntermediateNode*>(*pnode);
 
     unsigned boundVar=inode->childVar;
     TermList t = svBindings.get(boundVar);
 
-    pnode=inode->childByTop(t,false);
+    pnode=inode->childByTop(t.top(),false);
     ASS(pnode);
 
 
-    TermList* s = &(*pnode)->term;
+    TermList* s = &(*pnode)->term();
     ASS(TermList::sameTop(*s,t));
 
     if(*s==t) {
@@ -425,27 +386,30 @@ void SubstitutionTree::remove(BindingMap& svBindings, LeafData ld)
   ensureLeafEfficiency(reinterpret_cast<Leaf**>(pnode));
 
   while( (*pnode)->isEmpty() ) {
-    TermList term=(*pnode)->term;
-    if(history.isEmpty()) {
+    TermList term=(*pnode)->term();
+    if(history->isEmpty()) {
       delete *pnode;
       *pnode=0;
+      DEBUG_REMOVE(0, "out: ", *this);
       return;
     } else {
       Node* node=*pnode;
-      IntermediateNode* parent=static_cast<IntermediateNode*>(*history.top());
-      parent->remove(term);
+      IntermediateNode* parent=static_cast<IntermediateNode*>(*history->top());
+      parent->remove(term.top());
       delete node;
-      pnode=history.pop();
+      pnode = history->pop();
       ensureIntermediateNodeEfficiency(reinterpret_cast<IntermediateNode**>(pnode));
     }
   }
-} // SubstitutionTree::remove
+  DEBUG_REMOVE(0, "out: ", *this);
+} // SubstitutionTree<LeafData_>::remove
 
 /**
  * Return a pointer to the leaf that contains term specified by @b svBindings.
  * If no such leaf exists, return 0.
  */
-SubstitutionTree::Leaf* SubstitutionTree::findLeaf(Node* root, BindingMap& svBindings)
+template<class LeafData_>
+typename SubstitutionTree<LeafData_>::Leaf* SubstitutionTree<LeafData_>::findLeaf(Node* root, BindingMap& svBindings)
 {
   ASS(root);
 
@@ -457,14 +421,14 @@ SubstitutionTree::Leaf* SubstitutionTree::findLeaf(Node* root, BindingMap& svBin
     unsigned boundVar=inode->childVar;
     TermList t = svBindings.get(boundVar);
 
-    Node** child=inode->childByTop(t,false);
+    Node** child=inode->childByTop(t.top(),false);
     if(!child) {
       return 0;
     }
     node=*child;
 
 
-    TermList s = node->term;
+    TermList s = node->term();
     ASS(TermList::sameTop(s,t));
 
     if(s==t) {
@@ -513,61 +477,52 @@ SubstitutionTree::Leaf* SubstitutionTree::findLeaf(Node* root, BindingMap& svBin
 }
 
 
-#if VDEBUG
-
-vstring getIndentStr(int n)
+template<class LeafData_>
+SubstitutionTree<LeafData_>::Node::~Node()
 {
-  vstring res;
-  for(int indCnt=0;indCnt<n;indCnt++) {
-	res+="  ";
-  }
-  return res;
-}
-
-#endif
-
-SubstitutionTree::Node::~Node()
-{
-  if(term.isTerm()) {
-    term.term()->destroyNonShared();
+  if(term().isTerm()) {
+    term().term()->destroyNonShared();
   }
 }
 
 
-void SubstitutionTree::Node::split(Node** pnode, TermList* where, int var)
+template<class LeafData_>
+void SubstitutionTree<LeafData_>::Node::split(Node** pnode, TermList* where, int var)
 {
   Node* node=*pnode;
 
-  IntermediateNode* newNode = createIntermediateNode(node->term, var,node->withSorts());
-  node->term=*where;
+  IntermediateNode* newNode = createIntermediateNode(node->term(), var);
+  node->setTerm(*where);
   *pnode=newNode;
 
   where->makeSpecialVar(var);
 
-  Node** nodePosition=newNode->childByTop(node->term, true);
+  Node** nodePosition=newNode->childByTop(node->top(), true);
   ASS(!*nodePosition);
   *nodePosition=node;
 }
 
-void SubstitutionTree::IntermediateNode::loadChildren(NodeIterator children)
+template<class LeafData_>
+void SubstitutionTree<LeafData_>::IntermediateNode::loadChildren(NodeIterator children)
 {
   while(children.hasNext()) {
     Node* ext=*children.next();
-    Node** own=childByTop(ext->term, true);
+    Node** own=childByTop(ext->top(), true);
     ASS(! *own);
     *own=ext;
   }
 }
 
-void SubstitutionTree::Leaf::loadChildren(LDIterator children)
+template<class LeafData_>
+void SubstitutionTree<LeafData_>::Leaf::loadChildren(LDIterator children)
 {
   while(children.hasNext()) {
-    LeafData ld=children.next();
-    insert(ld);
+    // TODO move instead of copying here
+    insert(*children.next());
   }
 }
-
-SubstitutionTree::LeafIterator::LeafIterator(SubstitutionTree* st)
+template<class LeafData_>
+SubstitutionTree<LeafData_>::LeafIterator::LeafIterator(SubstitutionTree* st)
   : _curr()
   , _nodeIterators()
 {
@@ -579,7 +534,8 @@ SubstitutionTree::LeafIterator::LeafIterator(SubstitutionTree* st)
   }
 }
 
-SubstitutionTree::Leaf* SubstitutionTree::LeafIterator::next()
+template<class LeafData_>
+typename SubstitutionTree<LeafData_>::Leaf* SubstitutionTree<LeafData_>::LeafIterator::next()
 {
   ASS(_curr->isLeaf());
   auto out = _curr;
@@ -588,7 +544,8 @@ SubstitutionTree::Leaf* SubstitutionTree::LeafIterator::next()
 }
 
 
-void SubstitutionTree::LeafIterator::skipToNextLeaf()
+template<class LeafData_>
+void SubstitutionTree<LeafData_>::LeafIterator::skipToNextLeaf()
 {
   for (;;) {
     while(!_nodeIterators.isEmpty() && !_nodeIterators.top().hasNext()) {
@@ -610,231 +567,17 @@ void SubstitutionTree::LeafIterator::skipToNextLeaf()
   }
 }
 
-bool SubstitutionTree::LeafIterator::hasNext()
-{
-  return _curr != nullptr;
-}
+template<class LeafData_>
+void SubstitutionTree<LeafData_>::Leaf::output(std::ostream& out, bool multiline, int indent) const 
+{ out << this->term(); }
 
-SubstitutionTree::UnificationsIterator::~UnificationsIterator()
-{
-  if(_clientBDRecording) {
-    _subst->bdDone();
-    _clientBDRecording=false;
-    _clientBacktrackData.backtrack();
-  }
-  if (_bdStack) 
-    while(_bdStack->isNonEmpty()) {
-      _bdStack->pop().backtrack();
-    }
-}
-
-bool SubstitutionTree::UnificationsIterator::hasNext()
-{
-  if(_clientBDRecording) {
-    _subst->bdDone();
-    _clientBDRecording=false;
-    _clientBacktrackData.backtrack();
-  }
-
-  while(!_ldIterator.hasNext() && findNextLeaf()) {}
-  return _ldIterator.hasNext();
-}
-
-SubstitutionTree::QueryResult SubstitutionTree::UnificationsIterator::next()
-{
-  while(!_ldIterator.hasNext() && findNextLeaf()) {}
-  ASS(_ldIterator.hasNext());
-
-  ASS(!_clientBDRecording);
-
-  LeafData& ld=_ldIterator.next();
-
-  if(_retrieveSubstitution) {
-    Renaming normalizer;
-    if(_literalRetrieval) {
-      normalizer.normalizeVariables(ld.literal);
-    } else {
-      normalizer.normalizeVariables(ld.term);
-      if (ld.sort.isNonEmpty()) {
-        normalizer.normalizeVariables(ld.sort);
-      }
-    }
-
-    ASS(_clientBacktrackData.isEmpty());
-    _subst->bdRecord(_clientBacktrackData);
-    _clientBDRecording=true;
-
-    _subst->denormalize(normalizer,NORM_RESULT_BANK,RESULT_BANK);
-
-    return QueryResult(ld, ResultSubstitution::fromSubstitution( &*_subst, QUERY_BANK, RESULT_BANK),
-        // TODO do we really wanna copy the whole constraints stack here?
-            UnificationConstraintStackSP(new UnificationConstraintStack(*_constraints))); 
-  } else {
-    return QueryResult(ld);
-  }
-}
-
-
-bool SubstitutionTree::UnificationsIterator::findNextLeaf()
-{
-  if(_nodeIterators->isEmpty()) {
-    //There are no node iterators in the stack, so there's nowhere
-    //to look for the next leaf.
-    //This shouldn't hapen during the regular retrieval process, but it
-    //can happen when there are no literals inserted for a predicate,
-    //or when predicates with zero arity are encountered.
-    ASS(_bdStack->isEmpty());
-    return false;
-  }
-
-  if(_inLeaf) {
-    ASS(!_clientBDRecording);
-    //Leave the current leaf
-    _bdStack->pop().backtrack();
-    _inLeaf=false;
-  }
-
-  ASS(!_clientBDRecording);
-  ASS(_bdStack->length()+1==_nodeIterators->length());
-
-  do {
-    while(!_nodeIterators->top().hasNext() && !_bdStack->isEmpty()) {
-      //backtrack undos everything that enter(...) method has done,
-      //so it also pops one item out of the nodeIterators stack
-      _bdStack->pop().backtrack();
-      _svStack->pop();
-    }
-    if(!_nodeIterators->top().hasNext()) {
-      return false;
-    }
-    Node* n=*_nodeIterators->top().next();
-
-    BacktrackData bd;
-    bool success=enter(n,bd);
-    if(!success) {
-      bd.backtrack();
-      continue;
-    } else {
-      _bdStack->push(bd);
-    }
-  } while(!_inLeaf);
-  return true;
-}
-
-bool SubstitutionTree::UnificationsIterator::enter(Node* n, BacktrackData& bd)
-{
-#if VDEBUG
-  if(_tag){
-    cout << "=========================================" << endl;
-    cout << "entering..." << *n << endl;
-    cout << "subst is " << _subst << endl;
-    cout << "svstack is " << _svStack << endl;
-    cout << "=========================================" << endl;
-  } 
-#endif
-
-  bool success=true;
-  bool recording=false;
-  if(!n->term.isEmpty()) {
-    //n is proper node, not a root
-
-    TermList qt(_svStack->top(), true);
-
-    recording=true;
-    _subst->bdRecord(bd);
-    success=associate(qt,n->term,bd);
-  }
-  if(success) {
-    if(n->isLeaf()) {
-      _ldIterator=static_cast<Leaf*>(n)->allChildren();
-      _inLeaf=true;
-    } else {
-      IntermediateNode* inode=static_cast<IntermediateNode*>(n);
-      _svStack->push(inode->childVar);
-      NodeIterator nit=getNodeIterator(inode);
-      if(_useUWAConstraints){
-        TermList qt = _subst->getSpecialVarTop(inode->childVar);
-        NodeIterator enit = pvi(getConcatenatedIterator(inode->childBySort(qt),nit));
-        _nodeIterators->backtrackablePush(enit,bd);
-      }
-      else{
-        _nodeIterators->backtrackablePush(nit, bd);
-      }
-    }
-  }
-  if(recording) {
-    _subst->bdDone();
-  }
-  return success;
-}
-
-bool SubstitutionTree::SubstitutionTreeMismatchHandler::introduceConstraint(TermList query,unsigned index1, TermList node,unsigned index2)
-{
-  auto constraint = make_pair(make_pair(query,index1),make_pair(node,index2));
-  _constraints.backtrackablePush(constraint,_bd);
-  return true;
-}
-
-bool SubstitutionTree::STHOMismatchHandler::handle
-     (RobSubstitution* subst,TermList query,unsigned index1, TermList node,unsigned index2)
-{
-  auto constraint = make_pair(make_pair(query,index1),make_pair(node,index2));
-  _constraints.backtrackablePush(constraint,_bd);
-  return true;
-}
-
-/**
- * TODO: explain properly what associate does
- * called from enter(...)
- */
-bool SubstitutionTree::UnificationsIterator::associate(TermList query, TermList node, BacktrackData& bd)
-{
-  //The ordering of the if statements is important here. Higher-order problems
-  //should never require theory resoning (at the moment, theories cannot be parsed in HOL)
-  //However, a user can still set UWA option on. We don't wan't that to result in 
-  //the wrong handler being used.
-  if(_useHOConstraints){
-    STHOMismatchHandler hndlr(*_constraints,bd);
-    return _subst->unify(query,QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);    
-  }
-  if(_useUWAConstraints){ 
-    SubstitutionTreeMismatchHandler hndlr(*_constraints,bd);
-    return _subst->unify(query,QUERY_BANK,node,NORM_RESULT_BANK,&hndlr);
-  } 
-  return _subst->unify(query,QUERY_BANK,node,NORM_RESULT_BANK);
-}
-
-//TODO I think this works for VSpcialVars as well. Since .isVar() will return true 
-//for them
-SubstitutionTree::NodeIterator SubstitutionTree::UnificationsIterator::getNodeIterator(IntermediateNode* n)
-{
-  unsigned specVar=n->childVar;
-  TermList qt=_subst->getSpecialVarTop(specVar);
-  if(qt.isVar()) {
-    return n->allChildren();
-  } else {
-    Node** match=n->childByTop(qt, false);
-    if(match) {
-      return pvi( 
-        getConcatenatedIterator(
-	   getSingletonIterator(match),
-	   n->variableChildren() 
-       ));
-    } else {
-      return n->variableChildren();
-    }
-  }
-}
-
-void SubstitutionTree::Leaf::output(std::ostream& out, bool multiline, int indent) const 
-{ out << this->term; }
-
-void SubstitutionTree::IntermediateNode::output(std::ostream& out, bool multiline, int indent) const 
+template<class LeafData_>
+void SubstitutionTree<LeafData_>::IntermediateNode::output(std::ostream& out, bool multiline, int indent) const 
 {
   // TODO const version of allChildren
   auto childIter = iterTraits(((IntermediateNode*)this)->allChildren());
-  if (!this->term.isEmpty()) {
-    out << this->term
+  if (!this->term().isEmpty()) {
+    out << this->term()
         << " ; ";
   }
   out << "S" << this->childVar << " -> ";
@@ -846,8 +589,8 @@ void SubstitutionTree::IntermediateNode::output(std::ostream& out, bool multilin
 
     if (multiline) {
       auto outp = [&](Node** x) { 
-        out << endl; 
-        repeat(out, INDENT, indent + 1);
+        out << std::endl; 
+        OutputMultiline<int>::outputIndent(out, indent + 1);
         out << "| ";
         (*x)->output(out, multiline, indent + 1);
       };
@@ -856,8 +599,8 @@ void SubstitutionTree::IntermediateNode::output(std::ostream& out, bool multilin
       while (childIter.hasNext()) {
         outp(childIter.next());
       }
-      out << endl; 
-      repeat(out, INDENT, indent);
+      out << std::endl; 
+      OutputMultiline<int>::outputIndent(out, indent + 1);
       out << "]";
 
     } else {
@@ -876,35 +619,4 @@ void SubstitutionTree::IntermediateNode::output(std::ostream& out, bool multilin
 
 }
 
-
-#define VERBOSE_OUTPUT_OPERATORS 0
-
-std::ostream& Indexing::operator<<(std::ostream& out, SubstitutionTree const& self)
-{
-#if VERBOSE_OUTPUT_OPERATORS
-  out << "{ nextVar: S" << self._nextVar << ", root: (";
-#endif // VERBOSE_OUTPUT_OPERATORS
-  if (self._root) {
-    out << *self._root;
-  } else {
-    out << "<empty tree>";
-  }
-#if VERBOSE_OUTPUT_OPERATORS
-  out << ") }";
-#endif // VERBOSE_OUTPUT_OPERATORS
-  return out;
-}
-
-
-
-std::ostream& Indexing::operator<<(std::ostream& out, OutputMultiline<SubstitutionTree> const& self)
-{
-  if (self.self._root) {
-    self.self._root->output(out, true, /* indent */ 0);
-  } else {
-    out << "<empty tree>";
-  }
-  return out;
-}
-
-
+} // namespace Indexing

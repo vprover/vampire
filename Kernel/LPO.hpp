@@ -20,6 +20,8 @@
 
 #include "Forwards.hpp"
 
+#include "SubstHelper.hpp"
+
 #include "Ordering.hpp"
 
 namespace Kernel {
@@ -43,35 +45,27 @@ public:
   ~LPO() override = default;
 
   using PrecedenceOrdering::compare;
-  VWARN_UNUSED Result compare(TermList tl1, TermList tl2) const override;
-  VWARN_UNUSED bool isGreater(TermList tl1, TermList tl2, void* tl1State, VarOrderBV* constraints, const Indexing::TermQueryResult* qr) const override;
-  VWARN_UNUSED bool isGreater(TermList tl1, TermList tl2, const VarOrder& vo) const override;
-  VWARN_UNUSED bool makeGreater(TermList tl1, TermList tl2, VarOrder& vo) const override;
+  Result compare(TermList tl1, TermList tl2) const override;
+  Result compare(AppliedTerm tl1, AppliedTerm tl2) const override;
+  bool isGreater(AppliedTerm tl1, AppliedTerm tl2) const override;
+  bool isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, OrderingComparatorUP& comparator) const override;
+
   void showConcrete(std::ostream&) const override;
+
 protected:
-  VWARN_UNUSED Result comparePredicates(Literal* l1, Literal* l2) const override;
-  VWARN_UNUSED Result comparePrecedences(Term* t1, Term* t2) const;
+  Result comparePredicates(Literal* l1, Literal* l2) const override;
+  Result comparePrecedences(const Term* t1, const Term* t2) const;
 
-  VWARN_UNUSED Result cLMA(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity) const;
-  VWARN_UNUSED Result cMA(Term* t, TermList* tl, unsigned arity) const;
-  VWARN_UNUSED Result cAA(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity1, unsigned arity2) const;
-  VWARN_UNUSED Result alpha(TermList* tl, unsigned arity, Term *t) const;
-  VWARN_UNUSED Result clpo(Term* t1, TermList tl2) const;
-  VWARN_UNUSED Result lpo(TermList tl1, TermList tl2) const;
-  VWARN_UNUSED Result lexMAE(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity) const;
-  VWARN_UNUSED Result majo(Term* s, TermList* tl, unsigned arity) const;
+  Result cLMA(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity) const;
+  Result cMA(AppliedTerm s, AppliedTerm t, const TermList* tl, unsigned arity) const;
+  Result cAA(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity1, unsigned arity2) const;
+  Result alpha(const TermList* sl, unsigned arity, AppliedTerm s, AppliedTerm t) const;
+  Result clpo(AppliedTerm tl1, AppliedTerm tl2) const;
+  Result lpo(AppliedTerm tl1, AppliedTerm tl2) const;
+  Result lexMAE(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity) const;
+  Result majo(AppliedTerm s, AppliedTerm t, const TermList* tl, unsigned arity) const;
 
-  VWARN_UNUSED bool alpha_gt(TermList* tl, unsigned arity, Term *t, const VarOrder& vo) const;
-  VWARN_UNUSED bool clpo_gt(Term* t1, TermList tl2, const VarOrder& vo) const;
-  VWARN_UNUSED bool lpo_gt(TermList tl1, TermList tl2, const VarOrder& vo) const;
-  VWARN_UNUSED bool lexMAE_gt(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity, const VarOrder& vo) const;
-  VWARN_UNUSED bool majo_gt(Term* s, TermList* tl, unsigned arity, const VarOrder& vo) const;
-
-  VWARN_UNUSED bool alpha_mgt(TermList* tl, unsigned arity, Term *t, VarOrder& vo) const;
-  VWARN_UNUSED bool clpo_mgt(Term* t1, TermList tl2, VarOrder& vo) const;
-  VWARN_UNUSED bool lpo_mgt(TermList tl1, TermList tl2, VarOrder& vo) const;
-  VWARN_UNUSED bool lexMAE_mgt(Term* s, Term* t, TermList* sl, TermList* tl, unsigned arity, VarOrder& vo) const;
-  VWARN_UNUSED bool majo_mgt(Term* s, TermList* tl, unsigned arity, VarOrder& vo) const;
+  friend class LPOComparator;
 };
 
 }

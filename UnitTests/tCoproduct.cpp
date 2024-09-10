@@ -95,8 +95,8 @@ TEST_FUN(examples__match_02) {
   // Further we can create polymorphic function structs if each match branch does the same thing
   auto x = Coproduct<int, float>(1);
 
-  vstring str = x.apply([](auto const& c) {
-    vstringstream out;
+  std::string str = x.apply([](auto const& c) {
+    std::stringstream out;
     out << c;
     return out.str(); 
   });
@@ -167,6 +167,48 @@ TEST_FUN(move_01) {
   ASS((y == Coproduct<int,NonCopy>::variant<0>(1)));
   ASS((y != Coproduct<int,NonCopy>::variant<1>(NonCopy( false ))));
   ASS((y != Coproduct<int,NonCopy>::variant<0>(0)));
+}
+
+TEST_FUN(apply01) {
+
+  struct Bar {
+    int f() { return 42; }
+  } b;
+
+  struct Foo {
+    int f() { return -42; }
+  } f;
+
+
+  using C = Coproduct<Foo,Bar>;
+  auto foo = C(f);
+  auto& fooRef = foo;
+  auto bar = C(b);
+
+  auto applyF = [](auto& x) { return x.f(); };
+  auto& applyFref = applyF;
+  static_assert( std::is_same<decltype(foo.template unwrap<0>()), Foo& >::value, "");
+  static_assert( std::is_same<decltype(foo.template unwrap<1>()), Bar& >::value, "");
+  static_assert( std::is_same<decltype(applyF((foo.template unwrap<1>()))), int >::value, "");
+  static_assert( std::is_same<decltype(applyF((foo.template unwrap<0>()))), int >::value, "");
+  static_assert( std::is_same<decltype(applyFref((fooRef.template unwrap<0>()))), int >::value, "");
+
+  auto doApply = [](auto f) {
+
+    auto foo = C(Foo{});
+    auto doApplication = [&]() {
+      return f(foo.template unwrap<0>());
+    };
+    return doApplication();
+  };
+  ASS_EQ(doApply(applyF), -42)
+
+  ASS_EQ( 42, bar.apply([](auto& x) { 
+  static_assert( std::is_same<decltype(x), Foo& >::value
+              || std::is_same<decltype(x), Bar& >::value, "");
+        return x.f(); }))
+  ASS_EQ(-42, foo.apply([](auto& x) { return x.f(); }))
+
 }
 
 // TEST_FUN(move_02) {

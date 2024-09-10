@@ -15,13 +15,14 @@
 #ifndef __PortfolioMode__
 #define __PortfolioMode__
 
+#include <filesystem>
+
 #include "Forwards.hpp"
 
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/Stack.hpp"
 
-#include "Lib/VString.hpp"
-#include "Lib/Sys/Semaphore.hpp"
+#include "Kernel/Problem.hpp"
 
 #include "Shell/Property.hpp"
 #include "Schedules.hpp"
@@ -33,38 +34,31 @@ using namespace Lib;
 using namespace Shell;
 
 class PortfolioMode {
-  enum {
-    SEM_LOCK = 0,
-    SEM_PRINTED = 1
-  };
-
-  PortfolioMode();
+  PortfolioMode(Kernel::Problem* problem);
 public:
-  static bool perform(float slowness);
+  static bool perform(Kernel::Problem* problem);
 
   static void rescaleScheduleLimits(const Schedule& sOld, Schedule& sNew, float limit_multiplier);
-  static void addScheduleExtra(const Schedule& sOld, Schedule& sNew, vstring extra);
+  static void addScheduleExtra(const Schedule& sOld, Schedule& sNew, std::string extra);
 
 private:
   // some of these names are kind of arbitrary and should be perhaps changed
-  unsigned getSliceTime(const vstring &sliceCode);
+  unsigned getSliceTime(const std::string &sliceCode);
   bool searchForProof();
   bool prepareScheduleAndPerform(const Shell::Property& prop);
   void getSchedules(const Property& prop, Schedule& quick, Schedule& fallback);
 
   bool runSchedule(Schedule schedule);
   bool runScheduleAndRecoverProof(Schedule schedule);
-  [[noreturn]] void runSlice(vstring sliceCode, int remainingTime);
+  [[noreturn]] void runSlice(std::string sliceCode, int remainingTime);
   [[noreturn]] void runSlice(Options& strategyOpt);
 
 #if VDEBUG
   DHSet<pid_t> childIds;
 #endif
-
   unsigned _numWorkers;
-  float _slowness;
-
-  const char * _tmpFileNameForProof;
+  // file that will contain a proof
+  std::filesystem::path _path;
 
   /**
    * Problem that is being solved.
@@ -73,8 +67,7 @@ private:
    * will be using the problem object.
    */
   ScopedPtr<Problem> _prb;
-
-  Semaphore _syncSemaphore; // semaphore for synchronizing proof printing
+  float _slowness;
 };
 
 }

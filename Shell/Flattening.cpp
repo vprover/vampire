@@ -69,10 +69,8 @@ FormulaUnit* Flattening::flatten (FormulaUnit* unit)
   FormulaUnit* res = new FormulaUnit(g,
       FormulaTransformation(InferenceRule::FLATTEN,unit));
   if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] flatten in: " << unit->toString() << std::endl;
-    env.out() << "[PP] flatten out: " << res->toString() << std::endl;
-    env.endOutput();
+    std::cout << "[PP] flatten in: " << unit->toString() << std::endl;
+    std::cout << "[PP] flatten out: " << res->toString() << std::endl;
   }
   return res;
 } // Flattening::flatten
@@ -246,7 +244,7 @@ TermList Flattening::flatten (TermList ts)
  if (term->isSpecial()) {
     Term::SpecialTermData* sd = term->getSpecialData();
     switch (sd->specialFunctor()) {
-      case Term::SpecialFunctor::FORMULA: {
+      case SpecialFunctor::FORMULA: {
         Formula* f = sd->getFormula();
         Formula* flattenedF = flatten(f);
         if (f == flattenedF) {
@@ -256,7 +254,7 @@ TermList Flattening::flatten (TermList ts)
         }
       }
 
-      case Term::SpecialFunctor::ITE: {
+      case SpecialFunctor::ITE: {
         TermList thenBranch = *term->nthArgument(0);
         TermList elseBranch = *term->nthArgument(1);
         Formula* condition  = sd->getCondition();
@@ -274,7 +272,7 @@ TermList Flattening::flatten (TermList ts)
         }
       }
 
-      case Term::SpecialFunctor::LET: {
+      case SpecialFunctor::LET: {
         TermList binding = sd->getBinding();
         TermList body = *term->nthArgument(0);
 
@@ -288,7 +286,7 @@ TermList Flattening::flatten (TermList ts)
         }
       }
 
-      case Term::SpecialFunctor::LET_TUPLE: {
+      case SpecialFunctor::LET_TUPLE: {
         TermList binding = sd->getBinding();
         TermList body = *term->nthArgument(0);
 
@@ -302,7 +300,7 @@ TermList Flattening::flatten (TermList ts)
         }
       }
 
-      case Term::SpecialFunctor::TUPLE: {
+      case SpecialFunctor::TUPLE: {
         TermList tupleTerm = TermList(sd->getTupleTerm());
         TermList flattenedTupleTerm = flatten(tupleTerm);
 
@@ -314,9 +312,9 @@ TermList Flattening::flatten (TermList ts)
         }
       }
 
-      case Term::SpecialFunctor::LAMBDA:
+      case SpecialFunctor::LAMBDA:
         NOT_IMPLEMENTED;
-      case Term::SpecialFunctor::MATCH: {
+      case SpecialFunctor::MATCH: {
         DArray<TermList> terms(term->arity());
         bool unchanged = true;
         for (unsigned i = 0; i < term->arity(); i++) {

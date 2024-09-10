@@ -20,6 +20,7 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/ArrayMap.hpp"
 #include "Lib/DHMap.hpp"
+#include "Lib/Hash.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/ScopedPtr.hpp"
 
@@ -166,6 +167,7 @@ private:
     Clause* component;
     RCClauseStack children;
     Stack<ReductionRecord> reduced;
+    Stack<ConditionalRedundancyEntry*> conditionalRedundancyEntries;
     bool active;
 
     USE_ALLOCATOR(SplitRecord);
@@ -183,6 +185,7 @@ public:
   bool doSplitting(Clause* cl);
 
   void onClauseReduction(Clause* cl, ClauseIterator premises, Clause* replacement);
+  void addConditionalRedundancyEntry(SplitSet* splits, ConditionalRedundancyEntry* e);
   void onNewClause(Clause* cl);
   void onAllProcessed();
   bool handleEmptyClause(Clause* cl);
@@ -190,9 +193,9 @@ public:
   SplitLevel getNameFromLiteral(SATLiteral lit) const;
   Unit* getDefinitionFromName(SplitLevel compName) const;
 
-  static vstring splitsToString(SplitSet* splits);
+  static std::string splitsToString(SplitSet* splits);
   static SATLiteral getLiteralFromName(SplitLevel compName);
-  static vstring getFormulaStringFromName(SplitLevel compName, bool negated = false);
+  static std::string getFormulaStringFromName(SplitLevel compName, bool negated = false);
 
   bool isUsedName(SplitLevel name) const {
     ASS_L(name,_db.size());
@@ -294,7 +297,7 @@ private:
   /* as there can be both limits, it's hard to covert between them,
    * and we terminate at the earlier one, let's just keep checking both. */
   unsigned _stopSplittingAtTime; // time elapsed in milliseconds
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
   unsigned _stopSplittingAtInst; // mega-instructions elapsed
 #endif
 
@@ -308,8 +311,12 @@ private:
   
   SaturationAlgorithm* _sa;
 
+  // clauses we already added to the SAT solver
+  // not just optimisation: also prevents the SAT solver oscillating between two models in some cases
+  Set<SATClause *, DerefPtrHash<DefaultHash>> _already_added;
+
 public:
-  static vstring splPrefix;
+  static std::string splPrefix;
 
   // for observing the current model
   SplitLevel splitLevelBound() { return _db.size(); }

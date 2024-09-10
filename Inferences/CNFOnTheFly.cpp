@@ -549,9 +549,9 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
         if(index){
           auto results = index->getGeneralizations(TypedTermList(term.term()), true);
           if(results.hasNext()){
-            TermQueryResult tqr = results.next();
-            TermList skolemTerm = tqr.term;
-            skolemTerm=tqr.substitution->applyToBoundResult(skolemTerm);
+            auto tqr = results.next();
+            TermList skolemTerm = tqr.data->value;
+            skolemTerm = tqr.unifier->applyToBoundResult(skolemTerm);
             newTerm = AH::createAppTerm(srt, args[0], skolemTerm);
             newTermCreated = true;
           }
@@ -584,23 +584,22 @@ afterLoop:
 
 Clause* replaceLits(Clause *c, Literal *a, Literal *b, InferenceRule r, bool incAge, Literal *d, Literal* e)
 {
-  int length = c->length();
-  if(d){ length++;}
-  if(e){ length++;}
-  
-  // Can be either generating or simplifying. Therefore use NonspecificInference
-  // Age is updated in some instances, but not in others based on empirical evaluation
-  Clause* res = new(length) Clause(length, NonspecificInference1(r, c));
-  res->setAge(incAge? c->age() + 1 : c->age());
+  RStack<Literal*> lits;
 
   unsigned i = 0;
   while ((*c)[i] != a) { i++; }
-  std::memcpy(res->literals(), c->literals(), length * sizeof(Literal*));
-  (*res)[i] = b;
-  if(d){(*res)[length - 1] = d;} 
-  if(e){(*res)[length - 2] = e;}//adding new literals at differrent places...
+  for (auto l : iterTraits(c->iterLits())) {
+    lits->push(l == a ? b : l);
+  }
+  // adding new literals at differrent places...
+  if (d) { lits->push(d); }
+  if (e) { lits->push(e); }
   
-  return res;
+  auto out = Clause::fromStack(*lits, NonspecificInference1(r, c));
+  // Can be either generating or simplifying. Therefore use NonspecificInference
+  // Age is updated in some instances, but not in others based on empirical evaluation
+  out->setAge(incAge? c->age() + 1 : c->age());
+  return out;
 }
 
 InferenceRule convert(Signature::Proxy cnst){

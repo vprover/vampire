@@ -69,12 +69,10 @@ public:
   : _timestamp(1), _size(0), _deleted(0), _capacityIndex(0), _capacity(0),
   _nextExpansionOccupancy(0), _entries(0), _afterLast(0)
   {
-    typename DHMap::Iterator iit(obj);
+    typename DHMap::IteratorBase iit(obj);
     while(iit.hasNext()) {
-      Key k;
-      Val v;
-      iit.next(k, v);
-      ALWAYS(insert(k,v));
+      auto e = iit.next();
+      ALWAYS(insert(e->_key,e->_val));
     }
   }
 
@@ -104,7 +102,6 @@ public:
       ASS_EQ(_afterLast-_entries,_capacity);
       array_delete(_entries, _capacity);
       DEALLOC_KNOWN(_entries,_capacity*sizeof(Entry),"DHMap::Entry");
-//      DEALLOC_KNOWN(_entries,_capacity*sizeof(Entry),typeid(Entry).name());
     }
   }
 
@@ -127,6 +124,21 @@ public:
     }
   }
 
+  bool keepRecycled() const { return _capacity > 0; }
+
+  Option<Val const&> find(Key const& k) const
+  {
+    auto e = findEntry(k);
+    return someIf(e != nullptr, [&]() -> Val const& { return e->_val; });
+  }
+
+
+  Option<Val&> find(Key const& k)
+  {
+    auto e = findEntry(k);
+    return someIf(e != nullptr, [&]() -> Val      & { return e->_val; });
+  }
+
   /**
    *  Find value by the @b key. The result is true if a pair
    *  with this key is in the map. If such a pair is found,
@@ -134,7 +146,7 @@ public:
    *  value of @b val remains unchanged.
    */
   inline
-  bool find(Key key, Val& val) const
+  bool find(Key const& key, Val& val) const
   {
     const Entry* e=findEntry(key);
     if(!e) {
@@ -165,15 +177,6 @@ public:
       return nullptr;
     }
     return &e->_val;
-  }
-
-  /**
-   *  Return true iff a pair with @b key as a key is in the map.
-   */
-  inline
-  bool find(Key key) const
-  {
-    return findEntry(key);
   }
 
   /**
@@ -240,8 +243,12 @@ public:
     }
   }
 
-  /** same as @b insert but using move semantics instead of copying */
-  bool emplace(Key key, Val&& val)
+  /**
+   * If there is no value stored under @b key in the map,
+   * insert pair (key,value) and return true. Otherwise, 
+   * return false.
+   */
+  bool insert(Key key, Val val)
   {
     ensureExpanded();
     Entry* e=findEntryToInsert(key);
@@ -256,24 +263,22 @@ public:
 	_deleted--;
       }
       e->_info.deleted=0;
-      e->_key=key;
-      e->_val=std::move(val);
+      e->_key = std::move(key);
+      e->_val = std::move(val);
       _size++;
     }
     return !exists;
 
   }
 
-  /**
-   * If there is no value stored under @b key in the map,
-   * insert pair (key,value) and return true. Otherwise,
-   * return false.
-   * This function copies copies @b val.
-   */
-  bool insert(Key key, const Val& val)
-  {
-    return emplace(key, Val(val));
-  }
+  // /**
+  //  * If there is no value stored under @b key in the map,
+  //  * insert pair (key,value) and return true. Otherwise,
+  //  * return false.
+  //  * This function copies copies @b val.
+  //  */
+  // bool insert(Key key, const Val& val)
+  // { return emplace(key, Val(val)); }
 
   /**
    * If there is no value stored under @b key in the map,
@@ -367,7 +372,6 @@ public:
    */
   bool getValuePtr(Key key, Val*& pval)
   {
-    ensureExpanded();
     Entry* e=findEntryToInsert(key);
     bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;
     if(!exists) {
@@ -394,10 +398,10 @@ public:
    * previously stored under @b key. Otherwise,
    * return false.
    */
-  bool set(Key key, const Val& val)
+  bool set(Key key, Val val)
   {
     ensureExpanded();
-    Entry* e=findEntryToInsert(key);
+    Entry* e = findEntryToInsert(std::move(key));
     bool exists = e->_info.timestamp==_timestamp && !e->_info.deleted;
     if(!exists) {
       if(e->_info.timestamp!=_timestamp) {
@@ -412,7 +416,7 @@ public:
       e->_key=key;
       _size++;
     }
-    e->_val=val;
+    e->_val = std::move(val);
     return !exists;
   }
 
@@ -442,7 +446,7 @@ public:
    * If there is a value stored under the @b key, remove
    * it and return true. Otherwise, return false.
    */
-  bool remove(Key key)
+  bool remove(Key const& key)
   {
     Entry* e=findEntry(key);
     if(!e) {
@@ -533,7 +537,6 @@ private:
 
     int newCapacity=DHMapTableCapacities[_capacityIndex+1];
     void* mem = ALLOC_KNOWN(newCapacity*sizeof(Entry),"DHMap::Entry");
-//    void* mem = ALLOC_KNOWN(newCapacity*sizeof(Entry),typeid(Entry).name());
 
     //std::cout << (_size+_deleted) << std::endl;
 
@@ -556,34 +559,34 @@ private:
     while(ep!=oldAfterLast) {
       ASS(ep);
       if(ep->_info.timestamp==oldTimestamp && !ep->_info.deleted) {
-	insert(ep->_key, ep->_val);
+	insert(std::move(ep->_key), std::move(ep->_val));
       }
       (ep++)->~Entry();
     }
     //std::cout << "copied" << std::endl;
     if(oldCapacity) {
       DEALLOC_KNOWN(oldEntries,oldCapacity*sizeof(Entry),"DHMap::Entry");
-//      DEALLOC_KNOWN(oldEntries,oldCapacity*sizeof(Entry),typeid(Entry).name());
     }
   }
+
 
   /** Return pointer to an Entry object which contains specified key,
    * or 0, if there is no such */
   inline
-  Entry* findEntry(Key key)
+  Entry* findEntry(Key const& key)
   {
     return const_cast<Entry*>(static_cast<const DHMap*>(this)->findEntry(key));
   }
 
   /** Return pointer to an Entry object which contains specified key,
    * or 0, if there is no such */
-  const Entry* findEntry(Key key) const
+  const Entry* findEntry(Key const& key) const
   {
     if (_capacity == 0) return nullptr;
     ASS(_capacity>_size+_deleted);
 
     unsigned h1=Hash1::hash(key);
-    int pos=h1%_capacity;
+    unsigned pos=h1%_capacity;
     Entry* res=&_entries[pos];
     if(res->_info.timestamp != _timestamp ) {
       return 0;
@@ -619,7 +622,7 @@ private:
 
   /** Return pointer to an Entry object which contains, or could contain
    * specified key */
-  Entry* findEntryToInsert(Key key)
+  Entry* findEntryToInsert(Key const& key)
   {
     ensureExpanded();
     ASS(_capacity>_size+_deleted);
@@ -752,7 +755,7 @@ public:
     return VirtualIterator<Val>(new RangeIteratorCore(*this));
   }
     
-  typedef std::pair<Key,Val> Item;
+  typedef std::pair<Key const&, Val const&> Item;
 
 private:
   class ItemIteratorCore

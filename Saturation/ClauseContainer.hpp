@@ -22,6 +22,7 @@
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Deque.hpp"
 #include "Lib/Stack.hpp"
+#include "Kernel/Clause.hpp"
 #include "Lib/Set.hpp"
 
 #include "Lib/Allocator.hpp"
@@ -109,7 +110,7 @@ class PassiveClauseContainer
 : public RandomAccessClauseContainer
 {
 public:
-  PassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name = "") : _isOutermost(isOutermost), _opt(opt), _name(name) {}
+  PassiveClauseContainer(bool isOutermost, const Shell::Options& opt, std::string name = "") : _isOutermost(isOutermost), _opt(opt), _name(name) {}
   virtual ~PassiveClauseContainer(){};
 
   LimitsChangeEvent changedEvent;
@@ -160,7 +161,7 @@ protected:
   const Shell::Options& _opt;
 
 public:
-  vstring _name;
+  std::string _name;
 };
 
 class ActiveClauseContainer

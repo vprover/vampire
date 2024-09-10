@@ -32,9 +32,6 @@ void reportSpiderFail();
 [[noreturn]] void Assertion::abortAfterViolation()
 {
   Shell::reportSpiderFail();
-#if CHECK_LEAKS
-  MemoryLeak::cancelReport();
-#endif
   System::terminateImmediately(VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION);
 }
 
@@ -49,7 +46,7 @@ void Assertion::violated(const char* file, int line, const char* cond)
          << " violated:\n"
          << cond << "\n"
          << "----- stack dump -----\n";
-    Tracer::printStack(std::cout);
+    Tracer::printStack();
     std::cout << "----- end of stack dump -----" << std::endl;
   }
   abortAfterViolation();
@@ -65,7 +62,7 @@ void Assertion::violatedStrEquality(const char* file, int line, const char* val1
               << val1Str << " == \"" << val1 << "\"\n"
               << val2Str << " == \"" << val2 << "\"\n"
               << "----- stack dump -----\n";
-    Tracer::printStack(std::cout);
+    Tracer::printStack();
     std::cout << "----- end of stack dump -----\n";
   }
   abortAfterViolation();

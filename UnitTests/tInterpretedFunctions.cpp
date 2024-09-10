@@ -155,9 +155,8 @@ void check_eval(Lit orig_, Failure) {
   CHECK_EQ(expected, res, "unexpectedly evaluation was successful", orig);
 }
 
-template<>
-std::ostream& Pretty<LitSimplResult>::prettyPrint(std::ostream& out) const
-{ return out << pretty(static_cast<LitSimplResult::super const&>(_self)); }
+void prettyPrint(std::ostream& out, LitSimplResult const& self)
+{ out << pretty(static_cast<LitSimplResult::super const&>(self)); }
 
 
 

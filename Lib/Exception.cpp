@@ -18,7 +18,6 @@
 #include "Int.hpp"
 
 #include "Exception.hpp"
-#include "VString.hpp"
 
 namespace Lib
 {
@@ -26,7 +25,7 @@ namespace Lib
 using namespace std;
 
 Exception::Exception (const char* msg, int line)
-  : _message((vstring(msg)+": "+Int::toString(line)).c_str()) {}
+  : _message((std::string(msg)+": "+Int::toString(line)).c_str()) {}
 
 /**
  * Write a description of the exception to a stream.
@@ -42,7 +41,10 @@ void Exception::cry (ostream& str) const
  */
 void UserErrorException::cry (ostream& str) const
 {
-  str << "User error: " << _message << endl;
+  str << "User error: " << _message;
+  if(line)
+    str << " (detected at or around line " << line << ")";
+  str << endl;
 } // UserErrorException::cry
 
 /**
@@ -54,7 +56,7 @@ void InvalidOperationException::cry (ostream& str) const
 } // InvalidOperationException::cry
 
 
-SystemFailException::SystemFailException(const vstring msg, int err)
+SystemFailException::SystemFailException(const std::string msg, int err)
 : Exception(msg+" error "+Int::toString(err)+": "+strerror(err)), err(err)
 {
 //#if VDEBUG

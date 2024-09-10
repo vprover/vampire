@@ -139,11 +139,9 @@ struct ExtensionalityResolution::BackwardPairingFn
   BackwardPairingFn (TermList sort) : _sort(sort) {}
   VirtualIterator<pair<Clause*, Literal*> > operator()(Clause* cl)
   {
-    return pvi(pushPairIntoRightIterator(
-        cl,
-        getFilteredIterator(
-          cl->getSelectedLiteralIterator(),
-          NegEqSortFn(_sort))));
+    return pvi(cl->getSelectedLiteralIterator()
+      .filter(NegEqSortFn(_sort))
+      .map([=](auto lit) { return make_pair(cl, lit); }));
   }
 private:
   TermList _sort;
@@ -211,39 +209,28 @@ Clause* ExtensionalityResolution::performExtensionalityResolution(
   if(!ColorHelper::compatible(extCl->color(),otherCl->color()) ) {
     env.statistics->inferencesSkippedDueToColors++;
     if(opts.showBlocked()) {
-      env.beginOutput();
-      env.out()<<"Blocked extensionality resolution of "<<extCl->toString()<<" and "<<otherCl->toString()<<endl;
-      env.endOutput();
+      std::cout<<"Blocked extensionality resolution of "<<extCl->toString()<<" and "<<otherCl->toString()<<endl;
     }
     return 0;
   }
 
-  unsigned extLen = extCl->length();
-  unsigned otherLen = otherCl->length();
-  
-  unsigned newLength = otherLen + extLen - 2;
-  Clause* res = new(newLength) Clause(newLength, GeneratingInference2(InferenceRule::EXTENSIONALITY_RESOLUTION, extCl, otherCl));
+  RStack<Literal*> resLits;
 
-  unsigned next = 0;
-
-  for(unsigned i = 0; i < extLen; i++) {
-    Literal* curr = (*extCl)[i];
+  for (Literal* curr : extCl->iterLits()) {
     if (curr != extLit) {
-      (*res)[next++] = subst->apply(curr, 0);
+      resLits->push(subst->apply(curr, 0));
     }
   }
 
-  for(unsigned i = 0; i < otherLen; i++) {
-    Literal* curr = (*otherCl)[i];
+  for (Literal* curr : otherCl->iterLits()) {
     if (curr != otherLit) {
-      (*res)[next++] = subst->apply(curr, 1);
+      resLits->push(subst->apply(curr, 1));
     }
   }
     
-  ASS_EQ(next,newLength);
   counter++;
      
-  return res;
+  return Clause::fromStack(*resLits, GeneratingInference2(InferenceRule::EXTENSIONALITY_RESOLUTION, extCl, otherCl));
 }
   
 /**
@@ -308,7 +295,7 @@ ClauseIterator ExtensionalityResolution::generateClauses(Clause* premise)
 
   // Concatenate results from forward extensionality and (above constructed)
   // backward extensionality.
-  auto it5 = getConcatenatedIterator(it4,backwardIterator);
+  auto it5 = concatIters(it4,backwardIterator);
 
   return pvi(it5);
 }

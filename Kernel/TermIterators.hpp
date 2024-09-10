@@ -48,7 +48,7 @@ public:
   VariableIterator(const Term* term) : _stack(8), _used(false)
   {
     if(term->isLiteral() && static_cast<const Literal*>(term)->isTwoVarEquality()){
-      _aux[0].makeEmpty();
+      _aux[0] = TermList::empty();
       _aux[1]=static_cast<const Literal*>(term)->twoVarEqSort();
       _stack.push(&_aux[1]);      
     }
@@ -60,7 +60,7 @@ public:
   VariableIterator(TermList t) : _stack(8), _used(false)
   {
     if(t.isVar()) {
-      _aux[0].makeEmpty();
+      _aux[0] = TermList::empty();
       _aux[1]=t;
       _stack.push(&_aux[1]);
     }
@@ -77,7 +77,7 @@ public:
     _stack.reset();
     _used = false;
     if(term->isLiteral() && static_cast<const Literal*>(term)->isTwoVarEquality()){
-      _aux[0].makeEmpty();
+      _aux[0] = TermList::empty();
       _aux[1]=static_cast<const Literal*>(term)->twoVarEqSort();
       _stack.push(&_aux[1]);      
     }
@@ -91,7 +91,7 @@ public:
     _stack.reset();
     _used = false;
     if(t.isVar()) {
-      _aux[0].makeEmpty();
+      _aux[0] = TermList::empty();
       _aux[1]=t;
       _stack.push(&_aux[1]);
     }
@@ -344,7 +344,7 @@ public:
   {
     ASS(!_next.isEmpty());
     TermList res = _next;
-    _next.makeEmpty();
+    _next = TermList::empty();
     return res;
   }
 
@@ -397,7 +397,7 @@ class UnstableVarIt
 public: 
   UnstableVarIt(Term* t) : _stable(8), _stack(8)
   {
-    _next.makeEmpty();
+    _next = TermList::empty();
     if(t->isLiteral()){
       _stack.push(*t->nthArgument(0));
       _stack.push(*t->nthArgument(1));
@@ -414,7 +414,7 @@ public:
   {
     ASS(!_next.isEmpty());
     TermList res = _next;
-    _next.makeEmpty();
+    _next = TermList::empty();
     return res;
   }
 
@@ -539,9 +539,9 @@ public:
     ASS_EQ(trm->arity(),2);
 
     aux[0]=*trm->nthArgument(1);
-    aux[1].makeEmpty();
+    aux[1] = TermList::empty();
     aux[2]=*trm->nthArgument(0);
-    aux[3].makeEmpty();
+    aux[3] = TermList::empty();
 
     _stack->push(&aux[0]);
     _stack->push(&aux[2]);
@@ -780,7 +780,7 @@ public:
    */
   DisagreementSetIterator()
   {
-    _arg1.makeEmpty();
+    _arg1 = TermList::empty();
   }
 
   /**
@@ -813,7 +813,7 @@ public:
       _arg2=t2;
       return;
     }
-    _arg1.makeEmpty();
+    _arg1 = TermList::empty();
     if(t1.isTerm() && t1.term()->arity()>0) {
       _stack.push(t1.term()->args());
       _stack.push(t2.term()->args());
@@ -827,7 +827,7 @@ public:
     _stack.reset();
     _disjunctVariables=disjunctVariables;
 
-    _arg1.makeEmpty();
+    _arg1 = TermList::empty();
     if((t1->isLiteral() && static_cast<Literal*>(t1)->isTwoVarEquality()) ||
        (t2->isLiteral() && static_cast<Literal*>(t2)->isTwoVarEquality())){
       TermList s1 = SortHelper::getEqualityArgumentSort(static_cast<Literal*>(t1));
@@ -853,7 +853,7 @@ public:
   std::pair<TermList, TermList> next()
   {
     std::pair<TermList, TermList> res(_arg1,_arg2);
-    _arg1.makeEmpty();
+    _arg1 = TermList::empty();
     return res;
   }
 private:

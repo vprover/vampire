@@ -127,19 +127,16 @@ void SymElOutput::outputSymbolElimination(Color eliminated, Clause* c)
   ASS_EQ(c->color(),COLOR_TRANSPARENT);
   ASS(!c->skip());
 
-  env.beginOutput();
-
-  //BDD::instance()->allowDefinitionOutput(false);
-  env.out()<<"%";
+  std::cout<<"%";
   if(eliminated==COLOR_LEFT) {
-    env.out()<<"Left";
+    std::cout<<"Left";
   } else {
     ASS_EQ(eliminated, COLOR_RIGHT);
-    env.out()<<"Right";
+    std::cout<<"Right";
   }
-  env.out()<<" symbol elimination"<<endl;
+  std::cout<<" symbol elimination"<<endl;
 
-  vstring cname = "inv"+Int::toString(_symElNextClauseNumber);
+  std::string cname = "inv"+Int::toString(_symElNextClauseNumber);
   while(env.signature->isPredicateName(cname, 0)) {
     _symElNextClauseNumber++;
     cname = "inv"+Int::toString(_symElNextClauseNumber);
@@ -147,10 +144,7 @@ void SymElOutput::outputSymbolElimination(Color eliminated, Clause* c)
 
   _printer.printAsClaim(cname, c);
 
-  //BDD::instance()->allowDefinitionOutput(true);
   _symElNextClauseNumber++;
-
-  env.endOutput();
 }
 
 

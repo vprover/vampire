@@ -22,7 +22,7 @@ namespace Kernel {
 
 using namespace std;
 
-vstring Formula::DEFAULT_LABEL = "none";
+std::string Formula::DEFAULT_LABEL = "none";
 
 /**
  * Destroy the content of the formula. The destruction depends on the type
@@ -76,28 +76,28 @@ void Formula::destroy ()
 }
 
 /**
- * Convert the connective to a vstring.
+ * Convert the connective to a std::string.
  * @since 02/01/2004 Manchester
  */
-vstring Formula::toString (Connective c)
+std::string Formula::toString (Connective c)
 {
-  static vstring names [] =
+  static std::string names [] =
     { "", "&", "|", "=>", "<=>", "<~>", "~", "!", "?", "$var", "$false", "$true","",""};
-  ASS_EQ(sizeof(names)/sizeof(vstring), NOCONN+1);
+  ASS_EQ(sizeof(names)/sizeof(std::string), NOCONN+1);
 
   return names[(int)c];
 } // Formula::toString (Connective c)
 
 /**
- * Convert the formula to a vstring
+ * Convert the formula to a std::string
  *
  * @since 12/10/2002 Tbilisi, implemented as ostream output function
  * @since 09/12/2003 Manchester
  * @since 11/12/2004 Manchester, true and false added
  */
-vstring Formula::toString () const
+std::string Formula::toString () const
 {
-  vstring res;
+  std::string res;
 
   // render a connective if specified, and then a Formula (or ")" of formula is nullptr)
   typedef struct {
@@ -114,7 +114,7 @@ vstring Formula::toString () const
 
     // in any case start by rendering the connective passed from "above"
     {
-      vstring con = toString(todo.renderConnective);
+      std::string con = toString(todo.renderConnective);
       if (con != "") {
         res += " "+con+" ";
       }
@@ -214,7 +214,7 @@ vstring Formula::toString () const
       }
 
     case BOOL_TERM: {
-      vstring term = f->getBooleanTerm().toString();
+      std::string term = f->getBooleanTerm().toString();
       res += env.options->showFOOL() ? "$formula{" + term + "}" : term;
 
       continue;
@@ -267,42 +267,6 @@ bool Formula::parenthesesRequired (Connective outer) const
 
   ASSERTION_VIOLATION;
 } // Formula::parenthesesRequired
-
-
-/**
- * Return the list of all free variables of the formula
- *
- * Each variable in the formula is returned just once.
- *
- * NOTE: don't use this function, if you don't actually need a List
- * (FormulaVarIterator is a better choice)
- *
- * NOTE: remember to free the list when done with it
- * (otherwise we leak memory!)
- *
- * @since 12/12/2004 Manchester
- */
-VList* Formula::freeVariables () const
-{
-  FormulaVarIterator fvi(this);
-  VList* result = VList::empty();
-  VList::FIFO stack(result);
-  while (fvi.hasNext()) {
-    stack.pushBack(fvi.next());
-  }
-  return result;
-} // Formula::freeVariables
-
-bool Formula::isFreeVariable(unsigned var) const
-{
-  FormulaVarIterator fvi(this);
-  while (fvi.hasNext()) {
-    if (var == fvi.next()) {
-      return true;
-    }
-  }
-  return false;
-}
 
 /**
  * Return the list of all bound variables of the formula
@@ -464,14 +428,12 @@ Formula* Formula::quantify(Formula* f)
   SortHelper::collectVariableSorts(f,tMap,/*ignoreBound=*/true);
 
   //we have to quantify the formula
-  VList* varLst = VList::empty();
-  SList* sortLst = SList::empty();
-  VList::FIFO quantifiedVars(varLst);
-  SList::FIFO theirSorts(sortLst);
+  VList::FIFO quantifiedVars;
+  SList::FIFO theirSorts;
 
   DHMap<unsigned,TermList>::Iterator tmit(tMap);
   while(tmit.hasNext()) {
-    unsigned v; 
+    unsigned v;
     TermList s;
     tmit.next(v, s);
     if(s.isTerm() && s.term()->isSuper()){
@@ -483,15 +445,15 @@ Formula* Formula::quantify(Formula* f)
       theirSorts.pushBack(s);
     }
   }
-  if(varLst) {
-    f=new QuantifiedFormula(FORALL, varLst, sortLst, f);
+  if(!quantifiedVars.empty()) {
+    f = new QuantifiedFormula(FORALL, quantifiedVars.list(), theirSorts.list(), f);
   }
   return f;
 }
 
 
 /**
- * Return formula equal to @b cl 
+ * Return formula equal to @b cl
  * that has all variables quantified
  */
 Formula* Formula::fromClause(Clause* cl)

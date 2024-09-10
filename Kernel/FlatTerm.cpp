@@ -63,11 +63,8 @@ FlatTerm::FlatTerm(size_t length)
 
 size_t FlatTerm::getEntryCount(Term* t)
 {
-  //functionEntryCount entries per function and one per variable
-  // if (t->isTwoVarEquality()) {
-  //   return t->weight()*functionEntryCount-(functionEntryCount-1)*2;
-  // }
-  return t->weight()*functionEntryCount-(functionEntryCount-1)*t->numVarOccs();
+  //FUNCTION_ENTRY_COUNT entries per function and one per variable
+  return t->weight()*FUNCTION_ENTRY_COUNT-(FUNCTION_ENTRY_COUNT-1)*t->numVarOccs();
 }
 
 FlatTerm* FlatTerm::create(Term* t)
@@ -138,34 +135,98 @@ FlatTerm* FlatTerm::create(TermList t)
   return res;
 }
 
-FlatTerm* FlatTerm::createAndExpand(TermList t)
+FlatTerm* FlatTerm::create(TermStack ts)
+{
+  size_t entries=0;
+  for (auto& tl : ts) {
+    entries += tl.isVar() ? 1 : getEntryCount(tl.term());
+  }
+
+  FlatTerm* res=new(entries) FlatTerm(entries);
+  size_t fti=0;
+
+  for (auto& tl : ts) {
+    if (tl.isVar()) {
+      res->_data[fti++]=Entry(VAR, tl.var());
+      continue;
+    }
+    auto t = tl.term();
+    res->_data[fti++]=Entry(FUN,
+        t->isLiteral() ? static_cast<Literal*>(t)->header() : t->functor());
+    res->_data[fti++]=Entry(t);
+    res->_data[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(t));
+
+    SubtermIterator sti(t);
+    while(sti.hasNext()) {
+      ASS_L(fti, entries);
+      TermList s=sti.next();
+      if(s.isVar()) {
+        ASS(s.isOrdinaryVar());
+        res->_data[fti++]=Entry(VAR, s.var());
+      }
+      else {
+        ASS(s.isTerm());
+        res->_data[fti++]=Entry(FUN, s.term()->functor());
+        res->_data[fti++]=Entry(s.term());
+        res->_data[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(s.term()));
+      }
+    }
+  }
+  ASS_EQ(fti, entries);
+
+  return res;
+}
+
+FlatTerm* FlatTerm::createUnexpanded(Term* t)
+{
+  size_t entries=getEntryCount(t);
+
+  FlatTerm* res=new(entries) FlatTerm(entries);
+
+  res->_data[0]=Entry(FUN_UNEXPANDED,
+      t->isLiteral() ? static_cast<Literal*>(t)->header() : t->functor());
+  res->_data[1]=Entry(t);
+  res->_data[2]=Entry(FUN_RIGHT_OFS, entries);
+
+  return res;
+}
+
+FlatTerm* FlatTerm::createUnexpanded(TermList t)
 {
   if(t.isTerm()) {
-    return createAndExpand(t.term());
+    return createUnexpanded(t.term());
   }
   ASS(t.isOrdinaryVar());
 
-  FlatTerm* res=new FlatTerm(1);
-  void* mem = ALLOC_KNOWN(sizeof(Entry), "FlatTerm");
-  res->_data = array_new<Entry>(mem, 1);
-  res->_ownsData = true;
+  FlatTerm* res=new(1) FlatTerm(1);
   res->_data[0]=Entry(VAR, t.var());
 
   return res;
 }
 
-FlatTerm* FlatTerm::create(Term* t, Entry* data)
+FlatTerm* FlatTerm::createUnexpanded(TermStack ts)
 {
-  size_t entries=getEntryCount(t);
+  size_t entries=0;
+  for (auto& tl : ts) {
+    entries += tl.isVar() ? 1 : getEntryCount(tl.term());
+  }
 
-  FlatTerm* res=new FlatTerm(entries);
-  res->_data = data;
-  res->_ownsData = false;
+  FlatTerm* res=new(entries) FlatTerm(entries);
+  size_t fti=0;
 
-#if VDEBUG
-  ASS(res->_data[0].isFun())
-  ASS_EQ(res->_data[1]._ptr,t);
-#endif
+  for (auto& tl : ts) {
+    if (tl.isVar()) {
+      res->_data[fti++]=Entry(VAR, tl.var());
+      continue;
+    }
+    auto t = tl.term();
+    res->_data[fti]=Entry(FUN_UNEXPANDED,
+        t->isLiteral() ? static_cast<Literal*>(t)->header() : t->functor());
+    res->_data[fti+1]=Entry(t);
+    res->_data[fti+2]=Entry(FUN_RIGHT_OFS, getEntryCount(t));
+    fti+=getEntryCount(t);
+  }
+  ASS_EQ(fti, entries);
 
   return res;
 }
@@ -183,29 +244,29 @@ FlatTerm* FlatTerm::copy(const FlatTerm* ft)
 
 void FlatTerm::swapCommutativePredicateArguments()
 {
-  ASS_EQ((*this)[0].tag(), FUN);
-  ASS_EQ((*this)[0].number()|1, 1); //as for now, the only commutative predicate is equality
+  ASS_EQ((*this)[0]._tag(), FUN);
+  ASS_EQ((*this)[0]._number()|1, 1); //as for now, the only commutative predicate is equality
 
   size_t firstStart=3;
   size_t firstLen;
-  if((*this)[firstStart].tag()==FUN) {
-    ASS_EQ((*this)[firstStart+2].tag(), FUN_RIGHT_OFS);
-    firstLen=(*this)[firstStart+2].number();
+  if((*this)[firstStart]._tag()==FUN) {
+    ASS_EQ((*this)[firstStart+2]._tag(), FUN_RIGHT_OFS);
+    firstLen=(*this)[firstStart+2]._number();
   }
   else {
-    ASS_EQ((*this)[firstStart].tag(), VAR);
+    ASS_EQ((*this)[firstStart]._tag(), VAR);
     firstLen=1;
   }
 
   size_t secStart=firstStart+firstLen;
   size_t secLen;
 
-  if((*this)[secStart].tag()==FUN) {
-    ASS_EQ((*this)[secStart+2].tag(), FUN_RIGHT_OFS);
-    secLen=(*this)[secStart+2].number();
+  if((*this)[secStart]._tag()==FUN) {
+    ASS_EQ((*this)[secStart+2]._tag(), FUN_RIGHT_OFS);
+    secLen=(*this)[secStart+2]._number();
   }
   else {
-    ASS_EQ((*this)[secStart].tag(), VAR);
+    ASS_EQ((*this)[secStart]._tag(), VAR);
     secLen=1;
   }
   ASS_EQ(secStart+secLen,_length);
@@ -227,14 +288,14 @@ void FlatTerm::swapCommutativePredicateArguments()
 
 void FlatTerm::Entry::expand()
 {
-  if (tag()==FUN) {
+  if (_tag()==FUN) {
     return;
   }
-  ASS(tag()==FUN_TODO);
-  ASS(this[1].tag()==FUN_TERM_PTR);
-  ASS(this[2].tag()==FUN_RIGHT_OFS);
-  auto t = this[1].ptr();
-  size_t p = FlatTerm::functionEntryCount;
+  ASS(_tag()==FUN_UNEXPANDED);
+  ASS(this[1]._tag()==FUN_TERM_PTR);
+  ASS(this[2]._tag()==FUN_RIGHT_OFS);
+  Term* t = this[1]._term();
+  size_t p = FlatTerm::FUNCTION_ENTRY_COUNT;
   for (unsigned i = 0; i < t->arity(); i++) {
     auto arg = t->nthArgument(i);
     if (arg->isVar()) {
@@ -243,14 +304,14 @@ void FlatTerm::Entry::expand()
     }
     else {
       ASS(arg->isTerm());
-      this[p] = Entry(FUN_TODO, arg->term()->functor());
+      this[p] = Entry(FUN_UNEXPANDED, arg->term()->functor());
       this[p+1] = Entry(arg->term());
       this[p+2] = Entry(FUN_RIGHT_OFS, getEntryCount(arg->term()));
-      p += this[p+2].number();
+      p += this[p+2]._number();
     }
   }
-  ASS_EQ(p,this[2].number());
-  _info.tag = FUN;
+  ASS_EQ(p,this[2]._number());
+  _setTag(FUN);
 }
 
 };

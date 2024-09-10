@@ -16,10 +16,10 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <chrono>
 
 #include "Debug/Assertion.hpp"
 
-#include "Lib/VString.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
 #include "SAT/Z3Interfacing.hpp"
@@ -28,11 +28,30 @@
 #include "Options.hpp"
 #include "Statistics.hpp"
 
+#include "SATSubsumption/SATSubsumptionAndResolution.hpp"
+
 namespace Shell {
 
-using namespace std;
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
 
-CommandLine::CommandLine (int argc, char* argv [])
+#define PRINT_VAR(out, VARNAME)                    \
+  do {                                             \
+    (out) << "\% " #VARNAME "=" STR(VARNAME) "\n"; \
+  } while (false)
+
+std::ostream& printVersion(std::ostream& out)
+{
+  out << VERSION_STRING << "\n";
+#if VZ3
+  std::cout << "Linked with Z3 " << Z3Interfacing::z3_full_version() << "\n";
+#endif
+  PRINT_VAR(out, VDEBUG);
+  subsat::print_config(out << "\% ");
+  return out;
+}
+
+CommandLine::CommandLine (int argc, const char * const argv [])
   : _next(argv+1),
     _last(argv+argc)
 {
@@ -54,28 +73,23 @@ void CommandLine::interpret (Options& options)
     ASS(_next < _last);
     const char* arg = *_next++;
     if (strcmp(arg, "--version")==0) {
-      cout << VERSION_STRING << endl;
-#if VZ3
-      cout << "Linked with Z3 " << Z3Interfacing::z3_full_version() << endl;
-#endif
+      printVersion(std::cout);
       exit(0);
     }
     // If --help or -h are used without arguments we still print help
     // If --help is used at all we print help
     // If -h is included at the end of the argument list we print help
-    if(strcmp(arg,"--help")==0 || 
+    if(strcmp(arg,"--help")==0 ||
        (strcmp(arg,"-h")==0 && _next==_last) //if -h and there is no more
-      ){ 
+      ){
       // cout << _next << " " << _last << endl;
       options.set("help","on");
-      env.beginOutput();
-      options.output(env.out());
-      env.endOutput();
+      options.output(std::cout);
       exit(0);
     }
     if (arg[0] == '-') {
       if (_next == _last) {
-	USER_ERROR((vstring)"no value specified for option " + arg);
+	      USER_ERROR((std::string)"no value specified for option " + arg);
       }
       else{
          if (arg[1] == '-') {
@@ -89,22 +103,11 @@ void CommandLine::interpret (Options& options)
     }
     else { // next is not an option but a file name
       if (fileGiven) {
-	USER_ERROR("two input file names specified");
+	      USER_ERROR("two input file names specified");
       }
       fileGiven = true;
       options.setInputFile(arg);
     }
-  }
-  // Don't force options if in Portfolio mode as the
-  // forced options should apply to inner strategies only
-  // Don't check global option constraints in Portoflio mode
-  // as these are checked oon each inner strategy
-  if(options.mode() != Options::Mode::PORTFOLIO){
-    options.setForcedOptionValues();
-    options.checkGlobalOptionConstraints();
-  }
-  if(options.encodeStrategy()){
-    cout << options.generateEncodedOptions() << "\n";
   }
 } // CommandLine::interpret
 

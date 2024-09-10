@@ -22,12 +22,13 @@
 
 #include <iostream>
 #include <iomanip>
+#include "Debug/Output.hpp"
 
 namespace Debug {
 
 namespace Tracer {
-  // print the current stack
-  void printStack(std::ostream &out);
+  // print the current stack to stdout
+  void printStack();
 };
 
 template<class... As>
