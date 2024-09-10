@@ -21,7 +21,7 @@ using namespace Lib;
 using namespace Shell;
 
 KBOComparator::KBOComparator(TermList lhs, TermList rhs, const KBO& kbo)
-  : OrderingComparator(lhs, rhs, kbo), _ready(false), _instructions()
+  : OrderingComparator(lhs, rhs, kbo)
 {
 }
 

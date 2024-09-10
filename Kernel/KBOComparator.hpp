@@ -111,7 +111,7 @@ private:
   private:
     uint64_t _content;
   };
-  bool _ready;
+  bool _ready = false;
   Stack<Instruction> _instructions;
 };
 

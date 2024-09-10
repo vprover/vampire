@@ -49,7 +49,7 @@ bool unify(TermList tl1, TermList tl2, TermList& orig1, TermList& orig2)
 }
 
 LPOComparator::LPOComparator(TermList lhs, TermList rhs, const LPO& lpo)
-  : OrderingComparator(lhs, rhs, lpo), _root(new Node(lhs, rhs))
+  : OrderingComparator(lhs, rhs, lpo), _root(lhs, rhs)
 {
 }
 
@@ -120,7 +120,7 @@ void LPOComparator::majoChain(Branch* branch, TermList tl1, Term* t, unsigned i,
 {
   ASS(branch);
   for (unsigned j = i; j < t->arity(); j++) {
-    *branch = Branch(new Node(tl1,*t->nthArgument(j)));
+    *branch = Branch(tl1,*t->nthArgument(j));
     branch->n->eqBranch = fail;
     branch->n->incBranch = fail;
     branch = &branch->n->gtBranch;
@@ -135,7 +135,7 @@ void LPOComparator::alphaChain(Branch* branch, Term* s, unsigned i, TermList tl2
 {
   ASS(branch);
   for (unsigned j = i; j < s->arity(); j++) {
-    *branch = Branch(new Node(*s->nthArgument(j),tl2));
+    *branch = Branch(*s->nthArgument(j),tl2);
     branch->n->eqBranch = success;
     branch->n->gtBranch = success;
     branch = &branch->n->incBranch;
@@ -145,12 +145,14 @@ void LPOComparator::alphaChain(Branch* branch, Term* s, unsigned i, TermList tl2
 
 void LPOComparator::expand(Branch& branch, const LPO& lpo)
 {
-  while (branch.tag == BranchTag::T_UNKNOWN) {
+  while (branch.tag == BranchTag::T_UNKNOWN)
+  {
+    // take temporary ownership of node
+    Branch nodeHolder = branch;
+    auto node = nodeHolder.n.get();
+
     // Use compare here to filter out as many
     // precomputable comparisons as possible.
-    auto node = branch.n;
-    node->acquire();
-
     auto comp = lpo.compare(node->lhs,node->rhs);
     if (comp != Ordering::INCOMPARABLE) {
       if (comp == Ordering::LESS) {
@@ -160,12 +162,12 @@ void LPOComparator::expand(Branch& branch, const LPO& lpo)
       } else {
         branch = node->eqBranch;
       }
-      goto loop_end;
+      continue;
     }
     // If we have a variable, we cannot preprocess further.
     if (node->lhs.isVar() || node->rhs.isVar()) {
       branch.tag = BranchTag::T_COMPARISON;
-      goto loop_end;
+      continue;
     }
 
     {
@@ -187,7 +189,7 @@ void LPOComparator::expand(Branch& branch, const LPO& lpo)
         {
           auto s_arg = *lhs.term()->nthArgument(i);
           auto t_arg = *rhs.term()->nthArgument(i);
-          *curr = Branch(new Node(s_arg,t_arg));
+          *curr = Branch(s_arg,t_arg);
           // greater branch is a majo chain
           majoChain(&curr->n->gtBranch, lhs, rhs.term(), i+1, node->gtBranch, node->incBranch);
           // incomparable branch is an alpha chain
@@ -216,7 +218,7 @@ void LPOComparator::expand(Branch& branch, const LPO& lpo)
       }
     }
 loop_end:
-    node->release();
+    continue;
   }
 }
 

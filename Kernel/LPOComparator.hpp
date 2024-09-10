@@ -39,43 +39,24 @@ public:
     T_UNKNOWN,
   };
 
-  struct Node;
+  class Node;
 
   struct Branch {
     BranchTag tag;
-    Node* n;
+    std::shared_ptr<Node> n;
 
     explicit Branch(BranchTag t) : tag(t), n(nullptr) { ASS(t==BranchTag::T_GREATER || t==BranchTag::T_NOT_GREATER); }
-    explicit Branch(Node* n) : tag(BranchTag::T_UNKNOWN), n(n) { ASS(n); n->acquire(); }
-    Branch(const Branch& other) : tag(other.tag), n(other.n) { if (n) { n->acquire(); } }
-    ~Branch() { if (n) { n->release(); } }
-    Branch& operator=(const Branch& other) {
-      if (this != &other) {
-        tag = other.tag;
-        if (n) { n->release(); }
-        n = other.n;
-        if (n) { n->acquire(); }
-      }
-      return *this;
-    }
+    explicit Branch(TermList lhs, TermList rhs) : tag(BranchTag::T_UNKNOWN), n(new Node(lhs, rhs)) {}
   };
 
-  struct Node {
+  class Node {
     Node(TermList lhs, TermList rhs)
-      : refcnt(0), lhs(lhs), rhs(rhs), eqBranch(BranchTag::T_NOT_GREATER), gtBranch(BranchTag::T_GREATER), incBranch(BranchTag::T_NOT_GREATER) {}
+      : lhs(lhs), rhs(rhs), eqBranch(BranchTag::T_NOT_GREATER), gtBranch(BranchTag::T_GREATER), incBranch(BranchTag::T_NOT_GREATER) {}
 
-    void acquire() {
-      refcnt++;
-    }
+    // only allow calling ctor from Branch
+    friend struct Branch;
 
-    void release() {
-      ASS(refcnt);
-      refcnt--;
-      if (!refcnt) {
-        delete this;
-      }
-    }
-
+  public:
     auto& getBranch(Ordering::Result r) {
       switch (r) {
         case Ordering::EQUAL:
@@ -89,7 +70,6 @@ public:
       }
     }
 
-    unsigned refcnt;
     TermList lhs;
     TermList rhs;
     Branch eqBranch;
