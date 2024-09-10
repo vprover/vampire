@@ -96,6 +96,7 @@
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
 #include "Shell/AnswerLiteralManager.hpp"
+#include "Shell/ConditionalRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
@@ -223,7 +224,49 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     // this is not an error, it may just lead to lower performance (and most likely not significantly lower)
     cerr << "SaturationAlgorithm cannot set its ordering as global" << endl;
   }
-  _selector = LiteralSelector::getSelector(*_ordering, opt, opt.selection());
+
+  // this unfortunately repeats the logic from SaturationAlgorithm::activate
+  auto externMatcher = [this](Literal* l) {
+    if (l->isPositive())
+      return false;
+    ESList* externals;
+    if (!_indexedExternals.find(l->functor(),externals))
+      return false;
+    ESList::RefIterator it(externals);
+    while (it.hasNext()) {
+      ExternalSource& es = it.next();
+      Formula* f = es.f;
+      ASS_EQ(f->connective(),EXISTS);
+      VList* exists = f->vars();
+      ASS_EQ(f->qarg()->connective(),LITERAL);
+      Literal* ext_lit = f->qarg()->literal();
+      ASS_EQ(l->functor(), ext_lit->functor());
+
+      for (unsigned j = 0; j < l->numTermArguments(); j++) {
+        TermList arg = (*l)[j];
+        TermList ext_arg = (*ext_lit)[j];
+        if (ext_arg.isVar()) {
+          unsigned ext_arg_var = ext_arg.var();
+          if (arg.isVar()) {
+            // the corresponding ext_arg should be part of the exists block
+            if (!VList::member(ext_arg_var,exists))
+              return false;
+          } else {
+            // should be ground (ideally a constant, but let's not be that strict)
+            // the corresponding ext_arg part does not necessarily be part of the forall block (if it's exists, all the better)
+            Term* t = arg.term();
+            if (!t->ground()) {
+              return false;
+            }
+          }
+        }
+      }
+      return true;
+    }
+    return false;
+  };
+
+  _selector = LiteralSelector::getSelector(*_ordering, opt, opt.selection(),externMatcher);
 
   _completeOptionSettings = opt.complete(prb);
 
@@ -582,14 +625,6 @@ void SaturationAlgorithm::passiveRemovedHandler(Clause* cl)
 }
 
 /**
- * Return time spent by the run of the saturation algorithm
- */
-int SaturationAlgorithm::elapsedTime()
-{
-  return env.timer->elapsedMilliseconds() - _startTime;
-}
-
-/**
  * Add input clause @b cl into the SaturationAlgorithm object
  *
  * The clause @b cl is added into the unprocessed container, unless the
@@ -736,8 +771,37 @@ void SaturationAlgorithm::init()
     _symEl->init(this);
   }
 
-  _startTime = env.timer->elapsedMilliseconds();
-  _startInstrs = env.timer->elapsedMegaInstructions();
+  { // external sources pre-compilation (also, we barf here (i.e., early), if not well-formed)
+    ESList::RefIterator it(_prb.externals());
+    while (it.hasNext()) {
+      ExternalSource& es = it.next();
+      Formula* f = es.f;
+      if (f->connective() == FORALL) {
+        f = f->qarg();
+      }
+      if (f->connective() != EXISTS || f->qarg()->connective() != LITERAL) {
+        USER_ERROR("Wrongly shaped external declaration quantifiers: "+es.f->toString());
+      }
+      es.f = f; // no need to remember the forall part, if there was one
+      Literal* ext_lit = f->qarg()->literal();
+      if (ext_lit->isNegative()) {
+        USER_ERROR("External declaration qantifiers should nest a positive literal and not "+f->toString());
+      }
+      Signature::Symbol* symb = env.signature->getPredicate(ext_lit->functor());
+      for (unsigned j = 0; j < symb->arity(); j++) {
+        TermList ext_arg = (*ext_lit)[j];
+        if (!ext_arg.isVar()) {
+          Term* t = ext_arg.term();
+          if (!t->ground()) {
+            USER_ERROR("External declaration non-var arguments must be ground but one is "+t->toString());
+          }
+        }
+      }
+      ESList** bySymbol;
+      _indexedExternals.getValuePtr(ext_lit->functor(),bySymbol,ESList::empty());
+      ESList::push(es,*bySymbol);
+    }
+  }
 }
 
 Clause *SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
@@ -868,8 +932,6 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 {
   _generatedClauseCount++;
   env.statistics->generatedClauses++;
-
-  env.checkTimeSometime<64>();
 
   cl=doImmediateSimplification(cl);
   if (!cl) {
@@ -1154,6 +1216,8 @@ void SaturationAlgorithm::activate(Clause* cl)
   env.statistics->activeClauses++;
   _active->add(cl);
 
+  _conditionalRedundancyHandler->checkEquations(cl);
+
   auto generated = TIME_TRACE_EXPR(TimeTrace::CLAUSE_GENERATION, _generator->generateSimplify(cl));
   auto toAdd = TIME_TRACE_ITER(TimeTrace::CLAUSE_GENERATION, generated.clauses);
 
@@ -1163,85 +1227,67 @@ void SaturationAlgorithm::activate(Clause* cl)
     for (unsigned i=0; i<selCnt; i++) {
       Literal* lit=(*cl)[i];
       if (lit->isPositive()) continue; // only negative literals can trigger external sourcery
-      // there should be an index for this...
-      ESList::RefIterator it(_prb.externals());
+      ESList* externals;
+      if (!_indexedExternals.find(lit->functor(),externals)) {
+        continue;
+      }
+      ESList::RefIterator it(externals);
       while (it.hasNext()) {
         ExternalSource& es = it.next();
         Formula* f = es.f;
-        VList* foralls = 0;
-        VList* exists = 0;
-        if (f->connective() == FORALL) {
-          foralls = f->vars();
-          f = f->qarg();
-        }
-        if (f->connective() == EXISTS) {
-          exists = f->vars();
-          f = f->qarg();
-        }
-        if (f->connective() != LITERAL) {
-          // Could check this beforehand
-          USER_ERROR("Wrongly shaped external declaration quantifiers: "+es.f->toString());
-        }
-        Literal* ext_lit = f->literal();
-        if (ext_lit->isNegative()) {
-          // Could check this beforehand
-          USER_ERROR("External declaration qantifiers should nest a positive literal and not "+f->toString());
-        }
-        (void)foralls; // shall we need the foralls?
-        if (lit->functor() == ext_lit->functor()) { // we have a pre-match
-          Signature::Symbol* symb = env.signature->getPredicate(lit->functor());
-          std::string query = "\""+symb->name()+"(";
-          unsigned j;
-          for (j = 0; j < symb->arity(); j++) {
-            TermList arg = (*lit)[j];
-            TermList ext_arg = (*ext_lit)[j];
-            if (!ext_arg.isVar()) {
-              Term* t = ext_arg.term();
-              if (!t->ground()) {
-                // Could check this beforehand
-                USER_ERROR("External declaration non-var arguments must be ground but one is "+t->toString());
-              }
-            } else {
-              unsigned ext_arg_var = ext_arg.var();
-              if (arg.isVar()) {
-                // the corresponding ext_arg should be part of the exists block
-                if (!VList::member(ext_arg_var,exists)) {
-                  break;
-                }
-              } else {
-                // should be ground (ideally a constant, but let's not be that strict)
-                // the corresponding ext_arg part does not necessarily be part of the forall block (if it's exists, all the better)
-                Term* t = arg.term();
-                if (!t->ground()) {
-                  break;
-                }
-              }
-            }
-            if (j > 0) query += ",";
-            query += arg.toString();
-          }
-          if (j == symb->arity()) { // all went through nicely, let's do the question asking
-            query += ")\"";
-            cout << "About to ask " +query+ " for " << lit->toString() << " through " << es.f->toString() << endl;
-            if (!List<std::string>::member(query,es.already_asked)) { // unless already asked
-              std::string answers = System::executeCommand((es.exec + " " + query).c_str());
-              cout << "Got back " << answers << endl;
-              Stack<std::string> lines;
-              StringUtils::splitStr(answers.c_str(),'\n',lines);
-              StringUtils::dropEmpty(lines);
+        ASS_EQ(f->connective(),EXISTS);
+        VList* exists = f->vars();
+        ASS_EQ(f->qarg()->connective(),LITERAL);
+        Literal* ext_lit = f->qarg()->literal();
+        ASS_EQ(lit->functor(), ext_lit->functor());
 
-              for (j=0; j < lines.size(); j++) {
-                Clause* ext_cl = Parse::TPTP::parseClauseFromString(lines[j]);
-                ext_cl->setInputType(UnitInputType::EXTERNAL_SOURCE);
-                // cout << "read " << ext_cl->toString() << endl;
-                ClauseList::push(ext_cl,external_newcomers);
+        Signature::Symbol* symb = env.signature->getPredicate(lit->functor());
+        std::string query = "\""+symb->name()+"(";
+        unsigned j;
+        for (j = 0; j < symb->arity(); j++) {
+          TermList arg = (*lit)[j];
+          TermList ext_arg = (*ext_lit)[j];
+          if (ext_arg.isVar()) {
+            unsigned ext_arg_var = ext_arg.var();
+            if (arg.isVar()) {
+              // the corresponding ext_arg should be part of the exists block
+              if (!VList::member(ext_arg_var,exists)) {
+                break;
               }
-              List<std::string>::push(query,es.already_asked);
             } else {
-              cout << "... but already did." << endl;
+              // should be ground (ideally a constant, but let's not be that strict)
+              // the corresponding ext_arg part does not necessarily be part of the forall block (if it's exists, all the better)
+              Term* t = arg.term();
+              if (!t->ground()) {
+                break;
+              }
             }
           }
+          if (j > 0) query += ",";
+          query += arg.toString();
         }
+        if (j == symb->arity()) { // all went through nicely, let's do the question asking
+          query += ")\"";
+          cout << "About to ask " +query+ " for " << lit->toString() << " through " << es.f->toString() << endl;
+          if (!List<std::string>::member(query,es.already_asked)) { // unless already asked
+            std::string answers = System::executeCommand((es.exec + " " + query).c_str());
+            cout << "Got back " << answers << endl;
+            Stack<std::string> lines;
+            StringUtils::splitStr(answers.c_str(),'\n',lines);
+            StringUtils::dropEmpty(lines);
+
+            for (j=0; j < lines.size(); j++) {
+              Clause* ext_cl = Parse::TPTP::parseClauseFromString(lines[j]);
+              ext_cl->setInputType(UnitInputType::EXTERNAL_SOURCE);
+              // cout << "read " << ext_cl->toString() << endl;
+              ClauseList::push(ext_cl,external_newcomers);
+            }
+            List<std::string>::push(query,es.already_asked);
+          } else {
+            cout << "... but already did." << endl;
+          }
+        }
+
       }
     }
   }
@@ -1312,10 +1358,6 @@ start:
     }
 
     newClausesToUnprocessed();
-
-    if (env.timeLimitReached()) {
-      throw TimeLimitExceededException();
-    }
   }
 
   ASS(clausesFlushed());
@@ -1408,19 +1450,18 @@ void SaturationAlgorithm::doOneAlgorithmStep()
 MainLoopResult SaturationAlgorithm::runImpl()
 {
   unsigned l = 0;
+
+  // could be more precise, but we don't care too much
+  unsigned startTime = Timer::elapsedDeciseconds();
   try {
     for (;; l++) {
       if (_activationLimit && l > _activationLimit) {
         throw ActivationLimitExceededException();
       }
+      if(_softTimeLimit && Timer::elapsedDeciseconds() - startTime > _softTimeLimit)
+        throw TimeLimitExceededException();
 
       doOneAlgorithmStep();
-
-      Timer::syncClock();
-      if (env.timeLimitReached()) {
-        throw TimeLimitExceededException();
-      }
-
       env.statistics->activations = l;
     }
   }
@@ -1757,6 +1798,9 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.showSymbolElimination()) {
     res->_symEl = new SymElOutput();
   }
+
+  res->_conditionalRedundancyHandler.reset(ConditionalRedundancyHandler::create(opt, &ordering, res->_splitter));
+
   res->_answerLiteralManager = AnswerLiteralManager::getInstance(); // selects the right one, according to options!
   ASS(!res->_answerLiteralManager||opt.questionAnswering()!=Options::QuestionAnsweringMode::OFF);
   ASS( res->_answerLiteralManager||opt.questionAnswering()==Options::QuestionAnsweringMode::OFF);

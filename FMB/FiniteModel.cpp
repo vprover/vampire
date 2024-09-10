@@ -427,7 +427,7 @@ bool FiniteModel::evaluate(Unit* unit)
     formula = fu->getFormula();
   }
 
-  formula = partialEvaluate(formula);
+  formula = partialEvaluate(formula,0);
   formula = SimplifyFalseTrue::simplify(formula);
   return evaluate(formula);
 }
@@ -549,7 +549,7 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
      * TODO: This is recursive, which could be problematic in the long run
      *
      */
-    Formula* FiniteModel::partialEvaluate(Formula* formula)
+    Formula* FiniteModel::partialEvaluate(Formula* formula,unsigned depth)
     {
 #if DEBUG_MODEL
         for(unsigned i=0;i<depth;i++){ cout << "."; }
@@ -572,7 +572,7 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
                     return formula;
                 case NOT:
                 {
-                  Formula* inner = partialEvaluate(formula->uarg());
+                  Formula* inner = partialEvaluate(formula->uarg(),depth+1);
                   return new NegatedFormula(inner);
                 }
                 case AND:
@@ -582,7 +582,7 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
                 FormulaList* newArgs = 0;
                 FormulaList::Iterator fit(args);
                 while(fit.hasNext()){
-                    Formula* newArg = partialEvaluate(fit.next());
+                    Formula* newArg = partialEvaluate(fit.next(),depth+1);
                     FormulaList::push(newArg,newArgs);
                 }
                 return new JunctionFormula(formula->connective(),newArgs); 
@@ -594,8 +594,8 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
             {
                 Formula* left = formula->left();
                 Formula* right = formula->right();
-                Formula* newLeft = partialEvaluate(left);
-                Formula* newRight = partialEvaluate(right);
+                Formula* newLeft = partialEvaluate(left,depth+1);
+                Formula* newRight = partialEvaluate(right,depth+1);
                 
                 return new BinaryFormula(formula->connective(),newLeft,newRight); 
             }
@@ -605,7 +605,7 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
             {
                 VList* vs = formula->vars();
                 Formula* inner  = formula->qarg();
-                Formula* newInner = partialEvaluate(inner);
+                Formula* newInner = partialEvaluate(inner,depth+1);
                 return new QuantifiedFormula(formula->connective(),vs,0,newInner);
             }
             default:

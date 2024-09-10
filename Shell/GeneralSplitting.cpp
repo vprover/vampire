@@ -165,7 +165,7 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
   }
 
 
-  unsigned minDegVar;
+  unsigned minDegVar = 0; // to silence a gcc warning (we overwrite the value below anyway, at least where it matters)
   unsigned minDeg=varCnt-1;
   Set<unsigned>::Iterator vit(vars);
   while(vit.hasNext()) {

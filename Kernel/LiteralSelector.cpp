@@ -79,29 +79,31 @@ int LiteralSelector::getSelectionPriority(Literal* l) const
  * The supported literal selector numbers should correspond to numbers
  * allowed in @b Shell::Options::setSelection.
  */
-LiteralSelector* LiteralSelector::getSelector(const Ordering& ordering, const Options& options, int selectorNumber)
+LiteralSelector* LiteralSelector::getSelector(const Ordering& ordering, const Options& options,
+  int selectorNumber, std::function<bool(Literal*)> matchesExternal)
 {
   using namespace LiteralComparators;
 
   typedef Composite<ColoredFirst,
 	    Composite<MaximalSize,
-	    LexComparator> > Comparator2;
+	    LexComparator>> Comparator2;
 
   typedef Composite<ColoredFirst,
 	    Composite<NoPositiveEquality,
 	    Composite<LeastTopLevelVariables,
-	    Composite<LeastDistinctVariables, LexComparator> > > > Comparator3;
+	    Composite<LeastDistinctVariables, LexComparator>>>> Comparator3;
 
   typedef Composite<ColoredFirst,
 	    Composite<NoPositiveEquality,
 	    Composite<LeastTopLevelVariables,
 	    Composite<LeastVariables,
-	    Composite<MaximalSize, LexComparator> > > > > Comparator4;
+	    Composite<MaximalSize, LexComparator>>>>> Comparator4;
 
-  typedef Composite<ColoredFirst,
+  typedef Composite<ExternalFirst,
+      Composite<ColoredFirst,
 	    Composite<NegativeEquality,
 	    Composite<MaximalSize,
-	    Composite<Negative, LexComparator> > > > Comparator10;
+	    Composite<Negative, LexComparator>>>>> Comparator10;
 
   int absNum = abs(selectorNumber);
 
@@ -109,10 +111,10 @@ LiteralSelector* LiteralSelector::getSelector(const Ordering& ordering, const Op
   switch(absNum) {
   case 0: res = new TotalLiteralSelector(ordering, options); break;
   case 1: res = new MaximalLiteralSelector(ordering, options); break;
-  case 2: res = new CompleteBestLiteralSelector<Comparator2>(ordering, options); break;
-  case 3: res = new CompleteBestLiteralSelector<Comparator3>(ordering, options); break;
-  case 4: res = new CompleteBestLiteralSelector<Comparator4>(ordering, options); break;
-  case 10: res = new CompleteBestLiteralSelector<Comparator10>(ordering, options); break;
+  case 2: res = new CompleteBestLiteralSelector<Comparator2>(ordering, options, matchesExternal); break;
+  case 3: res = new CompleteBestLiteralSelector<Comparator3>(ordering, options, matchesExternal); break;
+  case 4: res = new CompleteBestLiteralSelector<Comparator4>(ordering, options, matchesExternal); break;
+  case 10: res = new CompleteBestLiteralSelector<Comparator10>(ordering, options, matchesExternal); break;
 
   case 11: res = new LookaheadLiteralSelector(true, ordering, options); break;
 

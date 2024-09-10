@@ -113,12 +113,15 @@ class CompleteBestLiteralSelector
     : public LiteralSelector
 {
 public:
-  CompleteBestLiteralSelector(const Ordering& ordering, const Options& options) : LiteralSelector(ordering, options)
+  CompleteBestLiteralSelector(const Ordering& ordering, const Options& options,
+     std::function<bool(Literal*)> matchesExternal) : LiteralSelector(ordering, options), _matchesExternal(matchesExternal)
   {
     _comp.attachSelector(this);
   }
 
   bool isBGComplete() const override { return true; }
+
+  bool matchesExternal(Literal* l) override { return (_matchesExternal != nullptr) ? _matchesExternal(l) : false; }
 protected:
   void doSelection(Clause* c, unsigned eligible) override
   {
@@ -243,6 +246,8 @@ protected:
 
 private:
   QComparator _comp;
+
+  std::function<bool(Literal*)> _matchesExternal;
 };
 
 };

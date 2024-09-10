@@ -8,6 +8,5 @@ tff(a4,external,![Arg1:$i]:?[Arg2:$int]:birthdate(Arg1,Arg2),"$XDB/scripts/exter
 
 tff(who,conjecture,
     ? [Composer:$i,BirthYear:$int] :
-      ( attribute(Composer,composer) & birthdate(Composer,BirthYear))).
-      
-      % & $greatereq(BirthYear,1700) & $lesseq(BirthYear,1750) ) ).
+      ( attribute(Composer,composer) & birthdate(Composer,BirthYear)
+      & $greatereq(BirthYear,1700) & $lesseq(BirthYear,1750) ) ).
