@@ -91,11 +91,11 @@ class CodeTreeTIS<Data>::ResultIterator
 : public IteratorCore<QueryRes<ResultSubstitutionSP, Data>>
 {
 public:
-  ResultIterator(CodeTreeTIS* tree, TermList t, bool retrieveSubstitutions, void* extra)
+  ResultIterator(CodeTreeTIS* tree, TermList t, bool retrieveSubstitutions)
   : _retrieveSubstitutions(retrieveSubstitutions),
     _found(0), _finished(false), _tree(tree)
   {
-    _matcher->init(&_tree->_ct, t, extra);
+    _matcher->init(&_tree->_ct, t);
 
     if(_retrieveSubstitutions) {
       _subst = new CodeTreeSubstitution<Data>(&_matcher->bindings, &*_resultNormalizer);
@@ -160,7 +160,7 @@ VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> CodeTreeTIS<Data>::getGene
     return VirtualIterator<QueryRes<ResultSubstitutionSP, Data>>::getEmpty();
   }
 
-  return vi( new ResultIterator(this, t, retrieveSubstitutions, extra) );
+  return vi( new ResultIterator(this, t, retrieveSubstitutions) );
 }
 
 template<class Data>
@@ -172,7 +172,7 @@ bool CodeTreeTIS<Data>::generalizationExists(TermList t)
 
   static typename TermCodeTree<Data>::TermMatcher tm;
   
-  tm.init(&_ct, t, nullptr);
+  tm.init(&_ct, t);
   bool res=tm.next();
   tm.reset();
   

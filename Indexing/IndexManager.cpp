@@ -191,8 +191,7 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case BLOCKED_TERM_INDEX:
-    auto tis=new TermSubstitutionTree();
-    res=new BlockedTermIndex(tis);
+    res = new BlockedTermIndex(new TermSubstitutionTree());
     isGenerating = false;
     break;
 

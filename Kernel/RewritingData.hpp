@@ -157,7 +157,7 @@ public:
     //   return false;
     // }
     // std::cout << "comparing " << rhs << " and " << rhsOther << std::endl;
-    return Ordering::isGorGEorE(_ord.compare(rhsOther,rhs));
+    return Ordering::isGreaterOrEqual(_ord.compare(rhsOther,rhs));
   }
 
   bool blockNewBasic(Term* rwLhs, ResultSubstitution* subst, bool result);
@@ -171,7 +171,7 @@ public:
 
   size_t size() { return this->_rules.size(); }
 
-  vstring toString() const;
+  std::string toString() const;
 
   DHMap<Term*,RuleInfo>::DelIterator iter() {
     return DHMap<Term*,RuleInfo>::DelIterator(_rules);

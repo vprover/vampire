@@ -738,8 +738,6 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "forward subsumption demodulation";
   case InferenceRule::BACKWARD_SUBSUMPTION_DEMODULATION:
     return "backward subsumption demodulation";
-  case InferenceRule::FORWARD_GROUND_JOINABILITY:
-    return "forward ground joinability";
   case InferenceRule::FORWARD_LITERAL_REWRITING:
     return "forward literal rewriting";
   case InferenceRule::INNER_REWRITING:

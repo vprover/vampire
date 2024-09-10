@@ -36,7 +36,6 @@
 #include "Shell/Statistics.hpp"
 
 #include "EqualityFactoring.hpp"
-#include "ReducibilityChecker.hpp"
 
 #if VDEBUG
 #include <iostream>
@@ -147,14 +146,6 @@ struct EqualityFactoring::ResultFn
       TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
       sLitAfter = absUnif.subs().apply(sLit, 0);
     }
-    // if (_checker) {
-    //   _checker->reset();
-    //   if (_checker->checkLiteral(subst.apply(sLit,0))) {
-    //     env.statistics->redundantEqualityFactoring++;
-    //     res->destroy();
-    //     return 0;
-    //   }
-    // }
 
     for(unsigned i=0;i<_cLen;i++) {
       Literal* curr=(*_cl)[i];
@@ -168,11 +159,6 @@ struct EqualityFactoring::ResultFn
             return nullptr;
           }
         }
-        // if (i < _cl->numSelected() && _checker && _checker->checkLiteral(currAfter)) {
-        //   env.statistics->redundantEqualityFactoring++;
-        //   res->destroy();
-        //   return 0;
-        // }
 
         resLits->push(currAfter);
       }
@@ -187,23 +173,23 @@ struct EqualityFactoring::ResultFn
 
     resLits->loadFromIterator(constraints->iterFifo());
 
+    env.statistics->equalityFactoring++;
+
+    auto resCl = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
     if (env.options->diamondBreakingSuperposition()) {
       TIME_TRACE("diamond-breaking");
       // ScopedPtr<RewritingData> rwData(new RewritingData(_ordering));
       auto rwData = new RewritingData(_ordering);
-      res->setRewritingData(rwData);
-      if (!rwData->addRewriteRules(_cl,[](TermList t) {
-        return subst.apply(t,0);
+      resCl->setRewritingData(rwData);
+      if (!rwData->addRewriteRules(_cl,[&absUnif](TermList t) {
+        return absUnif.subs().apply(t,0);
       })) {
         env.statistics->skippedEqualityFactoring++;
-        res->destroy();
+        resCl->destroy();
         return 0;
       }
     }
-
-    env.statistics->equalityFactoring++;
-
-    return Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
+    return resCl;
   }
 private:
   EqualityFactoring& _self;

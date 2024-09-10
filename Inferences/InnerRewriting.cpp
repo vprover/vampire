@@ -67,12 +67,6 @@ bool InnerRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& p
             env.statistics->innerRewrites++;
 
             replacement = Clause::fromStack(*resLits,SimplifyingInference1(InferenceRule::INNER_REWRITING, cl));
-
-            if (cl->getSupInfo()) {
-              replacement->setSupInfo(cl->getSupInfo());
-              // cl->setSupInfo(nullptr);
-            }
-
             return true;
           }
         }

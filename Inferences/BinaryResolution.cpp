@@ -45,7 +45,6 @@
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
-#include "ReducibilityChecker.hpp"
 #include "BinaryResolution.hpp"
 
 namespace Inferences
@@ -81,7 +80,7 @@ void BinaryResolution::detach()
  */
 Clause* BinaryResolution::generateClause(
   Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit,
-  ResultSubstitutionSP subs, AbstractingUnifier* absUnif, ReducibilityChecker* checker, bool diamondBreaking)
+  ResultSubstitutionSP subs, AbstractingUnifier* absUnif, bool diamondBreaking)
 {
   ASS(resultCl->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses
 
@@ -143,11 +142,6 @@ Clause* BinaryResolution::generateClause(
     }
   }
 
-  // if (checker && checker->checkBR(queryCl,qr.clause,qr.substitution.ptr())) {
-  //   env.statistics->skippedResolution++;
-  //   return 0;
-  // }
-  
   // RewritingData* resRwData = nullptr;
   // if (diamondBreaking) {
   //   TIME_TRACE("diamond-breaking");
@@ -257,29 +251,6 @@ Clause* BinaryResolution::generateClause(
       resLits->push(newLit);
     }
   }
-  // if (checker) {
-  //   USER_ERROR("no BR");
-  //   if (queryLitAfter) {
-  //     if (checker->checkBREager(queryLitAfter)) {
-  //       env.statistics->redundantResolution++;
-  //       res->destroy();
-  //       return 0;
-  //     }
-  //   } else if (qrLitAfter) {
-  //     if (checker->checkBREager(qrLitAfter)) {
-  //       env.statistics->redundantResolution++;
-  //       res->destroy();
-  //       return 0;
-  //     }
-  //   } else {
-  //     auto lit = qr.substitution->applyToQuery(queryLit);
-  //     if (checker->checkBREager(lit)) {
-  //       env.statistics->redundantResolution++;
-  //       res->destroy();
-  //       return 0;
-  //     }
-  //   }
-  // }
 
   if (!absUnif->usesUwa()) {
     if (!_salg->condRedHandler().handleResolution(queryCl, queryLit, resultCl, resultLit, subs.ptr())) {
@@ -302,16 +273,12 @@ Clause* BinaryResolution::generateClause(
     env.statistics->resolution++;
   }
 
-  //cout << "RESULT " << res->toString() << endl;
-
-  return res;
   inf_destroyer.disable(); // ownership passed to the the clause below
   return Clause::fromStack(*resLits, inf);
 }
 
 ClauseIterator BinaryResolution::generateClauses(Clause* premise)
 {
-  bool diamondBreaking = (_hasEquality || _unificationWithAbstraction) && _parent.getOptions().diamondBreakingSuperposition();
   return pvi(TIME_TRACE_ITER("resolution", 
       premise->getSelectedLiteralIterator()
         .filter([](auto l) { return !l->isEquality(); })
@@ -320,8 +287,9 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
             return iterTraits(_index->getUwa(lit, /* complementary */ true, 
                                              env.options->unificationWithAbstraction(), 
                                              env.options->unificationWithAbstractionFixedPointIteration()))
-                     .map([this,lit,premise,diamondBreaking](auto qr) {
+                     .map([this,lit,premise](auto qr) {
                         // perform binary resolution on query results
+                        bool diamondBreaking = (_hasEquality || _unificationWithAbstraction) && getOptions().diamondBreakingSuperposition();
                         auto subs = ResultSubstitution::fromSubstitution(&qr.unifier->subs(), QUERY_BANK, RESULT_BANK);
                         return BinaryResolution::generateClause(premise, lit, qr.data->clause, qr.data->literal, subs, qr.unifier, diamondBreaking);
                      });

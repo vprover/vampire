@@ -122,7 +122,7 @@ Clause* Condensation::simplify(Clause* cl)
       // I think this is asking if there is a substitution that will match
       // each lit in newLits with one of its instances in alts
       // CHECK!
-      success=MLMatcher::canBeMatched(newLits.array(), newLen, cl,alts.array(),0,false,rSubst);
+      success=MLMatcher::canBeMatched(newLits.array(), newLen, cl,alts.array(),0,false);
 
     // We will jump here if we do not find a match, in this case success will be false
     match_fin:

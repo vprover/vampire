@@ -47,7 +47,7 @@ public:
 private:
   Clause* generateClause(
     Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit,
-    ResultSubstitutionSP subs, AbstractingUnifier* absUnif, ReducibilityChecker* checker = 0, bool diamondBreaking = false);
+    ResultSubstitutionSP subs, AbstractingUnifier* absUnif, bool diamondBreaking = false);
 
   BinaryResolutionIndex* _index;
   bool _unificationWithAbstraction;

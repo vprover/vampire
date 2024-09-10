@@ -17,7 +17,6 @@
 #include "Forwards.hpp"
 
 #include "Indexing/TermSharing.hpp"
-#include "Indexing/Index.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
@@ -877,22 +876,4 @@ void PrecedenceOrdering::show(ostream& out) const
   out << "%" << std::endl;
 
   showConcrete(out);
-}
-
-bool Ordering::isGreater(TermList tl1, TermList tl2, void* tl1State, VarOrderBV* constraints, const Indexing::TermQueryResult* qr) const
-{
-  if (constraints) {
-    *constraints = 0;
-  }
-  return compare(tl1,qr?qr->substitution->applyToBoundResult(tl2):tl2)==GREATER;
-}
-
-bool Ordering::isGreater(TermList tl1, TermList tl2, const VarOrder& vo) const
-{
-  return isGreater(tl1,tl2);
-}
-
-bool Ordering::makeGreater(TermList tl1, TermList tl2, VarOrder& vo) const
-{
-  return isGreater(tl1,tl2);
 }

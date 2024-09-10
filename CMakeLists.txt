@@ -227,7 +227,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/MLVariant.cpp
     Kernel/Ordering.cpp
     Kernel/Ordering_Equality.cpp
-    Kernel/PartialOrdering.cpp
     Kernel/Problem.cpp
     Kernel/Renaming.cpp
     Kernel/RewritingData.cpp
@@ -275,7 +274,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/MLMatcher.hpp
     Kernel/MLVariant.hpp
     Kernel/Ordering.hpp
-    Kernel/PartialOrdering.hpp
     Kernel/Problem.hpp
     Kernel/RCClauseStack.hpp
     Kernel/Renaming.hpp
@@ -298,8 +296,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Unit.hpp
     Kernel/LPO.cpp
     Kernel/LPO.hpp
-    Kernel/PartialOrdering.hpp
-    Kernel/PartialOrdering.cpp
     Kernel/LPOComparator.cpp
     Kernel/LPOComparator.hpp
     Kernel/Polynomial.hpp
@@ -310,8 +306,6 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/ApplicativeHelper.cpp
     Kernel/SKIKBO.hpp
     Kernel/SKIKBO.cpp
-    Kernel/VarOrder.hpp
-    Kernel/VarOrder.cpp
     Inferences/CNFOnTheFly.cpp
     Inferences/CNFOnTheFly.hpp
     Inferences/CombinatorDemodISE.cpp
@@ -401,7 +395,6 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/FastCondensation.cpp
     Inferences/FOOLParamodulation.cpp
     Inferences/ForwardDemodulation.cpp
-    Inferences/ForwardGroundJoinability.cpp
     Inferences/ForwardLiteralRewriting.cpp
     Inferences/ForwardSubsumptionAndResolution.cpp
     Inferences/ForwardSubsumptionDemodulation.cpp
@@ -440,7 +433,6 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/FastCondensation.hpp
     Inferences/FOOLParamodulation.hpp
     Inferences/ForwardDemodulation.hpp
-    Inferences/ForwardGroundJoinability.hpp
     Inferences/ForwardLiteralRewriting.hpp
     Inferences/ForwardSubsumptionAndResolution.hpp
     Inferences/FunctionDefinitionRewriting.hpp
@@ -473,8 +465,6 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/PolynomialEvaluation.cpp
     Inferences/Cancellation.hpp
     Inferences/Cancellation.cpp
-    Inferences/ReducibilityChecker.hpp
-    Inferences/ReducibilityChecker.cpp
     Inferences/RewritingByRule.hpp
     Inferences/RewritingByRule.cpp
     Inferences/DeletionByRule.hpp
@@ -735,7 +725,6 @@ set(UNIT_TESTS
     UnitTests/tDHMap.cpp
     UnitTests/tQuotientE.cpp
     UnitTests/tUnificationWithAbstraction.cpp
-    UnitTests/tForwardGroundJoinability.cpp
     UnitTests/tTermIndex.cpp
     UnitTests/tGaussianElimination.cpp
     UnitTests/tPushUnaryMinus.cpp

@@ -256,7 +256,6 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/FOOLParamodulation.o\
          Inferences/Injectivity.o\
          Inferences/ForwardDemodulation.o\
-         Inferences/ForwardGroundJoinability.o\
          Inferences/CombinatorDemodISE.o\
          Inferences/CombinatorNormalisationISE.o\
          Inferences/ForwardLiteralRewriting.o\
@@ -291,9 +290,8 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BoolEqToDiseq.o\
          Inferences/GaussianVariableElimination.o\
          Inferences/InterpretedEvaluation.o\
-         Inferences/InvalidAnswerLiteralRemoval.o\
+         Inferences/InvalidAnswerLiteralRemovals.o\
          Inferences/TheoryInstAndSimp.o\
-         Inferences/ReducibilityChecker.o\
          SATSubsumption/SATSubsumptionAndResolution.o\
          SATSubsumption/subsat/constraint.o\
          SATSubsumption/subsat/log.o\
@@ -412,7 +410,6 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/FormulaUnit.o\
 	  Kernel/FormulaVarIterator.o\
 	  Kernel/InterpretedLiteralEvaluator.o\
-	  Kernel/PartialOrdering.o\
 	  Kernel/PolynomialNormalizer.o\
 	  Kernel/Rebalancing.o\
 	  Kernel/Rebalancing/Inverters.o\
@@ -431,7 +428,6 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/TermTransformer.o\
     Kernel/Theory.o\
 	  Kernel/Unit.o\
-		Kernel/VarOrder.o\
 	  Parse/TPTP.o\
 	  Saturation/ClauseContainer.o\
 	  Shell/FunctionDefinition.o\

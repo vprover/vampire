@@ -274,9 +274,7 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t)
   }
 
   BacktrackData localBD;
-  if (!noFail) {
-    bdRecord(localBD);
-  }
+  bdRecord(localBD);
 
   static Stack<pair<TermSpec, TermSpec>> toDo(64);
   ASS(toDo.isEmpty());
@@ -344,17 +342,15 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t)
     toDo.reset();
   }
 
-  if (!noFail) {
-    bdDone();
+  bdDone();
 
-    if(mismatch) {
-      localBD.backtrack();
-    } else {
-      if(bdIsRecording()) {
-        bdCommit(localBD);
-      }
-      localBD.drop();
+  if(mismatch) {
+    localBD.backtrack();
+  } else {
+    if(bdIsRecording()) {
+      bdCommit(localBD);
     }
+    localBD.drop();
   }
 
   DEBUG_UNIFY(0, *this)
@@ -506,7 +502,7 @@ Literal* RobSubstitution::apply(Literal* lit, int index) const
   return Literal::create(lit,ts.array());
 }
 
-TermList RobSubstitution::apply(TermList trm, int index, bool noFail)
+TermList RobSubstitution::apply(TermList trm, int index) const
 {
   return BottomUpEvaluation<AutoDerefTermSpec, TermList>()
     .function([&](auto const& orig, TermList* args) -> TermList {

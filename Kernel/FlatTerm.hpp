@@ -23,11 +23,7 @@ namespace Kernel {
 class FlatTerm
 {
 public:
-  struct Entry;
-  USE_ALLOCATOR(FlatTerm);
-
   static FlatTerm* create(Term* t);
-  static FlatTerm* createAndExpand(Term* t);
   static FlatTerm* create(TermList t);
   static FlatTerm* create(TermStack ts);
   /**
@@ -100,25 +96,25 @@ public:
 
   inline Entry& operator[](size_t i) { ASS_L(i,_length); return _data[i]; }
   inline const Entry& operator[](size_t i) const { ASS_L(i,_length); return _data[i]; }
-  inline Entry* data() { return _data; }
 
   void swapCommutativePredicateArguments();
   void changeLiteralPolarity()
   { _data[0]._setNumber(_data[0]._number()^1); }
 
 private:
+  static size_t getEntryCount(Term* t);
+
   FlatTerm(size_t length);
-  // void* operator new(size_t,unsigned length);
+  void* operator new(size_t,unsigned length);
 
   /**
    * The @b operator @b delete is undefined, FlatTerm objects should
    * be destroyed by the @b destroy() function
    */
-  // void operator delete(void*);
+  void operator delete(void*);
 
   size_t _length;
-  bool _ownsData;
-  Entry* _data;
+  Entry _data[1];
 };
 
 };

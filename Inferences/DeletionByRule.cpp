@@ -17,7 +17,6 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/RewritingData.hpp"
-#include "Kernel/VarOrder.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 
 using namespace Kernel;
@@ -46,10 +45,6 @@ bool ForwardDeletionByRule::perform(Clause* cl, Clause*& replacement, ClauseIter
     return false;
   }
 
-#if CONDITIONAL_MODE
-  ClauseStack condPrem;
-  VarOrderBV bits = 0;
-#endif
   auto it = rwData->iter();
   while (it.hasNext()) {
     Term* lhs;
@@ -61,88 +56,35 @@ bool ForwardDeletionByRule::perform(Clause* cl, Clause*& replacement, ClauseIter
       it.del();
       continue;
     }
-#if CONDITIONAL_MODE
-    {
-      if (info.rhs.isNonEmpty()) {
-        VarOrderBV bits2 = getRemaining(bits);
-        if (ord.isGreater(info.rhs,TermList(lhs),nullptr,&bits2)) {
-          TIME_TRACE("ordering check");
-          return true;
-        }
-        if (bits2) {
-          bits |= bits2;
-        }
-      }
-    }
-#endif
-    TermQueryResultIterator git=_index->getGeneralizations(lhs, true);
+    auto git=_index->getGeneralizations(lhs, true);
     while(git.hasNext()) {
-      TermQueryResult qr=git.next();
-      auto qrRwData = qr.clause->rewritingData();
+      auto qr=git.next();
+      auto qrRwData = qr.data->clause->rewritingData();
       if (qrRwData && !qrRwData->subsumes(rwData, [qr](TermList t) {
-        ASS(qr.substitution->isIdentityOnQueryWhenResultBound());
-        return qr.substitution->applyToBoundResult(t);
+        ASS(qr.unifier->isIdentityOnQueryWhenResultBound());
+        return qr.unifier->applyToBoundResult(t);
       }, lhs)) {
         continue;
       }
 
-      TermList rhs=EqHelper::getOtherEqualitySide(qr.literal,qr.term);
-#if CONDITIONAL_MODE
-      VarOrderBV bits2 = getRemaining(bits);
-      if (!ord.isGreater(TermList(lhs),rhs,nullptr,&bits2,&qr)) {
-        if (!bits2 || info.rhs.isNonEmpty()) {
-          continue;
-        }
-        bits |= bits2;
-        condPrem.push(qr.clause);
-        if (isReducedUnderAny(bits)) {
-          premises = getUniquePersistentIterator(ClauseStack::Iterator(condPrem));
-          env.statistics->forwardConditionalDeletionByRuleBlocked++;
-          goto success;
-        }
+      TermList rhs=qr.data->rhs;
+      if (!ord.isGreater(TermList(lhs),rhs)) {
         continue;
       }
-#else
-      if (!ord.isGreater(TermList(lhs),rhs,nullptr,nullptr,&qr)) {
-        continue;
-      }
-#endif
-      premises = pvi(getSingletonIterator(qr.clause));
+      premises = pvi(getSingletonIterator(qr.data->clause));
       if (info.rhs.isNonEmpty()) {
-        auto rhsS = qr.substitution->applyToBoundResult(rhs);
-#if CONDITIONAL_MODE
-        VarOrderBV bits2 = getRemaining(bits);
-        if (!ord.isGreater(info.rhs,rhsS,nullptr,&bits2)) {
-          // if (!ord.isGreater(info.rhs,rhs,nullptr,nullptr,&qr)) {
-          if (!bits2) {
-            continue;
-          }
-          bits |= bits2;
-          condPrem.push(qr.clause);
-          if (isReducedUnderAny(bits)) {
-            premises = getUniquePersistentIterator(ClauseStack::Iterator(condPrem));
-            env.statistics->forwardConditionalDeletionByRule++;
-            goto success;
-          }
-          continue;
-        }
-#else
+        auto rhsS = qr.unifier->applyToBoundResult(rhs);
         if (!ord.isGreater(info.rhs,rhsS)) {
           continue;
         }
-#endif
         // std::cout << *lhs << " " << info.rhs << " " << rhs << " " << rhsS << std::endl;
         env.statistics->forwardDeletionByRule++;
       } else {
         env.statistics->forwardDeletionByRuleBlocked++;
       }
-success:
       return true;
     }
   }
-#if CONDITIONAL_MODE
-  cl->reducedUnder() = bits;
-#endif
   return false;
 }
 
@@ -177,13 +119,13 @@ struct BackwardDeletionByRuleResultFn
    * and the second is the clause, that replaces it. If no
    * replacement should occur, return pair of zeroes.
    */
-  BwSimplificationRecord operator() (std::pair<TermList,TermQueryResult> arg)
+  BwSimplificationRecord operator() (std::pair<TermList,QueryRes<ResultSubstitutionSP, TermLiteralClause>> arg)
   {
     TIME_TRACE("backward deletion by rule");
 
-    TermQueryResult qr=arg.second;
+    auto qr=arg.second;
 
-    if(_cl==qr.clause || _removed->find(qr.clause)) {
+    if(_cl==qr.data->clause || _removed->find(qr.data->clause)) {
       //the retreived clause was already replaced during this
       //backward demodulation
       return BwSimplificationRecord(nullptr);
@@ -196,17 +138,17 @@ struct BackwardDeletionByRuleResultFn
     // is handled directly within the tree
 
     TermList rhs=EqHelper::getOtherEqualitySide(_eqLit, lhs);
-    TermList lhsS=qr.term;
+    TermList lhsS=qr.data->term;
     TermList rhsS;
 
-    if(!qr.substitution->isIdentityOnResultWhenQueryBound()) {
+    if(!qr.unifier->isIdentityOnResultWhenQueryBound()) {
       //When we apply substitution to the rhs, we get a term, that is
       //a variant of the term we'd like to get, as new variables are
       //produced in the substitution application.
       //We'd rather rename variables in the rhs, than in the whole clause
       //that we're simplifying.
-      TermList lhsSBadVars=qr.substitution->applyToQuery(lhs);
-      TermList rhsSBadVars=qr.substitution->applyToQuery(rhs);
+      TermList lhsSBadVars=qr.unifier->applyToQuery(lhs);
+      TermList rhsSBadVars=qr.unifier->applyToQuery(rhs);
       Renaming rNorm, qNorm, qDenorm;
       rNorm.normalizeVariables(lhsSBadVars);
       qNorm.normalizeVariables(lhsS);
@@ -214,23 +156,23 @@ struct BackwardDeletionByRuleResultFn
       ASS_EQ(lhsS,qDenorm.apply(rNorm.apply(lhsSBadVars)));
       rhsS=qDenorm.apply(rNorm.apply(rhsSBadVars));
     } else {
-      rhsS=qr.substitution->applyToBoundQuery(rhs);
+      rhsS=qr.unifier->applyToBoundQuery(rhs);
     }
 
     if(!_ordering.isGreater(lhsS,rhsS)) {
       return BwSimplificationRecord(nullptr);
     }
 
-    ASS(qr.clause->rewritingData()->isBlocked(lhsS.term()));
+    ASS(qr.data->clause->rewritingData()->isBlocked(lhsS.term()));
 
     auto rwData = _cl->rewritingData();
-    if (!rwData || rwData->subsumes(qr.clause->rewritingData(), [qr](TermList t) {
-      ASS(qr.substitution->isIdentityOnResultWhenQueryBound());
-      return qr.substitution->applyToBoundQuery(t);
+    if (!rwData || rwData->subsumes(qr.data->clause->rewritingData(), [qr](TermList t) {
+      ASS(qr.unifier->isIdentityOnResultWhenQueryBound());
+      return qr.unifier->applyToBoundQuery(t);
     }, lhsS.term())) {
       TIME_TRACE("backward deletion by rule success");
-      _removed->insert(qr.clause);
-      return BwSimplificationRecord(qr.clause);
+      _removed->insert(qr.data->clause);
+      return BwSimplificationRecord(qr.data->clause);
     }
 
     return BwSimplificationRecord(nullptr);
@@ -258,7 +200,7 @@ void BackwardDeletionByRule::perform(Clause* cl, BwSimplificationRecordIterator&
     pvi( getFilteredIterator(
       getMappingIterator(
         getMapAndFlattenIterator(
-          EqHelper::getDemodulationLHSIterator(lit, false, _salg->getOrdering(), _salg->getOptions()),
+          EqHelper::getDemodulationLHSIterator(lit, false, _salg->getOrdering()).first,
           [this](TypedTermList lhs) { return pvi( pushPairIntoRightIterator(lhs, _index->getInstances(lhs, true)) ); }),
       BackwardDeletionByRuleResultFn(cl, _salg->getOrdering())),
     [](BwSimplificationRecord arg) { return arg.toRemove!=0; }) );

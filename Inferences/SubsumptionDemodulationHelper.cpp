@@ -129,9 +129,8 @@ bool SDHelper::checkForSubsumptionResolution(Clause* cl, SDClauseMatches const& 
     }
   }
 
-  Substitution subst;
   // NOTE: we use MLMatcher here because we want *subset* inclusion (as opposed to submultiset)
-  return MLMatcher::canBeMatched(mcl, cl, cm.alts(), resLit, subst);
+  return MLMatcher::canBeMatched(mcl, cl, cm.alts(), resLit);
 }
 /**
  * Build clause that results from subsumption resolution with main premise 'cl' and side premise 'mcl'.

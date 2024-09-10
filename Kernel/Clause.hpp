@@ -357,8 +357,6 @@ public:
   RewritingData* rewritingData();
   void setRewritingData(RewritingData* rwData);
 
-  VarOrderBV& reducedUnder() { return _reducedUnder; }
-
   Literal* getAnswerLiteral();
 
   bool hasAnswerLiteral() {
@@ -366,25 +364,6 @@ public:
   }
 
   bool computable();
-
-  struct SupInfo {
-    Literal* rwLit = nullptr;
-    Term* rwTerm = nullptr;
-
-    Literal* eqLit = nullptr;
-    TermList eqLHS;
-
-    SplitSet* splitSet = nullptr;
-    bool eqClauseUnit = true; // default is true because it causes less trouble
-  };
-
-  void setSupInfo(SupInfo* si) {
-    _supInfo = si;
-  }
-
-  SupInfo* getSupInfo() {
-    return _supInfo;
-  }
 
 protected:
   /** number of literals */
@@ -417,7 +396,6 @@ protected:
   /** a map that translates Literal* to its index in the clause */
   InverseLookup<Literal>* _literalPositions;
   RewritingData* _rwData;
-  VarOrderBV _reducedUnder;
 
   int _numActiveSplits;
 
@@ -429,7 +407,6 @@ protected:
   static bool _auxInUse;
 #endif
 
-  SupInfo* _supInfo;
 
   /** Array of literals of this unit */
   Literal* _literals[1];

@@ -42,7 +42,6 @@ protected:
   bool _skipNonequationalLiterals;
   DemodulationHelper _helper;
   DemodulationLHSIndex* _index;
-  void* _rwTermState;
 };
 
 template <bool combinatorySupSupport>

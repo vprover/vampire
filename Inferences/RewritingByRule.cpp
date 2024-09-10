@@ -176,17 +176,16 @@ Clause* DemodulationByRule::simplify(Clause* c)
         continue;
       }
 
-      Clause* res = new(cLen) Clause(cLen,
-        SimplifyingInference1(InferenceRule::DEMODULATION_BY_RULE, c));
-      (*res)[0]=EqHelper::replace(lit,lhs,rhs);
-      unsigned next=1;
+      RStack<Literal*> resLits;
+      resLits->push(EqHelper::replace(lit,lhs,rhs));
       for(unsigned i=0;i<cLen;i++) {
         Literal* curr=(*c)[i];
         if(curr!=lit) {
-          (*res)[next++] = curr;
+          resLits->push(curr);
         }
       }
-      ASS_EQ(next,cLen);
+      auto res = Clause::fromStack(*resLits,
+        SimplifyingInference1(InferenceRule::DEMODULATION_BY_RULE, c));
       if (c->rewritingData()) {
         res->setRewritingData(new RewritingData(_salg->getOrdering()));
         res->rewritingData()->copyRewriteRules(c->rewritingData());

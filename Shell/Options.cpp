@@ -1675,12 +1675,6 @@ void Options::init()
     _lookup.insert(&_forwardDemodulation);
     _forwardDemodulation.onlyUsefulWith(ProperSaturationAlgorithm());
     _forwardDemodulation.tag(OptionTag::INFERENCES);
-    
-    _forwardGroundJoinability = BoolOptionValue("forward_ground_joinability","fgj",false);
-    _forwardGroundJoinability.description="Enable forward ground joinability (see Duarte and Korovin @ IJCAR2022).";
-    _lookup.insert(&_forwardGroundJoinability);
-    _forwardGroundJoinability.onlyUsefulWith(ProperSaturationAlgorithm());
-    _forwardGroundJoinability.tag(OptionTag::INFERENCES);
 
     _forwardLiteralRewriting = BoolOptionValue("forward_literal_rewriting","flr",false);
     _forwardLiteralRewriting.description="Perform forward literal rewriting.";
@@ -1734,12 +1728,6 @@ void Options::init()
     _lookup.insert(&_equationalTautologyRemoval);
     _equationalTautologyRemoval.onlyUsefulWith(ProperSaturationAlgorithm());
     _equationalTautologyRemoval.tag(OptionTag::INFERENCES);
-
-    _reducibilityCheck = ChoiceOptionValue<ReducibilityCheck>("reducibility_check","rc",ReducibilityCheck::OFF,{"lazy","eager","off"});
-    _reducibilityCheck.description = "";
-    _lookup.insert(&_reducibilityCheck);
-    _reducibilityCheck.tag(OptionTag::INFERENCES);
-    _reducibilityCheck.onlyUsefulWith(ProperSaturationAlgorithm());
 
     _diamondBreakingSuperposition = BoolOptionValue("diamond_breaking_superposition","dbs",false);
     _diamondBreakingSuperposition.description="Skip superpositions detected to be done on a different rewrite branch.";

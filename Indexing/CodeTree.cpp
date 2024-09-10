@@ -60,7 +60,6 @@ void CodeTree::LitInfo::dispose()
 
 CodeTree::LitInfo CodeTree::LitInfo::getReversed(const LitInfo& li)
 {
-  ASSERTION_VIOLATION;
   FlatTerm* ft=FlatTerm::copy(li.ft);
   ft->swapCommutativePredicateArguments();
 
@@ -74,7 +73,6 @@ CodeTree::LitInfo CodeTree::LitInfo::getReversed(const LitInfo& li)
 
 CodeTree::LitInfo CodeTree::LitInfo::getOpposite(const LitInfo& li)
 {
-  ASSERTION_VIOLATION;
   FlatTerm* ft=FlatTerm::copy(li.ft);
   ft->changeLiteralPolarity();
 #if GROUND_TERM_CHECK

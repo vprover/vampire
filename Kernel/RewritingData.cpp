@@ -56,7 +56,7 @@ bool RewritingData::blockTerm(Term* t, Term* rwTerm)
 {
   ASS(_cl);
   TermList empty;
-  empty.makeEmpty();
+  ASS(empty.isEmpty());
   return addRewrite(t, empty, rwTerm);
 }
 
@@ -103,11 +103,9 @@ SubtermIterator getSubtermIterator(Literal* lit, const Ordering& ord)
     }
     case Ordering::EQUAL:
     case Ordering::GREATER:
-    case Ordering::GREATER_EQ:
       sel=*lit->nthArgument(0);
       break;
     case Ordering::LESS:
-    case Ordering::LESS_EQ:
       sel=*lit->nthArgument(1);
       break;
 #if VDEBUG
@@ -327,9 +325,9 @@ bool RewritingData::validate(Term* lhs, RuleInfo& info)
   return true;
 }
 
-vstring RewritingData::toString() const
+std::string RewritingData::toString() const
 {
-  vstring res;
+  std::string res;
   auto it = _rules.items();
   while (it.hasNext()) {
     auto kv = it.next();

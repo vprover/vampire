@@ -24,13 +24,10 @@
 #include "Lib/Comparison.hpp"
 #include "Lib/SmartPtr.hpp"
 #include "Lib/DArray.hpp"
-#include "Lib/Stack.hpp"
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Portability.hpp"
 #include "Kernel/SubstHelper.hpp"
-
-#include <tuple>
 
 namespace Kernel {
 
@@ -77,18 +74,6 @@ public:
   /** Return the result of comparing terms (not term lists!)
    * @b t1 and @b t2 */
   virtual Result compare(TermList t1,TermList t2) const = 0;
-  /** Return whether the first argument is greater than the second,
-   * allowing for further optimisations. */
-  virtual bool isGreater(TermList tl1, TermList tl2, void* tl1State = nullptr, VarOrderBV* constraints = nullptr, const Indexing::TermQueryResult* qr = nullptr) const;
-  /** Same as isGreater above, except w.r.t. a fixed partial order on variables. */
-  virtual bool isGreater(TermList tl1, TermList tl2, const VarOrder& vo) const;
-  /** Same as isGreater above, except w.r.t. a partial order on variables
-   * that the method tries to extend to satisfy the relation. */
-  virtual bool makeGreater(TermList tl1, TermList tl2, VarOrder& vo) const;
-
-  virtual void* createState() const { return nullptr; }
-  virtual void initStateForTerm(void* state, Term* t) const {}
-  virtual void destroyState(void* state) const {}
 
   /** Same as @b compare, for applied (substituted) terms. */
   virtual Result compare(AppliedTerm lhs, AppliedTerm rhs) const

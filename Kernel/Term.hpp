@@ -704,36 +704,6 @@ public:
     return _weight;
   }
 
-  int kboWeight() const
-  {
-    return _kboWeight;
-  }
-
-  void setKboWeight(int w)
-  {
-    _kboWeight = w;
-  }
-
-  int kboWeight2() const
-  {
-    return _kboWeight2;
-  }
-
-  void setKboWeight2(int w)
-  {
-    _kboWeight2 = w;
-  }
-
-  int kboWeight2TimeStamp() const
-  {
-    return _kboWeight2TimeStamp;
-  }
-
-  void setKboWeight2TimeStamp(int ts)
-  {
-    _kboWeight2TimeStamp = ts;
-  }
-
   int maxRedLength() const
   {
     ASS(shared());
@@ -800,36 +770,6 @@ public:
     _args[0]._setHasTermVar(b);
   }
 
-  unsigned varmap() const
-  {
-    return _varmap;
-  }
-
-  void setVarmap(unsigned v)
-  {
-    _varmap = v;
-  }
-
-  void* reducibilityInfo() const
-  {
-    return _reducibilityInfo;
-  }
-
-  void setReducibilityInfo(void* ptr)
-  {
-    _reducibilityInfo = ptr;
-  }
-
-  void* reducibilityInfoAlt() const
-  {
-    return _reducibilityInfoAlt;
-  }
-
-  void setReducibilityInfoAlt(void* ptr)
-  {
-    _reducibilityInfoAlt = ptr;
-  }
-
   /** Return the number of variable _occurrences_ */
   unsigned numVarOccs() const
   {
@@ -850,20 +790,6 @@ public:
   bool isTwoVarEquality() const
   {
     return _isTwoVarEquality;
-  }
-
-  bool isReduced() const
-  {
-    return _reduced;
-  }
-
-  void markReduced()
-  {
-    _reduced = true;
-  }
-
-  uint64_t& reducesUnder() {
-    return _reducesUnder;
   }
 
   const std::string& functionName() const;
@@ -1012,7 +938,6 @@ protected:
   unsigned _hasInterpretedConstants : 1;
   /** If true, the object is an equality literal between two variables */
   unsigned _isTwoVarEquality : 1;
-  unsigned _reduced : 1;
   /** Weight of the symbol, i.e. sum of symbol and variable occurrences. */
   unsigned _weight;
   /** Cached weight of the term for KBO, otherwise -1 and invalid. Note that
@@ -1024,9 +949,6 @@ protected:
 #endif
   /** length of maximum reduction length */
   int _maxRedLen;
-  unsigned _varmap : 32;
-  void* _reducibilityInfo;
-  void* _reducibilityInfoAlt;
   union {
     /** If _isTwoVarEquality is false, this value is valid and contains
      * number of occurrences of variables */
@@ -1035,7 +957,6 @@ protected:
      * the sort of the top-level variables */
     TermList _sort;
   };
-  uint64_t _reducesUnder;
 
   /** The list of arguments of size type arity + term arity + 1. The first
    *  argument stores the term weight and the mask (the last two bits are 0).

@@ -66,11 +66,6 @@ void ForwardSubsumptionAndResolution::detach()
 /// @brief Set of clauses that were already checked
 static DHSet<Clause *> checkedClauses;
 
-bool blockedTermCheck(Clause* subsumed, Clause* subsumer, const std::function<TermList(TermList)>& subst) {
-  TIME_TRACE("diamond-breaking-subsume");
-  return !subsumer->rewritingData() || subsumer->rewritingData()->subsumes(subsumed->rewritingData(), subst, nullptr);
-}
-
 bool ForwardSubsumptionAndResolution::perform(Clause *cl,
                                               Clause *&replacement,
                                               ClauseIterator &premises)
@@ -106,18 +101,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
     if (it.hasNext()) {
       mcl = it.next().data->clause;
       premise = mcl;
-      ASS(ColorHelper::compatible(cl->color(), premise->color()));
-      if (!blockedTermCheck(cl, premise, [&it](TermList t) {
-        if (it.substitution->isIdentityOnQueryWhenResultBound()) {
-          return it.substitution->applyToBoundResult(t);
-        } else {
-          TIME_TRACE("can't subsume");
-          return t;
-        }
-      })) {
-        _salg->addBlockedSimplifier(premise);
-        continue;
-      }
+      ASS(ColorHelper::compatible(cl->color(), premise->color()))
       premises = pvi(getSingletonIterator(premise));
       env.statistics->forwardSubsumed++;
       return true;
@@ -151,8 +135,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
       // if mcl is longer than cl, then it cannot subsume cl but still could be resolved
       bool checkS = mcl->length() <= clen;
       if (checkS) {
-        if (satSubs.checkSubsumption(mcl, cl, checkSR) &&
-            blockedTermCheck(cl, cms->_cl, [&subst](TermList t){return SubstHelper::apply(t, subst); })) {
+        if (satSubs.checkSubsumption(mcl, cl, checkSR)) {
           ASS(replacement == nullptr)
           premises = pvi(getSingletonIterator(mcl));
           env.statistics->forwardSubsumed++;

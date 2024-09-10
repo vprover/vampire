@@ -17,14 +17,11 @@
 #include "Lib/DHMap.hpp"
 
 #include "Inferences/InductionHelper.hpp"
-#include "Inferences/ReducibilityChecker.hpp"
-#include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Kernel/ApplicativeHelper.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Formula.hpp"
-#include "Kernel/Matcher.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
@@ -95,7 +92,7 @@ void BlockedTermIndex::handleClause(Clause* c, bool adding)
       it.del();
       continue;
     }
-    _is->handle(t, (*c)[0], c, adding);
+    _is->handle(TermLiteralClause{ t, (*c)[0], c }, adding);
   }
 }
 
@@ -147,25 +144,6 @@ void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c
 // We are happy to do it for DemodulationSubtermIndexImpl, since it (at the moment) has only two specializations:
 template class DemodulationSubtermIndexImpl<false>;
 template class DemodulationSubtermIndexImpl<true>;
-
-struct Binder {
-  bool bind(unsigned var, TermList term)
-  {
-    TermList* inserted;
-    if (term.isTerm()) {
-      renaming = false;
-    }
-    return _map.getValuePtr(var, inserted, term) || *inserted == term;
-  }
-
-  void specVar(unsigned var, TermList term) const
-  {
-    ASSERTION_VIOLATION;
-  }
-
-  bool renaming = true;
-  DHMap<unsigned,TermList> _map;
-};
 
 void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
 {

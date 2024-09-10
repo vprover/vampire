@@ -385,11 +385,6 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
   Recycled<DArray<Literal*>> resLits;
   resLits->ensure(newLength);
 
-  if (c->getSupInfo()) {
-    d->setSupInfo(c->getSupInfo());
-    c->setSupInfo(nullptr);
-  }
-
   int origIdx = length-1;
 
   for(int newIdx=newLength-1; newIdx>=0; newIdx--,origIdx--) {
@@ -400,10 +395,10 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
     }
     (*resLits)[newIdx] = (*c)[origIdx];
   }
-  if (c->rewritingData()) {
-    d->setRewritingData(new RewritingData(_salg->getOrdering()));
-    d->rewritingData()->copyRewriteRules(c->rewritingData());
-  }
+  // if (c->rewritingData()) {
+  //   d->setRewritingData(new RewritingData(_salg->getOrdering()));
+  //   d->rewritingData()->copyRewriteRules(c->rewritingData());
+  // }
   ASS(skipped.isEmpty());
   ASS_EQ(origIdx,-1);
   env.statistics->duplicateLiterals += length - newLength;
@@ -520,10 +515,7 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
     d->setRewritingData(new RewritingData(_salg->getOrdering()));
     d->rewritingData()->copyRewriteRules(c->rewritingData());
   }
-  if (c->getSupInfo()) {
-    d->setSupInfo(c->getSupInfo());
-    c->setSupInfo(nullptr);
-  }
+  return d;
 }
 
 Clause* SimplifyingGeneratingInference1::simplify(Clause* cl) 

@@ -96,10 +96,10 @@ protected:
  * Term index for backward demodulation
  */
 class BlockedTermIndex
-: public TermIndex
+: public TermIndex<TermLiteralClause>
 {
 public:
-  BlockedTermIndex(TermIndexingStructure* is)
+  BlockedTermIndex(TermIndexingStructure<TermLiteralClause>* is)
   : TermIndex(is) {}
 
 protected:
@@ -131,7 +131,7 @@ public:
 protected:
   void handleClause(Clause* c, bool adding);
 private:
-  const Ordering& _ord;
+  Ordering& _ord;
   const Options& _opt;
 };
 

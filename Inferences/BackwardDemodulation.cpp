@@ -31,7 +31,6 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/RobSubstitution.hpp"
-#include "Kernel/VarOrder.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/TermIndex.hpp"
@@ -160,8 +159,8 @@ struct BackwardDemodulation::ResultFn
 
     if (_diamondBreaking) {
       TIME_TRACE("diamond-breaking");
-      if (_cl->rewritingData() && !_cl->rewritingData()->subsumes(qr.clause->rewritingData(), [qr](TermList t) {
-        return qr.substitution->applyToBoundQuery(t);
+      if (_cl->rewritingData() && !_cl->rewritingData()->subsumes(qr.data->clause->rewritingData(), [qr](TermList t) {
+        return qr.unifier->applyToBoundQuery(t);
       }, lhsS.term()))
       {
         return BwSimplificationRecord(0);
@@ -187,11 +186,12 @@ struct BackwardDemodulation::ResultFn
       }
     }
 
+    auto res = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.data->clause, _cl));
     if (_diamondBreaking) {
       TIME_TRACE("diamond-breaking");
-      if (qr.clause->rewritingData()) {
+      if (qr.data->clause->rewritingData()) {
         res->setRewritingData(new RewritingData(_ordering));
-        res->rewritingData()->copyRewriteRules(qr.clause->rewritingData());
+        res->rewritingData()->copyRewriteRules(qr.data->clause->rewritingData());
       }
     }
 
@@ -200,7 +200,7 @@ struct BackwardDemodulation::ResultFn
 
     return BwSimplificationRecord(
       qr.data->clause,
-      Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.data->clause, _cl)));
+      res);
   }
 private:
   Literal* _eqLit;

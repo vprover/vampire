@@ -173,11 +173,8 @@ protected:
   int symbolWeight(const Term* t) const;
 
 private:
-  bool isGreaterHelper(TermList tl1, TermList tl2, void* tl1State, VarOrderBV* constraints, VarOrderBV* newConstraints) const;
-  bool isGreaterHelper(TermList tl1, TermList tl2, void* tl1State, VarOrderBV* constraints, VarOrderBV* newConstraints, Indexing::ResultSubstitution* subst, bool weightsEqual) const;
-  bool makeGreaterNonRecursive(TermList tl1, TermList tl2, VarOrder& vo) const;
-  bool makeGreaterRecursive(TermList tl1, TermList tl2, VarOrder& vo) const;
 
+  KboWeightMap<FuncSigTraits> _funcWeights;
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
   KboWeightMap<PredSigTraits> _predWeights;
 #endif
@@ -189,19 +186,10 @@ private:
   template<class SigTraits> 
   void showConcrete_(std::ostream&) const;
 
-  // struct DemodulatorConstraints {
-  //   bool canDecompose = false;
-  //   Stack<std::tuple<unsigned,unsigned,bool>> constraints;
-  // };
-
   /**
    * State used for comparing terms and literals
    */
   mutable State* _state;
-  mutable StateGreater* _stateGt;
-  mutable StateGreaterVO* _stateGtVo;
-  mutable StateGreaterSubst* _stateGtSubst;
-  // mutable DHMap<std::pair<TermList,Literal*>,DemodulatorConstraints> _demodulatorCache;
 };
 
 }

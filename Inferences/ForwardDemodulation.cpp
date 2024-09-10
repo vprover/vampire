@@ -33,7 +33,6 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
-#include "Kernel/VarOrder.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
@@ -44,7 +43,6 @@
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
-#include "ReducibilityChecker.hpp"
 #include "DemodulationHelper.hpp"
 
 #include "ForwardDemodulation.hpp"
@@ -93,7 +91,6 @@ void ForwardDemodulation::attach(SaturationAlgorithm* salg)
 
 void ForwardDemodulation::detach()
 {
-  _salg->getOrdering().destroyState(_rwTermState);
   _index=0;
   _salg->getIndexManager()->release(DEMODULATION_LHS_CODE_TREE);
   ForwardSimplificationEngine::detach();
@@ -126,10 +123,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
       NonVariableNonTypeIterator,
       FirstOrderSubtermIt>::type it(lit);
     while(it.hasNext()) {
-      // TypedTermList trm = it.next();
-      auto kv = it.next();
-      TypedTermList trm = kv.first;
-      FlatTerm::Entry* e = kv.second;
+      TypedTermList trm = it.next();
       if(!attempted.insert(trm)) {
         //We have already tried to demodulate the term @b trm and did not
         //succeed (otherwise we would have returned from the function).
@@ -212,12 +206,11 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
         if (_salg->getOptions().diamondBreakingSuperposition()) {
           TIME_TRACE("diamond-breaking");
-          if (qr.clause->rewritingData() && !qr.clause->rewritingData()->subsumes(cl->rewritingData(), [qr](TermList t) {
-            ASS(qr.substitution->isIdentityOnQueryWhenResultBound());
-            return qr.substitution->applyToBoundResult(t);
+          if (qr.data->clause->rewritingData() && !qr.data->clause->rewritingData()->subsumes(cl->rewritingData(), [qr](TermList t) {
+            ASS(qr.unifier->isIdentityOnQueryWhenResultBound());
+            return qr.unifier->applyToBoundResult(t);
           }, trm.term()))
           {
-            _salg->addBlockedSimplifier(qr.clause);
             continue;
           }
         }
@@ -243,11 +236,6 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
         premises = pvi( getSingletonIterator(qr.data->clause));
         replacement = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.data->clause));
-
-        if (cl->getSupInfo()) {
-          replacement->setSupInfo(cl->getSupInfo());
-          // cl->setSupInfo(nullptr);
-        }
 
         if (_salg->getOptions().diamondBreakingSuperposition()) {
           TIME_TRACE("diamond-breaking");

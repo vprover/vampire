@@ -107,7 +107,6 @@ public:
   IndexManager* getIndexManager() { return _imgr.ptr(); }
   Ordering& getOrdering() const {  return *_ordering; }
   LiteralSelector& getLiteralSelector() const { return *_selector; }
-  ReducibilityChecker* getReducibilityChecker() const { return _checker; }
   const ConditionalRedundancyHandler& condRedHandler() const { return *_conditionalRedundancyHandler; }
 
   /** Return the number of clauses that entered the passive container */
@@ -118,11 +117,6 @@ public:
    */
   void onNewClause(Clause* c);
 
-  void addBlockedSimplifier(Clause* c) {
-    unsigned* ptr;
-    _blockedSimplifiers.getValuePtr(c,ptr,0);
-    (*ptr)++;
-  }
 
   /**
    * If the saturation algorithm run is in progress, return pointer
@@ -193,7 +187,6 @@ protected:
   RCClauseStack _newClauses;
 
   ClauseStack _postponedClauseRemovals;
-  DHMap<Clause*,unsigned> _blockedSimplifiers;
 
   UnprocessedClauseContainer* _unprocessed;
   std::unique_ptr<PassiveClauseContainer> _passive;
@@ -226,7 +219,6 @@ protected:
   SymElOutput* _symEl;
   AnswerLiteralManager* _answerLiteralManager;
   Instantiation* _instantiation;
-  ReducibilityChecker* _checker;
   FunctionDefinitionHandler& _fnDefHandler;
   std::unique_ptr<ConditionalRedundancyHandler> _conditionalRedundancyHandler;
 

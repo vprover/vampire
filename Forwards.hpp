@@ -105,9 +105,6 @@ typedef VirtualIterator<Matcher*> MatchIterator;
 
 class LiteralSelector;
 
-#define CONDITIONAL_MODE 0
-class VarOrder;
-using VarOrderBV = uint64_t;
 class Ordering;
 typedef Lib::SmartPtr<Ordering> OrderingSP;
 struct OrderingComparator;
@@ -172,7 +169,6 @@ class GeneratingInferenceEngine;
 class ImmediateSimplificationEngine;
 class ForwardSimplificationEngine;
 class BackwardSimplificationEngine;
-class ReducibilityChecker;
 }
 
 namespace SAT

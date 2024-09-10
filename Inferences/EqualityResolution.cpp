@@ -98,14 +98,6 @@ struct EqualityResolution::ResultFn
       TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
       litAfter = absUnif->subs().apply(lit, 0);
     }
-    // if (_checker) {
-    //   _checker->reset();
-    //   if (_checker->checkLiteral(subst.apply(lit, 0))) {
-    //     env.statistics->redundantEqualityResolution++;
-    //     res->destroy();
-    //     return 0;
-    //   }
-    // }
 
     for(unsigned i=0;i<_cLen;i++) {
       Literal* curr=(*_cl)[i];
@@ -120,11 +112,6 @@ struct EqualityResolution::ResultFn
             return nullptr;
           }
         }
-        // if (i < _cl->numSelected() && _checker && _checker->checkLiteral(currAfter)) {
-        //   env.statistics->redundantEqualityResolution++;
-        //   res->destroy();
-        //   return 0;
-        // }
 
         resLits->push(currAfter);
       }
@@ -139,13 +126,16 @@ struct EqualityResolution::ResultFn
 
     resLits->loadFromIterator(constraints->iterFifo());
 
+    env.statistics->equalityResolution++;
+
+    auto res = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
     if (env.options->diamondBreakingSuperposition()) {
       TIME_TRACE("diamond-breaking");
       // ScopedPtr<RewritingData> rwData(new RewritingData(*_ord));
       auto rwData = new RewritingData(*_ord);
       res->setRewritingData(rwData);
-      if (!rwData->addRewriteRules(_cl,[](TermList t) {
-        return subst.apply(t,0);
+      if (!rwData->addRewriteRules(_cl,[&absUnif](TermList t) {
+        return absUnif->subs().apply(t,0);
       })) {
         env.statistics->skippedEqualityResolution++;
         res->destroy();
@@ -158,10 +148,7 @@ struct EqualityResolution::ResultFn
       //   return 0;
       // }
     }
-
-    env.statistics->equalityResolution++;
-
-    return Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
+    return res;
   }
 private:
   bool _afterCheck;
@@ -169,7 +156,6 @@ private:
   const Ordering* _ord;
   Clause* _cl;
   unsigned _cLen;
-  // ReducibilityChecker* _checker;
 };
 
 ClauseIterator EqualityResolution::generateClauses(Clause* premise)
