@@ -191,7 +191,7 @@ Index* IndexManager::create(IndexType t)
     break;
 
   case GOAL_REWRITING_LHS_INDEX:
-    res=new GoalRewritingLHSIndex(new CodeTreeTIS(), _alg->getOrdering(), _alg->getOptions());
+    res=new GoalRewritingLHSIndex(new CodeTreeTIS<TermLiteralClause>(), _alg->getOrdering(), _alg->getOptions());
     isGenerating = true;
     break;
 

@@ -285,7 +285,7 @@ private:
   LiteralIndex<LiteralClause>* _comparisonIndex = nullptr;
   TermIndex* _inductionTermIndex = nullptr;
   TermIndex* _structInductionTermIndex = nullptr;
-  TermIndex* _demLhsIndex = nullptr;
+  DemodulationLHSIndex* _demLhsIndex = nullptr;
   InductionFormulaIndex _formulaIndex;
   InductionFormulaIndex _recFormulaIndex;
 };
@@ -300,7 +300,7 @@ class InductionClauseIterator
 public:
   // all the work happens in the constructor!
   InductionClauseIterator(Clause* premise, InductionHelper helper, SaturationAlgorithm* salg,
-    TermIndex* structInductionTermIndex, TermIndex* demLhsIndex, InductionFormulaIndex& formulaIndex)
+    TermIndex* structInductionTermIndex, DemodulationLHSIndex* demLhsIndex, InductionFormulaIndex& formulaIndex)
       : _helper(helper), _opt(salg->getOptions()), _ord(salg->getOrdering()), _structInductionTermIndex(structInductionTermIndex),
       _demLhsIndex(demLhsIndex), _formulaIndex(formulaIndex), _fnDefHandler(salg->getFunctionDefinitionHandler())
   {
@@ -368,7 +368,7 @@ private:
   const Options& _opt;
   const Ordering& _ord;
   TermIndex* _structInductionTermIndex;
-  TermIndex* _demLhsIndex;
+  DemodulationLHSIndex* _demLhsIndex;
   InductionFormulaIndex& _formulaIndex;
   FunctionDefinitionHandler& _fnDefHandler;
 };

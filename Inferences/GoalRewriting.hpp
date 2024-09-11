@@ -36,7 +36,7 @@ using namespace Indexing;
 using namespace Saturation;
 
 TermList replaceOccurrence(Term* t, const Term* orig, TermList repl, const Position& pos);
-vstring posToString(const Position& pos);
+std::string posToString(const Position& pos);
 VirtualIterator<std::pair<Term*,Position>> getPositions(TermList t, const Term* st);
 bool shouldChain(Literal* lit, const Ordering& ord);
 bool toTheLeftStrict(const Position& p1, const Position& p2);

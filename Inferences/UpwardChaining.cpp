@@ -84,7 +84,7 @@ ClauseIterator UpwardChaining::generateClauses(Clause* premise)
   if (sc) {
     auto comp = ord.getEqualityArgumentOrder(lit);
     ASS(comp != Ordering::INCOMPARABLE && comp != Ordering::EQUAL);
-    auto side = lit->termArg((comp == Ordering::LESS || comp == Ordering::LESS_EQ) ? 0 : 1);
+    auto side = lit->termArg(comp == Ordering::LESS ? 0 : 1);
     if (side.isTerm()) {
       // 1. left, forward
       // rewrite given unuseful s[r]=t into s[l]=t with indexed not unuseful l=r
@@ -96,7 +96,7 @@ ClauseIterator UpwardChaining::generateClauses(Clause* premise)
           auto rwTerm = arg.first.first;
           auto pos = arg.first.second;
           auto qr = arg.second;
-          ASS(!shouldChain(qr.literal, ord));
+          ASS(!shouldChain(qr.data->literal, ord));
           return perform(premise,lit,TermList(side),TermList(rwTerm),qr.data->clause,qr.data->literal,qr.data->term,pos,qr.unifier,true,true);
         }))));
 
@@ -137,7 +137,7 @@ ClauseIterator UpwardChaining::generateClauses(Clause* premise)
       .flatMap([&ord](pair<TypedTermList,QueryRes<ResultSubstitutionSP, TermLiteralClause>> arg) {
         auto comp = ord.getEqualityArgumentOrder(arg.second.data->literal);
         ASS(comp != Ordering::INCOMPARABLE && comp != Ordering::EQUAL);
-        auto side = arg.second.data->literal->termArg((comp == Ordering::LESS || comp == Ordering::LESS_EQ) ? 1 : 0);
+        auto side = arg.second.data->literal->termArg(comp == Ordering::LESS ? 1 : 0);
 
         auto t = arg.second.data->term.term();
         return pushPairIntoRightIterator(arg,pvi(pushPairIntoRightIterator(side,getPositions(side,t))));
@@ -211,20 +211,20 @@ Clause* UpwardChaining::perform(
 
   if (left) {
     // rewrite the greater side
-    if (sideComp != Ordering::GREATER && sideComp != Ordering::GREATER_EQ) {
+    if (sideComp != Ordering::GREATER) {
       return 0;
     }
     // into a not-smaller term
-    if (Ordering::isGorGEorE(rwComp)) {
+    if (Ordering::isGreaterOrEqual(rwComp)) {
       return 0;
     }
   } else {
     // rewrite the not-greater side
-    if (Ordering::isGorGEorE(sideComp)) {
+    if (Ordering::isGreaterOrEqual(sideComp)) {
       return 0;
     }
     // into a not-greater term
-    if (rwComp != Ordering::GREATER && rwComp != Ordering::GREATER_EQ) {
+    if (rwComp != Ordering::GREATER) {
       return 0;
     }
   }
@@ -238,9 +238,9 @@ Clause* UpwardChaining::perform(
     return 0;
   }
 
-  Inference inf(GeneratingInference2(InferenceRule::UPWARD_CHAINING, rwClause, eqClause));
-  Clause* res = new(1) Clause(1, inf);
-  (*res)[0] = tgtLitS;
+  LiteralStack resLits;
+  resLits.push(tgtLitS);
+  Clause* res = Clause::fromStack(resLits, GeneratingInference2(InferenceRule::UPWARD_CHAINING, rwClause, eqClause));
   // cout << (eqIsResult ? "forward " : "backward ") << "chain " << *res << endl
   //      << "from " << *rwClause << endl
   //      << "and " << *eqClause << endl << endl;

@@ -442,7 +442,7 @@ void Induction::attach(SaturationAlgorithm* salg) {
     _structInductionTermIndex = static_cast<TermIndex*>(
       _salg->getIndexManager()->request(STRUCT_INDUCTION_TERM_INDEX));
   }
-  _demLhsIndex = static_cast<TermIndex*>(_salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE));
+  _demLhsIndex = static_cast<DemodulationLHSIndex*>(_salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE));
 }
 
 void Induction::detach() {
@@ -601,7 +601,7 @@ bool InductionClauseIterator::isRedundant(const InductionContext& context)
     TypedTermList trm=it.next();
     auto git = _demLhsIndex->getGeneralizations(trm, true);
     while(git.hasNext()) {
-      QueryRes<ResultSubstitutionSP, TermLiteralClause> qr=git.next();
+      QueryRes<ResultSubstitutionSP, DemodulatorData> qr=git.next();
       ASS_EQ(qr.data->clause->length(),1);
       if (!cl->splits() && qr.data->clause->splits() && !qr.data->clause->splits()->isSubsetOf(cl->splits())) {
         continue;
@@ -611,14 +611,14 @@ bool InductionClauseIterator::isRedundant(const InductionContext& context)
       bool resultTermIsVar = qr.data->term.isVar();
       if(resultTermIsVar){
         TermList querySort = trm.sort();
-        TermList eqSort = SortHelper::getEqualityArgumentSort(qr.data->literal);
+        TermList eqSort = qr.data->term.sort();
         subst.reset();
         if(!subst.match(eqSort, 0, querySort, 1)){
           continue;
         }
       }
 
-      TermList rhs=EqHelper::getOtherEqualitySide(qr.data->literal,qr.data->term);
+      TermList rhs=qr.data->rhs;
       TermList rhsS;
       ASS(qr.unifier->isIdentityOnQueryWhenResultBound());
       rhsS=qr.unifier->applyToBoundResult(rhs);
@@ -626,8 +626,7 @@ bool InductionClauseIterator::isRedundant(const InductionContext& context)
         rhsS = subst.apply(rhsS, 0);
       }
 
-      Ordering::Result tord=_ord.compare(rhsS, trm);
-      if (tord!=Ordering::LESS) {
+      if (_ord.compare(rhsS, trm)!=Ordering::LESS) {
         continue;
       }
       return true;
@@ -639,7 +638,7 @@ bool InductionClauseIterator::isRedundant(const InductionContext& context)
       TypedTermList trm=it2.next();
       auto git = _demLhsIndex->getGeneralizations(trm, true);
       while(git.hasNext()) {
-        QueryRes<ResultSubstitutionSP, TermLiteralClause> qr=git.next();
+        QueryRes<ResultSubstitutionSP, DemodulatorData> qr=git.next();
         ASS_EQ(qr.data->clause->length(),1);
         if (!cl->splits() && qr.data->clause->splits() && !qr.data->clause->splits()->isSubsetOf(cl->splits())) {
           continue;
@@ -649,14 +648,14 @@ bool InductionClauseIterator::isRedundant(const InductionContext& context)
         bool resultTermIsVar = qr.data->term.isVar();
         if(resultTermIsVar){
           TermList querySort = trm.sort();
-          TermList eqSort = SortHelper::getEqualityArgumentSort(qr.data->literal);
+          TermList eqSort = qr.data->term.sort();
           subst.reset();
           if(!subst.match(eqSort, 0, querySort, 1)){
             continue;
           }
         }
 
-        TermList rhs=EqHelper::getOtherEqualitySide(qr.data->literal,qr.data->term);
+        TermList rhs=qr.data->rhs;
         TermList rhsS;
         ASS(qr.unifier->isIdentityOnQueryWhenResultBound());
         rhsS=qr.unifier->applyToBoundResult(rhs);
@@ -664,8 +663,7 @@ bool InductionClauseIterator::isRedundant(const InductionContext& context)
           rhsS = subst.apply(rhsS, 0);
         }
 
-        Ordering::Result tord=_ord.compare(rhsS, trm);
-        if (tord!=Ordering::LESS) {
+        if (_ord.compare(rhsS, trm)!=Ordering::LESS) {
           continue;
         }
         return true;

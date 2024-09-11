@@ -39,8 +39,6 @@ class UpwardChaining
 : public GeneratingInferenceEngine
 {
 public:
-  USE_ALLOCATOR(UpwardChaining);
-
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
   ClauseIterator generateClauses(Clause* premise) override;

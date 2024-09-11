@@ -118,9 +118,9 @@ bool toTheLeftStrict(const Position& p1, const Position& p2)
   return false;
 } 
 
-vstring posToString(const Position& pos)
+std::string posToString(const Position& pos)
 {
-  vstring res;
+  std::string res;
   for (unsigned i = 0; i < pos.size(); i++) {
     res += Int::toString(pos[i]);
     if (i+1 < pos.size()) {
@@ -216,7 +216,7 @@ bool shouldChain(Literal* lit, const Ordering& ord) {
     return false;
   }
   ASS_NEQ(comp,Ordering::EQUAL);
-  auto side = lit->termArg((comp == Ordering::LESS || comp == Ordering::LESS_EQ) ? 1 : 0);
+  auto side = lit->termArg(comp == Ordering::LESS ? 1 : 0);
   return linear(side) && !hasTermToInductOn(side);
 }
 
@@ -457,14 +457,13 @@ Clause* GoalRewriting::perform(Clause* rwClause, Literal* rwLit, Term* rwSide, c
   auto tgtSide = replaceOccurrence(rwSide, rwTerm, rhsS, pos).term();
   auto other = EqHelper::getOtherEqualitySide(rwLit, TermList(rwSide));
   ASS_NEQ(tgtSide,other.term());
-  auto resLit = Literal::createEquality(false, TermList(tgtSide), other, SortHelper::getEqualityArgumentSort(rwLit));
+  LiteralStack resLits;
+  resLits.push(Literal::createEquality(false, TermList(tgtSide), other, SortHelper::getEqualityArgumentSort(rwLit)));
 
-  Clause* res = new(1) Clause(1,
-    GeneratingInference2(InferenceRule::GOAL_REWRITING, rwClause, eqClause));
-  (*res)[0]=resLit;
+  Clause* res = Clause::fromStack(resLits, GeneratingInference2(InferenceRule::GOAL_REWRITING, rwClause, eqClause));
   res->setGoalRewritingDepth(rwClause->goalRewritingDepth()+eqClause->goalRewritingDepth()+1);
   if (_leftToRight) {
-    bool reversedNew = other == resLit->termArg(other == rwLit->termArg(0) ? 1 : 0);
+    bool reversedNew = other == resLits[0]->termArg(other == rwLit->termArg(0) ? 1 : 0);
     res->setPosInfo(reversed ^ reversedNew, switchedNew, std::move(pos));
   }
 
