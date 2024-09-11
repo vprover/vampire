@@ -150,7 +150,7 @@ struct BackwardDemodulation::ResultFn
     TermList rhsS=subs->applyToBoundQuery(rhs);
 
     if (_helper.redundancyCheckNeededForPremise(qr.data->clause,qr.data->literal,lhsS) &&
-      !_helper.isPremiseRedundant(qr.data->clause,qr.data->literal,lhsS,rhsS,lhs,subs.ptr(),false))
+      !_helper.isPremiseRedundant(qr.data->clause,qr.data->literal,lhsS,rhsS,lhs,&appl))
     {
       return BwSimplificationRecord(0);
     }
@@ -163,22 +163,23 @@ struct BackwardDemodulation::ResultFn
     }
 
     unsigned cLen=qr.data->clause->length();
-    Clause* res = new(cLen) Clause(cLen, SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.data->clause, _cl));
+    RStack<Literal*> resLits;
 
-    (*res)[0]=resLit;
+    resLits->push(resLit);
 
-    unsigned next=1;
     for(unsigned i=0;i<cLen;i++) {
       Literal* curr=(*qr.data->clause)[i];
       if(curr!=qr.data->literal) {
-        (*res)[next++] = curr;
+        resLits->push(curr);
       }
     }
-    ASS_EQ(next,cLen);
 
     env.statistics->backwardDemodulations++;
     _removed->insert(qr.data->clause);
-    return BwSimplificationRecord(qr.data->clause,res);
+
+    return BwSimplificationRecord(
+      qr.data->clause,
+      Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.data->clause, _cl)));
   }
 private:
   Literal* _eqLit;
@@ -208,7 +209,7 @@ void BackwardDemodulation::perform(Clause* cl,
 		    getMapAndFlattenIterator(
 			    EqHelper::getDemodulationLHSIterator(lit,
             _salg->getOptions().backwardDemodulation() == Options::Demodulation::PREORDERED,
-            _salg->getOrdering()),
+            _salg->getOrdering()).first,
 			    RewritableClausesFn(_index)),
 		    ResultFn(cl, *this, _helper)),
  	    RemovedIsNonzeroFn()) );

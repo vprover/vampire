@@ -22,7 +22,7 @@
 #include "Kernel/Problem.hpp"
 
 #include "GoalGuessing.hpp"
-#include "AnswerExtractor.hpp"
+#include "AnswerLiteralManager.hpp"
 #include "CNF.hpp"
 #include "NewCNF.hpp"
 #include "DistinctGroupExpansion.hpp"
@@ -88,10 +88,24 @@ void Preprocess::preprocess(Problem& prb)
     }
   }
 
+  if (_options.questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
+    env.statistics->phase=Statistics::ANSWER_LITERAL;
+    if (env.options->showPreprocessing())
+      std::cout << "answer literal addition" << std::endl;
+
+    AnswerLiteralManager::getInstance()->addAnswerLiterals(prb);
+  }
+
   //we ensure that in the beginning we have a valid property object, to
   //know that the queries to uncertain problem properties will be precise
   //enough
   prb.getProperty();
+
+  if (env.signature->hasDefPreds() &&
+      !FunctionDefinitionHandler::isHandlerEnabled(_options)) {
+      // if the handler is not requested by any of the relevant options, we preprocess away the special definition parsing immediately
+    prb.getFunctionDefinitionHandler().initAndPreprocessEarly(prb);
+  }
 
   /* CAREFUL, keep this at the beginning of the preprocessing pipeline,
    * so that it corresponds to how its done
@@ -107,7 +121,7 @@ void Preprocess::preprocess(Problem& prb)
 
   if (_options.shuffleInput()) {
     TIME_TRACE(TimeTrace::SHUFFLING);
-    env.statistics->phase=Statistics::SHUFFLING;    
+    env.statistics->phase=Statistics::SHUFFLING;
 
     if (env.options->showPreprocessing())
       std::cout << "shuffling1" << std::endl;
@@ -126,7 +140,7 @@ void Preprocess::preprocess(Problem& prb)
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
     // Normalizer is needed, because the TheoryAxioms code assumes Normalized problem
     InterpretedNormalizer().apply(prb);
-   
+
     // Add theory axioms if needed
     if( _options.theoryAxioms() != Options::TheoryAxiomLevel::OFF){
       env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
@@ -144,7 +158,7 @@ void Preprocess::preprocess(Problem& prb)
     if (!_options.newCNF() || prb.hasPolymorphicSym() || prb.isHigherOrder()) {
       if (env.options->showPreprocessing())
         std::cout << "FOOL elimination" << std::endl;
-  
+
       TheoryAxioms(prb).applyFOOL();
       FOOLElimination().apply(prb);
     }
@@ -199,20 +213,6 @@ void Preprocess::preprocess(Problem& prb)
       std::cout << "sine selection" << std::endl;
 
     SineSelector(_options).perform(prb);
-  }
-
-  if (_options.questionAnswering()==Options::QuestionAnsweringMode::ANSWER_LITERAL) {
-    env.statistics->phase=Statistics::ANSWER_LITERAL;
-    if (env.options->showPreprocessing())
-      std::cout << "answer literal addition" << std::endl;
-
-    AnswerLiteralManager::getInstance()->addAnswerLiterals(prb);
-  } else if (_options.questionAnswering()==Options::QuestionAnsweringMode::SYNTHESIS) {
-    env.statistics->phase=Statistics::ANSWER_LITERAL;
-    if (env.options->showPreprocessing())
-      std::cout << "answer literal addition for synthesis" << std::endl;
-
-    SynthesisManager::getInstance()->addAnswerLiterals(prb);
   }
 
   // stop here if clausification is not required and still simplify not set
@@ -274,7 +274,7 @@ void Preprocess::preprocess(Problem& prb)
     Shuffling::shuffle(prb);
   }
 
-  if (prb.mayHaveFormulas() && _options.newCNF() && 
+  if (prb.mayHaveFormulas() && _options.newCNF() &&
      !prb.hasPolymorphicSym() && !prb.isHigherOrder()) {
     if (env.options->showPreprocessing())
       std::cout << "newCnf" << std::endl;
@@ -364,8 +364,10 @@ void Preprocess::preprocess(Problem& prb)
      resolver.apply(prb);
    }
 
-   if (env.signature->hasDefPreds()) {
-     prb.getFunctionDefinitionHandler().initAndPreprocess(prb,_options);
+   if (env.signature->hasDefPreds() &&
+       FunctionDefinitionHandler::isHandlerEnabled(_options)) {
+       // if the handler is requested, we preprocess the special definition parsing only after clausification
+     prb.getFunctionDefinitionHandler().initAndPreprocessLate(prb,_options);
    }
 
    if (_options.generalSplitting()) {
@@ -410,7 +412,7 @@ void Preprocess::preprocess(Problem& prb)
      }
    }
 
-   
+
    if(_options.theoryFlattening()) {
      if (prb.hasPolymorphicSym()) { // TODO: extend theoryFlattening to support polymorphism?
        if (outputAllowed()) {
@@ -641,7 +643,7 @@ void Preprocess::newCnf(Problem& prb)
     prb.invalidateProperty();
   }
   prb.reportFormulasEliminated();
-} 
+}
 
 /**
  * Preprocess the unit using options from opt. Preprocessing may

@@ -1456,7 +1456,7 @@ bool TheoryFinder::matchAll (const Literal* lit)
 // void TheoryFinder::analyse (const Clause& clause)
 // {
 //   const Term& answer = clause.literals().head().atom().args().head();
-//   const vstring theory(answer.functor().name());
+//   const std::string theory(answer.functor().name());
 //   if (theory == "group") {
 //     _property->addProp(Property::PR_GROUP);
 //   }

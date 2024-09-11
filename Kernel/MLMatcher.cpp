@@ -85,10 +85,9 @@ bool createLiteralBindings(Literal* baseLit, LiteralList const* alts, Clause* in
     while(!varNums.isEmpty() && varNums.top()==var) {
       varNums.pop();
     }
-    if(variablePositions.insert(var,nextPos)) {
-      *(boundVarData++)=var;
-      nextPos++;
-    }
+    ALWAYS(variablePositions.insert(var, nextPos));
+    *(boundVarData++) = var;
+    nextPos++;
   }
   unsigned numVars=nextPos;
 
@@ -365,9 +364,11 @@ class MLMatcher::Impl final
     void init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const* alts, Literal* resolvedLit, bool multiset);
     bool nextMatch();
 
-    void getMatchedAltsBitmap(vvector<bool>& outMatchedBitmap) const;
+    void getMatchedAltsBitmap(std::vector<bool>& outMatchedBitmap) const;
 
-    void getBindings(vunordered_map<unsigned, TermList>& outBindings) const;
+    void getBindings(std::unordered_map<unsigned, TermList>& outBindings) const;
+
+    MLMatchStats getStats() const { return stats; }
 
     // Disallow copy and move because the internal implementation still uses pointers to the underlying storage and it seems hard to untangle that.
     Impl(Impl const&) = delete;
@@ -398,8 +399,9 @@ class MLMatcher::Impl final
     // For backtracking support
     DArray<unsigned> s_matchRecord;
     unsigned s_currBLit;
-    int s_counter;
     bool s_multiset;
+
+    MLMatchStats stats;
 };
 
 
@@ -557,8 +559,9 @@ void MLMatcher::Impl::init(Literal** baseLits, unsigned baseLen, Clause* instanc
 
   s_matchingData.nextAlts[0] = 0;
   s_currBLit = 0;
-  s_counter = 0;
   s_multiset = multiset;
+
+  stats = MLMatchStats{};
 }
 
 
@@ -592,6 +595,25 @@ bool MLMatcher::Impl::nextMatch()
     }
 
     if (md->nextAlts[s_currBLit] < maxAlt) {
+
+      // What is a decision in the MLMatcher?
+      // - choosing an alternative for a base literal
+      // - except the last alternative since that would be propagated
+      //
+      // The way we think about this is to see the MLMatcher as a sub-optimal implementation of an SMT-Solver
+      // (it has decisions using a rigid heuristic, some propagations, but completely lacks clause learning).
+      //
+      // So for better comparability with our SMT solver decisions, we want to count decisions but not propagations.
+      // (recall one of our goals: evaluating variable order heuristics -- for this we want to compare number of decisions made)
+      // As decision we see everything where we open a new level in the search tree due to a choice among several options.
+      // => last alternative at each level is seen as propagation
+      // => the exclusion in the while loop above is seen as propagation
+      if (md->nextAlts[s_currBLit] < maxAlt - 1) {
+        stats.numDecisions += 1;
+        // For SMT-like solving, the last alternative would be chosen by propagation instead of decision
+        // stats.numDecisionsAdjusted += 1;
+      }
+
       // Got a suitable alternative in nextAlt
       unsigned matchRecordIndex=md->getAltRecordIndex(s_currBLit, md->nextAlts[s_currBLit]);
       for (unsigned i = 0; i < s_matchRecord.size(); i++) {
@@ -612,6 +634,7 @@ bool MLMatcher::Impl::nextMatch()
         }
 
         s_currBLit--;  // prepare for next round
+        stats.result = true;
         return true;
       }
       md->nextAlts[s_currBLit]=0;
@@ -621,22 +644,13 @@ bool MLMatcher::Impl::nextMatch()
       if(s_currBLit==0) { return false; }
       s_currBLit--;
     }
-
-    s_counter++;
-    if(s_counter==50000) {
-      s_counter=0;
-      if(env.timeLimitReached()) {
-        throw TimeLimitExceededException();
-      }
-    }
-
   } // while (true)
 
   ASSERTION_VIOLATION; // unreachable
 }
 
 
-void MLMatcher::Impl::getMatchedAltsBitmap(vvector<bool>& outMatchedBitmap) const
+void MLMatcher::Impl::getMatchedAltsBitmap(std::vector<bool>& outMatchedBitmap) const
 {
   MatchingData const* const md = &s_matchingData;
 
@@ -657,7 +671,7 @@ void MLMatcher::Impl::getMatchedAltsBitmap(vvector<bool>& outMatchedBitmap) cons
 }
 
 
-void MLMatcher::Impl::getBindings(vunordered_map<unsigned, TermList>& outBindings) const
+void MLMatcher::Impl::getBindings(std::unordered_map<unsigned, TermList>& outBindings) const
 {
   MatchingData const* const md = &s_matchingData;
 
@@ -688,14 +702,13 @@ void MLMatcher::Impl::getBindings(vunordered_map<unsigned, TermList>& outBinding
 
 
 MLMatcher::MLMatcher()
-  : m_impl{nullptr}
-{ }
+{
+  m_impl = std::make_unique<MLMatcher::Impl>();
+}
 
 void MLMatcher::init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const* alts, Literal* resolvedLit, bool multiset)
 {
-  if (!m_impl) {
-    m_impl = std::make_unique<MLMatcher::Impl>();
-  }
+  ASS(m_impl);
   m_impl->init(baseLits, baseLen, instance, alts, resolvedLit, multiset);
 }
 
@@ -707,23 +720,36 @@ bool MLMatcher::nextMatch()
   return m_impl->nextMatch();
 }
 
-void MLMatcher::getMatchedAltsBitmap(vvector<bool>& outMatchedBitmap) const
+void MLMatcher::getMatchedAltsBitmap(std::vector<bool>& outMatchedBitmap) const
 {
   ASS(m_impl);
   m_impl->getMatchedAltsBitmap(outMatchedBitmap);
 }
 
-void MLMatcher::getBindings(vunordered_map<unsigned, TermList>& outBindings) const
+void MLMatcher::getBindings(std::unordered_map<unsigned, TermList>& outBindings) const
 {
   ASS(m_impl);
   m_impl->getBindings(outBindings);
 }
 
+MLMatchStats MLMatcher::getStats() const
+{
+  ASS(m_impl);
+  return m_impl->getStats();
+}
+
+
+static MLMatcher matcher;
+
 bool MLMatcher::canBeMatched(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const* alts, Literal* resolvedLit, bool multiset)
 {
-  static MLMatcher::Impl matcher;
   matcher.init(baseLits, baseLen, instance, alts, resolvedLit, multiset);
   return matcher.nextMatch();
+}
+
+MLMatchStats MLMatcher::getStaticStats()
+{
+  return matcher.getStats();
 }
 
 

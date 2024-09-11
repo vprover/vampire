@@ -18,12 +18,13 @@
 #ifndef __INT__
 #define __INT__
 
+#include "Forwards.hpp"
+
 #include "Comparison.hpp"
 #include "Portability.hpp"
-#include "VString.hpp"
 
 #include <iostream>
-
+#include <limits>
 
 #ifdef _MSC_VER // VC++
 #  undef max
@@ -40,19 +41,19 @@ namespace Lib {
 class Int
 {
  public:
-  static vstring toString(int i);
-  static vstring toString(unsigned i);
-  static vstring toString(unsigned long i);
-  static vstring toString(long l);
-  /** Return the vstring representation of a float */
-  static vstring toString(float f) { return toString((double)f); }
-  static vstring toString(double d);
+  static std::string toString(int i);
+  static std::string toString(unsigned i);
+  static std::string toString(unsigned long i);
+  static std::string toString(long l);
+  /** Return the std::string representation of a float */
+  static std::string toString(float f) { return toString((double)f); }
+  static std::string toString(double d);
 
-  static vstring toHexString(size_t i);
+  static std::string toHexString(size_t i);
 
 	static bool isInteger(const char* str);
 	/** True if @b str is a string representing an (arbitrary precision) integer */
-	static inline bool isInteger(const vstring& str) { return isInteger(str.c_str()); }
+	static inline bool isInteger(const std::string& str) { return isInteger(str.c_str()); }
 
   /** Compare two integers. */
   inline static Comparison compare (int i1, int i2)
@@ -77,17 +78,17 @@ class Int
   { return f1 < f2 ? LESS : f1 == f2 ? EQUAL : GREATER; }
   static bool stringToLong(const char*,long& result);
   static bool stringToUnsignedLong(const char*,unsigned long& result);
-  static bool stringToLong(const vstring& str,long& result) {
+  static bool stringToLong(const std::string& str,long& result) {
     return stringToLong(str.c_str(),result);
   }
-  static bool stringToInt(const vstring& str,int& result);
+  static bool stringToInt(const std::string& str,int& result);
   static bool stringToInt(const char* str,int& result);
   static bool stringToUnsignedInt(const char* str,unsigned& result);
-  static bool stringToUnsignedInt(const vstring& str,unsigned& result);
+  static bool stringToUnsignedInt(const std::string& str,unsigned& result);
   static bool stringToDouble(const char*,double& result);
-  static bool stringToDouble(const vstring& str,double& result) { return stringToDouble(str.c_str(), result); }
+  static bool stringToDouble(const std::string& str,double& result) { return stringToDouble(str.c_str(), result); }
   static bool stringToFloat(const char*,float& result);
-  static bool stringToUnsigned64(const vstring& str,long long unsigned& result);
+  static bool stringToUnsigned64(const std::string& str,long long unsigned& result);
   static bool stringToUnsigned64(const char* str,long long unsigned& result);
   static int sign(int i);
   static int sign(long i);
@@ -301,6 +302,28 @@ int Int::min (int i,int j)
 {
   return i <= j ? i : j;
 }
+
+
+
+template <typename T>
+using disable_deduction = typename std::enable_if_t<true, T>;  // C++20: can use std::type_identity_t instead of this
+
+/**
+ * Check if an addition operation overflows.
+ * - This check is very sensitive to using the correct type,
+ *   and implicit conversions in C++ may easily destroy it
+ *   and lead to unexpected results.
+ *   For this reason, the type parameter should be given explicitly.
+ * - Wrap-around behaviour on overflow is only defined for
+ *   unsigned integer types in C++.
+ */
+template <typename T>
+inline bool isAdditionOverflow(disable_deduction<T> a, disable_deduction<T> b)
+{
+  static_assert(std::is_unsigned<T>::value, "overflow check is only defined for unsigned types");
+  return static_cast<T>(a + b) < a;
+}
+
 
 
 }

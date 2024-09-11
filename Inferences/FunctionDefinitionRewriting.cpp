@@ -22,6 +22,7 @@
 #include "Kernel/Ordering.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/SubstHelper.hpp"
 #include "Kernel/TermIterators.hpp"
 
 #include "Indexing/IndexManager.hpp"
@@ -38,6 +39,16 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Saturation;
 
+namespace {
+struct Applicator : SubstApplicator {
+  Applicator(ResultSubstitution* subst) : subst(subst) {}
+  TermList operator()(unsigned v) const override {
+    return subst->applyToBoundResult(v);
+  }
+  ResultSubstitution* subst;
+};
+}
+
 Clause* performRewriting(
     Clause *rwClause, Literal *rwLit, TermList rwTerm, Clause *eqClause,
     Literal *eqLit, TermList eqLHS, ResultSubstitutionSP subst,
@@ -51,7 +62,9 @@ Clause* performRewriting(
   ASS(subst->isIdentityOnQueryWhenResultBound());
   TermList tgtTermS = subst->applyToBoundResult(tgtTerm);
 
-  if (helper && !helper->isPremiseRedundant(rwClause,rwLit,rwTerm,tgtTermS,eqLHS,subst.ptr(),true)) {
+  Applicator appl(subst.ptr());
+
+  if (helper && !helper->isPremiseRedundant(rwClause,rwLit,rwTerm,tgtTermS,eqLHS,&appl)) {
     return 0;
   }
 
@@ -61,17 +74,11 @@ Clause* performRewriting(
     return 0;
   }
 
-  unsigned rwLength = rwClause->length();
-  unsigned eqLength = eqClause->length();
-  unsigned newLength = rwLength + eqLength - 1;
+  RStack<Literal*> resLits;
 
-  Clause *res = new (newLength) Clause(newLength, inf);
+  resLits->push(tgtLitS);
 
-  (*res)[0] = tgtLitS;
-
-  unsigned next = 1;
-  for (unsigned i = 0; i < rwLength; i++) {
-    Literal *curr = (*rwClause)[i];
+  for (Literal *curr : rwClause->iterLits()) {
     if (curr == rwLit) {
       continue;
     }
@@ -79,15 +86,13 @@ Clause* performRewriting(
 
     if (EqHelper::isEqTautology(curr)) {
       isEqTautology = true;
-      res->destroy();
-      return 0;
+      return nullptr;
     }
 
-    (*res)[next++] = curr;
+    resLits->push(curr);
   }
 
-  for (unsigned i = 0; i < eqLength; i++) {
-    Literal* curr = (*eqClause)[i];
+  for (Literal* curr : eqClause->iterLits()) {
     if (curr == eqLit) {
       continue;
     }
@@ -95,14 +100,13 @@ Clause* performRewriting(
 
     if (EqHelper::isEqTautology(currAfter)) {
       isEqTautology = true;
-      res->destroy();
-      return 0;
+      return nullptr;
     }
 
-    (*res)[next++] = currAfter;
+    resLits->push(currAfter);
   }
 
-  return res;
+  return Clause::fromStack(*resLits, inf);
 }
 
 void FunctionDefinitionRewriting::attach(SaturationAlgorithm* salg)
@@ -166,7 +170,7 @@ bool FunctionDefinitionDemodulation::perform(Clause* cl, Clause*& replacement, C
         }
         auto rhs = EqHelper::getOtherEqualitySide(qr.data->literal, qr.data->term);
         // TODO shouldn't allow demodulation with incomparables in the non-ground case
-        if (Ordering::isGorGEorE(ordering.compare(rhs,qr.data->term))) {
+        if (Ordering::isGreaterOrEqual(ordering.compare(rhs,qr.data->term))) {
           continue;
         }
         bool isEqTautology = false;

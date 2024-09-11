@@ -16,9 +16,10 @@
 #ifndef __Exception__
 #define __Exception__
 
-#include <iostream>
+#include "Forwards.hpp"
 
-#include "VString.hpp"
+#include <iostream>
+#include <sstream>
 
 namespace Lib {
 
@@ -53,8 +54,8 @@ struct OutputAll<> {
 class Exception : public ThrowableBase
 {
   template<class... Msg>
-  vstring toString(Msg... msg){
-    vstringstream out;
+  std::string toString(Msg... msg){
+    std::stringstream out;
     OutputAll<Msg...>::apply(out, msg...);
     return out.str();
   }
@@ -62,7 +63,7 @@ public:
   /** Create an exception with a given error message */
   explicit Exception (const char* msg) : _message(msg) {}
   Exception (const char* msg, int line);
-  explicit Exception (const vstring msg) : _message(msg) {}
+  explicit Exception (const std::string msg) : _message(msg) {}
 
   template<class... Msg>
   explicit Exception(Msg... msg)
@@ -72,13 +73,13 @@ public:
   virtual void cry (std::ostream&) const;
   virtual ~Exception() {}
 
-  const vstring& msg() { return _message; }
+  const std::string& msg() { return _message; }
 protected:
   /** Default constructor, required for some subclasses, made protected
    * so that it cannot be called directly */
   Exception () {}
   /** The error message */
-  vstring _message;
+  std::string _message;
 
   friend std::ostream& operator<<(std::ostream& out, Exception const& self)
   { self.cry(out); return out; }
@@ -99,6 +100,8 @@ class UserErrorException
  public:
   using ParsingRelatedException::ParsingRelatedException;
 
+  // input line related to the error: non-zero if set
+  unsigned line = 0;
   void cry (std::ostream&) const;
 }; // UserErrorException
 
@@ -151,7 +154,7 @@ class InvalidOperationException
    InvalidOperationException (const char* msg)
     : Exception(msg)
   {}
-   InvalidOperationException (const vstring msg)
+   InvalidOperationException (const std::string msg)
     : Exception(msg)
   {}
   void cry (std::ostream&) const;
@@ -164,7 +167,7 @@ class SystemFailException
   : public Exception
 {
 public:
-  SystemFailException (const vstring msg, int err);
+  SystemFailException (const std::string msg, int err);
   void cry (std::ostream&) const;
 
   int err;

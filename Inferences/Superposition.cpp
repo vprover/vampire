@@ -41,7 +41,8 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/AnswerExtractor.hpp"
+#include "Shell/AnswerLiteralManager.hpp"
+#include "Shell/ConditionalRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -79,23 +80,22 @@ void Superposition::detach()
 
 struct Superposition::ForwardResultFn
 {
-  ForwardResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, Superposition& parent) : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _parent(parent) {}
+  ForwardResultFn(Clause* cl, Superposition& parent) : _cl(cl), _parent(parent) {}
   Clause* operator()(pair<pair<Literal*, TypedTermList>, QueryRes<AbstractingUnifier*, TermLiteralClause>> arg)
   {
     auto& qr = arg.second;
     return _parent.performSuperposition(_cl, arg.first.first, arg.first.second,
-	    qr.data->clause, qr.data->literal, qr.data->term, qr.unifier, true, _passiveClauseContainer);
+	    qr.data->clause, qr.data->literal, qr.data->term, qr.unifier, true);
   }
 private:
   Clause* _cl;
-  PassiveClauseContainer* _passiveClauseContainer;
   Superposition& _parent;
 };
 
 
 struct Superposition::BackwardResultFn
 {
-  BackwardResultFn(Clause* cl, PassiveClauseContainer* passiveClauseContainer, Superposition& parent) : _cl(cl), _passiveClauseContainer(passiveClauseContainer), _parent(parent) {}
+  BackwardResultFn(Clause* cl, Superposition& parent) : _cl(cl), _parent(parent) {}
   Clause* operator()(pair<pair<Literal*, TermList>, QueryRes<AbstractingUnifier*, TermLiteralClause>> arg)
   {
     if(_cl==arg.second.data->clause) {
@@ -104,19 +104,16 @@ struct Superposition::BackwardResultFn
 
     auto& qr = arg.second;
     return _parent.performSuperposition(qr.data->clause, qr.data->literal, qr.data->term,
-	    _cl, arg.first.first, arg.first.second, qr.unifier, false, _passiveClauseContainer);
+	    _cl, arg.first.first, arg.first.second, qr.unifier, false);
   }
 private:
   Clause* _cl;
-  PassiveClauseContainer* _passiveClauseContainer;
   Superposition& _parent;
 };
 
 
 ClauseIterator Superposition::generateClauses(Clause* premise)
 {
-  PassiveClauseContainer* passiveClauseContainer = _salg->getPassiveClauseContainer();
-
   auto itf1 = premise->getSelectedLiteralIterator();
 
   // Get an iterator of pairs of selected literals and rewritable subterms of those literals
@@ -135,7 +132,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
       { return pushPairIntoRightIterator(arg, _lhsIndex->getUwa(arg.second, env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration())); });
 
   //Perform forward superposition
-  auto itf4 = getMappingIterator(itf3,ForwardResultFn(premise, passiveClauseContainer, *this));
+  auto itf4 = getMappingIterator(itf3,ForwardResultFn(premise, *this));
 
   auto itb1 = premise->getSelectedLiteralIterator();
   auto itb2 = getMapAndFlattenIterator(itb1,EqHelper::SuperpositionLHSIteratorFn(_salg->getOrdering(), _salg->getOptions()));
@@ -146,7 +143,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
               _subtermIndex->getUwa(TypedTermList(arg.second, SortHelper::getEqualityArgumentSort(arg.first)), env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration())); });
 
   //Perform backward superposition
-  auto itb4 = getMappingIterator(itb3,BackwardResultFn(premise, passiveClauseContainer, *this));
+  auto itb4 = getMappingIterator(itb3,BackwardResultFn(premise, *this));
 
   // Add the results of forward and backward together
   auto it5 = concatIters(itf4,itb4);
@@ -305,7 +302,7 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
 Clause* Superposition::performSuperposition(
     Clause* rwClause, Literal* rwLit, TermList rwTerm,
     Clause* eqClause, Literal* eqLit, TermList eqLHS,
-    AbstractingUnifier* unifier, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer)
+    AbstractingUnifier* unifier, bool eqIsResult)
 {
   TIME_TRACE("perform superposition");
   // we want the rwClause and eqClause to be active
@@ -345,6 +342,7 @@ Clause* Superposition::performSuperposition(
   Inference inf(GeneratingInference2(unifier->usesUwa() ? InferenceRule::CONSTRAINED_SUPERPOSITION : InferenceRule::SUPERPOSITION, rwClause, eqClause));
   Inference::Destroyer inf_destroyer(inf);
 
+  auto passiveClauseContainer = _salg->getPassiveClauseContainer();
   bool needsToFulfilWeightLimit = passiveClauseContainer && !passiveClauseContainer->fulfilsAgeLimit(0, numPositiveLiteralsLowerBound, inf) && passiveClauseContainer->weightLimited(); // 0 here denotes the current weight estimate
   if(needsToFulfilWeightLimit) {
     if(!earlyWeightLimitCheck(eqClause, eqLit, rwClause, rwLit, rwTerm, eqLHS, tgtTerm, subst, eqIsResult, passiveClauseContainer, numPositiveLiteralsLowerBound, inf)) {
@@ -352,24 +350,25 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-  Ordering& ordering = _salg->getOrdering();
+  const auto& condRedHandler = _salg->condRedHandler();
+  if (!unifier->usesUwa()) {
+    if (!condRedHandler.checkSuperposition(eqClause, eqLit, rwClause, rwLit, eqIsResult, subst.ptr())) {
+      return 0;
+    }
+  }
 
-  TermList eqLHSS = subst->apply(eqLHS, eqIsResult);
+  const Ordering& ordering = _salg->getOrdering();
+
   TermList tgtTermS = subst->apply(tgtTerm, eqIsResult);
 
   Literal* rwLitS = subst->apply(rwLit, !eqIsResult);
   TermList rwTermS = subst->apply(rwTerm, !eqIsResult);
 
-#if VDEBUG
-  if(!unifier->usesUwa()){
-    ASS_EQ(rwTermS,eqLHSS);
-  }
-#endif
-
   //cout << "Check ordering on " << tgtTermS.toString() << " and " << rwTermS.toString() << endl;
 
   //check that we're not rewriting smaller subterm with larger
-  if(Ordering::isGorGEorE(ordering.compare(tgtTermS,rwTermS))) {
+  auto comp = ordering.compare(tgtTermS,rwTermS);
+  if(Ordering::isGreaterOrEqual(comp)) {
     return 0;
   }
 
@@ -379,14 +378,19 @@ Clause* Superposition::performSuperposition(
     TermList arg1=*rwLitS->nthArgument(1);
 
     if(!arg0.containsSubterm(rwTermS)) {
-      if(Ordering::isGorGEorE(ordering.getEqualityArgumentOrder(rwLitS))) {
+      if(Ordering::isGreaterOrEqual(ordering.getEqualityArgumentOrder(rwLitS))) {
         return 0;
       }
     } else if(!arg1.containsSubterm(rwTermS)) {
-      if(Ordering::isGorGEorE(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
+      if(Ordering::isGreaterOrEqual(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
         return 0;
       }
     }
+  }
+
+  if (!unifier->usesUwa()) {
+    condRedHandler.insertSuperposition(
+      eqClause, rwClause, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr());
   }
 
   Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);
@@ -397,6 +401,14 @@ Clause* Superposition::performSuperposition(
   if(EqHelper::isEqTautology(tgtLitS)) {
     return 0;
   }
+
+  TermList eqLHSS = subst->apply(eqLHS, eqIsResult);
+
+#if VDEBUG
+  if(!unifier->usesUwa()){
+    ASS_EQ(rwTermS,eqLHSS);
+  }
+#endif
 
   Recycled<Stack<Literal*>> res;
   res->reserve(rwLength + eqLength - 1 + unifier->maxNumberOfConstraints());
@@ -473,7 +485,7 @@ Clause* Superposition::performSuperposition(
 
           Ordering::Result o = ordering.compare(currAfter,eqLitS);
 
-          if (o == Ordering::GREATER || o == Ordering::GREATER_EQ || o == Ordering::EQUAL) { // where is GREATER_EQ ever coming from?
+          if (o == Ordering::GREATER || o == Ordering::EQUAL) {
             env.statistics->inferencesBlockedForOrderingAftercheck++;
             return nullptr;
           }
@@ -490,7 +502,7 @@ Clause* Superposition::performSuperposition(
     Literal* newLitC = subst->apply(rwAnsLit, !eqIsResult);
     Literal* newLitD = subst->apply(eqAnsLit, eqIsResult);
     Literal* condLit = subst->apply(eqLit, eqIsResult);
-    res->push(SynthesisManager::getInstance()->makeITEAnswerLiteral(condLit, newLitC, newLitD));
+    res->push(SynthesisALManager::getInstance()->makeITEAnswerLiteral(condLit, newLitC, newLitD));
   }
 
   if(needsToFulfilWeightLimit && !passiveClauseContainer->fulfilsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
@@ -526,23 +538,23 @@ Clause* Superposition::performSuperposition(
 
     // First find which literal it is in the clause, as selection has occured already
     // this should remain the same...?
-    vstring rwPlace = Lib::Int::toString(rwClause->getLiteralPosition(rwLit));
-    vstring eqPlace = Lib::Int::toString(eqClause->getLiteralPosition(eqLit));
+    std::string rwPlace = Lib::Int::toString(rwClause->getLiteralPosition(rwLit));
+    std::string eqPlace = Lib::Int::toString(eqClause->getLiteralPosition(eqLit));
 
-    vstring rwPos="_";
+    std::string rwPos="_";
     ALWAYS(Kernel::positionIn(rwTerm,rwLit,rwPos));
-    vstring eqPos = "("+eqPlace+").2";
+    std::string eqPos = "("+eqPlace+").2";
     rwPos = "("+rwPlace+")."+rwPos;
 
-    vstring eqClauseNum = Lib::Int::toString(eqClause->number());
-    vstring rwClauseNum = Lib::Int::toString(rwClause->number());
+    std::string eqClauseNum = Lib::Int::toString(eqClause->number());
+    std::string rwClauseNum = Lib::Int::toString(rwClause->number());
 
-    vstring extra = eqClauseNum + " into " + rwClauseNum+", unify on "+
+    std::string extra = eqClauseNum + " into " + rwClauseNum+", unify on "+
         eqPos+" in "+eqClauseNum+" and "+
         rwPos+" in "+rwClauseNum;
 
     if (!env.proofExtra) {
-      env.proofExtra = new DHMap<const Unit*,vstring>();
+      env.proofExtra = new DHMap<const Unit*,std::string>();
     }
     env.proofExtra->insert(clause,extra);
   }

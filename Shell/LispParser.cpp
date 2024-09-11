@@ -94,16 +94,16 @@ LispParser::Expression* LispParser::parse()
 /**
  * @since 26/08/2009 Redmond
  */
-void LispParser::parse(List** expr0)
+void LispParser::parse(EList** expr0)
 {
-  static Stack<List**> stack;
+  static Stack<EList**> stack;
   stack.reset();
 
   stack.push(expr0);
 
   Token t;
 
-  List** expr = expr0;
+  EList** expr = expr0;
   for(;;) {
   new_parsing_level:
     for (;;) {
@@ -119,7 +119,7 @@ void LispParser::parse(List** expr0)
         _balance++;
         {
 	  Expression* subexpr = new Expression(LIST);
-	  List* sub = new List(subexpr);
+	  EList* sub = new EList(subexpr);
 	  *expr = sub;
 	  expr = sub->tailPtr();
 	  stack.push(expr);
@@ -132,7 +132,7 @@ void LispParser::parse(List** expr0)
       case TT_REAL:
       {
         Expression* subexpr = new Expression(ATOM,t.text);
-        List* sub = new List(subexpr);
+        EList* sub = new EList(subexpr);
         *expr = sub;
         expr = sub->tailPtr();
         break;
@@ -158,18 +158,18 @@ void LispParser::parse(List** expr0)
  * Return a LISP string corresponding to this expression
  * @since 26/08/2009 Redmond
  */
-vstring LispParser::Expression::toString(bool outerParentheses) const
+std::string LispParser::Expression::toString(bool outerParentheses) const
 {
   switch (tag) {
   case ATOM:
     return str;
   case LIST:
     {
-      vstring result;
+      std::string result;
       if(outerParentheses) {
 	result = "(";
       }
-      for (List* l = list;l;l = l->tail()) {
+      for (EList* l = list;l;l = l->tail()) {
 	result += l->head()->toString();
 	if (l->tail()) {
 	  result += outerParentheses ? ' ' : '\n';
@@ -188,15 +188,15 @@ vstring LispParser::Expression::toString(bool outerParentheses) const
  * If expression corresponds to a unary function named @c funcionName,
  * return true and assign its argument to @c arg. Otherwise return false.
  */
-bool LispParser::Expression::get1Arg(vstring functionName, Expression*& arg)
+bool LispParser::Expression::get1Arg(std::string functionName, Expression*& arg)
 {
   if(!isList()) {
     return false;
   }
 
-  List::Iterator args(list);
+  EList::Iterator args(list);
   if(!args.hasNext()) { return false; }
-  vstring name = args.next()->str;
+  std::string name = args.next()->str;
   if(name!=functionName) { return false; }
 
   if(!args.hasNext()) { return false; }
@@ -213,15 +213,15 @@ bool LispParser::Expression::get1Arg(vstring functionName, Expression*& arg)
  * return true and assign its arguments to @c arg1 and @c arg2. Otherwise
  * return false.
  */
-bool LispParser::Expression::get2Args(vstring functionName, Expression*& arg1, Expression*& arg2)
+bool LispParser::Expression::get2Args(std::string functionName, Expression*& arg1, Expression*& arg2)
 {
   if(!isList()) {
     return false;
   }
 
-  List::Iterator args(list);
+  EList::Iterator args(list);
   if(!args.hasNext()) { return false; }
-  vstring name = args.next()->str;
+  std::string name = args.next()->str;
   if(name!=functionName) { return false; }
 
   if(!args.hasNext()) { return false; }
@@ -247,7 +247,7 @@ bool LispParser::Expression::getPair(Expression*& el1, Expression*& el2)
     return false;
   }
 
-  List::Iterator args(list);
+  EList::Iterator args(list);
   if(!args.hasNext()) { return false; }
   Expression* tmpEl1 = args.next();
 
@@ -267,7 +267,7 @@ bool LispParser::Expression::getSingleton(Expression*& el)
     return false;
   }
 
-  List::Iterator args(list);
+  EList::Iterator args(list);
   if(!args.hasNext()) { return false; }
   Expression* tmpEl = args.next();
 
@@ -281,7 +281,7 @@ bool LispParser::Expression::getSingleton(Expression*& el)
  * Create a new parser exception.
  * @since 17/07/2004 Turku
  */
-LispParser::Exception::Exception(vstring message,const Token& token)
+LispParser::Exception::Exception(std::string message,const Token& token)
   : _message (message)
 {
   _message += " in line ";
@@ -303,7 +303,7 @@ void LispParser::Exception::cry(ostream& out) const
 // LispListReader
 //
 
-void LispListReader::lispError(LExpr* expr, vstring reason)
+void LispListReader::lispError(LExpr* expr, std::string reason)
 {
   if(expr) {
     USER_ERROR(reason+": "+expr->toString());
@@ -316,7 +316,7 @@ void LispListReader::lispError(LExpr* expr, vstring reason)
 /**
  * Report error with the current lisp element
  */
-void LispListReader::lispCurrError(vstring reason)
+void LispListReader::lispCurrError(std::string reason)
 {
   if(hasNext()) {
     lispError(peekAtNext(), reason);
@@ -340,7 +340,7 @@ LExpr* LispListReader::readNext()
   return it.next();
 }
 
-bool LispListReader::tryReadAtom(vstring& atom)
+bool LispListReader::tryReadAtom(std::string& atom)
 {
   if(!hasNext()) { return false; }
 
@@ -353,16 +353,16 @@ bool LispListReader::tryReadAtom(vstring& atom)
   return false;
 }
 
-vstring LispListReader::readAtom()
+std::string LispListReader::readAtom()
 {
-  vstring atm;
+  std::string atm;
   if(!tryReadAtom(atm)) {
     lispCurrError("atom expected");
   }
   return atm;
 }
 
-bool LispListReader::tryAcceptAtom(vstring atom)
+bool LispListReader::tryAcceptAtom(std::string atom)
 {
   if(!hasNext()) { return false; }
 
@@ -374,7 +374,7 @@ bool LispListReader::tryAcceptAtom(vstring atom)
   return false;
 }
 
-void LispListReader::acceptAtom(vstring atom)
+void LispListReader::acceptAtom(std::string atom)
 {
   if(!tryAcceptAtom(atom)) {
     lispCurrError("atom \""+atom+"\" expected");
@@ -435,7 +435,7 @@ void LispListReader::acceptEOL()
   }
 }
 
-bool LispListReader::lookAheadAtom(vstring atom)
+bool LispListReader::lookAheadAtom(std::string atom)
 {
   if(!hasNext()) { return false; }
   LExpr* next = peekAtNext();

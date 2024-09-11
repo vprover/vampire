@@ -89,7 +89,7 @@ Property::Property()
     _allClausesGround(true),
     _allNonTheoryClausesGround(true),
     _allQuantifiersEssentiallyExistential(true),
-    _smtlibLogic(SMTLIBLogic::SMT_UNDEFINED)
+    _smtlibLogic(SMTLIBLogic::UNDEFINED)
 {
   _interpretationPresence.init(Theory::instance()->numberOfFixedInterpretations(), false);
 } // Property::Property
@@ -424,19 +424,16 @@ void Property::scan(Formula* f, int polarity)
     }
     case FORALL:
       if(!_quantifiesOverPolymorphicVar){
-        VList* vars = f->vars();
-        VList::Iterator vit(vars);
+        SList* sorts = f->sorts();
+        SList::Iterator sit(sorts);
 
-        TermList s;
-        while(vit.hasNext()){
-          int v = vit.next();
-          if(SortHelper::tryGetVariableSort(v, f->qarg(), s)){
-            if(s.isTerm() && s.term()->isSuper()){
-              _quantifiesOverPolymorphicVar = true;
-              break;
-            }
+        while(sit.hasNext()){
+          TermList s = sit.next();
+          if(s.isTerm() && s.term()->isSuper()){
+            _quantifiesOverPolymorphicVar = true;
+            break;
           }
-        }    
+        }
       }
       if (polarity != -1) {
         _allQuantifiersEssentiallyExistential = false;
@@ -444,19 +441,16 @@ void Property::scan(Formula* f, int polarity)
       break;
     case EXISTS:
       if(!_quantifiesOverPolymorphicVar){
-        VList* vars = f->vars();
-        VList::Iterator vit(vars);
+        SList* sorts = f->sorts();
+        SList::Iterator sit(sorts);
 
-        TermList s;
-        while(vit.hasNext()){
-          int v = vit.next();
-          if(SortHelper::tryGetVariableSort(v, f->qarg(), s)){
-            if(s.isTerm() && s.term()->isSuper()){
-              _quantifiesOverPolymorphicVar = true;
-              break;
-            }
+        while(sit.hasNext()){
+          TermList s = sit.next();
+          if(s.isTerm() && s.term()->isSuper()){
+            _quantifiesOverPolymorphicVar = true;
+            break;
           }
-        }    
+        }
       }
       if (polarity != 1) {
         _allQuantifiersEssentiallyExistential = false;
@@ -488,13 +482,13 @@ void Property::scanSort(TermList sort)
   }
 
   if(!higherOrder() && !hasPolymorphicSym()){
-    //used sorts is for FMB which is not compatible with 
+    //used sorts is for FMB which is not compatible with
     //higher-order or polymorphism
     unsigned sortU = sort.term()->functor();
     if(!_usesSort.get(sortU)){
       _sortsUsed++;
       _usesSort[sortU]=true;
-    } 
+    }
   }
 
   if (sort==AtomicSort::defaultSort()) {
@@ -787,11 +781,11 @@ void Property::scanForInterpreted(Term* t)
 /**
  * Return the string representation of the CASC category.
  */
-vstring Property::categoryString() const
+std::string Property::categoryString() const
 {
   return categoryToString(_category);
 }
-vstring Property::categoryToString(Category cat)
+std::string Property::categoryToString(Category cat)
 {
   switch (cat)
     {
@@ -824,9 +818,9 @@ vstring Property::categoryToString(Category cat)
  * ARE CURRENTLY OUTPUT.
  * @since 27/08/2003 Vienna
  */
-vstring Property::toString() const
+std::string Property::toString() const
 {
-  vstring result("TPTP class: ");
+  std::string result("TPTP class: ");
   result += categoryString() + "\n";
 
   if (clauses() > 0) {
@@ -1037,9 +1031,9 @@ bool Property::hasXEqualsY(const Formula* f)
  *
  * @since 04/05/2005 Manchester
  */
-vstring Property::toSpider(const vstring& problemName) const
+std::string Property::toSpider(const std::string& problemName) const
 {
-  return (vstring)"UPDATE problem SET property="
+  return (std::string)"UPDATE problem SET property="
     + Int::toString((int)_props)
     + ",category='"
     + categoryString()

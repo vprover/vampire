@@ -31,6 +31,7 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#include "Shell/ConditionalRedundancyHandler.hpp"
 #include "Shell/Statistics.hpp"
 
 #include "EqualityFactoring.hpp"
@@ -91,8 +92,8 @@ private:
 
 struct EqualityFactoring::ResultFn
 {
-  ResultFn(EqualityFactoring& self, Clause* cl, bool afterCheck, Ordering& ordering, bool fixedPointIteration)
-      : _self(self), _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ordering(ordering), _fixedPointIteration(fixedPointIteration) {}
+  ResultFn(EqualityFactoring& self, Clause* cl, bool afterCheck, const ConditionalRedundancyHandler& condRedHandler, Ordering& ordering, bool fixedPointIteration)
+      : _self(self), _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _condRedHandler(condRedHandler), _ordering(ordering), _fixedPointIteration(fixedPointIteration) {}
   Clause* operator() (pair<pair<Literal*,TermList>,pair<Literal*,TermList> > arg)
   {
     auto absUnif = AbstractingUnifier::empty(_self._abstractionOracle);
@@ -126,19 +127,18 @@ struct EqualityFactoring::ResultFn
     TermList srtS = absUnif.subs().apply(srt,0);
     TermList sLHSS = absUnif.subs().apply(sLHS,0);
     TermList sRHSS = absUnif.subs().apply(sRHS,0);
-    if(Ordering::isGorGEorE(_ordering.compare(sRHSS,sLHSS))) {
+    if(Ordering::isGreaterOrEqual(_ordering.compare(sRHSS,sLHSS))) {
       return 0;
     }
     TermList fRHSS = absUnif.subs().apply(fRHS,0);
-    if(Ordering::isGorGEorE(_ordering.compare(fRHSS,sLHSS))) {
+    if(Ordering::isGreaterOrEqual(_ordering.compare(fRHSS,sLHSS))) {
       return 0;
     }
     auto constraints = absUnif.computeConstraintLiterals();
 
-    unsigned newLen=_cLen+constraints->length();
-    Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
+    RStack<Literal*> resLits;
 
-    (*res)[0]=Literal::createEquality(false, sRHSS, fRHSS, srtS);
+    resLits->push(Literal::createEquality(false, sRHSS, fRHSS, srtS));
 
     Literal* sLitAfter = 0;
     if (_afterCheck && _cl->numSelected() > 1) {
@@ -146,7 +146,6 @@ struct EqualityFactoring::ResultFn
       sLitAfter = absUnif.subs().apply(sLit, 0);
     }
 
-    unsigned next = 1;
     for(unsigned i=0;i<_cLen;i++) {
       Literal* curr=(*_cl)[i];
       if(curr!=sLit) {
@@ -156,29 +155,34 @@ struct EqualityFactoring::ResultFn
           TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
           if (i < _cl->numSelected() && _ordering.compare(currAfter,sLitAfter) == Ordering::GREATER) {
             env.statistics->inferencesBlockedForOrderingAftercheck++;
-            res->destroy();
-            return 0;
+            return nullptr;
           }
         }
 
-        (*res)[next++] = currAfter;
+        resLits->push(currAfter);
       }
     }
-    for(Literal* c : *constraints){
-      (*res)[next++] = c;
+
+    if (!absUnif.usesUwa()) {
+      if (!_condRedHandler.handleReductiveUnaryInference(_cl, &absUnif.subs())) {
+        env.statistics->skippedEqualityFactoring++;
+        return nullptr;
+      }
     }
-    ASS_EQ(next,newLen);
+
+    resLits->loadFromIterator(constraints->iterFifo());
 
     env.statistics->equalityFactoring++;
 
-    return res;
+    return Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
   }
 private:
   EqualityFactoring& _self;
   Clause* _cl;
   unsigned _cLen;
   bool _afterCheck;
-  Ordering& _ordering;
+  const ConditionalRedundancyHandler& _condRedHandler;
+  const Ordering& _ordering;
   bool _fixedPointIteration;
 };
 
@@ -198,7 +202,8 @@ ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
   auto it4 = getMapAndFlattenIterator(it3,FactorablePairsFn(premise));
 
   auto it5 = getMappingIterator(it4,ResultFn(*this, premise,
-      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(), _salg->getOrdering(), _uwaFixedPointIteration));
+      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
+      _salg->condRedHandler(), _salg->getOrdering(), _uwaFixedPointIteration));
 
   auto it6 = getFilteredIterator(it5,NonzeroFn());
 

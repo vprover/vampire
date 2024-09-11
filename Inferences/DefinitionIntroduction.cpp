@@ -107,9 +107,7 @@ void DefinitionIntroduction::introduceDefinitionFor(Term *t) {
   Term *def = Term::create(functor, arity, variables.begin());
   Literal *eq = Literal::createEquality(true, TermList(def), TermList(t), range_sort);
 
-  NonspecificInference0 inference(UnitInputType::AXIOM, InferenceRule::FUNCTION_DEFINITION);
-  Clause *definition = new (1) Clause(1, inference);
-  (*definition)[0] = eq;
+  auto definition = Clause::fromLiterals({eq}, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::FUNCTION_DEFINITION));
 
   InferenceStore::instance()->recordIntroducedSymbol(definition,SymbolType::FUNC,functor);
 

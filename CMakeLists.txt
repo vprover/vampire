@@ -5,7 +5,6 @@ cmake_minimum_required (VERSION 3.14.0)
 project(Vampire)
 
 include(CheckIPOSupported)
-include(CheckPIESupported)
 
 # require the compiler to use C++17
 set(CMAKE_CXX_STANDARD 17)
@@ -19,12 +18,14 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
   add_compile_options(-fno-threadsafe-statics)
   # ...or RTTI
   add_compile_options(-fno-rtti)
-  # enable standards-compliant standard library with sized operator delete
-  add_compile_options(-fsized-deallocation)
 endif()
 
 # compile command database
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# we use threads, make sure we link the thread-support stuff
+find_package(Threads REQUIRED)
+link_libraries(Threads::Threads)
 
 # variables for binary name, set later
 set(VAMPIRE_BINARY vampire)
@@ -132,7 +133,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Int.cpp
     Lib/IntNameTable.cpp
     Lib/IntUnionFind.cpp
-    Lib/MemoryLeak.cpp
     Lib/NameArray.cpp
     Lib/Random.cpp
     Lib/StringUtils.cpp
@@ -165,7 +165,6 @@ set(VAMPIRE_LIB_SOURCES
     Lib/List.hpp
     Lib/Map.hpp
     Lib/MaybeBool.hpp
-    Lib/MemoryLeak.hpp
     Lib/Metaiterators.hpp
     Lib/MultiCounter.hpp
     Lib/NameArray.hpp
@@ -185,15 +184,12 @@ set(VAMPIRE_LIB_SOURCES
     Lib/SmartPtr.hpp
     Lib/Sort.hpp
     Lib/Stack.hpp
-    Lib/STLAllocator.hpp
     Lib/StringUtils.hpp
     Lib/System.hpp
     Lib/Timer.hpp
     Lib/TriangularArray.hpp
     Lib/Vector.hpp
     Lib/VirtualIterator.hpp
-    Lib/VString.hpp
-    Lib/STL.hpp
     )
 source_group(lib_source_files FILES ${VAMPIRE_LIB_SOURCES})
 
@@ -220,6 +216,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/InterpretedLiteralEvaluator.cpp
     Kernel/Rebalancing.cpp
     Kernel/KBO.cpp
+    Kernel/KBOComparator.cpp
     Kernel/LiteralSelector.cpp
     Kernel/LookaheadLiteralSelector.cpp
     Kernel/MainLoop.cpp
@@ -266,6 +263,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/InterpretedLiteralEvaluator.hpp
     Kernel/Rebalancing.cpp
     Kernel/KBO.hpp
+    Kernel/KBOComparator.hpp
     Kernel/LiteralComparators.hpp
     Kernel/LiteralSelector.hpp
     Kernel/LookaheadLiteralSelector.hpp
@@ -296,6 +294,8 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Unit.hpp
     Kernel/LPO.cpp
     Kernel/LPO.hpp
+    Kernel/LPOComparator.cpp
+    Kernel/LPOComparator.hpp
     Kernel/Polynomial.hpp
     Kernel/Polynomial.cpp
     Kernel/PolynomialNormalizer.hpp
@@ -381,7 +381,7 @@ source_group(indexing_source_files FILES ${VAMPIRE_INDEXING_SOURCES})
 set(VAMPIRE_INFERENCE_SOURCES
     Inferences/BackwardDemodulation.cpp
     Inferences/BackwardSubsumptionDemodulation.cpp
-    Inferences/BackwardSubsumptionResolution.cpp
+    Inferences/BackwardSubsumptionAndResolution.cpp
     Inferences/BinaryResolution.cpp
     Inferences/Condensation.cpp
     Inferences/DemodulationHelper.cpp
@@ -406,7 +406,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/InferenceEngine.cpp
     Inferences/Instantiation.cpp
     Inferences/InterpretedEvaluation.cpp
-    Inferences/InvalidAnswerLiteralRemoval.cpp
+    Inferences/InvalidAnswerLiteralRemovals.cpp
     Inferences/PushUnaryMinus.cpp
     Inferences/Cancellation.cpp
     Inferences/ArithmeticSubtermGeneralization.cpp
@@ -414,14 +414,13 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/GaussianVariableElimination.cpp
     Kernel/Rebalancing.cpp
     Kernel/Rebalancing/Inverters.cpp
-    Inferences/SLQueryBackwardSubsumption.cpp
     Inferences/Superposition.cpp
     Inferences/TautologyDeletionISE.cpp
     Inferences/TermAlgebraReasoning.cpp
     Inferences/URResolution.cpp
     Inferences/DefinitionIntroduction.cpp
     Inferences/BackwardDemodulation.hpp
-    Inferences/BackwardSubsumptionResolution.hpp
+    Inferences/BackwardSubsumptionAndResolution.hpp
     Inferences/BinaryResolution.hpp
     Inferences/Condensation.hpp
     Inferences/DemodulationHelper.hpp
@@ -445,7 +444,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/InferenceEngine.hpp
     Inferences/Instantiation.hpp
     Inferences/InterpretedEvaluation.hpp
-    Inferences/InvalidAnswerLiteralRemoval.hpp
+    Inferences/InvalidAnswerLiteralRemovals.hpp
     Inferences/PushUnaryMinus.hpp
     Inferences/Cancellation.hpp
     Inferences/ArithmeticSubtermGeneralization.hpp
@@ -453,7 +452,6 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/GaussianVariableElimination.hpp
     Kernel/Rebalancing.hpp
     Kernel/Rebalancing/Inverters.hpp
-    Inferences/SLQueryBackwardSubsumption.hpp
     Inferences/SubsumptionDemodulationHelper.cpp
     Inferences/Superposition.hpp
     Inferences/TautologyDeletionISE.hpp
@@ -536,8 +534,9 @@ set(VAMPIRE_SATURATION_SOURCES
 source_group(saturation_source_files FILES ${VAMPIRE_SATURATION_SOURCES})
 
 set(VAMPIRE_SHELL_SOURCES
-    Shell/AnswerExtractor.cpp
+    Shell/AnswerLiteralManager.cpp
     Shell/CommandLine.cpp
+    Shell/ConditionalRedundancyHandler.cpp
     Shell/CNF.cpp
     Shell/NewCNF.cpp
     Shell/DistinctProcessor.cpp
@@ -587,11 +586,11 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/TPTPPrinter.cpp
     Shell/TweeGoalTransformation.cpp
     Shell/UIHelper.cpp
-    Shell/VarManager.cpp
     Shell/Lexer.cpp
     Shell/Preprocess.cpp
-    Shell/AnswerExtractor.hpp
+    Shell/AnswerLiteralManager.hpp
     Shell/CommandLine.hpp
+    Shell/ConditionalRedundancyHandler.hpp
     Shell/CNF.hpp
     Shell/NewCNF.hpp
     Shell/DistinctProcessor.hpp
@@ -637,7 +636,6 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/TPTPPrinter.hpp
     Shell/TweeGoalTransformation.hpp
     Shell/UIHelper.hpp
-    Shell/VarManager.hpp
     Shell/Lexer.hpp
     Shell/Preprocess.hpp
     Shell/SubexpressionIterator.cpp
@@ -688,6 +686,27 @@ set(VAMPIRE_CASC_SOURCES
     )
 source_group(casc_source_files FILES ${VAMPIRE_CASC_SOURCES})
 
+set(VAMPIRE_SAT_SUBSUMPTION_SOURCES
+    SATSubsumption/SATSubsumptionAndResolution.cpp
+    SATSubsumption/SATSubsumptionAndResolution.hpp
+
+    SATSubsumption/subsat/constraint.cpp
+    SATSubsumption/subsat/constraint.hpp
+    SATSubsumption/subsat/decision_queue.hpp
+    SATSubsumption/subsat/default_init_allocator.hpp
+    SATSubsumption/subsat/log.cpp
+    SATSubsumption/subsat/log.hpp
+    SATSubsumption/subsat/subsat.cpp
+    SATSubsumption/subsat/subsat.hpp
+    SATSubsumption/subsat/subsat_config.hpp
+    SATSubsumption/subsat/SubstitutionTheory.hpp
+    SATSubsumption/subsat/types.cpp
+    SATSubsumption/subsat/types.hpp
+    SATSubsumption/subsat/variable_domain_size.hpp
+    SATSubsumption/subsat/vector_map.hpp
+    )
+source_group(smt_subsumption_source_files FILES ${VAMPIRE_SAT_SUBSUMPTION_SOURCES})
+
 set(VAMPIRE_TESTING_SOURCES
     Test/UnitTesting.cpp
     Test/UnitTesting.hpp
@@ -732,6 +751,7 @@ set(UNIT_TESTS
     UnitTests/tOption.cpp
     UnitTests/tStack.cpp
     UnitTests/tSet.cpp
+    UnitTests/tSATSubsumptionResolution.cpp
     UnitTests/tDeque.cpp
     UnitTests/tTermAlgebra.cpp
     UnitTests/tFunctionDefinitionHandler.cpp
@@ -744,7 +764,6 @@ set(UNIT_TESTS_Z3
     UnitTests/tZ3Interfacing.cpp
     )
 source_group(unit_tests_z3 FILES ${UNIT_TESTS_Z3})
-
 
 
 # also include forwards.hpp?
@@ -764,6 +783,7 @@ set(VAMPIRE_SOURCES
     ${VAMPIRE_SMTCOMP_SOURCES}
     ${VAMPIRE_MINISAT_SOURCES}
     ${VAMPIRE_CASC_SOURCES}
+    ${VAMPIRE_SAT_SUBSUMPTION_SOURCES}
     Forwards.hpp
     "${CMAKE_CURRENT_BINARY_DIR}/version.cpp"
     )
@@ -791,6 +811,7 @@ if(CMAKE_BUILD_TYPE STREQUAL Debug)
   add_compile_definitions(VDEBUG=1)
 elseif(CMAKE_BUILD_TYPE STREQUAL Release)
   add_compile_definitions(VDEBUG=0)
+  add_compile_definitions(NDEBUG)
 endif()
 
 # enable for time profiling
@@ -805,7 +826,7 @@ endif()
 ################################################################
 
 # find Z3 automatically!
-# normally this is just in /z3/build/, but this can be overridden
+# normally this is just in /z3/build/, but this can be overridden using -DZ3_DIR
 find_package(
   Z3
   CONFIG
@@ -824,34 +845,14 @@ if (NOT Z3_FOUND)
 else ()
   message(STATUS "Found Z3 ${Z3_VERSION_STRING}")
   include_directories(${Z3_CXX_INCLUDE_DIRS})
-  if(NOT BUILD_SHARED_LIBS AND Z3_FOUND AND CMAKE_CXX_COMPILER_ID STREQUAL GNU)
-    # https://stackoverflow.com/questions/58848694/gcc-whole-archive-recipe-for-static-linking-to-pthread-stopped-working-in-rec
-    message(STATUS "Adding workaround for gcc static linking against pthread")
-    link_libraries(${Z3_LIBRARIES} -pthread -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive)
-  else()
-    link_libraries(${Z3_LIBRARIES})
-  endif()
-
-  # Z3 needs threads now
-  if (APPLE)
-    set(CMAKE_THREAD_LIBS_INIT "-lpthread")
-    set(CMAKE_HAVE_THREADS_LIBRARY 1)
-    set(CMAKE_USE_WIN32_THREADS_INIT 0)
-    set(CMAKE_USE_PTHREADS_INIT 1)
-    set(THREADS_PREFER_PTHREAD_FLAG ON)
-  else ()
-    set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
-    set(THREADS_PREFER_PTHREAD_FLAG TRUE)
-    find_package(Threads REQUIRED)
-    link_libraries(Threads::Threads)
-  endif ()
-
+  link_libraries(${Z3_LIBRARIES})
   add_library(Z3 SHARED IMPORTED)
   set_property(TARGET Z3 PROPERTY IMPORTED_LOCATION ${Z3_LIBRARY})
   add_compile_definitions(VZ3=1)
   set(VAMPIRE_BINARY_Z3 _z3)
   set(UNIT_TESTS ${UNIT_TESTS} ${UNIT_TESTS_Z3})
 endif()
+
 
 ################################################################
 # build objects
@@ -915,7 +916,7 @@ endif() # COMPILE_TESTS
 #################################################################
 # automated generation of Vampire revision information from git #
 #################################################################
-set(VAMPIRE_VERSION_NUMBER 4.8)
+set(VAMPIRE_VERSION_NUMBER 4.9)
 
 execute_process(
     COMMAND git rev-parse --is-inside-work-tree
@@ -989,19 +990,16 @@ if(CMAKE_BUILD_TYPE STREQUAL Release AND IPO)
   set_property(TARGET vampire PROPERTY INTERPROCEDURAL_OPTIMIZATION true)
 endif()
 
-# do not generate position-independent code:
-# 1. it has some overhead
-# 2. it's used for ASLR, which isn't a huge concern for us and messes with our backtrace support
-check_pie_supported(OUTPUT_VARIABLE PIE_ERROR LANGUAGES CXX)
-if(NOT CMAKE_CXX_LINK_PIE_SUPPORTED)
-  message(STATUS "disabling position-independent code not supported, stack traces may be broken")
-  message(STATUS "${PIE_ERROR}")
-endif()
+################################################################
+# subsat (standalone version of the SAT solver used for subsumption and subsumption resolution)
+################################################################
 
-# FIXME this guard should not be necessary but is currently because of how we do static linking above
-if(BUILD_SHARED_LIBS)
-  set_property(TARGET vampire PROPERTY POSITION_INDEPENDENT_CODE false)
-  if(COMPILE_TESTS)
-    set_property(TARGET vtest PROPERTY POSITION_INDEPENDENT_CODE false)
-  endif()
-endif()
+add_executable(subsat
+    EXCLUDE_FROM_ALL  # only build when explicitly requested
+    SATSubsumption/subsat/subsat_main.cpp
+    $<TARGET_OBJECTS:obj>
+)
+
+set_target_properties(subsat PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)

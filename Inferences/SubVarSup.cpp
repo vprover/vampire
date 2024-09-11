@@ -206,7 +206,7 @@ Clause* SubVarSup::performSubVarSup(
   unsigned rwLength = rwClause->length();
   unsigned eqLength = eqClause->length();
 
-  int newAge=Int::max(rwClause->age(),eqClause->age())+1;
+  int newAge=Int::max(rwClause->age(),eqClause->age())+1; // TODO isn't this set automatically?
 
   Literal* rwLitS = subst.apply(rwLit, 0);
   TermList rwTermS = subst.apply(rwTerm, 0);
@@ -244,11 +244,11 @@ Clause* SubVarSup::performSubVarSup(
     TermList arg1=*rwLitS->nthArgument(1);
 
     if(!arg0.containsSubterm(rwTermS)) {
-      if(Ordering::isGorGEorE(ordering.getEqualityArgumentOrder(rwLitS))) {
+      if(Ordering::isGreaterOrEqual(ordering.getEqualityArgumentOrder(rwLitS))) {
         return 0;
       }
     } else if(!arg1.containsSubterm(rwTermS)) {
-      if(Ordering::isGorGEorE(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
+      if(Ordering::isGreaterOrEqual(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
         return 0;
       }
     }
@@ -269,31 +269,29 @@ Clause* SubVarSup::performSubVarSup(
 
   bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 
-  unsigned newLength = rwLength+eqLength-1;
   Inference inf(GeneratingInference2(InferenceRule::SUB_VAR_SUP, rwClause, eqClause));
-  Clause* res = new(newLength) Clause(newLength, inf);
+  RStack<Literal*> resLits;
 
-  (*res)[0] = tgtLitS;
-  int next = 1;
+  resLits->push(tgtLitS);
   for(unsigned i=0;i<rwLength;i++) {
-    Literal* curr=(*rwClause)[i];
+    Literal* curr = (*rwClause)[i];
     if(curr!=rwLit) {
       Literal* currAfter = subst.apply(curr, 0);
       currAfter = EqHelper::replace(currAfter,rwTermS,newEqLHS);
 
       if(EqHelper::isEqTautology(currAfter)) {
-        goto construction_fail;
+        return nullptr;
       }
       
       if (afterCheck) {
         TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
         if (i < rwClause->numSelected() && ordering.compare(currAfter,rwLitS) == Ordering::GREATER) {
           env.statistics->inferencesBlockedForOrderingAftercheck++;
-          goto construction_fail;
+          return nullptr;
         }
       }
 
-      (*res)[next++] = currAfter;
+      resLits->push(currAfter);
     }
   }
 
@@ -304,16 +302,15 @@ Clause* SubVarSup::performSubVarSup(
       Literal* currAfter = subst.apply(curr, 1);
 
       if(EqHelper::isEqTautology(currAfter)) {
-        goto construction_fail;
+        return nullptr;
       }
 
-      (*res)[next++] = currAfter;
+      resLits->push(currAfter);
     }
   } //no need for after check as no variables in D are bound to anyhting
     //the most that is happenning is a rearrangement of vars in D
   
 
-  res->setAge(newAge);
   
   if(rwClause==eqClause) {
     env.statistics->selfSubVarSup++;
@@ -324,9 +321,7 @@ Clause* SubVarSup::performSubVarSup(
   }
 
   //cout << "SUBVARSUP " + res->toString() << endl;
+  auto res = Clause::fromStack(*resLits, inf);
+  res->setAge(newAge);
   return res;
-
-construction_fail:
-  res->destroy();
-  return 0;    
 }

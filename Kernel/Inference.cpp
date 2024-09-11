@@ -336,7 +336,7 @@ void Inference::init2(InferenceRule r, Unit* premise1, Unit* premise2)
   computeTheoryRunningSums();
   _isPureTheoryDescendant = premise1->isPureTheoryDescendant() && premise2->isPureTheoryDescendant();
   _combAxiomsDescendant = premise1->isCombAxiomsDescendant() && premise2->isCombAxiomsDescendant() ;
-  _proxyAxiomsDescendant = premise1->isProxyAxiomsDescendant() && premise2->isProxyAxiomsDescendant();  
+  _proxyAxiomsDescendant = premise1->isProxyAxiomsDescendant() && premise2->isProxyAxiomsDescendant();
   _holAxiomsDescendant = premise1->isHolAxiomsDescendant() && premise2->isHolAxiomsDescendant();
   _sineLevel = min(premise1->getSineLevel(),premise2->getSineLevel());
 
@@ -492,6 +492,14 @@ Inference::Inference(const NonspecificInferenceMany& gi) {
   initMany(gi.rule,gi.premises);
 }
 
+std::string Inference::name() const {
+  if (_rule == InferenceRule::INPUT) {
+    return ruleName(_rule)+"("+inputTypeName(_inputType)+")";
+  } else {
+    return ruleName(_rule);
+  }
+}
+
 void Inference::minimizePremises()
 {
   if (_kind != Kind::INFERENCE_FROM_SAT_REFUTATION)
@@ -572,20 +580,41 @@ void Inference::computeTheoryRunningSums()
   }
 }
 
+std::string Kernel::inputTypeName(UnitInputType type)
+{
+  switch (type) {
+    case UnitInputType::AXIOM:
+      return "axiom";
+    case UnitInputType::ASSUMPTION:
+      return "assumption";
+    case UnitInputType::CONJECTURE:
+      return "conjecture";
+    case UnitInputType::NEGATED_CONJECTURE:
+      return "negated conjecture";
+    case UnitInputType::CLAIM:
+      return "claim";
+    case UnitInputType::EXTENSIONALITY_AXIOM:
+      return "extensionality axiom";
+  default:
+      return "unknown";
+  }
+}
+
 /**
  * Return the rule name, such as "binary resolution".
  * @since 04/01/2008 Torrevieja
  */
-vstring Kernel::ruleName(InferenceRule rule)
+std::string Kernel::ruleName(InferenceRule rule)
 {
   switch (rule) {
   case InferenceRule::INPUT:
     return "input";
   case InferenceRule::NEGATED_CONJECTURE:
     return "negated conjecture";
-  case InferenceRule::ANSWER_LITERAL:
+  case InferenceRule::ANSWER_LITERAL_INJECTION:
+    return "answer literal injection";
   case InferenceRule::ANSWER_LITERAL_RESOLVER:
-    return "answer literal";
+    return "answer literal resolver";
   case InferenceRule::ANSWER_LITERAL_INPUT_SKOLEMISATION:
     return "answer literal with input var skolemisation";
   case InferenceRule::ANSWER_LITERAL_REMOVAL:

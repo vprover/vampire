@@ -178,20 +178,15 @@ Index* IndexManager::create(IndexType t)
   case DEMODULATION_SUBTERM_SUBST_TREE: {
     auto tis = new TermSubstitutionTree();
     if (env.options->combinatorySup()) {
-      res = new DemodulationSubtermIndexImpl<true>(tis);
+      res = new DemodulationSubtermIndexImpl<true>(tis,_alg->getOptions());
     } else {
-      res = new DemodulationSubtermIndexImpl<false>(tis);
+      res = new DemodulationSubtermIndexImpl<false>(tis,_alg->getOptions());
     }
     isGenerating = false;
     break;
   }
   case DEMODULATION_LHS_CODE_TREE:
-    res = new DemodulationLHSIndex(new CodeTreeTIS(), _alg->getOrdering(), _alg->getOptions());
-    isGenerating = false;
-    break;
-
-  case DEMODULATION_LHS_SUBST_TREE:
-    res = new DemodulationLHSIndex(new TermSubstitutionTree(), _alg->getOrdering(), _alg->getOptions());
+    res = new DemodulationLHSIndex(new CodeTreeTIS<DemodulatorData>(), _alg->getOrdering(), _alg->getOptions());
     isGenerating = false;
     break;
 

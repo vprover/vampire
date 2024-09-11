@@ -56,7 +56,7 @@ struct KboSpecialWeights;
 template<>
 struct KboSpecialWeights<PredSigTraits> 
 { 
-  inline bool tryAssign(const vstring& name, unsigned weight) 
+  inline bool tryAssign(const std::string& name, unsigned weight) 
   { return false; }
 
   inline static KboSpecialWeights dflt() 
@@ -74,7 +74,7 @@ struct KboSpecialWeights<FuncSigTraits>
   KboWeight _numInt;
   KboWeight _numRat;
   KboWeight _numReal;
-  inline bool tryAssign(const vstring& name, unsigned weight) 
+  inline bool tryAssign(const std::string& name, unsigned weight) 
   {
     if (name == SPECIAL_WEIGHT_IDENT_VAR     ) { _variableWeight = weight; return true; } 
     if (name == SPECIAL_WEIGHT_IDENT_NUM_INT ) { _numInt  = weight; return true; } 
@@ -158,6 +158,7 @@ public:
 
   Result compare(AppliedTerm t1, AppliedTerm t2) const override;
   bool isGreater(AppliedTerm t1, AppliedTerm t2) const override;
+  bool isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, OrderingComparatorUP& comparator) const override;
 
 protected:
   Result isGreaterOrEq(AppliedTerm tt1, AppliedTerm tt2) const;
@@ -166,6 +167,7 @@ protected:
   Result comparePredicates(Literal* l1, Literal* l2) const override;
 
   class State;
+  friend class KBOComparator;
 
   // int functionSymbolWeight(unsigned fun) const;
   int symbolWeight(const Term* t) const;

@@ -25,6 +25,7 @@ class FlatTerm
 public:
   static FlatTerm* create(Term* t);
   static FlatTerm* create(TermList t);
+  static FlatTerm* create(TermStack ts);
   /**
    * Similar to @b create but only allocates the flat term,
    * and does not fill out its content. The caller has to
@@ -33,6 +34,7 @@ public:
    */
   static FlatTerm* createUnexpanded(Term* t);
   static FlatTerm* createUnexpanded(TermList t);
+  static FlatTerm* createUnexpanded(TermStack ts);
   void destroy();
 
   static FlatTerm* copy(const FlatTerm* ft);
@@ -88,10 +90,7 @@ public:
     // getters and setters
     BITFIELD64_GET_AND_SET(unsigned, tag, Tag, TAG)
     BITFIELD64_GET_AND_SET(unsigned, number, Number, NUMBER)
-    Term* _term() const
-    { return reinterpret_cast<Term*>(BitUtils::getBits<TERM_BITS_START, TERM_BITS_END>(_content)); }
-    void _setTerm(Term* term)
-    { BitUtils::setBits<TERM_BITS_START, TERM_BITS_END>(_content, reinterpret_cast<uint64_t>(term)); }
+    BITFIELD64_GET_AND_SET_PTR(Term*, term, Term, TERM)
     // end bitfield
   };
 

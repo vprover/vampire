@@ -33,7 +33,7 @@ using namespace std;
 using namespace Lib;
 using namespace Lib::Sys;
 
-TestUnit::TestUnit(vstring const& name)
+TestUnit::TestUnit(std::string const& name)
 : _tests(), _name(name)
 { }
 
@@ -47,7 +47,7 @@ UnitTesting& UnitTesting::instance()
   return *_instance; 
 }
 
-bool UnitTesting::runTest(vstring const& unitId, vstring const& testName) 
+bool UnitTesting::runTest(std::string const& unitId, std::string const& testName) 
 {
   auto unit = findUnit(unitId);
   if (unit == nullptr) return false;
@@ -58,7 +58,7 @@ bool UnitTesting::runTest(vstring const& unitId, vstring const& testName)
   }
 }
 
-TestUnit::Test* TestUnit::findTest(vstring const& testCase)
+TestUnit::Test* TestUnit::findTest(std::string const& testCase)
 {
   for (auto& test : _tests) {
     if (test.name == testCase) {
@@ -67,11 +67,11 @@ TestUnit::Test* TestUnit::findTest(vstring const& testCase)
   }
   return nullptr;
 }
-bool TestUnit::hasTest(vstring const& name)
+bool TestUnit::hasTest(std::string const& name)
 { return findTest(name) != nullptr; }
 
 
-bool TestUnit::runTest(vstring const& name)
+bool TestUnit::runTest(std::string const& name)
 {
   auto test = findTest(name);
   if (test != nullptr) {
@@ -83,7 +83,7 @@ bool TestUnit::runTest(vstring const& name)
   }
 }
 
-bool UnitTesting::run(Stack<vstring> const& args) 
+bool UnitTesting::run(Stack<std::string> const& args) 
 {
   if (args.size() == 2) {
     return runTest(args[0], args[1]);
@@ -95,7 +95,7 @@ bool UnitTesting::run(Stack<vstring> const& args)
   }
 }
 
-TestUnit* UnitTesting::findUnit(vstring const& id) 
+TestUnit* UnitTesting::findUnit(std::string const& id) 
 {
   TestUnit* found = nullptr;
   for (auto& test : _units) {
@@ -115,14 +115,14 @@ TestUnit* UnitTesting::findUnit(vstring const& id)
   return found;
 }
 
-bool UnitTesting::runUnit(vstring const& id)
+bool UnitTesting::runUnit(std::string const& id)
 {
   auto unit = findUnit(id);
   if (unit == nullptr) return false;
   else return unit->run(std::cout);
 }
 
-bool UnitTesting::listTests(Stack<vstring> const&)
+bool UnitTesting::listTests(Stack<std::string> const&)
 {
   auto& out = std::cout;
   for (auto unit : _units) {
@@ -133,7 +133,7 @@ bool UnitTesting::listTests(Stack<vstring> const&)
   return true;
 }
 
-bool TestUnit::runTestsWithNameSubstring(vstring const& pref, ostream& out)
+bool TestUnit::runTestsWithNameSubstring(std::string const& pref, ostream& out)
 {
   Stack<Test>::BottomFirstIterator uit(_tests);
 
@@ -144,7 +144,7 @@ bool TestUnit::runTestsWithNameSubstring(vstring const& pref, ostream& out)
   unsigned cnt_ok  = 0;
   while(uit.hasNext()) {
     TestUnit::Test t=uit.next();
-    if (vstring(t.name).find(pref) != vstring::npos) {
+    if (std::string(t.name).find(pref) != std::string::npos) {
       out << "Running " << t.name << "... \r";
       out.flush();
       bool ok;
@@ -202,7 +202,7 @@ bool TestUnit::spawnTest(TestProc proc)
   }
 }
 
-bool UnitTesting::add(vstring const& testUnit, TestUnit::Test test)
+bool UnitTesting::add(std::string const& testUnit, TestUnit::Test test)
 {
   for (auto& unit : _units) {
     if (unit.id() == testUnit) {
@@ -225,15 +225,11 @@ int main(int argc, const char** argv)
   using namespace Lib;
   using namespace std;
 
-  // enable tracebacks in failing unit tests by default
-  System::registerArgv0(argv[0]);
-  env.options->setTraceback(true);
-
   bool success;
-  auto cmd = vstring(argv[1]);
-  auto args = Stack<vstring>(argc - 2);
+  auto cmd = std::string(argv[1]);
+  auto args = Stack<std::string>(argc - 2);
   for (int i = 2; i < argc; i++) {
-    args.push(vstring(argv[i]));
+    args.push(std::string(argv[i]));
   }
   if (cmd == "ls") {
     success = Test::UnitTesting::instance().listTests(args);

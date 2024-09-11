@@ -27,12 +27,12 @@
 #include "Lib/SharedSet.hpp"
 
 #include "Shell/Statistics.hpp"
+#include "Shell/AnswerLiteralManager.hpp"
 #include "Indexing/TermSharing.hpp"
 
 #include "Options.hpp"
 #include "Rectify.hpp"
 #include "Skolem.hpp"
-#include "VarManager.hpp"
 
 using namespace std;
 using namespace Kernel;
@@ -85,7 +85,7 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
   ASS_EQ(_varOccs.size(),0);
 
   Formula* g = skolemise(f);
-  
+
   _beingSkolemised = 0;
 
   if (f == g) { // not changed
@@ -118,18 +118,6 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
   return res;
 }
 
-unsigned Skolem::addSkolemFunction(unsigned arity, TermList* domainSorts,
-    TermList rangeSort, unsigned var, unsigned taArity)
-{
-  if(VarManager::varNamePreserving()) {
-    vstring varName=VarManager::getVarName(var);
-    return addSkolemFunction(arity, taArity, domainSorts, rangeSort, varName.c_str());
-  }
-  else {
-    return addSkolemFunction(arity, taArity, domainSorts, rangeSort);
-  }
-}
-
 unsigned Skolem::addSkolemFunction(unsigned arity, unsigned taArity, TermList* domainSorts,
     TermList rangeSort, const char* suffix)
 {
@@ -143,17 +131,6 @@ unsigned Skolem::addSkolemFunction(unsigned arity, unsigned taArity, TermList* d
   return fun;
 }
 
-unsigned Skolem::addSkolemTypeCon(unsigned arity, unsigned var)
-{
-  if(VarManager::varNamePreserving()) {
-    vstring varName=VarManager::getVarName(var);
-    return addSkolemTypeCon(arity, varName.c_str());
-  }
-  else {
-    return addSkolemTypeCon(arity);
-  }
-}
-
 unsigned Skolem::addSkolemTypeCon(unsigned arity, const char* suffix)
 {
   unsigned typeCon = env.signature->addSkolemTypeCon(arity, suffix);
@@ -161,23 +138,10 @@ unsigned Skolem::addSkolemTypeCon(unsigned arity, const char* suffix)
   OperatorType* ot = OperatorType::getTypeConType(arity);
   tcSym->setType(ot);
   return typeCon;
-} 
-
-unsigned Skolem::addSkolemPredicate(unsigned arity, TermList* domainSorts, unsigned var, unsigned taArity)
-{
-  if(VarManager::varNamePreserving()) {
-    vstring varName=VarManager::getVarName(var);
-    return addSkolemPredicate(arity, taArity, domainSorts, varName.c_str());
-  }
-  else {
-    return addSkolemPredicate(arity, taArity, domainSorts);
-  }
 }
 
 unsigned Skolem::addSkolemPredicate(unsigned arity, unsigned taArity, TermList* domainSorts, const char* suffix)
 {
-  //ASS(arity==0 || domainSorts!=0);
-
   unsigned pred = env.signature->addSkolemPredicate(arity, suffix);
   Signature::Symbol* pSym = env.signature->getPredicate(pred);
   OperatorType* ot = OperatorType::getPredicateType(arity - taArity, domainSorts, taArity);
@@ -331,7 +295,7 @@ void Skolem::preskolemise (Formula* f)
  * @since 28/06/2002 Manchester
  * @since 04/09/2002 Bolzano, changed
  * @since 05/09/2002 Trento, changed
- * @since 19/01/2002 Manchester, information about 
+ * @since 19/01/2002 Manchester, information about
  *        positions and inferences added.
  * @since 23/01/2004 Manchester, changed to use non-static functions
  * @since 31/01/2004 Manchester, simplified to work with rectified formulas
@@ -345,7 +309,7 @@ void Skolem::preskolemise (Formula* f)
 Formula* Skolem::skolemise (Formula* f)
 {
   switch (f->connective()) {
-  case LITERAL: 
+  case LITERAL:
     {
       Literal* l = f->literal();
       Literal* ll = l->apply(_subst);
@@ -356,7 +320,7 @@ Formula* Skolem::skolemise (Formula* f)
     }
 
   case AND:
-  case OR: 
+  case OR:
     {
       FormulaList* fs = skolemise(f->args());
       if (fs == f->args()) {
@@ -365,7 +329,7 @@ Formula* Skolem::skolemise (Formula* f)
       return new JunctionFormula(f->connective(),fs);
     }
 
-  case FORALL: 
+  case FORALL:
     {
       Formula* g = skolemise(f->qarg());
       if (g == f->qarg()) {
@@ -474,14 +438,14 @@ Formula* Skolem::skolemise (Formula* f)
             sym = addSkolemTypeCon(arity);
             skolemTerm = AtomicSort::create(sym, arity, allVars.begin());
           } else {
-            sym = addSkolemFunction(arity, termVarSorts.begin(), rangeSort, v, typeVars.size());
+            sym = addSkolemFunction(arity, typeVars.size(), termVarSorts.begin(), rangeSort);
             skolemTerm = Term::create(sym, arity, allVars.begin());
           }
         } else {
           //The higher-order case. Create the term
           //sk(typevars) @ termvar_1 @ termvar_2 @ ... @ termvar_n
           TermList skSymSort = AtomicSort::arrowSort(termVarSorts, rangeSort);
-          sym = addSkolemFunction(typeVars.size(), 0, skSymSort, v, typeVars.size());
+          sym = addSkolemFunction(typeVars.size(), typeVars.size(), nullptr, skSymSort);
           TermList head = TermList(Term::create(sym, typeVars.size(), typeVars.begin()));
           skolemTerm = ApplicativeHelper::createAppTerm(
             SortHelper::getResultSort(head.term()), head, termVars).term();
@@ -495,6 +459,11 @@ Formula* Skolem::skolemise (Formula* f)
         if (env.options->showSkolemisations()) {
           std::cout << "Skolemising: "<<skolemTerm->toString()<<" for X"<< v
             <<" in "<<f->toString()<<" in formula "<<_beingSkolemised->toString() << endl;
+        }
+
+        AnswerLiteralManager* alm = AnswerLiteralManager::getInstance();
+        if (alm && !skolemisingTypeVar && !_appify) { // good-old first-order skolemization
+          alm->recordSkolemsOrigin(sym,v,_beingSkolemised);
         }
 
         if (env.options->showNonconstantSkolemFunctionTrace() && arity!=0) {
@@ -544,7 +513,7 @@ Formula* Skolem::skolemise (Formula* f)
  *
  * @since 28/06/2002 Manchester
  * @since 04/09/2002 Bolzano, changed
- * @since 19/01/2002 Manchester, information about 
+ * @since 19/01/2002 Manchester, information about
  *        positions and inferences added.
  * @since 23/01/2004 Manchester, changed to use non-static functions
  * @since 12/12/2004 Manchester, optimised by quantifying only over

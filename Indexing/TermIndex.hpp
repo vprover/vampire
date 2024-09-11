@@ -97,20 +97,22 @@ class DemodulationSubtermIndexImpl
 : public DemodulationSubtermIndex
 {
 public:
-  DemodulationSubtermIndexImpl(TermIndexingStructure<TermLiteralClause>* is)
-  : DemodulationSubtermIndex(is) {};
+  DemodulationSubtermIndexImpl(TermIndexingStructure<TermLiteralClause>* is, const Options& opt)
+  : DemodulationSubtermIndex(is), _opt(opt) {};
 protected:
   void handleClause(Clause* c, bool adding);
+private:
+  const Options& _opt;
 };
 
 /**
  * Term index for forward demodulation
  */
 class DemodulationLHSIndex
-: public TermIndex<TermLiteralClause>
+: public TermIndex<DemodulatorData>
 {
 public:
-  DemodulationLHSIndex(TermIndexingStructure<TermLiteralClause>* is, Ordering& ord, const Options& opt)
+  DemodulationLHSIndex(TermIndexingStructure<DemodulatorData>* is, Ordering& ord, const Options& opt)
   : TermIndex(is), _ord(ord), _opt(opt) {};
 protected:
   void handleClause(Clause* c, bool adding);

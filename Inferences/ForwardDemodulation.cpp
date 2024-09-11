@@ -80,9 +80,12 @@ void ForwardDemodulation::attach(SaturationAlgorithm* salg)
   _index=static_cast<DemodulationLHSIndex*>(
 	  _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) );
 
-  _preorderedOnly = getOptions().forwardDemodulation()==Options::Demodulation::PREORDERED;
-  _encompassing = getOptions().demodulationRedundancyCheck()==Options::DemodulationRedundancyCheck::ENCOMPASS;
-  _helper = DemodulationHelper(getOptions(), &_salg->getOrdering());
+  auto opt = getOptions();
+  _preorderedOnly = opt.forwardDemodulation()==Options::Demodulation::PREORDERED;
+  _encompassing = opt.demodulationRedundancyCheck()==Options::DemodulationRedundancyCheck::ENCOMPASS;
+  _precompiledComparison = opt.demodulationPrecompiledComparison();
+  _skipNonequationalLiterals = opt.demodulationOnlyEquational();
+  _helper = DemodulationHelper(opt, &_salg->getOrdering());
 }
 
 void ForwardDemodulation::detach()
@@ -114,6 +117,9 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
   for(unsigned li=0;li<cLen;li++) {
     Literal* lit=(*cl)[li];
     if (lit->isAnswerLiteral()) {
+      continue;
+    }
+    if (_skipNonequationalLiterals && !lit->isEquality()) {
       continue;
     }
     typename std::conditional<!combinatorySupSupport,
@@ -154,25 +160,14 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         if(lhs.isVar()){
           eqSortSubs.reset();
           TermList querySort = trm.sort();
-          TermList eqSort = SortHelper::getEqualityArgumentSort(qr.data->literal);
+          TermList eqSort = qr.data->term.sort();
           if(!eqSortSubs.match(eqSort, 0, querySort, 1)){
             continue;
           }
         }
 
-        TermList rhs=EqHelper::getOtherEqualitySide(qr.data->literal,lhs);
-        Ordering::Result argOrder = ordering.getEqualityArgumentOrder(qr.data->literal);
-        bool preordered = argOrder==Ordering::LESS || argOrder==Ordering::GREATER;
-  #if VDEBUG
-        if(preordered) {
-          if(argOrder==Ordering::LESS) {
-            ASS_EQ(rhs, *qr.data->literal->nthArgument(0));
-          }
-          else {
-            ASS_EQ(rhs, *qr.data->literal->nthArgument(1));
-          }
-        }
-  #endif
+        TermList rhs = qr.data->rhs;
+        bool preordered = qr.data->preordered;
 
         auto subs = qr.unifier;
         ASS(subs->isIdentityOnQueryWhenResultBound());
@@ -181,8 +176,14 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         Applicator applWithoutEqSort(subs.ptr());
         auto appl = lhs.isVar() ? (SubstApplicator*)&applWithEqSort : (SubstApplicator*)&applWithoutEqSort;
 
-        if (!preordered && (_preorderedOnly || !ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl,true)))) {
-          continue;
+        if (_precompiledComparison) {
+          if (!preordered && (_preorderedOnly || !ordering.isGreater(lhs,rhs,appl,const_cast<OrderingComparatorUP&>(qr.data->comparator)))) {
+            continue;
+          }
+        } else {
+          if (!preordered && (_preorderedOnly || !ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl,true)))) {
+            continue;
+          }
         }
 
         // encompassing demodulation is fine when rewriting the smaller guy
@@ -202,7 +203,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           rhsS = eqSortSubs.apply(rhsS, 0);
         }
 
-        if (redundancyCheck && !_helper.isPremiseRedundant(cl, lit, trm, rhsS, lhs, subs.ptr(), true)) {
+        if (redundancyCheck && !_helper.isPremiseRedundant(cl, lit, trm, rhsS, lhs, appl)) {
           continue;
         }
 
@@ -213,23 +214,20 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           return true;
         }
 
-        Clause* res = new(cLen) Clause(cLen,
-          SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.data->clause));
-        (*res)[0]=resLit;
+        RStack<Literal*> resLits;
+        resLits->push(resLit);
 
-        unsigned next=1;
         for(unsigned i=0;i<cLen;i++) {
           Literal* curr=(*cl)[i];
           if(curr!=lit) {
-            (*res)[next++] = curr;
+            resLits->push(curr);
           }
         }
-        ASS_EQ(next,cLen);
 
         env.statistics->forwardDemodulations++;
 
         premises = pvi( getSingletonIterator(qr.data->clause));
-        replacement = res;
+        replacement = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.data->clause));
         return true;
       }
     }

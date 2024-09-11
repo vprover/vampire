@@ -12,7 +12,10 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
+#include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/TermIterators.hpp"
+#include "Kernel/Ordering.hpp"
 
 #include "Shell/Options.hpp"
 
@@ -31,6 +34,10 @@ DemodulationHelper::DemodulationHelper(const Options& opts, const Ordering* ord)
 
 bool DemodulationHelper::redundancyCheckNeededForPremise(Clause* rwCl, Literal* rwLit, TermList rwTerm) const
 {
+  if (!_redundancyCheck) {
+    return false;
+  }
+
   if (!rwLit->isEquality() || (rwTerm!=*rwLit->nthArgument(0) && rwTerm!=*rwLit->nthArgument(1))) {
     return false;
   }
@@ -39,20 +46,54 @@ bool DemodulationHelper::redundancyCheckNeededForPremise(Clause* rwCl, Literal* 
   return !_encompassing || (rwLit->isPositive() && (rwCl->length() == 1));
 }
 
+/**
+ * Test whether the @param applicator is a renaming on the variables of @param t.
+ */
+bool isRenamingOn(const SubstApplicator* applicator, TermList t)
+{
+  DHSet<TermList> renamingDomain;
+  DHSet<TermList> renamingRange;
+
+  VariableIterator it(t);
+  while(it.hasNext()) {
+    TermList v = it.next();
+    ASS(v.isVar());
+    if (!renamingDomain.insert(v)) {
+      continue;
+    }
+
+    TermList vSubst = (*applicator)(v.var());
+    if (!vSubst.isVar()) {
+      return false;
+    }
+    if (!renamingRange.insert(vSubst)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 bool DemodulationHelper::isPremiseRedundant(Clause* rwCl, Literal* rwLit, TermList rwTerm,
-  TermList tgtTerm, TermList eqLHS, ResultSubstitution* subst, bool eqIsResult) const
+  TermList tgtTerm, TermList eqLHS, const SubstApplicator* eqApplicator) const
+{
+  Ordering::Result temp;
+  return isPremiseRedundant(rwCl, rwLit, rwTerm, tgtTerm, eqLHS, eqApplicator, temp);
+}
+
+bool DemodulationHelper::isPremiseRedundant(Clause* rwCl, Literal* rwLit, TermList rwTerm,
+  TermList tgtTerm, TermList eqLHS, const SubstApplicator* eqApplicator, Ordering::Result& tord) const
 {
   ASS(redundancyCheckNeededForPremise(rwCl, rwLit, rwTerm));
 
   TermList other=EqHelper::getOtherEqualitySide(rwLit, rwTerm);
-  Ordering::Result tord = _ord->compare(tgtTerm, other);
-  if (tord == Ordering::LESS || tord == Ordering::LESS_EQ) {
+  tord = _ord->compare(tgtTerm, other);
+  if (tord == Ordering::LESS) {
     return true;
   }
 
   if (_encompassing) {
     // under _encompassing, we know there are no other literals in rwCl
-    return !subst->isRenamingOn(eqLHS,eqIsResult);
+    return !isRenamingOn(eqApplicator,eqLHS);
   }
 
   // return early to avoid creation of eqLitS

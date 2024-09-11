@@ -38,6 +38,8 @@ public:
 protected:
   bool _preorderedOnly;
   bool _encompassing;
+  bool _precompiledComparison;
+  bool _skipNonequationalLiterals;
   DemodulationHelper _helper;
   DemodulationLHSIndex* _index;
 };

@@ -35,6 +35,7 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#include "Shell/ConditionalRedundancyHandler.hpp"
 
 #include "EqualityResolution.hpp"
 
@@ -59,8 +60,8 @@ struct EqualityResolution::IsNegativeEqualityFn
 
 struct EqualityResolution::ResultFn
 {
-  ResultFn(Clause* cl, bool afterCheck = false, Ordering* ord = nullptr)
-      : _afterCheck(afterCheck), _ord(ord), _cl(cl), _cLen(cl->length()) {}
+  ResultFn(Clause* cl, bool afterCheck = false, const ConditionalRedundancyHandler* condRedHandler = nullptr, Ordering* ord = nullptr)
+      : _afterCheck(afterCheck), _condRedHandler(condRedHandler), _ord(ord), _cl(cl), _cLen(cl->length()) {}
 
   Clause* operator() (Literal* lit)
   {
@@ -87,10 +88,8 @@ struct EqualityResolution::ResultFn
     }
 
     auto constraints = absUnif->computeConstraintLiterals();
-    auto nConstraints = constraints->size();
-    unsigned newLen=_cLen - 1 + nConstraints;
 
-    Clause* res = new(newLen) Clause(newLen, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
+    RStack<Literal*> resLits;
 
     Literal* litAfter = 0;
 
@@ -99,7 +98,6 @@ struct EqualityResolution::ResultFn
       litAfter = absUnif->subs().apply(lit, 0);
     }
 
-    unsigned next = 0;
     for(unsigned i=0;i<_cLen;i++) {
       Literal* curr=(*_cl)[i];
       if(curr!=lit) {
@@ -110,26 +108,31 @@ struct EqualityResolution::ResultFn
 
           if (i < _cl->numSelected() && _ord->compare(currAfter,litAfter) == Ordering::GREATER) {
             env.statistics->inferencesBlockedForOrderingAftercheck++;
-            res->destroy();
-            return 0;
+            return nullptr;
           }
         }
 
-        (*res)[next++] = currAfter;
+        resLits->push(currAfter);
       }
     }
-    for (auto l : *constraints) {
-      (*res)[next++] = l;
+
+    if (!absUnif->usesUwa()) {
+      if (_condRedHandler && !_condRedHandler->handleReductiveUnaryInference(_cl, &absUnif->subs())) {
+        env.statistics->skippedEqualityResolution++;
+        return nullptr;
+      }
     }
-    ASS_EQ(next,newLen);
+
+    resLits->loadFromIterator(constraints->iterFifo());
 
     env.statistics->equalityResolution++;
 
-    return res;
+    return Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
   }
 private:
   bool _afterCheck;
-  Ordering* _ord;
+  const ConditionalRedundancyHandler* _condRedHandler;
+  const Ordering* _ord;
   Clause* _cl;
   unsigned _cLen;
 };
@@ -147,7 +150,7 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
 
   auto it3 = getMappingIterator(it2,ResultFn(premise,
       getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
-      &_salg->getOrdering()));
+      &_salg->condRedHandler(), &_salg->getOrdering()));
 
   auto it4 = getFilteredIterator(it3,NonzeroFn());
 

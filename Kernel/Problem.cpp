@@ -39,7 +39,7 @@ using namespace Kernel;
  * The new object takes ownership of the list @c units.
  */
 Problem::Problem(UnitList* units)
-: _units(0), _fnDefHandler(new FunctionDefinitionHandler()), _smtlibLogic(SMTLIBLogic::SMT_UNDEFINED), _property(0)
+: _units(0), _fnDefHandler(new FunctionDefinitionHandler()), _smtlibLogic(SMTLIBLogic::UNDEFINED), _property(0)
 {
   initValues();
 
@@ -53,7 +53,7 @@ Problem::Problem(UnitList* units)
  * clauses in the iterator.
  */
 Problem::Problem(ClauseIterator clauses, bool copy)
-: _units(0), _property(0)
+: _units(0), _fnDefHandler(new FunctionDefinitionHandler()), _property(0)
 {
   initValues();
 

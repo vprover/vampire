@@ -18,7 +18,6 @@
 
 #include "Debug/RuntimeStatistics.hpp"
 
-#include "Lib/Allocator.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Timer.hpp"
 #include "SAT/Z3Interfacing.hpp"
@@ -110,6 +109,14 @@ Statistics::Statistics()
     proxyEliminations(0),
     leibnizElims(0),
     booleanSimps(0),
+    skippedSuperposition(0),
+    skippedResolution(0),
+    skippedEqualityResolution(0),
+    skippedEqualityFactoring(0),
+    skippedFactoring(0),
+    skippedInferencesDueToOrderingConstraints(0),
+    skippedInferencesDueToAvatarConstraints(0),
+    skippedInferencesDueToLiteralConstraints(0),
     duplicateLiterals(0),
     trivialInequalities(0),
     forwardSubsumptionResolution(0),
@@ -240,12 +247,6 @@ void Statistics::print(ostream& out)
     break;
   case Statistics::SATISFIABLE:
     out << "Satisfiable";
-    break;
-  case Statistics::SAT_SATISFIABLE:
-    out << "SAT Satisfiable";
-    break;
-  case Statistics::SAT_UNSATISFIABLE: 
-    out << "SAT Unsatisfiable";
     break;
   case Statistics::UNKNOWN:
     out << "Unknown";
@@ -422,6 +423,20 @@ void Statistics::print(ostream& out)
   COND_OUT("Self sub-variable superposition", selfSubVarSup);
   SEPARATOR;
 
+  HEADING("Redundant Inferences",
+    skippedSuperposition+skippedResolution+skippedEqualityResolution+skippedEqualityFactoring+
+    skippedFactoring+skippedInferencesDueToOrderingConstraints+
+    skippedInferencesDueToAvatarConstraints+skippedInferencesDueToLiteralConstraints);
+  COND_OUT("Skipped superposition", skippedSuperposition);
+  COND_OUT("Skipped resolution", skippedResolution);
+  COND_OUT("Skipped equality resolution", skippedEqualityResolution);
+  COND_OUT("Skipped equality factoring", skippedEqualityFactoring);
+  COND_OUT("Skipped factoring", skippedFactoring);
+  COND_OUT("Skipped inferences due to ordering constraints", skippedInferencesDueToOrderingConstraints);
+  COND_OUT("Skipped inferences due to AVATAR constraints", skippedInferencesDueToAvatarConstraints);
+  COND_OUT("Skipped inferences due to literal constraints", skippedInferencesDueToLiteralConstraints);
+  SEPARATOR;
+
   HEADING("Term algebra simplifications",taDistinctnessSimplifications+
       taDistinctnessTautologyDeletions+taInjectivitySimplifications+
       taAcyclicityGeneratedDisequalities+taNegativeInjectivitySimplifications);
@@ -453,13 +468,11 @@ void Statistics::print(ostream& out)
 
   }
 
-  COND_OUT("Memory used [KB]", Lib::getUsedMemory()/1024);
-
   addCommentSignForSZS(out);
   out << "Time elapsed: ";
-  Timer::printMSString(out,env.timer->elapsedMilliseconds());
+  Timer::printMSString(out,Timer::elapsedMilliseconds());
   out << endl;
-  
+
   Timer::updateInstructionCount();
   unsigned instr = Timer::elapsedMegaInstructions();
   if (instr) {
@@ -467,7 +480,7 @@ void Statistics::print(ostream& out)
     out << "Instructions burned: " << instr << " (million)";
     out << endl;
   }
-  
+
   addCommentSignForSZS(out);
   out << "------------------------------\n";
 

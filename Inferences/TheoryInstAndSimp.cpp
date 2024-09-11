@@ -87,7 +87,7 @@ Options::TheoryInstSimp manageDeprecations(Options::TheoryInstSimp mode)
   }
 }
 
-TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, vstring const& exportSmtlib) 
+TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, std::string const& exportSmtlib) 
   : _splitter(0)
   , _mode(manageDeprecations(mode))
   , _thiTautologyDeletion(thiTautologyDeletion)
@@ -563,13 +563,13 @@ Option<Substitution> TheoryInstAndSimp::instantiateGeneralised(
     }
 
     DEBUG_CODE(auto res =) _solver->solveUnderAssumptions(theoryLits, 0, false);
-    ASS_EQ(res, SATSolver::UNSATISFIABLE)
+    ASS_EQ(res, SATSolver::Status::UNSATISFIABLE)
 
     Set<TermList> usedDefs;
     for (auto& x : _solver->failedAssumptions()) {
       definitionLiterals
         .tryGet(x)
-        .andThen([&](TermList t) 
+        .andThen([&](TermList t)
             { usedDefs.insert(t); });
     }
 
@@ -650,13 +650,13 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const&
   // now we can call the solver
   SATSolver::Status status = _solver->solveUnderAssumptions(skolemized.lits, 0, false);
 
-  if(status == SATSolver::UNSATISFIABLE) {
+  if(status == SATSolver::Status::UNSATISFIABLE) {
     DEBUG("unsat")
     return pvi(getSingletonIterator(Solution::unsat()));
 
-  } else if(status == SATSolver::SATISFIABLE) {
+  } else if(status == SATSolver::Status::SATISFIABLE) {
     DEBUG("found model: ", _solver->getModel())
-    auto subst = _generalisation ? instantiateGeneralised(skolemized, freshVar) 
+    auto subst = _generalisation ? instantiateGeneralised(skolemized, freshVar)
                                  : instantiateWithModel(skolemized);
     if (subst.isSome()) {
       return pvi(getSingletonIterator(Solution(std::move(subst).unwrap())));
@@ -672,13 +672,11 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const&
 
 Clause* instantiate(Clause* original, Substitution& subst, Stack<Literal*> const& theoryLits, Splitter* splitter)
 {
-  Clause* inst = new(original->length()) Clause(original->length(),GeneratingInference1(InferenceRule::INSTANTIATION,original));
-  unsigned newLen = original->length() - theoryLits.size();
-  Clause* res = new(newLen) Clause(newLen,SimplifyingInference1(InferenceRule::INTERPRETED_SIMPLIFICATION,inst));
 
-  unsigned j=0;
-  for(unsigned i=0;i<original->length();i++){
-    Literal* lit = (*original)[i];
+  RStack<Literal*> instLits;
+  RStack<Literal*> resLits;
+
+  for (Literal* lit : original->iterLits()) {
     ASS_REP(SortHelper::areSortsValid(lit), *lit);
     Literal* lit_inst = SubstHelper::apply(lit,subst);
     SubtermIterator iter(lit_inst);
@@ -688,18 +686,17 @@ Clause* instantiate(Clause* original, Substitution& subst, Stack<Literal*> const
     }
     ASS_REP(SortHelper::areSortsValid(lit_inst), *lit_inst);
     // ASS()
-    (*inst)[i] = lit_inst;
+    instLits->push(lit_inst);
     // we implicitly remove all theoryLits as the solution makes their combination false
     if(!theoryLits.find(lit)){
-      (*res)[j] = lit_inst;
-      j++;
+      resLits->push(lit_inst);
     }
   }
-  ASS_EQ(j,newLen);
+  Clause* inst = Clause::fromStack(*instLits, GeneratingInference1(InferenceRule::INSTANTIATION,original));
   if(splitter){
     splitter->onNewClause(inst);
   }
-  return res;
+  return Clause::fromStack(*resLits, SimplifyingInference1(InferenceRule::INTERPRETED_SIMPLIFICATION,inst));
 }
 
 
@@ -723,7 +720,7 @@ struct InstanceFn
         auto skolem = parent->skolemize(iterTraits(invertedLits.iterFifo() /* without guards !! */));
         auto status = parent->_solver->solveUnderAssumptions(skolem.lits, 0, false);
         // we have an unsat solution without guards
-        redundant = status == SATSolver::UNSATISFIABLE;
+        redundant = status == SATSolver::Status::UNSATISFIABLE;
       }
 
       if (redundant) {
@@ -932,10 +929,10 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
 
   DEBUG("input:             ", *premise);
   DEBUG("selected literals: ", iterTraits(selectedLiterals.iterFifo())
-                                 .map([](Literal* l) -> vstring { return l->toString(); })
+                                 .map([](Literal* l) -> std::string { return l->toString(); })
                                  .collect<Stack>())
   DEBUG("guards:            ", iterTraits(guards.iterFifo())
-                                 .map([](Literal* l) -> vstring { return l->toString(); })
+                                 .map([](Literal* l) -> std::string { return l->toString(); })
                                  .collect<Stack>())
   TIME_TRACE(THEORY_INST_SIMP);
 

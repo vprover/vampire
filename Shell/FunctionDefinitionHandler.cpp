@@ -8,9 +8,13 @@
  * and in the source directory
  */
 
+#include <set>
+
 #include "FunctionDefinitionHandler.hpp"
 #include "Inferences/InductionHelper.hpp"
 
+#include "Kernel/FormulaUnit.hpp"
+#include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Problem.hpp"
@@ -41,10 +45,51 @@ bool canBeUsedForRewriting(Term* lhs, Clause* cl)
   return true;
 }
 
-void FunctionDefinitionHandler::initAndPreprocess(Problem& prb, const Options& opts)
+Literal* replaceDefinition(Literal* lit)
+{
+  unsigned orig_fn;
+  if (env.signature->isBoolDefPred(lit->functor(), orig_fn)) {
+    TermStack args;
+    for (unsigned i = 0; i < lit->arity(); i++) {
+      args.push(*lit->nthArgument(i));
+    }
+    return Literal::create(orig_fn, lit->arity(), lit->polarity(), false, args.begin());
+  } else if (env.signature->isFnDefPred(lit->functor())) {
+    ASS(env.signature->isFnDefPred(lit->functor()));
+    auto lhs = lit->termArg(0);
+    ASS(lhs.isTerm());
+    return Literal::createEquality(lit->polarity(), lhs, lit->termArg(1), SortHelper::getResultSort(lhs.term()));
+  }
+  return lit;
+}
+
+void FunctionDefinitionHandler::initAndPreprocessEarly(Problem& prb)
+{
+  UnitList::RefIterator it(prb.units());
+  while (it.hasNext()) {
+    auto u = it.next();
+    if (u->isClause()) {
+      auto cl = u->asClause();
+      for (unsigned i = 0; i < cl->length(); i++) {
+        (*cl)[i] = replaceDefinition((*cl)[i]);
+      }
+    } else {
+      auto f = static_cast<FormulaUnit*>(u)->formula();
+      SubformulaIterator sfit(f);
+      while (sfit.hasNext()) {
+        auto f = sfit.next();
+        if (f->connective()==Connective::LITERAL) {
+          static_cast<AtomicFormula*>(f)->setLiteral(replaceDefinition(static_cast<AtomicFormula*>(f)->getLiteral()));
+        }
+      }
+    }
+  }
+}
+
+void FunctionDefinitionHandler::initAndPreprocessLate(Problem& prb,const Options& opts)
 {
   // reset state
-  _is = new CodeTreeTIS();
+  _is = new CodeTreeTIS<TermLiteralClause>();
   _templates.reset();
 
   UnitList::DelIterator it(prb.units());
@@ -72,19 +117,7 @@ void FunctionDefinitionHandler::initAndPreprocess(Problem& prb, const Options& o
     // clause contains definitions, we need to replace them with equalities
     auto lits = condLits;
     for (const auto& lit : defLits) {
-      unsigned orig_fn;
-      if (env.signature->isBoolDefPred(lit->functor(), orig_fn)) {
-        TermStack args;
-        for (unsigned i = 0; i < lit->arity(); i++) {
-          args.push(*lit->nthArgument(i));
-        }
-        lits.push(Literal::create(orig_fn, lit->arity(), lit->polarity(), false, args.begin()));
-      } else {
-        ASS(env.signature->isFnDefPred(lit->functor()));
-        auto lhs = lit->termArg(0);
-        ASS(lhs.isTerm());
-        lits.push(Literal::createEquality(lit->polarity(), lhs, lit->termArg(1), SortHelper::getResultSort(lhs.term())));
-      }
+      lits.push(replaceDefinition(lit));
     }
     Clause* defCl = Clause::fromStack(lits, NonspecificInference1(InferenceRule::DEFINITION_UNFOLDING,u));
 
@@ -139,7 +172,7 @@ void FunctionDefinitionHandler::addFunctionBranch(Term* header, TermList body)
   _templates.getValuePtr(make_pair(fn,SymbolType::FUNC), templ, InductionTemplate(header));
 
   // handle for induction
-  vvector<Term*> recursiveCalls;
+  std::vector<Term*> recursiveCalls;
   if (body.isTerm()) {
     NonVariableNonTypeIterator it(body.term(), true);
     while (it.hasNext()) {
@@ -159,7 +192,7 @@ void FunctionDefinitionHandler::addPredicateBranch(Literal* header, const Litera
   _templates.getValuePtr(make_pair(fn,SymbolType::PRED), templ, InductionTemplate(header));
 
   // handle for induction
-  vvector<Term*> recursiveCalls;
+  std::vector<Term*> recursiveCalls;
   ASS(static_cast<Literal*>(header)->isPositive());
   for(const auto& lit : conditions) {
     if (!lit->isEquality() && fn == lit->functor()) {
@@ -181,11 +214,11 @@ bool InductionTemplate::finalize()
 
 void InductionTemplate::checkWellDefinedness()
 {
-  vvector<Term*> cases;
+  std::vector<Term*> cases;
   for (auto& b : _branches) {
     cases.push_back(b._header);
   }
-  vvector<vvector<TermList>> missingCases;
+  std::vector<std::vector<TermList>> missingCases;
   InductionPreprocessor::checkWellDefinedness(cases, missingCases);
 
   if (!missingCases.empty()) {
@@ -204,7 +237,7 @@ void InductionTemplate::checkWellDefinedness()
       } else {
         t = Term::create(_functor, _arity, args.begin());
       }
-      addBranch(vvector<Term*>(), Renaming::normalize(t));
+      addBranch(std::vector<Term*>(), Renaming::normalize(t));
     }
     if (env.options->showInduction()) {
       cout << ". New template is " << toString() << endl;
@@ -212,7 +245,7 @@ void InductionTemplate::checkWellDefinedness()
   }
 }
 
-bool InductionTemplate::matchesTerm(Term* t, vvector<Term*>& inductionTerms) const
+bool InductionTemplate::matchesTerm(Term* t, std::vector<Term*>& inductionTerms) const
 {
   ASS(t->ground());
   inductionTerms.clear();
@@ -282,7 +315,7 @@ bool InductionTemplate::checkUsefulness() const
 
 bool InductionTemplate::checkWellFoundedness()
 {
-  vvector<pair<Term*, Term*>> relatedTerms;
+  std::vector<pair<Term*, Term*>> relatedTerms;
   for (auto& b : _branches) {
     for (auto& r : b._recursiveCalls) {
       relatedTerms.push_back(make_pair(b._header, r));
@@ -304,7 +337,7 @@ InductionTemplate::InductionTemplate(const Term* t)
                  : env.signature->getFunction(_functor)->fnType()),
     _branches(), _indPos(_arity, false) {}
 
-void InductionTemplate::addBranch(vvector<Term*>&& recursiveCalls, Term* header)
+void InductionTemplate::addBranch(std::vector<Term*>&& recursiveCalls, Term* header)
 {
   ASS(header->arity() == _arity && header->isLiteral() == _isLit && header->functor() == _functor);
   Branch branch(std::move(recursiveCalls), std::move(header));
@@ -320,9 +353,9 @@ void InductionTemplate::addBranch(vvector<Term*>&& recursiveCalls, Term* header)
   _branches.push_back(std::move(branch));
 }
 
-vstring InductionTemplate::toString() const
+std::string InductionTemplate::toString() const
 {
-  vstringstream str;
+  std::stringstream str;
   str << "Branches: ";
   unsigned n = 0;
   for (const auto& b : _branches) {
@@ -361,8 +394,8 @@ vstring InductionTemplate::toString() const
  * Try to find a lexicographic order between the arguments
  * by exhaustively trying all combinations.
  */
-bool checkWellFoundednessHelper(const vvector<pair<Term*,Term*>>& relatedTerms,
-  const vset<unsigned>& indices, const vset<unsigned>& positions)
+bool checkWellFoundednessHelper(const std::vector<pair<Term*,Term*>>& relatedTerms,
+  const std::set<unsigned>& indices, const std::set<unsigned>& positions)
 {
   if (indices.empty()) {
     return true;
@@ -371,7 +404,7 @@ bool checkWellFoundednessHelper(const vvector<pair<Term*,Term*>>& relatedTerms,
     return false;
   }
   for (const auto& p : positions) {
-    vset<unsigned> newInd;
+    std::set<unsigned> newInd;
     bool canOrder = true;
     for (const auto& i : indices) {
       auto arg1 = *relatedTerms[i].first->nthArgument(p);
@@ -394,7 +427,7 @@ bool checkWellFoundednessHelper(const vvector<pair<Term*,Term*>>& relatedTerms,
   return false;
 }
 
-bool InductionPreprocessor::checkWellFoundedness(const vvector<pair<Term*,Term*>>& relatedTerms)
+bool InductionPreprocessor::checkWellFoundedness(const std::vector<pair<Term*,Term*>>& relatedTerms)
 {
   if (relatedTerms.empty()) {
     return true;
@@ -409,13 +442,13 @@ bool InductionPreprocessor::checkWellFoundedness(const vvector<pair<Term*,Term*>
   } else {
     type = env.signature->getPredicate(fn)->predType();
   }
-  vset<unsigned> positions;
+  std::set<unsigned> positions;
   for (unsigned i = 0; i < arity; i++) {
     if (env.signature->isTermAlgebraSort(type->arg(i))) {
       positions.insert(i);
     }
   }
-  vset<unsigned> indices;
+  std::set<unsigned> indices;
   for (unsigned i = 0; i < relatedTerms.size(); i++) {
     indices.insert(i);
   }
@@ -426,7 +459,7 @@ bool InductionPreprocessor::checkWellFoundedness(const vvector<pair<Term*,Term*>
  * Check well-definedness for term algebra arguments and
  * in the process generate all missing cases.
  */
-bool InductionPreprocessor::checkWellDefinedness(const vvector<Term*>& cases, vvector<vvector<TermList>>& missingCases)
+bool InductionPreprocessor::checkWellDefinedness(const std::vector<Term*>& cases, std::vector<std::vector<TermList>>& missingCases)
 {
   if (cases.empty()) {
     return false;
@@ -469,13 +502,13 @@ bool InductionPreprocessor::checkWellDefinedness(const vvector<Term*>& cases, vv
 
   for (const auto& availableTerms : availableTermsLists) {
     bool valid = true;
-    vvector<vvector<TermList>> argTuples(1);
+    std::vector<std::vector<TermList>> argTuples(1);
     for (const auto& v : availableTerms) {
       if (v.isEmpty()) {
         valid = false;
         break;
       }
-      vvector<vvector<TermList>> temp;
+      std::vector<std::vector<TermList>> temp;
       for (const auto& e : v) {
         for (auto a : argTuples) {
           a.push_back(e);

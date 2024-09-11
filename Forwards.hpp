@@ -15,12 +15,11 @@
 #ifndef __Forwards__
 #define __Forwards__
 
-#include "Lib/VString.hpp"
+#include <memory>
 
 namespace Lib
 {
 struct EmptyStruct {};
-typedef void (*VoidFunc)();
 
 template<typename T> class VirtualIterator;
 
@@ -36,8 +35,7 @@ template<typename T> class List;
 template<typename T> class SharedSet;
 
 typedef List<int> IntList;
-typedef Stack<vstring> StringStack;
-typedef List<VoidFunc> VoidFuncList;
+typedef Stack<std::string> StringStack;
 
 class DefaultHash;
 class DefaultHash2;
@@ -47,8 +45,6 @@ template <typename Key, typename Val, class Hash1=DefaultHash, class Hash2=Defau
 template <typename Val, class Hash1=DefaultHash, class Hash2=DefaultHash2> class DHSet;
 template <typename Val, class Hash1=DefaultHash, class Hash2=DefaultHash2> class DHMultiset;
 template <typename Val, class Hash=DefaultHash> class Set;
-
-class Timer;
 };
 
 namespace Kernel
@@ -62,6 +58,7 @@ class TermList;
 typedef VirtualIterator<TermList> TermIterator;
 typedef Stack<TermList> TermStack;
 
+struct SubstApplicator;
 struct AppliedTerm;
 
 typedef List<unsigned> VList; // a list of variables (which are unsigned)
@@ -109,6 +106,8 @@ class LiteralSelector;
 
 class Ordering;
 typedef Lib::SmartPtr<Ordering> OrderingSP;
+struct OrderingComparator;
+typedef std::unique_ptr<const OrderingComparator> OrderingComparatorUP;
 
 typedef unsigned SplitLevel;
 typedef const SharedSet<SplitLevel> SplitSet;
@@ -192,5 +191,7 @@ class Options;
 class Property;
 class Statistics;
 class FunctionDefinitionHandler;
+class ConditionalRedundancyHandler;
+struct ConditionalRedundancyEntry;
 }
 #endif /* __Forwards__ */

@@ -48,9 +48,6 @@ Environment::Environment()
 {
   options = new Options;
 
-  // statistics calls the timer
-  timer = Timer::instance();
-
   statistics = new Statistics;
   signature = new Signature;
   sharing = new TermSharing;
@@ -71,32 +68,12 @@ Environment::Environment()
 
 Environment::~Environment()
 {
-  Timer::setLimitEnforcement(false);
-
-// #if CHECK_LEAKS
   delete sharing;
   delete signature;
   delete statistics;
   if (predicateSineLevels) delete predicateSineLevels;
   delete options;
-// #endif
 }
-
-/**
- * If the global time limit reached set Statistics::terminationReason
- * to TIME_LIMIT and return true, otherwise return false.
- * @since 25/03/2008 Torrevieja
- */
-bool Environment::timeLimitReached() const
-{
-  if (options->timeLimitInDeciseconds() &&
-      timer->elapsedDeciseconds() > options->timeLimitInDeciseconds()) {
-    statistics->terminationReason = Shell::Statistics::TIME_LIMIT;
-    Timer::setLimitEnforcement(false);
-    return true;
-  }
-  return false;
-} // Environment::timeLimitReached
 
 /**
  * Return remaining time in miliseconds.
@@ -107,7 +84,7 @@ int Environment::remainingTime() const
   if(options->timeLimitInDeciseconds() == 0){
     return 3600000;
   }
-  return options->timeLimitInDeciseconds()*100 - timer->elapsedMilliseconds();
+  return options->timeLimitInDeciseconds()*100 - Timer::elapsedMilliseconds();
 }
 
 // global environment object, constructed before main() and used everywhere

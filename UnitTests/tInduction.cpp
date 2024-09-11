@@ -9,6 +9,8 @@
  */
 
 
+#include <unordered_set>
+
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Test/TestUtils.hpp"
@@ -183,7 +185,7 @@ private:
   }
 
   Kernel::RobSubstitution _subst;
-  unordered_set<unsigned> _varsMatched;
+  std::unordered_set<unsigned> _varsMatched;
   BacktrackData _btd;
 
   class MatchedVarBacktrackObject : public BacktrackObject {
@@ -1130,7 +1132,7 @@ TEST_GENERATION_INDUCTION(test_33,
 //
 
 auto setup = [](SaturationAlgorithm& salg) {
-  salg.getFunctionDefinitionHandler().initAndPreprocess(salg.getProblem(),salg.getOptions());
+  salg.getFunctionDefinitionHandler().initAndPreprocessLate(salg.getProblem(),salg.getOptions());
 };
 
 ClauseStack fnDefContext() {

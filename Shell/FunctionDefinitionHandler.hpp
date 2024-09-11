@@ -19,7 +19,6 @@
 #include "Indexing/CodeTreeInterfaces.hpp"
 #include "Kernel/TermTransformer.hpp"
 #include "TermAlgebra.hpp"
-#include "Lib/STL.hpp"
 
 namespace Shell {
 
@@ -37,10 +36,10 @@ struct InductionTemplate {
   InductionTemplate() = default;
   InductionTemplate(const Term* t);
 
-  void addBranch(vvector<Term*>&& recursiveCalls, Term* header);
+  void addBranch(std::vector<Term*>&& recursiveCalls, Term* header);
   bool finalize();
-  const vvector<bool>& inductionPositions() const { return _indPos; }
-  bool matchesTerm(Term* t, vvector<Term*>& inductionTerms) const;
+  const std::vector<bool>& inductionPositions() const { return _indPos; }
+  bool matchesTerm(Term* t, std::vector<Term*>& inductionTerms) const;
 
   /**
    * Stores the template for a recursive case
@@ -50,18 +49,18 @@ struct InductionTemplate {
    *   (if not present it is a base case)
    */
   struct Branch {
-    Branch(vvector<Term*>&& recursiveCalls, Term*&& header)
+    Branch(std::vector<Term*>&& recursiveCalls, Term*&& header)
       : _recursiveCalls(recursiveCalls), _header(header) {}
 
     bool contains(const Branch& other) const;
 
-    vvector<Term*> _recursiveCalls;
+    std::vector<Term*> _recursiveCalls;
     Term* _header;
   };
 
-  const vvector<Branch>& branches() const { return _branches; }
+  const std::vector<Branch>& branches() const { return _branches; }
 
-  vstring toString() const;
+  std::string toString() const;
 
   unsigned _functor;
   unsigned _arity;
@@ -73,8 +72,8 @@ private:
   bool checkWellFoundedness();
   void checkWellDefinedness();
 
-  vvector<Branch> _branches;
-  vvector<bool> _indPos;
+  std::vector<Branch> _branches;
+  std::vector<bool> _indPos;
 };
 
 class FunctionDefinitionHandler
@@ -82,8 +81,17 @@ class FunctionDefinitionHandler
 public:
   USE_ALLOCATOR(FunctionDefinitionHandler);
 
+  bool static isHandlerEnabled(const Options& opts)
+  {
+    return opts.functionDefinitionRewriting() ||
+      opts.inductionOnActiveOccurrences() ||
+      opts.structInduction()==Options::StructuralInductionKind::RECURSION;
+  }
+
   /* has to be called before using other functionality of the handler */
-  void initAndPreprocess(Problem& prb, const Options& opts);
+  void initAndPreprocessEarly(Problem& prb);
+  void initAndPreprocessLate(Problem& prb,const Options& opts);
+
   void addFunctionBranch(Term* header, TermList body);
   void addPredicateBranch(Literal* header, const LiteralStack& conditions);
 
@@ -102,7 +110,7 @@ public:
   }
 
 private:
-  ScopedPtr<CodeTreeTIS> _is;
+  ScopedPtr<CodeTreeTIS<TermLiteralClause>> _is;
   DHMap<std::pair<unsigned, SymbolType>, InductionTemplate> _templates;
 };
 
@@ -111,8 +119,8 @@ private:
  * the marked recursive function definitions from the parser.
  */
 struct InductionPreprocessor {
-  static bool checkWellFoundedness(const vvector<std::pair<Term*,Term*>>& relatedTerms);
-  static bool checkWellDefinedness(const vvector<Term*>& cases, vvector<vvector<TermList>>& missingCases);
+  static bool checkWellFoundedness(const std::vector<std::pair<Term*,Term*>>& relatedTerms);
+  static bool checkWellDefinedness(const std::vector<Term*>& cases, std::vector<std::vector<TermList>>& missingCases);
 };
 
 } // Shell

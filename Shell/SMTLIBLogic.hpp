@@ -21,59 +21,67 @@ namespace Shell {
   * (I/R)DL - difference logic - we don't treat specially (fragment of L(I/R)A)
   * UF - uninterpreted function = first order we know and love
   * DT - datatypes (term algebras)
+  *
+  * https://en.wikipedia.org/wiki/X_macro
   */
-enum SMTLIBLogic {
-  SMT_ALIA,
-  SMT_ALL,
-  SMT_ANIA,
-  SMT_AUFDTLIA,
-  SMT_AUFDTLIRA,
-  SMT_AUFDTNIRA,
-  SMT_AUFNIA,
-  SMT_AUFLIA,
-  SMT_AUFLIRA,
-  SMT_AUFNIRA,
-  SMT_BV,
-  SMT_LIA,
-  SMT_LRA,
-  SMT_NIA,
-  SMT_NRA,
-  SMT_QF_ABV,
-  SMT_QF_ALIA,
-  SMT_QF_ANIA,
-  SMT_QF_AUFBV,
-  SMT_QF_AUFLIA,
-  SMT_QF_AUFNIA,
-  SMT_QF_AX,
-  SMT_QF_BV,
-  SMT_QF_IDL,
-  SMT_QF_LIA,
-  SMT_QF_LIRA,
-  SMT_QF_LRA,
-  SMT_QF_NIA,
-  SMT_QF_NIRA,
-  SMT_QF_NRA,
-  SMT_QF_RDL,
-  SMT_QF_UF,
-  SMT_QF_UFBV,
-  SMT_QF_UFIDL,
-  SMT_QF_UFLIA,
-  SMT_QF_UFLRA,
-  SMT_QF_UFNIA,
-  SMT_QF_UFNRA,
-  SMT_UF,
-  SMT_UFBV,
-  SMT_UFDT,
-  SMT_UFDTLIA,
-  SMT_UFDTLIRA,
-  SMT_UFDTNIA,
-  SMT_UFDTNIRA,
-  SMT_UFIDL,
-  SMT_UFLIA,
-  SMT_UFLRA,
-  SMT_UFNIA,
-  SMT_UNDEFINED
+
+#define SMTLIBLogic_X\
+  X(ALIA)\
+  X(ALL)\
+  X(ANIA)\
+  X(AUFDTLIA)\
+  X(AUFDTLIRA)\
+  X(AUFDTNIRA)\
+  X(AUFLIA)\
+  X(AUFLIRA)\
+  X(AUFNIA)\
+  X(AUFNIRA)\
+  X(BV)\
+  X(LIA)\
+  X(LRA)\
+  X(NIA)\
+  X(NRA)\
+  X(QF_ABV)\
+  X(QF_ALIA)\
+  X(QF_ANIA)\
+  X(QF_AUFBV)\
+  X(QF_AUFLIA)\
+  X(QF_AUFNIA)\
+  X(QF_AX)\
+  X(QF_BV)\
+  X(QF_IDL)\
+  X(QF_LIA)\
+  X(QF_LIRA)\
+  X(QF_LRA)\
+  X(QF_NIA)\
+  X(QF_NIRA)\
+  X(QF_NRA)\
+  X(QF_RDL)\
+  X(QF_UF)\
+  X(QF_UFBV)\
+  X(QF_UFIDL)\
+  X(QF_UFLIA)\
+  X(QF_UFLRA)\
+  X(QF_UFNIA)\
+  X(QF_UFNRA)\
+  X(UF)\
+  X(UFBV)\
+  X(UFDT)\
+  X(UFDTLIA)\
+  X(UFDTLIRA)\
+  X(UFDTNIA)\
+  X(UFDTNIRA)\
+  X(UFIDL)\
+  X(UFLIA)\
+  X(UFLRA)\
+  X(UFNIA)\
+  X(UNDEFINED)
+
+#define X(N) N,
+enum class SMTLIBLogic {
+  SMTLIBLogic_X
 };
+#undef X
 
 }
 

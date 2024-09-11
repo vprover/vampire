@@ -95,23 +95,20 @@ bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIt
       }
       */
 
-      Clause* res = new(clen) Clause(clen, SimplifyingInference2(InferenceRule::FORWARD_LITERAL_REWRITING, cl, premise));
+      RStack<Literal*> resLits;
 
-      (*res)[0]=rhsS;
+      resLits->push(rhsS);
 
-      unsigned next=1;
-      for(unsigned i=0;i<clen;i++) {
-  Literal* curr=(*cl)[i];
-  if(curr!=lit) {
-    (*res)[next++] = curr;
-  }
+      for(Literal* curr : cl->iterLits()) {
+        if(curr!=lit) {
+          resLits->push(curr);
+        }
       }
-      ASS_EQ(next,clen);
 
       env.statistics->forwardLiteralRewrites++;
 
       premises = pvi( getSingletonIterator(premise));
-      replacement = res;
+      replacement = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_LITERAL_REWRITING, cl, premise));
       return true;
     }
   }

@@ -60,7 +60,11 @@ ss!=off > st ~cat -1.0:50,1.0:150,1.5:37,2.0:60,2.5:20,3.0:70,3.5:15,4.0:60,4.5:
 # SATURATION
 
 # saturation_algorithms
-> sa     ~cat lrs:600,discount:572,otter:236
+> sa ~cat lrs:600,discount:572,otter:236
+
+# lrs_first_time_check
+> $lftc ~cat N:5,Y:1
+sa=lrs $lftc=Y > lftc ~ui 5,95
 
 # literal selection
 > $s_pos ~cat Y:4,N:1
@@ -191,6 +195,12 @@ fd!=off > $drc ~cat 1:1
 bd!=off > $drc ~cat 1:1
 $drc=1 > drc ~cat encompass:500,on:500,off:354
 
+# demodulation_precompiled_comparison
+$drc=1 > dpc ~cat on:1,off:1
+
+# demodulation_only_equational
+$drc=1 > doe ~cat on:1,off:1
+
 # forward_literal_rewriting
 > flr ~cat off:8,on:1
 
@@ -256,6 +266,18 @@ $s2a=on > s2at ~cat -1.0:50,1.0:150,1.5:37,2.0:60,2.5:20,3.0:70,3.5:15,4.0:60,4.
 
 # AVATAR
 > av ~cat on:15,off:4
+
+# conditional_redundancy_check
+> crc ~cat on:3,off:5
+
+# conditional_redundancy_ordering_constraints
+crc=on > croc ~cat on:1,off:1
+
+# conditional_redundancy_avatar_constraints
+av=on crc=on > crac ~cat on:1,off:1
+
+# conditional_redundancy_literal_constraints
+crc=on > crlc ~cat on:1,off:1
 
 # avatar_add_complementary
 av=on > aac ~cat none:147,ground:600

@@ -80,6 +80,8 @@ void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c
     return;
   }
 
+  bool skipNonequationalLiterals = _opt.demodulationOnlyEquational();
+
   unsigned cLen=c->length();
   for (unsigned i=0; i<cLen; i++) {
     // it is true (as stated below) that inserting only once per clause would be sufficient
@@ -89,6 +91,9 @@ void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c
     inserted.reset();
     Literal* lit=(*c)[i];
     if (lit->isAnswerLiteral()) {
+      continue;
+    }
+    if (skipNonequationalLiterals && !lit->isEquality()) {
       continue;
     }
     typename std::conditional<!combinatorySupSupport,
@@ -126,10 +131,22 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
   TIME_TRACE("forward demodulation index maintenance");
 
   Literal* lit=(*c)[0];
-  auto lhsi = EqHelper::getDemodulationLHSIterator(lit,
-                    _opt.forwardDemodulation()== Options::Demodulation::PREORDERED, _ord);
+  auto [lhsi, preordered] = EqHelper::getDemodulationLHSIterator(
+      lit, _opt.forwardDemodulation()== Options::Demodulation::PREORDERED, _ord);
+
   while (lhsi.hasNext()) {
-    _is->handle(TermLiteralClause{ lhsi.next(), lit, c }, adding);
+    auto lhs = lhsi.next();
+
+    // DemodulatorData expects lhs and rhs to be normalized
+    Renaming r;
+    r.normalizeVariables(lhs);
+
+    DemodulatorData dd(
+      TypedTermList(r.apply(lhs),r.apply(lhs.sort())),
+      r.apply(EqHelper::getOtherEqualitySide(lit, lhs)),
+      c, preordered, _ord
+    );
+    _is->handle(std::move(dd), adding);
   }
 }
 
@@ -197,12 +214,10 @@ void UpwardChainingLHSIndex::handleClause(Clause* c, bool adding)
     }
   } else {
     switch (_ord.getEqualityArgumentOrder(lit)) {
-      case Ordering::LESS_EQ:
       case Ordering::LESS: {
         _is->handle(TermLiteralClause{ TypedTermList(lit->termArg(1), SortHelper::getEqualityArgumentSort(lit)), lit, c }, adding);
         break;
       }
-      case Ordering::GREATER_EQ:
       case Ordering::GREATER: {
         _is->handle(TermLiteralClause{ TypedTermList(lit->termArg(0), SortHelper::getEqualityArgumentSort(lit)), lit, c }, adding);
         break;
@@ -232,7 +247,7 @@ void UpwardChainingSubtermIndex::handleClause(Clause* c, bool adding)
   if (_left) {
     auto comp = _ord.getEqualityArgumentOrder(lit);
     ASS(comp != Ordering::INCOMPARABLE && comp != Ordering::EQUAL);
-    auto t = lit->termArg((comp == Ordering::LESS || comp == Ordering::LESS_EQ) ? 0 : 1);
+    auto t = lit->termArg(comp == Ordering::LESS ? 0 : 1);
     if (t.isVar()) {
       return;
     }

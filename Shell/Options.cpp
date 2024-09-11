@@ -19,6 +19,16 @@
  * IMPORTANT --> see .hpp file for instructions on how to add an option
  */
 
+/* this translation unit causes the optimiser to take a very long time,
+ * but it's not really performance-critical code:
+ * disable optimisation for this file with various compilers */
+#if defined(__clang__)
+#pragma clang optimize off
+#elif defined(__GNUC__)
+#pragma GCC optimize 0
+#endif
+
+
 // Visual does not know the round function
 #include <cmath>
 #include <filesystem>
@@ -29,10 +39,8 @@
 
 #include "Debug/Assertion.hpp"
 
-#include "Lib/VString.hpp"
 #include "Lib/StringUtils.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Timer.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Random.hpp"
@@ -85,7 +93,7 @@ void Options::init()
                                        131072   // 128 GB (current max on the StarExecs)
 #endif
                                        );
-    _memoryLimit.description="Memory limit in MB";
+    _memoryLimit.description="Attempt to limit memory use (in MB). Limits less than 20MB are ignored to allow Vampire to start. Known not to work on MacOS for mysterious reasons: https://forums.developer.apple.com/forums/thread/702803";
     _lookup.insert(&_memoryLimit);
 
 #if VAMPIRE_PERF_EXISTS
@@ -154,10 +162,12 @@ void Options::init()
 
     _schedule = ChoiceOptionValue<Schedule>("schedule","sched",Schedule::CASC,
         {"casc",
+         "casc_2024",
          "casc_2023",
          "casc_2019",
          "casc_sat",
-         "casc_hol_2023",
+         "casc_sat_2024",
+         "casc_sat_2023",
          "casc_sat_2019",
          "casc_hol_2020",
          "file",
@@ -210,7 +220,7 @@ void Options::init()
     _encode.tag(OptionTag::DEVELOPMENT);
 
     _sampleStrategy = StringOptionValue("sample_strategy","","");
-    _sampleStrategy.description = "Specify a path to a filename (of homemade format) describing how to sample a random strategy (incompatible with the --random_strategy way).";
+    _sampleStrategy.description = "Specify a path to a filename (of homemade format) describing how to sample a random strategy.";
     _lookup.insert(&_sampleStrategy);
     _sampleStrategy.reliesOn(_mode.is(equal(Mode::VAMPIRE)));
     _sampleStrategy.setExperimental();
@@ -272,7 +282,7 @@ void Options::init()
     _badOption.description = "What should be done if a bad option value (wrt hard and soft constraints) is encountered:\n"
        " - hard: will cause a user error\n"
        " - soft: will only report the error (unless it is unsafe)\n"
-       " - forced: <under development> \n" 
+       " - forced: <under development> \n"
        " - off: will ignore safe errors\n"
        "Note that unsafe errors will always lead to a user error";
     _lookup.insert(&_badOption);
@@ -291,7 +301,7 @@ void Options::init()
       "- proofcheck will output proof as a sequence of TPTP problems to allow for proof-checking by external solvers\n"
       "- tptp gives TPTP output\n"
       "- property is a developmental option. It allows developers to output statistics about the proof using a ProofPrinter "
-      "object (see Kernel/InferenceStore::ProofPropertyPrinter\n"; 
+      "object (see Kernel/InferenceStore::ProofPropertyPrinter\n";
     _lookup.insert(&_proof);
     _proof.tag(OptionTag::OUTPUT);
 
@@ -309,7 +319,7 @@ void Options::init()
 
     _proofExtra = ChoiceOptionValue<ProofExtra>("proof_extra","",ProofExtra::OFF,{"off","free","full"});
     _proofExtra.description="Add extra detail to proofs:\n "
-      "- free uses known information only\n" 
+      "- free uses known information only\n"
       "- full may perform expensive operations to achieve this so may"
       " significantly impact on performance.\n"
       " The option is still under development and the format of extra information (mainly from full) may change between minor releases";
@@ -341,7 +351,7 @@ void Options::init()
 
     _ignoreMissingInputsInUnsatCore = BoolOptionValue("ignore_missing_inputs_in_unsat_core","",false);
     _ignoreMissingInputsInUnsatCore.description="When running in unsat core output mode we will complain if there is"
-    " an input formula that has no label. Set this on if you don't want this behaviour (which is default in smt-comp)."; 
+    " an input formula that has no label. Set this on if you don't want this behaviour (which is default in smt-comp).";
     _lookup.insert(&_ignoreMissingInputsInUnsatCore);
     _ignoreMissingInputsInUnsatCore.tag(OptionTag::OUTPUT);
 
@@ -710,6 +720,21 @@ void Options::init()
     _lookup.insert(&_showSimplOrdering);
     _showSimplOrdering.tag(OptionTag::OUTPUT);
 
+#if VAMPIRE_CLAUSE_TRACING
+
+    _traceBackward = IntOptionValue("trace_bwd","",0);
+    _traceBackward.description = "The id of a clause you want to see all predecesors (unites used to derive the clause).";
+    _lookup.insert(&_traceBackward);
+    _traceBackward.tag(OptionTag::OUTPUT);
+
+    _traceForward = IntOptionValue("trace_fwd","",-1);
+    _traceForward.description = "The id of a clause you want to see all consequences of.";
+    _lookup.insert(&_traceForward);
+    _traceForward.tag(OptionTag::OUTPUT);
+
+#endif // VAMPIRE_CLAUSE_TRACING
+
+
     _manualClauseSelection = BoolOptionValue("manual_cs","",false);
     _manualClauseSelection.description="Run Vampire interactively by manually picking the clauses to be selected";
     _lookup.insert(&_manualClauseSelection);
@@ -827,10 +852,10 @@ void Options::init()
     _fmbDetectSortBounds.addHardConstraint(If(equal(true)).then(_fmbAdjustSorts.is(notEqual(FMBAdjustSorts::FUNCTION))));
     _fmbDetectSortBounds.tag(OptionTag::FMB);
 
-    _fmbDetectSortBoundsTimeLimit = UnsignedOptionValue("fmb_detect_sort_bounds_time_limit","fmbdsbt",1);
-    _fmbDetectSortBoundsTimeLimit.description = "The time limit (in seconds) for performing sort bound detection";
+    _fmbDetectSortBoundsTimeLimit = TimeLimitOptionValue("fmb_detect_sort_bounds_time_limit","fmbdsbt",10);
+    _fmbDetectSortBoundsTimeLimit.description = "The time limit for performing sort bound detection";
     _lookup.insert(&_fmbDetectSortBoundsTimeLimit);
-    _fmbDetectSortBoundsTimeLimit.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
+    _fmbDetectSortBoundsTimeLimit.onlyUsefulWith(_fmbDetectSortBounds.is(equal(true)));
     _fmbDetectSortBoundsTimeLimit.tag(OptionTag::FMB);
 
     _fmbSizeWeightRatio = UnsignedOptionValue("fmb_size_weight_ratio","fmbswr",1);
@@ -1017,8 +1042,8 @@ void Options::init()
     _positiveLiteralSplitQueueLayeredArrangement.tag(OptionTag::SATURATION);
 
     _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",false);
-    _literalMaximalityAftercheck.description = 
-                                   "For efficiency we perform maximality checks before applying substitutions. Sometimes this can " 
+    _literalMaximalityAftercheck.description =
+                                   "For efficiency we perform maximality checks before applying substitutions. Sometimes this can "
                                    "lead to generating more clauses than needed for completeness. Set this on to add the checks "
                                    "afterwards as well.";
     _lookup.insert(&_literalMaximalityAftercheck);
@@ -1070,7 +1095,7 @@ void Options::init()
       _sineToPredLevels.is(notEqual(PredicateSineLevels::OFF)),
       _useSineLevelSplitQueues.is(equal(true))));
 
-    _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",5);
+    _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","lftc",5);
     _lrsFirstTimeCheck.description=
     "Percentage of time limit at which the LRS algorithm will for the first time estimate the number of reachable clauses.";
     _lookup.insert(&_lrsFirstTimeCheck);
@@ -1188,7 +1213,7 @@ void Options::init()
     _inequalityNormalization.addProblemConstraint(hasTheories());
     _inequalityNormalization.tag(OptionTag::THEORIES);
 
-    auto choiceArithmeticSimplificationMode = [&](vstring l, vstring s, ArithmeticSimplificationMode d)
+    auto choiceArithmeticSimplificationMode = [&](std::string l, std::string s, ArithmeticSimplificationMode d)
     { return ChoiceOptionValue<ArithmeticSimplificationMode>(l,s,d, {"force", "cautious", "off", }); };
     _cancellation = choiceArithmeticSimplificationMode(
        "cancellation", "canc",
@@ -1568,6 +1593,25 @@ void Options::init()
     _demodulationRedundancyCheck.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
     _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
 
+    _demodulationPrecompiledComparison = BoolOptionValue("demodulation_precompiled_comparison","dpc",false);
+    _demodulationPrecompiledComparison.description=
+       "Precompiles ordering constraints on unorientable demodulators which results in less overhead when actually comparing.";
+    _lookup.insert(&_demodulationPrecompiledComparison);
+    _demodulationPrecompiledComparison.tag(OptionTag::INFERENCES);
+    _demodulationPrecompiledComparison.onlyUsefulWith(ProperSaturationAlgorithm());
+    _demodulationPrecompiledComparison.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
+    _demodulationPrecompiledComparison.addProblemConstraint(hasEquality());
+
+    _demodulationOnlyEquational = BoolOptionValue("demodulation_only_equational","doe",false);
+    _demodulationOnlyEquational.description=
+       "Disables demodulation of non-equational literals. In combination with -ins > 0 simulates the effect of Waldmeister's `Enlarging the Hypothesis` trick.";
+    _lookup.insert(&_demodulationOnlyEquational);
+    _demodulationOnlyEquational.setExperimental();
+    _demodulationOnlyEquational.tag(OptionTag::INFERENCES);
+    _demodulationOnlyEquational.onlyUsefulWith(ProperSaturationAlgorithm());
+    _demodulationOnlyEquational.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
+    _demodulationOnlyEquational.addProblemConstraint(hasEquality());
+
     _extensionalityAllowPosEq = BoolOptionValue( "extensionality_allow_pos_eq","erape",false);
     _extensionalityAllowPosEq.description="If extensionality resolution equals filter, this dictates"
       " whether we allow other positive equalities when recognising extensionality clauses";
@@ -1712,6 +1756,36 @@ void Options::init()
     _equationalTautologyRemoval.onlyUsefulWith(ProperSaturationAlgorithm());
     _equationalTautologyRemoval.tag(OptionTag::INFERENCES);
 
+    _conditionalRedundancyCheck = BoolOptionValue("conditional_redundancy_check","crc",false);
+    _conditionalRedundancyCheck.description=
+      "Skip generating inferences on clause instances on which we already performed a simplifying inference.";
+    _lookup.insert(&_conditionalRedundancyCheck);
+    _conditionalRedundancyCheck.onlyUsefulWith(ProperSaturationAlgorithm());
+    _conditionalRedundancyCheck.onlyUsefulWith(_unificationWithAbstraction.is(equal(UnificationWithAbstraction::OFF)));
+    _conditionalRedundancyCheck.tag(OptionTag::INFERENCES);
+
+    _conditionalRedundancyOrderingConstraints = BoolOptionValue("conditional_redundancy_ordering_constraints","croc",false);
+    _conditionalRedundancyOrderingConstraints.description=
+      "Strengthen conditional redundancy with ordering constraints.";
+    _lookup.insert(&_conditionalRedundancyOrderingConstraints);
+    _conditionalRedundancyOrderingConstraints.onlyUsefulWith(_conditionalRedundancyCheck.is(equal(true)));
+    _conditionalRedundancyOrderingConstraints.tag(OptionTag::INFERENCES);
+
+    _conditionalRedundancyAvatarConstraints = BoolOptionValue("conditional_redundancy_avatar_constraints","crac",false);
+    _conditionalRedundancyAvatarConstraints.description=
+      "Strengthen conditional redundancy with AVATAR constraints.";
+    _lookup.insert(&_conditionalRedundancyAvatarConstraints);
+    _conditionalRedundancyAvatarConstraints.onlyUsefulWith(_conditionalRedundancyCheck.is(equal(true)));
+    _conditionalRedundancyAvatarConstraints.onlyUsefulWith(_splitting.is(equal(true)));
+    _conditionalRedundancyAvatarConstraints.tag(OptionTag::INFERENCES);
+
+    _conditionalRedundancyLiteralConstraints = BoolOptionValue("conditional_redundancy_literal_constraints","crlc",false);
+    _conditionalRedundancyLiteralConstraints.description=
+      "Strengthen conditional redundancy with literals from clauses.";
+    _lookup.insert(&_conditionalRedundancyLiteralConstraints);
+    _conditionalRedundancyLiteralConstraints.onlyUsefulWith(_conditionalRedundancyCheck.is(equal(true)));
+    _conditionalRedundancyLiteralConstraints.tag(OptionTag::INFERENCES);
+
     _unitResultingResolution = ChoiceOptionValue<URResolution>("unit_resulting_resolution","urr",URResolution::OFF,{"ec_only","off","on","full"});
     _unitResultingResolution.description=
     "Uses unit resulting resolution only to derive empty clauses (may be useful for splitting)."
@@ -1753,7 +1827,7 @@ void Options::init()
     _lookup.insert(&_combinatorySuperposition);
     _combinatorySuperposition.addProblemConstraint(hasHigherOrder());
     _combinatorySuperposition.onlyUsefulWith(_addCombAxioms.is(equal(false))); //no point having two together
-    _combinatorySuperposition.onlyUsefulWith(ProperSaturationAlgorithm());    
+    _combinatorySuperposition.onlyUsefulWith(ProperSaturationAlgorithm());
     _combinatorySuperposition.tag(OptionTag::HIGHER_ORDER);
 
     _choiceAxiom = BoolOptionValue("choice_ax","cha",false);
@@ -1765,20 +1839,20 @@ void Options::init()
     _choiceReasoning = BoolOptionValue("choice_reasoning","chr",false);
     _choiceReasoning.description="Reason about choice by adding relevant instances of the axiom";
     _lookup.insert(&_choiceReasoning);
-    _choiceReasoning.addProblemConstraint(hasHigherOrder());    
+    _choiceReasoning.addProblemConstraint(hasHigherOrder());
     _choiceReasoning.onlyUsefulWith(_choiceAxiom.is(equal(false))); //no point having two together
     _choiceReasoning.tag(OptionTag::HIGHER_ORDER);
 
     _priortyToLongReducts = BoolOptionValue("priority_to_long_reducts","ptlr",false);
     _priortyToLongReducts.description="give priority to clauses produced by lengthy reductions";
     _lookup.insert(&_priortyToLongReducts);
-    _priortyToLongReducts.addProblemConstraint(hasHigherOrder());        
+    _priortyToLongReducts.addProblemConstraint(hasHigherOrder());
     _priortyToLongReducts.tag(OptionTag::HIGHER_ORDER);
 
     _injectivity = BoolOptionValue("injectivity","inj",false);
     _injectivity.description="Attempts to identify injective functions and postulates a left-inverse";
     _lookup.insert(&_injectivity);
-    _injectivity.addProblemConstraint(hasHigherOrder());            
+    _injectivity.addProblemConstraint(hasHigherOrder());
     _injectivity.tag(OptionTag::HIGHER_ORDER);
 
     _pragmatic = BoolOptionValue("pragmatic","prag",false);
@@ -1792,11 +1866,11 @@ void Options::init()
     _maximumXXNarrows.description="Maximum number of BXX', CXX' and SXX' narrows that"
                                   "can be carried out 0 means that there is no limit. ";
     _lookup.insert(&_maximumXXNarrows);
-    _maximumXXNarrows.addProblemConstraint(hasHigherOrder());    
+    _maximumXXNarrows.addProblemConstraint(hasHigherOrder());
     _maximumXXNarrows.tag(OptionTag::HIGHER_ORDER);
 
     // TODO we have two ways of enabling function extensionality abstraction atm:
-    // this option, and `-uwa`. 
+    // this option, and `-uwa`.
     // We should sort this out before merging into master.
     _functionExtensionality = ChoiceOptionValue<FunctionExtensionality>("func_ext","fe",FunctionExtensionality::ABSTRACTION,
                                                                           {"off", "axiom", "abstraction"});
@@ -1815,7 +1889,7 @@ void Options::init()
                                                                           "off"});
     _clausificationOnTheFly.description="Various options linked to clausification on the fly";
     _lookup.insert(&_clausificationOnTheFly);
-    _clausificationOnTheFly.addProblemConstraint(hasHigherOrder());    
+    _clausificationOnTheFly.addProblemConstraint(hasHigherOrder());
     _clausificationOnTheFly.tag(OptionTag::HIGHER_ORDER);
 
 
@@ -1826,7 +1900,7 @@ void Options::init()
                                                                         "small_set"});
     _piSet.description="Controls the set of equations to use in primitive instantiation";
     _lookup.insert(&_piSet);
-    _piSet.addProblemConstraint(hasHigherOrder());     
+    _piSet.addProblemConstraint(hasHigherOrder());
     _piSet.tag(OptionTag::HIGHER_ORDER);
 
 
@@ -1854,7 +1928,7 @@ void Options::init()
     "Switches on primitive instantiation and elimination of Leibniz equality";
     _complexBooleanReasoning.onlyUsefulWith(_addProxyAxioms.is(equal(false)));
     _lookup.insert(&_complexBooleanReasoning);
-    _complexBooleanReasoning.addProblemConstraint(hasHigherOrder());    
+    _complexBooleanReasoning.addProblemConstraint(hasHigherOrder());
     _complexBooleanReasoning.tag(OptionTag::HIGHER_ORDER);
 
     _booleanEqTrick = BoolOptionValue("bool_eq_trick","bet",false);
@@ -1863,13 +1937,13 @@ void Options::init()
     "t = s with a disequality t != vnot(s)"
     " The theory is that this can help with EqRes";
     _lookup.insert(&_booleanEqTrick);
-    // potentially could be useful for FOOL, so am not adding the HOL constraint    
+    // potentially could be useful for FOOL, so am not adding the HOL constraint
     _booleanEqTrick.tag(OptionTag::HIGHER_ORDER);
 
     _casesSimp = BoolOptionValue("cases_simp","cs",false);
     _casesSimp.description=
     "FOOL Paramodulation with two conclusion as a simplification";
-    _casesSimp.onlyUsefulWith(_cases.is(equal(false)));    
+    _casesSimp.onlyUsefulWith(_cases.is(equal(false)));
     _lookup.insert(&_casesSimp);
     // potentially could be useful for FOOL, so am not adding the HOL constraint
     _casesSimp.tag(OptionTag::HIGHER_ORDER);
@@ -1881,21 +1955,21 @@ void Options::init()
     "Alternative to FOOL Paramodulation that replaces all Boolean subterms in one step";
     _cases.onlyUsefulWith(_casesSimp.is(equal(false)));
     _lookup.insert(&_cases);
-    // potentially could be useful for FOOL, so am not adding the HOL constraint    
+    // potentially could be useful for FOOL, so am not adding the HOL constraint
     _cases.tag(OptionTag::HIGHER_ORDER);
 
     _newTautologyDel = BoolOptionValue("new_taut_del","ntd",false);
     _newTautologyDel.description=
     "Delete clauses with literals of the form false != true or t = true \\/ t = false";
     _lookup.insert(&_newTautologyDel);
-    // potentially could be useful for FOOL, so am not adding the HOL constraint    
+    // potentially could be useful for FOOL, so am not adding the HOL constraint
     _newTautologyDel.tag(OptionTag::HIGHER_ORDER);
 
     _lambdaFreeHol = BoolOptionValue("lam_free_hol","lfh",false);
     _lambdaFreeHol.description=
     "Reason about lambda-free hol. See paper by Vukmirovic et al.";
     _lookup.insert(&_lambdaFreeHol);
-    _lambdaFreeHol.addProblemConstraint(hasHigherOrder());    
+    _lambdaFreeHol.addProblemConstraint(hasHigherOrder());
     _lambdaFreeHol.tag(OptionTag::HIGHER_ORDER);
 
     _complexVarCondition = BoolOptionValue("complex_var_cond","cvc",false);
@@ -2161,12 +2235,25 @@ void Options::init()
     _randomPolarities.tag(OptionTag::PREPROCESSING);
 
     _questionAnswering = ChoiceOptionValue<QuestionAnsweringMode>("question_answering","qa",QuestionAnsweringMode::OFF,
-                                                                  {"answer_literal","from_proof","synthesis","off"});
-    _questionAnswering.addHardConstraint(If(equal(QuestionAnsweringMode::ANSWER_LITERAL)).then(_splitting.is(notEqual(true))));
-    _questionAnswering.addHardConstraint(If(equal(QuestionAnsweringMode::FROM_PROOF)).then(_splitting.is(notEqual(true))));
-    _questionAnswering.description="Determines whether (and how) we attempt to answer questions";
+                                                                  {"plain","synthesis","off"});
+    _questionAnswering.description= "Determines whether (and how) we attempt to answer questions:"
+       " plain - answer-literal-based, supports disjunctive answers; synthesis - designed for sythesising programs from proofs.";
+    _questionAnswering.addHardConstraint(If(notEqual(QuestionAnsweringMode::OFF)).then(ProperSaturationAlgorithm()));
     _lookup.insert(&_questionAnswering);
     _questionAnswering.tag(OptionTag::OTHER);
+
+    _questionAnsweringGroundOnly = BoolOptionValue("question_answering_ground_only","qago",false);
+    _questionAnsweringGroundOnly.description = "In qa plain mode: if set, only ground answers will be considered.";
+    _questionAnsweringGroundOnly.onlyUsefulWith(_questionAnswering.is(equal(QuestionAnsweringMode::PLAIN)));
+    _lookup.insert(&_questionAnsweringGroundOnly);
+    _questionAnsweringGroundOnly.tag(OptionTag::OTHER);
+
+    _questionAnsweringAvoidThese = StringOptionValue("question_answering_avoid_these","qaat","");
+    _questionAnsweringAvoidThese.description="A |-separated list of answer literal atoms (e.g., `ans0(sK1)|ans0(f(c))`) that should not be considered as answers to return."
+      " The atoms may contain variables. Matching against any of those disqualifies a potential answer.";
+    _lookup.insert(&_questionAnsweringAvoidThese);
+    _questionAnsweringAvoidThese.onlyUsefulWith(_questionAnswering.is(equal(QuestionAnsweringMode::PLAIN)));
+    _questionAnsweringAvoidThese.tag(OptionTag::OTHER);
 
     _randomSeed = UnsignedOptionValue("random_seed","",1 /* this should be the value of Random::_seed from Random.cpp */);
     _randomSeed.description="Some parts of vampire use random numbers. This seed allows for reproducibility of results. By default the seed is not changed.";
@@ -2293,14 +2380,14 @@ void Options::init()
     //******************************************************************
     //*********************** Vinter???  *******************************
     //******************************************************************
-    
+
     _colorUnblocking = BoolOptionValue("color_unblocking","",false);
     _colorUnblocking.description="";
     _lookup.insert(&_colorUnblocking);
     _colorUnblocking.setExperimental();
     _colorUnblocking.tag(OptionTag::OTHER);
-    
-    
+
+
     _showInterpolant = ChoiceOptionValue<InterpolantMode>("show_interpolant","",InterpolantMode::OFF,
                                                           {"new_heur",
 #if VZ3
@@ -2310,9 +2397,9 @@ void Options::init()
     _lookup.insert(&_showInterpolant);
     _showInterpolant.tag(OptionTag::OTHER);
     _showInterpolant.setExperimental();
-    
+
  // Declare tag names
-    
+
     _tagNames = {
                  "Unused",
                  "Other",
@@ -2379,12 +2466,12 @@ void Options::set(const char* name,const char* value, bool longOpt)
         (!longOpt && !_lookup.findShort(name)->set(value))) {
       switch (ignoreMissing()) {
       case IgnoreMissing::OFF:
-        USER_ERROR((vstring) value +" is an invalid value for "+(vstring)name+"\nSee help or use explain i.e. vampire -explain mode");
+        USER_ERROR((std::string) value +" is an invalid value for "+(std::string)name+"\nSee help or use explain i.e. vampire -explain mode");
         break;
       case IgnoreMissing::WARN:
         if (outputAllowed()) {
           addCommentSignForSZS(std::cout);
-          std::cout << "WARNING: invalid value "<< value << " for option " << name << endl;
+          std::cout << "% WARNING: invalid value "<< value << " for option " << name << endl;
         }
         break;
       case IgnoreMissing::ON:
@@ -2394,18 +2481,18 @@ void Options::set(const char* name,const char* value, bool longOpt)
   }
   catch (const ValueNotFoundException&) {
     if (_ignoreMissing.actualValue != IgnoreMissing::ON) {
-      vstring msg = (vstring)name + (longOpt ? " is not a valid option" : " is not a valid short option (did you mean --?)");
+      std::string msg = (std::string)name + (longOpt ? " is not a valid option" : " is not a valid short option (did you mean --?)");
       if (_ignoreMissing.actualValue == IgnoreMissing::WARN) {
         if (outputAllowed()) {
           addCommentSignForSZS(std::cout);
-          std::cout << "WARNING: " << msg << endl;
+          std::cout << "% WARNING: " << msg << endl;
         }
         return;
       } // else:
-      Stack<vstring> sim = getSimilarOptionNames(name,false);
-      Stack<vstring>::Iterator sit(sim);
+      Stack<std::string> sim = getSimilarOptionNames(name,false);
+      Stack<std::string>::Iterator sit(sim);
       if(sit.hasNext()){
-        vstring first = sit.next();
+        std::string first = sit.next();
         msg += "\n\tMaybe you meant ";
         if(sit.hasNext()) msg += "one of:\n\t\t";
         msg += first;
@@ -2421,7 +2508,7 @@ void Options::set(const char* name,const char* value, bool longOpt)
  * Set option by its name and value.
  * @since 06/04/2005 Torrevieja
  */
-void Options::set(const vstring& name,const vstring& value)
+void Options::set(const std::string& name,const std::string& value)
 {
   set(name.c_str(),value.c_str(),true);
 } // Options::set/2
@@ -2443,23 +2530,12 @@ bool Options::HasTheories::check(Property*p) {
 }
 
 /**
- * Static functions to help specify random choice values
- */
-
-Options::OptionProblemConstraintUP Options::isRandOn(){
-      return OptionProblemConstraintUP(new OptionHasValue("random_strategy","on"));
-}
-Options::OptionProblemConstraintUP Options::isRandSat(){
-      return OptionProblemConstraintUP(new OptionHasValue("random_strategy","sat"));
-}
-
-/**
  * Return the include file name using its relative name.
  *
  * @param relativeName the relative name, must begin and end with "'"
  *        because of the TPTP syntax
  * @since 16/10/2003 Manchester, relativeName changed to string from char*
- * @since 07/08/2014 Manchester, relativeName changed to vstring
+ * @since 07/08/2014 Manchester, relativeName changed to std::string
  */
 // TODO this behaviour isn't quite right, at least:
 // 1. we use the *root* file to resolve relative paths, which won't work if we have an axiom file that includes another
@@ -2468,7 +2544,7 @@ Options::OptionProblemConstraintUP Options::isRandSat(){
 // cf https://tptp.org/TPTP/TR/TPTPTR.shtml#IncludeSection
 // probable solution: move all this logic into TPTP parser and do it properly there
 
-vstring Options::includeFileName (const vstring& relativeName)
+std::string Options::includeFileName (const std::string& relativeName)
 {
   if (relativeName[0] == '/') { // absolute name
     return relativeName;
@@ -2481,7 +2557,7 @@ vstring Options::includeFileName (const vstring& relativeName)
   // truncatedRelativeName is relative.
   // Use the conventions of Vampire:
   // (a) first search the value of "include"
-  vstring dir = include();
+  std::string dir = include();
 
   if (dir == "") { // include undefined
     // (b) search in the directory of the 'current file'
@@ -2529,7 +2605,7 @@ void Options::output (ostream& str) const
 
   if(!explainOption().empty()){
      AbstractOptionValue* option;
-     vstring name = explainOption();
+     std::string name = explainOption();
      try{
        option = _lookup.findLong(name);
      }
@@ -2543,12 +2619,12 @@ void Options::output (ostream& str) const
      }
      if(!option){ 
        str << name << " not a known option" << endl;
-       Stack<vstring> sim_s = getSimilarOptionNames(name,true);
-       Stack<vstring> sim_l = getSimilarOptionNames(name,false);
-       VirtualIterator<vstring> sit = pvi(concatIters(
-           Stack<vstring>::Iterator(sim_s),Stack<vstring>::Iterator(sim_l))); 
+       Stack<std::string> sim_s = getSimilarOptionNames(name,true);
+       Stack<std::string> sim_l = getSimilarOptionNames(name,false);
+       VirtualIterator<std::string> sit = pvi(concatIters(
+           Stack<std::string>::Iterator(sim_s),Stack<std::string>::Iterator(sim_l))); 
         if(sit.hasNext()){
-          vstring first = sit.next();
+          std::string first = sit.next();
           str << "\tMaybe you meant ";
           if(sit.hasNext()) str << "one of:\n\t\t";
           str << first;
@@ -2557,7 +2633,7 @@ void Options::output (ostream& str) const
         }
      }
      else{
-       vstringstream vs;
+       std::stringstream vs;
        option->output(vs,lineWrapInShowOptions());
        str << vs.str();
      }
@@ -2584,19 +2660,17 @@ void Options::output (ostream& str) const
   }
 
   bool normalshow = showOptions();
-  bool experimental = showExperimentalOptions();  
-  
+  bool experimental = showExperimentalOptions();
+
   if(normalshow || experimental) {
     Mode this_mode = _mode.actualValue;
     //str << "=========== Options ==========\n";
 
     VirtualIterator<AbstractOptionValue*> options = _lookup.values();
 
-    //Stack<vstringstream*> groups;
     int num_tags = static_cast<int>(OptionTag::LAST_TAG);
     Stack<Stack<AbstractOptionValue*>> groups;
     for(int i=0; i<=num_tags;i++){
-    //  groups.push(new vstringstream);
         Stack<AbstractOptionValue*> stack;
         groups.push(stack);
     }
@@ -2604,8 +2678,8 @@ void Options::output (ostream& str) const
 
     while(options.hasNext()){
       AbstractOptionValue* option = options.next();
-      if(option->inMode(this_mode) && 
-              ((experimental && option->experimental) || 
+      if(option->inMode(this_mode) &&
+              ((experimental && option->experimental) ||
                (normalshow && !option->experimental) )){
         unsigned tag = static_cast<unsigned>(option->getTag());
         //option->output(*groups[tag]);
@@ -2616,10 +2690,10 @@ void Options::output (ostream& str) const
     //output them in reverse order
     for(int i=num_tags;i>=0;i--){
       if(groups[i].isEmpty()) continue;
-      vstring label = "  "+_tagNames[i]+"  ";
+      std::string label = "  "+_tagNames[i]+"  ";
       ASS(label.length() < 40);
-      vstring br = "******************************";
-      vstring br_gap = br.substr(0,(br.length()-(label.length()/2)));
+      std::string br = "******************************";
+      std::string br_gap = br.substr(0,(br.length()-(label.length()/2)));
       str << endl << br << br;
       if (label.length() % 2 == 0) {
         str << endl;
@@ -2662,13 +2736,13 @@ bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){
 
          if (env.options->mode() == Mode::SPIDER){
            reportSpiderFail();
-           USER_ERROR("WARNING: " + longName + con->msg());
+           USER_ERROR("% WARNING: " + longName + con->msg());
          }
 
          switch(env.options->getBadOptionChoice()){
          case BadOption::OFF: break;
          default:
-           cout << "WARNING: " << longName << con->msg() << endl;
+           cout << "% WARNING: " << longName << con->msg() << endl;
          }
          return false;
       }
@@ -2735,7 +2809,7 @@ bool Options::RatioOptionValue::readRatio(const char* val, char separator)
   return true;
 }
 
-bool Options::NonGoalWeightOptionValue::setValue(const vstring& value)
+bool Options::NonGoalWeightOptionValue::setValue(const std::string& value)
 {
  float newValue;
  if(!Int::stringToFloat(value.c_str(),newValue)) return false;
@@ -2752,7 +2826,7 @@ bool Options::NonGoalWeightOptionValue::setValue(const vstring& value)
   return true;
 }
 
-bool Options::SelectionOptionValue::setValue(const vstring& value)
+bool Options::SelectionOptionValue::setValue(const std::string& value)
 {
   int sel;
   if(!Int::stringToInt(value,sel)) return false;
@@ -2814,7 +2888,7 @@ bool Options::SelectionOptionValue::setValue(const vstring& value)
   }
 }
 
-bool Options::InputFileOptionValue::setValue(const vstring& value)
+bool Options::InputFileOptionValue::setValue(const std::string& value)
 {
   actualValue=value;
   if(value.empty()) return true;
@@ -2845,11 +2919,11 @@ bool Options::InputFileOptionValue::setValue(const vstring& value)
 }
 
 
-bool Options::TimeLimitOptionValue::setValue(const vstring& value)
+bool Options::TimeLimitOptionValue::setValue(const std::string& value)
 {
   int length = value.size();
   if (length == 0 || length >= COPY_SIZE) {
-    USER_ERROR((vstring)"wrong value for time limit: " + value);
+    USER_ERROR((std::string)"wrong value for time limit: " + value);
   }
 
   char copy[COPY_SIZE];
@@ -2888,7 +2962,7 @@ bool Options::TimeLimitOptionValue::setValue(const vstring& value)
 
   float number;
   if (! Int::stringToFloat(copy,number)) {
-    USER_ERROR((vstring)"wrong value for time limit: " + value);
+    USER_ERROR((std::string)"wrong value for time limit: " + value);
   }
 
 #ifdef _MSC_VER
@@ -2908,7 +2982,7 @@ bool Options::TimeLimitOptionValue::setValue(const vstring& value)
  * An optname starting with $ is not meant to be a real option, but a fake one.
  * Fakes get stored in the map fakes and can be referenced later, during the sampling process.
  */
-void Options::strategySamplingAssign(vstring optname, vstring value, DHMap<vstring,vstring>& fakes)
+void Options::strategySamplingAssign(std::string optname, std::string value, DHMap<std::string,std::string>& fakes)
 {
   // dollar sign signifies fake options
   if (optname[0] == '$') {
@@ -2934,10 +3008,10 @@ void Options::strategySamplingAssign(vstring optname, vstring value, DHMap<vstri
  * An optname starting with $ is not meant to be a real option, but a fake one.
  * Fakes get read from the given map fakes.
  */
-vstring Options::strategySamplingLookup(vstring optname, DHMap<vstring,vstring>& fakes)
+std::string Options::strategySamplingLookup(std::string optname, DHMap<std::string,std::string>& fakes)
 {
   if (optname[0] == '$') {
-    vstring* foundVal = fakes.findPtr(optname);
+    std::string* foundVal = fakes.findPtr(optname);
     if (!foundVal) {
       USER_ERROR("Sampling file processing error -- unassigned fake option: " + optname);
     }
@@ -2953,7 +3027,7 @@ vstring Options::strategySamplingLookup(vstring optname, DHMap<vstring,vstring>&
   return "";
 }
 
-void Options::sampleStrategy(const vstring& strategySamplerFilename)
+void Options::sampleStrategy(const std::string& strategySamplerFilename)
 {
   std::ifstream input(strategySamplerFilename.c_str());
 
@@ -2964,10 +3038,10 @@ void Options::sampleStrategy(const vstring& strategySamplerFilename)
   // our local randomizing engine (randomly seeded)
   std::mt19937 rng((std::random_device())());
   // map of local variables (fake options)
-  DHMap<vstring,vstring> fakes;
+  DHMap<std::string,std::string> fakes;
 
-  vstring line; // parsed lines
-  Stack<vstring> pieces; // temp stack used for splitting
+  std::string line; // parsed lines
+  Stack<std::string> pieces; // temp stack used for splitting
   while (std::getline(input, line))
   {
     if (line.length() == 0 || line[0] == '#') { // empty lines and comments (starting with # as the first! character)
@@ -2979,8 +3053,8 @@ void Options::sampleStrategy(const vstring& strategySamplerFilename)
       USER_ERROR("Sampling file parse error -- each rule must contain exactly one >. Here: "+line);
     }
 
-    vstring cond = pieces[0];
-    vstring body = pieces[1];
+    std::string cond = pieces[0];
+    std::string body = pieces[1];
     pieces.reset();
 
     // evaluate condition, if false, will skip the rest
@@ -2989,22 +3063,22 @@ void Options::sampleStrategy(const vstring& strategySamplerFilename)
       StringUtils::splitStr(cond.c_str(),' ',pieces);
       StringUtils::dropEmpty(pieces);
 
-      Stack<vstring> pair;
-      Stack<vstring>::BottomFirstIterator it(pieces);
+      Stack<std::string> pair;
+      Stack<std::string>::BottomFirstIterator it(pieces);
       while(it.hasNext()) {
-        vstring equation = it.next();
+        std::string equation = it.next();
         StringUtils::splitStr(equation.c_str(),'=',pair);
         StringUtils::dropEmpty(pair);
         if (pair.size() != 2) {
           USER_ERROR("Sampling file parse error -- invalid equation: "+equation);
         }
         bool negated = false;
-        vstring optName = pair[0];
+        std::string optName = pair[0];
         if (optName.back() == '!') {
           negated = true;
           optName.pop_back();
         }
-        vstring storedVal = strategySamplingLookup(optName,fakes);
+        std::string storedVal = strategySamplingLookup(optName,fakes);
         if ((storedVal != pair[1]) != negated) {
           fireRule = false;
           break;
@@ -3028,23 +3102,23 @@ void Options::sampleStrategy(const vstring& strategySamplerFilename)
       USER_ERROR("Sampling file parse error -- rule body must consist of three space-separated parts. Here: "+body);
     }
 
-    vstring optname = pieces[0];
-    vstring sampler = pieces[1];
-    vstring args = pieces[2];
+    std::string optname = pieces[0];
+    std::string sampler = pieces[1];
+    std::string args = pieces[2];
     pieces.reset();
 
     if (sampler == "~cat") { // categorical sampling, e.g., "~cat group:36,predicate:4,expand:4,off:1,function:1" provides a list of value with frequencies
       StringUtils::splitStr(args.c_str(),',',pieces);
 
       unsigned total = 0;
-      Stack<std::pair<unsigned,vstring>> mulvals; //values with multiplicities, e.g. "off:5", or "on:1"
+      Stack<std::pair<unsigned,std::string>> mulvals; //values with multiplicities, e.g. "off:5", or "on:1"
 
       // parse the mulvals
       {
-        Stack<vstring> pair;
-        Stack<vstring>::BottomFirstIterator it(pieces);
+        Stack<std::string> pair;
+        Stack<std::string>::BottomFirstIterator it(pieces);
         while(it.hasNext()) {
-          vstring mulval = it.next();
+          std::string mulval = it.next();
           StringUtils::splitStr(mulval.c_str(),':',pair);
           // StringUtils::dropEmpty(pair);
           if (pair.size() != 2) {
@@ -3063,9 +3137,9 @@ void Options::sampleStrategy(const vstring& strategySamplerFilename)
       }
 
       // actual sampling
-      vstring value;
+      std::string value;
       unsigned sample = std::uniform_int_distribution<unsigned>(1,total)(rng);
-      Stack<std::pair<unsigned,vstring>>::BottomFirstIterator it(mulvals);
+      Stack<std::pair<unsigned,std::string>>::BottomFirstIterator it(mulvals);
       while (it.hasNext()) {
         auto mulval = it.next();
         if (sample <= mulval.first) {
@@ -3158,39 +3232,39 @@ void Options::sampleStrategy(const vstring& strategySamplerFilename)
     }
 
     /*
-    Stack<vstring>::BottomFirstIterator it(pieces);
+    Stack<std::string>::BottomFirstIterator it(pieces);
     while(it.hasNext()) {
       cout << "tok:" << it.next() << endl;
     }
     */
   }
 
-  cout << "Random strategy: " + generateEncodedOptions() << endl;
+  cout << "% Random strategy: " + generateEncodedOptions() << endl;
 }
 
 /**
- * Assign option values as encoded in the option vstring if assign=true, otherwise check that
+ * Assign option values as encoded in the option std::string if assign=true, otherwise check that
  * the option values are not currently set to those values.
  * according to the argument in the format
  * opt1=val1:opt2=val2:...:optn=valN,
  * for example bs=off:cond=on:drc=off:nwc=1.5:nicw=on:sos=on:sio=off:spl=sat:ssnc=none
  */
-void Options::readOptionsString(vstring optionsString,bool assign)
+void Options::readOptionsString(std::string optionsString,bool assign)
 {
   // repeatedly look for param=value
   while (optionsString != "") {
     size_t index1 = optionsString.find('=');
-    if (index1 == vstring::npos) {
+    if (index1 == std::string::npos) {
       error: USER_ERROR("bad option specification '" + optionsString+"'");
     }
     size_t index = optionsString.find(':');
-    if (index!=vstring::npos && index1 > index) {
+    if (index!=std::string::npos && index1 > index) {
       goto error;
     }
 
-    vstring param = optionsString.substr(0,index1);
-    vstring value;
-    if (index==vstring::npos) {
+    std::string param = optionsString.substr(0,index1);
+    std::string value;
+    if (index==std::string::npos) {
       value = optionsString.substr(index1+1);
     }
     else {
@@ -3207,7 +3281,7 @@ void Options::readOptionsString(vstring optionsString,bool assign)
               case IgnoreMissing::WARN:
                 if (outputAllowed()) {
                   addCommentSignForSZS(std::cout);
-                  std::cout << "WARNING: value " << value << " for option "<< param <<" not known" << endl;
+                  std::cout << "% WARNING: value " << value << " for option "<< param <<" not known" << endl;
                 }
                 break;
               case IgnoreMissing::ON:
@@ -3216,7 +3290,7 @@ void Options::readOptionsString(vstring optionsString,bool assign)
             }
         }
         else{
-            vstring current = opt->getStringOfActual();
+            std::string current = opt->getStringOfActual();
             if(value==current){
                 USER_ERROR("option "+param+" uses forbidden value "+value);
             }
@@ -3230,7 +3304,7 @@ void Options::readOptionsString(vstring optionsString,bool assign)
       case IgnoreMissing::WARN:
         if (outputAllowed()) {
           addCommentSignForSZS(std::cout);
-          std::cout << "WARNING: option "<< param << " not known." << endl;
+          std::cout << "% WARNING: option "<< param << " not known." << endl;
         }
         break;
       case IgnoreMissing::ON:
@@ -3238,7 +3312,7 @@ void Options::readOptionsString(vstring optionsString,bool assign)
       }
     }
 
-    if (index==vstring::npos) {
+    if (index==std::string::npos) {
       return;
     }
     optionsString = optionsString.substr(index+1);
@@ -3252,11 +3326,11 @@ void Options::readOptionsString(vstring optionsString,bool assign)
  *        in deciseconds
  * @throws UserErrorException if the test id is incorrect
  */
-void Options::readFromEncodedOptions (vstring testId)
+void Options::readFromEncodedOptions (std::string testId)
 {
   _testId.actualValue = testId;
 
-  vstring ma(testId,0,3); // the first 3 characters
+  std::string ma(testId,0,3); // the first 3 characters
   if (ma == "dis") {
     _saturationAlgorithm.actualValue = SaturationAlgorithm::DISCOUNT;
   }
@@ -3275,12 +3349,12 @@ void Options::readFromEncodedOptions (vstring testId)
 
   // after last '_' we have time limit
   size_t index = testId.find_last_of('_');
-  if (index == vstring::npos) { // not found
+  if (index == std::string::npos) { // not found
     goto error;
   }
-  vstring timeString = testId.substr(index+1);
+  std::string timeString = testId.substr(index+1);
   _timeLimitInDeciseconds.set(timeString);
-  // setting assumes seconds as default, but encoded strings use deciseconds 
+  // setting assumes seconds as default, but encoded strings use deciseconds
   _timeLimitInDeciseconds.actualValue = _timeLimitInDeciseconds.actualValue/10;
 
   testId = testId.substr(3,index-3);
@@ -3295,7 +3369,7 @@ void Options::readFromEncodedOptions (vstring testId)
   }
 
   index = testId.find('_');
-  vstring sel = testId.substr(0,index);
+  std::string sel = testId.substr(0,index);
   _selection.set(sel);
   testId = testId.substr(index+1);
 
@@ -3304,7 +3378,7 @@ void Options::readFromEncodedOptions (vstring testId)
   }
 
   index = testId.find('_');
-  vstring awr = testId.substr(0,index);
+  std::string awr = testId.substr(0,index);
   _ageWeightRatio.set(awr.c_str());
   if (index==string::npos) {
     //there are no extra options
@@ -3322,13 +3396,13 @@ void Options::setForcedOptionValues()
 }
 
 /**
- * Return testId vstring that represents current values of the options
+ * Return testId std::string that represents current values of the options
  */
-vstring Options::generateEncodedOptions() const
+std::string Options::generateEncodedOptions() const
 {
-  vostringstream res;
+  std::ostringstream res;
   //saturation algorithm
-  vstring sat;
+  std::string sat;
   switch(_saturationAlgorithm.actualValue){
     case SaturationAlgorithm::LRS : sat="lrs"; break;
     case SaturationAlgorithm::DISCOUNT : sat="dis"; break;
@@ -3337,7 +3411,7 @@ vstring Options::generateEncodedOptions() const
     default : ASSERTION_VIOLATION;
   }
 
-  res << sat; 
+  res << sat;
 
   //selection function
   res << (selection() < 0 ? "-" : "+") << abs(selection());
@@ -3372,6 +3446,7 @@ vstring Options::generateEncodedOptions() const
     forbidden.insert(&_encode);
     forbidden.insert(&_decode);
     forbidden.insert(&_sampleStrategy);
+    forbidden.insert(&_normalize);
 
     forbidden.insert(&_memoryLimit);
     forbidden.insert(&_proof);
@@ -3389,7 +3464,7 @@ vstring Options::generateEncodedOptions() const
     AbstractOptionValue* option = options.next();
     // TODO do we want to also filter by !isDefault?
     if(!forbidden.contains(option) && option->is_set && !option->isDefault()){
-      vstring name = option->shortName;
+      std::string name = option->shortName;
       if(name.empty()) name = option->longName;
       if(!first){ res<<":";}else{first=false;}
       res << name << "=" << option->getStringOfActual();
@@ -3398,7 +3473,7 @@ vstring Options::generateEncodedOptions() const
 
   if(!first){ res << "_"; }
   res << Lib::Int::toString(_timeLimitInDeciseconds.actualValue);
- 
+
   return res.str();
 }
 
@@ -3452,7 +3527,7 @@ bool Options::complete(const Problem& prb) const
   if (_sos.actualValue != Sos::OFF) return false;
   // run-time rule causing incompleteness
   if (_forwardLiteralRewriting.actualValue) return false;
-  
+
   bool unitEquality = prop.category() == Property::UEQ;
   bool hasEquality = (prop.equalityAtoms() != 0);
 
@@ -3486,7 +3561,9 @@ bool Options::complete(const Problem& prb) const
   if (_demodulationRedundancyCheck.actualValue == DemodulationRedundancyCheck::OFF) {
     return false;
   }
-  if (!_superpositionFromVariables.actualValue) return false;
+  if (!_superpositionFromVariables.actualValue) {
+    return false;
+  }
 
   // only checking resolution rules remain
   bool pureEquality = (prop.atoms() == prop.equalityAtoms());
@@ -3503,13 +3580,13 @@ bool Options::checkGlobalOptionConstraints(bool fail_early)
 {
   //Check forbidden options
   readOptionsString(_forbiddenOptions.actualValue,false);
-    
+
   bool result = true;
 
   // Check recorded option constraints
   VirtualIterator<AbstractOptionValue*> options = _lookup.values();
-  while(options.hasNext()){ 
-    result = options.next()->checkConstraints() && result; 
+  while(options.hasNext()){
+    result = options.next()->checkConstraints() && result;
     if(fail_early && !result) return result;
   }
 
@@ -3585,18 +3662,18 @@ bool Options::checkProblemOptionConstraints(Property* prop, bool before_preproce
 }
 
 template<class A>
-Lib::vvector<A> parseCommaSeparatedList(vstring const& str) 
+std::vector<A> parseCommaSeparatedList(std::string const& str) 
 {
-  vstringstream stream(str);
-  Lib::vvector<A> parsed;
-  vstring cur;
+  std::stringstream stream(str);
+  std::vector<A> parsed;
+  std::string cur;
   while (std::getline(stream, cur, ',')) {
     parsed.push_back(StringUtils::parse<A>(cur));
   }
   return parsed;
 }
 
-Lib::vvector<int> Options::theorySplitQueueRatios() const
+std::vector<int> Options::theorySplitQueueRatios() const
 {
   auto inputRatios = parseCommaSeparatedList<int>(_theorySplitQueueRatios.actualValue);
 
@@ -3613,10 +3690,10 @@ Lib::vvector<int> Options::theorySplitQueueRatios() const
   return inputRatios;
 }
 
-Lib::vvector<float> Options::theorySplitQueueCutoffs() const
+std::vector<float> Options::theorySplitQueueCutoffs() const
 {
   // initialize cutoffs
-  Lib::vvector<float> cutoffs;
+  std::vector<float> cutoffs;
 
   /*
   if (_theorySplitQueueCutoffs.isDefault()) {
@@ -3626,7 +3703,7 @@ Lib::vvector<float> Options::theorySplitQueueCutoffs() const
     cutoffs.push_back(4.0f * d);
     cutoffs.push_back(10.0f * d);
     cutoffs.push_back(std::numeric_limits<float>::max());
-  } else */ 
+  } else */
   {
     // if custom cutoffs are set, parse them and add float-max as last value
     cutoffs = parseCommaSeparatedList<float>(_theorySplitQueueCutoffs.actualValue);
@@ -3647,9 +3724,9 @@ Lib::vvector<float> Options::theorySplitQueueCutoffs() const
   return cutoffs;
 }
 
-Lib::vvector<int> Options::avatarSplitQueueRatios() const
+std::vector<int> Options::avatarSplitQueueRatios() const
 {
-  Lib::vvector<int> inputRatios = parseCommaSeparatedList<int>(_avatarSplitQueueRatios.actualValue);
+  std::vector<int> inputRatios = parseCommaSeparatedList<int>(_avatarSplitQueueRatios.actualValue);
 
   // sanity checks
   if (inputRatios.size() < 2) {
@@ -3664,7 +3741,7 @@ Lib::vvector<int> Options::avatarSplitQueueRatios() const
   return inputRatios;
 }
 
-Lib::vvector<float> Options::avatarSplitQueueCutoffs() const
+std::vector<float> Options::avatarSplitQueueCutoffs() const
 {
   // initialize cutoffs and add float-max as last value
   auto cutoffs = parseCommaSeparatedList<float>(_avatarSplitQueueCutoffs.actualValue);
@@ -3684,7 +3761,7 @@ Lib::vvector<float> Options::avatarSplitQueueCutoffs() const
   return cutoffs;
 }
 
-Lib::vvector<int> Options::sineLevelSplitQueueRatios() const
+std::vector<int> Options::sineLevelSplitQueueRatios() const
 {
   auto inputRatios = parseCommaSeparatedList<int>(_sineLevelSplitQueueRatios.actualValue);
 
@@ -3701,7 +3778,7 @@ Lib::vvector<int> Options::sineLevelSplitQueueRatios() const
   return inputRatios;
 }
 
-Lib::vvector<float> Options::sineLevelSplitQueueCutoffs() const
+std::vector<float> Options::sineLevelSplitQueueCutoffs() const
 {
   // initialize cutoffs and add float-max as last value
   auto cutoffs = parseCommaSeparatedList<float>(_sineLevelSplitQueueCutoffs.actualValue);
@@ -3721,7 +3798,7 @@ Lib::vvector<float> Options::sineLevelSplitQueueCutoffs() const
   return cutoffs;
 }
 
-Lib::vvector<int> Options::positiveLiteralSplitQueueRatios() const
+std::vector<int> Options::positiveLiteralSplitQueueRatios() const
 {
   auto inputRatios = parseCommaSeparatedList<int>(_positiveLiteralSplitQueueRatios.actualValue);
 
@@ -3738,7 +3815,7 @@ Lib::vvector<int> Options::positiveLiteralSplitQueueRatios() const
   return inputRatios;
 }
 
-Lib::vvector<float> Options::positiveLiteralSplitQueueCutoffs() const
+std::vector<float> Options::positiveLiteralSplitQueueCutoffs() const
 {
   // initialize cutoffs and add float-max as last value
   auto cutoffs = parseCommaSeparatedList<float>(_positiveLiteralSplitQueueCutoffs.actualValue);
