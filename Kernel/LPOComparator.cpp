@@ -149,7 +149,7 @@ void LPOComparator::expand(Branch& branch, const LPO& lpo)
   {
     // take temporary ownership of node
     Branch nodeHolder = branch;
-    auto node = nodeHolder.n.get();
+    auto node = nodeHolder.n.ptr();
 
     // Use compare here to filter out as many
     // precomputable comparisons as possible.

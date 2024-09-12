@@ -43,7 +43,7 @@ public:
 
   struct Branch {
     BranchTag tag;
-    std::shared_ptr<Node> n;
+    SmartPtr<Node> n;
 
     explicit Branch(BranchTag t) : tag(t), n(nullptr) { ASS(t==BranchTag::T_GREATER || t==BranchTag::T_NOT_GREATER); }
     explicit Branch(TermList lhs, TermList rhs) : tag(BranchTag::T_UNKNOWN), n(new Node(lhs, rhs)) {}
