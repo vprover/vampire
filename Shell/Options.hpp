@@ -1999,6 +1999,7 @@ public:
 
   bool showPassiveTraffic() const { return _showPassiveTraffic.actualValue; }
   unsigned numClauseFeatures() const { return _numClauseFeatures.actualValue; }
+  unsigned numProblemFeatures() const { return _numProblemFeatures.actualValue; }
 
   const std::string& neuralClauseEvaluationModel() const { return _neuralClauseEvaluationModel.actualValue; }
   const std::string& neuralClauseEvaluationModelTweaks() const { return _neuralClauseEvaluationModelTweaks.actualValue; }
@@ -2658,6 +2659,7 @@ private:
   BoolOptionValue _showPassiveTraffic;
 
   UnsignedOptionValue _numClauseFeatures;
+  UnsignedOptionValue _numProblemFeatures;
   StringOptionValue _neuralClauseEvaluationModel;
 
   BoolOptionValue _neuralPassiveClauseContainer;

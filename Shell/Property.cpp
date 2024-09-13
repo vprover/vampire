@@ -151,7 +151,6 @@ void Property::add(UnitList* units)
     addProp(PR_HAS_REALS);
   }
 
-
   // determine the category after adding
   if (formulas() > 0) { // FOF, either FEQ or FNE
     if (_equalityAtoms == 0) {

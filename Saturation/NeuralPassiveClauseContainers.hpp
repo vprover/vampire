@@ -48,7 +48,7 @@ private:
   DHMap<unsigned,float> _scores;
 public:
   NeuralClauseEvaluationModel(const std::string modelFilePath, const std::string& tweak_str,
-    uint64_t random_seed, unsigned num_features, float temperature);
+    uint64_t random_seed, unsigned num_cl_features, float temperature, unsigned num_prb_features, Problem& prb);
 
   const DHMap<unsigned,float>& getScores() { return _scores; }
 

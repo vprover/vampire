@@ -945,6 +945,12 @@ void Options::init()
     _numClauseFeatures.tag(OptionTag::SATURATION);
     _numClauseFeatures.onlyUsefulWith(Or(_showPassiveTraffic.is(notEqual(false)),_neuralClauseEvaluationModel.is(notEqual(std::string("")))));
 
+    _numProblemFeatures = UnsignedOptionValue("num_problem_features","npf",15);
+    _numProblemFeatures.description="How many features do we ask a problem to provide? TODO: what is the maximum?";
+    _lookup.insert(&_numProblemFeatures);
+    _numProblemFeatures.tag(OptionTag::SATURATION);
+    _numProblemFeatures.onlyUsefulWith(Or(_showPassiveTraffic.is(notEqual(false)),_neuralClauseEvaluationModel.is(notEqual(std::string("")))));
+
     _neuralPassiveClauseContainer = BoolOptionValue("neural_passive_clause_container","npcc",false);
     _neuralPassiveClauseContainer.description="Use neural clause evaluation model as the sole basis for the main passive container.";
     _lookup.insert(&_neuralPassiveClauseContainer);

@@ -27,6 +27,8 @@
 #include "Kernel/Theory.hpp"
 #include "SMTLIBLogic.hpp"
 
+#include <cmath>
+
 namespace Kernel {
   class Clause;
   class FormulaUnit;
@@ -51,15 +53,15 @@ public:
    * CASC category
    */
   enum Category {
+    FEQ, // FOL only
+    FNE, // FOL only
     NEQ,
     HEQ,
     PEQ,
     HNE,
     NNE,
-    FEQ,
-    FNE,
     EPR,
-    UEQ
+    UEQ,
   };
 
   // Various boolean properties.
@@ -207,7 +209,7 @@ public:
 
   bool hasInterpretedOperation(Interpretation i) const {
     if(i >= _interpretationPresence.size()){ return false; }
-    return _interpretationPresence[i]; 
+    return _interpretationPresence[i];
   }
   bool hasInterpretedOperation(Interpretation i, OperatorType* type) const {
     return _polymorphicInterpretations.find(std::make_pair(i,type));
@@ -239,15 +241,68 @@ public:
   unsigned sortsUsed() const { return _sortsUsed; }
   bool onlyFiniteDomainDatatypes() const { return _onlyFiniteDomainDatatypes; }
   bool knownInfiniteDomain() const { return _knownInfiniteDomain; }
-  
-  void setSMTLIBLogic(SMTLIBLogic smtLibLogic) { 
-    _smtlibLogic = smtLibLogic; 
+
+  void setSMTLIBLogic(SMTLIBLogic smtLibLogic) {
+    _smtlibLogic = smtLibLogic;
   }
-  SMTLIBLogic getSMTLIBLogic() const { 
-    return _smtlibLogic; 
+  SMTLIBLogic getSMTLIBLogic() const {
+    return _smtlibLogic;
   }
 
   bool allNonTheoryClausesGround(){ return _allNonTheoryClausesGround; }
+
+  class FeatureIterator {
+    Property* _prop;
+    unsigned _featureId;
+    unsigned _log10Atoms;
+
+  public:
+    inline static constexpr unsigned NUM_FEATURES = 15;
+
+    FeatureIterator(Property* prop) :
+      _prop(prop), _featureId(0) {}
+
+    bool hasNext() {
+      return _featureId < NUM_FEATURES;
+    }
+
+    float next() {
+      _featureId++;
+      switch (_featureId) {
+        case 1:
+        case 2:
+        case 3:
+        case 4:
+        case 5:
+        case 6:
+        case 7:
+          return _prop->category() == _featureId+1; // because the first two, 0 and 1, are FOL-only and we ignore them
+        case 8:
+          return (_prop->props() & PR_HAS_X_EQUALS_Y)>0;
+        case 9:
+          // function definitions should be gone (under the default fde=all), but for 1125 some remain even after elimination
+          return (_prop->props() & PR_HAS_FUNCTION_DEFINITIONS)>0;
+          // skipped theory stuff
+        case 10:
+          return (_prop->props() & PR_SORTS)>0; // there is around 1000 multisorted problems
+          // PR_ESSENTIALLY_GROUND; only 370, skipping
+        case 11:
+          _log10Atoms = log10(1+_prop->atoms());
+          return _log10Atoms == 0;
+        case 12:
+          return _log10Atoms == 1;
+        case 13:
+          return _log10Atoms == 2;
+        case 14:
+          return _log10Atoms == 3;
+        case 15:
+          return _log10Atoms > 3;
+        default:
+          ASSERTION_VIOLATION;
+      }
+    }
+  };
+
 
  private:
   static bool hasXEqualsY(const Clause* c);

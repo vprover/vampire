@@ -247,10 +247,22 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
 
   _unprocessed = new UnprocessedClauseContainer();
 
+  // If we talk to prb.getProperty() here below (both in the NeuralClauseEvaluationModel constructor and when accessing the Property::FeatureIterator), it's OK, but we only get the CNF perspective.
+
   const std::string& ncem = opt.neuralClauseEvaluationModel();
   if (!ncem.empty()) {
     _neuralModel = new NeuralClauseEvaluationModel(ncem,
-      opt.neuralClauseEvaluationModelTweaks(),opt.randomSeed(),opt.numClauseFeatures(),opt.npccTemperature());
+      opt.neuralClauseEvaluationModelTweaks(),opt.randomSeed(),opt.numClauseFeatures(),opt.npccTemperature(),opt.numProblemFeatures(),prb);
+  }
+
+  if (opt.showPassiveTraffic() && opt.numProblemFeatures() > 0) {
+    cout << "P: ";
+    Property::FeatureIterator it(prb.getProperty());
+    unsigned i = 0;
+    while (i++ < _opt.numProblemFeatures() && it.hasNext()) {
+      cout << " " << it.next();
+    }
+    cout << '\n';
   }
 
   if (opt.neuralPassiveClauseContainer()) {

@@ -48,7 +48,7 @@ using namespace Lib;
 using namespace Kernel;
 
 NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string modelFilePath, const std::string& tweak_str,
-  uint64_t random_seed, unsigned num_features, float temperature) : _numFeatures(num_features), _temp(temperature)
+  uint64_t random_seed, unsigned num_cl_features, float temperature, unsigned num_prb_features, Problem& prb) : _numFeatures(num_cl_features), _temp(temperature)
 {
   TIME_TRACE("neural model warmup");
 
@@ -71,6 +71,22 @@ NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string model
     for (unsigned i = 0; i < toNumber(InferenceRule::INTERNAL_INFERNCE_LAST); i++) {
       env.inferenceAgeCorrections[i] = corrections[i].item().toDouble();
     }
+  }
+
+  if (auto m = _model.find_method("setProblemFeatures")) {
+    std::vector<torch::jit::IValue> inputs;
+    std::vector<float> probFeatures(num_prb_features);
+
+    unsigned i = 0;
+    Property::FeatureIterator it(prb.getProperty());
+    while (i < num_prb_features && it.hasNext()) {
+      probFeatures[i] = it.next();
+      i++;
+    }
+    ASS_EQ(probFeatures.size(),num_prb_features);
+    inputs.push_back(torch::from_blob(probFeatures.data(), {num_prb_features}, torch::TensorOptions().dtype(torch::kFloat32)));
+
+    (*m)(std::move(inputs));
   }
 
   if (!tweak_str.empty()) {
