@@ -38,25 +38,26 @@ template <typename Val, class Hash1, class Hash2>
 class DHSet
 {
 public:
-  CLASS_NAME(DHSet);
   USE_ALLOCATOR(DHSet);
 
   /** Empty the DHSet */
   void reset()
   {
-    CALL("DHSet::reset");
-
     _map.reset();
   }
+
+  DHSet() : _map() {}
+  DHSet(DHSet&&) = default;
+  DHSet& operator=(DHSet&&) = default;
+
+  bool keepRecycled() const { return _map.keepRecycled(); }
 
   /**
    *  Return true iff @b val is in the set.
    */
   inline
-  bool find(Val val) const
+  bool find(Val const& val) const
   {
-    CALL("DHSet::find");
-
     return _map.find(val);
   }
 
@@ -66,10 +67,8 @@ public:
    *  (synomym for the @b find function)
    */
   inline
-  bool contains(Val val) const
+  bool contains(Val const& val) const
   {
-    CALL("DHSet::contains");
-
     return find(val);
   }
 
@@ -79,9 +78,7 @@ public:
    */
   bool insert(Val val)
   {
-    CALL("DHSet::insert");
-
-    return _map.insert(val, EmptyStruct());
+    return _map.insert(std::move(val), EmptyStruct());
   }
 
 
@@ -89,10 +86,8 @@ public:
    * If there is a value stored under the @b key, remove
    * it and return true. Otherwise, return false.
    */
-  bool remove(Val val)
+  bool remove(Val const& val)
   {
-    CALL("DHSet::remove");
-
     return _map.remove(val);
   }
 
@@ -121,8 +116,6 @@ public:
    */
   template<class It>
   void loadFromIterator(It it) {
-    CALL("DHSet::loadFromIterator");
-
     while(it.hasNext()) {
       insert(it.next());
     }
@@ -135,8 +128,6 @@ public:
    */
   template<class It>
   void removeIteratorElements(It it) {
-    CALL("DHSet::removeIteratorElements");
-
     while(it.hasNext()) {
       ALWAYS(remove(it.next()));
     }

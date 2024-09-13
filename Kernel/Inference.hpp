@@ -20,12 +20,11 @@
 #include <cstdlib>
 
 #include "Lib/Allocator.hpp"
-#include "Lib/VString.hpp"
 #include "Forwards.hpp"
 
 #include <type_traits>
+#include <limits>
 
-using namespace std;
 using namespace Lib;
 
 namespace Kernel {
@@ -87,7 +86,7 @@ UnitInputType getInputType(UnitInputType t1, UnitInputType t2);
  *
  *  Further notes on creating inferences:
  *  - Immediate simplification inferences cannot be linked to an index
- *  - For an infernce that works at subterms, please consider carefully
+ *  - For an inference that works at subterms, please consider carefully
  *    which iterator to use to return these subterms. In Vampire, terms are
  *    of the form f(type_args, term_args). In most cases, inferences should NOT
  *    be working on type arguments. Please view TermIterators.hpp for a list of
@@ -113,9 +112,11 @@ enum class InferenceRule : unsigned char {
   GENERIC_FORMULA_TRANSFORMATION,
   /** negated conjecture from the input */
   NEGATED_CONJECTURE,
+  /** introduction of answer literal into the conjecture */
+  ANSWER_LITERAL_INJECTION,
   /** introduction of answer literal into the conjecture,
-   * or the unit negation of answer literal used to obtain refutation */
-  ANSWER_LITERAL,
+   * and skolemisation of input variables */
+  ANSWER_LITERAL_INPUT_SKOLEMISATION,
   /** claim definition, definition introduced by a claim in the input */
   CLAIM_DEFINITION,
 //     /** choice_axiom (Ax)((Ey)F(x,y) -> F(x,f(x))) */
@@ -194,7 +195,6 @@ enum class InferenceRule : unsigned char {
 //     MINISCOPE,
   /** normalizing inference */
   THEORY_NORMALIZATION,
-
   /** skolemization */
   SKOLEMIZE,
   /** obtain clause from a formula */
@@ -242,8 +242,6 @@ enum class InferenceRule : unsigned char {
   TERM_ALGEBRA_DISTINCTNESS,
   /** inference rule for term algebras (injectivity of constructors)*/
   TERM_ALGEBRA_INJECTIVITY_SIMPLIFYING,
-  /** hyper-superposition */
-  HYPER_SUPERPOSITION_SIMPLIFYING, // not used at the moment
   /** global subsumption */
   GLOBAL_SUBSUMPTION, // CEREFUL: the main premise is not necessarily the first one!
   /** distinct equality removal */
@@ -251,9 +249,11 @@ enum class InferenceRule : unsigned char {
   /** simplification eliminating variables by rewriting arithmetic equalities: e.g.: 6 = 3 x \/ L[x] => L[2] */
   GAUSSIAN_VARIABLE_ELIMINIATION,
   ARITHMETIC_SUBTERM_GENERALIZATION,
-  /** the last simplifying inference marker --
-    inferences between GENERIC_SIMPLIFYING_INFERNCE and INTERNAL_SIMPLIFYING_INFERNCE_LAST will be automatically understood simplifying
-    (see also isSimplifyingInferenceRule) */
+  /* clause added after removing answer literal and saving it as a witness */
+  ANSWER_LITERAL_REMOVAL,
+  /* clause with literals added from AVATAR assertions of the parent */
+  AVATAR_ASSERTION_REINTRODUCTION,
+
    /* eager demodulation with combinator axioms */
   COMBINATOR_DEMOD,
   /* normalising combinators */
@@ -263,10 +263,14 @@ enum class InferenceRule : unsigned char {
 
   BOOL_SIMP,
 
+  FUNCTION_DEFINITION_DEMODULATION,
+
+  /** the last simplifying inference marker --
+    inferences between GENERIC_SIMPLIFYING_INFERNCE and INTERNAL_SIMPLIFYING_INFERNCE_LAST will be automatically understood simplifying
+    (see also isSimplifyingInferenceRule) */
   INTERNAL_SIMPLIFYING_INFERNCE_LAST,
 
-
-  /** THIS DEFINES AN INTERVAL IN THIS ENUM WHERE ALL SIMPLIFYING INFERENCES SHOULD BELONG
+  /** THIS DEFINES AN INTERVAL IN THIS ENUM WHERE ALL GENERATING INFERENCES SHOULD BELONG
     * (see also INTERNAL_GENERATING_INFERNCE_LAST and isGeneratingInferenceRule below). */
   GENERIC_GENERATING_INFERNCE,
   /** resolution inference */
@@ -279,6 +283,8 @@ enum class InferenceRule : unsigned char {
   CONSTRAINED_FACTORING,
   /** superposition inference */
   SUPERPOSITION,
+  /** function definition rewriting inference */
+  FUNCTION_DEFINITION_REWRITING,
   /** superposition with constraints */
   CONSTRAINED_SUPERPOSITION,
   /** equality factoring inference */
@@ -295,19 +301,12 @@ enum class InferenceRule : unsigned char {
   FOOL_PARAMODULATION,
   /** unit resulting resolution */
   UNIT_RESULTING_RESOLUTION,
-  /** hyper-superposition */
-  HYPER_SUPERPOSITION_GENERATING,
   /* Induction hyperresolution */
   INDUCTION_HYPERRESOLUTION,
   /* Generalized induction hyperresolution */
   GEN_INDUCTION_HYPERRESOLUTION,
-  /** generated as instance of its parent */
-  INSTANCE_GENERATION, // used by InstGen. Fun fact: the inference has one parent (logically) but the age is set from two parents (and +1)!
   /* Instantiation */
   INSTANTIATION, // used for theory reasoning
-  /** the last generating inference marker --
-        inferences between GENERIC_GENERATING_INFERNCE and INTERNAL_GENERATING_INFERNCE_LAST will be automatically understood generating
-        (see also isGeneratingInferenceRule) */
   /* argument congruence: t = t' => tx = t'x*/
   ARG_CONG,
   /* narrow with combinator axiom */
@@ -357,6 +356,9 @@ enum class InferenceRule : unsigned char {
 
   HOL_EQUALITY_ELIMINATION,
 
+  /** the last generating inference marker --
+        inferences between GENERIC_GENERATING_INFERNCE and INTERNAL_GENERATING_INFERNCE_LAST will be automatically understood generating
+        (see also isGeneratingInferenceRule) */
   INTERNAL_GENERATING_INFERNCE_LAST,
 
   /** equality proxy replacement */
@@ -378,6 +380,8 @@ enum class InferenceRule : unsigned char {
   /** merging predicate definitions */
   PREDICATE_DEFINITION_MERGING,
 
+  /** (consistent) polarity flipping of (some selected) predicates **/
+  POLARITY_FLIPPING,
 
   /** unused predicate definition removal */
   UNUSED_PREDICATE_DEFINITION_REMOVAL,
@@ -387,10 +391,6 @@ enum class InferenceRule : unsigned char {
   INEQUALITY_SPLITTING,
   /** inequality splitting name introduction */
   INEQUALITY_SPLITTING_NAME_INTRODUCTION,
-  /** grounding */
-  GROUNDING,
-  /** equality axiom */
-  EQUALITY_AXIOM,
   /** distinctness axiom */
   DISTINCTNESS_AXIOM,
   /** Introduction of formula to convert formulas used as argument positions.
@@ -398,21 +398,20 @@ enum class InferenceRule : unsigned char {
   BOOLEAN_TERM_ENCODING,
   /** Elimination of FOOL expressions that makes a formula not syntactically first-order */
   FOOL_ELIMINATION,
-  /** Elimination of $ite expressions */
-  FOOL_ITE_ELIMINATION,
-  /** Elimination of $let expressions */
-  FOOL_LET_ELIMINATION,
-  /** Elimination of $match expressions */
-  FOOL_MATCH_ELIMINATION,
+  /** Definition of $ite expressions */
+  FOOL_ITE_DEFINITION,
+  /** Definition of $let expressions */
+  FOOL_LET_DEFINITION,
+  /** Definition of formulas used as terms */
+  FOOL_FORMULA_DEFINITION,
+  /** Definition for $match expressions */
+  FOOL_MATCH_DEFINITION,
   /** result of general splitting */
   GENERAL_SPLITTING,
   /** component introduced by general splitting */
   GENERAL_SPLITTING_COMPONENT,
   /** replacing colored constants by skolem functions */
   COLOR_UNBLOCKING,
-
-  /** refutation in the SAT solver for InstGen */
-  SAT_INSTGEN_REFUTATION,
 
   /** definition introduced by AVATAR */
   AVATAR_DEFINITION,
@@ -452,7 +451,10 @@ enum class InferenceRule : unsigned char {
   CHOICE_AXIOM,
 
   /* Structural induction hypothesis*/
-  STRUCT_INDUCTION_AXIOM,
+  STRUCT_INDUCTION_AXIOM_ONE,
+  STRUCT_INDUCTION_AXIOM_TWO,
+  STRUCT_INDUCTION_AXIOM_THREE,
+  STRUCT_INDUCTION_AXIOM_RECURSION,
   /* Integer induction hypothesis for infinite intervals */
   INT_INF_UP_INDUCTION_AXIOM,
   INT_INF_DOWN_INDUCTION_AXIOM,
@@ -609,11 +611,11 @@ inline bool isExternalTheoryAxiomRule(InferenceRule r) {
 inline bool isSatRefutationRule(InferenceRule r) {
   return (r == InferenceRule::AVATAR_REFUTATION) ||
          (r == InferenceRule::AVATAR_REFUTATION_SMT) ||
-         (r == InferenceRule::SAT_INSTGEN_REFUTATION) ||
          (r == InferenceRule::GLOBAL_SUBSUMPTION);
 }
 
-vstring ruleName(InferenceRule rule);
+std::string inputTypeName(UnitInputType type);
+std::string ruleName(InferenceRule rule);
 
 /*
 * The following structs are here just that we can have specialized overloads for the Inference constructor (see below)
@@ -708,6 +710,9 @@ struct NonspecificInferenceMany {
 
 struct FromSatRefutation; // defined in SATInference.hpp
 
+class Inference;
+std::ostream& operator<<(std::ostream& out, Inference const& self);
+
 /**
  * Class to represent inferences
  */
@@ -715,7 +720,6 @@ class Inference
 {
 private:
   // don't construct on the heap
-  CLASS_NAME(Inference);
   USE_ALLOCATOR(Inference);
 
   enum class Kind : unsigned char {
@@ -725,8 +729,6 @@ private:
   };
 
   void initDefault(UnitInputType inputType, InferenceRule r) {
-    CALL("Inference::initDefault");
-
     _inputType = inputType;
     _rule = r;
     _included = false;
@@ -841,7 +843,7 @@ public:
    **/
   void updateStatistics();
 
-   vstring toString() const;
+ friend std::ostream& operator<<(std::ostream& out, Inference const& self);
 
   /**
    * To implement lazy minimization of proofs coming from a SAT solver
@@ -855,7 +857,8 @@ public:
    */
   void minimizePremises();
 
-  vstring name() const { return ruleName(_rule); }
+  // returns ruleName; with inputTypeName on top, in the case of ruleName == INPUT
+  std::string name() const;
 
   /** return the input type of the unit */
   UnitInputType inputType() const { return (UnitInputType)_inputType; }
@@ -951,7 +954,7 @@ public:
   void setProxyAxiomsDescendant(bool val) { _proxyAxiomsDescendant=val; }
 
   bool isHolAxiomsDescendant() const { return _holAxiomsDescendant; }
-  void setHolAxiomsDescendant(bool val) { _holAxiomsDescendant=val; }  
+  void setHolAxiomsDescendant(bool val) { _holAxiomsDescendant=val; }
 
   unsigned inductionDepth() const { return _inductionDepth; }
   void setInductionDepth(unsigned d) { _inductionDepth = d; }

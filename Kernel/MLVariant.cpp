@@ -22,7 +22,6 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Hash.hpp"
 #include "Lib/Int.hpp"
-#include "Lib/Metaarrays.hpp"
 #include "Lib/PairUtils.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/TriangularArray.hpp"
@@ -47,7 +46,7 @@ namespace Kernel
 
 using namespace Lib;
 
-typedef DHMap<unsigned,unsigned, IdentityHash, Hash> UUMap;
+typedef DHMap<unsigned,unsigned, IdentityHash, DefaultHash> UUMap;
 
 namespace MLVariant_AUX
 {
@@ -78,8 +77,6 @@ private:
 bool createLiteralBindings(Literal* baseLit, LiteralList* alts, Clause* instCl,
     unsigned*& boundVarData, unsigned**& altBindingPtrs, unsigned*& altBindingData)
 {
-  CALL("createLiteralBindings");
-
   static UUMap variablePositions;
   static BinaryHeap<unsigned,Int> varNums;
   variablePositions.reset();
@@ -197,8 +194,6 @@ struct MatchingData {
   bool compatible(unsigned b1Index, unsigned* i1Bindings,
   	unsigned b2Index, unsigned i2AltIndex) const
   {
-    CALL("MatchingData::compatible");
-
     if(varCnts[b1Index]==0 || varCnts[b2Index]==0) { return true; }
 
     //we'll create inverse binding to check that two variables
@@ -273,8 +268,6 @@ struct MatchingData {
 
   InitResult ensureInit(unsigned bIndex)
   {
-    CALL("MatchingData::ensureInit");
-    
     if(!isInitialized(bIndex)) {
       boundVarNums[bIndex]=boundVarNumStorage;
       altBindings[bIndex]=altBindingPtrStorage;
@@ -311,8 +304,6 @@ struct MatchingData {
 
 MatchingData* getMatchingData(Literal* const * baseLits0, unsigned baseLen, Clause* instance, LiteralList** alts)
 {
-  CALL("getMatchingData");
-
   static DArray<Literal*> baseLits(32);
   static DArray<LiteralList*> altsArr(32);
   baseLits.initFromArray(baseLen,baseLits0);
@@ -402,8 +393,6 @@ using namespace MLVariant_AUX;
  */
 bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, LiteralList** alts)
 {
-  CALL("MLVariant::isVariant/3");
-
   unsigned clen=cl2->length();
 
   MatchingData* md=getMatchingData(cl1Lits, clen, cl2, alts);
@@ -420,8 +409,6 @@ bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, LiteralList** a
 
   md->nextAlts[0]=0;
   unsigned currBLit=0;
-
-  int counter=0;
 
   while(true) {
     MatchingData::InitResult ires=md->ensureInit(currBLit);
@@ -459,14 +446,6 @@ bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, LiteralList** a
       if(currBLit==0) { return false; }
       currBLit--;
     }
-
-    counter++;
-    if(counter==50000) {
-      counter=0;
-      if(env.timeLimitReached()) {
-        throw TimeLimitExceededException();
-      }
-    }
   }
   return true;
 }
@@ -474,8 +453,6 @@ bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, LiteralList** a
 
 bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, bool complementary)
 {
-  CALL("MLVariant::isVariant/2");
-
   bool fail=false;
   unsigned clen=cl2->length();
   static DArray<LiteralList*> alts(32);

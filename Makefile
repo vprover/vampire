@@ -23,13 +23,15 @@
 #   CHECK_LEAKS      - test for memory leaks (debugging mode only)
 #   VZ3              - compile with Z3
 
-DBG_FLAGS = -g -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider 
-# DELETEMEin2017: the bug with gcc-6.2 and problems in ClauseQueue could be also fixed by adding -fno-tree-ch
-REL_FLAGS = -O6 -DVDEBUG=0 # no debugging
+COMMON_FLAGS = -DVTIME_PROFILING=0
+
+DBG_FLAGS = $(COMMON_FLAGS) -g  -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider
+REL_FLAGS = $(COMMON_FLAGS) -O3 -DVDEBUG=0 -DNDEBUG # no debugging
+
 GCOV_FLAGS = -O0 --coverage #-pedantic
 
-MINISAT_DBG_FLAGS = -D DEBUG
-MINISAT_REL_FLAGS = -D NDEBUG
+MINISAT_DBG_FLAGS = -DDEBUG
+MINISAT_REL_FLAGS = -DNDEBUG
 MINISAT_FLAGS = $(MINISAT_DBG_FLAGS)
 
 #XFLAGS = -g -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
@@ -78,14 +80,13 @@ XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 
 INCLUDES= -I.
 Z3FLAG= -DVZ3=0
 Z3LIB=
-ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g')) 
-INCLUDES= -I. -Iz3/src/api -Iz3/src/api/c++ 
-ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*static.*//g'))
-Z3LIB= -Lz3/build -lz3 -lgomp -pthread  -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive -ldl
-else
+ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g'))
+INCLUDES= -I. -Iz3/src/api -Iz3/src/api/c++
+# ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*static.*//g'))
+# Z3LIB= -Lz3/build -lz3 -lgomp -pthread  -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive -ldl
+# else
 Z3LIB= -Lz3/build -lz3
-endif
-
+# endif
 Z3FLAG= -DVZ3=1
 endif
 
@@ -110,7 +111,7 @@ endif
 
 OS = $(shell uname)
 ifeq ($(OS),Darwin)
-STATIC = -static-libgcc -static-libstdc++ 
+STATIC = -static-libgcc -static-libstdc++
 else
 STATIC = -static
 endif
@@ -123,25 +124,19 @@ XFLAGS = $(STATIC) $(REL_FLAGS) $(Z3FLAG)
 MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
 
-
-################################################################
-# Specific build options for some targets
-#
-
-ifneq (,$(filter libvapi,$(MAKECMDGOALS)))
-XFLAGS = $(REL_FLAGS) -DVAPI_LIBRARY=1 -fPIC
-endif
-ifneq (,$(filter libvapi_dbg,$(MAKECMDGOALS)))
-XFLAGS = $(DBG_FLAGS) -DVAPI_LIBRARY=1 -fPIC 
-endif
-
 ################################################################
 
+ifeq ($(OS),Darwin)
+CXX = clang++
+CC = clang
+else
 CXX = g++
-CXXFLAGS = $(XFLAGS) -Wall -std=c++14  $(INCLUDES) # -Wno-unknown-warning-option for clang
+CC = gcc
+endif
 
-CC = gcc 
-CCFLAGS = -Wall -O3 -DNDBLSCR -DNLGLOG -DNDEBUG -DNCHKSOL -DNLGLPICOSAT 
+CXXFLAGS = $(XFLAGS) -Wall -fno-threadsafe-statics -fno-rtti -std=c++17  $(INCLUDES) # -Wno-unknown-warning-option for clang
+CCFLAGS = -Wall -O3 -DNDBLSCR -DNLGLOG -DNDEBUG -DNCHKSOL -DNLGLPICOSAT
+
 ################################################################
 MINISAT_OBJ = Minisat/core/Solver.o\
   Minisat/simp/SimpSolver.o\
@@ -149,12 +144,6 @@ MINISAT_OBJ = Minisat/core/Solver.o\
   Minisat/utils/System.o\
   SAT/MinisatInterfacing.o\
   SAT/MinisatInterfacingNewSimp.o
-
-API_OBJ = Api/FormulaBuilder.o\
-	  Api/Helper.o\
-	  Api/ResourceLimits.o\
-	  Api/Tracing.o
-#	  Api/Problem.o\	  
 
 VD_OBJ = Debug/Assertion.o\
          Debug/RuntimeStatistics.o\
@@ -168,18 +157,13 @@ VL_OBJ= Lib/Allocator.o\
         Lib/Int.o\
         Lib/IntNameTable.o\
         Lib/IntUnionFind.o\
-        Lib/MemoryLeak.o\
-        Lib/MultiCounter.o\
         Lib/NameArray.o\
         Lib/Random.o\
         Lib/StringUtils.o\
         Lib/System.o\
-        Lib/TimeCounter.o\
         Lib/Timer.o
 
-VLS_OBJ= Lib/Sys/Multiprocessing.o\
-         Lib/Sys/Semaphore.o\
-         Lib/Sys/SyncPipe.o
+VLS_OBJ= Lib/Sys/Multiprocessing.o
 
 VK_OBJ= Kernel/Clause.o\
         Kernel/ClauseQueue.o\
@@ -194,16 +178,18 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Inference.o\
         Kernel/InferenceStore.o\
         Kernel/KBO.o\
+        Kernel/KBOComparator.o\
         Kernel/SKIKBO.o\
-        Kernel/KBOForEPR.o\
         Kernel/LiteralSelector.o\
         Kernel/LookaheadLiteralSelector.o\
-	Kernel/LPO.o\
+        Kernel/LPO.o\
+        Kernel/LPOComparator.o\
         Kernel/MainLoop.o\
         Kernel/Matcher.o\
         Kernel/MaximalLiteralSelector.o\
         Kernel/SpassLiteralSelector.o\
         Kernel/ELiteralSelector.o\
+        Kernel/RndLiteralSelector.o\
         Kernel/MLMatcher.o\
         Kernel/MLMatcherSD.o\
         Kernel/MLVariant.o\
@@ -212,7 +198,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Problem.o\
         Kernel/Renaming.o\
         Kernel/RobSubstitution.o\
-        Kernel/MismatchHandler.o\
+        Kernel/UnificationWithAbstraction.o\
         Kernel/Signature.o\
         Kernel/SortHelper.o\
         Kernel/ApplicativeHelper.o\
@@ -243,27 +229,19 @@ VI_OBJ = Indexing/AcyclicityIndex.o\
          Indexing/InductionFormulaIndex.o\
          Indexing/LiteralIndex.o\
          Indexing/LiteralMiniIndex.o\
-         Indexing/LiteralSubstitutionTree.o\
          Indexing/ResultSubstitution.o\
-         Indexing/SubstitutionTree.o\
-         Indexing/SubstitutionTree_FastGen.o\
-         Indexing/SubstitutionTree_FastInst.o\
-         Indexing/SubstitutionTree_Nodes.o\
          Indexing/TermCodeTree.o\
          Indexing/TermIndex.o\
          Indexing/TermSharing.o\
-         Indexing/TermSubstitutionTree.o\
-         Indexing/TypeSubstitutionTree.o
-
-VIG_OBJ = InstGen/IGAlgorithm.o\
-          InstGen/ModelPrinter.o
 
 VINF_OBJ=Inferences/BackwardDemodulation.o\
-         Inferences/BackwardSubsumptionResolution.o\
+         Inferences/BackwardSubsumptionAndResolution.o\
          Inferences/BackwardSubsumptionDemodulation.o\
          Inferences/BinaryResolution.o\
          Inferences/Condensation.o\
+         Inferences/DemodulationHelper.o\
          Inferences/DistinctEqualitySimplifier.o\
+         Inferences/DefinitionIntroduction.o\
          Inferences/EqualityFactoring.o\
          Inferences/EqualityResolution.o\
          Inferences/ExtensionalityResolution.o\
@@ -273,6 +251,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/SubVarSup.o\
          Inferences/Factoring.o\
          Inferences/FastCondensation.o\
+         Inferences/FunctionDefinitionRewriting.o\
          Inferences/FOOLParamodulation.o\
          Inferences/Injectivity.o\
          Inferences/ForwardDemodulation.o\
@@ -283,17 +262,15 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/SubsumptionDemodulationHelper.o\
          Inferences/ForwardSubsumptionDemodulation.o\
          Inferences/GlobalSubsumption.o\
-         Inferences/HyperSuperposition.o\
          Inferences/InnerRewriting.o\
          Inferences/EquationalTautologyRemoval.o\
          Inferences/InferenceEngine.o\
-	 Inferences/Instantiation.o\
+         Inferences/Instantiation.o\
          Inferences/InterpretedEvaluation.o\
          Inferences/PushUnaryMinus.o\
          Inferences/Cancellation.o\
          Inferences/PolynomialEvaluation.o\
          Inferences/ArithmeticSubtermGeneralization.o\
-         Inferences/SLQueryBackwardSubsumption.o\
          Inferences/Superposition.o\
          Inferences/TautologyDeletionISE.o\
          Inferences/TermAlgebraReasoning.o\
@@ -310,11 +287,15 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BoolEqToDiseq.o\
          Inferences/GaussianVariableElimination.o\
          Inferences/InterpretedEvaluation.o\
-         Inferences/TheoryInstAndSimp.o
-#         Inferences/RenamingOnTheFly.o\
+         Inferences/InvalidAnswerLiteralRemovals.o\
+         Inferences/TheoryInstAndSimp.o\
+         SATSubsumption/SATSubsumptionAndResolution.o\
+         SATSubsumption/subsat/constraint.o\
+         SATSubsumption/subsat/log.o\
+         SATSubsumption/subsat/subsat.o\
+         SATSubsumption/subsat/types.o
 
-VSAT_OBJ=SAT/DIMACS.o\
-         SAT/MinimizingSolver.o\
+VSAT_OBJ=SAT/MinimizingSolver.o\
          SAT/SAT2FO.o\
          SAT/SATClause.o\
          SAT/SATInference.o\
@@ -339,11 +320,11 @@ VST_OBJ= Saturation/AWPassiveClauseContainer.o\
          Saturation/SymElOutput.o\
          Saturation/ManCSPassiveClauseContainer.o\
 
-VS_OBJ = Shell/AnswerExtractor.o\
+VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/CommandLine.o\
+         Shell/ConditionalRedundancyHandler.o\
          Shell/CNF.o\
          Shell/NewCNF.o\
-         Shell/NameReuse.o\
          Shell/DistinctProcessor.o\
          Shell/DistinctGroupExpansion.o\
          Shell/EqResWithDeletion.o\
@@ -351,9 +332,9 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/EqualityProxyMono.o\
          Shell/Flattening.o\
          Shell/FunctionDefinition.o\
+         Shell/FunctionDefinitionHandler.o\
          Shell/GeneralSplitting.o\
          Shell/GoalGuessing.o\
-         Shell/Grounding.o\
          Shell/InequalitySplitting.o\
          Shell/InterpolantMinimizer.o\
          Shell/Interpolants.o\
@@ -365,6 +346,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/Naming.o\
          Shell/NNF.o\
          Shell/Normalisation.o\
+         Shell/Shuffling.o\
          Shell/Options.o\
          Shell/PredicateDefinition.o\
          Shell/Preprocess.o\
@@ -375,6 +357,7 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/SineUtils.o\
          Shell/FOOLElimination.o\
          Shell/Statistics.o\
+         Debug/TimeProfiling.o\
          Shell/SubexpressionIterator.o\
          Shell/SymbolDefinitionInlining.o\
          Shell/SymbolOccurrenceReplacement.o\
@@ -388,10 +371,8 @@ VS_OBJ = Shell/AnswerExtractor.o\
          Shell/Token.o\
          Shell/TPTPPrinter.o\
          Shell/UIHelper.o\
-         Shell/VarManager.o\
          Shell/Lexer.o\
          Shell/Preprocess.o\
-         Shell/UnificationWithAbstractionConfig.o\
          version.o
 
 PARSE_OBJ = Parse/SMTLIB2.o\
@@ -403,9 +384,7 @@ DP_OBJ = DP/ShortConflictMetaDP.o\
          DP/SimpleCongruenceClosure.o
 
 CASC_OBJ = CASC/PortfolioMode.o\
-           CASC/Schedules.o\
-           CASC/CLTBMode.o\
-           CASC/CLTBModeLearning.o
+           CASC/Schedules.o
 
 VFMB_OBJ = FMB/ClauseFlattening.o\
            FMB/SortInference.o\
@@ -452,7 +431,6 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Shell/Options.o\
 	  Shell/Property.o\
 	  Shell/Statistics.o\
-          Shell/UnificationWithAbstractionConfig.o\
 	  version.o
 	  # ClausifierDependencyFix.o\
 	  version.o\
@@ -461,12 +439,7 @@ LIB_DEP = Indexing/TermSharing.o\
     Kernel/Rebalancing/Inverters.o\
     Kernel/NumTraits.o
 
-OTHER_CL_DEP = Indexing/LiteralSubstitutionTree.o\
-	       Indexing/ResultSubstitution.o\
-	       Indexing/SubstitutionTree_FastGen.o\
-	       Indexing/SubstitutionTree_FastInst.o\
-	       Indexing/SubstitutionTree_Nodes.o\
-	       Indexing/SubstitutionTree.o\
+OTHER_CL_DEP = Indexing/ResultSubstitution.o\
 	       Inferences/InferenceEngine.o\
 	       Inferences/TautologyDeletionISE.o\
 	       Kernel/EqHelper.o\
@@ -476,7 +449,6 @@ OTHER_CL_DEP = Indexing/LiteralSubstitutionTree.o\
 	       Kernel/Matcher.o\
 	       Kernel/KBO.o\
          Kernel/SKIKBO.o\
-	       Kernel/KBOForEPR.o\
 	       Kernel/Ordering.o\
 	       Kernel/Ordering_Equality.o\
 	       Kernel/Problem.o\
@@ -486,7 +458,7 @@ OTHER_CL_DEP = Indexing/LiteralSubstitutionTree.o\
 	       SAT/SATInference.o\
 	       SAT/SATLiteral.o\
 
-VAMP_DIRS := Api Debug DP Lib Lib/Sys Kernel FMB Indexing Inferences InstGen Shell CASC SAT Saturation Test UnitTests VUtils Parse Minisat Minisat/core Minisat/mtl Minisat/simp Minisat/utils Kernel/Rebalancing
+VAMP_DIRS := Debug DP Lib Lib/Sys Kernel FMB Indexing Inferences Shell CASC SAT Saturation Test UnitTests VUtils Parse Minisat Minisat/core Minisat/mtl Minisat/simp Minisat/utils Kernel/Rebalancing
 
 VAMP_BASIC := $(MINISAT_OBJ) $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VK_OBJ) $(BP_VD_OBJ) $(BP_VL_OBJ) $(BP_VLS_OBJ) $(BP_VSOL_OBJ) $(BP_VT_OBJ) $(BP_MPS_OBJ) $(ALG_OBJ) $(VI_OBJ) $(VINF_OBJ) $(VIG_OBJ) $(VSAT_OBJ) $(DP_OBJ) $(VST_OBJ) $(VS_OBJ) $(PARSE_OBJ) $(VFMB_OBJ)
 VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) $(LIB_DEP)
@@ -494,8 +466,6 @@ VSAT_BASIC := $(VD_OBJ) $(VL_OBJ) $(VLS_OBJ) $(VSAT_OBJ) $(LIB_DEP)
 VAMPIRE_DEP := $(VAMP_BASIC) $(CASC_OBJ) $(TKV_BASIC) vampire.o
 VSAT_DEP = $(VSAT_BASIC)
 VTEST_DEP = $(VAMP_BASIC) $(VT_OBJ) $(VUT_OBJ) $(DP_OBJ) vtest.o
-LIBVAPI_DEP = $(VD_OBJ) $(API_OBJ)
-VAPI_DEP =  $(LIBVAPI_DEP) test_vapi.o
 
 all: #default make disabled
 	@echo "The make(1)-based build is no longer supported: use the CMake build instead."
@@ -508,7 +478,7 @@ all: #default make disabled
 ################################################################
 # automated generation of Vampire revision information
 
-VERSION_NUMBER = 4.6.1
+VERSION_NUMBER = 4.9
 
 # We extract the revision number from svn every time the svn meta-data are modified
 # (that's why there is the dependency on .svn/entries) 
@@ -550,7 +520,7 @@ obj/%X: | obj
 
 $(CONF_ID)/%.o : %.cpp | $(CONF_ID)
 	mkdir -p `dirname $@`
-	$(CXX) $(CXXFLAGS) -c -o $@ $*.cpp -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
+	$(CXX) $(CXXFLAGS) -c -o $@ $*.cpp -MMD -MF $(CONF_ID)/$*.d
 
 %.o : %.c 
 $(CONF_ID)/%.o : %.c | $(CONF_ID)
@@ -558,7 +528,7 @@ $(CONF_ID)/%.o : %.c | $(CONF_ID)
 
 %.o : %.cc
 $(CONF_ID)/%.o : %.cc | $(CONF_ID)
-	$(CXX) $(CXXFLAGS) -c -o $@ $*.cc $(MINISAT_FLAGS) -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d
+	$(CXX) $(CXXFLAGS) -c -o $@ $*.cc $(MINISAT_FLAGS) -MMD -MF $(CONF_ID)/$*.d
 
 ################################################################
 # targets for executables
@@ -567,8 +537,6 @@ VAMPIRE_OBJ := $(addprefix $(CONF_ID)/, $(VAMPIRE_DEP))
 VTEST_OBJ := $(addprefix $(CONF_ID)/, $(VTEST_DEP))
 VUTIL_OBJ := $(addprefix $(CONF_ID)/, $(VUTIL_DEP))
 VSAT_OBJ := $(addprefix $(CONF_ID)/, $(VSAT_DEP))
-VAPI_OBJ := $(addprefix $(CONF_ID)/, $(VAPI_DEP))
-LIBVAPI_OBJ := $(addprefix $(CONF_ID)/, $(LIBVAPI_DEP))
 TKV_OBJ := $(addprefix $(CONF_ID)/, $(TKV_DEP))
 
 define COMPILE_CMD
@@ -605,21 +573,12 @@ vampire: $(VAMPIRE_OBJ) $(EXEC_DEF_PREREQ)
 vtest vtest_z3: $(VTEST_OBJ) $(EXEC_DEF_PREREQ)
 	$(COMPILE_CMD)
 
-vapi vapi_dbg vapi_rel: $(VAPI_OBJ) $(EXEC_DEF_PREREQ)
-	$(COMPILE_CMD)
-
-libvapi libvapi_dbg: $(LIBVAPI_OBJ) $(EXEC_DEF_PREREQ)
-	$(CXX) $(CXXFLAGS) -shared -Wl,-soname,libvapi.so -o libvapi.so $(filter %.o, $^) -lc
-
-test_libvapi: $(CONF_ID)/test_libvapi.o $(EXEC_DEF_PREREQ)
-	$(CXX) $(CXXFLAGS) $(filter %.o, $^) -o $@ -lvapi -L. -Wl,-R,\$$ORIGIN
-
 compile_commands:
 	mkdir compile_commands
 
 compile_commands/%.o: compile_commands
 	mkdir -p $(dir $@)
-	echo $(CXX) $(CXXFLAGS) -c $*.cpp -D __STDC_LIMIT_MACROS -D __STDC_FORMAT_MACROS -MMD -MF $(CONF_ID)/$*.d > $@
+	echo $(CXX) $(CXXFLAGS) -c $*.cpp -MMD -MF $(CONF_ID)/$*.d > $@
 
 compile_commands.json: $(foreach x, $(VAMPIRE_DEP), compile_commands/$x)
 	echo '[' > $@
@@ -634,16 +593,6 @@ compile_commands.json: $(foreach x, $(VAMPIRE_DEP), compile_commands/$x)
 	echo '  }'>> $@
 	echo ']' >> $@
 
-api_src:
-	rm -rf $@
-	mkdir $@
-	mkdir $(patsubst %, $@/%, $(VAMP_DIRS))
-	tar cf - $(sort $(patsubst %.o,%.cpp, $(VAPI_DEP) test_libvapi.o)) | (cd $@ ; tar xvf -) 2>/dev/null
-	cp Makefile Makefile_depend test_vapi.cpp $@
-	tar cf - $(sort $(shell $(CXX) -I. -MM -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 $(sort $(patsubst %.o,%.cpp, $(VAPI_DEP))) |tr '\n' ' '|tr -d ':\\'|sed -E 's/(^| )[^ ]+\.(o|cpp)//g' )) | (cd $@ ; tar xvf -) 2>/dev/null
-	rm -f $@.tgz
-	tar -czf $@.tgz $@
-
 clean:
 	rm -rf obj version.cpp
 
@@ -651,7 +600,7 @@ doc:
 	rm -fr doc/html
 	doxygen config.doc
 
-.PHONY: doc clean api_src
+.PHONY: doc clean
 
 ###########################
 # include header dependencies

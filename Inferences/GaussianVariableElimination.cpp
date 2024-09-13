@@ -25,7 +25,6 @@ using Balancer = Kernel::Rebalancing::Balancer<Kernel::Rebalancing::Inverters::N
 
 SimplifyingGeneratingInference1::Result GaussianVariableElimination::simplify(Clause* in, bool doCheckOrdering) 
 {
-  CALL("GaussianVariableElimination::simplify")
   ASS(in)
 
   auto& cl = *in;
@@ -55,7 +54,6 @@ SimplifyingGeneratingInference1::Result GaussianVariableElimination::simplify(Cl
 
 SimplifyingGeneratingInference1::Result GaussianVariableElimination::rewrite(Clause& cl, TermList find, TermList replace, unsigned skipLiteral, bool doCheckOrdering) const 
 {
-  CALL("GaussianVariableElimination::rewrite");
   env.statistics->gveCnt++;
 
   Inference inf(SimplifyingInference1(Kernel::InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION, &cl));
@@ -75,21 +73,18 @@ SimplifyingGeneratingInference1::Result GaussianVariableElimination::rewrite(Cla
     return rewritten;
   };
 
-  auto sz = cl.size() - 1;
-  Clause& out = *new(sz) Clause(sz, inf); 
-  for (unsigned i = 0; i < skipLiteral; i++) {
-    out[i] = checkLeq(cl[i], EqHelper::replace(cl[i], find, replace));
-  }
-
-  for (unsigned i = skipLiteral; i < sz; i++)  {
-    out[i] = checkLeq(cl[i+1], EqHelper::replace(cl[i+1], find, replace));
+  RStack<Literal*> resLits;
+  for (unsigned i = 0; i < cl.size(); i++) {
+    if (i != skipLiteral) {
+      resLits->push(checkLeq(cl[i], EqHelper::replace(cl[i], find, replace)));
+    }
   }
 
   if(!premiseRedundant) {
     env.statistics->gveViolations++;
   }
 
-  return SimplifyingGeneratingInference1::Result{&out, premiseRedundant};
+  return SimplifyingGeneratingInference1::Result{Clause::fromStack(*resLits, inf), premiseRedundant};
 }
 
 } // namespace Inferences 

@@ -24,11 +24,9 @@
 #include "Lib/List.hpp"
 #include "Lib/Portability.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/VString.hpp"
 
 namespace Shell {
 
-using namespace std;
 using namespace Lib;
 
 class LispLexer;
@@ -50,13 +48,12 @@ public:
 
   /** expressions */
   struct Expression {
-    CLASS_NAME(LispParser::Expression);
     USE_ALLOCATOR(Expression);
 
     /** type of the expression */
     Tag tag;
     /** the value (for atoms and numbers) */
-    vstring str;
+    std::string str;
     /** list of expressions */
     List<Expression*>* list;
     /** build a list expressions with the list initially empty */
@@ -66,41 +63,41 @@ public:
 	list(0)
     {}
     /** build a string-values expression */
-    Expression(Tag t,vstring s)
+    Expression(Tag t,std::string s)
       : tag(t),
 	str(s),
 	list(0)
     {}
-    vstring toString(bool outerParentheses=true) const;
+    std::string toString(bool outerParentheses=true) const;
 
     bool isList() const { return tag==LIST; }
     bool isAtom() const { return tag==ATOM; }
 
-    bool get2Args(vstring functionName, Expression*& arg1, Expression*& arg2);
-    bool get1Arg(vstring functionName, Expression*& arg);
+    bool get2Args(std::string functionName, Expression*& arg1, Expression*& arg2);
+    bool get1Arg(std::string functionName, Expression*& arg);
     bool getPair(Expression*& el1, Expression*& el2);
     bool getSingleton(Expression*& el);
   };
 
-  typedef Lib::List<Expression*> List;
+  typedef Lib::List<Expression*> EList;
 
   explicit LispParser(LispLexer& lexer);
   Expression* parse();
-  void parse(List**);
+  void parse(EList**);
 
   /**
    * Class Exception. Implements parser exceptions.
    * @since 17/07/2004 Helsinki airport
    */
-  class Exception 
-    : public Lib::Exception
+  class Exception
+    : public Lib::ParsingRelatedException
   {
-  public:                                
-    Exception (vstring message,const Token&);
-    void cry (ostream&) const;
+  public:
+    Exception (std::string message,const Token&);
+    void cry (std::ostream&) const;
     ~Exception () {}
   protected:
-    vstring _message;
+    std::string _message;
   }; // Exception
 
 private:
@@ -116,9 +113,8 @@ typedef List<LExpr*> LExprList;
 
 class LispListReader {
 public:
-  explicit LispListReader(LExpr* e)
+  explicit LispListReader(LExpr* e) : it(nullptr)
   {
-    CALL("LispListReader::LispListReader(LExpr*)");
     if(!e->isList()) {
       lispError(e, "list expected");
     }
@@ -126,16 +122,16 @@ public:
   }
   explicit LispListReader(LExprList* list) : it(list) {}
 
-  [[noreturn]] void lispError(LExpr* expr, vstring reason="error");
-  [[noreturn]] void lispCurrError(vstring reason="error");
+  [[noreturn]] void lispError(LExpr* expr, std::string reason="error");
+  [[noreturn]] void lispCurrError(std::string reason="error");
 
   bool hasNext() { return it.hasNext(); }
   LExpr* peekAtNext();
   LExpr* readNext();
   LExpr* next() { return readNext(); }
 
-  bool tryReadAtom(vstring& atom);
-  vstring readAtom();
+  bool tryReadAtom(std::string& atom);
+  std::string readAtom();
 
   bool tryReadListExpr(LExpr*& e);
   LExpr* readListExpr();
@@ -143,8 +139,8 @@ public:
   bool tryReadList(LExprList*& list);
   LExprList* readList();
 
-  bool tryAcceptAtom(vstring atom);
-  void acceptAtom(vstring atom);
+  bool tryAcceptAtom(std::string atom);
+  void acceptAtom(std::string atom);
   void acceptAtom() { readAtom(); }
 
   bool tryAcceptList();
@@ -152,7 +148,7 @@ public:
 
   void acceptEOL();
 
-  bool lookAheadAtom(vstring atom);
+  bool lookAheadAtom(std::string atom);
 
   bool tryAcceptCurlyBrackets();
 private:
@@ -176,7 +172,7 @@ public:
   }
 #endif
 
-  LispListWriter& operator<<(vstring s)
+  LispListWriter& operator<<(std::string s)
   {
     _elements.push(new LExpr(LispParser::ATOM, s));
     return *this;
@@ -202,7 +198,6 @@ public:
 
   LExprList* getList() const
   {
-    CALL("LispListWriter::getList");
     ASS(!_destroyed);
 
     LExprList* res = 0;
@@ -212,8 +207,6 @@ public:
 
   LExpr* get() const
   {
-    CALL("LispListWriter::get");
-
     LExpr* res = new LExpr(LispParser::LIST);
     res->list = getList();
     return res;

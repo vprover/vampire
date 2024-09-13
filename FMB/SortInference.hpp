@@ -13,7 +13,7 @@
  *
  *
  * NOTE: An important convention to remember is that when we have a DArray representing
- *       the signature or grounding of a function the lastt argument is the return
+ *       the signature or grounding of a function the last argument is the return
  *       so array[arity] is return and array[i] is the ith argument of the function
  */
 
@@ -32,9 +32,6 @@ using namespace Shell;
 using namespace Lib;
 
 struct SortedSignature{
-    CLASS_NAME(SortedSignature);
-    USE_ALLOCATOR(SortedSignature);
-
     unsigned sorts;
     DArray<Stack<unsigned>> sortedConstants;
     DArray<Stack<unsigned>> sortedFunctions;
@@ -46,7 +43,7 @@ struct SortedSignature{
 
     // gives the maximum size of a sort
     DArray<unsigned> sortBounds;
-    
+
     // the number of distinct sorts that might have different sizes
     unsigned distinctSorts;
 
@@ -78,41 +75,39 @@ struct SortedSignature{
 
 class SortInference {
 public:
-  CLASS_NAME(SortInference);
-  USE_ALLOCATOR(SortInference);    
-  
   SortInference(ClauseList* clauses,
-                DArray<unsigned> del_f,
-                DArray<unsigned> del_p,
-                Stack<DHSet<unsigned>*> equiv_v_sorts,
-                Stack<std::pair<unsigned,unsigned>>& cons) :
+                const DArray<bool>& del_f,
+                const DArray<bool>& del_p,
+                Stack<std::pair<unsigned,unsigned>>& distinct_sort_constraints,
+                DHMap<unsigned,DArray<signed char>*>& monotonic_vampire_sorts) :
                 _clauses(clauses), _del_f(del_f), _del_p(del_p),
-                _equiv_v_sorts(equiv_v_sorts), _equiv_vs(env.signature->typeCons()),
-                _sort_constraints(cons) {
-
+                // these two are essentially output arguments
+                _sort_constraints(distinct_sort_constraints),
+                _monotonic_vampire_sorts(monotonic_vampire_sorts)
+                {
                   _sig = new SortedSignature();
                   _print = env.options->showFMBsortInfo();
 
                    // ignore inference if there are no clauses
-                  _ignoreInference = !clauses; 
+                  _ignoreInference = !clauses;
                   _expandSubsorts = env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::EXPAND;
 
                   _usingMonotonicity = true;
-                  _collapsingMonotonicSorts = (env.options->fmbAdjustSorts() != Options::FMBAdjustSorts::OFF && 
+                  _collapsingMonotonicSorts = (env.options->fmbAdjustSorts() != Options::FMBAdjustSorts::OFF &&
                                                env.options->fmbAdjustSorts() != Options::FMBAdjustSorts::EXPAND);
-                  _assumeMonotonic = _collapsingMonotonicSorts && 
+                  _assumeMonotonic = _collapsingMonotonicSorts &&
                                      env.options->fmbAdjustSorts() != Options::FMBAdjustSorts::GROUP;
 
                   _distinctSorts=0;
                   _collapsed=0;
 
                   ASS(! (_expandSubsorts && _collapsingMonotonicSorts) );
-                  ASS( _collapsingMonotonicSorts || !_assumeMonotonic); 
+                  ASS( _collapsingMonotonicSorts || !_assumeMonotonic);
                 }
 
-   void doInference();                
+   void doInference();
 
-   SortedSignature* getSignature(){ return _sig; } 
+   SortedSignature* getSignature(){ return _sig; }
 
 private:
 
@@ -127,18 +122,17 @@ private:
 
   unsigned _distinctSorts;
   unsigned _collapsed;
-  DHSet<unsigned> monotonicVampireSorts;
-  ZIArray<unsigned> posEqualitiesOnSort;
+  ZIArray<unsigned> _posEqualitiesOnSort;  // grows as needed, as new sorts are named
 
   SortedSignature* _sig;
   ClauseList* _clauses;
-  DArray<unsigned> _del_f;
-  DArray<unsigned> _del_p;
-  Stack<DHSet<unsigned>*> _equiv_v_sorts;
-  IntUnionFind _equiv_vs;
+  const DArray<bool>& _del_f;
+  const DArray<bool>& _del_p;
 
+  // these two actually live in FiniteModelBuilder and serve as output arguments of this sort inference
+  // (see more explanations there)
   Stack<std::pair<unsigned,unsigned>>& _sort_constraints;
-
+  DHMap<unsigned,DArray<signed char>*>& _monotonic_vampire_sorts;
 };
 
 }

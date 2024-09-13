@@ -17,12 +17,9 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
 
 #include "Shell/Statistics.hpp"
-
-#include "Lib/Allocator.hpp"
 
 namespace Shell {
   class Property;
@@ -53,10 +50,7 @@ struct MainLoopResult
 
 
 class MainLoop {
-public:  
-  CLASS_NAME(MainLoop);
-  USE_ALLOCATOR(MainLoop);
-
+public:
   MainLoop(Problem& prb, const Options& opt) : _prb(prb), _opt(opt) {}
   virtual ~MainLoop() {}
 
@@ -72,7 +66,6 @@ public:
   {
     RefutationFoundException(Clause* ref) : refutation(ref)
     {
-      CALL("MainLoop::RefutationFoundException::RefutationFoundException");
       ASS(isRefutation(ref));
     }
 
@@ -104,6 +97,7 @@ public:
   const Options& getOptions() const { return _opt; }
 
   static bool isRefutation(Clause* cl);
+
 protected:
 
   /**

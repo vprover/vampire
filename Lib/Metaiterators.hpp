@@ -21,13 +21,14 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Recycler.hpp"
+#include "Lib/Recycled.hpp"
+#include "Lib/Reflection.hpp"
 #include "List.hpp"
 #include "DHSet.hpp"
-#include "Recycler.hpp"
 #include "VirtualIterator.hpp"
-#include "TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/Option.hpp"
+#include "Lib/Coproduct.hpp"
 
 namespace Lib {
 
@@ -53,191 +54,6 @@ ITERATOR_TYPE(C) getContentIterator(C& c)
 }
 
 /**
- * Iterator class that iterates an array and never stops. This iterator
- * needs to be used e.g. inside a WhileLimitedIterator.
- */
-template<class El>
-class InfiniteArrayIterator
-{
-public:
-  DECL_ELEMENT_TYPE(El);
-  InfiniteArrayIterator(const El* ptr) : _nextPtr(ptr) {}
-  inline bool hasNext() { return true; }
-  inline OWN_ELEMENT_TYPE next() { return *(_nextPtr++); }
-private:
-  const El* _nextPtr;
-};
-
-template<class El>
-InfiniteArrayIterator<El> getInfiniteArrayIterator(const El* ptr)
-{
-  CALL("getInfiniteArrayIterator");
-  return InfiniteArrayIterator<El>(ptr);
-}
-
-template<class A> struct const_ref { using type = A const&; };
-template<class A> struct mut_ref   { using type = A &; };
-template<class A> struct no_ref    { using type = A; };
-template<class A> using  const_ref_t = typename const_ref<A>::type; 
-template<class A> using  mut_ref_t   = typename mut_ref<A>::type; 
-template<class A> using  no_ref_t    = typename no_ref<A>::type; 
-
-template<class Arr, template<class> class ref_t>
-struct ArrayishContent { using type = ref_t<Arr>; };
-template<class Arr> struct ArrayishContent<Arr, no_ref_t> { using type = Arr const&; };
-template<class A, template<class> class ref_t> using  ArrayishContentType = typename ArrayishContent<A,ref_t>::type;
-
-/** Iterator class for types whose elements are accessible by
- * @b operator[](size_t) with the first element at the index 0
- * and the others at consecutive indexes
- *
- * If the iterated object has a @b size() function, the single
- * argument constructor can be used. Otherwise the two parameter
- * constructor must be used, the second parameter being the size
- * of the container (so that the elements are at indexes 0, ...,
- * size-1) const.
- */
-template<class Arr, template<class> class ref_t = no_ref_t>
-class ArrayishObjectIterator
-{
-public:
-  using Cont = ArrayishContentType<Arr, ref_t>;
-  DECL_ELEMENT_TYPE(ref_t<ELEMENT_TYPE(Arr)>);
-  ArrayishObjectIterator(Cont arr) : _arr(arr),
-  _index(0), _size(_arr.size()) {}
-  ArrayishObjectIterator(Cont arr, size_t size) : _arr(arr),
-  _index(0), _size(size) {}
-  inline bool hasNext() { return _index<_size; }
-  inline ELEMENT_TYPE(ArrayishObjectIterator) next() { ASS(_index<_size); return _arr[_index++]; }
-  inline bool knowsSize() { return true;}
-  inline bool size() { return _size;}
-private:
-  Cont _arr;
-  size_t _index;
-  size_t _size;
-};
-
-template<template<class> class ref_t = no_ref_t, class Arr>
-ArrayishObjectIterator<Arr, ref_t> getArrayishObjectIterator(Arr const& arr, size_t size)
-{
-  CALL("getArrayishObjectIterator");
-  return ArrayishObjectIterator<Arr, ref_t>(arr, size);
-}
-
-template<template<class> class ref_t = no_ref_t, class Arr>
-ArrayishObjectIterator<Arr, ref_t> getArrayishObjectIterator(Arr const& arr)
-{ return ArrayishObjectIterator<Arr, ref_t>(arr); }
-
-
-template<template<class> class ref_t = no_ref_t, class Arr>
-ArrayishObjectIterator<Arr, ref_t> getArrayishObjectIterator(Arr& arr)
-{ return ArrayishObjectIterator<Arr, ref_t>(arr); }
-
-template<template<class> class ref_t = no_ref_t, class Arr>
-ArrayishObjectIterator<Arr, ref_t> getArrayishObjectIterator(Arr& arr, size_t size)
-{ return ArrayishObjectIterator<Arr, ref_t>(arr, size); }
-
-template<class Arr>
-class OwnedArrayishIterator
-{
-public:
-  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Arr));
-  OwnedArrayishIterator(Arr&& arr) : _arr(std::move(arr)),
-  _index(0), _size(_arr.size()) {}
-  OwnedArrayishIterator(Arr&& arr, size_t size) : _arr(std::move(arr)),
-  _index(0), _size(size) {}
-  inline bool hasNext() { return _index<_size; }
-  inline ELEMENT_TYPE(Arr) next() { ASS(_index<_size); return _arr[_index++]; }
-  inline bool knowsSize() { return true;}
-  inline bool size() { return _size;}
-private:
-  Arr _arr;
-  size_t _index;
-  size_t _size;
-};
-
-template<class Arr>
-OwnedArrayishIterator<Arr> ownedArrayishIterator(Arr&& arr, size_t size)
-{ return OwnedArrayishIterator<Arr>(std::move(arr), size); }
-
-template<class Arr>
-OwnedArrayishIterator<Arr> ownedArrayishIterator(Arr&& arr)
-{ return OwnedArrayishIterator<Arr>(std::move(arr)); }
-
-
-/**
- * Reads given number of values from an input stream.
- *
- * Assumes that the input stream has enough values for that!
- */
-template<typename T>
-class InputIterator
-{
-public:
-  DECL_ELEMENT_TYPE(T);
-  InputIterator(istream& inp, size_t cnt) : _inp(inp), _remaining(cnt) {}
-
-  bool hasNext() const { return _remaining>0; }
-  T next() {
-    CALL("InputIterator::next");
-    ASS_G(_remaining,0);
-    _remaining--;
-    T res;
-    _inp >> res;
-    return res;
-  }
-
-private:
-  istream& _inp;
-  size_t _remaining;
-};
-
-/**
- * Iterator class for pointers
- *
- * The constructor takes two arguments - a pointer to the first element,
- * and a pointer to the element after the last element to be returned.
- *
- * Consecutive elements are being obtained by the postfix @b operator++().
- */
-template<typename T>
-class PointerIterator
-{
-public:
-  DECL_ELEMENT_TYPE(T);
-  inline PointerIterator(const T* first, const T* afterLast) :
-    _curr(first), _afterLast(afterLast) {}
-  inline bool hasNext() { ASS(_curr<=_afterLast); return _curr!=_afterLast; }
-  inline T next() { ASS(hasNext()); return *(_curr++); }
-private:
-  const T* _curr;
-  const T* _afterLast;
-};
-
-/**
- * Iterator class for pointers returning pointers to elements
- *
- * The constructor takes two arguments - a pointer to the first element,
- * and a pointer to the element after the last element to be returned.
- *
- * Consecutive elements are being obtained by the postfix @b operator++().
- */
-template<typename T>
-class PointerPtrIterator
-{
-public:
-  DECL_ELEMENT_TYPE(T*);
-  inline PointerPtrIterator(T* first, T* afterLast) :
-    _curr(first), _afterLast(afterLast) {}
-  inline bool hasNext() { ASS(_curr<=_afterLast); return _curr!=_afterLast; }
-  inline T* next() { ASS(hasNext()); return _curr++; }
-private:
-  T* _curr;
-  T* _afterLast;
-};
-
-
-/**
  * Iterator returning a single element
  *
  * The single element is being passed to the constructor of the iterator.
@@ -247,6 +63,7 @@ class SingletonIterator
 {
 public:
   DECL_ELEMENT_TYPE(T);
+  DEFAULT_CONSTRUCTORS(SingletonIterator)
   explicit SingletonIterator(T el) : _finished(false), _el(el) {}
   inline bool hasNext() { return !_finished; };
   inline T next() { ASS(!_finished); _finished=true; return _el; };
@@ -270,81 +87,6 @@ SingletonIterator<T> getSingletonIterator(T el)
 }
 
 /**
- * sequence of functions for creating tuple iterators
- */
-template<typename T>
-VirtualIterator<T> ti(T el)
-{
-  return pvi( getSingletonIterator(el) );
-}
-
-template<typename T>
-VirtualIterator<T> ti(T el1, T el2)
-{
-  return pvi( getConcatenatedIterator(getSingletonIterator(el1),getSingletonIterator(el2)) );
-}
-
-template<typename T>
-VirtualIterator<T> ti(T el1, T el2, T el3)
-{
-  return pvi( getConcatenatedIterator(getSingletonIterator(el1),
-      getConcatenatedIterator(getSingletonIterator(el2),getSingletonIterator(el3))) );
-}
-
-/**
- * Iterator that can casts objects of its inner iterator to the target type
- * @b To with the static_cast operator
- *
- * @tparam To target type of the iterator
- * @tparam Inner type of the inner iterator
- */
-template<typename To, class Inner>
-class StaticCastIterator
-{
-public:
-  DECL_ELEMENT_TYPE(To);
-  explicit StaticCastIterator(Inner inn) :_inn(inn) {}
-  inline bool hasNext() { return _inn.hasNext(); };
-  inline To next() { return static_cast<To>(_inn.next()); };
-private:
-  Inner _inn;
-};
-
-/**
- * Return an iterator that can casts objects of the iterator @b it to the target type
- * @b To
- *
- * @see StaticCastIterator
- */
-template<typename To, class Inner>
-inline
-StaticCastIterator<To,Inner> getStaticCastIterator(Inner it)
-{
-  return StaticCastIterator<To,Inner>(it);
-}
-
-
-template <typename T>
-struct identity
-{
-  typedef T type;
-};
-/**
- * A functor class that transforms a lambda object into a Functor with a return type
- * @author Giles
- */
-template<typename Out,typename In>
-struct Lambda
-{
-  Lambda(typename identity<std::function<Out(In)>>::type f) : _lambda(f) {}
-  Out operator()(In obj){ return _lambda(obj); }
-  std::function<Out(In)> _lambda;
-};
-
-template<typename T,typename S>
-Lambda<T,S> lambda(std::function<T(S)> f){ return Lambda<T,S>(f); }
-
-/**
  * A functor class that returns true if the argument is non-zero
  *
  * The nonzeroness is tested by @b x!=0 .
@@ -358,37 +100,12 @@ struct NonzeroFn
   }
 };
 
-/**
- * A functor class that returns true if the argument is not equal
- * to a specified object
- *
- * The forbidded object is specified by the argument of the
- * object constructor.
- *
- * The nonequality is tested by the @b operator!=() .
- */
-template<typename T>
-struct NonequalFn
-{
-  NonequalFn(T forbidden) : _forbidden(forbidden) {}
-  bool operator()(T obj)
-  {
-    return obj!=_forbidden;
-  }
-  T _forbidden;
-};
+template<bool cond> struct __doDeletion
+{ template<class Iter> void operator()(Iter& iter) { } };
 
-/**
- * Return a functor object that checks for non-equality to the
- * @b forbidden object
- *
- * @see NonequalFn
- */
-template<typename T>
-NonequalFn<T> getNonequalFn(T forbidden)
-{
-  return NonequalFn<T>(forbidden);
-}
+template<> struct __doDeletion<true>
+{ template<class Iter> void operator()(Iter& iter) { iter.del(); } };
+
 
 /**
  * Iterator class that returns elements of the inner iterator
@@ -398,39 +115,43 @@ NonequalFn<T> getNonequalFn(T forbidden)
  * @tparam Functor type of the functor used for filtering the
  *   elements returned by the inner iterator
  */
-template<class Inner, class Functor>
+template<class Inner, class Functor, bool deleteFilteredOut = false>
 class FilteredIterator
 {
 public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
+  DEFAULT_CONSTRUCTORS(FilteredIterator)
 
   FilteredIterator(Inner inn, Functor func)
-  : _func(func), _inn(inn), _next() {}
+  : _func(std::move(func)), _inn(std::move(inn)), _next() {}
+
 
   bool hasNext()
   {
-    CALL("FilteredIterator::hasNext")
     if(_next.isSome()) {
       return true;
     }
     while(_inn.hasNext()) {
-      auto next = _inn.next();
+      OWN_ELEMENT_TYPE next = move_if_value<OWN_ELEMENT_TYPE>(_inn.next());
       if(_func(next)) {
-        _next = Option<OWN_ELEMENT_TYPE>(std::move(next));
-	return true;
+        _next = Option<OWN_ELEMENT_TYPE>(move_if_value<OWN_ELEMENT_TYPE>(next));
+        return true;
+      } else {
+        __doDeletion<deleteFilteredOut>{}(_inn);
       }
     }
     return false;
-  };
+  }
+
   OWN_ELEMENT_TYPE next()
   {
-    CALL("FilteredIterator::next")
     ALWAYS(hasNext());
     ASS(_next.isSome());
-    auto out = std::move(_next).unwrap();
+    OWN_ELEMENT_TYPE out = move_if_value<OWN_ELEMENT_TYPE>(_next.unwrap());
     _next = Option<OWN_ELEMENT_TYPE>();
     return out;
-  };
+  }
+
 private:
   
   Functor _func;
@@ -438,6 +159,112 @@ private:
   Option<OWN_ELEMENT_TYPE> _next;
 };
 
+template<class Iter, class Pred>
+class TakeWhileIter
+{
+public:
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Iter));
+  DEFAULT_CONSTRUCTORS(TakeWhileIter)
+
+  TakeWhileIter(Iter iter, Pred pred)
+  : _pred(std::move(pred)), _iter(std::move(iter)), _next(), _break(false) {}
+
+  bool hasNext()
+  {
+    if (_break) return false;
+    if(_next.isSome()) return true;
+    
+    while(_iter.hasNext()) {
+      OWN_ELEMENT_TYPE next = move_if_value<OWN_ELEMENT_TYPE>(_iter.next());
+      if(_pred(next)) {
+        _next = Option<OWN_ELEMENT_TYPE>(move_if_value<OWN_ELEMENT_TYPE>(next));
+        return true;
+      } else {
+        _break = true;
+        return false;
+      }
+    }
+    return false;
+  }
+
+  OWN_ELEMENT_TYPE next()
+  {
+    ASS(!_break)
+    ALWAYS(hasNext());
+    ASS(_next.isSome());
+    OWN_ELEMENT_TYPE out = move_if_value<OWN_ELEMENT_TYPE>(_next.unwrap());
+    _next = Option<OWN_ELEMENT_TYPE>();
+    return out;
+  }
+
+private:
+  
+  Pred _pred;
+  Iter _iter;
+  Option<OWN_ELEMENT_TYPE> _next;
+  bool _break;
+};
+
+template<class I1, class I2, class Cmp>
+class SortedIterDiff {
+public:
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(I1));
+  DEFAULT_CONSTRUCTORS(SortedIterDiff)
+
+  SortedIterDiff(I1 i1, I2 i2, Cmp cmp)
+    : _i1(std::move(i1))
+    , _i2(std::move(i2))
+    , _curr1()
+    , _curr2(someIf(_i2.hasNext(), [&]() -> OWN_ELEMENT_TYPE { return move_if_value<OWN_ELEMENT_TYPE>(_i2.next()); })) 
+    , _cmp(std::move(cmp))
+    {}
+
+  void moveToNext() 
+  {
+#   if VDEBUG
+    Option<OWN_ELEMENT_TYPE> old1;
+#   endif
+    while (_curr1.isNone() && _i1.hasNext()) {
+      _curr1 = Option<OWN_ELEMENT_TYPE>(move_if_value<OWN_ELEMENT_TYPE>(_i1.next()));
+      ASS_REP(!_curr1.isSome() || !old1.isSome() || _cmp(*old1, *_curr1) <= 0, "iterator I1 must be sorted");
+      while (_curr2.isSome() && _cmp(*_curr2, *_curr1) < 0) {
+#       if VDEBUG
+        Option<OWN_ELEMENT_TYPE> old2 = _curr2.take();
+#       endif
+        _curr2 = someIf(_i2.hasNext(), [&]() -> OWN_ELEMENT_TYPE 
+            { return move_if_value<OWN_ELEMENT_TYPE>(_i2.next()); });
+        ASS_REP(!_curr2.isSome() || !old2.isSome() || _cmp(*old2, *_curr2) <= 0, "iterator I2 must be sorted");
+      }
+      if (( _curr1.isSome() && _curr2.isSome() && _cmp(*_curr1, *_curr2) == 0 )
+          || (_curr1.isNone() && _curr2.isNone())) {
+#   if VDEBUG
+    old1 = _curr1.take();
+#   endif
+        _curr1 = Option<OWN_ELEMENT_TYPE>();
+        _curr2 = someIf(_i2.hasNext(), [&]() -> OWN_ELEMENT_TYPE 
+            { return move_if_value<OWN_ELEMENT_TYPE>(_i2.next()); });
+      }
+    }
+  }
+
+  bool hasNext()
+  {
+    moveToNext();
+    return _curr1.isSome();
+  }
+
+  OWN_ELEMENT_TYPE next()
+  {
+    moveToNext();
+    return move_if_value<OWN_ELEMENT_TYPE>(_curr1.take().unwrap());
+  }
+private:
+  I1 _i1;
+  I2 _i2;
+  Option<OWN_ELEMENT_TYPE> _curr1;
+  Option<OWN_ELEMENT_TYPE> _curr2;
+  Cmp _cmp;
+};
 
 /**
  * Iterator that maps the contents of another iterator by a function. Whenever the function retuns a non-empty Option
@@ -447,21 +274,21 @@ template<class Inner, class Functor>
 class FilterMapIter
 {
 public:
-  DECL_ELEMENT_TYPE(typename std::result_of<Functor(ELEMENT_TYPE(Inner))>::type::Content);
+  DECL_ELEMENT_TYPE(typename std::invoke_result<Functor, ELEMENT_TYPE(Inner)>::type::Content);
+  DEFAULT_CONSTRUCTORS(FilterMapIter)
 
   FilterMapIter(Inner inn, Functor func)
-  : _func(func), _inn(std::move(inn)), _next() {}
+  : _func(std::move(func)), _inn(std::move(inn)), _next() {}
 
   bool hasNext()
   {
-    CALL("FilterMapIter::hasNext")
     if(_next.isSome()) {
       return true;
     }
     while(_inn.hasNext()) {
-      _next = _func(_inn.next());
+      _next = _func(move_if_value<ELEMENT_TYPE(Inner)>(_inn.next()));
       if(_next.isSome()) {
-	return true;
+        return true;
       }
     }
     return false;
@@ -469,10 +296,9 @@ public:
 
   OWN_ELEMENT_TYPE next()
   {
-    CALL("FilterMapIter::next")
     ALWAYS(hasNext());
     ASS(_next.isSome());
-    auto out = std::move(_next).unwrap();
+    OWN_ELEMENT_TYPE out = move_if_value<OWN_ELEMENT_TYPE>(_next.unwrap());
     _next = Option<OWN_ELEMENT_TYPE>();
     return out;
   };
@@ -481,46 +307,6 @@ private:
   Functor _func;
   Inner _inn;
   Option<OWN_ELEMENT_TYPE> _next;
-};
-
-template<class Inner, class Functor>
-class FilteredDelIterator
-{
-public:
-  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
-
-  FilteredDelIterator(Inner inn, Functor func)
-  : _func(func), _inn(inn), _nextStored(false) {}
-  bool hasNext()
-  {
-    if(_nextStored) {
-      return true;
-    }
-    while(_inn.hasNext()) {
-      _next=_inn.next();
-      if(_func(_next)) {
-	_nextStored=true;
-	return true;
-      } else {
-        _inn.del();
-      }
-    }
-    return false;
-  };
-  OWN_ELEMENT_TYPE next()
-  {
-    if(!_nextStored) {
-      ALWAYS(hasNext());
-      ASS(_nextStored);
-    }
-    _nextStored=false;
-    return _next;
-  };
-private:
-  Functor _func;
-  Inner _inn;
-  OWN_ELEMENT_TYPE _next;
-  bool _nextStored;
 };
 
 /**
@@ -533,15 +319,13 @@ template<class Inner, class Functor>
 inline
 FilteredIterator<Inner,Functor> getFilteredIterator(Inner inn, Functor func)
 {
-  return FilteredIterator<Inner,Functor>(inn, func);
+  return FilteredIterator<Inner,Functor>(std::move(inn), std::move(func));
 }
 
 template<class Inner, class Functor>
 inline
-FilteredDelIterator<Inner,Functor> getFilteredDelIterator(Inner inn, Functor func)
-{
-  return FilteredDelIterator<Inner,Functor>(inn, func);
-}
+auto getFilteredDelIterator(Inner inn, Functor func)
+{ return FilteredIterator<Inner, Functor, /*deleteFilteredOut=*/true>(inn, func); }
 
 
 /**
@@ -554,8 +338,9 @@ class WhileLimitedIterator
 {
 public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
+  DEFAULT_CONSTRUCTORS(WhileLimitedIterator)
   WhileLimitedIterator(Inner inn, Functor func)
-  : _func(func), _inn(inn), _nextStored(false) {}
+  : _func(std::move(func)), _inn(std::move(inn)), _nextStored(false) {}
   bool hasNext()
   {
     if(!_nextStored) {
@@ -609,9 +394,10 @@ class CatIterator
 {
 public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(It1));
+  DEFAULT_CONSTRUCTORS(CatIterator)
 
   CatIterator(It1 it1, It2 it2)
-  	:_first(true), _it1(it1), _it2(it2) {}
+  	:_first(true), _it1(std::move(it1)), _it2(std::move(it2)) {}
   bool hasNext()
   {
     if(_first) {
@@ -659,36 +445,22 @@ private:
 };
 
 /**
- * Return iterators @b it1 and @b it2 contatenated using object of
- * the @b CatIterator class
- *
- * @see CatIterator
- */
-template<class It1,class It2>
-inline
-CatIterator<It1,It2> getConcatenatedIterator(It1 it1, It2 it2)
-{
-  return CatIterator<It1,It2>(it1, it2);
-}
-
-
-
-/**
  * Iterator that transforms elements of its inner iterator by
  * a specified functor
  *
  * The @b knowsSize() and @b size() functions of this iterator can be
  * called only if the underlying iterator contains these functions.
  */
-template<typename Inner, typename Functor, typename ResultType=std::result_of_t<Functor(ELEMENT_TYPE(Inner))>>
+template<typename Inner, typename Functor, typename ResultType=std::invoke_result_t<Functor, ELEMENT_TYPE(Inner)>>
 class MappingIterator
 {
 public:
   DECL_ELEMENT_TYPE(ResultType);
+  DEFAULT_CONSTRUCTORS(MappingIterator)
   explicit MappingIterator(Inner inner, Functor func)
-  : _func(func), _inner(std::move(inner)) {}
-  inline bool hasNext() { CALL("MappingIterator::hasNext"); return _inner.hasNext(); };
-  inline ResultType next() { return _func(_inner.next()); };
+  : _func(std::move(func)), _inner(std::move(inner)) {}
+  inline bool hasNext() { return _inner.hasNext(); };
+  inline ResultType next() { return _func(move_if_value<ELEMENT_TYPE(Inner)>(_inner.next())); };
 
   /**
    * Return true the size of the iterator can be obtained
@@ -710,43 +482,6 @@ private:
 };
 
 
-// /**
-//  * Iterator that transforms elements of its inner iterator by
-//  * a specified functor, that returns either a value or nothing. If nothing is returned 
-//  * the iterator skips over the element
-//  *
-//  * The @b knowsSize() and @b size() functions of this iterator can be
-//  * called only if the underlying iterator contains these functions.
-//  */
-// template<typename Inner, typename Functor>
-// class FilterMappingIterator
-// {
-// public:
-//   DECL_ELEMENT_TYPE(RETURN_TYPE(Functor(ELEMENT_TYPE(Inner)))::Inner);
-//   explicit FilterMappingIterator(Inner inner, Functor func)
-//   : _func(func), _inner(inner) {}
-//   inline bool hasNext() { ASSERTION_VIOLATION };
-//   inline ELEMENT_TYPE(FilterMappingIterator) next() { ASSERTION_VIOLATION };
-//
-//   /**
-//    * Return true the size of the iterator can be obtained
-//    *
-//    * This function can be called only if the underlying iterator contains
-//    * the @b knowsSize() function.
-//    */
-//   inline bool knowsSize() const { return _inner.knowsSize(); }
-//   /**
-//    * Return the initial number of elements of this iterator
-//    *
-//    * This function can be called only if the underlying iterator contains
-//    * the @b size() function, and if the @b knowsSize() function returns true.
-//    */
-//   inline size_t size() const { return _inner.size(); }
-// private:
-//   Functor _func;
-//   Inner _inner;
-// };
-
 /**
  * Return iterator that returns elements of @b it transformed by
  * the functor @b f
@@ -754,22 +489,10 @@ private:
  * @see MappingIterator
  */
 template<typename Inner, typename Functor>
-MappingIterator<Inner,Functor,std::result_of_t<Functor(ELEMENT_TYPE(Inner))>> getMappingIterator(Inner it, Functor f)
+MappingIterator<Inner,Functor,ResultOf<Functor, ELEMENT_TYPE(Inner)>> getMappingIterator(Inner it, Functor f)
 {
-  return MappingIterator<Inner,Functor,std::result_of_t<Functor(ELEMENT_TYPE(Inner))>>(std::move(it), f);
+  return MappingIterator<Inner,Functor, ResultOf<Functor, ELEMENT_TYPE(Inner)>>(std::move(it), std::move(f));
 }
-
-// /**
-//  * Return iterator that returns elements of @b it transformed by
-//  * the lambda @b f
-//  *
-//  * @see MappingIterator
-//  */
-// template<typename Inner, typename Functor,typename ResultType>
-// MappingIterator<Inner,Functor,ResultType> getMappingIterator(Inner it, std::function<ResultType(Inner)> f)
-// {
-//   return MappingIterator<Inner,Functor,ResultType>(it, f);
-// }
 
 /**
  * Return iterator that returns elements of @b it transformed by
@@ -794,6 +517,7 @@ class ConstructingIterator
 {
 public:
   DECL_ELEMENT_TYPE(Constructor*);
+  DEFAULT_CONSTRUCTORS(ConstructingIterator)
   explicit ConstructingIterator(Inner inner)
   : _inner(inner) {}
   inline bool hasNext() { return _inner.hasNext(); };
@@ -832,24 +556,24 @@ class FlatteningIterator
 public:
   using Inner = ELEMENT_TYPE(Master);
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
+  DEFAULT_CONSTRUCTORS(FlatteningIterator)
 
   explicit FlatteningIterator(Master master)
   : _master(std::move(master))
-  , _current(std::move(_master.hasNext() 
-        ? Option<Inner>(std::move(_master.next()))
-        : Option<Inner>()))
+  , _current(_master.hasNext() 
+        ? Option<Inner>(move_if_value<Inner>(_master.next()))
+        : Option<Inner>())
   { }
 
   bool hasNext()
   {
-    CALL("FlatteningIterator::hasNext");
     while (_current.isSome()) {
-      if (_current.unwrap().hasNext()) {
+      if (_current->hasNext()) {
         return true;
       } else {
-        _current = std::move(_master.hasNext() 
-            ? Option<Inner>(std::move(_master.next()))
-            : Option<Inner>());
+        _current = _master.hasNext() 
+          ? Option<Inner>(move_if_value<Inner>(_master.next())) 
+          : Option<Inner>();
       }
     }
     return false;
@@ -858,10 +582,9 @@ public:
   inline
   ELEMENT_TYPE(FlatteningIterator) next()
   {
-    CALL("FlatteningIterator::next");
     ASS(_current.isSome());
     ASS(_current.unwrap().hasNext());
-    return _current.unwrap().next();
+    return move_if_value<OWN_ELEMENT_TYPE>(_current.unwrap().next());
   }
 private:
   Master _master;
@@ -901,67 +624,6 @@ FlatMapIter<Inner,Functor> getMapAndFlattenIterator(Inner it, Functor f)
 {
   return FlatteningIterator<MappingIterator<Inner,Functor> >(
 	  MappingIterator<Inner,Functor>(std::move(it), f) );
-}
-
-/**
- * Iterator that in its constructor stores elements of an inner iterator
- * and then returns these elements later in the same order
- *
- * The iterator object does not contain the copy constructor or
- * the operator=. If this behavior is required, it should be created
- * on the heap and pointer to it put inside a VirtualIterator object.
- *
- * This iterator should be used when a resource held by an iterator
- * needs to be released before the elements of the iterator are required.
- *
- * @see VirtualIterator
- */
-template<class Inner>
-class PersistentIterator
-: public IteratorCore<ELEMENT_TYPE(Inner)>
-{
-public:
-  typedef ELEMENT_TYPE(Inner) T;
-  explicit PersistentIterator(Inner inn)
-  : _items(0)
-  {
-    List<T>** ptr=&_items;
-    while(inn.hasNext()) {
-      *ptr=new List<T>(inn.next());
-      ptr=&(*ptr)->tailReference();
-    }
-  }
-  ~PersistentIterator()
-  {
-    if(_items) {
-      List<T>::destroy(_items);
-    }
-  }
-  inline bool hasNext() { return _items; };
-  inline
-  T next()
-  {
-    return List<T>::pop(_items);
-  };
-private:
-  List<T>* _items;
-};
-
-/**
- * Return iterator that stores values of @b it in its constructor,
- * and then yields them in the same order
- *
- * After the call to this function, the iterator @b it and any resources
- * it holds may be released, since the elements are stored independently
- * of it.
- *
- * @see PersistentIterator
- */
-template<class Inner>
-inline
-VirtualIterator<ELEMENT_TYPE(Inner)> getPersistentIterator(Inner it)
-{
-  return vi( new PersistentIterator<Inner>(it) );
 }
 
 
@@ -1009,12 +671,8 @@ private:
 
   static ItemList* getUniqueItemList(Inner& inn, size_t& sizeRef)
   {
-    CALL("UniquePersistentIterator::getUniqueItemList");
-
     ItemList* res=0;
-    ItemSet* iset;
-    Recycler::get(iset);
-    iset->reset();
+    Recycled<ItemSet> iset;
 
     sizeRef=0;
     while(inn.hasNext()) {
@@ -1025,7 +683,6 @@ private:
       }
     }
 
-    Recycler::release(iset);
     return res;
   }
 
@@ -1052,6 +709,7 @@ VirtualIterator<ELEMENT_TYPE(Inner)> getUniquePersistentIterator(Inner it)
   }
   return vi( new UniquePersistentIterator<Inner>(it) );
 }
+
 
 /**
  * Return iterator that stores values of the iterator pointed to by @b it
@@ -1080,12 +738,8 @@ VirtualIterator<ELEMENT_TYPE(Inner)> getUniquePersistentIteratorFromPtr(Inner* i
 template<class Container>
 void makeUnique(Container& cont)
 {
-  CALL("makeUnique");
-
   VirtualIterator<ELEMENT_TYPE(Container)> uniqueIt = pvi(
       getUniquePersistentIterator(ITERATOR_TYPE(Container)(cont)) );
-  cont.reset();
-  cont.loadFromIterator(uniqueIt);
 }
 
 /**
@@ -1094,8 +748,6 @@ void makeUnique(Container& cont)
 template<class It>
 size_t countIteratorElements(It it)
 {
-  CALL("countIteratorElements");
-
   size_t res = 0;
   while(it.hasNext()) {
     it.next();
@@ -1115,6 +767,7 @@ class RangeIterator
 {
 public:
   DECL_ELEMENT_TYPE(T);
+  DEFAULT_CONSTRUCTORS(RangeIterator)
   inline
   RangeIterator(T from, T to)
   : _next(from), _from(from), _to(to) {}
@@ -1144,7 +797,8 @@ template<typename T>
 class CombinationIterator
 {
 public:
-  DECL_ELEMENT_TYPE(pair<T,T>);
+  DECL_ELEMENT_TYPE(std::pair<T,T>);
+  DEFAULT_CONSTRUCTORS(CombinationIterator)
   CombinationIterator(T from, T to)
   : _first(from), _second(from), _afterLast(to)
   {
@@ -1159,10 +813,10 @@ public:
   }
   inline bool hasNext()
   { ASS_LE(_first,_afterLast); return _second!=_afterLast; }
-  pair<T,T> next()
+  std::pair<T,T> next()
   {
     ASS(hasNext());
-    pair<T,T> res=pair<T,T>(_first,_second);
+    std::pair<T,T> res=std::pair<T,T>(_first,_second);
     moveToNext();
     return res;
   }
@@ -1199,7 +853,8 @@ template<typename T>
 class Combination2Iterator
 {
 public:
-  DECL_ELEMENT_TYPE(pair<T,T>);
+  DECL_ELEMENT_TYPE(std::pair<T,T>);
+  DEFAULT_CONSTRUCTORS(Combination2Iterator)
   Combination2Iterator(T from, T to1, T to2)
   : _first(from), _second(from), _afterLast1(to1), _afterLast2(to2)
   {
@@ -1211,10 +866,10 @@ public:
   }
   inline bool hasNext()
   { return _first!=_afterLast1 && _second!=_afterLast2; }
-  pair<T,T> next()
+  std::pair<T,T> next()
   {
     ASS(hasNext());
-    pair<T,T> res=pair<T,T>(_first,_second);
+    std::pair<T,T> res=std::pair<T,T>(_first,_second);
     ASS_LE(_first,_afterLast1);
     ASS_LE(_second,_afterLast2);
     moveToNext();
@@ -1274,9 +929,10 @@ class ContextualIterator
 {
 public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(Inner));
+  DEFAULT_CONSTRUCTORS(ContextualIterator)
 
   ContextualIterator(Inner iit, Ctx context)
-  : _inContext(false), _used(true), _context(context), _iit(iit) {}
+  : _inContext(false), _used(true), _context(std::move(context)), _iit(std::move(iit)) {}
 
   ~ContextualIterator()
   {
@@ -1292,8 +948,8 @@ public:
       if(!_iit.hasNext()) {
 	return false;
       }
-      _current=_iit.next();
-    } while (!_context.enter(_current));
+      _current = Option<ELEMENT_TYPE(Inner)>(_iit.next());
+    } while (!_context.enter(_current.unwrap()));
     _inContext=true;
 
     _used=false;
@@ -1304,13 +960,13 @@ public:
   {
     ASS(!_used);
     _used=true;
-    return _current;
+    return move_if_value<ELEMENT_TYPE(Inner)>(_current.unwrap());
   }
 private:
   void assureContextLeft()
   {
     if(_inContext) {
-      _context.leave(_current);
+      _context.leave(_current.unwrap());
       _inContext=false;
     }
   }
@@ -1319,7 +975,7 @@ private:
   bool _used;
   Ctx _context;
   Inner _iit;
-  ELEMENT_TYPE(Inner) _current;
+  Option<ELEMENT_TYPE(Inner)> _current;
 };
 
 template<class Inner, class Ctx>
@@ -1329,46 +985,44 @@ ContextualIterator<Inner,Ctx> getContextualIterator(Inner it, Ctx context)
   return ContextualIterator<Inner,Ctx>(it, context);
 }
 
+#if VTIME_PROFILING
 
-template<class Inner>
-class TimeCountedIterator
-: public IteratorCore<ELEMENT_TYPE(Inner)>
+template<class Iter>
+class TimeTracedIter
 {
+  const char* _name;
+  Iter _iter;
 public:
-  typedef ELEMENT_TYPE(Inner) T;
+  TimeTracedIter(const char* name, Iter iter) 
+    : _name(name)
+    , _iter(std::move(iter)) 
+  {}
 
-  explicit TimeCountedIterator(Inner inn, TimeCounterUnit tcu)
-  : _inn(inn), _tcu(tcu) {}
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(Iter));
 
-  inline bool hasNext()
-  {
-    TimeCounter tc(_tcu);
-    return _inn.hasNext();
-  };
-  inline
-  T next()
-  {
-    TimeCounter tc(_tcu);
-    return _inn.next();
-  };
-private:
-  Inner _inn;
-  TimeCounterUnit _tcu;
+  OWN_ELEMENT_TYPE next() { TIME_TRACE(_name); return _iter.next(); }
+  bool hasNext() { TIME_TRACE(_name); return _iter.hasNext(); }
+
+  bool knowsSize() const 
+  { return _iter.knowsSize(); }
+
+  size_t size() const
+  { return _iter.size(); }
+
 };
 
-/**
- * Return iterator, that yields the same values in
- * the same order as @b it. Benefit of this iterator
- * is, that @b it object is used only during
- * initialization. (So it's underlying object can be
- * freed and the returned iterator will remain valid.)
- */
-template<class Inner>
-inline
-VirtualIterator<ELEMENT_TYPE(Inner)> getTimeCountedIterator(Inner it, TimeCounterUnit tcu)
-{
-  return vi( new TimeCountedIterator<Inner>(it, tcu) );
-}
+template<class Iter>
+auto timeTraceIter(const char* name, Iter iter) 
+{ return TimeTracedIter<Iter>(name, std::move(iter)); }
+
+#define TIME_TRACE_ITER(name, iter) timeTraceIter(name, iter)
+
+#else // !VTIME_PROFILING
+
+#define TIME_TRACE_ITER(name, iter) iter
+
+#endif // VTIME_PROFILING
+
 
 /**
  * Return true iff @c it1 and it2 contain the same values in the same order
@@ -1376,8 +1030,6 @@ VirtualIterator<ELEMENT_TYPE(Inner)> getTimeCountedIterator(Inner it, TimeCounte
 template<class It1, class It2>
 bool iteratorsEqual(It1 it1, It2 it2)
 {
-  CALL("iteratorsEqual");
-
   while(it1.hasNext()) {
     if(!it2.hasNext()) {
       return false;
@@ -1399,8 +1051,6 @@ static bool lessThan(T a, T b) { return a<b; }
 template<class It>
 bool isSorted(It it)
 {
-  CALL("isSorted/1");
-
   if(!it.hasNext()) { return true; }
 
   ELEMENT_TYPE(It) prev = it.next();
@@ -1424,8 +1074,6 @@ bool isSorted(It it)
 template<class It, typename Pred>
 bool isSorted(It it, Pred lessThan)
 {
-  CALL("isSorted/2");
-
   if(!it.hasNext()) { return true; }
 
   ELEMENT_TYPE(It) prev = it.next();
@@ -1446,8 +1094,6 @@ bool isSorted(It it, Pred lessThan)
 template<class It, typename Pred>
 bool forAll(It it, Pred pred)
 {
-  CALL("forAll");
-
   while(it.hasNext()) {
     if(!pred(it.next())) {
       return false;
@@ -1463,8 +1109,6 @@ bool forAll(It it, Pred pred)
 template<class It, typename Pred>
 ELEMENT_TYPE(It) getFirstTrue(It it, Pred pred)
 {
-  CALL("getFirstTrue");
-
   while(it.hasNext()) {
     ELEMENT_TYPE(It) el = it.next();
     if(pred(el)) {
@@ -1482,7 +1126,6 @@ ELEMENT_TYPE(It) getFirstTrue(It it, Pred pred)
 template<class It, typename Fun, typename Res>
 Res fold(It it, Fun fn, Res init)
 {
-  CALL("fold/3");
   Res res = init;
   while(it.hasNext()) {
     res = fn(it.next(), res);
@@ -1499,8 +1142,6 @@ Res fold(It it, Fun fn, Res init)
 template<class It, typename Fun>
 ELEMENT_TYPE(It) fold(It it, Fun fn)
 {
-  CALL("fold/2");
-
   ALWAYS(it.hasNext());
   ELEMENT_TYPE(It) init = it.next();
   return fold(it,fn,init);
@@ -1512,28 +1153,28 @@ T sumFn(T a1, T a2) { return a1+a2; }
 
 /** max function, useful for fold */
 template<typename T>
-T maxFn(T a1, T a2) { return max(a1,a2); }
+T maxFn(T a1, T a2) { return std::max(a1,a2); }
 
 /** min function, useful for fold */
 template<typename T>
-T minFn(T a1, T a2) { return min(a1,a2); }
+T minFn(T a1, T a2) { return std::min(a1,a2); }
 
 
 template<class It>
 struct StmJoinAuxStruct
 {
-  StmJoinAuxStruct(vstring glue, It it) : _glue(glue), _it(it) {}
-  vstring _glue;
+  StmJoinAuxStruct(std::string glue, It it) : _glue(glue), _it(it) {}
+  std::string _glue;
   It _it;
 };
 
 template<class It>
-StmJoinAuxStruct<It> join(vstring glue, It it)
+StmJoinAuxStruct<It> join(std::string glue, It it)
 {
   return StmJoinAuxStruct<It>(glue, it);
 }
 template<typename It>
-std::ostream& operator<< (ostream& out, const StmJoinAuxStruct<It>& info )
+std::ostream& operator<< (std::ostream& out, const StmJoinAuxStruct<It>& info )
 {
   It it = info._it;
   while(it.hasNext()) {
@@ -1556,8 +1197,6 @@ std::ostream& operator<< (ostream& out, const StmJoinAuxStruct<It>& info )
 template<class It, class Pred>
 bool splitIterator(It it, Pred edge, VirtualIterator<ELEMENT_TYPE(It)>& res1, VirtualIterator<ELEMENT_TYPE(It)>& res2)
 {
-  CALL("splitIterator");
-
   typedef ELEMENT_TYPE(It) T;
 
   bool success = false;
@@ -1612,7 +1251,7 @@ struct CompositionFn {
    : _outer(outer), _inner(inner) { }
 
   template<typename Arg>
-  std::result_of_t<OuterFn(std::result_of_t<InnerFn(Arg)>)> operator()(Arg a) {
+  std::invoke_result_t<OuterFn, std::invoke_result_t<InnerFn, Arg>> operator()(Arg a) {
     return _outer(_inner(a));
   }
 private:
@@ -1623,7 +1262,6 @@ private:
 template<typename OuterFn, typename InnerFn>
 CompositionFn<OuterFn,InnerFn> getCompositionFn(OuterFn outer, InnerFn inner)
 {
-  CALL("getCompositionFn");
   return CompositionFn<OuterFn,InnerFn>(outer,inner);
 }
 
@@ -1641,13 +1279,89 @@ struct GetSecondOfPair {
   }
 };
 
-template<class I1>
-static auto concatIters(I1 i1) 
-{ return iterTraits(std::move(i1)); }
 
-template<class I1, class I2, class... Is>
-static auto concatIters(I1 i1, I2 i2, Is... is) 
-{ return iterTraits(getConcatenatedIterator(std::move(i1), concatIters(std::move(i2), std::move(is)...))); }
+template<class... Is>
+class CoproductIter 
+{
+  Coproduct<Is...> _inner;
+public:
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(TypeList::Get<0, TypeList::List<Is...>>));
+  DEFAULT_CONSTRUCTORS(CoproductIter)
+
+  CoproductIter(Coproduct<Is...> i) : _inner(Coproduct<Is...>(std::move(i))) {}
+
+  bool hasNext() const
+  { 
+    Coproduct<Is...> const& inner = _inner;;
+    return inner.apply([](auto& x) { return x.hasNext();}); }
+
+  bool hasNext()
+  { 
+    Coproduct<Is...> & inner = _inner;;
+    return inner.apply([](auto& x) { return x.hasNext();}); }
+
+  OWN_ELEMENT_TYPE next()
+  { 
+    Coproduct<Is...> & inner = _inner;;
+    return inner.apply([](auto&& x) { return x.next();}); }
+
+  bool knowsSize() const 
+  { 
+    Coproduct<Is...> const& inner = _inner;;
+    return inner.apply([](auto& x) { return x.knowsSize();}); }
+
+  size_t size() const
+  { 
+    Coproduct<Is...> const& inner = _inner;;
+    return inner.apply([](auto& x) { return x.size();}); }
+};
+
+template<class... Is>
+auto coproductIter(Coproduct<Is...> is)
+{ return iterTraits(CoproductIter<Is...>(std::move(is))); }
+
+
+template<class IfIterCons, class ElseIterCons>
+static auto ifElseIter(bool cond, IfIterCons ifCons, ElseIterCons elseCons) 
+{ 
+  using C = Coproduct<ResultOf<IfIterCons>, ResultOf<ElseIterCons>>;
+  return coproductIter(cond ? C::template variant<0>(ifCons()) : C::template variant<1>(elseCons()));
+}
+
+
+
+template<class IfIterCons>
+static auto ifIter(bool cond, IfIterCons ifCons) 
+{ return iterTraits(someIf(cond, std::move(ifCons)).intoIter()).flatten(); }
+
+
+template<class T>
+struct EmptyIter
+{
+  DECL_ELEMENT_TYPE(T);
+  bool hasNext() { return false; }
+  T next() { ASSERTION_VIOLATION }
+  unsigned size() { return 0; }
+  bool knownSize() { return true; }
+};
+
+/** If Pointer references a type that can be used as an iterator, then this wrapper type makes Pointer an Iterator.
+ * This is useful for example if you want to have IterTraits methods for some `shared_pointer<I> ptr` where `I` is an iterator.
+ */
+template<class Pointer>
+class IterPointer
+{
+  Pointer _p;
+public:
+  IterPointer(Pointer p) : _p(std::move(p)) {}
+  DEFAULT_CONSTRUCTORS(IterPointer);
+  DECL_ELEMENT_TYPE(ELEMENT_TYPE(std::remove_reference_t<decltype(*_p)>));
+  bool hasNext()       { return (*_p).hasNext(); }
+  bool hasNext() const { return (*_p).hasNext(); }
+  OWN_ELEMENT_TYPE next() { return (*_p).next(); }
+  unsigned size() { return (*_p).size(); }
+  bool knownSize() { return (*_p).knownSize(); }
+};
 
 template<class Iter>
 class IterTraits
@@ -1655,26 +1369,21 @@ class IterTraits
   Iter _iter;
 public:
   DECL_ELEMENT_TYPE(ELEMENT_TYPE(Iter));
+  DEFAULT_CONSTRUCTORS(IterTraits)
   using Elem = ELEMENT_TYPE(Iter);
 
   explicit IterTraits(Iter iter) : _iter(std::move(iter)) {}
 
   Elem next() 
-  { 
-    CALL("IterTraits::next")
-    return _iter.next(); 
-  }
+  { return move_if_value<Elem>(_iter.next()); }
 
   bool hasNext() 
-  { 
-    CALL("IterTraits::hasNext")
-    return _iter.hasNext(); 
-  }
+  { return _iter.hasNext(); }
 
   Option<Elem> tryNext() 
   { 
     return _iter.hasNext() 
-        ? Option<Elem>(_iter.next())
+        ? Option<Elem>(move_if_value<Elem>(_iter.next()))
         : Option<Elem>();
   }
 
@@ -1682,7 +1391,6 @@ public:
   template<class P>
   bool any(P f) 
   {
-    CALL("IterTraits::any")
     while (hasNext()) {
       if (f(next())) return true;
     }
@@ -1692,7 +1400,6 @@ public:
   template<class P>
   bool all(P f) 
   {
-    CALL("IterTraits::all")
     while (hasNext()) {
       if (!f(next())) return false;
     }
@@ -1702,7 +1409,6 @@ public:
   template<class F>
   void forEach(F f) 
   {
-    CALL("IterTraits::forEach")
     while (hasNext()) {
       f(next());
     }
@@ -1711,7 +1417,6 @@ public:
   template<class P>
   Option<Elem> find(P p) 
   {
-    CALL("IterTraits::find")
     while (hasNext()) {
       Elem x = next();
       if (p(x)) {
@@ -1724,7 +1429,6 @@ public:
   template<class P>
   Option<unsigned> findPosition(P p) 
   {
-    CALL("IterTraits::findPosition")
     unsigned i = 0;
     while (hasNext()) {
       Elem x = next();
@@ -1742,29 +1446,64 @@ public:
 
   template<class F>
   IterTraits<MappingIterator<Iter, F>> map(F f)
-  { return iterTraits(getMappingIterator<Iter, F>(std::move(_iter), f)); }
+  { return iterTraits(getMappingIterator<Iter, F>(std::move(_iter), std::move(f))); }
+
+  template<class F>
+  auto inspect(F f)
+  { return map([f = std::move(f)](auto x) { f(x); return x; }); }
 
   template<class F>
   IterTraits<FilteredIterator<Iter, F>> filter(F f)
-  { return iterTraits(getFilteredIterator<Iter, F>(std::move(_iter), f)); }
+  { return iterTraits(getFilteredIterator<Iter, F>(std::move(_iter), std::move(f))); }
 
   template<class F>
   IterTraits<FilterMapIter<Iter, F>> filterMap(F f)
-  { return iterTraits(FilterMapIter<Iter, F>(std::move(_iter), f)); }
+  { return iterTraits(FilterMapIter<Iter, F>(std::move(_iter), std::move(f))); }
 
   template<class F>
   IterTraits<FlatMapIter<Iter, F>> flatMap(F f)
-  { return iterTraits(getFlattenedIterator(getMappingIterator(std::move(_iter), f))); }
+  { return iterTraits(getFlattenedIterator(getMappingIterator(std::move(_iter), std::move(f)))); }
 
+  auto flatten()
+  { return iterTraits(getFlattenedIterator(std::move(_iter))); }
 
-  Option<Elem> min()
+  template<class Pred>
+  auto takeWhile(Pred p)
+  { return iterTraits(TakeWhileIter<Iter, Pred>(std::move(_iter), std::move(p))); }
+
+  auto unique()
   { 
-    CALL("IterTraits::min")
+    Map<OWN_ELEMENT_TYPE, std::tuple<>> found;
+    return iterTraits(std::move(*this)
+        .filterMap([found = std::move(found)](OWN_ELEMENT_TYPE next) mutable {
+          if (found.tryGet(next).isSome()) {
+            return Option<OWN_ELEMENT_TYPE>();
+          } else {
+            found.insert(next, std::make_tuple());
+            return Option<OWN_ELEMENT_TYPE>(std::move(next));
+          }
+        })); 
+  }
+
+  auto persistent()
+  { 
+    auto stack = collect<Stack>();
+    return iterTraits(arrayIter(std::move(stack)));
+  }
+
+  /** 
+   * returns the first minimal element wrt the function `less` 
+   * less takes two arguments of this iterators element type and 
+   * returns the wheter the first is smaller than the second.
+   * */
+  template<class IsLess>
+  Option<Elem> minBy(IsLess isLess)
+  { 
     if (hasNext()) {
-      auto&& min = next();
-      while (hasNext())  {
-        auto&& e = next();
-        if (std::less<Elem>{}(e, min)) {
+      Elem min = next();
+      while (hasNext()) {
+        Elem e = next();
+        if (isLess(e, min)) {
           min = e;
         }
       }
@@ -1774,21 +1513,65 @@ public:
     }
   }
 
+  unsigned count()
+  { 
+    unsigned i = 0;
+    while (hasNext()) {
+      i++;
+      next();
+    }
+    return i;
+  }
+
+  Option<Elem> min()
+  { return minBy(std::less<Elem>{}); }
+
+  template<class IsLess>
+  Option<Elem> maxBy(IsLess isLess)
+  { return minBy([isLess = std::move(isLess)](Elem const& l, Elem const& r) { return isLess(r,l); }); }
+
+  Option<Elem> max()
+  { return maxBy(std::less<Elem>{}); }
+
+  auto timeTraced(const char* name)
+  { return iterTraits(timeTraceIter(name, std::move(_iter))); }
+
+  template<class Result, class F>
+  auto fold(Result init, F f) -> Result
+  { 
+    Result accum = std::move(init);
+    while (hasNext()) {
+      accum = f(std::move(accum), next());
+    }
+    return accum;
+  }
+
+  template<class F> 
+  auto fold(F fun) -> Option<Elem>
+  { return someIf(hasNext(), [&]() { return fold(next(), std::move(fun)); }); }
+
+  template<class OtherIter>
+  auto zip(OtherIter other)
+  { return map([other = std::move(other)](Elem x) mutable { return std::make_pair(std::move(x), other.next()); }); }
+
+
+  auto sum()
+  { return fold([](Elem l, Elem r) { return l + r; }) || []() { return Elem(0); }; }
 
   template<class Container>
   Container collect()
   { 
-    CALL("IterTraits::collect/1")
     return Container::fromIterator(*this); 
   }
   
-
   template<template<class> class Container>
   Container<Elem> collect()
   { 
-    CALL("IterTraits::collect/2")
-    return Container<Elem>::fromIterator(*this); 
+    return Container<Elem>::fromIterator(std::move(*this)); 
   }
+
+  IterTraits clone() 
+  { return *this; }
   
   /** This class is to be used in the context of a for (auto x : ...) loop only. */
   class StlIter 
@@ -1797,14 +1580,14 @@ public:
     Option<Elem>  _cur;
 
   public:
-    StlIter(IterTraits& iter)  : _iter(Option<IterTraits&>(iter)), _cur(std::move(iter.tryNext())) {}
+    StlIter(IterTraits& iter)  : _iter(Option<IterTraits&>(iter)), _cur(iter.tryNext()) {}
     StlIter()  : _iter(), _cur() {}
 
     void operator++() 
     { _cur = _iter.unwrap().tryNext(); }
 
     Elem operator*() 
-    { return _cur.unwrap(); } 
+    { return move_if_value<Elem>(_cur.unwrap()); } 
 
     friend bool operator!=(StlIter const& lhs, StlIter const& rhs) 
     { return !(lhs == rhs); }
@@ -1815,21 +1598,110 @@ public:
       ASS(lhs._iter.isSome()); 
       return lhs._cur.isNone(); 
     }
-
   };
 
 public:
   StlIter begin() { return StlIter(*this); }
   StlIter end() { return StlIter(); }
-
 };
 
-template<class Iter>
-IterTraits<Iter> iterTraits(Iter i) 
-{ return IterTraits<Iter>(std::move(i)); }
+template<class Iter> 
+IterTraits<Iter> iterTraits(Iter i) { return IterTraits<Iter>(std::move(i)); }
+
+template<class I1>
+static auto concatIters(I1 i1) 
+{ return iterTraits(std::move(i1)); }
+
+template<class I1, class I2, class... Is>
+static auto concatIters(I1 i1, I2 i2, Is... is) 
+{ return iterTraits(CatIterator<I1, decltype(concatIters(std::move(i2), std::move(is)...))>(std::move(i1), concatIters(std::move(i2), std::move(is)...))); }
+
+// TODO optimize (?)
+/** returns an itertor that returns exatly `items` as elements */
+template<class... Items>
+auto iterItems(Items... items)
+{ return concatIters(getSingletonIterator(items)...); }
+
+static const auto range = [](auto from, auto to) 
+  { return iterTraits(getRangeIterator<decltype(to)>(from, to)); };
+
+template<class I1, class I2, class Cmp>
+auto iterSortedDiff(I1 i1, I2 i2, Cmp cmp) 
+{ return iterTraits(SortedIterDiff<I1,I2, Cmp>(std::move(i1), std::move(i2), std::move(cmp))); }
+
+template<class I1, class I2>
+auto iterSortedDiff(I1 i1, I2 i2) 
+{ return iterSortedDiff(std::move(i1), std::move(i2), [&](auto& l, auto& r) { return l == r ? 0 : l < r ? -1 : 1;  }); }
+
+
+template<class P>
+auto iterPointer(P p) { return iterTraits(IterPointer<P>(std::move(p))); }
 
 ///@}
 
+template<class Iterator>
+auto dropElementType(Iterator iter) 
+{ return iterTraits(std::move(iter)).map([](auto _) { return std::make_tuple(); }); }
+
+template<class Array, class Size>
+auto arrayIter(Array const& a, Size s) { return range(0, s).map([&](auto i) -> decltype(auto) { return a[i]; }); }
+
+template<class Array, class Size>
+auto arrayIter(Array      & a, Size s) { return range(0, s).map([&](auto i) -> decltype(auto) { return a[i]; }); }
+
+template<class Array, class Size>
+auto arrayIter(Array     && a, Size s) { return range(0, s).map([a = std::move(a)](auto i) { return std::move(a[i]); }); }
+
+template<class Array> auto arrayIter(Array const& a) { return arrayIter(          a , a.size()); }
+template<class Array> auto arrayIter(Array     && a) { return arrayIter(std::move(a), a.size()); }
+template<class Array> auto arrayIter(Array      & a) { return arrayIter(          a , a.size()); }
+
 }
+
+template <typename Iterator>
+class STLIterator
+{
+  private:
+    Iterator begin;
+    Iterator end;
+
+  public:
+    using value_type = typename Iterator::value_type;
+    DECL_ELEMENT_TYPE(value_type);
+
+    STLIterator(Iterator begin, Iterator end)
+      : begin(begin), end(end)
+    { }
+
+    bool hasNext() {
+      return begin != end;
+    }
+
+    value_type next() {
+      value_type x = *begin;
+      ++begin;
+      return x;
+    }
+};
+
+template <typename Iterator>
+STLIterator<Iterator> getSTLIterator(Iterator begin, Iterator end)
+{
+  return STLIterator<Iterator>(begin, end);
+}
+
+/**
+ * Return iterator that stores values of @b it in its constructor,
+ * and then yields them in the same order
+ *
+ * After the call to this function, the iterator @b it and any resources
+ * it holds may be released, since the elements are stored independently
+ * of it.
+ *
+ * @see PersistentIterator
+ */
+template<class Inner>
+auto getPersistentIterator(Inner it)
+{ return pvi(arrayIter(iterTraits(it).template collect<Stack>())); }
 
 #endif /* __Metaiterators__ */

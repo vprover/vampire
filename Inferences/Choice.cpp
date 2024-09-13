@@ -46,13 +46,11 @@ using namespace Saturation;
 
 Clause* Choice::createChoiceAxiom(TermList op, TermList set)
 {
-  CALL("Choice::createChoiceAxiom");
-
   TermList opType = SortHelper::getResultSort(op.term());
   TermList setType = ApplicativeHelper::getNthArg(opType, 1);
 
   unsigned max = 0;
-  FormulaVarIterator fvi(&set);
+  FormulaVarIterator fvi(set);
   while (fvi.hasNext()) {
     unsigned var = fvi.next();
     if (var > max) {
@@ -65,23 +63,19 @@ Clause* Choice::createChoiceAxiom(TermList op, TermList set)
   TermList t2 = ApplicativeHelper::createAppTerm(opType, op, set);
   t2 =  ApplicativeHelper::createAppTerm(setType, set, t2);
 
-  Clause* axiom = new(2) Clause(2, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::CHOICE_AXIOM));
-
-  (*axiom)[0] = Literal::createEquality(true, t1, TermList(Term::foolFalse()), AtomicSort::boolSort());;
-  (*axiom)[1] = Literal::createEquality(true, t2, TermList(Term::foolTrue()), AtomicSort::boolSort());;
-
-  return axiom;
+  return Clause::fromLiterals(
+      { Literal::createEquality(true, t1, TermList(Term::foolFalse()), AtomicSort::boolSort()),
+        Literal::createEquality(true, t2, TermList(Term::foolTrue()), AtomicSort::boolSort())},
+       NonspecificInference0(UnitInputType::AXIOM, InferenceRule::CHOICE_AXIOM)
+  );
 }
 
 struct Choice::AxiomsIterator
 {
-  AxiomsIterator(TermList term)
+  AxiomsIterator(Term* term)
   {
-    CALL("Choice::AxiomsIterator");
-
-    ASS(term.isTerm());
-    _set = *term.term()->nthArgument(3);
-    _headSort = AtomicSort::arrowSort(*term.term()->nthArgument(0),*term.term()->nthArgument(1));
+    _set = *term->nthArgument(3);
+    _headSort = AtomicSort::arrowSort(*term->nthArgument(0),*term->nthArgument(1));
     _resultSort = ApplicativeHelper::getResultApplieadToNArgs(_headSort, 1);
 
     //cout << "the result sort is " + _resultSort.toString() << endl;
@@ -95,8 +89,6 @@ struct Choice::AxiomsIterator
   DECL_ELEMENT_TYPE(Clause*);
 
   bool hasNext() {  
-    CALL("Choice::AxiomsIterator::hasNext()");
-    
     if(_inBetweenNextandHasNext){ return true; }
 
     while(!_choiceOps.isEmpty()){
@@ -129,7 +121,6 @@ struct Choice::AxiomsIterator
 
   OWN_ELEMENT_TYPE next()
   {
-    CALL("Choice::AxiomsIterator::next()");
     _inBetweenNextandHasNext = false;
     Clause* c = createChoiceAxiom(_opApplied, _setApplied); 
     env.statistics->choiceInstances++;
@@ -151,12 +142,12 @@ struct Choice::ResultFn
 {
   ResultFn(){}
   
-  VirtualIterator<Clause*> operator() (TermList term){
-    TermList op = *term.term()->nthArgument(2);
+  VirtualIterator<Clause*> operator() (Term* term){
+    TermList op = *term->nthArgument(2);
     if(op.isVar()){
       return pvi(AxiomsIterator(term));
     } else {
-      Clause* axiom = createChoiceAxiom(op, *term.term()->nthArgument(3));
+      Clause* axiom = createChoiceAxiom(op, *term->nthArgument(3));
       env.statistics->choiceInstances++;
       return pvi(getSingletonIterator(axiom));
     }
@@ -165,14 +156,14 @@ struct Choice::ResultFn
 
 struct Choice::IsChoiceTerm
 {
-  bool operator()(TermList t)
+  bool operator()(Term* t)
   { 
     TermStack args;
     TermList head;
     ApplicativeHelper::getHeadAndArgs(t, head, args);
     if(args.size() != 1){ return false; }
     
-    TermList headSort = AtomicSort::arrowSort(*t.term()->nthArgument(0), *t.term()->nthArgument(1));
+    TermList headSort = AtomicSort::arrowSort(*t->nthArgument(0), *t->nthArgument(1));
 
     TermList tv = TermList(0, false);
     TermList o  = AtomicSort::boolSort();
@@ -193,10 +184,8 @@ struct Choice::SubtermsFn
 {
   SubtermsFn() {}
 
-  VirtualIterator<TermList> operator()(Literal* lit)
+  VirtualIterator<Term*> operator()(Literal* lit)
   {
-    CALL("Choice::RewriteableSubtermsFn()");
-
     NonVariableNonTypeIterator nvi(lit);
     return pvi(getUniquePersistentIteratorFromPtr(&nvi));
   }
@@ -204,8 +193,6 @@ struct Choice::SubtermsFn
 
 ClauseIterator Choice::generateClauses(Clause* premise)
 {
-  CALL("PrimitiveInstantiation::generateClauses");
-
   //cout << "Choice with " << premise->toString() << endl;
   
   //is this correct?

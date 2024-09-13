@@ -23,6 +23,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/Int.hpp"
 
 namespace Shell {
 
@@ -40,7 +41,6 @@ private:
   struct ClWrapper;
 
   struct Candidate {
-    CLASS_NAME(BlockedClauseElimination::Candidate);
     USE_ALLOCATOR(Candidate);
 
     ClWrapper* clw;
@@ -56,7 +56,6 @@ private:
   };
 
   struct ClWrapper {
-    CLASS_NAME(BlockedClauseElimination::ClWrapper);
     USE_ALLOCATOR(ClWrapper);
 
     Clause* cl;            // the actual clause

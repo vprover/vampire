@@ -27,40 +27,36 @@ using namespace Kernel;
 
 /**
  * All purpose TPTP printer class. It has two major roles:
- * 1. returns as a tptp string a Unit/Formula
+ * 1. returns as a TPTP string a Unit/Formula
  * 2. it outputs to the desired output stream any Unit specified
  */
 class TPTPPrinter {
 public:
-  TPTPPrinter(ostream* tgtStream=0);
-
-  enum SymbolType{FUNC, PRED, TYPE_CON};
+  TPTPPrinter(std::ostream* tgtStream=0);
 
   void print(Unit* u);
-  void printAsClaim(vstring name, Unit* u);
-  void printWithRole(vstring name, vstring role, Unit* u, bool includeSplitLevels = true);
+  void printAsClaim(std::string name, Unit* u);
+  void printWithRole(std::string name, std::string role, Unit* u, bool includeSplitLevels = true);
 
-  static vstring toString(const Unit*);
-  static vstring toString(const Formula*);
-  static vstring toString(const Term*);
-  static vstring toString(const Literal*);
+  static std::string toString(const Unit*);
+  static std::string toString(const Formula*);
+  static std::string toString(const Term*);
+  static std::string toString(const Literal*);
 
 private:
 
-  vstring getBodyStr(Unit* u, bool includeSplitLevels);
+  std::string getBodyStr(Unit* u, bool includeSplitLevels);
 
   void ensureHeadersPrinted(Unit* u);
   void outputSymbolTypeDefinitions(unsigned symNumber, SymbolType symType);
 
   void ensureNecesarySorts();
-  void printTffWrapper(Unit* u, vstring bodyStr);
+  void printTffWrapper(Unit* u, std::string bodyStr);
 
-  void beginOutput();
-  void endOutput();
-  ostream& tgt();
+  std::ostream& tgt();
 
-  /** if zero, we print to env.out() */
-  ostream* _tgtStream;
+  /** if zero, we print to std::cout */
+  std::ostream* _tgtStream;
 
   bool _headersPrinted;
 };

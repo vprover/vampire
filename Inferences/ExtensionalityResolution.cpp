@@ -33,6 +33,7 @@
 
 #include "ExtensionalityResolution.hpp"
 
+using namespace std;
 using namespace Inferences;
 using namespace Lib;
 using namespace Kernel;
@@ -53,8 +54,6 @@ struct ExtensionalityResolution::ForwardPairingFn
   : _extClauses(extClauses) {}
   VirtualIterator<pair<Literal*, ExtensionalityClause> > operator()(Literal* lit)
   {
-    CALL("ExtensionalityResolution::ForwardPairingFn::operator()");
-    
     if (!lit->isEquality() || lit->isPositive()) {
       return VirtualIterator<pair<Literal*, ExtensionalityClause> >::getEmpty();
     }
@@ -79,8 +78,6 @@ struct ExtensionalityResolution::ForwardUnificationsFn
   ForwardUnificationsFn() { _subst = RobSubstitutionSP(new RobSubstitution()); }
   VirtualIterator<pair<pair<Literal*, ExtensionalityClause>, RobSubstitution*> > operator()(pair<Literal*, ExtensionalityClause> arg)
   {
-    CALL("ExtensionalityResolution::ForwardUnificationsFn::operator()");
-    
     Literal* trmEq = arg.first;
     Literal* varEq = arg.second.literal;
 
@@ -102,8 +99,6 @@ struct ExtensionalityResolution::ForwardResultFn
   ForwardResultFn(Clause* otherCl, ExtensionalityResolution& parent) : _otherCl(otherCl), _parent(parent) {}
   Clause* operator()(pair<pair<Literal*, ExtensionalityClause>, RobSubstitution*> arg)
   {
-    CALL("ExtensionalityResolution::ForwardResultFn::operator()");
-    
     RobSubstitution* subst = arg.second;
     Literal* otherLit = arg.first.first;
     Clause* extCl = arg.first.second.clause;
@@ -128,8 +123,6 @@ struct ExtensionalityResolution::NegEqSortFn
   NegEqSortFn (TermList sort) : _sort(sort) {}
   bool operator()(Literal* lit)
   {
-    CALL("ExtensionalityResolution::NegEqSortFn::operator()");
-    
     return lit->isEquality() && lit->isNegative() &&
       SortHelper::getEqualityArgumentSort(lit) == _sort;
   }
@@ -146,13 +139,9 @@ struct ExtensionalityResolution::BackwardPairingFn
   BackwardPairingFn (TermList sort) : _sort(sort) {}
   VirtualIterator<pair<Clause*, Literal*> > operator()(Clause* cl)
   {
-    CALL("ExtensionalityResolution::BackwardPairingFn::operator()");
-    
-    return pvi(pushPairIntoRightIterator(
-        cl,
-        getFilteredIterator(
-          cl->getSelectedLiteralIterator(),
-          NegEqSortFn(_sort))));
+    return pvi(cl->getSelectedLiteralIterator()
+      .filter(NegEqSortFn(_sort))
+      .map([=](auto lit) { return make_pair(cl, lit); }));
   }
 private:
   TermList _sort;
@@ -169,8 +158,6 @@ struct ExtensionalityResolution::BackwardUnificationsFn
   : _extLit (extLit) { _subst = RobSubstitutionSP(new RobSubstitution()); }
   VirtualIterator<pair<pair<Clause*, Literal*>, RobSubstitution*> > operator()(pair<Clause*, Literal*> arg)
   {
-    CALL("ExtensionalityResolution::BackwardUnificationsFn::operator()");
-    
     Literal* otherLit = arg.second;
     
     SubstIterator unifs = _subst->unifiers(_extLit,0,otherLit,1,true);
@@ -192,8 +179,6 @@ struct ExtensionalityResolution::BackwardResultFn
   BackwardResultFn(Clause* extCl, Literal* extLit, ExtensionalityResolution& parent) : _extCl(extCl), _extLit(extLit), _parent(parent) {}
   Clause* operator()(pair<pair<Clause*, Literal*>, RobSubstitution*> arg)
   {
-    CALL("ExtensionalityResolution::BackwardResultFn::operator()");
-    
     RobSubstitution* subst = arg.second;
     Clause* otherCl = arg.first.first;
     Literal* otherLit = arg.first.second;
@@ -221,44 +206,31 @@ Clause* ExtensionalityResolution::performExtensionalityResolution(
   unsigned& counter,
   const Options& opts)
 {
-  CALL("ExtensionalityResolution::performExtensionalityResolution");
-  
   if(!ColorHelper::compatible(extCl->color(),otherCl->color()) ) {
     env.statistics->inferencesSkippedDueToColors++;
     if(opts.showBlocked()) {
-      env.beginOutput();
-      env.out()<<"Blocked extensionality resolution of "<<extCl->toString()<<" and "<<otherCl->toString()<<endl;
-      env.endOutput();
+      std::cout<<"Blocked extensionality resolution of "<<extCl->toString()<<" and "<<otherCl->toString()<<endl;
     }
     return 0;
   }
 
-  unsigned extLen = extCl->length();
-  unsigned otherLen = otherCl->length();
-  
-  unsigned newLength = otherLen + extLen - 2;
-  Clause* res = new(newLength) Clause(newLength, GeneratingInference2(InferenceRule::EXTENSIONALITY_RESOLUTION, extCl, otherCl));
+  RStack<Literal*> resLits;
 
-  unsigned next = 0;
-
-  for(unsigned i = 0; i < extLen; i++) {
-    Literal* curr = (*extCl)[i];
+  for (Literal* curr : extCl->iterLits()) {
     if (curr != extLit) {
-      (*res)[next++] = subst->apply(curr, 0);
+      resLits->push(subst->apply(curr, 0));
     }
   }
 
-  for(unsigned i = 0; i < otherLen; i++) {
-    Literal* curr = (*otherCl)[i];
+  for (Literal* curr : otherCl->iterLits()) {
     if (curr != otherLit) {
-      (*res)[next++] = subst->apply(curr, 1);
+      resLits->push(subst->apply(curr, 1));
     }
   }
     
-  ASS_EQ(next,newLength);
   counter++;
      
-  return res;
+  return Clause::fromStack(*resLits, GeneratingInference2(InferenceRule::EXTENSIONALITY_RESOLUTION, extCl, otherCl));
 }
   
 /**
@@ -267,8 +239,6 @@ Clause* ExtensionalityResolution::performExtensionalityResolution(
  */
 ClauseIterator ExtensionalityResolution::generateClauses(Clause* premise)
 {
-  CALL("ExtensionalityResolution::generateClauses");
-
   ExtensionalityClauseContainer* extClauses = _salg->getExtensionalityClauseContainer();
   ClauseIterator backwardIterator;
 
@@ -325,7 +295,7 @@ ClauseIterator ExtensionalityResolution::generateClauses(Clause* premise)
 
   // Concatenate results from forward extensionality and (above constructed)
   // backward extensionality.
-  auto it5 = getConcatenatedIterator(it4,backwardIterator);
+  auto it5 = concatIters(it4,backwardIterator);
 
   return pvi(it5);
 }

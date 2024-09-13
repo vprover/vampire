@@ -20,7 +20,6 @@
 #include <climits>
 
 #include "Int.hpp"
-#include "Debug/Tracer.hpp"
 
 using namespace Lib;
 
@@ -31,13 +30,14 @@ using namespace Lib;
  * @since 27/05/2003 Manchester
  * @since 27/08/2003 Vienna, changed to return a string
  * @since 06/12/2003 Manchester, changed to use sprintf
- * @since 07/08/2014 Manchester, changed to return a vstring
+ * @since 07/08/2014 Manchester, changed to return a std::string
  */
-vstring Int::toString (int i)
+std::string Int::toString (int i)
 {
-  char tmp [20];
-  sprintf(tmp,"%d",i);
-  vstring result(tmp);
+  constexpr auto BUFSIZE = 20;
+  char tmp [BUFSIZE];
+  snprintf(tmp,BUFSIZE,"%d",i);
+  std::string result(tmp);
 
   return result;
 } // Int::toString (int i)
@@ -49,11 +49,12 @@ vstring Int::toString (int i)
  * @param d the double
  * @since 09/12/2003 Manchester
  */
-vstring Int::toString(double d)
+std::string Int::toString(double d)
 {
-  char tmp [256];
-  sprintf(tmp,"%g",d);
-  vstring result(tmp);
+  constexpr auto BUFSIZE = 256;
+  char tmp [BUFSIZE];
+  snprintf(tmp,BUFSIZE,"%g",d);
+  std::string result(tmp);
 
   return result;
 } // Int::toString
@@ -65,11 +66,12 @@ vstring Int::toString(double d)
  * @param l the long
  * @since 10/02/2004 Manchester
  */
-vstring Int::toString(long l)
+std::string Int::toString(long l)
 {
-  char tmp [256];
-  sprintf(tmp,"%ld",l);
-  vstring result(tmp);
+  constexpr auto BUFSIZE = 256;
+  char tmp [BUFSIZE];
+  snprintf(tmp,BUFSIZE,"%ld",l);
+  std::string result(tmp);
 
   return result;
 } // Int::toString
@@ -79,11 +81,12 @@ vstring Int::toString(long l)
  * Return the string representation of an unsigned integer.
  * @since 10/02/2004 Manchester
  */
-vstring Int::toString(unsigned i)
+std::string Int::toString(unsigned i)
 {
-  char tmp [256];
-  sprintf(tmp,"%u",i);
-  vstring result(tmp);
+  constexpr auto BUFSIZE = 256;
+  char tmp [BUFSIZE];
+  snprintf(tmp,BUFSIZE,"%u",i);
+  std::string result(tmp);
 
   return result;
 } // Int::toString
@@ -91,20 +94,22 @@ vstring Int::toString(unsigned i)
 /**
  * Return the string representation of an unsigned integer.
  */
-vstring Int::toString(unsigned long i)
+std::string Int::toString(unsigned long i)
 {
-  char tmp [256];
-  sprintf(tmp,"%lu",i);
-  vstring result(tmp);
+  constexpr auto BUFSIZE = 256;
+  char tmp [BUFSIZE];
+  snprintf(tmp,BUFSIZE,"%lu",i);
+  std::string result(tmp);
 
   return result;
 } // Int::toString
 
-vstring Int::toHexString(size_t i)
+std::string Int::toHexString(size_t i)
 {
-  char tmp [256];
-  sprintf(tmp,"0x%zx",i);
-  vstring result(tmp);
+  constexpr auto BUFSIZE = 256;
+  char tmp [BUFSIZE];
+  snprintf(tmp,BUFSIZE,"0x%zx",i);
+  std::string result(tmp);
 
   return result;
 } // Int::toString
@@ -118,8 +123,6 @@ vstring Int::toHexString(size_t i)
  */
 bool Int::stringToLong (const char* str,long& result)
 {
-  CALL("Int::stringToLong");
-
   if (! *str) { // empty string
     return false;
   }
@@ -139,39 +142,41 @@ bool Int::stringToLong (const char* str,long& result)
 
 
 /**
- * Convert a vstring to an integer value.
+ * Convert a std::string to an integer value.
  * @since 30/08/2004 Torrevieja
  */
-bool Int::stringToInt (const vstring& str,int& result)
+bool Int::stringToInt (const std::string& str,int& result)
 {
-  CALL("Int::stringToInt");
   return stringToInt(str.c_str(),result);
 } // Int::stringToInt
 
 /**
- * Convert a vstring to an unsigned integer value.
+ * Convert a std::string to an unsigned integer value.
  * @since 20/09/2009 Redmond
  */
-bool Int::stringToUnsignedInt (const vstring& str,unsigned& result)
+bool Int::stringToUnsignedInt (const std::string& str,unsigned& result)
 {
-  CALL("Int::stringToUnsignedInt");
   return stringToUnsignedInt(str.c_str(),result);
 } // Int::stringToUnsignedInt
 
 /**
  * Convert a string to an unsigned integer value.
  * @since 15/11/2004 Manchester
+ * @since 25/08/2022 Prague
  */
 bool Int::stringToUnsignedInt (const char* str,unsigned& result)
 {
-  CALL("Int::stringToUnsignedInt");
-
-  int i;
-  if (stringToInt(str,i) && i >= 0) {
-    result = i;
-    return true;
+  if (! *str) { // empty string
+    return false;
   }
-  return false;
+
+  errno = 0;           // to fail on "rubbish instead of number"
+  char* endptr = 0;    // to fail on "rubbish after number"
+  result = strtoul(str,&endptr,10);
+
+  // careful strtoul will still happily take numbers larger or even smaller (i.e. negative) than the representable range and produce some value
+
+  return (errno == 0 && !*endptr);
 } // Int::stringToUnsignedInt
 
 /**
@@ -199,8 +204,6 @@ bool Int::stringToInt (const char* str,int& result)
  */
 bool Int::stringToDouble (const char* str,double& result)
 {
-  CALL("Int::stringToDouble");
-
   errno = 0;
   char* endptr = 0;
   result = strtod(str,&endptr);
@@ -261,11 +264,11 @@ bool Int::stringToUnsigned64 (const char* str,long long unsigned& result)
 } // Int::stringToUnsigned64
 
 /**
- * Convert a vstring to a 64-bit unsigned. No overflow check is made.
+ * Convert a std::string to a 64-bit unsigned. No overflow check is made.
  *
  * @since 30/11/2006 Haifa
  */
-bool Int::stringToUnsigned64 (const vstring& str,long long unsigned& result)
+bool Int::stringToUnsigned64 (const std::string& str,long long unsigned& result)
 {
   return stringToUnsigned64(str.c_str(),result);
 } // Int::stringToUnsigned64
@@ -276,8 +279,6 @@ bool Int::stringToUnsigned64 (const vstring& str,long long unsigned& result)
  */
 bool Int::isInteger(const char* str)
 {
-  CALL("Int::isInteger");
-
 	if (*str == '-') {
 		str++;
 	}

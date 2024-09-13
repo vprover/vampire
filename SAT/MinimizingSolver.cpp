@@ -22,13 +22,10 @@ namespace SAT
 MinimizingSolver::MinimizingSolver(SATSolver* inner)
  : _varCnt(0), _inner(inner), _assignmentValid(false), _heap(CntComparator(_unsClCnt))
 {
-  CALL("MinimizingSolver::MinimizingSolver");
 }
 
 void MinimizingSolver::ensureVarCount(unsigned newVarCnt)
 {
-  CALL("MinimizingSolver::ensureVarCount");
-
   if (newVarCnt<= _varCnt) {
     return;
   }
@@ -44,8 +41,6 @@ void MinimizingSolver::ensureVarCount(unsigned newVarCnt)
 
 void MinimizingSolver::addClause(SATClause* cl)
 {
-  CALL("MinimizingSolver::addClause");
-
   // pass it to inner ...
   _inner->addClause(cl);
   _assignmentValid = false;
@@ -62,8 +57,6 @@ void MinimizingSolver::addClause(SATClause* cl)
 
 void MinimizingSolver::addClauseIgnoredInPartialModel(SATClause* cl)
 {
-  CALL("MinimizingSolver::addClauseIgnoredInPartialModel");
-  
   // just passing to _inner, but for minimization it will be ignored
   _inner->addClause(cl);
   _assignmentValid = false;
@@ -71,14 +64,12 @@ void MinimizingSolver::addClauseIgnoredInPartialModel(SATClause* cl)
 
 SATSolver::Status MinimizingSolver::solve(unsigned conflictCountLimit) 
 {
-  CALL("MinimizingSolver::solve");
   _assignmentValid = false;
   return _inner->solve(conflictCountLimit);
 }
 
 SATSolver::VarAssignment MinimizingSolver::getAssignment(unsigned var)
 {
-  CALL("MinimizingSolver::getAssignment");
   ASS_G(var,0); ASS_LE(var,_varCnt);
 
   if(!_assignmentValid) {
@@ -86,18 +77,17 @@ SATSolver::VarAssignment MinimizingSolver::getAssignment(unsigned var)
   }
 
   if(admitsDontcare(var)) {
-    return SATSolver::DONT_CARE;
+    return VarAssignment::DONT_CARE;
   }
-  return _asgn[var] ? SATSolver::TRUE : SATSolver::FALSE;
+  return _asgn[var] ? VarAssignment::TRUE : VarAssignment::FALSE;
 }
 
 bool MinimizingSolver::isZeroImplied(unsigned var)
 {
-  CALL("MinimizingSolver::isZeroImplied");
   ASS_G(var,0); ASS_LE(var,_varCnt);
 
   bool res = _inner->isZeroImplied(var);
-  ASS(!res || getAssignment(var)!=DONT_CARE); //zero-implied variables will not become a don't care
+  ASS(!res || getAssignment(var)!=VarAssignment::DONT_CARE); //zero-implied variables will not become a don't care
   return res;
 }
 
@@ -106,7 +96,6 @@ bool MinimizingSolver::isZeroImplied(unsigned var)
  */
 void MinimizingSolver::selectVariable(unsigned var)
 {
-  CALL("MinimizingSolver::selectVariable");  
   ASS_G(var,0); ASS_LE(var,_varCnt);
   ASS_G(_unsClCnt[var],0);
   
@@ -118,7 +107,7 @@ void MinimizingSolver::selectVariable(unsigned var)
       continue;
     }
     watch.push(cl);
-    SATClause::Iterator cit(*cl);
+    auto cit = cl->iter();
     while(cit.hasNext()) {
       SATLiteral cl_lit = cit.next();
       unsigned cl_var = cl_lit.var(); 
@@ -135,9 +124,7 @@ void MinimizingSolver::selectVariable(unsigned var)
 
 void MinimizingSolver::putIntoIndex(SATClause* cl)
 {
-  CALL("MinimizingSolver::putIntoIndex");
-
-  SATClause::Iterator cit(*cl);
+  auto cit = cl->iter();
   while(cit.hasNext()) {
     SATLiteral lit = cit.next();
     unsigned var = lit.var();
@@ -151,9 +138,7 @@ void MinimizingSolver::putIntoIndex(SATClause* cl)
 
 bool MinimizingSolver::tryPuttingToAnExistingWatch(SATClause* cl)
 {
-  CALL("MinimizingSolver::tryPuttingToAnExistingWatch");
-
-  SATClause::Iterator cit(*cl);
+  auto cit = cl->iter();
   while(cit.hasNext()) {
     SATLiteral lit = cit.next();
     unsigned var = lit.var();
@@ -172,8 +157,6 @@ bool MinimizingSolver::tryPuttingToAnExistingWatch(SATClause* cl)
  */
 void MinimizingSolver::processUnprocessedAndFillHeap()
 {
-  CALL("MinimizingSolver::processUnprocessed");
-
   while(_unprocessed.isNonEmpty()) {
     SATClause* cl = _unprocessed.pop();
     ASS_G(cl->length(),0)
@@ -197,24 +180,22 @@ void MinimizingSolver::processUnprocessedAndFillHeap()
  */
 void MinimizingSolver::processInnerAssignmentChanges()
 {
-  CALL("MinimizingSolver::processInnerAssignmentChanges");
-
   for(unsigned v=1; v<=_varCnt; v++) {
     VarAssignment va = _inner->getAssignment(v);
     bool changed;
     switch(va) {
-    case DONT_CARE:
+    case VarAssignment::DONT_CARE:
       changed = false;
       break;
-    case TRUE:
+    case VarAssignment::TRUE:
       changed = !_asgn[v];
       _asgn[v] = true;
       break;
-    case FALSE:
+    case VarAssignment::FALSE:
       changed = _asgn[v];
       _asgn[v] = false;
       break;
-    case NOT_KNOWN:
+    case VarAssignment::NOT_KNOWN:
     default:
       ASSERTION_VIOLATION;
       break;
@@ -231,9 +212,7 @@ void MinimizingSolver::processInnerAssignmentChanges()
 
 void MinimizingSolver::updateAssignment()
 {
-  CALL("MinimizingSolver::updateAssignment");
-
-  TimeCounter tca(TC_MINIMIZING_SOLVER);
+  TIME_TRACE("minimizing solver time");
   
   processInnerAssignmentChanges();
   processUnprocessedAndFillHeap();

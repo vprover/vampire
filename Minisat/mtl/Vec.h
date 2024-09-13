@@ -33,8 +33,6 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "Minisat/mtl/IntTypes.h"
 #include "Minisat/mtl/XAlloc.h"
 
-#include "Lib/Allocator.hpp"
-
 namespace Minisat {
 
 //=================================================================================================
@@ -106,9 +104,10 @@ void vec<T,_Size>::capacity(Size min_cap) {
     if (cap >= min_cap) return;
     Size add = max((min_cap - cap + 1) & ~1, ((cap >> 1) + 2) & ~1);   // NOTE: grow by approximately 3/2
     const Size size_max = std::numeric_limits<Size>::max();
-    if ( ((size_max <= std::numeric_limits<int>::max()) && (add > size_max - cap))
-    ||   (((data = (T*) REALLOC_UNKNOWN(data, (cap += add) * sizeof(T),"Minisat::vec")) == NULL) && errno == ENOMEM) )
+    if ( ((size_max <= std::numeric_limits<int>::max()) && (add > size_max - cap)))
         throw OutOfMemoryException();
+
+    data = (T*) xrealloc((void *)data, (cap += add) * sizeof(T));
  }
 
 
@@ -133,7 +132,7 @@ void vec<T,_Size>::clear(bool dealloc) {
     if (data != NULL){
         for (Size i = 0; i < sz; i++) data[i].~T();
         sz = 0;
-        if (dealloc) DEALLOC_UNKNOWN(data,"Minisat::vec"), data = NULL, cap = 0; } }
+        if (dealloc) xfree(data), data = NULL, cap = 0; } }
 
 //=================================================================================================
 }

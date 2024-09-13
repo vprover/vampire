@@ -48,9 +48,6 @@ class ForwardSubsumptionDemodulation
   : public ForwardSimplificationEngine
 {
   public:
-    CLASS_NAME(ForwardSubsumptionDemodulation);
-    USE_ALLOCATOR(ForwardSubsumptionDemodulation);
-
     ForwardSubsumptionDemodulation(bool doSubsumption)
       : _doSubsumption(doSubsumption)
     { }
@@ -60,8 +57,8 @@ class ForwardSubsumptionDemodulation
     bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 
   private:
-    RequestedIndex<LiteralIndex> _unitIndex;
-    RequestedIndex<LiteralIndex> _index;
+    RequestedIndex<LiteralIndex<LiteralClause>> _unitIndex;
+    RequestedIndex<LiteralIndex<LiteralClause>> _index;
 
     bool _preorderedOnly;
     bool _allowIncompleteness;

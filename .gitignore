@@ -36,3 +36,9 @@ cmake-build
 .clang-format
 .clangd
 .lldbinit
+
+# vim swap files
+**/.*.swp
+**/.*.swo
+.ccls-cache
+.cache/

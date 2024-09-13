@@ -25,7 +25,6 @@ using namespace std;
 IntUnionFind::IntUnionFind(int cnt)
 : _cnt(cnt), _modified(true), _components(8)
 {
-  CALL("IntUnionFind::IntUnionFind");
   ASS_G(cnt, 0);
 
   _parents=reinterpret_cast<int*>(ALLOC_KNOWN(_cnt*sizeof(int), "IntUnionFind"));
@@ -44,8 +43,6 @@ IntUnionFind::~IntUnionFind()
 
 void IntUnionFind::reset()
 {
-  CALL("IntUnionFind::reset");
-
   for(int i=0;i<_cnt;i++) {
     _parents[i]=-1;
   }
@@ -59,8 +56,6 @@ void IntUnionFind::reset()
  */
 bool IntUnionFind::doUnion(int c1, int c2)
 {
-  CALL("IntUnionFind::doUnion");
-
   c1=root(c1);
   c2=root(c2);
   if(c1==c2) {
@@ -83,8 +78,6 @@ bool IntUnionFind::doUnion(int c1, int c2)
  */
 int IntUnionFind::root(int c) const
 {
-  CALL("IntUnionFind::root");
-
   static Stack<int> path(8);
   ASS(path.isEmpty());
   int prev=-1;
@@ -105,8 +98,6 @@ int IntUnionFind::root(int c) const
 
 void IntUnionFind::evalComponents()
 {
-  CALL("IntUnionFind::evalComponents");
-
   if(!_modified) {
     //the components are already evaluated
     return;
@@ -140,7 +131,6 @@ void IntUnionFind::evalComponents()
  */
 int IntUnionFind::getComponentCount()
 {
-  CALL("IntUnionFind::getComponentCount");
   ASS(!_modified);
 
   return _components.size();

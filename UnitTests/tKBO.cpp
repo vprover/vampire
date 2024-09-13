@@ -7,59 +7,21 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
-/**!  This file contains examples on how to use Test/SyntaxSugar.hpp.
- *
- * @autor Johannes Schoisswohl
- * @date 2020-04-29
- */
 
-#include "Test/UnitTesting.hpp"
-#include "Test/SyntaxSugar.hpp"
+#include "Kernel/Term.hpp"
 #include "Kernel/KBO.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Kernel/SubstHelper.hpp"
+#include "Test/UnitTesting.hpp"
+#include "Test/SyntaxSugar.hpp"
+#include "tKBO.hpp"
 
 //////////////////////////////////////////////////////////////////////////////// 
 /////////////////////////////// HELPER FUNCTIONS /////////////////////////////// 
 //////////////////////////////////////////////////////////////////////////////// 
 
-DArray<int> funcPrec() {
-  unsigned num = env.signature->functions();
-  DArray<int> out(num);
-  out.initFromIterator(getRangeIterator(0u, num));
-  return out;
-}
-
-DArray<int> predPrec() {
-  unsigned num = env.signature->predicates();
-  DArray<int> out(num);
-  out.initFromIterator(getRangeIterator(0u, num));
-  return out;
-}
-
-DArray<int> predLevels() {
-  DArray<int> out(env.signature->predicates());
-  out.init(out.size(), 1);
-  return out;
-}
+using namespace std;
 using namespace Kernel;
-
-template<class SigTraits>
-KboWeightMap<SigTraits> toWeightMap(unsigned introducedSymbolWeight, KboSpecialWeights<SigTraits> ws, const Map<unsigned, KboWeight>& xs, unsigned sz) 
-{
-  auto df = KboWeightMap<SigTraits>::dflt();
-  df._specialWeights = ws;
-
-  DArray<KboWeight> out(sz);
-  for (unsigned i = 0; i < sz; i++) {
-    auto w = xs.getPtr(i);
-    out[i] = w == NULL ? df.symbolWeight(i) : *w;
-  }
-  return  {
-    ._weights = out,
-    ._introducedSymbolWeight = introducedSymbolWeight,
-    ._specialWeights         = ws,
-  };
-}
 
 KBO kbo(unsigned introducedSymbolWeight, 
     unsigned variableWeight, 
@@ -78,34 +40,16 @@ KBO kbo(unsigned introducedSymbolWeight,
                preds,
                env.signature->predicates()), 
 #endif
-             funcPrec(), 
-             predPrec(), 
+             DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->functions())),
+             DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->typeCons())),
+             DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->predicates())),
              predLevels(),
              /*revereseLCM*/ false);
 }
 
-
 KBO kbo(const Map<unsigned, KboWeight>& funcs, const Map<unsigned, KboWeight>& preds) {
   return kbo(1, 1, funcs, preds);
 }
-
-void __weights(Map<unsigned, KboWeight>& ws) {
-}
-
-template<class A, class... As>
-void __weights(Map<unsigned, KboWeight>& ws, pair<A, KboWeight> a, pair<As, KboWeight>... as) {
-  ws.insert(get<0>(a).functor(), get<1>(a));
-  __weights(ws, as...);
-}
-
-template<class... As>
-Map<unsigned, KboWeight> weights(pair<As, KboWeight>... as) {
-  Map<unsigned, KboWeight> out;
-  __weights(out, as...);
-  return out;
-}
-
-
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// TEST CASES //////////////////////////////////
@@ -194,6 +138,7 @@ TEST_FUN(kbo_test06) {
   ASS_EQ(ord.compare(f(x), x), Ordering::Result::GREATER)
 }
 
+// TODO duplicate, what was the intention here?
 TEST_FUN(kbo_test07) {
   DECL_DEFAULT_VARS
   DECL_SORT(srt)
@@ -412,4 +357,232 @@ TEST_FUN(kbo_test22) {
   }
 }
 
+// POLYMORPHIC TESTS START FROM HERE
+
+TEST_FUN(kbo_test23) {
+  DECL_DEFAULT_SORT_VARS  
+  DECL_TYPE_CON(list, 1)
+
+  auto s1 = list(alpha);
+  auto s2 = list(beta);
+
+  DECL_POLY_CONST(f,1,s1)
+  DECL_POLY_CONST(g,1,s2)
+
+  auto ord = kbo(
+    weights(
+      make_pair(f, 10u),
+      make_pair(g, 10u)
+    ), 
+    weights());
+
+  ASS_EQ(ord.compare(f(alpha), g(beta)), Ordering::Result::INCOMPARABLE)
+}
+
+// isGreater tests
+
+bool isGreaterSymmetric(const KBO& ord, TermList t1, TermList t2) {
+  return ord.isGreater(AppliedTerm(t1),AppliedTerm(t2))
+    && !ord.isGreater(AppliedTerm(t2),AppliedTerm(t1));
+}
+
+TEST_FUN(kbo_isGreater_test01) {
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_FUNC (f, {srt}, srt)
+  DECL_FUNC (g, {srt}, srt)
+  DECL_CONST(c, srt)
+
+  auto ord = kbo(weights(make_pair(f, 10u), make_pair(c, 1u)), weights());
+
+  ASS(isGreaterSymmetric(ord, f(c), g(c)));
+}
+
+TEST_FUN(kbo_isGreater_test02) {
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_FUNC (f, {srt}, srt)
+  DECL_FUNC (g, {srt}, srt)
+  DECL_CONST(c, srt)
+
+  auto ord = kbo(weights(make_pair(f, 10u)), weights());
+
+  ASS(isGreaterSymmetric(ord, f(c), g(g(g(g(g(c)))))));
+}
+
+TEST_FUN(kbo_isGreater_test03) {
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_FUNC (f, {srt}, srt)
+  DECL_FUNC (g, {srt}, srt)
+  DECL_CONST(c, srt)
+
+  auto ord = kbo(weights(make_pair(f, 10u)), weights());
+
+  ASS(isGreaterSymmetric(ord, f(x), g(g(g(g(g(c)))))));
+}
+
+TEST_FUN(kbo_isGreater_test04) {
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_FUNC (f, {srt}, srt)
+  DECL_FUNC (g, {srt}, srt)
+
+  auto ord = kbo(weights(make_pair(f, 10u)), weights());
+
+  ASS(!ord.isGreater(AppliedTerm(f(x)), AppliedTerm(g(g(g(g(g(y))))))));
+  ASS(!ord.isGreater(AppliedTerm(g(g(g(g(g(y)))))), AppliedTerm(f(x))));
+}
+
+TEST_FUN(kbo_isGreater_test05) {
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_FUNC (g, {srt}, srt)
+  DECL_FUNC (f, {srt}, srt)
+
+  auto ord = kbo(weights(make_pair(f, 0u)), weights());
+
+  ASS(isGreaterSymmetric(ord, g(x), f(x)));
+}
+
+TEST_FUN(kbo_isGreater_test06) {
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_FUNC(f, {srt}, srt)
+
+  auto ord = kbo(weights(make_pair(f, 0u)), weights());
+
+  ASS(isGreaterSymmetric(ord, f(x), x));
+}
+
+TEST_FUN(kbo_isGreater_test07) {
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_FUNC(g, {srt}, srt)
+  DECL_FUNC(f, {srt}, srt)
+
+  auto ord = kbo(weights(make_pair(f, 0u), make_pair(g, 1u)), weights());
+
+  ASS(isGreaterSymmetric(ord, f(g(x)), g(f(x))));
+}
+
+TEST_FUN(kbo_isGreater_test08) {
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_FUNC(g, {srt}, srt)
+  DECL_FUNC(f, {srt}, srt)
+
+  auto ord = kbo(weights(make_pair(f, 0u), make_pair(g, 1u)), weights());
+
+  ASS(isGreaterSymmetric(ord, f(g(x)), g(f(x))));
+}
+
+TEST_FUN(kbo_isGreater_test09) {
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_CONST(a, srt)
+  DECL_CONST(b, srt)
+
+  auto ord = kbo(weights(), weights());
+
+  ASS(isGreaterSymmetric(ord,b,a));
+}
+
+TEST_FUN(kbo_isGreater_test10) {
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_CONST(a, srt)
+  DECL_CONST(b, srt)
+
+  auto ord = kbo(weights(make_pair(a,3u), make_pair(b,2u)), weights());
+
+  ASS(isGreaterSymmetric(ord,a,b));
+}
+
+TEST_FUN(kbo_isGreater_test11) {
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_CONST(a, srt)
+  DECL_FUNC(f, {srt,srt}, srt)
+  DECL_FUNC(g, {srt}, srt)
+  DECL_FUNC(u, {srt}, srt)
+
+  auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
+
+  ASS(isGreaterSymmetric(ord, u(f(g(x),g(a))), u(f(x,g(a)))));
+}
+
+TEST_FUN(kbo_isGreater_test12) {
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_CONST(a, srt)
+  DECL_FUNC(f, {srt,srt}, srt)
+  DECL_FUNC(g, {srt}, srt)
+  DECL_FUNC(u, {srt}, srt)
+
+  auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
+
+  ASS(isGreaterSymmetric(ord, u(f(g(u(x)),g(a))), u(f(x,g(a)))));
+}
+
+TEST_FUN(kbo_isGreater_test13) {
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_CONST(a, srt)
+  DECL_FUNC(u, {srt}, srt)
+
+  auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
+
+  ASS(isGreaterSymmetric(ord, u(x), x));
+}
+
+TEST_FUN(kbo_isGreater_test14) {
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_CONST(a, srt)
+  DECL_FUNC(f, {srt}, srt)
+  DECL_FUNC(u, {srt}, srt)
+
+  auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
+
+  ASS(isGreaterSymmetric(ord, u(f(x)), f(x)));
+}
+
+TEST_FUN(kbo_isGreater_test15) {
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_CONST(a, srt)
+  DECL_FUNC(f, {srt}, srt)
+  DECL_FUNC(u, {srt}, srt)
+
+  auto ord = kbo(weights(make_pair(a,1u), make_pair(u,0u)), weights());
+
+  ASS(isGreaterSymmetric(ord, f(u(x)), f(x)));
+}
+
+TEST_FUN(kbo_isGreater_test16) {
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_FUNC(f, {srt, srt, srt}, srt)
+  DECL_VAR(u, 3)
+
+  auto ord = kbo(1, 1, weights(make_pair(f,1u)), weights());
+
+  ASS(isGreaterSymmetric(ord,
+    f(f(y,x,z),u,f(f(u,z,y),x,f(x,f(y,x,z),z))),
+    f(x,f(y,x,z),f(f(y,x,z),u,f(f(u,z,y),x,z)))));
+}
+
+TEST_FUN(kbo_isGreater_test17) {
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_FUNC(f, {srt}, srt)
+  DECL_FUNC(g, {srt, srt}, srt)
+
+  auto ord = kbo(1, 1, weights(), weights());
+
+  ASS(isGreaterSymmetric(ord,
+    f(g(f(g(x,g(y,z))),y)),
+    f(g(y,f(g(x,g(y,z)))))));
+}
 

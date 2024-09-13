@@ -19,6 +19,8 @@
 #include "Forwards.hpp"
 #include "Indexing/TermIndex.hpp"
 
+#include "DemodulationHelper.hpp"
+
 #include "InferenceEngine.hpp"
 
 namespace Inferences {
@@ -30,9 +32,6 @@ class BackwardDemodulation
 : public BackwardSimplificationEngine
 {
 public:
-  CLASS_NAME(BackwardDemodulation);
-  USE_ALLOCATOR(BackwardDemodulation);
-
   void attach(SaturationAlgorithm* salg);
   void detach();
 
@@ -43,6 +42,7 @@ private:
   struct ResultFn;
 
   DemodulationSubtermIndex* _index;
+  DemodulationHelper _helper;
 };
 
 };

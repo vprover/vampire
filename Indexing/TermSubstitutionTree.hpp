@@ -17,116 +17,84 @@
 #define __TermSubstitutionTree__
 
 
+#include "Forwards.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
 #include "Kernel/Renaming.hpp"
-#include "Lib/SkipList.hpp"
+#include "Kernel/TypedTermList.hpp"
 #include "Lib/BiMap.hpp"
 
 #include "Index.hpp"
 #include "TermIndexingStructure.hpp"
-#include "TypeSubstitutionTree.hpp"
 #include "SubstitutionTree.hpp"
 
 namespace Indexing {
 
 /*
- * Note that unlike LiteralSubstitutionTree, TermSubstitutionTree does
- * not (yet) carry out sort checking when attempting to find unifiers, generalisations
- * or instances. In particular, if the query or result is a variable, it is the callers'
- * responsibility to ensure that the sorts are unifiable/matchable
+ * As of 22/03/2023 TermSubstitutionTrees carry our type checking.
+ * Thus, there is no need to check whether the type of returned terms match those of the query
+ * as this is now done within the tree.
  */
 
+
+/** A wrapper class around SubstitutionTree that makes it usable  as a TermIndexingStructure */
+template<class LeafData_>
 class TermSubstitutionTree
-: public TermIndexingStructure, SubstitutionTree
+: public TermIndexingStructure<LeafData_>
 {
+  using SubstitutionTree            = Indexing::SubstitutionTree<LeafData_>;
+  using TermIndexingStructure       = Indexing::TermIndexingStructure<LeafData_>;
+  using BindingMap                  = typename SubstitutionTree::BindingMap;
+  using Node                        = typename SubstitutionTree::Node;
+  using FastInstancesIterator       = typename SubstitutionTree::FastInstancesIterator;
+  using FastGeneralizationsIterator = typename SubstitutionTree::FastGeneralizationsIterator;
+  using LDIterator                  = typename SubstitutionTree::LDIterator;
+  using Leaf                        = typename SubstitutionTree::Leaf;
+  using LeafIterator                = typename SubstitutionTree::LeafIterator;
+
+  Indexing::SubstitutionTree<LeafData_> _inner;
 public:
-  CLASS_NAME(TermSubstitutionTree);
-  USE_ALLOCATOR(TermSubstitutionTree);
+  using LeafData = LeafData_;
   
-  /* 
-   * The extra flag is a higher-order concern. it is set to true when 
-   * we require the term query result to include two terms, the result term
-   * and another. 
-   *
-   * The main use case is to store a different term in the leaf to the one indexed 
-   * in the tree. This is used for example in Skolemisation on the fly where we 
-   * store Terms of type $o (formulas) in the tree, but in the leaf we store
-   * the skolem terms used to witness them (to facilitate the reuse of Skolems)
-   */
-  TermSubstitutionTree(bool useC=false, bool replaceFunctionalSubterms = false, bool extra = false);
+  TermSubstitutionTree()
+    : _inner()
+    { }
 
-  void insert(TermList t, Literal* lit, Clause* cls);
-  void remove(TermList t, Literal* lit, Clause* cls);
-  void insert(TermList t, TermList trm);
-  void insert(TermList t, TermList trm, Literal* lit, Clause* cls);
-
-  bool generalizationExists(TermList t);
-
-
-  TermQueryResultIterator getUnifications(TermList t,
-	  bool retrieveSubstitutions);
-
-  TermQueryResultIterator getUnificationsWithConstraints(TermList t,
-    bool retrieveSubstitutions);
-
-  /*
-   * A higher order concern (though it may be useful in other situations)
-   */
-  TermQueryResultIterator getUnificationsUsingSorts(TermList t, TermList sort,
-    bool retrieveSubstitutions);
-
-  TermQueryResultIterator getGeneralizations(TermList t,
-	  bool retrieveSubstitutions);
-
-  TermQueryResultIterator getInstances(TermList t,
-	  bool retrieveSubstitutions);
-
-#if VDEBUG
-  virtual void markTagged(){ SubstitutionTree::markTagged();}
-#endif
+  void handle(LeafData d, bool insert) final override
+  { _inner.handle(std::move(d), insert); }
 
 private:
 
-  void insert(TermList t, LeafData ld);
-  void handleTerm(TermList t, Literal* lit, Clause* cls, bool insert);
+  template<class Iterator, class... Args>
+  auto getResultIterator(TypedTermList query, bool retrieveSubstitutions, Args... args)
+  { 
+    return iterTraits(_inner.template iterator<Iterator>(query, retrieveSubstitutions, /* reversed */  false, std::move(args)...))
+      ; }
 
-  struct TermQueryResultFn;
+  bool generalizationExists(TermList t) override
+  { return t.isVar() ? false : _inner.generalizationExists(TypedTermList(t.term())); }
 
-  template<class Iterator>
-  TermQueryResultIterator getResultIterator(Term* term,
-	  bool retrieveSubstitutions,bool withConstraints);
+  virtual void output(std::ostream& out) const final override { out << *this; }
 
-  struct LDToTermQueryResultFn;
-  struct LDToTermQueryResultWithSubstFn;
-  struct LeafToLDIteratorFn;
-  struct UnifyingContext;
+  friend std::ostream& operator<<(std::ostream& out, TermSubstitutionTree const& self)
+  { return out << self._inner; }
+  friend std::ostream& operator<<(std::ostream& out, OutputMultiline<TermSubstitutionTree> const& self)
+  { return out << multiline(self.self._inner, self.indent); }
 
-  template<class LDIt>
-  TermQueryResultIterator ldIteratorToTQRIterator(LDIt ldIt,
-	  TermList queryTerm, bool retrieveSubstitutions,
-          bool withConstraints);
+public:
+  VirtualIterator<Indexing::QueryRes<ResultSubstitutionSP, LeafData_>> getInstances(TypedTermList t, bool retrieveSubstitutions) final override
+  { return pvi(getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions)); }
 
-  TermQueryResultIterator getAllUnifyingIterator(TermList trm,
-	  bool retrieveSubstitutions,bool withConstraints);
+  VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions) final override
+  { return pvi(getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions)); }
 
-  inline
-  unsigned getRootNodeIndex(Term* t)
-  {
-    return t->functor();
-  }
 
-  typedef SkipList<LeafData,LDComparator> LDSkipList;
-  LDSkipList _vars;
+  VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) final override
+  { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction>>(t, /* retrieveSubstitutions */ true, AbstractionOracle(uwa), fixedPointIteration)); }
 
-  //higher-order concerns
-  bool _extra;
-  bool _extByAbs;
-
-  FuncSubtermMap _functionalSubtermMap;
-
-  TypeSubstitutionTree* _funcSubtermsByType;
-
+  VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getUnifications(TypedTermList t, bool retrieveSubstitutions) override
+  { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::RobUnification>>(t, retrieveSubstitutions)); }
 };
 
-};
+} // namespace Indexing
 
 #endif /* __TermSubstitutionTree__ */

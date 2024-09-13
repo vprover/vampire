@@ -34,9 +34,9 @@
 
 namespace Inferences {
 
-Clause* Cases::performParamodulation(Clause* premise, Literal* lit, TermList t) {
-  CALL("Cases::performParamodulation");
+using namespace std;
 
+Clause* Cases::performParamodulation(Clause* premise, Literal* lit, TermList t) {
   ASS(t.isTerm());
 
   TermList lhs = *lit->nthArgument(0);
@@ -51,26 +51,21 @@ Clause* Cases::performParamodulation(Clause* premise, Literal* lit, TermList t) 
 
 
   // Found a boolean term! Create the C[true] \/ s = false clause
-  unsigned conclusionLength = premise->length() + 1;
 
-  Clause* conclusion = new(conclusionLength) Clause(conclusionLength,
-      GeneratingInference1(InferenceRule::FOOL_PARAMODULATION, premise));
+  RStack<Literal*> resLits;
 
   // Copy the literals from the premise except for the one at `literalPosition`,
   // that has the occurrence of `booleanTerm` replaced with false
-  for (unsigned i = 0; i < conclusionLength - 1; i++) {
-    Literal* curr = (*premise)[i];
-    if(curr != lit){
-      (*conclusion)[i] = (*premise)[i];
-    } else {
-      (*conclusion)[i] = EqHelper::replace((*premise)[i], t, troo);
-    }
+  for (Literal* curr : iterTraits(premise->iterLits())) {
+    resLits->push( curr != lit 
+        ? curr
+        : EqHelper::replace(curr, t, troo));
   }
 
   // Add s = false to the clause
-  (*conclusion)[conclusionLength - 1] = Literal::createEquality(true, t, fols, AtomicSort::boolSort());
+  resLits->push(Literal::createEquality(true, t, fols, AtomicSort::boolSort()));
 
-  return conclusion;
+  return Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::FOOL_PARAMODULATION, premise));
 }
 
 
@@ -79,8 +74,6 @@ struct Cases::ResultFn
   ResultFn(Clause* cl, Cases& parent) : _cl(cl), _parent(parent) {}
   Clause* operator()(pair<Literal*, TermList> arg)
   {
-    CALL("FOOLParamodulation::ResultFn::operator()");
-    
     return _parent.performParamodulation(_cl, arg.first, arg.second);
   }
 private:
@@ -94,8 +87,6 @@ struct Cases::RewriteableSubtermsFn
 
   VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
   {
-    CALL("Cases::RewriteableSubtermsFn()");
-
     return pvi( pushPairIntoRightIterator(lit, 
                 EqHelper::getBooleanSubtermIterator(lit, _ord)) );
   }
@@ -106,8 +97,6 @@ private:
 
 ClauseIterator Cases::generateClauses(Clause* premise)
 {
-  CALL("Cases::generateClauses");
-
   auto it1 = premise->getSelectedLiteralIterator();
 
   auto it2 = getMapAndFlattenIterator(it1,RewriteableSubtermsFn(_salg->getOrdering()));

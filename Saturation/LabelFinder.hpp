@@ -20,10 +20,7 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Allocator.hpp"
 #include "Lib/Stack.hpp"
-
-#include "Kernel/Clause.hpp"
 
 namespace Saturation {
 
@@ -32,9 +29,6 @@ using namespace Inferences;
 
 class LabelFinder {
 public:
-  CLASS_NAME(LabelFinder);
-  USE_ALLOCATOR(LabelFinder);
-  
   ~LabelFinder();
 
   void onNewPropositionalClause(Clause* cl);

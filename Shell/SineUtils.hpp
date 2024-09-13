@@ -38,9 +38,9 @@ public:
   static void decodeSymId(SymId s, bool& pred, unsigned& functor);
   bool validSymId(SymId s);
 private:
-  void addSymIds(Term* term,Stack<SymId>& ids);
-  void addSymIds(Literal* lit,Stack<SymId>& ids);
-  void extractFormulaSymbols(Formula* f,Stack<SymId>& itms);
+  void addSymIds(Term* term,DHSet<SymId>& ids);
+  void addSymIds(Literal* lit,DHSet<SymId>& ids);
+  void extractFormulaSymbols(Formula* f,DHSet<SymId>& itms);
 };
 
 

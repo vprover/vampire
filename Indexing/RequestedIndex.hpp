@@ -14,7 +14,6 @@
 #include "Indexing/Index.hpp"
 #include "Indexing/IndexManager.hpp"
 #include "Lib/Allocator.hpp"
-#include "Lib/STL.hpp"
 
 namespace Indexing {
 
@@ -23,9 +22,6 @@ template <typename Index>
 class RequestedIndex final
 {
   public:
-    CLASS_NAME(RequestedIndex);
-    USE_ALLOCATOR(RequestedIndex);
-
     RequestedIndex()
     { }
 
@@ -58,8 +54,7 @@ class RequestedIndex final
       ASS(!_indexManager);
       _indexManager = indexManager;
       _type = type;
-      _index = dynamic_cast<Index*>(_indexManager->request(type));
-      ASS(_index != nullptr);  // if this fails, the wrong index type was requested
+      _index = static_cast<Index*>(_indexManager->request(type));
     }
 
     // NOTE: release() might be called multiple times (manually and by destructor)

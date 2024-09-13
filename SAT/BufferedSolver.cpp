@@ -22,9 +22,8 @@ namespace SAT
 {
 
 BufferedSolver::BufferedSolver(SATSolver* inner)
- : _inner(inner), _checkedIdx(0), _lastStatus(SATISFIABLE), _varCnt(0), _varCntInnerOld(0)
+ : _inner(inner), _checkedIdx(0), _lastStatus(Status::SATISFIABLE), _varCnt(0), _varCntInnerOld(0)
 {
-  CALL("BufferedSolver::BufferedSolver");
 }
 /**
  * Check if cl is implied by the current model i.e. if a literal
@@ -39,8 +38,6 @@ BufferedSolver::BufferedSolver(SATSolver* inner)
  */
 bool BufferedSolver::checkAndRecordImplied(SATClause* cl)
 {
-  CALL("BufferedSolver::checkAndRecordImplied");
-
   static SATLiteralStack newLiterals;
   newLiterals.reset();
 
@@ -79,8 +76,6 @@ bool BufferedSolver::checkAndRecordImplied(SATClause* cl)
  */
 void BufferedSolver::addClause(SATClause* cl)
 {
-  CALL("BufferedSolver::addClause");
-
   _unadded.push(cl);
 }
 
@@ -95,8 +90,6 @@ void BufferedSolver::addClause(SATClause* cl)
  */
 void BufferedSolver::flushUnadded()
 {
-  CALL("BufferedSolver::flushUnadded");
-
   //update maxVar
   _varCntInnerOld=_varCnt;
 
@@ -119,17 +112,15 @@ void BufferedSolver::flushUnadded()
  */
 SATSolver::Status BufferedSolver::solve(unsigned conflictCountLimit)
 {
-  CALL("BufferedSolver::solve"); 
-  
   // BufferedSolver does not support "UNKNOWN" status as
   // it needs _inner to have either a model or to be provably unsat
   ASS_EQ(conflictCountLimit, UINT_MAX);
   
-  if (_lastStatus == UNSATISFIABLE) {
-    return UNSATISFIABLE;
+  if (_lastStatus == Status::UNSATISFIABLE) {
+    return Status::UNSATISFIABLE;
   }
   
-  ASS_EQ(_lastStatus,SATISFIABLE);
+  ASS_EQ(_lastStatus,Status::SATISFIABLE);
   
   // check if clauses are implied by current ground model and buffered literals
   size_t sz = _unadded.size();
@@ -143,7 +134,7 @@ SATSolver::Status BufferedSolver::solve(unsigned conflictCountLimit)
   }
 
   RSTAT_CTR_INC("solver_buffer_hit");
-  return SATSolver::SATISFIABLE;
+  return Status::SATISFIABLE;
 }
 
 /**
@@ -154,19 +145,18 @@ SATSolver::Status BufferedSolver::solve(unsigned conflictCountLimit)
  */
 SATSolver::VarAssignment BufferedSolver::getAssignment(unsigned var)
 {
-  CALL("BufferedSolver::getAssignment");
   ASS_G(var,0); ASS_LE(var,_varCnt);
 
   // check buffer
   if(!_literalBuffer.isEmpty() && _literalBuffer.find(var)) {
-    return _literalBuffer.get(var) ? SATSolver::TRUE : SATSolver::FALSE;
+    return _literalBuffer.get(var) ? VarAssignment::TRUE : VarAssignment::FALSE;
   }
 
   // refer to inner if variable not new
   if (var <= _varCntInnerOld) {
     return _inner->getAssignment(var); 
   } else {
-    return SATSolver::DONT_CARE; // If it is new and not yet assigned in buffer
+    return VarAssignment::DONT_CARE; // If it is new and not yet assigned in buffer
   }
 }
 

@@ -138,26 +138,20 @@ bool SDHelper::checkForSubsumptionResolution(Clause* cl, SDClauseMatches const& 
  */
 Clause* SDHelper::generateSubsumptionResolutionClause(Clause* cl, Literal* resLit, Clause* mcl)
 {
-  CALL("generateSubsumptionResolutionClause");
+  RStack<Literal*> resLits;
 
-  unsigned newLen = cl->length() - 1;
-  Clause* newCl = new(newLen) Clause(newLen,
-      SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, cl, mcl));
-
-  unsigned j = 0;
   for (unsigned i = 0; i < cl->length(); ++i) {
     Literal* curLit = (*cl)[i];
 
     if (curLit != resLit) {
-      (*newCl)[j] = curLit;
-      j += 1;
+      resLits->push(curLit);
     }
   }
   // We should have skipped exactly one literal, namely resLit.
   // (it should never appear twice because we apply duplicate literal removal before subsumption resolution)
-  ASS_EQ(j, newLen);
+  ASS_EQ(resLits->length(), cl->length() - 1)
 
-  return newCl;
+  return Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, cl, mcl));
 }
 
 
@@ -173,12 +167,12 @@ SDHelper::ClauseComparisonResult SDHelper::clauseCompare(Literal* const lits1[],
   ASS(env.options->literalComparisonMode() != Options::LiteralComparisonMode::REVERSE);
 
   // Copy given literals so we can sort them
-  vvector<Literal*> c1(lits1, lits1+n1);
-  vvector<Literal*> c2(lits2, lits2+n2);
+  std::vector<Literal*> c1(lits1, lits1+n1);
+  std::vector<Literal*> c2(lits2, lits2+n2);
 
   // These will contain literals from c1/c2 with equal occurrences removed
-  vvector<Literal*> v1;
-  vvector<Literal*> v2;
+  std::vector<Literal*> v1;
+  std::vector<Literal*> v2;
 
   // The equality tests below only make sense for shared literals
   std::for_each(c1.begin(), c1.end(), [](Literal* lit) { ASS(lit->shared()); });
@@ -245,10 +239,6 @@ SDHelper::ClauseComparisonResult SDHelper::clauseCompare(Literal* const lits1[],
           break;
         case Ordering::EQUAL:
           // should not happen due to first part where we remove equal literals
-          ASSERTION_VIOLATION;
-        case Ordering::LESS_EQ:
-        case Ordering::GREATER_EQ:
-          // those don't appear
           ASSERTION_VIOLATION;
         default:
           ASSERTION_VIOLATION;

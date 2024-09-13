@@ -13,7 +13,6 @@
  * @since 19/11/2015 Manchester
  */
 
-#include "Debug/Tracer.hpp"
 
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/Clause.hpp"
@@ -25,7 +24,6 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/FormulaVarIterator.hpp"
 #include "Shell/Flattening.hpp"
-#include "Shell/NameReuse.hpp"
 #include "Shell/Skolem.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Rectify.hpp"
@@ -35,6 +33,7 @@
 
 #include "NewCNF.hpp"
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
@@ -42,16 +41,14 @@ namespace Shell {
 
 void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
 {
-  CALL("NewCNF::clausify");
-
   _beingClausified = unit;
 
   Formula* f = unit->formula();
 
 #if LOGGING
-  cout << endl << "----------------- INPUT ------------------" << endl;
-  cout << f->toString() << endl;
-  cout << "----------------- INPUT ------------------" << endl;
+  cout << std::endl << "----------------- INPUT ------------------" << std::endl;
+  cout << f->toString() << std::endl;
+  cout << "----------------- INPUT ------------------" << std::endl;
 #endif
 
   switch (f->connective()) {
@@ -60,8 +57,7 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
 
     case FALSE: {
       // create an empty clause and push it in the stack
-      Clause* clause = new(0) Clause(0,FormulaTransformation(InferenceRule::CLAUSIFY,unit));
-      output.push(clause);
+      output.push(Clause::empty(FormulaTransformation(InferenceRule::CLAUSIFY,unit)));
       return;
     }
 
@@ -84,11 +80,11 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
     dequeue(g, occurrences);
 
 #if LOGGING
-    cout << endl << "---------------------------------------------" << endl;
+    cout << std::endl << "---------------------------------------------" << std::endl;
     for (SPGenClause gc : _genClauses) {
       LOG1(gc->toString());
     }
-    cout << "---------------------------------------------" << endl << endl;
+    cout << "---------------------------------------------" << std::endl << std::endl;
 #endif
 
     if ((_namingThreshold > 1) && occurrences.size() > _namingThreshold) {
@@ -100,11 +96,11 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
   }
 
 #if LOGGING
-  cout << endl << "----------------- OUTPUT -----------------" << endl;
+  cout << std::endl << "----------------- OUTPUT -----------------" << std::endl;
   for (SPGenClause gc : _genClauses) {
     LOG1(gc->toString());
   }
-  cout << "----------------- OUTPUT -----------------" << endl;
+  cout << "----------------- OUTPUT -----------------" << std::endl;
 #endif
 
   for (SPGenClause gc : _genClauses) {
@@ -130,8 +126,6 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output)
 }
 
 void NewCNF::process(Literal* literal, Occurrences &occurrences) {
-  CALL("NewCNF::process(Literal*)");
-
   LOG2("process(Literal*)", literal->toString());
   LOG2("occurrences.size", occurrences.size());
 
@@ -201,11 +195,11 @@ void NewCNF::process(Literal* literal, Occurrences &occurrences) {
       }
     } else {
       VarSet* fv = freeVars(condition);
-      fv = fv->getUnion(VarSet::getFromIterator(FormulaVarIterator(&thenBranch)));
-      fv = fv->getUnion(VarSet::getFromIterator(FormulaVarIterator(&elseBranch)));
+      fv = fv->getUnion(VarSet::getFromIterator(FormulaVarIterator(thenBranch)));
+      fv = fv->getUnion(VarSet::getFromIterator(FormulaVarIterator(elseBranch)));
 
       VList* vars = VList::singleton(variable);
-      VList::pushFromIterator(VarSet::Iterator(*fv), vars);
+      VList::pushFromIterator(fv->iter(), vars);
 
       /* TODO: createNamingLiteral needs a formula to mark the colors correctly.
        * I'm not sure if it is the condition that should go here, but let's have that for now.
@@ -308,8 +302,6 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
                           Stack<unsigned> &matchVariables, Stack<List<Formula*>*> &matchConditions,
                           Stack<List<TermList>*> &matchBranches)
 {
-  CALL("NewCNF::findITEs");
-
   if (ts.isVar() || ts.term()->shared()) {
     return ts;
   }
@@ -338,8 +330,8 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
   TermList sort;
 
   Term::SpecialTermData* sd = term->getSpecialData();
-  switch (sd->getType()) {
-    case Term::SF_FORMULA: {
+  switch (sd->specialFunctor()) {
+    case SpecialFunctor::FORMULA: {
       sort = AtomicSort::boolSort();
       conditions.push(sd->getFormula());
       thenBranches.push(TermList(Term::foolTrue()));
@@ -347,7 +339,7 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
       break;
     }
 
-    case Term::SF_ITE: {
+    case SpecialFunctor::ITE: {
       sort = sd->getSort();
       conditions.push(sd->getCondition());
       thenBranches.push(*term->nthArgument(0));
@@ -355,21 +347,22 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
       break;
     }
 
-    case Term::SF_LET:
-    case Term::SF_LET_TUPLE: {
+    case SpecialFunctor::LET:
+    case SpecialFunctor::LET_TUPLE: {
       TermList contents = *term->nthArgument(0);
       TermList processedLet = eliminateLet(sd, contents);
       return findITEs(processedLet, variables, conditions, thenBranches,
         elseBranches, matchVariables, matchConditions, matchBranches);
     }
 
-    case Term::SF_TUPLE: {
+    case SpecialFunctor::TUPLE: {
       TermList tupleTerm = TermList(sd->getTupleTerm());
       return findITEs(tupleTerm, variables, conditions, thenBranches,
                       elseBranches, matchVariables, matchConditions, matchBranches);
     }
-
-    case Term::SF_MATCH: {
+    case SpecialFunctor::LAMBDA:
+      NOT_IMPLEMENTED;
+    case SpecialFunctor::MATCH: {
       sort = sd->getSort();
       auto matched = *term->nthArgument(0);
       List<Formula *> *mconditions(0);
@@ -392,8 +385,6 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
       return TermList(var, false);
     }
 
-    default:
-      ASSERTION_VIOLATION_REP(term->toString());
   }
 
   unsigned var = createFreshVariable(sort);
@@ -416,8 +407,6 @@ bool NewCNF::shouldInlineITE(unsigned iteCounter) {
 
 unsigned NewCNF::createFreshVariable(TermList sort)
 {
-  CALL("NewCNF::createFreshVariable");
-
   ensureHavingVarSorts();
 
   _maxVar++;
@@ -429,8 +418,6 @@ unsigned NewCNF::createFreshVariable(TermList sort)
 
 void NewCNF::createFreshVariableRenaming(unsigned oldVar, unsigned freshVar)
 {
-  CALL("NewCNF::createFreshVariableRenaming");
-
   ensureHavingVarSorts();
 
   TermList sort;
@@ -445,8 +432,6 @@ void NewCNF::createFreshVariableRenaming(unsigned oldVar, unsigned freshVar)
 
 void NewCNF::process(JunctionFormula *g, Occurrences &occurrences)
 {
-  CALL("NewCNF::process(JunctionFormula*)");
-
   LOG2("processJunction", g->toString());
   LOG2("occurrences.size", occurrences.size());
 
@@ -479,8 +464,6 @@ void NewCNF::process(JunctionFormula *g, Occurrences &occurrences)
 
 void NewCNF::process(BinaryFormula* g, Occurrences &occurrences)
 {
-  CALL("NewCNF::process(BinaryFormula*)");
-
   LOG2("processBinary", g->toString());
   LOG2("occurrences.size", occurrences.size());
 
@@ -506,8 +489,6 @@ void NewCNF::process(BinaryFormula* g, Occurrences &occurrences)
 
 void NewCNF::BindingStore::pushAndRememberWhileApplying(Binding b, BindingList* &lst)
 {
-  CALL("NewCNF::pushAndRememberWhileApplying");
-
   // turn b into a singleton substitution
   static Substitution subst;
   subst.bind(b.first,b.second);
@@ -540,8 +521,6 @@ void NewCNF::BindingStore::pushAndRememberWhileApplying(Binding b, BindingList* 
 
 void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
 {
-  CALL("NewCNF::processBoolVar");
-
   LOG2("processBoolVar", (sign == POSITIVE ? "X" : "~X") + Int::toString(var));
   LOG2("occurrences.size", occurrences.size());
 
@@ -619,8 +598,6 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
 
 void NewCNF::processConstant(bool constant, Occurrences &occurrences)
 {
-  CALL("NewCNF::processConstant");
-
   while (occurrences.isNonEmpty()) {
     Occurrence occ = pop(occurrences);
     if (constant == (occ.sign() == POSITIVE)) {
@@ -634,8 +611,6 @@ void NewCNF::processConstant(bool constant, Occurrences &occurrences)
 
 void NewCNF::processITE(Formula* condition, Formula* thenBranch, Formula* elseBranch, Occurrences &occurrences)
 {
-  CALL("NewCNF::processITE");
-
   enqueue(condition);
   enqueue(thenBranch);
   enqueue(elseBranch);
@@ -652,7 +627,6 @@ void NewCNF::processITE(Formula* condition, Formula* thenBranch, Formula* elseBr
 
 void NewCNF::processMatch(Term::SpecialTermData *sd, Term *term, Occurrences &occurrences)
 {
-  CALL("NewCNF::processMatch");
   auto matched = *term->nthArgument(0);
 
   for (unsigned int i = 1; i < term->arity(); i += 2) {
@@ -678,15 +652,13 @@ void NewCNF::processMatch(Term::SpecialTermData *sd, Term *term, Occurrences &oc
 
 TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
 {
-  CALL("NewCNF::eliminateLet");
-
-  ASS((sd->getType() == Term::SF_LET) || (sd->getType() == Term::SF_LET_TUPLE));
+  ASS((sd->specialFunctor() == SpecialFunctor::LET) || (sd->specialFunctor() == SpecialFunctor::LET_TUPLE));
 
   unsigned symbol;
   VList* variables;
   TermList binding = sd->getBinding();
 
-  if (sd->getType() == Term::SF_LET) {
+  if (sd->specialFunctor() == SpecialFunctor::LET) {
     symbol = sd->getFunctor();
     variables = sd->getVariables();
   } else if (binding.isTerm() && binding.term()->isTuple()) {
@@ -719,12 +691,10 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
     ASS(!bit.hasNext());
 
     if (env.options->showPreprocessing()) {
-      env.beginOutput();
       Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, binding, contents, tupleType->result());
-      env.out() << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << endl;
+      std::cout << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << std::endl;
       Term* processedLet = Term::createLet(symbol, 0, processedBinding, processedContents, bodySort);
-      env.out() << "[PP] clausify (detuplify let) out: " << processedLet->toString() << endl;
-      env.endOutput();
+      std::cout << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
     }
 
     variables = VList::empty();
@@ -764,12 +734,10 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
     }
 
     if (env.options->showPreprocessing()) {
-      env.beginOutput();
       Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, binding, contents, tupleType->result());
-      env.out() << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << endl;
+      std::cout << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << std::endl;
       Term* processedLet = Term::createLet(tuple, 0, binding, detupledContents, bodySort);
-      env.out() << "[PP] clausify (detuplify let) out: " << processedLet->toString() << endl;
-      env.endOutput();
+      std::cout << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
     }
 
     symbol = tuple;
@@ -785,7 +753,7 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
 //    Term* term = binding.term();
 //    if (term->isSpecial()) {
 //      Term::SpecialTermData* sd = term->getSpecialData();
-//      if (sd->getType() == Term::SF_FORMULA) {
+//      if (sd->specialFunctor() == SpecialFunctor::FORMULA) {
 //        inlineLet = true;
 //      }
 //    }
@@ -796,7 +764,7 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
 ////      }
 //    } else if (term->isSpecial()) {
 //      Term::SpecialTermData* sd = term->getSpecialData();
-//      if (sd->getType() == Term::SF_FORMULA) {
+//      if (sd->specialFunctor() == SpecialFunctor::FORMULA) {
 //        Formula* f = sd->getFormula();
 //        if ((f->connective() == LITERAL) && f->literal()->shared()) {
 //          inlineLet = true;
@@ -809,20 +777,16 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
   if (inlineLet) {
     processedContents = inlineLetBinding(symbol, variables, binding, contents);
     if (env.options->showPreprocessing()) {
-      env.beginOutput();
-      env.out() << "[PP] clausify (inline let) binding: " << binding.toString() << endl;
-      env.out() << "[PP] clausify (inline let) in:  " << contents.toString() << endl;
-      env.out() << "[PP] clausify (inline let) out: " << processedContents.toString() << endl;
-      env.endOutput();
+      std::cout << "[PP] clausify (inline let) binding: " << binding.toString() << std::endl;
+      std::cout << "[PP] clausify (inline let) in:  " << contents.toString() << std::endl;
+      std::cout << "[PP] clausify (inline let) out: " << processedContents.toString() << std::endl;
     }
   } else {
     processedContents = nameLetBinding(symbol, variables, binding, contents);
     if (env.options->showPreprocessing()) {
-      env.beginOutput();
-      env.out() << "[PP] clausify (name let) binding: " << binding.toString() << endl;
-      env.out() << "[PP] clausify (name let) in:  " << contents.toString() << endl;
-      env.out() << "[PP] clausify (name let) out: " << processedContents.toString() << endl;
-      env.endOutput();
+      std::cout << "[PP] clausify (name let) binding: " << binding.toString() << std::endl;
+      std::cout << "[PP] clausify (name let) in:  " << contents.toString() << std::endl;
+      std::cout << "[PP] clausify (name let) out: " << processedContents.toString() << std::endl;
     }
   }
 
@@ -831,9 +795,7 @@ TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
 
 void NewCNF::processLet(Term::SpecialTermData* sd, TermList contents, Occurrences &occurrences)
 {
-  CALL("NewCNF::processLet");
-
-  ASS((sd->getType() == Term::SF_LET) || (sd->getType() == Term::SF_LET_TUPLE));
+  ASS((sd->specialFunctor() == SpecialFunctor::LET) || (sd->specialFunctor() == SpecialFunctor::LET_TUPLE));
 
   TermList deletedContents = eliminateLet(sd, contents); // should be read "de-let-ed contents"
   Formula* deletedContentsFormula = BoolTermFormula::create(deletedContents);
@@ -845,10 +807,8 @@ void NewCNF::processLet(Term::SpecialTermData* sd, TermList contents, Occurrence
 
 TermList NewCNF::nameLetBinding(unsigned symbol, VList* bindingVariables, TermList binding, TermList contents)
 {
-  CALL("NewCNF::nameLetBinding");
-
   VList* bindingFreeVars = VList::empty();
-  FormulaVarIterator bfvi(&binding);
+  FormulaVarIterator bfvi(binding);
   while (bfvi.hasNext()) {
     unsigned var = bfvi.next();
     if (!VList::member(var, bindingVariables)) {
@@ -936,8 +896,6 @@ TermList NewCNF::nameLetBinding(unsigned symbol, VList* bindingVariables, TermLi
 }
 
 TermList NewCNF::inlineLetBinding(unsigned symbol, VList* bindingVariables, TermList binding, TermList contents) {
-  CALL("NewCNF::inlineLetBinding(TermList)");
-
   ensureHavingVarSorts();
   SymbolDefinitionInlining inlining(symbol, bindingVariables, binding, _maxVar);
   TermList inlinedContents = inlining.process(contents);
@@ -953,8 +911,6 @@ TermList NewCNF::inlineLetBinding(unsigned symbol, VList* bindingVariables, Term
 
 VarSet* NewCNF::freeVars(Formula* g)
 {
-  CALL("NewCNF::freeVars");
-
   LOG2("freeVars for", g->toString());
 
   VarSet* res;
@@ -971,8 +927,6 @@ VarSet* NewCNF::freeVars(Formula* g)
 
 void NewCNF::ensureHavingVarSorts()
 {
-  CALL("NewCNF::ensureHavingVarSorts");
-
   if (!_collectedVarSorts) {
     SortHelper::collectVariableSorts(_beingClausified->formula(), _varSorts);
     _collectedVarSorts = true;
@@ -987,10 +941,8 @@ void NewCNF::ensureHavingVarSorts()
   }
 }
 
-Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free, Formula *reuse_formula)
+Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
 {
-  CALL("NewCNF::createSkolemTerm");
-
   unsigned arity = free->size();
 
   ensureHavingVarSorts();
@@ -1000,27 +952,9 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free, Formula *reuse_formul
   ASS(domainSorts.isEmpty());
   ASS(fnArgs.isEmpty());
 
-  NameReuse *name_reuse = (env.options->skolemReuse() && reuse_formula)
-    ? NameReuse::skolemInstance()
-    : nullptr;
-  unsigned reused_symbol = 0;
-  bool successfully_reused = false;
-  vstring reuse_key;
-  if(name_reuse) {
-    reuse_key = name_reuse->key(reuse_formula);
-    successfully_reused = name_reuse->get(reuse_key, reused_symbol);
-  }
-  if(successfully_reused)
-    env.statistics->reusedSkolemFunctions++;
-
-  // if we re-use a symbol, we _must_ close over free variables in some fixed order
-  VirtualIterator<unsigned> keyOrderIt;
-  if(name_reuse)
-    keyOrderIt = name_reuse->freeVariablesInKeyOrder(reuse_formula);
-
-  VarSet::Iterator vit(*free);
-  while(name_reuse ? keyOrderIt.hasNext() : vit.hasNext()) {
-    unsigned uvar = name_reuse ? keyOrderIt.next() : vit.next();
+  auto vit = free->iter();
+  while(vit.hasNext()) {
+    unsigned uvar = vit.next();
     domainSorts.push(_varSorts.get(uvar, AtomicSort::defaultSort()));
     fnArgs.push(TermList(uvar, false));
   }
@@ -1028,30 +962,22 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free, Formula *reuse_formul
   Term* res;
   bool isPredicate = (rangeSort == AtomicSort::boolSort());
   if (isPredicate) {
-    unsigned pred = reused_symbol;
-    if(!successfully_reused) {
-      pred = Skolem::addSkolemPredicate(arity, domainSorts.begin(), var);
-      if(name_reuse)
-        name_reuse->put(reuse_key, pred);
-      env.statistics->skolemFunctions++;
-    }
+    unsigned pred = Skolem::addSkolemPredicate(arity, 0, domainSorts.begin());
+    Signature::Symbol *sym = env.signature->getPredicate(pred);
+    sym->markSkipCongruence();
     if(_beingClausified->derivedFromGoal()){
-      env.signature->getPredicate(pred)->markInGoal();
+      sym->markInGoal();
     }
     res = Term::createFormula(new AtomicFormula(Literal::create(pred, arity, true, false, fnArgs.begin())));
   } else {
-    unsigned fun = reused_symbol;
-    if(!successfully_reused) {
-      fun = Skolem::addSkolemFunction(arity, domainSorts.begin(), rangeSort, var);
-      if(name_reuse)
-        name_reuse->put(reuse_key, fun);
-      env.statistics->skolemFunctions++;
-    }
+    unsigned fun = Skolem::addSkolemFunction(arity, 0, domainSorts.begin(), rangeSort);
+    Signature::Symbol *sym = env.signature->getFunction(fun);
+    sym->markSkipCongruence();
     if(_beingClausified->derivedFromGoal()){
-      env.signature->getFunction(fun)->markInGoal();
+      sym->markInGoal();
     }
     if(_forInduction){
-      env.signature->getFunction(fun)->markInductionSkolem();
+      sym->markInductionSkolem();
     }
     res = Term::create(fun, arity, fnArgs.begin());
   }
@@ -1073,8 +999,6 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free, Formula *reuse_formul
  */
 void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings, BindingList*& foolBindings)
 {
-  CALL("NewCNF::skolemise");
-
   BindingList* processedBindings;
   BindingList* processedFoolBindings;
 
@@ -1091,9 +1015,7 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings, BindingList
     BindingList::Iterator bIt(bindings);
     BindingList::Iterator fbIt(foolBindings);
 
-    auto it = getConcatenatedIterator(bIt,fbIt);
-    while(it.hasNext()) {
-      Binding b = it.next();
+    for (Binding b : concatIters(bIt, fbIt)) {
       if (frees->member(b.first)) {
         toSubtract.push(b.first);      // because it's, in fact, bound
         VariableIterator vit(b.second);
@@ -1116,22 +1038,6 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings, BindingList
     if (!_skolemsByFreeVars.find(unboundFreeVars, processedBindings) || !_foolSkolemsByFreeVars.find(unboundFreeVars, processedFoolBindings)) {
       // second level cache miss, let's do the actual skolemisation
 
-      Substitution subst;
-      Formula *reuse_formula = nullptr;
-      VList *remainingVars = nullptr;
-      SList *remainingSorts = nullptr;
-      if(env.options->skolemReuse() && VList::length(g->vars()) <= 5) { // give up on skolemReuse for long quantifier blocks
-        BindingList::Iterator bit(bindings);
-        while (bit.hasNext()) {
-          Binding b = bit.next();
-          subst.bind(b.first, b.second);
-        }
-        reuse_formula = SubstHelper::apply(g, subst);
-        // could be reuse_formula->vars() but SubstHelper might reorder them
-        remainingVars = g->vars();
-        remainingSorts = g->sorts();
-      }
-
       processedBindings = nullptr;
       processedFoolBindings = nullptr;
 
@@ -1139,33 +1045,14 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings, BindingList
       while (vs.hasNext()) {
         unsigned var = vs.next();
 
-        Term *skolem = createSkolemTerm(var, unboundFreeVars, reuse_formula);
+        Term *skolem = createSkolemTerm(var, unboundFreeVars);
+
+        env.statistics->skolemFunctions++;
         Binding binding(var, skolem);
         if (skolem->isSpecial()) {
           BindingList::push(binding, processedFoolBindings); // this cell will get destroyed when we clear the cache
         } else {
           BindingList::push(binding, processedBindings); // this cell will get destroyed when we clear the cache
-        }
-
-        // if we're re-using Skolems based on formulae,
-        // we need to explicitly construct them: e.g. for ?[X, Y, Z]: F:
-        // ?[X, Y, Z]: F,
-        // ?[Y, Z]: F[X->sK0],
-        // ?[Z]: F[X->sK0, Y->sK1],
-        // but not F[X->sK0, Y->sK1, Z->sK2], since this doesn't need a Skolem term
-        if(env.options->skolemReuse() && reuse_formula) {
-          ASS(remainingVars != nullptr);
-          remainingVars = remainingVars->tail();
-          remainingSorts = remainingSorts ? remainingSorts->tail() : nullptr;
-          if(VList::isNonEmpty(remainingVars)) {
-            subst.bind(var, skolem);
-            reuse_formula = new QuantifiedFormula(
-              Connective::EXISTS,
-              remainingVars,
-              remainingSorts,
-              SubstHelper::apply(reuse_formula->qarg(), subst)
-            );
-          }
         }
       }
 
@@ -1192,8 +1079,6 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings, BindingList
 
 void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
 {
-  CALL("NewCNF::process(QuantifiedFormula*)");
-
   LOG2("processQuantified", g->toString());
   LOG2("occurreces", occurrences.size());
 
@@ -1244,8 +1129,6 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
 
 void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
 {
-  CALL("NewCNF::process(TermList)");
-
   if (ts.isVar()) {
     processBoolVar(POSITIVE, ts.var(), occurrences);
     return;
@@ -1255,33 +1138,32 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
   ASS_REP(term->isSpecial(), term->toString());
 
   Term::SpecialTermData* sd = term->getSpecialData();
-  switch (sd->getType()) {
-    case Term::SF_FORMULA:
+  switch (sd->specialFunctor()) {
+    case SpecialFunctor::FORMULA:
       process(sd->getFormula(), occurrences);
-      break;
-
-    case Term::SF_ITE: {
+      return;
+    case SpecialFunctor::TUPLE:
+      NOT_IMPLEMENTED;
+    case SpecialFunctor::ITE: {
       Formula* condition = sd->getCondition();
 
       Formula* left = BoolTermFormula::create(*term->nthArgument(LEFT));
       Formula* right = BoolTermFormula::create(*term->nthArgument(RIGHT));
       processITE(condition, left, right, occurrences);
-      break;
+      return;
     }
-
-    case Term::SF_LET:
-    case Term::SF_LET_TUPLE:
+    case SpecialFunctor::LET:
+    case SpecialFunctor::LET_TUPLE:
       processLet(sd, *term->nthArgument(0), occurrences);
-      break;
-
-    case Term::SF_MATCH: {
+      return;
+    case SpecialFunctor::LAMBDA:
+      NOT_IMPLEMENTED;
+    case SpecialFunctor::MATCH: {
       processMatch(sd, term, occurrences);
-      break;
+      return;
     }
-
-    default:
-      ASSERTION_VIOLATION_REP(term->toString());
   }
+  ASSERTION_VIOLATION_REP(term->toString());
 }
 
 /**
@@ -1289,33 +1171,14 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
  */
 Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
 {
-  CALL("NewCNF::createNamingLiteral");
-
-  NameReuse *name_reuse = env.options->definitionReuse()
-    ? NameReuse::definitionInstance()
-    : nullptr;
-  unsigned reused_symbol = 0;
-  bool successfully_reused = false;
-  vstring reuse_key;
-  if(name_reuse) {
-    reuse_key = name_reuse->key(f);
-    successfully_reused = name_reuse->get(reuse_key, reused_symbol);
-  }
-  if(successfully_reused)
-    env.statistics->reusedFormulaNames++;
-
   unsigned length = VList::length(free);
-  unsigned pred = reused_symbol;
-  if(!successfully_reused) {
-    pred = env.signature->addNamePredicate(length);
-    env.statistics->formulaNames++;
-    if(name_reuse)
-      name_reuse->put(reuse_key, pred);
-  }
+  unsigned pred = env.signature->addNamePredicate(length);
+  env.statistics->formulaNames++;
 
   Signature::Symbol* predSym = env.signature->getPredicate(pred);
+  predSym->markSkipCongruence();
 
-  if (!successfully_reused && env.colorUsed) {
+  if (env.colorUsed) {
     Color fc = f->getColor();
     if (fc != COLOR_TRANSPARENT) {
       predSym->addColor(fc);
@@ -1332,21 +1195,15 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
 
   ensureHavingVarSorts();
 
-  // if we re-use a symbol, we _must_ close over free variables in some fixed order
-  VirtualIterator<unsigned> keyOrderIt;
-  if(name_reuse)
-    keyOrderIt = name_reuse->freeVariablesInKeyOrder(f);
-
   VList::Iterator vit(free);
-  while (name_reuse ? keyOrderIt.hasNext() : vit.hasNext()) {
-    unsigned uvar = name_reuse ? keyOrderIt.next() : vit.next();
+  while (vit.hasNext()) {
+    unsigned uvar = vit.next();
     domainSorts.push(_varSorts.get(uvar, AtomicSort::defaultSort()));
     predArgs.push(TermList(uvar, false));
   }
   VList::destroy(free);
 
-  if(!successfully_reused)
-    predSym->setType(OperatorType::getPredicateType(length, domainSorts.begin()));
+  predSym->setType(OperatorType::getPredicateType(length, domainSorts.begin()));
 
   return Literal::create(pred, length, true, false, predArgs.begin());
 }
@@ -1361,16 +1218,16 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
  */
 void NewCNF::nameSubformula(Formula* g, Occurrences &occurrences)
 {
-  CALL("NewCNF::nameSubformula");
-
   LOG2("nameSubformula", g->toString());
   LOG2("occurrences", occurrences.size());
 
   VList* fv = VList::empty();
-  VList::pushFromIterator(VarSet::Iterator(*freeVars(g)), fv);
+  auto vars = freeVars(g);
+  VList::pushFromIterator(vars->iter(), fv);
 
   Literal* naming = createNamingLiteral(g, fv);
   Formula* name = new AtomicFormula(naming);
+  env.statistics->formulaNames++;
 
   occurrences.replaceBy(name);
 
@@ -1389,17 +1246,14 @@ void NewCNF::nameSubformula(Formula* g, Occurrences &occurrences)
   for (SIGN sign : { NEGATIVE, POSITIVE }) {
     // One could also consider the case where (part of) the bindings goes to the definition
     // which perhaps allows us to the have a skolem predicate with fewer arguments
-    if (occurs[sign] && !_already_seen[sign].contains(naming)) {
+    if (occurs[sign]) {
       introduceGenClause(GenLit(name, OPPOSITE(sign)), GenLit(g, sign));
-      _already_seen[sign].insert(naming);
     }
   }
 }
 
 void NewCNF::process(Formula* g, Occurrences &occurrences)
 {
-  CALL("NewCNF::process");
-
   switch (g->connective()) {
     case AND:
     case OR:
@@ -1442,8 +1296,6 @@ void NewCNF::process(Formula* g, Occurrences &occurrences)
 
 void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
 {
-  CALL("NewCNF::toClauses");
-
   Stack<unsigned> variables;
   Stack<Formula*> skolems;
 
@@ -1488,7 +1340,7 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
         List<GenLit>::Iterator glsit(gls);
         while (glsit.hasNext()) {
           GenLit gl = glsit.next();
-          if (formula(gl)->isFreeVariable(variable)) {
+          if (isFreeVariableOf(formula(gl),variable)) {
             occurs = true;
             break;
           }
@@ -1530,7 +1382,7 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
         List<GenLit>::Iterator glsit(gls);
         while (glsit.hasNext()) {
           GenLit gl = glsit.next();
-          if (formula(gl)->isFreeVariable(variable)) {
+          if (isFreeVariableOf(formula(gl),variable)) {
             occurs = true;
             break;
           }
@@ -1566,7 +1418,7 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
   }
 
 #if LOGGING
-  cout << endl << "----------------- CNF ------------------" << endl;
+  cout << std::endl << "----------------- CNF ------------------" << std::endl;
 #endif
   while (List<List<GenLit>*>::isNonEmpty(genClauses)) {
     List<GenLit>* gls = List<List<GenLit>*>::pop(genClauses);
@@ -1580,14 +1432,12 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
     }
   }
 #if LOGGING
-  cout << "----------------- CNF ------------------" << endl << endl;
+  cout << "----------------- CNF ------------------" << std::endl << std::endl;
 #endif
 }
 
 bool NewCNF::mapSubstitution(List<GenLit>* clause, Substitution subst, bool onlyFormulaLevel, List<GenLit>* &output)
 {
-  CALL("NewCNF::mapSubstitution");
-
   List<GenLit>::Iterator it(clause);
   while (it.hasNext()) {
     GenLit gl = it.next();
@@ -1622,8 +1472,6 @@ bool NewCNF::mapSubstitution(List<GenLit>* clause, Substitution subst, bool only
 
 Clause* NewCNF::toClause(SPGenClause gc)
 {
-  CALL("NewCNF::toClause");
-
   Substitution* subst;
 
   if (!_substitutionsByBindings.find(gc->bindings, subst)) {
@@ -1636,8 +1484,7 @@ Clause* NewCNF::toClause(SPGenClause gc)
     _substitutionsByBindings.insert(gc->bindings, subst);
   }
 
-  static Stack<Literal*> properLiterals;
-  ASS(properLiterals.isEmpty());
+  RStack<Literal*> resLits;
 
   GenClause::Iterator lit = gc->genLiterals();
   while (lit.hasNext()) {
@@ -1653,17 +1500,10 @@ Clause* NewCNF::toClause(SPGenClause gc)
       l = Literal::complementaryLiteral(l);
     }
 
-    properLiterals.push(l);
+    resLits->push(l);
   }
 
-  Clause* clause = new(gc->size()) Clause(gc->size(),FormulaTransformation(InferenceRule::CLAUSIFY,_beingClausified));
-  for (int i = gc->size() - 1; i >= 0; i--) {
-    (*clause)[i] = properLiterals[i];
-  }
-
-  properLiterals.reset();
-
-  return clause;
+  return Clause::fromStack(*resLits,FormulaTransformation(InferenceRule::CLAUSIFY,_beingClausified));
 }
 
 }

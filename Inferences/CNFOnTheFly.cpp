@@ -33,6 +33,7 @@
 #include "CNFOnTheFly.hpp"
 
 namespace Inferences {
+using namespace std;
 using namespace Indexing;
 
 static Clause* replaceLits(Clause *c, Literal *a, Literal *b, InferenceRule r, bool incAge, Literal *d = 0, Literal* e = 0);
@@ -44,8 +45,6 @@ static ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingForm
 typedef ApplicativeHelper AH;
 
 /*Clause* NotProxyISE::simplify(Clause* c){
-  CALL("NotProxyISE::simplify");
-
   TermList boolSort = AtomicSort::boolSort();
   TermList troo = TermList(Term::foolTrue());
   TermList fols = TermList(Term::foolFalse());
@@ -88,8 +87,6 @@ typedef ApplicativeHelper AH;
 }
 
 Clause* EqualsProxyISE::simplify(Clause* c){
-  CALL("EqualsProxyISE::simplify");
-
   TermList boolSort = AtomicSort::boolSort();
   TermList troo = TermList(Term::foolTrue());
   TermList fols = TermList(Term::foolFalse());
@@ -132,8 +129,6 @@ Clause* EqualsProxyISE::simplify(Clause* c){
 }
 
 Clause* PiSigmaProxyISE::simplify(Clause* c){
-  CALL("PiSigmaProxyISE::simplify");
-
   TermList boolSort = AtomicSort::boolSort();
   TermList troo = TermList(Term::foolTrue());
   TermList fols = TermList(Term::foolFalse());
@@ -187,8 +182,6 @@ Clause* PiSigmaProxyISE::simplify(Clause* c){
 }
 
 Clause* OrImpAndProxyISE::simplify(Clause* c){
-  CALL("rImpAndProxyISE::simplify"); 
-
   TermList boolSort = AtomicSort::boolSort();
   TermList troo = TermList(Term::foolTrue());
   TermList fols = TermList(Term::foolFalse());
@@ -255,8 +248,6 @@ Clause* OrImpAndProxyISE::simplify(Clause* c){
 } 
 
 ClauseIterator ProxyISE::simplifyMany(Clause* c){
-  CALL("ProxyISE::simplifyMany");
-
   TermList troo = TermList(Term::foolTrue());
   TermList fols = TermList(Term::foolFalse());
   TermList boolSort = AtomicSort::boolSort();
@@ -405,8 +396,6 @@ afterLoop:
 
 ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaIndex* index)
 {
-  CALL("CNFOnTheFly::produceClauses");
-
   static bool eager = env.options->cnfOnTheFly() == Options::CNFOnTheFly::EAGER;
   static bool simp = env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_SIMP;
   static bool gen = env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_GEN;
@@ -555,13 +544,14 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
         rule = convert(Signature::PI);
         newTerm = piRemoval(args[0], c, srt);
       } else {
+        ASS(term.isTerm());
         bool newTermCreated = false;
         if(index){
-          auto results = index->getGeneralizations(term, true);
+          auto results = index->getGeneralizations(TypedTermList(term.term()), true);
           if(results.hasNext()){
-            TermQueryResult tqr = results.next();
-            TermList skolemTerm = tqr.term;
-            skolemTerm=tqr.substitution->applyToBoundResult(skolemTerm);
+            auto tqr = results.next();
+            TermList skolemTerm = tqr.data->value;
+            skolemTerm = tqr.unifier->applyToBoundResult(skolemTerm);
             newTerm = AH::createAppTerm(srt, args[0], skolemTerm);
             newTermCreated = true;
           }
@@ -569,7 +559,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
         if(!newTermCreated){
           TermList skolemTerm = sigmaRemoval(args[0], srt);
           if(index){
-            index->insertFormula(term, skolemTerm);
+            index->insertFormula(TypedTermList(term.term()), skolemTerm);
           }
           newTerm = AH::createAppTerm(srt, args[0], skolemTerm);
         }
@@ -594,30 +584,25 @@ afterLoop:
 
 Clause* replaceLits(Clause *c, Literal *a, Literal *b, InferenceRule r, bool incAge, Literal *d, Literal* e)
 {
-  CALL("CNFOnTheFly::replaceLits");
-
-  int length = c->length();
-  if(d){ length++;}
-  if(e){ length++;}
-  
-  // Can be either generating or simplifying. Therefore use NonspecificInference
-  // Age is updated in some instances, but not in others based on empirical evaluation
-  Clause* res = new(length) Clause(length, NonspecificInference1(r, c));
-  res->setAge(incAge? c->age() + 1 : c->age());
+  RStack<Literal*> lits;
 
   unsigned i = 0;
   while ((*c)[i] != a) { i++; }
-  std::memcpy(res->literals(), c->literals(), length * sizeof(Literal*));
-  (*res)[i] = b;
-  if(d){(*res)[length - 1] = d;} 
-  if(e){(*res)[length - 2] = e;}//adding new literals at differrent places...
+  for (auto l : iterTraits(c->iterLits())) {
+    lits->push(l == a ? b : l);
+  }
+  // adding new literals at differrent places...
+  if (d) { lits->push(d); }
+  if (e) { lits->push(e); }
   
-  return res;
+  auto out = Clause::fromStack(*lits, NonspecificInference1(r, c));
+  // Can be either generating or simplifying. Therefore use NonspecificInference
+  // Age is updated in some instances, but not in others based on empirical evaluation
+  out->setAge(incAge? c->age() + 1 : c->age());
+  return out;
 }
 
 InferenceRule convert(Signature::Proxy cnst){
-  CALL("CNFOnTheFly::convert");
-
   switch(cnst){
     case Signature::PI:
       return InferenceRule::VPI_ELIMINATION;
@@ -633,8 +618,6 @@ InferenceRule convert(Signature::Proxy cnst){
 }
 
 TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
-  CALL("CNFOnTheFly::sigmaRemoval");
-
   static DHMap<unsigned,TermList> varSorts;
   varSorts.reset();
 
@@ -695,8 +678,6 @@ TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
 
 TermList piRemoval(TermList piTerm, Clause* clause, TermList expsrt){
   
-  CALL("CNFOnTheFly::piRemoval");
-
   unsigned maxVar = clause->maxVar();
   do{ 
     maxVar++;
@@ -710,8 +691,6 @@ TermList piRemoval(TermList piTerm, Clause* clause, TermList expsrt){
 
 
 Clause* IFFXORRewriterISE::simplify(Clause* c){
-  CALL("IFFXORRewriterISE::simplify");
-
   TermList boolSort = AtomicSort::boolSort();
 
   static TermStack args;
@@ -751,8 +730,6 @@ Clause* IFFXORRewriterISE::simplify(Clause* c){
 
 void LazyClausificationGIE::attach(SaturationAlgorithm* salg)
 {
-  CALL("LazyClausificationGIE::attach");
-
   GeneratingInferenceEngine::attach(salg);
   _formulaIndex=static_cast<SkolemisingFormulaIndex*> (
     _salg->getIndexManager()->request(SKOLEMISING_FORMULA_INDEX) );
@@ -760,8 +737,6 @@ void LazyClausificationGIE::attach(SaturationAlgorithm* salg)
 
 void LazyClausificationGIE::detach()
 {
-  CALL("LazyClausificationGIE::detach");
-
   _formulaIndex=0;
   _salg->getIndexManager()->release(SKOLEMISING_FORMULA_INDEX);
   GeneratingInferenceEngine::detach();
@@ -769,8 +744,6 @@ void LazyClausificationGIE::detach()
 
 void LazyClausification::attach(SaturationAlgorithm* salg)
 {
-  CALL("LazyClausification::attach");
-
   SimplificationEngine::attach(salg);
   _formulaIndex=static_cast<SkolemisingFormulaIndex*> (
    _salg->getIndexManager()->request(SKOLEMISING_FORMULA_INDEX) );
@@ -778,8 +751,6 @@ void LazyClausification::attach(SaturationAlgorithm* salg)
 
 void LazyClausification::detach()
 {
-  CALL("LazyClausification::detach");
-
   _formulaIndex=0;
   _salg->getIndexManager()->release(SKOLEMISING_FORMULA_INDEX);
   SimplificationEngine::detach();
@@ -787,22 +758,16 @@ void LazyClausification::detach()
 
 ClauseIterator EagerClausificationISE::simplifyMany(Clause* c)
 {
-  CALL("EagerClausificationISE::simplifyMany");
-
   return produceClauses(c, false);
 }
 
 ClauseIterator LazyClausificationGIE::generateClauses(Clause* c)
 {
-  CALL("LazyClausificationGIE::simplifyMany");
-
   return produceClauses(c, true, _formulaIndex);
 }
 
 ClauseIterator LazyClausification::perform(Clause* c)
 {
-  CALL("LazyClausification::perform");
-
   return produceClauses(c, false, _formulaIndex);
 }
 

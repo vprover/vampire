@@ -13,7 +13,7 @@
  */
 
 #include "Lib/Environment.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/Timer.hpp"
 
 #include "Kernel/Problem.hpp"
@@ -32,6 +32,7 @@
 namespace Saturation
 {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
@@ -50,17 +51,12 @@ using namespace Shell;
  */
   void ProvingHelper::runVampireSaturation(Problem& prb, const Options& opt)
 {
-  CALL("ProvingHelper::runVampireSaturation");
-
   try {
     runVampireSaturationImpl(prb, opt);
   }
-  catch(MemoryLimitExceededException&) {
+  catch(const std::bad_alloc &) {
     env.statistics->terminationReason=Statistics::MEMORY_LIMIT;
     env.statistics->refutation=0;
-    size_t limit=Allocator::getMemoryLimit();
-    //add extra 1 MB to allow proper termination
-    Allocator::setMemoryLimit(limit+1000000);
   }
   catch(TimeLimitExceededException&) {
     env.statistics->terminationReason=Statistics::TIME_LIMIT;
@@ -87,25 +83,27 @@ using namespace Shell;
  */
 void ProvingHelper::runVampire(Problem& prb, const Options& opt)
 {
-  CALL("ProvingHelper::runVampire");
+  // Here officially starts preprocessing of the porfolio mode (separately for each worker)
+  // and that's the moment we want to set the random seed
+  // (no randomness in parsing, for the peace of mind - parsing was done by the master process!)
+  // the main reason being that we want to stay in sync with what vampire mode does
+  // cf getPreprocessedProblem in vampire.cpp
+  Lib::Random::setSeed(opt.randomSeed());
 
   try
   {
     ClauseIterator clauses;
     {
-      TimeCounter tc2(TC_PREPROCESSING);
+      TIME_TRACE(TimeTrace::PREPROCESSING);
 
       Preprocess prepro(opt);
       prepro.preprocess(prb);
     }
     runVampireSaturationImpl(prb, opt);
   }
-  catch(MemoryLimitExceededException&) {
+  catch(const std::bad_alloc &) {
     env.statistics->terminationReason=Statistics::MEMORY_LIMIT;
     env.statistics->refutation=0;
-    size_t limit=Allocator::getMemoryLimit();
-    //add extra 1 MB to allow proper termination
-    Allocator::setMemoryLimit(limit+1000000);
   }
   catch(TimeLimitExceededException&) {
     env.statistics->terminationReason=Statistics::TIME_LIMIT;
@@ -123,21 +121,12 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
  */
   void ProvingHelper::runVampireSaturationImpl(Problem& prb, const Options& opt)
 {
-  CALL("ProvingHelper::runVampireSaturationImpl");
-
   Unit::onPreprocessingEnd();
   if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] onPreprocessingEnd(), Proving Helper" << std::endl;
-    UIHelper::outputAllPremises(env.out(), prb.units(), "New: ");
-    env.endOutput();
+    std::cout << "[PP] onPreprocessingEnd(), Proving Helper" << std::endl;
+    UIHelper::outputAllPremises(std::cout, prb.units(), "New: ");
   }
 
-  //this point is reached both by the vampire mode (single strategy) and the portfolio mode (strategy schedule) when inside a strategy
-  /* Set random seed one more time, this time in the title of "seed for proof search".
-   * This should help improve reproducibility when using vampire mode + "--decode" to reply a behavior of a strat from a schedule
-   */
-  Lib::Random::setSeed(opt.randomSeed());
   //decide whether to use poly or mono well-typedness test
   //after options have been read. Equality Proxy can introduce poly in mono.
   env.sharing->setPoly();
@@ -147,7 +136,7 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
 
   MainLoopResult sres(salg->run());
   env.statistics->phase=Statistics::FINALIZATION;
-  Timer::setLimitEnforcement(false);
+  Timer::disableLimitEnforcement();
   sres.updateStatistics();
 }
 

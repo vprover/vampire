@@ -13,7 +13,6 @@
  */
 
 #include "Kernel/Clause.hpp"
-#include "Lib/TimeCounter.hpp"
 #include "Shell/Statistics.hpp"
 
 #include "SATInference.hpp"
@@ -32,15 +31,12 @@ namespace SAT
  */
 void SATInference::collectFOPremises(SATClause* cl, Stack<Unit*>& acc)
 {
-  CALL("SATInference::collectFOPremises");
-  
   collectFilteredFOPremises(cl,acc, [](SATClause*) {return true; } );
 }
 
 
 UnitList* SATInference::getFOPremises(SATClause* cl)
 {
-  CALL("SATInference::getFOPremises");
   ASS(cl);
   ASS(cl->inference());
 
@@ -58,26 +54,8 @@ UnitList* SATInference::getFOPremises(SATClause* cl)
   return res;
 }
 
-SATInference* SATInference::copy(const SATInference* inf)
-{
-  CALL("SATInference::copy");
-
-  switch(inf->getType()) {
-  case PROP_INF:
-    return new PropInference(SATClauseList::copy(static_cast<const PropInference*>(inf)->getPremises()));
-  case FO_CONVERSION:
-    return new FOConversionInference(static_cast<const FOConversionInference*>(inf)->getOrigin());
-  case ASSUMPTION:
-    return new AssumptionInference();
-  default:
-    ASSERTION_VIOLATION;
-  }
-}
-
 void SATInference::collectPropAxioms(SATClause* cl, SATClauseStack& res)
 {
-  CALL("SATInference::collectPropAxioms");
-
   static Stack<SATClause*> toDo;
   static DHSet<SATClause*> seen;
   toDo.reset();
@@ -124,7 +102,6 @@ FOConversionInference::FOConversionInference(Clause* cl) : _origin(cl)
 }
 FOConversionInference::~FOConversionInference()
 {
-  CALL("FOConversionInference::~FOConversionInference");
   _origin->decRefCnt();
 }
 

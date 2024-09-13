@@ -13,17 +13,13 @@
  */
 
 #include <cerrno>
-
-#include "Lib/Portability.hpp"
-
 #include <csignal>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
-#include "Lib/Environment.hpp"
-#include "Lib/List.hpp"
-#include "Lib/Timer.hpp"
+#include "Debug/TimeProfiling.hpp"
+#include "Lib/Exception.hpp"
 
 #include "Multiprocessing.hpp"
 
@@ -38,61 +34,12 @@ Multiprocessing* Multiprocessing::instance()
   return &inst;
 }
 
-Multiprocessing::Multiprocessing()
-: _preFork(0), _postForkParent(0), _postForkChild(0)
-{
-
-}
-
-Multiprocessing::~Multiprocessing()
-{
-  VoidFuncList::destroy(_preFork);
-  VoidFuncList::destroy(_postForkParent);
-  VoidFuncList::destroy(_postForkChild);
-}
-
-void Multiprocessing::registerForkHandlers(VoidFunc before, VoidFunc afterParent, VoidFunc afterChild)
-{
-  CALL("Multiprocessing::registerForkHandlers");
-  if(before) {
-    VoidFuncList::push(before, _preFork);
-  }
-  if(afterParent) {
-    VoidFuncList::push(afterParent, _postForkParent);
-  }
-  if(afterChild) {
-    VoidFuncList::push(afterChild, _postForkChild);
-  }
-}
-
-void Multiprocessing::executeFuncList(VoidFuncList* lst)
-{
-  CALL("Multiprocessing::executeFuncList");
-
-  VoidFuncList::Iterator fit(lst);
-  while(fit.hasNext()) {
-    VoidFunc func=fit.next();
-    func();
-  }
-}
-
-
 pid_t Multiprocessing::fork()
 {
-  CALL("Multiprocessing::fork");
-  ASS(!env.haveOutput());
-
-  executeFuncList(_preFork);
   errno=0;
   pid_t res=::fork();
   if(res==-1) {
     SYSTEM_FAIL("Call to fork() function failed.", errno);
-  }
-  if(res==0) {
-    executeFuncList(_postForkChild);
-  }
-  else {
-    executeFuncList(_postForkParent);
   }
   return res;
 }
@@ -104,7 +51,7 @@ pid_t Multiprocessing::fork()
  */
 pid_t Multiprocessing::waitForChildTermination(int& resValue)
 {
-  CALL("Multiprocessing::waitForChildTermination");
+  TIME_TRACE("waiting for child")
 
   int status;
   pid_t childPid;
@@ -129,8 +76,6 @@ pid_t Multiprocessing::waitForChildTermination(int& resValue)
 
 void Multiprocessing::kill(pid_t child, int signal)
 {
-  CALL("Multiprocessing::kill");
-
   int res = ::kill(child, signal);
   if(res!=0) {
     ASS_EQ(res,-1);
@@ -140,14 +85,11 @@ void Multiprocessing::kill(pid_t child, int signal)
 
 void Multiprocessing::killNoCheck(pid_t child, int signal)
 {
-  CALL("Multiprocessing::killNoCheck");
   ::kill(child, signal);
 }
 
 pid_t Multiprocessing::poll_children(bool &exited, bool &signalled, int &code)
 {
-  CALL("Multiprocessing::poll_child");
-
   int status;
   pid_t pid = waitpid(-1 /*wait for any child*/, &status, WUNTRACED);
 

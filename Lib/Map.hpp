@@ -18,10 +18,8 @@
 #include <cstdlib>
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
 #include "Allocator.hpp"
-#include "VString.hpp"
 #include "Hash.hpp"
 #include "Exception.hpp"
 #include "Option.hpp"
@@ -58,11 +56,17 @@ public:
 
     inline ~Entry()
     {
-      CALL("Entry::~Entry()")
       if (occupied()) {
         key().~Key();
         value().~Val();
       }
+    }
+    void reset() {
+      if (occupied()) {
+        key().~Key();
+        value().~Val();
+      }
+      code = 0;
     }
 
   private:
@@ -70,7 +74,6 @@ public:
     explicit Entry(Entry const& other)
       : code(other.code)
     {
-      CALL("Entry(Entry const&)")
       if (other.occupied()) {
         init(Key(other.key()), Val(other.value()), other.code);
       }
@@ -109,7 +112,7 @@ public:
     Key     &&   key()     && { ASS(code); return std::move(*reinterpret_cast<Key*>(&_key));   }
     Key const&   key() const& { ASS(code); return *reinterpret_cast<Key const*>(&_key);   }
 
-    friend ostream& operator<<(ostream& out, Entry const& self) 
+    friend std::ostream& operator<<(std::ostream& out, Entry const& self) 
     { return self.occupied() ? out << self.key() << " -> " << self.value() : out << "<empty entry>";   } 
 
   private:
@@ -117,7 +120,6 @@ public:
     /** initialize value underlying the wrapper type */
     void init(Key key, Val val, unsigned code)
     {
-      CALL("Map::Entry::init(Key&&, Val&&, unsigned)")
       ASS_REP(this->code == 0, this->code)
       ASS(code != 0)
       ::new(&_key  ) Key(std::move(key));
@@ -135,7 +137,7 @@ public:
     expand();
   } // Map::Map
 
-  explicit Map (Map const& other) 
+  explicit Map (Map const& other)
     : _capacity(other._capacity),
       _noOfEntries(other._noOfEntries),
       _entries((Entry*)ALLOC_KNOWN(sizeof(Entry)*_capacity,"Map<>")),
@@ -149,14 +151,13 @@ public:
   }
 
 
-  Map (Map && other) 
+  Map (Map && other)
     : _capacity   (other._capacity),
       _noOfEntries(other._noOfEntries),
       _entries    (other._entries),
       _afterLast  (other._afterLast),
       _maxEntries (other._maxEntries)
   {
-    CALL("Map(Map&&)");
     other._capacity    = 0;
     other._noOfEntries = 0;
     other._entries     = nullptr;
@@ -165,7 +166,6 @@ public:
   }
 
   Map& operator=(Map&& other) {
-    CALL("Map& operator=(Map&&)");
     _capacity    = other._capacity;
     _noOfEntries = other._noOfEntries;
     _entries     = other._entries;
@@ -184,7 +184,6 @@ public:
   /** Deallocate the map */
   inline ~Map ()
   {
-    CALL("Map::~Map");
     clear();
   } // Map::~Map
 
@@ -206,10 +205,9 @@ public:
    * 
    * @since 25/08/2020 Manchester
    */
-  Option<Val&> tryGet(Key const& key) const
+  Option<Val const&> tryGet(Key const& key) const
   {
-    CALL("Map::find/2");
-    using Opt = Option<Val&>;
+    using Opt = Option<Val const&>;
 
     auto code = hashCode(key);
     Entry* entry;
@@ -231,8 +229,6 @@ public:
    */
   bool find(Key key, Val& found) const
   {
-    CALL("Map::find/2");
-
     auto out = tryGet(key);
     if (out.isSome()) {
       found = out.unwrap();
@@ -252,7 +248,6 @@ public:
    */
   Val* getPtr(const Key& key) 
   {
-    CALL("Val* Map::getPtr(const Key&)");
     auto code = hashCode(key);
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
@@ -272,7 +267,6 @@ public:
    */
   const Val* getPtr(const Key& key) const
   {
-    CALL("const Val* Map::getPtr(const Key&)");
     auto code = hashCode(key);
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
@@ -294,8 +288,6 @@ public:
    */
   Val& get(Key key) const
   {
-    CALL("Map::get");
-
     auto code = hashCode(key);
     Entry* entry;
     for (entry = firstEntryForCode(code); !Hash::equals(entry->key(),key); entry = nextEntry(entry)) {
@@ -336,8 +328,6 @@ public:
    */
   inline Val& insert(Key key,Val val)
   {
-    CALL("Map::insert");
-
     if (_noOfEntries >= _maxEntries) { // too many entries
       expand();
     }
@@ -359,8 +349,6 @@ private:
    */
   Val& insert(Key&& key, Val&& val,unsigned code)
   {
-    CALL("Map::insert/2");
-
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
       if (entry->code == code && Hash::equals(entry->key(),key)) {
@@ -385,8 +373,6 @@ public:
    */
   bool replaceOrInsert(Key key,Val val)
   {
-    CALL("Map::insertOrReplace");
-
     if (_noOfEntries >= _maxEntries) { // too many entries
       expand();
     }
@@ -413,8 +399,6 @@ public:
    */
   void replace(const Key key,const Val val)
   {
-    CALL("Map::replace");
-
     if (_noOfEntries >= _maxEntries) { // too many entries
       expand();
     }
@@ -440,7 +424,6 @@ public:
   template<class InitFn>
   Val& getOrInit(Key key, InitFn init) 
   {
-    CALL("Map::getOrInit");
     return updateOrInit(std::move(key), [](Val v) { return std::move(v); }, init);
   } 
 
@@ -456,8 +439,6 @@ public:
   template<class UpdateFn, class InitFn>
   Val& updateOrInit(Key key, UpdateFn update, InitFn init) 
   {
-    CALL("Map::updateOrInit");
-
     if (_noOfEntries >= _maxEntries) { // too many entries
       expand();
     }
@@ -495,8 +476,6 @@ public:
    */
   bool getValuePtr(const Key& key, Val*& pval, const Val& initial)
   {
-    CALL("Map::getValuePtr");
-
     if (_noOfEntries >= _maxEntries) { // too many entries
       expand();
     }
@@ -515,6 +494,7 @@ public:
     return true;
   }
   
+
   void clear()
   {
     if (_entries) {
@@ -529,14 +509,24 @@ public:
   }
   
   /**
+   * resets every entry in the map keeping the memory of _entries allocated
+   */
+  void reset()
+  {
+    for (int i = _capacity-1;i >= 0;i--) {
+      _entries[i].reset();
+    }
+    _noOfEntries = 0;
+  } // reset
+
+ 
+  /**
    * Delete all entries.
    * @since 07/08/2005 Redmond
    * @warning Works only for maps where the value type is a pointer.
    */
   void deleteAll()
   {
-    CALL("Map::deleteAll");
-
     for (int i = _capacity-1;i >= 0;i--) {
       Entry& e = _entries[i];
       if (e.occupied()) {
@@ -559,8 +549,6 @@ public:
    */
   void destroyAll()
   {
-    CALL("Map::destroyAll");
-
     for (int i = _capacity-1;i >= 0;i--) {
       Entry& e = _entries[i];
       if (e.occupied()) {
@@ -583,8 +571,6 @@ public:
 
   void expand()
   {
-    CALL("Map::expand");
-
     size_t oldCapacity = _capacity;
     _capacity = _capacity ? _capacity * 2 : 32;
 
@@ -727,7 +713,7 @@ public:
   ConstIterator iter() const
   { return ConstIterator(*this); }
 
-  friend ostream& operator<<(ostream& out, Map const& self) 
+  friend std::ostream& operator<<(std::ostream& out, Map const& self) 
   { 
     out << "{";
     auto iter = self.iter();

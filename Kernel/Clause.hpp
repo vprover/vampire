@@ -52,14 +52,11 @@ private:
   ~Clause() { ASSERTION_VIOLATION; }
   /** Should never be used, just that compiler requires it */
   void operator delete(void* ptr) { ASSERTION_VIOLATION; }
-  
+
   template<class VarIt>
   void collectVars2(DHSet<unsigned>& acc);
 public:
-  typedef ArrayishObjectIterator<const Clause> Iterator;
-
   DECL_ELEMENT_TYPE(Literal*);
-  DECL_ITERATOR_TYPE(Iterator);
 
   /** Storage kind */
   enum Store {
@@ -70,24 +67,35 @@ public:
     /** queue of unprocessed clauses */
     UNPROCESSED = 2u,
     /** anything else */
-    NONE = 3u,  
+    NONE = 3u,
     /** clause is selected from the passive container
      * and is not added to the active one yet */
     SELECTED = 4u
   };
 
-  Clause(unsigned length,const Inference& inf);
 
+private:
+  Clause(Literal* const* lits, unsigned length, Inference inf);
   void* operator new(size_t,unsigned length);
+public:
   void operator delete(void* ptr,unsigned length);
 
-  static Clause* fromStack(const Stack<Literal*>& lits, const Inference& inf);
+  static Clause* fromArray(Literal*const* lits, unsigned size, Inference inf)
+  { return new(size) Clause(lits, size, std::move(inf)); }
+
+  static Clause* fromLiterals(std::initializer_list<Literal*> lits, Inference inf)
+  { return fromArray(std::data(lits), lits.size(), std::move(inf)); }
+
+  static Clause* empty(Inference inf)
+  { return fromLiterals({}, inf); }
+
+
+  static Clause* fromStack(const Stack<Literal*>& lits, Inference inf)
+  { return new(lits.size()) Clause(lits.begin(), lits.size(), std::move(inf)); }
 
   template<class Iter>
   static Clause* fromIterator(Iter litit, const Inference& inf)
   {
-    CALL("Clause::fromIterator");
-
     static Stack<Literal*> st;
     st.reset();
     st.loadFromIterator(litit);
@@ -126,10 +134,10 @@ public:
 
   void destroy();
   void destroyExceptInferenceObject();
-  vstring literalsOnlyToString() const;
-  vstring toString() const;
-  vstring toTPTPString() const;
-  vstring toNiceString() const;
+  std::string literalsOnlyToString() const;
+  std::string toString() const;
+  std::string toTPTPString() const;
+  std::string toNiceString() const;
 
   /** Return the clause store */
   Store store() const { return _store; }
@@ -151,7 +159,7 @@ public:
     notifyLiteralReorder();
   }
 
-  /** Return the weight */
+  /** Return the weight = sum of literal weights (usually the number of symbols) */
   unsigned weight() const
   {
     if(!_weight) {
@@ -209,8 +217,6 @@ public:
   void incRefCnt() { _refCnt++; }
   void decRefCnt()
   {
-    CALL("Clause::decRefCnt");
-
     ASS_G(_refCnt,0);
     _refCnt--;
     destroyIfUnnecessary();
@@ -228,17 +234,11 @@ public:
     return savedTimestamp == _reductionTimestamp;
   }
 
-  ArrayishObjectIterator<Clause> getSelectedLiteralIterator()
-  { return ArrayishObjectIterator<Clause>(*this,numSelected()); }
-
-  ArrayishObjectIterator<Clause> iterLits() &
-  { return ArrayishObjectIterator<Clause>(*this,size()); }
-
-  ArrayishObjectIterator<Clause, const_ref_t> iterLits() const&
-  { return ArrayishObjectIterator<Clause, const_ref_t>(*this,size()); }
-
-  ArrayishObjectIterator<Clause> getLiteralIterator()
-  { return ArrayishObjectIterator<Clause>(*this,size()); }
+  auto getSelectedLiteralIterator() { return arrayIter(*this,numSelected()); }
+  auto iterLits()                   { return arrayIter(*this,size()); }
+  auto iterLits() const             { return arrayIter(*this,size()); }
+  // TODO remove this
+  auto getLiteralIterator()         { return arrayIter(*this,size()); }
 
   bool isGround();
   bool isPropositional();
@@ -262,19 +262,16 @@ public:
    * computed and cached (which happens at the first call to weight())
    */
   void setSplits(SplitSet* splits) {
-    CALL("Clause::setSplits");
-
     ASS(_weight == 0);
     _inference.setSplits(splits);
   }
-   
 
   int getNumActiveSplits() const { return _numActiveSplits; }
   void setNumActiveSplits(int newVal) { _numActiveSplits = newVal; }
   void incNumActiveSplits() { _numActiveSplits++; }
   void decNumActiveSplits() { _numActiveSplits--; }
 
-  VirtualIterator<vstring> toSimpleClauseStrings();
+  VirtualIterator<std::string> toSimpleClauseStrings();
 
   void setAux()
   {
@@ -351,11 +348,19 @@ public:
   void collectVars(DHSet<unsigned>& acc);
   void collectUnstableVars(DHSet<unsigned>& acc);
 
-  
+
   unsigned varCnt();
   unsigned maxVar(); // useful to create fresh variables w.r.t. the clause
 
   unsigned numPositiveLiterals(); // number of positive literals in the clause
+
+  Literal* getAnswerLiteral();
+
+  bool hasAnswerLiteral() {
+    return getAnswerLiteral() != nullptr;
+  }
+
+  bool computable();
 
 protected:
   /** number of literals */
@@ -398,7 +403,6 @@ protected:
   static bool _auxInUse;
 #endif
 
-//#endif
 
   /** Array of literals of this unit */
   Literal* _literals[1];

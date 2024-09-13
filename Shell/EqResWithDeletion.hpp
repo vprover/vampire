@@ -42,7 +42,8 @@ private:
 
   /** The substitution induced by resolved inequalities
    * (It is reset with each clause). */
-  DHMap<unsigned, TermList, IdentityHash, Hash> _subst;
+  DHMap<unsigned, TermList, IdentityHash, DefaultHash> _subst;
+  Literal* _ansLit = nullptr;
 };
 
 };

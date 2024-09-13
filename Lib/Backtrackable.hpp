@@ -17,7 +17,7 @@
 
 #include "List.hpp"
 #include "Int.hpp"
-#include "VString.hpp"
+#include "Lib/Stack.hpp"
 
 namespace Lib
 {
@@ -47,8 +47,10 @@ public:
   virtual void backtrack() = 0;
 
 #if VDEBUG
-  virtual vstring toString() const { return "(backtrack object)"; }
+  virtual std::string toString() const { return "(backtrack object)"; }
 #endif
+  template<class F> 
+  static BacktrackObject* fromClosure(F f);
 private:
   /**
    * Pointer to the @b BacktrackObject that is previous (i.e. next older) in the
@@ -57,7 +59,25 @@ private:
   BacktrackObject* _next;
 
   friend class BacktrackData;
+  template<class F> friend class BacktrackClosure;
 };
+
+template<class F>
+class BacktrackClosure : public BacktrackObject
+{
+  F _fun;
+public:
+  USE_ALLOCATOR(BacktrackClosure);
+  BacktrackClosure(BacktrackClosure&&) = default;
+  BacktrackClosure& operator=(BacktrackClosure&&) = default;
+  
+  BacktrackClosure(F fun) : _fun(std::move(fun)) {}
+  void backtrack() { _fun(); }
+};
+
+template<class F> 
+BacktrackObject* BacktrackObject::fromClosure(F f) { return new BacktrackClosure<F>(std::move(f)); }
+
 
 /**
  * Class of objects used to store the change history of
@@ -84,8 +104,6 @@ public:
    */
   void backtrack()
   {
-    CALL("BacktrackData::backtrack");
-
     BacktrackObject* curr=_boList;
     BacktrackObject* next;
     while(curr) {
@@ -104,8 +122,6 @@ public:
    */
   void drop()
   {
-    CALL("BacktrackData::drop");
-
     BacktrackObject* curr=_boList;
     BacktrackObject* next;
     while(curr) {
@@ -123,12 +139,14 @@ public:
    */
   void addBacktrackObject(BacktrackObject* bo)
   {
-    CALL("BacktrackData::addBacktrackObject");
-
     ASS_EQ(bo->_next,0);
     bo->_next=_boList;
     _boList=bo;
   }
+
+  template<class F>
+  void addClosure(F function)
+  { addBacktrackObject(BacktrackObject::fromClosure(std::move(function))); }
 
   /**
    * Move all BacktrackObjects from @b this to @b bd. After the
@@ -136,8 +154,6 @@ public:
    */
   void commitTo(BacktrackData& bd)
   {
-    CALL("BacktrackData::commitTo");
-
     if(!_boList) {
       return;
     }
@@ -166,18 +182,14 @@ public:
   template<typename T>
   void backtrackableSet(T* ptr, T val)
   {
-    CALL("BacktrackData::backtrackableSet");
-
     addBacktrackObject(new SetValueBacktrackObject<T>(ptr,*ptr));
     *ptr=val;
   }
 
 #if VDEBUG
-  vstring toString()
+  std::string toString()
   {
-    CALL("BacktrackData::toString");
-
-    vstring res;
+    std::string res;
     unsigned cnt=0;
     BacktrackObject* bobj=_boList;
     while(bobj) {
@@ -220,6 +232,7 @@ private:
   };
 };
 
+
 /**
  * A parent class for objects that allow for being restored
  * to their previous state
@@ -259,7 +272,7 @@ public:
    * Ensures that calls to @b bdRecord / @b bdDoNotRecord and
    * @b bdDone were properly paired.
    */
-  ~Backtrackable() { ASS_EQ(_bdStack,0); }
+  ~Backtrackable() { ASS_EQ(_bdStack.size(),0); }
 #endif
   /**
    * Start recording object changes into the @b bd object
@@ -267,9 +280,7 @@ public:
    * The recording is stopped by a call to the @b bdDone function.
    */
   void bdRecord(BacktrackData& bd)
-  {
-    _bdStack=new List<BacktrackData*>(&bd, _bdStack);
-  }
+  { _bdStack.push(&bd); }
 
   /**
    * Start ignoring object changes instead of possibly recording them
@@ -278,9 +289,7 @@ public:
    * The ignoring is stopped by a call to the @b bdDone function.
    */
   void bdDoNotRecord()
-  {
-    _bdStack=new List<BacktrackData*>(0, _bdStack);
-  }
+  { _bdStack.push(nullptr); }
 
   /**
    * Finish a request on recording or ignoring object changes and get
@@ -289,9 +298,7 @@ public:
    * @see Backtrackable
    */
   void bdDone()
-  {
-    List<BacktrackData*>::pop(_bdStack);
-  }
+  { _bdStack.pop(); }
 
   /**
    * Move all change records from @b bd to the BacktrackData object associated
@@ -302,7 +309,6 @@ public:
    */
   void bdCommit(BacktrackData& bd)
   {
-    CALL("Backtrackable::bdCommit");
     ASS(!bdIsRecording() || &bd!=&bdGet());
 
     if(bdIsRecording()) {
@@ -317,14 +323,14 @@ protected:
   /**
    * Initialize a Backtrackable object
    */
-  Backtrackable() : _bdStack(0) {}
+  Backtrackable() : _bdStack() {}
 
   /**
    * Return true iff we are currently recording object changes
    */
   bool bdIsRecording()
   {
-    return _bdStack && _bdStack->head();
+    return !_bdStack.isEmpty() && _bdStack.top() != nullptr;
   }
 
   /**
@@ -336,7 +342,6 @@ protected:
    */
   void bdAdd(BacktrackObject* bo)
   {
-    CALL("Backtrackable::bdAdd");
     ASS(bdIsRecording());
 
     bdGet().addBacktrackObject(bo);
@@ -348,10 +353,9 @@ protected:
    */
   BacktrackData& bdGet()
   {
-    CALL("Backtrackable::bdGet");
     ASS(bdIsRecording());
 
-    return *_bdStack->head();
+    return *_bdStack.top();
   }
 private:
   /**
@@ -361,7 +365,7 @@ private:
    * A list link that contains 0 at the place of the @b BacktrackData
    * pointer corresponds to a @b bdDoNotRecord call.
    */
-  List<BacktrackData*>* _bdStack;
+  Stack<BacktrackData*> _bdStack;
 };
 
 };

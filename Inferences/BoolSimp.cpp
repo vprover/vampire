@@ -28,8 +28,6 @@
 namespace Inferences {
 
 Clause* BoolSimp::simplify(Clause* premise) {
-  CALL("BoolSimp::simplify");
-
   TermList subTerm;
   TermList simpedSubTerm;
   unsigned literalPosition = 0;
@@ -40,7 +38,7 @@ Clause* BoolSimp::simplify(Clause* premise) {
     NonVariableNonTypeIterator nvi(literal);
 
     while (nvi.hasNext()) {
-      subTerm = nvi.next();
+      subTerm = TermList(nvi.next());
       if(SortHelper::getResultSort(subTerm.term()) == AtomicSort::boolSort()){
         simpedSubTerm = boolSimplify(subTerm);
         if(simpedSubTerm != subTerm){
@@ -55,20 +53,17 @@ Clause* BoolSimp::simplify(Clause* premise) {
 
 substitution:
 
-  unsigned conclusionLength = premise->length();
-  Clause* conclusion = new(conclusionLength) Clause(conclusionLength, SimplifyingInference1(InferenceRule::BOOL_SIMP, premise));
+  RStack<Literal*> resLits;
 
-  for (unsigned i = 0; i < conclusion->length(); i++) {
-    (*conclusion)[i] = i == literalPosition ? EqHelper::replace((*premise)[i], subTerm, simpedSubTerm) : (*premise)[i];
+  for (unsigned i = 0; i < premise->length(); i++) {
+    resLits->push(i == literalPosition ? EqHelper::replace((*premise)[i], subTerm, simpedSubTerm) : (*premise)[i]);
   }
 
   env.statistics->booleanSimps++;
-  return conclusion;
+  return Clause::fromStack(*resLits, SimplifyingInference1(InferenceRule::BOOL_SIMP, premise));
 }
 
 bool BoolSimp::areComplements(TermList t1, TermList t2){
-  CALL("BoolSimp::areComplements");
-
   Signature::Symbol* sym;
   static TermStack args;
   TermList head;
@@ -96,8 +91,6 @@ bool BoolSimp::areComplements(TermList t1, TermList t2){
 
 
 TermList BoolSimp::negate(TermList term){
-  CALL("BoolSimp::negate");
-  
   TermList constant, constSort;
 
   constant = TermList(Term::createConstant(env.signature->getNotProxy()));
@@ -106,8 +99,6 @@ TermList BoolSimp::negate(TermList term){
 }
 
 TermList BoolSimp::boolSimplify(TermList term){
-  CALL("BoolSimp::boolSimplify");
-
   static TermList troo(Term::foolTrue());
   static TermList fols(Term::foolFalse());
   static TermStack args;

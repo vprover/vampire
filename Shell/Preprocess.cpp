@@ -14,7 +14,6 @@
  * @since 02/06/2007 Manchester, changed to new datastructures
  */
 
-#include "Debug/Tracer.hpp"
 
 #include "Lib/ScopedLet.hpp"
 
@@ -23,7 +22,7 @@
 #include "Kernel/Problem.hpp"
 
 #include "GoalGuessing.hpp"
-#include "AnswerExtractor.hpp"
+#include "AnswerLiteralManager.hpp"
 #include "CNF.hpp"
 #include "NewCNF.hpp"
 #include "DistinctGroupExpansion.hpp"
@@ -33,10 +32,12 @@
 #include "Flattening.hpp"
 #include "FunctionDefinition.hpp"
 #include "GeneralSplitting.hpp"
+#include "FunctionDefinitionHandler.hpp"
 #include "InequalitySplitting.hpp"
 #include "InterpretedNormalizer.hpp"
 #include "Naming.hpp"
 #include "Normalisation.hpp"
+#include "Shuffling.hpp"
 #include "NNF.hpp"
 #include "Options.hpp"
 #include "PredicateDefinition.hpp"
@@ -56,10 +57,10 @@
 
 #include "UIHelper.hpp"
 #include "Lib/List.hpp"
-#include "Lib/RCPtr.hpp"
 
 #include "Kernel/TermIterators.hpp"
 
+using namespace std;
 using namespace Shell;
 
 /**
@@ -74,26 +75,37 @@ using namespace Shell;
  */
 void Preprocess::preprocess(Problem& prb)
 {
-  CALL("Preprocess::preprocess");
-
   if(env.options->choiceReasoning()){
     env.signature->addChoiceOperator(env.signature->getChoice());
   }
 
   if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "preprocessing started" << std::endl;
+    std::cout << "preprocessing started" << std::endl;
     UnitList::Iterator uit(prb.units());
     while(uit.hasNext()) {
       Unit* u = uit.next();
-      env.out() << "[PP] input: " << u->toString() << std::endl;
+      std::cout << "[PP] input: " << u->toString() << std::endl;
     }
+  }
+
+  if (_options.questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
+    env.statistics->phase=Statistics::ANSWER_LITERAL;
+    if (env.options->showPreprocessing())
+      std::cout << "answer literal addition" << std::endl;
+
+    AnswerLiteralManager::getInstance()->addAnswerLiterals(prb);
   }
 
   //we ensure that in the beginning we have a valid property object, to
   //know that the queries to uncertain problem properties will be precise
   //enough
   prb.getProperty();
+
+  if (env.signature->hasDefPreds() &&
+      !FunctionDefinitionHandler::isHandlerEnabled(_options)) {
+      // if the handler is not requested by any of the relevant options, we preprocess away the special definition parsing immediately
+    prb.getFunctionDefinitionHandler().initAndPreprocessEarly(prb);
+  }
 
   /* CAREFUL, keep this at the beginning of the preprocessing pipeline,
    * so that it corresponds to how its done
@@ -102,9 +114,20 @@ void Preprocess::preprocess(Problem& prb)
   if (_options.normalize()) { // reorder units
     env.statistics->phase=Statistics::NORMALIZATION;
     if (env.options->showPreprocessing())
-      env.out() << "normalization" << std::endl;
+      std::cout << "normalization" << std::endl;
 
     Normalisation().normalise(prb);
+  }
+
+  if (_options.shuffleInput()) {
+    TIME_TRACE(TimeTrace::SHUFFLING);
+    env.statistics->phase=Statistics::SHUFFLING;
+
+    if (env.options->showPreprocessing())
+      std::cout << "shuffling1" << std::endl;
+
+    // shuffling at the very beginning
+    Shuffling::shuffle(prb);
   }
 
   if(_options.guessTheGoal() != Options::GoalGuess::OFF){
@@ -117,25 +140,25 @@ void Preprocess::preprocess(Problem& prb)
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
     // Normalizer is needed, because the TheoryAxioms code assumes Normalized problem
     InterpretedNormalizer().apply(prb);
-   
+
     // Add theory axioms if needed
     if( _options.theoryAxioms() != Options::TheoryAxiomLevel::OFF){
       env.statistics->phase=Statistics::INCLUDING_THEORY_AXIOMS;
       if (env.options->showPreprocessing())
-        env.out() << "adding theory axioms" << std::endl;
+        std::cout << "adding theory axioms" << std::endl;
 
       TheoryAxioms(prb).apply();
     }
   }
 
-  if (prb.hasFOOL() || prb.higherOrder()) {
+  if (prb.hasFOOL() || prb.isHigherOrder()) {
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot)
 
-    if (!_options.newCNF() || prb.hasPolymorphicSym() || prb.higherOrder()) {
+    if (!_options.newCNF() || prb.hasPolymorphicSym() || prb.isHigherOrder()) {
       if (env.options->showPreprocessing())
-        env.out() << "FOOL elimination" << std::endl;
-  
+        std::cout << "FOOL elimination" << std::endl;
+
       TheoryAxioms(prb).applyFOOL();
       FOOLElimination().apply(prb);
     }
@@ -146,7 +169,7 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if(env.options->choiceAxiom()){
-    LambdaElimination::addChoiceAxiom(prb);    
+    LambdaElimination::addChoiceAxiom(prb);
   }
 
   prb.getProperty();
@@ -158,7 +181,7 @@ void Preprocess::preprocess(Problem& prb)
   if ((prb.hasLogicalProxy() || prb.hasBoolVar()) && env.options->addProxyAxioms()){
     LambdaElimination::addProxyAxioms(prb);
   }
-  
+
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
     // Some axioms needed to be normalized, so we call InterpretedNormalizer twice
     InterpretedNormalizer().apply(prb);
@@ -168,8 +191,8 @@ void Preprocess::preprocess(Problem& prb)
   // If a distinct group is small enough it will add inequality to describe it
   if(env.signature->hasDistinctGroups()){
     if(env.options->showPreprocessing())
-      env.out() << "distinct group expansion" << std::endl;
-    DistinctGroupExpansion().apply(prb);
+      std::cout << "distinct group expansion" << std::endl;
+    DistinctGroupExpansion(_options.distinctGroupExpansionLimit()).apply(prb);
   }
 
   if (_options.sineToAge() || _options.useSineLevelSplitQueues() || (_options.sineToPredLevels() != Options::PredicateSineLevels::OFF)) {
@@ -187,17 +210,9 @@ void Preprocess::preprocess(Problem& prb)
   if (_options.sineSelection()!=Options::SineSelection::OFF) {
     env.statistics->phase=Statistics::SINE_SELECTION;
     if (env.options->showPreprocessing())
-      env.out() << "sine selection" << std::endl;
+      std::cout << "sine selection" << std::endl;
 
     SineSelector(_options).perform(prb);
-  }
-
-  if (_options.questionAnswering()==Options::QuestionAnsweringMode::ANSWER_LITERAL) {
-    env.statistics->phase=Statistics::UNKNOWN_PHASE;
-    if (env.options->showPreprocessing())
-      env.out() << "answer literal addition" << std::endl;
-
-    AnswerLiteralManager::getInstance()->addAnswerLiterals(prb);
   }
 
   // stop here if clausification is not required and still simplify not set
@@ -207,9 +222,19 @@ void Preprocess::preprocess(Problem& prb)
 
   if (prb.mayHaveFormulas()) {
     if (env.options->showPreprocessing())
-      env.out() << "preprocess1 (rectify, simplify false true, flatten)" << std::endl;
+      std::cout << "preprocess1 (rectify, simplify false true, flatten)" << std::endl;
 
     preprocess1(prb);
+  }
+
+  if (_options.shuffleInput()) {
+   TIME_TRACE(TimeTrace::SHUFFLING);
+    env.statistics->phase=Statistics::SHUFFLING;
+    if (env.options->showPreprocessing())
+      std::cout << "shuffling2" << std::endl;
+
+    // axioms have been added, fool eliminated; moreover, after flattening, more opportunity for shuffling inside
+    Shuffling::shuffle(prb);
   }
 
   // stop here if clausification is not required
@@ -226,7 +251,7 @@ void Preprocess::preprocess(Problem& prb)
   if (_options.unusedPredicateDefinitionRemoval()) {
     env.statistics->phase=Statistics::UNUSED_PREDICATE_DEFINITION_REMOVAL;
     if (env.options->showPreprocessing())
-      env.out() << "unused predicate definition removal" << std::endl;
+      std::cout << "unused predicate definition removal" << std::endl;
 
     PredicateDefinition pdRemover;
     pdRemover.removeUnusedDefinitionsAndPurePredicates(prb);
@@ -234,45 +259,53 @@ void Preprocess::preprocess(Problem& prb)
 
   if (prb.mayHaveFormulas()) {
     if (env.options->showPreprocessing())
-      env.out() << "preprocess 2 (ennf,flatten)" << std::endl;
+      std::cout << "preprocess 2 (ennf,flatten)" << std::endl;
 
     preprocess2(prb);
   }
 
-  if (prb.mayHaveFormulas() && _options.newCNF() && 
-     !prb.hasPolymorphicSym() && !prb.higherOrder()) {
+  if (_options.shuffleInput()) {
+    TIME_TRACE(TimeTrace::SHUFFLING);
+    env.statistics->phase=Statistics::SHUFFLING;
     if (env.options->showPreprocessing())
-      env.out() << "newCnf" << std::endl;
+      std::cout << "shuffling3" << std::endl;
+
+    // more flattening -> more shuffling
+    Shuffling::shuffle(prb);
+  }
+
+  if (prb.mayHaveFormulas() && _options.newCNF() &&
+     !prb.hasPolymorphicSym() && !prb.isHigherOrder()) {
+    if (env.options->showPreprocessing())
+      std::cout << "newCnf" << std::endl;
 
     newCnf(prb);
   } else {
     if (prb.mayHaveFormulas() && _options.newCNF()) { // TODO: update newCNF to deal with polymorphism / higher-order
-      ASS(prb.hasPolymorphicSym() || prb.higherOrder());
+      ASS(prb.hasPolymorphicSym() || prb.isHigherOrder());
       if (outputAllowed()) {
-        env.beginOutput();
-        addCommentSignForSZS(env.out());
-        env.out() << "WARNING: Not using newCnf currently not compatible with polymorphic/higher-order inputs." << endl;
-        env.endOutput();
+        addCommentSignForSZS(std::cout);
+        std::cout << "WARNING: Not using newCnf currently not compatible with polymorphic/higher-order inputs." << endl;
       }
     }
 
     if (prb.mayHaveFormulas() && _options.naming()) {
       if (env.options->showPreprocessing())
-        env.out() << "naming" << std::endl;
+        std::cout << "naming" << std::endl;
 
       naming(prb);
     }
 
     if (prb.mayHaveFormulas()) {
       if (env.options->showPreprocessing())
-        env.out() << "preprocess3 (nnf, flatten, skolemize)" << std::endl;
+        std::cout << "preprocess3 (nnf, flatten, skolemize)" << std::endl;
 
       preprocess3(prb);
     }
 
     if (prb.mayHaveFormulas()) {
       if (env.options->showPreprocessing())
-        env.out() << "clausify" << std::endl;
+        std::cout << "clausify" << std::endl;
 
       clausify(prb);
     }
@@ -283,21 +316,21 @@ void Preprocess::preprocess(Problem& prb)
   if (prb.mayHaveFunctionDefinitions()) {
     env.statistics->phase=Statistics::FUNCTION_DEFINITION_ELIMINATION;
     if (env.options->showPreprocessing())
-      env.out() << "function definition elimination" << std::endl;
+      std::cout << "function definition elimination" << std::endl;
 
     if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::ALL) {
       FunctionDefinition fd;
-      fd.removeAllDefinitions(prb);
+      fd.removeAllDefinitions(prb,env.getMainProblem()->isHigherOrder());
     }
     else if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::UNUSED) {
-      FunctionDefinition::removeUnusedDefinitions(prb);
+      FunctionDefinition::removeUnusedDefinitions(prb,env.getMainProblem()->isHigherOrder());
     }
   }
 
 
   if (prb.mayHaveEquality() && _options.inequalitySplitting() != 0) {
     if (env.options->showPreprocessing())
-      env.out() << "inequality splitting" << std::endl;
+      std::cout << "inequality splitting" << std::endl;
 
     env.statistics->phase=Statistics::INEQUALITY_SPLITTING;
     InequalitySplitting is(_options);
@@ -325,24 +358,28 @@ void Preprocess::preprocess(Problem& prb)
    if (_options.equalityResolutionWithDeletion() && prb.mayHaveInequalityResolvableWithDeletion() ) {
      env.statistics->phase=Statistics::EQUALITY_RESOLUTION_WITH_DELETION;
      if (env.options->showPreprocessing())
-      env.out() << "equality resolution with deletion" << std::endl;
+      std::cout << "equality resolution with deletion" << std::endl;
 
      EqResWithDeletion resolver;
      resolver.apply(prb);
    }
 
+   if (env.signature->hasDefPreds() &&
+       FunctionDefinitionHandler::isHandlerEnabled(_options)) {
+       // if the handler is requested, we preprocess the special definition parsing only after clausification
+     prb.getFunctionDefinitionHandler().initAndPreprocessLate(prb,_options);
+   }
+
    if (_options.generalSplitting()) {
-     if (prb.higherOrder() || prb.hasPolymorphicSym()) {  // TODO: extend GeneralSplitting to support polymorphism (would higher-order make sense?)
+     if (prb.isHigherOrder() || prb.hasPolymorphicSym()) {  // TODO: extend GeneralSplitting to support polymorphism (would higher-order make sense?)
        if (outputAllowed()) {
-         env.beginOutput();
-         addCommentSignForSZS(env.out());
-         env.out() << "WARNING: Not using GeneralSplitting currently not compatible with polymorphic/higher-order inputs." << endl;
-         env.endOutput();
+         addCommentSignForSZS(std::cout);
+         std::cout << "WARNING: Not using GeneralSplitting currently not compatible with polymorphic/higher-order inputs." << endl;
        }
      } else {
        env.statistics->phase=Statistics::GENERAL_SPLITTING;
        if (env.options->showPreprocessing())
-         env.out() << "general splitting" << std::endl;
+         std::cout << "general splitting" << std::endl;
 
        GeneralSplitting gs;
        gs.apply(prb);
@@ -352,17 +389,19 @@ void Preprocess::preprocess(Problem& prb)
    if(env.options->tweeGoalTransformation() != Options::TweeGoalTransformation::OFF) {
      env.statistics->phase = Statistics::TWEE;
      if(env.options->showPreprocessing())
-       env.out() << "twee goal transformation" << std::endl;
+       std::cout << "twee goal transformation" << std::endl;
 
      TweeGoalTransformation twee;
      twee.apply(prb,(env.options->tweeGoalTransformation() == Options::TweeGoalTransformation::GROUND));
    }
 
-   if (!prb.higherOrder() && _options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality()) {
+   if (!prb.isHigherOrder() && _options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality()) {
      env.statistics->phase=Statistics::EQUALITY_PROXY;
      if (env.options->showPreprocessing())
-       env.out() << "equality proxy" << std::endl;
+       std::cout << "equality proxy" << std::endl;
 
+     // refresh symbol usage counts, can skip unused symbols for equality proxy
+     prb.getProperty();
      if(_options.useMonoEqualityProxy() && !prb.hasPolymorphicSym()){
        EqualityProxyMono proxy(_options.equalityProxy());
        proxy.apply(prb);
@@ -373,18 +412,16 @@ void Preprocess::preprocess(Problem& prb)
      }
    }
 
-   
+
    if(_options.theoryFlattening()) {
      if (prb.hasPolymorphicSym()) { // TODO: extend theoryFlattening to support polymorphism?
        if (outputAllowed()) {
-         env.beginOutput();
-         addCommentSignForSZS(env.out());
-         env.out() << "WARNING: Not using TheoryFlattening currently not compatible with polymorphic inputs." << endl;
-         env.endOutput();
+         addCommentSignForSZS(std::cout);
+         std::cout << "WARNING: Not using TheoryFlattening currently not compatible with polymorphic inputs." << endl;
        }
      } else {
        if(env.options->showPreprocessing())
-         env.out() << "theory flattening" << std::endl;
+         std::cout << "theory flattening" << std::endl;
 
        TheoryFlattening tf;
        tf.apply(prb);
@@ -394,17 +431,36 @@ void Preprocess::preprocess(Problem& prb)
    if (_options.blockedClauseElimination()) {
      env.statistics->phase=Statistics::BLOCKED_CLAUSE_ELIMINATION;
      if(env.options->showPreprocessing())
-       env.out() << "blocked clause elimination" << std::endl;
+       std::cout << "blocked clause elimination" << std::endl;
 
      BlockedClauseElimination bce;
      bce.apply(prb);
+   }
+
+   if (_options.shuffleInput()) {
+     TIME_TRACE(TimeTrace::SHUFFLING);
+     env.statistics->phase=Statistics::SHUFFLING;
+     if (env.options->showPreprocessing())
+       std::cout << "shuffling4" << std::endl;
+
+     // cnf and many other things happened - shuffle one more time
+     Shuffling::shuffle(prb);
+   }
+
+   if (_options.randomPolarities()) {
+     TIME_TRACE(TimeTrace::SHUFFLING);
+     env.statistics->phase=Statistics::SHUFFLING;
+     if (env.options->showPreprocessing())
+       std::cout << "flipping polarities" << std::endl;
+
+     Shuffling::polarityFlip(prb);
    }
 
    if (env.options->showPreprocessing()) {
      UnitList::Iterator uit(prb.units());
      while(uit.hasNext()) {
       Unit* u = uit.next();
-      env.out() << "[PP] final: " << u->toString() << std::endl;
+      std::cout << "[PP] final: " << u->toString() << std::endl;
      }
    }
 
@@ -413,8 +469,7 @@ void Preprocess::preprocess(Problem& prb)
    }
 
    if (env.options->showPreprocessing()) {
-     env.out() << "preprocessing finished" << std::endl;
-     env.endOutput();
+     std::cout << "preprocessing finished" << std::endl;
    }
 } // Preprocess::preprocess ()
 
@@ -435,8 +490,6 @@ void Preprocess::preprocess(Problem& prb)
  */
 void Preprocess::preprocess1 (Problem& prb)
 {
-  CALL("Preprocess::preprocess1");
-
   ScopedLet<Statistics::ExecutionPhase> epLet(env.statistics->phase, Statistics::PREPROCESS_1);
 
   bool formulasSimplified = false;
@@ -456,7 +509,7 @@ void Preprocess::preprocess1 (Problem& prb)
     fu = Rectify::rectify(fu);
     FormulaUnit* rectFu = fu;
     // Simplify the formula if it contains true or false
-    if (!_options.newCNF() || prb.higherOrder() || prb.hasPolymorphicSym()) {
+    if (!_options.newCNF() || prb.isHigherOrder() || prb.hasPolymorphicSym()) {
       // NewCNF effectively implements this simplification already (but could have been skipped if higherOrder || hasPolymorphicSym)
       fu = SimplifyFalseTrue::simplify(fu);
     }
@@ -488,8 +541,6 @@ void Preprocess::preprocess1 (Problem& prb)
  */
 void Preprocess::preprocess2(Problem& prb)
 {
-  CALL("Preprocess::preprocess2");
-
   env.statistics->phase=Statistics::PREPROCESS_2;
 
   UnitList::DelIterator us(prb.units());
@@ -517,13 +568,12 @@ void Preprocess::preprocess2(Problem& prb)
  */
 void Preprocess::naming(Problem& prb)
 {
-  CALL("Preprocess::naming");
   ASS(_options.naming());
 
   env.statistics->phase=Statistics::NAMING;
   UnitList::DelIterator us(prb.units());
   //TODO fix the below
-  Naming naming(_options.naming(),false, prb.higherOrder()); // For now just force eprPreservingNaming to be false, should update Naming
+  Naming naming(_options.naming(),false, prb.isHigherOrder()); // For now just force eprPreservingNaming to be false, should update Naming
   while (us.hasNext()) {
     Unit* u = us.next();
     if (u->isClause()) {
@@ -533,7 +583,7 @@ void Preprocess::naming(Problem& prb)
     FormulaUnit* fu = static_cast<FormulaUnit*>(u);
     FormulaUnit* v = naming.apply(fu,defs);
     if (v != fu) {
-      ASS(defs || env.options->definitionReuse());
+      ASS(defs);
       us.insert(defs);
       us.replace(v);
     }
@@ -546,8 +596,6 @@ void Preprocess::naming(Problem& prb)
  */
 void Preprocess::newCnf(Problem& prb)
 {
-  CALL("Preprocess::newCnf");
-
   env.statistics->phase=Statistics::NEW_CNF;
 
   // TODO: this is an ugly copy-paste of "Preprocess::clausify"
@@ -563,9 +611,7 @@ void Preprocess::newCnf(Problem& prb)
   while (us.hasNext()) {
     Unit* u = us.next();
     if (env.options->showPreprocessing()) {
-      env.beginOutput();
-      env.out() << "[PP] clausify: " << u->toString() << std::endl;
-      env.endOutput();
+      std::cout << "[PP] clausify: " << u->toString() << std::endl;
     }
     if (u->isClause()) {
       if (static_cast<Clause*>(u)->isEmpty()) {
@@ -597,7 +643,7 @@ void Preprocess::newCnf(Problem& prb)
     prb.invalidateProperty();
   }
   prb.reportFormulasEliminated();
-} 
+}
 
 /**
  * Preprocess the unit using options from opt. Preprocessing may
@@ -612,8 +658,6 @@ void Preprocess::newCnf(Problem& prb)
  */
 Unit* Preprocess::preprocess3 (Unit* u, bool appify /*higher order stuff*/)
 {
-  CALL("Preprocess::preprocess3(Unit*)");
-
   if (u->isClause()) {
     return u;
   }
@@ -645,15 +689,13 @@ Unit* Preprocess::preprocess3 (Unit* u, bool appify /*higher order stuff*/)
  */
 void Preprocess::preprocess3 (Problem& prb)
 {
-  CALL("Preprocess::preprocess3(Problem&)");
-
   bool modified = false;
 
   env.statistics->phase=Statistics::PREPROCESS_3;
   UnitList::DelIterator us(prb.units());
   while (us.hasNext()) {
     Unit* u = us.next();
-    Unit* v = preprocess3(u, prb.higherOrder());
+    Unit* v = preprocess3(u, prb.isHigherOrder());
     if (u!=v) {
       us.replace(v);
       modified = true;
@@ -667,8 +709,6 @@ void Preprocess::preprocess3 (Problem& prb)
 
 void Preprocess::clausify(Problem& prb)
 {
-  CALL("Preprocess::clausify");
-
   env.statistics->phase=Statistics::CLAUSIFICATION;
 
   //we check if we haven't discovered an empty clause during preprocessing
@@ -682,9 +722,7 @@ void Preprocess::clausify(Problem& prb)
   while (us.hasNext()) {
     Unit* u = us.next();
     if (env.options->showPreprocessing()) {
-      env.beginOutput();
-      env.out() << "[PP] clausify: " << u->toString() << std::endl;
-      env.endOutput();
+      std::cout << "[PP] clausify: " << u->toString() << std::endl;
     }
     if (u->isClause()) {
       if (static_cast<Clause*>(u)->isEmpty()) {

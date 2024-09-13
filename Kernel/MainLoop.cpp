@@ -17,8 +17,6 @@
 #include "Lib/SmartPtr.hpp"
 #include "Lib/System.hpp"
 
-#include "InstGen/IGAlgorithm.hpp"
-
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "FMB/FiniteModelBuilder.hpp"
@@ -35,14 +33,11 @@
 #include "MainLoop.hpp"
 
 using namespace Kernel;
-using namespace InstGen;
 using namespace Saturation;
 using namespace FMB;
 
 void MainLoopResult::updateStatistics()
 {
-  CALL("MainLoopResult::updateStatistics");
-
   env.statistics->terminationReason = terminationReason;
   env.statistics->refutation = refutation;
   env.statistics->saturatedSet = saturatedSet;
@@ -56,11 +51,11 @@ void MainLoopResult::updateStatistics()
  */
 MainLoopResult MainLoop::run()
 {
-  CALL("MainLoop::run");
+  TIME_TRACE("main loop");
 
   try {
-    init();
-    return runImpl();
+    TIME_TRACE_EXPR("init", init());
+    return TIME_TRACE_EXPR("run", runImpl());
   }
   catch(RefutationFoundException& rs)
   {
@@ -88,16 +83,11 @@ MainLoopResult MainLoop::run()
  */
 bool MainLoop::isRefutation(Clause* cl)
 {
-  CALL("MainLoop::isRefutation");
-
   return cl->isEmpty() && cl->noSplits();
 }
 
 MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
 {
-  CALL("MainLoop::createFromOptions");
-
-
 #if VZ3
   bool isComplete = false; // artificially prevent smtForGround from running
   /*
@@ -112,15 +102,9 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
   MainLoop* res;
 
   switch (opt.saturationAlgorithm()) {
-  case Options::SaturationAlgorithm::INST_GEN:
-    if(env.property->hasPolymorphicSym() || env.property->higherOrder()){
-      USER_ERROR("The inst gen calculus is currently not compatible with polymorphism or higher-order constructs");       
-    }
-    res = new IGAlgorithm(prb, opt);
-    break;
   case Options::SaturationAlgorithm::FINITE_MODEL_BUILDING:
-    if(env.property->hasPolymorphicSym() || env.property->higherOrder()){
-      USER_ERROR("Finite model buillding is currently not compatible with polymorphism or higher-order constructs");       
+    if(env.getMainProblem()->hasPolymorphicSym() || env.getMainProblem()->isHigherOrder()){
+      USER_ERROR("Finite model buillding is currently not compatible with polymorphism or higher-order constructs");
     }
     if(env.options->outputMode() == Shell::Options::Output::UCORE){
       USER_ERROR("Finite model building is not compatible with producing unsat cores");
@@ -132,7 +116,7 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
   case Options::SaturationAlgorithm::Z3:
     if(!isComplete || !prb.getProperty()->allNonTheoryClausesGround()){
       reportSpiderStatus('u');
-      USER_ERROR("Z3 saturation algorithm is only appropriate where preprocessing produces a ground problem"); 
+      USER_ERROR("Z3 saturation algorithm is only appropriate where preprocessing produces a ground problem");
       //TODO should return inappropriate result instead of error
     }
     res = new SAT::Z3MainLoop(prb,opt);

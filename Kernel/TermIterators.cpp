@@ -13,7 +13,6 @@
  */
 
 
-#include "Debug/Tracer.hpp"
 
 #include "Term.hpp"
 #include "Signature.hpp"
@@ -31,7 +30,6 @@ typedef ApplicativeHelper AH;
  */
 bool VariableIterator::hasNext()
 {
-  CALL("VariableIterator::hasNext");
   if(_stack.isEmpty()) {
     return false;
   }
@@ -66,7 +64,6 @@ bool VariableIterator::hasNext()
 
 bool VariableWithSortIterator::hasNext()
 {
-  CALL("VariableWithSortIterator::hasNext");
   if(_stack.isEmpty()) {
     return false;
   }
@@ -111,8 +108,6 @@ bool VariableWithSortIterator::hasNext()
  */
 bool SubtermIterator::hasNext()
 {
-  CALL("SubtermIterator::hasNext");
-
   if(_stack->isEmpty()) {
     return false;
   }
@@ -136,7 +131,6 @@ bool SubtermIterator::hasNext()
  */
 void SubtermIterator::right()
 {
-  CALL("SubtermIterator::right");
   ASS(_stack->isNonEmpty());
   ASS(_used);
 
@@ -155,10 +149,8 @@ void SubtermIterator::right()
 ///                                                                    ///
 //////////////////////////////////////////////////////////////////////////
 
-bool UnstableSubtermIt::hasNext()
+bool TopLevelVarLikeTermIterator::hasNext()
 {
-  CALL("UnstableSubtermIt::hasNext");
-
   static TermStack args;
   TermList head;
   
@@ -185,14 +177,35 @@ bool UnstableSubtermIt::hasNext()
   return false;  
 }
 
-
-bool StableVarIt::hasNext()
+TopLevelVarIterator::TopLevelVarIterator(TermList t)
 {
-  CALL("StableVarIt::hasNext");
+  if(t.isVar()){
+    _next = t;
+    return;
+  }
+  _next = TermList::empty();
 
   static TermStack args;
   args.reset();
   TermList head;
+
+  AH::getHeadAndArgs(t, head, args);
+
+  if(!t.term()->ground() && !head.isVar() && 
+     (!AH::isComb(head) || AH::isUnderApplied(head, args.size()))){
+    _stack.push(t);
+  }  
+}
+
+
+bool TopLevelVarIterator::hasNext()
+{
+  static TermStack args;
+  static TermStack args2;
+  args.reset();
+  args2.reset();
+  TermList head;
+  TermList head2;
   
   if(!_next.isEmpty()){ return true; }
   while(!_stack.isEmpty()){
@@ -201,13 +214,16 @@ bool StableVarIt::hasNext()
       _next = t;
     } else {
       AH::getHeadAndArgs(t, head, args);
-      if(head.isVar()){
-        _next = t;
-      }
+      ASS(!head.isVar());
       while(!args.isEmpty()){
         TermList tl = args.pop();
-        if(tl.isVar() || (!tl.term()->ground() && !_unstableTerms->find(tl.term()))){
+        if(tl.isVar()){
           _stack.push(tl);
+        } else if (!tl.term()->ground()) {
+          AH::getHeadAndArgs(tl, head2, args2);
+          if(!head2.isVar() && (!AH::isComb(head2) || AH::isUnderApplied(head2, args2.size())) ){
+             _stack.push(tl);
+          }
         }
       }
     }
@@ -217,10 +233,8 @@ bool StableVarIt::hasNext()
 
 }
 
-TermList FirstOrderSubtermIt::next()
+Term* FirstOrderSubtermIt::next()
 {
-  CALL("FirstOrderSubtermIt::next");
-
   static TermStack args;
   _added = 0;
   TermList head;
@@ -235,13 +249,11 @@ TermList FirstOrderSubtermIt::next()
       }
     }
   }
-  return TermList(t);
+  return t;
 }
 
 void FirstOrderSubtermIt::right()
 {
-  CALL("FirstOrderSubtermIt::right");
-
   while (_added > 0) {
     _added--;
     _stack.pop();
@@ -251,8 +263,6 @@ void FirstOrderSubtermIt::right()
 
 bool NarrowableSubtermIt::hasNext()
 {
-  CALL("NarrowableSubtermIt::hasNext");
-
   if(!_used){ return true; }
 
   static TermStack args;
@@ -284,8 +294,6 @@ bool NarrowableSubtermIt::hasNext()
 
 bool BooleanSubtermIt::hasNext()
 {
-  CALL("BooleanSubtermIt::hasNext");
-
   if(!_used){ return true; }
 
   static TermStack args;
@@ -310,9 +318,7 @@ bool BooleanSubtermIt::hasNext()
 
 bool RewritableVarsIt::hasNext()
 {
-  CALL("RewritableVarsIt::hasNext");
-
-  if(!_next.isEmpty()){ return true; }
+  if(_next.isSome()){ return true; }
 
   static TermStack args;
   TermList head;
@@ -323,7 +329,7 @@ bool RewritableVarsIt::hasNext()
     AH::getHeadSortAndArgs(t, head, headSort, args);
     if(head.isVar() && args.size() <= 1 && _unstableVars->find(head.var()) 
        && (s.isVar() || s.isArrowSort())){
-      _next = head;
+      _next = some(TypedTermList(head, headSort));
     }
     if(!AH::isComb(head) || AH::isUnderApplied(head, args.size())){
       unsigned count = 1;
@@ -332,7 +338,7 @@ bool RewritableVarsIt::hasNext()
         _stack.push(args.pop());
       }
     }
-    if(!_next.isEmpty()){ return true; }
+    if(_next.isSome()){ return true; }
   }
   return false;
 }
@@ -340,8 +346,6 @@ bool RewritableVarsIt::hasNext()
 //TODO relook at stability and instability
 bool UnstableVarIt::hasNext()
 {
-  CALL("UnstableVarIt::hasNext");
-
   if(!_next.isEmpty()){ return true; }
 
   static TermStack args;
@@ -354,9 +358,7 @@ bool UnstableVarIt::hasNext()
     if(head.isVar()){
       if(!stable || args.size()){
         _next = head;
-      }/* else if (!AH::isSafe(args)){
-        _next = head;
-      } */
+      }
     } 
     bool argsStable = !head.isVar() && (!AH::isComb(head) || 
          (AH::isUnderApplied(head, args.size()) && stable));
@@ -381,8 +383,6 @@ bool UnstableVarIt::hasNext()
  */
 bool PolishSubtermIterator::hasNext()
 {
-  CALL("PolishSubtermIterator::hasNext");
-
   if(_stack.isEmpty()) {
     return false;
   }
@@ -405,8 +405,6 @@ bool PolishSubtermIterator::hasNext()
  */
 TermList NonVariableIterator::next()
 {
-  CALL("NonVariableIterator::next");
-
   Term* t = _stack.pop();
   _added = 0;
   Term::Iterator ts(t);
@@ -426,8 +424,6 @@ TermList NonVariableIterator::next()
  */
 void NonVariableIterator::right()
 {
-  CALL("NonVariableIterator::right");
-
   while (_added > 0) {
     _added--;
     _stack.pop();
@@ -439,28 +435,39 @@ void NonVariableIterator::right()
  * @since 20/06/2019 Manchester
  * @author Ahmed Bhayat
  */
-TermList NonVariableNonTypeIterator::next()
+Term* NonVariableNonTypeIterator::next()
 {
-  CALL("NonVariableNonTypeIterator::next");
-
   Term* t = _stack.pop();
   TermList* ts;
-  _added = 0;  
-  Signature::Symbol* sym;
-  if (t->isLiteral()) {
-    sym = env.signature->getPredicate(t->functor());
-  } else{
-    sym = env.signature->getFunction(t->functor());
-  }
-  unsigned taArity; 
+  _added = 0;
+  unsigned taArity;
   unsigned arity;
-  
-  if(t->isLiteral() && static_cast<Literal*>(t)->isEquality()){
+  if (t->isSpecial()) {
+    // This is a very incomplete support for special terms (which normally get eliminated during preprocessing).
+    // This satisfies the a use in AnswerLiteralManager (the synthesis version) where $ite-s may have creeped in.
+    // (We don't mind being iteration-incomplete there so skip the $ite-condition,
+    // which is a formula and would make things much more complicated here.)
+    // TODO decide: is it worth extending this properly (as usually, we won't encounter special terms here)?
+#if VDEBUG
+    Term::SpecialTermData* sd = t->getSpecialData();
+    ASS(sd->specialFunctor() == SpecialFunctor::ITE);
+#endif
     taArity = 0;
     arity = 2;
   } else {
-    taArity = sym->numTypeArguments();
-    arity = sym->arity();
+    Signature::Symbol* sym;
+    if (t->isLiteral()) {
+      sym = env.signature->getPredicate(t->functor());
+    } else {
+      sym = env.signature->getFunction(t->functor());
+    }
+    if(t->isLiteral() && static_cast<Literal*>(t)->isEquality()){
+      taArity = 0;
+      arity = 2;
+    } else {
+      taArity = sym->numTypeArguments();
+      arity = sym->arity();
+    }
   }
 
   for(unsigned i = taArity; i < arity; i++){
@@ -470,7 +477,7 @@ TermList NonVariableNonTypeIterator::next()
       _added++;
     }
   }
-  return TermList(t);
+  return t;
 }
 
 /**
@@ -478,8 +485,6 @@ TermList NonVariableNonTypeIterator::next()
  */
 void NonVariableNonTypeIterator::right()
 {
-  CALL("NonVariableNonTypeIterator::right");
-
   while (_added > 0) {
     _added--;
     _stack.pop();
@@ -491,8 +496,6 @@ void NonVariableNonTypeIterator::right()
  */
 // bool NonVariableIterator::hasNext()
 // {
-//   CALL("NonVariableIterator::hasNext");
-
 //   if(_stack.isEmpty()) {
 //     return false;
 //   }
@@ -515,7 +518,6 @@ void NonVariableNonTypeIterator::right()
 //  */
 // void NonVariableIterator::right()
 // {
-//   CALL("NonVariableIterator::right");
 //   ASS(_stack.isNonEmpty());
 //   ASS(_used);
 
@@ -547,7 +549,6 @@ void NonVariableNonTypeIterator::right()
  */
 bool DisagreementSetIterator::hasNext()
 {
-  CALL("DisagreementSetIterator::hasNext");
   ASS(_stack.size()%2==0);
 
   if(!_arg1.isEmpty()) {
@@ -595,8 +596,6 @@ bool DisagreementSetIterator::hasNext()
 TermFunIterator::TermFunIterator (const Term* t)
   : _stack(64)
 {
-  CALL("TermFunIterator::TermFunIterator");
-
   _hasNext = true;
   _next = t->functor();
   _stack.push(t->args());
@@ -609,8 +608,6 @@ TermFunIterator::TermFunIterator (const Term* t)
  */
 bool TermFunIterator::hasNext ()
 {
-  CALL("TermFunIterator::hasNext");
-
   if (_hasNext) {
     return true;
   }
@@ -640,8 +637,6 @@ bool TermFunIterator::hasNext ()
  */
 unsigned TermFunIterator::next ()
 {
-  CALL("TermFunIterator::hasNext");
-
   ASS(_hasNext);
 
   _hasNext = false;
@@ -657,7 +652,6 @@ unsigned TermFunIterator::next ()
 TermVarIterator::TermVarIterator (const Term* t)
   : _stack(64)
 {
-  CALL("TermVarIterator::TermVarIterator");
   //TODO update for two var lits?
   _stack.push(t->args());
 } // TermVarIterator::TermVarIterator
@@ -670,7 +664,6 @@ TermVarIterator::TermVarIterator (const Term* t)
 TermVarIterator::TermVarIterator (const TermList* ts)
   : _stack(64)
 {
-  CALL("TermVarIterator::TermVarIterator");
   _stack.push(ts);
 } // TermVarIterator::TermVarIterator
 
@@ -682,8 +675,6 @@ TermVarIterator::TermVarIterator (const TermList* ts)
  */
 bool TermVarIterator::hasNext ()
 {
-  CALL("TermVarIterator::hasNext");
-
   while (_stack.isNonEmpty()) {
     const TermList* ts = _stack.pop();
     if (ts->isEmpty()) {
@@ -707,7 +698,6 @@ bool TermVarIterator::hasNext ()
  */
 unsigned TermVarIterator::next ()
 {
-  CALL("TermVarIterator::next");
   return _next;
 } // TermVarIterator::next
 

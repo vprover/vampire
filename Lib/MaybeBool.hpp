@@ -18,7 +18,6 @@
 #include "Forwards.hpp"
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
 
 namespace Lib {
@@ -27,29 +26,28 @@ class MaybeBool
 {
 public:
   enum Value {
-    FALSE = 0,
-    TRUE = 1,
-    UNKNOWN = 2
+    False = 0,
+    True = 1,
+    Unknown = 2
   };
 
-  MaybeBool() : _value(UNKNOWN) {}
-  MaybeBool(bool val) : _value(val ? TRUE : FALSE) {}
+  MaybeBool() : _value(Unknown) {}
+  MaybeBool(bool val) : _value(val ? True : False) {}
   MaybeBool(Value val) : _value(val) {}
 
-  bool known() const { return _value!=UNKNOWN; }
-  bool isTrue() const { return _value==TRUE; }
-  bool isFalse() const { return _value==FALSE; }
+  bool known() const { return _value!=Unknown; }
+  bool isTrue() const { return _value==True; }
+  bool isFalse() const { return _value==False; }
 
   bool operator==(const MaybeBool& o) const { return _value==o._value; }
   bool operator==(MaybeBool::Value o) const { return _value==o; }
 
   bool value() const {
-    CALL("MaybeBool::value");
     ASS(known());
-    return _value==TRUE;
+    return _value==True;
   }
 
-  void makeUnknown() { _value = UNKNOWN; }
+  void makeUnknown() { _value = Unknown; }
   void mightBecameFalse() { if(isTrue()) { makeUnknown(); } }
   void mightBecameTrue() { if(isFalse()) { makeUnknown(); } }
 
@@ -60,7 +58,7 @@ private:
 inline
 std::ostream& operator<< (std::ostream& out, const MaybeBool& u )
 {
-  return out << (u.isFalse() ? "0" : u.isTrue() ? "1" : "UNKNOWN");
+  return out << (u.isFalse() ? "0" : u.isTrue() ? "1" : "Unknown");
 }
 
 

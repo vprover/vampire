@@ -40,34 +40,37 @@ namespace FMB {
   using namespace Lib;
 
 class Monotonicity{
-
-  CLASS_NAME(Monotonicity);
-  USE_ALLOCATOR(Monotonicity);
-
 public:
   // Assumes clauses are flattened
   Monotonicity(ClauseList* clauses, unsigned srt);
 
-  bool check(){ return _result;}
+  /**
+   * Returns nullptr if not monotone.
+   *
+   * If the answer is positive, it will allocate a DArray to store
+   * for every predicate symbol whether it should be treated (in sort srt)
+   * as false-extended (-1), copy-extended (0), or true-extended (+1).
+   */
+  DArray<signed char>* check();
 
-  static void addSortPredicates(bool withMon, ClauseList*& clauses, DArray<unsigned>& del_f);
-  static void addSortFunctions(bool withMon, ClauseList*& clauses);
+  static void addSortPredicates(bool withMon, ClauseList*& clauses, const DArray<bool>& del_f,
+    DHMap<unsigned,DArray<signed char>*>& monotonic_vampire_sorts, Stack<unsigned>& sort_predicates);
+  static void addSortFunctions(bool withMon, ClauseList*& clauses,
+    DHMap<unsigned,DArray<signed char>*>& monotonic_vampire_sorts, Stack<unsigned>& sort_functions);
 
 private:
-  
-  void monotone(Clause* c, Literal* l); 
-  
-  void safe(Clause* c, Literal* l, TermList* t); 
-  void safe(Clause* c, Literal* l, TermList* t, SATLiteral add); 
+  void monotone(Clause* c, Literal* l);
+
+  void safe(Clause* c, Literal* l, TermList* t);
+  void safe(Clause* c, Literal* l, TermList* t, SATLiteral add);
   void safe(Clause* c, Literal* l, TermList* t, Stack<SATLiteral>& slits);
 
   // returns true if the true literal should be added to slits
   // returns false otherwise (if false should be added or something else has been added)
   bool guards(Literal* l, unsigned var, Stack<SATLiteral>& slits);
 
- 
-  unsigned _srt; 
-  
+  unsigned _srt;
+
   // the constructor computes the result
   bool _result;
 
@@ -75,7 +78,6 @@ private:
   DHMap<unsigned,SATLiteral> _pT;
 
   ScopedPtr<SATSolver> _solver;
-
 };
 
 }

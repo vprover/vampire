@@ -35,9 +35,6 @@ using namespace Lib;
 
 class BufferedSolver : public SATSolver {
 public:
-  CLASS_NAME(BufferedSolver);
-  USE_ALLOCATOR(BufferedSolver);
-
   BufferedSolver(SATSolver* inner);
 
   virtual SATClause* getRefutation() override { return _inner->getRefutation(); }
@@ -58,7 +55,6 @@ public:
   virtual VarAssignment getAssignment(unsigned var) override;
 
   virtual bool isZeroImplied(unsigned var) override {
-    CALL("BufferedSolver::isZeroImplied");
     ASS_G(var,0); ASS_LE(var,_varCnt);
     // alternatively, we could directly refer to _inner, it must handle variables up to _varCnt as well
     return (var > _varCntInnerOld) ? false : _inner->isZeroImplied(var);
@@ -66,10 +62,8 @@ public:
   virtual void collectZeroImplied(SATLiteralStack& acc) override { _inner->collectZeroImplied(acc); }
   virtual SATClause* getZeroImpliedCertificate(unsigned var) override { return _inner->getZeroImpliedCertificate(var); }
 
-  virtual void ensureVarCount(unsigned newVarCnt) override { _inner->ensureVarCount(newVarCnt); _varCnt=max(_varCnt,newVarCnt); }
+  virtual void ensureVarCount(unsigned newVarCnt) override { _inner->ensureVarCount(newVarCnt); _varCnt=std::max(_varCnt,newVarCnt); }
   virtual unsigned newVar() override { 
-    CALL("BufferedSolver::newVar");
-    
     ALWAYS(_inner->newVar() == ++_varCnt);
     return _varCnt;
   }
@@ -85,7 +79,7 @@ private:
   // Add any clauses that have been buffered to _inner and solve.
   void flushUnadded();
 
-  SATSolverSCP _inner;
+  ScopedPtr<SATSolver> _inner;
 
  /**
   * A buffer for new literals that do not yet appear in the solver

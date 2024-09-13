@@ -12,17 +12,6 @@
 #include <climits>
 
 //////////////////////////////////////////////////////
-// Detect compiler
-
-#ifndef __APPLE__
-# define __APPLE__ 0
-#endif
-
-#ifndef __CYGWIN__
-# define __CYGWIN__ 0
-#endif
-
-//////////////////////////////////////////////////////
 // architecture sanity check
 
 static_assert(
@@ -30,25 +19,12 @@ static_assert(
     "Vampire assumes that there are 8 bits in a `char`"
 );
 
-static_assert(
-    sizeof(void *) == 8,
-    "Vampire assumes that the size of a pointer is 8 bytes for efficiency reasons. "
-    "This may be fixed/relaxed in future, but for the moment expect problems if running on other architectures."
-);
-
-// enable warnings for unused results
-// C++17: replace this with [[nodiscard]]
-#ifdef __GNUC__
-#define VWARN_UNUSED [[gnu::warn_unused_result]]
-#else
-#define VWARN_UNUSED
+#define VAMPIRE_PERF_EXISTS 0
+#ifdef __linux__
+#if __has_include(<linux/perf_event.h>)
+#undef VAMPIRE_PERF_EXISTS
+#define VAMPIRE_PERF_EXISTS 1
 #endif
-
-// clang can attach to class, struct etc, but GCC cannot
-#ifdef __clang__
-#define VWARN_UNUSED_TYPE [[clang::warn_unused_result]]
-#else
-#define VWARN_UNUSED_TYPE
 #endif
 
 #endif /*__Portability__*/

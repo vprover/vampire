@@ -19,13 +19,13 @@
 #  define __SkipList__
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
 #include "Allocator.hpp"
 #include "Backtrackable.hpp"
 #include "Comparison.hpp"
 #include "List.hpp"
 #include "Random.hpp"
+#include "Lib/Option.hpp"
 
 #define SKIP_LIST_MAX_HEIGHT 32
 
@@ -42,13 +42,17 @@ template <typename Value,class ValueComparator>
 class SkipList
 {
 public:
-  CLASS_NAME(SkipList);
   USE_ALLOCATOR(SkipList);
 
   class Node {
   public:
     Value value;
     Node* nodes[1];
+
+    // façade to look a bit like a List<Value>
+    // used by Substitution_Fast*
+    inline Value head() const { return value; }
+    inline Node *tail() const { return nodes[0]; }
   };
   /**
    * Insert an element in the skip list.
@@ -57,17 +61,14 @@ public:
   inline
   void insert(Value val)
   {
-    CALL("SkipList::insert");
-    Value* pval = insertPosition(val);
-    *pval = val;
+    void* pval = insertPositionRaw(val);
+    new(pval) Value(std::move(val));
   } // SkipList::insert
 
   template<class Iterator>
   inline
   void insertFromIterator(Iterator it)
   {
-    CALL("SkipList::insertFromIterator");
-
     while(it.hasNext()) {
       insert(it.next());
     }
@@ -80,10 +81,9 @@ public:
   inline
   bool ensurePresent(Value val)
   {
-    CALL("SkipList::ensurePresent");
     Value* pval;
-    if(!getPosition(val, pval, true)) {
-      *pval = val;
+    if(!getPosition(val, pval, /* canCreate */ true)) {
+      new(pval) Value(std::move(val));
       return false;
     }
     return true;
@@ -102,7 +102,7 @@ public:
   template<typename Key>
   bool getPosition(Key key, Value*& pvalue, bool canCreate)
   {
-    CALL("SkipList::getPosition");
+    pvalue = nullptr;
 
     if(_top==0) {
       if(canCreate) {
@@ -159,6 +159,7 @@ public:
     }
   } // SkipList::getPosition
 
+
   /**
    * Create Node where a value with given key could be
    * stored, and assign pointer to value in that Node into @b pvalue.
@@ -169,8 +170,14 @@ public:
   template<typename Key>
   Value* insertPosition(Key key)
   {
-    CALL("SkipList::insertPosition");
+    void* p = insertPositionRaw(key);
+    new(p) Value();
+    return (Value*) p;
+  }
 
+  template<typename Key>
+  void* insertPositionRaw(Key key)
+  {
     // select a random height between 0 and top
     unsigned nodeHeight = 0;
     while (Random::getBit()) {
@@ -187,7 +194,6 @@ public:
       }
     }
     Node* newNode = allocate(nodeHeight);
-    new(&newNode->value) Value();
 
 
     unsigned h = _top - 1;
@@ -247,8 +253,6 @@ public:
   template<typename Key>
   bool findLeastGreater(Key key, Value& value)
   {
-    CALL("SkipList::findLeastGreater");
-
     if(_top==0) {
       return false;
     }
@@ -357,7 +361,6 @@ public:
    */
   Value pop()
   {
-    CALL("SkipList::pop");
     ASS(isNonEmpty());
 
     // find the height of the first
@@ -401,7 +404,6 @@ public:
   template<typename Key>
   void remove(Key key)
   {
-    CALL("SkipList::remove");
     ASS(_top > 0);
 
     Node* found = 0; // found node
@@ -478,7 +480,7 @@ public:
   bool find(Key key)
   {
     Value* pval;
-    return getPosition(key,pval,false);
+    return getPosition(key, pval, /* canCreate */ false);
   }
 
   template<typename Key>
@@ -486,8 +488,9 @@ public:
   bool find(Key key, Value& val)
   {
     Value* pval;
-    bool res=getPosition(key,pval,false);
-    val=*pval;
+    bool res = getPosition(key, pval, /* canCreate */ false);
+    if (res)
+      val = *pval;
     return res;
   }
 
@@ -500,29 +503,9 @@ public:
     }
   }
 
-  inline
-  List<Value>* toList()
-  {
-    // TODO: just make SkipList::Node a List<Value>?
-    //!!! Assuming that SkipList::Node can be reinterpreted to List object !!!
-
-    //Compiler gives this warning here:
-    //
-    //warning: dereferencing type-punned pointer will break strict-aliasing rules
-    //
-    //It (hopefully) shouldn't cause any problems if no values get modified
-    //through pointer retrieved from this method and the underlying SkipList
-    //doesn't change either.
-    if(_left->nodes[0]) {
-      ASS_EQ(reinterpret_cast<List<Value>*&>(_left->nodes[0])->headPtr(), &_left->nodes[0]->value);
-      ASS_EQ((void*)&(reinterpret_cast<List<Value>*&>(_left->nodes[0])->tailReference()),
-	      (void*)&_left->nodes[0]->nodes[0]);
-    }
-
-
-    return reinterpret_cast<List<Value>*&>(_left->nodes[0]);
-  }
-
+  // allow iterating over something like a List<Value>
+  // used by SubstitutionTree_Fast*
+  inline Node *listLike() { return _left->nodes[0]; }
 
   /**
    * Create a skip list and initialise its left-most node to a node of the
@@ -533,7 +516,6 @@ public:
     : _left(allocate(SKIP_LIST_MAX_HEIGHT)),
       _top(0)
   {
-    CALL("SkipList::SkipList");
     for (int h = SKIP_LIST_MAX_HEIGHT-1;h >= 0;h--) {
       _left->nodes[h] = 0;
     }
@@ -544,8 +526,6 @@ public:
    */
   ~SkipList()
   {
-    CALL("SkipList::~SkipList");
-
     makeEmpty();
     deallocate(_left,SKIP_LIST_MAX_HEIGHT);
   }
@@ -559,8 +539,6 @@ private:
   inline
   static Node* allocate(unsigned h)
   {
-    CALL("SkipList::allocate");
-
     void* memory = ALLOC_KNOWN(sizeof(Node)+h*sizeof(Node*),"SkipList::Node");
 
     return reinterpret_cast<Node*>(memory);
@@ -570,7 +548,6 @@ private:
   inline
   static void deallocate(Node* node,unsigned h)
   {
-    CALL("SkipList::deallocate");
     DEALLOC_KNOWN(node,sizeof(Node)+h*sizeof(Node*),"SkipList::Node");
   }
 
@@ -668,37 +645,24 @@ public:
     Node* _cur;
   };
 
-  /**
-   * Iterator over the skip list elements,
-   * which yields pointers to elements.
-   */
-  class PtrIterator {
-  public:
-    DECL_ELEMENT_TYPE(Value*);
 
-    inline explicit
-    PtrIterator(const SkipList& l)
-      : _cur (l._left)
-    {}
+  auto iter() { return iterTraits(RefIterator(*this)); }
 
-    /** return the next element */
-    inline Value* next()
-    {
-      ASS(_cur->nodes[0]);
-      _cur=_cur->nodes[0];
-      return &_cur->value;
+  auto ptrIter() { return iter().map([](auto& v) { return &v; }); }
+
+  friend std::ostream& operator<<(std::ostream& out, SkipList const& self)
+  { 
+    auto iter = self.iter();
+    out << "[";
+    if (iter.hasNext()) {
+      out << " " << *iter.next();
+      while (iter.hasNext()) {
+        out << ", " << *iter.next();
+      }
     }
-
-    /** True if there is a next element. */
-    inline bool hasNext() const
-    {
-      return _cur->nodes[0];
-    }
-
-   private:
-    /** the node we're now pointing to */
-    Node* _cur;
-  };
+    out << " ]";
+    return out; 
+  }
 
 
 }; // class SkipList

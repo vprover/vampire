@@ -25,7 +25,6 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/DHMultiset.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/VString.hpp"
 
 #include "Kernel/Signature.hpp"
 #include "Kernel/Clause.hpp"
@@ -38,9 +37,6 @@ using namespace Lib;
 class InferenceStore
 {
 public:
-  CLASS_NAME(InferenceStore);
-  USE_ALLOCATOR(InferenceStore);
-  
   static InferenceStore* instance();
 
   typedef List<int> IntList;
@@ -73,38 +69,31 @@ public:
   };
 
   void recordSplittingNameLiteral(Unit* us, Literal* lit);
-  void recordIntroducedSymbol(Unit* u, bool func, unsigned number);
-  void recordIntroducedSplitName(Unit* u, vstring name);
+  void recordIntroducedSymbol(Unit* u, SymbolType st, unsigned number);
+  void recordIntroducedSplitName(Unit* u, std::string name);
 
-  void outputUnsatCore(ostream& out, Unit* refutation);
-  void outputProof(ostream& out, Unit* refutation);
-  void outputProof(ostream& out, UnitList* units);
-
-  UnitIterator getParents(Unit* us, InferenceRule& rule);
-  UnitIterator getParents(Unit* us);
-
-  vstring getUnitIdStr(Unit* cs);
+  void outputUnsatCore(std::ostream& out, Unit* refutation);
+  void outputProof(std::ostream& out, Unit* refutation);
+  void outputProof(std::ostream& out, UnitList* units);
 
 private:
-  InferenceStore();
-
   struct ProofPrinter;
   struct TPTPProofPrinter;
   struct ProofCheckPrinter;
   struct ProofPropertyPrinter;
 
-  ProofPrinter* createProofPrinter(ostream& out);
+  ProofPrinter* createProofPrinter(std::ostream& out);
 
   DHMultiset<Clause*> _nextClIds;
 
   DHMap<Unit*, Literal*> _splittingNameLiterals;
 
 
-  /** first is true for function symbols, second is symbol number */
-  typedef pair<bool,unsigned> SymbolId;
+  /** first records the type of the symbol (PRED,FUNC or TYPE_CON), second is symbol number */
+  typedef std::pair<SymbolType,unsigned> SymbolId;
   typedef Stack<SymbolId> SymbolStack;
   DHMap<unsigned,SymbolStack> _introducedSymbols;
-  DHMap<unsigned,vstring> _introducedSplitNames;
+  DHMap<unsigned,std::string> _introducedSplitNames;
 
 };
 

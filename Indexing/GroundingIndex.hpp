@@ -23,6 +23,7 @@
 
 #include "Index.hpp"
 
+namespace Kernel { class GlobalSubsumptionGrounder; };
 namespace Indexing {
 
 using namespace SAT;
@@ -30,9 +31,6 @@ using namespace Shell;
 
 class GroundingIndex : public Index {
 public:
-  CLASS_NAME(GroundingIndex);
-  USE_ALLOCATOR(GroundingIndex);
-
   GroundingIndex(const Options& opt);
 
   SATSolverWithAssumptions& getSolver() { return *_solver; }

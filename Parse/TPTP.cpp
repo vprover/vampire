@@ -17,7 +17,6 @@
 #include <fstream>
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
 #include "Lib/Int.hpp"
 #include "Lib/Environment.hpp"
@@ -29,6 +28,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Theory.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/FormulaVarIterator.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
@@ -39,6 +39,7 @@
 
 #include "Parse/TPTP.hpp"
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
@@ -47,8 +48,8 @@ using namespace Parse;
 #define DEBUG_SHOW_TOKENS 0
 #define DEBUG_SHOW_UNITS 0
 #define DEBUG_SOURCE 0
-
-DHMap<unsigned, vstring> TPTP::_axiomNames;
+DHMap<unsigned, std::string> TPTP::_axiomNames;
+DHMap<unsigned, Map<int,std::string>*> TPTP::_questionVariableNames;
 
 //Numbers chosen to avoid clashing with connectives.
 //Unlikely to ever have 100 connectives, so this should be ok.
@@ -69,25 +70,33 @@ const int TPTP::SIGMA = 103u;
 UnitList* TPTP::parse(istream& input)
 {
   Parse::TPTP parser(input);
-  try{
-    parser.parse();
-  }
-  catch (UserErrorException& exception) {
-    vstring msg = exception.msg();
-    throw ParseErrorException(msg,parser.lineNumber());
-  }
+  parser.parse();
   return parser.units();
+}
+
+Clause* TPTP::parseClauseFromString(const std::string& str)
+{
+  std::stringstream input(str+")."); // to fake endFOF, which creates the clause
+  Parse::TPTP parser(input);
+  parser._isFof = true;
+  parser._lastInputType = UnitInputType::AXIOM;
+  parser._bools.push(false);     // this is what cnf normally pushes (but we start "from the middle")
+  parser._strings.push("dummy_name");
+  parser._states.push(END_FOF);  // this is what does the clause building
+  parser.parseImpl(FORMULA);
+  return parser._units.list()->head()->asClause();
 }
 
 /**
  * Initialise a lexer.
  * @since 27/07/2004 Torrevieja
  */
-TPTP::TPTP(istream& in)
+TPTP::TPTP(istream& in, UnitList::FIFO unitBuffer)
   : _containsConjecture(false),
     _allowedNames(0),
     _in(&in),
     _includeDirectory(""),
+    _units(unitBuffer),
     _isThf(false),
     _containsPolymorphism(false),
     _currentColor(COLOR_TRANSPARENT),
@@ -108,20 +117,28 @@ TPTP::~TPTP()
 {
 } // TPTP::~TPTP
 
+void TPTP::parse()
+{
+  try {
+    parseImpl();
+  } catch (UserErrorException &e) {
+    e.line = lineNumber();
+    throw;
+  }
+}
+
 /**
  * Read all tokens one by one 
  * @since 08/04/2011 Manchester
  */
-void TPTP::parse()
+void TPTP::parseImpl(State initialState)
 {
-  CALL("TPTP::parse");
-
   // bulding tokens one by one
   _gpos = 0;
   _cend = 0;
   _tend = 0;
   _lineNumber = 1;
-  _states.push(UNIT_LIST);
+  _states.push(initialState);
   while (!_states.isEmpty()) {
     State s = _states.pop();
 #ifdef DEBUG_SHOW_STATE
@@ -270,7 +287,7 @@ void TPTP::parse()
       break;
     default:
 #if VDEBUG
-      throw ParseErrorException(((vstring)"Don't know how to process state ")+toString(s),_lineNumber);
+      throw ParseErrorException(((std::string)"Don't know how to process state ")+toString(s),_lineNumber);
 #else
       throw ParseErrorException("Don't know how to process state ",_lineNumber);
 #endif
@@ -287,9 +304,9 @@ void TPTP::parse()
  * Return either the content or the string for this token
  * @since 11/04/2011 Manchester
  */
-vstring TPTP::Token::toString() const
+std::string TPTP::Token::toString() const
 {
-  vstring str = TPTP::toString(tag);
+  std::string str = TPTP::toString(tag);
   return str == "" ? content : str;
 } // Token::toString
 
@@ -298,7 +315,7 @@ vstring TPTP::Token::toString() const
  * is not fixed (e.g. for T_NAME)
  * @since 11/04/2011 Manchester
  */
-vstring TPTP::toString(Tag tag)
+std::string TPTP::toString(Tag tag)
 {
   switch (tag) {
   case T_EOF:
@@ -428,8 +445,6 @@ vstring TPTP::toString(Tag tag)
  */
 bool TPTP::readToken(Token& tok)
 {
-  CALL("TPTP::readToken");
-
   skipWhiteSpacesAndComments();
   tok.start = _gpos;
   switch (getChar(0)) {
@@ -700,8 +715,6 @@ bool TPTP::readToken(Token& tok)
  */
 void TPTP::skipWhiteSpacesAndComments()
 {
-  CALL("TPTP::skipWhiteSpacesAndComments");
-
   for (;;) {
     switch (getChar(0)) {
     case 0: // end-of-file
@@ -731,13 +744,13 @@ void TPTP::skipWhiteSpacesAndComments()
         // Only check for Status if in preamble before any units read (also only in the top level file, not in includes)
         if(_units.list() == 0 && _inputs.isEmpty()){
           _chars[n]='\0';
-          vstring cline(_chars.content());
-          if(cline.find("Status")!=vstring::npos){
-             if(cline.find("Theorem")!=vstring::npos){ UIHelper::setExpectingUnsat(); }
-             else if(cline.find("Unsatisfiable")!=vstring::npos){ UIHelper::setExpectingUnsat(); }
-             else if(cline.find("ContradictoryAxioms")!=vstring::npos){ UIHelper::setExpectingUnsat(); }
-             else if(cline.find("Satisfiable")!=vstring::npos){ UIHelper::setExpectingSat(); }
-             else if(cline.find("CounterSatisfiable")!=vstring::npos){ UIHelper::setExpectingSat(); }
+          std::string cline(_chars.content());
+          if(cline.find("Status")!=std::string::npos){
+             if(cline.find("Theorem")!=std::string::npos){ UIHelper::setExpectingUnsat(); }
+             else if(cline.find("Unsatisfiable")!=std::string::npos){ UIHelper::setExpectingUnsat(); }
+             else if(cline.find("ContradictoryAxioms")!=std::string::npos){ UIHelper::setExpectingUnsat(); }
+             else if(cline.find("Satisfiable")!=std::string::npos){ UIHelper::setExpectingSat(); }
+             else if(cline.find("CounterSatisfiable")!=std::string::npos){ UIHelper::setExpectingSat(); }
           }
         }
 #endif
@@ -786,7 +799,6 @@ void TPTP::skipWhiteSpacesAndComments()
  */
 void TPTP::readName(Token& tok)
 {
-  CALL("TPTP::readName");
   for (int n = 1;;n++) {
     switch (getChar(n)) {
     case 'A':
@@ -869,8 +881,6 @@ void TPTP::readName(Token& tok)
  */
 void TPTP::readReserved(Token& tok)
 {
-  CALL("TPTP::readReserved");
-
   int n = 1;
   for (;;n++) {
     switch (getChar(n)) {
@@ -1027,7 +1037,6 @@ void TPTP::readReserved(Token& tok)
  */
 void TPTP::readString(Token& tok)
 {
-  CALL("TPTP::readString");
   for (int n = 1;;n++) {
     int c = getChar(n);
     if (!c) {
@@ -1054,8 +1063,6 @@ void TPTP::readString(Token& tok)
  */
 void TPTP::readAtom(Token& tok)
 {
-  CALL("TPTP::readAtom");
-
   for (int n = 1;;n++) {
     int c = getChar(n);
     if (!c) {
@@ -1076,12 +1083,12 @@ void TPTP::readAtom(Token& tok)
   }
 } // readAtom
 
-TPTP::ParseErrorException::ParseErrorException(vstring message,int pos, unsigned ln) : _ln(ln)
+TPTP::ParseErrorException::ParseErrorException(std::string message,int pos, unsigned ln) : _ln(ln)
 {
   _message = message + " at position " + Int::toString(pos);
 } // TPTP::ParseErrorException::ParseErrorException
 
-TPTP::ParseErrorException::ParseErrorException(vstring message,Token& tok, unsigned ln) : _ln(ln)
+TPTP::ParseErrorException::ParseErrorException(std::string message,Token& tok, unsigned ln) : _ln(ln)
 {
   _message = message + " at position " + Int::toString(tok.start) + " (text: " + tok.toString() + ')'; 
 } // TPTP::ParseErrorException::ParseErrorException
@@ -1092,7 +1099,7 @@ TPTP::ParseErrorException::ParseErrorException(vstring message,Token& tok, unsig
  */
 void TPTP::ParseErrorException::cry(ostream& str) const
 {
-  str << "Parsing Error on line " << _ln << "\n";
+  str << "Parsing Error on line " << _ln << ": ";
   str << _message << "\n";
 }
 
@@ -1102,8 +1109,6 @@ void TPTP::ParseErrorException::cry(ostream& str) const
  */
 TPTP::Tag TPTP::readNumber(Token& tok)
 {
-  CALL("TPTP::readNumber");
-
   // skip the sign
   int c = getChar(0);
   ASS(c);
@@ -1157,8 +1162,6 @@ TPTP::Tag TPTP::readNumber(Token& tok)
  */
 int TPTP::decimal(int pos)
 {
-  CALL("TPTP::decimal");
-
   switch (getChar(pos)) {
   case '0':
     return pos+1;
@@ -1191,8 +1194,6 @@ int TPTP::decimal(int pos)
  */
 int TPTP::positiveDecimal(int pos)
 {
-  CALL("TPTP::positiveDecimal");
-
   switch (getChar(pos)) {
   case '1':
   case '2':
@@ -1223,15 +1224,6 @@ int TPTP::positiveDecimal(int pos)
  */
 void TPTP::unitList()
 {
-  CALL("TPTP::unitList");
-  if (env.timeLimitReached()) {
-    // empty states to avoid infinite loop
-    while (!_states.isEmpty()) {
-      _states.pop();
-    }
-    return;
-  }
-
   Token& tok = getTok(0);
   if (tok.tag == T_EOF) {
     resetToks();
@@ -1239,10 +1231,7 @@ void TPTP::unitList()
       return;
     }
     resetChars();
-    {
-      BYPASSING_ALLOCATOR; // ifstream was allocated by "system new"
-      delete _in;
-    }
+    delete _in;
     _in = _inputs.pop();
     _includeDirectory = _includeDirectories.pop();
     delete _allowedNames;
@@ -1253,7 +1242,7 @@ void TPTP::unitList()
   if (tok.tag != T_NAME) {
     PARSE_ERROR("cnf(), fof(), vampire() or include() expected",tok);
   }
-  vstring name(tok.content);
+  std::string name(tok.content);
   _states.push(UNIT_LIST);
   if (name == "cnf") {
     _states.push(CNF);
@@ -1301,8 +1290,6 @@ void TPTP::unitList()
  */
 void TPTP::fof(bool fo)
 {
-  CALL("TPTP::fof");
-
   _bools.push(fo);
   consumeToken(T_LPAR);
   // save the name of this unit
@@ -1323,7 +1310,7 @@ void TPTP::fof(bool fo)
   consumeToken(T_COMMA);
   tok = getTok(0);
   int start = tok.start;
-  vstring tp = name();
+  std::string tp = name();
 
   _isQuestion = false;
   if(_modelDefinition){
@@ -1359,10 +1346,10 @@ void TPTP::fof(bool fo)
   }
   else if (tp == "assumption" || tp == "unknown") {
     // MS: we were silently dropping these until now. I wonder why...
-    PARSE_ERROR((vstring)"Unsupported unit type '" + tp + "' found",start);
+    USER_ERROR("Unsupported unit type '", tp, "' found");
   }
   else {
-    PARSE_ERROR((vstring)"unit type, such as axiom or definition expected but " + tp + " found",
+    PARSE_ERROR((std::string)"unit type, such as axiom or definition expected but " + tp + " found",
         start);
   }
   consumeToken(T_COMMA);
@@ -1384,8 +1371,6 @@ void TPTP::fof(bool fo)
  */
 void TPTP::tff()
 {
-  CALL("TPTP::tff");
-
   consumeToken(T_LPAR);
   // save the name of this unit
   Token& tok = getTok(0);
@@ -1402,7 +1387,7 @@ void TPTP::tff()
   consumeToken(T_COMMA);
   tok = getTok(0);
   int start = tok.start;
-  vstring tp = name();
+  std::string tp = name();
   if (tp == "type") {
     // Read a TPTP type declaration.
     consumeToken(T_COMMA);
@@ -1417,7 +1402,7 @@ void TPTP::tff()
       lpars++;
       resetToks();
     }
-    vstring nm = name();
+    std::string nm = name();
     consumeToken(T_COLON);
     if(_isThf){
       tok = getTok(0);
@@ -1458,7 +1443,10 @@ void TPTP::tff()
 
   _bools.push(true); // to denote that it is an FOF formula
   _isQuestion = false;
-  if (tp == "axiom" || tp == "plain") {
+  if(_modelDefinition){
+    _lastInputType = UnitInputType::MODEL_DEFINITION;
+  }
+  else if (tp == "axiom" || tp == "plain") {
     _lastInputType = UnitInputType::AXIOM;
   }
   else if (tp == "extensionality"){
@@ -1485,13 +1473,13 @@ void TPTP::tff()
   }
   else if (tp == "assumption" || tp == "unknown") {
     // MS: we were silently dropping these until now. I wonder why...
-    PARSE_ERROR((vstring)"Unsupported unit type '" + tp + "' found",start);
+    USER_ERROR("Unsupported unit type '", tp);
   }
   else if (tp == "claim") {
     _lastInputType = UnitInputType::CLAIM;
   }
   else {
-    PARSE_ERROR((vstring)"unit type, such as axiom or definition expected but " + tp + " found",
+    PARSE_ERROR((std::string)"unit type, such as axiom or definition expected but " + tp + " found",
         start);
   }
   consumeToken(T_COMMA);
@@ -1501,8 +1489,6 @@ void TPTP::tff()
 
 unsigned TPTP::getConstructorArity()
 {
-  CALL("TPTP::getConstructorArity");
-
   unsigned arity = 0;
   Token tok = getTok(0);
   while(tok.tag == T_ARROW || tok.tag == T_TTYPE){
@@ -1521,7 +1507,6 @@ unsigned TPTP::getConstructorArity()
 
 void TPTP::holFormula()
 {
-  CALL("TPTP::holFunction");
   Token tok = getTok(0);
   
   switch (tok.tag) {
@@ -1635,11 +1620,10 @@ void TPTP::holFormula()
 
 void TPTP::holTerm()
 {
-  CALL("TPTP::holTerm");
   Token tok = getTok(0);
   resetToks();
 
-  vstring name = tok.content;
+  std::string name = tok.content;
   unsigned arity = _typeArities.find(name) ? _typeArities.get(name) : 0;
 
   switch (tok.tag) {
@@ -1701,10 +1685,8 @@ void TPTP::holTerm()
 
 }
   
-vstring TPTP::convert(Tag t)
+std::string TPTP::convert(Tag t)
 {
-  CALL("TPTP::convert(Tag t)");
-
   switch(t){
     case T_AND:
       return "vAND";
@@ -1738,8 +1720,6 @@ vstring TPTP::convert(Tag t)
 
 void TPTP::endHolFormula()
 {
-  CALL("TPTP::endHolFormula");
-
   int con = _connectives.pop();
 
   if (con == -2){
@@ -1801,7 +1781,7 @@ void TPTP::endHolFormula()
     }
   case LITERAL:
   default:
-    throw ::Exception((vstring)"tell me how to handle connective " + Int::toString(con));
+    throw ::Exception((std::string)"tell me how to handle connective " + Int::toString(con));
   }
 
   Token& tok = getTok(0);
@@ -1954,8 +1934,6 @@ switch (tag) {
   */
 void TPTP::endApp()
 {
-  CALL("TPTP::endApp");
-
   if(_lastPushed == FORM){
      endFormulaInsideTerm();     
   }
@@ -1983,8 +1961,6 @@ void TPTP::endApp()
  */
 void TPTP::endIte()
 {
-  CALL("TPTP::endIte");
-
   TermList elseBranch = _termLists.pop();
   TermList thenBranch = _termLists.pop();
   Formula* condition = _formulas.pop();
@@ -2003,8 +1979,6 @@ void TPTP::endIte()
  *
  */
 void TPTP::endTheoryFunction() {
-  CALL("TPTP::endTheoryFunction");
-
   /**
    * Things get a bit awkward with theories + FOOL, because theory function can
    * return $o in such case be a predicate symbol rather than a function symbol.
@@ -2097,14 +2071,12 @@ void TPTP::endTheoryFunction() {
  */
 void TPTP::include()
 {
-  CALL("TPTP::include");
-
   consumeToken(T_LPAR);
   Token& tok = getTok(0);
   if (tok.tag != T_NAME) {
-    PARSE_ERROR((vstring)"file name expected",tok);
+    PARSE_ERROR((std::string)"file name expected",tok);
   }
-  vstring relativeName=tok.content;
+  std::string relativeName=tok.content;
   resetToks();
   bool ignore = _forbiddenIncludes.contains(relativeName);
   if (!ignore) {
@@ -2117,16 +2089,16 @@ void TPTP::include()
   tok = getTok(0);
   if (tok.tag == T_COMMA) {
     if (!ignore) {
-      _allowedNames = new Set<vstring>;
+      _allowedNames = new Set<std::string>;
     }
     resetToks();
     consumeToken(T_LBRA);
     for(;;) {
       tok = getTok(0);
       if (tok.tag != T_NAME) {
-	PARSE_ERROR((vstring)"formula name expected",tok);
+	PARSE_ERROR((std::string)"formula name expected",tok);
       }
-      vstring axName=tok.content;
+      std::string axName=tok.content;
       resetToks();
       if (!ignore) {
 	_allowedNames->insert(axName);
@@ -2148,20 +2120,16 @@ void TPTP::include()
   // here should be a computation of the new include directory according to
   // the TPTP standard, so far we just set it to ""
   _includeDirectory = "";
-  vstring fileName(env.options->includeFileName(relativeName));
-  {
-    BYPASSING_ALLOCATOR; // we cannot make ifstream allocated via Allocator
-    _in = new ifstream(fileName.c_str());
-  }
+  std::string fileName(env.options->includeFileName(relativeName));
+  _in = new ifstream(fileName.c_str());
   if (!*_in) {
-    USER_ERROR((vstring)"cannot open file " + fileName);
+    USER_ERROR((std::string)"cannot open file " + fileName);
   }
 } // include
 
 /** add a file name to the list of forbidden includes */
-void TPTP::addForbiddenInclude(vstring file)
+void TPTP::addForbiddenInclude(std::string file)
 {
-  CALL("TPTP::addForbiddenInclude");
   _forbiddenIncludes.insert(file);
 }
 
@@ -2169,14 +2137,13 @@ void TPTP::addForbiddenInclude(vstring file)
  * Read the next token that must be a name.
  * @since 10/04/2011 Manchester
  */
-vstring TPTP::name()
+std::string TPTP::name()
 {
-  CALL("TPTP::name");
   Token& tok = getTok(0);
   if (tok.tag != T_NAME) {
     PARSE_ERROR("name expected",tok);
   }
-  vstring nm = tok.content;
+  std::string nm = tok.content;
   resetToks();
   return nm;
 } // name
@@ -2187,11 +2154,9 @@ vstring TPTP::name()
  */
 void TPTP::consumeToken(Tag t)
 {
-  CALL("TPTP::consumeToken");
-
   Token& tok = getTok(0);
   if (tok.tag != t) {
-    vstring expected = toString(t);
+    std::string expected = toString(t);
     PARSE_ERROR(expected + " expected",tok);
   }
   resetToks();
@@ -2204,8 +2169,6 @@ void TPTP::consumeToken(Tag t)
  */
 void TPTP::formula()
 {
-  CALL("TPTP::formula");
-
   if(_isThf){
     _connectives.push(-2); //special connective for HOL funcs
     _connectives.push(-1);
@@ -2225,7 +2188,6 @@ void TPTP::formula()
  */
 void TPTP::termInfix()
 {
-  CALL("TPTP::termInfix");
   Token tok = getTok(0);
   switch (tok.tag) {
     case T_EQUAL:
@@ -2268,8 +2230,6 @@ void TPTP::termInfix()
  */
 void TPTP::type()
 {
-  CALL("TPTP::type");
-
   _typeTags.push(TT_ATOMIC);
   _states.push(END_TYPE);
   _states.push(SIMPLE_TYPE);
@@ -2281,7 +2241,6 @@ void TPTP::type()
  */
 void TPTP::funApp()
 {
-  CALL("TPTP::funApp");
   Token tok = getTok(0);
   resetToks();
 
@@ -2372,8 +2331,6 @@ void TPTP::funApp()
 
 void TPTP::letType()
 {
-  CALL("TPTP::letType");
-
   // We cannot use this method in TPTP::tff() because type declarations in the
   // "type" role TFF units allow declarations of types ($tType), which are not
   // allowed inside $lets
@@ -2385,27 +2342,25 @@ void TPTP::letType()
 
 void TPTP::endLetTypes()
 {
-  CALL("TPTP::endLetTypes");
-
-  vstring name = _strings.pop();
+  std::string name = _strings.pop();
   Type* t = _types.pop();
   OperatorType* type = constructOperatorType(t);
 
   unsigned arity = type->arity();
   bool isPredicate = type->isPredicateType();
 
-  unsigned symbol = isPredicate
+  unsigned functor = isPredicate
                   ? env.signature->addFreshPredicate(arity, name.c_str())
                   : env.signature->addFreshFunction(arity,  name.c_str());
+  Signature::Symbol *symbol = isPredicate
+    ? env.signature->getPredicate(functor)
+    : env.signature->getFunction(functor);
 
-  if (isPredicate) {
-    env.signature->getPredicate(symbol)->setType(type);
-  } else {
-    env.signature->getFunction(symbol)->setType(type);
-  }
+  symbol->setType(type);
+  symbol->markLetBound();
 
   LetSymbolName symbolName(name, arity);
-  LetSymbolReference symbolReference(symbol, isPredicate);
+  LetSymbolReference symbolReference(functor, isPredicate);
 
   LetSymbols scope = _letTypedSymbols.pop();
 
@@ -2427,8 +2382,6 @@ void TPTP::endLetTypes()
 
 void TPTP::definition()
 {
-  CALL("TPTP::definition");
-
   // At this point we parse one or more simultaneous definitions.
   // Simultaneous definitions are of the form `[D1, ..., Dn]` and each
   // definition is either of a function/predicate symbol `f(X,Y,Z) := t`
@@ -2501,8 +2454,6 @@ void TPTP::definition()
 
 void TPTP::midDefinition()
 {
-  CALL("TPTP::midDefinition");
-
   switch (getTok(0).tag) {
     case T_NAME:
       _strings.push(name());
@@ -2521,9 +2472,7 @@ void TPTP::midDefinition()
 
 void TPTP::symbolDefinition()
 {
-  CALL("TPTP::symbolDefinition");
-
-  vstring nm = _strings.pop();
+  std::string nm = _strings.pop();
   unsigned arity = 0;
   VList* vs = VList::empty();
 
@@ -2598,13 +2547,11 @@ void TPTP::symbolDefinition()
  */
 void TPTP::tupleDefinition()
 {
-  CALL("TPTP::tupleDefinition");
-
-  Set<vstring> uniqueConstants;
+  Set<std::string> uniqueConstants;
   Stack<unsigned> symbols;
   TermStack sorts;
 
-  vstring constant = _strings.pop();
+  std::string constant = _strings.pop();
   do {
     if (uniqueConstants.contains(constant)) {
       USER_ERROR("The symbol " + constant + " is defined twice in a tuple $let-expression.");
@@ -2656,8 +2603,6 @@ void TPTP::tupleDefinition()
 } // tupleDefinition
 
 void TPTP::endDefinition() {
-  CALL("TPTP::endDefinition");
-
   LetSymbolReference ref = _letDefinitions.top().top();
   unsigned symbol = SYMBOL(ref);
   bool isPredicate = IS_PREDICATE(ref);
@@ -2670,8 +2615,8 @@ void TPTP::endDefinition() {
                      : env.signature->getFunction(symbol)->fnType()->result();
 
   if (refSort != definitionSort) {
-    vstring definitionSortName = definitionSort.toString();
-    vstring refSymbolName = isPredicate
+    std::string definitionSortName = definitionSort.toString();
+    std::string refSymbolName = isPredicate
                             ? env.signature->predicateName(symbol)
                             : env.signature->functionName(symbol);
     OperatorType* type = isPredicate
@@ -2693,8 +2638,6 @@ void TPTP::endDefinition() {
 } // endDefinition
 
 bool TPTP::findLetSymbol(LetSymbolName symbolName, LetSymbolReference& symbolReference) {
-  CALL("TPTP::findLetSymbol(LetSymbolName,LetSymbolReference)");
-
   Stack<LetSymbols>::TopFirstIterator scopes(_letSymbols);
   while (scopes.hasNext()) {
     LetSymbols scope = scopes.next();
@@ -2706,7 +2649,6 @@ bool TPTP::findLetSymbol(LetSymbolName symbolName, LetSymbolReference& symbolRef
 } // findLetSymbol(LetSymbolName,LetSymbolReference)
 
 bool TPTP::findLetSymbol(LetSymbolName symbolName, LetSymbols scope, LetSymbolReference& symbolReference) {
-  CALL("TPTP::findLetSymbol(LetSymbolName,LetSymbols,LetSymbolReference)");
   LetSymbols::Iterator symbols(scope);
   while (symbols.hasNext()) {
     LetSymbol symbol = symbols.next();
@@ -2725,8 +2667,6 @@ bool TPTP::findLetSymbol(LetSymbolName symbolName, LetSymbols scope, LetSymbolRe
  */
 void TPTP::endLet()
 {
-  CALL("TPTP::endLet");
-
   TermList let = _termLists.pop();
   TermList sort = sortOf(let);
 
@@ -2762,8 +2702,6 @@ void TPTP::endLet()
  */
 void TPTP::endTuple()
 {
-  CALL("TPTP::endTuple");
-
   unsigned arity = (unsigned)_ints.pop();
   ASS_GE(_termLists.size(), arity);
 
@@ -2787,7 +2725,6 @@ void TPTP::endTuple()
  */
 void TPTP::args()
 {
-  CALL("TPTP::args");
   _states.push(END_ARGS);
   _states.push(TERM);
 } // args
@@ -2798,7 +2735,6 @@ void TPTP::args()
  */
 void TPTP::endArgs()
 {
-  CALL("TPTP::endArgs");
  // check if there is any other term in the argument list
   Token tok = getTok(0);
   switch (tok.tag) {
@@ -2825,8 +2761,6 @@ void TPTP::endArgs()
  */
 void TPTP::bindVariable(unsigned var,TermList sort)
 {
-  CALL("TPTP::bindVariable");
-
   SList** definitions;
   // definitions will be a pointer to the list inside _variableSorts,
   // either the one that was there, or a freshly inserted empty one
@@ -2842,8 +2776,6 @@ void TPTP::bindVariable(unsigned var,TermList sort)
  */
 void TPTP::varList()
 {
-  CALL("TPTP::varList");
-
   Stack<int> vars;
   for (;;) {
     Token& tok = getTok(0);
@@ -2852,6 +2784,9 @@ void TPTP::varList()
       PARSE_ERROR("variable expected",tok);
     }
     int var = _vars.insert(tok.content);
+    if (_isQuestion) {
+      _curQuestionVarNames.insert(var,tok.content);
+    }
     vars.push(var);
     resetToks();
     bool sortDeclared = false;
@@ -2902,7 +2837,6 @@ void TPTP::varList()
  */
 void TPTP::term()
 {
-  CALL("TPTP::term");
   Token tok = getTok(0);
   switch (tok.tag) {
     case T_NAME:
@@ -2953,6 +2887,10 @@ void TPTP::term()
       switch (tok.tag) {
         case T_STRING:
           number = env.signature->addStringConstant(tok.content);
+          // "distinct_object"s are _always_ of sort $i, even in typed contexts
+          env.signature->getFunction(number)->setType(
+            OperatorType::getConstantsType(AtomicSort::defaultSort())
+          );
           break;
         case T_INT:
           number = addIntegerConstant(tok.content,_overflow,_isFof);
@@ -2966,11 +2904,7 @@ void TPTP::term()
         default:
           ASSERTION_VIOLATION;
       }
-      Term *t = new(0) Term;
-      t->makeSymbol(number, 0);
-      t = env.sharing->insert(t);
-      TermList constant(t);
-      _termLists.push(constant);
+      _termLists.push(TermList(Term::createConstant(number)));
       return;
     }
 
@@ -2986,9 +2920,7 @@ void TPTP::term()
  */
 void TPTP::endTerm()
 {
-  CALL("TPTP::endTerm");
-
-  vstring name = _strings.pop();
+  std::string name = _strings.pop();
 
   if (name == toString(T_ITE)) {
     _states.push(END_ITE);
@@ -3047,8 +2979,6 @@ void TPTP::endTerm()
  */
 void TPTP::formulaInfix()
 {
-  CALL("TPTP::formulaInfix");
-
   Token tok = getTok(0);
 
   if (tok.tag == T_EQUAL || tok.tag == T_NEQ) {
@@ -3059,7 +2989,7 @@ void TPTP::formulaInfix()
     return;
   }
 
-  vstring name = _strings.pop();
+  std::string name = _strings.pop();
 
   if (name == toString(T_ITE)) {
     _states.push(END_TERM_AS_FORMULA);
@@ -3116,8 +3046,6 @@ void TPTP::formulaInfix()
  */
 void TPTP::endEquality()
 {
-  CALL("TPTP::endEquality");
-
   _insideEqualityArgument--;
 
   if((_isThf) && (_lastPushed == FORM)){
@@ -3147,8 +3075,6 @@ void TPTP::endEquality()
  */
 void TPTP::midEquality()
 {
-  CALL("TPTP::midEquality");
-
   _insideEqualityArgument++;
 
   Token tok = getTok(0);
@@ -3198,9 +3124,8 @@ Literal* TPTP::createEquality(bool polarity,TermList& lhs,TermList& rhs)
  * the arguments are assumed to be on the _termLists stack.
  * @since 27/03/1015 Manchester
  */
-Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
+Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
 {
-  CALL("TPTP::createPredicateApplication");
   ASS_GE(_termLists.size(), arity);
 
   int pred;
@@ -3228,10 +3153,12 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
       distincts.reset();
       for(int i=arity-1;i >= 0; i--){
         TermList t = _termLists.pop();
-        if(t.isVar() || t.term()->arity()!=0){ USER_ERROR("$distinct can only be used with constants");}
+        if(t.isVar() || t.term()->arity()!=0){
+          USER_ERROR("$distinct can only be used with constants. Found "+t.toString());
+        }
         distincts.push(t.term()->functor());
       }
-      Formula* distinct_formula = DistinctGroupExpansion().expand(distincts);
+      Formula* distinct_formula = DistinctGroupExpansion(0 /* zero means "always expand"*/).expand(distincts);
       return distinct_formula;
     }else{
       // Otherwise record them as being in a distinct group
@@ -3239,7 +3166,7 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
       for(int i = arity-1;i >=0; i--){
         TermList ts = _termLists.pop();
         if(!ts.isTerm() || ts.term()->arity()!=0){
-          USER_ERROR("$distinct should only be used positively with constants");
+          USER_ERROR("$distinct can only be used with constants. Found "+ts.toString());
         }
         env.signature->addToDistinctGroup(ts.term()->functor(),grpIdx);
       }
@@ -3247,35 +3174,30 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
     }
   }
   // not equality or distinct
-  Literal* lit = new(arity) Literal(pred,arity,true,false);
+  auto args = nLastTermLists(arity);
   OperatorType* type = env.signature->getPredicate(pred)->predType();
-  bool safe = true;
-  for (int i = arity-1;i >= 0;i--) {
+  for (auto i : range(0, arity)) {
     TermList sort = type->arg(i);
-    TermList ts = _termLists.pop();
+    TermList ts = args[i];
     TermList tsSort = sortOf(ts);
-    if((unsigned)i < type->numTypeArguments()){
+    if(i < type->numTypeArguments()){
       if(tsSort != AtomicSort::superSort()){
-        USER_ERROR("The sort " + tsSort.toString() + " of type argument " + ts.toString() + " "
-                   "is not $ttype as mandated by TF1");
+        USER_ERROR("The sort ", tsSort, " of type argument ", ts, " is not $ttype as mandated by TF1");
       }
     } else {
-      static RobSubstitution subst;
-      subst.reset();
-      if(!subst.match(sort, 0, tsSort, 1)) {
-        USER_ERROR("Failed to create predicate application for " + name + " of type " + type->toString() + "\n" +
-                   "The sort " + tsSort.toString() + " of the intended term argument " + ts.toString() + " (at index " + Int::toString(i) +") "
-                   "is not an instance of sort " + sort.toString());
+      _substScratchpad.reset();
+      if(!_substScratchpad.match(sort, 0, tsSort, 1)) {
+        USER_ERROR("Failed to create predicate application for ", name, " of type ", type->toString(), "\n",
+                   "The sort ", tsSort, " of the intended term argument ", ts, " (at index ", i, ") "
+                   "is not an instance of sort ", sort);
       }
     }
-    safe = safe && ts.isSafe();
-    *(lit->nthArgument(i)) = ts;
   }
-  if (safe) {
-    lit = env.sharing->insert(lit);
-  }
-  return new AtomicFormula(lit);
+  auto out = new AtomicFormula(Literal::create(pred, arity, /* polarity */ true, /* commutative */ false, args));
+  _termLists.pop(arity);
+  return out;
 } // createPredicateApplication
+
 
 /**
  * Creates a term that is a function application from
@@ -3283,9 +3205,8 @@ Formula* TPTP::createPredicateApplication(vstring name, unsigned arity)
  * the arguments are assumed to be on the _termLists stack.
  * @since 13/04/2015 Gothenburg, major changes to support FOOL
  */
-TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
+TermList TPTP::createFunctionApplication(std::string name, unsigned arity)
 { //TODO update to deal with wierd /\ @ ... syntax
-  CALL("TPTP::createFunctionApplication");
   ASS_GE(_termLists.size(), arity);
 
   unsigned fun;
@@ -3300,35 +3221,30 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
       fun = addUninterpretedConstant(name, _overflow, dummy);
     }
   }
-  Term* t = new(arity) Term;
-  t->makeSymbol(fun,arity);
+
   OperatorType* type = env.signature->getFunction(fun)->fnType();
-  bool safe = true;
-  for (int i = arity-1;i >= 0;i--) {
+  auto args = nLastTermLists(arity);
+  for (unsigned i : range(0, arity)) {
     TermList sort = type->arg(i);
-    TermList ss = _termLists.pop();
+    TermList ss = args[i];
     TermList ssSort = sortOf(ss);
-    if((unsigned)i < type->numTypeArguments()){
+    if(i < type->numTypeArguments()){
       if(ssSort != AtomicSort::superSort()){
         USER_ERROR("The sort " + ssSort.toString() + " of type argument " + ss.toString() + " "
                    "is not $tType as mandated by TF1");
       }
     } else {
-      static RobSubstitution subst;
-      subst.reset();
-      if(!subst.match(sort, 0, ssSort, 1)){
+      _substScratchpad.reset();
+      if(!_substScratchpad.match(sort, 0, ssSort, 1)){
         USER_ERROR("Failed to create function application for " + name + " of type " + type->toString() + "\n" +
                    "The sort " + ssSort.toString() + " of the intended term argument " + ss.toString() + " (at index " + Int::toString(i) +") "
                    "is not an instance of sort " + sort.toString());
       }
     }
-    *(t->nthArgument(i)) = ss;
-    safe = safe && ss.isSafe();
   }
-  if (safe) {
-    t = env.sharing->insert(t);
-  }
-  return TermList(t);
+  auto t = TermList(Term::create(fun, arity, args));
+  _termLists.pop(arity);
+  return t;
 }
 
 /**
@@ -3337,32 +3253,25 @@ TermList TPTP::createFunctionApplication(vstring name, unsigned arity)
  * the arguments are assumed to be on the _termLists stack.
  * @since 13/04/2015 Gothenburg, major changes to support FOOL
  */
-TermList TPTP::createTypeConApplication(vstring name, unsigned arity)
+TermList TPTP::createTypeConApplication(std::string name, unsigned arity)
 { 
-  CALL("TPTP::createTypeConApplication");
   ASS_GE(_termLists.size(), arity);
 
   bool dummy;
   //TODO not checking for overflown constant. Is that OK?
   //seems to be done this way for predicates as well.
   unsigned typeCon = env.signature->addTypeCon(name,arity,dummy);
-  AtomicSort* s = new(arity) AtomicSort(typeCon,arity);
 
-  bool safe = true;
-  for (int i = arity-1;i >= 0;i--) {
-    TermList ss = _termLists.pop();
-    TermList ssSort = sortOf(ss);
-    if(ssSort != AtomicSort::superSort()){
-        USER_ERROR("The sort " + ssSort.toString() + " of type argument " + ss.toString() + " "
-                   "is not $tType as mandated by TF1");
-    }
-    *(s->nthArgument(i)) = ss;
-    safe = safe && ss.isSafe();
+  auto args = nLastTermLists(arity);
+  for (auto i : range(0, arity)) {
+    auto term = args[i];
+    auto sort = sortOf(term);
+    if (sort != AtomicSort::superSort()) 
+        USER_ERROR("The sort ", sort, " of type argument ", term, " is not $tType as mandated by TF1");
   }
-  if (safe) {
-    s = env.sharing->insert(s);
-  }
-  return TermList(s);
+  auto s = TermList(AtomicSort::create(typeCon, arity, args));
+  _termLists.pop(arity);
+  return s;
 }
 
 /**
@@ -3371,8 +3280,6 @@ TermList TPTP::createTypeConApplication(vstring name, unsigned arity)
  */
 void TPTP::endFormula()
 {
-  CALL("TPTP::endFormula");
-
   int con = _connectives.pop();
   Formula* f;
   bool conReverse = false;
@@ -3407,7 +3314,7 @@ void TPTP::endFormula()
     return;
   case LITERAL:
   default:
-    throw ::Exception((vstring)"tell me how to handle connective " + Int::toString(con));
+    throw ::Exception((std::string)"tell me how to handle connective " + Int::toString(con));
   }
 
   Token& tok = getTok(0);
@@ -3534,7 +3441,6 @@ void TPTP::endFormula()
  */
 void TPTP::formulaInsideTerm()
 {
-  CALL("TPTP::formulaInsideTerm");
   _states.push(END_FORMULA_INSIDE_TERM);
   _states.push(FORMULA);
 } // formulaInsideTerm
@@ -3546,7 +3452,6 @@ void TPTP::formulaInsideTerm()
  */
 void TPTP::endFormulaInsideTerm()
 {
-  CALL("TPTP::endFormulaInsideTerm");
   Formula* f = _formulas.pop();
   TermList ts(Term::createFormula(f));
   _termLists.push(ts);
@@ -3560,7 +3465,6 @@ void TPTP::endFormulaInsideTerm()
  */
 void TPTP::endTermAsFormula()
 {
-  CALL("TPTP::endTermAsFormula");
   TermList t = _termLists.pop();
   TermList tSort = sortOf(t);
   if (tSort != AtomicSort::boolSort()) {
@@ -3581,8 +3485,6 @@ void TPTP::endTermAsFormula()
  */
 void TPTP::endType()
 {
-  CALL("TPTP::endType");
-
   TypeTag tt = _typeTags.pop();
   Type* t = _types.pop();
   switch (tt) {
@@ -3598,6 +3500,7 @@ void TPTP::endType()
     break;
   case TT_QUANTIFIED:
     VList* vl = _varLists.pop();
+    _sortLists.pop();
     t = new QuantifiedType(t, vl);
     tt = _typeTags.pop();
     break;    
@@ -3629,7 +3532,6 @@ void TPTP::endType()
  */
 void TPTP::tag()
 {
-  CALL("TPTP::tag");
   consumeToken(_tags.pop());
 } // tag
 
@@ -3639,8 +3541,6 @@ void TPTP::tag()
  */
 void TPTP::endFof()
 {
-  CALL("TPTP::endFof");
-
   TPTP::SourceRecord* source = 0;
 
   // are we interested in collecting sources?
@@ -3660,7 +3560,7 @@ void TPTP::endFof()
 
   bool isFof = _bools.pop();
   Formula* f = _formulas.pop();
-  vstring nm = _strings.pop(); // unit name
+  std::string nm = _strings.pop(); // unit name
   if (_allowedNames && !_allowedNames->contains(nm)) {
     return;
   }
@@ -3699,7 +3599,7 @@ void TPTP::endFof()
 	    positive = !positive;
 	  }
 	  if (g->connective() != LITERAL) {
-	    USER_ERROR((vstring)"input formula not in CNF: " + f->toString());
+	    USER_ERROR((std::string)"input formula not in CNF: " + f->toString());
 	  }
 	  Literal* l = static_cast<AtomicFormula*>(g)->literal();
 	  lits.push(positive ? l : Literal::complementaryLiteral(l));
@@ -3711,7 +3611,7 @@ void TPTP::endFof()
       case FALSE:
 	break;
       default:
-	USER_ERROR((vstring)"input formula not in CNF: " + f->toString());
+	USER_ERROR((std::string)"input formula not in CNF: " + f->toString());
       }
     }
     unit = Clause::fromStack(lits,FromInput(_lastInputType));
@@ -3744,60 +3644,73 @@ void TPTP::endFof()
       unsigned arity = VList::length(g->vars());
       unsigned pred = env.signature->addPredicate("$$answer",arity);
       env.signature->getPredicate(pred)->markAnswerPredicate();
-      Literal* a = new(arity) Literal(pred,arity,true,false);
+      Recycled<Stack<TermList>> args;
       VList::Iterator vs(g->vars());
-      int i = 0;
       while (vs.hasNext()) {
-        a->nthArgument(i++)->makeVar(vs.next());
+        args->push(TermList::var(vs.next()));
       }
-      a = env.sharing->insert(a);
+      Literal* a = Literal::create(pred, arity, /* polarity */ true, /* commutative */  false, args->begin());
       f = new QuantifiedFormula(FORALL,
         g->vars(),
         g->sorts(),
         new BinaryFormula(IMP,g->subformula(),new AtomicFormula(a)));
-        unit = new FormulaUnit(f,FormulaTransformation(InferenceRule::ANSWER_LITERAL,unit));
+        unit = new FormulaUnit(f,FormulaTransformation(InferenceRule::ANSWER_LITERAL_INJECTION,unit));
     }
     else {
-      VList* vs = f->freeVariables();
+      VList* vs = freeVariables(f);
       if (VList::isEmpty(vs)) {
         f = new NegatedFormula(f);
       }
       else {
-        // TODO can we use sortOf to get the sorts of vs? 
+        // TODO can we use sortOf to get the sorts of vs?
         f = new NegatedFormula(new QuantifiedFormula(FORALL,vs,0,f));
       }
       unit = new FormulaUnit(f,
 			     FormulaTransformation(InferenceRule::NEGATED_CONJECTURE,unit));
+      if (_isQuestion) {
+        _questionVariableNames.insert(unit->number(),new Map<int,std::string>(std::move(_curQuestionVarNames)));
+      }
     }
     break;
 
   case UnitInputType::CLAIM:
-    {
-      bool added;
-      unsigned pred = env.signature->addPredicate(nm,0,added);
-      if (!added) {
-  USER_ERROR("Names of claims must be unique: "+nm);
-      }
-      env.signature->getPredicate(pred)->markLabel();
-      Literal* a = new(0) Literal(pred,0,true,false);
-      a = env.sharing->insert(a);
-      Formula* claim = new AtomicFormula(a);
-      VList* vs = f->freeVariables();
-      if (VList::isNonEmpty(vs)) {
-        //TODO can we use sortOf to get sorts of vs?
-        f = new QuantifiedFormula(FORALL,vs,0,f);
-      }
-      f = new BinaryFormula(IFF,claim,f);
-      unit = new FormulaUnit(f,
-          FormulaTransformation(InferenceRule::CLAIM_DEFINITION,unit));
-    }
+    unit = processClaimFormula(unit,f,nm);
     break;
 
   default:
     break;
   }
-  _units.push(unit);
+  _units.pushBack(unit);
 } // tag
+
+/*
+* The given unit has already been parsed (and had the role CLAIM).
+* It's actually a FormulaUnit with the formula f wrapped inside.
+* nm is the name of the claim in TPTP, but can be any other string
+* that will serve as the name of the predice we introduce:
+*
+* Now instead of returning it directly, we turn it into an equivalence
+* with a fresh predicate symbol (of name nm) and return that one.
+* The new symbo is marked not to be eliminated during preprocessing.
+*/
+Unit* TPTP::processClaimFormula(Unit* unit, Formula * f, const std::string& nm)
+{
+  bool added;
+  unsigned pred = env.signature->addPredicate(nm,0,added);
+  if (!added) {
+    USER_ERROR("Names of claims must be unique: "+nm);
+  }
+  env.signature->getPredicate(pred)->markLabel();
+  Formula* claim = new AtomicFormula(Literal::create(pred, /* polarity */ true, {}));
+  VList* vs = freeVariables(f);
+  if (VList::isNonEmpty(vs)) {
+    //TODO can we use sortOf to get sorts of vs?
+    f = new QuantifiedFormula(FORALL,vs,0,f);
+  }
+  f = new BinaryFormula(IFF,claim,f);
+  return new FormulaUnit(f,
+      FormulaTransformation(InferenceRule::CLAIM_DEFINITION,unit));
+}
 
 /**
  * Add a state just reading a tag and save the tag in _tags.
@@ -3805,7 +3718,6 @@ void TPTP::endFof()
  */
 void TPTP::addTagState(Tag t)
 {
-  CALL("TPTP::addTagState");
   _states.push(TAG);
   _tags.push(t);
 } // TPTP::addTagState
@@ -3816,8 +3728,6 @@ void TPTP::addTagState(Tag t)
  */
 void TPTP::endTff()
 {
-  CALL("TPTP::endTff");
-
   int rpars= _ints.pop();
   while (rpars--) {
     consumeToken(T_RPAR);
@@ -3831,7 +3741,7 @@ void TPTP::endTff()
   ASS(_types.isEmpty());
 
   OperatorType* ot = constructOperatorType(t);
-  vstring name = _strings.pop();
+  std::string name = _strings.pop();
 
   unsigned arity = ot->arity();
   bool isPredicate = ot->isPredicateType() && !_isThf;
@@ -3891,8 +3801,6 @@ void TPTP::endTff()
 
 OperatorType* TPTP::constructOperatorType(Type* t, VList* vars)
 {
-  CALL("TPTP::constructOperatorType");
-
   TermList resultSort;
   Stack<TermList> argumentSorts;
 
@@ -3995,11 +3903,11 @@ TPTP::SourceRecord* TPTP::getSource()
   
   //file
   if(source_kind.content == "file"){
-    vstring fileName = getTok(0).content;
+    std::string fileName = getTok(0).content;
     resetToks();
     consumeToken(T_COMMA);
     resetToks();
-    vstring nameInFile = getTok(0).content;
+    std::string nameInFile = getTok(0).content;
     resetToks();
 
     // cout << "Creating file source record for " << fileName << " and " << nameInFile << endl;
@@ -4010,7 +3918,7 @@ TPTP::SourceRecord* TPTP::getSource()
   // inference
   else if(source_kind.content == "inference" || source_kind.content == "introduced"){
     bool introduced = (source_kind.content == "introduced");
-    vstring name = getTok(0).content;
+    std::string name = getTok(0).content;
     resetToks();
 
     // cout << "Creating inference source record for " << name <<  endl;
@@ -4045,7 +3953,7 @@ TPTP::SourceRecord* TPTP::getSource()
         PARSE_ERROR("Source unit name expected",tok);
       }
 
-      vstring premise = tok.content;
+      std::string premise = tok.content;
 
       tok = getTok(0);
       if (tok.tag != T_COMMA && tok.tag != T_RBRA) {
@@ -4138,8 +4046,6 @@ void TPTP::skipToRBRA()
  */
 void TPTP::simpleFormula()
 {
-  CALL("TPTP::simpleFormula");
-
   Token tok = getTok(0);
 
   switch (tok.tag) {
@@ -4210,8 +4116,6 @@ void TPTP::simpleFormula()
  */
 void TPTP::unbindVariables()
 {
-  CALL("TPTP::unbindVariables");
-
   VList::Iterator vs(_bindLists.pop());
   while (vs.hasNext()) {
     unsigned var = vs.next();
@@ -4227,8 +4131,6 @@ void TPTP::unbindVariables()
  */
 void TPTP::simpleType()
 {
-  CALL("TPTP::simpleType");
-
   Token& tok = getTok(0);
 
   if(tok.tag == T_TYPE_QUANT) {
@@ -4268,8 +4170,6 @@ void TPTP::simpleType()
  
 TermList TPTP::readArrowSort()
 {
-  CALL("TPTP::readArrowSort");
-
   int inBrackets = 0;
   TermStack terms;
   Token tok = getTok(0);
@@ -4310,8 +4210,6 @@ afterWhile:
  
 void TPTP::foldl(TermStack* terms)
 {
-  CALL("TPTP::foldl");
-   
   TermList item1 = terms->pop();
   TermList item2 = terms->pop();
   while(!(terms->isEmpty()) && (!item2.isSpecialVar())){
@@ -4326,8 +4224,6 @@ void TPTP::foldl(TermStack* terms)
 
 void TPTP::readTypeArgs(unsigned arity)
 {
-  CALL("TPTP::readTypeArgs");
-
   for(unsigned i = 0; i < arity; i++){
     consumeToken(T_APP);
     Token tok = getTok(0);
@@ -4349,15 +4245,13 @@ void TPTP::readTypeArgs(unsigned arity)
  */
 TermList TPTP::readSort()
 {
-  CALL("TPTP::readSort");
-
   Token tok = getTok(0); 
   resetToks();
   switch (tok.tag) {
   case T_NAME:
     {
       unsigned arity = 0;
-      vstring fname = tok.content;
+      std::string fname = tok.content;
       if(_isThf){
         arity = _typeConstructorArities.find(fname) ? _typeConstructorArities.get(fname) : 0;
         readTypeArgs(arity);
@@ -4391,7 +4285,7 @@ TermList TPTP::readSort()
     }
   case T_VAR:
     {
-      vstring vname = tok.content;
+      std::string vname = tok.content;
       unsigned var = (unsigned)_vars.insert(vname);
       return  TermList(var, false);
     }
@@ -4476,9 +4370,7 @@ bool TPTP::higherPrecedence(int c1,int c2)
   ASSERTION_VIOLATION;
 } // higherPriority
 
-bool TPTP::findInterpretedPredicate(vstring name, unsigned arity) {
-  CALL("TPTP::findInterpretedPredicate");
-
+bool TPTP::findInterpretedPredicate(std::string name, unsigned arity) {
   if (name == "$evaleq" || name == "$equal" || name == "$distinct") {
     return true;
   }
@@ -4531,10 +4423,8 @@ Formula* TPTP::makeJunction (Connective c,Formula* lhs,Formula* rhs)
  * @param arg some argument of the function, require to resolve its type for overloaded
  *        built-in functions
  */
-unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
+unsigned TPTP::addFunction(std::string name,int arity,bool& added,TermList& arg)
 {
-  CALL("TPTP::addFunction");
-
   if (name == "$sum") {
     return addOverloadedFunction(name,arity,2,added,arg,
 				 Theory::INT_PLUS,
@@ -4698,10 +4588,8 @@ unsigned TPTP::addFunction(vstring name,int arity,bool& added,TermList& arg)
  * @return the predicate number in the signature, or -1 if it is a different name for an equality
  *         predicate
  */
-int TPTP::addPredicate(vstring name,int arity,bool& added,TermList& arg)
+int TPTP::addPredicate(std::string name,int arity,bool& added,TermList& arg)
 {
-  CALL("TPTP::addPredicate");
-
   if (name == "$evaleq" || name == "$equal") {
     return -1;
   }
@@ -4758,12 +4646,10 @@ int TPTP::addPredicate(vstring name,int arity,bool& added,TermList& arg)
 } // addPredicate
 
 
-unsigned TPTP::addOverloadedFunction(vstring name,int arity,int symbolArity,bool& added,TermList& arg,
+unsigned TPTP::addOverloadedFunction(std::string name,int arity,int symbolArity,bool& added,TermList& arg,
 				     Theory::Interpretation integer,Theory::Interpretation rational,
 				     Theory::Interpretation real)
 {
-  CALL("TPTP::addOverloadedFunction");
-
   if (arity != symbolArity) {
     USER_ERROR(name + " is used with " + Int::toString(arity) + " argument(s) when there were "+Int::toString(symbolArity)+" expected");
   }
@@ -4771,7 +4657,7 @@ unsigned TPTP::addOverloadedFunction(vstring name,int arity,int symbolArity,bool
   TermList* n = arg.next();
   for(int i=1;i<arity;i++){
     if(sortOf(*n)!=srt){
-      vstring msg = "The interpreted function symbol " + name + " is not used with a single sort.";
+      std::string msg = "The interpreted function symbol " + name + " is not used with a single sort.";
       msg += "\nArgument 0 is "+srt.toString()+" and argument "+Lib::Int::toString(i)+" is "+sortOf(*n).toString();
       if(_isFof){ msg += "\nCheck that you are using tff if you want numbers to be interpreted"; }
       USER_ERROR(msg);
@@ -4787,15 +4673,13 @@ unsigned TPTP::addOverloadedFunction(vstring name,int arity,int symbolArity,bool
   if (srt == AtomicSort::realSort()) {
     return env.signature->addInterpretedFunction(real,name);
   }
-  USER_ERROR((vstring)"The symbol " + name + " is used with a non-numeric type");
+  USER_ERROR((std::string)"The symbol " + name + " is used with a non-numeric type");
 } // addOverloadedFunction
 
-unsigned TPTP::addOverloadedPredicate(vstring name,int arity,int symbolArity,bool& added,TermList& arg,
+unsigned TPTP::addOverloadedPredicate(std::string name,int arity,int symbolArity,bool& added,TermList& arg,
 				     Theory::Interpretation integer,Theory::Interpretation rational,
 				     Theory::Interpretation real)
 {
-  CALL("TPTP::addOverloadedPredicate");
-
   if (arity != symbolArity) {
     USER_ERROR(name + " is used with " + Int::toString(arity) + " argument(s) when there were "+Int::toString(symbolArity)+" expected");
   }
@@ -4803,7 +4687,7 @@ unsigned TPTP::addOverloadedPredicate(vstring name,int arity,int symbolArity,boo
   TermList* n = arg.next();
   for(int i=1;i<arity;i++){
     if(sortOf(*n)!=srt){
-      vstring msg = "The interpreted predicate symbol " + name + " is not used with a single sort.";
+      std::string msg = "The interpreted predicate symbol " + name + " is not used with a single sort.";
       msg += "\nArgument 0 is "+srt.toString()+" and argument "+Lib::Int::toString(i)+" is "+sortOf(*n).toString();
       if(_isFof){ msg += "Check that you are using tff if you want numbers to be interpreted"; }
       USER_ERROR(msg);
@@ -4820,7 +4704,7 @@ unsigned TPTP::addOverloadedPredicate(vstring name,int arity,int symbolArity,boo
   if (srt == AtomicSort::realSort()) {
     return env.signature->addInterpretedPredicate(real,name);
   }
-  USER_ERROR((vstring)"The symbol " + name + " is used with a non-numeric type");
+  USER_ERROR((std::string)"The symbol " + name + " is used with a non-numeric type");
 } // addOverloadedPredicate
 
 /**
@@ -4831,8 +4715,6 @@ unsigned TPTP::addOverloadedPredicate(vstring name,int arity,int symbolArity,boo
  */
 TermList TPTP::sortOf(TermList t)
 {
-  CALL("TPTP::sortOf");
-  
   for (;;) {
     if (t.isVar()) {
       SList* sorts;
@@ -4856,7 +4738,7 @@ TermList TPTP::sortOf(TermList t)
 } // sortOf
 
 /**
- * Add an integer constant by reading it from the vstring name.
+ * Add an integer constant by reading it from the std::string name.
  * If it overflows, create an uninterpreted constant of the
  * integer type and the name 'name'. Check that the name of the constant
  * does not collide with user-introduced names of uninterpreted constants.
@@ -4865,10 +4747,8 @@ TermList TPTP::sortOf(TermList t)
  *   as terms of the default sort when fof() or cnf() is used
  * @author Andrei Voronkov
  */
-unsigned TPTP::addIntegerConstant(const vstring& name, Set<vstring>& overflow, bool defaultSort)
+unsigned TPTP::addIntegerConstant(const std::string& name, Set<std::string>& overflow, bool defaultSort)
 {
-  CALL("TPTP::addIntegerConstant");
-
   try {
     return env.signature->addIntegerConstant(name,defaultSort);
   }
@@ -4881,14 +4761,14 @@ unsigned TPTP::addIntegerConstant(const vstring& name, Set<vstring>& overflow, b
       symbol->setType(OperatorType::getConstantsType(defaultSort ? AtomicSort::defaultSort() : AtomicSort::intSort()));
     }
     else if (!overflow.contains(name)) {
-      USER_ERROR((vstring)"Cannot use name '" + name + "' as an atom name since it collides with an integer number");
+      USER_ERROR((std::string)"Cannot use name '" + name + "' as an atom name since it collides with an integer number");
     }
     return fun;
   }
 } // TPTP::addIntegerConstant
 
 /**
- * Add an rational constant by reading it from the vstring name.
+ * Add an rational constant by reading it from the std::string name.
  * If it overflows, create an uninterpreted constant of the
  * rational type and the name 'name'. Check that the name of the constant
  * does not collide with user-introduced names of uninterpreted constants.
@@ -4897,12 +4777,10 @@ unsigned TPTP::addIntegerConstant(const vstring& name, Set<vstring>& overflow, b
  *    between treating rationals using fof() and tff()
  * @author Andrei Voronkov
  */
-unsigned TPTP::addRationalConstant(const vstring& name, Set<vstring>& overflow, bool defaultSort)
+unsigned TPTP::addRationalConstant(const std::string& name, Set<std::string>& overflow, bool defaultSort)
 {
-  CALL("TPTP::addRationalConstant");
-
   size_t i = name.find_first_of("/");
-  ASS(i != vstring::npos);
+  ASS(i != std::string::npos);
   try {
     return env.signature->addRationalConstant(name.substr(0,i),
 					      name.substr(i+1),
@@ -4917,14 +4795,14 @@ unsigned TPTP::addRationalConstant(const vstring& name, Set<vstring>& overflow, 
       symbol->setType(OperatorType::getConstantsType(defaultSort ? AtomicSort::defaultSort() : AtomicSort::rationalSort()));
     }
     else if (!overflow.contains(name)) {
-      USER_ERROR((vstring)"Cannot use name '" + name + "' as an atom name since it collides with an rational number");
+      USER_ERROR((std::string)"Cannot use name '" + name + "' as an atom name since it collides with an rational number");
     }
     return fun;
   }
 } // TPTP::addRationalConstant
 
 /**
- * Add an real constant by reading it from the vstring name.
+ * Add an real constant by reading it from the std::string name.
  * If it overflows, create an uninterpreted constant of the
  * real type and the name 'name'. Check that the name of the constant
  * does not collide with user-introduced names of uninterpreted constants.
@@ -4933,10 +4811,8 @@ unsigned TPTP::addRationalConstant(const vstring& name, Set<vstring>& overflow, 
  *    between treating rationals using fof() and tff()
  * @author Andrei Voronkov
  */
-unsigned TPTP::addRealConstant(const vstring& name, Set<vstring>& overflow, bool defaultSort)
+unsigned TPTP::addRealConstant(const std::string& name, Set<std::string>& overflow, bool defaultSort)
 {
-  CALL("TPTP::addRealConstant");
-
   try {
     return env.signature->addRealConstant(name,defaultSort);
   }
@@ -4949,7 +4825,7 @@ unsigned TPTP::addRealConstant(const vstring& name, Set<vstring>& overflow, bool
       symbol->setType(OperatorType::getConstantsType(defaultSort ? AtomicSort::defaultSort() : AtomicSort::realSort()));
     }
     else if (!overflow.contains(name)) {
-      USER_ERROR((vstring)"Cannot use name '" + name + "' as an atom name since it collides with an real number");
+      USER_ERROR((std::string)"Cannot use name '" + name + "' as an atom name since it collides with an real number");
     }
     return fun;
   }
@@ -4957,17 +4833,15 @@ unsigned TPTP::addRealConstant(const vstring& name, Set<vstring>& overflow, bool
 
 
 /**
- * Add an uninterpreted constant by reading it from the vstring name.
+ * Add an uninterpreted constant by reading it from the std::string name.
  * Check that the name of the constant does not collide with uninterpreted constants
  * created by the parser from overflown input numbers.
  * @since 22/07/2011 Manchester
  */
-unsigned TPTP::addUninterpretedConstant(const vstring& name, Set<vstring>& overflow, bool& added)
+unsigned TPTP::addUninterpretedConstant(const std::string& name, Set<std::string>& overflow, bool& added)
 {
-  CALL("TPTP::addUninterpretedConstant");
-
   if (overflow.contains(name)) {
-    USER_ERROR((vstring)"Cannot use name '" + name + "' as an atom name since it collides with an integer number");
+    USER_ERROR((std::string)"Cannot use name '" + name + "' as an atom name since it collides with an integer number");
   }
   //TODO make sure Vampire internal names are unique to Vampire
   //and cannot occur in the input AYB
@@ -4984,9 +4858,8 @@ unsigned TPTP::addUninterpretedConstant(const vstring& name, Set<vstring>& overf
  * Associate name @b name with unit @b unit
  * Each formula can have its name assigned at most once
  */
-void TPTP::assignAxiomName(const Unit* unit, vstring& name)
+void TPTP::assignAxiomName(const Unit* unit, std::string& name)
 {
-  CALL("Parser::assignAxiomName");
   ALWAYS(_axiomNames.insert(unit->number(), name));
 } // TPTP::assignAxiomName
 
@@ -4994,9 +4867,8 @@ void TPTP::assignAxiomName(const Unit* unit, vstring& name)
  * If @b unit has a name associated, assign it into @b result,
  * and return true; otherwise return false
  */
-bool TPTP::findAxiomName(const Unit* unit, vstring& result)
+bool TPTP::findAxiomName(const Unit* unit, std::string& result)
 {
-  CALL("Parser::findAxiomName");
   return _axiomNames.find(unit->number(), result);
 } // TPTP::findAxiomName
 
@@ -5006,14 +4878,12 @@ bool TPTP::findAxiomName(const Unit* unit, vstring& result)
  */
 void TPTP::vampire()
 {
-  CALL("TPTP::vampire");
-
   consumeToken(T_LPAR);
-  vstring nm = name();
+  std::string nm = name();
 
   if (nm == "option") { // vampire(option,age_weight_ratio,3)
     consumeToken(T_COMMA);
-    vstring opt = name();
+    std::string opt = name();
     consumeToken(T_COMMA);
     Token tok = getTok(0);
     switch (tok.tag) {
@@ -5030,7 +4900,7 @@ void TPTP::vampire()
   // Allows us to insert LaTeX templates for predicate and function symbols
   else if(nm == "latex"){
     consumeToken(T_COMMA);
-    vstring kind = name();
+    std::string kind = name();
     bool pred;
     if (kind == "predicate") {
       pred = true;
@@ -5042,7 +4912,7 @@ void TPTP::vampire()
       PARSE_ERROR("either 'predicate' or 'function' expected",getTok(0));
     }
     consumeToken(T_COMMA);
-    vstring symb = name();
+    std::string symb = name();
     consumeToken(T_COMMA);
     Token tok = getTok(0);
     if (tok.tag != T_INT) {
@@ -5058,11 +4928,11 @@ void TPTP::vampire()
     if(tok.tag != T_STRING){
       PARSE_ERROR("a template string expected",tok);
     }
-    vstring temp = tok.content;
+    std::string temp = tok.content;
     resetToks();
     if(pred){
       consumeToken(T_COMMA);
-      vstring pol= name();
+      std::string pol= name();
       bool polarity;
       if(pol=="true"){polarity=true;}else if(pol=="false"){polarity=false;}
       else{ PARSE_ERROR("polarity expected (true/false)",getTok(0)); }
@@ -5076,7 +4946,7 @@ void TPTP::vampire()
   }
   else if (nm == "symbol") {
     consumeToken(T_COMMA);
-    vstring kind = name();
+    std::string kind = name();
     bool pred;
     if (kind == "predicate") {
       pred = true;
@@ -5088,7 +4958,7 @@ void TPTP::vampire()
       PARSE_ERROR("either 'predicate' or 'function' expected",getTok(0));
     }
     consumeToken(T_COMMA);
-    vstring symb = name();
+    std::string symb = name();
     consumeToken(T_COMMA);
     Token tok = getTok(0);
     if (tok.tag != T_INT) {
@@ -5100,9 +4970,9 @@ void TPTP::vampire()
     }
     resetToks();
     consumeToken(T_COMMA);
-    Color color;
-    bool skip = false;
-    vstring lr = name();
+    Color color = COLOR_INVALID;
+    bool skip = false, uncomputable = false;
+    std::string lr = name();
     if (lr == "left") {
       color=COLOR_LEFT;
     }
@@ -5112,17 +4982,26 @@ void TPTP::vampire()
     else if (lr == "skip") {
       skip = true;
     }
-    else {
-      PARSE_ERROR("'left', 'right' or 'skip' expected",getTok(0));
+    else if (lr == "uncomputable") {
+      uncomputable = true;
     }
-    env.colorUsed = true;
+    else {
+      PARSE_ERROR("'left', 'right', 'skip' or 'uncomputable' expected",getTok(0));
+    }
+    if (!uncomputable) {
+      env.colorUsed = true;
+    }
     Signature::Symbol* sym = pred
                              ? env.signature->getPredicate(env.signature->addPredicate(symb,arity))
                              : env.signature->getFunction(env.signature->addFunction(symb,arity));
     if (skip) {
       sym->markSkip();
     }
+    else if (uncomputable) {
+      sym->markUncomputable();
+    }
     else {
+      ASS_NEQ(color, COLOR_INVALID);
       sym->addColor(color);
     }
   }
@@ -5137,7 +5016,7 @@ void TPTP::vampire()
   }
   else if (nm == "model_check"){
     consumeToken(T_COMMA);
-    vstring command = name();
+    std::string command = name();
     if(command == "formulas_start"){
       _modelDefinition = false;
     }
@@ -5153,7 +5032,7 @@ void TPTP::vampire()
     else USER_ERROR("Unknown model_check command");
   }
   else {
-    USER_ERROR((vstring)"Unknown vampire directive: "+nm);
+    USER_ERROR((std::string)"Unknown vampire directive: "+nm);
   }
   consumeToken(T_RPAR);
   consumeToken(T_DOT);
@@ -5282,7 +5161,7 @@ void TPTP::printStacks() {
   while (cit.hasNext()) cout << " " << cit.next();
   cout << endl; 
 
-  Stack<vstring>::Iterator sit(_strings);
+  Stack<std::string>::Iterator sit(_strings);
   cout << "Strings:";
   if   (!sit.hasNext()) cout << " <empty>";
   while (sit.hasNext()) cout << " " << sit.next();
@@ -5377,12 +5256,12 @@ void TPTP::printStacks() {
       unsigned i = lfs.length();
       while (sit.hasNext()) {
         LetSymbol f    = sit.next();
-        vstring name     = f.first.first;
+        std::string name     = f.first.first;
         unsigned arity   = f.first.second;
         unsigned symbol  = f.second.first;
         bool isPredicate = f.second.second;
 
-        vstring symbolName = isPredicate ? env.signature->predicateName(symbol)
+        std::string symbolName = isPredicate ? env.signature->predicateName(symbol)
                                          : env.signature->functionName (symbol);
 
         cout << name << "/" << arity << " -> " << symbolName;
@@ -5406,12 +5285,12 @@ void TPTP::printStacks() {
       unsigned i = lfs.length();
       while (csit.hasNext()) {
         LetSymbol f    = csit.next();
-        vstring name     = f.first.first;
+        std::string name     = f.first.first;
         unsigned arity   = f.first.second;
         unsigned symbol  = f.second.first;
         bool isPredicate = f.second.second;
 
-        vstring symbolName = isPredicate ? env.signature->predicateName(symbol)
+        std::string symbolName = isPredicate ? env.signature->predicateName(symbol)
                                          : env.signature->functionName (symbol);
 
         cout << name << "/" << arity << " -> " << symbolName;
@@ -5438,7 +5317,7 @@ void TPTP::printStacks() {
         LetSymbolReference ref = lbit.next();
         unsigned symbol = SYMBOL(ref);
         bool isPredicate = IS_PREDICATE(ref);
-        vstring symbolName = isPredicate ? env.signature->predicateName(symbol)
+        std::string symbolName = isPredicate ? env.signature->predicateName(symbol)
                                          : env.signature->functionName (symbol);
         cout << symbolName;
         if (--i > 0) {

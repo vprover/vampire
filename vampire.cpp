@@ -14,31 +14,21 @@
 #include <iostream>
 #include <ostream>
 #include <fstream>
-#include <csignal>
 
 #if VZ3
 #include "z3++.h"
 #endif
 
-#include "Debug/Tracer.hpp"
-
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
-#include "Lib/MapToLIFO.hpp"
 #include "Lib/Random.hpp"
-#include "Lib/Set.hpp"
-#include "Lib/Stack.hpp"
-#include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
-#include "Lib/VString.hpp"
 #include "Lib/List.hpp"
-#include "Lib/Vector.hpp"
 #include "Lib/System.hpp"
-#include "Lib/Metaiterators.hpp"
-
-#include "Lib/RCPtr.hpp"
-
+#include "Lib/StringUtils.hpp"
+#include "Lib/Sys/Multiprocessing.hpp"
+#include "Lib/Int.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
@@ -47,21 +37,11 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 
-#include "Indexing/TermSharing.hpp"
-
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
 
-//#include "InstGen/IGAlgorithm.hpp"
-
-#include "SAT/DIMACS.hpp"
-
 #include "CASC/PortfolioMode.hpp"
-#include "CASC/CLTBMode.hpp"
-#include "CASC/CLTBModeLearning.hpp"
 #include "Shell/CommandLine.hpp"
-//#include "Shell/EqualityProxy.hpp"
-#include "Shell/Grounding.hpp"
 #include "Shell/Normalisation.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Property.hpp"
@@ -74,27 +54,13 @@
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/LaTeX.hpp"
+#include "Shell/SineUtils.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "SAT/MinisatInterfacing.hpp"
-#include "SAT/MinisatInterfacingNewSimp.hpp"
-
 #include "FMB/ModelCheck.hpp"
-#include <thread>
 
-#if CHECK_LEAKS
-#include "Lib/MemoryLeak.hpp"
-#endif
-
-#define USE_SPIDER 0
-#define SAVE_SPIDER_PROPERTIES 0
-
-using namespace Shell;
-using namespace SAT;
-using namespace Saturation;
-using namespace Inferences;
-//using namespace InstGen;
+using namespace std;
 
 /**
  * Return value is non-zero unless we were successful.
@@ -103,8 +69,7 @@ using namespace Inferences;
  * either found refutation or established satisfiability.
  *
  *
- * If Vampire was interrupted by a SIGINT, value
- * VAMP_RESULT_STATUS_SIGINT is returned,
+ * If Vampire was interrupted (e.g. SIGINT, SIGHUP), value VAMP_RESULT_STATUS_INTERRUPTED is returned,
  * and in case of other signal we return VAMP_RESULT_STATUS_OTHER_SIGNAL. For implementation
  * of these return values see Lib/System.hpp.
  *
@@ -118,32 +83,20 @@ using namespace Inferences;
 int vampireReturnValue = VAMP_RESULT_STATUS_UNKNOWN;
 
 /**
- * Return value is non-zero unless we were successful.
+ * Preprocess the given problem (in dependence of env.options).
  *
- * Being successful for modes that involve proving means that we have
- * either found refutation or established satisfiability.
- *
- *
- * If execution was interrupted by a SIGINT, value 3 is returned,
- * and in case of other signal we return 2. For implementation
- * of these return values see Lib/System.hpp.
- *
- * In case execution was terminated by the timer, return value is 1.
- * (see @c timeLimitReached() in Lib/Timer.cpp)
+ * The problem is modified destructively.
  */
-int g_returnValue = 1;
-
-/**
- * Preprocess input problem
- *
- */
-Problem* getPreprocessedProblem()
+[[nodiscard]]
+Problem* preprocessProblem(Problem* prb)
 {
-  CALL("getPreprocessedProblem");
+  // Here officially starts preprocessing of vampireMode
+  // and that's the moment we want to set the random seed (no randomness in parsing, for the peace of mind)
+  // the main reason being that we want to stay in sync with what profolio mode will do
+  // cf ProvingHelper::runVampire
+  Lib::Random::setSeed(env.options->randomSeed());
 
-  Problem* prb = UIHelper::getInputProblem(*env.options);
-
-  TimeCounter tc2(TC_PREPROCESSING);
+  TIME_TRACE(TimeTrace::PREPROCESSING);
 
   // this will provide warning if options don't make sense for problem
   if (env.options->mode()!=Options::Mode::SPIDER) {
@@ -153,48 +106,30 @@ Problem* getPreprocessedProblem()
   Shell::Preprocess prepro(*env.options);
   //phases for preprocessing are being set inside the preprocess method
   prepro.preprocess(*prb);
-  
+
   return prb;
 } // getPreprocessedProblem
 
 void explainException(Exception& exception)
 {
-  env.beginOutput();
-  exception.cry(env.out());
-  env.endOutput();
+  exception.cry(std::cout);
 } // explainException
 
-void getRandomStrategy()
+[[nodiscard]]
+Problem *doProving(Problem* problem)
 {
-  CALL("getRandomStrategy()");
-  // We might have set random_strategy sat
-  if(env.options->randomStrategy()==Options::RandomStrategy::OFF){
-    env.options->setRandomStrategy(Options::RandomStrategy::ON);
+  // a new strategy randomization mechanism
+  if (!env.options->strategySamplerFilename().empty()) {
+    env.options->sampleStrategy(env.options->strategySamplerFilename());
   }
 
-  // One call to randomize before preprocessing (see Options)
-  env.options->randomizeStrategy(0); 
-  ScopedPtr<Problem> prb(getPreprocessedProblem());
-  // Then again when the property is here
-  env.options->randomizeStrategy(prb->getProperty()); 
+  env.options->setForcedOptionValues();
+  env.options->checkGlobalOptionConstraints();
 
-  // It is possible that the random strategy is still incorrect as we don't
-  // have access to the Property when setting preprocessing
-  env.options->checkProblemOptionConstraints(prb->getProperty(), /*before_preprocessing = */ false);
-}
-
-void doProving()
-{
-  CALL("doProving()");
-  // One call to randomize before preprocessing (see Options)
-  env.options->randomizeStrategy(0);
-
-  ScopedPtr<Problem> prb(getPreprocessedProblem());
+  Problem *prb = preprocessProblem(problem);
 
   Property* property = prb->getProperty();
-
-  env.beginOutput();
-  env.out()
+  std::cout
     << property->categoryString() << ' '
     << property->props() << ' '
 	  << property->atoms() << ' '
@@ -236,15 +171,10 @@ void doProving()
     << property->_sortsUsed << ' '
 
 	  << "\n";
-  env.endOutput();
 
   //we have succeeded with the profile mode, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-
-  return;
-
-  // Then again when the property is here (this will only randomize non-default things if an option is set to do so)
-  env.options->randomizeStrategy(prb->getProperty());
+  return prb;
 
   // this will provide warning if options don't make sense for problem
   if (env.options->mode()!=Options::Mode::SPIDER) {
@@ -252,17 +182,16 @@ void doProving()
   }
 
   ProvingHelper::runVampireSaturation(*prb, *env.options);
+  return prb;
 }
 
 /**
  * Read a problem and output profiling information about it.
  * @since 03/08/2008 Torrevieja
  */
-void profileMode()
+void profileMode(Problem* problem)
 {
-  CALL("profileMode()");
-
-  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
+  ScopedPtr<Problem> prb(problem);
 
   /* CAREFUL: Make sure that the order
    * 1) getProperty, 2) normalise, 3) TheoryFinder::search
@@ -272,8 +201,7 @@ void profileMode()
   Normalisation().normalise(*prb);
   TheoryFinder(prb->units(), property).search();
 
-  env.beginOutput();
-  env.out()
+  std::cout
     << property->categoryString() << ' '
     << property->props() << ' '
 	  << property->atoms() << ' '
@@ -315,41 +243,15 @@ void profileMode()
     << property->_sortsUsed << ' '
 
 	  << "\n";
-  env.endOutput();
 
   //we have succeeded with the profile mode, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // profileMode
 
-void outputResult(ostream& out) {
-  CALL("outputResult");
-
-  switch(env.statistics->terminationReason) {
-  case Statistics::UNKNOWN:
-    cout<<"unknown"<<endl;
-    break;
-  case Statistics::INAPPROPRIATE:
-    cout<<"inappropriate"<<endl;
-    break;
-  case Statistics::SATISFIABLE:
-    cout<<"sat"<<endl;
-    break;
-  case Statistics::REFUTATION:
-    cout<<"unsat"<<endl;
-    break;
-  default:
-    //these outcomes are not reachable with the current implementation
-    ASSERTION_VIOLATION;
-  }
-  if(env.options->mode()!=Options::Mode::SPIDER){
-    env.statistics->print(env.out());
-  }
-}
-
 // prints Unit u at an index to latexOut using the LaTeX object
 void outputUnitToLaTeX(LaTeX& latex, ofstream& latexOut, Unit* u,unsigned index)
 {
-    vstring stringform = latex.toString(u);
+    std::string stringform = latex.toString(u);
     latexOut << index++ << " & ";
     unsigned count = 0;
     for(const char* p = stringform.c_str();*p;p++){
@@ -366,10 +268,7 @@ void outputUnitToLaTeX(LaTeX& latex, ofstream& latexOut, Unit* u,unsigned index)
 // print the clauses of a problem to a LaTeX file
 void outputClausesToLaTeX(Problem* prb)
 {
-  CALL("outputClausesToLaTeX");
   ASS(env.options->latexOutput()!="off");
-
-  BYPASSING_ALLOCATOR; // not sure why we need this yet, ofstream?
 
   LaTeX latex;
   ofstream latexOut(env.options->latexOutput().c_str());
@@ -401,10 +300,7 @@ void outputClausesToLaTeX(Problem* prb)
 // print the formulas of a problem to a LaTeX file
 void outputProblemToLaTeX(Problem* prb)
 {
-  CALL("outputProblemToLaTeX");
   ASS(env.options->latexOutput()!="off");
-
-  BYPASSING_ALLOCATOR; // not sure why we need this yet, ofstream?
 
   LaTeX latex;
   ofstream latexOut(env.options->latexOutput().c_str());
@@ -414,8 +310,6 @@ void outputProblemToLaTeX(Problem* prb)
   latexOut << "\\[\n\\begin{array}{ll}" << endl;
 
   //TODO  get symbol and sort declarations into LaTeX
-  //UIHelper::outputSortDeclarations(env.out());
-  //UIHelper::outputSymbolDeclarations(env.out());
 
   UnitList::Iterator units(prb->units());
 
@@ -435,17 +329,15 @@ void outputProblemToLaTeX(Problem* prb)
  * per se or also for converting one syntax to another. For the latter, the input
  * and the output syntaxes must be set to different values. Note that for
  * simply translating one syntax to another, output mode is the right one.
- * 
+ *
  * @author Andrei Voronkov
  * @since 02/07/2013 Manchester
  */
-void preprocessMode(bool theory)
+void preprocessMode(Problem* problem, bool theory)
 {
-  CALL("preprocessMode()");
+  ScopedPtr<Problem> prb(problem);
 
-  Problem* prb = UIHelper::getInputProblem(*env.options);
-
-  TimeCounter tc2(TC_PREPROCESSING);
+  TIME_TRACE(TimeTrace::PREPROCESSING);
 
   // preprocess without clausification
   Shell::Preprocess prepro(*env.options);
@@ -455,10 +347,9 @@ void preprocessMode(bool theory)
   }
   prepro.preprocess(*prb);
 
-  env.beginOutput();
   //outputSymbolDeclarations also deals with sorts for now
-  //UIHelper::outputSortDeclarations(env.out());
-  UIHelper::outputSymbolDeclarations(env.out());
+  //UIHelper::outputSortDeclarations(std::cout);
+  UIHelper::outputSymbolDeclarations(std::cout);
   UnitList::Iterator units(prb->units());
   while (units.hasNext()) {
     Unit* u = units.next();
@@ -477,14 +368,13 @@ void preprocessMode(bool theory)
       }
 
       FormulaUnit* fu = new FormulaUnit(f,u->inference()); // we are stealing u's inference which is not nice
-      env.out() << TPTPPrinter::toString(fu) << "\n";
+      std::cout << TPTPPrinter::toString(fu) << "\n";
     } else {
-      env.out() << TPTPPrinter::toString(u) << "\n";
+      std::cout << TPTPPrinter::toString(u) << "\n";
     }
   }
-  env.endOutput();
 
-  if(env.options->latexOutput()!="off"){ outputProblemToLaTeX(prb); }
+  if(env.options->latexOutput()!="off"){ outputProblemToLaTeX(prb.ptr()); }
 
   //we have successfully output all clauses, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -495,19 +385,15 @@ void preprocessMode(bool theory)
  * @author Giles
  * @since 6/10/2015
  */
-void modelCheckMode()
+void modelCheckMode(Problem* problem)
 {
-  CALL("modelCheckMode");
-
-  env.options->setOutputAxiomNames(true);
-  Problem* prb = UIHelper::getInputProblem(*env.options);
-
-  if(env.property->hasPolymorphicSym() || env.property->higherOrder()){
+  ScopedPtr<Problem> prb(problem);
+  
+  if(env.getMainProblem()->hasPolymorphicSym() || env.getMainProblem()->isHigherOrder()){
     USER_ERROR("Polymorphic Vampire is not yet compatible with theory reasoning");
   }
 
-  FMB::ModelCheck::doCheck(prb);
-
+  FMB::ModelCheck::doCheck(prb->units());
 } // modelCheckMode
 
 
@@ -517,43 +403,37 @@ void modelCheckMode()
  * @author Laura Kovacs and Andrei Voronkov
  * @since 02/07/2013 Gothenburg and Manchester
  */
-void outputMode()
+void outputMode(Problem* problem)
 {
-  CALL("outputMode()");
+  ScopedPtr<Problem> prb(problem);
 
-  Problem* prb = UIHelper::getInputProblem(*env.options);
-
-  env.beginOutput();
   //outputSymbolDeclarations also deals with sorts for now
-  //UIHelper::outputSortDeclarations(env.out());
-  UIHelper::outputSymbolDeclarations(env.out());
+  //UIHelper::outputSortDeclarations(std::cout);
+  UIHelper::outputSymbolDeclarations(std::cout);
   UnitList::Iterator units(prb->units());
 
   while (units.hasNext()) {
     Unit* u = units.next();
-    env.out() << TPTPPrinter::toString(u) << "\n";
+    std::cout << TPTPPrinter::toString(u) << "\n";
   }
-  env.endOutput();
 
-  if(env.options->latexOutput()!="off"){ outputProblemToLaTeX(prb); }
+  if(env.options->latexOutput()!="off"){ outputProblemToLaTeX(prb.ptr()); }
 
   //we have successfully output all clauses, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // outputMode
 
-void vampireMode()
+void vampireMode(Problem* problem)
 {
-  CALL("vampireMode()");
-
   if (env.options->mode() == Options::Mode::CONSEQUENCE_ELIMINATION) {
     env.options->setUnusedPredicateDefinitionRemoval(false);
   }
 
-  doProving();
+  ScopedPtr<Problem> prb(doProving(problem));
 
-  env.beginOutput();
-  UIHelper::outputResult(env.out());
-  env.endOutput();
+  return;
+
+  UIHelper::outputResult(std::cout);
 
   if (env.statistics->terminationReason == Statistics::REFUTATION
       || env.statistics->terminationReason == Statistics::SATISFIABLE) {
@@ -561,32 +441,34 @@ void vampireMode()
   }
 } // vampireMode
 
-void spiderMode()
+void spiderMode(Problem* problem)
 {
-  CALL("spiderMode()");
   env.options->setBadOptionChoice(Options::BadOption::HARD);
   env.options->setOutputMode(Options::Output::SPIDER);
+  env.options->setNormalize(true);
+
   Exception* exception = 0;
 #if VZ3
   z3::exception* z3_exception = 0;
 #endif
-  bool noException = true;
+
+  bool exceptionRaised = false;
+  ScopedPtr<Problem> prb;
   try {
-    doProving();
+    prb = doProving(problem);
   } catch (Exception& e) {
     exception = &e;
-    noException = false;
+    exceptionRaised = true;
 #if VZ3
   } catch(z3::exception& e){
-    z3_exception = &e; 
-    noException = false;
+    z3_exception = &e;
+    exceptionRaised = true;
 #endif
   } catch (...) {
-    noException = false;
+    exceptionRaised = true;
   }
 
-  env.beginOutput();
-  if (noException) {
+  if (!exceptionRaised) {
     switch (env.statistics->terminationReason) {
     case Statistics::REFUTATION:
       reportSpiderStatus('+');
@@ -594,13 +476,16 @@ void spiderMode()
       break;
     case Statistics::TIME_LIMIT:
       reportSpiderStatus('t');
+      break;
     case Statistics::MEMORY_LIMIT:
       reportSpiderStatus('m');
+      break;
     case Statistics::UNKNOWN:
     case Statistics::INAPPROPRIATE:
       reportSpiderStatus('u');
+      break;
     case Statistics::REFUTATION_NOT_FOUND:
-      if(env.statistics->discardedNonRedundantClauses>0){
+      if (env.statistics->discardedNonRedundantClauses > 0) {
         reportSpiderStatus('n');
       }
       else{
@@ -614,43 +499,47 @@ void spiderMode()
     default:
       ASSERTION_VIOLATION;
     }
-    // env.statistics->print(env.out());
-  } else {
-#if VZ3
-    if(z3_exception){
-      if(strcmp(z3_exception->msg(),"out of memory\n")){
-        reportSpiderStatus('m');
-      }
-      else{ reportSpiderFail(); }
-    }
-    else{
-#endif
-      reportSpiderFail();
-      ASS(exception); 
-      explainException(*exception); 
-#if VZ3
-    }
-#endif
-    vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
+    return;
   }
-  env.endOutput();
+
+  // exception
+  vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
+
+#if VZ3
+  if (z3_exception) {
+    if (strcmp(z3_exception->msg(),"out of memory\n")) {
+      reportSpiderStatus('m');
+    }
+    else {
+      reportSpiderFail();
+    }
+
+    return;
+  }
+#endif
+
+  reportSpiderFail();
+
+  ASS(exception);
+  explainException(*exception);
 } // spiderMode
 
-void clausifyMode(bool theory)
+void clausifyMode(Problem* problem, bool theory)
 {
-  CALL("clausifyMode()");
-
   CompositeISE simplifier;
   simplifier.addFront(new TrivialInequalitiesRemovalISE());
   simplifier.addFront(new TautologyDeletionISE());
   simplifier.addFront(new DuplicateLiteralRemovalISE());
 
-  ScopedPtr<Problem> prb(getPreprocessedProblem());
+  if (!env.options->strategySamplerFilename().empty()) {
+    env.options->sampleStrategy(env.options->strategySamplerFilename());
+  }
 
-  env.beginOutput();
+  ScopedPtr<Problem> prb(preprocessProblem(problem));
+
   //outputSymbolDeclarations deals with sorts as well for now
-  //UIHelper::outputSortDeclarations(env.out());
-  UIHelper::outputSymbolDeclarations(env.out());
+  //UIHelper::outputSortDeclarations(std::cout);
+  UIHelper::outputSymbolDeclarations(std::cout);
 
   ClauseIterator cit = prb->clauseIterator();
   bool printed_conjecture = false;
@@ -671,19 +560,20 @@ void clausifyMode(bool theory)
 
       FormulaUnit* fu = new FormulaUnit(f,cl->inference()); // we are stealing cl's inference, which is not nice!
       fu->overwriteNumber(cl->number()); // we are also making sure it's number is the same as that of the original (for Kostya from Russia to CASC, with love, and back again)
-      env.out() << TPTPPrinter::toString(fu) << "\n";
+      std::cout << TPTPPrinter::toString(fu) << "\n";
     } else {
-      env.out() << TPTPPrinter::toString(cl) << "\n";
+      std::cout << TPTPPrinter::toString(cl) << "\n";
     }
   }
   if(!printed_conjecture && UIHelper::haveConjecture()){
     unsigned p = env.signature->addFreshPredicate(0,"p");
-    Clause* c = new(2) Clause(2,NonspecificInference0(UnitInputType::NEGATED_CONJECTURE,InferenceRule::INPUT));
-    (*c)[0] = Literal::create(p,0,true,false,0);
-    (*c)[1] = Literal::create(p,0,false,false,0);
-    env.out() << TPTPPrinter::toString(c) << "\n";
+    auto c = Clause::fromLiterals({
+        Literal::create(p, /* polarity */ true , {}),
+        Literal::create(p, /* polarity */ false, {})
+      }, 
+      NonspecificInference0(UnitInputType::NEGATED_CONJECTURE,InferenceRule::INPUT));
+    std::cout << TPTPPrinter::toString(c) << "\n";
   }
-  env.endOutput();
 
   if (env.options->latexOutput() != "off") { outputClausesToLaTeX(prb.ptr()); }
 
@@ -691,13 +581,11 @@ void clausifyMode(bool theory)
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // clausifyMode
 
-void axiomSelectionMode()
+void axiomSelectionMode(Problem* problem)
 {
-  CALL("axiomSelectionMode()");
+  ScopedPtr<Problem> prb(problem);
 
   env.options->setSineSelection(Options::SineSelection::AXIOMS);
-
-  ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
 
   if (prb->hasFOOL()) {
     FOOLElimination().apply(*prb);
@@ -711,70 +599,226 @@ void axiomSelectionMode()
   }
 
   env.statistics->phase = Statistics::SINE_SELECTION;
-  SineSelector(*env.options).perform(*prb);
+  Shell::SineSelector(*env.options).perform(*prb);
 
   env.statistics->phase = Statistics::FINALIZATION;
 
   UnitList::Iterator uit(prb->units());
-  env.beginOutput();
   while (uit.hasNext()) {
     Unit* u = uit.next();
-    env.out() << TPTPPrinter::toString(u) << "\n";
+    std::cout << TPTPPrinter::toString(u) << "\n";
   }
-  env.endOutput();
 
   //we have successfully output the selected units, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 }
 
-void groundingMode()
+void dispatchByMode(Problem* problem)
 {
-  CALL("groundingMode()");
+  switch (env.options->mode())
+  {
+  case Options::Mode::AXIOM_SELECTION:
+    axiomSelectionMode(problem);
+    break;
+  case Options::Mode::SPIDER:
+    spiderMode(problem);
+    break;
+  case Options::Mode::CONSEQUENCE_ELIMINATION:
+  case Options::Mode::VAMPIRE:
+    vampireMode(problem);
+    break;
 
-  try {
-    ScopedPtr<Problem> prb(UIHelper::getInputProblem(*env.options));
+  case Options::Mode::CASC:
+    env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
+    env.options->setSchedule(Options::Schedule::CASC);
+    env.options->setInputSyntax(Options::InputSyntax::TPTP);
+    env.options->setOutputMode(Options::Output::SZS);
+    env.options->setProof(Options::Proof::TPTP);
+    env.options->setOutputAxiomNames(true);
+    env.options->setNormalize(true);
+    env.options->setRandomizeSeedForPortfolioWorkers(false);
 
-    Shell::Preprocess prepro(*env.options);
-    prepro.preprocess(*prb);
-
-    ClauseIterator clauses = prb->clauseIterator();
-
-    if (prb->hasEquality()) {
-      ClauseList* eqAxioms = Grounding::getEqualityAxioms(
-	      prb->getProperty()->positiveEqualityAtoms() != 0);
-      clauses = pvi(
-	      getConcatenatedIterator(ClauseList::DestructiveIterator(eqAxioms),
-		      clauses));
+    if (CASC::PortfolioMode::perform(problem)) {
+      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
     }
+    break;
 
-    MapToLIFO<Clause*, SATClause*> insts;
-    Grounding gnd;
-    SATClause::NamingContext nameCtx;
+  case Options::Mode::CASC_HOL: {
+    env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
+    env.options->setSchedule(Options::Schedule::CASC_HOL_2020);
+    env.options->setInputSyntax(Options::InputSyntax::TPTP);
+    env.options->setOutputMode(Options::Output::SZS);
+    env.options->setProof(Options::Proof::TPTP);
+    env.options->setOutputAxiomNames(true);
 
-    while (clauses.hasNext()) {
-      Clause* cl = clauses.next();
-      ClauseList* grounded = gnd.ground(cl);
-      SATClauseList* sGrounded = 0;
-      while (grounded) {
-	Clause* gcl = ClauseList::pop(grounded);
-	SATClauseList::push(SATClause::fromFOClause(nameCtx, gcl), sGrounded);
-      }
-      insts.pushManyToKey(cl, sGrounded);
+    if (CASC::PortfolioMode::perform(problem)) {
+      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
     }
-    env.beginOutput();
-    DIMACS::outputGroundedProblem(insts, nameCtx, env.out());
-    env.endOutput();
-
-  } catch (MemoryLimitExceededException&) {
-    env.beginOutput();
-    env.out() << "Memory limit exceeded\n";
-    env.endOutput();
-  } catch (TimeLimitExceededException&) {
-    env.beginOutput();
-    env.out() << "Time limit exceeded\n";
-    env.endOutput();
+    break;
   }
-} // groundingMode
+  case Options::Mode::CASC_SAT:
+    env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
+    env.options->setSchedule(Options::Schedule::CASC_SAT);
+    env.options->setInputSyntax(Options::InputSyntax::TPTP);
+    env.options->setOutputMode(Options::Output::SZS);
+    env.options->setProof(Options::Proof::TPTP);
+    env.options->setOutputAxiomNames(true);
+    env.options->setNormalize(true);
+    env.options->setRandomizeSeedForPortfolioWorkers(false);
+
+    if (CASC::PortfolioMode::perform(problem)) {
+      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+    }
+    break;
+
+  case Options::Mode::SMTCOMP:
+    env.options->setIgnoreMissing(Options::IgnoreMissing::OFF);
+    env.options->setInputSyntax(Options::InputSyntax::SMTLIB2);
+    if(env.options->outputMode() != Options::Output::UCORE){
+      env.options->setOutputMode(Options::Output::SMTCOMP);
+    }
+    env.options->setSchedule(Options::Schedule::SMTCOMP);
+    env.options->setProof(Options::Proof::OFF);
+    env.options->setNormalize(true);
+    env.options->setRandomizeSeedForPortfolioWorkers(false);
+
+    env.options->setMulticore(0); // use all available cores
+    env.options->setTimeLimitInSeconds(1800);
+    env.options->setStatistics(Options::Statistics::NONE);
+
+    //TODO needed?
+    // to prevent from terminating by time limit
+    env.options->setTimeLimitInSeconds(100000);
+
+    if (CASC::PortfolioMode::perform(problem)){
+      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+    }
+    else {
+      cout << "unknown" << endl;
+    }
+    break;
+
+  case Options::Mode::PORTFOLIO:
+    env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
+
+    if (CASC::PortfolioMode::perform(problem)) {
+      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+    }
+    break;
+  case Options::Mode::MODEL_CHECK:
+    modelCheckMode(problem);
+    break;
+
+  case Options::Mode::CLAUSIFY:
+    clausifyMode(problem,false);
+    break;
+
+  case Options::Mode::TCLAUSIFY:
+    clausifyMode(problem,true);
+    break;
+
+  case Options::Mode::OUTPUT:
+    outputMode(problem);
+    break;
+
+  case Options::Mode::PROFILE:
+    profileMode(problem);
+    break;
+
+  case Options::Mode::PREPROCESS:
+  case Options::Mode::PREPROCESS2:
+    preprocessMode(problem,false);
+    break;
+
+  case Options::Mode::TPREPROCESS:
+    preprocessMode(problem,true);
+    break;
+  }
+}
+
+void interactiveMetamode()
+{
+  Options& opts = *env.options;
+  opts.setInteractive(false); // so that we don't pass the interactivity on to the workers
+
+  ScopedPtr<Problem> prb;
+  if (!opts.inputFile().empty()) {
+    UIHelper::parseFile(opts.inputFile(),opts.inputSyntax(),true);
+    opts.resetInputFile();
+  } // no parsing of the whole cin in interactiveMetamode
+  prb = UIHelper::getInputProblem();
+
+  while (true) {
+    std::string line;
+    if (!getline(cin, line) || line.rfind("exit",0) == 0) {
+      cout << "Bye." << endl;
+      break;
+    } else if (line.rfind("run",0) == 0) {
+      // the whole running happens in a child (don't modify our options, don't crash here when parsing option rubbish, etc.)
+      pid_t process = Lib::Sys::Multiprocessing::instance()->fork();
+      ASS_NEQ(process, -1);
+      if(process == 0) {
+        Timer::reinitialise(); // start our timer (in the child)
+        UIHelper::unsetExpecting(); // probably garbage at this point
+
+        Stack<std::string> pieces;
+        StringUtils::splitStr(line.c_str(),' ',pieces);
+        StringUtils::dropEmpty(pieces);
+        Stack<const char*> argv(pieces.size());
+        for(auto it = pieces.iterFifo(); it.hasNext();) {
+          argv.push(it.next().c_str());
+        }
+        Shell::CommandLine cl(argv.size(), argv.begin());
+        cl.interpret(opts);
+        if (!opts.inputFile().empty()) {
+          UIHelper::parseFile(opts.inputFile(),opts.inputSyntax(),true);
+          prb = UIHelper::getInputProblem();
+        }
+        dispatchByMode(prb.ptr());
+        exit(vampireReturnValue);
+      }
+    } else if (line.rfind("load",0) == 0) {
+      Stack<std::string> pieces;
+      StringUtils::splitStr(line.c_str(),' ',pieces);
+      StringUtils::dropEmpty(pieces);
+      auto it = pieces.iterFifo();
+      ALWAYS(it.next() == "load");
+      while (it.hasNext()) {
+        UIHelper::parseFile(it.next(),opts.inputSyntax(),true);
+      }
+      prb = UIHelper::getInputProblem();
+    } else if (line.rfind("tptp ",0) == 0) {
+      try {
+        UIHelper::parseSingleLine(line.substr(5),Options::InputSyntax::TPTP);
+        prb = UIHelper::getInputProblem();
+      } catch (ParsingRelatedException& exception) {
+        explainException(exception);
+      }
+    } else if (line.rfind("smt2 ",0) == 0) {
+      try {
+        UIHelper::parseSingleLine(line.substr(5),Options::InputSyntax::SMTLIB2);
+        prb = UIHelper::getInputProblem();
+      } catch (ParsingRelatedException& exception) {
+        explainException(exception);
+      }
+    } else if (line.rfind("list",0) == 0) {
+      UIHelper::listLoadedPieces(cout);
+    } else if (line.rfind("pop",0) == 0) {
+      Stack<std::string> pieces;
+      StringUtils::splitStr(line.c_str(),' ',pieces);
+      StringUtils::dropEmpty(pieces);
+      int numPops = 1;
+      if (pieces.size() > 1) {
+        Int::stringToInt(pieces[1],numPops);
+      }
+      UIHelper::popLoadedPiece(numPops);
+      prb = UIHelper::getInputProblem();
+    } else {
+      cout << "Unreconginzed command! Try 'run [options] [filename_to_load]', 'load <filenames>', 'tptp <one_line_input_in_tptp>',\n"
+              "'smt2 <one_line_input_in_smt2>' 'pop [how_many_levels] (one is default)', 'list', or 'exit'." << endl;
+    }
+  }
+}
 
 /**
  * The main function.
@@ -784,232 +828,104 @@ void groundingMode()
  */
 int main(int argc, char* argv[])
 {
-  CALL ("main");
-
-  System::registerArgv0(argv[0]);
   System::setSignalHandlers();
-  // create random seed for the random number generation
-  Lib::Random::setSeed(123456);
-
-  START_CHECKING_FOR_ALLOCATOR_BYPASSES;
 
   try {
+    Options& opts = *env.options;
+
     // read the command line and interpret it
     Shell::CommandLine cl(argc, argv);
-    cl.interpret(*env.options);
+    cl.interpret(opts);
+
+    if(opts.encodeStrategy()){
+      cout << opts.generateEncodedOptions() << "\n";
+    }
+
+#if VTIME_PROFILING
+    TimeTrace::instance().setEnabled(opts.timeStatistics());
+#endif
 
     // If any of these options are set then we just need to output and exit
-    if (env.options->showHelp() ||
-        env.options->showOptions() ||
-        env.options->showExperimentalOptions() ||
-        !env.options->explainOption().empty() ||
-        env.options->printAllTheoryAxioms()) {
-      env.beginOutput();
-      env.options->output(env.out());
-      env.endOutput();
+    if (opts.showHelp() || opts.showOptions() || opts.showExperimentalOptions() ||
+       !opts.explainOption().empty() || opts.printAllTheoryAxioms()) {
+      opts.output(std::cout);
       exit(0);
     }
 
-    //having read option reinitialize the counter
-    TimeCounter::reinitialize();
+    Lib::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
 
-    Allocator::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
-    Lib::Random::setSeed(env.options->randomSeed());
-
-    switch (env.options->mode())
-    {
-    case Options::Mode::AXIOM_SELECTION:
-      axiomSelectionMode();
-      break;
-    case Options::Mode::GROUNDING:
-      groundingMode();
-      break;
-    case Options::Mode::SPIDER:
-      spiderMode();
-      break;
-    case Options::Mode::RANDOM_STRATEGY:
-      getRandomStrategy();
-      break;
-    case Options::Mode::CONSEQUENCE_ELIMINATION:
-    case Options::Mode::VAMPIRE:
-      vampireMode();
-      break;
-
-    case Options::Mode::CASC:
-      env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
-      env.options->setSchedule(Options::Schedule::CASC);
-      env.options->setOutputMode(Options::Output::SZS);
-      env.options->setProof(Options::Proof::TPTP);
-      env.options->setOutputAxiomNames(true);
-      //env.options->setTimeLimitInSeconds(300);
-
-      if (CASC::PortfolioMode::perform(env.options->slowness())) {
-        vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-      }
-      break;
-
-    case Options::Mode::CASC_HOL: {
-      env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
-      env.options->setSchedule(Options::Schedule::CASC_HOL_2020);
-      env.options->setOutputMode(Options::Output::SZS);
-      env.options->setProof(Options::Proof::TPTP);
-      env.options->setMulticore(0); // use all available cores
-      env.options->setOutputAxiomNames(true);
-
-      unsigned int nthreads = std::thread::hardware_concurrency();
-      float slowness = 1.00 + (0.04 * nthreads);
- 
-      if (CASC::PortfolioMode::perform(slowness)) {
-        vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-      }
-      break;
+    if (opts.mode() == Options::Mode::MODEL_CHECK) {
+      opts.setOutputAxiomNames(true);
     }
-    case Options::Mode::CASC_SAT:
-      env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
-      env.options->setSchedule(Options::Schedule::CASC_SAT);
-      env.options->setOutputMode(Options::Output::SZS);
-      env.options->setProof(Options::Proof::TPTP);
-      env.options->setOutputAxiomNames(true);
-      //env.options->setTimeLimitInSeconds(300);
 
-      if (CASC::PortfolioMode::perform(env.options->slowness())) {
-        vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+    if (opts.interactive()) {
+      interactiveMetamode();
+    } else {
+      // can only happen after reading options as it relies on `env.options`
+      Timer::reinitialise(); // start our timer, so that we also limit parsing
+
+#if VAMPIRE_PERF_EXISTS
+      unsigned saveInstrLimit = env.options->instructionLimit();
+      if (env.options->parsingDoesNotCount()) {
+        env.options->setInstructionLimit(0);
       }
-      break;
+#endif
 
-    case Options::Mode::SMTCOMP:
-      env.options->setIgnoreMissing(Options::IgnoreMissing::OFF);
-      env.options->setInputSyntax(Options::InputSyntax::SMTLIB2);
-      if(env.options->outputMode() != Options::Output::UCORE){
-        env.options->setOutputMode(Options::Output::SMTCOMP);
+      if (opts.inputFile().empty()) {
+        UIHelper::parseStandardInput(opts.inputSyntax());
+      } else {
+        UIHelper::parseFile(opts.inputFile(),opts.inputSyntax(),
+                            opts.mode() != Options::Mode::SPIDER && opts.mode() != Options::Mode::PROFILE);
       }
-      env.options->setSchedule(Options::Schedule::SMTCOMP);
-      env.options->setProof(Options::Proof::OFF);
-      env.options->setMulticore(0); // use all available cores
-      env.options->setTimeLimitInSeconds(1800);
-      env.options->setStatistics(Options::Statistics::NONE);
 
-      //TODO needed?
-      // to prevent from terminating by time limit
-      env.options->setTimeLimitInSeconds(100000);
+#if VAMPIRE_PERF_EXISTS
+      if (env.options->parsingDoesNotCount()) {
+        Timer::updateInstructionCount();
+        unsigned burnedParsing = Timer::elapsedMegaInstructions();
 
-      if (CASC::PortfolioMode::perform(env.options->slowness())){
-        vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+        addCommentSignForSZS(std::cout);
+        std::cout << "Instructions burned parsing: " << burnedParsing << " (million)" << endl;
+
+        env.options->setInstructionLimit(saveInstrLimit+burnedParsing);
       }
-      else {
-        cout << "unknown" << endl;
-      }
-      break;
+#endif
 
-    case Options::Mode::PORTFOLIO:
-      env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
-
-      if (CASC::PortfolioMode::perform(env.options->slowness())) {
-        vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-      }
-      break;
-
-    case Options::Mode::CASC_LTB: {
-      bool learning = env.options->ltbLearning()!=Options::LTBLearning::OFF;
-      try {
-        if(learning){
-          CASC::CLTBModeLearning::perform();
-        }
-        else{
-          CASC::CLTBMode::perform();
-        }
-      } catch (Lib::SystemFailException& ex) {
-        cerr << "Process " << getpid() << " received SystemFailException" << endl;
-        ex.cry(cerr);
-        cerr << " and will now die" << endl;
-      }
-      //we have processed the ltb batch file, so we can return zero
-      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-      break;
+      dispatchByMode(UIHelper::getInputProblem());
     }
-    case Options::Mode::MODEL_CHECK:
-      modelCheckMode();
-      break; 
 
-    case Options::Mode::CLAUSIFY:
-      clausifyMode(false);
-      break;
-
-    case Options::Mode::TCLAUSIFY:
-      clausifyMode(true);
-      break;
-
-    case Options::Mode::OUTPUT:
-      outputMode();
-      break;
-
-    case Options::Mode::PROFILE:
-      profileMode();
-      break;
-
-    case Options::Mode::PREPROCESS:
-    case Options::Mode::PREPROCESS2:
-      preprocessMode(false);
-      break;
-
-    case Options::Mode::TPREPROCESS:
-      preprocessMode(true);
-      break;
-
-    default:
-      USER_ERROR("Unsupported mode");
-    }
 #if CHECK_LEAKS
     delete env.signature;
     env.signature = 0;
 #endif
   }
 #if VZ3
-  catch(z3::exception& exception){
-    BYPASSING_ALLOCATOR;
+  catch (z3::exception& exception) {
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
-    cout << "Z3 exception:\n" << exception.msg() << endl;
+    if (outputAllowed()) {
+      cout << "Z3 exception:\n" << exception.msg() << endl;
+    }
     reportSpiderFail();
   }
 #endif
   catch (UserErrorException& exception) {
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
-#if CHECK_LEAKS
-    MemoryLeak::cancelReport();
-#endif
     explainException(exception);
-  } 
+  }
 catch (Parse::TPTP::ParseErrorException& exception) {
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
-#if CHECK_LEAKS
-    MemoryLeak::cancelReport();
-#endif
     explainException(exception);
   }
   catch (Exception& exception) {
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
-#if CHECK_LEAKS
-    MemoryLeak::cancelReport();
-#endif
-    env.beginOutput();
     explainException(exception);
-    //env.statistics->print(env.out());
-    env.endOutput();
   } catch (std::bad_alloc& _) {
     vampireReturnValue = VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION;
     reportSpiderFail();
-#if CHECK_LEAKS
-    MemoryLeak::cancelReport();
-#endif
-    env.beginOutput();
-    env.out() << "Insufficient system memory" << '\n';
-    env.endOutput();
+    std::cout << "Insufficient system memory" << '\n';
   }
-//   delete env.allocator;
 
   return vampireReturnValue;
 } // main
-

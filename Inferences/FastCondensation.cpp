@@ -14,7 +14,7 @@
 
 #include "Lib/DHMap.hpp"
 #include "Lib/Int.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
@@ -48,8 +48,6 @@ struct FastCondensation::CondensationBinder
   }
   bool bind(unsigned var, TermList term)
   {
-    CALL("CondensationBinder::bind");
-
     if(varMap->get(var)==-1) {
       return term.isVar() && var==term.var();
     }
@@ -69,9 +67,7 @@ private:
 
 Clause* FastCondensation::simplify(Clause* cl)
 {
-  CALL("FastCondensation::perform");
-
-  TimeCounter tc(TC_CONDENSATION);
+  TIME_TRACE("fast condensation");
 
   unsigned clen=cl->length();
   if(clen<=1) {
@@ -114,21 +110,17 @@ Clause* FastCondensation::simplify(Clause* cl)
         continue;
       }
       if(MatchingUtils::match(cLit, (*cl)[mIndex], false, cbinder)) {
-        unsigned newLen=clen-1;
-        Clause* res = new(newLen) Clause(newLen,
-            SimplifyingInference1(InferenceRule::CONDENSATION, cl));
+        RStack<Literal*> resLits;
 
-        unsigned ri=0;
         for(unsigned ci=0;ci<clen;ci++) {
           if(ci!=cIndex) {
-            (*res)[ri++] = (*cl)[ci];
+            resLits->push((*cl)[ci]);
           }
         }
-        ASS_EQ(ri, newLen);
  
         env.statistics->condensations++;
  
-        return res;
+        return Clause::fromStack(*resLits, SimplifyingInference1(InferenceRule::CONDENSATION, cl));
       }
     }
   }

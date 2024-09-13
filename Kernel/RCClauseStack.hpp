@@ -32,23 +32,17 @@ class RCClauseStack {
 public:
   void push(Clause* cl)
   {
-    CALL("RCClauseStack::push");
-
     cl->incRefCnt();
     _s.push(cl);
   }
 
   void pushWithoutInc(Clause* cl)
   {
-    CALL("RCClauseStack::push");
-
     _s.push(cl);
   }
 
   Clause* pop()
   {
-    CALL("RCClauseStack::pop");
-
     Clause* cl=_s.pop();
     cl->decRefCnt();
     return cl;
@@ -60,8 +54,6 @@ public:
    */
   Clause* popWithoutDec()
   {
-    CALL("RCClauseStack::popWithoutDec");
-
     return _s.pop();
   }
 
@@ -124,8 +116,6 @@ public:
 
   bool find(Clause* cl) const
   {
-    CALL("RCClauseStack::find");
-
     Iterator it(const_cast<RCClauseStack&>(*this));
     while(it.hasNext()) {
       if(it.next()==cl) {
@@ -137,6 +127,11 @@ public:
   
 private:
   ClauseStack _s;
+
+public:
+  ClauseStack& naked() {
+    return _s;
+  }
 };
 
 }

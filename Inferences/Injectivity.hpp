@@ -23,8 +23,6 @@ namespace Inferences {
 
 class Injectivity : public GeneratingInferenceEngine {
   public:
-    CLASS_NAME(Injectivity);
-    USE_ALLOCATOR(Injectivity);
     ClauseIterator generateClauses(Clause* premise);
 
   private:

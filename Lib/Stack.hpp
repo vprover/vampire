@@ -17,15 +17,17 @@
 #ifndef __Stack__
 #define __Stack__
 
+#include <algorithm>
 #include <cstdlib>
+#include <ostream>
 
 #include "Forwards.hpp"
+#include "Lib/TypeList.hpp"
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
 #include "Allocator.hpp"
-#include "Backtrackable.hpp"
+#include "Lib/Reflection.hpp"
 
 namespace std
 {
@@ -34,9 +36,6 @@ void swap(Lib::Stack<T>& s1, Lib::Stack<T>& s2);
 }
 
 namespace Lib {
-
-template<typename C>
-struct Relocator<Stack<C> >;
 
 /**
  * Class of flexible-size generic stacks.
@@ -58,9 +57,7 @@ public:
   DECL_ELEMENT_TYPE(C);
   DECL_ITERATOR_TYPE(Iterator);
 
-  CLASS_NAME(Stack);
   USE_ALLOCATOR(Stack);
-  DECLARE_PLACEMENT_NEW;
 
 
   /**
@@ -70,14 +67,12 @@ public:
   explicit Stack (size_t initialCapacity=0)
     : _capacity(initialCapacity)
   {
-    CALL("Stack::Stack");
-
     if(_capacity) {
       void* mem = ALLOC_KNOWN(_capacity*sizeof(C),className());
       _stack = static_cast<C*>(mem);
     }
     else {
-      _stack = 0;
+      _stack = nullptr;
     }
     _cursor = _stack;
     _end = _stack+_capacity;
@@ -86,7 +81,6 @@ public:
   inline
   void reserve(size_t capacity) 
   {
-    CALL("Stack::reserve(size_t)");
     if (_capacity >= capacity) {
       return;
     }
@@ -109,12 +103,12 @@ public:
     }
   }
 
+  bool keepRecycled() const { return _capacity > 0; }
+
 
   Stack(const Stack& s)
    : _capacity(s._capacity)
   {
-    CALL("Stack::Stack(const Stack&)");
-
     if(_capacity) {
       void* mem = ALLOC_KNOWN(_capacity*sizeof(C),className());
       _stack = static_cast<C*>(mem);
@@ -130,8 +124,6 @@ public:
 
   Stack(Stack&& s) noexcept
   {
-    CALL("Stack::Stack(Stack&& s)");
-
     _capacity = 0;
     _stack = _cursor = _end = nullptr;
 
@@ -143,8 +135,6 @@ public:
    */
   inline ~Stack()
   {
-    CALL("Stack::~Stack");
-
     //The while cycle is completely eliminated by compiler
     //in "-O6 -DVDEBUG=0" mode for types without destructor,
     //so this destructor is constant time.
@@ -162,8 +152,6 @@ public:
 
   Stack& operator=(const Stack& s)
   {
-    CALL("Stack::operator=");
-
     if(&s == this) {
       return *this;
     }
@@ -174,8 +162,6 @@ public:
 
   Stack& operator=(Stack&& s) noexcept
   {
-    CALL("Stack::operator=&&");
-
     std::swap(*this,s);
     return *this;
   }
@@ -186,8 +172,6 @@ public:
    */
   template<class It>
   void loadFromIterator(It it) {
-    CALL("Stack::loadFromIterator");
-
     // TODO check iterator.size() or iterator.sizeHint()
     while(it.hasNext()) {
       push(it.next());
@@ -195,42 +179,17 @@ public:
   }
 
   /**
-   * Put all elements of an iterator onto the stack.
-   */
-  template<class It>
-  void moveFromIterator(It it) {
-    CALL("Stack::loadFromIterator");
-
-    // TODO check iterator.size() or iterator.sizeHint()
-    while(it.hasNext()) {
-      push(std::move(it.next()));
-    }
-  }
-
-
-  /**
    * Create a new stack with the contents of the itererator.
    */
   template<class It>
   static Stack fromIterator(It it) {
-    CALL("Stack::fromIterator");
     Stack out;
-    out.loadFromIterator(it);
+    out.loadFromIterator(std::move(it));
     return out;
   }
 
-  Iterator iter() &
-  { return Iterator(*this); }
-
-  ConstIterator iter() const&
-  { return ConstIterator(*this); }
-
   /* a first-in-first-out iterator  */
-  BottomFirstIterator iterFifo() const 
-  { return BottomFirstIterator(*this); }
-
-  /* a first-in-first-out iterator  */
-  BottomFirstIterator iterFifoMut() const 
+  BottomFirstIterator iterFifo() const
   { return BottomFirstIterator(*this); }
 
   /**
@@ -255,10 +214,33 @@ public:
     return _stack[n];
   }
 
+  friend int cmp(const Stack& l, const Stack& r)
+  {
+    int sdiff = int(l.size()) - int(r.size());
+    if(sdiff) return sdiff;
+    
+    auto i1 = arrayIter(l);
+    auto i2 = arrayIter(r);
+    while (i1.hasNext()) {
+      auto& e1 = i1.next();
+      auto& e2 = i2.next();
+      if (e1 != e2) {
+        if (e1 < e2) return -1;
+        if (e1 > e2) return 1;
+      }
+    }
+    ASS(!i2.hasNext())
+    return 0;
+  }
+
+  friend bool operator< (const Stack& l, const Stack& r) { return cmp(l,r) <  0; }
+  friend bool operator<=(const Stack& l, const Stack& r) { return cmp(l,r) <= 0; }
+  friend bool operator> (const Stack& l, const Stack& r) { return cmp(l,r) >  0; }
+  friend bool operator>=(const Stack& l, const Stack& r) { return cmp(l,r) >= 0; }
+
+
   bool operator==(const Stack& o) const
   {
-    CALL("Stack::operator==");
-
     if(size()!=o.size()) {
       return false;
     }
@@ -307,7 +289,6 @@ public:
   inline
   void setTop(C elem)
   {
-    CALL("Stack::setTop");
     ASS(_cursor > _stack);
     ASS(_cursor <= _end);
 
@@ -339,27 +320,8 @@ public:
    * @since 11/03/2006 Bellevue
    */
   inline
-  void push(const C& elem)
+  void push(C elem)
   {
-    CALL("Stack::push");
-
-    if (_cursor == _end) {
-      expand();
-    }
-    ASS(_cursor < _end);
-    ::new(_cursor) C(elem);
-    _cursor++;
-  } // Stack::push()
-
-  /**
-   * Push new element on the stack (move semantics version).
-   * @since 11/08/2020 
-   */
-  inline
-  void push(C&& elem)
-  {
-    CALL("Stack::push");
-
     if (_cursor == _end) {
       expand();
     }
@@ -375,8 +337,6 @@ public:
   inline
   C pop()
   {
-    CALL("Stack::pop");
-
     ASS(_cursor > _stack);
     _cursor--;
 
@@ -387,10 +347,40 @@ public:
   } // Stack::pop()
 
 
+  /** removes consecutive duplicates. instead of the operator== the given predicate is used */
+  template<class Equal = std::equal_to<C>>
+  void dedup(Equal eq = std::equal_to<C>{})
+  { 
+    auto& self = *this;
+    if (self.size() == 0) return;
+    unsigned offs = 0;
+    for (unsigned i = 1;  i < self.size(); i++) {
+      if (eq(self[offs], self[i])) {
+        /* skip */
+      } else {
+        self[offs++ + 1] = std::move(self[i]);
+      }
+    }
+    self.pop(self.size() - (offs + 1));
+  }
+
+  /** like Stack::dedup but moves the content out of `this` and returns the resulting Stack instead of changing the contents of this  */
+  template<class Equal = std::equal_to<C>>
+  Stack deduped(Equal eq = std::equal_to<C>{})
+  { dedup(); return std::move(*this); }
+
+  template<class Less = std::less<C>>
+  void sort(Less less = std::less<C>{})
+  { std::sort(begin(), end(), less); }
+
+  /** like Stack::sort but moves the content out of `this` and returns the resulting Stack instead of changing the contents of this */
+  template<class Equal = std::equal_to<C>>
+  Stack sorted(Equal eq = std::equal_to<C>{})
+  { sort(); return std::move(*this); }
+
   inline
   void pop(unsigned cnt)
   {
-    CALL("Stack::pop(unsigned)");
     while (cnt-- != 0) 
       pop();
   } // Stack::pop(unsigned)
@@ -409,6 +399,19 @@ public:
       }
     }
     return false;
+  }
+
+  /**
+   * removes the element at the given index, replacing it by the last element in the stack and shrinking the stack.
+   * constant time operation.
+   * returns the removed element.
+   */
+  C swapRemove(unsigned idx)
+  {
+    ASS(idx < size())
+    ASS(size() > 0)
+    std::swap((*this)[idx], (*this)[size() - 1]);
+    return pop();
   }
 
   /**
@@ -439,6 +442,34 @@ public:
     _cursor = _stack;
   }
 
+  void init(std::initializer_list<C> elems)
+  {
+    reserve(elems.size());
+    for (auto& x : elems) {
+      push(std::move(x));
+    }
+  }
+private:
+  void __pushMany() {}
+
+  template<class... As>
+  void __pushMany(C item, As... rest) 
+  { 
+    push(std::move(item)); 
+    __pushMany(std::move(rest)...);
+  }
+
+
+public:
+
+  template<class... As>
+  void pushMany(As... items) 
+  { 
+    reserve(size() + TypeList::Size<TypeList::List<As...>>::val);
+    __pushMany(std::move(items)...);
+  }
+
+
   /** Sets the length of the stack to @b len
    *  @since 27/12/2007 Manchester */
   inline
@@ -464,8 +495,6 @@ public:
 
   bool find(const C& el) const
   {
-    CALL("Stack::find");
-
     Iterator it(const_cast<Stack&>(*this));
     while(it.hasNext()) {
       if(it.next()==el) {
@@ -475,22 +504,7 @@ public:
     return false;
   }
 
-#if VDEBUG
-  vstring toString()
-  {
-    vstring ret = "[";
-    Iterator it(const_cast<Stack&>(*this));
-    while(it.hasNext()){
-      C el = it.next();
-      ret += Int::toString(static_cast<unsigned int>(el));
-      if(it.hasNext()){ ret +=",";}
-    }
-    return ret+"]";
-  }
-
-#endif
-
-  friend class Iterator;
+  friend class RefIterator;
 
   /** Iterator iterates over the elements of a stack and can
    *  delete elements from the stack.
@@ -501,12 +515,12 @@ public:
    *           iterator
    *  @since 13/02/2008 Manchester
    */
-  class Iterator {
+  class RefIterator {
   public:
-    DECL_ELEMENT_TYPE(C);
+    DECL_ELEMENT_TYPE(C&);
     /** create an iterator for @b s */
     inline
-    explicit Iterator (Stack& s)
+    explicit RefIterator (Stack& s)
       : _pointer(s._cursor),
 	_stack(s)
 #if VDEBUG
@@ -579,12 +593,19 @@ public:
 #endif
   };
 
-  class ConstIterator {
+  class Iterator : public RefIterator {
   public:
+    Iterator(Stack & s) : RefIterator(s) {}
     DECL_ELEMENT_TYPE(C);
+    C next() { return RefIterator::next(); }
+  };
+
+  class ConstRefIterator {
+  public:
+    DECL_ELEMENT_TYPE(C const&);
     /** create an iterator for @b s */
     inline
-    explicit ConstIterator (const Stack& s)
+    explicit ConstRefIterator (const Stack& s)
       : _pointer(s._cursor),
 	_stack(s)
     {
@@ -599,7 +620,7 @@ public:
 
     /** return the next element */
     inline
-    C next()
+    C const& next()
     {
       ASS(_pointer > _stack._stack);
       _pointer--;
@@ -612,6 +633,24 @@ public:
     /** stack over which we iterate */
     const Stack& _stack;
   };
+
+  class ConstIterator : public ConstRefIterator {
+  public:
+    ConstIterator(Stack const& s) : ConstRefIterator(s) {}
+    DECL_ELEMENT_TYPE(C);
+    C next() { return ConstRefIterator::next(); }
+  };
+
+  ConstIterator iterCloned() const&
+  { return ConstIterator(*this); }
+
+  RefIterator iter() &
+  { return RefIterator(*this); }
+
+  ConstRefIterator iter() const&
+  { return ConstRefIterator(*this); }
+
+
 
   typedef Iterator DelIterator;
   typedef ConstIterator TopFirstIterator;
@@ -635,7 +674,6 @@ public:
     inline
     bool hasNext() const
     {
-      CALL("Stack::BottomFirstIterator::hasNext()")
       ASS_LE(_pointer, _afterLast);
       return _pointer != _afterLast;
     }
@@ -644,7 +682,6 @@ public:
     inline
     const C& next()
     {
-      CALL("Stack::BottomFirstIterator::next()")
       ASS_L(_pointer, _afterLast);
       return *(_pointer++);
     }
@@ -784,8 +821,6 @@ protected:
    */
   void expand ()
   {
-    CALL("Stack::expand");
-
     ASS(_cursor == _end);
 
     size_t newCapacity = _capacity ? (2 * _capacity) : 8;
@@ -809,25 +844,10 @@ protected:
     _capacity = newCapacity;
   } // Stack::expand
 
-  class PushBacktrackObject: public BacktrackObject
-  {
-    Stack* st;
-  public:
-    CLASS_NAME(Stack::PushBacktrackObject);
-    USE_ALLOCATOR(Stack::PushBacktrackObject);
-    
-    PushBacktrackObject(Stack* st) : st(st) {}
-    void backtrack() { st->pop(); }
-  };
 public:
 
-  void backtrackablePush(C v, BacktrackData& bd)
-  {
-    push(v);
-    bd.addBacktrackObject(new PushBacktrackObject(this));
-  }
 
-  friend ostream& operator<<(ostream& out, const Stack<C>& s) {
+  friend std::ostream& operator<<(std::ostream& out, const Stack<C>& s) {
     out << "[";
     auto iter = s.begin();
     if(iter != s.end()) {
@@ -843,25 +863,12 @@ public:
   Stack(std::initializer_list<C> cont)
    : Stack(cont.size())
   {
-    CALL("Stack::Stack(initializer_list<C>)");
-
     for (auto const& x : cont) {
       push(x);
     }
   }
 
 };
-
-template<typename C>
-struct Relocator<Stack<C> >
-{
-  static void relocate(Stack<C>* oldStack, void* newAddr)
-  {
-    ::new(newAddr) Stack<C>(std::move(*oldStack));
-    oldStack->~Stack<C>();
-  }
-};
-
 
 } // namespace Lib
 
@@ -871,8 +878,7 @@ namespace std
 template<typename T>
 void swap(Lib::Stack<T>& s1, Lib::Stack<T>& s2)
 {
-  CALL("std::swap(Stack&,Stack&)");
-
+  using std::swap;//ADL
   swap(s1._capacity, s2._capacity);
   swap(s1._cursor, s2._cursor);
   swap(s1._end, s2._end);

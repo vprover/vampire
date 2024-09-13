@@ -22,7 +22,7 @@
 #include "Lib/List.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Set.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -43,6 +43,7 @@
 namespace Shell
 {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
@@ -59,61 +60,60 @@ SineSymbolExtractor::SymId SineSymbolExtractor::getSymIdBound()
          max(env.signature->functions()*3, env.signature->typeCons()*3));
 }
 
-void SineSymbolExtractor::addSymIds(Term* term, Stack<SymId>& ids)
+void SineSymbolExtractor::addSymIds(Term* term, DHSet<SymId>& ids)
 {
-  CALL("SineSymbolExtractor::addSymIds");
-
   if (!term->shared()) {
     if (term->isSpecial()) {
       Term::SpecialTermData *sd = term->getSpecialData();
-      switch (sd->getType()) {
-        case Term::SF_FORMULA:
+      switch (sd->specialFunctor()) {
+        case SpecialFunctor::FORMULA:
           extractFormulaSymbols(sd->getFormula(), ids);
               break;
-        case Term::SF_ITE:
+        case SpecialFunctor::ITE:
           extractFormulaSymbols(sd->getCondition(), ids);
               break;
-        case Term::SF_LET:
-        case Term::SF_LET_TUPLE: {
+        case SpecialFunctor::LET:
+        case SpecialFunctor::LET_TUPLE: {
           TermList binding = sd->getBinding();
           if (binding.isTerm()) {
             addSymIds(binding.term(), ids);
           }
           break;
         }
-        case Term::SF_TUPLE: {
+        case SpecialFunctor::TUPLE: {
           addSymIds(sd->getTupleTerm(), ids);
           break;
         }
-        case Term::SF_MATCH: {
+        case SpecialFunctor::LAMBDA:
+          NOT_IMPLEMENTED;
+        case SpecialFunctor::MATCH: {
           // args are handled below
           break;
         }
-        default:
-          ASSERTION_VIOLATION;
       }
     } else {
       //all sorts should be shared
-      ids.push(term->functor() * 3 + 1);
+      ids.insert(term->functor() * 3 + 1);
     }
-    NonVariableIterator nvi(term);
-    while (nvi.hasNext()) {
-      addSymIds(nvi.next().term(), ids);
+
+    for (auto t : concatIters(typeArgIter(term), termArgIter(term))) {
+      if (t.isTerm())
+        addSymIds(t.term(), ids);
     }
   } else {
     if(term->isSort()){
-      ids.push(term->functor() * 3 + 2);
+      ids.insert(term->functor() * 3 + 2);
     } else {
-      ids.push(term->functor() * 3 + 1);
+      ids.insert(term->functor() * 3 + 1);
     }
 
     NonVariableIterator nvi(term);
     while (nvi.hasNext()) {
       Term* t = nvi.next().term();
       if(t->isSort()){
-        ids.push(t->functor() * 3 + 2);
+        ids.insert(t->functor() * 3 + 2);
       } else {
-        ids.push(t->functor() * 3 + 1);
+        ids.insert(t->functor() * 3 + 1);
       }
     }
   }
@@ -124,12 +124,10 @@ void SineSymbolExtractor::addSymIds(Term* term, Stack<SymId>& ids)
  * @since 04/05/2013 Manchester, argument polarity removed
  * @author Andrei Voronkov
  */
-void SineSymbolExtractor::addSymIds(Literal* lit,Stack<SymId>& ids)
+void SineSymbolExtractor::addSymIds(Literal* lit,DHSet<SymId>& ids)
 {
-  CALL("SineSymbolExtractor::addSymIds");
-
   SymId predId=lit->functor()*3;
-  ids.push(predId);
+  ids.insert(predId);
 
   if (!lit->shared()) {
     NonVariableIterator nvi(lit);
@@ -141,9 +139,9 @@ void SineSymbolExtractor::addSymIds(Literal* lit,Stack<SymId>& ids)
     while (nvi.hasNext()) {
       Term *t = nvi.next().term();
       if(t->isSort()){
-        ids.push(t->functor() * 3 + 2);
+        ids.insert(t->functor() * 3 + 2);
       } else {
-        ids.push(t->functor() * 3 + 1);
+        ids.insert(t->functor() * 3 + 1);
       }      
     }
   }
@@ -157,8 +155,6 @@ void SineSymbolExtractor::decodeSymId(SymId s, bool& pred, unsigned& functor)
 
 bool SineSymbolExtractor::validSymId(SymId s)
 {
-  CALL("SineSymbolExtractor::validSymId");
-
   bool pred;
   unsigned functor;
   decodeSymId(s, pred, functor);
@@ -180,9 +176,8 @@ bool SineSymbolExtractor::validSymId(SymId s)
  * @since 04/05/2013 Manchester, argument polarity removed, made non-recursive
  * @author Andrei Voronkov
  */
-void SineSymbolExtractor::extractFormulaSymbols(Formula* f,Stack<SymId>& itms)
+void SineSymbolExtractor::extractFormulaSymbols(Formula* f,DHSet<SymId>& itms)
 {
-  CALL("SineSymbolExtractor::extractFormulaSymbols");
   Stack<Formula*> fs;
   fs.push(f);
   while (!fs.isEmpty()) {
@@ -236,9 +231,7 @@ void SineSymbolExtractor::extractFormulaSymbols(Formula* f,Stack<SymId>& itms)
  */
 SineSymbolExtractor::SymIdIterator SineSymbolExtractor::extractSymIds(Unit* u)
 {
-  CALL("SineSymbolExtractor::extractSymIds");
-
-  static Stack<SymId> itms;
+  static DHSet<SymId> itms;
   itms.reset();
 
   if (u->isClause()) {
@@ -252,13 +245,15 @@ SineSymbolExtractor::SymIdIterator SineSymbolExtractor::extractSymIds(Unit* u)
     FormulaUnit* fu=static_cast<FormulaUnit*>(u);
     extractFormulaSymbols(fu->formula(),itms);
   }
-  return pvi( getUniquePersistentIterator(Stack<SymId>::Iterator(itms)) );
+  Stack<SymId> ids(itms.size());
+  DHSet<SymId>::Iterator iter(itms);
+  ids.loadFromIterator(iter);
+  std::sort(ids.begin(), ids.end()); // <- make order deterministic
+  return pvi(arrayIter(std::move(ids)));
 }
 
 void SineBase::initGeneralityFunction(UnitList* units)
 {
-  CALL("SineBase::initGeneralityFunction");
-
   SymId symIdBound=_symExtr.getSymIdBound();
   _gen.init(symIdBound,0);
 
@@ -280,8 +275,6 @@ SineSelector::SineSelector(const Options& opt)
   _depthLimit(opt.sineDepth()),
   _justForSineLevels(false)
 {
-  CALL("SineSelector::SineSelector/0");
-
   init();
 }
 
@@ -292,14 +285,11 @@ SineSelector::SineSelector(bool onIncluded, float tolerance, unsigned depthLimit
   _depthLimit(depthLimit),
   _justForSineLevels(justForSineLevels)
 {
-  CALL("SineSelector::SineSelector/4");
-
   init();
 }
 
 void SineSelector::init()
 {
-  CALL("SineSelector::init");
   ASS(_tolerance>=1.0f || _tolerance==-1);
 
   _strict=_tolerance==1.0f;
@@ -310,8 +300,6 @@ void SineSelector::init()
  */
 void SineSelector::updateDefRelation(Unit* u)
 {
-  CALL("SineSelector::updateDefRelation");
-
   SymIdIterator sit=_symExtr.extractSymIds(u);
 
   if (!sit.hasNext()) {
@@ -387,8 +375,6 @@ void SineSelector::updateDefRelation(Unit* u)
 
 void SineSelector::perform(Problem& prb)
 {
-  CALL("SineSelector::perform");
-
   if (perform(prb.units())) {
     prb.reportIncompleteTransformation();
   }
@@ -397,9 +383,7 @@ void SineSelector::perform(Problem& prb)
 
 bool SineSelector::perform(UnitList*& units)
 {
-  CALL("SineSelector::perform");
-
-  TimeCounter tc(TC_SINE_SELECTION);
+  TIME_TRACE(TimeTrace::SINE_SELECTION);
 
   initGeneralityFunction(units);
 
@@ -534,13 +518,10 @@ bool SineSelector::perform(UnitList*& units)
 SineTheorySelector::SineTheorySelector(const Options& opt)
 : _genThreshold(opt.sineGeneralityThreshold()), _opt(opt)
 {
-  CALL("SineTheorySelector::SineTheorySelector");
 }
 
 void SineTheorySelector::handlePossibleSignatureChange()
 {
-  CALL("SineTheorySelector::handlePossibleSignatureChange");
-
   size_t symIdBound=_symExtr.getSymIdBound();
   size_t oldSize=_def.size();
   ASS_EQ(_gen.size(), oldSize);
@@ -563,8 +544,6 @@ void SineTheorySelector::handlePossibleSignatureChange()
  */
 void SineTheorySelector::updateDefRelation(Unit* u)
 {
-  CALL("SineTheorySelector::updateDefRelation");
-
   SymIdIterator sit0=_symExtr.extractSymIds(u);
 
   if (!sit0.hasNext()) {
@@ -623,9 +602,7 @@ void SineTheorySelector::updateDefRelation(Unit* u)
  */
 void SineTheorySelector::initSelectionStructure(UnitList* units)
 {
-  CALL("SineTheorySelector::initSelectionStructure");
-
-  TimeCounter tc(TC_SINE_SELECTION);
+  TIME_TRACE(TimeTrace::SINE_SELECTION);
 
   initGeneralityFunction(units);
 
@@ -643,9 +620,7 @@ void SineTheorySelector::initSelectionStructure(UnitList* units)
 
 void SineTheorySelector::perform(UnitList*& units)
 {
-  CALL("SineTheorySelector::perform");
-
-  TimeCounter tc(TC_SINE_SELECTION);
+  TIME_TRACE(TimeTrace::SINE_SELECTION);
 
   handlePossibleSignatureChange();
 

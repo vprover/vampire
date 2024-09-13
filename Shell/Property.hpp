@@ -25,7 +25,6 @@
 #include "Lib/DHSet.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Theory.hpp"
-#include "Lib/VString.hpp"
 #include "SMTLIBLogic.hpp"
 
 namespace Kernel {
@@ -39,7 +38,6 @@ namespace Kernel {
 
 namespace Shell {
 
-using namespace std;
 using namespace Kernel;
 using namespace Lib;
 
@@ -127,9 +125,9 @@ public:
   static const uint64_t PR_REAL_LINEAR = 268435456ul; // 2^28
   /** Uses integer non-linear functions $product,$quotient,$remainder */
   static const uint64_t PR_INTEGER_NONLINEAR = 536870912ul; // 2^29
-  /** Uses integer non-linear functions $product,$quotient,$remainder */
+  /** Uses rational non-linear functions $product,$quotient,$remainder */
   static const uint64_t PR_RAT_NONLINEAR = 1073741824ul; // 2^30
-  /** Uses integer non-linear functions $product,$quotient,$remainder */
+  /** Uses real non-linear functions $product,$quotient,$remainder */
   static const uint64_t PR_REAL_NONLINEAR = 2147483648ul; // 2^31
   /** Uses number conversion functions $floor, $ceiling, $truncate, $round, $is_int, $is_rat, $to_int, $to_int, $to_rat, $to_real */
   static const uint64_t PR_NUMBER_CONVERSION = 4294967296ul; // 2^32
@@ -149,26 +147,22 @@ public:
   static const uint64_t PR_HAS_LET_IN = 549755813888ul; // 2^39
   /* has data type constructors */
   static const uint64_t PR_HAS_DT_CONSTRUCTORS = 1099511627776ul; // 2^40
-  /* has co-algrebaic data type constructors */
+  /* has co-algebraic data type constructors */
   static const uint64_t PR_HAS_CDT_CONSTRUCTORS = 2199023255552ul; // 2^41
 
  public:
-  CLASS_NAME(Property);
-  USE_ALLOCATOR(Property);
-
   // constructor, operators new and delete
   explicit Property();
   static Property* scan(UnitList*);
   void add(UnitList*);
-  ~Property();
 
   /** Return the CASC category of the problem */
   Category category() const { return _category;}
-  static vstring categoryToString(Category cat);
-  vstring categoryString() const;
+  static std::string categoryToString(Category cat);
+  std::string categoryString() const;
 
-  vstring toString() const;
-  vstring toSpider(const vstring& problemName) const;
+  std::string toString() const;
+  std::string toSpider(const std::string& problemName) const;
 
   /** Total number of clauses in the problem. */
   int clauses() const { return _goalClauses + _axiomClauses; }
@@ -233,13 +227,13 @@ public:
   bool hasBoolVar() const { return _hasBoolVar; }
   bool hasLogicalProxy() const { return _hasLogicalProxy; }
   bool hasPolymorphicSym() const { return _hasPolymorphicSym; }
+  bool hasAnswerLiteral() const { return _hasAnswerLiteral; }
   bool higherOrder() const { return hasCombs() || hasApp() || hasLogicalProxy() ||
                                     hasArrowSort() || _hasLambda; }
   bool quantifiesOverPolymorphicVar() const { return _quantifiesOverPolymorphicVar; }
-  bool usesSort(unsigned sort) const { 
-    CALL("Property::usesSort");
+  bool usesSort(unsigned sort) const {
     if(_usesSort.size() <= sort) return false;
-    return _usesSort[sort]; 
+    return _usesSort[sort];
   } //TODO only utilised by FMB which should eventually update to use the new sorts (as TermLists)
   bool usesSingleSort() const { return _sortsUsed==1; }
   unsigned sortsUsed() const { return _sortsUsed; }
@@ -247,7 +241,6 @@ public:
   bool knownInfiniteDomain() const { return _knownInfiniteDomain; }
   
   void setSMTLIBLogic(SMTLIBLogic smtLibLogic) { 
-    CALL("Property::setSMTLIBLogic");
     _smtlibLogic = smtLibLogic; 
   }
   SMTLIBLogic getSMTLIBLogic() const { 
@@ -345,6 +338,7 @@ private:
   bool _hasLogicalProxy;
   bool _hasLambda;
   bool _hasPolymorphicSym;
+  bool _hasAnswerLiteral;
   bool _quantifiesOverPolymorphicVar;
 
   bool _onlyFiniteDomainDatatypes;

@@ -44,8 +44,6 @@ typedef ApplicativeHelper AH;
 
 ClauseIterator BoolEqToDiseq::generateClauses(Clause* cl)
 {
-  CALL("PrimitiveInstantiation::generateClauses");
-
   unsigned pos = 0;
   Literal* newLit = 0;
 
@@ -93,13 +91,13 @@ ClauseIterator BoolEqToDiseq::generateClauses(Clause* cl)
 
 afterLoop:
 
-  Clause* res = new(cl->length()) Clause(cl->length(), GeneratingInference1(InferenceRule::EQ_TO_DISEQ, cl));
+  RStack<Literal*> resLits;
 
-  for (unsigned i = 0; i < res->length(); i++) {
-    (*res)[i] = i == pos ? newLit : (*cl)[i];
+  for (unsigned i = 0; i < cl->length(); i++) {
+    resLits->push(i == pos ? newLit : (*cl)[i]);
   }
 
-  return pvi(getSingletonIterator(res));
+  return pvi(getSingletonIterator(Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQ_TO_DISEQ, cl))));
 
 }
 

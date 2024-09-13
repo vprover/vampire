@@ -33,13 +33,8 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/LiteralSelector.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
-
 #include "NegativeExt.hpp"
 
-#if VDEBUG
-#include <iostream>
-using namespace std;
-#endif
 
 namespace Inferences
 {
@@ -48,6 +43,7 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
+using std::pair;
 
 struct NegativeExt::IsNegativeEqualityFn
 {
@@ -61,8 +57,6 @@ struct NegativeExt::ResultFn
   
   Clause* operator() (Literal* lit)
   {
-    CALL("NegativeExt::ResultFn::operator()");
-
     ASS(lit->isEquality());
     ASS(!lit->isPositive());
 
@@ -144,20 +138,15 @@ struct NegativeExt::ResultFn
 
     Literal* newLit = Literal::createEquality(false, newLhs, newRhs, alpha2);
 
-    Clause* res = new(_cLen) Clause(_cLen, GeneratingInference1(InferenceRule::NEGATIVE_EXT, _cl));
+    RStack<Literal*> resLits;
 
-    for(unsigned i=0;i<_cLen;i++) {
-      Literal* curr=(*_cl)[i];
-      if(curr!=lit) {
-        (*res)[i] = curr;
-      } else {
-        (*res)[i] = newLit;
-      }
+    for (Literal* curr : iterTraits(_cl->iterLits())) {
+      resLits->push(curr == lit ? newLit : curr);
     }
 
     env.statistics->negativeExtensionality++;
  
-    return res;
+    return Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::NEGATIVE_EXT, _cl));
   }
 private:
   Clause* _cl;
@@ -166,8 +155,6 @@ private:
 
 ClauseIterator NegativeExt::generateClauses(Clause* premise)
 {
-  CALL("NegativeExt::generateClauses");
-
   //cout << "NegativeExt with " + premise->toString() << endl;
   if(premise->isEmpty()) {
     return ClauseIterator::getEmpty();

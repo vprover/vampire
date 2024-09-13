@@ -19,6 +19,7 @@
 #include "Signature.hpp"
 #include "Lib/Deque.hpp"
 #include "Lib/BiMap.hpp"
+#include "TypedTermList.hpp"
 
 using namespace Kernel;
 using namespace Shell;
@@ -73,26 +74,10 @@ public:
   static bool isExactApplied(TermList head, unsigned argNum);
   static bool isOverApplied(TermList head, unsigned argNum);
   static bool isSafe(TermStack& args);
-  static TermList replaceFunctionalAndBooleanSubterms(Term* term, FuncSubtermMap* fsm);
   static bool isBool(TermList t);
   static bool isTrue(TermList term);
   static bool isFalse(TermList term);
 
-private:
-
-  static TermList getVSpecVar(Term* funcTerm, FuncSubtermMap* fsm)
-  {
-    unsigned vNum;
-    if(fsm->find(funcTerm, vNum)){
-      ASS(vNum > TermList::SPEC_UPPER_BOUND);
-      return TermList(vNum, true);
-    } else {
-      unsigned vNum = TermList::SPEC_UPPER_BOUND + fsm->size() + 1;
-      fsm->insert(vNum, funcTerm);
-      return TermList(vNum, true);
-    }
-  }
-  
 };
 
 #endif // __ApplicativeHelper__

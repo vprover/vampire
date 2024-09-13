@@ -55,11 +55,10 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
+using std::pair;
 
 void SubVarSup::attach(SaturationAlgorithm* salg)
 {
-  CALL("SubVarSup::attach");
-
   GeneratingInferenceEngine::attach(salg);
   _subtermIndex=static_cast<SubVarSupSubtermIndex*> (
 	  _salg->getIndexManager()->request(SUB_VAR_SUP_SUBTERM_SUBST_TREE) );
@@ -69,8 +68,6 @@ void SubVarSup::attach(SaturationAlgorithm* salg)
 
 void SubVarSup::detach()
 {
-  CALL("SubVarSup::detach");
-
   _subtermIndex=0;
   _lhsIndex=0;
   _salg->getIndexManager()->release(SUB_VAR_SUP_SUBTERM_SUBST_TREE);
@@ -83,11 +80,9 @@ void SubVarSup::detach()
 struct SubVarSup::RewritableResultsFn
 {
   RewritableResultsFn(SubVarSupSubtermIndex* index) : _index(index) {}
-  VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> > operator()(pair<Literal*, TermList> arg)
+  VirtualIterator<pair<pair<Literal*, TypedTermList>, QueryRes<ResultSubstitutionSP, TermLiteralClause>> > operator()(pair<Literal*, TypedTermList> arg)
   {
-    CALL("SubVarSup::RewritableResultsFn()");
-
-    return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second, true)) );
+    return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second, /* retrieveSubstitutions */ true)) );
   }
 private:
   SubVarSupSubtermIndex* _index;
@@ -99,11 +94,9 @@ struct SubVarSup::RewriteableSubtermsFn
     prem->collectUnstableVars(_unstableVars);
   }
 
-  VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
+  VirtualIterator<pair<Literal*, TypedTermList> > operator()(Literal* lit)
   {
-    CALL("SubVarSup::RewriteableSubtermsFn()");
-    TermIterator it =  EqHelper::getRewritableVarsIterator(&_unstableVars, lit, _ord);
-    return pvi( pushPairIntoRightIterator(lit, it) );
+    return pvi( pushPairIntoRightIterator(lit, EqHelper::getRewritableVarsIterator(&_unstableVars, lit, _ord)) );
   }
 
 private:
@@ -114,13 +107,9 @@ private:
 struct SubVarSup::ApplicableRewritesFn
 {
   ApplicableRewritesFn(SubVarSupLHSIndex* index) : _index(index) {}
-  VirtualIterator<pair<pair<Literal*, TermList>, TermQueryResult> > operator()(pair<Literal*, TermList> arg)
+  VirtualIterator<pair<pair<Literal*, TypedTermList>, QueryRes<ResultSubstitutionSP, TermLiteralClause>> > operator()(pair<Literal*, TypedTermList> arg)
   {
-    CALL("SubVarSup::ApplicableRewritesFn()");
-
-    //get everything in the tree
-    //false means dont use substitution
-    return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second, false)) );
+    return pvi( pushPairIntoRightIterator(arg, _index->getUnifications(arg.second, /* retrieveSubst */ false)) );
   }
 private:
   SubVarSupLHSIndex* _index;
@@ -130,13 +119,11 @@ private:
 struct SubVarSup::ForwardResultFn
 {
   ForwardResultFn(Clause* cl, SubVarSup& parent) : _cl(cl), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
+  Clause* operator()(pair<pair<Literal*, TermList>, QueryRes<ResultSubstitutionSP, TermLiteralClause>> arg)
   {
-    CALL("SubVarSup::ForwardResultFn::operator()");
-
-    TermQueryResult& qr = arg.second;
+    QueryRes<ResultSubstitutionSP, TermLiteralClause>& qr = arg.second;
     return _parent.performSubVarSup(_cl, arg.first.first, arg.first.second,
-	    qr.clause, qr.literal, qr.term, true);
+	    qr.data->clause, qr.data->literal, qr.data->term, true);
   }
 private:
   Clause* _cl;
@@ -147,16 +134,15 @@ private:
 struct SubVarSup::BackwardResultFn
 {
   BackwardResultFn(Clause* cl, SubVarSup& parent) : _cl(cl), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TermList>, TermQueryResult> arg)
+  Clause* operator()(pair<pair<Literal*, TermList>, QueryRes<ResultSubstitutionSP, TermLiteralClause>> arg)
   {
-    CALL("SubVarSup::BackwardResultFn::operator()");
 
-    if(_cl==arg.second.clause) {
+    if(_cl==arg.second.data->clause) {
       return 0;
     }
 
-    TermQueryResult& qr = arg.second;
-    return _parent.performSubVarSup(qr.clause, qr.literal, qr.term,
+    QueryRes<ResultSubstitutionSP, TermLiteralClause>& qr = arg.second;
+    return _parent.performSubVarSup(qr.data->clause, qr.data->literal, qr.data->term,
 	    _cl, arg.first.first, arg.first.second, false);
   }
 private:
@@ -167,41 +153,32 @@ private:
 
 ClauseIterator SubVarSup::generateClauses(Clause* premise)
 {
-  CALL("SubVarSup::generateClauses");
-  
   //cout << "SubVarSup with " << premise->toString() << endl;
 
-  auto itf1 = premise->getSelectedLiteralIterator();
-
+  auto itf = iterTraits(premise->getSelectedLiteralIterator())
   // Get an iterator of pairs of selected literals and rewritable subterms of those literals
   // A subterm is rewritable (see EqHelper) if
   //  a) The literal is a positive equality t1=t2 and the subterm is max(t1,t2) wrt ordering
   //  b) The subterm is not a variable
-  auto itf2 = getMapAndFlattenIterator(itf1,RewriteableSubtermsFn(_salg->getOrdering(), premise));
+     .flatMap(RewriteableSubtermsFn(_salg->getOrdering(), premise))
 
   // Get clauses with a literal whose complement unifies with the rewritable subterm,
   // returns a pair with the original pair and the unification result (includes substitution)
-  auto itf3 = getMapAndFlattenIterator(itf2,ApplicableRewritesFn(_lhsIndex));
+     .flatMap(ApplicableRewritesFn(_lhsIndex))
 
   //Perform forward SubVarSup
-  auto itf4 = getMappingIterator(itf3,ForwardResultFn(premise, *this));
+     .map(ForwardResultFn(premise, *this));
 
-  auto itb1 = premise->getSelectedLiteralIterator();
-  auto itb2 = getMapAndFlattenIterator(itb1,EqHelper::SubVarSupLHSIteratorFn(_salg->getOrdering()));
-  auto itb3 = getMapAndFlattenIterator(itb2,RewritableResultsFn(_subtermIndex));
-
+  auto itb = iterTraits(premise->getSelectedLiteralIterator())
+             .flatMap(EqHelper::SubVarSupLHSIteratorFn(_salg->getOrdering()))
+             .flatMap(RewritableResultsFn(_subtermIndex))
   //Perform backward SubVarSup
-  auto itb4 = getMappingIterator(itb3,BackwardResultFn(premise, *this));
+             .map(BackwardResultFn(premise, *this));
 
   // Add the results of forward and backward together
-  auto it5 = getConcatenatedIterator(itf4,itb4);
-
+  return pvi(concatIters(std::move(itf),std::move(itb))
   // Remove null elements - these can come from performSubVarSup
-  auto it6 = getFilteredIterator(it5,NonzeroFn());
-
-  //cout << "out" << endl;
-
-  return pvi( it6 );
+          .filter(NonzeroFn()));
 }
 
 
@@ -213,7 +190,6 @@ Clause* SubVarSup::performSubVarSup(
     Clause* rwClause, Literal* rwLit, TermList rwTerm,
     Clause* eqClause, Literal* eqLit, TermList eqLHS, bool eqIsResult)
 {
-  CALL("SubVarSup::performSubVarSup");
   // we want the rwClause and eqClause to be active
   ASS(rwClause->store()==Clause::ACTIVE);
   ASS(eqClause->store()==Clause::ACTIVE);
@@ -230,7 +206,7 @@ Clause* SubVarSup::performSubVarSup(
   unsigned rwLength = rwClause->length();
   unsigned eqLength = eqClause->length();
 
-  int newAge=Int::max(rwClause->age(),eqClause->age())+1;
+  int newAge=Int::max(rwClause->age(),eqClause->age())+1; // TODO isn't this set automatically?
 
   Literal* rwLitS = subst.apply(rwLit, 0);
   TermList rwTermS = subst.apply(rwTerm, 0);
@@ -240,7 +216,7 @@ Clause* SubVarSup::performSubVarSup(
 
   TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLitS, eqLHSS);
 
-  TermList varSort = SortHelper::getTermSort(rwTermS, rwLitS); 
+  auto varSort = SortHelper::getEqualityArgumentSort(eqLitS);
   TermList eqSort = SortHelper::getEqualityArgumentSort(eqLitS);
   
   TermList newEqLHS = ApplicativeHelper::createAppTerm(eqSort, varSort, freshVarS, eqLHSS);
@@ -268,11 +244,11 @@ Clause* SubVarSup::performSubVarSup(
     TermList arg1=*rwLitS->nthArgument(1);
 
     if(!arg0.containsSubterm(rwTermS)) {
-      if(Ordering::isGorGEorE(ordering.getEqualityArgumentOrder(rwLitS))) {
+      if(Ordering::isGreaterOrEqual(ordering.getEqualityArgumentOrder(rwLitS))) {
         return 0;
       }
     } else if(!arg1.containsSubterm(rwTermS)) {
-      if(Ordering::isGorGEorE(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
+      if(Ordering::isGreaterOrEqual(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
         return 0;
       }
     }
@@ -293,31 +269,29 @@ Clause* SubVarSup::performSubVarSup(
 
   bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 
-  unsigned newLength = rwLength+eqLength-1;
   Inference inf(GeneratingInference2(InferenceRule::SUB_VAR_SUP, rwClause, eqClause));
-  Clause* res = new(newLength) Clause(newLength, inf);
+  RStack<Literal*> resLits;
 
-  (*res)[0] = tgtLitS;
-  int next = 1;
+  resLits->push(tgtLitS);
   for(unsigned i=0;i<rwLength;i++) {
-    Literal* curr=(*rwClause)[i];
+    Literal* curr = (*rwClause)[i];
     if(curr!=rwLit) {
       Literal* currAfter = subst.apply(curr, 0);
       currAfter = EqHelper::replace(currAfter,rwTermS,newEqLHS);
 
       if(EqHelper::isEqTautology(currAfter)) {
-        goto construction_fail;
+        return nullptr;
       }
       
       if (afterCheck) {
-        TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+        TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
         if (i < rwClause->numSelected() && ordering.compare(currAfter,rwLitS) == Ordering::GREATER) {
           env.statistics->inferencesBlockedForOrderingAftercheck++;
-          goto construction_fail;
+          return nullptr;
         }
       }
 
-      (*res)[next++] = currAfter;
+      resLits->push(currAfter);
     }
   }
 
@@ -328,16 +302,15 @@ Clause* SubVarSup::performSubVarSup(
       Literal* currAfter = subst.apply(curr, 1);
 
       if(EqHelper::isEqTautology(currAfter)) {
-        goto construction_fail;
+        return nullptr;
       }
 
-      (*res)[next++] = currAfter;
+      resLits->push(currAfter);
     }
   } //no need for after check as no variables in D are bound to anyhting
     //the most that is happenning is a rearrangement of vars in D
   
 
-  res->setAge(newAge);
   
   if(rwClause==eqClause) {
     env.statistics->selfSubVarSup++;
@@ -348,9 +321,7 @@ Clause* SubVarSup::performSubVarSup(
   }
 
   //cout << "SUBVARSUP " + res->toString() << endl;
+  auto res = Clause::fromStack(*resLits, inf);
+  res->setAge(newAge);
   return res;
-
-construction_fail:
-  res->destroy();
-  return 0;    
 }

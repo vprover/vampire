@@ -55,14 +55,14 @@ public:
   FunctionDefinition();
   ~FunctionDefinition();
 
-  void removeAllDefinitions(Problem& prb);
-  bool removeAllDefinitions(UnitList*& units);
+  void removeAllDefinitions(Problem& prb, bool inHigherOrder);
+  bool removeAllDefinitions(UnitList*& units, bool inHigherOrder);
 
-  static void removeUnusedDefinitions(Problem& prb);
-  static bool removeUnusedDefinitions(UnitList*& units, Problem* prb=0);
+  static void removeUnusedDefinitions(Problem& prb, bool inHigherOrder);
+  static bool removeUnusedDefinitions(UnitList*& units, Problem* prb, bool inHigherOrder);
 
 
-  static Def* isFunctionDefinition (Unit&);
+  static Def* isFunctionDefinition (Unit&, bool inHigherOrder);
   static void deleteDef(Def* def);
 
 //   int removeAllDefinitions ();
@@ -71,10 +71,10 @@ public:
 //   static bool isFunctionDefinition (const Formula&, Term*& lhs, Term*& rhs);
 
 private:
-  static Def* isFunctionDefinition (Clause*);
-  static Def* isFunctionDefinition (FormulaUnit&);
-  static Def* isFunctionDefinition (Literal*);
-  static Def* defines (Term* lhs, Term* rhs);
+  static Def* isFunctionDefinition (Clause*, bool inHigherOrder);
+  static Def* isFunctionDefinition (FormulaUnit&, bool inHigherOrder);
+  static Def* isFunctionDefinition (Literal*, bool inHigherOrder);
+  static Def* defines (Term* lhs, Term* rhs, bool inHigherOrder);
   static bool occurs (unsigned function, Term&);
   static void reverse(Def*);
 
@@ -97,7 +97,7 @@ private:
 //   void apply (TermList& ls,UnitList& parents);
 //   void apply (Term& l,UnitList& parents);
 
-  typedef DHMap<int, Def*, IdentityHash, Hash> Fn2DefMap;
+  typedef DHMap<int, Def*, IdentityHash, DefaultHash> Fn2DefMap;
   Fn2DefMap _defs;
 
   /** stack where definitions are put when they're marked as blocked */

@@ -18,45 +18,44 @@
 
 #include "Index.hpp"
 
+#include "Indexing/TermSubstitutionTree.hpp"
 #include "TermIndexingStructure.hpp"
 #include "Lib/Set.hpp"
 
 namespace Indexing {
 
+template<class Data>
 class TermIndex
 : public Index
 {
 public:
-  CLASS_NAME(TermIndex);
-  USE_ALLOCATOR(TermIndex);
+  virtual ~TermIndex() {}
 
-  virtual ~TermIndex();
+  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
+  { return _is->getUwa(t, uwa, fixedPointIteration); }
 
-  TermQueryResultIterator getUnifications(TermList t,
-	  bool retrieveSubstitutions = true);
-  TermQueryResultIterator getUnificationsUsingSorts(TermList t, TermList sort,
-    bool retrieveSubstitutions = true);
-  TermQueryResultIterator getUnificationsWithConstraints(TermList t,
-    bool retrieveSubstitutions = true);
-  TermQueryResultIterator getGeneralizations(TermList t,
-	  bool retrieveSubstitutions = true);
-  TermQueryResultIterator getInstances(TermList t,
-	  bool retrieveSubstitutions = true);
+  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getUnifications(TypedTermList t, bool retrieveSubstitutions = true)
+  { return _is->getUnifications(t, retrieveSubstitutions); }
 
+  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true)
+  { return _is->getGeneralizations(t, retrieveSubstitutions); }
+
+  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getInstances(TypedTermList t, bool retrieveSubstitutions = true)
+  { return _is->getInstances(t, retrieveSubstitutions); }
+
+  friend std::ostream& operator<<(std::ostream& out, TermIndex const& self)
+  { return out << *self._is; }
 protected:
-  TermIndex(TermIndexingStructure* is) : _is(is) {}
+  TermIndex(TermIndexingStructure<Data>* is) : _is(is) {}
 
-  TermIndexingStructure* _is;
+  std::unique_ptr<TermIndexingStructure<Data>> _is;
 };
 
 class SuperpositionSubtermIndex
-: public TermIndex
+: public TermIndex<TermLiteralClause>
 {
 public:
-  CLASS_NAME(SuperpositionSubtermIndex);
-  USE_ALLOCATOR(SuperpositionSubtermIndex);
-
-  SuperpositionSubtermIndex(TermIndexingStructure* is, Ordering& ord)
+  SuperpositionSubtermIndex(Indexing::TermIndexingStructure<TermLiteralClause>* is, Ordering& ord)
   : TermIndex(is), _ord(ord) {};
 protected:
   void handleClause(Clause* c, bool adding);
@@ -65,30 +64,28 @@ private:
 };
 
 class SuperpositionLHSIndex
-: public TermIndex
+: public TermIndex<TermLiteralClause>
 {
 public:
-  CLASS_NAME(SuperpositionLHSIndex);
-  USE_ALLOCATOR(SuperpositionLHSIndex);
-
-  SuperpositionLHSIndex(TermIndexingStructure* is, Ordering& ord, const Options& opt)
-  : TermIndex(is), _ord(ord), _opt(opt) {};
+  SuperpositionLHSIndex(TermSubstitutionTree<TermLiteralClause>* is, Ordering& ord, const Options& opt)
+  : TermIndex(is), _ord(ord), _opt(opt), _tree(is) {};
 protected:
   void handleClause(Clause* c, bool adding);
 private:
   Ordering& _ord;
   const Options& _opt;
+  TermSubstitutionTree<TermLiteralClause>* _tree;
 };
 
 /**
  * Term index for backward demodulation
  */
 class DemodulationSubtermIndex
-: public TermIndex
+: public TermIndex<TermLiteralClause>
 {
 public:
   // people seemed to like the class, although it add's no interface on top of TermIndex
-  DemodulationSubtermIndex(TermIndexingStructure* is)
+  DemodulationSubtermIndex(TermIndexingStructure<TermLiteralClause>* is)
   : TermIndex(is) {};
 protected:
   // it's the implementation of this below in DemodulationSubtermIndexImpl, which makes this work
@@ -100,26 +97,22 @@ class DemodulationSubtermIndexImpl
 : public DemodulationSubtermIndex
 {
 public:
-  CLASS_NAME(DemodulationSubtermIndexImpl);
-  USE_ALLOCATOR(DemodulationSubtermIndexImpl);
-
-  DemodulationSubtermIndexImpl(TermIndexingStructure* is)
-  : DemodulationSubtermIndex(is) {};
+  DemodulationSubtermIndexImpl(TermIndexingStructure<TermLiteralClause>* is, const Options& opt)
+  : DemodulationSubtermIndex(is), _opt(opt) {};
 protected:
   void handleClause(Clause* c, bool adding);
+private:
+  const Options& _opt;
 };
 
 /**
  * Term index for forward demodulation
  */
 class DemodulationLHSIndex
-: public TermIndex
+: public TermIndex<DemodulatorData>
 {
 public:
-  CLASS_NAME(DemodulationLHSIndex);
-  USE_ALLOCATOR(DemodulationLHSIndex);
-
-  DemodulationLHSIndex(TermIndexingStructure* is, Ordering& ord, const Options& opt)
+  DemodulationLHSIndex(TermIndexingStructure<DemodulatorData>* is, Ordering& ord, const Options& opt)
   : TermIndex(is), _ord(ord), _opt(opt) {};
 protected:
   void handleClause(Clause* c, bool adding);
@@ -132,13 +125,10 @@ private:
  * Term index for induction
  */
 class InductionTermIndex
-: public TermIndex
+: public TermIndex<TermLiteralClause>
 {
 public:
-  CLASS_NAME(InductionTermIndex);
-  USE_ALLOCATOR(InductionTermIndex);
-
-  InductionTermIndex(TermIndexingStructure* is)
+  InductionTermIndex(TermIndexingStructure<TermLiteralClause>* is)
   : TermIndex(is) {}
 
 protected:
@@ -149,13 +139,10 @@ protected:
  * Term index for structural induction
  */
 class StructInductionTermIndex
-: public TermIndex
+: public TermIndex<TermLiteralClause>
 {
 public:
-  CLASS_NAME(StructInductionTermIndex);
-  USE_ALLOCATOR(StructInductionTermIndex);
-
-  StructInductionTermIndex(TermIndexingStructure* is)
+  StructInductionTermIndex(TermIndexingStructure<TermLiteralClause>* is)
   : TermIndex(is) {}
 
 protected:
@@ -167,13 +154,10 @@ protected:
 /////////////////////////////////////////////////////
 
 class PrimitiveInstantiationIndex
-: public TermIndex
+: public TermIndex<TermWithoutValue>
 {
 public:
-  CLASS_NAME(PrimitiveInstantiationIndex);
-  USE_ALLOCATOR(PrimitiveInstantiationIndex);
-
-  PrimitiveInstantiationIndex(TermIndexingStructure* is) : TermIndex(is)
+  PrimitiveInstantiationIndex(TermIndexingStructure<TermWithoutValue>* is) : TermIndex(is)
   {
     populateIndex();
   }
@@ -182,13 +166,10 @@ protected:
 };
 
 class SubVarSupSubtermIndex
-: public TermIndex
+: public TermIndex<TermLiteralClause>
 {
 public:
-  CLASS_NAME(SubVarSupSubtermIndex);
-  USE_ALLOCATOR(SubVarSupSubtermIndex);
-
-  SubVarSupSubtermIndex(TermIndexingStructure* is, Ordering& ord)
+  SubVarSupSubtermIndex(TermIndexingStructure<TermLiteralClause>* is, Ordering& ord)
   : TermIndex(is), _ord(ord) {};
 protected:
   void handleClause(Clause* c, bool adding);
@@ -197,13 +178,10 @@ private:
 };
 
 class SubVarSupLHSIndex
-: public TermIndex
+: public TermIndex<TermLiteralClause>
 {
 public:
-  CLASS_NAME(SubVarSupLHSIndex);
-  USE_ALLOCATOR(SubVarSupLHSIndex);
-
-  SubVarSupLHSIndex(TermIndexingStructure* is, Ordering& ord, const Options& opt)
+  SubVarSupLHSIndex(TermIndexingStructure<TermLiteralClause>* is, Ordering& ord, const Options& opt)
   : TermIndex(is), _ord(ord) {};
 protected:
   void handleClause(Clause* c, bool adding);
@@ -215,13 +193,10 @@ private:
  * Index used for narrowing with combinator axioms
  */
 class NarrowingIndex
-: public TermIndex
+: public TermIndex<TermWithValue<Literal*>>
 {
 public:
-  CLASS_NAME(NarrowingIndex);
-  USE_ALLOCATOR(NarrowingIndex);
-
-  NarrowingIndex(TermIndexingStructure* is) : TermIndex(is)
+  NarrowingIndex(TermIndexingStructure<TermWithValue<Literal*>>* is) : TermIndex(is)
   {
     populateIndex();
   }
@@ -229,48 +204,15 @@ protected:
   void populateIndex();
 };
 
-
 class SkolemisingFormulaIndex
-: public TermIndex
+: public TermIndex<TermWithValue<TermList>>
 {
 public:
-  CLASS_NAME(SkolemisingFormulaIndex);
-  USE_ALLOCATOR(SkolemisingFormulaIndex);
-
-  SkolemisingFormulaIndex(TermIndexingStructure* is) : TermIndex(is)
+  SkolemisingFormulaIndex(TermIndexingStructure<TermWithValue<TermList>>* is) : TermIndex(is)
   {}
   void insertFormula(TermList formula, TermList skolem);
 };
 
-class HeuristicInstantiationIndex
-: public TermIndex
-{
-public:
-  CLASS_NAME(HeuristicInstantiationIndex);
-  USE_ALLOCATOR(HeuristicInstantiationIndex);
 
-  HeuristicInstantiationIndex(TermIndexingStructure* is) : TermIndex(is)
-  {}
-protected:
-  void insertInstantiation(TermList sort, TermList instantiation);
-  void handleClause(Clause* c, bool adding);
-private:
-  Set<TermList> _insertedInstantiations;
-};
-
-class RenamingFormulaIndex
-: public TermIndex
-{
-public:
-  CLASS_NAME(RenamingFormulaIndex);
-  USE_ALLOCATOR(RenamingFormulaIndex);
-
-  RenamingFormulaIndex(TermIndexingStructure* is) : TermIndex(is)
-  {}
-  void insertFormula(TermList formula, TermList name, Literal* lit, Clause* cls);
-protected:
-  void handleClause(Clause* c, bool adding);
-};
-
-};
+} // namespace Indexing
 #endif /* __TermIndex__ */

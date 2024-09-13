@@ -21,7 +21,6 @@
 
 #include "Unit.hpp"
 
-using namespace std;
 using namespace Lib;
 
 namespace Kernel {
@@ -43,7 +42,7 @@ public:
   {}
 
   void destroy();
-  vstring toString() const;
+  std::string toString() const;
 
   unsigned varCnt();
 
@@ -57,7 +56,6 @@ public:
   Color getColor();
   unsigned weight();
 
-  CLASS_NAME(FormulaUnit);
   USE_ALLOCATOR(FormulaUnit);
 
 protected:

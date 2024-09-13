@@ -29,21 +29,14 @@ using namespace Lib;
 Z3MainLoop::Z3MainLoop(Problem& prb, const Options& opt)
 : MainLoop(prb,opt)
 {
-  CALL("Z3MainLoop::Z3MainLoop");
-
 }
 
 void Z3MainLoop::init()
 {
-  CALL("Z3MainLoop::init");
-
-  
 }
 
 MainLoopResult Z3MainLoop::runImpl()
 {
-  CALL("Z3MainLoop::runImpl");
-
   if(!_prb.getProperty()->allNonTheoryClausesGround()){
     return MainLoopResult(Statistics::INAPPROPRIATE);
   }
@@ -60,12 +53,10 @@ MainLoopResult Z3MainLoop::runImpl()
      continue;
    }
 
-   Clause::Iterator lit(*cl);
    unsigned len = cl->size();
-   SATClause* sc = new(len) SATClause(len, true);
+   SATClause* sc = new(len) SATClause(len);
    unsigned i=0;
-   while(lit.hasNext()){
-     Literal* l = lit.next();
+   for (auto l : cl->iterLits()) {
      SATLiteral sl = s2f.toSAT(l);
      (*sc)[i++] = sl;
    }

@@ -14,6 +14,7 @@
 
 #include "Debug/RuntimeStatistics.hpp"
 
+#include "Kernel/SortHelper.hpp"
 #include "Lib/DArray.hpp"
 #include "Indexing/TermSharing.hpp"
 
@@ -34,8 +35,6 @@ using namespace Indexing;
 
 Literal* Renaming::apply(Literal* lit)
 {
-  CALL("Renaming::apply(Literal*...)");
-
   if(identity()) {
     return lit;
   }
@@ -45,8 +44,6 @@ Literal* Renaming::apply(Literal* lit)
 
 Term* Renaming::apply(Term* trm)
 {
-  CALL("Renaming::apply(Term*...)");
-
   if(identity()) {
     return trm;
   }
@@ -56,8 +53,6 @@ Term* Renaming::apply(Term* trm)
 
 TermList Renaming::apply(TermList trm)
 {
-  CALL("Renaming::apply(TermList...)");
-
   if(identity()) {
     return trm;
   }
@@ -83,7 +78,19 @@ bool Renaming::identity() const
 }
 
 /**
- * Make the renaming normalize variables of term or literal @c t
+ * Make the renaming normalize variables of literal @c t
+ */
+void Renaming::normalizeVariables(const Literal* t)
+{
+  normalizeVariables((const Term*) t);
+  if (t->isEquality()) {
+    normalizeVariables(SortHelper::getEqualityArgumentSort(t));
+  }
+}
+
+
+/**
+ * Make the renaming normalize variables of term @c t
  */
 void Renaming::normalizeVariables(const Term* t)
 {
@@ -121,24 +128,38 @@ void Renaming::makeInverse(const Renaming& orig)
   _identity = orig.identity();
 }
 
+TypedTermList Renaming::normalize(TypedTermList l)
+{
+  if (l.isTerm()) {
+    return TypedTermList(normalize(l.term()));
+  } else {
+    Recycled<Renaming> n;
+    n->normalizeVariables(TermList(l));
+    n->normalizeVariables(l.sort());
+    return TypedTermList(n->apply(TermList(l)), n->apply(l.sort()));
+  }
+}
+
+
 Literal* Renaming::normalize(Literal* l)
 {
-  CALL("Renaming::normalize(Literal*)");
-
-  static Renaming n;
-  n.reset();
-  n.normalizeVariables(l);
-  return n.apply(l);
+  Recycled<Renaming> n;
+  n->normalizeVariables(l);
+  return n->apply(l);
 }
 
 Term* Renaming::normalize(Term* trm)
 {
-  CALL("Renaming::normalize(Term*)");
+  Recycled<Renaming> n;
+  n->normalizeVariables(trm);
+  return n->apply(trm);
+}
 
-  static Renaming n;
-  n.reset();
-  n.normalizeVariables(trm);
-  return n.apply(trm);
+TermList Renaming::normalize(TermList trm)
+{
+  Recycled<Renaming> n;
+  n->normalizeVariables(trm);
+  return n->apply(trm);
 }
 
 
@@ -155,9 +176,9 @@ void Renaming::assertValid() const
   }
 }
 
-vstring Renaming::toString() const
+std::string Renaming::toString() const
 {
-  vstring res = "[";
+  std::string res = "[";
   VariableMap::Iterator mit(_data);
   while(mit.hasNext()) {
     unsigned from, to;

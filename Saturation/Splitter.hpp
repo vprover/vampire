@@ -20,6 +20,7 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/ArrayMap.hpp"
 #include "Lib/DHMap.hpp"
+#include "Lib/Hash.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/ScopedPtr.hpp"
 
@@ -59,10 +60,7 @@ public:
   SplittingBranchSelector(Splitter& parent) : _ccModel(false), _parent(parent), _solverIsSMT(false)  {}
   ~SplittingBranchSelector(){
 #if VZ3
-{
-BYPASSING_ALLOCATOR;
 _solver=0;
-}
 #endif
   }
 
@@ -99,7 +97,7 @@ private:
   Splitter& _parent;
 
   bool _solverIsSMT;
-  SATSolverSCP _solver;
+  ScopedPtr<SATSolver> _solver;
   ScopedPtr<DecisionProcedure> _dp;
   // use a separate copy of the decision procedure for ccModel computations and fill it up only with equalities
   ScopedPtr<SimpleCongruenceClosure> _dpModel;
@@ -138,14 +136,14 @@ private:
     ReductionRecord(Clause* clause) : clause(clause), 
         timestamp(clause->getReductionTimestamp()) {}
     Clause* clause;
-    unsigned timestamp;    
+    unsigned timestamp;
   };
 
 /**
  *
  * SplitRecord - records the split information for the clause component
  *
- * Let's call the SplitLevel associated with a comp its name = _compNames.get(comp)
+ * Let's call the SplitLevel associated with a comp its "name"
  * A corresponding SplitRecord is added to _db[name] 
  *
  * children - Clauses that rely on name (of comp), should be thrown away "on backtracking"
@@ -153,7 +151,7 @@ private:
  * active - component currently true in the model
  *
  * Comment by Giles
- */   
+ */
   struct SplitRecord
   {
     SplitRecord(Clause* comp)
@@ -169,16 +167,13 @@ private:
     Clause* component;
     RCClauseStack children;
     Stack<ReductionRecord> reduced;
+    Stack<ConditionalRedundancyEntry*> conditionalRedundancyEntries;
     bool active;
 
-    CLASS_NAME(Splitter::SplitRecord);
     USE_ALLOCATOR(SplitRecord);
   };
   
 public:
-  CLASS_NAME(Splitter);
-  USE_ALLOCATOR(Splitter);
-
   Splitter();
   ~Splitter();
 
@@ -190,6 +185,7 @@ public:
   bool doSplitting(Clause* cl);
 
   void onClauseReduction(Clause* cl, ClauseIterator premises, Clause* replacement);
+  void addConditionalRedundancyEntry(SplitSet* splits, ConditionalRedundancyEntry* e);
   void onNewClause(Clause* cl);
   void onAllProcessed();
   bool handleEmptyClause(Clause* cl);
@@ -197,12 +193,11 @@ public:
   SplitLevel getNameFromLiteral(SATLiteral lit) const;
   Unit* getDefinitionFromName(SplitLevel compName) const;
 
-  static vstring splitsToString(SplitSet* splits);
+  static std::string splitsToString(SplitSet* splits);
   static SATLiteral getLiteralFromName(SplitLevel compName);
-  static vstring getFormulaStringFromName(SplitLevel compName, bool negated = false);
+  static std::string getFormulaStringFromName(SplitLevel compName, bool negated = false);
 
   bool isUsedName(SplitLevel name) const {
-    CALL("Splitter::isUsedName");
     ASS_L(name,_db.size());
     return (_db[name] != 0);
   }
@@ -214,7 +209,15 @@ public:
   SAT2FO& satNaming() { return _sat2fo; }
 
   UnitList* preprendCurrentlyAssumedComponentClauses(UnitList* clauses);
-  static bool getComponents(Clause* cl, Stack<LiteralStack>& acc);
+  static bool getComponents(Clause* cl, Stack<LiteralStack>& acc, bool shuffle = false);
+
+  /*
+   * Clauses with answer literals cannot be split -- hence if we obtain a clause with
+   * avatar assertions that has an answer literal, we have to un-split it.
+   * This method replaces `C \/ ans(r) <- A1,...,An` with `C \/ ans(r) \/ ~A1 \/ ... \/ ~An`
+   */
+  Clause* reintroduceAvatarAssertions(Clause* cl);
+
 private:
   friend class SplittingBranchSelector;
   
@@ -253,6 +256,7 @@ private:
   float _flushQuotient;
   Options::SplittingDeleteDeactivated _deleteDeactivated;
   Options::SplittingCongruenceClosure _congruenceClosure;
+  bool _shuffleComponents;
 #if VZ3
   bool hasSMTSolver;
 #endif
@@ -275,7 +279,6 @@ private:
    * the _db record of this level is non-null.
    */
   Stack<SplitRecord*> _db;
-  DHMap<Clause*,SplitLevel> _compNames;
 
   /**
    * Definitions of ground components C and ~C are shared and placed at the slot of C.
@@ -294,7 +297,7 @@ private:
   /* as there can be both limits, it's hard to covert between them,
    * and we terminate at the earlier one, let's just keep checking both. */
   unsigned _stopSplittingAtTime; // time elapsed in milliseconds
-#ifdef __linux__
+#if VAMPIRE_PERF_EXISTS
   unsigned _stopSplittingAtInst; // mega-instructions elapsed
 #endif
 
@@ -308,8 +311,12 @@ private:
   
   SaturationAlgorithm* _sa;
 
+  // clauses we already added to the SAT solver
+  // not just optimisation: also prevents the SAT solver oscillating between two models in some cases
+  Set<SATClause *, DerefPtrHash<DefaultHash>> _already_added;
+
 public:
-  static vstring splPrefix;
+  static std::string splPrefix;
 
   // for observing the current model
   SplitLevel splitLevelBound() { return _db.size(); }

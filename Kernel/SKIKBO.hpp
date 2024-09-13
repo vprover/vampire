@@ -23,8 +23,10 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/SmartPtr.hpp"
 
+#include "KBO.hpp"
 #include "Ordering.hpp"
 #include "Signature.hpp"
+#include "SubstHelper.hpp"
 #include "TermIterators.hpp"
 
 namespace Kernel {
@@ -39,16 +41,29 @@ class SKIKBO
 : public PrecedenceOrdering
 {
 public:
-  CLASS_NAME(SKIKBO);
-  USE_ALLOCATOR(SKIKBO);
-
   SKIKBO(Problem& prb, const Options& opt, bool basic_hol = false);
+  SKIKBO(
+        // KBO params
+        KboWeightMap<FuncSigTraits> symbolWeights, 
+
+        // precedence ordering params
+        DArray<int> funcPrec, 
+        DArray<int> typeConPrec,
+        // pred prec and pred levels are useless
+        // as in higher-order we treat all symbol as function symbols (or type cons)
+        DArray<int> predPrec, 
+        DArray<int> predLevels,
+
+        // other
+        bool reverseLCM);
+
   virtual ~SKIKBO();
 
   typedef SmartPtr<ApplicativeArgsIt> ArgsIt_ptr;
 
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
+
   static unsigned maximumReductionLength(Term* t);
   static TermList reduce(TermStack& args, TermList& head);
 
@@ -71,12 +86,14 @@ protected:
     return Ordering::INCOMPARABLE;
   }
 
-  void showConcrete(ostream&) const override
+  void showConcrete(std::ostream&) const override
   { NOT_IMPLEMENTED; }
 
   //VarCondRes compareVariables(VarOccMap&, VarOccMap&, VarCondRes) const;
   VarCondRes compareVariables(TermList tl1, TermList tl2) const;
   unsigned getMaxRedLength(TermList t) const;
+  bool varConditionHolds(DHMultiset<Term*>& tlTerms1, DHMultiset<Term*>& tlTerms2) const;
+  bool safe(Term* t1, Term* t2) const;
 
   /** Weight of variables */
   int _variableWeight;
@@ -84,7 +101,9 @@ protected:
    * signature */
   int _defaultSymbolWeight;
 
-  int functionSymbolWeight(unsigned fun) const;
+  KboWeightMap<FuncSigTraits> _weights;
+
+  int symbolWeight(Term* t) const;
 
   bool allConstantsHeavierThanVariables() const { return false; }
   bool existsZeroWeightUnaryFunction() const { return false; }
@@ -96,7 +115,7 @@ protected:
   bool _basic_hol;
 
 #if VDEBUG
-  static vstring vCondResToString(VarCondRes v)
+  static std::string vCondResToString(VarCondRes v)
   {
     if(v == INCOMP){ return "incomparable"; }
     if(v == LEFT){ return "left"; }

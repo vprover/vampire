@@ -16,6 +16,7 @@
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/TypedTermList.hpp"
 
 #include "Lib/Backtrackable.hpp"
 #include "Lib/Environment.hpp"
@@ -23,6 +24,7 @@
 
 #include "AcyclicityIndex.hpp"
 
+using namespace std;
 using namespace Kernel;
 using namespace Lib;
 
@@ -30,8 +32,6 @@ namespace Indexing
 {
   unsigned CycleQueryResult::totalLengthClauses()
   {
-    CALL("CycleQueryResult::totalLengthClauses");
-
     unsigned n = 0;
     List<Clause*>::Iterator it(premises);
     while (it.hasNext()) {
@@ -41,25 +41,22 @@ namespace Indexing
     return n;
   }
 
-  void addSubterm(TermList t, List<TermList>*& l)
+  void addSubterm(TypedTermList t, List<TypedTermList>*& l)
   {
-    CALL("addSubterm");
-    List<TermList>::Iterator it(l);
+    List<TypedTermList>::Iterator it(l);
     while (it.hasNext()) {
       // TODO test for unifiability, keep only most general term
       if (TermList::equals(t, it.next())) {
         return;
       }
     }
-    List<TermList>::push(t, l);
+    List<TypedTermList>::push(t, l);
   }
   
-  List<TermList>* AcyclicityIndex::getSubterms(Term *t)
+  List<TypedTermList>* AcyclicityIndex::getSubterms(Term *t)
   {
-    CALL("AcyclicityIndex::getSubterms");
-    
     Stack<Term*> toVisit;
-    List<TermList>* res = List<TermList>::empty();
+    List<TypedTermList>* res = List<TypedTermList>::empty();
     
     TermList sort = SortHelper::getResultSort(t);
     ASS(env.signature->isTermAlgebraSort(sort));
@@ -67,7 +64,7 @@ namespace Indexing
     for (unsigned i = 0; i < t->arity(); i++) {
       if (SortHelper::getArgSort(t, i) == sort) {
         TermList *s = t->nthArgument(i);
-        addSubterm(*s, res);
+        addSubterm(TypedTermList(*s,sort), res);
         if (s->isTerm()) {
           toVisit.push(s->term());
         }
@@ -80,7 +77,7 @@ namespace Indexing
         for (unsigned i = 0; i < u->arity(); i++) {
           if (SortHelper::getArgSort(u, i) == sort) {
             TermList *s = u->nthArgument(i);
-            addSubterm(*s, res);
+            addSubterm(TypedTermList(*s,sort), res);
             if (s->isTerm()) {
               toVisit.push(s->term());
             }
@@ -94,8 +91,6 @@ namespace Indexing
 
   bool AcyclicityIndex::matchesPattern(Literal *lit, TermList *&fs, TermList *&t, TermList *sort)
   {
-    CALL("AcyclicityIndex::matchesPattern");
-
     if (!lit->isEquality() || !lit->polarity()) {
       return false;
     }
@@ -126,25 +121,24 @@ namespace Indexing
   
   struct AcyclicityIndex::IndexEntry {
   public:
-    IndexEntry(Literal *l, Clause *c, TermList t, List<TermList>* subterms) :
+    IndexEntry(Literal *l, Clause *c, TypedTermList t, List<TypedTermList>* subterms) :
       lit(l),
       clause(c),
       t(t),
       subterms(subterms)
     {}
 
-    CLASS_NAME(AcyclicityIndex::IndexEntry);
     USE_ALLOCATOR(AcyclicityIndex::IndexEntry);
 
     Literal* lit;
     Clause* clause;
-    TermList t;
-    List<TermList>* subterms;
+    TypedTermList t;
+    List<TypedTermList>* subterms;
   };
 
   struct AcyclicityIndex::CycleSearchTreeNode
   {
-    CycleSearchTreeNode(TermList t,
+    CycleSearchTreeNode(TypedTermList t,
                         Literal *l,
                         Clause *c,
                         CycleSearchTreeNode *n,
@@ -161,7 +155,7 @@ namespace Indexing
       isUnificationNode(b)
     {}
 
-    static CycleSearchTreeNode *subtermNode(TermList t,
+    static CycleSearchTreeNode *subtermNode(TypedTermList t,
                                      Literal *l,
                                      Clause *c,
                                      CycleSearchTreeNode *n,
@@ -170,7 +164,7 @@ namespace Indexing
       return new CycleSearchTreeNode(t, l, c, n, n ? n->depth + 1 : 0, substIndex, false);
     }
 
-    static CycleSearchTreeNode *unificationNode(TermList t,
+    static CycleSearchTreeNode *unificationNode(TypedTermList t,
                                          Literal *l,
                                          Clause *c,
                                          CycleSearchTreeNode *n,
@@ -179,10 +173,9 @@ namespace Indexing
       return new CycleSearchTreeNode(t, l, c, n, n ? n->depth : 0, substIndex, true);
     }
 
-    CLASS_NAME(AcyclicityIndex::CycleSearchTreeNode);
     USE_ALLOCATOR(AcyclicityIndex::CycleSearchTreeNode);
 
-    TermList term;
+    TypedTermList term;
     Literal *lit;
     Clause *clause;
     CycleSearchTreeNode *parent;
@@ -199,6 +192,8 @@ namespace Indexing
                         AcyclicityIndex& aindex)
       :
       _queryLit(queryLit),
+      _index(nullptr),
+      _tis(nullptr),
       _nextResult(nullptr),
       _stack(0),
       _subst(new RobSubstitution()),
@@ -206,8 +201,6 @@ namespace Indexing
       _nextAvailableIndex(0),
       _currentDepth(0)
     {
-      CALL("AcyclicityIndex::CycleSearchIterator");
-      
       if (queryLit->isEquality()) {
         TermList sort = SortHelper::getEqualityArgumentSort(queryLit);
 
@@ -231,23 +224,18 @@ namespace Indexing
 
     Clause *applySubstitution(Clause *c, unsigned index)
     {
-      CALL("AcyclicityIndex::applySubstitution");
-      
-      unsigned clen = c->length();
-      Clause* res = new(clen) Clause(clen,
-          GeneratingInference1(InferenceRule::INSTANTIATION, c));
+      RStack<Literal*> resLits;
 
-      for (unsigned i = 0; i < clen; i++) {
-        (*res)[i] = _subst->apply((*c)[i], index);
+      for (auto lit : c->iterLits()) {
+        resLits->push(_subst->apply(lit, index));
       }
 
-      return res;
+      return Clause::fromStack(*resLits,
+          GeneratingInference1(InferenceRule::INSTANTIATION, c));
     }
 
     CycleQueryResult *resultFromNode(CycleSearchTreeNode *node)
     {
-      CALL("AcyclicityIndex::CycleSearchIterator::resultFromNode");
-
       LiteralList* l = LiteralList::empty();
       ClauseList* c = ClauseList::empty();
       ClauseList* cTheta = ClauseList::empty();
@@ -271,26 +259,25 @@ namespace Indexing
       return new CycleQueryResult(l, c, cTheta);
     }
 
-    void pushUnificationsOnStack(TermList t, CycleSearchTreeNode *parent)
+    void pushUnificationsOnStack(TypedTermList t, CycleSearchTreeNode *parent)
     {
-      CALL("Acyclicity::pushUnificationOnStack");
-
+      // ASS(t.isTerm());
       ASS(_tis);
-      TermQueryResultIterator tqrIt = _tis->getUnifications(t);
+      auto tqrIt = _tis->getUnifications(t);
       int index;
       while (tqrIt.hasNext()) {
-        TermQueryResult tqr = tqrIt.next();
-        if (tqr.literal == _queryLit || notInAncestors(parent, tqr.literal)) {
-          if (tqr.literal == _queryLit) {
+        auto tqr = tqrIt.next();
+        if (tqr.data->literal == _queryLit || notInAncestors(parent, tqr.data->literal)) {
+          if (tqr.data->literal == _queryLit) {
             index = 0;
-          } else if (parent && tqr.clause == parent->clause) {
+          } else if (parent && tqr.data->clause == parent->clause) {
             index = parent->substIndex;
           } else {
             index = _nextAvailableIndex++;
           }
-          _stack.push(CycleSearchTreeNode::unificationNode(tqr.term,
-                                                           tqr.literal,
-                                                           tqr.clause,
+          _stack.push(CycleSearchTreeNode::unificationNode(tqr.data->term,
+                                                           tqr.data->literal,
+                                                           tqr.data->clause,
                                                            parent,
                                                            index));
         }
@@ -299,8 +286,6 @@ namespace Indexing
 
     bool notInAncestors(CycleSearchTreeNode *node, Literal *l)
     {
-      CALL("AcyclicityIndex::CycleSearchIterator::notInAncestors");
-
       CycleSearchTreeNode *n = node;
       while (n) {
         if (n->lit == l) {
@@ -314,8 +299,6 @@ namespace Indexing
 
     bool hasNext()
     {
-      CALL("AcyclicityIndex::CycleSearchIterator::hasNext");
-
       // if hasNext() has already been called without being followed
       // by a call to next(), the next value is already computed
       if (_nextResult) { return true; }
@@ -357,9 +340,9 @@ namespace Indexing
           }
           if (_index->find(make_pair(n->lit, n->clause))) {
             IndexEntry *entry = _index->get(make_pair(n->lit, n->clause));
-            List<TermList>::Iterator it(entry->subterms);
+            List<TypedTermList>::Iterator it(entry->subterms);
             while (it.hasNext()) {
-              TermList t = it.next();
+              TypedTermList t = it.next();
               _stack.push(CycleSearchTreeNode::subtermNode(t,
                                                            entry->lit,
                                                            entry->clause,
@@ -368,7 +351,7 @@ namespace Indexing
             }
           }
         } else {
-          pushUnificationsOnStack(_subst->apply(n->term, n->substIndex), n);
+          pushUnificationsOnStack(TypedTermList(_subst->apply(n->term, n->substIndex),_subst->apply(n->term.sort(), n->substIndex)), n);
         }
       }
       return false;
@@ -376,8 +359,6 @@ namespace Indexing
     
     OWN_ELEMENT_TYPE next()
     {
-      CALL("AcyclicityIndex::CycleSearchIterator::next()");
-
       ASS(_nextResult);
       CycleQueryResult *res = _nextResult;
       _nextResult = nullptr;
@@ -386,7 +367,7 @@ namespace Indexing
   private:
     Literal *_queryLit;
     SIndex *_index;
-    TermIndexingStructure *_tis;    
+    TermIndexingStructure *_tis;
     CycleQueryResult *_nextResult;
     Stack<CycleSearchTreeNode*> _stack;
     RobSubstitution *_subst;
@@ -397,9 +378,7 @@ namespace Indexing
 
   void AcyclicityIndex::handleClause(Clause* c, bool adding)
   {
-    CALL("AcyclicityIndex::handleClause");
-
-    ArrayishObjectIterator<Clause> it = c->getSelectedLiteralIterator();
+    auto it = c->getSelectedLiteralIterator();
     while (it.hasNext()) {
       if (adding) {
         insert(it.next(), c);
@@ -411,8 +390,6 @@ namespace Indexing
     
   void AcyclicityIndex::insert(Literal *lit, Clause *c)
   {
-    CALL("AcyclicityIndex::insert");
-
     TermList *fs;
     TermList *t;
     TermList sort;
@@ -431,16 +408,14 @@ namespace Indexing
 
       ULit ulit = make_pair(lit, c);
       if (!index->find(ulit)) {
-        index->insert(ulit, new IndexEntry(lit, c, *t, getSubterms(fs->term())));
-        _tis->insert(*t, lit, c);
+        index->insert(ulit, new IndexEntry(lit, c, TypedTermList(*t,sort), getSubterms(fs->term())));
+        _tis->insert(TermLiteralClause{ TypedTermList(*t, sort), lit, c });
       }
     }
   }
 
   void AcyclicityIndex::remove(Literal *lit, Clause *c)
   {
-    CALL("AcyclicityIndex::remove");
-
     TermList *fs;
     TermList *t;
     TermList sort;
@@ -451,14 +426,12 @@ namespace Indexing
         return;
 
       _sIndexes.get(sort)->remove(ulit);
-     _tis->remove(*t, lit, c);
+      _tis->remove(TermLiteralClause{ TypedTermList(*t, sort), lit, c });
     }
   }
 
   CycleQueryResultsIterator AcyclicityIndex::queryCycles(Literal *lit, Clause *c)
   {
-    CALL("AcyclicityIndex::queryCycle");
-
     return pvi(CycleSearchIterator(lit, c, *this));
   }
 }

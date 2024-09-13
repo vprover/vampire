@@ -35,9 +35,6 @@ using namespace Kernel;
  *
  */
 class FiniteModel {
- CLASS_NAME(FiniteModel);
- USE_ALLOCATOR(FiniteModel);
-
 public:
 
  const unsigned _size;
@@ -57,11 +54,11 @@ public:
  unsigned evaluateGroundTerm(Term* term);
  bool evaluateGroundLiteral(Literal* literal);
 
- vstring toString();
+ std::string toString();
 
 private:
 
- Formula* partialEvaluate(Formula* formula);
+ Formula* partialEvaluate(Formula* formula,unsigned depth);
  // currently private as requires formula to be rectified
  bool evaluate(Formula* formula,unsigned depth=0);
 
@@ -83,8 +80,10 @@ public:
  {
    Term* t;
    if(_domainConstants.find(c,t)) return t;
-   vstring name = "domainConstant";//+Lib::Int::toString(c);
+   std::string name = "domainConstant";//+Lib::Int::toString(c);
    unsigned f = env.signature->addFreshFunction(0,name.c_str()); 
+   Signature::Symbol* fSym = env.signature->getFunction(f);
+   fSym->setType(OperatorType::getConstantsType(AtomicSort::defaultSort()));
    t = Term::createConstant(f);
    _domainConstants.insert(c,t);
    _domainConstantsRev.insert(t,c);

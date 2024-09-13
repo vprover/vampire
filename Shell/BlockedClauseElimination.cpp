@@ -34,7 +34,7 @@
 #include "Lib/DHSet.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/BinaryHeap.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/IntUnionFind.hpp"
 
 #include "Shell/Statistics.hpp"
@@ -44,15 +44,14 @@
 namespace Shell
 {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 
 void BlockedClauseElimination::apply(Problem& prb)
 {
-  CALL("BlockedClauseElimination::apply(Problem&)");
-
-  TimeCounter tc(TC_BCE);
+  TIME_TRACE("blocked clause elimination");
 
   bool modified = false;
   bool equationally = prb.hasEquality() && prb.getProperty()->positiveEqualityAtoms();
@@ -192,8 +191,6 @@ void BlockedClauseElimination::apply(Problem& prb)
 
 bool BlockedClauseElimination::resolvesToTautology(bool equationally, Clause* cl, Literal* lit, Clause* pcl, Literal* plit)
 {
-  CALL("BlockedClauseElimination::resolvesToTautology");
-
   if (equationally) {
     return resolvesToTautologyEq(cl,lit,pcl,plit);
   } else {
@@ -253,8 +250,6 @@ private:
 
 bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, Clause* pcl, Literal* plit)
 {
-  CALL("BlockedClauseElimination::resolvesToTautologyEq");
-
   // With polymorphism, some intermediate terms created here are not well sorted, but that's OK
   TermSharing::WellSortednessCheckingLocalDisabler disableInScope(env.sharing);
   // cout << "cl: " << cl->toString() << endl;
@@ -343,7 +338,7 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
     Literal* curlit = (*cl)[i];
 
     if (curlit->functor() != lit->functor() || curlit->polarity() != lit->polarity()) {
-      Literal* ncurlit = clNormalizer.transform(curlit);
+      Literal* ncurlit = clNormalizer.transformLiteral(curlit);
       Literal* opncurlit = Literal::complementaryLiteral(ncurlit);
 
       if (norm_lits.find(opncurlit)) {
@@ -394,7 +389,7 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
     Literal* curlit = (*pcl)[i];
 
     if (curlit->functor() != plit->functor() || curlit->polarity() != plit->polarity()) {
-      Literal* ncurlit = pclNormalizer.transform(curlit);
+      Literal* ncurlit = pclNormalizer.transformLiteral(curlit);
       Literal* opncurlit = Literal::complementaryLiteral(ncurlit);
 
       if (norm_lits.find(opncurlit)) {
@@ -431,8 +426,6 @@ struct TimesTwoPlusOne {
 
 bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, Clause* pcl, Literal* plit)
 {
-  CALL("BlockedClauseElimination::resolvesToTautologyEq");
-
   _cc.reset();
 
   // cout << "cl: " << cl->toString() << endl;
@@ -496,8 +489,6 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
 
 bool BlockedClauseElimination::resolvesToTautologyUn(Clause* cl, Literal* lit, Clause* pcl, Literal* plit)
 {
-  CALL("BlockedClauseElimination::resolvesToTautologyUn");
-
   // cout << "cl: " << cl->toString() << endl;
   // cout << "pcl: " << pcl->toString() << endl;
   // cout << "lit: " << lit->toString() << endl;

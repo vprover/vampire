@@ -25,9 +25,6 @@ class TautologyDeletionISE
 : public ImmediateSimplificationEngine
 {
 public:
-  CLASS_NAME(TautologyDeletionISE);
-  USE_ALLOCATOR(TautologyDeletionISE);
-
   TautologyDeletionISE(bool deleteEqTautologies=true) : _deleteEqTautologies(deleteEqTautologies) {}
   Clause* simplify(Clause* cl);
 private:

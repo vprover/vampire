@@ -23,9 +23,6 @@
 
 #include "Array.hpp"
 #include "Map.hpp"
-#include "VString.hpp"
-
-using namespace std;
 
 namespace Lib {
 
@@ -33,14 +30,14 @@ class IntNameTable
 {
  public:
   IntNameTable();
-  int insert(const vstring& str);
+  int insert(const std::string& str);
 //  /** return name number n */
-//  inline vstring operator[] (int n) const { return _names[n]; }
+//  inline std::string operator[] (int n) const { return _names[n]; }
 //   int numberOfSymbols();
 
  private:
-  Map <vstring,int,Hash> _map;
-//  Array<vstring> _names;
+  Map <std::string,int> _map;
+//  Array<std::string> _names;
   int _nextNumber;
 }; // class NameTable
 

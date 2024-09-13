@@ -43,11 +43,8 @@ class Skolem
 {
 public:
   static FormulaUnit* skolemise(FormulaUnit*, bool appify = false);
-  static unsigned addSkolemFunction(unsigned arity, TermList* domainSorts, TermList rangeSort, unsigned var, unsigned taArity = 0);
   static unsigned addSkolemFunction(unsigned arity, unsigned taArity, TermList* domainSorts, TermList rangeSort, const char* suffix=0);
-  static unsigned addSkolemTypeCon(unsigned arity, unsigned var);
-  static unsigned addSkolemTypeCon(unsigned arity, const char* suffix=0);  
-  static unsigned addSkolemPredicate(unsigned arity, TermList* domainSorts, unsigned var, unsigned taArity = 0);
+  static unsigned addSkolemTypeCon(unsigned arity, const char* suffix=0);
   static unsigned addSkolemPredicate(unsigned arity, unsigned taArity, TermList* domainSorts, const char* suffix=0);
 private:
   /** Initialise a Skolem object */
@@ -107,8 +104,8 @@ private:
   DHMap<unsigned,TermList> _varSorts;
 
   // for some heuristic evaluations after we are done
-  Stack<unsigned> _introducedSkolemSyms;
-
+  Stack<std::pair<bool, unsigned>> _introducedSkolemSyms;
+  
   FormulaUnit* _beingSkolemised;
 
   // to create one big inference after we are done

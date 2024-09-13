@@ -13,7 +13,6 @@
  */
 
 #include "Lib/Environment.hpp"
-#include "Lib/TimeCounter.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Signature.hpp"
@@ -31,14 +30,10 @@ using namespace Kernel;
 
 LabelFinder::~LabelFinder()
 {
-  CALL("LabelFinder::~LabelFinder");
-
 }
 
 void LabelFinder::onNewPropositionalClause(Clause* cl)
 {
-  CALL("LabelFinder::onNewPropositionalClause");
-
   ASS(cl);
   // if we found a refutation ignore it
   if(Kernel::MainLoop::isRefutation(cl)) return;

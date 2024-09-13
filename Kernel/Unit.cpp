@@ -16,12 +16,14 @@
 
 #include "Forwards.hpp"
 
-#include "Debug/Tracer.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Set.hpp"
+#include "Lib/DHMap.hpp"
+
+#include "Shell/Statistics.hpp"
 
 #include "Inference.hpp"
 #include "InferenceStore.hpp"
@@ -32,6 +34,7 @@
 
 #include "Unit.hpp"
 
+using namespace std;
 using namespace Kernel;
 
 unsigned Unit::_lastNumber = 0;
@@ -44,24 +47,22 @@ unsigned Unit::_lastParsingNumber = 0;
  */
 void Unit::onPreprocessingEnd()
 {
-  CALL("Unit::onPreprocessingEnd");
   ASS(!_firstNonPreprocessingNumber);
 
   _firstNonPreprocessingNumber=_lastNumber+1;
 }
 
 /** New unit of a given kind */
-Unit::Unit(Kind kind,const Inference& inf)
+Unit::Unit(Kind kind, Inference inf)
   : _number(++_lastNumber),
     _kind(kind),
     _inheritedColor(COLOR_INVALID),
-    _inference(inf)
+    _inference(std::move(inf))
 {
 } // Unit::Unit
 
 void Unit::incRefCnt()
 {
-  CALL("Unit::incRefCnt");
   if(isClause()) {
     static_cast<Clause*>(this)->incRefCnt();
   }
@@ -69,14 +70,12 @@ void Unit::incRefCnt()
 
 void Unit::decRefCnt()
 {
-  CALL("Unit::decRefCnt");
   if(isClause()) {
     static_cast<Clause*>(this)->decRefCnt();
   }
 }
 
 Clause* Unit::asClause() {
-  CALL("Unit::asClause");
   ASS(isClause());
   return static_cast<Clause*>(this);
 }
@@ -84,8 +83,6 @@ Clause* Unit::asClause() {
 
 Color Unit::getColor()
 {
-  CALL("Unit::getColor");
-
   if(isClause()) {
     return static_cast<Clause*>(this)->color();
   }
@@ -96,8 +93,6 @@ Color Unit::getColor()
 
 unsigned Unit::getWeight()
 {
-  CALL("Unit::getWeight");
-
   if(isClause()) {
     return static_cast<Clause*>(this)->weight();
   }
@@ -108,8 +103,6 @@ unsigned Unit::getWeight()
 
 void Unit::destroy()
 {
-  CALL("Unit::destroy");
-
   if(isClause()) {
     static_cast<Clause*>(this)->destroy();
   }
@@ -118,10 +111,8 @@ void Unit::destroy()
   }
 }
 
-vstring Unit::toString() const
+std::string Unit::toString() const
 {
-  CALL("Unit::toString");
-
   if(isClause()) {
     return static_cast<const Clause*>(this)->toString();
   }
@@ -132,8 +123,6 @@ vstring Unit::toString() const
 
 unsigned Unit::varCnt()
 {
-  CALL("Unit::varCnt");
-
   if(isClause()) {
     return static_cast<Clause*>(this)->varCnt();
   }
@@ -158,88 +147,36 @@ Formula* Unit::getFormula()
   }
 }
 
-void Unit::collectAtoms(Stack<Literal*>& acc)
-{
-  CALL("Unit::collectAtoms");
-
-  if(isClause()) {
-    Clause* cl = static_cast<Clause*>(this);
-    Clause::Iterator cit(*cl);
-    while(cit.hasNext()) {
-      Literal* l = cit.next();
-      acc.push(Literal::positiveLiteral(l));
-   }
-  }
-  else {
-    Formula* form = static_cast<FormulaUnit*>(this)->formula();
-    form->collectAtoms(acc);
-  }
-}
-
 /**
- * Add into @c acc numbers of all predicates in the unit.
- * If a predicate occurrs multiple times, it is added once for each occurrence.
- */
-void Unit::collectPredicates(Stack<unsigned>& acc)
-{
-  CALL("Unit::collectPredicates");
-
-  if(isClause()) {
-    Clause* cl = static_cast<Clause*>(this);
-    unsigned clen = cl->length();
-    for(unsigned i=0; i<clen; i++) {
-      acc.push((*cl)[i]->functor());
-    }
-  }
-  else {
-    Formula* form = static_cast<FormulaUnit*>(this)->formula();
-    form->collectPredicates(acc);
-  }
-}
-
-/**
- * Print the inference as a vstring (used in printing units in
+ * Print the inference as a std::string (used in printing units in
  * refutations).
  * @since 04/01/2008 Torrevieja
  */
-vstring Unit::inferenceAsString() const
+std::string Unit::inferenceAsString() const
 {
-  CALL("Unit::inferenceAsString");
+  const Inference& inf = inference();
 
-#if 1
-  InferenceStore& infS = *InferenceStore::instance();
-
-  InferenceRule rule;
-  UnitIterator parents;
-  Unit* us = const_cast<Unit*>(this);
-  parents = infS.getParents(us, rule);
-
-  vstring result = (vstring)"[" + ruleName(rule);
+  std::string result = (std::string)"[" + inf.name();
   bool first = true;
-  while (parents.hasNext()) {
-    Unit* parent = parents.next();
+
+  auto it = inf.iterator();
+  while (inf.hasNext(it)) {
+    Unit* parent = inf.next(it);
     result += first ? ' ' : ',';
     first = false;
-    result += infS.getUnitIdStr(parent);
+    result += Int::toString(parent->number());
   }
+  // print Extra
+  std::string extra;
+  if (env.proofExtra && env.proofExtra->find(this,extra) && extra != "") {
+    result += ", " + extra;
+  }
+
   return result + ']';
-#else
-  vstring result = (vstring)"[" + _inference->name();
-   bool first = true;
-   Inference::Iterator it = _inference->iterator();
-   while (_inference->hasNext(it)) {
-     result += first ? ' ' : ',';
-     first = false;
-     result += Int::toString(_inference->next(it)->number());
-   }
-   return result + ']';
-#endif
 } // Unit::inferenceAsString()
 
 void Unit::assertValid()
 {
-  CALL("Unit::assertValid");
-
   if(isClause()) {
     ASS_ALLOC_TYPE(this,"Clause");
   }
@@ -248,55 +185,114 @@ void Unit::assertValid()
   }
 }
 
-// TODO this could be more efficient. Although expected cost is log(n) where n is length of proof
-bool Unit::derivedFromInput() const
+UnitIterator Unit::getParents() const
 {
-  CALL("Unit::derivedFromInput");
-
-  // Depth-first search of derivation - it's likely that we'll hit an input clause as soon
-  // as we hit the top
-  Stack<Inference*> todo; 
-  todo.push(&const_cast<Inference&>(_inference)); 
-  while(!todo.isEmpty()){
-    Inference* inf = todo.pop();
-    if(inf->rule() == InferenceRule::INPUT){
-      return true;
-    }
-    Inference::Iterator it = inf->iterator();
-    while(inf->hasNext(it)){ todo.push(&(inf->next(it)->inference())); }
+  // The unit itself stores the inference
+  UnitList* res = 0;
+  Inference::Iterator iit = _inference.iterator();
+  while(_inference.hasNext(iit)) {
+    Unit* premUnit = _inference.next(iit);
+    UnitList::push(premUnit, res);
   }
-
-  return false;
+  res = UnitList::reverse(res); // we want items in the same order
+  return pvi(UnitList::DestructiveIterator(res));
 }
 
-typedef List<Inference*> InferenceList;
-
-// TODO this could be more efficient. Although expected cost is log(n) where n is length of proof
-bool Unit::derivedFromGoalCheck() const
+bool Unit::minimizeAncestorsAndUpdateSelectedStats()
 {
-  CALL("Unit::derivedFromGoalCheck");
+  Stack<std::pair<Unit*,bool>> todo;
+  DHSet<Unit*> done;
+  bool seenInputInference = false;
 
-  // Breadth-first search of derivation - it's likely that we'll hit a goal-related node
-  // close to the refutation... unless it doesn't exist of course
-  InferenceList* todo = InferenceList::empty();
-  Set<Inference*> seen;
-  InferenceList::push(&const_cast<Inference&>(_inference),todo);
-  while(!InferenceList::isEmpty(todo)){
-    Inference* inf = InferenceList::pop(todo);
-    if(inf->derivedFromGoal()) {
-      return true;
-    }
-    Inference::Iterator it = inf->iterator();
-    while(inf->hasNext(it)){ 
-      Inference* ninf = &inf->next(it)->inference();
-      if(!seen.contains(ninf)){
-       InferenceList::push(ninf,todo); 
-       seen.insert(ninf);
+  todo.push(make_pair(this,false));
+  while(!todo.isEmpty()) {
+    Unit* current;
+    bool collecting;
+    std::tie(current,collecting) = todo.pop();
+    if (collecting) {
+      Inference& inf = current->inference();
+      seenInputInference |= (inf.rule() == InferenceRule::INPUT);
+      Inference::Iterator iit = inf.iterator();
+      if (inf.hasNext(iit)) {
+        UnitInputType uit = UnitInputType::AXIOM; // we compute a maximum, so start from the smallest element
+        bool isPureTheoryDescendant = true; // see also Inference::initMany
+        while(inf.hasNext(iit)) {
+          Unit* premUnit = inf.next(iit);
+          uit = getInputType(uit,premUnit->inputType());
+          isPureTheoryDescendant &= premUnit->isPureTheoryDescendant();
+        }
+        current->setInputType(uit);
+        inf.setPureTheoryDescendant(isPureTheoryDescendant);
+      } else if (inf.rule() == InferenceRule::AVATAR_DEFINITION) {
+        // don't touch _pureTheoryDescendant for AVATAR_DEFINITIONs (a split theory consequence is again a theory consequence)
+        current->setInputType(UnitInputType::AXIOM); // AVATAR_DEFINITION might have inherited goaledness from its causal parent, which we want to reset
+      } else {
+        // no premises and not InferenceRule::AVATAR_DEFINITION
+        // we leave input type unchanged and isPureTheoryDescendant is already correctly set to isTheoryAxiom
+        ASS_EQ(inf.isPureTheoryDescendant(),inf.isTheoryAxiom());
+      }
+      inf.updateStatistics(); // in particular, update inductionDepth (which could have decreased, since we might have fewer parents after miniminization)
+
+      switch (inf.rule()) {
+        case InferenceRule::STRUCT_INDUCTION_AXIOM_ONE:
+        case InferenceRule::STRUCT_INDUCTION_AXIOM_TWO:
+        case InferenceRule::STRUCT_INDUCTION_AXIOM_THREE:
+        case InferenceRule::STRUCT_INDUCTION_AXIOM_RECURSION:
+          env.statistics->structInductionInProof++;
+          break;
+        case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
+        case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
+          env.statistics->intInfInductionInProof++;
+          break;
+        case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
+        case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
+          env.statistics->intFinInductionInProof++;
+          break;
+        case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
+        case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
+          env.statistics->intDBInductionInProof++;
+          break;
+        default:
+          ;
+      }
+      switch (inf.rule()) {
+        case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
+          env.statistics->intInfUpInductionInProof++;
+          break;
+        case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
+          env.statistics->intInfDownInductionInProof++;
+          break;
+        case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
+          env.statistics->intFinUpInductionInProof++;
+          break;
+        case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
+          env.statistics->intFinDownInductionInProof++;
+          break;
+        case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
+          env.statistics->intDBUpInductionInProof++;
+          break;
+        case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
+          env.statistics->intDBDownInductionInProof++;
+          break;
+        default:
+          ;
+      }
+
+    } else {
+      if (!done.insert(current)) {
+        continue;
+      }
+      todo.push(make_pair(current,true)); // to collect stuff when children done
+      Inference& inf = current->inference();
+      inf.minimizePremises(); // here we do the minimization
+      Inference::Iterator iit = inf.iterator();
+      while(inf.hasNext(iit)) {
+        Unit* premUnit = inf.next(iit);
+        todo.push(make_pair(premUnit,false));
       }
     }
   }
-
-  return false;
+  return seenInputInference;
 }
 
 std::ostream& Kernel::operator<<(ostream& out, const Unit& u)

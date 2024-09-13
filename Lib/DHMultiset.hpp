@@ -52,7 +52,6 @@ template <typename Val, class Hash1, class Hash2>
 class DHMultiset
 {
 public:
-  CLASS_NAME(DHMultiset);
   USE_ALLOCATOR(DHMultiset);
   
   /** Create a new DHMultiset */
@@ -78,7 +77,6 @@ public:
   inline
   bool find(Val val) const
   {
-    CALL("DHMultiset::find/1");
     const Entry* e=findEntry(val);
     return e;
   }
@@ -89,7 +87,6 @@ public:
   inline
   unsigned multiplicity(Val val) const
   {
-    CALL("DHMultiset::find/1");
     const Entry* e=findEntry(val);
     return e ? e->_info.multiplicity : 0;
   }
@@ -109,7 +106,6 @@ public:
    */
   int insert(Val val, int multiplicity)
   {
-    CALL("DHMultiset::insert");
     ASS(multiplicity>0 && ((unsigned)multiplicity)<DHMULTISET_MAX_MULTIPLICITY);
 
     ensureExpanded();
@@ -139,7 +135,6 @@ public:
    */
   bool remove(Val val)
   {
-    CALL("DHMultiset::remove");
     Entry* e=findEntry(val);
     if(!e) {
       return false;
@@ -165,7 +160,6 @@ public:
    */
   unsigned getMultiplicityAndRemove(Val val)
   {
-    CALL("DHMultiset::getMultiplicityAndRemove");
     Entry* e=findEntry(val);
     if(!e) {
       return 0;
@@ -247,8 +241,6 @@ private:
   /** Expand DHMultiset to about double of its current size */
   void expand()
   {
-    CALL("DHMultiset::expand");
-
     if(_capacityIndex>=DHMULTISET_MAX_CAPACITY_INDEX) {
       throw Exception("Lib::DHMultiset::expand: MaxCapacityIndex reached.");
     }
@@ -295,7 +287,6 @@ private:
    * or 0, if there is no such */
   const Entry* findEntry(Val val) const
   {
-    CALL("DHMultiset::findEntry");
     ASS(_capacity>_size+_deleted);
 
     unsigned h1=Hash1::hash(val);
@@ -337,7 +328,6 @@ private:
    * specified value */
   Entry* findEntryToInsert(Val val)
   {
-    CALL("DHMultiset::findEntryToInsert");
     ASS(_capacity>_size+_deleted);
 
     unsigned h1=Hash1::hash(val);
@@ -412,6 +402,17 @@ private:
 
 public:
 
+  /**
+   * Put all elements of an iterator onto the multiset.
+   */
+  template<class It>
+  void loadFromIterator(It it) {
+    // TODO check iterator.size() or iterator.sizeHint()
+    while(it.hasNext()) {
+      insert(it.next());
+    }
+  }
+
 #if VDEBUG
   void assertValid()
   {
@@ -444,7 +445,6 @@ public:
      */
     bool hasNext()
     {
-      CALL("DHMultiset::SetIterator::hasNext");
       while (_next != _afterLast) {
 	//we don't have to check for _info.deleted, as long as we
 	//set the multiplicity of deleted entries to zero
@@ -463,7 +463,6 @@ public:
     inline
     Val next()
     {
-      CALL("DHMultiset::SetIterator::next");
       ASS_NEQ(_next, _afterLast);
 
       return (_next++)->_val;
@@ -476,7 +475,6 @@ public:
     inline
     Val next(unsigned& multiplicity)
     {
-      CALL("DHMultiset::SetIterator::next/1");
       ASS_NEQ(_next, _afterLast);
 
       multiplicity=_next->_info.multiplicity;
@@ -506,7 +504,6 @@ public:
      */
     bool hasNext()
     {
-      CALL("DHMultiset::Iterator::hasNext");
       if(_next->_info.multiplicity > _nextIndex)
 	return true;
       _nextIndex=0;
@@ -529,7 +526,6 @@ public:
     inline
     Val next()
     {
-      CALL("DHMultiset::Iterator::next");
       ASS(_next != _afterLast);
       ASS(_next->_info.multiplicity > _nextIndex);
       _nextIndex++;

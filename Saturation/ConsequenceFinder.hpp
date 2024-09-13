@@ -21,6 +21,7 @@
 #include "Lib/Array.hpp"
 #include "Lib/Event.hpp"
 #include "Lib/Int.hpp"
+#include "Lib/SkipList.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -38,9 +39,6 @@ using namespace Inferences;
  */
 class ConsequenceFinder {
 public:
-  CLASS_NAME(ConsequenceFinder);
-  USE_ALLOCATOR(ConsequenceFinder);
-  
   ~ConsequenceFinder();
 
   void init(SaturationAlgorithm* sa);

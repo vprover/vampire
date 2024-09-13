@@ -26,10 +26,30 @@
 #include "Lib/DArray.hpp"
 
 #include "Lib/Allocator.hpp"
+#include "Lib/Portability.hpp"
+#include "Kernel/SubstHelper.hpp"
 
 namespace Kernel {
 
 using namespace Shell;
+
+/**
+ * Class implementing runtime specialized ordering check between two terms.
+ * The comparator is created and called from inside the respective ordering
+ * object, but owned by the caller, so the destructor is exposed as virtual.
+ * See @b KBOComparator and @b LPOComparator for implementation details.
+ */
+struct OrderingComparator
+{
+  OrderingComparator(TermList lhs, TermList rhs, const Ordering& ord) : _lhs(lhs), _rhs(rhs), _ord(ord) {}
+  virtual ~OrderingComparator() = default;
+  virtual std::string toString() const { return _lhs.toString()+" > "+_rhs.toString(); }
+  virtual bool check(const SubstApplicator* applicator);
+
+  TermList _lhs;
+  TermList _rhs;
+  const Ordering& _ord;
+};
 
 /**
  * An abstract class for simplification orderings
@@ -38,9 +58,6 @@ using namespace Shell;
 class Ordering
 {
 public:
-  CLASS_NAME(Ordering);
-  USE_ALLOCATOR(Ordering);
-
   /**
    * Represents the results of ordering comparisons
    *
@@ -48,29 +65,39 @@ public:
    * in the @c ArgumentOrderVals enum, so that one can convert between the
    * enums using static_cast.
    */
-  enum VWARN_UNUSED_TYPE Result {
+  enum [[nodiscard]] Result {
     GREATER=1,
     LESS=2,
-    GREATER_EQ=3,
-    LESS_EQ=4,
-    EQUAL=5,
-    INCOMPARABLE=6
+    EQUAL=3,
+    INCOMPARABLE=4
   };
 
-  Ordering();
-  virtual ~Ordering();
+  virtual ~Ordering() = default;
 
   /** Return the result of comparing @b l1 and @b l2 */
   virtual Result compare(Literal* l1,Literal* l2) const = 0;
+
   /** Return the result of comparing terms (not term lists!)
    * @b t1 and @b t2 */
   virtual Result compare(TermList t1,TermList t2) const = 0;
 
-  virtual void show(ostream& out) const = 0;
+  /** Same as @b compare, for applied (substituted) terms. */
+  virtual Result compare(AppliedTerm lhs, AppliedTerm rhs) const
+  { return compare(lhs.apply(), rhs.apply()); }
 
-  static bool isGorGEorE(Result r) { return (r == GREATER || r == GREATER_EQ || r == EQUAL); }
+  /** Optimised function used for checking that @b t1 is greater than @b t2,
+   * under some substitutions captured by @b AppliedTerm. */
+  virtual bool isGreater(AppliedTerm t1, AppliedTerm t2) const
+  { return compare(t1, t2) == Result::GREATER; }
 
-  virtual Comparison compareFunctors(unsigned fun1, unsigned fun2) const = 0;
+  /** Creates optimised object to check that @b lhs is greater than @b rhs.
+   *  @see OrderingComparator. */
+  virtual OrderingComparatorUP createComparator(TermList lhs, TermList rhs) const
+  { return std::make_unique<OrderingComparator>(lhs, rhs, *this); }
+
+  virtual void show(std::ostream& out) const = 0;
+
+  static bool isGreaterOrEqual(Result r) { return (r == GREATER || r == EQUAL); }
 
   void removeNonMaximal(LiteralList*& lits) const;
 
@@ -79,17 +106,11 @@ public:
 
   static Result reverse(Result r)
   {
-    CALL("Ordering::reverse");
-    
     switch(r) {
     case GREATER:
       return LESS;
-    case GREATER_EQ:
-      return LESS_EQ;
     case LESS:
       return GREATER;
-    case LESS_EQ:
-      return GREATER_EQ;
     case EQUAL:
     case INCOMPARABLE:
       return r;
@@ -110,12 +131,15 @@ protected:
   Result compareEqualities(Literal* eq1, Literal* eq2) const;
 
 private:
-  void createEqualityComparator();
-  void destroyEqualityComparator();
-
-  class EqCmp;
-  /** Object used to compare equalities */
-  EqCmp* _eqCmp;
+  /**
+   * Helper methods for comparing literals s1=s2 and t1=t2.
+   */
+  Result compare_s1Gt1(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1It1(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1It1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1Gt1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1Gt1_s2Lt2(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1Gt1_s1It2_s2It1(TermList s1,TermList s2,TermList t1,TermList t2) const;
 
   /**
    * We store orientation of equalities in this ordering inside
@@ -133,18 +157,20 @@ class PrecedenceOrdering
 {
 public:
   Result compare(Literal* l1, Literal* l2) const override;
-  Comparison compareFunctors(unsigned fun1, unsigned fun2) const override;
-  void show(ostream&) const override;
-  virtual void showConcrete(ostream&) const = 0;
+  void show(std::ostream&) const override;
+  virtual void showConcrete(std::ostream&) const = 0;
 
 protected:
   // l1 and l2 are not equalities and have the same predicate
   virtual Result comparePredicates(Literal* l1,Literal* l2) const = 0;
-  
-  PrecedenceOrdering(const DArray<int>& funcPrec, const DArray<int>& predPrec, const DArray<int>& predLevels, bool reverseLCM);
+
+  PrecedenceOrdering(const DArray<int>& funcPrec, const DArray<int>& typeConPrec, 
+                     const DArray<int>& predPrec, const DArray<int>& predLevels, bool reverseLCM);
   PrecedenceOrdering(Problem& prb, const Options& opt, const DArray<int>& predPrec);
   PrecedenceOrdering(Problem& prb, const Options& opt);
 
+
+  static DArray<int> typeConPrecFromOpts(Problem& prb, const Options& opt);
   static DArray<int> funcPrecFromOpts(Problem& prb, const Options& opt);
   static DArray<int> predPrecFromOpts(Problem& prb, const Options& opt);
   static DArray<int> predLevelsFromOptsAndPrec(Problem& prb, const Options& opt, const DArray<int>& predicatePrecedences);
@@ -165,18 +191,18 @@ protected:
   DArray<int> _predicatePrecedences;
   /** Array of function precedences */
   DArray<int> _functionPrecedences;
+  /** Array of type con precedences */
+  DArray<int> _typeConPrecedences;
 
   bool _reverseLCM;
 };
 
 
-inline ostream& operator<<(ostream& out, Ordering::Result const& r) 
+inline std::ostream& operator<<(std::ostream& out, Ordering::Result const& r) 
 {
   switch (r) {
     case Ordering::Result::GREATER: return out << "GREATER";
     case Ordering::Result::LESS: return out << "LESS";
-    case Ordering::Result::GREATER_EQ: return out << "GREATER_EQ";
-    case Ordering::Result::LESS_EQ: return out << "LESS_EQ";
     case Ordering::Result::EQUAL: return out << "EQUAL";
     case Ordering::Result::INCOMPARABLE: return out << "INCOMPARABLE";
     default:

@@ -54,13 +54,8 @@ class BestLiteralSelector
     : public LiteralSelector
       {
       public:
-  CLASS_NAME(BestLiteralSelector);
-  USE_ALLOCATOR(BestLiteralSelector);
-
   BestLiteralSelector(const Ordering& ordering, const Options& options) : LiteralSelector(ordering, options)
   {
-    CALL("BestLiteralSelector::BestLiteralSelector");
-
     _comp.attachSelector(this);
   }
 
@@ -68,8 +63,6 @@ class BestLiteralSelector
 protected:
   void doSelection(Clause* c, unsigned eligible) override
   {
-    CALL("BestLiteralSelector::doSelection");
-
     unsigned besti=0;
     Literal* best=(*c)[0];
     for(unsigned i=1;i<eligible;i++) {
@@ -120,13 +113,8 @@ class CompleteBestLiteralSelector
     : public LiteralSelector
 {
 public:
-  CLASS_NAME(CompleteBestLiteralSelector);
-  USE_ALLOCATOR(CompleteBestLiteralSelector);
-
   CompleteBestLiteralSelector(const Ordering& ordering, const Options& options) : LiteralSelector(ordering, options)
   {
-    CALL("CompleteBestLiteralSelector::CompleteBestLiteralSelector");
-
     _comp.attachSelector(this);
   }
 
@@ -134,7 +122,6 @@ public:
 protected:
   void doSelection(Clause* c, unsigned eligible) override
   {
-    CALL("CompleteBestLiteralSelector::doSelection");
     ASS_G(eligible, 1); //trivial cases should be taken care of by the base LiteralSelector
 
     static bool combSup = env.options->combinatorySup();
@@ -164,8 +151,7 @@ protected:
     //literals will be selected.
     bool allSelected=false;
 
-    if(isNegativeForSelection(litArr[0]) && 
-      (!combSup || canBeSelected(litArr[0], &maxTermHeads))) {
+    if(isNegativeForSelection(litArr[0])) {
       singleSelected=litArr[0];
     } else {
       if(!combSup){ fillMaximals(maximals, litArr); }
@@ -180,8 +166,7 @@ protected:
         }
         besti++;
         ASS_L(besti,eligible);
-        if(isNegativeForSelection(litArr[besti]) && 
-           (!combSup || canBeSelected(litArr[besti], &maxTermHeads))){
+        if(isNegativeForSelection(litArr[besti])){
           singleSelected=litArr[besti];
           break;
         }
@@ -246,30 +231,14 @@ protected:
     ensureSomeColoredSelected(c, eligible);
   }
 
-  void fillMaximals(LiteralList*& maximals, DArray<Literal*> litArr)
+  void fillMaximals(LiteralList*& maximals, DArray<Literal*>& litArr)
   {
-    CALL("CompleteBestLiteralSelector::fillMaximals");
     DArray<Literal*>::ReversedIterator rlit(litArr);
     while(rlit.hasNext()) {
       Literal* lit=rlit.next();
       LiteralList::push(lit,maximals);
     }
     _ord.removeNonMaximal(maximals);
-  }
-
-  bool canBeSelected(Literal* lit, Set<unsigned>* maxTermHeads)
-  {
-    CALL("CompleteBestLiteralSelector::canBeSelected");
-
-    FirstOrderSubtermIt fsi(lit);
-
-    while(fsi.hasNext()){
-      TermList t = fsi.next();
-      if(t.isVar() && maxTermHeads->contains(t.var())){
-        return false;
-      }
-    }
-    return true;
   }
 
 private:

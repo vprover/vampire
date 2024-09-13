@@ -36,9 +36,6 @@ using namespace Shell;
 class LiteralSelector
 {
 public:
-  CLASS_NAME(LiteralSelector);
-  USE_ALLOCATOR(LiteralSelector);
-
   LiteralSelector(const Ordering& ordering, const Options& options)
   : _ord(ordering), _opt(options), _reversePolarity(false)
   {
@@ -64,8 +61,6 @@ public:
    */
   bool isPositiveForSelection(Literal* l) const;
 
-  static void reversePredicatePolarity(unsigned pred, bool reverse);
-
   /**
    * Return true if literal @b l is negative for the purpose of
    * literal selection
@@ -84,6 +79,15 @@ public:
    */
   virtual bool isBGComplete() const = 0;
 
+  /**
+   * Should this selector treat polarity (of non-equational literals) as reversed?
+   *
+   * Preferrably do not call this once the LiteralSelector has already been used.
+   *
+   * This method is virtual as Lookahead selector with delayed function contains another selector
+   * which needs to get in sync.
+   */
+  virtual void setReversePolarity(bool newVal) { _reversePolarity = newVal; }
 protected:
   /**
    * Perform selection on the first @b eligible literals of clause @b c
@@ -106,8 +110,6 @@ private:
    * @see isPositiveForSelection
    */
   bool _reversePolarity;
-
-  static ZIArray<bool> _reversePredicate;
 };
 
 /**
@@ -118,9 +120,6 @@ class TotalLiteralSelector
 : public LiteralSelector
 {
 public:
-  CLASS_NAME(TotalLiteralSelector);
-  USE_ALLOCATOR(TotalLiteralSelector);
-
   TotalLiteralSelector(const Ordering& ordering, const Options& options)
   : LiteralSelector(ordering, options) {}
 

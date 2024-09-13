@@ -34,11 +34,12 @@
 
 namespace {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
 
-typedef DHMap<unsigned,unsigned, IdentityHash, Hash> UUMap;
+typedef DHMap<unsigned,unsigned, IdentityHash, DefaultHash> UUMap;
 
 
 /**
@@ -81,8 +82,6 @@ private:
  */
 void createLiteralBindings(Literal* baseLit, LiteralList const* const alts, Clause* instCl, unsigned*& boundVarData, TermList**& altBindingPtrs, TermList*& altBindingData)
 {
-  CALL("createLiteralBindings");
-
   static UUMap variablePositions;
   static BinaryHeap<unsigned,Int> varNums;
   variablePositions.reset();
@@ -121,7 +120,7 @@ void createLiteralBindings(Literal* baseLit, LiteralList const* const alts, Clau
         altBindingPtrs++;
         altBindingData+=numVars;
         // add index of the literal in instance clause at the end of the binding sequence
-        new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
+        (altBindingData++)->setContent(instCl->getLiteralPosition(alit));
       }
       if(MatchingUtils::matchReversedArgs(baseLit, alit)) {
         ArrayStoringBinder binder(altBindingData, variablePositions);
@@ -130,7 +129,7 @@ void createLiteralBindings(Literal* baseLit, LiteralList const* const alts, Clau
         altBindingPtrs++;
         altBindingData+=numVars;
         // add index of the literal in instance clause at the end of the binding sequence
-        new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
+        (altBindingData++)->setContent(instCl->getLiteralPosition(alit));
       }
     } else {
       if(numVars) {
@@ -142,7 +141,7 @@ void createLiteralBindings(Literal* baseLit, LiteralList const* const alts, Clau
       altBindingPtrs++;
       altBindingData+=numVars;
       // add index of the literal in instance clause at the end of the binding sequence
-      new(altBindingData++) TermList((size_t)instCl->getLiteralPosition(alit));
+      (altBindingData++)->setContent(instCl->getLiteralPosition(alit));
     }
   }
 }
@@ -325,7 +324,6 @@ struct MatchingData final {
    */
   pair<int,int>* getIntersectInfo(unsigned b1, unsigned b2)
   {
-    CALL("MatchingData::getIntersectInfo");
     ASS(isInitialized(b1));
     ASS(isInitialized(b2));
 
@@ -406,8 +404,6 @@ struct MatchingData final {
   bool compatible(unsigned b1Index, TermList* i1Bindings,
                   unsigned b2Index, unsigned i2AltIndex)
   {
-    CALL("MatchingData::compatible");
-
     TermList* i2Bindings=altBindings[b2Index][i2AltIndex];
 
     // Iterate over variables common to bases[b1Index] and bases[b2Index].
@@ -434,7 +430,6 @@ struct MatchingData final {
    */
   bool bindAlt(unsigned bIndex, unsigned altIndex)
   {
-    CALL("MatchingData::bindAlt");
     ASS_EQ(bIndex, currBLit);
     ASS_NEQ(bIndex, eqLitForDemodulation);
 
@@ -512,7 +507,6 @@ struct MatchingData final {
    */
   bool selectForDemodulation(unsigned bIndex)
   {
-    CALL("MatchingData::selectForDemodulation");
     ASS_EQ(bIndex, currBLit);
     ASS(bases[bIndex]->isEquality());
     ASS(bases[bIndex]->isPositive());
@@ -559,7 +553,6 @@ struct MatchingData final {
    */
   InitResult ensureInit(unsigned bIndex)
   {
-    CALL("MatchingData::ensureInit");
     ASS_EQ(bIndex, currBLit);
 
     if(!isInitialized(bIndex)) {
@@ -708,7 +701,6 @@ using namespace Lib;
 class MLMatcherSD::Impl final
 {
   public:
-    CLASS_NAME(MLMatcherSD::Impl);
     USE_ALLOCATOR(MLMatcherSD::Impl);
 
     Impl();
@@ -719,9 +711,9 @@ class MLMatcherSD::Impl final
 
     Literal* getEqualityForDemodulation() const;
 
-    void getMatchedAltsBitmap(vvector<bool>& outMatchedBitmap) const;
+    void getMatchedAltsBitmap(std::vector<bool>& outMatchedBitmap) const;
 
-    void getBindings(vunordered_map<unsigned, TermList>& outBindings) const;
+    void getBindings(std::unordered_map<unsigned, TermList>& outBindings) const;
 
     // Disallow copy and move because the internal implementation still uses pointers to the underlying storage and it seems hard to untangle that.
     Impl(Impl const&) = delete;
@@ -749,8 +741,6 @@ class MLMatcherSD::Impl final
     DArray<pair<int,int> > s_intersectionData;
 
     MatchingData s_matchingData;
-
-    int s_counter;
 };
 
 
@@ -772,8 +762,6 @@ MLMatcherSD::Impl::Impl()
 
 void MLMatcherSD::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, Clause* instance, LiteralList const* const* alts)
 {
-  CALL("MLMatcherSD::Impl::initMatchingData");
-
   s_baseLits.initFromArray(baseLen,baseLits0);
   s_altsArr.initFromArray(baseLen,alts);
 
@@ -887,8 +875,6 @@ void MLMatcherSD::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, 
 
 void MLMatcherSD::Impl::init(Literal** baseLits, unsigned baseLen, Clause* instance, LiteralList const* const* alts)
 {
-  CALL("MLMatcherSD::Impl::init");
-
 #if MLMATCHERSD_DEBUG_OUTPUT
     std::cerr << "\n\n\nMLMatcherSD::init:" << std::endl;
     for (unsigned i = 0; i < baseLen; ++i) {
@@ -901,14 +887,11 @@ void MLMatcherSD::Impl::init(Literal** baseLits, unsigned baseLen, Clause* insta
     std::cerr << "\tinstance: " << instance->toString() << std::endl;
 #endif
   initMatchingData(baseLits, baseLen, instance, alts);
-
-  s_counter = 0;
 }
 
 
 bool MLMatcherSD::Impl::nextMatch()
 {
-  CALL("MLMatcherSD::Impl::nextMatch");
   MatchingData* const md = &s_matchingData;
 
   // General Remarks
@@ -1073,16 +1056,6 @@ bool MLMatcherSD::Impl::nextMatch()
         return false;
       }
     }
-
-    // Ensure vampire exits timely in pathological cases instead of appearing to be stuck
-    s_counter++;
-    if(s_counter==50000) {
-      // std::cerr << "counter reached 50k" << std::endl;
-      s_counter=0;
-      if(env.timeLimitReached()) {
-        throw TimeLimitExceededException();
-      }
-    }
   } // while (true)
 
   // We found a complete match
@@ -1106,7 +1079,7 @@ Literal* MLMatcherSD::Impl::getEqualityForDemodulation() const
   }
 }
 
-void MLMatcherSD::Impl::getMatchedAltsBitmap(vvector<bool>& outMatchedBitmap) const
+void MLMatcherSD::Impl::getMatchedAltsBitmap(std::vector<bool>& outMatchedBitmap) const
 {
   MatchingData const* const md = &s_matchingData;
 
@@ -1124,7 +1097,7 @@ void MLMatcherSD::Impl::getMatchedAltsBitmap(vvector<bool>& outMatchedBitmap) co
 }
 
 
-void MLMatcherSD::Impl::getBindings(vunordered_map<unsigned, TermList>& outBindings) const
+void MLMatcherSD::Impl::getBindings(std::unordered_map<unsigned, TermList>& outBindings) const
 {
   MatchingData const* const md = &s_matchingData;
 
@@ -1182,13 +1155,13 @@ Literal* MLMatcherSD::getEqualityForDemodulation() const
   return m_impl->getEqualityForDemodulation();
 }
 
-void MLMatcherSD::getMatchedAltsBitmap(vvector<bool>& outMatchedBitmap) const
+void MLMatcherSD::getMatchedAltsBitmap(std::vector<bool>& outMatchedBitmap) const
 {
   ASS(m_impl);
   m_impl->getMatchedAltsBitmap(outMatchedBitmap);
 }
 
-void MLMatcherSD::getBindings(vunordered_map<unsigned, TermList>& outBindings) const
+void MLMatcherSD::getBindings(std::unordered_map<unsigned, TermList>& outBindings) const
 {
   ASS(m_impl);
   m_impl->getBindings(outBindings);

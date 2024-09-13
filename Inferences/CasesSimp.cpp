@@ -34,13 +34,11 @@
 
 namespace Inferences {
 
+using namespace std;
+
 
 ClauseIterator CasesSimp::performSimplification(Clause* premise, Literal* lit, TermList t) {
-  CALL("CasesSimp::performSimplification");
-
   ASS(t.isTerm());
-
-  static ClauseStack results;
 
   TermList lhs = *lit->nthArgument(0);
   TermList rhs = *lit->nthArgument(1);
@@ -49,8 +47,6 @@ ClauseIterator CasesSimp::performSimplification(Clause* premise, Literal* lit, T
     return ClauseIterator::getEmpty();
   }
 
-  results.reset();
-
   static TermList troo(Term::foolTrue());
   static TermList fols(Term::foolFalse());
 
@@ -58,31 +54,24 @@ ClauseIterator CasesSimp::performSimplification(Clause* premise, Literal* lit, T
   Literal* litTroo = Literal::createEquality(true, t, troo, AtomicSort::boolSort());
 
 
-  unsigned conclusionLength = premise->length() + 1;
-  Clause* conclusion1 = new(conclusionLength) Clause(conclusionLength, SimplifyingInference1(InferenceRule::CASES_SIMP, premise));
-  Clause* conclusion2 = new(conclusionLength) Clause(conclusionLength, SimplifyingInference1(InferenceRule::CASES_SIMP, premise));
+  RStack<Literal*> resLits1;
+  RStack<Literal*> resLits2;
 
   // Copy the literals from the premise except for the one at `literalPosition`,
   // that has the occurrence of `booleanTerm` replaced with false
-  for (unsigned i = 0; i < conclusionLength - 1; i++) {
-    Literal* curr = (*premise)[i];
-    if(curr != lit){
-      (*conclusion1)[i] = (*premise)[i];
-      (*conclusion2)[i] = (*premise)[i];      
-    } else {
-      (*conclusion1)[i] = EqHelper::replace((*premise)[i], t, troo);
-      (*conclusion2)[i] = EqHelper::replace((*premise)[i], t, fols);
-    }
+  for (auto curr : premise->iterLits()) {
+    resLits1->push(curr != lit ? curr : EqHelper::replace(curr, t, troo));
+    resLits2->push(curr != lit ? curr : EqHelper::replace(curr, t, fols));
   }
 
   // Add s = false to the clause
-  (*conclusion1)[conclusionLength - 1] = litFols;
-  (*conclusion2)[conclusionLength - 1] = litTroo;
+  resLits1->push(litFols);
+  resLits2->push(litTroo);
 
-  results.push(conclusion1);
-  results.push(conclusion2);
-
-  return pvi(getUniquePersistentIterator(ClauseStack::Iterator(results)));
+  return pvi(iterItems(
+    Clause::fromStack(*resLits1, SimplifyingInference1(InferenceRule::CASES_SIMP, premise)),
+    Clause::fromStack(*resLits2, SimplifyingInference1(InferenceRule::CASES_SIMP, premise))
+  ));
 }
 
 
@@ -91,8 +80,6 @@ struct CasesSimp::ResultFn
   ResultFn(Clause* cl, CasesSimp& parent) : _cl(cl), _parent(parent) {}
   ClauseIterator operator()(pair<Literal*, TermList> arg)
   {
-    CALL("CasesSimp::ResultFn::operator()");
-    
     return _parent.performSimplification(_cl, arg.first, arg.second);
   }
 private:
@@ -106,8 +93,6 @@ struct CasesSimp::RewriteableSubtermsFn
 
   VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
   {
-    CALL("CasesSimp::RewriteableSubtermsFn()");
-
     return pvi( pushPairIntoRightIterator(lit, 
                 getUniquePersistentIterator(vi(new BooleanSubtermIt(lit)))));
   }
@@ -117,8 +102,6 @@ struct CasesSimp::RewriteableSubtermsFn
 
 ClauseIterator CasesSimp::simplifyMany(Clause* premise)
 {
-  CALL("CasesSimp::generateClauses");
-
   auto it1 = premise->getLiteralIterator();
   auto it2 = getFilteredIterator(it1, isEqualityLit()); 
 

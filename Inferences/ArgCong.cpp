@@ -62,8 +62,6 @@ struct ArgCong::ResultFn
       }
   Clause* operator() (Literal* lit)
   {
-    CALL("ArgCong::ResultFn::operator()");
-
     ASS(lit->isEquality());
     ASS(lit->isPositive());
 
@@ -98,35 +96,33 @@ struct ArgCong::ResultFn
 
     Literal* newLit = Literal::createEquality(true, newLhs, newRhs, alpha2);
 
-    Clause* res = new(_cLen) Clause(_cLen, GeneratingInference1(InferenceRule::ARG_CONG, _cl));
+    RStack<Literal*> resLits;
 
-    for(unsigned i=0;i<_cLen;i++) {
-      Literal* curr=(*_cl)[i];
+    for (auto curr : iterTraits(_cl->iterLits())) {
       if(curr!=lit) {
         Literal* currAfter;
 
         if (sortIsVar /*&& _afterCheck && _cl->numSelected() > 1*/) {
           currAfter = SubstHelper::apply(curr, subst);
-          /*TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+          /*
 
           if (i < _cl->numSelected() && _ord->compare(currAfter,newLit) == Ordering::GREATER) {
             env.statistics->inferencesBlockedForOrderingAftercheck++;
-            res->destroy();
             return 0;
           }*/ //TODO reintroduce check
         } else {
           currAfter = curr;
         }
 
-        (*res)[i] = currAfter;
+        resLits->push(currAfter);
       } else {
-        (*res)[i] = newLit;
+        resLits->push(newLit);
       }
     }
 
     env.statistics->argumentCongruence++;
 
-    return res;
+    return Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::ARG_CONG, _cl));
   }
 private:
   // currently unused
@@ -139,8 +135,6 @@ private:
 
 ClauseIterator ArgCong::generateClauses(Clause* premise)
 {
-  CALL("ArgCong::generateClauses");
-
   //cout << "argcong with " + premise->toString() << endl;
   if(premise->isEmpty()) {
     return ClauseIterator::getEmpty();

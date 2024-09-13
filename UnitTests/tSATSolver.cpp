@@ -33,8 +33,6 @@ using namespace SAT;
  */
 SATLiteral getLit(char c)
 {
-  CALL("getLit");
-
   bool pol;
   unsigned var;
   if(c>='a' && c<='z') {
@@ -57,8 +55,6 @@ SATLiteral getLit(char c)
  */
 SATClause* getClause(const char* spec)
 {
-  CALL("getClause");
-
   SATLiteralStack lits;
   while(*spec) {
     char c = *spec;
@@ -78,8 +74,6 @@ void ensurePrepared(SATSolver& s)
 /*
 void testZICert1(SATSolverWithAssumptions& s)
 {
-  CALL("testZICert1");
-
   ensurePrepared(s);
   s.addClause(getClause("ab"));
   s.addClause(getClause("c"));
@@ -112,13 +106,11 @@ TEST_FUN(satSolverZeroImpliedCert)
 
 void testProofWithAssumptions(SATSolver& s)
 {
-  CALL("testProofWithAssumptions");
-
   s.ensureVarCount(2);
   s.addClause(getClause("a"));
   s.addClause(getClause("A"));
 
-  ASS_EQ(s.solve(),SATSolver::UNSATISFIABLE);
+  ASS_EQ(s.solve(),SATSolver::Status::UNSATISFIABLE);
 
   SATClause* refutation = s.getRefutation();
   PropInference* inf = static_cast<PropInference*>(refutation->inference());
@@ -128,7 +120,7 @@ void testProofWithAssumptions(SATSolver& s)
   List<SATClause*>* prems = inf->getPremises();
 
   // cout << "Inference length: " << prems->length() << endl;
-  
+
   while(prems){
     // cout << prems->head()->toString() << endl;
     prems = prems->tail();
@@ -139,19 +131,19 @@ void testProofWithAssumptions(SATSolver& s)
 TEST_FUN(testProofWithAssums)
 {
   MinisatInterfacing s(*env.options,true);
-  testProofWithAssumptions(s);    
+  testProofWithAssumptions(s);
 }
 
 void testInterface(SATSolverWithAssumptions &s) {
   ensurePrepared(s);
-      
-  ASS_EQ(s.solve(),SATSolver::SATISFIABLE);
-  
+
+  ASS_EQ(s.solve(),SATSolver::Status::SATISFIABLE);
+
   unsigned a = getLit('a').var();
   unsigned b = getLit('b').var();
   unsigned c = getLit('c').var();
   unsigned d = getLit('d').var();
-  
+
   /*
   s.suggestPolarity(a,0);
   ASS_EQ(s.solve(),SATSolver::SATISFIABLE);
@@ -159,7 +151,7 @@ void testInterface(SATSolverWithAssumptions &s) {
   s.suggestPolarity(a,1);
   ASS_EQ(s.solve(),SATSolver::SATISFIABLE);
   ASS(!s.trueInAssignment(getLit('a')));
-  
+
   s.forcePolarity(a,0);
   ASS_EQ(s.solve(),SATSolver::SATISFIABLE);
   ASS(s.trueInAssignment(getLit('a')));
@@ -167,71 +159,71 @@ void testInterface(SATSolverWithAssumptions &s) {
   ASS_EQ(s.solve(),SATSolver::SATISFIABLE);
   ASS(!s.trueInAssignment(getLit('a')));
   */
-  
+
   s.addClause(getClause("ab"));
-  ASS_EQ(s.solve(true),SATSolver::UNKNOWN);
+  ASS_EQ(s.solve(true),SATSolver::Status::UNKNOWN);
   s.addClause(getClause("aB"));
-  ASS_EQ(s.solve(true),SATSolver::UNKNOWN);
+  ASS_EQ(s.solve(true),SATSolver::Status::UNKNOWN);
   s.addClause(getClause("Ab"));
-  ASS_EQ(s.solve(true),SATSolver::UNKNOWN);
+  ASS_EQ(s.solve(true),SATSolver::Status::UNKNOWN);
   s.addClause(getClause("C"));
-  ASS_EQ(s.solve(),SATSolver::SATISFIABLE);
-  
+  ASS_EQ(s.solve(),SATSolver::Status::SATISFIABLE);
+
   ASS(s.trueInAssignment(getLit('a')));
   ASS(s.trueInAssignment(getLit('b')));
   ASS(s.falseInAssignment(getLit('c')));
 
   // for a and b depends on learned clauses, which depend on decide polarity
   // but should be both at the same time, or none of the two
-  ASS(s.isZeroImplied(a) == s.isZeroImplied(b));   
-  
+  ASS(s.isZeroImplied(a) == s.isZeroImplied(b));
+
   ASS(s.isZeroImplied(c));
   ASS(!s.isZeroImplied(d));
 
   cout << " Random: ";
-  for (int i = 0; i < 10; i++) {    
+  for (int i = 0; i < 10; i++) {
     s.randomizeForNextAssignment(27);
     s.solve();
     cout << s.trueInAssignment(getLit('d'));
   }
-  cout << "  Fixed: ";      
-  for (int i = 0; i < 10; i++) {        
+  cout << "  Fixed: ";
+  for (int i = 0; i < 10; i++) {
     cout << s.trueInAssignment(getLit('d'));
   }
-  cout << endl;  
-  
+  cout << endl;
+
   s.addAssumption(getLit('d'));
   s.addAssumption(getLit('a'));
   ASS(s.hasAssumptions());
-  ASS_EQ(s.solve(),SATSolver::SATISFIABLE);
-  s.retractAllAssumptions();
-  ASS(!s.hasAssumptions());
-  // ASS(s.getStatus() == SATSolver::UNKNOWN || s.getStatus() == SATSolver::SATISFIABLE);
-  
-  ASS(!s.hasAssumptions());
-  s.addAssumption(getLit('A'));
-  ASS(s.hasAssumptions());
-  ASS_EQ(s.solve(),SATSolver::UNSATISFIABLE);
-  s.retractAllAssumptions();
-  ASS(!s.hasAssumptions());
-  // ASS(s.getStatus() == SATSolver::UNKNOWN || s.getStatus() == SATSolver::SATISFIABLE);
-    
-  s.addAssumption(getLit('a'));
-  ASS(s.hasAssumptions());
-  ASS_EQ(s.solve(),SATSolver::SATISFIABLE);
+  ASS_EQ(s.solve(),SATSolver::Status::SATISFIABLE);
   s.retractAllAssumptions();
   ASS(!s.hasAssumptions());
   // ASS(s.getStatus() == SATSolver::UNKNOWN || s.getStatus() == SATSolver::SATISFIABLE);
 
-  ASS_EQ(s.solve(),SATSolver::SATISFIABLE);    
+  ASS(!s.hasAssumptions());
+  s.addAssumption(getLit('A'));
+  ASS(s.hasAssumptions());
+  ASS_EQ(s.solve(),SATSolver::Status::UNSATISFIABLE);
+  s.retractAllAssumptions();
+  ASS(!s.hasAssumptions());
+  // ASS(s.getStatus() == SATSolver::UNKNOWN || s.getStatus() == SATSolver::SATISFIABLE);
+
+  s.addAssumption(getLit('a'));
+  ASS(s.hasAssumptions());
+  ASS_EQ(s.solve(),SATSolver::Status::SATISFIABLE);
+  s.retractAllAssumptions();
+  ASS(!s.hasAssumptions());
+  // ASS(s.getStatus() == SATSolver::UNKNOWN || s.getStatus() == SATSolver::SATISFIABLE);
+
+  ASS_EQ(s.solve(),SATSolver::Status::SATISFIABLE);
 }
 
 TEST_FUN(testSATSolverInterface)
 { 
-  cout << endl << "Minisat" << endl;  
+  cout << endl << "Minisat" << endl;
   MinisatInterfacing sMini(*env.options,true);
   testInterface(sMini);
-    
+
   /* Not fully conforming - does not support zeroImplied and resource-limited solving
   cout << endl << "Z3" << endl;
   {
@@ -243,8 +235,6 @@ TEST_FUN(testSATSolverInterface)
 }
 
 void testAssumptions(SATSolverWithAssumptions &s) {
-  CALL("testAssumptions");
-
   ensurePrepared(s);
 
   s.addClause(getClause("ab"));
@@ -261,7 +251,7 @@ void testAssumptions(SATSolverWithAssumptions &s) {
   assumps.push(getLit('E'));
   assumps.push(getLit('Y'));
 
-  ASS_EQ(s.solveUnderAssumptions(assumps),SATSolver::UNSATISFIABLE);
+  ASS_EQ(s.solveUnderAssumptions(assumps),SATSolver::Status::UNSATISFIABLE);
 
   const SATLiteralStack& failed = s.failedAssumptions();
   for (unsigned i = 0; i < failed.size(); i++) {

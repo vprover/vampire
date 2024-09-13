@@ -9,209 +9,74 @@
  */
 /**
  * @file Tracer.cpp
+ * Try and work out where we crashed and print out a call stack.
+ *
+ * You don't typically _want_ to use this for debugging,
+ * but sometimes Vampire crashes on some server somewhere,
+ * and this is the best you're going to get. Good luck!
  *
  * @since 01/05/2002 Manchester
+ * @since 25/12/2023 Mísečky invoke system binary for backtrace
+ * @since 25/07/2024 Oxford invoke debugger for general sanity
  */
 
+#include <csignal>
+#include <cstdlib>
+#include <sstream>
 
-#include <climits>
-#include <iostream>
+// for getpid()
+// TODO compile guards for this and similar headers
+#include <unistd.h>
 
 #include "Tracer.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/System.hpp"
+#include "Shell/Options.hpp"
 
+// define in version.cpp.in
 extern const char* VERSION_STRING;
 
-#if VDEBUG
+// try and invoke the GNU debugger in batch mode on this process
+static bool try_gdb(pid_t pid) {
+  std::stringstream command;
+  command
+    // ask for a traceback in batch mode
+    << "gdb --batch -ex bt --pid="
+    << pid;
+  std::cout << command.str() << '\n';
+  return std::system(command.str().c_str()) == 0;
+}
 
-// output nothing
-#define CP_FIRST_POINT UINT_MAX
-#define CP_LAST_POINT 0u
-
-// output all
-// #define CP_FIRST_POINT 0u
-// #define CP_LAST_POINT  1481000u
-
- //#define CP_FIRST_POINT UINT_MAX //185539 
- //#define CP_LAST_POINT UINT_MAX 
-
-using namespace std;
-using namespace Debug;
-
-const char* Tracer::_lastControlPoint;
-Tracer* Tracer::_current = 0;
-unsigned Tracer::_depth = 0;
-unsigned Tracer::_passedControlPoints = 0L;
-ControlPointKind Tracer::_lastPointKind = CP_MID;
-bool Tracer::_forced = false;
-
-/** This variable is needed when all changes in the value of an
- *  an address are traced. To make it work one should define
- *  WATCH_ADDRESS in Allocator.cpp to the watched address. When
- *  the allocator discovers that WATCH_ADDRESS gets allocated
- *  it will set canWatch to true. Allocator will also print to
- *  cout all allocations and deallocations relevant to WATCH_ADDRESS.
- *  In order to watch also all changes of the address one should
- *  define WATCH_ADDR in this file. 
- */
-bool Tracer::canWatch = false;
-
-/** To understand how to use the following variable read documentation
- *  to Tracer::canWatch */
-// #define WATCH_ADDR 0x38001a0
-#define WATCH_ADDR 0
-#if WATCH_ADDR
-void* watchAddrLastValue = (void*)0;
-#endif
-
-Tracer::Tracer (const char* fun) 
-  :
-  _fun (fun),
-  _previous (_current)
-{
-//   cout << '+' << fun << '\n';
-  _current = this;
-  controlPoint(_fun,CP_ENTRY);
-  _depth++;
-} // Tracer::Tracer
-
-
-Tracer::~Tracer () 
-{
-//   cout << '-' << _fun << '\n';
-  _current = _previous;
-  _depth--;
-  controlPoint(_fun,CP_EXIT);
-} // Tracer::~Tracer
-
+// try and invoke the LLVM debugger in batch mode on this process
+static bool try_lldb(pid_t pid) {
+  std::stringstream command;
+  command
+    // ask for a traceback in batch mode
+    << "lldb --batch -o bt "
+    //<< argv0
+    << " --attach-pid "
+    << pid;
+  std::cout << command.str() << '\n';
+  return std::system(command.str().c_str()) == 0;
+}
 
 /**
- * Increase the control point counter and remember the description
- * of the last control point. If the control point number is
- * greater than CP_OUTPUT_THRESHOLD, then output the description to
- * cout.
- *
- * @since 12/12/2003 Manchester
- */
-void Tracer::controlPoint (const char* description, ControlPointKind cpk)
-{
-//   AFTER(12339,
-// 	cout << "A: " << *((int*)0x88d84b4) << "\n";);
-//   if (Allocator<10>::_freeList) {
-//     cout << (void*)Allocator<10>::_freeList << " "
-// 	 << (void*)Allocator<10>::_freeList->_next
-// 	 << " (" <<_passedControlPoints << ")\n";
-//   }
-
-  _lastPointKind = cpk;
-
-#if WATCH_ADDR
-  if (canWatch) {
-    void* newVal = *((void**)WATCH_ADDR);
-    if (newVal != watchAddrLastValue) {
-      cout << "W! " << newVal << " (timestamp: "
-	   << _passedControlPoints << ")\n";
-      watchAddrLastValue = newVal;
-      cout << "Stack on " << (cpk == CP_EXIT ? "exiting" : "entering")
-	   << " the last function on the stack:\n";
-      printStack(cout);
-    }
-  }
-#endif
-
-  _passedControlPoints++;
-
-  _lastControlPoint = description;
-  if (_forced ||
-      (_passedControlPoints <= CP_LAST_POINT &&
-       _passedControlPoints >= CP_FIRST_POINT)) {
-    outputLastControlPoint(cout);
-  }
-} // Tracer::controlPoint
-
-
-/**
- * Increase the control point counter and remember the description
- * of the last control point. If the control point number is
- * greater than CP_OUTPUT_THRESHOLD, then output the description to
- * cout.
- *
- * @since 12/12/2003 Manchester
- */
-void Tracer::controlPoint (const char* description)
-{
-  controlPoint (description,CP_MID);
-} // Tracer::controlPoint
-
-
-/**
- * Output the last control point to an ostream.
- * @since 12/12/2003 Manchester
- */
-void Tracer::outputLastControlPoint (ostream& str)
-{
-  spaces(str,_depth);
-  str << (_lastPointKind == CP_ENTRY ? '+' : 
-          _lastPointKind == CP_EXIT ? '-' : ' ')
-      << _lastControlPoint 
-      << " ("
-      << _passedControlPoints 
-      << ")\n";
-} // Tracer::outputLastControlPoint
-
-
-/**
- * Print the stack.
+ * Print the stack if --traceback on
  * @since 24/10/2002 Manchester
+ * @since 12/7/2023 using platform-specific calls to get the stack trace
  */
-void Tracer::printOnlyStack (ostream& str)
-{
-  int depth = 0;
-  printStackRec (_current, str, depth);
-} // Tracer::printStack (ostream& str)
-
-
-/**
- * Print the stack.
- * @since 24/10/2002 Manchester
- */
-void Tracer::printStack (ostream& str)
-{
-  int depth = 0;
-
-  str << "Version : " << VERSION_STRING << "\n";
-  str << "Control points passed: " << _passedControlPoints << "\n"
-      << "last control point:\n";
-  outputLastControlPoint(str);
-  printStackRec (_current, str, depth);
-} // Tracer::printStack (ostream& str)
-
-
-/**
- * Print the stack at a certain depth. The depth is used
- * for indentation.
- * @since 24/10/2002 Manchester
- */
-void Tracer::printStackRec(Tracer* current, ostream& str, int& depth)
-{
-  if (!current) { // beginning of the stack
-    return;
+void Debug::Tracer::printStack() {
+  std::cout << "Version : " << VERSION_STRING << "\n";
+  if(env.options->traceback()) {
+    pid_t pid = getpid();
+    // is your favourite debugger not here? add it!
+    if(!try_gdb(pid) && !try_lldb(pid))
+      std::cout << "(neither GDB nor LLDB worked: perhaps you need to install one of them?)\n";
   }
-  printStackRec(current->_previous,str,depth);
-  spaces(str,depth);
-  str << current->_fun << "\n";
-  depth ++;
-} // Tracer::printStack (ostream& str, int& depth)
+  else
+    std::cout << "(use '--traceback on' to invoke a debugger and get a human-readable stack trace)\n";
 
-
-/**
- * Print n spaces to the stream
- */
-void Tracer::spaces (ostream& str,int n)
-{
-  while (n > 0) {
-    n--;
-    str << ' ';
-  }
-} // Tracer::spaces
-
-#endif // VDEBUG
+  // usually causes debuggers to break here
+  // if not under a debugger, ignored
+  std::raise(SIGTRAP);
+}

@@ -27,8 +27,6 @@
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Lib/ScopeGuard.hpp"
-#include "Lib/STL.hpp"
-#include "Lib/STLAllocator.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Shell/TPTPPrinter.hpp"
 #include <array>
@@ -44,7 +42,6 @@ using namespace Saturation;
 
 void ForwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
 {
-  CALL("ForwardSubsumptionDemodulation::attach");
   ForwardSimplificationEngine::attach(salg);
 
   _index.request(salg->getIndexManager(), FSD_SUBST_TREE);
@@ -53,14 +50,13 @@ void ForwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
   _allowIncompleteness = false;
 
   if (_doSubsumption) {
-    _unitIndex.request(salg->getIndexManager(), SIMPLIFYING_UNIT_CLAUSE_SUBST_TREE);
+    _unitIndex.request(salg->getIndexManager(), FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE);
   }
 }
 
 
 void ForwardSubsumptionDemodulation::detach()
 {
-  CALL("ForwardSubsumptionDemodulation::detach");
   _index.release();
   ForwardSimplificationEngine::detach();
 }
@@ -68,8 +64,6 @@ void ForwardSubsumptionDemodulation::detach()
 
 bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
-  CALL("ForwardSubsumptionDemodulation::perform");
-
   //                        cl
   //                 vvvvvvvvvvvvvvvv
   //     mcl       matched      /-- only look for a term to demodulate in this part!
@@ -87,7 +81,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
   //
   // For condition 2, we check that l = r < M for some M in L \/ D.
 
-  TimeCounter const tc(TC_FORWARD_SUBSUMPTION_DEMODULATION);
+  TIME_TRACE("forward subsumption demodulation");
 
   Ordering const& ordering = _salg->getOrdering();
 
@@ -98,9 +92,9 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
   // Subsumption by unit clauses
   if (_doSubsumption) {
     for (unsigned sqli = 0; sqli < cl->length(); ++sqli) {
-      SLQueryResultIterator rit = _unitIndex->getGeneralizations((*cl)[sqli], false, false);
+      auto rit = _unitIndex->getGeneralizations((*cl)[sqli], false, false);
       while (rit.hasNext()) {
-        Clause* premise = rit.next().clause;
+        Clause* premise = rit.next().data->clause;
 
         if (premise->hasAux()) {
           continue;  // we've already checked this premise
@@ -128,10 +122,10 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
     /**
      * Step 1: find candidate clauses for subsumption
      */
-    SLQueryResultIterator rit = _index->getGeneralizations(subsQueryLit, false, false);
+    auto rit = _index->getGeneralizations(subsQueryLit, false, false);
     while (rit.hasNext()) {
-      SLQueryResult res = rit.next();
-      Clause* mcl = res.clause;  // left premise of FSD
+      auto res = rit.next();
+      Clause* mcl = res.data->clause;  // left premise of FSD
 
       ASS_NEQ(cl, mcl);  // this can't happen because cl isn't in the index yet
 
@@ -155,7 +149,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
       /**
        * Step 2: choose a positive equality in mcl to use for demodulation and try to instantiate the rest to some subset of cl
        */
-      static vvector<LiteralList*> alts;
+      static std::vector<LiteralList*> alts;
       alts.clear();
       alts.reserve(mcl->length());
       ASS_EQ(alts.size(), 0);
@@ -267,7 +261,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
         }
 
         // isMatched[i] is true iff (*cl)[i] is matched my some literal in mcl (without eqLit)
-        static vvector<bool> isMatched;
+        static std::vector<bool> isMatched;
         matcher.getMatchedAltsBitmap(isMatched);
 
         static OverlayBinder binder;
@@ -296,7 +290,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
         // 1. No LHS (if INCOMPARABLE and no side contains all variables of the other side)
         // 2. One LHS (oriented, or INCOMPARABLE with exactly one variable-free side)
         // 3. Two LHSs (INCOMPARABLE and same variables)
-        static vvector<TermList> lhsVector;
+        static std::vector<TermList> lhsVector;
         lhsVector.clear();
         {
           TermList t0 = *eqLit->nthArgument(0);
@@ -370,12 +364,10 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
               RSTAT_MCTR_INC("FSD, lhsVector.size() when INCOMPARABLE", lhsVector.size());
               break;
             case Ordering::GREATER:
-            case Ordering::GREATER_EQ:
               ASS(termContainsAllVariablesOfOtherUnderSubst(t0, t1, applicator));
               lhsVector.push_back(t0);
               break;
             case Ordering::LESS:
-            case Ordering::LESS_EQ:
               ASS(termContainsAllVariablesOfOtherUnderSubst(t1, t0, applicator));
               lhsVector.push_back(t1);
               break;
@@ -409,7 +401,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
           ASS(!env.options->combinatorySup());
           NonVariableNonTypeIterator nvi(dlit);
           while (nvi.hasNext()) {
-            TermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'
+            TypedTermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'
 
             if (!attempted.insert(lhsS)) {
               // We have already tried to demodulate the term lhsS and did not
@@ -420,7 +412,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
               continue;
             }
 
-            TermList const lhsSSort = SortHelper::getTermSort(lhsS, dlit);
+            auto lhsSSort = lhsS.sort();
 
             ASS_LE(lhsVector.size(), 2);
             for (TermList lhs : lhsVector) {
@@ -554,7 +546,6 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                   }
                 }
                 Ordering::Result r_cmp_t = ordering.compare(rhsS, t);
-                ASS_NEQ(r_cmp_t, Ordering::LESS_EQ);  // NOTE: LESS_EQ doesn't seem to occur in the code currently. It is unclear why the ordering is not simplified to LESS, EQUAL and GREATER.
                 if (r_cmp_t == Ordering::LESS) {
                   // rhsS < t implies eqLitS < dlit
                   ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
@@ -613,51 +604,49 @@ isRedundant:
                 return true;
               }
 
-              Clause* newCl = new(cl->length()) Clause(cl->length(),
-                  SimplifyingInference2(InferenceRule::FORWARD_SUBSUMPTION_DEMODULATION, cl, mcl));
+              RStack<Literal*> resLits;
 
               for (unsigned i = 0; i < cl->length(); ++i) {
                 if (i == dli) {
-                  (*newCl)[i] = newLit;
+                  resLits->push(newLit);
                 } else {
-                  (*newCl)[i] = (*cl)[i];
+                  resLits->push((*cl)[i]);
                 }
               }
 
               env.statistics->forwardSubsumptionDemodulations++;
 
               premises = pvi(getSingletonIterator(mcl));
-              replacement = newCl;
+              replacement = Clause::fromStack(*resLits,
+                 SimplifyingInference2(InferenceRule::FORWARD_SUBSUMPTION_DEMODULATION, cl, mcl));
 
 #if FSD_LOG_INFERENCES
-              env.beginOutput();
-              env.out() << "\% Begin Inference \"FSD-" << newCl->number() << "\"\n";
-              env.out() << "\% eqLit: " << eqLit->toString() << "\n";
-              env.out() << "\% eqLitS: " << binder.applyTo(eqLit)->toString() << "\n";
-              env.out() << "\% dlit: " << dlit->toString() << "\n";
-              env.out() << "\% numMatches+1: success at match #" << (numMatches+1) << "\n";
+              std::cout << "\% Begin Inference \"FSD-" << replacement->number() << "\"\n";
+              std::cout << "\% eqLit: " << eqLit->toString() << "\n";
+              std::cout << "\% eqLitS: " << binder.applyTo(eqLit)->toString() << "\n";
+              std::cout << "\% dlit: " << dlit->toString() << "\n";
+              std::cout << "\% numMatches+1: success at match #" << (numMatches+1) << "\n";
               TPTPPrinter tptp;
-              // NOTE: do not output the splitLevels here, because those will be set for newCl only later
+              // NOTE: do not output the splitLevels here, because those will be set for replacement only later
               tptp.printWithRole("side_premise_mcl", "hypothesis", mcl,   false);
               tptp.printWithRole("main_premise_cl ", "hypothesis", cl,    false);
-              tptp.printWithRole("conclusion      ", "conjecture", newCl, false);
+              tptp.printWithRole("conclusion      ", "conjecture", replacement, false);
               // TODO: Some problems (seems to be only the CSR category; it happens, e.g., in CSR104+4)
               //       use integer constants as sort $i but vampire parses them as $int when using tff.
               //       For these formulas we should use fof, then it works again.
               //       Problem: how to detect that situation??
               //       probably if the input only contains FOF and no TFF
               // TODO: Also don't output type defs for $$false and $$true, see problem SYO091^5.p
-              env.out() << "\% End Inference \"FSD-" << newCl->number() << "\"" << std::endl;
-              env.endOutput();
+              std::cout << "\% End Inference \"FSD-" << replacement->number() << "\"" << std::endl;
 #endif
 
               RSTAT_MCTR_INC("FSD, successes by MLMatch", numMatches + 1);  // +1 so it fits with the previous output
 
 #if VDEBUG && FSD_VDEBUG_REDUNDANCY_ASSERTIONS
               if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {  // see note above
-                // Check newCl < cl.
+                // Check replacement < cl.
                 // This is quite obvious, and there should be no problems with this.
-                ASS(SDHelper::clauseIsSmaller(newCl, cl, ordering));
+                ASS(SDHelper::clauseIsSmaller(replacement, cl, ordering));
               }
 #endif
 

@@ -22,6 +22,8 @@
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Deque.hpp"
 #include "Lib/Stack.hpp"
+#include "Kernel/Clause.hpp"
+#include "Lib/Set.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -37,9 +39,6 @@ using namespace Shell;
 class ClauseContainer
 {
 public:
-  CLASS_NAME(ClauseContainer);
-  USE_ALLOCATOR(ClauseContainer);
-
   virtual ~ClauseContainer() {}
   ClauseEvent addedEvent;
   /**
@@ -65,9 +64,6 @@ class RandomAccessClauseContainer
 : public ClauseContainer
 {
 public:
-  CLASS_NAME(RandomAccessClauseContainer);
-  USE_ALLOCATOR(RandomAccessClauseContainer);
-
   virtual void attach(SaturationAlgorithm* salg);
   virtual void detach();
 
@@ -87,9 +83,6 @@ private:
 
 class PlainClauseContainer : public ClauseContainer {
 public:
-  CLASS_NAME(PlainClauseContainer);
-  USE_ALLOCATOR(PlainClauseContainer);
-
   void add(Clause* c) override
   {
     addedEvent.fire(c);
@@ -101,9 +94,6 @@ class UnprocessedClauseContainer
 : public ClauseContainer
 {
 public:
-  CLASS_NAME(UnprocessedClauseContainer);
-  USE_ALLOCATOR(UnprocessedClauseContainer);
-
   virtual ~UnprocessedClauseContainer();
   UnprocessedClauseContainer() : _data(64) {}
   void add(Clause* c) override;
@@ -120,10 +110,7 @@ class PassiveClauseContainer
 : public RandomAccessClauseContainer
 {
 public:
-  CLASS_NAME(PassiveClauseContainer);
-  USE_ALLOCATOR(PassiveClauseContainer);
-
-  PassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name = "") : _isOutermost(isOutermost), _opt(opt), _name(name) {}
+  PassiveClauseContainer(bool isOutermost, const Shell::Options& opt, std::string name = "") : _isOutermost(isOutermost), _opt(opt), _name(name) {}
   virtual ~PassiveClauseContainer(){};
 
   LimitsChangeEvent changedEvent;
@@ -174,27 +161,25 @@ protected:
   const Shell::Options& _opt;
 
 public:
-  vstring _name;
+  std::string _name;
 };
 
 class ActiveClauseContainer
 : public RandomAccessClauseContainer
 {
 public:
-  CLASS_NAME(ActiveClauseContainer);
-  USE_ALLOCATOR(ActiveClauseContainer);
-
-  ActiveClauseContainer(const Shell::Options& opt) : _size(0)/*, _opt(opt)*/ {}
+  ActiveClauseContainer(const Shell::Options& opt) {}
 
   void add(Clause* c) override;
   void remove(Clause* c) override;
 
-  unsigned sizeEstimate() const override { return _size; }
+  unsigned sizeEstimate() const override { return _clauses.size(); }
+  ClauseIterator clauses() const { return pvi(_clauses.iter()); }
 
 protected:
   void onLimitsUpdated() override;
 private:
-  unsigned _size;
+  Set<Clause*> _clauses;
   // const Shell::Options& _opt;
 };
 

@@ -32,8 +32,6 @@ using namespace Kernel;
 // Polymorphic version of equality proxy transformation.
 // When working with a monomorphic problem, both the poly and the mono
 // versions can be used. Poly is default. 
-// The one exception is when using instGen calculus which has not 
-// been tested with polymrphism. In this case, mono version must be used
 
 /**
  * Applies the equality proxy transformation to the problem.
@@ -58,9 +56,6 @@ using namespace Kernel;
 class EqualityProxy
 {
 public:
-  CLASS_NAME(EqualityProxy);
-  USE_ALLOCATOR(EqualityProxy);
-
   EqualityProxy(Options::EqualityProxy opt);
 
   void apply(Problem& prb);

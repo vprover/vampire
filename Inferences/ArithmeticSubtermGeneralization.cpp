@@ -22,6 +22,8 @@
 
 namespace Inferences {
 
+using namespace std;
+
 /** iterator over all subterms of a clause in polynomial normal form */
 static const auto iterTerms = [](Clause* cl) 
 {
@@ -43,15 +45,15 @@ public:
 
   AnyNumber(NumberObject<IntTraits> &self) : Super(self) {}
   AnyNumber(NumberObject<IntTraits> const& self) : Super(self) {}
-  AnyNumber(NumberObject<IntTraits> && self) : Super(move(self)) {}
+  AnyNumber(NumberObject<IntTraits> && self) : Super(std::move(self)) {}
 
   AnyNumber(NumberObject<RatTraits> &self) : Super(self) {}
   AnyNumber(NumberObject<RatTraits> const& self) : Super(self) {}
-  AnyNumber(NumberObject<RatTraits> && self) : Super(move(self)) {}
+  AnyNumber(NumberObject<RatTraits> && self) : Super(std::move(self)) {}
 
   AnyNumber(NumberObject<RealTraits> &self) : Super(self) {}
   AnyNumber(NumberObject<RealTraits> const& self) : Super(self) {}
-  AnyNumber(NumberObject<RealTraits> && self) : Super(move(self)) {}
+  AnyNumber(NumberObject<RealTraits> && self) : Super(std::move(self)) {}
 
   template<class NumTraits> Option<NumberObject<NumTraits> const&> downcast() const& { return Super::template as<NumberObject<NumTraits>>(); }
   template<class NumTraits> Option<NumberObject<NumTraits>      &> downcast()      & { return Super::template as<NumberObject<NumTraits>>(); }
@@ -79,23 +81,20 @@ static const auto iterVars = [](Clause* cl) {
 template<class EvalFn>
 SimplifyingGeneratingInference1::Result generalizeBottomUp(Clause* cl, EvalFn eval) 
 {
-  CALL("generalizeBottomUp")
   /* apply the selectedGen generalization */
-  bool anyChange = false;
+  DEBUG_CODE(bool anyChange = false);
   bool oneLess = false;
   bool allLessEq = true;
 
   auto stack = iterTraits(cl->iterLits())
     .map([&](Literal* lit) -> Literal* {
-        CALL("generalizeBottomUp(Clause* cl, EvalFn)@closure 1")
         unsigned j = 0;
         auto termArgs = termArgIter(lit)
           .map([&](TermList term) -> TermList { 
-              CALL("generalizeBottomUp(Clause* cl, EvalFn)@closure 2")
               auto norm = PolyNf::normalize(TypedTermList(term, SortHelper::getTermArgSort(lit, j++)));
-              auto res = evaluateBottomUp(norm, eval);
+              auto res = BottomUpEvaluation<typename EvalFn::Arg, typename EvalFn::Result>().function(eval).apply(norm);
               if (res != norm) {
-                anyChange = true;
+                DEBUG_CODE(anyChange = true);
                 DEBUG("generalized: ", norm, " -> ", res);
                 return res.denormalize();
               } else {
@@ -118,11 +117,9 @@ SimplifyingGeneratingInference1::Result generalizeBottomUp(Clause* cl, EvalFn ev
             case Ordering::LESS:
               oneLess = true;
               break;
-            case Ordering::LESS_EQ:
             case Ordering::EQUAL:
               break;
             case Ordering::GREATER:
-            case Ordering::GREATER_EQ:
             case Ordering::INCOMPARABLE:
               allLessEq = false;
               DEBUG("ordering violation: ", cmp)
@@ -135,7 +132,7 @@ SimplifyingGeneratingInference1::Result generalizeBottomUp(Clause* cl, EvalFn ev
     })
     .template collect<Stack>();
 
-  ASS (anyChange) 
+  ASS(anyChange)
   Inference inf(SimplifyingInference1(Kernel::InferenceRule::ARITHMETIC_SUBTERM_GENERALIZATION, cl));
   bool redundant = allLessEq && oneLess;
   env.statistics->asgCnt++;
@@ -175,15 +172,14 @@ struct EvaluateAnyPoly
 
   PolyNf operator()(PolyNf term, PolyNf* evaluatedArgs) 
   {
-    CALL("EvaluateAnyPoly::operator()")
     auto out = term.match(
-        [&](Perfect<FuncTerm> t) -> PolyNf
-        { return perfect(FuncTerm(t->function(), evaluatedArgs)); },
+        [&](Perfect<FuncTerm> t)
+        { return PolyNf(perfect(FuncTerm(t->function(), evaluatedArgs))); },
 
-        [&](Variable v) 
-        { return v; },
+        [&](Variable v)
+        { return PolyNf(v); },
 
-        [&](AnyPoly p) 
+        [&](AnyPoly p)
         { return PolyNf(eval(p, evaluatedArgs)); }
         );
     return out;
@@ -213,13 +209,11 @@ struct EvaluatePolynom
 
   AnyPoly operator()(AnyPoly poly, PolyNf* evaluatedArgs)
   { 
-    CALL("EvaluatePolynom::operator()(AnyPoly, PolyNf*)")
     return poly.apply(EvalPolynomClsr<Eval>{eval, evaluatedArgs}); 
   }
 
   PolyNf operator()(PolyNf term, PolyNf* evaluatedArgs) 
   {
-    CALL("EvaluatePolynom::operator()")
     return EvaluateAnyPoly<EvaluatePolynom>{*this}(term, evaluatedArgs);
   }
 };
@@ -235,8 +229,6 @@ struct EvaluateMonom
   template<class NumTraits>
   Perfect<Polynom<NumTraits>> operator()(Perfect<Polynom<NumTraits>> poly, PolyNf* evaluatedArgs)
   { 
-    CALL("EvaluateMonom::operator()(AnyPoly, PolyNf*)")
-
     using Polynom   = Kernel::Polynom<NumTraits>;
     using Monom  = Kernel::Monom<NumTraits>;
 
@@ -244,8 +236,6 @@ struct EvaluateMonom
     return perfect(Polynom(
                 poly->iterSummands()
                  .map([&](Monom m) -> Monom { 
-                   CALL("EvaluateMonom::clsr01")
-
                    auto result = eval(m, &evaluatedArgs[offs]);
                    offs += m.factors->nFactors();
                    return result;
@@ -255,7 +245,6 @@ struct EvaluateMonom
 
   PolyNf operator()(PolyNf term, PolyNf* evaluatedArgs) 
   {
-    CALL("EvaluateMonom::operator()")
     return EvaluatePolynom<EvaluateMonom>{*this}(term, evaluatedArgs);
   }
 };
@@ -309,7 +298,6 @@ private:
 template<class C>
 Stack<C> intersectSortedStack(Stack<C>&& l, Stack<C>&& r) 
 {
-  CALL("intersectSortedStack")
   // DEBUG("lhs: ", l)
   // DEBUG("rhs: ", r)
 
@@ -345,7 +333,6 @@ Stack<C> intersectSortedStack(Stack<C>&& l, Stack<C>&& r)
 
 SimplifyingGeneratingInference1::Result AdditionGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
 { 
-  CALL("AdditionGeneralization::simplify")
   return AdditionGeneralizationImpl::applyRule(cl,doOrderingCheck);
 }
 
@@ -354,14 +341,12 @@ AdditionGeneralization::~AdditionGeneralization()  {}
 
 SimplifyingGeneratingInference1::Result NumeralMultiplicationGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
 { 
-  CALL("NumeralMultiplicationGeneralization::simplify")
   return NumeralMultiplicationGeneralizationImpl::applyRule(cl, doOrderingCheck);
 }
 
 NumeralMultiplicationGeneralization::~NumeralMultiplicationGeneralization()  {}
 SimplifyingGeneratingInference1::Result VariableMultiplicationGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
 { 
-  CALL("VariableMultiplicationGeneralization::simplify")
   return VariableMultiplicationGeneralizationImpl::applyRule(cl, doOrderingCheck);
 }
 
@@ -370,7 +355,6 @@ VariableMultiplicationGeneralization::~VariableMultiplicationGeneralization()  {
 
 SimplifyingGeneratingInference1::Result VariablePowerGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
 { 
-  CALL("VariablePowerGeneralization::simplify")
   return VariablePowerGeneralizationImpl::applyRule(cl, doOrderingCheck);
 }
 

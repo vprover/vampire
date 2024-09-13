@@ -12,6 +12,7 @@
  * Implements class TermIndex.
  */
 
+#include "Forwards.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/DHMap.hpp"
 
@@ -27,6 +28,7 @@
 #include "Kernel/TermIterators.hpp"
 
 #include "Shell/LambdaElimination.hpp"
+#include "Indexing/TermSubstitutionTree.hpp"
 
 #include "TermIndex.hpp"
 
@@ -36,86 +38,32 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Inferences;
 
-TermIndex::~TermIndex()
-{
-  delete _is;
-}
-
-TermQueryResultIterator TermIndex::getUnifications(TermList t,
-	  bool retrieveSubstitutions)
-{
-  return _is->getUnifications(t, retrieveSubstitutions);
-}
-
-TermQueryResultIterator TermIndex::getUnificationsWithConstraints(TermList t,
-          bool retrieveSubstitutions)
-{
-  return _is->getUnificationsWithConstraints(t, retrieveSubstitutions);
-}
-
-TermQueryResultIterator TermIndex::getUnificationsUsingSorts(TermList t, TermList sort,
-          bool retrieveSubstitutions)
-{
-  return _is->getUnificationsUsingSorts(t, sort, retrieveSubstitutions);
-}
-
-TermQueryResultIterator TermIndex::getGeneralizations(TermList t,
-	  bool retrieveSubstitutions)
-{
-  return _is->getGeneralizations(t, retrieveSubstitutions);
-}
-
-TermQueryResultIterator TermIndex::getInstances(TermList t,
-	  bool retrieveSubstitutions)
-{
-  return _is->getInstances(t, retrieveSubstitutions);
-}
-
-
 void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("SuperpositionSubtermIndex::handleClause");
-
-  TimeCounter tc(TC_BACKWARD_SUPERPOSITION_INDEX_MAINTENANCE);
+  TIME_TRACE("backward superposition index maintenance");
 
   unsigned selCnt=c->numSelected();
   for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
-    TermIterator rsti;
-    if(!env.options->combinatorySup()){
-      rsti = EqHelper::getSubtermIterator(lit,_ord);
-    } else {
-      rsti = EqHelper::getFoSubtermIterator(lit,_ord);
-    }
+    auto rsti = env.options->combinatorySup() ? EqHelper::getFoSubtermIterator(lit,_ord)
+                                              : EqHelper::getSubtermIterator(lit,_ord);
     while (rsti.hasNext()) {
-      if (adding) {
-        _is->insert(rsti.next(), lit, c);
-      }
-      else {
-        _is->remove(rsti.next(), lit, c);
-      }
+      auto tt = TypedTermList(rsti.next());
+      ((TermSubstitutionTree<TermLiteralClause>*)&*_is)->handle(TermLiteralClause{ tt, lit, c }, adding);
     }
   }
 }
 
 void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("SuperpositionLHSIndex::handleClause");
-
-  TimeCounter tc(TC_FORWARD_SUPERPOSITION_INDEX_MAINTENANCE);
+  TIME_TRACE("forward superposition index maintenance");
 
   unsigned selCnt=c->numSelected();
   for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
-    TermIterator lhsi=EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt);
+    auto lhsi = EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt);
     while (lhsi.hasNext()) {
-      TermList lhs=lhsi.next();
-      if (adding) {
-	_is->insert(lhs, lit, c);
-      }
-      else {
-	_is->remove(lhs, lit, c);
-      }
+	    _tree->handle(TermLiteralClause{ lhsi.next(), lit, c }, adding);
     }
   }
 }
@@ -123,11 +71,11 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
 template <bool combinatorySupSupport>
 void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c, bool adding)
 {
-  CALL("DemodulationSubtermIndex::handleClause");
+  TIME_TRACE("backward demodulation index maintenance");
 
-  TimeCounter tc(TC_BACKWARD_DEMODULATION_INDEX_MAINTENANCE);
+  static DHSet<Term*> inserted;
 
-  static DHSet<TermList> inserted;
+  bool skipNonequationalLiterals = _opt.demodulationOnlyEquational();
 
   unsigned cLen=c->length();
   for (unsigned i=0; i<cLen; i++) {
@@ -137,11 +85,17 @@ void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c
     // the removes could be called on different literals than the inserts!
     inserted.reset();
     Literal* lit=(*c)[i];
+    if (lit->isAnswerLiteral()) {
+      continue;
+    }
+    if (skipNonequationalLiterals && !lit->isEquality()) {
+      continue;
+    }
     typename std::conditional<!combinatorySupSupport,
       NonVariableNonTypeIterator,
       FirstOrderSubtermIt>::type it(lit);
     while (it.hasNext()) {
-      TermList t=it.next();
+      Term* t= it.next();
       if (!inserted.insert(t)) {//TODO existing error? Terms are inserted once per a literal
         //It is enough to insert a term only once per clause.
         //Also, once we know term was inserted, we know that all its
@@ -150,10 +104,9 @@ void DemodulationSubtermIndexImpl<combinatorySupSupport>::handleClause(Clause* c
         continue;
       }
       if (adding) {
-        _is->insert(t, lit, c);
-      }
-      else {
-        _is->remove(t, lit, c);
+        _is->insert(TermLiteralClause{ t, lit, c });
+      } else {
+        _is->remove(TermLiteralClause{ t, lit, c });
       }
     }
   }
@@ -166,51 +119,64 @@ template class DemodulationSubtermIndexImpl<true>;
 
 void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("DemodulationLHSIndex::handleClause");
-
   if (c->length()!=1) {
     return;
   }
 
-  TimeCounter tc(TC_FORWARD_DEMODULATION_INDEX_MAINTENANCE);
+  TIME_TRACE("forward demodulation index maintenance");
 
   Literal* lit=(*c)[0];
-  TermIterator lhsi=EqHelper::getDemodulationLHSIterator(lit, true, _ord, _opt);
+  auto [lhsi, preordered] = EqHelper::getDemodulationLHSIterator(
+      lit, _opt.forwardDemodulation()== Options::Demodulation::PREORDERED, _ord);
+
   while (lhsi.hasNext()) {
-    if (adding) {
-      _is->insert(lhsi.next(), lit, c);
-    }
-    else {
-      _is->remove(lhsi.next(), lit, c);
-    }
+    auto lhs = lhsi.next();
+
+    // DemodulatorData expects lhs and rhs to be normalized
+    Renaming r;
+    r.normalizeVariables(lhs);
+
+    DemodulatorData dd(
+      TypedTermList(r.apply(lhs),r.apply(lhs.sort())),
+      r.apply(EqHelper::getOtherEqualitySide(lit, lhs)),
+      c, preordered, _ord
+    );
+    _is->handle(std::move(dd), adding);
   }
 }
 
 void InductionTermIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("InductionTermIndex::handleClause");
+  TIME_TRACE("induction term index maintenance");
 
-  TimeCounter tc(TC_INDUCTION_TERM_INDEX_MAINTENANCE);
+  if (!InductionHelper::isInductionClause(c)) {
+    return;
+  }
 
-  if (InductionHelper::isInductionClause(c)) {
   // Iterate through literals & check if the literal is suitable for induction
-    for (unsigned i=0;i<c->length();i++) {
-      Literal* lit = (*c)[i];
-      if (InductionHelper::isInductionLiteral(lit)) {
-        SubtermIterator it(lit);
-        while (it.hasNext()) {
-          TermList tl = it.next();
-          if (!tl.term()) continue;
-          // TODO: each term (and its subterms) should be processed
-          // only once per literal, see DemodulationSubtermIndex
-          if (InductionHelper::isInductionTermFunctor(tl.term()->functor()) &&
-              InductionHelper::isIntInductionTermListInLiteral(tl, lit)) {
-            if (adding) {
-              _is->insert(tl, lit, c);
-            } else {
-              _is->remove(tl, lit, c);
-            }
-          }
+  for (unsigned i=0;i<c->length();i++) {
+    Literal* lit = (*c)[i];
+    if (!InductionHelper::isInductionLiteral(lit)) {
+      continue;
+    }
+
+    DHSet<Term*> done;
+    NonVariableNonTypeIterator it(lit);
+    while (it.hasNext()) {
+      Term* t = it.next();
+      if (!done.insert(t)) {
+        it.right();
+        continue;
+      }
+      if (t->isLiteral()) {
+        continue;
+      }
+      if (InductionHelper::isInductionTermFunctor(t->functor()) &&
+          InductionHelper::isIntInductionTermListInLiteral(t, lit)) {
+        if (adding) {
+          _is->insert(TermLiteralClause{ t, lit, c });
+        } else {
+          _is->remove(TermLiteralClause{ t, lit, c });
         }
       }
     }
@@ -219,12 +185,10 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
 
 void StructInductionTermIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("StructInductionTermIndex::handleClause");
-
   if (!InductionHelper::isInductionClause(c)) {
     return;
   }
-  static DHSet<TermList> inserted;
+  static DHSet<Term*> inserted;
   // Iterate through literals & check if the literal is suitable for induction
   for (unsigned i=0;i<c->length();i++) {
     inserted.reset();
@@ -232,20 +196,22 @@ void StructInductionTermIndex::handleClause(Clause* c, bool adding)
     if (!lit->ground()) {
       continue;
     }
-    SubtermIterator it(lit);
+    NonVariableNonTypeIterator it(lit);
     while (it.hasNext()) {
-      TermList tl = it.next();
-      if (!inserted.insert(tl)) {
+      Term* t = it.next();
+      if (!inserted.insert(t)) {
         it.right();
         continue;
       }
-      ASS(tl.isTerm());
-      if (InductionHelper::isInductionTermFunctor(tl.term()->functor()) &&
-          InductionHelper::isStructInductionFunctor(tl.term()->functor())) {
+      if (t->isLiteral()) {
+        continue;
+      }
+      if (InductionHelper::isInductionTermFunctor(t->functor()) &&
+          InductionHelper::isStructInductionTerm(t)) {
         if (adding) {
-          _is->insert(tl, lit, c);
+          _is->insert(TermLiteralClause{ t, lit, c });
         } else {
-          _is->remove(tl, lit, c);
+          _is->remove(TermLiteralClause{ t, lit, c });
         }
       }
     }
@@ -259,50 +225,32 @@ void StructInductionTermIndex::handleClause(Clause* c, bool adding)
 
 void SubVarSupSubtermIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("SubVarSupSubtermIndex::handleClause");
-
-
   DHSet<unsigned> unstableVars;
   c->collectUnstableVars(unstableVars);
 
   unsigned selCnt=c->numSelected();
   for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
-    TermIterator rvi=EqHelper::getRewritableVarsIterator(&unstableVars, lit,_ord);
+    auto rvi = EqHelper::getRewritableVarsIterator(&unstableVars, lit,_ord);
     while(rvi.hasNext()){
-      TermList var = rvi.next();
-      if (adding) {
-        _is->insert(var, lit, c);
-      } else {
-        _is->remove(var, lit, c);
-      }
+      _is->handle(TermLiteralClause{ rvi.next(), lit, c }, adding);
     }
   }
 }
 
 void SubVarSupLHSIndex::handleClause(Clause* c, bool adding)
 {
-  CALL("SubVarSupLHSIndex::handleClause");
-
   unsigned selCnt=c->numSelected();
   for (unsigned i=0; i<selCnt; i++) {
     Literal* lit=(*c)[i];
-    TermIterator lhsi=EqHelper::getSubVarSupLHSIterator(lit, _ord);
+    auto lhsi = EqHelper::getSubVarSupLHSIterator(lit, _ord);
     while (lhsi.hasNext()) {
-      TermList lhs=lhsi.next();
-      if (adding) {
-        _is->insert(lhs, lit, c);
-      }
-      else {
-        _is->remove(lhs, lit, c);
-      }
+      _is->handle(TermLiteralClause{ lhsi.next(), lit, c }, adding);
     }
   }
 }
 void PrimitiveInstantiationIndex::populateIndex()
 {
-  CALL("PrimitiveInstantiationIndex::populateIndex");
-
   typedef ApplicativeHelper AH;
 
   static Options::PISet set = env.options->piSet();
@@ -350,39 +298,37 @@ void PrimitiveInstantiationIndex::populateIndex()
   notEqualsTerm = AH::createAppTerm3(srtOf(notEqualsTerm), notEqualsTerm, x, y);
 
   if(set == Options::PISet::ALL){
-    _is->insert(kTerm1, 0, 0);
-    _is->insert(kTerm2, 0, 0);
-    _is->insert(andTerm, 0, 0);
-    _is->insert(orTerm, 0, 0);
-    _is->insert(impTerm, 0, 0);
-    _is->insert(notTerm, 0, 0);
-    _is->insert(equalsTerm, 0, 0);
-    _is->insert(notEqualsTerm, 0, 0);
+    _is->insert(TermWithoutValue(kTerm1.term()));
+    _is->insert(TermWithoutValue(kTerm2.term()));
+    _is->insert(TermWithoutValue(andTerm.term()));
+    _is->insert(TermWithoutValue(orTerm.term()));
+    _is->insert(TermWithoutValue(impTerm.term()));
+    _is->insert(TermWithoutValue(notTerm.term()));
+    _is->insert(TermWithoutValue(equalsTerm.term()));
+    _is->insert(TermWithoutValue(notEqualsTerm.term()));
   } else if (set == Options::PISet::ALL_EXCEPT_NOT_EQ){
-    _is->insert(kTerm1, 0, 0);
-    _is->insert(kTerm2, 0, 0);
-    _is->insert(andTerm, 0, 0);
-    _is->insert(orTerm, 0, 0);
-    _is->insert(impTerm, 0, 0);
-    _is->insert(notTerm, 0, 0);
-    _is->insert(equalsTerm, 0, 0);
+    _is->insert(TermWithoutValue(kTerm1.term()));
+    _is->insert(TermWithoutValue(kTerm2.term()));
+    _is->insert(TermWithoutValue(andTerm.term()));
+    _is->insert(TermWithoutValue(orTerm.term()));
+    _is->insert(TermWithoutValue(impTerm.term()));
+    _is->insert(TermWithoutValue(notTerm.term()));
+    _is->insert(TermWithoutValue(equalsTerm.term()));
   } else if (set == Options::PISet::FALSE_TRUE_NOT){
-    _is->insert(kTerm1, 0, 0);
-    _is->insert(kTerm2, 0, 0);
-    _is->insert(notTerm, 0, 0);
+    _is->insert(TermWithoutValue(kTerm1.term()));
+    _is->insert(TermWithoutValue(kTerm2.term()));
+    _is->insert(TermWithoutValue(notTerm.term()));
   } else if (set == Options::PISet::FALSE_TRUE_NOT_EQ_NOT_EQ){
-    _is->insert(kTerm1, 0, 0);
-    _is->insert(kTerm2, 0, 0);
-    _is->insert(notTerm, 0, 0);
-    _is->insert(equalsTerm, 0, 0);
-    _is->insert(notEqualsTerm, 0, 0);
+    _is->insert(TermWithoutValue(kTerm1.term()));
+    _is->insert(TermWithoutValue(kTerm2.term()));
+    _is->insert(TermWithoutValue(notTerm.term()));
+    _is->insert(TermWithoutValue(equalsTerm.term()));
+    _is->insert(TermWithoutValue(notEqualsTerm.term()));
   }
 }
 
 void NarrowingIndex::populateIndex()
 {
-  CALL("NarrowingIndex::populateIndex");
-
   typedef ApplicativeHelper AH;
 
   static Options::Narrow set = env.options->narrow();
@@ -428,133 +374,24 @@ void NarrowingIndex::populateIndex()
   Literal* iLit = Literal::createEquality(true, lhsI, x, s1);
 
   if(set == Options::Narrow::ALL){
-    _is->insert(lhsS, sLit, 0);
-    _is->insert(lhsC, cLit, 0);
-    _is->insert(lhsB, bLit, 0);
-    _is->insert(lhsK, kLit, 0);
-    _is->insert(lhsI, iLit, 0);
+    _is->insert(TermWithValue<Literal*>(lhsS.term(), sLit));
+    _is->insert(TermWithValue<Literal*>(lhsC.term(), cLit));
+    _is->insert(TermWithValue<Literal*>(lhsB.term(), bLit));
+    _is->insert(TermWithValue<Literal*>(lhsK.term(), kLit));
+    _is->insert(TermWithValue<Literal*>(lhsI.term(), iLit));
   } else if (set == Options::Narrow::SKI) {
-    _is->insert(lhsS, sLit, 0);
-    _is->insert(lhsK, kLit, 0);
-    _is->insert(lhsI, iLit, 0);
+    _is->insert(TermWithValue<Literal*>(lhsS.term(), sLit));
+    _is->insert(TermWithValue<Literal*>(lhsK.term(), kLit));
+    _is->insert(TermWithValue<Literal*>(lhsI.term(), iLit));
   } else if (set == Options::Narrow::SK){
-    _is->insert(lhsS, sLit, 0);
-    _is->insert(lhsK, kLit, 0);
+    _is->insert(TermWithValue<Literal*>(lhsS.term(), sLit));
+    _is->insert(TermWithValue<Literal*>(lhsK.term(), kLit));
   }
 }
 
 void SkolemisingFormulaIndex::insertFormula(TermList formula, TermList skolem)
 {
-  CALL("SkolemisingFormulaIndex::insertFormula");
-  _is->insert(formula, skolem);
+  _is->insert(TermWithValue<TermList>(TypedTermList(formula.term()), skolem));
 }
-
-void HeuristicInstantiationIndex::insertInstantiation(TermList sort, TermList instantiation)
-{
-  CALL("HeuristicInstantiationIndex::insertInstantiation");
-  _is->insert(sort, instantiation);
-}
-
-void HeuristicInstantiationIndex::handleClause(Clause* c, bool adding)
-{
-  CALL("HeuristicInstantiationIndex::handleClause");
-
-  typedef ApplicativeHelper AH;
-
-  TermList freshVar(c->maxVar() + 1, false);
-  VList* boundVar = new VList(freshVar.var());
-
-  for (unsigned i=0; i<c->length(); i++) {
-    Literal* lit=(*c)[i];
-    TermList leftHead, rightHead, lhSort, rhSort;
-    static TermStack leftArgs;
-    static TermStack rightArgs;
-    AH::getHeadSortAndArgs(*lit->nthArgument(0), leftHead, lhSort, leftArgs);
-    AH::getHeadSortAndArgs(*lit->nthArgument(1), rightHead, rhSort, rightArgs);
-    if(leftHead.isTerm() && AH::getComb(leftHead) == Signature::NOT_COMB &&
-       AH::getProxy(leftHead) == Signature::NOT_PROXY &&
-      leftHead == rightHead &&
-      leftArgs.size() == rightArgs.size() &&
-      leftArgs.size())
-    {
-      TermList sort, boundVarSort, combTerm;
-      for(i = 0; i < leftArgs.size(); i++){
-        boundVarSort = AH::getNthArg(lhSort, leftArgs.size() - i);
-        SList* boundVarSortList = new SList(boundVarSort);
-
-        Literal* newLit = EqHelper::replace(lit, leftArgs[i], freshVar);
-        newLit->setPolarity(!newLit->polarity());
-        Term* eqForm = Term::createFormula(new Kernel::AtomicFormula(newLit));
-        Term* lambdaTerm = Term::createLambda(TermList(eqForm), boundVar, boundVarSortList, AtomicSort::boolSort());
-        combTerm = LambdaElimination().elimLambda(lambdaTerm);
-        if(!_insertedInstantiations.contains(combTerm)){
-        /*cout << "lhs is " + lit->nthArgument(0)->toString() << endl;
-        cout << "arg " + leftArgs[i].toString() << endl;
-        cout << "inserting " + lambdaTerm->toString() << endl;
-        cout << "inserting " + combTerm.toString() << endl;*/
-          _insertedInstantiations.insert(combTerm);
-          insertInstantiation(lambdaTerm->getSpecialData()->getSort(), combTerm);
-        }
-        //may be harmful performance wise, but otherwise these
-        //leak
-        //eqForm->destroy();
-        //lambdaTerm->destroy();
-
-        newLit = EqHelper::replace(lit, rightArgs[i], freshVar);
-        newLit->setPolarity(!newLit->polarity());
-        eqForm = Term::createFormula(new Kernel::AtomicFormula(newLit));
-        lambdaTerm = Term::createLambda(TermList(eqForm), boundVar, boundVarSortList, AtomicSort::boolSort());
-        combTerm = LambdaElimination().elimLambda(lambdaTerm);
-        if(!_insertedInstantiations.contains(combTerm)){
-        /*cout << "rhs is " + lit->nthArgument(1)->toString() << endl;
-        cout << "arg " + rightArgs[i].toString() << endl;
-        cout << "inserting " + lambdaTerm->toString() << endl;
-        cout << "inserting " + combTerm.toString() << endl; */
-          _insertedInstantiations.insert(combTerm);
-          insertInstantiation(lambdaTerm->getSpecialData()->getSort(), combTerm);
-        }
-
-        //eqForm->destroy();
-        //lambdaTerm->destroy();
-
-        SList::destroy(boundVarSortList);
-      }
-    }
-  }
-
-  VList::destroy(boundVar);
-}
-
-void RenamingFormulaIndex::insertFormula(TermList formula, TermList name,
-                                         Literal* lit, Clause* cls)
-{
-  CALL("RenamingFormulaIndex::insertFormula");
-  _is->insert(formula, name, lit, cls);
-}
-
-void RenamingFormulaIndex::handleClause(Clause* c, bool adding)
-{
-  CALL("RenamingFormulaIndex::handleClause");
-
-  typedef ApplicativeHelper AH;
-
-  for (unsigned i=0; i<c->length(); i++) {
-    Literal* lit=(*c)[i];
-    NonVariableNonTypeIterator it(lit);
-    while (it.hasNext()) {
-      TermList trm = it.next();
-      Term* t = trm.term();
-      if(SortHelper::getResultSort(t) == AtomicSort::boolSort() && 
-         AH::getProxy(AH::getHead(t)) != Signature::NOT_PROXY){
-        if(adding){
-          env.signature->incrementFormulaCount(t);
-        } else {
-          env.signature->decrementFormulaCount(t);
-        }
-      }
-    }
-  }
-}
-
 
 } // namespace Indexing

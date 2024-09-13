@@ -19,6 +19,7 @@
 
 #include "Lib/DHMap.hpp"
 #include "Lib/MaybeBool.hpp"
+#include "Lib/ScopedPtr.hpp"
 
 #include "Shell/SMTLIBLogic.hpp"
 
@@ -49,10 +50,6 @@ private:
   Problem(const Problem&); //private and undefined copy constructor
   Problem& operator=(const Problem&); //private and undefined assignment operator
 public:
-
-  CLASS_NAME(Problem);
-  USE_ALLOCATOR(Problem);
-
   explicit Problem(UnitList* units=0);
   explicit Problem(ClauseIterator clauses, bool copy);
   ~Problem();
@@ -80,22 +77,14 @@ public:
    */
   const TrivialPredicateMap& trivialPredicates() const { return _trivialPredicates; }
 
-  /**
-   * Always exactly one of the pair is non-zero, if the literal is specified,
-   * it must be ground.
-   */
-  typedef pair<Literal*,Clause*> BDDMeaningSpec;
-  typedef DHMap<unsigned, BDDMeaningSpec> BDDVarMeaningMap;
-  void addBDDVarMeaning(unsigned var, BDDMeaningSpec spec);
-  const BDDVarMeaningMap& getBDDVarMeanings() const { return _bddVarSpecs; }
-
   void addEliminatedFunction(unsigned func, Literal* definition);
   void addEliminatedPredicate(unsigned pred, Unit* definition);
-  void addPartiallyEliminatedPredicate(unsigned pred, Unit* definition); 
+  void addPartiallyEliminatedPredicate(unsigned pred, Unit* definition);
  
   DHMap<unsigned,Literal*> getEliminatedFunctions(){ return _deletedFunctions; }
   DHMap<unsigned,Unit*> getEliminatedPredicates(){ return _deletedPredicates; }
   DHMap<unsigned,Unit*> getPartiallyEliminatedPredicates(){ return _partiallyDeletedPredicates;}
+  FunctionDefinitionHandler& getFunctionDefinitionHandler(){ return *_fnDefHandler; }
   
 
   bool isPropertyUpToDate() const { return _propertyValid; }
@@ -119,7 +108,8 @@ public:
   bool hasAppliedVar() const;
   bool hasPolymorphicSym() const;
   bool quantifiesOverPolymorphicVar() const;
-  bool higherOrder() const;
+  bool isHigherOrder() const;
+  bool hasNonDefaultSorts() const;
 
   bool mayHaveEquality() const { return _mayHaveEquality; }
   bool mayHaveFormulas() const { return _mayHaveFormulas; }
@@ -131,7 +121,6 @@ public:
     _smtlibLogic = smtLibLogic;
   }
   SMTLIBLogic getSMTLIBLogic() const {
-    CALL("Kernel::Problem::getSMTLIBLogic");
     return _smtlibLogic;
   }
 
@@ -146,7 +135,7 @@ public:
     invalidateProperty();
     _hasFOOL = true;
   }
-  
+
   void reportFormulasAdded()
   {
     invalidateProperty();
@@ -187,12 +176,6 @@ public:
     _mayHaveXEqualsY = false;
   }
 
-
-  //utility functions
-
-  void collectPredicates(Stack<unsigned>& acc) const;
-
-
 #if VDEBUG
   //debugging functions
   void assertValid();
@@ -208,12 +191,12 @@ private:
   UnitList* _units;
   DHMap<unsigned,Literal*> _deletedFunctions;
   DHMap<unsigned,Unit*> _deletedPredicates;
-  DHMap<unsigned,Unit*> _partiallyDeletedPredicates; 
+  DHMap<unsigned,Unit*> _partiallyDeletedPredicates;
+  ScopedPtr<FunctionDefinitionHandler> _fnDefHandler;
 
   bool _hadIncompleteTransformation;
 
   DHMap<unsigned,bool> _trivialPredicates;
-  BDDVarMeaningMap _bddVarSpecs;
 
   mutable bool _mayHaveEquality;
   mutable bool _mayHaveFormulas;
@@ -232,8 +215,9 @@ private:
   mutable MaybeBool _hasLogicalProxy;
   mutable MaybeBool _hasPolymorphicSym;
   mutable MaybeBool _quantifiesOverPolymorphicVar;
-  mutable MaybeBool _hasBoolVar; 
-  mutable MaybeBool _higherOrder; 
+  mutable MaybeBool _hasBoolVar;
+  mutable MaybeBool _higherOrder;
+  mutable MaybeBool _hasNonDefaultSorts;
 
   SMTLIBLogic _smtlibLogic;
 

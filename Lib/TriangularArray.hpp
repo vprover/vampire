@@ -17,7 +17,7 @@
 #define __TriangularArray__
 
 #include "Allocator.hpp"
-#include "BitUtils.hpp"
+#include <cstring>
 
 namespace Lib {
 
@@ -53,7 +53,7 @@ public:
     ASS_G(side,0);
     _2sideMinus1=2*side-1;
     if(dataSize()>_capacity) {
-      size_t newCapacity=max(_capacity*2, dataSize());
+      size_t newCapacity=std::max(_capacity*2, dataSize());
       void * mem=ALLOC_KNOWN(newCapacity*sizeof(T), "Lib::TriangularArray");
 
       array_delete(_data, _capacity);
@@ -88,7 +88,7 @@ public:
 
   void zeroAll()
   {
-    BitUtils::zeroMemory(_data, _capacity*sizeof(T));
+    std::memset(_data, 0, _capacity * sizeof(T));
   }
 
 private:

@@ -14,9 +14,6 @@
  * @since 30/04/2008 flight Brussels-Tel Aviv
  */
 
-#include "Debug/Tracer.hpp"
-#include "Kernel/NumTraits.hpp"
-
 #include "Lib/Environment.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/Set.hpp"
@@ -24,70 +21,22 @@
 #include "Shell/Options.hpp"
 #include <fstream>
 
-#include "Term.hpp"
-#include "KBO.hpp"
+#include "KBOComparator.hpp"
+#include "NumTraits.hpp"
 #include "Signature.hpp"
+#include "SubstHelper.hpp"
+#include "TermIterators.hpp"
+#include "Term.hpp"
+
+#include "KBO.hpp"
 
 #define COLORED_WEIGHT_BOOST 0x10000
 
 namespace Kernel {
 
+using namespace std;
 using namespace Lib;
 using namespace Shell;
-
-
-/**
- * Class to represent the current state of the KBO comparison.
- * @since 30/04/2008 flight Brussels-Tel Aviv
- */
-class KBO::State
-{
-public:
-  /** Initialise the state */
-  State(KBO* kbo)
-    : _kbo(*kbo)
-  {}
-
-  void init()
-  {
-    _weightDiff=0;
-    _posNum=0;
-    _negNum=0;
-    _lexResult=EQUAL;
-    _varDiffs.reset();
-  }
-
-  CLASS_NAME(KBO::State);
-  USE_ALLOCATOR(State);
-
-  void traverse(Term* t1, Term* t2);
-  void traverse(TermList tl,int coefficient);
-  Result result(Term* t1, Term* t2);
-private:
-  void recordVariable(unsigned var, int coef);
-  Result innerResult(TermList t1, TermList t2);
-  Result applyVariableCondition(Result res)
-  {
-    if(_posNum>0 && (res==LESS || res==LESS_EQ || res==EQUAL)) {
-      res=INCOMPARABLE;
-    } else if(_negNum>0 && (res==GREATER || res==GREATER_EQ || res==EQUAL)) {
-      res=INCOMPARABLE;
-    }
-    return res;
-  }
-
-  int _weightDiff;
-  DHMap<unsigned, int, IdentityHash, Hash> _varDiffs;
-  /** Number of variables, that occur more times in the first literal */
-  int _posNum;
-  /** Number of variables, that occur more times in the second literal */
-  int _negNum;
-  /** First comparison result */
-  Result _lexResult;
-  /** The ordering used */
-  KBO& _kbo;
-  /** The variable counters */
-}; // class KBO::State
 
 /**
  * Return result of comparison between @b l1 and @b l2 under
@@ -96,49 +45,35 @@ private:
  * traverse(Term*,int) for both terms/literals in case their
  * top functors are different.)
  */
-Ordering::Result KBO::State::result(Term* t1, Term* t2)
+Ordering::Result KBO::State::result(AppliedTerm t1, AppliedTerm t2)
 {
-  CALL("KBO::State::result")
   Result res;
   if(_weightDiff) {
     res=_weightDiff>0 ? GREATER : LESS;
-  } else if(t1->functor()!=t2->functor()) {
-    if(t1->isLiteral()) {
+  } else if(t1.term.term()->functor()!=t2.term.term()->functor()) {
+    if(t1.term.term()->isLiteral()) {
       int prec1, prec2;
-      prec1=_kbo.predicatePrecedence(t1->functor());
-      prec2=_kbo.predicatePrecedence(t2->functor());
+      prec1=_kbo.predicatePrecedence(t1.term.term()->functor());
+      prec2=_kbo.predicatePrecedence(t2.term.term()->functor());
       ASS_NEQ(prec1,prec2);//precedence ordering must be total
       res=(prec1>prec2)?GREATER:LESS;
-    } else if(t1->isSort()){
-      ASS(t2->isSort()); //should only compare sorts with sorts
-      res=_kbo.compareTypeConPrecedences(t1->functor(), t2->functor());
+    } else if(t1.term.term()->isSort()){
+      ASS(t2.term.term()->isSort()); //should only compare sorts with sorts
+      res=_kbo.compareTypeConPrecedences(t1.term.term()->functor(), t2.term.term()->functor());
       ASS_REP(res==GREATER || res==LESS, res);//precedence ordering must be total
     } else {
-      res=_kbo.compareFunctionPrecedences(t1->functor(), t2->functor());
+      res=_kbo.compareFunctionPrecedences(t1.term.term()->functor(), t2.term.term()->functor());
       ASS_REP(res==GREATER || res==LESS, res); //precedence ordering must be total
     }
   } else {
     res=_lexResult;
   }
   res=applyVariableCondition(res);
-  ASS( !t1->ground() || !t2->ground() || res!=INCOMPARABLE);
-
-  //the result should never be EQUAL:
-  //- either t1 and t2 are truely equal. But then if they're equal, it
-  //would have been discovered by the t1==t2 check in
-  //KBO::compare methods.
-  //- or literals t1 and t2 are equal but for their polarity. But such
-  //literals should never occur in a clause that would exist long enough
-  //to get to ordering --- it should be deleted by tautology deletion.
-  ASS_NEQ(res, EQUAL);
   return res;
 }
 
 Ordering::Result KBO::State::innerResult(TermList tl1, TermList tl2)
 {
-  CALL("KBO::State::innerResult");
-
-  ASS_NEQ(tl1, tl2);
   ASS(!TermList::sameTopFunctor(tl1,tl2));
 
   if(_posNum>0 && _negNum>0) {
@@ -166,15 +101,15 @@ Ordering::Result KBO::State::innerResult(TermList tl1, TermList tl2)
   return applyVariableCondition(res);
 }
 
-void KBO::State::recordVariable(unsigned var, int coef)
+template<int coef>
+void KBO::State::recordVariable(unsigned var)
 {
-  CALL("KBO::State::recordVariable");
-  ASS(coef==1 || coef==-1);
+  static_assert(coef==1 || coef==-1);
 
   int* pnum;
   _varDiffs.getValuePtr(var,pnum,0);
   (*pnum)+=coef;
-  if(coef==1) {
+  if constexpr (coef==1) {
     if(*pnum==0) {
       _negNum--;
     } else if(*pnum==1) {
@@ -189,54 +124,62 @@ void KBO::State::recordVariable(unsigned var, int coef)
   }
 }
 
-void KBO::State::traverse(TermList tl,int coef)
+template<int coef, bool varsOnly>
+void KBO::State::traverse(AppliedTerm tt)
 {
-  CALL("KBO::State::traverse(TermList...)");
+  static_assert(coef==1 || coef==-1);
 
-  if(tl.isOrdinaryVar()) {
-    _weightDiff += _kbo._funcWeights._specialWeights._variableWeight * coef;
-    recordVariable(tl.var(), coef);
-    return;
-  }
-  ASS(tl.isTerm());
-
-  Term* t=tl.term();
-  ASSERT_VALID(*t);
-
-  _weightDiff+=_kbo.symbolWeight(t)*coef;
-
-  if(!t->arity()) {
-    return;
-  }
-
-  TermList* ts=t->args();
-  static Stack<TermList*> stack(4);
-  for(;;) {
-    if(!ts->next()->isEmpty()) {
-      stack.push(ts->next());
+  if (tt.term.isVar()) {
+    if constexpr (!varsOnly) {
+      _weightDiff += _kbo._funcWeights._specialWeights._variableWeight * coef;
     }
-    if(ts->isTerm()) {
-      auto term = ts->term();
-      _weightDiff+=_kbo.symbolWeight(term)*coef;
-      if(term->arity()) {
-	stack.push(term->args());
+    recordVariable<coef>(tt.term.var());
+    return;
+  }
+  struct State {
+    AppliedTerm t;
+    unsigned arg;
+  };
+  static Stack<State> recState;
+  recState.push(State{ tt, 0 });
+
+  if constexpr (!varsOnly) {
+    _weightDiff += _kbo.symbolWeight(tt.term.term()) * coef;
+  }
+
+  while (recState.isNonEmpty()) {
+    auto& curr = recState.top();
+    if (curr.arg >= curr.t.term.term()->arity()) {
+      recState.pop();
+      continue;
+    }
+    AppliedTerm t(*curr.t.term.term()->nthArgument(curr.arg++), curr.t);
+    if (t.term.isVar()) {
+      ASS(!t.aboveVar);
+      if constexpr (!varsOnly) {
+        _weightDiff += _kbo._funcWeights._specialWeights._variableWeight * coef;
+      }
+      recordVariable<coef>(t.term.var());
+      continue;
+    }
+
+    if constexpr (varsOnly) {
+      if (!t.term.term()->ground()) {
+        recState.push(State{ t, 0 });
       }
     } else {
-      ASS_METHOD(*ts,isOrdinaryVar());
-      auto var = ts->var();
-      _weightDiff += _kbo._funcWeights._specialWeights._variableWeight * coef;
-      recordVariable(var, coef);
+      _weightDiff += _kbo.symbolWeight(t.term.term()) * coef;
+      recState.push(State{ t, 0 });
     }
-    if(stack.isEmpty()) {
-      break;
-    }
-    ts=stack.pop();
   }
 }
 
-void KBO::State::traverse(Term* t1, Term* t2)
+Ordering::Result KBO::State::traverseLexBidir(AppliedTerm tl1, AppliedTerm tl2)
 {
-  CALL("KBO::State::traverse");
+  ASS(tl1.term.isTerm() && tl2.term.isTerm());
+  auto t1 = tl1.term.term();
+  auto t2 = tl2.term.term();
+
   ASS(t1->functor()==t2->functor());
   ASS(t1->arity());
   ASS_EQ(_lexResult, EQUAL);
@@ -244,54 +187,164 @@ void KBO::State::traverse(Term* t1, Term* t2)
   unsigned depth=1;
   unsigned lexValidDepth=0;
 
-  static Stack<TermList*> stack(32);
-  stack.push(t1->args());
-  stack.push(t2->args());
-  TermList* ss; //t1 subterms
-  TermList* tt; //t2 subterms
+  static Stack<pair<const TermList*,bool>> stack(32);
+  stack.reset();
+  stack.push(make_pair(t1->args(),tl1.aboveVar));
+  stack.push(make_pair(t2->args(),tl2.aboveVar));
   while(!stack.isEmpty()) {
-    tt=stack.pop();
-    ss=stack.pop();
+    auto [tt,ttAboveVar] = stack.pop(); // tl2 subterm
+    auto [ss,ssAboveVar] = stack.pop(); // tl1 subterm
     if(ss->isEmpty()) {
       ASS(tt->isEmpty());
       depth--;
-      ASS_NEQ(_lexResult,EQUAL);
       if(_lexResult!=EQUAL && depth<lexValidDepth) {
-	lexValidDepth=depth;
-	if(_weightDiff!=0) {
-	  _lexResult=_weightDiff>0 ? GREATER : LESS;
-	}
-	_lexResult=applyVariableCondition(_lexResult);
+        lexValidDepth=depth;
+        if(_weightDiff!=0) {
+          _lexResult=_weightDiff>0 ? GREATER : LESS;
+        }
+        _lexResult=applyVariableCondition(_lexResult);
       }
       continue;
     }
 
-    stack.push(ss->next());
-    stack.push(tt->next());
-    if(ss->sameContent(tt)) {
-      //if content is the same, neighter weightDiff nor varDiffs would change
+    stack.push(make_pair(ss->next(),ssAboveVar));
+    stack.push(make_pair(tt->next(),ttAboveVar));
+
+    AppliedTerm s(*ss,tl1.applicator,ssAboveVar);
+    AppliedTerm t(*tt,tl2.applicator,ttAboveVar);
+
+    if(s.equalsShallow(t)) {
+      //if content is the same, neither weightDiff nor varDiffs would change
       continue;
     }
-    if(TermList::sameTopFunctor(*ss,*tt)) {
-      ASS(ss->isTerm());
-      ASS(tt->isTerm());
-      ASS(ss->term()->arity());
-      stack.push(ss->term()->args());
-      stack.push(tt->term()->args());
+    if(TermList::sameTopFunctor(s.term,t.term)) {
+      ASS(s.term.isTerm());
+      ASS(t.term.isTerm());
+      ASS(s.term.term()->arity());
+      stack.push(make_pair(s.term.term()->args(),s.aboveVar));
+      stack.push(make_pair(t.term.term()->args(),t.aboveVar));
       depth++;
     } else {
-      traverse(*ss,1);
-      traverse(*tt,-1);
+      traverse<1,/*unidirectional=*/false>(s);
+      traverse<-1,/*unidirectional=*/false>(t);
       if(_lexResult==EQUAL) {
-	_lexResult=innerResult(*ss, *tt);
-	lexValidDepth=depth;
-	ASS(_lexResult!=EQUAL);
-	ASS(_lexResult!=GREATER_EQ);
-	ASS(_lexResult!=LESS_EQ);
+        _lexResult=innerResult(s.term, t.term);
+        lexValidDepth=depth;
+        ASS(_lexResult!=EQUAL);
       }
     }
   }
-  ASS_EQ(depth,0);
+  return result(tl1,tl2);
+}
+
+Ordering::Result KBO::State::traverseLexUnidir(AppliedTerm tl1, AppliedTerm tl2)
+{
+  ASS(tl1.term.isTerm() && tl2.term.isTerm());
+  auto t1 = tl1.term.term();
+  auto t2 = tl2.term.term();
+
+  ASS(t1->functor()==t2->functor());
+  ASS(t1->arity());
+  ASS_EQ(_lexResult, EQUAL);
+
+  static Stack<pair<const TermList*,bool>> stack(32);
+  stack.reset();
+  stack.push(make_pair(t1->args(),tl1.aboveVar));
+  stack.push(make_pair(t2->args(),tl2.aboveVar));
+  while(!stack.isEmpty()) {
+    auto [tt,ttAboveVar] = stack.pop(); // tl2 subterm
+    auto [ss,ssAboveVar] = stack.pop(); // tl1 subterm
+    if(ss->isEmpty()) {
+      ASS(tt->isEmpty());
+
+      if (!checkVars()) {
+        return INCOMPARABLE;
+      }
+      continue;
+    }
+
+    stack.push(make_pair(ss->next(),ssAboveVar));
+    stack.push(make_pair(tt->next(),ttAboveVar));
+
+    AppliedTerm s(*ss,tl1.applicator,ssAboveVar);
+    AppliedTerm t(*tt,tl2.applicator,ttAboveVar);
+
+    if(s.equalsShallow(t)) {
+      //if content is the same, neither weightDiff nor varDiffs would change
+      continue;
+    }
+    if (_lexResult==EQUAL) {
+      auto ssw = _kbo.computeWeight(s);
+      auto ttw = _kbo.computeWeight(t);
+      if (ssw < ttw) {
+        return INCOMPARABLE;
+      }
+      if (ssw > ttw) {
+        traverse<1,/*unidirectional=*/true>(s);
+        traverse<-1,/*unidirectional=*/true>(t);
+        if (!checkVars()) {
+          return INCOMPARABLE;
+        }
+        _lexResult = INCOMPARABLE;
+        continue;
+      }
+      // ssw == ttw
+      if (s.term.isVar()) {
+        return INCOMPARABLE;
+      }
+      if (t.term.isVar()) {
+        if (!s.containsVar(t.term)) {
+          return INCOMPARABLE;
+        }
+        _lexResult = INCOMPARABLE;
+        continue;
+      }
+      Result comp = s.term.term()->isSort()
+        ? _kbo.compareTypeConPrecedences(s.term.term()->functor(),t.term.term()->functor())
+        : _kbo.compareFunctionPrecedences(s.term.term()->functor(),t.term.term()->functor());
+      switch (comp)
+      {
+        case Ordering::LESS: {
+          return INCOMPARABLE;
+        }
+        case Ordering::GREATER: {
+          traverse<1,/*unidirectional=*/true>(s);
+          traverse<-1,/*unidirectional=*/true>(t);
+          if (!checkVars()) {
+            return INCOMPARABLE;
+          }
+          _lexResult = INCOMPARABLE;
+          break;
+        }
+        case Ordering::EQUAL: {
+          stack.push(make_pair(s.term.term()->args(),s.aboveVar));
+          stack.push(make_pair(t.term.term()->args(),t.aboveVar));
+          break;
+        }
+        default: ASSERTION_VIOLATION;
+      }
+    } else {
+      traverse<1,/*unidirectional=*/true>(s);
+      traverse<-1,/*unidirectional=*/true>(t);
+    }
+  }
+  if (_lexResult==EQUAL) {
+    return EQUAL;
+  }
+  return checkVars() ? GREATER : INCOMPARABLE;
+}
+
+template<bool unidirectional>
+Ordering::Result KBO::State::traverseNonLex(AppliedTerm tl1, AppliedTerm tl2)
+{
+  traverse<1,unidirectional>(tl1);
+  traverse<-1,unidirectional>(tl2);
+
+  if constexpr (unidirectional) {
+    return checkVars() ? GREATER : INCOMPARABLE;
+  } else {
+    return result(tl1,tl2);
+  }
 }
 
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
@@ -305,10 +358,10 @@ struct PredSigTraits {
   static bool isColored(unsigned functor) 
   { return env.signature->predicateColored(functor);}
 
-  static bool tryGetFunctor(const vstring& sym, unsigned arity, unsigned& out) 
+  static bool tryGetFunctor(const std::string& sym, unsigned arity, unsigned& out) 
   { return env.signature->tryGetPredicateNumber(sym,arity, out); }
 
-  static const vstring& weightFileName(const Options& opts) 
+  static const std::string& weightFileName(const Options& opts) 
   { return opts.predicateWeights(); } 
 
   static bool isUnaryFunction (unsigned functor) 
@@ -333,17 +386,17 @@ struct FuncSigTraits {
   static bool isColored(unsigned functor) 
   { return env.signature->functionColored(functor);}
 
-  static bool tryGetFunctor(const vstring& sym, unsigned arity, unsigned& out) 
+  static bool tryGetFunctor(const std::string& sym, unsigned arity, unsigned& out) 
   { return env.signature->tryGetFunctionNumber(sym,arity, out); }
 
-  static const vstring& weightFileName(const Options& opts) 
+  static const std::string& weightFileName(const Options& opts) 
   { return opts.functionWeights(); } 
 
   static bool isUnaryFunction (unsigned functor) 
-  { return env.signature->getFunction(functor)->arity() == 1; } 
+  { return env.signature->getFunction(functor)->numTermArguments() == 1; } 
 
   static bool isConstantSymbol(unsigned functor) 
-  { return env.signature->getFunction(functor)->arity() == 0; } 
+  { return env.signature->getFunction(functor)->numTermArguments() == 0; } 
 
   static Signature::Symbol* getSymbol(unsigned functor) 
   { return env.signature->getFunction(functor); }
@@ -402,12 +455,11 @@ template<class SigTraits>
 KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const 
 {
   DArray<KboWeight> weights(SigTraits::nSymbols());
-  BYPASSING_ALLOCATOR
 
   ///////////////////////// parsing helper functions ///////////////////////// 
  
   /** opens the file with name f or throws a UserError on failure  */
-  auto openFile = [](const vstring& f) -> ifstream {
+  auto openFile = [](const std::string& f) -> ifstream {
     ifstream file(f.c_str());
     if (!file.is_open()) {
       throw UserErrorException("failed to open file ", f);
@@ -415,13 +467,13 @@ KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const
     return file;
   };
 
-  auto parseDefaultSymbolWeight = [&openFile](const vstring& fname) -> unsigned {
+  auto parseDefaultSymbolWeight = [&openFile](const std::string& fname) -> unsigned {
     if (!fname.empty()) {
       auto file = openFile(fname);
-      for (vstring ln; getline(file, ln);) {
+      for (std::string ln; getline(file, ln);) {
         unsigned dflt;
-        vstring special_name;
-        bool err = !(vstringstream(ln) >> special_name >> dflt);
+        std::string special_name;
+        bool err = !(std::stringstream(ln) >> special_name >> dflt);
         if (!err && special_name == SPECIAL_WEIGHT_IDENT_DEFAULT_WEIGHT) {
           return dflt;
         }
@@ -431,10 +483,10 @@ KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const
   };
 
   /** tries to parse line of the form `<special_name> <weight>` */
-  auto tryParseSpecialLine = [](const vstring& ln, unsigned& introducedWeight, KboSpecialWeights<SigTraits>& specialWeights) -> bool {
-    vstringstream lnstr(ln);
+  auto tryParseSpecialLine = [](const std::string& ln, unsigned& introducedWeight, KboSpecialWeights<SigTraits>& specialWeights) -> bool {
+    std::stringstream lnstr(ln);
 
-    vstring name;
+    std::string name;
     unsigned weight;
     bool ok = !!(lnstr >> name >> weight);
     if (ok) {
@@ -449,10 +501,10 @@ KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const
   };
 
   /** tries to parse line of the form `<name> <arity> <weight>` */
-  auto tryParseNormalLine = [&](const vstring& ln) -> bool {
-    vstringstream lnstr(ln);
+  auto tryParseNormalLine = [&](const std::string& ln) -> bool {
+    std::stringstream lnstr(ln);
 
-    vstring name;
+    std::string name;
     unsigned arity;
     unsigned weight;
     bool ok = !!(lnstr >> name >> arity >> weight);
@@ -487,7 +539,7 @@ KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const
 
   auto file = openFile(filename);
 
-  for (vstring ln; getline(file, ln);) {
+  for (std::string ln; getline(file, ln);) {
     if (!tryParseNormalLine(ln) && !tryParseSpecialLine(ln, introducedWeight, specialWeights)) {
       throw Lib::UserErrorException(
              "failed to read line from file ",   filename, "\n",
@@ -508,10 +560,8 @@ KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const
 }
 
 void throwError(UserErrorException e) { throw e; }
-void warnError(UserErrorException e) { 
-  env.beginOutput();
-  env.out() << "WARNING: Your KBO is probably not well-founded. Reason: " << e.msg() << std::endl;
-  env.endOutput();
+void warnError(UserErrorException e) {
+  std::cout << "WARNING: Your KBO is probably not well-founded. Reason: " << e.msg() << std::endl;
 }
 
 
@@ -523,13 +573,14 @@ KBO::KBO(
 #endif
 
     // precedence ordering params
-    DArray<int> funcPrec, 
+    DArray<int> funcPrec,
+    DArray<int> typeConPrec,     
     DArray<int> predPrec, 
     DArray<int> predLevels, 
 
     // other
     bool reverseLCM
-  ) : PrecedenceOrdering(funcPrec, predPrec, predLevels, reverseLCM)
+  ) : PrecedenceOrdering(funcPrec, typeConPrec, predPrec, predLevels, reverseLCM)
   , _funcWeights(funcWeights)
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
   , _predWeights(predWeights)
@@ -542,20 +593,6 @@ KBO::KBO(
 KBO KBO::testKBO() 
 {
 
-  auto funcPrec = []() -> DArray<int>{
-    unsigned num = env.signature->functions();
-    DArray<int> out(num);
-    out.initFromIterator(getRangeIterator(0u, num));
-    return out;
-  };
-
-  auto predPrec = []() -> DArray<int>{
-    unsigned num = env.signature->predicates();
-    DArray<int> out(num);
-    out.initFromIterator(getRangeIterator(0u, num));
-    return out;
-  };
-
   auto predLevels = []() -> DArray<int>{
     DArray<int> out(env.signature->predicates());
     out.init(out.size(), 1);
@@ -567,72 +604,69 @@ KBO KBO::testKBO()
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
       KboWeightMap<PredSigTraits>::randomized(), 
 #endif
-      funcPrec(),
-      predPrec(),
+      DArray<int>::fromIterator(getRangeIterator(0, (int)env.signature->functions())),
+      DArray<int>::fromIterator(getRangeIterator(0, (int)env.signature->typeCons())),
+      DArray<int>::fromIterator(getRangeIterator(0, (int)env.signature->predicates())),
       predLevels(),
       false);
 }
 
-void KBO::zeroOutWeightForMaximalFuncs() {
+void KBO::zeroWeightForMaximalFunc() {
   // actually, it's non-constant maximal func, as constants cannot be weight 0
 
-  using SortType = TermList;
   using FunctionSymbol = unsigned;
   auto nFunctions = _funcWeights._weights.size();
-  auto maximalFunctions = Map<SortType, FunctionSymbol>();
+  if (!nFunctions) {
+    return;
+  }
 
-  for (FunctionSymbol i = 0; i < nFunctions; i++) {
-    auto symb = env.signature->getFunction(i);
-    auto sort = symb->fnType()->result();
-    auto maxFn = maximalFunctions.getOrInit(sort, [&](){ return i; } );
+  FunctionSymbol maxFn = 0;
+  for (FunctionSymbol i = 1; i < nFunctions; i++) {
     if (compareFunctionPrecedences(maxFn, i) == LESS) {
-      maximalFunctions.replace(sort, i);
+      maxFn = i;
     }
   }
 
-  Map<SortType, FunctionSymbol>::Iterator it(maximalFunctions);
-  while (it.hasNext()) {
-    FunctionSymbol i = it.next().value();
-    auto symb = env.signature->getFunction(i);
-    auto arity = symb->arity();
+  auto symb = env.signature->getFunction(maxFn);
+  auto arity = symb->numTermArguments();
 
-    // skip constants here (they can't be smaller than $var)
-    if (arity == 0) continue;
-    // TODO: we could also have remembered the "second largest" symbol, if a constant was the largest
-    // (but we could not use them if they were of arity 1)
-
-    _funcWeights._weights[i] = 0;
+  // skip constants here (they mustn't be lighter than $var)
+  if (arity != 0){
+    _funcWeights._weights[maxFn] = 0;
   }
 }
 
 template<class HandleError>
 void KBO::checkAdmissibility(HandleError handle) const 
 {
-  using SortType = TermList;
   using FunctionSymbol = unsigned;
   auto nFunctions = _funcWeights._weights.size();
-  auto maximalFunctions = Map<SortType, FunctionSymbol>();
 
-  for (FunctionSymbol i = 0; i < nFunctions; i++) {
-    auto sort = env.signature->getFunction(i)->fnType()->result();
-    /* register min function */
-    auto maxFn = maximalFunctions.getOrInit(sort, [&](){ return i; } );
+  FunctionSymbol maxFn = 0; // only properly initialized when (nFunctions > 0)
+  for (FunctionSymbol i = 1; i < nFunctions; i++) {
     if (compareFunctionPrecedences(maxFn, i) == LESS) {
-      maximalFunctions.replace(sort, i);
+      maxFn = i;
     }
   }
+
+  // TODO remove unary minus check once new 
+  // theory calculus goes into master
+  auto isUnaryMinus = [](unsigned functor){
+    return theory->isInterpretedFunction(functor, IntTraits::minusI) ||
+           theory->isInterpretedFunction(functor, RatTraits::minusI) ||
+           theory->isInterpretedFunction(functor, RealTraits::minusI);
+  };
 
   ////////////////// check kbo-releated constraints //////////////////
   unsigned varWght = _funcWeights._specialWeights._variableWeight;
 
   for (unsigned i = 0; i < nFunctions; i++) {
-    auto sort = env.signature->getFunction(i)->fnType()->result();
-    auto arity = env.signature->getFunction(i)->arity();
+    auto arity = env.signature->getFunction(i)->numTermArguments();
 
     if (_funcWeights._weights[i] < varWght && arity == 0) {
       handle(UserErrorException("weight of constants (i.e. ", env.signature->getFunction(i)->name(), ") must be greater or equal to the variable weight (", varWght, ")"));
 
-    } else if (_funcWeights.symbolWeight(i) == 0 && arity == 1 && maximalFunctions.get(sort) != i) {
+    } else if (_funcWeights.symbolWeight(i) == 0 && arity == 1 && maxFn != i && !isUnaryMinus(i)) {
       handle(UserErrorException( "a unary function of weight zero (i.e.: ", env.signature->getFunction(i)->name(), ") must be maximal wrt. the precedence ordering"));
 
     }
@@ -667,10 +701,8 @@ KBO::KBO(Problem& prb, const Options& opts)
 #endif
  , _state(new State(this))
 {
-  CALL("KBO::KBO(Prb&, Opts&)");
-
   if (opts.kboMaxZero()) {
-    zeroOutWeightForMaximalFuncs();
+    zeroWeightForMaximalFunc();
   }
 
   if (opts.kboAdmissabilityCheck() == Options::KboAdmissibilityCheck::ERROR)
@@ -681,8 +713,6 @@ KBO::KBO(Problem& prb, const Options& opts)
 
 KBO::~KBO()
 {
-  CALL("KBO::~KBO");
-
   delete _state;
 }
 
@@ -693,7 +723,6 @@ KBO::~KBO()
  */
 Ordering::Result KBO::comparePredicates(Literal* l1, Literal* l2) const
 {
-  CALL("KBO::comparePredicates");
   ASS(l1->shared());
   ASS(l2->shared());
   ASS(!l1->isEquality());
@@ -714,19 +743,19 @@ Ordering::Result KBO::comparePredicates(Literal* l1, Literal* l2) const
     TermList* ts;
     ts=l1->args();
     while(!ts->isEmpty()) {
-      state->traverse(*ts,1);
+      state->traverse<1,/*unidirectional=*/false>(AppliedTerm(*ts));
       ts=ts->next();
     }
     ts=l2->args();
     while(!ts->isEmpty()) {
-      state->traverse(*ts,-1);
+      state->traverse<-1,/*unidirectional=*/false>(AppliedTerm(*ts));
       ts=ts->next();
     }
+    res=state->result(AppliedTerm(TermList(l1)),AppliedTerm(TermList(l2)));
   } else {
-    state->traverse(l1,l2);
+    res=state->traverseLexBidir(AppliedTerm(TermList(l1)),AppliedTerm(TermList(l2)));
   }
 
-  res=state->result(l1,l2);
 #if VDEBUG
   _state=state;
 #endif
@@ -735,23 +764,26 @@ Ordering::Result KBO::comparePredicates(Literal* l1, Literal* l2) const
 
 Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
 {
-  CALL("KBO::compare(TermList)");
+  return compare(AppliedTerm(tl1),AppliedTerm(tl2));
+}
 
-  if(tl1==tl2) {
+Ordering::Result KBO::compare(AppliedTerm tl1, AppliedTerm tl2) const
+{
+  if(tl1.equalsShallow(tl2)) {
     return EQUAL;
   }
-  if(tl1.isOrdinaryVar()) {
-    return tl2.containsSubterm(tl1) ? LESS : INCOMPARABLE;
+  if(tl1.term.isVar()) {
+    return tl2.containsVar(tl1.term) ? LESS : INCOMPARABLE;
   }
-  if(tl2.isOrdinaryVar()) {
-    return tl1.containsSubterm(tl2) ? GREATER : INCOMPARABLE;
+  if(tl2.term.isVar()) {
+    return tl1.containsVar(tl2.term) ? GREATER : INCOMPARABLE;
   }
 
-  ASS(tl1.isTerm());
-  ASS(tl2.isTerm());
+  ASS(tl1.term.isTerm());
+  ASS(tl2.term.isTerm());
 
-  Term* t1=tl1.term();
-  Term* t2=tl2.term();
+  Term* t1=tl1.term.term();
+  Term* t2=tl2.term.term();
 
   ASS(_state);
   State* state=_state;
@@ -761,20 +793,98 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
 #endif
 
   state->init();
+  Result res;
   if(t1->functor()==t2->functor()) {
-    state->traverse(t1,t2);
+    res = state->traverseLexBidir(tl1,tl2);
   } else {
-    state->traverse(tl1,1);
-    state->traverse(tl2,-1);
+    res = state->traverseNonLex</*unidirectional=*/false>(tl1,tl2);
   }
-  Result res=state->result(t1,t2);
 #if VDEBUG
   _state=state;
 #endif
   return res;
 }
 
-int KBO::symbolWeight(Term* t) const
+Ordering::Result KBO::isGreaterOrEq(AppliedTerm tl1, AppliedTerm tl2) const
+{
+  if (tl1.equalsShallow(tl2)) {
+    return EQUAL;
+  }
+  if (tl1.term.isVar()) {
+    return INCOMPARABLE;
+  }
+  if (tl2.term.isVar()) {
+    return tl1.containsVar(tl2.term) ? GREATER : INCOMPARABLE;
+  }
+
+  ASS(tl1.term.isTerm());
+  ASS(tl2.term.isTerm());
+
+  Term* t1=tl1.term.term();
+  Term* t2=tl2.term.term();
+
+  auto w1 = computeWeight(tl1);
+  auto w2 = computeWeight(tl2);
+
+  if (w1<w2) {
+    return INCOMPARABLE;
+  }
+
+  ASS(_state);
+  State* state=_state;
+#if VDEBUG
+  //this is to make sure _state isn't used while we're using it
+  _state=0;
+#endif
+
+  state->init();
+  Result res;
+  if (w1>w2) {
+    // traverse variables
+    res = state->traverseNonLex</*unidirectional=*/true>(tl1,tl2);
+#if VDEBUG
+    _state=state;
+#endif
+    return res;
+  }
+  // w1==w2
+  Result comp = t1->isSort()
+    ? compareTypeConPrecedences(t1->functor(),t2->functor())
+    : compareFunctionPrecedences(t1->functor(),t2->functor());
+  switch (comp)
+  {
+    case Ordering::LESS: {
+      res = INCOMPARABLE;
+      break;
+    }
+    case Ordering::GREATER: {
+      res = state->traverseNonLex</*unidirectional=*/true>(tl1,tl2);
+      break;
+    }
+    case Ordering::EQUAL: {
+      res = state->traverseLexUnidir(tl1,tl2);
+      break;
+    }
+    default:
+      ASSERTION_VIOLATION;
+  }
+#if VDEBUG
+  _state=state;
+#endif
+  return res;
+}
+
+bool KBO::isGreater(AppliedTerm lhs, AppliedTerm rhs) const
+{
+  return isGreaterOrEq(lhs,rhs)==GREATER;
+}
+
+OrderingComparatorUP KBO::createComparator(TermList lhs, TermList rhs) const
+{
+  return make_unique<KBOComparator>(lhs, rhs, *this);
+}
+
+int KBO::symbolWeight(const Term* t) const
 {
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
   if (t->isLiteral()) 
@@ -785,7 +895,54 @@ int KBO::symbolWeight(Term* t) const
     //For now just give all type constructors minimal weight
     return _funcWeights._specialWeights._variableWeight;
   }
-    return _funcWeights.symbolWeight(t);
+  return _funcWeights.symbolWeight(t);
+}
+
+unsigned KBO::computeWeight(AppliedTerm tt) const
+{
+  if (tt.term.isVar()) {
+    return _funcWeights._specialWeights._variableWeight;
+  }
+  const bool useCache = (tryGetGlobalOrdering() == this);
+
+  if (!tt.aboveVar && useCache && tt.term.term()->kboWeight(this)!=-1) {
+    return tt.term.term()->kboWeight(this);
+  }
+  // stack of [non-zero arity terms, current argument position, accumulated weight]
+  struct State {
+    AppliedTerm t;
+    unsigned arg;
+    unsigned weight;
+  };
+  static Stack<State> recState;
+  recState.push(State{ tt, 0, (unsigned)symbolWeight(tt.term.term()) });
+
+  while (recState.isNonEmpty()) {
+    auto& curr = recState.top();
+    if (curr.arg < curr.t.term.term()->arity()) {
+      AppliedTerm t(*curr.t.term.term()->nthArgument(curr.arg++), curr.t);
+
+      if (t.term.isVar()) {
+        curr.weight += _funcWeights._specialWeights._variableWeight;
+      } else if (!t.aboveVar && useCache && t.term.term()->kboWeight(this)!=-1) {
+        curr.weight += t.term.term()->kboWeight(this);
+      } else {
+        recState.push(State{ t, 0, (unsigned)symbolWeight(t.term.term()) });
+      }
+
+    } else {
+
+      auto orig = recState.pop();
+      if (!orig.t.aboveVar && useCache) {
+        const_cast<Term*>(orig.t.term.term())->setKboWeight(orig.weight, this);
+      }
+      if (recState.isEmpty()) {
+        return orig.weight;
+      }
+      recState.top().weight += orig.weight;
+    }
+  }
+  ASSERTION_VIOLATION;
 }
 
 template<class SigTraits>
@@ -890,7 +1047,7 @@ KboWeightMap<PredSigTraits> KboWeightMap<PredSigTraits>::randomized(unsigned max
 #endif
 
 template<class SigTraits>
-KboWeight KboWeightMap<SigTraits>::symbolWeight(Term* t) const
+KboWeight KboWeightMap<SigTraits>::symbolWeight(const Term* t) const
 {
   return symbolWeight(t->functor());
 }
@@ -970,19 +1127,27 @@ bool KboSpecialWeights<PredSigTraits>::tryGetWeight(unsigned functor, unsigned& 
 
 bool KboSpecialWeights<FuncSigTraits>::tryGetWeight(unsigned functor, unsigned& weight) const
 {
+  if (env.signature->isFoolConstantSymbol(false,functor) || env.signature->isFoolConstantSymbol(true,functor)) {
+    // the FOOL constants, $$false and $$true, introduced by us to deal with FOOL, have hard-coded weight of 1
+    // which, together with their lowest precendence (see PrecedenceOrdering::compareFunctionPrecedences),
+    // is a requirement for FOOL paramodulation being complete for them
+    // TODO: consider allowing the user to change this and at the same time automatically recognizing the incomplete versions
+    weight = 1;  return true;
+  }
   auto sym = env.signature->getFunction(functor);
   if (sym->integerConstant())  { weight = _numInt;  return true; }
   if (sym->rationalConstant()) { weight = _numRat;  return true; }
   if (sym->realConstant())     { weight = _numReal; return true; }
   if (env.options->pushUnaryMinus()) {
-    if (functor == IntTraits ::minusF()) { weight = 0; return true; }
-    if (functor == RatTraits ::minusF()) { weight = 0; return true; }
-    if (functor == RealTraits::minusF()) { weight = 0; return true; }
+    if (theory->isInterpretedFunction(functor, IntTraits ::minusI)) { weight = 0; return true; }
+    if (theory->isInterpretedFunction(functor, RatTraits ::minusI)) { weight = 0; return true; }
+    if (theory->isInterpretedFunction(functor, RealTraits::minusI)) { weight = 0; return true; }
   }
   return false;
 }
 
 template KboWeightMap<FuncSigTraits> KboWeightMap<FuncSigTraits>::dflt();
+template KboWeight KboWeightMap<FuncSigTraits>::symbolWeight(const Term*) const;
 template KboWeight KboWeightMap<FuncSigTraits>::symbolWeight(unsigned) const;
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
 template KboWeightMap<PredSigTraits> KboWeightMap<PredSigTraits>::dflt();

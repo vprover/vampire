@@ -17,12 +17,13 @@
 
 #include "Forwards.hpp"
 
+#include "Indexing/Index.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/Hash.hpp"
 #include "Lib/List.hpp"
-#include "Lib/Recycler.hpp"
+#include "Lib/Recycled.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/TriangularArray.hpp"
 #include "Lib/Vector.hpp"
@@ -37,6 +38,7 @@ namespace Indexing {
 using namespace Lib;
 using namespace Kernel;
 
+template<class Data>
 class TermCodeTree : public CodeTree 
 {
 protected:
@@ -44,30 +46,10 @@ protected:
   
 public:
   TermCodeTree();
-  
-  struct TermInfo
-  {
-    TermInfo(TermList t, Literal* lit, Clause* cls)
-    : t(t), lit(lit), cls(cls) {}
 
-    inline bool operator==(const TermInfo& o)
-    { return cls==o.cls && t==o.t && lit==o.lit; }
+  void insert(Data* data);
+  void remove(const Data& data);
 
-    inline bool operator!=(const TermInfo& o)
-    { return !(*this==o); }
-
-    CLASS_NAME(TermCodeTree::TermInfo);
-    USE_ALLOCATOR(TermInfo);
-
-    TermList t;
-    Literal* lit;
-    Clause* cls;
-  };
-
-
-  void insert(TermInfo* ti);
-  void remove(const TermInfo& ti);
-  
 private:
   struct RemovingTermMatcher
   : public RemovingMatcher
@@ -76,7 +58,7 @@ private:
     void init(FlatTerm* ft_, TermCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_);
 
   };
-  
+
 public:
   struct TermMatcher
   : public Matcher
@@ -84,11 +66,10 @@ public:
     TermMatcher();
 
     void init(CodeTree* tree, TermList t);
-    void deinit();
+    void reset();
     
-    TermInfo* next();
+    Data* next();
     
-    CLASS_NAME(TermCodeTree::TermMatcher);
     USE_ALLOCATOR(TermMatcher);
   };
 

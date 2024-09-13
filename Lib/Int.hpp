@@ -18,13 +18,13 @@
 #ifndef __INT__
 #define __INT__
 
+#include "Forwards.hpp"
+
 #include "Comparison.hpp"
 #include "Portability.hpp"
-#include "VString.hpp"
 
 #include <iostream>
-
-using namespace std;
+#include <limits>
 
 #ifdef _MSC_VER // VC++
 #  undef max
@@ -41,19 +41,19 @@ namespace Lib {
 class Int
 {
  public:
-  static vstring toString(int i);
-  static vstring toString(unsigned i);
-  static vstring toString(unsigned long i);
-  static vstring toString(long l);
-  /** Return the vstring representation of a float */
-  static vstring toString(float f) { return toString((double)f); }
-  static vstring toString(double d);
+  static std::string toString(int i);
+  static std::string toString(unsigned i);
+  static std::string toString(unsigned long i);
+  static std::string toString(long l);
+  /** Return the std::string representation of a float */
+  static std::string toString(float f) { return toString((double)f); }
+  static std::string toString(double d);
 
-  static vstring toHexString(size_t i);
+  static std::string toHexString(size_t i);
 
 	static bool isInteger(const char* str);
 	/** True if @b str is a string representing an (arbitrary precision) integer */
-	static inline bool isInteger(const vstring& str) { return isInteger(str.c_str()); }
+	static inline bool isInteger(const std::string& str) { return isInteger(str.c_str()); }
 
   /** Compare two integers. */
   inline static Comparison compare (int i1, int i2)
@@ -78,17 +78,17 @@ class Int
   { return f1 < f2 ? LESS : f1 == f2 ? EQUAL : GREATER; }
   static bool stringToLong(const char*,long& result);
   static bool stringToUnsignedLong(const char*,unsigned long& result);
-  static bool stringToLong(const vstring& str,long& result) {
+  static bool stringToLong(const std::string& str,long& result) {
     return stringToLong(str.c_str(),result);
   }
-  static bool stringToInt(const vstring& str,int& result);
+  static bool stringToInt(const std::string& str,int& result);
   static bool stringToInt(const char* str,int& result);
   static bool stringToUnsignedInt(const char* str,unsigned& result);
-  static bool stringToUnsignedInt(const vstring& str,unsigned& result);
+  static bool stringToUnsignedInt(const std::string& str,unsigned& result);
   static bool stringToDouble(const char*,double& result);
-  static bool stringToDouble(const vstring& str,double& result) { return stringToDouble(str.c_str(), result); }
+  static bool stringToDouble(const std::string& str,double& result) { return stringToDouble(str.c_str(), result); }
   static bool stringToFloat(const char*,float& result);
-  static bool stringToUnsigned64(const vstring& str,long long unsigned& result);
+  static bool stringToUnsigned64(const std::string& str,long long unsigned& result);
   static bool stringToUnsigned64(const char* str,long long unsigned& result);
   static int sign(int i);
   static int sign(long i);
@@ -100,8 +100,6 @@ class Int
   template<typename INT>
   static unsigned gcd(INT i,INT j)
   {
-    CALL("Int::gcd");
-
     unsigned a=safeAbs(i);
     unsigned b=safeAbs(j);
 
@@ -126,9 +124,7 @@ class Int
   template<typename INT>
   static bool safeUnaryMinus(const INT num, INT& res)
   {
-    CALL("Int::safeUnaryMinus");
-
-    if(num == numeric_limits<INT>::min()) {
+    if(num == std::numeric_limits<INT>::min()) {
       return false;
     }
     res=-num;
@@ -137,13 +133,11 @@ class Int
 
   static unsigned safeAbs(const int num)
   {
-    CALL("Int::safeAbs");
-
-    if(num == numeric_limits<int>::min()) { // = -2147483648
+    if(num == std::numeric_limits<int>::min()) { // = -2147483648
       return (unsigned)num; // = 2147483648
     }
     // abs works for all other values
-    return abs(num);
+    return std::abs(num);
   }
 
   /**
@@ -153,13 +147,11 @@ class Int
   template<typename INT>
   static bool safePlus(INT arg1, INT arg2, INT& res)
   {
-    CALL("Int::safePlus");
-
     if(arg2<0) {
-      if(numeric_limits<INT>::min() - arg2 > arg1) { return false; }
+      if(std::numeric_limits<INT>::min() - arg2 > arg1) { return false; }
     }
     else {
-      if(numeric_limits<INT>::max() - arg2 < arg1) { return false; }
+      if(std::numeric_limits<INT>::max() - arg2 < arg1) { return false; }
     }
     res=arg1+arg2;
     return true;
@@ -172,13 +164,11 @@ class Int
   template<typename INT>
   static bool safeMinus(INT num, INT sub, INT& res)
   {
-    CALL("Int::safeMinus");
-
     if(sub<0) {
-      if(numeric_limits<INT>::max() + sub < num) { return false; }
+      if(std::numeric_limits<INT>::max() + sub < num) { return false; }
     }
     else {
-      if(numeric_limits<INT>::min() + sub > num) { return false; }
+      if(std::numeric_limits<INT>::min() + sub > num) { return false; }
     }
     res=num-sub;
     return true;
@@ -186,7 +176,6 @@ class Int
 
   template <typename T>
   static int sgn(T val) {
-    CALL("Int::sgn");
     return (T(0) < val) - (val < T(0));
   }
 
@@ -197,14 +186,12 @@ class Int
   template<typename INT>
   static bool safeMultiply(INT arg1, INT arg2, INT& res)
   {
-    CALL("Int::safeMultiply");
-
     if (arg1 == 0 || arg1 == 1 || arg2 == 0 || arg2 == 1) {
       res=arg1*arg2;
       return true;
     }
 
-    if (arg1 == numeric_limits<INT>::min() || arg2 == numeric_limits<INT>::min()) {
+    if (arg1 == std::numeric_limits<INT>::min() || arg2 == std::numeric_limits<INT>::min()) {
       // cannot take abs of min() and all safe operations with min have been ruled out above
       return false;
     }
@@ -213,14 +200,14 @@ class Int
     INT arg1abs = arg1 < 0 ? -arg1 : arg1;
     INT arg2abs = arg2 < 0 ? -arg2 : arg2;
 
-    if (arg1abs > numeric_limits<INT>::max() / arg2abs) {
+    if (arg1abs > std::numeric_limits<INT>::max() / arg2abs) {
       return false;
     }
 
     INT mres = arg1*arg2;
 
     // this is perhaps obsolete and could be removed
-    if ((mres == numeric_limits<INT>::min() && arg1 == -1) || // before, there was a SIGFPE for "-2147483648 / -1" TODO: are there other evil cases?
+    if ((mres == std::numeric_limits<INT>::min() && arg1 == -1) || // before, there was a SIGFPE for "-2147483648 / -1" TODO: are there other evil cases?
         (sgn(arg1)*sgn(arg2) != sgn(mres)) || // 1073741824 * 2 = -2147483648 is evil, and passes the test below
         (arg1 != 0 && mres / arg1 != arg2)) {
       return false;
@@ -231,12 +218,11 @@ class Int
 
   inline static bool safeDivide(int arg1, int arg2, int& res)
   {
-    CALL("Int::safeDivide");
     if (arg2 == 0) return false;
 
     // check for 2 complement representation
-    if (numeric_limits<int>::min() != -numeric_limits<int>::max())  {
-      if (arg1 == numeric_limits<int>::min() && arg2 == -1)  {
+    if (std::numeric_limits<int>::min() != -std::numeric_limits<int>::max())  {
+      if (arg1 == std::numeric_limits<int>::min() && arg2 == -1)  {
         return false;
       }
     }
@@ -316,6 +302,28 @@ int Int::min (int i,int j)
 {
   return i <= j ? i : j;
 }
+
+
+
+template <typename T>
+using disable_deduction = typename std::enable_if_t<true, T>;  // C++20: can use std::type_identity_t instead of this
+
+/**
+ * Check if an addition operation overflows.
+ * - This check is very sensitive to using the correct type,
+ *   and implicit conversions in C++ may easily destroy it
+ *   and lead to unexpected results.
+ *   For this reason, the type parameter should be given explicitly.
+ * - Wrap-around behaviour on overflow is only defined for
+ *   unsigned integer types in C++.
+ */
+template <typename T>
+inline bool isAdditionOverflow(disable_deduction<T> a, disable_deduction<T> b)
+{
+  static_assert(std::is_unsigned<T>::value, "overflow check is only defined for unsigned types");
+  return static_cast<T>(a + b) < a;
+}
+
 
 
 }

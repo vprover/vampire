@@ -49,9 +49,6 @@ class BackwardSubsumptionDemodulation
   : public BackwardSimplificationEngine
 {
   public:
-    CLASS_NAME(BackwardSubsumptionDemodulation);
-    USE_ALLOCATOR(BackwardSubsumptionDemodulation);
-
     BackwardSubsumptionDemodulation();
 
     void attach(SaturationAlgorithm* salg) override;
@@ -60,13 +57,13 @@ class BackwardSubsumptionDemodulation
     void perform(Clause* premise, BwSimplificationRecordIterator& simplifications) override;
 
   private:
-    RequestedIndex<SimplifyingLiteralIndex> _index;
+    RequestedIndex<BackwardSubsumptionIndex> _index;
 
     bool _preorderedOnly;
     bool _allowIncompleteness;
 
-    void performWithQueryLit(Clause* premise, Literal* candidateQueryLit, vvector<BwSimplificationRecord>& simplifications);
-    bool simplifyCandidate(Clause* sideCl, Clause* mainCl, vvector<BwSimplificationRecord>& simplifications);
+    void performWithQueryLit(Clause* premise, Literal* candidateQueryLit, std::vector<BwSimplificationRecord>& simplifications);
+    bool simplifyCandidate(Clause* sideCl, Clause* mainCl, std::vector<BwSimplificationRecord>& simplifications);
     bool rewriteCandidate(Clause* sideCl, Clause* mainCl, MLMatcherSD const& matcher, Clause*& replacement);
 };
 

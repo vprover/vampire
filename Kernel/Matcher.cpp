@@ -22,6 +22,8 @@
 namespace Kernel
 {
 
+using namespace std;
+
 namespace __MU_Aux {
 
 class MapBinderAndApplicator
@@ -59,8 +61,6 @@ private:
 TermList MatchingUtils::getInstanceFromMatch(TermList matchedBase,
     TermList matchedInstance, TermList resultBase)
 {
-  CALL("MatchingUtils::getInstanceFromMatch(TermList...)");
-
   using namespace __MU_Aux;
 
   static MapBinderAndApplicator bap;
@@ -73,8 +73,6 @@ TermList MatchingUtils::getInstanceFromMatch(TermList matchedBase,
 Formula* MatchingUtils::getInstanceFromMatch(Literal* matchedBase,
       Literal* matchedInstance, Formula* resultBase)
 {
-  CALL("MatchingUtils::getInstanceFromMatch(Literal*...)");
-
   using namespace __MU_Aux;
 
   static MapBinderAndApplicator bap;
@@ -86,14 +84,12 @@ Formula* MatchingUtils::getInstanceFromMatch(Literal* matchedBase,
 
 bool MatchingUtils::isVariant(Literal* l1, Literal* l2, bool complementary)
 {
-  CALL("MatchingUtils::isVariant");
-
   if(l1->isTwoVarEquality() && l2->isTwoVarEquality()){
     TermList s1 = l1->twoVarEqSort();
     TermList s2 = l2->twoVarEqSort();
     if(s1.isVar() && s2.isVar()){}
     else if(s1.isTerm() && s2.isTerm()){
-      if(s1.term()->functor() != s2.term()->functor() || 
+      if(s1.term()->functor() != s2.term()->functor() ||
         !haveVariantArgs(s1.term(), s2.term())){
         return false;
       }
@@ -116,13 +112,11 @@ bool MatchingUtils::isVariant(Literal* l1, Literal* l2, bool complementary)
 
 bool MatchingUtils::haveReversedVariantArgs(Term* l1, Term* l2)
 {
-  CALL("MatchingUtils::haveReversedVariantArgs");
-
   ASS_EQ(l1->arity(), 2);
   ASS_EQ(l2->arity(), 2);
 
-  static DHMap<unsigned,unsigned,IdentityHash,Hash> leftToRight;
-  static DHMap<unsigned,unsigned,IdentityHash,Hash> rightToLeft;
+  static DHMap<unsigned,unsigned,IdentityHash,DefaultHash> leftToRight;
+  static DHMap<unsigned,unsigned,IdentityHash,DefaultHash> rightToLeft;
   leftToRight.reset();
   rightToLeft.reset();
 
@@ -132,21 +126,21 @@ bool MatchingUtils::haveReversedVariantArgs(Term* l1, Term* l2)
   {
     if(l2->isLiteral() && static_cast<Literal*>(l2)->isTwoVarEquality()){
        s1 = SortHelper::getEqualityArgumentSort(static_cast<Literal*>(l1));
-       s2 = SortHelper::getEqualityArgumentSort(static_cast<Literal*>(l2));  
-       sortUsed = true;     
+       s2 = SortHelper::getEqualityArgumentSort(static_cast<Literal*>(l2));
+       sortUsed = true;
     } else {
       return false;
-    }      
+    }
   }
 
-  auto it1 = getConcatenatedIterator(
+  auto it1 = concatIters(
       vi( new DisagreementSetIterator(*l1->nthArgument(0),*l2->nthArgument(1)) ),
       vi( new DisagreementSetIterator(*l1->nthArgument(1),*l2->nthArgument(0)) ));
 
   VirtualIterator<pair<TermList, TermList> > dsit =
-  sortUsed ? pvi(getConcatenatedIterator(vi(new DisagreementSetIterator(s1,s2)), it1)) :
+  sortUsed ? pvi(concatIters(vi(new DisagreementSetIterator(s1,s2)), it1)) :
              pvi(it1);
-    
+
   while(dsit.hasNext()) {
     pair<TermList,TermList> dp=dsit.next(); //disagreement pair
     if(!dp.first.isVar() || !dp.second.isVar()) {
@@ -170,15 +164,14 @@ bool MatchingUtils::haveReversedVariantArgs(Term* l1, Term* l2)
 
 bool MatchingUtils::haveVariantArgs(Term* l1, Term* l2)
 {
-  CALL("MatchingUtils::haveVariantArgs");
   ASS_EQ(l1->arity(), l2->arity());
 
   if(l1==l2) {
     return true;
   }
 
-  static DHMap<unsigned,unsigned,IdentityHash,Hash> leftToRight;
-  static DHMap<unsigned,unsigned,IdentityHash,Hash> rightToLeft;
+  static DHMap<unsigned,unsigned,IdentityHash,DefaultHash> leftToRight;
+  static DHMap<unsigned,unsigned,IdentityHash,DefaultHash> rightToLeft;
   leftToRight.reset();
   rightToLeft.reset();
 
@@ -206,25 +199,17 @@ bool MatchingUtils::haveVariantArgs(Term* l1, Term* l2)
 
 bool MatchingUtils::matchReversedArgs(Literal* base, Literal* instance)
 {
-  CALL("MatchingUtils::match");
   ASS_EQ(base->arity(), 2);
   ASS_EQ(instance->arity(), 2);
 
   static MapBinder binder;
   binder.reset();
 
-  bool bTwoVarEq = base->isTwoVarEquality();
-
-  return matchTerms(*base->nthArgument(0), *instance->nthArgument(1), binder) &&
-    matchTerms(*base->nthArgument(1), *instance->nthArgument(0), binder) &&
-    (!bTwoVarEq || matchTerms(base->twoVarEqSort(), SortHelper::getEqualityArgumentSort(instance))
-   );
+  return matchReversedArgs(base, instance, binder);
 }
 
 bool MatchingUtils::matchArgs(Term* base, Term* instance)
 {
-  CALL("MatchingUtils::matchArgs");
-
   static MapBinder binder;
   binder.reset();
 
@@ -233,8 +218,6 @@ bool MatchingUtils::matchArgs(Term* base, Term* instance)
 
 bool MatchingUtils::matchTerms(TermList base, TermList instance)
 {
-  CALL("MatchingUtils::matchTerms/2");
-
   if(base.isTerm()) {
     if(!instance.isTerm()) {
   return false;
@@ -265,9 +248,7 @@ bool MatchingUtils::matchTerms(TermList base, TermList instance)
 
 void OCMatchIterator::init(Literal* base, Literal* inst, bool complementary)
 {
-  CALL("FastMatchIterator::init");
-
-  //TODO we don't seem to use this iterator anywhere, so 
+  //TODO we don't seem to use this iterator anywhere, so
   //have not updated to polymorphism
   if(!Literal::headersMatch(base, inst, complementary)) {
     _finished=true;
@@ -281,8 +262,6 @@ void OCMatchIterator::init(Literal* base, Literal* inst, bool complementary)
 
 bool OCMatchIterator::tryNextMatch()
 {
-  CALL("FastMatchIterator::tryNextMatch");
-
   if(_finished) {
     return false;
   }
@@ -308,16 +287,12 @@ bool OCMatchIterator::tryNextMatch()
 
 void OCMatchIterator::reset()
 {
-  CALL("FastMatchIterator::reset");
-
   _bindings.reset();
   _bound.reset();
 }
 
 bool OCMatchIterator::tryDirectMatch()
 {
-  CALL("FastMatchIterator::tryDirectMatch");
-
   bool res=MatchingUtils::matchArgs(_base, _inst, *this);
   res&=occursCheck();
   return res;
@@ -325,7 +300,6 @@ bool OCMatchIterator::tryDirectMatch()
 
 bool OCMatchIterator::tryReversedMatch()
 {
-  CALL("FastMatchIterator::tryReversedMatch");
   ASS(_base->commutative());
   ASS(_inst->commutative());
 
@@ -339,8 +313,6 @@ bool OCMatchIterator::tryReversedMatch()
 
 bool OCMatchIterator::occursCheck()
 {
-  CALL("OCMatchIterator::occursCheck");
-
   static DHMap<unsigned, OCStatus> statuses;
   static Stack<int> toDo;
   statuses.reset();
@@ -411,8 +383,6 @@ bool OCMatchIterator::occursCheck()
 
 TermList OCMatchIterator::apply(unsigned var)
 {
-  CALL("OCMatchIterator::apply(unsigned)");
-
   TermList bnd;
   if(_bindings.find(var, bnd)) {
     //this may lead to an indirect recursion, but if the occurs check
@@ -425,15 +395,11 @@ TermList OCMatchIterator::apply(unsigned var)
 
 TermList OCMatchIterator::apply(TermList t)
 {
-  CALL("OCMatchIterator::apply(TermList)");
-
   return SubstHelper::apply(t, *this);
 }
 
 Literal* OCMatchIterator::apply(Literal* lit)
 {
-  CALL("OCMatchIterator::apply(Literal*)");
-
   return SubstHelper::apply(lit, *this);
 }
 
@@ -460,8 +426,6 @@ public:
   }
   bool hasNext()
   {
-    CALL("Matcher::CommutativeMatchIterator::hasNext");
-
     if(_state==FINISHED) {
       return false;
     }
@@ -541,8 +505,6 @@ struct Matcher::MatchContext
   : _base(base), _instance(instance) {}
   bool enter(Matcher* matcher)
   {
-    CALL("Matcher::MatchContext::enter");
-
     matcher->bdRecord(_bdata);
     bool res=matcher->matchArgs(_base, _instance);
     if(!res) {
@@ -565,8 +527,6 @@ private:
 MatchIterator Matcher::matches(Literal* base, Literal* instance,
     bool complementary)
 {
-  CALL("Matcher::matches");
-
   if(!Literal::headersMatch(base, instance, complementary)) {
     return MatchIterator::getEmpty();
   }
@@ -588,8 +548,6 @@ MatchIterator Matcher::matches(Literal* base, Literal* instance,
 
 bool Matcher::matchArgs(Literal* base, Literal* instance)
 {
-  CALL("Matcher::matchArgs");
-
   BacktrackData localBD;
 
   bdRecord(localBD);
@@ -609,7 +567,6 @@ bool Matcher::matchArgs(Literal* base, Literal* instance)
 
 bool Matcher::matchReversedArgs(Literal* base, Literal* instance)
 {
-  CALL("Matcher::matchReversedArgs");
   ASS(base->commutative());
 
   BacktrackData localBD;

@@ -30,9 +30,11 @@ using namespace Kernel;
 class LiteralMiniIndex
 {
 public:
-  CLASS_NAME(LiteralMiniIndex);
   USE_ALLOCATOR(LiteralMiniIndex);
-  
+
+  LiteralMiniIndex() = default;
+  void init(Clause* cl);
+
   LiteralMiniIndex(Clause* cl);
   LiteralMiniIndex(Literal* const * lits, unsigned length);
 
@@ -51,17 +53,15 @@ private:
 
   static bool literalHeaderComparator(const Entry& e1, const Entry& e2);
 
-  unsigned _cnt;
+  unsigned _cnt = 0;
   DArray<Entry> _entries;
 
-  struct BaseIterator
+  struct IteratorBase
   {
-    BaseIterator(LiteralMiniIndex const& index, Literal* query, bool complementary)
+    IteratorBase(LiteralMiniIndex const& index, Literal* query, bool complementary)
     : _ready(false), _hdr(complementary?query->complementaryHeader():query->header()),
     _query(query), _compl(complementary)
     {
-      CALL("LiteralMiniIndex::BaseIterator::BaseIterator");
-
       Entry const* arr=index._entries.array();
       unsigned weight=query->weight();
       if(arr[0]._header>=_hdr || index._cnt==1) {
@@ -100,21 +100,16 @@ private:
 
 public:
 
-  /*static int goodPred;
-  static int badPred;*/
-
-
+  // Returns all literals in the given mini-index that are an instance of the given base literal.
   struct InstanceIterator
-  : BaseIterator
-  {
+      : IteratorBase {
     InstanceIterator(LiteralMiniIndex const& index, Literal* base, bool complementary)
-    : BaseIterator(index, base, complementary)
-    {}
+        : IteratorBase(index, base, complementary)
+    {
+    }
 
     bool hasNext()
     {
-      CALL("LiteralMiniIndex::InstanceIterator::hasNext");
-
       if(_ready) { return true; }
       while(_curr->_header==_hdr) {
         if(MatchingUtils::match(_query, _curr->_lit, _compl)) {
@@ -125,23 +120,42 @@ public:
       }
       return false;
     }
+
+    // Same as hasNext(), but allows using a custom binder for matching:
+    // - see comments on MatchingUtils::match for information about binders
+    // - this can be used to extract variable bindings with the match
+    template <class Binder>
+    bool hasNext(Binder& binder)
+    {
+      if (_ready) {
+        return true;
+      }
+      while (_curr->_header == _hdr) {
+        if (MatchingUtils::match(_query, _curr->_lit, _compl, binder)) {
+          _ready = true;
+          return true;
+        }
+        _curr++;
+      }
+      return false;
+    }
+
     Literal* next()
     {
-      return BaseIterator::next();
+      return IteratorBase::next();
     }
   };
 
+  // Returns all literals in the given mini-index that are a variant of the given base literal.
   struct VariantIterator
-  : BaseIterator
+  : IteratorBase
   {
     VariantIterator(LiteralMiniIndex& index, Literal* query, bool complementary)
-    : BaseIterator(index, query, complementary)
+    : IteratorBase(index, query, complementary)
     {}
 
     bool hasNext()
     {
-      CALL("LiteralMiniIndex::VariantIterator::hasNext");
-
       if(_ready) { return true; }
       while(_curr->_header==_hdr) {
 	if(MatchingUtils::isVariant(_query, _curr->_lit)) {
@@ -154,7 +168,7 @@ public:
     }
     Literal* next()
     {
-      return BaseIterator::next();
+      return IteratorBase::next();
     }
   };
 };

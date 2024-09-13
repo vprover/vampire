@@ -73,7 +73,7 @@ public:
       void* mem = ALLOC_KNOWN(_capacity*sizeof(C),"Array<>");
       _array = static_cast<C*>(mem);
       for(size_t i=0; i<_capacity; i++) {
-        new(&_array[i]) C(o._array[i]);
+        ::new (&_array[i]) C(o._array[i]);
       }
     } else {
       _array = 0;
@@ -105,8 +105,6 @@ public:
    */
   virtual ~Array()
   {
-    CALL("Array::~Array()");
-
     if(_array) {
       array_delete(_array, _capacity);
       DEALLOC_KNOWN(_array,_capacity*sizeof(C),"Array<>");
@@ -201,7 +199,6 @@ protected:
    */
   void expandToFit (size_t n)
   {
-    CALL("Array::expandToFit");
     ASS(n >= _capacity);
 
     // determine new capacity (at least double the old one)
@@ -259,6 +256,11 @@ public:
     }
   }
 
+  inline
+  void reset()
+  {
+    fillInterval(0, Array<T>::_capacity);
+  }
 };
 
 } // namespace Lib

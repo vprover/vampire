@@ -39,10 +39,11 @@
 
 namespace Shell
 {
+
+using namespace std;
 TPTPPrinter::TPTPPrinter(ostream* tgtStream)
 : _tgtStream(tgtStream), _headersPrinted(false)
 {
-  CALL("TPTPPrinter::TPTPPrinter");
 }
 
 /**
@@ -50,14 +51,10 @@ TPTPPrinter::TPTPPrinter(ostream* tgtStream)
  */
 void TPTPPrinter::print(Unit* u)
 {
-  CALL("TPTPPrinter::print");
+  std::string body = getBodyStr(u, true);
 
-  vstring body = getBodyStr(u, true);
-
-  beginOutput();
   ensureHeadersPrinted(u);
   printTffWrapper(u, body);
-  endOutput();
 }
 
 /**
@@ -65,35 +62,28 @@ void TPTPPrinter::print(Unit* u)
  * @param name
  * @param u
  */
-void TPTPPrinter::printAsClaim(vstring name, Unit* u)
+void TPTPPrinter::printAsClaim(std::string name, Unit* u)
 {
-  CALL("TPTPPrinter::printAsClaim");
   printWithRole(name, "claim", u);
 }
 
-void TPTPPrinter::printWithRole(vstring name, vstring role, Unit* u, bool includeSplitLevels)
+void TPTPPrinter::printWithRole(std::string name, std::string role, Unit* u, bool includeSplitLevels)
 {
-  CALL("TPTPPrinter::printWithRole");
+  std::string body = getBodyStr(u, includeSplitLevels);
 
-  vstring body = getBodyStr(u, includeSplitLevels);
-
-  beginOutput();
   ensureHeadersPrinted(u);
   tgt() << "tff(" << name << ", " << role << ", " << body << ")." << endl;
-  endOutput();
 }
 
 /**
- * Return as a vstring the body of the Unit u
+ * Return as a std::string the body of the Unit u
  * @param u
  * @param includeSplitLevels
- * @return the body vstring
+ * @return the body std::string
  */
-vstring TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
+std::string TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
 {
-  CALL("TPTPPrinter::getBodyStr");
-
-  vostringstream res;
+  std::ostringstream res;
 
   typedef DHMap<unsigned,TermList> SortMap;
   static SortMap varSorts;
@@ -122,7 +112,7 @@ vstring TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
     }
 
     Clause* cl = static_cast<Clause*>(u);
-    Clause::Iterator cit(*cl);
+    auto cit = cl->iterLits();
     if(!cit.hasNext()) {
       res << "$false";
     }
@@ -139,7 +129,7 @@ vstring TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
     }
 
     if(includeSplitLevels && !cl->noSplits()) {
-      SplitSet::Iterator sit(*cl->splits());
+      auto sit = cl->splits()->iter();
       while(sit.hasNext()) {
         SplitLevel split = sit.next();
         res << " | " << "$splitLevel" << split;
@@ -157,12 +147,10 @@ vstring TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
  * @param u
  * @param bodyStr
  */
-void TPTPPrinter::printTffWrapper(Unit* u, vstring bodyStr)
+void TPTPPrinter::printTffWrapper(Unit* u, std::string bodyStr)
 {
-  CALL("TPTPPrinter::printTffWrapper");
-
   tgt() << "tff(";
-  vstring unitName;
+  std::string unitName;
   if(Parse::TPTP::findAxiomName(u, unitName)) {
     tgt() << unitName;
   }
@@ -196,8 +184,6 @@ void TPTPPrinter::printTffWrapper(Unit* u, vstring bodyStr)
  */
 void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType symType)
 {
-  CALL("TPTPPrinter::outputSymbolTypeDefinitions");
-
   Signature::Symbol* sym;
   OperatorType* type;
   if(symType == SymbolType::FUNC){
@@ -205,7 +191,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
     type = sym->fnType();
   } else if(symType == SymbolType::PRED){
     sym = env.signature->getPredicate(symNumber);
-    type = sym->predType();    
+    type = sym->predType();
   } else {
     sym = env.signature->getTypeCon(symNumber);
     type = sym->typeConType();
@@ -233,14 +219,14 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
     }
   }
 
-  vstring cat = "tff(";
-  if(env.property->higherOrder()){
+  std::string cat = "tff(";
+  if(env.getMainProblem()->isHigherOrder()){
     cat = "thf(";
   }
 
-  vstring st = "func";
+  std::string st = "func";
   if(symType == SymbolType::PRED){
-    st = "pred"; 
+    st = "pred";
   } else if(symType == SymbolType::TYPE_CON){
     st = "sort";
   }
@@ -261,7 +247,6 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
  */
 /*void TPTPPrinter::ensureNecesarySorts()
 {
-  CALL("TPTPPrinter::ensureNecesarySorts");
   if (_headersPrinted) {
     return;
   }
@@ -308,13 +293,9 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
  */
 void TPTPPrinter::ensureHeadersPrinted(Unit* u)
 {
-  CALL("TPTPPrinter::ensureHeadersPrinted");
-
   if(_headersPrinted) {
     return;
   }
-  
-  //ensureNecesarySorts();
 
   unsigned typeCons = env.signature->typeCons();
   for(unsigned i=Signature::FIRST_USER_CON; i<typeCons; i++) {
@@ -337,46 +318,25 @@ void TPTPPrinter::ensureHeadersPrinted(Unit* u)
  */
 ostream& TPTPPrinter::tgt()
 {
-  CALL("TPTPPrinter::tgt");
-
   if(_tgtStream) {
     return *_tgtStream;
   }
   else {
-    return env.out();
+    return std::cout;
   }
 }
 
 /**
- * In case there is no specified output stream, than print to the one
- * specified in the env.beginOutput();
+ * Return the std::string representing the formula f.
  */
-void TPTPPrinter::beginOutput()
+std::string TPTPPrinter::toString(const Formula* formula)
 {
-  CALL("TPTPPrinter::beginOutput");
-
-  if(!_tgtStream) { env.beginOutput(); }
-}
-
-void TPTPPrinter::endOutput()
-{
-  CALL("TPTPPrinter::endOutput");
-
-  if(!_tgtStream) { env.endOutput(); }
-}
-
-/**
- * Return the vstring representing the formula f.
- */
-vstring TPTPPrinter::toString(const Formula* formula)
-{
-  CALL("TPTPPrinter::toString(const Formula*)");
-  static vstring names [] =
+  static std::string names [] =
     { "", " & ", " | ", " => ", " <=> ", " <~> ",
       "~", "!", "?", "$term", "$false", "$true", "", ""};
-  ASS_EQ(sizeof(names)/sizeof(vstring), NOCONN+1);
+  ASS_EQ(sizeof(names)/sizeof(std::string), NOCONN+1);
 
-  vstring res;
+  std::string res;
 
   // render a connective if specified, and then a Formula (or ")" of formula is nullptr)
   typedef pair<Connective,const Formula*> Todo;
@@ -401,7 +361,7 @@ vstring TPTPPrinter::toString(const Formula* formula)
 
     switch (c) {
     case LITERAL: {
-      vstring result = f->literal()->toString();
+      std::string result = f->literal()->toString();
       if (f->literal()->isEquality()) {
         res += "(" + result + ")";
       } else {
@@ -454,7 +414,7 @@ vstring TPTPPrinter::toString(const Formula* formula)
     case FORALL:
     case EXISTS:
       {
-        vstring result = vstring("(") + names[c] + "[";
+        std::string result = std::string("(") + names[c] + "[";
         bool needsComma = false;
         VList::Iterator vs(f->vars());
         SList::Iterator ss(f->sorts());
@@ -509,24 +469,23 @@ vstring TPTPPrinter::toString(const Formula* formula)
 }
 
 /**
- * Output unit @param unit in TPTP format as a vstring
+ * Output unit @param unit in TPTP format as a std::string
  *
  * If the unit is a formula of type @b CONJECTURE, output the
  * negation of Vampire's internal representation with the
  * TPTP role conjecture. If it is a clause, just output it as
  * is, with the role negated_conjecture.
  */
-vstring TPTPPrinter::toString (const Unit* unit)
+std::string TPTPPrinter::toString (const Unit* unit)
 {
-  CALL("TPTPPrinter::toString(const Unit*)");
 //  const Inference* inf = unit->inference();
 //  Inference::Rule rule = inf->rule();
 
-  vstring prefix;
-  vstring main = "";
+  std::string prefix;
+  std::string main = "";
 
   bool negate_formula = false;
-  vstring kind;
+  std::string kind;
   switch (unit->inputType()) {
   case UnitInputType::ASSUMPTION:
     kind = "hypothesis";
@@ -589,7 +548,7 @@ vstring TPTPPrinter::toString (const Unit* unit)
     }
   }
 
-  vstring unitName;
+  std::string unitName;
   if(!Parse::TPTP::findAxiomName(unit, unitName)) {
     unitName="u" + Int::toString(unit->number());
   }
@@ -599,11 +558,11 @@ vstring TPTPPrinter::toString (const Unit* unit)
 }
 
 
-vstring TPTPPrinter::toString(const Term* t){
+std::string TPTPPrinter::toString(const Term* t){
   NOT_IMPLEMENTED;
 }
 
-vstring TPTPPrinter::toString(const Literal* l){
+std::string TPTPPrinter::toString(const Literal* l){
   NOT_IMPLEMENTED;
 }
 

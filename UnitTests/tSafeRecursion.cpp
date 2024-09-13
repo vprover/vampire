@@ -45,7 +45,6 @@ struct SRWorkerBase
 {
   template<class ChildCallback>
   void pre(unsigned obj, ChildCallback fn) {
-    CALL("SRWorkerBase::pre");
     Stack<unsigned>& children = getGraph()[obj];
     Stack<unsigned>::BottomFirstIterator cit(children);
     while(cit.hasNext()) {
@@ -59,7 +58,6 @@ struct MaxDegreeRetrievalWorker : public SRWorkerBase
 {
   int post(unsigned obj, size_t childCnt, int* childRes)
   {
-    CALL("MaxDegreeRetrievalWorker::post");
     int res = childCnt;
     for(size_t i=0; i<childCnt; i++) {
       if(childRes[i]>res) {
@@ -81,10 +79,9 @@ TEST_FUN(safeRecMaxDeg)
 
 struct StrRepWorker : public SRWorkerBase
 {
-  vstring post(unsigned obj, size_t childCnt, vstring* childRes)
+  std::string post(unsigned obj, size_t childCnt, std::string* childRes)
   {
-    CALL("MaxDegreeRetrievalWorker::post");
-    vstring res = Int::toString(obj);
+    std::string res = Int::toString(obj);
     if(childCnt==0) {
       return res;
     }
@@ -104,7 +101,7 @@ TEST_FUN(safeRecStrRep)
 {
   StrRepWorker wrk;
 
-  vstring res = SafeRecursion<unsigned,vstring,StrRepWorker>(wrk)(0);
+  std::string res = SafeRecursion<unsigned,std::string,StrRepWorker>(wrk)(0);
   ASS_EQ(res,"0(1,2,3(4,5,6(8,9),7))");
 }
 

@@ -9,12 +9,12 @@
  */
 
 #include "Inferences/PolynomialEvaluation.hpp"
+#include "Kernel/BottomUpEvaluation.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Shell/Statistics.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/BottomUpEvaluation/PolyNf.hpp"
 
 #define DEBUG(...) //DBG(__VA_ARGS__)
 using namespace Lib;
@@ -30,8 +30,6 @@ PolynomialEvaluation::PolynomialEvaluation(Ordering& ordering) : SimplifyingGene
 
 
 Literal* createLiteral(Literal* orig, PolyNf* evaluatedArgs) {
-  CALL("createLiteral");
-
   if (orig->isEquality()) {
     return Literal::createEquality(
           orig->polarity(), 
@@ -54,7 +52,7 @@ Literal* createLiteral(Literal* orig, PolyNf* evaluatedArgs) {
 
 PolynomialEvaluation::Result PolynomialEvaluation::simplifyLiteral(Literal* lit) 
 {
-  CALL("PolynomialEvaluation::simplifyLiteral");
+  TIME_TRACE("polynomial evaluation");
 
   Stack<PolyNf> terms(lit->numTermArguments());
   auto anyChange = false;
@@ -78,7 +76,6 @@ PolynomialEvaluation::Result PolynomialEvaluation::simplifyLiteral(Literal* lit)
 #include "Kernel/PolynomialNormalizer/PredicateEvaluator.hpp"
 
 Option<LitSimplResult> PolynomialEvaluation::tryEvalPredicate(Literal* orig, PolyNf* evaluatedArgs) const {
-  CALL("PolynomialEvaluation::tryEvalPredicate(Literal* term)")
   DEBUG("evaluating: ", orig->toString());
 
 #define HANDLE_CASE(INTER) case Interpretation::INTER: return PredicateEvaluator<Interpretation::INTER>::evaluate(orig, evaluatedArgs); 
@@ -128,7 +125,6 @@ Option<LitSimplResult> PolynomialEvaluation::tryEvalPredicate(Literal* orig, Pol
 
 Option<PolyNf> trySimplify(Theory::Interpretation i, PolyNf* evalArgs) 
 {
-  CALL("trySimplify(Theory::Interpretation i, PolyNf* evalArgs) ")
   try {
     switch (i) {
 
@@ -206,39 +202,32 @@ AnyPoly simplifyPoly(AnyPoly const& p, PolyNf* ts)
 
 Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const 
 {
-  CALL("PolynomialEvaluation::evaluate(TypedTermList term) const")
-
   DEBUG("evaluating ", normalized)
-  struct Eval 
-  {
-    const PolynomialEvaluation& norm;
-
-    using Result = PolyNf;
-    using Arg    = PolyNf;
-
-    PolyNf operator()(PolyNf orig, PolyNf* ts) 
-    { 
-      return orig.match(
-          [&](Perfect<FuncTerm> f)  -> PolyNf
-          { 
-            return f->function().tryInterpret()
-              .andThen( [&](Theory::Interpretation && i)  -> Option<PolyNf>
-                { return trySimplify(i, ts); })
-              .unwrapOrElse([&]() -> PolyNf
-                { return PolyNf(perfect(FuncTerm(f->function(), ts))); });
-
-          }, 
-
-          [&](Variable v) 
-          { return v; },
-
-          [&](AnyPoly p) 
-          { return simplifyPoly(p, ts); }
-      );
-    }
-  };
   static Memo::Hashed<PolyNf, PolyNf, StlHash> memo;
-  auto out = evaluateBottomUp(normalized, Eval{ *this }, memo);
+  auto out = BottomUpEvaluation<PolyNf, PolyNf>()
+    .function(
+        [&](PolyNf orig, PolyNf* ts) -> PolyNf 
+        { 
+          return orig.match(
+              [&](Perfect<FuncTerm> f)
+              { 
+                return f->function().tryInterpret()
+                  .andThen( [&](Theory::Interpretation && i)  -> Option<PolyNf>
+                    { return trySimplify(i, ts); })
+                  .unwrapOrElse([&]() -> PolyNf
+                    { return PolyNf(perfect(FuncTerm(f->function(), ts))); });
+
+              }, 
+
+              [&](Variable v) 
+              { return PolyNf(v); },
+
+              [&](AnyPoly p) 
+              { return PolyNf(simplifyPoly(p, ts)); }
+          );
+        })
+    .memo(memo)
+    .apply(normalized);
   if (out == normalized) {
     return Option<PolyNf>();
   } else {
@@ -253,7 +242,6 @@ Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const
 template<class Number>
 Polynom<Number> simplifyPoly(Polynom<Number> const& in, PolyNf* simplifiedArgs)
 { 
-  CALL("simplify(Polynom<Number>const&, PolyNf* simplifiedArgs)") 
   using Monom   = Monom<Number>;
   using Polynom = Polynom<Number>;
   try {

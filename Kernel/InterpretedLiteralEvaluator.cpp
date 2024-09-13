@@ -22,7 +22,6 @@
 #include "Term.hpp"
 #include "Theory.hpp"
 #include "NumTraits.hpp"
-#include "Debug/Tracer.hpp"
 
 
 #include "InterpretedLiteralEvaluator.hpp"
@@ -37,6 +36,7 @@
 
 namespace Kernel
 {
+using namespace std;
 using namespace Lib;
 
 struct PredEvalResult {
@@ -67,9 +67,6 @@ private:
 class InterpretedLiteralEvaluator::Evaluator
 {
 public:
-  CLASS_NAME(InterpretedLiteralEvaluator::Evaluator);
-  USE_ALLOCATOR(InterpretedLiteralEvaluator::Evaluator);
-  
   virtual ~Evaluator() {}
 
   virtual bool canEvaluateFunc(unsigned func) { return false; }
@@ -131,9 +128,6 @@ template<class AbelianGroup>
    : public Evaluator
 {
 public:
-CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
-  USE_ALLOCATOR(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
-
   using ConstantType = typename AbelianGroup::ConstantType;
 
   ACFunEvaluator() : _fun(env.signature->getInterpretingSymbol(AbelianGroup::interpreation)) { }
@@ -142,7 +136,6 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
   virtual bool canEvaluateFunc(unsigned func) { return func == _fun; }
 
   virtual bool tryEvaluateFunc(Term* trm, TermList& res) { 
-    CALL( "ACFunEvaluator::tryEvaluateFunc()" );
     ASS_EQ(trm->functor(), _fun);
     ASS_EQ(trm->numTermArguments(),2);
 
@@ -162,7 +155,10 @@ CLASS_NAME(InterpretedLiteralEvaluator::ACFunEvaluator<AbelianGroup>);
             keep.push(t);
           }
         });
-    if (nums <= 1) return false;
+    if (nums == 0 || (nums == 1 && acc != AbelianGroup::IDENTITY)) {
+      // only continue, if we updated acc more than once or at least saw a "_+0" somewhere
+      return false;
+    }
 
     if (acc != AbelianGroup::IDENTITY) {
       keep.push(TermList(theory->representConstant(acc)));
@@ -189,7 +185,6 @@ class InequalityNormalizer {
 
 public:
   static Literal* normalize(Literal* in) {
-    CALL("IntLess::normalize");
     ASS(in->functor() == Inequality::functor());
 
     if (Inequality::isNormalized(in)) {
@@ -277,7 +272,6 @@ class InterpretedLiteralEvaluator::EqualityEvaluator
   template<typename T>
   bool checkEquality(Literal* lit, bool& res)
   {
-    CALL("InterpretedLiteralEvaluator::EqualityEvaluator::checkEquality");
     T arg1;
     if(!theory->tryInterpretConstant(lit->termArg(0).term(),arg1)){ 
       return false; 
@@ -323,8 +317,6 @@ class InterpretedLiteralEvaluator::ConversionEvaluator
 public:
   bool canEvaluateFunc(unsigned func) override
   {
-    CALL("InterpretedLiteralEvaluator::ConversionEvaluator::canEvaluateFunc");
-
     if (!theory->isInterpretedFunction(func)) {
       return false;
     }
@@ -333,7 +325,6 @@ public:
 
   virtual bool tryEvaluateFunc(Term* trm, TermList& res) override
   {
-    CALL("InterpretedLiteralEvaluator::ConversionEvaluator::tryEvaluateFunc");
     ASS(theory->isInterpretedFunction(trm));
 
     try {
@@ -443,8 +434,6 @@ public:
 
   virtual bool canEvaluate(Interpretation interp)
   {
-    CALL("InterpretedLiteralEvaluator::TypedEvaluator::canEvaluate");
-    
     // This is why we cannot evaluate Equality here... we cannot determine its sort
     if (!theory->hasSingleSort(interp)) { return false; } //To skip conversions and EQUAL
 
@@ -456,7 +445,6 @@ public:
 
   virtual bool tryEvaluateFunc(Term* trm, TermList& res) override
   {
-    CALL("InterpretedLiteralEvaluator::tryEvaluateFunc");
     ASS(theory->isInterpretedFunction(trm));
     const auto num = NumTraits<Value>{};
 
@@ -555,7 +543,6 @@ public:
 
   virtual PredEvalResult tryEvaluatePred(Literal* lit) override
   {
-    CALL("InterpretedLiteralEvaluator::tryEvaluatePred");
     ASS(theory->isInterpretedPredicate(lit->functor()));
     bool res;
 
@@ -593,8 +580,6 @@ public:
 
   bool canEvaluateFunc(unsigned func) override
   {
-    CALL("InterpretedLiteralEvaluator::TypedEvaluator::canEvaluateFunc");
-
     if (!theory->isInterpretedFunction(func)) {
       return false;
     }
@@ -604,8 +589,6 @@ public:
 
   bool canEvaluatePred(unsigned pred) override
   {
-    CALL("InterpretedLiteralEvaluator::TypedEvaluator::canEvaluatePred");
-
     if (!theory->isInterpretedPredicate(pred)) {
       return false;
     }
@@ -699,8 +682,6 @@ protected:
 
   virtual bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res)
   {
-    CALL("InterpretedLiteralEvaluator::IntEvaluator::tryEvaluateUnaryFunc");
-
     switch(op) {
     case Theory::INT_UNARY_MINUS:
       res = -arg;
@@ -730,8 +711,6 @@ protected:
   virtual bool tryEvaluateBinaryFunc(Interpretation op, const Value& arg1,
       const Value& arg2, Value& res)
   {
-    CALL("InterpretedLiteralEvaluator::IntEvaluator::tryEvaluateBinaryFunc");
-
     switch(op) {
     case Theory::INT_PLUS:
       res = arg1+arg2;
@@ -769,8 +748,6 @@ protected:
   virtual bool tryEvaluateBinaryPred(Interpretation op, const Value& arg1,
       const Value& arg2, bool& res)
   {
-    CALL("InterpretedLiteralEvaluator::IntEvaluator::tryEvaluateBinaryPred");
-
     switch(op) {
     case Theory::INT_GREATER:
       res = arg1>arg2;
@@ -806,8 +783,6 @@ protected:
 
   virtual bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res)
   {
-    CALL("InterpretedLiteralEvaluator::RatEvaluator::tryEvaluateUnaryFunc");
-
     switch(op) {
     case Theory::RAT_UNARY_MINUS:
       res = -arg;
@@ -829,8 +804,6 @@ protected:
   virtual bool tryEvaluateBinaryFunc(Interpretation op, const Value& arg1,
       const Value& arg2, Value& res)
   {
-    CALL("InterpretedLiteralEvaluator::RatEvaluator::tryEvaluateBinaryFunc");
-
     switch(op) {
     case Theory::RAT_PLUS:
       res = arg1+arg2;
@@ -853,8 +826,6 @@ protected:
   virtual bool tryEvaluateBinaryPred(Interpretation op, const Value& arg1,
       const Value& arg2, bool& res)
   {
-    CALL("InterpretedLiteralEvaluator::RatEvaluator::tryEvaluateBinaryPred");
-
     switch(op) {
     case Theory::RAT_GREATER:
       res = arg1>arg2;
@@ -876,8 +847,6 @@ protected:
   virtual bool tryEvaluateUnaryPred(Interpretation op, const Value& arg1,
       bool& res)
   {
-    CALL("InterpretedLiteralEvaluator::RatEvaluator::tryEvaluateBinaryPred");
-
     switch(op) {
     case Theory::RAT_IS_INT:
       res = arg1.isInt();
@@ -903,8 +872,6 @@ protected:
 
   virtual bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res)
   {
-    CALL("InterpretedLiteralEvaluator::RealEvaluator::tryEvaluateUnaryFunc");
-
     switch(op) {
     case Theory::REAL_UNARY_MINUS:
       res = -arg;
@@ -926,8 +893,6 @@ protected:
   virtual bool tryEvaluateBinaryFunc(Interpretation op, const Value& arg1,
       const Value& arg2, Value& res)
   {
-    CALL("InterpretedLiteralEvaluator::RealEvaluator::tryEvaluateBinaryFunc");
-
     switch(op) {
     case Theory::REAL_PLUS:
       res = arg1+arg2;
@@ -950,8 +915,6 @@ protected:
   virtual bool tryEvaluateBinaryPred(Interpretation op, const Value& arg1,
       const Value& arg2, bool& res)
   {
-    CALL("InterpretedLiteralEvaluator::RealEvaluator::tryEvaluateBinaryPred");
-
     switch(op) {
     case Theory::REAL_GREATER:
       res = arg1>arg2;
@@ -973,8 +936,6 @@ protected:
   virtual bool tryEvaluateUnaryPred(Interpretation op, const Value& arg1,
       bool& res)
   {
-    CALL("InterpretedLiteralEvaluator::RealEvaluator::tryEvaluateBinaryPred");
-
     switch(op) {
     case Theory::REAL_IS_INT:
       res = arg1.isInt();
@@ -1023,8 +984,6 @@ IMPL_OPERATOR(Theory::REAL_PLUS, RealConstantType, RealConstantType(RationalCons
 
 InterpretedLiteralEvaluator::InterpretedLiteralEvaluator(bool doNormalize) : _normalize(doNormalize)
 {
-  CALL("InterpretedLiteralEvaluator::InterpretedLiteralEvaluator");
-
   // For an evaluator to be used it must be pushed onto _evals
   // We search this list, calling canEvaluate on each evaluator
   // An invariant we want to maintain is that for any literal only one
@@ -1055,8 +1014,6 @@ InterpretedLiteralEvaluator::InterpretedLiteralEvaluator(bool doNormalize) : _no
 
 InterpretedLiteralEvaluator::~InterpretedLiteralEvaluator()
 {
-  CALL("InterpretedEvaluation::LiteralSimplifier::~LiteralSimplifier");
-
   while (_evals.isNonEmpty()) {
     delete _evals.pop();
   }
@@ -1073,7 +1030,6 @@ InterpretedLiteralEvaluator::~InterpretedLiteralEvaluator()
  */
 bool InterpretedLiteralEvaluator::balancable(Literal* lit)
 {
-  CALL("InterpretedLiteralEvaluator::balancable");
   // Check that lit is compatible with this balancing operation
   // One thing that we cannot check, but assume is that it has already been simplified once
   // balance applies further checks
@@ -1119,9 +1075,8 @@ bool InterpretedLiteralEvaluator::balancable(Literal* lit)
  * @author Giles
  * @since 11/11/14
  */
-bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit,Stack<Literal*>& sideConditions)
+bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit)
 {
-  CALL("InterpretedLiteralEvaluator::balance");
   ASS(balancable(lit));
 
   _DEBUG( "try balance ", lit->toString() );
@@ -1168,7 +1123,7 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit,Stack<Li
     TermList* args = t2.term()->args();
     
     // find which arg of t2 is the non_constant bit, this is what we are unwrapping 
-    TermList to_unwrap;
+    TermList to_unwrap = TermList::empty();
     while(args->isNonEmpty()){
       if(!theory->isInterpretedNumber(*args)){
         if(!to_unwrap.isEmpty()){
@@ -1199,27 +1154,27 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit,Stack<Li
 
       case Theory::INT_MULTIPLY: 
       {
-        okay=balanceIntegerMultiply(t2term,to_unwrap,t1,result,swap,sideConditions);
+        okay=balanceIntegerMultiply(t2term,to_unwrap,t1,result,swap);
         break;
       }
       case Theory::RAT_MULTIPLY:
       {
         RationalConstantType zero(0,1);
-        okay=balanceMultiply(Theory::RAT_QUOTIENT,zero,t2term,to_unwrap,t1,result,swap,sideConditions);
+        okay=balanceMultiply(Theory::RAT_QUOTIENT,zero,t2term,to_unwrap,t1,result,swap);
         break;
       }
       case Theory::REAL_MULTIPLY:
       {
         RealConstantType zero(RationalConstantType(0, 1));
-        okay=balanceMultiply(Theory::REAL_QUOTIENT,zero,t2term,to_unwrap,t1,result,swap,sideConditions);
+        okay=balanceMultiply(Theory::REAL_QUOTIENT,zero,t2term,to_unwrap,t1,result,swap);
         break;
        }
 
       case Theory::RAT_QUOTIENT:
-        okay=balanceDivide(Theory::RAT_MULTIPLY,t2term,to_unwrap,t1,result,swap,sideConditions);
+        okay=balanceDivide(Theory::RAT_MULTIPLY,t2term,to_unwrap,t1,result,swap);
         break;
       case Theory::REAL_QUOTIENT:
-        okay=balanceDivide(Theory::REAL_MULTIPLY,t2term,to_unwrap,t1,result,swap,sideConditions);
+        okay=balanceDivide(Theory::REAL_MULTIPLY,t2term,to_unwrap,t1,result,swap);
         break;
 
       default:
@@ -1247,14 +1202,14 @@ endOfUnwrapping:
 
   // don't swap equality
   if(lit->functor()==0){
-   resLit = BottomUpTermTransformer::transform(Literal::createEquality(lit->polarity(),t2,t1,srt));
+   resLit = BottomUpTermTransformer::transformLiteral(Literal::createEquality(lit->polarity(),t2,t1,srt));
   }
   else{
     // important, need to preserve the ordering of t1 and t2 in the original!
     if(swap){
-      resLit = BottomUpTermTransformer::transform(Literal::create2(lit->functor(),lit->polarity(),t2,t1));
+      resLit = BottomUpTermTransformer::transformLiteral(Literal::create2(lit->functor(),lit->polarity(),t2,t1));
     }else{
-      resLit = BottomUpTermTransformer::transform(Literal::create2(lit->functor(),lit->polarity(),t1,t2));
+      resLit = BottomUpTermTransformer::transformLiteral(Literal::create2(lit->functor(),lit->polarity(),t1,t2));
     }
   }
   return true;
@@ -1264,8 +1219,6 @@ endOfUnwrapping:
 bool InterpretedLiteralEvaluator::balancePlus(Interpretation plus, Interpretation unaryMinus, 
                                               Term* AplusB, TermList A, TermList C, TermList& result)
 {
-  CALL("InterpretedLiteralEvaluator::balancePlus");
-
     unsigned um = env.signature->getInterpretingSymbol(unaryMinus);
     unsigned ip = env.signature->getInterpretingSymbol(plus);
     TermList B;
@@ -1285,9 +1238,8 @@ bool InterpretedLiteralEvaluator::balancePlus(Interpretation plus, Interpretatio
 template<typename ConstantType>
 bool InterpretedLiteralEvaluator::balanceMultiply(Interpretation divide,ConstantType zero, 
                                                   Term* AmultiplyB, TermList A, TermList C, TermList& result,
-                                                  bool& swap, Stack<Literal*>& sideConditions)
+                                                  bool& swap)
 {
-    CALL("InterpretedLiteralEvaluator::balanceMultiply");
 #if VDEBUG
     TermList srt = theory->getOperationSort(divide); 
     ASS(srt == AtomicSort::realSort() || srt == AtomicSort::rationalSort()); 
@@ -1313,20 +1265,12 @@ bool InterpretedLiteralEvaluator::balanceMultiply(Interpretation divide,Constant
     // Unsure exactly what the best thing to do here, so for now give up
     // This means we only balance when we have a constant on the variable side
     return false;
-
-    // if B is not a constant we need to ensure that B!=0
-    //Literal* notZero = Literal::createEquality(false,B,zero,srt);
-    //sideConditions.push(notZero);
-    //result = TermList(Term::create2(div,C,B);
-    //return true;
 }
 
 bool InterpretedLiteralEvaluator::balanceIntegerMultiply(
                                                   Term* AmultiplyB, TermList A, TermList C, TermList& result,
-                                                  bool& swap, Stack<Literal*>& sideConditions)
+                                                  bool& swap)
 {
-    CALL("InterpretedLiteralEvaluator::balanceIntegerMultiply");
-
     // only works if we in the end divid a number by a number
     IntegerConstantType ccon;
     if(!theory->tryInterpretConstant(C,ccon)){ return false; }
@@ -1354,9 +1298,8 @@ bool InterpretedLiteralEvaluator::balanceIntegerMultiply(
 }
 
 bool InterpretedLiteralEvaluator::balanceDivide(Interpretation multiply, 
-                       Term* AoverB, TermList A, TermList C, TermList& result, bool& swap, Stack<Literal*>& sideConditions)
+                       Term* AoverB, TermList A, TermList C, TermList& result, bool& swap)
 {
-    CALL("InterpretedLiteralEvaluator::balanceDivide");
 #if VDEBUG
     TermList srt = theory->getOperationSort(multiply); 
     ASS(srt == AtomicSort::realSort() || srt == AtomicSort::rationalSort());
@@ -1425,7 +1368,6 @@ class LiteralNormalizer
 
 public:
   static Literal* normalize(Literal* in) {
-    CALL("LiteralNormalizer::normalize");
     auto functor = in->functor();
 
     if (theory->isInterpretedPredicate(functor)) {
@@ -1451,7 +1393,6 @@ public:
   }
 };
 TermList InterpretedLiteralEvaluator::evaluate(TermList t) {
-  CALL("InterpretedLiteralEvaluator::evaluate")
   if (t.isTerm())
     t = TermList(BottomUpTermTransformer::transform(t.term()));
   return InterpretedLiteralEvaluator::transformSubterm(t);
@@ -1464,10 +1405,8 @@ TermList InterpretedLiteralEvaluator::evaluate(TermList t) {
  * isConstant is true if the literal predicate evaluates to a constant value
  * resConst is set iff isConstant and gives the constant value (true/false) of resLit 
  */
-bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Literal*& resLit, bool& resConst,Stack<Literal*>& sideConditions)
+bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Literal*& resLit, bool& resConst)
 {
-  CALL("InterpretedLiteralEvaluator::evaluate");
-
   DEBUG( "evaluate ", lit->toString() );
 
   // This tries to transform each subterm using tryEvaluateFunc (see transform Subterm below)
@@ -1476,44 +1415,8 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
                       : lit;
   DEBUG( "\t0 ==> ", resLit->toString() );
 
-  resLit = BottomUpTermTransformer::transform( resLit);
+  resLit = BottomUpTermTransformer::transformLiteral( resLit);
   DEBUG( "\t1 ==> ", resLit->toString() );
-
-//   // If it can be balanced we balance it
-//   // A predicate on constants will not be balancable
-// #if 0
-//   resLit = &Kernel::balance(*resLit);
-// #else // not NEW_BALANCE
-//   if(balancable(resLit)){
-//       Literal* new_resLit=resLit;
-// #if VDEBUG
-//       bool balance_result = 
-// #endif
-//         balance(resLit,new_resLit,sideConditions);
-//       ASS(balance_result || resLit==new_resLit);
-//       resLit=new_resLit;
-//   }
-// #endif
-//   DEBUG( "\t2 ==> ", *resLit );
-
-  // // If resLit contains variables the predicate cannot be interpreted
-  // VariableIterator vit(lit);
-  // if(vit.hasNext()){
-  //   isConstant=false;
-  //   return (lit!=resLit);
-  // }
-  // // If resLit contains uninterpreted functions then it cannot be interpreted
-  // TermFunIterator tit(lit);
-  // ASS(tit.hasNext()); tit.next(); // pop off literal symbol
-  // while(tit.hasNext()){
-  //   unsigned f = tit.next();
-  //   if(!env.signature->getFunction(f)->interpreted()){
-  //     isConstant=false;
-  //     return (lit!=resLit);
-  //   } 
-  // }
-  // _DEBUG( resLit->toString(, " is ground and interpreted, evaluating..." );
-
 
   unsigned pred = resLit->functor();
 
@@ -1528,7 +1431,7 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
 
       case PredEvalResult::Simplified: 
         // resLit = r.simplified_val;
-        resLit = BottomUpTermTransformer::transform(r.simplified_val);
+        resLit = BottomUpTermTransformer::transformLiteral(r.simplified_val);
         break;
 
       case PredEvalResult::Trivial: 
@@ -1555,7 +1458,6 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
  */
 TermList InterpretedLiteralEvaluator::transformSubterm(TermList trm)
 {
-  CALL("InterpretedLiteralEvaluator::transformSubterm");
   // Debug::Tracer::printStack(cout);
 
   // DEBUG( "transformSubterm for ", trm.toString() );
@@ -1583,8 +1485,6 @@ TermList InterpretedLiteralEvaluator::transformSubterm(TermList trm)
 template<class Fn>
 InterpretedLiteralEvaluator::Evaluator* InterpretedLiteralEvaluator::getEvaluator(unsigned functor, DArray<Evaluator*>& evaluators, Fn canEval) 
 {
-  CALL("InterpretedLiteralEvaluator::getEvaluator");
-
   if (functor >= evaluators.size()) {
     unsigned oldSz = evaluators.size();
     unsigned newSz = functor + 1 ;
@@ -1610,7 +1510,6 @@ break_inner:;
  */
 InterpretedLiteralEvaluator::Evaluator* InterpretedLiteralEvaluator::getFuncEvaluator(unsigned func)
 {
-  CALL("InterpretedLiteralEvaluator::getFuncEvaluator");
    return getEvaluator(func, 
        this->_funEvaluators, 
        [] (Evaluator* ev, unsigned i) {return ev->canEvaluateFunc(i); });
@@ -1621,7 +1520,6 @@ InterpretedLiteralEvaluator::Evaluator* InterpretedLiteralEvaluator::getFuncEval
  */
 InterpretedLiteralEvaluator::Evaluator* InterpretedLiteralEvaluator::getPredEvaluator(unsigned pred)
 {
-  CALL("InterpretedLiteralEvaluator::getPredEvaluator");
    return getEvaluator(pred, this->_predEvaluators,
        [] (Evaluator* ev, unsigned i) {return ev->canEvaluatePred(i); });
 }

@@ -13,12 +13,13 @@
  * indexed by unsigned integers.
  *
  * @since 06/01/2004, Manchester
+ * @since 22/08/2023, just ZIArray
  */
 
 #ifndef __MultiCounter__
 #define __MultiCounter__
 
-#include "Debug/Assertion.hpp"
+#include "Lib/Array.hpp"
 
 namespace Lib {
 
@@ -29,83 +30,26 @@ namespace Lib {
 class MultiCounter
 {
 public:
-  /** create an empty collection */
-  MultiCounter()
-    :  _top(0),
-       _counts(0)
-  {}
-
-  ~MultiCounter();
-
-/**
- * Increment the counter number v by one.
- * @since 06/01/2004 Manchester
- */
-  void inc(int v)
-  {
-    if (v >= _top) { // not enough capacity
-      expandToFit(v);
-    }
-    ASS(_counts);
-    _counts[v]++;
-  } // MultiCount::inc
+  /**
+   * Increment the counter number v by one.
+   * @since 06/01/2004 Manchester
+   */
+  void inc(int v) { _counts[v]++; }
 
   /**
    * Decrement the counter number v by one.
    * @since 16/01/2004 Manchester
    */
-  void dec(int v)
-  {
-    if (v >= _top) { // not enough capacity
-      expandToFit(v);
-    }
-    ASS(_counts);
-    _counts[v]--;
-  } // MultiCount::dec
-
-  /**
-   * Set the counter number v to the value c.
-   * @since 16/01/2004 Manchester
-   */
-  void set(int v, int c)
-  {
-    if (v >= _top) { // not enough capacity
-      expandToFit(v);
-    }
-    ASS(_counts);
-    _counts[v] = c;
-  } // MultiCounter::set
+  void dec(int v) { _counts[v]--; }
 
   /** 
    * Get the value of the counter v.
    * @since 16/01/2004 Manchester changed to new representation of variables
    */
-  int get(int v) const
-  {
-    return v < _top ? _counts[v] : 0; 
-  } // MultiCounter::get
-
-  /** 
-   * Get the value of the counter v assuming that this counter
-   * was initialised.
-   * @since 31/03/2006 Redmond
-   */
-  int unsafeGet(int v) const
-  {
-    ASS(v < _top);
-    return _counts[v]; 
-  } // MultiCounter::unsafeGet
-
-  /** Return the last possible counter */
-  int lastCounter() const
-  { return _top-1; }
+  int get(int v) { return _counts[v]; }
 
 private:
-  /** _top-1 is the last positive variable that can be accessed */
-  int _top;
-  /** points to variable 0 */
-  int* _counts;
-  void expandToFit(int v);
+  ZIArray<int> _counts;
 }; // class MultiCounter
 
 }

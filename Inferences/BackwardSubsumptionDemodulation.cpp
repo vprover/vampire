@@ -63,60 +63,24 @@ BackwardSubsumptionDemodulation::BackwardSubsumptionDemodulation()
 
 void BackwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
 {
-  CALL("BackwardSubsumptionDemodulation::attach");
   BackwardSimplificationEngine::attach(salg);
 
-  _index.request(salg->getIndexManager(), SIMPLIFYING_SUBST_TREE);
+  _index.request(salg->getIndexManager(), BACKWARD_SUBSUMPTION_SUBST_TREE);
 }
 
 
 void BackwardSubsumptionDemodulation::detach()
 {
-  CALL("BackwardSubsumptionDemodulation::detach");
   _index.release();
   BackwardSimplificationEngine::detach();
 }
 
 
-template <typename Iterator>
-class STLIterator
-{
-  private:
-    Iterator begin;
-    Iterator end;
-
-  public:
-    using value_type = typename Iterator::value_type;
-    DECL_ELEMENT_TYPE(value_type);
-
-    STLIterator(Iterator begin, Iterator end)
-      : begin(begin), end(end)
-    { }
-
-    bool hasNext() {
-      return begin != end;
-    }
-
-    value_type next() {
-      value_type x = *begin;
-      ++begin;
-      return x;
-    }
-};
-
-template <typename Iterator>
-STLIterator<Iterator> getSTLIterator(Iterator begin, Iterator end)
-{
-  return STLIterator<Iterator>(begin, end);
-}
-
-
 void BackwardSubsumptionDemodulation::perform(Clause* sideCl, BwSimplificationRecordIterator& simplifications)
 {
-  CALL("BackwardSubsumptionDemodulation::perform");
   ASSERT_VALID(*sideCl);
 
-  TimeCounter tc(TC_BACKWARD_SUBSUMPTION_DEMODULATION);
+  TIME_TRACE("backward subsumption demodulation");
 
   simplifications = BwSimplificationRecordIterator::getEmpty();
 
@@ -151,7 +115,7 @@ void BackwardSubsumptionDemodulation::perform(Clause* sideCl, BwSimplificationRe
   Literal* lmLit1 = best2.first.lit();
   Literal* lmLit2 = best2.second.lit();
 
-  static vvector<BwSimplificationRecord> simplificationsStorage;
+  static std::vector<BwSimplificationRecord> simplificationsStorage;
   ASS_EQ(simplificationsStorage.size(), 0);
 
   if (!lmLit1->isEquality() || !lmLit1->isPositive()) {
@@ -170,7 +134,7 @@ void BackwardSubsumptionDemodulation::perform(Clause* sideCl, BwSimplificationRe
 }  // perform
 
 
-void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Literal* candidateQueryLit, vvector<BwSimplificationRecord>& simplifications)
+void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Literal* candidateQueryLit, std::vector<BwSimplificationRecord>& simplifications)
 {
   //   sideCl
   // vvvvvvvvvv
@@ -191,10 +155,10 @@ void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Litera
   bool mustPredActive = false;
   unsigned mustPred;
 
-  SLQueryResultIterator rit = _index->getInstances(candidateQueryLit, false, false);
+  auto rit = _index->getInstances(candidateQueryLit, false, false);
   while (rit.hasNext()) {
-    SLQueryResult qr = rit.next();
-    Clause* candidate = qr.clause;
+    auto qr = rit.next();
+    Clause* candidate = qr.data->clause;
 
     // not enough literals to fit match and rewritten literal (performance)
     if (sideCl->length() > candidate->length()) {
@@ -272,7 +236,7 @@ void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Litera
       bool haveMustPred = false;
       for (unsigned ii = 0; ii < candidate->length(); ++ii) {
         Literal* lit = (*candidate)[ii];
-        if (lit == qr.literal) {
+        if (lit == qr.data->literal) {
           continue;
         }
         unsigned pred = lit->header();
@@ -294,9 +258,9 @@ void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Litera
 
 /// Handles the matching part.
 /// Returns true iff the main premise has been simplified.
-bool BackwardSubsumptionDemodulation::simplifyCandidate(Clause* sideCl, Clause* mainCl, vvector<BwSimplificationRecord>& simplifications)
+bool BackwardSubsumptionDemodulation::simplifyCandidate(Clause* sideCl, Clause* mainCl, std::vector<BwSimplificationRecord>& simplifications)
 {
-    static vvector<LiteralList*> alts;
+    static std::vector<LiteralList*> alts;
 
     alts.clear();
     alts.resize(sideCl->length(), LiteralList::empty());
@@ -419,7 +383,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
   }
 
   // isMatched[i] is true iff (*mainCl)[i] is matched by some literal in sideCl (other than eqLit)
-  static vvector<bool> isMatched;
+  static std::vector<bool> isMatched;
   matcher.getMatchedAltsBitmap(isMatched);
 
   static OverlayBinder binder;
@@ -427,7 +391,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
   matcher.getBindings(binder.base());
 
   // NOTE: for explanation see comments in ForwardSubsumptionDemodulation::perform
-  static vvector<TermList> lhsVector;
+  static std::vector<TermList> lhsVector;
   lhsVector.clear();
   {
     TermList t0 = *eqLit->nthArgument(0);
@@ -451,12 +415,10 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
         RSTAT_MCTR_INC("BSD, lhsVector.size() when INCOMPARABLE", lhsVector.size());
         break;
       case Ordering::GREATER:
-      case Ordering::GREATER_EQ:
         ASS(termContainsAllVariablesOfOtherUnderSubst(t0, t1, applicator));
         lhsVector.push_back(t0);
         break;
       case Ordering::LESS:
-      case Ordering::LESS_EQ:
         ASS(termContainsAllVariablesOfOtherUnderSubst(t1, t0, applicator));
         lhsVector.push_back(t1);
         break;
@@ -492,7 +454,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
     ASS(!env.options->combinatorySup());
     NonVariableNonTypeIterator nvi(dlit);
     while (nvi.hasNext()) {
-      TermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'
+      TypedTermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'
 
       if (!attempted.insert(lhsS)) {
         // We have already tried to demodulate the term lhsS and did not
@@ -503,7 +465,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
         continue;
       }
 
-      TermList const lhsSSort = SortHelper::getTermSort(lhsS, dlit);
+      TermList const lhsSSort = lhsS.sort();
 
       ASS_LE(lhsVector.size(), 2);
       for (TermList lhs : lhsVector) {
@@ -603,7 +565,6 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
             }
           }
           Ordering::Result r_cmp_t = ordering.compare(rhsS, t);
-          ASS_NEQ(r_cmp_t, Ordering::LESS_EQ);  // NOTE: LESS_EQ doesn't seem to occur in the code currently. It is unclear why the ordering is not simplified to LESS, EQUAL and GREATER.
           if (r_cmp_t == Ordering::LESS) {
             // rhsS < t implies eqLitS < dlit
             ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);
@@ -661,47 +622,45 @@ isRedundant:
           return true;
         }
 
-        Clause* newCl = new(mainCl->length()) Clause(mainCl->length(),
-            SimplifyingInference2(InferenceRule::BACKWARD_SUBSUMPTION_DEMODULATION, mainCl, sideCl));
+        RStack<Literal*> resLits;
 
         for (unsigned i = 0; i < mainCl->length(); ++i) {
           if (i == dli) {
-            (*newCl)[i] = newLit;
+            resLits->push(newLit);
           } else {
-            (*newCl)[i] = (*mainCl)[i];
+            resLits->push((*mainCl)[i]);
           }
         }
 
         env.statistics->backwardSubsumptionDemodulations++;
 
-        replacement = newCl;
+        replacement = Clause::fromStack(*resLits,
+            SimplifyingInference2(InferenceRule::BACKWARD_SUBSUMPTION_DEMODULATION, mainCl, sideCl));
 
 #if BSD_LOG_INFERENCES
-        env.beginOutput();
-        env.out() << "\% Begin Inference \"BSD-" << newCl->number() << "\"\n";
-        env.out() << "\% eqLit: " << eqLit->toString() << "\n";
-        env.out() << "\% eqLitS: " << binder.applyTo(eqLit)->toString() << "\n";
-        env.out() << "\% dlit: " << dlit->toString() << "\n";
-        // env.out() << "\% numMatches+1: success at match #" << (numMatches+1) << "\n";
+        std::cout << "\% Begin Inference \"BSD-" << replacement->number() << "\"\n";
+        std::cout << "\% eqLit: " << eqLit->toString() << "\n";
+        std::cout << "\% eqLitS: " << binder.applyTo(eqLit)->toString() << "\n";
+        std::cout << "\% dlit: " << dlit->toString() << "\n";
+        // std::cout << "\% numMatches+1: success at match #" << (numMatches+1) << "\n";
         TPTPPrinter tptp;
-        // NOTE: do not output the splitLevels here, because those will be set for newCl only later
+        // NOTE: do not output the splitLevels here, because those will be set for replacement only later
         tptp.printWithRole("side_premise", "hypothesis", sideCl, false);
         tptp.printWithRole("main_premise", "hypothesis", mainCl, false);
-        tptp.printWithRole("conclusion  ", "conjecture", newCl, false);
+        tptp.printWithRole("conclusion  ", "conjecture", replacement, false);
         // TODO: Some problems (seems to be only the CSR category; it happens, e.g., in CSR104+4)
         //       use integer constants as sort $i but vampire parses them as $int when using tff.
         //       For these formulas we should use fof, then it works again.
         //       Problem: how to detect that situation??
         //       probably if the input only contains FOF and no TFF
         // TODO: Also don't output type defs for $$false and $$true, see problem SYO091^5.p
-        env.out() << "\% End Inference \"BSD-" << newCl->number() << "\"" << std::endl;
-        env.endOutput();
+        std::cout << "\% End Inference \"BSD-" << replacement->number() << "\"" << std::endl;
 #endif
 
 #if VDEBUG && BSD_VDEBUG_REDUNDANCY_ASSERTIONS
         if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {  // see note above
-          // Check newCl < mainCl.
-          ASS(SDHelper::clauseIsSmaller(newCl, mainCl, ordering));
+          // Check replacement < mainCl.
+          ASS(SDHelper::clauseIsSmaller(replacement, mainCl, ordering));
         }
 #endif
 

@@ -52,7 +52,6 @@ public:
   /** Deallocate the BinaryHeap */
   ~BinaryHeap()
   {
-    CALL("BinaryHeap::~BinaryHeap");
     if(_data) {
       T* ep=_data+_size;
       while(ep!=_data1) {
@@ -93,10 +92,9 @@ public:
   inline
   void insert(T obj)
   {
-    CALL("BinaryHeap::insert");
     ensureAvaiablePosition();
     _size++;
-    new(&_data1[_size]) T(obj);
+    ::new (&_data1[_size]) T(obj);
     bubbleUp(_size);
   }
 
@@ -112,7 +110,6 @@ public:
   inline
   T pop()
   {
-    CALL("BinaryHeap::pop");
     ASS(!isEmpty());
     T res=_data[0];
     _size--;
@@ -129,7 +126,6 @@ public:
   inline
   T popWithAllEqual()
   {
-    CALL("BinaryHeap::pop");
     T res=pop();
     while(!isEmpty() && Comparator::compare(res, top())==EQUAL) {
       pop();
@@ -139,7 +135,6 @@ public:
 
   T backtrackablePop(unsigned& lastBubbleIndex)
   {
-    CALL("BinaryHeap::backtrackablePop(unsigned&)");
     ASS(!isEmpty());
     T res=_data[0];
     _size--;
@@ -155,7 +150,6 @@ public:
   inline
   T backtrackablePop(BacktrackData& bd)
   {
-    CALL("BinaryHeap::backtrackablePop(BacktrackData&)");
     unsigned lastBubbleIndex;
     T res=backtrackablePop(lastBubbleIndex);
     bd.addBacktrackObject(
@@ -165,16 +159,14 @@ public:
 
   unsigned backtrackableInsert(T obj)
   {
-    CALL("BinaryHeap::backtrackableInsert(T,unsigned&)");
     ensureAvaiablePosition();
     _size++;
-    new(&_data1[_size]) T(obj);
+    ::new (&_data1[_size]) T(obj);
     return bubbleUp(_size);
   }
   inline
   void backtrackableInsert(T obj, BacktrackData& bd)
   {
-    CALL("BinaryHeap::backtrackableInsert(T,BacktrackData&)");
     unsigned lastBubbleIndex=backtrackableInsert(obj);
     bd.addBacktrackObject(
 	    new BHInsertBacktrackObject(this, lastBubbleIndex));
@@ -204,7 +196,7 @@ public:
     //_lastBubbleIndex is the current index of the formerly last
     //element.
     _size++;
-    new(&_data1[_size]) T(val);
+    ::new (&_data1[_size]) T(val);
     std::swap(_data1[_size], _data1[lastBubbleIndex]);
     //Now at the position _lastBubbleIndex is the smallest element
     //of the heap, so we know that it will bubble up to the first
@@ -220,12 +212,8 @@ public:
    * Iterator on elements in the heap. It yields elements
    * in no particular order.
    */
-  struct Iterator
-  : public PointerIterator<T>
-  {
-    Iterator(const BinaryHeap& obj)
-    : PointerIterator<T>(obj._data, obj._data+obj._size) {}
-  };
+  auto iter() const 
+  { return arrayIter(_data, _size); }
 
 private:
   class BHPopBacktrackObject
@@ -238,7 +226,6 @@ private:
     {
       _bh->backtrackPop(_val,_lastBubbleIndex);
     }
-    CLASS_NAME(BinaryHeap::BHPopBacktrackObject);
     USE_ALLOCATOR(BHPopBacktrackObject);
   private:
     BinaryHeap* _bh;
@@ -256,7 +243,6 @@ private:
     {
       _bh->backtrackInsert(_lastBubbleIndex);
     }
-    CLASS_NAME(BinaryHeap::BHInsertBacktrackObject);
     USE_ALLOCATOR(BHInsertBacktrackObject);
   private:
     BinaryHeap* _bh;
@@ -272,7 +258,6 @@ private:
    * at @b index wrt its ancestors, and return its new index. */
   unsigned bubbleUp(unsigned index)
   {
-    CALL("BinaryHeap::bubbleUp");
     ASS(index>0 && index<=_size);
     unsigned nextIndex=index>>1;
     while(nextIndex) {
@@ -291,7 +276,6 @@ private:
    * at @b index wrt its descendants, and return its new index. */
   unsigned bubbleDown(unsigned index)
   {
-    CALL("BinaryHeap::bubbleDown");
     ASS(index>0 && index<=_size);
     unsigned nextIndex=index<<1;
     while(nextIndex<=_size) {
@@ -329,8 +313,6 @@ private:
    */
   void expand()
   {
-    CALL("BinaryHeap::expand");
-
     ASS(_capacity==_size);
 
     unsigned oldCapacity=_capacity;
@@ -346,7 +328,7 @@ private:
       T* otp = oldData+_size;
       T* ntp = _data+_size;
       do {
-	new(--ntp) T(*(--otp));
+	::new (--ntp) T(*(--otp));
 	//because oldCapacity==_size, we destroy all elements of oldData array here
 	otp->~T();
       } while(ntp!=_data);

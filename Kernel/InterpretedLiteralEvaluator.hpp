@@ -31,13 +31,10 @@ class InterpretedLiteralEvaluator
   :  private BottomUpTermTransformer 
 {
 public:
-  CLASS_NAME(InterpretedLiteralEvaluator);
-  USE_ALLOCATOR(InterpretedLiteralEvaluator);
-  
   InterpretedLiteralEvaluator(bool doNormalize = true);
   ~InterpretedLiteralEvaluator();
 
-  bool evaluate(Literal* lit, bool& isConstant, Literal*& resLit, bool& resConst,Stack<Literal*>& sideConditions);
+  bool evaluate(Literal* lit, bool& isConstant, Literal*& resLit, bool& resConst);
   TermList evaluate(TermList);
 protected:
   class Evaluator;
@@ -60,7 +57,7 @@ protected:
   DArray<Evaluator*> _predEvaluators;
 
   bool balancable(Literal* lit);
-  bool balance(Literal* lit,Literal*& res,Stack<Literal*>& sideConditions);
+  bool balance(Literal* lit,Literal*& res);
   
   // take AplusB, A and C and let result=C-B, AplusB might actually be BplusA
   bool balancePlus(Interpretation plus, Interpretation unaryMinus, Term* AplusB, TermList A, TermList C, TermList& result);
@@ -71,18 +68,15 @@ protected:
   template<typename ConstantType>
   bool balanceMultiply(Interpretation divide,ConstantType zero,             
                        Term* AmultiplyB, TermList A, TermList C, TermList& result,
-                       bool& swap, Stack<Literal*>& sideConditions);
+                       bool& swap);
 
-  bool balanceIntegerMultiply(
-                                                  Term* AmultiplyB, TermList A, TermList C, TermList& result,
-                                                  bool& swap, Stack<Literal*>& sideConditions);
+  bool balanceIntegerMultiply(Term* AmultiplyB, TermList A, TermList C, TermList& result, bool& swap);
 
   // take AoverB, A and C and let result=C*B, AoverB must be that way round
   // ignore the case of BoverA for now
   // rat and real versions only
   // like above, need to consider polairty of B
-  bool balanceDivide(Interpretation multiply, 
-                       Term* AmultiplyB, TermList A, TermList C, TermList& result, bool& swap, Stack<Literal*>& sideConditions);
+  bool balanceDivide(Interpretation multiply, Term* AmultiplyB, TermList A, TermList C, TermList& result, bool& swap);
   
 private:
   template<class Fn>

@@ -15,156 +15,57 @@
 #ifndef __Forwards__
 #define __Forwards__
 
-#include "Lib/VString.hpp"
-
-typedef void (*VoidFunc)();
+#include <memory>
 
 namespace Lib
 {
-
-template<typename C>
-struct Relocator
-{
-  static void relocate(C* oldAddr, void* newAddr)
-  {
-    new(newAddr) C( *oldAddr );
-    oldAddr->~C();
-  }
-  
-};
-  
 struct EmptyStruct {};
 
-class Hash;
-struct IdentityHash;
-
 template<typename T> class VirtualIterator;
-
-typedef VirtualIterator<int> IntIterator;
-typedef VirtualIterator<unsigned> UnsignedIterator;
 
 template<typename T> class ScopedPtr;
 template<typename T> class SmartPtr;
 
-template<class T> class RCPtr;
-
 template<typename T> class SingleParamEvent;
+
 template<class C> class DArray;
 template<class C> class Stack;
 template<class C> class Vector;
 template<typename T> class List;
-template<typename T, class Comparator> class BinaryHeap;
 template<typename T> class SharedSet;
 
-template <typename Key, typename Val,class Hash=Lib::Hash> class Map;
-template<class A, class B, class HashA = Lib::Hash, class HashB = Lib::Hash> class BiMap; 
-
-template<typename T, template<class> class ref_t> class ArrayishObjectIterator;
-template<typename T> class ArrayMap;
-template<typename C> class Vector;
-
-class ArraySet;
-
 typedef List<int> IntList;
-typedef List<VoidFunc> VoidFuncList;
+typedef Stack<std::string> StringStack;
 
-typedef Stack<vstring> StringStack;
-
-typedef Map<vstring,unsigned,Hash> SymbolMap;
-
-template<typename T, typename=void> struct SecondaryHash;
-/**
- * Second hash for DHMap and DHMultiset classes.
- */
-#define SECONDARY_HASH(Cl) typename SecondaryHash<Cl>::Type
-
-//There is a bug (what else can it be?) in the VS2008 compiler that
-//requires the name of the template parameter in the declaration to
-//be the same as the name of the parameter used in definition, as
-//long as the parameter is used in another parameter's default value.
-//
-//E.g. if the first parameter name here would be K instead of Key, we
-//would get a compiler error, because in the Lib/DHMap.hpp file the
-//definition of the class starts with
-//template <typename Key, typename Val, class Hash1, class Hash2> class DHMap
-//                   ^^^
-template <typename Key, typename Val, class Hash1=Hash, class Hash2=SECONDARY_HASH(Key)> class DHMap;
-template <typename Val, class Hash1=Hash, class Hash2=SECONDARY_HASH(Val)> class DHSet;
-template <typename K,typename V, class Hash1=Hash, class Hash2=SECONDARY_HASH(K)> class MapToLIFO;
-template <typename Val, class Hash1=Hash, class Hash2=SECONDARY_HASH(Val)> class DHMultiset;
-template <typename Val,class Hash=Lib::Hash> class Set;
-
-
-template <typename Value,class ValueComparator> class SkipList;
-
-template<typename T> class PointerIterator;
-
-class BacktrackData;
-
-class Timer;
-
-namespace Sys
-{
-class Semaphore;
-class SyncPipe;
-}
+class DefaultHash;
+class DefaultHash2;
+template <typename Key, typename Val,class Hash=DefaultHash> class Map;
+template<class A, class B, class HashA=DefaultHash, class HashB=DefaultHash> class BiMap;
+template <typename Key, typename Val, class Hash1=DefaultHash, class Hash2=DefaultHash2> class DHMap;
+template <typename Val, class Hash1=DefaultHash, class Hash2=DefaultHash2> class DHSet;
+template <typename Val, class Hash1=DefaultHash, class Hash2=DefaultHash2> class DHMultiset;
+template <typename Val, class Hash=DefaultHash> class Set;
 };
 
 namespace Kernel
 {
 using namespace Lib;
 
-class IntegerConstantType;
-struct RationalConstantType;
-class RealConstantType;
-
-/** Index of a variable */
-typedef unsigned Var;
-
-struct BoundId
-{
-  Var var;
-  bool left;
-
-  /** Create uninitialized BoundId */
-  BoundId() {}
-  BoundId(Var var, bool left) : var(var), left(left) {}
-
-  BoundId operator-() const { return BoundId(var, !left); }
-};
-
-class CoeffNumber;
-class BoundNumber;
-
-class Constraint;
-class Assignment;
-
-class V2CIndex;
-
-class Sorts;
 class Signature;
 
-typedef VirtualIterator<Var> VarIterator;
-typedef RCPtr<Constraint> ConstraintRCPtr;
-typedef List<Constraint*> ConstraintList;
-typedef List<ConstraintRCPtr> ConstraintRCList;
-typedef VirtualIterator<Constraint*> ConstraintIterator;
-typedef Stack<Constraint*> ConstraintStack;
-typedef Stack<ConstraintRCPtr> ConstraintRCStack;
-
+class Term;
 class TermList;
 typedef VirtualIterator<TermList> TermIterator;
 typedef Stack<TermList> TermStack;
 
+struct SubstApplicator;
+struct AppliedTerm;
+
 typedef List<unsigned> VList; // a list of variables (which are unsigned)
 typedef List<TermList> SList; // a list of sorts (which are now, with polymorphism, TermLists)
+typedef const SharedSet<unsigned> VarSet;
 
-typedef std::pair<std::pair<TermList,unsigned>,std::pair<TermList,unsigned>> UnificationConstraint;
-typedef Stack<UnificationConstraint> UnificationConstraintStack;
-typedef Lib::SmartPtr<UnificationConstraintStack> UnificationConstraintStackSP;
 
-class Term;
-typedef BiMap<unsigned, Term*> FuncSubtermMap;
 class Literal;
 typedef List<Literal*> LiteralList;
 typedef Stack<Literal*> LiteralStack;
@@ -184,18 +85,13 @@ typedef VirtualIterator<Formula*> FormulaIterator;
 typedef Stack<Formula*> FormulaStack;
 
 class Clause;
-/** Defined as VirtualIterator<Clause*> */
 typedef VirtualIterator<Clause*> ClauseIterator;
 typedef SingleParamEvent<Clause*> ClauseEvent;
 typedef List<Clause*> ClauseList;
 typedef Stack<Clause*> ClauseStack;
 
-typedef VirtualIterator<Literal*> LiteralIterator;
-
-
 class Problem;
 
-class FlatTerm;
 class Renaming;
 class Substitution;
 
@@ -206,29 +102,15 @@ typedef Lib::SmartPtr<RobSubstitution> RobSubstitutionSP;
 class Matcher;
 typedef VirtualIterator<Matcher*> MatchIterator;
 
-class TermTransformer;
-class BottomUpTermTransformer;
-class FormulaTransformer;
-class FormulaUnitTransformer;
-
 class LiteralSelector;
-typedef Lib::SmartPtr<LiteralSelector> LiteralSelectorSP;
 
 class Ordering;
 typedef Lib::SmartPtr<Ordering> OrderingSP;
-
-class Grounder;
-class GlobalSubsumptionGrounder;
-class IGGrounder;
-typedef Lib::ScopedPtr<Grounder> GrounderSCP;
-
-class BDD;
-class BDDNode;
+struct OrderingComparator;
+typedef std::unique_ptr<OrderingComparator> OrderingComparatorUP;
 
 typedef unsigned SplitLevel;
 typedef const SharedSet<SplitLevel> SplitSet;
-
-typedef const SharedSet<unsigned> VarSet;
 
 /**
  * Color of a term
@@ -248,14 +130,7 @@ enum Color {
   COLOR_INVALID = 3u
 };
 
-class MainLoop;
-typedef Lib::SmartPtr<MainLoop> MainLoopSP;
-
-
-namespace Algebra
-{
-class ArithmeticKB;
-};
+enum class SymbolType{FUNC, PRED, TYPE_CON};
 
 };
 
@@ -263,75 +138,36 @@ namespace Indexing
 {
 class Index;
 class IndexManager;
+template<class Data>
 class LiteralIndex;
-class LiteralIndexingStructure;
+template<class Data>
 class TermIndex;
+template<class Data>
 class TermIndexingStructure;
-class ClauseSubsumptionIndex;
 
 class TermSharing;
 
 class ResultSubstitution;
 typedef Lib::SmartPtr<ResultSubstitution> ResultSubstitutionSP;
-
-struct SLQueryResult;
-struct TermQueryResult;
-
-class GeneratingLiteralIndex;
-class SimplifyingLiteralIndex;
-class UnitClauseLiteralIndex;
-class FwSubsSimplifyingLiteralIndex;
-
-class SubstitutionTree;
-class LiteralSubstitutionTree;
-
-class CodeTree;
-class TermCodeTree;
-class ClauseCodeTree;
-
-class CodeTreeTIS;
-class CodeTreeLIS;
-class CodeTreeSubsumptionIndex;
-
-class ConstraintDatabase;
 };
 
 namespace Saturation
 {
 class SaturationAlgorithm;
-typedef Lib::SmartPtr<SaturationAlgorithm> SaturationAlgorithmSP;
 
 class ClauseContainer;
 class UnprocessedClauseContainer;
-
 class PassiveClauseContainer;
-typedef Lib::SmartPtr<PassiveClauseContainer> PassiveClauseContainerSP;
-
 class ActiveClauseContainer;
-
-class Splitter;
-class ConsequenceFinder;
-class LabelFinder;
-class SymElOutput;
 }
 
 namespace Inferences
 {
 class InferenceEngine;
-
 class GeneratingInferenceEngine;
-typedef Lib::SmartPtr<GeneratingInferenceEngine> GeneratingInferenceEngineSP;
-
 class ImmediateSimplificationEngine;
-typedef Lib::SmartPtr<ImmediateSimplificationEngine> ImmediateSimplificationEngineSP;
-
 class ForwardSimplificationEngine;
-typedef Lib::SmartPtr<ForwardSimplificationEngine> ForwardSimplificationEngineSP;
-
 class BackwardSimplificationEngine;
-typedef Lib::SmartPtr<BackwardSimplificationEngine> BackwardSimplificationEngineSP;
-
-class BDDMarkingSubsumption;
 }
 
 namespace SAT
@@ -341,84 +177,21 @@ using namespace Lib;
 class SATClause;
 class SATLiteral;
 class SATInference;
-
 class SATSolver;
-typedef ScopedPtr<SATSolver> SATSolverSCP;
 
 typedef VirtualIterator<SATClause*> SATClauseIterator;
 typedef List<SATClause*> SATClauseList;
 typedef Stack<SATClause*> SATClauseStack;
-
-typedef VirtualIterator<SATLiteral> SATLiteralIterator;
 typedef Stack<SATLiteral> SATLiteralStack;
-
 }
 
 namespace Shell
 {
-class AnswerLiteralManager;
-class LaTeX;
 class Options;
 class Property;
 class Statistics;
-
-class EPRRestoring;
-class EPRInlining;
-
-namespace LTB
-{
-class Storage;
-class Builder;
-class Selector;
+class FunctionDefinitionHandler;
+class ConditionalRedundancyHandler;
+struct ConditionalRedundancyEntry;
 }
-}
-
-
-namespace InstGen
-{
-class IGAlgorithm;
-class ModelPrinter;
-}
-
-namespace DP
-{
-class DecisionProcedure;
-class ScopedDecisionProcedure;
-}
-
-/**
- * Deletion of incomplete class types causes memory leaks. Using this
- * causes compile error when deleting incomplete classes.
- *
- * (see http://www.boost.org/doc/libs/1_36_0/libs/utility/checked_delete.html )
- */
-template<class T> inline void checked_delete(T * x)
-{
-    CALL("Forwards/checked_delete");
-    // intentionally complex - simplification causes regressions
-    typedef char type_must_be_complete[ sizeof(T)? 1: -1 ];
-    (void) sizeof(type_must_be_complete);
-    delete x;
-}
-
-namespace Solving
-{
-using namespace Lib;
-
-/**
- * Represents number of decision points at a given moment.
- * Negative values have special meaning depending on where they occur.
- */
-typedef int DecisionLevel;
-
-class AssignmentSelector;
-class VariableSelector;
-class Solver;
-class BoundsArray;
-class BoundInfo;
-
-typedef Stack<BoundInfo> BoundStack;
-}
-
-
 #endif /* __Forwards__ */

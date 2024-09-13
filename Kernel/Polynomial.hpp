@@ -28,7 +28,6 @@
  * MonomFactor     ::= PolyNf int                   // the term of the factor, and its power
  */
 
-#include "Lib/STLAllocator.hpp"
 #include "Kernel/NumTraits.hpp"
 #include <cassert>
 #include "Lib/Coproduct.hpp"
@@ -38,9 +37,8 @@
 #include "Lib/Perfect.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Kernel/TypedTermList.hpp"
 #include <type_traits>
-#include "Kernel/BottomUpEvaluation.hpp"
-#include "Kernel/BottomUpEvaluation/TypedTermList.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
@@ -134,7 +132,6 @@ class AnyPoly;
 template<class Number> 
 struct Monom 
 {
-  CLASS_NAME(Monom)
   USE_ALLOCATOR(Monom)
 
   using Numeral = typename Number::ConstantType;
@@ -161,7 +158,6 @@ class FuncTerm
   FuncId _fun;
   Stack<PolyNf> _args;
 public:
-  CLASS_NAME(FuncTerm)
   USE_ALLOCATOR(FuncTerm)
 
   FuncTerm(FuncId f, Stack<PolyNf>&& args);
@@ -231,7 +227,6 @@ using PolyNfSuper = Lib::Coproduct<Perfect<FuncTerm>, Variable, AnyPoly>;
 class PolyNf : public PolyNfSuper
 {
 public:
-  CLASS_NAME(PolyNf)
 
   PolyNf(Perfect<FuncTerm> t);
   PolyNf(Variable               t);
@@ -292,7 +287,6 @@ public:
 template<class Number> 
 struct MonomFactor 
 {
-  CLASS_NAME(MonomFactor)
   PolyNf term;
   int power;
 
@@ -318,7 +312,6 @@ class MonomFactors
   friend struct std::hash<MonomFactors>;
 
 public:
-  CLASS_NAME(MonomFactors)
   USE_ALLOCATOR(MonomFactors)
 
   /** 
@@ -373,11 +366,9 @@ public:
   MonomFactors replaceTerms(PolyNf* simplifiedTerms) const;
 
 
-  /** an iterator over all factors */
-  using FactorIter = IterTraits<ArrayishObjectIterator<typename std::remove_reference<decltype(_factors)>::type, no_ref_t>>;
-
   /** returns an iterator over all factors */
-  FactorIter iter() const&;
+  auto iter() const&
+  { return arrayIter(_factors); }
 
   explicit MonomFactors(const MonomFactors&) = default;
   explicit MonomFactors(MonomFactors&) = default;
@@ -407,7 +398,6 @@ class Polynom
 
 public:
   USE_ALLOCATOR(Polynom)
-  CLASS_NAME(Polynom)
 
   /** 
    * constructs a new Polynom with a list of summands 
@@ -471,11 +461,9 @@ public:
   /** integrity check of the data structure. does noly have an effect in debug mode */
   void integrity() const;
 
-  /** an iterator over all summands of this Polyom */
-  using SummandIter = IterTraits<ArrayishObjectIterator<typename std::remove_reference<decltype(_summands)>::type, no_ref_t>>;
-
   /** returns iterator over all summands of this Polyom */
-  SummandIter iterSummands() const&;
+  auto iterSummands() const&
+  { return arrayIter(_summands); }
 
   Stack<Monom>& raw();
 
@@ -504,7 +492,7 @@ IterTraits<IterArgsPnf> iterArgsPnf(Literal* lit);
 } // namespace Kernel
 
 // include needs to go here, since we need the specialization BottomUpChildIter<PolyNf> to declare Iter
-#include "Kernel/BottomUpEvaluation/PolyNf.hpp"
+#include "Kernel/BottomUpEvaluation.hpp"
 
 namespace Kernel {
 
@@ -684,13 +672,6 @@ Option<typename NumTraits::ConstantType> AnyPoly::tryNumeral() const&
 
 } // namespace Kernel
 
-template<> struct std::less<Kernel::AnyPoly> 
-{
-  bool operator()(Kernel::AnyPoly const& lhs, Kernel::AnyPoly const& rhs) const 
-  { return PolymorphicCoproductOrdering<std::less>{}(lhs,rhs); }
-};
-
-
 template<> struct std::hash<Kernel::AnyPoly> 
 {
   size_t operator()(Kernel::AnyPoly const& self) const 
@@ -789,10 +770,10 @@ struct std::hash<Kernel::MonomFactor<NumTraits>>
 {
   size_t operator()(Kernel::MonomFactor<NumTraits> const& x) const noexcept 
   {
-    using namespace Lib;
-    using namespace Kernel;
-
-    return HashUtils::combine(stlHash(x.term), stlHash(x.power));
+    return HashUtils::combine(
+      StlHash::hash(x.term),
+      StlHash::hash(x.power)
+    );
   }
 };
 
@@ -892,8 +873,6 @@ bool operator==(const MonomFactors<Number>& l, const MonomFactors<Number>& r) {
 template<class Number>
 TermList MonomFactors<Number>::denormalize(TermList* results)  const
 {
-  CALL("MonomFactors::denormalize()")
-
   if (_factors.size() == 0) {
     return Number::one();
   } else {
@@ -958,10 +937,6 @@ MonomFactors<Number> MonomFactors<Number>::replaceTerms(PolyNf* simplifiedTerms)
   return out;
 }
 
-template<class Number>
-typename MonomFactors<Number>::FactorIter MonomFactors<Number>::iter() const&
-{ return iterTraits(getArrayishObjectIterator<no_ref_t>(_factors)); }
-
 } // namespace Kernel
 
 template<class NumTraits>
@@ -969,14 +944,7 @@ struct std::hash<Kernel::MonomFactors<NumTraits>>
 {
   size_t operator()(Kernel::MonomFactors<NumTraits> const& x) const noexcept 
   {
-    using namespace Lib;
-    using namespace Kernel;
-
-    unsigned out = HashUtils::combine(84586,10);
-    for (auto f : x._factors) {
-      out = HashUtils::combine(stlHash(f), out);
-    }
-    return out;
+    return StackHash<StlHash>::hash(x._factors);
   }
 };
 
@@ -1076,8 +1044,6 @@ typename Number::ConstantType Polynom<Number>::unwrapNumber() const&
 template<class Number>
 TermList Polynom<Number>::denormalize(TermList* results) const
 {
-  CALL("Polynom::denormalize()")
-
   auto monomToTerm = [](Monom const& monom, TermList* t) -> TermList {
     auto c = TermList(theory->representConstant(monom.numeral));
     if (monom.factors->isOne()) {
@@ -1117,7 +1083,6 @@ Stack<Monom<Number>>& Polynom<Number>::raw()
 template<class Number>
 Polynom<Number> Polynom<Number>::replaceTerms(PolyNf* simplifiedTerms) const 
 {
-  CALL("Polynom::replaceTerms(PolyNf*)")
   int offs = 0;
   Stack<Monom> out;
   out.reserve(nSummands());
@@ -1165,10 +1130,6 @@ void Polynom<Number>::integrity() const {
 #endif
 }
 
-template<class Number>
-typename Polynom<Number>::SummandIter Polynom<Number>::iterSummands() const&
-{ return iterTraits(getArrayishObjectIterator<no_ref_t>(_summands)); }
-
 
 template<class Number> 
 TermList Polynom<Number>::denormalize()  const
@@ -1187,9 +1148,10 @@ struct std::hash<Kernel::Polynom<NumTraits>>
     unsigned out = HashUtils::combine(0,0);
     for (auto c : x._summands) {
       out = HashUtils::combine(
-              stlHash(c.factors),
-              stlHash(c.numeral),
-              out);
+        StlHash::hash(c.factors),
+        StlHash::hash(c.numeral),
+        out
+      );
     }
     return out;
   }

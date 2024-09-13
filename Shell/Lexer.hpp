@@ -24,7 +24,6 @@
 
 #include "Token.hpp"
 
-using namespace std;
 using namespace Lib;
 
 
@@ -36,15 +35,15 @@ class Lexer;
  * Class LexerException. Implements lexer exceptions.
  * @since 14/07/2004 Turku
  */
-class LexerException 
-  : public Exception
+class LexerException
+  : public ParsingRelatedException
 {
- public:                                
-  LexerException(vstring message,const Lexer&);
-  void cry(ostream&) const;
+ public:
+  LexerException(std::string message,const Lexer&);
+  void cry(std::ostream&) const;
   ~LexerException() {}
  protected:
-  vstring _message;
+  std::string _message;
 }; // LexerException
 
 
@@ -52,10 +51,10 @@ class LexerException
  * Class Lexer, implements a generic lexer.
  * @since 27/07/2004 Torrevieja
  */
-class Lexer 
+class Lexer
 {
 public:
-  Lexer(istream& in);
+  Lexer(std::istream& in);
   /** True if the lexer is at the end of file */
   bool isAtEndOfFile () const { return _eof; }
   /** Return the last character */

@@ -35,10 +35,19 @@ using namespace Shell;
 
 class SMTLIB2 {
 public:
-  SMTLIB2(const Options& opts);
+  /**
+   * @brief Construct a new SMTLIB2 parser
+   *
+   * @param formulaBuffer is FIFO to which newly parsed Formulas will be added (via pushBack);
+   *
+   *  if left unspeficied, and empty fifo is created and used instead.
+   *  (use this default behaviour if you do not want to collect formulas
+   *  from multiple parser calls)
+   */
+  SMTLIB2(UnitList::FIFO formulaBuffer = UnitList::FIFO());
 
   /** Parse from an open stream */
-  void parse(istream& str);
+  void parse(std::istream& str);
   /** Parse a ready lisp expression */
   void parse(LExpr* bench);
 
@@ -50,7 +59,9 @@ public:
    *
    *  We don't know what the conjecture is.
    **/
-  UnitList* getFormulas() const { return _formulas; }
+  UnitList* getFormulas() const { return _formulas.list(); }
+  /** Return the current formulaBuffer (on top of getFormulas() you also get a pointer to the last added unit in constant time). */
+  UnitList::FIFO formulaBuffer() const { return _formulas; }
 
   /**
    * Return the parsed logic (or LO_INVALID if not set).
@@ -59,7 +70,7 @@ public:
     return _logic;
   }
 
-  const vstring& getStatus() const {
+  const std::string& getStatus() const {
     return _statusStr;
   }
 
@@ -70,7 +81,7 @@ private:
   /**
    * Maps a string to a SmtlibLogic value.
    */
-  static SMTLIBLogic getLogicFromString(const vstring& str);
+  static SMTLIBLogic getLogicFromString(const std::string& str);
 
   /**
    * Have we seen "set-logic" entry yet?
@@ -93,47 +104,17 @@ private:
   /**
    * Handle "set-logic" entry.
    */
-  void readLogic(const vstring& logicStr);
+  void readLogic(const std::string& logicStr);
 
   /** Content of the ":status: info entry. */
-  vstring _statusStr;
+  std::string _statusStr;
   /** Content of the ":source: info entry. */
-  vstring _sourceInfo;
-
-  enum BuiltInSorts
-  {
-    BS_ARRAY,
-    BS_BOOL,
-    BS_INT,
-    BS_REAL,
-
-    BS_INVALID
-  };
-  static const char * s_builtInSortNameStrings[];
-
-  /**
-   * Maps smtlib built-in sort name to BuiltInSorts value.
-   */
-  static BuiltInSorts getBuiltInSortFromString(const vstring& str);
-
-  /**
-   * Test string for being either a built-in sort
-   * or a sort already declared or defined within this parser object.
-   */
-  bool isAlreadyKnownSortSymbol(const vstring& name);
-
-  /** Maps smtlib name of a declared sort to its arity.
-   *
-   * Declared sorts are just names with arity-many "argument slots".
-   * However, this is just a way to make new sorts from old ones.
-   * There is no implied semantic relation to the argument sorts.
-   */
-  DHMap<vstring,unsigned> _declaredSorts;
+  std::string _sourceInfo;
 
   /**
    * Handle "declare-sort" entry.
    */
-  void readDeclareSort(const vstring& name, const vstring& arity);
+  void readDeclareSort(const std::string& name, const std::string& arity);
 
   /**
    * Sort definition is a macro (with arguments) for a complex sort expression.
@@ -156,20 +137,17 @@ private:
   /**
    * Maps smtlib name of a defined sort to its SortDefinition struct.
    */
-  DHMap<vstring,SortDefinition> _sortDefinitions;
+  DHMap<std::string,SortDefinition> _sortDefinitions;
 
   /**
    * Handle "define-sort" entry.
    */
-  void readDefineSort(const vstring& name, LExprList* args, LExpr* body);
+  void readDefineSort(const std::string& name, LExprList* args, LExpr* body);
 
   /**
-   * Take an smtlib sort expression, evaluate it in the context of previous
-   * sort declarations and definitions,
-   * register any missing sort in vampire and return vampire's sort id
-   * corresponding to the give expression.
+   * Helper funtion to check that a parsed sort is indeed a sort.
    */
-  TermList declareSort(LExpr* sExpr);
+  TermList parseSort(LExpr* sExpr);
 
   /**
    * Some built-in symbols represent functions with result of sort Bool.
@@ -191,6 +169,7 @@ private:
     FS_IS_INT,
     FS_NOT,
     FS_OR,
+    FS_PAR,
     FS_TRUE,
     FS_XOR,
 
@@ -199,9 +178,9 @@ private:
   static const char * s_formulaSymbolNameStrings[];
 
   /**
-   * Lookup to see if vstring is a built-in FormulaSymbol.
+   * Lookup to see if std::string is a built-in FormulaSymbol.
    */
-  static FormulaSymbol getBuiltInFormulaSymbol(const vstring& str);
+  static FormulaSymbol getBuiltInFormulaSymbol(const std::string& str);
 
   /**
    * Some built-in symbols represent functions with not-Bool result of sort
@@ -213,6 +192,10 @@ private:
     TS_PLUS,
     TS_MINUS,
     TS_DIVIDE,
+    TS_ARRAY,
+    TS_BOOL,
+    TS_INT,
+    TS_REAL,
     TS_ABS,
     TS_DIV,
     TS_ITE,
@@ -229,48 +212,61 @@ private:
   static const char * s_termSymbolNameStrings[];
 
   /**
-   * Lookup to see if vstring is a built-in TermSymbol.
+   * Lookup to see if std::string is a built-in TermSymbol.
    */
-  static TermSymbol getBuiltInTermSymbol(const vstring& str);
+  static TermSymbol getBuiltInTermSymbol(const std::string& str);
 
   /**
-   * Is the given vstring a built-in FormulaSymbol, built-in TermSymbol or a declared function?
+   * Is the given std::string a built-in FormulaSymbol, built-in TermSymbol
+   * or a declared function/predicate/type constructor?
    */
-  bool isAlreadyKnownFunctionSymbol(const vstring& name);
+  bool isAlreadyKnownSymbol(const std::string& name);
 
-  /** <vampire signature id, is_function flag (otherwise it is a predicate) > */
-  typedef std::pair<unsigned,bool> DeclaredFunction;
-  /** functions are implicitly declared also when they are defined (see below) */
-  DHMap<vstring, DeclaredFunction> _declaredFunctions;
+  enum class SymbolType {
+    FUNCTION,
+    PREDICATE,
+    TYPECON,
+  };
+  /** <vampire signature id, symbol type> */
+  typedef std::pair<unsigned,SymbolType> DeclaredSymbol;
+  /** symbols are implicitly declared also when they are defined (see below) */
+  DHMap<std::string, DeclaredSymbol> _declaredSymbols;
 
   /**
    * Given a symbol name, range sort (which can be Bool) and argSorts,
    * register a new function (or predicate) symbol in vampire,
-   * store the ensuing DeclaredFunction in _declaredFunctions
+   * store the ensuing DeclaredSymbol in _declaredSymbols
    * and return it.
    */
-  DeclaredFunction declareFunctionOrPredicate(const vstring& name, TermList rangeSort, const TermStack& argSorts);
+  DeclaredSymbol declareFunctionOrPredicate(const std::string& name, TermList rangeSort, const TermStack& argSorts, unsigned taArity);
 
   /**
    * Handle "declare-fun" entry.
    *
    * Declaring a function just extends the signature.
    */
-  void readDeclareFun(const vstring& name, LExprList* iSorts, LExpr* oSort);
+  void readDeclareFun(const std::string& name, LExprList* iSorts, LExpr* oSort, unsigned taArity);
 
   /**
-   * Handle "define-fun" entry.
+   * Handle "define-fun[-rec]" entry.
    *
    * Defining a function extends the signature and adds the new function's definition into _formulas.
+   * Additionally, the "define-fun-rec" variant allows the defined function to be present inside the definition, allowing recursion.
    */
-  void readDefineFun(const vstring& name, LExprList* iArgs, LExpr* oSort, LExpr* body, bool recursive = false);
+  void readDefineFun(const std::string& name, LExprList* iArgs, LExpr* oSort, LExpr* body, const TermStack& typeArgs, bool recursive);
+  /**
+   * Handle "define-funs-rec" entry.
+   *
+   * Same as "define-fun-rec" (see above), except it defines possibly multiple functions at the same time which can use each other.
+   */
+  void readDefineFunsRec(LExprList* declarations, LExprList* definitions);
 
   void readDeclareDatatype(LExpr* sort, LExprList* datatype);
 
   void readDeclareDatatypes(LExprList* sorts, LExprList* datatypes, bool codatatype = false);
 
-  TermAlgebraConstructor* buildTermAlgebraConstructor(vstring constrName, TermList taSort,
-                                                      Stack<vstring> destructorNames, TermStack argSorts);
+  TermAlgebraConstructor* buildTermAlgebraConstructor(std::string constrName, TermList taSort,
+                                                      Stack<std::string> destructorNames, TermStack argSorts);
 
   /**
    * Parse result of parsing an smtlib term (which can be of sort Bool and therefore represented in vampire by a formula)
@@ -294,7 +290,7 @@ private:
     bool formula;
     /** The label assigned to this formula using the ":named" annotation of SMT-LIB2;
      * empty string means no label. */
-    vstring label;
+    std::string label;
     union {
       Formula* frm;
       TermList trm;
@@ -316,7 +312,7 @@ private:
      * Records a label for the formula represented by this `ParserResult`,
      * resulting from a ":named" SMT-LIB2 annotation.
      */
-    void setLabel(vstring l){ label = l; }
+    void setLabel(std::string l){ label = l; }
     /**
      * Helper that attaches a label to a `Formula`
      * if a label is recorded for this `ParserResult`.
@@ -324,7 +320,7 @@ private:
      */
     Formula* attachLabelToFormula(Formula* frm);
 
-    vstring toString();
+    std::string toString();
   };
 
   /** Return Theory::Interpretation for overloaded arithmetic comparison operators based on their argSort (either Int or Real) */
@@ -341,9 +337,9 @@ private:
   unsigned _nextVar;
 
   /** < termlist, vampire sort id > */
-  typedef pair<TermList,TermList> SortedTerm;
+  typedef std::pair<TermList,TermList> SortedTerm;
   /** mast an identifier to SortedTerm */
-  typedef DHMap<vstring,SortedTerm> TermLookup;
+  typedef DHMap<std::string,SortedTerm> TermLookup;
   typedef Stack<TermLookup*> Scopes;
   /** Stack of parsing contexts:
    * for variables from quantifiers and
@@ -363,9 +359,11 @@ private:
   enum ParseOperation {
     // general top level parsing request
     PO_PARSE,              // takes LExpr*
+    PO_PARSE_SORT,         // same as PO_PARSE, for sorts
     // when parsing "(something args...)" the following operation will be scheduled for "something"
     PO_PARSE_APPLICATION,  // takes LExpr* (the whole term again, for better error reporting)
     // after "(something args...)" is parsed the following makes sure that there is exactly one proper result on the result stack above a previously inserted separator
+    PO_PARSE_SORT_APPLICATION, // same as PO_PARSE_APPLICATION, for sorts
     PO_CHECK_ARITY,        // takes LExpr* (again the whole, just for error reporting)
     // this is a special operation for handling :named labels
     PO_LABEL,              // takes a LExpr* of the label to be applied to the top _result
@@ -374,45 +372,57 @@ private:
     PO_LET_END,            // takes LExpr* (the whole let expression again, why not)
     PO_MATCH_CASE_START,   // takes LExpr*, a list containing the matched term, pattern, case
     PO_MATCH_CASE_END,     // takes LExpr*, a list containing the matched term, pattern, case
-    PO_MATCH_END           // takes LExpr* (the whole match again)
+    PO_MATCH_END,          // takes LExpr* (the whole match again)
+    PO_QUANT,              // takes LExpr* (the whole quantified expression again)
+    PO_POP_LOOKUP,         // takes nothing
   };
   /**
    * Main smtlib term parsing stack.
    */
-  Stack<pair<ParseOperation,LExpr*> > _todo;
+  Stack<std::pair<ParseOperation,LExpr*> > _todo;
 
   // global parsing data structures -- END
 
   // a few helper functions enabling the body of parseTermOrFormula be of reasonable size
 
-  [[noreturn]] void complainAboutArgShortageOrWrongSorts(const vstring& symbolClass, LExpr* exp);
+  [[noreturn]] void complainAboutArgShortageOrWrongSorts(const std::string& symbolClass, LExpr* exp);
+
+  /**
+   * Read `[vars]` from a `(par ([vars]) body)` block into `lookup`.
+   * Note that `rdr.next()` gives `body` after the function returns.
+   */
+  void readTypeParameters(LispListReader& rdr, TermLookup* lookup, TermStack* ts = nullptr);
 
   void parseLetBegin(LExpr* exp);
   void parseLetPrepareLookup(LExpr* exp);
   void parseLetEnd(LExpr* exp);
 
-  bool isTermAlgebraConstructor(const vstring& name);
+  bool isTermAlgebraConstructor(const std::string& name);
   void parseMatchBegin(LExpr* exp);
   void parseMatchCaseStart(LExpr* exp);
   void parseMatchCaseEnd(LExpr* exp);
   void parseMatchEnd(LExpr* exp);
 
   void parseQuantBegin(LExpr* exp);
+  void parseQuantEnd(LExpr* exp);
+
+  void parseParametric(LExpr* exp);
 
   void parseAnnotatedTerm(LExpr* exp);
 
   /** Scope's are filled by forall, exists, and let */
-  bool parseAsScopeLookup(const vstring& id);
+  bool parseAsScopeLookup(const std::string& id);
+  bool parseAsSortDefinition(const std::string& id, LExpr* exp);
   /** Currently either numeral or decimal */
-  bool parseAsSpecConstant(const vstring& id);
+  bool parseAsSpecConstant(const std::string& id);
   /** Declared or defined functions (and predicates) - which includes 0-arity ones */
-  bool parseAsUserDefinedSymbol(const vstring& id, LExpr* exp);
+  bool parseAsUserDefinedSymbol(const std::string& id, LExpr* exp, bool isSort);
   /** Whatever is built-in and looks like a formula from vampire perspective (see FormulaSymbol)
    * - includes the second half of parsing quantifiers */
-  bool parseAsBuiltinFormulaSymbol(const vstring& id, LExpr* exp);
+  bool parseAsBuiltinFormulaSymbol(const std::string& id, LExpr* exp);
   /** Whatever is built-in and looks like a term from vampire perspective (see TermSymbol)
    * - excludes parts for dealing with let */
-  bool parseAsBuiltinTermSymbol(const vstring& id, LExpr* exp);
+  bool parseAsBuiltinTermSymbol(const std::string& id, LExpr* exp);
 
   /** Parsing things like "((_ divisible 5) x)" */
   void parseRankedFunctionApplication(LExpr* exp);
@@ -441,7 +451,7 @@ private:
    * - requires variables under a single quantifier to be distinct
    * - the rule that "variables cannot have the same name as a theory function symbol in the same scope" is currently ignored
    */
-  ParseResult parseTermOrFormula(LExpr* body);
+  ParseResult parseTermOrFormula(LExpr* body, bool isSort);
 
   /**
    * Handle "assert" entry.
@@ -449,6 +459,13 @@ private:
    * On success results in a single formula added to _formulas.
    */
   void readAssert(LExpr* body);
+
+  /**
+   * Unofficial command
+   *
+   * Treated analogously to the TPTP CLAIM formula role (see the TPTP parser on that).
+   */
+  void readAssertClaim(LExpr* body);
 
   /**
    * Unofficial command
@@ -466,22 +483,40 @@ private:
   void readAssertTheory(LExpr* body);
 
   /**
+   * Helper method: switch on SymbolType and return corresponding Symbol.
+   */
+  Signature::Symbol* getSymbol(DeclaredSymbol& s);
+
+  /**
    * Unofficial command
    *
    * Behaves like conjecture declaration in TPTP
    */
-  void colorSymbol(const vstring& name, Color color);
+  void colorSymbol(const std::string& name, Color color);
+
+  /**
+   * Unofficial option
+   *
+   * Disallows a symbol in synthesized program
+   */
+  void markSymbolUncomputable(const std::string& name);
 
   /**
    * Units collected during parsing.
    */
-  UnitList* _formulas;
+  UnitList::FIFO _formulas;
 
   /**
    * To support a mechanism for dealing with large arithmetic constants.
    * Adapted from the tptp parser.
    */
-  Set<vstring> _overflow;
+  Set<std::string> _overflow;
+
+  /**
+   * Top-level expression that is parsed presently.
+   * Saved for better error output.
+   */
+  LExpr* _topLevelExpr;
 
   /**
    * Toplevel parsing dispatch for a benchmark.

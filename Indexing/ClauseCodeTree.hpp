@@ -63,7 +63,6 @@ private:
     void init(CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_,
 	ClauseCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_);
 
-    CLASS_NAME(ClauseCodeTree::RemovingLiteralMatcher);
     USE_ALLOCATOR(RemovingLiteralMatcher);
   };
 
@@ -83,7 +82,6 @@ private:
 
     inline ILStruct* getILS() { ASS(matched()); return op->getILS(); }
 
-    CLASS_NAME(ClauseCodeTree::LiteralMatcher);
     USE_ALLOCATOR(LiteralMatcher);
 
   private:
@@ -98,14 +96,14 @@ public:
   struct ClauseMatcher
   {
     void init(ClauseCodeTree* tree_, Clause* query_, bool sres_);
-    void deinit();
+    void reset();
+    bool keepRecycled() const { return lInfos.keepRecycled(); }
 
     Clause* next(int& resolvedQueryLit);
 
     bool matched() { return lms.isNonEmpty() && lms.top()->success(); }
     CodeOp* getSuccessOp() { ASS(matched()); return lms.top()->op; }
 
-    CLASS_NAME(ClauseCodeTree::ClauseMatcher);
     USE_ALLOCATOR(ClauseMatcher);
 
   private:
@@ -138,7 +136,7 @@ public:
      */
     DArray<LitInfo> lInfos;
 
-    Stack<LiteralMatcher*> lms;
+    Stack<Recycled<LiteralMatcher, NoReset>> lms;
   };
 
 private:

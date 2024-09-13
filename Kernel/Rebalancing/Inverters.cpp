@@ -8,7 +8,6 @@
  * and in the source directory
  */
 #include "Inverters.hpp"
-#include "Debug/Tracer.hpp"
 
 namespace Kernel {
 namespace Rebalancing {
@@ -41,7 +40,6 @@ bool dtorIsPredicate(Signature::Symbol const& ctor, unsigned index)
 { return ctor.fnType()->arg(index) == AtomicSort::boolSort(); }
 
 bool NumberTheoryInverter::canInvertTop(const InversionContext &ctxt) {
-  CALL("NumberTheoryInverter::canInvertTop")
   auto &t = ctxt.topTerm();
   auto fun = t.functor();
 
@@ -88,7 +86,6 @@ bool NumberTheoryInverter::canInvertTop(const InversionContext &ctxt) {
   CASE_DO_INVERT(IntegerConstantType, fun, expr)
 
 TermList NumberTheoryInverter::invertTop(const InversionContext &ctxt) {
-  CALL("NumberTheoryInverter::invertTop")
   ASS(canInvertTop(ctxt))
   // DBG("inverting: ", ctxt.topTerm().toString())
   auto &t = ctxt.topTerm();
@@ -117,8 +114,6 @@ TermList NumberTheoryInverter::invertTop(const InversionContext &ctxt) {
 
 template<class NumTraits>
 bool tryInvertDiv(const InversionContext &ctxt, TermList &out) {
-  CALL("tryInvertDiv(..)")
-
   /* auto s = ctxt.topTerm()[0]; */
   auto t = ctxt.topTerm()[1];
   auto u = ctxt.toWrap();
@@ -139,7 +134,6 @@ bool tryInvertDiv(const InversionContext &ctxt, TermList &out) {
 
 template<class NumTraits>
 TermList doInvertDiv(const InversionContext &ctxt) {
-  CALL("doInvertDiv(...)")
   TermList out;
   ALWAYS(tryInvertDiv<NumTraits>(ctxt, out)) 
   return out;
@@ -147,13 +141,11 @@ TermList doInvertDiv(const InversionContext &ctxt) {
 
 template<class NumTraits>
 bool canInvertDiv(const InversionContext &ctxt) {
-  CALL("canInvertDiv(const InversionContext&)")
   TermList _inv;
   return tryInvertDiv<NumTraits>(ctxt, _inv);
 }
 
 bool tryInvertMulInt(const InversionContext &ctxt, TermList &out) {
-  CALL("tryInvertMulInt(..)")
   using Number = NumTraits<IntegerConstantType>;
 
   auto a_ = ctxt.topTerm()[1 - ctxt.topIdx()];
@@ -176,14 +168,12 @@ bool tryInvertMulInt(const InversionContext &ctxt, TermList &out) {
 }
 
 TermList doInvertMulInt(const InversionContext &ctxt) {
-  CALL("doInvertMulInt(...)")
   TermList out;
   ALWAYS(tryInvertMulInt(ctxt, out)) 
   return out;
 }
 
 bool canInvertMulInt(const InversionContext &ctxt) {
-  CALL("canInvertMulInt(const InversionContext&)")
   TermList _inv;
   return tryInvertMulInt(ctxt, _inv);
 }

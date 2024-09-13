@@ -13,7 +13,6 @@
  */
 
 #if VZ3
-#define DEBUG(...)  //DBG(__VA_ARGS__)
 
 #define DPRINT 0
 
@@ -33,6 +32,7 @@
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/Theory.hpp"
+#include "Kernel/FormulaVarIterator.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Saturation/Splitter.hpp"
@@ -50,9 +50,12 @@
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/TermIterators.hpp"
 
+#define DEBUG(...)  //DBG(__VA_ARGS__)
+
 namespace Inferences
 {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
@@ -76,9 +79,7 @@ Options::TheoryInstSimp manageDeprecations(Options::TheoryInstSimp mode)
     case Options::TheoryInstSimp::FULL:
     case Options::TheoryInstSimp::NEW:
       if(outputAllowed()) {
-        env.beginOutput();
-        env.out() << "WARNING: the modes full & new are deprecated for theory instantiation. using all instead." << std::endl;
-        env.endOutput();
+        std::cout << "WARNING: the modes full & new are deprecated for theory instantiation. using all instead." << std::endl;
       }
       return Options::TheoryInstSimp::ALL;
     default:
@@ -86,15 +87,12 @@ Options::TheoryInstSimp manageDeprecations(Options::TheoryInstSimp mode)
   }
 }
 
-TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, vstring const& exportSmtlib) 
+TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, std::string const& exportSmtlib) 
   : _splitter(0)
   , _mode(manageDeprecations(mode))
   , _thiTautologyDeletion(thiTautologyDeletion)
   , _naming()
-  , _solver([&](){ 
-      BYPASSING_ALLOCATOR; 
-      return new Z3Interfacing(_naming, showZ3,   /* unsatCoresForAssumptions = */ generalisation, exportSmtlib); 
-    }())
+  , _solver(new Z3Interfacing(_naming, showZ3, /* unsatCoresForAssumptions = */ generalisation, exportSmtlib))
   , _generalisation(generalisation)
   , _instantiationConstants ("$inst")
   , _generalizationConstants("$inst$gen")
@@ -103,8 +101,6 @@ TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTauto
 
 void TheoryInstAndSimp::attach(SaturationAlgorithm* salg)
 {
-  CALL("Superposition::attach");
-
   SimplifyingGeneratingInference::attach(salg);
   _splitter = salg->getSplitter();
 }
@@ -113,16 +109,14 @@ void TheoryInstAndSimp::attach(SaturationAlgorithm* salg)
 
 bool TheoryInstAndSimp::calcIsSupportedSort(SortId sort)
 {
-  CALL("TheoryInstAndSimp::calcIsSupportedSort")
   //TODO: extend for more sorts (arrays, datatypes)
   if(   sort == IntTraits::sort() 
      || sort == RatTraits::sort() 
      || sort == RealTraits::sort() ){
     return true;
   } else if (env.signature->isTermAlgebraSort(sort)) {
-    return env.signature->getTermAlgebraOfSort(sort)
-                        ->subSorts().iter()
-                         .all([&](auto s){ return env.signature->isTermAlgebraSort(s) || calcIsSupportedSort(s); });
+    return TermAlgebra::subSorts(sort).iter()
+      .all([&](auto s){ return env.signature->isTermAlgebraSort(s) || calcIsSupportedSort(s); });
   } else {
     return false;
   }
@@ -147,7 +141,7 @@ bool TheoryInstAndSimp::isSupportedLiteral(Literal* lit) {
 
   //check if arguments of predicate are supported
   for (unsigned i=0; i<lit->numTermArguments(); i++) {
-    TermList sort = SortHelper::getArgSort(lit,i);
+    TermList sort = SortHelper::getTermArgSort(lit,i);
     if (! isSupportedSort(sort))
       return false;
   }
@@ -171,8 +165,8 @@ bool TheoryInstAndSimp::isSupportedFunction(Term* trm) {
   auto sym = env.signature->getFunction(trm->functor());
   return !(theory->isInterpretedConstant(trm) 
       || (theory->isInterpretedFunction(trm) && isSupportedFunction(theory->interpretFunction(trm)) )
-      || (sym->termAlgebraCons() && isSupportedSort(sym->fnType()->result()))
-      || (sym->termAlgebraDest() && isSupportedSort(sym->fnType()->arg(0)))
+      || (sym->termAlgebraCons() && isSupportedSort(SortHelper::getResultSort(trm)))
+      || (sym->termAlgebraDest() && isSupportedSort(SortHelper::getTermArgSort(trm, 0)))
       );
 }
 
@@ -207,32 +201,25 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
     return false;
   }
   //check all (proper) subterms
-  SubtermIterator sti(lit);
-  while( sti.hasNext() ) {
-    TermList tl = sti.next();
-    if ( tl.isEmpty() || tl.isVar() ){
-      continue;
+  NonVariableNonTypeIterator nvi(lit);
+  while( nvi.hasNext() ) {
+    Term* term = nvi.next();
+
+    //we can stop if we found an uninterpreted function / constant
+    if (isSupportedFunction(term)){
+      return false;
     }
-    if ( tl.isTerm()   ) {
-      Term* term = tl.term();
-
-      //we can stop if we found an uninterpreted function / constant
-      if (isSupportedFunction(term)){
+    //check if return value of term is supported
+    if (! isSupportedSort(SortHelper::getResultSort(term))){
+      return false;
+    }
+    //check if arguments of term are supported. covers e.g. f(X) = 0 where
+    // f could map uninterpreted sorts to integer. when iterating over X
+    // itself, its sort cannot be checked.
+    for (unsigned i=0; i<term->numTermArguments(); i++) {
+      TermList sort = SortHelper::getTermArgSort(term,i);
+      if (! isSupportedSort(sort))
         return false;
-      }
-      //check if return value of term is supported
-      if (! isSupportedSort(SortHelper::getResultSort(term))){
-        return false;
-      }
-      //check if arguments of term are supported. covers e.g. f(X) = 0 where
-      // f could map uninterpreted sorts to integer. when iterating over X
-      // itself, its sort cannot be checked.
-      for (unsigned i=0; i<term->numTermArguments(); i++) {
-        TermList sort = SortHelper::getArgSort(term,i);
-        if (! isSupportedSort(sort))
-          return false;
-      }
-
     }
   }
 
@@ -245,7 +232,7 @@ bool TheoryInstAndSimp::isPure(Literal* lit) {
 bool TheoryInstAndSimp::isXeqTerm(TermList left, TermList right) {
   bool r = left.isVar() &&
     right.isTerm() &&
-    !VList::member(left.var(), right.term()->freeVariables());
+    !VList::member(left.var(), freeVariables(right.term()));
   return r;
 }
 
@@ -260,7 +247,7 @@ unsigned TheoryInstAndSimp::varOfXeqTerm(const Literal* lit,bool flip) {
     if (isXeqTerm(right,left)){ return right.var();}
     ASS(lit->isTwoVarEquality());
     if(flip){
-      return left.var(); 
+      return left.var();
     }else{
       return right.var();
     }
@@ -307,12 +294,11 @@ bool TheoryInstAndSimp::literalContainsVar(const Literal* lit, unsigned v) {
  **/
 Stack<Literal*> TheoryInstAndSimp::selectTrivialLiterals(Clause* cl)
 {
-  CALL("TheoryInstAndSimp::selectTrivialLiterals");
 #if DPRINT
   cout << "selecting trivial literals in " << cl->toString() << endl ;
 #endif
   /* find trivial candidates of the form x != t (x not occurring in t) */
-  Clause::Iterator it(*cl);
+  auto it = cl->iterLits();
   /* invariants:
        triv_candidates \cup nontriv_pure \cup impure = cl
        triv_candidates \cap nontriv_pure = 0
@@ -411,7 +397,6 @@ Stack<Literal*> TheoryInstAndSimp::selectTrivialLiterals(Clause* cl)
  * Selects the theory literals to be used for instantiation. These are all non-trivial pure theory literals.
  */
 Stack<Literal*> TheoryInstAndSimp::selectTheoryLiterals(Clause* cl) {
-  CALL("TheoryInstAndSimp::selectTheoryLiterals");
 #if DPRINT
   cout << "selectTheoryLiterals in " << cl->toString() << endl;
 #endif
@@ -421,9 +406,7 @@ Stack<Literal*> TheoryInstAndSimp::selectTheoryLiterals(Clause* cl) {
   Stack<Literal*> trivial_lits = selectTrivialLiterals(cl);
   Stack<Literal*> out;
 
-  Clause::Iterator cl_it(*cl);
-  while (cl_it.hasNext()) {
-    auto lit = cl_it.next();
+  for (auto lit : cl->iterLits()) {
     // TODO this is O(n^2) runtime
     if (isPure(lit) && !trivial_lits.find(lit))
       out.push(lit);
@@ -542,8 +525,6 @@ public:
 Option<Substitution> TheoryInstAndSimp::instantiateGeneralised(
     SkolemizedLiterals skolem, unsigned freshVar)
 {
-  CALL("TheoryInstAndSimp::instantiateGeneralised(..)")
-
   auto negatedClause = [](Stack<SATLiteral> lits) -> SATClause*
   { 
     for (auto& lit : lits) {
@@ -582,13 +563,13 @@ Option<Substitution> TheoryInstAndSimp::instantiateGeneralised(
     }
 
     DEBUG_CODE(auto res =) _solver->solveUnderAssumptions(theoryLits, 0, false);
-    ASS_EQ(res, SATSolver::UNSATISFIABLE)
+    ASS_EQ(res, SATSolver::Status::UNSATISFIABLE)
 
     Set<TermList> usedDefs;
     for (auto& x : _solver->failedAssumptions()) {
       definitionLiterals
         .tryGet(x)
-        .andThen([&](TermList t) 
+        .andThen([&](TermList t)
             { usedDefs.insert(t); });
     }
 
@@ -602,8 +583,6 @@ Option<Substitution> TheoryInstAndSimp::instantiateGeneralised(
 
 Option<Substitution> TheoryInstAndSimp::instantiateWithModel(SkolemizedLiterals skolem)
 {
-  CALL("TheoryInstAndSimp::instantiateWithModel(..)")
-
   for (auto var : skolem.vars) {
     auto ev = _solver->evaluateInModel(skolem.subst.apply(var).term());
     if (ev) {
@@ -619,8 +598,6 @@ Option<Substitution> TheoryInstAndSimp::instantiateWithModel(SkolemizedLiterals 
 
 template<class IterLits> TheoryInstAndSimp::SkolemizedLiterals TheoryInstAndSimp::skolemize(IterLits lits) 
 {
-
-  BYPASSING_ALLOCATOR;
   // Currently we just get the single solution from Z3
 
 
@@ -664,26 +641,22 @@ template<class IterLits> TheoryInstAndSimp::SkolemizedLiterals TheoryInstAndSimp
 
 
 VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const& theoryLiterals, Stack<Literal*> const& guards, unsigned freshVar) {
-  CALL("TheoryInstAndSimp::getSolutions");
-
-  BYPASSING_ALLOCATOR;
-
-  auto skolemized = skolemize(iterTraits(getConcatenatedIterator(
-          theoryLiterals.iterFifo(),
-          guards.iterFifo()
-        )));
+  auto skolemized = skolemize(concatIters(
+        theoryLiterals.iterFifo(),
+        guards.iterFifo()
+        ));
   DEBUG("skolemized: ", iterTraits(skolemized.lits.iterFifo()).map([&](SATLiteral l){ return _naming.toFO(l)->toString(); }).collect<Stack>())
 
   // now we can call the solver
   SATSolver::Status status = _solver->solveUnderAssumptions(skolemized.lits, 0, false);
 
-  if(status == SATSolver::UNSATISFIABLE) {
+  if(status == SATSolver::Status::UNSATISFIABLE) {
     DEBUG("unsat")
     return pvi(getSingletonIterator(Solution::unsat()));
 
-  } else if(status == SATSolver::SATISFIABLE) {
+  } else if(status == SATSolver::Status::SATISFIABLE) {
     DEBUG("found model: ", _solver->getModel())
-    auto subst = _generalisation ? instantiateGeneralised(skolemized, freshVar) 
+    auto subst = _generalisation ? instantiateGeneralised(skolemized, freshVar)
                                  : instantiateWithModel(skolemized);
     if (subst.isSome()) {
       return pvi(getSingletonIterator(Solution(std::move(subst).unwrap())));
@@ -699,13 +672,11 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const&
 
 Clause* instantiate(Clause* original, Substitution& subst, Stack<Literal*> const& theoryLits, Splitter* splitter)
 {
-  Clause* inst = new(original->length()) Clause(original->length(),GeneratingInference1(InferenceRule::INSTANTIATION,original));
-  unsigned newLen = original->length() - theoryLits.size();
-  Clause* res = new(newLen) Clause(newLen,SimplifyingInference1(InferenceRule::INTERPRETED_SIMPLIFICATION,inst));
 
-  unsigned j=0;
-  for(unsigned i=0;i<original->length();i++){
-    Literal* lit = (*original)[i];
+  RStack<Literal*> instLits;
+  RStack<Literal*> resLits;
+
+  for (Literal* lit : original->iterLits()) {
     ASS_REP(SortHelper::areSortsValid(lit), *lit);
     Literal* lit_inst = SubstHelper::apply(lit,subst);
     SubtermIterator iter(lit_inst);
@@ -715,18 +686,17 @@ Clause* instantiate(Clause* original, Substitution& subst, Stack<Literal*> const
     }
     ASS_REP(SortHelper::areSortsValid(lit_inst), *lit_inst);
     // ASS()
-    (*inst)[i] = lit_inst;
+    instLits->push(lit_inst);
     // we implicitly remove all theoryLits as the solution makes their combination false
     if(!theoryLits.find(lit)){
-      (*res)[j] = lit_inst;
-      j++;
+      resLits->push(lit_inst);
     }
   }
-  ASS_EQ(j,newLen);
+  Clause* inst = Clause::fromStack(*instLits, GeneratingInference1(InferenceRule::INSTANTIATION,original));
   if(splitter){
     splitter->onNewClause(inst);
   }
-  return res;
+  return Clause::fromStack(*resLits, SimplifyingInference1(InferenceRule::INTERPRETED_SIMPLIFICATION,inst));
 }
 
 
@@ -741,8 +711,6 @@ struct InstanceFn
       bool& redundant
     )
   {
-    CALL("TheoryInstAndSimp::InstanceFn::operator()");
-
     // We delete cl as it's a theory-tautology
     if(!sol.sat) {
       // now we run SMT solver again without guarding
@@ -752,7 +720,7 @@ struct InstanceFn
         auto skolem = parent->skolemize(iterTraits(invertedLits.iterFifo() /* without guards !! */));
         auto status = parent->_solver->solveUnderAssumptions(skolem.lits, 0, false);
         // we have an unsat solution without guards
-        redundant = status == SATSolver::UNSATISFIABLE;
+        redundant = status == SATSolver::Status::UNSATISFIABLE;
       }
 
       if (redundant) {
@@ -775,8 +743,6 @@ struct InstanceFn
 
 Stack<Literal*> computeGuards(Stack<Literal*> const& lits) 
 {
-  CALL("computeGuards");
-
   /* finds the constructor for a given distructor */
   auto findConstructor = [](TermAlgebra* ta, unsigned destructor, bool predicate) -> TermAlgebraConstructor* 
   {
@@ -795,9 +761,14 @@ Stack<Literal*> computeGuards(Stack<Literal*> const& lits)
   auto destructorGuard = [&findConstructor](Term* destr, SortId sort, bool predicate) -> Literal*
   {
       auto ctor = findConstructor(env.signature->getTermAlgebraOfSort(sort), destr->functor(), predicate);
-      auto discr = ctor->createDiscriminator();
+      auto discr = ctor->discriminator();
+      TermStack args;
+      for (unsigned i = 0; i < destr->numTypeArguments(); i++) {
+        args.push(destr->typeArg(i));
+      }
+      args.push(destr->termArg(0));
       // asserts e.g. isCons(l) for a term that contains the subterm head(l) for lists
-      return Literal::create1(discr, /* polarity */ true, destr->termArg(0));
+      return Literal::create(discr, args.size(), /* polarity */ true, false, args.begin());
   };
 
 
@@ -843,7 +814,7 @@ Stack<Literal*> computeGuards(Stack<Literal*> const& lits)
 
             case Theory::INT_QUOTIENT_F:
             case Theory::INT_REMAINDER_F:
-            case Theory::INT_QUOTIENT_E: 
+            case Theory::INT_QUOTIENT_E:
             case Theory::INT_QUOTIENT_T:
             case Theory::INT_REMAINDER_T:
             case Theory::INT_REMAINDER_E:
@@ -852,7 +823,7 @@ Stack<Literal*> computeGuards(Stack<Literal*> const& lits)
 
             default:; /* no guard */
           }
-        } else if (sym->termAlgebraDest()) { 
+        } else if (sym->termAlgebraDest()) {
           out.push(destructorGuard(term, sym->fnType()->arg(0), /* predicate */ false));
         }
       }
@@ -867,8 +838,8 @@ Stack<Literal*> filterLiterals(Stack<Literal*> lits, Options::TheoryInstSimp mod
   { return ( lit->isEquality() && lit->isNegative())
         || (!lit->isEquality() && theory->isInterpretedPredicate(lit->functor())); };
 
-  auto freeVars = [](Literal* lit) 
-  { return iterTraits(VList::Iterator(lit->freeVariables())); };
+  auto freeVars = [](Literal* lit)
+  { return iterTraits(VList::Iterator(freeVariables(lit))); };
 
   switch(mode) {
     case Options::TheoryInstSimp::ALL:
@@ -881,7 +852,7 @@ Stack<Literal*> filterLiterals(Stack<Literal*> lits, Options::TheoryInstSimp mod
 
     case Options::TheoryInstSimp::NEG_EQ:
       return iterTraits(lits.iterFifo())
-                            .filter([](Literal* lit) 
+                            .filter([](Literal* lit)
                                { return lit->isEquality() && lit->isNegative(); } )
                             .collect<Stack>();
 
@@ -930,8 +901,6 @@ unsigned getFreshVar(Clause& clause)
 
 SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::generateSimplify(Clause* premise)
 {
-  CALL("TheoryInstAndSimp::generateSimplify");
-
   auto empty = ClauseGenerationResult {
     .clauses          = ClauseIterator::getEmpty(),
     .premiseRedundant = false,
@@ -952,17 +921,20 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
 
   // we have an eligable candidate
   env.statistics->theoryInstSimpCandidates++;
+#if VTIME_PROFILING
+  static const char* THEORY_INST_SIMP = "theory instantiation";
+#endif // VTIME_PROFILING
 
   auto guards = computeGuards(selectedLiterals);
 
   DEBUG("input:             ", *premise);
   DEBUG("selected literals: ", iterTraits(selectedLiterals.iterFifo())
-                                 .map([](Literal* l) -> vstring { return l->toString(); })
+                                 .map([](Literal* l) -> std::string { return l->toString(); })
                                  .collect<Stack>())
   DEBUG("guards:            ", iterTraits(guards.iterFifo())
-                                 .map([](Literal* l) -> vstring { return l->toString(); })
+                                 .map([](Literal* l) -> std::string { return l->toString(); })
                                  .collect<Stack>())
-  TimeCounter t(TC_THEORY_INST_SIMP);
+  TIME_TRACE(THEORY_INST_SIMP);
 
   auto invertedLiterals = iterTraits(selectedLiterals.iterFifo())
     .map(Literal::complementaryLiteral)
@@ -977,7 +949,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
     })
     .filter([](Clause* cl) { return cl != nullptr; });
 
-  auto it2 = getTimeCountedIterator(it1,TC_THEORY_INST_SIMP);
+  auto it2 = TIME_TRACE_ITER(THEORY_INST_SIMP, it1);
 
   // we need to strictily evaluate the iterator to 
   auto clauses =  getPersistentIterator(it2);
@@ -1000,8 +972,6 @@ std::ostream& operator<<(std::ostream& out, Solution const& self)
 
 TheoryInstAndSimp::~TheoryInstAndSimp()
 {
-  CALL("~TheoryInstAndSimp")
-  BYPASSING_ALLOCATOR
   delete _solver;
 }
 

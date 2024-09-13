@@ -28,6 +28,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/FormulaVarIterator.hpp"
+#include "Kernel/InferenceStore.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/SymbolOccurrenceReplacement.hpp"
@@ -38,6 +39,7 @@
 
 #include "FOOLElimination.hpp"
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
@@ -48,11 +50,9 @@ const char* FOOLElimination::LET_PREFIX  = "lG";
 const char* FOOLElimination::BOOL_PREFIX = "bG";
 const char* FOOLElimination::MATCH_PREFIX  = "mG";
 
-FOOLElimination::FOOLElimination() : _defs(0), _higherOrder(0), _polymorphic(0) {}
+FOOLElimination::FOOLElimination() : _defs(0), _currentDefs(0), _higherOrder(0), _polymorphic(0) {}
 
 bool FOOLElimination::needsElimination(FormulaUnit* unit) {
-  CALL("FOOLElimination::needsElimination");
-
   /**
    * Be careful with the difference between FOOLElimination::needsElimination
    * and Property::_hasFOOL!
@@ -96,8 +96,6 @@ bool FOOLElimination::needsElimination(FormulaUnit* unit) {
 }
 
 void FOOLElimination::apply(Problem& prb)  {
-  CALL("FOOLElimination::apply(Problem*)");
-
   _higherOrder = prb.hasApp();
   _polymorphic = prb.hasPolymorphicSym();
   apply(prb.units());
@@ -106,8 +104,6 @@ void FOOLElimination::apply(Problem& prb)  {
 }
 
 void FOOLElimination::apply(UnitList*& units) {
-  CALL("FOOLElimination::apply(UnitList*&)");
-
   UnitList::DelIterator us(units);
   while(us.hasNext()) {
     Unit* unit = us.next();
@@ -116,7 +112,7 @@ void FOOLElimination::apply(UnitList*& units) {
       for (unsigned i = 0; i < clause->length(); i++) {
         // we do not allow special terms in clauses so we check that all clause literals
         // are shared (special terms can not be shared)
-        if(!(*clause)[i]->shared()){ 
+        if(!(*clause)[i]->shared()){
           USER_ERROR("Input clauses (cnf) cannot use $ite, $let or $o terms. Error in "+clause->literalsOnlyToString());
         }
       }
@@ -136,14 +132,12 @@ void FOOLElimination::apply(UnitList*& units) {
 }
 
 FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
-  CALL("FOOLElimination::apply(FormulaUnit*)");
-
   if (!needsElimination(unit)) {
     return unit;
   }
 
   FormulaUnit* rectifiedUnit = Rectify::rectify(unit);
-  
+
   Formula* formula = rectifiedUnit->formula();
 
   _unit = rectifiedUnit;
@@ -156,27 +150,21 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
     return rectifiedUnit;
   }
 
-  /*
-   * MS/TODO: We should be presenting the new formula as following
-   * from the rectifiedUnit and the generated definitions
-   * (similarly to how this is done with Naming)
-   */
+  // add the master premise to the definitions and pass them to the inference object
+  UnitList::push(rectifiedUnit,_currentDefs);
   FormulaUnit* processedUnit = new FormulaUnit(processedFormula,
-      NonspecificInference1(InferenceRule::FOOL_ELIMINATION, rectifiedUnit));
+      NonspecificInferenceMany(InferenceRule::FOOL_ELIMINATION, _currentDefs));
+  _currentDefs = UnitList::empty();
 
   if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] " << unit->toString() << endl;
-    env.out() << "[PP] " << processedUnit->toString()  << endl;
-    env.endOutput();
+    std::cout << "[PP] " << unit->toString() << endl;
+    std::cout << "[PP] " << processedUnit->toString()  << endl;
   }
 
   return processedUnit;
 }
 
 Formula* FOOLElimination::process(Formula* formula) {
-  CALL("FOOLElimination::process(Formula*)");
-
   if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
      !_polymorphic){
     LambdaElimination le = LambdaElimination();
@@ -212,8 +200,8 @@ Formula* FOOLElimination::process(Formula* formula) {
        * between FOOL boolean terms.
        */
 
-      if (literal->isEquality() && 
-         (!env.property->higherOrder() || env.options->equalityToEquivalence())) { 
+      if (literal->isEquality() &&
+         (!env.getMainProblem()->isHigherOrder() || env.options->equalityToEquivalence())) {
         ASS_EQ(literal->arity(), 2);
         TermList lhs = *literal->nthArgument(0);
         TermList rhs = *literal->nthArgument(1);
@@ -321,8 +309,6 @@ Formula* FOOLElimination::process(Formula* formula) {
 }
 
 FormulaList* FOOLElimination::process(FormulaList* formulas) {
-  CALL ("FOOLElimination::process(FormulaList*)");
-
   FormulaList*  res = FormulaList::empty();
   FormulaList** ipt = &res;
 
@@ -369,8 +355,6 @@ FormulaList* FOOLElimination::process(FormulaList* formulas) {
  * FOOL_TRUE all over the place.
  */
 void FOOLElimination::process(TermList ts, Context context, TermList& termResult, Formula*& formulaResult) {
-  CALL("FOOLElimination::process(TermList ts, Context context, ...)");
-
 #if VDEBUG
   // A term can only be processed in a formula context if it has boolean sort
   // The opposite does not hold - a boolean term can stand in a term context
@@ -403,7 +387,6 @@ void FOOLElimination::process(TermList ts, Context context, TermList& termResult
  * A shortcut of process(TermList, context) for TERM_CONTEXT.
  */
 TermList FOOLElimination::process(TermList terms) {
-  CALL("FOOLElimination::process(TermList terms)");
   TermList ts;
   Formula* dummy;
   process(terms, TERM_CONTEXT, ts, dummy);
@@ -414,8 +397,7 @@ TermList FOOLElimination::process(TermList terms) {
  * A shortcut of process(TermList, context) for FORMULA_CONTEXT.
  */
 Formula* FOOLElimination::processAsFormula(TermList terms) {
-  CALL("FOOLElimination::processAsFormula(TermList terms)");
-  Formula* formula;
+  Formula* formula = nullptr;
   TermList dummy;
   process(terms, FORMULA_CONTEXT, dummy, formula);
   return formula;
@@ -437,19 +419,17 @@ Formula* FOOLElimination::processAsFormula(TermList terms) {
  * subterms and we don't have to further process it.
  */
 void FOOLElimination::process(Term* term, Context context, TermList& termResult, Formula*& formulaResult) {
-  CALL("FOOLElimination::process(Term* term, Context context, ...)");
-
   // collect free variables of the term and their sorts
   // WARNING, this list is leaked in all cases. Sometimes,
-  // it becomes the quantified variables of a formula, 
+  // it becomes the quantified variables of a formula,
   // and leaks with the formula. In other situations, it leaks
   // form this function.
-  VList* freeVars = term->freeVariables();
+  VList* freeVars = freeVariables(term);
   TermStack termVarSorts;
   TermStack termVars;
   TermStack typeVars;
   TermStack allVars;
-  
+
   /**
    * Note that we collected free variables before processing subterms. That
    * assumes that process() preserves free variables. This assumption relies
@@ -472,7 +452,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
     TermList processedTerm;
     if(term->isSort()){
-      processedTerm = TermList(AtomicSort::create(static_cast<AtomicSort*>(term), arguments.begin()));      
+      processedTerm = TermList(AtomicSort::create(static_cast<AtomicSort*>(term), arguments.begin()));
     } else {
       processedTerm = TermList(Term::create(term, arguments.begin()));
     }
@@ -503,20 +483,20 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
     Term::SpecialTermData* sd = term->getSpecialData();
 
-    switch (term->functor()) {
-      case Term::SF_ITE: {
+    switch (term->specialFunctor()) {
+      case SpecialFunctor::ITE: {
         /**
-         * Having a term of the form $ite(f, s, t) and the list Y1, ..., Ym, 
-         * X1, ..., Xn of its free type and term variables (it is the union of 
+         * Having a term of the form $ite(f, s, t) and the list Y1, ..., Ym,
+         * X1, ..., Xn of its free type and term variables (it is the union of
          * free variables of f, s and t) we will do the following:
          *  1) Create a fresh function symbol g of arity m + n that spans over sorts
          *     of X1, ..., Xn and the return sort of the term
-         *  2) Add two definitions:
-         *     * ![X1, ..., Xn]: ( f => g(Y1,...,Ym,X1, ..., Xn) = s)
-         *     * ![X1, ..., Xn]: (~f => g(Y1,...,Ym,X1, ..., Xn) = t)
+         *  2) Add a bi-definition:
+         *    ![X1, ..., Xn]: ( f => g(Y1,...,Ym,X1, ..., Xn) = s)
+         *      &
+         *    ![X1, ..., Xn]: (~f => g(Y1,...,Ym,X1, ..., Xn) = t)
          *  3) Replace the term with g(Y1,...,Ym,X1, ..., Xn)
          */
-        
 
         Formula* condition = process(sd->getCondition());
 
@@ -534,7 +514,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
           resultSort = SortHelper::getResultSort(thenBranch, _varSorts);
           ASS_EQ(resultSort, SortHelper::getResultSort(elseBranch, _varSorts));
         }
- 
+
         collectSorts(freeVars, typeVars, termVars, allVars, termVarSorts);
         SortHelper::normaliseSort(typeVars, resultSort);
         // create a fresh symbol g
@@ -542,10 +522,9 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // build g(Y1,...,Ym,X1, ..., Xn)
         TermList freshFunctionApplication;
-        Formula* freshPredicateApplication;
+        Formula* freshPredicateApplication = nullptr;
         buildApplication(freshSymbol, context, allVars, freshFunctionApplication, freshPredicateApplication);
 
-        
         // build g(Y1, ..., Ym,X1, ..., Xn) == s
         Formula* thenEq = buildEq(context, freshPredicateApplication, thenBranchFormula,
                                            freshFunctionApplication, thenBranch, resultSort);
@@ -572,9 +551,13 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
           elseImplication = new QuantifiedFormula(FORALL, freeVars, 0, elseImplication);
         }
 
-        // add both definitions
-        addDefinition(new FormulaUnit(thenImplication, NonspecificInference1(InferenceRule::FOOL_ITE_ELIMINATION, _unit)));
-        addDefinition(new FormulaUnit(elseImplication, NonspecificInference1(InferenceRule::FOOL_ITE_ELIMINATION, _unit)));
+        // conjoin both definitions for Geoff:
+        Formula* jointDef = new JunctionFormula(AND, FormulaList::cons(thenImplication, FormulaList::singleton(elseImplication)));
+
+        // add the joint definitions
+        FormulaUnit* defUnit = new FormulaUnit(jointDef,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FOOL_ITE_DEFINITION));
+        addDefinition(defUnit);
+        InferenceStore::instance()->recordIntroducedSymbol(defUnit,context == FORMULA_CONTEXT ? SymbolType::PRED : SymbolType::FUNC, freshSymbol);
 
         if (context == FORMULA_CONTEXT) {
           formulaResult = freshPredicateApplication;
@@ -584,20 +567,20 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         break;
       }
 
-      case Term::SF_LET: {
+      case SpecialFunctor::LET: {
         /**
          * Having a term of the form $let(f(B1,...Bj,Y1, ..., Yk) := s, t), where f is a
-         * function or predicate symbol and the list A1,...,Am,X1, ..., Xn of free 
+         * function or predicate symbol and the list A1,...,Am,X1, ..., Xn of free
          * variables of the binding of f (it is the set of free variables of s minus
          * A1,...Am,Y1, ..., Yk) we will do the following:
          *  1) Create a fresh function or predicate symbol g (depending on which
          *     one is f) of arity m + j + n + k that spans over sorts of
          *     X1, ..., Xn, Y1, ..., Yk
          *  2) If f is a predicate symbol, add the following definition:
-         *       ![X1, ..., Xn, Y1, ..., Yk]: 
+         *       ![X1, ..., Xn, Y1, ..., Yk]:
          *        g(A1,...Am, B1,...Bj,X1, ..., Xn, Y1, ..., Yk) <=> s
          *     Otherwise, add
-         *       ![X1, ..., Xn, Y1, ..., Yk]: 
+         *       ![X1, ..., Xn, Y1, ..., Yk]:
          *        g(A1,...Am, B1,...Bj,X1, ..., Xn, Y1, ..., Yk) = s
          *  3) Build a term t' by replacing all of its subterms of the form
          *     f(s1, ..., sj,t1, ..., tk) by
@@ -621,7 +604,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // collect variables B1,...,Bj,X1, ..., Xn
         VList* bodyFreeVars = VList::empty();
-        FormulaVarIterator bfvi(&binding);
+        FormulaVarIterator bfvi(binding);
         while (bfvi.hasNext()) {
           unsigned var = bfvi.next();
           if (!VList::member(var, argumentVars)) {
@@ -635,10 +618,10 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // take the defined function symbol and its result sort
         unsigned symbol = sd->getFunctor();
-        TermList bindingSort = SortHelper::getResultSort(binding, _varSorts); 
+        TermList bindingSort = SortHelper::getResultSort(binding, _varSorts);
 
         SortHelper::normaliseSort(typeVars, bindingSort);
-  
+
         /**
          * Here we can take a simple shortcut. If the there are no free variables,
          * f and g would have the same type, but g would have an ugly generated name.
@@ -646,7 +629,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
          * reuse f and leave the t term as it is.
          */
         bool renameSymbol = VList::isNonEmpty(bodyFreeVars);
-        
+
         /**
          * If the symbol is not marked as introduced then this means it was used
          * in the input after introduction, therefore it should be renamed here
@@ -659,15 +642,15 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // process the body of the function
         TermList processedBody;
-        Formula* processedBodyFormula;
+        Formula* processedBodyFormula = nullptr;
         process(binding, bindingContext, processedBody, processedBodyFormula);
 
         // g(A1, ..., Am, B1, ..., Bj,X1, ..., Xn, Y1, ..., Yk)
         TermList freshFunctionApplication;
-        Formula* freshPredicateApplication;
+        Formula* freshPredicateApplication = nullptr;
         buildApplication(freshSymbol, bindingContext, allVars, freshFunctionApplication, freshPredicateApplication);
 
-        Term* freshApplication = bindingContext == FORMULA_CONTEXT ? freshPredicateApplication->literal() : 
+        Term* freshApplication = bindingContext == FORMULA_CONTEXT ? freshPredicateApplication->literal() :
                                                                      freshFunctionApplication.term();
 
         // build g(A1, ..., Am, B1, ..., Bj,X1, ..., Xn, Y1, ..., Yk) == s
@@ -680,29 +663,28 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         }
 
         // add the introduced definition
-        addDefinition(new FormulaUnit(freshSymbolDefinition,
-            NonspecificInference1(InferenceRule::FOOL_LET_ELIMINATION, _unit)));
+        FormulaUnit* defUnit = new FormulaUnit(freshSymbolDefinition,
+            NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FOOL_LET_DEFINITION));
+        addDefinition(defUnit);
 
         TermList contents = *term->nthArgument(0); // deliberately unprocessed here
 
-        // replace occurrences of f(s1, ..., sj,t1, ..., tk) by 
+        // replace occurrences of f(s1, ..., sj,t1, ..., tk) by
         // g(A1, ..., Am, s1, ..., sj,X1, ..., Xn, t1, ..., tk)
         if (renameSymbol) {
+          InferenceStore::instance()->recordIntroducedSymbol(defUnit,bindingContext == FORMULA_CONTEXT ? SymbolType::PRED : SymbolType::FUNC, freshSymbol);
+
           if (env.options->showPreprocessing()) {
-            env.beginOutput();
-            env.out() << "[PP] FOOL replace in:  " << contents.toString() << endl;
-            env.endOutput();
+            std::cout << "[PP] FOOL replace in: " << contents.toString() << endl;
           }
 
-          SymbolOccurrenceReplacement replacement(bindingContext == FORMULA_CONTEXT, 
+          SymbolOccurrenceReplacement replacement(bindingContext == FORMULA_CONTEXT,
               freshApplication, symbol, argumentVars);
 
           contents = replacement.process(contents);
 
           if (env.options->showPreprocessing()) {
-            env.beginOutput();
-            env.out() << "[PP] FOOL replace out: " << contents.toString() << endl;
-            env.endOutput();
+            std::cout << "[PP] FOOL replace out: " << contents.toString() << endl;
           }
         }
 
@@ -710,8 +692,10 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         break;
       }
-
-      case Term::SF_FORMULA: {
+      case SpecialFunctor::TUPLE:
+      case SpecialFunctor::LET_TUPLE:
+        NOT_IMPLEMENTED;
+      case SpecialFunctor::FORMULA: {
         if (context == FORMULA_CONTEXT) {
           formulaResult = process(sd->getFormula());
           break;
@@ -757,8 +741,11 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
           }
 
           // add the introduced definition
-          addDefinition(new FormulaUnit(freshSymbolDefinition,
-            NonspecificInference1(InferenceRule::FOOL_ELIMINATION, _unit)));
+          FormulaUnit* defUnit = new FormulaUnit(freshSymbolDefinition,
+            NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FOOL_FORMULA_DEFINITION));
+          addDefinition(defUnit);
+
+          InferenceStore::instance()->recordIntroducedSymbol(defUnit,SymbolType::FUNC, freshSymbol);
 
           termResult = freshSymbolApplication;
         } else {
@@ -767,15 +754,15 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         }
         break;
       }
-      case Term::SF_LAMBDA: {
-        // Lambda terms are translated to FOL using SKIBC combinators which are extensively described in 
-        // the literature. 
+      case SpecialFunctor::LAMBDA: {
+        // Lambda terms are translated to FOL using SKIBC combinators which are extensively described in
+        // the literature.
         LambdaElimination le = LambdaElimination();
         termResult = le.elimLambda(term);
         break;
       }
 
-      case Term::SF_MATCH: {
+      case SpecialFunctor::MATCH: {
         /**
          * Having a term of the form $match(v, p1, b1, ..., pm, bm) and the list
          * X1, ..., Xn of its free variables (it is the union of free variables
@@ -790,7 +777,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
          */
 
         TermList matchedTerm;
-        Formula *matchedFormula;
+        Formula *matchedFormula = nullptr;
         Context matchedContext = term->nthArgument(0)->isTerm() && term->nthArgument(0)->term()->isBoolean() ? FORMULA_CONTEXT : TERM_CONTEXT;
         process(*term->nthArgument(0), matchedContext, matchedTerm, matchedFormula);
 
@@ -806,19 +793,19 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // build g(X1, ..., Xn)
         TermList freshFunctionApplication;
-        Formula *freshPredicateApplication;
+        Formula *freshPredicateApplication = nullptr;
         buildApplication(freshSymbol, context, allVars, freshFunctionApplication, freshPredicateApplication);
 
         for (unsigned int i = 1; i < term->arity(); i += 2) {
           TermList patternTerm;
-          Formula *patternFormula;
+          Formula *patternFormula = nullptr;
           process(*term->nthArgument(i), matchedContext, patternTerm, patternFormula);
           // build v = pi
           Formula *head = buildEq(matchedContext, matchedFormula, patternFormula,
                                   matchedTerm, patternTerm, sd->getMatchedSort());
 
           TermList bodyTerm;
-          Formula *bodyFormula;
+          Formula *bodyFormula = nullptr;
           process(*term->nthArgument(i + 1), context, bodyTerm, bodyFormula);
           // build g(X1, ..., Xn) == bi
           Formula *body = buildEq(context, freshPredicateApplication, bodyFormula,
@@ -831,7 +818,9 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
             //TODO do we know the sorts of freeVars?
             impl = new QuantifiedFormula(FORALL, freeVars, 0, impl);
           }
-          addDefinition(new FormulaUnit(impl, NonspecificInference1(InferenceRule::FOOL_MATCH_ELIMINATION, _unit)));
+          FormulaUnit* defUnit = new FormulaUnit(impl,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FOOL_MATCH_DEFINITION));
+          addDefinition(defUnit);
+          InferenceStore::instance()->recordIntroducedSymbol(defUnit,context == FORMULA_CONTEXT ? SymbolType::PRED : SymbolType::FUNC, freshSymbol);
         }
 
         if (context == FORMULA_CONTEXT) {
@@ -843,10 +832,6 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         break;
       }
 
-#if VDEBUG
-      default:
-        ASSERTION_VIOLATION;
-#endif
     }
 
     if (env.options->showPreprocessing()) {
@@ -893,8 +878,6 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
  * A shortcut of process(Term*, context) for TERM_CONTEXT.
  */
 TermList FOOLElimination::process(Term* term) {
-  CALL("FOOLElimination::process(Term* term)");
-
   TermList termList;
   Formula* dummy;
 
@@ -907,9 +890,7 @@ TermList FOOLElimination::process(Term* term) {
  * A shortcut of process(Term*, context) for FORMULA_CONTEXT.
  */
 Formula* FOOLElimination::processAsFormula(Term* term) {
-  CALL("FOOLElimination::processAsFormula(Term* term)");
-
-  Formula* formula;
+  Formula* formula = nullptr;
   TermList dummy;
 
   process(term, FORMULA_CONTEXT, dummy, formula);
@@ -924,8 +905,6 @@ Formula* FOOLElimination::processAsFormula(Term* term) {
  */
 Formula* FOOLElimination::buildEq(Context context, Formula* lhsFormula, Formula* rhsFormula,
                                                    TermList lhsTerm, TermList rhsTerm, TermList termSort) {
-  CALL("FOOLElimination::buildEq");
-
   if (context == FORMULA_CONTEXT) {
     // build equivalence
     return new BinaryFormula(IFF, lhsFormula, rhsFormula);
@@ -943,8 +922,6 @@ Formula* FOOLElimination::buildEq(Context context, Formula* lhsFormula, Formula*
  */
 void FOOLElimination::buildApplication(unsigned symbol, Context context, TermStack& vars,
                                        TermList& functionApplication, Formula*& predicateApplication) {
-  CALL("FOOLElimination::buildApplication");
-
   if (context == FORMULA_CONTEXT) {
     predicateApplication = new AtomicFormula(Literal::create(symbol, vars.size(), true, false, vars.begin()));
   } else {
@@ -956,15 +933,13 @@ void FOOLElimination::buildApplication(unsigned symbol, Context context, TermSta
  * Creates a stack of sorts for the given variables, using the sorting context
  * of the current formula.
  */
-void FOOLElimination::collectSorts(VList* vars, TermStack& typeVars, 
+void FOOLElimination::collectSorts(VList* vars, TermStack& typeVars,
                                    TermStack& termVars, TermStack& allVars, TermStack& termVarSorts)
 {
-  CALL("FOOLElimination::collectSorts");
-
   VList::Iterator fvi(vars);
   while (fvi.hasNext()) {
     unsigned var = fvi.next();
-    ASS_REP(_varSorts.find(var), var);    
+    ASS_REP(_varSorts.find(var), var);
     TermList sort = _varSorts.get(var, AtomicSort::defaultSort());
     if(sort == AtomicSort::superSort()){
       //variable is a type var
@@ -988,16 +963,13 @@ void FOOLElimination::collectSorts(VList* vars, TermStack& typeVars,
  * doesn't have FOOL subterms.
  */
 void FOOLElimination::addDefinition(FormulaUnit* def) {
-  CALL("FOOLElimination::addDefinition");
-
   ASS_REP(!needsElimination(def), def->toString());
 
-  _defs = new UnitList(def, _defs);
+  UnitList::push(def, _defs);
+  UnitList::push(def, _currentDefs);
 
   if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] FOOL added definition: " << def->toString() << endl;
-    env.endOutput();
+    std::cout << "[PP] FOOL added definition: " << def->toString() << endl;
   }
 }
 
@@ -1009,8 +981,6 @@ Formula* FOOLElimination::toEquality(TermList booleanTerm) {
 
 unsigned FOOLElimination::introduceFreshSymbol(Context context, const char* prefix,
                                                TermStack sorts, TermList resultSort, unsigned typeArgsArity) {
-  CALL("FOOLElimination::introduceFreshSymbol");
-
   unsigned arity = (unsigned)sorts.size();
   OperatorType* type;
   if (context == FORMULA_CONTEXT) {
@@ -1029,23 +999,19 @@ unsigned FOOLElimination::introduceFreshSymbol(Context context, const char* pref
   }
 
   if (env.options->showPreprocessing()) {
-    env.beginOutput();
-    env.out() << "[PP] FOOL: introduced fresh ";
+    std::cout << "[PP] FOOL: introduced fresh ";
     if (context == FORMULA_CONTEXT) {
-      env.out() << "predicate symbol " << env.signature->predicateName(symbol);
+      std::cout << "predicate symbol " << env.signature->predicateName(symbol);
     } else {
-      env.out() << "function symbol " << env.signature->functionName(symbol);
+      std::cout << "function symbol " << env.signature->functionName(symbol);
     }
-    env.out() << " of the sort " << type->toString() << endl;
-    env.endOutput();
+    std::cout << " of the sort " << type->toString() << endl;
   }
 
   return symbol;
 }
 
-void FOOLElimination::reportProcessed(vstring inputRepr, vstring outputRepr) {
-  CALL("FOOLElimination::reportProcessed");
-
+void FOOLElimination::reportProcessed(std::string inputRepr, std::string outputRepr) {
   if (inputRepr != outputRepr) {
     /**
      * If show_fool is set to off, the string representations of the input
@@ -1055,9 +1021,7 @@ void FOOLElimination::reportProcessed(vstring inputRepr, vstring outputRepr) {
      * the output seeming the same, we will not log such processings at
      * all. Setting show_fool to on, however, will display everything.
      */
-    env.beginOutput();
-    env.out() << "[PP] FOOL in:  " << inputRepr  << endl;
-    env.out() << "[PP] FOOL out: " << outputRepr << endl;
-    env.endOutput();
+    std::cout << "[PP] FOOL in:  " << inputRepr  << endl;
+    std::cout << "[PP] FOOL out: " << outputRepr << endl;
   }
 }

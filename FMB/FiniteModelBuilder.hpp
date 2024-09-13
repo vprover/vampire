@@ -44,8 +44,8 @@ using namespace SAT;
     unsigned f;
     DArray<unsigned> grounding;
 
-    vstring toString(){
-      vstring ret = Lib::Int::toString(f)+"[";
+    std::string toString(){
+      std::string ret = Lib::Int::toString(f)+"[";
       for(unsigned i=0;i<grounding.size();i++){
         if(i>0) ret +=",";
         ret+=Lib::Int::toString(grounding[i]);
@@ -57,9 +57,6 @@ using namespace SAT;
 
 class FiniteModelBuilder : public MainLoop {
 public:
-  CLASS_NAME(FiniteModedlBuilder);
-  USE_ALLOCATOR(FiniteModelBuilder);    
-  
   FiniteModelBuilder(Problem& prb, const Options& opt);
   ~FiniteModelBuilder();
 
@@ -100,12 +97,12 @@ private:
   // For each model size up to the maximum add both ordering and canonicity constraints for each (inferred) sort
   void addNewSymmetryAxioms(){
       ASS(_sortedSignature);
-    
+
     for(unsigned s=0;s<_sortedSignature->sorts;s++){
-      //cout << "SORT " << s << endl;
+      //std::cout << "SORT " << s << std::endl;
       unsigned modelSize = _sortModelSizes[s];
       for(unsigned m=1;m<=modelSize;m++){
-        //cout << "MSIZE " << m << endl;
+        //std::cout << "MSIZE " << m << std::endl;
         addNewSymmetryOrderingAxioms(m,_sortedGroundedTerms[s]);
         addNewSymmetryCanonicityAxioms(m,_sortedGroundedTerms[s],modelSize);
       }
@@ -129,19 +126,18 @@ private:
   // The per-sort ordering of grounded terms used for symmetry breaking
   DArray<Stack<GroundedTerm>> _sortedGroundedTerms;
 
+  unsigned _curMaxVar;
   // SAT solver used to solve constraints (a new one is used for each model size)
   ScopedPtr<SATSolverWithAssumptions> _solver;
 
-  // Structures to record symbols removed during preprocessing i.e. via definition elimination
-  // These are ignored throughout finite model building and then the definitions (recorded here)
-  // are used to give the interpretation of the function/predicate if a model is found
-  DHMap<unsigned,Literal*> _deletedFunctions;
-  DHMap<unsigned,Unit*> _deletedPredicates;
-  DHMap<unsigned,Unit*> _partiallyDeletedPredicates; 
-  DHMap<unsigned,bool> _trivialPredicates;
   // if del_f[i] (resp del_p[i]) is true then that function (resp predicate) should be ignored
-  DArray<unsigned> del_f;
-  DArray<unsigned> del_p;
+  DArray<bool> del_f;
+  DArray<bool> del_p;
+
+  // Store monotonicity_info (see Monotonicity::check) for every sort detected (or made) monotonic
+  DHMap<unsigned,DArray<signed char>*> _monotonic_vampire_sorts;
+  Stack<unsigned> _sortFunctions; // sort functions to remember - need to be eliminated from the model in the end
+  Stack<unsigned> _sortPredicates; // sort predicates to remember - need to be eliminated from the model in the end
 
   // Add a SATClause to the SAT solver
   void addSATClause(SATClause* cl);
@@ -161,9 +157,9 @@ private:
   ClauseList* _groundClauses;
   ClauseList* _clauses;
 
-  // Record for function symbol the minimum bound of the return sort or any parameter sorts 
+  // Record for function symbol the minimum bound of the return sort or any parameter sorts
   DArray<unsigned> _fminbound;
-  // Record for each clause the sorts of the variables 
+  // Record for each clause the sorts of the variables
   // As clauses are normalized variables will be numbered 0,1,...
   DHMap<Clause*,DArray<unsigned>*> _clauseVariableSorts;
 
@@ -216,7 +212,7 @@ private:
 
   // Currently an experimental option allows you to start at larger model sizes
   // TODO in the future we could use this for a cheap way to 'pause' and 'restart' fmb
-  unsigned _startModelSize; 
+  unsigned _startModelSize;
   // If we detect that FMB is not an approprate sa at init we then terminate immediately at runImpl
   bool _isAppropriate;
   // Option used in symmetry breaking
@@ -236,7 +232,7 @@ private:
     STAR    // we don't care about this value
   };
 
-  typedef DArray<pair<ConstraintSign,unsigned>> Constraint_Generator_Vals;
+  typedef DArray<std::pair<ConstraintSign,unsigned>> Constraint_Generator_Vals;
 
   class DSAEnumerator { // Domain Size Assignment Enumerator - for the point-wise encoding case
   public:
@@ -251,9 +247,6 @@ private:
 
   class HackyDSAE : public DSAEnumerator {
     struct Constraint_Generator {
-      CLASS_NAME(FiniteModedlBuilder::HackyDSAE::Constraint_Generator);
-      USE_ALLOCATOR(FiniteModelBuilder::HackyDSAE::Constraint_Generator);
-
       Constraint_Generator_Vals _vals;
       unsigned _weight;
 
@@ -282,16 +275,13 @@ private:
 
     bool _skippedSomeSizes;
 
-    // Stack<Constraint_Generator*> _old_generators; // keeping old generators degraded performance on average ...
-
+    bool _keepOldGenerators;
+    Stack<Constraint_Generator*> _old_generators; // keeping old generators degraded performance on average ...
   protected:
     bool checkConstriant(DArray<unsigned>& newSortSizes, Constraint_Generator_Vals& constraint);
 
   public:
-    CLASS_NAME(FiniteModedlBuilder::HackyDSAE);
-    USE_ALLOCATOR(FiniteModelBuilder::HackyDSAE);
-
-    HackyDSAE() : _maxWeightSoFar(0) {}
+    HackyDSAE(bool keepOldGenerators) : _maxWeightSoFar(0), _keepOldGenerators(keepOldGenerators) {}
 
     bool init(unsigned _startSize, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>& dsc, Stack<std::pair<unsigned,unsigned>>& sdsc) override {
       _skippedSomeSizes = (_startSize > 1);
@@ -316,10 +306,6 @@ private:
     unsigned loadSizesFromSmt(DArray<unsigned>& szs);
     void reportZ3OutOfMemory();
   public:
-    // the following is not sufficient, since z3::solver and z3::context allocate internally
-    CLASS_NAME(FiniteModedlBuilder::SmtBasedDSAE);
-    USE_ALLOCATOR(FiniteModelBuilder::SmtBasedDSAE);
-
     SmtBasedDSAE() : _smtSolver(_context) {}
 
     bool init(unsigned, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>&, Stack<std::pair<unsigned,unsigned>>&) override;
@@ -344,30 +330,30 @@ private:
 
 public: // debugging
     static void output_cg(Constraint_Generator_Vals& cgv) {
-      cout << "[";
+      std::cout << "[";
       for (unsigned i = 0; i < cgv.size(); i++) {
-        cout << cgv[i].second;
+        std::cout << cgv[i].second;
         switch(cgv[i].first) {
         case EQ:
-          cout << "=";
+          std::cout << "=";
           break;
         case LEQ:
-          cout << ">";
+          std::cout << ">";
           break;
         case GEQ:
-          cout << "<";
+          std::cout << "<";
           break;
         case STAR:
-          cout << "*";
+          std::cout << "*";
           break;
         default:
           ASSERTION_VIOLATION;
         }
         if (i < cgv.size()-1) {
-          cout << ", ";
+          std::cout << ", ";
         }
       }
-      cout << "]";
+      std::cout << "]";
     }
 
 };

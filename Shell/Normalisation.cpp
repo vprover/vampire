@@ -40,8 +40,6 @@ Normalisation::Normalisation ()
  */
 void Normalisation::normalise(Problem& prb)
 {
-  CALL("Normalisation::normalise");
-
   UnitList* units = prb.units();
   units = normalise(units);
   prb.units() = units;
@@ -54,8 +52,6 @@ void Normalisation::normalise(Problem& prb)
  */
 UnitList* Normalisation::normalise (UnitList* units)
 {
-  CALL("Normalisation::normalise (UnitList*");
-
   if (UnitList::isEmpty(units)) {
     return units;
   }
@@ -64,14 +60,17 @@ UnitList* Normalisation::normalise (UnitList* units)
   unsigned length = UnitList::length(units);
 
   // more than one literal
-  Sort<Unit*,Normalisation> srt(length,*this);
+  std::vector<Unit *> srt;
   UnitList::Iterator us(units);
   while (us.hasNext()) {
     Unit* unit = us.next();
     normalise(unit);
-    srt.add(unit);
+    srt.push_back(unit);
   }
-  srt.sort();
+  sort(
+    srt.begin(), srt.end(),
+    [this](Unit *u1, Unit *u2) -> bool { return lessThan(u1, u2); }
+  );
   UnitList* result = UnitList::empty();
   for (int k = length-1;k >= 0;k--) {
     result = new UnitList(srt[k],result);
@@ -88,8 +87,6 @@ UnitList* Normalisation::normalise (UnitList* units)
  */
 void Normalisation::normalise (Unit* unit)
 {
-  CALL ("Normalisation::normalize(Unit*)");
-
   if (! unit->isClause()) {
     return;
   }
@@ -102,11 +99,15 @@ void Normalisation::normalise (Unit* unit)
   }
 
   // more than one literal
-  Sort<Literal*,Normalisation> srt(length,*this);
+  std::vector<Literal *> srt;
   for (int i = 0;i < length;i++) {
-    srt.add(clause[i]);
+    srt.push_back(clause[i]);
   }
-  srt.sort();
+
+  sort(
+    srt.begin(), srt.end(),
+    [this](Literal *l, Literal *k) -> bool { return lessThan(l, k); }
+  );
   for (int i=0;i < length;i++) {
     clause[i] = srt[i];
   }
@@ -126,8 +127,6 @@ void Normalisation::normalise (Unit* unit)
  * @since 03/06/2007 Manchester, changed to new data structures */
 bool Normalisation::lessThan (Unit* u1, Unit* u2)
 {
-  CALL("Normalisation::lessThan (const Unit*...)");
-
   // the below code should be uncommented, it gives the best behavior
   // on the average
   switch (compare(static_cast<int>(u1->inputType()),static_cast<int>(u2->inputType()))) {
@@ -187,8 +186,6 @@ bool Normalisation::lessThan(Clause* cl1, Clause* cl2)
  */
 bool Normalisation::lessThan (Formula* f1, Formula* f2)
 {
-  CALL("Normalisation::lessThan (const Formula*...)");
-
   return compare(f1,f2) == LESS;
 } // Normalisation::lessThan
 
@@ -204,8 +201,6 @@ bool Normalisation::lessThan (Formula* f1, Formula* f2)
  */
 bool Normalisation::lessThan (Literal* l1, Literal* l2)
 {
-  CALL("Normalisation::lessThan (const Literal*...)");
-
   return compare(l1,l2) == LESS;
 }
 
@@ -219,8 +214,6 @@ bool Normalisation::lessThan (Literal* l1, Literal* l2)
  */
 Comparison Normalisation::compare (Formula* fm1, Formula* fm2)
 {
-  CALL("Normalisation::compare (const Formula*...)");
-
   SubformulaIterator sf1(fm1);
   SubformulaIterator sf2(fm2);
 
@@ -287,8 +280,6 @@ Comparison Normalisation::compare (Formula* fm1, Formula* fm2)
  */
 Comparison Normalisation::compare (Literal* l1, Literal* l2)
 {
-  CALL("Normalisation::compare (const Literal*...)");
-
   if (l1 == l2) {
     return EQUAL;
   }
@@ -396,8 +387,6 @@ Comparison Normalisation::compare (Literal* l1, Literal* l2)
  */
 Comparison Normalisation::compare(TermList ts1, TermList ts2)
 {
-  CALL("Normalisation::compare(TermList...)");
-
   // both non-empty
   if (ts1.isVar() && !ts2.isVar()) {
      return LESS;
@@ -424,9 +413,6 @@ Comparison Normalisation::compare(TermList ts1, TermList ts2)
  */
 Comparison Normalisation::compare(Term* t1, Term* t2)
 {
-  CALL("Normalisation::compare(const Term*...)");
-
-
   if (t1 == t2) {
     return EQUAL;
   }
@@ -450,25 +436,24 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
   }
 
   if (t1->isSpecial() && t2->isSpecial()) {
-    comp = compare ((int)t1->getSpecialData()->getType(),
-                    (int)t2->getSpecialData()->getType());
+    comp = compare (unsigned(t1->specialFunctor()), unsigned(t2->specialFunctor()));
     if (comp != EQUAL) {
       return comp;
     }
 
     // same kind of special terms
-    switch (t1->getSpecialData()->getType()) {
-      case Term::SF_FORMULA:
+    switch (t1->specialFunctor()) {
+      case SpecialFunctor::FORMULA:
         return compare(t1->getSpecialData()->getFormula(), t2->getSpecialData()->getFormula());
 
-      case Term::SF_ITE:
+      case SpecialFunctor::ITE:
         comp = compare(t1->getSpecialData()->getCondition(), t2->getSpecialData()->getCondition());
         if (comp != EQUAL) {
           return comp;
         }
         break; // compare arguments "then" and "else" as usual below
 
-      case Term::SF_LET: {
+      case SpecialFunctor::LET: {
         comp = compare((int) VList::length(t1->getSpecialData()->getVariables()),
                        (int) VList::length(t2->getSpecialData()->getVariables()));
         if (comp != EQUAL) {
@@ -483,7 +468,7 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         break; // compare body of the let as usual below (although 1) what about sorts, 2) what about doing the modulo the bound name?)
       }
 
-      case Term::SF_LET_TUPLE: {
+      case SpecialFunctor::LET_TUPLE: {
         comp = compare((int) VList::length(t1->getSpecialData()->getTupleSymbols()),
                        (int) VList::length(t2->getSpecialData()->getTupleSymbols()));
         if (comp != EQUAL) {
@@ -498,7 +483,7 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         break; // compare body of the tuple below
       }
 
-      case Term::SF_TUPLE: {
+      case SpecialFunctor::TUPLE: {
         comp = compare(t1->getSpecialData()->getTupleTerm(), t2->getSpecialData()->getTupleTerm());
         if (comp != EQUAL) {
           return comp;
@@ -506,7 +491,7 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         break; // compare body of the tuple below
       }
 
-      case Term::SF_LAMBDA: {
+      case SpecialFunctor::LAMBDA: {
         comp = compare((int) VList::length(t1->getSpecialData()->getLambdaVars()),
                        (int) VList::length(t2->getSpecialData()->getLambdaVars()));
         if (comp != EQUAL) {
@@ -518,12 +503,10 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         return comp;     
       }
 
-      case Term::SF_MATCH: {
+      case SpecialFunctor::MATCH: {
         break; // comparison by arity and pairwise by arguments is done below
       }
 
-      default:
-        ASSERTION_VIOLATION;
     }
   }
 

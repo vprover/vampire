@@ -18,9 +18,7 @@
 
 #include "Debug/RuntimeStatistics.hpp"
 
-#include "Lib/Allocator.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/TimeCounter.hpp"
 #include "Lib/Timer.hpp"
 #include "SAT/Z3Interfacing.hpp"
 
@@ -32,6 +30,7 @@
 #include "Statistics.hpp"
 
 
+using namespace std;
 using namespace Lib;
 using namespace Saturation;
 using namespace Shell;
@@ -107,6 +106,14 @@ Statistics::Statistics()
     proxyEliminations(0),
     leibnizElims(0),
     booleanSimps(0),
+    skippedSuperposition(0),
+    skippedResolution(0),
+    skippedEqualityResolution(0),
+    skippedEqualityFactoring(0),
+    skippedFactoring(0),
+    skippedInferencesDueToOrderingConstraints(0),
+    skippedInferencesDueToAvatarConstraints(0),
+    skippedInferencesDueToLiteralConstraints(0),
     duplicateLiterals(0),
     trivialInequalities(0),
     forwardSubsumptionResolution(0),
@@ -133,7 +140,6 @@ Statistics::Statistics()
     evaluationIncomp(0),
     evaluationGreater(0),
     evaluationCnt(0),
-
     innerRewrites(0),
     innerRewritesToEqTaut(0),
     deepEquationalTautologies(0),
@@ -170,11 +176,6 @@ Statistics::Statistics()
 
     smtFallbacks(0),
 
-    instGenGeneratedClauses(0),
-    instGenRedundantClauses(0),
-    instGenKeptClauses(0),
-    instGenIterations(0),
-
     satPureVarsEliminated(0),
     terminationReason(UNKNOWN),
     refutation(0),
@@ -205,9 +206,7 @@ void Statistics::explainRefutationNotFound(ostream& out)
 
 void Statistics::print(ostream& out)
 {
-  if (env.options->statistics()==Options::Statistics::NONE) {
-    return;
-  }
+  if (env.options->statistics() != Options::Statistics::NONE) {
 
   SaturationAlgorithm::tryUpdateFinalClauseCount();
 
@@ -246,12 +245,6 @@ void Statistics::print(ostream& out)
   case Statistics::SATISFIABLE:
     out << "Satisfiable";
     break;
-  case Statistics::SAT_SATISFIABLE:
-    out << "SAT Satisfiable";
-    break;
-  case Statistics::SAT_UNSATISFIABLE: 
-    out << "SAT Unsatisfiable";
-    break;
   case Statistics::UNKNOWN:
     out << "Unknown";
     break;
@@ -278,9 +271,7 @@ void Statistics::print(ostream& out)
     unusedPredicateDefinitions+functionDefinitions+selectedBySine+
     sineIterations+splitInequalities);
   COND_OUT("Introduced names",formulaNames);
-  COND_OUT("Reused names",reusedFormulaNames);
   COND_OUT("Introduced skolems",skolemFunctions);
-  COND_OUT("Reused skolems",reusedSkolemFunctions);
   COND_OUT("Pure predicates", purePredicates);
   COND_OUT("Trivial predicates", trivialPredicates);
   COND_OUT("Unused predicate definitions", unusedPredicateDefinitions);
@@ -295,6 +286,7 @@ void Statistics::print(ostream& out)
       discardedNonRedundantClauses+inferencesSkippedDueToColors+inferencesBlockedForOrderingAftercheck);
   COND_OUT("Initial clauses", initialClauses);
   COND_OUT("Generated clauses", generatedClauses);
+  COND_OUT("Activations started", activations);
   COND_OUT("Active clauses", activeClauses);
   COND_OUT("Passive clauses", passiveClauses);
   COND_OUT("Extensionality clauses", extensionalityClauses);
@@ -425,6 +417,20 @@ void Statistics::print(ostream& out)
   COND_OUT("Self sub-variable superposition", selfSubVarSup);
   SEPARATOR;
 
+  HEADING("Redundant Inferences",
+    skippedSuperposition+skippedResolution+skippedEqualityResolution+skippedEqualityFactoring+
+    skippedFactoring+skippedInferencesDueToOrderingConstraints+
+    skippedInferencesDueToAvatarConstraints+skippedInferencesDueToLiteralConstraints);
+  COND_OUT("Skipped superposition", skippedSuperposition);
+  COND_OUT("Skipped resolution", skippedResolution);
+  COND_OUT("Skipped equality resolution", skippedEqualityResolution);
+  COND_OUT("Skipped equality factoring", skippedEqualityFactoring);
+  COND_OUT("Skipped factoring", skippedFactoring);
+  COND_OUT("Skipped inferences due to ordering constraints", skippedInferencesDueToOrderingConstraints);
+  COND_OUT("Skipped inferences due to AVATAR constraints", skippedInferencesDueToAvatarConstraints);
+  COND_OUT("Skipped inferences due to literal constraints", skippedInferencesDueToLiteralConstraints);
+  SEPARATOR;
+
   HEADING("Term algebra simplifications",taDistinctnessSimplifications+
       taDistinctnessTautologyDeletions+taInjectivitySimplifications+
       taAcyclicityGeneratedDisequalities+taNegativeInjectivitySimplifications);
@@ -444,14 +450,6 @@ void Statistics::print(ostream& out)
   COND_OUT("SMT fallbacks",smtFallbacks);
   SEPARATOR;
 
-  HEADING("Instance Generation",instGenGeneratedClauses+instGenRedundantClauses+
-       instGenKeptClauses+instGenIterations);
-  COND_OUT("InstGen generated clauses", instGenGeneratedClauses);
-  COND_OUT("InstGen redundant clauses", instGenRedundantClauses);
-  COND_OUT("InstGen kept clauses", instGenKeptClauses);
-  COND_OUT("InstGen iterations", instGenIterations);
-  SEPARATOR;
-
   //TODO record statistics for FMB
 
   //TODO record statistics for MiniSAT
@@ -464,20 +462,19 @@ void Statistics::print(ostream& out)
 
   }
 
-  COND_OUT("Memory used [KB]", Allocator::getUsedMemory()/1024);
-
   addCommentSignForSZS(out);
   out << "Time elapsed: ";
-  Timer::printMSString(out,env.timer->elapsedMilliseconds());
+  Timer::printMSString(out,Timer::elapsedMilliseconds());
   out << endl;
-  
+
+  Timer::updateInstructionCount();
   unsigned instr = Timer::elapsedMegaInstructions();
   if (instr) {
     addCommentSignForSZS(out);
     out << "Instructions burned: " << instr << " (million)";
     out << endl;
   }
-  
+
   addCommentSignForSZS(out);
   out << "------------------------------\n";
 
@@ -487,10 +484,13 @@ void Statistics::print(ostream& out)
 
 #undef SEPARATOR
 #undef COND_OUT
+  } // if (env.options->statistics()!=Options::Statistics::NONE)
 
+#if VTIME_PROFILING
   if (env.options && env.options->timeStatistics()) {
-    TimeCounter::printReport(out);
+    TimeTrace::instance().printPretty(out);
   }
+#endif // VTIME_PROFILING
 }
 
 const char* Statistics::phaseToString(ExecutionPhase p)
@@ -504,6 +504,8 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Property scanning";
   case NORMALIZATION:
     return "Normalization";
+  case SHUFFLING:
+    return "shuffling";
   case SINE_SELECTION:
     return "SInE selection";
   case INCLUDING_THEORY_AXIOMS:
@@ -518,6 +520,10 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Unused predicate definition removal";
   case BLOCKED_CLAUSE_ELIMINATION:
     return "Blocked clause elimination";
+  case TWEE:
+    return "Twee Goal Transformation";
+  case ANSWER_LITERAL: 
+    return "Answer literal addition";
   case PREPROCESS_2:
     return "Preprocessing 2";
   case NEW_CNF:
@@ -561,3 +567,5 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Invalid ExecutionPhase value";
   }
 }
+
+

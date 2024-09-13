@@ -18,7 +18,6 @@
 #include "Forwards.hpp"
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
 #include "Allocator.hpp"
 #include "Reflection.hpp"
@@ -48,7 +47,6 @@ public:
   explicit Deque (size_t initialCapacity=8)
     : _capacity(initialCapacity)
   {
-    CALL("Deque::Deque");
     ASS_G(initialCapacity,1);
 
     void* mem = ALLOC_KNOWN(_capacity*sizeof(C),"Deque<>");
@@ -63,8 +61,6 @@ public:
    */
   inline ~Deque()
   {
-    CALL("Stack::~Stack");
-
     C* p=_back;
     while(p!=_front) {
       if(p==_data) {
@@ -123,8 +119,6 @@ public:
   inline
   void setFront(C elem)
   {
-    CALL("Deuqe::setFront");
-
     front() = elem;
   }
 
@@ -154,13 +148,11 @@ public:
   inline
   void push_back(C elem)
   {
-    CALL("Deque::push_back");
-
     if(shouldExpand()) {
       expand();
     }
     ASS(_back < _end);
-    new(_back) C(elem);
+    ::new (_back) C(elem);
 
     _back++;
     if(_back==_end) {
@@ -175,8 +167,6 @@ public:
   inline
   void push_front(C elem)
   {
-    CALL("Deque::push_front");
-
     if(shouldExpand()) {
       expand();
     }
@@ -186,7 +176,7 @@ public:
     }
     _front--;
 
-    new(_front) C(elem);
+    ::new (_front) C(elem);
 
     ASS_NEQ(_front, _back);
   }
@@ -197,7 +187,6 @@ public:
   inline
   C pop_front()
   {
-    CALL("Deque::pop_front");
     ASS(isNonEmpty());
 
     C res=*_front;
@@ -217,7 +206,6 @@ public:
   inline
   C& back() const
   {
-    CALL("Deque::back");
     ASS(isNonEmpty());
 
     C* res = _back;
@@ -235,7 +223,6 @@ public:
   inline
   C pop_back()
   {
-    CALL("Deque::pop_back");
     ASS(isNonEmpty());
 
     if(_back==_data) {
@@ -271,8 +258,6 @@ public:
    */
   template<class It>
   void pushBackFromIterator(It it) {
-    CALL("Deque::pushBackFromIterator");
-
     while(it.hasNext()) {
       push_back(it.next());
     }
@@ -283,8 +268,6 @@ public:
    */
   template<class It>
   void pushFrontFromIterator(It it) {
-    CALL("Deque::pushFrontFromIterator");
-
     while(it.hasNext()) {
       push_front(it.next());
     }
@@ -456,8 +439,6 @@ protected:
    */
   void expand ()
   {
-    CALL("Deque::expand");
-
     ASS(shouldExpand());
 
     size_t curSize=size();
@@ -469,7 +450,7 @@ protected:
     C* newData = static_cast<C*>(mem);
     C* oldPtr=_front;
     for(size_t i = 0; i<curSize; i++) {
-      new(newData+i) C(*oldPtr);
+      ::new (newData+i) C(*oldPtr);
       oldPtr->~C();
 
       oldPtr++;

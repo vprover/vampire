@@ -20,11 +20,10 @@
 #include "Kernel/Signature.hpp"
 #include "Lib/Environment.hpp"
 
-#include "Api/FormulaBuilder.hpp"
-#include "Api/Problem.hpp"
 #include "Lib/Coproduct.hpp"
 #include "Lib/Map.hpp"
 #include "Kernel/Clause.hpp"
+#include <memory>
 
 namespace Test {
 class TestUtils {
@@ -101,6 +100,12 @@ private:
   static bool isAC(Kernel::Term* f);
 };
 
+template<class A>
+struct PrettyPrinter {
+  void operator()(std::ostream& out, A const& self)
+  { out << self; }
+};
+
 /** 
  * Newtype for pretty-printing objects. 
  *
@@ -113,11 +118,12 @@ class Pretty {
 public:
   Pretty(const T& t) : _self(t) { }
 
-  std::ostream& prettyPrint(std::ostream& out) const
-  { return out << _self; }
-
   template<class U>
   friend Pretty<U> pretty(const U& t);
+
+  // template<class U>
+  friend std::ostream& operator<<(std::ostream& out, const Pretty<T>& self)
+  { PrettyPrinter<T>{}(out, self._self); return out; }
 };
 
 template<class U>
@@ -125,46 +131,23 @@ Pretty<U> pretty(const U& t)
 { return Pretty<U>(t); }
 
 
-template<class U>
-std::ostream& operator<<(std::ostream& out, const Pretty<U>& self)
-{  return self.prettyPrint(out); }
-
-
 template<class... As>
-class Pretty<Lib::Coproduct<As...>> 
-{
-  Lib::Coproduct<As...> const& _self;
-
-public:
-  Pretty(Lib::Coproduct<As...> const& self) : _self(self) { }
-
-  std::ostream& prettyPrint(std::ostream& out) const
-  { return _self.apply([&](auto const& a) -> std::ostream& { return out << pretty(a); }); }
+struct PrettyPrinter<Lib::Coproduct<As...>> {
+  void operator()(std::ostream& out, Lib::Coproduct<As...> const& self)
+  { self.apply([&](auto const& a) -> std::ostream& { return out << pretty(a); }); }
 };
 
-
 template<class A>
-class Pretty<A*> {
-  A* const& _self;
-
-public:
-  Pretty(A* const& self) : _self(self) {}
-
-  std::ostream& prettyPrint(std::ostream& out) const
-  { return _self == nullptr ? out << "null" : out << pretty(*_self); }
+struct PrettyPrinter<A*> {
+  void operator()(std::ostream& out, A* const& self)
+  { if (self == nullptr) out << "nullptr"; else out << pretty(*self); }
 };
 
-
 template<class A>
-class Pretty<Stack<A>> {
-  Stack<A> const& _self;
-
-public:
-  Pretty(Stack<A> const& self) : _self(self) {}
-
-  std::ostream& prettyPrint(std::ostream& out) const
+struct PrettyPrinter<Stack<A>> {
+  void operator()(std::ostream& out, Stack<A> const& self)
   {
-    auto iter = _self.iterFifo();
+    auto iter = self.iterFifo();
     out << "[ ";
     if (iter.hasNext()) {
       out << pretty(iter.next());
@@ -173,42 +156,142 @@ public:
       }
     }
     out << " ]";
-    return out;
   }
 };
 
-
 template<class A>
-class Pretty<Option<A>> {
-  Option<A> const& _self;
-
-public:
-  Pretty(Option<A> const& self) : _self(self) {}
-
-  std::ostream& prettyPrint(std::ostream& out) const
-  { return _self.isSome() ? out << pretty(_self.unwrap()) : out << "none"; }
+struct PrettyPrinter<Option<A>> {
+  void operator()(std::ostream& out, Option<A> const& self)
+  { self.isSome() ? out << pretty(self.unwrap()) : out << "none"; }
 };
 
 template<class A>
-class Pretty<unique_ptr<A>> {
-  unique_ptr<A> const& _self;
-
-public:
-  Pretty(unique_ptr<A> const& self) : _self(self) {}
-
-  std::ostream& prettyPrint(std::ostream& out) const
-  { return out << pretty(*_self); }
+struct PrettyPrinter<std::unique_ptr<A>> {
+  void operator()(std::ostream& out, std::unique_ptr<A> const& self)
+  { out << pretty(*self); }
 };
 
 template<class A, class B>
-class Pretty<pair<A,B>> {
-  pair<A,B> const& _self;
+struct PrettyPrinter<std::pair<A,B>> {
+  void operator()(std::ostream& out, std::pair<A,B> const& self)
+  { out << pretty(self.first) << " : " << pretty(self.second); }
+};
 
-public:
-  Pretty(pair<A,B> const& self) : _self(self) {}
+template<>
+struct PrettyPrinter<Kernel::Clause> 
+{ 
+  void operator()(std::ostream& out, Kernel::Clause const& self)
+  { 
+    auto iter = self.iterLits();
+    if (iter.hasNext()) {
+      out << pretty(*iter.next());
+      while(iter.hasNext()) {
+        out << " \\/ " << pretty(*iter.next());
+      }
+    } else {
+      out << "bot";
+    }
+  }
+};
 
-  std::ostream& prettyPrint(std::ostream& out) const
-  { return out << pretty(_self.first) << " : " << pretty(_self.second); }
+inline std::ostream& printOp(std::ostream& out, const Kernel::Term* t, const char* op) {
+  auto l = *t->nthArgument(0);
+  auto r = *t->nthArgument(1);
+  return out << "(" << pretty(l) << " " << op << " " << pretty(r) << ")";
+}
+
+template<>
+struct PrettyPrinter<Kernel::Literal> 
+{ 
+  void operator()(std::ostream& out, Kernel::Literal const& lit)
+  {
+    using namespace std;
+    using namespace Kernel;
+    auto print = [&]() -> ostream& {
+
+      auto func = lit.functor();
+      if(theory->isInterpretedPredicate(func)) {
+        switch(theory->interpretPredicate(func)) {
+#define NUM_CASE(oper) \
+          case Kernel::Theory::INT_  ## oper: \
+          case Kernel::Theory::REAL_ ## oper: \
+          case Kernel::Theory::RAT_  ## oper
+
+          NUM_CASE(LESS_EQUAL):
+            return printOp(out, &lit, "<=");
+          case Kernel::Theory::EQUAL:
+            return printOp(out, &lit, "=");
+          default: 
+          {
+          }
+#undef NUM_CASE
+        }
+      }
+      Signature::Symbol* sym = env.signature->getPredicate(func);
+      out << sym->name();
+      if (sym->arity() > 0) {
+        out << "(" << pretty(*lit.nthArgument(0));
+        for (unsigned i = 1; i < sym->arity(); i++) {
+          out << ", " << pretty(*lit.nthArgument(i));
+        }
+        out << ")";
+      }
+      return out;
+    };
+
+
+    if (!lit.polarity()) {
+      out << "~(";
+    }
+    print();
+    if (!lit.polarity()) {
+      out << ")";
+    }
+  }
+};
+template<>
+struct PrettyPrinter<Kernel::TermList> 
+{ 
+  void operator()(std::ostream& out, Kernel::TermList const& t)
+  {
+    using namespace Kernel;
+
+    if (t.isVar()) {
+      out << "X" << t.var();
+    } else {
+      auto term = t.term();
+      auto func = term->functor();
+      if (theory->isInterpretedFunction(func)) {
+        switch(theory->interpretFunction(func)) {
+#define NUM_CASE(oper) \
+          case Kernel::Theory::INT_  ## oper: \
+          case Kernel::Theory::REAL_ ## oper: \
+          case Kernel::Theory::RAT_  ## oper
+
+          NUM_CASE(PLUS):     
+            printOp(out, term, "+"); 
+            return;
+          NUM_CASE(MULTIPLY):
+            printOp(out, term, "*");
+            return;
+          // case Kernel::Theory::EQUAL:
+          //   return printOp("=")
+          default: {}
+#undef NUM_CASE
+        }
+      }
+
+      Signature::Symbol* sym = env.signature->getFunction(func);
+      out << sym->name();
+      if (sym->arity() > 0) {
+        out << "(" << pretty(*term->nthArgument(0));
+        for (unsigned i = 1; i < sym->arity(); i++) {
+          out << ", " << pretty(*term->nthArgument(i));
+        }
+        out << ")";
+      }
+    }
+  }
 };
 
 // Helper function for permEq -- checks whether lhs is a permutation of
@@ -237,6 +320,7 @@ bool __permEq(L1& lhs, L2& rhs, Eq elemEq, DArray<unsigned>& perm, unsigned idx)
     return true;
   }
   for (unsigned i = idx; i < perm.size(); i++) {
+    using std::swap;//ADL
     swap(perm[i], perm[idx]);
 
     if (__permEq(lhs,rhs, elemEq, perm, idx+1)) return true;

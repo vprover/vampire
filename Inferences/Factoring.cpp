@@ -30,6 +30,7 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#include "Shell/ConditionalRedundancyHandler.hpp"
 #include "Shell/Statistics.hpp"
 
 #include "Factoring.hpp"
@@ -37,6 +38,7 @@
 namespace Inferences
 {
 
+using namespace std;
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
@@ -59,14 +61,12 @@ public:
   }
   VirtualIterator<pair<Literal*,RobSubstitution*> > operator() (pair<unsigned,unsigned> nums)
   {
-    CALL("Factoring::UnificationsFn::operator()");
-
     Literal* l1 = (*_cl)[nums.first];
     Literal* l2 = (*_cl)[nums.second];
 
     //we assume there are no duplicate literals
     ASS(l1!=l2);
-    ASS_EQ(_subst->size(),0);
+    ASS(_subst->isEmpty());
 
     if(l1->isEquality()) {
       //We don't perform factoring with equalities
@@ -102,22 +102,17 @@ private:
 class Factoring::ResultsFn
 {
 public:
-  ResultsFn(Clause* cl, bool afterCheck, Ordering& ord)
-  : _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ord(ord) {}
+  ResultsFn(Clause* cl, bool afterCheck, const ConditionalRedundancyHandler& condRedHandler, Ordering& ord)
+  : _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _condRedHandler(condRedHandler), _ord(ord) {}
   Clause* operator() (pair<Literal*,RobSubstitution*> arg)
   {
-    CALL("Factoring::ResultsFn::operator()");
+    RStack<Literal*> resLits;
 
-    unsigned newLength = _cLen-1;
-    Clause* res = new(newLength) Clause(newLength,
-        GeneratingInference1(InferenceRule::FACTORING,_cl));
-
-    unsigned next = 0;
     Literal* skipped=arg.first;
 
     Literal* skippedAfter = 0;
     if (_afterCheck && _cl->numSelected() > 1) {
-      TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+      TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
 
       skippedAfter = arg.second->apply(skipped, 0);
     }
@@ -128,28 +123,32 @@ public:
         Literal* currAfter = arg.second->apply(curr, 0);
 
         if (skippedAfter) {
-          TimeCounter tc(TC_LITERAL_ORDER_AFTERCHECK);
+          TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
 
           if (i < _cl->numSelected() && _ord.compare(currAfter,skippedAfter) == Ordering::GREATER) {
             env.statistics->inferencesBlockedForOrderingAftercheck++;
-            res->destroy();
-            return 0;
+            return nullptr;
           }
         }
 
-        (*res)[next++] = currAfter;
+        resLits->push(currAfter);
       }
     }
-    ASS_EQ(next,newLength);
+
+    if (!_condRedHandler.handleReductiveUnaryInference(_cl, arg.second)) {
+      env.statistics->skippedFactoring++;
+      return nullptr;
+    }
 
     env.statistics->factoring++;
-    return res;
+    return Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::FACTORING,_cl));
   }
 private:
   Clause* _cl;
   ///length of the premise clause
   unsigned _cLen;
   bool _afterCheck;
+  const ConditionalRedundancyHandler& _condRedHandler;
   Ordering& _ord;
 };
 
@@ -171,8 +170,6 @@ private:
  */
 ClauseIterator Factoring::generateClauses(Clause* premise)
 {
-  CALL("Factoring::generateClauses");
-
   if(premise->length()<=1) {
     return ClauseIterator::getEmpty();
   }
@@ -185,7 +182,8 @@ ClauseIterator Factoring::generateClauses(Clause* premise)
   auto it2 = getMapAndFlattenIterator(it1,UnificationsOnPositiveFn(premise,_salg->getLiteralSelector()));
 
   auto it3 = getMappingIterator(it2,ResultsFn(premise,
-      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),_salg->getOrdering()));
+      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
+      _salg->condRedHandler(), _salg->getOrdering()));
 
   auto it4 = getFilteredIterator(it3, NonzeroFn());
 

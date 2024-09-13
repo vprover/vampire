@@ -20,12 +20,10 @@
 
 #include "Shell/Options.hpp"
 #include "Debug/Assertion.hpp"
-#include "Lib/VString.hpp"
 #include "Kernel/Clause.hpp"
 
 namespace SAT {
 
-using namespace std;
 using namespace Kernel;
 
 class SATLiteral
@@ -38,7 +36,7 @@ public:
    *
    * @b var must be greater than 0 and @b polarity either 1 or 0 (for positive or negative)
    */
-  inline SATLiteral(unsigned var, unsigned polarity) :_polarity(polarity), _var(var) 
+  inline SATLiteral(unsigned var, unsigned polarity) :_polarity(polarity), _var(var)
   { ASS_G(var,0); ASS_NEQ(var,0x7FFFFFFF); }
 
 
@@ -57,6 +55,9 @@ public:
   inline unsigned oppositePolarity() const { return 1-_polarity; }
   inline unsigned content() const { return _content; }
 
+  unsigned defaultHash() const { return DefaultHash::hash(content()); }
+  unsigned defaultHash2() const { return content(); }
+
   inline SATLiteral opposite() const { return SATLiteral(content()^1); }
   /** return this literal with positive polarity */
   inline SATLiteral positive() const { return SATLiteral(content()|1); }
@@ -66,7 +67,7 @@ public:
   inline bool operator!=(const SATLiteral& l) const
   { return _content!=l._content; }
 
-  vstring toString() const;
+  std::string toString() const;
 
   /**
    * Return a dummy literal that is not equal to any
@@ -90,14 +91,5 @@ private:
 std::ostream& operator<< (std::ostream& out, const SAT::SATLiteral& lit );
 
 };
-
-namespace Lib {
-template<>
-struct SecondaryHash<SAT::SATLiteral> {
-  struct Type {
-    static unsigned hash(SAT::SATLiteral lit) { return lit.content(); }
-  };
-};
-}
 
 #endif /* __SATLiteral__ */

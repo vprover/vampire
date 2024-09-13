@@ -18,18 +18,15 @@
 #include "Forwards.hpp"
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
 #include "Allocator.hpp"
 #include "Metaiterators.hpp"
 #include "Set.hpp"
 #include "Sort.hpp"
 #include "Stack.hpp"
-#include "VString.hpp"
 
 namespace Lib {
 
-using namespace std;
 
 template<typename T>
 class SharedSet {
@@ -50,7 +47,6 @@ public:
 
   inline T operator[] (size_t n) const
   {
-    CALL("SharedSet::operator[]");
     ASS_L(n,size());
 
     return _items[n];
@@ -61,7 +57,6 @@ public:
    */
   inline T sval() const
   {
-    CALL("SharedSet::sval");
     ASS_EQ(size(),1);
 
     return (*this)[0];
@@ -72,7 +67,6 @@ public:
    */
   inline T maxval() const
   {
-    CALL("SharedSet::maxval");
     ASS(!isEmpty());
 
     return (*this)[size()-1];
@@ -80,8 +74,6 @@ public:
 
   bool member(T val) const
   {
-    CALL("SharedSet::member");
-
     size_t l=0;
     size_t r=size();
     while(l<r) {
@@ -103,7 +95,6 @@ public:
 
   const SharedSet* getUnion(const SharedSet* s) const
   {
-    CALL("SharedSet::getUnion");
     ASS(s);
 
     if(s==this || s->isEmpty()) {
@@ -168,7 +159,6 @@ public:
 
   const SharedSet* getIntersection(const SharedSet* s) const
   {
-    CALL("SharedSet::getIntersection");
     ASS(s);
 
     if(s==this) {
@@ -209,7 +199,6 @@ public:
    */
   const SharedSet* subtract(const SharedSet* s) const
   {
-    CALL("SharedSet::subtract");
     ASS(s);
 
     if(s==this) {
@@ -251,7 +240,6 @@ public:
 
   bool hasIntersection(const SharedSet* s) const
   {
-    CALL("SharedSet::hasIntersection");
     ASS(s);
 
     const T* p1=_items;
@@ -277,7 +265,6 @@ public:
 
   bool isSubsetOf(const SharedSet* s) const
   {
-    CALL("SharedSet::isSubsetOf");
     ASS(s);
 
     if(s->size()<size()) {
@@ -313,19 +300,15 @@ public:
   }
 
 
-  vstring toString() const
+  std::string toString() const
   {
-    CALL("SharedSet::toString");
-
-    vostringstream res;
+    std::ostringstream res;
     res<<(*this);
     return res.str();
   }
 
   static const SharedSet* getEmpty()
   {
-    CALL("SharedSet::getEmpty");
-
     static SharedSet empty(0);    
     
     return &empty;
@@ -333,8 +316,6 @@ public:
 
   static const SharedSet* getRange(T first, T afterLast)
   {
-    CALL("SharedSet::getRange");
-
     static ItemStack is;
     ASS(is.isEmpty());
 
@@ -359,8 +340,6 @@ public:
 
   static const SharedSet* getFromArray(T* arr, size_t len)
   {
-    CALL("SharedSet::getFromArray");
-
     if(!len) {
       return getEmpty();
     }
@@ -381,7 +360,10 @@ public:
       }
     }
     if(!sorted) {
-      sort<DefaultComparator>(is.begin(), is.end());
+      std::sort(
+        is.begin(), is.end(),
+        [](const T &l, const T &r) -> bool { return DefaultComparator::compare(l, r) == LESS; }
+      );
       unique = false; //maybe they are unique, we just need to check
     }
     if(!unique) {
@@ -407,16 +389,12 @@ public:
 
   static const SharedSet* getSingleton(T val)
   {
-    CALL("SharedSet::getSingleton");
-
     return getFromArray(&val, 1);
   }
 
 private:
   void* operator new(size_t sz,size_t length)
   {
-    CALL("SharedSet::operator new");
-
     //We have to get sizeof(SharedSet) + (length-1)*sizeof(T)
     //this way, because length-1 wouldn't behave well for
     //length==0 on x64 platform.
@@ -428,8 +406,6 @@ private:
   
   void operator delete (void* obj)
   {
-    CALL("SharedSet::operator delete");
-    
     SharedSet* ss = static_cast<SharedSet*>(obj);
     
     // calculate the same thing as in operator new
@@ -445,8 +421,6 @@ private:
 
   static bool equals(const T* arr1, const T* arr2, size_t len)
   {
-    CALL("SharedSet::equals(T*,T*,size_t)");
-
     const T* arr1e=arr1+len;
     while(arr1!=arr1e) {
       if(*arr1!=*arr2) {
@@ -459,15 +433,15 @@ private:
   }
   static unsigned hash(const T* arr, size_t len)
   {
-    CALL("SharedSet::hash(T*,size_t)");
-    static_assert(is_safely_hashable<T>::value, "T must be safely hashable");
-    return Hash::hash(reinterpret_cast<const unsigned char *>(arr), sizeof(T) * len);
+    static_assert(std::is_arithmetic<T>::value || std::is_pointer<T>::value, "T must be safely hashable");
+    return DefaultHash::hashBytes(
+      reinterpret_cast<const unsigned char *>(arr),
+      sizeof(T) * len
+    );
   }
 
   static const SharedSet* create(const ItemStack& is)
   {
-    CALL("SharedSet::create");
-
     size_t sz=is.size();
 
     if(!sz) {
@@ -548,18 +522,15 @@ public:
     return hash(is.begin(), is.size());
   }
 
-  class Iterator : public PointerIterator<T>
-  {
-  public:
-    Iterator(const SharedSet& s) : PointerIterator<T>(s._items, s._items+s.size()) {}
-  };
+  auto iter() const
+  { return arrayIter(_items, size()); }
 
 };
 
 template<typename T>
-std::ostream& operator<< (ostream& out, const SharedSet<T>& s )
+std::ostream& operator<< (std::ostream& out, const SharedSet<T>& s )
 {
-  typename SharedSet<T>::Iterator it(s);
+  auto it = s.iter();
   while(it.hasNext()) {
     out<<it.next();
     if(it.hasNext()) {

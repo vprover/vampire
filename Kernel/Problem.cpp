@@ -16,11 +16,12 @@
 #include "Lib/List.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/ScopedLet.hpp"
-#include "Lib/TimeCounter.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Shell/Property.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/FunctionDefinitionHandler.hpp"
 
 #include "Clause.hpp"
 #include "Term.hpp"
@@ -38,10 +39,8 @@ using namespace Kernel;
  * The new object takes ownership of the list @c units.
  */
 Problem::Problem(UnitList* units)
-: _units(0), _smtlibLogic(SMTLIBLogic::SMT_UNDEFINED) 
+: _units(0), _fnDefHandler(new FunctionDefinitionHandler()), _smtlibLogic(SMTLIBLogic::UNDEFINED), _property(0)
 {
-  CALL("Problem::Problem(UnitList*)");
-
   initValues();
 
   addUnits(units);
@@ -54,10 +53,8 @@ Problem::Problem(UnitList* units)
  * clauses in the iterator.
  */
 Problem::Problem(ClauseIterator clauses, bool copy)
-: _units(0)
+: _units(0), _fnDefHandler(new FunctionDefinitionHandler()), _property(0)
 {
-  CALL("Problem::Problem(ClauseIterator,bool)");
-
   initValues();
 
   UnitList* units = 0;
@@ -74,10 +71,6 @@ Problem::Problem(ClauseIterator clauses, bool copy)
 
 Problem::~Problem()
 {
-  CALL("Problem::~Problem");
-  //TODO: decrease reference counter of clauses (but make sure there's no segfault...)
-
-  UnitList::destroy(_units);
   // Don't delete the property as it is owned by Environment
 }
 
@@ -89,8 +82,6 @@ Problem::~Problem()
  */
 void Problem::initValues()
 {
-  CALL("Problem::initValues");
-
   _hadIncompleteTransformation = false;
   _mayHaveEquality = true;
   _mayHaveFormulas = true;
@@ -98,7 +89,6 @@ void Problem::initValues()
   _mayHaveInequalityResolvableWithDeletion = true;
   _mayHaveXEqualsY = true;
   _propertyValid = false;
-  _property = env.property;
 }
 
 /**
@@ -108,8 +98,6 @@ void Problem::initValues()
  */
 void Problem::addUnits(UnitList* newUnits)
 {
-  CALL("Problem::addUnits");
-
   UnitList::Iterator uit(newUnits);
   while(uit.hasNext()) {
     Unit* u = uit.next();
@@ -119,7 +107,7 @@ void Problem::addUnits(UnitList* newUnits)
   }
   _units = UnitList::concat(newUnits, _units);
   if(_propertyValid) {
-    TimeCounter tc(TC_PROPERTY_EVALUATION);
+    TIME_TRACE(TimeTrace::PROPERTY_EVALUATION);
     _property->add(newUnits);
     readDetailsFromProperty();
   }
@@ -135,13 +123,11 @@ void Problem::addUnits(UnitList* newUnits)
  */
 ClauseIterator Problem::clauseIterator() const
 {
-  CALL("Problem::clauseIterator");
-
   //we first call mayHaveFormulas(). if this returns false, we know there are
   //no formulas. otherwise we call hasFormulas() which may cause rescanning
   //the problem property
   ASS(!mayHaveFormulas() || !hasFormulas());
-  return pvi( getStaticCastIterator<Clause*>(UnitList::Iterator(units())) );
+  return pvi( iterTraits(UnitList::Iterator(units())).map([](Unit* u) { return (Clause*)u; }) );
 }
 
 /**
@@ -154,8 +140,6 @@ ClauseIterator Problem::clauseIterator() const
  */
 Problem* Problem::copy(bool copyClauses)
 {
-  CALL("Problem::copy/1");
-
   Problem* res = new Problem();
   copyInto(*res, copyClauses);
   return res;
@@ -171,8 +155,6 @@ Problem* Problem::copy(bool copyClauses)
  */
 void Problem::copyInto(Problem& tgt, bool copyClauses)
 {
-  CALL("Problem::copy/2");
-
   tgt.setSMTLIBLogic(getSMTLIBLogic());
 
   if(copyClauses) {
@@ -220,16 +202,7 @@ void Problem::copyInto(Problem& tgt, bool copyClauses)
  */
 void Problem::addTrivialPredicate(unsigned pred, bool assignment)
 {
-  CALL("Problem::addTrivialPredicate");
-
   ALWAYS(_trivialPredicates.insert(pred, assignment));
-}
-
-void Problem::addBDDVarMeaning(unsigned var, BDDMeaningSpec spec) {
-  CALL("Problem::addBDDVarMeaning");
-  ASS(!spec.first || spec.first->ground());
-
-  ALWAYS(_bddVarSpecs.insert(var, spec));
 }
 
 /**
@@ -239,7 +212,6 @@ void Problem::addBDDVarMeaning(unsigned var, BDDMeaningSpec spec) {
  */
 void Problem::addEliminatedFunction(unsigned func, Literal* definition)
 {
-  CALL("Problem::addEliminatedFunction");
   ASS(definition->isEquality());
 
   _deletedFunctions.insert(func,definition);
@@ -252,8 +224,6 @@ void Problem::addEliminatedFunction(unsigned func, Literal* definition)
  */
 void Problem::addEliminatedPredicate(unsigned pred, Unit* definition)
 {
-  CALL("Problem::addEliminatedPredicate");
-
   _deletedPredicates.insert(pred,definition);
 }
 
@@ -264,8 +234,6 @@ void Problem::addEliminatedPredicate(unsigned pred, Unit* definition)
  */
 void Problem::addPartiallyEliminatedPredicate(unsigned pred, Unit* definition)
 {
-  CALL("Problem::addPurePredicateDefinition");
-
   _partiallyDeletedPredicates.insert(pred,definition);
 }
 
@@ -274,17 +242,15 @@ void Problem::addPartiallyEliminatedPredicate(unsigned pred, Unit* definition)
  */
 void Problem::refreshProperty() const
 {
-  CALL("Problem::refreshProperty");
-
-  TimeCounter tc(TC_PROPERTY_EVALUATION);
+  TIME_TRACE(TimeTrace::PROPERTY_EVALUATION);
   ScopedLet<Statistics::ExecutionPhase> phaseLet(env.statistics->phase, Statistics::PROPERTY_SCANNING);
 
-  if(_property) {
-    delete _property;
-  }
+  auto oldProp = _property;
   _propertyValid = true;
   _property = Property::scan(_units);
-  env.property = _property;
+  if(oldProp) {
+    delete oldProp;
+  }
   ASS(_property);
   _property->setSMTLIBLogic(getSMTLIBLogic());
   readDetailsFromProperty();
@@ -295,8 +261,6 @@ void Problem::refreshProperty() const
  */
 void Problem::readDetailsFromProperty() const
 {
-  CALL("Problem::readDetailsFromProperty");
-
   _hasFormulas = _property->hasFormulas();
   _hasEquality = _property->equalityAtoms()!=0;
   _hasInterpretedOperations = _property->hasInterpretedOperations();
@@ -310,6 +274,7 @@ void Problem::readDetailsFromProperty() const
   _quantifiesOverPolymorphicVar = _property->quantifiesOverPolymorphicVar();
   _hasBoolVar = _property->hasBoolVar();
   _higherOrder = _property->higherOrder();
+  _hasNonDefaultSorts = _property->hasNonDefaultSorts();
 
   _mayHaveFormulas = _hasFormulas.value();
   _mayHaveEquality = _hasEquality.value();
@@ -323,17 +288,15 @@ void Problem::readDetailsFromProperty() const
  */
 void Problem::invalidateEverything()
 {
-  CALL("Problem::invalidateEverything");
-
   invalidateProperty();
-  _hasFormulas = MaybeBool::UNKNOWN;
-  _hasEquality = MaybeBool::UNKNOWN;
-  _hasInterpretedOperations = MaybeBool::UNKNOWN;
-  _hasNumerals = MaybeBool::UNKNOWN;
-  _hasFOOL = MaybeBool::UNKNOWN;
-  _hasCombs = MaybeBool::UNKNOWN;
-  _hasApp = MaybeBool::UNKNOWN;
-  _hasAppliedVar = MaybeBool::UNKNOWN;
+  _hasFormulas = MaybeBool::Unknown;
+  _hasEquality = MaybeBool::Unknown;
+  _hasInterpretedOperations = MaybeBool::Unknown;
+  _hasNumerals = MaybeBool::Unknown;
+  _hasFOOL = MaybeBool::Unknown;
+  _hasCombs = MaybeBool::Unknown;
+  _hasApp = MaybeBool::Unknown;
+  _hasAppliedVar = MaybeBool::Unknown;
 
   _mayHaveFormulas = true;
   _mayHaveEquality = true;
@@ -348,8 +311,6 @@ void Problem::invalidateEverything()
  */
 void Problem::invalidateByRemoval()
 {
-  CALL("Problem::invalidateByRemoval");
-
   invalidateProperty();
   _hasFormulas.mightBecameFalse();
   _hasEquality.mightBecameFalse();
@@ -369,8 +330,6 @@ void Problem::invalidateByRemoval()
  */
 Property* Problem::getProperty() const
 {
-  CALL("Problem::getProperty");
-
   if(!_propertyValid) {
     refreshProperty();
   }
@@ -382,8 +341,6 @@ Property* Problem::getProperty() const
 
 bool Problem::hasFormulas() const
 {
-  CALL("Problem::hasFormulas");
-
   if(!mayHaveFormulas()) { return false; }
   if(!_hasFormulas.known()) { refreshProperty(); }  
   ASS(_hasFormulas.known());
@@ -392,8 +349,6 @@ bool Problem::hasFormulas() const
 
 bool Problem::hasEquality() const
 {
-  CALL("Problem::hasEquality");
-
   if(!mayHaveEquality()) { return false; }
   if(!_hasEquality.known()) { refreshProperty(); }
   return _hasEquality.value();
@@ -401,32 +356,24 @@ bool Problem::hasEquality() const
 
 bool Problem::hasInterpretedOperations() const
 {
-  CALL("Problem::hasInterpretedOperations");
-
   if(!_hasInterpretedOperations.known()) { refreshProperty(); }
   return _hasInterpretedOperations.value();
 }
 
 bool Problem::hasNumerals() const
 {
-  CALL("Problem::hasNumerals");
-
   if(!_hasNumerals.known()) { refreshProperty(); }
   return _hasNumerals.value();
 }
 
 bool Problem::hasFOOL() const
 {
-  CALL("Problem::hasFOOL");
-
   if(!_hasFOOL.known()) { refreshProperty(); }
   return _hasFOOL.value();
 }
 
 bool Problem::hasCombs() const
 {
-  CALL("Problem::hasCombs");
-
   if(!_hasCombs.known()) { refreshProperty(); }
   return _hasCombs.value();
 }
@@ -434,24 +381,18 @@ bool Problem::hasCombs() const
 
 bool Problem::hasApp() const
 {
-  CALL("Problem::hasApp");
-
   if(!_hasApp.known()) { refreshProperty(); }
   return _hasApp.value();
 }
 
 bool Problem::hasAppliedVar() const
 {
-  CALL("Problem::hasAppliedVar");
-
   if(!_hasAppliedVar.known()) { refreshProperty(); }
   return _hasAppliedVar.value();
 }
 
 bool Problem::hasBoolVar() const
 {
-  CALL("Problem::hasBoolVar");
-
   if(!_hasBoolVar.known()) { refreshProperty(); }
   return _hasBoolVar.value();
 }
@@ -459,56 +400,32 @@ bool Problem::hasBoolVar() const
 
 bool Problem::hasLogicalProxy() const
 {
-  CALL("Problem::hasLogicalProxy");
-
   if(!_hasLogicalProxy.known()) { refreshProperty(); }
   return _hasLogicalProxy.value();
 }
 
 bool Problem::hasPolymorphicSym() const
 {
-  CALL("Problem::hasPolymorphicSym");
-
   if(!_hasPolymorphicSym.known()) { refreshProperty(); }
   return _hasPolymorphicSym.value();
 }
 
 bool Problem::quantifiesOverPolymorphicVar() const
 {
-  CALL(" Problem::quantifiesOverPolymorphicVar");
-
   if(!_quantifiesOverPolymorphicVar.known()) { refreshProperty(); }
   return _quantifiesOverPolymorphicVar.value();
 }
 
-bool Problem::higherOrder() const
+bool Problem::isHigherOrder() const
 {
-  CALL("Problem::hasPolymorphicSym");
-
   if(!_higherOrder.known()) { refreshProperty(); }
   return _higherOrder.value();
 }
 
-
-///////////////////////
-// utility functions
-//
-
-/**
- * Put predicate numbers present in the problem into @c acc
- *
- * The numbers added to acc are not unique.
- *
- */
-void Problem::collectPredicates(Stack<unsigned>& acc) const
+bool Problem::hasNonDefaultSorts() const
 {
-  CALL("Problem::collectPredicates");
-
-  UnitList::Iterator uit(units());
-  while(uit.hasNext()) {
-    Unit* u = uit.next();
-    u->collectPredicates(acc);
-  }
+  if(!_hasNonDefaultSorts.known()) { refreshProperty(); }
+  return _hasNonDefaultSorts.value();
 }
 
 #if VDEBUG
@@ -517,8 +434,6 @@ void Problem::collectPredicates(Stack<unsigned>& acc) const
 //
 void Problem::assertValid()
 {
-  CALL("Problem::assertValid");
-
   UnitList::Iterator uit(units());
   while(uit.hasNext()) {
     Unit* u = uit.next();

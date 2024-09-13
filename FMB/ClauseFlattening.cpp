@@ -28,9 +28,10 @@
 
 namespace FMB{
 
+using namespace std;
+
 bool ClauseFlattening::isShallow(Literal* lit)
 {
-  CALL("ClauseFlattening::isShallow(Literal)");
   // The term to check for variable arguments
   Term* check = 0;
 
@@ -65,8 +66,6 @@ bool ClauseFlattening::isShallow(Literal* lit)
  */
 Clause* ClauseFlattening::resolveNegativeVariableEqualities(Clause* cl)
 {
-  CALL("ClauseFlattening::resolveNegativeVariableEqualities");
-
   // a helper class to be passed to SubstHelper
   class SingleVar2VarSubst {
     unsigned _from;
@@ -104,14 +103,13 @@ Clause* ClauseFlattening::resolveNegativeVariableEqualities(Clause* cl)
     }
     if (idx < n) { // we found one
       // new clause one lit shorter
-      Clause* newcl = new(n-1) Clause(n-1,NonspecificInference1(InferenceRule::EQUALITY_RESOLUTION,cl));
-      unsigned j = 0; // for writing into newcl
+      RStack<Literal*> resLits;
       for (unsigned i = 0; i < n; i++) {
         if (i != idx) { // skipping literal found at idx
-          (*newcl)[j++] = subst.isId() ? (*cl)[i] : SubstHelper::apply((*cl)[i],subst);
+          resLits->push(subst.isId() ? (*cl)[i] : SubstHelper::apply((*cl)[i],subst));
         }
       }
-      cl = newcl;
+      cl = Clause::fromStack(*resLits, NonspecificInference1(InferenceRule::EQUALITY_RESOLUTION,cl));
       n--;
       // cout << "Update: " << cl->toString() << endl;
     } else {
@@ -128,8 +126,7 @@ Clause* ClauseFlattening::resolveNegativeVariableEqualities(Clause* cl)
  */
 Clause* ClauseFlattening::flatten(Clause* cl)
 {
-  CALL("ClauseFlattening::flatten");
-  TimeCounter tc(TC_FMB_FLATTENING);
+  TIME_TRACE("fmb flattening");
 
   cl = resolveNegativeVariableEqualities(cl);
 

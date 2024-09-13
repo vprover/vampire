@@ -22,10 +22,10 @@
 namespace Inferences
 {
 
+using namespace std;
+
 Clause* EquationalTautologyRemoval::simplify(Clause* cl)
 {
-  CALL("EquationalTautologyRemoval::simplify");
-
   // first check whether it makes sense to trigger CC:
   // 1) there should be at least one negative equality and
   // 2a) there should also be a positive one or
