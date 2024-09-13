@@ -168,7 +168,10 @@ private:
 
       // check ordering constraints
       auto ordCons_ok = iterTraits(e->ordCons.iter()).all([ord,&applicator](auto& ordCon) {
-        return ord->isGreater(ordCon.lhs, ordCon.rhs, &applicator, ordCon.comp);
+        if (!ordCon.comp) {
+          ordCon.comp = ord->createComparator(ordCon.lhs, ordCon.rhs);
+        }
+        return ordCon.comp->check(&applicator);
       });
       if (!ordCons_ok) {
         continue;
