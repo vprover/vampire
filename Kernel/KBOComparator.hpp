@@ -34,15 +34,16 @@ class KBOComparator
 : public OrderingComparator
 {
 public:
-  /** The runtime specialization happens in the constructor. */
-  KBOComparator(TermList tl1, TermList tl2, const KBO& kbo);
+  KBOComparator(TermList lhs, TermList rhs, const KBO& kbo);
 
   /** Executes the runtime specialized instructions with concrete substitution. */
-  bool check(const SubstApplicator* applicator) const;
+  bool check(const SubstApplicator* applicator) override;
   std::string toString() const override;
   bool extractVarOrders(const VarOrder* base, Stack<const VarOrder*>& vos) const;
 
 private:
+  void makeReady();
+
   enum InstructionTag {
     DATA = 0u,
     WEIGHT = 1u,
@@ -112,7 +113,7 @@ private:
   private:
     uint64_t _content;
   };
-  const KBO& _kbo;
+  bool _ready = false;
   Stack<Instruction> _instructions;
 };
 

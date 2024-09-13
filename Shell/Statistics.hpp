@@ -20,11 +20,7 @@
 #include <ostream>
 
 #include "Forwards.hpp"
-
-#include "Lib/ScopedPtr.hpp"
-
-#include "Lib/Allocator.hpp"
-#include "Lib/Option.hpp"
+#include "Debug/Assertion.hpp"
 
 extern const char *VERSION_STRING;
 
@@ -288,12 +284,8 @@ public:
   enum TerminationReason {
     /** refutation found */
     REFUTATION,
-    /** SAT SATISFIABLE */
-    SAT_SATISFIABLE,
     /** satisfiability detected (saturated set built) */
     SATISFIABLE,
-    /** sat solver Unsatisfiable */
-    SAT_UNSATISFIABLE,
     /** saturation terminated but an incomplete strategy was used */
     REFUTATION_NOT_FOUND,
     /** inappropriate strategy **/
@@ -312,12 +304,8 @@ public:
     switch (self) {
       case REFUTATION:
         return out << "REFUTATION";
-      case SAT_SATISFIABLE:
-        return out << "SAT_SATISFIABLE";
       case SATISFIABLE:
         return out << "SATISFIABLE";
-      case SAT_UNSATISFIABLE:
-        return out << "SAT_UNSATISFIABLE";
       case REFUTATION_NOT_FOUND:
         return out << "REFUTATION_NOT_FOUND";
       case INAPPROPRIATE:

@@ -49,6 +49,13 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
+bool OrderingComparator::check(const SubstApplicator* applicator)
+{
+  return _ord.isGreater(
+    AppliedTerm(_lhs, applicator, /*aboveVar*/true),
+    AppliedTerm(_rhs, applicator, /*aboveVar*/true));
+}
+
 OrderingSP Ordering::s_globalOrdering;
 
 /**

@@ -581,14 +581,6 @@ void SaturationAlgorithm::passiveRemovedHandler(Clause* cl)
 }
 
 /**
- * Return time spent by the run of the saturation algorithm
- */
-int SaturationAlgorithm::elapsedTime()
-{
-  return env.timer->elapsedMilliseconds() - _startTime;
-}
-
-/**
  * Add input clause @b cl into the SaturationAlgorithm object
  *
  * The clause @b cl is added into the unprocessed container, unless the
@@ -734,9 +726,6 @@ void SaturationAlgorithm::init()
   if (_symEl) {
     _symEl->init(this);
   }
-
-  _startTime = env.timer->elapsedMilliseconds();
-  _startInstrs = env.timer->elapsedMegaInstructions();
 }
 
 Clause *SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
@@ -867,8 +856,6 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
 {
   _generatedClauseCount++;
   env.statistics->generatedClauses++;
-
-  env.checkTimeSometime<64>();
 
   cl=doImmediateSimplification(cl);
   if (!cl) {
@@ -1223,10 +1210,6 @@ start:
     }
 
     newClausesToUnprocessed();
-
-    if (env.timeLimitReached()) {
-      throw TimeLimitExceededException();
-    }
   }
 
   ASS(clausesFlushed());
@@ -1319,19 +1302,18 @@ void SaturationAlgorithm::doOneAlgorithmStep()
 MainLoopResult SaturationAlgorithm::runImpl()
 {
   unsigned l = 0;
+
+  // could be more precise, but we don't care too much
+  unsigned startTime = Timer::elapsedDeciseconds();
   try {
     for (;; l++) {
       if (_activationLimit && l > _activationLimit) {
         throw ActivationLimitExceededException();
       }
+      if(_softTimeLimit && Timer::elapsedDeciseconds() - startTime > _softTimeLimit)
+        throw TimeLimitExceededException();
 
       doOneAlgorithmStep();
-
-      Timer::syncClock();
-      if (env.timeLimitReached()) {
-        throw TimeLimitExceededException();
-      }
-
       env.statistics->activations = l;
     }
   }

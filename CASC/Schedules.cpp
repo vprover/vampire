@@ -1568,18 +1568,18 @@ void Schedules::getCascSat2019Schedule(const Property& property, Schedule& quick
 void Schedules::getSmtcomp2018Schedule(const Property& property, Schedule& quick, Schedule& fallback)
 {
   switch (property.getSMTLIBLogic()) {
-  case SMT_AUFDTLIA:
-  case SMT_AUFDTLIRA: // Add new logic here even though probably not best schedule
-  case SMT_AUFDTNIRA: // Add new logic here even though probably not best schedule
+  case SMTLIBLogic::AUFDTLIA:
+  case SMTLIBLogic::AUFDTLIRA: // Add new logic here even though probably not best schedule
+  case SMTLIBLogic::AUFDTNIRA: // Add new logic here even though probably not best schedule
     quick.push("lrs+1010_5:4_afp=100000:afq=1.2:anc=none:cond=on:fsr=off:ile=on:irw=on:nm=64:nwc=1:stl=30:sac=on:sp=occurrence:urr=on_9");
     quick.push("dis+11_5_add=large:afr=on:afp=10000:afq=1.2:anc=none:gs=on:gsem=on:ile=on:irw=on:lma=on:lwlo=on:nm=64:nwc=1:sas=z3:sos=all:sac=on:sp=reverse_arity:urr=on:updr=off_273");
     quick.push("dis+1011_2:3_add=large:afr=on:afp=40000:afq=1.0:anc=none:br=off:cond=on:gs=on:gsem=on:ile=on:irw=on:lma=on:lwlo=on:nwc=1:sos=on:sac=on:sp=occurrence:tac=axiom:tar=off:urr=on:updr=off_264");
     break;
 
-  case SMT_UFDTLIA:
-  case SMT_UFDTLIRA: // Add new logic here even though probably not best schedule
-  case SMT_UFDTNIA:
-  case SMT_UFDTNIRA: // Add new logic here even though probably not best schedule
+  case SMTLIBLogic::UFDTLIA:
+  case SMTLIBLogic::UFDTLIRA: // Add new logic here even though probably not best schedule
+  case SMTLIBLogic::UFDTNIA:
+  case SMTLIBLogic::UFDTNIRA: // Add new logic here even though probably not best schedule
     quick.push("dis+1011_2:3_add=large:afr=on:afp=40000:afq=1.0:anc=none:br=off:cond=on:gs=on:gsem=on:ile=on:irw=on:lma=on:lwlo=on:nwc=1:sos=on:sac=on:sp=occurrence:tac=axiom:tar=off:urr=on:updr=off_2");
     quick.push("lrs+11_7_add=off:afr=on:afp=40000:afq=1.1:amm=off:anc=none:bsr=on:br=off:fde=unused:gs=on:gsem=on:inw=on:ile=on:irw=on:lma=on:nm=64:nwc=1:stl=30:sos=all:sac=on:urr=on:updr=off:uhcvi=on_5");
     quick.push("dis+1004_1_add=off:afr=on:afp=1000:afq=1.1:amm=off:anc=none:bd=off:fde=none:gs=on:gsaa=from_current:gsem=on:ile=on:irw=on:lwlo=on:nm=64:newcnf=on:nwc=1:sas=z3:sp=occurrence:tac=light:tar=off:tha=off:thi=all:urr=on:uhcvi=on_6");
@@ -1588,7 +1588,7 @@ void Schedules::getSmtcomp2018Schedule(const Property& property, Schedule& quick
     quick.push("lrs+1011_3:1_ind=struct:newcnf=on:ile=on:irw=on:lma=on:lwlo=on:sac=on:updr=off_10");
     break;
 
-  case SMT_UFDT:
+  case SMTLIBLogic::UFDT:
     quick.push("lrs+11_8:1_av=off:cond=on:fde=none:ile=on:nm=16:nwc=1.3:stl=30:sp=reverse_arity:urr=on:updr=off_135");
     quick.push("ott+1003_14_av=off:fsr=off:fde=unused:ile=on:lcm=predicate:nm=0:newcnf=on:nwc=1:sp=occurrence:uhcvi=on_12");
     quick.push("lrs+10_3:1_av=off:cond=on:fde=none:ile=on:lma=on:lwlo=on:nm=64:nwc=1:stl=30:sp=reverse_arity:tar=off:uhcvi=on_148");
@@ -1622,7 +1622,7 @@ void Schedules::getSmtcomp2018Schedule(const Property& property, Schedule& quick
     quick.push("lrs+10_5:1_av=off:fde=unused:ile=on:lwlo=on:nwc=1.1:stl=90:sp=occurrence:urr=on_343");
     break;
 
-  case SMT_LIA:
+  case SMTLIBLogic::LIA:
     quick.push("dis+1011_8_afp=10000:afq=1.2:amm=sco:anc=none:bce=on:gs=on:gsem=off:ile=on:lma=on:nm=16:newcnf=on:nwc=2.5:sas=z3:sos=all:sac=on:sp=occurrence:updr=off_2");
     quick.push("dis+11_3_afr=on:afp=4000:afq=2.0:amm=sco:anc=none:bce=on:cond=on:fsr=off:ile=on:lwlo=on:nm=64:newcnf=on:nwc=1:sas=z3:tha=off:thf=on_2");
     quick.push("dis-2_4_add=large:afp=1000:afq=1.0:amm=sco:anc=none:bce=on:gs=on:inw=on:ile=on:lwlo=on:nm=64:newcnf=on:nwc=1:sas=z3:sos=all:sp=reverse_arity:tha=off:thi=all_13");
@@ -1631,7 +1631,7 @@ void Schedules::getSmtcomp2018Schedule(const Property& property, Schedule& quick
     quick.push("lrs-11_4:1_afp=4000:afq=2.0:anc=none:br=off:gs=on:lwlo=on:nm=64:nwc=3:stl=30:urr=on_1");
     break;
 
-  case SMT_UFNIA:
+  case SMTLIBLogic::UFNIA:
     quick.push("lrs+11_5:4_av=off:gs=on:gsem=on:irw=on:lma=on:lwlo=on:nm=32:newcnf=on:nwc=1.3:stl=30:sp=reverse_arity:updr=off_63");
     quick.push("ott+1010_7_av=off:fsr=off:fde=none:lma=on:nm=2:newcnf=on:nwc=1.3:sos=on:sp=reverse_arity:uhcvi=on_194");
     quick.push("dis+1011_8_av=off:bd=off:bsr=on:bce=on:cond=on:fsr=off:fde=unused:ile=on:nm=64:nwc=1.1:sd=10:ss=axioms:st=1.5:sos=all:sp=reverse_arity:tha=off_569");
@@ -1691,13 +1691,13 @@ void Schedules::getSmtcomp2018Schedule(const Property& property, Schedule& quick
     quick.push("lrs+4_3:1_add=off:afp=1000:afq=2.0:anc=none:gs=on:gsem=on:ile=on:lma=on:nm=2:nwc=5:sas=z3:stl=30:sac=on:sp=occurrence:updr=off_8");
     break;
 
-  case SMT_ALIA:
+  case SMTLIBLogic::ALIA:
     quick.push("lrs+2_4_add=off:afr=on:afp=40000:afq=1.0:amm=off:anc=none:bd=off:bce=on:fde=none:gs=on:gsem=on:lma=on:nm=64:newcnf=on:nwc=1.3:sas=z3:stl=30:tha=off:thi=strong:uwa=one_side_interpreted:urr=on:updr=off:uhcvi=on_3");
     quick.push("ott-3_2:3_add=off:afr=on:afp=40000:afq=1.0:bsr=on:cond=fast:fsr=off:fde=none:gs=on:ile=on:lma=on:lwlo=on:nm=2:newcnf=on:nwc=1.2:nicw=on:sas=z3:sos=all:sp=reverse_arity:urr=ec_only:updr=off_44");
     quick.push("lrs-1_128_aac=none:add=off:afp=40000:afq=1.0:amm=off:anc=none:fsr=off:inw=on:ile=on:lcm=reverse:lma=on:nm=16:nwc=10:sas=z3:stl=30:sac=on:updr=off_195");
     break;
 
-  case SMT_UFLIA:
+  case SMTLIBLogic::UFLIA:
     quick.push("lrs-11_2:1_add=off:afr=on:afp=10000:afq=2.0:amm=sco:anc=none:inw=on:ile=on:irw=on:lcm=reverse:lma=on:nm=64:nwc=1.5:sas=z3:stl=30:sp=reverse_arity:urr=on_9");
     quick.push("lrs-10_3_av=off:bs=unit_only:bsr=on:cond=on:fsr=off:fde=unused:gs=on:inw=on:irw=on:lma=on:nm=64:newcnf=on:nwc=1.2:sas=z3:stl=30:tha=off:urr=ec_only_42");
     quick.push("lrs+1011_2:1_afr=on:afp=10000:afq=2.0:amm=off:gsp=on:gs=on:inw=on:ile=on:nm=2:nwc=1:sas=z3:stl=30:tha=off_296");
@@ -1806,12 +1806,12 @@ void Schedules::getSmtcomp2018Schedule(const Property& property, Schedule& quick
     quick.push("lrs+1011_3:2_add=large:afp=10000:afq=1.4:amm=sco:anc=none:cond=fast:fde=unused:gsp=on:gs=on:ile=on:irw=on:lma=on:nwc=1:stl=30:sac=on:tha=off:updr=off:uhcvi=on_118");
     break;
 
-  case SMT_UFIDL:
+  case SMTLIBLogic::UFIDL:
     quick.push("dis+11_3_add=large:afp=100000:afq=1.4:amm=off:anc=none:fsr=off:gs=on:ile=on:irw=on:lma=on:nm=32:nwc=1:tha=off:updr=off_2");
     quick.push("dis+10_3_afr=on:afp=1000:afq=1.0:anc=none:cond=on:fsr=off:gs=on:ile=on:irw=on:lwlo=on:nm=32:nwc=1:sos=all:sp=occurrence:urr=on_3");
     break;
 
-  case SMT_LRA:
+  case SMTLIBLogic::LRA:
     quick.push("dis+1011_2:1_add=off:afp=40000:afq=1.1:amm=sco:anc=none:fsr=off:fde=unused:gsp=on:ile=on:irw=on:nm=64:newcnf=on:nwc=1.1:sas=z3:sos=all:sp=occurrence:updr=off:uhcvi=on_298");
     quick.push("dis+4_5_av=off:cond=on:fsr=off:gs=on:gsem=on:ile=on:irw=on:lwlo=on:nm=6:nwc=1:sos=on:sp=reverse_arity:updr=off_5");
     quick.push("ott+11_4_av=off:ile=on:lma=on:nm=64:nwc=1:sos=all:sp=occurrence:uwa=interpreted_only:updr=off:uhcvi=on_37");
@@ -1819,15 +1819,15 @@ void Schedules::getSmtcomp2018Schedule(const Property& property, Schedule& quick
     quick.push("dis+11_2_add=large:afr=on:afp=1000:afq=1.1:anc=none:gs=on:gsaa=full_model:ile=on:irw=on:lma=on:nm=16:nwc=1:sas=z3:sos=on:sac=on:sp=occurrence:thi=strong:uhcvi=on_72");
     break;
 
-  case SMT_NIA:
+  case SMTLIBLogic::NIA:
     quick.push("dis+11_10_add=off:afr=on:afp=100000:afq=1.2:amm=off:anc=none:cond=on:gs=on:gsem=on:inw=on:ile=on:irw=on:lma=on:nm=64:newcnf=on:nwc=10:sas=z3:sac=on:sp=reverse_arity_2");
     break;
 
-  case SMT_UFLRA:
+  case SMTLIBLogic::UFLRA:
     quick.push("dis+11_4_afp=4000:afq=1.4:amm=sco:anc=none:gs=on:ile=on:lma=on:nm=64:nwc=1.7:sas=z3:sac=on:sp=occurrence_2");
     break;
 
-  case SMT_NRA:
+  case SMTLIBLogic::NRA:
     quick.push("dis+1011_4:1_anc=none:cond=fast:fsr=off:gs=on:gsaa=full_model:gsem=off:ile=on:lma=on:lwlo=on:nm=64:nwc=1:sas=z3:sac=on:sp=occurrence_9");
     quick.push("dis+11_2_add=large:afp=10000:afq=1.0:amm=sco:anc=none:gs=on:ile=on:lma=on:lwlo=on:nm=64:newcnf=on:nwc=1:sas=z3:sos=all:uwa=all:updr=off_2");
     quick.push("dis+11_3_afr=on:afp=40000:afq=2.0:anc=none:fsr=off:gs=on:lma=on:nm=64:newcnf=on:nwc=1:nicw=on:sas=z3:sos=all:sac=on:sp=occurrence:urr=on_2");
@@ -1835,10 +1835,10 @@ void Schedules::getSmtcomp2018Schedule(const Property& property, Schedule& quick
     quick.push("lrs+1011_3_add=large:afp=1000:afq=1.1:anc=none:cond=on:fsr=off:ile=on:irw=on:lma=on:nm=64:newcnf=on:nwc=1:nicw=on:sas=z3:stl=30:sos=all:sac=on_182");
     break;
 
-  case SMT_ANIA: // a newcomer ANIA, let's put it next to ALL
-  case SMT_ALL: // Add ALL here as we don't currently have a  schedule for it and  this is better than just using fallback
-  case SMT_AUFLIA:
-  case SMT_AUFNIA:
+  case SMTLIBLogic::ANIA: // a newcomer ANIA, let's put it next to ALL
+  case SMTLIBLogic::ALL: // Add ALL here as we don't currently have a  schedule for it and  this is better than just using fallback
+  case SMTLIBLogic::AUFLIA:
+  case SMTLIBLogic::AUFNIA:
     quick.push("lrs+1011_1_add=off:afr=on:afp=1000:afq=1.1:amm=off:anc=none:br=off:bce=on:er=filter:gsp=on:gs=on:gsaa=full_model:inw=on:ile=on:nm=32:nwc=1.2:sas=z3:stl=30:uwa=one_side_constant:urr=on_7");
     quick.push("dis+11_3_add=off:afp=1000:afq=2.0:amm=off:anc=none:fsr=off:gs=on:gsaa=full_model:inw=on:ile=on:lcm=predicate:lma=on:nm=6:nwc=1:sas=z3:sos=all:sp=occurrence:tha=off:uhcvi=on_13");
     quick.push("fmb+10_1_av=off:fde=unused:ile=on:irw=on:lcm=predicate:lma=on:nm=16:nwc=1.7:sos=all:sp=reverse_arity_2");
@@ -1867,7 +1867,7 @@ void Schedules::getSmtcomp2018Schedule(const Property& property, Schedule& quick
     break;
 
     
-  case SMT_AUFNIRA:
+  case SMTLIBLogic::AUFNIRA:
     quick.push("dis+11_2_add=large:afp=1000:afq=1.1:anc=none:fsr=off:fde=none:ile=on:irw=on:lma=on:nm=64:nwc=1:sas=z3:sos=all:sac=on_5");
     quick.push("lrs+10_8_afr=on:afp=4000:afq=1.1:amm=sco:anc=none:bsr=on:cond=on:gs=on:gsem=off:irw=on:lma=on:nm=64:newcnf=on:nwc=1:nicw=on:sas=z3:stl=30:sac=on:tha=off:urr=on:updr=off_2");
     quick.push("dis+1002_5_add=large:afr=on:afp=4000:afq=1.4:amm=off:anc=none:fsr=off:gs=on:gsem=on:irw=on:lma=on:nm=64:newcnf=on:nwc=1:sos=all:sac=on:sp=occurrence:updr=off_6");
@@ -1890,7 +1890,7 @@ void Schedules::getSmtcomp2018Schedule(const Property& property, Schedule& quick
     quick.push("ott+1004_8:1_afp=10000:afq=1.1:amm=sco:anc=none:bd=off:bsr=on:fde=unused:ile=on:nm=2:newcnf=on:nwc=1:nicw=on:sas=z3:sp=reverse_arity:tha=off:updr=off_146");
     break;
 
-  case SMT_UF:
+  case SMTLIBLogic::UF:
     quick.push("lrs+11_5_av=off:cond=on:lma=on:nm=64:newcnf=on:nwc=1:stl=30:updr=off_22");
     quick.push("fmb+10_1_av=off:fmbes=contour:fmbsr=1.5:ile=on:updr=off_28");
     quick.push("dis+11_50_add=large:afp=10000:afq=1.2:anc=none:fsr=off:gs=on:gsem=off:ile=on:irw=on:nm=64:newcnf=on:nwc=1:sac=on_4");
@@ -1956,7 +1956,7 @@ void Schedules::getSmtcomp2018Schedule(const Property& property, Schedule& quick
     quick.push("ott+1011_8:1_add=off:afr=on:afp=40000:afq=1.2:amm=off:anc=none:bd=off:fsr=off:ile=on:nm=64:newcnf=on:nwc=1.1:sas=z3:sp=reverse_arity:updr=off_55");
     break;
 
-  case SMT_AUFLIRA:
+  case SMTLIBLogic::AUFLIRA:
     quick.push("lrs+1010_2_anc=none:fsr=off:gs=on:irw=on:newcnf=on:nwc=1:sas=z3:stl=30:sos=on:sp=occurrence:updr=off_4");
     quick.push("lrs+1010_4_av=off:bd=off:bs=unit_only:bsr=on:gs=on:inw=on:ile=on:lma=on:newcnf=on:nwc=2.5:stl=30:sp=occurrence:updr=off_6");
     quick.push("dis+2_3_add=off:afp=40000:afq=1.1:anc=none:cond=on:gs=on:inw=on:ile=on:lcm=reverse:nm=64:newcnf=on:nwc=1:sas=z3:sp=reverse_arity:tha=off:urr=on:updr=off_43");
@@ -1967,35 +1967,35 @@ void Schedules::getSmtcomp2018Schedule(const Property& property, Schedule& quick
     quick.push("dis+1011_32_aac=none:add=off:afr=on:afp=40000:afq=1.0:amm=sco:bs=on:bsr=on:br=off:fde=unused:gs=on:gsaa=full_model:ile=on:lcm=predicate:nm=6:newcnf=on:nwc=1.5:sas=z3:sos=all:sac=on:tha=off:thi=all:uwa=one_side_constant:urr=on_1");
     break;
 
-  case SMT_QF_ABV:
-  case SMT_QF_ALIA:
-  case SMT_QF_ANIA:
-  case SMT_QF_AUFBV:
-  case SMT_QF_AUFLIA:
-  case SMT_QF_AUFNIA:
-  case SMT_QF_AX:
-  case SMT_QF_BV:
-  case SMT_QF_IDL:
-  case SMT_QF_LIA:
-  case SMT_QF_LIRA:
-  case SMT_QF_LRA:
-  case SMT_QF_NIA:
-  case SMT_QF_NIRA:
-  case SMT_QF_NRA:
-  case SMT_QF_RDL:
-  case SMT_QF_UF:
-  case SMT_QF_UFBV:
-  case SMT_QF_UFIDL:
-  case SMT_QF_UFLIA:
-  case SMT_QF_UFLRA:
-  case SMT_QF_UFNIA:
-  case SMT_QF_UFNRA:
+  case SMTLIBLogic::QF_ABV:
+  case SMTLIBLogic::QF_ALIA:
+  case SMTLIBLogic::QF_ANIA:
+  case SMTLIBLogic::QF_AUFBV:
+  case SMTLIBLogic::QF_AUFLIA:
+  case SMTLIBLogic::QF_AUFNIA:
+  case SMTLIBLogic::QF_AX:
+  case SMTLIBLogic::QF_BV:
+  case SMTLIBLogic::QF_IDL:
+  case SMTLIBLogic::QF_LIA:
+  case SMTLIBLogic::QF_LIRA:
+  case SMTLIBLogic::QF_LRA:
+  case SMTLIBLogic::QF_NIA:
+  case SMTLIBLogic::QF_NIRA:
+  case SMTLIBLogic::QF_NRA:
+  case SMTLIBLogic::QF_RDL:
+  case SMTLIBLogic::QF_UF:
+  case SMTLIBLogic::QF_UFBV:
+  case SMTLIBLogic::QF_UFIDL:
+  case SMTLIBLogic::QF_UFLIA:
+  case SMTLIBLogic::QF_UFLRA:
+  case SMTLIBLogic::QF_UFNIA:
+  case SMTLIBLogic::QF_UFNRA:
     throw UserErrorException("Kein Kinderspiel, Bruder, use Z3 for quantifier-free problems!");
 
-  case SMT_BV:
-  case SMT_UFBV:
+  case SMTLIBLogic::BV:
+  case SMTLIBLogic::UFBV:
     throw UserErrorException("Sorry, we don't deal with bit-vectors!");
-  case SMT_UNDEFINED:
+  case SMTLIBLogic::UNDEFINED:
     throw UserErrorException("This version cannot be used with this logic!");
   }
 

@@ -5,7 +5,6 @@ cmake_minimum_required (VERSION 3.14.0)
 project(Vampire)
 
 include(CheckIPOSupported)
-include(CheckPIESupported)
 
 # require the compiler to use C++17
 set(CMAKE_CXX_STANDARD 17)
@@ -19,12 +18,14 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL GNU OR CMAKE_CXX_COMPILER_ID MATCHES Clang$)
   add_compile_options(-fno-threadsafe-statics)
   # ...or RTTI
   add_compile_options(-fno-rtti)
-  # enable standards-compliant standard library with sized operator delete
-  add_compile_options(-fsized-deallocation)
 endif()
 
 # compile command database
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# we use threads, make sure we link the thread-support stuff
+find_package(Threads REQUIRED)
+link_libraries(Threads::Threads)
 
 # variables for binary name, set later
 set(VAMPIRE_BINARY vampire)
@@ -812,6 +813,7 @@ if(CMAKE_BUILD_TYPE STREQUAL Debug)
   add_compile_definitions(VDEBUG=1)
 elseif(CMAKE_BUILD_TYPE STREQUAL Release)
   add_compile_definitions(VDEBUG=0)
+  add_compile_definitions(NDEBUG)
 endif()
 
 # enable for time profiling
@@ -845,28 +847,7 @@ if (NOT Z3_FOUND)
 else ()
   message(STATUS "Found Z3 ${Z3_VERSION_STRING}")
   include_directories(${Z3_CXX_INCLUDE_DIRS})
-  if(NOT BUILD_SHARED_LIBS AND Z3_FOUND AND CMAKE_CXX_COMPILER_ID STREQUAL GNU)
-    # https://stackoverflow.com/questions/58848694/gcc-whole-archive-recipe-for-static-linking-to-pthread-stopped-working-in-rec
-    message(STATUS "Adding workaround for gcc static linking against pthread")
-    link_libraries(${Z3_LIBRARIES} -pthread -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive)
-  else()
-    link_libraries(${Z3_LIBRARIES})
-  endif()
-
-  # Z3 needs threads now
-  if (APPLE)
-    set(CMAKE_THREAD_LIBS_INIT "-lpthread")
-    set(CMAKE_HAVE_THREADS_LIBRARY 1)
-    set(CMAKE_USE_WIN32_THREADS_INIT 0)
-    set(CMAKE_USE_PTHREADS_INIT 1)
-    set(THREADS_PREFER_PTHREAD_FLAG ON)
-  else ()
-    set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
-    set(THREADS_PREFER_PTHREAD_FLAG TRUE)
-    find_package(Threads REQUIRED)
-    link_libraries(Threads::Threads)
-  endif ()
-
+  link_libraries(${Z3_LIBRARIES})
   add_library(Z3 SHARED IMPORTED)
   set_property(TARGET Z3 PROPERTY IMPORTED_LOCATION ${Z3_LIBRARY})
   add_compile_definitions(VZ3=1)
@@ -1010,24 +991,6 @@ if(CMAKE_BUILD_TYPE STREQUAL Release AND IPO)
   set_property(TARGET obj PROPERTY INTERPROCEDURAL_OPTIMIZATION true)
   set_property(TARGET vampire PROPERTY INTERPROCEDURAL_OPTIMIZATION true)
 endif()
-
-# do not generate position-independent code:
-# 1. it has some overhead
-# 2. it's used for ASLR, which isn't a huge concern for us and messes with our backtrace support
-check_pie_supported(OUTPUT_VARIABLE PIE_ERROR LANGUAGES CXX)
-if(NOT CMAKE_CXX_LINK_PIE_SUPPORTED)
-  message(STATUS "disabling position-independent code not supported, stack traces may be broken")
-  message(STATUS "${PIE_ERROR}")
-endif()
-
-# FIXME this guard should not be necessary but is currently because of how we do static linking above
-if(BUILD_SHARED_LIBS)
-  set_property(TARGET vampire PROPERTY POSITION_INDEPENDENT_CODE false)
-  if(COMPILE_TESTS)
-    set_property(TARGET vtest PROPERTY POSITION_INDEPENDENT_CODE false)
-  endif()
-endif()
-
 
 ################################################################
 # subsat (standalone version of the SAT solver used for subsumption and subsumption resolution)

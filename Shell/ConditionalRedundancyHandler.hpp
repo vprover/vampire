@@ -47,8 +47,6 @@
 #include "Lib/SharedSet.hpp"
 #include "Lib/Stack.hpp"
 
-#include "Inferences/DemodulationHelper.hpp"
-
 #include "Saturation/Splitter.hpp"
 
 #include "Options.hpp"
@@ -134,7 +132,9 @@ class ConditionalRedundancyHandlerImpl
 {
 public:
   ConditionalRedundancyHandlerImpl(const Options& opts, const Ordering* ord, Splitter* splitter)
-    : _ord(ord), _demodulationHelper(opts,ord), _splitter(splitter) {}
+    : _redundancyCheck(opts.demodulationRedundancyCheck() != Options::DemodulationRedundancyCheck::OFF),
+      _encompassing(opts.demodulationRedundancyCheck() == Options::DemodulationRedundancyCheck::ENCOMPASS),
+      _ord(ord), _splitter(splitter) {}
 
   /** Returns false if superposition should be skipped. */
   bool checkSuperposition(
@@ -153,9 +153,14 @@ public:
   /** Returns false if inference should be skipped. */
   bool handleReductiveUnaryInference(Clause* premise, RobSubstitution* subs, SplitSet*& blockingSplits) const override;
 
+  bool isSuperpositionPremiseRedundant(
+    Clause* rwCl, Literal* rwLit, TermList rwTerm, TermList tgtTerm, Clause* eqCl, TermList eqLHS,
+    const SubstApplicator* eqApplicator, Ordering::Result& tord) const;
+
 private:
+  bool _redundancyCheck;
+  bool _encompassing;
   const Ordering* _ord;
-  Inferences::DemodulationHelper _demodulationHelper;
   Splitter* _splitter;
 };
 

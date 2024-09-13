@@ -15,7 +15,6 @@
 #include <fstream>
 
 #include <cstdlib>
-#include <sys/types.h>
 #include <unistd.h>
 #include <iostream>
 #include <sstream>
@@ -24,9 +23,9 @@
 
 #include "Lib/Environment.hpp"
 #include "Debug/TimeProfiling.hpp"
-#include "Lib/Timer.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/ScopedLet.hpp"
+#include "Lib/Timer.hpp"
 
 #include "Kernel/InferenceStore.hpp"
 #include "Kernel/Problem.hpp"
@@ -102,14 +101,11 @@ void reportSpiderStatus(char status)
   }
 
   std::string problemName = Lib::env.options->problemName();
-  Timer* timer = Lib::env.timer;
-
   std::cout
     << status << " "
     << (problemName.length() == 0 ? "unknown" : problemName) << " "
-    << (timer ? timer->elapsedDeciseconds() : 0) << " "
-    << (timer ? timer->elapsedMegaInstructions() : 0) << " "
-    << Lib::getUsedMemory()/1048576 << " "
+    << Timer::elapsedDeciseconds() << " "
+    << Timer::elapsedMegaInstructions() << " "
     << (Lib::env.options ? Lib::env.options->testId() : "unknown") << " "
     << commitNumber << ':' << z3Version << endl;
 #endif
@@ -565,12 +561,6 @@ void UIHelper::outputResult(ostream& out)
 
     ASS(!s_expecting_unsat);
 
-    break;
-  case Statistics::SAT_SATISFIABLE:
-    outputSatisfiableResult(out);
-    break;
-  case Statistics::SAT_UNSATISFIABLE:
-    out<<"good job\n";
     break;
   case Statistics::INAPPROPRIATE:
     if(env.options->outputMode() == Options::Output::SMTCOMP){

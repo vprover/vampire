@@ -18,6 +18,8 @@
 #include "Indexing/CodeTreeInterfaces.hpp"
 #include "Indexing/ResultSubstitution.hpp"
 
+#include "Inferences/DemodulationHelper.hpp"
+
 #include "Statistics.hpp"
 
 using namespace std;
@@ -167,7 +169,10 @@ private:
 
       // check ordering constraints
       auto ordCons_ok = iterTraits(e->ordCons.iter()).all([ord,&applicator](auto& ordCon) {
-        return ord->isGreater(ordCon.lhs, ordCon.rhs, &applicator, ordCon.comp);
+        if (!ordCon.comp) {
+          ordCon.comp = ord->createComparator(ordCon.lhs, ordCon.rhs);
+        }
+        return ordCon.comp->check(&applicator);
       });
       if (!ordCons_ok) {
         continue;
@@ -438,22 +443,19 @@ void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuper
   Applicator appl(subs, !eqIsResult);
   Ordering::Result otherComp;
 
-  auto redundancyCheck =
-    // TODO this demodulation redundancy check could be added as constraints
-    (!_demodulationHelper.redundancyCheckNeededForPremise(rwClause, rwLitS, rwTermS) ||
-      // TODO for rwClause->length()!=1 the function isPremiseRedundant does not work yet
-      (rwClause->length()==1 && _demodulationHelper.isPremiseRedundant(rwClause, rwLitS, rwTermS, tgtTermS, eqLHS, &appl, otherComp)));
+  auto premiseRedundant = isSuperpositionPremiseRedundant(
+    rwClause, rwLitS, rwTermS, tgtTermS, eqClause, eqLHS, &appl, otherComp);
 
   // create ordering constraints
   OrderingConstraints ordCons;
   if constexpr (ordC) {
     // TODO we cannot handle them together yet
     if (eqComp != Ordering::LESS) {
-      if (!redundancyCheck || !rwTermS.containsAllVariablesOf(tgtTermS)) {
+      if (!premiseRedundant || !rwTermS.containsAllVariablesOf(tgtTermS)) {
         return;
       }
       ordCons.push(OrderingConstraint(rwTermS, tgtTermS));
-    } else if (!redundancyCheck) {
+    } else if (!premiseRedundant) {
       TermList other = EqHelper::getOtherEqualitySide(rwLitS, rwTermS);
       if (otherComp != Ordering::INCOMPARABLE || !other.containsAllVariablesOf(tgtTermS)) {
         return;
@@ -461,7 +463,7 @@ void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuper
       ordCons.push(OrderingConstraint(other, tgtTermS));
     }
   } else {
-    if (eqComp != Ordering::LESS || !redundancyCheck) {
+    if (eqComp != Ordering::LESS || !premiseRedundant) {
       return;
     }
   }
@@ -605,6 +607,45 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::handleReduc
     return false;
   }
   return true;
+}
+
+/**
+ * This function is similar to @b DemodulationHelper::isPremiseRedundant.
+ * However, here we do not assume that the rewriting equation is unit, which necessitates some additional checks.
+ */
+template<bool enabled, bool ordC, bool avatarC, bool litC>
+bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::isSuperpositionPremiseRedundant(
+  Clause* rwCl, Literal* rwLit, TermList rwTerm, TermList tgtTerm, Clause* eqCl, TermList eqLHS,
+  const SubstApplicator* eqApplicator, Ordering::Result& tord) const
+{
+  // if check is turned off, we always report redundant
+  if (!_redundancyCheck) {
+    return true;
+  }
+
+  // if the top-level terms are not involved, premise is redundant
+  if (!rwLit->isEquality() || (rwTerm!=*rwLit->nthArgument(0) && rwTerm!=*rwLit->nthArgument(1))) {
+    return true;
+  }
+
+  // we can only check encompassment demodulation if eqCl is unit
+  if (_encompassing && eqCl->length()==1) {
+    // if we have a negative literal or non-unit, premise is redundant
+    if (rwLit->isNegative() || rwCl->length() != 1) {
+      return true;
+    }
+    // otherwise (we have a positive unit), if substitution is not
+    // renaming on side premise, main premise is redundant
+    if (!Inferences::DemodulationHelper::isRenamingOn(eqApplicator,eqLHS)) {
+      return true;
+    }
+  }
+
+  // else we do standard redundancy check
+  TermList other=EqHelper::getOtherEqualitySide(rwLit, rwTerm);
+  tord = _ord->compare(tgtTerm, other);
+  return tord == Ordering::LESS;
+  // TODO perform ordering check for rest of rwCl
 }
 
 }

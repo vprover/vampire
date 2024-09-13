@@ -41,7 +41,6 @@
 
 #include "Lib/StringUtils.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Timer.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Random.hpp"
@@ -94,7 +93,7 @@ void Options::init()
                                        131072   // 128 GB (current max on the StarExecs)
 #endif
                                        );
-    _memoryLimit.description="Memory limit in MB";
+    _memoryLimit.description="Attempt to limit memory use (in MB). Limits less than 20MB are ignored to allow Vampire to start. Known not to work on MacOS for mysterious reasons: https://forums.developer.apple.com/forums/thread/702803";
     _lookup.insert(&_memoryLimit);
 
 #if VAMPIRE_PERF_EXISTS
@@ -853,8 +852,8 @@ void Options::init()
     _fmbDetectSortBounds.addHardConstraint(If(equal(true)).then(_fmbAdjustSorts.is(notEqual(FMBAdjustSorts::FUNCTION))));
     _fmbDetectSortBounds.tag(OptionTag::FMB);
 
-    _fmbDetectSortBoundsTimeLimit = UnsignedOptionValue("fmb_detect_sort_bounds_time_limit","fmbdsbt",1);
-    _fmbDetectSortBoundsTimeLimit.description = "The time limit (in seconds) for performing sort bound detection";
+    _fmbDetectSortBoundsTimeLimit = TimeLimitOptionValue("fmb_detect_sort_bounds_time_limit","fmbdsbt",10);
+    _fmbDetectSortBoundsTimeLimit.description = "The time limit for performing sort bound detection";
     _lookup.insert(&_fmbDetectSortBoundsTimeLimit);
     _fmbDetectSortBoundsTimeLimit.onlyUsefulWith(_fmbDetectSortBounds.is(equal(true)));
     _fmbDetectSortBoundsTimeLimit.tag(OptionTag::FMB);
@@ -1096,7 +1095,7 @@ void Options::init()
       _sineToPredLevels.is(notEqual(PredicateSineLevels::OFF)),
       _useSineLevelSplitQueues.is(equal(true))));
 
-    _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","",5);
+    _lrsFirstTimeCheck = IntOptionValue("lrs_first_time_check","lftc",5);
     _lrsFirstTimeCheck.description=
     "Percentage of time limit at which the LRS algorithm will for the first time estimate the number of reachable clauses.";
     _lookup.insert(&_lrsFirstTimeCheck);
@@ -2445,7 +2444,7 @@ void Options::set(const char* name,const char* value, bool longOpt)
       case IgnoreMissing::WARN:
         if (outputAllowed()) {
           addCommentSignForSZS(std::cout);
-          std::cout << "WARNING: invalid value "<< value << " for option " << name << endl;
+          std::cout << "% WARNING: invalid value "<< value << " for option " << name << endl;
         }
         break;
       case IgnoreMissing::ON:
@@ -2459,7 +2458,7 @@ void Options::set(const char* name,const char* value, bool longOpt)
       if (_ignoreMissing.actualValue == IgnoreMissing::WARN) {
         if (outputAllowed()) {
           addCommentSignForSZS(std::cout);
-          std::cout << "WARNING: " << msg << endl;
+          std::cout << "% WARNING: " << msg << endl;
         }
         return;
       } // else:
@@ -2710,13 +2709,13 @@ bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){
 
          if (env.options->mode() == Mode::SPIDER){
            reportSpiderFail();
-           USER_ERROR("WARNING: " + longName + con->msg());
+           USER_ERROR("% WARNING: " + longName + con->msg());
          }
 
          switch(env.options->getBadOptionChoice()){
          case BadOption::OFF: break;
          default:
-           cout << "WARNING: " << longName << con->msg() << endl;
+           cout << "% WARNING: " << longName << con->msg() << endl;
          }
          return false;
       }
@@ -3213,7 +3212,7 @@ void Options::sampleStrategy(const std::string& strategySamplerFilename)
     */
   }
 
-  cout << "Random strategy: " + generateEncodedOptions() << endl;
+  cout << "% Random strategy: " + generateEncodedOptions() << endl;
 }
 
 /**
@@ -3255,7 +3254,7 @@ void Options::readOptionsString(std::string optionsString,bool assign)
               case IgnoreMissing::WARN:
                 if (outputAllowed()) {
                   addCommentSignForSZS(std::cout);
-                  std::cout << "WARNING: value " << value << " for option "<< param <<" not known" << endl;
+                  std::cout << "% WARNING: value " << value << " for option "<< param <<" not known" << endl;
                 }
                 break;
               case IgnoreMissing::ON:
@@ -3278,7 +3277,7 @@ void Options::readOptionsString(std::string optionsString,bool assign)
       case IgnoreMissing::WARN:
         if (outputAllowed()) {
           addCommentSignForSZS(std::cout);
-          std::cout << "WARNING: option "<< param << " not known." << endl;
+          std::cout << "% WARNING: option "<< param << " not known." << endl;
         }
         break;
       case IgnoreMissing::ON:

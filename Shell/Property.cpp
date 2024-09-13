@@ -89,7 +89,7 @@ Property::Property()
     _allClausesGround(true),
     _allNonTheoryClausesGround(true),
     _allQuantifiersEssentiallyExistential(true),
-    _smtlibLogic(SMTLIBLogic::SMT_UNDEFINED)
+    _smtlibLogic(SMTLIBLogic::UNDEFINED)
 {
   _interpretationPresence.init(Theory::instance()->numberOfFixedInterpretations(), false);
 } // Property::Property
@@ -482,13 +482,13 @@ void Property::scanSort(TermList sort)
   }
 
   if(!higherOrder() && !hasPolymorphicSym()){
-    //used sorts is for FMB which is not compatible with 
+    //used sorts is for FMB which is not compatible with
     //higher-order or polymorphism
     unsigned sortU = sort.term()->functor();
     if(!_usesSort.get(sortU)){
       _sortsUsed++;
       _usesSort[sortU]=true;
-    } 
+    }
   }
 
   if (sort==AtomicSort::defaultSort()) {

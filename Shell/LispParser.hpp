@@ -79,11 +79,11 @@ public:
     bool getSingleton(Expression*& el);
   };
 
-  typedef Lib::List<Expression*> List;
+  typedef Lib::List<Expression*> EList;
 
   explicit LispParser(LispLexer& lexer);
   Expression* parse();
-  void parse(List**);
+  void parse(EList**);
 
   /**
    * Class Exception. Implements parser exceptions.

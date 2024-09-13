@@ -49,7 +49,7 @@ bool DemodulationHelper::redundancyCheckNeededForPremise(Clause* rwCl, Literal* 
 /**
  * Test whether the @param applicator is a renaming on the variables of @param t.
  */
-bool isRenamingOn(const SubstApplicator* applicator, TermList t)
+bool DemodulationHelper::isRenamingOn(const SubstApplicator* applicator, TermList t)
 {
   DHSet<TermList> renamingDomain;
   DHSet<TermList> renamingRange;
@@ -76,18 +76,10 @@ bool isRenamingOn(const SubstApplicator* applicator, TermList t)
 bool DemodulationHelper::isPremiseRedundant(Clause* rwCl, Literal* rwLit, TermList rwTerm,
   TermList tgtTerm, TermList eqLHS, const SubstApplicator* eqApplicator) const
 {
-  Ordering::Result temp;
-  return isPremiseRedundant(rwCl, rwLit, rwTerm, tgtTerm, eqLHS, eqApplicator, temp);
-}
-
-bool DemodulationHelper::isPremiseRedundant(Clause* rwCl, Literal* rwLit, TermList rwTerm,
-  TermList tgtTerm, TermList eqLHS, const SubstApplicator* eqApplicator, Ordering::Result& tord) const
-{
   ASS(redundancyCheckNeededForPremise(rwCl, rwLit, rwTerm));
 
   TermList other=EqHelper::getOtherEqualitySide(rwLit, rwTerm);
-  tord = _ord->compare(tgtTerm, other);
-  if (tord == Ordering::LESS) {
+  if (_ord->compare(tgtTerm, other) == Ordering::LESS) {
     return true;
   }
 
