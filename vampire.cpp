@@ -191,8 +191,60 @@ void doProving()
 
   ScopedPtr<Problem> prb(getPreprocessedProblem());
 
+  Property* property = prb->getProperty();
+
+  env.beginOutput();
+  env.out()
+    << property->categoryString() << ' '
+    << property->props() << ' '
+	  << property->atoms() << ' '
+
+	  << property->_goalClauses << ' '
+	  << property->_axiomClauses << ' '
+
+	  << property->_positiveEqualityAtoms << ' '
+	  << property->_equalityAtoms << ' '
+    << property->_atoms << ' '
+
+	  << property->_goalFormulas << ' '
+	  << property->_axiomFormulas << ' '
+	  << property->_subformulas << ' '
+
+    << property->_unitGoals << ' '
+    << property->_unitAxioms << ' '
+
+    << property->_hornGoals << ' '
+    << property->_hornAxioms << ' '
+    << property->_equationalClauses << ' '
+    << property->_pureEquationalClauses << ' '
+    << property->_groundUnitAxioms << ' '
+    << property->_positiveAxioms << ' '
+
+    << property->_groundPositiveAxioms << ' '
+    << property->_groundGoals << ' '
+    << property->_maxFunArity << ' '
+    << property->_maxPredArity << ' '
+    << property->_maxTypeConArity << ' '
+
+    << property->_totalNumberOfVariables << ' '
+    << property->_maxVariablesInClause << ' '
+
+    << property->_hasInterpreted << ' '
+    << property->hasNumerals() << ' '  // can be derived from Prop
+
+    << property->_hasNonDefaultSorts << ' '
+    << property->_sortsUsed << ' '
+
+	  << "\n";
+  env.endOutput();
+
+  //we have succeeded with the profile mode, so we'll terminate with zero return value
+  vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+
+  return;
+
   // Then again when the property is here (this will only randomize non-default things if an option is set to do so)
-  env.options->randomizeStrategy(prb->getProperty()); 
+  env.options->randomizeStrategy(prb->getProperty());
 
   // this will provide warning if options don't make sense for problem
   if (env.options->mode()!=Options::Mode::SPIDER) {
