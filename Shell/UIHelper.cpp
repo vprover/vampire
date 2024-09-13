@@ -562,12 +562,6 @@ void UIHelper::outputResult(ostream& out)
     ASS(!s_expecting_unsat);
 
     break;
-  case Statistics::SAT_SATISFIABLE:
-    outputSatisfiableResult(out);
-    break;
-  case Statistics::SAT_UNSATISFIABLE:
-    out<<"good job\n";
-    break;
   case Statistics::INAPPROPRIATE:
     if(env.options->outputMode() == Options::Output::SMTCOMP){
       out << "unknown" << endl;

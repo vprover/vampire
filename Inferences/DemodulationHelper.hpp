@@ -24,11 +24,11 @@ public:
   DemodulationHelper() = default;
   DemodulationHelper(const Options& opts, const Ordering* ord);
 
+  static bool isRenamingOn(const SubstApplicator* applicator, TermList t);
+
   bool redundancyCheckNeededForPremise(Clause* rwCl, Literal* rwLit, TermList rwTerm) const;
   bool isPremiseRedundant(Clause* rwCl, Literal* rwLit, TermList rwTerm, TermList tgtTerm,
     TermList eqLHS, const SubstApplicator* applicator) const;
-  bool isPremiseRedundant(Clause* rwCl, Literal* rwLit, TermList rwTerm, TermList tgtTerm,
-    TermList eqLHS, const SubstApplicator* applicator, Ordering::Result& tord) const;
 
 private:
   bool _redundancyCheck;

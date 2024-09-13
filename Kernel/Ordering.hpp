@@ -41,8 +41,14 @@ using namespace Shell;
  */
 struct OrderingComparator
 {
+  OrderingComparator(TermList lhs, TermList rhs, const Ordering& ord) : _lhs(lhs), _rhs(rhs), _ord(ord) {}
   virtual ~OrderingComparator() = default;
-  virtual std::string toString() const = 0;
+  virtual std::string toString() const { return _lhs.toString()+" > "+_rhs.toString(); }
+  virtual bool check(const SubstApplicator* applicator);
+
+  TermList _lhs;
+  TermList _rhs;
+  const Ordering& _ord;
 };
 
 /**
@@ -84,11 +90,10 @@ public:
   virtual bool isGreater(AppliedTerm t1, AppliedTerm t2) const
   { return compare(t1, t2) == Result::GREATER; }
 
-  /** Optimised function used for checking that @b lhs is greater than @b rhs,
-   * under substitution represented by @b applicator. */
-  virtual bool isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, OrderingComparatorUP& comparator) const
-  { return isGreater(AppliedTerm(lhs, applicator, /* aboveVar */ true),
-                     AppliedTerm(rhs, applicator, /* aboveVar */ true)); }
+  /** Creates optimised object to check that @b lhs is greater than @b rhs.
+   *  @see OrderingComparator. */
+  virtual OrderingComparatorUP createComparator(TermList lhs, TermList rhs) const
+  { return std::make_unique<OrderingComparator>(lhs, rhs, *this); }
 
   virtual void show(std::ostream& out) const = 0;
 

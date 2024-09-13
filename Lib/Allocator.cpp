@@ -17,6 +17,7 @@
  */
 
 #include <cstdio>
+#include <cerrno>
 
 #include "Allocator.hpp"
 

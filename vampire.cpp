@@ -738,7 +738,6 @@ void interactiveMetamode()
  */
 int main(int argc, char* argv[])
 {
-  System::registerArgv0(argv[0]);
   System::setSignalHandlers();
 
   try {

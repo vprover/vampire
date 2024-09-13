@@ -246,12 +246,6 @@ void Statistics::print(ostream& out)
   case Statistics::SATISFIABLE:
     out << "Satisfiable";
     break;
-  case Statistics::SAT_SATISFIABLE:
-    out << "SAT Satisfiable";
-    break;
-  case Statistics::SAT_UNSATISFIABLE: 
-    out << "SAT Unsatisfiable";
-    break;
   case Statistics::UNKNOWN:
     out << "Unknown";
     break;

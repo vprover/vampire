@@ -23,8 +23,6 @@
 #   CHECK_LEAKS      - test for memory leaks (debugging mode only)
 #   VZ3              - compile with Z3
 
-COMPILE_ONLY = -fno-pie
-
 OS = $(shell uname)
 
 # assumes LIBTORCH environment variable to be set to (an absolute path to) whereever you extracted the libtorch files (best set via export in .bash_profile or similar)
@@ -37,20 +35,15 @@ TORCHLINK= -D_GLIBCXX_USE_CXX11_ABI=1 -rdynamic
 TORCHLIB= -Wl,-rpath,$(LIBTORCH)/lib $(LIBTORCH)/lib/libtorch.so $(LIBTORCH)/lib/libc10.so $(LIBTORCH)/lib/libkineto.a -Wl,--no-as-needed,"$(LIBTORCH)/lib/libtorch_cpu.so" -Wl,--as-needed $(LIBTORCH)/lib/libc10.so -lpthread -Wl,--no-as-needed,"$(LIBTORCH)/lib/libtorch.so" -Wl,--as-needed
 endif
 
-ifeq ($(OS),Darwin)
-LINK_ONLY = -Wl,-no_pie $(TORCHLINK)
-else
-LINK_ONLY = -no-pie $(TORCHLINK)
-endif
-
 COMMON_FLAGS = -DVTIME_PROFILING=0
 
 DBG_FLAGS = $(COMMON_FLAGS) -g  -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider
-REL_FLAGS = $(COMMON_FLAGS) -O3 -DVDEBUG=0 -D NDEBUG # no debugging
+REL_FLAGS = $(COMMON_FLAGS) -O3 -DVDEBUG=0 -DNDEBUG # no debugging
+
 GCOV_FLAGS = -O0 --coverage #-pedantic
 
-MINISAT_DBG_FLAGS = -D DEBUG
-MINISAT_REL_FLAGS = -D NDEBUG
+MINISAT_DBG_FLAGS = -DDEBUG
+MINISAT_REL_FLAGS = -DNDEBUG
 MINISAT_FLAGS = $(MINISAT_DBG_FLAGS)
 
 #XFLAGS = -g -DVDEBUG=1 -DVTEST=1 -DCHECK_LEAKS=1 # full debugging + testing
@@ -548,15 +541,15 @@ obj/%X: | obj
 
 $(CONF_ID)/%.o : %.cpp | $(CONF_ID)
 	mkdir -p `dirname $@`
-	$(CXX) $(CXXFLAGS) $(COMPILE_ONLY) -c -o $@ $*.cpp -MMD -MF $(CONF_ID)/$*.d
+	$(CXX) $(CXXFLAGS) -c -o $@ $*.cpp -MMD -MF $(CONF_ID)/$*.d
 
 %.o : %.c
 $(CONF_ID)/%.o : %.c | $(CONF_ID)
-	$(CC) $(CCFLAGS) $(COMPILE_ONLY) -c -o $@ $*.c -MMD -MF $(CONF_ID)/$*.d
+	$(CC) $(CCFLAGS) -c -o $@ $*.c -MMD -MF $(CONF_ID)/$*.d
 
 %.o : %.cc
 $(CONF_ID)/%.o : %.cc | $(CONF_ID)
-	$(CXX) $(CXXFLAGS) $(COMPILE_ONLY) -c -o $@ $*.cc $(MINISAT_FLAGS) -MMD -MF $(CONF_ID)/$*.d
+	$(CXX) $(CXXFLAGS) -c -o $@ $*.cc $(MINISAT_FLAGS) -MMD -MF $(CONF_ID)/$*.d
 
 ################################################################
 # targets for executables
@@ -568,7 +561,7 @@ VSAT_OBJ := $(addprefix $(CONF_ID)/, $(VSAT_DEP))
 TKV_OBJ := $(addprefix $(CONF_ID)/, $(TKV_DEP))
 
 define COMPILE_CMD
-$(CXX) $(CXXFLAGS) $(LINK_ONLY) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB) $(TORCHLIB)
+$(CXX) $(CXXFLAGS) $(TORCHLINK) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB) $(TORCHLIB)
 @#$(CXX) -static $(CXXFLAGS) $(Z3LIB) $(filter %.o, $^) -o $@
 @#strip $@
 endef
