@@ -37,7 +37,7 @@ void* FlatTerm::operator new(size_t sz,unsigned num)
   ASS_EQ(sz, sizeof(FlatTerm));
 
   //one entry is already accounted for in the size of the FlatTerm object
-  size_t size=sizeof(FlatTerm)+(num-1)*sizeof(Entry);
+  size_t size=sizeof(FlatTerm)+(num-1)*sizeof(TermList);
 
   return ALLOC_KNOWN(size,"FlatTerm");
 }
@@ -50,7 +50,7 @@ void FlatTerm::destroy()
   ASS_GE(_length,1);
 
   //one entry is already accounted for in the size of the FlatTerm object
-  size_t size=sizeof(FlatTerm)+(_length-1)*sizeof(Entry);
+  size_t size=sizeof(FlatTerm)+(_length-1)*sizeof(TermList);
 
   DEALLOC_KNOWN(this, size,"FlatTerm");
 }
@@ -60,37 +60,17 @@ FlatTerm::FlatTerm(size_t length)
 {
 }
 
-size_t FlatTerm::getEntryCount(Term* t)
-{
-  //FUNCTION_ENTRY_COUNT entries per function and one per variable
-  return t->weight()*FUNCTION_ENTRY_COUNT-(FUNCTION_ENTRY_COUNT-1)*t->numVarOccs();
-}
-
 FlatTerm* FlatTerm::create(Term* t)
 {
-  size_t entries=getEntryCount(t);
+  size_t entries = t->weight();
 
   FlatTerm* res=new(entries) FlatTerm(entries);
   size_t fti=0;
-  res->_data[fti++]=Entry(FUN,
-      t->isLiteral() ? static_cast<Literal*>(t)->header() : t->functor());
-  res->_data[fti++]=Entry(t);
-  res->_data[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(t));
+  res->_data[fti++] = TermList(t);
 
   SubtermIterator sti(t);
   while(sti.hasNext()) {
-    ASS_L(fti, entries);
-    TermList s=sti.next();
-    if(s.isVar()) {
-      ASS(s.isOrdinaryVar());
-      res->_data[fti++]=Entry(VAR, s.var());
-    }
-    else {
-      ASS(s.isTerm());
-      res->_data[fti++]=Entry(FUN, s.term()->functor());
-      res->_data[fti++]=Entry(s.term());
-      res->_data[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(s.term()));
-    }
+    res->_data[fti++] = sti.next();
   }
   ASS_EQ(fti, entries);
 
@@ -106,7 +86,7 @@ FlatTerm* FlatTerm::create(TermList t)
 
 
   FlatTerm* res=new(1) FlatTerm(1);
-  res->_data[0]=Entry(VAR, t.var());
+  res->_data[0] = t;
 
   return res;
 }
@@ -115,37 +95,21 @@ FlatTerm* FlatTerm::create(TermStack ts)
 {
   size_t entries=0;
   for (auto& tl : ts) {
-    entries += tl.isVar() ? 1 : getEntryCount(tl.term());
+    entries += tl.weight();
   }
 
   FlatTerm* res=new(entries) FlatTerm(entries);
   size_t fti=0;
 
   for (auto& tl : ts) {
+    res->_data[fti++] = tl;
     if (tl.isVar()) {
-      res->_data[fti++]=Entry(VAR, tl.var());
       continue;
     }
-    auto t = tl.term();
-    res->_data[fti++]=Entry(FUN,
-        t->isLiteral() ? static_cast<Literal*>(t)->header() : t->functor());
-    res->_data[fti++]=Entry(t);
-    res->_data[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(t));
 
-    SubtermIterator sti(t);
+    SubtermIterator sti(tl.term());
     while(sti.hasNext()) {
-      ASS_L(fti, entries);
-      TermList s=sti.next();
-      if(s.isVar()) {
-        ASS(s.isOrdinaryVar());
-        res->_data[fti++]=Entry(VAR, s.var());
-      }
-      else {
-        ASS(s.isTerm());
-        res->_data[fti++]=Entry(FUN, s.term()->functor());
-        res->_data[fti++]=Entry(s.term());
-        res->_data[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(s.term()));
-      }
+      res->_data[fti++] = sti.next();
     }
   }
   ASS_EQ(fti, entries);
@@ -155,14 +119,15 @@ FlatTerm* FlatTerm::create(TermStack ts)
 
 FlatTerm* FlatTerm::createUnexpanded(Term* t)
 {
-  size_t entries=getEntryCount(t);
+  size_t entries = t->weight();
 
   FlatTerm* res=new(entries) FlatTerm(entries);
 
-  res->_data[0]=Entry(FUN_UNEXPANDED,
-      t->isLiteral() ? static_cast<Literal*>(t)->header() : t->functor());
-  res->_data[1]=Entry(t);
-  res->_data[2]=Entry(FUN_RIGHT_OFS, entries);
+  res->_data[0] = TermList(t);
+  // NOTE: the first unexpanded argument is marked as empty
+  if (t->arity()) {
+    res->_data[1] = TermList::empty();
+  }
 
   return res;
 }
@@ -175,7 +140,7 @@ FlatTerm* FlatTerm::createUnexpanded(TermList t)
   ASS(t.isOrdinaryVar());
 
   FlatTerm* res=new(1) FlatTerm(1);
-  res->_data[0]=Entry(VAR, t.var());
+  res->_data[0] = t;
 
   return res;
 }
@@ -184,23 +149,19 @@ FlatTerm* FlatTerm::createUnexpanded(TermStack ts)
 {
   size_t entries=0;
   for (auto& tl : ts) {
-    entries += tl.isVar() ? 1 : getEntryCount(tl.term());
+    entries += tl.weight();
   }
 
   FlatTerm* res=new(entries) FlatTerm(entries);
   size_t fti=0;
 
   for (auto& tl : ts) {
-    if (tl.isVar()) {
-      res->_data[fti++]=Entry(VAR, tl.var());
-      continue;
+    res->_data[fti]=tl;
+    // NOTE: the first unexpanded argument is marked as empty
+    if (tl.isTerm() && tl.term()->arity()) {
+      res->_data[fti+1] = TermList::empty();
     }
-    auto t = tl.term();
-    res->_data[fti]=Entry(FUN_UNEXPANDED,
-        t->isLiteral() ? static_cast<Literal*>(t)->header() : t->functor());
-    res->_data[fti+1]=Entry(t);
-    res->_data[fti+2]=Entry(FUN_RIGHT_OFS, getEntryCount(t));
-    fti+=getEntryCount(t);
+    fti += tl.weight();
   }
   ASS_EQ(fti, entries);
 
@@ -211,80 +172,52 @@ FlatTerm* FlatTerm::copy(const FlatTerm* ft)
 {
   size_t entries=ft->_length;
   FlatTerm* res=new(entries) FlatTerm(entries);
-  memcpy(res->_data, ft->_data, entries*sizeof(Entry));
+  memcpy(res->_data, ft->_data, entries*sizeof(TermList));
   return res;
 }
 
 void FlatTerm::swapCommutativePredicateArguments()
 {
-  ASS_EQ((*this)[0]._tag(), FUN);
-  ASS_EQ((*this)[0]._number()|1, 1); //as for now, the only commutative predicate is equality
+  ASS(_data[0].isTerm() && _data[0].term()->isLiteral());
+  ASS(static_cast<Literal*>(_data[0].term())->isEquality()); //as for now, the only commutative predicate is equality
 
-  size_t firstStart=3;
-  size_t firstLen;
-  if((*this)[firstStart]._tag()==FUN) {
-    ASS_EQ((*this)[firstStart+2]._tag(), FUN_RIGHT_OFS);
-    firstLen=(*this)[firstStart+2]._number();
-  }
-  else {
-    ASS_EQ((*this)[firstStart]._tag(), VAR);
-    firstLen=1;
-  }
+  size_t firstStart = 1;
+  size_t firstLen = _data[firstStart].weight();
 
   size_t secStart=firstStart+firstLen;
-  size_t secLen;
+  size_t secLen = _data[secStart].weight();
 
-  if((*this)[secStart]._tag()==FUN) {
-    ASS_EQ((*this)[secStart+2]._tag(), FUN_RIGHT_OFS);
-    secLen=(*this)[secStart+2]._number();
-  }
-  else {
-    ASS_EQ((*this)[secStart]._tag(), VAR);
-    secLen=1;
-  }
   ASS_EQ(secStart+secLen,_length);
 
-  static DArray<Entry> buf;
-  if(firstLen>secLen) {
+  static DArray<TermList> buf;
+  if (firstLen > secLen) {
     buf.ensure(firstLen);
-    memcpy(buf.array(), &_data[firstStart], firstLen*sizeof(Entry));
-    memcpy(&_data[firstStart], &_data[secStart], secLen*sizeof(Entry));
-    memcpy(&_data[firstStart+secLen], buf.array(), firstLen*sizeof(Entry));
-  }
-  else {
+    memcpy(buf.array(), &_data[firstStart], firstLen*sizeof(TermList));
+    memcpy(&_data[firstStart], &_data[secStart], secLen*sizeof(TermList));
+    memcpy(&_data[firstStart+secLen], buf.array(), firstLen*sizeof(TermList));
+  } else {
     buf.ensure(secLen);
-    memcpy(buf.array(), &_data[secStart], secLen*sizeof(Entry));
-    memcpy(&_data[firstStart+secLen], &_data[firstStart], firstLen*sizeof(Entry));
-    memcpy(&_data[firstStart], buf.array(), secLen*sizeof(Entry));
+    memcpy(buf.array(), &_data[secStart], secLen*sizeof(TermList));
+    memcpy(&_data[firstStart+secLen], &_data[firstStart], firstLen*sizeof(TermList));
+    memcpy(&_data[firstStart], buf.array(), secLen*sizeof(TermList));
   }
 }
 
-void FlatTerm::Entry::expand()
+void FlatTerm::expand(size_t i)
 {
-  if (_tag()==FUN) {
+  // NOTE: the first unexpanded argument is marked as empty
+  if (i+1 >= _length || _data[i+1].isNonEmpty()) {
     return;
   }
-  ASS(_tag()==FUN_UNEXPANDED);
-  ASS(this[1]._tag()==FUN_TERM_PTR);
-  ASS(this[2]._tag()==FUN_RIGHT_OFS);
-  Term* t = this[1]._term();
-  size_t p = FlatTerm::FUNCTION_ENTRY_COUNT;
-  for (unsigned i = 0; i < t->arity(); i++) {
-    auto arg = t->nthArgument(i);
-    if (arg->isVar()) {
-      ASS(arg->isOrdinaryVar());
-      this[p++] = Entry(VAR, arg->var());
+  auto t = _data[i++].term();
+  for (unsigned j = 0; j < t->arity(); j++) {
+    TermList arg = *t->nthArgument(j);
+    _data[i] = arg;
+    if (arg.isTerm() && arg.term()->arity() && i+1 < _length) {
+      _data[i+1] = TermList::empty();
     }
-    else {
-      ASS(arg->isTerm());
-      this[p] = Entry(FUN_UNEXPANDED, arg->term()->functor());
-      this[p+1] = Entry(arg->term());
-      this[p+2] = Entry(FUN_RIGHT_OFS, getEntryCount(arg->term()));
-      p += this[p+2]._number();
-    }
+    i += _data[i].weight();
   }
-  ASS_EQ(p,this[2]._number());
-  _setTag(FUN);
 }
 
 };

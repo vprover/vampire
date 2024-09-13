@@ -75,10 +75,6 @@ CodeTree::LitInfo CodeTree::LitInfo::getOpposite(const LitInfo& li)
 {
   FlatTerm* ft=FlatTerm::copy(li.ft);
   ft->changeLiteralPolarity();
-#if GROUND_TERM_CHECK
-  ASS_EQ((*ft)[1]._tag(), FlatTerm::FUN_TERM_PTR);
-  (*ft)[1]._ptr=Literal::complementaryLiteral(static_cast<Literal*>((*ft)[1]._term()));
-#endif
 
   LitInfo res=li;
   res.ft=ft;
@@ -470,16 +466,14 @@ bool CodeTree::SearchStruct::getTargetOpPtr(const CodeOp& insertedOp, CodeOp**& 
 // expose for ClauseCodeTree.cpp
 template bool CodeTree::SearchStruct::getTargetOpPtr<false>(const CodeOp&, CodeOp**&);
 
-CodeTree::CodeOp* CodeTree::SearchStruct::getTargetOp(const FlatTerm::Entry* ftPos)
+CodeTree::CodeOp* CodeTree::SearchStruct::getTargetOp(const TermList& fte)
 {
-  if(!ftPos->isFun()) { return 0; }
+  if (!fte.isTerm()) { return 0; }
   switch(kind) {
   case FN_STRUCT:
-    return static_cast<FnSearchStruct*>(this)->targetOp<false>(ftPos->_number());
+    return static_cast<FnSearchStruct*>(this)->targetOp<false>(fte.term()->functor());
   case GROUND_TERM_STRUCT:
-    ftPos++;
-    ASS_EQ(ftPos->_tag(), FlatTerm::FUN_TERM_PTR);
-    return static_cast<GroundTermSearchStruct*>(this)->targetOp<false>(ftPos->_term());
+    return static_cast<GroundTermSearchStruct*>(this)->targetOp<false>(fte.term());
   default:
     ASSERTION_VIOLATION;
   }
@@ -532,22 +526,12 @@ inline bool CodeTree::BaseMatcher::doCheckGroundTerm()
 {
   ASS_EQ(op->_instruction(), CHECK_GROUND_TERM);
 
-  const FlatTerm::Entry* fte=&(*ft)[tp];
-  if(!fte->isFun()) {
+  auto& fte = (*ft)[tp];
+  if (!fte.isTerm() || op->getTargetTerm() != fte.term()) {
     return false;
   }
 
-  Term* trm=op->getTargetTerm();
-
-  fte++;
-  ASS_EQ(fte->_tag(), FlatTerm::FUN_TERM_PTR);
-  ASS(fte->_term());
-  if(trm!=fte->_term()) {
-    return false;
-  }
-  fte++;
-  ASS_EQ(fte->_tag(), FlatTerm::FUN_RIGHT_OFS);
-  tp+=fte->_number();
+  tp += fte.term()->weight();
   return true;
 }
 
@@ -1261,7 +1245,7 @@ inline bool CodeTree::RemovingMatcher::doSearchStruct()
 {
   ASS_EQ(op->_instruction(), SEARCH_STRUCT);
 
-  const FlatTerm::Entry* fte=&(*ft)[tp];
+  auto& fte = (*ft)[tp];
   CodeOp* target=op->getSearchStruct()->getTargetOp(fte);
   if(!target) {
     return false;
@@ -1275,13 +1259,12 @@ inline bool CodeTree::RemovingMatcher::doCheckFun()
 {
   ASS_EQ(op->_instruction(), CHECK_FUN);
 
-  unsigned functor=op->_arg();
-  FlatTerm::Entry& fte=(*ft)[tp];
-  if(!fte.isFun(functor)) {
+  auto& fte = (*ft)[tp];
+  if (!fte.isTerm() || fte.term()->functor() != op->_arg()) {
     return false;
   }
-  fte.expand();
-  tp+=FlatTerm::FUNCTION_ENTRY_COUNT;
+  ft->expand(tp);
+  tp++;
   return true;
 }
 
@@ -1290,12 +1273,11 @@ inline bool CodeTree::RemovingMatcher::doAssignVar()
   ASS_EQ(op->_instruction(), ASSIGN_VAR);
 
   //we are looking for variants and they match only other variables into variables
-  unsigned var=op->_arg();
-  const FlatTerm::Entry* fte=&(*ft)[tp];
-  if(fte->_tag()!=FlatTerm::VAR) {
+  auto& fte = (*ft)[tp];
+  if (!fte.isVar()) {
     return false;
   }
-  bindings[var]=fte->_number();
+  bindings[op->_arg()] = fte.var();
   tp++;
   return true;
 }
@@ -1305,9 +1287,8 @@ inline bool CodeTree::RemovingMatcher::doCheckVar()
   ASS_EQ(op->_instruction(), CHECK_VAR);
 
   //we are looking for variants and they match only other variables into variables
-  unsigned var=op->_arg();
-  const FlatTerm::Entry* fte=&(*ft)[tp];
-  if(fte->_tag()!=FlatTerm::VAR || bindings[var]!=fte->_number()) {
+  auto& fte = (*ft)[tp];
+  if (!fte.isVar() || fte.var() != bindings[op->_arg()]) {
     return false;
   }
   tp++;
@@ -1447,7 +1428,7 @@ inline bool CodeTree::Matcher::doSearchStruct()
 {
   ASS_EQ(op->_instruction(), SEARCH_STRUCT);
 
-  const FlatTerm::Entry* fte=&(*ft)[tp];
+  auto& fte = (*ft)[tp];
   op=op->getSearchStruct()->getTargetOp(fte);
   return op;
 }
@@ -1456,13 +1437,12 @@ inline bool CodeTree::Matcher::doCheckFun()
 {
   ASS_EQ(op->_instruction(), CHECK_FUN);
 
-  unsigned functor=op->_arg();
-  FlatTerm::Entry& fte=(*ft)[tp];
-  if(!fte.isFun(functor)) {
+  auto& fte = (*ft)[tp];
+  if (!fte.isTerm() || fte.term()->functor() != op->_arg()) {
     return false;
   }
-  fte.expand();
-  tp+=FlatTerm::FUNCTION_ENTRY_COUNT;
+  ft->expand(tp);
+  tp++;
   return true;
 }
 
@@ -1470,47 +1450,20 @@ inline void CodeTree::Matcher::doAssignVar()
 {
   ASS_EQ(op->_instruction(), ASSIGN_VAR);
 
-  unsigned var=op->_arg();
-  const FlatTerm::Entry* fte=&(*ft)[tp];
-  if(fte->_tag()==FlatTerm::VAR) {
-    bindings[var]=TermList(fte->_number(),false);
-    tp++;
-  }
-  else {
-    ASS(fte->isFun());
-    fte++;
-    ASS_EQ(fte->_tag(), FlatTerm::FUN_TERM_PTR);
-    ASS(fte->_term());
-    bindings[var]=TermList(fte->_term());
-    fte++;
-    ASS_EQ(fte->_tag(), FlatTerm::FUN_RIGHT_OFS);
-    tp+=fte->_number();
-  }
+  auto& fte = (*ft)[tp];
+  bindings[op->_arg()] = fte;
+  tp += fte.weight();
 }
 
 inline bool CodeTree::Matcher::doCheckVar()
 {
   ASS_EQ(op->_instruction(), CHECK_VAR);
 
-  unsigned var=op->_arg();
-  const FlatTerm::Entry* fte=&(*ft)[tp];
-  if(fte->_tag()==FlatTerm::VAR) {
-    if(bindings[var]!=TermList(fte->_number(),false)) {
-      return false;
-    }
-    tp++;
+  auto& fte = (*ft)[tp];
+  if (fte != bindings[op->_arg()]) {
+    return false;
   }
-  else {
-    ASS(fte->isFun());
-    fte++;
-    ASS_EQ(fte->_tag(), FlatTerm::FUN_TERM_PTR);
-    if(bindings[var]!=TermList(fte->_term())) {
-      return false;
-    }
-    fte++;
-    ASS_EQ(fte->_tag(), FlatTerm::FUN_RIGHT_OFS);
-    tp+=fte->_number();
-  }
+  tp += fte.weight();
   return true;
 }
 

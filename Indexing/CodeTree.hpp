@@ -281,7 +281,7 @@ public:
      * Returns code op in the structure matching the content
      * of flat term entry @b ftPos.
      */
-    CodeOp* getTargetOp(const FlatTerm::Entry* ftPos);
+    CodeOp* getTargetOp(const TermList& fte);
     inline size_t length() const { return targets.size(); }
 
     enum Kind
@@ -309,7 +309,7 @@ public:
   {
     SearchStructImpl(size_t length);
 
-    using T = typename std::conditional<k==SearchStruct::FN_STRUCT,unsigned,Term*>::type;
+    using T = typename std::conditional<k==SearchStruct::FN_STRUCT,unsigned,const Term*>::type;
 
     /**
      * Tries to find the code op in @b targets at position where @b val is in @b values.
