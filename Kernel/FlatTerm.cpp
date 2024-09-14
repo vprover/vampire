@@ -80,6 +80,7 @@ FlatTerm* FlatTerm::create(Term* t)
 FlatTerm* FlatTerm::create(TermList t)
 {
   if(t.isTerm()) {
+    ASS(!t.term()->isLiteral());
     return create(t.term());
   }
   ASS(t.isOrdinaryVar());
@@ -106,6 +107,7 @@ FlatTerm* FlatTerm::create(TermStack ts)
     if (tl.isVar()) {
       continue;
     }
+    ASS(!tl.term()->isLiteral());
 
     SubtermIterator sti(tl.term());
     while(sti.hasNext()) {

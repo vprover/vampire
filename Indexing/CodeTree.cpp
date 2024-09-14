@@ -472,8 +472,13 @@ CodeTree::CodeOp* CodeTree::SearchStruct::getTargetOp(const TermList& fte)
 {
   if (!fte.isTerm()) { return 0; }
   switch(kind) {
-  case FN_STRUCT:
-    return static_cast<FnSearchStruct*>(this)->targetOp<false>(fte.term()->functor());
+  case FN_STRUCT: {
+    if (fte.term()->isLiteral()) {
+      return static_cast<FnSearchStruct*>(this)->targetOp<false>(static_cast<const Literal*>(fte.term())->header());
+    } else {
+      return static_cast<FnSearchStruct*>(this)->targetOp<false>(fte.term()->functor());
+    }
+  }
   case GROUND_TERM_STRUCT:
     return static_cast<GroundTermSearchStruct*>(this)->targetOp<false>(fte.term());
   default:
@@ -1262,8 +1267,17 @@ inline bool CodeTree::RemovingMatcher::doCheckFun()
   ASS_EQ(op->_instruction(), CHECK_FUN);
 
   auto& fte = (*ft)[tp];
-  if (!fte.isTerm() || fte.term()->functor() != op->_arg()) {
+  if (!fte.isTerm()) {
     return false;
+  }
+  if (fte.term()->isLiteral()) {
+    if (static_cast<const Literal*>(fte.term())->header() != op->_arg()) {
+      return false;
+    }
+  } else {
+    if (fte.term()->functor() != op->_arg()) {
+      return false;
+    }
   }
   ft->expand(tp);
   tp++;
@@ -1440,8 +1454,17 @@ inline bool CodeTree::Matcher::doCheckFun()
   ASS_EQ(op->_instruction(), CHECK_FUN);
 
   auto& fte = (*ft)[tp];
-  if (!fte.isTerm() || fte.term()->functor() != op->_arg()) {
+  if (!fte.isTerm()) {
     return false;
+  }
+  if (fte.term()->isLiteral()) {
+    if (static_cast<const Literal*>(fte.term())->header() != op->_arg()) {
+      return false;
+    }
+  } else {
+    if (fte.term()->functor() != op->_arg()) {
+      return false;
+    }
   }
   ft->expand(tp);
   tp++;
