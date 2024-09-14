@@ -303,6 +303,8 @@ CodeTree::CodeOp CodeTree::CodeOp::getLitEnd(ILStruct* ils)
   CodeOp res;
   res.setAlternative(0);
   res._setData(ils);
+  // order matters
+  res._setInstruction(LIT_END);
   ASS(res.isLitEnd());
   return res;
 }
