@@ -17,6 +17,7 @@
 #define __FlatTerm__
 
 #include "Forwards.hpp"
+#include "Term.hpp"
 
 namespace Kernel {
 
@@ -99,7 +100,7 @@ public:
 
   void swapCommutativePredicateArguments();
   void changeLiteralPolarity()
-  { _data[0]._setNumber(_data[0]._number()^1); }
+  { _data[0]._setNumber(_data[0]._number()^1); _data[1]._setTerm(Literal::complementaryLiteral(static_cast<Literal*>(_data[1]._term()))); }
 
 private:
   static size_t getEntryCount(Term* t);

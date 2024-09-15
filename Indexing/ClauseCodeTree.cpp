@@ -92,7 +92,7 @@ struct ClauseCodeTree::InitialLiteralOrderingComparator
     if(l1->weight()!=l2->weight()) {
       return Int::compare(l2->weight(), l1->weight());
     }
-    return Int::compare(l1, l2);
+    return Int::compare(l1->getId(), l2->getId());
   }
 };
 
