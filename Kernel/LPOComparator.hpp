@@ -45,7 +45,7 @@ public:
     BranchTag tag;
     SmartPtr<Node> n;
 
-    explicit Branch(BranchTag t) : tag(t), n(nullptr) { ASS(t==BranchTag::T_GREATER || t==BranchTag::T_NOT_GREATER); }
+    explicit Branch(BranchTag t) : tag(t) { ASS(t==BranchTag::T_GREATER || t==BranchTag::T_NOT_GREATER); }
     explicit Branch(TermList lhs, TermList rhs) : tag(BranchTag::T_UNKNOWN), n(new Node(lhs, rhs)) {}
   };
 
