@@ -63,6 +63,9 @@ FlatTerm::FlatTerm(size_t length)
 FlatTerm* FlatTerm::create(Term* t)
 {
   size_t entries = t->weight();
+  if (t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
+    entries -= SortHelper::getEqualityArgumentSort(static_cast<Literal*>(t)).weight() - 1;
+  }
 
   FlatTerm* res=new(entries) FlatTerm(entries);
   size_t fti=0;

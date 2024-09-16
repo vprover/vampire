@@ -307,7 +307,7 @@ CodeTree::CodeOp CodeTree::CodeOp::getLitEnd(ILStruct* ils)
 
 CodeTree::CodeOp CodeTree::CodeOp::getTermOp(Instruction i, unsigned num)
 {
-  ASS(i==CHECK_FUN || i==CHECK_VAR || i==ASSIGN_VAR);
+  ASS(i==CHECK_FUN || i==CHECK_PRED || i==CHECK_VAR || i==ASSIGN_VAR);
 
   CodeOp res;
   res.setAlternative(0);
@@ -343,6 +343,7 @@ bool CodeTree::CodeOp::equalsForOpMatching(const CodeOp& o) const
   case CHECK_GROUND_TERM:
     return _data<void>()==o._data<void>();
   case CHECK_FUN:
+  case CHECK_PRED:
   case ASSIGN_VAR:
   case CHECK_VAR:
     return _instruction()==o._instruction() && _arg()==o._arg();
@@ -384,6 +385,9 @@ std::ostream& operator<<(std::ostream& out, const CodeTree::CodeOp& op)
     case CodeTree::CHECK_FUN:
       out << "check fun " << env.signature->getFunction(op._arg())->name();
       break;
+    case CodeTree::CHECK_PRED:
+      out << "check pred " << (op._arg()%2?"":"~") << env.signature->getPredicate(op._arg()/2)->name();
+      break;
     case CodeTree::ASSIGN_VAR:
       out << "assign var X" << op._arg();
       break;
@@ -401,6 +405,19 @@ std::ostream& operator<<(std::ostream& out, const CodeTree::CodeOp& op)
             out << " " << fn_ss->values[i] << " ";
             if (fn_ss->targets[i]) {
               out << *fn_ss->targets[i];
+            } else {
+              out << "nullptr";
+            }
+          }
+          break;
+        }
+        case CodeTree::SearchStruct::PRED_STRUCT: {
+          auto pred_ss = static_cast<const CodeTree::PredSearchStruct*>(ss);
+          out << "length " << pred_ss->length();
+          for (unsigned i = 0; i < pred_ss->length(); i++) {
+            out << " " << pred_ss->values[i] << " ";
+            if (pred_ss->targets[i]) {
+              out << *pred_ss->targets[i];
             } else {
               out << "nullptr";
             }
@@ -442,6 +459,9 @@ void CodeTree::SearchStruct::destroy()
   case FN_STRUCT:
     delete static_cast<FnSearchStruct*>(this);
     break;
+  case PRED_STRUCT:
+    delete static_cast<PredSearchStruct*>(this);
+    break;
   case GROUND_TERM_STRUCT:
     delete static_cast<GroundTermSearchStruct*>(this);
     break;
@@ -455,6 +475,10 @@ bool CodeTree::SearchStruct::getTargetOpPtr(const CodeOp& insertedOp, CodeOp**& 
   case FN_STRUCT:
     if(!insertedOp.isCheckFun()) { return false; }
     tgt=&static_cast<FnSearchStruct*>(this)->targetOp<doInsert>(insertedOp._arg());
+    return true;
+  case PRED_STRUCT:
+    if(!insertedOp.isCheckPred()) { return false; }
+    tgt=&static_cast<PredSearchStruct*>(this)->targetOp<doInsert>(insertedOp._arg());
     return true;
   case GROUND_TERM_STRUCT:
     if(!insertedOp.isCheckGroundTerm()) { return false; }
@@ -472,13 +496,10 @@ CodeTree::CodeOp* CodeTree::SearchStruct::getTargetOp(const TermList& fte)
 {
   if (!fte.isTerm()) { return 0; }
   switch(kind) {
-  case FN_STRUCT: {
-    if (fte.term()->isLiteral()) {
-      return static_cast<FnSearchStruct*>(this)->targetOp<false>(static_cast<const Literal*>(fte.term())->header());
-    } else {
-      return static_cast<FnSearchStruct*>(this)->targetOp<false>(fte.term()->functor());
-    }
-  }
+  case FN_STRUCT:
+    return static_cast<FnSearchStruct*>(this)->targetOp<false>(fte.term()->functor());
+  case PRED_STRUCT:
+    return static_cast<FnSearchStruct*>(this)->targetOp<false>(static_cast<const Literal*>(fte.term())->header());
   case GROUND_TERM_STRUCT:
     return static_cast<GroundTermSearchStruct*>(this)->targetOp<false>(fte.term());
   default:
@@ -697,7 +718,7 @@ void CodeTree::compileTerm(const Term* trm, CodeStack& code, CompileContext& cct
   else {
     if(trm->isLiteral()) {
       auto lit=static_cast<const Literal*>(trm);
-      code.push(CodeOp::getTermOp(CHECK_FUN, lit->header()));
+      code.push(CodeOp::getTermOp(CHECK_PRED, lit->header()));
     }
     else {
       code.push(CodeOp::getTermOp(CHECK_FUN, trm->functor()));
@@ -792,6 +813,7 @@ void CodeTree::incorporate(CodeStack& code)
   }
 
   static const unsigned checkFunOpThreshold=5; //must be greater than 1 or it would cause loops
+  static const unsigned checkPredOpThreshold=5; //must be greater than 1 or it would cause loops
   static const unsigned checkGroundTermOpThreshold=3; //must be greater than 1 or it would cause loops
 
   size_t clen=code.length();
@@ -805,6 +827,7 @@ void CodeTree::incorporate(CodeStack& code)
     for (size_t i = 0; i < clen; i++) {
       CodeOp* chainStart = treeOp;
       size_t checkFunOps = 0;
+      size_t checkPredOps = 0;
       size_t checkGroundTermOps = 0;
       for (;;) {
         if (treeOp->isSearchStruct()) {
@@ -845,7 +868,20 @@ void CodeTree::incorporate(CodeStack& code)
             compressCheckOps<SearchStruct::FN_STRUCT>(chainStart);
             treeOp = chainStart;
             checkFunOps = 0;
-            checkGroundTermOps = 0;
+            continue;
+          }
+        }
+
+        if (treeOp->isCheckPred()) {
+          checkPredOps++;
+          //if there were too many CHECK_PRED alternative operations, put them
+          //into a SEARCH_STRUCT
+          if (checkPredOps > checkPredOpThreshold) {
+            //we put CHECK_PRED ops into the SEARCH_STRUCT op, and
+            //restart with the chain
+            compressCheckOps<SearchStruct::PRED_STRUCT>(chainStart);
+            treeOp = chainStart;
+            checkPredOps = 0;
             continue;
           }
         }
@@ -859,7 +895,6 @@ void CodeTree::incorporate(CodeStack& code)
             //restart with the chain
             compressCheckOps<SearchStruct::GROUND_TERM_STRUCT>(chainStart);
             treeOp = chainStart;
-            checkFunOps = 0;
             checkGroundTermOps = 0;
             continue;
           }
@@ -931,6 +966,8 @@ void CodeTree::compressCheckOps(CodeOp* chainStart)
     bool ofKind;
     if constexpr (k == SearchStruct::FN_STRUCT) {
       ofKind = op->isCheckFun();
+    } else if constexpr (k == SearchStruct::PRED_STRUCT) {
+      ofKind = op->isCheckPred();
     } else {
       ofKind = op->isCheckGroundTerm();
     }
@@ -959,20 +996,20 @@ void CodeTree::compressCheckOps(CodeOp* chainStart)
   auto res=new SearchStructImpl<k>(slen);
 
   sort(chfOps.begin(), chfOps.end(), [](CodeOp* op1, CodeOp* op2) {
-    if constexpr (k==SearchStruct::FN_STRUCT) {
-      return op1->_arg() < op2->_arg();
-    } else {
+    if constexpr (k==SearchStruct::GROUND_TERM_STRUCT) {
       return op1->getTargetTerm() < op2->getTargetTerm();
+    } else {
+      return op1->_arg() < op2->_arg();
     }
   });
 
   for(size_t i=0;i<slen;i++) {
-    if constexpr (k==SearchStruct::FN_STRUCT) {
-      ASS(chfOps[i]->isCheckFun());
-      res->values.push_back(chfOps[i]->_arg());
-    } else {
+    if constexpr (k==SearchStruct::GROUND_TERM_STRUCT) {
       ASS(chfOps[i]->isCheckGroundTerm());
       res->values.push_back(chfOps[i]->getTargetTerm());
+    } else {
+      ASS(chfOps[i]->isCheckFun() || chfOps[i]->isCheckPred());
+      res->values.push_back(chfOps[i]->_arg());
     }
     res->targets.push_back(chfOps[i]);
     chfOps[i]->setAlternative(0);
@@ -1067,9 +1104,10 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp
       ASS_EQ(*tgtPtr, firstOp);
       *tgtPtr=alt;
       if(alt) {
-	ASS( (ss->kind==SearchStruct::FN_STRUCT && alt->isCheckFun()) ||
-	    (ss->kind==SearchStruct::GROUND_TERM_STRUCT && alt->isCheckGroundTerm()) );
-	return;
+        ASS( (ss->kind==SearchStruct::FN_STRUCT && alt->isCheckFun()) ||
+            (ss->kind==SearchStruct::PRED_STRUCT && alt->isCheckPred()) ||
+            (ss->kind==SearchStruct::GROUND_TERM_STRUCT && alt->isCheckGroundTerm()) );
+        return;
       }
       for(size_t i=0; i<ss->length(); i++) {
 	if(ss->targets[i]!=0) {
@@ -1188,6 +1226,9 @@ bool CodeTree::RemovingMatcher::next()
       case CHECK_FUN:
         shouldBacktrack=!doCheckFun();
         break;
+      case CHECK_PRED:
+        shouldBacktrack=!doCheckPred();
+        break;
       case ASSIGN_VAR:
         shouldBacktrack=!doAssignVar();
         break;
@@ -1267,17 +1308,21 @@ inline bool CodeTree::RemovingMatcher::doCheckFun()
   ASS_EQ(op->_instruction(), CHECK_FUN);
 
   auto& fte = (*ft)[tp];
-  if (!fte.isTerm()) {
+  if (!fte.isTerm() || fte.term()->functor() != op->_arg()) {
     return false;
   }
-  if (fte.term()->isLiteral()) {
-    if (static_cast<const Literal*>(fte.term())->header() != op->_arg()) {
-      return false;
-    }
-  } else {
-    if (fte.term()->functor() != op->_arg()) {
-      return false;
-    }
+  ft->expand(tp);
+  tp++;
+  return true;
+}
+
+inline bool CodeTree::RemovingMatcher::doCheckPred()
+{
+  ASS_EQ(op->_instruction(), CHECK_PRED);
+
+  auto& fte = (*ft)[tp];
+  if (!fte.isTerm() || static_cast<const Literal*>(fte.term())->header() != op->_arg()) {
+    return false;
   }
   ft->expand(tp);
   tp++;
@@ -1377,6 +1422,9 @@ bool CodeTree::Matcher::execute()
       case CHECK_FUN:
         shouldBacktrack=!doCheckFun();
         break;
+      case CHECK_PRED:
+        shouldBacktrack=!doCheckPred();
+        break;
       case ASSIGN_VAR:
         doAssignVar();
         break;
@@ -1454,17 +1502,21 @@ inline bool CodeTree::Matcher::doCheckFun()
   ASS_EQ(op->_instruction(), CHECK_FUN);
 
   auto& fte = (*ft)[tp];
-  if (!fte.isTerm()) {
+  if (!fte.isTerm() || fte.term()->functor() != op->_arg()) {
     return false;
   }
-  if (fte.term()->isLiteral()) {
-    if (static_cast<const Literal*>(fte.term())->header() != op->_arg()) {
-      return false;
-    }
-  } else {
-    if (fte.term()->functor() != op->_arg()) {
-      return false;
-    }
+  ft->expand(tp);
+  tp++;
+  return true;
+}
+
+inline bool CodeTree::Matcher::doCheckPred()
+{
+  ASS_EQ(op->_instruction(), CHECK_PRED);
+
+  auto& fte = (*ft)[tp];
+  if (!fte.isTerm() || static_cast<const Literal*>(fte.term())->header() != op->_arg()) {
+    return false;
   }
   ft->expand(tp);
   tp++;

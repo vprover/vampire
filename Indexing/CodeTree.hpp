@@ -161,9 +161,10 @@ public:
     CHECK_GROUND_TERM = 1,
     LIT_END = 2,
     CHECK_FUN = 3,
-    ASSIGN_VAR = 4,
-    CHECK_VAR = 5,
-    SEARCH_STRUCT = 6,
+    CHECK_PRED = 4,
+    ASSIGN_VAR = 5,
+    CHECK_VAR = 6,
+    SEARCH_STRUCT = 7,
   };
 
   /** Structure containing a single instruction and its arguments */
@@ -196,6 +197,7 @@ public:
     inline bool isLitEnd() const { return _instruction()==LIT_END; }
     inline bool isSearchStruct() const { return _instruction()==SEARCH_STRUCT; }
     inline bool isCheckFun() const { return _instruction()==CHECK_FUN; }
+    inline bool isCheckPred() const { return _instruction()==CHECK_PRED; }
     inline bool isCheckGroundTerm() const { return _instruction()==CHECK_GROUND_TERM; }
 
     inline Term* getTargetTerm() const
@@ -287,6 +289,7 @@ public:
     enum Kind
     {
       FN_STRUCT,
+      PRED_STRUCT,
       GROUND_TERM_STRUCT
     };
 
@@ -309,7 +312,7 @@ public:
   {
     SearchStructImpl(size_t length);
 
-    using T = typename std::conditional<k==SearchStruct::FN_STRUCT,unsigned,const Term*>::type;
+    using T = typename std::conditional<k==SearchStruct::GROUND_TERM_STRUCT,const Term*,unsigned>::type;
 
     /**
      * Tries to find the code op in @b targets at position where @b val is in @b values.
@@ -323,6 +326,7 @@ public:
   };
 
   using FnSearchStruct = SearchStructImpl<SearchStruct::FN_STRUCT>;
+  using PredSearchStruct = SearchStructImpl<SearchStruct::PRED_STRUCT>;
   using GroundTermSearchStruct = SearchStructImpl<SearchStruct::GROUND_TERM_STRUCT>;
 
   typedef Vector<CodeOp> CodeBlock;
@@ -420,6 +424,7 @@ public:
     bool backtrack();
     bool doSearchStruct();
     bool doCheckFun();
+    bool doCheckPred();
     bool doAssignVar();
     bool doCheckVar();
 
@@ -497,6 +502,7 @@ public:
     bool backtrack();
     bool doSearchStruct();
     bool doCheckFun();
+    bool doCheckPred();
     void doAssignVar();
     bool doCheckVar();
 
