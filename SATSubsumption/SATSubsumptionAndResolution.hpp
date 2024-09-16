@@ -432,6 +432,15 @@ private:
   void fillMatchesSR();
 
   /**
+   * Given the model in the field _model, returns the literal to remove from the instance clause
+   *
+   * @pre the match set must be filled
+   * @pre the model must be set by the sat solver
+   * @return the index of the literal to remove
+   */
+  unsigned literalToRemove();
+
+  /**
    * Generates the conclusion clause based on the model provided by the sat solver
    *
    * @pre the match set must fill filled
@@ -492,6 +501,17 @@ public:
   Kernel::Clause *checkSubsumptionResolution(Kernel::Clause *L,
                                              Kernel::Clause *M,
                                              bool usePreviousMatchSet = false);
+
+  /**
+   * Returns all the possible subsumption resolutions between the clauses @b L and @b M.
+   *
+   * @param L the base clause (side premise)
+   * @param M the instance clause (main premise)
+   * @param usePreviousMatchSet whether to use the previous match set or not. If false, the match set will be cleared and filled again.
+   */
+  std::vector<Kernel::Clause*> getAllSubsumptionResolutions(Kernel::Clause *L,
+                                                            Kernel::Clause *M,
+                                                            bool usePreviousMatchSet = false);
 
   /**
    * Creates a clause that is the subsumption resolution of @b M and @b L on @b m_j.
