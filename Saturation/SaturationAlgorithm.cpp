@@ -1605,20 +1605,9 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   if (opt.forwardSubsumption()) {
     if (opt.codeTreeSubsumption()) {
-      if (prb.getProperty()->hasPolymorphicSym()) {
-        USER_ERROR("Code tree subsumption does not work with polymorphism!");
-      }
-      if (opt.forwardSubsumptionResolution()) {
-        res->addForwardSimplifierToFront(new CodeTreeForwardSubsumptionAndResolution(true));
-      } else {
-        res->addForwardSimplifierToFront(new CodeTreeForwardSubsumptionAndResolution(false));
-      }
+      res->addForwardSimplifierToFront(new CodeTreeForwardSubsumptionAndResolution(opt.forwardSubsumptionResolution()));
     } else {
-      if (opt.forwardSubsumptionResolution()) {
-        res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolution(true));
-      } else {
-        res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolution(false));
-      }
+      res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolution(opt.forwardSubsumptionResolution()));
     }
   }
   else if (opt.forwardSubsumptionResolution()) {

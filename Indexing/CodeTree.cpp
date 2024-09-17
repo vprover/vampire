@@ -147,13 +147,6 @@ CodeTree::ILStruct::ILStruct(const Literal* lit, unsigned varCnt, Stack<unsigned
   else {
     globalVarNumbers=0;
   }
-  if(lit->isTwoVarEquality()) {
-    isVarEqLit = 1;
-    varEqLitSort = lit->twoVarEqSort();
-  }
-  else {
-    isVarEqLit = 0;
-  }
 }
 
 CodeTree::ILStruct::~ILStruct()
@@ -234,11 +227,7 @@ bool CodeTree::ILStruct::equalsForOpMatching(const ILStruct& o) const
   //if the prefixes were equal. In this case the number of variables and the fact
   //the literal is an equality between variables should be the same on both literals.
   ASS_EQ(varCnt,o.varCnt);
-  ASS_EQ(isVarEqLit,o.isVarEqLit);
 
-  if(isVarEqLit!=o.isVarEqLit || (isVarEqLit && varEqLitSort!=o.varEqLitSort)) {
-    return false;
-  }
   if(varCnt!=o.varCnt) {
     return false;
   }
@@ -709,6 +698,65 @@ void CodeTree::compileTerm(const Term* trm, CodeStack& code, CompileContext& cct
     if(trm->isLiteral()) {
       auto lit=static_cast<const Literal*>(trm);
       code.push(CodeOp::getTermOp(CHECK_FUN, lit->header()));
+      if (lit->isEquality()) {
+        auto sort = SortHelper::getEqualityArgumentSort(lit);
+        if (sort.isVar()) {
+          unsigned var=sort.var();
+          unsigned* varNumPtr;
+          if(cctx.varMap.getValuePtr(var,varNumPtr)) {
+            *varNumPtr=cctx.nextVarNum++;
+            code.push(CodeOp::getTermOp(ASSIGN_VAR, *varNumPtr));
+
+            if(addLitEnd) {
+              unsigned* globalVarNumPtr;
+              if(cctx.globalVarMap.getValuePtr(var,globalVarNumPtr)) {
+                *globalVarNumPtr=cctx.nextGlobalVarNum++;
+              }
+              globalCounterparts.push(*globalVarNumPtr);
+            }
+          }
+          else {
+            code.push(CodeOp::getTermOp(CHECK_VAR, *varNumPtr));
+          }
+        } else {
+          code.push(CodeOp::getTermOp(CHECK_FUN, sort.term()->functor()));
+          SubtermIterator sti(sort.term());
+          while(sti.hasNext()) {
+            TermList s=sti.next();
+            if(s.isVar()) {
+              unsigned var=s.var();
+              unsigned* varNumPtr;
+              if(cctx.varMap.getValuePtr(var,varNumPtr)) {
+                *varNumPtr=cctx.nextVarNum++;
+                code.push(CodeOp::getTermOp(ASSIGN_VAR, *varNumPtr));
+
+                if(addLitEnd) {
+                  unsigned* globalVarNumPtr;
+                  if(cctx.globalVarMap.getValuePtr(var,globalVarNumPtr)) {
+                    *globalVarNumPtr=cctx.nextGlobalVarNum++;
+                  }
+                  globalCounterparts.push(*globalVarNumPtr);
+                }
+              }
+              else {
+                code.push(CodeOp::getTermOp(CHECK_VAR, *varNumPtr));
+              }
+            }
+            else {
+              ASS(s.isTerm());
+              Term* t=s.term();
+
+              if(GROUND_TERM_CHECK && t->ground()) {
+                code.push(CodeOp::getGroundTermCheck(t));
+                sti.right();
+              }
+              else {
+                code.push(CodeOp::getTermOp(CHECK_FUN, t->functor()));
+              }
+            }
+          }
+        }
+      }
     }
     else {
       code.push(CodeOp::getTermOp(CHECK_FUN, trm->functor()));

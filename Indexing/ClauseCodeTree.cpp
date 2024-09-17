@@ -615,25 +615,6 @@ inline bool ClauseCodeTree::ClauseMatcher::canEnterLiteral(CodeOp* op)
     return false;
   }
 
-  if(ils->isVarEqLit) {
-    TermList idxVarSort = ils->varEqLitSort;
-    size_t matchIndex=ils->matchCnt;
-    while(matchIndex!=0) {
-      matchIndex--;
-      MatchInfo* mi=ils->getMatch(matchIndex);
-      unsigned liIntex = mi->liIndex;
-      Literal* lit = (*query)[lInfos[liIntex].litIndex];
-      ASS(lit->isEquality());
-      TermList argSort = SortHelper::getEqualityArgumentSort(lit); 
-      if(idxVarSort!=argSort) {//TODO check that this is what we want. Perhaps require unification
-        ils->deleteMatch(matchIndex); //decreases ils->matchCnt
-      }
-    }
-    if(!ils->matchCnt) {
-      return false;
-    }
-  }
-
   if(lms.size()>1) {
     //we have already matched and entered some index literals, so we
     //will check for compatibility of variable assignments

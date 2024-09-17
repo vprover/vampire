@@ -63,6 +63,14 @@ FlatTerm::FlatTerm(size_t length)
 size_t FlatTerm::getEntryCount(Term* t)
 {
   //FUNCTION_ENTRY_COUNT entries per function and one per variable
+  if (t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
+    auto sort = SortHelper::getEqualityArgumentSort(static_cast<Literal*>(t));
+    return (t->weight()+1)*FUNCTION_ENTRY_COUNT-(FUNCTION_ENTRY_COUNT-1)*(t->isTwoVarEquality()?t->numVarOccs():(t->numVarOccs()+(sort.isVar()?1:sort.term()->numVarOccs())));
+  }
+  // if (t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
+  //   auto sort = SortHelper::getEqualityArgumentSort(static_cast<Literal*>(t));
+  //   return (t->weight()-sort.weight()+1)*FUNCTION_ENTRY_COUNT-(FUNCTION_ENTRY_COUNT-1)*(t->isTwoVarEquality()?2:t->numVarOccs());
+  // }
   return t->weight()*FUNCTION_ENTRY_COUNT-(FUNCTION_ENTRY_COUNT-1)*t->numVarOccs();
 }
 
@@ -76,6 +84,33 @@ FlatTerm* FlatTerm::create(Term* t)
       t->isLiteral() ? static_cast<Literal*>(t)->header() : t->functor());
   res->_data[fti++]=Entry(t);
   res->_data[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(t));
+
+  if (t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
+    auto sort = SortHelper::getEqualityArgumentSort(static_cast<Literal*>(t));
+    if (sort.isVar()) {
+      res->_data[fti++]=Entry(VAR, sort.var());
+    } else {
+      res->_data[fti++]=Entry(FUN, sort.term()->functor());
+      res->_data[fti++]=Entry(sort.term());
+      res->_data[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(sort.term()));
+
+      SubtermIterator sti(sort.term());
+      while(sti.hasNext()) {
+        ASS_L(fti, entries);
+        TermList s=sti.next();
+        if(s.isVar()) {
+          ASS(s.isOrdinaryVar());
+          res->_data[fti++]=Entry(VAR, s.var());
+        }
+        else {
+          ASS(s.isTerm());
+          res->_data[fti++]=Entry(FUN, s.term()->functor());
+          res->_data[fti++]=Entry(s.term());
+          res->_data[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(s.term()));
+        }
+      }
+    }
+  }
 
   SubtermIterator sti(t);
   while(sti.hasNext()) {
@@ -220,7 +255,14 @@ void FlatTerm::swapCommutativePredicateArguments()
   ASS_EQ((*this)[0]._tag(), FUN);
   ASS_EQ((*this)[0]._number()|1, 1); //as for now, the only commutative predicate is equality
 
+  ASS((*this)[1]._term()->isLiteral());
+  auto lit = static_cast<Literal*>((*this)[1]._term());
+  ASS(lit->isEquality());
+
   size_t firstStart=3;
+  auto sort = SortHelper::getEqualityArgumentSort(lit);
+  firstStart += sort.isVar() ? 1 : getEntryCount(sort.term());
+
   size_t firstLen;
   if((*this)[firstStart]._tag()==FUN) {
     ASS_EQ((*this)[firstStart+2]._tag(), FUN_RIGHT_OFS);
