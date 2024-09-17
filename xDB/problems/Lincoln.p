@@ -1,36 +1,36 @@
-fof(a1,external,![Arg2]:?[Arg1]:instance(Arg1,Arg2),"$XDB/scripts/externSql.py").
-fof(a2,external,![Arg1]:?[Arg2]:instance(Arg1,Arg2),"$XDB/scripts/externSql.py").
+fof(a1,external,![Arg2]:?[Arg1]:s__instance(Arg1,Arg2),"$XDB/scripts/externSql.py").
+fof(a2,external,![Arg1]:?[Arg2]:s__instance(Arg1,Arg2),"$XDB/scripts/externSql.py").
 
 fof(kb_SUMO_28,axiom,(
     ! [V__X,V__Y,V__Z] :
-      ( ( instance(V__Y,setOrClass)
-        & instance(V__X,setOrClass) )
-     => ( ( subclass(V__X,V__Y)
-          & instance(V__Z,V__X) )
-       => instance(V__Z,V__Y) ) ) )).
+      ( ( s__instance(V__Y,s__SetOrClass)
+        & s__instance(V__X,s__SetOrClass) )
+     => ( ( s__subclass(V__X,V__Y)
+          & s__instance(V__Z,V__X) )
+       => s__instance(V__Z,V__Y) ) ) )).
 
 fof(kb_SUMO_5811,axiom,(
-    instance(mammal,setOrClass) )).
+    s__instance(s__Mammal,s__SetOrClass) )).
 
 fof(kb_SUMO_5813,axiom,(
-    subclass(primate,mammal) )).
+    s__subclass(s__Primate,s__Mammal) )).
 
 fof(kb_SUMO_5818,axiom,(
-    instance(primate,setOrClass) )).
+    s__instance(s__Primate,s__SetOrClass) )).
 
 fof(kb_SUMO_5823,axiom,(
-    subclass(hominid,primate) )).
+    s__subclass(s__Hominid,s__Primate) )).
 
 fof(kb_SUMO_5824,axiom,(
-    instance(hominid,setOrClass) )).
+    s__instance(s__Hominid,s__SetOrClass) )).
 
 fof(kb_SUMO_5826,axiom,(
-    subclass(human,hominid) )).
+    s__subclass(s__Human,s__Hominid) )).
 
 fof(kb_SUMO_5836,axiom,(
-    instance(human,setOrClass) )).
+    s__instance(s__Human,s__SetOrClass) )).
 
-% fof(cheat,axiom,instance(abrahamLincoln,human)).
+% fof(cheat,axiom,s__instance(s__AbrahamLincoln,s__Human)).
 
 fof(abe_mammal,conjecture,(
-    instance(abrahamLincoln,mammal) )).
+    s__instance(s__AbrahamLincoln,s__Mammal) )).

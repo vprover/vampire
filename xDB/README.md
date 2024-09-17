@@ -1,7 +1,7 @@
 # Vampire-XDB 
 
 A port of SPASS-XDB to Vampire for use with SUMO.  The first step is to replicate all the tests at
-[XSB Testing](https://tptp.cs.miami.edu/Seminars/SPASS-XDB/Testing.html)
+[XDB Testing](https://tptp.cs.miami.edu/Seminars/SPASS-XDB/Testing.html)
 
 Three directories below this one are
   - problems - TPTP language problem files with the new 'external' formula tag.
@@ -14,8 +14,8 @@ Three directories below this one are
 ### Test Problems
   - `problems/composer.tff` - working
   - `problems/capitalCity.p` - working
-  - `Lincoln.p` - working
-  - `problems/curie.p` - not tested
+  - `problems/Lincoln.p` - working
+  - `problems/curie.p` - working
   - `problems/flood.p` - not tested
 
 
@@ -45,6 +45,10 @@ to (current) SUMO.
 - Allow `$evaleq` from SPASS-XDB or just use the `extern` and write a python evaluation function?
 - Create an automatic mode that allows arithmetic to work without having to use `-tha off -s 0`?
 - Do UNA/CWA's `$different` work with XDB?
+- We get away with not having to state the TFF types of all symbols by assuming non-numbers in
+  the database are type $i, since Vampire will make that assumption if there's no explicit type.
+  Will this work in all cases?
+
 
 ## Component Testing
 
