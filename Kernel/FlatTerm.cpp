@@ -67,10 +67,6 @@ size_t FlatTerm::getEntryCount(Term* t)
     auto sort = SortHelper::getEqualityArgumentSort(static_cast<Literal*>(t));
     return (t->weight()+1)*FUNCTION_ENTRY_COUNT-(FUNCTION_ENTRY_COUNT-1)*(t->isTwoVarEquality()?t->numVarOccs():(t->numVarOccs()+(sort.isVar()?1:sort.term()->numVarOccs())));
   }
-  // if (t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
-  //   auto sort = SortHelper::getEqualityArgumentSort(static_cast<Literal*>(t));
-  //   return (t->weight()-sort.weight()+1)*FUNCTION_ENTRY_COUNT-(FUNCTION_ENTRY_COUNT-1)*(t->isTwoVarEquality()?2:t->numVarOccs());
-  // }
   return t->weight()*FUNCTION_ENTRY_COUNT-(FUNCTION_ENTRY_COUNT-1)*t->numVarOccs();
 }
 
@@ -80,52 +76,31 @@ FlatTerm* FlatTerm::create(Term* t)
 
   FlatTerm* res=new(entries) FlatTerm(entries);
   size_t fti=0;
-  res->_data[fti++]=Entry(FUN,
+  (*res)[fti++]=Entry(FUN,
       t->isLiteral() ? static_cast<Literal*>(t)->header() : t->functor());
-  res->_data[fti++]=Entry(t);
-  res->_data[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(t));
+  (*res)[fti++]=Entry(t);
+  (*res)[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(t));
 
+  // If literal is equality, we add a type argument
+  // to properly match with two variable equalities.
+  // This has to be done also in the code tree.
   if (t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
     auto sort = SortHelper::getEqualityArgumentSort(static_cast<Literal*>(t));
     if (sort.isVar()) {
-      res->_data[fti++]=Entry(VAR, sort.var());
+      pushVar(res, fti, sort.var());
     } else {
-      res->_data[fti++]=Entry(FUN, sort.term()->functor());
-      res->_data[fti++]=Entry(sort.term());
-      res->_data[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(sort.term()));
+      pushTerm(res, fti, sort.term());
 
       SubtermIterator sti(sort.term());
       while(sti.hasNext()) {
-        ASS_L(fti, entries);
-        TermList s=sti.next();
-        if(s.isVar()) {
-          ASS(s.isOrdinaryVar());
-          res->_data[fti++]=Entry(VAR, s.var());
-        }
-        else {
-          ASS(s.isTerm());
-          res->_data[fti++]=Entry(FUN, s.term()->functor());
-          res->_data[fti++]=Entry(s.term());
-          res->_data[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(s.term()));
-        }
+        pushTermList(res, fti, sti.next());
       }
     }
   }
 
   SubtermIterator sti(t);
   while(sti.hasNext()) {
-    ASS_L(fti, entries);
-    TermList s=sti.next();
-    if(s.isVar()) {
-      ASS(s.isOrdinaryVar());
-      res->_data[fti++]=Entry(VAR, s.var());
-    }
-    else {
-      ASS(s.isTerm());
-      res->_data[fti++]=Entry(FUN, s.term()->functor());
-      res->_data[fti++]=Entry(s.term());
-      res->_data[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(s.term()));
-    }
+    pushTermList(res, fti, sti.next());
   }
   ASS_EQ(fti, entries);
 
@@ -158,29 +133,18 @@ FlatTerm* FlatTerm::create(TermStack ts)
 
   for (auto& tl : ts) {
     if (tl.isVar()) {
-      res->_data[fti++]=Entry(VAR, tl.var());
+      pushVar(res, fti, tl.var());
       continue;
     }
     auto t = tl.term();
-    res->_data[fti++]=Entry(FUN,
+    (*res)[fti++]=Entry(FUN,
         t->isLiteral() ? static_cast<Literal*>(t)->header() : t->functor());
-    res->_data[fti++]=Entry(t);
-    res->_data[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(t));
+    (*res)[fti++]=Entry(t);
+    (*res)[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(t));
 
     SubtermIterator sti(t);
     while(sti.hasNext()) {
-      ASS_L(fti, entries);
-      TermList s=sti.next();
-      if(s.isVar()) {
-        ASS(s.isOrdinaryVar());
-        res->_data[fti++]=Entry(VAR, s.var());
-      }
-      else {
-        ASS(s.isTerm());
-        res->_data[fti++]=Entry(FUN, s.term()->functor());
-        res->_data[fti++]=Entry(s.term());
-        res->_data[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(s.term()));
-      }
+      pushTermList(res, fti, sti.next());
     }
   }
   ASS_EQ(fti, entries);

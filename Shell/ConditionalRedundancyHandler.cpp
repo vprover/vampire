@@ -106,28 +106,17 @@ private:
 
   void insert(const TermStack& ts, void* ptr)
   {
-    static CodeStack code;
-    code.reset();
-
-    static CompileContext cctx;
-    cctx.init();
+    CodeStack code;
+    TermCompiler compiler(code);
     for (const auto& t : ts) {
       if (t.isVar()) {
-        unsigned var=t.var();
-        unsigned* varNumPtr;
-        if (cctx.varMap.getValuePtr(var,varNumPtr)) {
-          *varNumPtr=cctx.nextVarNum++;
-          code.push(CodeOp::getTermOp(ASSIGN_VAR, *varNumPtr));
-        }	else {
-          code.push(CodeOp::getTermOp(CHECK_VAR, *varNumPtr));
-        }
+        compiler.handleVar(t.var());
+        continue;
       }
-      else {
-        ASS(t.isTerm());
-        compileTerm(t.term(), code, cctx, false);
-      }
+      ASS(t.isTerm());
+      compiler.handleTerm(t.term());
     }
-    cctx.deinit(this);
+    compiler.updateCodeTree(this);
 
     // just put anything non-null in there to get a valid success
     code.push(CodeOp::getSuccess(ptr));

@@ -371,19 +371,27 @@ public:
 
   typedef DHMap<unsigned,unsigned> VarMap;
 
-  /** Context for code compilation */
-  struct CompileContext
+  template<bool forLits>
+  struct Compiler
   {
-    void init();
-    void deinit(CodeTree* tree, bool discarded=false);
+    Compiler(CodeStack& code);
+    void updateCodeTree(CodeTree* tree);
 
     void nextLit();
 
+    void handleTerm(const Term* trm);
+    void handleVar(unsigned var, Stack<unsigned>* globalCounterparts = nullptr);
+    void handleSubterms(const Term* trm, Stack<unsigned>& globalCounterparts);
+
+    CodeStack& code;
     unsigned nextVarNum;
     unsigned nextGlobalVarNum;
     VarMap varMap;
     VarMap globalVarMap;
   };
+
+  using LitCompiler = Compiler<true>;
+  using TermCompiler = Compiler<false>;
 
   static CodeBlock* buildBlock(CodeStack& code, size_t cnt, ILStruct* prev);
   void incorporate(CodeStack& code);
@@ -391,7 +399,6 @@ public:
   template<SearchStruct::Kind k>
   void compressCheckOps(CodeOp* chainStart);
 
-  static void compileTerm(const Term* trm, CodeStack& code, CompileContext& cctx, bool addLitEnd);
 
   //////////// removal //////////////
 

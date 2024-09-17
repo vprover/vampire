@@ -67,19 +67,16 @@ void ClauseCodeTree::insert(Clause* cl)
 
   optimizeLiteralOrder(lits);
 
-  static CodeStack code;
-  code.reset();
-
-  static CompileContext cctx;
-  cctx.init();
+  CodeStack code;
+  LitCompiler compiler(code);
 
   for(unsigned i=0;i<clen;i++) {
-    cctx.nextLit();
-    compileTerm(lits[i], code, cctx, true);
+    compiler.nextLit();
+    compiler.handleTerm(lits[i]);
   }
   code.push(CodeOp::getSuccess(cl));
 
-  cctx.deinit(this);
+  compiler.updateCodeTree(this);
 
   incorporate(code);
   ASS(code.isEmpty());
@@ -149,15 +146,10 @@ void ClauseCodeTree::optimizeLiteralOrder(DArray<Literal*>& lits)
 
 void ClauseCodeTree::evalSharing(Literal* lit, CodeOp* startOp, size_t& sharedLen, size_t& unsharedLen, CodeOp*& nextOp)
 {
-  static CodeStack code;
-  static CompileContext cctx;
+  CodeStack code;
+  LitCompiler compiler(code);
 
-  code.reset();
-  cctx.init();
-
-  compileTerm(lit, code, cctx, true);
-
-  cctx.deinit(this, true);
+  compiler.handleTerm(lit);
 
   matchCode(code, startOp, sharedLen, nextOp);
 
