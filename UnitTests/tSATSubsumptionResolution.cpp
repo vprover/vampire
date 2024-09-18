@@ -473,6 +473,102 @@ TEST_FUN(AllSubsumptionResolutions)
   ASS(success);
 }
 
+TEST_FUN(AllSubsumptionResolutionsWithAssumption)
+{
+  __ALLOW_UNUSED(SYNTAX_SUGAR_SUBSUMPTION_RESOLUTION);
+  bool success = true;
+  SATSubsumptionAndResolution subsumption;
+
+  std::vector<Kernel::Clause*> L;
+  std::vector<Kernel::Clause*> M;
+  std::vector<unsigned> A; // assumptions: which literal to match
+  std::vector<std::vector<Kernel::Clause*>> expected;
+  std::vector<Kernel::Clause*> temp;
+
+  // Test 1
+  Kernel::Clause* L1 = clause({ p(x1), p(x2) , ~q2(x1, x2) });
+  Kernel::Clause* M1 = clause({ p(c), p(d), q2(c, d), q2(d,c)});
+  L.push_back(L1);
+  M.push_back(M1);
+  A.push_back(2);
+  temp.push_back(clause({ p(c), p(d), q2(d, c)}));
+  expected.push_back(temp);
+  temp.clear();
+
+  // Test 2
+  L.push_back(L1);
+  M.push_back(M1);
+  A.push_back(3);
+  temp.push_back(clause({ p(c), p(d), q2(c, d)}));
+  expected.push_back(temp);
+  temp.clear();
+
+  // Test 3
+  L.push_back(L1);
+  M.push_back(M1);
+  A.push_back(1);
+  expected.push_back(temp);
+  temp.clear();
+
+  // Test 4
+  L.push_back(L1);
+  M.push_back(M1);
+  A.push_back(0);
+  expected.push_back(temp);
+  temp.clear();
+
+  // Test 5
+  L.push_back(clause({ p(x1), p(x2) , ~q2(x1, x2) }));
+  M.push_back(clause({ p(c), p(d), q2(c, d)}));
+  A.push_back(2);
+  temp.push_back(clause({ p(c), p(d)}));
+  expected.push_back(temp);
+  temp.clear();
+
+
+  // Perform the checks
+  for (unsigned i = 0; i < L.size(); i++) {
+    std::vector<Kernel::Clause*> solutions = subsumption.getAllSubsumptionResolutions(L[i], M[i], A[i]);
+    if (solutions.size() != expected[i].size()) {
+      std::cerr << "Test " << i + 1 << " Wrong number of conclusions" << std::endl;
+      success = false;
+    }
+    // check that the multiset of clauses are the same
+    std::vector<bool> found_left(solutions.size(), false);
+    std::vector<bool> found_right(expected.size(), false);
+    for (unsigned j = 0; j < solutions.size(); j++) {
+      for (unsigned k = 0; k < expected[i].size(); k++) {
+        if (checkClauseEquality(solutions[j], expected[i][k])) {
+          if (found_left[j]) {
+            std::cerr << "Test " << i + 1 << " Duplicate conclusion " << solutions[j]->toNiceString() << std::endl;
+            success = false;
+          }
+          if (found_right[k]) {
+            std::cerr << "Test " << i + 1 << " Duplicate conclusion " << expected[i][k]->toNiceString() << std::endl;
+            success = false;
+          }
+          found_left[j] = true;
+          found_right[k] = true;
+        }
+      }
+    }
+    for (unsigned j = 0; j < solutions.size(); j++) {
+      if (!found_left[j]) {
+        std::cerr << "Test " << i + 1 << " Unexpected conclusion " << solutions[j]->toNiceString() << std::endl;
+        success = false;
+      }
+    }
+    for (unsigned j = 0; j < expected[i].size(); j++) {
+      if (!found_right[j]) {
+        std::cerr << "Test " << i + 1 << " Missing conclusion " << expected[i][j]->toNiceString() << std::endl;
+        success = false;
+      }
+    }
+  }
+
+  ASS(success);
+}
+
 TEST_FUN(UsePreviousSettings)
 {
   __ALLOW_UNUSED(SYNTAX_SUGAR_SUBSUMPTION_RESOLUTION);

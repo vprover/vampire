@@ -393,7 +393,7 @@ bool SATSubsumptionAndResolution::fillMatchesS()
   return true;
 } // SATSubsumptionAndResolution::fillMatchesS()
 
-void SATSubsumptionAndResolution::fillMatchesSR()
+void SATSubsumptionAndResolution::fillMatchesSR(unsigned litToRemove)
 {
   ASS(_L)
   ASS(_M)
@@ -428,6 +428,8 @@ void SATSubsumptionAndResolution::fillMatchesSR()
           literalHasPositiveMatch = true;
           continue;
         }
+        if (litToRemove != 0xFFFFFFFF && j != litToRemove)
+          continue;
         addBinding(nullptr, i, j, false, true);
         clauseHasNegativeMatch = true;
         literalHasNegativeMatch = true;
@@ -442,6 +444,8 @@ void SATSubsumptionAndResolution::fillMatchesSR()
       }
       // check negative polarity matches
       // same comment as above
+      if (litToRemove != 0xFFFFFFFF && j != litToRemove)
+          continue;
       literalHasNegativeMatch = checkAndAddMatch(l_i, m_j, i, j, false) || literalHasNegativeMatch;
       clauseHasNegativeMatch |= literalHasNegativeMatch;
     } // for (unsigned j = 0; j < _nInstanceLits; ++j)
@@ -939,41 +943,26 @@ Clause* SATSubsumptionAndResolution::checkSubsumptionResolution(Clause* L,
   return conclusion;
 } // SATSubsumptionAndResolution::checkSubsumptionResolution
 
-std::vector<Kernel::Clause*> SATSubsumption::SATSubsumptionAndResolution::getAllSubsumptionResolutions(Kernel::Clause* L, Kernel::Clause* M, bool usePreviousMatchSet)
+std::vector<Kernel::Clause*> SATSubsumption::SATSubsumptionAndResolution::getAllSubsumptionResolutions(Kernel::Clause* L, Kernel::Clause* M, unsigned litToRemove)
 {
   ASS(L)
   ASS(M)
   vector<Clause*> subsumptionResolutions;
 
-  if (usePreviousMatchSet) {
-    ASS(_L == L)
-    ASS(_M == M)
-    if (_srImpossible) {
+  loadProblem(L, M);
+  if (pruneSubsumptionResolution()) {
 #if PRINT_CLAUSES_SUBS
-      cout << "SR impossible" << endl;
+    cout << "SR pruned" << endl;
 #endif
-      return subsumptionResolutions;
-    }
-    ASS_GE(_matchSet.allMatches().size(), _L->length())
-    // do not clear the variables and bindings
-    _solver.clear_constraints();
+    return subsumptionResolutions;
   }
-  else {
-    loadProblem(L, M);
-    if (pruneSubsumptionResolution()) {
-#if PRINT_CLAUSES_SUBS
-      cout << "SR pruned" << endl;
-#endif
-      return subsumptionResolutions;
-    }
-    fillMatchesSR();
+  fillMatchesSR(litToRemove);
 
-    if (_srImpossible) {
+  if (_srImpossible) {
 #if PRINT_CLAUSES_SUBS
-      cout << "SR impossible" << endl;
+    cout << "SR impossible" << endl;
 #endif
-      return subsumptionResolutions;
-    }
+    return subsumptionResolutions;
   }
 
   // set up the clauses
