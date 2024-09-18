@@ -1089,6 +1089,16 @@ void SaturationAlgorithm::removeSelected(Clause* cl)
   cl->setStore(Clause::NONE);
 }
 
+struct RenameApartFrom {
+  RenameApartFrom(Clause *cl) : renaming(cl->maxVar() + 1) {}
+  mutable Renaming renaming;
+
+  Literal *applyTo(Literal *l) const {
+    renaming.normalizeVariables(l);
+    return renaming.apply(l);
+  }
+};
+
 /**
  * Activate clause @b cl
  *
@@ -1137,12 +1147,13 @@ void SaturationAlgorithm::activate(Clause* cl)
   }
 
   static DHSet<Clause *> clauses;
+  RenameApartFrom renaming(cl);
   DHSet<Clause *>::Iterator it(clauses);
   std::ofstream out("test.p");
   TPTPPrinter printer(&out);
   while(it.hasNext()) {
     Clause *other = it.next();
-    if(Inferences::SDHelper::clauseIsSmaller(other, cl, *_ordering))
+    if(Inferences::SDHelper::substClauseIsSmaller(other, renaming, cl, *_ordering))
       printer.print(other);
   }
   printer.print(cl, true);
