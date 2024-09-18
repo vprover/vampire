@@ -1138,19 +1138,20 @@ void SaturationAlgorithm::activate(Clause* cl)
 
   static DHSet<Clause *> clauses;
   DHSet<Clause *>::Iterator it(clauses);
-  std::cout << cl->toString() << '\n';
+  std::ofstream out("test.p");
+  TPTPPrinter printer(&out);
   while(it.hasNext()) {
     Clause *other = it.next();
-    if(Inferences::SDHelper::clauseCompare(
-      other->literals(),
-      other->length(),
-      cl->literals(),
-      cl->length(),
-      *_ordering
-    ) == Inferences::SDHelper::ClauseComparisonResult::Smaller)
-      std::cout << "smaller: " << other->toString() << '\n';
+    if(Inferences::SDHelper::clauseIsSmaller(other, cl, *_ordering))
+      printer.print(other);
   }
-  std::cout << "------------------------------------------\n";
+  printer.print(cl, true);
+  out.close();
+  int result = std::system("./vampire-wrapper test.p");
+  if(!result) {
+    std::cout << "discarded: " << cl->toString() << '\n';
+    return removeSelected(cl);
+  }
   clauses.insert(cl);
 
   ASS_EQ(cl->store(), Clause::SELECTED);

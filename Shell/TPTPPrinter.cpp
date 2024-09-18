@@ -49,9 +49,9 @@ TPTPPrinter::TPTPPrinter(ostream* tgtStream)
 /**
  * Print the Unit @param u to the desired output
  */
-void TPTPPrinter::print(Unit* u)
+void TPTPPrinter::print(Unit* u, bool negated)
 {
-  std::string body = getBodyStr(u, true);
+  std::string body = getBodyStr(u, true, negated);
 
   ensureHeadersPrinted(u);
   printTffWrapper(u, body);
@@ -81,7 +81,7 @@ void TPTPPrinter::printWithRole(std::string name, std::string role, Unit* u, boo
  * @param includeSplitLevels
  * @return the body std::string
  */
-std::string TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
+std::string TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels, bool negated)
 {
   std::ostringstream res;
 
@@ -91,6 +91,8 @@ std::string TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
   SortHelper::collectVariableSorts(u, varSorts);
 
   if(u->isClause()) {
+    if(negated)
+      res << "~(";
     SortMap::Iterator vit(varSorts);
     bool quantified = vit.hasNext();
     if(quantified) {
@@ -125,6 +127,9 @@ std::string TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
     }
 
     if(quantified) {
+      res << ')';
+    }
+    if(negated) {
       res << ')';
     }
 

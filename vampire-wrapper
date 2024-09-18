@@ -1,0 +1,3 @@
+#!/bin/sh
+
+vampire -i 1000 -p off $1 | exec grep "SZS status Unsatisfiable" > /dev/null

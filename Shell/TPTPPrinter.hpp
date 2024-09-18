@@ -34,7 +34,7 @@ class TPTPPrinter {
 public:
   TPTPPrinter(std::ostream* tgtStream=0);
 
-  void print(Unit* u);
+  void print(Unit* u, bool negated = false);
   void printAsClaim(std::string name, Unit* u);
   void printWithRole(std::string name, std::string role, Unit* u, bool includeSplitLevels = true);
 
@@ -45,7 +45,7 @@ public:
 
 private:
 
-  std::string getBodyStr(Unit* u, bool includeSplitLevels);
+  std::string getBodyStr(Unit* u, bool includeSplitLevels, bool negated = false);
 
   void ensureHeadersPrinted(Unit* u);
   void outputSymbolTypeDefinitions(unsigned symNumber, SymbolType symType);
