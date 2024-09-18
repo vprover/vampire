@@ -683,6 +683,8 @@ void CodeTree::Compiler<forLits>::updateCodeTree(CodeTree* tree)
 template<bool forLits>
 void CodeTree::Compiler<forLits>::handleTerm(const Term* trm)
 {
+  ASS(!forLits || trm->isLiteral());
+
   static Stack<unsigned> globalCounterparts;
   globalCounterparts.reset();
 

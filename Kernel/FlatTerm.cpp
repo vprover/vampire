@@ -64,8 +64,18 @@ size_t FlatTerm::getEntryCount(Term* t)
 {
   //FUNCTION_ENTRY_COUNT entries per function and one per variable
   if (t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
+    // we add the type to the flat term for equalities as an extra,
+    // which requires some additional calculation
     auto sort = SortHelper::getEqualityArgumentSort(static_cast<Literal*>(t));
-    return (t->weight()+1)*FUNCTION_ENTRY_COUNT-(FUNCTION_ENTRY_COUNT-1)*(t->isTwoVarEquality()?t->numVarOccs():(t->numVarOccs()+(sort.isVar()?1:sort.term()->numVarOccs())));
+    unsigned numVarOccs = t->numVarOccs();
+    if (!t->isTwoVarEquality()) {
+      // in case of non-two-var equalities, the variables in
+      // the type are not counted by Term::numVarOccs
+      numVarOccs += sort.isVar() ? 1 : sort.term()->numVarOccs();
+    }
+    // the weight is corrected to be conservative in the
+    // monomorphic case, we uncorrect it by adding 1
+    return (t->weight()+1)*FUNCTION_ENTRY_COUNT-(FUNCTION_ENTRY_COUNT-1)*numVarOccs;
   }
   return t->weight()*FUNCTION_ENTRY_COUNT-(FUNCTION_ENTRY_COUNT-1)*t->numVarOccs();
 }
