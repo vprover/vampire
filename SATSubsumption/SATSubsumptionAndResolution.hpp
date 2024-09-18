@@ -426,10 +426,11 @@ private:
 
   /**
    * Fills the match set and the bindings manager with all the possible positive and negative bindings between the literals of L and M.
+   * If the argument litToRemove is set, it will not consider negative matches for the literals other than the one at index litToRemove.
    *
    * @return false if no subsumption resolution solution is possible, the number of sat variables allocated otherwise.
    */
-  void fillMatchesSR();
+  void fillMatchesSR(unsigned litToRemove = 0xFFFFFFFF);
 
   /**
    * Given the model in the field _model, returns the literal to remove from the instance clause
@@ -507,11 +508,12 @@ public:
    *
    * @param L the base clause (side premise)
    * @param M the instance clause (main premise)
-   * @param usePreviousMatchSet whether to use the previous match set or not. If false, the match set will be cleared and filled again.
+   * @param litToRemove the index of the target literal to remove from the instance clause. If not set, all literals will be considered. If litToRemove is set and the subsumption resolution is impossible with m' = litToRemove, the method will return an empty vector. This does not guarantee that the subsumption resolution is impossible for other literals.
+   * @return a vector containing all the possible conclusions of the subsumption resolution. If litToRemove is set, there can be at most one conclusion.
    */
   std::vector<Kernel::Clause*> getAllSubsumptionResolutions(Kernel::Clause *L,
                                                             Kernel::Clause *M,
-                                                            bool usePreviousMatchSet = false);
+                                                            unsigned litToRemove = 0xFFFFFFFF);
 
   /**
    * Creates a clause that is the subsumption resolution of @b M and @b L on @b m_j.
