@@ -292,7 +292,6 @@ CodeTree::CodeOp CodeTree::CodeOp::getLitEnd(ILStruct* ils)
   CodeOp res;
   res.setAlternative(0);
   res._setData(ils);
-  // order matters
   res._setInstruction(LIT_END);
   ASS(res.isLitEnd());
   return res;
@@ -334,11 +333,10 @@ bool CodeTree::CodeOp::equalsForOpMatching(const CodeOp& o) const
     return getILS()->equalsForOpMatching(*o.getILS());
   case SUCCESS_OR_FAIL:
   case CHECK_GROUND_TERM:
-    return _data<void>()==o._data<void>();
   case CHECK_FUN:
   case ASSIGN_VAR:
   case CHECK_VAR:
-    return _instruction()==o._instruction() && _arg()==o._arg();
+    return _content==o._content;
   default:
     //SEARCH_STRUCT operations in the tree should be handled separately
     //during insertion into the code tree

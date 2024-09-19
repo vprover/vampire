@@ -104,7 +104,7 @@ private:
   Clause* _cl;
 #endif
 
-  void insert(const TermStack& ts, void* ptr)
+  void insert(const TermStack& ts, ConditionalRedundancyEntry* ptr)
   {
     CodeStack code;
     TermCompiler compiler(code);
