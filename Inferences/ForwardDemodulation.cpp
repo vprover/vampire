@@ -44,6 +44,8 @@
 
 #include "DemodulationHelper.hpp"
 
+#include "Shell/ConditionalRedundancyHandler.hpp"
+
 #include "ForwardDemodulation.hpp"
 
 namespace Inferences {
@@ -174,7 +176,17 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
         if (_precompiledComparison) {
           if (!preordered && (_preorderedOnly || !qr.data->comparator->check(appl))) {
+            if (ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl,true))) {
+              std::cout << qr.data->term << " " << qr.data->rhs << std::endl;
+              std::cout << qr.data->comparator->toString() << std::endl;
+              INVALID_OPERATION("greater");
+            }
             continue;
+          }
+          if (!ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl,true))) {
+            std::cout << qr.data->term << " " << qr.data->rhs << std::endl;
+            std::cout << qr.data->comparator->toString() << std::endl;
+            INVALID_OPERATION("not greater");
           }
         } else {
           if (!preordered && (_preorderedOnly || !ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl,true)))) {
@@ -224,6 +236,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
         premises = pvi( getSingletonIterator(qr.data->clause));
         replacement = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.data->clause));
+        ConditionalRedundancyHandler::transfer(cl, replacement);
         return true;
       }
     }

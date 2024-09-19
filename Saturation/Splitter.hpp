@@ -186,6 +186,7 @@ public:
 
   void onClauseReduction(Clause* cl, ClauseIterator premises, Clause* replacement);
   void addConditionalRedundancyEntry(SplitSet* splits, ConditionalRedundancyEntry* e);
+  void addNewClause(Clause* cl);
   void onNewClause(Clause* cl);
   void onAllProcessed();
   bool handleEmptyClause(Clause* cl);

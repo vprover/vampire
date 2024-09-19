@@ -386,8 +386,11 @@ Clause* Superposition::performSuperposition(
   }
 
   if (!unifier->usesUwa()) {
-    condRedHandler.insertSuperposition(
-      eqClause, rwClause, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr());
+    if (!condRedHandler.insertSuperposition(
+      eqClause, rwClause, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr()))
+    {
+      return 0;
+    }
   }
 
   Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);
@@ -554,6 +557,10 @@ Clause* Superposition::performSuperposition(
       env.proofExtra = new DHMap<const Unit*,std::string>();
     }
     env.proofExtra->insert(clause,extra);
+  }
+
+  if (rwTermS != *rwLitS->nthArgument(0) && rwTermS != *rwLitS->nthArgument(1) && comp == Ordering::INCOMPARABLE) {
+    condRedHandler.initWithEquation(clause, rwTermS, tgtTermS);
   }
 
   return clause;

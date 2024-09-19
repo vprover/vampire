@@ -45,6 +45,7 @@ struct OrderingComparator
   virtual ~OrderingComparator() = default;
   virtual std::string toString() const { return _lhs.toString()+" > "+_rhs.toString(); }
   virtual bool check(const SubstApplicator* applicator);
+  virtual bool subsumes(OrderingComparator& other) { return false; }
 
   TermList _lhs;
   TermList _rhs;

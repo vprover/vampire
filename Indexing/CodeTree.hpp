@@ -60,8 +60,8 @@ protected:
       
 public:
   CodeTree();
-  ~CodeTree();
-  
+  virtual ~CodeTree();
+
   struct LitInfo
   {
     LitInfo() {}
@@ -204,7 +204,7 @@ public:
       return _data<Term>();
     }
 
-    template<class T> inline T* getSuccessResult() { ASS(isSuccess()); return _data<T>(); }
+    template<class T> inline T* getSuccessResult() const { ASS(isSuccess()); return _data<T>(); }
 
     inline ILStruct* getILS()
     {
@@ -338,6 +338,7 @@ public:
      * a call to the @b prepareLiteral function).
      */
     CodeOp* op;
+    bool substIsRenaming;
   protected:
 
     bool doCheckGroundTerm();
@@ -357,6 +358,7 @@ public:
      */
     FlatTerm* ft;
 
+    uint64_t substVRange;
   };
 
   //////// auxiliary methods //////////
@@ -386,6 +388,7 @@ public:
     unsigned nextGlobalVarNum;
     VarMap varMap;
     VarMap globalVarMap;
+    Stack<std::pair<unsigned,unsigned>> eqCons;
   };
 
   static CodeBlock* buildBlock(CodeStack& code, size_t cnt, ILStruct* prev);
@@ -394,6 +397,7 @@ public:
   template<SearchStruct::Kind k>
   void compressCheckOps(CodeOp* chainStart);
 
+  template<bool linearize = false>
   static void compileTerm(const Term* trm, CodeStack& code, CompileContext& cctx, bool addLitEnd);
 
   //////////// removal //////////////
@@ -460,12 +464,15 @@ public:
   struct BTPoint
   {
     BTPoint() {}
-    BTPoint(size_t tp, CodeOp* op) : tp(tp), op(op) {}
+    BTPoint(size_t tp, CodeOp* op, bool substIsRenaming, size_t substVRange)
+      : tp(tp), op(op), substIsRenaming(substIsRenaming), substVRange(substVRange) {}
 
     /** Position in the flat term */
     size_t tp;
     /** Pointer to the next operation */
     CodeOp* op;
+    bool substIsRenaming;
+    uint64_t substVRange;
   };
 
   typedef Stack<BTPoint> BTStack;
@@ -543,6 +550,8 @@ public:
 
 
   void incTimeStamp();
+
+  virtual std::string leafToString(const CodeOp* success) const { return "<unknown>"; }
 
   //////// member variables //////////
 

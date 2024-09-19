@@ -655,11 +655,11 @@ void CodeTree::visitAllOps(Visitor visitor) const
 
 std::ostream& operator<<(std::ostream& out, const CodeTree& ct)
 {
-  ct.visitAllOps([&out](const CodeTree::CodeOp* op, unsigned depth) {
+  ct.visitAllOps([&out,&ct](const CodeTree::CodeOp* op, unsigned depth) {
     for (unsigned i = 0; i < depth; i++) {
       out << "  ";
     }
-    out << *op << std::endl;
+    out << *op << (op->isSuccess()?" "+ct.leafToString(op):"") << std::endl;
   });
   return out;
 }
@@ -672,6 +672,7 @@ void CodeTree::CompileContext::init()
   varMap.reset();
   nextGlobalVarNum=0;
   globalVarMap.reset();
+  eqCons.reset();
 }
 
 void CodeTree::CompileContext::nextLit()
@@ -694,9 +695,11 @@ void CodeTree::CompileContext::deinit(CodeTree* tree, bool discarded)
   }
 }
 
-
+template<bool linearize>
 void CodeTree::compileTerm(const Term* trm, CodeStack& code, CompileContext& cctx, bool addLitEnd)
 {
+  ASS(!linearize || !addLitEnd);
+
   static Stack<unsigned> globalCounterparts;
   globalCounterparts.reset();
 
@@ -707,44 +710,50 @@ void CodeTree::compileTerm(const Term* trm, CodeStack& code, CompileContext& cct
     if(trm->isLiteral()) {
       auto lit=static_cast<const Literal*>(trm);
       code.push(CodeOp::getTermOp(CHECK_FUN, lit->header()));
-    }
-    else {
+    } else {
       code.push(CodeOp::getTermOp(CHECK_FUN, trm->functor()));
     }
 
     SubtermIterator sti(trm);
     while(sti.hasNext()) {
       TermList s=sti.next();
-      if(s.isVar()) {
-	unsigned var=s.var();
-	unsigned* varNumPtr;
-	if(cctx.varMap.getValuePtr(var,varNumPtr)) {
-	  *varNumPtr=cctx.nextVarNum++;
-	  code.push(CodeOp::getTermOp(ASSIGN_VAR, *varNumPtr));
+      if (s.isVar()) {
+        unsigned var=s.var();
+        unsigned* varNumPtr;
+        if constexpr (linearize) {
+          if (cctx.varMap.getValuePtr(var,varNumPtr)) {
+            *varNumPtr = cctx.nextVarNum;
+          } else {
+            cctx.eqCons.push(make_pair(*varNumPtr, cctx.nextVarNum));
+          }
+          code.push(CodeOp::getTermOp(ASSIGN_VAR, cctx.nextVarNum));
+          cctx.nextVarNum++;
+        } else {
+          if (cctx.varMap.getValuePtr(var,varNumPtr)) {
+            *varNumPtr=cctx.nextVarNum++;
+            code.push(CodeOp::getTermOp(ASSIGN_VAR, *varNumPtr));
 
-	  if(addLitEnd) {
-	    unsigned* globalVarNumPtr;
-	    if(cctx.globalVarMap.getValuePtr(var,globalVarNumPtr)) {
-	      *globalVarNumPtr=cctx.nextGlobalVarNum++;
-	    }
-	    globalCounterparts.push(*globalVarNumPtr);
-	  }
-	}
-	else {
-	  code.push(CodeOp::getTermOp(CHECK_VAR, *varNumPtr));
-	}
-      }
-      else {
-	ASS(s.isTerm());
-	Term* t=s.term();
+            if (addLitEnd) {
+              unsigned* globalVarNumPtr;
+              if (cctx.globalVarMap.getValuePtr(var,globalVarNumPtr)) {
+                *globalVarNumPtr=cctx.nextGlobalVarNum++;
+              }
+              globalCounterparts.push(*globalVarNumPtr);
+            }
+          } else {
+            code.push(CodeOp::getTermOp(CHECK_VAR, *varNumPtr));
+          }
+        }
+      } else {
+        ASS(s.isTerm());
+        Term* t=s.term();
 
-	if(GROUND_TERM_CHECK && t->ground()) {
-	  code.push(CodeOp::getGroundTermCheck(t));
-	  sti.right();
-	}
-	else {
-	  code.push(CodeOp::getTermOp(CHECK_FUN, t->functor()));
-	}
+        if (GROUND_TERM_CHECK && t->ground()) {
+          code.push(CodeOp::getGroundTermCheck(t));
+          sti.right();
+        } else {
+          code.push(CodeOp::getTermOp(CHECK_FUN, t->functor()));
+        }
       }
     }
   }
@@ -756,8 +765,10 @@ void CodeTree::compileTerm(const Term* trm, CodeStack& code, CompileContext& cct
     ILStruct* ils=new ILStruct(static_cast<const Literal*>(trm), varCnt, globalCounterparts);
     code.push(CodeOp::getLitEnd(ils));
   }
-
 }
+
+template void CodeTree::compileTerm<false>(const Term*, CodeStack&, CompileContext&, bool);
+template void CodeTree::compileTerm<true>(const Term*, CodeStack&, CompileContext&, bool);
 
 /**
  * Build CodeBlock object from the last @b cnt instructions on the
@@ -1355,7 +1366,7 @@ bool CodeTree::Matcher::execute()
   bool shouldBacktrack=false;
   for(;;) {
     if(op->alternative()) {
-      btStack.push(BTPoint(tp, op->alternative()));
+      btStack.push(BTPoint(tp, op->alternative(), substIsRenaming, substVRange));
     }
     switch(op->_instruction()) {
       case SUCCESS_OR_FAIL:
@@ -1429,6 +1440,8 @@ bool CodeTree::Matcher::backtrack()
   BTPoint bp=btStack.pop();
   tp=bp.tp;
   op=bp.op;
+  substIsRenaming=bp.substIsRenaming;
+  substVRange=bp.substVRange;
   return true;
 }
 
@@ -1475,6 +1488,10 @@ inline void CodeTree::Matcher::doAssignVar()
   if(fte->_tag()==FlatTerm::VAR) {
     bindings[var]=TermList(fte->_number(),false);
     tp++;
+    if (fte->_number() > 64 || (substVRange & (1UL << fte->_number()))) {
+      substIsRenaming = false;
+    }
+    substVRange |= (1UL << fte->_number());
   }
   else {
     ASS(fte->isFun());
@@ -1485,6 +1502,7 @@ inline void CodeTree::Matcher::doAssignVar()
     fte++;
     ASS_EQ(fte->_tag(), FlatTerm::FUN_RIGHT_OFS);
     tp+=fte->_number();
+    substIsRenaming = false;
   }
 }
 

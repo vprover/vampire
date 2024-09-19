@@ -68,6 +68,7 @@ struct OrderingConstraint {
 using OrderingConstraints = Stack<OrderingConstraint>;
 
 struct ConditionalRedundancyEntry {
+  Stack<std::pair<unsigned,unsigned>> eqCons;
   OrderingConstraints ordCons;
   const LiteralSet* lits;
   SplitSet* splits;
@@ -92,6 +93,8 @@ struct ConditionalRedundancyEntry {
   }
 };
 
+using Entries = Stack<ConditionalRedundancyEntry*>;
+
 class ConditionalRedundancyHandler
 {
 public:
@@ -103,7 +106,7 @@ public:
   virtual bool checkSuperposition(
     Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit, bool eqIsResult, ResultSubstitution* subs) const = 0;
 
-  virtual void insertSuperposition(
+  virtual bool insertSuperposition(
     Clause* eqClause, Clause* rwClause, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
     Literal* rwLitS, Literal* eqLit, Ordering::Result eqComp, bool eqIsResult, ResultSubstitution* subs) const = 0;
 
@@ -111,6 +114,8 @@ public:
     Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, ResultSubstitution* subs) const = 0;
 
   virtual bool handleReductiveUnaryInference(Clause* premise, RobSubstitution* subs) const = 0;
+
+  virtual void initWithEquation(Clause* resClause, TermList rwTerm, TermList tgtTerm) const = 0;
 
   void checkEquations(Clause* cl) const;
 
@@ -137,7 +142,7 @@ public:
   bool checkSuperposition(
     Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit, bool eqIsResult, ResultSubstitution* subs) const override;
 
-  void insertSuperposition(
+  bool insertSuperposition(
     Clause* eqClause, Clause* rwClause, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
     Literal* rwLitS, Literal* eqLit, Ordering::Result eqComp, bool eqIsResult, ResultSubstitution* subs) const override;
 
@@ -151,6 +156,8 @@ public:
   bool isSuperpositionPremiseRedundant(
     Clause* rwCl, Literal* rwLit, TermList rwTerm, TermList tgtTerm, Clause* eqCl, TermList eqLHS,
     const SubstApplicator* eqApplicator, Ordering::Result& tord) const;
+
+  void initWithEquation(Clause* resClause, TermList rwTerm, TermList tgtTerm) const override;
 
 private:
   bool _redundancyCheck;

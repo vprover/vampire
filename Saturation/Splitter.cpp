@@ -835,7 +835,7 @@ void Splitter::onAllProcessed()
       // but would need to maintain them even when _deleteDeactivated == Options::SplittingDeleteDeactivated::ON
       if (allSplitLevelsActive(rcl->splits())) {
         RSTAT_CTR_INC("fast_clauses_restored");
-        _sa->addNewClause(rcl);
+        addNewClause(rcl);
       } else {
         RSTAT_CTR_INC("fast_clauses_not_restored");
       }
@@ -1520,12 +1520,17 @@ bool Splitter::allSplitLevelsActive(SplitSet* s)
   return true;
 }
 
-void Splitter::onNewClause(Clause* cl)
+void Splitter::addNewClause(Clause* cl)
 {
   // when using AVATAR, we could have performed
   // generating inferences on the clause previously,
   // so we need to reset the data.
   ConditionalRedundancyHandler::destroyClauseData(cl);
+  _sa->addNewClause(cl);
+}
+
+void Splitter::onNewClause(Clause* cl)
+{
 
   if (cl->inference().rule() == InferenceRule::AVATAR_ASSERTION_REINTRODUCTION) {
     // Do not assign splits from premises if cl originated by re-introducing AVATAR assertions (avoids looping)
@@ -1675,7 +1680,7 @@ void Splitter::addComponents(const SplitLevelStack& toAdd)
       //we need to put the component clause among children, 
       //so that it is backtracked when we remove the component
       sr->children.push(sr->component);
-      _sa->addNewClause(sr->component);
+      addNewClause(sr->component);
     } else {
       // children were kept, so we just put them back
       RCClauseStack::Iterator chit(sr->children);
@@ -1683,7 +1688,7 @@ void Splitter::addComponents(const SplitLevelStack& toAdd)
         Clause* cl = chit.next();
         cl->incNumActiveSplits();
         if (cl->getNumActiveSplits() == (int)cl->splits()->size()) {
-          _sa->addNewClause(cl);
+          addNewClause(cl);
           //check that restored clause does not depend on inactive splits
           ASS(allSplitLevelsActive(cl->splits()));
         }
@@ -1757,7 +1762,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
         ASS_EQ(rcl->store(), Clause::NONE);
         
         rcl->invalidateMyReductionRecords(); // to make sure we don't unfreeze this clause a second time
-        _sa->addNewClause(rcl);
+        addNewClause(rcl);
               
         // TODO: keep statistics in release ?
         // RSTAT_MCTR_INC("unfrozen clauses",rcl->getFreezeCount());
