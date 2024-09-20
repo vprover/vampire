@@ -40,6 +40,7 @@ public:
 
   static FlatTerm* copy(const FlatTerm* ft);
 
+  inline TermList& operator[](size_t i) { ASS_L(i,_length); return _data[i]; }
   inline const TermList& operator[](size_t i) const { ASS_L(i,_length); return _data[i]; }
 
   void swapCommutativePredicateArguments();

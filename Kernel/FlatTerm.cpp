@@ -64,16 +64,31 @@ FlatTerm* FlatTerm::create(Term* t)
 {
   size_t entries = t->weight();
   if (t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
-    entries -= SortHelper::getEqualityArgumentSort(static_cast<Literal*>(t)).weight() - 1;
+    entries++;
   }
 
   FlatTerm* res=new(entries) FlatTerm(entries);
   size_t fti=0;
   res->_data[fti++] = TermList(t);
 
+  // If literal is equality, we add a type argument
+  // to properly match with two variable equalities.
+  // This has to be done also in the code tree.
+  if (t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
+    auto sort = SortHelper::getEqualityArgumentSort(static_cast<Literal*>(t));
+    (*res)[fti++] = sort;
+
+    if (sort.isTerm()) {
+      SubtermIterator sti(sort.term());
+      while (sti.hasNext()) {
+        (*res)[fti++] = sti.next();
+      }
+    }
+  }
+
   SubtermIterator sti(t);
-  while(sti.hasNext()) {
-    res->_data[fti++] = sti.next();
+  while (sti.hasNext()) {
+    (*res)[fti++] = sti.next();
   }
   ASS_EQ(fti, entries);
 
@@ -87,7 +102,6 @@ FlatTerm* FlatTerm::create(TermList t)
     return create(t.term());
   }
   ASS(t.isOrdinaryVar());
-
 
   FlatTerm* res=new(1) FlatTerm(1);
   res->_data[0] = t;
@@ -106,7 +120,7 @@ FlatTerm* FlatTerm::create(TermStack ts)
   size_t fti=0;
 
   for (auto& tl : ts) {
-    res->_data[fti++] = tl;
+    (*res)[fti++] = tl;
     if (tl.isVar()) {
       continue;
     }
@@ -114,7 +128,7 @@ FlatTerm* FlatTerm::create(TermStack ts)
 
     SubtermIterator sti(tl.term());
     while(sti.hasNext()) {
-      res->_data[fti++] = sti.next();
+      (*res)[fti++] = sti.next();
     }
   }
   ASS_EQ(fti, entries);
@@ -128,10 +142,10 @@ FlatTerm* FlatTerm::createUnexpanded(Term* t)
 
   FlatTerm* res=new(entries) FlatTerm(entries);
 
-  res->_data[0] = TermList(t);
+  (*res)[0] = TermList(t);
   // NOTE: the first unexpanded argument is marked as empty
   if (t->arity()) {
-    res->_data[1] = TermList::empty();
+    (*res)[1] = TermList::empty();
   }
 
   return res;
@@ -145,7 +159,7 @@ FlatTerm* FlatTerm::createUnexpanded(TermList t)
   ASS(t.isOrdinaryVar());
 
   FlatTerm* res=new(1) FlatTerm(1);
-  res->_data[0] = t;
+  (*res)[0] = t;
 
   return res;
 }
@@ -161,10 +175,10 @@ FlatTerm* FlatTerm::createUnexpanded(TermStack ts)
   size_t fti=0;
 
   for (auto& tl : ts) {
-    res->_data[fti]=tl;
+    (*res)[fti]=tl;
     // NOTE: the first unexpanded argument is marked as empty
     if (tl.isTerm() && tl.term()->arity()) {
-      res->_data[fti+1] = TermList::empty();
+      (*res)[fti+1] = TermList::empty();
     }
     fti += tl.weight();
   }
@@ -184,9 +198,10 @@ FlatTerm* FlatTerm::copy(const FlatTerm* ft)
 void FlatTerm::swapCommutativePredicateArguments()
 {
   ASS(_data[0].isTerm() && _data[0].term()->isLiteral());
-  ASS(static_cast<Literal*>(_data[0].term())->isEquality()); //as for now, the only commutative predicate is equality
 
-  size_t firstStart = 1;
+  auto lit = static_cast<Literal*>(_data[0].term());
+  ASS(static_cast<Literal*>(_data[0].term())->isEquality()); //as for now, the only commutative predicate is equality
+  size_t firstStart = 1 + SortHelper::getEqualityArgumentSort(lit).weight();
   size_t firstLen = _data[firstStart].weight();
 
   size_t secStart=firstStart+firstLen;
