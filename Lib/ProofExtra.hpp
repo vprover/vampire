@@ -46,9 +46,9 @@ class ProofExtra {
   DHMap<Kernel::Unit *, std::unique_ptr<InferenceExtra>> extras;
 
 public:
-  // associate `extra` with `unit`
-  void insert(Kernel::Unit *unit, std::unique_ptr<InferenceExtra> extra) {
-    extras.insert(unit, std::move(extra));
+  // associate `extra` with `unit`, taking ownership of `extra`
+  void insert(Kernel::Unit *unit, InferenceExtra *extra) {
+    extras.insert(unit, std::unique_ptr<InferenceExtra>(extra));
   }
 
   // remove the extra information for this unit

@@ -530,12 +530,12 @@ Clause* Superposition::performSuperposition(
   auto clause = Clause::fromStack(*res, inf);
 
   if(env.options->proofExtra())
-    env.proofExtra.insert(clause, std::unique_ptr<InferenceExtra>(new SuperpositionExtra(
+    env.proofExtra.insert(clause, new SuperpositionExtra(
       rwLit,
       eqLit,
-      eqLHS == (*eqLit)[1],
+      eqLHS,
       rwTerm
-    )));
+    ));
 
   return clause;
 }

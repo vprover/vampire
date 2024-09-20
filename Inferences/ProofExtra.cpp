@@ -29,14 +29,13 @@ void TwoLiteralInferenceExtra::output(std::ostream &out) const {
 }
 
 void RewriteInferenceExtra::output(std::ostream &out) const {
-  out << "side=" << reversed;
+  out << "lhs=" << lhs << ",target=" << target;
 }
 
-void RewriteIntoInferenceExtra::output(std::ostream &out) const {
+void TwoLiteralRewriteInferenceExtra::output(std::ostream &out) const {
   TwoLiteralInferenceExtra::output(out);
   out << ',';
   RewriteInferenceExtra::output(out);
-  out << ",rewritten=" << rewritten;
 }
 
 } // namespace Inferences
