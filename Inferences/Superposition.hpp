@@ -20,6 +20,7 @@
 #include "Indexing/TermIndex.hpp"
 
 #include "InferenceEngine.hpp"
+#include "Inferences/ProofExtra.hpp"
 #include "Kernel/RobSubstitution.hpp"
 
 namespace Inferences {
@@ -61,6 +62,7 @@ private:
   SuperpositionLHSIndex* _lhsIndex;
 };
 
+using SuperpositionExtra = RewriteIntoInferenceExtra;
 
 };
 

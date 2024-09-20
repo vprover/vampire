@@ -23,6 +23,7 @@
 #include "Exception.hpp"
 #include "DHMap.hpp"
 #include "Kernel/Problem.hpp"
+#include "Lib/ProofExtra.hpp"
 
 namespace Lib {
 
@@ -51,7 +52,7 @@ public:
 
   DHMap<unsigned, unsigned>* predicateSineLevels;
 
-  DHMap<const Kernel::Unit*,std::string>* proofExtra; // maps Unit* pointers to the associated proof extra string, if available
+  ProofExtra proofExtra;
 
   /** Time remaining until the end of the time-limit in miliseconds */
   int remainingTime() const;

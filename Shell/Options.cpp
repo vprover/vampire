@@ -317,12 +317,9 @@ void Options::init()
     _lookup.insert(&_printProofToFile);
     _printProofToFile.tag(OptionTag::OUTPUT);
 
-    _proofExtra = ChoiceOptionValue<ProofExtra>("proof_extra","",ProofExtra::OFF,{"off","free","full"});
-    _proofExtra.description="Add extra detail to proofs:\n "
-      "- free uses known information only\n"
-      "- full may perform expensive operations to achieve this so may"
-      " significantly impact on performance.\n"
-      " The option is still under development and the format of extra information (mainly from full) may change between minor releases";
+    _proofExtra = BoolOptionValue("proof_extra","",false);
+    _proofExtra.description="Add extra detail to proofs in exchange for performance.\n"
+      "This option is still under development and the format of information may change.";
     _lookup.insert(&_proofExtra);
     _proofExtra.tag(OptionTag::OUTPUT);
 
