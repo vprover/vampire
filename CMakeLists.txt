@@ -170,6 +170,7 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Numbering.hpp
     Lib/PairUtils.hpp
     Lib/Portability.hpp
+    Lib/ProofExtra.hpp
     Lib/Random.hpp
     Lib/RatioKeeper.hpp
     Lib/Recycled.hpp
@@ -333,6 +334,8 @@ set(VAMPIRE_KERNEL_SOURCES
     Inferences/CasesSimp.hpp
     Inferences/Cases.cpp
     Inferences/Cases.hpp
+    Inferences/ProofExtra.hpp
+    Inferences/ProofExtra.cpp
     Shell/LambdaElimination.cpp
     Shell/LambdaElimination.hpp
     )
