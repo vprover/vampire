@@ -62,7 +62,7 @@ private:
   SuperpositionLHSIndex* _lhsIndex;
 };
 
-using SuperpositionExtra = RewriteIntoInferenceExtra;
+using SuperpositionExtra = TwoLiteralRewriteInferenceExtra;
 
 };
 

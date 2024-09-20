@@ -19,6 +19,7 @@
 #include "Forwards.hpp"
 
 #include "InferenceEngine.hpp"
+#include "ProofExtra.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/RobSubstitution.hpp"
 
@@ -49,6 +50,8 @@ private:
 
   BinaryResolutionIndex* _index;
 };
+
+using BinaryResolutionExtra = TwoLiteralInferenceExtra;
 
 };
 

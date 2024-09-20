@@ -45,29 +45,26 @@ struct TwoLiteralInferenceExtra : public LiteralInferenceExtra {
 };
 
 struct RewriteInferenceExtra : virtual public InferenceExtra {
-  RewriteInferenceExtra(bool reversed) : reversed(reversed) {}
+  RewriteInferenceExtra(Kernel::TermList lhs, Kernel::TermList target)
+    : lhs(lhs), target(target) {}
 
   virtual void output(std::ostream &out) const override;
 
-  // if true, rewrite RHS to LHS
-  bool reversed;
+  // the LHS used to rewrite with
+  Kernel::TermList lhs;
+  // the rewritten term
+  Kernel::TermList target;
 };
 
-struct RewriteIntoInferenceExtra : public TwoLiteralInferenceExtra, public RewriteInferenceExtra {
-  RewriteIntoInferenceExtra(
+struct TwoLiteralRewriteInferenceExtra : public TwoLiteralInferenceExtra, public RewriteInferenceExtra {
+  TwoLiteralRewriteInferenceExtra(
     Kernel::Literal *selected,
     Kernel::Literal *other,
-    bool reversed,
+    Kernel::TermList target,
     Kernel::TermList rewritten
-  ) :
-    TwoLiteralInferenceExtra(selected, other),
-    RewriteInferenceExtra(reversed),
-    rewritten(rewritten) {}
+  ) : TwoLiteralInferenceExtra(selected, other), RewriteInferenceExtra(target, rewritten) {}
 
   virtual void output(std::ostream &out) const override;
-
-  // the rewritten term
-  Kernel::TermList rewritten;
 };
 
 }

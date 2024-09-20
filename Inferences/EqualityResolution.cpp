@@ -127,7 +127,10 @@ struct EqualityResolution::ResultFn
 
     env.statistics->equalityResolution++;
 
-    return Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
+    Clause *cl = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
+    if(env.options->proofExtra())
+      env.proofExtra.insert(cl, new EqualityResolutionExtra(lit));
+    return cl;
   }
 private:
   bool _afterCheck;
