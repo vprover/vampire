@@ -943,7 +943,35 @@ Clause* SATSubsumptionAndResolution::checkSubsumptionResolution(Clause* L,
   return conclusion;
 } // SATSubsumptionAndResolution::checkSubsumptionResolution
 
-std::vector<Kernel::Clause*> SATSubsumption::SATSubsumptionAndResolution::getAllSubsumptionResolutions(Kernel::Clause* L, Kernel::Clause* M, unsigned litToRemove)
+bool SATSubsumption::SATSubsumptionAndResolution::checkSubsumptionResolutionWithLiteral(Kernel::Clause* L, Kernel::Clause* M, unsigned resolutionLiteral)
+{
+   loadProblem(L, M);
+  if (pruneSubsumptionResolution())
+    return false;
+  fillMatchesSR(resolutionLiteral);
+
+  if (_srImpossible)
+    return false;
+
+  // set up the clauses
+  if (!cnfForSubsumptionResolution())
+    return false;
+
+  if (_solver.theory().empty()) {
+    // -> bᵢⱼ implies a certain substitution is valid
+    //    for each i, j : bᵢⱼ ⇒ (σ(lᵢ) = mⱼ ∨ σ(lᵢ) = ¬mⱼ)
+    // These constraints are created in the fillMatches() function by filling the _bindingsManager
+    _solver.theory().setBindings(&_bindingsManager);
+  }
+
+  _model.clear();
+  auto const result = _solver.solve();
+  if (result == subsat::Result::Sat)
+    return true;
+  return false;
+}
+
+std::vector<Kernel::Clause*> SATSubsumption::SATSubsumptionAndResolution::getAllSubsumptionResolutions(Kernel::Clause* L, Kernel::Clause* M)
 {
   ASS(L)
   ASS(M)
@@ -956,7 +984,7 @@ std::vector<Kernel::Clause*> SATSubsumption::SATSubsumptionAndResolution::getAll
 #endif
     return subsumptionResolutions;
   }
-  fillMatchesSR(litToRemove);
+  fillMatchesSR();
 
   if (_srImpossible) {
 #if PRINT_CLAUSES_SUBS
