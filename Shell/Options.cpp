@@ -492,7 +492,7 @@ void Options::init()
     _tweeGoalTransformation.setExperimental();
     _lookup.insert(&_tweeGoalTransformation);
 
-    _codeTreeSubsumption = BoolOptionValue("code_tree_subsumption", "cts", false);
+    _codeTreeSubsumption = BoolOptionValue("code_tree_subsumption", "cts", true);
     _codeTreeSubsumption.description =
       "Use code tree implementation of forward subsumption and subsumption resolution.";
     _codeTreeSubsumption.tag(OptionTag::INFERENCES);
