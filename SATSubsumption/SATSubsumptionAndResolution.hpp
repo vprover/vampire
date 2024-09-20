@@ -503,17 +503,27 @@ public:
                                              Kernel::Clause *M,
                                              bool usePreviousMatchSet = false);
 
+
+  /**
+   * Checks whether a subsumption resolution can occur between the clauses @b L and @b M with the literal @b resolutionLiteral as the resolution literal.
+   *
+   * @param L the base clause (side premise)
+   * @param M the instance clause (main premise)
+   * @param resolutionLiteral the index of the resolution literal in the instance clause @b M
+   */
+  bool checkSubsumptionResolutionWithLiteral(Kernel::Clause *L,
+                                             Kernel::Clause *M,
+                                             unsigned resolutionLiteral);
+
   /**
    * Returns all the possible subsumption resolutions between the clauses @b L and @b M.
    *
    * @param L the base clause (side premise)
    * @param M the instance clause (main premise)
-   * @param litToRemove the index of the target literal to remove from the instance clause. If not set, all literals will be considered. If litToRemove is set and the subsumption resolution is impossible with m' = litToRemove, the method will return an empty vector. This does not guarantee that the subsumption resolution is impossible for other literals.
-   * @return a vector containing all the possible conclusions of the subsumption resolution. If litToRemove is set, there can be at most one conclusion.
+   * @return a vector containing all the possible conclusions of the subsumption resolution.
    */
   std::vector<Kernel::Clause*> getAllSubsumptionResolutions(Kernel::Clause *L,
-                                                            Kernel::Clause *M,
-                                                            unsigned litToRemove = 0xFFFFFFFF);
+                                                            Kernel::Clause *M);
 
   /**
    * Creates a clause that is the subsumption resolution of @b M and @b L on @b m_j.
