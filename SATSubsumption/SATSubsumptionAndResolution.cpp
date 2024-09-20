@@ -772,23 +772,6 @@ Clause* SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(Clause* 
   return Clause::fromStack(*resLits,SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, M, L));
 }
 
-unsigned SATSubsumptionAndResolution::literalToRemove()
-{
-  ASS(_model.size() > 0)
-  ASS_GE(_matchSet.allMatches().size(), _L->length())
-  for (subsat::Lit lit : _model) {
-    if (lit.is_positive()) {
-      // matches can be null if the variable is a cⱼ
-      if (_matchSet.isMatchVar(lit.var())) {
-        Match match = _matchSet.getMatchForVar(lit.var());
-        if (!match.polarity)
-          return match.j;
-      }
-    }
-  }
-  return INVALID;
-}
-
 Clause* SATSubsumptionAndResolution::generateConclusion()
 {
   ASS(_L)
@@ -819,8 +802,27 @@ Clause* SATSubsumptionAndResolution::generateConclusion()
     }
   }
 #endif
-  unsigned toRemove = literalToRemove();
-
+  unsigned toRemove = INVALID;
+  // find the negative polarity match to j inside the model
+#if PRINT_CLAUSES_SUBS
+  cout << "Model: ";
+  for (subsat::Lit lit : _model) {
+    cout << lit << " ";
+  }
+  cout << endl;
+#endif
+  for (subsat::Lit lit : _model) {
+    if (lit.is_positive()) {
+      // matches can be null if the variable is a cⱼ
+      if (_matchSet.isMatchVar(lit.var())) {
+        Match match = _matchSet.getMatchForVar(lit.var());
+        if (!match.polarity) {
+          toRemove = match.j;
+          break;
+        }
+      }
+    }
+  }
   ASS_EQ(_n, _M->size())
   ASS(toRemove != INVALID)
   return SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(_M, (*_M)[toRemove], _L);
@@ -945,17 +947,20 @@ Clause* SATSubsumptionAndResolution::checkSubsumptionResolution(Clause* L,
 
 bool SATSubsumption::SATSubsumptionAndResolution::checkSubsumptionResolutionWithLiteral(Kernel::Clause* L, Kernel::Clause* M, unsigned resolutionLiteral)
 {
-   loadProblem(L, M);
-  if (pruneSubsumptionResolution())
+  loadProblem(L, M);
+  if (pruneSubsumptionResolution()) {
     return false;
+  }
   fillMatchesSR(resolutionLiteral);
 
-  if (_srImpossible)
+  if (_srImpossible) {
     return false;
+  }
 
   // set up the clauses
-  if (!cnfForSubsumptionResolution())
+  if (!cnfForSubsumptionResolution()) {
     return false;
+  }
 
   if (_solver.theory().empty()) {
     // -> bᵢⱼ implies a certain substitution is valid
@@ -965,77 +970,5 @@ bool SATSubsumption::SATSubsumptionAndResolution::checkSubsumptionResolutionWith
   }
 
   _model.clear();
-  auto const result = _solver.solve();
-  if (result == subsat::Result::Sat)
-    return true;
-  return false;
-}
-
-std::vector<Kernel::Clause*> SATSubsumption::SATSubsumptionAndResolution::getAllSubsumptionResolutions(Kernel::Clause* L, Kernel::Clause* M)
-{
-  ASS(L)
-  ASS(M)
-  vector<Clause*> subsumptionResolutions;
-
-  loadProblem(L, M);
-  if (pruneSubsumptionResolution()) {
-#if PRINT_CLAUSES_SUBS
-    cout << "SR pruned" << endl;
-#endif
-    return subsumptionResolutions;
-  }
-  fillMatchesSR();
-
-  if (_srImpossible) {
-#if PRINT_CLAUSES_SUBS
-    cout << "SR impossible" << endl;
-#endif
-    return subsumptionResolutions;
-  }
-
-  // set up the clauses
-  if (!cnfForSubsumptionResolution()) {
-#if PRINT_CLAUSES_SUBS
-    cout << "CNF building failed" << endl;
-#endif
-    return subsumptionResolutions;
-  }
-
-  if (_solver.theory().empty()) {
-    // -> bᵢⱼ implies a certain substitution is valid
-    //    for each i, j : bᵢⱼ ⇒ (σ(lᵢ) = mⱼ ∨ σ(lᵢ) = ¬mⱼ)
-    // These constraints are created in the fillMatches() function by filling the _bindingsManager
-    _solver.theory().setBindings(&_bindingsManager);
-  }
-
-  // tells if one of the models already found the same subsumption resolution
-  vector<bool> removed_literals(_M->length(), false);
-
-  while (true) {
-    // calling solve several times will get a new solution each time
-    // Solve the SAT problem
-    auto const result = _solver.solve();
-
-    if (result == subsat::Result::Sat) {
-      _model.clear();
-      _solver.get_model(_model);
-      unsigned to_remove = literalToRemove();
-      ASS_NEQ(to_remove, INVALID);
-      if (removed_literals[to_remove]){
-        // this solution was already found with a different substitution
-        continue;
-      }
-      removed_literals[to_remove] = true;
-      subsumptionResolutions.push_back(generateConclusion());
-    }
-    else {
-      break;
-  #if PRINT_CLAUSES_SUBS
-      cout << "SAT solver failed (" << result << ")" << endl;
-  #endif
-    }
-  }
-
-  // If the problem is SAT, then generate the conclusion clause
-  return subsumptionResolutions;
+  return (_solver.solve() == subsat::Result::Sat);
 }
