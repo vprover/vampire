@@ -52,6 +52,7 @@
 #include "Inferences/BackwardSubsumptionAndResolution.hpp"
 #include "Inferences/BackwardSubsumptionDemodulation.hpp"
 #include "Inferences/BinaryResolution.hpp"
+#include "Inferences/CodeTreeForwardSubsumptionAndResolution.hpp"
 #include "Inferences/EqualityFactoring.hpp"
 #include "Inferences/EqualityResolution.hpp"
 #include "Inferences/BoolEqToDiseq.hpp"
@@ -1719,13 +1720,10 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if (opt.forwardSubsumption()) {
-    if (opt.forwardSubsumptionResolution()) {
-      ForwardSubsumptionAndResolution* fwd = new ForwardSubsumptionAndResolution(true);
-      res->addForwardSimplifierToFront(fwd);
-    }
-    else {
-      ForwardSubsumptionAndResolution* fwd = new ForwardSubsumptionAndResolution(false);
-      res->addForwardSimplifierToFront(fwd);
+    if (opt.codeTreeSubsumption()) {
+      res->addForwardSimplifierToFront(new CodeTreeForwardSubsumptionAndResolution(opt.forwardSubsumptionResolution()));
+    } else {
+      res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolution(opt.forwardSubsumptionResolution()));
     }
   }
   else if (opt.forwardSubsumptionResolution()) {

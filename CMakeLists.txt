@@ -32,7 +32,6 @@ set(VAMPIRE_BINARY vampire)
 set(VAMPIRE_BINARY_BUILD)
 set(VAMPIRE_BINARY_STATIC)
 set(VAMPIRE_BINARY_Z3)
-set(VAMPIRE_BINARY_HASH)
 set(VAMPIRE_BINARY_BRANCH)
 set(VAMPIRE_BINARY_REV_COUNT)
 
@@ -384,6 +383,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/BackwardSubsumptionDemodulation.cpp
     Inferences/BackwardSubsumptionAndResolution.cpp
     Inferences/BinaryResolution.cpp
+    Inferences/CodeTreeForwardSubsumptionAndResolution.cpp
     Inferences/Condensation.cpp
     Inferences/DemodulationHelper.cpp
     Inferences/DistinctEqualitySimplifier.cpp
@@ -422,6 +422,7 @@ set(VAMPIRE_INFERENCE_SOURCES
     Inferences/BackwardDemodulation.hpp
     Inferences/BackwardSubsumptionAndResolution.hpp
     Inferences/BinaryResolution.hpp
+    Inferences/CodeTreeForwardSubsumptionAndResolution.hpp
     Inferences/Condensation.hpp
     Inferences/DemodulationHelper.hpp
     Inferences/DistinctEqualitySimplifier.hpp
@@ -954,14 +955,6 @@ if (GIT_IS_REPOSITORY STREQUAL true)
     OUTPUT_STRIP_TRAILING_WHITESPACE
     )
 
-  execute_process(
-    COMMAND git log -1 --format=%h
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_VARIABLE GIT_COMMIT_HASH
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-
-  set(VAMPIRE_BINARY_HASH "_${GIT_COMMIT_HASH}")
   set(VAMPIRE_BINARY_BRANCH "_${GIT_BRANCH}")
   set(VAMPIRE_BINARY_REV_COUNT "_${GIT_REV_COUNT}")
 endif()

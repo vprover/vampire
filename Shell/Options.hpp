@@ -2200,6 +2200,7 @@ public:
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination.actualValue; }
   unsigned functionDefinitionIntroduction() const { return _functionDefinitionIntroduction.actualValue; }
   TweeGoalTransformation tweeGoalTransformation() const { return _tweeGoalTransformation.actualValue; }
+  bool codeTreeSubsumption() const { return _codeTreeSubsumption.actualValue; }
   bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames.actualValue = newVal; }
   QuestionAnsweringMode questionAnswering() const { return _questionAnswering.actualValue; }
@@ -2512,6 +2513,7 @@ private:
   ChoiceOptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
   UnsignedOptionValue _functionDefinitionIntroduction;
   ChoiceOptionValue<TweeGoalTransformation> _tweeGoalTransformation;
+  BoolOptionValue _codeTreeSubsumption;
 
   BoolOptionValue _generalSplitting;
   BoolOptionValue _globalSubsumption;
