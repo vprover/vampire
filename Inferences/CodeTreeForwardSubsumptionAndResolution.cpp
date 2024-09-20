@@ -44,16 +44,18 @@ bool CodeTreeForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&repla
 
   cm.init(_ct, cl, _subsumptionResolution);
 
-  Clause* resultCl;
+  Clause* premise;
   int resolvedQueryLit;
 
-  while ((resultCl = cm.next(resolvedQueryLit))) {
+  while ((premise = cm.next(resolvedQueryLit))) {
     if (resolvedQueryLit == -1) {
-      premises = pvi(getSingletonIterator(resultCl));
+      ASS(satSubs.checkSubsumption(premise, cl));
+      premises = pvi(getSingletonIterator(premise));
       env.statistics->forwardSubsumed++;
       cm.reset();
       return true;
     }
+    ASS(satSubs.checkSubsumptionResolutionWithLiteral(premise, cl, resolvedQueryLit));
 
     LiteralStack res;
     for (unsigned i = 0; i < cl->length(); i++) {
@@ -62,8 +64,8 @@ bool CodeTreeForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&repla
       }
       res.push((*cl)[i]);
     }
-    replacement = Clause::fromStack(res, SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, cl, resultCl));
-    premises = pvi(getSingletonIterator(resultCl));
+    replacement = Clause::fromStack(res, SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, cl, premise));
+    premises = pvi(getSingletonIterator(premise));
     env.statistics->forwardSubsumptionResolution++;
     cm.reset();
     return true;
