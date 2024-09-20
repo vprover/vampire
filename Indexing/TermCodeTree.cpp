@@ -59,11 +59,10 @@ void TermCodeTree<Data>::insert(Data* data)
   }
   else {
     ASS(t.isTerm());
-    
-    static CompileContext cctx;
-    cctx.init();
-    compileTerm(t.term(), code, cctx, false);
-    cctx.deinit(this);
+
+    TermCompiler compiler(code);
+    compiler.handleTerm(t.term());
+    compiler.updateCodeTree(this);
   }
 
   code.push(CodeOp::getSuccess(data));

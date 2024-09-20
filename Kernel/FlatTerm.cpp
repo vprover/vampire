@@ -63,6 +63,20 @@ FlatTerm::FlatTerm(size_t length)
 size_t FlatTerm::getEntryCount(Term* t)
 {
   //FUNCTION_ENTRY_COUNT entries per function and one per variable
+  if (t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
+    // we add the type to the flat term for equalities as an extra,
+    // which requires some additional calculation
+    auto sort = SortHelper::getEqualityArgumentSort(static_cast<Literal*>(t));
+    unsigned numVarOccs = t->numVarOccs();
+    if (!t->isTwoVarEquality()) {
+      // in case of non-two-var equalities, the variables in
+      // the type are not counted by Term::numVarOccs
+      numVarOccs += sort.isVar() ? 1 : sort.term()->numVarOccs();
+    }
+    // the weight is corrected to be conservative in the
+    // monomorphic case, we uncorrect it by adding 1
+    return (t->weight()+1)*FUNCTION_ENTRY_COUNT-(FUNCTION_ENTRY_COUNT-1)*numVarOccs;
+  }
   return t->weight()*FUNCTION_ENTRY_COUNT-(FUNCTION_ENTRY_COUNT-1)*t->numVarOccs();
 }
 
@@ -72,25 +86,31 @@ FlatTerm* FlatTerm::create(Term* t)
 
   FlatTerm* res=new(entries) FlatTerm(entries);
   size_t fti=0;
-  res->_data[fti++]=Entry(FUN,
+  (*res)[fti++]=Entry(FUN,
       t->isLiteral() ? static_cast<Literal*>(t)->header() : t->functor());
-  res->_data[fti++]=Entry(t);
-  res->_data[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(t));
+  (*res)[fti++]=Entry(t);
+  (*res)[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(t));
+
+  // If literal is equality, we add a type argument
+  // to properly match with two variable equalities.
+  // This has to be done also in the code tree.
+  if (t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
+    auto sort = SortHelper::getEqualityArgumentSort(static_cast<Literal*>(t));
+    if (sort.isVar()) {
+      pushVar(res, fti, sort.var());
+    } else {
+      pushTerm(res, fti, sort.term());
+
+      SubtermIterator sti(sort.term());
+      while(sti.hasNext()) {
+        pushTermList(res, fti, sti.next());
+      }
+    }
+  }
 
   SubtermIterator sti(t);
   while(sti.hasNext()) {
-    ASS_L(fti, entries);
-    TermList s=sti.next();
-    if(s.isVar()) {
-      ASS(s.isOrdinaryVar());
-      res->_data[fti++]=Entry(VAR, s.var());
-    }
-    else {
-      ASS(s.isTerm());
-      res->_data[fti++]=Entry(FUN, s.term()->functor());
-      res->_data[fti++]=Entry(s.term());
-      res->_data[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(s.term()));
-    }
+    pushTermList(res, fti, sti.next());
   }
   ASS_EQ(fti, entries);
 
@@ -123,29 +143,18 @@ FlatTerm* FlatTerm::create(TermStack ts)
 
   for (auto& tl : ts) {
     if (tl.isVar()) {
-      res->_data[fti++]=Entry(VAR, tl.var());
+      pushVar(res, fti, tl.var());
       continue;
     }
     auto t = tl.term();
-    res->_data[fti++]=Entry(FUN,
+    (*res)[fti++]=Entry(FUN,
         t->isLiteral() ? static_cast<Literal*>(t)->header() : t->functor());
-    res->_data[fti++]=Entry(t);
-    res->_data[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(t));
+    (*res)[fti++]=Entry(t);
+    (*res)[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(t));
 
     SubtermIterator sti(t);
     while(sti.hasNext()) {
-      ASS_L(fti, entries);
-      TermList s=sti.next();
-      if(s.isVar()) {
-        ASS(s.isOrdinaryVar());
-        res->_data[fti++]=Entry(VAR, s.var());
-      }
-      else {
-        ASS(s.isTerm());
-        res->_data[fti++]=Entry(FUN, s.term()->functor());
-        res->_data[fti++]=Entry(s.term());
-        res->_data[fti++]=Entry(FUN_RIGHT_OFS, getEntryCount(s.term()));
-      }
+      pushTermList(res, fti, sti.next());
     }
   }
   ASS_EQ(fti, entries);
@@ -220,7 +229,14 @@ void FlatTerm::swapCommutativePredicateArguments()
   ASS_EQ((*this)[0]._tag(), FUN);
   ASS_EQ((*this)[0]._number()|1, 1); //as for now, the only commutative predicate is equality
 
+  ASS((*this)[1]._term()->isLiteral());
+  auto lit = static_cast<Literal*>((*this)[1]._term());
+  ASS(lit->isEquality());
+
   size_t firstStart=3;
+  auto sort = SortHelper::getEqualityArgumentSort(lit);
+  firstStart += sort.isVar() ? 1 : getEntryCount(sort.term());
+
   size_t firstLen;
   if((*this)[firstStart]._tag()==FUN) {
     ASS_EQ((*this)[firstStart+2]._tag(), FUN_RIGHT_OFS);

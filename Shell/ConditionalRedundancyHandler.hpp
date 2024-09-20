@@ -119,6 +119,8 @@ public:
 
   void checkEquations(Clause* cl) const;
 
+  static void transfer(Clause* from, Clause* to);
+
 protected:
   class ConstraintIndex;
 

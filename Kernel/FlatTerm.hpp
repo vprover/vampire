@@ -17,6 +17,7 @@
 #define __FlatTerm__
 
 #include "Forwards.hpp"
+#include "Term.hpp"
 
 namespace Kernel {
 
@@ -99,10 +100,27 @@ public:
 
   void swapCommutativePredicateArguments();
   void changeLiteralPolarity()
-  { _data[0]._setNumber(_data[0]._number()^1); }
+  { _data[0]._setNumber(_data[0]._number()^1); _data[1]._setTerm(Literal::complementaryLiteral(static_cast<Literal*>(_data[1]._term()))); }
 
 private:
   static size_t getEntryCount(Term* t);
+
+  static inline void pushVar(FlatTerm* ft, size_t& position, unsigned var) {
+    (*ft)[position++] = Entry(VAR, var);
+  }
+  static inline void pushTerm(FlatTerm* ft, size_t& position, Term* t) {
+    (*ft)[position++] = Entry(FUN, t->functor());
+    (*ft)[position++] = Entry(t);
+    (*ft)[position++] = Entry(FUN_RIGHT_OFS, getEntryCount(t));
+  }
+  static inline void pushTermList(FlatTerm* ft, size_t& position, TermList t) {
+    if (t.isVar()) {
+      pushVar(ft, position, t.var());
+    } else {
+      ASS(t.isTerm());
+      pushTerm(ft, position, t.term());
+    }
+  }
 
   FlatTerm(size_t length);
   void* operator new(size_t,unsigned length);

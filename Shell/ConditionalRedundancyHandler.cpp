@@ -166,45 +166,23 @@ private:
       return false;
     }
 
-    static CodeStack code;
-    code.reset();
-
+    CodeStack code;
 #define LINEARIZE 0
-
-    static CompileContext cctx;
-    cctx.init();
+#if LINEARIZE
+    Compiler<false, true> compiler(code);
+#else
+    TermCompiler compiler(code);
+#endif
     for (const auto& t : ts) {
       if (t.isVar()) {
-        unsigned var=t.var();
-        unsigned* varNumPtr;
-#if LINEARIZE
-        if (cctx.varMap.getValuePtr(var,varNumPtr)) {
-          *varNumPtr = cctx.nextVarNum;
-        } else {
-          cctx.eqCons.push(make_pair(*varNumPtr, cctx.nextVarNum));
-        }
-        code.push(CodeOp::getTermOp(ASSIGN_VAR, cctx.nextVarNum));
-        cctx.nextVarNum++;
-#else
-        if (cctx.varMap.getValuePtr(var,varNumPtr)) {
-          *varNumPtr=cctx.nextVarNum++;
-          code.push(CodeOp::getTermOp(ASSIGN_VAR, *varNumPtr));
-        }	else {
-          code.push(CodeOp::getTermOp(CHECK_VAR, *varNumPtr));
-        }
-#endif
+        compiler.handleVar(t.var());
+        continue;
       }
-      else {
-        ASS(t.isTerm());
-#if LINEARIZE
-        compileTerm<true>(t.term(), code, cctx, false);
-#else
-        compileTerm<false>(t.term(), code, cctx, false);
-#endif
-      }
+      ASS(t.isTerm());
+      compiler.handleTerm(t.term());
     }
-    ptr->eqCons = cctx.eqCons;
-    cctx.deinit(this);
+    ptr->eqCons = compiler.eqCons;
+    compiler.updateCodeTree(this);
 
     // just put anything non-null in there to get a valid success
     auto es = new Entries();
