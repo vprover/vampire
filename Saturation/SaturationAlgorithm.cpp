@@ -1603,25 +1603,12 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
   }
 
-#define CODE_TREE_SUBSUMPTION 1
-
   if (opt.forwardSubsumption()) {
-#if CODE_TREE_SUBSUMPTION
-    if (opt.forwardSubsumptionResolution()) {
-      res->addForwardSimplifierToFront(new CodeTreeForwardSubsumptionAndResolution(true));
+    if (opt.codeTreeSubsumption()) {
+      res->addForwardSimplifierToFront(new CodeTreeForwardSubsumptionAndResolution(opt.forwardSubsumptionResolution()));
     } else {
-      res->addForwardSimplifierToFront(new CodeTreeForwardSubsumptionAndResolution(false));
+      res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolution(opt.forwardSubsumptionResolution()));
     }
-#else
-    if (opt.forwardSubsumptionResolution()) {
-      ForwardSubsumptionAndResolution* fwd = new ForwardSubsumptionAndResolution(true);
-      res->addForwardSimplifierToFront(fwd);
-    }
-    else {
-      ForwardSubsumptionAndResolution* fwd = new ForwardSubsumptionAndResolution(false);
-      res->addForwardSimplifierToFront(fwd);
-    }
-#endif
   }
   else if (opt.forwardSubsumptionResolution()) {
     USER_ERROR("Forward subsumption resolution requires forward subsumption to be enabled.");

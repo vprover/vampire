@@ -492,6 +492,13 @@ void Options::init()
     _tweeGoalTransformation.setExperimental();
     _lookup.insert(&_tweeGoalTransformation);
 
+    _codeTreeSubsumption = BoolOptionValue("code_tree_subsumption", "cts", true);
+    _codeTreeSubsumption.description =
+      "Use code tree implementation of forward subsumption and subsumption resolution.";
+    _codeTreeSubsumption.tag(OptionTag::INFERENCES);
+    _codeTreeSubsumption.setExperimental();
+    _lookup.insert(&_codeTreeSubsumption);
+
     _generalSplitting = BoolOptionValue("general_splitting","gsp",false);
     _generalSplitting.description=
     "Splits clauses in order to reduce number of different variables in each clause. "

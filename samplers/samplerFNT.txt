@@ -100,6 +100,9 @@ plsq=on > plsqr ~u2r -5;7;,
 # simultaneous_superposition
 sa!=fmb sup=on > sims ~cat on:50,off:1
 
+# code_tree_subsumption
+sa!=fmb > cts ~cat on:3,off:1
+
 # forward_subsumption
 sa!=fmb > fs ~cat on:500,off:31
 
