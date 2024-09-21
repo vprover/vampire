@@ -39,6 +39,7 @@ public:
   bool check(const SubstApplicator* applicator) override;
   std::string toString() const override;
   // bool subsumes(OrderingComparator& other) override;
+  void merge(OrderingComparator&& other) override;
 
 // private:
   void makeReady();
@@ -135,7 +136,7 @@ public:
   };
 
   struct Node {
-    Node() : eqBranch(BranchTag::T_NOT_GREATER), gtBranch(BranchTag::T_GREATER), incBranch(BranchTag::T_NOT_GREATER) {}
+    Node() : eqBranch(BranchTag::T_NOT_GREATER), gtBranch(BranchTag::T_GREATER), incBranch(BranchTag::T_NOT_GREATER), ts(0) {}
 
     auto& getBranch(Ordering::Result r) {
       switch (r) {
@@ -150,9 +151,13 @@ public:
       }
     }
 
+    void setTs(unsigned val) { ts = val; }
+    unsigned getTs() const { return ts; }
+
     Branch eqBranch;
     Branch gtBranch;
     Branch incBranch;
+    unsigned ts;
   };
 
   class ComparisonNode : public Node {
@@ -166,8 +171,10 @@ public:
     TermList rhs;
   };
 
+  using VarCoeffPair = std::pair<unsigned,int>;
+
   class WeightNode : public Node {
-    WeightNode(unsigned w, Stack<std::pair<unsigned,int>>&& varCoeffPairs)
+    WeightNode(int w, Stack<VarCoeffPair>&& varCoeffPairs)
       : w(w), varCoeffPairs(varCoeffPairs) {}
 
     // only allow calling ctor from Branch
@@ -175,10 +182,11 @@ public:
 
   public:
     int w;
-    Stack<std::pair<unsigned,int>> varCoeffPairs;
+    Stack<VarCoeffPair> varCoeffPairs;
   };
 
-  static void expand(Branch& branch, const KBO& kbo);
+  using TermPairRes = std::tuple<TermList,TermList,Ordering::Result>;
+  static void expand(Branch& branch, const KBO& kbo, const Stack<TermPairRes>& cache);
 
   bool _ready = false;
   // Stack<Instruction> _instructions;

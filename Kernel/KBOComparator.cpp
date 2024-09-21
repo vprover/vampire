@@ -339,23 +339,82 @@ std::string KBOComparator::toString() const
   return str.str();
 }
 
+void KBOComparator::merge(OrderingComparator&& other)
+{
+  auto otherKBO = static_cast<KBOComparator&&>(other);
+
+  static unsigned ts = 0;
+  ts++;
+
+  Stack<pair<Branch*,Branch>> todo;
+  todo.push(make_pair(&_root, std::move(otherKBO._root)));
+  while (todo.isNonEmpty()) {
+    auto [currB, otherB] = todo.pop();
+    // if this branch is successful, or other
+    // branch is unsuccessful, we do nothing
+    if (currB->tag == BranchTag::T_GREATER
+      || otherB.tag == BranchTag::T_NOT_GREATER)
+    {
+      continue;
+    }
+    // if this branch is unsuccessful, or other branch
+    // is successful, we just replace current with other
+    if (currB->tag == BranchTag::T_NOT_GREATER
+      || otherB.tag == BranchTag::T_GREATER)
+    {
+      *currB = otherB;
+      continue;
+    }
+    ASS(currB->n);
+    ASS(otherB.n);
+    // if we already checked this branch, continue
+    if (currB->n->getTs()==ts) {
+      continue;
+    }
+    currB->n->setTs(ts);
+    // TODO no node from other should be T_COMPARISON here
+    if (currB->tag != otherB.tag || currB->tag != BranchTag::T_COMPARISON) {
+      todo.push(make_pair(&currB->n->eqBranch, otherB));
+      todo.push(make_pair(&currB->n->gtBranch, otherB));
+      todo.push(make_pair(&currB->n->incBranch, otherB));
+      continue;
+    }
+    auto n = static_cast<ComparisonNode*>(currB->n.ptr());
+    auto o = static_cast<ComparisonNode*>(otherB.n.ptr());
+    if (n->lhs == o->lhs && n->rhs == o->rhs) {
+      todo.push(make_pair(&currB->n->eqBranch, otherB.n->eqBranch));
+      todo.push(make_pair(&currB->n->gtBranch, otherB.n->gtBranch));
+      todo.push(make_pair(&currB->n->incBranch, otherB.n->incBranch));
+      continue;
+    }
+    todo.push(make_pair(&currB->n->eqBranch, otherB));
+    todo.push(make_pair(&currB->n->gtBranch, otherB));
+    todo.push(make_pair(&currB->n->incBranch, otherB));
+  }
+}
+
 bool KBOComparator::check(const SubstApplicator* applicator)
 {
+  static Stack<TermPairRes> cache;
+  cache.reset();
   const auto& kbo = static_cast<const KBO&>(_ord);
   auto curr = &_root;
 
   while (curr->n) {
-    expand(*curr, kbo);
+    expand(*curr, kbo, cache);
     if (!curr->n) {
       break;
     }
     ASS(curr->n);
     Ordering::Result comp = Ordering::INCOMPARABLE;
-    if (curr->tag==BranchTag::T_COMPARISON) {
+    if (curr->tag == BranchTag::T_COMPARISON) {
+
       auto node = static_cast<ComparisonNode*>(curr->n.ptr());
       comp = kbo.isGreaterOrEq(AppliedTerm(node->lhs,applicator,true),AppliedTerm(node->rhs,applicator,true));
+      cache.push({ node->lhs, node->rhs, comp });
+
     } else {
-      ASS(curr->tag==BranchTag::T_WEIGHT);
+      ASS(curr->tag == BranchTag::T_WEIGHT);
       auto node = static_cast<WeightNode*>(curr->n.ptr());
       auto weight = node->w;
       ZIArray<int> varDiffs;
@@ -393,7 +452,7 @@ loop_end:
   return curr->tag == BranchTag::T_GREATER;
 }
 
-void KBOComparator::expand(Branch& branch, const KBO& kbo)
+void KBOComparator::expand(Branch& branch, const KBO& kbo, const Stack<std::tuple<TermList,TermList,Ordering::Result>>& cache)
 {
   while (branch.tag == BranchTag::T_UNKNOWN)
   {
@@ -416,6 +475,28 @@ void KBOComparator::expand(Branch& branch, const KBO& kbo)
     }
     // If we have a variable, we cannot preprocess further.
     if (node->lhs.isVar() || node->rhs.isVar()) {
+      // try cache
+      bool found = false;
+      for (const auto& [s,t,r] : cache) {
+        if (s != node->lhs || t != node->rhs) {
+          continue;
+        }
+        if (r == Ordering::GREATER) {
+          branch = node->gtBranch;
+        } else if (r == Ordering::EQUAL) {
+          branch = node->eqBranch;
+        } else {
+          ASS_NEQ(r, Ordering::LESS);
+          branch = node->incBranch;
+        }
+        found = true;
+        break;
+      }
+      if (found) {
+        continue;
+      }
+      // TODO we should replace the node here with a fresh one
+      // TODO check node's refcount?
       branch.tag = BranchTag::T_COMPARISON;
       continue;
     }
@@ -432,7 +513,7 @@ void KBOComparator::expand(Branch& branch, const KBO& kbo)
 #endif
     auto w = state->_weightDiff;
     decltype(state->_varDiffs)::Iterator vit(state->_varDiffs);
-    Stack<pair<unsigned,int>> nonzeros;
+    Stack<VarCoeffPair> nonzeros;
     while (vit.hasNext()) {
       unsigned v;
       int cnt;

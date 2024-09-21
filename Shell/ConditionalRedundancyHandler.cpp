@@ -134,6 +134,11 @@ private:
         if (e->active && e->lits->isEmpty() && e->splits->isEmpty() && e->ordCons.size()==1) {
           ensureComparator(ord, e->ordCons[0]);
           ensureComparator(ord, ptr->ordCons[0]);
+
+          e->ordCons[0].comp->merge(std::move(*ptr->ordCons[0].comp.get()));
+          return true;
+          /// UNREACHABLE
+
           if (e->ordCons[0].comp->subsumes(*ptr->ordCons[0].comp)) {
             env.statistics->skippedInferencesDueToOrderingConstraints++;
             return false;
