@@ -125,9 +125,14 @@ void LPOComparator::expand(const Ordering& ord, Branch& branch, const Stack<Term
       if (found) {
         continue;
       }
+      // make a fresh copy
+      branch = Branch(node->lhs, node->rhs);
       // TODO we should replace the node here with a fresh one
       // TODO check node's refcount?
       branch.tag = BranchTag::T_COMPARISON;
+      branch.n->eqBranch = node->eqBranch;
+      branch.n->gtBranch = node->gtBranch;
+      branch.n->incBranch = node->incBranch;
       continue;
     }
 

@@ -124,9 +124,14 @@ void KBOComparator::expand(const Ordering& ord, Branch& branch, const Stack<Term
       if (found) {
         continue;
       }
+      // make a fresh copy
+      branch = Branch(node->lhs, node->rhs);
       // TODO we should replace the node here with a fresh one
       // TODO check node's refcount?
       branch.tag = BranchTag::T_COMPARISON;
+      branch.n->eqBranch = node->eqBranch;
+      branch.n->gtBranch = node->gtBranch;
+      branch.n->incBranch = node->incBranch;
       continue;
     }
 
@@ -196,6 +201,8 @@ void KBOComparator::expand(const Ordering& ord, Branch& branch, const Stack<Term
           auto lhsArg = *lhst->nthArgument(i);
           auto rhsArg = *rhst->nthArgument(i);
           *curr = Branch(lhsArg,rhsArg);
+          curr->n->gtBranch = node->gtBranch;
+          curr->n->incBranch = node->incBranch;
           curr = &curr->n->eqBranch;
         }
         *curr = node->eqBranch;

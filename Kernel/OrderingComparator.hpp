@@ -56,6 +56,8 @@ struct OrderingComparator
       : tag(BranchTag::T_WEIGHT), n(new WeightNode(w, std::move(varCoeffPairs))) {}
   };
 
+  friend std::ostream& operator<<(std::ostream& out, const Branch& branch);
+
   struct Node {
     Node() : eqBranch(BranchTag::T_NOT_GREATER), gtBranch(BranchTag::T_GREATER), incBranch(BranchTag::T_NOT_GREATER), ts(0) {}
 
