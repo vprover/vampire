@@ -216,6 +216,10 @@ private:
     Entries* es;
     while ((es = matcher.next()))
     {
+      if (matcher.substIsRenaming) {
+        lastRenamingEntry = es;
+      }
+
       // TODO indent
       for (const auto& e : *es) {
 
@@ -328,7 +332,7 @@ private:
   }
 
   struct SubstMatcher
-  : public Matcher</*variant*/false,/*removing*/false>
+  : public Matcher
   {
     void init(CodeTree* tree, const TermStack& ts)
     {
@@ -338,6 +342,8 @@ private:
 
       op=entry;
       tp=0;
+      substIsRenaming=true;
+      substVRange=0;
     }
 
     void reset()
