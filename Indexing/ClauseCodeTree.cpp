@@ -250,7 +250,7 @@ void ClauseCodeTree::remove(Clause* cl)
     }
 
   iteration_restart:
-    if(!rlm->next()) {
+    if(!rlm->execute()) {
       if(depth==0) {
         ASSERTION_VIOLATION;
         INVALID_OPERATION("clause to be removed was not found");
@@ -291,7 +291,7 @@ void ClauseCodeTree::remove(Clause* cl)
 void ClauseCodeTree::RemovingLiteralMatcher::init(CodeOp* entry_, LitInfo* linfos_,
     size_t linfoCnt_, ClauseCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_)
 {
-  RemovingMatcher::init(entry_, linfos_, linfoCnt_, tree_, firstsInBlocks_);
+  Matcher::init(tree_, entry_, linfos_, linfoCnt_, firstsInBlocks_);
 
   ALWAYS(prepareLiteral());
 }
@@ -331,10 +331,7 @@ void ClauseCodeTree::LiteralMatcher::init(CodeTree* tree_, CodeOp* entry_,
 {
   ASS_G(linfoCnt_,0);
 
-  Matcher::init(tree_,entry_);
-
-  linfos=linfos_;
-  linfoCnt=linfoCnt_;
+  Matcher::init(tree_,entry_,linfos_,linfoCnt_);
 
   _eagerlyMatched=false;
   eagerResults.reset();
@@ -346,7 +343,7 @@ void ClauseCodeTree::LiteralMatcher::init(CodeTree* tree_, CodeOp* entry_,
     //(and those must be at the entry point or its alternatives)
 
     _eagerlyMatched=true;
-    _fresh=false;
+    fresh=false;
     CodeOp* sop=entry;
     while(sop) {
       if(sop->isSuccess()) {
