@@ -8,6 +8,8 @@
  * and in the source directory
  */
 
+#include "LPO.hpp"
+
 #include "LPOComparator.hpp"
 
 #include "RobSubstitution.hpp"
@@ -48,71 +50,6 @@ bool unify(TermList tl1, TermList tl2, TermList& orig1, TermList& orig2)
   return true;
 }
 
-LPOComparator::LPOComparator(TermList lhs, TermList rhs, const LPO& lpo)
-  : OrderingComparator(lhs, rhs, lpo), _root(lhs, rhs)
-{
-}
-
-ostream& operator<<(ostream& out, const LPOComparator::BranchTag& t)
-{
-  switch (t) {
-    case LPOComparator::BranchTag::T_NOT_GREATER:
-      out << "!>";
-      break;
-    case LPOComparator::BranchTag::T_GREATER:
-      out << ">";
-      break;
-    case LPOComparator::BranchTag::T_COMPARISON:
-      out << "$";
-      break;
-    case LPOComparator::BranchTag::T_UNKNOWN:
-      out << "?";
-      break;
-  }
-  return out;
-}
-
-std::ostream& operator<<(std::ostream& str, const LPOComparator::Branch& branch)
-{
-  str << branch.tag << " ";
-  if (branch.n) {
-    str << branch.n->lhs << " " << branch.n->rhs;
-  } else {
-    str << "null";
-  }
-  return str;
-}
-
-ostream& operator<<(ostream& str, const LPOComparator& comp)
-{
-  str << "comparator for " << comp._lhs << " > " << comp._rhs << endl;
-  Stack<pair<const LPOComparator::Branch*, unsigned>> todo;
-  todo.push(make_pair(&comp._root,0));
-  unsigned cnt = 1;
-
-  while (todo.isNonEmpty()) {
-    auto kv = todo.pop();
-    str << cnt++ << " ";
-    for (unsigned i = 0; i < kv.second; i++) {
-      str << "  ";
-    }
-    str << *kv.first << endl;
-    if (kv.first->n) {
-      todo.push(make_pair(&kv.first->n->incBranch,kv.second+1));
-      todo.push(make_pair(&kv.first->n->gtBranch,kv.second+1));
-      todo.push(make_pair(&kv.first->n->eqBranch,kv.second+1));
-    }
-  }
-  return str;
-}
-
-std::string LPOComparator::toString() const
-{
-  std::stringstream str;
-  str << *this << endl;
-  return str.str();
-}
-
 /**
  * Implements an @b LPO::majo call via instructions.
  */
@@ -143,13 +80,15 @@ void LPOComparator::alphaChain(Branch* branch, Term* s, unsigned i, TermList tl2
   *branch = fail;
 }
 
-void LPOComparator::expand(Branch& branch, const LPO& lpo)
+void LPOComparator::expand(const Ordering& ord, Branch& branch, const Stack<TermPairRes>& cache)
 {
+  const auto& lpo = static_cast<const LPO&>(ord);
   while (branch.tag == BranchTag::T_UNKNOWN)
   {
     // take temporary ownership of node
     Branch nodeHolder = branch;
-    auto node = nodeHolder.n.ptr();
+    auto node = static_cast<ComparisonNode*>(nodeHolder.n.ptr());
+    ASS(node);
 
     // Use compare here to filter out as many
     // precomputable comparisons as possible.
@@ -166,6 +105,28 @@ void LPOComparator::expand(Branch& branch, const LPO& lpo)
     }
     // If we have a variable, we cannot preprocess further.
     if (node->lhs.isVar() || node->rhs.isVar()) {
+      // try cache
+      bool found = false;
+      for (const auto& [s,t,r] : cache) {
+        if (s != node->lhs || t != node->rhs) {
+          continue;
+        }
+        if (r == Ordering::GREATER) {
+          branch = node->gtBranch;
+        } else if (r == Ordering::EQUAL) {
+          branch = node->eqBranch;
+        } else {
+          ASS_NEQ(r, Ordering::LESS);
+          branch = node->incBranch;
+        }
+        found = true;
+        break;
+      }
+      if (found) {
+        continue;
+      }
+      // TODO we should replace the node here with a fresh one
+      // TODO check node's refcount?
       branch.tag = BranchTag::T_COMPARISON;
       continue;
     }
@@ -224,16 +185,22 @@ loop_end:
 
 bool LPOComparator::check(const SubstApplicator* applicator)
 {
+  static Stack<TermPairRes> cache;
+  cache.reset();
   const auto& lpo = static_cast<const LPO&>(_ord);
   auto curr = &_root;
 
   while (curr->n) {
-    expand(*curr, lpo);
+    expand(_ord, *curr, cache);
     if (!curr->n) {
       break;
     }
+    ASS(curr->tag==BranchTag::T_COMPARISON);
     ASS(curr->n);
-    auto comp = lpo.lpo(AppliedTerm(curr->n->lhs,applicator,true),AppliedTerm(curr->n->rhs,applicator,true));
+    auto node = static_cast<ComparisonNode*>(curr->n.ptr());
+
+    auto comp = lpo.lpo(AppliedTerm(node->lhs,applicator,true),AppliedTerm(node->rhs,applicator,true));
+    cache.push({ node->lhs, node->rhs, comp });
     curr = &curr->n->getBranch(comp);
   }
   return curr->tag == BranchTag::T_GREATER;

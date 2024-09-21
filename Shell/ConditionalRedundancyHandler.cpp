@@ -56,7 +56,11 @@ std::ostream& operator<<(std::ostream& str, const ConditionalRedundancyEntry& e)
   } else {
     str << *e.splits << "; " << *e.lits << "; ";
     iterTraits(e.ordCons.iter()).forEach([&str](const OrderingConstraint& con) {
-      str << (con.comp ? con.comp->toString() : (con.lhs.toString()+" > "+con.rhs.toString()));
+      if (con.comp) {
+        str << *con.comp;
+      } else {
+        str << con.lhs.toString() << " > " << con.rhs.toString();
+      }
     });
   }
   return str;
@@ -137,17 +141,6 @@ private:
 
           e->ordCons[0].comp->merge(std::move(*ptr->ordCons[0].comp.get()));
           return true;
-          /// UNREACHABLE
-
-          if (e->ordCons[0].comp->subsumes(*ptr->ordCons[0].comp)) {
-            env.statistics->skippedInferencesDueToOrderingConstraints++;
-            return false;
-          }
-          if (ptr->ordCons[0].comp->subsumes(*e->ordCons[0].comp)) {
-            std::swap((*entries)[i],entries->top());
-            entries->pop();
-            continue;
-          }
         }
         i++;
       }

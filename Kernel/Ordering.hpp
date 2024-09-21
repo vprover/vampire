@@ -34,26 +34,6 @@ namespace Kernel {
 using namespace Shell;
 
 /**
- * Class implementing runtime specialized ordering check between two terms.
- * The comparator is created and called from inside the respective ordering
- * object, but owned by the caller, so the destructor is exposed as virtual.
- * See @b KBOComparator and @b LPOComparator for implementation details.
- */
-struct OrderingComparator
-{
-  OrderingComparator(TermList lhs, TermList rhs, const Ordering& ord) : _lhs(lhs), _rhs(rhs), _ord(ord) {}
-  virtual ~OrderingComparator() = default;
-  virtual std::string toString() const { return _lhs.toString()+" > "+_rhs.toString(); }
-  virtual bool check(const SubstApplicator* applicator);
-  virtual bool subsumes(OrderingComparator& other) { return false; }
-  virtual void merge(OrderingComparator&& other) {}
-
-  TermList _lhs;
-  TermList _rhs;
-  const Ordering& _ord;
-};
-
-/**
  * An abstract class for simplification orderings
  * @since 30/04/2008 flight Brussels-Tel Aviv
  */
@@ -94,8 +74,7 @@ public:
 
   /** Creates optimised object to check that @b lhs is greater than @b rhs.
    *  @see OrderingComparator. */
-  virtual OrderingComparatorUP createComparator(TermList lhs, TermList rhs) const
-  { return std::make_unique<OrderingComparator>(lhs, rhs, *this); }
+  virtual OrderingComparatorUP createComparator(TermList lhs, TermList rhs) const;
 
   virtual void show(std::ostream& out) const = 0;
 

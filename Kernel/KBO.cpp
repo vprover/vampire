@@ -881,7 +881,7 @@ bool KBO::isGreater(AppliedTerm lhs, AppliedTerm rhs) const
 
 OrderingComparatorUP KBO::createComparator(TermList lhs, TermList rhs) const
 {
-  return make_unique<KBOComparator>(lhs, rhs, *this);
+  return make_unique<KBOComparator>(*this, lhs, rhs);
 }
 
 int KBO::symbolWeight(const Term* t) const

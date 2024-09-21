@@ -178,14 +178,14 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           if (!preordered && (_preorderedOnly || !qr.data->comparator->check(appl))) {
             if (ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl,true))) {
               std::cout << qr.data->term << " " << qr.data->rhs << std::endl;
-              std::cout << qr.data->comparator->toString() << std::endl;
+              std::cout << *qr.data->comparator << std::endl;
               INVALID_OPERATION("greater");
             }
             continue;
           }
           if (!ordering.isGreater(AppliedTerm(trm),AppliedTerm(rhs,appl,true))) {
             std::cout << qr.data->term << " " << qr.data->rhs << std::endl;
-            std::cout << qr.data->comparator->toString() << std::endl;
+            std::cout << *qr.data->comparator << std::endl;
             INVALID_OPERATION("not greater");
           }
         } else {

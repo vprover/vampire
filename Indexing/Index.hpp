@@ -18,15 +18,18 @@
 #include "Forwards.hpp"
 #include "Debug/Output.hpp"
 
+#include "Lib/Allocator.hpp"
 #include "Lib/Event.hpp"
-#include "Kernel/Clause.hpp"
-#include "Kernel/Term.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/VirtualIterator.hpp"
+
+#include "Kernel/Clause.hpp"
+#include "Kernel/OrderingComparator.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
+
 #include "Saturation/ClauseContainer.hpp"
 #include "ResultSubstitution.hpp"
-#include "Kernel/UnificationWithAbstraction.hpp"
-#include "Lib/Allocator.hpp"
 
 /**
  * Indices are parametrized by a LeafData, i.e. the bit of data you want to store in the index.

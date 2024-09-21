@@ -225,6 +225,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/MLMatcherSD.cpp
     Kernel/MLVariant.cpp
     Kernel/Ordering.cpp
+    Kernel/OrderingComparator.cpp
     Kernel/Ordering_Equality.cpp
     Kernel/Problem.cpp
     Kernel/Renaming.cpp
@@ -272,6 +273,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/MLMatcher.hpp
     Kernel/MLVariant.hpp
     Kernel/Ordering.hpp
+    Kernel/OrderingComparator.hpp
     Kernel/Problem.hpp
     Kernel/RCClauseStack.hpp
     Kernel/Renaming.hpp
