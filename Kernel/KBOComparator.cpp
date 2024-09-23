@@ -44,35 +44,7 @@ void KBOComparator::expand(Branch& branch, const Stack<TermPairRes>& cache)
       continue;
     }
     // If we have a variable, we cannot preprocess further.
-    if (node->lhs.isVar() || node->rhs.isVar()) {
-      // try cache
-      bool found = false;
-      for (const auto& [s,t,r] : cache) {
-        if (s != node->lhs || t != node->rhs) {
-          continue;
-        }
-        if (r == Ordering::GREATER) {
-          branch = node->gtBranch;
-        } else if (r == Ordering::EQUAL) {
-          branch = node->eqBranch;
-        } else {
-          ASS_NEQ(r, Ordering::LESS);
-          branch = node->incBranch;
-        }
-        found = true;
-        break;
-      }
-      if (found) {
-        continue;
-      }
-      // make a fresh copy
-      branch = Branch(node->lhs, node->rhs);
-      // TODO we should replace the node here with a fresh one
-      // TODO check node's refcount?
-      branch.tag = BranchTag::T_COMPARISON;
-      branch.n->eqBranch = node->eqBranch;
-      branch.n->gtBranch = node->gtBranch;
-      branch.n->incBranch = node->incBranch;
+    if (tryVarVarCase(branch, cache, node)) {
       continue;
     }
 

@@ -204,4 +204,46 @@ void OrderingComparator::expand(Branch& branch, const Stack<TermPairRes>& cache)
   }
 }
 
+bool OrderingComparator::tryVarVarCase(Branch& branch, const Stack<TermPairRes>& cache, ComparisonNode* node)
+{
+  // If we have a variable, we cannot preprocess further.
+  if (!node->lhs.isVar() && !node->rhs.isVar()) {
+    return false;
+  }
+  // try cache
+  for (const auto& [s,t,r] : cache) {
+    if (s == node->lhs && t == node->rhs) {
+      if (r == Ordering::GREATER) {
+        branch = node->gtBranch;
+      } else if (r == Ordering::EQUAL) {
+        branch = node->eqBranch;
+      } else {
+        ASS_EQ(r, Ordering::INCOMPARABLE);
+        branch = node->incBranch;
+      }
+      return true;
+    }
+    
+    if (s == node->rhs && t == node->lhs && r != Ordering::INCOMPARABLE) {
+      if (r == Ordering::GREATER) {
+        branch = node->incBranch;
+      } else {
+        ASS_EQ(r, Ordering::EQUAL);
+        branch = node->eqBranch;
+      }
+      // Note: since we use isGreater which results
+      // in INCOMPARABLE when compare would be LESS,
+      // the INCOMPARABLE result we cannot use here
+      return true;
+    }
+  }
+  // make a fresh copy
+  branch = Branch(node->lhs, node->rhs);
+  branch.tag = BranchTag::T_COMPARISON;
+  branch.n->eqBranch = node->eqBranch;
+  branch.n->gtBranch = node->gtBranch;
+  branch.n->incBranch = node->incBranch;
+  return true;
+}
+
 }

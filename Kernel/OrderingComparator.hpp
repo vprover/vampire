@@ -33,10 +33,12 @@ struct OrderingComparator
   bool check(const SubstApplicator* applicator);
   void merge(const OrderingComparator& other);
 
+  class ComparisonNode;
   struct Branch;
   using TermPairRes = std::tuple<TermList,TermList,Ordering::Result>;
 
   virtual void expand(Branch& branch, const Stack<TermPairRes>& cache);
+  bool tryVarVarCase(Branch& branch, const Stack<TermPairRes>& cache, ComparisonNode* origNode);
 
   friend std::ostream& operator<<(std::ostream& out, const OrderingComparator& comp);
 

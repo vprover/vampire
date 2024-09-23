@@ -12,43 +12,11 @@
 
 #include "LPOComparator.hpp"
 
-#include "RobSubstitution.hpp"
-
 namespace Kernel {
 
 using namespace std;
 using namespace Lib;
 using namespace Shell;
-
-bool unify(TermList tl1, TermList tl2, TermList& orig1, TermList& orig2)
-{
-  RobSubstitution rsubst;
-  if (!rsubst.unify(tl1, 0, tl2, 0)) {
-    return false;
-  }
-  Substitution temp;
-  VariableIterator vit1(orig1);
-  while (vit1.hasNext()) {
-    auto v = vit1.next();
-    auto vS = rsubst.apply(v,0);
-    TermList t;
-    if (vS.isVar() && !temp.findBinding(vS.var(), t)) {
-      temp.bind(vS.var(), v);
-    }
-  }
-  VariableIterator vit2(orig2);
-  while (vit2.hasNext()) {
-    auto v = vit2.next();
-    auto vS = rsubst.apply(v,0);
-    TermList t;
-    if (vS.isVar() && !temp.findBinding(vS.var(), t)) {
-      temp.bind(vS.var(), v);
-    }
-  }
-  orig1 = SubstHelper::apply(rsubst.apply(orig1,0), temp);
-  orig2 = SubstHelper::apply(rsubst.apply(orig2,0), temp);
-  return true;
-}
 
 /**
  * Implements an @b LPO::majo call via instructions.
@@ -104,87 +72,51 @@ void LPOComparator::expand(Branch& branch, const Stack<TermPairRes>& cache)
       continue;
     }
     // If we have a variable, we cannot preprocess further.
-    if (node->lhs.isVar() || node->rhs.isVar()) {
-      // try cache
-      bool found = false;
-      for (const auto& [s,t,r] : cache) {
-        if (s != node->lhs || t != node->rhs) {
-          continue;
-        }
-        if (r == Ordering::GREATER) {
-          branch = node->gtBranch;
-        } else if (r == Ordering::EQUAL) {
-          branch = node->eqBranch;
-        } else {
-          ASS_NEQ(r, Ordering::LESS);
-          branch = node->incBranch;
-        }
-        found = true;
-        break;
-      }
-      if (found) {
-        continue;
-      }
-      // make a fresh copy
-      branch = Branch(node->lhs, node->rhs);
-      // TODO we should replace the node here with a fresh one
-      // TODO check node's refcount?
-      branch.tag = BranchTag::T_COMPARISON;
-      branch.n->eqBranch = node->eqBranch;
-      branch.n->gtBranch = node->gtBranch;
-      branch.n->incBranch = node->incBranch;
+    if (tryVarVarCase(branch, cache, node)) {
       continue;
     }
 
-    {
-      auto s = node->lhs.term();
-      auto t = node->rhs.term();
+    auto s = node->lhs.term();
+    auto t = node->rhs.term();
 
-      switch (lpo.comparePrecedences(s, t)) {
-      case Ordering::EQUAL: {
-        ASS(s->arity()); // constants cannot be incomparable
+    switch (lpo.comparePrecedences(s, t)) {
+    case Ordering::EQUAL: {
+      ASS(s->arity()); // constants cannot be incomparable
 
-        // copies for unification
-        auto lhs = node->lhs;
-        auto rhs = node->rhs;
+      // copies for unification
+      auto lhs = node->lhs;
+      auto rhs = node->rhs;
 
-        auto curr = &branch;
+      auto curr = &branch;
 
-        // lexicographic comparisons
-        for (unsigned i = 0; i < s->arity(); i++)
-        {
-          auto s_arg = *lhs.term()->nthArgument(i);
-          auto t_arg = *rhs.term()->nthArgument(i);
-          *curr = Branch(s_arg,t_arg);
-          // greater branch is a majo chain
-          majoChain(&curr->n->gtBranch, lhs, rhs.term(), i+1, node->gtBranch, node->incBranch);
-          // incomparable branch is an alpha chain
-          alphaChain(&curr->n->incBranch, lhs.term(), i+1, rhs, node->gtBranch, node->incBranch);
-          curr = &curr->n->eqBranch;
-          if (!unify(s_arg,t_arg,lhs,rhs)) {
-            *curr = node->incBranch;
-            goto loop_end;
-          }
-        }
-        *curr = node->eqBranch;
-        break;
+      // lexicographic comparisons
+      for (unsigned i = 0; i < s->arity(); i++)
+      {
+        auto s_arg = *lhs.term()->nthArgument(i);
+        auto t_arg = *rhs.term()->nthArgument(i);
+        *curr = Branch(s_arg,t_arg);
+        // greater branch is a majo chain
+        majoChain(&curr->n->gtBranch, lhs, rhs.term(), i+1, node->gtBranch, node->incBranch);
+        // incomparable branch is an alpha chain
+        alphaChain(&curr->n->incBranch, lhs.term(), i+1, rhs, node->gtBranch, node->incBranch);
+        curr = &curr->n->eqBranch;
       }
-      case Ordering::GREATER: {
-        ASS(t->arity());
-        majoChain(&branch, node->lhs, t, 0, node->gtBranch, node->incBranch);
-        break;
-      }
-      case Ordering::LESS: {
-        ASS(s->arity());
-        alphaChain(&branch, s, 0, node->rhs, node->gtBranch, node->incBranch);
-        break;
-      }
-      default:
-        ASSERTION_VIOLATION;
-      }
+      *curr = node->eqBranch;
+      break;
     }
-loop_end:
-    continue;
+    case Ordering::GREATER: {
+      ASS(t->arity());
+      majoChain(&branch, node->lhs, t, 0, node->gtBranch, node->incBranch);
+      break;
+    }
+    case Ordering::LESS: {
+      ASS(s->arity());
+      alphaChain(&branch, s, 0, node->rhs, node->gtBranch, node->incBranch);
+      break;
+    }
+    default:
+      ASSERTION_VIOLATION;
+    }
   }
 }
 
