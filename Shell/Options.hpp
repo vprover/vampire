@@ -298,6 +298,11 @@ public:
     CHEAP
   };
 
+  enum class ProofExtra : unsigned int {
+    OFF,
+    FREE,
+    FULL
+  };
   enum class FMBWidgetOrders : unsigned int {
     FUNCTION_FIRST, // f(1) f(2) f(3) ... g(1) g(2) ...
     ARGUMENT_FIRST, // f(1) g(1) h(1) ... f(2) g(2) ...
@@ -1944,7 +1949,7 @@ public:
   void setStatistics(Statistics newVal) { _statistics.actualValue=newVal; }
   Proof proof() const { return _proof.actualValue; }
   bool minimizeSatProofs() const { return _minimizeSatProofs.actualValue; }
-  bool proofExtra() const { return _proofExtra.actualValue; }
+  ProofExtra proofExtra() const { return _proofExtra.actualValue; }
   bool traceback() const { return _traceback.actualValue; }
   void setTraceback(bool traceback) { _traceback.actualValue = traceback; }
   std::string printProofToFile() const { return _printProofToFile.actualValue; }
@@ -2581,7 +2586,7 @@ private:
   StringOptionValue _problemName;
   ChoiceOptionValue<Proof> _proof;
   BoolOptionValue _minimizeSatProofs;
-  BoolOptionValue _proofExtra;
+  ChoiceOptionValue<ProofExtra> _proofExtra;
   BoolOptionValue _traceback;
 
   StringOptionValue _protectedPrefix;

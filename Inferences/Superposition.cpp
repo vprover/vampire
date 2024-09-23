@@ -529,7 +529,7 @@ Clause* Superposition::performSuperposition(
   inf_destroyer.disable(); // ownership passed to the the clause below
   auto clause = Clause::fromStack(*res, inf);
 
-  if(env.options->proofExtra())
+  if(env.options->proofExtra() == Options::ProofExtra::FULL)
     env.proofExtra.insert(clause, new SuperpositionExtra(
       rwLit,
       eqLit,
