@@ -3257,10 +3257,12 @@ TermList TPTP::createTypeConApplication(std::string name, unsigned arity)
 { 
   ASS_GE(_termLists.size(), arity);
 
-  bool dummy;
+  bool added = false;
   //TODO not checking for overflown constant. Is that OK?
   //seems to be done this way for predicates as well.
-  unsigned typeCon = env.signature->addTypeCon(name,arity,dummy);
+  unsigned typeCon = env.signature->addTypeCon(name,arity,added);
+  if(added)
+    USER_ERROR("Undeclared type constructor ", name, "/", arity);
 
   auto args = nLastTermLists(arity);
   for (auto i : range(0, arity)) {
