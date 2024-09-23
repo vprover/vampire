@@ -113,6 +113,9 @@ sup=on > sims ~cat on:5,off:1
 # superposition_from_variables
 sup=on > sfv ~cat on:38,off:1
 
+# code_tree_subsumption
+> cts ~cat on:3,off:1
+
 # forward_subsumption
 > fs ~cat on:500,off:31
 

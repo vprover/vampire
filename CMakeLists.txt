@@ -915,6 +915,7 @@ endif() # COMPILE_TESTS
 # automated generation of Vampire revision information from git #
 #################################################################
 set(VAMPIRE_VERSION_NUMBER 4.9)
+option(REV_COUNT "Add Git revision count to binary name" ON)
 
 execute_process(
     COMMAND git rev-parse --is-inside-work-tree
@@ -938,16 +939,20 @@ if (GIT_IS_REPOSITORY STREQUAL true)
     OUTPUT_VARIABLE GIT_BRANCH
     OUTPUT_STRIP_TRAILING_WHITESPACE
     )
-
-  execute_process(
-    COMMAND git rev-list HEAD --count
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_VARIABLE GIT_REV_COUNT
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-
   set(VAMPIRE_BINARY_BRANCH "_${GIT_BRANCH}")
-  set(VAMPIRE_BINARY_REV_COUNT "_${GIT_REV_COUNT}")
+
+  if(REV_COUNT)
+    execute_process(
+      COMMAND git rev-list HEAD --count
+      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+      OUTPUT_VARIABLE GIT_REV_COUNT
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      )
+    set(VAMPIRE_BINARY_REV_COUNT "_${GIT_REV_COUNT}")
+  else()
+    set(VAMPIRE_BINARY_REV_COUNT "")
+  endif()
+
 endif()
 
 ################################################################
