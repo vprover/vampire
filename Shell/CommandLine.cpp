@@ -46,8 +46,7 @@ std::ostream& printVersion(std::ostream& out)
 #if VZ3
   std::cout << "Linked with Z3 " << Z3Interfacing::z3_full_version() << "\n";
 #endif
-  PRINT_VAR(out, VDEBUG);
-  subsat::print_config(out << "\% ");
+  // subsat::print_config(out << "\% ");
   return out;
 }
 

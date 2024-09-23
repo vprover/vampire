@@ -747,6 +747,10 @@ int main(int argc, char* argv[])
     Shell::CommandLine cl(argc, argv);
     cl.interpret(opts);
 
+#if VDEBUG
+    std::cerr << "% WARNING: debug build, do not use in anger\n";
+#endif
+
     if(opts.encodeStrategy()){
       cout << opts.generateEncodedOptions() << "\n";
     }
