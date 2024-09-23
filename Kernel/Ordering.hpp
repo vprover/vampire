@@ -69,8 +69,8 @@ public:
 
   /** Optimised function used for checking that @b t1 is greater than @b t2,
    * under some substitutions captured by @b AppliedTerm. */
-  virtual bool isGreater(AppliedTerm t1, AppliedTerm t2) const
-  { return compare(t1, t2) == Result::GREATER; }
+  virtual Result isGreaterOrEq(AppliedTerm t1, AppliedTerm t2) const
+  { return compare(t1, t2); }
 
   /** Creates optimised object to check that @b lhs is greater than @b rhs.
    *  @see OrderingComparator. */

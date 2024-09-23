@@ -30,8 +30,13 @@ struct OrderingComparator
 {
   OrderingComparator(const Ordering& ord, TermList lhs, TermList rhs) : _ord(ord), _root(lhs, rhs) {}
   virtual ~OrderingComparator();
-  virtual bool check(const SubstApplicator* applicator) { return false; }
-  virtual void merge(const OrderingComparator& other);
+  bool check(const SubstApplicator* applicator);
+  void merge(const OrderingComparator& other);
+
+  struct Branch;
+  using TermPairRes = std::tuple<TermList,TermList,Ordering::Result>;
+
+  virtual void expand(Branch& branch, const Stack<TermPairRes>& cache);
 
   friend std::ostream& operator<<(std::ostream& out, const OrderingComparator& comp);
 
@@ -95,7 +100,6 @@ struct OrderingComparator
   };
 
   using VarCoeffPair = std::pair<unsigned,int>;
-  using TermPairRes = std::tuple<TermList,TermList,Ordering::Result>;
 
   class WeightNode : public Node {
     WeightNode(int w, Stack<VarCoeffPair>&& varCoeffPairs)

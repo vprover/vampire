@@ -80,9 +80,9 @@ void LPOComparator::alphaChain(Branch* branch, Term* s, unsigned i, TermList tl2
   *branch = fail;
 }
 
-void LPOComparator::expand(const Ordering& ord, Branch& branch, const Stack<TermPairRes>& cache)
+void LPOComparator::expand(Branch& branch, const Stack<TermPairRes>& cache)
 {
-  const auto& lpo = static_cast<const LPO&>(ord);
+  const auto& lpo = static_cast<const LPO&>(_ord);
   while (branch.tag == BranchTag::T_UNKNOWN)
   {
     // take temporary ownership of node
@@ -186,29 +186,6 @@ void LPOComparator::expand(const Ordering& ord, Branch& branch, const Stack<Term
 loop_end:
     continue;
   }
-}
-
-bool LPOComparator::check(const SubstApplicator* applicator)
-{
-  static Stack<TermPairRes> cache;
-  cache.reset();
-  const auto& lpo = static_cast<const LPO&>(_ord);
-  auto curr = &_root;
-
-  while (curr->n) {
-    expand(_ord, *curr, cache);
-    if (!curr->n) {
-      break;
-    }
-    ASS(curr->tag==BranchTag::T_COMPARISON);
-    ASS(curr->n);
-    auto node = static_cast<ComparisonNode*>(curr->n.ptr());
-
-    auto comp = lpo.lpo(AppliedTerm(node->lhs,applicator,true),AppliedTerm(node->rhs,applicator,true));
-    cache.push({ node->lhs, node->rhs, comp });
-    curr = &curr->n->getBranch(comp);
-  }
-  return curr->tag == BranchTag::T_GREATER;
 }
 
 }

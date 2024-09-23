@@ -47,7 +47,7 @@ public:
   using PrecedenceOrdering::compare;
   Result compare(TermList tl1, TermList tl2) const override;
   Result compare(AppliedTerm tl1, AppliedTerm tl2) const override;
-  bool isGreater(AppliedTerm tl1, AppliedTerm tl2) const override;
+  Result isGreaterOrEq(AppliedTerm tl1, AppliedTerm tl2) const override;
   OrderingComparatorUP createComparator(TermList lhs, TermList rhs) const override;
 
   void showConcrete(std::ostream&) const override;
@@ -66,7 +66,6 @@ protected:
   Result majo(AppliedTerm s, AppliedTerm t, const TermList* tl, unsigned arity) const;
 
   friend class LPOComparator;
-  friend class LPOComparator2;
 };
 
 }

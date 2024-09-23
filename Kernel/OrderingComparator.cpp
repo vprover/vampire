@@ -13,6 +13,7 @@
  */
 
 #include "Lib/Stack.hpp"
+#include "KBO.hpp"
 
 #include "SubstHelper.hpp"
 
@@ -86,30 +87,92 @@ std::ostream& operator<<(std::ostream& str, const OrderingComparator& comp)
 
 OrderingComparator::~OrderingComparator() = default;
 
+bool OrderingComparator::check(const SubstApplicator* applicator)
+{
+  static Stack<TermPairRes> cache;
+  cache.reset();
+  auto curr = &_root;
+
+  while (curr->n) {
+    expand(*curr, cache);
+    if (!curr->n) {
+      break;
+    }
+    ASS(curr->n);
+    Ordering::Result comp = Ordering::INCOMPARABLE;
+    if (curr->tag == BranchTag::T_COMPARISON) {
+
+      auto node = static_cast<ComparisonNode*>(curr->n.ptr());
+      comp = _ord.isGreaterOrEq(AppliedTerm(node->lhs,applicator,true),AppliedTerm(node->rhs,applicator,true));
+      cache.push({ node->lhs, node->rhs, comp });
+
+    } else {
+      ASS(curr->tag == BranchTag::T_WEIGHT);
+
+      const auto& kbo = static_cast<const KBO&>(_ord);
+      auto node = static_cast<WeightNode*>(curr->n.ptr());
+      auto weight = node->w;
+      ZIArray<int> varDiffs;
+      for (const auto& [var, coeff] : node->varCoeffPairs) {
+        AppliedTerm tt(TermList::var(var), applicator, true);
+
+        VariableIterator vit(tt.term);
+        while (vit.hasNext()) {
+          auto v = vit.next();
+          varDiffs[v.var()] += coeff;
+          // since the counts are sorted in descending order,
+          // this can only mean we will fail
+          if (varDiffs[v.var()]<0) {
+            goto loop_end;
+          }
+        }
+        auto w = kbo.computeWeight(tt);
+        weight += coeff*w;
+        // due to descending order of counts,
+        // this also means failure
+        if (coeff<0 && weight<0) {
+          goto loop_end;
+        }
+      }
+
+      if (weight > 0) {
+        comp = Ordering::GREATER;
+      } else if (weight == 0) {
+        comp = Ordering::EQUAL;
+      }
+    }
+loop_end:
+    curr = &curr->n->getBranch(comp);
+  }
+  return curr->tag == BranchTag::T_GREATER;
+}
+
 void OrderingComparator::merge(const OrderingComparator& other)
 {
+  ASS(other._root.tag == BranchTag::T_UNKNOWN);
+
   static unsigned ts = 0;
   ts++;
 
   Stack<std::pair<Branch*,Branch>> todo;
-  todo.push(std::make_pair(&_root, other._root));
+
+  auto pushBranches = [&todo](Branch* b, const Branch& other) {
+    // if other branch is unsuccessful, do nothing
+    if (b->tag == BranchTag::T_GREATER || other.tag == BranchTag::T_NOT_GREATER) {
+      return;
+    }
+    // if this branch is unsuccessful, replace this with other
+    if (b->tag == BranchTag::T_NOT_GREATER || other.tag == BranchTag::T_GREATER) {
+      *b = other;
+      return;
+    }
+    todo.push(std::make_pair(b,other));
+  };
+
+  pushBranches(&_root, other._root);
+
   while (todo.isNonEmpty()) {
     auto [currB, otherB] = todo.pop();
-    // if this branch is successful, or other
-    // branch is unsuccessful, we do nothing
-    if (currB->tag == BranchTag::T_GREATER
-      || otherB.tag == BranchTag::T_NOT_GREATER)
-    {
-      continue;
-    }
-    // if this branch is unsuccessful, or other branch
-    // is successful, we just replace current with other
-    if (currB->tag == BranchTag::T_NOT_GREATER
-      || otherB.tag == BranchTag::T_GREATER)
-    {
-      *currB = otherB;
-      continue;
-    }
     ASS(currB->n);
     ASS(otherB.n);
     // if we already checked this branch, continue
@@ -117,24 +180,27 @@ void OrderingComparator::merge(const OrderingComparator& other)
       continue;
     }
     currB->n->setTs(ts);
-    // TODO no node from other should be T_COMPARISON here
-    if (currB->tag != otherB.tag || currB->tag != BranchTag::T_COMPARISON) {
-      todo.push(std::make_pair(&currB->n->eqBranch, otherB));
-      todo.push(std::make_pair(&currB->n->gtBranch, otherB));
-      todo.push(std::make_pair(&currB->n->incBranch, otherB));
-      continue;
+    if (currB->tag == BranchTag::T_UNKNOWN && currB->tag != BranchTag::T_COMPARISON) {
+      // both must be comparison nodes
+      auto n = static_cast<ComparisonNode*>(currB->n.ptr());
+      auto o = static_cast<ComparisonNode*>(otherB.n.ptr());
+      if (n->lhs == o->lhs && n->rhs == o->rhs) {
+        pushBranches(&currB->n->eqBranch, otherB.n->eqBranch);
+        pushBranches(&currB->n->gtBranch, otherB.n->gtBranch);
+        pushBranches(&currB->n->incBranch, otherB.n->incBranch);
+        continue;
+      }
     }
-    auto n = static_cast<ComparisonNode*>(currB->n.ptr());
-    auto o = static_cast<ComparisonNode*>(otherB.n.ptr());
-    if (n->lhs == o->lhs && n->rhs == o->rhs) {
-      todo.push(std::make_pair(&currB->n->eqBranch, otherB.n->eqBranch));
-      todo.push(std::make_pair(&currB->n->gtBranch, otherB.n->gtBranch));
-      todo.push(std::make_pair(&currB->n->incBranch, otherB.n->incBranch));
-      continue;
-    }
-    todo.push(std::make_pair(&currB->n->eqBranch, otherB));
-    todo.push(std::make_pair(&currB->n->gtBranch, otherB));
-    todo.push(std::make_pair(&currB->n->incBranch, otherB));
+    pushBranches(&currB->n->eqBranch, otherB);
+    pushBranches(&currB->n->gtBranch, otherB);
+    pushBranches(&currB->n->incBranch, otherB);
+  }
+}
+
+void OrderingComparator::expand(Branch& branch, const Stack<TermPairRes>& cache)
+{
+  if (branch.tag == BranchTag::T_UNKNOWN) {
+    branch.tag = BranchTag::T_COMPARISON;
   }
 }
 

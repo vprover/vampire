@@ -21,68 +21,9 @@ using namespace std;
 using namespace Lib;
 using namespace Shell;
 
-bool KBOComparator::check(const SubstApplicator* applicator)
+void KBOComparator::expand(Branch& branch, const Stack<TermPairRes>& cache)
 {
-  static Stack<TermPairRes> cache;
-  cache.reset();
   const auto& kbo = static_cast<const KBO&>(_ord);
-  auto curr = &_root;
-
-  while (curr->n) {
-    expand(_ord, *curr, cache);
-    if (!curr->n) {
-      break;
-    }
-    ASS(curr->n);
-    Ordering::Result comp = Ordering::INCOMPARABLE;
-    if (curr->tag == BranchTag::T_COMPARISON) {
-
-      auto node = static_cast<ComparisonNode*>(curr->n.ptr());
-      comp = kbo.isGreaterOrEq(AppliedTerm(node->lhs,applicator,true),AppliedTerm(node->rhs,applicator,true));
-      cache.push({ node->lhs, node->rhs, comp });
-
-    } else {
-      ASS(curr->tag == BranchTag::T_WEIGHT);
-      auto node = static_cast<WeightNode*>(curr->n.ptr());
-      auto weight = node->w;
-      ZIArray<int> varDiffs;
-      for (const auto& [var, coeff] : node->varCoeffPairs) {
-        AppliedTerm tt(TermList::var(var), applicator, true);
-
-        VariableIterator vit(tt.term);
-        while (vit.hasNext()) {
-          auto v = vit.next();
-          varDiffs[v.var()] += coeff;
-          // since the counts are sorted in descending order,
-          // this can only mean we will fail
-          if (varDiffs[v.var()]<0) {
-            goto loop_end;
-          }
-        }
-        auto w = kbo.computeWeight(tt);
-        weight += coeff*w;
-        // due to descending order of counts,
-        // this also means failure
-        if (coeff<0 && weight<0) {
-          goto loop_end;
-        }
-      }
-
-      if (weight > 0) {
-        comp = Ordering::GREATER;
-      } else if (weight == 0) {
-        comp = Ordering::EQUAL;
-      }
-    }
-loop_end:
-    curr = &curr->n->getBranch(comp);
-  }
-  return curr->tag == BranchTag::T_GREATER;
-}
-
-void KBOComparator::expand(const Ordering& ord, Branch& branch, const Stack<TermPairRes>& cache)
-{
-  const auto& kbo = static_cast<const KBO&>(ord);
   while (branch.tag == BranchTag::T_UNKNOWN)
   {
     // take temporary ownership of node

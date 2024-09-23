@@ -27,13 +27,11 @@ public:
   LPOComparator(const Ordering& ord, TermList lhs, TermList rhs)
     : OrderingComparator(ord, lhs, rhs) {}
 
-  /** Executes the runtime specialized instructions with concrete substitution. */
-  bool check(const SubstApplicator* applicator) override;
+  void expand(Branch& branch, const Stack<TermPairRes>& cache) override;
 
 private:
   static void majoChain(Branch* branch, TermList tl1, Term* t, unsigned i, Branch success, Branch fail);
   static void alphaChain(Branch* branch, Term* s, unsigned i, TermList tl2, Branch success, Branch fail);
-  static void expand(const Ordering& ord, Branch& branch, const Stack<TermPairRes>& cache);
 };
 
 }

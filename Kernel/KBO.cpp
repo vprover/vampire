@@ -874,11 +874,6 @@ Ordering::Result KBO::isGreaterOrEq(AppliedTerm tl1, AppliedTerm tl2) const
   return res;
 }
 
-bool KBO::isGreater(AppliedTerm lhs, AppliedTerm rhs) const
-{
-  return isGreaterOrEq(lhs,rhs)==GREATER;
-}
-
 OrderingComparatorUP KBO::createComparator(TermList lhs, TermList rhs) const
 {
   return make_unique<KBOComparator>(*this, lhs, rhs);

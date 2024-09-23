@@ -143,7 +143,7 @@ struct BackwardDemodulation::ResultFn
 
     TermList lhsS=qr.data->term;
 
-    if (!_ordering.isGreater(AppliedTerm(lhsS), AppliedTerm(rhs,&appl,true))) {
+    if (_ordering.isGreaterOrEq(AppliedTerm(lhsS), AppliedTerm(rhs,&appl,true))!=Ordering::GREATER) {
       return BwSimplificationRecord(0);
     }
 

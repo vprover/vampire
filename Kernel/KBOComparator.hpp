@@ -36,10 +36,7 @@ public:
   KBOComparator(const Ordering& ord, TermList lhs, TermList rhs)
     : OrderingComparator(ord, lhs, rhs) {}
 
-  /** Executes the runtime specialized instructions with concrete substitution. */
-  bool check(const SubstApplicator* applicator) override;
-
-  static void expand(const Ordering& ord, Branch& branch, const Stack<TermPairRes>& cache);
+  void expand(Branch& branch, const Stack<TermPairRes>& cache) override;
 };
 
 }
