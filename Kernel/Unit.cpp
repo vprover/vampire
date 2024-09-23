@@ -168,11 +168,13 @@ std::string Unit::inferenceAsString() const
   }
 
   // print extra if present
-  auto *extra = env.proofExtra.find(this);
-  if(extra) {
-    if(!first)
-      result += ',';
-    result += extra->toString();
+  if(env.options->proofExtra() == Options::ProofExtra::FULL) {
+    auto *extra = env.proofExtra.find(this);
+    if(extra) {
+      if(!first)
+        result += ',';
+      result += extra->toString();
+    }
   }
 
   return result + ']';

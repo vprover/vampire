@@ -219,7 +219,7 @@ void Clause::destroy()
   static Stack<Clause*> toDestroy(32);
   Clause* cl = this;
   for(;;) {
-    if (env.options->proofExtra()) {
+    if (env.options->proofExtra() == Options::ProofExtra::FULL) {
       env.proofExtra.remove(cl);
     }
     Inference::Iterator it = cl->_inference.iterator();
@@ -383,7 +383,7 @@ std::string Clause::toString() const
   // print inference and ids of parent clauses
   result += " " + inferenceAsString();
 
-  if(env.options->proofExtra()){
+  if(env.options->proofExtra() != Options::ProofExtra::OFF){
     // print statistics: each entry should have the form key:value
     result += std::string(" {");
       
