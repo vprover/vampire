@@ -496,11 +496,14 @@ public:
 
 
   /**
-   * Checks whether a subsumption resolution can occur between the clauses @b L and @b M with the literal @b resolutionLiteral as the resolution literal.
+   * @brief Checks whether a subsumption resolution can occur between the clauses @b L and @b M with the literal @b resolutionLiteral as the resolution literal.
    *
    * @param L the base clause (side premise)
    * @param M the instance clause (main premise)
    * @param resolutionLiteral the index of the resolution literal in the instance clause @b M
+   *
+   * @note The conclusion of subsumption resolution is not generated. The conclusion can be later generated using getSubsumptionResolutionConclusion( @b M, @b resolutionLiteral, @b L), provided that @b resolutionLiteral is a valid resolution literal.
+   * @note If @b resolutionLiteral is 0xFFFFFFFF, the method will check if subsumption resolution is possible with any literal. But the conclusion will not be generated.
    */
   bool checkSubsumptionResolutionWithLiteral(Kernel::Clause *L,
                                              Kernel::Clause *M,
