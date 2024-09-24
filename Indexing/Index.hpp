@@ -106,6 +106,12 @@ struct TermLiteralClause
 
   IMPL_COMPARISONS_FROM_TUPLE(TermLiteralClause)
 
+  bool insert(const TermLiteralClause& other) { return false; }
+
+  bool remove(const TermLiteralClause& other) { return *this==other; }
+
+  bool canBeDeleted() const { return true; }
+
   friend std::ostream& operator<<(std::ostream& out, TermLiteralClause const& self)
   { return out << "("
                << self.term << ", "
@@ -116,16 +122,11 @@ struct TermLiteralClause
 
 /** Custom leaf data for forward demodulation to store the demodulator
  * left- and right-hand side normalized and cache preorderedness. */
-struct DemodulatorData : public OrderingComparator::ResultNode
+struct DemodulatorData
 {
   DemodulatorData(TypedTermList term, TermList rhs, Clause* clause, bool preordered, const Ordering& ord)
-    : term(term), rhs(rhs), clause(clause), preordered(preordered), comparator()
+    : term(term), rhs(rhs), clause(clause), preordered(preordered)
   {
-    if (!preordered) {
-      OrderingComparator::Branch root(term, rhs);
-      root.n->gtBranch = OrderingComparator::Branch(new OrderingComparator::ResultNode());
-      comparator = ord.createComparator(&root);
-    }
 #if VDEBUG
     ASS(term.containsAllVariablesOf(rhs));
     ASS(!preordered || ord.compare(term,rhs)==Ordering::GREATER);
@@ -141,7 +142,6 @@ struct DemodulatorData : public OrderingComparator::ResultNode
   TermList rhs;
   Clause* clause;
   bool preordered; // whether term > rhs
-  OrderingComparatorUP comparator; // owned comparator for whether term > rhs
 
   TypedTermList const& key() const { return term; }
 
@@ -154,12 +154,62 @@ struct DemodulatorData : public OrderingComparator::ResultNode
   { return out << "(" << self.term << " = " << self.rhs << ", cl " << outputPtr(self.clause) << ")"; }
 };
 
+struct DemodulatorDataContainer {
+  TypedTermList term;
+  Stack<DemodulatorData*> dds;
+  OrderingComparatorUP comparator;
+
+  DemodulatorDataContainer(DemodulatorData&& dd, const Ordering& ord) : term(dd.term) {
+    Stack<Ordering::Constraint> ordCons;
+    if (!dd.preordered) {
+      ordCons.push({ dd.term, dd.rhs, Ordering::GREATER });
+    }
+    auto ptr = new DemodulatorData(std::move(dd));
+    dds.push(ptr);
+    comparator = ord.createComparator(ordCons, ptr);
+  }
+
+  bool insert(const DemodulatorDataContainer& other) {
+    if (term!=other.term) {
+      return false;
+    }
+    dds.loadFromIterator(other.dds.iter());
+    comparator->addAlternative(*other.comparator.get());
+    return true;
+  }
+
+  bool remove(const DemodulatorDataContainer& other) {
+    if (term!=other.term) {
+      return false;
+    }
+    iterTraits(other.dds.iter()).forEach([this](DemodulatorData* toRemove){
+      decltype(dds)::DelIterator it(dds);
+      while (it.hasNext()) {
+        auto curr = it.next();
+        if (*curr==*toRemove) {
+          // TODO this is not good until we can
+          // actually remove the node from the tree
+          //
+          // delete curr;
+          it.del();
+        }
+      }
+    });
+    return true;
+  }
+
+  bool canBeDeleted() const { return dds.isEmpty(); }
+
+  friend std::ostream& operator<<(std::ostream& out, DemodulatorDataContainer const& self)
+  { return out << "TODO"; }
+};
+
 template<class T>
 struct is_indexed_data_normalized
 { static constexpr bool value = false; };
 
 template<>
-struct is_indexed_data_normalized<DemodulatorData>
+struct is_indexed_data_normalized<DemodulatorDataContainer>
 { static constexpr bool value = true; };
 
 /**

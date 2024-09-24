@@ -24,10 +24,18 @@ using namespace Shell;
 void KBOComparator::expand()
 {
   const auto& kbo = static_cast<const KBO&>(_ord);
-  while (_curr->tag == BranchTag::T_UNKNOWN)
+  while (!_curr->ready)
   {
     // take temporary ownership of node
     Branch nodeHolder = *_curr;
+
+    if (_curr->tag == BranchTag::T_RESULT) {
+      auto node = static_cast<ResultNode*>(nodeHolder.n.ptr());
+      *_curr = Branch(node->data);
+      static_cast<ResultNode*>(_curr->n.ptr())->alternative = node->alternative;
+      _curr->ready = true;
+      return;
+    }
     auto node = static_cast<ComparisonNode*>(nodeHolder.n.ptr());
 
     // Use compare here to filter out as many

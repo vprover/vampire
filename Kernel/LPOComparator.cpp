@@ -51,10 +51,18 @@ void LPOComparator::alphaChain(Branch* branch, Term* s, unsigned i, TermList tl2
 void LPOComparator::expand()
 {
   const auto& lpo = static_cast<const LPO&>(_ord);
-  while (_curr->tag == BranchTag::T_UNKNOWN)
+  while (!_curr->ready)
   {
     // take temporary ownership of node
     Branch nodeHolder = *_curr;
+
+    if (_curr->tag == BranchTag::T_RESULT) {
+      auto node = static_cast<ResultNode*>(nodeHolder.n.ptr());
+      *_curr = Branch(node->data);
+      static_cast<ResultNode*>(_curr->n.ptr())->alternative = node->alternative;
+      _curr->ready = true;
+      return;
+    }
     auto node = static_cast<ComparisonNode*>(nodeHolder.n.ptr());
     ASS(node);
 

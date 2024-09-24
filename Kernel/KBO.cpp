@@ -874,9 +874,9 @@ Ordering::Result KBO::isGreaterOrEq(AppliedTerm tl1, AppliedTerm tl2) const
   return res;
 }
 
-OrderingComparatorUP KBO::createComparator(void* root) const
+OrderingComparatorUP KBO::createComparator(const Stack<Constraint>& cons, void* result) const
 {
-  return make_unique<KBOComparator>(*this, root);
+  return make_unique<KBOComparator>(*this, cons, result);
 }
 
 int KBO::symbolWeight(const Term* t) const

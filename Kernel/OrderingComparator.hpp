@@ -28,13 +28,14 @@ namespace Kernel {
  */
 struct OrderingComparator
 {
+protected:
   struct Branch;
   struct Node;
-  struct ResultNode;
+  class ResultNode;
   class ComparisonNode;
 
-  OrderingComparator(const Ordering& ord, void* root) : _ord(ord),
-    _root(*static_cast<Branch*>(root)), _curr(&_root), _cache() {}
+public:
+  OrderingComparator(const Ordering& ord, const Stack<Ordering::Constraint>& comps, void* result);
   virtual ~OrderingComparator();
 
   void reset() { _curr = &_root; _cache.reset(); }
@@ -42,37 +43,38 @@ struct OrderingComparator
     reset();
     return next(applicator)!=nullptr;
   }
+  const Stack<Ordering::Constraint>& cache() const { return _cache; }
 
-  ResultNode* next(const SubstApplicator* applicator);
-  void addAlternative(const Branch& branch);
-
-  using TermPairRes = std::tuple<TermList,TermList,Ordering::Result>;
-
-  virtual void expand();
-  bool tryExpandVarCase(ComparisonNode* origNode);
+  void* next(const SubstApplicator* applicator);
+  void addAlternative(const OrderingComparator& other);
 
   friend std::ostream& operator<<(std::ostream& out, const OrderingComparator& comp);
+
+protected:
+  virtual void expand();
+  bool tryExpandVarCase(ComparisonNode* origNode);
 
   enum class BranchTag : uint8_t {
     T_RESULT,
     T_COMPARISON,
     T_WEIGHT,
-    T_UNKNOWN,
   };
 
   struct Branch {
     BranchTag tag;
     SmartPtr<Node> n;
+    bool ready = false;
 
-    Branch() : tag(BranchTag::T_RESULT) {}
-    explicit Branch(ResultNode* r) : tag(BranchTag::T_RESULT), n(r) {}
+    Branch() : tag(BranchTag::T_RESULT), ready(true) {}
+    explicit Branch(void* data) : tag(BranchTag::T_RESULT), n(new ResultNode(data)) {}
     explicit Branch(TermList lhs, TermList rhs)
-      : tag(BranchTag::T_UNKNOWN), n(new ComparisonNode(lhs, rhs)) {}
+      : tag(BranchTag::T_COMPARISON), n(new ComparisonNode(lhs, rhs)) {}
     explicit Branch(int w, Stack<std::pair<unsigned,int>>&& varCoeffPairs)
-      : tag(BranchTag::T_WEIGHT), n(new WeightNode(w, std::move(varCoeffPairs))) {}
+      : tag(BranchTag::T_WEIGHT), n(new WeightNode(w, std::move(varCoeffPairs))), ready(true) {}
   };
 
   friend std::ostream& operator<<(std::ostream& out, const Branch& branch);
+  friend std::ostream& operator<<(std::ostream& out, const BranchTag& t);
 
   struct Node {
     virtual ~Node() = default;
@@ -99,7 +101,14 @@ struct OrderingComparator
     unsigned ts;
   };
 
-  struct ResultNode : public Node {
+  class ResultNode : public Node {
+    ResultNode(void* data) : data(data) {}
+
+    // only allow calling ctor from Branch
+    friend struct Branch;
+  
+  public:
+    void* data;
     Branch alternative;
   };
 
@@ -131,7 +140,7 @@ struct OrderingComparator
   const Ordering& _ord;
   Branch _root;
   Branch* _curr;
-  Stack<TermPairRes> _cache;
+  Stack<Ordering::Constraint> _cache;
 };
 
 } // namespace Kernel

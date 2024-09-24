@@ -58,21 +58,10 @@ using namespace Indexing;
 
 using LiteralSet = SharedSet<Literal*>;
 
-struct OrderingConstraint {
-  OrderingConstraint(TermList lhs, TermList rhs) : lhs(lhs), rhs(rhs), comp() {}
-  TermList lhs;
-  TermList rhs;
-  OrderingComparatorUP comp;
-};
-
-using OrderingConstraints = Stack<OrderingConstraint>;
-
-struct ConditionalRedundancyEntry : OrderingComparator::ResultNode
+struct ConditionalRedundancyEntry
 {
   Stack<std::pair<unsigned,unsigned>> eqCons;
-#if DEBUG_ORDERING
-  OrderingConstraints ordCons;
-#endif
+  Stack<Ordering::Constraint> ordCons;
   const LiteralSet* lits;
   SplitSet* splits;
   bool active = true;

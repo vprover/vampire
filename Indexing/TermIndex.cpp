@@ -141,7 +141,8 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
       r.apply(EqHelper::getOtherEqualitySide(lit, lhs)),
       c, preordered, _ord
     );
-    _is->handle(std::move(dd), adding);
+    DemodulatorDataContainer dc(std::move(dd), _ord);
+    _is->handle(std::move(dc), adding);
   }
 }
 

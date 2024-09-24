@@ -33,8 +33,8 @@ class KBOComparator
 : public OrderingComparator
 {
 public:
-  KBOComparator(const Ordering& ord, void* root)
-    : OrderingComparator(ord, root) {}
+  KBOComparator(const Ordering& ord, const Stack<Ordering::Constraint>& comps, void* result)
+    : OrderingComparator(ord, comps, result) {}
 
   void expand() override;
 };

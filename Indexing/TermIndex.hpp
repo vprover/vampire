@@ -109,10 +109,10 @@ private:
  * Term index for forward demodulation
  */
 class DemodulationLHSIndex
-: public TermIndex<DemodulatorData>
+: public TermIndex<DemodulatorDataContainer>
 {
 public:
-  DemodulationLHSIndex(TermIndexingStructure<DemodulatorData>* is, Ordering& ord, const Options& opt)
+  DemodulationLHSIndex(TermIndexingStructure<DemodulatorDataContainer>* is, Ordering& ord, const Options& opt)
   : TermIndex(is), _ord(ord), _opt(opt) {};
 protected:
   void handleClause(Clause* c, bool adding);

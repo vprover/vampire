@@ -56,6 +56,15 @@ public:
     INCOMPARABLE=4
   };
 
+  struct Constraint {
+    TermList lhs;
+    TermList rhs;
+    Result rel;
+
+    friend std::ostream& operator<<(std::ostream& out, const Constraint& self)
+    { return out << self.lhs << " " << self.rhs << " " << resultToString(self.rel); }
+  };
+
   virtual ~Ordering() = default;
 
   /** Return the result of comparing @b l1 and @b l2 */
@@ -76,7 +85,7 @@ public:
 
   /** Creates optimised object to check that @b lhs is greater than @b rhs.
    *  @see OrderingComparator. */
-  virtual OrderingComparatorUP createComparator(void* root) const;
+  virtual OrderingComparatorUP createComparator(const Stack<Constraint>& cons, void* result) const;
 
   virtual void show(std::ostream& out) const = 0;
 
