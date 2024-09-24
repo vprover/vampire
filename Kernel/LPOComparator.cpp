@@ -48,13 +48,13 @@ void LPOComparator::alphaChain(Branch* branch, Term* s, unsigned i, TermList tl2
   *branch = fail;
 }
 
-void LPOComparator::expand(Branch& branch, const Stack<TermPairRes>& cache)
+void LPOComparator::expand()
 {
   const auto& lpo = static_cast<const LPO&>(_ord);
-  while (branch.tag == BranchTag::T_UNKNOWN)
+  while (_curr->tag == BranchTag::T_UNKNOWN)
   {
     // take temporary ownership of node
-    Branch nodeHolder = branch;
+    Branch nodeHolder = *_curr;
     auto node = static_cast<ComparisonNode*>(nodeHolder.n.ptr());
     ASS(node);
 
@@ -63,16 +63,16 @@ void LPOComparator::expand(Branch& branch, const Stack<TermPairRes>& cache)
     auto comp = lpo.compare(node->lhs,node->rhs);
     if (comp != Ordering::INCOMPARABLE) {
       if (comp == Ordering::LESS) {
-        branch = node->incBranch;
+        *_curr = node->incBranch;
       } else if (comp == Ordering::GREATER) {
-        branch = node->gtBranch;
+        *_curr = node->gtBranch;
       } else {
-        branch = node->eqBranch;
+        *_curr = node->eqBranch;
       }
       continue;
     }
     // If we have a variable, we cannot preprocess further.
-    if (tryVarVarCase(branch, cache, node)) {
+    if (tryExpandVarCase(node)) {
       continue;
     }
 
@@ -87,7 +87,7 @@ void LPOComparator::expand(Branch& branch, const Stack<TermPairRes>& cache)
       auto lhs = node->lhs;
       auto rhs = node->rhs;
 
-      auto curr = &branch;
+      auto curr = _curr;
 
       // lexicographic comparisons
       for (unsigned i = 0; i < s->arity(); i++)
@@ -106,12 +106,12 @@ void LPOComparator::expand(Branch& branch, const Stack<TermPairRes>& cache)
     }
     case Ordering::GREATER: {
       ASS(t->arity());
-      majoChain(&branch, node->lhs, t, 0, node->gtBranch, node->incBranch);
+      majoChain(_curr, node->lhs, t, 0, node->gtBranch, node->incBranch);
       break;
     }
     case Ordering::LESS: {
       ASS(s->arity());
-      alphaChain(&branch, s, 0, node->rhs, node->gtBranch, node->incBranch);
+      alphaChain(_curr, s, 0, node->rhs, node->gtBranch, node->incBranch);
       break;
     }
     default:

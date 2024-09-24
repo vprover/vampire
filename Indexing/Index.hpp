@@ -116,11 +116,16 @@ struct TermLiteralClause
 
 /** Custom leaf data for forward demodulation to store the demodulator
  * left- and right-hand side normalized and cache preorderedness. */
-struct DemodulatorData
+struct DemodulatorData : public OrderingComparator::ResultNode
 {
   DemodulatorData(TypedTermList term, TermList rhs, Clause* clause, bool preordered, const Ordering& ord)
-    : term(term), rhs(rhs), clause(clause), preordered(preordered), comparator(ord.createComparator(term, rhs))
+    : term(term), rhs(rhs), clause(clause), preordered(preordered), comparator()
   {
+    if (!preordered) {
+      OrderingComparator::Branch root(term, rhs);
+      root.n->gtBranch = OrderingComparator::Branch(new OrderingComparator::ResultNode());
+      comparator = ord.createComparator(&root);
+    }
 #if VDEBUG
     ASS(term.containsAllVariablesOf(rhs));
     ASS(!preordered || ord.compare(term,rhs)==Ordering::GREATER);

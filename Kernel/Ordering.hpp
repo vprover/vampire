@@ -29,6 +29,8 @@
 #include "Lib/Portability.hpp"
 #include "Kernel/SubstHelper.hpp"
 
+#define DEBUG_ORDERING 0
+
 namespace Kernel {
 
 using namespace Shell;
@@ -74,7 +76,7 @@ public:
 
   /** Creates optimised object to check that @b lhs is greater than @b rhs.
    *  @see OrderingComparator. */
-  virtual OrderingComparatorUP createComparator(TermList lhs, TermList rhs) const;
+  virtual OrderingComparatorUP createComparator(void* root) const;
 
   virtual void show(std::ostream& out) const = 0;
 

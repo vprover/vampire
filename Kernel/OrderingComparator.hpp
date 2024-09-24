@@ -28,35 +28,44 @@ namespace Kernel {
  */
 struct OrderingComparator
 {
-  OrderingComparator(const Ordering& ord, TermList lhs, TermList rhs) : _ord(ord), _root(lhs, rhs) {}
-  virtual ~OrderingComparator();
-  bool check(const SubstApplicator* applicator);
-  void merge(const OrderingComparator& other);
-
-  class ComparisonNode;
   struct Branch;
+  struct Node;
+  struct ResultNode;
+  class ComparisonNode;
+
+  OrderingComparator(const Ordering& ord, void* root) : _ord(ord),
+    _root(*static_cast<Branch*>(root)), _curr(&_root), _cache() {}
+  virtual ~OrderingComparator();
+
+  void reset() { _curr = &_root; _cache.reset(); }
+  bool check(const SubstApplicator* applicator) {
+    reset();
+    return next(applicator)!=nullptr;
+  }
+
+  ResultNode* next(const SubstApplicator* applicator);
+  void addAlternative(const Branch& branch);
+
   using TermPairRes = std::tuple<TermList,TermList,Ordering::Result>;
 
-  virtual void expand(Branch& branch, const Stack<TermPairRes>& cache);
-  bool tryVarVarCase(Branch& branch, const Stack<TermPairRes>& cache, ComparisonNode* origNode);
+  virtual void expand();
+  bool tryExpandVarCase(ComparisonNode* origNode);
 
   friend std::ostream& operator<<(std::ostream& out, const OrderingComparator& comp);
 
   enum class BranchTag : uint8_t {
-    T_GREATER,
-    T_NOT_GREATER,
+    T_RESULT,
     T_COMPARISON,
     T_WEIGHT,
     T_UNKNOWN,
   };
 
-  struct Node;
-
   struct Branch {
     BranchTag tag;
     SmartPtr<Node> n;
 
-    explicit Branch(BranchTag t) : tag(t) { ASS(t==BranchTag::T_GREATER || t==BranchTag::T_NOT_GREATER); }
+    Branch() : tag(BranchTag::T_RESULT) {}
+    explicit Branch(ResultNode* r) : tag(BranchTag::T_RESULT), n(r) {}
     explicit Branch(TermList lhs, TermList rhs)
       : tag(BranchTag::T_UNKNOWN), n(new ComparisonNode(lhs, rhs)) {}
     explicit Branch(int w, Stack<std::pair<unsigned,int>>&& varCoeffPairs)
@@ -66,7 +75,7 @@ struct OrderingComparator
   friend std::ostream& operator<<(std::ostream& out, const Branch& branch);
 
   struct Node {
-    Node() : eqBranch(BranchTag::T_NOT_GREATER), gtBranch(BranchTag::T_GREATER), incBranch(BranchTag::T_NOT_GREATER), ts(0) {}
+    virtual ~Node() = default;
 
     auto& getBranch(Ordering::Result r) {
       switch (r) {
@@ -88,6 +97,10 @@ struct OrderingComparator
     Branch gtBranch;
     Branch incBranch;
     unsigned ts;
+  };
+
+  struct ResultNode : public Node {
+    Branch alternative;
   };
 
   class ComparisonNode : public Node {
@@ -117,6 +130,8 @@ struct OrderingComparator
 
   const Ordering& _ord;
   Branch _root;
+  Branch* _curr;
+  Stack<TermPairRes> _cache;
 };
 
 } // namespace Kernel

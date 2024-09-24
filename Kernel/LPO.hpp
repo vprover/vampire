@@ -48,7 +48,7 @@ public:
   Result compare(TermList tl1, TermList tl2) const override;
   Result compare(AppliedTerm tl1, AppliedTerm tl2) const override;
   Result isGreaterOrEq(AppliedTerm tl1, AppliedTerm tl2) const override;
-  OrderingComparatorUP createComparator(TermList lhs, TermList rhs) const override;
+  OrderingComparatorUP createComparator(void* root) const override;
 
   void showConcrete(std::ostream&) const override;
 

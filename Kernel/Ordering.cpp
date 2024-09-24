@@ -210,9 +210,9 @@ Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const
   return res;
 }
 
-OrderingComparatorUP Ordering::createComparator(TermList lhs, TermList rhs) const
+OrderingComparatorUP Ordering::createComparator(void* root) const
 {
-  return std::make_unique<OrderingComparator>(*this, lhs, rhs);
+  return std::make_unique<OrderingComparator>(*this, root);
 }
 
 //////////////////////////////////////////////////

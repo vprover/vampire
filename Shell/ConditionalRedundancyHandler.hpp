@@ -67,9 +67,12 @@ struct OrderingConstraint {
 
 using OrderingConstraints = Stack<OrderingConstraint>;
 
-struct ConditionalRedundancyEntry {
+struct ConditionalRedundancyEntry : OrderingComparator::ResultNode
+{
   Stack<std::pair<unsigned,unsigned>> eqCons;
+#if DEBUG_ORDERING
   OrderingConstraints ordCons;
+#endif
   const LiteralSet* lits;
   SplitSet* splits;
   bool active = true;
@@ -93,7 +96,12 @@ struct ConditionalRedundancyEntry {
   }
 };
 
-using Entries = Stack<ConditionalRedundancyEntry*>;
+struct Entries {
+#if DEBUG_ORDERING
+  Stack<ConditionalRedundancyEntry*> entries;
+#endif
+  OrderingComparatorUP comparator;
+};
 
 class ConditionalRedundancyHandler
 {
@@ -101,6 +109,7 @@ public:
   static ConditionalRedundancyHandler* create(const Options& opts, const Ordering* ord, Splitter* splitter);
   static void destroyClauseData(Clause* cl);
 
+  ConditionalRedundancyHandler(const Ordering* ord) : _ord(ord) {}
   virtual ~ConditionalRedundancyHandler() = default;
 
   virtual bool checkSuperposition(
@@ -128,6 +137,8 @@ protected:
 
   // this contains the redundancy information associated with each clause
   static DHMap<Clause*,ConstraintIndex*> clauseData;
+
+  const Ordering* _ord;
 };
 
 template<bool enabled, bool orderingConstraints, bool avatarConstraints, bool literalConstraints>
@@ -136,9 +147,10 @@ class ConditionalRedundancyHandlerImpl
 {
 public:
   ConditionalRedundancyHandlerImpl(const Options& opts, const Ordering* ord, Splitter* splitter)
-    : _redundancyCheck(opts.demodulationRedundancyCheck() != Options::DemodulationRedundancyCheck::OFF),
+    : ConditionalRedundancyHandler(ord),
+      _redundancyCheck(opts.demodulationRedundancyCheck() != Options::DemodulationRedundancyCheck::OFF),
       _encompassing(opts.demodulationRedundancyCheck() == Options::DemodulationRedundancyCheck::ENCOMPASS),
-      _ord(ord), _splitter(splitter) {}
+      _splitter(splitter) {}
 
   /** Returns false if superposition should be skipped. */
   bool checkSuperposition(
@@ -164,7 +176,6 @@ public:
 private:
   bool _redundancyCheck;
   bool _encompassing;
-  const Ordering* _ord;
   Splitter* _splitter;
 };
 

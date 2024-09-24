@@ -49,27 +49,24 @@ bool checkVars(const TermStack& ts, T s)
   return true;
 }
 
+std::ostream& operator<<(std::ostream& out, const OrderingConstraint& con)
+{
+  return out << con.lhs << " " << con.rhs;
+}
+
 std::ostream& operator<<(std::ostream& str, const ConditionalRedundancyEntry& e)
 {
   if (!e.active) {
     str << "not active";
   } else {
     str << *e.splits << "; " << *e.lits << "; ";
+#if DEBUG_ORDERING
     iterTraits(e.ordCons.iter()).forEach([&str](const OrderingConstraint& con) {
-      if (con.comp) {
-        str << *con.comp;
-      } else {
-        str << con.lhs.toString() << " > " << con.rhs.toString();
-      }
+      str << con;
     });
+#endif
   }
   return str;
-}
-
-void ensureComparator(const Ordering* ord, OrderingConstraint& cons) {
-  if (!cons.comp) {
-    cons.comp = ord->createComparator(cons.lhs, cons.rhs);
-  }
 }
 
 class ConditionalRedundancyHandler::ConstraintIndex
@@ -101,7 +98,8 @@ public:
     OrderingConstraints&& ordCons, const LiteralSet* lits, SplitSet* splits)
   {
     auto ts = getInstances([subst,result](unsigned v) { return subst->applyTo(TermList::var(v),result); });
-    return insert(ord, ts, createEntry(ts, splitter, std::move(ordCons), lits, splits));
+    auto e = createEntry(ts, splitter, std::move(ordCons), lits, splits);
+    return insert(ord, ts, e.first, e.second);
   }
 
   bool checkAndInsert(const Ordering* ord, ResultSubstitution* subst, bool result, bool doInsert, Splitter* splitter,
@@ -117,7 +115,8 @@ public:
       return false;
     }
     if (doInsert) {
-      return insert(ord, ts, createEntry(ts, splitter, std::move(ordCons), lits, splits));
+      auto e = createEntry(ts, splitter, std::move(ordCons), lits, splits);
+      return insert(ord, ts, e.first, e.second);
     }
     return true;
   }
@@ -127,41 +126,24 @@ private:
   Clause* _cl;
 #endif
 
-  bool insert(const Ordering* ord, Entries* entries, ConditionalRedundancyEntry* ptr)
+  bool insert(Entries* entries, const OrderingComparator::Branch& root, ConditionalRedundancyEntry* ptr)
   {
     ASS(ptr->active);
 
-    auto numCons = ptr->lits->size() + ptr->splits->size() + ptr->ordCons.size() + ptr->eqCons.size();
-    if (ptr->ordCons.size()==1) {
-      for (unsigned i = 0; i < entries->size();) {
-        const auto& e = (*entries)[i];
-        if (e->active && e->lits->isEmpty() && e->splits->isEmpty() && e->ordCons.size()==1) {
-          ensureComparator(ord, e->ordCons[0]);
-          ensureComparator(ord, ptr->ordCons[0]);
+    ASS(entries->comparator);
 
-          e->ordCons[0].comp->merge(std::move(*ptr->ordCons[0].comp.get()));
-          return true;
-        }
-        i++;
-      }
-    }
-    entries->push(ptr);
+#if DEBUG_ORDERING
+    entries->entries.push(ptr);
+#endif
+    entries->comparator->addAlternative(root);
     return true;
   }
 
-  bool insert(const Ordering* ord, const TermStack& ts, ConditionalRedundancyEntry* ptr)
+  bool insert(const Ordering* ord, const TermStack& ts, const OrderingComparator::Branch& root, ConditionalRedundancyEntry* ptr)
   {
     if (lastRenamingEntry) {
       // there is an entry up to renaming already, insert it here
-      if (insert(ord, lastRenamingEntry, ptr)) {
-        // cout << "insert2 " << *_cl << endl;
-        // cout << varSortsToString(_varSorts) << endl;
-        // cout << *this << endl << endl;
-        return true;
-      }
-      // cout << "no insert " << *_cl << endl;
-      // cout << varSortsToString(_varSorts) << endl;
-      return false;
+      return insert(lastRenamingEntry, root, ptr);
     }
 
     CodeStack code;
@@ -182,14 +164,13 @@ private:
     ptr->eqCons = compiler.eqCons;
     compiler.updateCodeTree(this);
 
-    // just put anything non-null in there to get a valid success
     auto es = new Entries();
-    es->push(ptr);
+#if DEBUG_ORDERING
+    es->entries.push(ptr);
+#endif
+    es->comparator = ord->createComparator(const_cast<OrderingComparator::Branch*>(&root));
     code.push(CodeOp::getSuccess(es));
     incorporate(code);
-    // cout << "insert " << *_cl << endl;
-    // cout << varSortsToString(_varSorts) << endl;
-    // cout << *this << endl << endl;
     return true;
   }
 
@@ -213,55 +194,85 @@ private:
         lastRenamingEntry = es;
       }
 
-      // TODO indent
-      for (const auto& e : *es) {
+      ASS(es->comparator);
+      es->comparator->reset();
+      ConditionalRedundancyEntry* e = nullptr;
+      while ((e = static_cast<ConditionalRedundancyEntry*>(es->comparator->next(&applicator)))) {
 
-      if (!e->active) {
-        continue;
-      }
+        if (!e->active) {
+          continue;
+        }
 
-      // auto eqs_ok = iterTraits(e->eqCons.iter()).all([&applicator](const auto& kv) {
-      //   return applicator(kv.first) == applicator(kv.second);
-      // });
-      // if (!eqs_ok) {
-      //   env.statistics->structInduction++;
-      //   continue;
-      // }
+        // check AVATAR constraints
+        if (!e->splits->isSubsetOf(splits)) {
+          continue;
+        }
 
-      // check AVATAR constraints
-      if (!e->splits->isSubsetOf(splits)) {
-        continue;
-      }
+        // check literal conditions
+        auto subsetof = e->lits->iter().all([lits,&applicator](Literal* lit) {
+          return lits->member(SubstHelper::apply(lit,applicator));
+        });
+        if (!subsetof) {
+          continue;
+        }
 
-      // check literal conditions
-      auto subsetof = e->lits->iter().all([lits,&applicator](Literal* lit) {
-        return lits->member(SubstHelper::apply(lit,applicator));
-      });
-      if (!subsetof) {
-        continue;
-      }
+#if DEBUG_ORDERING
+        auto ordCons_crosscheck = iterTraits(e->ordCons.iter()).all([ord,&applicator](auto& ordCon) {
+          return ord->compare(AppliedTerm(ordCon.lhs,&applicator,true),AppliedTerm(ordCon.rhs,&applicator,true))==Ordering::GREATER;
+        });
+        if (!ordCons_crosscheck) {
+          cout << e << endl;
+          cout << *e << endl;
+          cout << *es->comparator << endl;
+          INVALID_OPERATION("nope");
+        }
+#endif
 
-      // check ordering constraints
-      auto ordCons_ok = iterTraits(e->ordCons.iter()).all([ord,&applicator](auto& ordCon) {
-        ensureComparator(ord, ordCon);
-        return ordCon.comp->check(&applicator);
-      });
-      if (!ordCons_ok) {
-        continue;
+        // collect statistics
+        // TODO fix ordering constraint stats
+#if DEBUG_ORDERING
+        if (e->ordCons.isNonEmpty()) {
+          env.statistics->skippedInferencesDueToOrderingConstraints++;
+        }
+#endif
+        if (!e->lits->isEmpty()) {
+          env.statistics->skippedInferencesDueToLiteralConstraints++;
+        }
+        if (!e->splits->isEmpty()) {
+          env.statistics->skippedInferencesDueToAvatarConstraints++;
+        }
+        return true;
       }
+#if DEBUG_ORDERING
+      for (const auto& e : es->entries) {
+        if (!e->active) {
+          continue;
+        }
 
-      // collect statistics
-      if (e->ordCons.isNonEmpty()) {
-        env.statistics->skippedInferencesDueToOrderingConstraints++;
+        // check AVATAR constraints
+        if (!e->splits->isSubsetOf(splits)) {
+          continue;
+        }
+
+        // check literal conditions
+        auto subsetof = e->lits->iter().all([lits,&applicator](Literal* lit) {
+          return lits->member(SubstHelper::apply(lit,applicator));
+        });
+        if (!subsetof) {
+          continue;
+        }
+
+        // check ordering constraints
+        auto ordCons_ok = iterTraits(e->ordCons.iter()).all([ord,&applicator](auto& ordCon) {
+          return ord->compare(AppliedTerm(ordCon.lhs,&applicator,true),AppliedTerm(ordCon.rhs,&applicator,true))==Ordering::GREATER;
+        });
+        if (!ordCons_ok) {
+          continue;
+        }
+
+        INVALID_OPERATION("nope");
       }
-      if (!e->lits->isEmpty()) {
-        env.statistics->skippedInferencesDueToLiteralConstraints++;
-      }
-      if (!e->splits->isEmpty()) {
-        env.statistics->skippedInferencesDueToAvatarConstraints++;
-      }
-      return true;
-      }
+#endif
     }
     matcher.reset();
 
@@ -282,7 +293,7 @@ private:
 
   DHMap<unsigned,TermList> _varSorts;
 
-  ConditionalRedundancyEntry* createEntry(const TermStack& ts, Splitter* splitter, OrderingConstraints&& ordCons, const LiteralSet* lits, SplitSet* splits) const
+  std::pair<OrderingComparator::Branch, ConditionalRedundancyEntry*> createEntry(const TermStack& ts, Splitter* splitter, OrderingConstraints&& ordCons, const LiteralSet* lits, SplitSet* splits) const
   {
     auto e = new ConditionalRedundancyEntry();
     Renaming r;
@@ -302,14 +313,29 @@ private:
       ordCon.lhs = r.apply(ordCon.lhs);
       ordCon.rhs = r.apply(ordCon.rhs);
     }
+
+    OrderingComparator::Branch root;
+    auto curr = &root;
+    if (ordCons.isNonEmpty()) {
+      *curr = OrderingComparator::Branch(ordCons[0].lhs, ordCons[0].rhs);
+      curr = &curr->n->gtBranch;
+      for (unsigned i = 1; i < ordCons.size(); i++) {
+        auto& ordCon = ordCons[i];
+        *curr = OrderingComparator::Branch(ordCon.lhs, ordCon.rhs);
+        curr = &curr->n->gtBranch;
+      }
+    }
+    *curr = OrderingComparator::Branch(e);
+#if DEBUG_ORDERING
     e->ordCons = std::move(ordCons);
+#endif
 
 #if VDEBUG
     lits->iter().forEach([&ts](Literal* lit) {
       ASS(checkVars(ts,lit));
     });
 #endif
-  
+
     e->lits = LiteralSet::getFromIterator(lits->iter().map([&r](Literal* lit) {
       return r.apply(lit);
     }));
@@ -321,7 +347,7 @@ private:
       splitter->addConditionalRedundancyEntry(splits, e);
     }
   
-    return e;
+    return { root, e };
   }
 
   struct SubstMatcher
@@ -363,17 +389,13 @@ private:
 
   static void onCodeOpDestroying(CodeOp* op) {
     if (op->isSuccess()) {
-      iterTraits(op->getSuccessResult<Entries>()->iter())
-        .forEach([](ConditionalRedundancyEntry* e) { e->release(); });
+      delete op->getSuccessResult<Entries>();
     }
   }
 
   std::string leafToString(const CodeOp* success) const override {
     std::stringstream str;
-    iterTraits(success->getSuccessResult<Entries>()->iter())
-        .forEach([&str](ConditionalRedundancyEntry* e) {
-          str << *e << ";; ";
-        });
+    // TODO
     return str.str();
   }
 
@@ -424,7 +446,8 @@ void ConditionalRedundancyHandler::destroyClauseData(Clause* cl)
 
 void ConditionalRedundancyHandler::checkEquations(Clause* cl) const
 {
-  cl->iterLits().forEach([cl](Literal* lit){
+  // TODO return if not enabled
+  cl->iterLits().forEach([cl,this](Literal* lit){
     if (!lit->isEquality() || lit->isNegative()) {
       return;
     }
@@ -436,7 +459,7 @@ void ConditionalRedundancyHandler::checkEquations(Clause* cl) const
     }
     auto clDataPtr = getDataPtr(cl, /*doAllocate=*/true);
     auto rsubs = ResultSubstitution::fromSubstitution(&subs, 0, 0);
-    (*clDataPtr)->insert(nullptr, rsubs.ptr(), /*result*/false, /*splitter*/nullptr, OrderingConstraints(), LiteralSet::getEmpty(), SplitSet::getEmpty());
+    (*clDataPtr)->insert(_ord, rsubs.ptr(), /*result*/false, /*splitter*/nullptr, OrderingConstraints(), LiteralSet::getEmpty(), SplitSet::getEmpty());
   });
 }
 

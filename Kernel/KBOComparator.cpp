@@ -21,13 +21,13 @@ using namespace std;
 using namespace Lib;
 using namespace Shell;
 
-void KBOComparator::expand(Branch& branch, const Stack<TermPairRes>& cache)
+void KBOComparator::expand()
 {
   const auto& kbo = static_cast<const KBO&>(_ord);
-  while (branch.tag == BranchTag::T_UNKNOWN)
+  while (_curr->tag == BranchTag::T_UNKNOWN)
   {
     // take temporary ownership of node
-    Branch nodeHolder = branch;
+    Branch nodeHolder = *_curr;
     auto node = static_cast<ComparisonNode*>(nodeHolder.n.ptr());
 
     // Use compare here to filter out as many
@@ -35,16 +35,16 @@ void KBOComparator::expand(Branch& branch, const Stack<TermPairRes>& cache)
     auto comp = kbo.compare(node->lhs,node->rhs);
     if (comp != Ordering::INCOMPARABLE) {
       if (comp == Ordering::LESS) {
-        branch = node->incBranch;
+        *_curr = node->incBranch;
       } else if (comp == Ordering::GREATER) {
-        branch = node->gtBranch;
+        *_curr = node->gtBranch;
       } else {
-        branch = node->eqBranch;
+        *_curr = node->eqBranch;
       }
       continue;
     }
     // If we have a variable, we cannot preprocess further.
-    if (tryVarVarCase(branch, cache, node)) {
+    if (tryExpandVarCase(node)) {
       continue;
     }
 
@@ -78,7 +78,7 @@ void KBOComparator::expand(Branch& branch, const Stack<TermPairRes>& cache)
     state = nullptr;
 #endif
 
-    auto curr = &branch;
+    auto curr = _curr;
 
     // if the condition below does not hold, the weight/var balances are satisfied
     if (w < 0 || varInbalance) {
@@ -88,7 +88,7 @@ void KBOComparator::expand(Branch& branch, const Stack<TermPairRes>& cache)
       *curr = Branch(w, std::move(nonzeros));
       curr->n->gtBranch = node->gtBranch;
       curr->n->incBranch = node->incBranch;
-      curr = &branch.n->eqBranch;
+      curr = &curr->n->eqBranch;
     }
 
     auto lhst = node->lhs.term();

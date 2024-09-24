@@ -24,10 +24,10 @@ class LPOComparator
 : public OrderingComparator
 {
 public:
-  LPOComparator(const Ordering& ord, TermList lhs, TermList rhs)
-    : OrderingComparator(ord, lhs, rhs) {}
+  LPOComparator(const Ordering& ord, void* root)
+    : OrderingComparator(ord, root) {}
 
-  void expand(Branch& branch, const Stack<TermPairRes>& cache) override;
+  void expand() override;
 
 private:
   static void majoChain(Branch* branch, TermList tl1, Term* t, unsigned i, Branch success, Branch fail);

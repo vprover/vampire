@@ -33,10 +33,10 @@ class KBOComparator
 : public OrderingComparator
 {
 public:
-  KBOComparator(const Ordering& ord, TermList lhs, TermList rhs)
-    : OrderingComparator(ord, lhs, rhs) {}
+  KBOComparator(const Ordering& ord, void* root)
+    : OrderingComparator(ord, root) {}
 
-  void expand(Branch& branch, const Stack<TermPairRes>& cache) override;
+  void expand() override;
 };
 
 }

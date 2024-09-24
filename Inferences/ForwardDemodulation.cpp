@@ -176,20 +176,24 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
         if (_precompiledComparison) {
           if (!preordered && (_preorderedOnly || !qr.data->comparator->check(appl))) {
+#if DEFINE_ORDERING
             if (ordering.isGreaterOrEq(AppliedTerm(trm),AppliedTerm(rhs,appl,true))==Ordering::GREATER) {
               std::cout << qr.data->term << " " << qr.data->rhs << std::endl;
               std::cout << *qr.data->comparator << std::endl;
               INVALID_OPERATION("greater");
             }
+#endif
             continue;
           }
+#if DEFINE_ORDERING
           if (ordering.isGreaterOrEq(AppliedTerm(trm),AppliedTerm(rhs,appl,true))!=Ordering::GREATER) {
             std::cout << qr.data->term << " " << qr.data->rhs << std::endl;
             std::cout << *qr.data->comparator << std::endl;
             INVALID_OPERATION("not greater");
           }
+#endif
         } else {
-          if (!preordered && (_preorderedOnly || ordering.isGreaterOrEq(AppliedTerm(trm),AppliedTerm(rhs,appl,true)))!=Ordering::GREATER) {
+          if (!preordered && (_preorderedOnly || ordering.isGreaterOrEq(AppliedTerm(trm),AppliedTerm(rhs,appl,true))!=Ordering::GREATER)) {
             continue;
           }
         }
@@ -236,7 +240,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
         premises = pvi( getSingletonIterator(qr.data->clause));
         replacement = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.data->clause));
-        ConditionalRedundancyHandler::transfer(cl, replacement);
+        // ConditionalRedundancyHandler::transfer(cl, replacement);
         return true;
       }
     }
