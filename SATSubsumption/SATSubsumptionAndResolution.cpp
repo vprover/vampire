@@ -962,12 +962,9 @@ bool SATSubsumption::SATSubsumptionAndResolution::checkSubsumptionResolutionWith
     return false;
   }
 
-  if (_solver.theory().empty()) {
-    // -> bᵢⱼ implies a certain substitution is valid
-    //    for each i, j : bᵢⱼ ⇒ (σ(lᵢ) = mⱼ ∨ σ(lᵢ) = ¬mⱼ)
-    // These constraints are created in the fillMatches() function by filling the _bindingsManager
-    _solver.theory().setBindings(&_bindingsManager);
-  }
+  ASS(_solver.theory().empty())
+  // since we cannot use the previous setup, the bindings should be cleared during loading of the problem
+  _solver.theory().setBindings(&_bindingsManager);
 
   _model.clear();
   return (_solver.solve() == subsat::Result::Sat);
