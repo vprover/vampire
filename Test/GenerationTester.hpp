@@ -90,6 +90,19 @@ public:
   { return out << "exactly: " << self._patterns; }
 };
 
+class TodoStackMatcher {
+
+public:
+  TodoStackMatcher() {}
+
+  template<class Rule>
+  bool matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester<Rule>& simpl) 
+  { return false; }
+
+  friend std::ostream& operator<<(std::ostream& out, TodoStackMatcher const& self)
+  { return out << "TODO"; }
+};
+
 class WithoutDuplicatesMatcher {
   std::shared_ptr<StackMatcher> _inner;
 
@@ -106,7 +119,8 @@ public:
 
 using AnyStackMatcher = Coproduct< ContainsStackMatcher
                                  , WithoutDuplicatesMatcher
-                                 , ExactlyStackMatcher>;
+                                 , ExactlyStackMatcher
+                                 , TodoStackMatcher>;
 
 class StackMatcher: public AnyStackMatcher {
 public:
@@ -132,6 +146,9 @@ bool WithoutDuplicatesMatcher::matches(Stack<Kernel::Clause*> sRes, Generation::
 template<class... As>
 StackMatcher exactly(As... as) 
 { return ExactlyStackMatcher(Stack<ClausePattern>({ as... })); }
+
+inline StackMatcher EXPECTED_TODO()
+{ return TodoStackMatcher(); }
 
 inline StackMatcher withoutDuplicates(StackMatcher inner) 
 { return WithoutDuplicatesMatcher(std::shared_ptr<StackMatcher>(move_to_heap(std::move(inner)))); }

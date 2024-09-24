@@ -258,34 +258,9 @@ struct MergingPartitionsIterRaw
   }
 };
 
-template<class Filter>
-struct MergingPartitionsIter {
-  MergingPartitionsIterRaw<Filter> _self;
-  bool _initial;
-  MergingPartitionsIter(unsigned N, Filter filter) 
-    : _self(N, std::move(filter)) 
-    , _initial(true)
-    {}
-
-  DECL_ELEMENT_TYPE(Filter const*);
-
-  Option<Filter const*> tryNext() {
-    if (_initial) {
-      _initial = false;
-      return some(static_cast<Filter const*>(&this->_self._filter));
-    } else {
-      return someIf(_self.nextPartition(), [&]() { return static_cast<Filter const*>(&this->_self._filter); });
-    }
-  }
-};
-
 template<class MergeFilter>
 MergingPartitionsIterRaw<MergeFilter> mergingPartitionIterRaw(unsigned N, MergeFilter filter)
 { return MergingPartitionsIterRaw<MergeFilter>(N, std::move(filter)); }
-
-template<class MergeFilter>
-MergingPartitionsIter<MergeFilter> mergingPartitionIter(unsigned N, MergeFilter filter)
-{ return MergingPartitionsIter<MergeFilter>(N, std::move(filter)); }
 
 template<class NumTraits>
 struct CoherenceConf
