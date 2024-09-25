@@ -39,10 +39,6 @@ public:
   virtual ~OrderingComparator();
 
   void reset() { _curr = &_root; _cache.reset(); }
-  bool check(const SubstApplicator* applicator) {
-    reset();
-    return next(applicator)!=nullptr;
-  }
 
   void* next(const SubstApplicator* applicator);
   void addAlternative(const OrderingComparator& other);
@@ -51,8 +47,8 @@ public:
 
 protected:
   void expand();
-  virtual void expandTermCase(ComparisonNode* node);
-  bool tryExpandVarCase(ComparisonNode* origNode);
+  virtual void expandTermCase();
+  bool tryExpandVarCase();
 
   enum class BranchTag : uint8_t {
     T_RESULT,

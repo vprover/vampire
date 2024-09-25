@@ -195,6 +195,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/MLVariant.o\
         Kernel/Ordering.o\
         Kernel/Ordering_Equality.o\
+        Kernel/OrderingComparator.o\
         Kernel/Problem.o\
         Kernel/Renaming.o\
         Kernel/RobSubstitution.o\

@@ -36,7 +36,7 @@ public:
   KBOComparator(const Ordering& ord, const Stack<Ordering::Constraint>& comps, void* result)
     : OrderingComparator(ord, comps, result) {}
 
-  void expandTermCase(ComparisonNode* node) override;
+  void expandTermCase() override;
 };
 
 }

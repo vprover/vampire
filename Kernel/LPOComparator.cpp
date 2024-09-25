@@ -48,8 +48,12 @@ void LPOComparator::alphaChain(Branch* branch, Term* s, unsigned i, TermList tl2
   *branch = fail;
 }
 
-void LPOComparator::expandTermCase(ComparisonNode* node)
+void LPOComparator::expandTermCase()
 {
+  // take temporary ownership of node
+  Branch nodeHolder = *_curr;
+  auto node = static_cast<ComparisonNode*>(nodeHolder.n.ptr());
+
   ASS(node->lhs.isTerm() && node->rhs.isTerm());
   const auto& lpo = static_cast<const LPO&>(_ord);
   auto s = node->lhs.term();

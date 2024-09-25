@@ -13,11 +13,14 @@
  */
 
 #include "Lib/Stack.hpp"
-#include "KBO.hpp"
+#include "Lib/Environment.hpp"
 
+#include "KBO.hpp"
 #include "SubstHelper.hpp"
 
 #include "OrderingComparator.hpp"
+
+using namespace std;
 
 namespace Kernel {
 
@@ -272,24 +275,26 @@ void OrderingComparator::expand()
       continue;
     }
     // If we have a variable, we cannot preprocess further.
-    if (tryExpandVarCase(node)) {
+    if (tryExpandVarCase()) {
       continue;
     }
 
-    ASS_EQ(_curr->n.ptr(), node);
-    expandTermCase(node);
-    ASS_NEQ(_curr->n.ptr(), node);
+    expandTermCase();
   }
 }
 
-void OrderingComparator::expandTermCase(ComparisonNode* node)
+void OrderingComparator::expandTermCase()
 {
   ASS(!_curr->ready);
   _curr->ready = true;
 }
 
-bool OrderingComparator::tryExpandVarCase(ComparisonNode* node)
+bool OrderingComparator::tryExpandVarCase()
 {
+  // take temporary ownership of node
+  Branch nodeHolder = *_curr;
+  auto node = static_cast<ComparisonNode*>(nodeHolder.n.ptr());
+
   // If we have a variable, we cannot preprocess further.
   if (!node->lhs.isVar() && !node->rhs.isVar()) {
     return false;

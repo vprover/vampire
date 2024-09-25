@@ -98,7 +98,6 @@ public:
   static ConditionalRedundancyHandler* create(const Options& opts, const Ordering* ord, Splitter* splitter);
   static void destroyClauseData(Clause* cl);
 
-  ConditionalRedundancyHandler(const Ordering* ord) : _ord(ord) {}
   virtual ~ConditionalRedundancyHandler() = default;
 
   virtual bool checkSuperposition(
@@ -115,7 +114,7 @@ public:
 
   virtual void initWithEquation(Clause* resClause, TermList rwTerm, TermList tgtTerm) const = 0;
 
-  void checkEquations(Clause* cl) const;
+  virtual void checkEquations(Clause* cl) const = 0;
 
   static void transfer(Clause* from, Clause* to);
 
@@ -126,8 +125,6 @@ protected:
 
   // this contains the redundancy information associated with each clause
   static DHMap<Clause*,ConstraintIndex*> clauseData;
-
-  const Ordering* _ord;
 };
 
 template<bool enabled, bool orderingConstraints, bool avatarConstraints, bool literalConstraints>
@@ -136,10 +133,9 @@ class ConditionalRedundancyHandlerImpl
 {
 public:
   ConditionalRedundancyHandlerImpl(const Options& opts, const Ordering* ord, Splitter* splitter)
-    : ConditionalRedundancyHandler(ord),
-      _redundancyCheck(opts.demodulationRedundancyCheck() != Options::DemodulationRedundancyCheck::OFF),
+    : _redundancyCheck(opts.demodulationRedundancyCheck() != Options::DemodulationRedundancyCheck::OFF),
       _encompassing(opts.demodulationRedundancyCheck() == Options::DemodulationRedundancyCheck::ENCOMPASS),
-      _splitter(splitter) {}
+      _splitter(splitter), _ord(ord) {}
 
   /** Returns false if superposition should be skipped. */
   bool checkSuperposition(
@@ -162,10 +158,13 @@ public:
 
   void initWithEquation(Clause* resClause, TermList rwTerm, TermList tgtTerm) const override;
 
+  void checkEquations(Clause* cl) const override;
+
 private:
   bool _redundancyCheck;
   bool _encompassing;
   Splitter* _splitter;
+  const Ordering* _ord;
 };
 
 };

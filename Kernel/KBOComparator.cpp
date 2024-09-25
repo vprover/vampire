@@ -21,8 +21,12 @@ using namespace std;
 using namespace Lib;
 using namespace Shell;
 
-void KBOComparator::expandTermCase(ComparisonNode* node)
+void KBOComparator::expandTermCase()
 {
+  // take temporary ownership of node
+  Branch nodeHolder = *_curr;
+  auto node = static_cast<ComparisonNode*>(nodeHolder.n.ptr());
+
   ASS(node->lhs.isTerm() && node->rhs.isTerm());
   const auto& kbo = static_cast<const KBO&>(_ord);
 

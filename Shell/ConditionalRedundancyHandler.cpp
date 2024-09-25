@@ -422,25 +422,6 @@ void ConditionalRedundancyHandler::destroyClauseData(Clause* cl)
   delete ptr;
 }
 
-void ConditionalRedundancyHandler::checkEquations(Clause* cl) const
-{
-  // TODO return if not enabled
-  cl->iterLits().forEach([cl,this](Literal* lit){
-    if (!lit->isEquality() || lit->isNegative()) {
-      return;
-    }
-    auto t0 = lit->termArg(0);
-    auto t1 = lit->termArg(1);
-    RobSubstitution subs;
-    if (!subs.unify(t0,0,t1,0)) {
-      return;
-    }
-    auto clDataPtr = getDataPtr(cl, /*doAllocate=*/true);
-    auto rsubs = ResultSubstitution::fromSubstitution(&subs, 0, 0);
-    (*clDataPtr)->insert(_ord, rsubs.ptr(), /*result*/false, /*splitter*/nullptr, Stack<Ordering::Constraint>(), LiteralSet::getEmpty(), SplitSet::getEmpty());
-  });
-}
-
 ConditionalRedundancyHandler::ConstraintIndex** ConditionalRedundancyHandler::getDataPtr(Clause* cl, bool doAllocate)
 {
   if (!doAllocate) {
@@ -775,6 +756,30 @@ void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::initWithEqu
 
   auto clDataPtr = getDataPtr(resClause, /*doAllocate=*/true);
   (*clDataPtr)->insert(_ord, &subst, true, _splitter, std::move(ordCons), lits, splits);
+}
+
+template<bool enabled, bool ordC, bool avatarC, bool litC>
+void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkEquations(Clause* cl) const
+{
+  if (!enabled) {
+    return;
+  }
+
+  // TODO return if not enabled
+  cl->iterLits().forEach([cl,this](Literal* lit){
+    if (!lit->isEquality() || lit->isNegative()) {
+      return;
+    }
+    auto t0 = lit->termArg(0);
+    auto t1 = lit->termArg(1);
+    RobSubstitution subs;
+    if (!subs.unify(t0,0,t1,0)) {
+      return;
+    }
+    auto clDataPtr = getDataPtr(cl, /*doAllocate=*/true);
+    auto rsubs = ResultSubstitution::fromSubstitution(&subs, 0, 0);
+    (*clDataPtr)->insert(_ord, rsubs.ptr(), /*result*/false, /*splitter*/nullptr, Stack<Ordering::Constraint>(), LiteralSet::getEmpty(), SplitSet::getEmpty());
+  });
 }
 
 }
