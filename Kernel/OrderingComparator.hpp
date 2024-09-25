@@ -43,7 +43,6 @@ public:
     reset();
     return next(applicator)!=nullptr;
   }
-  const Stack<Ordering::Constraint>& cache() const { return _cache; }
 
   void* next(const SubstApplicator* applicator);
   void addAlternative(const OrderingComparator& other);
@@ -51,7 +50,8 @@ public:
   friend std::ostream& operator<<(std::ostream& out, const OrderingComparator& comp);
 
 protected:
-  virtual void expand();
+  void expand();
+  virtual void expandTermCase(ComparisonNode* node);
   bool tryExpandVarCase(ComparisonNode* origNode);
 
   enum class BranchTag : uint8_t {

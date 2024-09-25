@@ -27,7 +27,7 @@ public:
   LPOComparator(const Ordering& ord, const Stack<Ordering::Constraint>& comps, void* result)
     : OrderingComparator(ord, comps, result) {}
 
-  void expand() override;
+  void expandTermCase(ComparisonNode* node) override;
 
 private:
   static void majoChain(Branch* branch, TermList tl1, Term* t, unsigned i, Branch success, Branch fail);

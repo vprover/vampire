@@ -243,9 +243,49 @@ void OrderingComparator::addAlternative(const OrderingComparator& other)
 
 void OrderingComparator::expand()
 {
-  if (!_curr->ready) {
-    _curr->ready = true;
+  while (!_curr->ready)
+  {
+    // take temporary ownership of node
+    Branch nodeHolder = *_curr;
+
+    if (_curr->tag == BranchTag::T_RESULT) {
+      auto node = static_cast<ResultNode*>(nodeHolder.n.ptr());
+      *_curr = Branch(node->data);
+      static_cast<ResultNode*>(_curr->n.ptr())->alternative = node->alternative;
+      _curr->ready = true;
+      return;
+    }
+    ASS(_curr->tag != BranchTag::T_WEIGHT);
+    auto node = static_cast<ComparisonNode*>(nodeHolder.n.ptr());
+
+    // Use compare here to filter out as many
+    // precomputable comparisons as possible.
+    auto comp = _ord.compare(node->lhs,node->rhs);
+    if (comp != Ordering::INCOMPARABLE) {
+      if (comp == Ordering::LESS) {
+        *_curr = node->incBranch;
+      } else if (comp == Ordering::GREATER) {
+        *_curr = node->gtBranch;
+      } else {
+        *_curr = node->eqBranch;
+      }
+      continue;
+    }
+    // If we have a variable, we cannot preprocess further.
+    if (tryExpandVarCase(node)) {
+      continue;
+    }
+
+    ASS_EQ(_curr->n.ptr(), node);
+    expandTermCase(node);
+    ASS_NEQ(_curr->n.ptr(), node);
   }
+}
+
+void OrderingComparator::expandTermCase(ComparisonNode* node)
+{
+  ASS(!_curr->ready);
+  _curr->ready = true;
 }
 
 bool OrderingComparator::tryExpandVarCase(ComparisonNode* node)
@@ -267,7 +307,7 @@ bool OrderingComparator::tryExpandVarCase(ComparisonNode* node)
       }
       return true;
     }
-    
+
     if (s == node->rhs && t == node->lhs && r != Ordering::INCOMPARABLE) {
       if (r == Ordering::GREATER) {
         *_curr = node->incBranch;

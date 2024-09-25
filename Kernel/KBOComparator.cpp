@@ -21,117 +21,85 @@ using namespace std;
 using namespace Lib;
 using namespace Shell;
 
-void KBOComparator::expand()
+void KBOComparator::expandTermCase(ComparisonNode* node)
 {
+  ASS(node->lhs.isTerm() && node->rhs.isTerm());
   const auto& kbo = static_cast<const KBO&>(_ord);
-  while (!_curr->ready)
+
+  // weight and variable balances first
+
+  // we only care about the non-zero weights and counts
+  bool varInbalance = false;
+  auto state = kbo._state;
+#if VDEBUG
+  // we make sure kbo._state is not used while we're using it
+  kbo._state = nullptr;
+#endif
+  auto w = state->_weightDiff;
+  decltype(state->_varDiffs)::Iterator vit(state->_varDiffs);
+  Stack<VarCoeffPair> nonzeros;
+  while (vit.hasNext()) {
+    unsigned v;
+    int cnt;
+    vit.next(v,cnt);
+    if (cnt!=0) {
+      nonzeros.push(make_pair(v,cnt));
+      w-=cnt; // we have to remove the variable weights from w
+    }
+    if (cnt<0) {
+      varInbalance = true;
+    }
+  }
+#if VDEBUG
+  kbo._state = state;
+  state = nullptr;
+#endif
+
+  auto curr = _curr;
+
+  // if the condition below does not hold, the weight/var balances are satisfied
+  if (w < 0 || varInbalance) {
+    sort(nonzeros.begin(),nonzeros.end(),[](const auto& e1, const auto& e2) {
+      return e1.second>e2.second;
+    });
+    *curr = Branch(w, std::move(nonzeros));
+    curr->n->gtBranch = node->gtBranch;
+    curr->n->incBranch = node->incBranch;
+    curr = &curr->n->eqBranch;
+  }
+
+  auto lhst = node->lhs.term();
+  auto rhst = node->rhs.term();
+
+  Ordering::Result prec = lhst->isSort()
+    ? kbo.compareTypeConPrecedences(lhst->functor(),rhst->functor())
+    : kbo.compareFunctionPrecedences(lhst->functor(),rhst->functor());
+  switch (prec)
   {
-    // take temporary ownership of node
-    Branch nodeHolder = *_curr;
-
-    if (_curr->tag == BranchTag::T_RESULT) {
-      auto node = static_cast<ResultNode*>(nodeHolder.n.ptr());
-      *_curr = Branch(node->data);
-      static_cast<ResultNode*>(_curr->n.ptr())->alternative = node->alternative;
-      _curr->ready = true;
-      return;
+    case Ordering::LESS: {
+      *curr = node->incBranch;
+      break;
     }
-    auto node = static_cast<ComparisonNode*>(nodeHolder.n.ptr());
-
-    // Use compare here to filter out as many
-    // precomputable comparisons as possible.
-    auto comp = kbo.compare(node->lhs,node->rhs);
-    if (comp != Ordering::INCOMPARABLE) {
-      if (comp == Ordering::LESS) {
-        *_curr = node->incBranch;
-      } else if (comp == Ordering::GREATER) {
-        *_curr = node->gtBranch;
-      } else {
-        *_curr = node->eqBranch;
-      }
-      continue;
+    case Ordering::GREATER: {
+      *curr = node->gtBranch;
+      break;
     }
-    // If we have a variable, we cannot preprocess further.
-    if (tryExpandVarCase(node)) {
-      continue;
+    case Ordering::EQUAL: {
+      // push the arguments in reverse order to maintain
+      // left-to-right lexicographic order in todo
+      for (unsigned i = 0; i < lhst->arity(); i++) {
+        auto lhsArg = *lhst->nthArgument(i);
+        auto rhsArg = *rhst->nthArgument(i);
+        *curr = Branch(lhsArg,rhsArg);
+        curr->n->gtBranch = node->gtBranch;
+        curr->n->incBranch = node->incBranch;
+        curr = &curr->n->eqBranch;
+      }
+      *curr = node->eqBranch;
+      break;
     }
-
-    // if both are proper terms, we calculate
-    // weight and variable balances first
-
-    // we only care about the non-zero weights and counts
-    bool varInbalance = false;
-    auto state = kbo._state;
-#if VDEBUG
-    // we make sure kbo._state is not used while we're using it
-    kbo._state = nullptr;
-#endif
-    auto w = state->_weightDiff;
-    decltype(state->_varDiffs)::Iterator vit(state->_varDiffs);
-    Stack<VarCoeffPair> nonzeros;
-    while (vit.hasNext()) {
-      unsigned v;
-      int cnt;
-      vit.next(v,cnt);
-      if (cnt!=0) {
-        nonzeros.push(make_pair(v,cnt));
-        w-=cnt; // we have to remove the variable weights from w
-      }
-      if (cnt<0) {
-        varInbalance = true;
-      }
-    }
-#if VDEBUG
-    kbo._state = state;
-    state = nullptr;
-#endif
-
-    auto curr = _curr;
-
-    // if the condition below does not hold, the weight/var balances are satisfied
-    if (w < 0 || varInbalance) {
-      sort(nonzeros.begin(),nonzeros.end(),[](const auto& e1, const auto& e2) {
-        return e1.second>e2.second;
-      });
-      *curr = Branch(w, std::move(nonzeros));
-      curr->n->gtBranch = node->gtBranch;
-      curr->n->incBranch = node->incBranch;
-      curr = &curr->n->eqBranch;
-    }
-
-    auto lhst = node->lhs.term();
-    auto rhst = node->rhs.term();
-
-    Ordering::Result prec = lhst->isSort()
-      ? kbo.compareTypeConPrecedences(lhst->functor(),rhst->functor())
-      : kbo.compareFunctionPrecedences(lhst->functor(),rhst->functor());
-    switch (prec)
-    {
-      case Ordering::LESS: {
-        *curr = node->incBranch;
-        break;
-      }
-      case Ordering::GREATER: {
-        *curr = node->gtBranch;
-        break;
-      }
-      case Ordering::EQUAL: {
-        // push the arguments in reverse order to maintain
-        // left-to-right lexicographic order in todo
-        for (unsigned i = 0; i < lhst->arity(); i++) {
-          auto lhsArg = *lhst->nthArgument(i);
-          auto rhsArg = *rhst->nthArgument(i);
-          *curr = Branch(lhsArg,rhsArg);
-          curr->n->gtBranch = node->gtBranch;
-          curr->n->incBranch = node->incBranch;
-          curr = &curr->n->eqBranch;
-        }
-        *curr = node->eqBranch;
-        break;
-      }
-      default: {
-        ASSERTION_VIOLATION;
-      }
+    default: {
+      ASSERTION_VIOLATION;
     }
   }
 }
