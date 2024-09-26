@@ -68,7 +68,7 @@ class ConditionalRedundancyHandler::ConstraintIndex
   : public CodeTree
 {
 public:
-  ConstraintIndex(Clause* cl) : _varSorts()
+  ConstraintIndex(Clause* cl) : _varSorts(), lastRenamingEntry(nullptr)
   {
     _clauseCodeTree=false;
     _onCodeOpDestroying = onCodeOpDestroying;

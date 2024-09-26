@@ -170,6 +170,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         while ((dd = static_cast<DemodulatorData*>(qr.data->comparator->next(appl)))) {
 
           ASS_EQ(dd->clause->length(),1);
+          ASS_EQ(lhs.sort(),dd->term.sort());
           if (dd->clause->store() == Clause::NONE) {
             env.statistics->inductionApplication++;
             continue;

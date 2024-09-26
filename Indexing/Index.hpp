@@ -170,7 +170,10 @@ struct DemodulatorDataContainer {
   }
 
   bool insert(const DemodulatorDataContainer& other) {
-    if (term!=other.term) {
+    ASS_EQ(other.dds.size(),1);
+    // only allow insertion if term sorts are identical to
+    // avoid putting variables of different sorts together
+    if (term!=other.term || term.sort()!=other.term.sort()) {
       return false;
     }
     dds.loadFromIterator(other.dds.iter());
@@ -179,11 +182,13 @@ struct DemodulatorDataContainer {
   }
 
   bool remove(const DemodulatorDataContainer& other) {
-    if (term!=other.term) {
+    ASS_EQ(other.dds.size(),1);
+    if (term!=other.term || term.sort()!=other.term.sort()) {
       return false;
     }
-    iterTraits(other.dds.iter()).forEach([this](DemodulatorData* toRemove){
+    ALWAYS(iterTraits(other.dds.iter()).all([this](DemodulatorData* toRemove){
       decltype(dds)::DelIterator it(dds);
+      unsigned removedCnt = 0;
       while (it.hasNext()) {
         auto curr = it.next();
         if (*curr==*toRemove) {
@@ -192,9 +197,11 @@ struct DemodulatorDataContainer {
           //
           // delete curr;
           it.del();
+          removedCnt++;
         }
       }
-    });
+      return removedCnt==1;
+    }));
     return true;
   }
 
