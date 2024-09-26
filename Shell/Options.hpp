@@ -59,7 +59,13 @@
 
 #include "Property.hpp"
 
-#define VAMPIRE_CLAUSE_TRACING VDEBUG
+#ifndef VAMPIRE_CLAUSE_TRACING
+#  if VDEBUG
+#    define VAMPIRE_CLAUSE_TRACING 1
+#  else 
+#    define VAMPIRE_CLAUSE_TRACING 0
+#  endif
+#endif // ndef VAMPIRE_CLAUSE_TRACINGE
 
 namespace Shell {
 
