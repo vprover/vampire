@@ -543,7 +543,7 @@ inline bool CodeTree::BaseMatcher::doCheckGroundTerm()
 //////////////// auxiliary ////////////////////
 
 CodeTree::CodeTree()
-: _onCodeOpDestroying(0), _curTimeStamp(0), _maxVarCnt(1), _entryPoint(0)
+: _onCodeOpDestroying(0), _curTimeStamp(0), _maxVarCnt(1), _maxTreeDepth(0), _entryPoint(0)
 {
 }
 
@@ -815,6 +815,10 @@ CodeTree::CodeBlock* CodeTree::buildBlock(CodeStack& code, size_t cnt, ILStruct*
 void CodeTree::incorporate(CodeStack& code)
 {
   ASS(code.top().isSuccess());
+
+  if (code.size() > _maxTreeDepth) {
+    _maxTreeDepth = code.size();
+  }
 
   if(isEmpty()) {
     _entryPoint=buildBlock(code, code.length(), 0);
@@ -1172,6 +1176,7 @@ void CodeTree::RemovingMatcher::init(CodeOp* entry_, LitInfo* linfos_,
 
   matchingClauses=tree->_clauseCodeTree;
   bindings.ensure(tree->_maxVarCnt);
+  btStack.reserve(tree->_maxTreeDepth);
   btStack.reset();
 
   curLInfo=0;
@@ -1359,6 +1364,7 @@ void CodeTree::Matcher::init(CodeTree* tree_, CodeOp* entry_)
   curLInfo=0;
   btStack.reset();
   bindings.ensure(tree->_maxVarCnt);
+  btStack.reserve(tree->_maxTreeDepth);
 }
 
 bool CodeTree::Matcher::execute()
@@ -1377,7 +1383,8 @@ bool CodeTree::Matcher::execute()
   bool shouldBacktrack=false;
   for(;;) {
     if(op->alternative()) {
-      btStack.push(BTPoint(tp, op->alternative(), substIsRenaming, substVRange));
+      btStack.pushUnsafe(BTPoint(tp, op->alternative(), substIsRenaming, substVRange));
+      // btStack.push(BTPoint(tp, op->alternative(), substIsRenaming, substVRange));
     }
     switch(op->_instruction()) {
       case SUCCESS_OR_FAIL:

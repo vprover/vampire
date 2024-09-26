@@ -561,6 +561,7 @@ public:
 
   /** maximal number of local variables in a stored term/literal (always at least 1) */
   unsigned _maxVarCnt;
+  unsigned _maxTreeDepth;
 
   CodeBlock* _entryPoint;
 
