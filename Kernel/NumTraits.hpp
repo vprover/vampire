@@ -227,6 +227,7 @@ struct NumTraits;
     IMPL_NUM_TRAITS__QUOTIENT_REMAINDER(SHORT, F)                                         \
                                                                                           \
     IMPL_NUM_TRAITS__INTERPRETED_FUN(minus, Minus, SHORT, _UNARY_MINUS, 1)                \
+    IMPL_NUM_TRAITS__INTERPRETED_FUN(binMinus, BinMinus, SHORT, _MINUS, 2)                \
     IMPL_NUM_TRAITS__INTERPRETED_FUN(add  , Add  , SHORT, _PLUS       , 2)                \
     IMPL_NUM_TRAITS__INTERPRETED_FUN(mul  , Mul  , SHORT, _MULTIPLY   , 2)                \
     IMPL_NUM_TRAITS__INTERPRETED_FUN(floor, Floor, SHORT, _FLOOR, 1)                      \

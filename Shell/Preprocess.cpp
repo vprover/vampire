@@ -78,11 +78,14 @@ void Preprocess::preprocess(Problem& prb)
 {
   LascaPreprocessor lasca;
   auto normalizeInterpreted = [&]() {
-    if (env.options->lascaIntegerConversion()) {
-      lasca.integerConversion(prb);
-    }
 
-    if (env.options->lasca()) {
+    if (env.options->lascaIntegerConversion()) {
+      static InequalityNormalizer norm = InequalityNormalizer(env.options->lascaStrongNormalization());
+      InterpretedNormalizer(&norm).apply(prb);
+      lasca.integerConversion(prb);
+      InterpretedNormalizer(&norm).apply(prb);
+
+    } else if (env.options->lasca()) {
       static InequalityNormalizer norm = InequalityNormalizer(env.options->lascaStrongNormalization());
       InterpretedNormalizer(&norm).apply(prb);
 

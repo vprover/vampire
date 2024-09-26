@@ -332,22 +332,21 @@ unsigned LascaPreprocessor::integerFunctionConversion(unsigned f) {
     if (Z::isMul(f)) return R::mulF();
     if (Z::isMinus(f)) return R::minusF();
     ASS(!R::isToInt(f))
-    // if (Z::isFloor(f)) return R::floorF();
-    // if (R::isToInt(f)) return R::floorF();
     if (auto n = Z::tryNumeral(f)) return R::numeralF(typename R::ConstantType(*n));
     // TODO 
-    // INT_SUCCESSOR,
-    // INT_MINUS, (binary minus)// difference in TPTP
-    // INT_QUOTIENT_E,
-    // INT_QUOTIENT_T,
-    // INT_QUOTIENT_F,
-    // INT_REMAINDER_E,
-    // INT_REMAINDER_T,
-    // INT_REMAINDER_F,
-    // INT_CEILING,
-    // INT_TRUNCATE,
-    // INT_ROUND,
-    // INT_ABS,
+#define ASS_NOT(itp) ASS(!theory->isInterpretedFunction(f, itp))
+    ASS_NOT(Theory::INT_SUCCESSOR)
+    ASS_NOT(Theory::INT_QUOTIENT_E)
+    ASS_NOT(Theory::INT_QUOTIENT_T)
+    ASS_NOT(Theory::INT_QUOTIENT_F)
+    ASS_NOT(Theory::INT_REMAINDER_E)
+    ASS_NOT(Theory::INT_REMAINDER_T)
+    ASS_NOT(Theory::INT_REMAINDER_F)
+    ASS_NOT(Theory::INT_CEILING)
+    ASS_NOT(Theory::INT_TRUNCATE)
+    ASS_NOT(Theory::INT_ROUND)
+    ASS_NOT(Theory::INT_ABS)
+#undef ASS_NOT
 
     auto sorts_changed = false;
     auto intConv= [&](auto x) { 
@@ -456,6 +455,7 @@ TermList LascaPreprocessor::integerConversion(TypedTermList t)
 
 Literal* LascaPreprocessor::integerConversion(Literal* lit)
 {
+  // LascaState::globalState->normalizer->normalizeLiteral()
   auto impl = [&]() { 
     if (lit->isEquality()) {
       auto sort = SortHelper::getEqualityArgumentSort(lit);
