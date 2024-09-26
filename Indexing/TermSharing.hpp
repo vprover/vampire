@@ -59,7 +59,7 @@ public:
   static bool equals(const Literal* l1, const Literal* l2)
   { return Literal::literalEquals(l1, l2->functor(), l2->polarity() ^ opposite, 
         [&](auto i){ return *l2->nthArgument(i); }, 
-        l2->arity(), someIf(l2->isTwoVarEquality(), [&](){ return l2->twoVarEqSort(); }), l2->commutative()); }
+        l2->arity(), someIf(l2->isTwoVarEquality(), [&](){ return l2->twoVarEqSort(); })); }
 
   DHSet<TermList>* getArraySorts(){
     return &_arraySorts;

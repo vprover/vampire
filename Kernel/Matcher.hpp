@@ -79,7 +79,7 @@ public:
 
     binder.reset();
 
-    if(base->commutative()) {
+    if(base->isEquality()) {
       ASS_EQ(base->arity(), 2);
       if(matchArgs(base, instance, binder)) {
         return true;
@@ -159,63 +159,6 @@ private:
     BindingMap _map;
   };
 
-};
-
-/**
- * Class of objects that iterate over matches between two literals that
- * may share variables (therefore it has to perform occurs check).
- */
-class OCMatchIterator
-{
-public:
-  void init(Literal* base, Literal* inst, bool complementary);
-
-  bool tryNextMatch();
-
-  TermList apply(unsigned var);
-  TermList apply(TermList t);
-  Literal* apply(Literal* lit);
-
-private:
-
-  void reset();
-
-  bool tryDirectMatch();
-  bool tryReversedMatch();
-
-  enum OCStatus {
-    ENQUEUED,
-    TRAVERSING,
-    CHECKED
-  };
-  bool occursCheck();
-
-
-  bool bind(unsigned var, TermList term)
-  {
-    TermList* binding;
-
-    if(_bindings.getValuePtr(var,binding,term)) {
-      _bound.push(var);
-      return true;
-    }
-    return *binding==term;
-  }
-  void specVar(unsigned var, TermList term)
-  { ASSERTION_VIOLATION; }
-
-
-  typedef DHMap<unsigned,TermList> BindingMap;
-  typedef Stack<unsigned> BoundStack;
-
-  BindingMap _bindings;
-  BoundStack _bound;
-  bool _finished;
-  bool _firstMatchDone;
-  Literal* _base;
-  Literal* _inst;
-
-  friend class MatchingUtils;
 };
 
 class Matcher

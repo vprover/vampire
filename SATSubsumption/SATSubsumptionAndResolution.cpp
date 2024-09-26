@@ -341,7 +341,7 @@ bool SATSubsumptionAndResolution::checkAndAddMatch(Literal* l_i,
       match = true;
     }
   }
-  if (l_i->commutative()) {
+  if (l_i->isEquality()) {
     auto binder = _bindingsManager.start_binder();
     if (MatchingUtils::matchReversedArgs(l_i, m_j, binder)) {
       addBinding(&binder, i, j, polarity, false);

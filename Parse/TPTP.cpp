@@ -2059,7 +2059,7 @@ void TPTP::endTheoryFunction() {
     Term* term = Term::create(symbol, arity, args);
     _termLists.push(TermList(term));
   } else {
-    Literal* literal = Literal::create(symbol, arity, true, false, args);
+    Literal* literal = Literal::create(symbol, arity, true, args);
     _formulas.push(new AtomicFormula(literal));
     _states.push(END_FORMULA_INSIDE_TERM);
   }
@@ -3193,7 +3193,7 @@ Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
       }
     }
   }
-  auto out = new AtomicFormula(Literal::create(pred, arity, /* polarity */ true, /* commutative */ false, args));
+  auto out = new AtomicFormula(Literal::create(pred, arity, /* polarity */ true, args));
   _termLists.pop(arity);
   return out;
 } // createPredicateApplication
@@ -3651,7 +3651,7 @@ void TPTP::endFof()
       while (vs.hasNext()) {
         args->push(TermList::var(vs.next()));
       }
-      Literal* a = Literal::create(pred, arity, /* polarity */ true, /* commutative */  false, args->begin());
+      Literal* a = Literal::create(pred, arity, /* polarity */ true, args->begin());
       f = new QuantifiedFormula(FORALL,
         g->vars(),
         g->sorts(),
