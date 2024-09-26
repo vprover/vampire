@@ -665,10 +665,9 @@ public:
   template<class... As>
   Lit operator()(As... args) const {
     Stack<TermList> as { TermSugar(args).sugaredExpr()... };
-    return Literal::create(_functor, 
-        as.size(), 
-        /* polarity */ true, 
-        /* commutative */ false, 
+    return Literal::create(_functor,
+        as.size(),
+        /* polarity */ true,
         as.begin() );
   }
   unsigned functor() const { return _functor; }
