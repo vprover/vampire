@@ -103,7 +103,7 @@ bool MatchingUtils::isVariant(Literal* l1, Literal* l2, bool complementary)
   if(!complementary && l1==l2) {
     return true;
   }
-  if(l1->commutative()) {
+  if(l1->isEquality()) {
     return haveVariantArgs(l1,l2) || haveReversedVariantArgs(l1,l2);
   } else {
     return haveVariantArgs(l1,l2);
@@ -243,167 +243,6 @@ bool MatchingUtils::matchTerms(TermList base, TermList instance)
   }
 }
 
-
-//////////////// FastMatchIterator ////////////////////
-
-void OCMatchIterator::init(Literal* base, Literal* inst, bool complementary)
-{
-  //TODO we don't seem to use this iterator anywhere, so
-  //have not updated to polymorphism
-  if(!Literal::headersMatch(base, inst, complementary)) {
-    _finished=true;
-    return;
-  }
-  _finished=false;
-  _firstMatchDone=false;
-  _base=base;
-  _inst=inst;
-}
-
-bool OCMatchIterator::tryNextMatch()
-{
-  if(_finished) {
-    return false;
-  }
-  bool success=false;
-  if(!_firstMatchDone) {
-    _firstMatchDone=true;
-    if(!_base->commutative()) {
-      _finished=true;
-    }
-    reset();
-    success=tryDirectMatch();
-  }
-
-  if(!success && !_finished) {
-    ASS(_base->commutative());
-    _finished=true;
-
-    reset();
-    success=tryReversedMatch();
-  }
-  return success;
-}
-
-void OCMatchIterator::reset()
-{
-  _bindings.reset();
-  _bound.reset();
-}
-
-bool OCMatchIterator::tryDirectMatch()
-{
-  bool res=MatchingUtils::matchArgs(_base, _inst, *this);
-  res&=occursCheck();
-  return res;
-}
-
-bool OCMatchIterator::tryReversedMatch()
-{
-  ASS(_base->commutative());
-  ASS(_inst->commutative());
-
-  bool res=MatchingUtils::matchTerms(*_base->nthArgument(0), *_inst->nthArgument(1), *this);
-  if(res) {
-    res=MatchingUtils::matchTerms(*_base->nthArgument(1), *_inst->nthArgument(0), *this);
-  }
-  res&=occursCheck();
-  return res;
-}
-
-bool OCMatchIterator::occursCheck()
-{
-  static DHMap<unsigned, OCStatus> statuses;
-  static Stack<int> toDo;
-  statuses.reset();
-  toDo.reset();
-  BoundStack::Iterator bit(_bound);
-  while(bit.hasNext()) {
-    unsigned var0=bit.next();
-    OCStatus* pst0;
-    if(!statuses.getValuePtr(var0, pst0)) {
-      ASS_EQ(*pst0, CHECKED);
-      continue;
-    }
-
-    *pst0=ENQUEUED;
-    toDo.push(var0);
-
-    while(toDo.isNonEmpty()) {
-      int task=toDo.pop();
-      if(task==-1) {
-  unsigned var=toDo.pop();
-  ASS_EQ(statuses.get(var), TRAVERSING);
-  statuses.set(var, CHECKED);
-  continue;
-      }
-
-      unsigned var=task;
-
-      ASS_EQ(statuses.get(var), ENQUEUED);
-      statuses.set(var, TRAVERSING);
-
-      //this schedules the update of the state to CHECKED
-      toDo.push(var);
-      toDo.push(-1);
-
-      TermList tgt;
-      if(!_bindings.find(var, tgt)) {
-  continue;
-      }
-//      if(tgt.isVar()) {
-//  int tvar=tgt.var();
-//  if(var<tvar) {
-//
-//  }
-//  NOT_IMPLEMENTED;
-//      }
-//      VariableIterator vit(tgt.term());
-      VariableIterator vit(tgt);
-      while(vit.hasNext()) {
-  unsigned chvar=vit.next().var(); //child variable number
-
-  OCStatus* pChStatus;
-  if(!statuses.getValuePtr(chvar, pChStatus)) {
-    if(*pChStatus==TRAVERSING) {
-      return false;
-    }
-    ASS_REP(*pChStatus==CHECKED||*pChStatus==ENQUEUED, *pChStatus);
-    continue;
-  }
-  *pChStatus=ENQUEUED;
-
-  toDo.push(chvar);
-      }
-
-    }
-  }
-  return true;
-}
-
-TermList OCMatchIterator::apply(unsigned var)
-{
-  TermList bnd;
-  if(_bindings.find(var, bnd)) {
-    //this may lead to an indirect recursion, but if the occurs check
-    //has passed, it won't get into an infinite cycle
-    return apply(bnd);
-  }
-  //variable is unbound
-  return TermList(var, false);
-}
-
-TermList OCMatchIterator::apply(TermList t)
-{
-  return SubstHelper::apply(t, *this);
-}
-
-Literal* OCMatchIterator::apply(Literal* lit)
-{
-  return SubstHelper::apply(lit, *this);
-}
-
-
 //////////////// Matcher ////////////////////
 
 class Matcher::CommutativeMatchIterator
@@ -414,7 +253,7 @@ public:
   : _matcher(matcher), _base(base), _instance(instance),
   _state(FIRST), _used(true)
   {
-    ASS(_base->commutative());
+    ASS(_base->isEquality());
     ASS_EQ(_base->arity(), 2);
   }
   ~CommutativeMatchIterator()
@@ -538,7 +377,7 @@ MatchIterator Matcher::matches(Literal* base, Literal* instance,
   if(base->arity()==0) {
     return pvi( getSingletonIterator(this) );
   }
-  if( !base->commutative() ) {
+  if( !base->isEquality() ) {
     return pvi( getContextualIterator(getSingletonIterator(this),
         MatchContext(base, instance)) );
   }
@@ -567,7 +406,7 @@ bool Matcher::matchArgs(Literal* base, Literal* instance)
 
 bool Matcher::matchReversedArgs(Literal* base, Literal* instance)
 {
-  ASS(base->commutative());
+  ASS(base->isEquality());
 
   BacktrackData localBD;
 

@@ -796,12 +796,12 @@ void SMTLIB2::readDefineFun(const std::string& name, LExprList* iArgs, LExpr* oS
     auto defArgs = typeArgs;
     defArgs.push(lhs);
     defArgs.push(rhs);
-    lit = Literal::create(p,defArgs.size(),true,false,defArgs.begin());
+    lit = Literal::create(p,defArgs.size(),true,defArgs.begin());
   } else {
     sym = env.signature->getPredicate(symbIdx);
 
     auto p = env.signature->getBoolDef(symbIdx);
-    TermList lhs(Term::createFormula(new AtomicFormula(Literal::create(p,args.size(),true,false,args.begin()))));
+    TermList lhs(Term::createFormula(new AtomicFormula(Literal::create(p,args.size(),true,args.begin()))));
     lit = Literal::createEquality(true, lhs, rhs, rangeSort);
   }
   Formula* fla = new AtomicFormula(lit);
@@ -902,12 +902,12 @@ void SMTLIB2::readDefineFunsRec(LExprList* declsExpr, LExprList* defsExpr)
       TermStack defArgs; // no type arguments (yet) in this case
       defArgs.push(lhs);
       defArgs.push(rhs);
-      lit = Literal::create(p,defArgs.size(),true,false,defArgs.begin());
+      lit = Literal::create(p,defArgs.size(),true,defArgs.begin());
     } else {
       sym = env.signature->getPredicate(symbIdx);
 
       auto p = env.signature->getBoolDef(symbIdx);
-      TermList lhs(Term::createFormula(new AtomicFormula(Literal::create(p,decl.args.size(),true,false,decl.args.begin()))));
+      TermList lhs(Term::createFormula(new AtomicFormula(Literal::create(p,decl.args.size(),true,decl.args.begin()))));
       lit = Literal::createEquality(true, lhs, rhs, decl.rangeSort);
     }
     Formula* fla = new AtomicFormula(lit);
@@ -1452,7 +1452,7 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
       OperatorType* type = OperatorType::getPredicateType(varSorts.size(), varSorts.begin(), args.size()-varSorts.size());
       env.signature->getPredicate(symb)->setType(type);
 
-      Formula* atom = new AtomicFormula(Literal::create(symb,args.size(),true,false,args.begin()));
+      Formula* atom = new AtomicFormula(Literal::create(symb,args.size(),true,args.begin()));
       trm = TermList(Term::createFormula(atom));
     } else {
       TermList nSort = sort;
@@ -2072,7 +2072,7 @@ bool SMTLIB2::parseAsUserDefinedSymbol(const std::string& id,LExpr* exp,bool isS
     break;
   }
   case SymbolType::PREDICATE: {
-    Formula* res = new AtomicFormula(Literal::create(symbIdx,arity,true,false,args.begin()));
+    Formula* res = new AtomicFormula(Literal::create(symbIdx,arity,true,args.begin()));
     _results.push(ParseResult(res));
     break;
   }
@@ -2665,7 +2665,7 @@ void SMTLIB2::parseRankedFunctionApplication(LExpr* exp)
             args.push(*argSort.term()->nthArgument(i));
           }
           args.push(arg);
-          Formula* res = new AtomicFormula(Literal::create(c->discriminator(),args.size(),true,false,args.begin()));
+          Formula* res = new AtomicFormula(Literal::create(c->discriminator(),args.size(),true,args.begin()));
           
           _results.push(ParseResult(res));
           return;
