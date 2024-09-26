@@ -99,9 +99,6 @@ class RobSubstitution;
 typedef VirtualIterator<RobSubstitution*> SubstIterator;
 typedef Lib::SmartPtr<RobSubstitution> RobSubstitutionSP;
 
-class Matcher;
-typedef VirtualIterator<Matcher*> MatchIterator;
-
 class LiteralSelector;
 
 class Ordering;

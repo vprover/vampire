@@ -161,64 +161,6 @@ private:
 
 };
 
-class Matcher
-: public Backtrackable
-{
-public:
-  Matcher() : _binder(*this) {}
-
-  MatchIterator matches(Literal* base, Literal* instance, bool complementary);
-
-private:
-  class CommutativeMatchIterator;
-
-  struct MatchContext;
-
-  bool matchArgs(Literal* base, Literal* instance);
-
-  bool matchReversedArgs(Literal* base, Literal* instance);
-
-  typedef DHMap<unsigned,TermList> BindingMap;
-  struct MapBinder
-  {
-    MapBinder(Matcher& parent) : _parent(parent) {}
-    bool bind(unsigned var, TermList term)
-    {
-      TermList* aux;
-      if(_map.getValuePtr(var,aux,term)) {
-	if(_parent.bdIsRecording()) {
-	  _parent.bdAdd(new BindingBacktrackObject(this,var));
-	}
-	return true;
-      } else {
-	return *aux==term;
-      }
-    }
-    void specVar(unsigned var, TermList term)
-    { ASSERTION_VIOLATION; }
-  private:
-    BindingMap _map;
-    Matcher& _parent;
-
-    class BindingBacktrackObject
-    : public BacktrackObject
-    {
-    public:
-      BindingBacktrackObject(MapBinder* bnd, unsigned var)
-      :_map(&bnd->_map), _var(var) {}
-      void backtrack()
-      { ALWAYS(_map->remove(_var)); }
-
-      USE_ALLOCATOR(BindingBacktrackObject);
-    private:
-      BindingMap* _map;
-      unsigned _var;
-    };
-  };
-
-  MapBinder _binder;
-};
-
 /**
  * Matches two binary literals like MatchingUtils::matchArgs,
  * but with the arguments of one literal swapped.
