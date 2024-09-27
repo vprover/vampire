@@ -23,11 +23,6 @@ using namespace Shell;
 
 void KBOComparator::expandTermCase()
 {
-  // take temporary ownership of node
-  Branch nodeHolder = *_curr;
-  auto node = static_cast<ComparisonNode*>(nodeHolder.n.ptr());
-
-  ASS(node->lhs.isTerm() && node->rhs.isTerm());
   const auto& kbo = static_cast<const KBO&>(_ord);
 
   // weight and variable balances first
@@ -41,13 +36,13 @@ void KBOComparator::expandTermCase()
 #endif
   auto w = state->_weightDiff;
   decltype(state->_varDiffs)::Iterator vit(state->_varDiffs);
-  Stack<VarCoeffPair> nonzeros;
+  ScopedPtr nonzeros(new Stack<VarCoeffPair>());
   while (vit.hasNext()) {
     unsigned v;
     int cnt;
     vit.next(v,cnt);
     if (cnt!=0) {
-      nonzeros.push(make_pair(v,cnt));
+      nonzeros->push(make_pair(v,cnt));
       w-=cnt; // we have to remove the variable weights from w
     }
     if (cnt<0) {
@@ -59,19 +54,24 @@ void KBOComparator::expandTermCase()
   state = nullptr;
 #endif
 
+  // take temporary ownership of node
+  Branch nodeHolder = *_curr;
+  auto node = nodeHolder._node();
+
   auto curr = _curr;
 
   // if the condition below does not hold, the weight/var balances are satisfied
   if (w < 0 || varInbalance) {
-    sort(nonzeros.begin(),nonzeros.end(),[](const auto& e1, const auto& e2) {
+    sort(nonzeros->begin(),nonzeros->end(),[](const auto& e1, const auto& e2) {
       return e1.second>e2.second;
     });
-    *curr = Branch(w, std::move(nonzeros));
-    curr->n->gtBranch = node->gtBranch;
-    curr->n->incBranch = node->incBranch;
-    curr = &curr->n->eqBranch;
+    *curr = Branch(w, nonzeros.release());
+    curr->_node()->gtBranch = node->gtBranch;
+    curr->_node()->incBranch = node->incBranch;
+    curr = &curr->_node()->eqBranch;
   }
 
+  ASS(node->lhs.isTerm() && node->rhs.isTerm());
   auto lhst = node->lhs.term();
   auto rhst = node->rhs.term();
 
@@ -95,9 +95,9 @@ void KBOComparator::expandTermCase()
         auto lhsArg = *lhst->nthArgument(i);
         auto rhsArg = *rhst->nthArgument(i);
         *curr = Branch(lhsArg,rhsArg);
-        curr->n->gtBranch = node->gtBranch;
-        curr->n->incBranch = node->incBranch;
-        curr = &curr->n->eqBranch;
+        curr->_node()->gtBranch = node->gtBranch;
+        curr->_node()->incBranch = node->incBranch;
+        curr = &curr->_node()->eqBranch;
       }
       *curr = node->eqBranch;
       break;

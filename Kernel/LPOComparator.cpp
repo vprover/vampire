@@ -26,11 +26,11 @@ void LPOComparator::majoChain(Branch* branch, TermList tl1, Term* t, unsigned i,
   ASS(branch);
   for (unsigned j = i; j < t->arity(); j++) {
     *branch = Branch(tl1,*t->nthArgument(j));
-    branch->n->eqBranch = fail;
-    branch->n->incBranch = fail;
-    branch = &branch->n->gtBranch;
+    branch->_node()->eqBranch = fail;
+    branch->_node()->incBranch = fail;
+    branch = &branch->_node()->gtBranch;
   }
-  *branch = success;
+  *branch = std::move(success);
 }
 
 /**
@@ -41,18 +41,18 @@ void LPOComparator::alphaChain(Branch* branch, Term* s, unsigned i, TermList tl2
   ASS(branch);
   for (unsigned j = i; j < s->arity(); j++) {
     *branch = Branch(*s->nthArgument(j),tl2);
-    branch->n->eqBranch = success;
-    branch->n->gtBranch = success;
-    branch = &branch->n->incBranch;
+    branch->_node()->eqBranch = success;
+    branch->_node()->gtBranch = success;
+    branch = &branch->_node()->incBranch;
   }
-  *branch = fail;
+  *branch = std::move(fail);
 }
 
 void LPOComparator::expandTermCase()
 {
   // take temporary ownership of node
-  Branch nodeHolder = *_curr;
-  auto node = static_cast<ComparisonNode*>(nodeHolder.n.ptr());
+  Branch nodeHolder = std::move(*_curr);
+  auto node = nodeHolder._node();
 
   ASS(node->lhs.isTerm() && node->rhs.isTerm());
   const auto& lpo = static_cast<const LPO&>(_ord);
@@ -76,10 +76,10 @@ void LPOComparator::expandTermCase()
       auto t_arg = *rhs.term()->nthArgument(i);
       *curr = Branch(s_arg,t_arg);
       // greater branch is a majo chain
-      majoChain(&curr->n->gtBranch, lhs, rhs.term(), i+1, node->gtBranch, node->incBranch);
+      majoChain(&curr->_node()->gtBranch, lhs, rhs.term(), i+1, node->gtBranch, node->incBranch);
       // incomparable branch is an alpha chain
-      alphaChain(&curr->n->incBranch, lhs.term(), i+1, rhs, node->gtBranch, node->incBranch);
-      curr = &curr->n->eqBranch;
+      alphaChain(&curr->_node()->incBranch, lhs.term(), i+1, rhs, node->gtBranch, node->incBranch);
+      curr = &curr->_node()->eqBranch;
     }
     *curr = node->eqBranch;
     break;

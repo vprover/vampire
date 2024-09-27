@@ -50,30 +50,93 @@ protected:
   virtual void expandTermCase();
   bool tryExpandVarCase();
 
-  enum class BranchTag : uint8_t {
-    T_RESULT,
-    T_COMPARISON,
-    T_WEIGHT,
+  enum BranchTag {
+    T_RESULT = 0u,
+    T_COMPARISON = 1u,
+    T_WEIGHT = 2u,
   };
 
   struct Branch {
-    BranchTag tag;
-    SmartPtr<Node> n;
-    bool ready = false;
+    static_assert(alignof(Node*)>T_WEIGHT);
+    static constexpr unsigned
+      READY_BITS_START = 0,
+      READY_BITS_END = READY_BITS_START + 1,
+      TAG_BITS_START = READY_BITS_END,
+      TAG_BITS_END = TAG_BITS_START + 2,
+      NODE_BITS_START = TAG_BITS_END,
+      NODE_BITS_END = CHAR_BIT * sizeof(Node*);
 
-    Branch() : tag(BranchTag::T_RESULT), ready(true) {}
-    explicit Branch(void* data) : tag(BranchTag::T_RESULT), n(new ResultNode(data)) {}
-    explicit Branch(TermList lhs, TermList rhs)
-      : tag(BranchTag::T_COMPARISON), n(new ComparisonNode(lhs, rhs)) {}
-    explicit Branch(int w, Stack<std::pair<unsigned,int>>&& varCoeffPairs)
-      : tag(BranchTag::T_WEIGHT), n(new WeightNode(w, std::move(varCoeffPairs))), ready(true) {}
+    BITFIELD64_GET_AND_SET(bool, ready, Ready, READY)
+    BITFIELD64_GET_AND_SET(unsigned, tag, Tag, TAG)
+    // BITFIELD64_GET_AND_SET_PTR(Node*, node, Node, NODE)
+    Node* _node() const { return reinterpret_cast<Node*>(BitUtils::getBits<NODE_BITS_START,NODE_BITS_END>(_content)); }
+    void _setNode(Node* node) {
+      auto prev = _node();
+      if (prev) {
+        prev->decRefCnt();
+      }
+      if (node) {
+        node->incRefCnt();
+      }
+      BitUtils::setBits<NODE_BITS_START,NODE_BITS_END>(_content, reinterpret_cast<uint64_t>(node));
+    }
+
+    Branch() { _setTag(T_RESULT); _setReady(true); _setNode(nullptr); }
+    explicit Branch(void* data, Branch alternative) {
+      _setTag(T_RESULT);
+      _setNode(new Node(data, alternative));
+    }
+    explicit Branch(TermList lhs, TermList rhs) {
+      _setTag(T_COMPARISON);
+      _setNode(new Node(lhs, rhs));
+    }
+    explicit Branch(int64_t w, Stack<std::pair<unsigned,int>>* varCoeffPairs) {
+      _setTag(T_WEIGHT);
+      _setNode(new Node(w, varCoeffPairs));
+      _setReady(true);
+    }
+    // Branch(const Branch& other) = delete;
+    // Branch& operator=(const Branch& other) = delete;
+    Branch(const Branch& other) {
+      _setTag(other._tag());
+      _setReady(other._ready());
+      _setNode(other._node());
+    }
+    Branch& operator=(const Branch& other) {
+      if (&other==this) {
+        return *this;
+      }
+      _setTag(other._tag());
+      _setReady(other._ready());
+      _setNode(other._node());
+      return *this;
+    }
+    Branch(Branch&& other) : _content(other._content) {
+      other._content = 0;
+    }
+    Branch& operator=(Branch&& other) {
+      if (&other==this) {
+        return *this;
+      }
+      _content = other._content;
+      other._content = 0;
+      return *this;
+    }
+
+  private:
+    uint64_t _content = 0;
   };
 
   friend std::ostream& operator<<(std::ostream& out, const Branch& branch);
   friend std::ostream& operator<<(std::ostream& out, const BranchTag& t);
 
+  using VarCoeffPair = std::pair<unsigned,int>;
+
   struct Node {
-    virtual ~Node() = default;
+    static_assert(sizeof(uint64_t) == sizeof(Branch));
+    static_assert(sizeof(uint64_t) == sizeof(TermList));
+    static_assert(sizeof(uint64_t) == sizeof(void*));
+    static_assert(sizeof(uint64_t) == sizeof(int64_t));
 
     auto& getBranch(Ordering::Result r) {
       switch (r) {
@@ -88,49 +151,32 @@ protected:
       }
     }
 
-    void setTs(unsigned val) { ts = val; }
-    unsigned getTs() const { return ts; }
+    explicit Node(void* data, Branch alternative)
+      : data(data), alternative(alternative) {}
+    explicit Node(TermList lhs, TermList rhs)
+      : lhs(lhs), rhs(rhs) {}
+    explicit Node(uint64_t w, Stack<VarCoeffPair>* varCoeffPairs)
+      : w(w), varCoeffPairs(varCoeffPairs) {}
+
+    void incRefCnt();
+    void decRefCnt();
+
+    union {
+      void* data = nullptr;
+      TermList lhs;
+      int64_t w;
+    };
+    union {
+      Branch alternative;
+      TermList rhs;
+      Stack<VarCoeffPair>* varCoeffPairs;
+    };
 
     Branch eqBranch;
     Branch gtBranch;
     Branch incBranch;
     unsigned ts;
-  };
-
-  class ResultNode : public Node {
-    ResultNode(void* data) : data(data) {}
-
-    // only allow calling ctor from Branch
-    friend struct Branch;
-  
-  public:
-    void* data;
-    Branch alternative;
-  };
-
-  class ComparisonNode : public Node {
-    ComparisonNode(TermList lhs, TermList rhs) : lhs(lhs), rhs(rhs) {}
-
-    // only allow calling ctor from Branch
-    friend struct Branch;
-
-  public:
-    TermList lhs;
-    TermList rhs;
-  };
-
-  using VarCoeffPair = std::pair<unsigned,int>;
-
-  class WeightNode : public Node {
-    WeightNode(int w, Stack<VarCoeffPair>&& varCoeffPairs)
-      : w(w), varCoeffPairs(varCoeffPairs) {}
-
-    // only allow calling ctor from Branch
-    friend struct Branch;
-
-  public:
-    int w;
-    Stack<VarCoeffPair> varCoeffPairs;
+    unsigned refcnt;
   };
 
   const Ordering& _ord;
