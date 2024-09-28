@@ -1078,7 +1078,7 @@ public:
   template<bool flip = false>
   unsigned hash() const
   {
-    return Literal::literalHash(functor(), polarity() ^ flip, 
+    return Literal::literalHash(functor(), polarity() ^ flip,
         [&](auto i) -> TermList const& { return *nthArgument(i); }, arity(),
         someIf(isTwoVarEquality(), [&](){ return twoVarEqSort(); }));
   }
@@ -1087,7 +1087,7 @@ public:
   static unsigned literalEquals(const Literal* lit, unsigned functor, bool polarity, GetArg getArg, unsigned arity, Option<TermList> twoVarEqSort) {
     if (functor != lit->functor() || polarity != lit->polarity()) return false;
 
-    if (functor == 0) {
+    if (functor == 0) { // i.e., isEquality
       ASS_EQ(arity, 2)
       ASS(rightArgOrder(getArg(0), getArg(1)))
       ASS(rightArgOrder(*lit->nthArgument(0), *lit->nthArgument(1)))
@@ -1107,7 +1107,7 @@ public:
 
   template<class GetArg>
   static unsigned literalHash(unsigned functor, bool polarity, GetArg getArg, unsigned arity, Option<TermList> twoVarEqSort) {
-    if (functor == 0) {
+    if (functor == 0) { // i.e., isEquality
       ASS_EQ(arity, 2)
       ASS(rightArgOrder(getArg(0), getArg(1)))
       return HashUtils::combine(
