@@ -244,9 +244,9 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
 
 
   ASS_EQ(args.size(), minDeg);
-  Literal* pnLit=Literal::create(namingPred, minDeg, true, false, args.begin());
+  Literal* pnLit=Literal::create(namingPred, minDeg, true, args.begin());
   mdvLits.push(pnLit);
-  Literal* nnLit=Literal::create(namingPred, minDeg, false, false, args.begin());
+  Literal* nnLit=Literal::create(namingPred, minDeg, false, args.begin());
   otherLits.push(nnLit);
 
   Clause* mdvCl=Clause::fromStack(mdvLits, NonspecificInference0(cl->inputType(),InferenceRule::GENERAL_SPLITTING_COMPONENT));

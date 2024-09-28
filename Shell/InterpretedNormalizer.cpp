@@ -170,7 +170,7 @@ public:
     if(_swapArguments) { swap(args[0], args[1]); }
     bool polarity = lit->isPositive() ^ _reversePolarity;
 
-    return Literal::create(_tgtPred, 2, polarity, false, args);
+    return Literal::create(_tgtPred, 2, polarity, args);
   }
 
 private:

@@ -19,7 +19,9 @@
 #include "Forwards.hpp"
 #include "Indexing/TermIndex.hpp"
 
+#include "DemodulationHelper.hpp"
 #include "InferenceEngine.hpp"
+#include "ProofExtra.hpp"
 
 namespace Inferences
 {
@@ -53,6 +55,7 @@ public:
 private:
 };
 
+using ForwardDemodulationExtra = RewriteInferenceExtra;
 
 };
 

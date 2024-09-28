@@ -232,8 +232,8 @@ void EqualityProxyMono::addCongruenceAxioms(UnitList*& units)
     if (!getArgumentEqualityLiterals(arity, lits, vars1, vars2, predSym->predType(), true)) {
       continue;
     }
-    lits.push(Literal::create(i, arity, false, false, vars1.begin()));
-    lits.push(Literal::create(i, arity, true, false, vars2.begin()));
+    lits.push(Literal::create(i, arity, false, vars1.begin()));
+    lits.push(Literal::create(i, arity, true, vars2.begin()));
 
     Clause* cl = createEqProxyAxiom(lits);
     UnitList::push(cl,units);
@@ -395,6 +395,6 @@ Literal* EqualityProxyMono::makeProxyLiteral(bool polarity, TermList arg0, TermL
 {
   unsigned pred = getProxyPredicate(sort);
   TermList args[] = {arg0, arg1};
-  return Literal::create(pred, 2, polarity, false, args);
+  return Literal::create(pred, 2, polarity, args);
 } // EqualityProxy::makeProxyLiteral
 

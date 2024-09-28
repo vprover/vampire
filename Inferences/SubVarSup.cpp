@@ -261,12 +261,6 @@ Clause* SubVarSup::performSubVarSup(
     return 0;
   }
 
-  // If proof extra is on let's compute the positions we have performed
-  // SubVarSup on 
-  if(env.options->proofExtra()==Options::ProofExtra::FULL){
-    //TODO update for proof extra
-  }
-
   bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 
   Inference inf(GeneratingInference2(InferenceRule::SUB_VAR_SUP, rwClause, eqClause));

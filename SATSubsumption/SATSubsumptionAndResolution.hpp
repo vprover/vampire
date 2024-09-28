@@ -426,10 +426,11 @@ private:
 
   /**
    * Fills the match set and the bindings manager with all the possible positive and negative bindings between the literals of L and M.
+   * If the argument litToRemove is set, it will not consider negative matches for the literals other than the one at index litToRemove.
    *
    * @return false if no subsumption resolution solution is possible, the number of sat variables allocated otherwise.
    */
-  void fillMatchesSR();
+  void fillMatchesSR(unsigned litToRemove = 0xFFFFFFFF);
 
   /**
    * Generates the conclusion clause based on the model provided by the sat solver
@@ -492,6 +493,21 @@ public:
   Kernel::Clause *checkSubsumptionResolution(Kernel::Clause *L,
                                              Kernel::Clause *M,
                                              bool usePreviousMatchSet = false);
+
+
+  /**
+   * @brief Checks whether a subsumption resolution can occur between the clauses @b L and @b M with the literal @b resolutionLiteral as the resolution literal.
+   *
+   * @param L the base clause (side premise)
+   * @param M the instance clause (main premise)
+   * @param resolutionLiteral the index of the resolution literal in the instance clause @b M
+   *
+   * @note The conclusion of subsumption resolution is not generated. The conclusion can be later generated using getSubsumptionResolutionConclusion( @b M, @b resolutionLiteral, @b L), provided that @b resolutionLiteral is a valid resolution literal.
+   * @note If @b resolutionLiteral is 0xFFFFFFFF, the method will check if subsumption resolution is possible with any literal. But the conclusion will not be generated.
+   */
+  bool checkSubsumptionResolutionWithLiteral(Kernel::Clause *L,
+                                             Kernel::Clause *M,
+                                             unsigned resolutionLiteral);
 
   /**
    * Creates a clause that is the subsumption resolution of @b M and @b L on @b m_j.

@@ -2059,7 +2059,7 @@ void TPTP::endTheoryFunction() {
     Term* term = Term::create(symbol, arity, args);
     _termLists.push(TermList(term));
   } else {
-    Literal* literal = Literal::create(symbol, arity, true, false, args);
+    Literal* literal = Literal::create(symbol, arity, true, args);
     _formulas.push(new AtomicFormula(literal));
     _states.push(END_FORMULA_INSIDE_TERM);
   }
@@ -3193,7 +3193,7 @@ Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
       }
     }
   }
-  auto out = new AtomicFormula(Literal::create(pred, arity, /* polarity */ true, /* commutative */ false, args));
+  auto out = new AtomicFormula(Literal::create(pred, arity, /* polarity */ true, args));
   _termLists.pop(arity);
   return out;
 } // createPredicateApplication
@@ -3257,10 +3257,12 @@ TermList TPTP::createTypeConApplication(std::string name, unsigned arity)
 { 
   ASS_GE(_termLists.size(), arity);
 
-  bool dummy;
+  bool added = false;
   //TODO not checking for overflown constant. Is that OK?
   //seems to be done this way for predicates as well.
-  unsigned typeCon = env.signature->addTypeCon(name,arity,dummy);
+  unsigned typeCon = env.signature->addTypeCon(name,arity,added);
+  if(added)
+    USER_ERROR("Undeclared type constructor ", name, "/", arity);
 
   auto args = nLastTermLists(arity);
   for (auto i : range(0, arity)) {
@@ -3649,7 +3651,7 @@ void TPTP::endFof()
       while (vs.hasNext()) {
         args->push(TermList::var(vs.next()));
       }
-      Literal* a = Literal::create(pred, arity, /* polarity */ true, /* commutative */  false, args->begin());
+      Literal* a = Literal::create(pred, arity, /* polarity */ true, args->begin());
       f = new QuantifiedFormula(FORALL,
         g->vars(),
         g->sorts(),

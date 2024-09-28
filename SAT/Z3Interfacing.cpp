@@ -347,7 +347,7 @@ OperatorType* operatorType(Z3Interfacing::FuncOrPredId f)
 Term* createTermOrPred(Z3Interfacing::FuncOrPredId f, unsigned arity, TermList* ts)
 {
   return f.isPredicate
-    ? Literal::create(f.id, arity, true, false, ts)
+    ? Literal::create(f.id, arity, true, ts)
     : Term::create(f.id, arity, ts);
 }
 

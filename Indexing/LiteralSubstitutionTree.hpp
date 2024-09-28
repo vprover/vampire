@@ -94,8 +94,8 @@ private:
       { return tree->template iterator<Iterator>(lit, retrieveSubstitutions, reversed, args...); };
 
     return ifElseIter(
-        tree->isEmpty(), [&]() { return VirtualIterator<ELEMENT_TYPE(Iterator)>::getEmpty(); }, 
-                         [&]() { return ifElseIter(!lit->commutative(), 
+        tree->isEmpty(), [&]() { return VirtualIterator<ELEMENT_TYPE(Iterator)>::getEmpty(); },
+                         [&]() { return ifElseIter(!lit->isEquality(),
                                  [&]() { return iter(/* reverse */ false); },
                                  [&]() { return concatIters(iter(/* reverse */ false), iter(/* reverse */ true)); }); }
         );

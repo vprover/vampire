@@ -224,7 +224,7 @@ Literal* InequalitySplitting::makeNameLiteral(unsigned predNum, TermList arg, bo
 {
   if(!_appify){
     vars.push(arg);
-    return Literal::create(predNum, vars.size(), polarity, false, vars.begin());
+    return Literal::create(predNum, vars.size(), polarity, vars.begin());
   } else {
     TermList boolT = polarity ? TermList(Term::foolTrue()) : TermList(Term::foolFalse());
     TermList head = TermList(Term::create(predNum, vars.size(), vars.begin()));

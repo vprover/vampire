@@ -469,7 +469,7 @@ void MLMatcher::Impl::initMatchingData(Literal** baseLits0, unsigned baseLen, Cl
     LiteralList::Iterator ait(s_altsArr[i]);
     while(ait.hasNext()) {
       currAltCnt++;
-      if(ait.next()->commutative()) {
+      if(ait.next()->isEquality()) {
 	currAltCnt++;
       }
     }

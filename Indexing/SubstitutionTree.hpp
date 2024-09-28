@@ -797,14 +797,6 @@ public:
         }
 
         bindSpecialVar(2, SortHelper::getEqualityArgumentSort(lit));
-
-      } else if(reversed) {
-        ASS(lit->commutative());
-        ASS_EQ(lit->arity(),2);
-
-        bindSpecialVar(1,*lit->nthArgument(0));
-        bindSpecialVar(0,*lit->nthArgument(1));
-
       } else {
 
         TermList* args=lit->args();

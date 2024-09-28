@@ -341,7 +341,7 @@ bool SATSubsumptionAndResolution::checkAndAddMatch(Literal* l_i,
       match = true;
     }
   }
-  if (l_i->commutative()) {
+  if (l_i->isEquality()) {
     auto binder = _bindingsManager.start_binder();
     if (MatchingUtils::matchReversedArgs(l_i, m_j, binder)) {
       addBinding(&binder, i, j, polarity, false);
@@ -393,7 +393,7 @@ bool SATSubsumptionAndResolution::fillMatchesS()
   return true;
 } // SATSubsumptionAndResolution::fillMatchesS()
 
-void SATSubsumptionAndResolution::fillMatchesSR()
+void SATSubsumptionAndResolution::fillMatchesSR(unsigned litToRemove)
 {
   ASS(_L)
   ASS(_M)
@@ -428,6 +428,8 @@ void SATSubsumptionAndResolution::fillMatchesSR()
           literalHasPositiveMatch = true;
           continue;
         }
+        if (litToRemove != 0xFFFFFFFF && j != litToRemove)
+          continue;
         addBinding(nullptr, i, j, false, true);
         clauseHasNegativeMatch = true;
         literalHasNegativeMatch = true;
@@ -442,6 +444,8 @@ void SATSubsumptionAndResolution::fillMatchesSR()
       }
       // check negative polarity matches
       // same comment as above
+      if (litToRemove != 0xFFFFFFFF && j != litToRemove)
+          continue;
       literalHasNegativeMatch = checkAndAddMatch(l_i, m_j, i, j, false) || literalHasNegativeMatch;
       clauseHasNegativeMatch |= literalHasNegativeMatch;
     } // for (unsigned j = 0; j < _nInstanceLits; ++j)
@@ -582,7 +586,7 @@ bool SATSubsumptionAndResolution::cnfForSubsumptionResolution()
   cout << "Existence" << endl;
 #endif
 #if PRINT_CLAUSES_SUBS
-  vstring s = "";
+  string s = "";
 #endif
   solver.constraint_start();
   for (unsigned j = 0; j < _n; ++j) {
@@ -940,3 +944,28 @@ Clause* SATSubsumptionAndResolution::checkSubsumptionResolution(Clause* L,
   // If the problem is SAT, then generate the conclusion clause
   return conclusion;
 } // SATSubsumptionAndResolution::checkSubsumptionResolution
+
+bool SATSubsumption::SATSubsumptionAndResolution::checkSubsumptionResolutionWithLiteral(Kernel::Clause* L, Kernel::Clause* M, unsigned resolutionLiteral)
+{
+  loadProblem(L, M);
+  if (pruneSubsumptionResolution()) {
+    return false;
+  }
+  fillMatchesSR(resolutionLiteral);
+
+  if (_srImpossible) {
+    return false;
+  }
+
+  // set up the clauses
+  if (!cnfForSubsumptionResolution()) {
+    return false;
+  }
+
+  ASS(_solver.theory().empty())
+  // since we cannot use the previous setup, the bindings should be cleared during loading of the problem
+  _solver.theory().setBindings(&_bindingsManager);
+
+  _model.clear();
+  return (_solver.solve() == subsat::Result::Sat);
+}

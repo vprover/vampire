@@ -1352,7 +1352,7 @@ void InductionClauseIterator::performStructInductionTwo(const InductionContext& 
         dargTerms.push(y);
         TermList djy;
         if (con->argSort(j)==AtomicSort::boolSort()) {
-          djy = TermList(Term::createFormula(new AtomicFormula(Literal::create(dj,dargTerms.size(),true,false,dargTerms.begin()))));
+          djy = TermList(Term::createFormula(new AtomicFormula(Literal::create(dj,dargTerms.size(),true,dargTerms.begin()))));
         } else {
           djy = TermList(Term::create(dj,dargTerms.size(),dargTerms.begin()));
         }
@@ -1448,7 +1448,7 @@ void InductionClauseIterator::performStructInductionThree(const InductionContext
         dargTerms.push(y);
         TermList djy;
         if (con->argSort(j)==AtomicSort::boolSort()) {
-          djy = TermList(Term::createFormula(new AtomicFormula(Literal::create(dj,dargTerms.size(),true,false,dargTerms.begin()))));
+          djy = TermList(Term::createFormula(new AtomicFormula(Literal::create(dj,dargTerms.size(),true,dargTerms.begin()))));
         } else {
           djy = TermList(Term::create(dj,dargTerms.size(),dargTerms.begin()));
         }

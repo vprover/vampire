@@ -6,6 +6,9 @@ project(Vampire)
 
 include(CheckIPOSupported)
 
+# version
+set(VAMPIRE_VERSION_NUMBER 4.9)
+
 # require the compiler to use C++17
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -27,14 +30,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(Threads REQUIRED)
 link_libraries(Threads::Threads)
 
-# variables for binary name, set later
-set(VAMPIRE_BINARY vampire)
-set(VAMPIRE_BINARY_BUILD)
-set(VAMPIRE_BINARY_STATIC)
-set(VAMPIRE_BINARY_Z3)
-set(VAMPIRE_BINARY_BRANCH)
-set(VAMPIRE_BINARY_REV_COUNT)
-
 # set build type if not set
 if(NOT CMAKE_BUILD_TYPE)
   message(STATUS "Setting build type to 'Release' as none was specified.")
@@ -46,7 +41,6 @@ option(BUILD_SHARED_LIBS "Build an executable dynamically linking to libraries i
 if (NOT BUILD_SHARED_LIBS)
   set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
   set(CMAKE_EXE_LINKER_FLAGS -static)
-  set(VAMPIRE_BINARY_STATIC _static)
 endif()
 
 # We compile tests only in debug mode, since in release mode assertions are NOPs anyways.
@@ -170,6 +164,7 @@ set(VAMPIRE_LIB_SOURCES
     Lib/Numbering.hpp
     Lib/PairUtils.hpp
     Lib/Portability.hpp
+    Lib/ProofExtra.hpp
     Lib/Random.hpp
     Lib/RatioKeeper.hpp
     Lib/Recycled.hpp
@@ -334,6 +329,8 @@ set(VAMPIRE_KERNEL_SOURCES
     Inferences/CasesSimp.hpp
     Inferences/Cases.cpp
     Inferences/Cases.hpp
+    Inferences/ProofExtra.hpp
+    Inferences/ProofExtra.cpp
     Shell/LambdaElimination.cpp
     Shell/LambdaElimination.hpp
     )
@@ -856,7 +853,6 @@ else ()
   add_library(Z3 SHARED IMPORTED)
   set_property(TARGET Z3 PROPERTY IMPORTED_LOCATION ${Z3_LIBRARY})
   add_compile_definitions(VZ3=1)
-  set(VAMPIRE_BINARY_Z3 _z3)
   set(UNIT_TESTS ${UNIT_TESTS} ${UNIT_TESTS_Z3})
 endif()
 
@@ -923,8 +919,6 @@ endif() # COMPILE_TESTS
 #################################################################
 # automated generation of Vampire revision information from git #
 #################################################################
-set(VAMPIRE_VERSION_NUMBER 4.9)
-
 execute_process(
     COMMAND git rev-parse --is-inside-work-tree
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
@@ -933,53 +927,19 @@ execute_process(
     )
 
 if (GIT_IS_REPOSITORY STREQUAL true)
-
+  # GIT_COMMIT_DESCRIPTION used by version.cpp.in
   execute_process(
     COMMAND git log -1 --format=%h\ on\ %ci
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     OUTPUT_VARIABLE GIT_COMMIT_DESCRIPTION
     OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-
-  execute_process(
-    COMMAND git rev-parse --abbrev-ref HEAD
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_VARIABLE GIT_BRANCH
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-
-  execute_process(
-    COMMAND git rev-list HEAD --count
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_VARIABLE GIT_REV_COUNT
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-
-  set(VAMPIRE_BINARY_BRANCH "_${GIT_BRANCH}")
-  set(VAMPIRE_BINARY_REV_COUNT "_${GIT_REV_COUNT}")
+)
 endif()
-
-################################################################
-# binary name
-################################################################
-if(CMAKE_BUILD_TYPE STREQUAL Debug)
-  set(VAMPIRE_BINARY_BUILD _dbg)
-elseif(CMAKE_BUILD_TYPE STREQUAL Release)
-  set(VAMPIRE_BINARY_BUILD _rel)
-else()
-  set(VAMPIRE_BINARY_BUILD "_${CMAKE_BUILD_TYPE}")
-endif()
-set(VAMPIRE_BINARY "vampire${VAMPIRE_BINARY_Z3}${VAMPIRE_BINARY_BUILD}${VAMPIRE_BINARY_STATIC}${VAMPIRE_BINARY_BRANCH}${VAMPIRE_BINARY_REV_COUNT}")
-message(STATUS "Setting binary name to '${VAMPIRE_BINARY}'")
 
 ################################################################
 # epilogue
 ################################################################
 add_executable(vampire vampire.cpp $<TARGET_OBJECTS:obj>)
-set_target_properties(vampire PROPERTIES
-  OUTPUT_NAME ${VAMPIRE_BINARY}
-  RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-  )
 configure_file(version.cpp.in version.cpp)
 
 # enable IPO
@@ -997,8 +957,4 @@ add_executable(subsat
     EXCLUDE_FROM_ALL  # only build when explicitly requested
     SATSubsumption/subsat/subsat_main.cpp
     $<TARGET_OBJECTS:obj>
-)
-
-set_target_properties(subsat PROPERTIES
-  RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )

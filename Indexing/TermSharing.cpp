@@ -294,7 +294,6 @@ void TermSharing::computeAndSetSharedLiteralData(Literal* t)
 void TermSharing::computeAndSetSharedVarEqData(Literal* t, TermList sort)
 {
   ASS(t->isLiteral());
-  ASS(t->commutative());
   ASS(t->isEquality());
   ASS(t->nthArgument(0)->isVar());
   ASS(t->nthArgument(1)->isVar());
