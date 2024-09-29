@@ -40,30 +40,23 @@ std::ostream& operator<<(std::ostream& out, const OrderingComparator::BranchTag&
   return out;
 }
 
-std::ostream& operator<<(std::ostream& out, const OrderingComparator::Branch& branch)
+std::ostream& operator<<(std::ostream& out, const OrderingComparator::Node& node)
 {
-  out << branch._tag() << (branch._ready()?" ":"? ");
-  switch (branch._tag()) {
+  out << (OrderingComparator::BranchTag)node.tag << (node.ready?" ":"? ");
+  switch (node.tag) {
     case OrderingComparator::BranchTag::T_RESULT: {
-      auto n = branch._node();
-      if (n) {
-        out << n->data << " ";
-      } else {
-        out << "0x0 ";
-      }
+      out << node.data;
       break;
     }
     case OrderingComparator::BranchTag::T_WEIGHT: {
-      auto n = branch._node();
-      out << n->w << " ";
-      for (const auto& [var, coeff] : *n->varCoeffPairs) {
+      out << node.w << " ";
+      for (const auto& [var, coeff] : *node.varCoeffPairs) {
         out << "X" << var << " " << coeff << " ";
       }
       break;
     }
     case OrderingComparator::BranchTag::T_COMPARISON: {
-      auto n = branch._node();
-      out << n->lhs << " " << n->rhs;
+      out << node.lhs << " " << node.rhs;
       break;
     }
   }
@@ -75,7 +68,7 @@ std::ostream& operator<<(std::ostream& str, const OrderingComparator& comp)
   Stack<std::pair<const OrderingComparator::Branch*, unsigned>> todo;
   todo.push(std::make_pair(&comp._root,0));
   // Note: using this set we get a more compact representation
-  // DHSet<OrderingComparator::Node*> seen;
+  DHSet<OrderingComparator::Node*> seen;
 
   while (todo.isNonEmpty()) {
     auto kv = todo.pop();
@@ -86,17 +79,18 @@ std::ostream& operator<<(std::ostream& str, const OrderingComparator& comp)
         str << "  |  ";
       }
     }
-    str << *kv.first << std::endl;
-    if (kv.first->_node()/*  && seen.insert(kv.first->n.ptr()) */) {
-      switch (kv.first->_tag()) {
+    if (!kv.first->node()) {
+      str << "c 0x0" << std::endl;
+    } else if (seen.insert(kv.first->node())) {
+      switch (kv.first->node()->tag) {
         case OrderingComparator::BranchTag::T_RESULT: {
-          todo.push(std::make_pair(&kv.first->_node()->alternative,kv.second+1));
+          todo.push(std::make_pair(&kv.first->node()->alternative,kv.second+1));
           break;
         }
         default: {
-          todo.push(std::make_pair(&kv.first->_node()->incBranch,kv.second+1));
-          todo.push(std::make_pair(&kv.first->_node()->gtBranch,kv.second+1));
-          todo.push(std::make_pair(&kv.first->_node()->eqBranch,kv.second+1));
+          todo.push(std::make_pair(&kv.first->node()->incBranch,kv.second+1));
+          todo.push(std::make_pair(&kv.first->node()->gtBranch,kv.second+1));
+          todo.push(std::make_pair(&kv.first->node()->eqBranch,kv.second+1));
           break;
         }
       }
@@ -112,7 +106,7 @@ OrderingComparator::OrderingComparator(const Ordering& ord, const Stack<Ordering
   auto curr = &_root;
   for (const auto& [lhs,rhs,rel] : comps) {
     *curr = OrderingComparator::Branch(lhs, rhs);
-    curr = &curr->_node()->getBranch(rel);
+    curr = &curr->node()->getBranch(rel);
   }
   *curr = Branch(result, Branch());
 }
@@ -122,27 +116,27 @@ OrderingComparator::~OrderingComparator() = default;
 void* OrderingComparator::next(const SubstApplicator* applicator)
 {
   ASS(_curr);
-  while (_curr->_node()) {
+  while (_curr->node()) {
     expand();
-    ASS(_curr->_ready());
-    auto node = _curr->_node();
-
-    if (_curr->_tag() == BranchTag::T_RESULT) {
-      if (node) {
-        _curr = &node->alternative;
-        return node->data;
-      }
+    auto node = _curr->node();
+    if (!node) {
       return nullptr;
+    }
+    ASS(node->ready);
+
+    if (node->tag == BranchTag::T_RESULT) {
+      _curr = &node->alternative;
+      return node->data;
     }
 
     Ordering::Result comp = Ordering::INCOMPARABLE;
-    if (_curr->_tag() == BranchTag::T_COMPARISON) {
+    if (node->tag == BranchTag::T_COMPARISON) {
 
       comp = _ord.isGreaterOrEq(AppliedTerm(node->lhs,applicator,true),AppliedTerm(node->rhs,applicator,true));
       _cache.push({ node->lhs, node->rhs, comp });
 
     } else {
-      ASS(_curr->_tag() == BranchTag::T_WEIGHT);
+      ASS(node->tag == BranchTag::T_WEIGHT);
 
       const auto& kbo = static_cast<const KBO&>(_ord);
       auto weight = node->w;
@@ -176,15 +170,21 @@ void* OrderingComparator::next(const SubstApplicator* applicator)
       }
     }
 loop_end:
-    _curr = &_curr->_node()->getBranch(comp);
+    _curr = &_curr->node()->getBranch(comp);
   }
   return nullptr;
 }
 
-void OrderingComparator::addAlternative(const OrderingComparator& other)
+void OrderingComparator::insert(const Stack<Ordering::Constraint>& comps, void* result)
 {
-  auto& branch = other._root;
-  ASS(!branch._ready()); // branch should be unexpanded
+  ASS(result);
+  Branch addedRoot;
+  auto curr = &addedRoot;
+  for (const auto& [lhs,rhs,rel] : comps) {
+    *curr = OrderingComparator::Branch(lhs, rhs);
+    curr = &curr->node()->getBranch(rel);
+  }
+  *curr = Branch(result, Branch());
 
   static unsigned ts = 0;
   ts++;
@@ -194,32 +194,32 @@ void OrderingComparator::addAlternative(const OrderingComparator& other)
 
   auto pushBranches = [](Branch* b, const Branch& other) {
     // if other branch is unsuccessful, do nothing
-    if (other._tag() == BranchTag::T_RESULT && !other._node()) {
+    if (!other.node()) {
       return;
     }
     // if this branch is unsuccessful, replace this with other
-    if (b->_tag() == BranchTag::T_RESULT && !b->_node()) {
+    if (!b->node()) {
       *b = other;
       return;
     }
     todo.push(std::make_pair(b,other));
   };
 
-  pushBranches(&_root, branch);
+  pushBranches(&_root, addedRoot);
 
   while (todo.isNonEmpty()) {
     auto kv = todo.pop();
     auto currB = kv.first;
     auto otherB = kv.second;
-    ASS(currB->_node());
-    ASS(otherB._node());
+    ASS(currB->node());
+    ASS(otherB.node());
     // if we already checked this branch, continue
-    if (currB->_node()->ts == ts) {
+    if (currB->node()->ts == ts) {
       continue;
     }
-    currB->_node()->ts = ts;
-    if (currB->_tag() == BranchTag::T_RESULT) {
-      pushBranches(&currB->_node()->alternative, otherB);
+    currB->node()->ts = ts;
+    if (currB->node()->tag == BranchTag::T_RESULT) {
+      pushBranches(&currB->node()->alternative, otherB);
       continue;
     }
     // TODO: results should be only pushed down
@@ -236,26 +236,27 @@ void OrderingComparator::addAlternative(const OrderingComparator& other)
     //     continue;
     //   }
     // }
-    pushBranches(&currB->_node()->eqBranch, otherB);
-    pushBranches(&currB->_node()->gtBranch, otherB);
-    pushBranches(&currB->_node()->incBranch, otherB);
+    pushBranches(&currB->node()->eqBranch, otherB);
+    pushBranches(&currB->node()->gtBranch, otherB);
+    pushBranches(&currB->node()->incBranch, otherB);
   }
 }
 
 void OrderingComparator::expand()
 {
-  while (!_curr->_ready())
+  ASS(_curr->node());
+  while (_curr->node() && !_curr->node()->ready)
   {
     // take temporary ownership of node
     Branch nodeHolder = *_curr;
-    auto node = nodeHolder._node();
+    auto node = nodeHolder.node();
 
-    if (_curr->_tag() == BranchTag::T_RESULT) {
+    if (node->tag == BranchTag::T_RESULT) {
       *_curr = Branch(node->data, node->alternative);
-      _curr->_setReady(true);
+      _curr->node()->ready = true;
       return;
     }
-    ASS(_curr->_tag() != BranchTag::T_WEIGHT);
+    ASS(node->tag != BranchTag::T_WEIGHT);
 
     // Use compare here to filter out as many
     // precomputable comparisons as possible.
@@ -281,15 +282,15 @@ void OrderingComparator::expand()
 
 void OrderingComparator::expandTermCase()
 {
-  ASS(!_curr->_ready());
-  _curr->_setReady(true);
+  ASS(_curr->node() && !_curr->node()->ready);
+  _curr->node()->ready = true;
 }
 
 bool OrderingComparator::tryExpandVarCase()
 {
   // take temporary ownership of node
   Branch nodeHolder = *_curr;
-  auto node = nodeHolder._node();
+  auto node = nodeHolder.node();
 
   // If we have a variable, we cannot preprocess further.
   if (!node->lhs.isVar() && !node->rhs.isVar()) {
@@ -324,11 +325,65 @@ bool OrderingComparator::tryExpandVarCase()
   }
   // make a fresh copy
   *_curr = Branch(node->lhs, node->rhs);
-  _curr->_node()->eqBranch = node->eqBranch;
-  _curr->_node()->gtBranch = node->gtBranch;
-  _curr->_node()->incBranch = node->incBranch;
-  _curr->_setReady(true);
+  _curr->node()->eqBranch = node->eqBranch;
+  _curr->node()->gtBranch = node->gtBranch;
+  _curr->node()->incBranch = node->incBranch;
+  _curr->node()->ready = true;
   return true;
+}
+
+OrderingComparator::Branch::Branch()
+{
+  setNode(nullptr);
+}
+
+OrderingComparator::Branch::~Branch()
+{
+  // _setNode(nullptr);
+}
+
+OrderingComparator::Branch::Branch(const Branch& other)
+{
+  setNode(other.node());
+}
+
+OrderingComparator::Branch& OrderingComparator::Branch::operator=(const Branch& other)
+{
+  if (&other==this) {
+    return *this;
+  }
+  setNode(other.node());
+  return *this;
+}
+
+OrderingComparator::Branch::Branch(Branch&& other)
+  : _node(other._node)
+{
+  other._node = nullptr;
+}
+
+OrderingComparator::Branch& OrderingComparator::Branch::operator=(Branch&& other)
+{
+  if (&other==this) {
+    return *this;
+  }
+  _node = other._node;
+  other._node = nullptr;
+  return *this;
+}
+
+OrderingComparator::Node::~Node()
+{
+  switch(tag) {
+    case T_RESULT:
+      // alternative.~Branch();
+      break;
+    case T_COMPARISON:
+      break;
+    case T_WEIGHT:
+      delete varCoeffPairs;
+      break;
+  }
 }
 
 void OrderingComparator::Node::incRefCnt()

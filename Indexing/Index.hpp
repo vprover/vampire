@@ -177,7 +177,11 @@ struct DemodulatorDataContainer {
       return false;
     }
     dds.loadFromIterator(other.dds.iter());
-    comparator->addAlternative(*other.comparator.get());
+    Stack<Ordering::Constraint> ordCons;
+    if (!other.dds[0]->preordered) {
+      ordCons.push({ other.dds[0]->term, other.dds[0]->rhs, Ordering::GREATER });
+    }
+    comparator->insert(ordCons, other.dds[0]);
     return true;
   }
 

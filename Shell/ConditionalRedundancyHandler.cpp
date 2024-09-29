@@ -128,8 +128,7 @@ private:
 #if DEBUG_ORDERING
     entries->entries.push(ptr);
 #endif
-    auto comp = ord->createComparator(ptr->ordCons, ptr);
-    entries->comparator->addAlternative(*comp.get());
+    entries->comparator->insert(ptr->ordCons, ptr);
     return true;
   }
 

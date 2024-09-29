@@ -56,7 +56,7 @@ void KBOComparator::expandTermCase()
 
   // take temporary ownership of node
   Branch nodeHolder = *_curr;
-  auto node = nodeHolder._node();
+  auto node = nodeHolder.node();
 
   auto curr = _curr;
 
@@ -66,9 +66,9 @@ void KBOComparator::expandTermCase()
       return e1.second>e2.second;
     });
     *curr = Branch(w, nonzeros.release());
-    curr->_node()->gtBranch = node->gtBranch;
-    curr->_node()->incBranch = node->incBranch;
-    curr = &curr->_node()->eqBranch;
+    curr->node()->gtBranch = node->gtBranch;
+    curr->node()->incBranch = node->incBranch;
+    curr = &curr->node()->eqBranch;
   }
 
   ASS(node->lhs.isTerm() && node->rhs.isTerm());
@@ -95,9 +95,9 @@ void KBOComparator::expandTermCase()
         auto lhsArg = *lhst->nthArgument(i);
         auto rhsArg = *rhst->nthArgument(i);
         *curr = Branch(lhsArg,rhsArg);
-        curr->_node()->gtBranch = node->gtBranch;
-        curr->_node()->incBranch = node->incBranch;
-        curr = &curr->_node()->eqBranch;
+        curr->node()->gtBranch = node->gtBranch;
+        curr->node()->incBranch = node->incBranch;
+        curr = &curr->node()->eqBranch;
       }
       *curr = node->eqBranch;
       break;

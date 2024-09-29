@@ -26,9 +26,9 @@ void LPOComparator::majoChain(Branch* branch, TermList tl1, Term* t, unsigned i,
   ASS(branch);
   for (unsigned j = i; j < t->arity(); j++) {
     *branch = Branch(tl1,*t->nthArgument(j));
-    branch->_node()->eqBranch = fail;
-    branch->_node()->incBranch = fail;
-    branch = &branch->_node()->gtBranch;
+    branch->node()->eqBranch = fail;
+    branch->node()->incBranch = fail;
+    branch = &branch->node()->gtBranch;
   }
   *branch = std::move(success);
 }
@@ -41,9 +41,9 @@ void LPOComparator::alphaChain(Branch* branch, Term* s, unsigned i, TermList tl2
   ASS(branch);
   for (unsigned j = i; j < s->arity(); j++) {
     *branch = Branch(*s->nthArgument(j),tl2);
-    branch->_node()->eqBranch = success;
-    branch->_node()->gtBranch = success;
-    branch = &branch->_node()->incBranch;
+    branch->node()->eqBranch = success;
+    branch->node()->gtBranch = success;
+    branch = &branch->node()->incBranch;
   }
   *branch = std::move(fail);
 }
@@ -52,7 +52,7 @@ void LPOComparator::expandTermCase()
 {
   // take temporary ownership of node
   Branch nodeHolder = std::move(*_curr);
-  auto node = nodeHolder._node();
+  auto node = nodeHolder.node();
 
   ASS(node->lhs.isTerm() && node->rhs.isTerm());
   const auto& lpo = static_cast<const LPO&>(_ord);
@@ -76,10 +76,10 @@ void LPOComparator::expandTermCase()
       auto t_arg = *rhs.term()->nthArgument(i);
       *curr = Branch(s_arg,t_arg);
       // greater branch is a majo chain
-      majoChain(&curr->_node()->gtBranch, lhs, rhs.term(), i+1, node->gtBranch, node->incBranch);
+      majoChain(&curr->node()->gtBranch, lhs, rhs.term(), i+1, node->gtBranch, node->incBranch);
       // incomparable branch is an alpha chain
-      alphaChain(&curr->_node()->incBranch, lhs.term(), i+1, rhs, node->gtBranch, node->incBranch);
-      curr = &curr->_node()->eqBranch;
+      alphaChain(&curr->node()->incBranch, lhs.term(), i+1, rhs, node->gtBranch, node->incBranch);
+      curr = &curr->node()->eqBranch;
     }
     *curr = node->eqBranch;
     break;

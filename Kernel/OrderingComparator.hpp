@@ -41,7 +41,7 @@ public:
   void reset() { _curr = &_root; _cache.reset(); }
 
   void* next(const SubstApplicator* applicator);
-  void addAlternative(const OrderingComparator& other);
+  void insert(const Stack<Ordering::Constraint>& comps, void* result);
 
   friend std::ostream& operator<<(std::ostream& out, const OrderingComparator& comp);
 
@@ -57,77 +57,35 @@ protected:
   };
 
   struct Branch {
-    static_assert(alignof(Node*)>T_WEIGHT);
-    static constexpr unsigned
-      READY_BITS_START = 0,
-      READY_BITS_END = READY_BITS_START + 1,
-      TAG_BITS_START = READY_BITS_END,
-      TAG_BITS_END = TAG_BITS_START + 2,
-      NODE_BITS_START = TAG_BITS_END,
-      NODE_BITS_END = CHAR_BIT * sizeof(Node*);
-
-    BITFIELD64_GET_AND_SET(bool, ready, Ready, READY)
-    BITFIELD64_GET_AND_SET(unsigned, tag, Tag, TAG)
-    // BITFIELD64_GET_AND_SET_PTR(Node*, node, Node, NODE)
-    Node* _node() const { return reinterpret_cast<Node*>(BitUtils::getBits<NODE_BITS_START,NODE_BITS_END>(_content)); }
-    void _setNode(Node* node) {
-      auto prev = _node();
-      if (prev) {
-        prev->decRefCnt();
+    Node* node() const { return _node; }
+    void setNode(Node* node) {
+      if (_node) {
+        _node->decRefCnt();
       }
-      if (node) {
-        node->incRefCnt();
+      _node = node;
+      if (_node) {
+        _node->incRefCnt();
       }
-      BitUtils::setBits<NODE_BITS_START,NODE_BITS_END>(_content, reinterpret_cast<uint64_t>(node));
     }
 
-    Branch() { _setTag(T_RESULT); _setReady(true); _setNode(nullptr); }
-    explicit Branch(void* data, Branch alternative) {
-      _setTag(T_RESULT);
-      _setNode(new Node(data, alternative));
+    Branch();
+    template<typename S, typename T> Branch(S&& s, T&& t) {
+      setNode(new Node(std::forward<S>(s), std::forward<T>(t)));
     }
-    explicit Branch(TermList lhs, TermList rhs) {
-      _setTag(T_COMPARISON);
-      _setNode(new Node(lhs, rhs));
-    }
-    explicit Branch(int64_t w, Stack<std::pair<unsigned,int>>* varCoeffPairs) {
-      _setTag(T_WEIGHT);
-      _setNode(new Node(w, varCoeffPairs));
-      _setReady(true);
-    }
+    ~Branch();
     // Branch(const Branch& other) = delete;
     // Branch& operator=(const Branch& other) = delete;
-    Branch(const Branch& other) {
-      _setTag(other._tag());
-      _setReady(other._ready());
-      _setNode(other._node());
-    }
-    Branch& operator=(const Branch& other) {
-      if (&other==this) {
-        return *this;
-      }
-      _setTag(other._tag());
-      _setReady(other._ready());
-      _setNode(other._node());
-      return *this;
-    }
-    Branch(Branch&& other) : _content(other._content) {
-      other._content = 0;
-    }
-    Branch& operator=(Branch&& other) {
-      if (&other==this) {
-        return *this;
-      }
-      _content = other._content;
-      other._content = 0;
-      return *this;
-    }
+    Branch(const Branch& other);
+    Branch& operator=(const Branch& other);
+    Branch(Branch&& other);
+    Branch& operator=(Branch&& other);
 
   private:
-    uint64_t _content = 0;
+    Node* _node = nullptr;
   };
 
-  friend std::ostream& operator<<(std::ostream& out, const Branch& branch);
+  friend std::ostream& operator<<(std::ostream& out, const Node& node);
+  // friend std::ostream& operator<<(std::ostream& out, const Branch& branch);
   friend std::ostream& operator<<(std::ostream& out, const BranchTag& t);
 
   using VarCoeffPair = std::pair<unsigned,int>;
@@ -152,14 +110,19 @@ protected:
     }
 
     explicit Node(void* data, Branch alternative)
-      : data(data), alternative(alternative) {}
+      : tag(T_RESULT), ready(false), data(data), alternative(alternative) {}
     explicit Node(TermList lhs, TermList rhs)
-      : lhs(lhs), rhs(rhs) {}
+      : tag(T_COMPARISON), ready(false), lhs(lhs), rhs(rhs) {}
     explicit Node(uint64_t w, Stack<VarCoeffPair>* varCoeffPairs)
-      : w(w), varCoeffPairs(varCoeffPairs) {}
+      : tag(T_WEIGHT), ready(true), w(w), varCoeffPairs(varCoeffPairs) {}
+
+    ~Node();
 
     void incRefCnt();
     void decRefCnt();
+
+    BranchTag tag;
+    bool ready;
 
     union {
       void* data = nullptr;
