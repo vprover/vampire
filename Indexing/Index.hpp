@@ -212,7 +212,7 @@ struct DemodulatorDataContainer {
   bool canBeDeleted() const { return dds.isEmpty(); }
 
   friend std::ostream& operator<<(std::ostream& out, DemodulatorDataContainer const& self)
-  { return out << "TODO"; }
+  { return out << *self.comparator; }
 };
 
 template<class T>

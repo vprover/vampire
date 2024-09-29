@@ -68,7 +68,7 @@ protected:
       }
     }
 
-    Branch();
+    Branch() = default;
     template<typename S, typename T> Branch(S&& s, T&& t) {
       setNode(new Node(std::forward<S>(s), std::forward<T>(t)));
     }
@@ -138,12 +138,12 @@ protected:
     Branch eqBranch;
     Branch gtBranch;
     Branch incBranch;
-    unsigned ts;
     unsigned refcnt;
   };
 
   const Ordering& _ord;
   Branch _root;
+  Branch _fail;
   Branch* _curr;
   Stack<Ordering::Constraint> _cache;
 };
