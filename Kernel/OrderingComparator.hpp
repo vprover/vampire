@@ -28,17 +28,11 @@ namespace Kernel {
  */
 struct OrderingComparator
 {
-protected:
-  struct Branch;
-  struct Node;
-  class ResultNode;
-  class ComparisonNode;
-
 public:
   OrderingComparator(const Ordering& ord, const Stack<Ordering::Constraint>& comps, void* result);
   virtual ~OrderingComparator();
 
-  void reset() { _curr = &_root; _cache.reset(); }
+  void reset() { _curr = &_root; _prev = nullptr; /* _trace.reset(); */ }
 
   void* next(const SubstApplicator* applicator);
   void insert(const Stack<Ordering::Constraint>& comps, void* result);
@@ -55,6 +49,8 @@ protected:
     T_COMPARISON = 1u,
     T_WEIGHT = 2u,
   };
+
+  struct Node;
 
   struct Branch {
     Node* node() const { return _node; }
@@ -90,6 +86,16 @@ protected:
 
   using VarCoeffPair = std::pair<unsigned,int>;
 
+  struct Trace {
+    bool get(TermList lhs, TermList rhs, Ordering::Result& res) const;
+    bool set(Ordering::Constraint con);
+    void reset() { st.reset(); }
+
+    Stack<Ordering::Constraint> st;
+  };
+
+  Trace* getCurrentTrace();
+
   struct Node {
     static_assert(sizeof(uint64_t) == sizeof(Branch));
     static_assert(sizeof(uint64_t) == sizeof(TermList));
@@ -114,7 +120,7 @@ protected:
     explicit Node(TermList lhs, TermList rhs)
       : tag(T_COMPARISON), ready(false), lhs(lhs), rhs(rhs) {}
     explicit Node(uint64_t w, Stack<VarCoeffPair>* varCoeffPairs)
-      : tag(T_WEIGHT), ready(true), w(w), varCoeffPairs(varCoeffPairs) {}
+      : tag(T_WEIGHT), ready(false), w(w), varCoeffPairs(varCoeffPairs) {}
 
     ~Node();
 
@@ -139,13 +145,15 @@ protected:
     Branch gtBranch;
     Branch incBranch;
     unsigned refcnt;
+    Trace* trace = nullptr;
   };
 
   const Ordering& _ord;
   Branch _root;
   Branch _fail;
   Branch* _curr;
-  Stack<Ordering::Constraint> _cache;
+  Branch* _prev;
+  // Trace _trace;
 };
 
 } // namespace Kernel

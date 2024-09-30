@@ -96,7 +96,7 @@ std::ostream& operator<<(std::ostream& str, const OrderingComparator& comp)
 }
 
 OrderingComparator::OrderingComparator(const Ordering& ord, const Stack<Ordering::Constraint>& comps, void* result)
-: _ord(ord), _root(), _fail(nullptr, Branch()), _curr(&_root)
+: _ord(ord), _root(), _fail(nullptr, Branch()), _curr(&_root), _prev(nullptr)
 {
   ASS(result);
   static Ordering::Result ordVals[] = { Ordering::EQUAL, Ordering::GREATER, Ordering::INCOMPARABLE };
@@ -128,6 +128,7 @@ void* OrderingComparator::next(const SubstApplicator* applicator)
       if (!node->data) {
         return nullptr;
       }
+      _prev = _curr;
       _curr = &node->alternative;
       return node->data;
     }
@@ -136,7 +137,7 @@ void* OrderingComparator::next(const SubstApplicator* applicator)
     if (node->tag == BranchTag::T_COMPARISON) {
 
       comp = _ord.isGreaterOrEq(AppliedTerm(node->lhs,applicator,true),AppliedTerm(node->rhs,applicator,true));
-      _cache.push({ node->lhs, node->rhs, comp });
+      // _trace.set({ node->lhs, node->rhs, comp });
 
     } else {
       ASS(node->tag == BranchTag::T_WEIGHT);
@@ -173,6 +174,7 @@ void* OrderingComparator::next(const SubstApplicator* applicator)
       }
     }
 loop_end:
+    _prev = _curr;
     _curr = &node->getBranch(comp);
   }
   return nullptr;
@@ -192,8 +194,8 @@ void OrderingComparator::insert(const Stack<Ordering::Constraint>& comps, void* 
 
   if (comps.isNonEmpty()) {
     curr->node()->tag = T_COMPARISON;
-    curr->node()->rhs = comps[0].rhs;
     curr->node()->lhs = comps[0].lhs;
+    curr->node()->rhs = comps[0].rhs;
     for (unsigned i = 0; i < 3; i++) {
       if (ordVals[i] != comps[0].rel) {
         curr->node()->getBranch(ordVals[i]) = newFail;
@@ -231,6 +233,7 @@ void OrderingComparator::expand()
 
     if (node->tag == BranchTag::T_RESULT) {
       *_curr = Branch(node->data, node->alternative);
+      _curr->node()->trace = getCurrentTrace();
       _curr->node()->ready = true;
       return;
     }
@@ -274,32 +277,17 @@ bool OrderingComparator::tryExpandVarCase()
   if (!node->lhs.isVar() && !node->rhs.isVar()) {
     return false;
   }
-  // try cache
-  for (const auto& [s,t,r] : _cache) {
-    if (s == node->lhs && t == node->rhs) {
-      if (r == Ordering::GREATER) {
-        *_curr = node->gtBranch;
-      } else if (r == Ordering::EQUAL) {
-        *_curr = node->eqBranch;
-      } else {
-        ASS_EQ(r, Ordering::INCOMPARABLE);
-        *_curr = node->incBranch;
-      }
-      return true;
+  auto trace = getCurrentTrace();
+  Ordering::Result val;
+  if (trace->get(node->lhs, node->rhs, val)) {
+    if (val == Ordering::GREATER) {
+      *_curr = node->gtBranch;
+    } else if (val == Ordering::EQUAL) {
+      *_curr = node->eqBranch;
+    } else {
+      *_curr = node->incBranch;
     }
-
-    if (s == node->rhs && t == node->lhs && r != Ordering::INCOMPARABLE) {
-      if (r == Ordering::GREATER) {
-        *_curr = node->incBranch;
-      } else {
-        ASS_EQ(r, Ordering::EQUAL);
-        *_curr = node->eqBranch;
-      }
-      // Note: since we use isGreater which results
-      // in INCOMPARABLE when compare would be LESS,
-      // the INCOMPARABLE result we cannot use here
-      return true;
-    }
+    return true;
   }
   // make a fresh copy
   *_curr = Branch(node->lhs, node->rhs);
@@ -307,7 +295,86 @@ bool OrderingComparator::tryExpandVarCase()
   _curr->node()->gtBranch = node->gtBranch;
   _curr->node()->incBranch = node->incBranch;
   _curr->node()->ready = true;
+  _curr->node()->trace = trace;
   return true;
+}
+
+bool OrderingComparator::Trace::get(TermList lhs, TermList rhs, Ordering::Result& res) const
+{
+  for (const auto& [s,t,r] : st) {
+    if (s == lhs && t == rhs) {
+      ASS_NEQ(r,Ordering::LESS);
+      res = r;
+      return true;
+    }
+
+    // Note: since we use isGreater which results
+    // in INCOMPARABLE when compare would be LESS,
+    // the INCOMPARABLE result we cannot use here
+    if (s == rhs && t == lhs && r != Ordering::INCOMPARABLE) {
+      res = Ordering::reverse(r);
+      return true;
+    }
+  }
+  return false;
+}
+
+bool OrderingComparator::Trace::set(Ordering::Constraint con)
+{
+  st.push(con);
+  return true;
+}
+
+OrderingComparator::Trace* OrderingComparator::getCurrentTrace()
+{
+  ASS(!_curr->node()->ready);
+
+  if (!_prev) {
+    return new Trace();
+  }
+
+  ASS(_prev->node()->ready);
+  ASS(_prev->node()->trace);
+
+  switch (_prev->node()->tag) {
+    case BranchTag::T_COMPARISON: {
+      auto trace = new Trace(*_prev->node()->trace);
+      auto lhs = _prev->node()->lhs;
+      auto rhs = _prev->node()->rhs;
+      Ordering::Result res;
+      if (_curr == &_prev->node()->eqBranch) {
+        res = Ordering::EQUAL;
+      } else if (_curr == &_prev->node()->gtBranch) {
+        res = Ordering::GREATER;
+      } else {
+        res = Ordering::INCOMPARABLE;
+      }
+      ALWAYS(trace->set({ lhs, rhs, res }));
+      ASS(lhs.isVar() || rhs.isVar());
+      if (res == Ordering::INCOMPARABLE) {
+        if (lhs.isTerm()) {
+          SubtermIterator stit(lhs.term());
+          while (stit.hasNext()) {
+            trace->set({ stit.next(), rhs, Ordering::INCOMPARABLE });
+          }
+        }
+      } else {
+        if (rhs.isTerm()) {
+          SubtermIterator stit(rhs.term());
+          while (stit.hasNext()) {
+            trace->set({ lhs, stit.next(), Ordering::GREATER });
+          }
+        }
+      }
+      return trace;
+    }
+    case BranchTag::T_RESULT: {
+      return _prev->node()->trace;
+    }
+    case BranchTag::T_WEIGHT: {
+      return new Trace(*_prev->node()->trace);
+    }
+  }
 }
 
 OrderingComparator::Branch::~Branch()

@@ -68,6 +68,8 @@ void KBOComparator::expandTermCase()
     *curr = Branch(w, nonzeros.release());
     curr->node()->gtBranch = node->gtBranch;
     curr->node()->incBranch = node->incBranch;
+    curr->node()->trace = getCurrentTrace();
+    curr->node()->ready = true;
     curr = &curr->node()->eqBranch;
   }
 
