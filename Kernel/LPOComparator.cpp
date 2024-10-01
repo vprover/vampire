@@ -51,22 +51,24 @@ void LPOComparator::alphaChain(Branch* branch, Term* s, unsigned i, TermList tl2
 void LPOComparator::expandTermCase()
 {
   // take temporary ownership of node
-  Branch nodeHolder = std::move(*_curr);
-  auto node = nodeHolder.node();
+  auto node = _curr->node();
+  auto lhs = node->lhs;
+  auto rhs = node->rhs;
+  auto eqBranch = node->eqBranch;
+  auto gtBranch = node->gtBranch;
+  auto incBranch = node->incBranch;
 
-  ASS(node->lhs.isTerm() && node->rhs.isTerm());
+  ASS_EQ(node->tag, T_COMPARISON);
+  ASS(!node->ready);
+  ASS(lhs.isTerm() && rhs.isTerm());
+
   const auto& lpo = static_cast<const LPO&>(_ord);
-  auto s = node->lhs.term();
-  auto t = node->rhs.term();
+  auto s = lhs.term();
+  auto t = rhs.term();
 
   switch (lpo.comparePrecedences(s, t)) {
   case Ordering::EQUAL: {
     ASS(s->arity()); // constants cannot be incomparable
-
-    // copies for unification
-    auto lhs = node->lhs;
-    auto rhs = node->rhs;
-
     auto curr = _curr;
 
     // lexicographic comparisons
@@ -74,24 +76,39 @@ void LPOComparator::expandTermCase()
     {
       auto s_arg = *lhs.term()->nthArgument(i);
       auto t_arg = *rhs.term()->nthArgument(i);
-      *curr = Branch(s_arg,t_arg);
+      if (i == 0) {
+        ASS_EQ(curr->node()->tag, T_COMPARISON);
+        curr->node()->lhs = s_arg;
+        curr->node()->rhs = t_arg;
+      } else {
+        *curr = Branch(s_arg,t_arg);
+      }
       // greater branch is a majo chain
-      majoChain(&curr->node()->gtBranch, lhs, rhs.term(), i+1, node->gtBranch, node->incBranch);
+      majoChain(&curr->node()->gtBranch, lhs, rhs.term(), i+1, gtBranch, incBranch);
       // incomparable branch is an alpha chain
-      alphaChain(&curr->node()->incBranch, lhs.term(), i+1, rhs, node->gtBranch, node->incBranch);
+      alphaChain(&curr->node()->incBranch, lhs.term(), i+1, rhs, gtBranch, incBranch);
       curr = &curr->node()->eqBranch;
     }
-    *curr = node->eqBranch;
+    *curr = eqBranch;
     break;
   }
   case Ordering::GREATER: {
     ASS(t->arity());
-    majoChain(_curr, node->lhs, t, 0, node->gtBranch, node->incBranch);
+    _curr->node()->lhs = lhs;
+    _curr->node()->rhs = *t->nthArgument(0);
+    _curr->node()->eqBranch = incBranch;
+    _curr->node()->incBranch = incBranch;
+    majoChain(&_curr->node()->gtBranch, lhs, t, 1, gtBranch, incBranch);
     break;
   }
   case Ordering::LESS: {
     ASS(s->arity());
-    alphaChain(_curr, s, 0, node->rhs, node->gtBranch, node->incBranch);
+    _curr->node()->lhs = *s->nthArgument(0);
+    _curr->node()->rhs = rhs;
+    _curr->node()->eqBranch = gtBranch;
+    _curr->node()->gtBranch = gtBranch;
+    alphaChain(&_curr->node()->incBranch, s, 1, rhs, gtBranch, incBranch);
+    ASS(_curr->node());
     break;
   }
   default:

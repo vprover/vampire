@@ -54,9 +54,12 @@ void KBOComparator::expandTermCase()
   state = nullptr;
 #endif
 
-  // take temporary ownership of node
-  Branch nodeHolder = *_curr;
-  auto node = nodeHolder.node();
+  ASS(_curr->node()->lhs.isTerm() && _curr->node()->rhs.isTerm());
+  auto lhs = _curr->node()->lhs.term();
+  auto rhs = _curr->node()->rhs.term();
+  auto eqBranch = _curr->node()->eqBranch;
+  auto gtBranch = _curr->node()->gtBranch;
+  auto incBranch = _curr->node()->incBranch;
 
   auto curr = _curr;
 
@@ -65,43 +68,44 @@ void KBOComparator::expandTermCase()
     sort(nonzeros->begin(),nonzeros->end(),[](const auto& e1, const auto& e2) {
       return e1.second>e2.second;
     });
-    *curr = Branch(w, nonzeros.release());
-    curr->node()->gtBranch = node->gtBranch;
-    curr->node()->incBranch = node->incBranch;
-    curr->node()->trace = getCurrentTrace();
-    curr->node()->ready = true;
+    curr->node()->tag = T_WEIGHT;
+    curr->node()->w = w;
+    curr->node()->varCoeffPairs = nonzeros.release();
+    curr->node()->gtBranch = gtBranch;
+    curr->node()->incBranch = incBranch;
     curr = &curr->node()->eqBranch;
   }
 
-  ASS(node->lhs.isTerm() && node->rhs.isTerm());
-  auto lhst = node->lhs.term();
-  auto rhst = node->rhs.term();
-
-  Ordering::Result prec = lhst->isSort()
-    ? kbo.compareTypeConPrecedences(lhst->functor(),rhst->functor())
-    : kbo.compareFunctionPrecedences(lhst->functor(),rhst->functor());
+  Ordering::Result prec = lhs->isSort()
+    ? kbo.compareTypeConPrecedences(lhs->functor(),rhs->functor())
+    : kbo.compareFunctionPrecedences(lhs->functor(),rhs->functor());
   switch (prec)
   {
     case Ordering::LESS: {
-      *curr = node->incBranch;
+      *curr = incBranch;
       break;
     }
     case Ordering::GREATER: {
-      *curr = node->gtBranch;
+      *curr = gtBranch;
       break;
     }
     case Ordering::EQUAL: {
       // push the arguments in reverse order to maintain
       // left-to-right lexicographic order in todo
-      for (unsigned i = 0; i < lhst->arity(); i++) {
-        auto lhsArg = *lhst->nthArgument(i);
-        auto rhsArg = *rhst->nthArgument(i);
-        *curr = Branch(lhsArg,rhsArg);
-        curr->node()->gtBranch = node->gtBranch;
-        curr->node()->incBranch = node->incBranch;
+      for (unsigned i = 0; i < lhs->arity(); i++) {
+        auto lhsArg = *lhs->nthArgument(i);
+        auto rhsArg = *rhs->nthArgument(i);
+        if (!(w < 0 || varInbalance) && i==0) {
+          curr->node()->lhs = lhsArg;
+          curr->node()->rhs = rhsArg;
+        } else {
+          *curr = Branch(lhsArg,rhsArg);
+          curr->node()->gtBranch = gtBranch;
+          curr->node()->incBranch = incBranch;
+        }
         curr = &curr->node()->eqBranch;
       }
-      *curr = node->eqBranch;
+      *curr = eqBranch;
       break;
     }
     default: {

@@ -55,13 +55,13 @@ protected:
   struct Branch {
     Node* node() const { return _node; }
     void setNode(Node* node) {
+      if (node) {
+        node->incRefCnt();
+      }
       if (_node) {
         _node->decRefCnt();
       }
       _node = node;
-      if (_node) {
-        _node->incRefCnt();
-      }
     }
 
     Branch() = default;
@@ -69,8 +69,6 @@ protected:
       setNode(new Node(std::forward<S>(s), std::forward<T>(t)));
     }
     ~Branch();
-    // Branch(const Branch& other) = delete;
-    // Branch& operator=(const Branch& other) = delete;
     Branch(const Branch& other);
     Branch& operator=(const Branch& other);
     Branch(Branch&& other);
@@ -81,7 +79,6 @@ protected:
   };
 
   friend std::ostream& operator<<(std::ostream& out, const Node& node);
-  // friend std::ostream& operator<<(std::ostream& out, const Branch& branch);
   friend std::ostream& operator<<(std::ostream& out, const BranchTag& t);
 
   using VarCoeffPair = std::pair<unsigned,int>;

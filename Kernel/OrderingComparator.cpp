@@ -225,7 +225,7 @@ void OrderingComparator::insert(const Stack<Ordering::Constraint>& comps, void* 
 void OrderingComparator::expand()
 {
   ASS(_curr->node());
-  while (_curr->node() && !_curr->node()->ready)
+  while (!_curr->node()->ready)
   {
     // take temporary ownership of node
     Branch nodeHolder = *_curr;
@@ -237,7 +237,16 @@ void OrderingComparator::expand()
       _curr->node()->ready = true;
       return;
     }
-    ASS(node->tag != BranchTag::T_WEIGHT);
+    if (node->tag == BranchTag::T_WEIGHT) {
+      auto varCoeffPairs = new Stack<VarCoeffPair>(*node->varCoeffPairs);
+      *_curr = Branch(node->w, varCoeffPairs);
+      _curr->node()->eqBranch = node->eqBranch;
+      _curr->node()->gtBranch = node->gtBranch;
+      _curr->node()->incBranch = node->incBranch;
+      _curr->node()->trace = getCurrentTrace();
+      _curr->node()->ready = true;
+      return;
+    }
 
     // Use compare here to filter out as many
     // precomputable comparisons as possible.
