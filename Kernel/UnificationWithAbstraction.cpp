@@ -13,6 +13,8 @@
  *
  */
 
+#include <vector>
+
 #include "Lib/Backtrackable.hpp"
 #include "Lib/Coproduct.hpp"
 #include "Shell/Options.hpp"

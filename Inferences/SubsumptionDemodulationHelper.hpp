@@ -12,6 +12,7 @@
 #define SUBSUMPTIONDEMODULATIONHELPER_HPP
 
 #include <unordered_set>
+#include <unordered_map>
 
 #include "Indexing/LiteralMiniIndex.hpp"
 #include "Kernel/Clause.hpp"
