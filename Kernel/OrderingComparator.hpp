@@ -118,6 +118,8 @@ protected:
       : tag(T_COMPARISON), ready(false), lhs(lhs), rhs(rhs) {}
     explicit Node(uint64_t w, Stack<VarCoeffPair>* varCoeffPairs)
       : tag(T_WEIGHT), ready(false), w(w), varCoeffPairs(varCoeffPairs) {}
+    Node(const Node&) = delete;
+    Node& operator=(const Node&) = delete;
 
     ~Node();
 
@@ -141,7 +143,7 @@ protected:
     Branch eqBranch;
     Branch gtBranch;
     Branch incBranch;
-    unsigned refcnt;
+    int refcnt;
     Trace* trace = nullptr;
   };
 

@@ -421,6 +421,15 @@ void ConditionalRedundancyHandler::destroyClauseData(Clause* cl)
   delete ptr;
 }
 
+void ConditionalRedundancyHandler::destroyAllClauseData()
+{
+  decltype(clauseData)::Iterator it(clauseData);
+  while (it.hasNext()) {
+    auto data = it.next();
+    delete data;
+  }
+}
+
 ConditionalRedundancyHandler::ConstraintIndex** ConditionalRedundancyHandler::getDataPtr(Clause* cl, bool doAllocate)
 {
   if (!doAllocate) {

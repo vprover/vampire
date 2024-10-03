@@ -97,6 +97,7 @@ class ConditionalRedundancyHandler
 public:
   static ConditionalRedundancyHandler* create(const Options& opts, const Ordering* ord, Splitter* splitter);
   static void destroyClauseData(Clause* cl);
+  static void destroyAllClauseData();
 
   virtual ~ConditionalRedundancyHandler() = default;
 

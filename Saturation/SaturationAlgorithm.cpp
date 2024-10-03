@@ -266,6 +266,8 @@ SaturationAlgorithm::~SaturationAlgorithm()
 {
   ASS_EQ(s_instance,this);
 
+  ConditionalRedundancyHandler::destroyAllClauseData();
+
   s_instance = 0;
 
   if (_splitter) {

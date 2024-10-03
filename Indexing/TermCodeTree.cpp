@@ -66,6 +66,7 @@ void TermCodeTree<Data>::insert(Data* data)
       ASS(rtm.op->isSuccess());
       dptr=rtm.op->template getSuccessResult<Data>();
       if (dptr->insert(*data)) {
+        delete data;
         return;
       }
     }

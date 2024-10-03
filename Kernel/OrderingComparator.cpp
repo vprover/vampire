@@ -393,7 +393,7 @@ OrderingComparator::Branch::~Branch()
 
 OrderingComparator::Branch::Branch(const Branch& other)
 {
-  setNode(other.node());
+  setNode(other._node);
 }
 
 OrderingComparator::Branch& OrderingComparator::Branch::operator=(const Branch& other)
@@ -416,8 +416,7 @@ OrderingComparator::Branch& OrderingComparator::Branch::operator=(Branch&& other
   if (&other==this) {
     return *this;
   }
-  _node = other._node;
-  other._node = nullptr;
+  swap(_node,other._node);
   return *this;
 }
 
@@ -442,9 +441,9 @@ void OrderingComparator::Node::incRefCnt()
 
 void OrderingComparator::Node::decRefCnt()
 {
-  ASS(refcnt);
+  ASS(refcnt>=0);
   refcnt--;
-  if (!refcnt) {
+  if (refcnt==0) {
     delete this;
   }
 }
