@@ -86,9 +86,7 @@ struct ConditionalRedundancyEntry
 };
 
 struct Entries {
-#if DEBUG_ORDERING
   Stack<ConditionalRedundancyEntry*> entries;
-#endif
   OrderingComparatorUP comparator;
 };
 

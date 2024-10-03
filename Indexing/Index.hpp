@@ -106,7 +106,7 @@ struct TermLiteralClause
 
   IMPL_COMPARISONS_FROM_TUPLE(TermLiteralClause)
 
-  bool insert(const TermLiteralClause& other) { return false; }
+  bool insert(TermLiteralClause& other) { return false; }
 
   bool remove(const TermLiteralClause& other) { return *this==other; }
 
@@ -157,6 +157,7 @@ struct DemodulatorData
 struct DemodulatorDataContainer {
   TypedTermList term;
   Stack<DemodulatorData*> dds;
+  unsigned removedCnt = 0;
   OrderingComparatorUP comparator;
 
   DemodulatorDataContainer(DemodulatorData&& dd, const Ordering& ord) : term(dd.term) {
@@ -169,7 +170,13 @@ struct DemodulatorDataContainer {
     comparator = ord.createComparator(ordCons, ptr);
   }
 
-  bool insert(const DemodulatorDataContainer& other) {
+  ~DemodulatorDataContainer() {
+    iterTraits(dds.iter()).forEach([](DemodulatorData* dd){ delete dd; });
+  }
+
+  DemodulatorDataContainer(DemodulatorDataContainer&&) = default;
+
+  bool insert(DemodulatorDataContainer& other) {
     ASS_EQ(other.dds.size(),1);
     // only allow insertion if term sorts are identical to
     // avoid putting variables of different sorts together
@@ -182,6 +189,7 @@ struct DemodulatorDataContainer {
       ordCons.push({ other.dds[0]->term, other.dds[0]->rhs, Ordering::GREATER });
     }
     comparator->insert(ordCons, other.dds[0]);
+    other.dds.reset(); // takes ownership
     return true;
   }
 
@@ -191,8 +199,8 @@ struct DemodulatorDataContainer {
       return false;
     }
     ALWAYS(iterTraits(other.dds.iter()).all([this](DemodulatorData* toRemove){
-      decltype(dds)::DelIterator it(dds);
-      unsigned removedCnt = 0;
+      decltype(dds)::Iterator it(dds);
+      unsigned removedOccs = 0;
       while (it.hasNext()) {
         auto curr = it.next();
         if (*curr==*toRemove) {
@@ -200,16 +208,17 @@ struct DemodulatorDataContainer {
           // actually remove the node from the tree
           //
           // delete curr;
-          it.del();
+          // it.del();
           removedCnt++;
+          removedOccs++;
         }
       }
-      return removedCnt==1;
+      return removedOccs==1;
     }));
     return true;
   }
 
-  bool canBeDeleted() const { return dds.isEmpty(); }
+  bool canBeDeleted() const { return removedCnt==dds.size(); }
 
   friend std::ostream& operator<<(std::ostream& out, DemodulatorDataContainer const& self)
   { return out << *self.comparator; }

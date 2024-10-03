@@ -125,9 +125,7 @@ private:
 
     ASS(entries->comparator);
 
-#if DEBUG_ORDERING
     entries->entries.push(ptr);
-#endif
     entries->comparator->insert(ptr->ordCons, ptr);
     return true;
   }
@@ -158,9 +156,7 @@ private:
     compiler.updateCodeTree(this);
 
     auto es = new Entries();
-#if DEBUG_ORDERING
     es->entries.push(ptr);
-#endif
     es->comparator = ord->createComparator(ptr->ordCons, ptr);
     code.push(CodeOp::getSuccess(es));
     incorporate(code);
@@ -234,6 +230,7 @@ private:
         if (!e->splits->isEmpty()) {
           env.statistics->skippedInferencesDueToAvatarConstraints++;
         }
+        matcher.reset();
         return true;
       }
 #if DEBUG_ORDERING
@@ -366,7 +363,9 @@ private:
 
   static void onCodeOpDestroying(CodeOp* op) {
     if (op->isSuccess()) {
-      delete op->getSuccessResult<Entries>();
+      auto es = op->getSuccessResult<Entries>();
+      iterTraits(decltype(es->entries)::Iterator(es->entries)).forEach([](ConditionalRedundancyEntry* e) { delete e; });
+      delete es;
     }
   }
 

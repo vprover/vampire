@@ -113,11 +113,11 @@ protected:
     }
 
     explicit Node(void* data, Branch alternative)
-      : tag(T_RESULT), ready(false), data(data), alternative(alternative) {}
+      : tag(T_RESULT), data(data), alternative(alternative) {}
     explicit Node(TermList lhs, TermList rhs)
-      : tag(T_COMPARISON), ready(false), lhs(lhs), rhs(rhs) {}
+      : tag(T_COMPARISON), lhs(lhs), rhs(rhs) {}
     explicit Node(uint64_t w, Stack<VarCoeffPair>* varCoeffPairs)
-      : tag(T_WEIGHT), ready(false), w(w), varCoeffPairs(varCoeffPairs) {}
+      : tag(T_WEIGHT), w(w), varCoeffPairs(varCoeffPairs) {}
     Node(const Node&) = delete;
     Node& operator=(const Node&) = delete;
 
@@ -127,7 +127,7 @@ protected:
     void decRefCnt();
 
     BranchTag tag;
-    bool ready;
+    bool ready = false;
 
     union {
       void* data = nullptr;
@@ -143,7 +143,7 @@ protected:
     Branch eqBranch;
     Branch gtBranch;
     Branch incBranch;
-    int refcnt;
+    int refcnt = 0;
     Trace* trace = nullptr;
   };
 

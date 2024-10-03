@@ -296,6 +296,7 @@ bool OrderingComparator::tryExpandVarCase()
     } else {
       *_curr = node->incBranch;
     }
+    delete trace;
     return true;
   }
   // make a fresh copy
@@ -378,12 +379,13 @@ OrderingComparator::Trace* OrderingComparator::getCurrentTrace()
       return trace;
     }
     case BranchTag::T_RESULT: {
-      return _prev->node()->trace;
+      return new Trace(*_prev->node()->trace);
     }
     case BranchTag::T_WEIGHT: {
       return new Trace(*_prev->node()->trace);
     }
   }
+  ASSERTION_VIOLATION;
 }
 
 OrderingComparator::Branch::~Branch()
@@ -432,6 +434,9 @@ OrderingComparator::Node::~Node()
       delete varCoeffPairs;
       break;
   }
+  ready = false;
+  delete trace;
+  trace = nullptr;
 }
 
 void OrderingComparator::Node::incRefCnt()

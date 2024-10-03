@@ -67,9 +67,11 @@ void TermCodeTree<Data>::insert(Data* data)
       dptr=rtm.op->template getSuccessResult<Data>();
       if (dptr->insert(*data)) {
         delete data;
+        ft->destroy();
         return;
       }
     }
+    ft->destroy();
   }
 
   static CodeStack code;
@@ -118,16 +120,14 @@ void TermCodeTree<Data>::remove(const Data& data)
     }
   }
 
-  if (!dptr->canBeDeleted()) {
-    return;
+  if (dptr->canBeDeleted()) {
+    rtm.op->makeFail();
+    ASS(dptr);
+    delete dptr;
+    optimizeMemoryAfterRemoval(&firstsInBlocks, rtm.op);
   }
-  rtm.op->makeFail();
 
-  ASS(dptr);
-  delete dptr;
   ft->destroy();
-  
-  optimizeMemoryAfterRemoval(&firstsInBlocks, rtm.op);
 
 } // TermCodeTree::remove
 
