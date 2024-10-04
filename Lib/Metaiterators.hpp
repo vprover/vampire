@@ -1704,4 +1704,41 @@ template<class Inner>
 auto getPersistentIterator(Inner it)
 { return pvi(arrayIter(iterTraits(it).template collect<Stack>())); }
 
+template<class Iter>
+class IterContOps {
+  Iter const _iter;
+
+public:
+  IterContOps(Iter iter) : _iter(std::move(iter)) {}
+
+  auto defaultHash() const { return DefaultHash::hashIter(Iter(_iter).map([](ELEMENT_TYPE(Iter) x) -> unsigned { return DefaultHash::hash(x); })); }
+  auto defaultHash2() const { return DefaultHash::hashIter(Iter(_iter).map([](ELEMENT_TYPE(Iter) x) -> unsigned { return DefaultHash2::hash(x); })); }
+
+  static int cmp(IterContOps const& lhs, IterContOps const& rhs) {
+    auto l = lhs._iter;
+    auto r = rhs._iter;
+    while (l.hasNext() && r.hasNext()) {
+      auto ln = l.next();
+      auto rn = r.next();
+      if (ln < rn) {
+        return -1;
+      } else if (rn < ln) {
+        return 1;
+      }
+    }
+    return !l.hasNext() ? (r.hasNext() ? -1 : 0) : 1;
+  }
+  friend bool operator<(IterContOps const& lhs, IterContOps const& rhs) 
+  { return cmp(lhs, rhs) < 0; }
+
+  friend bool operator==(IterContOps const& lhs, IterContOps const& rhs)
+  { return cmp(lhs, rhs) == 0; }
+
+  friend bool operator!=(IterContOps const& lhs, IterContOps const& rhs) 
+  { return !(lhs == rhs); }
+};
+
+template<class Iter>
+auto iterContOps(Iter iter) { return IterContOps<Iter>(std::move(iter)); }
+
 #endif /* __Metaiterators__ */
