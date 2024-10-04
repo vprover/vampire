@@ -227,22 +227,29 @@ void OrderingComparator::expand()
   ASS(_curr->node());
   while (!_curr->node()->ready)
   {
-    // take temporary ownership of node
-    Branch nodeHolder = *_curr;
-    auto node = nodeHolder.node();
+    auto node = _curr->node();
 
     if (node->tag == BranchTag::T_RESULT) {
-      *_curr = Branch(node->data, node->alternative);
+      ASS(node->data); // no fail nodes here
+      // if refcnt > 1 we copy the node and
+      // we can also safely use the original
+      if (node->refcnt > 1) {
+        *_curr = Branch(node->data, node->alternative);
+      }
       _curr->node()->trace = getCurrentTrace();
       _curr->node()->ready = true;
       return;
     }
     if (node->tag == BranchTag::T_WEIGHT) {
-      auto varCoeffPairs = new Stack<VarCoeffPair>(*node->varCoeffPairs);
-      *_curr = Branch(node->w, varCoeffPairs);
-      _curr->node()->eqBranch = node->eqBranch;
-      _curr->node()->gtBranch = node->gtBranch;
-      _curr->node()->incBranch = node->incBranch;
+      // if refcnt > 1 we copy the node and
+      // we can also safely use the original
+      if (node->refcnt > 1) {
+        auto varCoeffPairs = new Stack<VarCoeffPair>(*node->varCoeffPairs);
+        *_curr = Branch(node->w, varCoeffPairs);
+        _curr->node()->eqBranch = node->eqBranch;
+        _curr->node()->gtBranch = node->gtBranch;
+        _curr->node()->incBranch = node->incBranch;
+      }
       _curr->node()->trace = getCurrentTrace();
       _curr->node()->ready = true;
       return;
@@ -278,9 +285,7 @@ void OrderingComparator::expandTermCase()
 
 bool OrderingComparator::tryExpandVarCase()
 {
-  // take temporary ownership of node
-  Branch nodeHolder = *_curr;
-  auto node = nodeHolder.node();
+  auto node = _curr->node();
 
   // If we have a variable, we cannot preprocess further.
   if (!node->lhs.isVar() && !node->rhs.isVar()) {
@@ -299,11 +304,14 @@ bool OrderingComparator::tryExpandVarCase()
     delete trace;
     return true;
   }
-  // make a fresh copy
-  *_curr = Branch(node->lhs, node->rhs);
-  _curr->node()->eqBranch = node->eqBranch;
-  _curr->node()->gtBranch = node->gtBranch;
-  _curr->node()->incBranch = node->incBranch;
+  // if refcnt > 1 we copy the node and
+  // we can also safely use the original
+  if (node->refcnt > 1) {
+    *_curr = Branch(node->lhs, node->rhs);
+    _curr->node()->eqBranch = node->eqBranch;
+    _curr->node()->gtBranch = node->gtBranch;
+    _curr->node()->incBranch = node->incBranch;
+  }
   _curr->node()->ready = true;
   _curr->node()->trace = trace;
   return true;

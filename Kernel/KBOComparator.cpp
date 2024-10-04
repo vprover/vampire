@@ -54,20 +54,22 @@ void KBOComparator::expandTermCase()
   state = nullptr;
 #endif
 
-  ASS(_curr->node()->lhs.isTerm() && _curr->node()->rhs.isTerm());
-  auto lhs = _curr->node()->lhs.term();
-  auto rhs = _curr->node()->rhs.term();
-  auto eqBranch = _curr->node()->eqBranch;
-  auto gtBranch = _curr->node()->gtBranch;
-  auto incBranch = _curr->node()->incBranch;
+  auto node = _curr->node();
+  ASS(node->lhs.isTerm() && node->rhs.isTerm());
+  auto lhs = node->lhs.term();
+  auto rhs = node->rhs.term();
+
+  auto eqBranch = node->eqBranch;
+  auto gtBranch = node->gtBranch;
+  auto incBranch = node->incBranch;
 
   auto curr = _curr;
-
-  // if the condition below does not hold, the weight/var balances are satisfied
-  if (w < 0 || varInbalance) {
+  bool weightAdded = (w < 0 || varInbalance);
+  if (weightAdded) {
     sort(nonzeros->begin(),nonzeros->end(),[](const auto& e1, const auto& e2) {
       return e1.second>e2.second;
     });
+    // we mutate the original node
     curr->node()->tag = T_WEIGHT;
     curr->node()->w = w;
     curr->node()->varCoeffPairs = nonzeros.release();
@@ -90,12 +92,11 @@ void KBOComparator::expandTermCase()
       break;
     }
     case Ordering::EQUAL: {
-      // push the arguments in reverse order to maintain
-      // left-to-right lexicographic order in todo
       for (unsigned i = 0; i < lhs->arity(); i++) {
         auto lhsArg = *lhs->nthArgument(i);
         auto rhsArg = *rhs->nthArgument(i);
-        if (!(w < 0 || varInbalance) && i==0) {
+        // we mutate the original node in the first iteration
+        if (!weightAdded && i==0) {
           curr->node()->lhs = lhsArg;
           curr->node()->rhs = rhsArg;
         } else {

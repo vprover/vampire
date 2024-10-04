@@ -60,12 +60,12 @@ void LPOComparator::expandTermCase()
 
   ASS_EQ(node->tag, T_COMPARISON);
   ASS(!node->ready);
-  ASS(lhs.isTerm() && rhs.isTerm());
 
-  const auto& lpo = static_cast<const LPO&>(_ord);
+  ASS(lhs.isTerm() && rhs.isTerm());
   auto s = lhs.term();
   auto t = rhs.term();
 
+  const auto& lpo = static_cast<const LPO&>(_ord);
   switch (lpo.comparePrecedences(s, t)) {
   case Ordering::EQUAL: {
     ASS(s->arity()); // constants cannot be incomparable
@@ -77,6 +77,7 @@ void LPOComparator::expandTermCase()
       auto s_arg = *lhs.term()->nthArgument(i);
       auto t_arg = *rhs.term()->nthArgument(i);
       if (i == 0) {
+        // we mutate the original node in the first iteration
         ASS_EQ(curr->node()->tag, T_COMPARISON);
         curr->node()->lhs = s_arg;
         curr->node()->rhs = t_arg;
@@ -94,6 +95,7 @@ void LPOComparator::expandTermCase()
   }
   case Ordering::GREATER: {
     ASS(t->arity());
+    // we mutate the original node in the first iteration
     _curr->node()->lhs = lhs;
     _curr->node()->rhs = *t->nthArgument(0);
     _curr->node()->eqBranch = incBranch;
@@ -103,12 +105,12 @@ void LPOComparator::expandTermCase()
   }
   case Ordering::LESS: {
     ASS(s->arity());
+    // we mutate the original node in the first iteration
     _curr->node()->lhs = *s->nthArgument(0);
     _curr->node()->rhs = rhs;
     _curr->node()->eqBranch = gtBranch;
     _curr->node()->gtBranch = gtBranch;
     alphaChain(&_curr->node()->incBranch, s, 1, rhs, gtBranch, incBranch);
-    ASS(_curr->node());
     break;
   }
   default:
