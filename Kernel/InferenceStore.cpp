@@ -1663,5 +1663,3 @@ InferenceStore* InferenceStore::instance()
 
 #undef ALL_NUM
 }
-
-#include "Shell/Dedukti.cpp"
