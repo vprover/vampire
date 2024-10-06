@@ -9,19 +9,17 @@
  * main UPCoP procedures
  */
 
-#include "UPCoP.hpp"
+#include <unordered_set>
 
 #include "cadical.hpp"
 
-#include "DP/SimpleCongruenceClosure.hpp"
-#include "Indexing/LiteralSubstitutionTree.hpp"
-#include "Indexing/TermSubstitutionTree.hpp"
 #include "Kernel/Clause.hpp"
-#include "Kernel/RobSubstitution.hpp"
-#include "SAT/MinisatInterfacing.hpp"
-#include "SAT/SAT2FO.hpp"
+#include "Indexing/LiteralSubstitutionTree.hpp"
 
-std::ostream &log() { return std::cout << "% "; }
+#include "UPCoP.hpp"
+
+using namespace Kernel;
+using namespace Indexing;
 
 template<typename T>
 std::ostream &operator<<(std::ostream &out, const std::vector<T> &v) {
@@ -41,314 +39,168 @@ std::ostream &operator<<(std::ostream &out, const std::unordered_set<T> &s) {
   return out;
 }
 
-// map every variable to X0
-static struct {
-  TermList apply(unsigned x) { return TermList(0, false); }
-} X0;
-
-// a rigid copy of a clause
-struct Copy {
-  // original clause
-  Clause *original = nullptr;
-  // renamed literals
-  std::vector<Literal *> literals;
-};
-
-// an unordered pair of terms
-struct TermPair {
-  TermList one, other;
-};
-
-std::ostream &operator<<(std::ostream &out, const TermPair &pair) {
-  return out << '<' << pair.one << ", " << pair.other << '>';
+template<typename K, typename V>
+std::ostream &operator<<(std::ostream &out, const std::unordered_map<K, V> &map) {
+  out << '{';
+  for(const auto &entry : map)
+    out << entry << ' ';
+  out << '}';
+  return out;
 }
+
+template<typename S, typename T>
+struct std::hash<std::pair<S, T>>
+{
+  size_t operator()(const std::pair<S, T> &pair) const {
+    return std::hash<S>{}(pair.first) ^ std::hash<T>{}(pair.second);
+  }
+};
+
+struct PosRef {
+  unsigned index;
+
+  PosRef() : index(0) {}
+  explicit PosRef(unsigned index) : index(index) {}
+  bool is_root() { return index == 0; }
+  bool operator==(PosRef other) const { return index == other.index; }
+};
+
+std::ostream &operator<<(std::ostream &out, PosRef ref) { return out << 'p' << ref.index; }
 
 template<>
-struct std::hash<TermPair> {
-  size_t operator()(const TermPair &connection) const {
-    std::hash<uint64_t> hasher;
-    return
-      hasher(connection.one.content()) ^
-      hasher(connection.other.content());
+struct std::hash<PosRef> {
+  size_t operator()(PosRef ref) const {
+    return std::hash<unsigned>{}(ref.index);
   }
+};
+
+struct Pos {
+  PosRef parent;
+  unsigned child;
+  Clause *here = nullptr;
+
+  Pos(PosRef parent, unsigned child)
+    : parent(parent), child(child) {}
+};
+
+class Positions {
+  std::vector<Pos> positions;
+  std::unordered_map<std::pair<PosRef, unsigned>, PosRef> lookup;
+
+public:
+  Positions() {
+    positions.push_back(Pos(PosRef(), 0));
+  }
+
+  Pos &operator[](PosRef ref) { return positions[ref.index]; }
+
+  Literal *at(PosRef ref) const {
+    ASS(!ref.is_root())
+    // counter-intuitively, we want to go to the parent and get their nth literal
+    const Pos &position = positions[ref.index];
+    const Pos &parent = positions[position.parent.index];
+    if(!parent.here)
+      return nullptr;
+    return (*parent.here)[position.child];
+  }
+
+  PosRef get(PosRef parent, unsigned child) {
+    auto pair = std::make_pair(parent, child);
+    decltype(lookup)::iterator found = lookup.find(pair);
+    if(found != lookup.end())
+      return found->second;
+
+    PosRef result(positions.size());
+    lookup[pair] = result;
+    positions.push_back(Pos(parent, child));
+    std::cout << parent << '.' << child << " -> " << result << '\n';
+    return result;
+  }
+};
+
+struct PosTL;
+
+struct PosVar {
+  PosRef pos;
+  unsigned var;
+  PosVar(PosRef pos, unsigned var) : pos(pos), var(var) {}
+  PosVar(PosTL term);
+  bool operator==(PosVar other) const { return pos == other.pos && var == other.var; }
 };
 
 template<>
-struct std::equal_to<TermPair> {
-  bool operator()(const TermPair &left, const TermPair &right) const {
-    return
-      (left.one == right.one && left.other == right.other) ||
-      (left.one == right.other && left.other == right.one);
+struct std::hash<PosVar> {
+  size_t operator()(PosVar var) const {
+    return std::hash<PosRef>{}(var.pos) ^ std::hash<unsigned>{}(var.var);
   }
 };
 
-// something to keep in the literal index
-struct Predicate {
-  // the indexed literal
-  Literal *literal;
-  Predicate(Literal *literal) : literal(literal) {}
-
-  // machinery for LiteralSubstitutionTree
-  Literal *key() const { return literal; }
-  bool operator==(const Predicate &other) const
-  { return literal == other.literal; }
-  bool operator<(const Predicate &other) const
-  { return literal->getId() < other.literal->getId(); }
-  bool operator>(const Predicate &other) const
-  { return literal->getId() > other.literal->getId(); }
+struct PosTL {
+  PosRef pos;
+  TermList term;
+  PosTL() : pos(0), term(0) {}
+  PosTL(PosRef pos, TermList term) : pos(pos), term(term) {}
+  PosTL(PosVar x) : pos(x.pos), term(x.var, false) {}
+  operator bool() const { return term.content() != 0; }
+  bool operator==(PosTL other) const { return pos == other.pos && term == other.term; }
+  bool isVar() const { return term.isVar(); }
+  bool isTerm() const { return term.isTerm(); }
+  unsigned functor() const { return term.term()->functor(); }
+  unsigned arity() const { return term.term()->arity(); }
+  PosTL operator[](unsigned i) { return PosTL(pos, (*term.term())[i]); }
 };
 
-std::ostream &operator<<(std::ostream &out, const Predicate &indexed) {
-  return out << indexed.literal->toString();
+std::ostream &operator<<(std::ostream &out, PosTL term) {
+  return out << term.term << '/' << term.pos << '\n';
 }
 
-// something to keep in the subterm/eq index
-struct Subterm {
-  // the indexed term
-  TypedTermList term;
-  Subterm(TypedTermList term) : term(term) {}
-
-  // machinery for LiteralSubstitutionTree
-  TypedTermList key() const { return term; }
-  bool operator==(const Subterm &other) const
-  { return term == other.term; }
-  bool operator<(const Subterm &other) const
-  { return term < other.term; }
-  bool operator>(const Subterm &other) const
-  { return other.term < term; }
-};
-
-std::ostream &operator<<(std::ostream &out, const Subterm &indexed) {
-  return out << indexed.term;
-}
-
-
-struct Matrix {
-  // clause copies
-  std::vector<Copy> copies;
-  // map from connections to SAT variables
-  std::unordered_map<TermPair, int> conn2sat;
-  // map from SAT variables to connections
-  std::vector<TermPair> sat2conn;
-  // set of disequations to observe
-  std::unordered_set<TermPair> disequations;
-
-  // number of first-order variables used so far
-  unsigned variables = 0;
-
-  // index for non-equality predicates
-  Indexing::LiteralSubstitutionTree<Predicate> predicate_index;
-  // index for sides of equations
-  Indexing::TermSubstitutionTree<Subterm> side_index;
-  // index for subterms
-  Indexing::TermSubstitutionTree<Subterm> subterm_index;
-  // used to test whether two terms could ever unify
-  RobSubstitution test_could_unify;
-
-  Matrix() {
-    // offset by 1 as 0 is not a valid SAT variable
-    sat2conn.push_back({TermList::empty(), TermList::empty()});
-  }
-
-  void add_connection(TermList s, TermList t) {
-    // skip ground connections, they do nothing
-    if(s.isTerm() && s.term()->ground() && t.isTerm() && t.term()->ground())
-      return;
-
-    // add connection
-    int fresh = sat2conn.size();
-    TermPair connection {s, t};
-    // if not seen before...
-    if(conn2sat.insert({connection, fresh}).second) {
-      // log() << fresh << '\t' << connection << '\n';
-      sat2conn.push_back(connection);
-    }
-  }
-
-  void add_disequation(TermList s, TermList t) {
-    test_could_unify.reset();
-    if(test_could_unify.unify(s, 0, t, 0))
-      disequations.insert({s, t});
-  }
-
-  // increase the number of copies of `cl` by one
-  void amplify(Clause *cl) {
-    // check `cl` is not a tautology:
-    // this happens sometimes and messes with the stuff that happens later
-    for(unsigned i = 0; i < cl->length(); i++) {
-      Literal *l = (*cl)[i];
-      for(unsigned j = i + 1; j < cl->length(); j++) {
-        Literal *k = (*cl)[j];
-        if(l == Literal::complementaryLiteral(k))
-          return;
-      }
-
-      if(!l->isEquality() || !l->polarity())
-        continue;
-      if((*l)[0] == (*l)[1])
-        return;
-    }
-
-    // the new clause
-    Copy copy;
-    copy.original = cl;
-
-    // variable renaming applied to produce fresh variables
-    Renaming renaming(variables);
-
-    // first pass: find connections to others
-    for(unsigned i = 0; i < cl->length(); i++) {
-      // normalise `l` and insert it into `copy`
-      Literal *l = (*cl)[i];
-      renaming.normalizeVariables(l);
-      l = renaming.apply(l);
-      copy.literals.push_back(l);
-
-      // all the previous possible connections
-      if(l->isEquality()) {
-        if(l->polarity()) {
-          TermList sort = SortHelper::getEqualityArgumentSort(l);
-          for(unsigned side : {0, 1}) {
-            TypedTermList t((*l)[side], sort);
-            auto unifiers = subterm_index.getUnifications(
-              t,
-              /*retrieveSubstitutions=*/false
-            );
-            while(unifiers.hasNext()) {
-              TypedTermList subterm = unifiers.next().data->term;
-              add_connection(t, subterm);
-            }
-          }
-        }
-      }
-      else {
-        auto unifiers = predicate_index.getUnifications(
-          l,
-          /*complementary=*/true,
-          /*retrieveSubstitutions=*/false
-        );
-        while(unifiers.hasNext()) {
-          // the literal to connect to
-          Literal *k = unifiers.next().data->literal;
-          add_connection(TermList(l), TermList(k));
-        }
-      }
-
-      NonVariableNonTypeIterator subterms(l);
-      while(subterms.hasNext()) {
-        TypedTermList subterm(subterms.next());
-        auto unifiers = side_index.getUnifications(
-          subterm,
-          /*retrieveSubstitutions=*/false
-        );
-        while(unifiers.hasNext()) {
-          TypedTermList side = unifiers.next().data->term;
-          add_connection(side, subterm);
-        }
-      }
-    }
-
-   // second pass: insert literals into the index
-    for(Literal *l : copy.literals) {
-      // their top-level parts
-      if(l->isEquality()) {
-        if(l->polarity()) {
-          TermList sort = SortHelper::getEqualityArgumentSort(l);
-          side_index.insert(TypedTermList((*l)[0], sort));
-          side_index.insert(TypedTermList((*l)[1], sort));
-        }
-      }
-      else
-        predicate_index.insert(l);
-
-      // and all subterms
-      NonVariableNonTypeIterator subterms(l);
-      while(subterms.hasNext())
-        subterm_index.insert(TypedTermList(subterms.next()));
-    }
-
-    // add disequation constraints
-    for(unsigned i = 0; i < cl->length(); i++) {
-      Literal *l = copy.literals[i];
-      for(unsigned j = i + 1; j < cl->length(); j++) {
-        Literal *k = copy.literals[j];
-        if(l->polarity() == k->polarity() || l->functor() != k->functor())
-          continue;
-        add_disequation(TermList(l), TermList(k));
-      }
-
-      if(!l->isEquality() || !l->polarity())
-        continue;
-      add_disequation((*l)[0], (*l)[1]);
-    }
-
-    // finally add the copy
-    copies.emplace_back(std::move(copy));
-
-    // bump variables for the next clause
-    variables = renaming.nextVar();
-  }
-};
+PosVar::PosVar(PosTL term) : pos(term.pos), var(term.term.var()) {}
 
 // scratch space: pairs of terms to unify
-static std::vector<std::pair<TermList, TermList>> UNIFY;
+static std::vector<std::pair<PosTL, PosTL>> UNIFY;
 // scratch space: occurs check
-static std::vector<TermList> OCCURS;
+static std::vector<PosTL> OCCURS;
 
 struct RigidSubstitution {
-  struct Binding {
-    TermList term;
-    Binding() : term(0) {}
-    Binding(TermList term) : term(term) {}
-    operator bool() const { return term.content() != 0; }
-  };
-
   // variable-term map
-  std::vector<Binding> bindings;
+  std::unordered_map<PosVar, PosTL> bindings;
   // trail of variables to unbind
-  std::vector<unsigned> trail;
+  std::vector<PosVar> trail;
 
-  RigidSubstitution(size_t variables) : bindings(variables) {}
-
-  // determine what a variable is bound to
-  TermList lookup(unsigned var) const {
-    while(bindings[var]) {
-      TermList bound = bindings[var].term;
-      if(bound.isTerm())
-        return bound;
-      var = bound.var();
-    }
-    return TermList(var, false);
+  void clear() {
+    bindings.clear();
+    trail.clear();
   }
 
-  // for SubstHelper
-  TermList apply(unsigned var) const {
-    TermList bound = lookup(var);
-    if(bound.isTerm())
-      // TODO do this better
-      bound = SubstHelper::apply(bound, *this);
-    return bound;
+  // determine what a variable is bound to
+  PosTL lookup(PosVar var) {
+    while(bindings[var]) {
+      PosTL bound = bindings[var];
+      if(bound.isTerm())
+        return bound;
+      var = bound;
+    }
+    return var;
   }
 
   // check whether `var` occurs in `term` modulo bindings
   // `term` is assumed to have already been `lookup`'d
-  bool occurs(unsigned var, TermList term) const {
+  bool occurs(PosVar var, PosTL term) {
     OCCURS.clear();
     OCCURS.push_back(term);
     do {
-      TermList t = OCCURS.back();
+      PosTL t = OCCURS.back();
       OCCURS.pop_back();
-      if(t.isVar()) {
-        if(t.var() == var)
-          return true;
+      if(t == PosTL(var))
+        return true;
+      if(t.isVar())
         continue;
-      }
+
       ASS(t.isTerm())
-      Term *tt = t.term();
-      for(unsigned i = 0; i < tt->arity(); i++) {
-        TermList arg = (*tt)[i];
+      for(unsigned i = 0; i < t.arity(); i++) {
+        PosTL arg = t[i];
         if(arg.isVar())
-          arg = lookup(arg.var());
+          arg = lookup(arg);
         OCCURS.push_back(arg);
       }
     } while(!OCCURS.empty());
@@ -356,8 +208,7 @@ struct RigidSubstitution {
   }
 
   // unify s and t, leaving bindings clean on failure
-  bool unify(TermPair unify) {
-    auto [s, t] = unify;
+  bool unify(PosTL s, PosTL t) {
     UNIFY.clear();
     UNIFY.push_back({s, t});
     unsigned trail_start = trail.size();
@@ -370,9 +221,9 @@ struct RigidSubstitution {
         continue;
 
       if(s.isVar())
-        s = lookup(s.var());
+        s = lookup(s);
       if(t.isVar())
-        t = lookup(t.var());
+        t = lookup(t);
 
       // equal terms, do nothing
       if(s == t)
@@ -380,8 +231,8 @@ struct RigidSubstitution {
 
       // one is var, bind to the other
       if(s.isVar() || t.isVar()) {
-        unsigned var = s.isVar() ? s.var() : t.var();
-        TermList term = s.isVar() ? t : s;
+        PosVar var = s.isVar() ? s : t;
+        PosTL term = s.isVar() ? t : s;
 
         if(occurs(var, term)) {
           // occurs failure, clean up
@@ -390,25 +241,21 @@ struct RigidSubstitution {
         }
 
         // OK, bind the variable
-        // log() << var << " -> " << term << '\n';
-        bindings[var] = Binding(term);
+        bindings[var] = term;
         trail.push_back(var);
         continue;
       }
 
       ASS(s.isTerm() && t.isTerm())
-      Term *st = s.term();
-      Term *tt = t.term();
-      if(st->functor() != tt->functor()) {
+      if(s.functor() != t.functor()) {
         // functors don't match, clean up on failure
         pop_to(trail_start);
         return false;
       }
 
       // matching-functor case, proceed
-      for(unsigned i = 0; i < st->arity(); i++)
-        UNIFY.push_back({(*st)[i], (*tt)[i]});
-
+      for(unsigned i = 0; i < s.arity(); i++)
+        UNIFY.push_back({s[i], t[i]});
     } while(!UNIFY.empty());
     return true;
   }
@@ -416,15 +263,13 @@ struct RigidSubstitution {
   // undo variable bindings until the trail is of length `size`
   void pop_to(size_t size) {
     while(trail.size() > size) {
-      unsigned var = trail.back();
+      PosVar var = trail.back();
       trail.pop_back();
-      ::new (&bindings[var]) Binding();
-      // log() << var << " -> *\n";
+      ::new (&bindings[var]) PosTL;
     }
   }
 
-  bool equal(TermPair pair) const {
-    auto [s, t] = pair;
+  bool equal(PosTL s, PosTL t) {
     UNIFY.clear();
     UNIFY.push_back({s, t});
 
@@ -435,9 +280,9 @@ struct RigidSubstitution {
         continue;
 
       if(s.isVar())
-        s = lookup(s.var());
+        s = lookup(s);
       if(t.isVar())
-        t = lookup(t.var());
+        t = lookup(t);
 
       if(s == t)
         continue;
@@ -447,431 +292,403 @@ struct RigidSubstitution {
 
       ASS(s.isTerm())
       ASS(t.isTerm())
-      Term *st = s.term();
-      Term *tt = t.term();
-      if(st->functor() != tt->functor())
+      if(s.functor() != t.functor())
         return false;
-      for(unsigned i = 0; i < st->arity(); i++)
-        UNIFY.push_back({(*st)[i], (*tt)[i]});
+      for(unsigned i = 0; i < s.arity(); i++)
+        UNIFY.push_back({s[i], t[i]});
     } while(!UNIFY.empty());
     return true;
   }
 };
 
-std::ostream &operator<<(std::ostream &out, const RigidSubstitution &substitution) {
-  out << '{';
-  bool first = true;
-  for(unsigned i = 0; i < substitution.bindings.size(); i++)
-    if(substitution.bindings[i]) {
-      out
-        << (first ? "" : ", ") <<
-        i << " -> " << substitution.bindings[i].term;
-      first = false;
-    }
-  return out << '}';
+std::ostream &operator<<(std::ostream &out, const RigidSubstitution &subst) {
+  return out << subst.bindings << '\n';
 }
 
-struct Propagator: public CaDiCaL::ExternalPropagator {
-  // the matrix
-  const Matrix &matrix;
+std::unordered_map<std::pair<Literal *, Literal *>, bool> CAN_UNIFY;
+static bool can_unify(Literal *l, Literal *k) {
+  if(l->polarity() == k->polarity() || l->functor() != k->functor())
+    return false;
+
+  auto found = CAN_UNIFY.find({l, k});
+  if(found != CAN_UNIFY.end())
+    return found->second;
+
+  RobSubstitution subst;
+  bool result = subst.unify(TermList(l), 0, TermList(k), 1);
+  CAN_UNIFY[{l, k}] = result;
+  return result;
+}
+
+enum class Flavour {
+  CLAUSE_AT,
+  CONNECTION
+};
+
+struct Place {
+  Clause *clause;
+  PosRef at;
+  bool seen = false;
+
+  Place(Clause *clause, PosRef onto)
+    : clause(clause), at(onto) {}
+};
+
+struct Connection {
+  PosRef above, below;
+
+  Connection(PosRef above, PosRef below)
+    : above(above), below(below) {}
+};
+
+struct Dispatch {
+  Flavour flavour;
+  union {
+    Place place;
+    Connection connection;
+  };
+
+  Dispatch(Place place) : flavour(Flavour::CLAUSE_AT), place(place) {}
+  Dispatch(Connection connection) : flavour(Flavour::CONNECTION), connection(connection) {}
+};
+
+class Propagator final : public CaDiCaL::ExternalPropagator {
+  // parent solver
+  CaDiCaL::Solver &solver;
+
+  // positions in the tableau
+  Positions positions;
+  // current depth limit
+  unsigned depth_limit;
+  // term index to find possible extensions
+  LiteralSubstitutionTree<LiteralClause> predicate_index;
   // current substitution
   RigidSubstitution substitution;
-  // substitution used for minimizing unification conflicts
-  RigidSubstitution minimize;
-  // assignments made so far
+
+  // map from variables to their meaning
+  std::vector<Dispatch> dispatches;
+  // SAT variable for a position and clause
+  std::unordered_map<std::pair<PosRef, Clause *>, int> place_lookup;
+  // SAT variable for a connection between positions
+  std::unordered_map<std::pair<PosRef, PosRef>, int> connection_lookup;
+
+  // queue of learned clauses
+  std::vector<std::vector<int>> clause_queue;
+  // queue of propagations
+  std::vector<int> prop_queue;
+  // literals assigned postively
   std::vector<int> trail;
-  // map from variables to 0 if not assigned, -1/+1 for assigned
-  std::vector<char> set;
-  // if there is a clause for CaDiCaL to learn
-  bool learn_set = false;
-  // the next learned clause
-  std::vector<int> learn;
-  // ordering (for SimpleCongruenceClosure?!)
-  OrderingSP ordering;
+  // assignments deferred as clauses not yet in place
+  std::unordered_set<int> deferred;
 
-  // store things to backtrack in a decision level
-  struct Level {
-    // size of the trail
-    size_t trail;
-    // number of variables bound
-    size_t variables;
+  struct Decision {
+    // length of the SAT trail at this decision level
+    size_t sat;
+    // length of the first-order variable trail at this decision level
+    size_t binding;
   };
-  // decision levels
-  std::vector<Level> levels;
 
-  Propagator(Problem &problem, const Matrix &matrix) :
-    matrix(matrix),
-    substitution(matrix.variables),
-    minimize(matrix.variables),
-    set(matrix.sat2conn.size(), 0),
-    ordering(Kernel::Ordering::create(problem, *env.options))
-  {}
+  // length of the trail at each decision level
+  std::vector<Decision> decisions;
 
-  void notify_assignment(int assigned) {
-    // log() << "assign: " << assigned << '\n';
+  int get_place_var(PosRef position, Clause *cl) {
+    auto pair = std::make_pair(position, cl);
+    auto found = place_lookup.find(pair);
+    if(found != place_lookup.end())
+      return found->second;
 
-    // should only get fixed assignments at decision level 0
-    ASS_EQ(set[abs(assigned)], 0)
-
-    trail.push_back(assigned);
-    set[abs(assigned)] = assigned > 0 ? 1 : -1;
-
-    // do nothing when variable is assigned false,
-    // or there is a conflict we didn't tell CaDiCaL about yet
-    if(assigned < 0 || learn_set)
-      return;
-
-    // unify the literals corresponding to the connection
-    if(!substitution.unify(matrix.sat2conn[assigned]))
-      compute_unification_reason(assigned);
+    int result = dispatches.size();
+    dispatches.push_back(Place(cl, position));
+    place_lookup.insert({pair, result});
+    solver.add_observed_var(result);
+    std::cout << cl->number() << '@' << position << " -> " << result << '\n';
+    return result;
   }
 
-  void notify_assignment(const std::vector<int> &lits) final  {
-    for(int assigned : lits)
-      notify_assignment(assigned);
+  int get_connection_var(PosRef above, PosRef below) {
+    auto pair = std::make_pair(above, below);
+    decltype(connection_lookup)::iterator found = connection_lookup.find(pair);
+    if(found != connection_lookup.end())
+      return found->second;
+
+    int result = dispatches.size();
+    dispatches.push_back(Connection(above, below));
+    connection_lookup.insert({pair, result});
+    solver.add_observed_var(result);
+    std::cout << above << '~' << below << " -> " << result << '\n';
+    return result;
   }
 
-  // fill out `reason` given that `failed` caused a unification failure
-  void compute_unification_reason(int failed) {
-    ASS(!learn_set)
-    ASS(learn.empty())
+  void add_place_constraints(int var, Place place) {
+    ASS(place.clause)
 
-    learn_set = true;
-    // conflicting literal guaranteed to be a reason
-    learn.push_back(-failed);
+    // each literal has to be connected to something above or to a clause below
+    for(unsigned i = 0; i < place.clause->length(); i++) {
+      Literal *l = (*place.clause)[i];
+      std::vector<int> possibilities = {-var};
+      PosRef position = positions.get(place.at, i);
+      PosRef ancestor = positions[position].parent;
+      unsigned depth = 1;
+      while(!ancestor.is_root()) {
+        depth++;
+        possibilities.push_back(get_connection_var(ancestor, position));
+        ancestor = positions[ancestor].parent;
+      }
 
-    // unify this connection in a fresh substitution
-    minimize.pop_to(0);
-    // will always succeed as it has an MGU
-    ALWAYS(minimize.unify(matrix.sat2conn[failed]))
-
-    do {
-      size_t restore = minimize.trail.size();
-      failed = 0;
-      // will always exit early since the totality of connections cannot be unified
-      // NB does not repeat unifications from `reason`
-      for(int connection : trail) {
-        if(connection < 0)
-          continue;
-        if(!minimize.unify(matrix.sat2conn[connection])) {
-          // this connection definitely necessary
-          failed = connection;
-          learn.push_back(-failed);
-          minimize.pop_to(restore);
-          break;
+      if(depth < depth_limit) {
+        auto unifiers = predicate_index.getUnifications(
+          l,
+          /*complementary=*/true,
+          /*retrieveSubstitutions=*/false
+        );
+        while(unifiers.hasNext()) {
+          LiteralClause record = *unifiers.next().data;
+          possibilities.push_back(get_place_var(position, record.clause));
         }
       }
-      // `failed` must have been set in the loop
-      ASS_NEQ(failed, 0)
-    } while(minimize.unify(matrix.sat2conn[failed]));
+      clause_queue.push_back(std::move(possibilities));
+    }
 
-    // log() << "unification: " << learn << '\n';
-  }
-
-  void compute_disequation_reason(TermPair disequation) {
-    ASS(!learn_set)
-    ASS(learn.empty())
-    learn_set = true;
-
-    minimize.pop_to(0);
-    int failed;
-    do {
-      size_t restore = minimize.trail.size();
-      failed = 0;
-      // will always exit early since the totality of connections cause disequation failure
-      // NB does not repeat unifications from `reason`
-      for(int connection : trail) {
-        if(connection < 0)
-          continue;
-        // will always succeed as the set of connections is consistent
-        ALWAYS(minimize.unify(matrix.sat2conn[connection]))
-        if(minimize.equal(disequation)) {
-          // this connection definitely necessary
-          failed = connection;
-          learn.push_back(-failed);
-          minimize.pop_to(restore);
-          break;
-        }
+    // each clause has to be connected by at least one literal to the parent
+    // (except the start clause)
+    if(!place.at.is_root()) {
+      std::vector<int> at_least_one_connection = {-var};
+      for(unsigned i = 0; i < place.clause->length(); i++) {
+        PosRef below = positions.get(place.at, i);
+        at_least_one_connection.push_back(get_connection_var(place.at, below));
       }
-      // `failed` must have been set in the loop
-      ASS_NEQ(failed, 0)
-      // will always succeed as the set of connections is consistent
-      ALWAYS(minimize.unify(matrix.sat2conn[failed]))
-    } while(!minimize.equal(disequation));
-    // log() << "disequation: " << learn << '\n';
+      clause_queue.push_back(std::move(at_least_one_connection));
+    }
   }
 
-  bool check_disequations() {
-    for(TermPair disequation : matrix.disequations)
-      if(substitution.equal(disequation)) {
-        compute_disequation_reason(disequation);
+  template<bool explain = true>
+  bool make_connection(RigidSubstitution &substitution, int assigned) {
+    ASS_G(assigned, 0)
+    ASS(dispatches[assigned].flavour == Flavour::CONNECTION)
+    Connection connection = dispatches[assigned].connection;
+    unsigned n = positions[connection.above].child;
+    unsigned m = positions[connection.below].child;
+    PosRef p = positions[connection.above].parent;
+    PosRef q = positions[connection.below].parent;
+    Clause *c = positions[p].here;
+    Clause *d = positions[q].here;
+    if(!c || !d) {
+      deferred.insert(assigned);
+      return true;
+    }
+    if(n >= c->length() || m >= d->length())
+      goto fail_fast;
+
+    {
+      Literal *l = (*c)[n];
+      Literal *k = (*d)[m];
+      if(!can_unify(l, k))
+        goto fail_fast;
+      if(!substitution.unify(PosTL(p, TermList(l)), PosTL(q, TermList(k)))) {
+        if(explain)
+          explain_unification_failure(assigned);
         return false;
       }
-    return true;
-  }
-
-  void notify_new_decision_level() final {
-    levels.push_back({trail.size(), substitution.trail.size()});
-    // log() << "decision: " << levels.size() << '\n';
-  }
-
-  void notify_backtrack(size_t decision_level) final {
-    //log() << "backtrack to: " << decision_level << '\n';
-    ASS(decision_level < levels.size())
-    // this seems to happen sometimes: ignore it
-    if(decision_level >= levels.size())
-      return;
-
-    learn_set = false;
-    learn.clear();
-
-    // undo everything after this level
-    Level level = levels[decision_level];
-    levels.resize(decision_level);
-    while(trail.size() > level.trail) {
-      set[abs(trail.back())] = 0;
-      trail.pop_back();
     }
-    substitution.pop_to(level.variables);
-  }
+    return true;
 
-  bool cb_has_external_clause(bool &forgettable) final {
-    if(learn_set)
-      return true;
-    if(!check_disequations())
-      return true;
+fail_fast:
+    std::vector reason = { -assigned, -place_lookup[{p, c}], -place_lookup[{q, d}] };
+    std::cout << "fast connection conflict: " << reason << '\n';
+    clause_queue.emplace_back(std::move(reason));
     return false;
   }
 
-  int cb_add_external_clause_lit() final {
-    if(learn.empty()) {
-      learn_set = false;
+  void explain_unification_failure(int start) {
+    std::vector<int> reason = {-start};
+    RigidSubstitution substitution;
+    while(true) {
+restart:
+      substitution.clear();
+      for(int trouble : reason)
+        if(!make_connection<false>(substitution, -trouble))
+          goto finish;
+
+      for(int assigned : trail)
+        if(dispatches[assigned].flavour == Flavour::CONNECTION)
+          if(!make_connection<false>(substitution, assigned)) {
+            reason.push_back(-assigned);
+            goto restart;
+          }
+      ASSERTION_VIOLATION
+    }
+
+finish:
+    // add the placed clauses to the reason
+    size_t original = reason.size();
+    for(size_t i = 0; i < original; i++) {
+      Connection connection = dispatches[-reason[i]].connection;
+      PosRef p = positions[connection.above].parent;
+      PosRef q = positions[connection.below].parent;
+      Clause *c = positions[p].here;
+      Clause *d = positions[q].here;
+      reason.push_back(-place_lookup[{p, c}]);
+      reason.push_back(-place_lookup[{q, d}]);
+    }
+    std::cout << "connection conflict: " << reason << '\n';
+    clause_queue.emplace_back(std::move(reason));
+  }
+
+public:
+  Propagator(CaDiCaL::Solver &solver, unsigned depth_limit)
+    : solver(solver), depth_limit(depth_limit) {
+    solver.connect_external_propagator(this);
+    dispatches.push_back(Place(nullptr, PosRef()));
+  }
+
+  void read_problem(const Problem &prb) {
+    List<Unit *>::Iterator units(prb.units());
+    while(units.hasNext()) {
+      Clause *cl = units.next()->asClause();
+      for(unsigned i = 0; i < cl->size(); i++)
+        predicate_index.insert({(*cl)[i], cl});
+
+      if(cl->derivedFromGoal()) {
+        int start = get_place_var(PosRef(), cl);
+        solver.add(start);
+      }
+    }
+    solver.add(0);
+  }
+
+  void notify_assignment(const std::vector<int> &all_assigned) {
+    for(int assigned : all_assigned) {
+      if(assigned < 0)
+        continue;
+
+      std::cout << assigned << '\n';
+      Dispatch dispatch = dispatches[assigned];
+      switch(dispatch.flavour) {
+      case Flavour::CLAUSE_AT: {
+        Place place = dispatch.place;
+        Clause *placed = place.clause;
+        Clause *already = positions[place.at].here;
+
+        // disallow two clauses in one position
+        if(already) {
+          // TODO propagate this?
+          int already_placed = place_lookup[{place.at, already}];
+          std::vector<int> reason = { -already_placed, -assigned };
+          std::cout << "AMO place conflict: " << reason << '\n';
+          clause_queue.emplace_back(std::move(reason));
+          return;
+        }
+
+        // disallow clauses placed at non-existent positions
+        for(PosRef p = place.at; !p.is_root(); p = positions[p].parent) {
+          Clause *above = positions[positions[p].parent].here;
+          if(above && above->length() < positions[p].child) {
+            std::vector<int> reason = { -place_lookup[{positions[p].parent, above}], -assigned };
+            std::cout << "non-existent place conflict: " << reason << '\n';
+            clause_queue.emplace_back(std::move(reason));
+            return;
+          }
+        }
+
+        ASS(!positions[place.at].here)
+        // add closing constraints when placing a clause for the first time
+        if(!place.seen) {
+          add_place_constraints(assigned, place);
+          place.seen = true;
+        }
+
+        positions[place.at].here = place.clause;
+        break;
+      }
+      case Flavour::CONNECTION: {
+        // TODO propagate impossible connections
+        // TODO propagate that clauses below a connection need not be placed?
+        if(!make_connection(substitution, assigned))
+          return;
+        break;
+      }
+      }
+      trail.push_back(assigned);
+    }
+  }
+
+  void notify_new_decision_level() {
+    std::cout << "decision level: " << decisions.size() + 1 << '\n';
+    decisions.push_back({trail.size(), substitution.trail.size()});
+  }
+
+  void notify_backtrack(size_t decision_level) {
+    std::cout << "backtrack: " << decision_level << '\n';
+    Decision decision = decisions[decision_level];
+    decisions.resize(decision_level);
+    while(trail.size() > decision.sat) {
+      int undo = trail.back();
+      trail.pop_back();
+      std::cout << "undo: " << undo << '\n';
+      deferred.erase(undo);
+      switch(dispatches[undo].flavour) {
+      case Flavour::CLAUSE_AT: {
+        Place place = dispatches[undo].place;
+        positions[place.at].here = nullptr;
+        break;
+      }
+      case Flavour::CONNECTION:
+        break;
+      }
+    }
+    substitution.pop_to(decision.binding);
+    ASS(prop_queue.empty())
+  }
+
+  int cb_propagate () {
+    if(prop_queue.empty())
+      return 0;
+    int result = prop_queue.back();
+    prop_queue.pop_back();
+    return result;
+  };
+
+  bool cb_has_external_clause(bool &) { return !clause_queue.empty(); }
+
+  int cb_add_external_clause_lit() {
+    ASS(!clause_queue.empty())
+    std::vector<int> &next = clause_queue.back();
+    if(next.empty()) {
+      clause_queue.pop_back();
       return 0;
     }
-    int lit = learn.back();
-    learn.pop_back();
-    return lit;
+    int result = next.back();
+    next.pop_back();
+    return result;
   }
 
-  bool cb_check_found_model(const std::vector<int> &) final {
-    ASS(!learn_set)
-    ASS(learn.empty())
-    learn_set = true;
-
-#if 0
-    // ooooh stars pretty!
-    auto &out = log();
-    for(int assign : set)
-      out << (assign < 0 ? ' ' : '*');
-    out << '\n';
-#endif
-
-    // find a path through the matrix
-    auto path = find_path();
-
-    // sets of predicates, sides of equations, and subterms in the path
-    DHSet<TermList> predicates, sides, subterms;
-    for(Literal *l : path) {
-      if(l->isEquality()) {
-        if(l->polarity()) {
-          sides.insert((*l)[0]);
-          sides.insert((*l)[1]);
-        }
-      }
-      else {
-        predicates.insert(TermList(l));
-      }
-      NonVariableNonTypeIterator it(l);
-      while(it.hasNext())
-        subterms.insert(TermList(it.next()));
+  bool cb_check_found_model(const std::vector<int> &) {
+    std::cout << "final\n";
+    std::cout << "deferred: " << deferred << '\n';
+    std::cout << trail << '\n';
+    ASS(clause_queue.empty())
+    for(auto assigned : deferred) {
+      std::cout << assigned << '\n';
+      if(!make_connection(substitution, assigned))
+        return false;
     }
-
-    // at least one connection along the path must be made
-    for(unsigned connection = 1; connection < matrix.sat2conn.size(); connection++) {
-      // we can ignore connections already set:
-      // 1. If the connection is between predicates, this wouldn't be a path
-      // 2. If the connection is between an equation and a subterm, it wasn't strong enough
-      if(set[connection] > 0)
-        continue;
-
-      auto [s, t] = matrix.sat2conn[connection];
-      if(
-        (predicates.contains(s) && predicates.contains(t)) ||
-        (sides.contains(t) && subterms.contains(s)) ||
-        (sides.contains(s) && subterms.contains(t))
-      )
-        learn.push_back(connection);
-    }
-
-    // log() << "final: " << reason << '\n';
-    return false;
-  }
-
-  // find a path through the matrix under the current substitution
-  std::unordered_set<Literal *> find_path() {
-    // auxiliary SAT solver for finding paths
-    MinisatInterfacing pathfinder(*env.options);
-    // bijection from (substituted, grounded) literals to SAT variables
-    SAT2FO sat2fo;
-
-    // grounded versions of the selected clauses
-    std::vector<Clause *> grounded;
-    // SAT versions of `grounded`
-    std::vector<SATClause *> sats;
-
-    // ground all clauses and feed them to `pathfinder`
-    for(const Copy &copy : matrix.copies) {
-      size_t length = copy.literals.size();
-      // make a Vampire clause for grounding - useful for proof printing
-      Clause *ground = new (length) Clause(
-        length,
-        NonspecificInference1(InferenceRule::INSTANTIATION, copy.original)
-      );
-      // don't ask
-      ground->incRefCnt();
-
-      // fill out `ground`
-      for(unsigned i = 0; i < length; i++) {
-        // apply the substitution
-        Literal *substituted = SubstHelper::apply(copy.literals[i], substitution);
-        // map all remaining variables to X0
-        // (just barely avoids sortedness problems)
-        (*ground)[i] = SubstHelper::apply(substituted, X0);
-      }
-      grounded.push_back(ground);
-
-      // get a SAT version of `ground`
-      SATClause *sat = sat2fo.toSAT(ground);
-      pathfinder.ensureVarCount(sat2fo.maxSATVar());
-      // tautology: can happen even if tautologies eliminated
-      // consider e.g. p(Y) | ~p(Z), which is grounded to p(X0) | ~p(X0)
-      if(sat) {
-        pathfinder.addClause(sat);
-        sats.push_back(sat);
-      }
-    }
-
-conflict:
-    // no path exists, we're done - emit a proof
-    if(pathfinder.solve(UINT_MAX) == SATSolver::UNSATISFIABLE) {
-      SATClause* refutation = pathfinder.getRefutation();
-      UnitList* premises = SATInference::getFOPremises(refutation);
-      Clause* empty = Clause::fromIterator(
-        LiteralIterator::getEmpty(),
-        FromSatRefutation(
-          InferenceRule::AVATAR_REFUTATION,
-          premises,
-          pathfinder.getRefutationPremiseList()
-        )
-      );
-      throw MainLoop::RefutationFoundException(empty);
-    }
-    ASS_EQ(grounded.size(), matrix.copies.size())
-
-    // for checking the path is E-satisfiable
-    DP::SimpleCongruenceClosure cc(ordering.ptr());
-
-    // read the path off pathfinder's model
-    std::unordered_set<Literal *> path;
-    for(unsigned i = 0; i < matrix.copies.size(); i++) {
-      const Copy &copy = matrix.copies[i];
-      Clause *ground = grounded[i];
-      ASS_EQ(copy.literals.size(), ground->length())
-
-      for(unsigned j = 0; j < ground->length(); j++) {
-        SATLiteral lit = sat2fo.toSAT((*ground)[j]);
-        ASS_NEQ(pathfinder.getAssignment(lit.var()), SATSolver::DONT_CARE)
-        if(
-          ( lit.polarity() && pathfinder.getAssignment(lit.var()) == SATSolver::TRUE) ||
-          (!lit.polarity() && pathfinder.getAssignment(lit.var()) == SATSolver::FALSE)
-        ) {
-          cc.addLiteral((*ground)[j]);
-          path.insert(copy.literals[j]);
-          break;
-        }
-      }
-    }
-
-    // check whether the path is E-satisfiable
-    // if not, try another path
-    if(cc.getStatus(false) == DP::DecisionProcedure::UNSATISFIABLE) {
-      ASS(cc.getUnsatCoreCount())
-      Stack<Literal *> core;
-      cc.getUnsatCore(core, 0);
-      SATClause *conflict = sat2fo.createConflictClause(core);
-      ASS(conflict)
-      pathfinder.addClause(conflict);
-      sats.push_back(conflict);
-      goto conflict;
-    }
-
-    /*
-    // sets of predicates, sides of equations, and subterms in the path
-    DHSet<TermList> predicates, sides, subterms;
-    for(Literal *l : path) {
-      if(l->isEquality()) {
-        if(l->polarity()) {
-          sides.insert((*l)[0]);
-          sides.insert((*l)[1]);
-        }
-      }
-      else {
-        predicates.insert(TermList(l));
-      }
-      NonVariableNonTypeIterator it(l);
-      while(it.hasNext())
-        subterms.insert(TermList(it.next()));
-    }
-
-    // remove paths that have a connection unset
-    for(unsigned connection = 1; connection < matrix.sat2conn.size(); connection++) {
-      // ignore connections already set
-      if(set[connection])
-        continue;
-
-      auto [s, t] = matrix.sat2conn[connection];
-      if(
-        (predicates.contains(s) && predicates.contains(t)) ||
-        (sides.contains(t) && subterms.contains(s)) ||
-        (sides.contains(s) && subterms.contains(t))
-      ) {
-        ASSERTION_VIOLATION;
-      }
-    }
-    */
-
-    // free clauses, we won't need them for a proof
-    for(SATClause *cl : sats)
-      cl->destroy();
-    for(Clause *cl : grounded)
-      cl->destroy();
-
-    return path;
+    return true;
   }
 };
 
 MainLoopResult UPCoP::runImpl() {
-  Matrix matrix;
-  // add initial clauses
-  UnitList::Iterator units(_prb.units());
+  List<Unit *>::Iterator units(_prb.units());
   while(units.hasNext())
-    matrix.amplify(units.next()->asClause());
+    std::cout << units.next()->toString() << '\n';
 
-  Propagator propagator(getProblem(), matrix);
-  CaDiCaL::Solver solver;
-  solver.connect_external_propagator(&propagator);
-  for(unsigned i = 1; i < matrix.sat2conn.size(); i++) {
-    // observe all variables
-    solver.add_observed_var(i);
-    // prefer setting them positively
-    solver.phase(i);
+  unsigned depth_limit = 0;
+  while(++depth_limit) {
+    std::cout << "depth: " << depth_limit << '\n';
+    CaDiCaL::Solver solver;
+    Propagator propagator(solver, depth_limit);
+    propagator.read_problem(_prb);
+    if(solver.solve() == CaDiCaL::SATISFIABLE)
+      return Statistics::REFUTATION_NOT_FOUND;
   }
-
-  log() << solver.version() << '\n';
-  log() << env.options->inputFile() << '\n';
-
-  // should throw if we find a proof
-  ALWAYS(solver.solve() != CaDiCaL::SATISFIABLE)
-  log() << "SZS status Incomplete\n";
-  return Statistics::REFUTATION_NOT_FOUND;
+  ASSERTION_VIOLATION
 }
