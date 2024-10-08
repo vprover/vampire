@@ -16,6 +16,8 @@
 
 #include "Forwards.hpp"
 
+#include "PartialOrdering.hpp"
+
 #include "Ordering.hpp"
 
 namespace Kernel {
@@ -87,11 +89,13 @@ protected:
     bool get(TermList lhs, TermList rhs, Ordering::Result& res) const;
     bool set(Ordering::Constraint con);
     void reset() { st.reset(); }
+    std::string to_string() const;
 
     Stack<Ordering::Constraint> st;
   };
+  // using Trace = PartialOrdering;
 
-  Trace* getCurrentTrace();
+  ScopedPtr<Trace> getCurrentTrace();
 
   struct Node {
     static_assert(sizeof(uint64_t) == sizeof(Branch));

@@ -236,7 +236,7 @@ void OrderingComparator::expand()
       if (node->refcnt > 1) {
         *_curr = Branch(node->data, node->alternative);
       }
-      _curr->node()->trace = getCurrentTrace();
+      _curr->node()->trace = getCurrentTrace().release();
       _curr->node()->ready = true;
       return;
     }
@@ -250,7 +250,7 @@ void OrderingComparator::expand()
         _curr->node()->gtBranch = node->gtBranch;
         _curr->node()->incBranch = node->incBranch;
       }
-      _curr->node()->trace = getCurrentTrace();
+      _curr->node()->trace = getCurrentTrace().release();
       _curr->node()->ready = true;
       return;
     }
@@ -301,8 +301,23 @@ bool OrderingComparator::tryExpandVarCase()
     } else {
       *_curr = node->incBranch;
     }
-    delete trace;
     return true;
+  }
+  // TODO eventually incorporate this into the Trace
+  if (node->lhs.isVar() && node->rhs.isTerm()) {
+    SubtermIterator sti(node->rhs.term());
+    while (sti.hasNext()) {
+      auto st = sti.next();
+      if (trace->get(node->lhs, st, val)) {
+        if (val == Ordering::INCOMPARABLE) {
+          *_curr = node->incBranch;
+          return true;
+        } else if (val == Ordering::LESS) {
+          *_curr = node->incBranch;
+          return true;
+        }
+      }
+    }
   }
   // if refcnt > 1 we copy the node and
   // we can also safely use the original
@@ -313,7 +328,7 @@ bool OrderingComparator::tryExpandVarCase()
     _curr->node()->incBranch = node->incBranch;
   }
   _curr->node()->ready = true;
-  _curr->node()->trace = trace;
+  _curr->node()->trace = trace.release();
   return true;
 }
 
@@ -343,12 +358,21 @@ bool OrderingComparator::Trace::set(Ordering::Constraint con)
   return true;
 }
 
-OrderingComparator::Trace* OrderingComparator::getCurrentTrace()
+std::string OrderingComparator::Trace::to_string() const
+{
+  std::stringstream str;
+  for (const auto& con : st) {
+    str << con << endl;
+  }
+  return str.str();
+}
+
+ScopedPtr<OrderingComparator::Trace> OrderingComparator::getCurrentTrace()
 {
   ASS(!_curr->node()->ready);
 
   if (!_prev) {
-    return new Trace();
+    return ScopedPtr<Trace>(new Trace());
   }
 
   ASS(_prev->node()->ready);
@@ -384,13 +408,13 @@ OrderingComparator::Trace* OrderingComparator::getCurrentTrace()
           }
         }
       }
-      return trace;
+      return ScopedPtr<Trace>(trace);
     }
     case BranchTag::T_RESULT: {
-      return new Trace(*_prev->node()->trace);
+      return ScopedPtr<Trace>(new Trace(*_prev->node()->trace));
     }
     case BranchTag::T_WEIGHT: {
-      return new Trace(*_prev->node()->trace);
+      return ScopedPtr<Trace>(new Trace(*_prev->node()->trace));
     }
   }
   ASSERTION_VIOLATION;
