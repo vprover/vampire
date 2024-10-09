@@ -47,11 +47,8 @@ public:
 
   void reset();
 
-  // PartialOrdering& operator=(const PartialOrdering& other);
-
   bool get(TermList lhs, TermList rhs, Ordering::Result& res) const;
   bool set(Ordering::Constraint con);
-  // const TermList& get_rep(const T& e) const;
 
   std::string to_string() const;
   std::string to_string_raw() const;
@@ -59,13 +56,13 @@ public:
 private:
   size_t idx_of_elem(TermList t) const;
   size_t idx_of_elem_ext(TermList t);
-  PoComp idx_of(size_t idx_x, size_t idx_y) const;
-  void set_idx_of(size_t idx_x, size_t idx_y, PoComp v);
-  void set_idx_of_safe(size_t idx_x, size_t idx_y, Result v);
+  PoComp idx_of(size_t x, size_t y) const;
+  void set_idx_of(size_t x, size_t y, PoComp v);
+  void set_idx_of_safe(size_t x, size_t y, PoComp v);
 
-  void set_inferred(size_t idx_x, size_t idx_y, Ordering::Result result);
-  void set_inferred_loop(size_t idx_x, size_t idx_y, Ordering::Result gt, Ordering::Result lt);
-  void set_inferred_loop_eq(size_t idx_x, size_t idx_y);
+  void set_inferred(size_t x, size_t y, PoComp result);
+  void set_inferred_loop(size_t x, size_t y, PoComp rel);
+  void set_inferred_loop_eq(size_t x, size_t y);
 
   DHMap<TermList,size_t> _nodes;
   DHMap<size_t,TermList> _inverse;
