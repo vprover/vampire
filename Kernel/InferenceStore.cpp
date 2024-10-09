@@ -852,7 +852,7 @@ struct InferenceStore::DeduktiProofPrinter
 
   void printStep(Unit* us)
   {
-    Dedukti::outputUnit(out, us);
+    Dedukti::outputDeduction(out, us);
     // out << "banana" << us->toString() << std::endl;
   }
 };
