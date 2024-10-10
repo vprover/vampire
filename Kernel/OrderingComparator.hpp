@@ -85,15 +85,7 @@ protected:
 
   using VarCoeffPair = std::pair<unsigned,int>;
 
-  struct Trace {
-    bool get(TermList lhs, TermList rhs, Ordering::Result& res) const;
-    bool set(Ordering::Constraint con);
-    void reset() { st.reset(); }
-    std::string to_string() const;
-
-    Stack<Ordering::Constraint> st;
-  };
-  // using Trace = PartialOrdering;
+  using Trace = PartialOrdering;
 
   ScopedPtr<Trace> getCurrentTrace();
 

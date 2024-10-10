@@ -13,6 +13,7 @@
  */
 
 #include <cstring>
+#include <iomanip>
 
 #include "PartialOrdering.hpp"
 #include "Lib/Stack.hpp"
@@ -79,25 +80,6 @@ PoComp resultToPoComp(Result r, bool reversed) {
       return reversed ? PoComp::GREATER : PoComp::LESS;
     case Result::INCOMPARABLE:
       return reversed ? PoComp::NLEQ : PoComp::NGEQ;
-  }
-}
-
-string idx_to_string(PoComp c) {
-  switch (c) {
-    case PoComp::UNKNOWN:
-      return "UNKNOWN";
-    case PoComp::GREATER:
-      return "GREATER";
-    case PoComp::EQUAL:
-      return "EQUAL";
-    case PoComp::LESS:
-      return "LESS";
-    case PoComp::NGEQ:
-      return "NGEQ";
-    case PoComp::NLEQ:
-      return "NLEQ";
-    case PoComp::INCOMPARABLE:
-      return "INCOMPARABLE";
   }
 }
 
@@ -314,6 +296,8 @@ void PartialOrdering::set_inferred_loop(size_t x, size_t y, PoComp rel)
   size_t min = sort ? x : y;
   size_t max = sort ? y : x;
   auto inv = reverse(rel); // inverse of rel
+  auto wkn = weaken(rel); // weakened variant of rel
+  auto iwkn = reverse(wkn); // inverse of wkn
 
   // z<x z<y
   for (size_t z = 0; z < min; z++) {
@@ -325,12 +309,25 @@ void PartialOrdering::set_inferred_loop(size_t x, size_t y, PoComp rel)
       above.push(z);
       continue;
     }
+    // z wkn x  ∧  x rel y  →  z wkn y
+    // z inc x  ∧  x rel y  →  z wkn y
+    if (r == wkn || r == PoComp::INCOMPARABLE) {
+      ALWAYS(set_idx_of(z, y, wkn));
+      continue;
+    }
     r = idx_of(z, y);
     // x rel y  ∧  y rel z  →  x rel z
     // x rel y  ∧  y  =  z  →  x rel z
     if (r == inv || r == PoComp::EQUAL) {
       ALWAYS(set_idx_of(z, x, inv));
       below.push(z);
+      continue;
+    }
+    // x rel y  ∧  y wkn z  →  x wkn z
+    // x rel y  ∧  y inc z  →  x wkn z
+    if (r == iwkn || r == PoComp::INCOMPARABLE) {
+      ALWAYS(set_idx_of(z, x, iwkn));
+      continue;
     }
   }
 
@@ -345,12 +342,25 @@ void PartialOrdering::set_inferred_loop(size_t x, size_t y, PoComp rel)
         above.push(z);
         continue;
       }
+      // z wkn x  ∧  x rel y  →  z wkn y
+      // z inc x  ∧  x rel y  →  z wkn y
+      if (r == iwkn || r == PoComp::INCOMPARABLE) {
+        ALWAYS(set_idx_of(z, y, wkn));
+        continue;
+      }
       r = idx_of(z, y);
       // x rel y  ∧  y rel z  →  x rel z
       // x rel y  ∧  y  =  z  →  x rel z
       if (r == inv || r == PoComp::EQUAL) {
         ALWAYS(set_idx_of(x, z, rel));
         below.push(z);
+        continue;
+      }
+      // x rel y  ∧  y wkn z  →  x wkn z
+      // x rel y  ∧  y inc z  →  x wkn z
+      if (r == iwkn || r == PoComp::INCOMPARABLE) {
+        ALWAYS(set_idx_of(x, z, wkn));
+        continue;
       }
     }
   } else {
@@ -364,12 +374,25 @@ void PartialOrdering::set_inferred_loop(size_t x, size_t y, PoComp rel)
         above.push(z);
         continue;
       }
+      // z wkn x  ∧  x rel y  →  z wkn y
+      // z inc x  ∧  x rel y  →  z wkn y
+      if (r == wkn || r == PoComp::INCOMPARABLE) {
+        ALWAYS(set_idx_of(y, z, iwkn));
+        continue;
+      }
       r = idx_of(y, z);
       // x rel y  ∧  y rel z  →  x rel z
       // x rel y  ∧  y  =  z  →  x rel z
       if (r == rel || r == PoComp::EQUAL) {
         ALWAYS(set_idx_of(z, x, inv));
         below.push(z);
+        continue;
+      }
+      // x rel y  ∧  y wkn z  →  x wkn z
+      // x rel y  ∧  y inc z  →  x wkn z
+      if (r == wkn || r == PoComp::INCOMPARABLE) {
+        ALWAYS(set_idx_of(z, x, iwkn));
+        continue;
       }
     }
   }
@@ -384,12 +407,25 @@ void PartialOrdering::set_inferred_loop(size_t x, size_t y, PoComp rel)
       above.push(z);
       continue;
     }
+    // z wkn x  ∧  x rel y  →  z wkn y
+    // z inc x  ∧  x rel y  →  z wkn y
+    if (r == iwkn || r == PoComp::INCOMPARABLE) {
+      ALWAYS(set_idx_of(y, z, iwkn));
+      continue;
+    }
     r = idx_of(y, z);
     // x rel y  ∧  y rel z  →  x rel z
     // x rel y  ∧  y  =  z  →  x rel z
     if (r == rel || r == PoComp::EQUAL) {
       ALWAYS(set_idx_of(x, z, rel));
       below.push(z);
+      continue;
+    }
+    // x rel y  ∧  y wkn z  →  x wkn z
+    // x rel y  ∧  y inc z  →  x wkn z
+    if (r == wkn || r == PoComp::INCOMPARABLE) {
+      ALWAYS(set_idx_of(x, z, wkn));
+      continue;
     }
   }
 
@@ -405,8 +441,10 @@ void PartialOrdering::set_inferred_loop_eq(size_t x, size_t y)
 {
   ASS_NEQ(x,y);
 
-  Stack<pair<size_t,PoComp>> above;
-  Stack<pair<size_t,PoComp>> below;
+  // pairs (z, rel) s.t. z rel x
+  Stack<pair<size_t,PoComp>> x_rel;
+  // pairs (z, rel) s.t. y rel z
+  Stack<pair<size_t,PoComp>> y_rel;
 
   bool sort = x < y;
   size_t min = sort ? x : y;
@@ -417,13 +455,13 @@ void PartialOrdering::set_inferred_loop_eq(size_t x, size_t y)
     auto r = idx_of(z, x);
     if (r != PoComp::UNKNOWN) {
       ALWAYS(set_idx_of(z, y, r));
-      above.push(make_pair(z,r));
+      x_rel.push({ z, r });
       continue;
     }
     r = idx_of(z, y);
     if (r != PoComp::UNKNOWN) {
       ALWAYS(set_idx_of(z, x, r));
-      below.push(make_pair(z,r));
+      y_rel.push({ z, reverse(r) });
     }
   }
 
@@ -433,13 +471,13 @@ void PartialOrdering::set_inferred_loop_eq(size_t x, size_t y)
       auto r = idx_of(x, z);
       if (r != PoComp::UNKNOWN) {
         ALWAYS(set_idx_of(z, y, reverse(r)));
-        above.push(make_pair(z,reverse(r)));
+        x_rel.push({ z, reverse(r) });
         continue;
       }
       r = idx_of(z, y);
       if (r != PoComp::UNKNOWN) {
         ALWAYS(set_idx_of(x, z, reverse(r)));
-        below.push(make_pair(z,r));
+        y_rel.push({ z, reverse(r) });
       }
     }
   } else {
@@ -448,13 +486,13 @@ void PartialOrdering::set_inferred_loop_eq(size_t x, size_t y)
       auto r = idx_of(z, x);
       if (r != PoComp::UNKNOWN) {
         ALWAYS(set_idx_of(y, z, reverse(r)));
-        above.push(make_pair(z,r));
+        x_rel.push({ z, r });
         continue;
       }
       r = idx_of(y, z);
       if (r != PoComp::UNKNOWN) {
         ALWAYS(set_idx_of(z, x, reverse(r)));
-        below.push(make_pair(z,reverse(r)));
+        y_rel.push({ z, r });
       }
     }
   }
@@ -464,63 +502,154 @@ void PartialOrdering::set_inferred_loop_eq(size_t x, size_t y)
     auto r = idx_of(x, z);
     if (r != PoComp::UNKNOWN) {
       ALWAYS(set_idx_of(y, z, r));
-      above.push(make_pair(z,reverse(r)));
+      x_rel.push({ z, reverse(r) });
       continue;
     }
     r = idx_of(y, z);
     if (r != PoComp::UNKNOWN) {
       ALWAYS(set_idx_of(x, z, r));
-      below.push(make_pair(z,reverse(r)));
+      y_rel.push({ z, r });
     }
   }
 
-  if (below.isNonEmpty()) {
-    for (const auto& [x,rx] : above) {
-      switch (rx) {
-        case PoComp::EQUAL: {
-          for (const auto& [y,ry] : below) {
-            ALWAYS(set_idx_of_safe(y, x, ry));
-          }
-          break;
+  if (y_rel.isEmpty()) {
+    return;
+  }
+
+  // we assume x = y
+  for (const auto& [z,rz] : x_rel) {
+    switch (rz) {
+      case PoComp::EQUAL: {
+        for (const auto& [u,ru] : y_rel) {
+          // z = x  ∧  x ru u  →  z ru u
+          ALWAYS(set_idx_of_safe(z, u, ru));
         }
-        case PoComp::GREATER: {
-          for (const auto& [y,ry] : below) {
-            switch (ry) {
-              case PoComp::GREATER:
-                break;
-              case PoComp::EQUAL:
-              case PoComp::LESS:
-                ALWAYS(set_idx_of_safe(x, y, PoComp::GREATER));
-                break;
-              default:
-                ASSERTION_VIOLATION;
-            }
-          }
-          break;
-        }
-        case PoComp::LESS: {
-          for (const auto& [y,ry] : below) {
-            switch (ry) {
-              case PoComp::LESS:
-                break;
-              case PoComp::EQUAL:
-              case PoComp::GREATER:
-                ALWAYS(set_idx_of_safe(x, y, PoComp::LESS));
-                break;
-              default:
-                ASSERTION_VIOLATION;
-            }
-          }
-          break;
-        }
-        case PoComp::INCOMPARABLE:
-        case PoComp::NGEQ:
-        case PoComp::NLEQ:
-          //TODO
-          break;
-        default:
-          ASSERTION_VIOLATION;
+        break;
       }
+      case PoComp::GREATER: {
+        for (const auto& [u,ru] : y_rel) {
+          switch (ru) {
+            // z > x  ∧  x ≥ u  →  z > u
+            case PoComp::EQUAL:
+            case PoComp::GREATER:
+              ALWAYS(set_idx_of_safe(z, u, PoComp::GREATER));
+              break;
+            // z > x  ∧  x ≰ u  →  z ≰ u
+            case PoComp::NLEQ:
+            case PoComp::INCOMPARABLE:
+              ALWAYS(set_idx_of_safe(z, u, PoComp::NLEQ));
+              break;
+            // z > x  ∧  x < u implies nothing
+            case PoComp::LESS:
+            // z > x  ∧  x ≱ u implies nothing
+            case PoComp::NGEQ:
+              break;
+            default:
+              ASSERTION_VIOLATION;
+          }
+        }
+        break;
+      }
+      case PoComp::LESS: {
+        for (const auto& [u,ru] : y_rel) {
+          switch (ru) {
+            // z < x  ∧  x ≤ u  →  z < u
+            case PoComp::EQUAL:
+            case PoComp::LESS:
+              ALWAYS(set_idx_of_safe(z, u, PoComp::LESS));
+              break;
+            // z < x  ∧  x ≱ u  →  z ≱ u
+            case PoComp::NGEQ:
+            case PoComp::INCOMPARABLE:
+              ALWAYS(set_idx_of_safe(z, u, PoComp::NGEQ));
+              break;
+            // z < x  ∧  x > u implies nothing
+            case PoComp::GREATER:
+            // z < x  ∧  x ≰ u implies nothing
+            case PoComp::NLEQ:
+              break;
+            default:
+              ASSERTION_VIOLATION;
+          }
+        }
+        break;
+      }
+      case PoComp::INCOMPARABLE: {
+        for (const auto& [u,ru] : y_rel) {
+          switch (ru) {
+            // z ≰ x  ∧  x > u  →  z ≰ u
+            case PoComp::GREATER:
+              ALWAYS(set_idx_of_safe(z, u, PoComp::NLEQ));
+              break;
+            // z ⋈ x  ∧  x = u  →  z ⋈ u
+            case PoComp::EQUAL:
+              ALWAYS(set_idx_of_safe(z, u, PoComp::INCOMPARABLE));
+              break;
+            // z ≱ x  ∧  x < u  →  z ≱ u
+            case PoComp::LESS:
+              ALWAYS(set_idx_of_safe(z, u, PoComp::NGEQ));
+              break;
+            // z ⋈ x  ∧  x ≱ u implies nothing
+            case PoComp::NGEQ:
+            // z ⋈ x  ∧  x ≰ u implies nothing
+            case PoComp::NLEQ:
+            // z ⋈ x  ∧  x ⋈ u implies nothing
+            case PoComp::INCOMPARABLE:
+              break;
+            default:
+              ASSERTION_VIOLATION;
+          }
+        }
+        break;
+      }
+      case PoComp::NGEQ: {
+        for (const auto& [u,ru] : y_rel) {
+          switch (ru) {
+            // z ≱ x  ∧  x ≤ u  →  z ≱ u
+            case PoComp::EQUAL:
+            case PoComp::LESS:
+              ALWAYS(set_idx_of_safe(z, u, PoComp::NGEQ));
+              break;
+            // z ≱ x  ∧  x > u implies nothing
+            case PoComp::GREATER:
+            // z ≱ x  ∧  x ≱ u implies nothing
+            case PoComp::NGEQ:
+            // z ≱ x  ∧  x ≰ u implies nothing
+            case PoComp::NLEQ:
+            // z ≱ x  ∧  x ⋈ u implies nothing
+            case PoComp::INCOMPARABLE:
+              break;
+            default:
+              ASSERTION_VIOLATION;
+          }
+        }
+        break;
+      }
+      case PoComp::NLEQ: {
+        for (const auto& [u,ru] : y_rel) {
+          switch (ru) {
+            // z ≰ x  ∧  x ≥ u  →  z ≰ u
+            case PoComp::GREATER:
+            case PoComp::EQUAL:
+              ALWAYS(set_idx_of_safe(z, u, PoComp::NLEQ));
+              break;
+            // z ≰ x  ∧  x < u implies nothing
+            case PoComp::LESS:
+            // z ≰ x  ∧  x ≱ u implies nothing
+            case PoComp::NGEQ:
+            // z ≰ x  ∧  x ≰ u implies nothing
+            case PoComp::NLEQ:
+            // z ≰ x  ∧  x ⋈ u implies nothing
+            case PoComp::INCOMPARABLE:
+              break;
+            default:
+              ASSERTION_VIOLATION;
+          }
+        }
+        break;
+      }
+      default:
+        ASSERTION_VIOLATION;
     }
   }
 }
@@ -553,26 +682,77 @@ void PartialOrdering::set_inferred(size_t x, size_t y, PoComp result)
   }
 }
 
+string idx_to_string(PoComp c) {
+  switch (c) {
+    case PoComp::UNKNOWN:
+      return "UNKNOWN";
+    case PoComp::GREATER:
+      return "GREATER";
+    case PoComp::EQUAL:
+      return "EQUAL";
+    case PoComp::LESS:
+      return "LESS";
+    case PoComp::NGEQ:
+      return "NGEQ";
+    case PoComp::NLEQ:
+      return "NLEQ";
+    case PoComp::INCOMPARABLE:
+      return "INCOMPARABLE";
+  }
+}
+
+string idx_to_infix(PoComp c) {
+  switch (c) {
+    case PoComp::UNKNOWN:
+      return "?";
+    case PoComp::GREATER:
+      return ">";
+    case PoComp::EQUAL:
+      return "=";
+    case PoComp::LESS:
+      return "<";
+    case PoComp::NGEQ:
+      return "≱";
+    case PoComp::NLEQ:
+      return "≰";
+    case PoComp::INCOMPARABLE:
+      return "⋈";
+  }
+}
+
 string PartialOrdering::to_string() const
 {
   if (_nodes.size()<2) {
-    return "{}";
+    return " {} ";
   }
   stringstream str;
-  typename Map<TermList,size_t>::Iterator vit1(_nodes);
-  while (vit1.hasNext()) {
-    const auto& e1 = vit1.next();
-    typename Map<TermList,size_t>::Iterator vit2(_nodes);
-    while (vit2.hasNext()) {
-      const auto& e2 = vit2.next();
-      if (e1.value() < e2.value()) {
-        auto c = idx_of(e1.value(),e2.value());
-        if (c == PoComp::UNKNOWN) {
-          continue;
-        }
-        str << " { " << e1.key() << " " << e2.key() << " " << idx_to_string(c) << " }, " << endl;
+  typename Map<TermList,size_t>::Iterator it(_nodes);
+  while (it.hasNext()) {
+    const auto& e = it.next();
+    str << e.value() << ": " << e.key() << ", ";
+  }
+  str << endl;
+
+  size_t s = _size-1;
+  size_t w = 0;
+  while (s) { s /= 10; w++; }
+
+  for (size_t i = 0; i < _size; i++) {
+    str << std::setw(w) << i << " ";
+    for (size_t j = 0; j < i; j++) {
+      if (w>1) {
+        str << std::setw(w-1) << " ";
       }
+      str << idx_to_infix(idx_of(j,i)) << " ";
     }
+    if (w>1) {
+      str << std::setw(w-1) << " ";
+    }
+    str << idx_to_infix(PoComp::EQUAL) << " " << endl;
+  }
+  str << std::setw(w) << " " << " ";
+  for (size_t i = 0; i < _size; i++) {
+    str << std::setw(w) << i << " ";
   }
   return str.str();
 }

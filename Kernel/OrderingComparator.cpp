@@ -332,41 +332,6 @@ bool OrderingComparator::tryExpandVarCase()
   return true;
 }
 
-bool OrderingComparator::Trace::get(TermList lhs, TermList rhs, Ordering::Result& res) const
-{
-  for (const auto& [s,t,r] : st) {
-    if (s == lhs && t == rhs) {
-      ASS_NEQ(r,Ordering::LESS);
-      res = r;
-      return true;
-    }
-
-    // Note: since we use isGreater which results
-    // in INCOMPARABLE when compare would be LESS,
-    // the INCOMPARABLE result we cannot use here
-    if (s == rhs && t == lhs && r != Ordering::INCOMPARABLE) {
-      res = Ordering::reverse(r);
-      return true;
-    }
-  }
-  return false;
-}
-
-bool OrderingComparator::Trace::set(Ordering::Constraint con)
-{
-  st.push(con);
-  return true;
-}
-
-std::string OrderingComparator::Trace::to_string() const
-{
-  std::stringstream str;
-  for (const auto& con : st) {
-    str << con << endl;
-  }
-  return str.str();
-}
-
 ScopedPtr<OrderingComparator::Trace> OrderingComparator::getCurrentTrace()
 {
   ASS(!_curr->node()->ready);

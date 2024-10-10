@@ -233,6 +233,10 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         for (const auto& dd : qr.data->dds) {
           ASS_EQ(dd->clause->length(),1);
 
+          if (dd->clause->store() == Clause::NONE) {
+            continue;
+          }
+
           if(!ColorHelper::compatible(cl->color(), dd->clause->color())) {
             continue;
           }

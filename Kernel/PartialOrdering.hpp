@@ -51,7 +51,6 @@ public:
   bool set(Ordering::Constraint con);
 
   std::string to_string() const;
-  std::string to_string_raw() const;
 
 private:
   size_t idx_of_elem(TermList t) const;
