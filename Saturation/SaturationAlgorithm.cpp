@@ -800,12 +800,116 @@ fin:
   cl->decRefCnt();
 }
 
+#define FUNC_TO_SYMB(F) (F+numPreds)
+
 /**
  * Insert clauses of the problem into the SaturationAlgorithm object
  * and initialize some internal structures.
  */
 void SaturationAlgorithm::init()
 {
+  { // GNN embedding phase stuff
+    for (unsigned t = 0; t < env.signature->typeCons(); t++) {
+      Signature::Symbol* symb = env.signature->getTypeCon(t);
+      if (symb->arity() > 0) {
+        USER_ERROR("GNN currently only supports monomorphic FOL.");
+      }
+      cout << "sort: " << t << " " << symb->name() << endl;
+      // tcon: id name
+    }
+
+    unsigned numPreds = env.signature->predicates(); // works as a offset for function symbols (Shall we have problems with predicates introduced during saturation?)
+
+    // TODO: the following two (pred and func) could be unified to "symb"
+    // (it's just that the id computation would become a bit more complicated; i.e., "new-func-id = funcId + numPreds".)
+    for (unsigned p = 0; p < numPreds; p++) {
+      Signature::Symbol* symb = env.signature->getPredicate(p);
+      cout << "symb: " << p << " " << (unsigned)(p==0) << " 0 " << symb->arity() << " " << symb->introduced() << " " << symb->skolem() << " " << symb->name() << endl;
+      // pred: id isEq isFn arity intro skolem name
+      cout << "symb-to-sort: " << p << " " << env.signature->getBoolSort() << endl;
+      // pred-to-sort: predId sortId (which is always 1 == $o)
+    }
+    {
+      DArray<unsigned> predicates;
+      predicates.initFromIterator(getRangeIterator(0u, numPreds), numPreds);
+      _ordering->sortArrayByPredicatePrecedence(predicates);
+      unsigned prev = 0; // we hardcode = as the first predicate in the precedence (despite the precedence sometimes claiming otherwise), because = has always the smallest "level" anyway
+      for (unsigned idx = 0; idx < numPreds; idx++) {
+        if (predicates[idx] != 0) {
+          cout << "symb-prec-next: " << prev << " " << predicates[idx] << endl;
+          prev = predicates[idx];
+        }
+      }
+    }
+    for (unsigned f = 0; f < env.signature->functions(); f++) {
+      Signature::Symbol* symb = env.signature->getFunction(f);
+      cout << "symb: " << FUNC_TO_SYMB(f) << " 0 1 " << symb->arity() << " " << symb->introduced() << " " << symb->skolem() << " " << symb->name() << endl;
+      // func: id isEq isFn arity intro skolem name
+      cout << "symb-to-sort: " << FUNC_TO_SYMB(f) << " " << symb->fnType()->result().term()->functor() << endl;
+      // func-to-sort: funcId sortId --- this is the output sort (input sorts can be inferred from arguments' output sorts)
+    }
+    {
+      DArray<unsigned> functions;
+      functions.initFromIterator(getRangeIterator(0u, env.signature->functions()), env.signature->functions());
+      _ordering->sortArrayByFunctionPrecedence(functions);
+      for (unsigned idx = 1; idx < env.signature->functions(); idx++) {
+        cout << "symb-prec-next: " << FUNC_TO_SYMB(functions[idx-1]) << " " << FUNC_TO_SYMB(functions[idx]) << endl;
+      }
+    }
+
+    ClauseIterator toAdd = _prb.clauseIterator();
+    unsigned clauseId = 0;  // zero-based, ever growing
+    unsigned subtermId = 0; // zero-based, ever growing
+    unsigned clVarId = 0;   // zero-based, ever growing, each clause has its own variable nodes
+    DHMap<unsigned,unsigned> clauseVariables; // from clause variables (as TermList::var()) to global variables of the whole CNF (non shared)
+    Stack<std::tuple<TermList,unsigned,TermList>> subterms; // the term (can be var), its id, and its sort (will only be needed for the variable case)
+    while (toAdd.hasNext()) {
+      Clause* cl = toAdd.next();
+      clauseVariables.reset();
+      // just register the clause and connect it with its number()
+      cout << "cls: " << clauseId << " " << cl->number() << endl;
+      subterms.reset();
+      for (Literal* lit : cl->iterLits()) {
+        cout << "# " << subtermId << " " << lit->toString() << endl;
+        subterms.push(std::make_tuple(TermList(lit),subtermId++,TermList())); // the last empty termlist , we won't touch this for literals
+      }
+      while(subterms.isNonEmpty()) {
+        auto [subterm,id,srt] = subterms.pop();
+        cout << "trm: " << id << endl; // could have some features?
+        if (subterm.isTerm()) {
+          Term* t = subterm.term();
+          OperatorType* ot = 0;
+          if (t->isLiteral()) {
+            Literal* l = static_cast<Literal*>(t);
+            ot = env.signature->getPredicate(t->functor())->predType();
+            cout << (l->isPositive() ? "cls-pos-lit: " : "cls-neg-lit: ") << clauseId << " " << id << endl;
+            cout << "trm-symb: " << id << " " << t->functor() << endl;
+          } else {
+            ot = env.signature->getFunction(t->functor())->fnType();
+            cout << "trm-symb: " << id << " " << FUNC_TO_SYMB(t->functor()) << endl;
+          }
+          for (unsigned n = 0; n < t->arity(); n++) {
+            TermList arg = *t->nthArgument(n);
+            cout << "term-arg: " << id << " " << subtermId << " " << n << endl;
+            subterms.push(make_tuple(arg,subtermId++,ot->arg(n)));
+          }
+        } else {
+          ASS(subterm.isVar());
+          unsigned var = subterm.var();
+          unsigned* normVar;
+          if (clauseVariables.getValuePtr(var,normVar)) {
+            *normVar = clVarId++;
+            // cls-var: clauseId varId varOrd (= counting this clause's variables from 0)
+            cout << "cls-var: " << clauseId << " " << *normVar << " " << clauseVariables.size()-1 << endl;       // a clause knows about its variables
+            cout << "var-srt: " << *normVar << " " << srt.term()->functor() << endl;          // a variable knows about its sort
+          }
+          cout << "trm-var: " << id << " " << *normVar << endl; // this subterm is a variable
+        }
+      }
+      clauseId++;
+    }
+  }
+
   ClauseIterator toAdd;
 
   if (env.options->randomTraversals()) {
