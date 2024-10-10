@@ -61,6 +61,7 @@ private:
 
   void set_inferred(size_t x, size_t y, PoComp result);
   void set_inferred_loop(size_t x, size_t y, PoComp rel);
+  void set_inferred_loop_inc(size_t x, size_t y, PoComp wkn);
   void set_inferred_loop_eq(size_t x, size_t y);
 
   Map<TermList,size_t> _nodes;
