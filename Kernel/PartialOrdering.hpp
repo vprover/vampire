@@ -33,8 +33,8 @@ enum class PoComp : uint8_t {
   GREATER,
   EQUAL,
   LESS,
-  LTR_INCOMPARABLE,
-  RTL_INCOMPARABLE,
+  NGEQ,
+  NLEQ,
   INCOMPARABLE,
 };
 
@@ -57,15 +57,14 @@ private:
   size_t idx_of_elem(TermList t) const;
   size_t idx_of_elem_ext(TermList t);
   PoComp idx_of(size_t x, size_t y) const;
-  void set_idx_of(size_t x, size_t y, PoComp v);
-  void set_idx_of_safe(size_t x, size_t y, PoComp v);
+  bool set_idx_of(size_t x, size_t y, PoComp v);
+  bool set_idx_of_safe(size_t x, size_t y, PoComp v);
 
   void set_inferred(size_t x, size_t y, PoComp result);
   void set_inferred_loop(size_t x, size_t y, PoComp rel);
   void set_inferred_loop_eq(size_t x, size_t y);
 
-  DHMap<TermList,size_t> _nodes;
-  DHMap<size_t,TermList> _inverse;
+  Map<TermList,size_t> _nodes;
   size_t _size;
   PoComp* _array;
 };
