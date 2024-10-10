@@ -304,6 +304,15 @@ int PrecedenceOrdering::predicatePrecedence (unsigned pred) const
   return res;
 } // PrecedenceOrdering::predicatePrecedences
 
+Ordering::Result PrecedenceOrdering::comparePredicatePrecedences(unsigned pred1, unsigned pred2) const
+{
+  if (pred1 == pred2)
+    return EQUAL;
+
+  ASS_NEQ(predicatePrecedence(pred1), predicatePrecedence(pred2)); // precedence should be total
+  return (predicatePrecedence(pred1) > predicatePrecedence(pred2)) ? GREATER : LESS;
+}
+
 /**
  * Compare precedences of two function symbols
  */ //TODO update for HOL>?
@@ -436,11 +445,11 @@ struct SymbolComparator {
     if(_symType == SymbolType::FUNC){
       return env.signature->getFunction(s);
     } else if (_symType == SymbolType::PRED){
-      return env.signature->getPredicate(s);      
+      return env.signature->getPredicate(s);
     } else {
-      return env.signature->getTypeCon(s);            
+      return env.signature->getTypeCon(s);
     }
-  }  
+  }
 };
 
 template<typename InnerComparator>
@@ -454,8 +463,8 @@ struct BoostWrapper : public SymbolComparator
     Comparison res = EQUAL;
     auto sym1 = getSymbol(s1);
     auto sym2 = getSymbol(s2);
-    bool u1 = sym1->inUnit(); 
-    bool u2 = sym2->inUnit(); 
+    bool u1 = sym1->inUnit();
+    bool u2 = sym2->inUnit();
     bool g1 = sym1->inGoal();
     bool g2 = sym2->inGoal();
     bool i1 = sym1->introduced();
@@ -827,16 +836,31 @@ DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Op
   return predicateLevels;
 }
 
-void PrecedenceOrdering::show(ostream& out) const 
+void PrecedenceOrdering::sortArrayByPredicatePrecedence(DArray<unsigned>& symbols) const
 {
-  auto _show = [&](const char* precKind, unsigned cntFunctors, auto getSymbol, auto compareFunctors)
+  symbols.sort(closureComparator([&](unsigned l, unsigned r){ return intoComparison(comparePredicatePrecedences(l,r)); }));
+}
+
+void PrecedenceOrdering::sortArrayByFunctionPrecedence(DArray<unsigned>& symbols) const
+{
+  symbols.sort(closureComparator([&](unsigned l, unsigned r){ return intoComparison(compareFunctionPrecedences(l,r)); }));
+}
+
+void PrecedenceOrdering::sortArrayByTypeConPrecedence(DArray<unsigned>& symbols) const
+{
+  symbols.sort(closureComparator([&](unsigned l, unsigned r){ return intoComparison(compareTypeConPrecedences(l,r)); }));
+}
+
+void PrecedenceOrdering::show(ostream& out) const
+{
+  auto _show = [&](const char* precKind, unsigned cntFunctors, auto getSymbol, auto sortSymbolArray)
     {
       out << "% " << precKind << " precedences, smallest symbols first (line format: `<name> <arity>`) " << std::endl;
       out << "% ===== begin of " << precKind << " precedences ===== " << std::endl;
       DArray<unsigned> functors;
 
       functors.initFromIterator(getRangeIterator(0u, cntFunctors), cntFunctors);
-      functors.sort(closureComparator(compareFunctors));
+      sortSymbolArray(functors);
       for (unsigned i = 0; i < cntFunctors; i++) {
         auto sym = getSymbol(functors[i]);
         out << "% " << sym->name() << " " << sym->arity() << std::endl;
@@ -847,21 +871,20 @@ void PrecedenceOrdering::show(ostream& out) const
       out << "%" << std::endl;
     };
 
-  _show("type constructor", 
-      env.signature->typeCons(), 
+  _show("type constructor",
+      env.signature->typeCons(),
       [](unsigned f) { return env.signature->getTypeCon(f); },
-      [&](unsigned l, unsigned r){ return intoComparison(compareTypeConPrecedences(l,r)); });
+      [this](DArray<unsigned>& symbols) { this->sortArrayByTypeConPrecedence(symbols); });
 
-  _show("function", 
+  _show("function",
       env.signature->functions(),
       [](unsigned f) { return env.signature->getFunction(f); },
-      [&](unsigned l, unsigned r){ return intoComparison(compareFunctionPrecedences(l,r)); }
-      );
+      [this](DArray<unsigned>& symbols) { this->sortArrayByFunctionPrecedence(symbols); });
 
-  _show("predicate", 
+  _show("predicate",
       env.signature->predicates(),
       [](unsigned f) { return env.signature->getPredicate(f); },
-      [&](unsigned l, unsigned r) { return Int::compare(_predicatePrecedences[l], _predicatePrecedences[r]); });
+      [this](DArray<unsigned>& symbols) { this->sortArrayByPredicatePrecedence(symbols); });
 
 
   {

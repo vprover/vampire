@@ -97,6 +97,12 @@ public:
 
   virtual void show(std::ostream& out) const = 0;
 
+  // Assuming the given array lists pred/func/typeCon ids, sort them by the precedences (if applicable)
+  virtual void sortArrayByPredicatePrecedence(DArray<unsigned>&) const {}
+  virtual void sortArrayByFunctionPrecedence(DArray<unsigned>&) const {}
+  virtual void sortArrayByTypeConPrecedence(DArray<unsigned>&) const {}
+  // PrecedenceOrderings will know how to do this (general Ordering just leaves the given array intact)
+
   static bool isGreaterOrEqual(Result r) { return (r == GREATER || r == EQUAL); }
 
   void removeNonMaximal(LiteralList*& lits) const;
@@ -160,21 +166,25 @@ public:
   void show(std::ostream&) const override;
   virtual void showConcrete(std::ostream&) const = 0;
 
+  void sortArrayByPredicatePrecedence(DArray<unsigned>&) const override;
+  void sortArrayByFunctionPrecedence(DArray<unsigned>&) const override;
+  void sortArrayByTypeConPrecedence(DArray<unsigned>&) const override;
+
 protected:
   // l1 and l2 are not equalities and have the same predicate
   virtual Result comparePredicates(Literal* l1,Literal* l2) const = 0;
 
-  PrecedenceOrdering(const DArray<int>& funcPrec, const DArray<int>& typeConPrec, 
+  PrecedenceOrdering(const DArray<int>& funcPrec, const DArray<int>& typeConPrec,
                      const DArray<int>& predPrec, const DArray<int>& predLevels, bool reverseLCM);
   PrecedenceOrdering(Problem& prb, const Options& opt, const DArray<int>& predPrec);
   PrecedenceOrdering(Problem& prb, const Options& opt);
-
 
   static DArray<int> typeConPrecFromOpts(Problem& prb, const Options& opt);
   static DArray<int> funcPrecFromOpts(Problem& prb, const Options& opt);
   static DArray<int> predPrecFromOpts(Problem& prb, const Options& opt);
   static DArray<int> predLevelsFromOptsAndPrec(Problem& prb, const Options& opt, const DArray<int>& predicatePrecedences);
 
+  Result comparePredicatePrecedences(unsigned pred1, unsigned pred2) const;
   Result compareFunctionPrecedences(unsigned fun1, unsigned fun2) const;
   Result compareTypeConPrecedences(unsigned tyc1, unsigned tyc2) const;
 
