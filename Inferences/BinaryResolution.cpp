@@ -235,12 +235,17 @@ Clause* BinaryResolution::generateClause(
   if(nConstraints != 0){
     env.statistics->cResolution++;
   }
-  else{ 
+  else{
     env.statistics->resolution++;
   }
 
   inf_destroyer.disable(); // ownership passed to the the clause below
-  return Clause::fromStack(*resLits, inf);
+  Clause *cl = Clause::fromStack(*resLits, inf);
+  if(env.options->proofExtra() == Options::ProofExtra::FULL)
+    env.proofExtra.insert(cl, new BinaryResolutionExtra(queryLit, resultLit));
+
+  return cl;
+
 }
 
 ClauseIterator BinaryResolution::generateClauses(Clause* premise)

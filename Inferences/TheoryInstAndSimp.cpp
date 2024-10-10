@@ -768,7 +768,7 @@ Stack<Literal*> computeGuards(Stack<Literal*> const& lits)
       }
       args.push(destr->termArg(0));
       // asserts e.g. isCons(l) for a term that contains the subterm head(l) for lists
-      return Literal::create(discr, args.size(), /* polarity */ true, false, args.begin());
+      return Literal::create(discr, args.size(), /* polarity */ true, args.begin());
   };
 
 

@@ -532,32 +532,13 @@ Clause* Superposition::performSuperposition(
   inf_destroyer.disable(); // ownership passed to the the clause below
   auto clause = Clause::fromStack(*res, inf);
 
-  // If proof extra is on let's compute the positions we have performed
-  // superposition on 
-  if(env.options->proofExtra()==Options::ProofExtra::FULL){
-
-    // First find which literal it is in the clause, as selection has occured already
-    // this should remain the same...?
-    std::string rwPlace = Lib::Int::toString(rwClause->getLiteralPosition(rwLit));
-    std::string eqPlace = Lib::Int::toString(eqClause->getLiteralPosition(eqLit));
-
-    std::string rwPos="_";
-    ALWAYS(Kernel::positionIn(rwTerm,rwLit,rwPos));
-    std::string eqPos = "("+eqPlace+").2";
-    rwPos = "("+rwPlace+")."+rwPos;
-
-    std::string eqClauseNum = Lib::Int::toString(eqClause->number());
-    std::string rwClauseNum = Lib::Int::toString(rwClause->number());
-
-    std::string extra = eqClauseNum + " into " + rwClauseNum+", unify on "+
-        eqPos+" in "+eqClauseNum+" and "+
-        rwPos+" in "+rwClauseNum;
-
-    if (!env.proofExtra) {
-      env.proofExtra = new DHMap<const Unit*,std::string>();
-    }
-    env.proofExtra->insert(clause,extra);
-  }
+  if(env.options->proofExtra() == Options::ProofExtra::FULL)
+    env.proofExtra.insert(clause, new SuperpositionExtra(
+      rwLit,
+      eqLit,
+      eqLHS,
+      rwTerm
+    ));
 
   // if (rwTermS != *rwLitS->nthArgument(0) && rwTermS != *rwLitS->nthArgument(1) && comp == Ordering::INCOMPARABLE) {
   //   condRedHandler.initWithEquation(clause, rwTermS, tgtTermS);

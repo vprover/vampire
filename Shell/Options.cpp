@@ -551,7 +551,10 @@ void Options::init()
 
     _sineGeneralityThreshold = UnsignedOptionValue("sine_generality_threshold","sgt",0);
     _sineGeneralityThreshold.description=
-    "Generality of a symbol is the number of input formulas in which a symbol appears. If the generality of a symbol is smaller than the threshold, it is always added into the D-relation with formulas in which it appears.";
+    "Generality of a symbol is the number of input formulas in which a symbol appears."
+    " If the generality of a symbol is smaller than the threshold, it is always included into the D-relation with formulas in which it appears."
+    " Note that with the default value (0) this actually never happens."
+    " (And with 1, there would be no difference, because the 1 is used up on the occurence in the already included unit.)";
     _lookup.insert(&_sineGeneralityThreshold);
     _sineGeneralityThreshold.tag(OptionTag::PREPROCESSING);
     // Captures that if the value is not default then sineSelection must be on
@@ -565,7 +568,8 @@ void Options::init()
 
     _sineTolerance = FloatOptionValue("sine_tolerance","st",1.0);
     _sineTolerance.description="SInE tolerance parameter (sometimes referred to as 'benevolence')."
-    " Has special value of -1.0, but otherwise must be greater or equal 1.0.";
+    " Has special value of -1.0 (which effectively codes +infinity), but otherwise must be greater or equal 1.0."
+    " For each unit, only its least general symbol (let's call its generality g_min) and its symbols with generality up to g_min*tolerance trigger the unit to be included.";
     _lookup.insert(&_sineTolerance);
     _sineTolerance.tag(OptionTag::PREPROCESSING);
     _sineTolerance.addConstraint(Or(equal(-1.0f),greaterThanEq(1.0f) ));

@@ -166,10 +166,15 @@ std::string Unit::inferenceAsString() const
     first = false;
     result += Int::toString(parent->number());
   }
-  // print Extra
-  std::string extra;
-  if (env.proofExtra && env.proofExtra->find(this,extra) && extra != "") {
-    result += ", " + extra;
+
+  // print extra if present
+  if(env.options->proofExtra() == Options::ProofExtra::FULL) {
+    auto *extra = env.proofExtra.find(this);
+    if(extra) {
+      if(!first)
+        result += ',';
+      result += extra->toString();
+    }
   }
 
   return result + ']';

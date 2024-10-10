@@ -11,7 +11,6 @@
 #ifndef __LIB__BOTTOM_UP_EVALUATION_HPP__
 #define __LIB__BOTTOM_UP_EVALUATION_HPP__
 
-#define DEBUG(...) // DBG(__VA_ARGS__)
 
 /**
  * @file Kernel/BottomUpEvaluation.hpp
@@ -28,7 +27,9 @@
 #include "Lib/Recycled.hpp"
 #include "Lib/Option.hpp"
 #include "Lib/TypeList.hpp"
+#include "Debug/Tracer.hpp"
 #include <utility>
+#define DEBUG_BOTTOM_UP(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
 
 namespace Lib {
   using EmptyContext = std::tuple<>;
@@ -351,6 +352,7 @@ public:
 
         BottomUpChildIter<Arg> orig = recState->pop();
 
+        ASS_GE(recResults.size(), orig.nChildren(_context))
         Result* argLst = orig.nChildren(_context) == 0 
           ? nullptr 
           : static_cast<Result*>(&((*recResults)[recResults->size() - orig.nChildren(_context)]));
@@ -358,7 +360,7 @@ public:
         Result eval = _memo.getOrInit(orig.self(), 
                         [&](){ return _function(orig.self(), argLst); });
 
-        DEBUG("evaluated: ", orig.self(), " -> ", eval);
+        DEBUG_BOTTOM_UP(0, "evaluated: ", orig.self(), " -> ", eval);
         recResults->pop(orig.nChildren(_context));
         recResults->push(std::move(eval));
       }
@@ -368,17 +370,23 @@ public:
 
     ASS(recResults->size() == 1);
     auto result = recResults->pop();
-    DEBUG("eval result: ", toEval, " -> ", result);
+    DEBUG_BOTTOM_UP(0, "eval result: ", toEval, " -> ", result);
     return result;
   }
 };
 
 
 }
+#undef DEBUG
 
 #include "Kernel/Term.hpp"
 
 namespace Lib {
+
+struct TermListContext {
+  bool ignoreTypeArgs = true;
+};
+
 // specialisation for TermList
 // iterate up through TermLists, ignoring sort arguments
 template<>
@@ -387,20 +395,29 @@ struct BottomUpChildIter<Kernel::TermList>
   Kernel::TermList _self;
   unsigned _idx;
 
-  BottomUpChildIter(Kernel::TermList self, EmptyContext = EmptyContext()) : _self(self), _idx(0)
+  BottomUpChildIter(Kernel::TermList self, TermListContext c) : _self(self), _idx(0)
   { }
+  BottomUpChildIter(Kernel::TermList self, EmptyContext = EmptyContext()) : BottomUpChildIter(self, TermListContext()) {}
 
   Kernel::TermList next(EmptyContext = EmptyContext())
+  { return next(TermListContext()); }
+
+  Kernel::TermList next(TermListContext ctx)
   {
-    ASS(hasNext());
-    return _self.term()->termArg(_idx++);
+    ASS(hasNext(ctx));
+    return ctx.ignoreTypeArgs ? _self.term()->termArg(_idx++)
+                              : *_self.term()->nthArgument(_idx++);
   }
 
-  bool hasNext(EmptyContext = EmptyContext()) const
+  bool hasNext(EmptyContext = EmptyContext()) const { return hasNext(TermListContext()); }
+  bool hasNext(TermListContext c) const
   { return _self.isTerm() && _idx < _self.term()->numTermArguments(); }
 
-  unsigned nChildren(EmptyContext = EmptyContext()) const
-  { return _self.isVar() ? 0 : _self.term()->numTermArguments(); }
+  unsigned nChildren(EmptyContext = EmptyContext()) const { return nChildren(TermListContext()); }
+  unsigned nChildren(TermListContext c) const
+  { return _self.isVar() ? 0 
+    : ( c.ignoreTypeArgs ? _self.term()->numTermArguments()
+                         : _self.term()->arity()); }
 
   Kernel::TermList self(EmptyContext = EmptyContext()) const
   { return _self; }
@@ -410,6 +427,7 @@ struct BottomUpChildIter<Kernel::TermList>
 #include "TypedTermList.hpp"
 
 namespace Lib {
+
 // specialisation for TypedTermList
 template<>
 struct BottomUpChildIter<Kernel::TypedTermList>
@@ -417,28 +435,45 @@ struct BottomUpChildIter<Kernel::TypedTermList>
   Kernel::TypedTermList _self;
   unsigned      _idx;
 
-  BottomUpChildIter(Kernel::TypedTermList self, EmptyContext = EmptyContext()) : _self(self), _idx(0)
+  BottomUpChildIter(Kernel::TypedTermList self, EmptyContext) : BottomUpChildIter(self, TermListContext()) {}
+  BottomUpChildIter(Kernel::TypedTermList self, TermListContext ctx) : _self(self), _idx(0)
   {}
 
   Kernel::TypedTermList next(int);
-  Kernel::TypedTermList next(EmptyContext = EmptyContext())
+  Kernel::TypedTermList next(EmptyContext) { return next(TermListContext()); }
+  Kernel::TypedTermList next(TermListContext ctx)
   {
-    ASS(hasNext());
+    ASS(hasNext(ctx));
     auto cur = self().term();
-    auto next = cur->termArg(_idx);
-    auto sort = Kernel::SortHelper::getTermArgSort(cur, _idx);
-    ASS_NEQ(sort, Kernel::AtomicSort::superSort())
+    Kernel::TypedTermList out;
+    if (ctx.ignoreTypeArgs) {
+      out = Kernel::TypedTermList(cur->termArg(_idx),
+                                  Kernel::SortHelper::getTermArgSort(cur, _idx));
+      ASS_NEQ(out.sort(), Kernel::AtomicSort::superSort())
+    } else {
+      out = Kernel::TypedTermList(*cur->nthArgument(_idx),
+                                  Kernel::SortHelper::getArgSort(cur, _idx)); 
+    }
     _idx++;
-    return Kernel::TypedTermList(next, sort);
+    return out;
   }
 
-  bool hasNext(EmptyContext = EmptyContext()) const
-  { return _self.isTerm() && _idx < _self.term()->numTermArguments(); }
+  bool hasNext(EmptyContext) const { return hasNext(TermListContext()); }
+  bool hasNext(TermListContext ctx) const
+  { return _self.isTerm() && (ctx.ignoreTypeArgs 
+      ? _idx < _self.term()->numTermArguments()
+      : _idx < _self.term()->arity()); }
 
-  unsigned nChildren(EmptyContext = EmptyContext()) const
-  { return _self.isVar() ? 0 : _self.term()->numTermArguments(); }
+  unsigned nChildren(EmptyContext) const { return nChildren(TermListContext()); }
+  unsigned nChildren(TermListContext ctx = TermListContext{}) const
+  { 
+    return _self.isVar() ? 0 
+      : (ctx.ignoreTypeArgs ? _self.term()->numTermArguments()
+                            : _self.term()->arity()); 
+  }
 
-  Kernel::TypedTermList self(EmptyContext = EmptyContext()) const
+  Kernel::TypedTermList self(EmptyContext) const { return self(TermListContext()); }
+  Kernel::TypedTermList self(TermListContext ctx = TermListContext{}) const
   { return _self; }
 };
 
@@ -583,6 +618,5 @@ struct BottomUpChildIter<Kernel::PolyNf>
 
 } // namespace Lib
 
-#undef DEBUG
 #endif // __LIB__BOTTOM_UP_EVALUATION_HPP__
 

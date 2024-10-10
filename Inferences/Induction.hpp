@@ -19,6 +19,7 @@
 #include <cmath>
 #include <functional>
 #include <map>
+#include <unordered_map>
 
 #include "Forwards.hpp"
 

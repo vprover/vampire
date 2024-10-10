@@ -237,7 +237,7 @@ void Shuffling::shuffleIter(Shufflable sh) {
       Literal* lit = sh.unwrap<Literal*>();
 
       if (!lit->shared()) {
-        if (lit->commutative() && Random::getBit()) {
+        if (lit->isEquality() && Random::getBit()) {
           lit->argSwap();
         }
 
