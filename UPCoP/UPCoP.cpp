@@ -78,6 +78,8 @@ struct Pos {
   PosRef parent;
   unsigned child;
   Clause *here = nullptr;
+  std::vector<Clause *> possibilities;
+  unsigned children = 0;
 
   Pos(PosRef parent, unsigned child)
     : parent(parent), child(child) {}
@@ -113,6 +115,7 @@ public:
     PosRef result(positions.size());
     lookup[pair] = result;
     positions.push_back(Pos(parent, child));
+    // TODO positions[parent.index].children = std::max(child, 
     std::cout << parent << '.' << child << " -> " << result << '\n';
     return result;
   }
@@ -376,6 +379,8 @@ class Propagator final : public CaDiCaL::ExternalPropagator {
   std::vector<std::vector<int>> clause_queue;
   // queue of propagations
   std::vector<int> prop_queue;
+  // reasons for propagated literals
+  std::unordered_map<int, std::vector<int>> prop_reason;
   // literals assigned postively
   std::vector<int> trail;
   // assignments deferred as clauses not yet in place
@@ -401,6 +406,7 @@ class Propagator final : public CaDiCaL::ExternalPropagator {
     dispatches.push_back(Place(cl, position));
     place_lookup.insert({pair, result});
     solver.add_observed_var(result);
+    positions[position].possibilities.push_back(cl);
     std::cout << cl->number() << '@' << position << " -> " << result << '\n';
     return result;
   }
@@ -556,27 +562,33 @@ public:
     solver.add(0);
   }
 
-  void notify_assignment(const std::vector<int> &all_assigned) {
+  void notify_assignment(const std::vector<int> &all_assigned) override {
     for(int assigned : all_assigned) {
+      std::cout << assigned << '\n';
       if(assigned < 0)
         continue;
 
-      std::cout << assigned << '\n';
       Dispatch dispatch = dispatches[assigned];
       switch(dispatch.flavour) {
       case Flavour::CLAUSE_AT: {
         Place place = dispatch.place;
         Clause *placed = place.clause;
-        Clause *already = positions[place.at].here;
 
         // disallow two clauses in one position
-        if(already) {
-          // TODO propagate this?
-          int already_placed = place_lookup[{place.at, already}];
-          std::vector<int> reason = { -already_placed, -assigned };
-          std::cout << "AMO place conflict: " << reason << '\n';
-          clause_queue.emplace_back(std::move(reason));
+        if(positions[place.at].here) {
+          int already = place_lookup[{place.at, positions[place.at].here}];
+          clause_queue.push_back({-already, -assigned});
+          std::cout << "place conflict: " << clause_queue.back() << '\n';
           return;
+        }
+        for(auto cl : positions[place.at].possibilities) {
+          if(cl == placed)
+            continue;
+          int propagate = place_lookup[{place.at, cl}];
+          if(!prop_reason[propagate].empty())
+            continue;
+          prop_queue.push_back(-propagate);
+          prop_reason[propagate] = {-assigned, -propagate};
         }
 
         // disallow clauses placed at non-existent positions
@@ -590,19 +602,18 @@ public:
           }
         }
 
-        ASS(!positions[place.at].here)
         // add closing constraints when placing a clause for the first time
         if(!place.seen) {
           add_place_constraints(assigned, place);
           place.seen = true;
         }
 
-        positions[place.at].here = place.clause;
+        positions[place.at].here = placed;
         break;
       }
       case Flavour::CONNECTION: {
         // TODO propagate impossible connections
-        // TODO propagate that clauses below a connection need not be placed?
+        // TODO propagate that clauses below a connection need not be placed
         if(!make_connection(substitution, assigned))
           return;
         break;
@@ -612,12 +623,12 @@ public:
     }
   }
 
-  void notify_new_decision_level() {
+  void notify_new_decision_level() override {
     std::cout << "decision level: " << decisions.size() + 1 << '\n';
     decisions.push_back({trail.size(), substitution.trail.size()});
   }
 
-  void notify_backtrack(size_t decision_level) {
+  void notify_backtrack(size_t decision_level) override {
     std::cout << "backtrack: " << decision_level << '\n';
     Decision decision = decisions[decision_level];
     decisions.resize(decision_level);
@@ -637,20 +648,35 @@ public:
       }
     }
     substitution.pop_to(decision.binding);
-    ASS(prop_queue.empty())
+    prop_queue.clear();
   }
 
-  int cb_propagate () {
+  int cb_propagate() override {
     if(prop_queue.empty())
       return 0;
     int result = prop_queue.back();
+    std::cout << "propagate: " << result << '\n';
     prop_queue.pop_back();
     return result;
   };
 
-  bool cb_has_external_clause(bool &) { return !clause_queue.empty(); }
+  virtual int cb_add_reason_clause_lit(int propagated) override {
+    int atom = std::abs(propagated);
+    std::vector<int> &clause = prop_reason[atom];
+    if(clause.empty()) {
+      std::cout << 0 << '\n';
+      prop_reason.erase(atom);
+      return 0;
+    }
+    int next = clause.back();
+    std::cout << "reason for " << propagated << ": " << next << '\n';
+    clause.pop_back();
+    return next;
+  }
 
-  int cb_add_external_clause_lit() {
+  bool cb_has_external_clause(bool &) override { return !clause_queue.empty(); }
+
+  int cb_add_external_clause_lit() override {
     ASS(!clause_queue.empty())
     std::vector<int> &next = clause_queue.back();
     if(next.empty()) {
@@ -662,11 +688,12 @@ public:
     return result;
   }
 
-  bool cb_check_found_model(const std::vector<int> &) {
+  bool cb_check_found_model(const std::vector<int> &) override {
     std::cout << "final\n";
     std::cout << "deferred: " << deferred << '\n';
     std::cout << trail << '\n';
     ASS(clause_queue.empty())
+    ASS(prop_queue.empty())
     for(auto assigned : deferred) {
       std::cout << assigned << '\n';
       if(!make_connection(substitution, assigned))
