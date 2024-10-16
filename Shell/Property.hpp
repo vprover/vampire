@@ -254,7 +254,7 @@ public:
   class FeatureIterator {
     Property* _prop;
     unsigned _featureId;
-    unsigned _log10Atoms;
+    unsigned _log10Atoms = 0;
 
   public:
     inline static constexpr unsigned NUM_FEATURES = 15;
