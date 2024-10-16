@@ -248,6 +248,11 @@ void Options::init()
     _showPassiveTraffic.description="Print information about new clauses and their feature vectors and how they enter end leave the passive container.";
     _lookup.insert(&_showPassiveTraffic);
 
+    _showInitialGnn = BoolOptionValue("show_initial_gnn","sig",false);
+    _showInitialGnn.description="Print information needed to construct the initial GNN for processed CNF.";
+    _lookup.insert(&_showInitialGnn);
+    _showInitialGnn.onlyUsefulWith(_showPassiveTraffic.is(equal(true)));
+
     _showHelp = BoolOptionValue("help","h",false);
     _showHelp.description="Display the help message";
     _lookup.insert(&_showHelp);

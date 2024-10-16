@@ -1998,6 +1998,7 @@ public:
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
 
   bool showPassiveTraffic() const { return _showPassiveTraffic.actualValue; }
+  bool showInitialGnn() const { return _showInitialGnn.actualValue; }
   unsigned numClauseFeatures() const { return _numClauseFeatures.actualValue; }
   unsigned numProblemFeatures() const { return _numProblemFeatures.actualValue; }
 
@@ -2659,6 +2660,7 @@ private:
 #endif // VAMPIRE_CLAUSE_TRACING
 
   BoolOptionValue _showPassiveTraffic;
+  BoolOptionValue _showInitialGnn;
 
   UnsignedOptionValue _numClauseFeatures;
   UnsignedOptionValue _numProblemFeatures;

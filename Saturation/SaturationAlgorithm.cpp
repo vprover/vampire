@@ -808,7 +808,7 @@ fin:
  */
 void SaturationAlgorithm::init()
 {
-  { // GNN embedding phase stuff
+  if (env.options->showInitialGnn()) {
     for (unsigned t = 0; t < env.signature->typeCons(); t++) {
       Signature::Symbol* symb = env.signature->getTypeCon(t);
       if (symb->arity() > 0) {
