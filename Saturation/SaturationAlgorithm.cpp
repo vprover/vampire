@@ -879,11 +879,15 @@ void SaturationAlgorithm::init()
         if (subterm.isTerm()) {
           Term* t = subterm.term();
           OperatorType* ot = 0;
+          TermList twoVarEqSrt = TermList();
           if (t->isLiteral()) {
             Literal* l = static_cast<Literal*>(t);
             ot = env.signature->getPredicate(t->functor())->predType();
             cout << (l->isPositive() ? "cls-pos-lit: " : "cls-neg-lit: ") << clauseId << " " << id << endl;
             cout << "trm-symb: " << id << " " << t->functor() << endl;
+            if (l->isTwoVarEquality()) {
+              twoVarEqSrt = l->twoVarEqSort();
+            }
           } else {
             ot = env.signature->getFunction(t->functor())->fnType();
             cout << "trm-symb: " << id << " " << FUNC_TO_SYMB(t->functor()) << endl;
@@ -891,7 +895,7 @@ void SaturationAlgorithm::init()
           for (unsigned n = 0; n < t->arity(); n++) {
             TermList arg = *t->nthArgument(n);
             cout << "term-arg: " << id << " " << subtermId << " " << n << endl;
-            subterms.push(make_tuple(arg,subtermId++,ot->arg(n)));
+            subterms.push(make_tuple(arg,subtermId++,twoVarEqSrt.isEmpty() ? ot->arg(n) : twoVarEqSrt));
           }
         } else {
           ASS(subterm.isVar());
