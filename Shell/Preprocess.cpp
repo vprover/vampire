@@ -770,6 +770,8 @@ void Preprocess::softSortsForSaturation(Problem& prb) {
   Array<unsigned> offset_p(env.signature->predicates());
   Array<unsigned> offset_f(env.signature->functions());
 
+  // TODO: have a user error if you encounter poly stuff (which can, e.g., creep in with (mep=off) equality_proxy!)
+
   unsigned count = 1; // we make sure 0 is unused
   // skip 0 because it is always equality
   for(unsigned p=1; p < env.signature->predicates();p++){
@@ -1025,5 +1027,6 @@ void Preprocess::softSortsForSaturation(Problem& prb) {
 
   if (modified) {
     prb.invalidateProperty();
+    prb.reportIncompleteTransformation();
   }
 }
