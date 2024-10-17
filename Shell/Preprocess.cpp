@@ -16,6 +16,7 @@
 
 
 #include "Lib/ScopedLet.hpp"
+#include "Lib/IntUnionFind.hpp"
 
 #include "Kernel/Unit.hpp"
 #include "Kernel/Clause.hpp"
@@ -437,6 +438,11 @@ void Preprocess::preprocess(Problem& prb)
      bce.apply(prb);
    }
 
+   if (_options.softSortsForSaturation()) {
+     // TODO: factor out into a separate module
+     softSortsForSaturation(prb);
+   }
+
    if (_options.shuffleInput()) {
      TIME_TRACE(TimeTrace::SHUFFLING);
      env.statistics->phase=Statistics::SHUFFLING;
@@ -753,4 +759,271 @@ void Preprocess::clausify(Problem& prb)
     prb.invalidateProperty();
   }
   prb.reportFormulasEliminated();
+}
+
+void Preprocess::softSortsForSaturation(Problem& prb) {
+  // TODO: parts of this could be unified with SortInference::doInference
+  // (but that other implementation assumes flattened clasues only)
+
+  // every predicate's symbol argument position and function symbol's argument position or the output position
+  // are a priory distinct sort (candidates)
+  Array<unsigned> offset_p(env.signature->predicates());
+  Array<unsigned> offset_f(env.signature->functions());
+
+  unsigned count = 1; // we make sure 0 is unused
+  // skip 0 because it is always equality
+  for(unsigned p=1; p < env.signature->predicates();p++){
+    offset_p[p] = count;
+    Signature::Symbol* s = env.signature->getPredicate(p);
+    s->resetUsageCnt();
+    count += (s->arity());
+  }
+
+  for(unsigned f=0; f < env.signature->functions();f++){
+    offset_f[f] = count;
+    Signature::Symbol* s = env.signature->getFunction(f);
+    s->resetUsageCnt();
+    count += (s->arity()+1);
+  }
+
+  Renaming normalizer;
+  IntUnionFind unionFind(count);
+  Stack<std::pair<unsigned,TermList>> todo; // position, term (which could be a variable or a proper term)
+
+  // each two variable equality (in a clause) deserves to be remembered,
+  // along with a position its sort ended up connecting to (or 0, if unconnected)
+  Stack<std::tuple<Clause*,unsigned,unsigned>> twoVarEqs;
+
+  UnitList::Iterator it(prb.units());
+  while (it.hasNext()) {
+    Clause* cl = it.next()->asClause();
+
+    // cout << "Clause: " << cl->toString() << endl;
+
+    // What can we learn by traversing?
+    // 1) two positions should be unionified for produce / consume
+    // 2) two positions should be unionified for f(...) = g(...)
+    // 3) a variable should be unionified with a position (remeber that position with the variable)
+    // 4) a variable should be unionified with a variable for X = Y (use local union-find over varaibles)
+    // Clauses should remember what their variables ended up meaning
+
+    // (for every orig sort, we may potentially need a new sort for X = Y of that sort,
+    // which is otherwise not reflected anywhere else)
+
+    // normalize variables in the clause
+    normalizer.reset();
+    for(unsigned i=0; i<cl->length(); i++) {
+      Literal* l = (*cl)[i];
+      normalizer.normalizeVariables(l);
+      (*cl)[i] = normalizer.apply(l);
+    }
+
+    unsigned cVarCnt = normalizer.nextVar();
+    IntUnionFind localUF(cVarCnt+1);
+    ZIArray<unsigned> varsPos(cVarCnt);
+
+    for(unsigned i=0; i<cl->length(); i++) {
+      Literal* l = (*cl)[i];
+
+      // cout << "Literal: " << l->toString() << endl;
+
+      if (l->isTwoVarEquality()) {
+        unsigned v1 = l->nthArgument(0)->var();
+        unsigned r1 = localUF.root(v1);
+        unsigned v2 = l->nthArgument(1)->var();
+        unsigned r2 = localUF.root(v2);
+
+        if (r1 != r2) {
+          if (varsPos[r1]) {
+            if (varsPos[r2]) {
+              // both variables were already connected to a position
+              // => make these positions equal globally
+              // (we don't need to copy anything anymore)
+              unionFind.doUnion(varsPos[r1],varsPos[r2]);
+            } else {
+              // v1 was connected, now v2 is to the same
+              // (we do this, because we don't know who will be the root)
+              varsPos[r2] = varsPos[r1];
+            }
+          } else if (varsPos[r2]) {
+            // v2 was connected, now v1 is to the same
+            // (we do this, because we don't know who will be the root)
+            varsPos[r1] = varsPos[r2];
+          }
+
+          localUF.doUnion(v1,v2);
+        }
+      } else if (l->isEquality()) {
+        // Claim: in term sharing, arg 0 of (non twoVar) equality is never a variable
+        ASS(!l->nthArgument(0)->isVar());
+        Term* t = l->nthArgument(0)->term();
+        unsigned f = t->functor();
+        env.signature->getFunction(f)->incUsageCnt();
+        unsigned p = offset_f[f];
+        // cout << "   pair: " << p << " " << l->nthArgument(1)->toString() << endl;
+        todo.push(make_pair(p,*l->nthArgument(1))); // could be a var or a proper term
+
+        for(unsigned i=0;i<t->arity();i++){
+          p++;
+          // cout << "   but also a pair: " << p << " " << t->nthArgument(i)->toString() << endl;
+          todo.push(make_pair(p,*t->nthArgument(i)));
+        }
+      } else {
+        unsigned p = l->functor();
+        env.signature->getPredicate(p)->incUsageCnt();
+        unsigned pos = offset_p[p];
+        for(unsigned i=0;i<l->arity();i++){
+          todo.push(make_pair(pos,*l->nthArgument(i)));
+          pos++;
+        }
+      }
+    }
+
+    while (todo.isNonEmpty()) {
+      unsigned p1;
+      TermList tl;
+      std::tie(p1,tl) = todo.pop();
+
+      // cout << "Process pair: " << p1 << " --> " << unionFind.root(p1) << " " << tl.toString() << endl;
+
+      if (tl.isVar()) {
+        unsigned v = tl.var();
+        unsigned r = localUF.root(v);
+
+        if (varsPos[r]) {
+          unionFind.doUnion(varsPos[r],p1);
+        } else {
+          varsPos[r] = p1;
+        }
+      } else {
+        Term* t = tl.term();
+        unsigned f = t->functor();
+        env.signature->getFunction(f)->incUsageCnt();
+        unsigned p2 = offset_f[f];
+        unionFind.doUnion(p1,p2);
+
+        for(unsigned i=0;i<t->arity();i++){
+          p2++;
+          todo.push(make_pair(p2,*t->nthArgument(i)));
+        }
+      }
+    }
+
+    for(unsigned i=0; i<cl->length(); i++) {
+      Literal* l = (*cl)[i];
+      if (l->isTwoVarEquality()) {
+        unsigned v1 = l->nthArgument(0)->var();
+        unsigned pos = varsPos[localUF.root(v1)];
+        twoVarEqs.push(std::make_tuple(cl,i,pos));
+      }
+    }
+  }
+
+  bool modified = false;
+
+  unsigned pos = 0;
+  // for those positions that remained as roots:
+  DHMap<unsigned,TermList> pos2srt;
+  DHSet<TermList> sortTaken;
+
+  auto lookupSortOrGetNew = [&] (unsigned posRoot, TermList origSrt, const std::string& suffix) -> TermList {
+    TermList* res;
+    if (pos2srt.getValuePtr(posRoot,res)) {
+      if (sortTaken.insert(origSrt)) {
+        *res = origSrt;
+        // cout << "Will reuse " << res->toString() << " for " << posRoot << " origin " << suffix << endl;
+      } else {
+        unsigned tc;
+        std::string nm = origSrt.toString()+"_"+suffix;
+        for (;;) {
+          bool added;
+          tc = env.signature->addTypeCon(nm, 0, added);
+          if (added) {
+            break;
+          } else {
+            nm = nm + "_";
+          }
+        }
+        *res = TermList(AtomicSort::createConstant(tc));
+
+        // cout << "Created " << res->toString() << " for " << posRoot << " origin " << suffix << endl;
+      }
+    } else {
+      // cout << "Found " << res->toString() << " for " << posRoot << " origin " << suffix << endl;
+    }
+    return *res;
+  };
+
+  Stack<TermList> sortVec;
+
+  // TODO: we probably don't want to split arithmetic creatures (no matter what)
+
+  for(unsigned p=1; p < env.signature->predicates();p++){
+    Signature::Symbol* s = env.signature->getPredicate(p);
+    if (s->usageCnt() == 0) { // don't bother touching
+      pos += s->arity();
+      continue;
+    }
+    OperatorType* ot = s->predType();
+    sortVec.reset();
+    for (unsigned i=0; i < s->arity(); i++) {
+      pos++;
+      sortVec.push(
+          lookupSortOrGetNew(unionFind.root(pos),ot->arg(i),"pred_"+s->name()+"-arg"+Int::toString(i))
+        );
+    }
+    OperatorType* new_ot = OperatorType::getPredicateType(s->arity(),sortVec.begin());
+    if (ot != new_ot) {
+      modified = true;
+      s->forceType(new_ot); // will this work?
+    }
+  }
+
+  for(unsigned f=0; f < env.signature->functions();f++){
+    Signature::Symbol* s = env.signature->getFunction(f);
+
+    if (s->usageCnt() == 0) { // don't bother touching
+      pos += s->arity()+1;
+      continue;
+    }
+    OperatorType* ot = s->fnType();
+
+    // first is the result sort
+    pos++;
+    TermList resSrt = lookupSortOrGetNew(unionFind.root(pos),ot->result(),"func_"+s->name()+"-res");
+
+    sortVec.reset();
+    for (unsigned i=0; i < s->arity(); i++) {
+      pos++;
+      sortVec.push(
+          lookupSortOrGetNew(unionFind.root(pos),ot->arg(i),"func_"+s->name()+"-arg"+Int::toString(i))
+        );
+    }
+    OperatorType* new_ot = OperatorType::getFunctionType(s->arity(),sortVec.begin(),resSrt);
+    if (ot != new_ot) {
+      modified = true;
+      s->forceType(new_ot); // will this work?
+    }
+  }
+
+  while (twoVarEqs.isNonEmpty()) {
+    auto [cl,i,pos] = twoVarEqs.pop();
+    if (pos) {
+      TermList* srt;
+      NEVER(pos2srt.getValuePtr(unionFind.root(pos),srt));
+      Literal* l = (*cl)[i];
+      ASS(l->isTwoVarEquality());
+      ASS(srt->isTerm());
+      if (srt->term() != l->twoVarEqSort().term()) {
+        (*cl)[i] = Literal::createEquality(l->polarity(),*l->nthArgument(0),*l->nthArgument(1),*srt);
+        modified = true;
+      }
+    } else {
+      // TODO: keep the old sort? Or introduce a new one just for the unconnected X=Y?)
+    }
+  }
+
+  if (modified) {
+    prb.invalidateProperty();
+  }
 }

@@ -519,6 +519,12 @@ void Options::init()
     _blockedClauseElimination.tag(OptionTag::PREPROCESSING);
     _blockedClauseElimination.addProblemConstraint(notWithCat(Property::UEQ));
 
+    _softSortsForSaturation = BoolOptionValue("soft_sort_for_saturation","ss4s",false);
+    _softSortsForSaturation.description="Derive soft sorts to later block superpositions from variables that do not respect them.";
+    _lookup.insert(&_softSortsForSaturation);
+    _softSortsForSaturation.tag(OptionTag::PREPROCESSING);
+    _softSortsForSaturation.addProblemConstraint(hasEquality());
+
     _distinctGroupExpansionLimit = UnsignedOptionValue("distinct_group_expansion_limit","dgel",140);
     _distinctGroupExpansionLimit.description = "If a distinct group (defined, e.g., via TPTP's $distinct)"
          " is not larger than this limit, it will be expanded during preprocessing into quadratically many disequalities."

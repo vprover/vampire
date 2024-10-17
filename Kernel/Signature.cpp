@@ -161,7 +161,6 @@ void Signature::Symbol::setType(OperatorType* type)
  */
 void Signature::Symbol::forceType(OperatorType* type)
 {
-  if(_type){ delete _type; }
   _type = type;
 }
 

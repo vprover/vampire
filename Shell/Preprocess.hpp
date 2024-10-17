@@ -54,6 +54,8 @@ private:
 
   void newCnf(Problem& prb);
 
+  void softSortsForSaturation(Problem& prb);
+
   /** Options used in the normalisation */
   const Options& _options;
   /** If true, clausification is included in preprocessing */
