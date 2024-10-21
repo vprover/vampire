@@ -540,7 +540,11 @@ void dispatchByMode(Problem* problem)
 
   case Options::Mode::CASC:
     env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
-    env.options->setSchedule(Options::Schedule::CASC);
+    if (env.options->intent() == Options::Intent::UNSAT) {
+      env.options->setSchedule(Options::Schedule::CASC);
+    } else {
+      env.options->setSchedule(Options::Schedule::CASC_SAT);
+    }
     env.options->setInputSyntax(Options::InputSyntax::TPTP);
     env.options->setOutputMode(Options::Output::SZS);
     env.options->setProof(Options::Proof::TPTP);
@@ -566,20 +570,6 @@ void dispatchByMode(Problem* problem)
     }
     break;
   }
-  case Options::Mode::CASC_SAT:
-    env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
-    env.options->setSchedule(Options::Schedule::CASC_SAT);
-    env.options->setInputSyntax(Options::InputSyntax::TPTP);
-    env.options->setOutputMode(Options::Output::SZS);
-    env.options->setProof(Options::Proof::TPTP);
-    env.options->setOutputAxiomNames(true);
-    env.options->setNormalize(true);
-    env.options->setRandomizeSeedForPortfolioWorkers(false);
-
-    if (CASC::PortfolioMode::perform(problem)) {
-      vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-    }
-    break;
 
   case Options::Mode::SMTCOMP:
     env.options->setIgnoreMissing(Options::IgnoreMissing::OFF);

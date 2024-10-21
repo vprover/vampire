@@ -383,7 +383,6 @@ public:
     AXIOM_SELECTION,
     CASC,
     CASC_HOL,
-    CASC_SAT,
     CLAUSIFY,
     CONSEQUENCE_ELIMINATION,
     MODEL_CHECK,
@@ -398,6 +397,11 @@ public:
     TCLAUSIFY,
     TPREPROCESS,
     VAMPIRE
+  };
+
+  enum class Intent : unsigned int {
+    UNSAT, // preferentially look for refutations, proofs, arguments of unsatisfiability etc.
+    SAT    // preferentially look for (finite) models, saturations, etc.
   };
 
   enum class Schedule : unsigned int {
@@ -1970,6 +1974,7 @@ public:
   bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   Mode mode() const { return _mode.actualValue; }
   void setMode(Mode mode) { _mode.actualValue = mode; }
+  Intent intent() const { return _intent.actualValue; }
   Schedule schedule() const { return _schedule.actualValue; }
   std::string scheduleName() const { return _schedule.getStringOfValue(_schedule.actualValue); }
   void setSchedule(Schedule newVal) {  _schedule.actualValue = newVal; }
@@ -2567,6 +2572,7 @@ private:
   BoolOptionValue _interactive;
 
   ChoiceOptionValue<Mode> _mode;
+  ChoiceOptionValue<Intent> _intent;
   ChoiceOptionValue<Schedule> _schedule;
   StringOptionValue _scheduleFile;
   UnsignedOptionValue _multicore;

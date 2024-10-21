@@ -123,7 +123,6 @@ void Options::init()
                                     {"axiom_selection",
                                         "casc",
                                         "casc_hol",
-                                        "casc_sat",
                                         "clausify",
                                         "consequence_elimination",
                                         "model_check",
@@ -155,10 +154,17 @@ void Options::init()
       // Consider extending this list when adding a new Casc-like mode
       return Or(_mode.is(equal(Mode::CASC_HOL)),
                 _mode.is(equal(Mode::CASC)),
-                _mode.is(equal(Mode::CASC_SAT)),
                 _mode.is(equal(Mode::SMTCOMP)),
                 _mode.is(equal(Mode::PORTFOLIO)));
     };
+
+    _intent = ChoiceOptionValue<Intent>("intent","intent",Intent::UNSAT,{"unsat","sat"});
+    _intent.description = "Discribes what the system should be striving to show."
+      " By default a prover tries to show `unsat` and find a refutation (a proof of the negated conjecture)."
+      " Discovering a finite saturations while using a complete strategy and thus testifying satisfiability is a nice bonus in that case."
+      " On the other hand, with the intent `sat` the main focus is on finding models."
+      " (Please use `--mode casc --intent sat` to achieve what was previously triggered via `--mode CASC_SAT`).";
+    _lookup.insert(&_intent);
 
     _schedule = ChoiceOptionValue<Schedule>("schedule","sched",Schedule::CASC,
         {"casc",
@@ -3422,6 +3428,7 @@ std::string Options::generateEncodedOptions() const
 
     //things we don't want to output (showHelp etc won't get to here anyway)
     forbidden.insert(&_mode);
+    forbidden.insert(&_intent);
     forbidden.insert(&_testId); // is this old version of decode?
     forbidden.insert(&_include);
     forbidden.insert(&_printProofToFile);
@@ -3646,7 +3653,7 @@ bool Options::checkProblemOptionConstraints(Property* prop, bool before_preproce
 }
 
 template<class A>
-std::vector<A> parseCommaSeparatedList(std::string const& str) 
+std::vector<A> parseCommaSeparatedList(std::string const& str)
 {
   std::stringstream stream(str);
   std::vector<A> parsed;
