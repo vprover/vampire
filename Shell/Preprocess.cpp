@@ -548,14 +548,13 @@ void Preprocess::preprocess2(Problem& prb)
     Unit* u = us.next();
 
     if (u->isClause()) {
-	continue;
+	    continue;
     }
     FormulaUnit* fu = static_cast<FormulaUnit*>(u);
     FormulaUnit* fu0 = fu;
 
     fu = NNF::ennf(fu);
     fu = Flattening::flatten(fu);
-
 
     if (fu != fu0) {
       us.replace(fu);

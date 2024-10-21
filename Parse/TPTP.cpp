@@ -1519,18 +1519,17 @@ void TPTP::holFormula()
   case T_SIGMA:
     resetToks();
     readTypeArgs(1);
-    _termLists.push(createFunctionApplication("vSIGMA", 1));    
+    _termLists.push(createFunctionApplication("vSIGMA", 1));
     return;
-  
+
   case T_PI:
     resetToks();
     readTypeArgs(1);
-    _termLists.push(createFunctionApplication("vPI", 1));      
+    _termLists.push(createFunctionApplication("vPI", 1));
     return;
 
   case T_FORALL:
   case T_EXISTS:
-   // _states.push(UNBIND_VARIABLES);
   case T_LAMBDA:
     resetToks();
     consumeToken(T_LBRA);
@@ -1548,7 +1547,7 @@ void TPTP::holFormula()
     _states.push(END_HOL_FORMULA);
     _states.push(HOL_FORMULA);
     return;
-    
+
   //higher order syntax wierdly allows (~) @ (...)
   case T_RPAR: {
     ASS(_connectives.top() == NOT);
@@ -1762,23 +1761,23 @@ void TPTP::endHolFormula()
   case FORALL:
   case EXISTS:
     f = _formulas.pop();
-    _formulas.push(new QuantifiedFormula((Connective)con,_varLists.pop(),_sortLists.pop(),f));
+    _formulas.push(new QuantifiedFormula((Connective)con,_varLists.pop(),f));
     _lastPushed = FORM;
     _states.push(END_HOL_FORMULA);
     _states.push(UNBIND_VARIABLES);
     return;
-  case LAMBDA:{
-     if(_lastPushed == FORM){
-       endFormulaInsideTerm();
-     }
-     fun = _termLists.pop();
-     TermList ts(Term::createLambda(fun, _varLists.pop(), _sortLists.pop(), sortOf(fun)));
-     _termLists.push(ts);
-     _lastPushed = TM;
-     _states.push(END_HOL_FORMULA);
-     _states.push(UNBIND_VARIABLES);
-     return; 
+  case LAMBDA: {
+    if(_lastPushed == FORM){
+      endFormulaInsideTerm();
     }
+    fun = _termLists.pop();
+    TermList ts(Term::createLambda(fun, _varLists.pop(), sortOf(fun)));
+    _termLists.push(ts);
+    _lastPushed = TM;
+    _states.push(END_HOL_FORMULA);
+    _states.push(UNBIND_VARIABLES);
+    return;
+  }
   case LITERAL:
   default:
     throw ::Exception((std::string)"tell me how to handle connective " + Int::toString(con));
@@ -1848,7 +1847,7 @@ switch (tag) {
         _lastPushed = FORM;
       _states.push(END_HOL_FORMULA);
       return;
-    
+
     case APP:
       _states.push(END_HOL_FORMULA);
       _states.push(END_APP);
@@ -1885,15 +1884,14 @@ switch (tag) {
     endTermAsFormula();
   }
 
-  
   // con and c are binary connectives
   if (higherPrecedence(con,c)) {
     if (con == APP){
       _states.push(END_HOL_FORMULA);
       _states.push(END_APP);
-      return;  
+      return;
     }
-    f = _formulas.pop(); 
+    f = _formulas.pop();
     Formula* g = _formulas.pop();
     if (con == AND || con == OR) {
       f = makeJunction((Connective)con,g,f);
@@ -1902,7 +1900,7 @@ switch (tag) {
       }
     }
     else if (con == IMP && conReverse) {
-      f = new BinaryFormula((Connective)con,f,g); 
+      f = new BinaryFormula((Connective)con,f,g);
     }else {
       f = new BinaryFormula((Connective)con,g,f);
     }
@@ -1935,7 +1933,7 @@ switch (tag) {
 void TPTP::endApp()
 {
   if(_lastPushed == FORM){
-     endFormulaInsideTerm();     
+     endFormulaInsideTerm();
   }
   TermStack args;
   TermList rhs = _termLists.pop();
@@ -1949,7 +1947,7 @@ void TPTP::endApp()
   args.push(lhs);
   args.push(rhs);
   unsigned app = env.signature->getApp();
-  
+
   _termLists.push(TermList(Term::create(app, 4, args.begin())));
   _lastPushed = TM;
 }
@@ -2538,7 +2536,7 @@ void TPTP::symbolDefinition()
   _states.push(END_DEFINITION);
   consumeToken(T_ASS);
   _states.push(TERM);
-} // TPTP::symbolDefinition 
+} // TPTP::symbolDefinition
 
 /**
  * Read a non-empty sequence of constants and save the resulting
@@ -2678,7 +2676,7 @@ void TPTP::endLet()
     unsigned symbol = SYMBOL(ref);
     bool isPredicate = IS_PREDICATE(ref);
 
-    VList* varList = _varLists.pop();
+    VSList* varList = _varLists.pop();
     TermList definition = _termLists.pop();
 
     bool isTuple = false;
@@ -2814,15 +2812,12 @@ void TPTP::varList()
         if (!sortDeclared) {
           bindVariable(var,AtomicSort::defaultSort());
         }
-        VList* vs = VList::empty();
-        SList* ss = SList::empty();
+        VSList* vs = VSList::empty();
         while (!vars.isEmpty()) {
           int v = vars.pop();
-          VList::push(v,vs);
-          SList::push(sortOf(TermList(v,false)),ss);
+          VSList::push(std::make_pair(v,sortOf(TermList(v,false))),vs);
         }
         _varLists.push(vs);
-        _sortLists.push(ss);
         _bindLists.push(vs);
         return;
       }
@@ -3097,7 +3092,7 @@ void TPTP::midEquality()
  * @since 21/07/2011 Manchester
  * @since 03/05/2013 Train Manchester-London, bug fix
  */
-Literal* TPTP::createEquality(bool polarity,TermList& lhs,TermList& rhs)
+Literal* TPTP::createEquality(bool polarity,TermList lhs,TermList rhs)
 {
   TermList masterVar;
   TermList sort;
@@ -3114,7 +3109,7 @@ Literal* TPTP::createEquality(bool polarity,TermList& lhs,TermList& rhs)
       sort = AtomicSort::defaultSort();
     }
   }
-   
+
   return Literal::createEquality(polarity,lhs,rhs,sort);
 } // TPTP::createEquality
 
@@ -3503,7 +3498,7 @@ void TPTP::endType()
     _sortLists.pop();
     t = new QuantifiedType(t, vl);
     tt = _typeTags.pop();
-    break;    
+    break;
   }
   ASS(tt == TT_ATOMIC);
   _types.push(t);
@@ -3618,7 +3613,7 @@ void TPTP::endFof()
     unit->setInheritedColor(_currentColor);
   }
 
-  if(source){ 
+  if(source){
     ASS(_unitSources);
     _unitSources->insert(unit,source);
   }
@@ -3650,9 +3645,7 @@ void TPTP::endFof()
         args->push(TermList::var(vs.next()));
       }
       Literal* a = Literal::create(pred, arity, /* polarity */ true, /* commutative */  false, args->begin());
-      f = new QuantifiedFormula(FORALL,
-        g->vars(),
-        g->sorts(),
+      f = new QuantifiedFormula(FORALL,g->vars(),
         new BinaryFormula(IMP,g->subformula(),new AtomicFormula(a)));
         unit = new FormulaUnit(f,FormulaTransformation(InferenceRule::ANSWER_LITERAL_INJECTION,unit));
     }
@@ -3660,10 +3653,8 @@ void TPTP::endFof()
       VList* vs = freeVariables(f);
       if (VList::isEmpty(vs)) {
         f = new NegatedFormula(f);
-      }
-      else {
-        // TODO can we use sortOf to get the sorts of vs?
-        f = new NegatedFormula(new QuantifiedFormula(FORALL,vs,0,f));
+      } else {
+        USER_ERROR("conjecture contains a free variable");
       }
       unit = new FormulaUnit(f,
 			     FormulaTransformation(InferenceRule::NEGATED_CONJECTURE,unit));
@@ -3704,8 +3695,7 @@ Unit* TPTP::processClaimFormula(Unit* unit, Formula * f, const std::string& nm)
   Formula* claim = new AtomicFormula(Literal::create(pred, /* polarity */ true, {}));
   VList* vs = freeVariables(f);
   if (VList::isNonEmpty(vs)) {
-    //TODO can we use sortOf to get sorts of vs?
-    f = new QuantifiedFormula(FORALL,vs,0,f);
+    USER_ERROR("claim formula contains a free variable");
   }
   f = new BinaryFormula(IFF,claim,f);
   return new FormulaUnit(f,
@@ -3785,7 +3775,7 @@ void TPTP::endTff()
         USER_ERROR("Function symbol type is declared after its use: " + name);
       }
     }
-    else {   
+    else {
       symbol->setType(ot);
       //TODO check whether the below is actually required or not.
       if(_isThf){
@@ -4149,7 +4139,7 @@ void TPTP::simpleType()
   if(_isThf){
     _types.push(new AtomicType(readArrowSort()));
     return;
-  } 
+  }
 
   if (tok.tag == T_LPAR) {
     resetToks();
@@ -4193,8 +4183,8 @@ TermList TPTP::readArrowSort()
         terms.push(sort);
         if(!sort.isVar() && sort.term()->arity()){
           tok = getTok(0);
-          continue; 
-        }               
+          continue;
+        }
       }
     }
     resetToks();

@@ -206,8 +206,7 @@ Formula* FormulaTransformer::applyQuantified(Formula* f)
   if(newArg==f->qarg()) {
     return f;
   }
-  // 0 is for the sorts list
-  return new QuantifiedFormula(f->connective(), f->vars(),f->sorts(), newArg);
+  return new QuantifiedFormula(f->connective(), f->vars(), newArg);
 }
 
 ///////////////////////////////////////

@@ -422,10 +422,9 @@ public:
       } _letTupleData;
       struct {
         TermList lambdaExp;
-        VList* _vars;
-        SList* _sorts;  
-        TermList sort; 
-        TermList expSort;//TODO is this needed?
+        VSList* _varsWithSorts;
+        TermList sort;
+        TermList expSort;
       } _lambdaData;
       struct {
         TermList sort;
@@ -443,8 +442,7 @@ public:
       ASS_REP(specialFunctor() == SpecialFunctor::LET || specialFunctor() == SpecialFunctor::LET_TUPLE, specialFunctor());
       return specialFunctor() == SpecialFunctor::LET ? _letData.functor : _letTupleData.functor;
     }
-    VList* getLambdaVars() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData._vars; }
-    SList* getLambdaVarSorts() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData._sorts; }
+    VSList* getLambdaVarsWithSorts() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData._varsWithSorts; }
     TermList getLambdaExp() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData.lambdaExp; }
     VList* getVariables() const { ASS_EQ(specialFunctor(), SpecialFunctor::LET); return _letData.variables; }
     VList* getTupleSymbols() const { return _letTupleData.symbols; }
@@ -481,11 +479,11 @@ public:
   static Term* create(unsigned fn, std::initializer_list<TermList> args);
   static Term* create(unsigned fn, Stack<TermList> const& args) { return Term::create(fn, args.length(), args.begin()); }
   template<class Iter>
-  static Term* createFromIter(unsigned fn, Iter args) 
-  { 
+  static Term* createFromIter(unsigned fn, Iter args)
+  {
     Recycled<Stack<TermList>> stack;
     stack->loadFromIterator(args);
-    return Term::create(fn, *stack); 
+    return Term::create(fn, *stack);
   }
   static Term* create(Term* t,TermList* args);
   static Term* createNonShared(unsigned function, unsigned arity, TermList* arg);
@@ -498,7 +496,7 @@ public:
   static Term* createConstant(unsigned symbolNumber) { return create(symbolNumber,0,0); }
   static Term* createITE(Formula * condition, TermList thenBranch, TermList elseBranch, TermList branchSort);
   static Term* createLet(unsigned functor, VList* variables, TermList binding, TermList body, TermList bodySort);
-  static Term* createLambda(TermList lambdaExp, VList* vars, SList* sorts, TermList expSort);
+  static Term* createLambda(TermList lambdaExp, VSList* varsWithSorts, TermList expSort);
   static Term* createTupleLet(unsigned functor, VList* symbols, TermList binding, TermList body, TermList bodySort);
   static Term* createFormula(Formula* formula);
   static Term* createTuple(unsigned arity, TermList* sorts, TermList* elements);
@@ -508,8 +506,8 @@ public:
   static Term* create2(unsigned fn, TermList arg1, TermList arg2);
 
   //** fool constants
-  static Term* foolTrue(); 
-  static Term* foolFalse(); 
+  static Term* foolTrue();
+  static Term* foolFalse();
 
   VList* freeVariables() const;
 

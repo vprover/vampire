@@ -53,7 +53,7 @@ public:
 
   inline
   Array (std::initializer_list<C> contents)
-    : Array(contents.size()) 
+    : Array(contents.size())
   {
     auto iter = contents.begin();
     unsigned i = 0;
@@ -172,7 +172,7 @@ public:
   inline C const* end()   const { return _array+_capacity; }
 
 
-  friend std::ostream& operator<<(std::ostream& out, Array const& self) 
+  friend std::ostream& operator<<(std::ostream& out, Array const& self)
   {
     auto iter = self.begin();
     out << "[ ";

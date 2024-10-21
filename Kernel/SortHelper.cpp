@@ -197,7 +197,6 @@ bool SortHelper::getResultSortOrMasterVariable(const Term* t, TermList& resultSo
     }
   }
   ASSERTION_VIOLATION
-  
 } // SortHelper::getResultSortOrMasterVariable
 
 /**
@@ -626,16 +625,16 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
       } break;
 
       case BIND: {
-        VList::Iterator vit(task.vars);
+        VSList::Iterator vit(task.vars);
         while (vit.hasNext()) {
-          bound.inc(vit.next());
+          bound.inc(vit.next().first);
         }
       } break;
 
       case UNBIND: {
-        VList::Iterator vit(task.vars);
+        VSList::Iterator vit(task.vars);
         while (vit.hasNext()) {
-          bound.dec(vit.next());
+          bound.dec(vit.next().first);
         }
       } break;
     }
@@ -650,10 +649,10 @@ void SortHelper::collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermL
  * @since 15/05/2015 Gothenburg, FOOL support added
  * @author Andrei Voronkov, Evgeny Kotelnikov
  */
-void SortHelper::collectVariableSorts(Term* term, DHMap<unsigned,TermList>& map)
+void SortHelper::collectVariableSorts(Term* t0, DHMap<unsigned,TermList>& map)
 {
-  CollectTask t(term->isSpecial() ? COLLECT_SPECIALTERM : COLLECT_TERM);
-  t.t = term;
+  CollectTask t(t0->isSpecial() ? COLLECT_SPECIALTERM : COLLECT_TERM);
+  t.t = t0;
 
   collectVariableSortsIter(t,map);
 } // SortHelper::collectVariableSorts

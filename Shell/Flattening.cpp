@@ -135,10 +135,10 @@ Formula* Flattening::innerFlatten (Formula* f)
     }
 
   case AND:
-  case OR: 
+  case OR:
     {
       FormulaList* args = flatten(f->args(),con);
-      if (args == f->args()) { 
+      if (args == f->args()) {
 	return f;
       }
       return new JunctionFormula(con,args);
@@ -146,7 +146,7 @@ Formula* Flattening::innerFlatten (Formula* f)
 
   case IMP:
   case IFF:
-  case XOR: 
+  case XOR:
     {
       Formula* left = flatten(f->left());
       Formula* right = flatten(f->right());
@@ -155,45 +155,36 @@ Formula* Flattening::innerFlatten (Formula* f)
       }
       return new BinaryFormula(con,left,right);
     }
-    
-  case NOT: 
+
+  case NOT:
     {
       Formula* arg = flatten(f->uarg());
 
       if(arg->connective()==NOT) {
-	//two negations cancel each other out
-	return arg->uarg();
+        //two negations cancel each other out
+        return arg->uarg();
       }
       if(arg->connective()==LITERAL) {
-	return new AtomicFormula(Literal::complementaryLiteral(arg->literal()));
+	      return new AtomicFormula(Literal::complementaryLiteral(arg->literal()));
       }
       if (arg == f->uarg()) {
-	return f;
+	      return f;
       }
       return new NegatedFormula(arg);
     }
-    
+
   case FORALL:
-  case EXISTS: 
+  case EXISTS:
     {
       Formula* arg = flatten(f->qarg());
       if (arg->connective() != con) {
-	if (arg == f->qarg()) {
-	  return f;
-	}
-	return new QuantifiedFormula(con,f->vars(),f->sorts(),arg);
+        if (arg == f->qarg()) {
+          return f;
+        }
+	      return new QuantifiedFormula(con,f->vars(),arg);
       }
 
-      // arg is a quantified formula with the same quantifier
-      // the sort list is either empty (if one of the parts have empty sorts) or the concatentation
-      SList* sl = SList::empty();
-      if(f->sorts() && arg->sorts()){
-        sl = SList::append(f->sorts(), arg->sorts());
-      }
-      return new QuantifiedFormula(con,
-				   VList::append(f->vars(), arg->vars()),
-                                   sl, 
-				   arg->qarg());
+      return new QuantifiedFormula(con,VSList::append(f->vars(), arg->vars()),arg->qarg());
     }
 
   case NAME:

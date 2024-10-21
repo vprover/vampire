@@ -503,7 +503,7 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     } else {
       bool shouldShare=!noSharing && canBeShared(argLst, trm->arity());
       if(shouldShare) {
-        result=Term::create(trm,argLst);          
+        result=Term::create(trm,argLst);
       } else {
         //At the memoent all sorts should be shared.
         result=Term::createNonShared(trm,argLst);
@@ -528,7 +528,7 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
  * bound inside the formula.
  *
  * This function can handle special terms.
- * This function can handle the substitution of sorts. 
+ * This function can handle the substitution of sorts.
  */
 template<bool ProcessSpecVars, class Applicator>
 Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noSharing)
@@ -575,26 +575,26 @@ Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noShari
   case EXISTS:
   {
     bool varsModified = false;
-    VList* newVars = VList::empty();
-    VList::Iterator vit(f->vars());
+    VSList* newVars = VSList::empty();
+    VSList::Iterator vit(f->vars());
     while(vit.hasNext()) {
-      unsigned v = vit.next();
-      TermList binding = applicator.apply(v);
+      auto vs = vit.next();
+      TermList binding = applicator.apply(vs.first);
       ASS(binding.isVar());
       unsigned newVar = binding.var();
-      VList::push(newVar, newVars);
-      if(newVar!=v) {
+      TermList newSort = applyImpl<ProcessSpecVars>(vs.second, applicator, noSharing);
+      VSList::push(std::pair(newVar,newSort), newVars);
+      if(newVar!=vs.first || newSort != vs.second) {
         varsModified = true;
       }
     }
 
     Formula* arg = applyImpl<ProcessSpecVars>(f->qarg(), applicator, noSharing);
     if (!varsModified && arg == f->qarg()) {
-      VList::destroy(newVars);
+      VSList::destroy(newVars);
       return f;
     }
-    //TODO compute an updated sorts list
-    return new QuantifiedFormula(f->connective(),newVars,0,arg);
+    return new QuantifiedFormula(f->connective(),newVars,arg);
   }
 
   case BOOL_TERM:
@@ -659,7 +659,7 @@ FormulaList* SubstHelper::applyImpl(FormulaList* fs, Applicator& applicator, boo
 };
 
 inline TermList AppliedTerm::apply() const {
-  return aboveVar ? SubstHelper::apply(term, *applicator) 
+  return aboveVar ? SubstHelper::apply(term, *applicator)
                   : term;
 }
 

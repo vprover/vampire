@@ -33,7 +33,7 @@
 using namespace std;
 using namespace Shell;
 
-bool Rectify::Renaming::tryGetBoundAndMarkUsed (int var,int& boundTo) const
+bool Rectify::Renaming::tryGetBoundAndMarkUsed(int var,int& boundTo) const
 {
   if ((unsigned)var >= _capacity) {
     return false;
@@ -57,14 +57,12 @@ Rectify::VarWithUsageInfo Rectify::Renaming::getBoundAndUsage(int var) const
 }
 
 /**
- * Rectify the formula from this unit. If the input type of this unit
- * contains free variables, then ask Signature::sig to create an answer
- * atom.
+ * Rectify the formula from this unit.
  *
  * @since 23/01/2004 Manchester, changed to use non-static objects
  * @since 06/06/2007 Manchester, changed to use new datastructures
  */
-FormulaUnit* Rectify::rectify (FormulaUnit* unit0, bool removeUnusedVars)
+FormulaUnit* Rectify::rectify(FormulaUnit* unit0, bool removeUnusedVars)
 {
   ASS(!unit0->isClause());
 
@@ -82,8 +80,8 @@ FormulaUnit* Rectify::rectify (FormulaUnit* unit0, bool removeUnusedVars)
   }
 
   if (VList::isNonEmpty(vars)) {
-    //TODO do we know the sorts of vars?
-    unit = new FormulaUnit(new QuantifiedFormula(FORALL,vars,0,g),FormulaTransformation(InferenceRule::CLOSURE,unit));
+    unit = new FormulaUnit(new QuantifiedFormula(FORALL,vars,0,g),
+      FormulaTransformation(InferenceRule::CLOSURE,unit));
   }
   return unit;
 } // Rectify::rectify (Unit& unit)
@@ -179,7 +177,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
       return t;
     }
     return Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(), binding, contents, sort);
-  } 
+  }
   case SpecialFunctor::FORMULA:
   {
     ASS_EQ(t->arity(),0);
@@ -192,7 +190,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
   case SpecialFunctor::LAMBDA:
   {
     ASS_EQ(t->arity(),0);
-    bindVars(sd->getLambdaVars());
+    bindVars(sd->getLambdaVarsWithSorts());
     bool modified = false;
     TermList lambdaTerm = rectify(sd->getLambdaExp());
     TermList lambdaTermS = rectify(sd->getLambdaExpSort());
@@ -210,7 +208,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     SList::Iterator slit(sorts);
     while(slit.hasNext()){
       TermList sort = slit.next();
-      TermList rectifiedSort = rectify(sort);    
+      TermList rectifiedSort = rectify(sort);
       if(sort != rectifiedSort){
         modified = true;
       }
@@ -221,7 +219,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     if (vs == sd->getLambdaVars() && !modified) {
       return t;
     }
-    return Term::createLambda(lambdaTerm, vs, rectifiedSorts, lambdaTermS);   
+    return Term::createLambda(lambdaTerm, vs, rectifiedSorts, lambdaTermS);
   }
   case SpecialFunctor::TUPLE:
   {
@@ -278,22 +276,6 @@ Term* Rectify::rectify (Term* t)
     return Term::create(t, args->begin());
   }
 } // Rectify::rectify (Term*)
-
-SList* Rectify::rectifySortList(SList* from, bool& modified)
-{
-  modified = false;
-  SList* to = SList::empty();
-  SList::Iterator slit(from);
-  while(slit.hasNext()){
-    TermList sort = slit.next();
-    TermList rectifiedSort = rectify(sort);    
-    if(sort != rectifiedSort){
-      modified = true;
-    }
-    SList::addLast(to, rectifiedSort); // careful: quadratic complexity
-  }
-  return to;
-}
 
 Literal* Rectify::rectifyShared(Literal* lit)
 {
@@ -422,14 +404,14 @@ TermList Rectify::rectify(TermList t)
 Formula* Rectify::rectify (Formula* f)
 {
   switch (f->connective()) {
-  case LITERAL: 
+  case LITERAL:
   {
     Literal* lit = rectify(f->literal());
     return lit == f->literal() ? f : new AtomicFormula(lit);
   }
 
-  case AND: 
-  case OR: 
+  case AND:
+  case OR:
   {
     FormulaList* newArgs = rectify(f->args());
     if (newArgs == f->args()) {
@@ -438,8 +420,8 @@ Formula* Rectify::rectify (Formula* f)
     return new JunctionFormula(f->connective(), newArgs);
   }
 
-  case IMP: 
-  case IFF: 
+  case IMP:
+  case IFF:
   case XOR:
   {
     Formula* l = rectify(f->left());
@@ -459,7 +441,7 @@ Formula* Rectify::rectify (Formula* f)
     return new NegatedFormula(arg);
   }
 
-  case FORALL: 
+  case FORALL:
   case EXISTS:
   {
     bindVars(f->vars());
@@ -472,9 +454,6 @@ Formula* Rectify::rectify (Formula* f)
     if(VList::isEmpty(vs)) {
       return arg;
     }
-    //TODO should update the sorts from f->sorts() wrt to updated vs
-    //     or is the rectification just renaming, if so f->sorts can 
-    //     just be reused
     return new QuantifiedFormula(f->connective(),vs,0,arg);
   }
 
@@ -497,7 +476,7 @@ Formula* Rectify::rectify (Formula* f)
  * Undo the last binding for variable var.
  * @since 07/06/2007 Manchester
  */
-void Rectify::Renaming::undoBinding (unsigned var)
+void Rectify::Renaming::undoBinding(unsigned var)
 {
   ASS(var < _capacity);
 
@@ -508,7 +487,7 @@ void Rectify::Renaming::undoBinding (unsigned var)
  * Bind var to a new variable and return the new variable.
  * @since 07/06/2007 Manchester
  */
-unsigned Rectify::Renaming::bind (unsigned var)
+unsigned Rectify::Renaming::bind(unsigned var)
 {
   unsigned result = _nextVar++;
 
@@ -521,9 +500,9 @@ unsigned Rectify::Renaming::bind (unsigned var)
 /**
  * Add fresh bindings to a list of variables
  */
-void Rectify::bindVars(VList* vs)
+void Rectify::bindVars(VSList* vs)
 {
-  VList::Iterator vit(vs);
+  VSList::Iterator vit(vs);
   while(vit.hasNext()) {
     unsigned v = vit.next();
     _renaming.bind(v);
@@ -533,7 +512,7 @@ void Rectify::bindVars(VList* vs)
 /**
  * Undo bindings to variables of a list
  */
-void Rectify::unbindVars(VList* vs)
+void Rectify::unbindVars(VSList* vs)
 {
   VList::Iterator vit(vs);
   while(vit.hasNext()) {
@@ -547,7 +526,7 @@ void Rectify::unbindVars(VList* vs)
  *
  * @param vs the list to rectify
  */
-VList* Rectify::rectifyBoundVars (VList* vs)
+VList* Rectify::rectifyBoundVars(VList* vs)
 {
   if (VList::isEmpty(vs)) {
     return vs;
@@ -597,7 +576,7 @@ VList* Rectify::rectifyBoundVars (VList* vs)
  * Rectify a list of formulas.
  * @since 08/06/2007 Manchester
  */
-FormulaList* Rectify::rectify (FormulaList* fs)
+FormulaList* Rectify::rectify(FormulaList* fs)
 {
   Recycled<Stack<FormulaList*>> els;
 
@@ -632,7 +611,7 @@ FormulaList* Rectify::rectify (FormulaList* fs)
  * Fill all values by zeros.
  * @since 13/01/2008 Manchester
  */
-void Rectify::Renaming::fillInterval (size_t start,size_t end)
+void Rectify::Renaming::fillInterval(size_t start,size_t end)
 {
   for (unsigned i = start;i < end;i++) {
     _array[i] = 0;

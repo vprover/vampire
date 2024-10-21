@@ -580,10 +580,8 @@ private:
   Stack<bool> _bools;
   /** various integer values saved during parsing */
   Stack<int> _ints;
-  /** variable lists for building formulas */
-  Stack<VList*> _varLists;
-  /** sort lists for building formulas */
-  Stack<SList*> _sortLists;
+  /** (sorted) variable lists for building formulas */
+  Stack<VSList*> _varLists;
   /** variable lists for binding variables */
   Stack<VList*> _bindLists;
   /** various tokens to consume */
@@ -604,6 +602,7 @@ private:
   Stack<TypeTag> _typeTags;
   /**  */
   Stack<TheoryFunction> _theoryFunctions;
+  typedef Lib::List<TermList> SList;
   /** bindings of variables to sorts */
   Map<unsigned,SList*> _variableSorts;
   /** overflown arithmetical constants for which uninterpreted constants are introduced */
@@ -753,7 +752,7 @@ private:
   void termInfix();
   void endTerm();
   void endArgs();
-  Literal* createEquality(bool polarity,TermList& lhs,TermList& rhs);
+  Literal* createEquality(bool polarity,TermList lhs,TermList rhs);
   Formula* createPredicateApplication(std::string name,unsigned arity);
   TermList createFunctionApplication(std::string name,unsigned arity);
   TermList createTypeConApplication(std::string name,unsigned arity);

@@ -43,7 +43,7 @@ private:
       TermList ts;
       Term* t; // shared by TERM and SPECIALTERM
       Formula* f;
-      VList* vars; // to bind/unbind by BIND/UNBIND
+      VSList* vars; // to bind/unbind by BIND/UNBIND
     };
     TermList contextSort; // only used by TERMLIST and SPECIALTERM
   };
@@ -58,7 +58,6 @@ public:
 
   static bool tryGetResultSort(const Term* t, TermList& result);
   static bool tryGetResultSort(const TermList t, TermList& result);
-  static bool getResultSortOrMasterVariable(const Term* t, TermList& resultSort, TermList& resultVar);
   static bool getResultSortOrMasterVariable(const TermList t, TermList& resultSort, TermList& resultVar);
 
   static TermList getEqualityArgumentSort(const Literal* lit);

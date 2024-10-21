@@ -246,8 +246,8 @@ Comparison Normalisation::compare (Formula* fm1, Formula* fm2)
     case EXISTS:
       // first compare the length of the variable prefix,
       //  and then the immediate subformulas
-      comp = compare((int) VList::length(f1->vars()),
-                     (int) VList::length(f2->vars()));
+      comp = compare((int) VSList::length(f1->vars()),
+                     (int) VSList::length(f2->vars()));
       if (comp != EQUAL) {
         return comp;
       }
@@ -422,7 +422,7 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
 
   if(!t1->isSort() && t2->isSort()){
     return GREATER;
-  } 
+  }
 
   if(t1->isSort() && !t2->isSort()){
     return LESS;
@@ -485,15 +485,15 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
       }
 
       case SpecialFunctor::LAMBDA: {
-        comp = compare((int) VList::length(t1->getSpecialData()->getLambdaVars()),
-                       (int) VList::length(t2->getSpecialData()->getLambdaVars()));
+        comp = compare((int) VSList::length(t1->getSpecialData()->getLambdaVarsWithSorts()),
+                       (int) VSList::length(t2->getSpecialData()->getLambdaVarsWithSorts()));
         if (comp != EQUAL) {
           return comp;
         }
         TermList b1 = t1->getSpecialData()->getLambdaExp();
         TermList b2 = t2->getSpecialData()->getLambdaExp();
         comp = compare(b1, b2);
-        return comp;     
+        return comp;
       }
 
       case SpecialFunctor::MATCH: {

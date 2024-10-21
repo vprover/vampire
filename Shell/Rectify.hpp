@@ -37,9 +37,9 @@ namespace Shell {
  * @since 16/01/2004 Manchester, changed to work with pre-formulas, that is,
  *   formulas in which the same variable may be both free and bound
  * @since 23/01/2004 Manchester, changed to work with non-static objects
- * 
+ *
  */
-class Rectify 
+class Rectify
 {
 public:
   /** Initialise Rectify */
@@ -63,12 +63,12 @@ private:
       fillInterval(0,15);
     }
     ~Renaming();
-    bool tryGetBoundAndMarkUsed (int var,int& boundTo) const;
+    bool tryGetBoundAndMarkUsed(int var,int& boundTo) const;
     VarWithUsageInfo getBoundAndUsage(int var) const;
-    unsigned bind (unsigned v);
+    unsigned bind(unsigned v);
     void undoBinding(unsigned v);
   private:
-    virtual void fillInterval (size_t start,size_t end);
+    virtual void fillInterval(size_t start,size_t end);
     /** next variable to rename to */
     unsigned _nextVar;
   };
@@ -87,7 +87,6 @@ private:
   Term* rectifySpecialTerm(Term* t);
   Literal* rectify(Literal*);
   Literal* rectifyShared(Literal* lit);
-  SList* rectifySortList(SList* from, bool& modified);
   template<class From, class To>
   bool rectify(From from, To to, unsigned cnt);
 

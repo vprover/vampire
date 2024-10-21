@@ -152,18 +152,17 @@ Formula* NNF::ennf (Formula* f, bool polarity)
       return ennf(f->uarg(),!polarity);
 
   case FORALL:
-  case EXISTS: 
+  case EXISTS:
     {
       Formula* g = f->qarg();
       Formula* gg = ennf(g,polarity);
       if (g == gg) {
-	return f;
+	      return f;
       }
       if (polarity) {
-	return new QuantifiedFormula(c,f->vars(),f->sorts(),gg);
+	      return new QuantifiedFormula(c,f->vars(),gg);
       }
-      return new QuantifiedFormula(c == EXISTS ? FORALL : EXISTS,
-				   f->vars(),f->sorts(),gg);
+      return new QuantifiedFormula(c == EXISTS ? FORALL : EXISTS, f->vars(),gg);
     }
 
   case BOOL_TERM: {
@@ -483,20 +482,19 @@ Formula* NNF::nnf (Formula* f, bool polarity)
       return nnf(f->uarg(),!polarity);
 
   case FORALL:
-  case EXISTS: 
+  case EXISTS:
     {
       Formula* g = f->qarg();
       Formula* gg = nnf(g,polarity);
 
       if (g == gg) {
-	ASS(polarity);
-	return f;
+        ASS(polarity);
+        return f;
       }
       if (polarity) {
-	return new QuantifiedFormula(c,f->vars(),f->sorts(),gg);
+	      return new QuantifiedFormula(c,f->vars(),gg);
       }
-      return new QuantifiedFormula(c == EXISTS ? FORALL : EXISTS,
-				   f->vars(),f->sorts(),gg);
+      return new QuantifiedFormula(c == EXISTS ? FORALL : EXISTS,f->vars(),gg);
     }
 
   case BOOL_TERM:

@@ -203,11 +203,7 @@ void Shuffling::shuffleIter(Shufflable sh) {
           // as we require type variables to come before term variable in the list
           if(!env.getMainProblem()->hasPolymorphicSym()){
             // can even shuffle the variables in the quantifier!
-            if (fla->sorts()) { // need to shuffle sorts in sync with vars, if they are there
-              shuffleTwoList(*fla->varsPtr(),*fla->sortsPtr());
-            } else {
-              shuffleList(*fla->varsPtr());
-            }
+            shuffleList(*fla->varsPtr());
           }
 
           //cout << "getting: " << fla->toString() << std::endl;

@@ -83,11 +83,11 @@ bool FormulaVarIterator::hasNext()
       case FVI_FORMULA: {
         const Formula* f = _formulas.pop();
         switch (f->connective()) {
-          case LITERAL: { 
+          case LITERAL: {
             Literal* lit = const_cast<Literal*>(f->literal());
             if(lit->isTwoVarEquality()){
               _instructions.push(FVI_TERM_LIST);
-              _termLists.push(lit->twoVarEqSort());              
+              _termLists.push(lit->twoVarEqSort());
             }
             _instructions.push(FVI_TERM);
             _terms.push(lit);
@@ -120,11 +120,11 @@ bool FormulaVarIterator::hasNext()
 
           case FORALL:
           case EXISTS:
-            _instructions.push(FVI_UNBIND);
+            _instructions.push(FVI_SUNBIND);
             _instructions.push(FVI_FORMULA);
             _formulas.push(f->qarg());
-            _instructions.push(FVI_BIND);
-            _vars.push(f->vars());
+            _instructions.push(FVI_SBIND);
+            _svars.push(f->vars());
             break;
 
           case BOOL_TERM:
@@ -198,21 +198,21 @@ bool FormulaVarIterator::hasNext()
               }
               break;
             }
-      
+
             case SpecialFunctor::LAMBDA:{
-              _instructions.push(FVI_UNBIND);
-              SList* sorts = sd->getLambdaVarSorts();
-              while(sorts){
+              _instructions.push(FVI_SUNBIND);
+              VSList* varSorts = sd->getLambdaVarsWithSorts();
+              while(varSorts){
                 _instructions.push(FVI_TERM_LIST);
-                _termLists.push(sorts->head());
-                sorts = sorts->tail();
+                _termLists.push(varSorts->head().second);
+                varSorts = varSorts->tail();
               }
               _instructions.push(FVI_TERM_LIST);
               _termLists.push(sd->getLambdaExpSort());
               _instructions.push(FVI_TERM_LIST);
               _termLists.push(sd->getLambdaExp());
-              _instructions.push(FVI_BIND);
-              _vars.push(sd->getLambdaVars());
+              _instructions.push(FVI_SBIND);
+              _svars.push(sd->getLambdaVarsWithSorts());
               break;
             }
 
@@ -247,6 +247,22 @@ bool FormulaVarIterator::hasNext()
         } else {
           _instructions.push(FVI_TERM);
           _terms.push(ts.term());
+        }
+        break;
+      }
+
+      case FVI_SBIND: {
+        VSList::Iterator vs(_svars.top());
+        while (vs.hasNext()) {
+          _bound.inc(vs.next().first);
+        }
+        break;
+      }
+
+      case FVI_SUNBIND: {
+        VSList::Iterator vs(_svars.pop());
+        while (vs.hasNext()) {
+          _bound.dec(vs.next().first);
         }
         break;
       }

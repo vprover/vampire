@@ -62,9 +62,13 @@ private:
     FVI_TERM,
     /** process term list */
     FVI_TERM_LIST,
-    /** bind variables bound by quantifier or $let */
+    /** bind (sorted) variables bound by quantifier or lamda */
+    FVI_SBIND,
+    /** unbind (sorted) variables bound by quantifier or lamda */
+    FVI_SUNBIND,
+    /** bind unsorted variables bound by a $let */
     FVI_BIND,
-    /** unbind variables bound by quantifier or $let */
+    /** unbind unsorted variables bound by a $let */
     FVI_UNBIND,
   };
 
@@ -85,7 +89,9 @@ private:
   Stack<TermList> _termLists;
   /** Stack of instructions telling what to do next */
   Stack<Instruction> _instructions;
-  /** Stack of lists of variables to process */
+  /** Stack of lists of (sorted) variables to process */
+  Stack<const VSList*> _svars;
+  /** Stack of lists of plain (unsorted) variables to process */
   Stack<const VList*> _vars;
 }; // class FormulaVarIterator
 

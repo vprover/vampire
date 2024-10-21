@@ -53,11 +53,11 @@ unsigned FormulaUnit::varCnt()
 {
   Formula* frm = formula();
   VList* fv = freeVariables(frm);
-  VList* bv = frm->boundVariables();
+  VSList* bv = frm->boundVariables();
 
-  unsigned res = VList::length(fv) + VList::length(bv);
+  unsigned res = VList::length(fv) + VSList::length(bv);
   VList::destroy(fv);
-  VList::destroy(bv);
+  VSList::destroy(bv);
   return res;
 }
 

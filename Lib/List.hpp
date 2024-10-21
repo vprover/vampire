@@ -469,7 +469,7 @@ public:
   class Iterator {
   public:
     USE_ALLOCATOR(List::Iterator);
-    
+
     DECL_ELEMENT_TYPE(C);
 
     explicit Iterator(const List* l) : _lst (l) {}

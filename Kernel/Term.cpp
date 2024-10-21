@@ -534,21 +534,20 @@ std::string Term::headToString() const
         return "$let([" + typesList + "], [" + symbolsList + "] := " + binding.toString() + ", ";
       }
       case SpecialFunctor::LAMBDA: {
-        VList* vars = sd->getLambdaVars();
-        SList* sorts = sd->getLambdaVarSorts();
+        VSList* vars = sd->getLambdaVarsWithSorts();
         TermList lambdaExp = sd->getLambdaExp();
 
         std::string varList = "[";
 
-        VList::Iterator vs(vars);
-        SList::Iterator ss(sorts);
+        VSList::Iterator vsi(vars);
         bool first = true;
-        while(vs.hasNext()) {
+        while(vsi.hasNext()) {
+          auto vs = vsi.next();
           if (!first){
             varList += ", ";
           }else{ first = false; }
-          varList += Term::variableToString(vs.next()) + " : ";
-          varList += ss.next().toString();
+          varList += Term::variableToString(vs.first) + " : ";
+          varList += vs.second.toString();
         }
         varList += "]";
         return "(^" + varList + " : (" + lambdaExp.toString() + "))";
@@ -1018,19 +1017,18 @@ Term* Term::createFormula(Formula* formula)
  * Create a lambda term from a list of lambda vars and an
  * expression and returns the resulting term
  */
-Term* Term::createLambda(TermList lambdaExp, VList* vars, SList* sorts, TermList expSort){
+Term* Term::createLambda(TermList lambdaExp, VSList* varsWithSorts, TermList expSort){
   Term* s = new(0, sizeof(SpecialTermData)) Term;
   s->makeSymbol(toNormalFunctor(SpecialFunctor::LAMBDA), 0);
   //should store body of lambda in args
   s->getSpecialData()->_lambdaData.lambdaExp = lambdaExp;
-  s->getSpecialData()->_lambdaData._vars = vars;
-  s->getSpecialData()->_lambdaData._sorts = sorts;
+  s->getSpecialData()->_lambdaData._varsWithSorts = varsWithSorts;
   s->getSpecialData()->_lambdaData.expSort = expSort;
-  SList::Iterator sit(sorts);
+  VSList::Iterator sit(varsWithSorts);
   Stack<TermList> revSorts;
   TermList lambdaTmSort = expSort;
   while(sit.hasNext()){
-    revSorts.push(sit.next());
+    revSorts.push(sit.next().second);
   }
   while(!revSorts.isEmpty()){
     TermList varSort = revSorts.pop();
