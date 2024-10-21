@@ -43,13 +43,13 @@ tff(flood_near_water,axiom,
 tff(coastal_cities_near_water,axiom,
     ! [City:$i] :
       ( s__instance(City,s__CoastalCity)
-     => ? [Sea:$i] :-
+     => ? [Sea:$i] :
           ( s__instance(Sea,s__Sea)
           & s__orientation(City,Sea,s__Near) ) ) ).
 
 tff(where,conjecture,
-    ? [City:$i,Country:$i,CityLat:$real,CityLong:$real,Latitude:$real,
-       MoscowLat:$real,MoscowLong:$real,MoscowName:$i,MoscowCountry:$i] :
+    ? [City:$i,Country:$i,CityLat:$int,CityLong:$int,Latitude:$int,
+       MoscowLat:$int,MoscowLong:$int,MoscowName:$i,MoscowCountry:$i] :
       ( s__instance(Country,s__OECDCountry)
       & s__capitalCity(City,Country)
       & $different(City,s__MoscowRussia)

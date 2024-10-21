@@ -227,6 +227,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
 
   // this unfortunately repeats the logic from SaturationAlgorithm::activate
   auto externMatcher = [this](Literal* l) {
+    // cout << "externMatcher for " << l->toString() << endl;
     if (l->isPositive())
       return false;
     ESList* externals;
@@ -236,12 +237,14 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     while (it.hasNext()) {
       ExternalSource& es = it.next();
       Formula* f = es.f;
+      // cout << "  checking for " << f->toString() << endl;q
       ASS_EQ(f->connective(),EXISTS);
       VList* exists = f->vars();
       ASS_EQ(f->qarg()->connective(),LITERAL);
       Literal* ext_lit = f->qarg()->literal();
       ASS_EQ(l->functor(), ext_lit->functor());
 
+      bool all_good = true;
       for (unsigned j = 0; j < l->numTermArguments(); j++) {
         TermList arg = (*l)[j];
         TermList ext_arg = (*ext_lit)[j];
@@ -249,20 +252,29 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
           unsigned ext_arg_var = ext_arg.var();
           if (arg.isVar()) {
             // the corresponding ext_arg should be part of the exists block
-            if (!VList::member(ext_arg_var,exists))
-              return false;
+            if (!VList::member(ext_arg_var,exists)) {
+              // cout << "  arg j = " << j << " is var, but ext_arg_var = " << ext_arg_var << " not amond exists." << endl;
+              all_good = false;
+              break;
+            }
           } else {
             // should be ground (ideally a constant, but let's not be that strict)
             // the corresponding ext_arg part does not necessarily be part of the forall block (if it's exists, all the better)
             Term* t = arg.term();
             if (!t->ground()) {
-              return false;
+              // cout << "  arg j = " << j << " is not a var, but nor it is ground." << endl;
+              all_good = false;
+              break;
             }
           }
         }
       }
-      return true;
+      if (all_good) {
+        // cout << "  TRUE" << endl;
+        return true;
+      }
     }
+    // cout << "  FALSE" << endl;
     return false;
   };
 
@@ -1287,7 +1299,6 @@ void SaturationAlgorithm::activate(Clause* cl)
             cout << "... but already did." << endl;
           }
         }
-
       }
     }
   }
