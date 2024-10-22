@@ -31,6 +31,23 @@ Clause* UncomputableAnswerLiteralRemoval::simplify(Clause* cl)
   return cl;
 }
 
+Clause* MultipleAnswerLiteralRemoval::simplify(Clause* cl)
+{
+  unsigned cLen = cl->length();
+  bool found = false;
+  for (unsigned li = 0; li < cLen; li++) {
+    Literal* lit = (*cl)[li];
+    if (lit->isAnswerLiteral()) {
+      if (found) {
+        return nullptr;
+      } else {
+        found = true;
+      }
+    }
+  }
+  return cl;
+}
+
 UndesiredAnswerLiteralRemoval::UndesiredAnswerLiteralRemoval(const std::string& avoidThese)
 {
   // TODO: catch parsing exceptions and complain properly
