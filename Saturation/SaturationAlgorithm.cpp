@@ -1764,6 +1764,7 @@ ImmediateSimplificationEngine *SaturationAlgorithm::createISE(Problem& prb, cons
     }
   } else if (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) {
     res->addFront(new UncomputableAnswerLiteralRemoval());
+    res->addFront(new MultipleAnswerLiteralRemoval());
   }
   return res;
 }
