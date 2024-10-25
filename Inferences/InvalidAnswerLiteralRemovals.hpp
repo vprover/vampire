@@ -32,6 +32,17 @@ public:
 };
 
 /*
+* Removes clauses containing multiple answer literals,
+* which is not allowed in program synthesis.
+*/
+class MultipleAnswerLiteralRemoval
+: public ImmediateSimplificationEngine
+{
+public:
+  Clause* simplify(Clause* cl) override;
+};
+
+/*
 * Removes clauses containing answer literals that
 * the user specified should be avoided.
 */
