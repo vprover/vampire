@@ -35,8 +35,8 @@ namespace Inferences
 {
 
 /**
- * This functor given a pair of a literal and a substitution,
- * removes the literal from the clause specified in constructor,
+ * This functor given a pair of literal indices
+ * removes the second literal from the clause specified in constructor,
  * applies the substitution, and returns resulting clause.
  * (Also it records this to statistics as factoring.)
  */
@@ -64,7 +64,7 @@ public:
       return nullptr;
     }
 
-    RobSubstitution subst;
+    subst.reset();
     if(!subst.unify(TermList(l1), 0, TermList(l2), 0))
       return nullptr;
 
@@ -109,6 +109,7 @@ public:
     return cl;
   }
 private:
+  static RobSubstitution subst;
   Clause* _cl;
   ///length of the premise clause
   unsigned _cLen;
@@ -117,6 +118,7 @@ private:
   LiteralSelector& _sel;
   Ordering& _ord;
 };
+RobSubstitution Factoring::ResultsFn::subst;
 
 /**
  * Return ClauseIterator, that yields clauses generated from
