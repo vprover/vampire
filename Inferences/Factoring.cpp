@@ -14,15 +14,11 @@
 
 #include <utility>
 
-#include "Lib/Comparison.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/PairUtils.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/RobSubstitution.hpp"
@@ -38,61 +34,6 @@
 namespace Inferences
 {
 
-using namespace std;
-using namespace Lib;
-using namespace Kernel;
-using namespace Indexing;
-using namespace Saturation;
-
-
-/**
- * This functor, given pair of unsigned integers,
- * returns iterator of pairs of unification of literals at
- * positions corresponding to these integers and one
- * of these literals. (Literal stays the same and unifiers vary.)
- */
-class Factoring::UnificationsOnPositiveFn
-{
-public:
-  UnificationsOnPositiveFn(Clause* cl, LiteralSelector& sel)
-  : _cl(cl), _sel(sel)
-  {
-    _subst=RobSubstitutionSP(new RobSubstitution());
-  }
-  VirtualIterator<pair<Literal*,RobSubstitution*> > operator() (pair<unsigned,unsigned> nums)
-  {
-    Literal* l1 = (*_cl)[nums.first];
-    Literal* l2 = (*_cl)[nums.second];
-
-    //we assume there are no duplicate literals
-    ASS(l1!=l2);
-    ASS(_subst->isEmpty());
-
-    if(l1->isEquality()) {
-      //We don't perform factoring with equalities
-      return VirtualIterator<pair<Literal*,RobSubstitution*> >::getEmpty();
-    }
-
-    if(_sel.isNegativeForSelection(l1)) {
-      //We don't perform factoring on negative literals
-      // (this check only becomes relevant, when there is more than one literal selected
-      // and yet the selected ones are not all positive -- see the check in generateClauses)
-      return VirtualIterator<pair<Literal*,RobSubstitution*> >::getEmpty();
-    }
-
-    SubstIterator unifs=_subst->unifiers(l1,0,l2,0, false);
-    if(!unifs.hasNext()) {
-      return VirtualIterator<pair<Literal*,RobSubstitution*> >::getEmpty();
-    }
-
-    return pvi( pushPairIntoRightIterator(l2, unifs) );
-  }
-private:
-  Clause* _cl;
-  LiteralSelector& _sel;
-  RobSubstitutionSP _subst;
-};
-
 /**
  * This functor given a pair of a literal and a substitution,
  * removes the literal from the clause specified in constructor,
@@ -102,25 +43,46 @@ private:
 class Factoring::ResultsFn
 {
 public:
-  ResultsFn(Clause* cl, bool afterCheck, const ConditionalRedundancyHandler& condRedHandler, Ordering& ord)
-  : _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _condRedHandler(condRedHandler), _ord(ord) {}
-  Clause* operator() (pair<Literal*,RobSubstitution*> arg)
+  ResultsFn(Clause* cl, bool afterCheck, const ConditionalRedundancyHandler& condRedHandler, LiteralSelector &sel, Ordering& ord)
+  : _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _condRedHandler(condRedHandler), _sel(sel), _ord(ord) {}
+  Clause* operator() (std::pair<unsigned,unsigned> nums)
   {
+    Literal* l1 = (*_cl)[nums.first];
+    Literal* l2 = (*_cl)[nums.second];
+
+    //we assume there are no duplicate literals
+    ASS(l1!=l2);
+
+    if(l1->isEquality())
+      //We don't perform factoring with equalities
+      return nullptr;
+
+    if(_sel.isNegativeForSelection(l1)) {
+      //We don't perform factoring on negative literals
+      // (this check only becomes relevant, when there is more than one literal selected
+      // and yet the selected ones are not all positive -- see the check in generateClauses)
+      return nullptr;
+    }
+
+    RobSubstitution subst;
+    if(!subst.unify(TermList(l1), 0, TermList(l2), 0))
+      return nullptr;
+
     RStack<Literal*> resLits;
 
-    Literal* skipped=arg.first;
+    Literal *skipped = l2;
 
     Literal* skippedAfter = 0;
     if (_afterCheck && _cl->numSelected() > 1) {
       TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
 
-      skippedAfter = arg.second->apply(skipped, 0);
+      skippedAfter = subst.apply(skipped, 0);
     }
 
     for(unsigned i=0;i<_cLen;i++) {
       Literal* curr=(*_cl)[i];
       if(curr!=skipped) {
-        Literal* currAfter = arg.second->apply(curr, 0);
+        Literal* currAfter = subst.apply(curr, 0);
 
         if (skippedAfter) {
           TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
@@ -135,13 +97,16 @@ public:
       }
     }
 
-    if (!_condRedHandler.handleReductiveUnaryInference(_cl, arg.second)) {
+    if (!_condRedHandler.handleReductiveUnaryInference(_cl, &subst)) {
       env.statistics->skippedFactoring++;
       return nullptr;
     }
 
     env.statistics->factoring++;
-    return Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::FACTORING,_cl));
+    Clause *cl = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::FACTORING,_cl));
+    if(env.options->proofExtra() == Options::ProofExtra::FULL)
+      env.proofExtra.insert(cl, new FactoringExtra(l1, l2));
+    return cl;
   }
 private:
   Clause* _cl;
@@ -149,6 +114,7 @@ private:
   unsigned _cLen;
   bool _afterCheck;
   const ConditionalRedundancyHandler& _condRedHandler;
+  LiteralSelector& _sel;
   Ordering& _ord;
 };
 
@@ -179,15 +145,13 @@ ClauseIterator Factoring::generateClauses(Clause* premise)
 
   auto it1 = getCombinationIterator(0u,premise->numSelected(),premise->length());
 
-  auto it2 = getMapAndFlattenIterator(it1,UnificationsOnPositiveFn(premise,_salg->getLiteralSelector()));
-
-  auto it3 = getMappingIterator(it2,ResultsFn(premise,
+  auto it2 = getMappingIterator(it1,ResultsFn(premise,
       getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
-      _salg->condRedHandler(), _salg->getOrdering()));
+      _salg->condRedHandler(), _salg->getLiteralSelector(), _salg->getOrdering()));
 
-  auto it4 = getFilteredIterator(it3, NonzeroFn());
+  auto it3 = getFilteredIterator(it2, NonzeroFn());
 
-  return pvi( it4 );
+  return pvi( it3 );
 }
 
 }
