@@ -824,7 +824,8 @@ void SaturationAlgorithm::init()
     // (it's just that the id computation would become a bit more complicated; i.e., "new-func-id = funcId + numPreds".)
     for (unsigned p = 0; p < numPreds; p++) {
       Signature::Symbol* symb = env.signature->getPredicate(p);
-      cout << "symb: " << p << " " << (unsigned)(p==0) << " 0 " << symb->introduced() << " " << symb->skolem() << " " << symb->arity() << " # " << symb->name() << endl;
+      cout << "symb: " << p << " " << (unsigned)(p==0) << " 0 " << symb->introduced() << " " << symb->skolem()
+           << " " << symb->numericConstant() << " " << symb->arity() << " # " << symb->name() << endl;
       // pred: id isEq isFn arity intro skolem name
       cout << "symb-to-sort: " << p << " " << env.signature->getBoolSort() << endl;
       // pred-to-sort: predId sortId (which is always 1 == $o)
@@ -843,7 +844,8 @@ void SaturationAlgorithm::init()
     }
     for (unsigned f = 0; f < env.signature->functions(); f++) {
       Signature::Symbol* symb = env.signature->getFunction(f);
-      cout << "symb: " << FUNC_TO_SYMB(f) << " 0 1 " << symb->introduced() << " " << symb->skolem() << " " << symb->arity() << " # " << symb->name() << endl;
+      cout << "symb: " << FUNC_TO_SYMB(f) << " 0 1 " << symb->introduced() << " " << symb->skolem()
+           << " " << symb->numericConstant() << " " << symb->arity() << " # " << symb->name() << endl;
       // func: id isEq isFn arity intro skolem name
       cout << "symb-to-sort: " << FUNC_TO_SYMB(f) << " " << symb->fnType()->result().term()->functor() << endl;
       // func-to-sort: funcId sortId --- this is the output sort (input sorts can be inferred from arguments' output sorts)
@@ -866,16 +868,19 @@ void SaturationAlgorithm::init()
     while (toAdd.hasNext()) {
       Clause* cl = toAdd.next();
       clauseVariables.reset();
-      // just register the clause and connect it with its number()
-      cout << "cls: " << clauseId << " " << cl->number() << endl;
       subterms.reset();
+      unsigned clWeight = 0;
       for (Literal* lit : cl->iterLits()) {
-        cout << "# " << subtermId << " " << lit->toString() << endl;
+        clWeight += lit->weight();
         subterms.push(std::make_tuple(TermList(lit),subtermId++,TermList())); // the last empty termlist , we won't touch this for literals
       }
+      // just register the clause and connect it with its number()
+      cout << "cls: " << clauseId << " " << cl->derivedFromGoal() << " " << cl->isTheoryAxiom() << " " << cl->size() << " " << clWeight << " # " << cl->number() << endl;
+      // TODO: could be more specific on which theory axiom this is (when it is one) - as was done in Deepire
+
       while(subterms.isNonEmpty()) {
         auto [subterm,id,srt] = subterms.pop();
-        cout << "trm: " << id << endl; // could have some features?
+        cout << "trm: " << id << " " << subterm.isTerm() << " " << subterm.numVarOccs() << " " << subterm.weight() << " # " << subterm.toString() << endl; // could have some features?
         if (subterm.isTerm()) {
           Term* t = subterm.term();
           OperatorType* ot = 0;
@@ -903,8 +908,9 @@ void SaturationAlgorithm::init()
           unsigned* normVar;
           if (clauseVariables.getValuePtr(var,normVar)) {
             *normVar = clVarId++;
+            cout << "var: " << *normVar << " " << clauseVariables.size()-1 << endl;
             // cls-var: clauseId varId varOrd (= counting this clause's variables from 0)
-            cout << "cls-var: " << clauseId << " " << *normVar << " " << clauseVariables.size()-1 << endl;       // a clause knows about its variables
+            cout << "cls-var: " << clauseId << " " << *normVar << endl;       // a clause knows about its variables (and numbers them internally starting from 0)
             cout << "var-srt: " << *normVar << " " << srt.term()->functor() << endl;          // a variable knows about its sort
           }
           cout << "trm-var: " << id << " " << *normVar << endl; // this subterm is a variable
