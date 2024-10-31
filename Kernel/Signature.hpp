@@ -89,10 +89,10 @@ class Signature
     SIGMA,
     EQUALS,
     NOT_PROXY
-  };  
-  
+  };
+
   class Symbol {
-  
+
   protected:
     /** print name */
     std::string _name;
@@ -121,12 +121,12 @@ class Signature
     unsigned _protected : 1;
     /** clauses with only skipped symbols will not be output as symbol eliminating */
     unsigned _skip : 1;
-    /** marks propositional predicate symbols that are labels to 
+    /** marks propositional predicate symbols that are labels to
         be used as names during consequence finding or function relationship finding */
     unsigned _label : 1;
     /** marks predicates that are equality proxy */
     unsigned _equalityProxy : 1;
-    /** was flipped **/ 
+    /** was flipped **/
     unsigned _wasFlipped : 1;
     /** used in coloured proofs and interpolation */
     unsigned _color : 2;
@@ -217,14 +217,14 @@ class Signature
     /* the number of term arguments for this symbol */
     inline unsigned numTermArguments() const { return arity() - numTypeArguments(); }
     /** Return the type argument arity of the symbol. Only accurate once type has been set. */
-    inline unsigned numTypeArguments() const 
-    { 
-      if(name() == "="){ 
+    inline unsigned numTypeArguments() const
+    {
+      if(name() == "="){
         //for some reason, equality is never assigned a type (probably because it is poly)
-        return 0; 
+        return 0;
       }
-      ASS_REP(_type, name()); 
-      return _typeArgsArity; 
+      ASS_REP(_type, name());
+      return _typeArgsArity;
     }
     /** Return the name of the symbol */
     inline const std::string& name() const { return _name; }
@@ -290,7 +290,7 @@ class Signature
 
     inline void markInductionSkolem(){ _inductionSkolem=1; _skolem=1;}
     inline bool inductionSkolem(){ return _inductionSkolem;}
-      
+
     /** Return true if symbol is an integer constant */
     inline bool integerConstant() const
     { return interpreted() && arity()==0 && fnType()->result()==AtomicSort::intSort(); }
@@ -357,7 +357,7 @@ class Signature
 
   public:
     IntegerSymbol(const IntegerConstantType& val)
-    : Symbol(val.toString(), 0, true), _intValue(val)
+    : Symbol(val.toString(), 0, true, false, true), _intValue(val)
     {
       setType(OperatorType::getConstantsType(AtomicSort::intSort()));
     }
@@ -373,7 +373,7 @@ class Signature
 
   public:
     RationalSymbol(const RationalConstantType& val)
-    : Symbol(val.toString(), 0, true), _ratValue(val)
+    : Symbol(val.toString(), 0, true, false, true), _ratValue(val)
     {
       setType(OperatorType::getConstantsType(AtomicSort::rationalSort()));
     }
@@ -389,11 +389,12 @@ class Signature
 
   public:
     RealSymbol(const RealConstantType& val)
-    : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? "$to_real("+val.toString()+")" : val.toNiceString(), 0, true), _realValue(val)
+    : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? "$to_real("+val.toString()+")" : val.toNiceString(), 0,
+       true, false, true), _realValue(val)
     {
       setType(OperatorType::getConstantsType(AtomicSort::realSort()));
     }
-  }; 
+  };
 
   //////////////////////////////////////
   // Uninterpreted symbol declarations
