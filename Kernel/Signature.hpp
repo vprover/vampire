@@ -51,8 +51,8 @@ class Signature
 {
  public:
   /** Function or predicate symbol */
-  
-  /** The default sort of all individuals, always in the non-sorted case */  
+
+  /** The default sort of all individuals, always in the non-sorted case */
   static const unsigned DEFAULT_SORT_CON=0;
   /** Boolean sort */
   static const unsigned BOOL_SRT_CON=1;
@@ -60,11 +60,11 @@ class Signature
   static const unsigned INTEGER_SRT_CON=2;
   /** sort of rationals */
   static const unsigned RATIONAL_SRT_CON=3;
-  /** sort of reals */  
+  /** sort of reals */
   static const unsigned REAL_SRT_CON=4;
   /** this is not a sort, it is just used to denote the first index of a user-define sort */
   static const unsigned FIRST_USER_CON=5;
-  
+
   //Order is important
   //Narrow.cpp relies on it
   enum Combinator {
@@ -75,7 +75,7 @@ class Signature
     K_COMB,
     NOT_COMB
   };
-  
+
   enum Proxy {
     AND,
     OR,
@@ -604,15 +604,23 @@ class Signature
   }
 
   bool isInterpretedNonDefault(unsigned con) const{
-    return con < FIRST_USER_CON && con != DEFAULT_SORT_CON;    
+    return con < FIRST_USER_CON && con != DEFAULT_SORT_CON;
   }
 
   bool isNonDefaultCon(unsigned con) const{
-    return con >= FIRST_USER_CON;    
+    return con >= FIRST_USER_CON;
   }
 
-  bool isBoolCon(unsigned con) const{
-    return con == BOOL_SRT_CON;    
+  bool isBoolCon(unsigned con) const {
+    return con == BOOL_SRT_CON;
+  }
+
+  bool isArithCon(unsigned con) const {
+    return con >= INTEGER_SRT_CON && con <= REAL_SRT_CON;
+  }
+
+  bool isPlainCon(unsigned con) const {
+    return con == 0 || con >= FIRST_USER_CON;
   }
 
   bool isTupleCon(unsigned con) {
@@ -622,13 +630,13 @@ class Signature
   bool isArrayCon(unsigned con) const{
     //second part of conditions ensures that _arrayCon
     //has been initialised.
-    return (con == _arrayCon && _arrayCon != UINT_MAX);    
+    return (con == _arrayCon && _arrayCon != UINT_MAX);
   }
 
   bool isArrowCon(unsigned con) const{
-    return (con == _arrowCon && _arrowCon != UINT_MAX);    
+    return (con == _arrowCon && _arrowCon != UINT_MAX);
   }
-  
+
   bool isAppFun(unsigned fun) const{
     return (fun == _appFun && _appFun != UINT_MAX);
   }
@@ -647,7 +655,7 @@ class Signature
   unsigned getPredicateNumber(const std::string& name, unsigned arity) const;
 
   typedef SmartPtr<Stack<unsigned>> DistinctGroupMembers;
-  
+
   Unit* getDistinctGroupPremise(unsigned group);
   unsigned createDistinctGroup(Unit* premise = 0);
   void addToDistinctGroup(unsigned constantSymbol, unsigned groupId);

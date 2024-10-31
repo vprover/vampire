@@ -814,7 +814,7 @@ void SaturationAlgorithm::init()
       if (symb->arity() > 0) {
         USER_ERROR("GNN currently only supports monomorphic FOL.");
       }
-      cout << "sort: " << t << " " << symb->name() << endl;
+      cout << "sort: " << t << " " << env.signature->isPlainCon(t) << " " << env.signature->isBoolCon(t) << " " << env.signature->isArithCon(t) << " # " << symb->name() << endl;
       // tcon: id name
     }
 
