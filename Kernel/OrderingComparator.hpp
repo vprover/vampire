@@ -34,7 +34,7 @@ public:
   OrderingComparator(const Ordering& ord, const Stack<Ordering::Constraint>& comps, void* result);
   virtual ~OrderingComparator();
 
-  void reset() { _curr = &_root; _prev = nullptr; /* _trace.reset(); */ }
+  void reset() { _curr = &_source; _prev = nullptr; /* _trace.reset(); */ }
 
   void* next(const SubstApplicator* applicator);
   void insert(const Stack<Ordering::Constraint>& comps, void* result);
@@ -47,9 +47,9 @@ protected:
   bool tryExpandVarCase();
 
   enum BranchTag {
-    T_RESULT = 0u,
-    T_COMPARISON = 1u,
-    T_WEIGHT = 2u,
+    T_DATA = 0u,
+    T_TERM = 1u,
+    T_POLY = 2u,
   };
 
   struct Node;
@@ -102,18 +102,18 @@ protected:
         case Ordering::GREATER:
           return gtBranch;
         case Ordering::INCOMPARABLE:
-          return incBranch;
+          return ngeBranch;
         default:
           ASSERTION_VIOLATION;
       }
     }
 
     explicit Node(void* data, Branch alternative)
-      : tag(T_RESULT), data(data), alternative(alternative) {}
+      : tag(T_DATA), data(data), alternative(alternative) {}
     explicit Node(TermList lhs, TermList rhs)
-      : tag(T_COMPARISON), lhs(lhs), rhs(rhs) {}
+      : tag(T_TERM), lhs(lhs), rhs(rhs) {}
     explicit Node(uint64_t w, Stack<VarCoeffPair>* varCoeffPairs)
-      : tag(T_WEIGHT), w(w), varCoeffPairs(varCoeffPairs) {}
+      : tag(T_POLY), w(w), varCoeffPairs(varCoeffPairs) {}
     Node(const Node&) = delete;
     Node& operator=(const Node&) = delete;
 
@@ -138,14 +138,14 @@ protected:
 
     Branch eqBranch;
     Branch gtBranch;
-    Branch incBranch;
+    Branch ngeBranch;
     int refcnt = 0;
     Trace* trace = nullptr;
   };
 
   const Ordering& _ord;
-  Branch _root;
-  Branch _fail;
+  Branch _source;
+  Branch _sink;
   Branch* _curr;
   Branch* _prev;
   // Trace _trace;

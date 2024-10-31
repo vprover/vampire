@@ -27,7 +27,7 @@ void LPOComparator::majoChain(Branch* branch, TermList tl1, Term* t, unsigned i,
   for (unsigned j = i; j < t->arity(); j++) {
     *branch = Branch(tl1,*t->nthArgument(j));
     branch->node()->eqBranch = fail;
-    branch->node()->incBranch = fail;
+    branch->node()->ngeBranch = fail;
     branch = &branch->node()->gtBranch;
   }
   *branch = std::move(success);
@@ -43,7 +43,7 @@ void LPOComparator::alphaChain(Branch* branch, Term* s, unsigned i, TermList tl2
     *branch = Branch(*s->nthArgument(j),tl2);
     branch->node()->eqBranch = success;
     branch->node()->gtBranch = success;
-    branch = &branch->node()->incBranch;
+    branch = &branch->node()->ngeBranch;
   }
   *branch = std::move(fail);
 }
@@ -56,9 +56,9 @@ void LPOComparator::expandTermCase()
   auto rhs = node->rhs;
   auto eqBranch = node->eqBranch;
   auto gtBranch = node->gtBranch;
-  auto incBranch = node->incBranch;
+  auto ngeBranch = node->ngeBranch;
 
-  ASS_EQ(node->tag, T_COMPARISON);
+  ASS_EQ(node->tag, T_TERM);
   ASS(!node->ready);
 
   ASS(lhs.isTerm() && rhs.isTerm());
@@ -78,16 +78,16 @@ void LPOComparator::expandTermCase()
       auto t_arg = *rhs.term()->nthArgument(i);
       if (i == 0) {
         // we mutate the original node in the first iteration
-        ASS_EQ(curr->node()->tag, T_COMPARISON);
+        ASS_EQ(curr->node()->tag, T_TERM);
         curr->node()->lhs = s_arg;
         curr->node()->rhs = t_arg;
       } else {
         *curr = Branch(s_arg,t_arg);
       }
       // greater branch is a majo chain
-      majoChain(&curr->node()->gtBranch, lhs, rhs.term(), i+1, gtBranch, incBranch);
+      majoChain(&curr->node()->gtBranch, lhs, rhs.term(), i+1, gtBranch, ngeBranch);
       // incomparable branch is an alpha chain
-      alphaChain(&curr->node()->incBranch, lhs.term(), i+1, rhs, gtBranch, incBranch);
+      alphaChain(&curr->node()->ngeBranch, lhs.term(), i+1, rhs, gtBranch, ngeBranch);
       curr = &curr->node()->eqBranch;
     }
     *curr = eqBranch;
@@ -98,9 +98,9 @@ void LPOComparator::expandTermCase()
     // we mutate the original node in the first iteration
     _curr->node()->lhs = lhs;
     _curr->node()->rhs = *t->nthArgument(0);
-    _curr->node()->eqBranch = incBranch;
-    _curr->node()->incBranch = incBranch;
-    majoChain(&_curr->node()->gtBranch, lhs, t, 1, gtBranch, incBranch);
+    _curr->node()->eqBranch = ngeBranch;
+    _curr->node()->ngeBranch = ngeBranch;
+    majoChain(&_curr->node()->gtBranch, lhs, t, 1, gtBranch, ngeBranch);
     break;
   }
   case Ordering::LESS: {
@@ -110,7 +110,7 @@ void LPOComparator::expandTermCase()
     _curr->node()->rhs = rhs;
     _curr->node()->eqBranch = gtBranch;
     _curr->node()->gtBranch = gtBranch;
-    alphaChain(&_curr->node()->incBranch, s, 1, rhs, gtBranch, incBranch);
+    alphaChain(&_curr->node()->ngeBranch, s, 1, rhs, gtBranch, ngeBranch);
     break;
   }
   default:

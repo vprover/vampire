@@ -61,7 +61,7 @@ void KBOComparator::expandTermCase()
 
   auto eqBranch = node->eqBranch;
   auto gtBranch = node->gtBranch;
-  auto incBranch = node->incBranch;
+  auto ngeBranch = node->ngeBranch;
 
   auto curr = _curr;
   bool weightAdded = (w < 0 || varInbalance);
@@ -70,11 +70,11 @@ void KBOComparator::expandTermCase()
       return e1.second>e2.second;
     });
     // we mutate the original node
-    curr->node()->tag = T_WEIGHT;
+    curr->node()->tag = T_POLY;
     curr->node()->w = w;
     curr->node()->varCoeffPairs = nonzeros.release();
     curr->node()->gtBranch = gtBranch;
-    curr->node()->incBranch = incBranch;
+    curr->node()->ngeBranch = ngeBranch;
     curr = &curr->node()->eqBranch;
   }
 
@@ -84,7 +84,7 @@ void KBOComparator::expandTermCase()
   switch (prec)
   {
     case Ordering::LESS: {
-      *curr = incBranch;
+      *curr = ngeBranch;
       break;
     }
     case Ordering::GREATER: {
@@ -102,7 +102,7 @@ void KBOComparator::expandTermCase()
         } else {
           *curr = Branch(lhsArg,rhsArg);
           curr->node()->gtBranch = gtBranch;
-          curr->node()->incBranch = incBranch;
+          curr->node()->ngeBranch = ngeBranch;
         }
         curr = &curr->node()->eqBranch;
       }

@@ -66,8 +66,6 @@ constexpr PoComp strengthen(PoComp v) {
 
 Result poCompToResult(PoComp c) {
   switch (c) {
-    case PoComp::UNKNOWN:
-      ASSERTION_VIOLATION;
     case PoComp::GREATER:
       return Result::GREATER;
     case PoComp::EQUAL:
@@ -78,7 +76,9 @@ Result poCompToResult(PoComp c) {
     case PoComp::NLEQ:
     case PoComp::INCOMPARABLE:
       return Result::INCOMPARABLE;
+    default:
   }
+  ASSERTION_VIOLATION;
 }
 
 PoComp resultToPoComp(Result r, bool reversed) {
