@@ -824,7 +824,7 @@ void SaturationAlgorithm::init()
     // (it's just that the id computation would become a bit more complicated; i.e., "new-func-id = funcId + numPreds".)
     for (unsigned p = 0; p < numPreds; p++) {
       Signature::Symbol* symb = env.signature->getPredicate(p);
-      cout << "symb: " << p << " " << (unsigned)(p==0) << " 0 " << symb->arity() << " " << symb->introduced() << " " << symb->skolem() << " " << symb->name() << endl;
+      cout << "symb: " << p << " " << (unsigned)(p==0) << " 0 " << symb->introduced() << " " << symb->skolem() << " " << symb->arity() << " # " << symb->name() << endl;
       // pred: id isEq isFn arity intro skolem name
       cout << "symb-to-sort: " << p << " " << env.signature->getBoolSort() << endl;
       // pred-to-sort: predId sortId (which is always 1 == $o)
@@ -843,7 +843,7 @@ void SaturationAlgorithm::init()
     }
     for (unsigned f = 0; f < env.signature->functions(); f++) {
       Signature::Symbol* symb = env.signature->getFunction(f);
-      cout << "symb: " << FUNC_TO_SYMB(f) << " 0 1 " << symb->arity() << " " << symb->introduced() << " " << symb->skolem() << " " << symb->name() << endl;
+      cout << "symb: " << FUNC_TO_SYMB(f) << " 0 1 " << symb->introduced() << " " << symb->skolem() << " " << symb->arity() << " # " << symb->name() << endl;
       // func: id isEq isFn arity intro skolem name
       cout << "symb-to-sort: " << FUNC_TO_SYMB(f) << " " << symb->fnType()->result().term()->functor() << endl;
       // func-to-sort: funcId sortId --- this is the output sort (input sorts can be inferred from arguments' output sorts)
