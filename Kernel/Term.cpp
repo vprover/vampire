@@ -224,6 +224,11 @@ unsigned TermList::weight() const
   return isVar() ? 1 : term()->weight();
 }
 
+unsigned TermList::numVarOccs() const
+{
+  return isVar() ? 1 : term()->numVarOccs();
+}
+
 bool TermList::isArrowSort()
 {
   return !isVar() && term()->isSort() &&

@@ -203,7 +203,7 @@ public:
     static constexpr unsigned VAR = 0;
     static constexpr unsigned FUN = 1;
     Inner _inner;
-    
+
     Top(Inner self) : _inner(self) {}
   public:
     static Top var    (unsigned v) { return Top(Inner::variant<VAR>(v)); }
@@ -225,7 +225,7 @@ public:
 
   /* returns the Top of a function (a variable id, or a function symbol depending on whether the term is a variable or a complex term) */
   Top top() const
-  { return isTerm() ? TermList::Top::functor(term()) 
+  { return isTerm() ? TermList::Top::functor(term())
                     : TermList::Top::var(var());            }
 
   /** make the term into a reference */
@@ -243,6 +243,7 @@ public:
   static TermList var(unsigned var, bool special = false) { return TermList(var, special); }
   /** if not var, the inner term must be shared */
   unsigned weight() const;
+  unsigned numVarOccs() const;
   /** returns true if this termList is wrapping a higher-order "arrow" sort */
   bool isArrowSort();
   bool isBoolSort();
@@ -420,8 +421,8 @@ public:
       struct {
         TermList lambdaExp;
         VList* _vars;
-        SList* _sorts;  
-        TermList sort; 
+        SList* _sorts;
+        TermList sort;
         TermList expSort;//TODO is this needed?
       } _lambdaData;
       struct {
@@ -478,11 +479,11 @@ public:
   static Term* create(unsigned fn, std::initializer_list<TermList> args);
   static Term* create(unsigned fn, Stack<TermList> const& args) { return Term::create(fn, args.length(), args.begin()); }
   template<class Iter>
-  static Term* createFromIter(unsigned fn, Iter args) 
-  { 
+  static Term* createFromIter(unsigned fn, Iter args)
+  {
     Recycled<Stack<TermList>> stack;
     stack->loadFromIterator(args);
-    return Term::create(fn, *stack); 
+    return Term::create(fn, *stack);
   }
   static Term* create(Term* t,TermList* args);
   static Term* createNonShared(unsigned function, unsigned arity, TermList* arg);
@@ -505,10 +506,8 @@ public:
   static Term* create2(unsigned fn, TermList arg1, TermList arg2);
 
   //** fool constants
-  static Term* foolTrue(); 
-  static Term* foolFalse(); 
-
-  VList* freeVariables() const;
+  static Term* foolTrue();
+  static Term* foolFalse();
 
   /** Return number of bytes before the start of the term that belong to it */
   size_t getPreDataSize() { return isSpecial() ? sizeof(SpecialTermData) : 0; }
@@ -517,7 +516,7 @@ public:
   const unsigned functor() const { return _functor; }
 
 
-  SpecialFunctor specialFunctor() const 
+  SpecialFunctor specialFunctor() const
   { return toSpecialFunctor(functor()); }
   std::string toString(bool topLevel = true) const;
   friend std::ostream& operator<<(std::ostream& out, Kernel::Term const& tl);
