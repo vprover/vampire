@@ -57,6 +57,10 @@ public:
       //We don't perform factoring with equalities
       return nullptr;
 
+    // check polarity and functor matches
+    if(!Literal::headersMatch(l1, l2, false))
+      return nullptr;
+
     if(_sel.isNegativeForSelection(l1)) {
       //We don't perform factoring on negative literals
       // (this check only becomes relevant, when there is more than one literal selected
