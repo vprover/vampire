@@ -196,7 +196,6 @@ source_group(lib_sys_source_files FILES ${VAMPIRE_LIB_SYS_SOURCES})
 set(VAMPIRE_KERNEL_SOURCES
     Kernel/Clause.cpp
     Kernel/ClauseQueue.cpp
-    Kernel/ColorHelper.cpp
     Kernel/ELiteralSelector.cpp
     Kernel/EqHelper.cpp
     Kernel/FlatTerm.cpp
