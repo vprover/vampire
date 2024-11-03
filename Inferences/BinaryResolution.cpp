@@ -90,13 +90,6 @@ Clause* BinaryResolution::generateClause(
     if(opts.showBlocked()) {
       std::cout << "Blocked resolution of " << *queryCl << " and " << * resultCl << endl;
     }
-    if(opts.colorUnblocking()) {
-      SaturationAlgorithm* salg = SaturationAlgorithm::tryGetInstance();
-      if(salg) {
-        ColorHelper::tryUnblock(queryCl, salg);
-        ColorHelper::tryUnblock(resultCl, salg);
-      }
-    }
     return 0;
   }
 

@@ -2371,13 +2371,6 @@ void Options::init()
     //*********************** Vinter???  *******************************
     //******************************************************************
 
-    _colorUnblocking = BoolOptionValue("color_unblocking","",false);
-    _colorUnblocking.description="";
-    _lookup.insert(&_colorUnblocking);
-    _colorUnblocking.setExperimental();
-    _colorUnblocking.tag(OptionTag::OTHER);
-
-
     _showInterpolant = ChoiceOptionValue<InterpolantMode>("show_interpolant","",InterpolantMode::OFF,
                                                           {"new_heur",
 #if VZ3
