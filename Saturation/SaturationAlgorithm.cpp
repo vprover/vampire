@@ -834,13 +834,17 @@ void SaturationAlgorithm::init()
       DArray<unsigned> predicates;
       predicates.initFromIterator(getRangeIterator(0u, numPreds), numPreds);
       _ordering->sortArrayByPredicatePrecedence(predicates);
-      unsigned prev = 0; // we hardcode = as the first predicate in the precedence (despite the precedence sometimes claiming otherwise), because = has always the smallest "level" anyway
-      for (unsigned idx = 0; idx < numPreds; idx++) {
-        if (predicates[idx] != 0) {
-          cout << "symb-prec-next: " << prev << " " << predicates[idx] << endl;
-          prev = predicates[idx];
+      unsigned jumpLen = 1;
+      do {
+        unsigned prev = 0; // we hardcode = as the first predicate in the precedence (despite the precedence sometimes claiming otherwise), because = has always the smallest "level" anyway
+        for (unsigned idx = 0; idx < numPreds; idx += jumpLen) {
+          if (predicates[idx] != 0) {
+            cout << "symb-prec-next: " << prev << " " << predicates[idx] << endl;
+            prev = predicates[idx];
+          }
         }
-      }
+        jumpLen *= 2;
+      } while (jumpLen < numPreds);
     }
     for (unsigned f = 0; f < env.signature->functions(); f++) {
       Signature::Symbol* symb = env.signature->getFunction(f);
@@ -851,12 +855,17 @@ void SaturationAlgorithm::init()
       // func-to-sort: funcId sortId --- this is the output sort (input sorts can be inferred from arguments' output sorts)
     }
     {
+      unsigned numFuncs = env.signature->functions();
       DArray<unsigned> functions;
-      functions.initFromIterator(getRangeIterator(0u, env.signature->functions()), env.signature->functions());
+      functions.initFromIterator(getRangeIterator(0u, numFuncs), numFuncs);
       _ordering->sortArrayByFunctionPrecedence(functions);
-      for (unsigned idx = 1; idx < env.signature->functions(); idx++) {
-        cout << "symb-prec-next: " << FUNC_TO_SYMB(functions[idx-1]) << " " << FUNC_TO_SYMB(functions[idx]) << endl;
-      }
+      unsigned jumpLen = 1;
+      do {
+        for (unsigned idx = jumpLen; idx < numFuncs; idx += jumpLen) {
+          cout << "symb-prec-next: " << FUNC_TO_SYMB(functions[idx-jumpLen]) << " " << FUNC_TO_SYMB(functions[idx]) << endl;
+        }
+        jumpLen *= 2;
+      } while (jumpLen < numFuncs);
     }
 
     ClauseIterator toAdd = _prb.clauseIterator();
