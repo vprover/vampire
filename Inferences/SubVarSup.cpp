@@ -22,7 +22,6 @@
 #include "Lib/DHSet.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/ColorHelper.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"

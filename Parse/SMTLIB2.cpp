@@ -20,7 +20,6 @@
 #include "Lib/NameArray.hpp"
 #include "Lib/StringUtils.hpp"
 #include "Kernel/Clause.hpp"
-#include "Kernel/ColorHelper.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"

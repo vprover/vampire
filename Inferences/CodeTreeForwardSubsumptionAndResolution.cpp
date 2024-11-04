@@ -59,7 +59,7 @@ bool CodeTreeForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&repla
 
     LiteralStack res;
     for (unsigned i = 0; i < cl->length(); i++) {
-      if (i == resolvedQueryLit) {
+      if (i == (unsigned)resolvedQueryLit) {
         continue;
       }
       res.push((*cl)[i]);

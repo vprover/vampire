@@ -174,7 +174,10 @@ struct EqualityFactoring::ResultFn
 
     env.statistics->equalityFactoring++;
 
-    return Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
+    Clause *cl = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
+    if(env.options->proofExtra() == Options::ProofExtra::FULL)
+      env.proofExtra.insert(cl, new EqualityFactoringExtra(sLit, fLit, sLHS, fRHS));
+    return cl;
   }
 private:
   EqualityFactoring& _self;
