@@ -41,6 +41,7 @@
 #include "NNF.hpp"
 #include "Options.hpp"
 #include "PredicateDefinition.hpp"
+#include "PredicateTypePromotion.hpp"
 #include "Preprocess.hpp"
 #include "Property.hpp"
 #include "Rectify.hpp"
@@ -312,6 +313,8 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   prb.getProperty();
+
+  Shell::PredicateTypePromotion().apply(prb);
 
   if (prb.mayHaveFunctionDefinitions()) {
     env.statistics->phase=Statistics::FUNCTION_DEFINITION_ELIMINATION;

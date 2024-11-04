@@ -556,6 +556,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Shuffling.hpp
     Shell/Options.cpp
     Shell/PredicateDefinition.cpp
+    Shell/PredicateTypePromotion.cpp
     Shell/Preprocess.cpp
     Shell/Property.cpp
     Shell/Rectify.cpp
@@ -607,6 +608,7 @@ set(VAMPIRE_SHELL_SOURCES
     Shell/Normalisation.hpp
     Shell/Options.hpp
     Shell/PredicateDefinition.hpp
+    Shell/PredicateTypePromotion.hpp
     Shell/Preprocess.hpp
     Shell/Property.hpp
     Shell/Rectify.hpp
