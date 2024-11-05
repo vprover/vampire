@@ -95,6 +95,141 @@ std::ostream& operator<<(std::ostream& str, const OrderingComparator& comp)
   return str;
 }
 
+std::string to_tikz_term(TermList t)
+{
+  if (t.isVar()) {
+    switch (t.var()) {
+      case 0:
+        return "x";
+      case 1:
+        return "y";
+      case 2:
+        return "z";
+      default:
+        return "x_"+Int::toString(t.var());
+    }
+  }
+  auto tt = t.term();
+  auto res = tt->functionName() + "(";
+  for (unsigned i = 0; i < tt->arity(); i++) {
+    res += to_tikz_term(*tt->nthArgument(i)) + ",";
+  }
+  res += ")";
+  return res;
+}
+
+std::string OrderingComparator::to_dot() const
+{
+  std::deque<const OrderingComparator::Node*> todo;
+  todo.push_back(_source.node());
+  // Note: using this set we get a more compact representation
+  DHMap<const OrderingComparator::Node*,unsigned> seen;
+
+  seen.insert(_source.node(), 0);
+  unsigned cnt = 1;
+
+  auto getId = [&todo,&seen,&cnt](auto n) {
+    unsigned* ptr;
+    if (seen.getValuePtr(n,ptr)) {
+      todo.push_back(n);
+      *ptr = cnt++;
+    }
+    return *ptr;
+  };
+
+  enum class EdgeTag {
+    GT,
+    EQ,
+    INC,
+    ALT,
+  };
+  auto getBranch = [&getId](unsigned from, auto to_node, EdgeTag tag) -> std::string
+  {
+    auto res = "n" + Int::toString(from) + " -> n" + Int::toString(getId(to_node));
+    switch (tag) {
+      case EdgeTag::GT:
+        res += " [style = gtedge]";
+        break;
+      case EdgeTag::EQ:
+        res += " [style = eqedge]";
+        break;
+      case EdgeTag::INC:
+        res += " [style = ngeedge]";
+        break;
+      case EdgeTag::ALT:
+        res += " [style = trueedge]";
+        break;
+    }
+    return res + ";\n";
+  };
+
+  std::string nodes = "source [style = invisible, label = \"\"];\n";
+  std::string edges = "source -> n0 [style = trueedge];\n";
+
+  while (!todo.empty()) {
+    auto n = todo.front();
+    todo.pop_front();
+    auto id = seen.get(n);
+
+    std::string style = "";
+    std::string label = "";
+    if (n->ready) {
+      style += "processed,";
+    }
+    switch (n->tag) {
+      case BranchTag::T_DATA: {
+        auto alt = n->alternative.node();
+        if (!alt) {
+          // do not output anything for the fail node
+          style += "sinknode,";
+          label += "";
+          break;
+        }
+        style += "datanode,";
+        label += Int::toString((unsigned long)n->data);
+        edges += getBranch(id, alt, EdgeTag::ALT);
+        break;
+      }
+      case BranchTag::T_TERM: {
+        // nodes += "termnode] (n" + Int::toString(id) + ") at (" + Int::toString(x) + "," + Int::toString(y) + ") {$"
+        //   + to_tikz_term(n->lhs) + " \\comp " + to_tikz_term(n->rhs) + "$};\n";
+        style += "termnode,";
+        label += "$" + to_tikz_term(n->lhs) + " \\comp " + to_tikz_term(n->rhs) + "$";
+        edges += getBranch(id, n->gtBranch.node(), EdgeTag::GT);
+        edges += getBranch(id, n->eqBranch.node(), EdgeTag::EQ);
+        edges += getBranch(id, n->ngeBranch.node(), EdgeTag::INC);
+        break;
+      }
+      case BranchTag::T_POLY: {
+        style += "polynode,";
+        bool first = true;
+        label += "$";
+        for (const auto& [var, coeff] : *n->varCoeffPairs) {
+          label += coeff<0 ? "-" : (first ? "" : "+");
+          first = false;
+          auto a = std::abs(coeff);
+          if (a==1) {
+            label += to_tikz_term(TermList::var(var));
+          } else {
+            label += Int::toString(a) + "\\cdot " + to_tikz_term(TermList::var(var));
+          }
+        }
+        if (n->w) {
+          label += n->w<0 ? "-" : (first ? "" : "+");
+          label += Int::toString((int)std::abs(n->w));
+        }
+        label += "$";
+        edges += getBranch(id, n->gtBranch.node(), EdgeTag::GT);
+        edges += getBranch(id, n->eqBranch.node(), EdgeTag::EQ);
+        edges += getBranch(id, n->ngeBranch.node(), EdgeTag::INC);
+        break;
+      }
+    }
+    nodes += "n" + Int::toString(id) + " [\n  style = \"" + style + "\"\n  label = \"" + label + "\"\n];\n";
+  }
+  return "digraph {\nnodesep = 0;\nsep = 0;\nranksep = 0;\nesep = 0;\n" + nodes + "\n" + edges + "}\n";
+}
+
 OrderingComparator::OrderingComparator(const Ordering& ord, const Stack<Ordering::Constraint>& comps, void* result)
 : _ord(ord), _source(), _sink(nullptr, Branch()), _curr(&_source), _prev(nullptr)
 {

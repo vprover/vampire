@@ -56,6 +56,7 @@ private:
   size_t idx_of_elem(TermList t) const;
   size_t idx_of_elem_ext(TermList t);
   PoComp idx_of(size_t x, size_t y) const;
+  PoComp idx_of_safe(size_t x, size_t y) const;
   bool set_idx_of(size_t x, size_t y, PoComp v);
   bool set_idx_of_safe(size_t x, size_t y, PoComp v);
 

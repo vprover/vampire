@@ -40,6 +40,7 @@ public:
   void insert(const Stack<Ordering::Constraint>& comps, void* result);
 
   friend std::ostream& operator<<(std::ostream& out, const OrderingComparator& comp);
+  std::string to_dot() const;
 
 protected:
   void expand();
