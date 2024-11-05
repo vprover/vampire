@@ -77,6 +77,7 @@ Result poCompToResult(PoComp c) {
     case PoComp::INCOMPARABLE:
       return Result::INCOMPARABLE;
     default:
+      break;
   }
   ASSERTION_VIOLATION;
 }
