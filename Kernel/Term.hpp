@@ -723,7 +723,7 @@ public:
     ASS(shared());
     return _args[0]._id();
   }
-  
+
   void setMaxRedLen(int rl)
   {
     _maxRedLen = rl;

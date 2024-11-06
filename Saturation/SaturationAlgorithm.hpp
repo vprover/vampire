@@ -168,6 +168,10 @@ private:
   DHSet<Clause*> _predecessorsShown;
   void showPredecessors(Clause* c);
 
+  DHSet<unsigned> _subtermsShown;
+  void showSubterms(Term* t);
+  void showLiterals(Clause* c);
+
   // to remember which clauses have already had their feature vector shown
   DHSet<Clause*> _shown;
 

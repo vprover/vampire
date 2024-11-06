@@ -449,6 +449,48 @@ void SaturationAlgorithm::showPredecessors(Clause* c) {
   ALWAYS(_predecessorsShown.insert(c));
 }
 
+#define FUNC_TO_SYMB(F) (F+numPreds)
+
+void SaturationAlgorithm::showSubterms(Term* t) {
+  if (_subtermsShown.find(t->getId())) return;
+
+  for (unsigned n = 0; n < t->arity(); n++) {
+    TermList arg = *t->nthArgument(n);
+    if (arg.isTerm()) {
+      showSubterms(arg.term());
+    }
+  }
+  std::cout << "t: " << t->getId() << " ";
+  unsigned numPreds = env.signature->predicates();
+  if (t->isLiteral()) {
+    std::cout << t->functor();
+  } else {
+    std::cout << FUNC_TO_SYMB(t->functor());
+  }
+  for (unsigned n = 0; n < t->arity(); n++) {
+    TermList arg = *t->nthArgument(n);
+    if (arg.isVar()) {
+      std::cout << " " << arg.toString();
+    } else {
+      std::cout << " " << arg.term()->getId();
+    }
+  }
+  std::cout << " # " << t->toString() << std::endl;
+
+  ALWAYS(_subtermsShown.insert(t->getId()));
+}
+
+void SaturationAlgorithm::showLiterals(Clause* c) {
+  for (Literal* lit : c->iterLits()) {
+    showSubterms(lit);
+  }
+  std::cout << "l: " << c->number();
+  for (Literal* lit : c->iterLits()) {
+    std::cout << (lit->isPositive() ? " " : " -") << lit->getId();
+  }
+  std::cout << std::endl;
+}
+
 /**
  * A function that is called when a clause is added to the passive clause container.
  */
@@ -473,6 +515,8 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
       cout << '\n';
 
       showPredecessors(c);
+
+      showLiterals(c);
 
       ALWAYS(_shown.insert(c));
     }
@@ -799,8 +843,6 @@ simpl_start:
 fin:
   cl->decRefCnt();
 }
-
-#define FUNC_TO_SYMB(F) (F+numPreds)
 
 /**
  * Insert clauses of the problem into the SaturationAlgorithm object
