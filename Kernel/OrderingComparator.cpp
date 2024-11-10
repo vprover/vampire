@@ -440,16 +440,26 @@ bool OrderingComparator::tryExpandVarCase()
     return true;
   }
   // TODO eventually incorporate this into the Trace
-  if (node->lhs.isVar() && node->rhs.isTerm()) {
+  if (node->rhs.isTerm()) {
     SubtermIterator sti(node->rhs.term());
     while (sti.hasNext()) {
       auto st = sti.next();
       if (trace->get(node->lhs, st, val)) {
-        if (val == Ordering::INCOMPARABLE) {
+        if (val == Ordering::INCOMPARABLE || val == Ordering::LESS) {
           *_curr = node->ngeBranch;
           return true;
-        } else if (val == Ordering::LESS) {
-          *_curr = node->ngeBranch;
+        }
+      }
+    }
+  }
+  if (node->lhs.isTerm()) {
+    SubtermIterator sti(node->lhs.term());
+    while (sti.hasNext()) {
+      auto st = sti.next();
+      if (trace->get(st, node->rhs, val)) {
+        // node->lhs > st ≥ node->rhs → node->lhs > node->rhs
+        if (val == Ordering::GREATER || val == Ordering::EQUAL) {
+          *_curr = node->gtBranch;
           return true;
         }
       }
@@ -498,14 +508,14 @@ ScopedPtr<OrderingComparator::Trace> OrderingComparator::getCurrentTrace()
         if (lhs.isTerm()) {
           SubtermIterator stit(lhs.term());
           while (stit.hasNext()) {
-            trace->set({ stit.next(), rhs, Ordering::INCOMPARABLE });
+            ALWAYS(trace->set({ stit.next(), rhs, Ordering::INCOMPARABLE }));
           }
         }
       } else {
         if (rhs.isTerm()) {
           SubtermIterator stit(rhs.term());
           while (stit.hasNext()) {
-            trace->set({ lhs, stit.next(), Ordering::GREATER });
+            ALWAYS(trace->set({ lhs, stit.next(), Ordering::GREATER }));
           }
         }
       }
