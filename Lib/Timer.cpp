@@ -12,8 +12,8 @@
  * Implements class Timer.
  */
 
+#include <atomic>
 #include <iostream>
-#include <mutex>
 #include <thread>
 
 #include "Lib/Environment.hpp"
@@ -54,12 +54,13 @@ enum LimitType {
   INSTRUCTION_LIMIT
 };
 
-// ensures that exactly one of the timer thread and the parent process tries to exit
-static std::mutex EXIT_LOCK;
+// ensures that exactly one of the timer/main thread tries to exit the whole process
+// set if the current thread (timer or parent) should not exit
+static std::atomic_flag DO_NOT_EXIT;
 
 // called by timer_thread to exit the entire process
 // functions called here should be thread-safe
-[[noreturn]] static void limitReached(LimitType whichLimit)
+static void limitReached(LimitType whichLimit)
 {
   using namespace Shell;
 
@@ -69,8 +70,10 @@ static std::mutex EXIT_LOCK;
   const char* REACHED[2] = {"Time limit reached!\n","Instruction limit reached!\n"};
   const char* STATUS[2] = {"% SZS status Timeout for ","% SZS status InstrOut for "};
 
-  // if we get this lock we can assume that the parent won't also try to exit
-  EXIT_LOCK.lock();
+  // atomic exchange: if the old value is true,
+  // we should not exit (as the other thread already is)
+  if(DO_NOT_EXIT.test_and_set())
+    return;
 
   // NB unsynchronised output:
   // probably OK as we don't output anything in other parts of Vampire during search
@@ -107,12 +110,13 @@ static std::chrono::time_point<std::chrono::steady_clock> START_TIME;
 
 // TODO could maybe be more efficient if we special-case the no-instruction-limit case:
 // then, we could simply sleep until the time limit
-[[noreturn]] void timer_thread()
+void timer_thread()
 {
   unsigned limit = env.options->timeLimitInDeciseconds();
   while(true) {
     if(limit && Timer::elapsedDeciseconds() >= limit) {
       limitReached(TIME_LIMIT);
+      break;
     }
 
 #if VAMPIRE_PERF_EXISTS
@@ -122,6 +126,7 @@ static std::chrono::time_point<std::chrono::steady_clock> START_TIME;
         // in principle could have a race on terminationReason, seems unlikely/harmless in practice
         env.statistics->terminationReason = Shell::Statistics::TIME_LIMIT;
         limitReached(INSTRUCTION_LIMIT);
+        break;
       }
     }
 #endif
@@ -129,18 +134,14 @@ static std::chrono::time_point<std::chrono::steady_clock> START_TIME;
     // doesn't matter if we 'sleep in' a bit, we get the real time from the system clock
     std::this_thread::sleep_for(TICK_INTERVAL);
   }
-  ASSERTION_VIOLATION
 }
 
 namespace Lib {
 namespace Timer {
 
 void reinitialise() {
-  // might (probably have) locked this in the parent process, release it for the child
-  //
-  // I am not sure of the semantics of placement-new for std::mutex,
-  // but nobody else seems to be either - if you know, tell me! - Michael
-  ::new (&EXIT_LOCK) std::mutex;
+  // might (probably have) set this in the parent process, clear it for the child
+  DO_NOT_EXIT.clear();
 
   START_TIME = std::chrono::steady_clock::now();
 
@@ -183,7 +184,7 @@ void reinitialise() {
 }
 
 void disableLimitEnforcement() {
-  EXIT_LOCK.lock();
+  DO_NOT_EXIT.test_and_set();
 }
 
 // return elapsed time after `START_TIME`
