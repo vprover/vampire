@@ -876,14 +876,39 @@ namespace Kernel {
         auto monomAt = [=](auto i) 
              { return lit.term().summandAt(i).factors->denormalize(); }; 
 
-        return OrderingUtils2::maxElems(
+        return iterTraits(OrderingUtils2::maxElems(
                   lit.term().nSummands(),
                   [=](unsigned l, unsigned r) 
                   { return ordering->compare(monomAt(l), monomAt(r)); },
                   [=](unsigned i)
                   { return monomAt(i); },
-                  selection);
+                  selection));
     }
+
+
+    template<class T>
+    auto maxSummandIndices(std::shared_ptr<T> const& sum, SelectionCriterion selection)
+    { return maxSummandIndices(*sum, selection); }
+
+    template<class T>
+    auto maxSummandIndices(Recycled<T> const& sum, SelectionCriterion selection)
+    { return maxSummandIndices(*sum, selection); }
+
+    template<class Numeral>
+    auto maxSummandIndices(Stack<std::pair<TermList, Numeral>> const& sum, SelectionCriterion selection)
+    {
+        auto monomAt = [=](auto i) 
+             { return sum[i].first; }; 
+
+        return iterTraits(OrderingUtils2::maxElems(
+                  sum.size(),
+                  [=](unsigned l, unsigned r) 
+                  { return ordering->compare(monomAt(l), monomAt(r)); },
+                  [=](unsigned i)
+                  { return monomAt(i); },
+                  selection));
+    }
+
 
 
     auto maxEqIndices(Literal* lit, SelectionCriterion sel)

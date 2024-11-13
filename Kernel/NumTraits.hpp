@@ -130,6 +130,12 @@ struct NumTraits;
     static bool is ## Name(unsigned f)                                                    \
     { return theory->isInterpretedFunction(f, name ## I); }                               \
                                                                                           \
+    static bool is ## Name(Term* t)                                                       \
+    { return is ## Name(t->functor()); }                                                  \
+                                                                                          \
+    static bool is ## Name(TermList t)                                                    \
+    { return t.isTerm() && is ## Name(t.term()); }                                        \
+                                                                                          \
     template<class F>                                                                     \
     static auto if ## Name(Term* t, F fun) {                                              \
       return someIf(is ## Name(t->functor()),                                             \
