@@ -751,6 +751,9 @@ void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::initWithEqu
     return;
   }
 
+  if (!tgtTerm.containsAllVariablesOf(rwTerm)) {
+    return;
+  }
   Stack<Ordering::Constraint> ordCons;
   ordCons.push({ tgtTerm, rwTerm, Ordering::GREATER });
   auto lits = LiteralSet::getEmpty();
