@@ -98,6 +98,19 @@ namespace Kernel {
 
   /** returns true iff the predicate is > or >= */
   bool isInequality(LascaPredicate const& self);
+  template<class NumTraits>
+  Literal* createLiteral(LascaPredicate self, TermList t)
+  {
+    switch(self) {
+      case LascaPredicate::IS_INT_POS: return NumTraits::isInt(true , t);
+      case LascaPredicate::IS_INT_NEG: return NumTraits::isInt(false, t);
+      case LascaPredicate::EQ: return NumTraits::eq(true, t, NumTraits::zero());
+      case LascaPredicate::NEQ: return NumTraits::eq(false, t, NumTraits::zero());
+      case LascaPredicate::GREATER: return NumTraits::greater(true, t, NumTraits::zero());
+      case LascaPredicate::GREATER_EQ: return NumTraits::geq(true, t, NumTraits::zero());
+    }
+    ASSERTION_VIOLATION
+  }
   bool isIsInt(LascaPredicate const& self);
 
   std::ostream& operator<<(std::ostream& out, LascaPredicate const& self);

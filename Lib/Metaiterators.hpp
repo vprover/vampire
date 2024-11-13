@@ -1869,7 +1869,7 @@ auto iterItems(Item item, Items... items)
 
 template<class Item>
 auto iterItems()
-{ return iterTraits(Stack<Item>{}); }
+{ return arrayIter(Stack<Item>{}); }
 
 } // namespace Lib
 
