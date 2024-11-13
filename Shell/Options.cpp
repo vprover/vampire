@@ -244,14 +244,18 @@ void Options::init()
     _lookup.insert(&_printAllTheoryAxioms);
     _printAllTheoryAxioms.setExperimental();
 
+    _loadInitialGnn = StringOptionValue("load_initial_gnn","lig","");
+    _loadInitialGnn.description= "Path to the jit model with the initial GNN for processed CNF. The model can be fake, just used for saving the data.";
+    _lookup.insert(&_loadInitialGnn);
+    // _loadInitialGnn.onlyUsefulWith(_showPassiveTraffic.is(equal(true)));
+
+    _saveInitialGnn = StringOptionValue("save_initial_gnn","sig","");
+    _saveInitialGnn.description= "Path where to save the initial GNN once fed with data.";
+    _lookup.insert(&_saveInitialGnn);
+
     _showPassiveTraffic = BoolOptionValue("show_passive_traffic","spt",false);
     _showPassiveTraffic.description="Print information about new clauses and their feature vectors and how they enter end leave the passive container.";
     _lookup.insert(&_showPassiveTraffic);
-
-    _showInitialGnn = BoolOptionValue("show_initial_gnn","sig",false);
-    _showInitialGnn.description="Print information needed to construct the initial GNN for processed CNF.";
-    _lookup.insert(&_showInitialGnn);
-    _showInitialGnn.onlyUsefulWith(_showPassiveTraffic.is(equal(true)));
 
     _showHelp = BoolOptionValue("help","h",false);
     _showHelp.description="Display the help message";

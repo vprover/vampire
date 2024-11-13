@@ -767,6 +767,24 @@ public:
     return _isTwoVarEquality;
   }
 
+  /** Return sort of the variables in an equality between two variables.
+   * This value is set during insertion into the term sharing structure
+   */
+  TermList twoVarEqSort() const
+  {
+    ASS(isTwoVarEquality());
+
+    return _sort;
+  }
+
+  /** Assign sort of the variables in an equality between two variables. */
+  void setTwoVarEqSort(TermList sort)
+  {
+    ASS(isTwoVarEquality());
+
+    _sort = sort;
+  }
+
   const std::string& functionName() const;
 
   /** True if the term is, in fact, a literal */
@@ -1172,25 +1190,6 @@ public:
     ASS(nthArgument(1)->isVar() || !nthArgument(1)->term()->shared());
 
     _isTwoVarEquality = true;
-  }
-
-
-  /** Return sort of the variables in an equality between two variables.
-   * This value is set during insertion into the term sharing structure
-   */
-  TermList twoVarEqSort() const
-  {
-    ASS(isTwoVarEquality());
-
-    return _sort;
-  }
-
-  /** Assign sort of the variables in an equality between two variables. */
-  void setTwoVarEqSort(TermList sort)
-  {
-    ASS(isTwoVarEquality());
-
-    _sort = sort;
   }
 
 //   /** Applied @b subst to the literal and return the result */
