@@ -34,7 +34,6 @@
 #include "Kernel/EqHelper.hpp"
 
 #define DEBUG_COHERENCE(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
-#define DBG_PARTITION_ITER(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
 
 namespace Inferences {
 namespace LASCA {
@@ -73,14 +72,14 @@ public:
   {
     LASCA::SuperpositionConf::Lhs self;
     SharedSum js_u; // <- the them `j s + u`
-    unsigned sIndex; // <- the index of `s` in the sum `j s + u`
+    unsigned sIdx; // <- the index of `s` in the sum `j s + u`
 
     auto clause() const { return self.clause(); }
-    auto asTuple() const { return std::tie(self, sIndex); }
+    auto asTuple() const { return std::tie(self, sIdx); }
     IMPL_COMPARISONS_FROM_TUPLE(Lhs);
 
     // TODO get rid of the need for a typed term list in this case
-    TypedTermList key() const { return TypedTermList((**js_u)[sIndex].first, NumTraits::sort()); }
+    TypedTermList key() const { return TypedTermList((**js_u)[sIdx].first, NumTraits::sort()); }
     static const char* name() { return "lasca coherence lhs"; }
     static IndexType indexType() { return Indexing::LASCA_COHERENCE_LHS_SUBST_TREE; }
 
@@ -90,10 +89,11 @@ public:
         .filter([](auto& lhs) -> bool { return NumTraits::isFloor(lhs.biggerSide()); })
         .map([&shared](auto lhs) {
           auto js_u = toSum(shared, lhs.smallerSide());
-          return shared.maxSummandIndices(js_u, SelectionCriterion::STRICTLY_MAX)
+          return shared.maxSummandIndices(js_u, SelectionCriterion::NOT_LEQ)
             .map([js_u,lhs](auto sIdx) { return Lhs { lhs, js_u, sIdx }; });
         })
-      .flatten();
+        .flatten()
+      ;
     }
 
     friend std::ostream& operator<<(std::ostream& out, Lhs const& self)
@@ -106,14 +106,14 @@ public:
     LASCA::Superposition::Rhs self;
     TermList toRewrite; // <- the term ⌊k s + t⌋
     SharedSum ks_t; // <- the term k s + t
-    unsigned sIndex; // <- the index of `s` in the sum `k s + t`
+    unsigned sIdx; // <- the index of `s` in the sum `k s + t`
 
     auto clause() const { return self.clause(); }
-    auto asTuple() const { return std::tie(self, toRewrite, sIndex); }
+    auto asTuple() const { return std::tie(self, toRewrite, sIdx); }
     IMPL_COMPARISONS_FROM_TUPLE(Rhs);
 
     // TODO get rid of the need for a typed term list in this case
-    TypedTermList key() const { return TypedTermList((**ks_t)[sIndex].first, NumTraits::sort()); }
+    TypedTermList key() const { return TypedTermList((**ks_t)[sIdx].first, NumTraits::sort()); }
     static const char* name() { return "lasca coherence rhs"; }
     static IndexType indexType() { return Indexing::LASCA_COHERENCE_RHS_SUBST_TREE; }
 
@@ -145,7 +145,30 @@ public:
       AbstractingUnifier& uwa
       ) const 
   {
-    auto i = NumTraits::constant(1);
+    auto j = (**lhs.js_u)[lhs.sIdx].second;
+    auto k = (**rhs.ks_t)[rhs.sIdx].second;
+
+    // c = gcd(den(j), den(k))
+    auto c = IntegerConstantType::gcd(j.denominator(), k.denominator());
+
+    // fx = den(x) / c
+    ASS(c.divides(j.denominator()))
+    ASS(c.divides(k.denominator()))
+    auto fj = j.denominator().intDivide(c);
+    auto fk = k.denominator().intDivide(c);
+
+    // v ≡ (num(j)fk)^{−1} mod c
+    auto v = (j.numerator() * fk).inverseModulo(c);
+
+    // z = ⌊k (1 - v num(j)fk)/num(j) ⌋
+    auto z = (k * (1 - v * j.numerator() * fk) / j.numerator()).floor();
+
+    // i = fj (num(k)v + c z)
+    auto i = fj * (k.numerator() * v + c * z);
+    DEBUG_COHERENCE(1, "k = ", k)
+    DEBUG_COHERENCE(1, "j = ", j)
+    DEBUG_COHERENCE(1, "i = ", i)
+    DEBUG_COHERENCE(1, "k - i j = ", k - i * j)
 
     auto sigmaL = [&](auto t) { return uwa.subs().apply(t, lhsVarBank); };
     auto sigmaR = [&](auto t) { return uwa.subs().apply(t, rhsVarBank); };
@@ -160,7 +183,8 @@ public:
     auto mul = [](auto n, auto t){ return NumTraits::mul(NumTraits::constantTl(n), t); };
     auto cnstr = uwa.computeConstraintLiterals();
 
-    return iterItems(Clause::fromIterator(
+    return someIf(i != 0, [&]() {
+        return Clause::fromIterator(
           concatIters(
             lhs.self.contextLiterals().map([=](auto l) { return sigmaL(l); }),
             rhs.self.contextLiterals().map([=](auto l) { return sigmaR(l); }),
@@ -170,7 +194,8 @@ public:
             ))
           ), 
           Inference(GeneratingInference2(Kernel::InferenceRule::LASCA_COHERENCE, lhs.clause(), rhs.clause()))
-          ));
+          );
+        }).intoIter();
   }
 };
 

@@ -9,6 +9,7 @@
  */
 
 #include "Theory.hpp"
+#include "Debug/Assertion.hpp"
 #if WITH_GMP
 #include "Theory_gmp.cpp"
 #else
@@ -1525,6 +1526,25 @@ bool Theory::isInterpretedFunction(Term* t, Interpretation itp)
 bool Theory::isInterpretedFunction(TermList t, Interpretation itp)
 {
   return t.isTerm() && isInterpretedFunction(t.term(), itp);
+}
+
+IntegerConstantType IntegerConstantType::inverseModulo(IntegerConstantType const& m) const 
+{
+  ASS(!m.isZero())
+  if (m == IntegerConstantType(1)) {
+    return IntegerConstantType(0);
+  }
+  // TODO use extended euclidean algorithm instead
+  auto l = *this;
+  ASS(l.isPositive()) // <- can be done but not implemented
+  ASS(m.isPositive()) // <- can be done but not implemented
+  auto one = IntegerConstantType(1);
+  for (auto i : range(0, m - 1)) {
+    if ((l * i).remainderE(m) == 1) {
+      return IntegerConstantType(i);
+    }
+  }
+  ASSERTION_VIOLATION_REP("inverse does not exists")
 }
 
 } // namespace Kernel

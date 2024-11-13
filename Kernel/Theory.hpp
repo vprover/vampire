@@ -38,6 +38,22 @@ class IntegerConstantType;
 struct RationalConstantType;
 class RealConstantType;
 
+#define MK_CAST_OP(Type, OP, ToCast) \
+  friend auto operator OP(Type l, ToCast const& r) { return l OP Type(r); } \
+  friend auto operator OP(ToCast const& l, Type r) { return Type(l) OP r; } \
+
+#define MK_CAST_OPS(Type, ToCast) \
+  MK_CAST_OP(Type, *, ToCast) \
+  MK_CAST_OP(Type, +, ToCast) \
+  MK_CAST_OP(Type, -, ToCast) \
+  MK_CAST_OP(Type, <, ToCast) \
+  MK_CAST_OP(Type, >, ToCast) \
+  MK_CAST_OP(Type, <=,ToCast) \
+  MK_CAST_OP(Type, >=,ToCast) \
+  MK_CAST_OP(Type, ==,ToCast) \
+  MK_CAST_OP(Type, !=,ToCast) \
+
+
 /**
  * Exception to be thrown when the requested operation cannot be performed,
  * e.g. because of overflow of a native type.
@@ -112,6 +128,7 @@ public:
     return ((float)_val)/num._val; 
   }
 #endif // WITH_GMP
+  IntegerConstantType inverseModulo(IntegerConstantType const& modulus) const;  
   IntegerConstantType intDivide(const IntegerConstantType& num) const ;  
   IntegerConstantType remainderE(const IntegerConstantType& num) const; 
   IntegerConstantType quotientE(const IntegerConstantType& num) const; 
@@ -163,6 +180,7 @@ private:
 #if VZ3
   friend class SAT::Z3Interfacing;
 #endif
+  MK_CAST_OPS(IntegerConstantType, int)
 };
 
 /**
@@ -238,6 +256,9 @@ struct RationalConstantType {
 
   friend std::ostream& operator<<(std::ostream& out, const RationalConstantType& val); 
 
+  MK_CAST_OPS(RationalConstantType, int)
+  MK_CAST_OPS(RationalConstantType, IntegerConstantType)
+
 #if !WITH_GMP
 protected:
   void init(InnerType num, InnerType den);
@@ -311,9 +332,10 @@ public:
   RealConstantType inverse() const { return RealConstantType(1) / *this; }
 
   friend std::ostream& operator<<(std::ostream& out, const RealConstantType& val);
+  MK_CAST_OPS(RealConstantType, int)
+  MK_CAST_OPS(RealConstantType, IntegerConstantType)
 private:
   static bool parseDouble(const vstring& num, RationalConstantType& res);
-
 };
 
 inline bool operator<(const RealConstantType& lhs ,const RealConstantType& rhs) { 
@@ -328,8 +350,6 @@ inline bool operator<=(const RealConstantType& lhs, const RealConstantType& rhs)
 inline bool operator>=(const RealConstantType& lhs, const RealConstantType& rhs) {
   return static_cast<const RationalConstantType&>(lhs) >= static_cast<const RationalConstantType&>(rhs);
 }
-
-
 
 /**
  * A singleton class handling tasks related to theory symbols in Vampire
@@ -747,5 +767,6 @@ struct std::hash<Kernel::RealConstantType>
   size_t operator()(Kernel::RealConstantType const& self) const noexcept 
   { return self.hash(); }
 };
+
 
 #endif // __Theory__

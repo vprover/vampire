@@ -1822,7 +1822,7 @@ template<class Iter>
 IterTraits<Iter> iterTraits(Iter i) { return IterTraits<Iter>(std::move(i)); }
 
 static const auto range = [](auto from, auto to) 
-  { return iterTraits(getRangeIterator<decltype(to)>(from, to)); };
+  { return iterTraits(getRangeIterator<decltype(to)>(decltype(to)(from), to)); };
 
 template<class I1>
 static auto concatIters(I1 i1) 
