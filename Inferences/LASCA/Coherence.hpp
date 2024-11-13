@@ -100,16 +100,16 @@ public:
     { return out << self.self << "@" << TermList(self.key()); }
   };
 
-  // a clause of the form C \/ L[⌊k s + t⌋]
+  // a clause of the form D \/ L[⌊k s + t⌋]
   struct Rhs 
   {
     LASCA::Superposition::Rhs self;
-    TermList ks_t_term; // <- the term k s + t
+    TermList toRewrite; // <- the term ⌊k s + t⌋
     SharedSum ks_t; // <- the term k s + t
     unsigned sIndex; // <- the index of `s` in the sum `k s + t`
 
     auto clause() const { return self.clause(); }
-    auto asTuple() const { return std::tie(self, ks_t_term, sIndex); }
+    auto asTuple() const { return std::tie(self, toRewrite, sIndex); }
     IMPL_COMPARISONS_FROM_TUPLE(Rhs);
 
     // TODO get rid of the need for a typed term list in this case
@@ -120,26 +120,57 @@ public:
     static auto iter(LascaState& shared, Clause* cl)
     {
       return iterTraits(LASCA::Superposition::Rhs::iter(shared, cl))
-        .filterMap([&shared](auto rhs) { return NumTraits::ifFloor(rhs.key(), 
-              [&shared, rhs](auto ks_t_term) { 
+        .filterMap([&shared](auto rhs) { 
+            auto toRewrite = rhs.key();
+            return NumTraits::ifFloor(toRewrite,
+              [&shared, rhs, toRewrite](auto ks_t_term) { 
                 auto ks_t = toSum(shared, ks_t_term);
                 return range(0, (*ks_t)->size())
-                      .map([rhs,ks_t,ks_t_term](unsigned sIdx) { return Rhs { rhs, ks_t_term, ks_t, sIdx }; }); 
+                      .map([rhs,ks_t,toRewrite](unsigned sIdx) { return Rhs { rhs, toRewrite, ks_t, sIdx }; }); 
               }); 
             })
         .flatten();
     }
     friend std::ostream& operator<<(std::ostream& out, Rhs const& self)
-    { return out << self.self << "@" << self.ks_t_term << "@" << TermList(self.key()); }
+    { return out << self.self << "@" << self.toRewrite << "@" << TermList(self.key()); }
   };
 
+  // lhs: C \/ ⌊...⌋ = j s + u
+  // rhs: D \/ L[⌊k s + t⌋]
+  // ====================
+  // C \/ D \/ L[⌊k s + t - i(j s + u)⌋ + i(j s + u)]
   auto applyRule(
       Lhs const& lhs, unsigned lhsVarBank,
       Rhs const& rhs, unsigned rhsVarBank,
       AbstractingUnifier& uwa
       ) const 
   {
-    return iterTraits(pvi(VirtualIterator<Clause*>::getEmpty()));
+    auto i = NumTraits::constant(1);
+
+    auto sigmaL = [&](auto t) { return uwa.subs().apply(t, lhsVarBank); };
+    auto sigmaR = [&](auto t) { return uwa.subs().apply(t, rhsVarBank); };
+
+    auto Lσ         = sigmaR(rhs.self.literal());
+    auto toRewriteσ = sigmaR(rhs.toRewrite);
+    auto ks_tσ = toRewriteσ.term()->termArg(0);
+
+    auto js_uσ = sigmaL(lhs.self.smallerSide());
+    auto add   = [](auto... as){ return NumTraits::add(as...); };
+    auto floor = [](auto... as){ return NumTraits::floor(as...); };
+    auto mul = [](auto n, auto t){ return NumTraits::mul(NumTraits::constantTl(n), t); };
+    auto cnstr = uwa.computeConstraintLiterals();
+
+    return iterItems(Clause::fromIterator(
+          concatIters(
+            lhs.self.contextLiterals().map([=](auto l) { return sigmaL(l); }),
+            rhs.self.contextLiterals().map([=](auto l) { return sigmaR(l); }),
+            arrayIter(*cnstr).map([](auto& literal) { return literal; }),
+            iterItems(EqHelper::replace(Lσ, toRewriteσ, 
+                add(floor(add(ks_tσ, mul(-i, js_uσ))), mul(i, js_uσ))
+            ))
+          ), 
+          Inference(GeneratingInference2(Kernel::InferenceRule::LASCA_COHERENCE, lhs.clause(), rhs.clause()))
+          ));
   }
 };
 
