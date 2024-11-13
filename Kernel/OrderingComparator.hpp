@@ -45,7 +45,8 @@ public:
 protected:
   void expand();
   virtual void expandTermCase();
-  bool tryExpandVarCase();
+  void processVarCase();
+  void processPolyCase();
 
   enum BranchTag {
     T_DATA = 0u,

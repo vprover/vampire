@@ -376,7 +376,6 @@ void OrderingComparator::expand()
       return;
     }
     if (node->tag == BranchTag::T_POLY) {
-      auto trace = getCurrentTrace();
       // if refcnt > 1 we copy the node and
       // we can also safely use the original
       if (node->refcnt > 1) {
@@ -386,9 +385,9 @@ void OrderingComparator::expand()
         _curr->node()->gtBranch = node->gtBranch;
         _curr->node()->ngeBranch = node->ngeBranch;
       }
-      _curr->node()->trace = trace.release();
-      _curr->node()->ready = true;
-      return;
+
+      processPolyCase();
+      continue;
     }
 
     // Use compare here to filter out as many
@@ -404,8 +403,9 @@ void OrderingComparator::expand()
       }
       continue;
     }
-    // If we have a variable, we cannot preprocess further.
-    if (tryExpandVarCase()) {
+    // If we have a variable, we cannot expand further.
+    if (node->lhs.isVar() || node->rhs.isVar()) {
+      processVarCase();
       continue;
     }
 
@@ -419,14 +419,62 @@ void OrderingComparator::expandTermCase()
   _curr->node()->ready = true;
 }
 
-bool OrderingComparator::tryExpandVarCase()
+void OrderingComparator::processPolyCase()
 {
   auto node = _curr->node();
+  auto varCoeffPairs = node->varCoeffPairs;
 
-  // If we have a variable, we cannot preprocess further.
-  if (!node->lhs.isVar() && !node->rhs.isVar()) {
-    return false;
+  auto trace = getCurrentTrace();
+
+  unsigned pos = 0;
+  unsigned neg = 0;
+  for (unsigned i = 0; i < varCoeffPairs->size();) {
+    auto& [var, coeff] = (*varCoeffPairs)[i];
+    for (unsigned j = i+1; j < varCoeffPairs->size();) {
+      auto& [var2, coeff2] = (*varCoeffPairs)[j];
+      Ordering::Result res;
+      if (trace->get(TermList::var(var), TermList::var(var2), res) && res == Ordering::EQUAL) {
+        coeff += coeff2;
+        swap((*varCoeffPairs)[j],varCoeffPairs->top());
+        varCoeffPairs->pop();
+        continue;
+      }
+      j++;
+    }
+    if (coeff == 0) {
+      swap((*varCoeffPairs)[i],varCoeffPairs->top());
+      varCoeffPairs->pop();
+      continue;
+    } else if (coeff > 0) {
+      pos++;
+    } else {
+      neg++;
+    }
+    i++;
   }
+
+  if (node->w == 0 && pos == 0 && neg == 0) {
+    *_curr = node->eqBranch;
+    return;
+  }
+  if (node->w >= 0 && neg == 0) {
+    *_curr = node->gtBranch;
+    return;
+  }
+  if (node->w <= 0 && pos == 0) {
+    *_curr = node->ngeBranch;
+    return;
+  }
+  sort(varCoeffPairs->begin(),varCoeffPairs->end(),[](const auto& e1, const auto& e2) {
+    return e1.second>e2.second;
+  });
+  _curr->node()->ready = true;
+  _curr->node()->trace = trace.release();
+}
+
+void OrderingComparator::processVarCase()
+{
+  auto node = _curr->node();
   auto trace = getCurrentTrace();
   Ordering::Result val;
   if (trace->get(node->lhs, node->rhs, val)) {
@@ -437,7 +485,7 @@ bool OrderingComparator::tryExpandVarCase()
     } else {
       *_curr = node->ngeBranch;
     }
-    return true;
+    return;
   }
   // TODO eventually incorporate this into the Trace
   if (node->rhs.isTerm()) {
@@ -447,7 +495,7 @@ bool OrderingComparator::tryExpandVarCase()
       if (trace->get(node->lhs, st, val)) {
         if (val == Ordering::INCOMPARABLE || val == Ordering::LESS) {
           *_curr = node->ngeBranch;
-          return true;
+          return;
         }
       }
     }
@@ -460,7 +508,7 @@ bool OrderingComparator::tryExpandVarCase()
         // node->lhs > st ≥ node->rhs → node->lhs > node->rhs
         if (val == Ordering::GREATER || val == Ordering::EQUAL) {
           *_curr = node->gtBranch;
-          return true;
+          return;
         }
       }
     }
@@ -475,7 +523,6 @@ bool OrderingComparator::tryExpandVarCase()
   }
   _curr->node()->ready = true;
   _curr->node()->trace = trace.release();
-  return true;
 }
 
 ScopedPtr<OrderingComparator::Trace> OrderingComparator::getCurrentTrace()
@@ -491,7 +538,7 @@ ScopedPtr<OrderingComparator::Trace> OrderingComparator::getCurrentTrace()
 
   switch (_prev->node()->tag) {
     case BranchTag::T_TERM: {
-      auto trace = new Trace(*_prev->node()->trace);
+      auto trace = ScopedPtr<Trace>(new Trace(*_prev->node()->trace));
       auto lhs = _prev->node()->lhs;
       auto rhs = _prev->node()->rhs;
       Ordering::Result res;
@@ -519,7 +566,7 @@ ScopedPtr<OrderingComparator::Trace> OrderingComparator::getCurrentTrace()
           }
         }
       }
-      return ScopedPtr<Trace>(trace);
+      return ScopedPtr<Trace>(trace.release());
     }
     case BranchTag::T_DATA: {
       return ScopedPtr<Trace>(new Trace(*_prev->node()->trace));

@@ -90,14 +90,14 @@ public:
   }
 
   bool insert(const Ordering* ord, ResultSubstitution* subst, bool result, Splitter* splitter,
-    Stack<Ordering::Constraint>&& ordCons, const LiteralSet* lits, SplitSet* splits)
+    OrderingConstraints&& ordCons, const LiteralSet* lits, SplitSet* splits)
   {
     auto ts = getInstances([subst,result](unsigned v) { return subst->applyTo(TermList::var(v),result); });
     return insert(ord, ts, createEntry(ts, splitter, std::move(ordCons), lits, splits));
   }
 
   bool checkAndInsert(const Ordering* ord, ResultSubstitution* subst, bool result, bool doInsert, Splitter* splitter,
-    Stack<Ordering::Constraint>&& ordCons, const LiteralSet* lits, const SplitSet* splits)
+    OrderingConstraints&& ordCons, const LiteralSet* lits, const SplitSet* splits)
   {
     ASS(lits);
     // TODO if this correct if we allow non-unit simplifications?
@@ -283,7 +283,7 @@ private:
 
   DHMap<unsigned,TermList> _varSorts;
 
-  ConditionalRedundancyEntry* createEntry(const TermStack& ts, Splitter* splitter, Stack<Ordering::Constraint>&& ordCons, const LiteralSet* lits, SplitSet* splits) const
+  ConditionalRedundancyEntry* createEntry(const TermStack& ts, Splitter* splitter, OrderingConstraints&& ordCons, const LiteralSet* lits, SplitSet* splits) const
   {
     auto e = new ConditionalRedundancyEntry();
     Renaming r;
@@ -533,7 +533,7 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuper
     rwClause, rwLitS, rwTermS, tgtTermS, eqClause, eqLHS, &appl, otherComp);
 
   // create ordering constraints
-  Stack<Ordering::Constraint> ordCons;
+  OrderingConstraints ordCons;
   if constexpr (ordC) {
     // TODO we cannot handle them together yet
     if (eqComp != Ordering::LESS) {
@@ -633,7 +633,7 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::handleResol
 
     auto dataPtr = getDataPtr(queryCl, /*doAllocate=*/doInsert);
     if (dataPtr && !(*dataPtr)->checkAndInsert(
-      _ord, subs, /*result*/false, doInsert, _splitter, Stack<Ordering::Constraint>(), lits, splits))
+      _ord, subs, /*result*/false, doInsert, _splitter, OrderingConstraints(), lits, splits))
     {
       env.statistics->skippedResolution++;
       return false;
@@ -671,7 +671,7 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::handleResol
 
     auto dataPtr = getDataPtr(resultCl, /*doAllocate=*/doInsert);
     if (dataPtr && !(*dataPtr)->checkAndInsert(
-      _ord, subs, /*result*/true, doInsert, _splitter, Stack<Ordering::Constraint>(), lits, splits))
+      _ord, subs, /*result*/true, doInsert, _splitter, OrderingConstraints(), lits, splits))
     {
       env.statistics->skippedResolution++;
       return false;
@@ -692,7 +692,7 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::handleReduc
   auto lits = LiteralSet::getEmpty();
   auto splits = SplitSet::getEmpty();
   if (!(*dataPtr)->checkAndInsert(
-    _ord, subst.ptr(), /*result*/false, /*doInsert=*/true, _splitter, Stack<Ordering::Constraint>(), lits, splits))
+    _ord, subst.ptr(), /*result*/false, /*doInsert=*/true, _splitter, OrderingConstraints(), lits, splits))
   {
     return false;
   }
@@ -754,7 +754,7 @@ void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::initWithEqu
   if (!tgtTerm.containsAllVariablesOf(rwTerm)) {
     return;
   }
-  Stack<Ordering::Constraint> ordCons;
+  OrderingConstraints ordCons;
   ordCons.push({ tgtTerm, rwTerm, Ordering::GREATER });
   auto lits = LiteralSet::getEmpty();
   auto splits = SplitSet::getEmpty();
@@ -788,7 +788,7 @@ void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkEquati
     }
     auto clDataPtr = getDataPtr(cl, /*doAllocate=*/true);
     auto rsubs = ResultSubstitution::fromSubstitution(&subs, 0, 0);
-    (*clDataPtr)->insert(_ord, rsubs.ptr(), /*result*/false, /*splitter*/nullptr, Stack<Ordering::Constraint>(), LiteralSet::getEmpty(), SplitSet::getEmpty());
+    (*clDataPtr)->insert(_ord, rsubs.ptr(), /*result*/false, /*splitter*/nullptr, OrderingConstraints(), LiteralSet::getEmpty(), SplitSet::getEmpty());
   });
 }
 
