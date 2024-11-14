@@ -31,7 +31,7 @@ namespace Kernel {
 struct OrderingComparator
 {
 public:
-  OrderingComparator(const Ordering& ord, const Stack<Ordering::Constraint>& comps, void* result);
+  OrderingComparator(const Ordering& ord);
   virtual ~OrderingComparator();
 
   void reset() { _curr = &_source; _prev = nullptr; /* _trace.reset(); */ }

@@ -230,22 +230,9 @@ std::string OrderingComparator::to_dot() const
   return "digraph {\nnodesep = 0;\nsep = 0;\nranksep = 0;\nesep = 0;\n" + nodes + "\n" + edges + "}\n";
 }
 
-OrderingComparator::OrderingComparator(const Ordering& ord, const Stack<Ordering::Constraint>& comps, void* result)
-: _ord(ord), _source(), _sink(nullptr, Branch()), _curr(&_source), _prev(nullptr)
+OrderingComparator::OrderingComparator(const Ordering& ord)
+: _ord(ord), _source(nullptr, Branch()), _sink(_source), _curr(&_source), _prev(nullptr)
 {
-  ASS(result);
-  static Ordering::Result ordVals[] = { Ordering::EQUAL, Ordering::GREATER, Ordering::INCOMPARABLE };
-  auto curr = &_source;
-  for (const auto& [lhs,rhs,rel] : comps) {
-    *curr = OrderingComparator::Branch(lhs, rhs);
-    for (unsigned i = 0; i < 3; i++) {
-      if (ordVals[i] != comps[0].rel) {
-        curr->node()->getBranch(ordVals[i]) = _sink;
-      }
-    }
-    curr = &curr->node()->getBranch(rel);
-  }
-  *curr = Branch(result, _sink);
   _sink.node()->ready = true;
 }
 

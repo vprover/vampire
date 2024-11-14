@@ -158,7 +158,7 @@ public:
 
   Result compare(AppliedTerm t1, AppliedTerm t2) const override;
   Result isGreaterOrEq(AppliedTerm t1, AppliedTerm t2) const override;
-  OrderingComparatorUP createComparator(const Stack<Constraint>& cons, void* result) const override;
+  OrderingComparatorUP createComparator() const override;
 
 protected:
   unsigned computeWeight(AppliedTerm tt) const;

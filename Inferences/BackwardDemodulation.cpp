@@ -106,16 +106,10 @@ struct BackwardDemodulation::ResultFn
   {
     ASS_EQ(_cl->length(),1);
     _eqLit=(*_cl)[0];
-    {
-      Stack<Ordering::Constraint> leftCons;
-      leftCons.push({ *_eqLit->nthArgument(0), *_eqLit->nthArgument(1), Ordering::GREATER });
-      _comps.first = _ordering.createComparator(leftCons, (void*)0x1);
-    }
-    {
-      Stack<Ordering::Constraint> rightCons;
-      rightCons.push({ *_eqLit->nthArgument(1), *_eqLit->nthArgument(0), Ordering::GREATER });
-      _comps.second = _ordering.createComparator(rightCons, (void*)0x1);
-    }
+    _comps.first = _ordering.createComparator();
+    _comps.first->insert({ { *_eqLit->nthArgument(0), *_eqLit->nthArgument(1), Ordering::GREATER } }, (void*)0x1);
+    _comps.second = _ordering.createComparator();
+    _comps.second->insert({ { *_eqLit->nthArgument(1), *_eqLit->nthArgument(0), Ordering::GREATER } }, (void*)0x1);
     _removed=SmartPtr<ClauseSet>(new ClauseSet());
   }
 

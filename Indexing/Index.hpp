@@ -167,7 +167,8 @@ struct DemodulatorDataContainer {
     }
     auto ptr = new DemodulatorData(std::move(dd));
     dds.push(ptr);
-    comparator = ord.createComparator(ordCons, ptr);
+    comparator = ord.createComparator();
+    comparator->insert(ordCons, ptr);
   }
 
   ~DemodulatorDataContainer() {

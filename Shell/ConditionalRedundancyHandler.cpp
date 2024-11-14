@@ -157,7 +157,8 @@ private:
 
     auto es = new Entries();
     es->entries.push(ptr);
-    es->comparator = ord->createComparator(ptr->ordCons, ptr);
+    es->comparator = ord->createComparator();
+    es->comparator->insert(ptr->ordCons, ptr);
     code.push(CodeOp::getSuccess(es));
     incorporate(code);
     return true;

@@ -210,9 +210,9 @@ Ordering::Result Ordering::getEqualityArgumentOrder(Literal* eq) const
   return res;
 }
 
-OrderingComparatorUP Ordering::createComparator(const Stack<Constraint>& cons, void* result) const
+OrderingComparatorUP Ordering::createComparator() const
 {
-  return std::make_unique<OrderingComparator>(*this, cons, result);
+  return std::make_unique<OrderingComparator>(*this);
 }
 
 //////////////////////////////////////////////////

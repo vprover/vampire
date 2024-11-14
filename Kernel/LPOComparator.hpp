@@ -24,8 +24,7 @@ class LPOComparator
 : public OrderingComparator
 {
 public:
-  LPOComparator(const Ordering& ord, const Stack<Ordering::Constraint>& comps, void* result)
-    : OrderingComparator(ord, comps, result) {}
+  LPOComparator(const Ordering& ord) : OrderingComparator(ord) {}
 
   void expandTermCase() override;
 

@@ -17,8 +17,6 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Stack.hpp"
-
 #include "OrderingComparator.hpp"
 
 namespace Kernel {
@@ -33,8 +31,7 @@ class KBOComparator
 : public OrderingComparator
 {
 public:
-  KBOComparator(const Ordering& ord, const Stack<Ordering::Constraint>& comps, void* result)
-    : OrderingComparator(ord, comps, result) {}
+  KBOComparator(const Ordering& ord) : OrderingComparator(ord) {}
 
   void expandTermCase() override;
 };
