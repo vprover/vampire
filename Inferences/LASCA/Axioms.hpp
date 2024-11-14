@@ -74,13 +74,6 @@ class AxiomRule
   auto generateClauses(Superposition::Lhs const& premise) const
   {
     return iterItems<Clause*>();
-    // auto s = NumTraits::ifFloor(premise.selectedTerm(), [](auto s) { return s; }).unwrap();
-    // auto t = premise.smallerSide();
-    // return iterItems(
-    //     resClause(premise, geq0(sum(s, minus(t))))
-    //   , resClause(premise, eq(t, floor(t))) // <- TODO this derivation is a hack, it creates something greater
-    //   , resClause(premise, greater0(sum(minus(s), t, numeral(1))))
-    // );
   }
 
   auto generateClauses(FourierMotzkin::Lhs const& premise) const 
@@ -91,31 +84,18 @@ class AxiomRule
     auto pred = premise.lascaPredicate().unwrap();
     ASS(isInequality(pred))
 
-    return iterItems(resClause(premise, createLiteral<NumTraits>(pred, sum(s, t))));
 
-
-    //
-    // switch (pred) {
-    //   case LascaPredicate::EQ:
-    //   case LascaPredicate::NEQ:
-    //   case LascaPredicate::IS_INT_POS:
-    //   case LascaPredicate::IS_INT_NEG:
-    //     ASSERTION_VIOLATION
-    //   case LascaPredicate::GREATER:
-    //   case LascaPredicate::GREATER_EQ:
-    //     break;
-    // }
-    //
-    // return ifElseIter2(pred == LascaPredicate::GREATER_EQ,
-    //     iterItems(
-    //           resClause(premise, greater0(sum(floor(s), t, numeral(1))))
-    //         , resClause(premise, greater0(sum(s, t))
-    //                            , eq(s, floor(s)))
-    //         ),
-    //     iterItems(
-    //         resClause(premise, greater0(sum(s, t)))
-    //             )
-    //     );
+    return iterItems(
+        // +⌊s⌋ >=  -t       x - ⌊x⌋ >= 0
+        // ================================
+        //   +s + t > 0 \/ ⌊s⌋ + t == 0
+          pred == LascaPredicate::GREATER_EQ ? resClause(premise, greater0(sum(s, t)), eq(numeral(0), sum(floor(s), t)))
+        // +⌊s⌋ + t > 0        x - ⌊x⌋ >= 0
+        // ================================
+        //            +s + t > 0
+        : pred == LascaPredicate::GREATER    ? resClause(premise, greater0(sum(s, t)))
+        : assertionViolation<Clause*>()
+        );
   }
 
 
@@ -127,26 +107,10 @@ class AxiomRule
     auto pred = premise.lascaPredicate().unwrap();
     ASS(isInequality(pred))
 
+    // -⌊s⌋ + t >~ 0        -x + ⌊x⌋ + 1 > 0
+    // =====================================
+    //          -s + 1 + t > 0
     return iterItems(resClause(premise, greater0(sum(minus(s), t, numeral(1)))));
-
-    // switch (pred) {
-    //   case LascaPredicate::EQ:
-    //   case LascaPredicate::NEQ:
-    //   case LascaPredicate::IS_INT_POS:
-    //   case LascaPredicate::IS_INT_NEG:
-    //     ASSERTION_VIOLATION
-    //   case LascaPredicate::GREATER:
-    //   case LascaPredicate::GREATER_EQ:
-    //     break;
-    // }
-    // return concatIters(
-    //     iterItems(resClause(premise, greater0(sum(minus(s), t, numeral(1))))),
-    //     ifElseIter2(pred == LascaPredicate::GREATER,
-    //       // TODO make sure this matches the theory. i.e. we're using greater0 instead of geq0 in the implementation. make sure this is sound and write it down in the theory part!!!!
-    //           iterItems(resClause(premise, greater0(sum(minus(s), ceil(t))))),
-    //           VirtualIterator<Clause*>::getEmpty()
-    //       )
-    //     );
   }
 
   template<class RuleKind>

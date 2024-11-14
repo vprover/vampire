@@ -177,6 +177,8 @@ public:
     auto toRewriteσ = sigmaR(rhs.toRewrite);
     auto ks_tσ = toRewriteσ.term()->termArg(0);
 
+    // TODO side condition checks after unification!!
+
     auto js_uσ = sigmaL(lhs.self.smallerSide());
     auto add   = [](auto... as){ return NumTraits::add(as...); };
     auto floor = [](auto... as){ return NumTraits::floor(as...); };
