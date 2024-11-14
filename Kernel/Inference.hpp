@@ -318,14 +318,11 @@ enum class InferenceRule : unsigned char {
   INSTANTIATION, // used for theory reasoning
   /* inequality factoring rule of the ALASCA Calculs */
   LASCA_FOURIER_MOTZKIN,
-  LASCA_IS_INT_RESOLUTION,
-  LASCA_INEQUALITY_STRENGTHENING,
   /* factoring rules of the Inequality Resolution Calculs */
   LASCA_TERM_FACTORING,
   LASCA_AXIOM_RULE,
   LASCA_EQ_FACTORING,
   LASCA_LITERAL_FACTORING,
-  LASCA_IS_INT_FACTORING,
   /** superposition rule of the Inequality Resolution Calculus */
   LASCA_SUPERPOSITION,
   LASCA_COHERENCE,

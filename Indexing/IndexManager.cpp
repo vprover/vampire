@@ -12,7 +12,6 @@
  * Implements class IndexManager.
  */
 
-#include "Inferences/LASCA/IsIntResolution.hpp"
 #include "Indexing/Index.hpp"
 #include "Lib/Exception.hpp"
 
@@ -30,7 +29,6 @@
 #include "TermSubstitutionTree.hpp"
 #include "Inferences/LASCA/Demodulation.hpp"
 #include "Inferences/LASCA/FourierMotzkin.hpp"
-#include "Inferences/LASCA/InequalityStrengthening.hpp"
 #include "Inferences/LASCA/Superposition.hpp"
 #include "Inferences/LASCA/Coherence.hpp"
 
@@ -152,22 +150,6 @@ Index* IndexManager::create(IndexType t)
   case LASCA_BWD_DEMODULATION_SUBST_TREE:
     res = new LascaIndex<LASCA::Demodulation::Rhs>();
     isGenerating = false;
-    break;
-
-  
-  case LASCA_INEQUALITY_STRENGTHENING_RHS:
-    res=new LascaIndex<Inferences::LASCA::InequalityStrengthening::Rhs>();
-    isGenerating = true;
-    break;
-
-  case LASCA_IS_INT_RESOLUTION_LHS_SUBST_TREE:
-    res=new LascaIndex<Inferences::LASCA::IsIntResolution::Lhs>();
-    isGenerating = true;
-    break;
-
-  case LASCA_IS_INT_RESOLUTION_RHS_SUBST_TREE:
-    res=new LascaIndex<Inferences::LASCA::IsIntResolution::Rhs>();
-    isGenerating = true;
     break;
 
   case LASCA_FOURIER_MOTZKIN_LHS_SUBST_TREE:

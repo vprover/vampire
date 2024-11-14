@@ -156,7 +156,7 @@ public:
     _bd = {};
     _uwa = std::move(uwa);
   }
-  bool isEmpty() const { return _subs->isEmpty() && _constr->isEmpty() && _bd.isNone(); }
+  bool isEmpty() const { return _subs->isEmpty() && _constr->isEmpty() && (_bd.isNone() || _bd->isEmpty()); }
 
   static AbstractingUnifier empty(AbstractionOracle uwa) { return AbstractingUnifier(uwa); }
 

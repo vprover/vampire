@@ -869,12 +869,6 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "lasca term factoring";
   case InferenceRule::LASCA_FOURIER_MOTZKIN:
     return "lasca fourier motzkin";
-  case InferenceRule::LASCA_IS_INT_FACTORING:
-    return "isInt factoring";
-  case InferenceRule::LASCA_INEQUALITY_STRENGTHENING:
-    return "inequality strengthening";
-  case InferenceRule::LASCA_IS_INT_RESOLUTION:
-    return "isInt resolution";
   case InferenceRule::LASCA_NORMALIZATION:
     return "lasca normalization";
   case InferenceRule::LASCA_FWD_DEMODULATION:
