@@ -138,7 +138,7 @@ private:
     }
 
     CodeStack code;
-#define LINEARIZE 0
+#define LINEARIZE 1
 #if LINEARIZE
     Compiler<false, true> compiler(code);
 #else
@@ -542,11 +542,12 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuper
   if constexpr (ordC) {
     // TODO we cannot handle them together yet
     if (eqComp != Ordering::LESS) {
-      if (!premiseRedundant || !rwTermS.containsAllVariablesOf(tgtTermS)) {
+      if (!rwTermS.containsAllVariablesOf(tgtTermS)) {
         return true;
       }
       ordCons.push({ rwTermS, tgtTermS, Ordering::GREATER });
-    } else if (!premiseRedundant) {
+    }
+    if (!premiseRedundant) {
       TermList other = EqHelper::getOtherEqualitySide(rwLitS, rwTermS);
       if (otherComp != Ordering::INCOMPARABLE || !other.containsAllVariablesOf(tgtTermS)) {
         return true;
