@@ -73,6 +73,9 @@ MainLoopResult MainLoop::run()
   {
     return e.result;
   }
+  catch(...) {
+    ASSERTION_VIOLATION
+  }
 }
 
 /**

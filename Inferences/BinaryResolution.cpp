@@ -256,7 +256,7 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
                                              env.options->unificationWithAbstractionFixedPointIteration()))
                      .map([this,lit,premise](auto qr) {
                         // perform binary resolution on query results
-                        auto subs = ResultSubstitution::fromSubstitution(&qr.unifier->subs(), QUERY_BANK, RESULT_BANK);
+                        auto subs = ResultSubstitution::fromSubstitution(&qr.unifier->subs(), subsTreeQueryBank(0), subsTreeResultBank(0));
                         bool doAfterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
                         return BinaryResolution::generateClause(premise, lit, qr.data->clause, qr.data->literal, subs, 
                             [&](){ return qr.unifier->computeConstraintLiterals(); }, 

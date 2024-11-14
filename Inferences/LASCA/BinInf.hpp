@@ -40,6 +40,9 @@ struct BinInf
 {
   using Lhs = typename Rule::Lhs;
   using Rhs = typename Rule::Rhs;
+  static constexpr int _lhsBank = 0;
+  static constexpr int _rhsBank = 1;
+  static constexpr int _internalBank = 2;
 private:
   std::shared_ptr<LascaState> _shared;
   Rule _rule;
@@ -99,14 +102,15 @@ public:
     // TODO get rid of stack
     Stack<Clause*> out;
 
+    auto state = AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF));
     for (auto const& lhs : Lhs::iter(*_shared, premise)) {
       DEBUG(1, "lhs: ", lhs)
-      for (auto rhs_sigma : _rhs->find(lhs.key())) {
+      for (auto rhs_sigma : _rhs->find(&state, lhs.key(), _lhsBank, _internalBank, _rhsBank)) {
         auto& rhs   = *rhs_sigma.data;
         auto& sigma = rhs_sigma.unifier;
         DEBUG(1, "  rhs: ", rhs)
-        auto res = _rule.applyRule(lhs, QUERY_BANK, rhs, RESULT_BANK, *sigma);
-        for (Clause* res : iterTraits(_rule.applyRule(lhs, QUERY_BANK, rhs, RESULT_BANK, *sigma))) {
+        auto res = _rule.applyRule(lhs, _lhsBank, rhs, _rhsBank, *sigma);
+        for (Clause* res : iterTraits(_rule.applyRule(lhs, _lhsBank, rhs, _rhsBank, *sigma))) {
           DEBUG(1, "    result: ", *res)
           out.push(res);
         }
@@ -116,12 +120,12 @@ public:
 
     for (auto const& rhs : Rhs::iter(*_shared, premise)) {
       DEBUG(1, "rhs: ", rhs)
-      for (auto lhs_sigma : _lhs->find(rhs.key())) {
+      for (auto lhs_sigma : _lhs->find(&state, rhs.key(), _rhsBank, _internalBank, _lhsBank)) {
         auto& lhs   = *lhs_sigma.data;
         auto& sigma = lhs_sigma.unifier;
         if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop
           DEBUG(1, "  lhs: ", lhs)
-          for (Clause* res : iterTraits(_rule.applyRule(lhs, RESULT_BANK, rhs, QUERY_BANK, *sigma))) {
+          for (Clause* res : iterTraits(_rule.applyRule(lhs, _lhsBank, rhs, _rhsBank, *sigma))) {
             DEBUG(1, "    result: ", *res)
             out.push(res);
           }

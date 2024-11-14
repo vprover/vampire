@@ -43,9 +43,14 @@ public:
 
   void setShared(std::shared_ptr<Kernel::LascaState> shared) { _shared = std::move(shared); }
 
-  auto find(TypedTermList key)
-  {
-    return iterTraits(_index.getUwa(key, _shared->uwaMode(), _shared->uwaFixedPointIteration))
+  // auto find(TypedTermList key, unsigned queryBankNumber, AbstractingUnifier* state)
+  // { return iterTraits(_index.getUwa(key, queryBankNumber, _shared->uwaMode(), _shared->uwaFixedPointIteration, state))
+  //     .timeTraced(_lookupStr.c_str()); }
+
+  auto find(AbstractingUnifier* state, TypedTermList key, int queryBank, int normInternalBank, int internalBank)
+  { return iterTraits(_index.getUwa(state, key
+        , queryBank, normInternalBank, internalBank
+        , _shared->uwaMode(), _shared->uwaFixedPointIteration))
       .timeTraced(_lookupStr.c_str()); }
 
 
@@ -64,7 +69,10 @@ public:
         auto k = appl.key();
 #endif
         _index.insert(std::move(appl));
-        ASS_REP(find(k).hasNext(), outputToString("key: ", k, "\nindex: ", multiline(_index)))
+        DEBUG_CODE(
+        auto state = AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF));
+        )
+        ASS_REP(find(&state, k, 0, 1, 2).hasNext(), outputToString("key: ", k, "\nindex: ", multiline(_index)))
       } else {
         _index.remove(std::move(appl));
       }

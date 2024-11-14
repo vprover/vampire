@@ -62,42 +62,42 @@ using Rhs = InequalityStrengthening::Rhs;
 
 ClauseIterator InequalityStrengthening::generateClauses(Clause* premise) 
 {
-  // TODO refactor so this function is not copied and pasted among all unifying lasca rules
-  ASS(_lhsIndex)
-  ASS(_rhsIndex)
-  ASS(_shared)
-  Stack<Clause*> out;
-
-  for (auto const& lhs : Lhs::iter(*_shared, premise)) {
-    DEBUG("lhs: ", lhs)
-    for (auto rhs_sigma : _rhsIndex->find(lhs.key())) {
-      auto& rhs   = *rhs_sigma.data;
-      auto& sigma = rhs_sigma.unifier;
-      DEBUG("  rhs: ", rhs)
-      auto res = applyRule(lhs, 0, rhs, 1, *sigma);
-      if (res.isSome()) {
-        out.push(res.unwrap());
-      }
-    }
-  }
-
-  for (auto const& rhs : Rhs::iter(*_shared, premise)) {
-    DEBUG("rhs: ", rhs)
-
-    for (auto lhs_sigma : _lhsIndex->find(rhs.key())) {
-      auto& lhs   = *lhs_sigma.data;
-      auto& sigma = lhs_sigma.unifier;
-      if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop
-        DEBUG("  lhs: ", lhs)
-        auto res = applyRule(lhs, 1, rhs, 0, *sigma);
-        if (res.isSome()) {
-          out.push(res.unwrap());
-        }
-      }
-    }
-  }
-
-  return pvi(arrayIter(std::move(out)));
+  // // TODO refactor so this function is not copied and pasted among all unifying lasca rules
+  // ASS(_lhsIndex)
+  // ASS(_rhsIndex)
+  // ASS(_shared)
+  // Stack<Clause*> out;
+  //
+  // for (auto const& lhs : Lhs::iter(*_shared, premise)) {
+  //   DEBUG("lhs: ", lhs)
+  //   for (auto rhs_sigma : _rhsIndex->find(lhs.key())) {
+  //     auto& rhs   = *rhs_sigma.data;
+  //     auto& sigma = rhs_sigma.unifier;
+  //     DEBUG("  rhs: ", rhs)
+  //     auto res = applyRule(lhs, 0, rhs, 1, *sigma);
+  //     if (res.isSome()) {
+  //       out.push(res.unwrap());
+  //     }
+  //   }
+  // }
+  //
+  // for (auto const& rhs : Rhs::iter(*_shared, premise)) {
+  //   DEBUG("rhs: ", rhs)
+  //
+  //   for (auto lhs_sigma : _lhsIndex->find(rhs.key())) {
+  //     auto& lhs   = *lhs_sigma.data;
+  //     auto& sigma = lhs_sigma.unifier;
+  //     if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop
+  //       DEBUG("  lhs: ", lhs)
+  //       auto res = applyRule(lhs, 1, rhs, 0, *sigma);
+  //       if (res.isSome()) {
+  //         out.push(res.unwrap());
+  //       }
+  //     }
+  //   }
+  // }
+  //
+  // return pvi(arrayIter(std::move(out)));
 }
 
 Option<Clause*> InequalityStrengthening::applyRule(
