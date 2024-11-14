@@ -717,6 +717,8 @@ vstring Term::toString(bool topLevel) const
         return binary(" + ");
       } else if (NumTraits::isMul(_functor)) {
         return binary(" ");
+      } else if (NumTraits::isFloor(_functor)) {
+        return some(outputToString("⌊", termArg(0), "⌋"));
       } else if (NumTraits::isMinus(_functor)) {
         return uminus();
       }

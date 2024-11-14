@@ -165,33 +165,37 @@ TEST_GENERATION(basic06,
       .inputs  ({ clause({ selected( f(x) + f(y) == floor(f2(x,y)) )  }) 
                 , clause({ selected(     p(floor(f(a) + f(b))) )  }) })
       .expected(expectedResults(
-            clause({ p(f(a) + f(b))  })
+              clause({ p(f(a) + f(x) + floor(f(b) - f(x)))  })
+            , clause({ p(f(b) + f(x) + floor(f(a) - f(x)))  })
       ))
     )
+
+// TEST_GENERATION(basic07,
+//     Generation::SymmetricTest()
+//       .indices(lascaCoherenceIndices())
+//       .selfApplications(false)
+//       .inputs  ({ clause({ selected( isInteger(f2(a, x) + f2(y, b)) )  }) 
+//                 , clause({ selected(     p(floor(f2(a, x) + f2(y, b))) )  }) })
+//       .expected(expectedResults(
+//             clause({ p(f2(a, x) + f2(z, b) + floor(f2(y, b) - f2(z, b)))  })
+//           , clause({ p(f2(a, b) + f2(z, b) + floor(f2(a, y) - f2(z, b)))  })
+//           , clause({ p(f2(x, b) + f2(a, z) + floor(f2(a, x) - f2(a, z)))  })
+//             // clause({ p(floor(f2(a, x) + f2(y, b)))  })
+//       ))
+//     )
+
+// TEST_GENERATION(basic07,
+//     Generation::SymmetricTest()
+//       .indices(lascaCoherenceIndices())
+//       .selfApplications(false)
+//       .inputs  ({ clause({ selected( isInteger(f2(a, x) + 2 * f2(y, b)) )  }) 
+//                 , clause({ selected(     p(floor(2 * f2(a, x) + f2(y, b))) )  }) })
+//       .expected(expectedResults(
+//             clause({ p(3 * f2(a, b))  })
+//       ))
+//     )
 
 TEST_GENERATION(basic07,
-    Generation::SymmetricTest()
-      .indices(lascaCoherenceIndices())
-      .selfApplications(false)
-      .inputs  ({ clause({ selected( isInteger(f2(a, x) + f2(y, b)) )  }) 
-                , clause({ selected(     p(floor(f2(a, x) + f2(y, b))) )  }) })
-      .expected(expectedResults(
-            clause({ p(f2(a, x) + f2(y, b))  })
-      ))
-    )
-
-TEST_GENERATION(basic08,
-    Generation::SymmetricTest()
-      .indices(lascaCoherenceIndices())
-      .selfApplications(false)
-      .inputs  ({ clause({ selected( isInteger(f2(a, x) + 2 * f2(y, b)) )  }) 
-                , clause({ selected(     p(floor(2 * f2(a, x) + f2(y, b))) )  }) })
-      .expected(expectedResults(
-            clause({ p(3 * f2(a, b))  })
-      ))
-    )
-
-TEST_GENERATION(basic09,
     Generation::SymmetricTest()
       .indices(lascaCoherenceIndices())
       .selfApplications(false)
@@ -204,7 +208,7 @@ TEST_GENERATION(basic09,
     )
 
 
-TEST_GENERATION(basic10,
+TEST_GENERATION(basic08,
     Generation::SymmetricTest()
       .indices(lascaCoherenceIndices())
       .selfApplications(false)
@@ -215,7 +219,18 @@ TEST_GENERATION(basic10,
       ))
     )
 
-TEST_GENERATION(basic11,
+TEST_GENERATION(basic08minus,
+    Generation::SymmetricTest()
+      .indices(lascaCoherenceIndices())
+      .selfApplications(false)
+      .inputs  ({ clause({ selected( isInteger(-a + -b) )  }) 
+                , clause({ selected(p(floor(-a + -b)) )  }) })
+      .expected(expectedResults(
+          clause({ p(-a + -b) })
+      ))
+    )
+
+TEST_GENERATION(basic09,
     Generation::SymmetricTest()
       .indices(lascaCoherenceIndices())
       .selfApplications(false)
@@ -226,7 +241,7 @@ TEST_GENERATION(basic11,
       ))
     )
 
-TEST_GENERATION(basic12,
+TEST_GENERATION(basic10,
     Generation::SymmetricTest()
       .indices(lascaCoherenceIndices())
       .selfApplications(false)
@@ -288,7 +303,7 @@ TEST_GENERATION(factors_4,
       .inputs  ({ clause({ selected( isInteger(a + b + c) )  }) 
                 , clause({ selected(p(floor(-a + -b + -2 * c)) )  }) })
       .expected(expectedResults(
-          clause({ p(-a + -b + -c + floor(-c)) })
+          clause({ p(-2 * a + -2 * b + -2 * c + floor(a + b)) })
       ))
     )
 
@@ -299,7 +314,7 @@ TEST_GENERATION(factors_5,
       .inputs  ({ clause({ selected( isInteger(a + b + c) )  }) 
                 , clause({ selected(p(floor(a + b + 2 * c)) )  }) })
       .expected(expectedResults(
-          clause({ p(a + b + c + floor(c)) })
+          clause({ p(-2 * a + -2 * b + -2 * c + floor(-a - b)) })
       ))
     )
 
