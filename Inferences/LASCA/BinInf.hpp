@@ -24,8 +24,10 @@
 #include "Kernel/Ordering.hpp"
 #include "Indexing/LascaIndex.hpp"
 #include "Shell/Options.hpp"
+#include "Lib/TypeList.hpp"
 
 #define DEBUG(lvl, ...)  if (lvl < 0) { DBG(__VA_ARGS__) }
+namespace TL = Lib::TypeList;
 
 namespace Inferences {
 namespace LASCA {
@@ -207,6 +209,13 @@ public:
   }
 #endif
 
+  template<unsigned p>
+  auto getIdx() { return std::get<p>(std::tie(_prem0, _prem1, _prem2)); }
+
+  // TODO make more generic (?)
+  template<unsigned p>
+  using Prem = TL::Get<p, TL::List<Premise0, Premise1, Premise2>>;
+
   ClauseIterator generateClauses(Clause* premise) final override
   {
     ASS(_prem0)
@@ -237,6 +246,7 @@ public:
       }
     }
 
+
     ASS(sigma.isEmpty())
 
     for (auto const& prem1 : Premise1::iter(*_shared, premise)) {
@@ -261,7 +271,7 @@ public:
     }
     ASS(sigma.isEmpty())
 
-    for (auto const& prem2 : Premise1::iter(*_shared, premise)) {
+    for (auto const& prem2 : Premise2::iter(*_shared, premise)) {
       DEBUG(1, "prem2: ", prem2)
       for (auto prem0_sigma : _prem0->find(&sigma, prem2.key(), bank(2), bankInternal(0), bank(0))) {
         auto& prem0   = *prem0_sigma.data;
