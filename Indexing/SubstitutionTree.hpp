@@ -1175,6 +1175,16 @@ public:
     template<class RetrievalAlgorithm>
     class Iterator final
     {
+      RetrievalAlgorithm _algo;
+      VarStack _svStack;
+      bool _retrieveSubstitution;
+      Option<LDIterator> _leafData;
+      Stack<NodeIterator> _nodeIterators;
+      BacktrackData _queryInitBacktrackData;
+      Stack<BacktrackData> _bdStack;
+      bool _normalizationRecording;
+      BacktrackData _normalizationBacktrackData;
+      InstanceCntr _iterCntr;
     public:
       Iterator(Iterator&&) = default;
       Iterator& operator=(Iterator&&) = default;
@@ -1194,6 +1204,7 @@ public:
         while(_bdStack.isNonEmpty()) {
           _bdStack.pop().backtrack();
         }
+        _queryInitBacktrackData.backtrack();
       }
 
       template<class TermOrLit, class...AlgoArgs>
@@ -1209,9 +1220,11 @@ public:
           return;
         }
 
+        _algo.bdRecord(_queryInitBacktrackData);
         parent->createBindings(query, reversed, 
             [&](unsigned var, TermList t) { _algo.bindQuerySpecialVar(var, t); });
         DEBUG_QUERY(1, "query: ", _algo)
+        _algo.bdDone();
 
 
         prepareChildren(root, /* backtrackable */ false);
@@ -1351,16 +1364,6 @@ public:
           }
         }
       }
-
-      RetrievalAlgorithm _algo;
-      VarStack _svStack;
-      bool _retrieveSubstitution;
-      Option<LDIterator> _leafData;
-      Stack<NodeIterator> _nodeIterators;
-      Stack<BacktrackData> _bdStack;
-      bool _normalizationRecording;
-      BacktrackData _normalizationBacktrackData;
-      InstanceCntr _iterCntr;
 
     public:
       bool keepRecycled() const 

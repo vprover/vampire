@@ -169,7 +169,6 @@ public:
   // TODO document
   Option<Recycled<Stack<unsigned>>> unifiableSymbols(unsigned f);
 
-
   static Option<AbstractingUnifier> unify(TermList t1, unsigned bank1, TermList t2, unsigned bank2, AbstractionOracle uwa, bool fixedPointIteration)
   {
     auto au = AbstractingUnifier::empty(uwa);

@@ -118,7 +118,7 @@ public:
       }
     }
 
-    ASS(sigma.isEmpty())
+    ASS_REP(sigma.isEmpty(), sigma)
 
     for (auto const& rhs : Rhs::iter(*_shared, premise)) {
       DEBUG(1, "rhs: ", rhs)
