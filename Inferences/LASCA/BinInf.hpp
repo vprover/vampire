@@ -102,15 +102,15 @@ public:
     // TODO get rid of stack
     Stack<Clause*> out;
 
-    auto state = AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF));
+    auto sigma = AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF));
+    ASS(sigma.isEmpty())
+
     for (auto const& lhs : Lhs::iter(*_shared, premise)) {
       DEBUG(1, "lhs: ", lhs)
-      for (auto rhs_sigma : _rhs->find(&state, lhs.key(), _lhsBank, _internalBank, _rhsBank)) {
+      for (auto rhs_sigma : _rhs->find(&sigma, lhs.key(), _lhsBank, _internalBank, _rhsBank)) {
         auto& rhs   = *rhs_sigma.data;
-        auto& sigma = rhs_sigma.unifier;
         DEBUG(1, "  rhs: ", rhs)
-        auto res = _rule.applyRule(lhs, _lhsBank, rhs, _rhsBank, *sigma);
-        for (Clause* res : iterTraits(_rule.applyRule(lhs, _lhsBank, rhs, _rhsBank, *sigma))) {
+        for (Clause* res : iterTraits(_rule.applyRule(lhs, _lhsBank, rhs, _rhsBank, sigma))) {
           DEBUG(1, "    result: ", *res)
           out.push(res);
         }
@@ -118,14 +118,15 @@ public:
       }
     }
 
+    ASS(sigma.isEmpty())
+
     for (auto const& rhs : Rhs::iter(*_shared, premise)) {
       DEBUG(1, "rhs: ", rhs)
-      for (auto lhs_sigma : _lhs->find(&state, rhs.key(), _rhsBank, _internalBank, _lhsBank)) {
+      for (auto lhs_sigma : _lhs->find(&sigma, rhs.key(), _rhsBank, _internalBank, _lhsBank)) {
         auto& lhs   = *lhs_sigma.data;
-        auto& sigma = lhs_sigma.unifier;
         if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop
           DEBUG(1, "  lhs: ", lhs)
-          for (Clause* res : iterTraits(_rule.applyRule(lhs, _lhsBank, rhs, _rhsBank, *sigma))) {
+          for (Clause* res : iterTraits(_rule.applyRule(lhs, _lhsBank, rhs, _rhsBank, sigma))) {
             DEBUG(1, "    result: ", *res)
             out.push(res);
           }
@@ -133,6 +134,154 @@ public:
         }
       }
     }
+    return pvi(arrayIter(std::move(out)));
+  }
+
+};
+
+template<class Rule>
+struct TriInf
+: public GeneratingInferenceEngine
+{
+  using Premise0 = typename Rule::Premise0;
+  using Premise1 = typename Rule::Premise1;
+  using Premise2 = typename Rule::Premise2;
+  static constexpr int bank(unsigned i) { return i * 2; }
+  static constexpr int bankInternal(unsigned i) { return i * 2 + 1; }
+private:
+  std::shared_ptr<LascaState> _shared;
+  Rule _rule;
+  LascaIndex<Premise0>* _prem0;
+  LascaIndex<Premise1>* _prem1;
+  LascaIndex<Premise2>* _prem2;
+public:
+  USE_ALLOCATOR(TriInf);
+
+  TriInf(TriInf&&) = default;
+  TriInf(std::shared_ptr<LascaState> shared, Rule rule)
+    : _shared(std::move(shared))
+    , _rule(std::move(rule))
+    , _prem0(nullptr)
+    , _prem1(nullptr)
+    , _prem2(nullptr)
+  {  }
+
+  void attach(SaturationAlgorithm* salg) final override
+  { 
+    ASS(!_prem0);
+    ASS(!_prem1);
+    ASS(!_prem2);
+
+    GeneratingInferenceEngine::attach(salg);
+
+    _prem0=static_cast<decltype(_prem0)> (_salg->getIndexManager()->request(Premise0::indexType()));
+    _prem1=static_cast<decltype(_prem1)>(_salg->getIndexManager()->request(Premise1::indexType()));
+    _prem2=static_cast<decltype(_prem2)>(_salg->getIndexManager()->request(Premise2::indexType()));
+
+    _prem0->setShared(_shared);
+    _prem1->setShared(_shared);
+    _prem2->setShared(_shared);
+  }
+
+  void detach() final override {
+    ASS(_salg);
+    _prem0 = nullptr;
+    _prem1 = nullptr;
+    _prem2 = nullptr;
+    _salg->getIndexManager()->release(Premise0::indexType());
+    _salg->getIndexManager()->release(Premise1::indexType());
+    _salg->getIndexManager()->release(Premise2::indexType());
+    GeneratingInferenceEngine::detach();
+  }
+
+
+#if VDEBUG
+  virtual void setTestIndices(Stack<Indexing::Index*> const& indices) final override
+  {
+    _prem0 = (decltype(_prem0)) indices[0]; 
+    _prem1 = (decltype(_prem1)) indices[1]; 
+    _prem2 = (decltype(_prem2)) indices[2]; 
+    _prem0->setShared(_shared);
+    _prem1->setShared(_shared);
+    _prem2->setShared(_shared);
+  }
+#endif
+
+  ClauseIterator generateClauses(Clause* premise) final override
+  {
+    ASS(_prem0)
+    ASS(_prem1)
+    ASS(_prem2)
+    ASS(_shared)
+
+    // TODO get rid of stack
+    Stack<Clause*> out;
+    auto sigma = AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF));
+
+    for (auto const& prem0 : Premise0::iter(*_shared, premise)) {
+      DEBUG(1, "prem0: ", prem0)
+      for (auto prem1_sigma : _prem1->find(&sigma, prem0.key(), bank(0), bankInternal(1), bank(1))) {
+        auto& prem1   = *prem1_sigma.data;
+        DEBUG(1, "  prem1: ", prem1)
+        for (auto prem2_sigma : _prem2->find(&sigma, prem0.key(), bank(0), bankInternal(2), bank(2))) {
+          auto& prem2   = *prem2_sigma.data;
+          DEBUG(1, "    prem2: ", prem2)
+          for (Clause* res : iterTraits(_rule.applyRule(prem0, bank(0), 
+                                                        prem1, bank(1), 
+                                                        prem2, bank(2), sigma))) {
+            DEBUG(1, "      result: ", *res)
+            out.push(res);
+          }
+        }
+        DEBUG(1, "")
+      }
+    }
+
+    ASS(sigma.isEmpty())
+
+    for (auto const& prem1 : Premise1::iter(*_shared, premise)) {
+      DEBUG(1, "prem1: ", prem1)
+      for (auto prem0_sigma : _prem0->find(&sigma, prem1.key(), bank(1), bankInternal(0), bank(0))) {
+        auto& prem0   = *prem0_sigma.data;
+        if (prem0.clause() != premise) { // <- self application. the same one has been run already in the previous loop
+          DEBUG(1, "  prem0: ", prem0)
+          for (auto prem2_sigma : _prem2->find(&sigma, prem0.key(), bank(0), bankInternal(2), bank(2))) {
+            auto& prem2   = *prem2_sigma.data;
+            DEBUG(1, "    prem2: ", prem2)
+            for (Clause* res : iterTraits(_rule.applyRule(prem0, bank(0), 
+                                                          prem1, bank(1), 
+                                                          prem2, bank(2), sigma))) {
+              DEBUG(1, "      result: ", *res)
+              out.push(res);
+            }
+            DEBUG(1, "")
+          }
+        }
+      }
+    }
+    ASS(sigma.isEmpty())
+
+    for (auto const& prem2 : Premise1::iter(*_shared, premise)) {
+      DEBUG(1, "prem2: ", prem2)
+      for (auto prem0_sigma : _prem0->find(&sigma, prem2.key(), bank(2), bankInternal(0), bank(0))) {
+        auto& prem0   = *prem0_sigma.data;
+        // if (prem0.clause() != premise && prem2.clause() != premise) { // <- self application. the same one has been run already in the previous loop
+          DEBUG(1, "  prem0: ", prem0)
+          for (auto prem1_sigma : _prem1->find(&sigma, prem0.key(), bank(0), bankInternal(1), bank(1))) {
+            auto& prem1   = *prem1_sigma.data;
+            DEBUG(1, "    prem1: ", prem1)
+            for (Clause* res : iterTraits(_rule.applyRule(prem0, bank(0), 
+                                                          prem1, bank(1), 
+                                                          prem2, bank(2), sigma))) {
+              DEBUG(1, "      result: ", *res)
+              out.push(res);
+            }
+            DEBUG(1, "")
+          }
+        // }
+      }
+    }
+
     return pvi(arrayIter(std::move(out)));
   }
 
