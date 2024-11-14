@@ -8,13 +8,13 @@
  * and in the source directory
  */
 /**
- * @file Axioms.hpp
- * Defines class Axioms
+ * @file FloorBounds.hpp
+ * Defines class FloorBounds
  *
  */
 
-#ifndef __LASCA_Axioms
-#define __LASCA_Axioms
+#ifndef __LASCA_FloorBounds__
+#define __LASCA_FloorBounds__
 
 #include "Debug/Assertion.hpp"
 #include "Forwards.hpp"
@@ -37,7 +37,7 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-class AxiomRule 
+class FloorBounds 
   : public GeneratingInferenceEngine 
 {
   using NumTraits = RealTraits;
@@ -121,10 +121,10 @@ class AxiomRule
   }
 
 public:
-  USE_ALLOCATOR(AxiomRule);
+  USE_ALLOCATOR(FloorBounds);
 
-  AxiomRule(AxiomRule&&) = default;
-  AxiomRule(std::shared_ptr<LascaState> shared) 
+  FloorBounds(FloorBounds&&) = default;
+  FloorBounds(std::shared_ptr<LascaState> shared) 
     : _shared(std::move(shared))
   {  }
 
@@ -154,4 +154,4 @@ public:
 } // namespace Inferences 
 
 
-#endif /*__LASCA_Axioms*/
+#endif /*__LASCA_FloorBounds__*/
