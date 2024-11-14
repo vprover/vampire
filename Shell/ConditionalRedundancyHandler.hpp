@@ -61,7 +61,6 @@ using LiteralSet = SharedSet<Literal*>;
 
 struct ConditionalRedundancyEntry
 {
-  Stack<std::pair<unsigned,unsigned>> eqCons;
   OrderingConstraints ordCons;
   const LiteralSet* lits;
   SplitSet* splits;

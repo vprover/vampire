@@ -118,11 +118,6 @@ PartialOrdering::~PartialOrdering()
   }
 }
 
-void PartialOrdering::reset()
-{
-  std::memset(_array, 0, ((_size - 1) * _size / 2)*sizeof(PoComp));
-}
-
 bool PartialOrdering::get(TermList lhs, TermList rhs, Result& res) const
 {
   if (lhs == rhs) {

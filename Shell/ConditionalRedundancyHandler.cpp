@@ -80,13 +80,13 @@ public:
     }
   }
 
-  bool check(const Ordering* ord, ResultSubstitution* subst, bool result, const LiteralSet* lits, const SplitSet* splits)
+  bool check(const Ordering* ord, ResultSubstitution* subst, bool result, const OrderingConstraints& ordCons, const LiteralSet* lits, const SplitSet* splits)
   {
     if (_varSorts.isEmpty()) {
       return true;
     }
     auto ts = getInstances([subst,result](unsigned v) { return subst->applyTo(TermList::var(v),result); });
-    return !check(ts, ord, lits, splits);
+    return !check(ts, ord, ordCons, lits, splits);
   }
 
   bool insert(const Ordering* ord, ResultSubstitution* subst, bool result, Splitter* splitter,
@@ -105,7 +105,7 @@ public:
       return true;
     }
     auto ts = getInstances([subst,result](unsigned v) { return subst->applyTo(TermList::var(v),result); });
-    if (check(ts, ord, lits, splits)) {
+    if (check(ts, ord, ordCons, lits, splits)) {
       return false;
     }
     if (doInsert) {
@@ -152,7 +152,9 @@ private:
       ASS(t.isTerm());
       compiler.handleTerm(t.term());
     }
-    ptr->eqCons = compiler.eqCons;
+    for (const auto& [x,y] : compiler.eqCons) {
+      ptr->ordCons.push({ TermList::var(x), TermList::var(y), Ordering::EQUAL });
+    }
     compiler.updateCodeTree(this);
 
     auto es = new Entries();
@@ -164,7 +166,7 @@ private:
     return true;
   }
 
-  bool check(const TermStack& ts, const Ordering* ord, const LiteralSet* lits, const SplitSet* splits)
+  bool check(const TermStack& ts, const Ordering* ord, const OrderingConstraints& ordCons, const LiteralSet* lits, const SplitSet* splits)
   {
     if (isEmpty()) {
       return false;
@@ -208,7 +210,7 @@ private:
 
 #if DEBUG_ORDERING
         auto ordCons_crosscheck = iterTraits(e->ordCons.iter()).all([ord,&applicator](auto& ordCon) {
-          return ord->compare(AppliedTerm(ordCon.lhs,&applicator,true),AppliedTerm(ordCon.rhs,&applicator,true))==Ordering::GREATER;
+          return ord->compare(AppliedTerm(ordCon.lhs,&applicator,true),AppliedTerm(ordCon.rhs,&applicator,true))==ordCon.rel;
         });
         if (!ordCons_crosscheck) {
           cout << e << endl;
@@ -255,7 +257,7 @@ private:
 
         // check ordering constraints
         auto ordCons_ok = iterTraits(e->ordCons.iter()).all([ord,&applicator](auto& ordCon) {
-          return ord->compare(AppliedTerm(ordCon.lhs,&applicator,true),AppliedTerm(ordCon.rhs,&applicator,true))==Ordering::GREATER;
+          return ord->compare(AppliedTerm(ordCon.lhs,&applicator,true),AppliedTerm(ordCon.rhs,&applicator,true))==ordCon.rel;
         });
         if (!ordCons_ok) {
           continue;
@@ -370,9 +372,11 @@ private:
     }
   }
 
-  std::string leafToString(const CodeOp* success) const override {
+  std::string leafToString(const CodeOp* op) const override {
     std::stringstream str;
-    // TODO
+    ASS(op->isSuccess());
+    auto es = op->getSuccessResult<Entries>();
+    str << *es->comparator;
     return str.str();
   }
 
@@ -481,7 +485,7 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
   }
 
   auto eqClDataPtr = getDataPtr(eqClause, /*doAllocate=*/false);
-  if (eqClDataPtr && !(*eqClDataPtr)->check(_ord, subs, eqIsResult, rwLits, rwSplits)) {
+  if (eqClDataPtr && !(*eqClDataPtr)->check(_ord, subs, eqIsResult, OrderingConstraints(), rwLits, rwSplits)) {
     env.statistics->skippedSuperposition++;
     return false;
   }
@@ -501,7 +505,7 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
   }
 
   auto rwClDataPtr = getDataPtr(rwClause, /*doAllocate=*/false);
-  if (rwClDataPtr && !(*rwClDataPtr)->check(_ord, subs, !eqIsResult, eqLits, eqSplits)) {
+  if (rwClDataPtr && !(*rwClDataPtr)->check(_ord, subs, !eqIsResult, OrderingConstraints(), eqLits, eqSplits)) {
     env.statistics->skippedSuperposition++;
     return false;
   }

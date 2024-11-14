@@ -83,9 +83,8 @@ public:
   virtual Result isGreaterOrEq(AppliedTerm t1, AppliedTerm t2) const
   { return compare(t1, t2); }
 
-  /** Creates optimised object to check that @b lhs is greater than @b rhs.
-   *  @see OrderingComparator. */
-  virtual OrderingComparatorUP createComparator(const Stack<Constraint>& cons, void* result) const;
+  /** Creates optimised object for ordering checks. @see OrderingComparator. */
+  virtual OrderingComparatorUP createComparator() const;
 
   virtual void show(std::ostream& out) const = 0;
 

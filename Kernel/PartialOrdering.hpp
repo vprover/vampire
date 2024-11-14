@@ -45,8 +45,6 @@ public:
   PartialOrdering(const PartialOrdering& other);
   ~PartialOrdering();
 
-  void reset();
-
   bool get(TermList lhs, TermList rhs, Ordering::Result& res) const;
   bool set(Ordering::Constraint con);
 
