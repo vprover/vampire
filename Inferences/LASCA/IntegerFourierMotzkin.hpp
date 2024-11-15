@@ -23,8 +23,7 @@ namespace Inferences {
 namespace LASCA {
 
 using namespace Kernel;
-using namespace Indexing;
-using namespace Saturation;
+using namespace Indexing; using namespace Saturation;
 
 template<class NumTraits>
 struct IntegerFourierMotzkinConf
@@ -51,9 +50,9 @@ struct IntegerFourierMotzkinConf
       Premise0 const& prem0, unsigned varBank0,
       Premise1 const& prem1, unsigned varBank1,
       Premise2 const& prem2, unsigned varBank2,
-      AbstractingUnifier& uwa) const;
+      AbstractingUnifier& uwa) const
   // TODO
-  // { return assertionViolation<Option<Clause*>>(); }
+  { return assertionViolation<Option<Clause*>>(); }
 
   std::shared_ptr<LascaState> _shared;
 };

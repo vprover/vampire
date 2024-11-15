@@ -35,6 +35,7 @@ using namespace Inferences;
 using namespace Test;
 using namespace Indexing;
 using namespace Inferences::LASCA;
+// TODO tests for Rationals
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////// TEST CASES 
@@ -74,6 +75,7 @@ using namespace Inferences::LASCA;
   DECL_VAR(x28, 28)                                                                       \
   DECL_VAR(x29, 29)                                                                       \
   DECL_FUNC(f, {Num}, Num)                                                                \
+  DECL_FUNC(f3, {Num,Num,Num}, Num)                                                                \
   DECL_FUNC(g, {Num, Num}, Num)                                                           \
   DECL_CONST(a, Num)                                                                      \
   DECL_CONST(a0, Num)                                                                     \
@@ -98,16 +100,16 @@ using namespace Inferences::LASCA;
 
 auto idxIntegerFourierMotzkin() { 
   return Stack<std::function<Indexing::Index*()>>{
-    [=]() { return new LascaIndex<IntegerFourierMotzkin::Premise0>(); },
-    [=]() { return new LascaIndex<IntegerFourierMotzkin::Premise1>(); },
-    [=]() { return new LascaIndex<IntegerFourierMotzkin::Premise2>(); },
+    [=]() { return new LascaIndex<IntegerFourierMotzkin<RealTraits>::Premise0>(); },
+    [=]() { return new LascaIndex<IntegerFourierMotzkin<RealTraits>::Premise1>(); },
+    [=]() { return new LascaIndex<IntegerFourierMotzkin<RealTraits>::Premise2>(); },
   }; 
 }
 
 auto testIntegerFourierMotzkin(
    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LPAR_MAIN
     ) 
-{ return IntegerFourierMotzkin(testLascaState(uwa)); }
+{ return IntegerFourierMotzkin<RealTraits>(testLascaState(uwa)); }
 
 
 template<class Rule> 
@@ -118,7 +120,7 @@ class LascaGenerationTester : public Test::Generation::GenerationTester<Rule>
 };
 
 
-REGISTER_GEN_TESTER(LascaGenerationTester<FourierMotzkin>(testIntegerFourierMotzkin()))
+REGISTER_GEN_TESTER(LascaGenerationTester<IntegerFourierMotzkin<RealTraits>>(testIntegerFourierMotzkin()))
 
 /////////////////////////////////////////////////////////
 // Basic tests
@@ -135,6 +137,7 @@ TEST_GENERATION(basic01,
       .expected(exactly(
             clause({  ceil(a) + ceil(b) - 2 > 0, f3(a,b,c) + ceil(a) == 1  })
       ))
+    )
 
 TEST_GENERATION(basic02,
     Generation::SymmetricTest()
@@ -145,6 +148,7 @@ TEST_GENERATION(basic02,
       .expected(exactly(
           /* nothing */
       ))
+    )
 
 TEST_GENERATION(basic03,
     Generation::SymmetricTest()
@@ -155,6 +159,7 @@ TEST_GENERATION(basic03,
       .expected(exactly(
             clause({  ceil(a) + ceil(b) - 2 > 0, f3(a,b,c) + ceil(a) == 1  })
       ))
+    )
 
 TEST_GENERATION(basic04,
     Generation::SymmetricTest()
@@ -165,6 +170,7 @@ TEST_GENERATION(basic04,
       .expected(exactly(
             clause({  ceil(2 * a) + ceil(2 * b) - 2 > 0, 2 * f3(a,b,c) + ceil(2 * a) == 1  })
       ))
+    )
 
 TEST_GENERATION(basic05,
     Generation::SymmetricTest()
@@ -175,6 +181,7 @@ TEST_GENERATION(basic05,
       .expected(exactly(
             clause({  ceil(a / 2) + ceil(b / 2) - 2 > 0, f3(a,b,c) / 2 + ceil(a / 2) == 1  })
       ))
+    )
 
 TEST_GENERATION(basic06,
     Generation::SymmetricTest()
@@ -185,6 +192,7 @@ TEST_GENERATION(basic06,
       .expected(exactly(
             clause({  ceil(a / 2 - frac(1,2)) + ceil(b / 2 + frac(1,2)) - 2 > 0, f3(a,b,c) / 2 + frac(1,2) + ceil(a / 2 - frac(1,2)) == 1  })
       ))
+    )
 
 TEST_GENERATION(basic07,
     Generation::SymmetricTest()
@@ -195,4 +203,5 @@ TEST_GENERATION(basic07,
       .expected(exactly(
             clause({  ceil(a / 2 - c) + ceil(b / 2 + c) - 2 > 0, f3(a,b,c) / 2 + c + ceil(a / 2 - c) == 1  })
       ))
+    )
 
