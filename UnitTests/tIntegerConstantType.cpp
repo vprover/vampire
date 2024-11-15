@@ -107,3 +107,16 @@ TEST_FUN(precedence) {
   ASS_EQ(Comparison::LESS, IntegerConstantType::comparePrecedence(ict( 1), ict(-3)))
   ASS_EQ(Comparison::LESS, IntegerConstantType::comparePrecedence(ict(-1), ict(-3)))
 }
+
+TEST_FUN(inverse_modulo_m) {
+  auto max = IntegerConstantType(512);
+  for (auto i : range(0, max)) {
+    for (auto m : range(1, max)) {
+      if (i.gcd(m) == 1) {
+        auto oneModM = IntegerConstantType(1).remainderE(m);
+        auto inv = i.inverseModulo(m);
+        ASS_EQ((i * inv).remainderE(m), oneModM)
+      }
+    }
+  }
+}

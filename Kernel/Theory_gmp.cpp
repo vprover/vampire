@@ -370,10 +370,9 @@ vstring RationalConstantType::toString() const
 
 IntegerConstantType IntegerConstantType::lcm(IntegerConstantType const& l, IntegerConstantType const& r)
 { 
-  ASS(l > IntegerConstantType(0))
-  ASS(r > IntegerConstantType(0))
-  // both are positive, hence it doesn't matter which quotient we use.
-  return l * (r.quotientE(gcd(l,r))); 
+  mpz_class out;
+  mpz_lcm(out.get_mpz_t(), l._val.get_mpz_t(), r._val.get_mpz_t());
+  return IntegerConstantType(std::move(out)); 
 }
 
 IntegerConstantType IntegerConstantType::gcd(IntegerConstantType const& l, IntegerConstantType const& r)
@@ -382,6 +381,15 @@ IntegerConstantType IntegerConstantType::gcd(IntegerConstantType const& l, Integ
   mpz_gcd(out.get_mpz_t(), l._val.get_mpz_t(), r._val.get_mpz_t());
   return IntegerConstantType(std::move(out)); 
 }
+
+IntegerConstantType IntegerConstantType::inverseModulo(IntegerConstantType const& m) const 
+{
+  mpz_class out;
+  mpz_invert(out.get_mpz_t(), this->_val.get_mpz_t(), m._val.get_mpz_t());
+  return IntegerConstantType(std::move(out));
+}
+
+
 
 /**
  * Ensure the GCD of numerator and denominator is 1, and the only

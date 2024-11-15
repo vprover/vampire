@@ -161,6 +161,12 @@ RealConstantType RealConstantType::abs() const
   return RealConstantType(RationalConstantType(*this).abs());
 }
 
+IntegerConstantType IntegerConstantType::inverseModulo(IntegerConstantType const& m) const 
+{ 
+#warn "using naive version of inverse modulo m. This is very slow. implement the extended version of the euclidean algorithm, or use the gmp version of theory reasoning if you want high performing vampire."
+  return naiveInverseModulo(*this, m); 
+}
+
 IntegerConstantType IntegerConstantType::abs() const
 {
   if (toInner() == std::numeric_limits<InnerType>::min() && USES_2_COMPLEMENT) {

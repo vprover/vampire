@@ -1528,18 +1528,17 @@ bool Theory::isInterpretedFunction(TermList t, Interpretation itp)
   return t.isTerm() && isInterpretedFunction(t.term(), itp);
 }
 
-IntegerConstantType IntegerConstantType::inverseModulo(IntegerConstantType const& m) const 
+IntegerConstantType naiveInverseModulo(IntegerConstantType const& l, IntegerConstantType const& m)
 {
   ASS(!m.isZero())
   if (m == IntegerConstantType(1)) {
     return IntegerConstantType(0);
   }
   // TODO use extended euclidean algorithm instead
-  auto l = *this;
   ASS(l.isPositive()) // <- can be done but not implemented
   ASS(m.isPositive()) // <- can be done but not implemented
   auto one = IntegerConstantType(1);
-  for (auto i : range(0, m - 1)) {
+  for (auto i : range(0, m)) {
     if ((l * i).remainderE(m) == 1) {
       return IntegerConstantType(i);
     }
