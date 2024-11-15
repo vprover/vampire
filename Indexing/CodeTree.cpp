@@ -1383,8 +1383,7 @@ bool CodeTree::Matcher::execute()
   bool shouldBacktrack=false;
   for(;;) {
     if(op->alternative()) {
-      btStack.pushUnsafe(BTPoint(tp, op->alternative(), substIsRenaming, substVRange));
-      // btStack.push(BTPoint(tp, op->alternative(), substIsRenaming, substVRange));
+      btStack.pushUnsafe(BTPoint(tp, op->alternative()));
     }
     switch(op->_instruction()) {
       case SUCCESS_OR_FAIL:
@@ -1458,8 +1457,6 @@ bool CodeTree::Matcher::backtrack()
   BTPoint bp=btStack.pop();
   tp=bp.tp;
   op=bp.op;
-  substIsRenaming=bp.substIsRenaming;
-  substVRange=bp.substVRange;
   return true;
 }
 
@@ -1506,10 +1503,6 @@ inline void CodeTree::Matcher::doAssignVar()
   if(fte->_tag()==FlatTerm::VAR) {
     bindings[var]=TermList(fte->_number(),false);
     tp++;
-    if (fte->_number() > 64 || (substVRange & (1UL << fte->_number()))) {
-      substIsRenaming = false;
-    }
-    substVRange |= (1UL << fte->_number());
   }
   else {
     ASS(fte->isFun());
@@ -1520,7 +1513,6 @@ inline void CodeTree::Matcher::doAssignVar()
     fte++;
     ASS_EQ(fte->_tag(), FlatTerm::FUN_RIGHT_OFS);
     tp+=fte->_number();
-    substIsRenaming = false;
   }
 }
 

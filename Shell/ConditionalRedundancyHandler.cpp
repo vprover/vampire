@@ -68,7 +68,7 @@ class ConditionalRedundancyHandler::ConstraintIndex
   : public CodeTree
 {
 public:
-  ConstraintIndex(Clause* cl) : _varSorts(), lastRenamingEntry(nullptr)
+  ConstraintIndex(Clause* cl) : _varSorts()
   {
     _clauseCodeTree=false;
     _onCodeOpDestroying = onCodeOpDestroying;
@@ -132,11 +132,6 @@ private:
 
   bool insert(const Ordering* ord, const TermStack& ts, ConditionalRedundancyEntry* ptr)
   {
-    if (lastRenamingEntry) {
-      // there is an entry up to renaming already, insert it here
-      return insert(ord, lastRenamingEntry, ptr);
-    }
-
     CodeStack code;
 #define LINEARIZE 1
 #if LINEARIZE
@@ -162,6 +157,25 @@ private:
     es->comparator = ord->createComparator();
     es->comparator->insert(ptr->ordCons, ptr);
     code.push(CodeOp::getSuccess(es));
+
+#if LINEARIZE
+    if (!isEmpty()) {
+      VariantMatcher vm;
+      Stack<CodeOp*> firstsInBlocks;
+
+      FlatTerm* ft = FlatTerm::create(ts);
+      vm.init(ft, this, &firstsInBlocks);
+
+      if (vm.next()) {
+        ASS(vm.op->isSuccess());
+        auto es = vm.op->template getSuccessResult<Entries>();
+        ft->destroy();
+        return insert(ord, es, ptr);
+      }
+      ft->destroy();
+    }
+#endif
+
     incorporate(code);
     return true;
   }
@@ -177,15 +191,10 @@ private:
       TermList operator()(unsigned v) const override { return matcher.bindings[v]; }
     } applicator;
 
-    lastRenamingEntry = nullptr;
     matcher.init(this, ts);
     Entries* es;
     while ((es = matcher.next()))
     {
-      if (matcher.substIsRenaming) {
-        lastRenamingEntry = es;
-      }
-
       ASS(es->comparator);
       es->comparator->reset();
       ConditionalRedundancyEntry* e = nullptr;
@@ -338,8 +347,6 @@ private:
 
       op=entry;
       tp=0;
-      substIsRenaming=true;
-      substVRange=0;
     }
 
     void reset()
@@ -364,6 +371,18 @@ private:
     }
   };
 
+  struct VariantMatcher
+  : public RemovingMatcher
+  {
+  public:
+    void init(FlatTerm* ft_, CodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_) {
+      RemovingMatcher::init(tree_->getEntryPoint(), 0, 0, tree_, firstsInBlocks_);
+      ft=ft_;
+      tp=0;
+      op=entry;
+    }
+  };
+
   static void onCodeOpDestroying(CodeOp* op) {
     if (op->isSuccess()) {
       auto es = op->getSuccessResult<Entries>();
@@ -379,8 +398,6 @@ private:
     str << *es->comparator;
     return str.str();
   }
-
-  Entries* lastRenamingEntry;
 };
 
 // ConditionalRedundancyHandler

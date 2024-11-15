@@ -332,7 +332,6 @@ public:
      * a call to the @b prepareLiteral function).
      */
     CodeOp* op;
-    bool substIsRenaming;
   protected:
 
     bool doCheckGroundTerm();
@@ -351,8 +350,6 @@ public:
      * a call to the @b prepareLiteral function).
      */
     FlatTerm* ft;
-
-    uint64_t substVRange;
   };
 
   //////// auxiliary methods //////////
@@ -464,15 +461,13 @@ public:
   struct BTPoint
   {
     BTPoint() {}
-    BTPoint(size_t tp, CodeOp* op, bool substIsRenaming, size_t substVRange)
-      : tp(tp), op(op), substIsRenaming(substIsRenaming), substVRange(substVRange) {}
+    BTPoint(size_t tp, CodeOp* op)
+      : tp(tp), op(op) {}
 
     /** Position in the flat term */
     size_t tp;
     /** Pointer to the next operation */
     CodeOp* op;
-    bool substIsRenaming;
-    uint64_t substVRange;
   };
 
   typedef Stack<BTPoint> BTStack;

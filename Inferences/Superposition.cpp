@@ -534,9 +534,9 @@ Clause* Superposition::performSuperposition(
       rwTerm
     ));
 
-  // if (rwTermS != *rwLitS->nthArgument(0) && rwTermS != *rwLitS->nthArgument(1) && comp == Ordering::INCOMPARABLE) {
-  //   condRedHandler.initWithEquation(clause, rwTermS, tgtTermS);
-  // }
+  if (rwTermS != *rwLitS->nthArgument(0) && rwTermS != *rwLitS->nthArgument(1) && comp == Ordering::INCOMPARABLE) {
+    condRedHandler.initWithEquation(clause, rwTermS, tgtTermS);
+  }
 
   return clause;
 }
