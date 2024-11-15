@@ -98,7 +98,7 @@ public:
   {
     static Stack<Literal*> st;
     st.reset();
-    st.loadFromIterator(litit);
+    st.loadFromIterator(std::move(litit));
     return fromStack(st, inf);
   }
 

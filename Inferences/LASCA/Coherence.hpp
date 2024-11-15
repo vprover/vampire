@@ -74,6 +74,13 @@ public:
     SharedSum js_u; // <- the them `j s + u`
     unsigned sIdx; // <- the index of `s` in the sum `j s + u`
 
+    auto contextLiterals() const { return self.contextLiterals(); }
+    auto j() const { return (**js_u)[sIdx].second; }
+    auto u() const { return NumTraits::sum(
+        range(0, (**js_u).size())
+          .filter([&](auto i) { return i != sIdx; })
+          .map([&](auto i) -> TermList { return TermList(NumTraits::mul(NumTraits::constantTl((**js_u)[i].second), (**js_u)[i].first)); })
+        ); }
     auto clause() const { return self.clause(); }
     auto asTuple() const { return std::tie(self, sIdx); }
     IMPL_COMPARISONS_FROM_TUPLE(Lhs);
@@ -108,6 +115,7 @@ public:
     SharedSum ks_t; // <- the term k s + t
     unsigned sIdx; // <- the index of `s` in the sum `k s + t`
 
+    auto contextLiterals() const { return self.contextLiterals(); }
     auto clause() const { return self.clause(); }
     auto asTuple() const { return std::tie(self, toRewrite, sIdx); }
     IMPL_COMPARISONS_FROM_TUPLE(Rhs);
@@ -145,7 +153,7 @@ public:
       AbstractingUnifier& uwa
       ) const 
   {
-    auto j = (**lhs.js_u)[lhs.sIdx].second;
+    auto j = lhs.j();
     auto k = (**rhs.ks_t)[rhs.sIdx].second;
 
     // c = gcd(den(j), den(k))
@@ -188,8 +196,8 @@ public:
     return someIf(i != 0, [&]() {
         return Clause::fromIterator(
           concatIters(
-            lhs.self.contextLiterals().map([=](auto l) { return sigmaL(l); }),
-            rhs.self.contextLiterals().map([=](auto l) { return sigmaR(l); }),
+            lhs.contextLiterals().map([=](auto l) { return sigmaL(l); }),
+            rhs.contextLiterals().map([=](auto l) { return sigmaR(l); }),
             arrayIter(*cnstr).map([](auto& literal) { return literal; }),
             iterItems(EqHelper::replace(Lσ, toRewriteσ, 
                 add(floor(add(ks_tσ, mul(-i, js_uσ))), mul(i, js_uσ))

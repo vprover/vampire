@@ -867,6 +867,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "lasca axiom simulation";
   case InferenceRule::LASCA_TERM_FACTORING:
     return "lasca term factoring";
+  case InferenceRule::LASCA_INTEGER_FOURIER_MOTZKIN:
+    return "lasca integer fourier motzkin";
   case InferenceRule::LASCA_FOURIER_MOTZKIN:
     return "lasca fourier motzkin";
   case InferenceRule::LASCA_NORMALIZATION:

@@ -117,6 +117,12 @@ class LascaGenerationTester : public Test::Generation::GenerationTester<Rule>
 {
  public:
   LascaGenerationTester(Rule r) : Test::Generation::GenerationTester<Rule>(std::move(r)) { }
+
+  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs)
+  { 
+    auto state = testLascaState();
+    return TestUtils::permEq(*lhs, *rhs, [&](auto l, auto r) { return state->equivalent(l,r); });
+  }
 };
 
 

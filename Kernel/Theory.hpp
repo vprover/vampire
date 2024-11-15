@@ -258,6 +258,7 @@ struct RationalConstantType {
 
   MK_CAST_OPS(RationalConstantType, int)
   MK_CAST_OPS(RationalConstantType, IntegerConstantType)
+  MK_CAST_OP(RationalConstantType, /, int)
 
 #if !WITH_GMP
 protected:
@@ -334,6 +335,8 @@ public:
   friend std::ostream& operator<<(std::ostream& out, const RealConstantType& val);
   MK_CAST_OPS(RealConstantType, int)
   MK_CAST_OPS(RealConstantType, IntegerConstantType)
+  MK_CAST_OP(RealConstantType, /, int)
+
 private:
   static bool parseDouble(const vstring& num, RationalConstantType& res);
 };
