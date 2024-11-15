@@ -849,10 +849,6 @@ void SaturationAlgorithm::addNewClause(Clause* cl)
   //the _newClauses RC stack already took over the clause
   cl->decRefCnt();
 }
-void throws() {
-  DBGE("throwing 42")
-  throw int(42);
-}
 
 void SaturationAlgorithm::newClausesToUnprocessed()
 {
@@ -861,15 +857,6 @@ void SaturationAlgorithm::newClausesToUnprocessed()
 
     Shuffling::shuffleArray(_newClauses.naked().begin(),_newClauses.size());
   }
-try{
-        throw int(42);
-      } catch (int i) {
-        DBG("bla 03: i: ", i);
-        ASSERTION_VIOLATION
-
-      } catch(...) {
-        ASSERTION_VIOLATION
-      }
 
   while (_newClauses.isNonEmpty()) {
     Clause* cl=_newClauses.popWithoutDec();
@@ -881,9 +868,7 @@ try{
       onNonRedundantClause(cl);
       break;
     case Clause::NONE:
-      {
-      
-      }
+      addUnprocessedClause(cl);
       break;
     case Clause::SELECTED:
     case Clause::ACTIVE:
@@ -928,15 +913,7 @@ void SaturationAlgorithm::addUnprocessedClause(Clause* cl)
     return;
   }
   if (cl->isEmpty()) {
-    try{
     handleEmptyClause(cl);
-    } catch (RefutationFoundException ex) {
-      DBG("bla 02");
-      DBG("throwing std::exception")
-      throw std::exception();
-      DBG("throwing BlaException")
-      throw BlaException{ex.refutation};
-    }
     return;
   }
 
@@ -982,14 +959,7 @@ void SaturationAlgorithm::handleEmptyClause(Clause* cl)
       UIHelper::setConjectureInProof(false);
     }
 
-
-    try {
     throw RefutationFoundException(cl);
-    } catch (RefutationFoundException ex) {
-      DBG("bla 01");
-      throw ex;
-    }
-    
   }
   // as Clauses no longer have prop parts the only reason for an empty 
   // clause not being a refutation is if it has splits
@@ -1296,12 +1266,7 @@ void SaturationAlgorithm::doUnprocessedLoop()
 {
 start:
 
-  try{
   newClausesToUnprocessed();
-  } catch (RefutationFoundException ex) {
-    DBG("bla 04.1");
-    throw ex;
-  }
   while (! _unprocessed->isEmpty()) {
     Clause* c = _unprocessed->pop();
     ASS(!isRefutation(c));
@@ -1316,12 +1281,7 @@ start:
       c->setStore(Clause::NONE);
     }
 
-  try{
     newClausesToUnprocessed();
-  } catch (RefutationFoundException ex) {
-    DBG("bla 04.2");
-    throw ex;
-  }
 
     if (env.timeLimitReached()) {
       throw TimeLimitExceededException();
@@ -1410,12 +1370,7 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     return;
   }
 
-  try{
   activate(cl);
-  } catch (RefutationFoundException ex) {
-    DBG("bla 05");
-    throw ex;
-  }
 }
 
 
