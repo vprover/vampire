@@ -180,7 +180,7 @@ bool CodeTreeTIS<Data>::generalizationExists(TermList t)
 }
 
 template class CodeTreeTIS<TermLiteralClause>;
-template class CodeTreeTIS<DemodulatorDataContainer>;
+template class CodeTreeTIS<DemodulatorData>;
 
 /////////////////   CodeTreeSubsumptionIndex   //////////////////////
 

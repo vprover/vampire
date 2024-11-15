@@ -34,10 +34,8 @@ public:
   OrderingComparator(const Ordering& ord);
   virtual ~OrderingComparator();
 
-  void reset() { _curr = &_source; _prev = nullptr; /* _trace.reset(); */ }
-
-  void* next(const SubstApplicator* applicator);
-  void insert(const Stack<Ordering::Constraint>& comps, void* result);
+  bool check(const SubstApplicator* applicator);
+  void insert(const Stack<Ordering::Constraint>& comps);
 
   friend std::ostream& operator<<(std::ostream& out, const OrderingComparator& comp);
   std::string to_dot() const;
@@ -49,7 +47,7 @@ protected:
   void processPolyCase();
 
   enum BranchTag {
-    T_DATA = 0u,
+    T_RESULT = 0u,
     T_TERM = 1u,
     T_POLY = 2u,
   };
@@ -69,6 +67,9 @@ protected:
     }
 
     Branch() = default;
+    explicit Branch(bool result) {
+      setNode(new Node(result));
+    }
     template<typename S, typename T> Branch(S&& s, T&& t) {
       setNode(new Node(std::forward<S>(s), std::forward<T>(t)));
     }
@@ -99,10 +100,10 @@ protected:
 
     auto& getBranch(Ordering::Result r) {
       switch (r) {
-        case Ordering::EQUAL:
-          return eqBranch;
         case Ordering::GREATER:
           return gtBranch;
+        case Ordering::EQUAL:
+          return eqBranch;
         case Ordering::INCOMPARABLE:
           return ngeBranch;
         default:
@@ -110,8 +111,8 @@ protected:
       }
     }
 
-    explicit Node(void* data, Branch alternative)
-      : tag(T_DATA), data(data), alternative(alternative) {}
+    explicit Node(bool result)
+      : tag(T_RESULT), result(result) {}
     explicit Node(TermList lhs, TermList rhs)
       : tag(T_TERM), lhs(lhs), rhs(rhs) {}
     explicit Node(uint64_t w, Stack<VarCoeffPair>* varCoeffPairs)
@@ -128,18 +129,17 @@ protected:
     bool ready = false;
 
     union {
-      void* data = nullptr;
+      bool result;
       TermList lhs;
       int64_t w;
     };
     union {
-      Branch alternative;
       TermList rhs;
       Stack<VarCoeffPair>* varCoeffPairs;
     };
 
-    Branch eqBranch;
     Branch gtBranch;
+    Branch eqBranch;
     Branch ngeBranch;
     int refcnt = 0;
     Trace* trace = nullptr;
@@ -147,7 +147,7 @@ protected:
 
   const Ordering& _ord;
   Branch _source;
-  Branch _sink;
+  Branch _fail;
   Branch* _curr;
   Branch* _prev;
   // Trace _trace;

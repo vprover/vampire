@@ -107,9 +107,9 @@ struct BackwardDemodulation::ResultFn
     ASS_EQ(_cl->length(),1);
     _eqLit=(*_cl)[0];
     _comps.first = _ordering.createComparator();
-    _comps.first->insert({ { *_eqLit->nthArgument(0), *_eqLit->nthArgument(1), Ordering::GREATER } }, (void*)0x1);
+    _comps.first->insert({ { *_eqLit->nthArgument(0), *_eqLit->nthArgument(1), Ordering::GREATER } });
     _comps.second = _ordering.createComparator();
-    _comps.second->insert({ { *_eqLit->nthArgument(1), *_eqLit->nthArgument(0), Ordering::GREATER } }, (void*)0x1);
+    _comps.second->insert({ { *_eqLit->nthArgument(1), *_eqLit->nthArgument(0), Ordering::GREATER } });
     _removed=SmartPtr<ClauseSet>(new ClauseSet());
   }
 
@@ -148,8 +148,7 @@ struct BackwardDemodulation::ResultFn
     TermList lhsS=qr.data->term;
 
     auto& comp = lhs==*_eqLit->nthArgument(0) ? _comps.first : _comps.second;
-    comp->reset();
-    if (!comp->next(&appl)) {
+    if (!comp->check(&appl)) {
 #if DEBUG_ORDERING
       if (_ordering.isGreaterOrEq(AppliedTerm(lhsS), AppliedTerm(rhs,&appl,true))==Ordering::GREATER) {
         INVALID_OPERATION("backward check should be greater");

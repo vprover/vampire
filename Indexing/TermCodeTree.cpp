@@ -50,30 +50,6 @@ TermCodeTree<Data>::TermCodeTree()
 template<class Data>
 void TermCodeTree<Data>::insert(Data* data)
 {
-  if (!isEmpty()) {
-    static RemovingTermMatcher rtm;
-    static Stack<CodeOp*> firstsInBlocks;
-    firstsInBlocks.reset();
-
-    FlatTerm* ft=FlatTerm::create(data->term);
-    rtm.init(ft, this, &firstsInBlocks);
-
-    Data* dptr = nullptr;
-    for(;;) {
-      if (!rtm.next()) {
-        break;
-      }
-      ASS(rtm.op->isSuccess());
-      dptr=rtm.op->template getSuccessResult<Data>();
-      if (dptr->insert(*data)) {
-        delete data;
-        ft->destroy();
-        return;
-      }
-    }
-    ft->destroy();
-  }
-
   static CodeStack code;
   code.reset();
 
@@ -115,20 +91,38 @@ void TermCodeTree<Data>::remove(const Data& data)
     }
     ASS(rtm.op->isSuccess());
     dptr=rtm.op->template getSuccessResult<Data>();
-    if (dptr->remove(data)) {
+    if (*dptr==data) {
+      break;
+    }
+  }
+  
+  rtm.op->makeFail();
+
+  ASS(dptr);
+  delete dptr;
+  ft->destroy();
+  
+  optimizeMemoryAfterRemoval(&firstsInBlocks, rtm.op);
+  /*
+  
+  static TermMatcher tm;
+
+  tm.init(this, ti.t);
+
+  for(;;) {
+    TermInfo* found=tm.next();
+    if (!found) {
+      INVALID_OPERATION("term being removed was not found");
+    }
+    if (*found==ti) {
+      tm.op->makeFail();
+      delete found;
       break;
     }
   }
 
-  if (dptr->canBeDeleted()) {
-    rtm.op->makeFail();
-    ASS(dptr);
-    delete dptr;
-    optimizeMemoryAfterRemoval(&firstsInBlocks, rtm.op);
-  }
-
-  ft->destroy();
-
+  tm.deinit();
+  */
 } // TermCodeTree::remove
 
 template<class Data>
@@ -196,6 +190,6 @@ Data* TermCodeTree<Data>::TermMatcher::next()
 }
 
 template class TermCodeTree<TermLiteralClause>;
-template class TermCodeTree<DemodulatorDataContainer>;
+template class TermCodeTree<DemodulatorData>;
 
 };

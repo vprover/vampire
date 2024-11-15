@@ -126,7 +126,7 @@ private:
     ASS(entries->comparator);
 
     entries->entries.push(ptr);
-    entries->comparator->insert(ptr->ordCons, ptr);
+    entries->comparator->insert(ptr->ordCons);
     return true;
   }
 
@@ -155,7 +155,7 @@ private:
     auto es = new Entries();
     es->entries.push(ptr);
     es->comparator = ord->createComparator();
-    es->comparator->insert(ptr->ordCons, ptr);
+    es->comparator->insert(ptr->ordCons);
     code.push(CodeOp::getSuccess(es));
 
 #if LINEARIZE
@@ -196,85 +196,26 @@ private:
     while ((es = matcher.next()))
     {
       ASS(es->comparator);
-      es->comparator->reset();
-      ConditionalRedundancyEntry* e = nullptr;
-      while ((e = static_cast<ConditionalRedundancyEntry*>(es->comparator->next(&applicator)))) {
-
-        if (!e->active) {
-          continue;
-        }
-
-        // check AVATAR constraints
-        if (!e->splits->isSubsetOf(splits)) {
-          continue;
-        }
-
-        // check literal conditions
-        auto subsetof = e->lits->iter().all([lits,&applicator](Literal* lit) {
-          return lits->member(SubstHelper::apply(lit,applicator));
-        });
-        if (!subsetof) {
-          continue;
-        }
-
+      auto res = es->comparator->check(&applicator);
 #if DEBUG_ORDERING
-        auto ordCons_crosscheck = iterTraits(e->ordCons.iter()).all([ord,&applicator](auto& ordCon) {
+      auto ordCons_crosscheck = iterTraits(es->entries.iter()).any([ord,&applicator](auto e) {
+        return iterTraits(e->ordCons.iter()).all([ord,&applicator](auto& ordCon) {
           return ord->compare(AppliedTerm(ordCon.lhs,&applicator,true),AppliedTerm(ordCon.rhs,&applicator,true))==ordCon.rel;
         });
-        if (!ordCons_crosscheck) {
-          cout << e << endl;
+      });
+      if (res != ordCons_crosscheck) {
+        cout << res << " " << ordCons_crosscheck << endl;
+        cout << *es->comparator << endl;
+        for (const auto& e : es->entries) {
           cout << *e << endl;
-          cout << *es->comparator << endl;
-          INVALID_OPERATION("conditional redundancy ordering check failed");
         }
+        INVALID_OPERATION("conditional redundancy ordering check mismatch");
+      }
 #endif
-
-        // collect statistics
-        // TODO fix ordering constraint stats
-#if DEBUG_ORDERING
-        if (e->ordCons.isNonEmpty()) {
-          env.statistics->skippedInferencesDueToOrderingConstraints++;
-        }
-#endif
-        if (!e->lits->isEmpty()) {
-          env.statistics->skippedInferencesDueToLiteralConstraints++;
-        }
-        if (!e->splits->isEmpty()) {
-          env.statistics->skippedInferencesDueToAvatarConstraints++;
-        }
+      if (res) {
         matcher.reset();
         return true;
       }
-#if DEBUG_ORDERING
-      for (const auto& e : es->entries) {
-        if (!e->active) {
-          continue;
-        }
-
-        // check AVATAR constraints
-        if (!e->splits->isSubsetOf(splits)) {
-          continue;
-        }
-
-        // check literal conditions
-        auto subsetof = e->lits->iter().all([lits,&applicator](Literal* lit) {
-          return lits->member(SubstHelper::apply(lit,applicator));
-        });
-        if (!subsetof) {
-          continue;
-        }
-
-        // check ordering constraints
-        auto ordCons_ok = iterTraits(e->ordCons.iter()).all([ord,&applicator](auto& ordCon) {
-          return ord->compare(AppliedTerm(ordCon.lhs,&applicator,true),AppliedTerm(ordCon.rhs,&applicator,true))==ordCon.rel;
-        });
-        if (!ordCons_ok) {
-          continue;
-        }
-
-        INVALID_OPERATION("conditional redundancy entry missed");
-      }
-#endif
     }
     matcher.reset();
 

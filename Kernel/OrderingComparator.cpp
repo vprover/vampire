@@ -27,7 +27,7 @@ namespace Kernel {
 std::ostream& operator<<(std::ostream& out, const OrderingComparator::BranchTag& t)
 {
   switch (t) {
-    case OrderingComparator::BranchTag::T_DATA:
+    case OrderingComparator::BranchTag::T_RESULT:
       out << "r";
       break;
     case OrderingComparator::BranchTag::T_TERM:
@@ -44,8 +44,8 @@ std::ostream& operator<<(std::ostream& out, const OrderingComparator::Node& node
 {
   out << (OrderingComparator::BranchTag)node.tag << (node.ready?" ":"? ");
   switch (node.tag) {
-    case OrderingComparator::BranchTag::T_DATA: {
-      out << node.data;
+    case OrderingComparator::BranchTag::T_RESULT: {
+      out << node.result;
       break;
     }
     case OrderingComparator::BranchTag::T_POLY: {
@@ -81,14 +81,10 @@ std::ostream& operator<<(std::ostream& str, const OrderingComparator& comp)
     }
     str << *kv.first->node() << std::endl;
     if (seen.insert(kv.first->node())) {
-      if (kv.first->node()->tag==OrderingComparator::BranchTag::T_DATA) {
-        if (kv.first->node()->data) {
-          todo.push(std::make_pair(&kv.first->node()->alternative,kv.second+1));
-        }
-      } else {
+      if (kv.first->node()->tag!=OrderingComparator::BranchTag::T_RESULT) {
         todo.push(std::make_pair(&kv.first->node()->ngeBranch,kv.second+1));
-        todo.push(std::make_pair(&kv.first->node()->gtBranch,kv.second+1));
         todo.push(std::make_pair(&kv.first->node()->eqBranch,kv.second+1));
+        todo.push(std::make_pair(&kv.first->node()->gtBranch,kv.second+1));
       }
     }
   }
@@ -177,17 +173,16 @@ std::string OrderingComparator::to_dot() const
       style += "processed,";
     }
     switch (n->tag) {
-      case BranchTag::T_DATA: {
-        auto alt = n->alternative.node();
-        if (!alt) {
+      case BranchTag::T_RESULT: {
+        if (!n->result) {
           // do not output anything for the fail node
           style += "sinknode,";
           label += "";
           break;
         }
         style += "datanode,";
-        label += Int::toString((unsigned long)n->data);
-        edges += getBranch(id, alt, EdgeTag::ALT);
+        label += Int::toString((unsigned long)n->result);
+        // edges += getBranch(id, alt, EdgeTag::ALT);
         break;
       }
       case BranchTag::T_TERM: {
@@ -231,28 +226,25 @@ std::string OrderingComparator::to_dot() const
 }
 
 OrderingComparator::OrderingComparator(const Ordering& ord)
-: _ord(ord), _source(nullptr, Branch()), _sink(_source), _curr(&_source), _prev(nullptr)
+: _ord(ord), _source(false), _fail(_source), _curr(&_source), _prev(nullptr)
 {
-  _sink.node()->ready = true;
+  _fail.node()->ready = true;
 }
 
 OrderingComparator::~OrderingComparator() = default;
 
-void* OrderingComparator::next(const SubstApplicator* applicator)
+bool OrderingComparator::check(const SubstApplicator* applicator)
 {
+  _curr = &_source;
+  _prev = nullptr;
   ASS(_curr);
   for (;;) {
     expand();
     auto node = _curr->node();
     ASS(node->ready);
 
-    if (node->tag == BranchTag::T_DATA) {
-      if (!node->data) {
-        return nullptr;
-      }
-      _prev = _curr;
-      _curr = &node->alternative;
-      return node->data;
+    if (node->tag == BranchTag::T_RESULT) {
+      return node->result;
     }
 
     Ordering::Result comp = Ordering::INCOMPARABLE;
@@ -299,33 +291,33 @@ loop_end:
     _prev = _curr;
     _curr = &node->getBranch(comp);
   }
-  return nullptr;
+  ASSERTION_VIOLATION;
 }
 
-void OrderingComparator::insert(const Stack<Ordering::Constraint>& comps, void* result)
+void OrderingComparator::insert(const Stack<Ordering::Constraint>& ordCons)
 {
-  ASS(result);
   static Ordering::Result ordVals[] = { Ordering::EQUAL, Ordering::GREATER, Ordering::INCOMPARABLE };
   // we mutate current fail node and add a new one
-  auto curr = &_sink;
-  Branch newFail(nullptr, Branch());
+  // cout << "before " << *this << endl;
+  auto curr = &_fail;
+  Branch newFail(false);
   newFail.node()->ready = true;
 
   curr->node()->~Node();
   curr->node()->ready = false;
 
-  if (comps.isNonEmpty()) {
+  if (ordCons.isNonEmpty()) {
     curr->node()->tag = T_TERM;
-    curr->node()->lhs = comps[0].lhs;
-    curr->node()->rhs = comps[0].rhs;
+    curr->node()->lhs = ordCons[0].lhs;
+    curr->node()->rhs = ordCons[0].rhs;
     for (unsigned i = 0; i < 3; i++) {
-      if (ordVals[i] != comps[0].rel) {
+      if (ordVals[i] != ordCons[0].rel) {
         curr->node()->getBranch(ordVals[i]) = newFail;
       }
     }
-    curr = &curr->node()->getBranch(comps[0].rel);
-    for (unsigned i = 1; i < comps.size(); i++) {
-      auto [lhs,rhs,rel] = comps[i];
+    curr = &curr->node()->getBranch(ordCons[0].rel);
+    for (unsigned i = 1; i < ordCons.size(); i++) {
+      auto [lhs,rhs,rel] = ordCons[i];
       *curr = OrderingComparator::Branch(lhs, rhs);
       for (unsigned i = 0; i < 3; i++) {
         if (ordVals[i] != rel) {
@@ -334,14 +326,16 @@ void OrderingComparator::insert(const Stack<Ordering::Constraint>& comps, void* 
       }
       curr = &curr->node()->getBranch(rel);
     }
-    *curr = Branch(result, newFail);
+    *curr = Branch(true);
   } else {
-    curr->node()->tag = T_DATA;
-    curr->node()->data = result;
-    curr->node()->alternative = newFail;
+    curr->node()->tag = T_RESULT;
+    curr->node()->result = true;
   }
+  curr->node()->ready = true;
 
-  _sink = newFail;
+  _fail = newFail;
+  ASS(_fail.node()->ready);
+  ASS(!_fail.node()->result);
 }
 
 void OrderingComparator::expand()
@@ -351,25 +345,16 @@ void OrderingComparator::expand()
   {
     auto node = _curr->node();
 
-    if (node->tag == BranchTag::T_DATA) {
-      ASS(node->data); // no fail nodes here
-      // if refcnt > 1 we copy the node and
-      // we can also safely use the original
-      if (node->refcnt > 1) {
-        *_curr = Branch(node->data, node->alternative);
-      }
-      _curr->node()->trace = getCurrentTrace().release();
-      _curr->node()->ready = true;
-      return;
-    }
+    ASS_NEQ(node->tag, BranchTag::T_RESULT);
+
     if (node->tag == BranchTag::T_POLY) {
       // if refcnt > 1 we copy the node and
       // we can also safely use the original
       if (node->refcnt > 1) {
         auto varCoeffPairs = new Stack<VarCoeffPair>(*node->varCoeffPairs);
         *_curr = Branch(node->w, varCoeffPairs);
-        _curr->node()->eqBranch = node->eqBranch;
         _curr->node()->gtBranch = node->gtBranch;
+        _curr->node()->eqBranch = node->eqBranch;
         _curr->node()->ngeBranch = node->ngeBranch;
       }
 
@@ -555,7 +540,7 @@ ScopedPtr<OrderingComparator::Trace> OrderingComparator::getCurrentTrace()
       }
       return ScopedPtr<Trace>(trace.release());
     }
-    case BranchTag::T_DATA: {
+    case BranchTag::T_RESULT: {
       return ScopedPtr<Trace>(new Trace(*_prev->node()->trace));
     }
     case BranchTag::T_POLY: {
@@ -601,15 +586,8 @@ OrderingComparator::Branch& OrderingComparator::Branch::operator=(Branch&& other
 
 OrderingComparator::Node::~Node()
 {
-  switch(tag) {
-    case T_DATA:
-      alternative.~Branch();
-      break;
-    case T_TERM:
-      break;
-    case T_POLY:
-      delete varCoeffPairs;
-      break;
+  if (tag == T_POLY) {
+    delete varCoeffPairs;
   }
   ready = false;
   delete trace;
