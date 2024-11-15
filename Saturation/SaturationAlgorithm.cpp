@@ -851,10 +851,35 @@ fin:
 void SaturationAlgorithm::init()
 {
   if (!env.options->loadInitialGnn().empty()) {
+    // the model
     torch::jit::script::Module model = torch::jit::load(env.options->loadInitialGnn());
-    std::vector<torch::jit::IValue> inputs;
+
+    // it's methods
     auto node_kind = model.find_method("node_kind");
     auto edge_kind = model.find_method("edge_kind");
+
+    // and how we call them from cpp
+    std::vector<torch::jit::IValue> inputs;
+    auto model_node_kind = [&](const char* node_name, const torch::Tensor& node_features) {
+      // cout << node_name << " : " << node_features.sizes()[0] << endl;
+      inputs.clear();
+      inputs.push_back(node_name);
+      inputs.push_back(node_features);
+      (*node_kind)(inputs);
+    };
+
+    auto model_edge_kind = [&](const char* src_name,const char* tgt_name,
+                               vector<int64_t>& src_idxs, vector<int64_t>& tgt_idxs) {
+      inputs.clear();
+      inputs.push_back(src_name);
+      inputs.push_back(tgt_name);
+      auto src_idxs_t = torch::tensor(src_idxs,torch::TensorOptions().dtype(torch::kInt64));
+      auto tgt_idxs_t = torch::tensor(tgt_idxs,torch::TensorOptions().dtype(torch::kInt64));
+      inputs.push_back(torch::stack({src_idxs_t,tgt_idxs_t}));
+      // we always also want the opposite egde, and we already prepare its edge index here
+      inputs.push_back(torch::stack({tgt_idxs_t,src_idxs_t}));
+      (*edge_kind)(inputs);
+    };
 
     { // sorts
       torch::Tensor sort_features = torch::empty({env.signature->typeCons(),3}, torch::kFloat32);
@@ -871,10 +896,7 @@ void SaturationAlgorithm::init()
         // cout << "sort: " << t << " " << env.signature->isPlainCon(t) << " " << env.signature->isBoolCon(t) << " " << env.signature->isArithCon(t) << " # " << symb->name() << endl;
       }
 
-      inputs.clear();
-      inputs.push_back("sort");
-      inputs.push_back(sort_features);
-      (*node_kind)(inputs);
+      model_node_kind("sort",sort_features);
     }
 
     unsigned numPreds = env.signature->predicates(); // works as a offset for function symbols (Shall we have problems with predicates introduced during saturation?)
@@ -965,24 +987,9 @@ void SaturationAlgorithm::init()
         } while (jumpLen < numFuncs);
       }
 
-      inputs.clear();
-      inputs.push_back("symbol");
-      inputs.push_back(symbol_features);
-      (*node_kind)(inputs);
-
-      inputs.clear();
-      inputs.push_back("symbol");
-      inputs.push_back("sort");
-      inputs.push_back(torch::tensor(symb2sort_one,torch::TensorOptions().dtype(torch::kInt64)));
-      inputs.push_back(torch::tensor(symb2sort_two,torch::TensorOptions().dtype(torch::kInt64)));
-      (*edge_kind)(inputs);
-
-      inputs.clear();
-      inputs.push_back("symbol");
-      inputs.push_back("symbol");
-      inputs.push_back(torch::tensor(symb2symb_one,torch::TensorOptions().dtype(torch::kInt64)));
-      inputs.push_back(torch::tensor(symb2symb_two,torch::TensorOptions().dtype(torch::kInt64)));
-      (*edge_kind)(inputs);
+      model_node_kind("symbol",symbol_features);
+      model_edge_kind("symbol","sort",symb2sort_one,symb2sort_two);
+      model_edge_kind("symbol","symbol",symb2symb_one,symb2symb_two); // for the symbol precendence
     }
 
     vector<int64_t> cls2trm_one; // clauses
@@ -1145,69 +1152,29 @@ void SaturationAlgorithm::init()
       clauseId++;
     }
 
-    inputs.clear();
-    inputs.push_back("clause");
-    inputs.push_back(torch::tensor(clause_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({clauseId,10}));
-    (*node_kind)(inputs);
+    model_node_kind("clause",torch::tensor(clause_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({clauseId,10}));
+    model_node_kind("term",torch::tensor(term_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({subtermId,10}));
+    model_node_kind("var",torch::tensor(var_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({clVarId,1}));
 
-    inputs.clear();
-    inputs.push_back("term");
-    inputs.push_back(torch::tensor(term_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({subtermId,10}));
-    (*node_kind)(inputs);
-
-    inputs.clear();
-    inputs.push_back("var");
-    inputs.push_back(torch::tensor(var_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({clVarId,1}));
-    (*node_kind)(inputs);
-
-    inputs.clear();
-    inputs.push_back("clause");
-    inputs.push_back("term");
-    inputs.push_back(torch::tensor(cls2trm_one,torch::TensorOptions().dtype(torch::kInt64)));
-    inputs.push_back(torch::tensor(cls2trm_two,torch::TensorOptions().dtype(torch::kInt64)));
-    (*edge_kind)(inputs);
-
-    inputs.clear();
-    inputs.push_back("term");
-    inputs.push_back("term");
-    inputs.push_back(torch::tensor(trm2trm_one,torch::TensorOptions().dtype(torch::kInt64)));
-    inputs.push_back(torch::tensor(trm2trm_two,torch::TensorOptions().dtype(torch::kInt64)));
-    (*edge_kind)(inputs);
-
-    inputs.clear();
-    inputs.push_back("clause");
-    inputs.push_back("var");
-    inputs.push_back(torch::tensor(cls2var_one,torch::TensorOptions().dtype(torch::kInt64)));
-    inputs.push_back(torch::tensor(cls2var_two,torch::TensorOptions().dtype(torch::kInt64)));
-    (*edge_kind)(inputs);
-
-    inputs.clear();
-    inputs.push_back("var");
-    inputs.push_back("sort");
-    inputs.push_back(torch::tensor(var2srt_one,torch::TensorOptions().dtype(torch::kInt64)));
-    inputs.push_back(torch::tensor(var2srt_two,torch::TensorOptions().dtype(torch::kInt64)));
-    (*edge_kind)(inputs);
-
-    inputs.clear();
-    inputs.push_back("term");
-    inputs.push_back("var");
-    inputs.push_back(torch::tensor(trm2var_one,torch::TensorOptions().dtype(torch::kInt64)));
-    inputs.push_back(torch::tensor(trm2var_two,torch::TensorOptions().dtype(torch::kInt64)));
-    (*edge_kind)(inputs);
-
-    inputs.clear();
-    inputs.push_back("term");
-    inputs.push_back("symbol");
-    inputs.push_back(torch::tensor(trm2symb_one,torch::TensorOptions().dtype(torch::kInt64)));
-    inputs.push_back(torch::tensor(trm2symb_two,torch::TensorOptions().dtype(torch::kInt64)));
-    (*edge_kind)(inputs);
+    model_edge_kind("clause","term",cls2trm_one,cls2trm_two);
+    model_edge_kind("term","term",trm2trm_one,trm2trm_two);      // the sub-term (down) edges
+    model_edge_kind("clause","var",cls2var_one,cls2var_two);
+    model_edge_kind("var","sort",var2srt_one,var2srt_two);
+    model_edge_kind("term","var",trm2var_one,trm2var_two);       // some subterms are variables
+    model_edge_kind("term","symbol",trm2symb_one,trm2symb_two);  // and others are proper and thus have a symbol
 
     if (!env.options->saveInitialGnn().empty()) {
       model.save(env.options->saveInitialGnn());
     }
 
     // what is option to do the actual inference? (load + save are not enough; because if load were to imply infer, then we can't do IMITATION)
-    // model.forward(std::vector<torch::jit::IValue>());
+    {
+      TIME_TRACE("gnn-eval");
+      auto result_tuple = model.forward(std::vector<torch::jit::IValue>()).toTuple();
+      torch::Tensor clause_tensor = result_tuple->elements()[0].toTensor();
+      torch::Tensor symbol_tensor = result_tuple->elements()[1].toTensor();
+      // cout << clause_tensor << endl;
+    }
   }
 
   // TODO: will later need to create a mapping between clause numbers and indexes impliclitly obtained now through the clauseIterator iteration
