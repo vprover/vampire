@@ -95,8 +95,6 @@ using namespace Inferences::LASCA;
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
-#define UWA_MODE Options::UnificationWithAbstraction::LPAR_MAIN
-
 auto idxFourierMotzkin(
     ) { 
   return Stack<std::function<Indexing::Index*()>>{

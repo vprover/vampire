@@ -744,6 +744,7 @@ set(UNIT_TESTS
     UnitTests/tTermIndex.cpp
     UnitTests/tGaussianElimination.cpp
     UnitTests/tLASCA_FourierMotzkin.cpp
+    UnitTests/tLASCA_IntegerFourierMotzkin.cpp
     UnitTests/tLASCA_InequalityFactoring.cpp
     UnitTests/tLASCA_Normalization.cpp
     UnitTests/tLASCA_Superposition.cpp
