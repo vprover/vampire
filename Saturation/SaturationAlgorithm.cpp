@@ -50,6 +50,7 @@
 #include "Inferences/GaussianVariableElimination.hpp"
 #include "Inferences/LASCA/FourierMotzkin.hpp"
 #include "Inferences/LASCA/IntegerFourierMotzkin.hpp"
+#include "Inferences/LASCA/FloorFourierMotzkin.hpp"
 #include "Inferences/LASCA/Normalization.hpp"
 #include "Inferences/LASCA/TermFactoring.hpp"
 #include "Inferences/LASCA/EqFactoring.hpp"
@@ -1660,6 +1661,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     sgi->push(new LASCA::FourierMotzkin(shared)); 
     // TODO also for rats?
     sgi->push(new LASCA::IntegerFourierMotzkin<RealTraits>(shared)); 
+    sgi->push(new LASCA::FloorFourierMotzkin<RealTraits>(shared)); 
     sgi->push(new LASCA::Superposition(shared)); 
     // TODO also for rationals?
     sgi->push(new LASCA::Coherence<RealTraits>(shared)); 

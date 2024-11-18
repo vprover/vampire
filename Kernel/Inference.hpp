@@ -321,7 +321,7 @@ enum class InferenceRule : unsigned char {
   LASCA_INTEGER_FOURIER_MOTZKIN,
   /* factoring rules of the Inequality Resolution Calculs */
   LASCA_TERM_FACTORING,
-  LASCA_AXIOM_RULE,
+  LASCA_FLOOR_BOUNDS,
   LASCA_EQ_FACTORING,
   LASCA_LITERAL_FACTORING,
   /** superposition rule of the Inequality Resolution Calculus */

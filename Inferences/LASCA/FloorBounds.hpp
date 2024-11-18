@@ -68,7 +68,7 @@ class FloorBounds
   static auto resClause(Premise const& premise, Lits... lits) {
     return Clause::fromIterator(
         concatIters(premise.contextLiterals(), iterItems(lits...)),
-        GeneratingInference1(InferenceRule::LASCA_AXIOM_RULE, premise.clause()));
+        GeneratingInference1(InferenceRule::LASCA_FLOOR_BOUNDS, premise.clause()));
   }
 
   auto generateClauses(Superposition::Lhs const& premise) const
