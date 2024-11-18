@@ -24,6 +24,8 @@
 #include "TermIterators.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 
+#include <unordered_map>
+
 namespace Kernel {
 
 using namespace Lib;
