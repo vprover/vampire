@@ -96,10 +96,10 @@ PoComp resultToPoComp(Result r, bool reversed) {
 }
 
 PartialOrdering::PartialOrdering()
-  : _nodes(), _size(0), _array(nullptr) {}
+  : _nodes(), _size(0), _array(nullptr), _hasIncomp(false) {}
 
 PartialOrdering::PartialOrdering(const PartialOrdering& other)
-  : _nodes(other._nodes), _size(_nodes.size()), _array(nullptr)
+  : _nodes(other._nodes), _size(_nodes.size()), _array(nullptr), _hasIncomp(other._hasIncomp)
 {
   size_t arrSize = ((_size - 1) * _size / 2);
   if (arrSize) {
@@ -274,6 +274,9 @@ bool PartialOrdering::set_idx_of(size_t x, size_t y, PoComp v)
     return false;
   }
   _array[idx] = new_v;
+  if (new_v == PoComp::INCOMPARABLE) {
+    _hasIncomp = true;
+  }
   return true;
 }
 

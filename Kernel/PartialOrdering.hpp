@@ -44,9 +44,14 @@ public:
   PartialOrdering();
   PartialOrdering(const PartialOrdering& other);
   ~PartialOrdering();
+  PartialOrdering& operator=(const PartialOrdering& other) = delete;
 
   bool get(TermList lhs, TermList rhs, Ordering::Result& res) const;
   bool set(Ordering::Constraint con);
+
+  // Returns if PO contains full incomparaibility yet.
+  // Useful to discard branches when reasoning over ground terms.
+  bool hasIncomp() const { return _hasIncomp; }
 
   std::string to_string() const;
 
@@ -66,6 +71,7 @@ private:
   Map<TermList,size_t> _nodes;
   size_t _size;
   PoComp* _array;
+  bool _hasIncomp;
 };
 
 };

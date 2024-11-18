@@ -100,7 +100,7 @@ public:
   virtual ~ConditionalRedundancyHandler() = default;
 
   virtual bool checkSuperposition(
-    Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit, bool eqIsResult, ResultSubstitution* subs) const = 0;
+    Clause* eqClause, Literal* eqLit, TermList eqLHS, Clause* rwClause, Literal* rwLit, bool eqIsResult, ResultSubstitution* subs) const = 0;
 
   virtual bool insertSuperposition(
     Clause* eqClause, Clause* rwClause, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
@@ -114,6 +114,8 @@ public:
   virtual void initWithEquation(Clause* resClause, TermList rwTerm, TermList tgtTerm) const = 0;
 
   virtual void checkEquations(Clause* cl) const = 0;
+
+  virtual void checkSubsumption(Clause* cl) const = 0;
 
   static void transfer(Clause* from, Clause* to);
 
@@ -138,7 +140,7 @@ public:
 
   /** Returns false if superposition should be skipped. */
   bool checkSuperposition(
-    Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit, bool eqIsResult, ResultSubstitution* subs) const override;
+    Clause* eqClause, Literal* eqLit, TermList eqLHS, Clause* rwClause, Literal* rwLit, bool eqIsResult, ResultSubstitution* subs) const override;
 
   bool insertSuperposition(
     Clause* eqClause, Clause* rwClause, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
@@ -158,6 +160,8 @@ public:
   void initWithEquation(Clause* resClause, TermList rwTerm, TermList tgtTerm) const override;
 
   void checkEquations(Clause* cl) const override;
+
+  void checkSubsumption(Clause* cl) const override;
 
 private:
   bool _redundancyCheck;

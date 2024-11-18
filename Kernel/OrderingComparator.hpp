@@ -22,6 +22,8 @@
 
 namespace Kernel {
 
+using OrderingConstraints = Stack<Ordering::Constraint>;
+
 /**
  * Class implementing runtime specialized ordering check between two terms.
  * The comparator is created and called from inside the respective ordering
@@ -30,15 +32,31 @@ namespace Kernel {
  */
 struct OrderingComparator
 {
+protected:
+  struct Branch;
 public:
   OrderingComparator(const Ordering& ord);
   virtual ~OrderingComparator();
 
   bool check(const SubstApplicator* applicator);
-  void insert(const Stack<Ordering::Constraint>& comps);
+  void insert(const OrderingConstraints& comps);
 
   friend std::ostream& operator<<(std::ostream& out, const OrderingComparator& comp);
   std::string to_dot() const;
+
+  class Subsumption {
+  public:
+    Subsumption(OrderingComparator& subsumer, const Ordering& ord, const OrderingConstraints& comps, bool ground);
+    bool check();
+
+  private:
+    bool checkLeaf();
+
+    OrderingComparator& subsumer;
+    OrderingComparatorUP subsumed;
+    Stack<OrderingComparator::Branch*> path;
+    bool ground;
+  };
 
 protected:
   void expand();
@@ -69,6 +87,7 @@ protected:
     Branch() = default;
     explicit Branch(bool result) {
       setNode(new Node(result));
+      _node->ready = true;
     }
     template<typename S, typename T> Branch(S&& s, T&& t) {
       setNode(new Node(std::forward<S>(s), std::forward<T>(t)));

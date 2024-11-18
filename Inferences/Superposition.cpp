@@ -343,7 +343,7 @@ Clause* Superposition::performSuperposition(
 
   const auto& condRedHandler = _salg->condRedHandler();
   if (!unifier->usesUwa()) {
-    if (!condRedHandler.checkSuperposition(eqClause, eqLit, rwClause, rwLit, eqIsResult, subst.ptr())) {
+    if (!condRedHandler.checkSuperposition(eqClause, eqLit, eqLHS, rwClause, rwLit, eqIsResult, subst.ptr())) {
       return 0;
     }
   }

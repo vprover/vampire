@@ -362,6 +362,20 @@ public:
 
   bool computable();
 
+  bool redundant() const { return _redundant; }
+  void markRedundant() { _redundant = true; }
+  bool ltrRedundant() const { return _ltrRedundant; }
+  void markLtrRedundant() { _ltrRedundant = true; }
+  bool rtlRedundant() const { return _rtlRedundant; }
+  void markRtlRedundant() { _rtlRedundant = true; }
+
+  void* redundantSubs() const { return _redundantSubs; }
+  void setRedundantSubs(void* s) { _redundantSubs = s; }
+  void* ltrRedundantSubs() const { return _ltrRedundantSubs; }
+  void setLtrRedundantSubs(void* s) { _ltrRedundantSubs = s; }
+  void* rtlRedundantSubs() const { return _rtlRedundantSubs; }
+  void setRtlRedundantSubs(void* s) { _rtlRedundantSubs = s; }
+
 protected:
   /** number of literals */
   unsigned _length : 20;
@@ -397,6 +411,12 @@ protected:
 
   size_t _auxTimestamp;
   void* _auxData;
+  bool _redundant;
+  bool _ltrRedundant;
+  bool _rtlRedundant;
+  void* _redundantSubs;
+  void* _ltrRedundantSubs;
+  void* _rtlRedundantSubs;
 
   static size_t _auxCurrTimestamp;
 #if VDEBUG

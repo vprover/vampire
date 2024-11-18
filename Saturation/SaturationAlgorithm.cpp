@@ -1281,6 +1281,12 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     throw MainLoopFinishedException(res);
   }
 
+  auto acl = _active->clauses();
+  while (acl.hasNext()) {
+    auto cl = acl.next();
+    _conditionalRedundancyHandler->checkSubsumption(cl);
+  }
+
   Clause* cl = nullptr;
   {
     TIME_TRACE(TimeTrace::PASSIVE_CONTAINER_MAINTENANCE);
