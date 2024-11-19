@@ -63,10 +63,10 @@ private:
   bool set_idx_of(size_t x, size_t y, PoComp v);
   bool set_idx_of_safe(size_t x, size_t y, PoComp v);
 
-  void set_inferred(size_t x, size_t y, PoComp result);
-  void set_inferred_loop(size_t x, size_t y, PoComp rel);
-  void set_inferred_loop_inc(size_t x, size_t y, PoComp wkn);
-  void set_inferred_loop_eq(size_t x, size_t y);
+  bool set_inferred(size_t x, size_t y, PoComp result);
+  bool set_inferred_loop(size_t x, size_t y, PoComp rel);
+  bool set_inferred_loop_inc(size_t x, size_t y, PoComp wkn);
+  bool set_inferred_loop_eq(size_t x, size_t y);
 
   Map<TermList,size_t> _nodes;
   size_t _size;
