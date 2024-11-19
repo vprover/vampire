@@ -130,6 +130,8 @@ Statistics::Statistics()
     condensations(0),
     globalSubsumption(0),
     interpretedSimplifications(0),
+    groundRedundantClauses(0),
+    groundRedundantEquationOrientations(0),
 
     asgViolations(0),
     asgCnt(0),
@@ -310,6 +312,7 @@ void Statistics::print(ostream& out)
       +( evaluationCnt - evaluationIncomp - evaluationGreater)
       +innerRewrites
       +booleanSimps
+      +groundRedundantClauses+groundRedundantEquationOrientations
       );
   COND_OUT("Duplicate literals", duplicateLiterals);
   COND_OUT("Trivial inequalities", trivialInequalities);
@@ -324,6 +327,8 @@ void Statistics::print(ostream& out)
   COND_OUT("Condensations", condensations);
   COND_OUT("Global subsumptions", globalSubsumption);
   COND_OUT("Interpreted simplifications", interpretedSimplifications);
+  COND_OUT("Ground redundant clauses", groundRedundantClauses);
+  COND_OUT("Ground redundant eq. orientations", groundRedundantEquationOrientations);
 
   COND_OUT("asg count", asgCnt);
   COND_OUT("asg results not smaller than the premis", asgViolations);

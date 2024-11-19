@@ -25,6 +25,8 @@
 using namespace std;
 using namespace Indexing;
 
+using Subsumption = OrderingComparator::Subsumption;
+
 namespace Shell
 {
 
@@ -77,6 +79,10 @@ public:
 #endif
     for (unsigned i = 0; i < cl->length(); i++) {
       SortHelper::collectVariableSorts((*cl)[i], _varSorts);
+      if (i < cl->numSelected()) {
+        _litSubs.push({ nullptr, nullptr });
+        _litRedundant.push({ false, false });
+      }
     }
   }
 
@@ -234,6 +240,10 @@ public:
   }
 
   DHMap<unsigned,TermList> _varSorts;
+  Subsumption* _subs = nullptr;
+  bool _redundant = false;
+  Stack<std::pair<Subsumption*, Subsumption*>> _litSubs;
+  Stack<std::pair<bool,bool>> _litRedundant;
 
   ConditionalRedundancyEntry* createEntry(const TermStack& ts, Splitter* splitter, OrderingConstraints&& ordCons, const LiteralSet* lits, SplitSet* splits) const
   {
@@ -427,15 +437,25 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
     return true;
   }
 
-  if (eqClause->redundant() || rwClause->redundant()) {
-    env.statistics->skippedSuperposition++;
-    return false;
+  auto eqClDataPtr = getDataPtr(eqClause, /*doAllocate=*/false);
+  if (eqClDataPtr) {
+    if ((*eqClDataPtr)->_redundant) {
+      env.statistics->skippedSuperposition++;
+      return false;
+    }
+    auto i = eqClause->getLiteralPosition(eqLit);
+    if (eqLHS == eqLit->termArg(0) && (*eqClDataPtr)->_litRedundant[i].first) {
+      env.statistics->skippedSuperposition++;
+      return false;
+    }
+    if (eqLHS == eqLit->termArg(1) && (*eqClDataPtr)->_litRedundant[i].second) {
+      env.statistics->skippedSuperposition++;
+      return false;
+    }
   }
-  if (eqClause->ltrRedundant() && eqLHS == eqLit->termArg(0)) {
-    env.statistics->skippedSuperposition++;
-    return false;
-  }
-  if (eqClause->rtlRedundant() && eqLHS == eqLit->termArg(1)) {
+
+  auto rwClDataPtr = getDataPtr(rwClause, /*doAllocate=*/false);
+  if (rwClDataPtr && (*rwClDataPtr)->_redundant) {
     env.statistics->skippedSuperposition++;
     return false;
   }
@@ -454,7 +474,6 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
     rwSplits = rwClause->splits();
   }
 
-  auto eqClDataPtr = getDataPtr(eqClause, /*doAllocate=*/false);
   if (eqClDataPtr && !(*eqClDataPtr)->check(_ord, subs, eqIsResult, OrderingConstraints(), rwLits, rwSplits)) {
     env.statistics->skippedSuperposition++;
     return false;
@@ -474,7 +493,6 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
     eqSplits = eqClause->splits();
   }
 
-  auto rwClDataPtr = getDataPtr(rwClause, /*doAllocate=*/false);
   if (rwClDataPtr && !(*rwClDataPtr)->check(_ord, subs, !eqIsResult, OrderingConstraints(), eqLits, eqSplits)) {
     env.statistics->skippedSuperposition++;
     return false;
@@ -779,79 +797,60 @@ void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSubsum
   if (!clDataPtr) {
     return;
   }
+  auto cld = *clDataPtr;
 
-  if (cl->redundant()) {
+  if (cld->_redundant || cld->isEmpty()) {
     return;
   }
 
-  struct Applicator : public SubstApplicator {
-    TermList operator()(unsigned v) const override { return TermList::var(v); }
-  } appl;
-
-  auto ts = (*clDataPtr)->getInstances(appl);
-  if ((*clDataPtr)->isEmpty()) {
-    return;
-  }
-
+  auto ts = cld->getInstances([](unsigned v) { return TermList::var(v); });
   static ConstraintIndex::SubstMatcher matcher;
   matcher.init((*clDataPtr), ts);
   Entries* es = matcher.next();
   matcher.reset();
-  // there can be only one such matching currently
+  // there can be only one such matching under linearization
+#if !LINEARIZE
+  static_assert(false);
+#endif
   if (!es) {
     return;
   }
   ASS(es->comparator);
-  auto subs = static_cast<OrderingComparator::Subsumption*>(cl->redundantSubs());
-  if (!subs) {
-    subs = new OrderingComparator::Subsumption(*es->comparator.get(), *_ord, OrderingConstraints(), /*ground=*/true);
-    cl->setRedundantSubs(subs);
+  if (!cld->_subs) {
+    cld->_subs = new Subsumption(*es->comparator.get(), *_ord, OrderingConstraints(), /*ground=*/true);
   }
-  // cout << "checking redundancy of " << *cl << endl;
-  if (subs->check()) {
-    cl->markRedundant();
-    env.statistics->generalizedInductionApplication++;
-    if (cl->ltrRedundant() || cl->rtlRedundant()) {
-      // cout << "became fully redundant " << *cl << endl;
-    }
-    return;
-  }
-  if (_ord->compare((*cl)[0]->termArg(0),(*cl)[0]->termArg(1))!=Ordering::INCOMPARABLE) {
+  if (cld->_subs->check()) {
+    cld->_redundant = true;
+    env.statistics->groundRedundantClauses++;
     return;
   }
 
-  auto subsLtr = static_cast<OrderingComparator::Subsumption*>(cl->ltrRedundantSubs());
-  auto subsRtl = static_cast<OrderingComparator::Subsumption*>(cl->rtlRedundantSubs());
-  if (!subsLtr || !subsRtl) {
-    Renaming r;
-    for (const auto t : ts) {
-      r.normalizeVariables(t);
+  for (unsigned i = 0; i < cl->numSelected(); i++) {
+    auto lit = (*cl)[i];
+    if (!lit->isEquality() || _ord->getEqualityArgumentOrder(lit)!=Ordering::INCOMPARABLE) {
+      continue;
     }
-    auto lhs = r.apply((*cl)[0]->termArg(0));
-    auto rhs = r.apply((*cl)[0]->termArg(1));
+
+    auto& [subsLtr, subsRtl] = cld->_litSubs[i];
+    auto& [redLtr, redRtl] = cld->_litRedundant[i];
     if (!subsLtr) {
-      subsLtr = new OrderingComparator::Subsumption(*es->comparator.get(), *_ord, { { lhs, rhs, Ordering::GREATER } }, /*ground=*/true);
-      cl->setLtrRedundantSubs(subsLtr);
+      ASS(!subsRtl);
+      Renaming r;
+      for (const auto t : ts) {
+        r.normalizeVariables(t);
+      }
+      auto lhs = r.apply(lit->termArg(0));
+      auto rhs = r.apply(lit->termArg(1));
+      subsLtr = new Subsumption(*es->comparator.get(), *_ord, { { lhs, rhs, Ordering::GREATER } }, /*ground=*/true);
+      subsRtl = new Subsumption(*es->comparator.get(), *_ord, { { rhs, lhs, Ordering::GREATER } }, /*ground=*/true);
     }
-    if (!subsRtl) {
-      subsRtl = new OrderingComparator::Subsumption(*es->comparator.get(), *_ord, { { rhs, lhs, Ordering::GREATER } }, /*ground=*/true);
-      cl->setRtlRedundantSubs(subsRtl);
+    if (!redLtr && subsLtr->check()) {
+      redLtr = true;
+      env.statistics->groundRedundantEquationOrientations++;
     }
-  }
-  if (!cl->ltrRedundant()) {
-    // cout << "checking redundancy of " << (*cl)[0]->termArg(0) << " -> " << (*cl)[0]->termArg(1) << endl;
-    if (subsLtr->check()) {
-      env.statistics->generalizedInductionApplicationInProof++;
-      // cout << "redundant " << (*cl)[0]->termArg(0) << " -> " << (*cl)[0]->termArg(1) << endl;
-      cl->markLtrRedundant();
-    }
-  }
-  if (!cl->rtlRedundant()) {
-    // cout << "checking redundancy of " << (*cl)[0]->termArg(1) << " -> " << (*cl)[0]->termArg(0) << endl;
-    if (subsRtl->check()) {
-      env.statistics->generalizedInductionApplicationInProof++;
-      // cout << "redundant " << (*cl)[0]->termArg(1) << " -> " << (*cl)[0]->termArg(0) << endl;
-      cl->markRtlRedundant();
+    if (!redRtl && subsRtl->check()) {
+      redRtl = true;
+      env.statistics->groundRedundantEquationOrientations++;
     }
   }
 }
