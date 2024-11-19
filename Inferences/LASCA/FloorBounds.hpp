@@ -61,6 +61,9 @@ class FloorBounds
   static Literal* eq(TermList s, TermList t) 
   { return NumTraits::eq(/* polarity */ true, s, t); }
 
+  static Literal* eq0(TermList s) 
+  { return NumTraits::eq(/* polarity */ true, s, numeral(0)); }
+
   static TermList numeral(int i) 
   { return NumTraits::constantTl(i); }
 
@@ -73,7 +76,16 @@ class FloorBounds
 
   auto generateClauses(Superposition::Lhs const& premise) const
   {
-    return iterItems<Clause*>();
+    auto s = NumTraits::ifFloor(premise.selectedTerm(), [](auto s) { return s; }).unwrap();
+    auto t = premise.smallerSide();
+    // C \/ ⌊s⌋ = t
+    // ===========
+    // C \/ t − s + 1 > 0
+    // C \/ s − t ≥ 0
+    return iterItems<Clause*>(
+        resClause(premise, greater0(sum(t, minus(s), numeral(1)))),
+        resClause(premise, geq0(sum(s, minus(t))))
+        );
   }
 
   auto generateClauses(FourierMotzkin::Lhs const& premise) const 
@@ -88,12 +100,16 @@ class FloorBounds
     return iterItems(
         // +⌊s⌋ >=  -t       x - ⌊x⌋ >= 0
         // ================================
-        //   +s + t > 0 \/ ⌊s⌋ + t == 0
-          pred == LascaPredicate::GREATER_EQ ? resClause(premise, greater0(sum(s, t)), eq(numeral(0), sum(floor(s), t)))
-        // +⌊s⌋ + t > 0        x - ⌊x⌋ >= 0
-        // ================================
-        //            +s + t > 0
-        : pred == LascaPredicate::GREATER    ? resClause(premise, greater0(sum(s, t)))
+        // C ∨ s + ⌊t⌋ > 0 ∨ ⌊s⌋ + ⌊t⌋ ≈ 0
+          pred == LascaPredicate::GREATER_EQ ? resClause(premise, 
+              greater0(sum(s, floor(t))), 
+              eq0(sum(floor(s), floor(t))))
+        // +⌊s⌋ + t > 0      
+        // ======================================
+        // +s + ⌈t⌉ - 1 > 0 \/  ⌊s⌋ + ⌈t⌉ - 1 = 0
+        : pred == LascaPredicate::GREATER    ? resClause(premise, 
+            greater0(sum(s, ceil(t), numeral(-1))),
+            eq0(sum(floor(s), ceil(t), numeral(-1))))
         : assertionViolation<Clause*>()
         );
   }
@@ -107,10 +123,21 @@ class FloorBounds
     auto pred = premise.lascaPredicate().unwrap();
     ASS(isInequality(pred))
 
-    // -⌊s⌋ + t >~ 0        -x + ⌊x⌋ + 1 > 0
-    // =====================================
-    //          -s + 1 + t > 0
-    return iterItems(resClause(premise, greater0(sum(minus(s), t, numeral(1)))));
+    return iterItems(
+          //       -⌊s⌋ + t >= 0        
+          // ============================
+          // −s + ⌊t⌋ > 0 ∨ -⌊s⌋ + ⌊t⌋ ≈ 0
+            pred == LascaPredicate::GREATER_EQ ? resClause(premise, 
+                               greater0(sum(minus(s), floor(t))),
+                               eq0(sum(minus(floor(s)), floor(t))))
+          //             -⌊s⌋ + t > 0
+          // =====================================
+          // −⌊s⌋ + ⌈t⌉ − 1 ≈ 0 ∨ −s + ⌈t⌉ − 1 > 0
+          : pred == LascaPredicate::GREATER ?  resClause(premise, 
+                               greater0(sum(minus(s), ceil(t), numeral(-1))),
+                               eq0(sum(minus(floor(s)), ceil(t), numeral(-1))))
+          : assertionViolation<Clause*>()
+          );
   }
 
   template<class RuleKind>

@@ -34,6 +34,8 @@ struct IntegerFourierMotzkinConf
 
   using Premise0 = FourierMotzkin::Lhs;
   using Premise1 = FourierMotzkin::Rhs;
+
+  // TODO rewrites in the second-maximal term of this
   using Premise2 = typename Coherence<NumTraits>::Lhs;
 
   auto applyRule(

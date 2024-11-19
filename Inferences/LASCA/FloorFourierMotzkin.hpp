@@ -66,10 +66,9 @@ struct FloorFourierMotzkinConf
           iterItems<Literal*>(),
           uwa,
           [&](auto lits){
-             // TODO not use UnitList here. That's slow
              return Clause::fromIterator(
                 std::move(lits),
-             // TODO make own inference rule instead of LASCA_INTEGER_FOURIER_MOTZKIN (?)
+                // TODO make own inference rule instead of LASCA_INTEGER_FOURIER_MOTZKIN (?)
                 Inference(GeneratingInference2(Kernel::InferenceRule::LASCA_INTEGER_FOURIER_MOTZKIN, prem0.clause(), prem1.clause()))
              );
           });
