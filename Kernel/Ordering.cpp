@@ -111,6 +111,15 @@ Ordering* Ordering::tryGetGlobalOrdering()
   }
 }
 
+struct AllIncomparableOrdering : Ordering {
+  AllIncomparableOrdering() {
+    WARN("using term ordering that makes all terms incomparable. This is meant for debugging purposes only, as it is potentially VERY slow. please be sure that you really want to do this.")
+  }
+  virtual Result compare(Literal* l1,Literal* l2) const override { return Result::INCOMPARABLE; }
+  virtual Result compare(TermList t1,TermList t2) const override { return Result::INCOMPARABLE; }
+  virtual void show(std::ostream& out) const override { out << "everything incomparable" << std::endl; }
+};
+
 #define TIME_TRACING_ORD 0
 
 #if TIME_TRACING_ORD
@@ -149,6 +158,9 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
   case Options::TermOrdering::LPO:
     out = new LPO(prb, opt);
     break;
+  case Options::TermOrdering::ALL_INCOMPARABLE:
+    out = new AllIncomparableOrdering();
+    break;
   default:
     ASSERTION_VIOLATION;
   }
@@ -158,6 +170,7 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
   }
   return out;
 }
+
 
 
 Ordering::Result Ordering::fromComparison(Comparison c)
