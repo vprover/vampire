@@ -452,3 +452,21 @@ TEST_GENERATION(vars_9,
       // can be p(0.1 a + f(0.1 a) + floor(0.9 a))
       // can be p(        f(0    ) + floor(  1 a))
     )
+
+TEST_GENERATION(numeral_0,
+    Generation::SymmetricTest()
+      .indices(lascaCoherenceIndices())
+      .selfApplications(false)
+      .inputs  ({ clause({ selected( floor(a) == 0 )  }) 
+                 , clause({ selected(p(floor(b + frac(1,6))) )  }) })
+      .expected(exactly(/* nothing */))
+    )
+
+TEST_GENERATION(numeral_1,
+    Generation::SymmetricTest()
+      .indices(lascaCoherenceIndices())
+      .selfApplications(false)
+      .inputs  ({ clause({ selected( floor(a) == frac(1,2) )  }) 
+                 , clause({ selected(p(floor(b + frac(1,6))) )  }) })
+      .expected(exactly(/* nothing */))
+    )

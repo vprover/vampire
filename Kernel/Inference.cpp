@@ -857,6 +857,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "lasca viras quantifier elimination";
   case InferenceRule::LASCA_COHERENCE:
     return "lasca coherence";
+  case InferenceRule::LASCA_COHERENCE_NORMALIZATION:
+    return "lasca coherence normalization";
   case InferenceRule::LASCA_SUPERPOSITION:
     return "lasca superposition";
   case InferenceRule::LASCA_LITERAL_FACTORING:
@@ -871,6 +873,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "lasca integer fourier motzkin";
   case InferenceRule::LASCA_FOURIER_MOTZKIN:
     return "lasca fourier motzkin";
+  case InferenceRule::LASCA_FLOOR_ELIMINATION:
+    return "lasca floor elimination";
   case InferenceRule::LASCA_NORMALIZATION:
     return "lasca normalization";
   case InferenceRule::LASCA_FWD_DEMODULATION:

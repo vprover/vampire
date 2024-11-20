@@ -57,6 +57,43 @@ struct LascaSimplRule
   }
 #endif
 };
+template<class Rule>
+LascaSimplRule<Rule> lascaSimplRule(Rule r, LASCA::Normalization n) { return LascaSimplRule<Rule>(std::move(r), std::move(n)); }
+
+template<class ISE>
+struct ToSgi : SimplifyingGeneratingInference {
+  ISE self;
+
+  ToSgi(ISE ise) : self(ise) {}
+
+  void attach(SaturationAlgorithm* salg) final override { }
+
+  void detach() final override { }
+
+  ClauseGenerationResult generateSimplify(Clause* premise) final override {
+    auto concl = self.simplify(premise);
+    return concl == nullptr 
+         ? ClauseGenerationResult {
+             .clauses = pvi(iterItems<Clause*>()),
+             .premiseRedundant = true,
+           }
+
+         : concl == premise 
+         ? ClauseGenerationResult {
+             .clauses = pvi(iterItems<Clause*>()),
+             .premiseRedundant = false,
+           }
+
+         : ClauseGenerationResult {
+             .clauses = pvi(iterItems<Clause*>(concl)),
+             .premiseRedundant = true,
+           };
+  }
+};
+
+template<class ISE>
+ToSgi<ISE> toSgi(ISE ise) { return ToSgi<ISE>(std::move(ise)); }
+
 
 
 #endif // def __TEST_LASCA_SIMPL_RULE__

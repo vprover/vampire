@@ -747,6 +747,7 @@ set(UNIT_TESTS
     UnitTests/tLASCA_IntegerFourierMotzkin.cpp
     UnitTests/tLASCA_InequalityFactoring.cpp
     UnitTests/tLASCA_Normalization.cpp
+    UnitTests/tLASCA_FloorElimination.cpp
     UnitTests/tLASCA_Superposition.cpp
     UnitTests/tLASCA_Coherence.cpp
     UnitTests/tLASCA_EqFactoring.cpp

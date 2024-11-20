@@ -75,12 +75,17 @@ public:
     unsigned sIdx; // <- the index of `s` in the sum `j s + u`
 
     auto contextLiterals() const { return self.contextLiterals(); }
-    auto j() const { return (**js_u)[sIdx].second; }
-    auto u() const { return NumTraits::sum(
+    auto rawJ() const { return (**js_u)[sIdx].second; }
+    auto s() const { return (**js_u)[sIdx].first; }
+    auto j() const { return rawJ().abs(); }
+    auto u() const { 
+      auto mulByFactor = [&](auto n) { return rawJ().isPositive() ? n : -n;  };
+      return NumTraits::sum(
         range(0, (**js_u).size())
           .filter([&](auto i) { return i != sIdx; })
-          .map([&](auto i) -> TermList { return TermList(NumTraits::mul(NumTraits::constantTl((**js_u)[i].second), (**js_u)[i].first)); })
-        ); }
+          .map([&](auto i) -> TermList { return TermList(NumTraits::mul(NumTraits::constantTl(mulByFactor((**js_u)[i].second)), (**js_u)[i].first)); })
+        ); 
+    }
     auto clause() const { return self.clause(); }
     auto asTuple() const { return std::tie(self, sIdx); }
     IMPL_COMPARISONS_FROM_TUPLE(Lhs);
@@ -94,6 +99,7 @@ public:
     {
       return iterTraits(LASCA::Superposition::Lhs::iter(shared, cl))
         .filter([](auto& lhs) -> bool { return NumTraits::isFloor(lhs.biggerSide()); })
+        .filter([](auto& lhs) { return !NumTraits::isNumeral(lhs.smallerSide()); })
         .map([&shared](auto lhs) {
           auto js_u = toSum(shared, lhs.smallerSide());
           return shared.maxSummandIndices(js_u, SelectionCriterion::NOT_LEQ)
@@ -104,7 +110,7 @@ public:
     }
 
     friend std::ostream& operator<<(std::ostream& out, Lhs const& self)
-    { return out << self.self << "@" << TermList(self.key()); }
+    { return out << "isInt(" << self.j() << TermList(self.key()) << " + " << self.u() << ")"; }
   };
 
   // a clause of the form D \/ L[⌊k s + t⌋]
@@ -154,6 +160,7 @@ public:
       ) const 
   {
     auto j = lhs.j();
+    ASS(j > 0)
     auto k = (**rhs.ks_t)[rhs.sIdx].second;
 
     // c = gcd(den(j), den(k))
@@ -187,11 +194,11 @@ public:
 
     // TODO side condition checks after unification!!
 
-    auto js_uσ = sigmaL(lhs.self.smallerSide());
     auto add   = [](auto... as){ return NumTraits::add(as...); };
     auto floor = [](auto... as){ return NumTraits::floor(as...); };
     auto mul = [](auto n, auto t){ return NumTraits::mul(NumTraits::constantTl(n), t); };
     auto cnstr = uwa.computeConstraintLiterals();
+    auto js_uσ = sigmaL(add(mul(j, lhs.s()), lhs.u()));
 
     return someIf(i != 0, [&]() {
         return Clause::fromIterator(
@@ -214,6 +221,49 @@ struct Coherence : public BinInf<CoherenceConf<NumTraits>> {
   Coherence(std::shared_ptr<LascaState> shared) 
     : BinInf<CoherenceConf<NumTraits>>(shared, {}) 
     {}
+};
+
+
+template<class NumTraits>
+struct CoherenceNormalization : SimplifyingGeneratingInference {
+  std::shared_ptr<LascaState> shared;
+  CoherenceNormalization(std::shared_ptr<LascaState> shared) : shared(std::move(shared)) {}
+
+  void attach(SaturationAlgorithm* salg) final override { }
+
+  void detach() final override { }
+
+  ClauseGenerationResult generateSimplify(Clause* premise) final override {
+    return ClauseGenerationResult {
+      .clauses = pvi( Superposition::Lhs::iter(*shared, premise)
+                        .filter([](auto& x) { return NumTraits::isFloor(x.biggerSide()); })
+                        .filterMap([this](auto x) { return apply(std::move(x)); })),
+      .premiseRedundant = false,
+    };
+  }
+
+  // C \/ ⌊s⌋ = t
+  // ============ if ⌊t⌋ != ⌊s⌋
+  // C \/ ⌊t⌋ = t
+  Option<Clause*> apply(Superposition::Lhs prem) const {
+    auto floor_s = prem.biggerSide();
+    auto t = prem.smallerSide();
+    auto floor_t = NumTraits::floor(t);
+    if (shared->equivalent(floor_s, floor_t) ) {
+      return {};
+    } else {
+      return some(Clause::fromIterator(
+          concatIters(
+            prem.contextLiterals(),
+            iterItems(NumTraits::eq(true, t, floor_t))
+          ),
+          Inference(GeneratingInference1(InferenceRule::LASCA_COHERENCE_NORMALIZATION, prem.clause()))));
+    }
+  }
+
+#if VDEBUG
+  virtual void setTestIndices(Stack<Indexing::Index*> const& i) final override { }
+#endif
 };
 
 #undef DEBUG

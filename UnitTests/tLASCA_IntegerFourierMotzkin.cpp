@@ -211,3 +211,26 @@ TEST_GENERATION(basic07,
       ))
     )
 
+
+TEST_GENERATION(bug01,
+    Generation::SymmetricTest()
+      .indices(idxIntegerFourierMotzkin())
+      .inputs  ({ clause({ b  + a  > 0   }) 
+               ,  clause({ -b - a > 0   }) 
+               ,  clause({ floor(c) == -a - b }) })
+      .expected(exactly(
+            clause({  num(-2) > 0, a + b == 1 })
+      ))
+    )
+
+TEST_GENERATION(bug02,
+    Generation::SymmetricTest()
+      .indices(idxIntegerFourierMotzkin())
+      .inputs  ({ clause({ b  + a >= 0   }) 
+               ,  clause({ -b - a >= 0   }) 
+               ,  clause({ floor(c) == -a - b }) })
+      .expected(exactly(
+
+      ))
+    )
+

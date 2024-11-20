@@ -1647,6 +1647,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
       res->addBackwardSimplifierToFront(new LASCA::BwdDemodulation(shared));
     }
     ise->addFront(new InterpretedEvaluation(/* inequalityNormalization() */ false, ordering));
+    // TODO also for rationals?
+    // TODO add parameter for this
+    // ise->addFront(new LASCA::FloorElimination<RealTraits>(shared)); 
     ise->addFront(new LASCA::Normalization(shared)); 
     // TODO properly create an option for that, make it a simplifying rule
     sgi->push(new LASCA::InequalityTautologyDetection(shared));
@@ -1661,9 +1664,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     sgi->push(new LASCA::FourierMotzkin(shared)); 
     // TODO also for rats?
     sgi->push(new LASCA::IntegerFourierMotzkin<RealTraits>(shared)); 
-    sgi->push(new LASCA::FloorFourierMotzkin<RealTraits>(shared)); 
+    // sgi->push(new LASCA::FloorFourierMotzkin<RealTraits>(shared)); 
     sgi->push(new LASCA::Superposition(shared)); 
     // TODO also for rationals?
+    sgi->push(new LASCA::CoherenceNormalization<RealTraits>(shared)); 
     sgi->push(new LASCA::Coherence<RealTraits>(shared)); 
     sgi->push(new LASCA::FloorBounds(shared)); 
   }

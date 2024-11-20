@@ -42,6 +42,47 @@ public:
   virtual Clause* simplify(Clause* cl) final override;
 };
 
+
+template<class NumTraits>
+class FloorElimination
+: public ImmediateSimplificationEngine 
+{
+  std::shared_ptr<LascaState> _shared;
+
+  bool deleteableSum(Monom<NumTraits> const& l, Monom<NumTraits> const& r_) const { 
+    auto r = r_.tryNumeral();
+    return r.isSome() 
+        && NumTraits::isFloor(l.factors->denormalize()) 
+        && !(*r / l.numeral).isInt();
+  }
+
+  bool deleteableLiteral(LascaLiteral<NumTraits> const& l) const { 
+    return l.symbol() == LascaPredicate::EQ 
+        && l.term().nSummands() == 2 
+        && (  deleteableSum(l.term().summandAt(0), l.term().summandAt(1))
+           || deleteableSum(l.term().summandAt(1), l.term().summandAt(0)) );
+  }
+
+public: 
+  FloorElimination(std::shared_ptr<LascaState> shared) : _shared(std::move(shared)) {}
+  USE_ALLOCATOR(FloorElimination);
+
+
+  virtual Clause* simplify(Clause* cl) final override {
+    auto res = RStack<Literal*>();
+    for (auto l : cl->iterLits()) {
+      auto norm = _shared->normalizer.renormalizeLasca<NumTraits>(l);
+      if (norm.isSome() && deleteableLiteral(*norm)) {
+        /* we the deleted literal */
+      } else {
+        res->push(l);
+      }
+    }
+    return res->size() == cl->size() ? cl 
+      : Clause::fromStack(*res, Inference(SimplifyingInference1(Kernel::InferenceRule::LASCA_FLOOR_ELIMINATION, cl)));
+  }
+};
+
 } // namespace LASCA
 } // namespace Inferences
 

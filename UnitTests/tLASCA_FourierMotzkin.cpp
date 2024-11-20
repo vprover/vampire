@@ -337,6 +337,15 @@ TEST_GENERATION(basic17b,
           ))
     )
 
+TEST_GENERATION(basic18,
+    Generation::SymmetricTest()
+      .indices(idxFourierMotzkin())
+      .inputs  ({ clause({ b  + a >= 0   }) 
+               ,  clause({ -b - a >= 0   }) })
+      .expected(exactly( 
+          clause({ -a + a > 0, 0 == -a + -b })))
+    )
+
 TEST_GENERATION(uwa01_one_interp,
     Generation::SymmetricTest()
       .rule(    new FourierMotzkin(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::LPAR_ONE_INTERP))  )

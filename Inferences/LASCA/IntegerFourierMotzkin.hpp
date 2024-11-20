@@ -104,7 +104,14 @@ struct IntegerFourierMotzkinConf
     auto sum = [](auto... xs) { return NumTraits::sum(iterItems(TermList(xs)...)); };
     auto mul = [](auto l, auto r) { return NumTraits::mul(NumTraits::constantTl(l), r); };
 
-    auto t0_strengthened = prem0.lascaPredicate().unwrap() == LascaPredicate::GREATER_EQ 
+    auto p0 = prem0.lascaPredicate().unwrap();
+    auto p1 = prem1.lascaPredicate().unwrap();
+    if (p0 == p1 && p1 == LascaPredicate::GREATER_EQ)  {
+      // in this case the rule is the same as the ordinary FM
+      return {};
+    }
+
+    auto t0_strengthened = p0 == LascaPredicate::GREATER_EQ 
       //     s + t0 >= 0
       ? t0_s
       //     s + t0 > 0
@@ -117,7 +124,7 @@ struct IntegerFourierMotzkinConf
                     , ceil(sum(mul(j, t0_s), NumTraits::minus(u_s)))
                     , NumTraits::constantTl(-1)));
 
-    auto t1_strengthened = prem1.lascaPredicate().unwrap() == LascaPredicate::GREATER_EQ 
+    auto t1_strengthened = p1 == LascaPredicate::GREATER_EQ 
       //     -s + t1 >= 0
       ? t1_s
       //     -s + t1 > 0
