@@ -16,10 +16,6 @@
 #ifndef __SaturationAlgorithm__
 #define __SaturationAlgorithm__
 
-struct BlaException {
-  Kernel::Clause* clause;
-};
-
 #include "Forwards.hpp"
 
 #include "Lib/DHMap.hpp"
