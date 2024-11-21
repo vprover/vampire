@@ -40,6 +40,7 @@
 #include "Signature.hpp"
 #include "Kernel/NumTraits.hpp" 
 #include "Kernel/QKbo.hpp"
+#include "Kernel/LASCA/Ordering.hpp"
 #include "Kernel/LaLpo.hpp"
 #include "Shell/Shuffling.hpp"
 #include "NumTraits.hpp"
@@ -153,7 +154,8 @@ Ordering* Ordering::create(Problem& prb, const Options& opt)
     out = NEW_ORD(LaLpo, prb, opt);
     break;
   case Options::TermOrdering::QKBO:
-    out = NEW_ORD(QKbo, prb, opt);
+    // out = NEW_ORD(QKbo, prb, opt);
+    out = NEW_ORD(Kernel::LiteralOrdering<Kernel::LAKBO>, prb, opt);
     break;
   case Options::TermOrdering::LPO:
     out = new LPO(prb, opt);

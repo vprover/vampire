@@ -1654,7 +1654,6 @@ public:
   IterTraits<MappingIterator<Iter, F>> map(F f)
   { return iterTraits(getMappingIterator<Iter, F>(std::move(_iter), std::move(f))); }
 
-  template<class F>
   auto eval()
   { return map([](auto f){ return f(); }); }
 
