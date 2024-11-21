@@ -456,9 +456,9 @@ class Coproduct
   // TODO allow uninit constructor if all alternatives are uninit constructible
   Coproduct() {}
 
-  inline unsigned tag() const { return _inner.tag(); }
-
 public:
+
+  inline unsigned tag() const { return _inner.tag(); }
 
   Coproduct fromTail(Coproduct<As...> tail) 
   { return Coproduct(std::move(tail)); }
