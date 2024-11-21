@@ -1025,6 +1025,10 @@ protected:
       }
     }
 
+    out   << "(define-fun |$floor| ((x Real)) Real " << std::endl
+          << "   (to_real (to_int x)))             " << std::endl
+          <<                                            std::endl;
+
     auto defRemainderInTermsOfQuotient = [&](auto kind, auto definition) {
       out << "(declare-fun |$quotient_"  << kind << "0| (Int) Int)         " << std::endl
           << "(declare-fun |$remainder_" << kind << "0| (Int) Int)         " << std::endl
@@ -1099,53 +1103,53 @@ protected:
   { out << "x" << var; }
 
 
-#define INTERPRETATION_BY_TRANSLATION \
-           Theory::INT_QUOTIENT_T:                                                                  \
-      case Theory::INT_QUOTIENT_F:                                                                  \
-      case Theory::INT_REMAINDER_T:                                                                 \
+#define INTERPRETATION_BY_TRANSLATION                                                     \
+           Theory::INT_QUOTIENT_T:                                                        \
+      case Theory::INT_QUOTIENT_F:                                                        \
+      case Theory::REAL_FLOOR:                                                            \
+      case Theory::RAT_FLOOR:                                                             \
+      case Theory::INT_REMAINDER_T:                                                       \
       case Theory::INT_REMAINDER_F
 
 
-#define ALL_NUM(SUFFIX) \
-           Theory::INT_ ## SUFFIX:\
-      case Theory::RAT_ ## SUFFIX: \
+#define ALL_NUM(SUFFIX)                                                                   \
+           Theory::INT_ ## SUFFIX:                                                        \
+      case Theory::RAT_ ## SUFFIX:                                                        \
       case Theory::REAL_ ## SUFFIX
 
 
-#define UNSUPPORTED_INTERETATIONS                                                                   \
-           Theory::RAT_IS_RAT:                                                                      \
-      case Theory::RAT_IS_REAL:                                                                     \
-      case Theory::REAL_IS_RAT:                                                                     \
-      case Theory::REAL_IS_REAL:                                                                    \
-      case Theory::INT_DIVIDES:                                                                     \
-      case Theory::INT_CEILING:                                                                     \
-      case Theory::INT_TRUNCATE:                                                                    \
-      case Theory::INT_ROUND:                                                                       \
-      case Theory::RAT_QUOTIENT:                                                                    \
-      case Theory::RAT_QUOTIENT_E:                                                                  \
-      case Theory::RAT_QUOTIENT_T:                                                                  \
-      case Theory::RAT_QUOTIENT_F:                                                                  \
-      case Theory::RAT_REMAINDER_E:                                                                 \
-      case Theory::RAT_REMAINDER_T:                                                                 \
-      case Theory::RAT_REMAINDER_F:                                                                 \
-      case Theory::RAT_FLOOR:                                                                       \
-      case Theory::RAT_CEILING:                                                                     \
-      case Theory::RAT_TRUNCATE:                                                                    \
-      case Theory::RAT_ROUND:                                                                       \
-      case Theory::REAL_QUOTIENT_E:                                                                 \
-      case Theory::REAL_QUOTIENT_T:                                                                 \
-      case Theory::REAL_QUOTIENT_F:                                                                 \
-      case Theory::REAL_REMAINDER_E:                                                                \
-      case Theory::REAL_REMAINDER_T:                                                                \
-      case Theory::REAL_REMAINDER_F:                                                                \
-      case Theory::REAL_CEILING:                                                                    \
-      case Theory::REAL_TRUNCATE:                                                                   \
-      case Theory::REAL_ROUND:                                                                      \
-      case Theory::RAT_TO_RAT:                                                                      \
-      case Theory::REAL_TO_RAT:                                                                     \
-      case Theory::INT_IS_RAT:                                                                      \
-      case Theory::INT_IS_REAL:                                                                     \
-      case Theory::REAL_FLOOR:                                                                      \
+#define UNSUPPORTED_INTERPRETATIONS                                                       \
+           Theory::RAT_IS_RAT:                                                            \
+      case Theory::RAT_IS_REAL:                                                           \
+      case Theory::REAL_IS_RAT:                                                           \
+      case Theory::REAL_IS_REAL:                                                          \
+      case Theory::INT_DIVIDES:                                                           \
+      case Theory::INT_CEILING:                                                           \
+      case Theory::INT_TRUNCATE:                                                          \
+      case Theory::INT_ROUND:                                                             \
+      case Theory::RAT_QUOTIENT:                                                          \
+      case Theory::RAT_QUOTIENT_E:                                                        \
+      case Theory::RAT_QUOTIENT_T:                                                        \
+      case Theory::RAT_QUOTIENT_F:                                                        \
+      case Theory::RAT_REMAINDER_E:                                                       \
+      case Theory::RAT_REMAINDER_T:                                                       \
+      case Theory::RAT_REMAINDER_F:                                                       \
+      case Theory::RAT_CEILING:                                                           \
+      case Theory::RAT_TRUNCATE:                                                          \
+      case Theory::RAT_ROUND:                                                             \
+      case Theory::REAL_QUOTIENT_E:                                                       \
+      case Theory::REAL_QUOTIENT_T:                                                       \
+      case Theory::REAL_QUOTIENT_F:                                                       \
+      case Theory::REAL_REMAINDER_E:                                                      \
+      case Theory::REAL_REMAINDER_T:                                                      \
+      case Theory::REAL_REMAINDER_F:                                                      \
+      case Theory::REAL_CEILING:                                                          \
+      case Theory::REAL_TRUNCATE:                                                         \
+      case Theory::REAL_ROUND:                                                            \
+      case Theory::RAT_TO_RAT:                                                            \
+      case Theory::REAL_TO_RAT:                                                           \
+      case Theory::INT_IS_RAT:                                                            \
+      case Theory::INT_IS_REAL:                                                           \
       case Theory::INT_TO_RAT
 
   static void outputInterpretationName(std::ostream& out, Theory::Interpretation itp) 
@@ -1163,11 +1167,13 @@ protected:
       case ALL_NUM(MINUS):         out << "-";       return;
       case ALL_NUM(UNARY_MINUS):   out << "-";       return;
       case ALL_NUM(MULTIPLY):      out << "*";       return;
+      case Theory::RAT_FLOOR:      out << "|$floor|";       return;
+      case Theory::REAL_FLOOR:     out << "|$floor|";       return;
 
       case Theory::EQUAL: out << "="; return;
 
-      case UNSUPPORTED_INTERETATIONS:
-         throw UserErrorException("divides function", itp, " does not exist in SMT2");
+      case UNSUPPORTED_INTERPRETATIONS:
+         throw UserErrorException("divides function ", itp, " does not exist in SMT2");
 
       case Theory::INT_SUCCESSOR: out << "+ 1"; return;
       case Theory::INT_ABS: out << "abs"; return;
@@ -1270,27 +1276,27 @@ protected:
   }
 
 
-#define DIRECT_SMT2_INTERPRETATION \
-            Theory::EQUAL: \
-      case ALL_NUM(IS_INT): \
-      case ALL_NUM(TO_REAL): \
-      case ALL_NUM(TO_INT): \
-      case ALL_NUM(GREATER): \
-      case ALL_NUM(GREATER_EQUAL): \
-      case ALL_NUM(LESS): \
-      case ALL_NUM(LESS_EQUAL): \
-      case ALL_NUM(PLUS): \
-      case ALL_NUM(MINUS): \
-      case ALL_NUM(UNARY_MINUS): \
-      case ALL_NUM(MULTIPLY): \
-      case Theory::INT_SUCCESSOR: \
-      case Theory::INT_ABS: \
-      case Theory::INT_QUOTIENT_E: \
-      case Theory::INT_REMAINDER_E: \
-      case Theory::INT_FLOOR: \
-      case Theory::REAL_QUOTIENT: \
-      case Theory::ARRAY_BOOL_SELECT: \
-      case Theory::ARRAY_SELECT: \
+#define DIRECT_SMT2_INTERPRETATION                                                        \
+            Theory::EQUAL:                                                                \
+      case ALL_NUM(IS_INT):                                                               \
+      case ALL_NUM(TO_REAL):                                                              \
+      case ALL_NUM(TO_INT):                                                               \
+      case ALL_NUM(GREATER):                                                              \
+      case ALL_NUM(GREATER_EQUAL):                                                        \
+      case ALL_NUM(LESS):                                                                 \
+      case ALL_NUM(LESS_EQUAL):                                                           \
+      case ALL_NUM(PLUS):                                                                 \
+      case ALL_NUM(MINUS):                                                                \
+      case ALL_NUM(UNARY_MINUS):                                                          \
+      case ALL_NUM(MULTIPLY):                                                             \
+      case Theory::INT_SUCCESSOR:                                                         \
+      case Theory::INT_ABS:                                                               \
+      case Theory::INT_QUOTIENT_E:                                                        \
+      case Theory::INT_REMAINDER_E:                                                       \
+      case Theory::INT_FLOOR:                                                             \
+      case Theory::REAL_QUOTIENT:                                                         \
+      case Theory::ARRAY_BOOL_SELECT:                                                     \
+      case Theory::ARRAY_SELECT:                                                          \
       case Theory::ARRAY_STORE
 
 
