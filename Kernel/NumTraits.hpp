@@ -212,6 +212,19 @@ struct NumTraits;
       }                                                                                   \
     };                                                                                    \
                                                                                           \
+    template<class Iter>                                                                  \
+    static TermList product(Iter iter) {                                                  \
+      if (iter.hasNext()) {                                                               \
+        auto out = iter.next();                                                           \
+        while (iter.hasNext()) {                                                          \
+          out = NumTraits::mul(iter.next(), out);                                         \
+        }                                                                                 \
+        return out;                                                                       \
+      } else {                                                                            \
+        return NumTraits::one();                                                         \
+      }                                                                                   \
+    };                                                                                    \
+                                                                                          \
     IMPL_NUM_TRAITS__INTERPRETED_PRED(less,    Less,    SHORT, _LESS,          2)         \
     IMPL_NUM_TRAITS__INTERPRETED_PRED(leq,     Leq,     SHORT, _LESS_EQUAL,    2)         \
     IMPL_NUM_TRAITS__INTERPRETED_PRED(greater, Greater, SHORT, _GREATER,       2)         \

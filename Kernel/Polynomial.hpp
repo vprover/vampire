@@ -89,10 +89,25 @@ public:
   unsigned numTypeArguments() const;
   TermList typeArg(unsigned i) const;
 
+  template<class NumTraits>
+  bool isFloor(NumTraits) const { return NumTraits::isFloor(id()); }
+
+  bool isFloor(IntTraits) const { return false; }
+
+  template<class NumTraits>
+  bool isFloor() const 
+  { return isFloor(NumTraits{}); }
+
+  bool isFloor() const 
+  { return forAnyNumTraits([&](auto n) { return isFloor<decltype(n)>(); }); }
+
   friend struct std::hash<FuncId>;
   friend bool operator==(FuncId const& lhs, FuncId const& rhs);
   friend bool operator!=(FuncId const& lhs, FuncId const& rhs);
   friend std::ostream& operator<<(std::ostream& out, const FuncId& self);
+
+  auto iterTypeArgs() const 
+  { return range(0, numTypeArguments()).map([&](auto i) { return typeArg(i); }); }
 
   Signature::Symbol* symbol() const;
 
@@ -205,7 +220,7 @@ public:
 
   void integrity() const;
 
-  inline auto iterArgs() -> decltype(iterTraits(_args.iterFifo())) const  { return iterTraits(_args.iterFifo()); }
+  auto iterArgs() const  { return iterTraits(_args.iterFifo()); }
 
   friend std::ostream& operator<<(std::ostream& out, const FuncTerm& self);
   friend bool operator==(FuncTerm const& lhs, FuncTerm const& rhs);

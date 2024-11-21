@@ -259,6 +259,7 @@ public:
   static DArray<int> predPrecFromOpts(Problem& prb, const Options& opt);
 
   Result comparePredicatePrecedences(unsigned fun1, unsigned fun2) const;
+  int predicatePrecedence(unsigned pred) const;
 protected:
   // l1 and l2 are not equalities and have the same predicate
   virtual Result comparePredicates(Literal* l1,Literal* l2) const = 0;
@@ -275,7 +276,6 @@ protected:
   Result compareFunctionPrecedences(unsigned fun1, unsigned fun2) const;
   Result compareTypeConPrecedences(unsigned tyc1, unsigned tyc2) const;
 
-  int predicatePrecedence(unsigned pred) const;
   int predicateLevel(unsigned pred) const;
 
   /** number of predicates in the signature at the time the order was created */

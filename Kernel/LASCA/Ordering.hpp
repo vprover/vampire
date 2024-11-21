@@ -75,25 +75,146 @@ struct LascaOrderingUtils {
 
 
 struct LAKBO {
-  LAKBO(Problem& prb, const Options& opt) {}
+  KBO _kbo;
+
+  LAKBO(Problem& prb, const Options& opt) : _kbo(prb, opt) {}
+
   void show(std::ostream& out) const {  }
   template<class NumTraits>
   Ordering::Result compare(Polynom<NumTraits> const& t0, Polynom<NumTraits> const& t1) const;
-  Ordering::Result compare(PolyNf const& t0, PolyNf const& t1) const;
-  Ordering::Result compare(TermList const& t0, TermList const& t1) const;
+  template<class NumTraits>
+  Ordering::Result compare(MonomFactors<NumTraits> const& t0, MonomFactors<NumTraits> const& t1) const;
+
+  Ordering::Result cmpSameSkeleton(PolyNf const& t0, PolyNf const& t1) const;
+
+  Option<TermList> skeleton(Variable const& t) const {
+    // TODO
+    return {};
+  }
+
+  Option<TermList> skeleton(AnyPoly const& t) const 
+  { return t.apply([&](auto& t) { return skeleton(*t); }); }
+
+  template<class Iter>
+  Option<RStack<TermList>> trySkeleton(Iter iter) const {
+    auto out = RStack<TermList>();
+    for (auto x : iter) {
+      if (auto s = skeleton(x)) {
+        out->push(*s);
+      } else {
+        return {};
+      }
+    }
+    return some(std::move(out));
+  }
+
+  template<class NumTraits>
+  Option<TermList> skeleton(Monom<NumTraits> const& t) const 
+  { return trySkeleton(t.factors->iter())
+      .map([](auto skels) { return NumTraits::product(arrayIter(*skels)); }); }
+
+  template<class NumTraits>
+  Option<TermList> skeleton(MonomFactor<NumTraits> const& t) const 
+  { 
+    return skeleton(t.term)
+      .map([&](auto skel) { 
+          ASS(t.power >= 0) 
+          return t.power == 1 
+               ? skel
+               : NumTraits::product(range(0, t.power).map([skel](auto) { return skel; }));
+          });
+  }
+
+  template<class NumTraits>
+  Option<TermList> skeleton(Polynom<NumTraits> const& t) const {
+    if (auto summands = trySkeleton(t.iterSummands())) {
+      auto maxIter = OrderingUtils2::maxElems(summands->size(), 
+          [&](auto t0, auto t1) { return _kbo.compare((*summands)[t0], (*summands)[t1]);  }, 
+          [&](auto i) { return (*summands)[i]; }, 
+          SelectionCriterion::STRICTLY_MAX);
+      if (!maxIter.hasNext()) {
+        return {};
+      } else {
+        auto max = maxIter.next();
+        if (maxIter.hasNext()) {
+          // no unique max 
+          // TODO theory (?)
+          return {};
+        } else {
+          return some((*summands)[max]);
+        }
+      }
+    } else {
+      return {};
+    }
+  }
+
+  Option<TermList> skeleton(Perfect<FuncTerm> const& t) const {
+    return trySkeleton(t->iterArgs())
+      .map([&](auto args) {
+          if (t->function().isFloor()) {
+            return args[0];
+          } else {
+            return TermList(Term::createFromIter(
+                  t->function().id(),
+                  concatIters(
+                    t->function().iterTypeArgs(),
+                    arrayIter(*args)
+                    )));
+          }
+      });
+  }
+
+  Option<TermList> skeleton(PolyNf const& t) const {
+    return t.apply([&](auto& x) { return skeleton(x); });
+  }
+
+  Ordering::Result compare(PolyNf const& t0, PolyNf const& t1) const {
+    auto s0 = skeleton(t0);
+    auto s1 = skeleton(t1);
+    if (s0.isSome() && s1.isSome()) {
+      return LascaOrderingUtils::lexLazy(
+          [&](){ return _kbo.compare(*s0, *s1); },
+          [&](){ return cmpSameSkeleton(t0, t1); }
+          );
+    } else {
+      //TODO
+      return Ordering::Result::INCOMPARABLE;
+    }
+  }
+
+  Ordering::Result compareVar(unsigned v, Term* t) const {
+    // TODO firgure out theory for vars
+    return Ordering::INCOMPARABLE;
+  }
+
+  Ordering::Result compare(TermList t0, TermList t1) const {
+    if (t0 == t1) return Ordering::Result::EQUAL;
+    if (t0.isVar() && t1.isVar()) {
+      return Ordering::Result::INCOMPARABLE;
+    } else if (t0.isVar()) {
+      return compareVar(t0.var(), t1.term());
+    } else if (t1.isVar()) {
+      return Ordering::reverse(compareVar(t1.var(), t0.term()));
+    } else {
+      return compare(PolyNf::normalize(t0.term()), PolyNf::normalize(t1.term()));
+    }
+  }
+
+  int predicatePrecedence(unsigned pred) const { return _kbo.predicatePrecedence(pred); }
 };
 
 template<class TermOrdering>
 class LiteralOrdering
-  : public PrecedenceOrdering
+  : public Ordering
 {
   std::shared_ptr<LascaState> _shared;
   TermOrdering _termOrdering;
 
   Ordering::Result cmpPrecUninterpreted(Literal* l0, Literal* l1) const {
     return LascaOrderingUtils::cmpN(
-        predicatePrecedence(l0->functor()), 
-        predicatePrecedence(l1->functor()));
+        _termOrdering.predicatePrecedence(l0->functor()), 
+        _termOrdering.predicatePrecedence(l1->functor()));
   }
 
   template<class NumTraits>
@@ -114,16 +235,31 @@ class LiteralOrdering
   }
 
   template<class NumTraits>
-  using Atom = std::tuple<PolyNf, unsigned, typename NumTraits::ConstantType>;
+  using Atom = std::tuple<Perfect<MonomFactors<NumTraits>>, unsigned, typename NumTraits::ConstantType>;
 
-  // TODO
+  unsigned lvl(LascaPredicate p) const {
+    switch(p) {
+      case LascaPredicate::EQ: return 0;
+      case LascaPredicate::NEQ:
+      case LascaPredicate::GREATER:
+      case LascaPredicate::GREATER_EQ:
+      case LascaPredicate::IS_INT_POS:
+      case LascaPredicate::IS_INT_NEG: 
+                               return 1;
+    } ASSERTION_VIOLATION
+  }
+
   template<class NumTraits>
-  MultiSet<Atom<NumTraits>> atoms(LascaLiteral<NumTraits> const& l1) const;
+  MultiSet<Atom<NumTraits>> atoms(LascaLiteral<NumTraits> const& l1) const {
+    return l1.term().iterSummands()
+      .map([&](auto monom) { return std::make_tuple(monom.factors, lvl(l1.symbol()), monom.numeral); })
+      .template collect<MultiSet>();
+  }
 
   template<class NumTraits>
   Ordering::Result cmpAtom(Atom<NumTraits> a1, Atom<NumTraits> a2) const {
     return LascaOrderingUtils::lexLazy(
-            [&](){ return _termOrdering.compare(std::get<0>(a1), std::get<0>(a2)); },
+            [&](){ return _termOrdering.compare(*std::get<0>(a1), *std::get<0>(a2)); },
             [&](){ return LascaOrderingUtils::cmpN(std::get<1>(a1), std::get<1>(a2)); },
             [&](){ return LascaOrderingUtils::cmpQ(std::get<2>(a1), std::get<2>(a2)); }
           );
@@ -140,7 +276,7 @@ class LiteralOrdering
           );
   }
 
-  Result compare(AnyLascaLiteral const& l1, AnyLascaLiteral const& l2) const {
+  Result cmpLascaLit(AnyLascaLiteral const& l1, AnyLascaLiteral const& l2) const {
     if (l1.tag() == l2.tag()) {
       return l1.applyWithIdx([&](auto& l1, auto N) { return compare(l1, l2.unwrap<N.value>()); });
     } else {
@@ -154,16 +290,12 @@ public:
 
   LiteralOrdering(LiteralOrdering&& kbo) = default;
   LiteralOrdering& operator=(LiteralOrdering&& kbo) = default;
+  LiteralOrdering(TermOrdering inner) 
+    : _termOrdering(std::move(inner)) { }
   LiteralOrdering(Problem& prb, const Options& opt) 
-    : PrecedenceOrdering(prb, opt)
-    , _termOrdering(prb, opt) { }
-  // LiteralOrdering(Problem& prb, const Options& opts)
-  //   : LiteralOrdering(TermOrdering(prb,opts)) {}
+    : LiteralOrdering(TermOrdering(prb, opt)) { }
 
   virtual ~LiteralOrdering() {}
-
-  // TODO fix class hierarchy top avoid this
-  Result comparePredicates(Literal* l1, Literal* l2) const override { ASSERTION_VIOLATION_REP("unreachable as we override compare(Literal*,Literal*)") }
 
   Result compare(Literal* l1, Literal* l2) const override {
     auto lasca1 = _shared->normalizer.renormalize(l1);
@@ -175,12 +307,10 @@ public:
       return Ordering::LESS;
 
     } else if (lasca1.isSome() && lasca2.isSome()) {
-      return compare(*lasca1, *lasca2);
+      return cmpLascaLit(*lasca1, *lasca2);
 
-    } else if (lasca1.isNone()) {
-      ASS(lasca1.isNone() && lasca2.isNone())
-      return compare(*lasca1, *lasca2);
     } else {
+      ASS(lasca1.isNone() && lasca2.isNone())
       return compareUninterpreted(l1,l2);
     }
   }
@@ -188,7 +318,7 @@ public:
   Result compare(TermList t1, TermList t2) const final override 
   { return _termOrdering.compare(t1, t2); }
 
-  void showConcrete(std::ostream& out) const final override 
+  void show(std::ostream& out) const final override 
   { _termOrdering.show(out); }
 
   void setState(std::shared_ptr<LascaState> s) { _termOrdering.setState(std::move(s)); }
