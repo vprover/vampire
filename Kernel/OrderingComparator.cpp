@@ -475,32 +475,6 @@ void OrderingComparator::processVarCase()
     }
     return;
   }
-  // TODO eventually incorporate this into the Trace
-  if (node->rhs.isTerm()) {
-    SubtermIterator sti(node->rhs.term());
-    while (sti.hasNext()) {
-      auto st = sti.next();
-      if (trace->get(node->lhs, st, val)) {
-        if (val == Ordering::INCOMPARABLE || val == Ordering::LESS) {
-          *_curr = node->ngeBranch;
-          return;
-        }
-      }
-    }
-  }
-  if (node->lhs.isTerm()) {
-    SubtermIterator sti(node->lhs.term());
-    while (sti.hasNext()) {
-      auto st = sti.next();
-      if (trace->get(st, node->rhs, val)) {
-        // node->lhs > st ≥ node->rhs → node->lhs > node->rhs
-        if (val == Ordering::GREATER || val == Ordering::EQUAL) {
-          *_curr = node->gtBranch;
-          return;
-        }
-      }
-    }
-  }
   // if refcnt > 1 we copy the node and
   // we can also safely use the original
   if (node->refcnt > 1) {
@@ -515,10 +489,10 @@ void OrderingComparator::processVarCase()
 
 ScopedPtr<OrderingComparator::Trace> OrderingComparator::getCurrentTrace()
 {
-  // ASS(!_curr->node()->ready);
+  ASS(!_curr->node()->ready || _curr->node() == _fail.node());
 
   if (!_prev) {
-    return ScopedPtr<Trace>(new Trace());
+    return ScopedPtr<Trace>(new Trace(_ord));
   }
 
   ASS(_prev->node()->ready);
@@ -540,28 +514,6 @@ ScopedPtr<OrderingComparator::Trace> OrderingComparator::getCurrentTrace()
       // ALWAYS(trace->set({ lhs, rhs, res }));
       if (!trace->set({ lhs, rhs, res })) {
         return ScopedPtr<Trace>();
-      }
-      ASS(lhs.isVar() || rhs.isVar());
-      if (res == Ordering::INCOMPARABLE) {
-        if (lhs.isTerm()) {
-          SubtermIterator stit(lhs.term());
-          while (stit.hasNext()) {
-            // ALWAYS(trace->set({ stit.next(), rhs, Ordering::INCOMPARABLE }));
-            if (!trace->set({ stit.next(), rhs, Ordering::INCOMPARABLE })) {
-              return ScopedPtr<Trace>();
-            }
-          }
-        }
-      } else {
-        if (rhs.isTerm()) {
-          SubtermIterator stit(rhs.term());
-          while (stit.hasNext()) {
-            // ALWAYS(trace->set({ lhs, stit.next(), Ordering::GREATER }));
-            if (!trace->set({ lhs, stit.next(), Ordering::GREATER })) {
-              return ScopedPtr<Trace>();
-            }
-          }
-        }
       }
       return ScopedPtr<Trace>(trace.release());
     }
