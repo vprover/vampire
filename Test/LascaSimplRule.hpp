@@ -64,7 +64,7 @@ template<class ISE>
 struct ToSgi : SimplifyingGeneratingInference {
   ISE self;
 
-  ToSgi(ISE ise) : self(ise) {}
+  ToSgi(ISE ise) : self(std::move(ise)) {}
 
   void attach(SaturationAlgorithm* salg) final override { }
 

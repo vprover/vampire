@@ -1081,6 +1081,32 @@ public:
   /** set polarity to true or false */
   void setPolarity(bool positive)
   { _args[0]._setPolarity(positive); }
+
+  TermList eqArgSort() const;
+  
+  // prevent bugs through implicit bool <-> unsigned conversions
+  template<class Iter> static Literal* createFromIter(unsigned predicate, unsigned polarity, Iter iter, bool commutative = false) = delete;
+  template<class Iter> static Literal* createFromIter(    bool predicate, unsigned polarity, Iter iter, bool commutative = false) = delete;
+  template<class Iter> static Literal* createFromIter(    bool predicate,     bool polarity, Iter iter, bool commutative = false) = delete;
+
+  template<class Iter>
+  static Literal* createFromIter(unsigned predicate, bool polarity, Iter iter, bool commutative = false) {
+    RStack<TermList> args;
+    while (iter.hasNext()) {
+      args->push(iter.next());
+    }
+    return Literal::create(predicate, args->size(), polarity, commutative, args->begin());
+  }
+
+  template<class Iter>
+  static Literal* createFromIter(Literal* lit, Iter iter) {
+    if (lit->isEquality()) {
+      return  Literal::createEquality(lit->polarity(), iter.next(), iter.next(), lit->eqArgSort());
+    } else {
+      return Literal::createFromIter(lit->functor(), bool(lit->polarity()), std::move(iter), lit->commutative());
+    }
+  }
+
   static Literal* create(unsigned predicate, unsigned arity, bool polarity, bool commutative, TermList* args);
   static Literal* create(unsigned predicate, bool polarity, std::initializer_list<TermList>, bool commutative = false);
   static Literal* create(Literal* l,bool polarity);

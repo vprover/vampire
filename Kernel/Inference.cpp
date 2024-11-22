@@ -877,6 +877,8 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "lasca floor elimination";
   case InferenceRule::LASCA_NORMALIZATION:
     return "lasca normalization";
+  case InferenceRule::LASCA_ABSTRACTION:
+    return "lasca abstraction";
   case InferenceRule::LASCA_FWD_DEMODULATION:
     return "lasca forward demodulation";
   case InferenceRule::LASCA_BWD_DEMODULATION:

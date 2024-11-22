@@ -243,6 +243,7 @@ enum class InferenceRule : unsigned char {
   EVALUATION,
   /** normalization rule of the Inequality Resolution Calculus */
   LASCA_NORMALIZATION,
+  LASCA_ABSTRACTION,
   LASCA_FLOOR_ELIMINATION,
   CANCELLATION,
   /** interpreted simplification inference */

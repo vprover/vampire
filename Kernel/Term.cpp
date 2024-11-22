@@ -741,6 +741,11 @@ vstring Term::toString(bool topLevel) const
   return out.str();
 } // Term::toString
 
+TermList Literal::eqArgSort() const {
+  ASS(isEquality())
+  return SortHelper::getEqualityArgumentSort(this);
+}
+
 /**
  * Return the result of conversion of a literal into a vstring.
  * @since 16/05/2007 Manchester
