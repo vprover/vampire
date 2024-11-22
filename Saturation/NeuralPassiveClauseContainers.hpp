@@ -53,7 +53,7 @@ public:
   const DHMap<unsigned,float>& getScores() { return _scores; }
 
   float evalClause(Clause* cl);
-  void evalClauses(UnprocessedClauseContainer& clauses);
+  void evalClauses(DHMap<unsigned,Clause*>& clauses);
 
   // this is a low-effort version of evalClause (used, among other things, for delayedEvaluation deepire-style):
   // namely: if there is no value in the _scores map, it just returns a very optimistic constant
@@ -186,9 +186,13 @@ public:
 
   bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const override { return true; }
 
+protected:
+  void evalAndEnqueueDelayed();
+
 private:
   NeuralClauseEvaluationModel& _model;
   ShuffledScoreQueue _queue;
+  DHMap<unsigned,Clause*> _delayedInsertionBuffer;
 
   unsigned _size;
   unsigned _reshuffleAt;

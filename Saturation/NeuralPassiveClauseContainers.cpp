@@ -169,7 +169,7 @@ float NeuralClauseEvaluationModel::evalClause(Clause* cl) {
   return logit;
 }
 
-void NeuralClauseEvaluationModel::evalClauses(Saturation::UnprocessedClauseContainer& clauses) {
+void NeuralClauseEvaluationModel::evalClauses(DHMap<unsigned,Clause*>& clauses) {
   TIME_TRACE("neural model evaluation");
 
   unsigned sz = clauses.size();
@@ -178,10 +178,11 @@ void NeuralClauseEvaluationModel::evalClauses(Saturation::UnprocessedClauseConta
   std::vector<float> features(_numFeatures*sz);
   {
     unsigned idx = 0;
-    auto uIt = clauses.iter();
+    auto uIt = clauses.items();
     while (uIt.hasNext()) {
+      auto entry = uIt.next();
       unsigned i = 0;
-      Clause* cl = uIt.next();
+      Clause* cl = entry.second;
       Clause::FeatureIterator cIt(cl);
       while (i++ < _numFeatures && cIt.hasNext()) {
         features[idx] = cIt.next();
@@ -195,10 +196,11 @@ void NeuralClauseEvaluationModel::evalClauses(Saturation::UnprocessedClauseConta
   auto logits = _model.forward(std::move(inputs)).toTensor();
 
   {
-    auto uIt = clauses.iter();
+    auto uIt = clauses.items();
     unsigned idx = 0;
     while (uIt.hasNext()) {
-      Clause* cl = uIt.next();
+      auto entry = uIt.next();
+      Clause* cl = entry.second;
       float logit = logits[idx++].item().toDouble();
       if (_temp > 0.0) {
         // adding the gumbel noise
@@ -214,6 +216,18 @@ void NeuralClauseEvaluationModel::evalClauses(Saturation::UnprocessedClauseConta
   }
 }
 
+void NeuralPassiveClauseContainer::evalAndEnqueueDelayed()
+{
+  _model.evalClauses(_delayedInsertionBuffer);
+
+  // cout << "evalAndEnqueueDelayed for " << _delayedInsertionBuffer.size() << endl;
+  auto it = _delayedInsertionBuffer.items();
+  while (it.hasNext()) {
+    _queue.insert(it.next().second);
+  }
+  _delayedInsertionBuffer.reset();
+}
+
 NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, NeuralClauseEvaluationModel& model)
   : LRSIgnoringPassiveClauseContainer(isOutermost, opt),
   _model(model), _queue(_model.getScores()), _size(0), _reshuffleAt(opt.reshuffleAt())
@@ -223,10 +237,9 @@ NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, con
 
 void NeuralPassiveClauseContainer::add(Clause* cl)
 {
-  (void)_model.evalClause(cl); // make sure scores inside model know about this clauses (so that queue can insert it properly)
+  _delayedInsertionBuffer.insert(cl->number(),cl);
 
   // cout << "Inserting " << cl->number() << endl;
-  _queue.insert(cl);
   _size++;
 
   ASS(cl->store() == Clause::PASSIVE);
@@ -237,10 +250,12 @@ void NeuralPassiveClauseContainer::remove(Clause* cl)
 {
   ASS(cl->store()==Clause::PASSIVE);
 
-  // cout << "Removing " << cl->number() << endl;
-  _queue.remove(cl);
+  if (!_delayedInsertionBuffer.remove(cl->number())) {
+    _queue.remove(cl);
+  }
   _size--;
 
+  // cout << "Removing " << cl->number() << endl;
   removedEvent.fire(cl);
   ASS(cl->store()!=Clause::PASSIVE);
 }
@@ -249,8 +264,9 @@ Clause* NeuralPassiveClauseContainer::popSelected()
 {
   ASS(_size);
 
-  static unsigned popCount = 0;
+  evalAndEnqueueDelayed();
 
+  static unsigned popCount = 0;
   if (++popCount == _reshuffleAt) {
     // cout << "reshuffled at "<< popCount << endl;
     Random::resetSeed();
@@ -279,6 +295,8 @@ bool NeuralPassiveClauseContainer::setLimits(float newLimit)
 
 void NeuralPassiveClauseContainer::simulationInit()
 {
+  evalAndEnqueueDelayed();
+
   _simulationIt = new ClauseQueue::Iterator(_queue);
 }
 

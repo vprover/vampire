@@ -1298,42 +1298,29 @@ void SaturationAlgorithm::activate(Clause* cl)
  */
 void SaturationAlgorithm::doUnprocessedLoop()
 {
-start:
-  newClausesToUnprocessed();
-
-  // pre-evaluation incoming clauses ideally in one bulk
-  if (_neuralModel && _opt.neuralPassiveClauseContainer()) {
-    _neuralModel->evalClauses(*_unprocessed);
-  }
-  /* Note that this will not pre-evaluate all incoming clauses
-   * (and so a later call to _neuralModel->evalClause inside the container is needed).
-   * Namely, children of forward simplified unprocessed, will enter the below loop
-   * thanks to the newClausesToUnprocessed there.
-   */
-
-  while (!_unprocessed->isEmpty()) {
-    Clause* c = _unprocessed->pop();
-    ASS(!isRefutation(c));
-
-    if (forwardSimplify(c)) {
-      onClauseRetained(c);
-      addToPassive(c);
-      ASS_EQ(c->store(), Clause::PASSIVE);
-    }
-    else {
-      ASS_EQ(c->store(), Clause::UNPROCESSED);
-      c->setStore(Clause::NONE);
-    }
-
+  do {
     newClausesToUnprocessed();
-  }
 
-  ASS(clausesFlushed());
-  onAllProcessed();
-  if (!clausesFlushed()) {
-    // there were some new clauses added, so let's process them
-    goto start;
-  }
+    while (!_unprocessed->isEmpty()) {
+      Clause* c = _unprocessed->pop();
+      ASS(!isRefutation(c));
+
+      if (forwardSimplify(c)) {
+        onClauseRetained(c);
+        addToPassive(c);
+        ASS_EQ(c->store(), Clause::PASSIVE);
+      }
+      else {
+        ASS_EQ(c->store(), Clause::UNPROCESSED);
+        c->setStore(Clause::NONE);
+      }
+
+      newClausesToUnprocessed();
+    }
+
+    ASS(clausesFlushed());
+    onAllProcessed(); // in particular, Splitter has not recomputed model which may have triggered deletions and additions
+  } while (!clausesFlushed());
 }
 
 /**
