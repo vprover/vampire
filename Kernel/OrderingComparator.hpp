@@ -16,7 +16,7 @@
 
 #include "Forwards.hpp"
 
-#include "PartialOrdering.hpp"
+#include "TermPartialOrdering.hpp"
 
 #include "Ordering.hpp"
 
@@ -107,7 +107,7 @@ protected:
 
   using VarCoeffPair = std::pair<unsigned,int>;
 
-  using Trace = PartialOrdering;
+  using Trace = TermPartialOrdering;
 
   ScopedPtr<Trace> getCurrentTrace();
 

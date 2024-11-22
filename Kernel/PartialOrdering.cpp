@@ -71,262 +71,6 @@ constexpr PoComp strengthen(PoComp v) {
   }
 }
 
-Result poCompToResult(PoComp c) {
-  switch (c) {
-    case PoComp::GREATER:
-      return Result::GREATER;
-    case PoComp::EQUAL:
-      return Result::EQUAL;
-    case PoComp::LESS:
-      return Result::LESS;
-    case PoComp::NGEQ:
-    case PoComp::NLEQ:
-    case PoComp::INCOMPARABLE:
-      return Result::INCOMPARABLE;
-    default:
-      break;
-  }
-  ASSERTION_VIOLATION;
-}
-
-PoComp resultToPoComp(Result r, bool reversed) {
-  switch (r) {
-    case Result::GREATER:
-      return reversed ? PoComp::LESS : PoComp::GREATER;
-    case Result::EQUAL:
-      return PoComp::EQUAL;
-    case Result::LESS:
-      return reversed ? PoComp::GREATER : PoComp::LESS;
-    case Result::INCOMPARABLE:
-      return reversed ? PoComp::NLEQ : PoComp::NGEQ;
-  }
-}
-
-PartialOrdering::PartialOrdering(const Ordering& ord)
-  : _ord(ord), _nodes(), _size(0), _array(nullptr), _hasIncomp(false), _prev(nullptr) {}
-
-PartialOrdering::PartialOrdering(const PartialOrdering& other)
-  : _ord(other._ord), _nodes(other._nodes), _size(_nodes.size()), _array(nullptr), _hasIncomp(other._hasIncomp), _prev(&other)
-{
-  size_t arrSize = ((_size - 1) * _size / 2);
-  if (arrSize) {
-    void* mem = ALLOC_KNOWN(arrSize*sizeof(PoComp), "Kernel::PartialOrdering");
-    _array = array_new<PoComp>(mem, arrSize);
-    memcpy(_array,other._array,arrSize*sizeof(PoComp));
-  }
-}
-
-PartialOrdering::~PartialOrdering()
-{
-  size_t arrSize = ((_size - 1) * _size / 2);
-  if (arrSize) {
-    array_delete(_array, arrSize);
-    DEALLOC_KNOWN(_array, arrSize*sizeof(PoComp), "Kernel::PartialOrdering");
-  }
-}
-
-PoComp PartialOrdering::get_one_external(TermList t, size_t idx) const
-{
-  PoComp res = PoComp::UNKNOWN;
-  decltype(_nodes)::Iterator it(_nodes);
-  while (it.hasNext()) {
-    auto& e = it.next();
-    if (e.value()==idx) {
-      continue;
-    }
-    auto val = idx_of_safe(e.value(),idx);
-    if (val == PoComp::UNKNOWN) {
-      continue;
-    }
-    auto comp = _ord.compare(t,e.key());
-    switch (comp) {
-      case Ordering::GREATER: {
-        switch (val) {
-          case PoComp::EQUAL:
-          case PoComp::GREATER:
-            // t > e ≥ x -> t > x
-            ALWAYS(checkCompatibility(res, PoComp::GREATER, res));
-          case PoComp::NLEQ:
-          case PoComp::INCOMPARABLE:
-            // t > e ≰ x -> t ≰ x
-            ALWAYS(checkCompatibility(res, PoComp::NLEQ, res));
-          default:
-            break;
-        }
-        break;
-      }
-      case Ordering::EQUAL: {
-        return val;
-      }
-      case Ordering::LESS: {
-        switch (val) {
-          case PoComp::EQUAL:
-          case PoComp::LESS:
-            // t < e ≤ x -> t < x
-            ALWAYS(checkCompatibility(res, PoComp::LESS, res));
-          case PoComp::NGEQ:
-          case PoComp::INCOMPARABLE:
-            // t < e ≱ x -> t ≱ x
-            ALWAYS(checkCompatibility(res, PoComp::NGEQ, res));
-          default:
-            break;
-        }
-        break;
-      }
-      case Ordering::INCOMPARABLE: {
-        break;
-      }
-    }
-  }
-  return res;
-}
-
-PoComp PartialOrdering::get_two_external(TermList t1, TermList t2) const
-{
-  PoComp res = PoComp::UNKNOWN;
-  Stack<pair<size_t,Ordering::Result>> t1_rel; // ∃x. t1 rel x
-  Stack<pair<size_t,Ordering::Result>> t2_rel; // ∃x. x rel t2
-
-  decltype(_nodes)::Iterator it(_nodes);
-  while (it.hasNext()) {
-    auto& e = it.next();
-    auto comp1 = _ord.compare(t1,e.key());
-    if (comp1 != Ordering::INCOMPARABLE) {
-      t1_rel.push({ e.value(), comp1 });
-    }
-    auto comp2 = _ord.compare(e.key(),t2);
-    if (comp2 != Ordering::INCOMPARABLE) {
-      t2_rel.push({ e.value(), comp2 });
-    }
-  }
-  for (const auto& [e1,r1] : t1_rel) {
-    for (const auto& [e2,r2] : t2_rel) {
-      auto r = e1 == e2 ? PoComp::EQUAL : idx_of_safe(e1,e2);
-      switch (r) {
-        case PoComp::UNKNOWN:
-          break;
-        case PoComp::EQUAL: {
-          switch (r1) {
-            case Ordering::GREATER: {
-              if (r2 != Ordering::LESS) {
-                // t1 > e1 = e2 ≥ t2 -> t1 > t2
-                ALWAYS(checkCompatibility(res, PoComp::GREATER, res));
-              }
-              break;
-            }
-            case Ordering::EQUAL: {
-              // t1 = e1 = e2 r2 t2 -> t1 r2 t2
-              ALWAYS(checkCompatibility(res, resultToPoComp(r2, false), res));
-              break;
-            }
-            case Ordering::LESS: {
-              if (r2 != Ordering::GREATER) {
-                // t1 < e1 = e2 ≤ t2 -> t1 < t2
-                ALWAYS(checkCompatibility(res, PoComp::LESS, res));
-              }
-              break;
-            }
-            case Ordering::INCOMPARABLE:
-              ASSERTION_VIOLATION;
-          }
-          break;
-        }
-        case PoComp::GREATER:
-        case PoComp::NLEQ: {
-          if (r1 != Ordering::LESS && r2 != Ordering::LESS) {
-            // t1 ≥ e1 > e2 ≥ t2 -> t1 > t2
-            // t1 ≥ e1 ≰ e2 ≥ t2 -> t1 ≰ t2
-            ALWAYS(checkCompatibility(res, r, res));
-          }
-          break;
-        }
-        case PoComp::LESS:
-        case PoComp::NGEQ: {
-          if (r1 != Ordering::GREATER && r2 != Ordering::GREATER) {
-            // t1 ≤ e1 < e2 ≤ t2 -> t1 < t2
-            // t1 ≤ e1 ≱ e2 ≤ t2 -> t1 ≱ t2
-            ALWAYS(checkCompatibility(res, r, res));
-          }
-          break;
-        }
-        case PoComp::INCOMPARABLE: {
-          if (r1 != Ordering::GREATER && r2 != Ordering::GREATER) {
-            // t1 ≤ e1 ≱ e2 ≤ t2 -> t1 ≱ t2
-            ALWAYS(checkCompatibility(res, PoComp::NGEQ, res));
-          }
-          if (r1 != Ordering::LESS && r2 != Ordering::LESS) {
-            // t1 ≥ e1 ≰ e2 ≥ t2 -> t1 ≰ t2
-            ALWAYS(checkCompatibility(res, PoComp::NLEQ, res));
-          }
-          break;
-        }
-      }
-    }
-  }
-  return res;
-}
-
-bool PartialOrdering::get(TermList lhs, TermList rhs, Result& res) const
-{
-  // comparable terms should be handled by caller
-  ASS_EQ(_ord.compare(lhs,rhs),Ordering::INCOMPARABLE);
-  // proper term pairs should be handled by caller 
-  ASS(lhs.isVar() || rhs.isVar());
-
-  if (lhs == rhs) {
-    res = Result::EQUAL;
-    return true;
-  }
-  PoComp val;
-  bool reversed = false;
-  if (!_nodes.find(lhs) && !_nodes.find(rhs))
-  {
-    val = get_two_external(lhs, rhs);
-  }
-  else if (!_nodes.find(lhs))
-  {
-    ASS(_nodes.find(rhs));
-    size_t y = idx_of_elem(rhs);
-    val = get_one_external(lhs, y);
-  }
-  else if (!_nodes.find(rhs))
-  {
-    ASS(_nodes.find(lhs));
-    size_t x = idx_of_elem(lhs);
-    val = get_one_external(rhs, x);
-    reversed = true;
-  }
-  else
-  {
-    size_t x = idx_of_elem(lhs);
-    size_t y = idx_of_elem(rhs);
-    reversed = x > y;
-    if (reversed) {
-      swap(x,y);
-    }
-    val = idx_of(x,y);
-  }
-  if (val == PoComp::UNKNOWN) {
-    return false;
-  }
-  // if we only have INCOMPARABLE in the "other direction"
-  // as we use isGreater which never gives LESS, we cannot
-  // distinguish between the two LESS and INCOMPARABLE
-  if (reversed) {
-    if (val == PoComp::NGEQ) {
-      return false;
-    }
-    res = Ordering::reverse(poCompToResult(val));
-    return true;
-  } else {
-    if (val == PoComp::NLEQ) {
-      return false;
-    }
-    res = poCompToResult(val);
-    return true;
-  }
-}
-
 bool checkCompatibility(PoComp old, PoComp curr, PoComp& res)
 {
   if (old == PoComp::UNKNOWN) {
@@ -380,82 +124,120 @@ bool checkCompatibility(PoComp old, PoComp curr, PoComp& res)
   ASSERTION_VIOLATION;
 }
 
-bool PartialOrdering::set(Ordering::Constraint con)
-{
-  ASS_EQ(_size,_nodes.size());
-  if (con.lhs == con.rhs) {
-    return true; // TODO should we check anything here?
+string idx_to_string(PoComp c) {
+  switch (c) {
+    case PoComp::UNKNOWN:
+      return "UNKNOWN";
+    case PoComp::GREATER:
+      return "GREATER";
+    case PoComp::EQUAL:
+      return "EQUAL";
+    case PoComp::LESS:
+      return "LESS";
+    case PoComp::NGEQ:
+      return "NGEQ";
+    case PoComp::NLEQ:
+      return "NLEQ";
+    case PoComp::INCOMPARABLE:
+      return "INCOMPARABLE";
   }
-  size_t x = idx_of_elem_ext(con.lhs);
-  size_t y = idx_of_elem_ext(con.rhs);
+}
 
+string idx_to_infix(PoComp c) {
+  switch (c) {
+    case PoComp::UNKNOWN:
+      return "?";
+    case PoComp::GREATER:
+      return ">";
+    case PoComp::EQUAL:
+      return "=";
+    case PoComp::LESS:
+      return "<";
+    case PoComp::NGEQ:
+      return "≱";
+    case PoComp::NLEQ:
+      return "≰";
+    case PoComp::INCOMPARABLE:
+      return "⋈";
+  }
+}
+
+PartialOrdering::PartialOrdering()
+  : _size(0), _array(nullptr), _hasIncomp(false), _prev(nullptr) {}
+
+PartialOrdering::PartialOrdering(const PartialOrdering& other)
+  : _size(other._size), _array(nullptr), _hasIncomp(other._hasIncomp), _prev(&other)
+{
+  size_t arrSize = ((_size - 1) * _size / 2);
+  if (arrSize) {
+    void* mem = ALLOC_KNOWN(arrSize*sizeof(PoComp), "Kernel::PartialOrdering");
+    _array = array_new<PoComp>(mem, arrSize);
+    memcpy(_array,other._array,arrSize*sizeof(PoComp));
+  }
+}
+
+PartialOrdering::~PartialOrdering()
+{
+  size_t arrSize = ((_size - 1) * _size / 2);
+  if (arrSize) {
+    array_delete(_array, arrSize);
+    DEALLOC_KNOWN(_array, arrSize*sizeof(PoComp), "Kernel::PartialOrdering");
+  }
+}
+
+PoComp PartialOrdering::get(size_t x, size_t y) const
+{
+  ASS_L(x,_size);
+  ASS_L(y,_size);
+
+  return (x < y) ? get_unsafe(x,y) : reverse(get_unsafe(y,x));
+}
+
+bool PartialOrdering::set(size_t x, size_t y, PoComp v)
+{
+  ASS_L(x,_size);
+  ASS_L(y,_size);
+
+  if (x == y) {
+    return true;
+  }
+
+  // TODO remove this reverse thing
   bool reversed = x > y;
   if (reversed) {
     swap(x,y);
   }
-  PoComp new_val = resultToPoComp(con.rel, reversed);
-
   bool changed;
-  RETURN_IF_FAIL(set_idx_of(x, y, new_val, changed));
+  RETURN_IF_FAIL(set_idx_of(x, y, v, changed));
 
   // if something's changed, we calculate the transitive closure
   if (changed) {
-    RETURN_IF_FAIL(set_inferred(x, y, new_val));
+    // TODO we could use the value that we get from compatibility checking here
+    RETURN_IF_FAIL(set_inferred(x, y, v));
   }
-#if DEBUG_ORDERING
-  // debug_check();
-#endif
   return true;
 }
 
-size_t PartialOrdering::idx_of_elem(TermList t) const
+void PartialOrdering::extend()
 {
-  ASS(_nodes.find(t));
-  return _nodes.get(t);
-}
-
-size_t PartialOrdering::idx_of_elem_ext(TermList t)
-{
-  size_t *ptr;
-  if (_nodes.getValuePtr(t, ptr, _size)) {
-    // extend array
-    size_t prevSize = ((_size - 1) * _size / 2);
-    auto prevArray = _array;
-    _size++;
-    if (_size>1) {
-      size_t newSize = prevSize + _size;
-      void* mem = ALLOC_KNOWN(newSize*sizeof(PoComp), "Kernel::PartialOrdering");
-      _array = array_new<PoComp>(mem, newSize);
-      std::memset(_array, 0, newSize*sizeof(PoComp));
-      if (prevArray) {
-        memcpy(_array,prevArray,prevSize*sizeof(PoComp));
-      }
-    }
-    // remove previous array
-    if (prevSize) {
-      array_delete(prevArray, prevSize);
-      DEALLOC_KNOWN(prevArray, prevSize*sizeof(PoComp), "Kernel::PartialOrdering");
-    }
-
-    // fill out new row with known values
-    size_t idx = _size-1;
-    decltype(_nodes)::Iterator it(_nodes);
-    while (it.hasNext()) {
-      auto& e = it.next();
-      if (e.value()==idx) {
-        continue;
-      }
-      auto comp = _ord.compare(e.key(),t);
-      if (comp == Ordering::INCOMPARABLE) {
-        continue;
-      }
-      auto val = resultToPoComp(comp, false);
-      bool unused;
-      ALWAYS(set_idx_of(e.value(), idx, val, unused));
-      ALWAYS(set_inferred(e.value(), idx, val));
+  // extend array
+  size_t prevSize = ((_size - 1) * _size / 2);
+  auto prevArray = _array;
+  _size++;
+  if (_size>1) {
+    size_t newSize = prevSize + _size;
+    void* mem = ALLOC_KNOWN(newSize*sizeof(PoComp), "Kernel::PartialOrdering");
+    _array = array_new<PoComp>(mem, newSize);
+    std::memset(_array, 0, newSize*sizeof(PoComp));
+    if (prevArray) {
+      memcpy(_array,prevArray,prevSize*sizeof(PoComp));
     }
   }
-  return *ptr;
+  // remove previous array
+  if (prevSize) {
+    array_delete(prevArray, prevSize);
+    DEALLOC_KNOWN(prevArray, prevSize*sizeof(PoComp), "Kernel::PartialOrdering");
+  }
 }
 
 bool PartialOrdering::set_idx_of(size_t x, size_t y, PoComp v, bool& changed)
@@ -484,20 +266,11 @@ bool PartialOrdering::set_idx_of_safe(size_t x, size_t y, PoComp v, bool& change
   }
 }
 
-PoComp PartialOrdering::idx_of(size_t x, size_t y) const
+PoComp PartialOrdering::get_unsafe(size_t x, size_t y) const
 {
   size_t idx = y*(y-1)/2 + x;
   ASS_L(idx,((_size - 1) * _size / 2));
   return _array[idx];
-}
-
-PoComp PartialOrdering::idx_of_safe(size_t x, size_t y) const
-{
-  if (x < y) {
-    return idx_of(x,y);
-  } else {
-    return reverse(idx_of(y,x));
-  }
 }
 
 bool PartialOrdering::set_inferred_loop(size_t x, size_t y, PoComp rel)
@@ -515,7 +288,7 @@ bool PartialOrdering::set_inferred_loop(size_t x, size_t y, PoComp rel)
     if (z == x || z == y) {
       continue;
     }
-    auto r = idx_of_safe(z, x);
+    auto r = get(z, x);
     // if rel = ≤: z ≤ x  ∧  x ≤ y  →  z ≤ y
     // if rel = ≥: z ≥ x  ∧  x ≥ y  →  z ≥ y
     if (r == rel || r == PoComp::EQUAL) {
@@ -537,7 +310,7 @@ bool PartialOrdering::set_inferred_loop(size_t x, size_t y, PoComp rel)
       }
     }
 
-    r = idx_of_safe(y, z);
+    r = get(y, z);
     // x rel y  ∧  y rel z  →  x rel z
     // x rel y  ∧  y  =  z  →  x rel z
     if (r == rel || r == PoComp::EQUAL) {
@@ -586,7 +359,7 @@ bool PartialOrdering::set_inferred_loop_inc(size_t x, size_t y, PoComp wkn)
     if (z == x || z == y) {
       continue;
     }
-    auto r = idx_of_safe(z, x);
+    auto r = get(z, x);
     // z ≤ x  ∧  x ≱ y  →  z ≱ y
     // z ≥ x  ∧  x ≰ y  →  z ≰ y
     if (r == rel || r == PoComp::EQUAL) {
@@ -597,7 +370,7 @@ bool PartialOrdering::set_inferred_loop_inc(size_t x, size_t y, PoComp wkn)
         // continue;
       }
     }
-    r = idx_of_safe(y, z);
+    r = get(y, z);
     // x ≱ y  ∧  y ≤ z  →  x ≱ z
     // x ≰ y  ∧  y ≥ z  →  x ≰ z
     if (r == rel || r == PoComp::EQUAL) {
@@ -631,7 +404,7 @@ bool PartialOrdering::set_inferred_loop_eq(size_t x, size_t y)
     if (z == x || z == y) {
       continue;
     }
-    auto r = idx_of_safe(z, x);
+    auto r = get(z, x);
     if (r != PoComp::UNKNOWN) {
       RETURN_IF_FAIL(set_idx_of_safe(z, y, r, changed));
       if (changed) {
@@ -640,7 +413,7 @@ bool PartialOrdering::set_inferred_loop_eq(size_t x, size_t y)
         // continue;
       }
     }
-    r = idx_of_safe(y, z);
+    r = get(y, z);
     if (r != PoComp::UNKNOWN) {
       RETURN_IF_FAIL(set_idx_of_safe(x, z, r, changed));
       if (changed) {
@@ -826,57 +599,12 @@ bool PartialOrdering::set_inferred(size_t x, size_t y, PoComp result)
   return true;
 }
 
-string idx_to_string(PoComp c) {
-  switch (c) {
-    case PoComp::UNKNOWN:
-      return "UNKNOWN";
-    case PoComp::GREATER:
-      return "GREATER";
-    case PoComp::EQUAL:
-      return "EQUAL";
-    case PoComp::LESS:
-      return "LESS";
-    case PoComp::NGEQ:
-      return "NGEQ";
-    case PoComp::NLEQ:
-      return "NLEQ";
-    case PoComp::INCOMPARABLE:
-      return "INCOMPARABLE";
-  }
-}
-
-string idx_to_infix(PoComp c) {
-  switch (c) {
-    case PoComp::UNKNOWN:
-      return "?";
-    case PoComp::GREATER:
-      return ">";
-    case PoComp::EQUAL:
-      return "=";
-    case PoComp::LESS:
-      return "<";
-    case PoComp::NGEQ:
-      return "≱";
-    case PoComp::NLEQ:
-      return "≰";
-    case PoComp::INCOMPARABLE:
-      return "⋈";
-  }
-}
-
 string PartialOrdering::to_string() const
 {
-  if (_nodes.size()<2) {
+  if (_size == 0) {
     return " {} ";
   }
   stringstream str;
-  typename Map<TermList,size_t>::Iterator it(_nodes);
-  while (it.hasNext()) {
-    const auto& e = it.next();
-    str << e.value() << ": " << e.key() << ", ";
-  }
-  str << endl;
-
   size_t s = _size-1;
   size_t w = 0;
   while (s) { s /= 10; w++; }
@@ -887,7 +615,7 @@ string PartialOrdering::to_string() const
       if (w>1) {
         str << std::setw(w-1) << " ";
       }
-      str << idx_to_infix(idx_of(j,i)) << " ";
+      str << idx_to_infix(get_unsafe(j,i)) << " ";
     }
     if (w>1) {
       str << std::setw(w-1) << " ";
@@ -912,107 +640,5 @@ string PartialOrdering::all_to_string() const
   }
   return res.str();
 }
-
-#if DEBUG_ORDERING
-void PartialOrdering::debug_check() const
-{
-  auto output_args = [this](size_t x, size_t y, size_t z) {
-    return all_to_string() + " at " + Int::toString(x) + ", " + Int::toString(y) + ", " + Int::toString(z);
-  };
-
-  auto check_val = [&output_args](auto actual_val, auto expected_val, size_t x, size_t y, size_t z) {
-    if (actual_val == PoComp::UNKNOWN) {
-      INVALID_OPERATION(output_args(x,y,z));
-    }
-    if (expected_val == PoComp::NLEQ) {
-      if (actual_val != PoComp::NLEQ && actual_val != PoComp::INCOMPARABLE && actual_val != PoComp::GREATER) {
-        INVALID_OPERATION(output_args(x,y,z));
-      }
-    } else if (expected_val == PoComp::NGEQ) {
-      if (actual_val != PoComp::NGEQ && actual_val != PoComp::INCOMPARABLE && actual_val != PoComp::LESS) {
-        INVALID_OPERATION(output_args(x,y,z));
-      }
-    } else {
-      if (actual_val != expected_val) {
-        INVALID_OPERATION(output_args(x,y,z));
-      }
-    }
-  };
-
-  decltype(_nodes)::Iterator it1(_nodes);
-  while (it1.hasNext()) {
-    auto& e1 = it1.next();
-
-    decltype(_nodes)::Iterator it2(_nodes);
-    while (it2.hasNext()) {
-      auto& e2 = it2.next();
-      if (e1.value() == e2.value()) {
-        continue;
-      }
-      auto v12 = idx_of_safe(e1.value(),e2.value());
-      if (v12 == PoComp::UNKNOWN) {
-        continue;
-      }
-      auto comp = _ord.compare(e1.key(),e2.key());
-      if (comp != Ordering::INCOMPARABLE) {
-        check_val(v12, resultToPoComp(comp, false), e1.value(), e2.value(), e2.value());
-      }
-
-      decltype(_nodes)::Iterator it3(_nodes);
-      while (it3.hasNext()) {
-        auto& e3 = it3.next();
-        if (e1.value() == e3.value() || e2.value() == e3.value()) {
-          continue;
-        }
-
-        auto v13 = idx_of_safe(e1.value(),e3.value());
-        if (v13 == PoComp::UNKNOWN) {
-          continue;
-        }
-
-        auto v23 = idx_of_safe(e2.value(),e3.value());
-
-        switch (v12) {
-          case PoComp::UNKNOWN:
-            break;
-          case PoComp::EQUAL:
-            // x = y rel z -> x rel z
-            check_val(v13, v23, e1.value(), e2.value(), e3.value());
-            break;
-          case PoComp::GREATER:
-          case PoComp::NLEQ: {
-            if (v23 == PoComp::EQUAL || v23 == PoComp::GREATER) {
-              // x > y ≥ z -> x > z
-              // x ≰ y ≥ z -> x ≰ z
-              check_val(v13, v12, e1.value(), e2.value(), e3.value());
-            }
-            break;
-          }
-          case PoComp::LESS:
-          case PoComp::NGEQ: {
-            if (v23 == PoComp::EQUAL || v23 == PoComp::LESS) {
-              // x < y ≤ z -> x < z
-              // x ≱ y ≤ z -> x ≱ z
-              check_val(v13, v12, e1.value(), e2.value(), e3.value());
-            }
-            break;
-          }
-          case PoComp::INCOMPARABLE: {
-            if (v23 == PoComp::EQUAL || v23 == PoComp::GREATER) {
-              // x ≰ y ≥ z -> x ≰ z
-              check_val(v13, PoComp::NLEQ, e1.value(), e2.value(), e3.value());
-            }
-            if (v23 == PoComp::EQUAL || v23 == PoComp::LESS) {
-              // x ≱ y ≤ z -> x ≱ z
-              check_val(v13, PoComp::NGEQ, e1.value(), e2.value(), e3.value());
-            }
-            break;
-          }
-        }
-      }
-    }
-  }
-}
-#endif
 
 }
