@@ -76,16 +76,75 @@ struct LascaOrderingUtils {
 
 struct LAKBO {
   KBO _kbo;
+  std::shared_ptr<LascaState> _state;
 
   LAKBO(Problem& prb, const Options& opt) : _kbo(prb, opt) {}
+  void setState(std::shared_ptr<LascaState> s) { _state = std::move(s); }
+  LascaState& shared() const { return *_state; }
 
-  void show(std::ostream& out) const {  }
-  template<class NumTraits>
-  Ordering::Result compare(Polynom<NumTraits> const& t0, Polynom<NumTraits> const& t1) const;
-  template<class NumTraits>
-  Ordering::Result compare(MonomFactors<NumTraits> const& t0, MonomFactors<NumTraits> const& t1) const;
+  void show(std::ostream& out) const { return _kbo.show(out); }
 
-  Ordering::Result cmpSameSkeleton(PolyNf const& t0, PolyNf const& t1) const;
+  template<class NumTraits>
+  Ordering::Result cmpSameSkeleton(MonomFactors<NumTraits> const& t0, MonomFactors<NumTraits> const& t1) const 
+  { 
+    return LascaOrderingUtils::lexIter(
+        t0.iter().zip(t1.iter())
+          .map([&](auto pair) { return cmpSameSkeleton(pair.first.term, pair.second.term); })
+        );
+  }
+
+  template<class NumTraits>
+  Ordering::Result cmpSameSkeleton(Monom<NumTraits> const& t0, Monom<NumTraits> const& t1) const 
+  { 
+    return LascaOrderingUtils::lexLazy(
+        [&](){ return cmpSameSkeleton(*t0.factors, *t1.factors); },
+        [&](){ return LascaOrderingUtils::cmpQ(t0.numeral, t1.numeral); }
+    );
+  }
+
+
+  template<class NumTraits>
+  Ordering::Result cmpSameSkeleton(Polynom<NumTraits> const& t0, Polynom<NumTraits> const& t1) const 
+  { 
+    if (t0.nSummands() == 1 && t1.nSummands() == 1) {
+      return cmpSameSkeleton(t0.summandAt(0), t1.summandAt(0));
+    } else {
+      auto set = [](auto p) { return p.iterSummands().map([](auto& x) { return x; }).template collect<MultiSet>(); };
+      return OrderingUtils2::mulExt(set(t0), set(t1), [&](auto& l, auto& r) { return compare(l, r); });
+    }
+  }
+
+  template<class NumTraits>
+  Ordering::Result cmpSameSkeleton(Polynom<NumTraits> const& t0, PolyNf const& t1) const 
+  { return cmpSameSkeleton(t0, *t1.template wrapPoly<NumTraits>()); }
+
+  Ordering::Result cmpSameSkeleton(AnyPoly const& t0, PolyNf const& t1) const 
+  { return t0.apply([&](auto& t0) { return cmpSameSkeleton(*t0, t1); }); }
+
+  Ordering::Result cmpSameSkeleton(PolyNf const& t0, PolyNf const& t1) const {
+    if (auto p0 = t0.template as<AnyPoly>()) {
+      return cmpSameSkeleton(*p0, t1);
+    } else if (auto p1 = t1.template as<AnyPoly>()) {
+      return Ordering::reverse(cmpSameSkeleton(*p1, t0));
+    } else {
+      ASS(t0.is<Perfect<FuncTerm>>() && t1.is<Perfect<FuncTerm>>())
+      auto f0 = t0.as<Perfect<FuncTerm>>().unwrap();
+      auto f1 = t1.as<Perfect<FuncTerm>>().unwrap();
+      auto floor0 = f0->function().isFloor();
+      auto floor1 = f1->function().isFloor();
+      if (floor0 && floor1) {
+        return cmpSameSkeleton(f0->arg(0), f1->arg(0));
+      } else if (!floor0 && floor1) {
+        return Ordering::Result::LESS;
+      } else if (floor0 && !floor1) {
+        return Ordering::Result::GREATER;
+      } else {
+        ASS(!floor0 && !floor1)
+        return LascaOrderingUtils::lexIter(f0->iterArgs().zip(f1->iterArgs())
+            .map([&](auto pair) { return cmpSameSkeleton(pair.first, pair.second); }));
+      }
+    }
+  }
 
   Option<TermList> skeleton(Variable const& t) const {
     // TODO
@@ -110,7 +169,11 @@ struct LAKBO {
 
   template<class NumTraits>
   Option<TermList> skeleton(Monom<NumTraits> const& t) const 
-  { return trySkeleton(t.factors->iter())
+  { return skeleton(*t.factors); }
+
+  template<class NumTraits>
+  Option<TermList> skeleton(MonomFactors<NumTraits> const& t) const 
+  { return trySkeleton(t.iter())
       .map([](auto skels) { return NumTraits::product(arrayIter(*skels)); }); }
 
   template<class NumTraits>
@@ -165,11 +228,27 @@ struct LAKBO {
       });
   }
 
-  Option<TermList> skeleton(PolyNf const& t) const {
-    return t.apply([&](auto& x) { return skeleton(x); });
+  Option<TermList> skeleton(PolyNf const& t) const 
+  { return t.apply([&](auto& x) { return skeleton(x); }); }
+
+  Ordering::Result compare(TermList t0, TermList t1) const {
+    if (t0 == t1) return Ordering::Result::EQUAL;
+    if (t0.isVar() && t1.isVar()) {
+      return Ordering::Result::INCOMPARABLE;
+    } else if (t0.isVar()) {
+      return compareVar(t0.var(), t1.term());
+    } else if (t1.isVar()) {
+      return Ordering::reverse(compareVar(t1.var(), t0.term()));
+    } else {
+      return compare(shared().normalize(t0.term()), shared().normalize(t1.term()));
+    }
   }
 
-  Ordering::Result compare(PolyNf const& t0, PolyNf const& t1) const {
+  // TODO atoms of equalities normalizing!!!
+
+
+  template<class Term>
+  Ordering::Result compare(Term const& t0, Term const& t1) const {
     auto s0 = skeleton(t0);
     auto s1 = skeleton(t1);
     if (s0.isSome() && s1.isSome()) {
@@ -187,28 +266,14 @@ struct LAKBO {
     // TODO firgure out theory for vars
     return Ordering::INCOMPARABLE;
   }
-
-  Ordering::Result compare(TermList t0, TermList t1) const {
-    if (t0 == t1) return Ordering::Result::EQUAL;
-    if (t0.isVar() && t1.isVar()) {
-      return Ordering::Result::INCOMPARABLE;
-    } else if (t0.isVar()) {
-      return compareVar(t0.var(), t1.term());
-    } else if (t1.isVar()) {
-      return Ordering::reverse(compareVar(t1.var(), t0.term()));
-    } else {
-      return compare(PolyNf::normalize(t0.term()), PolyNf::normalize(t1.term()));
-    }
-  }
-
   int predicatePrecedence(unsigned pred) const { return _kbo.predicatePrecedence(pred); }
+
 };
 
 template<class TermOrdering>
 class LiteralOrdering
   : public Ordering
 {
-  std::shared_ptr<LascaState> _shared;
   TermOrdering _termOrdering;
 
   Ordering::Result cmpPrecUninterpreted(Literal* l0, Literal* l1) const {
@@ -298,8 +363,8 @@ public:
   virtual ~LiteralOrdering() {}
 
   Result compare(Literal* l1, Literal* l2) const override {
-    auto lasca1 = _shared->normalizer.renormalize(l1);
-    auto lasca2 = _shared->normalizer.renormalize(l2);
+    auto lasca1 = _termOrdering.shared().normalizer.renormalize(l1);
+    auto lasca2 = _termOrdering.shared().normalizer.renormalize(l2);
     if (lasca1.isNone() && lasca2.isSome()) {
       return Ordering::GREATER;
 
@@ -322,14 +387,6 @@ public:
   { _termOrdering.show(out); }
 
   void setState(std::shared_ptr<LascaState> s) { _termOrdering.setState(std::move(s)); }
-
-  // // TODO optimize?
-  // Result compare(AppliedTerm t1, AppliedTerm t2) const override
-  // { return compare(t1.apply(), t2.apply()); }
-  //
-  // // TODO more efficient impl (?)
-  // bool isGreater(AppliedTerm t1, AppliedTerm t2) const override
-  // { return compare(t1, t2) == Result::GREATER; }
 
 private:
 

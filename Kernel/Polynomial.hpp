@@ -501,6 +501,7 @@ class Polynom
   Stack<Monom> _summands;
 
 public:
+  using NumTraits = Number;
   USE_ALLOCATOR(Polynom)
 
   /** 
@@ -1409,6 +1410,11 @@ template<class Number>
 void Polynom<Number>::integrity() const {
 #if VDEBUG
   ASS(_summands.size() > 0)
+  // if (_summands.size() == 1) {
+  //   ASS(_summands[0].numeral != 1 
+  //       || _summands[0].factors->nFactors() != 1
+  //       || _summands[0].factors->factorAt(0).power != 1 )
+  // }
   for (auto const& x : _summands)
     x.integrity();
   if (_summands.size() > 0) {
