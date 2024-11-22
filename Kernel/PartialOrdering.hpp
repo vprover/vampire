@@ -34,14 +34,11 @@ bool checkCompatibility(PoComp old, PoComp curr, PoComp& res);
 class PartialOrdering
 {
 public:
-  PartialOrdering();
-  PartialOrdering(const PartialOrdering& other);
-  ~PartialOrdering();
-  PartialOrdering& operator=(const PartialOrdering&) = delete;
-
   PoComp get(size_t x, size_t y) const;
-  bool set(size_t x, size_t y, PoComp v);
-  void extend();
+
+  static const PartialOrdering* getEmpty();
+  static const PartialOrdering* set(const PartialOrdering* po, size_t x, size_t y, PoComp v);
+  static const PartialOrdering* extend(const PartialOrdering* po);
 
   // Returns if PO contains full incomparability yet.
   // Useful to discard branches when reasoning over ground terms.
@@ -51,6 +48,13 @@ public:
   std::string all_to_string() const;
 
 private:
+  PartialOrdering();
+  PartialOrdering(const PartialOrdering& other);
+  ~PartialOrdering();
+  PartialOrdering& operator=(const PartialOrdering&) = delete;
+
+  void extend();
+
   PoComp get_unsafe(size_t x, size_t y) const;
   bool set_idx_of(size_t x, size_t y, PoComp v, bool& changed);
   bool set_idx_of_safe(size_t x, size_t y, PoComp v, bool& changed);

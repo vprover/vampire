@@ -193,29 +193,63 @@ PoComp PartialOrdering::get(size_t x, size_t y) const
   return (x < y) ? get_unsafe(x,y) : reverse(get_unsafe(y,x));
 }
 
-bool PartialOrdering::set(size_t x, size_t y, PoComp v)
+const PartialOrdering* PartialOrdering::getEmpty()
 {
-  ASS_L(x,_size);
-  ASS_L(y,_size);
+  static PartialOrdering empty;
+  return &empty;
+}
+
+const PartialOrdering* PartialOrdering::set(const PartialOrdering* po, size_t x, size_t y, PoComp v)
+{
+  ASS(po);
+  ASS_L(x,po->_size);
+  ASS_L(y,po->_size);
 
   if (x == y) {
-    return true;
+    return po;
   }
 
-  // TODO remove this reverse thing
-  bool reversed = x > y;
-  if (reversed) {
-    swap(x,y);
-  }
-  bool changed;
-  RETURN_IF_FAIL(set_idx_of(x, y, v, changed));
+  static DHMap<std::tuple<const PartialOrdering*, size_t, size_t, PoComp>, const PartialOrdering*> cache;
 
-  // if something's changed, we calculate the transitive closure
-  if (changed) {
+  const PartialOrdering** ptr;
+  if (cache.getValuePtr(make_tuple(po, x, y, v), ptr, nullptr)) {
+    // TODO remove this reverse thing
+    bool reversed = x > y;
+    if (reversed) {
+      swap(x,y);
+    }
+    auto res = new PartialOrdering(*po);
+    bool changed;
+    if (!res->set_idx_of(x, y, v, changed)) {
+      delete res;
+      *ptr = nullptr;
+    } else if (!changed) {
+      delete res;
+      *ptr = po;
+    }
+    // if something's changed, we calculate the transitive closure
     // TODO we could use the value that we get from compatibility checking here
-    RETURN_IF_FAIL(set_inferred(x, y, v));
+    else if (!res->set_inferred(x, y, v)) {
+      delete res;
+      *ptr = nullptr;
+    } else {
+      *ptr = res;
+    }
   }
-  return true;
+  return *ptr;
+}
+
+const PartialOrdering* PartialOrdering::extend(const PartialOrdering* po)
+{
+  static DHMap<const PartialOrdering*, const PartialOrdering*> cache;
+
+  const PartialOrdering** ptr;
+  if (cache.getValuePtr(po, ptr, nullptr)) {
+    auto res = new PartialOrdering(*po);
+    res->extend();
+    *ptr = res;
+  }
+  return *ptr;
 }
 
 void PartialOrdering::extend()
@@ -229,6 +263,7 @@ void PartialOrdering::extend()
     void* mem = ALLOC_KNOWN(newSize*sizeof(PoComp), "Kernel::PartialOrdering");
     _array = array_new<PoComp>(mem, newSize);
     std::memset(_array, 0, newSize*sizeof(PoComp));
+    static_assert(static_cast<unsigned>(PoComp::UNKNOWN) == 0);
     if (prevArray) {
       memcpy(_array,prevArray,prevSize*sizeof(PoComp));
     }

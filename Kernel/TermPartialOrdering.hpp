@@ -30,11 +30,14 @@ using Result = Ordering::Result;
 class TermPartialOrdering
 {
 public:
-  TermPartialOrdering(const Ordering& ord) : _ord(ord) {}
+  TermPartialOrdering(const Ordering& ord) : _ord(ord), _po(PartialOrdering::getEmpty()) {}
   ~TermPartialOrdering() = default;
 
   bool get(TermList lhs, TermList rhs, Result& res) const;
   bool set(Ordering::Constraint con);
+
+  static const TermPartialOrdering* getEmpty(const Ordering& ord);
+  static const TermPartialOrdering* set(const TermPartialOrdering* tpo, Ordering::Constraint con);
 
   // Returns if PO contains full incomparability yet.
   // Useful to discard branches when reasoning over ground terms.
@@ -55,7 +58,7 @@ private:
 
   const Ordering& _ord;
   Map<TermList,size_t> _nodes;
-  PartialOrdering _po;
+  const PartialOrdering* _po;
 };
 
 };

@@ -61,7 +61,7 @@ PoComp TermPartialOrdering::get_one_external(TermList t, size_t idx) const
     if (e.value()==idx) {
       continue;
     }
-    auto val = _po.get(e.value(),idx);
+    auto val = _po->get(e.value(),idx);
     if (val == PoComp::UNKNOWN) {
       continue;
     }
@@ -73,10 +73,14 @@ PoComp TermPartialOrdering::get_one_external(TermList t, size_t idx) const
           case PoComp::GREATER:
             // t > e ≥ x -> t > x
             ALWAYS(checkCompatibility(res, PoComp::GREATER, res));
+            return res;
           case PoComp::NLEQ:
           case PoComp::INCOMPARABLE:
             // t > e ≰ x -> t ≰ x
             ALWAYS(checkCompatibility(res, PoComp::NLEQ, res));
+            if (res == PoComp::INCOMPARABLE) {
+              return res;
+            }
           default:
             break;
         }
@@ -91,10 +95,14 @@ PoComp TermPartialOrdering::get_one_external(TermList t, size_t idx) const
           case PoComp::LESS:
             // t < e ≤ x -> t < x
             ALWAYS(checkCompatibility(res, PoComp::LESS, res));
+            return res;
           case PoComp::NGEQ:
           case PoComp::INCOMPARABLE:
             // t < e ≱ x -> t ≱ x
             ALWAYS(checkCompatibility(res, PoComp::NGEQ, res));
+            if (res == PoComp::INCOMPARABLE) {
+              return res;
+            }
           default:
             break;
         }
@@ -128,7 +136,7 @@ PoComp TermPartialOrdering::get_two_external(TermList t1, TermList t2) const
   }
   for (const auto& [e1,r1] : t1_rel) {
     for (const auto& [e2,r2] : t2_rel) {
-      auto r = e1 == e2 ? PoComp::EQUAL : _po.get(e1,e2);
+      auto r = e1 == e2 ? PoComp::EQUAL : _po->get(e1,e2);
       switch (r) {
         case PoComp::UNKNOWN:
           break;
@@ -231,7 +239,7 @@ bool TermPartialOrdering::get(TermList lhs, TermList rhs, Result& res) const
     if (reversed) {
       swap(x,y);
     }
-    val = _po.get(x,y);
+    val = _po->get(x,y);
   }
   if (val == PoComp::UNKNOWN) {
     return false;
@@ -264,7 +272,8 @@ bool TermPartialOrdering::set(Ordering::Constraint con)
     swap(x,y);
   }
   PoComp new_val = resultToPoComp(con.rel, reversed);
-  if (!_po.set(x, y, new_val)) {
+  _po = PartialOrdering::set(_po, x, y, new_val);
+  if (!_po) {
     return false;
   }
 #if DEBUG_ORDERING
@@ -275,7 +284,29 @@ bool TermPartialOrdering::set(Ordering::Constraint con)
 
 bool TermPartialOrdering::hasIncomp() const
 {
-  return _po.hasIncomp();
+  return _po->hasIncomp();
+}
+
+const TermPartialOrdering* TermPartialOrdering::getEmpty(const Ordering& ord)
+{
+  static TermPartialOrdering empty(ord);
+  return &empty;
+}
+
+const TermPartialOrdering* TermPartialOrdering::set(const TermPartialOrdering* tpo, Ordering::Constraint con)
+{
+  static DHMap<std::tuple<const TermPartialOrdering*, TermList, TermList, Result>, const TermPartialOrdering*> cache;
+  const TermPartialOrdering** ptr;
+  if (cache.getValuePtr(make_tuple(tpo, con.lhs, con.rhs, con.rel), ptr, nullptr)) {
+    auto res = new TermPartialOrdering(*tpo);
+    if (!res->set(con)) {
+      delete res;
+      *ptr = nullptr;
+    } else {
+      *ptr = res;
+    }
+  }
+  return *ptr;
 }
 
 size_t TermPartialOrdering::idx_of_elem(TermList t) const
@@ -288,7 +319,7 @@ size_t TermPartialOrdering::idx_of_elem_ext(TermList t)
 {
   size_t *ptr;
   if (_nodes.getValuePtr(t, ptr, _nodes.size())) {
-    _po.extend();
+    _po = PartialOrdering::extend(_po);
 
     // fill out new row with known values
     size_t idx = _nodes.size()-1;
@@ -303,7 +334,8 @@ size_t TermPartialOrdering::idx_of_elem_ext(TermList t)
         continue;
       }
       auto val = resultToPoComp(comp, false);
-      ALWAYS(_po.set(e.value(), idx, val));
+      _po = PartialOrdering::set(_po, e.value(), idx, val);
+      ASS(_po);
     }
   }
   return *ptr;
@@ -317,7 +349,7 @@ string TermPartialOrdering::to_string() const
     const auto& e = it.next();
     str << e.value() << ": " << e.key() << ", ";
   }
-  str << endl << _po.to_string();
+  str << endl << _po->to_string();
   return str.str();
 }
 
@@ -325,7 +357,7 @@ string TermPartialOrdering::to_string() const
 void TermPartialOrdering::debug_check() const
 {
   auto output_args = [this](size_t x, size_t y, size_t z) {
-    return _po.all_to_string() + " at " + Int::toString(x) + ", " + Int::toString(y) + ", " + Int::toString(z);
+    return _po->all_to_string() + " at " + Int::toString(x) + ", " + Int::toString(y) + ", " + Int::toString(z);
   };
 
   auto check_val = [&output_args](auto actual_val, auto expected_val, size_t x, size_t y, size_t z) {
@@ -357,7 +389,7 @@ void TermPartialOrdering::debug_check() const
       if (e1.value() == e2.value()) {
         continue;
       }
-      auto v12 = _po.get(e1.value(),e2.value());
+      auto v12 = _po->get(e1.value(),e2.value());
       if (v12 == PoComp::UNKNOWN) {
         continue;
       }
@@ -373,12 +405,12 @@ void TermPartialOrdering::debug_check() const
           continue;
         }
 
-        auto v13 = _po.get(e1.value(),e3.value());
+        auto v13 = _po->get(e1.value(),e3.value());
         if (v13 == PoComp::UNKNOWN) {
           continue;
         }
 
-        auto v23 = _po.get(e2.value(),e3.value());
+        auto v23 = _po->get(e2.value(),e3.value());
 
         switch (v12) {
           case PoComp::UNKNOWN:

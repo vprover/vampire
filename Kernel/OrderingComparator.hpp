@@ -109,7 +109,7 @@ protected:
 
   using Trace = TermPartialOrdering;
 
-  ScopedPtr<Trace> getCurrentTrace();
+  const Trace* getCurrentTrace();
 
   struct Node {
     static_assert(sizeof(uint64_t) == sizeof(Branch));
@@ -161,7 +161,7 @@ protected:
     Branch eqBranch;
     Branch ngeBranch;
     int refcnt = 0;
-    Trace* trace = nullptr;
+    const Trace* trace = nullptr;
   };
 
   const Ordering& _ord;

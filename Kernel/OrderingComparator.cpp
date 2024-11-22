@@ -448,7 +448,7 @@ void OrderingComparator::processPolyCase()
     return e1.second>e2.second;
   });
   _curr->node()->ready = true;
-  _curr->node()->trace = trace.release();
+  _curr->node()->trace = trace;
 }
 
 void OrderingComparator::processVarCase()
@@ -484,15 +484,15 @@ void OrderingComparator::processVarCase()
     _curr->node()->ngeBranch = node->ngeBranch;
   }
   _curr->node()->ready = true;
-  _curr->node()->trace = trace.release();
+  _curr->node()->trace = trace;
 }
 
-ScopedPtr<OrderingComparator::Trace> OrderingComparator::getCurrentTrace()
+const OrderingComparator::Trace* OrderingComparator::getCurrentTrace()
 {
   ASS(!_curr->node()->ready || _curr->node() == _fail.node());
 
   if (!_prev) {
-    return ScopedPtr<Trace>(new Trace(_ord));
+    return Trace::getEmpty(_ord);
   }
 
   ASS(_prev->node()->ready);
@@ -500,7 +500,6 @@ ScopedPtr<OrderingComparator::Trace> OrderingComparator::getCurrentTrace()
 
   switch (_prev->node()->tag) {
     case BranchTag::T_TERM: {
-      auto trace = ScopedPtr<Trace>(new Trace(*_prev->node()->trace));
       auto lhs = _prev->node()->lhs;
       auto rhs = _prev->node()->rhs;
       Ordering::Result res;
@@ -511,17 +510,11 @@ ScopedPtr<OrderingComparator::Trace> OrderingComparator::getCurrentTrace()
       } else {
         res = Ordering::INCOMPARABLE;
       }
-      // ALWAYS(trace->set({ lhs, rhs, res }));
-      if (!trace->set({ lhs, rhs, res })) {
-        return ScopedPtr<Trace>();
-      }
-      return ScopedPtr<Trace>(trace.release());
+      return Trace::set(_prev->node()->trace, { lhs, rhs, res });
     }
-    case BranchTag::T_RESULT: {
-      return ScopedPtr<Trace>(new Trace(*_prev->node()->trace));
-    }
+    case BranchTag::T_RESULT:
     case BranchTag::T_POLY: {
-      return ScopedPtr<Trace>(new Trace(*_prev->node()->trace));
+      return _prev->node()->trace;
     }
   }
   ASSERTION_VIOLATION;
@@ -681,7 +674,6 @@ OrderingComparator::Node::~Node()
     delete varCoeffPairs;
   }
   ready = false;
-  delete trace;
   trace = nullptr;
 }
 
