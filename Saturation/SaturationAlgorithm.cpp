@@ -15,7 +15,6 @@
 #include "Debug/Assertion.hpp"
 #include "Debug/RuntimeStatistics.hpp"
 
-#include "Inferences/LASCA/VIRAS.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -42,12 +41,14 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Unit.hpp"
+#include "Kernel/LASCA/Ordering.hpp"
 
 #include "Inferences/InterpretedEvaluation.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Inferences/PushUnaryMinus.hpp"
 #include "Inferences/Cancellation.hpp"
 #include "Inferences/GaussianVariableElimination.hpp"
+#include "Inferences/LASCA/VIRAS.hpp"
 #include "Inferences/LASCA/FourierMotzkin.hpp"
 #include "Inferences/LASCA/IntegerFourierMotzkin.hpp"
 #include "Inferences/LASCA/FloorFourierMotzkin.hpp"
@@ -1640,6 +1641,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
 #define SET_ORD_STATE(Ord, getOrd)                                                                  \
     if(auto* o = dynamic_cast<Ord*>(&ordering)) { getOrd(*o).setState(shared); }
 
+    SET_ORD_STATE(LiteralOrdering<LAKBO>, [](auto& o) -> decltype(auto) { return o; })
     SET_ORD_STATE(Kernel::QKbo, [](auto& o) -> decltype(auto) { return o; })
     SET_ORD_STATE(Kernel::LaLpo, [](auto& o) -> decltype(auto) { return o; })
     if (env.options->lascaDemodulation()) {
