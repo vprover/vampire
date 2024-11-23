@@ -1319,7 +1319,7 @@ void SaturationAlgorithm::doUnprocessedLoop()
     }
 
     ASS(clausesFlushed());
-    onAllProcessed(); // in particular, Splitter has not recomputed model which may have triggered deletions and additions
+    onAllProcessed(); // in particular, Splitter has now recomputed model which may have triggered deletions and additions
   } while (!clausesFlushed());
 }
 

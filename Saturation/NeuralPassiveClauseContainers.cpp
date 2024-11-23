@@ -173,7 +173,7 @@ void NeuralClauseEvaluationModel::evalClauses(DHMap<unsigned,Clause*>& clauses) 
   TIME_TRACE("neural model evaluation");
 
   unsigned sz = clauses.size();
-  if (sz == 0) return;
+  ASS_G(sz,0);
 
   std::vector<float> features(_numFeatures*sz);
   {
@@ -218,6 +218,9 @@ void NeuralClauseEvaluationModel::evalClauses(DHMap<unsigned,Clause*>& clauses) 
 
 void NeuralPassiveClauseContainer::evalAndEnqueueDelayed()
 {
+  if (!_delayedInsertionBuffer.size())
+    return;
+
   _model.evalClauses(_delayedInsertionBuffer);
 
   // cout << "evalAndEnqueueDelayed for " << _delayedInsertionBuffer.size() << endl;
@@ -250,7 +253,7 @@ void NeuralPassiveClauseContainer::remove(Clause* cl)
 {
   ASS(cl->store()==Clause::PASSIVE);
 
-  if (!_delayedInsertionBuffer.remove(cl->number())) {
+  if (!_delayedInsertionBuffer.size() || !_delayedInsertionBuffer.remove(cl->number())) {
     _queue.remove(cl);
   }
   _size--;
