@@ -173,20 +173,32 @@ void NeuralClauseEvaluationModel::evalClauses(DHMap<unsigned,Clause*>& clauses) 
   TIME_TRACE("neural model evaluation");
 
   unsigned sz = clauses.size();
-  ASS_G(sz,0);
+  static Stack<Clause*> sortBuffer;
+  ASS_EQ(sortBuffer.size(),0);
+  sortBuffer.reserve(sz);
 
-  std::vector<float> features(_numFeatures*sz);
   {
-    unsigned idx = 0;
     auto uIt = clauses.items();
     while (uIt.hasNext()) {
-      auto entry = uIt.next();
-      unsigned i = 0;
-      Clause* cl = entry.second;
+      sortBuffer.push(uIt.next().second);
+    }
+    // sort by number, desc makes the subsequent iteration independent of our hash function
+    // moreover, it seems to be a favourable order complementing some glitches
+    std::sort(sortBuffer.begin(),sortBuffer.end(),[](Clause* c1, Clause* c2){ return c1->number() < c2->number();});
+  }
+
+  static std::vector<float> features;
+  ASS_EQ(features.size(),0);
+  features.reserve(_numFeatures*sz);
+  {
+    auto uIt = sortBuffer.iter();
+    while (uIt.hasNext()) {
+      Clause* cl = uIt.next();
+
       Clause::FeatureIterator cIt(cl);
+      unsigned i = 0;
       while (i++ < _numFeatures && cIt.hasNext()) {
-        features[idx] = cIt.next();
-        idx++;
+        features.push_back(cIt.next());
       }
     }
   }
@@ -194,13 +206,13 @@ void NeuralClauseEvaluationModel::evalClauses(DHMap<unsigned,Clause*>& clauses) 
   std::vector<torch::jit::IValue> inputs;
   inputs.push_back(torch::from_blob(features.data(), {sz,_numFeatures}, torch::TensorOptions().dtype(torch::kFloat32)));
   auto logits = _model.forward(std::move(inputs)).toTensor();
+  features.clear();
 
   {
-    auto uIt = clauses.items();
+    auto uIt = sortBuffer.iter();
     unsigned idx = 0;
     while (uIt.hasNext()) {
-      auto entry = uIt.next();
-      Clause* cl = entry.second;
+      Clause* cl = uIt.next();
       float logit = logits[idx++].item().toDouble();
       if (_temp > 0.0) {
         // adding the gumbel noise
@@ -211,9 +223,12 @@ void NeuralClauseEvaluationModel::evalClauses(DHMap<unsigned,Clause*>& clauses) 
       // only overwrite, if not present
       if (_scores.getValuePtr(cl->number(),score)) {
         *score = logit;
+        // cout << "Ecs: " << logit << " for " << cl->number() << endl;
       }
     }
   }
+  sortBuffer.reset();
+  // cout << endl;
 }
 
 void NeuralPassiveClauseContainer::evalAndEnqueueDelayed()
