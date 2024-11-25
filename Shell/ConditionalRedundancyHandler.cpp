@@ -130,7 +130,11 @@ public:
 
     ASS(entries->comparator);
 
-    entries->entries.push(ptr);
+#if DEBUG_ORDERING
+    // we push subsumed ones as well to check subsumption
+    entries->comps.push(ptr);
+#endif
+
     entries->comparator->insert(ptr->ordCons);
     return true;
   }
@@ -158,7 +162,9 @@ public:
     compiler.updateCodeTree(this);
 
     auto es = new Entries();
-    es->entries.push(ptr);
+#if DEBUG_ORDERING
+    es->comps.push(ptr);
+#endif
     es->comparator = ord->createComparator();
     es->comparator->insert(ptr->ordCons);
     code.push(CodeOp::getSuccess(es));
@@ -203,7 +209,7 @@ public:
       ASS(es->comparator);
       auto res = es->comparator->check(&applicator);
 #if DEBUG_ORDERING
-      auto ordCons_crosscheck = iterTraits(es->entries.iter()).any([ord,&applicator](auto e) {
+      auto ordCons_crosscheck = iterTraits(es->comps.iter()).any([ord,&applicator](auto e) {
         return iterTraits(e->ordCons.iter()).all([ord,&applicator](auto& ordCon) {
           return ord->compare(AppliedTerm(ordCon.lhs,&applicator,true),AppliedTerm(ordCon.rhs,&applicator,true))==ordCon.rel;
         });
@@ -211,7 +217,7 @@ public:
       if (res != ordCons_crosscheck) {
         cout << res << " " << ordCons_crosscheck << endl;
         cout << *es->comparator << endl;
-        for (const auto& e : es->entries) {
+        for (const auto& e : es->comps) {
           cout << *e << endl;
         }
         INVALID_OPERATION("conditional redundancy ordering check mismatch");
@@ -336,7 +342,9 @@ public:
   static void onCodeOpDestroying(CodeOp* op) {
     if (op->isSuccess()) {
       auto es = op->getSuccessResult<Entries>();
-      iterTraits(decltype(es->entries)::Iterator(es->entries)).forEach([](ConditionalRedundancyEntry* e) { delete e; });
+#if DEBUG_ORDERING
+      iterTraits(decltype(es->comps)::Iterator(es->comps)).forEach([](ConditionalRedundancyEntry* e) { delete e; });
+#endif
       delete es;
     }
   }
@@ -430,7 +438,7 @@ DHMap<Clause*,typename ConditionalRedundancyHandler::ConstraintIndex*> Condition
 
 template<bool enabled, bool ordC, bool avatarC, bool litC>
 bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperposition(
-  Clause* eqClause, Literal* eqLit, TermList eqLHS, Clause* rwClause, Literal* rwLit,
+  Clause* eqClause, Literal* eqLit, TermList eqLHS, Clause* rwClause, Literal* rwLit, TermList rwTerm,
   bool eqIsResult, ResultSubstitution* subs) const
 {
   if constexpr (!enabled) {
@@ -455,9 +463,26 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
   }
 
   auto rwClDataPtr = getDataPtr(rwClause, /*doAllocate=*/false);
-  if (rwClDataPtr && (*rwClDataPtr)->_redundant) {
-    env.statistics->skippedSuperposition++;
-    return false;
+  if (rwClDataPtr) {
+    if ((*rwClDataPtr)->_redundant) {
+      env.statistics->skippedSuperposition++;
+      return false;
+    }
+    auto i = rwClause->getLiteralPosition(rwLit);
+    auto leftred = (*rwClDataPtr)->_litRedundant[i].first;
+    auto rightred = (*rwClDataPtr)->_litRedundant[i].second;
+    if (leftred && rightred) {
+      env.statistics->skippedSuperposition++;
+      return false;
+    }
+    if (leftred && !rwLit->termArg(1).containsSubterm(rwTerm)) {
+      env.statistics->skippedSuperposition++;
+      return false;
+    }
+    if (rightred && !rwLit->termArg(0).containsSubterm(rwTerm)) {
+      env.statistics->skippedSuperposition++;
+      return false;
+    }
   }
 
   auto rwLits = LiteralSet::getEmpty();

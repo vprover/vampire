@@ -343,7 +343,7 @@ Clause* Superposition::performSuperposition(
 
   const auto& condRedHandler = _salg->condRedHandler();
   if (!unifier->usesUwa()) {
-    if (!condRedHandler.checkSuperposition(eqClause, eqLit, eqLHS, rwClause, rwLit, eqIsResult, subst.ptr())) {
+    if (!condRedHandler.checkSuperposition(eqClause, eqLit, eqLHS, rwClause, rwLit, rwTerm, eqIsResult, subst.ptr())) {
       return 0;
     }
   }
@@ -534,9 +534,9 @@ Clause* Superposition::performSuperposition(
       rwTerm
     ));
 
-  if (rwTermS != *rwLitS->nthArgument(0) && rwTermS != *rwLitS->nthArgument(1) && comp == Ordering::INCOMPARABLE) {
-    condRedHandler.initWithEquation(clause, rwTermS, tgtTermS);
-  }
+  // if (rwTermS != *rwLitS->nthArgument(0) && rwTermS != *rwLitS->nthArgument(1) && comp == Ordering::INCOMPARABLE) {
+  //   condRedHandler.initWithEquation(clause, rwTermS, tgtTermS);
+  // }
 
   return clause;
 }

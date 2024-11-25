@@ -86,7 +86,9 @@ struct ConditionalRedundancyEntry
 };
 
 struct Entries {
-  Stack<ConditionalRedundancyEntry*> entries;
+#if DEBUG_ORDERING
+  Stack<ConditionalRedundancyEntry*> comps;
+#endif
   OrderingComparatorUP comparator;
 };
 
@@ -100,7 +102,9 @@ public:
   virtual ~ConditionalRedundancyHandler() = default;
 
   virtual bool checkSuperposition(
-    Clause* eqClause, Literal* eqLit, TermList eqLHS, Clause* rwClause, Literal* rwLit, bool eqIsResult, ResultSubstitution* subs) const = 0;
+    Clause* eqClause, Literal* eqLit, TermList eqLHS,
+    Clause* rwClause, Literal* rwLit, TermList rwTerm,
+    bool eqIsResult, ResultSubstitution* subs) const = 0;
 
   virtual bool insertSuperposition(
     Clause* eqClause, Clause* rwClause, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
@@ -140,7 +144,9 @@ public:
 
   /** Returns false if superposition should be skipped. */
   bool checkSuperposition(
-    Clause* eqClause, Literal* eqLit, TermList eqLHS, Clause* rwClause, Literal* rwLit, bool eqIsResult, ResultSubstitution* subs) const override;
+    Clause* eqClause, Literal* eqLit, TermList eqLHS,
+    Clause* rwClause, Literal* rwLit, TermList rwTerm,
+    bool eqIsResult, ResultSubstitution* subs) const override;
 
   bool insertSuperposition(
     Clause* eqClause, Clause* rwClause, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
