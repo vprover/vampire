@@ -50,11 +50,11 @@ public:
     bool check();
 
   private:
-    bool checkLeaf();
+    void pushNext();
 
     OrderingComparator& subsumer;
     OrderingComparatorUP subsumed;
-    Stack<OrderingComparator::Branch*> path;
+    Stack<std::tuple<Branch*,Branch*,Branch*>> path;
     bool ground;
   };
 

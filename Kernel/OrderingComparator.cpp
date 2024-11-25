@@ -521,47 +521,87 @@ const OrderingComparator::Trace* OrderingComparator::getCurrentTrace()
 }
 
 OrderingComparator::Subsumption::Subsumption(OrderingComparator& subsumer, const Ordering& ord, const OrderingConstraints& ordCons, bool ground)
-  : subsumer(subsumer), subsumed(ord.createComparator()), path({ &subsumer._source }), ground(ground)
+  : subsumer(subsumer), subsumed(ord.createComparator()), ground(ground)
 {
   subsumed->insert(ordCons);
+  path.push({ &subsumer._source, nullptr, &subsumed->_source });
 }
+
+#define SUBSUMPTION_MAX_ITERATIONS 500
 
 bool OrderingComparator::Subsumption::check()
 {
+  unsigned cnt = 0;
   while (path.isNonEmpty()) {
+    if (cnt++ > SUBSUMPTION_MAX_ITERATIONS) {
+      return false;
+    }
+
     if (path.size()==1) {
       subsumer._prev = nullptr;
     } else {
-      subsumer._prev = path[path.size()-2];
+      subsumer._prev = get<0>(path[path.size()-2]);
     }
-    subsumer._curr = path.top();
+    subsumer._curr = get<0>(path.top());
     subsumer.expand();
 
-    switch (subsumer._curr->node()->tag) {
-      case BranchTag::T_POLY:
-      case BranchTag::T_TERM: {
-        path.push(&subsumer._curr->node()->gtBranch);
+    auto lnode = subsumer._curr->node();
+    if (lnode->tag == BranchTag::T_RESULT && lnode->result) {
+      pushNext();
+      continue;
+    }
+
+    auto trace = lnode->trace ? lnode->trace : subsumer.getCurrentTrace();
+    if (!trace || (ground && trace->hasIncomp())) {
+      pushNext();
+      continue;
+    }
+
+    subsumed->_prev = get<1>(path.top());
+    subsumed->_curr = get<2>(path.top());
+    subsumed->expand();
+    auto rnode = subsumed->_curr->node();
+
+    switch (rnode->tag) {
+      case BranchTag::T_POLY: {
+        if (lnode->tag == BranchTag::T_RESULT) {
+          return false;
+        }
+        path.push({ &lnode->gtBranch, subsumed->_prev, subsumed->_curr });
         break;
       }
       case BranchTag::T_RESULT: {
-        if (!checkLeaf()) {
-          return false;
+        if (rnode->result) {
+          if (lnode->tag == BranchTag::T_RESULT) {
+            return false;
+          }
+          path.push({ &lnode->gtBranch, subsumed->_prev, subsumed->_curr });
+        } else {
+          pushNext();
         }
-        // find next node to check
-        while (path.isNonEmpty()) {
-          auto prev = path.size()==1 ? nullptr : path[path.size()-2]->node();
-          auto curr = path.pop();
-          ASS(!prev || prev->tag == BranchTag::T_POLY || prev->tag == BranchTag::T_TERM);
-
-          if (prev) {
-            // if there is a previous node and we were either in the gt or eq
-            // branches, just go to next branch in order, otherwise backtrack
-            if (curr == &prev->gtBranch) {
-              path.push(&prev->eqBranch);
+        break;
+      }
+      case BranchTag::T_TERM: {
+        auto lhs = rnode->lhs;
+        auto rhs = rnode->rhs;
+        Ordering::Result val;
+        if (!trace->get(lhs, rhs, val)) {
+          if (lnode->tag == BranchTag::T_RESULT) {
+            return false;
+          }
+          path.push({ &lnode->gtBranch, subsumed->_prev, subsumed->_curr });
+        } else {
+          switch (val) {
+            case Ordering::GREATER: {
+              path.top() = { subsumer._curr, subsumed->_curr, &rnode->gtBranch };
               break;
             }
-            if (curr == &prev->eqBranch) {
-              path.push(&prev->ngeBranch);
+            case Ordering::EQUAL: {
+              path.top() = { subsumer._curr, subsumed->_curr, &rnode->eqBranch };
+              break;
+            }
+            default: {
+              path.top() = { subsumer._curr, subsumed->_curr, &rnode->ngeBranch };
               break;
             }
           }
@@ -575,63 +615,31 @@ bool OrderingComparator::Subsumption::check()
   return true;
 }
 
-bool OrderingComparator::Subsumption::checkLeaf()
+void OrderingComparator::Subsumption::pushNext()
 {
-  if (subsumer._curr->node()->result) {
-    return true;
-  }
+  while (path.isNonEmpty()) {
+    auto curr = get<0>(path.pop());
+    if (path.isEmpty()) {
+      continue;
+    }
 
-  auto trace = subsumer.getCurrentTrace();
-  if (!trace) {
-    return true;
-  }
-  if (ground && trace->hasIncomp()) {
-    return true;
-  }
-  Stack<pair<Branch*,Branch*>> todo;
-  todo.push({ nullptr, &subsumed->_source });
-  while (todo.isNonEmpty()) {
-    auto [prev, curr] = todo.pop();
-    subsumed->_prev = prev;
-    subsumed->_curr = curr;
-    subsumed->expand();
-
-    switch (subsumed->_curr->node()->tag) {
-      case BranchTag::T_POLY: {
-        return false;
-      }
-      case BranchTag::T_RESULT: {
-        if (subsumed->_curr->node()->result) {
-          return false;
-        }
-        break;
-      }
-      case BranchTag::T_TERM: {
-        auto lhs = subsumed->_curr->node()->lhs;
-        auto rhs = subsumed->_curr->node()->rhs;
-        Ordering::Result val;
-        if (!trace->get(lhs, rhs, val)) {
-          return false;
-        }
-        switch (val) {
-          case Ordering::GREATER: {
-            todo.push({ subsumed->_curr, &subsumed->_curr->node()->gtBranch });
-            break;
-          }
-          case Ordering::EQUAL: {
-            todo.push({ subsumed->_curr, &subsumed->_curr->node()->eqBranch });
-            break;
-          }
-          default: {
-            todo.push({ subsumed->_curr, &subsumed->_curr->node()->ngeBranch });
-            break;
-          }
-        }
-        break;
-      }
+    auto prevE = path.top();
+    auto prev = get<0>(prevE)->node();
+    ASS(prev->tag == BranchTag::T_POLY || prev->tag == BranchTag::T_TERM);
+    if (!prev) {
+      continue;
+    }
+    // if there is a previous node and we were either in the gt or eq
+    // branches, just go to next branch in order, otherwise backtrack
+    if (curr == &prev->gtBranch) {
+      path.push({ &prev->eqBranch, get<1>(prevE), get<2>(prevE) });
+      break;
+    }
+    if (curr == &prev->eqBranch) {
+      path.push({ &prev->ngeBranch, get<1>(prevE), get<2>(prevE) });
+      break;
     }
   }
-  return true;
 }
 
 OrderingComparator::Branch::~Branch()
