@@ -80,7 +80,7 @@ inline auto testAbstraction(Options::UnificationWithAbstraction uwa)
 
 
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<LascaSimplRule<ToSgi<Abstraction<RealTraits>>>>(testAbstraction(UWA_MODE)))
+REGISTER_GEN_TESTER(LascaGenerationTester<ToSgi<Abstraction<RealTraits>>>(testAbstraction(UWA_MODE)))
 
 /////////////////////////////////////////////////////////
 // Basic tests
@@ -104,37 +104,55 @@ TEST_GENERATION(stabilizing_2,
       ))
     )
 
-TEST_GENERATION(coherence_1,
+TEST_GENERATION(stabilizing_3,
     Generation::SymmetricTest()
-      .inputs  ({ clause({ p(floor(x))  }) })
+      .inputs  ({ clause({ 0 != x + f(f(f2(x,y) - f2(x, a)) - f(x))  }) })
       .premiseRedundant(true)
       .expected(exactly(
-            clause({  0 != -z + floor(x),  p(z) })
+            clause({ 0 != -z + f(f2(x,y) - f2(x, a)) - f(x), 0 != x + f(z)  })
+      ))
+    )
+
+// TEST_GENERATION(stabilizing_4,
+//     Generation::SymmetricTest()
+//       .inputs  ({ clause({ 0 != x + f(f(f2(x,y) - f2(x, a)) - f(x))  }) })
+//       .premiseRedundant(true)
+//       .expected(exactly(
+//             clause({ 0 != -z + f2(x,y) - f2(x, a), 0 != x + f(f(z) - f(x))  })
+//       ))
+//     )
+
+TEST_GENERATION(coherence_1,
+    Generation::SymmetricTest()
+      .inputs  ({ clause({ p(floor(y))  }) })
+      .premiseRedundant(true)
+      .expected(exactly(
+            clause({  0 != -z + floor(y),  p(z) })
       ))
     )
 
 TEST_GENERATION(coherence_2,
     Generation::SymmetricTest()
-      .inputs  ({ clause({ p(floor(2 * floor(x)))  }) })
+      .inputs  ({ clause({ p(floor(frac(1,2) * floor(y)))  }) })
       .premiseRedundant(true)
       .expected(exactly(
-            clause({  0 != -z + floor(2 * floor(x)),  p(z) })
+            clause({  0 != -z + floor(frac(1,2) * floor(y)),  p(z) })
       ))
     )
 
 TEST_GENERATION(coherence_3,
     Generation::SymmetricTest()
-      .inputs  ({ clause({ p(floor(2 * x + a) + b)  }) })
+      .inputs  ({ clause({ p(floor(2 * y + a) + b)  }) })
       .premiseRedundant(true)
       .expected(exactly(
-            clause({  0 != -z + floor(2 * x + a),  p(z + b) })
+            clause({  0 != -z + floor(2 * y + a),  p(z + b) })
       ))
     )
 
 TEST_GENERATION(coherence_4,
     Generation::SymmetricTest()
       .inputs  ({ clause({ p(2 * x + a + b)  }) })
-      .premiseRedundant(true)
+      .premiseRedundant(false)
       .expected(exactly(
           /* nothing */
       ))

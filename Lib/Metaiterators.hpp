@@ -414,6 +414,7 @@ public:
    */
   OWN_ELEMENT_TYPE next()
   {
+    ALWAYS(hasNext())
     if(_first) {
       //_it1 contains the next value, as hasNext must have
       //been called before. (It would have updated the

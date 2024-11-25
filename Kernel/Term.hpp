@@ -1101,7 +1101,7 @@ public:
   template<class Iter>
   static Literal* createFromIter(Literal* lit, Iter iter) {
     if (lit->isEquality()) {
-      return  Literal::createEquality(lit->polarity(), iter.next(), iter.next(), lit->eqArgSort());
+      return  Literal::createEquality(lit->polarity(), iter.tryNext().unwrap(), iter.tryNext().unwrap(), lit->eqArgSort());
     } else {
       return Literal::createFromIter(lit->functor(), bool(lit->polarity()), std::move(iter), lit->commutative());
     }

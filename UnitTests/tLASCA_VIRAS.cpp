@@ -64,22 +64,6 @@ auto testVirasQuantifierElimination(
   return LascaSimplRule<VirasQuantifierElimination>(VirasQuantifierElimination(state), Normalization(state));
 }
 
-template<class Rule>
-struct LascaGenerationTester : public Test::Generation::GenerationTester<LascaSimplRule<Rule>> 
-{
-  LascaGenerationTester(LascaSimplRule<Rule> rule) 
-    : Test::Generation::GenerationTester<LascaSimplRule<Rule>>(std::move(rule)) {}
-
-
-  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs)
-  { 
-    auto state = testLascaState();
-    return TestUtils::permEq(*lhs, *rhs, [&](auto l, auto r) { return state->equivalent(l,r); });
-  }
-
-};
-
-
 
 REGISTER_GEN_TESTER(LascaGenerationTester<VirasQuantifierElimination>(testVirasQuantifierElimination()))
 // REGISTER_GEN_TESTER(Test::Generation::GenerationTester<LascaSimplRule<VirasQuantifierElimination>>(testVirasQuantifierElimination()))

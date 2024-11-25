@@ -10,6 +10,7 @@
 #ifndef __TEST_LASCA_SIMPL_RULE__
 #define __TEST_LASCA_SIMPL_RULE__
 
+#include "Kernel/BottomUpEvaluation.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/LASCA.hpp"
 #include "Kernel/Theory.hpp"
@@ -20,6 +21,7 @@
 #include "Inferences/InterpretedEvaluation.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Inferences/LASCA/Normalization.hpp"
+#include "Test/GenerationTester.hpp"
 
 template<class Rule>
 struct LascaSimplRule 
@@ -69,9 +71,7 @@ struct ToSgi : SimplifyingGeneratingInference {
   void attach(SaturationAlgorithm* salg) final override { }
 
   void detach() final override { }
-
-  ClauseGenerationResult generateSimplify(Clause* premise) final override {
-    auto concl = self.simplify(premise);
+ClauseGenerationResult generateSimplify(Clause* premise) final override { auto concl = self.simplify(premise);
     return concl == nullptr 
          ? ClauseGenerationResult {
              .clauses = pvi(iterItems<Clause*>()),
@@ -93,6 +93,48 @@ struct ToSgi : SimplifyingGeneratingInference {
 
 template<class ISE>
 ToSgi<ISE> toSgi(ISE ise) { return ToSgi<ISE>(std::move(ise)); }
+
+
+template<class Rule> 
+class LascaGenerationTester : public Test::Generation::GenerationTester<LascaSimplRule<Rule>>
+{
+ public:
+  LascaGenerationTester(LascaSimplRule<Rule> r) : Test::Generation::GenerationTester<LascaSimplRule<Rule>>(std::move(r)) { }
+
+  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs)
+  { 
+    // auto vars = [](auto cl) { return cl->iterLits()
+    //   .flatMap([](auto l) { return VariableIterator(l); })
+    //   .map([](auto t) { return t.var(); })
+    //   .template collect<Stack>()
+    //   .sort()
+    //   .dedup();
+    // };
+    // auto llits = lhs->iterLits().map([](auto l) { return l; }).template collect<Stack>();
+    // auto rlits = rhs->iterLits().template collect<Stack>();
+    // auto lvars = vars(lhs);
+    // auto rvars = vars(rhs);
+    // if (lvars.size() != rvars.size()) {
+    //   return false;
+    // } else {
+    //   return anyPerm(lvars.size(), [&](auto p) {
+    //
+    //     // auto state = testLascaState();
+    //     // auto newrLits = rhs->iterLits()
+    //     // .map([](auto l) { return evaluateLiteralBottomUp(l, 
+    //     //       [](TermList t, TermList* args)
+    //     //         return t.isVar() ? 
+    //     //       ); })
+    //     // .template collect<Stack>();
+    //     // return Test::TestUtils::permEq(*lhs, *rhs, [&](auto l, auto r) { return state->equivalent(l,r); });
+    //   });
+    //
+    // }
+
+    auto state = testLascaState();
+    return Test::TestUtils::permEq(*lhs, *rhs, [&](auto l, auto r) { return state->equivalent(l,r); });
+  }
+};
 
 
 

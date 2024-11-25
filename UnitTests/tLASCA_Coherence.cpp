@@ -86,7 +86,7 @@ inline auto testCoherence(Options::UnificationWithAbstraction uwa)
 
 
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<LascaSimplRule<Coherence<RealTraits>>>(testCoherence(UWA_MODE)))
+REGISTER_GEN_TESTER(LascaGenerationTester<Coherence<RealTraits>>(testCoherence(UWA_MODE)))
 
 // TODO, don't allow non-minimal results
 // if set to true we ignore that some rules return the same result multiple times, or instances of the most general result in addition to the most general result. This should be fixed to not pollute the search space with redundant stuff

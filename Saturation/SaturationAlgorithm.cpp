@@ -52,6 +52,7 @@
 #include "Inferences/LASCA/FourierMotzkin.hpp"
 #include "Inferences/LASCA/IntegerFourierMotzkin.hpp"
 #include "Inferences/LASCA/FloorFourierMotzkin.hpp"
+#include "Inferences/LASCA/Abstractions.hpp"
 #include "Inferences/LASCA/Normalization.hpp"
 #include "Inferences/LASCA/TermFactoring.hpp"
 #include "Inferences/LASCA/EqFactoring.hpp"
@@ -1651,7 +1652,9 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     ise->addFront(new InterpretedEvaluation(/* inequalityNormalization() */ false, ordering));
     // TODO also for rationals?
     // TODO add parameter for this
-    // ise->addFront(new LASCA::FloorElimination<RealTraits>(shared)); 
+    ise->addFront(new LASCA::FloorElimination<RealTraits>(shared)); 
+    // TODO also for rationals?
+    ise->addFront(new LASCA::Abstraction<RealTraits>(shared)); 
     ise->addFront(new LASCA::Normalization(shared)); 
     // TODO properly create an option for that, make it a simplifying rule
     sgi->push(new LASCA::InequalityTautologyDetection(shared));
