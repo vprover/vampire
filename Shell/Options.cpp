@@ -1320,6 +1320,14 @@ void Options::init()
     _lascaIntegerConversion.tag(OptionTag::INFERENCES);
     _lascaIntegerConversion.onlyUsefulWith2(_lasca.is(equal(true)));
 
+    _lascaAbstraction  = BoolOptionValue("lasca_abstraction","lascaa",false);
+    _lascaAbstraction.description=
+            "TODO"
+            "\n";
+    _lookup.insert(&_lascaAbstraction);
+    _lascaAbstraction.tag(OptionTag::INFERENCES);
+    _lascaAbstraction.onlyUsefulWith2(_lasca.is(equal(true)));
+
     _gaussianVariableElimination = choiceArithmeticSimplificationMode(
        "gaussian_variable_elimination", "gve",
        ArithmeticSimplificationMode::OFF);

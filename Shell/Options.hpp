@@ -2313,6 +2313,7 @@ public:
   bool lascaDemodulation() const { return _lascaDemodulation.actualValue; }
   bool lascaStrongNormalization() const { return _lascaStrongNormalization.actualValue; }
   bool lascaIntegerConversion() const { return _lascaIntegerConversion.actualValue; }
+  bool lascaAbstraction() const { return _lascaAbstraction.actualValue; }
   bool pushUnaryMinus() const { return _pushUnaryMinus.actualValue || _highSchool.actualValue; }
   ArithmeticSimplificationMode cancellation() const { return _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _cancellation.actualValue; }
   ArithmeticSimplificationMode arithmeticSubtermGeneralizations() const { return  _highSchool.actualValue ? ArithmeticSimplificationMode::CAUTIOUS : _arithmeticSubtermGeneralizations.actualValue; }
@@ -2750,6 +2751,7 @@ private:
   BoolOptionValue _lascaDemodulation;
   BoolOptionValue _lascaStrongNormalization;
   BoolOptionValue _lascaIntegerConversion;
+  BoolOptionValue _lascaAbstraction;
   ChoiceOptionValue<ArithmeticSimplificationMode> _cancellation;
   ChoiceOptionValue<ArithmeticSimplificationMode> _arithmeticSubtermGeneralizations;
 
