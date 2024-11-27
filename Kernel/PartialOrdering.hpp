@@ -30,6 +30,7 @@ enum class PoComp : uint8_t {
 };
 
 bool checkCompatibility(PoComp old, PoComp curr, PoComp& res);
+std::string po_to_infix(PoComp c);
 
 class PartialOrdering
 {

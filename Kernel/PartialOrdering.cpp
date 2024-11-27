@@ -124,26 +124,7 @@ bool checkCompatibility(PoComp old, PoComp curr, PoComp& res)
   ASSERTION_VIOLATION;
 }
 
-string idx_to_string(PoComp c) {
-  switch (c) {
-    case PoComp::UNKNOWN:
-      return "UNKNOWN";
-    case PoComp::GREATER:
-      return "GREATER";
-    case PoComp::EQUAL:
-      return "EQUAL";
-    case PoComp::LESS:
-      return "LESS";
-    case PoComp::NGEQ:
-      return "NGEQ";
-    case PoComp::NLEQ:
-      return "NLEQ";
-    case PoComp::INCOMPARABLE:
-      return "INCOMPARABLE";
-  }
-}
-
-string idx_to_infix(PoComp c) {
+string po_to_infix(PoComp c) {
   switch (c) {
     case PoComp::UNKNOWN:
       return "?";
@@ -650,12 +631,12 @@ string PartialOrdering::to_string() const
       if (w>1) {
         str << std::setw(w-1) << " ";
       }
-      str << idx_to_infix(get_unsafe(j,i)) << " ";
+      str << po_to_infix(get_unsafe(j,i)) << " ";
     }
     if (w>1) {
       str << std::setw(w-1) << " ";
     }
-    str << idx_to_infix(PoComp::EQUAL) << " " << endl;
+    str << po_to_infix(PoComp::EQUAL) << " " << endl;
   }
   str << std::setw(w) << " " << " ";
   for (size_t i = 0; i < _size; i++) {

@@ -44,6 +44,7 @@ public:
   bool hasIncomp() const;
 
   std::string to_string() const;
+  std::string to_nice_string() const;
 
 private:
   PoComp get_one_external(TermList t, size_t idx) const;

@@ -828,38 +828,30 @@ void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSubsum
     return;
   }
 
-  auto ts = cld->getInstances([](unsigned v) { return TermList::var(v); });
-  static ConstraintIndex::SubstMatcher matcher;
-  matcher.init((*clDataPtr), ts);
-  Entries* es = matcher.next();
-  matcher.reset();
-  // there can be only one such matching under linearization
-#if !LINEARIZE
-  static_assert(false);
-#endif
-  if (!es) {
-    return;
-  }
-  ASS(es->comparator);
   if (!cld->_subs) {
-    cld->_subs = new Subsumption(*es->comparator.get(), *_ord, OrderingConstraints(), /*ground=*/true);
-  }
-  if (cld->_subs->check()) {
-    cld->_redundant = true;
-    env.statistics->groundRedundantClauses++;
-    return;
-  }
-
-  for (unsigned i = 0; i < cl->numSelected(); i++) {
-    auto lit = (*cl)[i];
-    if (!lit->isEquality() || _ord->getEqualityArgumentOrder(lit)!=Ordering::INCOMPARABLE) {
-      continue;
+    auto ts = cld->getInstances([](unsigned v) { return TermList::var(v); });
+    static ConstraintIndex::SubstMatcher matcher;
+    matcher.init((*clDataPtr), ts);
+    Entries* es = matcher.next();
+    matcher.reset();
+    // there can be only one such matching under linearization
+#if !LINEARIZE
+    static_assert(false);
+#endif
+    if (!es) {
+      return;
     }
+    ASS(es->comparator);
 
-    auto& [subsLtr, subsRtl] = cld->_litSubs[i];
-    auto& [redLtr, redRtl] = cld->_litRedundant[i];
-    if (!subsLtr) {
-      ASS(!subsRtl);
+    cld->_subs = new Subsumption(*es->comparator.get(), *_ord, OrderingConstraints(), /*ground=*/true);
+    for (unsigned i = 0; i < cl->numSelected(); i++) {
+      auto lit = (*cl)[i];
+      if (!lit->isEquality() || _ord->getEqualityArgumentOrder(lit)!=Ordering::INCOMPARABLE) {
+        continue;
+      }
+
+      auto& [subsLtr, subsRtl] = cld->_litSubs[i];
+      ASS(!subsLtr && !subsRtl);
       Renaming r;
       for (const auto t : ts) {
         r.normalizeVariables(t);
@@ -869,11 +861,21 @@ void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSubsum
       subsLtr = new Subsumption(*es->comparator.get(), *_ord, { { lhs, rhs, Ordering::GREATER } }, /*ground=*/true);
       subsRtl = new Subsumption(*es->comparator.get(), *_ord, { { rhs, lhs, Ordering::GREATER } }, /*ground=*/true);
     }
-    if (!redLtr && subsLtr->check()) {
+  }
+  if (cld->_subs->check()) {
+    cld->_redundant = true;
+    env.statistics->groundRedundantClauses++;
+    return;
+  }
+
+  for (unsigned i = 0; i < cl->numSelected(); i++) {
+    auto& [subsLtr, subsRtl] = cld->_litSubs[i];
+    auto& [redLtr, redRtl] = cld->_litRedundant[i];
+    if (!redLtr && subsLtr && subsLtr->check()) {
       redLtr = true;
       env.statistics->groundRedundantEquationOrientations++;
     }
-    if (!redRtl && subsRtl->check()) {
+    if (!redRtl && subsRtl && subsRtl->check()) {
       redRtl = true;
       env.statistics->groundRedundantEquationOrientations++;
     }

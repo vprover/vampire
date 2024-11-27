@@ -344,12 +344,35 @@ size_t TermPartialOrdering::idx_of_elem_ext(TermList t)
 string TermPartialOrdering::to_string() const
 {
   stringstream str;
-  typename Map<TermList,size_t>::Iterator it(_nodes);
-  while (it.hasNext()) {
-    const auto& e = it.next();
-    str << e.value() << ": " << e.key() << ", ";
+  for (unsigned i = 0; i < _nodes.size(); i++) {
+    typename Map<TermList,size_t>::Iterator it(_nodes);
+    while (it.hasNext()) {
+      const auto& e = it.next();
+      if (e.value() != i) {
+        continue;
+      }
+      str << e.value() << ": " << e.key() << ", ";
+    }
   }
   str << endl << _po->to_string();
+  return str.str();
+}
+
+string TermPartialOrdering::to_nice_string() const
+{
+  stringstream str;
+  typename Map<TermList,size_t>::Iterator it1(_nodes);
+  while (it1.hasNext()) {
+    const auto& e1 = it1.next();
+    typename Map<TermList,size_t>::Iterator it2(_nodes);
+    while (it2.hasNext()) {
+      const auto& e2 = it2.next();
+      if (e1.value() >= e2.value()) {
+        continue;
+      }
+      str << e1.key() << " " << po_to_infix(_po->get(e1.value(),e2.value())) << " " << e2.key() << endl;
+    }
+  }
   return str.str();
 }
 

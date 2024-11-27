@@ -1281,11 +1281,11 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     throw MainLoopFinishedException(res);
   }
 
-  auto acl = _active->clauses();
-  while (acl.hasNext()) {
-    auto cl = acl.next();
-    _conditionalRedundancyHandler->checkSubsumption(cl);
-  }
+  // auto acl = _active->clauses();
+  // while (acl.hasNext()) {
+  //   auto cl = acl.next();
+  //   _conditionalRedundancyHandler->checkSubsumption(cl);
+  // }
 
   Clause* cl = nullptr;
   {
@@ -1300,6 +1300,8 @@ void SaturationAlgorithm::doOneAlgorithmStep()
   }
 
   activate(cl);
+
+  _conditionalRedundancyHandler->checkSubsumption(cl);
 }
 
 /**

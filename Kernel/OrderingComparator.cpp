@@ -28,13 +28,13 @@ std::ostream& operator<<(std::ostream& out, const OrderingComparator::BranchTag&
 {
   switch (t) {
     case OrderingComparator::BranchTag::T_RESULT:
-      out << "r";
+      out << "res";
       break;
     case OrderingComparator::BranchTag::T_TERM:
-      out << "c";
+      out << "term";
       break;
     case OrderingComparator::BranchTag::T_POLY:
-      out << "w";
+      out << "poly";
       break;
   }
   return out;
@@ -49,9 +49,18 @@ std::ostream& operator<<(std::ostream& out, const OrderingComparator::Node& node
       break;
     }
     case OrderingComparator::BranchTag::T_POLY: {
-      out << node.w << " ";
-      for (const auto& [var, coeff] : *node.varCoeffPairs) {
-        out << "X" << var << " " << coeff << " ";
+      out << node.w;
+      for (unsigned i = 0; i < node.varCoeffPairs->size(); i++) {
+        const auto& [var, coeff] = (*node.varCoeffPairs)[i];
+        ASS_NEQ(coeff,0);
+        // output sign
+        out << (coeff<0 ? " - " : " + ");
+        // output coefficient
+        if (abs(coeff) != 1) {
+          out << abs(coeff) << " * ";
+        }
+        // output variable
+        out << "X" << var;
       }
       break;
     }
@@ -626,9 +635,6 @@ void OrderingComparator::Subsumption::pushNext()
     auto prevE = path.top();
     auto prev = get<0>(prevE)->node();
     ASS(prev->tag == BranchTag::T_POLY || prev->tag == BranchTag::T_TERM);
-    if (!prev) {
-      continue;
-    }
     // if there is a previous node and we were either in the gt or eq
     // branches, just go to next branch in order, otherwise backtrack
     if (curr == &prev->gtBranch) {
