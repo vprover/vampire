@@ -493,6 +493,7 @@ AbstractionOracle::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const
 
   Recycled<Stack<std::pair<TermSpec, Numeral>>> _diff;
   auto& diff = *_diff;
+  // TODO prevent these cterm calls?
   auto dt = cTerm(n.addF(), cTerm(n.minusF(), t1), t2);
   auto nf = norm(std::move(dt), au);
 
@@ -503,7 +504,6 @@ AbstractionOracle::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const
   auto nVars = range(0, diff.size())
     .find([&](auto i) { return !diff[i].first.isVar();  })
     .unwrapOrElse([&](){ return diff.size(); });
-
 
   ASS(nVars == 0 || diff[nVars - 1].first.isVar())
   ASS(nVars == diff.size() || !diff[nVars].first.isVar())
@@ -853,7 +853,7 @@ Option<Recycled<Stack<unsigned>>> AbstractingUnifier::unifiableSymbols(unsigned 
   ASSERTION_VIOLATION
 }
 
-bool AbstractingUnifier::unify(TermList term1, unsigned bank1, TermList term2, unsigned bank2)
+bool AbstractingUnifier::unify(TermList term1, int bank1, TermList term2, int bank2)
 {
   if (_uwa._mode == Shell::Options::UnificationWithAbstraction::OFF) 
     return _subs->unify(term1, bank1, term2, bank2);

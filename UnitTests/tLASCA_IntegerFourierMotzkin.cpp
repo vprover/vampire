@@ -25,6 +25,7 @@
 #include "Lib/Coproduct.hpp"
 #include "Test/SimplificationTester.hpp"
 #include "Test/GenerationTester.hpp"
+#include "Test/LascaSimplRule.hpp"
 #include "Kernel/KBO.hpp"
 #include "Indexing/TermSubstitutionTree.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
@@ -109,22 +110,10 @@ auto idxIntegerFourierMotzkin() {
 auto testIntegerFourierMotzkin(
    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LPAR_MAIN
     ) 
-{ return IntegerFourierMotzkin<RealTraits>(testLascaState(uwa)); }
-
-
-template<class Rule> 
-class LascaGenerationTester : public Test::Generation::GenerationTester<Rule>
-{
- public:
-  LascaGenerationTester(Rule r) : Test::Generation::GenerationTester<Rule>(std::move(r)) { }
-
-  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs)
-  { 
-    auto state = testLascaState();
-    return TestUtils::permEq(*lhs, *rhs, [&](auto l, auto r) { return state->equivalent(l,r); });
-  }
-};
-
+{ 
+  auto state = testLascaState(uwa);
+  return lascaSimplRule(IntegerFourierMotzkin<RealTraits>(state), state); 
+}
 
 REGISTER_GEN_TESTER(LascaGenerationTester<IntegerFourierMotzkin<RealTraits>>(testIntegerFourierMotzkin()))
 
@@ -219,7 +208,7 @@ TEST_GENERATION(bug01,
                ,  clause({ -b - a > 0   }) 
                ,  clause({ floor(c) == -a - b }) })
       .expected(exactly(
-            clause({  num(-2) > 0, a + b == 1 })
+            clause({               a + b == 1 })
       ))
     )
 
@@ -231,6 +220,18 @@ TEST_GENERATION(bug02,
                ,  clause({ floor(c) == -a - b }) })
       .expected(exactly(
 
+      ))
+    )
+
+
+TEST_GENERATION(bug03,
+    Generation::SymmetricTest()
+      .indices(idxIntegerFourierMotzkin())
+      .inputs  ({ clause({ f3(a, y, z)  + a > 0   }) 
+               ,  clause({ -f3(x, b, z) - a > 0   }) 
+               ,  clause({ floor(-a - f3(x, y, c)) == -a - f3(x, y, c) }) })
+      .expected(exactly(
+          clause({ 0 == a + -1 + f3(a,b,c) })
       ))
     )
 

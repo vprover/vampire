@@ -36,8 +36,8 @@ class UnificationConstraintStack
 public:
   USE_ALLOCATOR(UnificationConstraintStack)
   UnificationConstraintStack() : _cont() {}
-  UnificationConstraintStack(UnificationConstraintStack&&) = default;
-  UnificationConstraintStack& operator=(UnificationConstraintStack&&) = default;
+  UnificationConstraintStack(UnificationConstraintStack&&) = delete;
+  UnificationConstraintStack& operator=(UnificationConstraintStack&&) = delete;
 
   auto iter() const
   { return iterTraits(_cont.iter()); }
@@ -149,12 +149,18 @@ class AbstractingUnifier
   friend class RobSubstitution;
   AbstractingUnifier(AbstractionOracle uwa) : _subs(), _constr(), _bd(), _uwa(uwa) { }
 public:
-  void init(AbstractionOracle uwa) 
+  void setAo(AbstractionOracle ao) 
+  { _uwa = std::move(ao); }
+
+  void init(AbstractionOracle ao) 
   { 
+    if (auto bd = _bd.take()) {
+      bd->backtrack();
+    }
     _subs->reset();
     _constr->reset();
-    _bd = {};
-    _uwa = std::move(uwa);
+    // _bd = {};
+    _uwa = std::move(ao);
   }
   bool isEmpty() const { return _subs->isEmpty() && _constr->isEmpty() && (_bd.isNone() || _bd->isEmpty()); }
 
@@ -162,14 +168,14 @@ public:
 
   bool isRecording() { return _subs->bdIsRecording(); }
 
-  bool unify(TermList t1, unsigned bank1, TermList t2, unsigned bank2);
+  bool unify(TermList t1, int bank1, TermList t2, int bank2);
   bool unify(TermSpec l, TermSpec r, bool& progress);
   bool fixedPointIteration();
 
   // TODO document
   Option<Recycled<Stack<unsigned>>> unifiableSymbols(unsigned f);
 
-  static Option<AbstractingUnifier> unify(TermList t1, unsigned bank1, TermList t2, unsigned bank2, AbstractionOracle uwa, bool fixedPointIteration)
+  static Option<AbstractingUnifier> unify(TermList t1, int bank1, TermList t2, int bank2, AbstractionOracle uwa, bool fixedPointIteration)
   {
     auto au = AbstractingUnifier::empty(uwa);
     if (!au.unify(t1, bank1, t2, bank2)) return {};

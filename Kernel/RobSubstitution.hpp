@@ -36,34 +36,38 @@
 #endif
 
 
-const int GLUE_INDEX=-3;
-const int SPECIAL_INDEX=-2;
+// constexpr int specialIndex(unsigned idx) 
+// { return -3 - idx; }
+
+const int GLUE_INDEX=-2;
 const int UNBOUND_INDEX=-1;
+
 namespace Kernel
 {
 struct VarSpec
 {
   VarSpec() {}
-  VarSpec(unsigned var, int index) : var(var), index(index) {}
+  VarSpec(TermList var, int index) : var(var.var()), special(var.isSpecialVar()), index(index) {}
 
   friend std::ostream& operator<<(std::ostream& out, VarSpec const& self);
 
   /** number of variable */
-  unsigned var;
+  unsigned var : 31;
+  bool special : 1;
   /** index of variable bank */
   int index;
 
-  auto asTuple() const { return std::tie(var, index); }
+  auto asTuple() const { return std::make_tuple(var * 2 + unsigned(special), index); }
   IMPL_COMPARISONS_FROM_TUPLE(VarSpec)
 
-  unsigned defaultHash () const { return HashUtils::combine(var  , index); }
-  unsigned defaultHash2() const { return HashUtils::combine(index, var  ); }
+  unsigned defaultHash () const { return HashUtils::combine(var  , index, special); }
+  unsigned defaultHash2() const { return HashUtils::combine(index, var  , special); }
 };
 
 struct TermSpec {
   TermSpec() {}
 
-  TermSpec(TermList t, int i) : term(t), index(t.isSpecialVar() ? SPECIAL_INDEX : i) {}
+  TermSpec(TermList t, int i) : term(t), index(i) {}
   TermSpec(VarSpec v) : term(TermList::var(v.var)), index(v.index) {}
 
   auto asTuple() const -> decltype(auto) { return std::tie(term, index); }
@@ -97,7 +101,7 @@ struct TermSpec {
   friend std::ostream& operator<<(std::ostream& out, TermSpec const& self);
 
   bool isVar() const { return term.isVar(); }
-  VarSpec varSpec() const { return VarSpec(term.var(), term.isSpecialVar() ? SPECIAL_INDEX : index); }
+  VarSpec varSpec() const { return VarSpec(term, index); }
   bool isTerm() const { return term.isTerm(); }
 
   TermSpec termArgSort(unsigned i) const { return TermSpec(SortHelper::getTermArgSort(term.term(), i), index); }
@@ -106,6 +110,7 @@ struct TermSpec {
   unsigned nTermArgs() const { return term.term()->numTermArguments(); }
   unsigned nAllArgs() const { return term.term()->arity(); }
 
+  // TODO remove unnecessary function call
   TermSpec termArg(unsigned i) const { return TermSpec(this->term.term()->termArg(i), this->index); }
   TermSpec typeArg(unsigned i) const { return TermSpec(this->term.term()->typeArg(i), this->index); }
   TermSpec anyArg (unsigned i) const { return TermSpec(*this->term.term()->nthArgument(i), this->index); }
@@ -186,7 +191,7 @@ struct TermSpec {
           auto v1 = lhs.varSpec();
           auto v2 = rhs.varSpec();
           if (v1 != v2) {
-            return std::tie(v1.var, v1.index) < std::tie(v2.var, v2.index) ? -1 : 1;
+            return v1.asTuple() < v2.asTuple() ? -1 : 1;
           }
         }
       }
@@ -352,11 +357,8 @@ public:
     Option<int> index;
     while (iter.hasNext()) {
       auto arg = iter.next();
-      if (
-          // ground term
+      if (// ground term
           (!arg.term.isVar() && arg.term.term()->shared() && arg.term.ground())
-          // special variable
-          || arg.term.isSpecialVar()
           ) {
         args->push(arg.term);
 
@@ -422,14 +424,14 @@ public:
    * other methods. Also no special variables can occur in
    * binding term, as no occur-check is performed.
    */
-  void bindSpecialVar(unsigned var, TermList t, int index)
+  void bindSpecialVar(unsigned var, unsigned internalBank, TermList t, int index)
   {
-    VarSpec vs(var, SPECIAL_INDEX);
+    VarSpec vs(TermList::var(var, /* special */ true), internalBank);
     ASS(!_bindings.find(vs));
     bind(vs, TermSpec(t,index));
   }
 
-  TermList::Top getSpecialVarTop(unsigned specialVar) const;
+  TermList::Top getSpecialVarTop(unsigned specialVar, unsigned index) const;
   TermList apply(TermList t, int index) const;
   Literal* apply(Literal* lit, int index) const;
   TypedTermList apply(TypedTermList t, int index) const { return TypedTermList(apply(TermList(t), index), apply(t.sort(), index)); }
@@ -444,10 +446,14 @@ public:
 
   friend std::ostream& operator<<(std::ostream& out, VarSpec const& self)
   {
-    if(self.index == SPECIAL_INDEX) {
-      return out << "S" << self.var;
+    if(self.index == GLUE_INDEX) {
+      return out << "G" << (self.special ? "S" : "") << self.var;
+
+    } else if(self.index == UNBOUND_INDEX) {
+      return out << "U" << (self.special ? "S" : "") << self.var;
+
     } else {
-      return out << "X" << self.var << "/" << self.index;
+      return out << (self.special ? "S" : "X") << self.var << "/" << self.index;
     }
   }
 

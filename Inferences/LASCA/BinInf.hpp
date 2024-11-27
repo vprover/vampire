@@ -112,6 +112,7 @@ public:
       for (auto rhs_sigma : _rhs->find(&sigma, lhs.key(), _lhsBank, _internalBank, _rhsBank)) {
         auto& rhs   = *rhs_sigma.data;
         DEBUG(1, "  rhs: ", rhs)
+        DEBUG(1, "  sigma: ", sigma)
         for (Clause* res : iterTraits(_rule.applyRule(lhs, _lhsBank, rhs, _rhsBank, sigma))) {
           DEBUG(1, "    result: ", *res)
           out.push(res);
@@ -128,6 +129,7 @@ public:
         auto& lhs   = *lhs_sigma.data;
         if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop
           DEBUG(1, "  lhs: ", lhs)
+          DEBUG(1, "  sigma: ", sigma)
           for (Clause* res : iterTraits(_rule.applyRule(lhs, _lhsBank, rhs, _rhsBank, sigma))) {
             DEBUG(1, "    result: ", *res)
             out.push(res);
