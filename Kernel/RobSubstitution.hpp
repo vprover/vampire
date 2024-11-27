@@ -391,20 +391,8 @@ public:
   TermSpec createTerm(unsigned functor, Args... args)
   {
     return createTermFromIter(functor, iterItems(args...));
-    // TermSpec out;
-    // if (iterItems(args...).count() == 0) {
-    //   return TermSpec(TermList(Term::create(functor, 0, nullptr)), /* index */ 0);
-    // }
-    // auto firstIndex = iterItems(args...).tryNext().unwrap().index;
-    // if (iterItems(args...).all([&](auto a) { return a.index == firstIndex; })) {
-    //   return TermSpec(TermList(Term::create(functor, {args.term...})), firstIndex);
-    // } else {
-    //   return TermSpec(TermList(Term::create(functor, { 
-    //           (args.index == GLUE_INDEX ? args.term 
-    //                                     : TermList::var(introGlueVar(args).var))... 
-    //           })), GLUE_INDEX);
-    // }
   }
+
   void reset()
   {
     _bindings.reset();

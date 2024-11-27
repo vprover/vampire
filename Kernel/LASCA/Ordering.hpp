@@ -118,14 +118,31 @@ struct LAKBO {
   Ordering::Result cmpSameSkeleton(Polynom<NumTraits> const& t0, PolyNf const& t1) const 
   { return cmpSameSkeleton(t0, *t1.template wrapPoly<NumTraits>()); }
 
+  Ordering::Result cmpSameSkeleton(TermList t0, TermList t1) const 
+  { 
+    // TODO double check
+    if (t0.isVar() || t1.isVar()) {
+      return t0 == t1 ? Ordering::Result::EQUAL
+                      : Ordering::Result::INCOMPARABLE;
+    } else {
+      return cmpSameSkeleton(shared().normalize(t0.term()), shared().normalize(t1.term())); 
+    }
+  }
+
   Ordering::Result cmpSameSkeleton(AnyPoly const& t0, PolyNf const& t1) const 
   { return t0.apply([&](auto& t0) { return cmpSameSkeleton(*t0, t1); }); }
 
   Ordering::Result cmpSameSkeleton(PolyNf const& t0, PolyNf const& t1) const {
+    if (t0 == t1) return Ordering::Result::EQUAL;
+
     if (auto p0 = t0.template as<AnyPoly>()) {
       return cmpSameSkeleton(*p0, t1);
     } else if (auto p1 = t1.template as<AnyPoly>()) {
       return Ordering::reverse(cmpSameSkeleton(*p1, t0));
+
+    } else if (t0.is<Variable>() || t1.is<Variable>()) {
+      return Ordering::Result::INCOMPARABLE;
+
     } else {
       ASS(t0.is<Perfect<FuncTerm>>() && t1.is<Perfect<FuncTerm>>())
       auto f0 = t0.as<Perfect<FuncTerm>>().unwrap();
@@ -147,8 +164,8 @@ struct LAKBO {
   }
 
   Option<TermList> skeleton(Variable const& t) const {
-    // TODO
-    return {};
+    // TODO theory
+    return some(TermList::var(t.id()));
   }
 
   Option<TermList> skeleton(AnyPoly const& t) const 
@@ -231,21 +248,10 @@ struct LAKBO {
   Option<TermList> skeleton(PolyNf const& t) const 
   { return t.apply([&](auto& x) { return skeleton(x); }); }
 
-  Ordering::Result compare(TermList t0, TermList t1) const {
-    if (t0 == t1) return Ordering::Result::EQUAL;
-    if (t0.isVar() && t1.isVar()) {
-      return Ordering::Result::INCOMPARABLE;
-    } else if (t0.isVar()) {
-      return compareVar(t0.var(), t1.term());
-    } else if (t1.isVar()) {
-      return Ordering::reverse(compareVar(t1.var(), t0.term()));
-    } else {
-      return compare(shared().normalize(t0.term()), shared().normalize(t1.term()));
-    }
-  }
-
   // TODO atoms of equalities normalizing!!!
 
+  auto skeleton(TermList t) const 
+  { return t.isVar() ? some(t) : skeleton(shared().normalize(t.term())); }
 
   template<class Term>
   Ordering::Result compare(Term const& t0, Term const& t1) const {
@@ -259,6 +265,19 @@ struct LAKBO {
     } else {
       //TODO
       return Ordering::Result::INCOMPARABLE;
+    }
+  }
+
+  Ordering::Result compare(TermList t0, TermList t1) const {
+    if (t0 == t1) return Ordering::Result::EQUAL;
+    if (t0.isVar() && t1.isVar()) {
+      return Ordering::Result::INCOMPARABLE;
+    } else if (t0.isVar()) {
+      return compareVar(t0.var(), t1.term());
+    } else if (t1.isVar()) {
+      return Ordering::reverse(compareVar(t1.var(), t0.term()));
+    } else {
+      return compare(shared().normalize(t0.term()), shared().normalize(t1.term()));
     }
   }
 
