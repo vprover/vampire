@@ -41,7 +41,6 @@
 #include "NumTraits.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Debug/Tracer.hpp"
-#define DEBUG(...) // DBG(__VA_ARGS__)
 #define DEBUG_FINALIZE(LVL, ...) if (LVL < 0) DBG(__VA_ARGS__)
 #define DEBUG_UNIFY(LVL, ...) if (LVL < 0) DBG(__VA_ARGS__)
 
@@ -766,7 +765,6 @@ Option<AbstractionOracle::AbstractionResult> AbstractionOracle::tryAbstract(Abst
 
 void UnificationConstraintStack::add(UnificationConstraint c, Option<BacktrackData&> bd)
 { 
-  DEBUG("introduced constraint: ", c)
   _cont.push(c);
   if (bd) {
     bd->addClosure([this]() { _cont.pop(); });
@@ -934,8 +932,8 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
     while (toDo->isNonEmpty()) {
       auto cur = toDo->pop();
       DEBUG_UNIFY(1, "popped: ", cur)
-      auto& dt1 = subs().derefBound(cur.first);
-      auto& dt2 = subs().derefBound(cur.second);
+      auto dt1 = subs().derefBound(cur.first);
+      auto dt2 = subs().derefBound(cur.second);
       DEBUG_UNIFY(1, "dereferenced: ", dt1, " ?= ", dt2)
       if (dt1.deepEqCheck(dt2)) {
         progress = true;
