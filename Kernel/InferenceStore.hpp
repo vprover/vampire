@@ -83,6 +83,7 @@ private:
   struct ProofCheckPrinter;
   struct ProofPropertyPrinter;
   struct DeduktiProofPrinter;
+  struct SMTCheckPrinter;
 
   ProofPrinter* createProofPrinter(std::ostream& out);
 
