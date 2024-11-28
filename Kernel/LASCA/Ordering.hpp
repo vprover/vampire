@@ -69,7 +69,11 @@ struct LascaOrderingUtils {
                   , [&](){ return cmpN(c1.numerator().abs(), c2.numerator().abs()); } ); }
 
   static Ordering::Result cmpQ(IntegerConstantType c1, IntegerConstantType c2) 
-  { ASSERTION_VIOLATION_REP("integers should be translated away in ALASCA+I") }
+  { return lexLazy( [&](){ return cmpN(c1 < 0  , c2 < 0  ); }
+                  , [&](){ return cmpN(c1.abs(), c2.abs()); } ); }
+
+  static Ordering::Result cmpQ(std::tuple<> c1, std::tuple<> c2) 
+  { return Ordering::Result::EQUAL; }
 
 };
 
@@ -78,7 +82,8 @@ struct LAKBO {
   KBO _kbo;
   std::shared_ptr<LascaState> _state;
 
-  LAKBO(Problem& prb, const Options& opt) : _kbo(prb, opt) {}
+  LAKBO(KBO kbo) : _kbo(std::move(kbo)) {}
+  LAKBO(Problem& prb, const Options& opt) : LAKBO(KBO(prb, opt)) {}
   void setState(std::shared_ptr<LascaState> s) { _state = std::move(s); }
   LascaState& shared() const { return *_state; }
 
@@ -119,22 +124,13 @@ struct LAKBO {
   { return cmpSameSkeleton(t0, *t1.template wrapPoly<NumTraits>()); }
 
   Ordering::Result cmpSameSkeleton(TermList t0, TermList t1) const 
-  { 
-    // TODO double check
-    if (t0.isVar() || t1.isVar()) {
-      return t0 == t1 ? Ordering::Result::EQUAL
-                      : Ordering::Result::INCOMPARABLE;
-    } else {
-      return cmpSameSkeleton(shared().normalize(t0.term()), shared().normalize(t1.term())); 
-    }
-  }
+  { return cmpSameSkeleton(shared().normalize(t0), shared().normalize(t1)); }
 
   Ordering::Result cmpSameSkeleton(AnyPoly const& t0, PolyNf const& t1) const 
   { return t0.apply([&](auto& t0) { return cmpSameSkeleton(*t0, t1); }); }
 
   Ordering::Result cmpSameSkeleton(PolyNf const& t0, PolyNf const& t1) const {
     if (t0 == t1) return Ordering::Result::EQUAL;
-
     if (auto p0 = t0.template as<AnyPoly>()) {
       return cmpSameSkeleton(*p0, t1);
     } else if (auto p1 = t1.template as<AnyPoly>()) {
@@ -251,7 +247,7 @@ struct LAKBO {
   // TODO atoms of equalities normalizing!!!
 
   auto skeleton(TermList t) const 
-  { return t.isVar() ? some(t) : skeleton(shared().normalize(t.term())); }
+  { return skeleton(shared().normalize(t)); }
 
   template<class Term>
   Ordering::Result compare(Term const& t0, Term const& t1) const {
@@ -269,22 +265,15 @@ struct LAKBO {
   }
 
   Ordering::Result compare(TermList t0, TermList t1) const {
-    if (t0 == t1) return Ordering::Result::EQUAL;
-    if (t0.isVar() && t1.isVar()) {
-      return Ordering::Result::INCOMPARABLE;
-    } else if (t0.isVar()) {
-      return compareVar(t0.var(), t1.term());
-    } else if (t1.isVar()) {
-      return Ordering::reverse(compareVar(t1.var(), t0.term()));
+    if (t0.isTerm() && t1.isTerm()) { ASS_EQ(t0.term()->isSort(), t1.term()->isSort()) }
+    if ((t0.isTerm() && t0.term()->isSort()) 
+      ||(t1.isTerm() && t1.term()->isSort())) {
+      return _kbo.compare(t0, t1);
     } else {
-      return compare(shared().normalize(t0.term()), shared().normalize(t1.term()));
+      return compare(shared().normalize(t0), shared().normalize(t1));
     }
   }
 
-  Ordering::Result compareVar(unsigned v, Term* t) const {
-    // TODO firgure out theory for vars
-    return Ordering::INCOMPARABLE;
-  }
   int predicatePrecedence(unsigned pred) const { return _kbo.predicatePrecedence(pred); }
 
 };
@@ -296,16 +285,19 @@ class LiteralOrdering
   TermOrdering _termOrdering;
 
   Ordering::Result cmpPrecUninterpreted(Literal* l0, Literal* l1) const {
+    ASS(!l0->isEquality() && !l1->isEquality())
     return LascaOrderingUtils::cmpN(
         _termOrdering.predicatePrecedence(l0->functor()), 
         _termOrdering.predicatePrecedence(l1->functor()));
   }
 
-  template<class NumTraits>
-  static Ordering::Result cmpPrec(LascaPredicate p0, LascaPredicate p1) 
+  Ordering::Result cmpPrec(Literal* l0, Literal* l1) const
   {
-    // TODO do we want a specific precedence on uninterpreted predicates?
-    return LascaOrderingUtils::cmpN(p0, p1);
+    if (l0->isEquality() && l0->isEquality()) {
+      return _termOrdering.compare(l0->eqArgSort(), l1->eqArgSort());
+    } else {
+      return cmpPrecUninterpreted(l0, l1);
+    }
   }
 
   static Ordering::Result cmpPolarity(Literal* l0, Literal* l1) 
@@ -318,8 +310,10 @@ class LiteralOrdering
          : assertionViolation<Ordering::Result>();
   }
 
-  template<class NumTraits>
-  using Atom = std::tuple<Perfect<MonomFactors<NumTraits>>, unsigned, typename NumTraits::ConstantType>;
+  using AnyNumeral = Coproduct<IntegerConstantType, RationalConstantType, RealConstantType, std::tuple<>>;
+  //                                                                      No Numeral <------^^^^^^^^^^^^
+
+  using Atom = std::tuple<PolyNf, unsigned , AnyNumeral>;
 
   unsigned lvl(LascaPredicate p) const {
     switch(p) {
@@ -333,41 +327,61 @@ class LiteralOrdering
     } ASSERTION_VIOLATION
   }
 
+  MultiSet<Atom> atoms(AnyLascaLiteral const& l) const 
+  { return l.apply([&](auto l) { return atoms(l); }); }
+
   template<class NumTraits>
-  MultiSet<Atom<NumTraits>> atoms(LascaLiteral<NumTraits> const& l1) const {
+  MultiSet<Atom> atoms(LascaLiteral<NumTraits> const& l1) const {
     return l1.term().iterSummands()
-      .map([&](auto monom) { return std::make_tuple(monom.factors, lvl(l1.symbol()), monom.numeral); })
+      .map([&](auto monom) { return std::make_tuple(PolyNf(monom.factors), lvl(l1.symbol()), AnyNumeral(monom.numeral)); })
       .template collect<MultiSet>();
   }
 
-  template<class NumTraits>
-  Ordering::Result cmpAtom(Atom<NumTraits> a1, Atom<NumTraits> a2) const {
-    return LascaOrderingUtils::lexLazy(
-            [&](){ return _termOrdering.compare(*std::get<0>(a1), *std::get<0>(a2)); },
-            [&](){ return LascaOrderingUtils::cmpN(std::get<1>(a1), std::get<1>(a2)); },
-            [&](){ return LascaOrderingUtils::cmpQ(std::get<2>(a1), std::get<2>(a2)); }
-          );
-  }
-
-  template<class NumTraits>
-  Result compare(LascaLiteral<NumTraits> const& l1, LascaLiteral<NumTraits> const& l2) const 
-  {
-    auto a1 = atoms(l1);
-    auto a2 = atoms(l2);
-    return LascaOrderingUtils::lexLazy(
-          [&](){ return OrderingUtils2::mulExt(a1, a2, [&](auto l, auto r) { return cmpAtom<NumTraits>(l, r); }); },
-          [&](){ return cmpPrec<NumTraits>(l1.symbol(), l2.symbol()); }
-          );
-  }
-
-  Result cmpLascaLit(AnyLascaLiteral const& l1, AnyLascaLiteral const& l2) const {
-    if (l1.tag() == l2.tag()) {
-      return l1.applyWithIdx([&](auto& l1, auto N) { return compare(l1, l2.unwrap<N.value>()); });
+  Option<MultiSet<Atom>> atoms(Literal* l) const {
+    if (auto lasca = _termOrdering.shared().normalizer.renormalize(l)) {
+      return some(atoms(*lasca));
+    } else if (l->isEquality()) {
+      auto sym = l->isPositive() ? LascaPredicate::EQ : LascaPredicate::NEQ;
+      return some(iterItems(l->termArg(0), l->termArg(1))
+        .map([&](auto t) { return std::make_tuple(_termOrdering.shared().normalize(t), lvl(sym), AnyNumeral(std::make_tuple())); })
+        .template collect<MultiSet>());
     } else {
-      return l1.tag() < l2.tag() ? Ordering::Result::LESS
-                                 : Ordering::Result::GREATER;
+      return {};
     }
   }
+
+  Ordering::Result cmpAtom(Atom a1, Atom a2) const {
+    return LascaOrderingUtils::lexLazy(
+            [&](){ return _termOrdering.compare(std::get<0>(a1), std::get<0>(a2)); },
+            [&](){ return LascaOrderingUtils::cmpN(std::get<1>(a1), std::get<1>(a2)); },
+            [&](){ 
+                  auto& n1 = std::get<2>(a1);
+                  auto& n2 = std::get<2>(a2);
+                  ASS_EQ(n1.tag(), n2.tag())
+                  return n1.applyWithIdx([&](auto& n1, auto N) { return LascaOrderingUtils::cmpQ(n1, n2.unwrap<N.value>()); });
+            }
+          );
+  }
+
+  // template<class NumTraits>
+  // Result compare(LascaLiteral<NumTraits> const& l1, LascaLiteral<NumTraits> const& l2) const 
+  // {
+  //   auto a1 = atoms(l1);
+  //   auto a2 = atoms(l2);
+  //   return LascaOrderingUtils::lexLazy(
+  //         [&](){ return OrderingUtils2::mulExt(a1, a2, [&](auto l, auto r) { return cmpAtom(l, r); }); },
+  //         [&](){ return cmpPrec<NumTraits>(l1.symbol(), l2.symbol()); }
+  //         );
+  // }
+
+  // Result cmpLascaLit(AnyLascaLiteral const& l1, AnyLascaLiteral const& l2) const {
+  //   if (l1.tag() == l2.tag()) {
+  //     return l1.applyWithIdx([&](auto& l1, auto N) { return compare(l1, l2.unwrap<N.value>()); });
+  //   } else {
+  //     return l1.tag() < l2.tag() ? Ordering::Result::LESS
+  //                                : Ordering::Result::GREATER;
+  //   }
+  // }
 
 public:
   USE_ALLOCATOR(LiteralOrdering);
@@ -382,19 +396,27 @@ public:
   virtual ~LiteralOrdering() {}
 
   Result compare(Literal* l1, Literal* l2) const override {
-    auto lasca1 = _termOrdering.shared().normalizer.renormalize(l1);
-    auto lasca2 = _termOrdering.shared().normalizer.renormalize(l2);
-    if (lasca1.isNone() && lasca2.isSome()) {
+    // auto lasca1 = _termOrdering.shared().normalizer.renormalize(l1);
+    // auto lasca2 = _termOrdering.shared().normalizer.renormalize(l2);
+    auto atoms1 = atoms(l1);
+    auto atoms2 = atoms(l2);
+    // auto interp1 = lasca1.isSome() || l1->isEquality();
+    // auto interp2 = lasca2.isSome() || l2->isEquality();
+    if (!atoms1.isSome() && atoms2.isSome()) {
       return Ordering::GREATER;
 
-    } else if (lasca1.isSome() && lasca2.isNone()) {
+    } else if (atoms1.isSome() && !atoms2.isSome()) {
       return Ordering::LESS;
 
-    } else if (lasca1.isSome() && lasca2.isSome()) {
-      return cmpLascaLit(*lasca1, *lasca2);
+    } else if (atoms1.isSome() && atoms2.isSome()) {
+
+      return LascaOrderingUtils::lexLazy(
+            [&](){ return OrderingUtils2::mulExt(*atoms1, *atoms2, [&](auto l, auto r) { return cmpAtom(l, r); }); },
+            [&](){ return cmpPrec(l1, l2); }
+            );
 
     } else {
-      ASS(lasca1.isNone() && lasca2.isNone())
+      ASS(atoms1.isNone() && atoms2.isNone())
       return compareUninterpreted(l1,l2);
     }
   }

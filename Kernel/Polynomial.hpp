@@ -161,6 +161,7 @@ struct Monom
   Perfect<MonomFactors<Number>> factors;
 
   Monom(Numeral numeral, Perfect<MonomFactors<Number>> factors);
+  Monom(Perfect<MonomFactors<Number>> factors) : Monom(Numeral(1), std::move(factors)) {}
   // Monom(Numeral numeral, PolyNf t); //: Monom(numeral, perfect(MonomFactors(t))) {}
   Monom(Numeral numeral) : Monom(numeral, perfect(MonomFactors<Number>::one())) {}
   Monom(int num) : Monom(Numeral(num)) {}
@@ -300,6 +301,16 @@ public:
   PolyNf(Perfect<FuncTerm> t);
   PolyNf(Variable               t);
   PolyNf(AnyPoly                t);
+  template<class NumTraits>
+  PolyNf(Perfect<Polynom<NumTraits>>     t) : PolyNf(AnyPoly(std::move(t))) {}
+  template<class NumTraits>
+  PolyNf(Polynom<NumTraits>     t) : PolyNf(perfect(std::move(t))) {}
+  template<class NumTraits>
+  PolyNf(Monom<NumTraits>     t) : PolyNf(Polynom<NumTraits>(std::move(t))) {}
+  template<class NumTraits>
+  PolyNf(Perfect<MonomFactors<NumTraits>> t) : PolyNf(Monom<NumTraits>(std::move(t))) {}
+  template<class NumTraits>
+  PolyNf(MonomFactors<NumTraits>     t) : PolyNf(perfect(std::move(t))) {}
 
   static PolyNf normalize(TypedTermList t);
 
@@ -521,7 +532,6 @@ public:
 
   /** creates a Polynom that consists of only one summand */
   explicit Polynom(Numeral constant);
-
   
   static Polynom fromNumeral(Numeral constant) 
   { return Polynom(constant); }
