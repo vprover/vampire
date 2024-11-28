@@ -79,10 +79,8 @@ public:
 #endif
     for (unsigned i = 0; i < cl->length(); i++) {
       SortHelper::collectVariableSorts((*cl)[i], _varSorts);
-      if (i < cl->numSelected()) {
-        _litSubs.push({ nullptr, nullptr });
-        _litRedundant.push({ false, false });
-      }
+      _litSubs.push({ nullptr, nullptr });
+      _litRedundant.push({ false, false });
     }
   }
 
@@ -174,7 +172,7 @@ public:
       VariantMatcher vm;
       Stack<CodeOp*> firstsInBlocks;
 
-      FlatTerm* ft = FlatTerm::create(ts);
+      FlatTerm* ft = FlatTerm::createUnexpanded(ts);
       vm.init(ft, this, &firstsInBlocks);
 
       if (vm.next()) {
@@ -839,6 +837,7 @@ void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSubsum
     static_assert(false);
 #endif
     if (!es) {
+      // in this case we try to create the subsumption next time
       return;
     }
     ASS(es->comparator);

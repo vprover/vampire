@@ -47,6 +47,7 @@ constexpr PoComp reverse(PoComp v) {
     case PoComp::INCOMPARABLE:
       return PoComp::INCOMPARABLE;
   }
+  ASSERTION_VIOLATION;
 }
 
 constexpr PoComp weaken(PoComp v) {
@@ -56,8 +57,9 @@ constexpr PoComp weaken(PoComp v) {
     case PoComp::LESS:
       return PoComp::NGEQ;
     default:
-      ASSERTION_VIOLATION;
+      break;
   }
+  ASSERTION_VIOLATION;
 }
 
 constexpr PoComp strengthen(PoComp v) {
@@ -67,8 +69,9 @@ constexpr PoComp strengthen(PoComp v) {
     case PoComp::NGEQ:
       return PoComp::LESS;
     default:
-      ASSERTION_VIOLATION;
+      break;
   }
+  ASSERTION_VIOLATION;
 }
 
 bool checkCompatibility(PoComp old, PoComp curr, PoComp& res)
@@ -119,7 +122,7 @@ bool checkCompatibility(PoComp old, PoComp curr, PoComp& res)
       }
       break;
     default:
-      ASSERTION_VIOLATION;
+      break;
   }
   ASSERTION_VIOLATION;
 }
@@ -141,6 +144,7 @@ string po_to_infix(PoComp c) {
     case PoComp::INCOMPARABLE:
       return "⋈";
   }
+  ASSERTION_VIOLATION;
 }
 
 PartialOrdering::PartialOrdering()

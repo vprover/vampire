@@ -18,6 +18,8 @@
 #include "KBO.hpp"
 #include "SubstHelper.hpp"
 
+#include <deque>
+
 #include "OrderingComparator.hpp"
 
 using namespace std;
