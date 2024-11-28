@@ -172,15 +172,17 @@ float NeuralClauseEvaluationModel::evalClause(Clause* cl) {
 void NeuralClauseEvaluationModel::evalClauses(Stack<Clause*>& clauses) {
   TIME_TRACE("neural model evaluation");
 
-  unsigned sz = clauses.size();
-
   static std::vector<float> features;
   ASS_EQ(features.size(),0);
-  features.reserve(_numFeatures*sz);
+  features.reserve(_numFeatures*clauses.size());
+  unsigned sz = 0;
   {
     auto uIt = clauses.iter();
     while (uIt.hasNext()) {
       Clause* cl = uIt.next();
+      if (cl->_dead)
+        continue;
+      sz++;
 
       Clause::FeatureIterator cIt(cl);
       unsigned i = 0;
@@ -200,6 +202,9 @@ void NeuralClauseEvaluationModel::evalClauses(Stack<Clause*>& clauses) {
     unsigned idx = 0;
     while (uIt.hasNext()) {
       Clause* cl = uIt.next();
+      if (cl->_dead)
+        continue;
+
       float logit = logits[idx++].item().toDouble();
       if (_temp > 0.0) {
         // adding the gumbel noise
@@ -227,7 +232,12 @@ void NeuralPassiveClauseContainer::evalAndEnqueueDelayed()
   // cout << "evalAndEnqueueDelayed for " << _delayedInsertionBuffer.size() << endl;
   auto it = _delayedInsertionBuffer.iter();
   while (it.hasNext()) {
-    _queue.insert(it.next());
+    Clause* cl = it.next();
+    if (!cl->_dead) {
+      _queue.insert(cl);
+    }
+    cl->_young = 0;
+    cl->_dead = 0;
   }
   _delayedInsertionBuffer.reset();
 }
@@ -241,6 +251,8 @@ NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, con
 
 void NeuralPassiveClauseContainer::add(Clause* cl)
 {
+  cl->_young = 1;
+  cl->_dead = 0;
   _delayedInsertionBuffer.push(cl);
 
   // cout << "Inserting " << cl->number() << endl;
@@ -254,7 +266,9 @@ void NeuralPassiveClauseContainer::remove(Clause* cl)
 {
   ASS(cl->store()==Clause::PASSIVE);
 
-  if (!_delayedInsertionBuffer.remove(cl)) {
+  if (cl->_young) {
+    cl->_dead = 1;
+  } else {
     _queue.remove(cl);
   }
   _size--;

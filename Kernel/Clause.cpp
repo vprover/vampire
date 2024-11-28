@@ -65,6 +65,8 @@ bool Clause::_auxInUse = false;
 /** New clause */
 Clause::Clause(Literal* const* lits, unsigned length, Inference inf)
   : Unit(Unit::CLAUSE, std::move(inf)),
+    _young(0),
+    _dead(0),
     _length(length),
     _color(COLOR_INVALID),
     _extensionality(false),

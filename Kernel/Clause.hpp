@@ -470,6 +470,10 @@ public:
 
   bool computable();
 
+public:
+  unsigned _young : 1;
+  unsigned _dead : 1;
+
 protected:
   /** number of literals */
   unsigned _length : 20;
