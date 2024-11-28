@@ -251,6 +251,7 @@ struct LAKBO {
 
   template<class Term>
   Ordering::Result compare(Term const& t0, Term const& t1) const {
+    if (t0 == t1) return Ordering::Result::EQUAL;
     auto s0 = skeleton(t0);
     auto s1 = skeleton(t1);
     if (s0.isSome() && s1.isSome()) {
