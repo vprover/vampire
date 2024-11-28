@@ -169,29 +169,16 @@ float NeuralClauseEvaluationModel::evalClause(Clause* cl) {
   return logit;
 }
 
-void NeuralClauseEvaluationModel::evalClauses(DHMap<unsigned,Clause*>& clauses) {
+void NeuralClauseEvaluationModel::evalClauses(Stack<Clause*>& clauses) {
   TIME_TRACE("neural model evaluation");
 
   unsigned sz = clauses.size();
-  static Stack<Clause*> sortBuffer;
-  ASS_EQ(sortBuffer.size(),0);
-  sortBuffer.reserve(sz);
-
-  {
-    auto uIt = clauses.items();
-    while (uIt.hasNext()) {
-      sortBuffer.push(uIt.next().second);
-    }
-    // sort by number, desc makes the subsequent iteration independent of our hash function
-    // moreover, it seems to be a favourable order complementing some glitches
-    std::sort(sortBuffer.begin(),sortBuffer.end(),[](Clause* c1, Clause* c2){ return c1->number() < c2->number();});
-  }
 
   static std::vector<float> features;
   ASS_EQ(features.size(),0);
   features.reserve(_numFeatures*sz);
   {
-    auto uIt = sortBuffer.iter();
+    auto uIt = clauses.iter();
     while (uIt.hasNext()) {
       Clause* cl = uIt.next();
 
@@ -209,7 +196,7 @@ void NeuralClauseEvaluationModel::evalClauses(DHMap<unsigned,Clause*>& clauses) 
   features.clear();
 
   {
-    auto uIt = sortBuffer.iter();
+    auto uIt = clauses.iter();
     unsigned idx = 0;
     while (uIt.hasNext()) {
       Clause* cl = uIt.next();
@@ -227,7 +214,6 @@ void NeuralClauseEvaluationModel::evalClauses(DHMap<unsigned,Clause*>& clauses) 
       }
     }
   }
-  sortBuffer.reset();
   // cout << endl;
 }
 
@@ -239,9 +225,9 @@ void NeuralPassiveClauseContainer::evalAndEnqueueDelayed()
   _model.evalClauses(_delayedInsertionBuffer);
 
   // cout << "evalAndEnqueueDelayed for " << _delayedInsertionBuffer.size() << endl;
-  auto it = _delayedInsertionBuffer.items();
+  auto it = _delayedInsertionBuffer.iter();
   while (it.hasNext()) {
-    _queue.insert(it.next().second);
+    _queue.insert(it.next());
   }
   _delayedInsertionBuffer.reset();
 }
@@ -255,7 +241,7 @@ NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, con
 
 void NeuralPassiveClauseContainer::add(Clause* cl)
 {
-  _delayedInsertionBuffer.insert(cl->number(),cl);
+  _delayedInsertionBuffer.push(cl);
 
   // cout << "Inserting " << cl->number() << endl;
   _size++;
@@ -268,7 +254,7 @@ void NeuralPassiveClauseContainer::remove(Clause* cl)
 {
   ASS(cl->store()==Clause::PASSIVE);
 
-  if (!_delayedInsertionBuffer.size() || !_delayedInsertionBuffer.remove(cl->number())) {
+  if (!_delayedInsertionBuffer.remove(cl)) {
     _queue.remove(cl);
   }
   _size--;
