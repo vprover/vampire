@@ -359,7 +359,10 @@ int PrecedenceOrdering::predicatePrecedence (unsigned pred) const
 
 Ordering::Result PrecedenceOrdering::comparePredicatePrecedences(unsigned p1, unsigned p2) const
 {
-  return fromComparison(Int::compare(predicatePrecedence(p1), predicatePrecedence(p2)));
+  static bool reverse = env.options->introducedSymbolPrecedence() == Shell::Options::IntroducedSymbolPrecedence::BOTTOM;
+  return fromComparison(Int::compare(
+      p1 >= _predicates ? (int)(reverse ? -p1 : p1) : _predicatePrecedences[p1],
+      p2 >= _predicates ? (int)(reverse ? -p2 : p2) : _predicatePrecedences[p2] ));
 }
 // {
 //   int res=pred >= _predicates ? (int)pred : _predicatePrecedences[pred];
@@ -977,7 +980,7 @@ void PrecedenceOrdering::show(std::ostream& out) const
   _show("predicate", 
       env.signature->predicates(),
       [](unsigned f) { return env.signature->getPredicate(f); },
-      [&](unsigned l, unsigned r) { return Int::compare(_predicatePrecedences[l], _predicatePrecedences[r]); });
+      [&](unsigned l, unsigned r) { return intoComparison(comparePredicatePrecedences(l,r)); });
 
 
   {
@@ -986,11 +989,11 @@ void PrecedenceOrdering::show(std::ostream& out) const
 
     DArray<unsigned> functors;
     functors.initFromIterator(getRangeIterator(0u,env.signature->predicates()),env.signature->predicates());
-    functors.sort(closureComparator([&](unsigned l, unsigned r) { return Int::compare(_predicateLevels[l], _predicateLevels[r]); }));
+    functors.sort(closureComparator([&](unsigned l, unsigned r) { return Int::compare(predicateLevel(l), predicateLevel(r)); }));
 
     for (unsigned i = 0; i < functors.size(); i++) {
       auto sym = env.signature->getPredicate(i);
-      out << "% " << sym->name() << " " << sym->arity() << " " << _predicateLevels[i] << std::endl;
+      out << "% " << sym->name() << " " << sym->arity() << " " << predicateLevel(i) << std::endl;
     }
 
     out << "% ===== end of predicate levels ===== " << std::endl;
