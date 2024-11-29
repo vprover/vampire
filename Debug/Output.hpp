@@ -29,6 +29,15 @@ namespace Kernel {
  * Usage: `out << outputPtr(ptr) << std::endl;` 
  */
 template<class T>
+struct OutputMaybePtr { T const& self; };
+
+template<class T>
+OutputMaybePtr<T> outputMaybePtr(T const& self) { return { .self = self, }; }
+
+/** Newtype in order to nicely output a pointer.
+ * Usage: `out << outputPtr(ptr) << std::endl;` 
+ */
+template<class T>
 struct OutputPtr { T* self; };
 
 template<class T>
@@ -149,6 +158,15 @@ std::ostream& operator<<(std::ostream& out, Kernel::RepeatOutput<T> const& self)
 template<class T>
 std::ostream& operator<<(std::ostream& out, Kernel::OutputPtr<T> const& self)
 { return self.self ? out << *self.self : out << "NULL"; }
+
+template<class T>
+std::ostream& operator<<(std::ostream& out, Kernel::OutputMaybePtr<T*> const& self)
+{ return self.self ? out << *self.self : out << "NULL"; }
+
+template<class T>
+std::ostream& operator<<(std::ostream& out, Kernel::OutputMaybePtr<T> const& self)
+{ return out << self.self; }
+
 template<class T>
 void Kernel::OutputMultiline<T>::outputIndent(std::ostream& out, unsigned indent)
 { out << repeatOutput("    ", indent); };
