@@ -405,6 +405,9 @@ namespace Kernel {
     { return std::make_tuple(cl->number(), litIdx); }
 
     IMPL_COMPARISONS_FROM_TUPLE(SelectedLiteral)
+
+    friend std::ostream& operator<<(std::ostream& out, SelectedLiteral const& self)
+    { return out << outputInterleaved("\\/", concatIters(iterItems(self.literal()), self.contextLiterals()).map([](auto l) { return outputPtr(l); })); }
   };
 
 
@@ -1040,6 +1043,15 @@ namespace Kernel {
         });
     }
 
+    auto isUninterpreted(Literal* l) const 
+    { return !l->isEquality() && normalizer.renormalize(l).isNone(); }
+
+    auto selectedUninterpretedLiterals(Clause* cl, SelectionCriterion selLit) {
+      return maxLits(cl, selLit)
+        .filter([&](auto& lit) { return isUninterpreted(lit.literal()); });
+    }
+
+
     auto selectedEqualities(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) {
       using Out = SelectedEquality;
       return selectedActivePositions(cl, selLit, selTerm, includeUnshieldedNumberVariables)
@@ -1049,9 +1061,6 @@ namespace Kernel {
                           return x.isInequality() ? Option<Out>()
                               : x.numTraits().template is<IntTraits>() ? Option<Out>(Out(SelectedIntegerEquality(std::move(x))))
                               : Option<Out>(Out(std::move(x)));
-                       //    return x.isInequality() ? Option<Out>()
-                       //        : x.numTraits().template is<IntTraits>() ? Option<Out>(Out(SelectedIntegerEquality(std::move(x))))
-                       //        : Option<Out>(Out(std::move(x)));
                        },
 
                        [](SelectedUninterpretedEquality& x) 

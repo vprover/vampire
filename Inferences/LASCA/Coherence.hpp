@@ -67,6 +67,8 @@ struct CoherenceConf
   }
 public:
 
+  static const char* name() { return "lasca coherence"; }
+
   // a clause of the form C \/ ⌊...⌋ = j s + u
   struct Lhs
   {

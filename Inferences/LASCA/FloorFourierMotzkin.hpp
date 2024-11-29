@@ -31,6 +31,7 @@ struct FloorFourierMotzkinConf
   FloorFourierMotzkinConf(std::shared_ptr<LascaState> shared) 
     : _shared(std::move(shared))
   {  }
+  static const char* name() { return "lasca floor fourier motzkin"; }
 
   using Premise0 = typename IntegerFourierMotzkin<NumTraits>::Premise0;
   using Premise1 = typename IntegerFourierMotzkin<NumTraits>::Premise1;

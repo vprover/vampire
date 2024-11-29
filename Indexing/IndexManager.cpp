@@ -30,6 +30,7 @@
 #include "Inferences/LASCA/Demodulation.hpp"
 #include "Inferences/LASCA/FourierMotzkin.hpp"
 #include "Inferences/LASCA/Superposition.hpp"
+#include "Inferences/LASCA/BinaryResolution.hpp"
 #include "Inferences/LASCA/Coherence.hpp"
 
 #include "Shell/Statistics.hpp"
@@ -159,6 +160,16 @@ Index* IndexManager::create(IndexType t)
 
   case LASCA_FOURIER_MOTZKIN_RHS_SUBST_TREE:
     res=new LascaIndex<Inferences::LASCA::FourierMotzkin::Rhs>();
+    isGenerating = true;
+    break;
+
+  case LASCA_BINARY_RESOLUTION_LHS_SUBST_TREE: 
+    res = new LascaIndex<Inferences::LASCA::BinaryResolution::Lhs>();
+    isGenerating = true;
+    break;
+
+  case LASCA_BINARY_RESOLUTION_RHS_SUBST_TREE:
+    res = new LascaIndex<Inferences::LASCA::BinaryResolution::Rhs>();
     isGenerating = true;
     break;
 

@@ -36,12 +36,18 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+ 
+template<class Inner>
+void attachToInner(Inner& inner, SaturationAlgorithm* salg) { }
+  
 template<class Rule>
 struct BinInf
 : public GeneratingInferenceEngine
 {
   using Lhs = typename Rule::Lhs;
   using Rhs = typename Rule::Rhs;
+  using Key = KeyType<Lhs>;
+  static_assert(std::is_same_v<KeyType<Lhs>, KeyType<Rhs>>);
   static constexpr int _lhsBank = 0;
   static constexpr int _rhsBank = 1;
   static constexpr int _internalBank = 2;
@@ -61,6 +67,8 @@ public:
     , _rhs(nullptr)
   {  }
 
+      
+    
   void attach(SaturationAlgorithm* salg) final override
   { 
     ASS(!_rhs);
@@ -73,6 +81,8 @@ public:
 
     _lhs->setShared(_shared);
     _rhs->setShared(_shared);
+
+    attachToInner(_rule, salg);
   }
 
   void detach() final override {
@@ -107,11 +117,12 @@ public:
     auto sigma = AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF));
     ASS(sigma.isEmpty())
 
+    DEBUG(1, _rule.name())
     for (auto const& lhs : Lhs::iter(*_shared, premise)) {
-      DEBUG(1, "lhs: ", lhs)
+      DEBUG(1, "lhs: ", lhs, " (", lhs.clause()->number(), ")")
       for (auto rhs_sigma : _rhs->find(&sigma, lhs.key(), _lhsBank, _internalBank, _rhsBank)) {
         auto& rhs   = *rhs_sigma.data;
-        DEBUG(1, "  rhs: ", rhs)
+        DEBUG(1, "  rhs: ", rhs, " (", rhs.clause()->number(), ")")
         DEBUG(1, "  sigma: ", sigma)
         for (Clause* res : iterTraits(_rule.applyRule(lhs, _lhsBank, rhs, _rhsBank, sigma))) {
           DEBUG(1, "    result: ", *res)
@@ -124,11 +135,11 @@ public:
     ASS_REP(sigma.isEmpty(), sigma)
 
     for (auto const& rhs : Rhs::iter(*_shared, premise)) {
-      DEBUG(1, "rhs: ", rhs)
+      DEBUG(1, "rhs: ", rhs, " (", rhs.clause()->number(), ")")
       for (auto lhs_sigma : _lhs->find(&sigma, rhs.key(), _rhsBank, _internalBank, _lhsBank)) {
         auto& lhs   = *lhs_sigma.data;
         if (lhs.clause() != premise) { // <- self application. the same one has been run already in the previous loop
-          DEBUG(1, "  lhs: ", lhs)
+          DEBUG(1, "  lhs: ", lhs, " (", lhs.clause()->number(), ")")
           DEBUG(1, "  sigma: ", sigma)
           for (Clause* res : iterTraits(_rule.applyRule(lhs, _lhsBank, rhs, _rhsBank, sigma))) {
             DEBUG(1, "    result: ", *res)
@@ -138,6 +149,7 @@ public:
         }
       }
     }
+    DEBUG(1, "")
     return pvi(arrayIter(std::move(out)));
   }
 

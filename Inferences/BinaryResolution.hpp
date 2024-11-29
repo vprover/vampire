@@ -21,6 +21,7 @@
 #include "InferenceEngine.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Indexing/LiteralIndex.hpp"
 
 namespace Inferences
 {
@@ -43,6 +44,10 @@ public:
   static Clause* generateClause(Clause* queryCl, Literal* queryLit, 
                                 Clause* resultCl, Literal* resultLit, 
                                 ResultSubstitutionSP subs, const Options& opts);
+
+  static Clause* generateClause(Clause* queryCl, Literal* queryLit, 
+                                Clause* resultCl, Literal* resultLit, 
+                                AbstractingUnifier& uwa, const Options& opts, SaturationAlgorithm* salg);
 
   template<class ComputeConstraints>
   static Clause* generateClause(Clause* queryCl, Literal* queryLit, 

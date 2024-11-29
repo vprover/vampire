@@ -118,6 +118,9 @@ public:
   VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) final override
   { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction>>(lit, complementary, /* retrieveSubstitutions */ true, subsTreeQueryBank(0), subsTreeNormResultBank(0), subsTreeResultBank(0), AbstractionOracle(uwa), fixedPointIteration)); }
 
+  VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(AbstractingUnifier* state, Literal* lit, int queryBank, int normInternalBank, int internalBank, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
+  { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction>>(lit, /* complementar*/ false, /* retrieveSubstitutions */ true, state, queryBank, normInternalBank, internalBank, AbstractionOracle(uwa), fixedPointIteration)); }
+
   friend std::ostream& operator<<(std::ostream& out, LiteralSubstitutionTree const& self)
   { 
     int i = 0;

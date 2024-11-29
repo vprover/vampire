@@ -43,6 +43,8 @@ struct SuperpositionConf
 
   SuperpositionConf(std::shared_ptr<LascaState> shared) : _shared(shared) {  }
 
+  static const char* name() { return "lasca superposition"; }
+
   struct Lhs : public SelectedEquality
   {
     static const char* name() { return "lasca superposition lhs"; }

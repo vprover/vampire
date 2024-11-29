@@ -202,6 +202,7 @@ void LiteralSelector::select(Clause* c, unsigned eligibleInp)
   }
 
   unsigned eligible=1;
+  { /* we order the clause so that the literals with highest `getSelectionPriority` are in the front, and eligible is the number of literals with that selection priority */ 
   int maxPriority=getSelectionPriority((*c)[0]);
   bool modified=false;
 
@@ -223,6 +224,7 @@ void LiteralSelector::select(Clause* c, unsigned eligibleInp)
   ASS_LE(eligible,eligibleInp);
   if(modified) {
     c->notifyLiteralReorder();
+  }
   }
 
   if(eligible==1) {

@@ -44,6 +44,7 @@
 #include "Shell/Statistics.hpp"
 
 #include "BinaryResolution.hpp"
+#define DEBUG_RESOLUTION(lvl, ...) if (lvl < 0) { DBG("resolution: ", __VA_ARGS__) }
 
 namespace Inferences
 {
@@ -81,6 +82,9 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
           ResultSubstitutionSP subs, ComputeConstraints computeConstraints, const Options& opts, bool afterCheck,
           PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls)
 {
+  DEBUG_RESOLUTION(0, "lhs: ", *queryLit, " (clause: ", queryCl->number(), ")")
+  DEBUG_RESOLUTION(0, "rhs: ", *resultLit, " (clause: ", resultCl->number(), ")")
+  DEBUG_RESOLUTION(0, "subs: ", *subs)
   ASS(resultCl->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses
 
   if(!ColorHelper::compatible(queryCl->color(),resultCl->color()) ) {
@@ -243,27 +247,33 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
       opts);
 }
 
+Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, 
+                                         Clause* resultCl, Literal* resultLit, 
+                                         AbstractingUnifier& uwa, const Options& opts, SaturationAlgorithm* salg) {
+  // perform binary resolution on query results
+  auto subs = ResultSubstitution::fromSubstitution(&uwa.subs(), subsTreeQueryBank(0), subsTreeResultBank(0));
+  bool doAfterCheck = opts.literalMaximalityAftercheck() && salg->getLiteralSelector().isBGComplete();
+  return BinaryResolution::generateClause(queryCl, queryLit, resultCl, resultLit, subs, 
+      [&](){ return uwa.computeConstraintLiterals(); }, 
+      opts, doAfterCheck, salg->getPassiveClauseContainer(),
+      &salg->getOrdering(), &salg->getLiteralSelector());
+}
+
 
 ClauseIterator BinaryResolution::generateClauses(Clause* premise)
 {
+  DBG("premise: ", premise->number())
   return pvi(TIME_TRACE_ITER("resolution", 
       premise->getSelectedLiteralIterator()
+      // TODO filter out >= in alasca
         .filter([](auto l) { return !l->isEquality(); })
         .flatMap([this,premise](auto lit) { 
+            DBG(*lit, " selected in ", premise->number())
             // find query results for literal `lit`
             return iterTraits(_index->getUwa(lit, /* complementary */ true, 
                                              env.options->unificationWithAbstraction(), 
                                              env.options->unificationWithAbstractionFixedPointIteration()))
-                     .map([this,lit,premise](auto qr) {
-                        // perform binary resolution on query results
-                        auto subs = ResultSubstitution::fromSubstitution(&qr.unifier->subs(), subsTreeQueryBank(0), subsTreeResultBank(0));
-                        bool doAfterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
-                        return BinaryResolution::generateClause(premise, lit, qr.data->clause, qr.data->literal, subs, 
-                            [&](){ return qr.unifier->computeConstraintLiterals(); }, 
-                            this->getOptions(), doAfterCheck, _salg->getPassiveClauseContainer(),
-                            &_salg->getOrdering(), &_salg->getLiteralSelector());
-
-                     });
+                     .map([this,lit,premise](auto qr) { return BinaryResolution::generateClause(premise, lit, qr.data->clause, qr.data->literal, *qr.unifier, this->getOptions(), _salg); });
         })
         .filter([](auto c) { return c != nullptr; })
   ));

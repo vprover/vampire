@@ -38,6 +38,8 @@ struct FourierMotzkinConf
     : _shared(std::move(shared))
   {  }
 
+  static const char* name() { return "lasca fourier motzkin"; }
+
   class Lhs : public SelectedSummand { 
   public: 
     static const char* name() { return "lasca fourier motzkin lhs"; }

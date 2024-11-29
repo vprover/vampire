@@ -34,12 +34,6 @@ namespace Kernel {
 
 using namespace Lib;
 
-template<class IfIter, class ElseIter>
-static auto ifElseIter(bool cond, IfIter ifIter, ElseIter elseIter)
-{ return iterTraits(
-         cond ? CoproductIter<Lib::ResultOf<IfIter>, Lib::ResultOf<ElseIter>>(ifIter())
-              : CoproductIter<Lib::ResultOf<IfIter>, Lib::ResultOf<ElseIter>>(elseIter())); }
-
 class QKbo
   : public Ordering
 {

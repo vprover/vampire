@@ -58,6 +58,7 @@
 #include "Inferences/LASCA/EqFactoring.hpp"
 #include "Inferences/LASCA/InequalityFactoring.hpp"
 #include "Inferences/LASCA/Superposition.hpp"
+#include "Inferences/LASCA/BinaryResolution.hpp"
 #include "Inferences/LASCA/Coherence.hpp"
 #include "Inferences/LASCA/FloorBounds.hpp"
 #include "Inferences/LASCA/VariableElimination.hpp"
@@ -1566,7 +1567,7 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   gie->addFront(new Factoring());
-  if (opt.binaryResolution()) {
+  if (opt.binaryResolution() && !opt.lasca()) {
     gie->addFront(new BinaryResolution());
   }
   if (opt.unitResultingResolution() != Options::URResolution::OFF) {
@@ -1671,7 +1672,10 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
     // TODO also for rats?
     sgi->push(new LASCA::FloorFourierMotzkin<RealTraits>(shared)); 
     sgi->push(new LASCA::IntegerFourierMotzkin<RealTraits>(shared)); 
-    sgi->push(new LASCA::Superposition(shared)); 
+    if (env.options->superposition())
+      sgi->push(new LASCA::Superposition(shared)); 
+    if (env.options->binaryResolution())
+      sgi->push(new LASCA::BinaryResolution(shared)); 
     // TODO also for rationals?
     sgi->push(new LASCA::CoherenceNormalization<RealTraits>(shared)); 
     sgi->push(new LASCA::Coherence<RealTraits>(shared)); 
