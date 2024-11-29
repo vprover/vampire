@@ -1130,12 +1130,14 @@ bool Splitter::doSplitting(Clause* cl)
   FormulaList* resLst=0;
 
   unsigned compCnt = comps.size();
+  std::vector<Clause *> components;
   for(unsigned i=0; i<compCnt; ++i) {
     const LiteralStack& comp = comps[i];
     Clause* compCl;
     SplitLevel compName = tryGetComponentNameOrAddNew(comp, cl, compCl);
     SATLiteral nameLit = getLiteralFromName(compName);
     satClauseLits.push(nameLit);
+    components.push_back(compCl);
 
     UnitList::push(getDefinitionFromName(compName),ps);
     FormulaList::push(new NamedFormula(getFormulaStringFromName(compName)),resLst);
