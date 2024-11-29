@@ -22,6 +22,8 @@
 #include "Kernel/KBO.hpp"
 #include "Kernel/OrderingUtils.hpp"
 
+#define DEBUG_LASCA_ORD(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
+
 namespace Kernel {
 
 using namespace Lib;
@@ -180,17 +182,34 @@ struct LAKBO {
     return some(std::move(out));
   }
 
+#define DEBUG_RESULT(lvl, msg, ...)                                                       \
+   if (lvl == 0) { __VA_ARGS__ }                                                          \
+   else {                                                                                 \
+     auto impl = [&]() { __VA_ARGS__ };                                                   \
+     auto res = impl();                                                                   \
+     DEBUG_LASCA_ORD(lvl, msg, res);                                                      \
+     return res;                                                                          \
+   }
+
+#define DEBUG_FN_RESULT(lvl, msg, ...)                                                    \
+  { DEBUG_RESULT(lvl, msg, __VA_ARGS__) }
+
   template<class NumTraits>
   Option<TermList> skeleton(Monom<NumTraits> const& t) const 
+  DEBUG_FN_RESULT(2, outputCat("skeleton(", t, ") = "),
   { return skeleton(*t.factors); }
+  )
 
   template<class NumTraits>
   Option<TermList> skeleton(MonomFactors<NumTraits> const& t) const 
+  DEBUG_FN_RESULT(2, outputCat("skeleton(", t, ") = "),
   { return trySkeleton(t.iter())
       .map([](auto skels) { return NumTraits::product(arrayIter(*skels)); }); }
+  )
 
   template<class NumTraits>
   Option<TermList> skeleton(MonomFactor<NumTraits> const& t) const 
+  DEBUG_FN_RESULT(2, outputCat("skeleton(", t, ") = "),
   { 
     return skeleton(t.term)
       .map([&](auto skel) { 
@@ -200,30 +219,35 @@ struct LAKBO {
                : NumTraits::product(range(0, t.power).map([skel](auto) { return skel; }));
           });
   }
+  )
 
   template<class NumTraits>
-  Option<TermList> skeleton(Polynom<NumTraits> const& t) const {
+  Option<TermList> skeleton(Polynom<NumTraits> const& t) const 
+  DEBUG_FN_RESULT(2, outputCat("skeleton(", t, ") = "),
+  {
     if (auto summands = trySkeleton(t.iterSummands())) {
       auto maxIter = OrderingUtils2::maxElems(summands->size(), 
           [&](auto t0, auto t1) { return _kbo.compare((*summands)[t0], (*summands)[t1]);  }, 
           [&](auto i) { return (*summands)[i]; }, 
-          SelectionCriterion::STRICTLY_MAX);
+          SelectionCriterion::NOT_LESS, 
+          /* dedup */ true);
       if (!maxIter.hasNext()) {
-        return {};
+        return Option<TermList>{};
       } else {
         auto max = maxIter.next();
         if (maxIter.hasNext()) {
           // no unique max 
           // TODO theory (?)
-          return {};
+          return Option<TermList>{};
         } else {
           return some((*summands)[max]);
         }
       }
     } else {
-      return {};
+      return Option<TermList>{};
     }
   }
+  )
 
   Option<TermList> skeleton(Perfect<FuncTerm> const& t) const {
     return trySkeleton(t->iterArgs())
@@ -250,10 +274,14 @@ struct LAKBO {
   { return skeleton(shared().normalize(t)); }
 
   template<class Term>
-  Ordering::Result compare(Term const& t0, Term const& t1) const {
+  Ordering::Result compare(Term const& t0, Term const& t1) const 
+  DEBUG_FN_RESULT(2, outputCat("skeleton", std::tie(t0, t1), " = "),
+  {
     if (t0 == t1) return Ordering::Result::EQUAL;
     auto s0 = skeleton(t0);
     auto s1 = skeleton(t1);
+    DEBUG_LASCA_ORD(1, "skel(", t0, ") = ", s0)
+    DEBUG_LASCA_ORD(1, "skel(", t1, ") = ", s1)
     if (s0.isSome() && s1.isSome()) {
       return LascaOrderingUtils::lexLazy(
           [&](){ return _kbo.compare(*s0, *s1); },
@@ -264,6 +292,7 @@ struct LAKBO {
       return Ordering::Result::INCOMPARABLE;
     }
   }
+  )
 
   Ordering::Result compare(TermList t0, TermList t1) const {
     if (t0.isTerm() && t1.isTerm()) { ASS_EQ(t0.term()->isSort(), t1.term()->isSort()) }

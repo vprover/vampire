@@ -199,6 +199,7 @@ TEST_FUN(uninterpreted_terms_05) {
   check(ord, g(x,y), Incomp, g(y,x));
 }
 
+
 TEST_FUN(interpreted_terms_01) {
   DECL_DEFAULT_VARS
   NUMBER_SUGAR(Int)
@@ -831,4 +832,18 @@ TEST_FUN(check_numerals_smallest) {
   }
 
 
+}
+
+TEST_FUN(bug02) {
+
+  DECL_DEFAULT_VARS
+  NUMBER_SUGAR(Real)
+
+  auto& ord = lakbo(/* rand */ false);
+
+  DECL_CONST(a, Real)
+  DECL_CONST(b, Real)
+  DECL_CONST(c, Real)
+
+  check(ord, c, Greater, -floor(frac(1,2) * floor(b) + frac(1,2) * floor(a)) + -floor(frac(1,2) + frac(1,2) * floor(b) + frac(1,2) * floor(a)));
 }

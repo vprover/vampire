@@ -250,34 +250,39 @@ namespace Kernel {
     }
 
     template<class Cmp, class GetElem>
-    static auto maxElems(unsigned nElems, Cmp cmp_, GetElem get, SelectionCriterion sel)
+    static auto maxElems(unsigned nElems, Cmp cmp_, GetElem get, SelectionCriterion sel, bool dedup = false)
     {
       auto cmpCache = make_shared(Map<std::pair<unsigned, unsigned>, Ordering::Result>());
+
+      auto cmp = [=](unsigned l, unsigned r) {
+        ASS_NEQ(l, r)
+        unsigned col = l < r ? l : r;
+        unsigned row = l < r ? r : l;
+
+
+        auto idx = std::make_pair(col, row);
+        auto res = cmpCache->getOrInit(idx,
+            [&]() { 
+                try { 
+                  return cmp_(col, row); 
+                } catch (MachineArithmeticException& e) { 
+                  return Ordering::Result::INCOMPARABLE;
+                } });
+
+        res = l < r ? res : Ordering::reverse(res);
+
+        ASS_REP(res == cmp_(l, r), outputToString(get(l), " ", cmp_(l, r), " ", get(r), " expected: ", res ))
+        return res;
+      };
+
+
       return range(0, nElems)
-        .filterMap([=](auto i) {
+        .filterMap([=](auto i) -> Option<unsigned> {
           if (sel == SelectionCriterion::ANY) 
             return some(i);
 
-          auto cmp = [=](unsigned l, unsigned r) {
-            ASS_NEQ(l, r)
-            unsigned col = l < r ? l : r;
-            unsigned row = l < r ? r : l;
-
-
-            auto idx = std::make_pair(col, row);
-            auto res = cmpCache->getOrInit(idx,
-                [&]() { 
-                    try { 
-                      return cmp_(col, row); 
-                    } catch (MachineArithmeticException& e) { 
-                      return Ordering::Result::INCOMPARABLE;
-                    } });
-
-            res = l < r ? res : Ordering::reverse(res);
-
-            ASS_REP(res == cmp_(l, r), outputToString(get(l), " ", cmp_(l, r), " ", get(r), " expected: ", res ))
-            return res;
-          };
+          if (dedup && range(0, i).any([&](auto j) { return cmp(i,j) == Ordering::Result::EQUAL; }))
+            return {};
 
           auto matches = [](SelectionCriterion sel, Ordering::Result res)  {
             switch(sel) {
@@ -324,7 +329,8 @@ namespace Kernel {
             .all([&](auto j) { return matches(sel, cmp(i,j)); });
 
           return isMax ? Option<unsigned>(i) : Option<unsigned>();
-        });
+        })
+      ;
     }
 
 
