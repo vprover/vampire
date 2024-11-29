@@ -304,8 +304,8 @@ struct LAKBO {
     }
   }
 
-  int predicatePrecedence(unsigned pred) const { return _kbo.predicatePrecedence(pred); }
-
+  int predPrec(unsigned pred) const { return _kbo.predicatePrecedence(pred); }
+  Ordering::Result cmpPredPrec(unsigned p0, unsigned p1) const { return LascaOrderingUtils::cmpN(predPrec(p0), predPrec(p1)); }
 };
 
 template<class TermOrdering>
@@ -316,17 +316,15 @@ class LiteralOrdering
 
   Ordering::Result cmpPrecUninterpreted(Literal* l0, Literal* l1) const {
     ASS(!l0->isEquality() && !l1->isEquality())
-    return LascaOrderingUtils::cmpN(
-        _termOrdering.predicatePrecedence(l0->functor()), 
-        _termOrdering.predicatePrecedence(l1->functor()));
+    return _termOrdering.cmpPredPrec(l0->functor(), l1->functor());
   }
 
   Ordering::Result cmpPrec(Literal* l0, Literal* l1) const
   {
-    if (l0->isEquality() && l0->isEquality()) {
+    if (l0->isEquality() && l1->isEquality()) {
       return _termOrdering.compare(l0->eqArgSort(), l1->eqArgSort());
     } else {
-      return cmpPrecUninterpreted(l0, l1);
+      return _termOrdering.cmpPredPrec(l0->functor(), l1->functor());
     }
   }
 
