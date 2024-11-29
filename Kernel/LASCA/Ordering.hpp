@@ -183,13 +183,10 @@ struct LAKBO {
   }
 
 #define DEBUG_RESULT(lvl, msg, ...)                                                       \
-   if (lvl == 0) { __VA_ARGS__ }                                                          \
-   else {                                                                                 \
      auto impl = [&]() { __VA_ARGS__ };                                                   \
      auto res = impl();                                                                   \
      DEBUG_LASCA_ORD(lvl, msg, res);                                                      \
      return res;                                                                          \
-   }
 
 #define DEBUG_FN_RESULT(lvl, msg, ...)                                                    \
   { DEBUG_RESULT(lvl, msg, __VA_ARGS__) }
