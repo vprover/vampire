@@ -21,6 +21,7 @@
 #include "Lib/Comparison.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/ClauseQueue.hpp"
+#include "Kernel/RCClauseStack.hpp"
 #include "ClauseContainer.hpp"
 
 #include "Lib/Allocator.hpp"
@@ -53,7 +54,7 @@ public:
   const DHMap<unsigned,float>& getScores() { return _scores; }
 
   float evalClause(Clause* cl);
-  void evalClauses(Stack<Clause*>& clauses);
+  void evalClauses(RCClauseStack& clauses);
 
   // this is a low-effort version of evalClause (used, among other things, for delayedEvaluation deepire-style):
   // namely: if there is no value in the _scores map, it just returns a very optimistic constant
@@ -192,7 +193,7 @@ protected:
 private:
   NeuralClauseEvaluationModel& _model;
   ShuffledScoreQueue _queue;
-  Stack<Clause*> _delayedInsertionBuffer;
+  RCClauseStack _delayedInsertionBuffer;
 
   unsigned _size;
   unsigned _reshuffleAt;
