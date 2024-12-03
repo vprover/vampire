@@ -167,10 +167,11 @@ protected:
 private:
   DHSet<Clause*> _predecessorsShown;
   void showPredecessors(Clause* c);
-
+  // we need both as literal have a different counter in term sharing than terms
   DHSet<unsigned> _subtermsShown;
+  DHSet<unsigned> _literalsShown;
   void showSubterms(Term* t);
-  void showLiterals(Clause* c);
+  void showClauseLiterals(Clause* c);
 
   // to remember which clauses have already had their feature vector shown
   DHSet<Clause*> _shown;
@@ -243,13 +244,18 @@ protected:
    */
   ScopedPtr<LiteralSelector> _sosLiteralSelector;
 
+  void runGnnOnInput();
+  void saveNeuralActivity(Clause* refutation);
+  void makeReadyForEval(Clause* cl);
+
+  bool _neuralActivityRecoring;
+  bool _neuralModelGuidance;
   ScopedPtr<NeuralClauseEvaluationModel> _neuralModel;
 
   // counters
 
   /** Number of clauses that entered the unprocessed container */
   unsigned _generatedClauseCount;
-
   unsigned _activationLimit;
 private:
   static ImmediateSimplificationEngine* createISE(Problem& prb, const Options& opt, Ordering& ordering);

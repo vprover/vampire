@@ -35,7 +35,7 @@ TORCHLINK= -D_GLIBCXX_USE_CXX11_ABI=1 -rdynamic
 TORCHLIB= -Wl,-rpath,$(LIBTORCH)/lib $(LIBTORCH)/lib/libtorch.so $(LIBTORCH)/lib/libc10.so $(LIBTORCH)/lib/libkineto.a -Wl,--no-as-needed,"$(LIBTORCH)/lib/libtorch_cpu.so" -Wl,--as-needed $(LIBTORCH)/lib/libc10.so -lpthread -Wl,--no-as-needed,"$(LIBTORCH)/lib/libtorch.so" -Wl,--as-needed
 endif
 
-COMMON_FLAGS = -DVTIME_PROFILING=0
+COMMON_FLAGS = -DVTIME_PROFILING=1
 
 DBG_FLAGS = $(COMMON_FLAGS) -g  -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider
 REL_FLAGS = $(COMMON_FLAGS) -O3 -DVDEBUG=0 -DNDEBUG # no debugging

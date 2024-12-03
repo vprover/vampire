@@ -445,7 +445,8 @@ void UIHelper::outputResult(ostream& out)
      *
      * Also induction statistics deserve to be correct even if we don't print a proof.
      */
-    bool seenInputInference = refutation->minimizeAncestorsAndUpdateSelectedStats();
+    DHSet<Unit*> done; // will contain the processed proof units
+    bool seenInputInference = refutation->minimizeAncestorsAndUpdateSelectedStats(done);
     // minimization might have cause inductionDepth to change (in fact, decrease)
     env.statistics->maxInductionDepth = refutation->inference().inductionDepth();
 

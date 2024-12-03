@@ -47,8 +47,10 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
-NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string modelFilePath, const std::string& tweak_str,
-  uint64_t random_seed, unsigned num_cl_features, float temperature, unsigned num_prb_features, Problem& prb) : _numFeatures(num_cl_features), _temp(temperature)
+NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string clauseEvalModelFilePath,
+  // const std::string& tweak_str,
+  uint64_t random_seed, unsigned num_cl_features, float temperature) :
+  _numFeatures(num_cl_features), _temp(temperature)
 {
   TIME_TRACE("neural model warmup");
 
@@ -62,33 +64,10 @@ NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string model
 
   torch::manual_seed(random_seed);
 
-  _model = torch::jit::load(modelFilePath);
+  _model = torch::jit::load(clauseEvalModelFilePath);
   _model.eval();
 
-  if (auto m = _model.find_method("getAgeCorrections")) {
-    std::vector<torch::jit::IValue> inputs;
-    auto corrections = (*m)(std::move(inputs)).toTensor();
-    for (unsigned i = 0; i < toNumber(InferenceRule::INTERNAL_INFERNCE_LAST); i++) {
-      env.inferenceAgeCorrections[i] = corrections[i].item().toDouble();
-    }
-  }
-
-  if (auto m = _model.find_method("setProblemFeatures")) {
-    std::vector<torch::jit::IValue> inputs;
-    std::vector<float> probFeatures(num_prb_features);
-
-    unsigned i = 0;
-    Property::FeatureIterator it(prb.getProperty());
-    while (i < num_prb_features && it.hasNext()) {
-      probFeatures[i] = it.next();
-      i++;
-    }
-    ASS_EQ(probFeatures.size(),num_prb_features);
-    inputs.push_back(torch::from_blob(probFeatures.data(), {num_prb_features}, torch::TensorOptions().dtype(torch::kFloat32)));
-
-    (*m)(std::move(inputs));
-  }
-
+  /*
   if (!tweak_str.empty()) {
     if (auto m = _model.find_method("eatMyTweaks")) { // if the model is not interested in tweaks, it will get none!
       std::vector<float> tweaks;
@@ -118,6 +97,7 @@ NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string model
       (*m)(std::move(inputs));
     }
   }
+  */
 
 #if DEBUG_MODEL
   cout << "Model loaded in " << env.timer->elapsedMilliseconds() - start << " ms" << endl;
@@ -169,12 +149,13 @@ float NeuralClauseEvaluationModel::evalClause(Clause* cl) {
   return logit;
 }
 
-void NeuralClauseEvaluationModel::evalClauses(Saturation::UnprocessedClauseContainer& clauses) {
+void NeuralClauseEvaluationModel::evalClauses(Stack<Clause*>& clauses) {
   TIME_TRACE("neural model evaluation");
 
   unsigned sz = clauses.size();
   if (sz == 0) return;
 
+  std::vector<int64_t> clauseNums;
   std::vector<float> features(_numFeatures*sz);
   {
     unsigned idx = 0;
@@ -182,6 +163,7 @@ void NeuralClauseEvaluationModel::evalClauses(Saturation::UnprocessedClauseConta
     while (uIt.hasNext()) {
       unsigned i = 0;
       Clause* cl = uIt.next();
+      clauseNums.push_back((int64_t)cl->number());
       Clause::FeatureIterator cIt(cl);
       while (i++ < _numFeatures && cIt.hasNext()) {
         features[idx] = cIt.next();
@@ -191,8 +173,9 @@ void NeuralClauseEvaluationModel::evalClauses(Saturation::UnprocessedClauseConta
   }
 
   std::vector<torch::jit::IValue> inputs;
+  inputs.push_back(std::move(clauseNums));
   inputs.push_back(torch::from_blob(features.data(), {sz,_numFeatures}, torch::TensorOptions().dtype(torch::kFloat32)));
-  auto logits = _model.forward(std::move(inputs)).toTensor();
+  auto logits = (*_model.find_method("eval_clauses"))(std::move(inputs)).toTensor();
 
   {
     auto uIt = clauses.iter();
@@ -214,19 +197,46 @@ void NeuralClauseEvaluationModel::evalClauses(Saturation::UnprocessedClauseConta
   }
 }
 
-NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, NeuralClauseEvaluationModel& model)
+NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, const Shell::Options& opt,
+  NeuralClauseEvaluationModel& model, std::function<void(Clause*)> makeReadyForEval)
   : LRSIgnoringPassiveClauseContainer(isOutermost, opt),
-  _model(model), _queue(_model.getScores()), _size(0), _reshuffleAt(opt.reshuffleAt())
+  _model(model), _queue(_model.getScores()),
+  _makeReadyForEval(makeReadyForEval),
+  _size(0), _reshuffleAt(opt.reshuffleAt())
 {
   ASS(_isOutermost);
 }
 
+void NeuralPassiveClauseContainer::evalAndEnqueueDelayed()
+{
+  if (!_delayedInsertionBuffer.size())
+    return;
+
+  {
+    auto it = _delayedInsertionBuffer.iter();
+    while (it.hasNext()) {
+      _makeReadyForEval(it.next());
+    }
+  }
+
+  _model.embedPending();
+  _model.evalClauses(_delayedInsertionBuffer);
+
+  // cout << "evalAndEnqueueDelayed for " << _delayedInsertionBuffer.size() << endl;
+  {
+    auto it = _delayedInsertionBuffer.iter();
+    while (it.hasNext()) {
+      _queue.insert(it.next());
+    }
+  }
+  _delayedInsertionBuffer.reset();
+}
+
 void NeuralPassiveClauseContainer::add(Clause* cl)
 {
-  (void)_model.evalClause(cl); // make sure scores inside model know about this clauses (so that queue can insert it properly)
+  _delayedInsertionBuffer.push(cl);
 
   // cout << "Inserting " << cl->number() << endl;
-  _queue.insert(cl);
   _size++;
 
   ASS(cl->store() == Clause::PASSIVE);
@@ -238,7 +248,9 @@ void NeuralPassiveClauseContainer::remove(Clause* cl)
   ASS(cl->store()==Clause::PASSIVE);
 
   // cout << "Removing " << cl->number() << endl;
-  _queue.remove(cl);
+  if (!_delayedInsertionBuffer.remove(cl)) {
+    _queue.remove(cl);
+  }
   _size--;
 
   removedEvent.fire(cl);
@@ -249,8 +261,9 @@ Clause* NeuralPassiveClauseContainer::popSelected()
 {
   ASS(_size);
 
-  static unsigned popCount = 0;
+  evalAndEnqueueDelayed();
 
+  static unsigned popCount = 0;
   if (++popCount == _reshuffleAt) {
     // cout << "reshuffled at "<< popCount << endl;
     Random::resetSeed();
@@ -279,6 +292,8 @@ bool NeuralPassiveClauseContainer::setLimits(float newLimit)
 
 void NeuralPassiveClauseContainer::simulationInit()
 {
+  evalAndEnqueueDelayed();
+
   _simulationIt = new ClauseQueue::Iterator(_queue);
 }
 

@@ -103,7 +103,7 @@ public:
    *
    * returns true if the minimized tree traversal observed an INPUT inference (to facilitate a certain sanity check later).
   */
-  bool minimizeAncestorsAndUpdateSelectedStats();
+  bool minimizeAncestorsAndUpdateSelectedStats(DHSet<Unit*>&);
 
   /** Return the inherited color of the unit or COLOR_INVALID
    * if there isn't an inherited color.

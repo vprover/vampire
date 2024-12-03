@@ -1997,13 +1997,11 @@ public:
   const std::string& strategySamplerFilename() const { return _sampleStrategy.actualValue; }
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
 
-  bool showPassiveTraffic() const { return _showPassiveTraffic.actualValue; }
-  const std::string& loadInitialGnn() const { return _loadInitialGnn.actualValue; }
-  const std::string& saveInitialGnn() const { return _saveInitialGnn.actualValue; }
   unsigned numClauseFeatures() const { return _numClauseFeatures.actualValue; }
   unsigned numProblemFeatures() const { return _numProblemFeatures.actualValue; }
 
   const std::string& neuralClauseEvaluationModel() const { return _neuralClauseEvaluationModel.actualValue; }
+  const std::string& neuralActivityRecording() const { return _neuralActivityRecording.actualValue; }
   const std::string& neuralClauseEvaluationModelTweaks() const { return _neuralClauseEvaluationModelTweaks.actualValue; }
 
   bool neuralPassiveClauseContainer() const { return _neuralPassiveClauseContainer.actualValue; }
@@ -2660,16 +2658,15 @@ private:
   IntOptionValue _traceForward;
 #endif // VAMPIRE_CLAUSE_TRACING
 
-  BoolOptionValue _showPassiveTraffic;
-  StringOptionValue _loadInitialGnn;
-  StringOptionValue _saveInitialGnn;
-
   UnsignedOptionValue _numClauseFeatures;
   UnsignedOptionValue _numProblemFeatures;
   StringOptionValue _neuralClauseEvaluationModel;
+  StringOptionValue _neuralActivityRecording;
 
   BoolOptionValue _neuralPassiveClauseContainer;
   FloatOptionValue _npccTemperature;
+
+  // highly experimental and ignored in this iteration
   StringOptionValue _neuralClauseEvaluationModelTweaks;
   UnsignedOptionValue _reshuffleAt;
 

@@ -244,19 +244,6 @@ void Options::init()
     _lookup.insert(&_printAllTheoryAxioms);
     _printAllTheoryAxioms.setExperimental();
 
-    _loadInitialGnn = StringOptionValue("load_initial_gnn","lig","");
-    _loadInitialGnn.description= "Path to the jit model with the initial GNN for processed CNF. The model can be fake, just used for saving the data.";
-    _lookup.insert(&_loadInitialGnn);
-    // _loadInitialGnn.onlyUsefulWith(_showPassiveTraffic.is(equal(true)));
-
-    _saveInitialGnn = StringOptionValue("save_initial_gnn","sig","");
-    _saveInitialGnn.description= "Path where to save the initial GNN once fed with data.";
-    _lookup.insert(&_saveInitialGnn);
-
-    _showPassiveTraffic = BoolOptionValue("show_passive_traffic","spt",false);
-    _showPassiveTraffic.description="Print information about new clauses and their feature vectors and how they enter end leave the passive container.";
-    _lookup.insert(&_showPassiveTraffic);
-
     _showHelp = BoolOptionValue("help","h",false);
     _showHelp.description="Display the help message";
     _lookup.insert(&_showHelp);
@@ -945,31 +932,34 @@ void Options::init()
     _lookup.insert(&_lookaheadDelay);
     _lookaheadDelay.onlyUsefulWith(_selection.isLookAheadSelection());
 
-    _neuralClauseEvaluationModel = StringOptionValue("neural_clause_evaluation_model","ncem","");
-    _neuralClauseEvaluationModel.description="If non-empty, specifies a path to a torch script model that can be used to assin logits to clauses."
-       " (Rule of thumb: the higher the logit value, the better should the clause be for clause selection.)";
-    _lookup.insert(&_neuralClauseEvaluationModel);
-    _neuralClauseEvaluationModel.tag(OptionTag::SATURATION);
-    _neuralClauseEvaluationModel.onlyUsefulWith(ProperSaturationAlgorithm());
-
-    _neuralClauseEvaluationModelTweaks = StringOptionValue("npcc_tweaks","npccw","");
-    _neuralClauseEvaluationModelTweaks.description="String representation of a vector passed as additional ``problem-tweak'' to the ncem at contruction";
-    _lookup.insert(&_neuralClauseEvaluationModelTweaks);
-    _neuralClauseEvaluationModelTweaks.setExperimental();
-    _neuralClauseEvaluationModelTweaks.tag(OptionTag::SATURATION);
-    _neuralClauseEvaluationModelTweaks.onlyUsefulWith(_neuralClauseEvaluationModel.is(notEqual(std::string(""))));
-
     _numClauseFeatures = UnsignedOptionValue("num_clause_features","ncf",12);
     _numClauseFeatures.description="How many features do we ask a clause to provide? There are at most 15 features currently, the later ones more expensive to compute.";
     _lookup.insert(&_numClauseFeatures);
     _numClauseFeatures.tag(OptionTag::SATURATION);
-    _numClauseFeatures.onlyUsefulWith(Or(_showPassiveTraffic.is(notEqual(false)),_neuralClauseEvaluationModel.is(notEqual(std::string("")))));
+    _numClauseFeatures.onlyUsefulWith(_neuralClauseEvaluationModel.is(notEqual(std::string(""))));
 
     _numProblemFeatures = UnsignedOptionValue("num_problem_features","npf",15);
     _numProblemFeatures.description="How many features do we ask a problem to provide? TODO: what is the maximum?";
     _lookup.insert(&_numProblemFeatures);
     _numProblemFeatures.tag(OptionTag::SATURATION);
-    _numProblemFeatures.onlyUsefulWith(Or(_showPassiveTraffic.is(notEqual(false)),_neuralClauseEvaluationModel.is(notEqual(std::string("")))));
+    _numClauseFeatures.onlyUsefulWith(_neuralClauseEvaluationModel.is(notEqual(std::string(""))));
+
+    _neuralClauseEvaluationModel = StringOptionValue("neural_clause_evaluation_model","ncem","");
+    _neuralClauseEvaluationModel.description="If non-empty, specifies a path to a torch script model that can be used to assing logits to clauses."
+       " (Rule of thumb: the higher the logit value, the better should the clause be for clause selection.)";
+    _lookup.insert(&_neuralClauseEvaluationModel);
+    _neuralClauseEvaluationModel.tag(OptionTag::SATURATION);
+    _neuralClauseEvaluationModel.onlyUsefulWith(ProperSaturationAlgorithm());
+
+    _neuralActivityRecording = StringOptionValue("neural_activity_recording","nar","");
+    _neuralActivityRecording.description="If non-empty, specifies a path where to save a torch object which data collected for training (from a successful run).";
+    _lookup.insert(&_neuralActivityRecording);
+    _neuralActivityRecording.tag(OptionTag::SATURATION);
+    _neuralActivityRecording.onlyUsefulWith(ProperSaturationAlgorithm());
+    // we need a model loaded first, so that we can later save it
+    // however, the loaded model does not need to contain weights for guidance (could be "hollow")
+    // but at the moment we don't, but later could, support recordings from runs that were not guided (i.e., for runs with "-npcc off"); for imitation learning
+    _neuralPassiveClauseContainer.reliesOn(_neuralClauseEvaluationModel.is(notEqual(std::string(""))));
 
     _neuralPassiveClauseContainer = BoolOptionValue("neural_passive_clause_container","npcc",false);
     _neuralPassiveClauseContainer.description="Use neural clause evaluation model as the sole basis for the main passive container.";
@@ -984,9 +974,19 @@ void Options::init()
     _npccTemperature.tag(OptionTag::SATURATION);
     _npccTemperature.onlyUsefulWith(_neuralPassiveClauseContainer.is(equal(true)));
 
+    // highly experimental and ignored in this iteration
+    _neuralClauseEvaluationModelTweaks = StringOptionValue("npcc_tweaks","npccw","");
+    _neuralClauseEvaluationModelTweaks.description="String representation of a vector passed as additional ``problem-tweak'' to the ncem at contruction";
+    _lookup.insert(&_neuralClauseEvaluationModelTweaks);
+    _neuralClauseEvaluationModelTweaks.setExperimental();
+    _neuralClauseEvaluationModelTweaks.tag(OptionTag::SATURATION);
+    _neuralClauseEvaluationModelTweaks.onlyUsefulWith(_neuralClauseEvaluationModel.is(notEqual(std::string(""))));
+
     _reshuffleAt = UnsignedOptionValue("reshuffle_at","ra",0);
     _reshuffleAt.description="Nonterministically pick a new random seed before the specified-th clause selection from the NeuralPassiveClauseContainer (counter starts from 1, 0 value means 'never do this')";
     _lookup.insert(&_reshuffleAt);
+    _reshuffleAt.setExperimental();
+    _reshuffleAt.tag(OptionTag::SATURATION);
 
     _ageWeightRatio = RatioOptionValue("age_weight_ratio","awr",1,1,':');
     _ageWeightRatio.description=

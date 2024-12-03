@@ -21,6 +21,7 @@
 #include "Lib/Comparison.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/ClauseQueue.hpp"
+#include "Shell/Property.hpp"
 #include "ClauseContainer.hpp"
 
 #include "Lib/Allocator.hpp"
@@ -47,13 +48,117 @@ private:
   // this stored the computed logits + _temp * gumbel_noise
   DHMap<unsigned,float> _scores;
 public:
-  NeuralClauseEvaluationModel(const std::string modelFilePath, const std::string& tweak_str,
-    uint64_t random_seed, unsigned num_cl_features, float temperature, unsigned num_prb_features, Problem& prb);
+  NeuralClauseEvaluationModel(const std::string clauseEvalModelFilePath, //  const std::string& tweak_str,
+    uint64_t random_seed, unsigned num_cl_features, float temperature);
+
+  void setRecording() {
+    (*_model.find_method("set_recording"))(std::vector<torch::jit::IValue>());
+  }
+
+  void setComputing() {
+    (*_model.find_method("set_computing"))(std::vector<torch::jit::IValue>());
+  }
+
+  void setProblemFeatures(unsigned num_prb_features, Problem& prb) {
+    auto m = _model.find_method("set_problem_features");
+    std::vector<torch::jit::IValue> inputs;
+    std::vector<float> probFeatures;
+    probFeatures.reserve(num_prb_features);
+    unsigned i = 0;
+    Property::FeatureIterator it(prb.getProperty());
+    while (i < num_prb_features && it.hasNext()) {
+      probFeatures.push_back(it.next());
+      i++;
+    }
+    inputs.push_back(torch::from_blob(probFeatures.data(), {num_prb_features}, torch::TensorOptions().dtype(torch::kFloat32)));
+    (*m)(std::move(inputs));
+  }
+
+  void gnnNodeKind(const char* node_name, const torch::Tensor& node_features) {
+    auto m = _model.find_method("gnn_node_kind");
+    std::vector<torch::jit::IValue> inputs;
+    inputs.push_back(node_name);
+    inputs.push_back(node_features);
+    (*m)(std::move(inputs));
+  }
+
+  void gnnEdgeKind(const char* src_name,const char* tgt_name, std::vector<int64_t>& src_idxs, std::vector<int64_t>& tgt_idxs) {
+    auto m = _model.find_method("gnn_edge_kind");
+    std::vector<torch::jit::IValue> inputs;
+    inputs.push_back(src_name);
+    inputs.push_back(tgt_name);
+    auto src_idxs_t = torch::tensor(src_idxs,torch::TensorOptions().dtype(torch::kInt64));
+    auto tgt_idxs_t = torch::tensor(tgt_idxs,torch::TensorOptions().dtype(torch::kInt64));
+    inputs.push_back(torch::stack({src_idxs_t,tgt_idxs_t}));
+    // we always also want the opposite egde, and we already prepare its edge index here
+    inputs.push_back(torch::stack({tgt_idxs_t,src_idxs_t}));
+    (*m)(std::move(inputs));
+  }
+
+  void gnnPerform(std::vector<int64_t>& clauseNums) {
+    // the clause numbers in this vector are promised to go in the same order as the clausese in previously added gnnNodeKind("clause",...)
+    auto m = _model.find_method("gnn_perform");
+    std::vector<torch::jit::IValue> inputs;
+    inputs.push_back(std::move(clauseNums));
+    (*m)(std::move(inputs));
+  }
+
+  enum JournalEntry {
+    JOURNAL_ADD = 0,
+    JOURNAL_REM = 1,
+    JOURNAL_SEL = 2,
+  };
+
+  void journal(JournalEntry tag, Clause* cl) {
+    auto m = _model.find_method("journal");
+    std::vector<torch::jit::IValue> inputs;
+    inputs.push_back((int64_t)tag);
+    inputs.push_back((int64_t)cl->number());
+    (*m)(std::move(inputs));
+  }
+
+  void saveRecorded(std::vector<int64_t>& proof_units) {
+    auto m = _model.find_method("save_recorded");
+    std::vector<torch::jit::IValue> inputs;
+    inputs.push_back(std::move(proof_units));
+    (*m)(std::move(inputs));
+  }
+
+  void embedPending() {
+    (*_model.find_method("embed_pending"))(std::vector<torch::jit::IValue>());
+  }
+
+  void gageEnqueue(Clause* c, std::vector<int64_t>& parents) {
+    auto m = _model.find_method("gage_enqueue");
+    std::vector<torch::jit::IValue> inputs;
+    inputs.push_back((int64_t)c->number());
+    inputs.push_back((int64_t)toNumber(c->inference().rule()));
+    inputs.push_back(std::move(parents));
+    (*m)(std::move(inputs));
+  }
+
+  void gweightEnqueueTerm(int64_t id, unsigned functor, float sign, std::vector<int64_t>& args) {
+    auto m = _model.find_method("gweight_enqueue_term");
+    std::vector<torch::jit::IValue> inputs;
+    inputs.push_back(id);
+    inputs.push_back((int64_t)functor);
+    inputs.push_back(sign);
+    inputs.push_back(std::move(args));
+    (*m)(std::move(inputs));
+  }
+
+  void gweightEnqueueClause(Clause* c, std::vector<int64_t>& lits) {
+    auto m = _model.find_method("gweight_enqueue_clause");
+    std::vector<torch::jit::IValue> inputs;
+    inputs.push_back((int64_t)c->number());
+    inputs.push_back(std::move(lits));
+    (*m)(std::move(inputs));
+  }
 
   const DHMap<unsigned,float>& getScores() { return _scores; }
 
   float evalClause(Clause* cl);
-  void evalClauses(UnprocessedClauseContainer& clauses);
+  void evalClauses(Stack<Clause*>& clauses);
 
   // this is a low-effort version of evalClause (used, among other things, for delayedEvaluation deepire-style):
   // namely: if there is no value in the _scores map, it just returns a very optimistic constant
@@ -132,7 +237,9 @@ class NeuralPassiveClauseContainer
 : public LRSIgnoringPassiveClauseContainer
 {
 public:
-  NeuralPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, NeuralClauseEvaluationModel& model);
+  NeuralPassiveClauseContainer(bool isOutermost, const Shell::Options& opt,
+    NeuralClauseEvaluationModel& model,
+    std::function<void(Clause*)> makeReadyForEval);
   virtual ~NeuralPassiveClauseContainer(){}
 
   unsigned sizeEstimate() const override { return _size; }
@@ -186,9 +293,14 @@ public:
 
   bool childrenPotentiallyFulfilLimits(Clause* cl, unsigned upperBoundNumSelLits) const override { return true; }
 
+protected:
+  void evalAndEnqueueDelayed();
+
 private:
   NeuralClauseEvaluationModel& _model;
   ShuffledScoreQueue _queue;
+  Stack<Clause*> _delayedInsertionBuffer;
+  std::function<void(Clause*)> _makeReadyForEval;
 
   unsigned _size;
   unsigned _reshuffleAt;
