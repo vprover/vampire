@@ -16,7 +16,7 @@
 
 #include "Forwards.hpp"
 
-#include "PartialOrdering.hpp"
+#include "TermPartialOrdering.hpp"
 
 #include "Ordering.hpp"
 
@@ -87,9 +87,9 @@ protected:
 
   using VarCoeffPair = std::pair<unsigned,int>;
 
-  using Trace = PartialOrdering;
+  using Trace = TermPartialOrdering;
 
-  ScopedPtr<Trace> getCurrentTrace();
+  const Trace* getCurrentTrace();
 
   struct Node {
     static_assert(sizeof(uint64_t) == sizeof(Branch));
@@ -142,7 +142,7 @@ protected:
     Branch gtBranch;
     Branch ngeBranch;
     int refcnt = 0;
-    Trace* trace = nullptr;
+    const Trace* trace = nullptr;
   };
 
   const Ordering& _ord;

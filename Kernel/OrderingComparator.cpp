@@ -358,7 +358,7 @@ void OrderingComparator::expand()
       if (node->refcnt > 1) {
         *_curr = Branch(node->data, node->alternative);
       }
-      _curr->node()->trace = getCurrentTrace().release();
+      _curr->node()->trace = getCurrentTrace();
       _curr->node()->ready = true;
       return;
     }
@@ -456,7 +456,7 @@ void OrderingComparator::processPolyCase()
     return e1.second>e2.second;
   });
   _curr->node()->ready = true;
-  _curr->node()->trace = trace.release();
+  _curr->node()->trace = trace;
 }
 
 void OrderingComparator::processVarCase()
@@ -509,15 +509,15 @@ void OrderingComparator::processVarCase()
     _curr->node()->ngeBranch = node->ngeBranch;
   }
   _curr->node()->ready = true;
-  _curr->node()->trace = trace.release();
+  _curr->node()->trace = trace;
 }
 
-ScopedPtr<OrderingComparator::Trace> OrderingComparator::getCurrentTrace()
+const OrderingComparator::Trace* OrderingComparator::getCurrentTrace()
 {
   ASS(!_curr->node()->ready);
 
   if (!_prev) {
-    return ScopedPtr<Trace>(new Trace());
+    return Trace::getEmpty(_ord);
   }
 
   ASS(_prev->node()->ready);
@@ -525,7 +525,6 @@ ScopedPtr<OrderingComparator::Trace> OrderingComparator::getCurrentTrace()
 
   switch (_prev->node()->tag) {
     case BranchTag::T_TERM: {
-      auto trace = ScopedPtr<Trace>(new Trace(*_prev->node()->trace));
       auto lhs = _prev->node()->lhs;
       auto rhs = _prev->node()->rhs;
       Ordering::Result res;
@@ -536,30 +535,11 @@ ScopedPtr<OrderingComparator::Trace> OrderingComparator::getCurrentTrace()
       } else {
         res = Ordering::INCOMPARABLE;
       }
-      ALWAYS(trace->set({ lhs, rhs, res }));
-      ASS(lhs.isVar() || rhs.isVar());
-      if (res == Ordering::INCOMPARABLE) {
-        if (lhs.isTerm()) {
-          SubtermIterator stit(lhs.term());
-          while (stit.hasNext()) {
-            ALWAYS(trace->set({ stit.next(), rhs, Ordering::INCOMPARABLE }));
-          }
-        }
-      } else {
-        if (rhs.isTerm()) {
-          SubtermIterator stit(rhs.term());
-          while (stit.hasNext()) {
-            ALWAYS(trace->set({ lhs, stit.next(), Ordering::GREATER }));
-          }
-        }
-      }
-      return ScopedPtr<Trace>(trace.release());
+      return Trace::set(_prev->node()->trace, { lhs, rhs, res });
     }
-    case BranchTag::T_DATA: {
-      return ScopedPtr<Trace>(new Trace(*_prev->node()->trace));
-    }
+    case BranchTag::T_DATA:
     case BranchTag::T_POLY: {
-      return ScopedPtr<Trace>(new Trace(*_prev->node()->trace));
+      return _prev->node()->trace;
     }
   }
   ASSERTION_VIOLATION;
@@ -612,8 +592,6 @@ OrderingComparator::Node::~Node()
       break;
   }
   ready = false;
-  delete trace;
-  trace = nullptr;
 }
 
 void OrderingComparator::Node::incRefCnt()

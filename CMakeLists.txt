@@ -235,6 +235,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Substitution.cpp
     Kernel/Term.cpp
     Kernel/TermIterators.cpp
+    Kernel/TermPartialOrdering.cpp
     Kernel/TermTransformer.cpp
     Kernel/Theory.cpp
     Kernel/Signature.cpp
@@ -285,6 +286,7 @@ set(VAMPIRE_KERNEL_SOURCES
     Kernel/Substitution.hpp
     Kernel/Term.hpp
     Kernel/TermIterators.hpp
+    Kernel/TermPartialOrdering.hpp
     Kernel/TermTransformer.hpp
     Kernel/Theory.hpp
     Kernel/Signature.hpp
