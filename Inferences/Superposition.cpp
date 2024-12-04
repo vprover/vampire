@@ -380,11 +380,8 @@ Clause* Superposition::performSuperposition(
   }
 
   if (!unifier->usesUwa()) {
-    if (!condRedHandler.insertSuperposition(
-      eqClause, rwClause, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr()))
-    {
-      return 0;
-    }
+    condRedHandler.insertSuperposition(
+      eqClause, rwClause, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr());
   }
 
   Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);
@@ -533,10 +530,6 @@ Clause* Superposition::performSuperposition(
       eqLHS,
       rwTerm
     ));
-
-  if (rwTermS != *rwLitS->nthArgument(0) && rwTermS != *rwLitS->nthArgument(1) && comp == Ordering::INCOMPARABLE) {
-    condRedHandler.initWithEquation(clause, rwTermS, tgtTermS);
-  }
 
   return clause;
 }

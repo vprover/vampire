@@ -44,8 +44,6 @@
 
 #include "DemodulationHelper.hpp"
 
-#include "Shell/ConditionalRedundancyHandler.hpp"
-
 #include "ForwardDemodulation.hpp"
 
 namespace Inferences {
@@ -227,7 +225,6 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           replacement = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, dd->clause));
           if(env.options->proofExtra() == Options::ProofExtra::FULL)
             env.proofExtra.insert(replacement, new ForwardDemodulationExtra(lhs, trm));
-          // ConditionalRedundancyHandler::transfer(cl, replacement);
           return true;
         }
 
