@@ -20,6 +20,8 @@
 
 #include "OrderingComparator.hpp"
 
+#include <deque>
+
 using namespace std;
 
 namespace Kernel {

@@ -102,14 +102,10 @@ struct BackwardDemodulation::ResultFn
   typedef DHMultiset<Clause*> ClauseSet;
 
   ResultFn(Clause* cl, BackwardDemodulation& parent, const DemodulationHelper& helper)
-  : _cl(cl), _helper(helper), _ordering(parent._salg->getOrdering()), _comps()
+  : _cl(cl), _helper(helper), _ordering(parent._salg->getOrdering())
   {
     ASS_EQ(_cl->length(),1);
     _eqLit=(*_cl)[0];
-    _comps.first = _ordering.createComparator();
-    _comps.first->insert({ { *_eqLit->nthArgument(0), *_eqLit->nthArgument(1), Ordering::GREATER } }, (void*)0x1);
-    _comps.second = _ordering.createComparator();
-    _comps.second->insert({ { *_eqLit->nthArgument(1), *_eqLit->nthArgument(0), Ordering::GREATER } }, (void*)0x1);
     _removed=SmartPtr<ClauseSet>(new ClauseSet());
   }
 
@@ -147,22 +143,9 @@ struct BackwardDemodulation::ResultFn
 
     TermList lhsS=qr.data->term;
 
-    auto& comp = lhs==*_eqLit->nthArgument(0) ? _comps.first : _comps.second;
-    comp->reset();
-    if (!comp->next(&appl)) {
-#if DEBUG_ORDERING
-      if (_ordering.isGreaterOrEq(AppliedTerm(lhsS), AppliedTerm(rhs,&appl,true))==Ordering::GREATER) {
-        INVALID_OPERATION("backward check should be greater");
-      }
-#endif
+    if (_ordering.isGreaterOrEq(AppliedTerm(lhsS), AppliedTerm(rhs,&appl,true))!=Ordering::GREATER) {
       return BwSimplificationRecord(0);
     }
-#if DEBUG_ORDERING
-    if (_ordering.isGreaterOrEq(AppliedTerm(lhsS), AppliedTerm(rhs,&appl,true))!=Ordering::GREATER) {
-      INVALID_OPERATION("backward check not greater");
-      // return BwSimplificationRecord(0);
-    }
-#endif
 
     TermList rhsS=subs->applyToBoundQuery(rhs);
 
@@ -209,8 +192,6 @@ private:
   const DemodulationHelper& _helper;
 
   Ordering& _ordering;
-
-  std::pair<OrderingComparatorUP, OrderingComparatorUP> _comps;
 };
 
 

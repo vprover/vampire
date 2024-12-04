@@ -1522,6 +1522,10 @@ bool Splitter::allSplitLevelsActive(SplitSet* s)
 
 void Splitter::onNewClause(Clause* cl)
 {
+  // when using AVATAR, we could have performed
+  // generating inferences on the clause previously,
+  // so we need to reset the data.
+  ConditionalRedundancyHandler::destroyClauseData(cl);
 
   if (cl->inference().rule() == InferenceRule::AVATAR_ASSERTION_REINTRODUCTION) {
     // Do not assign splits from premises if cl originated by re-introducing AVATAR assertions (avoids looping)
