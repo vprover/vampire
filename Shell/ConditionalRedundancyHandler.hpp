@@ -56,11 +56,18 @@ namespace Shell {
 using namespace Lib;
 using namespace Indexing;
 
-using OrderingConstraints = Stack<Ordering::Constraint>;
 using LiteralSet = SharedSet<Literal*>;
 
-struct ConditionalRedundancyEntry
-{
+struct OrderingConstraint {
+  OrderingConstraint(TermList lhs, TermList rhs) : lhs(lhs), rhs(rhs), comp() {}
+  TermList lhs;
+  TermList rhs;
+  OrderingComparatorUP comp;
+};
+
+using OrderingConstraints = Stack<OrderingConstraint>;
+
+struct ConditionalRedundancyEntry {
   OrderingConstraints ordCons;
   const LiteralSet* lits;
   SplitSet* splits;
@@ -85,28 +92,18 @@ struct ConditionalRedundancyEntry
   }
 };
 
-struct Entries {
-#if DEBUG_ORDERING
-  Stack<ConditionalRedundancyEntry*> comps;
-#endif
-  OrderingComparatorUP comparator;
-};
-
 class ConditionalRedundancyHandler
 {
 public:
   static ConditionalRedundancyHandler* create(const Options& opts, const Ordering* ord, Splitter* splitter);
   static void destroyClauseData(Clause* cl);
-  static void destroyAllClauseData();
 
   virtual ~ConditionalRedundancyHandler() = default;
 
   virtual bool checkSuperposition(
-    Clause* eqClause, Literal* eqLit, TermList eqLHS,
-    Clause* rwClause, Literal* rwLit, TermList rwTerm,
-    bool eqIsResult, ResultSubstitution* subs) const = 0;
+    Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit, bool eqIsResult, ResultSubstitution* subs) const = 0;
 
-  virtual bool insertSuperposition(
+  virtual void insertSuperposition(
     Clause* eqClause, Clause* rwClause, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
     Literal* rwLitS, Literal* eqLit, Ordering::Result eqComp, bool eqIsResult, ResultSubstitution* subs) const = 0;
 
@@ -115,13 +112,7 @@ public:
 
   virtual bool handleReductiveUnaryInference(Clause* premise, RobSubstitution* subs) const = 0;
 
-  virtual void initWithEquation(Clause* resClause, TermList rwTerm, TermList tgtTerm) const = 0;
-
-  virtual void checkEquations(Clause* cl) const = 0;
-
-  virtual void checkSubsumption(Clause* cl) const = 0;
-
-  static void transfer(Clause* from, Clause* to);
+  void checkEquations(Clause* cl) const;
 
 protected:
   class ConstraintIndex;
@@ -140,15 +131,13 @@ public:
   ConditionalRedundancyHandlerImpl(const Options& opts, const Ordering* ord, Splitter* splitter)
     : _redundancyCheck(opts.demodulationRedundancyCheck() != Options::DemodulationRedundancyCheck::OFF),
       _encompassing(opts.demodulationRedundancyCheck() == Options::DemodulationRedundancyCheck::ENCOMPASS),
-      _splitter(splitter), _ord(ord) {}
+      _ord(ord), _splitter(splitter) {}
 
   /** Returns false if superposition should be skipped. */
   bool checkSuperposition(
-    Clause* eqClause, Literal* eqLit, TermList eqLHS,
-    Clause* rwClause, Literal* rwLit, TermList rwTerm,
-    bool eqIsResult, ResultSubstitution* subs) const override;
+    Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit, bool eqIsResult, ResultSubstitution* subs) const override;
 
-  bool insertSuperposition(
+  void insertSuperposition(
     Clause* eqClause, Clause* rwClause, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
     Literal* rwLitS, Literal* eqLit, Ordering::Result eqComp, bool eqIsResult, ResultSubstitution* subs) const override;
 
@@ -163,17 +152,11 @@ public:
     Clause* rwCl, Literal* rwLit, TermList rwTerm, TermList tgtTerm, Clause* eqCl, TermList eqLHS,
     const SubstApplicator* eqApplicator, Ordering::Result& tord) const;
 
-  void initWithEquation(Clause* resClause, TermList rwTerm, TermList tgtTerm) const override;
-
-  void checkEquations(Clause* cl) const override;
-
-  void checkSubsumption(Clause* cl) const override;
-
 private:
   bool _redundancyCheck;
   bool _encompassing;
-  Splitter* _splitter;
   const Ordering* _ord;
+  Splitter* _splitter;
 };
 
 };

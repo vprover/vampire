@@ -25,8 +25,6 @@
 using namespace std;
 using namespace Indexing;
 
-using Subsumption = OrderingComparator::Subsumption;
-
 namespace Shell
 {
 
@@ -51,21 +49,6 @@ bool checkVars(const TermStack& ts, T s)
   return true;
 }
 
-std::ostream& operator<<(std::ostream& str, const ConditionalRedundancyEntry& e)
-{
-  if (!e.active) {
-    str << "not active";
-  } else {
-    str << *e.splits << "; " << *e.lits << "; ";
-#if DEBUG_ORDERING
-    iterTraits(e.ordCons.iter()).forEach([&str](const Ordering::Constraint& con) {
-      str << con;
-    });
-#endif
-  }
-  return str;
-}
-
 class ConditionalRedundancyHandler::ConstraintIndex
   : public CodeTree
 {
@@ -79,25 +62,23 @@ public:
 #endif
     for (unsigned i = 0; i < cl->length(); i++) {
       SortHelper::collectVariableSorts((*cl)[i], _varSorts);
-      _litSubs.push({ nullptr, nullptr });
-      _litRedundant.push({ false, false });
     }
   }
 
-  bool check(const Ordering* ord, ResultSubstitution* subst, bool result, const OrderingConstraints& ordCons, const LiteralSet* lits, const SplitSet* splits)
+  bool check(const Ordering* ord, ResultSubstitution* subst, bool result, const LiteralSet* lits, const SplitSet* splits)
   {
     if (_varSorts.isEmpty()) {
       return true;
     }
     auto ts = getInstances([subst,result](unsigned v) { return subst->applyTo(TermList::var(v),result); });
-    return !check(ts, ord, ordCons, lits, splits);
+    return !check(ts, ord, lits, splits);
   }
 
-  bool insert(const Ordering* ord, ResultSubstitution* subst, bool result, Splitter* splitter,
+  void insert(ResultSubstitution* subst, bool result, Splitter* splitter,
     OrderingConstraints&& ordCons, const LiteralSet* lits, SplitSet* splits)
   {
     auto ts = getInstances([subst,result](unsigned v) { return subst->applyTo(TermList::var(v),result); });
-    return insert(ord, ts, createEntry(ts, splitter, std::move(ordCons), lits, splits));
+    insert(ts, createEntry(ts, splitter, std::move(ordCons), lits, splits));
   }
 
   bool checkAndInsert(const Ordering* ord, ResultSubstitution* subst, bool result, bool doInsert, Splitter* splitter,
@@ -109,43 +90,24 @@ public:
       return true;
     }
     auto ts = getInstances([subst,result](unsigned v) { return subst->applyTo(TermList::var(v),result); });
-    if (check(ts, ord, ordCons, lits, splits)) {
+    if (check(ts, ord, lits, splits)) {
       return false;
     }
     if (doInsert) {
-      return insert(ord, ts, createEntry(ts, splitter, std::move(ordCons), lits, splits));
+      insert(ts, createEntry(ts, splitter, std::move(ordCons), lits, splits));
     }
     return true;
   }
 
+private:
 #if VDEBUG
   Clause* _cl;
 #endif
 
-  bool insert(const Ordering* ord, Entries* entries, ConditionalRedundancyEntry* ptr)
-  {
-    ASS(ptr->active);
-
-    ASS(entries->comparator);
-
-#if DEBUG_ORDERING
-    // we push subsumed ones as well to check subsumption
-    entries->comps.push(ptr);
-#endif
-
-    entries->comparator->insert(ptr->ordCons);
-    return true;
-  }
-
-  bool insert(const Ordering* ord, const TermStack& ts, ConditionalRedundancyEntry* ptr)
+  void insert(const TermStack& ts, ConditionalRedundancyEntry* ptr)
   {
     CodeStack code;
-#define LINEARIZE 1
-#if LINEARIZE
-    Compiler<false, true> compiler(code);
-#else
     TermCompiler compiler(code);
-#endif
     for (const auto& t : ts) {
       if (t.isVar()) {
         compiler.handleVar(t.var());
@@ -154,42 +116,14 @@ public:
       ASS(t.isTerm());
       compiler.handleTerm(t.term());
     }
-    for (const auto& [x,y] : compiler.eqCons) {
-      ptr->ordCons.push({ TermList::var(x), TermList::var(y), Ordering::EQUAL });
-    }
     compiler.updateCodeTree(this);
 
-    auto es = new Entries();
-#if DEBUG_ORDERING
-    es->comps.push(ptr);
-#endif
-    es->comparator = ord->createComparator();
-    es->comparator->insert(ptr->ordCons);
-    code.push(CodeOp::getSuccess(es));
-
-#if LINEARIZE
-    if (!isEmpty()) {
-      VariantMatcher vm;
-      Stack<CodeOp*> firstsInBlocks;
-
-      FlatTerm* ft = FlatTerm::createUnexpanded(ts);
-      vm.init(ft, this, &firstsInBlocks);
-
-      if (vm.next()) {
-        ASS(vm.op->isSuccess());
-        auto es = vm.op->template getSuccessResult<Entries>();
-        ft->destroy();
-        return insert(ord, es, ptr);
-      }
-      ft->destroy();
-    }
-#endif
-
+    // just put anything non-null in there to get a valid success
+    code.push(CodeOp::getSuccess(ptr));
     incorporate(code);
-    return true;
   }
 
-  bool check(const TermStack& ts, const Ordering* ord, const OrderingConstraints& ordCons, const LiteralSet* lits, const SplitSet* splits)
+  bool check(const TermStack& ts, const Ordering* ord, const LiteralSet* lits, const SplitSet* splits)
   {
     if (isEmpty()) {
       return false;
@@ -201,30 +135,49 @@ public:
     } applicator;
 
     matcher.init(this, ts);
-    Entries* es;
-    while ((es = matcher.next()))
+    ConditionalRedundancyEntry* e;
+    while ((e = matcher.next()))
     {
-      ASS(es->comparator);
-      auto res = es->comparator->check(&applicator);
-#if DEBUG_ORDERING
-      auto ordCons_crosscheck = iterTraits(es->comps.iter()).any([ord,&applicator](auto e) {
-        return iterTraits(e->ordCons.iter()).all([ord,&applicator](auto& ordCon) {
-          return ord->compare(AppliedTerm(ordCon.lhs,&applicator,true),AppliedTerm(ordCon.rhs,&applicator,true))==ordCon.rel;
-        });
+      if (!e->active) {
+        continue;
+      }
+
+      // check AVATAR constraints
+      if (!e->splits->isSubsetOf(splits)) {
+        continue;
+      }
+
+      // check literal conditions
+      auto subsetof = e->lits->iter().all([lits,&applicator](Literal* lit) {
+        return lits->member(SubstHelper::apply(lit,applicator));
       });
-      if (res != ordCons_crosscheck) {
-        cout << res << " " << ordCons_crosscheck << endl;
-        cout << *es->comparator << endl;
-        for (const auto& e : es->comps) {
-          cout << *e << endl;
+      if (!subsetof) {
+        continue;
+      }
+
+      // check ordering constraints
+      auto ordCons_ok = iterTraits(e->ordCons.iter()).all([ord,&applicator](auto& ordCon) {
+        if (!ordCon.comp) {
+          ordCon.comp = ord->createComparator();
+          ordCon.comp->insert({ { ordCon.lhs, ordCon.rhs, Ordering::GREATER } });
         }
-        INVALID_OPERATION("conditional redundancy ordering check mismatch");
+        return ordCon.comp->check(&applicator);
+      });
+      if (!ordCons_ok) {
+        continue;
       }
-#endif
-      if (res) {
-        matcher.reset();
-        return true;
+
+      // collect statistics
+      if (e->ordCons.isNonEmpty()) {
+        env.statistics->skippedInferencesDueToOrderingConstraints++;
       }
+      if (!e->lits->isEmpty()) {
+        env.statistics->skippedInferencesDueToLiteralConstraints++;
+      }
+      if (!e->splits->isEmpty()) {
+        env.statistics->skippedInferencesDueToAvatarConstraints++;
+      }
+      return true;
     }
     matcher.reset();
 
@@ -244,10 +197,6 @@ public:
   }
 
   DHMap<unsigned,TermList> _varSorts;
-  Subsumption* _subs = nullptr;
-  bool _redundant = false;
-  Stack<std::pair<Subsumption*, Subsumption*>> _litSubs;
-  Stack<std::pair<bool,bool>> _litRedundant;
 
   ConditionalRedundancyEntry* createEntry(const TermStack& ts, Splitter* splitter, OrderingConstraints&& ordCons, const LiteralSet* lits, SplitSet* splits) const
   {
@@ -262,6 +211,7 @@ public:
     }
 
     for (auto& ordCon : ordCons) {
+      ASS(!ordCon.comp);
       ASS(checkVars(ts,ordCon.lhs));
       ASS(checkVars(ts,ordCon.rhs));
       ASS(ordCon.lhs.containsAllVariablesOf(ordCon.rhs));
@@ -275,7 +225,7 @@ public:
       ASS(checkVars(ts,lit));
     });
 #endif
-
+  
     e->lits = LiteralSet::getFromIterator(lits->iter().map([&r](Literal* lit) {
       return r.apply(lit);
     }));
@@ -308,7 +258,7 @@ public:
       ft->destroy();
     }
 
-    Entries* next()
+    ConditionalRedundancyEntry* next()
     {
       if (finished()) {
         //all possible matches are exhausted
@@ -321,38 +271,14 @@ public:
       }
 
       ASS(op->isSuccess());
-      return op->getSuccessResult<Entries>();
-    }
-  };
-
-  struct VariantMatcher
-  : public RemovingMatcher
-  {
-  public:
-    void init(FlatTerm* ft_, CodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_) {
-      RemovingMatcher::init(tree_->getEntryPoint(), 0, 0, tree_, firstsInBlocks_);
-      ft=ft_;
-      tp=0;
-      op=entry;
+      return op->getSuccessResult<ConditionalRedundancyEntry>();
     }
   };
 
   static void onCodeOpDestroying(CodeOp* op) {
     if (op->isSuccess()) {
-      auto es = op->getSuccessResult<Entries>();
-#if DEBUG_ORDERING
-      iterTraits(decltype(es->comps)::Iterator(es->comps)).forEach([](ConditionalRedundancyEntry* e) { delete e; });
-#endif
-      delete es;
+      op->getSuccessResult<ConditionalRedundancyEntry>()->release();
     }
-  }
-
-  std::string leafToString(const CodeOp* op) const override {
-    std::stringstream str;
-    ASS(op->isSuccess());
-    auto es = op->getSuccessResult<Entries>();
-    str << *es->comparator;
-    return str.str();
   }
 };
 
@@ -398,13 +324,22 @@ void ConditionalRedundancyHandler::destroyClauseData(Clause* cl)
   delete ptr;
 }
 
-void ConditionalRedundancyHandler::destroyAllClauseData()
+void ConditionalRedundancyHandler::checkEquations(Clause* cl) const
 {
-  decltype(clauseData)::Iterator it(clauseData);
-  while (it.hasNext()) {
-    auto data = it.next();
-    delete data;
-  }
+  cl->iterLits().forEach([cl](Literal* lit){
+    if (!lit->isEquality() || lit->isNegative()) {
+      return;
+    }
+    auto t0 = lit->termArg(0);
+    auto t1 = lit->termArg(1);
+    RobSubstitution subs;
+    if (!subs.unify(t0,0,t1,0)) {
+      return;
+    }
+    auto clDataPtr = getDataPtr(cl, /*doAllocate=*/true);
+    auto rsubs = ResultSubstitution::fromSubstitution(&subs, 0, 0);
+    (*clDataPtr)->insert(rsubs.ptr(), /*result*/false, /*splitter*/nullptr, OrderingConstraints(), LiteralSet::getEmpty(), SplitSet::getEmpty());
+  });
 }
 
 ConditionalRedundancyHandler::ConstraintIndex** ConditionalRedundancyHandler::getDataPtr(Clause* cl, bool doAllocate)
@@ -420,67 +355,17 @@ ConditionalRedundancyHandler::ConstraintIndex** ConditionalRedundancyHandler::ge
   return ptr;
 }
 
-void ConditionalRedundancyHandler::transfer(Clause* from, Clause* to)
-{
-  ConstraintIndex* ptr = nullptr;
-  clauseData.pop(from, ptr);
-  if (!ptr) {
-    return;
-  }
-  ALWAYS(clauseData.insert(to, ptr));
-}
-
 DHMap<Clause*,typename ConditionalRedundancyHandler::ConstraintIndex*> ConditionalRedundancyHandler::clauseData;
 
 // ConditionalRedundancyHandlerImpl
 
 template<bool enabled, bool ordC, bool avatarC, bool litC>
 bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperposition(
-  Clause* eqClause, Literal* eqLit, TermList eqLHS, Clause* rwClause, Literal* rwLit, TermList rwTerm,
+  Clause* eqClause, Literal* eqLit, Clause* rwClause, Literal* rwLit,
   bool eqIsResult, ResultSubstitution* subs) const
 {
   if constexpr (!enabled) {
     return true;
-  }
-
-  auto eqClDataPtr = getDataPtr(eqClause, /*doAllocate=*/false);
-  if (eqClDataPtr) {
-    if ((*eqClDataPtr)->_redundant) {
-      env.statistics->skippedSuperposition++;
-      return false;
-    }
-    auto i = eqClause->getLiteralPosition(eqLit);
-    if (eqLHS == eqLit->termArg(0) && (*eqClDataPtr)->_litRedundant[i].first) {
-      env.statistics->skippedSuperposition++;
-      return false;
-    }
-    if (eqLHS == eqLit->termArg(1) && (*eqClDataPtr)->_litRedundant[i].second) {
-      env.statistics->skippedSuperposition++;
-      return false;
-    }
-  }
-
-  auto rwClDataPtr = getDataPtr(rwClause, /*doAllocate=*/false);
-  if (rwClDataPtr) {
-    if ((*rwClDataPtr)->_redundant) {
-      env.statistics->skippedSuperposition++;
-      return false;
-    }
-    auto i = rwClause->getLiteralPosition(rwLit);
-    auto leftred = (*rwClDataPtr)->_litRedundant[i].first;
-    auto rightred = (*rwClDataPtr)->_litRedundant[i].second;
-    if (leftred && rightred) {
-      env.statistics->skippedSuperposition++;
-      return false;
-    }
-    if (leftred && !rwLit->termArg(1).containsSubterm(rwTerm)) {
-      env.statistics->skippedSuperposition++;
-      return false;
-    }
-    if (rightred && !rwLit->termArg(0).containsSubterm(rwTerm)) {
-      env.statistics->skippedSuperposition++;
-      return false;
-    }
   }
 
   auto rwLits = LiteralSet::getEmpty();
@@ -497,7 +382,8 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
     rwSplits = rwClause->splits();
   }
 
-  if (eqClDataPtr && !(*eqClDataPtr)->check(_ord, subs, eqIsResult, OrderingConstraints(), rwLits, rwSplits)) {
+  auto eqClDataPtr = getDataPtr(eqClause, /*doAllocate=*/false);
+  if (eqClDataPtr && !(*eqClDataPtr)->check(_ord, subs, eqIsResult, rwLits, rwSplits)) {
     env.statistics->skippedSuperposition++;
     return false;
   }
@@ -516,7 +402,8 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
     eqSplits = eqClause->splits();
   }
 
-  if (rwClDataPtr && !(*rwClDataPtr)->check(_ord, subs, !eqIsResult, OrderingConstraints(), eqLits, eqSplits)) {
+  auto rwClDataPtr = getDataPtr(rwClause, /*doAllocate=*/false);
+  if (rwClDataPtr && !(*rwClDataPtr)->check(_ord, subs, !eqIsResult, eqLits, eqSplits)) {
     env.statistics->skippedSuperposition++;
     return false;
   }
@@ -525,12 +412,12 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperp
 }
 
 template<bool enabled, bool ordC, bool avatarC, bool litC>
-bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuperposition(
+void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuperposition(
   Clause* eqClause, Clause* rwClause, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
   Literal* rwLitS, Literal* eqLit, Ordering::Result eqComp, bool eqIsResult, ResultSubstitution* subs) const
 {
   if constexpr (!enabled) {
-    return true;
+    return;
   }
 
   struct Applicator : SubstApplicator {
@@ -553,21 +440,20 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuper
   if constexpr (ordC) {
     // TODO we cannot handle them together yet
     if (eqComp != Ordering::LESS) {
-      if (!rwTermS.containsAllVariablesOf(tgtTermS)) {
-        return true;
+      if (!premiseRedundant || !rwTermS.containsAllVariablesOf(tgtTermS)) {
+        return;
       }
-      ordCons.push({ rwTermS, tgtTermS, Ordering::GREATER });
-    }
-    if (!premiseRedundant) {
+      ordCons.push(OrderingConstraint(rwTermS, tgtTermS));
+    } else if (!premiseRedundant) {
       TermList other = EqHelper::getOtherEqualitySide(rwLitS, rwTermS);
       if (otherComp != Ordering::INCOMPARABLE || !other.containsAllVariablesOf(tgtTermS)) {
-        return true;
+        return;
       }
-      ordCons.push({ other, tgtTermS, Ordering::GREATER });
+      ordCons.push(OrderingConstraint(other, tgtTermS));
     }
   } else {
     if (eqComp != Ordering::LESS || !premiseRedundant) {
-      return true;
+      return;
     }
   }
 
@@ -575,7 +461,7 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuper
   auto lits = LiteralSet::getEmpty();
   if constexpr (litC) {
     if (eqClause->numSelected()!=1) {
-      return true;
+      return;
     }
     lits = LiteralSet::getFromIterator(eqClause->iterLits().filter([eqLit,eqLHS](Literal* lit) {
       return lit != eqLit && eqLHS.containsAllVariablesOf(TermList(lit));
@@ -583,11 +469,11 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuper
       return subs->applyTo(lit,eqIsResult);
     }));
     if (eqClause->size()>lits->size()+1) {
-      return true;
+      return;
     }
   } else {
     if (eqClause->length()!=1) {
-      return true;
+      return;
     }
   }
 
@@ -597,16 +483,12 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuper
     splits = eqClause->splits()->subtract(rwClause->splits());
   } else {
     if (!eqClause->noSplits()) {
-      return true;
+      return;
     }
   }
 
   auto rwClDataPtr = getDataPtr(rwClause, /*doAllocate=*/true);
-  if (!(*rwClDataPtr)->insert(_ord, subs, !eqIsResult, _splitter, std::move(ordCons), lits, splits)) {
-    env.statistics->skippedSuperposition++;
-    return false;
-  }
-  return true;
+  (*rwClDataPtr)->insert(subs, !eqIsResult, _splitter, std::move(ordCons), lits, splits);
 }
 
 template<bool enabled, bool ordC, bool avatarC, bool litC>
@@ -725,8 +607,6 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::isSuperposi
   Clause* rwCl, Literal* rwLit, TermList rwTerm, TermList tgtTerm, Clause* eqCl, TermList eqLHS,
   const SubstApplicator* eqApplicator, Ordering::Result& tord) const
 {
-  ASS(enabled);
-
   // if check is turned off, we always report redundant
   if (!_redundancyCheck) {
     return true;
@@ -755,130 +635,6 @@ bool ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::isSuperposi
   tord = _ord->compare(tgtTerm, other);
   return tord == Ordering::LESS;
   // TODO perform ordering check for rest of rwCl
-}
-
-template<bool enabled, bool ordC, bool avatarC, bool litC>
-void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::initWithEquation(Clause* resClause, TermList rwTerm, TermList tgtTerm) const
-{
-  if (!enabled) {
-    return;
-  }
-
-  if (!ordC) {
-    return;
-  }
-
-  if (!tgtTerm.containsAllVariablesOf(rwTerm)) {
-    return;
-  }
-  OrderingConstraints ordCons;
-  ordCons.push({ tgtTerm, rwTerm, Ordering::GREATER });
-  auto lits = LiteralSet::getEmpty();
-  auto splits = SplitSet::getEmpty();
-
-  struct RenamingSubstitution : public ResultSubstitution {
-    TermList applyTo(TermList t, unsigned index) override { return t; }
-    void output(std::ostream&) const override {}
-  } subst;
-
-  auto clDataPtr = getDataPtr(resClause, /*doAllocate=*/true);
-  (*clDataPtr)->insert(_ord, &subst, true, _splitter, std::move(ordCons), lits, splits);
-}
-
-template<bool enabled, bool ordC, bool avatarC, bool litC>
-void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkEquations(Clause* cl) const
-{
-  if (!enabled) {
-    return;
-  }
-
-  // TODO return if not enabled
-  cl->iterLits().forEach([cl,this](Literal* lit){
-    if (!lit->isEquality() || lit->isNegative()) {
-      return;
-    }
-    auto t0 = lit->termArg(0);
-    auto t1 = lit->termArg(1);
-    RobSubstitution subs;
-    if (!subs.unify(t0,0,t1,0)) {
-      return;
-    }
-    auto clDataPtr = getDataPtr(cl, /*doAllocate=*/true);
-    auto rsubs = ResultSubstitution::fromSubstitution(&subs, 0, 0);
-    (*clDataPtr)->insert(_ord, rsubs.ptr(), /*result*/false, /*splitter*/nullptr, OrderingConstraints(), LiteralSet::getEmpty(), SplitSet::getEmpty());
-  });
-}
-
-template<bool enabled, bool ordC, bool avatarC, bool litC>
-void ConditionalRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSubsumption(Clause* cl) const
-{
-  if (!enabled) {
-    return;
-  }
-
-  auto clDataPtr = getDataPtr(cl, /*doAllocate=*/false);
-  if (!clDataPtr) {
-    return;
-  }
-  auto cld = *clDataPtr;
-
-  if (cld->_redundant || cld->isEmpty()) {
-    return;
-  }
-
-  if (!cld->_subs) {
-    auto ts = cld->getInstances([](unsigned v) { return TermList::var(v); });
-    static ConstraintIndex::SubstMatcher matcher;
-    matcher.init((*clDataPtr), ts);
-    Entries* es = matcher.next();
-    matcher.reset();
-    // there can be only one such matching under linearization
-#if !LINEARIZE
-    static_assert(false);
-#endif
-    if (!es) {
-      // in this case we try to create the subsumption next time
-      return;
-    }
-    ASS(es->comparator);
-
-    cld->_subs = new Subsumption(*es->comparator.get(), *_ord, OrderingConstraints(), /*ground=*/true);
-    for (unsigned i = 0; i < cl->numSelected(); i++) {
-      auto lit = (*cl)[i];
-      if (!lit->isEquality() || _ord->getEqualityArgumentOrder(lit)!=Ordering::INCOMPARABLE) {
-        continue;
-      }
-
-      auto& [subsLtr, subsRtl] = cld->_litSubs[i];
-      ASS(!subsLtr && !subsRtl);
-      Renaming r;
-      for (const auto t : ts) {
-        r.normalizeVariables(t);
-      }
-      auto lhs = r.apply(lit->termArg(0));
-      auto rhs = r.apply(lit->termArg(1));
-      subsLtr = new Subsumption(*es->comparator.get(), *_ord, { { lhs, rhs, Ordering::GREATER } }, /*ground=*/true);
-      subsRtl = new Subsumption(*es->comparator.get(), *_ord, { { rhs, lhs, Ordering::GREATER } }, /*ground=*/true);
-    }
-  }
-  if (cld->_subs->check()) {
-    cld->_redundant = true;
-    env.statistics->groundRedundantClauses++;
-    return;
-  }
-
-  for (unsigned i = 0; i < cl->numSelected(); i++) {
-    auto& [subsLtr, subsRtl] = cld->_litSubs[i];
-    auto& [redLtr, redRtl] = cld->_litRedundant[i];
-    if (!redLtr && subsLtr && subsLtr->check()) {
-      redLtr = true;
-      env.statistics->groundRedundantEquationOrientations++;
-    }
-    if (!redRtl && subsRtl && subsRtl->check()) {
-      redRtl = true;
-      env.statistics->groundRedundantEquationOrientations++;
-    }
-  }
 }
 
 }

@@ -543,7 +543,7 @@ inline bool CodeTree::BaseMatcher::doCheckGroundTerm()
 //////////////// auxiliary ////////////////////
 
 CodeTree::CodeTree()
-: _onCodeOpDestroying(0), _curTimeStamp(0), _maxVarCnt(1), _maxTreeDepth(0), _entryPoint(0)
+: _onCodeOpDestroying(0), _curTimeStamp(0), _maxVarCnt(1), _entryPoint(0)
 {
 }
 
@@ -644,30 +644,30 @@ void CodeTree::visitAllOps(Visitor visitor) const
 
 std::ostream& operator<<(std::ostream& out, const CodeTree& ct)
 {
-  ct.visitAllOps([&out,&ct](const CodeTree::CodeOp* op, unsigned depth) {
+  ct.visitAllOps([&out](const CodeTree::CodeOp* op, unsigned depth) {
     for (unsigned i = 0; i < depth; i++) {
       out << "  ";
     }
-    out << *op << (op->isSuccess()?" "+ct.leafToString(op):"") << std::endl;
+    out << *op << std::endl;
   });
   return out;
 }
 
 //////////////// insertion ////////////////////
 
-template<bool forLits, bool linearize>
-CodeTree::Compiler<forLits, linearize>::Compiler(CodeStack& code) : code(code), nextVarNum(0), nextGlobalVarNum(0) {}
+template<bool forLits>
+CodeTree::Compiler<forLits>::Compiler(CodeStack& code) : code(code), nextVarNum(0), nextGlobalVarNum(0) {}
 
-template<bool forLits, bool linearize>
-void CodeTree::Compiler<forLits, linearize>::nextLit()
+template<bool forLits>
+void CodeTree::Compiler<forLits>::nextLit()
 {
   ASS(forLits);
   nextVarNum = 0;
   varMap.reset();
 }
 
-template<bool forLits, bool linearize>
-void CodeTree::Compiler<forLits, linearize>::updateCodeTree(CodeTree* tree)
+template<bool forLits>
+void CodeTree::Compiler<forLits>::updateCodeTree(CodeTree* tree)
 {
   //update the max. number of variables, if necessary
   if(nextGlobalVarNum>tree->_maxVarCnt) {
@@ -678,8 +678,8 @@ void CodeTree::Compiler<forLits, linearize>::updateCodeTree(CodeTree* tree)
   }
 }
 
-template<bool forLits, bool linearize>
-void CodeTree::Compiler<forLits, linearize>::handleTerm(const Term* trm)
+template<bool forLits>
+void CodeTree::Compiler<forLits>::handleTerm(const Term* trm)
 {
   ASS(!forLits || trm->isLiteral());
 
@@ -722,40 +722,28 @@ void CodeTree::Compiler<forLits, linearize>::handleTerm(const Term* trm)
   }
 }
 
-template<bool forLits, bool linearize>
-void CodeTree::Compiler<forLits, linearize>::handleVar(unsigned var, Stack<unsigned>* globalCounterparts)
+template<bool forLits>
+void CodeTree::Compiler<forLits>::handleVar(unsigned var, Stack<unsigned>* globalCounterparts)
 {
-  ASS(!forLits || !linearize);
-
   unsigned* varNumPtr;
-  if constexpr (linearize) {
-    if (varMap.getValuePtr(var,varNumPtr)) {
-      *varNumPtr = nextVarNum;
-    } else {
-      eqCons.push(make_pair(*varNumPtr, nextVarNum));
-    }
-    code.push(CodeOp::getTermOp(ASSIGN_VAR, nextVarNum));
-    nextVarNum++;
-  } else {
-    if (varMap.getValuePtr(var,varNumPtr)) {
-      *varNumPtr = nextVarNum++;
-      code.push(CodeOp::getTermOp(ASSIGN_VAR, *varNumPtr));
+  if (varMap.getValuePtr(var,varNumPtr)) {
+    *varNumPtr = nextVarNum++;
+    code.push(CodeOp::getTermOp(ASSIGN_VAR, *varNumPtr));
 
-      if constexpr (forLits) {
-        unsigned* globalVarNumPtr;
-        if (globalVarMap.getValuePtr(var,globalVarNumPtr)) {
-          *globalVarNumPtr = nextGlobalVarNum++;
-        }
-        globalCounterparts->push(*globalVarNumPtr);
+    if constexpr (forLits) {
+      unsigned* globalVarNumPtr;
+      if (globalVarMap.getValuePtr(var,globalVarNumPtr)) {
+        *globalVarNumPtr = nextGlobalVarNum++;
       }
-    } else {
-      code.push(CodeOp::getTermOp(CHECK_VAR, *varNumPtr));
+      globalCounterparts->push(*globalVarNumPtr);
     }
+  } else {
+    code.push(CodeOp::getTermOp(CHECK_VAR, *varNumPtr));
   }
 }
 
-template<bool forLits, bool linearize>
-void CodeTree::Compiler<forLits, linearize>::handleSubterms(const Term* trm, Stack<unsigned>& globalCounterparts)
+template<bool forLits>
+void CodeTree::Compiler<forLits>::handleSubterms(const Term* trm, Stack<unsigned>& globalCounterparts)
 {
   SubtermIterator sti(trm);
   while (sti.hasNext()) {
@@ -779,7 +767,6 @@ void CodeTree::Compiler<forLits, linearize>::handleSubterms(const Term* trm, Sta
 
 template struct CodeTree::Compiler<true>;
 template struct CodeTree::Compiler<false>;
-template struct CodeTree::Compiler<false, true>;
 
 /**
  * Build CodeBlock object from the last @b cnt instructions on the
@@ -815,10 +802,6 @@ CodeTree::CodeBlock* CodeTree::buildBlock(CodeStack& code, size_t cnt, ILStruct*
 void CodeTree::incorporate(CodeStack& code)
 {
   ASS(code.top().isSuccess());
-
-  if (code.size() > _maxTreeDepth) {
-    _maxTreeDepth = code.size();
-  }
 
   if(isEmpty()) {
     _entryPoint=buildBlock(code, code.length(), 0);
@@ -1176,7 +1159,6 @@ void CodeTree::RemovingMatcher::init(CodeOp* entry_, LitInfo* linfos_,
 
   matchingClauses=tree->_clauseCodeTree;
   bindings.ensure(tree->_maxVarCnt);
-  btStack.reserve(tree->_maxTreeDepth);
   btStack.reset();
 
   curLInfo=0;
@@ -1364,7 +1346,6 @@ void CodeTree::Matcher::init(CodeTree* tree_, CodeOp* entry_)
   curLInfo=0;
   btStack.reset();
   bindings.ensure(tree->_maxVarCnt);
-  btStack.reserve(tree->_maxTreeDepth);
 }
 
 bool CodeTree::Matcher::execute()
@@ -1383,7 +1364,7 @@ bool CodeTree::Matcher::execute()
   bool shouldBacktrack=false;
   for(;;) {
     if(op->alternative()) {
-      btStack.pushUnsafe(BTPoint(tp, op->alternative()));
+      btStack.push(BTPoint(tp, op->alternative()));
     }
     switch(op->_instruction()) {
       case SUCCESS_OR_FAIL:
