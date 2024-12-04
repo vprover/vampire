@@ -26,6 +26,7 @@ class FlatTerm
 public:
   static FlatTerm* create(Term* t);
   static FlatTerm* create(TermList t);
+  static FlatTerm* create(TermStack ts);
   /**
    * Similar to @b create but only allocates the flat term,
    * and does not fill out its content. The caller has to
