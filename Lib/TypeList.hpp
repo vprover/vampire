@@ -46,6 +46,11 @@ namespace TypeList {
     template<class F>
     static auto forEach(F f) 
     { __forEach<F, As...>(f); }
+
+
+    template<class F>
+    static auto toTuple(F f) 
+    { return std::make_tuple(f(Token<As>{})...); }
   };
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

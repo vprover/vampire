@@ -152,6 +152,9 @@ public:
     return out;
   }
 
+  bool knowsSize() const { return false; }
+  bool size() const { ASSERTION_VIOLATION }
+
 private:
   
   Functor _func;
@@ -1543,7 +1546,7 @@ struct EmptyIter
   bool hasNext() { return false; }
   T next() { ASSERTION_VIOLATION }
   unsigned size() { return 0; }
-  bool knownSize() { return true; }
+  bool knowsSize() { return true; }
 };
 
 /** If Pointer references a type that can be used as an iterator, then this wrapper type makes Pointer an Iterator.
@@ -1561,7 +1564,7 @@ public:
   bool hasNext() const { return (*_p).hasNext(); }
   OWN_ELEMENT_TYPE next() { return (*_p).next(); }
   unsigned size() { return (*_p).size(); }
-  bool knownSize() { return (*_p).knownSize(); }
+  bool knowsSize() { return (*_p).knowsSize(); }
 };
 
 template<class Iter>
@@ -1777,6 +1780,10 @@ public:
   auto sum()
   { return fold([](Elem l, Elem r) { return l + r; }) || []() { return Elem(0); }; }
 
+  template<unsigned n>
+  auto collectTuple()
+  { return TL::Range<0, n>::toTuple([&](auto i) { return next(); }); }
+ 
   template<class Container>
   auto collect()
   { return Container::fromIterator(*this); }

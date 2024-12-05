@@ -136,7 +136,8 @@ public:
   IntegerConstantType quotientF(const IntegerConstantType& num) const; 
   static IntegerConstantType gcd(IntegerConstantType const& lhs, IntegerConstantType const& rhs);
   static IntegerConstantType lcm(IntegerConstantType const& lhs, IntegerConstantType const& rhs);
-  IntegerConstantType gcd(IntegerConstantType const& rhs) { return IntegerConstantType::gcd(*this, rhs); }
+  IntegerConstantType gcd(IntegerConstantType const& rhs) const { return IntegerConstantType::gcd(*this, rhs); }
+  IntegerConstantType lcm(IntegerConstantType const& rhs) const { return IntegerConstantType::lcm(*this, rhs); }
 
   IntegerConstantType remainderT(const IntegerConstantType& num) const;
   IntegerConstantType remainderF(const IntegerConstantType& num) const;

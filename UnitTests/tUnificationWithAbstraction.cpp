@@ -57,8 +57,48 @@ unique_ptr<TermSubstitutionTree<TermWithoutValue>> getTermIndex()
 { return std::make_unique<TermSubstitutionTree<TermWithoutValue>>();
 }
 
+template<class... Args>
+Stack<Literal*> constraints(Args... args) {
+  Stack<Literal*> lits;
+  lits.loadFromIterator(iterItems<Literal*>(args...));
+  return lits;
+}
+
+inline auto noConstraints() { return constraints(); } 
+
+
 auto getLiteralIndex()
 { return std::make_unique<LiteralSubstitutionTree<LiteralClause>>(); }
+
+// template<class TermOrLit>
+// struct SubsSpec {
+//   Stack<std::pair<TermList, TermList>> subsQuery;
+//   Stack<std::pair<TermList, TermList>> subsRes;
+//   Stack<Literal*> constraints;
+//   bool lascaSimpl = false;
+//
+//   friend bool operator==(UnificationResultSpec const& l, UnificationResultSpec const& r)
+//   {
+//     static shared_ptr<LascaState> state = testLascaState();
+//     auto eq = [&](auto t1, auto t2) { 
+//       return (l.lascaSimpl || r.lascaSimpl) ? state->equivalent(t1, t2)
+//                                             : Test::TestUtils::eqModAC(t1, t2);
+//     };
+//     return eq(l.querySigma, r.querySigma)
+//        &&  eq(l.resultSigma, r.resultSigma)
+//        &&  Test::TestUtils::permEq(l.constraints, r.constraints,
+//              [&](auto& l, auto& r) { return eq(l,r); });
+//   }
+//
+//   friend std::ostream& operator<<(std::ostream& out, UnificationResultSpec const& self)
+//   { 
+//     out << "{ querySigma = " << Test::pretty(self.querySigma) << ", resultSigma = " << Test::pretty(self.resultSigma) << ", cons = [ ";
+//     for (auto& c : self.constraints) {
+//       out << *c << ", ";
+//     }
+//     return out << "] }";
+//   }
+// };
 
 template<class TermOrLit>
 struct UnificationResultSpec {
@@ -259,12 +299,12 @@ INDEX_TEST(term_indexing_one_side_interp_01,
           TermUnificationResultSpec 
           { .querySigma  = f(1 + a),
             .resultSigma = f(1 + a),
-            .constraints = Stack<Literal*>() }, 
+            .constraints = noConstraints() }, 
 
           TermUnificationResultSpec 
           { .querySigma  = f(1 + num(1)),
             .resultSigma = f(1 + num(1)),
-            .constraints = Stack<Literal*>() }, 
+            .constraints = noConstraints() }, 
 
       },
     })
@@ -300,12 +340,12 @@ INDEX_TEST(term_indexing_one_side_interp_03,
         TermUnificationResultSpec 
         { .querySigma  = 1 + a,
           .resultSigma = 1 + a,
-          .constraints = Stack<Literal*>() }, 
+          .constraints = noConstraints() }, 
 
         TermUnificationResultSpec 
         { .querySigma  = 1 + num(1),
           .resultSigma = 1 + num(1),
-          .constraints = Stack<Literal*>() }, 
+          .constraints = noConstraints() }, 
 
       }
     })
@@ -546,6 +586,52 @@ INDEX_TEST(term_indexing_one_side_interp_08,
 
       }
 })
+
+INDEX_TEST(term_index_floor_1,
+    SUGAR(Rat),
+    IndexTest {
+      .index = getTermIndex(),
+      .uwa = Options::UnificationWithAbstraction::LPAR_MAIN,
+      .fixedPointIteration = false,
+      .insert = {
+        a,
+        floor(b),
+        floor(f2(floor(x0),floor(x1))),
+      },
+      .query = floor(f2(floor(x0),floor(x1))),
+      .expected = { 
+
+          TermUnificationResultSpec 
+          { .querySigma  = floor(f2(floor(x0),floor(x1))),
+            .resultSigma = floor(f2(floor(x0),floor(x1))),
+            .constraints = noConstraints() }, 
+
+      },
+    })
+
+
+INDEX_TEST(term_index_floor_1_a,
+    SUGAR(Rat),
+    IndexTest {
+      .index = getTermIndex(),
+      .uwa = Options::UnificationWithAbstraction::LPAR_MAIN,
+      .fixedPointIteration = false,
+      .insert = {
+        a,
+        floor(b),
+        floor(c),
+      },
+      .query = floor(c),
+      .expected = { 
+
+          TermUnificationResultSpec 
+          { .querySigma  = floor(c),
+            .resultSigma = floor(c),
+            .constraints = noConstraints() }, 
+
+      },
+    })
+
 
 TEST_FUN(term_indexing_poly_01)
 {
@@ -1704,7 +1790,7 @@ INDEX_TEST(bug02,
           TermUnificationResultSpec 
           { .querySigma  = f2(a,b),
             .resultSigma = f2(a,b),
-            .constraints = Stack<Literal*>() }, 
+            .constraints = noConstraints() }, 
 
       },
     })
@@ -2286,7 +2372,7 @@ INDEX_TEST(bug_wrong_ouptut_var_01,
           TermUnificationResultSpec 
           { .querySigma  = 2 * f(x0),
             .resultSigma = 2 * f(x0),
-            .constraints = Stack<Literal*>() }, 
+            .constraints = noConstraints() }, 
 
       },
     })
@@ -2316,4 +2402,204 @@ ROB_UNIFY_TEST(lpar_main_int_bug02,
       .constraints = { 2 * x != a + y + -f(y)  },
       // .lascaSimpl = true,
     })
+
+
+ROB_UNIFY_TEST(floor_test_1,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR,
+    /* fixedPointIteration */ false,
+    f(num(1234)),
+    f(floor(x)),
+    TermUnificationResultSpec { 
+      .querySigma  = f(num(1234)),
+      .resultSigma = f(floor(num(1234))),
+      .constraints = noConstraints(),
+      // .lascaSimpl = true,
+    })
+
+ROB_UNIFY_TEST(floor_test_2,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR,
+    /* fixedPointIteration */ false,
+    f(floor(a) + floor(b)),
+    f(floor(x)),
+    TermUnificationResultSpec { 
+      .querySigma  = f(floor(a) + floor(b)),
+      .resultSigma = f(floor(x)),
+      // TODO options here: x -> { ⌊a⌋ + ⌊b⌋ , a  + ⌊b⌋ , ⌊a⌋ +  b  }
+      .constraints = constraints( floor(a) + floor(b) != floor(x) ),
+      .lascaSimpl = true,
+    })
+
+
+ROB_UNIFY_TEST(floor_test_3,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR,
+    /* fixedPointIteration */ false,
+    f(floor(a) + num(1)),
+    f(floor(x)),
+    TermUnificationResultSpec { 
+      .querySigma  = f(floor(a) + num(1)),
+      .resultSigma = f(floor(x)),
+      // TODO options here:  x -> { ⌊a⌋ + 1,  a + 1 }
+      .constraints = constraints(floor(x) != floor(a) + 1),
+      .lascaSimpl = true,
+    })
+
+ROB_UNIFY_TEST(floor_test_4,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR,
+    /* fixedPointIteration */ false,
+    f(floor(a) + frac(1,2)),
+    f(floor(x) + frac(1,2)),
+    TermUnificationResultSpec { 
+      .querySigma  = f(floor(a) + frac(1,2)),
+      .resultSigma = f(floor(x) + frac(1,2)),
+      // TODO options here: x ->  { a, ⌊a⌋ } 
+      .constraints = constraints( floor(x) != floor(a) ),
+      .lascaSimpl = true,
+    })
+
+
+ROB_UNIFY_TEST_FAIL(floor_test_6,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR,
+    /* fixedPointIteration */ false,
+    f(frac(1,2)),
+    f(floor(x)))
+
+
+ROB_UNIFY_TEST(floor_test_7,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR,
+    /* fixedPointIteration */ false,
+    f(floor(x)),
+    f(x),
+    TermUnificationResultSpec { 
+      .querySigma  = f(floor(x)),
+      .resultSigma = f(x),
+      .constraints = constraints(x != floor(x)),
+      .lascaSimpl = true,
+    })
+
+ROB_UNIFY_TEST(floor_test_8,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR,
+    /* fixedPointIteration */ false,
+    f(floor(x)),
+    f(x + floor(a)),
+    TermUnificationResultSpec { 
+      .querySigma  = f(floor(x)),
+      .resultSigma = f(x + floor(a)),
+      .constraints = constraints(floor(x) != x + floor(a)),
+      .lascaSimpl = true,
+    })
+
+ROB_UNIFY_TEST(floor_test_9,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR,
+    /* fixedPointIteration */ false,
+    f(floor(x) + a),
+    f(x),
+    TermUnificationResultSpec { 
+      .querySigma  = f(floor(x) + a),
+      .resultSigma = f(x),
+      .constraints = Stack<Literal*>{ floor(x) + a != x },
+      .lascaSimpl = true,
+    })
+
+ROB_UNIFY_TEST(floor_test_10,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR,
+    /* fixedPointIteration */ false,
+    f(frac(1,2) * floor(x)),
+    f(frac(1,2) * floor(a)),
+    TermUnificationResultSpec { 
+      .querySigma  = f(frac(1,2) * floor(x)),
+      .resultSigma = f(frac(1,2) * floor(a)),
+      // TODO options here: x ->  { a, ⌊a⌋ } 
+      .constraints = constraints(frac(1,2) * floor(x) != frac(1,2) * floor(a) ),
+      .lascaSimpl = true,
+    })
+
+ROB_UNIFY_TEST(floor_test_11,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR,
+    /* fixedPointIteration */ false,
+    f(frac(1,2) * floor(x)),
+    f(frac(1,2) * floor(a) + frac(1,2)),
+    TermUnificationResultSpec { 
+      .querySigma  = f(frac(1,2) * floor(x)),
+      .resultSigma = f(frac(1,2) * floor(a) + frac(1,2)),
+      // TODO options here: x -> { a + 1 , ⌊a⌋ + 1 }
+      .constraints = constraints( frac(1,2) * floor(x) != frac(1,2) * floor(a) + frac(1,2) ),
+      .lascaSimpl = true,
+    })
+
+ROB_UNIFY_TEST(floor_test_14,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR,
+    /* fixedPointIteration */ false,
+    f(a + b),
+    f(b + a),
+    TermUnificationResultSpec { 
+      .querySigma  = f(a + b),
+      .resultSigma = f(b + a),
+      .constraints = Stack<Literal*>{},
+      // .lascaSimpl = true,
+    })
+
+// #define DO_FLIP(x,y) (y, x)
+// #define NO_FLIP(x,y) (x, y)
+//
+// #define FOR_FLIP(TEST_CASE) \
+//   TEST_CASE(_flip0, NO_FLIP) \
+//   TEST_CASE(_flip1, DO_FLIP) \
+//
+// #define floor_bug_1_test(_suffix, flip) \
+//   ROB_UNIFY_TEST(floor_bug_1 ## _suffix, \
+//       SUGAR(Real), \
+//       Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR, \
+//       /* fixedPointIteration */ false, \
+//       f2 flip(x, floor(x)), \
+//       f2 flip(floor(a), floor(a)), \
+//       TermUnificationResultSpec {  \
+//         .querySigma  = f2 flip(floor(a), floor(floor(a))), \
+//         .resultSigma = f2 flip(floor(a), floor(a)), \
+//         /* TODO options here: x -> { a } */ \
+//         .constraints = constraints(), \
+//       }) \
+//
+// FOR_FLIP(floor_bug_1_test)
+//
+// #define floor_bug_2_test(_suffix, flip) \
+//   ROB_UNIFY_TEST(floor_bug_2 ## _suffix, \
+//       SUGAR(Real), \
+//       Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR, \
+//       /* fixedPointIteration */ false, \
+//       f2 flip(floor(x), x), \
+//       f2 flip(floor(a), a), \
+//       TermUnificationResultSpec {  \
+//         .querySigma  = f2 flip(floor(a), a), \
+//         .resultSigma = f2 flip(floor(a), a), \
+//         .constraints = noConstraints(), \
+//       }) \
+//
+// FOR_FLIP(floor_bug_2_test)
+//
+//
+// #define floor_bug_3_test(_suffix, flip) \
+//   ROB_UNIFY_TEST(floor_bug_3 ## _suffix, \
+//       SUGAR(Real), \
+//       Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR, \
+//       /* fixedPointIteration */ false, \
+//       f2 flip(floor(x), x), \
+//       f2 flip(floor(a) + 3, a + 3), \
+//       TermUnificationResultSpec {  \
+//         .querySigma  = f2 flip(floor(a + 3), a + 3), \
+//         .resultSigma = f2 flip(floor(a) + 3, a + 3), \
+//         .constraints = noConstraints(), \
+//       }) \
+//
+// FOR_FLIP(floor_bug_3_test)
 

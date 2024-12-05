@@ -86,6 +86,14 @@ public:
     EqualIf unify(decltype(_unify) unify) &&
     { _unify = std::move(unify); return std::move(*this); }
 
+    template<class Iter>
+    EqualIf unifyAll(Iter iter) &&
+    { _unify->loadFromIterator(std::move(iter)); return std::move(*this); }
+
+    template<class Iter>
+    EqualIf constrAll(Iter iter) &&
+    { _constr->loadFromIterator(std::move(iter)); return std::move(*this); }
+
     template<class... As>
     EqualIf constr(UnificationConstraint constr, As... constrs) &&
     { 

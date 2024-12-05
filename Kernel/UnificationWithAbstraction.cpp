@@ -44,6 +44,9 @@
 #define DEBUG_FINALIZE(LVL, ...) if (LVL < 0) DBG(__VA_ARGS__)
 #define DEBUG_UNIFY(LVL, ...) if (LVL < 0) DBG(__VA_ARGS__)
 
+template<class T>
+auto tuple_flatten(T t) 
+{ return apply([](auto... args) { return std::tuple_cat(args...); }, t); }
 
 namespace Kernel
 {
@@ -56,6 +59,13 @@ typename IntTraits::ConstantType divOrPanic(IntTraits n, typename IntTraits::Con
 template<class NumTraits>
 AbstractionOracle::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, NumTraits n, Options::UnificationWithAbstraction uwa);
 Option<AbstractionOracle::AbstractionResult> lpar(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, Options::UnificationWithAbstraction uwa);
+
+template<class NumTraits>
+AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, NumTraits n, Options::UnificationWithAbstraction uwa);
+Option<AbstractionOracle::AbstractionResult> uwa_floor(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, Options::UnificationWithAbstraction uwa);
+AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, IntTraits n, Options::UnificationWithAbstraction uwa) {
+  ASSERTION_VIOLATION
+}
 
 bool uncanellableOccursCheck(AbstractingUnifier& au, VarSpec const& v, TermSpec const& t) {
   if (t.isSort()) return true; // <- for sorts arguments might never cancel out
@@ -87,6 +97,16 @@ bool isAlascaInterpreted(unsigned f) {
           || numTraits.isNumeral(f)
           || numTraits.isMinus(f)
           || numTraits.isMul(f);
+  });
+};
+
+bool isAlascaiInterpreted(unsigned f) {
+  return forAnyNumTraits([&](auto numTraits) -> bool {
+      return numTraits.isAdd(f)
+          || numTraits.isNumeral(f)
+          || numTraits.isMinus(f)
+          || numTraits.isMul(f)
+          || numTraits.isFloor(f);
   });
 };
 
@@ -253,6 +273,7 @@ bool AbstractionOracle::canAbstract(AbstractingUnifier* au, TermSpec const& t1, 
     case Shell::Options::UnificationWithAbstraction::AC2: 
     case Shell::Options::UnificationWithAbstraction::LPAR_CAN_ABSTRACT: 
     case Shell::Options::UnificationWithAbstraction::LPAR_MAIN: 
+    case Shell::Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR: 
     case Shell::Options::UnificationWithAbstraction::LPAR_ONE_INTERP: 
     case Shell::Options::UnificationWithAbstraction::FUNC_EXT: 
       ASSERTION_VIOLATION_REP(outputToString(_mode, " should be handled in AbstractionOracle::tryAbstract"))
@@ -395,6 +416,69 @@ TermSpec norm(TermSpec outer, AbstractingUnifier& au) {
   }
 }
 
+Option<AbstractionOracle::AbstractionResult> uwa_floor(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, Options::UnificationWithAbstraction uwa) {
+  ASS(t1.isTerm() || t2.isTerm())
+
+  auto interpreted = [&](TermSpec const& t) {
+    if (t.isVar()) return false;
+    ASS(!t.term.isTerm() || !t.term.term()->isLiteral()) 
+    auto f = t.functor();
+    return forAnyNumTraits([&](auto numTraits) -> bool {
+        return numTraits.isAdd(f)
+            || numTraits.isNumeral(f)
+            || numTraits.isMinus(f)
+            || numTraits.isFloor(f)
+            || (numTraits.isMul(f)
+                && ((au.subs().derefBound(t.termArg(0)).isTerm() 
+                     && numTraits.isNumeral(au.subs().derefBound(t.termArg(0)).functor()))
+                ||( au.subs().derefBound(t.termArg(1)).isTerm() 
+                     && numTraits.isNumeral(au.subs().derefBound(t.termArg(1)).functor()))
+                ));
+    });
+  };
+
+
+  if ((t1.isTerm() && t1.isSort()) 
+  || ( t2.isTerm() && t2.isSort())) return {};
+
+  auto i1 = interpreted(t1);
+  auto i2 = interpreted(t2);
+
+  // TODO do we want/need this?
+  auto occ = [&au](auto& v, auto& t) {
+    ASS(v.isVar())
+    ASS(t.isTerm())
+    // we know due to the uwa algorithm that v occurs in t
+    if (uncanellableOccursCheck(au, v.varSpec(), t)) {
+      return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual{}));
+    } else {
+      // this means all
+      return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(v, t, t.sort()))));
+    }
+  };
+
+  if (i1 || i2) {
+    using Mode = Options::UnificationWithAbstraction;
+    auto sort = i1 ? t1.sort() : t2.sort();
+    if (uwa == Mode::LPAR_ONE_INTERP) {
+      return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf()
+          .constr(UnificationConstraint(t1, t2, sort))));
+    }
+
+    auto res = forAnyNumTraits([&](auto n) {
+        return someIf(sort.term == n.sort(), [&]() { 
+            return uwa_floor(au, t1, t2, n, uwa); 
+        });
+    });
+    ASS(res.isSome())
+    ASS_EQ(uwa, Mode::LPAR_MAIN_FLOOR);
+    return res;
+  } else {
+    if (t1.isVar()) return occ(t1, t2);
+    if (t2.isVar()) return occ(t2, t1);
+    return {};
+  }
+}
 Option<AbstractionOracle::AbstractionResult> lpar(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, Options::UnificationWithAbstraction uwa) {
   ASS(t1.isTerm() || t2.isTerm())
 
@@ -508,7 +592,6 @@ AbstractionOracle::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const
   ASS(nVars == 0 || diff[nVars - 1].first.isVar())
   ASS(nVars == diff.size() || !diff[nVars].first.isVar())
 
-
   auto numMul = [&cTerm](Numeral num, TermSpec t) {
     ASS(num != Numeral(0))
     if (num == Numeral(1)) {
@@ -553,10 +636,6 @@ AbstractionOracle::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const
 
   } else if (diff.size() == 0) {
     return AbstractionResult(EqualIf());
-
-  // } else if ( vars.hasNext() ) {
-
-
 
   } else if (nVars > 0) {
      Recycled<DHSet<TermSpec>> shieldedVars;
@@ -677,6 +756,545 @@ AbstractionOracle::AbstractionResult lpar(AbstractingUnifier& au, TermSpec const
 }
 
 
+template<class NumTraits>
+struct FloorUwaState {
+  using Numeral = typename NumTraits::ConstantType;
+  using Monom = std::pair<TermSpec, Numeral>;
+  // bool _nonLinear = false;
+  RStack<Monom> ratVars;
+  RStack<Monom> intVars;
+  RStack<Monom> mixVars;
+  RStack<Monom> ratAtoms;
+  RStack<Monom> intAtoms;
+  Recycled<DHSet<VarSpec>> ratVarSet;
+  Recycled<DHSet<VarSpec>> mixVarSet;
+  Recycled<DHSet<VarSpec>> intVarSet;
+  Recycled<DHSet<VarSpec>> shieldedVars;
+
+  bool isShielded(TermSpec t) const { return shieldedVars->find(t.varSpec()); }
+  bool isMixVar(VarSpec v) const { return mixVarSet->find(v) || (intVarSet->find(v) && ratVarSet->find(v)); }
+  bool isMixVar(TermSpec t) const { return isMixVar(t.varSpec()); }
+
+  friend std::ostream& operator<<(std::ostream& out, FloorUwaState const& self)
+  { return out << outputInterleaved(" + ", self.summands()); }
+
+  unsigned size() const 
+  { return ratVars->size() + intVars->size() + mixVars->size() + ratAtoms->size() + intAtoms->size(); }
+
+  // bool nonLinear() const;
+  // { return _nonLinear; }
+
+  static FloorUwaState scanNum(AbstractingUnifier& au, Numeral const& k) {
+    auto s = FloorUwaState();
+    if (k != 0) {
+      s.intAtoms->push(std::make_pair(TermSpec(NumTraits::constantTl(1), 0), k));
+    }
+    return s;
+  }
+
+  static FloorUwaState add(AbstractingUnifier& au, FloorUwaState s1, FloorUwaState s2) {
+    // TODO simplify here
+    auto mergeArray = [](auto& l, auto& r) { 
+      l.sort();
+      r.sort();
+      auto li = 0;
+      auto ri = 0;
+      auto lEnd = l.size();
+      auto rEnd = r.size();
+      while (li < lEnd && ri < rEnd) {
+        if (l[li].first == r[ri].first) {
+          l[li].second += r[ri].second;
+          ri++;
+        } else if (l[li] > r[ri]) {
+          l.push(r[ri++]);
+        } else {
+          li++;
+        }
+      }
+      if (li == lEnd) {
+        while (ri < rEnd) {
+          l.push(r[ri++]);
+        }
+      } 
+      auto read = 0;
+      auto write = 0;
+      while (read < l.size()) {
+        if (l[read].second == 0) {
+          read++;
+        } else {
+          l[write++] = l[read++];
+        }
+      }
+      l.pop(l.size() - write);
+      // l.loadFromIterator(arrayIter(r)); 
+    };
+    mergeArray(*s1.ratVars, *s2.ratVars);
+    mergeArray(*s1.intVars, *s2.intVars);
+    mergeArray(*s1.mixVars, *s2.mixVars);
+    mergeArray(*s1.ratAtoms, *s2.ratAtoms);
+    mergeArray(*s1.intAtoms, *s2.intAtoms);
+    auto mergeSet = [](auto& l, auto& r) { l.loadFromIterator(r.iterator()); };
+    mergeSet(*s1.ratVarSet, *s2.ratVarSet);
+    mergeSet(*s1.mixVarSet, *s2.mixVarSet);
+    mergeSet(*s1.intVarSet, *s2.intVarSet);
+    mergeSet(*s1.shieldedVars, *s2.shieldedVars);
+    return s1;
+  }
+  static FloorUwaState floor(AbstractingUnifier& au, FloorUwaState s) {
+    auto out = FloorUwaState();
+    /* out.ratAtoms none */
+    /* out.ratVars  none */
+    /* out.intVars empty */
+    /* out.ratVarSet */
+    out.mixVarSet = std::move(s.mixVarSet);
+    /* out.intVarSet empty */
+    out.shieldedVars = std::move(s.shieldedVars);
+
+    auto push = [](auto& stack, auto a, auto num) { if (num != 0) stack->push(std::make_pair(a, num)); };
+    auto insertVar = [](auto& set, auto v, auto num) { if (num != 0) set->insert(v.varSpec()); };
+
+    RStack<Monom> floorIntVars;
+    for (auto [a, k] : arrayIter(*s.intVars)) {
+      push(out.intVars, a, Numeral(k.floor()));
+      insertVar(out.intVarSet, a.termArg(0), k.floor());
+
+      push(floorIntVars, a, k - k.floor());
+      insertVar(out.mixVarSet, a.termArg(0), k - k.floor());
+    }
+
+    RStack<Monom> floorMixVars;
+    for (auto [a, k] : arrayIter(*s.mixVars)) {
+      push(out.mixVars, a, Numeral(k.floor()));
+      push(floorMixVars, a, k - k.floor());
+    }
+
+    RStack<Monom> floorIntAtoms;
+    for (auto [a, k] : arrayIter(*s.intAtoms)) {
+      push(out.intAtoms, a, Numeral(k.floor()));
+      push(floorIntAtoms, a, k - k.floor());
+    }
+
+    RStack<Monom> floorRatAtoms = std::move(s.ratAtoms);
+    RStack<Monom> floorRatVars  = std::move(s.ratVars);
+
+    auto floorVarSummands = [&]() {
+      return concatIters(
+                arrayIter(*floorIntVars),
+                arrayIter(*floorMixVars),
+                arrayIter(*floorRatVars)); };
+
+    auto floorSummands = [&]() {
+      return concatIters(
+                arrayIter(*floorIntAtoms),
+                arrayIter(*floorRatAtoms),
+                floorVarSummands()); };
+
+    auto makeFloor = [&]() {
+      auto t = sum(au.subs(), floorSummands());
+      return std::make_pair(TermSpec(NumTraits::floor(t.term), t.index), Numeral(1));
+    };
+    if ( floorSummands().size() == 1 
+      && floorRatVars->size() == 1
+      && floorRatVars[0].second == 1) {
+      out.intVarSet->insert(floorRatVars[0].first.varSpec());
+      out.intVars->push(makeFloor());
+      ASS(NumTraits::isFloor(out.intVars[0].first.term) && out.intVars[0].first.term.term()->termArg(0).isVar());
+    } else if (floorSummands().size() == 0) {
+      /* nothing to add */
+    } else if (floorVarSummands().size() == 0) {
+      out.intAtoms->push(makeFloor());
+    } else {
+      for (auto &[v, k] : *floorRatVars) {
+        out.mixVarSet->insert(v.varSpec());
+      }
+      out.mixVars->push(makeFloor());
+    }
+
+    return out;
+  }
+
+  static FloorUwaState scanAdd(AbstractingUnifier& au, TermSpec const& t0, TermSpec const& t1) { return add(au, scan(au, t0), scan(au, t1)); }
+  static FloorUwaState scanFloor(AbstractingUnifier& au, TermSpec const& dt) { return floor(au, scan(au, dt)); }
+
+  static FloorUwaState mul(AbstractingUnifier& au, Numeral const& k, FloorUwaState s) {
+    if (k == 0) {
+      return FloorUwaState();
+    } else {
+      auto procArray = [&](auto& sum) { 
+        for (auto& s : sum) {
+          s.second *= k;
+        }
+      };
+      procArray(*s.ratVars);
+      procArray(*s.intVars);
+      procArray(*s.mixVars);
+      procArray(*s.ratAtoms);
+      procArray(*s.intAtoms);
+      return s;
+    }
+  }
+
+
+  static FloorUwaState scanMul(AbstractingUnifier& au, Numeral const& k, TermSpec t) {
+    return k == 0 ? FloorUwaState()
+                  : mul(au, k, scan(au, t));
+  }
+
+
+  static FloorUwaState scan(AbstractingUnifier& au, TermSpec const& t) {
+    auto &subs = au.subs();
+    ASS_EQ(subs.derefBound(t), t)
+    auto deref = [&](auto t2) { return subs.derefBound(TermSpec(t2, t.index)); };
+    auto res = 
+      optionIfThenElse(
+            [&]() { return NumTraits::ifAdd(t.term, [&](auto l, auto r) { return scanAdd(au, deref(l), deref(r)); }); }
+          , [&]() { return NumTraits::ifNumeral(t.term, [&](auto k) { return scanNum(au, k); }); }
+          , [&]() { return ifNumMul<NumTraits>(t.term, [&](auto k, auto t, auto...) { return scanMul(au, k, deref(t)); }); }
+          , [&]() { return NumTraits::ifFloor(t.term, [&](auto t) { return scanFloor(au, deref(t)); }); }
+          , [&]() {
+              ASS(t.term.isVar() || isUninterpreted<NumTraits>(t.term))
+              auto out = FloorUwaState();
+              if (t.term.isVar()) {
+                out.ratVars->push(std::make_pair(t, Numeral(1)));
+                out.ratVarSet->insert(t.varSpec());
+              } else {
+                out.ratAtoms->push(std::make_pair(t, Numeral(1)));
+                BottomUpEvaluation<AutoDerefTermSpec, std::tuple<>>()
+                    .function([&](auto const& orig, std::tuple<>* args) -> std::tuple<> {
+                        if (orig.term.isVar()) {
+                          out.shieldedVars->insert(orig.term.varSpec());
+                        }
+
+                        return {};
+                    })
+                    .evNonRec([](auto& t) { return someIf(t.term.definitelyGround(), [&]() { return std::make_tuple(); }); })
+                    .context(AutoDerefTermSpec::Context { .subs = &subs, })
+                    .apply(AutoDerefTermSpec(t, &subs));
+              }
+              return out;
+            });
+    ASS(res.summands().all([](auto s) { return s.second != 0; }))
+    return res;
+  }
+
+  bool hasTopVars() const { return !ratVars->isEmpty() || !intVars->isEmpty() || !mixVars->isEmpty(); }
+
+  auto summands() const 
+  { return concatIters(
+          arrayIter(*ratVars), 
+          arrayIter(*intVars), 
+          arrayIter(*mixVars), 
+          arrayIter(*ratAtoms), 
+          arrayIter(*intAtoms)); }
+
+
+  IterTraits<VirtualIterator<Monom>> summandsFloor() const 
+    ;
+  // { return concatIters(
+  //         arrayIter(*intVars), 
+  //         arrayIter(*mixVars), 
+  //         arrayIter(*intAtoms)); }
+
+  auto summandsInt() const 
+  { return concatIters(
+          arrayIter(*intVars), 
+          arrayIter(*mixVars), 
+          arrayIter(*intAtoms)); }
+
+  auto summandsNotInt() const 
+  { return concatIters(
+          arrayIter(*ratVars), 
+          arrayIter(*ratAtoms)); }
+
+  Option<Numeral> gcd() const 
+  {
+    ASS(size() > 0)
+    if (ratVars.size() != 0 || ratAtoms.size() != 0) {
+      return {};
+    } else {
+      return some(summands()
+        .map([](auto x) { return x.second; })
+        .fold([](auto l, auto r) { return Numeral(l.numerator().gcd(r.numerator()), 
+                                                  l.denominator().lcm(r.denominator())); })
+        .unwrap());
+    }
+  }
+
+  struct Bucket {
+    Bucket() : _sum(0) {}
+    Numeral _sum;
+    RStack<Monom> _summands;
+    auto summands() const { return arrayIter(*_summands); }
+    auto& sum() const { return _sum; }
+    void push(Monom m) { 
+      _sum += m.second; 
+      _summands->push(std::move(m)); 
+    }
+    auto positive() const { return summands().filter([](auto& x) { return x.second > 0; }); }
+    auto negative() const { return summands().filter([](auto& x) { return x.second < 0; }); }
+    static unsigned hash(Term* t) { 
+      return ifNumMul<NumTraits>(t, [](auto k, auto t,auto...) { return hash(t.term()); })
+          || NumTraits::ifFloor(t, [](auto t) { return 2 * hash(t.term()); })
+          || NumTraits::ifAdd(t, [](auto l, auto r) { return hash(l.term()) + hash(r.term()); })
+          || [&]() { return t->functor(); };
+    }
+    static unsigned hash(TermSpec t) { return hash(t.term.term()); }
+  };
+  auto buckets() const {
+    Recycled<Map<unsigned, Bucket>> buckets;
+    ASS(ratVars->isEmpty())
+    ASS(intVars->isEmpty())
+    ASS(mixVars->isEmpty())
+    for (auto a : summands()) {
+      auto &[t, k] = a;
+      ASS(k != 0)
+      buckets->getOrInit(Bucket::hash(t)).push(a);
+    }
+
+    auto allZero = iterTraits(buckets->iter()).all([](auto& b) { return b.value().sum() == 0; });
+
+    return someIf(allZero,
+        [&]() {
+          return iterTraits(buckets->iter())
+              .map([](auto& x) { return std::move(x.value()); });
+        });
+  }
+};
+
+
+
+template<class Numeral>
+TermSpec numMul(Numeral num, TermSpec t) {
+  ASS(num != 0)
+  if (auto num2 = NumTraits<Numeral>::tryNumeral(t.term)) {
+    return TermSpec(NumTraits<Numeral>::constantTl(num * (*num2)), 0);
+
+  } else if (num == 1) {
+    return t;
+
+  } else if (num == -1) {
+    return TermSpec(NumTraits<Numeral>::minus(t.term), t.index);
+
+  } else {
+    return TermSpec(NumTraits<Numeral>::mul(NumTraits<Numeral>::constantTl(num), t.term), t.index);
+
+  }
+};
+
+
+template<class Iter>
+TermSpec sum(RobSubstitution& subs, Iter iter) {
+    using NumTraits = ::NumTraits<typename std::remove_reference_t<std::remove_const_t<typename Iter::Elem>>::second_type>;
+    return iterTraits(std::move(iter))
+      .map([&](auto x) { return numMul(x.second, std::move(x.first)); })
+      .fold([&](auto l, auto r) 
+        { return subs.createTerm(NumTraits::addF(), std::move(l), std::move(r)); })
+      .unwrapOrElse([&]() { return subs.createTerm(NumTraits::numeralF(NumTraits::constant(0))); }); 
+}
+
+template<class F, class... Fs>
+auto optionIfThenElse(F f, Fs... fs) 
+{ return (f() || ... || fs); }
+
+template<class NumTraits>
+AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec const& t1, TermSpec const& t2, NumTraits n, Options::UnificationWithAbstraction uwa) {
+  TIME_TRACE("unification with abstraction ALASCA+F")
+  using EqualIf = AbstractionOracle::EqualIf;
+  using AbstractionResult = AbstractionOracle::AbstractionResult;
+  using NeverEqual = AbstractionOracle::NeverEqual;
+  using Numeral = typename NumTraits::ConstantType;
+
+  auto constraint = [&](TermSpec lhs, TermSpec rhs) { return UnificationConstraint(lhs, rhs, TermSpec(n.sort(), 0)); };
+  auto constraint0 = [&](TermSpec x) { return constraint(x, TermSpec(NumTraits::constantTl(0), 0)); };
+  auto sum = [&](auto iter) -> TermSpec { return ::sum(au.subs(), std::move(iter)); };
+
+#define CHECK_SORTS(t1, t2)                                                               \
+  if (t1.isTerm()) {                                                                      \
+    auto sort = SortHelper::getResultSort(t1.term.term());                                \
+    if (sort.isVar()) {                                                                   \
+      return AbstractionResult(EqualIf().unify(                                           \
+              constraint(TermSpec(sort, t1.index), TermSpec(NumTraits::sort(), t1.index)),\
+              constraint(t1, t2)));                                                       \
+    } else if (sort != NumTraits::sort()) {                                               \
+      return AbstractionResult(NeverEqual{});                                             \
+    }                                                                                     \
+  }                                                                                       \
+
+  CHECK_SORTS(t1, t2)
+  CHECK_SORTS(t2, t1)
+
+  // RStack<std::pair<TermSpec, Numeral>> _diff;
+  // auto& diff = *_diff;
+
+  using FUA = FloorUwaState<NumTraits>;
+
+  auto const state = FUA::add(au, FUA::scan(au, t1), FUA::mul(au, Numeral(-1), FUA::scan(au, t2)));
+
+  // auto diffConstr = [&]() 
+  // { return constraint(sum(diff1), sum(diff2)); };
+
+  // if (state.nonLinear()) {
+  // // if (arrayIter(diff).any([&](auto& x) 
+  // //       { return x.first.isTerm() && n.isMul(x.first.functor()); })) {
+  //
+  //   // non-linear multiplication. we cannot deal with this in alasca
+  //   return AbstractionResult(EqualIf().constr(constraint0(dt)));
+
+  return optionIfThenElse(
+      [&]() -> Option<AbstractionResult> { return someIf(state.size() == 0, []() { return AbstractionResult(EqualIf()); }); },
+      [&]() -> Option<AbstractionResult> {
+            if (auto v = arrayIter(*state.ratVars)
+                           .find([&](auto& v) { return !state.isShielded(v.first) && !state.isMixVar(v.first); })) {
+                //     k x   + t1 + ... + tn  = 0
+                // <-> k x = - t1 - ... - tn
+                // <->   x = (- t1/k - ... - tn/k)
+                auto& k = v->second;
+                auto& x = v->first;
+                return some(AbstractionResult(EqualIf().unify(constraint(
+                        x, 
+                        sum(state.summands() 
+                                 .filter([&](auto s) { /* filter out k x */ return s != *v; })
+                                 .map([&](auto s) { return std::make_pair(s.first, -s.second / k); })
+                        )))));
+            } else {
+              return {};
+            }
+          },
+      // [&]() { return someIf(state.size() == 2 
+      //                   && state.intVars.size() == 1 
+      //                   && state.ratVars.size() == 1
+      //                   && state.ratVars[0].second == -state.ratVars[0].second
+      //                   , [&](){
+      //   ASS_EQ(state.intVars[0].first.termArg(0), state.ratVars[0].first)
+      //   return 
+      //   })
+      // },
+      [&]() { return someIf(state.hasTopVars(), [&]() { 
+        return optionIfThenElse(
+            [&]() -> Option<AbstractionResult> { 
+              if (state.size() == 2 && state.summandsInt().size() == 2) {
+
+                auto oneCase = [&](auto s0, auto s1) -> Option<AbstractionResult> {
+                  auto [one, k] = s0;
+                  auto [t, kt] = s1;
+                  if (NumTraits::tryNumeral(one.term).isSome()) {
+                    ASS(one.term == NumTraits::one())
+                    ASS(NumTraits::isFloor(t.term))
+                    if ((k / kt).isInt()) {
+                      return some(AbstractionResult(EqualIf().unify(constraint(t.termArg(0), TermSpec(NumTraits::constantTl(-(k / kt)), 0)))));
+                    } else {
+                      return some(AbstractionResult(NeverEqual{}));
+                    }
+                  } else {
+                    return {};
+                  }
+                };
+
+                // this case does not work as we'd need to potentially return two unifiers
+                // floor(x) = floor(a) <-> x = a | x = floor(a)
+                // auto case1 = [&](auto s0, auto s1) -> Option<AbstractionResult> {
+                //   auto [t0, k0] = s0;
+                //   auto [t1, k1] = s1;
+                //   ASS(NumTraits::isFloor(t0.term))
+                //   ASS(NumTraits::isFloor(t1.term))
+                //   if (k0 != -k1) {
+                //     return {};
+                //   } else {
+                //     return some(AbstractionResult(EqualIf().unify(constraint(t0.termArg(0), t1.termArg(0)))));
+                //   }
+                //   // auto [one, k] = s0;
+                //   // auto [t, kt] = s1;
+                //   // if (NumTraits::tryNumeral(one.term) == some(Numeral(1))) {
+                //   //   ASS(NumTraits::isFloor(t.term))
+                //   //   if ((k / kt).isInt()) {
+                //   //     return some(AbstractionResult(EqualIf().unify(constraint(t.termArg(0), TermSpec(NumTraits::constantTl(-(k / kt)), 0)))));
+                //   //   } else {
+                //   //     return some(AbstractionResult(NeverEqual{}));
+                //   //   }
+                //   // } else {
+                //   //   return {};
+                //   // }
+                // };
+
+                auto iter = state.summandsInt();
+                auto s0 = iter.next();
+                auto s1 = iter.next();
+
+                return optionIfThenElse( [&]() { return oneCase(s0, s1); }
+                                       , [&]() { return oneCase(s1, s0); }
+                                       // , [&]() { return case1(s0, s1); }
+                    );
+                // if (NumTraits::one() == t0.term) {
+                //   auto k = k0;
+                //
+                // }
+                //   
+                // } else {
+                //   return {};
+                // }
+                // if (k0 != -k1) {
+                //   return {};
+                // }
+                // if (NumTraits::one() == t0.term) {
+                //   return some(t1.isVar() ? AbstractionResult(EqualIf().unify(t1.term))
+                //                          : AbstractionResult(NeverEqual{}))
+                // }
+              } else {
+                return {};
+              }
+            },
+            [&]() { return AbstractionResult(EqualIf().constr(constraint0(sum(state.summands())))); }); 
+      }); },
+      [&]() { return someIf(state.hasTopVars(), [&]() { return AbstractionResult(EqualIf().constr(constraint0(sum(state.summands())))); }); },
+      [&]() { 
+          /* no top vars */
+          if (auto buckets = state.buckets()) {
+            return AbstractionResult(EqualIf()
+                .unifyAll(buckets->map([&](auto b) { return constraint(
+                               sum(b.positive()),
+                               sum(b.negative().map([](auto t) { return std::make_pair(t.first, -t.second); }))
+                               ); })));
+          } else {
+            return AbstractionResult(NeverEqual{});
+          }
+      });
+
+  // } else if (state.hasTopVars() && state.size() == 2 && state.intVars->size() == 2) {
+  //   auto [x, j] = state.intVars[0];
+  //   auto [t, k] = state.intVars[]
+  //   if ((j > 0) == (k > 0)) {
+  //     return AbstractionResult(NeverEqual{});
+  //   } else if (s.isVar() || t.isVar()) {
+  //     auto v = s;
+  //     auto j = t;
+  //   } else {
+  //
+  //   }
+  //
+  // } else if (auto v = arrayIter(*state.intVars)
+  //              .find([&](auto& floor_v) { 
+  //                auto v = floor_v.first.termArg(0);
+  //                return !state.isShielded(v) && !state.isMixVar(v) && state.gcd().map([](auto x) { return x.abs(); }) == some(floor_v.second.abs()); })) {
+  //
+  //   //     k ⌊x⌋   + k t1 + ... + k tn  = 0
+  //   // <-> k ⌊x⌋ = - k t1 - ... - k tn
+  //   // <->   ⌊x⌋ = -   t1 - ... -   tn 
+  //   // <->    x  = -   t1 - ... -   tn   as isInt(ti)
+  //   auto& k = v->second;
+  //   auto& floor_x = v->first;
+  //   return AbstractionResult(EqualIf().unify(constraint(
+  //           floor_x.termArg(0), 
+  //           sum(state.summands()  // state.summands() = t
+  //                    .filter([&](auto s) { /* filter out k x */ return s != *v; })
+  //                    .map([&](auto s) { return std::make_pair(s.first, -s.second / k); }) 
+  //           ))));
+  //
+  // } else  {
+
+  // }
+}
+
+
 Option<AbstractionOracle::AbstractionResult> AbstractionOracle::tryAbstract(AbstractingUnifier* au, TermSpec const& t1, TermSpec const& t2) const
 {
   using Uwa = Shell::Options::UnificationWithAbstraction;
@@ -744,6 +1362,9 @@ Option<AbstractionOracle::AbstractionResult> AbstractionOracle::tryAbstract(Abst
   } else if (_mode == Shell::Options::UnificationWithAbstraction::FUNC_EXT) {
     return funcExt(au, t1, t2);
 
+  } else if (_mode == Shell::Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR) {
+    return uwa_floor(*au, t1, t2, _mode);
+
   } else if (_mode == Shell::Options::UnificationWithAbstraction::LPAR_MAIN 
       || _mode == Shell::Options::UnificationWithAbstraction::LPAR_CAN_ABSTRACT 
       || _mode == Shell::Options::UnificationWithAbstraction::LPAR_ONE_INTERP
@@ -752,8 +1373,6 @@ Option<AbstractionOracle::AbstractionResult> AbstractionOracle::tryAbstract(Abst
 
   } else {
     auto abs = canAbstract(au, t1, t2);
-    // DEBUG_UWA(1, "canAbstract(", t1, ",", t2, ") = ", abs);
-    // DEBUG_UWA(1, "  ( ctx: ", *au, " )")
     return someIf(abs, [&](){
         return AbstractionResult(EqualIf().constr(UnificationConstraint(t1, t2, 
                 t1.isTerm() ? TermSpec(SortHelper::getResultSort(t1.term.term()), t1.index)
@@ -814,6 +1433,7 @@ bool AbstractingUnifier::fixedPointIteration()
   DEBUG_FINALIZE(1, "finalizing: ", todo)
   while (!todo->isEmpty()) {
     auto c = todo->pop();
+    DEBUG_FINALIZE(2, "todo: ", todo);
     DEBUG_FINALIZE(2, "popped: ", c);
     bool progress;
     auto res = unify(c.lhs(), c.rhs(), progress);
@@ -849,6 +1469,7 @@ Option<Recycled<Stack<unsigned>>> AbstractingUnifier::unifiableSymbols(unsigned 
     case Options::UnificationWithAbstraction::LPAR_CAN_ABSTRACT: 
     case Options::UnificationWithAbstraction::LPAR_ONE_INTERP: 
     case Options::UnificationWithAbstraction::LPAR_MAIN: return isAlascaInterpreted(f) ? anything() : some(recycledStack(f));
+    case Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR: return isAlascaiInterpreted(f) ? anything() : some(recycledStack(f));
   }
   ASSERTION_VIOLATION
 }
@@ -930,22 +1551,23 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
 
 
     while (toDo->isNonEmpty()) {
+      DEBUG_UNIFY(2, "todo:   ", toDo);
       auto cur = toDo->pop();
-      DEBUG_UNIFY(1, "popped: ", cur)
+      DEBUG_UNIFY(2, "popped: ", cur)
       auto dt1 = subs().derefBound(cur.first);
       auto dt2 = subs().derefBound(cur.second);
-      DEBUG_UNIFY(1, "dereferenced: ", dt1, " ?= ", dt2)
+      DEBUG_UNIFY(1, "deref:  ", dt1, " ?= ", dt2)
       if (dt1.deepEqCheck(dt2)) {
         progress = true;
 
       } else if(dt1.isVar() && !occurs(dt1, dt2)) {
         progress = true;
-        DEBUG_UNIFY(2, "binding: ", dt1, " -> ", dt2)
+        DEBUG_UNIFY(3, "binding: ", dt1, " -> ", dt2)
         subs().bind(dt1.varSpec(), dt2);
 
       } else if(dt2.isVar() && !occurs(dt2, dt1)) {
         progress = true;
-        DEBUG_UNIFY(2, "binding: ", dt2, " -> ", dt1)
+        DEBUG_UNIFY(3, "binding: ", dt2, " -> ", dt1)
         subs().bind(dt2.varSpec(), dt1);
 
       } else if(doAbstract(dt1, dt2)) {
@@ -972,11 +1594,11 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
             auto pair = std::make_pair(x.lhs(), x.rhs());
             ASS_NEQ(pair, cur)
             pushTodo(pair);
-            DEBUG_UNIFY(2, "uwa adding unify : ", pair)
+            DEBUG_UNIFY(3, "uwa adding unify : ", pair)
           }
           for (auto& x: conditions.constr()) {
             _constr->add(std::move(x), bd());
-            DEBUG_UNIFY(2, "uwa adding constr: ", x)
+            DEBUG_UNIFY(3, "uwa adding constr: ", x)
           }
         }
         absRes.take();

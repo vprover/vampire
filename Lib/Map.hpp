@@ -711,6 +711,9 @@ public:
     Entry* _last;
   };
 
+  bool keepRecycled() const { return size() != 0; }
+
+
   Iterator iter() 
   { return Iterator(*this); }
 

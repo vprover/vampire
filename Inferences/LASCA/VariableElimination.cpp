@@ -182,7 +182,7 @@ public:
       .filterMap([this, lhs](auto i) -> Option<A&> { return _partition.unwrap()[i] == lhs ? Option<A&>(_orig[i]) : Option<A&>(); }); }
 
   auto partitionSize(bool lhs) 
-  { return iterTraits(getRangeIterator((unsigned)0, (unsigned)_orig.size()))
+  { return iterTraits(range(0, (unsigned)_orig.size()))
       .filter([this, lhs](auto i) { return _partition.unwrap()[i] == lhs; })
       .count(); }
 

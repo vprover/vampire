@@ -1204,7 +1204,7 @@ void Options::init()
 
     _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
                                       UnificationWithAbstraction::OFF,
-                                      {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "func_ext", "ac1", "ac2", "lpar_one_interp", "lpar_can_abstract", "lpar_main"});
+                                      {"off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "func_ext", "ac1", "ac2", "lpar_one_interp", "lpar_can_abstract", "lpar_main", "lpar_main_floor"});
     _unificationWithAbstraction.description=
       "During unification, if two terms s and t fail to unify we will introduce a constraint s!=t and carry on. For example, "
       "resolving p(1) \\/ C with ~p(a+2) would produce C \\/ 1 !=a+2. This is controlled by a check on the terms. The expected "
@@ -1283,6 +1283,7 @@ void Options::init()
     _lasca.onlyUsefulWith2(_unificationWithAbstraction.is(Or(
               equal(UnificationWithAbstraction::LPAR_CAN_ABSTRACT)
             , equal(UnificationWithAbstraction::LPAR_MAIN)
+            , equal(UnificationWithAbstraction::LPAR_MAIN_FLOOR)
             , equal(UnificationWithAbstraction::LPAR_ONE_INTERP)
             )));
 
@@ -1319,6 +1320,7 @@ void Options::init()
     _lookup.insert(&_lascaIntegerConversion);
     _lascaIntegerConversion.tag(OptionTag::INFERENCES);
     _lascaIntegerConversion.onlyUsefulWith2(_lasca.is(equal(true)));
+    _lascaIntegerConversion.onlyUsefulWith(_unificationWithAbstraction.is(equal(UnificationWithAbstraction::LPAR_MAIN_FLOOR)));
 
     _lascaAbstraction  = BoolOptionValue("lasca_abstraction","lascaa",false);
     _lascaAbstraction.description=

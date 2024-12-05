@@ -262,13 +262,11 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit,
 
 ClauseIterator BinaryResolution::generateClauses(Clause* premise)
 {
-  DBG("premise: ", premise->number())
   return pvi(TIME_TRACE_ITER("resolution", 
       premise->getSelectedLiteralIterator()
       // TODO filter out >= in alasca
         .filter([](auto l) { return !l->isEquality(); })
         .flatMap([this,premise](auto lit) { 
-            DBG(*lit, " selected in ", premise->number())
             // find query results for literal `lit`
             return iterTraits(_index->getUwa(lit, /* complementary */ true, 
                                              env.options->unificationWithAbstraction(), 

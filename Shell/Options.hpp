@@ -206,6 +206,7 @@ public:
     LPAR_ONE_INTERP,
     LPAR_CAN_ABSTRACT,
     LPAR_MAIN,
+    LPAR_MAIN_FLOOR,
   };
   friend std::ostream& operator<<(std::ostream& out, UnificationWithAbstraction const& self)
   { 
@@ -222,6 +223,7 @@ public:
       case UnificationWithAbstraction::LPAR_ONE_INTERP:   return out << "lpar_one_interp";
       case UnificationWithAbstraction::LPAR_CAN_ABSTRACT: return out << "lpar_can_abstract";
       case UnificationWithAbstraction::LPAR_MAIN:         return out << "lpar_main";
+      case UnificationWithAbstraction::LPAR_MAIN_FLOOR:   return out << "lpar_floor";
     }
     ASSERTION_VIOLATION
   }

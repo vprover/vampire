@@ -1187,3 +1187,16 @@ TEST_GENERATION_WITH_SUGAR(bug07,
 
 // [       is ]: [ $greater(0.0, 0.0) | ~((((15.0 * X0) + ((-15.0 * X1) + g((15.0 * X0), X1))) = ((15.0 * X2) + $uminus(g(X3, X2))))) ]
 // [ expected ]: [ $greater(0.0, 0.0) | ~(((((15.0 * X0) + (-15.0 * X1)) + g((15.0 * X0), X1)) = ((15.0 * X0) + $uminus(g(X2, X0))))) ]
+
+
+// TEST_GENERATION_WITH_SUGAR(uwa_floor_1,
+//     SUGAR(Real),
+//     Generation::SymmetricTest()
+//     .
+//       .indices(idxFourierMotzkin())
+//       .inputs  ({ clause({ selected( f(num(123)) > 0 ) })  
+//                ,  clause({ selected( -f(floor(x)) + a > 0 )  }) })
+//       .expected(exactly(
+//           clause({ a > 0 })
+//       ))
+//     )

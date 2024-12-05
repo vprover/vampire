@@ -1581,6 +1581,58 @@ public:
   }
 };
 
+// TODO move somewhere else and use
+template<class NumTraits, class F>
+Option<std::invoke_result_t<F, LascaPredicate, TermList, unsigned>> ifLascaLiteral(Literal* lit, F f) {
+  // TODO assert normalized
+  if (NumTraits::isGreater(lit->functor())) {
+    ASS(lit->termArg(1) == NumTraits::constantTl(0))
+    return some(f(LascaPredicate::GREATER   , lit->termArg(0), 0));
+  }
+  if (NumTraits::isGeq(lit->functor())    ) {
+    ASS(lit->termArg(1) == NumTraits::constantTl(0))
+    return some(f(LascaPredicate::GREATER_EQ, lit->termArg(0), 0));
+  }
+  if (lit->isEquality() && SortHelper::getEqualityArgumentSort(lit) == NumTraits::sort()) {
+    auto i = 0;
+    if (auto n = NumTraits::tryNumeral(lit->termArg(0))) {
+      if (*n == 0) {
+        i++;
+      }
+    }
+    return some(f(lit->isPositive() ? LascaPredicate::EQ : LascaPredicate::NEQ, lit->termArg(i), i));
+  }
+  return {};
+}
+
+// TODO move somewhere else and use
+template<class NumTraits, class T, class F>
+auto ifNumMul(T term, F f) {
+  return NumTraits::ifMul(term, [&](auto l, auto r) {
+      ASS(!NumTraits::isNumeral(r))
+      return NumTraits::ifNumeral(l, [&](auto l) { return f(l, r, 1); });
+  }).flatten()
+  .orElse([&](){
+      return NumTraits::ifMinus(term, [&](auto t) { return  f(NumTraits::constant(-1), t, 0); });
+      });
+}
+
+// TODO move somewhere else and use
+template<class NumTraits, class T>
+auto isNumMul(T term) 
+{ return ifNumMul<NumTraits>(term, [](auto...) { return 0; }).isSome(); }
+
+// TODO move somewhere else and use
+template<class NumTraits, class T>
+auto isLascaLiteral(T term) 
+{ return ifLascaLiteral<NumTraits>(term, [](auto...) { return 0; }).isSome(); }
+
+// TODO move somewhere else and use
+template<class NumTraits, class T>
+auto isUninterpreted(T t) 
+{ return !NumTraits::isFloor(t) && !NumTraits::isAdd(t) && !isNumMul<NumTraits>(t); }
+
+
 } // namespace Kernel
 
 template<class NumTraits> struct std::hash<Kernel::LascaLiteral<NumTraits>>
