@@ -169,7 +169,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
           ASS_EQ(dd->clause->length(),1);
           ASS_EQ(lhs.sort(),dd->term.sort());
-          if (dd->clause->store() == Clause::NONE) {
+          if (!dd->valid) {
             env.statistics->inductionApplication++;
             continue;
           }
@@ -232,7 +232,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         for (const auto& dd : qr.data->dds) {
           ASS_EQ(dd->clause->length(),1);
 
-          if (dd->clause->store() == Clause::NONE) {
+          if (!dd->valid) {
             continue;
           }
 

@@ -125,7 +125,7 @@ struct TermLiteralClause
 struct DemodulatorData
 {
   DemodulatorData(TypedTermList term, TermList rhs, Clause* clause, bool preordered, const Ordering& ord)
-    : term(term), rhs(rhs), clause(clause), preordered(preordered)
+    : term(term), rhs(rhs), clause(clause), preordered(preordered), valid(true)
   {
 #if VDEBUG
     ASS(term.containsAllVariablesOf(rhs));
@@ -142,6 +142,7 @@ struct DemodulatorData
   TermList rhs;
   Clause* clause;
   bool preordered; // whether term > rhs
+  bool valid; // we only use this object if this is true
 
   TypedTermList const& key() const { return term; }
 
@@ -204,12 +205,13 @@ struct DemodulatorDataContainer {
       unsigned removedOccs = 0;
       while (it.hasNext()) {
         auto curr = it.next();
-        if (*curr==*toRemove) {
+        if (curr->valid && *curr==*toRemove) {
           // TODO this is not good until we can
           // actually remove the node from the tree
           //
           // delete curr;
           // it.del();
+          curr->valid = false;
           removedCnt++;
           removedOccs++;
         }
