@@ -38,10 +38,10 @@ using namespace Saturation;
 struct SuperpositionConf
 {
   std::shared_ptr<LascaState> _shared;
-  // TODO make option and test and double check
-  bool _simultaneousSuperposition = true;
+  // TODO make option and test and double check (?)
+  bool _simultaneousSuperposition;
 
-  SuperpositionConf(std::shared_ptr<LascaState> shared) : _shared(shared) {  }
+  SuperpositionConf(std::shared_ptr<LascaState> shared, bool simultanious = true) : _shared(shared), _simultaneousSuperposition(simultanious) {  }
 
   static const char* name() { return "lasca superposition"; }
 
@@ -169,7 +169,8 @@ struct SuperpositionConf
 struct Superposition 
 : public BinInf<SuperpositionConf> 
 {
-  Superposition(std::shared_ptr<LascaState> shared) : BinInf<SuperpositionConf>(shared, SuperpositionConf(shared)) {}
+  template<class... Args>
+  Superposition(std::shared_ptr<LascaState> shared, Args... args) : BinInf<SuperpositionConf>(shared, SuperpositionConf(shared, args...)) {}
 };
 
 class InequalityTautologyDetection

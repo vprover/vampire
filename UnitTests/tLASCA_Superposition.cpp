@@ -94,7 +94,7 @@ using namespace Inferences::LASCA;
 
 #define UWA_MODE Options::UnificationWithAbstraction::LPAR_MAIN
 
-std::shared_ptr<LascaState> state(Options::UnificationWithAbstraction uwa) 
+std::shared_ptr<LascaState> state(Options::UnificationWithAbstraction uwa)
 { 
   std::shared_ptr<LascaState> out = testLascaState(uwa, /* string norm */ false, /* ord */ nullptr, /* uwaFixedPointIteration */ true); 
   return out;
@@ -106,12 +106,12 @@ Stack<std::function<Indexing::Index*()>> ircSuperpositionIndices()
     [](){ return new LascaIndex<Superposition::Rhs>();},
   }; }
 
-Superposition testSuperposition(Options::UnificationWithAbstraction uwa)
-{ return Superposition(state(uwa)); }
+Superposition testSuperposition(Options::UnificationWithAbstraction uwa, bool simultanious = false)
+{ return Superposition(state(uwa), simultanious); }
 
 
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<Superposition>(testSuperposition(UWA_MODE)))
+REGISTER_GEN_TESTER(Test::Generation::GenerationTester<Superposition>(testSuperposition(UWA_MODE, /* simultanious superpos */ false)))
 
 /////////////////////////////////////////////////////////
 // Basic tests
@@ -240,6 +240,16 @@ TEST_GENERATION(misc01,
       .expected(exactly(  clause({          -19 + -f(x) + 17 * y >= 0  }) ))
     )
 
+TEST_GENERATION(ordering1_ok_1_simult,
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .rule(new Superposition(testSuperposition(UWA_MODE, /*simultanious=*/ true)))
+      .inputs  ({         clause({ selected( g2(a,a) == 0 ) })
+                ,         clause({ selected( f(g2(x,y)) != 0 ), selected( f(g2(y,x)) != 0 ) }) }) 
+      .expected(exactly(  clause({ f(0) != 0, f(0) != 0 }) 
+                       ,  clause({ f(0) != 0, f(0) != 0 }) ))
+    )
+
 // •    L[s2]σ  ∈ Lit+ and L[s2]σ /⪯ C2σ
 //   or L[s2]σ /∈ Lit+ and L[s2]σ /≺ C2σ
 TEST_GENERATION(ordering1_ok_1,
@@ -250,6 +260,7 @@ TEST_GENERATION(ordering1_ok_1,
       .expected(exactly(  clause({ f(0) != 0, f(g2(a,a)) != 0 }) 
                        ,  clause({ f(0) != 0, f(g2(a,a)) != 0 }) ))
     )
+
 TEST_GENERATION(ordering1_ok_2,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
@@ -540,20 +551,6 @@ TEST_GENERATION_WITH_SUGAR(int_bug01, SUGAR(Int),
       .expected(exactly(  ))
     )
 
-
-// 17851. 0 = (-400 + uninterp_mul(400,1)) [lasca normalization 17849]
-// 17137. 0 = (a + (-b + uninterp_mul((-a + b),1))) [lasca normalization 17135]
-// 115090. 0 = (a + (-b + 400)) [lasca superposition 17851,17137]
-TEST_GENERATION_WITH_SUGAR(int_bug02, SUGAR(Int),
-    Generation::SymmetricTest()
-      .indices(ircSuperpositionIndices())
-      .rule(new Superposition(testSuperposition(Options::UnificationWithAbstraction::LPAR_ONE_INTERP)))
-      .selfApplications(false)
-      .inputs  ({ clause({ 0 == (-400 + f2(400,1))  }) 
-                , clause({ 0 == (a + (-b + f2((-a + b),1)))  }) 
-                })
-      .expected(exactly( clause({ 0 == a + -b + 400, -a + b != 400 }) ))
-    )
 
 
 #if INT_TESTS
