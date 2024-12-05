@@ -44,20 +44,6 @@ public:
   friend std::ostream& operator<<(std::ostream& out, const OrderingComparator& comp);
   std::string to_dot() const;
 
-  class Subsumption {
-  public:
-    Subsumption(OrderingComparator& subsumer, const Ordering& ord, const OrderingConstraints& comps, bool ground);
-    bool check();
-
-  private:
-    void pushNext();
-
-    OrderingComparator& subsumer;
-    OrderingComparatorUP subsumed;
-    Stack<std::tuple<Branch*,Branch*,Branch*>> path;
-    bool ground;
-  };
-
 protected:
   void expand();
   virtual void expandTermCase();
