@@ -1557,8 +1557,11 @@ Ordering::Result compare(LascaPredicate l, LascaPredicate r);
 class LascaPreprocessor {
   Map<unsigned, unsigned> _preds;
   Map<unsigned, unsigned> _funcs;
+  bool _useFloor = false;
 
-  friend class IntegerConversionFT;
+  using Z = IntTraits;
+  using R = RealTraits;
+  // friend class IntegerConversionFT;
   static constexpr InferenceRule INF_RULE = InferenceRule::LASCA_INTEGER_TRANSFORMATION;
   Literal* integerConversion(Literal* unit); 
   TermList integerConversion(TypedTermList t); 
@@ -1566,19 +1569,17 @@ class LascaPreprocessor {
   unsigned integerFunctionConversion(unsigned f); 
   unsigned integerTypeConsConversion(unsigned f); 
   Clause* integerConversion(Clause* unit); 
-  FormulaUnit* integerConversion(FormulaUnit* unit);
+  // FormulaUnit* integerConversion(FormulaUnit* unit);
   Unit* integerConversion(Unit* unit) {
-    return unit->isClause() 
-      ? (Unit*)integerConversion(static_cast<Clause*>(unit))
-      : (Unit*)integerConversion(static_cast<FormulaUnit*>(unit));
+    ASS_REP(unit->isClause(), "integer conversion needs to be performed after clausification because we don't wanna deal with FOOL & friends here")
+    return (Unit*)integerConversion(static_cast<Clause*>(unit));
+    // return unit->isClause() 
+    //   ? (Unit*)integerConversion(static_cast<Clause*>(unit))
+    //   : (Unit*)integerConversion(static_cast<FormulaUnit*>(unit));
   }
 public:
   LascaPreprocessor() : _preds() {}
-  void integerConversion(Problem& prb) {
-    for (auto& unit : iterTraits(prb.units()->iter())) {
-      unit = integerConversion(unit);
-    }
-  }
+  void integerConversion(Problem& prb);
 };
 
 // TODO move somewhere else and use

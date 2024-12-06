@@ -301,33 +301,8 @@ SelectedLiteral::SelectedLiteral(Clause* clause, unsigned litIdx, LascaState& sh
 
 std::shared_ptr<LascaState> LascaState::globalState = nullptr;
 
-/**
- * Class that uses @c NLiteralTransformer to perform transformations on formulas
- */
-class IntegerConversionFT : public FormulaTransformer
-{
-  LascaPreprocessor& _self;
-public:
-  IntegerConversionFT(LascaPreprocessor& self) : _self(self) {}
-
-protected:
-  /**
-   * Transfor atomic formula
-   *
-   * The rest of transformations is done by the @c FormulaTransformer ancestor.
-   */
-  virtual Formula* applyLiteral(Formula* f)
-  {
-    Literal* l = f->literal();
-    auto ll = _self.integerConversion(l);
-    return l == ll ? f : new AtomicFormula(ll);
-  }
-};
-
 unsigned LascaPreprocessor::integerFunctionConversion(unsigned f) {
   return _funcs.getOrInit(f, [&]() { 
-    using Z = IntTraits;
-    using R = RealTraits;
     if (Z::isAdd(f)) return R::addF();
     if (Z::isMul(f)) return R::mulF();
     if (Z::isMinus(f)) return R::minusF();
@@ -430,8 +405,9 @@ TermList LascaPreprocessor::integerConversion(TypedTermList t)
 {
   return BottomUpEvaluation<TypedTermList, TermList>()
     .function([this](TypedTermList t, TermList* args) -> TermList {
+        auto wrapFloor = _useFloor && t.sort() == IntTraits::sort();
         if (t.isVar()) {
-          return t.sort() == IntTraits::sort() ?  RealTraits::floor(t) : t;
+          return wrapFloor ?  RealTraits::floor(t) : t;
         } else {
           auto f = t.term()->functor();
           if (t.sort() == AtomicSort::superSort()) {
@@ -444,7 +420,7 @@ TermList LascaPreprocessor::integerConversion(TypedTermList t)
               return TermList(RealTraits::floor(args[0]));
             } else {
               auto out = TermList(Term::create(this->integerFunctionConversion(f), t.term()->arity(), args));
-              return t.sort() == IntTraits::sort() ? RealTraits::floor(out) : out;
+              return wrapFloor ? RealTraits::floor(out) : out;
             }
           }
         }
@@ -482,11 +458,24 @@ Literal* LascaPreprocessor::integerConversion(Literal* lit)
 
 Clause* LascaPreprocessor::integerConversion(Clause* clause)
 {
+  auto notInt = [](auto t) { return R::eq(false, t, R::floor(t)); };
   auto change = false;
   Recycled<Stack<Literal*>> res;
   for (auto l : clause->iterLits()) {
     auto ll = integerConversion(l);
     change |= ll != l;
+    if (!_useFloor) {
+      if (l->isEquality() && l->eqArgSort() == Z::sort()) {
+        ASS(ll->isEquality() && ll->eqArgSort() == R::sort() && change)
+        res->pushMany(notInt(ll->termArg(0)), notInt(ll->termArg(1)));
+      } else if (l->functor() != ll->functor() && theory->isInterpretedPredicate(ll->functor())) {
+        auto sym = env.signature->getPredicate(ll->functor())->predType();
+        ASS(ll->arity() == l->arity())
+        res->loadFromIterator(range(0, l->numTermArguments())
+            .filter([&](auto i) { return SortHelper::getTermArgSort(l, i) == Z::sort(); })
+            .map([&](auto i) { return notInt(ll->termArg(i)); }));
+      }
+    }
     res->push(ll);
   }
   if (change) {
@@ -495,11 +484,28 @@ Clause* LascaPreprocessor::integerConversion(Clause* clause)
     return clause;
   }
 }
-FormulaUnit* LascaPreprocessor::integerConversion(FormulaUnit* unit)
+
+void LascaPreprocessor::integerConversion(Problem& prb)
 {
-  IntegerConversionFT ftrans(*this);
-  FTFormulaUnitTransformer<decltype(ftrans)> futrans(INF_RULE, ftrans);
-  return futrans.transform(unit);
+  for (auto& unit : iterTraits(prb.units()->iter())) {
+    unit = integerConversion(unit);
+  }
+  if (!_useFloor) {
+    for (auto& func : iterTraits(_funcs.iter())) {
+      auto orig_sym = env.signature->getFunction(func.key());
+      if (!theory->isInterpretedFunction(func.value()) && !R::isNumeral(func.value())) {
+        auto sym = env.signature->getFunction(func.value());
+        if (orig_sym->fnType()->result() == Z::sort()) {
+          auto t = TermList(Term::createFromIter(func.value(), range(0, sym->arity()).map([](auto x) { return TermList::var(x); })));
+          // TODO use something else than NonspecificInferenceMany
+          auto inf = Inference(NonspecificInferenceMany(INF_RULE, nullptr));
+          auto cl = Clause::fromLiterals({R::eq(true, R::floor(t), t)}, inf);
+          UnitList::push(cl, prb.units());
+        }
+      }
+    }
+  }
+  
 }
 
 } // namespace Kernel
