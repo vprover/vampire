@@ -1557,6 +1557,7 @@ Ordering::Result compare(LascaPredicate l, LascaPredicate r);
 class LascaPreprocessor {
   Map<unsigned, unsigned> _preds;
   Map<unsigned, unsigned> _funcs;
+  // TODO create option for this
   bool _useFloor = false;
 
   using Z = IntTraits;
