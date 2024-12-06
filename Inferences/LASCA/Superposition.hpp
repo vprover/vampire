@@ -136,7 +136,9 @@ struct SuperpositionConf
                  .map([=](auto t) { return Rhs(sel, t, inLitPlus); }))
                ;
            }
-        });
+        })
+      .inspect([](auto& x) { ASS(x.literal()->containsSubterm(x.toRewrite())); })
+      ;
     }
       
 

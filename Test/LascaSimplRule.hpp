@@ -42,7 +42,7 @@ struct LascaSimplRule
   }
 
   ClauseGenerationResult generateSimplify(Clause* premise) final override {
-    auto res = _rule.generateSimplify(premise);
+    auto res = _rule.generateSimplify(_norm.simplify(premise));
     return ClauseGenerationResult {
       .clauses = pvi(iterTraits(std::move(res.clauses))
             .filterMap([this](auto cl) { 
@@ -101,7 +101,12 @@ class LascaGenerationTester : public Test::Generation::GenerationTester<LascaSim
  public:
   LascaGenerationTester(LascaSimplRule<Rule> r) : Test::Generation::GenerationTester<LascaSimplRule<Rule>>(std::move(r)) { }
 
-  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs)
+
+
+  virtual Clause* normalize(Kernel::Clause* c) override 
+  { return Test::Generation::GenerationTester<LascaSimplRule<Rule>>::_rule._norm.simplify(c); }
+
+  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) override
   { 
     // auto vars = [](auto cl) { return cl->iterLits()
     //   .flatMap([](auto l) { return VariableIterator(l); })

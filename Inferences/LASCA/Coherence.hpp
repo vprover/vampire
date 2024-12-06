@@ -25,6 +25,7 @@
 #include "Kernel/Ordering.hpp"
 #include "Indexing/LascaIndex.hpp"
 #include "BinInf.hpp"
+#include "Kernel/PolynomialNormalizer.hpp"
 #include "Lib/Backtrackable.hpp"
 #include "Lib/Recycled.hpp"
 #include "Lib/Reflection.hpp"
@@ -142,11 +143,13 @@ public:
               [&shared, rhs, toRewrite](auto ks_t_term) { 
                 auto ks_t = toSum(shared, ks_t_term);
                 return range(0, (*ks_t)->size())
-                      .map([rhs,ks_t,toRewrite](unsigned sIdx) { return Rhs { rhs, toRewrite, ks_t, sIdx }; }); 
+                      .map([rhs,ks_t,toRewrite](unsigned sIdx) { return Rhs { rhs, toRewrite, ks_t, sIdx }; })
+                      .filter([](auto x) { return !x.key().isVar(); }); 
               }); 
             })
         .flatten();
     }
+
     friend std::ostream& operator<<(std::ostream& out, Rhs const& self)
     { return out << self.self << "@" << self.toRewrite << "@" << TermList(self.key()); }
   };
@@ -161,6 +164,8 @@ public:
       AbstractingUnifier& uwa
       ) const 
   {
+
+
     auto j = lhs.j();
     ASS(j > 0)
     auto k = (**rhs.ks_t)[rhs.sIdx].second;
@@ -190,8 +195,12 @@ public:
     auto sigmaL = [&](auto t) { return uwa.subs().apply(t, lhsVarBank); };
     auto sigmaR = [&](auto t) { return uwa.subs().apply(t, rhsVarBank); };
 
+
     auto Lσ         = sigmaR(rhs.self.literal());
     auto toRewriteσ = sigmaR(rhs.toRewrite);
+    ASS(rhs.self.literal()->containsSubterm(rhs.toRewrite))
+    ASS(Lσ->containsSubterm(toRewriteσ))
+    auto ks_t = rhs.toRewrite.term()->termArg(0);
     auto ks_tσ = toRewriteσ.term()->termArg(0);
 
     // TODO side condition checks after unification!!
@@ -200,7 +209,8 @@ public:
     auto floor = [](auto... as){ return NumTraits::floor(as...); };
     auto mul = [](auto n, auto t){ return NumTraits::mul(NumTraits::constantTl(n), t); };
     auto cnstr = uwa.computeConstraintLiterals();
-    auto js_uσ = sigmaL(add(mul(j, lhs.s()), lhs.u()));
+    auto js_u = add(mul(j, lhs.s()), lhs.u());
+    auto js_uσ = sigmaL(js_u);
 
     return someIf(i != 0, [&]() {
         return Clause::fromIterator(
@@ -209,6 +219,7 @@ public:
             rhs.contextLiterals().map([=](auto l) { return sigmaR(l); }),
             arrayIter(*cnstr).map([](auto& literal) { return literal; }),
             iterItems(EqHelper::replace(Lσ, toRewriteσ, 
+                // TermList::var(0)
                 add(floor(add(ks_tσ, mul(-i, js_uσ))), mul(i, js_uσ))
             ))
           ), 

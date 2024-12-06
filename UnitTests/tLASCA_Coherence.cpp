@@ -470,3 +470,28 @@ TEST_GENERATION(numeral_1,
                  , clause({ selected(p(floor(b + frac(1,6))) )  }) })
       .expected(exactly(/* nothing */))
     )
+
+
+TEST_GENERATION(bug01,
+    Generation::SymmetricTest()
+      .indices(lascaCoherenceIndices())
+      .selfApplications(false)
+      .inputs  ({ clause({ isInteger(f2(x,y) + 0)  }) 
+                 , clause({  0 != (x + y + -f2(y,x) + -floor(x + y + -f2(y,x))) /*, 0 == (x + y + -f2(y,x))*/ }) 
+                 })
+      .expected(exactly(
+                   clause({  0 != (x + y + -floor(x + y)) /*, 0 == (x + y + -f2(y,x))*/ })
+          /* nothing */))
+    )
+
+TEST_GENERATION(bug02,
+    Generation::SymmetricTest()
+      .indices(lascaCoherenceIndices())
+      .selfApplications(false)
+      .inputs  ({ clause({ isInteger(f2(x,y) + 0)  }) 
+                 , clause({  
+                     0 != (x + y + -f2(y,x) + -floor(x + y + -f2(y,x))) , 0 == (x + y + -f2(y,x))
+                       }) })
+      .expected(EXPECTED_TODO())
+      // .expected(exactly(/* nothing */))
+    )

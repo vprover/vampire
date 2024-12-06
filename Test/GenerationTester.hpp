@@ -176,6 +176,9 @@ public:
     : _rule(std::move(rule)) 
   {  }
 
+  virtual Clause* normalize(Kernel::Clause* c)
+  { return c; }
+
   virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs)
   { return TestUtils::eqModACRect(lhs, rhs); }
 
@@ -236,6 +239,11 @@ public:
 
   template<class Rule>
   void run(GenerationTester<Rule>& simpl) {
+
+    for (auto& c : _context) {
+      c = simpl.normalize(c);
+    }
+    _input = simpl.normalize(_input);
 
     // set up saturation algorithm
     auto container = ActiveClauseContainer();
