@@ -105,6 +105,7 @@ struct TermSpec {
   bool isTerm() const { return term.isTerm(); }
 
   TermSpec termArgSort(unsigned i) const { return TermSpec(SortHelper::getTermArgSort(term.term(), i), index); }
+  TermSpec anyArgSort(unsigned i) const { return TermSpec(SortHelper::getArgSort(term.term(), i), index); }
 
   unsigned nTypeArgs() const { return term.term()->numTypeArguments(); }
   unsigned nTermArgs() const { return term.term()->numTermArguments(); }
@@ -140,6 +141,7 @@ struct TermSpec {
   unsigned functor() const { return term.term()->functor(); }
 
   TermList toTerm(Kernel::RobSubstitution& s) const;
+
 
   bool isSort() const
   { return this->term.term()->isSort(); }

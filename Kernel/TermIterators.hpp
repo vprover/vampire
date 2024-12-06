@@ -856,6 +856,12 @@ static const auto termArgIter = [](Term const* term)
       .map([=](auto i)
            { return term->termArg(i); }); };
 
+/** iterator over all term arguments of @code term */
+static const auto termArgIterTyped = [](Term const* term) 
+  { return range((unsigned)0, term->numTermArguments())
+      .map([=](auto i)
+           { return TypedTermList(term->termArg(i), SortHelper::getArgSort(term, i)); }); };
+
 /** iterator over all type arguments of @code term */
 static const auto typeArgIter = [](Term const* term) 
   { return range((unsigned)0, term->numTypeArguments())

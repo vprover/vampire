@@ -1774,6 +1774,10 @@ public:
   auto zipWithIndex()
   { return map([idx = 0](Elem x) mutable { return std::make_pair(std::move(x), idx++); }); }
 
+  template<class Val>
+  auto store(Val v) 
+  { return map([v = std::move(v)](Elem x) -> Elem { return x; }); }
+
   auto reverse() &&
   { return iterTraits(std::move(_iter).reverse()); }
 

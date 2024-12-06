@@ -1160,12 +1160,14 @@ void checkRobUnifyFail(bool diffNamespaces, Options::UnificationWithAbstraction 
   }
 }
 
-#define ROB_UNIFY_TEST_NAMESPACED(name, opt, fixedPointIteration, lhs, rhs, ...)          \
+#define ROB_UNIFY_TEST_NAMESPACED_WITH_SUGAR(name, sugar, opt, fixedPointIteration, lhs, rhs, ...)          \
   TEST_FUN(name)                                                                          \
   {                                                                                       \
-    __ALLOW_UNUSED(SUGAR(Rat))                                                            \
+    __ALLOW_UNUSED(sugar)                                                            \
     checkRobUnify(/* namespaced */ true, opt, fixedPointIteration, lhs, rhs,  __VA_ARGS__ );                                                     \
   }                                                                                       \
+
+#define ROB_UNIFY_TEST_NAMESPACED(name, ...) ROB_UNIFY_TEST_NAMESPACED_WITH_SUGAR(name, SUGAR(Rat), __VA_ARGS__)
 
 #define ROB_UNIFY_TEST(name, sugar, opt, fixedPointIteration, lhs, rhs, ...)              \
   TEST_FUN(name)                                                                          \
@@ -2546,6 +2548,19 @@ ROB_UNIFY_TEST(floor_test_14,
       .querySigma  = f(a + b),
       .resultSigma = f(b + a),
       .constraints = Stack<Literal*>{},
+      // .lascaSimpl = true,
+    })
+
+ROB_UNIFY_TEST_NAMESPACED_WITH_SUGAR(floor_test_15,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR,
+    /* fixedPointIteration */ false,
+    floor(f(x)),
+    floor(f(x)),
+    TermUnificationResultSpec { 
+      .querySigma  = floor(f(x)),
+      .resultSigma = floor(f(x)),
+      .constraints = noConstraints()
       // .lascaSimpl = true,
     })
 

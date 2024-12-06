@@ -715,3 +715,17 @@ TEST_GENERATION(abstraction_bug01b,
       ))
     )
  
+ 
+TEST_GENERATION(is_int_skip_app,
+    Generation::SymmetricTest()
+      .indices(ircSuperpositionIndices())
+      .rule(new Superposition(testSuperposition(Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR)))
+      .selfApplications(true)
+      .inputs  ({ 
+          clause({ f(x) == floor(f(x))  }),
+        })
+      .expected(exactly(
+          // nothing
+      ))
+    )
+ 
