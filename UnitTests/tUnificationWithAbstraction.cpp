@@ -2538,7 +2538,7 @@ ROB_UNIFY_TEST(floor_test_11,
       .lascaSimpl = true,
     })
 
-ROB_UNIFY_TEST(floor_test_14,
+ROB_UNIFY_TEST_NAMESPACED_WITH_SUGAR(floor_test_14,
     SUGAR(Real),
     Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR,
     /* fixedPointIteration */ false,

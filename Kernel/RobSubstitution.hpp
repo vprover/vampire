@@ -67,7 +67,7 @@ struct VarSpec
 struct TermSpec {
   TermSpec() {}
 
-  TermSpec(TermList t, int i) : term(t), index(i) {}
+  TermSpec(TermList t, int i) : term(t), index(t.isTerm() && t.term()->shared() && t.ground() ? 0 : i) {}
   TermSpec(VarSpec v) : term(TermList::var(v.var)), index(v.index) {}
 
   auto asTuple() const -> decltype(auto) { return std::tie(term, index); }

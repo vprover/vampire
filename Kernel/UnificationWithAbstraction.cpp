@@ -793,19 +793,23 @@ struct FloorUwaState {
   }
 
   static FloorUwaState add(AbstractingUnifier& au, FloorUwaState s1, FloorUwaState s2) {
-    // TODO simplify here
     auto mergeArray = [](auto& l, auto& r) { 
-      l.sort();
-      r.sort();
+      auto compare = [](auto& l, auto& r) { return TermSpec::compare(l.first, r.first, 
+          [](auto& t) -> auto& { return t; }); };
+      //  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      // TODO create option for "deep" compare using a differnt deref clsoure
+      l.sort([&](auto& l, auto& r) { return compare(l, r) < 0; });
+      r.sort([&](auto& l, auto& r) { return compare(l, r) < 0; });
       auto li = 0;
       auto ri = 0;
       auto lEnd = l.size();
       auto rEnd = r.size();
       while (li < lEnd && ri < rEnd) {
-        if (l[li].first == r[ri].first) {
+        auto cmp = compare(l[li], r[ri]);
+        if (cmp == 0) {
           l[li].second += r[ri].second;
           ri++;
-        } else if (l[li] > r[ri]) {
+        } else if (cmp > 0) {
           l.push(r[ri++]);
         } else {
           li++;
