@@ -51,7 +51,7 @@ std::ostream& operator<<(std::ostream& out, const OrderingComparator::Node& node
       break;
     }
     case OrderingComparator::BranchTag::T_POLY: {
-      out << node.poly;
+      out << *node.poly;
       break;
     }
     case OrderingComparator::BranchTag::T_TERM: {
