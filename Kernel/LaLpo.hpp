@@ -85,7 +85,6 @@ public:
 
   void show(std::ostream& out) const final override;
 
-  void setState(std::shared_ptr<LascaState> s) { _shared = std::move(s); }
 
   enum class Pred 
   { Eq, Neq, Greater, Geq, Uninterpreted };
@@ -116,7 +115,6 @@ private:
   Comparison cmpFun(Term* s, Term* t) const;
 
   Precedence _prec;
-  std::shared_ptr<LascaState> _shared;
 };
 
 } // namespace Kernel

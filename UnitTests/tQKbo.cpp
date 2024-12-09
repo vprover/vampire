@@ -103,13 +103,8 @@ void check_in_different_contexts(QKbo& ord, TermList l, QKbo::Result exp, TermLi
 }
 
 QKbo& qkbo(bool rand = false) {
-    
-  auto out = new QKbo(KBO::testKBO(rand, /* qkboPrec */ true));
-  auto shared = testLascaState(Options::UnificationWithAbstraction::LPAR_MAIN, 
-    /* strongNormalization */ false, 
-    /* ordering */ out);
-  out->setState(shared);
-  return *out;
+  auto n = make_shared(InequalityNormalizer(/* strong */ false));
+  return *new QKbo(KBO::testKBO(rand, /* qkboPrec */ true), n);
 }
 
 
@@ -311,9 +306,10 @@ TEST_FUN(misc02) {
 }
 
 #define SIGNED_ATOM_TEST_FUNS                                                             \
+  auto& ord = qkbo();                                                                     \
                                                                                           \
   auto signedAtoms = [&](auto t) -> Option<Recycled<SignedAtoms>>                         \
-    { return LascaState::globalState->template signedAtoms<RealTraits>(t); };             \
+    { return ord.template signedAtoms<RealTraits>(t); };                                  \
                                                                                           \
   auto none = Option<Recycled<SignedAtoms>>();                                            \
   auto some = [&](int i, Stack<SignedTerm> ts)                                            \
@@ -332,7 +328,6 @@ TEST_FUN(normal_subsafe) {
   // DECL_CONST(c, Real)
   DECL_FUNC (f, {Real}, Real)
 
-  (void) qkbo();
   SIGNED_ATOM_TEST_FUNS
 
   ASS_EQ(signedAtoms(frac(1,2) * x + 7 * a), none);
@@ -378,8 +373,6 @@ TEST_FUN(normal_form_lcm) {
   DECL_CONST(b, Real)
   // DECL_CONST(c, Real)
   // DECL_FUNC (f, {Real}, Real)
-
-  (void) qkbo();
 
   SIGNED_ATOM_TEST_FUNS
 
@@ -596,7 +589,6 @@ TEST_FUN(normal_form01) {
   // DECL_CONST(c, Real)
   DECL_FUNC (f, {Real}, Real)
 
-  (void) qkbo();
   SIGNED_ATOM_TEST_FUNS
 #define CHECK_EQ(is, exp) {                                                               \
     if (is != exp) {                                                                      \

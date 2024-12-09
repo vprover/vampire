@@ -60,7 +60,7 @@ struct CoherenceConf
   static SharedSum toSum(LascaState& shared, TermList t) {
     RStack<std::pair<TermList, N>> rstack; 
     rstack->loadFromIterator( 
-        shared.normalize(t)
+        shared.norm().normalize(t)
           .template wrapPoly<NumTraits>()
           ->iterSummands()
           .map([](auto monom) { return std::make_pair(monom.factors->denormalize(), monom.numeral); }));
@@ -262,7 +262,7 @@ struct CoherenceNormalization : SimplifyingGeneratingInference {
     auto floor_s = prem.biggerSide();
     auto t = prem.smallerSide();
     auto floor_t = NumTraits::floor(t);
-    if (shared->equivalent(floor_s, floor_t) ) {
+    if (shared->norm().equivalent(floor_s, floor_t) ) {
       return {};
     } else {
       return some(Clause::fromIterator(

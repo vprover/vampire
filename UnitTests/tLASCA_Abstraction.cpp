@@ -64,17 +64,9 @@ using namespace Inferences::LASCA;
 
 #define UWA_MODE Options::UnificationWithAbstraction::LPAR_MAIN
 
-
-
-inline std::shared_ptr<LascaState> state(Options::UnificationWithAbstraction uwa) 
-{ 
-  std::shared_ptr<LascaState> out = testLascaState(uwa, /* string norm */ false, /* ord */ nullptr, /* uwaFixedPointIteration */ true); 
-  return out;
-}
-
 inline auto testAbstraction(Options::UnificationWithAbstraction uwa)
 { 
-  auto s = state(uwa);
+  auto s = testLascaState(uwa);
   return lascaSimplRule(toSgi(Abstraction<RealTraits>(s)), Normalization(s));
 }
 

@@ -82,12 +82,12 @@ struct LascaOrderingUtils {
 
 struct LAKBO {
   KBO _kbo;
-  std::shared_ptr<LascaState> _state;
+  std::shared_ptr<InequalityNormalizer> _norm;
 
-  LAKBO(KBO kbo) : _kbo(std::move(kbo)) {}
-  LAKBO(Problem& prb, const Options& opt) : LAKBO(KBO(prb, opt)) {}
-  void setState(std::shared_ptr<LascaState> s) { _state = std::move(s); }
-  LascaState& shared() const { return *_state; }
+  LAKBO(KBO kbo, std::shared_ptr<InequalityNormalizer> norm) : _kbo(std::move(kbo)), _norm(std::move(norm)) {}
+  LAKBO(Problem& prb, const Options& opt) : LAKBO(KBO(prb, opt), InequalityNormalizer::global()) {}
+
+  InequalityNormalizer& norm() const { return *_norm; }
 
   void show(std::ostream& out) const { return _kbo.show(out); }
 
@@ -126,7 +126,7 @@ struct LAKBO {
   { return cmpSameSkeleton(t0, *t1.template wrapPoly<NumTraits>()); }
 
   Ordering::Result cmpSameSkeleton(TermList t0, TermList t1) const 
-  { return cmpSameSkeleton(shared().normalize(t0), shared().normalize(t1)); }
+  { return cmpSameSkeleton(norm().normalize(t0), norm().normalize(t1)); }
 
   Ordering::Result cmpSameSkeleton(AnyPoly const& t0, PolyNf const& t1) const 
   { return t0.apply([&](auto& t0) { return cmpSameSkeleton(*t0, t1); }); }
@@ -268,7 +268,7 @@ struct LAKBO {
   // TODO atoms of equalities normalizing!!!
 
   auto skeleton(TermList t) const 
-  { return skeleton(shared().normalize(t)); }
+  { return skeleton(norm().normalize(t)); }
 
   template<class Term>
   Ordering::Result compare(Term const& t0, Term const& t1) const 
@@ -297,7 +297,7 @@ struct LAKBO {
       ||(t1.isTerm() && t1.term()->isSort())) {
       return _kbo.compare(t0, t1);
     } else {
-      return compare(shared().normalize(t0), shared().normalize(t1));
+      return compare(norm().normalize(t0), norm().normalize(t1));
     }
   }
 
@@ -363,12 +363,12 @@ class LiteralOrdering
   }
 
   Option<MultiSet<Atom>> atoms(Literal* l) const {
-    if (auto lasca = _termOrdering.shared().normalizer.renormalize(l)) {
+    if (auto lasca = _termOrdering.norm().renormalize(l)) {
       return some(atoms(*lasca));
     } else if (l->isEquality()) {
       auto sym = l->isPositive() ? LascaPredicate::EQ : LascaPredicate::NEQ;
       return some(iterItems(l->termArg(0), l->termArg(1))
-        .map([&](auto t) { return std::make_tuple(_termOrdering.shared().normalize(t), lvl(sym), AnyNumeral(std::make_tuple())); })
+        .map([&](auto t) { return std::make_tuple(_termOrdering.norm().normalize(t), lvl(sym), AnyNumeral(std::make_tuple())); })
         .template collect<MultiSet>());
     } else {
       return {};
@@ -421,12 +421,8 @@ public:
   virtual ~LiteralOrdering() {}
 
   Result compare(Literal* l1, Literal* l2) const override {
-    // auto lasca1 = _termOrdering.shared().normalizer.renormalize(l1);
-    // auto lasca2 = _termOrdering.shared().normalizer.renormalize(l2);
     auto atoms1 = atoms(l1);
     auto atoms2 = atoms(l2);
-    // auto interp1 = lasca1.isSome() || l1->isEquality();
-    // auto interp2 = lasca2.isSome() || l2->isEquality();
     if (!atoms1.isSome() && atoms2.isSome()) {
       return Ordering::GREATER;
 
@@ -451,8 +447,6 @@ public:
 
   void show(std::ostream& out) const final override 
   { _termOrdering.show(out); }
-
-  void setState(std::shared_ptr<LascaState> s) { _termOrdering.setState(std::move(s)); }
 
 private:
 

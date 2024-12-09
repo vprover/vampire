@@ -62,25 +62,15 @@ using namespace Inferences::LASCA;
 
 #define MY_SYNTAX_SUGAR SUGAR(Real)
 
-#define UWA_MODE Options::UnificationWithAbstraction::LPAR_MAIN
-
-
-
-inline std::shared_ptr<LascaState> state(Options::UnificationWithAbstraction uwa) 
+inline auto testCoherenceNormalization(Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LPAR_MAIN)
 { 
-  std::shared_ptr<LascaState> out = testLascaState(uwa, /* string norm */ false, /* ord */ nullptr, /* uwaFixedPointIteration */ true); 
-  return out;
-}
-
-inline auto testCoherenceNormalization(Options::UnificationWithAbstraction uwa)
-{ 
-  auto s = state(uwa);
+  auto s = testLascaState(uwa);
   return lascaSimplRule(CoherenceNormalization<RealTraits>(s), Normalization(s));
 }
 
 
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<LascaSimplRule<CoherenceNormalization<RealTraits>>>(testCoherenceNormalization(UWA_MODE)))
+REGISTER_GEN_TESTER(Test::Generation::GenerationTester<LascaSimplRule<CoherenceNormalization<RealTraits>>>(testCoherenceNormalization()))
 
 /////////////////////////////////////////////////////////
 // Basic tests

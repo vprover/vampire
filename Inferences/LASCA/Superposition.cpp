@@ -161,7 +161,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult InequalityTautologyDetect
   Map<AnyLascaLiteral, bool, StlHash> lits;
   TIME_TRACE("lasca tautology detection")
   for (auto lit : iterTraits(premise->iterLits())) {
-    auto norm_ = _shared->renormalize(lit);
+    auto norm_ = _shared->norm().renormalize(lit);
     if (norm_.isSome()) {
       auto norm = norm_.unwrap();
       lits.insert(norm, true);

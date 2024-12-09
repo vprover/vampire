@@ -81,7 +81,7 @@ auto getLiteralIndex()
 //   {
 //     static shared_ptr<LascaState> state = testLascaState();
 //     auto eq = [&](auto t1, auto t2) { 
-//       return (l.lascaSimpl || r.lascaSimpl) ? state->equivalent(t1, t2)
+//       return (l.lascaSimpl || r.lascaSimpl) ? state->norm().equivalent(t1, t2)
 //                                             : Test::TestUtils::eqModAC(t1, t2);
 //     };
 //     return eq(l.querySigma, r.querySigma)
@@ -111,7 +111,7 @@ struct UnificationResultSpec {
   {
     static shared_ptr<LascaState> state = testLascaState();
     auto eq = [&](auto t1, auto t2) { 
-      return (l.lascaSimpl || r.lascaSimpl) ? state->equivalent(t1, t2)
+      return (l.lascaSimpl || r.lascaSimpl) ? state->norm().equivalent(t1, t2)
                                             : Test::TestUtils::eqModAC(t1, t2);
     };
     return eq(l.querySigma, r.querySigma)

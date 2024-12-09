@@ -14,7 +14,6 @@ namespace Kernel {
 
 LaLpo::LaLpo(Precedence prec) 
   : _prec(std::move(prec))
-  , _shared(nullptr)
 {
 }
 

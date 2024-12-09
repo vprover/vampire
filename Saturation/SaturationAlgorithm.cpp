@@ -252,6 +252,8 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
 
   _activationLimit = opt.activationLimit();
 
+  InequalityNormalizer::initGlobal(InequalityNormalizer(env.options->lascaStrongNormalization()));
+
   _ordering = OrderingSP(Ordering::create(prb, opt));
   if (!Ordering::trySetGlobalOrdering(_ordering)) {
     //this is not an error, it may just lead to lower performance (and most likely not significantly lower)
@@ -1635,17 +1637,11 @@ SaturationAlgorithm* SaturationAlgorithm::createFromOptions(Problem& prb, const 
   auto ise = createISE(prb, opt, ordering);
   if (env.options->lasca()) {
     auto shared = Kernel::LascaState::create(
-        InequalityNormalizer(env.options->lascaStrongNormalization()), 
+        InequalityNormalizer::global(),
         &ordering, 
         env.options->unificationWithAbstraction(),
         env.options->unificationWithAbstractionFixedPointIteration()
         );
-#define SET_ORD_STATE(Ord, getOrd)                                                                  \
-    if(auto* o = dynamic_cast<Ord*>(&ordering)) { getOrd(*o).setState(shared); }
-
-    SET_ORD_STATE(LiteralOrdering<LAKBO>, [](auto& o) -> decltype(auto) { return o; })
-    SET_ORD_STATE(Kernel::QKbo, [](auto& o) -> decltype(auto) { return o; })
-    SET_ORD_STATE(Kernel::LaLpo, [](auto& o) -> decltype(auto) { return o; })
     if (env.options->lascaDemodulation()) {
       res->addForwardSimplifierToFront(new LASCA::FwdDemodulation(shared));
       res->addBackwardSimplifierToFront(new LASCA::BwdDemodulation(shared));

@@ -59,7 +59,9 @@ private:
                             Option<Clause*> applyRule(SelectedSummand const& l, SelectedSummand const& r, Stack<TermList> const& maxAtoms);
   template<class NumTraits> Option<Clause*> applyRule(SelectedSummand const& l, SelectedSummand const& r, Stack<TermList> const& maxAtoms);
 
-  InequalityNormalizer const& normalizer() const { return _shared->normalizer; }
+  [[deprecated("TODO remove me")]]
+  InequalityNormalizer const& normalizer() const { return _shared->norm(); }
+  [[deprecated("TODO remove me")]]
   Ordering* ord() const { return _shared->ordering; }
   
   std::shared_ptr<LascaState> _shared;

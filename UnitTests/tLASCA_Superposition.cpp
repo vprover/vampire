@@ -94,12 +94,6 @@ using namespace Inferences::LASCA;
 
 #define UWA_MODE Options::UnificationWithAbstraction::LPAR_MAIN
 
-std::shared_ptr<LascaState> state(Options::UnificationWithAbstraction uwa)
-{ 
-  std::shared_ptr<LascaState> out = testLascaState(uwa, /* string norm */ false, /* ord */ nullptr, /* uwaFixedPointIteration */ true); 
-  return out;
-}
-
 Stack<std::function<Indexing::Index*()>> ircSuperpositionIndices()
 { return {
     [](){ return new LascaIndex<Superposition::Lhs>();},
@@ -107,7 +101,7 @@ Stack<std::function<Indexing::Index*()>> ircSuperpositionIndices()
   }; }
 
 Superposition testSuperposition(Options::UnificationWithAbstraction uwa, bool simultanious = false)
-{ return Superposition(state(uwa), simultanious); }
+{ return Superposition(testLascaState(uwa), simultanious); }
 
 
 

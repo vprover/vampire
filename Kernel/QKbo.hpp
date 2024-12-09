@@ -37,15 +37,17 @@ using namespace Lib;
 class QKbo
   : public Ordering
 {
+  std::shared_ptr<InequalityNormalizer> _norm;
+  KBO _kbo;
 public:
   USE_ALLOCATOR(QKbo);
 
   QKbo(QKbo&& kbo) = default;
   QKbo& operator=(QKbo&& kbo) = default;
-  explicit QKbo(KBO kbo);
+  explicit QKbo(KBO kbo, std::shared_ptr<InequalityNormalizer> norm);
 
   QKbo(Problem& prb, const Options& opts)
-    : QKbo(KBO(prb,opts, /* qkboPrecedence */ true)) {}
+    : QKbo(KBO(prb, opts, /* qkboPrecedence */ true), InequalityNormalizer::global()) {}
 
   virtual ~QKbo() {}
 
@@ -54,9 +56,8 @@ public:
 
   void show(std::ostream& out) const final override;
 
-  void setState(std::shared_ptr<LascaState> s) { _shared = std::move(s); }
-
 private:
+  auto& norm() const { return *_norm; }
 
   auto asClosure() const
   { return [this](auto const& l, auto const& r) { return this->compare(l, r); }; }
@@ -67,7 +68,7 @@ public:
   {
     ASS(l->isEquality())
     using Num = typename NumTraits::ConstantType;
-    auto norm = _shared->renormalize<NumTraits>(l).unwrap();
+    auto norm = this->norm().template renormalize<NumTraits>(l).unwrap();
     Recycled<MultiSet<TermList>> out;
     out->init(
       NumTraits::sum(
@@ -95,7 +96,7 @@ public:
   // the signs are not used here, but only there since we reuse code from signedAtoms and don't want to copy the datastructure.
   Option<AtomsWithLvl> atomsWithLvl(Literal* literal) const
   {
-    ASS(_shared->interpretedPred(literal))
+    ASS(LascaState::interpretedPred(literal))
     TermList term;
     uint8_t level;
     auto f = literal->functor();
@@ -114,10 +115,69 @@ public:
       level = literal->isPositive() ? POS_IS_INT_LEVEL : NEG_IS_INT_LEVEL;
     }
 
-    return _shared->signedAtoms<NumTraits>(term)
+    return signedAtoms<NumTraits>(term)
       .map([level](auto atoms) {
           return std::make_tuple(std::move(atoms), level);
       });
+  }
+
+  std::tuple<IntegerConstantType, Perfect<Polynom<IntTraits>>> divNf(Perfect<Polynom<IntTraits>> t) const
+  { return std::make_tuple(IntegerConstantType(1), t); }
+
+  template<class NumTraits>
+  std::tuple<IntegerConstantType, Perfect<Polynom<NumTraits>>> divNf(Perfect<Polynom<NumTraits>> t) const
+  {
+    auto l = t->iterSummands()
+      .map([](auto s) { return s.numeral.denominator(); })
+      .fold(IntegerConstantType(1), [&](auto acc, auto next)
+               { return IntegerConstantType::lcm(acc, next); });
+    return std::make_tuple(l.abs(), typename NumTraits::ConstantType(l, IntegerConstantType(1)) * t);
+  }
+
+  template<class NumTraits>
+  Option<Recycled<SignedAtoms>> signedAtoms(TermList t) const
+  {
+    auto n = norm().normalize(TypedTermList(t, NumTraits::sort())).template wrapPoly<NumTraits>();
+    auto atoms = rmNum(divNf(n));
+    if (hasSubstitutionProperty(*atoms)) {
+      return Option<decltype(atoms)>(std::move(atoms));
+    } else {
+      return Option<decltype(atoms)>();
+    }
+  }
+
+  bool hasSubstitutionProperty(SignedAtoms const& l) const;
+
+  template<class NumTraits>
+  Recycled<WeightedMultiSet<SignedTerm>> rmNum(std::tuple<IntegerConstantType, Perfect<Polynom<NumTraits>>> t) const
+  {
+    Recycled<WeightedMultiSet<SignedTerm>> out;
+
+    out->elems.raw().loadFromIterator(
+        std::get<1>(t)->iterSummands()
+              .map([](auto s) {
+                auto count  = ifOfType<IntegerConstantType>(s.numeral,
+                               [&](IntegerConstantType num) { return num; },
+                                /* decltype(num) in { RatTraits, RealTraits } */
+                               [&](auto num) {
+                                 ASS_EQ(num.denominator(), IntegerConstantType(1))
+                                 return num.numerator();
+                               }).abs();
+                if (count == IntegerConstantType(0)) {
+                  ASS(s.numeral.sign() == Sign::Zero)
+                  count = IntegerConstantType(1);
+                }
+                SignedTerm term = {
+                  .sign = s.numeral.sign(),
+                  .term = s.factors->denormalize(),
+                };
+                return std::make_tuple(term, count);
+              })
+        );
+    std::sort(out->elems.raw().begin(), out->elems.raw().end(), [](auto& l, auto& r) { return std::get<0>(l) < std::get<0>(r); });
+    out->weight = std::get<0>(t);
+    out->elems.integrity();
+    return out;
   }
 
 
@@ -157,8 +217,6 @@ private:
   Result cmpNonAbstr(TermList, TermList) const;
   Option<TermList> abstr(TermList) const;
 
-  std::shared_ptr<LascaState> _shared;
-  KBO _kbo;
 };
 
 } // namespace Kernel

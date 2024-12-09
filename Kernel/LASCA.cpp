@@ -63,53 +63,6 @@ std::ostream& operator<<(std::ostream& out, LascaPredicate const& self)
 }
 
 
-bool LascaState::hasSubstitutionProperty(SignedAtoms const& l)
-{
-
-  auto maybeEquiv = [this](TermList l, TermList r) -> bool 
-  {
-    ASS_NEQ(l, r)
-
-    if (l.ground() && r.ground()) {
-      return this->equivalent(l.term(), r.term());
-
-    } else if (this->unify(l, r).isSome()) {
-      return true;
-
-    } else {
-      return false;
-    }
-  };
-
-  Stack<TermList> pos;
-  Stack<TermList> neg;
-  for (auto const& t_ : l.elems.iter()) {
-    auto const& sign = std::get<0>(t_).sign;
-    auto const& term = std::get<0>(t_).term;
-
-    if (term.isVar() && sign != Sign::Zero) {
-      if (concatIters(pos.iterFifo(), neg.iterFifo()).any([&](auto s) { return maybeEquiv(s, term); })) {
-        return false;
-      }
-      pos.push(term);
-      neg.push(term);
-    } else if (sign != Sign::Zero) {
-
-      auto& same  = sign == Sign::Pos ? pos : neg;
-      auto& other = sign == Sign::Pos ? neg : pos;
-
-      if (iterTraits(other.iterFifo())
-        .any([&](auto s) { return maybeEquiv(s, term); })) 
-      {
-          return false;
-      }
-      same.push(term);
-    }
-  }
-  return true;
-}
-
-
 Literal* InequalityNormalizer::normalizeUninterpreted(Literal* lit) const 
 {
   Stack<TermList> args(lit->arity());
@@ -165,14 +118,11 @@ bool InequalityNormalizer::isNormalized(Clause* cl)  const
 }
 
 #if VDEBUG
-std::shared_ptr<LascaState> testLascaState(Options::UnificationWithAbstraction uwa, bool strongNormalization, Ordering* ordering, bool uwaFixedPointIteration) {
+std::shared_ptr<LascaState> testLascaState(Options::UnificationWithAbstraction uwa, std::shared_ptr<InequalityNormalizer> norm, Ordering* ordering, bool uwaFixedPointIteration) {
 
-  auto qkbo = ordering == nullptr ? new QKbo(KBO::testKBO(/* rand */false, /*qkbo*/ true)) : nullptr;
+  auto qkbo = ordering == nullptr ? new QKbo(KBO::testKBO(/* rand */false, /*qkbo*/ true), norm) : nullptr;
   auto& ord = ordering == nullptr ? *qkbo : *ordering;
-  auto state = LascaState::create(InequalityNormalizer(strongNormalization), &ord, uwa, uwaFixedPointIteration);
-  if (qkbo)
-        qkbo->setState(state);
-  return state;
+  return LascaState::create(norm, &ord, uwa, uwaFixedPointIteration);
 }
 #endif
 
@@ -248,16 +198,8 @@ Option<AnyLascaLiteral> InequalityNormalizer::renormalize(Literal* lit) const
 // }
 
 
-Option<AnyLascaLiteral> LascaState::renormalize(Literal* lit)
-{
-  return this->normalizer.renormalize(lit)
-    .andThen([](auto res) {
-        return Option<AnyLascaLiteral>(res);
-    });
-}
 
-
-Option<AnyInequalityLiteral> LascaState::renormalizeIneq(Literal* lit)
+Option<AnyInequalityLiteral> InequalityNormalizer::renormalizeIneq(Literal* lit)
 {
   return renormalize(lit)
     .andThen([](auto res) {
@@ -265,14 +207,6 @@ Option<AnyInequalityLiteral> LascaState::renormalizeIneq(Literal* lit)
           return inequalityLiteral(lit).map([](auto x) { return AnyInequalityLiteral(x); }); 
       });
     });
-}
-
-PolyNf LascaState::normalize(TypedTermList term) 
-{ 
-  TIME_TRACE("lasca normalize term")
-  auto norm = PolyNf::normalize(term);
-  auto out = this->normalizer.evaluator().evaluate(norm); 
-  return out || norm;
 }
 
 Option<AbstractingUnifier> LascaState::unify(TermList lhs, TermList rhs) const 
@@ -296,10 +230,11 @@ Ordering::Result compare(LascaPredicate l, LascaPredicate r)
 SelectedLiteral::SelectedLiteral(Clause* clause, unsigned litIdx, LascaState& shared)
   : cl(clause)
   , litIdx(litIdx)
-  , interpreted(shared.renormalize(literal()))
+  , interpreted(shared.norm().renormalize(literal()))
 {}
 
 std::shared_ptr<LascaState> LascaState::globalState = nullptr;
+std::shared_ptr<InequalityNormalizer> InequalityNormalizer::globalNormalizer = nullptr;
 
 unsigned LascaPreprocessor::integerFunctionConversion(unsigned f) {
   return _funcs.getOrInit(f, [&]() { 

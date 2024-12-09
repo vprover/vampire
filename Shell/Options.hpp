@@ -2088,7 +2088,6 @@ public:
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
   bool unificationWithAbstractionFixedPointIteration() const { return _unificationWithAbstractionFixedPointIteration.actualValue; }
   void setUWA(UnificationWithAbstraction value){ _unificationWithAbstraction.actualValue = value; } 
-  bool fixUWA() const { return _fixUWA.actualValue; }
   // TODO make lasca independent of normal eveluation
   bool useACeval() const { return lasca() ? false : _useACeval.actualValue;}
 
@@ -2668,7 +2667,6 @@ private:
 #endif
   ChoiceOptionValue<UnificationWithAbstraction> _unificationWithAbstraction; 
   BoolOptionValue _unificationWithAbstractionFixedPointIteration; 
-  BoolOptionValue _fixUWA;
   BoolOptionValue _useACeval;
   TimeLimitOptionValue _simulatedTimeLimit;
   FloatOptionValue _lrsEstimateCorrectionCoef;

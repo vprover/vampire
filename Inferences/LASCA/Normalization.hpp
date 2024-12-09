@@ -71,7 +71,7 @@ public:
   virtual Clause* simplify(Clause* cl) final override {
     auto res = RStack<Literal*>();
     for (auto l : cl->iterLits()) {
-      auto norm = _shared->normalizer.renormalizeLasca<NumTraits>(l);
+      auto norm = _shared->norm().renormalizeLasca<NumTraits>(l);
       if (norm.isSome() && deleteableLiteral(*norm)) {
         /* we the deleted literal */
       } else {

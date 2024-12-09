@@ -101,7 +101,7 @@ Option<Clause*> FourierMotzkinConf::applyRule_(
 
     auto s1σ = sigma(lhs.monom(), lhsVarBank);
     auto s2σ = sigma(rhs.monom(), rhsVarBank);
-    // ASS_REP(_shared->equivalent(sσ.term(), s2σ().term()), make_pair(sσ, s2σ()))
+    // ASS_REP(_shared->norm().equivalent(sσ.term(), s2σ().term()), make_pair(sσ, s2σ()))
     Stack<TermList> t1σ(rhs.nContextTerms());
     Stack<TermList> t2σ(lhs.nContextTerms());
 

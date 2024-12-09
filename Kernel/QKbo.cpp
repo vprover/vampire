@@ -22,65 +22,12 @@ vstring output_to_string(T const& t)
 
 using OU = OrderingUtils2;
 
-// Precedence makeOneSmallest(Precedence p) {
-//
-// }
-
-QKbo::QKbo(KBO kbo) 
-  : _shared(nullptr)
+QKbo::QKbo(KBO kbo, std::shared_ptr<InequalityNormalizer> norm) 
+  : _norm(std::move(norm))
   , _kbo(std::move(kbo))
 {
   ASS(_kbo.usesQkboPrecedence())
 }
-
-// QKbo::QKbo(Precedence prec) 
-//   : _prec(std::move(prec))
-//   , _shared(nullptr)
-//   , _kbo(
-//       KboWeightMap<FuncSigTraits>::dflt(),
-//       KboWeightMap<PredSigTraits>::dflt(),
-//       _prec.funPrec(),
-//       _prec.predPrec(),
-//         DArray<int>(), /* <- pred levels will never be used */
-//         /* reverseLCM */ false
-//       )
-// {
-// }
-
-// class SummandIter 
-// {
-//   unsigned _plus;
-//   Stack<TermList> _work;
-// public:
-//   SummandIter(TermList t) 
-//     : _plus(t.isVar() ? 0 
-//                       : tryNumTraits([&](auto numTraits) { 
-//                         if (numTraits.sort() == SortHelper::getResultSort(t.term())) {
-//                           return Option<unsigned>(numTraits.addF());
-//                         } else {
-//                           return Option<unsigned>();
-//                         } }).unwrap())
-//     , _work({ t }) {  }
-//
-//   DECL_ELEMENT_TYPE(TermList);
-//
-//   bool hasNext() const 
-//   { return !_work.isEmpty(); }
-//
-//   TermList next() 
-//   {
-//     while (_work.top().isTerm() && _work.top().term()->functor() == _plus) {
-//       auto t = _work.pop();
-//       _work.push(*t.term()->nthArgument(0));
-//       _work.push(*t.term()->nthArgument(1));
-//     }
-//     return _work.pop();
-//   }
-// };
-//
-//
-// auto iterSummands(TermList t)
-// { return iterTraits(SummandIter(t)); }
 
 
 using MulExtMemo = DArray<Option<Ordering::Result>>;
@@ -94,8 +41,8 @@ QKbo::Result QKbo::compare(Literal* l1, Literal* l2) const
   if (l1 == l2) 
     return Result::EQUAL;
 
-  auto i1 = _shared->interpretedPred(l1);
-  auto i2 = _shared->interpretedPred(l2);
+  auto i1 = LascaState::interpretedPred(l1);
+  auto i2 = LascaState::interpretedPred(l2);
        if ( i1 && !i2) return Result::LESS;
   else if (!i1 &&  i2) return Result::GREATER;
   else if (!i1 && !i2) return TIME_TRACE_EXPR("uninterpreted", OU::lexProductCapture(
@@ -231,7 +178,7 @@ Ordering::Result QKbo::compare(TermList s, TermList t) const
   if (s.isVar() && t.isVar()) 
     return s == t ? Ordering::EQUAL : Ordering::INCOMPARABLE;
 
-  if (s.isTerm() && t.isTerm() && _shared->equivalent(s.term(), t.term()))
+  if (s.isTerm() && t.isTerm() && norm().equivalent(s.term(), t.term()))
     return Ordering::EQUAL;
 
   auto as = abstr(s);
@@ -282,8 +229,8 @@ Ordering::Result QKbo::cmpNonAbstr(TermList t1, TermList t2) const
                ( t1.isTerm() && SortHelper::getResultSort(t1.term()) == numTraits.sort() )
             || ( t2.isTerm() && SortHelper::getResultSort(t2.term()) == numTraits.sort() )
             ) {
-          auto a1 = _shared->signedAtoms<NumTraits>(t1);
-          auto a2 = _shared->signedAtoms<NumTraits>(t2);
+          auto a1 = signedAtoms<NumTraits>(t1);
+          auto a2 = signedAtoms<NumTraits>(t2);
           if (a1.isNone() || a2.isNone()) {
             return Option<Result>(Result::INCOMPARABLE);
           } else {
@@ -321,7 +268,7 @@ Option<TermList> QKbo::abstr(TermList t) const
           /* t = k * t' */
           || ( numTraits.mulF() == f && numTraits.isNumeral(*term->nthArgument(0)) )
           ) {
-          auto norm = _shared->normalize(TypedTermList(term)).wrapPoly<NumTraits>();
+          auto norm = this->norm().normalize(TypedTermList(term)).wrapPoly<NumTraits>();
           RStack<TermList> abstracted_;
           auto& abstracted = *abstracted_;
           abstracted.reserve(norm->nSummands());
@@ -378,6 +325,56 @@ try_next_max: {}
     }
   }
 }
+
+bool Kernel::QKbo::hasSubstitutionProperty(SignedAtoms const& l) const
+{
+
+  auto maybeEquiv = [this](TermList l, TermList r) -> bool 
+  {
+    ASS_NEQ(l, r)
+
+    if (l.ground() && r.ground()) {
+      return norm().equivalent(l.term(), r.term());
+ 
+
+      // TODO tidier(?)
+    } else if (AbstractingUnifier::unify(l, 0, r, 0, env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration()).isSome()) {
+      return true;
+
+    } else {
+      return false;
+    }
+  };
+
+  Stack<TermList> pos;
+  Stack<TermList> neg;
+  for (auto const& t_ : l.elems.iter()) {
+    auto const& sign = std::get<0>(t_).sign;
+    auto const& term = std::get<0>(t_).term;
+
+    if (term.isVar() && sign != Sign::Zero) {
+      if (concatIters(pos.iterFifo(), neg.iterFifo()).any([&](auto s) { return maybeEquiv(s, term); })) {
+        return false;
+      }
+      pos.push(term);
+      neg.push(term);
+    } else if (sign != Sign::Zero) {
+
+      auto& same  = sign == Sign::Pos ? pos : neg;
+      auto& other = sign == Sign::Pos ? neg : pos;
+
+      if (iterTraits(other.iterFifo())
+        .any([&](auto s) { return maybeEquiv(s, term); })) 
+      {
+          return false;
+      }
+      same.push(term);
+    }
+  }
+  return true;
+}
+
+
 
 void QKbo::show(std::ostream& out) const 
 { _kbo.show(out); }

@@ -267,8 +267,22 @@ namespace Kernel {
     PolynomialEvaluation _eval;
     const bool _strong;
 
+    // TODO get rid of this global state
+    static std::shared_ptr<InequalityNormalizer> globalNormalizer;
+
   public:
+    static std::shared_ptr<InequalityNormalizer> initGlobal(InequalityNormalizer norm) {
+      globalNormalizer = make_shared(std::move(norm));
+      return globalNormalizer;
+    }
+    static std::shared_ptr<InequalityNormalizer> global() {
+      ASS(globalNormalizer)
+      return globalNormalizer;
+    }
+
+    [[deprecated("TODO remove")]]
     PolynomialEvaluation& evaluator() { return _eval; }
+    [[deprecated("TODO remove")]]
     PolynomialEvaluation const& evaluator() const { return _eval; }
 
     /** param strong enables rewrites 
@@ -278,106 +292,78 @@ namespace Kernel {
     InequalityNormalizer(bool strong)
       : _strong(strong) {  }
 
+    PolyNf normalize(TypedTermList term)
+    { 
+      TIME_TRACE("lasca normalize term")
+      auto norm = PolyNf::normalize(term);
+      auto out = _eval.evaluate(norm); 
+      return out || norm;
+    }
+
+    PolyNf normalize(TermList t) 
+    { return t.isTerm() ? normalize(t.term())
+                        : PolyNf(Variable(t.var())); }
+
     template<class NumTraits> Option<Stack<LascaLiteral<NumTraits>>> normalizeLasca(Literal* lit) const;
     template<class NumTraits> Option<LascaLiteral<NumTraits>> renormalizeLasca(Literal* lit) const;
+    template<class NumTraits> Option<InequalityLiteral<NumTraits>> renormalizeIneq(Literal* lit) const;
+
+
+    template<class NumTraits> Option<LascaLiteral<NumTraits>> renormalize(Literal* l)
+    {
+      auto norm = renormalizeLasca<NumTraits>(l);
+      if (norm.isNone()) {
+        return Option<LascaLiteral<NumTraits>>();
+      } else {
+        return Option<LascaLiteral<NumTraits>>(norm.unwrap());
+      }
+    }
 
     Option<AnyLascaLiteral> renormalize(Literal* lit) const;
+    Option<AnyInequalityLiteral> renormalizeIneq(Literal*);
 
-    template<class NumTraits> Option<InequalityLiteral<NumTraits>> renormalizeIneq(Literal* lit) const;
 
     // Literal* renormalizeLiteral(Literal* lit) const;
     Recycled<Stack<Literal*>> normalizeLiteral(Literal* lit) const;
+    [[deprecated("TODO")]]
     bool isNormalized(Clause* cl)  const;
+
+    bool equivalent(TermList lhs, TermList rhs) 
+    { 
+      if (lhs.isVar() && rhs.isVar()) {
+        return lhs == rhs;
+      } 
+      TermList sort;
+      if (lhs.isTerm() && rhs.isTerm()) {
+        auto s1 = SortHelper::getResultSort(lhs.term());
+        auto s2 = SortHelper::getResultSort(rhs.term());
+
+        if (s1 != s2) return false;
+        else sort = s1;
+      } else {
+        sort = lhs.isTerm() ? SortHelper::getResultSort(lhs.term()) 
+                            : SortHelper::getResultSort(rhs.term());
+      }
+      return equivalent(TypedTermList(lhs, sort), TypedTermList(rhs, sort));
+    }
+
+    bool equivalent(Literal* lhs, Literal* rhs) 
+    { 
+       auto s1 = normalizeLiteral(lhs);
+       auto s2 = normalizeLiteral(rhs);
+       return s1 == s2;
+     }
+
+    bool equivalent(TypedTermList lhs, TypedTermList rhs) 
+     { return normalize(lhs) == normalize(rhs); }
+
+
   private: 
     Literal* normalizeUninterpreted(Literal* lit) const;
   };
 
   struct LascaState;
   using UwaSubstitution = Coproduct<RobSubstitution, Indexing::ResultSubstitutionSP>; 
-
-  // template<class TermOrLit> 
-  // auto applySubst(Indexing::ResultSubstitution& subst, TermOrLit t, int varBank) { return subst.applyTo(t, varBank);  }
-  //
-  // template<class TermOrLit> 
-  // auto applySubst(Indexing::ResultSubstitutionSP const& subst, TermOrLit t, int varBank) { return subst->applyTo(t, varBank);  }
-  //
-  // template<class TermOrLit> 
-  // auto applySubst(RobSubstitution const& subst, TermOrLit t, int varBank) { return subst.apply(t, varBank);  }
-  //
-  // template<class TermOrLit> 
-  // auto applySubst(UwaSubstitution const& subst, TermOrLit t, int varBank)
-  // { return subst.apply([&](auto& s) { return applySubst(s, t, varBank); });  }
-
-
-  // struct UwaResult {
-  //   UwaSubstitution _sigma;
-  //   Stack<UnificationConstraint> _cnst;
-  //
-  //   UwaResult(RobSubstitution sigma, Stack<UnificationConstraint> cnst) 
-  //     : _sigma(decltype(_sigma)(std::move(sigma)))
-  //     , _cnst(std::move(cnst)) 
-  //   {  }
-  //
-  //   template<class T>
-  //   UwaResult(Indexing::QueryRes<AbstractingUnifier*, class Data> const& qr)
-  //     : _sigma(decltype(_sigma)(qr.substitution))
-  //     , _cnst( qr.constraints ? *qr.constraints : decltype(_cnst)() )
-  //   { }
-  //
-  //   UwaResult(UwaResult&&) = default;
-  //   UwaResult& operator=(UwaResult&&) = default;
-  //
-  //   template<class Subst>
-  //   static auto cnstLiterals(Subst& sigma, Stack<UnificationConstraint> const& cnst)
-  //   {
-  //     return iterTraits(cnst.iterFifo())
-  //       .map([&](auto c){
-  //         auto toTerm = [&](pair<TermList, unsigned> & constraintPair) -> TermList
-  //                       { return applySubst(sigma, constraintPair.first, constraintPair.second); };
-  //        auto sort = c.first.first.isTerm() ? SortHelper::getResultSort(c.first.first.term())
-  //                                           : SortHelper::getResultSort(c.second.first.term());
-  //         // lσ != rσ
-  //         return Literal::createEquality(false, toTerm(c.first), toTerm(c.second), sort);
-  //       });
-  //   }
-  //
-  //   auto const& cnst() const { return _cnst; }
-  //
-  //   template<class TermOrLit>
-  //   auto sigma(TermOrLit x, unsigned varBank) const 
-  //   { return applySubst(_sigma, x, varBank); }
-  //
-  //   auto cnstLiterals() const
-  //   { return cnstLiterals(_sigma, _cnst); }
-  //
-  //   friend std::ostream& operator<<(std::ostream& out, UwaResult const& self)
-  //   { 
-  //     out << "⟨" << self._sigma << ", [";
-  //     auto iter = self.cnstLiterals();
-  //     if (iter.hasNext()) {
-  //       out << *iter.next();
-  //       while (iter.hasNext())
-  //         out << " \\/ " << *iter.next();
-  //     }
-  //     return out << "]⟩"; 
-  //   }
-  // private:
-  //   // UwaResult() : _sigma(), _cnst() {  }
-  //   friend struct LascaState;
-  // };
-
-  // template<class NumTraits>
-  // struct SelectedAtomicTerm 
-  // {
-  //   unsigned litIdx;
-  //   Literal* literal;
-  //   LascaLiteral<NumTraits> ircLit;
-  //   unsigned termIdx;
-  //   Monom<NumTraits> self;
-  //
-  //   friend std::ostream& operator<<(std::ostream& out, SelectedAtomicTerm const& self)
-  //   { return out << self.self << " @ " << *self.literal; }
-  // };
 
   struct SelectedLiteral {
     Clause* cl;
@@ -724,88 +710,31 @@ namespace Kernel {
 
   private:
     LascaState(
-          InequalityNormalizer normalizer,
+          std::shared_ptr<InequalityNormalizer> normalizer,
           Ordering* const ordering,
           Shell::Options::UnificationWithAbstraction uwa,
           bool fixedPointIteration
         )
-      : normalizer(std::move(normalizer))
+      : _normalizer(std::move(normalizer))
       , ordering(std::move(ordering))
       , uwa(uwa) 
       , uwaFixedPointIteration(fixedPointIteration)
     {}
 
-    std::tuple<IntegerConstantType, Perfect<Polynom<IntTraits>>> divNf(Perfect<Polynom<IntTraits>> t) const
-    { return std::make_tuple(IntegerConstantType(1), t); }
-
-    bool hasSubstitutionProperty(SignedAtoms const& l);
-
-    template<class NumTraits>
-    std::tuple<IntegerConstantType, Perfect<Polynom<NumTraits>>> divNf(Perfect<Polynom<NumTraits>> t) const
-    {
-      auto l = t->iterSummands()
-        .map([](auto s) { return s.numeral.denominator(); })
-        .fold(IntegerConstantType(1), [&](auto acc, auto next)
-                 { return IntegerConstantType::lcm(acc, next); });
-      return std::make_tuple(l.abs(), typename NumTraits::ConstantType(l, IntegerConstantType(1)) * t);
-    }
-
-
-    template<class NumTraits>
-    Recycled<WeightedMultiSet<SignedTerm>> rmNum(std::tuple<IntegerConstantType, Perfect<Polynom<NumTraits>>> t) const
-    {
-      Recycled<WeightedMultiSet<SignedTerm>> out;
-
-      out->elems.raw().loadFromIterator(
-          std::get<1>(t)->iterSummands()
-                .map([](auto s) {
-                  auto count  = ifOfType<IntegerConstantType>(s.numeral,
-                                 [&](IntegerConstantType num) { return num; },
-                                  /* decltype(num) in { RatTraits, RealTraits } */
-                                 [&](auto num) {
-                                   ASS_EQ(num.denominator(), IntegerConstantType(1))
-                                   return num.numerator();
-                                 }).abs();
-                  if (count == IntegerConstantType(0)) {
-                    ASS(s.numeral.sign() == Sign::Zero)
-                    count = IntegerConstantType(1);
-                  }
-                  SignedTerm term = {
-                    .sign = s.numeral.sign(),
-                    .term = s.factors->denormalize(),
-                  };
-                  return std::make_tuple(term, count);
-                })
-          );
-      std::sort(out->elems.raw().begin(), out->elems.raw().end(), [](auto& l, auto& r) { return std::get<0>(l) < std::get<0>(r); });
-      out->weight = std::get<0>(t);
-      out->elems.integrity();
-      return out;
-    }
-
   public:
-    InequalityNormalizer normalizer;
+    std::shared_ptr<InequalityNormalizer> _normalizer;
     Ordering* const ordering;
     Shell::Options::UnificationWithAbstraction uwa;
     bool const uwaFixedPointIteration;
 
+    InequalityNormalizer& norm() const { return *_normalizer; }
+    std::shared_ptr<InequalityNormalizer> normalizerPtr() const { return _normalizer; }
+
     Shell::Options::UnificationWithAbstraction uwaMode() const { return uwa; }
-        
-    template<class NumTraits>
-    Option<Recycled<SignedAtoms>> signedAtoms(TermList t)
-    {
-      auto norm = this->normalize(TypedTermList(t, NumTraits::sort())).template wrapPoly<NumTraits>();
-      auto atoms = rmNum(divNf(norm));
-      if (hasSubstitutionProperty(*atoms)) {
-        return Option<decltype(atoms)>(std::move(atoms));
-      } else {
-        return Option<decltype(atoms)>();
-      }
-    }
 
 
     static std::shared_ptr<LascaState> create(
-          InequalityNormalizer normalizer,
+          std::shared_ptr<InequalityNormalizer> normalizer,
           Ordering* const ordering,
           Shell::Options::UnificationWithAbstraction const uwa,
           bool const fixedPointIteration
@@ -814,35 +743,6 @@ namespace Kernel {
       globalState = make_shared(LascaState(std::move(normalizer), ordering, uwa, fixedPointIteration));
       return globalState;
     }
-
-    bool equivalent(TermList lhs, TermList rhs) 
-    { 
-      if (lhs.isVar() && rhs.isVar()) {
-        return lhs == rhs;
-      } 
-      TermList sort;
-      if (lhs.isTerm() && rhs.isTerm()) {
-        auto s1 = SortHelper::getResultSort(lhs.term());
-        auto s2 = SortHelper::getResultSort(rhs.term());
-
-        if (s1 != s2) return false;
-        else sort = s1;
-      } else {
-        sort = lhs.isTerm() ? SortHelper::getResultSort(lhs.term()) 
-                            : SortHelper::getResultSort(rhs.term());
-      }
-      return equivalent(TypedTermList(lhs, sort), TypedTermList(rhs, sort));
-    }
-
-    bool equivalent(Literal* lhs, Literal* rhs) 
-    { 
-       auto s1 = normalizer.normalizeLiteral(lhs);
-       auto s2 = normalizer.normalizeLiteral(rhs);
-       return s1 == s2;
-     }
-
-    bool equivalent(TypedTermList lhs, TypedTermList rhs) 
-     { return normalize(lhs) == normalize(rhs); }
 
     bool isAtomic(Term* t) { return !interpretedFunction(t) || 
       forAnyNumTraits([&](auto n) { return n.isFloor(t->functor()); }); }
@@ -965,26 +865,7 @@ namespace Kernel {
 
     auto activePositions(Literal* l) -> IterTraits<VirtualIterator<TermList>>
     {
-      // return iterTraits(renormalize(l)
-      //   .match(
-      //     [=](AnyLascaLiteral l) -> VirtualIterator<TermList> {
-      //       return std::move(l).apply([=](auto l) -> VirtualIterator<TermList> {
-      //           return pvi(maxSummandIndices(l, SelectionCriterion::NOT_LEQ)
-      //                    .map([l](auto i) {
-      //                        return l.term().summandAt(i).factors->denormalize();
-      //                    }));
-      //       });
-      //     },
-      //     [=]() {
-      //       if (l->isEquality()) {
-      //         return pvi(maxEqIndices(l, SelectionCriterion::NOT_LEQ)
-      //           .map([=](auto i) { return l->termArg(i); }));
-      //       } else {
-      //           return pvi(termArgIter(l));
-      //       }
-      //     }));
-
-      return iterTraits(renormalize(l)
+      return iterTraits(norm().renormalize(l)
         .match(
           [=](AnyLascaLiteral l) -> VirtualIterator<TermList> {
             return pvi(coproductIter(std::move(l).applyCo([=](auto l)  {
@@ -1004,10 +885,13 @@ namespace Kernel {
           }));
     }
 
-    bool subtermEq(TermList sub, TermList sup) {
+
+    [[deprecated("todo remove me")]]
+    bool subtermEq(TermList sub, TermList sup)
+    {
       // TODO add assertion that sub is an atomic term
-      return normalizer.evaluator().evaluateToTerm(sup)
-        .containsSubterm(normalizer.evaluator().evaluateToTerm(sub));
+      return norm().evaluator().evaluateToTerm(sup)
+        .containsSubterm(norm().evaluator().evaluateToTerm(sub));
     }
 
 
@@ -1044,7 +928,7 @@ namespace Kernel {
     }
 
     auto isUninterpreted(Literal* l) const 
-    { return !l->isEquality() && normalizer.renormalize(l).isNone(); }
+    { return !l->isEquality() && norm().renormalize(l).isNone(); }
 
     auto selectedUninterpretedLiterals(Clause* cl, SelectionCriterion selLit) {
       return maxLits(cl, selLit)
@@ -1084,7 +968,8 @@ namespace Kernel {
                     && theory->isInterpretedConstant(t->termArg(0)));
       }); }
 
-    bool interpretedPred(Literal* t) {
+    // TODO move to LascaUtils
+    static bool interpretedPred(Literal* t) {
       auto f = t->functor();
       return t->isEquality()
         || forAnyNumTraits([&](auto numTraits) -> bool {
@@ -1156,31 +1041,9 @@ namespace Kernel {
         });
     }
 
-
-    // template<class GetSummand> auto iterSelectedTerms(GetSummand getSummand, unsigned litSize, bool strict = false);
-    // template<class NumTraits> Stack<Monom<NumTraits>> selectedTerms(LascaLiteral<NumTraits>const& lit, bool strict = false);
-    // template<class NumTraits> Stack<SelectedAtomicTerm<NumTraits>> selectedTerms(Clause* cl, bool strictlyMaxLiterals = false, bool strictlyMaxTerms = false);
-
-    // Stack<Literal*> selectedLiterals(Clause* cl, bool strictlyMax = false);
-    // Stack<std::pair<Literal*, unsigned>> selectedLiteralsWithIdx(Clause* cl, bool strictlyMax = false);
-    // Stack<Literal*> selectedLiterals(Stack<Literal*> cl, bool strictlyMax = false);
-    // Stack<Literal*> strictlySelectedLiterals(Clause* cl) { return selectedLiterals(cl, true); }
-
-  private:
-    // Stack<Literal*> maxLiterals(Clause* cl, bool strictlyMax = false);
-    // Stack<std::pair<Literal*, unsigned>> maxLiteralsWithIdx(Clause* cl, bool strictlyMax = false);
-    // Stack<Literal*> maxLiterals(Stack<Literal*> cl, bool strictlyMax = false);
-    // Stack<Literal*> strictlyMaxLiterals(Clause* cl) { return maxLiterals(cl, true); }
-
   public:
 
     Option<AbstractingUnifier> unify(TermList lhs, TermList rhs) const;
-    Option<AnyLascaLiteral> renormalize(Literal*);
-    Option<AnyInequalityLiteral> renormalizeIneq(Literal*);
-    PolyNf normalize(TypedTermList);
-    PolyNf normalize(TermList t) 
-    { return t.isTerm() ? normalize(t.term())
-                        : PolyNf(Variable(t.var())); }
 
     template<class LitOrTerm, class Iter>
     bool strictlyMaximal(LitOrTerm pivot, Iter lits)
@@ -1201,24 +1064,12 @@ namespace Kernel {
       ASS(found)
       return true;
     }
-
-    template<class NumTraits> 
-    Option<LascaLiteral<NumTraits>> renormalize(Literal* l)
-    {
-      auto norm = this->normalizer.renormalizeLasca<NumTraits>(l);
-      if (norm.isNone()) {
-        return Option<LascaLiteral<NumTraits>>();
-      } else {
-        return Option<LascaLiteral<NumTraits>>(norm.unwrap());
-      }
-    }
-
   };
 
 #if VDEBUG
   std::shared_ptr<LascaState> testLascaState(
     Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LPAR_MAIN,
-    bool strongNormalization = false,
+    std::shared_ptr<InequalityNormalizer> strongNormalization = make_shared(InequalityNormalizer(/*strong*/ false)),
     Ordering* ordering = nullptr,
     bool uwaFixdPointIteration = false
     );

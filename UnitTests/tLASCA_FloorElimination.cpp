@@ -9,6 +9,7 @@
  */
 
 #include "Inferences/LASCA/Normalization.hpp"
+#include "Kernel/LASCA.hpp"
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Indexing/TermSharing.hpp"
@@ -65,15 +66,9 @@ using namespace Inferences::LASCA;
 
 
 
-inline std::shared_ptr<LascaState> state(Options::UnificationWithAbstraction uwa) 
-{ 
-  std::shared_ptr<LascaState> out = testLascaState(uwa, /* string norm */ false, /* ord */ nullptr, /* uwaFixedPointIteration */ true); 
-  return out;
-}
-
 inline auto testFloorElimination(Options::UnificationWithAbstraction uwa)
 { 
-  auto s = state(uwa);
+  auto s = testLascaState(uwa);
   return lascaSimplRule(toSgi(FloorElimination<RealTraits>(s)), Normalization(s));
 }
 

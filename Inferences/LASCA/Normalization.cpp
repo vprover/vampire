@@ -81,7 +81,7 @@ Clause* Normalization::simplify(Clause* cl)
   bool altered = false; 
   Recycled<Stack<Literal*>> out;
   for (unsigned i = 0; i < cl->size(); i++) {
-    auto lits = _shared->normalizer.normalizeLiteral((*cl)[i]);
+    auto lits = _shared->norm().normalizeLiteral((*cl)[i]);
     altered |= lits->size() != 1 || (*lits)[0] != (*cl)[i];
     for (auto lit : *lits) {
       auto triv = trivial(lit);

@@ -108,36 +108,8 @@ class LascaGenerationTester : public Test::Generation::GenerationTester<LascaSim
 
   virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) override
   { 
-    // auto vars = [](auto cl) { return cl->iterLits()
-    //   .flatMap([](auto l) { return VariableIterator(l); })
-    //   .map([](auto t) { return t.var(); })
-    //   .template collect<Stack>()
-    //   .sort()
-    //   .dedup();
-    // };
-    // auto llits = lhs->iterLits().map([](auto l) { return l; }).template collect<Stack>();
-    // auto rlits = rhs->iterLits().template collect<Stack>();
-    // auto lvars = vars(lhs);
-    // auto rvars = vars(rhs);
-    // if (lvars.size() != rvars.size()) {
-    //   return false;
-    // } else {
-    //   return anyPerm(lvars.size(), [&](auto p) {
-    //
-    //     // auto state = testLascaState();
-    //     // auto newrLits = rhs->iterLits()
-    //     // .map([](auto l) { return evaluateLiteralBottomUp(l, 
-    //     //       [](TermList t, TermList* args)
-    //     //         return t.isVar() ? 
-    //     //       ); })
-    //     // .template collect<Stack>();
-    //     // return Test::TestUtils::permEq(*lhs, *rhs, [&](auto l, auto r) { return state->equivalent(l,r); });
-    //   });
-    //
-    // }
-
     auto state = testLascaState();
-    return Test::TestUtils::permEq(*lhs, *rhs, [&](auto l, auto r) { return state->equivalent(l,r); });
+    return Test::TestUtils::permEq(*lhs, *rhs, [&](auto l, auto r) { return state->norm().equivalent(l,r); });
   }
 };
 

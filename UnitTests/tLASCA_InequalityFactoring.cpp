@@ -58,12 +58,8 @@ using namespace Inferences::LASCA;
 
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
-InequalityFactoring testInequalityFactoring(
-    Ordering* ordering = nullptr,
-    bool strongNorm = false,
-    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LPAR_ONE_INTERP
-    )
-{ return InequalityFactoring(testLascaState(uwa, strongNorm, ordering)); }
+InequalityFactoring testInequalityFactoring(Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LPAR_ONE_INTERP)
+{ return InequalityFactoring(testLascaState(uwa)); }
 
 template<class A> A* heap(A&& a) { return new A(std::move(a)); }
 

@@ -91,7 +91,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierEliminatio
 
   Recycled<DHSet<unsigned>> topLevelVars;
   for (auto l : premise->iterLits()) {
-    Option<LascaLiteral<NumTraits>> norm = _shared->renormalize(l)
+    Option<LascaLiteral<NumTraits>> norm = _shared->norm().renormalize(l)
       .flatMap([](auto l) { return l.template as<LascaLiteral<NumTraits>>().toOwned(); })
       .filter([](auto l) { switch(l.symbol()) {
           case LascaPredicate::EQ:

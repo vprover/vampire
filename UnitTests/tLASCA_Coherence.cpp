@@ -64,14 +64,6 @@ using namespace Inferences::LASCA;
 
 #define UWA_MODE Options::UnificationWithAbstraction::LPAR_MAIN
 
-
-
-inline std::shared_ptr<LascaState> state(Options::UnificationWithAbstraction uwa) 
-{ 
-  std::shared_ptr<LascaState> out = testLascaState(uwa, /* string norm */ false, /* ord */ nullptr, /* uwaFixedPointIteration */ true); 
-  return out;
-}
-
 inline Stack<std::function<Indexing::Index*()>> lascaCoherenceIndices()
 { return {
     [](){ return new LascaIndex<CoherenceConf<RealTraits>::Lhs>();},
@@ -80,7 +72,7 @@ inline Stack<std::function<Indexing::Index*()>> lascaCoherenceIndices()
 
 inline auto testCoherence(Options::UnificationWithAbstraction uwa)
 { 
-  auto s = state(uwa);
+  auto s = testLascaState(uwa);
   return LascaSimplRule<Coherence<RealTraits>>(Coherence<RealTraits>(s), Normalization(s));
 }
 
