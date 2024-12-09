@@ -923,7 +923,7 @@ Formula* FOOLElimination::buildEq(Context context, Formula* lhsFormula, Formula*
 void FOOLElimination::buildApplication(unsigned symbol, Context context, TermStack& vars,
                                        TermList& functionApplication, Formula*& predicateApplication) {
   if (context == FORMULA_CONTEXT) {
-    predicateApplication = new AtomicFormula(Literal::create(symbol, vars.size(), true, false, vars.begin()));
+    predicateApplication = new AtomicFormula(Literal::create(symbol, vars.size(), true, vars.begin()));
   } else {
     functionApplication = TermList(Term::create(symbol, vars.size(), vars.begin()));
   }
@@ -1011,7 +1011,7 @@ unsigned FOOLElimination::introduceFreshSymbol(Context context, const char* pref
   return symbol;
 }
 
-void FOOLElimination::reportProcessed(vstring inputRepr, vstring outputRepr) {
+void FOOLElimination::reportProcessed(std::string inputRepr, std::string outputRepr) {
   if (inputRepr != outputRepr) {
     /**
      * If show_fool is set to off, the string representations of the input

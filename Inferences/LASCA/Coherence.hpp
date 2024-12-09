@@ -25,6 +25,7 @@
 #include "Kernel/Ordering.hpp"
 #include "Indexing/LascaIndex.hpp"
 #include "BinInf.hpp"
+#include "Lib/STL.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
 #include "Lib/Backtrackable.hpp"
 #include "Lib/Recycled.hpp"

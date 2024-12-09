@@ -13,6 +13,7 @@
 #include "Indexing/TermSharing.hpp"
 #include "Inferences/LASCA/Superposition.hpp"
 #include "Inferences/InterpretedEvaluation.hpp"
+#include "Lib/STL.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Inferences/Cancellation.hpp"

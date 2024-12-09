@@ -12,6 +12,7 @@
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Indexing/TermSharing.hpp"
+#include "Lib/STL.hpp"
 #include "Inferences/LASCA/FourierMotzkin.hpp"
 #include "Inferences/InterpretedEvaluation.hpp"
 #include "Kernel/Ordering.hpp"

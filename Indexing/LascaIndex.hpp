@@ -93,12 +93,12 @@ public:
 private:
   GenSubstitutionTree<T> _index;
   std::shared_ptr<Kernel::LascaState> _shared;
-  static vstring _lookupStr;
-  static vstring _maintainanceStr;
+  static std::string _lookupStr;
+  static std::string _maintainanceStr;
 };
 
-template<class T> vstring LascaIndex<T>::_lookupStr = T::name() + vstring(" lookup");
-template<class T> vstring LascaIndex<T>::_maintainanceStr = T::name() + vstring(" maintainance");
+template<class T> std::string LascaIndex<T>::_lookupStr = T::name() + std::string(" lookup");
+template<class T> std::string LascaIndex<T>::_maintainanceStr = T::name() + std::string(" maintainance");
 
 } // namespace Indexing
 

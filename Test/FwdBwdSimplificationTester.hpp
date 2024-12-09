@@ -81,7 +81,7 @@ class TestCase
 
   
 
-  void testFail(vstring const& test, Lib::Exception& e) 
+  void testFail(std::string const& test, Lib::Exception& e) 
   {
       std::cout  << std::endl;
       std::cout << "[         test ]: " <<                  test  << std::endl;
@@ -93,7 +93,7 @@ class TestCase
   }
 
   template<class Is, class Expected>
-  void testFail(vstring const& test, Is const& is, Expected const& expected) 
+  void testFail(std::string const& test, Is const& is, Expected const& expected) 
   {
       std::cout  << std::endl;
       std::cout << "[         test ]: " <<                  test  << std::endl;

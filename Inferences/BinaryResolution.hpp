@@ -19,6 +19,7 @@
 #include "Forwards.hpp"
 
 #include "InferenceEngine.hpp"
+#include "ProofExtra.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Indexing/LiteralIndex.hpp"
@@ -43,26 +44,25 @@ public:
 
   static Clause* generateClause(Clause* queryCl, Literal* queryLit, 
                                 Clause* resultCl, Literal* resultLit, 
-                                ResultSubstitutionSP subs, const Options& opts);
-
-  static Clause* generateClause(Clause* queryCl, Literal* queryLit, 
-                                Clause* resultCl, Literal* resultLit, 
                                 AbstractingUnifier& uwa, const Options& opts, SaturationAlgorithm* salg);
 
   template<class ComputeConstraints>
   static Clause* generateClause(Clause* queryCl, Literal* queryLit, 
                                 Clause* resultCl, Literal* resultLit, 
                                 ResultSubstitutionSP subs, ComputeConstraints constraints, const Options& opts,
-                                bool afterCheck = false, PassiveClauseContainer* passive=0, Ordering* ord=0, LiteralSelector* ls = 0);
+                                bool afterCheck = false, PassiveClauseContainer* passive=0, Ordering* ord=0, LiteralSelector* ls = 0, ConditionalRedundancyHandler const* condRedHandler = 0);
 
   ClauseIterator generateClauses(Clause* premise);
 
 private:
-  struct UnificationsFn;
-  struct ResultFn;
+  Clause* generateClause(
+    Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit,
+    ResultSubstitutionSP subs, AbstractingUnifier* absUnif);
 
   BinaryResolutionIndex* _index;
 };
+
+using BinaryResolutionExtra = TwoLiteralInferenceExtra;
 
 };
 

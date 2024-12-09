@@ -42,9 +42,6 @@ struct LascaOrderingUtils {
           return res;
         case Ordering::Result::EQUAL:
           break;
-        case Ordering::Result::GREATER_EQ:
-        case Ordering::Result::LESS_EQ:
-          ASSERTION_VIOLATION
       }
     }
     return Ordering::Result::EQUAL;

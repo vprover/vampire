@@ -276,7 +276,6 @@ void RewriteRuleIndex::handleEquivalence(Clause* c, Literal* cgr, Clause* d, Lit
   }
   switch(cmpRes) {
   case Ordering::GREATER:
-  case Ordering::GREATER_EQ:
     if(cgr->containsAllVariablesOf(csm)) {
       if(cgr->isPositive()) {
         handle(LiteralClause{cgr, c}, adding);
@@ -287,7 +286,6 @@ void RewriteRuleIndex::handleEquivalence(Clause* c, Literal* cgr, Clause* d, Lit
     }
     break;
   case Ordering::LESS:
-  case Ordering::LESS_EQ:
     if(csm->containsAllVariablesOf(cgr)) {
       if(csm->isPositive()) {
         handle(LiteralClause{csm, c}, adding);

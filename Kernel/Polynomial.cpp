@@ -10,6 +10,7 @@
 
 #include "Kernel/Polynomial.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
+#include "Debug/Output.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
@@ -43,10 +44,10 @@ bool operator<(Variable const& lhs, Variable const& rhs)
 // impl FuncId
 /////////////////////////////////////////////////////////
 
-FuncId::FuncId(unsigned num, Stack<TermList> typeArgs) : _num(num), _typeArgs(std::move(typeArgs)) {}
+FuncId::FuncId(unsigned num, const TermList* typeArgs) : _num(num), _typeArgs(typeArgs) {}
 
 FuncId FuncId::symbolOf(Term* term) 
-{ return FuncId(term->functor(), typeArgIter(term).template collect<Stack>()); }
+{ return FuncId(term->functor(), term->typeArgs()); }
 
 unsigned FuncId::numTermArguments() const
 { return symbol()->numTermArguments(); }
@@ -57,11 +58,14 @@ unsigned FuncId::numTypeArguments() const
 TermList FuncId::typeArg(unsigned i) const
 { return _typeArgs[i]; }
 
-bool operator==(FuncId const& lhs, FuncId const& rhs) 
-{ return lhs._num == rhs._num; }
-
-bool operator!=(FuncId const& lhs, FuncId const& rhs) 
-{ return !(lhs == rhs); }
+std::ostream& operator<<(std::ostream& out, const Kernel::FuncId& self) 
+{ 
+  if (self.numTypeArguments() == 0) {
+    return out << self.symbol()->name(); 
+  } else {
+    return out << self.symbol()->name() << "<" << outputInterleaved(", ", self.iterTypeArgs())  << ">"; 
+  }
+}
 
 Signature::Symbol* FuncId::symbol() const 
 { return env.signature->getFunction(_num); }
@@ -84,9 +88,6 @@ Option<Theory::Interpretation> FuncId::tryInterpret() const
 ///////////////////// output operators
 std::ostream& operator<<(std::ostream& out, const Kernel::Variable& self) 
 { return out << "X" << self._num; }
-
-std::ostream& operator<<(std::ostream& out, const Kernel::FuncId& self) 
-{ return out << self.symbol()->name(); }
 
 std::ostream& operator<<(std::ostream& out, const Kernel::PolyNf& self)
 { return self.apply([&](auto& t) -> decltype(auto) { return out << t; }); }

@@ -28,8 +28,6 @@
 
 #include "Indexing/TermSharing.hpp"
 
-#include "VarManager.hpp"
-
 #include "Rectify.hpp"
 
 using namespace std;
@@ -62,7 +60,7 @@ Rectify::VarWithUsageInfo Rectify::Renaming::getBoundAndUsage(int var) const
  * Rectify the formula from this unit. If the input type of this unit
  * contains free variables, then ask Signature::sig to create an answer
  * atom.
- * 
+ *
  * @since 23/01/2004 Manchester, changed to use non-static objects
  * @since 06/06/2007 Manchester, changed to use new datastructures
  */
@@ -333,8 +331,7 @@ Literal* Rectify::rectify (Literal* l)
         /* from */ [&](auto i) { return *l->nthArgument(i); },
         /* to */ [&](auto i) -> TermList& { return (*args)[i]; },
         /* cnt */ l->arity());
-    return !changed ? l : Literal::create(l->functor(), l->arity(), l->polarity(), l->commutative(), 
-                       args->begin());
+    return !changed ? l : Literal::create(l->functor(), l->arity(), l->polarity(), args->begin());
   }
 } // Rectify::rectify (Literal*)
 
@@ -512,19 +509,8 @@ void Rectify::Renaming::undoBinding (unsigned var)
  */
 unsigned Rectify::Renaming::bind (unsigned var)
 {
-  unsigned result;
+  unsigned result = _nextVar++;
 
-  if(VarManager::varNamePreserving()) {
-    if(_used->insert(var)) {
-      result=var;
-    }
-    else {
-      result=VarManager::getVarAlias(var);
-    }
-  }
-  else {
-    result = _nextVar++;
-  }
   VarUsageTrackingList::push(make_pair(result,false), get(var));
 
   return result;

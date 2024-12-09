@@ -43,7 +43,7 @@ using namespace Lib;
 // IntegerConstantType
 //
 
-IntegerConstantType::IntegerConstantType(vstring const& str)
+IntegerConstantType::IntegerConstantType(std::string const& str)
   : _val()
 {
 
@@ -293,10 +293,10 @@ Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, Intege
   else return Comparison::EQUAL;
 }
 
-vstring IntegerConstantType::toString() const
+std::string IntegerConstantType::toString() const
 {
   auto s = _val.get_str();
-  return vstring(s.c_str());
+  return std::string(s.c_str());
 }
 ///////////////////////
 // RationalConstantType
@@ -306,7 +306,7 @@ RationalConstantType::RationalConstantType(InnerType num, InnerType den)
   : _num(num), _den(den)
 { cannonize(); }
 
-RationalConstantType::RationalConstantType(const vstring& num, const vstring& den)
+RationalConstantType::RationalConstantType(const std::string& num, const std::string& den)
   : RationalConstantType(InnerType(num), InnerType(den))
 { }
 
@@ -365,7 +365,7 @@ bool RationalConstantType::operator>(const RationalConstantType& o) const
   return l > r;
 }
 
-vstring RationalConstantType::toString() const
+std::string RationalConstantType::toString() const
 { return Lib::toString(*this); }
 
 IntegerConstantType IntegerConstantType::lcm(IntegerConstantType const& l, IntegerConstantType const& r)
@@ -418,10 +418,10 @@ Comparison RationalConstantType::comparePrecedence(RationalConstantType n1, Rati
 Comparison RealConstantType::comparePrecedence(RealConstantType n1, RealConstantType n2)
 { return RationalConstantType::comparePrecedence(n1, n2); }
 
-bool RealConstantType::parseDouble(const vstring& num, RationalConstantType& res)
+bool RealConstantType::parseDouble(const std::string& num, RationalConstantType& res)
 {
 
-  vstring newNum;
+  std::string newNum;
   IntegerConstantType denominator = IntegerConstantType(1);
   bool haveDecimal = false;
   bool neg = false;
@@ -460,7 +460,7 @@ bool RealConstantType::parseDouble(const vstring& num, RationalConstantType& res
 }
 
 
-RealConstantType::RealConstantType(const vstring& number)
+RealConstantType::RealConstantType(const std::string& number)
   : RealConstantType()
 {
 
@@ -473,7 +473,7 @@ RealConstantType::RealConstantType(const vstring& number)
   }
 }
 
-vstring RealConstantType::toNiceString() const
+std::string RealConstantType::toNiceString() const
 {
   return toString();
 }

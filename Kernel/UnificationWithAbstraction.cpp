@@ -276,7 +276,7 @@ bool AbstractionOracle::canAbstract(AbstractingUnifier* au, TermSpec const& t1, 
     case Shell::Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR: 
     case Shell::Options::UnificationWithAbstraction::LPAR_ONE_INTERP: 
     case Shell::Options::UnificationWithAbstraction::FUNC_EXT: 
-      ASSERTION_VIOLATION_REP(outputToString(_mode, " should be handled in AbstractionOracle::tryAbstract"))
+      ASSERTION_VIOLATION_REP(outputCat(_mode, " should be handled in AbstractionOracle::tryAbstract"))
   }
   ASSERTION_VIOLATION;
 }
@@ -1464,8 +1464,15 @@ bool AbstractingUnifier::fixedPointIteration()
   return true;
 }
 
-Option<Recycled<Stack<unsigned>>> AbstractingUnifier::unifiableSymbols(unsigned f)
+Option<Recycled<Stack<unsigned>>> AbstractingUnifier::unifiableSymbols(SymbolId fid)
 {
+  auto f = fid.functor;
+  if (fid.kind == TermKind::SORT)
+    // we don't perform UWA on sorts
+    return some(recycledStack(f));
+
+  ASS(fid.kind == TermKind::TERM) // not implemented for literals
+
   auto anything = []() -> Option<Recycled<Stack<unsigned>>> { return {}; };
   auto nothing  = []() -> Option<Recycled<Stack<unsigned>>> { return some(recycledStack<unsigned>()); };
   switch (_uwa._mode) {

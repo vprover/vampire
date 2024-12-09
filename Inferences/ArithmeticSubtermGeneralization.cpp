@@ -117,11 +117,9 @@ SimplifyingGeneratingInference1::Result generalizeBottomUp(Clause* cl, EvalFn ev
             case Ordering::LESS:
               oneLess = true;
               break;
-            case Ordering::LESS_EQ:
             case Ordering::EQUAL:
               break;
             case Ordering::GREATER:
-            case Ordering::GREATER_EQ:
             case Ordering::INCOMPARABLE:
               allLessEq = false;
               DEBUG("ordering violation: ", cmp)

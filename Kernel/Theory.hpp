@@ -60,14 +60,14 @@ class RealConstantType;
  */
 class ArithmeticException : public Exception {
 protected:
-  ArithmeticException(vstring msg) : Exception(msg) {}
+  ArithmeticException(std::string msg) : Exception(msg) {}
 };
 
 class MachineArithmeticException : public ArithmeticException 
 { 
 public:
   MachineArithmeticException() : ArithmeticException("machine arithmetic exception"){} 
-  MachineArithmeticException(vstring msg) : ArithmeticException("machine arithmetic exception: " + msg){} 
+  MachineArithmeticException(std::string msg) : ArithmeticException("machine arithmetic exception: " + msg){} 
 };
 
 class DivByZeroException         : public ArithmeticException 
@@ -105,7 +105,7 @@ public:
 #else // !WITH_GMP
   IntegerConstantType(int v) : _val(v) {} // <- not explicit to support legacy code from Theory_int.cpp
 #endif // WITH_GMP
-  explicit IntegerConstantType(const vstring& str);
+  explicit IntegerConstantType(const std::string& str);
 
   IntegerConstantType operator+(const IntegerConstantType& num) const;
   IntegerConstantType operator-(const IntegerConstantType& num) const;
@@ -172,7 +172,7 @@ public:
   static Comparison comparePrecedence(IntegerConstantType n1, IntegerConstantType n2);
   size_t hash() const;
 
-  vstring toString() const;
+  std::string toString() const;
   friend std::ostream& operator<<(std::ostream& out, const IntegerConstantType& val);
 private:
   InnerType _val;
@@ -201,7 +201,7 @@ struct RationalConstantType {
   RationalConstantType(const RationalConstantType&) = default;
   RationalConstantType& operator=(const RationalConstantType&) = default;
 
-  RationalConstantType(const vstring& num, const vstring& den);
+  RationalConstantType(const std::string& num, const std::string& den);
   explicit RationalConstantType(int n);
   explicit RationalConstantType(IntegerConstantType num);
   RationalConstantType(int num, int den);
@@ -246,7 +246,7 @@ struct RationalConstantType {
 
   RationalConstantType abs() const;
 
-  vstring toString() const;
+  std::string toString() const;
 
   const InnerType& numerator() const { return _num; }
   const InnerType& denominator() const { return _den; }
@@ -286,7 +286,7 @@ public:
   RealConstantType(const RealConstantType&) = default;
   RealConstantType& operator=(const RealConstantType&) = default;
 
-  explicit RealConstantType(const vstring& number);
+  explicit RealConstantType(const std::string& number);
   explicit RealConstantType(const RationalConstantType& rat) : RationalConstantType(rat) {}
   RealConstantType(IntegerConstantType num) : RationalConstantType(num) {}
   RealConstantType(int num, int den) : RationalConstantType(num, den) {}
@@ -317,7 +317,7 @@ public:
 
   RealConstantType abs() const;
 
-  vstring toNiceString() const;
+  std::string toNiceString() const;
 
   size_t hash() const;
   static Comparison comparePrecedence(RealConstantType n1, RealConstantType n2);
@@ -339,7 +339,7 @@ public:
   MK_CAST_OP(RealConstantType, /, int)
 
 private:
-  static bool parseDouble(const vstring& num, RationalConstantType& res);
+  static bool parseDouble(const std::string& num, RationalConstantType& res);
 };
 
 inline bool operator<(const RealConstantType& lhs ,const RealConstantType& rhs) { 
@@ -516,7 +516,7 @@ public:
     return i == INT_PLUS || i == RAT_PLUS || i == REAL_PLUS;
   }
 
-  static vstring getInterpretationName(Interpretation i);
+  static std::string getInterpretationName(Interpretation i);
   static unsigned getArity(Interpretation i);
   static bool isFunction(Interpretation i);
   static bool isInequality(Interpretation i);
@@ -578,15 +578,15 @@ public:
   Interpretation interpretPredicate(unsigned pred);
   Interpretation interpretPredicate(Literal* t);
 
-  void registerLaTeXPredName(unsigned func, bool polarity, vstring temp);
-  void registerLaTeXFuncName(unsigned func, vstring temp);
-  vstring tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarity=true);
+  void registerLaTeXPredName(unsigned func, bool polarity, std::string temp);
+  void registerLaTeXFuncName(unsigned func, std::string temp);
+  std::string tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarity=true);
 
 private:
   // For recording the templates for predicate and function symbols
-  DHMap<unsigned,vstring> _predLaTeXnamesPos;
-  DHMap<unsigned,vstring> _predLaTeXnamesNeg;
-  DHMap<unsigned,vstring> _funcLaTeXnames;
+  DHMap<unsigned,std::string> _predLaTeXnamesPos;
+  DHMap<unsigned,std::string> _predLaTeXnamesNeg;
+  DHMap<unsigned,std::string> _funcLaTeXnames;
 
 public:
 
@@ -632,8 +632,8 @@ public:
   Term* representConstant(const RationalConstantType& num);
   Term* representConstant(const RealConstantType& num);
 
-  Term* representIntegerConstant(vstring str);
-  Term* representRealConstant(vstring str);
+  Term* representIntegerConstant(std::string str);
+  Term* representRealConstant(std::string str);
 private:
   Theory();
   static OperatorType* getConversionOperationType(Interpretation i);

@@ -707,67 +707,6 @@ FlatMapIter<Inner,Functor> getMapAndFlattenIterator(Inner it, Functor f)
 	  MappingIterator<Inner,Functor>(std::move(it), f) );
 }
 
-/**
- * Iterator that in its constructor stores elements of an inner iterator
- * and then returns these elements later in the same order
- *
- * The iterator object does not contain the copy constructor or
- * the operator=. If this behavior is required, it should be created
- * on the heap and pointer to it put inside a VirtualIterator object.
- *
- * This iterator should be used when a resource held by an iterator
- * needs to be released before the elements of the iterator are required.
- *
- * @see VirtualIterator
- */
-template<class Inner>
-class PersistentIterator
-: public IteratorCore<ELEMENT_TYPE(Inner)>
-{
-public:
-  typedef ELEMENT_TYPE(Inner) T;
-  explicit PersistentIterator(Inner inn)
-  : _items(0)
-  {
-    List<T>** ptr=&_items;
-    while(inn.hasNext()) {
-      *ptr=new List<T>(inn.next());
-      ptr=&(*ptr)->tailReference();
-    }
-  }
-  ~PersistentIterator()
-  {
-    if(_items) {
-      List<T>::destroy(_items);
-    }
-  }
-  inline bool hasNext() { return _items; };
-  inline
-  T next()
-  {
-    return List<T>::pop(_items);
-  };
-private:
-  List<T>* _items;
-};
-
-/**
- * Return iterator that stores values of @b it in its constructor,
- * and then yields them in the same order
- *
- * After the call to this function, the iterator @b it and any resources
- * it holds may be released, since the elements are stored independently
- * of it.
- *
- * @see PersistentIterator
- */
-template<class Inner>
-inline
-VirtualIterator<ELEMENT_TYPE(Inner)> getPersistentIterator(Inner it)
-{
-  return vi( new PersistentIterator<Inner>(it) );
-}
-
 
 /**
  * Iterator that in its constructor stores elements of an inner iterator
@@ -1310,13 +1249,13 @@ T minFn(T a1, T a2) { return std::min(a1,a2); }
 template<class It>
 struct StmJoinAuxStruct
 {
-  StmJoinAuxStruct(vstring glue, It it) : _glue(glue), _it(it) {}
-  vstring _glue;
+  StmJoinAuxStruct(std::string glue, It it) : _glue(glue), _it(it) {}
+  std::string _glue;
   It _it;
 };
 
 template<class It>
-StmJoinAuxStruct<It> join(vstring glue, It it)
+StmJoinAuxStruct<It> join(std::string glue, It it)
 {
   return StmJoinAuxStruct<It>(glue, it);
 }
@@ -1919,5 +1858,56 @@ STLIterator<Iterator> getSTLIterator(Iterator begin, Iterator end)
 {
   return STLIterator<Iterator>(begin, end);
 }
+
+/**
+ * Return iterator that stores values of @b it in its constructor,
+ * and then yields them in the same order
+ *
+ * After the call to this function, the iterator @b it and any resources
+ * it holds may be released, since the elements are stored independently
+ * of it.
+ *
+ * @see PersistentIterator
+ */
+template<class Inner>
+auto getPersistentIterator(Inner it)
+{ return pvi(arrayIter(iterTraits(it).template collect<Stack>())); }
+
+template<class Iter>
+class IterContOps {
+  Iter const _iter;
+
+public:
+  IterContOps(Iter iter) : _iter(std::move(iter)) {}
+
+  auto defaultHash() const { return DefaultHash::hashIter(Iter(_iter).map([](ELEMENT_TYPE(Iter) x) -> unsigned { return DefaultHash::hash(x); })); }
+  auto defaultHash2() const { return DefaultHash::hashIter(Iter(_iter).map([](ELEMENT_TYPE(Iter) x) -> unsigned { return DefaultHash2::hash(x); })); }
+
+  static int cmp(IterContOps const& lhs, IterContOps const& rhs) {
+    auto l = lhs._iter;
+    auto r = rhs._iter;
+    while (l.hasNext() && r.hasNext()) {
+      auto ln = l.next();
+      auto rn = r.next();
+      if (ln < rn) {
+        return -1;
+      } else if (rn < ln) {
+        return 1;
+      }
+    }
+    return !l.hasNext() ? (r.hasNext() ? -1 : 0) : 1;
+  }
+  friend bool operator<(IterContOps const& lhs, IterContOps const& rhs) 
+  { return cmp(lhs, rhs) < 0; }
+
+  friend bool operator==(IterContOps const& lhs, IterContOps const& rhs)
+  { return cmp(lhs, rhs) == 0; }
+
+  friend bool operator!=(IterContOps const& lhs, IterContOps const& rhs) 
+  { return !(lhs == rhs); }
+};
+
+template<class Iter>
+auto iterContOps(Iter iter) { return IterContOps<Iter>(std::move(iter)); }
 
 #endif /* __Metaiterators__ */

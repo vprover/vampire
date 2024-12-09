@@ -41,7 +41,7 @@ using namespace Lib;
 // IntegerConstantType
 //
 
-IntegerConstantType::IntegerConstantType(const vstring& str)
+IntegerConstantType::IntegerConstantType(const std::string& str)
 {
 
   if (!Int::stringToInt(str, _val)) {
@@ -361,7 +361,7 @@ Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, Intege
   }
 }
 
-vstring IntegerConstantType::toString() const
+std::string IntegerConstantType::toString() const
 {
 
   return Int::toString(_val);
@@ -377,7 +377,7 @@ RationalConstantType::RationalConstantType(InnerType num, InnerType den)
   init(num, den);
 }
 
-RationalConstantType::RationalConstantType(const vstring& num, const vstring& den)
+RationalConstantType::RationalConstantType(const std::string& num, const std::string& den)
 {
 
   init(InnerType(num), InnerType(den));
@@ -452,11 +452,11 @@ bool RationalConstantType::operator>(const RationalConstantType& o) const
 }
 
 
-vstring RationalConstantType::toString() const
+std::string RationalConstantType::toString() const
 {
 
-  vstring numStr = _num.toString();
-  vstring denStr = _den.toString();
+  std::string numStr = _num.toString();
+  std::string denStr = _den.toString();
 
 //  return "("+numStr+"/"+denStr+")";
   return numStr+"/"+denStr;
@@ -575,11 +575,11 @@ Comparison RealConstantType::comparePrecedence(RealConstantType n1, RealConstant
   return RationalConstantType::comparePrecedence(n1, n2);
 }
 
-bool RealConstantType::parseDouble(const vstring& num, RationalConstantType& res)
+bool RealConstantType::parseDouble(const std::string& num, RationalConstantType& res)
 {
 
   try {
-    vstring newNum;
+    std::string newNum;
     IntegerConstantType denominator = 1;
     bool haveDecimal = false;
     bool neg = false;
@@ -621,7 +621,7 @@ bool RealConstantType::parseDouble(const vstring& num, RationalConstantType& res
 }
 
 
-RealConstantType::RealConstantType(const vstring& number)
+RealConstantType::RealConstantType(const std::string& number)
 {
 
   RationalConstantType value;
@@ -655,7 +655,7 @@ RealConstantType::RealConstantType(const vstring& number)
   init(numerator, denominator);
 }
 
-vstring RealConstantType::toNiceString() const
+std::string RealConstantType::toNiceString() const
 {
 
   if (denominator().toInner()==1) {

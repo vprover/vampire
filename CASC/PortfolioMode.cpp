@@ -109,11 +109,11 @@ bool PortfolioMode::perform(Problem* problem)
   if (outputAllowed()) {
     if (resValue) {
       addCommentSignForSZS(cout);
-      cout<<"Success in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
+      cout<<"Success in time "<<Timer::msToSecondsString(Timer::elapsedMilliseconds())<<endl;
     }
     else {
       addCommentSignForSZS(cout);
-      cout<<"Proof not found in time "<<Timer::msToSecondsString(env.timer->elapsedMilliseconds())<<endl;
+      cout<<"Proof not found in time "<<Timer::msToSecondsString(Timer::elapsedMilliseconds())<<endl;
       if (env.remainingTime()/100>0) {
         addCommentSignForSZS(cout);
         cout<<"SZS status GaveUp for "<<env.options->problemName()<<endl;
@@ -166,7 +166,7 @@ bool PortfolioMode::searchForProof()
   }
 
   // now all the cpu usage will be in children, we'll just be waiting for them
-  Timer::setLimitEnforcement(false);
+  Timer::disableLimitEnforcement();
 
   return prepareScheduleAndPerform(*property);
 }
@@ -298,18 +298,18 @@ void PortfolioMode::rescaleScheduleLimits(const Schedule& sOld, Schedule& sNew, 
 {
   Schedule::BottomFirstIterator it(sOld);
   while(it.hasNext()){
-    vstring s = it.next();
+    std::string s = it.next();
 
     // rescale the instruction limit, if present
     size_t bidx = s.rfind(":i=");
-    if (bidx == vstring::npos) {
+    if (bidx == std::string::npos) {
       bidx = s.rfind("_i=");
     }
-    if (bidx != vstring::npos) {
+    if (bidx != std::string::npos) {
       bidx += 3; // advance past the "[:_]i=" bit
       size_t eidx = s.find_first_of(":_",bidx); // find the end of the number there
-      ASS_NEQ(eidx,vstring::npos);
-      vstring instrStr = s.substr(bidx,eidx-bidx);
+      ASS_NEQ(eidx,std::string::npos);
+      std::string instrStr = s.substr(bidx,eidx-bidx);
       unsigned instr;
       ALWAYS(Int::stringToUnsignedInt(instrStr,instr));
       instr *= limit_multiplier;
@@ -317,12 +317,12 @@ void PortfolioMode::rescaleScheduleLimits(const Schedule& sOld, Schedule& sNew, 
     }
 
     // do the analogous with the time limit suffix
-    vstring ts = s.substr(s.find_last_of("_")+1,vstring::npos);
+    std::string ts = s.substr(s.find_last_of("_")+1,std::string::npos);
     unsigned time;
     ALWAYS(Lib::Int::stringToUnsignedInt(ts,time));
-    vstring prefix = s.substr(0,s.find_last_of("_"));
+    std::string prefix = s.substr(0,s.find_last_of("_"));
     // Add a copy with increased time limit ...
-    vstring new_time_suffix = Lib::Int::toString((int)(time*limit_multiplier));
+    std::string new_time_suffix = Lib::Int::toString((int)(time*limit_multiplier));
 
     sNew.push(prefix + "_" + new_time_suffix);
   }
@@ -334,17 +334,17 @@ void PortfolioMode::rescaleScheduleLimits(const Schedule& sOld, Schedule& sNew, 
  * 
  * @author Giles, Martin
  */
-void PortfolioMode::addScheduleExtra(const Schedule& sOld, Schedule& sNew, vstring extra)
+void PortfolioMode::addScheduleExtra(const Schedule& sOld, Schedule& sNew, std::string extra)
 {
   Schedule::BottomFirstIterator it(sOld);
   while(it.hasNext()){
-    vstring s = it.next();
+    std::string s = it.next();
 
     auto idx = s.find_last_of("_");
 
-    vstring prefix = s.substr(0,idx);
-    vstring suffix = s.substr(idx,vstring::npos);
-    vstring new_s = prefix + ((prefix.back() != '_') ? ":" : "") + extra + suffix;
+    std::string prefix = s.substr(0,idx);
+    std::string suffix = s.substr(idx,std::string::npos);
+    std::string new_s = prefix + ((prefix.back() != '_') ? ":" : "") + extra + suffix;
 
     sNew.push(new_s);
   }
@@ -439,7 +439,7 @@ bool PortfolioMode::runSchedule(Schedule schedule) {
   Set<pid_t> processes;
   bool success = false;
   int remainingTime;
-  while(Timer::syncClock(), remainingTime = env.remainingTime() / 100, remainingTime > 0)
+  while(remainingTime = env.remainingTime() / 100, remainingTime > 0)
   {
     // running under capacity, wake up more tasks
     while(processes.size() < _numWorkers)
@@ -454,7 +454,7 @@ bool PortfolioMode::runSchedule(Schedule schedule) {
       }
       ALWAYS(it.hasNext());
 
-      vstring code = it.next();
+      std::string code = it.next();
       pid_t process = Multiprocessing::instance()->fork();
       ASS_NEQ(process, -1);
       if(process == 0)
@@ -546,10 +546,10 @@ bool PortfolioMode::runScheduleAndRecoverProof(Schedule schedule)
 /**
  * Return the intended slice time in deciseconds
  */
-unsigned PortfolioMode::getSliceTime(const vstring &sliceCode)
+unsigned PortfolioMode::getSliceTime(const std::string &sliceCode)
 {
   unsigned pos = sliceCode.find_last_of('_');
-  vstring sliceTimeStr = sliceCode.substr(pos+1);
+  std::string sliceTimeStr = sliceCode.substr(pos+1);
   unsigned sliceTime;
   ALWAYS(Int::stringToUnsignedInt(sliceTimeStr,sliceTime));
 
@@ -560,16 +560,16 @@ unsigned PortfolioMode::getSliceTime(const vstring &sliceCode)
     }
 
     size_t bidx = sliceCode.find(":i=");
-    if (bidx == vstring::npos) {
+    if (bidx == std::string::npos) {
       bidx = sliceCode.find("_i=");
-      if (bidx == vstring::npos) {
+      if (bidx == std::string::npos) {
         return 0; // run (essentially) forever
       }
     } // we have a valid begin index
     bidx += 3; // advance it past the "*i=" bit
     size_t eidx = sliceCode.find_first_of(":_",bidx); // find the end of the number there
-    ASS_NEQ(eidx,vstring::npos);
-    vstring sliceInstrStr = sliceCode.substr(bidx,eidx-bidx);
+    ASS_NEQ(eidx,std::string::npos);
+    std::string sliceInstrStr = sliceCode.substr(bidx,eidx-bidx);
     unsigned sliceInstr;
     ALWAYS(Int::stringToUnsignedInt(sliceInstrStr,sliceInstr));
 
@@ -583,7 +583,7 @@ unsigned PortfolioMode::getSliceTime(const vstring &sliceCode)
 /**
  * Run a slice given by its code using the specified time limit.
  */
-void PortfolioMode::runSlice(vstring sliceCode, int timeLimitInDeciseconds)
+void PortfolioMode::runSlice(std::string sliceCode, int timeLimitInDeciseconds)
 {
   TIME_TRACE("run slice");
 
@@ -633,12 +633,6 @@ void PortfolioMode::runSlice(Options& strategyOpt)
   System::registerForSIGHUPOnParentDeath();
   UIHelper::portfolioParent=false;
 
-  env.timer->reset();
-  env.timer->start();
-
-  Timer::resetInstructionMeasuring();
-  Timer::setLimitEnforcement(true);
-
   Options opt = strategyOpt;
   //we have already performed the normalization (or don't care about it)
   opt.setNormalize(false);
@@ -654,6 +648,8 @@ void PortfolioMode::runSlice(Options& strategyOpt)
 #endif
       ")" << endl;
   }
+
+  Timer::reinitialise(); // timer only when done talking (otherwise output may get mangled)
 
   Saturation::ProvingHelper::runVampire(*_prb, opt);
 

@@ -26,6 +26,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Indexing/ResultSubstitution.hpp"
+#include "Lib/STL.hpp"
 
 #include "Lib/Metaiterators.hpp"
 #include "Lib/VirtualIterator.hpp"
@@ -272,7 +273,7 @@ namespace Kernel {
 
   public:
     static std::shared_ptr<InequalityNormalizer> initGlobal(InequalityNormalizer norm) {
-      globalNormalizer = make_shared(std::move(norm));
+      globalNormalizer = Lib::make_shared(std::move(norm));
       return globalNormalizer;
     }
     static std::shared_ptr<InequalityNormalizer> global() {
@@ -733,7 +734,7 @@ namespace Kernel {
           bool const fixedPointIteration
         ) 
     {
-      globalState = make_shared(LascaState(std::move(normalizer), ordering, uwa, fixedPointIteration));
+      globalState = Lib::make_shared(LascaState(std::move(normalizer), ordering, uwa, fixedPointIteration));
       return globalState;
     }
 
@@ -818,8 +819,6 @@ namespace Kernel {
             case Ordering::Result::GREATER: return iter({0});
             case Ordering::Result::LESS:    return iter({1});
 
-            case Ordering::Result::LESS_EQ:
-            case Ordering::Result::GREATER_EQ:
             case Ordering::Result::EQUAL:
             case Ordering::Result::INCOMPARABLE: return iter({});
           }
@@ -832,17 +831,13 @@ namespace Kernel {
             case Ordering::Result::GREATER: return iter({0});
             case Ordering::Result::LESS:    return iter({1});
 
-            case Ordering::Result::LESS_EQ:
-            case Ordering::Result::GREATER_EQ:
             case Ordering::Result::EQUAL:
             case Ordering::Result::INCOMPARABLE: return iter({0, 1});
           }
 
         case SelectionCriterion::NOT_LEQ:
           switch (ordering->compare(lit->termArg(0), lit->termArg(1))) {
-            case Ordering::Result::GREATER_EQ:
             case Ordering::Result::GREATER: return iter({0});
-            case Ordering::Result::LESS_EQ:
             case Ordering::Result::LESS:    return iter({1});
             case Ordering::Result::EQUAL:        return iter({});
             case Ordering::Result::INCOMPARABLE: return iter({0, 1});
@@ -982,7 +977,7 @@ namespace Kernel {
 
     auto maxAtoms(Clause* cl, SelectionCriterion criterion, bool includeUnshieldedNumberVariables) {
       using Out = SelectedAtom;
-      auto atoms = make_shared(Stack<Out>());
+      auto atoms = Lib::make_shared(Stack<Out>());
       for (unsigned i : range(0, cl->size())) {
         auto l = SelectedLiteral(cl, i, *this);
         if (interpretedPred(l.literal())) {
@@ -998,7 +993,7 @@ namespace Kernel {
             }
           }
         } else {
-          atoms = make_shared(Stack<Out>());
+          atoms = Lib::make_shared(Stack<Out>());
           break;
         }
       }
@@ -1062,7 +1057,7 @@ namespace Kernel {
 #if VDEBUG
   std::shared_ptr<LascaState> testLascaState(
     Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::LPAR_MAIN,
-    std::shared_ptr<InequalityNormalizer> strongNormalization = make_shared(InequalityNormalizer(/*strong*/ false)),
+    std::shared_ptr<InequalityNormalizer> strongNormalization = Lib::make_shared(InequalityNormalizer(/*strong*/ false)),
     Ordering* ordering = nullptr,
     bool uwaFixdPointIteration = false
     );

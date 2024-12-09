@@ -760,7 +760,7 @@ OperatorType* Theory::getConversionOperationType(Interpretation i)
   return OperatorType::getFunctionType({from}, to);
 }
 
-vstring Theory::getInterpretationName(Interpretation interp) {
+std::string Theory::getInterpretationName(Interpretation interp) {
   switch (interp) {
     case INT_SUCCESSOR:
       //this one is not according the TPTP arithmetic (it doesn't have successor)
@@ -1244,7 +1244,7 @@ Term* Theory::representConstant(const RealConstantType& num)
   return Term::create(func, 0, 0);
 }
 
-Term* Theory::representIntegerConstant(vstring str)
+Term* Theory::representIntegerConstant(std::string str)
 {
   try {
     return Theory::instance()->representConstant(IntegerConstantType(str));
@@ -1263,7 +1263,7 @@ Term* Theory::representIntegerConstant(vstring str)
   }
 }
 
-Term* Theory::representRealConstant(vstring str)
+Term* Theory::representRealConstant(std::string str)
 {
   try {
     return Theory::instance()->representConstant(RealConstantType(str));
@@ -1276,7 +1276,7 @@ Term* Theory::representRealConstant(vstring str)
  * Register that a predicate pred with a given polarity has the given
  * template. See tryGetInterpretedLaTeXName for explanation of templates 
  */
-void Theory::registerLaTeXPredName(unsigned pred, bool polarity, vstring temp)
+void Theory::registerLaTeXPredName(unsigned pred, bool polarity, std::string temp)
 {
   if(polarity){
     _predLaTeXnamesPos.insert(pred,temp);
@@ -1288,7 +1288,7 @@ void Theory::registerLaTeXPredName(unsigned pred, bool polarity, vstring temp)
  * Register that a function has the given template
  * See tryGetInterpretedLaTeXName for explanation of templates 
  */
-void Theory::registerLaTeXFuncName(unsigned func, vstring temp)
+void Theory::registerLaTeXFuncName(unsigned func, std::string temp)
 {
   _funcLaTeXnames.insert(func,temp);
 }
@@ -1416,7 +1416,7 @@ std::ostream& operator<<(std::ostream& out, RealConstantType const& self)
  * replaced by the actual parameters elsewhere. For example, the template for 
  * not greater or equal to is "a0 \not \geq a1"
  */
-vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarity)
+std::string Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarity)
 {
    //cout << "Get LaTeX for " << func << endl;
 
@@ -1451,7 +1451,7 @@ vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarit
 
   // There are some default templates
   // For predicates these include the notion of polarity
-  vstring pol = polarity ? "" : " \\not ";
+  std::string pol = polarity ? "" : " \\not ";
 
   //TODO do we want special symbols for quotient, remainder, floor, ceiling, truncate, round?
 

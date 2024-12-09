@@ -19,4 +19,12 @@ static_assert(
     "Vampire assumes that there are 8 bits in a `char`"
 );
 
+#define VAMPIRE_PERF_EXISTS 0
+#ifdef __linux__
+#if __has_include(<linux/perf_event.h>)
+#undef VAMPIRE_PERF_EXISTS
+#define VAMPIRE_PERF_EXISTS 1
+#endif
+#endif
+
 #endif /*__Portability__*/

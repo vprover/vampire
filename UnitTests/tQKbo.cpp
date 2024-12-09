@@ -103,7 +103,7 @@ void check_in_different_contexts(QKbo& ord, TermList l, QKbo::Result exp, TermLi
 }
 
 QKbo& qkbo(bool rand = false) {
-  auto n = make_shared(InequalityNormalizer(/* strong */ false));
+  auto n = Lib::make_shared(InequalityNormalizer(/* strong */ false));
   return *new QKbo(KBO::testKBO(rand, /* qkboPrec */ true), n);
 }
 

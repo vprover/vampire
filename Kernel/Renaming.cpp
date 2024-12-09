@@ -176,7 +176,7 @@ void Renaming::assertValid() const
   }
 }
 
-vstring Renaming::toString() const
+std::string Renaming::toString() const
 { return outputToString(this); }
 
 #endif

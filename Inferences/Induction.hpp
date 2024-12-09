@@ -18,6 +18,8 @@
 
 #include <cmath>
 #include <functional>
+#include <map>
+#include <unordered_map>
 
 #include "Forwards.hpp"
 
@@ -96,7 +98,7 @@ struct StlClauseHash {
  * formulas can be easily detected. We allow multiple induction terms,
  * so we have to index the placeholders as well with @b i.
  */
-Term* getPlaceholderForTerm(const vvector<Term*>& ts, unsigned i);
+Term* getPlaceholderForTerm(const std::vector<Term*>& ts, unsigned i);
 
 /**
  * Term transformer class that replaces
@@ -104,10 +106,10 @@ Term* getPlaceholderForTerm(const vvector<Term*>& ts, unsigned i);
  */
 class TermReplacement : public TermTransformer {
 public:
-  TermReplacement(const vmap<Term*, TermList>& m) : _m(m) {}
+  TermReplacement(const std::map<Term*, TermList>& m) : _m(m) {}
   TermList transformSubterm(TermList trm) override;
 protected:
-  vmap<Term*,TermList> _m;
+  std::map<Term*,TermList> _m;
 };
 
 /**
@@ -116,7 +118,7 @@ protected:
  */
 class SkolemSquashingTermReplacement : public TermReplacement {
 public:
-  SkolemSquashingTermReplacement(const vmap<Term*, TermList>& m, unsigned& var)
+  SkolemSquashingTermReplacement(const std::map<Term*, TermList>& m, unsigned& var)
     : TermReplacement(m), _v(var) {}
   TermList transformSubterm(TermList trm) override;
   DHMap<Term*, unsigned, SharedTermHash> _tv; // maps terms to their variable replacement
@@ -131,11 +133,11 @@ private:
  *   which are inducted upon.
  */
 struct InductionContext {
-  explicit InductionContext(vvector<Term*>&& ts)
+  explicit InductionContext(std::vector<Term*>&& ts)
     : _indTerms(ts) {}
-  explicit InductionContext(const vvector<Term*>& ts)
+  explicit InductionContext(const std::vector<Term*>& ts)
     : _indTerms(ts) {}
-  InductionContext(const vvector<Term*>& ts, Literal* l, Clause* cl)
+  InductionContext(const std::vector<Term*>& ts, Literal* l, Clause* cl)
     : InductionContext(ts)
   {
     insert(cl, l);
@@ -150,12 +152,12 @@ struct InductionContext {
   // These two functions should be only called on objects where
   // all induction term occurrences actually inducted upon are
   // replaced with placeholders (e.g. with ContextReplacement).
-  Formula* getFormula(const vvector<TermList>& r, bool opposite, Substitution* subst = nullptr) const;
-  Formula* getFormulaWithSquashedSkolems(const vvector<TermList>& r, bool opposite, unsigned& var,
+  Formula* getFormula(const std::vector<TermList>& r, bool opposite, Substitution* subst = nullptr) const;
+  Formula* getFormulaWithSquashedSkolems(const std::vector<TermList>& r, bool opposite, unsigned& var,
     VList** varList = nullptr, Substitution* subst = nullptr) const;
 
-  vstring toString() const {
-    vstringstream str;
+  std::string toString() const {
+    std::stringstream str;
     for (const auto& indt : _indTerms) {
       str << *indt << std::endl;
     }
@@ -168,7 +170,7 @@ struct InductionContext {
     return str.str();
   }
 
-  vvector<Term*> _indTerms;
+  std::vector<Term*> _indTerms;
   // One could induct on all literals of a clause, but if a literal
   // doesn't contain the induction term, it just introduces a couple
   // of tautologies and duplicate literals (a hypothesis clause will
@@ -176,7 +178,7 @@ struct InductionContext {
   // we only store the literals we actually induct on. An alternative
   // would be storing indices but then we need to pass around the
   // clause as well.
-  vunordered_map<Clause*, LiteralStack, StlClauseHash> _cls;
+  std::unordered_map<Clause*, LiteralStack, StlClauseHash> _cls;
 private:
   /**
    * Creates a formula which corresponds to the conjunction of disjunction
@@ -223,8 +225,8 @@ protected:
 
 private:
   FunctionDefinitionHandler& _fnDefHandler;
-  vvector<unsigned> _iteration;
-  vvector<unsigned> _matchCount;
+  std::vector<unsigned> _iteration;
+  std::vector<unsigned> _matchCount;
   bool _hasNonActive;
 };
 
@@ -248,10 +250,10 @@ private:
   bool shouldSkipIteration() const;
   void stepIteration();
   // _iteration serves as a map of occurrences to replace
-  vvector<unsigned> _iteration;
-  vvector<unsigned> _maxIterations;
+  std::vector<unsigned> _iteration;
+  std::vector<unsigned> _maxIterations;
   // Counts how many occurrences were already encountered in one transformation
-  vvector<unsigned> _matchCount;
+  std::vector<unsigned> _matchCount;
   const unsigned _maxOccurrences = 1 << 20;
   const unsigned _maxSubsetSize;
   bool _ready;
@@ -335,7 +337,7 @@ private:
   void performStructInductionOne(const InductionContext& context, InductionFormulaIndex::Entry* e);
   void performStructInductionTwo(const InductionContext& context, InductionFormulaIndex::Entry* e);
   void performStructInductionThree(const InductionContext& context, InductionFormulaIndex::Entry* e);
-  void performRecursionInduction(const InductionContext& context, const InductionTemplate* templ, const vvector<Term*>& typeArgs, InductionFormulaIndex::Entry* e);
+  void performRecursionInduction(const InductionContext& context, const InductionTemplate* templ, const std::vector<Term*>& typeArgs, InductionFormulaIndex::Entry* e);
 
   /**
    * Whether an induction formula is applicable (or has already been generated)

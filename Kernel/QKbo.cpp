@@ -12,10 +12,11 @@
 
 namespace Kernel {
 
+  // TODO use outputToString
 template<class T>
-vstring output_to_string(T const& t) 
+std::string output_to_string(T const& t) 
 {
-  vstringstream out;
+  std::stringstream out;
   out << t;
   return out.str();
 }
@@ -287,12 +288,9 @@ Option<TermList> QKbo::abstr(TermList t) const
               auto cmp = _kbo.compare(abstracted[i], abstracted[j]);
               switch(cmp) {
                 case Ordering::GREATER:
-                case Ordering::GREATER_EQ:
                 case Ordering::EQUAL:
                   /* ok */
                   break; 
-                case Ordering::LESS_EQ:
-                  ASSERTION_VIOLATION
                 case Ordering::LESS:
                 case Ordering::INCOMPARABLE:
                   goto try_next_max;

@@ -22,7 +22,6 @@
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/ColorHelper.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
@@ -175,11 +174,11 @@ Clause* Narrow::performNarrow(
   TermList arg1=*nLiteralS->nthArgument(1);
 
   if(!arg0.containsSubterm(nTermS)) {
-    if(Ordering::isGorGEorE(ordering.getEqualityArgumentOrder(nLiteralS))) {
+    if(Ordering::isGreaterOrEqual(ordering.getEqualityArgumentOrder(nLiteralS))) {
       return 0;
     }
   } else if(!arg1.containsSubterm(nTermS)) {
-    if(Ordering::isGorGEorE(Ordering::reverse(ordering.getEqualityArgumentOrder(nLiteralS)))) {
+    if(Ordering::isGreaterOrEqual(Ordering::reverse(ordering.getEqualityArgumentOrder(nLiteralS)))) {
       return 0;
     }
   }

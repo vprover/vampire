@@ -456,8 +456,8 @@ public:
 
 #if VDEBUG
 // Only works if called on a List of elements with toString functions
-  vstring toString(){
-    vstring h = _head->toString();
+  std::string toString(){
+    std::string h = _head->toString();
     if(_tail){
       return h+","+_tail->toString();
     }

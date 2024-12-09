@@ -123,7 +123,7 @@ using ProblemExportSyntax = Shell::Options::ProblemExportSyntax;
 
 //using namespace z3;
 
-Z3Interfacing::Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCore, vstring const& exportFile,Shell::Options::ProblemExportSyntax exportSyntax):
+Z3Interfacing::Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCore, std::string const& exportFile,Shell::Options::ProblemExportSyntax exportSyntax):
   Z3Interfacing(s2f, opts.showZ3(), /* unsatCore */ unsatCore, exportFile, exportSyntax)
 { }
 
@@ -261,12 +261,12 @@ void handleZ3Error(Z3_context ctxt, Z3_error_code code)
   throw z3::exception(errToString(code));
 }
 
-Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCore, vstring const& exportSmtlib, Options::ProblemExportSyntax exportSyntax):
+Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCore, std::string const& exportSmtlib, Options::ProblemExportSyntax exportSyntax):
   _hasSeenArrays(false),
   _varCnt(0),
   _sat2fo(s2f),
   _outSyntax(exportSyntax),
-  _status(SATISFIABLE),
+  _status(Status::SATISFIABLE),
   _context(),
   _solver(*_context),
   _model((_solver.check(), _solver.get_model())),
@@ -348,10 +348,10 @@ void ProblemExport::Smtlib::addAssert(z3::expr const& x)               { out << 
 void ProblemExport::Smtlib::get_model()                                { out << "(get-model)"                     << std::endl; }
 void ProblemExport::Smtlib::reset()                                    { out << "(reset)"                         << std::endl; }
 
-void ProblemExport::Smtlib::declare_const(vstring const& name, z3::sort codomain)
+void ProblemExport::Smtlib::declare_const(std::string const& name, z3::sort codomain)
 { return declare_fun(name, z3::sort_vector(codomain.ctx()), codomain); }
 
-void ProblemExport::Smtlib::declare_fun(vstring const& name, z3::sort_vector domain, z3::sort codomain) {
+void ProblemExport::Smtlib::declare_fun(std::string const& name, z3::sort_vector domain, z3::sort codomain) {
   out << "(declare-fun " << name << " (";
   for (auto s : domain)
     out << " "  << s;
@@ -375,7 +375,7 @@ void ProblemExport::Smtlib::set_param(const char* k, Value const& v)
 
 void ProblemExport::Smtlib::Z3_mk_datatypes(Z3MkDatatypesCall const& call) {
   auto quote = [&](auto x){
-    vstringstream s;
+    std::stringstream s;
     s << x;
     auto str = s.str();
     if (str[0] == '\'') {
@@ -408,26 +408,26 @@ void ProblemExport::Smtlib::Z3_mk_datatypes(Z3MkDatatypesCall const& call) {
   out << "))" << std::endl;
 }
 
-vstring ProblemExport::ApiCalls::escapeVarName(z3::sort const& sym)
+std::string ProblemExport::ApiCalls::escapeVarName(z3::sort const& sym)
 {
   if (sym.is_array()) {
     // Array sorts have argments. Hence we need to escape the arguments as well, not only the sort name
     return _escapeVarName(sym);
   } else {
     return Z3_ast(sym) == nullptr 
-      ? vstring("nullptr")
+      ? std::string("nullptr")
       : _escapeVarName(sym.name());
   }
 }
 
-vstring ProblemExport::ApiCalls::escapeVarName(z3::symbol const& sym)
+std::string ProblemExport::ApiCalls::escapeVarName(z3::symbol const& sym)
 { return _escapeVarName(sym); }
 
 
 template<class Outputable>
-vstring ProblemExport::ApiCalls::_escapeVarName(Outputable const& sym) {
-  vstringstream cvar;
-  auto generatePrefix = [&](vstring const& toEscape) -> vstring {
+std::string ProblemExport::ApiCalls::_escapeVarName(Outputable const& sym) {
+  std::stringstream cvar;
+  auto generatePrefix = [&](std::string const& toEscape) -> std::string {
     unsigned iter = 0;
     while (iter < toEscape.length()) {
       if (std::isalnum(toEscape[iter]) || toEscape[iter] == '_') break;
@@ -450,7 +450,7 @@ vstring ProblemExport::ApiCalls::_escapeVarName(Outputable const& sym) {
         iter++;
       }
     }
-    return vstring(cvar.str());
+    return std::string(cvar.str());
   };
 
 
@@ -564,14 +564,14 @@ void ProblemExport::ApiCalls::terminate()
 }
 
 struct ProblemExport::ApiCalls::EscapeString {
-  vstring s;
-  EscapeString(vstring s) : s(s) {}
+  std::string s;
+  EscapeString(std::string s) : s(s) {}
   EscapeString(z3::expr const& x) : EscapeString(outputToString(x)) {}
   friend std::ostream& operator<<(std::ostream& out, EscapeString const& self)
   { return out << "R\"(" << self.s << ")\""; }// TODO mask occurences of )"
 };
 
-std::ostream& ProblemExport::operator<<(std::ostream& out, ProblemExport::ApiCalls::Serialize<vstring> const& self)
+std::ostream& ProblemExport::operator<<(std::ostream& out, ProblemExport::ApiCalls::Serialize<std::string> const& self)
 { return out << ProblemExport::ApiCalls::EscapeString{self.inner}; }
 
 std::ostream& ProblemExport::operator<<(std::ostream& out, ProblemExport::ApiCalls::Serialize<bool> const& self)
@@ -792,14 +792,14 @@ void ProblemExport::ApiCalls::Z3_mk_datatypes(Z3MkDatatypesCall const& call) {
   out << "  }" << std::endl << std::endl;
 }
 
-void ProblemExport::ApiCalls::declare_fun(vstring const& name, z3::sort_vector domain, z3::sort codomain) {
+void ProblemExport::ApiCalls::declare_fun(std::string const& name, z3::sort_vector domain, z3::sort codomain) {
   out << "  z3::func_decl " << escapeVarName(_ctxt.str_symbol(name.c_str())) << " = ctx.function(" << EscapeString{name} << ", sort_vec({";
   for (auto s : domain)
     out << escapeVarName(s) << ", ";
   out << "}), " << escapeVarName(codomain) << " );" << std::endl;
 }
 
-void ProblemExport::ApiCalls::declare_const(vstring const& name, z3::sort codomain) {
+void ProblemExport::ApiCalls::declare_const(std::string const& name, z3::sort codomain) {
   auto varName = escapeVarName(_ctxt.str_symbol(name.c_str()));
   out << "  z3::expr " << varName
       << " = ctx.constant(" << EscapeString{name} << ", " << escapeVarName(codomain) << " );" << std::endl;
@@ -819,7 +819,7 @@ void Z3Interfacing::z3_enable_trace(const char* name) {
 }
 
 
-z3::sort Z3Interfacing::z3_declare_sort(vstring const& name) {
+z3::sort Z3Interfacing::z3_declare_sort(std::string const& name) {
   auto sort = _context->uninterpreted_sort(_context->str_symbol(name.c_str()));
   _exporter.apply([&](auto& e) { e.declareSort(sort); });
   return sort;
@@ -855,13 +855,13 @@ z3::model Z3Interfacing::z3_get_model() {
 //   _solver.reset();
 // }
 
-z3::expr Z3Interfacing::z3_declare_const(vstring const& name, z3::sort sort) {
+z3::expr Z3Interfacing::z3_declare_const(std::string const& name, z3::sort sort) {
   _exporter.apply([&](auto& e) { e.declare_const(name, sort); });
   return _context->function(name.c_str(), z3::sort_vector(*_context), sort)();
 }
 
 
-z3::func_decl Z3Interfacing::z3_declare_fun(vstring const& name, z3::sort_vector domain, z3::sort codomain) {
+z3::func_decl Z3Interfacing::z3_declare_fun(std::string const& name, z3::sort_vector domain, z3::sort codomain) {
   _exporter.apply([&](auto& e) { e.declare_fun(name, domain, codomain); });
   return _context->function(name.c_str(), domain, codomain);
 }
@@ -994,14 +994,14 @@ SATSolver::Status Z3Interfacing::solve()
 
   switch (result) {
     case z3::check_result::unsat:
-      _status = UNSATISFIABLE;
+      _status = Status::UNSATISFIABLE;
       break;
     case z3::check_result::sat:
-      _status = SATISFIABLE;
+      _status = Status::SATISFIABLE;
       _model = z3_get_model();
       break;
     case z3::check_result::unknown:
-      _status = UNKNOWN;
+      _status = Status::UNKNOWN;
       break;
     default: ASSERTION_VIOLATION;
   }
@@ -1027,16 +1027,16 @@ SATSolver::Status Z3Interfacing::solveUnderAssumptions(const SATLiteralStack& as
 
 SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
 {
-  ASS_EQ(_status,SATISFIABLE);
+  ASS_EQ(_status,Status::SATISFIABLE);
   z3::expr rep = isNamedExpr(var) ? getNameExpr(var) : getRepresentation(SATLiteral(var,1)).expr;
   _exporter.apply([&](auto& exp){ exp.instantiate_expression(rep); });
   ASS(isNamedExpr(var) || getRepresentation(SATLiteral(var,1)).defs.isEmpty())
   auto assignment = z3_eval(rep);
 
   if(assignment.bool_value()==Z3_L_TRUE){
-    return TRUE;
+    return VarAssignment::TRUE;
   } else if(assignment.bool_value()==Z3_L_FALSE){
-    return FALSE;
+    return VarAssignment::FALSE;
   } else {
 #if VDEBUG
     std::cout << std::endl;
@@ -1047,7 +1047,7 @@ SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
     std::cout << rep << std::endl;
     ASSERTION_VIOLATION_REP(assignment);
 #endif
-    return NOT_KNOWN;
+    return VarAssignment::NOT_KNOWN;
   }
 }
 
@@ -1063,7 +1063,7 @@ OperatorType* operatorType(Z3Interfacing::FuncOrPredId f)
 Term* createTermOrPred(Z3Interfacing::FuncOrPredId f, unsigned arity, TermList* ts)
 {
   return f.isPredicate
-    ? Literal::create(f.id, arity, true, false, ts)
+    ? Literal::create(f.id, arity, true, ts)
     : Term::create(f.id, arity, ts);
 }
 
@@ -1231,9 +1231,9 @@ z3::sort Z3Interfacing::getz3sort(SortId s)
 }
 
 template<class A>
-vstring to_vstring(A const& a)
+std::string to_string(A const& a)
 {
-  vstringstream out;
+  std::stringstream out;
   out << a;
   return out.str();
 }
@@ -1256,7 +1256,7 @@ void Z3Interfacing::createTermAlgebra(TermList sort)
     }
   }
 
-  auto new_string_symbol = [this](unsigned f, const vstring& typePostfix, bool pred = false)
+  auto new_string_symbol = [this](unsigned f, const std::string& typePostfix, bool pred = false)
   { return Z3_mk_string_symbol(*_context,
     ((pred ? env.signature->getPredicate(f) : env.signature->getFunction(f))->name()+'_'+typePostfix).c_str()); };
 
@@ -1277,7 +1277,7 @@ void Z3Interfacing::createTermAlgebra(TermList sort)
     auto taSortT = taSort.term();
     auto ta = env.signature->getTermAlgebraOfSort(taSort);
     Substitution typeSubst;
-    vstring typePostfix = "$";
+    std::string typePostfix = "$";
     ta->getTypeSub(taSortT, typeSubst);
     for(unsigned i = 0; i < taSortT->arity(); i++) {
       // MS: Is it OK not to use any separator here?
@@ -1431,7 +1431,7 @@ namespace tptp {
 
   z3::expr quotient0(char kind, z3::expr x)
   {
-      vstring fname = quotient0_name(kind, x.get_sort());
+    std::string fname = quotient0_name(kind, x.get_sort());
       // uninterpreted remainder for zero division
       auto quotient0 = x.ctx().function(fname.c_str(), x.get_sort(), x.get_sort());
       return quotient0(x);
@@ -1439,7 +1439,7 @@ namespace tptp {
 
   z3::expr remainder0(char kind, z3::expr x)
   {
-      vstring fname = remainder0_name(kind, x.get_sort());
+    std::string fname = remainder0_name(kind, x.get_sort());
       // uninterpreted remainder for zero division
       auto remainder0 = x.ctx().function(fname.c_str(), x.get_sort(), x.get_sort());
       return remainder0(x);
@@ -1497,7 +1497,7 @@ z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
     auto type = functor.isPredicate ? symb->predType() : symb->fnType();
 
     // polymorphic symbol application: treat f(<sorts>, ...) as f<sorts>(...) for Z3
-    vstring namebuf = symb->name();
+    std::string namebuf = symb->name();
     Substitution typeSubst;
     if(functor.forSorts) {
       SortHelper::getTypeSub(functor.forSorts, typeSubst);

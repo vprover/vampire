@@ -528,7 +528,7 @@ public:
                                      : LESS;
           } else {
             return r->term().isVar() ? GREATER
-                                     : Int::compare(*l.functor(), r->term().term()->functor());
+                                     : Int::compare(l.functor()->functor, r->term().term()->functor());
           }
         }
       };
@@ -815,14 +815,6 @@ public:
         }
 
         bindSpecialVar(2, SortHelper::getEqualityArgumentSort(lit));
-
-      } else if(reversed) {
-        ASS(lit->commutative());
-        ASS_EQ(lit->arity(),2);
-
-        bindSpecialVar(1,*lit->nthArgument(0));
-        bindSpecialVar(0,*lit->nthArgument(1));
-
       } else {
 
         TermList* args=lit->args();
@@ -942,7 +934,7 @@ public:
           ASS(!q || !t.isSpecialVar());
         }
 
-        vstring toString()
+        std::string toString()
         { return (q ? "q|" : "n|")+t.toString(); }
 
         /**
@@ -1204,6 +1196,7 @@ public:
         }
         _queryInitBacktrackData.backtrack();
       }
+
 
       template<class TermOrLit, class...AlgoArgs>
       void init(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, AlgoArgs... args) {

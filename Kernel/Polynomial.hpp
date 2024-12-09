@@ -27,7 +27,6 @@
  * MonomFactor     ::= PolyNf int                   // the term of the factor, and its power
  */
 
-#include "Lib/STLAllocator.hpp"
 #include "Kernel/NumTraits.hpp"
 #include <cassert>
 #include "Lib/Coproduct.hpp"
@@ -37,6 +36,7 @@
 #include "Lib/Perfect.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/TypedTermList.hpp"
+#include "Lib/Reflection.hpp"
 #include <type_traits>
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
@@ -77,12 +77,12 @@ namespace Kernel {
 class FuncId 
 {
   unsigned _num;
-  Stack<TermList> _typeArgs;
+  const TermList* _typeArgs;
   
-  explicit FuncId(unsigned num, Stack<TermList> typeArgs);
+  explicit FuncId(unsigned num, const TermList* typeArgs);
 public: 
   static FuncId fromInterpretation(Theory::Interpretation i)
-  { return FuncId(env.signature->getInterpretingSymbol(i), Stack<TermList>()); }
+  { return FuncId(env.signature->getInterpretingSymbol(i), nullptr); }
 
   static FuncId symbolOf(Term* term);
   unsigned numTermArguments() const;
@@ -101,11 +101,7 @@ public:
   bool isFloor() const 
   { return forAnyNumTraits([&](auto n) { return isFloor<decltype(n)>(); }); }
 
-  friend struct std::hash<FuncId>;
-  friend bool operator==(FuncId const& lhs, FuncId const& rhs);
-  friend bool operator!=(FuncId const& lhs, FuncId const& rhs);
   friend std::ostream& operator<<(std::ostream& out, const FuncId& self);
-
   auto iterTypeArgs() const 
   { return range(0, numTypeArguments()).map([&](auto i) { return typeArg(i); }); }
 
@@ -118,16 +114,13 @@ public:
 
   template<class Number>
   Option<typename Number::ConstantType> tryNumeral() const;
+  
+  auto asTuple() const { return std::tuple(_num, iterContOps(iterTypeArgs())); }
+  IMPL_COMPARISONS_FROM_TUPLE(FuncId)
+  IMPL_HASH_FROM_TUPLE(FuncId)
 };
 
 } // namespace Kernel
-
-
-template<> struct std::hash<Kernel::FuncId> 
-{
-  size_t operator()(Kernel::FuncId const& f) const 
-  { return std::hash<unsigned>{}(f._num); }
-};
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -814,7 +807,7 @@ template<class F> FuncTerm FuncTerm::mapVars(F fun) const
 template<> struct std::hash<Kernel::FuncTerm> 
 {
   size_t operator()(Kernel::FuncTerm const& f) const 
-  { return Lib::HashUtils::combine(std::hash<Kernel::FuncId>{}(f._fun), std::hash<Stack<Kernel::PolyNf>>{}(f._args));  }
+  { return Lib::HashUtils::combine(f._fun.defaultHash(), std::hash<Stack<Kernel::PolyNf>>{}(f._args));  }
 };
 
 /////////////////////////////////////////////////////////

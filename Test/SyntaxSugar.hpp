@@ -524,7 +524,7 @@ public:
     : _functor(functor)
     , _arity(env.signature->getFunction(functor)->arity()) {}
 
-  FuncSugar(vstring const& name, std::initializer_list<SortSugar> as_, 
+  FuncSugar(std::string const& name, std::initializer_list<SortSugar> as_, 
     ExpressionSugar result, unsigned taArity = 0) 
   {
     Stack<SortId> as;
@@ -649,10 +649,9 @@ public:
   template<class... As>
   Lit operator()(As... args) const {
     Stack<TermList> as { TermSugar(args).sugaredExpr()... };
-    return Literal::create(_functor, 
-        as.size(), 
-        /* polarity */ true, 
-        /* commutative */ false, 
+    return Literal::create(_functor,
+        as.size(),
+        /* polarity */ true,
         as.begin() );
   }
   unsigned functor() const { return _functor; }
@@ -668,7 +667,7 @@ inline Clause* clause(Stack<Lit> ls) {
     .unwrapOrElse( [&]() {return ls.size(); });
 
   Clause& out = *Clause::fromIterator(arrayIter(ls)
-      .map([](auto l) -> Literal* { return l; }), testInf);
+      .map([](Lit l) -> Literal* { return l; }), testInf);
 
   out.setSelected(nSelected);
   return &out; 
@@ -701,7 +700,7 @@ inline void createTermAlgebra(SortSugar sort, std::initializer_list<FuncSugar> f
       ->markTermAlgebraCons();
 
     auto dtor = [&](unsigned i) {
-      vstringstream name;
+      std::stringstream name;
       name << f << "@" << i;
       auto d = FuncSugar(name.str(), { f.result() }, f.arg(i));
       env.signature->getFunction(d.functor())

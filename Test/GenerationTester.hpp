@@ -28,23 +28,24 @@
 #include "Saturation/Otter.hpp"
 #include "Kernel/Problem.hpp"
 #include "Shell/Options.hpp"
+#include "Lib/STL.hpp"
 #include "Test/MockedSaturationAlgorithm.hpp"
 #include "Test/SyntaxSugar.hpp"
 
 namespace Test {
 
-#define TEST_FN_ASS_EQ(VAL1, VAL2)                                                                  \
-  [] (vstring& s1, vstring& s2) {                                                                   \
-    bool res = (VAL1 == VAL2);                                                                      \
-    if (!res) {                                                                                     \
-      s1 = Int::toString(VAL1);                                                                     \
-      s1.append(" != ");                                                                            \
-      s1.append(Int::toString(VAL2));                                                               \
-      s2 = vstring(#VAL1);                                                                          \
-      s2.append(" == ");                                                                            \
-      s2.append(#VAL2);                                                                             \
-    }                                                                                               \
-    return res;                                                                                     \
+#define TEST_FN_ASS_EQ(VAL1, VAL2)                                                        \
+  [] (std::string& s1, std::string& s2) {                                                 \
+    bool res = (VAL1 == VAL2);                                                            \
+    if (!res) {                                                                           \
+      s1 = Int::toString(VAL1);                                                           \
+      s1.append(" != ");                                                                  \
+      s1.append(Int::toString(VAL2));                                                     \
+      s2 = std::string(#VAL1);                                                            \
+      s2.append(" == ");                                                                  \
+      s2.append(#VAL2);                                                                   \
+    }                                                                                     \
+    return res;                                                                           \
   }
 
 namespace Generation {
@@ -189,8 +190,8 @@ public:
 class AsymmetricTest
 {
   using Clause = Kernel::Clause;
-  using OptionMap = Stack<std::pair<vstring,vstring>>;
-  using Condition = std::function<bool(vstring&, vstring&)>;
+  using OptionMap = Stack<std::pair<std::string,std::string>>;
+  using Condition = std::function<bool(std::string&, std::string&)>;
   Option<SimplifyingGeneratingInference*> _rule;
   Clause* _input;
   Option<StackMatcher> _expected;
@@ -218,12 +219,12 @@ public:
 
   AsymmetricTest() : _rule(), _input(NULL), _expected(), _premiseRedundant(false), _selfApplications(true), _options() {}
 
-#define BUILDER_METHOD(type, field)                                                                 \
-  AsymmetricTest field(type field)                                                                  \
-  {                                                                                                 \
-    this->_##field = decltype(_##field)(std::move(field));                                          \
-    return *this;                                                                                   \
-  }                                                                                                 \
+#define BUILDER_METHOD(type, field)                                                       \
+  AsymmetricTest field(type field)                                                        \
+  {                                                                                       \
+    this->_##field = decltype(_##field)(std::move(field));                                \
+    return *this;                                                                         \
+  }                                                                                       \
 
   BUILDER_METHOD(Clause*, input)
   BUILDER_METHOD(ClauseStack, context)
@@ -281,7 +282,7 @@ public:
     }
 
     // check that the preconditions hold
-    vstring s1, s2;
+    std::string s1, s2;
     for (auto c : _preConditions) {
       if (!c(s1, s2)) {
         s2.append(" (precondition)");
@@ -310,7 +311,7 @@ public:
     // }
 
     if (_premiseRedundant != res.premiseRedundant) {
-      auto wrapStr = [](bool b) -> vstring { return b ? "premise is redundant" : "premise is not redundant"; };
+      auto wrapStr = [](bool b) -> std::string { return b ? "premise is redundant" : "premise is not redundant"; };
       testFail( wrapStr(res.premiseRedundant), wrapStr(_premiseRedundant));
     }
 
@@ -359,12 +360,12 @@ public:
 
   SymmetricTest() : _rule(), _expected(), _premiseRedundant(false), _selfApplications(true) {}
 
-#define _BUILDER_METHOD(type, field)                                                                \
-  SymmetricTest field(type field)                                                                   \
-  {                                                                                                 \
-    this->_##field = decltype(_##field)(std::move(field));                                          \
-    return *this;                                                                                   \
-  }                                                                                                 \
+#define _BUILDER_METHOD(type, field)                                                      \
+  SymmetricTest field(type field)                                                         \
+  {                                                                                       \
+    this->_##field = decltype(_##field)(std::move(field));                                \
+    return *this;                                                                         \
+  }                                                                                       \
 
   _BUILDER_METHOD(Stack<Clause*>, inputs)
   _BUILDER_METHOD(StackMatcher, expected)
@@ -405,16 +406,16 @@ public:
 
 #define REGISTER_GEN_TESTER(t) const auto __CREATE_GEN_TESTER = []()  { return t; };
 
-#define TEST_GENERATION(name, ...)                                                                  \
+#define TEST_GENERATION(name, ...)                                                        \
         TEST_GENERATION_WITH_SUGAR(name, MY_SYNTAX_SUGAR, __VA_ARGS__) 
 
-#define TEST_GENERATION_WITH_SUGAR(name, syntax_sugar, ...)                                         \
-  TEST_FUN(name) {                                                                                  \
-    auto tester = __CREATE_GEN_TESTER();                                                            \
-    __ALLOW_UNUSED(syntax_sugar)                                                                    \
-    auto test = __VA_ARGS__;                                                                        \
-    test.run(tester);                                                                               \
-  }                                                                                                 \
+#define TEST_GENERATION_WITH_SUGAR(name, syntax_sugar, ...)                               \
+  TEST_FUN(name) {                                                                        \
+    auto tester = __CREATE_GEN_TESTER();                                                  \
+    __ALLOW_UNUSED(syntax_sugar)                                                          \
+    auto test = __VA_ARGS__;                                                              \
+    test.run(tester);                                                                     \
+  }                                                                                       \
 
 } // namespace Simplification
 

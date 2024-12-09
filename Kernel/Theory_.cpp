@@ -41,7 +41,7 @@ using namespace Lib;
 // IntegerConstantType
 //
 
-IntegerConstantType::IntegerConstantType(const vstring& str)
+IntegerConstantType::IntegerConstantType(const std::string& str)
   : _val(mpz_class(str.c_str(), /* base */ 10))
 {
 
@@ -341,7 +341,7 @@ Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, Intege
   }
 }
 
-vstring IntegerConstantType::toString() const
+std::string IntegerConstantType::toString() const
 {
 
   return Int::toString(_val);
@@ -357,7 +357,7 @@ RationalConstantType::RationalConstantType(InnerType num, InnerType den)
   init(num, den);
 }
 
-RationalConstantType::RationalConstantType(const vstring& num, const vstring& den)
+RationalConstantType::RationalConstantType(const std::string& num, const std::string& den)
 {
 
   init(InnerType(num), InnerType(den));
@@ -432,11 +432,11 @@ bool RationalConstantType::operator>(const RationalConstantType& o) const
 }
 
 
-vstring RationalConstantType::toString() const
+std::string RationalConstantType::toString() const
 {
 
-  vstring numStr = _num.toString();
-  vstring denStr = _den.toString();
+  std::string numStr = _num.toString();
+  std::string denStr = _den.toString();
 
 //  return "("+numStr+"/"+denStr+")";
   return numStr+"/"+denStr;
@@ -555,11 +555,11 @@ Comparison RealConstantType::comparePrecedence(RealConstantType n1, RealConstant
   return RationalConstantType::comparePrecedence(n1, n2);
 }
 
-bool RealConstantType::parseDouble(const vstring& num, RationalConstantType& res)
+bool RealConstantType::parseDouble(const std::string& num, RationalConstantType& res)
 {
 
   try {
-    vstring newNum;
+    std::string newNum;
     IntegerConstantType denominator = 1;
     bool haveDecimal = false;
     bool neg = false;
@@ -601,7 +601,7 @@ bool RealConstantType::parseDouble(const vstring& num, RationalConstantType& res
 }
 
 
-RealConstantType::RealConstantType(const vstring& number)
+RealConstantType::RealConstantType(const std::string& number)
 {
 
   RationalConstantType value;
@@ -635,7 +635,7 @@ RealConstantType::RealConstantType(const vstring& number)
   init(numerator, denominator);
 }
 
-vstring RealConstantType::toNiceString() const
+std::string RealConstantType::toNiceString() const
 {
 
   if (denominator().toInner()==1) {
@@ -1394,7 +1394,7 @@ OperatorType* Theory::getConversionOperationType(Interpretation i)
   return OperatorType::getFunctionType({from}, to);
 }
 
-vstring Theory::getInterpretationName(Interpretation interp) {
+std::string Theory::getInterpretationName(Interpretation interp) {
 
   switch (interp) {
     case INT_SUCCESSOR:
@@ -1910,7 +1910,7 @@ Term* Theory::representConstant(const RealConstantType& num)
   return Term::create(func, 0, 0);
 }
 
-Term* Theory::representIntegerConstant(vstring str)
+Term* Theory::representIntegerConstant(std::string str)
 {
 
   try {
@@ -1930,7 +1930,7 @@ Term* Theory::representIntegerConstant(vstring str)
   }
 }
 
-Term* Theory::representRealConstant(vstring str)
+Term* Theory::representRealConstant(std::string str)
 {
   try {
     return Theory::instance()->representConstant(RealConstantType(str));
@@ -1943,7 +1943,7 @@ Term* Theory::representRealConstant(vstring str)
  * Register that a predicate pred with a given polarity has the given
  * template. See tryGetInterpretedLaTeXName for explanation of templates 
  */
-void Theory::registerLaTeXPredName(unsigned pred, bool polarity, vstring temp)
+void Theory::registerLaTeXPredName(unsigned pred, bool polarity, std::string temp)
 {
   if(polarity){
     _predLaTeXnamesPos.insert(pred,temp);
@@ -1955,7 +1955,7 @@ void Theory::registerLaTeXPredName(unsigned pred, bool polarity, vstring temp)
  * Register that a function has the given template
  * See tryGetInterpretedLaTeXName for explanation of templates 
  */
-void Theory::registerLaTeXFuncName(unsigned func, vstring temp)
+void Theory::registerLaTeXFuncName(unsigned func, std::string temp)
 {
   _funcLaTeXnames.insert(func,temp);
 }
@@ -2067,7 +2067,7 @@ std::ostream& operator<<(std::ostream& out, Kernel::Theory::Interpretation const
  * replaced by the actual parameters elsewhere. For example, the template for 
  * not greater or equal to is "a0 \not \geq a1"
  */
-vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarity)
+std::string Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarity)
 {
 
    //cout << "Get LaTeX for " << func << endl;
@@ -2103,7 +2103,7 @@ vstring Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarit
 
   // There are some default templates
   // For predicates these include the notion of polarity
-  vstring pol = polarity ? "" : " \\not ";
+  std::string pol = polarity ? "" : " \\not ";
 
   //TODO do we want special symbols for quotient, remainder, floor, ceiling, truncate, round?
 

@@ -182,7 +182,7 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
   TIME_TRACE("lasca inequality factoring generate")
   DEBUG("in: ", *premise)
 
-    auto selected = make_shared(
+    auto selected = Lib::make_shared(
         _shared->selectedSummands(premise, 
                        /* literal */ SelectionCriterion::NOT_LESS, 
                        /* summand */ SelectionCriterion::NOT_LEQ,
@@ -195,7 +195,7 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
 #endif
           .template collect<Stack>());
 
-  auto rest = make_shared(
+  auto rest = Lib::make_shared(
       _shared->selectedSummands(premise,  
                     /* literal */ SelectionCriterion::ANY, 
                     /* summand */ SelectionCriterion::NOT_LEQ,
@@ -208,7 +208,7 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
 #endif
         .template collect<Stack>());
 
-  auto selIdx = make_shared(Set<std::pair<unsigned, unsigned>>());
+  auto selIdx = Lib::make_shared(Set<std::pair<unsigned, unsigned>>());
   auto key = [&](auto& s) { return std::make_pair(s.litIdx, s.termIdx()); };
 
   DEBUG("selected summands:")

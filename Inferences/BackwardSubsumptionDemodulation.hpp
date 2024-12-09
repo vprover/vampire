@@ -63,8 +63,8 @@ class BackwardSubsumptionDemodulation
     bool _allowIncompleteness;
     const bool _enableOrderingOptimizations;
 
-    void performWithQueryLit(Clause* premise, Literal* candidateQueryLit, vvector<BwSimplificationRecord>& simplifications);
-    bool simplifyCandidate(Clause* sideCl, Clause* mainCl, vvector<BwSimplificationRecord>& simplifications);
+    void performWithQueryLit(Clause* premise, Literal* candidateQueryLit, std::vector<BwSimplificationRecord>& simplifications);
+    bool simplifyCandidate(Clause* sideCl, Clause* mainCl, std::vector<BwSimplificationRecord>& simplifications);
     bool rewriteCandidate(Clause* sideCl, Clause* mainCl, MLMatcherSD const& matcher, Clause*& replacement);
 };
 

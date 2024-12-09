@@ -174,7 +174,7 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
         auto appl = lhs.isVar() ? (SubstApplicator*)&applWithEqSort : (SubstApplicator*)&applWithoutEqSort;
 
         if (_precompiledComparison) {
-          if (!preordered && (_preorderedOnly || !ordering.isGreater(lhs,rhs,appl,const_cast<OrderingComparatorUP&>(qr.data->comparator)))) {
+          if (!preordered && (_preorderedOnly || !qr.data->comparator->check(appl))) {
             continue;
           }
         } else {
@@ -225,6 +225,8 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
 
         premises = pvi( getSingletonIterator(qr.data->clause));
         replacement = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.data->clause));
+        if(env.options->proofExtra() == Options::ProofExtra::FULL)
+          env.proofExtra.insert(replacement, new ForwardDemodulationExtra(lhs, trm));
         return true;
       }
     }

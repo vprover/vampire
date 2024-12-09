@@ -15,7 +15,9 @@
 #include "Lib/Option.hpp"
 #include "Kernel/Theory.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Lib/STL.hpp"
 #include "Lib/VirtualIterator.hpp"
+#include "Debug/Output.hpp"
 
 namespace Kernel {
   using namespace Lib;
@@ -252,7 +254,7 @@ namespace Kernel {
     template<class Cmp, class GetElem>
     static auto maxElems(unsigned nElems, Cmp cmp_, GetElem get, SelectionCriterion sel, bool dedup = false)
     {
-      auto cmpCache = make_shared(Map<std::pair<unsigned, unsigned>, Ordering::Result>());
+      auto cmpCache = Lib::make_shared(Map<std::pair<unsigned, unsigned>, Ordering::Result>());
 
       auto cmp = [=](unsigned l, unsigned r) {
         ASS_NEQ(l, r)
@@ -271,7 +273,7 @@ namespace Kernel {
 
         res = l < r ? res : Ordering::reverse(res);
 
-        ASS_REP(res == cmp_(l, r), outputToString(get(l), " ", cmp_(l, r), " ", get(r), " expected: ", res ))
+        ASS_REP(res == cmp_(l, r), outputCat(get(l), " ", cmp_(l, r), " ", get(r), " expected: ", res ))
         return res;
       };
 
@@ -291,11 +293,9 @@ namespace Kernel {
                 switch(res) {
                   case Ordering::Result::INCOMPARABLE:
                   case Ordering::Result::GREATER:
-                  case Ordering::Result::GREATER_EQ:
                   case Ordering::Result::EQUAL: 
                     return true;
                   case Ordering::Result::LESS:
-                  case Ordering::Result::LESS_EQ:
                     return false;
                 }
               case SelectionCriterion::NOT_LEQ:
@@ -303,9 +303,7 @@ namespace Kernel {
                   case Ordering::Result::INCOMPARABLE:
                   case Ordering::Result::GREATER:
                     return true;
-                  case Ordering::Result::GREATER_EQ:
                   case Ordering::Result::LESS:
-                  case Ordering::Result::LESS_EQ:
                   case Ordering::Result::EQUAL: 
                     return false;
                 }
@@ -314,9 +312,7 @@ namespace Kernel {
                   case Ordering::Result::GREATER:
                     return true;
                   case Ordering::Result::INCOMPARABLE:
-                  case Ordering::Result::GREATER_EQ:
                   case Ordering::Result::LESS:
-                  case Ordering::Result::LESS_EQ:
                   case Ordering::Result::EQUAL: 
                     return false;
                 }

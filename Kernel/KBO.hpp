@@ -58,7 +58,7 @@ struct KboSpecialWeights;
 template<>
 struct KboSpecialWeights<PredSigTraits> 
 { 
-  inline bool tryAssign(const vstring& name, unsigned weight) 
+  inline bool tryAssign(const std::string& name, unsigned weight) 
   { return false; }
 
   inline static KboSpecialWeights dflt(bool qkbo)
@@ -78,7 +78,7 @@ struct KboSpecialWeights<FuncSigTraits>
   KboWeight _numReal;
   bool _qkbo;
 
-  inline bool tryAssign(const vstring& name, unsigned weight) 
+  inline bool tryAssign(const std::string& name, unsigned weight) 
   {
     if (name == SPECIAL_WEIGHT_IDENT_VAR     ) { _variableWeight = weight; return true; } 
     if (name == SPECIAL_WEIGHT_IDENT_NUM_INT ) { if (_qkbo) { WARN("ignoring numeral weight in QKBO") } _numInt  = weight; return true; } 
@@ -165,13 +165,32 @@ public:
 
   Result compare(AppliedTerm t1, AppliedTerm t2) const override;
   bool isGreater(AppliedTerm t1, AppliedTerm t2) const override;
-  bool isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, OrderingComparatorUP& comparator) const override;
+  OrderingComparatorUP createComparator(TermList lhs, TermList rhs) const override;
 
 protected:
   Result isGreaterOrEq(AppliedTerm tt1, AppliedTerm tt2) const;
   unsigned computeWeight(AppliedTerm tt) const;
 
   Result comparePredicates(Literal* l1, Literal* l2) const override;
+
+  friend class KBOComparator;
+
+  // int functionSymbolWeight(unsigned fun) const;
+  int symbolWeight(const Term* t) const;
+
+private:
+
+  KboWeightMap<FuncSigTraits> _funcWeights;
+#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
+  KboWeightMap<PredSigTraits> _predWeights;
+#endif
+
+  template<class SigTraits> const KboWeightMap<SigTraits>& getWeightMap() const;
+  template<class SigTraits> KboWeightMap<SigTraits> weightsFromOpts(const Options& opts, const DArray<int>& rawPrecedence) const;
+  template<class SigTraits> KboWeightMap<SigTraits> weightsFromFile(const Options& opts) const;
+
+  template<class SigTraits> 
+  void showConcrete_(std::ostream&) const;
 
   /**
    * Class to represent the current state of the KBO comparison.
@@ -181,7 +200,19 @@ protected:
    */
   class State
   {
+    int _weightDiff;
+    /** The variable counters */
+    DHMap<unsigned, int, IdentityHash, DefaultHash> _varDiffs;
+    /** Number of variables, that occur more times in the first literal */
+    int _posNum;
+    /** Number of variables, that occur more times in the second literal */
+    int _negNum;
+    /** First comparison result */
+    Result _lexResult;
   public:
+    /** Initialise the state */
+    State() {}
+
     void init()
     {
       _weightDiff=0;
@@ -222,44 +253,17 @@ protected:
     Result innerResult(KBO const& kbo, TermList t1, TermList t2);
     Result applyVariableCondition(Result res)
     {
-      if(_posNum>0 && (res==LESS || res==LESS_EQ || res==EQUAL)) {
+      if(_posNum>0 && (res==LESS || res==EQUAL)) {
         res=INCOMPARABLE;
-      } else if(_negNum>0 && (res==GREATER || res==GREATER_EQ || res==EQUAL)) {
+      } else if(_negNum>0 && (res==GREATER || res==EQUAL)) {
         res=INCOMPARABLE;
       }
       return res;
     }
 
-    int _weightDiff;
-    /** The variable counters */
-    DHMap<unsigned, int, IdentityHash, DefaultHash> _varDiffs;
-    /** Number of variables, that occur more times in the first literal */
-    int _posNum;
-    /** Number of variables, that occur more times in the second literal */
-    int _negNum;
-    /** First comparison result */
-    Result _lexResult;
-  }; // class State
+    friend class KBOComparator;
 
-
-  friend class KBOComparator;
-
-  // int functionSymbolWeight(unsigned fun) const;
-  int symbolWeight(const Term* t) const;
-
-private:
-
-  KboWeightMap<FuncSigTraits> _funcWeights;
-#if __KBO__CUSTOM_PREDICATE_WEIGHTS__
-  KboWeightMap<PredSigTraits> _predWeights;
-#endif
-
-  template<class SigTraits> const KboWeightMap<SigTraits>& getWeightMap() const;
-  template<class SigTraits> KboWeightMap<SigTraits> weightsFromOpts(const Options& opts, const DArray<int>& rawPrecedence) const;
-  template<class SigTraits> KboWeightMap<SigTraits> weightsFromFile(const Options& opts) const;
-
-  template<class SigTraits> 
-  void showConcrete_(std::ostream&) const;
+  }; // class KBO::State
 
   /**
    * State used for comparing terms and literals

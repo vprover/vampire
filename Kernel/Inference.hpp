@@ -20,10 +20,10 @@
 #include <cstdlib>
 
 #include "Lib/Allocator.hpp"
-#include "Lib/VString.hpp"
 #include "Forwards.hpp"
 
 #include <type_traits>
+#include <limits>
 
 using namespace Lib;
 
@@ -114,9 +114,8 @@ enum class InferenceRule : unsigned char {
   GENERIC_FORMULA_TRANSFORMATION,
   /** negated conjecture from the input */
   NEGATED_CONJECTURE,
-  /** introduction of answer literal into the conjecture,
-   * or the unit negation of answer literal used to obtain refutation */
-  ANSWER_LITERAL,
+  /** introduction of answer literal into the conjecture */
+  ANSWER_LITERAL_INJECTION,
   /** introduction of answer literal into the conjecture,
    * and skolemisation of input variables */
   ANSWER_LITERAL_INPUT_SKOLEMISATION,
@@ -263,9 +262,9 @@ enum class InferenceRule : unsigned char {
   ARITHMETIC_SUBTERM_GENERALIZATION,
   /* clause added after removing answer literal and saving it as a witness */
   ANSWER_LITERAL_REMOVAL,
-  /** the last simplifying inference marker --
-    inferences between GENERIC_SIMPLIFYING_INFERNCE and INTERNAL_SIMPLIFYING_INFERNCE_LAST will be automatically understood simplifying
-    (see also isSimplifyingInferenceRule) */
+  /* clause with literals added from AVATAR assertions of the parent */
+  AVATAR_ASSERTION_REINTRODUCTION,
+
    /* eager demodulation with combinator axioms */
   COMBINATOR_DEMOD,
   /* normalising combinators */
@@ -278,10 +277,12 @@ enum class InferenceRule : unsigned char {
 
   FUNCTION_DEFINITION_DEMODULATION,
 
+  /** the last simplifying inference marker --
+    inferences between GENERIC_SIMPLIFYING_INFERNCE and INTERNAL_SIMPLIFYING_INFERNCE_LAST will be automatically understood simplifying
+    (see also isSimplifyingInferenceRule) */
   INTERNAL_SIMPLIFYING_INFERNCE_LAST,
 
-
-  /** THIS DEFINES AN INTERVAL IN THIS ENUM WHERE ALL SIMPLIFYING INFERENCES SHOULD BELONG
+  /** THIS DEFINES AN INTERVAL IN THIS ENUM WHERE ALL GENERATING INFERENCES SHOULD BELONG
     * (see also INTERNAL_GENERATING_INFERNCE_LAST and isGeneratingInferenceRule below). */
   GENERIC_GENERATING_INFERNCE,
   /** resolution inference */
@@ -384,6 +385,9 @@ enum class InferenceRule : unsigned char {
 
   HOL_EQUALITY_ELIMINATION,
 
+  /** the last generating inference marker --
+        inferences between GENERIC_GENERATING_INFERNCE and INTERNAL_GENERATING_INFERNCE_LAST will be automatically understood generating
+        (see also isGeneratingInferenceRule) */
   INTERNAL_GENERATING_INFERNCE_LAST,
 
   /** equality proxy replacement */
@@ -492,8 +496,6 @@ enum class InferenceRule : unsigned char {
 
   /* the unit clause against which the Answer is extracted in the last step */
   ANSWER_LITERAL_RESOLVER,
-  /* clause with literals added from AVATAR assertions of the parent */
-  AVATAR_ASSERTION_REINTRODUCTION,
 
   /** A (first-order) tautology generated on behalf of a decision procedure,
    * whose propositional counterpart becomes a conflict clause in a sat solver */
@@ -642,7 +644,8 @@ inline bool isSatRefutationRule(InferenceRule r) {
          (r == InferenceRule::GLOBAL_SUBSUMPTION);
 }
 
-vstring ruleName(InferenceRule rule);
+std::string inputTypeName(UnitInputType type);
+std::string ruleName(InferenceRule rule);
 
 /*
 * The following structs are here just that we can have specialized overloads for the Inference constructor (see below)
@@ -884,8 +887,8 @@ public:
    */
   void minimizePremises();
 
-  // TODO why would we ever need this? replace it be appropriate output operator for InferenceRule
-  vstring name() const { return ruleName(_rule); }
+  // returns ruleName; with inputTypeName on top, in the case of ruleName == INPUT
+  std::string name() const;
 
   /** return the input type of the unit */
   UnitInputType inputType() const { return (UnitInputType)_inputType; }
@@ -981,7 +984,7 @@ public:
   void setProxyAxiomsDescendant(bool val) { _proxyAxiomsDescendant=val; }
 
   bool isHolAxiomsDescendant() const { return _holAxiomsDescendant; }
-  void setHolAxiomsDescendant(bool val) { _holAxiomsDescendant=val; }  
+  void setHolAxiomsDescendant(bool val) { _holAxiomsDescendant=val; }
 
   unsigned inductionDepth() const { return _inductionDepth; }
   void setInductionDepth(unsigned d) { _inductionDepth = d; }

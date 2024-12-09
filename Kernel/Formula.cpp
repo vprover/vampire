@@ -22,7 +22,7 @@ namespace Kernel {
 
 using namespace std;
 
-vstring Formula::DEFAULT_LABEL = "none";
+std::string Formula::DEFAULT_LABEL = "none";
 
 /**
  * Destroy the content of the formula. The destruction depends on the type
@@ -76,28 +76,28 @@ void Formula::destroy ()
 }
 
 /**
- * Convert the connective to a vstring.
+ * Convert the connective to a std::string.
  * @since 02/01/2004 Manchester
  */
-vstring Formula::toString (Connective c)
+std::string Formula::toString (Connective c)
 {
-  static vstring names [] =
+  static std::string names [] =
     { "", "&", "|", "=>", "<=>", "<~>", "~", "!", "?", "$var", "$false", "$true","",""};
-  ASS_EQ(sizeof(names)/sizeof(vstring), NOCONN+1);
+  ASS_EQ(sizeof(names)/sizeof(std::string), NOCONN+1);
 
   return names[(int)c];
 } // Formula::toString (Connective c)
 
 /**
- * Convert the formula to a vstring
+ * Convert the formula to a std::string
  *
  * @since 12/10/2002 Tbilisi, implemented as ostream output function
  * @since 09/12/2003 Manchester
  * @since 11/12/2004 Manchester, true and false added
  */
-vstring Formula::toString () const
+std::string Formula::toString () const
 {
-  vstring res;
+  std::string res;
 
   // render a connective if specified, and then a Formula (or ")" of formula is nullptr)
   typedef struct {
@@ -114,7 +114,7 @@ vstring Formula::toString () const
 
     // in any case start by rendering the connective passed from "above"
     {
-      vstring con = toString(todo.renderConnective);
+      std::string con = toString(todo.renderConnective);
       if (con != "") {
         res += " "+con+" ";
       }
@@ -214,7 +214,7 @@ vstring Formula::toString () const
       }
 
     case BOOL_TERM: {
-      vstring term = f->getBooleanTerm().toString();
+      std::string term = f->getBooleanTerm().toString();
       res += env.options->showFOOL() ? "$formula{" + term + "}" : term;
 
       continue;

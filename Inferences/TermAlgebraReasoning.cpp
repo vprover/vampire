@@ -55,7 +55,7 @@ namespace Inferences {
     RStack<Literal*> resLits;
     for (auto j : range(0, c->size())) {
       if (j != i) {
-        resLits->push((*c)[i]);
+        resLits->push((*c)[j]);
       }
     }
 

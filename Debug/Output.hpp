@@ -14,6 +14,8 @@
 #ifndef __Debug_Output_HPP__
 #define __Debug_Output_HPP__
 
+// TODO turn into move Debug -> Lib
+
 #include <iostream>
 #include <utility>
 #include <tuple>
@@ -23,6 +25,7 @@ template<class... As>
 std::ostream& operator<<(std::ostream& out, tuple<As...> const& self);
 } // namespace std
 
+// TODO change namespace
 namespace Kernel {
 
 /** Newtype in order to nicely output a pointer.

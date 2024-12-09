@@ -147,7 +147,7 @@ ClauseIterator EqFactoring::generateClauses(Clause* premise)
   TIME_TRACE("lasca equality factoring generate")
   DEBUG("in: ", *premise)
 
-  auto selected = make_shared(
+  auto selected = Lib::make_shared(
       _shared->selectedEqualities(premise, 
                        /* literal */ SelectionCriterion::NOT_LESS, 
                        /* summand */ SelectionCriterion::NOT_LEQ,
@@ -156,7 +156,7 @@ ClauseIterator EqFactoring::generateClauses(Clause* premise)
         // .filter([](auto& s) { return !s.isFracNum() || !s.biggerSide().isVar(); })
         .template collect<Stack>());
 
-  auto rest = make_shared(
+  auto rest = Lib::make_shared(
       _shared->selectedEqualities(premise, 
                        /* literal */ SelectionCriterion::ANY, 
                        /* summand */ SelectionCriterion::NOT_LEQ,

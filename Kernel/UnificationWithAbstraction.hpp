@@ -181,7 +181,7 @@ public:
   bool fixedPointIteration();
 
   // TODO document
-  Option<Recycled<Stack<unsigned>>> unifiableSymbols(unsigned f);
+  Option<Recycled<Stack<unsigned>>> unifiableSymbols(SymbolId f);
 
   static Option<AbstractingUnifier> unify(TermList t1, int bank1, TermList t2, int bank2, AbstractionOracle uwa, bool fixedPointIteration)
   {

@@ -18,12 +18,9 @@
 #include "Forwards.hpp"
 #include "Debug/TimeProfiling.hpp"
 
-#include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
 
 #include "Shell/Statistics.hpp"
-
-#include "Lib/Allocator.hpp"
 
 namespace Shell {
   class Property;
@@ -101,6 +98,7 @@ public:
   const Options& getOptions() const { return _opt; }
 
   static bool isRefutation(Clause* cl);
+
 protected:
 
   /**

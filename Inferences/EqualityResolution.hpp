@@ -19,6 +19,7 @@
 #include "Forwards.hpp"
 
 #include "InferenceEngine.hpp"
+#include "Inferences/ProofExtra.hpp"
 #include "Shell/Options.hpp"
 
 namespace Inferences {
@@ -38,6 +39,7 @@ private:
   struct IsNegativeEqualityFn;
 };
 
+using EqualityResolutionExtra = LiteralInferenceExtra;
 
 };
 

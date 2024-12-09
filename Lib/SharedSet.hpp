@@ -24,7 +24,6 @@
 #include "Set.hpp"
 #include "Sort.hpp"
 #include "Stack.hpp"
-#include "VString.hpp"
 
 namespace Lib {
 
@@ -301,9 +300,9 @@ public:
   }
 
 
-  vstring toString() const
+  std::string toString() const
   {
-    vostringstream res;
+    std::ostringstream res;
     res<<(*this);
     return res.str();
   }
@@ -361,7 +360,10 @@ public:
       }
     }
     if(!sorted) {
-      sort<DefaultComparator>(is.begin(), is.end());
+      std::sort(
+        is.begin(), is.end(),
+        [](const T &l, const T &r) -> bool { return DefaultComparator::compare(l, r) == LESS; }
+      );
       unique = false; //maybe they are unique, we just need to check
     }
     if(!unique) {
@@ -431,7 +433,7 @@ private:
   }
   static unsigned hash(const T* arr, size_t len)
   {
-    static_assert(std::is_arithmetic<T>::value, "T must be safely hashable");
+    static_assert(std::is_arithmetic<T>::value || std::is_pointer<T>::value, "T must be safely hashable");
     return DefaultHash::hashBytes(
       reinterpret_cast<const unsigned char *>(arr),
       sizeof(T) * len

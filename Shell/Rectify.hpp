@@ -71,11 +71,6 @@ private:
     virtual void fillInterval (size_t start,size_t end);
     /** next variable to rename to */
     unsigned _nextVar;
-    /** Variables that already appeared in the formula
-     *
-     * This field is used only when VarManager::varNamePreserving()
-     * is true. */
-    Recycled<DHSet<unsigned>> _used;
   };
 
   void reset();

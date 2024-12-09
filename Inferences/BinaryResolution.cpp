@@ -38,8 +38,8 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/AnswerExtractor.hpp"
-#include "Shell/InstanceRedundancyHandler.hpp"
+#include "Shell/AnswerLiteralManager.hpp"
+#include "Shell/ConditionalRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -80,7 +80,8 @@ void BinaryResolution::detach()
 template<class ComputeConstraints>
 Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, 
           ResultSubstitutionSP subs, ComputeConstraints computeConstraints, const Options& opts, bool afterCheck,
-          PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls)
+          PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls,
+          ConditionalRedundancyHandler const* condRedHandler)
 {
   DEBUG_RESOLUTION(0, "lhs: ", *queryLit, " (clause: ", queryCl->number(), ")")
   DEBUG_RESOLUTION(0, "rhs: ", *resultLit, " (clause: ", resultCl->number(), ")")
@@ -91,13 +92,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     env.statistics->inferencesSkippedDueToColors++;
     if(opts.showBlocked()) {
       std::cout << "Blocked resolution of " << *queryCl << " and " << * resultCl << endl;
-    }
-    if(opts.colorUnblocking()) {
-      SaturationAlgorithm* salg = SaturationAlgorithm::tryGetInstance();
-      if(salg) {
-        ColorHelper::tryUnblock(queryCl, salg);
-        ColorHelper::tryUnblock(resultCl, salg);
-      }
     }
     return 0;
   }
@@ -146,7 +140,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   Literal* dAnsLit = synthesis ? resultCl->getAnswerLiteral() : nullptr;
   bool bothHaveAnsLit = (cAnsLit != nullptr) && (dAnsLit != nullptr);
 
-  inf_destroyer.disable(); // ownership passed to the the clause below
   RStack<Literal*> resLits;
 
   Literal* queryLitAfter = 0;
@@ -175,7 +168,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
 
         if (o == Ordering::GREATER ||
             (ls->isPositiveForSelection(newLit)    // strict maximimality for positive literals
-                && (o == Ordering::GREATER_EQ || o == Ordering::EQUAL))) { // where is GREATER_EQ ever coming from?
+                && o == Ordering::EQUAL)) {
           env.statistics->inferencesBlockedForOrderingAftercheck++;
           return nullptr;
         }
@@ -209,7 +202,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
 
         if (o == Ordering::GREATER ||
             (ls->isPositiveForSelection(newLit)   // strict maximimality for positive literals
-                && (o == Ordering::GREATER_EQ || o == Ordering::EQUAL))) { // where is GREATER_EQ ever coming from?
+                && o == Ordering::EQUAL)) {
           env.statistics->inferencesBlockedForOrderingAftercheck++;
           return nullptr;
         }
@@ -218,8 +211,10 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     }
   }
 
-  if (!InstanceRedundancyHandler::handleResolution(queryCl, queryLit, resultCl, resultLit, subs.ptr(), opts, ord)) {
-    return 0;
+  if (nConstraints == 0 && condRedHandler) {
+    if (!condRedHandler->handleResolution(queryCl, queryLit, resultCl, resultLit, subs.ptr())) {
+      return 0;
+    }
   }
 
    if (bothHaveAnsLit) {
@@ -227,25 +222,25 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
      Literal* newLitD = subs->applyToResult(dAnsLit);
      bool cNeg = queryLit->isNegative();
      Literal* condLit = cNeg ? subs->applyToResult(resultLit) : subs->applyToQuery(queryLit);
-     resLits->push(SynthesisManager::getInstance()->makeITEAnswerLiteral(condLit, cNeg ? newLitC : newLitD, cNeg ? newLitD : newLitC));
+     resLits->push(SynthesisALManager::getInstance()->makeITEAnswerLiteral(condLit, cNeg ? newLitC : newLitD, cNeg ? newLitD : newLitC));
    }
 
   if(nConstraints != 0){
     env.statistics->cResolution++;
   }
-  else{ 
+  else{
     env.statistics->resolution++;
   }
 
-  return Clause::fromStack(*resLits, inf); // the inference object owned by res from now on
+  inf_destroyer.disable(); // ownership passed to the the clause below
+  Clause *cl = Clause::fromStack(*resLits, inf);
+  if(env.options->proofExtra() == Options::ProofExtra::FULL)
+    env.proofExtra.insert(cl, new BinaryResolutionExtra(queryLit, resultLit));
+
+  return cl;
+
 }
-Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit, 
-                                ResultSubstitutionSP subs, const Options& opts)
-{
-  return BinaryResolution::generateClause(queryCl, queryLit, resultCl, resultLit, subs, 
-      /* computeConstraints */ []() { return recycledStack<Literal*>(); },
-      opts);
-}
+
 
 Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, 
                                          Clause* resultCl, Literal* resultLit, 
@@ -256,9 +251,8 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit,
   return BinaryResolution::generateClause(queryCl, queryLit, resultCl, resultLit, subs, 
       [&](){ return uwa.computeConstraintLiterals(); }, 
       opts, doAfterCheck, salg->getPassiveClauseContainer(),
-      &salg->getOrdering(), &salg->getLiteralSelector());
+      &salg->getOrdering(), &salg->getLiteralSelector(), &salg->condRedHandler());
 }
-
 
 ClauseIterator BinaryResolution::generateClauses(Clause* premise)
 {
@@ -273,7 +267,7 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
                                              env.options->unificationWithAbstractionFixedPointIteration()))
                      .map([this,lit,premise](auto qr) { return BinaryResolution::generateClause(premise, lit, qr.data->clause, qr.data->literal, *qr.unifier, this->getOptions(), _salg); });
         })
-        .filter([](auto c) { return c != nullptr; })
+        .filter(NonzeroFn())
   ));
 }
 

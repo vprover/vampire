@@ -151,7 +151,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult VariableElimination::gene
 template<class A>
 class PartitionIter {
   Stack<A> _orig;
-  Option<vvector<bool>> _partition;
+  Option<std::vector<bool>> _partition;
   bool _finished;
 public:
   DECL_ELEMENT_TYPE(PartitionIter&);
@@ -159,7 +159,7 @@ public:
   bool hasNext() { return !_finished; }
   PartitionIter& next() { 
     if (_partition.isNone()) {
-      _partition = Option<vvector<bool>>(vvector<bool>(_orig.size(), false));
+      _partition = some(std::vector<bool>(_orig.size(), false));
       if (_orig.size() == 0) {
         _finished = true;
       }

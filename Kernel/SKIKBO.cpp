@@ -66,9 +66,9 @@ private:
   Result innerResult(ArgsIt_ptr aai1, ArgsIt_ptr aai2);
   Result applyVariableCondition(Result res)
   {
-    if(_posNum>0 && (res==LESS || res==LESS_EQ || res==EQUAL)) {
+    if(_posNum>0 && (res==LESS || res==EQUAL)) {
       res=INCOMPARABLE;
-    } else if(_negNum>0 && (res==GREATER || res==GREATER_EQ || res==EQUAL)) {
+    } else if(_negNum>0 && (res==GREATER || res==EQUAL)) {
       res=INCOMPARABLE;
     }
     return res;
@@ -275,8 +275,6 @@ void SKIKBO::State::traverse(ArgsIt_ptr aat1, ArgsIt_ptr aat2)
         _lexResult=innerResult(aai1, aai2);
         lexValidDepth=depth;
         ASS(_lexResult!=EQUAL);
-        ASS(_lexResult!=GREATER_EQ);
-        ASS(_lexResult!=LESS_EQ);
       }
     }
   }
@@ -627,11 +625,6 @@ Ordering::Result SKIKBO::compare(TermList tl1, TermList tl2) const
   _state=state;
 #endif
   return res;
-}
-
-bool SKIKBO::isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, OrderingComparatorUP& comparator) const
-{
-  NOT_IMPLEMENTED;
 }
 
 int SKIKBO::symbolWeight(Term* t) const

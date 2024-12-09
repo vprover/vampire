@@ -17,6 +17,8 @@
 
 #include <cstring>
 
+#include "Debug/Assertion.hpp"
+
 #include "Exception.hpp"
 #include "NameArray.hpp"
 

@@ -1075,7 +1075,7 @@ bool InterpretedLiteralEvaluator::balancable(Literal* lit)
  * @author Giles
  * @since 11/11/14
  */
-bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit,Stack<Literal*>& sideConditions)
+bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit)
 {
   ASS(balancable(lit));
 
@@ -1154,27 +1154,27 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit,Stack<Li
 
       case Theory::INT_MULTIPLY: 
       {
-        okay=balanceIntegerMultiply(t2term,to_unwrap,t1,result,swap,sideConditions);
+        okay=balanceIntegerMultiply(t2term,to_unwrap,t1,result,swap);
         break;
       }
       case Theory::RAT_MULTIPLY:
       {
         RationalConstantType zero(0,1);
-        okay=balanceMultiply(Theory::RAT_QUOTIENT,zero,t2term,to_unwrap,t1,result,swap,sideConditions);
+        okay=balanceMultiply(Theory::RAT_QUOTIENT,zero,t2term,to_unwrap,t1,result,swap);
         break;
       }
       case Theory::REAL_MULTIPLY:
       {
         RealConstantType zero(RationalConstantType(0, 1));
-        okay=balanceMultiply(Theory::REAL_QUOTIENT,zero,t2term,to_unwrap,t1,result,swap,sideConditions);
+        okay=balanceMultiply(Theory::REAL_QUOTIENT,zero,t2term,to_unwrap,t1,result,swap);
         break;
        }
 
       case Theory::RAT_QUOTIENT:
-        okay=balanceDivide(Theory::RAT_MULTIPLY,t2term,to_unwrap,t1,result,swap,sideConditions);
+        okay=balanceDivide(Theory::RAT_MULTIPLY,t2term,to_unwrap,t1,result,swap);
         break;
       case Theory::REAL_QUOTIENT:
-        okay=balanceDivide(Theory::REAL_MULTIPLY,t2term,to_unwrap,t1,result,swap,sideConditions);
+        okay=balanceDivide(Theory::REAL_MULTIPLY,t2term,to_unwrap,t1,result,swap);
         break;
 
       default:
@@ -1238,7 +1238,7 @@ bool InterpretedLiteralEvaluator::balancePlus(Interpretation plus, Interpretatio
 template<typename ConstantType>
 bool InterpretedLiteralEvaluator::balanceMultiply(Interpretation divide,ConstantType zero, 
                                                   Term* AmultiplyB, TermList A, TermList C, TermList& result,
-                                                  bool& swap, Stack<Literal*>& sideConditions)
+                                                  bool& swap)
 {
 #if VDEBUG
     TermList srt = theory->getOperationSort(divide); 
@@ -1265,17 +1265,11 @@ bool InterpretedLiteralEvaluator::balanceMultiply(Interpretation divide,Constant
     // Unsure exactly what the best thing to do here, so for now give up
     // This means we only balance when we have a constant on the variable side
     return false;
-
-    // if B is not a constant we need to ensure that B!=0
-    //Literal* notZero = Literal::createEquality(false,B,zero,srt);
-    //sideConditions.push(notZero);
-    //result = TermList(Term::create2(div,C,B);
-    //return true;
 }
 
 bool InterpretedLiteralEvaluator::balanceIntegerMultiply(
                                                   Term* AmultiplyB, TermList A, TermList C, TermList& result,
-                                                  bool& swap, Stack<Literal*>& sideConditions)
+                                                  bool& swap)
 {
     // only works if we in the end divid a number by a number
     IntegerConstantType ccon;
@@ -1304,7 +1298,7 @@ bool InterpretedLiteralEvaluator::balanceIntegerMultiply(
 }
 
 bool InterpretedLiteralEvaluator::balanceDivide(Interpretation multiply, 
-                       Term* AoverB, TermList A, TermList C, TermList& result, bool& swap, Stack<Literal*>& sideConditions)
+                       Term* AoverB, TermList A, TermList C, TermList& result, bool& swap)
 {
 #if VDEBUG
     TermList srt = theory->getOperationSort(multiply); 
@@ -1411,7 +1405,7 @@ TermList InterpretedLiteralEvaluator::evaluate(TermList t) {
  * isConstant is true if the literal predicate evaluates to a constant value
  * resConst is set iff isConstant and gives the constant value (true/false) of resLit 
  */
-bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Literal*& resLit, bool& resConst,Stack<Literal*>& sideConditions)
+bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Literal*& resLit, bool& resConst)
 {
   DEBUG( "evaluate ", lit->toString() );
 
@@ -1423,42 +1417,6 @@ bool InterpretedLiteralEvaluator::evaluate(Literal* lit, bool& isConstant, Liter
 
   resLit = BottomUpTermTransformer::transformLiteral( resLit);
   DEBUG( "\t1 ==> ", resLit->toString() );
-
-//   // If it can be balanced we balance it
-//   // A predicate on constants will not be balancable
-// #if 0
-//   resLit = &Kernel::balance(*resLit);
-// #else // not NEW_BALANCE
-//   if(balancable(resLit)){
-//       Literal* new_resLit=resLit;
-// #if VDEBUG
-//       bool balance_result = 
-// #endif
-//         balance(resLit,new_resLit,sideConditions);
-//       ASS(balance_result || resLit==new_resLit);
-//       resLit=new_resLit;
-//   }
-// #endif
-//   DEBUG( "\t2 ==> ", *resLit );
-
-  // // If resLit contains variables the predicate cannot be interpreted
-  // VariableIterator vit(lit);
-  // if(vit.hasNext()){
-  //   isConstant=false;
-  //   return (lit!=resLit);
-  // }
-  // // If resLit contains uninterpreted functions then it cannot be interpreted
-  // TermFunIterator tit(lit);
-  // ASS(tit.hasNext()); tit.next(); // pop off literal symbol
-  // while(tit.hasNext()){
-  //   unsigned f = tit.next();
-  //   if(!env.signature->getFunction(f)->interpreted()){
-  //     isConstant=false;
-  //     return (lit!=resLit);
-  //   } 
-  // }
-  // _DEBUG( resLit->toString(, " is ground and interpreted, evaluating..." );
-
 
   unsigned pred = resLit->functor();
 

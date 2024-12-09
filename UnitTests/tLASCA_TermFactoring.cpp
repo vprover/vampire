@@ -12,6 +12,7 @@
 #include "Test/SyntaxSugar.hpp"
 #include "Indexing/TermSharing.hpp"
 #include "Inferences/LASCA/TermFactoring.hpp"
+#include "Lib/STL.hpp"
 #include "Inferences/InterpretedEvaluation.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"

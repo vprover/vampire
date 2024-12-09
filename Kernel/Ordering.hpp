@@ -49,8 +49,14 @@ using namespace Shell;
  */
 struct OrderingComparator
 {
+  OrderingComparator(TermList lhs, TermList rhs, const Ordering& ord) : _lhs(lhs), _rhs(rhs), _ord(ord) {}
   virtual ~OrderingComparator() = default;
-  virtual vstring toString() const = 0;
+  virtual std::string toString() const { return _lhs.toString()+" > "+_rhs.toString(); }
+  virtual bool check(const SubstApplicator* applicator);
+
+  TermList _lhs;
+  TermList _rhs;
+  const Ordering& _ord;
 };
 
 /**
@@ -70,10 +76,8 @@ public:
   enum [[nodiscard]] Result {
     GREATER=1,
     LESS=2,
-    GREATER_EQ=3,
-    LESS_EQ=4,
-    EQUAL=5,
-    INCOMPARABLE=6
+    EQUAL=3,
+    INCOMPARABLE=4
   };
 
   friend std::ostream& operator<<(std::ostream& out, Kernel::Ordering::Result const& r)
@@ -81,8 +85,6 @@ public:
     switch (r) {
       case Kernel::Ordering::Result::GREATER: return out << "GREATER";
       case Kernel::Ordering::Result::LESS: return out << "LESS";
-      case Kernel::Ordering::Result::GREATER_EQ: return out << "GREATER_EQ";
-      case Kernel::Ordering::Result::LESS_EQ: return out << "LESS_EQ";
       case Kernel::Ordering::Result::EQUAL: return out << "EQUAL";
       case Kernel::Ordering::Result::INCOMPARABLE: return out << "INCOMPARABLE";
     }
@@ -90,10 +92,7 @@ public:
     return out << "UNKNOWN";
   }
 
-  Ordering();
-  Ordering(Ordering&&) = default;
-  Ordering& operator=(Ordering&&) = default;
-  virtual ~Ordering();
+  virtual ~Ordering() = default;
 
   /** Return the result of comparing @b l1 and @b l2 */
   virtual Result compare(Literal* l1,Literal* l2) const = 0;
@@ -111,15 +110,14 @@ public:
   virtual bool isGreater(AppliedTerm t1, AppliedTerm t2) const
   { return compare(t1, t2) == Result::GREATER; }
 
-  /** Optimised function used for checking that @b lhs is greater than @b rhs,
-   * under substitution represented by @b applicator. */
-  virtual bool isGreater(TermList lhs, TermList rhs, const SubstApplicator* applicator, OrderingComparatorUP& comparator) const
-  { return isGreater(AppliedTerm(lhs, applicator, /* aboveVar */ true),
-                     AppliedTerm(rhs, applicator, /* aboveVar */ true)); }
+  /** Creates optimised object to check that @b lhs is greater than @b rhs.
+   *  @see OrderingComparator. */
+  virtual OrderingComparatorUP createComparator(TermList lhs, TermList rhs) const
+  { return std::make_unique<OrderingComparator>(lhs, rhs, *this); }
 
   virtual void show(std::ostream& out) const = 0;
 
-  static bool isGorGEorE(Result r) { return (r == GREATER || r == GREATER_EQ || r == EQUAL); }
+  static bool isGreaterOrEqual(Result r) { return (r == GREATER || r == EQUAL); }
 
   void removeNonMaximal(LiteralList*& lits) const;
 
@@ -131,12 +129,8 @@ public:
     switch(r) {
     case GREATER:
       return LESS;
-    case GREATER_EQ:
-      return LESS_EQ;
     case LESS:
       return GREATER;
-    case LESS_EQ:
-      return GREATER_EQ;
     case EQUAL:
     case INCOMPARABLE:
       return r;
@@ -149,7 +143,6 @@ public:
   static Ordering* create(Problem& prb, const Options& opt);
 
   static bool trySetGlobalOrdering(OrderingSP ordering);
-  static void resetGlobalOrdering();
   static Ordering* tryGetGlobalOrdering();
 
   Result getEqualityArgumentOrder(Literal* eq) const;
@@ -158,76 +151,15 @@ protected:
   Result compareEqualities(Literal* eq1, Literal* eq2) const;
 
 private:
-
-  // enum ArgumentOrderVals {
-  //   /**
-  //    * Values representing order of arguments in equality,
-  //    * to be stores in the term sharing structure.
-  //    *
-  //    * The important thing is that the UNKNOWN value is
-  //    * equal to 0, as this will be the default value inside
-  //    * the term objects
-  //    *
-  //    * Values of elements must be equal to values of corresponding elements
-  //    * in the @c Result enum, so that one can convert between the
-  //    * enums using static_cast.
-  //    */
-  //   AO_UNKNOWN=0,
-  //   AO_GREATER=1,
-  //   AO_LESS=2,
-  //   AO_GREATER_EQ=3,
-  //   AO_LESS_EQ=4,
-  //   AO_EQUAL=5,
-  //   AO_INCOMPARABLE=6
-  // };
-
-
-  class EqCmp
-  {
-  public:
-    USE_ALLOCATOR(EqCmp);
-
-#define BUF_SIZE 128
-
-    EqCmp()
-    {
-#if VDEBUG
-    inUse=false;
-#endif
-    }
-
-    Result compareEqualities(Ordering const& ord, Literal* eq1, Literal* eq2) const;
-
-
-#if VDEBUG
-    mutable bool inUse;
-#endif
-
-  private:
-
-    Result compare_s1Gt1(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
-    Result compare_s1GEt1(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
-    Result compare_s1It1(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
-    Result compare_s1It1_s2It2(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
-    Result compare_s1Gt1_s2It2(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
-    Result compare_s1Gt1_s2Lt2(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
-    Result compare_s1Gt1_s2LEt2(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
-    Result compare_s1GEt1_s2It2(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
-    Result compare_s1Gt1_s1It2_s2It1(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
-    Result compare_s1Gt1_s1GEt2_s2It1(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
-    Result compare_s1Gt1_s1GEt2_s2It2(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
-    Result compare_s1GEt1_s1GEt2_s2It1(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
-    Result compare_s1GEt1_s1It2_s2It1(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
-    Result compare_s1GEt1_s2LEt2(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
-    Result compare_s1Gt1_s1GEt2_s2Lt2(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
-    Result compare_s1GEt1_s1GEt2_s2LEt1(Ordering const& ord, TermList s1,TermList s2,TermList t1,TermList t2) const;
-
-    mutable TermList s1,s2,t1,t2;
-   
-  };
-
-  /** Object used to compare equalities */
-  std::unique_ptr<EqCmp> _eqCmp;
+  /**
+   * Helper methods for comparing literals s1=s2 and t1=t2.
+   */
+  Result compare_s1Gt1(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1It1(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1It1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1Gt1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1Gt1_s2Lt2(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1Gt1_s1It2_s2It1(TermList s1,TermList s2,TermList t1,TermList t2) const;
 
   /**
    * We store orientation of equalities in this ordering inside

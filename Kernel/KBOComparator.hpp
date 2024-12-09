@@ -33,16 +33,14 @@ class KBOComparator
 : public OrderingComparator
 {
 public:
-  /** The runtime specialization happens in the constructor. */
-  KBOComparator(TermList tl1, TermList tl2, const KBO& kbo);
+  KBOComparator(TermList lhs, TermList rhs, const KBO& kbo);
 
   /** Executes the runtime specialized instructions with concrete substitution. */
-  bool check(const SubstApplicator* applicator) const;
-  vstring toString() const override;
+  bool check(const SubstApplicator* applicator) override;
+  std::string toString() const override;
 
 private:
-  // TODO this could be done with KBO::State
-  static void countSymbols(const KBO& kbo, DHMap<unsigned,int>& vars, int& w, TermList t, int coeff);
+  void makeReady();
 
   enum InstructionTag {
     DATA = 0u,
@@ -80,6 +78,7 @@ private:
     }
     static Instruction uintUint(InstructionTag t, unsigned v1 = 0, unsigned v2 = 0) {
       Instruction ins;
+      ins._content = 0; // to silence a gcc warning (we set all bits below anyway)
       ins._setTag(t);
       ins._setFirstUint(v1);
       ins._setSecondUint(v2);
@@ -112,7 +111,7 @@ private:
   private:
     uint64_t _content;
   };
-  const KBO& _kbo;
+  bool _ready = false;
   Stack<Instruction> _instructions;
 };
 

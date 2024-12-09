@@ -238,8 +238,8 @@ ClauseIterator TermFactoring::generateClauses(Clause* premise)
   TIME_TRACE("lasca term factoring generate")
   DEBUG("in: ", *premise)
 
-  auto max = make_shared(Stack<TermList>());
-  auto selected = make_shared(
+  auto max = Lib::make_shared(Stack<TermList>());
+  auto selected = Lib::make_shared(
         _shared->maxAtoms(premise,
           SelectionCriterion::NOT_LESS,
           /* include number vars */ false)

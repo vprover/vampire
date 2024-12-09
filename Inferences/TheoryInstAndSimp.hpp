@@ -53,7 +53,7 @@ public:
   TheoryInstAndSimp(TheoryInstAndSimp&&) = default;
 
   TheoryInstAndSimp(Options& opts);
-  TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, vstring const& exportFile, Options::ProblemExportSyntax syntax);
+  TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, std::string const& exportFile, Options::ProblemExportSyntax syntax);
 
   void attach(SaturationAlgorithm* salg);
 

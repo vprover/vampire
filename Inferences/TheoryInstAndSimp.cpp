@@ -88,7 +88,7 @@ Options::TheoryInstSimp manageDeprecations(Options::TheoryInstSimp mode)
   }
 }
 
-TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, vstring const& exportSmtlib, Options::ProblemExportSyntax exportSyntax)
+TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, std::string const& exportSmtlib, Options::ProblemExportSyntax exportSyntax)
   : _splitter(0)
   , _mode(manageDeprecations(mode))
   , _thiTautologyDeletion(thiTautologyDeletion)
@@ -564,13 +564,13 @@ Option<Substitution> TheoryInstAndSimp::instantiateGeneralised(
     }
 
     DEBUG_CODE(auto res =) _solver->solveUnderAssumptions(theoryLits, 0, false);
-    ASS_EQ(res, SATSolver::UNSATISFIABLE)
+    ASS_EQ(res, SATSolver::Status::UNSATISFIABLE)
 
     Set<TermList> usedDefs;
     for (auto& x : _solver->failedAssumptions()) {
       definitionLiterals
         .tryGet(x)
-        .andThen([&](TermList t) 
+        .andThen([&](TermList t)
             { usedDefs.insert(t); });
     }
 
@@ -651,13 +651,13 @@ VirtualIterator<Solution> TheoryInstAndSimp::getSolutions(Stack<Literal*> const&
   // now we can call the solver
   SATSolver::Status status = _solver->solveUnderAssumptions(skolemized.lits, 0, false);
 
-  if(status == SATSolver::UNSATISFIABLE) {
+  if(status == SATSolver::Status::UNSATISFIABLE) {
     DEBUG("unsat")
     return pvi(getSingletonIterator(Solution::unsat()));
 
-  } else if(status == SATSolver::SATISFIABLE) {
+  } else if(status == SATSolver::Status::SATISFIABLE) {
     DEBUG("found model: ", _solver->getModel())
-    auto subst = _generalisation ? instantiateGeneralised(skolemized, freshVar) 
+    auto subst = _generalisation ? instantiateGeneralised(skolemized, freshVar)
                                  : instantiateWithModel(skolemized);
     if (subst.isSome()) {
       return pvi(getSingletonIterator(Solution(std::move(subst).unwrap())));
@@ -721,7 +721,7 @@ struct InstanceFn
         auto skolem = parent->skolemize(iterTraits(invertedLits.iterFifo() /* without guards !! */));
         auto status = parent->_solver->solveUnderAssumptions(skolem.lits, 0, false);
         // we have an unsat solution without guards
-        redundant = status == SATSolver::UNSATISFIABLE;
+        redundant = status == SATSolver::Status::UNSATISFIABLE;
       }
 
       if (redundant) {
@@ -769,7 +769,7 @@ Stack<Literal*> computeGuards(Stack<Literal*> const& lits)
       }
       args.push(destr->termArg(0));
       // asserts e.g. isCons(l) for a term that contains the subterm head(l) for lists
-      return Literal::create(discr, args.size(), /* polarity */ true, false, args.begin());
+      return Literal::create(discr, args.size(), /* polarity */ true, args.begin());
   };
 
 
@@ -930,10 +930,10 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
 
   DEBUG("input:             ", *premise);
   DEBUG("selected literals: ", iterTraits(selectedLiterals.iterFifo())
-                                 .map([](Literal* l) -> vstring { return l->toString(); })
+                                 .map([](Literal* l) -> std::string { return l->toString(); })
                                  .collect<Stack>())
   DEBUG("guards:            ", iterTraits(guards.iterFifo())
-                                 .map([](Literal* l) -> vstring { return l->toString(); })
+                                 .map([](Literal* l) -> std::string { return l->toString(); })
                                  .collect<Stack>())
   TIME_TRACE(THEORY_INST_SIMP);
 

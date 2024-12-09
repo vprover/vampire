@@ -27,8 +27,6 @@
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Lib/ScopeGuard.hpp"
-#include "Lib/STL.hpp"
-#include "Lib/STLAllocator.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Shell/TPTPPrinter.hpp"
 #include <array>
@@ -161,7 +159,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
       /**
        * Step 2: choose a positive equality in mcl to use for demodulation and try to instantiate the rest to some subset of cl
        */
-      static vvector<LiteralList*> alts;
+      static std::vector<LiteralList*> alts;
       alts.clear();
       alts.reserve(mcl->length());
       ASS_EQ(alts.size(), 0);
@@ -273,7 +271,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
         }
 
         // isMatched[i] is true iff (*cl)[i] is matched my some literal in mcl (without eqLit)
-        static vvector<bool> isMatched;
+        static std::vector<bool> isMatched;
         matcher.getMatchedAltsBitmap(isMatched);
 
         static OverlayBinder binder;
@@ -302,7 +300,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
         // 1. No LHS (if INCOMPARABLE and no side contains all variables of the other side)
         // 2. One LHS (oriented, or INCOMPARABLE with exactly one variable-free side)
         // 3. Two LHSs (INCOMPARABLE and same variables)
-        static vvector<TermList> lhsVector;
+        static std::vector<TermList> lhsVector;
         lhsVector.clear();
         {
           TermList t0 = *eqLit->nthArgument(0);
@@ -376,12 +374,10 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
               RSTAT_MCTR_INC("FSD, lhsVector.size() when INCOMPARABLE", lhsVector.size());
               break;
             case Ordering::GREATER:
-            case Ordering::GREATER_EQ:
               ASS(termContainsAllVariablesOfOtherUnderSubst(t0, t1, applicator));
               lhsVector.push_back(t0);
               break;
             case Ordering::LESS:
-            case Ordering::LESS_EQ:
               ASS(termContainsAllVariablesOfOtherUnderSubst(t1, t0, applicator));
               lhsVector.push_back(t1);
               break;
@@ -565,8 +561,6 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                   }
                 }
                 Ordering::Result r_cmp_t = ordering.compare(rhsS, t);
-                dli_was_checked = true;
-                ASS_NEQ(r_cmp_t, Ordering::LESS_EQ);  // NOTE: LESS_EQ doesn't seem to occur in the code currently. It is unclear why the ordering is not simplified to LESS, EQUAL and GREATER.
                 if (r_cmp_t == Ordering::LESS) {
                   // rhsS < t implies eqLitS < dlit
                   ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::LESS);

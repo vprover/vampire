@@ -102,7 +102,7 @@ void check_in_different_contexts(LaKbo& ord, TermList l, LaKbo::Result exp, Term
 }
 
 LaKbo& lakbo(bool rand = false) {
-  return *new LaKbo(LAKBO(KBO::testKBO(rand, /* qkboPrec */ true), make_shared(InequalityNormalizer(/*strong=*/false))));
+  return *new LaKbo(LAKBO(KBO::testKBO(rand, /* qkboPrec */ true), Lib::make_shared(InequalityNormalizer(/*strong=*/false))));
 }
 
 

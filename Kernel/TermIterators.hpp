@@ -539,32 +539,6 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 /**
- * Iterator that yields proper subterms of commutative
- * literal @b lit in DFS left to right order with the
- * arguments of the literal reversed.
- */
-class ReversedCommutativeSubtermIterator
-: public SubtermIterator
-{
-public:
-  ReversedCommutativeSubtermIterator(const Term* trm)
-  {
-    ASS(trm->commutative());
-    ASS_EQ(trm->arity(),2);
-
-    aux[0]=*trm->nthArgument(1);
-    aux[1] = TermList::empty();
-    aux[2]=*trm->nthArgument(0);
-    aux[3] = TermList::empty();
-
-    _stack->push(&aux[0]);
-    _stack->push(&aux[2]);
-  }
-private:
-  TermList aux[4];
-};
-
-/**
  * Iterator that yields proper subterms
  * of specified @b term, so that for each function it first yields
  * its arguments left to right, and then the function itself.

@@ -32,7 +32,7 @@
 
 #include "SAT/SATClause.hpp"
 
-#include "Shell/InstanceRedundancyHandler.hpp"
+#include "Shell/ConditionalRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 
 #include "Inference.hpp"
@@ -159,7 +159,7 @@ void Clause::destroyExceptInferenceObject()
     delete _literalPositions;
   }
 
-  InstanceRedundancyHandler::destroyClauseData(this);
+  ConditionalRedundancyHandler::destroyClauseData(this);
 
   RSTAT_CTR_INC("clauses deleted");
 
@@ -219,8 +219,8 @@ void Clause::destroy()
   static Stack<Clause*> toDestroy(32);
   Clause* cl = this;
   for(;;) {
-    if ((env.options->proofExtra()==Options::ProofExtra::FULL) && env.proofExtra) {
-      env.proofExtra->remove(cl);
+    if (env.options->proofExtra() == Options::ProofExtra::FULL) {
+      env.proofExtra.remove(cl);
     }
     Inference::Iterator it = cl->_inference.iterator();
     while (cl->_inference.hasNext(it)) {
@@ -323,14 +323,14 @@ bool Clause::noSplits() const
 }
 
 /**
- * Convert non-propositional part of the clause to vstring.
+ * Convert non-propositional part of the clause to std::string.
  */
-vstring Clause::literalsOnlyToString() const
+std::string Clause::literalsOnlyToString() const
 {
   if (_length == 0) {
     return "$false";
   } else {
-    vstring result;
+    std::string result;
     result += _literals[0]->toString();
     for(unsigned i = 1; i < _length; i++) {
       result += " | ";
@@ -341,26 +341,26 @@ vstring Clause::literalsOnlyToString() const
 }
 
 /**
- * Convert the clause to the TPTP-compatible vstring representation.
+ * Convert the clause to the TPTP-compatible std::string representation.
  *
  * The split history is omitted.
  */
-vstring Clause::toTPTPString() const
+std::string Clause::toTPTPString() const
 {
-  vstring result = literalsOnlyToString();
+  std::string result = literalsOnlyToString();
 
   return result;
 }
 
 /**
- * Convert the clause to easily readable vstring representation.
+ * Convert the clause to easily readable std::string representation.
  */
-vstring Clause::toNiceString() const
+std::string Clause::toNiceString() const
 {
-  vstring result = literalsOnlyToString();
+  std::string result = literalsOnlyToString();
 
   if (splits() && !splits()->isEmpty()) {
-    result += vstring(" {") + splits()->toString() + "}";
+    result += std::string(" {") + splits()->toString() + "}";
   }
 
   return result;
@@ -383,62 +383,62 @@ std::ostream& operator<<(std::ostream& out, Clause const& self)
 }
 
 /**
- * Convert the clause to the vstring representation
+ * Convert the clause to the std::string representation
  * Includes splitting, age, weight, selected and inference
  */
-vstring Clause::toString() const
+std::string Clause::toString() const
 {
   // print id and literals of clause
-  vstring result = Int::toString(_number) + ". " + literalsOnlyToString();
+  std::string result = Int::toString(_number) + ". " + literalsOnlyToString();
 
   // print avatar components clause depends on
   if (splits() && !splits()->isEmpty()) {
-    result += vstring(" <- (") + Splitter::splitsToString(splits()) + ")";
+    result += std::string(" <- (") + Splitter::splitsToString(splits()) + ")";
   }
 
   // print inference and ids of parent clauses
   result += " " + inferenceAsString();
 
-  if(env.options->proofExtra()!=Options::ProofExtra::OFF){
+  if(env.options->proofExtra() != Options::ProofExtra::OFF){
     // print statistics: each entry should have the form key:value
-    result += vstring(" {");
+    result += std::string(" {");
       
-    result += vstring("a:") + Int::toString(age());
+    result += std::string("a:") + Int::toString(age());
     unsigned weight = (_weight ? _weight : computeWeight());
-    result += vstring(",w:") + Int::toString(weight);
+    result += std::string(",w:") + Int::toString(weight);
     
     unsigned weightForClauseSelection = (_weightForClauseSelection ? _weightForClauseSelection : computeWeightForClauseSelection(*env.options));
     if(weightForClauseSelection!=weight){
-      result += vstring(",wCS:") + Int::toString(weightForClauseSelection);
+      result += std::string(",wCS:") + Int::toString(weightForClauseSelection);
     }
 
     if (numSelected()>0) {
-      result += vstring(",nSel:") + Int::toString(numSelected());
+      result += std::string(",nSel:") + Int::toString(numSelected());
     }
 
     if (env.colorUsed) {
-      result += vstring(",col:") + Int::toString(color());
+      result += std::string(",col:") + Int::toString(color());
     }
 
     if(derivedFromGoal()){
-      result += vstring(",goal:1");
+      result += std::string(",goal:1");
     }
     if(env.maxSineLevel > 1) { // this is a cryptic way of saying "did we run Sine to compute sine levels?"
-      result += vstring(",sine:")+Int::toString((unsigned)_inference.getSineLevel());
+      result += std::string(",sine:")+Int::toString((unsigned)_inference.getSineLevel());
     }
 
     if(isPureTheoryDescendant()){
-      result += vstring(",ptD:1");
+      result += std::string(",ptD:1");
     }
 
     if(env.options->induction() != Shell::Options::Induction::NONE){
-      result += vstring(",inD:") + Int::toString(_inference.inductionDepth());
+      result += std::string(",inD:") + Int::toString(_inference.inductionDepth());
     }
     result += ",thAx:" + Int::toString((int)(_inference.th_ancestors));
     result += ",allAx:" + Int::toString((int)(_inference.all_ancestors));
 
     result += ",thDist:" + Int::toString( _inference.th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference.all_ancestors);
-    result += vstring("}");
+    result += std::string("}");
   }
 
   return result;
@@ -448,7 +448,7 @@ vstring Clause::toString() const
  * Convert the clause into sequence of strings, each containing
  * a proper clause
  */
-VirtualIterator<vstring> Clause::toSimpleClauseStrings()
+VirtualIterator<std::string> Clause::toSimpleClauseStrings()
 {
     return pvi(getSingletonIterator(literalsOnlyToString()));
 }

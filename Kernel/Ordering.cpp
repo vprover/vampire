@@ -56,21 +56,14 @@ using namespace std;
 using namespace Lib;
 using namespace Kernel;
 
+bool OrderingComparator::check(const SubstApplicator* applicator)
+{
+  return _ord.isGreater(
+    AppliedTerm(_lhs, applicator, /*aboveVar*/true),
+    AppliedTerm(_rhs, applicator, /*aboveVar*/true));
+}
+
 OrderingSP Ordering::s_globalOrdering;
-
-Ordering::Ordering() : _eqCmp(unique_ptr<EqCmp>(new  EqCmp()))
-{
-}
-
-Ordering::~Ordering()
-{
-}
-
-void Ordering::resetGlobalOrdering()
-{
-  ASS(s_globalOrdering)
-  s_globalOrdering = OrderingSP();
-}
 
 /**
  * If there is no global ordering yet, assign @c ordering to be
@@ -205,12 +198,8 @@ const char* Ordering::resultToString(Result r)
   switch(r) {
   case GREATER:
     return "GREATER";
-  case GREATER_EQ:
-    return "GREATER_EQ";
   case LESS:
     return "LESS";
-  case LESS_EQ:
-    return "LESS_EQ";
   case EQUAL:
     return "EQUAL";
   case INCOMPARABLE:
@@ -233,11 +222,10 @@ void Ordering::removeNonMaximal(LiteralList*& lits) const
     while (*ptr2 && *ptr1) {
       Ordering::Result res = compare((*ptr1)->head(), (*ptr2)->head());
 
-      if (res == Ordering::GREATER || res == Ordering::GREATER_EQ
-          || res == Ordering::EQUAL) {
+      if (res == Ordering::GREATER || res == Ordering::EQUAL) {
         LiteralList::pop(*ptr2);
         continue;
-      } else if (res == Ordering::LESS || res == Ordering::LESS_EQ) {
+      } else if (res == Ordering::LESS) {
         LiteralList::pop(*ptr1);
         goto topLevelContinue;
       }
@@ -651,7 +639,7 @@ using UnaryFirstComparator = SpecAriFirstComparator<1,revert,InnerComparator>;
 template<bool revert = false, typename InnerComparator = OccurenceTiebreak>
 using ConstFirstComparator = SpecAriFirstComparator<0,revert,InnerComparator>;
 
-static void loadPermutationFromString(DArray<unsigned>& p, const vstring& str) {
+static void loadPermutationFromString(DArray<unsigned>& p, const std::string& str) {
   std::stringstream ss(str.c_str());
   unsigned i = 0;
   unsigned val;
@@ -805,7 +793,7 @@ DArray<int> PrecedenceOrdering::typeConPrecFromOpts(Problem& prb, const Options&
     aux.initFromIterator(getRangeIterator(0u, nTypeCons), nTypeCons);
 
     if (!opt.typeConPrecedence().empty()) {
-      vstring precedence;
+      std::string precedence;
       ifstream precedence_file (opt.typeConPrecedence().c_str());
       if (precedence_file.is_open() && getline(precedence_file, precedence)) {
         loadPermutationFromString(aux,precedence);
@@ -831,7 +819,7 @@ DArray<int> PrecedenceOrdering::funcPrecFromOpts(Problem& prb, const Options& op
     aux.initFromIterator(getRangeIterator(0u, nFunctions), nFunctions);
 
     if (!opt.functionPrecedence().empty()) {
-      vstring precedence;
+      std::string precedence;
       ifstream precedence_file (opt.functionPrecedence().c_str());
       if (precedence_file.is_open() && getline(precedence_file, precedence)) {
         loadPermutationFromString(aux,precedence);
@@ -855,7 +843,7 @@ DArray<int> PrecedenceOrdering::predPrecFromOpts(Problem& prb, const Options& op
   aux.initFromIterator(getRangeIterator(0u, nPredicates), nPredicates);
 
   if (!opt.predicatePrecedence().empty()) {
-    vstring precedence;
+    std::string precedence;
     ifstream precedence_file (opt.predicatePrecedence().c_str());
     if (precedence_file.is_open() && getline(precedence_file, precedence)) {
       loadPermutationFromString(aux,precedence);

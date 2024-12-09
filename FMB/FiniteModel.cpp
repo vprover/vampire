@@ -137,9 +137,9 @@ bool FiniteModel::isPartial()
   return true;
 }
 
-vstring FiniteModel::toString()
+std::string FiniteModel::toString()
 {
-  vostringstream modelStm;
+  std::ostringstream modelStm;
 
   bool printIntroduced = false;
 
@@ -179,7 +179,7 @@ vstring FiniteModel::toString()
     unsigned arity = env.signature->functionArity(f);
     if(arity>0) continue;
     if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;
-    vstring name = env.signature->functionName(f);
+    std::string name = env.signature->functionName(f);
     unsigned res = f_interpretation[f_offsets[f]];
     if(res>0){ 
       modelStm << "fof("<<name<<"_definition,axiom,"<<name<<" = fmb"<< res << ")."<<endl;
@@ -194,7 +194,7 @@ vstring FiniteModel::toString()
     unsigned arity = env.signature->functionArity(f);
     if(arity==0) continue;
     if(!printIntroduced && env.signature->getFunction(f)->introduced()) continue;
-    vstring name = env.signature->functionName(f);
+    std::string name = env.signature->functionName(f);
     modelStm << "fof(function_"<<name<<",axiom,"<<endl;
 
     unsigned offset = f_offsets[f];
@@ -253,7 +253,7 @@ fModelLabel:
     unsigned arity = env.signature->predicateArity(f);
     if(arity>0) continue;
     if(!printIntroduced && env.signature->getPredicate(f)->introduced()) continue;
-    vstring name = env.signature->predicateName(f);
+    std::string name = env.signature->predicateName(f);
     unsigned res = p_interpretation[p_offsets[f]];
     if(res==2){
       modelStm << "fof("<<name<<"_definition,axiom,"<<name<< ")."<<endl;
@@ -271,7 +271,7 @@ fModelLabel:
     unsigned arity = env.signature->predicateArity(f);
     if(arity==0) continue;
     if(!printIntroduced && env.signature->getPredicate(f)->introduced()) continue;
-    vstring name = env.signature->predicateName(f);
+    std::string name = env.signature->predicateName(f);
     modelStm << "fof(predicate_"<<name<<",axiom,"<<endl;
 
     unsigned offset = p_offsets[f];
@@ -427,7 +427,7 @@ bool FiniteModel::evaluate(Unit* unit)
     formula = fu->getFormula();
   }
 
-  formula = partialEvaluate(formula);
+  formula = partialEvaluate(formula,0);
   formula = SimplifyFalseTrue::simplify(formula);
   return evaluate(formula);
 }
@@ -549,7 +549,7 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
      * TODO: This is recursive, which could be problematic in the long run
      *
      */
-    Formula* FiniteModel::partialEvaluate(Formula* formula)
+    Formula* FiniteModel::partialEvaluate(Formula* formula,unsigned depth)
     {
 #if DEBUG_MODEL
         for(unsigned i=0;i<depth;i++){ cout << "."; }
@@ -572,7 +572,7 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
                     return formula;
                 case NOT:
                 {
-                  Formula* inner = partialEvaluate(formula->uarg());
+                  Formula* inner = partialEvaluate(formula->uarg(),depth+1);
                   return new NegatedFormula(inner);
                 }
                 case AND:
@@ -582,7 +582,7 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
                 FormulaList* newArgs = 0;
                 FormulaList::Iterator fit(args);
                 while(fit.hasNext()){
-                    Formula* newArg = partialEvaluate(fit.next());
+                    Formula* newArg = partialEvaluate(fit.next(),depth+1);
                     FormulaList::push(newArg,newArgs);
                 }
                 return new JunctionFormula(formula->connective(),newArgs); 
@@ -594,8 +594,8 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
             {
                 Formula* left = formula->left();
                 Formula* right = formula->right();
-                Formula* newLeft = partialEvaluate(left);
-                Formula* newRight = partialEvaluate(right);
+                Formula* newLeft = partialEvaluate(left,depth+1);
+                Formula* newRight = partialEvaluate(right,depth+1);
                 
                 return new BinaryFormula(formula->connective(),newLeft,newRight); 
             }
@@ -605,7 +605,7 @@ bool FiniteModel::evaluate(Formula* formula,unsigned depth)
             {
                 VList* vs = formula->vars();
                 Formula* inner  = formula->qarg();
-                Formula* newInner = partialEvaluate(inner);
+                Formula* newInner = partialEvaluate(inner,depth+1);
                 return new QuantifiedFormula(formula->connective(),vs,0,newInner);
             }
             default:

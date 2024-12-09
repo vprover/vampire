@@ -368,7 +368,7 @@ Literal* LascaPreprocessor::integerConversion(Literal* lit)
       for (auto a : anyArgIterTyped(lit)) {
         args->push(integerConversion(a));
       }
-      return Literal::create(ff, args->size(), lit->polarity(), lit->commutative(), args->begin());
+      return Literal::create(ff, args->size(), lit->polarity(), args->begin());
     }
   };
   auto out = impl();

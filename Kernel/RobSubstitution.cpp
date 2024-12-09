@@ -594,7 +594,7 @@ SubstIterator RobSubstitution::getAssocIterator(RobSubstitution* subst,
     return SubstIterator::getEmpty();
   }
 
-  if( !l1->commutative() ) {
+  if( !l1->isEquality() ) {
     return pvi( getContextualIterator(getSingletonIterator(subst),
 	    AssocContext<Fn>(l1, l1Index, l2, l2Index)) );
   } else {
@@ -671,8 +671,7 @@ public:
       _subst(subst), _l1(l1), _l1i(l1Index), _l2(l2), _l2i(l2Index),
       _state(FIRST), _used(true) {
     ASS_EQ(_l1->functor(), _l2->functor());
-    ASS(_l1->commutative());
-    ASS_EQ(_l1->arity(), 2);
+    ASS(_l1->isEquality());
   }
   ~AssocIterator() {
     if (_state != FINISHED && _state != FIRST) {
