@@ -107,7 +107,7 @@ public:
    * of the constants we cannot predefine, and require that these variables
    * are mapped bijectively to the new Skolem constants, hence this override.
    */
-  bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) override
+  bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs) override
   {
     // there can be false positive matches which later (in a different literal
     // or clause) can turn out to be the wrong ones and we have to backtrack

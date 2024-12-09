@@ -39,7 +39,7 @@ class SimplificationTester : public Test::Simplification::SimplificationTester
 {
 public:
 
-  // virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) const override
+  // virtual bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs) const override
   // { return TestUtils::eqModACVar(lhs, rhs); }
 
   virtual Kernel::Clause* simplify(Kernel::Clause* in) const override 

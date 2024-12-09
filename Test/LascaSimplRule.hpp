@@ -106,10 +106,11 @@ class LascaGenerationTester : public Test::Generation::GenerationTester<LascaSim
   virtual Clause* normalize(Kernel::Clause* c) override 
   { return Test::Generation::GenerationTester<LascaSimplRule<Rule>>::_rule._norm.simplify(c); }
 
-  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) override
+  virtual bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs) override
   { 
-    auto state = testLascaState();
-    return Test::TestUtils::permEq(*lhs, *rhs, [&](auto l, auto r) { return state->norm().equivalent(l,r); });
+    // auto state = testLascaState();
+    // return Test::TestUtils::permEq(*lhs, *rhs, [&](auto l, auto r) { return state->norm().equivalent(l,r); });
+    return Test::TestUtils::eqModACRect(normalize(lhs), normalize(rhs));
   }
 };
 

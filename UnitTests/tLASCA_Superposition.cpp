@@ -25,6 +25,7 @@
 #include "Kernel/KBO.hpp"
 #include "Indexing/TermSubstitutionTree.hpp" 
 #include "Inferences/PolynomialEvaluation.hpp"
+#include "Test/LascaSimplRule.hpp"
 
 using namespace std;
 using namespace Kernel;
@@ -100,12 +101,16 @@ Stack<std::function<Indexing::Index*()>> ircSuperpositionIndices()
     [](){ return new LascaIndex<Superposition::Rhs>();},
   }; }
 
-Superposition testSuperposition(Options::UnificationWithAbstraction uwa, bool simultanious = false)
-{ return Superposition(testLascaState(uwa), simultanious); }
+auto testSuperposition(Options::UnificationWithAbstraction uwa, bool simultanious = false)
+{ 
+  auto s = testLascaState(uwa);
+  auto n = LASCA::Normalization(s);
+  return lascaSimplRule(Superposition(s, simultanious), n); 
+}
 
 
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<Superposition>(testSuperposition(UWA_MODE, /* simultanious superpos */ false)))
+REGISTER_GEN_TESTER(LascaGenerationTester<Superposition>(testSuperposition(UWA_MODE, /* simultanious superpos */ false)))
 
 /////////////////////////////////////////////////////////
 // Basic tests
@@ -114,20 +119,20 @@ REGISTER_GEN_TESTER(Test::Generation::GenerationTester<Superposition>(testSuperp
 TEST_GENERATION(basic01,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
-      .inputs  ({ clause({ selected( 3 * f(x) - 4 == 0 )  }) 
+      .inputs  ({ clause({ selected( 3 * f(x) - 4 - a == 0 )  }) 
                 , clause({ selected(     3 * f(x) >  0 )  }) })
       .expected(exactly(
-            clause({ 3 * frac(4,3) > 0  })
+            clause({ 4 + a > 0  })
       ))
     )
 
 TEST_GENERATION(basic02,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
-      .inputs  ({ clause({ selected( 3 * f(x) - 4 == 0 )  })
-                , clause({ selected(     f(x) >  0 )  }) })
+      .inputs  ({ clause({ selected( 3 * f(x) - 4 * a == 0 )  })
+                , clause({ selected(     f(x) + b >  0 )  }) })
       .expected(exactly(
-            clause({ frac(4, 3) > 0  })
+            clause({ frac(4, 3) * a + b > 0  })
       ))
     )
 
@@ -208,19 +213,13 @@ TEST_GENERATION(self_applications_run_only_once,
       .selfApplications(true)
       .inputs  ({ clause({ selected( f(x) + f(y) == 0 )  }) })
       .expected(exactly(
-                  // clause({ f(x0) + f(x1) == 0    }) 
-                  // clause({ f(x2) + f(x3) == 0    }) 
        
-                  // x2 -> x0
-                  clause({ - f(x3) + f(x1) == 0    }) 
+                  clause({ - f(x2) + f(x1) == 0    }) 
 
-                  // x2 -> x1
-                , clause({ -f(x3) + f(x0) == 0 })
-
-                  // x3 -> x0
                 , clause({ -f(x2) + f(x1) == 0 })
 
-                  // x3 -> x1
+                , clause({ -f(x2) + f(x0) == 0 })
+
                 , clause({ -f(x2) + f(x0) == 0 })
       ))
     )
@@ -231,13 +230,13 @@ TEST_GENERATION(misc01,
       .indices(ircSuperpositionIndices())
       .inputs  ({         clause({ selected(0 == -17 + a) })
                 ,         clause({ selected(-19 + -f(x) + a * y  >= 0) }) })
-      .expected(exactly(  clause({          -19 + -f(x) + 17 * y >= 0  }) ))
+      .expected(exactly(  clause({          -19 + -f(y) + 17 * x >= 0  }) ))
     )
 
 TEST_GENERATION(ordering1_ok_1_simult,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
-      .rule(new Superposition(testSuperposition(UWA_MODE, /*simultanious=*/ true)))
+      .rule(move_to_heap(testSuperposition(UWA_MODE, /*simultanious=*/ true)))
       .inputs  ({         clause({ selected( g2(a,a) == 0 ) })
                 ,         clause({ selected( f(g2(x,y)) != 0 ), selected( f(g2(y,x)) != 0 ) }) }) 
       .expected(exactly(  clause({ f(0) != 0, f(0) != 0 }) 
@@ -538,7 +537,7 @@ for_polarity(TEST_only_replace_in_active_uninterpretd)
 TEST_GENERATION_WITH_SUGAR(int_bug01, SUGAR(Int),
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
-      .rule(new Superposition(testSuperposition(Options::UnificationWithAbstraction::LPAR_MAIN)))
+      .rule(move_to_heap(testSuperposition(Options::UnificationWithAbstraction::LPAR_MAIN)))
       .inputs  ({ clause({ 0 == (-400 + f2(400,1))  }) 
                 , clause({ 0 == (a + (-b + f2((-a + b),1)))  }) 
                 })
@@ -684,7 +683,7 @@ TEST_GENERATION(bug06,
 TEST_GENERATION(abstraction_bug01a,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
-      .rule(new Superposition(testSuperposition(Options::UnificationWithAbstraction::LPAR_MAIN)))
+      .rule(move_to_heap(testSuperposition(Options::UnificationWithAbstraction::LPAR_MAIN)))
       .selfApplications(false)
       .inputs  ({ 
           clause({ 0 == f2(f(x), 0)  }),
@@ -698,7 +697,7 @@ TEST_GENERATION(abstraction_bug01a,
 TEST_GENERATION(abstraction_bug01b,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
-      .rule(new Superposition(testSuperposition(Options::UnificationWithAbstraction::LPAR_MAIN)))
+      .rule(move_to_heap(testSuperposition(Options::UnificationWithAbstraction::LPAR_MAIN)))
       .selfApplications(false)
       .inputs  ({ 
           clause({ 0 == f2(f(x), 0)  }),
@@ -713,7 +712,7 @@ TEST_GENERATION(abstraction_bug01b,
 TEST_GENERATION(is_int_skip_app,
     Generation::SymmetricTest()
       .indices(ircSuperpositionIndices())
-      .rule(new Superposition(testSuperposition(Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR)))
+      .rule(move_to_heap(testSuperposition(Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR)))
       .selfApplications(true)
       .inputs  ({ 
           clause({ f(x) == floor(f(x))  }),

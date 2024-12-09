@@ -69,7 +69,7 @@ public:
     : _rule(std::move(rule)) 
   {  }
 
-  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) const 
+  virtual bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs) const 
   { return TestUtils::eqModAC(lhs, rhs); }
 
   friend class TestCase;

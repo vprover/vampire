@@ -72,7 +72,7 @@ Literal* InequalityNormalizer::normalizeUninterpreted(Literal* lit) const
       args.push(orig);
     } else {
       auto norm = PolyNf::normalize(TypedTermList(orig.term()));
-      auto eval = evaluator()
+      auto eval = _eval
         .evaluate(norm)
         .map([](auto t) { return t.denormalize(); }) 
         || norm.denormalize();  // <- nothing was done during evaluation
@@ -404,7 +404,6 @@ Clause* LascaPreprocessor::integerConversion(Clause* clause)
         ASS(ll->isEquality() && ll->eqArgSort() == R::sort() && change)
         res->pushMany(notInt(ll->termArg(0)), notInt(ll->termArg(1)));
       } else if (l->functor() != ll->functor() && theory->isInterpretedPredicate(ll->functor())) {
-        auto sym = env.signature->getPredicate(ll->functor())->predType();
         ASS(ll->arity() == l->arity())
         res->loadFromIterator(range(0, l->numTermArguments())
             .filter([&](auto i) { return SortHelper::getTermArgSort(l, i) == Z::sort(); })

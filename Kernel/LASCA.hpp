@@ -280,11 +280,6 @@ namespace Kernel {
       return globalNormalizer;
     }
 
-    [[deprecated("TODO remove")]]
-    PolynomialEvaluation& evaluator() { return _eval; }
-    [[deprecated("TODO remove")]]
-    PolynomialEvaluation const& evaluator() const { return _eval; }
-
     /** param strong enables rewrites 
      * t >= 0 ==> t > 0 \/ t == 0
      * t != 0 ==> t > 0 \/ -t > 0
@@ -746,7 +741,7 @@ namespace Kernel {
 
     bool isAtomic(Term* t) { return !interpretedFunction(t) || 
       forAnyNumTraits([&](auto n) { return n.isFloor(t->functor()); }); }
-    // bool isAtomic(TermList t) { return t.isVar() || isAtomic(t.term()); }
+    bool isAtomic(TermList t) { return t.isTerm() && isAtomic(t.term()); }
 
 
     auto maxLits(Clause* cl, SelectionCriterion sel) {
@@ -886,12 +881,12 @@ namespace Kernel {
     }
 
 
-    [[deprecated("todo remove me")]]
-    bool subtermEq(TermList sub, TermList sup)
+    bool subtermEqModT(TermList sub, TermList sup)
     {
+      ASS(isAtomic(sub))
       // TODO add assertion that sub is an atomic term
-      return norm().evaluator().evaluateToTerm(sup)
-        .containsSubterm(norm().evaluator().evaluateToTerm(sub));
+      return norm().normalize(sup).denormalize()
+        .containsSubterm(norm().normalize(sub).denormalize());
     }
 
 

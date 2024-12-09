@@ -67,9 +67,9 @@ public:
 
   /** 
    * OPTIONAL: override how equality between clauses is checked. 
-   * Defaults to TestUtils::eqModAC(Clause const*, Clause const*).
+   * Defaults to TestUtils::eqModAC(Clause*, Clause*).
    */
-  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs) const override
+  virtual bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs) const override
   {
     return TestUtils::eqModAC(lhs, rhs);
   }

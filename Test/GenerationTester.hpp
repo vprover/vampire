@@ -64,7 +64,7 @@ public:
     return iterTraits(_patterns.iter())
       .all([&](auto& p) {
           return iterTraits(sRes.iter())
-             .any([&](Kernel::Clause const* cl) { return p.matches(simpl, cl); });
+             .any([&](Kernel::Clause* cl) { return p.matches(simpl, cl); });
       });
   }
 
@@ -179,7 +179,7 @@ public:
   virtual Clause* normalize(Kernel::Clause* c)
   { return c; }
 
-  virtual bool eq(Kernel::Clause const* lhs, Kernel::Clause const* rhs)
+  virtual bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs)
   { return TestUtils::eqModACRect(lhs, rhs); }
 
   friend class AsymmetricTest;

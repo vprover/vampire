@@ -128,7 +128,7 @@ Option<Clause*> SuperpositionConf::applyRule_(
       "s2σ ⊴ ti ∈ active(L[s2]σ)", 
       _shared->activePositions(L2σ)
         .any([&](auto ti) 
-             { return _shared->subtermEq(s2σ, ti); }))
+             { return _shared->subtermEqModT(s2σ, ti); }))
 
   check_side_condition(
       "L[s2]σ /⪯ L1σ", // TODO is this the correct thing? if so make sure we do that for fourrier motzkin and friends as well
