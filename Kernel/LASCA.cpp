@@ -105,18 +105,6 @@ Recycled<Stack<Literal*>> InequalityNormalizer::normalizeLiteral(Literal* lit) c
   return out;
 }
 
-bool InequalityNormalizer::isNormalized(Clause* cl)  const
-{ 
-  for (unsigned i = 0; i < cl->size(); i++) {
-    auto lit = (*cl)[i];
-    auto norm = normalizeLiteral(lit);
-    if(norm->size() != 1 || lit != (*norm)[0]) {
-      return false;
-    }
-  }
-  return true;
-}
-
 #if VDEBUG
 std::shared_ptr<LascaState> testLascaState(Options::UnificationWithAbstraction uwa, std::shared_ptr<InequalityNormalizer> norm, Ordering* ordering, bool uwaFixedPointIteration) {
 

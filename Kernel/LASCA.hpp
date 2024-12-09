@@ -320,8 +320,6 @@ namespace Kernel {
 
     // Literal* renormalizeLiteral(Literal* lit) const;
     Recycled<Stack<Literal*>> normalizeLiteral(Literal* lit) const;
-    [[deprecated("TODO")]]
-    bool isNormalized(Clause* cl)  const;
 
     bool equivalent(TermList lhs, TermList rhs) 
     { 
