@@ -16,6 +16,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Lib/Slice.hpp"
+#include <chrono>
 
 #include "./subsat/subsat.hpp"
 
