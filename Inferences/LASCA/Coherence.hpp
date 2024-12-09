@@ -200,7 +200,7 @@ public:
     auto toRewriteσ = sigmaR(rhs.toRewrite);
     ASS(rhs.self.literal()->containsSubterm(rhs.toRewrite))
     ASS(Lσ->containsSubterm(toRewriteσ))
-    auto ks_t = rhs.toRewrite.term()->termArg(0);
+    // auto ks_t = rhs.toRewrite.term()->termArg(0);
     auto ks_tσ = toRewriteσ.term()->termArg(0);
 
     // TODO side condition checks after unification!!
