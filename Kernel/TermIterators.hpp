@@ -44,6 +44,21 @@ public:
   DECL_ELEMENT_TYPE(TermList);
   VariableIterator() : _stack(8), _used(false) {}
 
+  VariableIterator& operator=(VariableIterator&&) = default;
+  VariableIterator(VariableIterator&& other)
+    : VariableIterator() 
+  {
+    std::swap(_stack, other._stack);
+    std::swap(_used, other._used);
+    std::swap(_aux[0], other._aux[0]);
+    std::swap(_aux[1], other._aux[1]);
+    if (_stack.size() >= 1 && _stack[0] == &other._aux[1]) {
+      // fix pointer pointing into this object
+      ASS(_aux[0].isEmpty())
+      _stack[0] = &_aux[1];
+    }
+  }
+
   VariableIterator(const Term* term) : _stack(8), _used(false)
   {
     if(term->isLiteral() && static_cast<const Literal*>(term)->isTwoVarEquality()){
@@ -810,22 +825,35 @@ public:
 
 
 /** iterator over all term arguments of @code term */
-static const auto termArgIter = [](Term* term) 
-  { return iterTraits(getRangeIterator<unsigned>(0, term->numTermArguments()))
+static const auto termArgIter = [](Term const* term) 
+  { return range((unsigned)0, term->numTermArguments())
       .map([=](auto i)
            { return term->termArg(i); }); };
 
+/** iterator over all term arguments of @code term */
+static const auto termArgIterTyped = [](Term const* term) 
+  { return range((unsigned)0, term->numTermArguments())
+      .map([=](auto i)
+           { return TypedTermList(term->termArg(i), SortHelper::getArgSort(term, i)); }); };
+
 /** iterator over all type arguments of @code term */
-static const auto typeArgIter = [](Term* term) 
-  { return iterTraits(getRangeIterator<unsigned>(0, term->numTypeArguments()))
+static const auto typeArgIter = [](Term const* term) 
+  { return range((unsigned)0, term->numTypeArguments())
       .map([=](auto i)
            { return term->typeArg(i); }); };
 
 /** iterator over all type and term arguments of @code term */
-static const auto anyArgIter = [](Term* term) 
+static const auto anyArgIter = [](Term const* term) 
   { return iterTraits(getRangeIterator<unsigned>(0, term->arity()))
       .map([=](auto i)
            { return *term->nthArgument(i); }); };
+
+
+/** iterator over all type and term arguments of @code term */
+static const auto anyArgIterTyped = [](Term const* term) 
+  { return range(0, term->arity())
+      .map([=](auto i)
+           { return TypedTermList(*term->nthArgument(i), SortHelper::getArgSort(term, i)); }); };
 
 
 } // namespace Kernel
