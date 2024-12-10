@@ -115,7 +115,7 @@ bool szsOutputMode() {
   return (Lib::env.options && Lib::env.options->outputMode() == Shell::Options::Output::SZS);
 }
 
-ostream& addCommentSignForSZS(std::ostream& out)
+std::ostream& addCommentSignForSZS(std::ostream& out)
 {
   if (szsOutputMode()) {
     out << "% ";

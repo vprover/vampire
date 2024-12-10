@@ -53,7 +53,7 @@ LPOComparator::LPOComparator(TermList lhs, TermList rhs, const LPO& lpo)
 {
 }
 
-ostream& operator<<(ostream& out, const LPOComparator::BranchTag& t)
+std::ostream& operator<<(std::ostream& out, const LPOComparator::BranchTag& t)
 {
   switch (t) {
     case LPOComparator::BranchTag::T_NOT_GREATER:
@@ -83,7 +83,7 @@ std::ostream& operator<<(std::ostream& str, const LPOComparator::Branch& branch)
   return str;
 }
 
-ostream& operator<<(ostream& str, const LPOComparator& comp)
+std::ostream& operator<<(std::ostream& str, const LPOComparator& comp)
 {
   str << "comparator for " << comp._lhs << " > " << comp._rhs << endl;
   Stack<pair<const LPOComparator::Branch*, unsigned>> todo;
