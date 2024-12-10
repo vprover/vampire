@@ -82,7 +82,7 @@ private:
   static void alphaChain(Branch* branch, Term* s, unsigned i, TermList tl2, Branch success, Branch fail);
   static void expand(Branch& branch, const LPO& lpo);
 
-  friend ostream& operator<<(ostream& str, const LPOComparator& comp);
+  friend std::ostream& operator<<(std::ostream& str, const LPOComparator& comp);
 
   Branch _root;
 };

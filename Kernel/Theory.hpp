@@ -477,6 +477,7 @@ public:
 
   bool isInterpretedEquality(Literal* lit);
   bool isInterpretedPredicate(Literal* lit, Interpretation itp);
+  bool isInterpretedPredicate(unsigned f, Interpretation itp);
   bool isInterpretedPredicate(Literal* lit);
 
   bool isInterpretedFunction(unsigned func);
