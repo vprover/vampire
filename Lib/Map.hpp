@@ -43,7 +43,6 @@ template <typename Key, typename Val,class Hash>
 class Map
 {
 public:
-  USE_ALLOCATOR(Map)
 
   using HashFn = Hash;
   class Entry

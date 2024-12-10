@@ -23,6 +23,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/Recycled.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/Reflection.hpp"
 #include "List.hpp"
 #include "DHSet.hpp"

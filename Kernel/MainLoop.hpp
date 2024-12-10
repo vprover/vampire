@@ -16,7 +16,6 @@
 #define __MainLoop__
 
 #include "Forwards.hpp"
-#include "Debug/TimeProfiling.hpp"
 
 #include "Lib/Exception.hpp"
 

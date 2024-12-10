@@ -26,12 +26,12 @@ namespace TypeList {
   struct Token { using inner = A; };
 
   template<class Token>
-  using TokenType = typename Token::inner; 
+  using TokenType = typename Token::inner;
 
   template<class F>
   auto __forEach(F& f) { }
 
-  template<class F, class A, class... As> 
+  template<class F, class A, class... As>
   auto __forEach(F& f) {
     f(Token<A>{});
     __forEach<F, As...>(f);
@@ -44,12 +44,12 @@ namespace TypeList {
   template<class... As> struct List
   {
     template<class F>
-    static auto forEach(F f) 
+    static auto forEach(F f)
     { __forEach<F, As...>(f); }
 
 
     template<class F>
-    static auto toTuple(F f) 
+    static auto toTuple(F f)
     { return std::make_tuple(f(Token<As>{})...); }
   };
 
@@ -120,24 +120,24 @@ namespace TypeList {
   template<unsigned i, class A, class... As> struct GetImpl<i, List<A, As...>>
   { using type = Get<i - 1, List<As...>>; };
 
-  /* Meta level type function. 
+  /* Meta level type function.
    * zip : List [class] -> List [class] ->  List [List [class]]
    *
    * Zipps two lists of types
    *
    * E.g. Zip<List<A, B, A>, List<B, A, B>> ==> List<List<A, B>, Indexed<B, A>, Indexed<A, B>>
-   */  
+   */
   template<class As, class Bs> struct ZipImpl;
 
   template<class As, class Bs> using Zip = typename ZipImpl<As, Bs>::type;
 
-  template<> struct ZipImpl<List<>, List<>> 
-  { 
+  template<> struct ZipImpl<List<>, List<>>
+  {
     using type = List<>;
   };
 
-  template<class A, class... As, class B, class... Bs> struct ZipImpl<List<A, As...>, List<B, Bs...>> 
-  { 
+  template<class A, class... As, class B, class... Bs> struct ZipImpl<List<A, As...>, List<B, Bs...>>
+  {
     using type = Concat<List<List<A,B>>, Zip<List<As...>, List<Bs...>>>; //Concat<List<Indexed<acc, A>>, typename WithIndicesImpl<acc + 1, List<As...>>::type>;
   };
 
@@ -245,7 +245,7 @@ namespace TypeList {
 
 
   template<unsigned idx, class A>
-  struct Indexed 
+  struct Indexed
   { static unsigned constexpr index = idx; };
 
   /*
@@ -270,11 +270,11 @@ namespace TypeList {
 
 
 
-  /* 
+  /*
    * Returns the list of indices of a list
    *
    * E.g. Indices<List<A, B, A>> ==> List<Constant<0>, Constant<1>, Constant<2>>
-   */  
+   */
   template<unsigned acc, class A> struct IndicesImpl;
 
   template<unsigned acc> struct IndicesImpl<acc, List<>>
@@ -298,7 +298,7 @@ namespace TypeList {
   template<unsigned From> struct RangeImpl<From, From>
   { using type = List<>; };
 
-  template<unsigned From, unsigned ToExcl> 
+  template<unsigned From, unsigned ToExcl>
   using Range = typename RangeImpl<From,ToExcl>::type;
 
    template<class F>
@@ -306,14 +306,14 @@ namespace TypeList {
       template<class A> using apply = std::invoke_result_t<F, A>;
    };
 
-  /* 
+  /*
    * Maps a list A using the function F
-   * struct Function { 
-   *   template<class A> 
+   * struct Function {
+   *   template<class A>
    *   using apply = std::tuple<A, A>;
    * }
    * E.g. Map<F, List<A, B, A>> ==> List<std::tuple<A, A>, std::tuple<B, B>, std::tuple<A, A>>
-   */  
+   */
   template<class F, class A> struct MapImpl;
 
   template<class F> struct MapImpl<F, List<>>
@@ -406,7 +406,7 @@ namespace TypeList {
        List<Constant<0>, Constant<1>, Constant<2>>)
 
     template<class A> class TestFunctor { };
-    struct TestFunctorFunction { 
+    struct TestFunctorFunction {
       template<class A> using apply = TestFunctor<A>;
     };
 
