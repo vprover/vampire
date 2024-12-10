@@ -1625,9 +1625,9 @@ bool Theory::isInterpretedFunction(Term* t)
   return isInterpretedFunction(t->functor());
 }
 
-bool Theory::isInterpretedPredicate(unsigned lit, Interpretation itp)
+bool Theory::isInterpretedPredicate(unsigned f, Interpretation itp)
 {
-  return isInterpretedPredicate(lit) && interpretPredicate(lit)==itp;
+  return isInterpretedPredicate(f) && interpretPredicate(f)==itp;
 }
 
 /**
