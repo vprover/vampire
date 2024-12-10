@@ -1038,9 +1038,9 @@ struct FloorUwaState {
     auto negative() const { return summands().filter([](auto& x) { return x.second < 0; }); }
     static unsigned hash(Term* t) { 
       return ifNumMul<NumTraits>(t, [](auto k, auto t,auto...) { return hash(t.term()); })
-          || NumTraits::ifFloor(t, [](auto t) { return 2 * hash(t.term()); })
+          || NumTraits::ifFloor(t, [](auto t) { return 2 * hash(t.term()) + 1; })
           || NumTraits::ifAdd(t, [](auto l, auto r) { return hash(l.term()) + hash(r.term()); })
-          || [&]() { return t->functor(); };
+          || [&]() { return 2 * t->functor(); };
     }
     static unsigned hash(TermSpec t) { return hash(t.term.term()); }
 

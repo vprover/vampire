@@ -2564,6 +2564,13 @@ ROB_UNIFY_TEST_NAMESPACED_WITH_SUGAR(floor_test_15,
       // .lascaSimpl = true,
     })
 
+ROB_UNIFY_TEST_FAIL(floor_test_16,
+    SUGAR(Real),
+    Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR,
+    /* fixedPointIteration */ false,
+    a - floor(-a),
+    num(0))
+
 // #define DO_FLIP(x,y) (y, x)
 // #define NO_FLIP(x,y) (x, y)
 //
