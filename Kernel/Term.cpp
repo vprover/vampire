@@ -15,7 +15,7 @@
  * @since 06/05/2007 Manchester, changed into a single class instead of three
  */
 
-#include "Debug/Output.hpp"
+#include "Lib/Output.hpp"
 #include "Indexing/TermSharing.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/StringUtils.hpp"
@@ -739,7 +739,7 @@ std::string Term::toString(bool topLevel) const
   out << headToString();
   
   if (_arity && printArgs) {
-    out << outputInterleaved(',', anyArgIter(this)) << ")";
+    out << Output::interleaved(',', anyArgIter(this)) << ")";
   }
   return out.str();
 } // Term::toString

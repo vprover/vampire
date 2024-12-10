@@ -39,7 +39,7 @@ struct VampireVirasConfig {
   using Term     = Kernel::TermList;
   using Numeral  = typename NumTraits::ConstantType;
 
-  void output_literals(std::ostream& out, Stack<Kernel::Literal*> const* const& self) { out << Kernel::outputInterleaved(", ", arrayIter(*self).map([](auto x) -> Kernel::Literal& { return *x; })); }
+  void output_literals(std::ostream& out, Stack<Kernel::Literal*> const* const& self) { out << Kernel::Output::interleaved(", ", arrayIter(*self).map([](auto x) -> Kernel::Literal& { return *x; })); }
   void output_literal(std::ostream& out, Kernel::Literal* const& self) { out << *self; }
   void output_var(std::ostream& out, VarWrapper const& self) { out << self; }
   void output_term(std::ostream& out, Kernel::TermList const& self) { out << self; }

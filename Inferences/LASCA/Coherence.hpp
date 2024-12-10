@@ -32,7 +32,7 @@
 #include "Lib/Reflection.hpp"
 #include "Shell/Options.hpp"
 #include "Lib/BacktrackableCollections.hpp"
-#include "Debug/Output.hpp"
+#include "Lib/Output.hpp"
 #include "Kernel/EqHelper.hpp"
 
 #define DEBUG_COHERENCE(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)

@@ -95,7 +95,7 @@ class Abstraction
         ); }
 
     friend std::ostream& operator<<(std::ostream& out, Path const& self)
-    { return out << *self.clause.current << "[" << outputInterleaved(".", self.iterElems([](auto& e) { return e.idx; })) << "]"
+    { return out << *self.clause.current << "[" << Output::interleaved(".", self.iterElems([](auto& e) { return e.idx; })) << "]"
       << " -> " << self.top([](auto& t) { return t.derefTermList(); }); }
 
     ClauseEntry clause;

@@ -25,7 +25,7 @@
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Kernel/LASCA.hpp"
 #include "Shell/Options.hpp"
-#include "Debug/Output.hpp"
+#include "Lib/Output.hpp"
 
 namespace Inferences {
 namespace LASCA {

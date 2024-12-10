@@ -17,7 +17,7 @@
 #include "Kernel/Ordering.hpp"
 #include "Lib/STL.hpp"
 #include "Lib/VirtualIterator.hpp"
-#include "Debug/Output.hpp"
+#include "Lib/Output.hpp"
 
 namespace Kernel {
   using namespace Lib;
@@ -273,7 +273,7 @@ namespace Kernel {
 
         res = l < r ? res : Ordering::reverse(res);
 
-        ASS_REP(res == cmp_(l, r), outputCat(get(l), " ", cmp_(l, r), " ", get(r), " expected: ", res ))
+        ASS_REP(res == cmp_(l, r), Output::cat(get(l), " ", cmp_(l, r), " ", get(r), " expected: ", res ))
         return res;
       };
 

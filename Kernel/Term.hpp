@@ -29,7 +29,7 @@
 #ifndef __Term__
 #define __Term__
 
-#include "Debug/Output.hpp"
+#include "Lib/Output.hpp"
 #include "Forwards.hpp"
 #include "Debug/Assertion.hpp"
 

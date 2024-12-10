@@ -20,7 +20,7 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/DArray.hpp"
-#include "Debug/Output.hpp"
+#include "Lib/Output.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/SharedSet.hpp"
@@ -96,7 +96,7 @@ Clause::Clause(Literal* const* lits, unsigned length, Inference inf)
   if (env.options->traceBackward() && unsigned(env.options->traceBackward()) == number()) {
     traverseParentsPost(
         [&](unsigned depth, Unit* unit) {
-          std::cout << "backward trace " <<  number() << ": " << repeatOutput("| ", depth) << unit->toString() << std::endl;
+          std::cout << "backward trace " <<  number() << ": " << Output::repeat("| ", depth) << unit->toString() << std::endl;
       });
   }
 

@@ -13,7 +13,7 @@
  *
  */
 
-#include "Debug/Output.hpp"
+#include "Lib/Output.hpp"
 #include "Debug/Assertion.hpp"
 #include "Lib/Backtrackable.hpp"
 #include "Lib/Coproduct.hpp"
@@ -276,7 +276,7 @@ bool AbstractionOracle::canAbstract(AbstractingUnifier* au, TermSpec const& t1, 
     case Shell::Options::UnificationWithAbstraction::LPAR_MAIN_FLOOR: 
     case Shell::Options::UnificationWithAbstraction::LPAR_ONE_INTERP: 
     case Shell::Options::UnificationWithAbstraction::FUNC_EXT: 
-      ASSERTION_VIOLATION_REP(outputCat(_mode, " should be handled in AbstractionOracle::tryAbstract"))
+      ASSERTION_VIOLATION_REP(Output::cat(_mode, " should be handled in AbstractionOracle::tryAbstract"))
   }
   ASSERTION_VIOLATION;
 }
@@ -776,7 +776,7 @@ struct FloorUwaState {
   bool isMixVar(TermSpec t) const { return isMixVar(t.varSpec()); }
 
   friend std::ostream& operator<<(std::ostream& out, FloorUwaState const& self)
-  { return out << outputInterleaved(" + ", self.summands()); }
+  { return out << Output::interleaved(" + ", self.summands()); }
 
   unsigned size() const 
   { return ratVars->size() + intVars->size() + mixVars->size() + ratAtoms->size() + intAtoms->size(); }
@@ -1045,7 +1045,7 @@ struct FloorUwaState {
     static unsigned hash(TermSpec t) { return hash(t.term.term()); }
 
     friend std::ostream& operator<<(std::ostream& out, Bucket const& self)
-    { return out << outputInterleaved(" + ", self.summands()); }
+    { return out << Output::interleaved(" + ", self.summands()); }
   };
   auto buckets() const {
     Recycled<Map<unsigned, Bucket>> buckets;

@@ -190,20 +190,20 @@ struct LAKBO {
 
   template<class NumTraits>
   Option<TermList> skeleton(Monom<NumTraits> const& t) const 
-  DEBUG_FN_RESULT(2, outputCat("skeleton(", t, ") = "),
+  DEBUG_FN_RESULT(2, Output::cat("skeleton(", t, ") = "),
   { return skeleton(*t.factors); }
   )
 
   template<class NumTraits>
   Option<TermList> skeleton(MonomFactors<NumTraits> const& t) const 
-  DEBUG_FN_RESULT(2, outputCat("skeleton(", t, ") = "),
+  DEBUG_FN_RESULT(2, Output::cat("skeleton(", t, ") = "),
   { return trySkeleton(t.iter())
       .map([](auto skels) { return NumTraits::product(arrayIter(*skels)); }); }
   )
 
   template<class NumTraits>
   Option<TermList> skeleton(MonomFactor<NumTraits> const& t) const 
-  DEBUG_FN_RESULT(2, outputCat("skeleton(", t, ") = "),
+  DEBUG_FN_RESULT(2, Output::cat("skeleton(", t, ") = "),
   { 
     return skeleton(t.term)
       .map([&](auto skel) { 
@@ -217,7 +217,7 @@ struct LAKBO {
 
   template<class NumTraits>
   Option<TermList> skeleton(Polynom<NumTraits> const& t) const 
-  DEBUG_FN_RESULT(2, outputCat("skeleton(", t, ") = "),
+  DEBUG_FN_RESULT(2, Output::cat("skeleton(", t, ") = "),
   {
     if (auto summands = trySkeleton(t.iterSummands())) {
       auto maxIter = OrderingUtils2::maxElems(summands->size(), 
@@ -269,7 +269,7 @@ struct LAKBO {
 
   template<class Term>
   Ordering::Result compare(Term const& t0, Term const& t1) const 
-  DEBUG_FN_RESULT(2, outputCat("skeleton", std::tie(t0, t1), " = "),
+  DEBUG_FN_RESULT(2, Output::cat("skeleton", std::tie(t0, t1), " = "),
   {
     if (t0 == t1) return Ordering::Result::EQUAL;
     auto s0 = skeleton(t0);

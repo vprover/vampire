@@ -83,7 +83,7 @@ public:
         DEBUG_CODE(
         auto state = AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF));
         )
-        ASS_REP(find(&state, k, 0, 1, 2).hasNext(), outputToString("key: ", outputMaybePtr(k), "\nindex: ", multiline(_index)))
+        ASS_REP(find(&state, k, 0, 1, 2).hasNext(), outputToString("key: ", Output::ptr(k), "\nindex: ", Output::multiline(_index)))
       } else {
         _index.remove(std::move(appl));
       }

@@ -119,7 +119,7 @@ set(VAMPIRE_DEBUG_SOURCES
     Debug/Assertion.hpp
     Debug/RuntimeStatistics.hpp
     Debug/Tracer.hpp
-    Debug/Output.hpp
+    Lib/Output.hpp
     )
 source_group(debug_source_files FILES ${VAMPIRE_DEBUG_SOURCES})
 
@@ -902,7 +902,6 @@ find_package(
       ${CMAKE_SOURCE_DIR}/z3/build/
       # ${CMAKE_SOURCE_DIR}/z3/build/
 )
-message(STATUS "bla ${Z3_DIR}")
 if (NOT Z3_FOUND)
   message(STATUS "No Z3 found -- Compiling without SMT support.")
   add_compile_definitions(VZ3=0)

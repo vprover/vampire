@@ -42,7 +42,7 @@ private:
   void init(Literal* const * lits);
 
   friend std::ostream& operator<<(std::ostream& out, LiteralMiniIndex const& idx)
-  {  return out << "[" << outputInterleaved(", ", arrayIter(idx._entries, idx._cnt).map([](auto& e) -> Literal& { return *e._lit; }))<< "]"; }
+  {  return out << "[" << Output::interleaved(", ", arrayIter(idx._entries, idx._cnt).map([](auto& e) -> Literal& { return *e._lit; }))<< "]"; }
 
   struct Entry
   {

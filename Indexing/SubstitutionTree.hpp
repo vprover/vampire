@@ -52,7 +52,7 @@
 #include "Debug/Tracer.hpp"
 #include "Lib/Option.hpp"
 #include "Kernel/Signature.hpp"
-#include "Debug/Output.hpp"
+#include "Lib/Output.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -100,7 +100,7 @@ template<class LeafData_>
 class SubstitutionTree;
     
 template<class LD> std::ostream& operator<<(std::ostream& out, SubstitutionTree<LD> const& self);
-template<class LD> std::ostream& operator<<(std::ostream& out, OutputMultiline<SubstitutionTree<LD>> const& self);
+template<class LD> std::ostream& operator<<(std::ostream& out, Output::Multiline<SubstitutionTree<LD>> const& self);
 
 
   /** a reference to a Cntr that increments the counter when it is created and decrements it when it goes out of scope
@@ -207,7 +207,7 @@ public:
     return out;
   }
 #undef VERBOSE_OUTPUT_OPERATORS
-  friend std::ostream& operator<<(std::ostream& out, OutputMultiline<SubstitutionTree<LeafData_>> const& self)
+  friend std::ostream& operator<<(std::ostream& out, Output::Multiline<SubstitutionTree<LeafData_>> const& self)
   {
     if (self.self._root) {
       self.self._root->output(out, true, /* indent */ 0);
@@ -221,7 +221,7 @@ public:
   template<class T>
   friend std::ostream& operator<<(std::ostream& out, SubstitutionTree<T> const& self);
   template<class T>
-  friend std::ostream& operator<<(std::ostream& out, OutputMultiline<SubstitutionTree<T>> const& self);
+  friend std::ostream& operator<<(std::ostream& out, Output::Multiline<SubstitutionTree<T>> const& self);
   typedef VirtualIterator<LeafData*> LDIterator;
 
   template<class I> using QueryResultIter = VirtualIterator<QueryRes<LeafData, typename I::Unifier>>;
@@ -268,7 +268,7 @@ public:
 #endif // CACHE_FUNCTOR
 
   public:
-    friend std::ostream& operator<<(std::ostream& out, OutputMultiline<Node> const& self) 
+    friend std::ostream& operator<<(std::ostream& out, Output::Multiline<Node> const& self) 
     { self.self.output(out, /* multiline = */ true, self.indent); return out; }
     friend std::ostream& operator<<(std::ostream& out, Node const& self) 
     { self.output(out, /* multiline = */ false, /* indent */ 0); return out; }

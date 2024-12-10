@@ -538,12 +538,12 @@ TEST_FUN(misc) {
   DBGE(viras_eval_term(&viras, (numeral(2) * 5)));
   DBGE(viras_eval_numeral(&viras, (numeral(2) * 5)));
   DBGE(viras_eval_term(&viras, -2_n / 5));
-  DBGE(outputPtr(viras_eval_literal(&viras, numeral(2) * 5 > 0)));
-  DBGE(outputPtr(viras_eval_literal(&viras, numeral(2) * 5 >= 0)));
-  DBGE(outputPtr(viras_eval_literal(&viras, numeral(2) * 5 != 0)));
-  DBGE(outputPtr(viras_eval_literal(&viras, numeral(2) * 5 == 0)));
-  DBGE(outputPtr(viras_eval_literal(&viras, test_var("a") < test_var("b"))));
-  DBGE(outputPtr(viras_eval_literal(&viras, floor(test_var("a")) < test_var("b"))));
+  DBGE(Output::ptr(viras_eval_literal(&viras, numeral(2) * 5 > 0)));
+  DBGE(Output::ptr(viras_eval_literal(&viras, numeral(2) * 5 >= 0)));
+  DBGE(Output::ptr(viras_eval_literal(&viras, numeral(2) * 5 != 0)));
+  DBGE(Output::ptr(viras_eval_literal(&viras, numeral(2) * 5 == 0)));
+  DBGE(Output::ptr(viras_eval_literal(&viras, test_var("a") < test_var("b"))));
+  DBGE(Output::ptr(viras_eval_literal(&viras, floor(test_var("a")) < test_var("b"))));
   TermList t = viras_eval_term(&viras, numeral(2));
   RealConstantType n = viras_eval_numeral(&viras, numeral(5));
   DBGE(viras_eval_term(&viras, t + n))

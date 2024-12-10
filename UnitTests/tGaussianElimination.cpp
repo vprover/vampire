@@ -23,7 +23,7 @@
 #include "Test/SimplificationTester.hpp"
 #include "Test/GenerationTester.hpp"
 #include "Kernel/KBO.hpp"
-#include "Debug/Output.hpp"
+#include "Lib/Output.hpp"
 
 using namespace std;
 using namespace Kernel;

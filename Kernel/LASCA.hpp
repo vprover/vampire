@@ -387,7 +387,7 @@ namespace Kernel {
     IMPL_COMPARISONS_FROM_TUPLE(SelectedLiteral)
 
     friend std::ostream& operator<<(std::ostream& out, SelectedLiteral const& self)
-    { return out << outputInterleaved("\\/", concatIters(iterItems(self.literal()), self.contextLiterals()).map([](auto l) { return outputPtr(l); })); }
+    { return out << Output::interleaved("\\/", concatIters(iterItems(self.literal()), self.contextLiterals()).map([](auto l) { return Output::ptr(l); })); }
   };
 
 

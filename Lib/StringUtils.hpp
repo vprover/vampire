@@ -16,7 +16,7 @@
 #define __StringUtils__
 
 #include "DHMap.hpp"
-#include "Debug/Output.hpp"
+#include "Lib/Output.hpp"
 #include <cstdlib>
 
 namespace Lib {
@@ -62,7 +62,7 @@ template<> struct StringParser<float>
 template<class... Cs>
 std::string outputToString(Cs const&... xs) {
   std::stringstream out;
-  out << Kernel::outputCat(xs...);
+  out << Kernel::Output::cat(xs...);
   return out.str();
 }
 

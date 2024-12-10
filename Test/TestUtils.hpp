@@ -23,7 +23,7 @@
 #include "Lib/Coproduct.hpp"
 #include "Lib/Map.hpp"
 #include "Kernel/Clause.hpp"
-#include "Debug/Output.hpp"
+#include "Lib/Output.hpp"
 
 namespace Test {
 class TestUtils {
