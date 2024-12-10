@@ -2213,6 +2213,7 @@ public:
   bool generalSplitting() const { return _generalSplitting.actualValue; }
 #if VTIME_PROFILING
   bool timeStatistics() const { return _timeStatistics.actualValue; }
+  std::string const& timeStatisticsFocus() const { return _timeStatisticsFocus.actualValue; }
 #endif // VTIME_PROFILING
   bool splitting() const { return _splitting.actualValue; }
   void setSplitting(bool value){ _splitting.actualValue=value; }
@@ -2707,7 +2708,10 @@ private:
 
   /** Time limit in deciseconds */
   TimeLimitOptionValue _timeLimitInDeciseconds;
+#if VTIME_PROFILING
   BoolOptionValue _timeStatistics;
+  StringOptionValue _timeStatisticsFocus;
+#endif // VTIME_PROFILING
 
   ChoiceOptionValue<URResolution> _unitResultingResolution;
   BoolOptionValue _unusedPredicateDefinitionRemoval;
