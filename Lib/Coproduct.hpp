@@ -36,14 +36,7 @@ namespace TL = TypeList;
 template <class... As>
 class Coproduct;
 
-template<class Fs, class Ts>
-struct ApplyNImplCapture
-{
-  template<class N>
-  using apply = std::invoke_result_t<TL::Get<N::value, Fs>, TL::Get<N::value, Ts>>;
-};
-
-
+/* a type level function that maps a List<F, A> to the result std::invoke_result_t<F,A> */
 struct ApplyFuncToArg
 {
   template<class Pair>
@@ -691,11 +684,6 @@ struct SelectOutput<Cond, Cons, Rest...> {
                      , typename SelectOutput<Rest...>::type::Ts 
                      >>;
 };
-
-// static_assert(std::is_same<sel)
-
-// template<class Cond, class Cons, class... Rest>
-// using SelectOutput = ;
 
 template<class Cons>
 auto select(Cons cons) -> Coproduct<decltype(cons())>
