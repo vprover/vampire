@@ -2584,7 +2584,7 @@ std::string Options::includeFileName (const std::string& relativeName)
  * @since 27/11/2003 Manchester, changed using new XML routines and iterator
  *        of options
  */
-void Options::output (ostream& str) const
+void Options::output (std::ostream& str) const
 {
   if(printAllTheoryAxioms()){
     cout << "Sorry, not implemented yet!" << endl;
@@ -2713,7 +2713,7 @@ void Options::output (ostream& str) const
     //str << "======= End of options =======\n";
   }
 
-} // Options::output (ostream& str) const
+} // Options::output (std::ostream& str) const
 
 template<typename T>
 bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){

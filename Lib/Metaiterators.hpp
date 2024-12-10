@@ -154,7 +154,7 @@ public:
   }
 
   bool knowsSize() const { return false; }
-  bool size() const { ASSERTION_VIOLATION }
+  size_t size() const { ASSERTION_VIOLATION }
 
 private:
   
