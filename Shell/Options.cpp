@@ -2584,7 +2584,7 @@ std::string Options::includeFileName (const std::string& relativeName)
  * @since 27/11/2003 Manchester, changed using new XML routines and iterator
  *        of options
  */
-void Options::output (ostream& str) const
+void Options::output (std::ostream& str) const
 {
   if(printAllTheoryAxioms()){
     cout << "Sorry, not implemented yet!" << endl;
@@ -2713,7 +2713,7 @@ void Options::output (ostream& str) const
     //str << "======= End of options =======\n";
   }
 
-} // Options::output (ostream& str) const
+} // Options::output (std::ostream& str) const
 
 template<typename T>
 bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){
@@ -3823,4 +3823,21 @@ std::vector<float> Options::positiveLiteralSplitQueueCutoffs() const
   }
 
   return cutoffs;
+}
+
+Stack<std::string> Options::getSimilarOptionNames(std::string name, bool is_short) const {
+
+  Stack<std::string> similar_names;
+
+  VirtualIterator<AbstractOptionValue*> options = _lookup.values();
+  while(options.hasNext()){
+    AbstractOptionValue* opt = options.next();
+    std::string opt_name = is_short ? opt->shortName : opt->longName;
+    size_t dif = 2;
+    if(!is_short) dif += name.size()/4;
+    if(name.size()!=0 && StringUtils::distance(name,opt_name) < dif)
+      similar_names.push(opt_name);
+  }
+
+  return similar_names;
 }

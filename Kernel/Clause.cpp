@@ -303,7 +303,7 @@ bool Clause::isHorn()
 /**
  * Return iterator over clause variables
  */
-VirtualIterator<unsigned> Clause::getVariableIterator()
+VirtualIterator<unsigned> Clause::getVariableIterator() const
 {
   return pvi( getUniquePersistentIterator(
       getMappingIterator(
@@ -365,6 +365,23 @@ std::string Clause::toNiceString() const
 
   return result;
 }
+
+std::ostream& operator<<(std::ostream& out, Clause const& self)
+{
+  if (self.size() == 0) {
+    return out << "$false";
+  } else {
+    out << *self[0];
+    for (unsigned i = 1; i < self.size(); i++){
+      out << " | " << *self[i];
+    }
+    if (self.splits() && !self.splits()->isEmpty()) {
+      out << "{" << *self.splits() << "}";
+    }
+  }
+  return out;
+}
+
 
 /**
  * Convert the clause to the std::string representation
