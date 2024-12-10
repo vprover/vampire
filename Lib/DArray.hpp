@@ -38,9 +38,6 @@ namespace Lib {
 template<typename C>
 class DArray
 {
-private:
-  //private and undefined operator= to avoid an implicitly generated one
-  DArray& operator=(const DArray&);
 public:
   USE_ALLOCATOR(DArray<C>);
 
@@ -88,7 +85,6 @@ public:
 
   DArray(DArray&& other) : DArray() { swap(other); }
   DArray& operator=(DArray&& other) { swap(other); return *this; }
-
 
   /** Delete array */
   inline ~DArray()
@@ -303,6 +299,9 @@ public:
     }
   }
 
+  /**
+   * Creates an array initialized with all the elements of the iterator it.
+   */
   template<class It>
   static DArray fromIterator(It it, size_t count=0) {
     DArray out;

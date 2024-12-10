@@ -1608,7 +1608,7 @@ void TermList::assertValid() const
 
 #endif
 
-std::ostream& Kernel::operator<<(ostream& out, TermList const& tl)
+std::ostream& Kernel::operator<<(std::ostream& out, TermList const& tl)
 {
   if (tl.isEmpty()) {
     return out<<"<empty TermList>";
@@ -1619,11 +1619,11 @@ std::ostream& Kernel::operator<<(ostream& out, TermList const& tl)
   return out << *tl.term();
 }
 
-std::ostream& Kernel::operator<<(ostream& out, const Term& t)
+std::ostream& Kernel::operator<<(std::ostream& out, const Term& t)
 {
   return out<<t.toString();
 }
-std::ostream& Kernel::operator<<(ostream& out, const Literal& l)
+std::ostream& Kernel::operator<<(std::ostream& out, const Literal& l)
 {
   return out<<l.toString();
 }
