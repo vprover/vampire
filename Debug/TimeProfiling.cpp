@@ -321,7 +321,7 @@ void TimeTrace::printPretty(std::ostream& out)
     node->measurements.remove(now - start);
   }
 
-  if (env.options->timeStatisticsFocus() != "") {
+  if (!env.options->timeStatisticsFocus().empty()) {
     out <<                                                  std::endl;
 
     auto focus = root.focus(env.options->timeStatisticsFocus().c_str());
