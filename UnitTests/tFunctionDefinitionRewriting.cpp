@@ -121,7 +121,7 @@ TEST_GENERATION(test_05,
       .input( clause({  g(r(r(r(b))))      != b, g(b)   == b }))
       .expected({
               clause({  f(r(r(b)),g(r(b))) != b, g(b)   == b, p(r(b)), r(b) != b() }),
-              clause({  g(r(r(r(b))))      != b, f(b,b) != b })
+              clause({  g(r(r(r(b))))      != b, f(b,b) == b })
       })
     )
 
