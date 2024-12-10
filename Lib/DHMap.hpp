@@ -262,15 +262,6 @@ public:
 
   }
 
-  // /**
-  //  * If there is no value stored under @b key in the map,
-  //  * insert pair (key,value) and return true. Otherwise,
-  //  * return false.
-  //  * This function copies copies @b val.
-  //  */
-  // bool insert(Key key, const Val& val)
-  // { return emplace(key, Val(val)); }
-
   /**
    * If there is no value stored under @b key in the map,
    * insert pair (key,value). Return value stored under @b key.
@@ -529,7 +520,6 @@ private:
     int newCapacity=DHMapTableCapacities[_capacityIndex+1];
     void* mem = ALLOC_KNOWN(newCapacity*sizeof(Entry),"DHMap::Entry");
 
-    //std::cout << (_size+_deleted) << std::endl;
 
     Entry* oldEntries=_entries;
     Entry* oldAfterLast=_afterLast;
@@ -554,7 +544,6 @@ private:
       }
       (ep++)->~Entry();
     }
-    //std::cout << "copied" << std::endl;
     if(oldCapacity) {
       DEALLOC_KNOWN(oldEntries,oldCapacity*sizeof(Entry),"DHMap::Entry");
     }
@@ -775,47 +764,6 @@ public:
   {
     return VirtualIterator<Item>(new ItemIteratorCore(*this));
   }
-
-
-  // class ConstIter {
-  // public:
-  //   DECL_ELEMENT_TYPE(std::pair<Key const&, Val const&>)
-  //
-  //   inline ConstIter(DHMap const& map) : _base(map) {}
-  //
-  //   bool hasNext() { return _base.hasNext(); }
-  //
-  //   auto next()
-  //   {
-  //     Entry* e=_base.next();
-  //     return std::pair<Key const&, Val const&>(e->_key, e->_val);
-  //   }
-  //
-  // private:
-  //   IteratorBase _base;
-  // }; 
-  //
-  //
-  // class MutIter {
-  // public:
-  //   DECL_ELEMENT_TYPE(std::pair<Key const&, Val&>)
-  //
-  //   inline MutIter(DHMap& map) : _base(map) {}
-  //
-  //   bool hasNext() { return _base.hasNext(); }
-  //
-  //   auto next()
-  //   {
-  //     Entry* e=_base.next();
-  //     return std::pair<Key const&, Val&>(e->_key, e->_val);
-  //   }
-  //
-  // private:
-  //   IteratorBase _base;
-  // }; 
-  //
-  // auto iter()       { return iterTraits(MutIter(*this)); }
-  // auto iter() const { return iterTraits(ConstIter(*this)); }
 
 
   /**
