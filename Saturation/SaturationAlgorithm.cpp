@@ -461,7 +461,7 @@ void SaturationAlgorithm::showSubterms(Term* t) {
       args.push_back(arg.term()->getId());
     } else {
       // using negative indices for variables
-      args.push_back(-1-arg.var());
+      args.push_back(-1-(int64_t)arg.var());
     }
   }
 
@@ -479,7 +479,7 @@ void SaturationAlgorithm::showClauseLiterals(Clause* c) {
   vector<int64_t> lits;
   for (Literal* lit : c->iterLits()) {
     // using negative indices for literals (otherwise might overlap with term ids!)
-    int64_t litId = -1-lit->getId();
+    int64_t litId = -1-(int64_t)lit->getId();
     lits.push_back(litId);
 
     if (_literalsShown.find(lit->getId())) // and having a dedicated DHSet form them
@@ -493,7 +493,7 @@ void SaturationAlgorithm::showClauseLiterals(Clause* c) {
         args.push_back(arg.term()->getId());
       } else {
         // using negative indices for variables
-        args.push_back(-1-arg.var());
+        args.push_back(-1-(int64_t)arg.var());
       }
     }
 
@@ -854,6 +854,7 @@ fin:
 
 void SaturationAlgorithm::runGnnOnInput()
 {
+  TIME_TRACE("gnn-eval");
   { // sorts
     torch::Tensor sort_features = torch::empty({env.signature->typeCons(),3}, torch::kFloat32);
     float* sort_features_ptr = sort_features.data_ptr<float>();
@@ -1140,7 +1141,6 @@ void SaturationAlgorithm::runGnnOnInput()
   _neuralModel->gnnEdgeKind("term","symbol",trm2symb_one,trm2symb_two);  // and others are proper and thus have a symbol
 
   {
-    TIME_TRACE("gnn-eval");
     torch::NoGradGuard no_grad; // This disables gradient computation
     _neuralModel->gnnPerform(clauseNums);
   }
@@ -1772,6 +1772,7 @@ MainLoopResult SaturationAlgorithm::runImpl()
   }
   catch(const RefutationFoundException& r) {
     if (_neuralActivityRecoring) {
+      Timer::disableLimitEnforcement();
       saveNeuralActivity(r.refutation);
     }
 
@@ -1792,7 +1793,7 @@ void SaturationAlgorithm::saveNeuralActivity(Clause* refutation)
   while (it.hasNext()) {
     proof_units.push_back(it.next()->number());
   }
-  _neuralModel->saveRecorded(proof_units);
+  _neuralModel->setProofUnitsAndCleanModules(proof_units,env.options->neuralActivityRecording());
 }
 
 

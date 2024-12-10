@@ -150,8 +150,6 @@ float NeuralClauseEvaluationModel::evalClause(Clause* cl) {
 }
 
 void NeuralClauseEvaluationModel::evalClauses(Stack<Clause*>& clauses) {
-  TIME_TRACE("neural model evaluation");
-
   unsigned sz = clauses.size();
   if (sz == 0) return;
 
@@ -209,6 +207,8 @@ NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, con
 
 void NeuralPassiveClauseContainer::evalAndEnqueueDelayed()
 {
+  TIME_TRACE("neural model evaluation");
+
   if (!_delayedInsertionBuffer.size())
     return;
 

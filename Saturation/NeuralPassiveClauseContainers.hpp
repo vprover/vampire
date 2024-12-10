@@ -110,22 +110,19 @@ public:
   };
 
   void journal(JournalEntry tag, Clause* cl) {
-    auto m = _model.find_method("journal");
+    auto m = _model.find_method("journal_record");
     std::vector<torch::jit::IValue> inputs;
     inputs.push_back((int64_t)tag);
     inputs.push_back((int64_t)cl->number());
     (*m)(std::move(inputs));
   }
 
-  void saveRecorded(std::vector<int64_t>& proof_units) {
-    auto m = _model.find_method("save_recorded");
+  void setProofUnitsAndCleanModules(std::vector<int64_t>& proof_units, const std::string& filename) {
+    auto m = _model.find_method("set_proof_units_and_save_recorded");
     std::vector<torch::jit::IValue> inputs;
     inputs.push_back(std::move(proof_units));
+    inputs.push_back(filename);
     (*m)(std::move(inputs));
-  }
-
-  void embedPending() {
-    (*_model.find_method("embed_pending"))(std::vector<torch::jit::IValue>());
   }
 
   void gageEnqueue(Clause* c, std::vector<int64_t>& parents) {
@@ -153,6 +150,14 @@ public:
     inputs.push_back((int64_t)c->number());
     inputs.push_back(std::move(lits));
     (*m)(std::move(inputs));
+  }
+
+  void embedPending() {
+    (*_model.find_method("embed_pending"))(std::vector<torch::jit::IValue>());
+  }
+
+  void saveToFile(const std::string& filename) {
+    _model.save(filename);
   }
 
   const DHMap<unsigned,float>& getScores() { return _scores; }
