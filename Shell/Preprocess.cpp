@@ -314,8 +314,6 @@ void Preprocess::preprocess(Problem& prb)
 
   prb.getProperty();
 
-  Shell::PredicateTypePromotion().apply(prb);
-
   if (prb.mayHaveFunctionDefinitions()) {
     env.statistics->phase=Statistics::FUNCTION_DEFINITION_ELIMINATION;
     if (env.options->showPreprocessing())
@@ -388,6 +386,8 @@ void Preprocess::preprocess(Problem& prb)
        gs.apply(prb);
      }
    }
+
+   Shell::PredicateTypePromotion().apply(prb);
 
    if(env.options->tweeGoalTransformation() != Options::TweeGoalTransformation::OFF) {
      env.statistics->phase = Statistics::TWEE;
