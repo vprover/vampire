@@ -58,14 +58,6 @@ public:
   static bool eqModACRect(Kernel::Literal* lhs, Kernel::Literal* rhs);
   static bool eqModACRect(Kernel::TermList lhs, Kernel::TermList rhs);
 
-  // /** 
-  //  * Tests whether two clauses are equal. All permutations of the clauses are tested. Variable renamings are 
-  //  * taken into account (i.e.: { p(x) } IS equal to { p(y) } for this function).
-  //  *
-  //  * !!! exponential runtime !!!
-  //  */
-  // static bool eqModACVar(const Kernel::Clause* lhs, const Kernel::Clause* rhs);
-
   /**
    * The ... are len of integers, positive -- positive polarity, negative -- negative polarity.
    */
@@ -104,9 +96,6 @@ private:
   };
 
 
-  // static bool eqModACVar(const Kernel::Clause* lhs, const Kernel::Clause* rhs, RectMap& r);
-  // static bool eqModACVar(Kernel::Literal* lhs, Kernel::Literal* rhs, RectMap& r);
-  // static bool eqModACVar(Kernel::TermList lhs, Kernel::TermList rhs, RectMap& r);
   template<class Comparisons>
   static bool eqModAC_(Kernel::TermList lhs, Kernel::TermList rhs, Comparisons c);
   friend struct AcRectComp;
@@ -316,24 +305,6 @@ bool anyPerm(unsigned size, P pred) {
   }
   return __anyPerm(perm, pred, 0);
 }
-
-
-// template<class L1, class L2, class Eq>
-// bool TestUtils::permEq(L1 const& lhs, L2 const& rhs, Eq elemEq) 
-// {
-//   if (lhs.size() != rhs.size()) 
-//     return false;
-//
-//   return anyPerm(lhs.size(), [&](auto& perm, auto fixed){
-//
-//     for (unsigned i = 0; i < perm.size(); i++) 
-//       if (!elemEq(lhs[i], rhs[perm[i]])) 
-//         return false;
-//
-//     return true;
-//   });
-// }
-
 
 } // namespace Test
 

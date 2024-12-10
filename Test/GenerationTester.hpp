@@ -306,10 +306,6 @@ public:
       testFail(sRes, sExp);
     }
 
-    // if (!TestUtils::permEq(sExp, sRes, [&](auto exp, auto res) { return exp.matches(simpl, res); })) {
-    //   testFail(sRes, sExp);
-    // }
-
     if (_premiseRedundant != res.premiseRedundant) {
       auto wrapStr = [](bool b) -> std::string { return b ? "premise is redundant" : "premise is not redundant"; };
       testFail( wrapStr(res.premiseRedundant), wrapStr(_premiseRedundant));

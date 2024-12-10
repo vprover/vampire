@@ -172,12 +172,6 @@ bool TestUtils::isAC(Theory::Interpretation i)
   }
 }
 
-// bool TestUtils::eqModACVar(const Kernel::Clause* lhs, const Kernel::Clause* rhs)
-// { 
-//   RectMap map;
-//   return permEq(*lhs, *rhs, [&](Literal* l, Literal* r) -> bool { return TestUtils::eqModACVar(l, r, map); }); 
-// }
-
 bool TestUtils::eqModAC(const Kernel::Clause* lhs, const Kernel::Clause* rhs)
 { return permEq(*lhs, *rhs, [](Literal* l, Literal* r) -> bool { return TestUtils::eqModAC(l, r); }); }
 
