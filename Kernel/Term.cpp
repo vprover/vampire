@@ -15,7 +15,7 @@
  * @since 06/05/2007 Manchester, changed into a single class instead of three
  */
 
-#include "Debug/Output.hpp"
+#include "Lib/Output.hpp"
 #include "Indexing/TermSharing.hpp"
 #include "Lib/Metaiterators.hpp"
 
