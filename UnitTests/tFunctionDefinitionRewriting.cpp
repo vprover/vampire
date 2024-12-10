@@ -22,7 +22,7 @@
 
 using namespace Test;
 
-REGISTER_GEN_TESTER(FunctionDefinitionRewriting)
+REGISTER_GEN_TESTER(Generation::GenerationTester<FunctionDefinitionRewriting>(FunctionDefinitionRewriting()))
 
 namespace FunctionDefinitionRewritingTest {
 
@@ -59,7 +59,7 @@ ClauseStack fnDefContext() {
 }
 
 TEST_GENERATION(test_00,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .setup(setup)
       .options({ { "function_definition_rewriting", "on"} })
       .input( clause({  b != f(b, y), p(x) }))
@@ -67,7 +67,7 @@ TEST_GENERATION(test_00,
     )
 
 TEST_GENERATION(test_01,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .setup(setup)
       .context(fnDefContext())
       .options({ { "function_definition_rewriting", "on"} })
@@ -78,7 +78,7 @@ TEST_GENERATION(test_01,
     )
 
 TEST_GENERATION(test_02,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .setup(setup)
       .context(fnDefContext())
       .options({ { "function_definition_rewriting", "on"} })
@@ -90,7 +90,7 @@ TEST_GENERATION(test_02,
 
 // no rewrites (matching is used instead of unification)
 TEST_GENERATION(test_03,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .setup(setup)
       .context(fnDefContext())
       .options({ { "function_definition_rewriting", "on"} })
@@ -100,7 +100,7 @@ TEST_GENERATION(test_03,
 
 // multiple rewritten positions in a literal and multiple rewrite rules
 TEST_GENERATION(test_04,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .setup(setup)
       .context(fnDefContext())
       .options({ { "function_definition_rewriting", "on"} })
@@ -114,7 +114,7 @@ TEST_GENERATION(test_04,
 
 // each literal is rewritten in a clause
 TEST_GENERATION(test_05,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .setup(setup)
       .context(fnDefContext())
       .options({ { "function_definition_rewriting", "on"} })
@@ -127,7 +127,7 @@ TEST_GENERATION(test_05,
 
 // equational tautologies are discarded
 TEST_GENERATION(test_06,
-    Generation::TestCase()
+    Generation::AsymmetricTest()
       .setup(setup)
       .context(fnDefContext())
       .options({ { "function_definition_rewriting", "on"} })
