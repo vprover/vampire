@@ -343,7 +343,7 @@ void Debug::Assertion::violatedMethod(const char* file, int line, const T& obj,
 #endif // VDEBUG
 
 /** expression version of ASSERTION_VIOLATION */
-template<class T> T assertionViolation() 
+template<class T> T assertionViolation()
 { ASSERTION_VIOLATION }
 
 #if defined(__clang__)
@@ -362,7 +362,7 @@ template<class T> T assertionViolation()
     _Pragma("GCC diagnostic pop")                                                         \
 
 #else
-#  define __ALLOW_UNUSED(...) __VA_ARGS__             
+#  define __ALLOW_UNUSED(...) __VA_ARGS__
 #endif
  
 #endif // __Assertion__
