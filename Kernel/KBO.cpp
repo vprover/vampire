@@ -1077,7 +1077,7 @@ void showSpecialWeights(const KboSpecialWeights<FuncSigTraits>& ws, ostream& out
   out << "% " SPECIAL_WEIGHT_IDENT_NUM_INT    " " << ws._numInt                 << std::endl;
 }
 template<class SigTraits>
-void KBO::showConcrete_(ostream& out) const  
+void KBO::showConcrete_(std::ostream& out) const  
 {
   out << "% Weights of " << SigTraits::symbolKindName() << " (line format: `<name> <arity> <weight>`)" << std::endl;
   out << "% ===== begin of " << SigTraits::symbolKindName() << " weights ===== " << std::endl;
@@ -1101,7 +1101,7 @@ void KBO::showConcrete_(ostream& out) const
   out << "% ===== end of " << SigTraits::symbolKindName() << " weights ===== " << std::endl;
 
 }
-void KBO::showConcrete(ostream& out) const  
+void KBO::showConcrete(std::ostream& out) const  
 {
   showConcrete_<FuncSigTraits>(out);
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
