@@ -84,10 +84,32 @@ auto remainder0_name(char c, z3::sort s)
 template<class UInt64ToExpr>
 z3::expr int_to_z3_expr(IntegerConstantType const& val, UInt64ToExpr toExpr) {
     auto sign = val.sign();
-    auto abs = val.abs().toInner();
+    auto abs = val.abs();
 
+#if WITH_GMP
+    // TODO recycled stack
+    Stack<uint64_t> digits;
+    z3::expr base =  // <- == 2^64
+      toExpr(std::numeric_limits<uint64_t>::max()) + toExpr(1);
+    while(!abs.fits_ulong()) {
+      auto ui = abs.truncUnsigned();
+      using ui_t = decltype(ui);
+      static_assert(std::is_same<ui_t, long unsigned int>::value, "unexpected number typtype");
+      static_assert(sizeof(ui_t) == sizeof(uint64_t), "unexpected number size");
+      static_assert(sizeof(ui_t) == 64 / 8, "unexpected number size");
+      static_assert(std::numeric_limits<ui_t>::max() == std::numeric_limits<uint64_t>::max(), "unexpected number size");
+      digits.push(uint64_t(ui));
+      abs.rshiftBits(64);
+    }
+    z3::expr res = toExpr(uint64_t(abs.truncUnsigned()));
+    while(digits.isNonEmpty()) {
+      res = toExpr(digits.pop()) + (res * base);
+    }
+
+#else // !WITH_GMP
     static_assert(sizeof(decltype(abs)) <= sizeof(uint64_t), "unexpected inner type for integers");
     auto res = toExpr(abs);
+#endif
     return sign == Sign::Neg ? -res : res;
 };
 
@@ -1391,7 +1413,6 @@ z3::func_decl const& Z3Interfacing::findConstructor(Term* t)
     return f.unwrap();
   } else {
     createTermAlgebra(SortHelper::getResultSort(t));
-    ASS(_toZ3.find(id))
     return _toZ3.get(id);
   }
 }

@@ -67,6 +67,11 @@ else()
   endif()
 endif()
 
+# GMP
+# TODO use system GMP if possible
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/mini-gmp-6.3.0)
+
 ################################################################
 # define all vampire sources,
 # generate the main target and
