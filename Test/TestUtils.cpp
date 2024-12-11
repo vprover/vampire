@@ -250,7 +250,7 @@ bool TestUtils::eqModAC(TermList lhs, TermList rhs)
 struct AcRectComp {
   Stack<TermList> const& vl;
   Stack<TermList> const& vr;
-  DArray<unsigned>& perm;
+  DArray<unsigned> const& perm;
 
   bool var(unsigned lhs, unsigned rhs) const 
   { 
@@ -278,7 +278,7 @@ bool TestUtils::eqModACRect(Kernel::TermList lhs, Kernel::TermList rhs)
 
   if (vl.size() != vr.size()) return false;
 
-  return anyPerm(vl.size(), [&](DArray<unsigned> perm) {
+  return anyPerm(vl.size(), [&](DArray<unsigned> const& perm) {
     AcRectComp c {vl, vr, perm};
     return eqModAC_(lhs, rhs, c);
   });
