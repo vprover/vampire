@@ -721,6 +721,11 @@ public:
     OFF = 3
   };
 
+  enum class ProblemExportSyntax : unsigned int {
+    SMTLIB = 0,
+    API_CALLS = 1,
+  };
+
     //==========================================================
     // The Internals
     //==========================================================
@@ -1985,6 +1990,7 @@ public:
 
 #if VZ3
   bool showZ3() const { return showAll() || _showZ3.actualValue; }
+  ProblemExportSyntax problemExportSyntax() const { return _problemExportSyntax.actualValue; }
   std::string const& exportAvatarProblem() const { return _exportAvatarProblem.actualValue; }
   std::string const& exportThiProblem() const { return _exportThiProblem.actualValue; }
 #endif
@@ -2586,6 +2592,7 @@ private:
 #endif // VAMPIRE_CLAUSE_TRACING
 #if VZ3
   BoolOptionValue _showZ3;
+  ChoiceOptionValue<ProblemExportSyntax> _problemExportSyntax;
   StringOptionValue _exportAvatarProblem;
   StringOptionValue _exportThiProblem;
   BoolOptionValue _satFallbackForSMT;
