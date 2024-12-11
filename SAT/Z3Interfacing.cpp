@@ -16,6 +16,7 @@
 #define UNIMPLEMENTED ASSERTION_VIOLATION
 
 #include "Forwards.hpp"
+#include "Kernel/Term.hpp"
 
 #include "SATSolver.hpp"
 #include "SATLiteral.hpp"
