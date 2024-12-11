@@ -113,12 +113,13 @@ public:
   typedef int InnerType;
 #endif // WITH_GMP
 
-  IntegerConstantType() {}
-  IntegerConstantType(IntegerConstantType&&) = default;
-  IntegerConstantType(const IntegerConstantType&) = default;
+  IntegerConstantType() { mpz_init(_val); }
+  IntegerConstantType(IntegerConstantType&& o)  { mpz_swap(_val, o._val); }
+  // TODO make explicit (?)
+  IntegerConstantType(const IntegerConstantType& o) { mpz_set(_val, o._val); }
+  IntegerConstantType& operator=(IntegerConstantType&&) = default;
   IntegerConstantType& operator=(const IntegerConstantType&) = default;
 #if WITH_GMP
-  explicit IntegerConstantType(InnerType v) : _val{} { mpz_init(_val); mpz_swap(v, _val); }
   ~IntegerConstantType() { mpz_clear(_val); }
   explicit IntegerConstantType(int v) : _val{} { mpz_init_set_ui(_val, std::abs(v)); if (v < 0) { mpz_neg(_val,_val); }  }
 #else // !WITH_GMP
@@ -133,8 +134,8 @@ public:
   IntegerConstantType operator*(const IntegerConstantType& num) const;
   IntegerConstantType& operator++() { mpz_add_ui(_val,_val,1); return *this; }
   IntegerConstantType& operator--() { mpz_sub_ui(_val,_val,1); return *this; }
-  IntegerConstantType operator++(int) { auto out = IntegerConstantType(_val); mpz_add_ui(_val,_val, 1); return out; }
-  IntegerConstantType operator--(int) { auto out = IntegerConstantType(_val); mpz_sub_ui(_val,_val, 1); return out; }
+  IntegerConstantType operator++(int) { auto out = IntegerConstantType(*this); mpz_add_ui(_val,_val, 1); return out; }
+  IntegerConstantType operator--(int) { auto out = IntegerConstantType(*this); mpz_sub_ui(_val,_val, 1); return out; }
 
   IntegerConstantType& operator*=(IntegerConstantType const& r) { mpz_mul(_val, _val, r._val); return *this; }
   IntegerConstantType& operator+=(IntegerConstantType const& r) { mpz_add(_val, _val, r._val); return *this; }
