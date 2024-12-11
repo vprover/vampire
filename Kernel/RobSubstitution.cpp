@@ -19,7 +19,6 @@
 #include "Lib/Output.hpp"
 #include "Debug/Tracer.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
-#include "Kernel/NumTraits.hpp"
 #include "Kernel/Term.hpp"
 #include "Lib/Backtrackable.hpp"
 #include "Lib/DArray.hpp"
@@ -405,7 +404,8 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
 	  auto binding = _bindings.find(bvs);
 	  if(binding) {
             binding1 = *binding;
-	    ASS_EQ(binding1.index, base.index);
+#define ASS_ONE_GROUND_OR_SAME_INDEX(t1, t2) ASS(t1.definitelyGround() || t2.definitelyGround() || t1.index == t2.index)
+	    ASS_ONE_GROUND_OR_SAME_INDEX(binding1, base);
 	    bt=&binding1.term;
 	    continue;
 	  } else {
@@ -416,7 +416,7 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
 	  auto binding = _bindings.find(ivs);
 	  if(binding) {
       binding2 = *binding;
-	    ASS_EQ(binding2.index, instance.index);
+	    ASS_ONE_GROUND_OR_SAME_INDEX(binding2, instance);
 	    it=&binding2.term;
 	    continue;
 	  } else {
@@ -427,7 +427,7 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
 	  auto binding = _bindings.find(bvs);
 	  if(binding) {
       binding1 = *binding;
-	    ASS_EQ(binding1.index, instance.index);
+	    ASS_ONE_GROUND_OR_SAME_INDEX(binding1, instance);
 	    if(!TermList::equals(binding1.term, its.term))
 	    {
 	      mismatch=true;
