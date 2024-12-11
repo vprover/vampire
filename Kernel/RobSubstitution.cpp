@@ -19,6 +19,7 @@
 #include "Lib/Output.hpp"
 #include "Debug/Tracer.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
+#include "Kernel/NumTraits.hpp"
 #include "Kernel/Term.hpp"
 #include "Lib/Backtrackable.hpp"
 #include "Lib/DArray.hpp"
@@ -37,9 +38,8 @@ using namespace std;
 using namespace Lib;
 
 std::ostream& operator<<(std::ostream& out, TermSpec const& self)
-{ return out << self.term << "/" << self.index; }
-
-
+{ return self.isVar() ? out << self.varSpec() 
+                      : out << self.term << "/" << self.index; }
 
 TermList TermSpec::toTerm(RobSubstitution& s) const
 { return s.apply(this->term, this->index); }
@@ -95,8 +95,8 @@ void RobSubstitution::denormalize(const Renaming& normalizer, int normalIndex, i
   VirtualIterator<Renaming::Item> nit=normalizer.items();
   while(nit.hasNext()) {
     Renaming::Item itm=nit.next();
-    VarSpec normal(itm.second, normalIndex);
-    VarSpec denormalized(itm.first, denormalizedIndex);
+    VarSpec normal(TermList::var(itm.second), normalIndex);
+    VarSpec denormalized(TermList::var(itm.first), denormalizedIndex);
     ASS(!_bindings.find(denormalized));
     bindVar(denormalized,normal);
   }
@@ -120,9 +120,9 @@ bool RobSubstitution::isUnbound(VarSpec v) const
  * return a term, that has the same top functor. Otherwise
  * return an arbitrary variable.
  */
-TermList::Top RobSubstitution::getSpecialVarTop(unsigned specialVar) const
+TermList::Top RobSubstitution::getSpecialVarTop(unsigned specialVar, unsigned index) const
 {
-  VarSpec v(specialVar, SPECIAL_INDEX);
+  VarSpec v(TermList(specialVar, /* special */ true), index);
   for(;;) {
     auto binding = _bindings.find(v);
     if(binding.isNone()) {
@@ -203,9 +203,9 @@ VarSpec RobSubstitution::introGlueVar(TermSpec forTerm)
 
   auto old = _gluedTerms.find(forTerm);
   if (old) {
-    return VarSpec(*old, GLUE_INDEX);
+    return VarSpec(TermList::var(*old), GLUE_INDEX);
   } else {
-    auto v = VarSpec(_nextGlueAvailable++, GLUE_INDEX);
+    auto v = VarSpec(TermList::var(_nextGlueAvailable++), GLUE_INDEX);
     _gluedTerms.insert(forTerm, v.var);
     if (bdIsRecording()) {
       bdAdd(BacktrackObject::fromClosure([this, forTerm](){
@@ -401,7 +401,7 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
     } else {
       if (! TermList::sameTopFunctor(bts.term,its.term)) {
 	if(bts.term.isSpecialVar()) {
-	  VarSpec bvs(bts.term.var(), SPECIAL_INDEX);
+          auto bvs = bts.varSpec();
 	  auto binding = _bindings.find(bvs);
 	  if(binding) {
             binding1 = *binding;
@@ -412,7 +412,7 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
 	    bind(bvs,its);
 	  }
 	} else if(its.term.isSpecialVar()) {
-	  VarSpec ivs(its.term.var(), SPECIAL_INDEX);
+          auto ivs = its.varSpec();
 	  auto binding = _bindings.find(ivs);
 	  if(binding) {
       binding2 = *binding;
@@ -423,7 +423,7 @@ bool RobSubstitution::match(TermSpec base, TermSpec instance)
 	    bind(ivs,bts);
 	  }
 	} else if(bts.term.isOrdinaryVar()) {
-	  VarSpec bvs(bts.term.var(), bts.index);
+          auto bvs = bts.varSpec();
 	  auto binding = _bindings.find(bvs);
 	  if(binding) {
       binding1 = *binding;

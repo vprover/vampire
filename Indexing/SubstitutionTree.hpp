@@ -17,6 +17,10 @@
 #ifndef __SubstitutionTree__
 #define __SubstitutionTree__
 
+#define DEBUG_ITER(lvl,   ...) if (lvl < 0) DBG(__VA_ARGS__)
+#define DEBUG_INSERT(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
+#define DEBUG_REMOVE(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
+
 #include <utility>
 
 #include "Forwards.hpp"
@@ -43,10 +47,12 @@
 #include "Kernel/Renaming.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Shell/Options.hpp"
 #include "Kernel/OperatorType.hpp"
 #include "Debug/Tracer.hpp"
 #include "Lib/Option.hpp"
 #include "Kernel/Signature.hpp"
+#include "Lib/Output.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -56,10 +62,16 @@
 #include <iostream>
 #endif
 
+inline unsigned subsTreeQueryBank(unsigned n) 
+{ return 3 * n; }
 
-static constexpr int QUERY_BANK=0;
-static constexpr int RESULT_BANK=1;
-static constexpr int NORM_RESULT_BANK=3;
+inline unsigned subsTreeResultBank(unsigned n) 
+{ return 3 * n + 1; }
+
+inline unsigned subsTreeNormResultBank(unsigned n) 
+{ return 3 * n + 2; }
+
+
 using namespace Lib;
 using namespace Kernel;
 
@@ -76,6 +88,11 @@ namespace Indexing {
     Cntr() : self(0) {}
     int self;
     operator int() const { return self; }
+    friend std::ostream& operator<<(std::ostream& out, Cntr const& self)
+    { return out << "Cntr(" << self.self << ")"; }
+#else
+    friend std::ostream& operator<<(std::ostream& out, Cntr const& self)
+    { return out << "Cntr(<optimized away>)"; }
 #endif 
   };
 
@@ -156,9 +173,6 @@ class SubstitutionTree final
 public:
   using LeafData = LeafData_;
 
-  static constexpr int QRS_QUERY_BANK = 0;
-  static constexpr int QRS_RESULT_BANK = 1;
-
   SubstitutionTree(SubstitutionTree const&) = delete;
   SubstitutionTree& operator=(SubstitutionTree const& other) = delete;
   static void swap(SubstitutionTree& self, SubstitutionTree& other) {
@@ -177,7 +191,7 @@ public:
   }
 
 #define VERBOSE_OUTPUT_OPERATORS 0
-  friend std::ostream& operator<<(std::ostream& out, SubstitutionTree const& self)
+  friend std::ostream& operator<<(std::ostream& out, SubstitutionTree<LeafData_> const& self)
   {
 #if VERBOSE_OUTPUT_OPERATORS
     out << "{ nextVar: S" << self._nextVar << ", root: (";
@@ -193,7 +207,7 @@ public:
     return out;
   }
 #undef VERBOSE_OUTPUT_OPERATORS
-  friend std::ostream& operator<<(std::ostream& out, Output::Multiline<SubstitutionTree> const& self)
+  friend std::ostream& operator<<(std::ostream& out, Output::Multiline<SubstitutionTree<LeafData_>> const& self)
   {
     if (self.self._root) {
       self.self._root->output(out, true, /* indent */ 0);
@@ -229,8 +243,12 @@ public:
     }
   };
 
+  template<class A, class B>
+  static bool isGround(Coproduct<A,B> t)
+  { return t.apply([&](auto& t){ return isGround(t); }); }
   static bool isGround(Literal* literal) { return literal->ground(); }
   static bool isGround(TermList term) { return term.ground(); }
+  static bool isGround(TypedTermList term) { return term.ground() && term.sort().ground(); }
 
   enum NodeAlgorithm
   {
@@ -265,7 +283,7 @@ public:
      *
      * Descendant classes should override this method.
      */
-    virtual int size() const { NOT_IMPLEMENTED; }
+    virtual int size() const = 0;
     virtual NodeAlgorithm algorithm() const = 0;
 
     /**
@@ -1147,6 +1165,16 @@ public:
     template<class RetrievalAlgorithm>
     class Iterator final
     {
+      RetrievalAlgorithm _algo;
+      VarStack _svStack;
+      bool _retrieveSubstitution;
+      Option<LDIterator> _leafData;
+      Stack<NodeIterator> _nodeIterators;
+      BacktrackData _queryInitBacktrackData;
+      Stack<BacktrackData> _bdStack;
+      bool _normalizationRecording;
+      BacktrackData _normalizationBacktrackData;
+      InstanceCntr _iterCntr;
     public:
       Iterator(Iterator&&) = default;
       Iterator& operator=(Iterator&&) = default;
@@ -1166,6 +1194,7 @@ public:
         while(_bdStack.isNonEmpty()) {
           _bdStack.pop().backtrack();
         }
+        _queryInitBacktrackData.backtrack();
       }
 
 
@@ -1182,9 +1211,11 @@ public:
           return;
         }
 
+        _algo.bdRecord(_queryInitBacktrackData);
         parent->createBindings(query, reversed, 
             [&](unsigned var, TermList t) { _algo.bindQuerySpecialVar(var, t); });
         DEBUG_QUERY(1, "query: ", _algo)
+        _algo.bdDone();
 
 
         prepareChildren(root, /* backtrackable */ false);
@@ -1325,16 +1356,6 @@ public:
         }
       }
 
-      RetrievalAlgorithm _algo;
-      VarStack _svStack;
-      bool _retrieveSubstitution;
-      Option<LDIterator> _leafData;
-      Stack<NodeIterator> _nodeIterators;
-      Stack<BacktrackData> _bdStack;
-      bool _normalizationRecording;
-      BacktrackData _normalizationBacktrackData;
-      InstanceCntr _iterCntr;
-
     public:
       bool keepRecycled() const 
       { return _svStack.keepRecycled() || _nodeIterators.keepRecycled() || _bdStack.keepRecycled(); }
@@ -1364,10 +1385,19 @@ public:
 
       class RobUnification { 
         RobSubstitution _subs;
+        unsigned _queryBank;
+        unsigned _normInternalBank;
+        unsigned _internalBank;
       public:
-        RobUnification() : _subs() {}
+        template<class... Args>
+        RobUnification(Args... args)  { init(std::move(args)...); }
 
-        void init() { _subs.reset(); }
+        void init(int queryBank, int normInternalBank, int internalBank) { 
+          _subs.reset(); 
+          _queryBank = queryBank;
+          _normInternalBank = normInternalBank;
+          _internalBank = internalBank;
+        }
 
         /** a witness that the returned term matches the retrieval condition 
          * (could be a substitution, variable renaming, etc.) 
@@ -1377,7 +1407,7 @@ public:
         /** before starting to retrieve terms from the tree we insert some query terms, which we are going to 
          *  match the terms in the tree with. This is done using this function. */
         void bindQuerySpecialVar(unsigned var, TermList term)
-        { _subs.bindSpecialVar(var, term, QUERY_BANK); }
+        { _subs.bindSpecialVar(var, _normInternalBank, term, _queryBank); }
 
         /** we intrementally traverse the tree, and at every code we call this retrieval algorithm to check 
          * whether it is okay to bind a new special variable to some term in the tree.
@@ -1391,16 +1421,16 @@ public:
          * Matching them up again is done by the function denormalize.
          */
         bool associate(unsigned specialVar, TermList node)
-        { return _subs.unify(TermList(specialVar, /* special */ true), QUERY_BANK, node, NORM_RESULT_BANK); }
+        { return _subs.unify(TermList(specialVar, /* special */ true), _normInternalBank, node, _normInternalBank); }
 
 
         /** @see associate */
         void denormalize(Renaming& norm)
-        { _subs.denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
+        { _subs.denormalize(norm, _normInternalBank, _internalBank); }
 
         /** whenever we arrive at a leave we return the currrent witness for the current leave term to unify
          * with the query term. The unifier is queried using this function.  */
-        Unifier unifier() { return ResultSubstitution::fromSubstitution(&_subs, QUERY_BANK, RESULT_BANK); }
+        Unifier unifier() { return ResultSubstitution::fromSubstitution(&_subs, _queryBank, _internalBank); }
 
         /** same as in @Backtrackable */
         void bdRecord(BacktrackData& bd) { _subs.bdRecord(bd); }
@@ -1427,13 +1457,13 @@ public:
          */
         template<class LD>
         typename SubstitutionTree<LD>::NodeIterator selectPotentiallyUnifiableChildren(typename SubstitutionTree<LD>::IntermediateNode* n)
-        { return _selectPotentiallyUnifiableChildren<LD>(n, _subs); }
+        { return _selectPotentiallyUnifiableChildren<LD>(n, _subs, _internalBank); }
 
         template<class LD>
-        static typename SubstitutionTree<LD>::NodeIterator _selectPotentiallyUnifiableChildren(typename SubstitutionTree<LD>::IntermediateNode* n, RobSubstitution& subs)
+        static typename SubstitutionTree<LD>::NodeIterator _selectPotentiallyUnifiableChildren(typename SubstitutionTree<LD>::IntermediateNode* n, RobSubstitution& subs, unsigned internalBank)
         {
           unsigned specVar=n->childVar;
-          auto top = subs.getSpecialVarTop(specVar);
+          auto top = subs.getSpecialVarTop(specVar, internalBank);
           if(top.var()) {
             return n->allChildren();
           } else {
@@ -1453,48 +1483,65 @@ public:
       };
 
       class UnificationWithAbstraction { 
-        AbstractingUnifier _unif;
+        AbstractingUnifier* _externalUnif;
+        AbstractingUnifier _internalUnif;
         bool _fixedPointIteration;
+        unsigned _queryBank;
+        unsigned _normInternalBank;
+        unsigned _internalBank;
       public:
-        UnificationWithAbstraction(AbstractionOracle ao, bool fixedPointIteration) 
-          : _unif(AbstractingUnifier::empty(ao)) 
-          , _fixedPointIteration(fixedPointIteration) 
-        {}
+        template<class... Args>
+        UnificationWithAbstraction(Args... args) 
+          : _internalUnif(AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF))) 
+        { init(std::move(args)...); }
 
-        void init(AbstractionOracle ao, bool fixedPointIteration) { 
-          _unif.init(ao);
+        void init(int queryBank, int normInternalBank, int internalBank, AbstractionOracle ao, bool fixedPointIteration)
+        { init(nullptr, queryBank, normInternalBank, internalBank, ao, fixedPointIteration); }
+
+        void init(AbstractingUnifier* externalUnif, int queryBank, int normInternalBank, int internalBank, AbstractionOracle ao, bool fixedPointIteration) { 
+          _queryBank = queryBank;
+          _normInternalBank = normInternalBank;
+          _internalBank = internalBank;
+          _externalUnif = externalUnif;
+          if (externalUnif) {
+            _externalUnif->setAo(ao);
+          }
+          _internalUnif.init(ao);
           _fixedPointIteration = fixedPointIteration;
         }
 
         using Unifier = AbstractingUnifier*;
 
         bool associate(unsigned specialVar, TermList node)
-        { return _unif.unify(TermList(specialVar, /* special */ true), QUERY_BANK, node, NORM_RESULT_BANK); }
+        { return unifier()->unify(TermList(specialVar, /* special */ true), _normInternalBank, node, _normInternalBank); }
+
+        AbstractingUnifier const *unifier() const
+        { return _externalUnif != nullptr ? _externalUnif : &_internalUnif; }
 
         Unifier unifier()
-        { return &_unif; }
+        { return _externalUnif != nullptr ? _externalUnif : &_internalUnif; }
 
         void bindQuerySpecialVar(unsigned var, TermList term)
-        { _unif.subs().bindSpecialVar(var, term, QUERY_BANK); }
+        { unifier()->subs().bindSpecialVar(var, _normInternalBank, term, _queryBank); }
 
         void bdRecord(BacktrackData& bd)
-        { _unif.subs().bdRecord(bd); }
+        { unifier()->subs().bdRecord(bd); }
 
         void bdDone()
-        { _unif.subs().bdDone(); }
+        { unifier()->subs().bdDone(); }
 
         void denormalize(Renaming& norm)
-        { _unif.subs().denormalize(norm, NORM_RESULT_BANK,RESULT_BANK); }
+        { unifier()->subs().denormalize(norm, _normInternalBank, _internalBank); }
 
         bool doFinalLeafCheck()
-        { return !_fixedPointIteration || _unif.fixedPointIteration(); }
+        { return !_fixedPointIteration || unifier()->fixedPointIteration(); }
 
         template<class LD>
-        static typename SubstitutionTree<LD>::NodeIterator _selectPotentiallyUnifiableChildren(typename SubstitutionTree<LD>::IntermediateNode* n, AbstractingUnifier& unif)
+        static typename SubstitutionTree<LD>::NodeIterator _selectPotentiallyUnifiableChildren(typename SubstitutionTree<LD>::IntermediateNode* n, AbstractingUnifier& unif, unsigned internalBank)
         {
           if (unif.usesUwa()) {
             unsigned specVar = n->childVar;
-            auto top = unif.subs().getSpecialVarTop(specVar);
+            auto top = unif.subs().getSpecialVarTop(specVar, internalBank);
 
             if(top.var()) {
               return n->allChildren();
@@ -1512,15 +1559,15 @@ public:
               }
             }
           } else {
-            return RobUnification::template _selectPotentiallyUnifiableChildren<LD>(n, unif.subs());
+            return RobUnification::template _selectPotentiallyUnifiableChildren<LD>(n, unif.subs(), internalBank);
           }
         }
 
         template<class LD>
         typename SubstitutionTree<LD>::NodeIterator selectPotentiallyUnifiableChildren(typename SubstitutionTree<LD>::IntermediateNode* n)
-        { return _selectPotentiallyUnifiableChildren<LD>(n, _unif); }
+        { return _selectPotentiallyUnifiableChildren<LD>(n, *unifier(), _internalBank); }
         friend std::ostream& operator<<(std::ostream& out, UnificationWithAbstraction const& self)
-        { return out << self._unif; }
+        { return out << *self.unifier(); }
       };
     };
 
@@ -1532,4 +1579,7 @@ public:
 #include "Indexing/SubstitutionTree_FastGen.cpp"
 #include "Indexing/SubstitutionTree_FastInst.cpp"
 
+#undef DEBUG_ITER
+#undef DEBUG_INSERT
+#undef DEBUG_REMOVE
 #endif // __SubstitutionTree__

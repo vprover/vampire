@@ -35,34 +35,35 @@
 #endif
 
 
-const int GLUE_INDEX=-3;
-const int SPECIAL_INDEX=-2;
+const int GLUE_INDEX=-2;
 const int UNBOUND_INDEX=-1;
+
 namespace Kernel
 {
 struct VarSpec
 {
   VarSpec() {}
-  VarSpec(unsigned var, int index) : var(var), index(index) {}
+  VarSpec(TermList var, int index) : var(var.var()), special(var.isSpecialVar()), index(index) {}
 
   friend std::ostream& operator<<(std::ostream& out, VarSpec const& self);
 
   /** number of variable */
-  unsigned var;
+  unsigned var : 31;
+  bool special : 1;
   /** index of variable bank */
   int index;
 
-  auto asTuple() const { return std::tie(var, index); }
+  auto asTuple() const { return std::make_tuple(var * 2 + unsigned(special), index); }
   IMPL_COMPARISONS_FROM_TUPLE(VarSpec)
 
-  unsigned defaultHash () const { return HashUtils::combine(var  , index); }
-  unsigned defaultHash2() const { return HashUtils::combine(index, var  ); }
+  unsigned defaultHash () const { return HashUtils::combine(var  , index, special); }
+  unsigned defaultHash2() const { return HashUtils::combine(index, var  , special); }
 };
 
 struct TermSpec {
   TermSpec() {}
 
-  TermSpec(TermList t, int i) : term(t), index(t.isSpecialVar() ? SPECIAL_INDEX : i) {}
+  TermSpec(TermList t, int i) : term(t), index(t.isTerm() && t.term()->shared() && t.ground() ? 0 : i) {}
   TermSpec(VarSpec v) : term(TermList::var(v.var)), index(v.index) {}
 
   auto asTuple() const -> decltype(auto) { return std::tie(term, index); }
@@ -91,18 +92,22 @@ struct TermSpec {
    term.term()->arity()==0 ));
   }
 
+  TermSpec sort() const { return TermSpec(SortHelper::getResultSort(term.term()), index); }
+
   friend std::ostream& operator<<(std::ostream& out, TermSpec const& self);
 
   bool isVar() const { return term.isVar(); }
-  VarSpec varSpec() const { return VarSpec(term.var(), term.isSpecialVar() ? SPECIAL_INDEX : index); }
+  VarSpec varSpec() const { return VarSpec(term, index); }
   bool isTerm() const { return term.isTerm(); }
 
   TermSpec termArgSort(unsigned i) const { return TermSpec(SortHelper::getTermArgSort(term.term(), i), index); }
+  TermSpec anyArgSort(unsigned i) const { return TermSpec(SortHelper::getArgSort(term.term(), i), index); }
 
-  unsigned nTypeArgs() const { return term.term()->numTermArguments(); }
+  unsigned nTypeArgs() const { return term.term()->numTypeArguments(); }
   unsigned nTermArgs() const { return term.term()->numTermArguments(); }
   unsigned nAllArgs() const { return term.term()->arity(); }
 
+  // TODO remove unnecessary function call
   TermSpec termArg(unsigned i) const { return TermSpec(this->term.term()->termArg(i), this->index); }
   TermSpec typeArg(unsigned i) const { return TermSpec(this->term.term()->typeArg(i), this->index); }
   TermSpec anyArg (unsigned i) const { return TermSpec(*this->term.term()->nthArgument(i), this->index); }
@@ -132,6 +137,7 @@ struct TermSpec {
   unsigned functor() const { return term.term()->functor(); }
 
   TermList toTerm(Kernel::RobSubstitution& s) const;
+
 
   bool isSort() const
   { return this->term.term()->isSort(); }
@@ -183,7 +189,7 @@ struct TermSpec {
           auto v1 = lhs.varSpec();
           auto v2 = rhs.varSpec();
           if (v1 != v2) {
-            return std::tie(v1.var, v1.index) < std::tie(v2.var, v2.index) ? -1 : 1;
+            return v1.asTuple() < v2.asTuple() ? -1 : 1;
           }
         }
       }
@@ -332,23 +338,57 @@ public:
    */
   VarSpec introGlueVar(TermSpec forTerm);
 
+  /* TODO */
+  TermSpec createTerm(unsigned functor)
+  { return TermSpec(TermList(Term::create(functor, 0, nullptr)), /* index */ 0); }
+
+
+  /* TODO */
+  template<class Iter>
+  TermSpec createTermFromIter(unsigned functor, Iter iter)
+  {
+    TermSpec out;
+    if (!iter.hasNext()) {
+      return TermSpec(TermList(Term::create(functor, 0, nullptr)), /* index */ 0);
+    }
+    Recycled<Stack<TermList>> args;
+    Option<int> index;
+    while (iter.hasNext()) {
+      auto arg = iter.next();
+      if (// ground term
+          (!arg.term.isVar() && arg.term.term()->shared() && arg.term.ground())
+          ) {
+        args->push(arg.term);
+
+      } else if (index.isNone()) {
+        args->push(arg.term);
+        index = some(arg.index);
+
+      } else if (*index == GLUE_INDEX) {
+        args->push(arg.index == GLUE_INDEX 
+                    ? arg.term 
+                    : TermList::var(introGlueVar(arg).var));
+      } else {
+        if (arg.index == *index) {
+          args->push(arg.term);
+        } else {
+          // two different indices present
+          for (auto i : range(0, args->size())) {
+            (*args)[i] = TermList::var(introGlueVar(TermSpec((*args)[i], *index)).var);
+          }
+          index = some(GLUE_INDEX);
+          args->push(TermList::var(introGlueVar(arg).var));
+        }
+      }
+    }
+    return TermSpec(TermList(Term::create(functor, args->size(), args->begin())), index.unwrapOr(0));
+  }
+
   /* creates a new TermSpec with the given arguments `args` which all need to be of type `TermSpec`. If any of the argumetns have different variable banks "glue" variable are introduced. See the function `introGlueVar` for that. */
   template<class... Args>
   TermSpec createTerm(unsigned functor, Args... args)
   {
-    TermSpec out;
-    if (iterItems(args...).count() == 0) {
-      return TermSpec(TermList(Term::create(functor, 0, nullptr)), /* index */ 0);
-    }
-    auto firstIndex = iterItems(args...).tryNext().unwrap().index;
-    if (iterItems(args...).all([&](auto a) { return a.index == firstIndex; })) {
-      return TermSpec(TermList(Term::create(functor, {args.term...})), firstIndex);
-    } else {
-      return TermSpec(TermList(Term::create(functor, { 
-              (args.index == GLUE_INDEX ? args.term 
-                                        : TermList::var(introGlueVar(args).var))... 
-              })), GLUE_INDEX);
-    }
+    return createTermFromIter(functor, iterItems(args...));
   }
 
   void reset()
@@ -370,14 +410,14 @@ public:
    * other methods. Also no special variables can occur in
    * binding term, as no occur-check is performed.
    */
-  void bindSpecialVar(unsigned var, TermList t, int index)
+  void bindSpecialVar(unsigned var, unsigned internalBank, TermList t, int index)
   {
-    VarSpec vs(var, SPECIAL_INDEX);
+    VarSpec vs(TermList::var(var, /* special */ true), internalBank);
     ASS(!_bindings.find(vs));
     bind(vs, TermSpec(t,index));
   }
 
-  TermList::Top getSpecialVarTop(unsigned specialVar) const;
+  TermList::Top getSpecialVarTop(unsigned specialVar, unsigned index) const;
   TermList apply(TermList t, int index) const;
   Literal* apply(Literal* lit, int index) const;
   TypedTermList apply(TypedTermList t, int index) const { return TypedTermList(apply(TermList(t), index), apply(t.sort(), index)); }
@@ -392,10 +432,14 @@ public:
 
   friend std::ostream& operator<<(std::ostream& out, VarSpec const& self)
   {
-    if(self.index == SPECIAL_INDEX) {
-      return out << "S" << self.var;
+    if(self.index == GLUE_INDEX) {
+      return out << "G" << (self.special ? "S" : "") << self.var;
+
+    } else if(self.index == UNBOUND_INDEX) {
+      return out << "U" << (self.special ? "S" : "") << self.var;
+
     } else {
-      return out << "X" << self.var << "/" << self.index;
+      return out << (self.special ? "S" : "X") << self.var << "/" << self.index;
     }
   }
 

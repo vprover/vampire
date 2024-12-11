@@ -66,8 +66,7 @@ private:
 
   template<class Iterator, class... Args>
   auto getResultIterator(TypedTermList query, bool retrieveSubstitutions, Args... args)
-  { 
-    return iterTraits(_inner.template iterator<Iterator>(query, retrieveSubstitutions, /* reversed */  false, std::move(args)...))
+  { return iterTraits(_inner.template iterator<Iterator>(query, retrieveSubstitutions, /* reversed */  false, std::move(args)...))
       ; }
 
   bool generalizationExists(TermList t) override
@@ -75,9 +74,9 @@ private:
 
   virtual void output(std::ostream& out) const final override { out << *this; }
 
-  friend std::ostream& operator<<(std::ostream& out, TermSubstitutionTree const& self)
+  friend std::ostream& operator<<(std::ostream& out, TermSubstitutionTree<LeafData_> const& self)
   { return out << self._inner; }
-  friend std::ostream& operator<<(std::ostream& out, Output::Multiline<TermSubstitutionTree> const& self)
+  friend std::ostream& operator<<(std::ostream& out, Output::Multiline<TermSubstitutionTree<LeafData_>> const& self)
   { return out << Output::multiline(self.self._inner, self.indent); }
 
 public:
@@ -89,10 +88,13 @@ public:
 
 
   VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) final override
-  { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction>>(t, /* retrieveSubstitutions */ true, AbstractionOracle(uwa), fixedPointIteration)); }
+  { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction>>(t, /* retrieveSubstitutions */ true, subsTreeQueryBank(0), subsTreeNormResultBank(0), subsTreeResultBank(0), AbstractionOracle(uwa), fixedPointIteration)); }
+
+  VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(AbstractingUnifier* state, TypedTermList t, int queryBank, int normInternalBank, int internalBank, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
+  { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction>>(t, /* retrieveSubstitutions */ true, state, queryBank, normInternalBank, internalBank, AbstractionOracle(uwa), fixedPointIteration)); }
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getUnifications(TypedTermList t, bool retrieveSubstitutions) override
-  { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::RobUnification>>(t, retrieveSubstitutions)); }
+  { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::RobUnification>>(t, retrieveSubstitutions, subsTreeQueryBank(0), subsTreeNormResultBank(0), subsTreeResultBank(0))); }
 };
 
 } // namespace Indexing
