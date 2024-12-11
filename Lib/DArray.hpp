@@ -61,7 +61,7 @@ public:
     }
   }
 
-  DArray(const DArray& o)
+  explicit DArray(const DArray& o)
     : _size(o.size()), _capacity(o.size())
   {
     if(_size==0) {
@@ -74,6 +74,8 @@ public:
       ::new (&_array[i]) C(o[i]);
     }
   }
+
+  DArray clone() const { return DArray(*this); }
 
   void swap(DArray& other) {
     std::swap(other._size, _size);
