@@ -76,10 +76,10 @@ struct BottomUpChildIter<z3::expr>
 
 
 auto quotient0_name(char c, z3::sort s) 
-{ return outputToString("quot-0-", c, "-", s); }
+{ return Output::toString("quot-0-", c, "-", s); }
 
 auto remainder0_name(char c, z3::sort s) 
-{ return outputToString("rem-0-", c, "-", s); }
+{ return Output::toString("rem-0-", c, "-", s); }
 
 template<class UInt64ToExpr>
 z3::expr int_to_z3_expr(IntegerConstantType const& val, UInt64ToExpr toExpr) {
@@ -448,7 +448,7 @@ std::string ProblemExport::ApiCalls::_escapeVarName(Outputable const& sym) {
   };
 
 
-  auto origName = outputToString(sym);
+  auto origName = Output::toString(sym);
   return _escapedNames.getOrInit(origName, [&](){
     auto& ids = _escapePrefixes.getOrInit(generatePrefix(origName));
     auto nextId = ids.size();
@@ -560,7 +560,7 @@ void ProblemExport::ApiCalls::terminate()
 struct ProblemExport::ApiCalls::EscapeString {
   std::string s;
   EscapeString(std::string s) : s(s) {}
-  EscapeString(z3::expr const& x) : EscapeString(outputToString(x)) {}
+  EscapeString(z3::expr const& x) : EscapeString(Output::toString(x)) {}
   friend std::ostream& operator<<(std::ostream& out, EscapeString const& self)
   { return out << "R\"(" << self.s << ")\""; }// TODO mask occurences of )"
 };
@@ -647,7 +647,7 @@ std::ostream& ProblemExport::operator<<(std::ostream& out, ProblemExport::ApiCal
   if (self.inner.kind() == Z3_INT_SYMBOL) {
     return out << "ctx.int_symbol(" << self.inner.to_int() << ")";
   } else  {
-    auto str = toString(self.inner);
+    auto str = Output::toString(self.inner);
     return out << "ctx.str_symbol(" << ProblemExport::ApiCalls::EscapeString(str) << ")";
   }
 }

@@ -96,7 +96,7 @@ IMPL_UN_OP(abs      , mpz_abs)
 
 IntegerConstantType IntegerConstantType::intDivide(const IntegerConstantType& num) const 
 {
-  ASS_REP(num.divides(*this),  num.toString() + " does not divide " + this->toString() );
+  ASS_REP(num.divides(*this),  Output::cat(num, " does not divide ", *this) );
   ASS_REP(*this != 0, "divisor must not be zero")
 
   IntegerConstantType out;
@@ -227,27 +227,6 @@ Sign RationalConstantType::sign() const
   return numerator().sign(); 
 }
 
-// /** 
-//  * TPTP spec:
-//  * The smallest integral number not less than the argument. 
-//  */
-// IntegerConstantType IntegerConstantType::ceiling(RationalConstantType rat)
-// {
-//
-//   IntegerConstantType num = rat.numerator();
-//   IntegerConstantType den = rat.denominator();
-//   if (den == IntegerConstantType(1)) {
-//     return num;
-//   }
-//   /* there is a remainder for num / den */
-//   ASS_G(den, 0);
-//   if (num >= IntegerConstantType(0)) {
-//     return IntegerConstantType(num.toInner() /den.toInner() + 1);
-//   } else  {
-//     return IntegerConstantType(num.toInner() / den.toInner());
-//   }
-// }
-
 Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, IntegerConstantType n2)
 {
   auto cmp = mpz_cmpabs(n1._val, n2._val);
@@ -258,9 +237,6 @@ Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, Intege
   if (cmp < 0) return Comparison::LESS;
   else return Comparison::EQUAL;
 }
-
-std::string IntegerConstantType::toString() const
-{ return to_string(_val); }
 
 ///////////////////////
 // RationalConstantType
@@ -341,9 +317,6 @@ bool RationalConstantType::operator>(const RationalConstantType& o) const
   mpq_clear(r);
   return res;
 }
-
-std::string RationalConstantType::toString() const
-{ return Lib::toString(*this); }
 
 /**
  * Ensure the GCD of numerator and denominator is 1, and the only
@@ -429,11 +402,6 @@ RealConstantType::RealConstantType(const std::string& number)
   } else {
     throw UserErrorException("invalid decimal literal");
   }
-}
-
-std::string RealConstantType::toNiceString() const
-{
-  return toString();
 }
 
 size_t IntegerConstantType::hash() const {
@@ -1818,7 +1786,7 @@ std::ostream& operator<<(std::ostream& out, Kernel::Theory::Interpretation const
 }
 
 std::ostream& operator<<(std::ostream& out, IntegerConstantType const& self)
-{ return out << self.toString(); }
+{ return out << self._val; }
 
 std::ostream& operator<<(std::ostream& out, RationalConstantType const& self)
 #if NICE_THEORY_OUTPUT

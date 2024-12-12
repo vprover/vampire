@@ -217,7 +217,6 @@ public:
   static Comparison comparePrecedence(IntegerConstantType n1, IntegerConstantType n2);
   size_t hash() const;
 
-  std::string toString() const;
   friend std::ostream& operator<<(std::ostream& out, const IntegerConstantType& val);
   friend struct RationalConstantType;
   friend void init_mpq(mpq_t out, RationalConstantType const&);
@@ -279,8 +278,6 @@ struct RationalConstantType {
 
   RationalConstantType abs() const;
 
-  std::string toString() const;
-
   const InnerType& numerator() const { return _num; }
   const InnerType& denominator() const { return _den; }
   size_t hash() const;
@@ -340,14 +337,11 @@ public:
   IntegerConstantType ceiling() const { return this->RationalConstantType::ceiling(); }
   IntegerConstantType truncate() const { return this->RationalConstantType::truncate(); }
 
-
   Sign sign() const;
 
   MK_SIGN_OPS
 
   RealConstantType abs() const;
-
-  std::string toNiceString() const;
 
   size_t hash() const;
   static Comparison comparePrecedence(RealConstantType n1, RealConstantType n2);
