@@ -221,8 +221,6 @@ public:
   friend struct RationalConstantType;
   friend void init_mpq(mpq_t out, RationalConstantType const&);
 private:
-  IntegerConstantType operator/(const IntegerConstantType& num) const;
-  IntegerConstantType operator%(const IntegerConstantType& num) const;
   MK_CAST_OPS(IntegerConstantType, int)
 };
 
