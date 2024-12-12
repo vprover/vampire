@@ -22,7 +22,7 @@ inline KboWeightMap<SigTraits> toWeightMap(unsigned introducedSymbolWeight, KboS
     out[i] = w == NULL ? df.symbolWeight(i) : *w;
   }
   return  {
-    ._weights = out,
+    ._weights = out.clone(),
     ._introducedSymbolWeight = introducedSymbolWeight,
     ._specialWeights         = ws,
   };
