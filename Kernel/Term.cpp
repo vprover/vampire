@@ -121,7 +121,7 @@ bool TermList::isSafe() const
 }
 
 bool TermList::ground() const 
-{ return !isVar() && term()->ground(); }
+{ return isTerm() && term()->ground(); }
 
 /**
  * Return true if @b ss and @b tt have the same top symbols, that is,

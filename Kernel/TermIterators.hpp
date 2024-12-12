@@ -44,10 +44,7 @@ public:
   DECL_ELEMENT_TYPE(TermList);
   VariableIterator() : _stack(8), _used(false) {}
 
-  VariableIterator& operator=(VariableIterator&&) = default;
-  VariableIterator(VariableIterator&& other)
-    : VariableIterator() 
-  {
+  void swap(VariableIterator& other) {
     std::swap(_stack, other._stack);
     std::swap(_used, other._used);
     std::swap(_aux[0], other._aux[0]);
@@ -58,6 +55,9 @@ public:
       _stack[0] = &_aux[1];
     }
   }
+
+  VariableIterator& operator=(VariableIterator&& other) { swap(other); return *this; }
+  VariableIterator(VariableIterator&& other) : VariableIterator() { swap(other); }
 
   VariableIterator(const Term* term) : _stack(8), _used(false)
   {
