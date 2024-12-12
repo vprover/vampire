@@ -252,7 +252,7 @@ OrderingComparatorUP LPO::createComparator(TermList lhs, TermList rhs) const
   return make_unique<LPOComparator>(lhs, rhs, *this);
 }
 
-void LPO::showConcrete(ostream&) const 
+void LPO::showConcrete(std::ostream&) const 
 { /* lpo is fully defined by the precedence relation */ }
 
 }

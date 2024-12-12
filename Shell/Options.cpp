@@ -123,7 +123,6 @@ void Options::init()
                                     {"axiom_selection",
                                         "casc",
                                         "casc_hol",
-                                        "casc_sat",
                                         "clausify",
                                         "consequence_elimination",
                                         "model_check",
@@ -155,10 +154,17 @@ void Options::init()
       // Consider extending this list when adding a new Casc-like mode
       return Or(_mode.is(equal(Mode::CASC_HOL)),
                 _mode.is(equal(Mode::CASC)),
-                _mode.is(equal(Mode::CASC_SAT)),
                 _mode.is(equal(Mode::SMTCOMP)),
                 _mode.is(equal(Mode::PORTFOLIO)));
     };
+
+    _intent = ChoiceOptionValue<Intent>("intent","intent",Intent::UNSAT,{"unsat","sat"});
+    _intent.description = "Discribes what the system should be striving to show."
+      " By default a prover tries to show `unsat` and find a refutation (a proof of the negated conjecture)."
+      " Discovering a finite saturations while using a complete strategy and thus testifying satisfiability is a nice bonus in that case."
+      " On the other hand, with the intent `sat` the main focus is on finding models."
+      " (Please use `--mode casc --intent sat` to achieve what was previously triggered via `--mode CASC_SAT`).";
+    _lookup.insert(&_intent);
 
     _schedule = ChoiceOptionValue<Schedule>("schedule","sched",Schedule::CASC,
         {"casc",
@@ -380,6 +386,12 @@ void Options::init()
     _timeStatistics.description="Show how much running time was spent in each part of Vampire";
     _lookup.insert(&_timeStatistics);
     _timeStatistics.tag(OptionTag::OUTPUT);
+
+    _timeStatisticsFocus = StringOptionValue("time_statistics_focus","tstat_focus","");
+    _timeStatisticsFocus.description="focus on some special subtree of the time statistics";
+    _lookup.insert(&_timeStatisticsFocus);
+    _timeStatisticsFocus.tag(OptionTag::OUTPUT);
+    _timeStatisticsFocus.onlyUsefulWith(_timeStatistics.is(equal(true)));
 #endif // VTIME_PROFILING
 
 //*********************** Input  ***********************
@@ -2458,13 +2470,6 @@ void Options::init()
     //*********************** Vinter???  *******************************
     //******************************************************************
 
-    _colorUnblocking = BoolOptionValue("color_unblocking","",false);
-    _colorUnblocking.description="";
-    _lookup.insert(&_colorUnblocking);
-    _colorUnblocking.setExperimental();
-    _colorUnblocking.tag(OptionTag::OTHER);
-
-
     _showInterpolant = ChoiceOptionValue<InterpolantMode>("show_interpolant","",InterpolantMode::OFF,
                                                           {"new_heur",
 #if VZ3
@@ -2672,7 +2677,7 @@ std::string Options::includeFileName (const std::string& relativeName)
  * @since 27/11/2003 Manchester, changed using new XML routines and iterator
  *        of options
  */
-void Options::output (ostream& str) const
+void Options::output (std::ostream& str) const
 {
   if(printAllTheoryAxioms()){
     cout << "Sorry, not implemented yet!" << endl;
@@ -2801,7 +2806,7 @@ void Options::output (ostream& str) const
     //str << "======= End of options =======\n";
   }
 
-} // Options::output (ostream& str) const
+} // Options::output (std::ostream& str) const
 
 template<typename T>
 bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){
@@ -3515,6 +3520,7 @@ std::string Options::generateEncodedOptions() const
 
     //things we don't want to output (showHelp etc won't get to here anyway)
     forbidden.insert(&_mode);
+    forbidden.insert(&_intent);
     forbidden.insert(&_testId); // is this old version of decode?
     forbidden.insert(&_include);
     forbidden.insert(&_printProofToFile);
@@ -3739,7 +3745,7 @@ bool Options::checkProblemOptionConstraints(Property* prop, bool before_preproce
 }
 
 template<class A>
-std::vector<A> parseCommaSeparatedList(std::string const& str) 
+std::vector<A> parseCommaSeparatedList(std::string const& str)
 {
   std::stringstream stream(str);
   std::vector<A> parsed;
@@ -3959,3 +3965,21 @@ std::vector<float> Options::neuralEvalSplitQueueCutoffs() const
 
   return cutoffs;
 }
+
+Stack<std::string> Options::getSimilarOptionNames(std::string name, bool is_short) const {
+
+  Stack<std::string> similar_names;
+
+  VirtualIterator<AbstractOptionValue*> options = _lookup.values();
+  while(options.hasNext()){
+    AbstractOptionValue* opt = options.next();
+    std::string opt_name = is_short ? opt->shortName : opt->longName;
+    size_t dif = 2;
+    if(!is_short) dif += name.size()/4;
+    if(name.size()!=0 && StringUtils::distance(name,opt_name) < dif)
+      similar_names.push(opt_name);
+  }
+
+  return similar_names;
+}
+

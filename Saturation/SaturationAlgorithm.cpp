@@ -11,6 +11,9 @@
  * @file SaturationAlgorithm.cpp
  * Implementing SaturationAlgorithm class.
  */
+
+#define USING_LIBTORCH // see Lib/Output.hpp
+
 #include "Debug/RuntimeStatistics.hpp"
 
 #include "Lib/DHSet.hpp"
@@ -25,7 +28,6 @@
 #include "Indexing/LiteralIndexingStructure.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/ColorHelper.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
@@ -2238,6 +2240,7 @@ ImmediateSimplificationEngine *SaturationAlgorithm::createISE(Problem& prb, cons
     }
   } else if (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) {
     res->addFront(new UncomputableAnswerLiteralRemoval());
+    res->addFront(new MultipleAnswerLiteralRemoval());
   }
   return res;
 }

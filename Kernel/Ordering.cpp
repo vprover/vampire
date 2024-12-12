@@ -836,6 +836,7 @@ DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Op
   return predicateLevels;
 }
 
+
 void PrecedenceOrdering::sortArrayByPredicatePrecedence(DArray<unsigned>& symbols) const
 {
   symbols.sort(closureComparator([&](unsigned l, unsigned r){ return intoComparison(comparePredicatePrecedences(l,r)); }));
@@ -851,7 +852,7 @@ void PrecedenceOrdering::sortArrayByTypeConPrecedence(DArray<unsigned>& symbols)
   symbols.sort(closureComparator([&](unsigned l, unsigned r){ return intoComparison(compareTypeConPrecedences(l,r)); }));
 }
 
-void PrecedenceOrdering::show(ostream& out) const
+void PrecedenceOrdering::show(std::ostream& out) const
 {
   auto _show = [&](const char* precKind, unsigned cntFunctors, auto getSymbol, auto sortSymbolArray)
     {

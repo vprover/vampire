@@ -13,6 +13,8 @@
  * @since 30/12/2007 Manchester
  */
 
+#define USING_LIBTORCH // see Lib/Output.hpp
+
 #include <cmath>
 #include <climits>
 

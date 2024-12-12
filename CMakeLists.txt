@@ -113,7 +113,7 @@ set(VAMPIRE_DEBUG_SOURCES
     Debug/Assertion.hpp
     Debug/RuntimeStatistics.hpp
     Debug/Tracer.hpp
-    Debug/Output.hpp
+    Lib/Output.hpp
     )
 source_group(debug_source_files FILES ${VAMPIRE_DEBUG_SOURCES})
 
@@ -196,8 +196,6 @@ source_group(lib_sys_source_files FILES ${VAMPIRE_LIB_SYS_SOURCES})
 set(VAMPIRE_KERNEL_SOURCES
     Kernel/Clause.cpp
     Kernel/ClauseQueue.cpp
-    Kernel/SoftmaxClauseQueue.cpp
-    Kernel/ColorHelper.cpp
     Kernel/ELiteralSelector.cpp
     Kernel/EqHelper.cpp
     Kernel/FlatTerm.cpp
@@ -927,20 +925,24 @@ execute_process(
     )
 
 if (GIT_IS_REPOSITORY STREQUAL true)
-  # GIT_COMMIT_DESCRIPTION used by version.cpp.in
-  execute_process(
-    COMMAND git log -1 --format=%h\ on\ %ci
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_VARIABLE GIT_COMMIT_DESCRIPTION
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-)
+  # VAMPIRE_VERSION_NUMBER and CMAKE_BUILD_TYPE used by version.cpp.in through
+  # ConfigureGitVersionCpp.cmake
+  add_custom_target(update_git_version ALL
+    COMMAND cmake -DVAMPIRE_SOURCE_DIR=${CMAKE_SOURCE_DIR}
+                  -DVAMPIRE_VERSION_NUMBER=${VAMPIRE_VERSION_NUMBER}
+                  -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+                  -P ${CMAKE_SOURCE_DIR}/ConfigureGitVersionCpp.cmake
+    BYPRODUCTS version.cpp
+    VERBATIM
+    )
+else()
+  configure_file(version.cpp.in version.cpp)
 endif()
 
 ################################################################
 # epilogue
 ################################################################
 add_executable(vampire vampire.cpp $<TARGET_OBJECTS:obj>)
-configure_file(version.cpp.in version.cpp)
 
 # enable IPO
 if(CMAKE_BUILD_TYPE STREQUAL Release AND IPO)

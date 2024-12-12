@@ -11,6 +11,8 @@
 #ifndef __PredicateSplitPassiveClauseContainer__
 #define __PredicateSplitPassiveClauseContainer__
 
+#define USING_LIBTORCH // see Lib/Output.hpp
+
 #include <memory>
 #include <vector>
 #include "Lib/Allocator.hpp"
