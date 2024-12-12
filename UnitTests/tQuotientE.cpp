@@ -12,8 +12,6 @@
 
 #include <climits>
 
-#define DEBUG(...) //DBG(__VA_ARGS__)
-#define DEBUGE(x) DEBUG(#x, " = ", x)
 
 IntegerConstantType quotientE(int lhs, int rhs) {
   return IntegerConstantType(lhs).quotientE(IntegerConstantType(rhs));
@@ -40,16 +38,16 @@ TEST_FUN(check_spec) {
   for (int j = std::numeric_limits<int>::min();;) {
     for (int i = std::numeric_limits<int>::min();;) {
 
-      DEBUG();
+      DBG("");
 
       bool bothOK = true;
 
       IntegerConstantType q;
       try {
         q = quotientE(i, j);
-        DEBUG("quotientE (", i, ", ", j, ")\t= ", q);
+        DBGE("quotientE (", i, ", ", j, ")\t= ", q);
       } catch (MachineArithmeticException&) {
-        DEBUG("quotientE (", i, ", ", j, ")\t= MachineArithmeticException");
+        DBG("quotientE (", i, ", ", j, ")\t= MachineArithmeticException");
         bothOK = false;
       } catch (DivByZeroException&) {
         ASS_EQ(j, 0);
@@ -59,9 +57,9 @@ TEST_FUN(check_spec) {
       IntegerConstantType r;
       try {
         r = remainderE(i, j);
-        DEBUG("remainderE(", i, ", ", j, ")\t= ", r);
+        DBG("remainderE(", i, ", ", j, ")\t= ", r);
       } catch (MachineArithmeticException&) {
-        DEBUG("remainderE(", i, ", ", j, ")\t= MachineArithmeticException");
+        DBG("remainderE(", i, ", ", j, ")\t= MachineArithmeticException");
         bothOK = false;
       } catch (DivByZeroException&) {
         ASS_EQ(j, 0);
@@ -112,17 +110,15 @@ TEST_FUN(check_spec) {
 
 template<class Const>
 void checkQuotientE(Const i, Const j) {
-  try {
-    DEBUG()
+  if (j != 0) {
+    DBG("")
     auto q =  i.quotientE(j);
     auto r = i.remainderE(j);
 
-    DEBUG(" quotientE(", i, ", ", j, ")\t= ", q);
-    DEBUG("remainderE(", i, ", ", j, ")\t= ", r);
+    DBG(" quotientE(", i, ", ", j, ")\t= ", q);
+    DBG("remainderE(", i, ", ", j, ")\t= ", r);
     ASS_EQ(q * j + r, i)
     ASS(Const(0) <= r && r < j.abs())
-  } catch (DivByZeroException&) {
-    ASS_EQ(j,Const(0))
   }
 }
 

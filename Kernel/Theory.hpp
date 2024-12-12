@@ -22,6 +22,7 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/Exception.hpp"
 
+#include "Lib/Reflection.hpp"
 #include "Shell/TermAlgebra.hpp"
 
 #include "OperatorType.hpp"
@@ -114,14 +115,13 @@ public:
 #endif // WITH_GMP
 
   IntegerConstantType() { mpz_init(_val); }
-  IntegerConstantType(IntegerConstantType&& o)  { mpz_swap(_val, o._val); }
-  // TODO make explicit (?)
-  IntegerConstantType(const IntegerConstantType& o) { mpz_set(_val, o._val); }
-  IntegerConstantType& operator=(IntegerConstantType&&) = default;
-  IntegerConstantType& operator=(const IntegerConstantType&) = default;
+  IntegerConstantType(IntegerConstantType     && o) : IntegerConstantType() { mpz_swap(_val, o._val); }
+  IntegerConstantType(IntegerConstantType const& o) : IntegerConstantType() {  mpz_set(_val, o._val); }
+  IntegerConstantType& operator=(IntegerConstantType     && o) { mpz_swap(_val, o._val); return *this; }
+  IntegerConstantType& operator=(IntegerConstantType const& o) {  mpz_set(_val, o._val); return *this; }
 #if WITH_GMP
   ~IntegerConstantType() { mpz_clear(_val); }
-  explicit IntegerConstantType(int v) : _val{} { mpz_init_set_ui(_val, std::abs(v)); if (v < 0) { mpz_neg(_val,_val); }  }
+  explicit IntegerConstantType(int v) : IntegerConstantType() { mpz_set_si(_val, v); }
 #else // !WITH_GMP
   IntegerConstantType(int v) : _val(v) {} // <- not explicit to support legacy code from Theory_int.cpp
 #endif // WITH_GMP
@@ -175,13 +175,9 @@ public:
   IntegerConstantType gcd(IntegerConstantType const& rhs) const;
   IntegerConstantType lcm(IntegerConstantType const& rhs) const;
 
-  bool operator==(const IntegerConstantType& num) const;
-  bool operator>(const IntegerConstantType& num) const;
-
-  bool operator!=(const IntegerConstantType& num) const { return !((*this)==num); }
-  bool operator<(const IntegerConstantType& o) const { return o>(*this); }
-  bool operator>=(const IntegerConstantType& o) const { return !(o>(*this)); }
-  bool operator<=(const IntegerConstantType& o) const { return !((*this)>o); }
+  Comparison compare(IntegerConstantType const& num) const { return Comparison(mpz_cmp(_val, num._val)); }
+  IMPL_COMPARISONS_FROM_COMPARE(IntegerConstantType);
+  IMPL_EQ_FROM_COMPARE(IntegerConstantType);
 
   // TODO rename
   bool fits_ulong() { return mpz_fits_ulong_p(_val); }
