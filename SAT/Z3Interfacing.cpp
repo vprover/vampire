@@ -90,17 +90,16 @@ z3::expr int_to_z3_expr(IntegerConstantType const& val, UInt64ToExpr toExpr) {
     Stack<uint64_t> digits;
     z3::expr base =  // <- == 2^64
       toExpr(std::numeric_limits<uint64_t>::max()) + toExpr(1);
-    while(!abs.fits_ulong()) {
-      auto ui = abs.truncUnsigned();
+    while(!abs.fits<unsigned long>()) {
+      auto ui = abs.truncate<unsigned long>();
       using ui_t = decltype(ui);
-      static_assert(std::is_same<ui_t, long unsigned int>::value, "unexpected number typtype");
       static_assert(sizeof(ui_t) == sizeof(uint64_t), "unexpected number size");
       static_assert(sizeof(ui_t) == 64 / 8, "unexpected number size");
       static_assert(std::numeric_limits<ui_t>::max() == std::numeric_limits<uint64_t>::max(), "unexpected number size");
       digits.push(uint64_t(ui));
       abs.rshiftBits(64);
     }
-    z3::expr res = toExpr(uint64_t(abs.truncUnsigned()));
+    z3::expr res = toExpr(uint64_t(abs.template truncate<unsigned int>()));
     while(digits.isNonEmpty()) {
       res = toExpr(digits.pop()) + (res * base);
     }

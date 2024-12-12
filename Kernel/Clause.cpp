@@ -542,7 +542,7 @@ unsigned Clause::getNumeralWeight() const {
       }
       IntegerConstantType intVal;
       auto intWeight = [](IntegerConstantType const& i) {
-        return (i.abs().log2() - IntegerConstantType(1)).toInt()
+        return (i.abs().log2() - IntegerConstantType(1)).cvt<int>()
           .orElse([&]() { return std::numeric_limits<int>::max(); });
       };
 

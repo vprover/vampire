@@ -112,10 +112,6 @@ IntegerConstantType Kernel::IntegerConstantType::log2() const
 }
 
 
-Option<int> Kernel::IntegerConstantType::toInt() const 
-{ return someIf(mpz_fits_sint_p(_val), 
-      [&]() { return (int) mpz_get_si(_val); }); }
-
 /**
  * specification from TPTP:
  * quotient_e(N,D) - the Euclidean quotient, which has a non-negative remainder. If D is positive then $quotient_e(N,D) is the floor (in the type of N and D) of the real division N/D, and if D is negative then $quotient_e(N,D) is the ceiling of N/D.

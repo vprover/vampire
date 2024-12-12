@@ -96,6 +96,49 @@ inline std::ostream& operator<<(std::ostream& out, Sign const& self)
   ASSERTION_VIOLATION
 }
 
+template<class T> struct MpzToMachineInt;
+
+template<> struct MpzToMachineInt<long> {
+  using Int = long;
+  static bool fits(mpz_t const self) { return mpz_fits_sint_p(self);  }
+  static Int cvt(mpz_t const self) { return mpz_get_si(self);  }
+};
+#define CONV_FROM_NUM_LIMITS(Long) \
+  static Option<Int> _cvt(mpz_t const self) {  \
+    if (!MpzToMachineInt<Long>::fits(self)) \
+      return {}; \
+    auto v = MpzToMachineInt<Long>::cvt(self); \
+    auto lim = std::numeric_limits<Int>{}; \
+    if (lim.min() <= v && v <= lim.max()) { \
+      return some(Int(v)); \
+    } else { \
+      return {}; \
+    } \
+  } \
+  static bool fits(mpz_t const self) { return _cvt(self).isSome(); } \
+  static Int cvt(mpz_t const self) { return _cvt(self).unwrap(); } \
+
+template<> struct MpzToMachineInt<unsigned long> {
+  using Int = unsigned long;
+
+  static Int truncate(mpz_t const self) { return mpz_get_ui(self); }
+  static bool fits(mpz_t const self) { return mpz_sgn(self) >= 0 && mpz_fits_uint_p(self);  }
+  static Int cvt(mpz_t const self) { return mpz_get_ui(self);  }
+};
+
+template<> struct MpzToMachineInt<int> {
+  using Int = int;
+  CONV_FROM_NUM_LIMITS(long)
+};
+
+template<> struct MpzToMachineInt<unsigned> {
+  using Int = unsigned;
+  CONV_FROM_NUM_LIMITS(unsigned long)
+  static Int truncate(mpz_t const self) { return mpz_get_ui(self); }
+};
+
+
+
 class IntegerConstantType
 {
 public:
@@ -152,9 +195,15 @@ public:
   IMPL_COMPARISONS_FROM_COMPARE(IntegerConstantType);
   IMPL_EQ_FROM_COMPARE(IntegerConstantType);
 
-  // TODO rename
-  bool fits_ulong() { return mpz_fits_ulong_p(_val); }
-  auto truncUnsigned() { return mpz_get_ui(_val); }
+  template<class T> 
+  bool fits() const { return MpzToMachineInt<T>::fits(_val); }
+
+  template<class T> 
+  Option<T> cvt() const { return someIf(MpzToMachineInt<T>::fits(_val), [&]() { return MpzToMachineInt<T>::cvt(_val); }); }
+
+  template<class T> 
+  T truncate() { return MpzToMachineInt<T>::truncate(_val); }
+
   void rshiftBits(mp_bitcnt_t cnt) { mpz_tdiv_q_2exp(_val, _val, cnt); }
 
   Sign sign() const;
@@ -163,9 +212,6 @@ public:
 
   IntegerConstantType abs() const;
   IntegerConstantType log2() const;
-
-  /** turns this integer into an integer if it is small enough to fit into a machine int */
-  Option<int> toInt() const;
 
   static Comparison comparePrecedence(IntegerConstantType n1, IntegerConstantType n2);
   size_t hash() const;
