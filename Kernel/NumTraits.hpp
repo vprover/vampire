@@ -293,11 +293,6 @@ struct NumTraits;
     static const char* name() {return #CamelCase;}                                        \
   };                                                                                      \
 
-#define __INSTANTIATE_NUM_TRAITS_ALL                                                      \
-  __INSTANTIATE_NUM_TRAITS(Rational)                                                      \
-  __INSTANTIATE_NUM_TRAITS(Real    )                                                      \
-  __INSTANTIATE_NUM_TRAITS(Integer )                                                      \
-
 #define __NUM_TRAITS_IF_FRAC(sort, ...) __NUM_TRAITS_IF_FRAC_ ## sort (__VA_ARGS__)
 #define __NUM_TRAITS_IF_FRAC_INT(...) 
 #define __NUM_TRAITS_IF_FRAC_REAL(...) __VA_ARGS__
