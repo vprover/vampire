@@ -91,7 +91,8 @@ TheoryInstAndSimp* theoryInstAndSimp(Options::TheoryInstSimp mode, bool withGene
       /* thiTautologyDeletion */ true,
       /* showZ3 */ false,
       withGeneralization,
-      /* export smtlib */ ""
+      /* export smtlib */ "", 
+      Shell::Options::ProblemExportSyntax::SMTLIB
       );
 }
 
