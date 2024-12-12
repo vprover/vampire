@@ -727,6 +727,7 @@ std::string Term::toString(bool topLevel) const
         return uminus();
       }
     }
+    /* this means we have an uninterpteted term which will be formatted as usual */
     return Option<std::string>();
   });
 
