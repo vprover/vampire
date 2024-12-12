@@ -238,11 +238,7 @@ struct RationalConstantType {
   static TermList getSort() { return AtomicSort::rationalSort(); }
 
   RationalConstantType() {}
-  RationalConstantType(RationalConstantType&&) = default;
-  RationalConstantType(const RationalConstantType&) = default;
-  RationalConstantType& operator=(const RationalConstantType&) = default;
 
-  RationalConstantType(const std::string& num, const std::string& den);
   explicit RationalConstantType(int n);
   explicit RationalConstantType(IntegerConstantType num);
   RationalConstantType(int num, int den);

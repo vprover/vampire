@@ -87,13 +87,6 @@ IMPL_BIN_OP(inverseModulo, mpz_invert)
 IMPL_UN_OP(operator-, mpz_neg)
 IMPL_UN_OP(abs      , mpz_abs)
 
-// TODO (?)
-// IntegerConstantType IntegerConstantType::operator-() &&
-// { 
-//   mpz_neg(_val, _val);
-//   return std::move(*this); 
-// }
-
 IntegerConstantType IntegerConstantType::intDivide(const IntegerConstantType& num) const 
 {
   ASS_REP(num.divides(*this),  Output::cat(num, " does not divide ", *this) );
@@ -184,17 +177,6 @@ bool IntegerConstantType::divides(const IntegerConstantType& num) const
   return 0 != mpz_divisible_p(num._val, this->_val);
 }
 
-// //TODO remove this operator. We already have 3 other ways of computing the remainder, required by the semantics of TPTP and SMTCOMP.
-// IntegerConstantType IntegerConstantType::operator%(const IntegerConstantType& num) const
-// {
-//
-//   //TODO: check if modulo corresponds to the TPTP semantic
-//   if (num._val==0) {
-//     throw DivByZeroException();
-//   }
-//   return IntegerConstantType(_val%num._val);
-// }
-
 #define MK_ROUNDING(round, mpz_fun)                                                       \
   IntegerConstantType RationalConstantType::round() const                                 \
   {                                                                                       \
@@ -241,10 +223,6 @@ Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, Intege
 RationalConstantType::RationalConstantType(InnerType num, InnerType den)
   : _num(num), _den(den)
 { cannonize(); }
-
-RationalConstantType::RationalConstantType(const std::string& num, const std::string& den)
-  : RationalConstantType(InnerType(num), InnerType(den))
-{ }
 
 RationalConstantType RationalConstantType::operator+(const RationalConstantType& o) const
 {

@@ -329,7 +329,7 @@ unsigned Signature::addIntegerConstant(const IntegerConstantType& value)
  */
 unsigned Signature::addRationalConstant(const std::string& numerator, const std::string& denominator,bool defaultSort)
 {
-  RationalConstantType value(numerator, denominator);
+  auto value = RationalConstantType(IntegerConstantType(numerator), IntegerConstantType(denominator));
   if (!defaultSort) {
     return addRationalConstant(value);
   }
