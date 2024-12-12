@@ -970,11 +970,6 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
 std::ostream& operator<<(std::ostream& out, Solution const& self) 
 { return out << "Solution(" << (self.sat ? "sat" : "unsat") << ", " << self.subst << ")"; }
 
-TheoryInstAndSimp::~TheoryInstAndSimp()
-{
-  delete _solver;
-}
-
 }
 
 #endif
