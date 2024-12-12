@@ -21,18 +21,6 @@ IntegerConstantType remainderE(int lhs, int rhs) {
   return IntegerConstantType(lhs).remainderE(IntegerConstantType(rhs));
 }
 
-bool operator==(IntegerConstantType lhs, int rhs) {
-  return lhs == IntegerConstantType(rhs);
-}
-
-bool operator==(int lhs, IntegerConstantType rhs) {
-  return IntegerConstantType(lhs) == rhs;
-}
-
-bool operator<=(int lhs, IntegerConstantType rhs) {
-  return IntegerConstantType(lhs) <= rhs;
-}
-
 template<class Const>
 void checkQuotientE(Const i, Const j) {
   if (j != 0) {
@@ -90,11 +78,11 @@ TEST_FUN(bug01)
 template<class Const>
 void checkFloor() 
 {
-  ASS_EQ(Const( 3, 2).floorRat(), Const( 1))
-  ASS_EQ(Const(-3, 2).floorRat(), Const(-2))
-  ASS_EQ(Const( 4, 2).floorRat(), Const( 2))
-  ASS_EQ(Const(-4, 2).floorRat(), Const(-2))
-  ASS_EQ(Const( 0, 2).floorRat(), Const( 0))
+  ASS_EQ(Const( 3, 2).floor(), 1)
+  ASS_EQ(Const(-3, 2).floor(), -2)
+  ASS_EQ(Const( 4, 2).floor(), 2)
+  ASS_EQ(Const(-4, 2).floor(), -2)
+  ASS_EQ(Const( 0, 2).floor(), 0)
 }
 
 template<class Const>

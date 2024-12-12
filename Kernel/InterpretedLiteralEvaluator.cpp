@@ -788,13 +788,13 @@ protected:
       res = -arg;
       return true;
     case Theory::RAT_FLOOR:
-      res = arg.floorRat();
+      res = RationalConstantType(arg.floor());
       return true;
     case Theory::RAT_CEILING:
       res = RationalConstantType(arg.ceiling());
       return true;
     case Theory::RAT_TRUNCATE:
-      res = arg.truncate();
+      res = RationalConstantType(arg.truncate());
       return true;
     default:
       return false;
@@ -877,10 +877,10 @@ protected:
       res = -arg;
       return true;
     case Theory::REAL_FLOOR:
-      res = arg.floorRat();
+      res = RealConstantType(arg.floor());
       return true;
     case Theory::REAL_CEILING:
-      res = arg.ceiling();
+      res = RealConstantType(arg.ceiling());
       return true;
     case Theory::REAL_TRUNCATE:
       res = arg.truncate();

@@ -141,19 +141,20 @@ template<> struct MpzToMachineInt<unsigned> {
 
 class IntegerConstantType
 {
+  mpz_t _val;
 public:
   static TermList getSort() { return AtomicSort::intSort(); }
 
-  using InnerType = mpz_t;
-
   IntegerConstantType() { mpz_init(_val); }
+  explicit IntegerConstantType(int v) : IntegerConstantType() { mpz_set_si(_val, v); }
+  explicit IntegerConstantType(const std::string& str);
+
   IntegerConstantType(IntegerConstantType     && o) : IntegerConstantType() { mpz_swap(_val, o._val); }
   IntegerConstantType(IntegerConstantType const& o) : IntegerConstantType() {  mpz_set(_val, o._val); }
   IntegerConstantType& operator=(IntegerConstantType     && o) { mpz_swap(_val, o._val); return *this; }
   IntegerConstantType& operator=(IntegerConstantType const& o) {  mpz_set(_val, o._val); return *this; }
+
   ~IntegerConstantType() { mpz_clear(_val); }
-  explicit IntegerConstantType(int v) : IntegerConstantType() { mpz_set_si(_val, v); }
-  explicit IntegerConstantType(const std::string& str);
 
   IntegerConstantType operator+(const IntegerConstantType& num) const;
   IntegerConstantType operator-(const IntegerConstantType& num) const;
@@ -221,7 +222,6 @@ public:
   friend struct RationalConstantType;
   friend void init_mpq(mpq_t out, RationalConstantType const&);
 private:
-  InnerType _val;
   IntegerConstantType operator/(const IntegerConstantType& num) const;
   IntegerConstantType operator%(const IntegerConstantType& num) const;
   MK_CAST_OPS(IntegerConstantType, int)
@@ -265,11 +265,7 @@ struct RationalConstantType {
   RationalConstantType inverse() const { return RationalConstantType(1) / *this; }
   IntegerConstantType floor() const;
   IntegerConstantType ceiling() const;
-  RationalConstantType floorRat() const { return RationalConstantType(floor()); }
-  RationalConstantType ceilingRat() const { return RationalConstantType(this->ceiling()); }
-  RationalConstantType truncate() const { 
-    return RationalConstantType(_num.quotientT(_den));
-  }
+  IntegerConstantType truncate() const { return _num.quotientT(_den); }
 
   bool isInt() const;
 
@@ -342,9 +338,7 @@ public:
   // TODO tidy
   IntegerConstantType floor() const { return this->RationalConstantType::floor(); }
   IntegerConstantType ceiling() const { return this->RationalConstantType::ceiling(); }
-  RealConstantType floorRat() const { return RealConstantType(floor()); }
-  RealConstantType truncate() const { return RealConstantType(RationalConstantType::truncate()); }
-  RealConstantType ceilingRat() const { return RealConstantType(this->RationalConstantType::ceilingRat()); }
+  IntegerConstantType truncate() const { return this->RationalConstantType::truncate(); }
 
 
   Sign sign() const;
