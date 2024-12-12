@@ -74,13 +74,6 @@ protected:
   ArithmeticException(std::string msg) : Exception(msg) {}
 };
 
-class MachineArithmeticException : public ArithmeticException 
-{ 
-public:
-  MachineArithmeticException() : ArithmeticException("machine arithmetic exception"){} 
-  MachineArithmeticException(std::string msg) : ArithmeticException("machine arithmetic exception: " + msg){} 
-};
-
 class DivByZeroException         : public ArithmeticException 
 { 
 public:
@@ -171,8 +164,8 @@ public:
   IntegerConstantType abs() const;
   IntegerConstantType log2() const;
 
-  // might throw an exception
-  int unwrapInt() const;
+  /** turns this integer into an integer if it is small enough to fit into a machine int */
+  Option<int> toInt() const;
 
   static Comparison comparePrecedence(IntegerConstantType n1, IntegerConstantType n2);
   size_t hash() const;

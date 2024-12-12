@@ -112,14 +112,9 @@ IntegerConstantType Kernel::IntegerConstantType::log2() const
 }
 
 
-int Kernel::IntegerConstantType::unwrapInt() const 
-{
-  if (!mpz_fits_sint_p(_val)) {
-    throw MachineArithmeticException("trying to unwrap too big integer");
-  } else {
-    return (int) mpz_get_si(_val);
-  }
-}
+Option<int> Kernel::IntegerConstantType::toInt() const 
+{ return someIf(mpz_fits_sint_p(_val), 
+      [&]() { return (int) mpz_get_si(_val); }); }
 
 /**
  * specification from TPTP:
