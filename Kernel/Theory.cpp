@@ -30,8 +30,10 @@
 #include <cstdio>
 #include <iostream>
 
+#if VMINI_GMP
 #include "mini-gmp.c"
 #include "mini-mpq.c"
+#endif
 
 #include "Theory.hpp"
 
@@ -43,8 +45,10 @@ std::string to_string(mpz_t const& self) {
   return std::string(str);
 }
 
+#if VMINI_GMP
 std::ostream& operator<<(std::ostream& out, mpz_t const& self)
 { return out << to_string(self); }
+#endif
 
 namespace Kernel
 {

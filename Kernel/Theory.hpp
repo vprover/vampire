@@ -28,11 +28,11 @@
 #include "OperatorType.hpp"
 #include "Term.hpp"
 
-#define MINI_GMP 1 // TODO 
-
-#if MINI_GMP
+#if VMINI_GMP
 #include "mini-gmp.h"
 #include "mini-mpq.h"
+#else 
+#include <gmp.h>
 #endif
 
 namespace Kernel {
