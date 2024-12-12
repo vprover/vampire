@@ -28,9 +28,9 @@
 #include "OperatorType.hpp"
 #include "Term.hpp"
 
-#define WITH_GMP 1
+#define MINI_GMP 1 // TODO 
 
-#if WITH_GMP
+#if MINI_GMP
 #include "mini-gmp.h"
 #include "mini-mpq.h"
 #endif
@@ -108,23 +108,15 @@ class IntegerConstantType
 public:
   static TermList getSort() { return AtomicSort::intSort(); }
 
-#if WITH_GMP
   using InnerType = mpz_t;
-#else // !WITH_GMP
-  typedef int InnerType;
-#endif // WITH_GMP
 
   IntegerConstantType() { mpz_init(_val); }
   IntegerConstantType(IntegerConstantType     && o) : IntegerConstantType() { mpz_swap(_val, o._val); }
   IntegerConstantType(IntegerConstantType const& o) : IntegerConstantType() {  mpz_set(_val, o._val); }
   IntegerConstantType& operator=(IntegerConstantType     && o) { mpz_swap(_val, o._val); return *this; }
   IntegerConstantType& operator=(IntegerConstantType const& o) {  mpz_set(_val, o._val); return *this; }
-#if WITH_GMP
   ~IntegerConstantType() { mpz_clear(_val); }
   explicit IntegerConstantType(int v) : IntegerConstantType() { mpz_set_si(_val, v); }
-#else // !WITH_GMP
-  IntegerConstantType(int v) : _val(v) {} // <- not explicit to support legacy code from Theory_int.cpp
-#endif // WITH_GMP
   explicit IntegerConstantType(const std::string& str);
 
   IntegerConstantType operator+(const IntegerConstantType& num) const;
@@ -146,14 +138,6 @@ public:
   IntegerConstantType inverseModulo(IntegerConstantType const& modulus) const;
   IntegerConstantType intDivide(const IntegerConstantType& num) const;
 
-  // TODO remove (?)
-#if !WITH_GMP
-  float realDivide(const IntegerConstantType& num) const { 
-    if(num._val==0) throw DivByZeroException();
-    return ((float)_val)/num._val; 
-  }
-#endif // WITH_GMP
-
   using QR = Kernel::QR<IntegerConstantType>;
 
 #define MK_QR(X)                                                                          \
@@ -168,10 +152,6 @@ public:
   MK_QR(T)
   MK_QR(F)
 
-  [[deprecated("TODO")]]
-  static IntegerConstantType gcd(IntegerConstantType const& lhs, IntegerConstantType const& rhs) { return lhs.gcd(rhs); }
-  [[deprecated("TODO")]]
-  static IntegerConstantType lcm(IntegerConstantType const& lhs, IntegerConstantType const& rhs) { return lhs.lcm(rhs); }
   IntegerConstantType gcd(IntegerConstantType const& rhs) const;
   IntegerConstantType lcm(IntegerConstantType const& rhs) const;
 
@@ -281,11 +261,6 @@ struct RationalConstantType {
   MK_CAST_OPS(RationalConstantType, int)
   MK_CAST_OPS(RationalConstantType, IntegerConstantType)
   MK_CAST_OP(RationalConstantType, /, int)
-
-#if !WITH_GMP
-protected:
-  void init(InnerType num, InnerType den);
-#endif
 
 private:
   void cannonize();

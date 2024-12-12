@@ -86,7 +86,6 @@ z3::expr int_to_z3_expr(IntegerConstantType const& val, UInt64ToExpr toExpr) {
     auto sign = val.sign();
     auto abs = val.abs();
 
-#if WITH_GMP
     // TODO recycled stack
     Stack<uint64_t> digits;
     z3::expr base =  // <- == 2^64
@@ -106,10 +105,6 @@ z3::expr int_to_z3_expr(IntegerConstantType const& val, UInt64ToExpr toExpr) {
       res = toExpr(digits.pop()) + (res * base);
     }
 
-#else // !WITH_GMP
-    static_assert(sizeof(decltype(abs)) <= sizeof(uint64_t), "unexpected inner type for integers");
-    auto res = toExpr(abs);
-#endif
     return sign == Sign::Neg ? -res : res;
 };
 
