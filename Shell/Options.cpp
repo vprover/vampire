@@ -709,6 +709,12 @@ void Options::init()
     _lookup.insert(&_showZ3);
     _showZ3.tag(OptionTag::DEVELOPMENT);
 
+    _problemExportSyntax = ChoiceOptionValue<ProblemExportSyntax>("export_syntax","",ProblemExportSyntax::SMTLIB, {"smtlib", "api_calls",});
+    _problemExportSyntax.description="Set the syntax for exporting z3 problems.";
+    _lookup.insert(&_problemExportSyntax);
+    _problemExportSyntax.tag(OptionTag::DEVELOPMENT);
+    _problemExportSyntax.reliesOn(Or(_exportAvatarProblem.is(notEqual(std::string(""))), _exportThiProblem.is(notEqual(std::string("")))));
+
     _exportAvatarProblem = StringOptionValue("export_avatar","","");
     _exportAvatarProblem.description="Export the avatar problems to solve in smtlib syntax.";
     _lookup.insert(&_exportAvatarProblem);

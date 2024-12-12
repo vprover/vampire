@@ -250,7 +250,7 @@ bool TestUtils::eqModAC(TermList lhs, TermList rhs)
 struct AcRectComp {
   Stack<TermList> const& vl;
   Stack<TermList> const& vr;
-  DArray<unsigned>& perm;
+  DArray<unsigned> const& perm;
 
   bool var(unsigned lhs, unsigned rhs) const 
   { 
