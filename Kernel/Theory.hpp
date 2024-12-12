@@ -321,18 +321,18 @@ public:
   explicit RealConstantType(int number) : RealConstantType(RationalConstantType(number)) {}
   RealConstantType(typename RationalConstantType::InnerType  num, typename RationalConstantType::InnerType den) : RealConstantType(RationalConstantType(num, den)) {}
 
-  RealConstantType operator+(const RealConstantType& num) const
-  { return RealConstantType(RationalConstantType::operator+(num)); }
-  RealConstantType operator-(const RealConstantType& num) const
-  { return RealConstantType(RationalConstantType::operator-(num)); }
+#define BIN_OP_FROM_RAT(op) \
+  RealConstantType operator op(const RealConstantType& num) const \
+  { return RealConstantType(RationalConstantType::operator op(num)); } \
+
+  BIN_OP_FROM_RAT(+)
+  BIN_OP_FROM_RAT(-)
+  BIN_OP_FROM_RAT(*)
+  BIN_OP_FROM_RAT(/)
+
   RealConstantType operator-() const
   { return RealConstantType(RationalConstantType::operator-()); }
-  RealConstantType operator*(const RealConstantType& num) const
-  { return RealConstantType(RationalConstantType::operator*(num)); }
-  RealConstantType operator/(const RealConstantType& num) const
-  { return RealConstantType(RationalConstantType::operator/(num)); }
 
-  // TODO tidy
   IntegerConstantType floor() const { return this->RationalConstantType::floor(); }
   IntegerConstantType ceiling() const { return this->RationalConstantType::ceiling(); }
   IntegerConstantType truncate() const { return this->RationalConstantType::truncate(); }
@@ -346,15 +346,9 @@ public:
   size_t hash() const;
   static Comparison comparePrecedence(RealConstantType n1, RealConstantType n2);
 
-  /** 
-   * returns the internal represenation of this RealConstantType. 
-   * 
-   * Currently we represent Reals as Rationals. We might
-   * change this representation in the future in order to represent numerals other algebraic numbers (e.g.  sqrt(2)). 
-   * In order to make this future proof this function is called in places where we rely on the representation of reals,
-   * so we get a compiler error if we change the underlying datatype.
-   */
-  RationalConstantType representation() const;
+  /* currently we only represent rational numerals */ 
+  bool isRat() const { return true;  }
+
   RealConstantType inverse() const { return RealConstantType(1) / *this; }
 
   friend std::ostream& operator<<(std::ostream& out, const RealConstantType& val);

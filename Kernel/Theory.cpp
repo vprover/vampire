@@ -152,10 +152,6 @@ RationalConstantType RationalConstantType::abs() const
   return RationalConstantType(_num.abs(), _den);
 }
 
-// TODO get rid of this?
-RationalConstantType RealConstantType::representation() const
-{ return *this; }
-
 RealConstantType RealConstantType::abs() const
 {
   return RealConstantType(RationalConstantType(*this).abs());
