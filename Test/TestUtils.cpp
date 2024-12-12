@@ -278,7 +278,7 @@ bool TestUtils::eqModACRect(Kernel::TermList lhs, Kernel::TermList rhs)
 
   if (vl.size() != vr.size()) return false;
 
-  return anyPerm(vl.size(), [&](DArray<unsigned> const& perm) {
+  return anyPerm(vl.size(), [&](auto const& perm) {
     AcRectComp c {vl, vr, perm};
     return eqModAC_(lhs, rhs, c);
   });

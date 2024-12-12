@@ -1385,9 +1385,7 @@ bool Theory::isInterpretedNumber(TermList t)
  * Return true iff @b pred is an interpreted predicate
  */
 bool Theory::isInterpretedPredicate(unsigned pred)
-{
-  return env.signature->getPredicate(pred)->interpreted();
-}
+{ return env.signature->getPredicate(pred)->interpreted(); }
 
 /**
  * Return true iff @b lit has an interpreted predicate
@@ -1413,9 +1411,9 @@ bool Theory::isInterpretedPredicate(Literal* lit)
 }
 
 
-bool Theory::isInterpretedPredicate(unsigned lit, Interpretation itp)
+bool Theory::isInterpretedPredicate(unsigned pred, Interpretation itp)
 {
-  return isInterpretedPredicate(lit) && interpretPredicate(lit)==itp;
+  return isInterpretedPredicate(pred) && interpretPredicate(pred) == itp;
 }
 
 /**

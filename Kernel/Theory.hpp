@@ -568,7 +568,7 @@ public:
       other interpreted predicate.
    */
   bool isInterpretedPredicate(unsigned pred);
-
+    
   bool isInterpretedEquality(Literal* lit);
   bool isInterpretedPredicate(Literal* lit, Interpretation itp);
   bool isInterpretedPredicate(unsigned pred, Interpretation itp);

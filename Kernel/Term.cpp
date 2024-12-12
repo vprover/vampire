@@ -121,7 +121,7 @@ bool TermList::isSafe() const
 }
 
 bool TermList::ground() const 
-{ return !isVar() && term()->ground(); }
+{ return isTerm() && term()->ground(); }
 
 /**
  * Return true if @b ss and @b tt have the same top symbols, that is,
@@ -727,6 +727,7 @@ std::string Term::toString(bool topLevel) const
         return uminus();
       }
     }
+    /* this means we have an uninterpteted term which will be formatted as usual */
     return Option<std::string>();
   });
 
