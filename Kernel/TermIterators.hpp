@@ -50,7 +50,8 @@ public:
     std::swap(_aux[0], other._aux[0]);
     std::swap(_aux[1], other._aux[1]);
     if (_stack.size() >= 1 && _stack[0] == &other._aux[1]) {
-      // fix pointer pointing into this object
+      // other->_stack[0] might contain a reference to other->_aux[1] (an efficiency hack you can see being used in the constructors)
+      // So in order to perform proper move semantics and not tun into use after free issues, we need to make the pointer point into this->_aux[1]
       ASS(_aux[0].isEmpty())
       _stack[0] = &_aux[1];
     }
@@ -62,6 +63,7 @@ public:
   VariableIterator(const Term* term) : _stack(8), _used(false)
   {
     if(term->isLiteral() && static_cast<const Literal*>(term)->isTwoVarEquality()){
+      /* a hack to make iteration faster (?) */
       _aux[0] = TermList::empty();
       _aux[1]=static_cast<const Literal*>(term)->twoVarEqSort();
       _stack.push(&_aux[1]);      
@@ -74,6 +76,7 @@ public:
   VariableIterator(TermList t) : _stack(8), _used(false)
   {
     if(t.isVar()) {
+      /* a hack to make iteration faster (?) */
       _aux[0] = TermList::empty();
       _aux[1]=t;
       _stack.push(&_aux[1]);
@@ -105,6 +108,7 @@ public:
     _stack.reset();
     _used = false;
     if(t.isVar()) {
+      /* a hack to make iteration faster (?) */
       _aux[0] = TermList::empty();
       _aux[1]=t;
       _stack.push(&_aux[1]);
