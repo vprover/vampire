@@ -87,11 +87,8 @@ public:
     std::vector<torch::jit::IValue> inputs;
     inputs.push_back(src_name);
     inputs.push_back(tgt_name);
-    auto src_idxs_t = torch::tensor(src_idxs,torch::TensorOptions().dtype(torch::kInt64));
-    auto tgt_idxs_t = torch::tensor(tgt_idxs,torch::TensorOptions().dtype(torch::kInt64));
-    inputs.push_back(torch::stack({src_idxs_t,tgt_idxs_t}));
-    // we always also want the opposite egde, and we already prepare its edge index here
-    inputs.push_back(torch::stack({tgt_idxs_t,src_idxs_t}));
+    inputs.push_back(src_idxs);
+    inputs.push_back(tgt_idxs);
     (*m)(std::move(inputs));
   }
 

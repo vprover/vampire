@@ -857,8 +857,16 @@ fin:
 void SaturationAlgorithm::runGnnOnInput()
 {
   TIME_TRACE("gnn-eval");
-  { // sorts
-    torch::Tensor sort_features = torch::empty({env.signature->typeCons(),3}, torch::kFloat32);
+
+  unsigned numPreds = env.signature->predicates(); // works as a offset for function symbols (Shall we have problems with predicates introduced during saturation?)
+  unsigned numFuncs = env.signature->functions();
+
+  // these guy must survive (in memory) until the gnnPerform call
+  torch::Tensor sort_features = torch::empty({env.signature->typeCons(),3}, torch::kFloat32);
+  torch::Tensor symbol_features = torch::empty({numPreds+numFuncs,10}, torch::kFloat32);
+
+  // sorts
+  {
     float* sort_features_ptr = sort_features.data_ptr<float>();
 
     for (unsigned t = 0; t < env.signature->typeCons(); t++) {
@@ -875,11 +883,8 @@ void SaturationAlgorithm::runGnnOnInput()
     _neuralModel->gnnNodeKind("sort",sort_features);
   }
 
-  unsigned numPreds = env.signature->predicates(); // works as a offset for function symbols (Shall we have problems with predicates introduced during saturation?)
+  // symbols
   {
-    unsigned numFuncs = env.signature->functions();
-
-    torch::Tensor symbol_features = torch::empty({numPreds+numFuncs,10}, torch::kFloat32);
     float* symbol_features_ptr = symbol_features.data_ptr<float>();
 
     vector<int64_t> symb2sort_one; // the symbs
@@ -999,7 +1004,7 @@ void SaturationAlgorithm::runGnnOnInput()
     Term* trm;        // the term to iterate through
     unsigned id;      // its id (for reporting edges)
     OperatorType* ot; // trm's operator type (careful, can't be used for twoVarEquality)
-    int idx = 0; // index into t's own subterms, when idx >= arity, we are done with this Todo
+    unsigned idx = 0; // index into t's own subterms, when idx >= arity, we are done with this Todo
   };
 
   auto term_features_for_vars_and_weight = [&term_features](Term* t) {
@@ -1131,9 +1136,15 @@ void SaturationAlgorithm::runGnnOnInput()
     clauseId++;
   }
 
-  _neuralModel->gnnNodeKind("clause",torch::tensor(clause_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({clauseId,10}));
-  _neuralModel->gnnNodeKind("term",torch::tensor(term_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({subtermId,10}));
-  _neuralModel->gnnNodeKind("var",torch::tensor(var_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({clVarId,1}));
+  // also here we (paranoidly) assume that the script module might not take any ownershipe of these tensors ...
+  auto clause_features_t = torch::tensor(clause_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({clauseId,10});
+  auto term_features_t = torch::tensor(term_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({subtermId,10});
+  auto var_features_t = torch::tensor(var_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({clVarId,1});
+  // ... and so want to have them in scope until the gnnPerform call
+
+  _neuralModel->gnnNodeKind("clause",clause_features_t);
+  _neuralModel->gnnNodeKind("term",term_features_t);
+  _neuralModel->gnnNodeKind("var",var_features_t);
 
   _neuralModel->gnnEdgeKind("clause","term",cls2trm_one,cls2trm_two);
   _neuralModel->gnnEdgeKind("term","term",trm2trm_one,trm2trm_two);      // the sub-term (down) edges
