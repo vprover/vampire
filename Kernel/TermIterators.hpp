@@ -36,7 +36,20 @@ namespace Kernel {
  * - This iterator returns sort variables
  * - If the sort of the returned variables is required, please
  *   use VariableIterator2 below, having read its documentation.
- */
+ *
+ *   #hack 1:
+ *   A comment on the implementation and the member _aux:
+ *   iteration is done dfs using a _stack of TermList* which can all be iterated using TermList::next.
+ *   This is all fine and easy as long as we want to iterate the arguments of some Term* or Literal*.
+ *   But if we want to iterate some `TermList` that is not an argument of a Term* we need to somehow make 
+ *   it still conform with the invariants expected by `TermList::next` (i.e. it being a pointer with 
+ *   an adress where all the adresses before being TermList s as well and the list of TermLists before 
+ *   the current adress is terminated by an empty TermList).
+ *   In order to achieve this the stack _aux is used, which is populated with whatever thing we want to 
+ *   iterate that is not an argument to a Term*, and then a pointer to that thing is passed pushed onto 
+ *   the _stack.  This means though that stack might contain pointers to TermList s that do not live on 
+ *   heap but within this object. Thus we need to account for this in our move constructors.
+ */ 
 class VariableIterator
 : public IteratorCore<TermList>
 {
@@ -50,8 +63,7 @@ public:
     std::swap(_aux[0], other._aux[0]);
     std::swap(_aux[1], other._aux[1]);
     if (_stack.size() >= 1 && _stack[0] == &other._aux[1]) {
-      // other->_stack[0] might contain a reference to other->_aux[1] (an efficiency hack you can see being used in the constructors)
-      // So in order to perform proper move semantics and not tun into use after free issues, we need to make the pointer point into this->_aux[1]
+      // see #hack 1
       ASS(_aux[0].isEmpty())
       _stack[0] = &_aux[1];
     }
@@ -63,7 +75,7 @@ public:
   VariableIterator(const Term* term) : _stack(8), _used(false)
   {
     if(term->isLiteral() && static_cast<const Literal*>(term)->isTwoVarEquality()){
-      /* a hack to make iteration faster (?) */
+      // see #hack 1
       _aux[0] = TermList::empty();
       _aux[1]=static_cast<const Literal*>(term)->twoVarEqSort();
       _stack.push(&_aux[1]);      
@@ -76,7 +88,7 @@ public:
   VariableIterator(TermList t) : _stack(8), _used(false)
   {
     if(t.isVar()) {
-      /* a hack to make iteration faster (?) */
+      // see #hack 1
       _aux[0] = TermList::empty();
       _aux[1]=t;
       _stack.push(&_aux[1]);
@@ -94,6 +106,7 @@ public:
     _stack.reset();
     _used = false;
     if(term->isLiteral() && static_cast<const Literal*>(term)->isTwoVarEquality()){
+      // see #hack 1
       _aux[0] = TermList::empty();
       _aux[1]=static_cast<const Literal*>(term)->twoVarEqSort();
       _stack.push(&_aux[1]);      
@@ -135,6 +148,7 @@ public:
 private:
   Stack<const TermList*> _stack;
   bool _used;
+  // see #hack 1
   TermList _aux[2];
 };
 
