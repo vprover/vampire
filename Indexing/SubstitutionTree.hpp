@@ -1457,13 +1457,13 @@ public:
          */
         template<class LD>
         typename SubstitutionTree<LD>::NodeIterator selectPotentiallyUnifiableChildren(typename SubstitutionTree<LD>::IntermediateNode* n)
-        { return _selectPotentiallyUnifiableChildren<LD>(n, _subs, _internalBank); }
+        { return _selectPotentiallyUnifiableChildren<LD>(n, _subs, _normInternalBank); }
 
         template<class LD>
-        static typename SubstitutionTree<LD>::NodeIterator _selectPotentiallyUnifiableChildren(typename SubstitutionTree<LD>::IntermediateNode* n, RobSubstitution& subs, unsigned internalBank)
+        static typename SubstitutionTree<LD>::NodeIterator _selectPotentiallyUnifiableChildren(typename SubstitutionTree<LD>::IntermediateNode* n, RobSubstitution& subs, unsigned normInternalBank)
         {
           unsigned specVar=n->childVar;
-          auto top = subs.getSpecialVarTop(specVar, internalBank);
+          auto top = subs.getSpecialVarTop(specVar, normInternalBank);
           if(top.var()) {
             return n->allChildren();
           } else {
@@ -1537,11 +1537,11 @@ public:
         { return !_fixedPointIteration || unifier()->fixedPointIteration(); }
 
         template<class LD>
-        static typename SubstitutionTree<LD>::NodeIterator _selectPotentiallyUnifiableChildren(typename SubstitutionTree<LD>::IntermediateNode* n, AbstractingUnifier& unif, unsigned internalBank)
+        static typename SubstitutionTree<LD>::NodeIterator _selectPotentiallyUnifiableChildren(typename SubstitutionTree<LD>::IntermediateNode* n, AbstractingUnifier& unif, unsigned normInternalBank)
         {
           if (unif.usesUwa()) {
             unsigned specVar = n->childVar;
-            auto top = unif.subs().getSpecialVarTop(specVar, internalBank);
+            auto top = unif.subs().getSpecialVarTop(specVar, normInternalBank);
 
             if(top.var()) {
               return n->allChildren();
@@ -1559,13 +1559,13 @@ public:
               }
             }
           } else {
-            return RobUnification::template _selectPotentiallyUnifiableChildren<LD>(n, unif.subs(), internalBank);
+            return RobUnification::template _selectPotentiallyUnifiableChildren<LD>(n, unif.subs(), normInternalBank);
           }
         }
 
         template<class LD>
         typename SubstitutionTree<LD>::NodeIterator selectPotentiallyUnifiableChildren(typename SubstitutionTree<LD>::IntermediateNode* n)
-        { return _selectPotentiallyUnifiableChildren<LD>(n, *unifier(), _internalBank); }
+        { return _selectPotentiallyUnifiableChildren<LD>(n, *unifier(), _normInternalBank); }
         friend std::ostream& operator<<(std::ostream& out, UnificationWithAbstraction const& self)
         { return out << *self.unifier(); }
       };
