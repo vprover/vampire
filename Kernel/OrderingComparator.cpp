@@ -478,9 +478,15 @@ bool OrderingComparator::fourierMotzkin(LinearConstraints linCons)
         }
       }
       if (containsX) {
-        // we eliminate x with c ⋅ x + P = 0 from expression d ⋅ x + Q
-        // by creating c(d ⋅ x + Q) - d(c ⋅ x + P)
-        Q = Q->add(c, P, -d);
+        // we eliminate x with c ⋅ x + P = 0 from expression d ⋅ x + Q ≥ 0
+        // if c > 0, by creating c(d ⋅ x + Q) - d(c ⋅ x + P) ≥ 0
+        if (c > 0) {
+          Q = Q->add(c, P, -d);
+        }
+        // if c < 0, by creating -c(d ⋅ x + Q) + d(c ⋅ x + P) ≥ 0
+        else {
+          Q = Q->add(-c, P, d);
+        }
       }
     }
     std::swap(linCons[i],linCons.top());
@@ -644,9 +650,34 @@ void OrderingComparator::processPolyCase()
     polyIt = polyIt.first->prevPoly;
   }
 
-  // for (const auto& [var, coeff] : poly->varCoeffPairs) {
-  //   // TODO collect constraints for variables
-  // }
+  if (trace) {
+    for (const auto& [var, coeff] : poly->varCoeffPairs) {
+      auto trs = trace->collectForVariable(TermList::var(var));
+      for (const auto& [t,r] : trs) {
+        // TODO turn terms into polynomials with KBO
+        if (t.isTerm()) {
+          env.statistics->intDBDownInduction++;
+          continue;
+        }
+        switch (r) {
+          case Ordering::GREATER:
+            // x > y → |x| - |y| ≥ 0
+            linCons.push({ Polynomial::get(0, { { var, 1 }, { t.var(), -1 } }), LCSign::GEQ });
+            break;
+          case Ordering::EQUAL:
+            // x = y → |x| - |y| = 0
+            linCons.push({ Polynomial::get(0, { { var, 1 }, { t.var(), -1 } }), LCSign::EQ });
+            break;
+          case Ordering::LESS:
+            // x < y → |y| - |x| ≥ 0
+            linCons.push({ Polynomial::get(0, { { var, -1 }, { t.var(), 1 } }), LCSign::GEQ });
+            break;
+          default:
+            break;
+        }
+      }
+    }
+  }
 
   if (linCons.isNonEmpty()) {
     linCons.push({ poly, LCSign::GT });

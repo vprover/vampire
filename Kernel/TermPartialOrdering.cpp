@@ -262,24 +262,27 @@ bool TermPartialOrdering::get(TermList lhs, TermList rhs, Result& res) const
   }
 }
 
-bool TermPartialOrdering::set(Ordering::Constraint con)
+Stack<std::pair<TermList,Result>> TermPartialOrdering::collectForVariable(TermList var) const
 {
-  size_t x = idx_of_elem_ext(con.lhs);
-  size_t y = idx_of_elem_ext(con.rhs);
+  Stack<std::pair<TermList,Result>> res;
+  if (!_nodes.find(var)) {
+    return res;
+  }
+  size_t x = idx_of_elem(var);
 
-  bool reversed = x > y;
-  if (reversed) {
-    swap(x,y);
+  decltype(_nodes)::Iterator it(_nodes);
+  while (it.hasNext()) {
+    auto& e = it.next();
+    if (var == e.key()) {
+      continue;
+    }
+    auto val = _po->get(x,e.value());
+    if (val == PoComp::UNKNOWN) {
+      continue;
+    }
+    res.push({ e.key(), poCompToResult(val) });
   }
-  PoComp new_val = resultToPoComp(con.rel, reversed);
-  _po = PartialOrdering::set(_po, x, y, new_val);
-  if (!_po) {
-    return false;
-  }
-#if DEBUG_ORDERING
-  // debug_check();
-#endif
-  return true;
+  return res;
 }
 
 bool TermPartialOrdering::hasIncomp() const
@@ -307,6 +310,26 @@ const TermPartialOrdering* TermPartialOrdering::set(const TermPartialOrdering* t
     }
   }
   return *ptr;
+}
+
+bool TermPartialOrdering::set(Ordering::Constraint con)
+{
+  size_t x = idx_of_elem_ext(con.lhs);
+  size_t y = idx_of_elem_ext(con.rhs);
+
+  bool reversed = x > y;
+  if (reversed) {
+    swap(x,y);
+  }
+  PoComp new_val = resultToPoComp(con.rel, reversed);
+  _po = PartialOrdering::set(_po, x, y, new_val);
+  if (!_po) {
+    return false;
+  }
+#if DEBUG_ORDERING
+  // debug_check();
+#endif
+  return true;
 }
 
 size_t TermPartialOrdering::idx_of_elem(TermList t) const

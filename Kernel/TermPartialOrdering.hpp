@@ -34,7 +34,7 @@ public:
   ~TermPartialOrdering() = default;
 
   bool get(TermList lhs, TermList rhs, Result& res) const;
-  bool set(Ordering::Constraint con);
+  Stack<std::pair<TermList,Result>> collectForVariable(TermList var) const;
 
   static const TermPartialOrdering* getEmpty(const Ordering& ord);
   static const TermPartialOrdering* set(const TermPartialOrdering* tpo, Ordering::Constraint con);
@@ -47,6 +47,8 @@ public:
   std::string to_nice_string() const;
 
 private:
+  bool set(Ordering::Constraint con);
+
   PoComp get_one_external(TermList t, size_t idx) const;
   PoComp get_two_external(TermList t1, TermList t2) const;
 
