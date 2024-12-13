@@ -404,19 +404,11 @@ void OrderingComparator::expand()
         *_curr = Branch(node->data, node->alternative);
       }
       _curr->node()->trace = getCurrentTrace();
+      _curr->node()->prevPoly = getPrevPoly();
       _curr->node()->ready = true;
       return;
     }
     if (node->tag == BranchTag::T_POLY) {
-      // if refcnt > 1 we copy the node and
-      // we can also safely use the original
-      if (node->refcnt > 1) {
-        *_curr = Branch(node->poly);
-        _curr->node()->eqBranch = node->eqBranch;
-        _curr->node()->gtBranch = node->gtBranch;
-        _curr->node()->ngeBranch = node->ngeBranch;
-      }
-
       processPolyCase();
       continue;
     }
@@ -499,9 +491,48 @@ void OrderingComparator::processPolyCase()
     *_curr = node->ngeBranch;
     return;
   }
-  node->poly = Polynomial::get(constant, vcs);
-  node->ready = true;
-  node->trace = trace;
+  auto poly = Polynomial::get(constant, vcs);
+  auto prevPoly = getPrevPoly();
+
+  // check if we have seen this polynomial
+  // on the path leading here
+  auto polyIt = prevPoly;
+  while (polyIt.first) {
+    ASS_EQ(polyIt.first->tag, BranchTag::T_POLY);
+    if (polyIt.first->poly == poly) {
+      switch (polyIt.second) {
+        case Ordering::GREATER: {
+          *_curr = node->gtBranch;
+          return;
+        }
+        case Ordering::EQUAL: {
+          *_curr = node->eqBranch;
+          return;
+        }
+        case Ordering::INCOMPARABLE: {
+          *_curr = node->ngeBranch;
+          return;
+        }
+        default:
+          break;
+      }
+    }
+    polyIt = polyIt.first->prevPoly;
+  }
+
+  // if refcnt > 1 we copy the node and
+  // we can also safely use the original
+  if (node->refcnt > 1) {
+    *_curr = Branch(node->poly);
+    _curr->node()->eqBranch = node->eqBranch;
+    _curr->node()->gtBranch = node->gtBranch;
+    _curr->node()->ngeBranch = node->ngeBranch;
+  }
+
+  _curr->node()->poly = poly;
+  _curr->node()->prevPoly = prevPoly;
+  _curr->node()->trace = trace;
+  _curr->node()->ready = true;
 }
 
 void OrderingComparator::processVarCase()
@@ -554,6 +585,7 @@ void OrderingComparator::processVarCase()
     _curr->node()->ngeBranch = node->ngeBranch;
   }
   _curr->node()->ready = true;
+  _curr->node()->prevPoly = getPrevPoly();
   _curr->node()->trace = trace;
 }
 
@@ -618,6 +650,29 @@ const OrderingComparator::Trace* OrderingComparator::getCurrentTrace()
     }
   }
   ASSERTION_VIOLATION;
+}
+
+std::pair<OrderingComparator::Node*, Ordering::Result> OrderingComparator::getPrevPoly()
+{
+  auto res = make_pair((Node*)nullptr, Ordering::INCOMPARABLE);
+  if (_prev) {
+    // take value from previous node by default
+    res = _prev->node()->prevPoly;
+
+    // override value if the previous is a poly node 
+    if (_prev->node()->tag == BranchTag::T_POLY) {
+      res.first = _prev->node();
+      if (_curr == &_prev->node()->gtBranch) {
+        res.second = Ordering::GREATER;
+      } else if (_curr == &_prev->node()->eqBranch) {
+        res.second = Ordering::EQUAL;
+      } else {
+        ASS_EQ(_curr, &_prev->node()->ngeBranch);
+        res.second = Ordering::INCOMPARABLE;
+      }
+    }
+  }
+  return res;
 }
 
 OrderingComparator::Branch::~Branch()
