@@ -40,31 +40,34 @@ const int UNBOUND_INDEX=-1;
 
 namespace Kernel
 {
+
 struct VarSpec
 {
   VarSpec() {}
-  VarSpec(TermList var, int index) : var(var.var()), special(var.isSpecialVar()), index(index) {}
+  VarSpec(TermList var, int index) : _code( 2 * var.var() + uint32_t(var.isSpecialVar()) ), index(index) {}
 
   friend std::ostream& operator<<(std::ostream& out, VarSpec const& self);
 
-  /** number of variable */
-  unsigned var : 31;
-  bool special : 1;
+  /* we can store the variable + one bit to indicate whether it's a there is only 22 bits for variable number used in TermList */
+  uint32_t _code;
   /** index of variable bank */
   int index;
+  bool special() const { return _code % 2; }
+  unsigned var() const { return _code / 2; }
+  TermList varAsTermlist() const { return TermList::var(var(), special()); }
 
-  auto asTuple() const { return std::make_tuple(var * 2 + unsigned(special), index); }
+  auto asTuple() const { return std::tie(_code, index); }
   IMPL_COMPARISONS_FROM_TUPLE(VarSpec)
 
-  unsigned defaultHash () const { return HashUtils::combine(var  , index, special); }
-  unsigned defaultHash2() const { return HashUtils::combine(index, var  , special); }
+  unsigned defaultHash () const { return HashUtils::combine(_code, index); }
+  unsigned defaultHash2() const { return HashUtils::combine(index, _code); }
 };
 
 struct TermSpec {
   TermSpec() {}
 
   TermSpec(TermList t, int i) : term(t), index(t.isTerm() && t.term()->shared() && t.ground() ? 0 : i) {}
-  TermSpec(VarSpec v) : term(TermList::var(v.var)), index(v.index) {}
+  TermSpec(VarSpec v) : term(v.varAsTermlist()), index(v.index) {}
 
   auto asTuple() const -> decltype(auto) { return std::tie(term, index); }
   IMPL_COMPARISONS_FROM_TUPLE(TermSpec)
@@ -367,17 +370,17 @@ public:
       } else if (*index == GLUE_INDEX) {
         args->push(arg.index == GLUE_INDEX 
                     ? arg.term 
-                    : TermList::var(introGlueVar(arg).var));
+                    : introGlueVar(arg).varAsTermlist());
       } else {
         if (arg.index == *index) {
           args->push(arg.term);
         } else {
           // two different indices present
           for (auto i : range(0, args->size())) {
-            (*args)[i] = TermList::var(introGlueVar(TermSpec((*args)[i], *index)).var);
+            (*args)[i] = introGlueVar(TermSpec((*args)[i], *index)).varAsTermlist();
           }
           index = some(GLUE_INDEX);
-          args->push(TermList::var(introGlueVar(arg).var));
+          args->push(introGlueVar(arg).varAsTermlist());
         }
       }
     }
@@ -433,13 +436,13 @@ public:
   friend std::ostream& operator<<(std::ostream& out, VarSpec const& self)
   {
     if(self.index == GLUE_INDEX) {
-      return out << "G" << (self.special ? "S" : "") << self.var;
+      return out << "G" << (self.special() ? "S" : "") << self.var();
 
     } else if(self.index == UNBOUND_INDEX) {
-      return out << "U" << (self.special ? "S" : "") << self.var;
+      return out << "U" << (self.special() ? "S" : "") << self.var();
 
     } else {
-      return out << (self.special ? "S" : "X") << self.var << "/" << self.index;
+      return out << (self.special() ? "S" : "X") << self.var() << "/" << self.index;
     }
   }
 

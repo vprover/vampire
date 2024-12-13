@@ -205,7 +205,7 @@ VarSpec RobSubstitution::introGlueVar(TermSpec forTerm)
     return VarSpec(TermList::var(*old), GLUE_INDEX);
   } else {
     auto v = VarSpec(TermList::var(_nextGlueAvailable++), GLUE_INDEX);
-    _gluedTerms.insert(forTerm, v.var);
+    _gluedTerms.insert(forTerm, v.var());
     if (bdIsRecording()) {
       bdAdd(BacktrackObject::fromClosure([this, forTerm](){
         _nextGlueAvailable--;

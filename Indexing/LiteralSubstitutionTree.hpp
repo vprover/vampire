@@ -17,6 +17,7 @@
 #define __LiteralSubstitutionTree__
 
 #include "Indexing/Index.hpp"
+#include "Lib/STL.hpp"
 #include "Kernel/UnificationWithAbstraction.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/VirtualIterator.hpp"
@@ -99,27 +100,18 @@ private:
                                  [&]() { return iter(/* reverse */ false); },
                                  [&]() { return concatIters(iter(/* reverse */ false), iter(/* reverse */ true)); }); }
         );
-    // if (tree.isEmpty()) {
-    //
-    // }
-
-    // return ifElseIter(
-    //     !lit->commutative(),
-    //     [&]() { return iter( /* reversed */ false); },
-    //     [&]() { return concatIters(
-    //                 iter( /* reversed */ false),
-    //                 iter( /* reversed */ true)
-    //                 ); }
-    //     );
   }
 
 public:
 
   VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) final override
-  { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction>>(lit, complementary, /* retrieveSubstitutions */ true, subsTreeQueryBank(0), subsTreeNormResultBank(0), subsTreeResultBank(0), AbstractionOracle(uwa), fixedPointIteration)); }
+  { 
+    auto unif = Lib::make_shared(AbstractingUnifier::empty(AbstractionOracle(uwa)));
+    return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction<AbstractingUnifier*>>>(lit, complementary, /* retrieveSubstitutions */ true,  unif.get(), subsTreeQueryBank(0), subsTreeNormResultBank(0), subsTreeResultBank(0), AbstractionOracle(uwa), fixedPointIteration)
+        .store(std::move(unif))); }
 
   VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(AbstractingUnifier* state, Literal* lit, int queryBank, int normInternalBank, int internalBank, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
-  { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction>>(lit, /* complementar*/ false, /* retrieveSubstitutions */ true, state, queryBank, normInternalBank, internalBank, AbstractionOracle(uwa), fixedPointIteration)); }
+  { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction<AbstractingUnifier*>>>(lit, /* complementar*/ false, /* retrieveSubstitutions */ true, state, queryBank, normInternalBank, internalBank, AbstractionOracle(uwa), fixedPointIteration)); }
 
   friend std::ostream& operator<<(std::ostream& out, LiteralSubstitutionTree const& self)
   { 

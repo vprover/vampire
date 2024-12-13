@@ -1200,7 +1200,7 @@ public:
 
       template<class TermOrLit, class...AlgoArgs>
       void init(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, AlgoArgs... args) {
-        _algo.init(args...);
+        _algo.init(std::move(args)...);
         _retrieveSubstitution = retrieveSubstitution;
         _leafData = {};
         _normalizationRecording = false;
@@ -1223,8 +1223,8 @@ public:
 
       template<class TermOrLit, class...AlgoArgs>
       Iterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed, AlgoArgs... args)
-       : _algo(args...)
-      { init(parent, root, query, retrieveSubstitution, reversed, args...); }
+       : _algo()
+      { init(parent, root, query, retrieveSubstitution, reversed, std::move(args)...); }
 
 
       ~Iterator()
@@ -1383,14 +1383,14 @@ public:
    */ 
   namespace RetrievalAlgorithms {
 
+      // #ALGO
       class RobUnification { 
         RobSubstitution _subs;
         unsigned _queryBank;
         unsigned _normInternalBank;
         unsigned _internalBank;
       public:
-        template<class... Args>
-        RobUnification(Args... args)  { init(std::move(args)...); }
+        RobUnification() { }
 
         void init(int queryBank, int normInternalBank, int internalBank) { 
           _subs.reset(); 
@@ -1482,31 +1482,30 @@ public:
 
       };
 
+
+      // #ALGO
+      /* AU is either an AbstractingUnifier* or an AbstractingUnifier */
+      template<class AU>
       class UnificationWithAbstraction { 
-        AbstractingUnifier* _externalUnif;
-        AbstractingUnifier _internalUnif;
+        AU _unif;
         bool _fixedPointIteration;
         unsigned _queryBank;
         unsigned _normInternalBank;
         unsigned _internalBank;
       public:
-        template<class... Args>
-        UnificationWithAbstraction(Args... args) 
-          : _internalUnif(AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF))) 
-        { init(std::move(args)...); }
+        UnificationWithAbstraction() {}
+        // template<class... Args> UnificationWithAbstraction(Args... args) { init(std::move(args)...); }
 
-        void init(int queryBank, int normInternalBank, int internalBank, AbstractionOracle ao, bool fixedPointIteration)
-        { init(nullptr, queryBank, normInternalBank, internalBank, ao, fixedPointIteration); }
+        // void init(int queryBank, int normInternalBank, int internalBank, AbstractionOracle ao, bool fixedPointIteration)
+        // { init(nullptr, queryBank, normInternalBank, internalBank, ao, fixedPointIteration); }
 
-        void init(AbstractingUnifier* externalUnif, int queryBank, int normInternalBank, int internalBank, AbstractionOracle ao, bool fixedPointIteration) { 
+        void init(AU unif, int queryBank, int normInternalBank, int internalBank, AbstractionOracle ao, bool fixedPointIteration) { 
           _queryBank = queryBank;
           _normInternalBank = normInternalBank;
           _internalBank = internalBank;
-          _externalUnif = externalUnif;
-          if (externalUnif) {
-            _externalUnif->setAo(ao);
-          }
-          _internalUnif.init(ao);
+          _unif = std::move(unif);
+          // TODO set ao outside (?)
+          unifier()->setAo(ao);
           _fixedPointIteration = fixedPointIteration;
         }
 
@@ -1515,11 +1514,13 @@ public:
         bool associate(unsigned specialVar, TermList node)
         { return unifier()->unify(TermList(specialVar, /* special */ true), _normInternalBank, node, _normInternalBank); }
 
-        AbstractingUnifier const *unifier() const
-        { return _externalUnif != nullptr ? _externalUnif : &_internalUnif; }
+        AbstractingUnifier const* unifier() const { return unifier(_unif); }
+        AbstractingUnifier      * unifier()       { return unifier(_unif); }
 
-        Unifier unifier()
-        { return _externalUnif != nullptr ? _externalUnif : &_internalUnif; }
+        AbstractingUnifier      * unifier(AbstractingUnifier      & u)       { return &u; }
+        AbstractingUnifier const* unifier(AbstractingUnifier const& u) const { return &u; }
+        AbstractingUnifier      * unifier(AbstractingUnifier      * u)       { return u; }
+        AbstractingUnifier const* unifier(AbstractingUnifier      * u) const { return u; }
 
         void bindQuerySpecialVar(unsigned var, TermList term)
         { unifier()->subs().bindSpecialVar(var, _normInternalBank, term, _queryBank); }
