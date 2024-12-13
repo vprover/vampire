@@ -57,6 +57,19 @@ protected:
   struct Node;
   struct Polynomial;
 
+  struct LinearConstraint {
+    const Polynomial* poly;
+    enum class Sign {
+      EQ,
+      GEQ,
+      GT,
+    } sign;
+  };
+  using LinearConstraints = Stack<LinearConstraint>;
+  using LCSign = LinearConstraint::Sign;
+
+  bool fourierMotzkin(LinearConstraints linCons);
+
   struct Branch {
     Node* node() const { return _node; }
     void setNode(Node* node) {
@@ -89,6 +102,8 @@ protected:
   friend std::ostream& operator<<(std::ostream& out, const Node& node);
   friend std::ostream& operator<<(std::ostream& out, const BranchTag& t);
   friend std::ostream& operator<<(std::ostream& out, const Polynomial& poly);
+  friend std::ostream& operator<<(std::ostream& str, const LCSign& lcSign);
+  friend std::ostream& operator<<(std::ostream& str, const LinearConstraint& linCon);
 
   using VarCoeffPair = std::pair<unsigned,int>;
 
@@ -97,13 +112,18 @@ protected:
 
     auto asTuple() const { return std::make_tuple(constant, varCoeffPairs); }
 
+    // return -P where P is the current polynomial
+    const Polynomial* negate() const;
+    // returns c ⋅ P + d ⋅ Q where P is the current polynomial
+    const Polynomial* add(int c, const Polynomial* Q, int d) const;
+
     IMPL_HASH_FROM_TUPLE(Polynomial);
     IMPL_COMPARISONS_FROM_TUPLE(Polynomial);
 
     int constant;
     // variable-coefficient pairs sorted by sign
     // (positive first), and then by variable
-    // e.g. X1 + 2 * X4 - 5 * X0 - X3
+    // e.g. X1 + 2 ⋅ X4 - 5 ⋅ X0 - X3
     Stack<VarCoeffPair> varCoeffPairs;
   };
 

@@ -422,6 +422,141 @@ void OrderingComparator::expandTermCase()
   _curr->node()->ready = true;
 }
 
+std::ostream& operator<<(std::ostream& str, const OrderingComparator::LCSign& lcSign)
+{
+  switch (lcSign) {
+    case OrderingComparator::LCSign::EQ:
+      str << "=";
+      break;
+    case OrderingComparator::LCSign::GEQ:
+      str << "≥";
+      break;
+    case OrderingComparator::LCSign::GT:
+      str << ">";
+      break;
+  }
+  return str;
+}
+
+std::ostream& operator<<(std::ostream& str, const OrderingComparator::LinearConstraint& linCon)
+{
+  str << *linCon.poly << " " << linCon.sign << " 0";
+  return str;
+}
+
+bool OrderingComparator::fourierMotzkin(LinearConstraints linCons)
+{
+  // first eliminate equations
+  for (unsigned i = 0; i < linCons.size();) {
+    const auto& [P, eqSign] = linCons[i];
+    if (eqSign != LCSign::EQ) {
+      i++;
+      continue;
+    }
+
+    if (P->varCoeffPairs.isEmpty()) {
+      if (P->constant != 0) {
+        return false;
+      }
+      continue;
+    }
+
+    auto [x, c] = P->varCoeffPairs[0];
+
+    for (unsigned j = 0; j < linCons.size(); j++) {
+      if (i == j) {
+        continue;
+      }
+      auto& [Q, sign] = linCons[j];
+      bool containsX = false;
+      int d;
+      for (const auto& [var, coeff] : Q->varCoeffPairs) {
+        if (var == x) {
+          containsX = true;
+          d = coeff;
+          break;
+        }
+      }
+      if (containsX) {
+        // we eliminate x with c ⋅ x + P = 0 from expression d ⋅ x + Q
+        // by creating c(d ⋅ x + Q) - d(c ⋅ x + P)
+        Q = Q->add(c, P, -d);
+      }
+    }
+    std::swap(linCons[i],linCons.top());
+    linCons.pop();
+  }
+
+  while (linCons.isNonEmpty()) {
+    LinearConstraints newLinCons;
+    unsigned x;
+    bool foundX = false;
+    // tuples (P,c,b) s.t. if b is true, then P < c⋅x, otherwise P ≤ c⋅x
+    Stack<tuple<const Polynomial*, int, bool>> less;
+    // tuples (P,c,b) s.t. if b is true, then P > c⋅x, otherwise P ≥ c⋅x
+    Stack<tuple<const Polynomial*, int, bool>> greater;
+
+    for (const auto& [poly, sign] : linCons) {
+      ASS_NEQ(sign, LCSign::EQ);
+
+      // check unsatisfiability of constraint without variables
+      if (poly->varCoeffPairs.isEmpty()) {
+        if (sign == LCSign::GEQ && poly->constant < 0) {
+          return false;
+        }
+        if (sign == LCSign::GT && poly->constant <= 0) {
+          return false;
+        }
+        continue;
+      }
+
+      // set variable x if needed
+      if (!foundX) {
+        x = poly->varCoeffPairs[0].first;
+        foundX = true;
+      }
+
+      int c;
+      bool coeffFound = false;
+      for (const auto& [var, coeff] : poly->varCoeffPairs) {
+        if (var == x) {
+          ASS(!coeffFound);
+          coeffFound = true;
+          c = coeff;
+          break;
+        }
+      }
+      if (coeffFound) {
+        ASS_NEQ(c,0);
+        // -c ⋅ x + P ≥ 0 implies P / c ≥ x
+        if (c < 0) {
+          greater.push({ poly, std::abs(c), sign == LCSign::GT });
+        }
+        // d ⋅ x + Q ≥ 0 implies x ≥ -Q / d
+        else {
+          less.push({ poly, std::abs(c), sign == LCSign::GT });
+        }
+      } else {
+        newLinCons.push({ poly, sign });
+      }
+    }
+    for (const auto& [P, c, gstrict] : greater) {
+      for (const auto& [Q, d, lstrict] : less) {
+        newLinCons.push({
+          // As noted above, we have P / c ≥ x ≥ -Q / d,
+          // so we need the constraint d ⋅ P + c ⋅ Q ≥ 0.
+          // We get this simply by d(-c ⋅ x + P) + c(d ⋅ x + Q) ≥ 0
+          P->add(d, Q, c),
+          // if either inequation is strict, we get > instead of ≥
+          (lstrict || gstrict) ? LCSign::GT : LCSign::GEQ
+        });
+      }
+    }
+    linCons = newLinCons;
+  }
+  return true;
+}
+
 void OrderingComparator::processPolyCase()
 {
   auto node = _curr->node();
@@ -475,28 +610,68 @@ void OrderingComparator::processPolyCase()
 
   // check if we have seen this polynomial
   // on the path leading here
+  LinearConstraints linCons;
   auto polyIt = prevPoly;
   while (polyIt.first) {
     ASS_EQ(polyIt.first->tag, BranchTag::T_POLY);
-    if (polyIt.first->poly == poly) {
-      switch (polyIt.second) {
-        case Ordering::GREATER: {
+    switch (polyIt.second) {
+      case Ordering::GREATER: {
+        if (polyIt.first->poly == poly) {
           *_curr = node->gtBranch;
           return;
         }
-        case Ordering::EQUAL: {
+        linCons.push({ polyIt.first->poly, LCSign::GT });
+        break;
+      }
+      case Ordering::EQUAL: {
+        if (polyIt.first->poly == poly) {
           *_curr = node->eqBranch;
           return;
         }
-        case Ordering::INCOMPARABLE: {
+        linCons.push({ polyIt.first->poly, LCSign::GEQ });
+        break;
+      }
+      case Ordering::INCOMPARABLE: {
+        if (polyIt.first->poly == poly) {
           *_curr = node->ngeBranch;
           return;
         }
-        default:
-          break;
+        break;
       }
+      default:
+        break;
     }
     polyIt = polyIt.first->prevPoly;
+  }
+
+  // for (const auto& [var, coeff] : poly->varCoeffPairs) {
+  //   // TODO collect constraints for variables
+  // }
+
+  if (linCons.isNonEmpty()) {
+    linCons.push({ poly, LCSign::GT });
+    auto gt_ok = fourierMotzkin(linCons);
+
+    linCons.top().sign = LCSign::EQ;
+    auto eq_ok = fourierMotzkin(linCons);
+
+    linCons.top().poly = poly->negate();
+    linCons.top().sign = LCSign::GT;
+    auto lt_ok = fourierMotzkin(linCons);
+
+    if (gt_ok) {
+      if (!eq_ok && !lt_ok) {
+        *_curr = node->gtBranch;
+        return;
+      }
+    } else if (!lt_ok) {
+      ASS(eq_ok);
+      *_curr = node->eqBranch;
+      return;
+    } else if (!eq_ok) {
+      *_curr = node->ngeBranch;
+      return;
+    }
   }
 
   // if refcnt > 1 we copy the node and
@@ -562,6 +737,36 @@ const OrderingComparator::Polynomial* OrderingComparator::Polynomial::get(int co
     poly.defaultHash(),
     [&](Polynomial* p) { return *p == poly; },
     unused);
+}
+
+const OrderingComparator::Polynomial* OrderingComparator::Polynomial::negate() const
+{
+  Stack<VarCoeffPair> res;
+  for (const auto& [var, coeff] : varCoeffPairs) {
+    res.push({ var, -coeff });
+  }
+  return Polynomial::get(-constant, res);
+}
+
+const OrderingComparator::Polynomial* OrderingComparator::Polynomial::add(
+  int c, const Polynomial* Q, int d) const
+{
+  ZIArray<int> varCoeffs;
+
+  for (const auto& [var, coeff] : varCoeffPairs) {
+    varCoeffs[var] += coeff * c;
+  }
+  for (const auto& [var, coeff] : Q->varCoeffPairs) {
+    varCoeffs[var] += coeff * d;
+  }
+  
+  Stack<VarCoeffPair> res;
+  for (unsigned i = 0; i < varCoeffs.size(); i++) {
+    if (varCoeffs[i]) {
+      res.push({ i, varCoeffs[i] });
+    }
+  }
+  return Polynomial::get(constant * c + Q->constant * d, res);
 }
 
 const OrderingComparator::Trace* OrderingComparator::getCurrentTrace()
