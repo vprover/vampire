@@ -65,19 +65,16 @@ std::ostream& operator<<(std::ostream& out, const OrderingComparator::Node& node
 std::ostream& operator<<(std::ostream& out, const OrderingComparator::Polynomial& poly)
 {
   bool first = true;
-  for (const auto& [var, coeff] : poly.pos) {
-    out << (first ? "" : " + ");
-    first = false;
-    if (coeff!=1) {
-      out << coeff << " * ";
+  for (const auto& [var, coeff] : poly.varCoeffPairs) {
+    if (coeff > 0) {
+      out << (first ? "" : " + ");
+    } else {
+      out << (first ? "- " : " - ");
     }
-    out << TermList::var(var);
-  }
-  for (const auto& [var, coeff] : poly.neg) {
-    out << (first ? "- " : " - ");
     first = false;
-    if (coeff!=-1) {
-      out << std::abs(coeff) << " * ";
+    auto abscoeff = std::abs(coeff);
+    if (abscoeff!=1) {
+      out << abscoeff << " * ";
     }
     out << TermList::var(var);
   }
@@ -229,18 +226,12 @@ std::string OrderingComparator::to_dot() const
         style += "polynode,";
         bool first = true;
         label += "$";
-        for (const auto& [var, coeff] : n->poly->pos) {
-          label += first ? "" : "+";
-          first = false;
-          auto a = std::abs(coeff);
-          if (a==1) {
-            label += to_tikz_term(TermList::var(var));
+        for (const auto& [var, coeff] : n->poly->varCoeffPairs) {
+          if (coeff > 0) {
+            label += first ? "" : "+";
           } else {
-            label += Int::toString(a) + "\\cdot " + to_tikz_term(TermList::var(var));
+            label += "-";
           }
-        }
-        for (const auto& [var, coeff] : n->poly->neg) {
-          label += "-";
           first = false;
           auto a = std::abs(coeff);
           if (a==1) {
@@ -301,18 +292,7 @@ void* OrderingComparator::next(const SubstApplicator* applicator)
       const auto& kbo = static_cast<const KBO&>(_ord);
       auto weight = node->poly->constant;
       ZIArray<int> varDiffs;
-      for (const auto& [var, coeff] : node->poly->pos) {
-        AppliedTerm tt(TermList::var(var), applicator, true);
-
-        VariableIterator vit(tt.term);
-        while (vit.hasNext()) {
-          auto v = vit.next();
-          varDiffs[v.var()] += coeff;
-        }
-        int64_t w = kbo.computeWeight(tt);
-        weight += coeff*w;
-      }
-      for (const auto& [var, coeff] : node->poly->neg) {
+      for (const auto& [var, coeff] : node->poly->varCoeffPairs) {
         AppliedTerm tt(TermList::var(var), applicator, true);
 
         VariableIterator vit(tt.term);
@@ -450,8 +430,7 @@ void OrderingComparator::processPolyCase()
   unsigned pos = 0;
   unsigned neg = 0;
 
-  auto vcs = node->poly->pos;
-  vcs.loadFromIterator(node->poly->neg.iter());
+  auto vcs = node->poly->varCoeffPairs;
 
   for (unsigned i = 0; i < vcs.size();) {
     auto& [var, coeff] = vcs[i];
@@ -563,25 +542,17 @@ void OrderingComparator::processVarCase()
   _curr->node()->trace = trace;
 }
 
-const OrderingComparator::Polynomial* OrderingComparator::Polynomial::get(int constant, const Stack<VarCoeffPair>& vcs)
+const OrderingComparator::Polynomial* OrderingComparator::Polynomial::get(int constant, const Stack<VarCoeffPair>& varCoeffPairs)
 {
   static Set<Polynomial*, DerefPtrHash<DefaultHash>> polys;
 
-  auto pos = iterTraits(Stack<VarCoeffPair>::ConstRefIterator(vcs)).filter([](const auto& vc) {
-    return vc.second > 0;
-  }).collect<Stack<VarCoeffPair>>();
-  sort(pos.begin(),pos.end(),[](const auto& vc1, const auto& vc2) {
-    return vc1.first<vc2.first;
+  sort(varCoeffPairs.begin(),varCoeffPairs.end(),[](const auto& vc1, const auto& vc2) {
+    auto vc1pos = vc1.second>0;
+    auto vc2pos = vc2.second>0;
+    return (vc1pos && !vc2pos) || (vc1pos == vc2pos && vc1.first<vc2.first);
   });
 
-  auto neg = iterTraits(Stack<VarCoeffPair>::ConstRefIterator(vcs)).filter([](const auto& vc) {
-    return vc.second < 0;
-  }).collect<Stack<VarCoeffPair>>();
-  sort(neg.begin(),neg.end(),[](const auto& vc1, const auto& vc2) {
-    return vc1.first<vc2.first;
-  });
-
-  Polynomial poly{ constant, pos, neg };
+  Polynomial poly{ constant, varCoeffPairs };
   // The code below depends on the fact that the first argument
   // is only called when poly is not used anymore, otherwise the
   // move would give undefined behaviour.

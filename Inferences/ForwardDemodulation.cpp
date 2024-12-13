@@ -170,7 +170,6 @@ bool ForwardDemodulationImpl<combinatorySupSupport>::perform(Clause* cl, Clause*
           ASS_EQ(dd->clause->length(),1);
           ASS_EQ(lhs.sort(),dd->term.sort());
           if (!dd->valid) {
-            env.statistics->inductionApplication++;
             continue;
           }
 

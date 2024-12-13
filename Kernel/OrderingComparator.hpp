@@ -93,16 +93,18 @@ protected:
   using VarCoeffPair = std::pair<unsigned,int>;
 
   struct Polynomial {
-    static const Polynomial* get(int constant, const Stack<VarCoeffPair>& vcs);
+    static const Polynomial* get(int constant, const Stack<VarCoeffPair>& varCoeffPairs);
 
-    auto asTuple() const { return std::make_tuple(constant, pos, neg); }
+    auto asTuple() const { return std::make_tuple(constant, varCoeffPairs); }
 
     IMPL_HASH_FROM_TUPLE(Polynomial);
     IMPL_COMPARISONS_FROM_TUPLE(Polynomial);
 
     int constant;
-    Stack<VarCoeffPair> pos;
-    Stack<VarCoeffPair> neg;
+    // variable-coefficient pairs sorted by sign
+    // (positive first), and then by variable
+    // e.g. X1 + 2 * X4 - 5 * X0 - X3
+    Stack<VarCoeffPair> varCoeffPairs;
   };
 
   using Trace = TermPartialOrdering;
