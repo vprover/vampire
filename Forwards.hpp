@@ -106,6 +106,7 @@ typedef Lib::SmartPtr<Ordering> OrderingSP;
 struct OrderingComparator;
 typedef std::unique_ptr<OrderingComparator> OrderingComparatorUP;
 class PartialOrdering;
+class TermPartialOrdering;
 
 typedef unsigned SplitLevel;
 typedef const SharedSet<SplitLevel> SplitSet;

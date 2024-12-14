@@ -38,8 +38,10 @@ public:
   OrderingComparator(const Ordering& ord);
   virtual ~OrderingComparator();
 
-  bool check(const SubstApplicator* applicator);
-  void insert(const OrderingConstraints& comps);
+  void reset() { _curr = &_source; _prev = nullptr; /* _trace.reset(); */ }
+
+  void* next(const SubstApplicator* applicator);
+  void insert(const Stack<Ordering::Constraint>& comps, void* result);
 
   friend std::ostream& operator<<(std::ostream& out, const OrderingComparator& comp);
   std::string to_dot() const;
@@ -58,6 +60,18 @@ public:
     bool ground;
   };
 
+  class RedundancyCheck {
+  public:
+    RedundancyCheck(const Ordering& ord, Literal* lit);
+    Literal* next(OrderingConstraints cons, Literal* lit);
+
+  private:
+    void pushNext();
+
+    OrderingComparatorUP comp;
+    Stack<Branch*> path;
+  };
+
 protected:
   void expand();
   virtual void expandTermCase();
@@ -65,12 +79,26 @@ protected:
   void processPolyCase();
 
   enum BranchTag {
-    T_RESULT = 0u,
+    T_DATA = 0u,
     T_TERM = 1u,
     T_POLY = 2u,
   };
 
   struct Node;
+  struct Polynomial;
+
+  struct LinearConstraint {
+    const Polynomial* poly;
+    enum class Sign {
+      EQ,
+      GEQ,
+      GT,
+    } sign;
+  };
+  using LinearConstraints = Stack<LinearConstraint>;
+  using LCSign = LinearConstraint::Sign;
+
+  bool fourierMotzkin(LinearConstraints linCons);
 
   struct Branch {
     Node* node() const { return _node; }
@@ -85,12 +113,11 @@ protected:
     }
 
     Branch() = default;
-    explicit Branch(bool result) {
-      setNode(new Node(result));
-      _node->ready = true;
-    }
     template<typename S, typename T> Branch(S&& s, T&& t) {
       setNode(new Node(std::forward<S>(s), std::forward<T>(t)));
+    }
+    Branch(const Polynomial* p) {
+      setNode(new Node(p));
     }
     ~Branch();
     Branch(const Branch& other);
@@ -104,12 +131,36 @@ protected:
 
   friend std::ostream& operator<<(std::ostream& out, const Node& node);
   friend std::ostream& operator<<(std::ostream& out, const BranchTag& t);
+  friend std::ostream& operator<<(std::ostream& out, const Polynomial& poly);
+  friend std::ostream& operator<<(std::ostream& str, const LCSign& lcSign);
+  friend std::ostream& operator<<(std::ostream& str, const LinearConstraint& linCon);
 
   using VarCoeffPair = std::pair<unsigned,int>;
+
+  struct Polynomial {
+    static const Polynomial* get(int constant, const Stack<VarCoeffPair>& varCoeffPairs);
+
+    auto asTuple() const { return std::make_tuple(constant, varCoeffPairs); }
+
+    // return -P where P is the current polynomial
+    const Polynomial* negate() const;
+    // returns c ⋅ P + d ⋅ Q where P is the current polynomial
+    const Polynomial* add(int c, const Polynomial* Q, int d) const;
+
+    IMPL_HASH_FROM_TUPLE(Polynomial);
+    IMPL_COMPARISONS_FROM_TUPLE(Polynomial);
+
+    int constant;
+    // variable-coefficient pairs sorted by sign
+    // (positive first), and then by variable
+    // e.g. X1 + 2 ⋅ X4 - 5 ⋅ X0 - X3
+    Stack<VarCoeffPair> varCoeffPairs;
+  };
 
   using Trace = TermPartialOrdering;
 
   const Trace* getCurrentTrace();
+  std::pair<Node*, Result> getPrevPoly();
 
   struct Node {
     static_assert(sizeof(uint64_t) == sizeof(Branch));
@@ -119,10 +170,10 @@ protected:
 
     auto& getBranch(Ordering::Result r) {
       switch (r) {
-        case Ordering::GREATER:
-          return gtBranch;
         case Ordering::EQUAL:
           return eqBranch;
+        case Ordering::GREATER:
+          return gtBranch;
         case Ordering::INCOMPARABLE:
           return ngeBranch;
         default:
@@ -130,12 +181,12 @@ protected:
       }
     }
 
-    explicit Node(bool result)
-      : tag(T_RESULT), result(result) {}
+    explicit Node(void* data, Branch alternative)
+      : tag(T_DATA), data(data), alternative(alternative) {}
     explicit Node(TermList lhs, TermList rhs)
       : tag(T_TERM), lhs(lhs), rhs(rhs) {}
-    explicit Node(uint64_t w, Stack<VarCoeffPair>* varCoeffPairs)
-      : tag(T_POLY), w(w), varCoeffPairs(varCoeffPairs) {}
+    explicit Node(const Polynomial* p)
+      : tag(T_POLY), poly(p) {}
     Node(const Node&) = delete;
     Node& operator=(const Node&) = delete;
 
@@ -148,25 +199,28 @@ protected:
     bool ready = false;
 
     union {
-      bool result;
+      void* data = nullptr;
       TermList lhs;
-      int64_t w;
+      const Polynomial* poly;
     };
     union {
+      Branch alternative;
       TermList rhs;
-      Stack<VarCoeffPair>* varCoeffPairs;
     };
 
-    Branch gtBranch;
     Branch eqBranch;
+    Branch gtBranch;
     Branch ngeBranch;
     int refcnt = 0;
     const Trace* trace = nullptr;
+    // points to the previous node containing a polynomial and branch
+    // that was taken, otherwise null if no such node exists.
+    std::pair<Node*, Result> prevPoly = { nullptr, Result::INCOMPARABLE };
   };
 
   const Ordering& _ord;
   Branch _source;
-  Branch _fail;
+  Branch _sink;
   Branch* _curr;
   Branch* _prev;
   // Trace _trace;

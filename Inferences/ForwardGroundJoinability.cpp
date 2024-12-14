@@ -62,10 +62,6 @@ void ForwardGroundJoinability::attach(SaturationAlgorithm* salg)
 	  _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) );
 
   auto opt = getOptions();
-  _preorderedOnly = opt.forwardDemodulation()==Options::Demodulation::PREORDERED;
-  _encompassing = opt.demodulationRedundancyCheck()==Options::DemodulationRedundancyCheck::ENCOMPASS;
-  _precompiledComparison = opt.demodulationPrecompiledComparison();
-  _skipNonequationalLiterals = opt.demodulationOnlyEquational();
   _helper = DemodulationHelper(opt, &_salg->getOrdering());
 }
 
@@ -131,30 +127,20 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
 
   auto clit = (*cl)[0];
 
-  DHSet<Literal*> litsSeen;
+  OrderingComparator::RedundancyCheck checker(ordering, clit);
+  Literal* lit = clit;
+  unsigned cnt = 0;
 
-  struct State {
-    Literal* lit;
-    OrderingComparatorUP comp;
-  };
-
-  Stack<State> todo;
-  todo.push({ clit, ordering.createComparator() });
-
-  while (todo.isNonEmpty()) {
-    auto state = todo.pop();
+  while (lit) {
+    if (cnt++ > 500) {
+      return false;
+    }
     attempted.reset();
 
-    auto lit = state.lit;
-
-    if (iterTraits(decltype(litsSeen)::Iterator(litsSeen)).any([lit](Literal* other) {
-      return MatchingUtils::isVariant(lit, other);
-    })) {
-      continue;
+    lit = checker.next({ { lit->termArg(0), lit->termArg(1), Ordering::EQUAL } }, nullptr);
+    if (!lit) {
+      break;
     }
-    litsSeen.insert(lit);
-
-    state.comp->insert({ { lit->termArg(0), lit->termArg(1), Ordering::EQUAL } });
 
     PolishSubtermIterator it(lit);
     while (it.hasNext()) {
@@ -185,17 +171,13 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
         }
 
         TermList rhs = qr.data->rhs;
-        bool preordered = qr.data->preordered;
 
         auto subs = qr.unifier;
         ASS(subs->isIdentityOnQueryWhenResultBound());
 
         Applicator appl(subs.ptr());
 
-        auto currComp = ordering.createComparator();
         OrderingConstraints cons;
-        OrderingConstraints revCons;
-        bool revConsValid = true;
 
         TermList rhsS;
 
@@ -205,13 +187,10 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
         } else if (comp == Ordering::INCOMPARABLE) {
           rhsS = subs->applyToBoundResult(rhs);
           cons.push({ trm, rhsS, Ordering::GREATER });
-          revCons.push({ rhsS, trm, Ordering::GREATER });
-        } else {
-          revConsValid = false;
         }
 
         // encompassing demodulation is fine when rewriting the smaller guy
-        if (redundancyCheck && _encompassing) {
+        if (redundancyCheck) {
           // this will only run at most once;
           // could have been factored out of the getGeneralizations loop,
           // but then it would run exactly once there
@@ -231,12 +210,9 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
             auto other = EqHelper::getOtherEqualitySide(lit, trm);
             if (ordering.compare(other, rhsS)==Ordering::INCOMPARABLE) {
               cons.push({ other, rhsS, Ordering::GREATER });
-              revCons.push({ other, trm, Ordering::GREATER });
             } else {
               continue;
             }
-          } else {
-            revConsValid = false;
           }
         }
 
@@ -246,30 +222,25 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
         // s = t > s = r & t = r <=> s > r && t > r
         // t = r > s = r & s = t <=> r > s && t > s
 
-        OrderingComparator::Subsumption subsumption(*state.comp.get(), ordering, cons, true);
-        if (subsumption.check()) {
-          continue;
-        }
 
-        state.comp->insert(cons);
-
+        Literal* nextLit;
         Literal* resLit = EqHelper::replace(lit,trm,rhsS);
         if(EqHelper::isEqTautology(resLit)) {
-          continue;
+          nextLit = checker.next(cons, nullptr);
+        } else {
+          nextLit = checker.next(cons, resLit);
         }
-
-        auto revComp = ordering.createComparator();
-        if (revConsValid) {
-          revComp->insert(revCons);
+        env.statistics->structInduction++;
+        if (nextLit != lit) {
+          env.statistics->structInductionInProof++;
+          lit = nextLit;
+          goto LOOP_END;
         }
-        todo.push({ resLit, std::move(revComp) });
       }
     }
-
-    OrderingComparator::Subsumption subsumption(*state.comp.get(), ordering, OrderingConstraints(), true);
-    if (!subsumption.check()) {
-      return false;
-    }
+    return false;
+LOOP_END:
+    continue;
   }
 
   env.statistics->groundRedundantClauses++;

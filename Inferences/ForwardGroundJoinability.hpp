@@ -38,10 +38,6 @@ public:
   void detach() override;
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 protected:
-  bool _preorderedOnly;
-  bool _encompassing;
-  bool _precompiledComparison;
-  bool _skipNonequationalLiterals;
   DemodulationHelper _helper;
   DemodulationLHSIndex* _index;
 };

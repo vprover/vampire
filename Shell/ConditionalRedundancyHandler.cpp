@@ -133,7 +133,7 @@ public:
     entries->comps.push(ptr);
 #endif
 
-    entries->comparator->insert(ptr->ordCons);
+    entries->comparator->insert(ptr->ordCons, (void*)0x1);
     return true;
   }
 
@@ -164,7 +164,7 @@ public:
     es->comps.push(ptr);
 #endif
     es->comparator = ord->createComparator();
-    es->comparator->insert(ptr->ordCons);
+    es->comparator->insert(ptr->ordCons, (void*)0x1);
     code.push(CodeOp::getSuccess(es));
 
 #if LINEARIZE
@@ -205,7 +205,7 @@ public:
     while ((es = matcher.next()))
     {
       ASS(es->comparator);
-      auto res = es->comparator->check(&applicator);
+      bool res = es->comparator->next(&applicator);
 #if DEBUG_ORDERING
       auto ordCons_crosscheck = iterTraits(es->comps.iter()).any([ord,&applicator](auto e) {
         return iterTraits(e->ordCons.iter()).all([ord,&applicator](auto& ordCon) {
