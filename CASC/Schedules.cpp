@@ -3058,23 +3058,23 @@ void Schedules::getIntindOeisSchedule(const Shell::Property& property, Schedule&
    quick.push("ott+10_1:1_bd=preordered:bsr=on:drc=off:gtg=exists_sym:gtgl=2:ind=int:intindint=infinite:intindsteq=only_one_occurrence:newcnf=on:nwc=3.0:sac=on:sas=z3:sp=const_min:spb=goal:tac=light:thi=all:to=lpo:i=1013:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_asg=cautious:drc=off:fde=unused:gtg=exists_all:ind=both:indoct=on:ins=4:intindstterm=no_skolems:newcnf=on:rawr=on:s2a=on:s2at=5.0:sp=const_min:spb=goal_then_units:tac=rule:to=lpo:i=453:si=on:rtra=on_0");
    quick.push("lrs+1010_4:1_alpa=true:drc=off:fd=preordered:ind=int:indgen=on:indgenss=2:indmd=1:s2a=on:sac=on:sos=on:sp=unary_frequency:to=lpo:i=48:si=on:rtra=on_0");
-   quick.push("lrs+1011_1:8_drc=encompass:flr=on:ile=on:ind=int:sp=unary_first:tgt=ground:thi=strong:thitd=on:to=lpo:uhcvi=on:uwa=all:i=322:si=on:rtra=on_0");
-   quick.push("lrs+10_1:1_av=off:drc=encompass:ev=force:ind=int:indgen=on:indgenss=1:intindint=infinite:newcnf=on:nwc=5.0:s2a=on:sp=frequency:to=lpo:i=88:si=on:rtra=on_0");
+   quick.push("lrs+1011_1:8_flr=on:ile=on:ind=int:sp=unary_first:tgt=ground:thi=strong:thitd=on:to=lpo:uhcvi=on:uwa=all:i=322:si=on:rtra=on_0");
+   quick.push("lrs+10_1:1_av=off:ev=force:ind=int:indgen=on:indgenss=1:intindint=infinite:newcnf=on:nwc=5.0:s2a=on:sp=frequency:to=lpo:i=88:si=on:rtra=on_0");
    quick.push("lrs+1010_1:16_drc=ordering:bd=off:canc=cautious:fnrw=on:fsr=off:ins=2:newcnf=on:i=61:si=on:rtra=on_0");
    quick.push("lrs+10_1:8_drc=ordering:ev=force:fd=preordered:fnrw=on:gtg=exists_all:gtgl=4:newcnf=on:nwc=10.0:sp=const_frequency:tgt=ground:to=lpo:i=125:si=on:rtra=on_0");
-   quick.push("lrs+1002_1:1_br=off:drc=encompass:fsd=on:gve=force:ind=int:intindint=infinite:kws=inv_precedence:s2a=on:urr=on:uwa=one_side_interpreted:i=30:si=on:rtra=on_0");
+   quick.push("lrs+1002_1:1_br=off:fsd=on:gve=force:ind=int:intindint=infinite:kws=inv_precedence:s2a=on:urr=on:uwa=one_side_interpreted:i=30:si=on:rtra=on_0");
    quick.push("lrs+1010_1:3_drc=ordering:anc=all:bd=off:canc=cautious:ev=force:fnrw=on:gtg=exists_sym:newcnf=on:nwc=10.0:sac=on:sp=frequency:to=lpo:urr=on:uwa=interpreted_only:i=83:si=on:rtra=on_0");
    quick.push("lrs-10_1:1024_drc=ordering:fnrw=on:gtg=position:ins=2:kws=inv_frequency:newcnf=on:norm_ineq=on:sac=on:sas=z3:sos=on:i=401:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_av=off:drc=off:ev=force:fd=preordered:gtg=all:gtgl=4:ind=both:lcm=reverse:s2a=on:sp=reverse_arity:to=lpo:uwa=interpreted_only:i=590:si=on:rtra=on_0");
-   quick.push("lrs+10_1:1_av=off:canc=cautious:drc=encompass:ind=int:intindstcomp=none:intindstterm=no_skolems:spb=goal_then_units:to=lpo:urr=on:i=111:si=on:rtra=on_0");
+   quick.push("lrs+10_1:1_av=off:canc=cautious:ind=int:intindstcomp=none:intindstterm=no_skolems:spb=goal_then_units:to=lpo:urr=on:i=111:si=on:rtra=on_0");
    quick.push("lrs+10_5:1_drc=ordering:br=off:canc=force:fd=preordered:ind=int:indc=goal:intindsteq=only_one_occurrence:sos=on:sp=frequency:to=lpo:urr=on:i=24:si=on:rtra=on_0");
    quick.push("ott+10_1:1_drc=ordering:br=off:ep=RSTC:ev=force:fnrw=on:gtg=position:ins=1:kws=inv_arity:newcnf=on:sos=all:i=245:si=on:rtra=on_0");
    quick.push("ott+1010_1:1_drc=ordering:anc=all:ev=force:fnrw=on:ins=1:newcnf=on:rawr=on:slsq=on:to=lpo:i=119:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_drc=off:ev=force:gtg=all:ind=both:intinddb=on:intindint=finite:intindstcomp=only_one_occurrence:intindstterm=no_skolems:sas=z3:sp=const_min:to=lpo:i=1083:si=on:rtra=on_0");
    quick.push("lrs+10_1:128_drc=ordering:br=off:ev=cautious:fd=preordered:fnrw=on:gtg=all:ins=2:kws=precedence:newcnf=on:sos=on:sp=frequency:spb=intro:i=261:si=on:rtra=on_0");
    quick.push("ott+11_1:1_asg=force:av=off:canc=force:drc=off:ev=force:gve=force:ind=both:indc=goal_plus:nwc=3.0:s2a=on:sd=10:sp=const_frequency:ss=included:st=5.0:tar=off:thi=neg_eq:to=lpo:uwa=one_side_constant:i=458:si=on:rtra=on_0");
-   quick.push("lrs+11_1:1_drc=encompass:ev=force:fsr=off:kws=precedence:sp=unary_frequency:i=114:si=on:rtra=on_0");
-   quick.push("lrs+10_1:128_canc=cautious:drc=encompass:ev=force:fnrw=on:gtg=exists_sym:newcnf=on:nwc=10.0:to=lpo:i=163:si=on:rtra=on_0");
+   quick.push("lrs+11_1:1_ev=force:fsr=off:kws=precedence:sp=unary_frequency:i=114:si=on:rtra=on_0");
+   quick.push("lrs+10_1:128_canc=cautious:ev=force:fnrw=on:gtg=exists_sym:newcnf=on:nwc=10.0:to=lpo:i=163:si=on:rtra=on_0");
    quick.push("ott+1002_1:1_drc=ordering:bd=preordered:br=off:ep=R:fnrw=on:ins=2:newcnf=on:norm_ineq=on:sas=z3:sffsmt=on:to=lpo:i=949:si=on:rtra=on_0");
    quick.push("lrs+1002_1:14_abs=on:br=off:drc=off:fnrw=on:gtg=position:ins=1:kws=inv_arity:newcnf=on:nwc=5.0:sas=z3:tac=light:urr=on:i=180:si=on:rtra=on_0");
    quick.push("ott+1011_1:1_drc=ordering:sas=z3:slsq=on:sp=const_min:thi=strong:thitd=on:to=lpo:i=421:si=on:rtra=on_0");
@@ -3088,9 +3088,9 @@ void Schedules::getIntindOeisSchedule(const Shell::Property& property, Schedule&
    quick.push("ott+11_1:1_av=off:canc=force:drc=off:fd=preordered:ind=both:indmd=5:intindsteq=toplevel_not_in_other:pum=on:spb=non_intro:to=lpo:i=1237:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_asg=cautious:drc=off:fde=unused:gtg=exists_all:ind=both:indoct=on:ins=4:intindstterm=no_skolems:newcnf=on:rawr=on:s2a=on:s2at=5.0:sp=const_min:spb=goal_then_units:tac=rule:to=lpo:i=453:si=on:rtra=on_0");
    quick.push("lrs+1010_4:1_alpa=true:drc=off:fd=preordered:ind=int:indgen=on:indgenss=2:indmd=1:s2a=on:sac=on:sos=on:sp=unary_frequency:to=lpo:i=48:si=on:rtra=on_0");
-   quick.push("lrs+1011_1:8_drc=encompass:flr=on:ile=on:ind=int:sp=unary_first:tgt=ground:thi=strong:thitd=on:to=lpo:uhcvi=on:uwa=all:i=479:si=on:rtra=on_0");
+   quick.push("lrs+1011_1:8_flr=on:ile=on:ind=int:sp=unary_first:tgt=ground:thi=strong:thitd=on:to=lpo:uhcvi=on:uwa=all:i=479:si=on:rtra=on_0");
    quick.push("ott+10_1:16_asg=cautious:drc=off:erd=off:fd=preordered:norm_ineq=on:sp=unary_first:spb=intro:tar=off:tgt=ground:to=lpo:i=711:si=on:rtra=on_0");
-   quick.push("lrs+10_1:1_av=off:drc=encompass:ev=force:ind=int:indgen=on:indgenss=1:intindint=infinite:newcnf=on:nwc=5.0:s2a=on:sp=frequency:to=lpo:i=234:si=on:rtra=on_0");
+   quick.push("lrs+10_1:1_av=off:ev=force:ind=int:indgen=on:indgenss=1:intindint=infinite:newcnf=on:nwc=5.0:s2a=on:sp=frequency:to=lpo:i=234:si=on:rtra=on_0");
    quick.push("lrs+2_8:1_asg=force:av=off:drc=off:ev=force:flr=on:gtg=all:gtgl=2:ind=both:indmd=10:intindstterm=none:lcm=reverse:nwc=10.0:sp=weighted_frequency:spb=goal:tar=off:tgt=full:thi=strong:thigen=on:to=lpo:i=860:si=on:rtra=on_0");
    quick.push("ott+2_1:1_drc=off:ev=force:fdi=60:ind=int:indao=on:indc=goal:indmd=10:newcnf=on:norm_ineq=on:pum=on:s2agt=16:s2at=1.5:s2pl=no:sp=const_max:spb=goal_then_units:to=lpo:updr=off:uwa=one_side_constant:i=322:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_av=off:drc=off:ev=force:fd=preordered:gtg=all:gtgl=4:ind=both:lcm=reverse:s2a=on:sp=reverse_arity:to=lpo:uwa=interpreted_only:i=872:si=on:rtra=on_0");
@@ -3104,7 +3104,7 @@ void Schedules::getIntindOeisSchedule(const Shell::Property& property, Schedule&
    quick.push("ott+11_1:1_asg=force:av=off:canc=force:drc=off:ev=force:gve=force:ind=both:indc=goal_plus:nwc=3.0:s2a=on:sd=10:sp=const_frequency:ss=included:st=5.0:tar=off:thi=neg_eq:to=lpo:uwa=one_side_constant:i=3272:si=on:rtra=on_0");
    quick.push("ott+10_1:1_afr=on:asg=cautious:avsq=on:avsqc=1:drc=off:ev=force:ind=int:indc=goal:indu=off:intindstterm=no_skolems:nm=16:spb=non_intro:to=lpo:uwa=all:i=691:si=on:rtra=on_0");
    quick.push("lrs+1011_8:1_drc=ordering:afp=5000:afq=1.93:fdi=50:ins=1:pum=on:rawr=on:sas=z3:sos=theory:sp=const_min:spb=goal_then_units:tar=off:tgt=ground:thi=strong:to=lpo:i=618:si=on:rtra=on_0");
-   quick.push("lrs+21_8:1_av=off:canc=cautious:drc=encompass:gtg=position:ind=int:intindint=infinite:lwlo=on:plsq=on:plsqc=1:plsqr=8767905,1048576:s2a=on:s2agt=64:s2pl=on:sp=unary_frequency:to=lpo:i=2259:si=on:rtra=on_0");
+   quick.push("lrs+21_8:1_av=off:canc=cautious:gtg=position:ind=int:intindint=infinite:lwlo=on:plsq=on:plsqc=1:plsqr=8767905,1048576:s2a=on:s2agt=64:s2pl=on:sp=unary_frequency:to=lpo:i=2259:si=on:rtra=on_0");
    quick.push("ott+1010_3:2_canc=force:drc=off:ev=force:gtg=all:ind=both:intindint=infinite:intindstcomp=none:intindstterm=no_skolems:newcnf=on:sos=all:sp=const_max:spb=non_intro:to=lpo:urr=on:i=715:si=on:rtra=on_0");
    quick.push("lrs+1011_1:1_drc=ordering:ep=R:fnrw=on:kws=precedence:newcnf=on:norm_ineq=on:pum=on:sas=z3:sp=frequency:tgt=ground:i=1603:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_drc=ordering:gtg=position:ins=1:norm_ineq=on:sas=z3:sos=on:sp=frequency:thi=all:to=lpo:i=1421:si=on:rtra=on_0");
@@ -3122,7 +3122,7 @@ void Schedules::getIntindOeisSchedule(const Shell::Property& property, Schedule&
    quick.push("ott+1002_1:1_drc=ordering:canc=cautious:fsr=off:gs=on:ind=both:intindint=finite:intindsteq=always:intindstterm=none:newcnf=on:s2a=on:s2agt=64:sas=z3:sp=weighted_frequency:tar=off:tgt=ground:thi=all:to=lpo:i=3162:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_asg=cautious:drc=off:gtg=exists_sym:gtgl=5:ind=both:intindint=infinite:intindstcomp=not_in_both:nwc=2.0:sas=z3:sp=frequency:to=lpo:i=2296:si=on:rtra=on_0");
    quick.push("ott+1011_8:1_av=off:drc=off:fde=none:ind=int:kws=inv_arity_squared:plsq=on:plsqc=1:plsqr=9,8:rawr=on:sp=unary_first:tgt=ground:thi=all:uwa=ground:i=1901:si=on:rtra=on_0");
-   quick.push("lrs+1011_1:8_drc=encompass:flr=on:ile=on:ind=int:sp=unary_first:tgt=ground:thi=strong:thitd=on:to=lpo:uhcvi=on:uwa=all:i=479:si=on:rtra=on_0");
+   quick.push("lrs+1011_1:8_flr=on:ile=on:ind=int:sp=unary_first:tgt=ground:thi=strong:thitd=on:to=lpo:uhcvi=on:uwa=all:i=479:si=on:rtra=on_0");
    quick.push("ott+10_1:16_asg=cautious:drc=off:erd=off:fd=preordered:norm_ineq=on:sp=unary_first:spb=intro:tar=off:tgt=ground:to=lpo:i=2617:si=on:rtra=on_0");
    quick.push("ott+1010_1:1_avsq=on:avsqr=6,31:drc=off:ins=3:newcnf=on:nm=16:s2a=on:sas=z3:sp=frequency:tac=rule:thi=all:to=lpo:uwa=ground:i=795:si=on:rtra=on_0");
    quick.push("lrs+1_1:256_drc=ordering:awrs=decay:awrsf=20:ind=struct:indc=goal_plus:ins=2:nm=40:nwc=6.0:s2at=3.0:slsq=on:slsql=off:slsqr=11,17:spb=non_intro:thi=all:thitd=on:to=lpo:i=1803:si=on:rtra=on_0");
@@ -3136,7 +3136,7 @@ void Schedules::getIntindOeisSchedule(const Shell::Property& property, Schedule&
    quick.push("lrs+2_1:1_drc=off:ev=force:gtg=all:ind=both:intinddb=on:intindint=finite:intindstcomp=only_one_occurrence:intindstterm=no_skolems:sas=z3:sp=const_min:to=lpo:i=11689:si=on:rtra=on_0");
    quick.push("ott+11_1:1_asg=force:av=off:canc=force:drc=off:ev=force:gve=force:ind=both:indc=goal_plus:nwc=3.0:s2a=on:sd=10:sp=const_frequency:ss=included:st=5.0:tar=off:thi=neg_eq:to=lpo:uwa=one_side_constant:i=7199:si=on:rtra=on_0");
    quick.push("ott+10_1:1_afr=on:asg=cautious:avsq=on:avsqc=1:drc=off:ev=force:ind=int:indc=goal:indu=off:intindstterm=no_skolems:nm=16:spb=non_intro:to=lpo:uwa=all:i=691:si=on:rtra=on_0");
-   quick.push("lrs+21_8:1_av=off:canc=cautious:drc=encompass:gtg=position:ind=int:intindint=infinite:lwlo=on:plsq=on:plsqc=1:plsqr=8767905,1048576:s2a=on:s2agt=64:s2pl=on:sp=unary_frequency:to=lpo:i=2259:si=on:rtra=on_0");
+   quick.push("lrs+21_8:1_av=off:canc=cautious:gtg=position:ind=int:intindint=infinite:lwlo=on:plsq=on:plsqc=1:plsqr=8767905,1048576:s2a=on:s2agt=64:s2pl=on:sp=unary_frequency:to=lpo:i=2259:si=on:rtra=on_0");
    quick.push("ott+1010_3:2_canc=force:drc=off:ev=force:gtg=all:ind=both:intindint=infinite:intindstcomp=none:intindstterm=no_skolems:newcnf=on:sos=all:sp=const_max:spb=non_intro:to=lpo:urr=on:i=1455:si=on:rtra=on_0");
    quick.push("ott+10_1:1_drc=ordering:ind=both:indc=goal:intindsteq=not_in_both:nwc=3.0:sas=z3:sp=frequency:to=lpo:i=306:si=on:rtra=on_0");
    quick.push("lrs+1011_1:1_drc=ordering:ep=R:fnrw=on:kws=precedence:newcnf=on:norm_ineq=on:pum=on:sas=z3:sp=frequency:tgt=ground:i=11267:si=on:rtra=on_0");
@@ -3151,7 +3151,7 @@ void Schedules::getIntindOeisSchedule(const Shell::Property& property, Schedule&
    quick.push("lrs+10_1:1_drc=ordering:ev=force:gtg=all:gtgl=5:nicw=on:sas=z3:sp=const_max:spb=units:to=lpo:i=1667:si=on:rtra=on_0");
    quick.push("ott+1002_1:1_drc=ordering:canc=cautious:fsr=off:gs=on:ind=both:intindint=finite:intindsteq=always:intindstterm=none:newcnf=on:s2a=on:s2agt=64:sas=z3:sp=weighted_frequency:tar=off:tgt=ground:thi=all:to=lpo:i=2504:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_asg=cautious:drc=off:gtg=exists_sym:gtgl=5:ind=both:intindint=infinite:intindstcomp=not_in_both:nwc=2.0:sas=z3:sp=frequency:to=lpo:i=2296:si=on:rtra=on_0");
-   quick.push("lrs+1011_1:8_drc=encompass:flr=on:ile=on:ind=int:sp=unary_first:tgt=ground:thi=strong:thitd=on:to=lpo:uhcvi=on:uwa=all:i=479:si=on:rtra=on_0");
+   quick.push("lrs+1011_1:8_flr=on:ile=on:ind=int:sp=unary_first:tgt=ground:thi=strong:thitd=on:to=lpo:uhcvi=on:uwa=all:i=479:si=on:rtra=on_0");
    quick.push("ott+10_1:16_asg=cautious:drc=off:erd=off:fd=preordered:norm_ineq=on:sp=unary_first:spb=intro:tar=off:tgt=ground:to=lpo:i=2617:si=on:rtra=on_0");
    quick.push("lrs+2_16:1_drc=ordering:aac=none:amm=off:canc=cautious:ind=both:indao=on:intindsteq=not_in_both:intindstterm=none:s2a=on:sp=weighted_frequency:spb=goal:thi=overlap:thitd=on:to=lpo:urr=on:i=4483:si=on:rtra=on_0");
    quick.push("lrs+2_8:1_asg=force:av=off:drc=off:ev=force:flr=on:gtg=all:gtgl=2:ind=both:indmd=10:intindstterm=none:lcm=reverse:nwc=10.0:sp=weighted_frequency:spb=goal:tar=off:tgt=full:thi=strong:thigen=on:to=lpo:i=27972:si=on:rtra=on_0");
@@ -3165,7 +3165,7 @@ void Schedules::getIntindOeisSchedule(const Shell::Property& property, Schedule&
    quick.push("lrs+2_1:1_drc=off:ev=force:gtg=all:ind=both:intinddb=on:intindint=finite:intindstcomp=only_one_occurrence:intindstterm=no_skolems:sas=z3:sp=const_min:to=lpo:i=25013:si=on:rtra=on_0");
    quick.push("ott+10_1:1_afr=on:asg=cautious:avsq=on:avsqc=1:drc=off:ev=force:ind=int:indc=goal:indu=off:intindstterm=no_skolems:nm=16:spb=non_intro:to=lpo:uwa=all:i=691:si=on:rtra=on_0");
    quick.push("lrs+1011_8:1_drc=ordering:afp=5000:afq=1.93:fdi=50:ins=1:pum=on:rawr=on:sas=z3:sos=theory:sp=const_min:spb=goal_then_units:tar=off:tgt=ground:thi=strong:to=lpo:i=989:si=on:rtra=on_0");
-   quick.push("lrs+21_8:1_av=off:canc=cautious:drc=encompass:gtg=position:ind=int:intindint=infinite:lwlo=on:plsq=on:plsqc=1:plsqr=8767905,1048576:s2a=on:s2agt=64:s2pl=on:sp=unary_frequency:to=lpo:i=2259:si=on:rtra=on_0");
+   quick.push("lrs+21_8:1_av=off:canc=cautious:gtg=position:ind=int:intindint=infinite:lwlo=on:plsq=on:plsqc=1:plsqr=8767905,1048576:s2a=on:s2agt=64:s2pl=on:sp=unary_frequency:to=lpo:i=2259:si=on:rtra=on_0");
    quick.push("ott+1010_3:2_canc=force:drc=off:ev=force:gtg=all:ind=both:intindint=infinite:intindstcomp=none:intindstterm=no_skolems:newcnf=on:sos=all:sp=const_max:spb=non_intro:to=lpo:urr=on:i=1455:si=on:rtra=on_0");
    quick.push("ott+10_1:1_drc=ordering:ind=both:indc=goal:intindsteq=not_in_both:nwc=3.0:sas=z3:sp=frequency:to=lpo:i=306:si=on:rtra=on_0");
    quick.push("lrs+1011_1:1_drc=ordering:ep=R:fnrw=on:kws=precedence:newcnf=on:norm_ineq=on:pum=on:sas=z3:sp=frequency:tgt=ground:i=17601:si=on:rtra=on_0");
@@ -3188,7 +3188,7 @@ void Schedules::getIntindOeisSchedule(const Shell::Property& property, Schedule&
    quick.push("lrs+10_1:128_drc=ordering:br=off:ev=cautious:fd=preordered:fnrw=on:gtg=all:ins=2:kws=precedence:newcnf=on:sos=on:sp=frequency:spb=intro:i=20153:si=on:rtra=on_0");
    quick.push("ott+11_1:1_asg=force:av=off:canc=force:drc=off:ev=force:gve=force:ind=both:indc=goal_plus:nwc=3.0:s2a=on:sd=10:sp=const_frequency:ss=included:st=5.0:tar=off:thi=neg_eq:to=lpo:uwa=one_side_constant:i=2538:si=on:rtra=on_0");
    quick.push("ott+10_1:1_afr=on:asg=cautious:avsq=on:avsqc=1:drc=off:ev=force:ind=int:indc=goal:indu=off:intindstterm=no_skolems:nm=16:spb=non_intro:to=lpo:uwa=all:i=691:si=on:rtra=on_0");
-   quick.push("lrs+21_8:1_av=off:canc=cautious:drc=encompass:gtg=position:ind=int:intindint=infinite:lwlo=on:plsq=on:plsqc=1:plsqr=8767905,1048576:s2a=on:s2agt=64:s2pl=on:sp=unary_frequency:to=lpo:i=2259:si=on:rtra=on_0");
+   quick.push("lrs+21_8:1_av=off:canc=cautious:gtg=position:ind=int:intindint=infinite:lwlo=on:plsq=on:plsqc=1:plsqr=8767905,1048576:s2a=on:s2agt=64:s2pl=on:sp=unary_frequency:to=lpo:i=2259:si=on:rtra=on_0");
    quick.push("ott+1010_3:2_canc=force:drc=off:ev=force:gtg=all:ind=both:intindint=infinite:intindstcomp=none:intindstterm=no_skolems:newcnf=on:sos=all:sp=const_max:spb=non_intro:to=lpo:urr=on:i=1455:si=on:rtra=on_0");
    quick.push("ott+10_1:1_drc=ordering:ind=both:indc=goal:intindsteq=not_in_both:nwc=3.0:sas=z3:sp=frequency:to=lpo:i=306:si=on:rtra=on_0");
    quick.push("ott+1002_1:1_drc=off:fnrw=on:gtg=all:ind=both:intindint=infinite:intindstterm=no_skolems:newcnf=on:s2a=on:sas=z3:sos=on:sp=const_min:tac=axiom:thi=neg_eq:to=lpo:uhcvi=on:i=8399:si=on:rtra=on_0");
@@ -3199,7 +3199,7 @@ void Schedules::getIntindOeisSchedule(const Shell::Property& property, Schedule&
    quick.push("lrs+10_1:1_drc=ordering:ev=force:gtg=all:gtgl=5:nicw=on:sas=z3:sp=const_max:spb=units:to=lpo:i=1667:si=on:rtra=on_0");
    quick.push("ott+1002_1:1_drc=ordering:canc=cautious:fsr=off:gs=on:ind=both:intindint=finite:intindsteq=always:intindstterm=none:newcnf=on:s2a=on:s2agt=64:sas=z3:sp=weighted_frequency:tar=off:tgt=ground:thi=all:to=lpo:i=2330:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_asg=cautious:drc=off:gtg=exists_sym:gtgl=5:ind=both:intindint=infinite:intindstcomp=not_in_both:nwc=2.0:sas=z3:sp=frequency:to=lpo:i=3525:si=on:rtra=on_0");
-   quick.push("lrs+1011_1:8_drc=encompass:flr=on:ile=on:ind=int:sp=unary_first:tgt=ground:thi=strong:thitd=on:to=lpo:uhcvi=on:uwa=all:i=2083:si=on:rtra=on_0");
+   quick.push("lrs+1011_1:8_flr=on:ile=on:ind=int:sp=unary_first:tgt=ground:thi=strong:thitd=on:to=lpo:uhcvi=on:uwa=all:i=2083:si=on:rtra=on_0");
    quick.push("ott+10_1:16_asg=cautious:drc=off:erd=off:fd=preordered:norm_ineq=on:sp=unary_first:spb=intro:tar=off:tgt=ground:to=lpo:i=2617:si=on:rtra=on_0");
    quick.push("lrs+2_16:1_drc=ordering:aac=none:amm=off:canc=cautious:ind=both:indao=on:intindsteq=not_in_both:intindstterm=none:s2a=on:sp=weighted_frequency:spb=goal:thi=overlap:thitd=on:to=lpo:urr=on:i=4369:si=on:rtra=on_0");
    quick.push("ott+1002_5:2_drc=ordering:canc=cautious:fd=preordered:gsp=on:gtg=exists_all:gtgl=3:ind=both:s2a=on:s2at=5.0:sac=on:sas=z3:slsq=on:slsqc=4:slsqr=1,4:sp=reverse_arity:to=lpo:urr=on:i=2346:si=on:rtra=on_0");
@@ -3209,7 +3209,7 @@ void Schedules::getIntindOeisSchedule(const Shell::Property& property, Schedule&
    quick.push("lrs+2_1:1_drc=off:ev=force:gtg=all:ind=both:intinddb=on:intindint=finite:intindstcomp=only_one_occurrence:intindstterm=no_skolems:sas=z3:sp=const_min:to=lpo:i=25013:si=on:rtra=on_0");
    quick.push("ott+11_1:1_asg=force:av=off:canc=force:drc=off:ev=force:gve=force:ind=both:indc=goal_plus:nwc=3.0:s2a=on:sd=10:sp=const_frequency:ss=included:st=5.0:tar=off:thi=neg_eq:to=lpo:uwa=one_side_constant:i=3272:si=on:rtra=on_0");
    quick.push("ott+10_1:1_afr=on:asg=cautious:avsq=on:avsqc=1:drc=off:ev=force:ind=int:indc=goal:indu=off:intindstterm=no_skolems:nm=16:spb=non_intro:to=lpo:uwa=all:i=691:si=on:rtra=on_0");
-   quick.push("lrs+21_8:1_av=off:canc=cautious:drc=encompass:gtg=position:ind=int:intindint=infinite:lwlo=on:plsq=on:plsqc=1:plsqr=8767905,1048576:s2a=on:s2agt=64:s2pl=on:sp=unary_frequency:to=lpo:i=2259:si=on:rtra=on_0");
+   quick.push("lrs+21_8:1_av=off:canc=cautious:gtg=position:ind=int:intindint=infinite:lwlo=on:plsq=on:plsqc=1:plsqr=8767905,1048576:s2a=on:s2agt=64:s2pl=on:sp=unary_frequency:to=lpo:i=2259:si=on:rtra=on_0");
    quick.push("ott+10_1:1_drc=ordering:ind=both:indc=goal:intindsteq=not_in_both:nwc=3.0:sas=z3:sp=frequency:to=lpo:i=1019:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_drc=ordering:gtg=position:ins=1:norm_ineq=on:sas=z3:sos=on:sp=frequency:thi=all:to=lpo:i=1642:si=on:rtra=on_0");
    quick.push("ott+1002_1:1_drc=off:fnrw=on:gtg=all:ind=both:intindint=infinite:intindstterm=no_skolems:newcnf=on:s2a=on:sas=z3:sos=on:sp=const_min:tac=axiom:thi=neg_eq:to=lpo:uhcvi=on:i=8399:si=on:rtra=on_0");
@@ -3237,43 +3237,43 @@ void Schedules::getIntindOeisSchedule(const Shell::Property& property, Schedule&
 // ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
 // ---------- ---------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
 
-// insertionsort/mset/conjecture:       lrs+10_1_drc=encompass:ind=struct:sik=recursion:to=lpo:sos=theory:sstl=1:sp=occurrence:indao=on_89
-// insertionsort/mset/lemma1:           lrs+10_1_drc=encompass:ind=struct:sik=recursion:to=lpo:sos=theory:sstl=1:sp=occurrence:indao=on_89
+// insertionsort/mset/conjecture:       lrs+10_1_ind=struct:sik=recursion:to=lpo:sos=theory:sstl=1:sp=occurrence:indao=on_89
+// insertionsort/mset/lemma1:           lrs+10_1_ind=struct:sik=recursion:to=lpo:sos=theory:sstl=1:sp=occurrence:indao=on_89
 //
-// insertionsort/sortedness/conjecture: lrs+10_1_drc=encompass:ind=struct:sik=recursion:to=lpo:sos=theory:sstl=1:sp=occurrence:indao=on_89
-// insertionsort/sortedness/lemma1:     lrs+1002_1_aac=none:anc=all:sac=on:ind=struct:thsq=on:to=lpo:nui=on:drc=encompass:sik=recursion:urr=on_89
+// insertionsort/sortedness/conjecture: lrs+10_1_ind=struct:sik=recursion:to=lpo:sos=theory:sstl=1:sp=occurrence:indao=on_89
+// insertionsort/sortedness/lemma1:     lrs+1002_1_aac=none:anc=all:sac=on:ind=struct:thsq=on:to=lpo:nui=on:sik=recursion:urr=on_89
 //
-// mergesort/mset/conjecture:           lrs+10_1_drc=encompass:ind=struct:sik=recursion:to=lpo:thsq=on:sp=occurrence_89
+// mergesort/mset/conjecture:           lrs+10_1_ind=struct:sik=recursion:to=lpo:thsq=on:sp=occurrence_89
 // mergesort/mset/lemma1:               ???
-// mergesort/mset/lemma2:               lrs+10_1_drc=encompass:ind=struct:sik=recursion:to=lpo:thsq=on:sp=occurrence_89
-// mergesort/mset/lemma3:               lrs+10_1_drc=encompass:ind=struct:sik=recursion:to=lpo:thsq=on:sp=occurrence_89
+// mergesort/mset/lemma2:               lrs+10_1_ind=struct:sik=recursion:to=lpo:thsq=on:sp=occurrence_89
+// mergesort/mset/lemma3:               lrs+10_1_ind=struct:sik=recursion:to=lpo:thsq=on:sp=occurrence_89
 //
-// mergesort/sortedness/conjecture:     lrs+10_1_drc=encompass:ind=struct:sik=recursion:to=lpo:thsq=on:sp=occurrence_89
+// mergesort/sortedness/conjecture:     lrs+10_1_ind=struct:sik=recursion:to=lpo:thsq=on:sp=occurrence_89
 // mergesort/sortedness/lemma1:         ???
-// mergesort/sortedness/lemma2:         lrs+10_1_drc=encompass:ind=struct:sik=recursion:to=lpo:thsq=on:sp=occurrence:nui=on_89
+// mergesort/sortedness/lemma2:         lrs+10_1_ind=struct:sik=recursion:to=lpo:thsq=on:sp=occurrence:nui=on_89
 //
-// quicksort/mset/conjecture:           lrs+10_1_drc=encompass:ind=struct:sik=recursion:to=lpo:sos=theory:sstl=1:sp=occurrence:indao=on_89
-// quicksort/mset/lemma1:               lrs+10_1_drc=encompass:ind=struct:sik=one:to=lpo:thsq=on:sp=occurrence_89
-// quicksort/mset/lemma2:               lrs+10_1_drc=encompass:ind=struct:sik=one:to=lpo:sos=theory:sstl=1:sp=occurrence:indao=on_89
+// quicksort/mset/conjecture:           lrs+10_1_ind=struct:sik=recursion:to=lpo:sos=theory:sstl=1:sp=occurrence:indao=on_89
+// quicksort/mset/lemma1:               lrs+10_1_ind=struct:sik=one:to=lpo:thsq=on:sp=occurrence_89
+// quicksort/mset/lemma2:               lrs+10_1_ind=struct:sik=one:to=lpo:sos=theory:sstl=1:sp=occurrence:indao=on_89
 //
-// quicksort/sortedness/conjecture:     lrs+10_1_drc=encompass:ind=struct:sik=recursion:to=lpo:thsq=on:sp=occurrence_89
-// quicksort/sortedness/lemma1:         lrs+10_1_drc=encompass:ind=struct:sik=recursion:to=lpo:thsq=on:sp=occurrence:nui=on_89
-// quicksort/sortedness/lemma2:         lrs+10_1_drc=encompass:ind=struct:sik=one:to=lpo:thsq=on:sp=occurrence_89
-// quicksort/sortedness/lemma3:         lrs+10_1_drc=encompass:ind=struct:sik=one:to=lpo:thsq=on:sp=occurrence:indao=on_100
-// quicksort/sortedness/lemma4:         lrs+10_1_drc=encompass:ind=struct:sik=recursion:to=lpo:thsq=on:sp=occurrence:nui=on:indao=on_89
-// quicksort/sortedness/lemma5:         lrs+10_1_ind=struct:sos=theory:sstl=1:urr=on:nui=on:indao=on:sik=recursion:drc=encompass_89
-// quicksort/sortedness/lemma6:         lrs+10_1_drc=encompass:ind=struct:sik=recursion:to=lpo:thsq=on:sp=occurrence:nui=on:indao=on_89
-// quicksort/sortedness/lemma7:         lrs+10_1_drc=encompass:ind=struct:sik=one:to=lpo:thsq=on:sp=occurrence:indao=on:nui=on_89
+// quicksort/sortedness/conjecture:     lrs+10_1_ind=struct:sik=recursion:to=lpo:thsq=on:sp=occurrence_89
+// quicksort/sortedness/lemma1:         lrs+10_1_ind=struct:sik=recursion:to=lpo:thsq=on:sp=occurrence:nui=on_89
+// quicksort/sortedness/lemma2:         lrs+10_1_ind=struct:sik=one:to=lpo:thsq=on:sp=occurrence_89
+// quicksort/sortedness/lemma3:         lrs+10_1_ind=struct:sik=one:to=lpo:thsq=on:sp=occurrence:indao=on_100
+// quicksort/sortedness/lemma4:         lrs+10_1_ind=struct:sik=recursion:to=lpo:thsq=on:sp=occurrence:nui=on:indao=on_89
+// quicksort/sortedness/lemma5:         lrs+10_1_ind=struct:sos=theory:sstl=1:urr=on:nui=on:indao=on:sik=recursion_89
+// quicksort/sortedness/lemma6:         lrs+10_1_ind=struct:sik=recursion:to=lpo:thsq=on:sp=occurrence:nui=on:indao=on_89
+// quicksort/sortedness/lemma7:         lrs+10_1_ind=struct:sik=one:to=lpo:thsq=on:sp=occurrence:indao=on:nui=on_89
 
 void Schedules::getStructInductionSchedule(const Shell::Property& property, Schedule& quick, Schedule& fallback) {
   // Ran on all_fair.txt
   // Sub-schedule for 2000Mi strat cap / 2000Mi overall limit
    quick.push("ott+10_1:4_av=off:drc=off:ind=struct:indgen=on:newcnf=on:nui=on:uwa=ground:i=10:si=on:rtra=on_0");
    quick.push("dis+10_1:1_aac=none:alpa=true:drc=off:ind=both:indoct=on:newcnf=on:sac=on:taea=off:to=lpo:i=5:si=on:rtra=on_0");
-   quick.push("lrs+1010_1:3_drc=encompass:ind=both:indmd=1:nui=on:s2a=on:ss=axioms:i=24:si=on:rtra=on_0");
+   quick.push("lrs+1010_1:3_ind=both:indmd=1:nui=on:s2a=on:ss=axioms:i=24:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_drc=ordering:bd=off:gtg=exists_top:ind=struct:indmd=2:indstrhyp=on:nwc=5.0:s2a=on:s2agt=16:i=36:si=on:rtra=on_0");
    quick.push("ott+10_1:32_bsd=on:canc=force:drc=off:fsr=off:ind=struct:indao=on:newcnf=on:rawr=on:sac=on:taea=off:i=284:si=on:rtra=on_0");
-   quick.push("lrs+1011_5:1_av=off:canc=force:drc=encompass:s2a=on:sp=const_frequency:to=lpo:urr=on:i=7:si=on:rtra=on_0");
+   quick.push("lrs+1011_5:1_av=off:canc=force:s2a=on:sp=const_frequency:to=lpo:urr=on:i=7:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_atotf=0.2:drc=off:gtg=exists_top:ind=both:nwc=10.0:sac=on:sp=unary_frequency:tgt=ground:to=lpo:i=7:si=on:rtra=on_0");
    quick.push("dis+10_1:1_drc=ordering:gtg=exists_top:gve=cautious:ind=struct:indn=off:rawr=on:s2a=on:s2agt=8:sac=on:uwa=all:i=11:si=on:rtra=on_0");
    quick.push("lrs+2_1:4_drc=off:gtg=position:gve=cautious:ile=on:ind=struct:indao=on:indc=goal:indmd=6:newcnf=on:nwc=5.0:s2a=on:tac=axiom:to=lpo:i=232:si=on:rtra=on_0");
@@ -3284,16 +3284,16 @@ void Schedules::getStructInductionSchedule(const Shell::Property& property, Sche
    quick.push("dis+10_1:14_drc=ordering:gtg=position:sp=frequency:ss=axioms:tgt=full:i=9:si=on:rtra=on_0");
    quick.push("lrs+10_1:128_drc=off:gtg=exists_top:ind=struct:indstrhyp=on:sac=on:slsq=on:slsqc=1:taea=off:i=25:si=on:rtra=on_0");
    quick.push("lrs+1002_1:1_av=off:br=off:drc=off:gtg=exists_all:ind=both:indc=goal:indmd=15:plsq=on:plsqr=9,1:sos=on:sp=unary_frequency:tgt=ground:to=lpo:uace=off:uwa=one_side_interpreted:i=3:si=on:rtra=on_0");
-   quick.push("lrs+2_1:1_drc=encompass:ind=struct:indao=on:newcnf=on:plsq=on:plsqr=32,1:sp=frequency:to=lpo:i=2:si=on:rtra=on_0");
+   quick.push("lrs+2_1:1_ind=struct:indao=on:newcnf=on:plsq=on:plsqr=32,1:sp=frequency:to=lpo:i=2:si=on:rtra=on_0");
    quick.push("dis+1002_1:1024_av=off:bd=off:drc=off:fsr=off:gtg=position:ind=struct:indc=goal:indgen=on:indgenss=2:taea=off:to=lpo:i=742:si=on:rtra=on_0");
    quick.push("lrs+1010_1:128_aac=none:alpa=false:cond=fast:drc=off:gtg=position:gve=cautious:ind=both:norm_ineq=on:nwc=10.0:sac=on:sp=frequency:tgt=full:to=lpo:i=53:si=on:rtra=on_0");
   // Improves by expected 5526.94623336456 probs costing 1999 Mi
   // Sub-schedule for 4000Mi strat cap / 4000Mi overall limit
-   quick.push("lrs+1010_1:3_drc=encompass:ind=both:indmd=1:nui=on:s2a=on:ss=axioms:i=66:si=on:rtra=on_0");
-   quick.push("lrs+10_1:1_drc=encompass:fsr=off:ind=struct:indao=on:indmd=3:indoct=on:newcnf=on:taea=off:i=51:si=on:rtra=on_0");
+   quick.push("lrs+1010_1:3_ind=both:indmd=1:nui=on:s2a=on:ss=axioms:i=66:si=on:rtra=on_0");
+   quick.push("lrs+10_1:1_fsr=off:ind=struct:indao=on:indmd=3:indoct=on:newcnf=on:taea=off:i=51:si=on:rtra=on_0");
    quick.push("ott+11_5:1_av=off:br=off:canc=cautious:drc=off:ev=cautious:fsr=off:ind=struct:indstrhyp=on:newcnf=on:i=128:si=on:rtra=on_0");
    quick.push("ott+10_1:12_bsd=on:drc=off:fde=none:ind=struct:indgen=on:indgenss=2:norm_ineq=on:sac=on:taea=off:thi=strong:uwa=ground:i=571:si=on:rtra=on_0");
-   quick.push("dis+1010_1:1_alpa=random:drc=encompass:gtg=all:kws=arity:nwc=3.0:spb=goal_then_units:ss=axioms:urr=on:i=44:si=on:rtra=on_0");
+   quick.push("dis+1010_1:1_alpa=random:gtg=all:kws=arity:nwc=3.0:spb=goal_then_units:ss=axioms:urr=on:i=44:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_drc=ordering:fsr=off:gtg=position:ind=both:indmd=1:indstrhyp=on:nwc=5.0:s2a=on:i=31:si=on:rtra=on_0");
    quick.push("lrs+1010_1:1_drc=ordering:bsr=unit_only:ev=cautious:ind=both:nui=on:sac=on:i=47:si=on:rtra=on_0");
    quick.push("ott+1002_1:1024_bsd=on:drc=off:fd=preordered:ind=struct:indao=on:indgenss=7:kws=inv_arity:rawr=on:sac=on:sp=const_max:spb=intro:sup=off:uhcvi=on:updr=off:uwa=ground:i=380:si=on:rtra=on_0");
@@ -3304,9 +3304,9 @@ void Schedules::getStructInductionSchedule(const Shell::Property& property, Sche
    quick.push("lrs+10_1:1_drc=off:gtg=exists_sym:ind=struct:indstrhyp=on:sp=const_min:taea=off:tar=off:to=lpo:i=67:si=on:rtra=on_0");
    quick.push("lrs+1002_1:1_av=off:br=off:drc=off:gtg=exists_all:ind=both:indc=goal:indmd=15:plsq=on:plsqr=9,1:sos=on:sp=unary_frequency:tgt=ground:to=lpo:uace=off:uwa=one_side_interpreted:i=3:si=on:rtra=on_0");
    quick.push("lrs+21_1:1_drc=ordering:av=off:ind=struct:newcnf=on:plsq=on:plsqc=1:plsqr=32,1:rawr=on:sos=all:sup=off:i=20:si=on:rtra=on_0");
-   quick.push("lrs+2_1:1_drc=encompass:ind=struct:indao=on:newcnf=on:plsq=on:plsqr=32,1:sp=frequency:to=lpo:i=19:si=on:rtra=on_0");
+   quick.push("lrs+2_1:1_ind=struct:indao=on:newcnf=on:plsq=on:plsqr=32,1:sp=frequency:to=lpo:i=19:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_av=off:drc=off:gtg=position:ind=struct:indoct=on:plsq=on:plsqc=1:plsqr=32,1:to=lpo:i=33:si=on:rtra=on_0");
-   quick.push("ott+21_1:10_bsr=on:canc=force:drc=encompass:ev=cautious:ile=on:ind=struct:indao=on:indoct=on:newcnf=on:spb=non_intro:tac=rule:taea=off:to=lpo:i=443:si=on:rtra=on_0");
+   quick.push("ott+21_1:10_bsr=on:canc=force:ev=cautious:ile=on:ind=struct:indao=on:indoct=on:newcnf=on:spb=non_intro:tac=rule:taea=off:to=lpo:i=443:si=on:rtra=on_0");
    quick.push("lrs+1002_1:1_drc=ordering:bd=preordered:gtg=exists_all:gtgl=3:ind=struct:indmd=1:indstrhyp=on:nui=on:sos=on:i=18:si=on:rtra=on_0");
    quick.push("lrs+1002_1:1_drc=ordering:canc=cautious:sos=on:sp=unary_frequency:i=19:si=on:rtra=on_0");
   // Improves by expected 305.621133946607 probs costing 3995 Mi
@@ -3360,23 +3360,23 @@ void Schedules::getStructInductionSchedule(const Shell::Property& property, Sche
    quick.push("ott+10_1:172_awrs=decay:drc=off:gtg=position:ind=both:indao=on:indc=goal:indgen=on:newcnf=on:sik=recursion:sp=weighted_frequency:taea=off:uhcvi=on:i=8568:si=on:rtra=on_0");
    quick.push("lrs+10_1:128_drc=off:gtg=exists_top:ind=struct:indstrhyp=on:sac=on:slsq=on:slsqc=1:taea=off:i=61:si=on:rtra=on_0");
    quick.push("lrs+10_8:1_drc=ordering:gtg=all:ind=struct:indmd=2:indoct=on:kws=frequency:lma=on:nui=on:sos=on:sp=reverse_frequency:taea=off:i=172:si=on:rtra=on_0");
-   quick.push("ott+21_1:10_bsr=on:canc=force:drc=encompass:ev=cautious:ile=on:ind=struct:indao=on:indoct=on:newcnf=on:spb=non_intro:tac=rule:taea=off:to=lpo:i=849:si=on:rtra=on_0");
+   quick.push("ott+21_1:10_bsr=on:canc=force:ev=cautious:ile=on:ind=struct:indao=on:indoct=on:newcnf=on:spb=non_intro:tac=rule:taea=off:to=lpo:i=849:si=on:rtra=on_0");
    quick.push("dis+21_1:1_drc=ordering:ind=struct:indstrhyp=on:norm_ineq=on:rawr=on:s2a=on:spb=goal:to=lpo:uace=off:urr=on:i=38:si=on:rtra=on_0");
    quick.push("lrs+1011_1:7_drc=off:fsr=off:ind=struct:norm_ineq=on:s2a=on:taea=off:to=lpo:uace=off:uwa=interpreted_only:i=60:si=on:rtra=on_0");
    quick.push("lrs+1002_1:1_drc=ordering:bd=preordered:gtg=exists_all:gtgl=3:ind=struct:indmd=1:indstrhyp=on:nui=on:sos=on:i=411:si=on:rtra=on_0");
    quick.push("lrs+1011_1:16_drc=off:gtg=position:kws=precedence:sd=1:sp=unary_first:ss=axioms:st=2.0:i=112:si=on:rtra=on_0");
   // Improves by expected 153.73430619163955 probs costing 19985 Mi
   // Sub-schedule for 40000Mi strat cap / 40000Mi overall limit
-   quick.push("ott+10_1:1_aac=none:alpa=true:drc=encompass:fsr=off:ind=both:indoct=on:taea=off:i=1673:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_aac=none:alpa=true:fsr=off:ind=both:indoct=on:taea=off:i=1673:si=on:rtra=on_0");
    quick.push("lrs+10_1:20_aac=none:asg=cautious:awrs=decay:bsd=on:drc=off:ev=force:flr=on:ind=both:indgen=on:indoct=on:nm=10:pum=on:sac=on:spb=units:taea=off:tgt=full:thi=neg_eq:to=lpo:i=6328:si=on:rtra=on_0");
    quick.push("dis+1002_3:1_drc=ordering:awrs=converge:awrsf=500:fsd=on:fsr=off:gve=cautious:nm=32:sos=on:sp=frequency:tgt=ground:to=lpo:uace=off:i=114:si=on:rtra=on_0");
    quick.push("dis+1010_5:1_drc=ordering:gtg=position:kws=inv_arity:sas=z3:sp=reverse_arity:tgt=full:urr=on:i=273:si=on:rtra=on_0");
-   quick.push("lrs+1010_1:3_drc=encompass:ind=both:indmd=1:nui=on:s2a=on:ss=axioms:i=67:si=on:rtra=on_0");
+   quick.push("lrs+1010_1:3_ind=both:indmd=1:nui=on:s2a=on:ss=axioms:i=67:si=on:rtra=on_0");
    quick.push("dis+1010_1:1_drc=off:er=filter:fsr=off:ind=both:indao=on:newcnf=on:nm=32:rp=on:sac=on:sik=recursion:sp=unary_frequency:tac=rule:taea=off:to=lpo:uace=off:i=535:si=on:rtra=on_0");
    quick.push("dis+10_1:128_drc=ordering:ind=both:indmd=1:indstrhyp=on:nui=on:sac=on:i=1116:si=on:rtra=on_0");
    quick.push("ott+10_1:12_bsd=on:drc=off:fde=none:ind=struct:indgen=on:indgenss=2:norm_ineq=on:sac=on:taea=off:thi=strong:uwa=ground:i=7065:si=on:rtra=on_0");
    quick.push("ott+1002_1:4_drc=off:fde=unused:fsd=on:fsdmm=3:gtg=exists_all:gtgl=3:ind=struct:indgen=on:indoct=on:newcnf=on:norm_ineq=on:sp=occurrence:taea=off:to=lpo:i=84:si=on:rtra=on_0");
-   quick.push("ott+1011_1:1_aac=none:drc=encompass:er=filter:erml=2:gtg=exists_all:gve=cautious:ind=both:indmd=1:newcnf=on:nwc=2.0:sas=z3:sp=unary_first:to=lpo:i=753:si=on:rtra=on_0");
+   quick.push("ott+1011_1:1_aac=none:er=filter:erml=2:gtg=exists_all:gve=cautious:ind=both:indmd=1:newcnf=on:nwc=2.0:sas=z3:sp=unary_first:to=lpo:i=753:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_atotf=0.2:drc=off:gtg=exists_top:ind=both:nwc=10.0:sac=on:sp=unary_frequency:tgt=ground:to=lpo:i=56:si=on:rtra=on_0");
    quick.push("ott+1002_1:1024_bsd=on:drc=off:fd=preordered:ind=struct:indao=on:indgenss=7:kws=inv_arity:rawr=on:sac=on:sp=const_max:spb=intro:sup=off:uhcvi=on:updr=off:uwa=ground:i=3557:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_drc=off:ind=both:indoct=on:indstrhyp=on:sos=on:sp=const_frequency:ss=axioms:to=lpo:i=1160:si=on:rtra=on_0");
@@ -3388,10 +3388,10 @@ void Schedules::getStructInductionSchedule(const Shell::Property& property, Sche
    quick.push("ott+1011_1:64_avsq=on:avsqr=11223,262144:drc=off:ev=force:lsd=10:nm=16:plsq=on:plsqc=1:plsqr=1,32:rawr=on:sp=unary_frequency:spb=goal:taea=off:tgt=ground:to=lpo:i=240:si=on:rtra=on_0");
   // Improves by expected 115.18506679466628 probs costing 39936 Mi
   // Sub-schedule for 120000Mi strat cap / 120000Mi overall limit
-   quick.push("ott+10_1:1_drc=encompass:foolp=on:ind=struct:indoct=on:sac=on:taea=off:to=lpo:i=1906:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_foolp=on:ind=struct:indoct=on:sac=on:taea=off:to=lpo:i=1906:si=on:rtra=on_0");
    quick.push("ott+1011_2:1_drc=ordering:av=off:ev=cautious:ind=both:indmd=10:indstrhyp=on:newcnf=on:nm=0:rawr=on:sp=unary_frequency:urr=on:i=486:si=on:rtra=on_0");
    quick.push("lrs+10_1:20_aac=none:asg=cautious:awrs=decay:bsd=on:drc=off:ev=force:flr=on:ind=both:indgen=on:indoct=on:nm=10:pum=on:sac=on:spb=units:taea=off:tgt=full:thi=neg_eq:to=lpo:i=982:si=on:rtra=on_0");
-   quick.push("lrs+1010_1:3_drc=encompass:ind=both:indmd=1:nui=on:s2a=on:ss=axioms:i=67:si=on:rtra=on_0");
+   quick.push("lrs+1010_1:3_ind=both:indmd=1:nui=on:s2a=on:ss=axioms:i=67:si=on:rtra=on_0");
    quick.push("ott+10_1:12_bsd=on:drc=off:fde=none:ind=struct:indgen=on:indgenss=2:norm_ineq=on:sac=on:taea=off:thi=strong:uwa=ground:i=3679:si=on:rtra=on_0");
    quick.push("dis+10_33:64_aac=none:add=large:drc=off:gtg=exists_sym:ind=struct:indmd=4:indoct=on:indstrhyp=on:nm=0:pum=on:sac=on:sp=const_min:thi=all:i=1560:si=on:rtra=on_0");
    quick.push("ott+1002_3:2_aac=none:abs=on:alpa=true:drc=off:gve=force:ind=struct:indao=on:newcnf=on:nicw=on:nm=30:rawr=on:taea=off:i=11963:si=on:rtra=on_0");
@@ -3407,16 +3407,16 @@ void Schedules::getStructInductionSchedule(const Shell::Property& property, Sche
    quick.push("lrs+1002_1:1_drc=ordering:bd=preordered:gtg=exists_all:gtgl=3:ind=struct:indmd=1:indstrhyp=on:nui=on:sos=on:i=369:si=on:rtra=on_0");
   // Improves by expected 136.55861875083716 probs costing 119962 Mi
   // Sub-schedule for 240000Mi strat cap / 240000Mi overall limit
-   quick.push("ott+10_1:1_aac=none:alpa=true:drc=encompass:fsr=off:ind=both:indoct=on:taea=off:i=3405:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_aac=none:alpa=true:fsr=off:ind=both:indoct=on:taea=off:i=3405:si=on:rtra=on_0");
    quick.push("lrs+21_1:1_drc=ordering:abs=on:fnrw=on:fsr=off:gtg=exists_sym:gtgl=4:newcnf=on:nm=2:rp=on:sas=z3:sp=occurrence:thi=neg_eq:i=2238:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_drc=encompass:foolp=on:ind=struct:indoct=on:sac=on:taea=off:to=lpo:i=1183:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_foolp=on:ind=struct:indoct=on:sac=on:taea=off:to=lpo:i=1183:si=on:rtra=on_0");
    quick.push("ott+1011_2:1_drc=ordering:av=off:ev=cautious:ind=both:indmd=10:indstrhyp=on:newcnf=on:nm=0:rawr=on:sp=unary_frequency:urr=on:i=486:si=on:rtra=on_0");
    quick.push("lrs+10_1:20_aac=none:asg=cautious:awrs=decay:bsd=on:drc=off:ev=force:flr=on:ind=both:indgen=on:indoct=on:nm=10:pum=on:sac=on:spb=units:taea=off:tgt=full:thi=neg_eq:to=lpo:i=982:si=on:rtra=on_0");
    quick.push("dis+10_1:1_aac=none:alpa=true:drc=off:ind=both:indoct=on:newcnf=on:sac=on:taea=off:to=lpo:i=6648:si=on:rtra=on_0");
-   quick.push("lrs+1010_1:3_drc=encompass:ind=both:indmd=1:nui=on:s2a=on:ss=axioms:i=67:si=on:rtra=on_0");
+   quick.push("lrs+1010_1:3_ind=both:indmd=1:nui=on:s2a=on:ss=axioms:i=67:si=on:rtra=on_0");
    quick.push("dis+10_1:128_drc=ordering:ind=both:indmd=1:indstrhyp=on:nui=on:sac=on:i=1708:si=on:rtra=on_0");
    quick.push("ott+10_1:12_bsd=on:drc=off:fde=none:ind=struct:indgen=on:indgenss=2:norm_ineq=on:sac=on:taea=off:thi=strong:uwa=ground:i=23300:si=on:rtra=on_0");
-   quick.push("ott+1011_1:1_aac=none:drc=encompass:er=filter:erml=2:gtg=exists_all:gve=cautious:ind=both:indmd=1:newcnf=on:nwc=2.0:sas=z3:sp=unary_first:to=lpo:i=1027:si=on:rtra=on_0");
+   quick.push("ott+1011_1:1_aac=none:er=filter:erml=2:gtg=exists_all:gve=cautious:ind=both:indmd=1:newcnf=on:nwc=2.0:sas=z3:sp=unary_first:to=lpo:i=1027:si=on:rtra=on_0");
    quick.push("ott+1002_1:1024_bsd=on:drc=off:fd=preordered:ind=struct:indao=on:indgenss=7:kws=inv_arity:rawr=on:sac=on:sp=const_max:spb=intro:sup=off:uhcvi=on:updr=off:uwa=ground:i=18822:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_drc=off:ind=both:indoct=on:indstrhyp=on:sos=on:sp=const_frequency:ss=axioms:to=lpo:i=574:si=on:rtra=on_0");
    quick.push("ott+1002_1:1024_bce=on:drc=off:fsd=on:ind=struct:indgen=on:indgenss=2:sac=on:taea=off:to=lpo:uwa=interpreted_only:i=8598:si=on:rtra=on_0");
@@ -3425,7 +3425,7 @@ void Schedules::getStructInductionSchedule(const Shell::Property& property, Sche
    quick.push("lrs+1010_5:1_drc=ordering:asg=cautious:av=off:fsd=on:gtg=exists_sym:ind=both:indgen=on:indgenss=4:kws=precedence:lwlo=on:nm=30:sos=theory:sp=const_frequency:taea=off:tar=off:i=120:si=on:rtra=on_0");
    quick.push("lrs+10_8:1_drc=ordering:gtg=all:ind=struct:indmd=2:indoct=on:kws=frequency:lma=on:nui=on:sos=on:sp=reverse_frequency:taea=off:i=1165:si=on:rtra=on_0");
    quick.push("ott+1011_1:64_avsq=on:avsqr=11223,262144:drc=off:ev=force:lsd=10:nm=16:plsq=on:plsqc=1:plsqr=1,32:rawr=on:sp=unary_frequency:spb=goal:taea=off:tgt=ground:to=lpo:i=421:si=on:rtra=on_0");
-   quick.push("ott+21_1:10_bsr=on:canc=force:drc=encompass:ev=cautious:ile=on:ind=struct:indao=on:indoct=on:newcnf=on:spb=non_intro:tac=rule:taea=off:to=lpo:i=5032:si=on:rtra=on_0");
+   quick.push("ott+21_1:10_bsr=on:canc=force:ev=cautious:ile=on:ind=struct:indao=on:indoct=on:newcnf=on:spb=non_intro:tac=rule:taea=off:to=lpo:i=5032:si=on:rtra=on_0");
    quick.push("dis+1002_1:1024_av=off:bd=off:drc=off:fsr=off:gtg=position:ind=struct:indc=goal:indgen=on:indgenss=2:taea=off:to=lpo:i=2124:si=on:rtra=on_0");
    quick.push("lrs+1010_1:128_aac=none:alpa=false:cond=fast:drc=off:gtg=position:gve=cautious:ind=both:norm_ineq=on:nwc=10.0:sac=on:sp=frequency:tgt=full:to=lpo:i=561:si=on:rtra=on_0");
   // Improves by expected 79.18911371902213 probs costing 238987 Mi
@@ -3443,9 +3443,9 @@ void Schedules::getStructInductionSchedule(const Shell::Property& property, Sche
    quick.push("lrs+1010_5:1_drc=ordering:asg=cautious:av=off:fsd=on:gtg=exists_sym:ind=both:indgen=on:indgenss=4:kws=precedence:lwlo=on:nm=30:sos=theory:sp=const_frequency:taea=off:tar=off:i=158:si=on:rtra=on_0");
   // Improves by expected 57.473513520147854 probs costing 479344 Mi
   // Sub-schedule for 960000Mi strat cap / 960000Mi overall limit
-   quick.push("ott+10_1:1_aac=none:alpa=true:drc=encompass:fsr=off:ind=both:indoct=on:taea=off:i=17958:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_aac=none:alpa=true:fsr=off:ind=both:indoct=on:taea=off:i=17958:si=on:rtra=on_0");
    quick.push("dis+10_1:1_drc=ordering:anc=none:gtg=exists_sym:gtgl=5:ind=struct:indgen=on:indoct=on:s2a=on:sac=on:ss=axioms:i=137973:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_drc=encompass:foolp=on:ind=struct:indoct=on:sac=on:taea=off:to=lpo:i=25643:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_foolp=on:ind=struct:indoct=on:sac=on:taea=off:to=lpo:i=25643:si=on:rtra=on_0");
    quick.push("lrs+10_1:20_aac=none:asg=cautious:awrs=decay:bsd=on:drc=off:ev=force:flr=on:ind=both:indgen=on:indoct=on:nm=10:pum=on:sac=on:spb=units:taea=off:tgt=full:thi=neg_eq:to=lpo:i=38951:si=on:rtra=on_0");
    quick.push("dis+1010_1:1_drc=off:er=filter:fsr=off:ind=both:indao=on:newcnf=on:nm=32:rp=on:sac=on:sik=recursion:sp=unary_frequency:tac=rule:taea=off:to=lpo:uace=off:i=22096:si=on:rtra=on_0");
    quick.push("ott+10_1:12_bsd=on:drc=off:fde=none:ind=struct:indgen=on:indgenss=2:norm_ineq=on:sac=on:taea=off:thi=strong:uwa=ground:i=140433:si=on:rtra=on_0");
@@ -3456,12 +3456,12 @@ void Schedules::getStructInductionSchedule(const Shell::Property& property, Sche
    quick.push("dis+10_21:29_bd=off:br=off:drc=off:ev=cautious:gs=on:gtg=exists_sym:ind=struct:indgen=on:indgenss=2:lcm=reverse:s2agt=10:sac=on:slsq=on:slsqc=2:sos=all:sp=const_frequency:taea=off:tgt=full:i=140001:si=on:rtra=on_0");
    quick.push("ott+21_1:1_canc=cautious:cond=fast:drc=off:fd=preordered:ind=struct:indao=on:indgen=on:indgenss=1:indoct=on:newcnf=on:sik=recursion:sp=occurrence:taea=off:i=71989:si=on:rtra=on_0");
    quick.push("ott+10_1:172_awrs=decay:drc=off:gtg=position:ind=both:indao=on:indc=goal:indgen=on:newcnf=on:sik=recursion:sp=weighted_frequency:taea=off:uhcvi=on:i=124992:si=on:rtra=on_0");
-   quick.push("lrs+2_1:1_drc=encompass:ind=struct:indao=on:newcnf=on:plsq=on:plsqr=32,1:sp=frequency:to=lpo:i=3032:si=on:rtra=on_0");
-   quick.push("ott+21_1:10_bsr=on:canc=force:drc=encompass:ev=cautious:ile=on:ind=struct:indao=on:indoct=on:newcnf=on:spb=non_intro:tac=rule:taea=off:to=lpo:i=11986:si=on:rtra=on_0");
+   quick.push("lrs+2_1:1_ind=struct:indao=on:newcnf=on:plsq=on:plsqr=32,1:sp=frequency:to=lpo:i=3032:si=on:rtra=on_0");
+   quick.push("ott+21_1:10_bsr=on:canc=force:ev=cautious:ile=on:ind=struct:indao=on:indoct=on:newcnf=on:spb=non_intro:tac=rule:taea=off:to=lpo:i=11986:si=on:rtra=on_0");
   // Improves by expected 35.58186707682759 probs costing 959784 Mi
   // Sub-schedule for 960000Mi strat cap / 960000Mi overall limit
    quick.push("dis+10_1:1_drc=ordering:anc=none:gtg=exists_sym:gtgl=5:ind=struct:indgen=on:indoct=on:s2a=on:sac=on:ss=axioms:i=133107:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_drc=encompass:foolp=on:ind=struct:indoct=on:sac=on:taea=off:to=lpo:i=21939:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_foolp=on:ind=struct:indoct=on:sac=on:taea=off:to=lpo:i=21939:si=on:rtra=on_0");
    quick.push("lrs+10_1:20_aac=none:asg=cautious:awrs=decay:bsd=on:drc=off:ev=force:flr=on:ind=both:indgen=on:indoct=on:nm=10:pum=on:sac=on:spb=units:taea=off:tgt=full:thi=neg_eq:to=lpo:i=126079:si=on:rtra=on_0");
    quick.push("dis+1010_1:1_drc=off:er=filter:fsr=off:ind=both:indao=on:newcnf=on:nm=32:rp=on:sac=on:sik=recursion:sp=unary_frequency:tac=rule:taea=off:to=lpo:uace=off:i=63511:si=on:rtra=on_0");
    quick.push("ott+10_1:12_bsd=on:drc=off:fde=none:ind=struct:indgen=on:indgenss=2:norm_ineq=on:sac=on:taea=off:thi=strong:uwa=ground:i=91551:si=on:rtra=on_0");
@@ -3475,7 +3475,7 @@ void Schedules::getStructInductionSchedule(const Shell::Property& property, Sche
   // Improves by expected 13.948651891536842 probs costing 946466 Mi
   // Sub-schedule for 960000Mi strat cap / 960000Mi overall limit
    quick.push("dis+10_1:1_drc=ordering:anc=none:gtg=exists_sym:gtgl=5:ind=struct:indgen=on:indoct=on:s2a=on:sac=on:ss=axioms:i=120877:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_drc=encompass:foolp=on:ind=struct:indoct=on:sac=on:taea=off:to=lpo:i=21939:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_foolp=on:ind=struct:indoct=on:sac=on:taea=off:to=lpo:i=21939:si=on:rtra=on_0");
    quick.push("lrs+10_1:20_aac=none:asg=cautious:awrs=decay:bsd=on:drc=off:ev=force:flr=on:ind=both:indgen=on:indoct=on:nm=10:pum=on:sac=on:spb=units:taea=off:tgt=full:thi=neg_eq:to=lpo:i=16287:si=on:rtra=on_0");
    quick.push("dis+1010_1:1_drc=off:er=filter:fsr=off:ind=both:indao=on:newcnf=on:nm=32:rp=on:sac=on:sik=recursion:sp=unary_frequency:tac=rule:taea=off:to=lpo:uace=off:i=63511:si=on:rtra=on_0");
    quick.push("ott+10_1:12_bsd=on:drc=off:fde=none:ind=struct:indgen=on:indgenss=2:norm_ineq=on:sac=on:taea=off:thi=strong:uwa=ground:i=113322:si=on:rtra=on_0");
@@ -3508,14 +3508,14 @@ void Schedules::getStructInductionTipSchedule(const Shell::Property& property, S
    quick.push("lrs+10_1:1_drc=ordering:ind=struct:newcnf=on:nui=on:nwc=10.0:sac=on:sik=recursion:to=lpo:i=16:si=on:rtra=on_0");
    quick.push("lrs+1011_1:1_drc=ordering:fnrw=on:ind=both:indmd=2:indoct=on:kws=frequency:newcnf=on:nui=on:sik=recursion:taea=off:i=13:si=on:rtra=on_0");
    quick.push("ott+10_1:1_drc=ordering:ind=struct:indstrhyp=on:kws=precedence:s2a=on:s2agt=16:sac=on:sos=all:sp=reverse_arity:spb=intro:i=71:si=on:rtra=on_0");
-   quick.push("lrs+2_1:1_drc=encompass:ind=struct:indao=on:newcnf=on:plsq=on:plsqr=32,1:sp=frequency:to=lpo:i=8:si=on:rtra=on_0");
+   quick.push("lrs+2_1:1_ind=struct:indao=on:newcnf=on:plsq=on:plsqr=32,1:sp=frequency:to=lpo:i=8:si=on:rtra=on_0");
    quick.push("lrs+1010_1:1_drc=ordering:aac=none:afp=10000:fnrw=on:ind=both:indc=goal_plus:indmd=1:indn=off:newcnf=on:i=4:si=on:rtra=on_0");
    quick.push("dis+10_1:1_drc=ordering:asg=cautious:ind=both:intindstterm=no_skolems:newcnf=on:norm_ineq=on:rp=on:sac=on:sas=z3:sos=theory:spb=intro:to=lpo:i=174:si=on:rtra=on_0");
    quick.push("lrs+10_1633:262144_canc=cautious:drc=off:ev=force:fde=none:ind=both:indoct=on:newcnf=on:sik=recursion:sil=100000:sp=const_min:spb=goal_then_units:to=lpo:updr=off:i=15:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_drc=ordering:bd=off:gtg=exists_all:ind=both:indmd=1:indstrhyp=on:ins=3:newcnf=on:nui=on:spb=goal_then_units:to=lpo:i=19:si=on:rtra=on_0");
    quick.push("ott+10_1:1_drc=off:fs=off:fsr=off:ind=struct:indstrhyp=on:nwc=5.0:s2a=on:sos=on:tar=off:i=60:si=on:rtra=on_0");
    quick.push("lrs-1003_1:4_av=off:drc=off:ind=struct:indu=off:kws=precedence:newcnf=on:rawr=on:s2a=on:s2agt=16:sil=100000:slsq=on:spb=units:urr=on:uwa=ground:i=31:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_drc=encompass:gtg=exists_all:ind=struct:indmd=3:indstrhyp=on:s2a=on:i=27:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_gtg=exists_all:ind=struct:indmd=3:indstrhyp=on:s2a=on:i=27:si=on:rtra=on_0");
    quick.push("dis+1010_3:1_drc=ordering:aac=none:flr=on:ind=struct:ins=2:newcnf=on:nwc=2.0:sac=on:sil=100000:i=69:si=on:rtra=on_0");
    quick.push("lrs+2_1:4_drc=off:gtg=position:gve=cautious:ile=on:ind=struct:indao=on:indc=goal:indmd=6:newcnf=on:nwc=5.0:s2a=on:tac=axiom:to=lpo:i=39:si=on:rtra=on_0");
    quick.push("lrs+1002_1:8_alpa=false:bd=preordered:drc=off:ind=struct:newcnf=on:nwc=10.0:sac=on:sik=recursion:sp=occurrence:spb=goal:i=10:si=on:rtra=on_0");
@@ -3525,8 +3525,8 @@ void Schedules::getStructInductionTipSchedule(const Shell::Property& property, S
    quick.push("ott+10_1:1_drc=ordering:ev=cautious:gtg=exists_top:ind=struct:indc=goal:indstrhyp=on:nwc=10.0:sos=on:i=7:si=on:rtra=on_0");
    quick.push("ott+21_1:1_drc=ordering:ep=RST:fsd=on:gve=cautious:ind=both:indn=off:newcnf=on:nui=on:nwc=10.0:sik=recursion:spb=intro:urr=on:i=4:si=on:rtra=on_0");
    quick.push("lrs+1010_1:1_drc=ordering:gtg=exists_all:ind=both:indmd=1:newcnf=on:nui=on:taea=off:updr=off:i=18:si=on:rtra=on_0");
-   quick.push("lrs+10_1:1_drc=encompass:erd=off:ind=struct:indmd=1:sos=on:ss=axioms:urr=on:i=21:si=on:rtra=on_0");
-   quick.push("lrs+10_1:1_add=large:drc=encompass:gtg=exists_sym:ind=both:indmd=2:newcnf=on:sik=recursion:sil=100000:uwa=one_side_constant:i=65:si=on:rtra=on_0");
+   quick.push("lrs+10_1:1_erd=off:ind=struct:indmd=1:sos=on:ss=axioms:urr=on:i=21:si=on:rtra=on_0");
+   quick.push("lrs+10_1:1_add=large:gtg=exists_sym:ind=both:indmd=2:newcnf=on:sik=recursion:sil=100000:uwa=one_side_constant:i=65:si=on:rtra=on_0");
    quick.push("lrs+21_1:8_av=off:awrs=converge:awrsf=10:drc=off:fnrw=on:ind=struct:newcnf=on:slsq=on:slsqc=5:sp=unary_frequency:uwa=all:i=10:si=on:rtra=on_0");
    quick.push("ott+1002_1:1024_bsd=on:drc=off:fd=preordered:ind=struct:indao=on:indgenss=7:kws=inv_arity:rawr=on:sac=on:sp=const_max:spb=intro:sup=off:uhcvi=on:updr=off:uwa=ground:i=51:si=on:rtra=on_0");
    quick.push("ott+1002_3:2_aac=none:abs=on:alpa=true:drc=off:gve=force:ind=struct:indao=on:newcnf=on:nicw=on:nm=30:rawr=on:taea=off:i=8:si=on:rtra=on_0");
@@ -3537,11 +3537,11 @@ void Schedules::getStructInductionTipSchedule(const Shell::Property& property, S
    quick.push("dis+10_1:1_drc=ordering:av=off:fnrw=on:ind=struct:newcnf=on:nwc=5.0:i=9:si=on:rtra=on_0");
    quick.push("ott+10_1:1_drc=ordering:atotf=0.1:ind=struct:indstrhyp=on:newcnf=on:sik=all:taea=off:i=177:si=on:rtra=on_0");
    quick.push("dis+1002_1:1_drc=ordering:bd=off:ep=RSTC:gtg=exists_all:newcnf=on:nm=10:norm_ineq=on:rp=on:s2agt=32:sac=on:sas=z3:slsq=on:slsqr=151023,1048576:sp=const_max:tac=light:i=161:si=on:rtra=on_0");
-   quick.push("lrs+21_1:128_av=off:drc=encompass:gtg=all:ind=struct:indao=on:ins=1:newcnf=on:spb=units:uwa=one_side_interpreted:i=12:si=on:rtra=on_0");
+   quick.push("lrs+21_1:128_av=off:gtg=all:ind=struct:indao=on:ins=1:newcnf=on:spb=units:uwa=one_side_interpreted:i=12:si=on:rtra=on_0");
    quick.push("lrs+1010_8:1_drc=ordering:ind=both:indmd=2:kws=inv_precedence:newcnf=on:sik=recursion:sp=const_min:i=32:si=on:rtra=on_0");
    quick.push("dis+10_1:64_drc=ordering:ind=both:indmd=2:indoct=on:newcnf=on:sac=on:sik=recursion:sil=100000:sp=frequency:taea=off:to=lpo:i=13:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_drc=ordering:erd=off:gve=cautious:ind=both:newcnf=on:nui=on:updr=off:i=3:si=on:rtra=on_0");
-   quick.push("lrs+10_1:4_drc=encompass:erd=off:ind=both:sil=100000:taea=off:urr=on:i=34:si=on:rtra=on_0");
+   quick.push("lrs+10_1:4_erd=off:ind=both:sil=100000:taea=off:urr=on:i=34:si=on:rtra=on_0");
   // Improves by expected 216.06498927478503 probs costing 1990 Mi
   // Sub-schedule for 4000Mi strat cap / 4000Mi overall limit
    quick.push("dis+10_180:31_drc=ordering:canc=force:gtg=exists_all:gtgl=4:newcnf=on:rp=on:s2a=on:s2agt=10:sac=on:sas=z3:sos=all:uhcvi=on:i=223:si=on:rtra=on_0");
@@ -3590,7 +3590,7 @@ void Schedules::getStructInductionTipSchedule(const Shell::Property& property, S
   // Improves by expected 1.496372313496297 probs costing 6653 Mi
   // Sub-schedule for 20000Mi strat cap / 20000Mi overall limit
    quick.push("dis+10_1:1_drc=ordering:asg=cautious:ind=both:intindstterm=no_skolems:newcnf=on:norm_ineq=on:rp=on:sac=on:sas=z3:sos=theory:spb=intro:to=lpo:i=2701:si=on:rtra=on_0");
-   quick.push("ott+1010_9:4_anc=all_dependent:drc=encompass:fsd=on:ind=struct:indao=on:indstrhyp=on:newcnf=on:pum=on:s2a=on:s2agt=32:sos=all:tac=rule:i=4801:si=on:rtra=on_0");
+   quick.push("ott+1010_9:4_anc=all_dependent:fsd=on:ind=struct:indao=on:indstrhyp=on:newcnf=on:pum=on:s2a=on:s2agt=32:sos=all:tac=rule:i=4801:si=on:rtra=on_0");
    quick.push("dis+10_1:1_amm=off:drc=off:gtg=all:gtgl=5:ind=struct:indmd=2:newcnf=on:sos=on:taea=off:tgt=full:i=441:si=on:rtra=on_0");
   // Improves by expected 0.4182775034739544 probs costing 7940 Mi
 
@@ -6092,204 +6092,204 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
         (atoms <= 10 ? std::tie(quick,fallback,fallback,fallback) : std::tie(fallback,quick,fallback,fallback)) :
         (atoms <= 14 ? std::tie(fallback,fallback,quick,fallback) : std::tie(fallback,fallback,fallback,quick));
 
-    propZsmall10.push("ott+10_4:13_drc=encompass:sil=256000:bsd=on:sp=reverse_frequency:urr=on:i=125345:rawr=on_0");
+    propZsmall10.push("ott+10_4:13_sil=256000:bsd=on:sp=reverse_frequency:urr=on:i=125345:rawr=on_0");
     propZsmall10.push("lrs+10_25:89_drc=ordering:sil=256000:tgt=ground:lwlo=on:s2a=on:i=224446:s2at=5.0:fsr=off:awrs=converge:awrsf=90_0");
 
-    propZsmall10.push("lrs+10_1:1_to=lpo:drc=encompass:sil=2000:fde=unused:sp=const_min:i=107:bs=unit_only:bd=preordered:ins=1:rawr=on:crc=on:sfv=off:plsq=on:plsql=on:plsqc=1_0");
-    propZsmall10.push("lrs+10_1:32_drc=encompass:sil=256000:i=140:crc=on_0");
-    propZsmall10.push("lrs+10_85441:1048576_drc=encompass:sil=64000:i=401:awrs=converge:sp=reverse_frequency:dpc=on:bd=preordered:fsr=off:ss=included:st=3.0:fde=none_0");
-    propZsmall10.push("dis+10_1:128_drc=encompass:sil=256000:sp=occurrence:i=1122:kws=precedence:fsr=off_0");
-    propZsmall10.push("dis+10_1:24_drc=encompass:sil=256000:tgt=ground:spb=goal:i=313:bd=preordered:crc=on:croc=on_0");
-    propZsmall10.push("dis+10_1:9_bsr=unit_only:slsqr=31,32:sil=256000:tgt=full:urr=on:slsqc=2:slsq=on:i=1149:s2at=5.0:slsql=off:ins=1:rawr=on:fd=preordered:drc=encompass_0");
-    propZsmall10.push("lrs+10_1:10_drc=encompass:sil=2000:tgt=ground:plsq=on:plsqr=92626939,1048576:sp=occurrence:fd=preordered:i=1914:kws=precedence:ins=8:rawr=on_0");
-    propZsmall10.push("lrs+10_16:1_bsr=on:drc=encompass:sil=64000:i=281:bd=off:to=lpo_0");
-    propZsmall10.push("lrs+10_1:64_drc=encompass:sil=2000:fde=none:sp=reverse_arity:s2a=on:i=1826:ins=2:dpc=on:awrs=decay:awrsf=200_0");
+    propZsmall10.push("lrs+10_1:1_to=lpo:sil=2000:fde=unused:sp=const_min:i=107:bs=unit_only:bd=preordered:ins=1:rawr=on:crc=on:sfv=off:plsq=on:plsql=on:plsqc=1_0");
+    propZsmall10.push("lrs+10_1:32_sil=256000:i=140:crc=on_0");
+    propZsmall10.push("lrs+10_85441:1048576_sil=64000:i=401:awrs=converge:sp=reverse_frequency:dpc=on:bd=preordered:fsr=off:ss=included:st=3.0:fde=none_0");
+    propZsmall10.push("dis+10_1:128_sil=256000:sp=occurrence:i=1122:kws=precedence:fsr=off_0");
+    propZsmall10.push("dis+10_1:24_sil=256000:tgt=ground:spb=goal:i=313:bd=preordered:crc=on:croc=on_0");
+    propZsmall10.push("dis+10_1:9_bsr=unit_only:slsqr=31,32:sil=256000:tgt=full:urr=on:slsqc=2:slsq=on:i=1149:s2at=5.0:slsql=off:ins=1:rawr=on:fd=preordered_0");
+    propZsmall10.push("lrs+10_1:10_sil=2000:tgt=ground:plsq=on:plsqr=92626939,1048576:sp=occurrence:fd=preordered:i=1914:kws=precedence:ins=8:rawr=on_0");
+    propZsmall10.push("lrs+10_16:1_bsr=on:sil=64000:i=281:bd=off:to=lpo_0");
+    propZsmall10.push("lrs+10_1:64_sil=2000:fde=none:sp=reverse_arity:s2a=on:i=1826:ins=2:dpc=on:awrs=decay:awrsf=200_0");
     propZsmall10.push("dis+10_1:1024_drc=ordering:slsqr=7,2:to=lpo:sil=256000:tgt=full:s2agt=8:slsqc=1:slsq=on:s2a=on:i=807:rawr=on_0");
-    propZsmall10.push("dis+10_1:14_bsr=unit_only:to=lpo:drc=encompass:sil=256000:tgt=ground:urr=on:slsq=on:i=519:awrs=converge:awrsf=50:rawr=on:fsr=off_0");
-    propZsmall10.push("lrs+10_1:1_to=lpo:drc=encompass:sil=8000:tgt=full:sp=const_frequency:i=525:lwlo=on:nwc=10.0_0");
-    propZsmall10.push("lrs+10_1:32_drc=encompass:sil=256000:tgt=ground:sp=reverse_frequency:s2a=on:i=4287:s2at=5.0:kws=precedence_0");
+    propZsmall10.push("dis+10_1:14_bsr=unit_only:to=lpo:sil=256000:tgt=ground:urr=on:slsq=on:i=519:awrs=converge:awrsf=50:rawr=on:fsr=off_0");
+    propZsmall10.push("lrs+10_1:1_to=lpo:sil=8000:tgt=full:sp=const_frequency:i=525:lwlo=on:nwc=10.0_0");
+    propZsmall10.push("lrs+10_1:32_sil=256000:tgt=ground:sp=reverse_frequency:s2a=on:i=4287:s2at=5.0:kws=precedence_0");
     propZsmall10.push("lrs+10_1:1024_drc=ordering:sil=2000:tgt=ground:plsq=on:sp=frequency:s2a=on:i=1997:kws=precedence:rawr=on:bd=off:awrs=converge:awrsf=10:ins=2_0");
-    propZsmall10.push("dis+10_1:3_to=lpo:drc=encompass:sil=256000:tgt=ground:i=637:fsr=off_0");
+    propZsmall10.push("dis+10_1:3_to=lpo:sil=256000:tgt=ground:i=637:fsr=off_0");
     propZsmall10.push("lrs+10_1:512_drc=ordering:sil=4000:tgt=ground:sp=reverse_frequency:s2a=on:i=702:bs=unit_only:bd=off:ss=axioms:rawr=on:slsq=on:slsqc=3:slsqr=19,8_0");
-    propZsmall10.push("lrs+10_1:4_drc=encompass:sil=16000:lwlo=on:st=-1.0:i=6272:ss=axioms_0");
-    propZsmall10.push("lrs+10_1:10_drc=encompass:sil=16000:tgt=ground:plsq=on:fd=preordered:i=10171:bd=preordered:ins=1:rawr=on:ss=axioms:sgt=16_0");
-    propZsmall10.push("lrs+10_7:24_to=lpo:drc=encompass:sil=128000:fde=unused:sp=const_min:spb=goal:i=1061:crc=on:slsq=on:fdi=256:nwc=10.0:dpc=on:ss=included:st=2.0_0");
-    propZsmall10.push("lrs+10_1:14_slsqr=3,4:drc=encompass:sil=4000:tgt=ground:sp=const_max:s2agt=16:slsqc=3:slsq=on:i=1157:kws=precedence:slsql=off:crc=on:rawr=on_0");
-    propZsmall10.push("lrs+10_25:999_drc=encompass:sil=256000:tgt=full:spb=intro:i=1382:kws=precedence:awrs=converge:awrsf=53:crc=on:croc=on:bd=off:bs=unit_only_0");
-    propZsmall10.push("ott+10_21691:1048576_drc=encompass:sil=256000:tgt=ground:sims=off:sp=occurrence:spb=goal_then_units:fd=preordered:i=2271:kws=precedence:av=off:fsr=off:uhcvi=on:fsd=on:fsdmm=2:slsq=on:slsql=off:slsqc=1:slsqr=320859,1048576:s2at=3.0:crc=on:rawr=on:ss=axioms:sd=2_0");
-    propZsmall10.push("lrs+10_1:128_drc=encompass:sil=256000:tgt=full:sp=unary_frequency:spb=non_intro:i=2392:kws=precedence:crc=on:croc=on_0");
-    propZsmall10.push("ott+10_1:128_drc=encompass:sil=256000:plsq=on:s2a=on:i=2544:kws=precedence:dpc=on:bd=preordered:ss=axioms_0");
-    propZsmall10.push("lrs+10_1:40_drc=encompass:sil=256000:tgt=full:sp=unary_frequency:spb=goal_then_units:i=5255:kws=frequency:rawr=on:crc=on:croc=on:fd=preordered_0");
-    propZsmall10.push("ott+10_2:5_bsr=unit_only:to=lpo:drc=encompass:sil=256000:sp=reverse_frequency:i=2866:ins=1:dpc=on:rawr=on_0");
+    propZsmall10.push("lrs+10_1:4_sil=16000:lwlo=on:st=-1.0:i=6272:ss=axioms_0");
+    propZsmall10.push("lrs+10_1:10_sil=16000:tgt=ground:plsq=on:fd=preordered:i=10171:bd=preordered:ins=1:rawr=on:ss=axioms:sgt=16_0");
+    propZsmall10.push("lrs+10_7:24_to=lpo:sil=128000:fde=unused:sp=const_min:spb=goal:i=1061:crc=on:slsq=on:fdi=256:nwc=10.0:dpc=on:ss=included:st=2.0_0");
+    propZsmall10.push("lrs+10_1:14_slsqr=3,4:sil=4000:tgt=ground:sp=const_max:s2agt=16:slsqc=3:slsq=on:i=1157:kws=precedence:slsql=off:crc=on:rawr=on_0");
+    propZsmall10.push("lrs+10_25:999_sil=256000:tgt=full:spb=intro:i=1382:kws=precedence:awrs=converge:awrsf=53:crc=on:croc=on:bd=off:bs=unit_only_0");
+    propZsmall10.push("ott+10_21691:1048576_sil=256000:tgt=ground:sims=off:sp=occurrence:spb=goal_then_units:fd=preordered:i=2271:kws=precedence:av=off:fsr=off:uhcvi=on:fsd=on:fsdmm=2:slsq=on:slsql=off:slsqc=1:slsqr=320859,1048576:s2at=3.0:crc=on:rawr=on:ss=axioms:sd=2_0");
+    propZsmall10.push("lrs+10_1:128_sil=256000:tgt=full:sp=unary_frequency:spb=non_intro:i=2392:kws=precedence:crc=on:croc=on_0");
+    propZsmall10.push("ott+10_1:128_sil=256000:plsq=on:s2a=on:i=2544:kws=precedence:dpc=on:bd=preordered:ss=axioms_0");
+    propZsmall10.push("lrs+10_1:40_sil=256000:tgt=full:sp=unary_frequency:spb=goal_then_units:i=5255:kws=frequency:rawr=on:crc=on:croc=on:fd=preordered_0");
+    propZsmall10.push("ott+10_2:5_bsr=unit_only:to=lpo:sil=256000:sp=reverse_frequency:i=2866:ins=1:dpc=on:rawr=on_0");
     propZsmall10.push("dis+10_1:1024_drc=ordering:slsqr=5,2:sil=256000:tgt=ground:urr=on:slsqc=2:slsq=on:i=3253:ins=1:crc=on:rawr=on_0");
-    propZsmall10.push("lrs+10_1:1024_slsqr=1,4:drc=encompass:sil=256000:tgt=full:sp=reverse_frequency:slsqc=4:slsq=on:s2a=on:i=7906:bd=off:crc=on:croc=on:ss=axioms:rawr=on:st=3.0:awrs=converge:foolp=on_0");
-    propZsmall10.push("ott+10_1:10_drc=encompass:sil=256000:sp=reverse_frequency:fd=preordered:i=4168:ins=2:bd=off:ss=axioms_0");
-    propZsmall10.push("lrs+10_1:6_drc=encompass:sil=32000:tgt=ground:s2agt=8:s2a=on:i=8705_0");
+    propZsmall10.push("lrs+10_1:1024_slsqr=1,4:sil=256000:tgt=full:sp=reverse_frequency:slsqc=4:slsq=on:s2a=on:i=7906:bd=off:crc=on:croc=on:ss=axioms:rawr=on:st=3.0:awrs=converge:foolp=on_0");
+    propZsmall10.push("ott+10_1:10_sil=256000:sp=reverse_frequency:fd=preordered:i=4168:ins=2:bd=off:ss=axioms_0");
+    propZsmall10.push("lrs+10_1:6_sil=32000:tgt=ground:s2agt=8:s2a=on:i=8705_0");
     propZsmall10.push("dis+10_1:16_drc=ordering:sil=256000:i=5821:bs=unit_only:rawr=on:plsq=on:to=lpo_0");
-    propZsmall10.push("dis+10_8125:131072_drc=encompass:sil=256000:tgt=full:sp=occurrence:lma=on:fd=preordered:i=14311:kws=precedence:doe=on:awrs=decay:awrsf=50:dpc=on:uhcvi=on:ss=axioms:crc=on_0");
-    propZsmall10.push("ott+10_1:1_drc=encompass:sil=256000:plsq=on:fd=preordered:st=5.0:s2a=on:i=35818:ins=1:ss=axioms:rawr=on_0");
-    propZsmall10.push("lrs+10_1:1_drc=encompass:sil=16000:fd=preordered:i=9154:bs=on:crc=on_0");
-    propZsmall10.push("lrs+10_1:16_drc=encompass:sil=16000:tgt=full:lwlo=on:s2pl=no:i=10003:av=off:rawr=on_0");
-    propZsmall10.push("ott+10_10:3_sil=256000:fde=unused:sp=frequency:spb=goal:i=11196:bs=on:kws=precedence:ins=1:dpc=on:rawr=on:nwc=3.0:drc=encompass_0");
-    propZsmall10.push("lrs+10_1:1_drc=encompass:sil=256000:tgt=ground:sp=unary_first:sos=on:i=36276:kws=precedence:lwlo=on:crc=on_0");
-    propZsmall10.push("lrs+10_13:1_bsr=on:drc=encompass:sil=64000:fd=preordered:i=12509:bd=off:crc=on_0");
-    propZsmall10.push("lrs+10_3:14_drc=encompass:sil=128000:sp=const_frequency:spb=goal:lwlo=on:i=27445:kws=precedence:crc=on:nwc=5.0:awrs=decay:awrsf=255:s2pl=no:s2agt=32:fsd=on:fsr=off:lma=on_0");
-    propZsmall10.push("lrs+10_1:1024_sil=256000:lwlo=on:i=31665:kws=precedence:awrs=converge:awrsf=240:drc=encompass:fd=preordered:tgt=ground_0");
-    propZsmall10.push("dis+10_1:256_to=lpo:drc=encompass:sil=256000:spb=goal:fd=preordered:i=18386:crc=on:croc=on:bs=unit_only_0");
-    propZsmall10.push("dis+10_1:20_drc=encompass:sil=256000:tgt=full:sp=reverse_frequency:spb=intro:fd=preordered:i=22321:kws=precedence:crc=on:croc=on:ins=1_0");
-    propZsmall10.push("dis+10_1:166_drc=encompass:sil=256000:tgt=full:i=26531:fsr=off:spb=non_intro:dpc=on:to=lpo:rawr=on_0");
-    propZsmall10.push("ott+10_1:4_drc=encompass:sil=256000:st=3.0:i=32454:ss=axioms:dpc=on:bd=preordered:slsq=on:slsqc=1:slsqr=1,2_0");
-    propZsmall10.push("lrs+10_3:58_drc=encompass:sil=256000:tgt=full:bsd=on:sp=reverse_arity:lwlo=on:s2a=on:i=157761:s2at=2.0:kws=precedence:bsr=on:irw=on:dpc=on:doe=on:bs=on:br=off:erd=off:s2agt=20:nwc=8.95214440448525:cond=fast:foolp=on:spb=non_intro:sfv=off:crc=on:fde=unused:ins=3_0");
-    propZsmall10.push("lrs+10_1:6_drc=encompass:sil=256000:tgt=full:spb=non_intro:i=82574:ins=2:crc=on:croc=on:ss=included:bd=preordered_0");
+    propZsmall10.push("dis+10_8125:131072_sil=256000:tgt=full:sp=occurrence:lma=on:fd=preordered:i=14311:kws=precedence:doe=on:awrs=decay:awrsf=50:dpc=on:uhcvi=on:ss=axioms:crc=on_0");
+    propZsmall10.push("ott+10_1:1_sil=256000:plsq=on:fd=preordered:st=5.0:s2a=on:i=35818:ins=1:ss=axioms:rawr=on_0");
+    propZsmall10.push("lrs+10_1:1_sil=16000:fd=preordered:i=9154:bs=on:crc=on_0");
+    propZsmall10.push("lrs+10_1:16_sil=16000:tgt=full:lwlo=on:s2pl=no:i=10003:av=off:rawr=on_0");
+    propZsmall10.push("ott+10_10:3_sil=256000:fde=unused:sp=frequency:spb=goal:i=11196:bs=on:kws=precedence:ins=1:dpc=on:rawr=on:nwc=3.0_0");
+    propZsmall10.push("lrs+10_1:1_sil=256000:tgt=ground:sp=unary_first:sos=on:i=36276:kws=precedence:lwlo=on:crc=on_0");
+    propZsmall10.push("lrs+10_13:1_bsr=on:sil=64000:fd=preordered:i=12509:bd=off:crc=on_0");
+    propZsmall10.push("lrs+10_3:14_sil=128000:sp=const_frequency:spb=goal:lwlo=on:i=27445:kws=precedence:crc=on:nwc=5.0:awrs=decay:awrsf=255:s2pl=no:s2agt=32:fsd=on:fsr=off:lma=on_0");
+    propZsmall10.push("lrs+10_1:1024_sil=256000:lwlo=on:i=31665:kws=precedence:awrs=converge:awrsf=240:fd=preordered:tgt=ground_0");
+    propZsmall10.push("dis+10_1:256_to=lpo:sil=256000:spb=goal:fd=preordered:i=18386:crc=on:croc=on:bs=unit_only_0");
+    propZsmall10.push("dis+10_1:20_sil=256000:tgt=full:sp=reverse_frequency:spb=intro:fd=preordered:i=22321:kws=precedence:crc=on:croc=on:ins=1_0");
+    propZsmall10.push("dis+10_1:166_sil=256000:tgt=full:i=26531:fsr=off:spb=non_intro:dpc=on:to=lpo:rawr=on_0");
+    propZsmall10.push("ott+10_1:4_sil=256000:st=3.0:i=32454:ss=axioms:dpc=on:bd=preordered:slsq=on:slsqc=1:slsqr=1,2_0");
+    propZsmall10.push("lrs+10_3:58_sil=256000:tgt=full:bsd=on:sp=reverse_arity:lwlo=on:s2a=on:i=157761:s2at=2.0:kws=precedence:bsr=on:irw=on:dpc=on:doe=on:bs=on:br=off:erd=off:s2agt=20:nwc=8.95214440448525:cond=fast:foolp=on:spb=non_intro:sfv=off:crc=on:fde=unused:ins=3_0");
+    propZsmall10.push("lrs+10_1:6_sil=256000:tgt=full:spb=non_intro:i=82574:ins=2:crc=on:croc=on:ss=included:bd=preordered_0");
 
-    propZsmall10.push("lrs+10_1:16_drc=encompass:sil=256000:tgt=full:spb=intro:i=58527:kws=precedence:awrs=converge:awrsf=200:ss=axioms:crc=on:croc=on:st=3.0:sp=unary_first_0");
-    propZsmall10.push("lrs+10_1:12_drc=encompass:sil=256000:tgt=full:spb=intro:i=72339:kws=precedence:awrs=converge:awrsf=500:crc=on_0");
-    propZsmall10.push("ott+10_11413117:1048576_drc=encompass:sil=256000:tgt=ground:fde=unused:plsqc=2:plsq=on:plsqr=1149513,1048576:sp=occurrence:nwc=9.10417:i=125323:kws=precedence:doe=on:awrs=converge:awrsf=286:bd=off:dpc=on:crc=on:croc=on:uhcvi=on:rawr=on:ss=included:st=2.0_0");
-    propZsmall10.push("lrs+10_54503:1048576_drc=encompass:sil=256000:tgt=ground:bsd=on:sp=reverse_frequency:lwlo=on:st=3.5:s2a=on:i=174981:s2at=5.5:kws=precedence:ss=included:sgt=50:bsr=unit_only:irw=on:dpc=on:uhcvi=on:doe=on:bs=on:br=off:erd=off_0");
+    propZsmall10.push("lrs+10_1:16_sil=256000:tgt=full:spb=intro:i=58527:kws=precedence:awrs=converge:awrsf=200:ss=axioms:crc=on:croc=on:st=3.0:sp=unary_first_0");
+    propZsmall10.push("lrs+10_1:12_sil=256000:tgt=full:spb=intro:i=72339:kws=precedence:awrs=converge:awrsf=500:crc=on_0");
+    propZsmall10.push("ott+10_11413117:1048576_sil=256000:tgt=ground:fde=unused:plsqc=2:plsq=on:plsqr=1149513,1048576:sp=occurrence:nwc=9.10417:i=125323:kws=precedence:doe=on:awrs=converge:awrsf=286:bd=off:dpc=on:crc=on:croc=on:uhcvi=on:rawr=on:ss=included:st=2.0_0");
+    propZsmall10.push("lrs+10_54503:1048576_sil=256000:tgt=ground:bsd=on:sp=reverse_frequency:lwlo=on:st=3.5:s2a=on:i=174981:s2at=5.5:kws=precedence:ss=included:sgt=50:bsr=unit_only:irw=on:dpc=on:uhcvi=on:doe=on:bs=on:br=off:erd=off_0");
     // total_instr 1391316
     // len(covered) 365
 
 
-    propZbig10.push("lrs+10_1:12_drc=encompass:sil=256000:tgt=full:spb=intro:i=116130:kws=precedence:awrs=converge:awrsf=500:crc=on_0");
-    propZbig10.push("dis+10_5:2_drc=encompass:sil=256000:tgt=ground:sp=reverse_frequency:sos=all:i=207332:bd=off:fsr=off:dpc=on_0");
+    propZbig10.push("lrs+10_1:12_sil=256000:tgt=full:spb=intro:i=116130:kws=precedence:awrs=converge:awrsf=500:crc=on_0");
+    propZbig10.push("dis+10_5:2_sil=256000:tgt=ground:sp=reverse_frequency:sos=all:i=207332:bd=off:fsr=off:dpc=on_0");
 
-    propZbig10.push("lrs+10_1:64_drc=encompass:sil=2000:i=105:plsq=on:ss=axioms_0");
-    propZbig10.push("lrs+10_3:4_to=lpo:drc=encompass:sil=4000:sp=reverse_frequency:i=126:ss=axioms:sgt=16:s2a=on:s2at=3.0:crc=on:bd=off_0");
-    propZbig10.push("ott+10_2:5_bsr=unit_only:to=lpo:drc=encompass:sil=256000:sp=reverse_frequency:i=150:ins=1:dpc=on:rawr=on_0");
-    propZbig10.push("lrs+10_1:8_drc=encompass:sil=16000:tgt=ground:i=123:bd=preordered:ss=axioms_0");
-    propZbig10.push("lrs+10_1:1_drc=encompass:sil=4000:i=209:ss=axioms:sgt=8:sp=occurrence_0");
-    propZbig10.push("lrs+10_1:4_drc=encompass:sil=16000:tgt=ground:lwlo=on:s2a=on:i=192:s2at=2.0_0");
-    propZbig10.push("lrs+10_1:7_drc=encompass:sil=64000:tgt=full:spb=non_intro:i=454:awrs=converge:awrsf=67:sp=reverse_frequency:nwc=1.5_0");
+    propZbig10.push("lrs+10_1:64_sil=2000:i=105:plsq=on:ss=axioms_0");
+    propZbig10.push("lrs+10_3:4_to=lpo:sil=4000:sp=reverse_frequency:i=126:ss=axioms:sgt=16:s2a=on:s2at=3.0:crc=on:bd=off_0");
+    propZbig10.push("ott+10_2:5_bsr=unit_only:to=lpo:sil=256000:sp=reverse_frequency:i=150:ins=1:dpc=on:rawr=on_0");
+    propZbig10.push("lrs+10_1:8_sil=16000:tgt=ground:i=123:bd=preordered:ss=axioms_0");
+    propZbig10.push("lrs+10_1:1_sil=4000:i=209:ss=axioms:sgt=8:sp=occurrence_0");
+    propZbig10.push("lrs+10_1:4_sil=16000:tgt=ground:lwlo=on:s2a=on:i=192:s2at=2.0_0");
+    propZbig10.push("lrs+10_1:7_sil=64000:tgt=full:spb=non_intro:i=454:awrs=converge:awrsf=67:sp=reverse_frequency:nwc=1.5_0");
     propZbig10.push("lrs+10_1:2_drc=ordering:sil=2000:tgt=ground:spb=goal:i=359:kws=precedence:crc=on:croc=on_0");
     propZbig10.push("lrs+10_1:1_drc=ordering:sil=4000:sp=occurrence:i=163:ss=axioms:st=3.0:sd=2_0");
-    propZbig10.push("lrs+10_1:1024_drc=encompass:sil=4000:tgt=full:i=1030:kws=inv_frequency:awrs=converge_0");
-    propZbig10.push("lrs+10_3:1_sil=4000:tgt=ground:i=631:kws=frequency:bd=off:drc=encompass:crc=on_0");
-    propZbig10.push("lrs+10_1:3_to=lpo:drc=encompass:sil=4000:tgt=full:i=901:rawr=on:ins=4:bd=off:fd=preordered_0");
-    propZbig10.push("lrs+10_1:24_drc=encompass:sil=256000:tgt=full:sp=unary_frequency:spb=non_intro:i=312:ins=2:fsr=off:kws=precedence:crc=on:croc=on:bsr=unit_only:br=off:ss=included:sgt=16:bd=preordered_0");
-    propZbig10.push("lrs+10_1:1_drc=encompass:sil=2000:slsq=on:s2a=on:i=1363:s2at=7.0_0");
-    propZbig10.push("ott+10_8:1_drc=encompass:sil=256000:i=471:rawr=on:crc=on_0");
-    propZbig10.push("lrs+10_1:4_drc=encompass:sil=4000:tgt=full:sp=reverse_arity:st=-1.0:i=2897:kws=precedence:ss=included:lwlo=on:rawr=on:bd=off:urr=on:bsd=on_0");
+    propZbig10.push("lrs+10_1:1024_sil=4000:tgt=full:i=1030:kws=inv_frequency:awrs=converge_0");
+    propZbig10.push("lrs+10_3:1_sil=4000:tgt=ground:i=631:kws=frequency:bd=off:crc=on_0");
+    propZbig10.push("lrs+10_1:3_to=lpo:sil=4000:tgt=full:i=901:rawr=on:ins=4:bd=off:fd=preordered_0");
+    propZbig10.push("lrs+10_1:24_sil=256000:tgt=full:sp=unary_frequency:spb=non_intro:i=312:ins=2:fsr=off:kws=precedence:crc=on:croc=on:bsr=unit_only:br=off:ss=included:sgt=16:bd=preordered_0");
+    propZbig10.push("lrs+10_1:1_sil=2000:slsq=on:s2a=on:i=1363:s2at=7.0_0");
+    propZbig10.push("ott+10_8:1_sil=256000:i=471:rawr=on:crc=on_0");
+    propZbig10.push("lrs+10_1:4_sil=4000:tgt=full:sp=reverse_arity:st=-1.0:i=2897:kws=precedence:ss=included:lwlo=on:rawr=on:bd=off:urr=on:bsd=on_0");
     propZbig10.push("lrs+10_1:12_drc=ordering:sil=2000:tgt=full:sp=reverse_frequency:i=569:kws=inv_frequency:bd=off:fsr=off:rawr=on:awrs=converge_0");
-    propZbig10.push("lrs+10_1:1_drc=encompass:sil=2000:st=5.0:s2a=on:i=577:s2at=5.0:sd=1:bd=preordered:crc=on:ss=axioms:sgt=10_0");
-    propZbig10.push("lrs+10_8:1_drc=encompass:sil=4000:tgt=ground:spb=non_intro:i=843:bd=off:crc=on_0");
-    propZbig10.push("lrs+10_1:1_drc=encompass:sil=2000:tgt=ground:st=5.0:i=1015:bd=off:ss=axioms_0");
-    propZbig10.push("lrs+10_15:26_drc=encompass:sil=16000:i=4402:ins=4:crc=on_0");
-    propZbig10.push("lrs+10_16:1_to=lpo:sil=32000:urr=ec_only:fd=preordered:nwc=10.0:i=1315:bd=off:crc=on:drc=encompass_0");
-    propZbig10.push("lrs+10_8:1_drc=encompass:sil=256000:st=3.0:s2a=on:i=2957:s2at=1.2:ss=axioms:sd=15_0");
-    propZbig10.push("lrs+10_3:1_drc=encompass:sil=4000:tgt=full:sp=unary_first:sos=all:lwlo=on:i=3869:crc=on_0");
-    propZbig10.push("lrs+10_1:1_drc=encompass:sil=256000:tgt=ground:s2agt=8:s2a=on:i=2041_0");
+    propZbig10.push("lrs+10_1:1_sil=2000:st=5.0:s2a=on:i=577:s2at=5.0:sd=1:bd=preordered:crc=on:ss=axioms:sgt=10_0");
+    propZbig10.push("lrs+10_8:1_sil=4000:tgt=ground:spb=non_intro:i=843:bd=off:crc=on_0");
+    propZbig10.push("lrs+10_1:1_sil=2000:tgt=ground:st=5.0:i=1015:bd=off:ss=axioms_0");
+    propZbig10.push("lrs+10_15:26_sil=16000:i=4402:ins=4:crc=on_0");
+    propZbig10.push("lrs+10_16:1_to=lpo:sil=32000:urr=ec_only:fd=preordered:nwc=10.0:i=1315:bd=off:crc=on_0");
+    propZbig10.push("lrs+10_8:1_sil=256000:st=3.0:s2a=on:i=2957:s2at=1.2:ss=axioms:sd=15_0");
+    propZbig10.push("lrs+10_3:1_sil=4000:tgt=full:sp=unary_first:sos=all:lwlo=on:i=3869:crc=on_0");
+    propZbig10.push("lrs+10_1:1_sil=256000:tgt=ground:s2agt=8:s2a=on:i=2041_0");
     propZbig10.push("ott+10_1:28_drc=ordering:sil=256000:tgt=full:fd=preordered:i=6716:bd=off_0");
     propZbig10.push("ott+10_1:14_drc=ordering:bsr=unit_only:sil=256000:i=2510:sp=weighted_frequency:crc=on_0");
-    propZbig10.push("lrs+10_1:10_drc=encompass:sil=16000:tgt=ground:plsq=on:fd=preordered:i=3229:bd=preordered:ins=1:rawr=on:ss=axioms:sgt=16_0");
-    propZbig10.push("lrs+10_1:16_drc=encompass:sil=16000:sp=unary_frequency:i=7440:kws=precedence_0");
-    propZbig10.push("ott+10_1:64_sil=256000:tgt=full:i=10214:sp=reverse_frequency:bd=off:drc=encompass_0");
-    propZbig10.push("lrs+10_3:14_drc=encompass:sil=128000:sp=const_frequency:spb=goal:lwlo=on:i=29852:kws=precedence:crc=on:ins=4_0");
-    propZbig10.push("lrs+10_1:6_drc=encompass:sil=32000:tgt=ground:s2agt=8:s2a=on:i=24503_0");
+    propZbig10.push("lrs+10_1:10_sil=16000:tgt=ground:plsq=on:fd=preordered:i=3229:bd=preordered:ins=1:rawr=on:ss=axioms:sgt=16_0");
+    propZbig10.push("lrs+10_1:16_sil=16000:sp=unary_frequency:i=7440:kws=precedence_0");
+    propZbig10.push("ott+10_1:64_sil=256000:tgt=full:i=10214:sp=reverse_frequency:bd=off_0");
+    propZbig10.push("lrs+10_3:14_sil=128000:sp=const_frequency:spb=goal:lwlo=on:i=29852:kws=precedence:crc=on:ins=4_0");
+    propZbig10.push("lrs+10_1:6_sil=32000:tgt=ground:s2agt=8:s2a=on:i=24503_0");
     propZbig10.push("dis+10_1:4_drc=ordering:to=lpo:sil=256000:tgt=full:sp=reverse_frequency:spb=goal:i=11902:awrs=converge:awrsf=500:fd=preordered:crc=on:bd=off_0");
-    propZbig10.push("dis+10_1:4_drc=encompass:sil=256000:tgt=ground:sos=all:i=13038:kws=inv_arity_squared:fsr=off:dpc=on_0");
-    propZbig10.push("lrs+10_1:16_drc=encompass:sil=32000:sp=reverse_frequency:spb=goal:i=28291:kws=inv_arity_squared_0");
-    propZbig10.push("dis+10_1:166_drc=encompass:sil=256000:tgt=full:i=19584:fsr=off:spb=non_intro:kws=inv_frequency_0");
-    propZbig10.push("lrs+10_1:34_drc=encompass:sil=64000:tgt=ground:lwlo=on:i=37491:kws=frequency:crc=on:croc=on_0");
+    propZbig10.push("dis+10_1:4_sil=256000:tgt=ground:sos=all:i=13038:kws=inv_arity_squared:fsr=off:dpc=on_0");
+    propZbig10.push("lrs+10_1:16_sil=32000:sp=reverse_frequency:spb=goal:i=28291:kws=inv_arity_squared_0");
+    propZbig10.push("dis+10_1:166_sil=256000:tgt=full:i=19584:fsr=off:spb=non_intro:kws=inv_frequency_0");
+    propZbig10.push("lrs+10_1:34_sil=64000:tgt=ground:lwlo=on:i=37491:kws=frequency:crc=on:croc=on_0");
     propZbig10.push("dis+10_1:64_drc=ordering:sil=256000:tgt=full:sp=const_frequency:sos=on:i=57866:bs=on_0");
-    propZbig10.push("lrs+10_1:1024_drc=encompass:sil=128000:tgt=ground:sp=frequency:i=58321:kws=precedence_0");
-    propZbig10.push("dis+10_1:166_drc=encompass:sil=256000:tgt=full:i=78078:fsr=off:spb=non_intro:dpc=on:to=lpo:rawr=on_0");
-    propZbig10.push("ott+10_1:128_bsr=on:drc=encompass:sil=128000:sp=frequency:i=98995:bd=preordered:dpc=on:rawr=on_0");
+    propZbig10.push("lrs+10_1:1024_sil=128000:tgt=ground:sp=frequency:i=58321:kws=precedence_0");
+    propZbig10.push("dis+10_1:166_sil=256000:tgt=full:i=78078:fsr=off:spb=non_intro:dpc=on:to=lpo:rawr=on_0");
+    propZbig10.push("ott+10_1:128_bsr=on:sil=128000:sp=frequency:i=98995:bd=preordered:dpc=on:rawr=on_0");
 
     // total_instr 838566
     // len(covered) 226
 
-    propNZsmall14.push("ott+10_1:36_drc=encompass:sil=256000:tgt=full:fde=none:st=5.0:i=276418:ss=axioms:sgt=16:sp=occurrence:plsq=on_0");
-    propNZsmall14.push("dis+10_1:28_drc=encompass:sil=256000:tgt=ground:i=146946:dpc=on:bs=on_0");
+    propNZsmall14.push("ott+10_1:36_sil=256000:tgt=full:fde=none:st=5.0:i=276418:ss=axioms:sgt=16:sp=occurrence:plsq=on_0");
+    propNZsmall14.push("dis+10_1:28_sil=256000:tgt=ground:i=146946:dpc=on:bs=on_0");
 
     propNZsmall14.push("dis+10_1:64_drc=ordering:sil=256000:i=105:bd=off:fd=off_0");
-    propNZsmall14.push("lrs+10_1:1024_drc=encompass:sil=2000:i=149_0");
+    propNZsmall14.push("lrs+10_1:1024_sil=2000:i=149_0");
     propNZsmall14.push("lrs+10_1:1_drc=ordering:sil=2000:sos=on:urr=on:st=5.0:i=149:ep=RSTC:ss=axioms:flr=on:fsr=off:br=off_0");
-    propNZsmall14.push("lrs+10_1:1024_sil=64000:i=305:to=lpo:drc=encompass:bd=off_0");
-    propNZsmall14.push("lrs+10_1:32_slsqr=1,2:drc=encompass:sil=2000:slsqc=1:slsq=on:i=729:slsql=off:fd=preordered:lwlo=on_0");
-    propNZsmall14.push("lrs+10_1:7_drc=encompass:sil=64000:i=132:awrs=converge:sp=reverse_frequency:dpc=on:bd=preordered_0");
-    propNZsmall14.push("lrs+10_1:7_drc=encompass:sil=64000:tgt=full:spb=non_intro:i=134:awrs=converge:awrsf=67:sp=reverse_frequency:nwc=1.5_0");
-    propNZsmall14.push("lrs+10_16:7_drc=encompass:sil=128000:sp=weighted_frequency:lwlo=on:i=118:bs=on:to=lpo:tgt=full:bd=off_0");
+    propNZsmall14.push("lrs+10_1:1024_sil=64000:i=305:to=lpo:bd=off_0");
+    propNZsmall14.push("lrs+10_1:32_slsqr=1,2:sil=2000:slsqc=1:slsq=on:i=729:slsql=off:fd=preordered:lwlo=on_0");
+    propNZsmall14.push("lrs+10_1:7_sil=64000:i=132:awrs=converge:sp=reverse_frequency:dpc=on:bd=preordered_0");
+    propNZsmall14.push("lrs+10_1:7_sil=64000:tgt=full:spb=non_intro:i=134:awrs=converge:awrsf=67:sp=reverse_frequency:nwc=1.5_0");
+    propNZsmall14.push("lrs+10_16:7_sil=128000:sp=weighted_frequency:lwlo=on:i=118:bs=on:to=lpo:tgt=full:bd=off_0");
     propNZsmall14.push("dis+10_1:1_drc=ordering:sil=256000:nwc=10.0:s2agt=32:s2a=on:i=156:fde=none:fd=off_0");
     propNZsmall14.push("lrs+10_1:1024_drc=ordering:sil=2000:slsqc=1:slsq=on:i=167:rawr=on:bd=off_0");
-    propNZsmall14.push("lrs+10_1:64_sil=32000:tgt=ground:spb=goal_then_units:urr=on:i=687:awrs=converge:awrsf=130:rawr=on:plsq=on:sp=const_frequency:bd=off:drc=encompass:crc=on:kws=precedence_0");
-    propNZsmall14.push("dis+10_5:1_to=lpo:sil=256000:tgt=ground:spb=intro:i=187:bd=off:crc=on:rawr=on:fd=preordered:drc=encompass_0");
-    propNZsmall14.push("lrs+10_2:1_to=lpo:drc=encompass:sil=8000:tgt=full:sp=const_frequency:i=189:lwlo=on:nwc=10.0:rawr=on_0");
+    propNZsmall14.push("lrs+10_1:64_sil=32000:tgt=ground:spb=goal_then_units:urr=on:i=687:awrs=converge:awrsf=130:rawr=on:plsq=on:sp=const_frequency:bd=off:crc=on:kws=precedence_0");
+    propNZsmall14.push("dis+10_5:1_to=lpo:sil=256000:tgt=ground:spb=intro:i=187:bd=off:crc=on:rawr=on:fd=preordered_0");
+    propNZsmall14.push("lrs+10_2:1_to=lpo:sil=8000:tgt=full:sp=const_frequency:i=189:lwlo=on:nwc=10.0:rawr=on_0");
     propNZsmall14.push("dis+10_1:50_drc=ordering:sil=256000:nwc=4.1:i=315:bd=off:crc=on:croc=on:fd=off_0");
-    propNZsmall14.push("ott+10_2:5_bsr=unit_only:to=lpo:drc=encompass:sil=256000:sp=reverse_frequency:i=323:ins=1:dpc=on:rawr=on_0");
-    propNZsmall14.push("lrs+10_1:16_drc=encompass:sil=32000:sp=reverse_frequency:spb=goal:i=252:kws=inv_arity_squared_0");
+    propNZsmall14.push("ott+10_2:5_bsr=unit_only:to=lpo:sil=256000:sp=reverse_frequency:i=323:ins=1:dpc=on:rawr=on_0");
+    propNZsmall14.push("lrs+10_1:16_sil=32000:sp=reverse_frequency:spb=goal:i=252:kws=inv_arity_squared_0");
     propNZsmall14.push("lrs+10_1:8_drc=ordering:sil=2000:nwc=3.0:i=263:bd=off:fsr=off:rawr=on:sp=occurrence:fd=off:kws=inv_precedence_0");
     propNZsmall14.push("ott+10_1:28_drc=ordering:sil=256000:tgt=full:fd=preordered:i=1545:bd=off_0");
-    propNZsmall14.push("lrs+10_1:1_drc=encompass:sil=2000:st=5.0:s2a=on:i=303:s2at=5.0:sd=1:bd=preordered:crc=on:ss=axioms:sgt=10_0");
-    propNZsmall14.push("ott+10_1:4_drc=encompass:sil=256000:st=3.0:i=1804:ss=axioms:dpc=on:bd=preordered:slsq=on:slsqc=1:slsqr=1,2_0");
+    propNZsmall14.push("lrs+10_1:1_sil=2000:st=5.0:s2a=on:i=303:s2at=5.0:sd=1:bd=preordered:crc=on:ss=axioms:sgt=10_0");
+    propNZsmall14.push("ott+10_1:4_sil=256000:st=3.0:i=1804:ss=axioms:dpc=on:bd=preordered:slsq=on:slsqc=1:slsqr=1,2_0");
     propNZsmall14.push("dis+10_1:12_drc=ordering:slsqr=20,127:sil=256000:fd=off:slsqc=1:slsq=on:i=390:rawr=on:bsr=on_0");
-    propNZsmall14.push("dis+10_1:16_slsqr=167,244:drc=encompass:sil=256000:slsqc=1:slsq=on:i=480:kws=inv_arity:awrs=converge:slsql=off:awrsf=61:bd=off:ins=2:rawr=on_0");
+    propNZsmall14.push("dis+10_1:16_slsqr=167,244:sil=256000:slsqc=1:slsq=on:i=480:kws=inv_arity:awrs=converge:slsql=off:awrsf=61:bd=off:ins=2:rawr=on_0");
     propNZsmall14.push("dis+10_1:2_drc=ordering:to=lpo:sil=256000:i=1649:crc=on:croc=on:fd=preordered_0");
     propNZsmall14.push("dis+10_4:1_drc=ordering:to=lpo:sil=256000:tgt=ground:spb=goal:fd=preordered:i=525:crc=on_0");
-    propNZsmall14.push("lrs+10_8:1_drc=encompass:sil=256000:st=3.0:s2a=on:i=585:s2at=1.2:ss=axioms:sd=15_0");
-    propNZsmall14.push("lrs+10_16:1_bsr=on:drc=encompass:sil=64000:i=715:bd=off:to=lpo_0");
-    propNZsmall14.push("lrs+10_1:1_slsqr=455249,524288:drc=encompass:sil=2000:tgt=ground:bsd=on:plsq=on:plsqr=32,1:urr=ec_only:slsqc=1:slsq=on:s2a=on:i=770:kws=precedence:slsql=off:rawr=on_0");
-    propNZsmall14.push("dis+10_4:27_drc=encompass:sil=256000:tgt=ground:plsq=on:sp=weighted_frequency:s2a=on:i=802:kws=precedence:bd=off:ins=4:rawr=on:fd=preordered:s2agt=8_0");
-    propNZsmall14.push("lrs+10_2:1_to=lpo:drc=encompass:sil=4000:tgt=full:sp=const_min:urr=on:nwc=5.0:i=839:rawr=on_0");
-    propNZsmall14.push("dis+10_1:16_to=lpo:drc=encompass:sil=256000:tgt=ground:plsq=on:plsqr=1,32:sp=unary_frequency:s2a=on:i=939:awrs=converge:awrsf=340:rawr=on:s2at=2.0_0");
+    propNZsmall14.push("lrs+10_8:1_sil=256000:st=3.0:s2a=on:i=585:s2at=1.2:ss=axioms:sd=15_0");
+    propNZsmall14.push("lrs+10_16:1_bsr=on:sil=64000:i=715:bd=off:to=lpo_0");
+    propNZsmall14.push("lrs+10_1:1_slsqr=455249,524288:sil=2000:tgt=ground:bsd=on:plsq=on:plsqr=32,1:urr=ec_only:slsqc=1:slsq=on:s2a=on:i=770:kws=precedence:slsql=off:rawr=on_0");
+    propNZsmall14.push("dis+10_4:27_sil=256000:tgt=ground:plsq=on:sp=weighted_frequency:s2a=on:i=802:kws=precedence:bd=off:ins=4:rawr=on:fd=preordered:s2agt=8_0");
+    propNZsmall14.push("lrs+10_2:1_to=lpo:sil=4000:tgt=full:sp=const_min:urr=on:nwc=5.0:i=839:rawr=on_0");
+    propNZsmall14.push("dis+10_1:16_to=lpo:sil=256000:tgt=ground:plsq=on:plsqr=1,32:sp=unary_frequency:s2a=on:i=939:awrs=converge:awrsf=340:rawr=on:s2at=2.0_0");
     propNZsmall14.push("lrs+10_1:1024_drc=ordering:sil=2000:tgt=ground:plsq=on:sp=frequency:s2a=on:i=1017:kws=precedence:rawr=on:bd=off:awrs=converge:awrsf=10:ins=2_0");
-    propNZsmall14.push("dis+10_1:14_bsr=unit_only:to=lpo:drc=encompass:sil=256000:tgt=ground:urr=on:slsq=on:i=1831:awrs=converge:awrsf=50:rawr=on:fsr=off_0");
-    propNZsmall14.push("lrs+10_1:1_drc=encompass:sil=32000:tgt=ground:sp=unary_frequency:lwlo=on:i=22426:crc=on:croc=on:kws=precedence_0");
-    propNZsmall14.push("ott+10_1:6_drc=encompass:sil=256000:tgt=ground:fde=none:plsq=on:sp=weighted_frequency:s2a=on:i=2595:s2at=2.0:kws=precedence:bd=off:ins=4:dpc=on:ss=axioms:sgt=16:rawr=on_0");
-    propNZsmall14.push("ott+10_1:128_slsqr=1,2:drc=encompass:sil=256000:fde=unused:sp=frequency:slsq=on:i=2907:slsql=off_0");
+    propNZsmall14.push("dis+10_1:14_bsr=unit_only:to=lpo:sil=256000:tgt=ground:urr=on:slsq=on:i=1831:awrs=converge:awrsf=50:rawr=on:fsr=off_0");
+    propNZsmall14.push("lrs+10_1:1_sil=32000:tgt=ground:sp=unary_frequency:lwlo=on:i=22426:crc=on:croc=on:kws=precedence_0");
+    propNZsmall14.push("ott+10_1:6_sil=256000:tgt=ground:fde=none:plsq=on:sp=weighted_frequency:s2a=on:i=2595:s2at=2.0:kws=precedence:bd=off:ins=4:dpc=on:ss=axioms:sgt=16:rawr=on_0");
+    propNZsmall14.push("ott+10_1:128_slsqr=1,2:sil=256000:fde=unused:sp=frequency:slsq=on:i=2907:slsql=off_0");
     propNZsmall14.push("dis+10_35:501_drc=ordering:sil=256000:tgt=ground:sp=const_max:i=28204:kws=precedence:awrs=decay:awrsf=300_0");
-    propNZsmall14.push("lrs+10_1:128_drc=encompass:sil=16000:sp=const_frequency:i=11308:kws=precedence:slsq=on_0");
+    propNZsmall14.push("lrs+10_1:128_sil=16000:sp=const_frequency:i=11308:kws=precedence:slsq=on_0");
     propNZsmall14.push("dis+10_1:12_drc=ordering:sil=256000:tgt=ground:fde=unused:i=6021:s2a=on:s2agt=8_0");
-    propNZsmall14.push("lrs+10_16:1_to=lpo:sil=32000:urr=ec_only:fd=preordered:nwc=10.0:i=15430:bd=off:crc=on:drc=encompass_0");
-    propNZsmall14.push("ott+10_2:9_drc=encompass:sil=128000:tgt=full:sp=frequency:nwc=5.0:st=3.0:i=57775:kws=precedence:bd=preordered:dpc=on:ss=axioms:rawr=on:rnwc=on_0");
-    propNZsmall14.push("dis+10_1:128_drc=encompass:sil=256000:nwc=6.0:i=21529:fsr=off_0");
-    propNZsmall14.push("dis+10_1:1_drc=encompass:sil=256000:tgt=full:i=76551:to=lpo:fde=unused_0");
+    propNZsmall14.push("lrs+10_16:1_to=lpo:sil=32000:urr=ec_only:fd=preordered:nwc=10.0:i=15430:bd=off:crc=on_0");
+    propNZsmall14.push("ott+10_2:9_sil=128000:tgt=full:sp=frequency:nwc=5.0:st=3.0:i=57775:kws=precedence:bd=preordered:dpc=on:ss=axioms:rawr=on:rnwc=on_0");
+    propNZsmall14.push("dis+10_1:128_sil=256000:nwc=6.0:i=21529:fsr=off_0");
+    propNZsmall14.push("dis+10_1:1_sil=256000:tgt=full:i=76551:to=lpo:fde=unused_0");
     propNZsmall14.push("dis+10_1:54_drc=ordering:sil=256000:tgt=ground:plsq=on:plsqr=9145955,131072:sp=frequency:spb=goal_then_units:plsql=on:i=50725:doe=on:ins=3:rawr=on:slsq=on:slsqr=1,4:s2at=2.0:slsqc=1_0");
-    propNZsmall14.push("lrs+10_1:28_drc=encompass:sil=256000:tgt=full:spb=intro:i=81856:kws=precedence:awrs=converge:awrsf=240:ss=axioms:rawr=on:crc=on:st=3.0:sp=const_frequency_0");
+    propNZsmall14.push("lrs+10_1:28_sil=256000:tgt=full:spb=intro:i=81856:kws=precedence:awrs=converge:awrsf=240:ss=axioms:rawr=on:crc=on:st=3.0:sp=const_frequency_0");
     propNZsmall14.push("lrs+10_1:4_drc=ordering:to=lpo:sil=256000:tgt=ground:sp=reverse_arity:spb=goal_then_units:i=106211:fdi=10:bs=unit_only:s2a=on_0");
 
     // total_instr 925456
     // len(covered) 301
 
-    propNZbig14.push("dis+10_28091:1048576_to=lpo:drc=encompass:sil=128000:tgt=full:erd=off:cond=on:i=107869:doe=on:ins=2:av=off:dpc=on:crc=on:croc=on:s2pl=on:s2agt=5:s2at=4.0:foolp=on_0");
-    propNZbig14.push("lrs+10_1:1_drc=encompass:sil=256000:tgt=ground:sp=unary_first:sos=on:i=220312:kws=precedence:lwlo=on:crc=on_0");
+    propNZbig14.push("dis+10_28091:1048576_to=lpo:sil=128000:tgt=full:erd=off:cond=on:i=107869:doe=on:ins=2:av=off:dpc=on:crc=on:croc=on:s2pl=on:s2agt=5:s2at=4.0:foolp=on_0");
+    propNZbig14.push("lrs+10_1:1_sil=256000:tgt=ground:sp=unary_first:sos=on:i=220312:kws=precedence:lwlo=on:crc=on_0");
 
-    propNZbig14.push("lrs+10_16:1_sfv=off:sil=2000:sp=reverse_frequency:urr=ec_only:br=off:i=126:doe=on:crc=on:to=lpo:fd=preordered:bd=preordered:fsd=on:drc=encompass_0");
-    propNZbig14.push("lrs+10_3:107_sil=64000:i=143:ss=axioms:sgt=16:rawr=on:to=lpo:drc=encompass_0");
-    propNZbig14.push("lrs+10_2:1_to=lpo:drc=encompass:sil=4000:tgt=full:sp=const_min:urr=on:nwc=5.0:i=129:rawr=on_0");
-    propNZbig14.push("lrs+10_1:12_drc=encompass:sil=256000:tgt=full:spb=intro:i=735:kws=precedence:awrs=converge:awrsf=500:crc=on_0");
-    propNZbig14.push("dis+10_577:524288_drc=encompass:sil=256000:sp=const_frequency:spb=units:i=214:doe=on:bd=off:av=off:dpc=on:crc=on:croc=on:uhcvi=on:ss=included:rawr=on:to=lpo:slsq=on:slsqr=8,31:s2agt=5:s2at=4.0:fdi=2_0");
-    propNZbig14.push("lrs+10_1:64_sil=8000:tgt=full:spb=non_intro:i=204:kws=precedence:plsq=on:awrs=converge:awrsf=30:sp=weighted_frequency:drc=encompass:crc=on:croc=on_0");
-    propNZbig14.push("lrs+10_1:1_to=lpo:drc=encompass:sil=2000:fde=unused:sp=const_min:i=444:fd=preordered:crc=on:croc=on:bd=preordered:ss=axioms_0");
-    propNZbig14.push("lrs+10_3:58_drc=encompass:sil=256000:tgt=full:bsd=on:sp=reverse_arity:lwlo=on:s2a=on:i=365:s2at=2.0:kws=precedence:bsr=on:irw=on:dpc=on:doe=on:bs=on:br=off:erd=off:s2agt=20:nwc=8.95214440448525:cond=fast:foolp=on:spb=non_intro:sfv=off:crc=on:fde=unused:ins=3_0");
-    propNZbig14.push("lrs+10_3:4_to=lpo:drc=encompass:sil=4000:sp=reverse_frequency:i=390:ss=axioms:sgt=16:s2a=on:s2at=3.0:crc=on:bd=off_0");
-    propNZbig14.push("lrs+10_1:4_to=lpo:drc=encompass:sil=4000:tgt=full:i=2789:bd=preordered:fd=preordered_0");
-    propNZbig14.push("lrs+10_1:3_drc=encompass:sil=256000:tgt=ground:sp=unary_first:i=975:ss=axioms:sgt=10:rawr=on:urr=on:ins=1:plsq=on:dpc=on:spb=intro:sd=4:fsr=off:bs=on:kws=inv_arity:crc=on:nwc=5.0_0");
-    propNZbig14.push("lrs+10_1:24_drc=encompass:sil=256000:tgt=full:sp=unary_frequency:spb=non_intro:i=6970:ins=2:fsr=off:kws=precedence:crc=on:croc=on:bsr=unit_only:br=off:ss=included:sgt=16:bd=preordered_0");
-    propNZbig14.push("lrs+10_7:24_to=lpo:drc=encompass:sil=128000:fde=unused:sp=const_min:spb=goal:i=522:crc=on:slsq=on:fdi=256:nwc=10.0:dpc=on:ss=included:st=2.0_0");
-    propNZbig14.push("lrs+10_1:1024_drc=encompass:sil=8000:tgt=ground:fde=unused:sp=const_min:spb=goal:kmz=on:i=1381:kws=inv_arity:awrs=converge:awrsf=200:crc=on:croc=on_0");
-    propNZbig14.push("lrs+10_1:4_to=lpo:drc=encompass:sil=128000:fde=unused:sp=const_min:spb=goal:fd=preordered:i=589:crc=on:slsq=on:slsqr=1,4_0");
-    propNZbig14.push("lrs+10_1:4_bsr=on:slsqr=2,7:to=lpo:drc=encompass:sil=16000:tgt=full:sp=unary_first:spb=goal:slsq=on:i=659:slsql=off:ins=2:crc=on:croc=on:rawr=on:nwc=8.7296035496261:erd=off:s2pl=no:cond=fast:plsq=on:sims=off_0");
+    propNZbig14.push("lrs+10_16:1_sfv=off:sil=2000:sp=reverse_frequency:urr=ec_only:br=off:i=126:doe=on:crc=on:to=lpo:fd=preordered:bd=preordered:fsd=on_0");
+    propNZbig14.push("lrs+10_3:107_sil=64000:i=143:ss=axioms:sgt=16:rawr=on:to=lpo_0");
+    propNZbig14.push("lrs+10_2:1_to=lpo:sil=4000:tgt=full:sp=const_min:urr=on:nwc=5.0:i=129:rawr=on_0");
+    propNZbig14.push("lrs+10_1:12_sil=256000:tgt=full:spb=intro:i=735:kws=precedence:awrs=converge:awrsf=500:crc=on_0");
+    propNZbig14.push("dis+10_577:524288_sil=256000:sp=const_frequency:spb=units:i=214:doe=on:bd=off:av=off:dpc=on:crc=on:croc=on:uhcvi=on:ss=included:rawr=on:to=lpo:slsq=on:slsqr=8,31:s2agt=5:s2at=4.0:fdi=2_0");
+    propNZbig14.push("lrs+10_1:64_sil=8000:tgt=full:spb=non_intro:i=204:kws=precedence:plsq=on:awrs=converge:awrsf=30:sp=weighted_frequency:crc=on:croc=on_0");
+    propNZbig14.push("lrs+10_1:1_to=lpo:sil=2000:fde=unused:sp=const_min:i=444:fd=preordered:crc=on:croc=on:bd=preordered:ss=axioms_0");
+    propNZbig14.push("lrs+10_3:58_sil=256000:tgt=full:bsd=on:sp=reverse_arity:lwlo=on:s2a=on:i=365:s2at=2.0:kws=precedence:bsr=on:irw=on:dpc=on:doe=on:bs=on:br=off:erd=off:s2agt=20:nwc=8.95214440448525:cond=fast:foolp=on:spb=non_intro:sfv=off:crc=on:fde=unused:ins=3_0");
+    propNZbig14.push("lrs+10_3:4_to=lpo:sil=4000:sp=reverse_frequency:i=390:ss=axioms:sgt=16:s2a=on:s2at=3.0:crc=on:bd=off_0");
+    propNZbig14.push("lrs+10_1:4_to=lpo:sil=4000:tgt=full:i=2789:bd=preordered:fd=preordered_0");
+    propNZbig14.push("lrs+10_1:3_sil=256000:tgt=ground:sp=unary_first:i=975:ss=axioms:sgt=10:rawr=on:urr=on:ins=1:plsq=on:dpc=on:spb=intro:sd=4:fsr=off:bs=on:kws=inv_arity:crc=on:nwc=5.0_0");
+    propNZbig14.push("lrs+10_1:24_sil=256000:tgt=full:sp=unary_frequency:spb=non_intro:i=6970:ins=2:fsr=off:kws=precedence:crc=on:croc=on:bsr=unit_only:br=off:ss=included:sgt=16:bd=preordered_0");
+    propNZbig14.push("lrs+10_7:24_to=lpo:sil=128000:fde=unused:sp=const_min:spb=goal:i=522:crc=on:slsq=on:fdi=256:nwc=10.0:dpc=on:ss=included:st=2.0_0");
+    propNZbig14.push("lrs+10_1:1024_sil=8000:tgt=ground:fde=unused:sp=const_min:spb=goal:kmz=on:i=1381:kws=inv_arity:awrs=converge:awrsf=200:crc=on:croc=on_0");
+    propNZbig14.push("lrs+10_1:4_to=lpo:sil=128000:fde=unused:sp=const_min:spb=goal:fd=preordered:i=589:crc=on:slsq=on:slsqr=1,4_0");
+    propNZbig14.push("lrs+10_1:4_bsr=on:slsqr=2,7:to=lpo:sil=16000:tgt=full:sp=unary_first:spb=goal:slsq=on:i=659:slsql=off:ins=2:crc=on:croc=on:rawr=on:nwc=8.7296035496261:erd=off:s2pl=no:cond=fast:plsq=on:sims=off_0");
     propNZbig14.push("lrs+10_1:1_drc=ordering:sil=4000:sp=occurrence:i=1397:ss=axioms:st=3.0:sd=2_0");
-    propNZbig14.push("lrs+10_15:74_drc=encompass:sil=4000:tgt=full:fde=none:sp=const_min:i=856:kws=inv_frequency:awrs=converge:awrsf=120:rawr=on:nwc=0.9964432792968732:fsr=off:urr=on_0");
-    propNZbig14.push("lrs+10_1:28_drc=encompass:sil=256000:tgt=full:spb=intro:i=918:kws=precedence:awrs=converge:awrsf=240:ss=axioms:rawr=on:crc=on:st=3.0:sp=const_frequency_0");
-    propNZbig14.push("lrs+10_1:25_to=lpo:drc=encompass:sil=2000:fde=none:sp=const_min:fd=preordered:i=1093_0");
+    propNZbig14.push("lrs+10_15:74_sil=4000:tgt=full:fde=none:sp=const_min:i=856:kws=inv_frequency:awrs=converge:awrsf=120:rawr=on:nwc=0.9964432792968732:fsr=off:urr=on_0");
+    propNZbig14.push("lrs+10_1:28_sil=256000:tgt=full:spb=intro:i=918:kws=precedence:awrs=converge:awrsf=240:ss=axioms:rawr=on:crc=on:st=3.0:sp=const_frequency_0");
+    propNZbig14.push("lrs+10_1:25_to=lpo:sil=2000:fde=none:sp=const_min:fd=preordered:i=1093_0");
     propNZbig14.push("ott+10_1:2_drc=ordering:sil=256000:tgt=ground:sp=reverse_frequency:spb=goal:i=1333:kws=precedence:crc=on_0");
-    propNZbig14.push("lrs+10_1:1_drc=encompass:sil=32000:tgt=ground:sp=unary_frequency:lwlo=on:i=23534:crc=on:croc=on:kws=precedence_0");
+    propNZbig14.push("lrs+10_1:1_sil=32000:tgt=ground:sp=unary_frequency:lwlo=on:i=23534:crc=on:croc=on:kws=precedence_0");
     propNZbig14.push("dis+10_1:1_drc=ordering:sil=256000:nwc=10.0:s2agt=32:s2a=on:i=1724:fde=none:fd=off_0");
     propNZbig14.push("lrs+10_11:1_drc=ordering:sil=4000:fde=none:nwc=5.0:st=3.0:i=1762:bd=off:ss=axioms:fd=off_0");
-    propNZbig14.push("lrs+10_8:1_drc=encompass:sil=256000:st=3.0:s2a=on:i=3083:s2at=1.2:ss=axioms:sd=15_0");
-    propNZbig14.push("lrs+10_1:64_drc=encompass:sil=16000:tgt=full:sp=reverse_frequency:slsq=on:i=4105:kws=precedence:slsql=off:ss=axioms:bs=unit_only:crc=on:spb=goal_0");
-    propNZbig14.push("lrs+10_1:4_drc=encompass:sil=32000:tgt=full:fde=unused:sp=const_frequency:nwc=10.0:i=9762:dpc=on:rawr=on:bd=preordered:to=lpo_0");
-    propNZbig14.push("lrs+10_1:27_bsr=unit_only:to=lpo:drc=encompass:sil=128000:fde=unused:sp=const_min:spb=goal:fd=preordered:i=9874:bs=on:dpc=on:uhcvi=on:rawr=on:crc=on:er=filter:erape=on:erml=3_0");
-    propNZbig14.push("lrs+10_1:4_drc=encompass:sil=16000:tgt=ground:lwlo=on:s2a=on:i=7263:s2at=2.0_0");
+    propNZbig14.push("lrs+10_8:1_sil=256000:st=3.0:s2a=on:i=3083:s2at=1.2:ss=axioms:sd=15_0");
+    propNZbig14.push("lrs+10_1:64_sil=16000:tgt=full:sp=reverse_frequency:slsq=on:i=4105:kws=precedence:slsql=off:ss=axioms:bs=unit_only:crc=on:spb=goal_0");
+    propNZbig14.push("lrs+10_1:4_sil=32000:tgt=full:fde=unused:sp=const_frequency:nwc=10.0:i=9762:dpc=on:rawr=on:bd=preordered:to=lpo_0");
+    propNZbig14.push("lrs+10_1:27_bsr=unit_only:to=lpo:sil=128000:fde=unused:sp=const_min:spb=goal:fd=preordered:i=9874:bs=on:dpc=on:uhcvi=on:rawr=on:crc=on:er=filter:erape=on:erml=3_0");
+    propNZbig14.push("lrs+10_1:4_sil=16000:tgt=ground:lwlo=on:s2a=on:i=7263:s2at=2.0_0");
     propNZbig14.push("lrs+10_2:3_drc=ordering:sil=128000:fde=none:s2a=on:i=13654:s2at=3.0:lwlo=on:bd=off_0");
-    propNZbig14.push("lrs+10_1:16_drc=encompass:sil=256000:tgt=full:spb=intro:i=41528:kws=precedence:awrs=converge:awrsf=200:ss=axioms:crc=on:croc=on:st=3.0:sp=const_frequency_0");
-    propNZbig14.push("dis+10_1:32_drc=encompass:sil=256000:tgt=ground:sp=const_frequency:spb=goal:i=32120:kws=precedence:bd=off:dpc=on:crc=on:s2a=on:s2at=3.0_0");
-    propNZbig14.push("ott+10_1:6_drc=encompass:sil=512000:tgt=ground:fde=unused:sp=const_min:spb=goal:nwc=1.1:i=95210:kws=precedence:dpc=on_0");
+    propNZbig14.push("lrs+10_1:16_sil=256000:tgt=full:spb=intro:i=41528:kws=precedence:awrs=converge:awrsf=200:ss=axioms:crc=on:croc=on:st=3.0:sp=const_frequency_0");
+    propNZbig14.push("dis+10_1:32_sil=256000:tgt=ground:sp=const_frequency:spb=goal:i=32120:kws=precedence:bd=off:dpc=on:crc=on:s2a=on:s2at=3.0_0");
+    propNZbig14.push("ott+10_1:6_sil=512000:tgt=ground:fde=unused:sp=const_min:spb=goal:nwc=1.1:i=95210:kws=precedence:dpc=on_0");
     propNZbig14.push("lrs+10_1:32_drc=ordering:sil=64000:tgt=full:sp=frequency:lwlo=on:i=51758:crc=on:croc=on_0");
-    propNZbig14.push("lrs+10_2:23_drc=encompass:sil=256000:tgt=full:s2a=on:i=126830:s2at=2.0:crc=on:dpc=on_0");
-    propNZbig14.push("lrs+10_1:24_bsr=unit_only:to=lpo:drc=encompass:sil=128000:fde=unused:sp=const_min:spb=goal:fd=preordered:i=67476:bs=on:dpc=on:rawr=on:crc=on:er=filter:erape=on:nwc=3.0:ss=axioms:st=6.0:urr=ec_only_0");
-    propNZbig14.push("lrs+10_1:3_drc=encompass:sil=256000:tgt=full:fd=preordered:s2a=on:i=85601:s2at=4.0_0");
+    propNZbig14.push("lrs+10_2:23_sil=256000:tgt=full:s2a=on:i=126830:s2at=2.0:crc=on:dpc=on_0");
+    propNZbig14.push("lrs+10_1:24_bsr=unit_only:to=lpo:sil=128000:fde=unused:sp=const_min:spb=goal:fd=preordered:i=67476:bs=on:dpc=on:rawr=on:crc=on:er=filter:erape=on:nwc=3.0:ss=axioms:st=6.0:urr=ec_only_0");
+    propNZbig14.push("lrs+10_1:3_sil=256000:tgt=full:fd=preordered:s2a=on:i=85601:s2at=4.0_0");
 
     // total_instr 925697
     // len(covered) 138
@@ -6305,7 +6305,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
 
     fne.push("lrs+21_8:1_drc=ordering:to=lpo:sil=2000:sp=frequency:spb=units:s2a=on:s2pl=no:i=103:sd=2:ss=included:fsr=off:fs=off_0");
     fne.push("lrs+1011_4:1_to=lpo:drc=off:sil=8000:sp=frequency:abs=on:urr=on:lsd=10:nwc=5.0:s2agt=4:newcnf=on:st=5.0:s2a=on:i=107:ss=axioms:aac=none:br=off:bd=preordered_0");
-    fne.push("lrs+10_8:1_to=lpo:drc=encompass:sil=4000:sos=on:urr=on:newcnf=on:i=116:sd=2:nm=2:ss=axioms:sgt=32:sup=off:bd=off_0");
+    fne.push("lrs+10_8:1_to=lpo:sil=4000:sos=on:urr=on:newcnf=on:i=116:sd=2:nm=2:ss=axioms:sgt=32:sup=off:bd=off_0");
     fne.push("lrs+1011_1:13_drc=ordering:sil=2000:tgt=full:sims=off:sp=occurrence:abs=on:newcnf=on:i=104:nm=4:ss=axioms:rawr=on:amm=off_0");
     fne.push("lrs+2_1:1_drc=ordering:sil=4000:plsqc=4:plsq=on:plsqr=2,1:rp=on:i=110:nm=10:fde=unused:ep=RS:slsq=on:slsql=off:slsqr=1,8:erd=off_0");
     fne.push("lrs+1011_1:1_drc=ordering:sil=8000:sp=occurrence:nwc=10.0:st=1.5:i=319:ss=axioms:sgt=4_0");
@@ -6361,7 +6361,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsG18000.push("dis-1010_1:1_drc=ordering:bsr=unit_only:to=lpo:sil=256000:fde=none:plsq=on:plsqr=205,29:sp=occurrence:sos=on:abs=on:newcnf=on:st=6.0:i=5784:sd=2:bd=off:amm=off:ss=axioms:rawr=on_0");
     feqAtomsG18000.push("lrs+2_1:1_drc=ordering:sil=256000:plsq=on:plsqr=17685,131072:sos=on:lcm=reverse:i=311:av=off:ss=axioms:ep=RST:sd=2_0");
     feqAtomsG18000.push("lrs+1011_1:1_drc=ordering:sil=8000:sp=occurrence:nwc=10.0:i=1126:ss=axioms:sgt=8_0");
-    feqAtomsG18000.push("ott-1011_11873131:1048576_drc=encompass:fde=unused:plsq=on:plsqr=3,59:sp=frequency:urr=on:nwc=13.753829265569435:sac=on:st=1.5:s2a=on:i=14494:sd=3:afp=10:bd=preordered:afq=2.759712924428805:ss=axioms:bs=on:sil=256000:kws=inv_frequency:bce=on:s2agt=8:sgt=8:awrs=decay:awrsf=80:nm=32:rawr=on_0");
+    feqAtomsG18000.push("ott-1011_11873131:1048576_fde=unused:plsq=on:plsqr=3,59:sp=frequency:urr=on:nwc=13.753829265569435:sac=on:st=1.5:s2a=on:i=14494:sd=3:afp=10:bd=preordered:afq=2.759712924428805:ss=axioms:bs=on:sil=256000:kws=inv_frequency:bce=on:s2agt=8:sgt=8:awrs=decay:awrsf=80:nm=32:rawr=on_0");
     feqAtomsG18000.push("lrs+2_1:1_drc=ordering:sil=2000:tgt=ground:sos=on:i=867:sd=1:ss=included:to=lpo:plsq=on:plsqr=32,1_0");
     feqAtomsG18000.push("dis-1010_1:8_drc=ordering:sil=256000:i=7640:nm=16:av=off:erd=off:sfv=off:fd=off:bd=off_0");
     feqAtomsG18000.push("lrs-1010_2:1_drc=ordering:sil=4000:tgt=ground:sos=on:erd=off:bce=on:st=4.5:i=365:sd=1:kws=inv_frequency:ss=axioms:sgt=100:rawr=on:avsq=on:avsqr=17,12:plsq=on:plsqr=25,62:anc=all_dependent_0");
@@ -6381,14 +6381,14 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsG18000.push("lrs-10_1:1_drc=ordering:sil=16000:sos=on:st=3.0:i=2917:sd=2:ep=RST:fsr=off:ss=axioms_0");
     feqAtomsG18000.push("dis+1011_16:1_drc=ordering:sil=16000:tgt=full:nwc=10.0:alpa=random:sac=on:avsq=on:i=12988:sd=1:kws=inv_frequency:ss=included_0");
     feqAtomsG18000.push("dis+10_52093:131072_drc=off:sil=2000:tgt=ground:irw=on:foolp=on:lma=on:urr=ec_only:nwc=5.20774:st=1.5:i=1235:sd=2:kws=inv_frequency:nm=7:ins=3:av=off:uhcvi=on:ss=axioms:rawr=on_0");
-    feqAtomsG18000.push("dis-21_1:1_drc=encompass:sos=on:urr=ec_only:i=2965:ins=1:av=off:ss=axioms:fde=none:sd=3:bsr=on:sil=8000:nm=3_0");
+    feqAtomsG18000.push("dis-21_1:1_sos=on:urr=ec_only:i=2965:ins=1:av=off:ss=axioms:fde=none:sd=3:bsr=on:sil=8000:nm=3_0");
     feqAtomsG18000.push("dis+34_1:1_drc=ordering:sil=8000:tgt=full:plsqc=1:plsq=on:plsqr=32,1:rp=on:nwc=10.0:newcnf=on:i=686:sd=1:av=off:ss=axioms_0");
     feqAtomsG18000.push("dis+1011_16:1_drc=ordering:lsd=20:bce=on:i=2880:ep=R:ins=1:ss=axioms:newcnf=on:sos=on:sil=32000:rp=on:fsr=off:fs=off:awrs=converge:sd=2_0");
     feqAtomsG18000.push("lrs+10_1:1_drc=ordering:sos=on:abs=on:s2agt=16:slsq=on:st=1.5:i=1509:ep=R:fsr=off:ss=axioms:rawr=on:s2a=on:fs=off:sd=4:sil=8000_0");
     feqAtomsG18000.push("ott-1010_3376641:1048576_drc=ordering:anc=none:to=lpo:sil=4000:tgt=ground:fde=unused:sp=unary_frequency:sos=on:spb=intro:lcm=predicate:fd=preordered:st=3.0:i=807:sd=1:bd=off:nm=3:ins=2:fsr=off:uhcvi=on:fdi=64:ss=included:sgt=100:newcnf=on:nwc=3.871969461363868_0");
     feqAtomsG18000.push("dis+1011_1:2_drc=ordering:sil=2000:tgt=ground:rp=on:newcnf=on:st=7.0:i=818:sd=1:nm=0:ss=axioms:sgt=32_0");
     feqAtomsG18000.push("ott+1002_2835555:1048576_drc=ordering:to=lpo:sil=2000:sos=on:fs=off:nwc=10.3801:avsqc=3:updr=off:avsq=on:st=2:s2a=on:i=822:s2at=3:afp=10000:aac=none:avsqr=13357983,1048576:awrs=converge:awrsf=460:bd=off:nm=13:ins=2:fsr=off:amm=sco:afq=1.16719:ss=axioms:rawr=on:fd=off_0");
-    feqAtomsG18000.push("dis+1011_38921:131072_bsr=on:drc=encompass:sil=8000:tgt=full:sp=frequency:sos=on:spb=goal:lcm=reverse:nwc=23.4974:newcnf=on:cond=fast:st=1.5:i=4682:sd=2:bd=preordered:nm=16:av=off:ss=axioms:sgt=10:rawr=on:bsd=on:kws=arity_squared:rp=on:ins=1_0");
+    feqAtomsG18000.push("dis+1011_38921:131072_bsr=on:sil=8000:tgt=full:sp=frequency:sos=on:spb=goal:lcm=reverse:nwc=23.4974:newcnf=on:cond=fast:st=1.5:i=4682:sd=2:bd=preordered:nm=16:av=off:ss=axioms:sgt=10:rawr=on:bsd=on:kws=arity_squared:rp=on:ins=1_0");
     feqAtomsG18000.push("dis+2_1:3_drc=ordering:sil=8000:nwc=5.0:st=3.0:s2a=on:i=885:s2at=2.5:sd=3:nm=2:ss=axioms_0");
     feqAtomsG18000.push("lrs+10_1:1_drc=ordering:sil=4000:sos=on:acc=on:st=2.5:i=918:bd=off:fsr=off:ss=axioms:sd=3:flr=on:fs=off:fd=off_0");
     feqAtomsG18000.push("lrs+21_1:1_drc=ordering:sil=16000:sos=all:lma=on:i=2583:sd=1:ep=R:ss=axioms_0");
@@ -6409,7 +6409,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsG18000.push("lrs+1002_1624159:1048576_drc=ordering:to=lpo:sil=64000:fde=none:sp=frequency:sos=on:spb=non_intro:nwc=15.7653:s2agt=30:avsqc=2:avsq=on:s2a=on:i=2438:s2at=3:sd=2:avsqr=6990209,1048576:awrs=decay:awrsf=762:bd=off:nm=4:ss=included:fd=off:rawr=on:fs=off:fsr=off:aac=none_0");
     feqAtomsG18000.push("dis+1002_1:1_drc=ordering:tgt=full:sos=on:rp=on:sac=on:i=12801:ss=axioms:sd=3:cond=on:add=off:abs=on:fde=none:sil=256000:rawr=on:newcnf=on:bsd=on:afp=1000:afq=1.7_0");
     feqAtomsG18000.push("lrs+35_8:1_drc=ordering:sos=all:s2a=on:i=5191:sd=2:ss=axioms:sil=128000:fde=none:gsp=on:av=off:nm=4:sfv=off_0");
-    feqAtomsG18000.push("dis+21_1:1_drc=encompass:sos=on:urr=ec_only:i=5645:ins=1:av=off:ss=axioms:gsp=on:sd=3:sil=8000:nm=3_0");
+    feqAtomsG18000.push("dis+21_1:1_sos=on:urr=ec_only:i=5645:ins=1:av=off:ss=axioms:gsp=on:sd=3:sil=8000:nm=3_0");
     feqAtomsG18000.push("lrs+1011_1:3_drc=ordering:sil=64000:sos=on:lsd=20:newcnf=on:st=2.0:s2a=on:i=3126:sd=1:nm=2:ss=included:s2agt=32:to=lpo:fd=off:bd=off:nicw=on:rp=on_0");
     feqAtomsG18000.push("dis+1011_1:1_drc=off:sil=16000:tgt=full:fde=unused:nwc=2.0:st=1.5:i=6739:sd=3:fsr=off:ss=axioms:nm=2_0");
     feqAtomsG18000.push("dis-21_1:4_drc=ordering:to=lpo:sil=8000:tgt=ground:sp=unary_first:lcm=reverse:alpa=random:i=3443:sd=1:awrs=converge:awrsf=500:fsr=off:ss=axioms_0");
@@ -6435,7 +6435,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsG18000.push("lrs+2_1:1_drc=ordering:anc=all_dependent:bsr=unit_only:sil=32000:i=17658:bs=on:alpa=true_0");
     feqAtomsG18000.push("lrs-1002_1:1_drc=ordering:anc=all:sil=64000:tgt=full:sos=on:st=1.5:i=25368:sd=2:kws=inv_frequency:aac=none:fsr=off:ss=axioms:abs=on:fs=off_0");
     feqAtomsG18000.push("dis+1011_3:7_drc=ordering:to=lpo:sos=on:spb=goal_then_units:abs=on:lsd=20:st=1.5:i=85957:sd=2:aac=none:awrs=decay:bd=off:ss=axioms:sgt=32:flr=on:sil=256000:nm=26_0");
-    feqAtomsG18000.push("lrs+1011_1:1_drc=encompass:sil=128000:tgt=ground:i=58209:kws=frequency:ss=axioms:lwlo=on:fde=unused:sp=reverse_arity_0");
+    feqAtomsG18000.push("lrs+1011_1:1_sil=128000:tgt=ground:i=58209:kws=frequency:ss=axioms:lwlo=on:fde=unused:sp=reverse_arity_0");
 
     // total_instr 1341991
     // len(covered) 867
@@ -6454,7 +6454,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsG2800.push("lrs+1010_1:1_drc=ordering:sil=8000:sp=occurrence:urr=on:br=off:st=1.2:i=125:sd=7:ss=axioms:sgt=16_0");
     feqAtomsG2800.push("lrs+1010_1:1_drc=ordering:to=lpo:sil=2000:sos=on:fd=off:i=402:bd=off_0");
     feqAtomsG2800.push("lrs+2_5:1_drc=ordering:sil=2000:sos=on:acc=on:urr=on:alpa=false:i=325:sd=1:bd=off:nm=32:ss=axioms:br=off:sup=off:bs=on_0");
-    feqAtomsG2800.push("lrs+1011_1:1_to=lpo:drc=encompass:sil=4000:plsq=on:plsqr=32,1:sp=occurrence:sos=on:erd=off:urr=on:lsd=100:i=267:sd=1:nm=2:ss=axioms:flr=on:sup=off_0");
+    feqAtomsG2800.push("lrs+1011_1:1_to=lpo:sil=4000:plsq=on:plsqr=32,1:sp=occurrence:sos=on:erd=off:urr=on:lsd=100:i=267:sd=1:nm=2:ss=axioms:flr=on:sup=off_0");
     feqAtomsG2800.push("lrs+33_1:1_drc=ordering:sil=4000:sp=reverse_frequency:sos=all:i=156:sd=2:bd=off:nm=2:av=off:fsr=off:ss=axioms:sgt=10:rawr=on:sup=off:to=lpo:fs=off_0");
     feqAtomsG2800.push("dis+1011_1:1_drc=ordering:to=lpo:sil=4000:sp=const_max:sos=all:spb=goal:st=1.5:i=200:av=off:ss=axioms:sfv=off:bd=off:sd=2:fd=off_0");
     feqAtomsG2800.push("dis-1010_1:4_drc=ordering:sil=2000:tgt=ground:fd=off:i=203:sd=1:nm=4:av=off:ss=axioms:sgt=64:newcnf=on_0");
@@ -6462,7 +6462,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsG2800.push("ott+10_107421:1048576_to=lpo:drc=off:sil=4000:fde=none:sos=on:lma=on:spb=intro:gs=on:nwc=24.2524:gsem=off:i=316:sd=3:afp=40000:awrs=decay:awrsf=1166:nm=6:afq=1.99252:uhcvi=on:ss=axioms:rawr=on:sp=const_max:add=off_0");
     feqAtomsG2800.push("lrs+10_8:1_drc=ordering:bsr=unit_only:sil=4000:urr=on:lcm=reverse:rp=on:i=426:sd=1:nm=6:av=off:ss=included:sup=off:sos=on_0");
     feqAtomsG2800.push("dis+1011_1:1_drc=ordering:sil=16000:nwc=7.0:s2agt=64:s2a=on:i=260:ss=axioms:sgt=8:lsd=50:sd=7_0");
-    feqAtomsG2800.push("lrs+2_1:1_drc=encompass:sil=2000:urr=on:nwc=10.0:i=160:sd=3:fsr=off:ss=axioms:fd=preordered:bd=off:sup=off_0");
+    feqAtomsG2800.push("lrs+2_1:1_sil=2000:urr=on:nwc=10.0:i=160:sd=3:fsr=off:ss=axioms:fd=preordered:bd=off:sup=off_0");
     feqAtomsG2800.push("dis+11_5603931:1048576_drc=ordering:bsr=on:sfv=off:slsqr=176855,1048576:sil=2000:plsq=on:plsqr=4348351,262144:sp=occurrence:spb=units:lcm=predicate:fd=off:nwc=1.37809:s2agt=10:slsq=on:s2a=on:i=462:bs=unit_only:sd=3:kws=arity_squared:slsql=off:bd=off:nm=26:av=off:ss=axioms:sgt=15:fsr=off_0");
     feqAtomsG2800.push("dis+1010_3:2_drc=ordering:sil=4000:plsq=on:s2agt=100:sac=on:s2a=on:i=2185:s2at=2.0:ep=RS:tgt=full_0");
     feqAtomsG2800.push("dis+1002_1:2_drc=ordering:to=lpo:sil=2000:sos=on:abs=on:newcnf=on:i=308:sd=1:bd=off:ss=included:rawr=on:sp=const_frequency:fsr=off:fs=off_0");
@@ -6473,17 +6473,17 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsG2800.push("lrs+1011_4801913:1048576_drc=ordering:sfv=off:sil=2000:plsqc=1:plsq=on:plsqr=98277,1048576:etr=on:sp=const_max:lma=on:erape=on:urr=full:rp=on:nwc=23.4614:lwlo=on:st=2.5:i=440:add=large:bs=unit_only:sd=2:kws=inv_arity_squared:awrs=converge:awrsf=951:nm=17:amm=sco:ss=axioms:er=filter:sgt=50:rawr=on:anc=none_0");
     feqAtomsG2800.push("lrs-1011_4:1_drc=ordering:bsr=unit_only:sil=4000:sp=occurrence:lsd=20:newcnf=on:i=730:kws=inv_arity_squared:awrs=converge:rawr=on:rp=on:alpa=false:nwc=3.0_0");
     feqAtomsG2800.push("lrs+1002_8:1_drc=ordering:sil=16000:plsq=on:sos=on:urr=on:plsql=on:st=1.2:i=228:sd=2:ss=axioms_0");
-    feqAtomsG2800.push("lrs+10_8:1_to=lpo:drc=encompass:sil=4000:sos=on:urr=on:newcnf=on:i=1008:sd=2:nm=2:ss=axioms:sgt=32:sup=off:bd=off_0");
+    feqAtomsG2800.push("lrs+10_8:1_to=lpo:sil=4000:sos=on:urr=on:newcnf=on:i=1008:sd=2:nm=2:ss=axioms:sgt=32:sup=off:bd=off_0");
     feqAtomsG2800.push("dis-1002_1:64_drc=ordering:sil=2000:sos=on:nwc=10.0:i=231:nm=2:ss=axioms:ep=RST:sd=1_0");
     feqAtomsG2800.push("lrs-1010_1:1_drc=ordering:to=lpo:sil=2000:sp=reverse_arity:sos=on:urr=ec_only:i=501:sd=2:bd=off:ss=axioms:sgt=16_0");
-    feqAtomsG2800.push("dis-1011_100103:1048576_bsr=on:drc=encompass:sil=2000:tgt=full:bsd=on:ile=on:sp=const_min:rnwc=on:nwc=23.5528:s2agt=30:avsqc=2:avsq=on:s2a=on:i=411:s2at=6:avsqr=111405,262144:bsdmm=3:nm=40:uhcvi=on:afr=on:ss=axioms:sgt=5:rawr=on:add=large_0");
+    feqAtomsG2800.push("dis-1011_100103:1048576_bsr=on:sil=2000:tgt=full:bsd=on:ile=on:sp=const_min:rnwc=on:nwc=23.5528:s2agt=30:avsqc=2:avsq=on:s2a=on:i=411:s2at=6:avsqr=111405,262144:bsdmm=3:nm=40:uhcvi=on:afr=on:ss=axioms:sgt=5:rawr=on:add=large_0");
     feqAtomsG2800.push("dis+1011_3:8_drc=ordering:bsr=unit_only:slsqr=1,16:sil=2000:plsq=on:plsqr=296,127:sp=reverse_frequency:lsd=5:nwc=10.0:slsqc=3:slsq=on:st=3.0:i=412:s2at=4.5:sd=4:slsql=off:nm=16:ins=5:ss=axioms:sgt=20:rawr=on:urr=ec_only:to=lpo_0");
     feqAtomsG2800.push("lrs+1002_1:16_drc=ordering:sil=4000:sos=on:sac=on:i=886:bs=unit_only:gsp=on:ss=included:sgt=16:fsr=off:sfv=off:bd=off_0");
     feqAtomsG2800.push("dis+1011_3:1_drc=ordering:sil=2000:lsd=10:sac=on:s2a=on:i=258:fsr=off:fd=off:ss=axioms:sd=2:sgt=16_0");
     feqAtomsG2800.push("lrs+21_1:1024_drc=ordering:sil=2000:sp=frequency:spb=non_intro:st=3.5:i=420:sd=3:kws=precedence:bd=off:av=off:ss=axioms:sup=off:lcm=predicate_0");
     feqAtomsG2800.push("lrs-1011_1:1_drc=ordering:sil=16000:urr=ec_only:flr=on:i=262:ep=RST:ss=axioms:sd=1:lsd=50_0");
     feqAtomsG2800.push("lrs+1002_1:1_drc=ordering:to=lpo:sil=4000:sos=on:i=425:sd=1:ss=included_0");
-    feqAtomsG2800.push("lrs+1011_1:64_slsqr=117407,1048576:drc=encompass:sil=2000:plsqc=1:plsq=on:plsqr=32300765,1048576:urr=ec_only:rp=on:slsqc=3:slsq=on:i=619:slsql=off:bd=off:rawr=on:fsr=off:br=off:s2at=2.0_0");
+    feqAtomsG2800.push("lrs+1011_1:64_slsqr=117407,1048576:sil=2000:plsqc=1:plsq=on:plsqr=32300765,1048576:urr=ec_only:rp=on:slsqc=3:slsq=on:i=619:slsql=off:bd=off:rawr=on:fsr=off:br=off:s2at=2.0_0");
     feqAtomsG2800.push("lrs+2_1:1_drc=ordering:sil=2000:tgt=ground:sos=on:i=274:sd=1:ss=included:to=lpo:plsq=on:plsqr=32,1_0");
     feqAtomsG2800.push("lrs-1011_1:1_drc=ordering:bsr=unit_only:sil=2000:sp=occurrence:sac=on:i=280:sd=3:ss=axioms:sgt=30:newcnf=on_0");
     feqAtomsG2800.push("lrs+1010_1:2_drc=ordering:sil=4000:tgt=ground:nwc=10.0:st=2.0:i=280:sd=1:bd=off:ss=axioms_0");
@@ -6498,7 +6498,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsG2800.push("lrs-1002_1:1_drc=ordering:anc=all:sil=64000:tgt=full:sos=on:st=1.5:i=371:sd=2:kws=inv_frequency:aac=none:fsr=off:ss=axioms:abs=on:fs=off_0");
     feqAtomsG2800.push("dis+33_1:1_drc=ordering:to=lpo:sil=16000:plsq=on:nwc=3.0:s2agt=16:s2a=on:i=3658:s2at=5.5:nm=2:av=off:fsr=off:s2pl=no:ep=RS:erd=off_0");
     feqAtomsG2800.push("dis+1010_2:13_bsr=on:drc=off:sil=32000:fde=none:sos=on:nwc=10.0:sac=on:newcnf=on:s2a=on:i=663:s2at=1.5:awrs=decay:awrsf=8:nm=16:rawr=on:rnwc=on:kws=arity_squared:amm=sco:alpa=random_0");
-    feqAtomsG2800.push("lrs+1011_5:1_drc=encompass:sil=2000:urr=on:fd=preordered:i=2101:kws=inv_frequency:s2a=on:s2at=-1.0_0");
+    feqAtomsG2800.push("lrs+1011_5:1_sil=2000:urr=on:fd=preordered:i=2101:kws=inv_frequency:s2a=on:s2at=-1.0_0");
     feqAtomsG2800.push("dis+1002_1:1_drc=ordering:sil=16000:tgt=ground:sac=on:i=714:sd=2:aac=none:ss=axioms:nwc=10.0_0");
     feqAtomsG2800.push("lrs+1011_4345945:1048576_drc=ordering:bsr=unit_only:sil=8000:tgt=full:irw=on:fde=none:sos=on:lma=on:spb=intro:abs=on:urr=on:br=off:fd=preordered:rp=on:nwc=14.3155:s2agt=50:alpa=random:kmz=on:updr=off:s2a=on:i=423:add=off:bs=on:kws=inv_arity_squared:afp=100000:aac=none:awrs=decay:awrsf=1366:nm=2:ins=2:afq=4.07453:uhcvi=on:afr=on:rawr=on:sp=unary_first:bd=off:fsd=on:fsdmm=1:s2at=5.0:sup=off_0");
     feqAtomsG2800.push("lrs+1010_1:28_drc=ordering:sil=2000:s2agt=16:st=3.0:s2a=on:i=427:sd=3:ss=axioms:av=off:slsq=on_0");
@@ -6518,14 +6518,14 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsG2800.push("lrs+11_1:1_drc=ordering:sos=on:urr=on:s2a=on:i=2202:sd=1:aac=none:ss=axioms:gsp=on:sil=128000:nm=3:bce=on:fd=preordered:alpa=true:etr=on:bd=off:lcm=predicate_0");
     feqAtomsG2800.push("dis+1011_5:1_drc=ordering:sil=2000:tgt=full:plsqc=1:plsq=on:plsqr=133465761,1048576:spb=non_intro:i=630:nm=2:ins=1:ss=axioms:rawr=on:alpa=true:kws=precedence:fsr=off_0");
     feqAtomsG2800.push("dis-1011_113:472_drc=ordering:sil=256000:nwc=10.0:i=1693:kws=precedence:awrs=decay:bd=off:ss=axioms:rawr=on:plsq=on:plsqr=73,255:amm=sco:ins=1:fsr=off:erd=off:sp=occurrence:fde=unused:lsd=60_0");
-    feqAtomsG2800.push("lrs+1002_1:7_drc=encompass:sil=64000:sos=on:urr=full:i=643:sd=2:ss=axioms:sgt=100_0");
+    feqAtomsG2800.push("lrs+1002_1:7_sil=64000:sos=on:urr=full:i=643:sd=2:ss=axioms:sgt=100_0");
     feqAtomsG2800.push("lrs+1011_1:16_drc=ordering:sil=2000:plsq=on:plsqr=1,15:urr=on:slsqc=1:slsq=on:st=6.0:i=1250:sd=3:fsr=off:ss=included:rawr=on:sup=off:bd=off_0");
     feqAtomsG2800.push("lrs+1011_1:1_drc=ordering:sil=16000:sos=on:i=1322:sd=2:ss=axioms:sgt=16_0");
     feqAtomsG2800.push("lrs+11_1:1_drc=off:sil=4000:fde=unused:sp=unary_frequency:sos=on:fs=off:nwc=17.7715:flr=on:avsq=on:i=736:kws=precedence:avsqr=18,127:bd=off:nm=16:fsr=off:uhcvi=on:rawr=on:s2pl=no:s2agt=8:ss=axioms:sd=1:st=3.5:aac=none:afp=50:afq=2.0_0");
     feqAtomsG2800.push("lrs-1011_1:8_drc=ordering:sil=2000:nwc=5.0:flr=on:i=737:nm=2:sup=off:fde=unused:fsr=off:bd=off_0");
     feqAtomsG2800.push("lrs+21_1:1_drc=ordering:sil=4000:sos=on:flr=on:i=1407:sd=1:bd=off:nm=2:ss=included:sup=off:fs=off:fsr=off_0");
-    feqAtomsG2800.push("lrs+21_1:64_drc=encompass:sil=32000:bsd=on:lma=on:spb=goal:nwc=10.0:i=779:add=large:ss=axioms:sgt=16:irw=on_0");
-    feqAtomsG2800.push("lrs-1011_35909:1048576_drc=encompass:sil=2000:tgt=ground:sp=weighted_frequency:spb=goal:fd=preordered:nwc=0.953927:flr=on:s2a=on:i=779:s2at=3:kws=precedence:awrs=decay:awrsf=875:bd=off:nm=3:ins=14:uhcvi=on:rawr=on:s2pl=no:lwlo=on:av=off:fsr=off_0");
+    feqAtomsG2800.push("lrs+21_1:64_sil=32000:bsd=on:lma=on:spb=goal:nwc=10.0:i=779:add=large:ss=axioms:sgt=16:irw=on_0");
+    feqAtomsG2800.push("lrs-1011_35909:1048576_sil=2000:tgt=ground:sp=weighted_frequency:spb=goal:fd=preordered:nwc=0.953927:flr=on:s2a=on:i=779:s2at=3:kws=precedence:awrs=decay:awrsf=875:bd=off:nm=3:ins=14:uhcvi=on:rawr=on:s2pl=no:lwlo=on:av=off:fsr=off_0");
     feqAtomsG2800.push("lrs+32_1:1_drc=ordering:to=lpo:sil=8000:sp=const_frequency:sos=on:fs=off:fd=off:i=1461:sd=1:bd=off:nm=2:fsr=off:ss=included_0");
     feqAtomsG2800.push("ott+1010_1_drc=ordering:aac=none:bce=on:ep=RS:fsd=off:nm=4:nwc=2.0:nicw=on:sas=z3:sims=off:i=1557_0");
     feqAtomsG2800.push("lrs+1010_1:128_drc=ordering:sil=8000:sos=all:urr=full:sac=on:i=863:fsd=on:sup=off:ss=included:st=2.5:sd=7_0");
@@ -6540,7 +6540,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsG2800.push("dis+1_1:64_drc=ordering:sil=16000:sp=reverse_frequency:fd=off:nwc=5.0:sac=on:newcnf=on:i=2895:ss=included:sd=7:st=4.0:fsr=off_0");
     feqAtomsG2800.push("lrs-11_1:1_drc=ordering:sil=8000:sos=on:st=2.0:i=1599:sd=2:nm=4:ss=axioms:ep=R_0");
     feqAtomsG2800.push("lrs+2_1:1_drc=ordering:sil=256000:plsq=on:plsqr=17685,131072:sos=on:lcm=reverse:i=3156:av=off:ss=axioms:ep=RST:sd=2_0");
-    feqAtomsG2800.push("lrs+10_8:1_drc=encompass:sil=256000:sp=reverse_frequency:i=1631:bs=unit_only:aac=none:nm=6:ss=axioms:sup=off:sos=on:acc=model:afp=50_0");
+    feqAtomsG2800.push("lrs+10_8:1_sil=256000:sp=reverse_frequency:i=1631:bs=unit_only:aac=none:nm=6:ss=axioms:sup=off:sos=on:acc=model:afp=50_0");
     feqAtomsG2800.push("dis+22_1:1024_drc=ordering:sil=8000:plsq=on:plsqr=1,32:fd=off:nwc=2.1:i=3201:av=off:ss=axioms:sgt=16:s2pl=on:sup=off_0");
     feqAtomsG2800.push("lrs+1011_2:3_drc=ordering:sil=16000:sos=on:rp=on:newcnf=on:lwlo=on:st=1.5:i=3447:sd=2:bd=off:nm=2:fsr=off:gsp=on:ss=axioms:bce=on:anc=all:sac=on_0");
     feqAtomsG2800.push("lrs+10_1:1_drc=ordering:sil=8000:fde=none:sos=on:nwc=10.0:i=1793:ep=RST:av=off:erd=off_0");
@@ -6555,7 +6555,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsG2800.push("lrs-31_1:1_drc=off:sil=4000:tgt=full:fd=preordered:nwc=5.0:lwlo=on:i=3633:ins=5:sac=on:bd=off:lcm=predicate_0");
     feqAtomsG2800.push("dis+1002_25:43_drc=ordering:bsr=unit_only:slsqr=1,2:sil=32000:tgt=full:plsq=on:plsqr=93,203:sp=const_min:sos=on:plsql=on:nwc=5.0:alpa=random:newcnf=on:slsq=on:nicw=on:i=3750:add=off:bs=on:slsql=off:fsr=off:uhcvi=on:acc=on_0");
     feqAtomsG2800.push("lrs+1011_4:1_drc=ordering:to=lpo:sil=16000:fde=none:plsq=on:plsqr=1,8:sp=occurrence:st=2.0:i=3957:sd=3:ss=axioms:er=known:av=off:awrs=converge:awrsf=500:fsr=off_0");
-    feqAtomsG2800.push("ott+10_2651049:1048576_drc=encompass:sil=8000:sp=const_min:sos=on:erd=off:spb=goal_then_units:acc=on:urr=on:rp=on:nwc=3.5019:nicw=on:st=1.5:i=4059:sd=2:kws=inv_frequency:afp=1000000:bd=off:nm=4:afq=2.89144:uhcvi=on:ss=axioms:rawr=on:sup=off_0");
+    feqAtomsG2800.push("ott+10_2651049:1048576_sil=8000:sp=const_min:sos=on:erd=off:spb=goal_then_units:acc=on:urr=on:rp=on:nwc=3.5019:nicw=on:st=1.5:i=4059:sd=2:kws=inv_frequency:afp=1000000:bd=off:nm=4:afq=2.89144:uhcvi=on:ss=axioms:rawr=on:sup=off_0");
     feqAtomsG2800.push("dis-1002_1:1_drc=ordering:sil=8000:sos=on:st=1.2:i=4457:ss=axioms:bd=off:sup=off:fsr=off:sd=5_0");
     feqAtomsG2800.push("lrs+11_1:8_drc=ordering:sp=reverse_arity:st=2.0:i=4587:ss=axioms:sil=256000:lcm=predicate:sd=10:av=off_0");
     feqAtomsG2800.push("dis+22_1:8_drc=ordering:sil=128000:abs=on:alpa=true:sac=on:i=6044:nm=2:amm=off:sup=off_0");
@@ -6580,12 +6580,12 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
 
     feqAtomsG180.push("lrs+1011_1:12_anc=none:drc=off:sil=64000:sims=off:sp=unary_first:spb=goal_then_units:lsd=20:rnwc=on:nwc=2.0:i=53554:add=off:awrs=converge:bd=off:uhcvi=on:tgt=ground:afp=300:afq=1.63_0");
     feqAtomsG180.push("dis+11_1:1_drc=ordering:nwc=5.0:s2a=on:i=66616:s2at=3.0:sil=128000:bd=off_0");
-    feqAtomsG180.push("lrs+1010_2201:262144_anc=all:drc=encompass:sil=256000:sims=off:sp=frequency:spb=goal_then_units:rp=on:lwlo=on:st=3.0:i=179501:bs=unit_only:nm=6:ins=2:fsd=on:ss=axioms:sgt=16:afr=on:tgt=ground:awrs=decay:awrsf=200:acc=on:ccuc=first_0");
+    feqAtomsG180.push("lrs+1010_2201:262144_anc=all:sil=256000:sims=off:sp=frequency:spb=goal_then_units:rp=on:lwlo=on:st=3.0:i=179501:bs=unit_only:nm=6:ins=2:fsd=on:ss=axioms:sgt=16:afr=on:tgt=ground:awrs=decay:awrsf=200:acc=on:ccuc=first_0");
     feqAtomsG180.push("lrs+10_1:3_drc=off:sil=256000:sp=unary_first:lwlo=on:i=216875:kws=precedence:ins=3:rawr=on:nwc=10.0_0");
 
     feqAtomsG180.push("dis+1011_3:1_drc=ordering:sil=256000:tgt=ground:sac=on:i=109:sd=1:ss=included_0");
     feqAtomsG180.push("dis+1010_1:1_drc=ordering:sil=2000:nwc=3.0:s2a=on:i=132:ins=5:fsr=off:ss=axioms:sd=2:fd=off_0");
-    feqAtomsG180.push("dis+1010_159245:1048576_to=lpo:sil=2000:etr=on:sp=unary_frequency:spb=goal:rnwc=on:nwc=10.9066:st=2:i=124:sd=1:nm=3:av=off:ss=axioms:rawr=on:drc=encompass:foolp=on:sgt=5:cond=fast:er=filter:erape=on:erml=2:s2a=on_0");
+    feqAtomsG180.push("dis+1010_159245:1048576_to=lpo:sil=2000:etr=on:sp=unary_frequency:spb=goal:rnwc=on:nwc=10.9066:st=2:i=124:sd=1:nm=3:av=off:ss=axioms:rawr=on:foolp=on:sgt=5:cond=fast:er=filter:erape=on:erml=2:s2a=on_0");
     feqAtomsG180.push("lrs+1011_1:1_drc=ordering:sil=16000:sos=on:erd=off:i=126:nm=2:ep=RST_0");
     feqAtomsG180.push("lrs+1011_1:1_drc=ordering:sil=8000:sp=occurrence:nwc=10.0:st=1.5:i=145:ss=axioms:sgt=4_0");
     feqAtomsG180.push("ott+1002_2835555:1048576_drc=ordering:to=lpo:sil=2000:sos=on:fs=off:nwc=10.3801:avsqc=3:updr=off:avsq=on:st=2:s2a=on:i=173:s2at=3:afp=10000:aac=none:avsqr=13357983,1048576:awrs=converge:awrsf=460:bd=off:nm=13:ins=2:fsr=off:amm=sco:afq=1.16719:ss=axioms:rawr=on:fd=off_0");
@@ -6598,15 +6598,15 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsG180.push("dis+1011_1:16_drc=ordering:sil=2000:plsq=on:sos=on:st=3.0:i=134:sd=1:av=off:ss=axioms:lsd=10:plsql=on_0");
     feqAtomsG180.push("dis-1010_8:1_drc=ordering:sil=64000:sp=occurrence:sos=on:st=2.0:i=135:sd=3:bd=off:ss=axioms:acc=model:to=lpo:sup=off:fs=off:fsr=off:sgt=32_0");
     feqAtomsG180.push("lrs+21_1:16_drc=ordering:sil=2000:sp=occurrence:urr=on:flr=on:i=139:sd=1:nm=0:ins=3:ss=included:rawr=on:br=off_0");
-    feqAtomsG180.push("ott+1011_1:3_drc=encompass:sil=256000:bsd=on:sp=occurrence:sos=on:newcnf=on:i=160:afp=1:aac=none:amm=off:afq=3.64962_0");
-    feqAtomsG180.push("dis-1002_1:1_to=lpo:drc=encompass:sil=2000:sp=const_max:nwc=10.0:s2a=on:i=194:s2at=2.0:afp=10:ins=16:afq=1.4:aac=none:rawr=on:fsr=off:alpa=true_0");
+    feqAtomsG180.push("ott+1011_1:3_sil=256000:bsd=on:sp=occurrence:sos=on:newcnf=on:i=160:afp=1:aac=none:amm=off:afq=3.64962_0");
+    feqAtomsG180.push("dis-1002_1:1_to=lpo:sil=2000:sp=const_max:nwc=10.0:s2a=on:i=194:s2at=2.0:afp=10:ins=16:afq=1.4:aac=none:rawr=on:fsr=off:alpa=true_0");
     feqAtomsG180.push("lrs-1010_529157:524288_drc=off:sil=4000:fde=none:sp=occurrence:sos=on:lma=on:abs=on:rnwc=on:nwc=23.317:i=385:sd=12:bd=off:nm=27:ins=3:amm=off:ss=axioms:nicw=on_0");
     feqAtomsG180.push("dis+1011_11:1_drc=ordering:sil=2000:avsq=on:i=293:avsqr=1,16:ep=RS:rawr=on:aac=none:lsd=100:mep=off:fde=none:newcnf=on:bsr=unit_only_0");
     feqAtomsG180.push("lrs+11_1:1_drc=ordering:sos=on:urr=on:s2a=on:i=178:sd=1:aac=none:ss=axioms:gsp=on:sil=128000:nm=3:bce=on:fd=preordered:alpa=true:etr=on:bd=off:lcm=predicate_0");
     feqAtomsG180.push("lrs+11_1:32_drc=ordering:sil=2000:sp=occurrence:lsd=20:rp=on:i=163:sd=1:nm=0:av=off:ss=included:nwc=10.0:flr=on_0");
     feqAtomsG180.push("lrs+1011_4:1_to=lpo:drc=off:sil=8000:sp=frequency:abs=on:urr=on:lsd=10:nwc=5.0:s2agt=4:newcnf=on:st=5.0:s2a=on:i=674:ss=axioms:aac=none:br=off:bd=preordered_0");
     feqAtomsG180.push("dis-1011_1:1024_drc=ordering:sil=2000:fde=unused:sos=on:nwc=10.0:i=152:uhcvi=on:ss=axioms:ep=RS:av=off:sp=occurrence:fsr=off:awrs=decay:awrsf=200_0");
-    feqAtomsG180.push("lrs+2_2742125:1048576_drc=encompass:sil=2000:sp=const_min:sos=on:lcm=reverse:fd=preordered:nwc=16.4028:newcnf=on:i=172:sd=2:kws=precedence:bd=off:uhcvi=on:ss=axioms:rawr=on:awrs=converge:awrsf=493:cond=fast:tgt=full_0");
+    feqAtomsG180.push("lrs+2_2742125:1048576_sil=2000:sp=const_min:sos=on:lcm=reverse:fd=preordered:nwc=16.4028:newcnf=on:i=172:sd=2:kws=precedence:bd=off:uhcvi=on:ss=axioms:rawr=on:awrs=converge:awrsf=493:cond=fast:tgt=full_0");
     feqAtomsG180.push("lrs+1002_1:128_drc=ordering:to=lpo:sil=2000:plsq=on:plsqr=7,2:sos=on:spb=units:fd=preordered:nwc=5.0:i=176:bd=off:nm=4:av=off:rawr=on:newcnf=on:fs=off:fsr=off_0");
     feqAtomsG180.push("dis+1011_2:3_drc=ordering:sil=8000:tgt=ground:fde=none:spb=goal_then_units:acc=on:nwc=4.0:updr=off:i=813:kws=inv_frequency:nm=16:ins=3:rawr=on:amm=sco_0");
     feqAtomsG180.push("lrs+1011_2:9_drc=ordering:sil=2000:lsd=10:newcnf=on:i=198:sd=2:awrs=decay:ss=included:amm=off:ep=R_0");
@@ -6615,24 +6615,24 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsG180.push("lrs+1002_1:8_drc=ordering:sil=16000:tgt=ground:fde=none:sp=const_frequency:sos=on:nwc=3.0:i=157_0");
     feqAtomsG180.push("dis+1011_1:1_drc=ordering:sil=2000:fd=off:nwc=10.0:s2a=on:i=542:bd=off:nm=2:sup=off:s2at=4.0_0");
     feqAtomsG180.push("dis-1002_3:1_drc=ordering:to=lpo:sil=4000:sp=occurrence:fd=off:nwc=6.0:st=2.0:i=162:sd=1:fsr=off:ss=axioms:sgt=16:fs=off_0");
-    feqAtomsG180.push("lrs+1002_1:1_sfv=off:drc=encompass:sil=2000:fde=unused:sp=frequency:nwc=10.0:flr=on:st=1.5:i=193:bd=off:nm=0:ins=4:fsr=off:fsd=on:ss=axioms:s2a=on:s2agt=32:to=lpo:aac=none:sims=off_0");
+    feqAtomsG180.push("lrs+1002_1:1_sfv=off:sil=2000:fde=unused:sp=frequency:nwc=10.0:flr=on:st=1.5:i=193:bd=off:nm=0:ins=4:fsr=off:fsd=on:ss=axioms:s2a=on:s2agt=32:to=lpo:aac=none:sims=off_0");
     feqAtomsG180.push("lrs-1002_2:9_drc=ordering:anc=none:sil=2000:plsqc=1:plsq=on:avsql=on:plsqr=2859761,1048576:erd=off:rp=on:nwc=21.7107:newcnf=on:avsq=on:i=164:aac=none:avsqr=6317,1048576:ep=RS:fsr=off:rawr=on:afp=50:afq=2.133940627822616:sac=on_0");
     feqAtomsG180.push("dis+1011_1:1024_drc=off:sil=2000:urr=ec_only:br=off:sac=on:i=360:fsr=off_0");
     feqAtomsG180.push("lrs+1011_8157881:1048576_to=lpo:drc=off:sil=2000:fde=unused:sos=on:spb=intro:urr=on:nwc=4.0:i=269:add=off:sd=1:nm=19:fsr=off:uhcvi=on:ss=axioms:sgt=100:ins=3:sup=off:afp=1000:s2pl=no:anc=none:acc=model:fs=off:lma=on_0");
     feqAtomsG180.push("lrs+1010_1:1_drc=ordering:to=lpo:sil=2000:plsq=on:plsqr=32,1:sos=on:i=467:sd=2:ss=axioms_0");
     feqAtomsG180.push("dis+1011_1:1_drc=ordering:sil=4000:s2agt=4:slsqc=3:slsq=on:i=211:bd=off:av=off:sup=off:ss=axioms:st=3.0_0");
     feqAtomsG180.push("lrs+1_4:1_drc=ordering:cond=fast:fde=unused:lcm=predicate:nm=4:s2a=on:sd=3:sos=on:ss=axioms:st=2.0:sil=16000:si=on:rawr=on:rtra=on:i=440_0");
-    feqAtomsG180.push("lrs+1011_1:2_drc=encompass:sil=4000:fde=unused:sos=on:sac=on:newcnf=on:i=139:sd=10:bd=off:ins=1:uhcvi=on:ss=axioms:spb=non_intro:st=3.0:erd=off:s2a=on:nwc=3.0_0");
+    feqAtomsG180.push("lrs+1011_1:2_sil=4000:fde=unused:sos=on:sac=on:newcnf=on:i=139:sd=10:bd=off:ins=1:uhcvi=on:ss=axioms:spb=non_intro:st=3.0:erd=off:s2a=on:nwc=3.0_0");
     feqAtomsG180.push("lrs+1011_1:4_drc=ordering:sil=2000:tgt=ground:lsd=100:nwc=2.0:st=7.0:i=2264:bd=off:nm=16:av=off:ss=axioms:rawr=on_0");
     feqAtomsG180.push("dis+1011_1:4_drc=ordering:sil=4000:i=231:awrs=converge:ep=RS:fsr=off:s2a=on:s2agt=32_0");
     feqAtomsG180.push("dis-1011_4948593:1048576_drc=ordering:sfv=off:sil=4000:sp=frequency:sos=on:spb=goal:lsd=1:lcm=predicate:rnwc=on:nwc=16.7798:i=146:sd=2:kws=inv_frequency:awrs=converge:awrsf=336:nm=10:ins=2:av=off:ss=axioms:rawr=on_0");
     feqAtomsG180.push("dis-1002_89073:262144_slsqr=91667,1048576:drc=off:sil=2000:sp=unary_frequency:spb=goal:urr=ec_only:bce=on:lcm=reverse:rp=on:nwc=9.0873:sac=on:slsq=on:nicw=on:cond=fast:i=943:s2at=5.5:kws=precedence:afp=100000:slsql=off:bd=off:nm=5:ins=3:sup=off:afq=1.99538:uhcvi=on:gsp=on:rawr=on:acc=model_0");
-    feqAtomsG180.push("lrs+1002_1:1024_drc=encompass:sil=2000:tgt=full:rp=on:i=336:nm=16:ss=axioms:sd=1:st=2.0_0");
-    feqAtomsG180.push("lrs+10_8:1_to=lpo:drc=encompass:sil=4000:sos=on:urr=on:newcnf=on:i=149:sd=2:nm=2:ss=axioms:sgt=32:sup=off:bd=off_0");
+    feqAtomsG180.push("lrs+1002_1:1024_sil=2000:tgt=full:rp=on:i=336:nm=16:ss=axioms:sd=1:st=2.0_0");
+    feqAtomsG180.push("lrs+10_8:1_to=lpo:sil=4000:sos=on:urr=on:newcnf=on:i=149:sd=2:nm=2:ss=axioms:sgt=32:sup=off:bd=off_0");
     feqAtomsG180.push("ott+1011_47:51_drc=ordering:anc=all_dependent:slsqr=853,231:sil=4000:sp=reverse_frequency:foolp=on:spb=non_intro:abs=on:s2agt=50:slsqc=1:slsq=on:st=4.0:i=152:s2at=1.5:sd=7:kws=inv_frequency:afp=2000:nm=14:ins=2:afq=1.2:uhcvi=on:afr=on:gsp=on:ss=axioms:sgt=100:rawr=on:tgt=ground:awrs=converge:awrsf=390:bs=unit_only:add=off:flr=on:plsq=on:plsqc=1:plsqr=6705511,1048576:bd=preordered:newcnf=on:nwc=5.0_0");
-    feqAtomsG180.push("dis+1011_1:59_slsqr=923,506:to=lpo:drc=encompass:sil=16000:tgt=ground:irw=on:fde=none:spb=goal:bce=on:nwc=5.0:slsqc=1:flr=on:slsq=on:s2a=on:i=206:s2at=6.0:sd=2:afp=1000:ss=axioms:er=filter:rawr=on:fdi=5:rp=on_0");
+    feqAtomsG180.push("dis+1011_1:59_slsqr=923,506:to=lpo:sil=16000:tgt=ground:irw=on:fde=none:spb=goal:bce=on:nwc=5.0:slsqc=1:flr=on:slsq=on:s2a=on:i=206:s2at=6.0:sd=2:afp=1000:ss=axioms:er=filter:rawr=on:fdi=5:rp=on_0");
     feqAtomsG180.push("dis+1010_1178033:262144_drc=ordering:sil=2000:ile=on:sp=reverse_frequency:sos=on:erd=off:spb=goal:abs=on:bce=on:lcm=reverse:fd=preordered:nwc=11.49952179089034:kmz=on:i=229:add=large:bs=unit_only:kws=inv_arity:nm=20:amm=off:uhcvi=on:afr=on:rawr=on:fsr=off:bd=off:fde=unused:bsr=unit_only_0");
-    feqAtomsG180.push("dis+1011_3:2_drc=encompass:sil=8000:tgt=full:sp=frequency:nwc=10.0:i=831:nm=2:fde=none:ins=1_0");
+    feqAtomsG180.push("dis+1011_3:2_sil=8000:tgt=full:sp=frequency:nwc=10.0:i=831:nm=2:fde=none:ins=1_0");
     feqAtomsG180.push("dis+1010_1:1_drc=ordering:sil=4000:sims=off:sp=frequency:nwc=5.0:st=5.0:i=233:av=off:fsr=off:ss=axioms:sd=1:to=lpo:fdi=10_0");
     feqAtomsG180.push("dis+1011_13623:1048576_drc=off:sil=2000:fde=unused:bsd=on:sp=const_min:br=off:fd=preordered:gs=on:nwc=17.1261:gsem=off:i=720:kws=inv_frequency:nm=4:rawr=on:bd=off:fsr=off:bsdmm=1:av=off_0");
     feqAtomsG180.push("lrs+2_1:1_drc=ordering:sil=2000:urr=on:flr=on:s2a=on:i=172:s2at=5.0:sd=1:ss=axioms:sgt=8:gsp=on:br=off_0");
@@ -6655,11 +6655,11 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsG180.push("dis-1010_1:1_drc=ordering:bsr=unit_only:to=lpo:sil=256000:fde=none:plsq=on:plsqr=205,29:sp=occurrence:sos=on:abs=on:newcnf=on:st=6.0:i=227:sd=2:bd=off:amm=off:ss=axioms:rawr=on_0");
     feqAtomsG180.push("dis+1011_1:1_drc=ordering:sil=2000:sos=on:lsd=100:rp=on:nwc=10.0:s2agt=16:newcnf=on:i=739:bd=off:fsr=off:rawr=on:avsq=on:avsql=on:avsqr=117,449:s2a=on:bs=on_0");
     feqAtomsG180.push("dis+1011_4:1_drc=ordering:sil=2000:nwc=10.0:newcnf=on:i=228:sd=1:nm=2:ss=axioms:fde=unused:sup=off:av=off_0");
-    feqAtomsG180.push("lrs-1011_23:2_drc=encompass:fde=unused:plsq=on:urr=on:nwc=10.0:sac=on:s2a=on:i=359:sd=2:ss=axioms:sil=256000:kws=inv_frequency_0");
+    feqAtomsG180.push("lrs-1011_23:2_fde=unused:plsq=on:urr=on:nwc=10.0:sac=on:s2a=on:i=359:sd=2:ss=axioms:sil=256000:kws=inv_frequency_0");
     feqAtomsG180.push("dis+10_16:63_drc=ordering:anc=none:to=lpo:sil=2000:fde=none:sos=on:nwc=10.0:i=236:sd=1:aac=none:ep=RS:fsr=off:ss=axioms:st=5.0_0");
     feqAtomsG180.push("dis-1011_1:32_to=lpo:drc=off:sil=2000:sp=reverse_arity:sos=on:foolp=on:lsd=20:nwc=1.49509792053687:s2agt=30:avsq=on:s2a=on:s2pl=no:i=242:s2at=5.0:avsqr=5593,1048576:nm=0:fsr=off:amm=sco:rawr=on:awrs=converge:awrsf=427:ss=included:sd=1:slsq=on:fd=off_0");
     feqAtomsG180.push("lrs+1011_7141:1048576_drc=ordering:sil=2000:plsq=on:plsqr=2328305,1048576:sp=frequency:sos=on:plsql=on:fd=off:nwc=19.7177:cond=fast:st=3:i=531:bd=off:nm=2:ins=2:av=off:uhcvi=on:fdi=16:ss=included:lsd=5_0");
-    feqAtomsG180.push("lrs+1002_14319:131072_to=lpo:drc=encompass:sil=2000:tgt=ground:fde=none:sp=const_max:sos=on:spb=units:lcm=predicate:nwc=7.734471748972603:flr=on:newcnf=on:i=247:add=large:awrs=decay:awrsf=1079:bd=off:nm=2:ins=1:fsr=off:uhcvi=on:rawr=on:anc=all_dependent:aac=none:fs=off_0");
+    feqAtomsG180.push("lrs+1002_14319:131072_to=lpo:sil=2000:tgt=ground:fde=none:sp=const_max:sos=on:spb=units:lcm=predicate:nwc=7.734471748972603:flr=on:newcnf=on:i=247:add=large:awrs=decay:awrsf=1079:bd=off:nm=2:ins=1:fsr=off:uhcvi=on:rawr=on:anc=all_dependent:aac=none:fs=off_0");
     feqAtomsG180.push("lrs+1011_1:1_drc=ordering:sil=4000:sos=on:st=3.0:i=406:sd=1:ss=axioms_0");
     feqAtomsG180.push("lrs+11_4:1_drc=ordering:sil=2000:tgt=full:sos=on:erd=off:spb=goal_then_units:sac=on:st=6.0:i=257:nm=3:ss=included:sd=1:s2pl=on:awrs=converge:awrsf=20:afp=50:afq=1.2_0");
     feqAtomsG180.push("lrs+10_1:1_drc=ordering:sil=16000:sp=frequency:nwc=10.0:s2agt=5:s2a=on:i=259:sd=2:nm=2:ss=axioms:sgt=8:bd=off_0");
@@ -6695,7 +6695,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsG180.push("lrs-35_1:128_drc=ordering:anc=none:bsr=unit_only:fde=unused:sos=all:urr=on:fd=off:nwc=10.0:slsq=on:st=2.0:i=448:bs=unit_only:gsp=on:ss=axioms:sd=1:alpa=true:sil=8000_0");
     feqAtomsG180.push("lrs+11_1:1_drc=ordering:sil=8000:abs=on:lsd=10:nwc=10.0:sac=on:i=454:sd=1:bd=off:ss=axioms:newcnf=on:sup=off_0");
     feqAtomsG180.push("dis+1011_5:2_drc=ordering:to=lpo:sil=8000:tgt=ground:plsq=on:plsqr=65749,1048576:spb=goal:nwc=10.0:newcnf=on:i=480:rawr=on:av=off:nm=5:awrs=converge:awrsf=340:bsd=on:s2a=on:fdi=1_0");
-    feqAtomsG180.push("lrs+2_8:1_drc=encompass:sil=2000:tgt=ground:fde=unused:urr=full:i=861:sup=off:slsq=on:slsql=off:slsqc=1:slsqr=1,2:s2at=5.0:br=off_0");
+    feqAtomsG180.push("lrs+2_8:1_sil=2000:tgt=ground:fde=unused:urr=full:i=861:sup=off:slsq=on:slsql=off:slsqc=1:slsqr=1,2:s2at=5.0:br=off_0");
     feqAtomsG180.push("dis+1011_2:1_drc=ordering:sil=2000:fde=unused:plsqc=1:plsq=on:plsqr=36971,524288:nwc=5.0:i=484:ep=RS:nm=7_0");
     feqAtomsG180.push("lrs+1011_9:64_drc=ordering:slsqr=1,4:sil=2000:fde=none:nwc=5.0:newcnf=on:slsq=on:i=2129:awrs=converge:awrsf=965:ep=R:av=off_0");
     feqAtomsG180.push("lrs-1011_4:7_drc=ordering:sil=2000:tgt=full:bsd=on:spb=goal:nwc=5.0:updr=off:newcnf=on:i=928:kws=arity_squared:rawr=on:bsdmm=2_0");
@@ -6709,25 +6709,25 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsG180.push("dis+1011_1:9_drc=ordering:bsr=unit_only:sil=2000:plsq=on:plsqr=375,251:sp=const_frequency:sos=on:spb=intro:urr=on:flr=on:slsq=on:i=636:av=off:fsr=off:rawr=on:ss=axioms:sd=3:sgt=16:st=3.0:rp=on:to=lpo_0");
     feqAtomsG180.push("ott+10_107421:1048576_to=lpo:drc=off:sil=4000:fde=none:sos=on:lma=on:spb=intro:gs=on:nwc=24.2524:gsem=off:i=664:sd=3:afp=40000:awrs=decay:awrsf=1166:nm=6:afq=1.99252:uhcvi=on:ss=axioms:rawr=on:sp=const_max:add=off_0");
     feqAtomsG180.push("dis-1011_1:12_drc=ordering:sil=4000:fde=unused:sp=occurrence:lsd=20:nwc=5.0:s2agt=10:updr=off:cond=fast:s2a=on:i=667:ep=RS:nm=3:ins=1:av=off:rawr=on:s2at=3.0_0");
-    feqAtomsG180.push("dis+1011_543:505_drc=encompass:sil=128000:tgt=full:etr=on:sp=frequency:nwc=4.8:avsqc=4:sac=on:avsq=on:st=7.0:i=3665:kws=precedence:avsqr=2669309,1048576:awrs=converge:awrsf=975:bd=off:nm=16:ss=axioms:rawr=on:bsd=on:add=large_0");
-    feqAtomsG180.push("lrs-1011_19:210_drc=encompass:sil=16000:sp=weighted_frequency:spb=non_intro:nwc=7.1:cond=fast:st=1.5:s2a=on:i=720:s2at=3.0:add=off:sd=2:kws=precedence:afp=10:bd=off:ins=1:afq=2.810910500672621:ss=axioms:sac=on:plsq=on:plsql=on:plsqr=2,17:plsqc=3_0");
+    feqAtomsG180.push("dis+1011_543:505_sil=128000:tgt=full:etr=on:sp=frequency:nwc=4.8:avsqc=4:sac=on:avsq=on:st=7.0:i=3665:kws=precedence:avsqr=2669309,1048576:awrs=converge:awrsf=975:bd=off:nm=16:ss=axioms:rawr=on:bsd=on:add=large_0");
+    feqAtomsG180.push("lrs-1011_19:210_sil=16000:sp=weighted_frequency:spb=non_intro:nwc=7.1:cond=fast:st=1.5:s2a=on:i=720:s2at=3.0:add=off:sd=2:kws=precedence:afp=10:bd=off:ins=1:afq=2.810910500672621:ss=axioms:sac=on:plsq=on:plsql=on:plsqr=2,17:plsqc=3_0");
     feqAtomsG180.push("lrs+1011_722839:524288_drc=ordering:sil=4000:tgt=ground:fde=none:plsq=on:plsqr=5516061,65536:sp=const_max:spb=goal:acc=on:lsd=5:fd=preordered:nwc=19.5454:avsqc=4:sac=on:newcnf=on:lwlo=on:avsq=on:i=802:afp=1000000:avsqr=2357819,1048576:bd=off:nm=0:afq=4.85051:uhcvi=on:rawr=on:avsql=on_0");
     feqAtomsG180.push("dis+1011_16:1_drc=ordering:slsqr=5605329,524288:to=lpo:sil=4000:rp=on:slsqc=1:slsq=on:i=803:bd=off:fsr=off:lsd=50_0");
     feqAtomsG180.push("ott+10_2557:524288_anc=all_dependent:slsqr=1107323,1048576:drc=off:ccuc=first:sil=2000:tgt=ground:plsqc=5:plsq=on:plsqr=554689,1048576:sp=frequency:sos=on:acc=on:urr=on:plsql=on:gs=on:nwc=1.55306:s2agt=30:slsq=on:st=5:i=861:sd=2:awrs=converge:awrsf=1188:bd=off:nm=2:ins=3:fsr=off:fsd=on:ss=axioms:sgt=15:rawr=on:fsdmm=1_0");
     feqAtomsG180.push("dis+1002_8:15_drc=ordering:to=lpo:sil=4000:tgt=ground:sp=weighted_frequency:spb=goal_then_units:s2agt=16:nicw=on:st=1.5:s2a=on:i=901:aac=none:nm=32:ss=axioms:sims=off_0");
-    feqAtomsG180.push("dis+11_1:5_drc=encompass:sil=4000:sp=frequency:s2a=on:i=923:av=off:fsr=off:lcm=reverse:fde=none_0");
+    feqAtomsG180.push("dis+11_1:5_sil=4000:sp=frequency:s2a=on:i=923:av=off:fsr=off:lcm=reverse:fde=none_0");
     feqAtomsG180.push("lrs+1011_1:1_drc=ordering:sil=2000:sos=on:erd=off:spb=units:st=3.0:i=929:kws=precedence:aac=none:nm=0:ss=axioms_0");
     feqAtomsG180.push("lrs-1011_8:1_drc=ordering:bsr=on:sil=4000:tgt=ground:sos=on:lsd=10:newcnf=on:i=948:bd=off:av=off:ss=axioms:rp=on_0");
     feqAtomsG180.push("lrs+3_1:1_drc=ordering:sil=2000:plsq=on:plsqr=23463,524288:sos=on:erd=off:urr=on:bce=on:rp=on:st=2.0:i=957:bs=unit_only:sd=2:bd=off:ss=axioms:rawr=on:anc=none:sac=on:slsq=on:bsr=on:lcm=reverse_0");
-    feqAtomsG180.push("dis+1011_3:1_anc=all_dependent:bsr=unit_only:drc=encompass:sil=2000:nwc=10.0:alpa=false:sac=on:i=1032:kws=precedence:gsp=on:erd=off:bd=off:afp=50:afq=1.276_0");
+    feqAtomsG180.push("dis+1011_3:1_anc=all_dependent:bsr=unit_only:sil=2000:nwc=10.0:alpa=false:sac=on:i=1032:kws=precedence:gsp=on:erd=off:bd=off:afp=50:afq=1.276_0");
     feqAtomsG180.push("lrs-1010_1:16_drc=ordering:sfv=off:to=lpo:sil=2000:tgt=full:erd=off:rp=on:nwc=10.0:sac=on:newcnf=on:i=1039:flr=on:bd=off:updr=off_0");
     feqAtomsG180.push("dis+1011_1:8_drc=ordering:sil=8000:sos=on:bce=on:rp=on:i=1048:nm=6:av=off_0");
     feqAtomsG180.push("lrs+1010_1:1_drc=ordering:to=lpo:sil=2000:sos=on:fd=off:i=1089:bd=off_0");
     feqAtomsG180.push("lrs+1011_4:1_drc=ordering:to=lpo:sil=16000:fde=none:plsq=on:plsqr=1,8:sp=occurrence:st=2.0:i=1096:sd=3:ss=axioms:er=known:av=off:awrs=converge:awrsf=500:fsr=off_0");
     feqAtomsG180.push("lrs-1010_1:32_drc=ordering:sfv=off:sil=2000:fde=unused:sp=weighted_frequency:flr=on:s2a=on:i=1119:s2at=7.0:bd=off:kws=precedence_0");
     feqAtomsG180.push("lrs-1002_9:13_drc=ordering:sil=4000:tgt=ground:etr=on:spb=non_intro:rp=on:newcnf=on:i=1173:add=large:afp=50:bd=off:ins=1:fsr=off:afq=4.13736:gsp=on:ss=axioms:sgt=16:rawr=on:flr=on:bce=on_0");
-    feqAtomsG180.push("dis+1011_1:16_sil=2000:urr=ec_only:br=off:i=1186:ss=axioms:st=2.0:fsr=off:drc=encompass:anc=none_0");
-    feqAtomsG180.push("lrs+1010_3:1_anc=all_dependent:to=lpo:drc=encompass:sil=4000:plsqc=1:plsq=on:plsqr=5192987,65536:sp=occurrence:sos=on:urr=full:bce=on:rp=on:slsq=on:i=1202:bd=off:rawr=on:uhcvi=on:avsq=on:avsql=on:alpa=false_0");
+    feqAtomsG180.push("dis+1011_1:16_sil=2000:urr=ec_only:br=off:i=1186:ss=axioms:st=2.0:fsr=off:anc=none_0");
+    feqAtomsG180.push("lrs+1010_3:1_anc=all_dependent:to=lpo:sil=4000:plsqc=1:plsq=on:plsqr=5192987,65536:sp=occurrence:sos=on:urr=full:bce=on:rp=on:slsq=on:i=1202:bd=off:rawr=on:uhcvi=on:avsq=on:avsql=on:alpa=false_0");
     feqAtomsG180.push("ott-1010_1915907:1048576_drc=ordering:to=lpo:sil=2000:plsq=on:ile=on:plsqr=319573,262144:sp=reverse_arity:sos=on:nwc=6.38626:s2agt=10:avsq=on:s2a=on:i=1208:s2at=5.5:sd=1:afp=40000:avsqr=5709,524288:nm=9:ins=2:fsr=off:afq=1.49663:ss=included:rawr=on:acc=model:ccuc=small_ones:fs=off:spb=goal_0");
     feqAtomsG180.push("lrs+1011_1:1_drc=ordering:sil=8000:sp=occurrence:nwc=10.0:i=1212:ss=axioms:sgt=8_0");
     feqAtomsG180.push("lrs+1010_1:1_drc=ordering:sil=2000:flr=on:nicw=on:st=2.0:i=1258:sd=2:bd=off:fsr=off:ss=axioms_0");
@@ -6738,14 +6738,14 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsG180.push("dis+1011_1:4_drc=ordering:afp=10010:amm=off:anc=none:awrs=decay:awrsf=50:ep=RSTC:fde=unused:lma=on:nm=16:nwc=5.0:s2a=on:sp=frequency:urr=ec_only:si=on:rawr=on:rtra=on:i=1441_0");
     feqAtomsG180.push("lrs-31_1:1_drc=off:sil=4000:tgt=full:fd=preordered:nwc=5.0:lwlo=on:i=1544:ins=5:sac=on:bd=off:lcm=predicate_0");
     feqAtomsG180.push("lrs+1011_1:13_drc=ordering:sil=2000:tgt=full:sims=off:sp=occurrence:abs=on:newcnf=on:i=1571:nm=4:ss=axioms:rawr=on:amm=off_0");
-    feqAtomsG180.push("lrs+3_1083:1048576_anc=all_dependent:bsr=on:drc=encompass:sil=4000:fde=none:sims=off:plsq=on:plsqr=483329,262144:sp=occurrence:sos=on:lma=on:bce=on:lcm=reverse:fd=preordered:nwc=11.0613:s2agt=15:s2a=on:i=1576:kws=inv_frequency:awrs=decay:awrsf=833:nm=49:amm=sco:uhcvi=on:rawr=on:gs=on_0");
+    feqAtomsG180.push("lrs+3_1083:1048576_anc=all_dependent:bsr=on:sil=4000:fde=none:sims=off:plsq=on:plsqr=483329,262144:sp=occurrence:sos=on:lma=on:bce=on:lcm=reverse:fd=preordered:nwc=11.0613:s2agt=15:s2a=on:i=1576:kws=inv_frequency:awrs=decay:awrsf=833:nm=49:amm=sco:uhcvi=on:rawr=on:gs=on_0");
     feqAtomsG180.push("dis+1_1:64_drc=ordering:sil=16000:spb=goal_then_units:urr=on:sac=on:st=-1.0:i=15318:bd=off:ss=axioms:fsr=off_0");
     feqAtomsG180.push("lrs-11_4:1_anc=all_dependent:slsqr=1,5:sil=2000:sos=all:spb=goal:br=off:alpa=true:newcnf=on:slsq=on:st=1.5:i=1714:aac=none:nm=16:ins=1:ss=axioms:bs=unit_only:drc=off_0");
     feqAtomsG180.push("lrs-1010_54669:524288_drc=ordering:sp=const_frequency:sac=on:cond=fast:i=1773:afp=300:aac=none:bd=off:sims=off:aer=off:flr=on:tgt=ground:sil=256000:sfv=off:kws=precedence:alpa=random:spb=intro:s2a=on:s2agt=50:s2at=5.0:updr=off_0");
     feqAtomsG180.push("lrs-1002_1:1_drc=ordering:sil=8000:urr=on:nwc=7.0:i=1782:nm=20:av=off:fsr=off:rp=on:bd=off_0");
     feqAtomsG180.push("dis-1011_3:1_drc=ordering:sil=32000:fde=none:sos=all:nwc=5.0:i=3557:ep=R:aac=none_0");
     feqAtomsG180.push("dis+1011_1:1_drc=ordering:aac=none:bs=unit_only:ep=RS:gsp=on:nwc=5.0:rnwc=on:s2a=on:s2at=3.0:slsq=on:slsqc=2:slsqr=1,8:si=on:rawr=on:rtra=on:i=2119_0");
-    feqAtomsG180.push("dis+1010_111341:524288_bsr=on:drc=encompass:sil=64000:sp=reverse_frequency:spb=units:bce=on:newcnf=on:s2a=on:i=4238:s2at=3.0:bs=on:afp=300:bd=off:afq=1.999_0");
+    feqAtomsG180.push("dis+1010_111341:524288_bsr=on:sil=64000:sp=reverse_frequency:spb=units:bce=on:newcnf=on:s2a=on:i=4238:s2at=3.0:bs=on:afp=300:bd=off:afq=1.999_0");
     feqAtomsG180.push("lrs+1010_2:5_drc=ordering:anc=all_dependent:to=lpo:sil=32000:tgt=ground:spb=goal:abs=on:sac=on:i=2177:nm=16:amm=sco:fdi=10:avsq=on:avsqc=4_0");
     feqAtomsG180.push("lrs+1010_2:5_drc=ordering:bsr=on:to=lpo:sil=64000:bsd=on:sp=frequency:sos=on:urr=ec_only:nwc=4.4:updr=off:newcnf=on:i=2797:ins=2:fsr=off:uhcvi=on:afr=on:rawr=on_0");
     feqAtomsG180.push("lrs+1011_1:2_drc=ordering:to=lpo:sil=8000:plsqc=1:plsq=on:plsqr=326,59:sp=weighted_frequency:plsql=on:nwc=10.0:newcnf=on:i=5789:awrs=converge:awrsf=200:bd=off:ins=1:rawr=on:alpa=false:avsq=on:avsqr=1,16_0");
@@ -6762,7 +6762,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsG180.push("lrs+1011_10574001:1048576_slsqr=8791195,262144:drc=off:sil=8000:tgt=full:fde=unused:etr=on:sp=const_min:foolp=on:spb=goal:urr=ec_only:rp=on:nwc=7.13168:s2agt=10:slsqc=1:updr=off:slsq=on:lwlo=on:i=5190:afp=2000:awrs=converge:slsql=off:awrsf=480:bd=off:nm=12:ins=7:amm=sco:afq=2.46635:rawr=on_0");
     feqAtomsG180.push("lrs+1011_1:64_drc=ordering:anc=all:plsq=on:plsqr=32,1:fs=off:sac=on:i=12193:fsr=off:avsq=on:avsqc=1:sil=256000:ins=1_0");
     feqAtomsG180.push("lrs+1011_7:1_bsr=unit_only:drc=off:fde=none:sp=const_min:nwc=10.0:sac=on:i=12220:kws=inv_arity:ss=axioms:rawr=on:urr=ec_only:lsd=10:alpa=false:lwlo=on:sil=256000:nm=20:spb=intro:uhcvi=on:aer=off:etr=on:add=large:afp=40000:afq=2.7725255392834085:afr=on:ins=8:bce=on_0");
-    feqAtomsG180.push("lrs+1011_2605:524288_anc=none:drc=encompass:sil=128000:tgt=full:plsq=on:plsqr=195459,1048576:sp=occurrence:sos=on:abs=on:bce=on:lcm=predicate:plsql=on:st=5.5:i=6176:add=large:kws=frequency:awrs=decay:awrsf=149:uhcvi=on:ss=axioms:rawr=on:ins=2:flr=on:afp=50:afq=2.4020044236363103_0");
+    feqAtomsG180.push("lrs+1011_2605:524288_anc=none:sil=128000:tgt=full:plsq=on:plsqr=195459,1048576:sp=occurrence:sos=on:abs=on:bce=on:lcm=predicate:plsql=on:st=5.5:i=6176:add=large:kws=frequency:awrs=decay:awrsf=149:uhcvi=on:ss=axioms:rawr=on:ins=2:flr=on:afp=50:afq=2.4020044236363103_0");
     feqAtomsG180.push("dis-1002_6_acc=on:anc=none:bce=on:cond=fast:drc=off:fsd=off:fde=none:gsp=on:irw=on:sac=on:sp=scramble:tgt=ground:urr=ec_only:i=77470_0");
     feqAtomsG180.push("ott+11_25:3_drc=ordering:anc=all_dependent:bsr=unit_only:sil=64000:sp=occurrence:urr=on:rnwc=on:fd=preordered:nwc=10.0:newcnf=on:cond=fast:i=6961:sd=3:kws=inv_frequency:bd=preordered:sup=off:ss=axioms:rawr=on:avsq=on:avsqc=3:s2pl=no:s2at=2.0:fsr=off_0");
     feqAtomsG180.push("dis+1011_2:3_drc=ordering:av=off:cond=on:ep=RS:flr=on:fsd=off:lcm=reverse:nm=0:nwc=2.5:sp=frequency:i=7334_0");
@@ -6773,8 +6773,8 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsG180.push("lrs-1010_1590:949_drc=ordering:si=on:sp=const_frequency:atotf=0.1:i=8829:nm=3:rtra=on:ss=axioms:sil=16000:kws=inv_arity_squared:sd=1:rawr=on:lcm=predicate:lma=on:spb=goal_then_units:uhcvi=on:sfv=off:awrs=decay:awrsf=40:sac=on:abs=on:bd=preordered_0");
     feqAtomsG180.push("lrs+1011_8:1_drc=ordering:sil=128000:tgt=ground:fde=unused:sp=frequency:nwc=5.0:lwlo=on:i=32492:awrs=converge:awrsf=1385:av=off_0");
     feqAtomsG180.push("lrs-1011_2643:524288_drc=off:sil=16000:tgt=ground:plsqc=1:plsq=on:plsqr=12860815,1048576:sp=unary_first:spb=goal_then_units:urr=on:lsd=10:rnwc=on:plsql=on:nwc=5.34008:newcnf=on:cond=fast:st=4.5:i=12023:add=large:bs=unit_only:sd=5:aac=none:bd=off:nm=20:amm=sco:uhcvi=on:ss=included:alpa=false:sac=on_0");
-    feqAtomsG180.push("dis-1004_46:473_drc=encompass:sil=64000:fde=unused:plsqc=1:sims=off:plsq=on:plsqr=7134431,131072:erd=off:urr=on:br=off:rp=on:avsqc=1:newcnf=on:avsq=on:i=24297:kws=frequency:nm=2:afr=on:gsp=on:plsql=on:ins=1:alpa=true:afp=1000:afq=1.906_0");
-    feqAtomsG180.push("lrs+1002_1:7_drc=encompass:sil=64000:sos=on:urr=full:i=13414:sd=2:ss=axioms:sgt=100_0");
+    feqAtomsG180.push("dis-1004_46:473_sil=64000:fde=unused:plsqc=1:sims=off:plsq=on:plsqr=7134431,131072:erd=off:urr=on:br=off:rp=on:avsqc=1:newcnf=on:avsq=on:i=24297:kws=frequency:nm=2:afr=on:gsp=on:plsql=on:ins=1:alpa=true:afp=1000:afq=1.906_0");
+    feqAtomsG180.push("lrs+1002_1:7_sil=64000:sos=on:urr=full:i=13414:sd=2:ss=axioms:sgt=100_0");
     feqAtomsG180.push("lrs-1011_1:4_drc=off:sil=128000:plsq=on:plsqr=11166605,262144:lsd=20:s2agt=100:s2a=on:i=13704:awrs=converge:awrsf=200:bd=off:sp=reverse_frequency:erd=off:gsp=on_0");
     feqAtomsG180.push("lrs+1010_1:1_drc=ordering:sil=16000:sp=occurrence:sos=all:st=5.0:i=13774:ss=axioms:sgt=16:sd=12_0");
     feqAtomsG180.push("lrs+1002_1:1_drc=ordering:slsqr=2,1:sil=16000:urr=full:bce=on:nwc=2.0:slsq=on:st=5.0:i=14123:sd=2:ss=axioms_0");
@@ -6792,9 +6792,9 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
 
     Schedule feqAtomsL180propZ;
 
-    feqAtomsL180propZ.push("lrs-1011_16:31_bsr=on:drc=encompass:tgt=full:sp=unary_first:acc=on:updr=off:nicw=on:i=134284:sil=256000:si=on:rtra=on:to=lpo:spb=goal_then_units:nwc=5.23:urr=on:lwlo=on:fdi=20:fsd=on:awrs=decay_0");
-    feqAtomsL180propZ.push("ott+1011_1:3_drc=encompass:sil=256000:bsd=on:sp=occurrence:sos=on:newcnf=on:i=214065:afp=1:aac=none:amm=off:afq=3.64962_0");
-    feqAtomsL180propZ.push("lrs+1010_2201:262144_anc=all:drc=encompass:sil=256000:sims=off:sp=frequency:spb=goal_then_units:rp=on:lwlo=on:st=3.0:i=231451:bs=unit_only:nm=6:ins=2:fsd=on:ss=axioms:sgt=16:afr=on:tgt=ground:awrs=decay:awrsf=200:acc=on:ccuc=first_0");
+    feqAtomsL180propZ.push("lrs-1011_16:31_bsr=on:tgt=full:sp=unary_first:acc=on:updr=off:nicw=on:i=134284:sil=256000:si=on:rtra=on:to=lpo:spb=goal_then_units:nwc=5.23:urr=on:lwlo=on:fdi=20:fsd=on:awrs=decay_0");
+    feqAtomsL180propZ.push("ott+1011_1:3_sil=256000:bsd=on:sp=occurrence:sos=on:newcnf=on:i=214065:afp=1:aac=none:amm=off:afq=3.64962_0");
+    feqAtomsL180propZ.push("lrs+1010_2201:262144_anc=all:sil=256000:sims=off:sp=frequency:spb=goal_then_units:rp=on:lwlo=on:st=3.0:i=231451:bs=unit_only:nm=6:ins=2:fsd=on:ss=axioms:sgt=16:afr=on:tgt=ground:awrs=decay:awrsf=200:acc=on:ccuc=first_0");
 
     feqAtomsL180propZ.push("dis+1011_1:1_drc=ordering:to=lpo:sil=4000:sp=const_max:sos=all:spb=goal:st=1.5:i=103:av=off:ss=axioms:sfv=off:bd=off:sd=2:fd=off_0");
     feqAtomsL180propZ.push("dis-1002_1:2_drc=ordering:sil=4000:i=110:nm=2:ins=3:bd=off:fsr=off:rp=on:to=lpo:nwc=5.0:fd=off:sfv=off:fs=off_0");
@@ -6809,34 +6809,34 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsL180propZ.push("dis+1002_1:1_drc=ordering:sil=2000:tgt=full:spb=goal:avsq=on:i=173:avsqr=19,107:er=known:rawr=on:nwc=3.7:cond=fast:abs=on_0");
     feqAtomsL180propZ.push("lrs+1011_1:128_drc=ordering:sil=2000:sos=on:st=3.0:i=114:sd=5:bd=off:ss=axioms:av=off_0");
     feqAtomsL180propZ.push("lrs+1011_1:1_drc=ordering:sil=16000:fde=unused:plsqc=1:plsq=on:plsqr=32,1:sos=on:nwc=10.0:i=143:kws=frequency:nm=2:lsd=1:bd=off_0");
-    feqAtomsL180propZ.push("lrs+1011_649:65536_drc=encompass:sil=2000:tgt=ground:plsqc=1:plsq=on:plsqr=8,111:sp=reverse_frequency:plsql=on:newcnf=on:i=1659:afp=50:fsr=off:afq=3.63765:afr=on:ss=axioms:sgt=16:bd=off:cond=on_0");
+    feqAtomsL180propZ.push("lrs+1011_649:65536_sil=2000:tgt=ground:plsqc=1:plsq=on:plsqr=8,111:sp=reverse_frequency:plsql=on:newcnf=on:i=1659:afp=50:fsr=off:afq=3.63765:afr=on:ss=axioms:sgt=16:bd=off:cond=on_0");
     feqAtomsL180propZ.push("dis-1011_1:3_drc=ordering:nwc=10.0:s2agt=8:s2a=on:i=145:bs=on:av=off:sp=occurrence:sil=2000:si=on:rtra=on:random_seed=2126866997:updr=off:bd=off_0");
-    feqAtomsL180propZ.push("dis+1011_543:505_drc=encompass:sil=128000:tgt=full:etr=on:sp=frequency:nwc=4.8:avsqc=4:sac=on:avsq=on:st=7.0:i=151:kws=precedence:avsqr=2669309,1048576:awrs=converge:awrsf=975:bd=off:nm=16:ss=axioms:rawr=on:bsd=on:add=large_0");
+    feqAtomsL180propZ.push("dis+1011_543:505_sil=128000:tgt=full:etr=on:sp=frequency:nwc=4.8:avsqc=4:sac=on:avsq=on:st=7.0:i=151:kws=precedence:avsqr=2669309,1048576:awrs=converge:awrsf=975:bd=off:nm=16:ss=axioms:rawr=on:bsd=on:add=large_0");
     feqAtomsL180propZ.push("lrs+21_1:5_drc=ordering:sil=2000:sos=on:urr=on:newcnf=on:slsq=on:i=224:slsql=off:bd=off:nm=2:ss=axioms:st=1.5:sp=const_min:gsp=on:rawr=on_0");
-    feqAtomsL180propZ.push("lrs+1002_1:1_sfv=off:drc=encompass:sil=2000:fde=unused:sp=frequency:nwc=10.0:flr=on:st=1.5:i=226:bd=off:nm=0:ins=4:fsr=off:fsd=on:ss=axioms:s2a=on:s2agt=32:to=lpo:aac=none:sims=off_0");
+    feqAtomsL180propZ.push("lrs+1002_1:1_sfv=off:sil=2000:fde=unused:sp=frequency:nwc=10.0:flr=on:st=1.5:i=226:bd=off:nm=0:ins=4:fsr=off:fsd=on:ss=axioms:s2a=on:s2agt=32:to=lpo:aac=none:sims=off_0");
     feqAtomsL180propZ.push("lrs+1010_1:4_drc=ordering:sil=2000:tgt=ground:sp=reverse_frequency:nwc=5.0:i=206:av=off:bd=off:kmz=on_0");
     feqAtomsL180propZ.push("dis+1011_1:4_drc=ordering:bsr=on:to=lpo:sil=2000:tgt=ground:plsqc=1:plsq=on:plsqr=4477983,65536:sp=frequency:erd=off:spb=goal:nwc=2.0:sac=on:newcnf=on:cond=fast:st=5.0:i=251:nm=16:ss=axioms:rawr=on:lsd=100:awrs=converge_0");
     feqAtomsL180propZ.push("lrs-1011_1:1_to=lpo:drc=off:sil=2000:sp=const_min:sos=on:lsd=10:sac=on:i=271:br=off:newcnf=on_0");
     feqAtomsL180propZ.push("lrs+1011_8:13_slsqr=96,997:drc=off:sil=64000:sp=const_max:spb=goal_then_units:rnwc=on:nwc=5.0:slsq=on:cond=on:i=285:kws=precedence:rawr=on:fd=preordered:av=off:bs=unit_only_0");
     feqAtomsL180propZ.push("lrs+1011_16:1_drc=ordering:to=lpo:sil=2000:spb=goal_then_units:urr=on:lsd=1:i=285:bd=off:ss=axioms:gsp=on:sac=on_0");
-    feqAtomsL180propZ.push("dis-1002_1:1_to=lpo:drc=encompass:sil=2000:sp=const_max:nwc=10.0:s2a=on:i=286:s2at=2.0:afp=10:ins=16:afq=1.4:aac=none:rawr=on:fsr=off:alpa=true_0");
-    feqAtomsL180propZ.push("lrs+1002_1:1_to=lpo:drc=encompass:sil=4000:sp=const_min:sos=on:spb=goal_then_units:acc=on:urr=on:sac=on:avsq=on:i=314:ins=2:br=off_0");
+    feqAtomsL180propZ.push("dis-1002_1:1_to=lpo:sil=2000:sp=const_max:nwc=10.0:s2a=on:i=286:s2at=2.0:afp=10:ins=16:afq=1.4:aac=none:rawr=on:fsr=off:alpa=true_0");
+    feqAtomsL180propZ.push("lrs+1002_1:1_to=lpo:sil=4000:sp=const_min:sos=on:spb=goal_then_units:acc=on:urr=on:sac=on:avsq=on:i=314:ins=2:br=off_0");
     feqAtomsL180propZ.push("dis-11_101:15_drc=ordering:to=lpo:sil=4000:tgt=full:fde=none:sp=const_frequency:acc=on:sac=on:avsq=on:i=332:avsqr=16429,1048576:bd=off:nm=16:er=filter:spb=goal:anc=all_dependent:slsq=on:slsql=off:slsqc=4:s2at=5.0:alpa=true_0");
     feqAtomsL180propZ.push("dis-30_282927:1048576_drc=ordering:sfv=off:sil=2000:etr=on:sp=unary_first:spb=goal_then_units:abs=on:nwc=11.1969:s2agt=100:kmz=on:cond=fast:st=3:s2a=on:i=641:s2at=1.5:add=large:sd=4:bd=off:nm=25:fsr=off:fsd=on:gsp=on:ss=axioms:er=known:rawr=on:alpa=random:lma=on_0");
     feqAtomsL180propZ.push("lrs-10_1:40_drc=ordering:bsr=unit_only:sil=4000:tgt=ground:lcm=reverse:fd=preordered:s2a=on:i=681:s2at=3.0:rawr=on:kws=inv_frequency:fsr=off_0");
     feqAtomsL180propZ.push("lrs+1011_1:1024_drc=ordering:sil=4000:br=off:i=757:bd=off:fd=preordered:slsq=on:slsql=off:slsqc=2:slsqr=1,4:s2at=4.0_0");
     feqAtomsL180propZ.push("dis-1010_1:4_drc=ordering:sil=2000:tgt=ground:i=906:sd=2:nm=6:av=off:gsp=on:ss=axioms:nwc=10.0_0");
-    feqAtomsL180propZ.push("lrs-32_2:11_drc=encompass:sil=4000:sp=reverse_frequency:nwc=10.0:s2a=on:i=2306:s2at=5.0:nm=16:amm=sco_0");
-    feqAtomsL180propZ.push("lrs+1011_1574893:524288_to=lpo:drc=encompass:sil=4000:sp=const_frequency:spb=goal:fd=preordered:nwc=7.0:alpa=false:sac=on:newcnf=on:cond=fast:s2a=on:i=688:s2at=4.0:bd=preordered:awrs=decay:awrsf=60:sfv=off_0");
+    feqAtomsL180propZ.push("lrs-32_2:11_sil=4000:sp=reverse_frequency:nwc=10.0:s2a=on:i=2306:s2at=5.0:nm=16:amm=sco_0");
+    feqAtomsL180propZ.push("lrs+1011_1574893:524288_to=lpo:sil=4000:sp=const_frequency:spb=goal:fd=preordered:nwc=7.0:alpa=false:sac=on:newcnf=on:cond=fast:s2a=on:i=688:s2at=4.0:bd=preordered:awrs=decay:awrsf=60:sfv=off_0");
     feqAtomsL180propZ.push("lrs-32_1:4_to=lpo:drc=off:sil=2000:sp=reverse_arity:spb=goal_then_units:urr=on:nwc=2.0:i=1150:ss=included:st=2.0:bd=preordered_0");
-    feqAtomsL180propZ.push("dis+11_1:7_sil=2000:tgt=ground:sp=reverse_arity:i=1934:fd=preordered:fsr=off:drc=encompass_0");
+    feqAtomsL180propZ.push("dis+11_1:7_sil=2000:tgt=ground:sp=reverse_arity:i=1934:fd=preordered:fsr=off_0");
     feqAtomsL180propZ.push("lrs+2_5:1_slsqr=30,127:to=lpo:drc=off:sil=128000:tgt=full:sp=const_min:fd=preordered:nwc=5.0:slsq=on:i=6132:slsql=off:ins=2:ss=axioms:rawr=on:slsqc=1:plsq=on:plsqc=2:fdi=1:st=2.0:plsql=on_0");
-    feqAtomsL180propZ.push("lrs+1011_1:128_drc=encompass:sil=32000:tgt=full:fde=none:sp=weighted_frequency:nwc=1.5:i=7322:kws=inv_arity_squared:awrs=converge_0");
-    feqAtomsL180propZ.push("lrs-4_1:24_slsqr=493885,1048576:drc=encompass:sil=128000:tgt=full:sp=weighted_frequency:fd=preordered:flr=on:slsq=on:i=54457:bs=unit_only:av=off:fsr=off:rawr=on_0");
+    feqAtomsL180propZ.push("lrs+1011_1:128_sil=32000:tgt=full:fde=none:sp=weighted_frequency:nwc=1.5:i=7322:kws=inv_arity_squared:awrs=converge_0");
+    feqAtomsL180propZ.push("lrs-4_1:24_slsqr=493885,1048576:sil=128000:tgt=full:sp=weighted_frequency:fd=preordered:flr=on:slsq=on:i=54457:bs=unit_only:av=off:fsr=off:rawr=on_0");
     feqAtomsL180propZ.push("lrs+1011_4:1_drc=ordering:to=lpo:sil=16000:fde=none:plsq=on:plsqr=1,8:sp=occurrence:st=2.0:i=9562:sd=3:ss=axioms:er=known:av=off:awrs=converge:awrsf=500:fsr=off_0");
     feqAtomsL180propZ.push("lrs+21_1:6_to=lpo:drc=off:sil=64000:tgt=ground:fd=preordered:i=15240_0");
-    feqAtomsL180propZ.push("lrs+1011_1:6_to=lpo:drc=encompass:sil=256000:tgt=full:sp=unary_first:nwc=10.0:i=19986:aac=none:bd=preordered:ss=axioms:sgt=16_0");
-    feqAtomsL180propZ.push("lrs+21_1:64_drc=encompass:sil=32000:bsd=on:lma=on:spb=goal:nwc=10.0:i=22098:add=large:ss=axioms:sgt=16:irw=on_0");
+    feqAtomsL180propZ.push("lrs+1011_1:6_to=lpo:sil=256000:tgt=full:sp=unary_first:nwc=10.0:i=19986:aac=none:bd=preordered:ss=axioms:sgt=16_0");
+    feqAtomsL180propZ.push("lrs+21_1:64_sil=32000:bsd=on:lma=on:spb=goal:nwc=10.0:i=22098:add=large:ss=axioms:sgt=16:irw=on_0");
     feqAtomsL180propZ.push("lrs+35_1:1_to=lpo:sil=128000:tgt=full:fd=preordered:lwlo=on:i=119085:bd=preordered:drc=off:av=off_0");
     feqAtomsL180propZ.push("lrs+11_1:20_drc=off:sil=128000:tgt=ground:fde=none:sp=const_min:spb=goal:nwc=1.08:i=126497:bd=off:rawr=on:fsr=off:ss=axioms:sgt=32:kws=frequency:bs=unit_only:urr=ec_only_0");
     feqAtomsL180propZ.push("dis+1010_19:119_drc=ordering:sil=256000:tgt=ground:sp=reverse_frequency:spb=units:acc=on:rp=on:nwc=0.74658:cond=on:i=74983:add=large:bs=on:kws=inv_arity:bd=off:ins=1:amm=sco:rawr=on:anc=none_0");
@@ -6854,7 +6854,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsL180propNZatomsG50.push("lrs+1011_1:1_drc=ordering:sil=32000:rnwc=on:nwc=10.0:lwlo=on:i=121:bd=off:av=off_0");
     feqAtomsL180propNZatomsG50.push("dis-1011_2:1_drc=ordering:sil=2000:lsd=20:nwc=5.0:flr=on:mep=off:st=3.0:i=113:sd=1:ep=RS:ss=axioms_0");
     feqAtomsL180propNZatomsG50.push("lrs+1010_1:1_drc=ordering:to=lpo:sil=2000:plsq=on:plsqr=32,1:sp=reverse_arity:sos=on:spb=goal_then_units:i=128:ss=axioms:sgt=50:bd=off:sd=3_0");
-    feqAtomsL180propNZatomsG50.push("lrs+1002_1:1024_drc=encompass:sil=2000:tgt=full:rp=on:i=123:nm=16:ss=axioms:sd=1:st=2.0_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1002_1:1024_sil=2000:tgt=full:rp=on:i=123:nm=16:ss=axioms:sd=1:st=2.0_0");
     feqAtomsL180propNZatomsG50.push("lrs+10_1:1_drc=ordering:sil=8000:sp=occurrence:sos=on:urr=full:nwc=10.0:st=1.5:i=205:ss=axioms:rnwc=on:sgt=4_0");
     feqAtomsL180propNZatomsG50.push("ott+1011_1:3_drc=off:sil=4000:tgt=ground:fde=unused:plsq=on:sp=unary_first:fd=preordered:nwc=10.0:i=180:ins=1:rawr=on:bd=preordered_0");
     feqAtomsL180propNZatomsG50.push("ott+1002_2835555:1048576_drc=ordering:to=lpo:sil=2000:sos=on:fs=off:nwc=10.3801:avsqc=3:updr=off:avsq=on:st=2:s2a=on:i=143:s2at=3:afp=10000:aac=none:avsqr=13357983,1048576:awrs=converge:awrsf=460:bd=off:nm=13:ins=2:fsr=off:amm=sco:afq=1.16719:ss=axioms:rawr=on:fd=off_0");
@@ -6895,11 +6895,11 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsL180propNZatomsG50.push("lrs+1011_55751:262144_drc=ordering:sil=128000:sos=on:urr=on:s2a=on:i=173:fdi=5:gsp=on_0");
     feqAtomsL180propNZatomsG50.push("dis+10_1:4_drc=ordering:to=lpo:sil=2000:sos=on:spb=goal:rp=on:sac=on:newcnf=on:i=247:ss=axioms:aac=none_0");
     feqAtomsL180propNZatomsG50.push("lrs-21_1:1_drc=ordering:to=lpo:sil=2000:sp=frequency:sos=on:lma=on:i=137:sd=2:ss=axioms:ep=R_0");
-    feqAtomsL180propNZatomsG50.push("dis+1010_12107:524288_anc=none:drc=encompass:sil=2000:bsd=on:rp=on:nwc=10.0:alpa=random:i=216:kws=precedence:awrs=decay:awrsf=2:nm=16:ins=3:rawr=on:s2a=on:s2at=4.5:acc=on:flr=on_0");
+    feqAtomsL180propNZatomsG50.push("dis+1010_12107:524288_anc=none:sil=2000:bsd=on:rp=on:nwc=10.0:alpa=random:i=216:kws=precedence:awrs=decay:awrsf=2:nm=16:ins=3:rawr=on:s2a=on:s2at=4.5:acc=on:flr=on_0");
     feqAtomsL180propNZatomsG50.push("dis-1002_1:12_drc=ordering:to=lpo:sil=2000:sp=const_max:nwc=2.0:sac=on:i=278:nm=16:nicw=on:fsr=off_0");
     feqAtomsL180propNZatomsG50.push("dis+1011_2:3_drc=ordering:sil=2000:tgt=ground:fde=none:sos=on:lsd=1:alpa=random:i=234:kws=inv_arity_squared:gsp=on:bsd=on_0");
     feqAtomsL180propNZatomsG50.push("lrs+1002_1:8_drc=ordering:sil=2000:tgt=ground:lcm=reverse:rp=on:i=336:sd=1:nm=6:ss=axioms:flr=on:bd=off_0");
-    feqAtomsL180propNZatomsG50.push("lrs+1011_1:8_bsr=unit_only:drc=encompass:sil=128000:fde=none:avsql=on:sp=frequency:sos=all:spb=goal:rnwc=on:nwc=10.0:avsqc=3:avsq=on:s2a=on:i=148:kws=precedence:awrs=converge:awrsf=500:amm=off:rawr=on:bce=on:newcnf=on:ss=included:sd=1:sgt=20:bsd=on:fsr=off:nicw=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1011_1:8_bsr=unit_only:sil=128000:fde=none:avsql=on:sp=frequency:sos=all:spb=goal:rnwc=on:nwc=10.0:avsqc=3:avsq=on:s2a=on:i=148:kws=precedence:awrs=converge:awrsf=500:amm=off:rawr=on:bce=on:newcnf=on:ss=included:sd=1:sgt=20:bsd=on:fsr=off:nicw=on_0");
     feqAtomsL180propNZatomsG50.push("dis+1002_1:1_drc=ordering:sil=2000:tgt=full:spb=goal:avsq=on:i=206:avsqr=19,107:er=known:rawr=on:nwc=3.7:cond=fast:abs=on_0");
     feqAtomsL180propNZatomsG50.push("lrs+1011_1:4_drc=ordering:bsr=unit_only:to=lpo:sil=2000:plsqc=4:plsq=on:sp=occurrence:plsql=on:alpa=false:i=156:afp=10:afq=2.0:ss=axioms:rawr=on:fd=off_0");
     feqAtomsL180propNZatomsG50.push("lrs+1010_1:4_drc=ordering:sil=2000:tgt=ground:sp=reverse_frequency:nwc=5.0:i=374:av=off:bd=off:kmz=on_0");
@@ -6907,7 +6907,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsL180propNZatomsG50.push("lrs+11_1:1_drc=ordering:sos=on:urr=on:s2a=on:i=318:sd=1:aac=none:ss=axioms:gsp=on:sil=128000:nm=3:bce=on:fd=preordered:alpa=true:etr=on:bd=off:lcm=predicate_0");
     feqAtomsL180propNZatomsG50.push("lrs-1011_1:16_drc=off:sil=128000:fde=none:fs=off:abs=on:acc=on:lsd=50:flr=on:newcnf=on:s2a=on:i=248:sd=2:fsr=off:ss=included:awrs=decay:awrsf=200:nwc=2.0_0");
     feqAtomsL180propNZatomsG50.push("lrs-1011_1:1_drc=ordering:sil=2000:sos=on:urr=on:i=174:sd=1:bd=off:ins=3:av=off:ss=axioms:sgt=16:gsp=on:lsd=10_0");
-    feqAtomsL180propNZatomsG50.push("lrs+1002_263:262144_sfv=off:to=lpo:drc=encompass:sil=2000:tgt=full:fde=none:bsd=on:sp=const_frequency:spb=units:fd=preordered:nwc=12.504039574721643:lwlo=on:i=180:awrs=converge:awrsf=1360:bsdmm=3:bd=off:nm=11:fsd=on:amm=off:uhcvi=on:afr=on:rawr=on:fsdmm=1:updr=off:sac=on:fdi=16_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1002_263:262144_sfv=off:to=lpo:sil=2000:tgt=full:fde=none:bsd=on:sp=const_frequency:spb=units:fd=preordered:nwc=12.504039574721643:lwlo=on:i=180:awrs=converge:awrsf=1360:bsdmm=3:bd=off:nm=11:fsd=on:amm=off:uhcvi=on:afr=on:rawr=on:fsdmm=1:updr=off:sac=on:fdi=16_0");
     feqAtomsL180propNZatomsG50.push("dis-11_4:1_drc=ordering:to=lpo:sil=2000:fde=unused:sims=off:sp=occurrence:lma=on:spb=goal_then_units:abs=on:fd=off:flr=on:avsq=on:i=260:avsqr=1137305,524288:bd=off:uhcvi=on:awrs=decay:sos=on:bsd=on:afp=50:afq=1.3:nwc=10.053150171695567_0");
     feqAtomsL180propNZatomsG50.push("lrs+1011_1:2_drc=off:sil=16000:tgt=ground:sp=reverse_arity:spb=goal:nwc=10.0:lwlo=on:st=2.0:i=181:kws=precedence:ss=axioms_0");
     feqAtomsL180propNZatomsG50.push("lrs+1011_1:1_drc=ordering:sil=64000:i=182:sd=2:ep=R:ss=axioms_0");
@@ -6916,8 +6916,8 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsL180propNZatomsG50.push("lrs+35_1:7_drc=ordering:sil=2000:tgt=full:fde=unused:sp=occurrence:sos=on:st=3.5:s2pl=no:i=183:bd=off:nm=16:fsr=off:uhcvi=on:ss=axioms:rawr=on_0");
     feqAtomsL180propNZatomsG50.push("dis-1011_1785:1048576_drc=ordering:bsr=unit_only:sil=4000:tgt=ground:plsqc=1:plsq=on:plsqr=125493,524288:sp=frequency:spb=goal:plsql=on:nwc=2.32086:updr=off:newcnf=on:cond=fast:st=2:s2a=on:i=193:s2at=4:bd=off:nm=3:ins=3:aer=off:uhcvi=on:afr=on:ss=axioms:sgt=20:rawr=on:fsr=off_0");
     feqAtomsL180propNZatomsG50.push("dis-1011_443601:1048576_to=lpo:drc=off:sil=2000:fde=unused:bsd=on:etr=on:sp=reverse_frequency:erd=off:spb=goal_then_units:bce=on:nwc=21.6966:newcnf=on:nicw=on:cond=on:i=195:bsdmm=2:nm=14:ins=2:uhcvi=on:fdi=2:rnwc=on_0");
-    feqAtomsL180propNZatomsG50.push("lrs+11_857975:262144_bsr=unit_only:drc=encompass:sil=4000:tgt=ground:plsqc=1:sims=off:plsq=on:plsqr=18723,262144:sp=frequency:sos=on:foolp=on:spb=units:abs=on:rnwc=on:plsql=on:gs=on:nwc=4.36781:updr=off:sac=on:cond=on:i=197:bs=unit_only:gsaa=from_current:sd=1:kws=arity_squared:afp=300:aac=none:erml=2:awrs=decay:awrsf=763:bd=off:nm=3:fsr=off:afq=4.10223:ss=included:er=filter:sgt=50_0");
-    feqAtomsL180propNZatomsG50.push("lrs+10_4927:1048576_anc=none:sfv=off:slsqr=66837,32768:drc=encompass:sil=2000:tgt=full:fde=none:etr=on:sp=const_max:sos=on:erd=off:spb=goal_then_units:nwc=15.0003:s2agt=30:flr=on:avsqc=3:slsq=on:avsq=on:i=197:s2at=5.5:add=large:bs=unit_only:sd=1:aac=none:erml=3:avsqr=638249,524288:awrs=decay:awrsf=2:bd=off:nm=3:amm=sco:afr=on:gsp=on:ss=included:er=known:rawr=on:s2a=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs+11_857975:262144_bsr=unit_only:sil=4000:tgt=ground:plsqc=1:sims=off:plsq=on:plsqr=18723,262144:sp=frequency:sos=on:foolp=on:spb=units:abs=on:rnwc=on:plsql=on:gs=on:nwc=4.36781:updr=off:sac=on:cond=on:i=197:bs=unit_only:gsaa=from_current:sd=1:kws=arity_squared:afp=300:aac=none:erml=2:awrs=decay:awrsf=763:bd=off:nm=3:fsr=off:afq=4.10223:ss=included:er=filter:sgt=50_0");
+    feqAtomsL180propNZatomsG50.push("lrs+10_4927:1048576_anc=none:sfv=off:slsqr=66837,32768:sil=2000:tgt=full:fde=none:etr=on:sp=const_max:sos=on:erd=off:spb=goal_then_units:nwc=15.0003:s2agt=30:flr=on:avsqc=3:slsq=on:avsq=on:i=197:s2at=5.5:add=large:bs=unit_only:sd=1:aac=none:erml=3:avsqr=638249,524288:awrs=decay:awrsf=2:bd=off:nm=3:amm=sco:afr=on:gsp=on:ss=included:er=known:rawr=on:s2a=on_0");
     feqAtomsL180propNZatomsG50.push("lrs-1011_1:64_drc=ordering:sil=2000:tgt=full:acc=on:urr=ec_only:sac=on:i=201:nm=2:ss=axioms:sgt=4:er=filter_0");
     feqAtomsL180propNZatomsG50.push("lrs-1011_1:64_drc=ordering:slsqr=1674187,131072:sil=4000:plsq=on:lsd=50:plsql=on:slsq=on:i=202:slsql=off:bd=off:nm=3:amm=off:gsp=on:ss=axioms:fsr=off_0");
     feqAtomsL180propNZatomsG50.push("dis+1010_19:119_drc=ordering:sil=256000:tgt=ground:sp=reverse_frequency:spb=units:acc=on:rp=on:nwc=0.74658:cond=on:i=204:add=large:bs=on:kws=inv_arity:bd=off:ins=1:amm=sco:rawr=on:anc=none_0");
@@ -6931,36 +6931,36 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsL180propNZatomsG50.push("lrs+1011_1:14_drc=ordering:sil=4000:sos=on:lsd=20:i=412:nm=5:rawr=on:avsq=on:avsqc=1:avsqr=5,3:urr=on:lcm=predicate:alpa=random_0");
     feqAtomsL180propNZatomsG50.push("lrs-21_1:28_drc=ordering:sil=4000:tgt=full:sp=frequency:lma=on:urr=ec_only:nwc=3.0:sac=on:i=263:sd=1:bd=off:ss=axioms:sgt=4:rawr=on_0");
     feqAtomsL180propNZatomsG50.push("lrs+35_10:1_drc=ordering:bsr=unit_only:to=lpo:sil=2000:bsd=on:sp=unary_first:abs=on:urr=on:s2agt=32:newcnf=on:s2a=on:i=644:gsp=on:rawr=on:sac=on:afp=1000:avsq=on:avsqr=63937,1048576:nwc=10.0_0");
-    feqAtomsL180propNZatomsG50.push("ott+2_27871:262144_drc=encompass:sil=2000:plsqc=1:plsq=on:ile=on:plsqr=9426019,262144:sp=const_frequency:foolp=on:bce=on:rnwc=on:gs=on:nwc=12.5427:i=297:gsaa=from_current:erml=3:bd=off:nm=10:uhcvi=on:gsp=on:er=known:rawr=on:fd=preordered:alpa=true_0");
+    feqAtomsL180propNZatomsG50.push("ott+2_27871:262144_sil=2000:plsqc=1:plsq=on:ile=on:plsqr=9426019,262144:sp=const_frequency:foolp=on:bce=on:rnwc=on:gs=on:nwc=12.5427:i=297:gsaa=from_current:erml=3:bd=off:nm=10:uhcvi=on:gsp=on:er=known:rawr=on:fd=preordered:alpa=true_0");
     feqAtomsL180propNZatomsG50.push("lrs+1011_1:16_drc=ordering:sil=2000:urr=on:gs=on:s2agt=8:slsqc=2:slsq=on:i=304:bd=off:rawr=on:s2a=on:fsr=off:bce=on:flr=on_0");
     feqAtomsL180propNZatomsG50.push("dis+1010_1:4_drc=ordering:aac=none:abs=on:atotf=0.5:avsq=on:avsqc=2:avsqr=215,247:awrs=converge:awrsf=128:bsd=on:erd=off:fde=none:gve=cautious:newcnf=on:nwc=5.0:rnwc=on:sac=on:sas=z3:sp=const_min:tgt=ground:thsq=on:thsqc=64:thsqr=1,4:si=on:rawr=on:rtra=on:i=1158_0");
     feqAtomsL180propNZatomsG50.push("ott+21_2515:262144_drc=off:sil=4000:ile=on:sp=reverse_arity:lma=on:spb=goal_then_units:bce=on:nwc=1.56136:i=3621:add=large:kws=precedence:nm=34:afr=on:gsp=on:rawr=on_0");
     feqAtomsL180propNZatomsG50.push("lrs+32_1:4_drc=ordering:sil=2000:sos=on:rp=on:i=328:bd=off:nm=16:awrs=decay:awrsf=500_0");
     feqAtomsL180propNZatomsG50.push("lrs+1011_1:2_drc=ordering:to=lpo:sil=8000:plsqc=1:plsq=on:plsqr=326,59:sp=weighted_frequency:plsql=on:nwc=10.0:newcnf=on:i=332:awrs=converge:awrsf=200:bd=off:ins=1:rawr=on:alpa=false:avsq=on:avsqr=1,16_0");
     feqAtomsL180propNZatomsG50.push("dis+1010_1:3_drc=ordering:sil=2000:sos=on:erd=off:nwc=3.0:i=358:nm=0_0");
-    feqAtomsL180propNZatomsG50.push("ott+1011_170061:1048576_to=lpo:drc=encompass:sil=4000:tgt=full:fde=unused:sims=off:sp=unary_frequency:lma=on:gs=on:nwc=3.05078:sac=on:nicw=on:gsem=off:s2a=on:i=372:bs=on:nm=16:ins=7:fsr=off:amm=sco:uhcvi=on:fdi=4:rawr=on_0");
+    feqAtomsL180propNZatomsG50.push("ott+1011_170061:1048576_to=lpo:sil=4000:tgt=full:fde=unused:sims=off:sp=unary_frequency:lma=on:gs=on:nwc=3.05078:sac=on:nicw=on:gsem=off:s2a=on:i=372:bs=on:nm=16:ins=7:fsr=off:amm=sco:uhcvi=on:fdi=4:rawr=on_0");
     feqAtomsL180propNZatomsG50.push("lrs+11_1:20_drc=ordering:sil=2000:fde=none:sp=unary_first:sos=on:lma=on:spb=goal:lsd=20:i=1955:bd=off:nm=0:aer=off:kws=inv_arity_squared:rawr=on_0");
-    feqAtomsL180propNZatomsG50.push("dis-1002_1:1_to=lpo:drc=encompass:sil=2000:sp=const_max:nwc=10.0:s2a=on:i=432:s2at=2.0:afp=10:ins=16:afq=1.4:aac=none:rawr=on:fsr=off:alpa=true_0");
-    feqAtomsL180propNZatomsG50.push("dis+11_1:32_to=lpo:drc=encompass:sil=8000:i=1778:av=off:bs=on:bsd=on_0");
+    feqAtomsL180propNZatomsG50.push("dis-1002_1:1_to=lpo:sil=2000:sp=const_max:nwc=10.0:s2a=on:i=432:s2at=2.0:afp=10:ins=16:afq=1.4:aac=none:rawr=on:fsr=off:alpa=true_0");
+    feqAtomsL180propNZatomsG50.push("dis+11_1:32_to=lpo:sil=8000:i=1778:av=off:bs=on:bsd=on_0");
     feqAtomsL180propNZatomsG50.push("lrs+3_1:1024_drc=ordering:to=lpo:erd=off:spb=goal:urr=on:cond=fast:i=1334:awrs=converge:awrsf=330:av=off:ss=axioms:sgt=16:sup=off:gsp=on:sd=1:sil=32000:nwc=5.0_0");
     feqAtomsL180propNZatomsG50.push("lrs+1011_3:25_anc=all_dependent:drc=off:sil=2000:tgt=full:bsd=on:spb=goal:bce=on:nwc=4.3:avsqc=1:avsq=on:st=3.0:i=586:afp=10:aer=off:afq=4.97351:afr=on:ss=axioms:rawr=on:acc=on:rp=on:bsr=on:sp=unary_frequency_0");
     feqAtomsL180propNZatomsG50.push("lrs+10_23:15_drc=ordering:sil=2000:plsqc=1:plsq=on:plsqr=4106395,32768:plsql=on:nwc=3.0:flr=on:newcnf=on:i=609:kws=precedence:fsr=off:ss=included_0");
-    feqAtomsL180propNZatomsG50.push("dis+1011_16447:524288_slsqr=7559,1048576:drc=encompass:sil=2000:tgt=ground:sp=const_max:spb=goal:urr=ec_only:rp=on:nwc=3.04172:s2agt=100:slsqc=1:flr=on:updr=off:slsq=on:st=6:i=1627:s2at=4.5:bd=off:nm=12:ins=2:uhcvi=on:ss=axioms:sgt=20:rawr=on:rnwc=on_0");
+    feqAtomsL180propNZatomsG50.push("dis+1011_16447:524288_slsqr=7559,1048576:sil=2000:tgt=ground:sp=const_max:spb=goal:urr=ec_only:rp=on:nwc=3.04172:s2agt=100:slsqc=1:flr=on:updr=off:slsq=on:st=6:i=1627:s2at=4.5:bd=off:nm=12:ins=2:uhcvi=on:ss=axioms:sgt=20:rawr=on:rnwc=on_0");
     feqAtomsL180propNZatomsG50.push("lrs-1011_16:1_drc=ordering:bsr=unit_only:to=lpo:sil=64000:plsqc=1:plsq=on:plsqr=48239893,524288:sp=frequency:sos=on:urr=full:rnwc=on:fd=preordered:nwc=10.0:newcnf=on:slsq=on:cond=on:i=612:slsql=off:bd=off:rawr=on:alpa=false:nm=2:ins=1_0");
-    feqAtomsL180propNZatomsG50.push("dis-1010_1:1_drc=encompass:sil=2000:plsq=on:plsqr=128389,524288:sp=const_min:i=631_0");
+    feqAtomsL180propNZatomsG50.push("dis-1010_1:1_sil=2000:plsq=on:plsqr=128389,524288:sp=const_min:i=631_0");
     feqAtomsL180propNZatomsG50.push("lrs+1002_1:1024_drc=ordering:slsqr=24,7:sil=4000:bsd=on:newcnf=on:slsq=on:st=2.0:i=691:s2at=2.5:awrs=converge:awrsf=340:ss=axioms:rawr=on:alpa=random:nicw=on:bs=unit_only_0");
     feqAtomsL180propNZatomsG50.push("dis+11_1:50_drc=ordering:to=lpo:sil=64000:fd=preordered:i=1927:av=off:sup=off:sp=const_frequency:bd=preordered_0");
-    feqAtomsL180propNZatomsG50.push("lrs+1002_1:7_to=lpo:drc=encompass:sil=2000:tgt=full:sp=reverse_arity:spb=non_intro:fd=preordered:nwc=10.0:st=3.0:i=715:ins=2:ss=axioms_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1002_1:7_to=lpo:sil=2000:tgt=full:sp=reverse_arity:spb=non_intro:fd=preordered:nwc=10.0:st=3.0:i=715:ins=2:ss=axioms_0");
     feqAtomsL180propNZatomsG50.push("dis+2_1:1024_sil=8000:i=5884:kws=precedence:ss=included:sgt=32:rawr=on:sp=unary_frequency:drc=off_0");
     feqAtomsL180propNZatomsG50.push("lrs+1011_3:1_drc=ordering:slsqr=1,2:sil=2000:tgt=full:plsq=on:plsqr=173,396:spb=goal:bce=on:newcnf=on:slsq=on:st=3.5:i=803:add=off:bs=on:fsr=off:ss=axioms:rawr=on:afp=1:afq=2.9664927043397338_0");
     feqAtomsL180propNZatomsG50.push("lrs+1010_1:56_drc=ordering:slsqr=3,4:tgt=ground:slsqc=1:slsq=on:i=855:s2at=2.0:bd=off:amm=sco:sac=on:kws=inv_frequency:nwc=2.4:sil=4000:sfv=off:ss=axioms:sgt=32_0");
     feqAtomsL180propNZatomsG50.push("lrs+21_6:7_to=lpo:drc=off:sil=32000:tgt=full:fde=unused:bsd=on:sp=const_frequency:fd=preordered:i=930:rawr=on:bd=preordered_0");
     feqAtomsL180propNZatomsG50.push("lrs+1011_1:32_drc=ordering:sil=2000:tgt=ground:acc=model:lsd=10:nwc=1.1:flr=on:s2pl=no:i=1070:bd=off:gsp=on:rawr=on_0");
     feqAtomsL180propNZatomsG50.push("lrs+21_1:1_drc=ordering:sil=64000:sos=all:urr=on:br=off:s2a=on:i=1184:sd=1:kws=inv_frequency:ss=included_0");
-    feqAtomsL180propNZatomsG50.push("lrs+1011_24:11_drc=encompass:sil=2000:tgt=ground:fde=unused:spb=units:i=1212:kws=inv_arity:rawr=on:av=off:newcnf=on:erd=off:gsp=on:bsr=unit_only:plsq=on:plsqr=52,371_0");
+    feqAtomsL180propNZatomsG50.push("lrs+1011_24:11_sil=2000:tgt=ground:fde=unused:spb=units:i=1212:kws=inv_arity:rawr=on:av=off:newcnf=on:erd=off:gsp=on:bsr=unit_only:plsq=on:plsqr=52,371_0");
     feqAtomsL180propNZatomsG50.push("ott-1011_45995:1048576_drc=ordering:anc=none:to=lpo:sil=4000:tgt=ground:fde=unused:sp=const_frequency:lma=on:spb=goal_then_units:acc=model:lcm=predicate:nwc=0.310817:avsq=on:cond=on:i=2431:avsqr=21767,262144:nm=3:ins=1:uhcvi=on:bsr=unit_only:afr=on_0");
     feqAtomsL180propNZatomsG50.push("lrs+34_1:128_drc=ordering:sil=2000:tgt=full:fde=unused:sp=unary_first:sos=on:lcm=predicate:i=1296:sd=1:bd=off:av=off:ss=axioms:sgt=8_0");
-    feqAtomsL180propNZatomsG50.push("lrs+21_3:1_to=lpo:drc=encompass:sil=32000:spb=intro:flr=on:updr=off:i=2643:anc=all:bsd=on:fd=preordered:fsd=on_0");
+    feqAtomsL180propNZatomsG50.push("lrs+21_3:1_to=lpo:sil=32000:spb=intro:flr=on:updr=off:i=2643:anc=all:bsd=on:fd=preordered:fsd=on_0");
     feqAtomsL180propNZatomsG50.push("lrs+1011_16:1_drc=ordering:to=lpo:sil=2000:sos=on:spb=intro:st=2.0:i=1421:sd=2:afp=50:bd=off:nm=6:sup=off:afq=2.0:ss=axioms:ins=1:fs=off:fsr=off:alpa=true_0");
     feqAtomsL180propNZatomsG50.push("dis+1011_4_drc=ordering:add=large:amm=off:sims=off:sac=on:sp=frequency:tgt=ground:i=1580_0");
     feqAtomsL180propNZatomsG50.push("dis+1011_1:20_drc=ordering:anc=none:sil=2000:tgt=ground:bce=on:s2agt=16:newcnf=on:i=1730:kws=precedence:slsq=on:slsqc=3:slsqr=1,4_0");
@@ -6970,7 +6970,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsL180propNZatomsG50.push("lrs+1010_1:2_drc=ordering:sil=4000:tgt=ground:nwc=10.0:st=2.0:i=2059:sd=1:bd=off:ss=axioms_0");
     feqAtomsL180propNZatomsG50.push("lrs+2_1:1_drc=ordering:sil=2000:sos=all:st=5.0:i=2247:bd=off:av=off:ss=axioms:sd=2:sup=off_0");
     feqAtomsL180propNZatomsG50.push("lrs+1002_1:1_drc=ordering:slsqr=2,1:sil=16000:urr=full:bce=on:nwc=2.0:slsq=on:st=5.0:i=2265:sd=2:ss=axioms_0");
-    feqAtomsL180propNZatomsG50.push("lrs-10_1:2_to=lpo:drc=encompass:sil=4000:sp=weighted_frequency:rp=on:flr=on:slsq=on:s2a=on:i=2268:av=off:rawr=on:fdi=1_0");
+    feqAtomsL180propNZatomsG50.push("lrs-10_1:2_to=lpo:sil=4000:sp=weighted_frequency:rp=on:flr=on:slsq=on:s2a=on:i=2268:av=off:rawr=on:fdi=1_0");
     feqAtomsL180propNZatomsG50.push("lrs+11_1:1024_bsr=unit_only:drc=off:sil=4000:sp=unary_frequency:urr=ec_only:fd=preordered:gs=on:i=2862:kws=inv_arity_squared:av=off:fsr=off:nwc=10.0_0");
     feqAtomsL180propNZatomsG50.push("lrs-1010_18:13_drc=ordering:to=lpo:tgt=full:sos=all:avsqc=1:avsq=on:i=3175:avsqr=19,49:ss=axioms:sgt=32:rawr=on:nwc=3.0:sil=32000_0");
     feqAtomsL180propNZatomsG50.push("lrs-1010_552419:524288_sfv=off:slsqr=21968697,524288:to=lpo:drc=off:plsq=on:plsqr=95593,524288:sp=frequency:rp=on:flr=on:slsq=on:i=3255:rawr=on:sil=16000_0");
@@ -7005,7 +7005,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsL180propNZtiny.push("lrs-1011_37821:262144_drc=ordering:bsr=unit_only:sil=2000:fde=none:plsq=on:plsqr=43543,131072:bce=on:rnwc=on:plsql=on:rp=on:nwc=10.0:newcnf=on:i=109:awrs=decay:awrsf=10:ep=R:mep=off:amm=sco_0");
     feqAtomsL180propNZtiny.push("ott-1011_16:1_drc=ordering:sil=2000:sp=const_max:urr=on:lsd=20:st=3.0:i=117:ss=axioms:gsp=on:rp=on:sos=on:fd=off:aac=none_0");
     feqAtomsL180propNZtiny.push("lrs+1010_1:1_drc=ordering:to=lpo:sil=2000:sos=on:fd=off:i=117:bd=off_0");
-    feqAtomsL180propNZtiny.push("lrs+21_1:64_drc=encompass:sil=32000:bsd=on:lma=on:spb=goal:nwc=10.0:i=123:add=large:ss=axioms:sgt=16:irw=on_0");
+    feqAtomsL180propNZtiny.push("lrs+21_1:64_sil=32000:bsd=on:lma=on:spb=goal:nwc=10.0:i=123:add=large:ss=axioms:sgt=16:irw=on_0");
     feqAtomsL180propNZtiny.push("lrs+2_1:1_drc=ordering:sil=16000:fde=none:sos=all:nwc=5.0:i=117:ep=RS:s2pl=on:lma=on:afp=100000_0");
     feqAtomsL180propNZtiny.push("lrs+1011_1:12_anc=none:drc=off:sil=64000:sims=off:sp=unary_first:spb=goal_then_units:lsd=20:rnwc=on:nwc=2.0:i=138:add=off:awrs=converge:bd=off:uhcvi=on:tgt=ground:afp=300:afq=1.63_0");
     feqAtomsL180propNZtiny.push("dis+2_1:28_drc=ordering:anc=none:sil=2000:plsqc=1:plsq=on:plsqr=87,4:sp=unary_first:spb=intro:plsql=on:st=2.0:i=117:afp=10:bd=off:nm=16:afr=on:ss=axioms:to=lpo:cond=fast:fsr=off:nwc=7.0_0");
@@ -7018,10 +7018,10 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsL180propNZtiny.push("dis+1010_5:1_drc=ordering:sil=64000:sp=const_min:sos=on:acc=model:i=120:kws=precedence:bd=off:nm=20:alpa=random:ss=axioms_0");
     feqAtomsL180propNZtiny.push("dis+1002_1:128_drc=ordering:sil=2000:fde=none:i=145:plsq=on:plsqc=1:plsqr=6,1:bd=off:tgt=ground:sac=on:sfv=off:s2a=on:s2at=5.0_0");
     feqAtomsL180propNZtiny.push("lrs+1010_974213:1048576_drc=ordering:nwc=9.0:s2a=on:i=123:bd=off:lwlo=on:fd=off:sil=256000:s2agt=10:sims=off:nm=9:sp=const_min:rp=on:er=known:cond=fast:bce=on:abs=on:irw=on:amm=sco:afp=2000:updr=off:add=off:to=lpo:awrs=decay:awrsf=260:rawr=on:afq=2.0:uhcvi=on_0");
-    feqAtomsL180propNZtiny.push("dis+11_1:7_sil=2000:tgt=ground:sp=reverse_arity:i=851:fd=preordered:fsr=off:drc=encompass_0");
+    feqAtomsL180propNZtiny.push("dis+11_1:7_sil=2000:tgt=ground:sp=reverse_arity:i=851:fd=preordered:fsr=off_0");
     feqAtomsL180propNZtiny.push("lrs-21_1:1_drc=ordering:to=lpo:sil=2000:sp=frequency:sos=on:lma=on:i=126:sd=2:ss=axioms:ep=R_0");
     feqAtomsL180propNZtiny.push("lrs+1010_1:16_drc=ordering:sil=2000:plsq=on:plsqr=32,1:slsq=on:i=138:slsql=off:bd=off:er=filter:erml=3:slsqc=2:cond=on:alpa=false:fsr=off:acc=on_0");
-    feqAtomsL180propNZtiny.push("lrs+1011_1:6_to=lpo:drc=encompass:sil=256000:tgt=full:sp=unary_first:nwc=10.0:i=1458:aac=none:bd=preordered:ss=axioms:sgt=16_0");
+    feqAtomsL180propNZtiny.push("lrs+1011_1:6_to=lpo:sil=256000:tgt=full:sp=unary_first:nwc=10.0:i=1458:aac=none:bd=preordered:ss=axioms:sgt=16_0");
     feqAtomsL180propNZtiny.push("dis+1011_2809:262144_drc=off:sil=2000:tgt=ground:plsq=on:plsqr=450601,524288:sp=reverse_arity:sos=on:foolp=on:rnwc=on:plsql=on:fd=preordered:rp=on:nwc=4.574864195731069:i=172:bd=preordered:nm=6:fsr=off:ss=axioms:sgt=100:rawr=on:afp=1000:afq=2.7331722210582745_0");
     feqAtomsL180propNZtiny.push("lrs+21_1:334_drc=ordering:sil=64000:sp=frequency:spb=units:nwc=5.0:flr=on:s2a=on:i=246:s2at=3.0:bd=off:uhcvi=on:abs=on:alpa=true:lcm=predicate_0");
     feqAtomsL180propNZtiny.push("lrs-32_1:4_to=lpo:drc=off:sil=2000:sp=reverse_arity:spb=goal_then_units:urr=on:nwc=2.0:i=480:ss=included:st=2.0:bd=preordered_0");
@@ -7030,13 +7030,13 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsL180propNZtiny.push("lrs+2_1:1_to=lpo:drc=off:sil=4000:tgt=ground:sp=unary_first:spb=non_intro:urr=on:fd=preordered:i=1687:afp=1000:ins=3:rawr=on_0");
     feqAtomsL180propNZtiny.push("lrs+1011_1:2_to=lpo:drc=off:sil=2000:sp=const_min:urr=on:lcm=predicate:nwc=16.7073:updr=off:newcnf=on:i=207:av=off:rawr=on:ss=included:st=5.0:erd=off:flr=on_0");
     feqAtomsL180propNZtiny.push("lrs+1002_1:4_drc=ordering:sil=2000:fde=unused:plsq=on:plsqr=32,1:sos=on:bce=on:i=208:sd=1:ss=included:rawr=on_0");
-    feqAtomsL180propNZtiny.push("ott+33_191939:1048576_drc=encompass:sil=4000:tgt=ground:sp=const_frequency:lma=on:spb=goal:gs=on:nwc=17.8226:gsem=off:cond=fast:i=502:kws=inv_arity:bd=preordered:nm=35:av=off:fsr=off:uhcvi=on:rawr=on:bs=unit_only:urr=ec_only:ins=1_0");
+    feqAtomsL180propNZtiny.push("ott+33_191939:1048576_sil=4000:tgt=ground:sp=const_frequency:lma=on:spb=goal:gs=on:nwc=17.8226:gsem=off:cond=fast:i=502:kws=inv_arity:bd=preordered:nm=35:av=off:fsr=off:uhcvi=on:rawr=on:bs=unit_only:urr=ec_only:ins=1_0");
     feqAtomsL180propNZtiny.push("lrs+1002_74:59_drc=off:tgt=full:sos=all:cond=fast:i=234:kws=inv_frequency:afp=300:afq=2.0744697298148953:rawr=on:urr=full:sil=128000:si=on:rtra=on:random_seed=3250543_0");
     feqAtomsL180propNZtiny.push("dis-1011_1785:1048576_drc=ordering:bsr=unit_only:sil=4000:tgt=ground:plsqc=1:plsq=on:plsqr=125493,524288:sp=frequency:spb=goal:plsql=on:nwc=2.32086:updr=off:newcnf=on:cond=fast:st=2:s2a=on:i=253:s2at=4:bd=off:nm=3:ins=3:aer=off:uhcvi=on:afr=on:ss=axioms:sgt=20:rawr=on:fsr=off_0");
     feqAtomsL180propNZtiny.push("lrs+11_3:4_drc=off:sil=2000:tgt=ground:sp=occurrence:urr=on:nwc=5.0:st=3.0:i=327:kws=inv_frequency:av=off:ss=axioms:br=off:rawr=on:newcnf=on_0");
-    feqAtomsL180propNZtiny.push("lrs-32_2:11_drc=encompass:sil=4000:sp=reverse_frequency:nwc=10.0:s2a=on:i=1751:s2at=5.0:nm=16:amm=sco_0");
+    feqAtomsL180propNZtiny.push("lrs-32_2:11_sil=4000:sp=reverse_frequency:nwc=10.0:s2a=on:i=1751:s2at=5.0:nm=16:amm=sco_0");
     feqAtomsL180propNZtiny.push("dis+1011_1:24_drc=off:sil=4000:tgt=full:spb=goal:fd=preordered:avsq=on:i=347:fsr=off:rawr=on_0");
-    feqAtomsL180propNZtiny.push("lrs+1002_1:7_to=lpo:drc=encompass:sil=2000:tgt=full:sp=reverse_arity:spb=non_intro:fd=preordered:nwc=10.0:st=3.0:i=598:ins=2:ss=axioms_0");
+    feqAtomsL180propNZtiny.push("lrs+1002_1:7_to=lpo:sil=2000:tgt=full:sp=reverse_arity:spb=non_intro:fd=preordered:nwc=10.0:st=3.0:i=598:ins=2:ss=axioms_0");
     feqAtomsL180propNZtiny.push("lrs+10_1:3_drc=off:sil=256000:sp=unary_first:lwlo=on:i=647:kws=precedence:ins=3:rawr=on:nwc=10.0_0");
     feqAtomsL180propNZtiny.push("dis+1011_3:8_drc=ordering:bsr=unit_only:slsqr=1,16:sil=2000:plsq=on:plsqr=296,127:sp=reverse_frequency:lsd=5:nwc=10.0:slsqc=3:slsq=on:st=3.0:i=649:s2at=4.5:sd=4:slsql=off:nm=16:ins=5:ss=axioms:sgt=20:rawr=on:urr=ec_only:to=lpo_0");
     feqAtomsL180propNZtiny.push("dis+1011_986949:1048576_drc=ordering:sil=2000:irw=on:fde=none:ile=on:etr=on:sp=unary_first:bce=on:fd=preordered:rp=on:nwc=22.6584:cond=fast:st=2.5:s2pl=on:i=492:s2at=2:sd=7:kws=precedence:nm=0:ins=1:av=off:gsp=on:ss=axioms:rawr=on:gs=on:lsd=20_0");
@@ -7044,17 +7044,17 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick, S
     feqAtomsL180propNZtiny.push("dis+1011_1:1_drc=ordering:sil=4000:tgt=full:newcnf=on:i=715:sd=2:ss=axioms:sgt=16:rawr=on:fsr=off_0");
     feqAtomsL180propNZtiny.push("dis+11_1:1024_drc=ordering:sil=2000:tgt=ground:i=1463:awrs=converge:fd=preordered_0");
     feqAtomsL180propNZtiny.push("dis+10_5375:524288_to=lpo:drc=off:sil=2000:tgt=ground:plsq=on:plsqr=2270675,65536:sp=const_min:foolp=on:spb=goal_then_units:urr=ec_only:lcm=reverse:fd=preordered:nwc=1.91851:nicw=on:s2a=on:i=869:s2at=1.5:add=off:nm=16:rawr=on_0");
-    feqAtomsL180propNZtiny.push("lrs+11_5:2_to=lpo:drc=encompass:sil=8000:tgt=full:sp=const_frequency:sos=all:lma=on:spb=goal_then_units:nwc=10.0:i=1705:fsr=off:rawr=on:fdi=5_0");
-    feqAtomsL180propNZtiny.push("lrs+2_1:128_drc=encompass:sil=32000:tgt=full:sp=unary_frequency:spb=non_intro:nwc=3.0:st=5.0:s2a=on:i=12192:s2at=5.0:kws=precedence:bd=preordered:ss=included:awrs=converge:awrsf=90_0");
+    feqAtomsL180propNZtiny.push("lrs+11_5:2_to=lpo:sil=8000:tgt=full:sp=const_frequency:sos=all:lma=on:spb=goal_then_units:nwc=10.0:i=1705:fsr=off:rawr=on:fdi=5_0");
+    feqAtomsL180propNZtiny.push("lrs+2_1:128_sil=32000:tgt=full:sp=unary_frequency:spb=non_intro:nwc=3.0:st=5.0:s2a=on:i=12192:s2at=5.0:kws=precedence:bd=preordered:ss=included:awrs=converge:awrsf=90_0");
     feqAtomsL180propNZtiny.push("lrs+11_7:12_drc=ordering:sil=2000:sp=occurrence:sos=on:erd=off:lcm=reverse:gs=on:st=5.0:i=1335:awrs=converge:bd=off:ss=axioms:fs=off:fsr=off:rawr=on_0");
-    feqAtomsL180propNZtiny.push("lrs+2_1:7_drc=encompass:sil=64000:tgt=full:sp=reverse_arity:i=54422:ins=6:rawr=on:kws=inv_frequency:fde=unused:slsq=on:slsqr=7,8_0");
-    feqAtomsL180propNZtiny.push("lrs+1011_1:1_drc=encompass:sil=128000:tgt=ground:i=30639:kws=frequency:ss=axioms:lwlo=on:fde=unused:sp=reverse_arity_0");
+    feqAtomsL180propNZtiny.push("lrs+2_1:7_sil=64000:tgt=full:sp=reverse_arity:i=54422:ins=6:rawr=on:kws=inv_frequency:fde=unused:slsq=on:slsqr=7,8_0");
+    feqAtomsL180propNZtiny.push("lrs+1011_1:1_sil=128000:tgt=ground:i=30639:kws=frequency:ss=axioms:lwlo=on:fde=unused:sp=reverse_arity_0");
     feqAtomsL180propNZtiny.push("lrs+10_2:7_bsr=unit_only:drc=off:sil=16000:sos=on:abs=on:fd=preordered:nicw=on:i=13991:uhcvi=on:rawr=on:nwc=0.8650794518795772_0");
     feqAtomsL180propNZtiny.push("ott+11_1:32_drc=ordering:sil=64000:tgt=full:sp=const_max:spb=units:slsqc=1:slsq=on:st=5.0:i=18307:s2at=5.0:sd=1:kws=precedence:ss=axioms_0");
-    feqAtomsL180propNZtiny.push("lrs+2_1:3_drc=encompass:sil=128000:tgt=full:sp=frequency:s2a=on:i=125595:kws=precedence:bd=preordered:ins=11:lwlo=on:s2at=1.5:ss=included:sgt=8:awrs=converge_0");
+    feqAtomsL180propNZtiny.push("lrs+2_1:3_sil=128000:tgt=full:sp=frequency:s2a=on:i=125595:kws=precedence:bd=preordered:ins=11:lwlo=on:s2at=1.5:ss=included:sgt=8:awrs=converge_0");
     feqAtomsL180propNZtiny.push("dis+2_1:5_drc=ordering:slsqr=331891,1048576:to=lpo:sil=128000:tgt=ground:sp=unary_first:spb=goal_then_units:s2agt=8:slsq=on:i=23437:awrs=converge:awrsf=1398:slsqc=4:plsq=on:plsql=on:plsqc=1:plsqr=5650705,131072_0");
     feqAtomsL180propNZtiny.push("lrs+35_1:1_to=lpo:sil=128000:tgt=full:fd=preordered:lwlo=on:i=73025:bd=preordered:drc=off:av=off_0");
-    feqAtomsL180propNZtiny.push("lrs-4_1:24_slsqr=493885,1048576:drc=encompass:sil=128000:tgt=full:sp=weighted_frequency:fd=preordered:flr=on:slsq=on:i=113200:bs=unit_only:av=off:fsr=off:rawr=on_0");
+    feqAtomsL180propNZtiny.push("lrs-4_1:24_slsqr=493885,1048576:sil=128000:tgt=full:sp=weighted_frequency:fd=preordered:flr=on:slsq=on:i=113200:bs=unit_only:av=off:fsr=off:rawr=on_0");
     feqAtomsL180propNZtiny.push("lrs+1011_1:1_drc=off:sil=128000:tgt=ground:sos=on:rnwc=on:rp=on:nwc=10.0:nicw=on:i=96173:nm=2:cond=on:bd=off_0");
 
     // total_instr 1013264
