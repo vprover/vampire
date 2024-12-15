@@ -244,9 +244,11 @@ public:
   };
 
   enum class DemodulationRedundancyCheck : unsigned int {
-    OFF,
-    ENCOMPASS,
-    ON
+    OFF,       // no check
+    ORDERING,  // solely ordering-based check
+    ENCOMPASS, // (1) positive unit equations (PUE) are smaller than non-PUE clauses,
+               // (2) more general PUE are smaller than less general PUE, and
+               // (3) equally general PUEs are ordered based on term ordering.
   };
 
   enum class TheoryAxiomLevel : unsigned int {
