@@ -86,9 +86,9 @@ z3::expr int_to_z3_expr(IntegerConstantType const& val, UInt64ToExpr toExpr) {
     auto sign = val.sign();
     auto abs = val.abs();
 
-    // TODO recycled stack
-    Stack<uint64_t> digits;
-    z3::expr base =  // <- == 2^64
+    RStack<uint64_t> digits;
+    /* this is how we translate arbitrary big IntegerConstantType numbers to  z3::expr numbers */
+    z3::expr base = // <- == 2^64
       toExpr(std::numeric_limits<uint64_t>::max()) + toExpr(1);
     while(!abs.fits<unsigned long>()) {
       auto ui = abs.truncate<unsigned long>();
@@ -96,12 +96,12 @@ z3::expr int_to_z3_expr(IntegerConstantType const& val, UInt64ToExpr toExpr) {
       static_assert(sizeof(ui_t) == sizeof(uint64_t), "unexpected number size");
       static_assert(sizeof(ui_t) == 64 / 8, "unexpected number size");
       static_assert(std::numeric_limits<ui_t>::max() == std::numeric_limits<uint64_t>::max(), "unexpected number size");
-      digits.push(uint64_t(ui));
+      digits->push(uint64_t(ui));
       abs.rshiftBits(64);
     }
     z3::expr res = toExpr(uint64_t(abs.template truncate<unsigned int>()));
-    while(digits.isNonEmpty()) {
-      res = toExpr(digits.pop()) + (res * base);
+    while(digits->isNonEmpty()) {
+      res = toExpr(digits->pop()) + (res * base);
     }
 
     return sign == Sign::Neg ? -res : res;
