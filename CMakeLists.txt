@@ -823,7 +823,7 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake-modules")
 # gmp stuff
 ################################################################
 
-find_package(GMP)
+find_package(GMP REQUIRED)
 if (GMP_FOUND)
   message(STATUS "Found system level gmp version ${GMP_C_LIBRARIES}.")
   add_compile_definitions(VMINI_GMP=0)
