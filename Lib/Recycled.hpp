@@ -170,10 +170,10 @@ public:
     : _self([&](){ 
         if (mem().isNonEmpty()) {
           auto elem = mem().pop();
-          elem->init(a, as...);
+          elem->init(std::move(a), std::move(as)...);
           return elem;
         } else {
-          return IF_USE_PTRS(std::make_unique<T>, T)(a, as...);
+          return IF_USE_PTRS(std::make_unique<T>, T)(std::move(a), std::move(as)...);
         }
     }())
   { }
