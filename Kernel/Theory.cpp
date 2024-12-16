@@ -40,9 +40,10 @@
 std::string to_string(mpz_t const& self) {
   auto s = mpz_sizeinbase(self, /* base */ 10);
   auto str = new char[s + 2];
-  auto str_ = mpz_get_str(str, /* base */ 10, self);
-  ASS_EQ(str_, str)
-  return std::string(str);
+  mpz_get_str(str, /* base */ 10, self);
+  auto out = std::string(str);
+  delete[] str;
+  return out;
 }
 
 #if VMINI_GMP
