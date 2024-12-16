@@ -448,8 +448,6 @@ void SaturationAlgorithm::showPredecessors(Clause* c) {
   ALWAYS(_predecessorsShown.insert(c));
 }
 
-#define FUNC_TO_SYMB(F) (F+numPreds)
-
 void SaturationAlgorithm::showSubterms(Term* t) {
   if (_subtermsShown.find(t->getId())) return;
 
@@ -467,10 +465,9 @@ void SaturationAlgorithm::showSubterms(Term* t) {
     }
   }
 
-  unsigned numPreds = env.signature->predicates();
   _neuralModel->gweightEnqueueTerm(
       t->getId(),
-      FUNC_TO_SYMB(t->functor()),
+      funcToSymb(t->functor()),
       0.0,
       args);
 
@@ -501,7 +498,7 @@ void SaturationAlgorithm::showClauseLiterals(Clause* c) {
 
     _neuralModel->gweightEnqueueTerm(
         litId,
-        lit->functor(),
+        predToSymb(lit->functor()),
         lit->isPositive() ? 1.0 : -1.0,
         args);
     ALWAYS(_literalsShown.insert(lit->getId()));
@@ -858,18 +855,19 @@ void SaturationAlgorithm::runGnnOnInput()
 {
   TIME_TRACE("gnn-eval");
 
-  unsigned numPreds = env.signature->predicates(); // works as a offset for function symbols (Shall we have problems with predicates introduced during saturation?)
-  unsigned numFuncs = env.signature->functions();
+  _numPreds = env.signature->predicates();
+  _numFuncs = env.signature->functions();
+  _numSorts = env.signature->typeCons();
 
   // these guy must survive (in memory) until the gnnPerform call
-  torch::Tensor sort_features = torch::empty({env.signature->typeCons(),3}, torch::kFloat32);
-  torch::Tensor symbol_features = torch::empty({numPreds+numFuncs,10}, torch::kFloat32);
+  torch::Tensor sort_features = torch::empty({_numSorts,3}, torch::kFloat32);
+  torch::Tensor symbol_features = torch::empty({_numPreds+_numFuncs,10}, torch::kFloat32);
 
   // sorts
   {
     float* sort_features_ptr = sort_features.data_ptr<float>();
 
-    for (unsigned t = 0; t < env.signature->typeCons(); t++) {
+    for (unsigned t = 0; t < _numSorts; t++) {
       Signature::Symbol* symb = env.signature->getTypeCon(t);
       if (symb->arity() > 0) {
         USER_ERROR("GNN currently only supports monomorphic FOL.");
@@ -901,7 +899,7 @@ void SaturationAlgorithm::runGnnOnInput()
       (*symbol_features_ptr++) = (arity > 8);
     };
 
-    for (unsigned p = 0; p < numPreds; p++) {
+    for (unsigned p = 0; p < _numPreds; p++) {
       Signature::Symbol* symb = env.signature->getPredicate(p);
       (*symbol_features_ptr++) = (unsigned)(p==0);   // isEquality
       (*symbol_features_ptr++) = 0;                  // isFunction symbol
@@ -919,12 +917,12 @@ void SaturationAlgorithm::runGnnOnInput()
     }
     {
       DArray<unsigned> predicates;
-      predicates.initFromIterator(getRangeIterator(0u, numPreds), numPreds);
+      predicates.initFromIterator(getRangeIterator(0u, _numPreds), _numPreds);
       _ordering->sortArrayByPredicatePrecedence(predicates);
       unsigned jumpLen = 1;
       do {
         unsigned prev = 0; // we hardcode = as the first predicate in the precedence (despite the precedence sometimes claiming otherwise), because = has always the smallest "level" anyway
-        for (unsigned idx = 0; idx < numPreds; idx += jumpLen) {
+        for (unsigned idx = 0; idx < _numPreds; idx += jumpLen) {
           if (predicates[idx] != 0) {
             // cout << "symb-prec-next: " << prev << " " << predicates[idx] << endl;
             symb2symb_one.push_back(prev);
@@ -933,9 +931,9 @@ void SaturationAlgorithm::runGnnOnInput()
           }
         }
         jumpLen *= 2;
-      } while (jumpLen < numPreds);
+      } while (jumpLen < _numPreds);
     }
-    for (unsigned f = 0; f < env.signature->functions(); f++) {
+    for (unsigned f = 0; f < _numFuncs; f++) {
       Signature::Symbol* symb = env.signature->getFunction(f);
 
       (*symbol_features_ptr++) = 0;                  // isEquality
@@ -948,23 +946,23 @@ void SaturationAlgorithm::runGnnOnInput()
       //cout << "symb: " << FUNC_TO_SYMB(f) << " 0 1 " << symb->introduced() << " " << symb->skolem()
       //    << " " << symb->numericConstant() << " " << symb->arity() << " # " << symb->name() << endl;
       // cout << "symb-to-sort: " << FUNC_TO_SYMB(f) << " " << symb->fnType()->result().term()->functor() << endl;
-      symb2sort_one.push_back(FUNC_TO_SYMB(f));
+      symb2sort_one.push_back(funcToSymb(f));
       symb2sort_two.push_back(symb->fnType()->result().term()->functor());
       // func-to-sort: funcId sortId --- this is the output sort (input sorts can be inferred from arguments' output sorts)
     }
     {
       DArray<unsigned> functions;
-      functions.initFromIterator(getRangeIterator(0u, numFuncs), numFuncs);
+      functions.initFromIterator(getRangeIterator(0u, _numFuncs), _numFuncs);
       _ordering->sortArrayByFunctionPrecedence(functions);
       unsigned jumpLen = 1;
       do {
-        for (unsigned idx = jumpLen; idx < numFuncs; idx += jumpLen) {
+        for (unsigned idx = jumpLen; idx < _numFuncs; idx += jumpLen) {
           // cout << "symb-prec-next: " << FUNC_TO_SYMB(functions[idx-jumpLen]) << " " << FUNC_TO_SYMB(functions[idx]) << endl;
-          symb2symb_one.push_back(FUNC_TO_SYMB(functions[idx-jumpLen]));
-          symb2symb_two.push_back(FUNC_TO_SYMB(functions[idx]));
+          symb2symb_one.push_back(funcToSymb(functions[idx-jumpLen]));
+          symb2symb_two.push_back(funcToSymb(functions[idx]));
         }
         jumpLen *= 2;
-      } while (jumpLen < numFuncs);
+      } while (jumpLen < _numFuncs);
     }
 
     _neuralModel->gnnNodeKind("symbol",symbol_features);
@@ -1085,7 +1083,7 @@ void SaturationAlgorithm::runGnnOnInput()
             term_features_for_vars_and_weight(t);
 
             trm2symb_one.push_back(subtermId);
-            trm2symb_two.push_back(FUNC_TO_SYMB(t->functor()));
+            trm2symb_two.push_back(funcToSymb(t->functor()));
 
             // cout << "trm-symb: " << subtermId << " " << FUNC_TO_SYMB(t->functor()) << endl;
             subterms.push({t,subtermId,env.signature->getFunction(t->functor())->fnType()});

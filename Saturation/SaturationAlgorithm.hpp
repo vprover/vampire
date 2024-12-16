@@ -252,6 +252,29 @@ protected:
   bool _neuralModelGuidance;
   ScopedPtr<NeuralClauseEvaluationModel> _neuralModel;
 
+  // record the size of the signature at the time of gnn invocation
+  unsigned _numPreds;
+  unsigned _numFuncs;
+  unsigned _numSorts;
+
+  unsigned funcToSymb(unsigned f) {
+    if (f > _numFuncs) {
+      // the idea is that any function symbol that gets created during saturation (for now it's the ari numerals)
+      // gets represented by the final embedding of the respective output sort
+      return _numPreds + _numFuncs + env.signature->getFunction(f)->fnType()->result().term()->functor();
+    } else {
+      // other than that, function symbols are (for the NN) represented as lying "after" the predicate symbols in a single table
+      return _numPreds+f;
+    }
+  }
+
+  unsigned predToSymb(unsigned p) {
+    if (p > _numPreds) {
+      throw InvalidOperationException("Predicate introduced after preprocessing.");
+    }
+    return p;
+  }
+
   // counters
 
   /** Number of clauses that entered the unprocessed container */

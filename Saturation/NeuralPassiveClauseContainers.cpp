@@ -177,6 +177,8 @@ void NeuralClauseEvaluationModel::evalClauses(Stack<Clause*>& clauses) {
   inputs.push_back(torch::from_blob(features.data(), {sz,_numFeatures}, torch::TensorOptions().dtype(torch::kFloat32)));
   auto logits = (*_model.find_method("eval_clauses"))(std::move(inputs)).toTensor();
 
+  // cout << "Eval clauses for " << sz << " requires " << logits.requires_grad() << endl;
+
   {
     auto uIt = clauses.iter();
     unsigned idx = 0;
