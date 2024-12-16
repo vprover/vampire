@@ -1547,7 +1547,6 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
         //if constant treat specially
         if(trm->arity() == 0) {
           if(symb->integerConstant()){
-            // IntegerConstantType value = symb->integerValue();
             return int_to_z3_expr(symb->integerValue(), [&](uint64_t i) { return _context->int_val(i); });
           }
           if(symb->realConstant()) {
