@@ -1026,14 +1026,14 @@ void OrderingComparator::Subsumption::pushNext()
   }
 }
 
-OrderingComparator::RedundancyCheck::RedundancyCheck(const Ordering& ord, Literal* lit)
+OrderingComparator::RedundancyCheck::RedundancyCheck(const Ordering& ord, void* data)
   : comp(ord.createComparator(/*onlyVars=*/true))
 {
-  comp->insert(OrderingConstraints(), lit);
+  comp->insert(OrderingConstraints(), data);
   path.push(&comp->_source);
 }
 
-std::pair<Literal*,const TermPartialOrdering*> OrderingComparator::RedundancyCheck::next(OrderingConstraints ordCons, Literal* lit)
+std::pair<void*,const TermPartialOrdering*> OrderingComparator::RedundancyCheck::next(OrderingConstraints ordCons, void* data)
 {
   static Ordering::Result ordVals[] = { Ordering::EQUAL, Ordering::GREATER, Ordering::INCOMPARABLE };
   ASS(path.isNonEmpty());
@@ -1046,13 +1046,13 @@ std::pair<Literal*,const TermPartialOrdering*> OrderingComparator::RedundancyChe
   ASS_EQ(curr->node()->tag, BranchTag::T_DATA);
   ASS(curr->node()->data);
 
-  auto currLit = curr->node()->data;
+  auto currData = curr->node()->data;
 
   curr->node()->~Node();
   curr->node()->ready = false;
 
-  Branch origB(currLit, comp->_sink);
-  Branch newB = lit ? Branch(lit, comp->_sink) : comp->_sink;
+  Branch origB(currData, comp->_sink);
+  Branch newB = data ? Branch(data, comp->_sink) : comp->_sink;
 
   if (ordCons.isNonEmpty()) {
     curr->node()->tag = T_TERM;
@@ -1076,9 +1076,9 @@ std::pair<Literal*,const TermPartialOrdering*> OrderingComparator::RedundancyChe
     }
     *curr = newB;
   } else {
-    if (lit) {
+    if (data) {
       curr->node()->tag = T_DATA;
-      curr->node()->data = lit;
+      curr->node()->data = data;
       curr->node()->alternative = comp->_sink;
     } else {
       *curr = comp->_sink;

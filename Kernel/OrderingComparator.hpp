@@ -62,8 +62,8 @@ public:
 
   class RedundancyCheck {
   public:
-    RedundancyCheck(const Ordering& ord, Literal* lit);
-    std::pair<Literal*,const TermPartialOrdering*> next(OrderingConstraints cons, Literal* lit);
+    RedundancyCheck(const Ordering& ord, void* data);
+    std::pair<void*,const TermPartialOrdering*> next(OrderingConstraints cons, void* data);
 
   private:
     void pushNext();

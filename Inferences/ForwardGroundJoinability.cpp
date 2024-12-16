@@ -60,9 +60,6 @@ void ForwardGroundJoinability::attach(SaturationAlgorithm* salg)
   ForwardSimplificationEngine::attach(salg);
   _index=static_cast<DemodulationLHSIndex*>(
 	  _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) );
-
-  auto opt = getOptions();
-  _helper = DemodulationHelper(opt, &_salg->getOrdering());
 }
 
 void ForwardGroundJoinability::detach()
@@ -126,6 +123,9 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
   }
 
   auto clit = (*cl)[0];
+  if (!clit->isEquality() || clit->isNegative()) {
+    return false;
+  }
   DHSet<Clause*> premiseSet;
 
   OrderingComparator::RedundancyCheck checker(ordering, clit);
@@ -140,7 +140,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
     attempted.reset();
 
     auto kv = checker.next({ { lit->termArg(0), lit->termArg(1), Ordering::EQUAL } }, nullptr);
-    lit = kv.first;
+    lit = static_cast<Literal*>(kv.first);
     tpo = kv.second;
     if (!lit) {
       break;
@@ -157,7 +157,8 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
         continue;
       }
 
-      bool redundancyCheck = _helper.redundancyCheckNeededForPremise(cl, lit, trm);
+      ASS(lit->isPositive());
+      bool redundancyCheck = (trm == lit->termArg(0) || trm == lit->termArg(1));
 
       auto git = _index->getGeneralizations(trm.term(), /* retrieveSubstitutions */ true);
       while(git.hasNext()) {
@@ -205,9 +206,22 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
           // could have been factored out of the getGeneralizations loop,
           // but then it would run exactly once there
           Ordering::Result litOrder = ordering.getEqualityArgumentOrder(lit);
-          if ((trm==*lit->nthArgument(0) && litOrder == Ordering::LESS) ||
-              (trm==*lit->nthArgument(1) && litOrder == Ordering::GREATER)) {
+          if ((trm==lit->termArg(0) && litOrder == Ordering::LESS) ||
+              (trm==lit->termArg(1) && litOrder == Ordering::GREATER)) {
             redundancyCheck = false;
+          }
+        }
+
+        if (redundancyCheck && DemodulationHelper::isRenamingOn(&appl,lhs)) {
+          TermList other = trm == lit->termArg(0) ? lit->termArg(1) : lit->termArg(0);
+          auto redComp = ordering.compare(AppliedTerm(rhs, &appl, true), AppliedTerm(other));
+          if (redComp == Ordering::LESS || redComp == Ordering::EQUAL) {
+            continue;
+          } else if (redComp == Ordering::INCOMPARABLE) {
+            if (rhsS.isEmpty()) {
+              rhsS = subs->applyToBoundResult(rhs);
+            }
+            cons.push({ other, rhsS, Ordering::GREATER });
           }
         }
 
@@ -215,26 +229,9 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
           rhsS = subs->applyToBoundResult(rhs);
         }
 
-        if (redundancyCheck) {
-          if (!_helper.isPremiseRedundant(cl, lit, trm, rhsS, lhs, &appl)) {
-            auto other = EqHelper::getOtherEqualitySide(lit, trm);
-            if (ordering.compare(other, rhsS)==Ordering::INCOMPARABLE) {
-              cons.push({ other, rhsS, Ordering::GREATER });
-            } else {
-              continue;
-            }
-          }
-        }
-
-        // s = t    s = r
-        // --------------
-        //      t = r
-        // s = t > s = r & t = r <=> s > r && t > r
-        // t = r > s = r & s = t <=> r > s && t > s
-
-        std::pair<Literal*,const TermPartialOrdering*> next;
+        std::pair<void*,const TermPartialOrdering*> next;
         Literal* resLit = EqHelper::replace(lit,trm,rhsS);
-        if(EqHelper::isEqTautology(resLit)) {
+        if (EqHelper::isEqTautology(resLit)) {
           next = checker.next(cons, nullptr);
         } else {
           next = checker.next(cons, resLit);
@@ -243,7 +240,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
         tpo = next.second;
         if (next.first != lit) {
           env.statistics->structInductionInProof++;
-          lit = next.first;
+          lit = (Literal*)next.first;
           premiseSet.insert(qr.data->clause);
           goto LOOP_END;
         }

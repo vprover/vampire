@@ -40,7 +40,6 @@ public:
   void detach() override;
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 protected:
-  DemodulationHelper _helper;
   DemodulationLHSIndex* _index;
   bool flag;
 };
