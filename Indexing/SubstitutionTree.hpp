@@ -62,15 +62,22 @@
 #include <iostream>
 #endif
 
-inline unsigned subsTreeQueryBank(unsigned n) 
+constexpr unsigned subsTreeQueryBank(unsigned n) 
 { return 3 * n; }
 
-inline unsigned subsTreeResultBank(unsigned n) 
+constexpr unsigned subsTreeResultBank(unsigned n) 
 { return 3 * n + 1; }
 
-inline unsigned subsTreeNormResultBank(unsigned n) 
+// TODO rename result -> intrnal
+constexpr unsigned subsTreeNormResultBank(unsigned n) 
 { return 3 * n + 2; }
 
+
+struct DefaultVarBanks {
+  static constexpr unsigned query = subsTreeQueryBank(0);
+  static constexpr unsigned internal = subsTreeResultBank(0);
+  static constexpr unsigned normInternal = subsTreeNormResultBank(0);
+};
 
 using namespace Lib;
 using namespace Kernel;
@@ -1383,20 +1390,36 @@ public:
    */ 
   namespace RetrievalAlgorithms {
 
+      template<class LD>
+      static typename SubstitutionTree<LD>::NodeIterator __selectPotentiallyUnifiableChildren(typename SubstitutionTree<LD>::IntermediateNode* n, RobSubstitution& subs, unsigned normInternalBank)
+      {
+        unsigned specVar=n->childVar;
+        auto top = subs.getSpecialVarTop(specVar, normInternalBank);
+        if(top.var()) {
+          return n->allChildren();
+        } else {
+          auto** match = n->childByTop(top, /* canCreate */ false);
+          if(match) {
+            return pvi(concatIters(
+                         getSingletonIterator(match),
+                         n->variableChildren()));
+          } else {
+            return n->variableChildren();
+          }
+        }
+      }
+
+
+      template<
+        unsigned _queryBank, 
+        unsigned _normInternalBank,
+        unsigned _internalBank>
       class RobUnification { 
         RobSubstitution _subs;
-        unsigned _queryBank;
-        unsigned _normInternalBank;
-        unsigned _internalBank;
       public:
         RobUnification() { }
 
-        void init(int queryBank, int normInternalBank, int internalBank) { 
-          _subs.reset(); 
-          _queryBank = queryBank;
-          _normInternalBank = normInternalBank;
-          _internalBank = internalBank;
-        }
+        void init() { _subs.reset(); }
 
         /** a witness that the returned term matches the retrieval condition 
          * (could be a substitution, variable renaming, etc.) 
@@ -1456,26 +1479,7 @@ public:
          */
         template<class LD>
         typename SubstitutionTree<LD>::NodeIterator selectPotentiallyUnifiableChildren(typename SubstitutionTree<LD>::IntermediateNode* n)
-        { return _selectPotentiallyUnifiableChildren<LD>(n, _subs, _normInternalBank); }
-
-        template<class LD>
-        static typename SubstitutionTree<LD>::NodeIterator _selectPotentiallyUnifiableChildren(typename SubstitutionTree<LD>::IntermediateNode* n, RobSubstitution& subs, unsigned normInternalBank)
-        {
-          unsigned specVar=n->childVar;
-          auto top = subs.getSpecialVarTop(specVar, normInternalBank);
-          if(top.var()) {
-            return n->allChildren();
-          } else {
-            auto** match = n->childByTop(top, /* canCreate */ false);
-            if(match) {
-              return pvi(concatIters(
-                           getSingletonIterator(match),
-                           n->variableChildren()));
-            } else {
-              return n->variableChildren();
-            }
-          }
-        }
+        { return __selectPotentiallyUnifiableChildren<LD>(n, _subs, _normInternalBank); }
         friend std::ostream& operator<<(std::ostream& out, RobUnification const& self)
         { return out << self._subs; }
 
@@ -1483,24 +1487,17 @@ public:
 
 
       /* AU is either an AbstractingUnifier* or an AbstractingUnifier */
-      template<class AU>
+      template<class AU,
+        unsigned _queryBank, 
+        unsigned _normInternalBank,
+        unsigned _internalBank>
       class UnificationWithAbstraction { 
         AU _unif;
         bool _fixedPointIteration;
-        unsigned _queryBank;
-        unsigned _normInternalBank;
-        unsigned _internalBank;
       public:
         UnificationWithAbstraction() {}
-        // template<class... Args> UnificationWithAbstraction(Args... args) { init(std::move(args)...); }
 
-        // void init(int queryBank, int normInternalBank, int internalBank, AbstractionOracle ao, bool fixedPointIteration)
-        // { init(nullptr, queryBank, normInternalBank, internalBank, ao, fixedPointIteration); }
-
-        void init(AU unif, int queryBank, int normInternalBank, int internalBank, AbstractionOracle ao, bool fixedPointIteration) { 
-          _queryBank = queryBank;
-          _normInternalBank = normInternalBank;
-          _internalBank = internalBank;
+        void init(AU unif, AbstractionOracle ao, bool fixedPointIteration) { 
           _unif = std::move(unif);
           // TODO set ao outside (?)
           unifier()->setAo(ao);
@@ -1558,7 +1555,7 @@ public:
               }
             }
           } else {
-            return RobUnification::template _selectPotentiallyUnifiableChildren<LD>(n, unif.subs(), normInternalBank);
+            return __selectPotentiallyUnifiableChildren<LD>(n, unif.subs(), normInternalBank);
           }
         }
 
