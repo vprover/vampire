@@ -18,6 +18,7 @@
 #define MODEL_COMPLETION true
 
 #include "Forwards.hpp"
+#include "Kernel/Term.hpp"
 #include "Lib/StringUtils.hpp"
 #include "z3.h"
 
@@ -1546,7 +1547,6 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
         //if constant treat specially
         if(trm->arity() == 0) {
           if(symb->integerConstant()){
-            IntegerConstantType value = symb->integerValue();
             return int_to_z3_expr(symb->integerValue(), [&](uint64_t i) { return _context->int_val(i); });
           }
           if(symb->realConstant()) {
