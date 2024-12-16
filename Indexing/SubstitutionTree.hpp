@@ -1383,7 +1383,6 @@ public:
    */ 
   namespace RetrievalAlgorithms {
 
-      // #ALGO
       class RobUnification { 
         RobSubstitution _subs;
         unsigned _queryBank;
@@ -1483,7 +1482,6 @@ public:
       };
 
 
-      // #ALGO
       /* AU is either an AbstractingUnifier* or an AbstractingUnifier */
       template<class AU>
       class UnificationWithAbstraction { 
