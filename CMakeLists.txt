@@ -823,17 +823,17 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake-modules")
 # gmp stuff
 ################################################################
 
-find_package(GMP)
-if (GMP_FOUND)
-  message(STATUS "Found system level gmp version ${GMP_C_LIBRARIES}.")
-  add_compile_definitions(VMINI_GMP=0)
-  include_directories(${GMP_INCLUDE_DIRS})
-  link_libraries(${GMP_LIBRARIES})
-else()
+# find_package(GMP)
+# if (GMP_FOUND)
+#   message(STATUS "Found system level gmp version ${GMP_C_LIBRARIES}.")
+#   add_compile_definitions(VMINI_GMP=0)
+#   include_directories(${GMP_INCLUDE_DIRS})
+#   link_libraries(${GMP_LIBRARIES})
+# else()
   message(STATUS "Compiling mini-gmp from source. If you want faster arithmetic install gmp on your system.")
   add_compile_definitions(VMINI_GMP=1)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/mini-gmp-6.3.0)
-endif()
+# endif()
 
 
 ################################################################
