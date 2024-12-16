@@ -34,12 +34,15 @@ class ForwardGroundJoinability
 : public ForwardSimplificationEngine
 {
 public:
+  ForwardGroundJoinability(bool flag) : flag(flag) {}
+
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 protected:
   DemodulationHelper _helper;
   DemodulationLHSIndex* _index;
+  bool flag;
 };
 
 using ForwardDemodulationExtra = RewriteInferenceExtra;

@@ -201,7 +201,7 @@ PoComp TermPartialOrdering::get_two_external(TermList t1, TermList t2) const
   return res;
 }
 
-bool TermPartialOrdering::get(TermList lhs, TermList rhs, Result& res) const
+bool TermPartialOrdering::get(TermList lhs, TermList rhs, Result& res, bool flag) const
 {
   // comparable terms should be handled by caller
   ASS_EQ(_ord.compare(lhs,rhs),Ordering::INCOMPARABLE);
@@ -211,6 +211,9 @@ bool TermPartialOrdering::get(TermList lhs, TermList rhs, Result& res) const
   if (lhs == rhs) {
     res = Result::EQUAL;
     return true;
+  }
+  if (flag && !(_nodes.find(lhs) && _nodes.find(rhs))) {
+    return false;
   }
   PoComp val;
   bool reversed = false;

@@ -126,9 +126,11 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
   }
 
   auto clit = (*cl)[0];
+  DHSet<Clause*> premiseSet;
 
   OrderingComparator::RedundancyCheck checker(ordering, clit);
   Literal* lit = clit;
+  auto tpo = TermPartialOrdering::getEmpty(ordering);
   unsigned cnt = 0;
 
   while (lit) {
@@ -137,7 +139,9 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
     }
     attempted.reset();
 
-    lit = checker.next({ { lit->termArg(0), lit->termArg(1), Ordering::EQUAL } }, nullptr);
+    auto kv = checker.next({ { lit->termArg(0), lit->termArg(1), Ordering::EQUAL } }, nullptr);
+    lit = kv.first;
+    tpo = kv.second;
     if (!lit) {
       break;
     }
@@ -181,8 +185,14 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
 
         TermList rhsS;
 
-        auto comp = ordering.compare(AppliedTerm(lhs, &appl, true), AppliedTerm(rhs, &appl, true));
-        if (comp == Ordering::LESS) {
+        Result comp;
+        if (flag) {
+          ASS(tpo);
+          comp = ordering.compare(AppliedTerm(lhs, &appl, true), AppliedTerm(rhs, &appl, true), tpo);
+        } else {
+          comp = ordering.compare(AppliedTerm(lhs, &appl, true), AppliedTerm(rhs, &appl, true));
+        }
+        if (comp == Ordering::LESS || comp == Ordering::EQUAL) {
           continue;
         } else if (comp == Ordering::INCOMPARABLE) {
           rhsS = subs->applyToBoundResult(rhs);
@@ -222,18 +232,19 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
         // s = t > s = r & t = r <=> s > r && t > r
         // t = r > s = r & s = t <=> r > s && t > s
 
-
-        Literal* nextLit;
+        std::pair<Literal*,const TermPartialOrdering*> next;
         Literal* resLit = EqHelper::replace(lit,trm,rhsS);
         if(EqHelper::isEqTautology(resLit)) {
-          nextLit = checker.next(cons, nullptr);
+          next = checker.next(cons, nullptr);
         } else {
-          nextLit = checker.next(cons, resLit);
+          next = checker.next(cons, resLit);
         }
         env.statistics->structInduction++;
-        if (nextLit != lit) {
+        tpo = next.second;
+        if (next.first != lit) {
           env.statistics->structInductionInProof++;
-          lit = nextLit;
+          lit = next.first;
+          premiseSet.insert(qr.data->clause);
           goto LOOP_END;
         }
       }
@@ -242,6 +253,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
 LOOP_END:
     continue;
   }
+  premises = pvi(getPersistentIterator(premiseSet.iterator()));
 
   env.statistics->groundRedundantClauses++;
   return true;

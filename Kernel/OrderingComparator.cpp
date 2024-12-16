@@ -105,6 +105,7 @@ std::ostream& operator<<(std::ostream& str, const OrderingComparator& comp)
     if (seen.insert(kv.first->node())) {
       if (kv.first->node()->tag==OrderingComparator::BranchTag::T_DATA) {
         if (kv.first->node()->data) {
+          ASS(kv.first->node()->alternative.node());
           todo.push(std::make_pair(&kv.first->node()->alternative,kv.second+1));
         }
       } else {
@@ -256,8 +257,8 @@ std::string OrderingComparator::to_dot() const
   return "digraph {\nnodesep = 0;\nsep = 0;\nranksep = 0;\nesep = 0;\n" + nodes + "\n" + edges + "}\n";
 }
 
-OrderingComparator::OrderingComparator(const Ordering& ord)
-: _ord(ord), _source(nullptr, Branch()), _sink(_source), _curr(&_source), _prev(nullptr)
+OrderingComparator::OrderingComparator(const Ordering& ord, bool onlyVars)
+: _ord(ord), _source(nullptr, Branch()), _sink(_source), _curr(&_source), _prev(nullptr), _onlyVars(onlyVars)
 {
   _sink.node()->ready = true;
 }
@@ -386,7 +387,7 @@ void OrderingComparator::expand()
       _curr->node()->trace = getCurrentTrace();
       _curr->node()->prevPoly = getPrevPoly();
       _curr->node()->ready = true;
-      return;
+      continue;
     }
     if (node->tag == BranchTag::T_POLY) {
       processPolyCase();
@@ -733,44 +734,37 @@ void OrderingComparator::processPolyCase()
 void OrderingComparator::processVarCase()
 {
   auto node = _curr->node();
-  // if (node->rhs.isTerm()) {
-  //   // cout << "doing 'trick'" << endl;
-  //   // cout << *this << endl;
-  //   ASS(node->lhs.isVar());
-  //   *_curr = node->ngeBranch;
-  //   // cout << "'trick' done" << endl;
-  //   // cout << *this << endl;
-  //   return;
-  // }
-  // if (node->lhs.isTerm()) {
-  //   // cout << "doing 'trick'" << endl;
-  //   // cout << *this << endl;
-  //   auto lhst = node->lhs.term();
-  //   if (!lhst->arity()) {
-  //     *_curr = node->ngeBranch;
-  //     // cout << "'trick' done" << endl;
-  //     // cout << *this << endl;
-  //     return;
-  //   }
-  //   // TODO: careful, we may need to extend KBO to
-  //   // comparison between types and terms for this
-  //   node->lhs = *lhst->nthArgument(0);
-  //   node->eqBranch = node->gtBranch;
-  //   auto curr = &node->ngeBranch;
-  //   auto ngeBranch = node->ngeBranch;
+  // under this mode we don't allow any comparison with terms
+  if (_onlyVars) {
+    if (node->rhs.isTerm()) {
+      ASS(node->lhs.isVar());
+      *_curr = node->ngeBranch;
+      return;
+    }
+    if (node->lhs.isTerm()) {
+      auto lhst = node->lhs.term();
+      if (!lhst->arity()) {
+        *_curr = node->ngeBranch;
+        return;
+      }
+      // TODO: careful, we may need to extend KBO to
+      // comparison between types and terms for this
+      node->lhs = *lhst->nthArgument(0);
+      node->eqBranch = node->gtBranch;
+      auto curr = &node->ngeBranch;
+      auto ngeBranch = node->ngeBranch;
 
-  //   for (unsigned i = 1; i < lhst->arity(); i++) {
-  //     auto arg = *lhst->nthArgument(i);
-  //     *curr = Branch(arg,node->rhs);
-  //     curr->node()->gtBranch = node->gtBranch;
-  //     curr->node()->eqBranch = node->gtBranch;
-  //     curr = &curr->node()->ngeBranch;
-  //   }
-  //   *curr = ngeBranch;
-  //   // cout << "'trick' done" << endl;
-  //   // cout << *this << endl;
-  //   return;
-  // }
+      for (unsigned i = 1; i < lhst->arity(); i++) {
+        auto arg = *lhst->nthArgument(i);
+        *curr = Branch(arg,node->rhs);
+        curr->node()->gtBranch = node->gtBranch;
+        curr->node()->eqBranch = node->gtBranch;
+        curr = &curr->node()->ngeBranch;
+      }
+      *curr = ngeBranch;
+      return;
+    }
+  }
 
   auto trace = getCurrentTrace();
 
@@ -1033,13 +1027,13 @@ void OrderingComparator::Subsumption::pushNext()
 }
 
 OrderingComparator::RedundancyCheck::RedundancyCheck(const Ordering& ord, Literal* lit)
-  : comp(ord.createComparator())
+  : comp(ord.createComparator(/*onlyVars=*/true))
 {
   comp->insert(OrderingConstraints(), lit);
   path.push(&comp->_source);
 }
 
-Literal* OrderingComparator::RedundancyCheck::next(OrderingConstraints ordCons, Literal* lit)
+std::pair<Literal*,const TermPartialOrdering*> OrderingComparator::RedundancyCheck::next(OrderingConstraints ordCons, Literal* lit)
 {
   static Ordering::Result ordVals[] = { Ordering::EQUAL, Ordering::GREATER, Ordering::INCOMPARABLE };
   ASS(path.isNonEmpty());
@@ -1057,8 +1051,8 @@ Literal* OrderingComparator::RedundancyCheck::next(OrderingConstraints ordCons, 
   curr->node()->~Node();
   curr->node()->ready = false;
 
-  Branch origB(currLit, Branch());
-  Branch newB = lit ? Branch(lit, Branch()) : comp->_sink;
+  Branch origB(currLit, comp->_sink);
+  Branch newB = lit ? Branch(lit, comp->_sink) : comp->_sink;
 
   if (ordCons.isNonEmpty()) {
     curr->node()->tag = T_TERM;
@@ -1082,9 +1076,13 @@ Literal* OrderingComparator::RedundancyCheck::next(OrderingConstraints ordCons, 
     }
     *curr = newB;
   } else {
-    curr->node()->tag = T_DATA;
-    curr->node()->data = lit;
-    curr->node()->ready = true;
+    if (lit) {
+      curr->node()->tag = T_DATA;
+      curr->node()->data = lit;
+      curr->node()->alternative = comp->_sink;
+    } else {
+      *curr = comp->_sink;
+    }
   }
 
   // cout << "after" << endl;
@@ -1105,8 +1103,7 @@ Literal* OrderingComparator::RedundancyCheck::next(OrderingConstraints ordCons, 
       continue;
     }
 
-    auto trace = node->trace ? node->trace : comp->getCurrentTrace();
-    if (!trace || trace->hasIncomp()) {
+    if (!node->trace || node->trace->hasIncomp()) {
       // invalid branch, continue
       pushNext();
       continue;
@@ -1114,13 +1111,13 @@ Literal* OrderingComparator::RedundancyCheck::next(OrderingConstraints ordCons, 
 
     if (node->tag == BranchTag::T_DATA) {
       ASS(node->data);
-      return (Literal*)node->data;
+      return { (Literal*)node->data, node->trace };
     }
     path.push(&node->gtBranch);
   }
 
   ASS(path.isEmpty());
-  return nullptr;
+  return { nullptr, nullptr };
 }
 
 void OrderingComparator::RedundancyCheck::pushNext()

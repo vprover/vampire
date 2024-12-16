@@ -35,7 +35,7 @@ struct OrderingComparator
 protected:
   struct Branch;
 public:
-  OrderingComparator(const Ordering& ord);
+  OrderingComparator(const Ordering& ord, bool onlyVars);
   virtual ~OrderingComparator();
 
   void reset() { _curr = &_source; _prev = nullptr; /* _trace.reset(); */ }
@@ -63,7 +63,7 @@ public:
   class RedundancyCheck {
   public:
     RedundancyCheck(const Ordering& ord, Literal* lit);
-    Literal* next(OrderingConstraints cons, Literal* lit);
+    std::pair<Literal*,const TermPartialOrdering*> next(OrderingConstraints cons, Literal* lit);
 
   private:
     void pushNext();
@@ -224,6 +224,7 @@ protected:
   Branch* _curr;
   Branch* _prev;
   // Trace _trace;
+  bool _onlyVars;
 };
 
 } // namespace Kernel

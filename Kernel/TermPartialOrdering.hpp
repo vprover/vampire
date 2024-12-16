@@ -33,7 +33,7 @@ public:
   TermPartialOrdering(const Ordering& ord) : _ord(ord), _po(PartialOrdering::getEmpty()) {}
   ~TermPartialOrdering() = default;
 
-  bool get(TermList lhs, TermList rhs, Result& res) const;
+  bool get(TermList lhs, TermList rhs, Result& res, bool flag = false) const;
   bool set(Ordering::Constraint con);
 
   static const TermPartialOrdering* getEmpty(const Ordering& ord);

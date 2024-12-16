@@ -76,6 +76,18 @@ Ordering::Result KBO::State::innerResult(TermList tl1, TermList tl2)
 {
   ASS(!TermList::sameTopFunctor(tl1,tl2));
 
+  if (_tpo && tl1.isVar()) {
+    if (tl2.isVar()) {
+      ASS(!_weightDiff);
+      Result res;
+      if (_tpo->get(tl1, tl2, res)) {
+        return res;
+      }
+      return Ordering::INCOMPARABLE;
+    }
+    return Ordering::LESS;
+  }
+
   if(_posNum>0 && _negNum>0) {
     return INCOMPARABLE;
   }
@@ -230,7 +242,7 @@ Ordering::Result KBO::State::traverseLexBidir(AppliedTerm tl1, AppliedTerm tl2)
       if(_lexResult==EQUAL) {
         _lexResult=innerResult(s.term, t.term);
         lexValidDepth=depth;
-        ASS(_lexResult!=EQUAL);
+        ASS(_lexResult!=EQUAL || _tpo);
       }
     }
   }
@@ -767,7 +779,7 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
   return compare(AppliedTerm(tl1),AppliedTerm(tl2));
 }
 
-Ordering::Result KBO::compare(AppliedTerm tl1, AppliedTerm tl2) const
+Ordering::Result KBO::compare(AppliedTerm tl1, AppliedTerm tl2, const TermPartialOrdering* tpo) const
 {
   if(tl1.equalsShallow(tl2)) {
     return EQUAL;
@@ -792,7 +804,7 @@ Ordering::Result KBO::compare(AppliedTerm tl1, AppliedTerm tl2) const
   _state=0;
 #endif
 
-  state->init();
+  state->init(tpo);
   Result res;
   if(t1->functor()==t2->functor()) {
     res = state->traverseLexBidir(tl1,tl2);
@@ -874,9 +886,9 @@ Ordering::Result KBO::isGreaterOrEq(AppliedTerm tl1, AppliedTerm tl2) const
   return res;
 }
 
-OrderingComparatorUP KBO::createComparator() const
+OrderingComparatorUP KBO::createComparator(bool onlyVars) const
 {
-  return make_unique<KBOComparator>(*this);
+  return make_unique<KBOComparator>(*this, onlyVars);
 }
 
 int KBO::symbolWeight(const Term* t) const
