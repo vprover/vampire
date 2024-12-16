@@ -44,23 +44,22 @@ namespace Kernel
 struct VarSpec
 {
   VarSpec() {}
-  VarSpec(TermList var, int index) : _code( 2 * var.var() + uint32_t(var.isSpecialVar()) ), index(index) {}
+  VarSpec(TermList var, int index) : _self(var), index(index) { ASS(var.isVar()) }
 
   friend std::ostream& operator<<(std::ostream& out, VarSpec const& self);
 
-  /* we can store the variable + one bit to indicate whether it's a there is only 22 bits for variable number used in TermList */
-  uint32_t _code;
+  TermList _self;
   /** index of variable bank */
   int index;
-  bool special() const { return _code % 2; }
-  unsigned var() const { return _code / 2; }
+  bool special() const { return _self.isSpecialVar(); }
+  unsigned var() const { return _self.var(); }
   TermList varAsTermlist() const { return TermList::var(var(), special()); }
 
-  auto asTuple() const { return std::tie(_code, index); }
+  auto asTuple() const { return std::tie(_self, index); }
   IMPL_COMPARISONS_FROM_TUPLE(VarSpec)
 
-  unsigned defaultHash () const { return HashUtils::combine(_code, index); }
-  unsigned defaultHash2() const { return HashUtils::combine(index, _code); }
+  unsigned defaultHash () const { return HashUtils::combine(_self.content(), index); }
+  unsigned defaultHash2() const { return HashUtils::combine(index, _self.content()); }
 };
 
 struct TermSpec {

@@ -92,7 +92,7 @@ void checkLiteralMatches(LiteralSubstitutionTree<LiteralClause>& index, Options:
 
     is.push(LiteralUnificationResultSpec {
         .querySigma = qr.unifier->subs().apply(lit, /* result */ subsTreeQueryBank(0)),
-        .resultSigma = qr.unifier->subs().apply(qr.data->literal, /* result */ subsTreeResultBank(0)),
+        .resultSigma = qr.unifier->subs().apply(qr.data->literal, /* result */ subsTreeInternalBank(0)),
         .constraints = *qr.unifier->constr().literals(qr.unifier->subs()),
     });
   }
@@ -122,7 +122,7 @@ void checkTermMatchesWithUnifFun(TermSubstitutionTree<TermWithoutValue>& index, 
   for (auto qr : iterTraits(unifFun(index, term))) {
     is.push(TermUnificationResultSpec {
         .querySigma  = qr.unifier->subs().apply(term, /* result */ subsTreeQueryBank(0)),
-        .resultSigma = qr.unifier->subs().apply(qr.data->term, /* result */ subsTreeResultBank(0)),
+        .resultSigma = qr.unifier->subs().apply(qr.data->term, /* result */ subsTreeInternalBank(0)),
         .constraints = *qr.unifier->constr().literals(qr.unifier->subs()),
     });
   }
