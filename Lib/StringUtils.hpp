@@ -59,23 +59,7 @@ template<> struct StringParser<float>
   { return atof(str.c_str()); }
 };
 
-template<class... Cs>
-std::string outputToString(Cs const&... xs) {
-  std::stringstream out;
-  out << Kernel::Output::cat(xs...);
-  return out.str();
-}
 
-// TODO deprecate
-template<class A>
-std::string toString(A const& a) {
-  std::stringstream out;
-  out << a;
-  return out.str();
-}
-
-
-
-}
+} // namespace Lib
 
 #endif // __StringUtils__
