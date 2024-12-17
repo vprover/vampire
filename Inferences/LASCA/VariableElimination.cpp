@@ -81,10 +81,6 @@ Option<VariableElimination::AnyFoundVariable> VariableElimination::findUnshielde
                  else if (k.isNegative()) found.negIneq.push(std::move(entry));
                  else { ASSERTION_VIOLATION_REP(*premise) }
                  break;
-                 // TODO remove
-              case LascaPredicate::IS_INT_NEG:
-              case LascaPredicate::IS_INT_POS:
-                 ASSERTION_VIOLATION_REP("the isInt predicate is legacy code. we use the floor function now instead. this code should be removed in the future")
               }
             }
           } else {

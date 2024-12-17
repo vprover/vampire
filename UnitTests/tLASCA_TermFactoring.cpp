@@ -87,15 +87,6 @@ TEST_GENERATION(basic01b,
           clause({ 2 * g(a, b) > 0 })
       )))
 
-TEST_GENERATION(isInt_basic01a,
-    Generation::SymmetricTest()
-      .inputs  ({  clause({isInt( g(a, x) + g(y, b)) }) })
-      .expected(exactly(
-          clause({ isInt(2 * g(a, b)) })
-      )))
-
-
-
 // checking different symbols
 
 
@@ -111,8 +102,6 @@ test_basic03([](auto x){ return x >= 0; }, geq)
 test_basic03([](auto x){ return x >  0; }, greater)
 test_basic03([](auto x){ return x == 0; }, eq)
 test_basic03([](auto x){ return x != 0; }, neq)
-test_basic03([](auto x){ return  isInt(x); }, isInt)
-test_basic03([](auto x){ return ~isInt(x); }, nIsInt)
 
 TEST_GENERATION(basic02,
     Generation::SymmetricTest()
@@ -183,13 +172,6 @@ TEST_GENERATION(lit_max_after_unif_2,
       )))
 
 // checking (k1 s1 + k2 s2 + t <> 0) /≺ Cσ
-TEST_GENERATION(lit_max_after_unif_3_isInt,
-    Generation::SymmetricTest()
-      .inputs  ({        clause({ selected( isInt(f(x) +  -f(a)) ), f(z) > 0 }) })
-      .expected(exactly( clause({ selected( isInt(     0 * f(a)) ), f(z) > 0 }) )))
-
-
-// checking (k1 s1 + k2 s2 + t <> 0) /≺ Cσ
 TEST_GENERATION(lit_max_after_unif_3,
     Generation::SymmetricTest()
       .inputs  ({        clause({ selected( f(x) +  -f(a) > 0 ), f(z) > 0 }) })
@@ -200,11 +182,6 @@ TEST_GENERATION(term_max_after_unif_0,
       .inputs  ({        clause({ f(a + b) + -f(a + b + c) > 0 }) })
       .expected(exactly(                               )))
 
-
-TEST_GENERATION(term_max_after_unif_0_isInt,
-    Generation::SymmetricTest()
-      .inputs  ({        clause({ isInt(f(a + b) + -f(a + b + c)) }) })
-      .expected(exactly(                               )))
 
 // checking s1σ /≺ terms(s2 + t)σ
 // checking s2σ /≺ terms(s1 + t)σ
